@@ -31,7 +31,10 @@ export function hostedPlayActionLogForResult(
       cooldownMs: LONG_COOLDOWN_MS,
     };
   }
-  if ((result.objectiveId.startsWith('hunt_') || result.objectiveId.startsWith('collect_')) && questName) {
+  if (
+    (result.objectiveId.startsWith('hunt_') || result.objectiveId.startsWith('collect_')) &&
+    questName
+  ) {
     return {
       key: `quest:${result.objectiveQuestId}`,
       text: `Hosted play: working on ${questName}.`,

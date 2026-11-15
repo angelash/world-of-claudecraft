@@ -26,6 +26,35 @@ import {
   percentileTierBadgeDataUrl,
   percentileTierForPercent,
 } from '../../percentile_tier';
+import {
+  CARD_H,
+  CARD_W,
+  CHIP_H,
+  CHIP_Y,
+  cardTitleLayout,
+  DEV_BADGE_CX,
+  DEV_BADGE_CY,
+  DEV_BADGE_R,
+  GEAR_ROW_H,
+  GEAR_W,
+  GEAR_Y,
+  gearPanelHeight,
+  HEADER_RIGHT_EDGE,
+  HEADER_X,
+  HOLDER_BADGE_CX,
+  HOLDER_BADGE_CY,
+  HOLDER_BADGE_R,
+  holderBadgeTextLayout,
+  NAME_BASELINE,
+  REALM_BASELINE,
+  STATS_H,
+  STATS_W,
+  STATS_Y,
+  SUBTITLE_BASELINE,
+  statRowHeight,
+} from './card_layout';
+
+export { cardTitleLayout } from './card_layout';
 
 export interface PlayerCardStat {
   label: string;
@@ -47,8 +76,9 @@ export interface PlayerCardData {
   level: number;
   /** Realm name, or '' in offline play (then a generic subtitle is used). */
   realm: string;
-  /** PNG data URL of the character close-up (transparent background). */
-  characterImage: string;
+  /** Character close-up with a transparent background. Live captures stay as
+   *  an unencoded canvas; data URLs remain supported for fixtures/callers. */
+  characterImage: string | HTMLCanvasElement;
   /** STR / AGI / STA / INT / SPI / Armor. */
   primaryStats: PlayerCardStat[];
   /** Attack power, DPS, crit, dodge, etc. */
@@ -75,22 +105,31 @@ export interface PlayerCardData {
   siteUrl: string;
 }
 
-export const CARD_W = 1200;
-export const CARD_H = 630;
-const SCALE = 2; // render at 2× for crisp text, then the canvas is 2400×1260
+const SCALE = 1; // native Open Graph size; already denser than the 680px preview
 
-const COL = {
-  bgTop: '#1d1409',
-  bgBottom: '#0a0805',
-  frame: '#b8902f',
-  frameInner: '#3a2d12',
-  gold: '#ffd100',
-  goldDim: '#caa64a',
-  cream: '#ece2c4',
-  muted: '#9b8b62',
-  panel: 'rgba(0,0,0,0.34)',
-  panelEdge: 'rgba(255,209,0,0.14)',
-};
+export const PLAYER_CARD_COLOR_TOKENS = {
+  bgTop: '--color-player-card-bg-hi',
+  bgBottom: '--color-player-card-bg-lo',
+  frame: '--border',
+  frameInner: '--color-control-border',
+  gold: '--color-accent',
+  goldDim: '--gold-dim',
+  cream: '--color-text-light',
+  muted: '--color-text-muted',
+  keyline: '--color-keyline',
+  chipInk: '--color-player-card-chip-ink',
+} as const;
+
+type PlayerCardColors = Record<keyof typeof PLAYER_CARD_COLOR_TOKENS, string>;
+
+function resolvePlayerCardColors(): PlayerCardColors {
+  const styles = getComputedStyle(document.documentElement);
+  const colors = {} as PlayerCardColors;
+  for (const key of Object.keys(PLAYER_CARD_COLOR_TOKENS) as (keyof PlayerCardColors)[]) {
+    colors[key] = styles.getPropertyValue(PLAYER_CARD_COLOR_TOKENS[key]).trim();
+  }
+  return colors;
+}
 
 /** A selectable pose for the card avatar. `clips` is tried in order against the
  *  model (first present wins; Idle is the universal fallback); `fraction` is the
@@ -179,44 +218,18 @@ function fillTextClamped(
     return;
   }
   let s = text;
-  while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
-  ctx.fillText(s + '…', x, y);
+  while (s.length > 1 && ctx.measureText(`${s}…`).width > maxW) s = s.slice(0, -1);
+  ctx.fillText(`${s}…`, x, y);
 }
 
 const TITLE_FONT = 'Cinzel, Georgia, serif';
 const BODY_FONT = '"Alegreya Sans", "Segoe UI", system-ui, sans-serif';
-
-// The header text column: every header line (name, subtitle, realm, title)
-// starts here, clamped left of the right-edge column that keeps text clear of
-// the top-right brand mark. Shared by drawHeader and cardTitleLayout so the
-// title line can never drift from the header origin.
-const HEADER_X = 478;
-const HEADER_RIGHT_EDGE = 1018;
 
 // The full brand lockup (C-shield emblem + "WORLD OF CLAUDECRAFT" wordmark),
 // served from /public. Same-origin, so drawing it does not taint the canvas.
 // Loaded best-effort: if it's missing the footer falls back to a text wordmark
 // rather than failing the whole card.
 const LOGO_URL = '/woc-logo-hero.webp';
-
-/** Where the title line sits on the header, or null when nothing may draw.
- *  Pure (no canvas): the caller passes the measured realm-line width so the
- *  title starts past it on the same y=158 baseline, clamped left of the
- *  RIGHT_EDGE (1018) column every header line respects. Null for an absent /
- *  empty / whitespace titleText, and for a residual box too narrow to read,
- *  which is what keeps an untitled card byte-identical (the one draw call is
- *  guarded on this returning non-null). */
-export function cardTitleLayout(
-  titleText: string | undefined,
-  realmLineWidth: number,
-): { text: string; x: number; y: number; maxW: number } | null {
-  const text = (titleText ?? '').trim();
-  if (!text) return null;
-  const x = HEADER_X + Math.ceil(realmLineWidth) + 16;
-  const maxW = HEADER_RIGHT_EDGE - x;
-  if (maxW < 40) return null; // an extreme realm line: skip rather than clip to noise
-  return { text, x, y: 158, maxW };
-}
 
 /** Format a realm percentile as a card chip label. */
 function formatTopPercent(pct: number): string {
@@ -228,7 +241,7 @@ function formatTopPercent(pct: number): string {
 }
 
 /**
- * Composite the player card and return the canvas (2400×1260). The caller can
+ * Composite the player card and return the canvas (1200x630). The caller can
  * scale it for preview or export it to a PNG blob. Fonts are awaited so the
  * brand typefaces are used rather than a fallback.
  */
@@ -247,7 +260,9 @@ export async function renderPlayerCardCanvas(data: PlayerCardData): Promise<HTML
   const pctTier = percentileTierForPercent(data.topPercent);
   const devTier = devTierByIndex(data.devTier ?? 0);
   const [charImg, badgeImg, logoImg, pctBadgeImg, devBadgeImg] = await Promise.all([
-    loadImage(data.characterImage),
+    typeof data.characterImage === 'string'
+      ? loadImage(data.characterImage)
+      : Promise.resolve(data.characterImage),
     tier ? loadImage(holderTierBadgeDataUrl(tier, 256)) : Promise.resolve(null),
     loadImage(LOGO_URL).catch(() => null), // best-effort brand mark
     pctTier
@@ -261,46 +276,55 @@ export async function renderPlayerCardCanvas(data: PlayerCardData): Promise<HTML
   const canvas = document.createElement('canvas');
   canvas.width = CARD_W * SCALE;
   canvas.height = CARD_H * SCALE;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('player-card: could not create canvas context');
   ctx.scale(SCALE, SCALE);
   ctx.textBaseline = 'alphabetic';
+  const colors = resolvePlayerCardColors();
 
-  drawBackdrop(ctx, data.classColor);
+  drawBackdrop(ctx, data.classColor, colors);
   drawCharacter(ctx, charImg);
-  drawHeader(ctx, data, pctBadgeImg, pctTier);
-  if (devTier && devBadgeImg) drawDevBadge(ctx, devTier, devBadgeImg, data.devMergedPrs);
-  if (tier && badgeImg) drawBadge(ctx, tier, badgeImg, data.balance);
-  drawStats(ctx, data);
-  drawGear(ctx, data);
-  drawFooter(ctx, data, logoImg);
-  drawFrame(ctx, data.classColor);
+  drawHeader(ctx, data, pctBadgeImg, pctTier, colors);
+  if (devTier && devBadgeImg) drawDevBadge(ctx, devTier, devBadgeImg, data.devMergedPrs, colors);
+  if (tier && badgeImg) drawBadge(ctx, tier, badgeImg, data.balance, colors);
+  drawStats(ctx, data, colors);
+  drawGear(ctx, data, colors);
+  drawFooter(ctx, data, logoImg, colors);
+  drawFrame(ctx, data.classColor, colors);
 
   return canvas;
 }
 
-function drawBackdrop(ctx: CanvasRenderingContext2D, accent: string): void {
+function drawBackdrop(
+  ctx: CanvasRenderingContext2D,
+  accent: string,
+  colors: PlayerCardColors,
+): void {
   const g = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
-  g.addColorStop(0, COL.bgTop);
-  g.addColorStop(1, COL.bgBottom);
+  g.addColorStop(0, colors.bgTop);
+  g.addColorStop(1, colors.bgBottom);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
 
   // Soft accent wash behind the character (class-coloured).
   const halo = ctx.createRadialGradient(230, 330, 40, 230, 330, 360);
-  halo.addColorStop(0, hexWithAlpha(accent, 0.34));
-  halo.addColorStop(1, hexWithAlpha(accent, 0));
+  halo.addColorStop(0, colorWithAlpha(accent, 0.34));
+  halo.addColorStop(1, colorWithAlpha(accent, 0));
   ctx.fillStyle = halo;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
 
   // Vignette.
   const vig = ctx.createRadialGradient(CARD_W / 2, CARD_H / 2, 200, CARD_W / 2, CARD_H / 2, 720);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+  vig.addColorStop(0, colorWithAlpha(colors.keyline, 0));
+  vig.addColorStop(1, colorWithAlpha(colors.keyline, 0.5));
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, CARD_W, CARD_H);
 }
 
-function drawCharacter(ctx: CanvasRenderingContext2D, img: HTMLImageElement): void {
+function drawCharacter(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | HTMLCanvasElement,
+): void {
   // Fit the portrait into the left third, anchored to the bottom so feet sit on
   // the frame. The capture is transparent, so it composites over the backdrop.
   const boxX = 24;
@@ -320,14 +344,15 @@ function drawHeader(
   data: PlayerCardData,
   pctBadge: HTMLImageElement | null,
   pctTier: PercentileTier | null,
+  colors: PlayerCardColors,
 ): void {
   const x = HEADER_X;
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowColor = colorWithAlpha(colors.keyline, 0.6);
   ctx.shadowBlur = 8;
-  ctx.fillStyle = COL.gold;
+  ctx.fillStyle = colors.gold;
   ctx.font = `700 58px ${TITLE_FONT}`;
-  fillTextClamped(ctx, data.name, x, 96, 540);
+  fillTextClamped(ctx, data.name, x, NAME_BASELINE, 540);
   ctx.restore();
 
   const sub = t('playerCard.levelClass', {
@@ -342,8 +367,8 @@ function drawHeader(
   // medal + chip off the right edge.
   const RIGHT_EDGE = HEADER_RIGHT_EDGE; // keep the flex left of the brand mark (matches the name's clamp)
   const padX = 12;
-  const chipY = 109;
-  const chipH = 26;
+  const chipY = CHIP_Y;
+  const chipH = CHIP_H;
   const hasFlex = data.topPercent !== null;
   const label = hasFlex ? formatTopPercent(data.topPercent as number) : '';
   ctx.font = `700 16px ${BODY_FONT}`;
@@ -351,10 +376,10 @@ function drawHeader(
   const medalW = hasFlex && pctTier && pctBadge ? chipH + 14 : 0;
   const reserved = hasFlex ? 16 + medalW + tw + padX * 2 : 0;
 
-  ctx.fillStyle = COL.cream;
+  ctx.fillStyle = colors.cream;
   ctx.font = `600 24px ${BODY_FONT}`;
   const maxSubW = RIGHT_EDGE - x - reserved;
-  fillTextClamped(ctx, sub, x, 130, maxSubW);
+  fillTextClamped(ctx, sub, x, SUBTITLE_BASELINE, maxSubW);
   const subW = Math.min(ctx.measureText(sub).width, maxSubW);
 
   if (hasFlex) {
@@ -371,29 +396,27 @@ function drawHeader(
       );
       cursorX += medalW; // the medal box's transparent margin spaces it from the tile
     }
-    ctx.fillStyle = pctTier ? pctTier.ring : COL.gold;
+    ctx.fillStyle = pctTier ? pctTier.ring : colors.gold;
     roundRect(ctx, cursorX, chipY, tw + padX * 2, chipH, 13);
     ctx.fill();
-    ctx.fillStyle = '#1c1407';
+    ctx.fillStyle = colors.chipInk;
     ctx.font = `700 16px ${BODY_FONT}`;
     ctx.fillText(label, cursorX + padX, chipY + 18);
   }
 
-  ctx.fillStyle = COL.muted;
+  ctx.fillStyle = colors.muted;
   ctx.font = `400 19px ${BODY_FONT}`;
   const realmLine = data.realm
     ? t('playerCard.realmSubtitle', { realm: data.realm })
     : t('playerCard.defaultRealm');
-  ctx.fillText(realmLine, x, 158);
+  ctx.fillText(realmLine, x, REALM_BASELINE);
 
-  // The selected Book of Deeds title, a small gold read beside the realm line.
-  // The header stack under the name is fully allocated (subtitle + flex chip
-  // y109-135, realm y158, dev badge band y168-190, stats panel y196), so the
-  // title shares the realm baseline instead of claiming a new line: an
-  // untitled card draws NOTHING here and stays byte-identical.
-  const titleLine = cardTitleLayout(data.titleText, ctx.measureText(realmLine).width);
+  // The selected Book of Deeds title now gets its own row below the realm
+  // line (see card_layout.ts), so a long title never fights the realm text
+  // for the same baseline: an untitled card draws NOTHING here still.
+  const titleLine = cardTitleLayout(data.titleText);
   if (titleLine) {
-    ctx.fillStyle = COL.goldDim;
+    ctx.fillStyle = colors.goldDim;
     ctx.font = `600 19px ${BODY_FONT}`;
     fillTextClamped(ctx, titleLine.text, titleLine.x, titleLine.y, titleLine.maxW);
   }
@@ -404,21 +427,23 @@ function drawBadge(
   tier: HolderTier,
   badge: HTMLImageElement,
   balance: number | null,
+  colors: PlayerCardColors,
 ): void {
   // Bottom-left of the right column (the footer band), swapped with the brand
   // mark, which now sits top-right. Badge on the left, tier + balance to its right.
   // Compact badge with a tight glow so it sits inside the footer band without
-  // bleeding up into the gear panel above (which ends at y≈530).
-  const r = 30;
-  const cx = 478 + r;
-  const cy = 575;
+  // bleeding up into the gear panel above it (see GEAR_Y/gearPanelHeight in
+  // card_layout.ts, which keeps the gear panel's own bottom clear of this band).
+  const r = HOLDER_BADGE_R;
+  const cx = HOLDER_BADGE_CX;
+  const cy = HOLDER_BADGE_CY;
   ctx.save();
-  ctx.shadowColor = hexWithAlpha(tier.glow, 0.9);
+  ctx.shadowColor = colorWithAlpha(tier.glow, 0.9);
   ctx.shadowBlur = 8;
   ctx.drawImage(badge, cx - r, cy - r, r * 2, r * 2);
   ctx.restore();
 
-  const left = cx + r + 16;
+  const { left, maxW } = holderBadgeTextLayout();
   ctx.textAlign = 'left';
   // Tier name.
   ctx.fillStyle = tier.ring;
@@ -428,41 +453,46 @@ function drawBadge(
     left,
     cy - 13,
   );
-  // The actual on-chain bag: the flex.
+  // The actual on-chain bag: the flex. Clamp width is the panel's measured
+  // run to the footer band, not a fixed guess, so a long localized balance
+  // string gets real room instead of truncating early on a wide card.
   if (balance !== null) {
-    ctx.fillStyle = COL.gold;
+    ctx.fillStyle = colors.gold;
     ctx.font = `700 20px ${BODY_FONT}`;
     fillTextClamped(
       ctx,
       t('wallet.balanceAmount', { amount: formatWoc(balance) }),
       left,
       cy + 10,
-      210,
+      maxW,
     );
   }
   // Flavour line.
-  ctx.fillStyle = COL.muted;
+  ctx.fillStyle = colors.muted;
   ctx.font = `400 12px ${BODY_FONT}`;
-  fillTextClamped(ctx, holderTierFlavorText(tier), left, cy + 28, 220);
+  fillTextClamped(ctx, holderTierFlavorText(tier), left, cy + 28, maxW);
 }
 
-// The developer badge sits in the free band between the realm subtitle (whose
-// glyphs end around y=162) and the stats panel (y=196), in the right column: a
-// compact badge with the rung name and the merged-PR count, reading as an
+// The developer badge sits in the free band below the title row and above
+// the stats panel (see DEV_BADGE_CY / STATS_Y in card_layout.ts), in the
+// right column: a compact badge with the rung name and the merged-PR count,
+// reading as an
 // earned honor like the percentile medal above it. Sized + centred (r=11,
-// cy=179) to keep clearance on both sides even for a tall non-Latin glyph (the
-// rung name is short by design: see hudChrome.devBadge.tiers.*).
+// see DEV_BADGE_CY in card_layout.ts) to keep clearance on both sides even
+// for a tall non-Latin glyph (the rung name is short by design: see
+// hudChrome.devBadge.tiers.*).
 function drawDevBadge(
   ctx: CanvasRenderingContext2D,
   tier: DevTier,
   badge: HTMLImageElement,
   mergedPrs: number | null,
+  colors: PlayerCardColors,
 ): void {
-  const r = 11;
-  const cx = 478 + r;
-  const cy = 179;
+  const r = DEV_BADGE_R;
+  const cx = DEV_BADGE_CX;
+  const cy = DEV_BADGE_CY;
   ctx.save();
-  ctx.shadowColor = hexWithAlpha(tier.glow, 0.9);
+  ctx.shadowColor = colorWithAlpha(tier.glow, 0.9);
   ctx.shadowBlur = 6;
   ctx.drawImage(badge, cx - r, cy - r, r * 2, r * 2);
   ctx.restore();
@@ -475,7 +505,7 @@ function drawDevBadge(
   ctx.fillText(name, left, cy + 4);
   if (mergedPrs !== null) {
     const nameW = ctx.measureText(name).width;
-    ctx.fillStyle = COL.muted;
+    ctx.fillStyle = colors.muted;
     ctx.font = `400 12px ${BODY_FONT}`;
     fillTextClamped(
       ctx,
@@ -489,24 +519,31 @@ function drawDevBadge(
   }
 }
 
-function drawStats(ctx: CanvasRenderingContext2D, data: PlayerCardData): void {
-  const x = 478;
-  const y = 196;
-  const w = 690;
-  const h = 196;
-  ctx.fillStyle = COL.panel;
+function drawStats(
+  ctx: CanvasRenderingContext2D,
+  data: PlayerCardData,
+  colors: PlayerCardColors,
+): void {
+  const x = HEADER_X;
+  const y = STATS_Y;
+  const w = STATS_W;
+  const h = STATS_H;
+  ctx.fillStyle = colorWithAlpha(colors.keyline, 0.34);
   roundRect(ctx, x, y, w, h, 12);
   ctx.fill();
-  ctx.strokeStyle = COL.panelEdge;
+  ctx.strokeStyle = colorWithAlpha(colors.gold, 0.14);
   ctx.lineWidth = 1.5;
   roundRect(ctx, x, y, w, h, 12);
   ctx.stroke();
 
-  // Two stat blocks side by side: attributes (left) and combat (right).
+  // Two stat blocks side by side: attributes (left) and combat (right). Row
+  // height comes from the actual row count (arena rating / prestige can add
+  // up to two extra combat rows), so a fully populated column still fits the
+  // fixed-height panel instead of running past it.
   const padX = 26;
   const colW = (w - padX * 2) / 2;
-  drawStatColumn(ctx, data.primaryStats, x + padX, y + 22, colW - 20);
-  drawStatColumn(ctx, data.combatStats, x + padX + colW + 8, y + 22, colW - 20);
+  drawStatColumn(ctx, data.primaryStats, x + padX, y + 22, colW - 20, h, colors);
+  drawStatColumn(ctx, data.combatStats, x + padX + colW + 8, y + 22, colW - 20, h, colors);
 }
 
 function drawStatColumn(
@@ -515,30 +552,36 @@ function drawStatColumn(
   x: number,
   y: number,
   w: number,
+  panelH: number,
+  colors: PlayerCardColors,
 ): void {
-  const rowH = 27;
+  const rowH = statRowHeight(stats.length, panelH);
   ctx.font = `600 20px ${BODY_FONT}`;
   for (let i = 0; i < stats.length; i++) {
     const ry = y + i * rowH + 18;
-    ctx.fillStyle = COL.muted;
+    ctx.fillStyle = colors.muted;
     ctx.textAlign = 'left';
     ctx.fillText(stats[i].label, x, ry);
-    ctx.fillStyle = COL.cream;
+    ctx.fillStyle = colors.cream;
     ctx.textAlign = 'right';
     ctx.fillText(stats[i].value, x + w, ry);
   }
   ctx.textAlign = 'left';
 }
 
-function drawGear(ctx: CanvasRenderingContext2D, data: PlayerCardData): void {
-  const x = 478;
-  const y = 412;
-  const w = 690;
-  const h = 118;
-  ctx.fillStyle = COL.panel;
+function drawGear(
+  ctx: CanvasRenderingContext2D,
+  data: PlayerCardData,
+  colors: PlayerCardColors,
+): void {
+  const x = HEADER_X;
+  const y = GEAR_Y;
+  const w = GEAR_W;
+  const h = gearPanelHeight(data.gear.length);
+  ctx.fillStyle = colorWithAlpha(colors.keyline, 0.34);
   roundRect(ctx, x, y, w, h, 12);
   ctx.fill();
-  ctx.strokeStyle = COL.panelEdge;
+  ctx.strokeStyle = colorWithAlpha(colors.gold, 0.14);
   ctx.lineWidth = 1.5;
   roundRect(ctx, x, y, w, h, 12);
   ctx.stroke();
@@ -549,8 +592,8 @@ function drawGear(ctx: CanvasRenderingContext2D, data: PlayerCardData): void {
     const col = i % 2;
     const rowIdx = Math.floor(i / 2);
     const gx = x + padX + col * colW;
-    const gy = y + 20 + rowIdx * 44;
-    ctx.fillStyle = COL.muted;
+    const gy = y + 20 + rowIdx * GEAR_ROW_H;
+    ctx.fillStyle = colors.muted;
     ctx.font = `600 15px ${BODY_FONT}`;
     ctx.fillText(data.gear[i].slot.toUpperCase(), gx, gy);
     ctx.fillStyle = data.gear[i].color;
@@ -563,6 +606,7 @@ function drawFooter(
   ctx: CanvasRenderingContext2D,
   data: PlayerCardData,
   logo: HTMLImageElement | null,
+  colors: PlayerCardColors,
 ): void {
   const y = CARD_H - 26;
   // Brand mark: the full logo lockup, else a plain text wordmark, top-right now
@@ -574,7 +618,7 @@ function drawFooter(
     ctx.drawImage(logo, 1156 - w, 38, w, h);
   } else {
     ctx.textAlign = 'right';
-    ctx.fillStyle = COL.gold;
+    ctx.fillStyle = colors.gold;
     ctx.font = `700 34px ${TITLE_FONT}`;
     ctx.fillText(t('playerCard.brandWordmark'), 1156, 100);
     ctx.textAlign = 'left';
@@ -583,7 +627,7 @@ function drawFooter(
   // Referral line stays bottom-right; URL clamp trimmed so it clears the badge
   // block now occupying the bottom-left.
   ctx.textAlign = 'right';
-  ctx.fillStyle = COL.cream;
+  ctx.fillStyle = colors.cream;
   ctx.font = `600 19px ${BODY_FONT}`;
   const referralLine = data.referralCount
     ? t('playerCard.footerHandleWithRecruits', {
@@ -593,36 +637,36 @@ function drawFooter(
         }),
       })
     : t('playerCard.footerHandle', { handle: data.referralHandle });
-  ctx.fillText(referralLine, 1168, y - 22);
-  ctx.fillStyle = COL.goldDim;
+  // Clamped so a long referral handle plus a large recruited count can never
+  // run unbounded past the card's left frame.
+  fillTextClamped(ctx, referralLine, 1168, y - 22, 600);
+  ctx.fillStyle = colors.goldDim;
   ctx.font = `400 16px ${BODY_FONT}`;
   fillTextClamped(ctx, t('playerCard.footerCta', { siteUrl: data.siteUrl }), 1168, y, 360);
   ctx.textAlign = 'left';
 }
 
-function drawFrame(ctx: CanvasRenderingContext2D, accent: string): void {
+function drawFrame(ctx: CanvasRenderingContext2D, accent: string, colors: PlayerCardColors): void {
   // Outer gold frame with a class-accent inner hairline.
-  ctx.strokeStyle = COL.frameInner;
+  ctx.strokeStyle = colors.frameInner;
   ctx.lineWidth = 10;
   ctx.strokeRect(5, 5, CARD_W - 10, CARD_H - 10);
   const grad = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
-  grad.addColorStop(0, COL.frame);
-  grad.addColorStop(0.5, COL.gold);
-  grad.addColorStop(1, COL.frame);
+  grad.addColorStop(0, colors.frame);
+  grad.addColorStop(0.5, colors.gold);
+  grad.addColorStop(1, colors.frame);
   ctx.strokeStyle = grad;
   ctx.lineWidth = 3;
   ctx.strokeRect(10, 10, CARD_W - 20, CARD_H - 20);
-  ctx.strokeStyle = hexWithAlpha(accent, 0.5);
+  ctx.strokeStyle = colorWithAlpha(accent, 0.5);
   ctx.lineWidth = 1.5;
   ctx.strokeRect(15, 15, CARD_W - 30, CARD_H - 30);
 }
 
-/** Convert a #rrggbb hex to an rgba() string at the given alpha. */
-function hexWithAlpha(hex: string, alpha: number): string {
-  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
-  if (!m) return `rgba(255,209,0,${alpha})`;
-  const n = parseInt(m[1], 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+/** Apply alpha without spelling a painter-local color. */
+function colorWithAlpha(color: string, alpha: number): string {
+  if (alpha <= 0) return 'transparent';
+  return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
 }
 
 function canvasToPngBlob(canvas: HTMLCanvasElement, context: string): Promise<Blob> {

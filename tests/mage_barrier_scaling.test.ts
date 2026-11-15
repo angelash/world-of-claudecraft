@@ -10,7 +10,13 @@ function castBarrier(
   const sim = new Sim({ seed: 707, playerClass: 'mage', autoEquip: true });
   sim.setPlayerLevel(level);
   expect(sim.setSpec(spec)).toBe(true);
-  if (spellPower !== undefined) sim.player.spellPower = spellPower;
+  if (spellPower !== undefined) {
+    // Absorb riders read the derived healPower (the healPower seam:
+    // healPower = spellPower + flat Healing Power); a direct spellPower poke
+    // bypasses recalcPlayerStats, so mirror the derivation by hand.
+    sim.player.spellPower = spellPower;
+    sim.player.healPower = spellPower;
+  }
   sim.player.resource = sim.player.maxResource;
   const manaBefore = sim.player.resource;
 
@@ -39,7 +45,9 @@ function castTemporalBarrier(
   const ally = sim.entities.get(allyId);
   if (!ally) throw new Error('missing barrier target');
   sim.targetEntity(allyId);
+  // See the harness above: absorbs read the derived healPower.
   sim.player.spellPower = spellPower;
+  sim.player.healPower = spellPower;
 
   sim.castAbility('temporal_barrier');
 
@@ -77,7 +85,12 @@ describe('mage personal barrier rank scaling', () => {
     expect(castBarrier(20, spec, id, 123)).toMatchObject({ absorb: 192, cost: 90 });
   });
 
-  it('adds 25% Spell Power to every Temporal Barrier rank', () => {
+  it('adds 25% Spell Power to every Temporal Barrier rank, scaled by the Chronoweave mastery', () => {
+    // Issue #1803: the Chronoweave mastery's healPct (0.15, ramping linearly
+    // with level/20 like every spec mastery, see computeTalentModifiers)
+    // now reaches the Spell Power rider too, not just the authored base, so
+    // the SP-derived share of the shield also carries the mastery's level-
+    // scaled multiplier instead of the bare 25% coefficient.
     for (const [level, cost] of [
       [5, 50],
       [12, 75],
@@ -86,7 +99,10 @@ describe('mage personal barrier rank scaling', () => {
       const baseline = castTemporalBarrier(level, 0);
       const scaled = castTemporalBarrier(level, 123);
       expect(scaled.spellPower).toBe(123);
-      expect(scaled.absorb - baseline.absorb).toBe(Math.round(scaled.spellPower * 0.25));
+      const chronoweaveHealMult = 1 + 0.15 * Math.min(1, level / 20);
+      expect(scaled.absorb - baseline.absorb).toBe(
+        Math.round(scaled.spellPower * 0.25 * chronoweaveHealMult),
+      );
       expect(scaled.cost).toBe(cost);
     }
   });

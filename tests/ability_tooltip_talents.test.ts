@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { abilitiesKnownAt } from '../src/sim/content/classes';
 import { emptyModifiers } from '../src/sim/content/talents';
 import { ABILITIES } from '../src/sim/data';
+import { classAbilityNamesEn } from '../src/ui/i18n.catalog/abilities';
 
-// The ability/spell tooltip (hud.ts abilityTooltip / describeAbilitySummary) renders
+// The ability/spell tooltip (hud.ts abilityTooltip over
+// ability_tooltip_lines.ts describeAbilitySummary) renders
 // the RESOLVED ability (res.cost / res.castTime / res.cooldown / res.effects), not the
 // base def, so a selected talent's cost/cast/cooldown/damage reduction shows up. This
 // pins the data contract those tooltips depend on: abilitiesKnownAt(cls, lvl, mods) bakes
@@ -33,6 +35,7 @@ function modsFor(
     buffPct: 0,
     castWhileMoving: false,
     damagePushbackImmune: false,
+    ignoreStealthRequirement: false,
     bonusCharges: 0,
     addEffects: [],
     ...mod,
@@ -71,12 +74,12 @@ describe('ability tooltip data reflects selected talents', () => {
   it('a buff-strengthening talent (buffPct) raises the resolved buff value', () => {
     // Improved Devotion Aura / Aspect of the Hawk / Fortitude scale the buff's value,
     // which the tooltip's resolved buff line reads (the static description can't show it).
-    const base = resolved('paladin', 'devotion_aura', emptyModifiers())!;
+    const base = resolved('paladin', 'devotion_ward', emptyModifiers())!;
     const baseBuff = base.effects.find((e) => e.type === 'buffTarget') as { value: number };
     expect(baseBuff.value).toBeGreaterThan(0);
-    const known = resolved('paladin', 'devotion_aura', modsFor('devotion_aura', { buffPct: 0.2 }))!;
+    const known = resolved('paladin', 'devotion_ward', modsFor('devotion_ward', { buffPct: 0.2 }))!;
     const buff = known.effects.find((e) => e.type === 'buffTarget') as { value: number };
-    expect(buff.value).toBe(Math.round(baseBuff.value * 1.2));
+    expect(buff.value).toBeCloseTo(baseBuff.value * 1.2, 10);
   });
 
   it('a damage talent raises the resolved effect damage', () => {
@@ -90,5 +93,39 @@ describe('ability tooltip data reflects selected talents', () => {
       max: number;
     };
     expect(primary.max).toBeGreaterThan(basePrimary!.max);
+  });
+});
+
+describe('druid Cat Form mobility pass (tooltip data)', () => {
+  const known = (level: number) =>
+    abilitiesKnownAt('druid', level, emptyModifiers()).map((k) => k.def.id);
+
+  it('Dash is learned at 12 (was 18) with every other number unchanged', () => {
+    expect(ABILITIES.dash.learnLevel).toBe(12);
+    expect(known(11)).not.toContain('dash');
+    expect(known(12)).toContain('dash');
+    expect(ABILITIES.dash.cooldown).toBe(60);
+    expect(ABILITIES.dash.offGcd).toBe(true);
+    expect(ABILITIES.dash.requiresForm).toBeUndefined();
+    expect(ABILITIES.dash.usableInForm).toBe(true);
+    expect(ABILITIES.dash.effects).toEqual([
+      { type: 'selfBuff', kind: 'buff_speed', value: 1.5, duration: 15 },
+    ]);
+  });
+
+  it('Cat Form and Fleet Form tooltips state the baseline mobility rules', () => {
+    expect(ABILITIES.cat_form.learnLevel).toBe(4);
+    expect(ABILITIES.cat_form.description).toContain('you move 15% faster');
+    expect(ABILITIES.travel_form.learnLevel).toBe(11);
+    expect(ABILITIES.travel_form.description).toContain(
+      'increasing movement speed by 40% and removing breakable roots and slows',
+    );
+  });
+
+  it('the English catalog carries the same prose as the sim defs (one wording, two files)', () => {
+    const en = classAbilityNamesEn.entities.abilities;
+    expect(en.cat_form.description).toBe(ABILITIES.cat_form.description);
+    expect(en.travel_form.description).toBe(ABILITIES.travel_form.description);
+    expect(en.dash.description).toBe(ABILITIES.dash.description);
   });
 });

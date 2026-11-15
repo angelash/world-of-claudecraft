@@ -76,12 +76,8 @@ describe('dev command capability advert (client)', () => {
 // suite cannot boot) and hud.ts, so these assert the seam rather than the paint.
 describe('dev command advert wiring', () => {
   const repoRoot = path.resolve(__dirname, '..');
-  const main = fs
-    .readFileSync(path.join(repoRoot, 'src/main.ts'), 'utf8')
-    .replace(/\r\n/g, '\n');
-  const hud = fs
-    .readFileSync(path.join(repoRoot, 'src/ui/hud.ts'), 'utf8')
-    .replace(/\r\n/g, '\n');
+  const main = fs.readFileSync(path.join(repoRoot, 'src/main.ts'), 'utf8').replace(/\r\n/g, '\n');
+  const hud = fs.readFileSync(path.join(repoRoot, 'src/ui/hud.ts'), 'utf8').replace(/\r\n/g, '\n');
 
   it('keeps the build-time flag as the offline/local-dev source', () => {
     // Unchanged on purpose: `npm run dev` and offline play must keep working with

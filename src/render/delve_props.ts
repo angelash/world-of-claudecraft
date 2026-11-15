@@ -4,14 +4,26 @@
 // The chest prefers the real dungeon-kit GLB (chest_gold) when loaded and falls
 // back to procedural geometry otherwise. The grave/wall/crate props each
 // prefer a small Tripo-generated GLB (see public/models/props/CLAUDE.md), same
-// fallback contract. No DOM, no sim imports (render-only).
+// fallback contract. No DOM, sim imports limited to pure view predicates (render-only otherwise).
 
 import * as THREE from 'three';
+import {
+  isObjectOpenedByViewer,
+  type OpenedObjectEntity,
+  type OpenedObjectQuestRow,
+} from '../sim/quests/opened_object_view';
 import { loadGltf } from './assets/loader';
-import { registerPreload } from './assets/preload';
+import { registerDeferredPreload } from './assets/preload';
 import { delveInteractableVisible } from './delve_interactable_visibility_core';
+import {
+  prepareStoneDetailProfileAssets,
+  STONE_DETAIL_NORMAL_SCALE,
+  stoneDetailNormal,
+} from './detail_normals';
 import { buildDungeonPropMesh } from './dungeon';
 import { GFX, surfaceMat } from './gfx';
+import { markSharedGeometry, markSharedMaterial } from './shared_resource';
+import { isWorldQuestPlacerSourceHidden } from './world_quest_placer_mask';
 
 // Small standalone GLB props (not part of the shared dungeon-kit pack): load
 // once, clone per placement, and normalize to a target height like the reward
@@ -30,15 +42,43 @@ const STANDALONE_PROP_URL = {
 } as const;
 type StandalonePropKey = keyof typeof STANDALONE_PROP_URL;
 const loadedStandaloneProp = new Map<StandalonePropKey, THREE.Group>();
+let delvePropAssetsPromise: Promise<void> | null = null;
 
-if (typeof window !== 'undefined') {
-  for (const [key, url] of Object.entries(STANDALONE_PROP_URL) as [StandalonePropKey, string][]) {
-    registerPreload(
+export function ensureDelvePropAssets(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  delvePropAssetsPromise ??= Promise.all(
+    (Object.entries(STANDALONE_PROP_URL) as [StandalonePropKey, string][]).map(([key, url]) =>
       loadGltf(url).then((gltf) => {
+        // Per-view clones share this cached original's geometry and materials
+        // by reference; tag both shared so the renderer's per-view disposal
+        // never frees them (untagged, the first delve prop leaving interest
+        // disposed the template's geometry out from under every later clone).
+        gltf.scene.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          markSharedGeometry(mesh.geometry);
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const m of mats) markSharedMaterial(m);
+        });
         loadedStandaloneProp.set(key, gltf.scene);
       }),
-    );
-  }
+    ),
+  )
+    .then(() => undefined)
+    .catch((err) => {
+      delvePropAssetsPromise = null;
+      throw err;
+    });
+  return delvePropAssetsPromise;
+}
+
+if (typeof window !== 'undefined') {
+  // stoneMat below keys its material on the shared stone detail normal, and a
+  // texture SLOT is a program-cache-key input: a mass built while it is still
+  // null carries normalMap absent and links a second variant nothing warmed.
+  // The prepare memoizes, so registering it in THIS module's preload costs one
+  // resolved promise and makes the dependency explicit where the key is formed.
+  registerDeferredPreload(() => prepareStoneDetailProfileAssets(GFX));
 }
 
 /** Test-only window into the preload asset set (mirrors props.ts). */
@@ -49,7 +89,10 @@ export const delvePropsPreloadInternalsForTest = { standalonePropUrl: STANDALONE
 // sit at y=0). Returns null if the asset has not finished preloading yet.
 function buildStandaloneGlb(key: StandalonePropKey, targetHeight: number): THREE.Group | null {
   const src = loadedStandaloneProp.get(key);
-  if (!src) return null;
+  if (!src) {
+    void ensureDelvePropAssets().catch(() => undefined);
+    return null;
+  }
   const inst = src.clone(true);
   inst.traverse((child) => {
     if (child instanceof THREE.Mesh) {
@@ -101,23 +144,44 @@ function buildStandaloneGlbFitWidth(
 // ---------------------------------------------------------------------------
 
 function stoneMat(color: number): THREE.Material {
-  return surfaceMat({
+  // Same shared rock detail normal as the dungeon pack materials (one texture,
+  // one extra bind for the whole stone family), so the procedural delve masses
+  // match the surrounding walls' faint grain. Stays matte: roughness untouched.
+  // surfaceMat keys on the normalMap uuid, so the post-set normalScale is
+  // consistent for every material carrying this texture.
+  const detail = GFX.standardMaterials ? stoneDetailNormal() : null;
+  const mat = surfaceMat({
     color,
     roughness: 0.92,
     metalness: 0.0,
     flatShading: !GFX.standardMaterials,
+    normalMap: detail ?? undefined,
   });
+  if (detail && (mat as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+    (mat as THREE.MeshStandardMaterial).normalScale.set(
+      STONE_DETAIL_NORMAL_SCALE,
+      STONE_DETAIL_NORMAL_SCALE,
+    );
+  }
+  return mat;
 }
 
 function ironMat(color: number, emissive?: number, emissiveIntensity?: number): THREE.Material {
-  return surfaceMat({
+  const mat = surfaceMat({
     color,
     roughness: 0.65,
-    metalness: 0.55,
+    metalness: 0.6,
     flatShading: !GFX.standardMaterials,
     emissive,
     emissiveIntensity,
   });
+  // Iron reflects the dungeon IBL: per-material envMapIntensity multiplies the
+  // deliberately dim scene environment (0.05 in dungeons), so only the metal
+  // brightens. Safe to set on the shared surfaceMat instance: the key
+  // (color, roughness 0.65, metalness 0.6) IS the iron family.
+  const std = mat as THREE.MeshStandardMaterial;
+  if (std.isMeshStandardMaterial) std.envMapIntensity = 1.4;
+  return mat;
 }
 
 function glowMat(color: number, opacity = 0.28): THREE.Material {
@@ -823,16 +887,24 @@ function buildProceduralFallbackCrate(entityId: number): { group: THREE.Group; h
 // ---------------------------------------------------------------------------
 type RiteShrineKind = 'bell' | 'candle' | 'reed' | 'skull';
 
-/** Apply the object-view visibility policy after a delve prop mesh is rebuilt. */
+/** Apply the object-view visibility policy after a delve prop mesh is
+ *  rebuilt. Takes the entity and the viewer's quest log so an interact
+ *  objective's already-credited ground object (an opened castaway crate)
+ *  renders as gone for THIS player while everyone else still sees it. */
 export function syncDelveInteractableVisibility(
   group: THREE.Object3D,
-  templateId: string | null,
-  lootable: boolean,
+  entity: OpenedObjectEntity & { templateId?: string | null; lootable: boolean },
+  questLog: ReadonlyMap<string, OpenedObjectQuestRow>,
   compilePending: boolean,
   withinPortalRange = true,
+  worldQuestLog?: ReadonlyMap<string, OpenedObjectQuestRow>,
 ): boolean {
   const visible =
-    !compilePending && delveInteractableVisible(templateId, lootable) && withinPortalRange;
+    !compilePending &&
+    !isWorldQuestPlacerSourceHidden(group) &&
+    delveInteractableVisible(entity.templateId ?? null, entity.lootable) &&
+    withinPortalRange &&
+    !isObjectOpenedByViewer(entity, questLog, worldQuestLog);
   group.visible = visible;
   return visible;
 }

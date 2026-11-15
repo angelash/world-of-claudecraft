@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml/badge.svg)](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-r165-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-RL%20env-0C7BDC)](https://gymnasium.farama.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-[![Version](https://img.shields.io/badge/version-0.31.0-blue)](../../package.json)
+[![Version](https://img.shields.io/badge/version-0.45.8-blue)](../../package.json)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.id_ID.md)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/worldofclaudecraft)
 
@@ -92,7 +92,7 @@ npm install
 npm run dev        # then open http://localhost:5173 and choose Play Offline
 ```
 
-Beri nama karakter Anda, pilih salah satu dari sembilan class, dan Anda mulai di **Eastbrook Vale** (level 1-7), sebuah kota pasar yang dikelilingi hub: jalur serigala di utara, padang babi hutan di timur, hutan Sableweb di barat, Mirror Lake di barat laut, galian tembaga yang dipenuhi burrower di barat daya, dan kapel reruntuhan berisi mayat gelisah di timur laut, dengan kamp bandit Gorrak di tenggara. Jalan utara mendaki celah gunung menuju **Mirefen Marsh** (6-13, hub Fenbridge) dan terus naik ke **Thornpeak Heights** (13-20, hub Highwatch). Seed dunia ditetapkan di `src/main.ts`, jadi ini tempat yang sama di setiap kunjungan.
+Beri nama karakter Anda, pilih salah satu dari sembilan class, dan Anda mulai di **Eastbrook Vale** (level 1-7), sebuah kota pasar yang dikelilingi hub: jalur serigala di utara, padang babi hutan di timur, hutan Sableweb di barat, Mirror Lake di barat laut, galian tembaga yang dipenuhi burrower di barat daya, dan kapel reruntuhan berisi mayat gelisah di timur laut, dengan kamp bandit Gorrak di tenggara. Jalan utara mendaki celah gunung menuju **Mirefen Marsh** (6-13, hub Fenbridge) dan terus naik ke **Thornpeak Heights** (13-20, hub Highwatch). Seed dunia ditetapkan di `src/sim/world_seed.ts`, jadi ini tempat yang sama di setiap kunjungan.
 
 ### Aplikasi desktop untuk Windows, Linux, dan macOS
 
@@ -234,7 +234,7 @@ Setiap instance juga berjalan pada **Heroic**: musuh berlevel lebih tinggi, meka
 
 ### Delve
 
-Delve adalah mode grup kecil yang terpisah dan dapat diskalakan untuk satu atau dua pemain, dibangun ulang dari ruang acak di setiap putaran dan berakhir pada peti reliquary terkunci yang dibuka lewat minigame membobol kunci alih-alih lemparan loot. **The Collapsed Reliquary** (level 7 ke atas) berakhir di Deacon Varric, dengan seorang pendamping AI, Tessa, bertarung di sisi Anda jika Anda pergi sendiri. **The Drowned Litany** (level 12 ke atas) mengikuti jejak itu ke kuil yang terendam di tepi Mirefen Marsh. Sebuah papan delve menentukan tier-nya: Heroic menaikkan level musuh dan menambah afiks acak untuk reward yang lebih kaya.
+Delve adalah mode grup kecil yang terpisah dan dapat diskalakan untuk satu atau dua pemain, dibangun ulang dari ruang acak di setiap putaran dan berakhir pada peti reliquary terkunci yang dibuka lewat minigame membobol kunci alih-alih lemparan loot. **The Collapsed Reliquary** (level 7 ke atas) berakhir di Deacon Vandric, dengan seorang pendamping AI, Tessa, bertarung di sisi Anda jika Anda pergi sendiri. **The Drowned Litany** (level 12 ke atas) mengikuti jejak itu ke kuil yang terendam di tepi Mirefen Marsh. Sebuah papan delve menentukan tier-nya: Heroic menaikkan level musuh dan menambah afiks acak untuk reward yang lebih kaya.
 
 ### PvP berperingkat (the Ashen Coliseum)
 

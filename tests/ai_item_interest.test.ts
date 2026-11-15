@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { Entity } from '../src/sim/types';
 import { itemSemanticFor, rankItemReactions, scoreItemReaction } from '../server/ai/item_interest';
 import { droppedItemSemantic, type SceneFrameV1 } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
 import { timeWeatherMood } from '../server/ai/time_weather_model';
+import type { Entity } from '../src/sim/types';
 
 function entity(id: number, templateId: string, kind: 'mob' | 'npc' = 'mob'): Entity {
   return {
@@ -26,14 +26,22 @@ function frame(): SceneFrameV1 {
     companions: [],
     mood: timeWeatherMood(scene.time, scene.weather, scene.light),
     recentSceneEvents: [],
-    danger: { undeadPressure: 0, hostileDensity: 0, corpseDensity: 0, recentDeaths: 0, safeHavenScore: 0.1 },
+    danger: {
+      undeadPressure: 0,
+      hostileDensity: 0,
+      corpseDensity: 0,
+      recentDeaths: 0,
+      safeHavenScore: 0.1,
+    },
   };
 }
 
 describe('AI item interest', () => {
   it('classifies food, weapons, valuables, and cursed quest objects into semantic tags', () => {
     expect(itemSemanticFor('roasted_boar').smellTags).toContain('meat');
-    expect(itemSemanticFor('worn_sword').itemTags).toEqual(expect.arrayContaining(['weapon', 'metal']));
+    expect(itemSemanticFor('worn_sword').itemTags).toEqual(
+      expect.arrayContaining(['weapon', 'metal']),
+    );
     expect(itemSemanticFor('moggers_copper_cudgel').valueSignals).toContain('valuable');
     expect(itemSemanticFor('gravecaller_sigil').dangerTags).toContain('undead');
   });
@@ -63,10 +71,16 @@ describe('AI item interest', () => {
   });
 
   it('gives ordinary loot, documents, ritual items, and magic scraps inspectable living-world semantics', () => {
-    expect(itemSemanticFor('wolf_fang').itemTags).toEqual(expect.arrayContaining(['beast', 'trophy']));
-    expect(itemSemanticFor('raw_bog_eel').itemTags).toEqual(expect.arrayContaining(['fish', 'water']));
+    expect(itemSemanticFor('wolf_fang').itemTags).toEqual(
+      expect.arrayContaining(['beast', 'trophy']),
+    );
+    expect(itemSemanticFor('raw_bog_eel').itemTags).toEqual(
+      expect.arrayContaining(['fish', 'water']),
+    );
     expect(itemSemanticFor('weathered_ledger_page').itemTags).toContain('document');
-    expect(itemSemanticFor('troll_fetish').itemTags).toEqual(expect.arrayContaining(['relic', 'ritual']));
+    expect(itemSemanticFor('troll_fetish').itemTags).toEqual(
+      expect.arrayContaining(['relic', 'ritual']),
+    );
     expect(itemSemanticFor('storm_core').itemTags).toContain('magic');
     expect(itemSemanticFor('inert_storm_shard').valueSignals).toContain('rareCuriosity');
   });

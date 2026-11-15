@@ -1,0 +1,96 @@
+// Material.clone() copies every declarative property AND userData, but it
+// silently DROPS onBeforeCompile (Material.copy simply does not list it). Both
+// halves of that matter, because three keys its program cache on
+// Material.customProgramCacheKey(), whose default return value IS
+// `this.onBeforeCompile.toString()`:
+//
+//   1. a bare clone renders WITHOUT the patches its source shipped with (the
+//      character rim glow, the worn surface-detail layer, the armour dye that
+//      carries a player's whole outfit colorway), and
+//   2. its cache key no longer matches the source's, so its first draw LINKS A
+//      NEW PROGRAM instead of reusing the one the source already linked.
+//
+// (2) is the expensive half: cloning a rig's materials to tint them is a
+// per-visual operation, so the link lands on the first frame that shows the
+// effect. For the ability-VFX body glow that is the first hit on a mob rig, in
+// the middle of a fight.
+//
+// Re-attaching the source's hooks in the source's ORDER restores both: the
+// composed cache key comes out byte-identical, so three's acquireProgram
+// returns the already-linked program.
+
+import type * as THREE from 'three';
+import { reapplyTownSmartToClone } from './assets/town_smart_material';
+import { reattachBiomeHazeToClone } from './biome_haze_field';
+import { reapplyArmorDyeToClone } from './characters/armor_dye';
+import { reapplyEnvSheenToClone } from './characters/env_sheen';
+import { reattachGloamClimbToClone } from './characters/gloam_climb';
+import { reapplyWocHeadTintToClone } from './characters/woc_head_tint';
+import { addRimGlow, hasRimGlow } from './gfx';
+import { reapplyInstancedDitherFadeToClone } from './instanced_dither_fade';
+import { reapplyVertexColorEmissiveToClone } from './vertex_color_emissive';
+import { reapplySurfaceDetailToClone } from './worn_stone';
+
+/**
+ * Re-attach to `clone` the onBeforeCompile layers `source` carried, in the
+ * order the material factories apply them (armour dye first, then rim glow,
+ * then the dormant Gloamveil climb every lit rig material carries,
+ * then zone haze as surfaceMat attaches it at creation, then surface detail,
+ * then the vertex-colour emissive layer, then the per-instance ghost dither, then
+ * the env sheen, then the WOC head tint:
+ * each later layer chains the previous hook into its own cache key). Only layers the source actually had are
+ * re-attached, so a clone never gains a patch its source never carried, which
+ * would break program identity just as badly.
+ *
+ * The dye goes FIRST because that is the order the rig factory composes them:
+ * characters/assets.ts buildTintedClone re-attaches the outfit dye, then calls
+ * addRimGlow (on every rig material but a flat held plate, which draws without
+ * the rim: manifest RIMLESS_HELD_MODELS), then attachGloamClimb, then
+ * applySurfaceDetail (the four calls sit together in its GFX.standardMaterials
+ * arm; the Lambert arm takes the climb alone). No material carries both the dye and the biome
+ * haze: the dye is rig-only and the haze is world-surface-only, so no source
+ * in the tree orders those two against each other.
+ */
+export function reattachClonedMaterialHooks(source: THREE.Material, clone: THREE.Material): void {
+  // Reads the JSON spec attachArmorDye records in userData, which clone() did
+  // copy; a no-op for clones of undyed materials. Without it a clone of a
+  // dyed rig material renders the set's BASE colours, which is the visible
+  // half of the same bug the cache key is the invisible half of.
+  reapplyArmorDyeToClone(clone);
+  if (hasRimGlow(source)) addRimGlow(clone);
+  // Right after the rim, where the rig factory attaches it (assets.ts
+  // buildTintedClone): the dormant Gloamveil climb every lit rig material carries.
+  reattachGloamClimbToClone(source, clone);
+  reattachBiomeHazeToClone(source, clone);
+  // Reads the JSON spec applySurfaceDetail records in userData, which clone()
+  // did copy; a no-op for clones of undetailed materials.
+  reapplySurfaceDetailToClone(clone);
+  // Last, because townMaterial applies it last (after its own hook-preserving
+  // clone, and on the arm that never takes surface detail): the two town
+  // factories decorate their emissive building materials here, and those
+  // materials are exactly the ones the occluder fade re-clones.
+  reapplyVertexColorEmissiveToClone(clone);
+  // The town kit's weathering layer (reads userData.townSmart, which clone()
+  // did copy); a no-op for every other material. Before the dither, because
+  // the town kit applies it when it mints the material, not on a finished one.
+  reapplyTownSmartToClone(clone);
+  // Every batch factory attaches the per-instance ghost dither to a finished
+  // material (instanced_dither_fade.ts), so it is the outermost layer.
+  reapplyInstancedDitherFadeToClone(clone);
+  // After those: the character rig factory (assets.ts buildTintedClone) installs the
+  // env sheen as the last layer of its GFX.standardMaterials arm. Reads the scale
+  // applyEnvSheen records in userData; a no-op for unsheened materials.
+  reapplyEnvSheenToClone(clone);
+  // Truly last: the WOC head dressing wraps an already hook-preserving clone and
+  // puts the head/skin tint on top, so its program key folds in every layer above.
+  // The clone shares the source's tint uniforms (a player's chosen colours keep
+  // showing, and keep updating, under a buff glow or a form tint).
+  reapplyWocHeadTintToClone(source, clone);
+}
+
+/** clone() plus reattachClonedMaterialHooks: the program-preserving clone. */
+export function cloneMaterialWithHooks<T extends THREE.Material>(source: T): T {
+  const clone = source.clone() as T;
+  reattachClonedMaterialHooks(source, clone);
+  return clone;
+}

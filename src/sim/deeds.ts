@@ -5,8 +5,9 @@
 // Responsibilities:
 // - The persisted per-character deed surface: `PlayerMeta.deedsEarned`,
 //   `PlayerMeta.deedStats` (lifetime counters + the itemsDiscovered/visited
-//   mark sets + dungeonClears), `activeTitle`, and the incrementally
-//   maintained `renown` sum.
+//   mark sets + dungeonClears), the two selected cosmetics (`activeTitle` and
+//   `activeBorder`, each a deed id), and the incrementally maintained
+//   `renown` sum.
 // - The generic trigger evaluator (`updateDeeds`), run at the very end of the
 //   tick tail over dirty players only, and once per player on world join with
 //   `retro: true` so veterans get credit for state they verifiably already
@@ -25,10 +26,34 @@
 // render/ui/game/net/DOM/Three, no Math.random/Date.now), so it runs unchanged
 // in Node, the browser, and the headless RL env.
 
+import { recordAccountDeed, selfEarner } from './account_ledger';
+import { grantBuddy } from './buddies';
+import { BUDDY_DEED_REWARDS } from './content/buddy_sources';
 import { DEED_ORDER, DEEDS, DEEDS_ERA } from './content/deeds';
+import { FARM_CROP_IDS } from './content/farm_crops';
+import { GOURDLIGHT_THATCHGRIN_MARK } from './content/gourdlight_eve_deeds';
+import { THATCHGRIN_ID } from './content/gourdlight_eve_scarecrow';
 import { GATHERING_PROFESSION_IDS } from './content/professions';
+import { REFERRAL_TITLE } from './content/referral_rewards';
 import { pointsSpent } from './content/talents';
 import { ITEMS, MOBS, zoneAt } from './data';
+import { canWearDevBadgeTitle, devBadgeTitleTier } from './dev_badge_titles';
+import { onKillForGuildContracts } from './guild_contracts';
+import { MUSTER_PIKE_MAX_LEVEL } from './lance_balance_core';
+import { LAUNCH_PAPERDOLL_SLOTS } from './launch_paperdoll_slots';
+import { emitReferralBossEvidence } from './referral_evidence';
+import { ownsReferralTitle } from './referral_rewards';
+import {
+  accountReliquaryOwnership,
+  isHorizonsTitleDeed,
+  maybeSyncCuratorRankDeeds,
+  noteReliquaryMark,
+  onItemDiscovered as onReliquaryItemDiscovered,
+  syncCuratorRankDeeds,
+  syncIlluminatedPages,
+  syncReliquaryCompletionDeeds,
+  syncReliquaryMarksFromVisited,
+} from './reliquary';
 import { RESURRECTION_SICKNESS_ID } from './resurrection';
 import type { ArenaMatch, InstanceSlot, PlayerMeta } from './sim';
 import type { SimContext } from './sim_context';
@@ -47,6 +72,7 @@ import {
   MAX_LEVEL,
   NYTHRAXIS_ROOM_RADIUS,
 } from './types';
+import { onDungeonClearedForWeeklyQuests } from './weekly_quests';
 
 // ---------------------------------------------------------------------------
 // Pinned site data. These literals are deliberately NOT read live from the
@@ -96,41 +122,63 @@ export const GROUND_PICKUP_PROVING_QUESTS: readonly string[] = [
   'q_glimmermere_light',
 ];
 
-// The highest level any giantslayer-creditable mob can ever spawn at: heroic
-// instances pin every mob to 22 (content/dungeon_difficulty.ts), two above
-// the player cap, and nothing outside heroic exceeds the cap itself (dummies,
-// the world boss, and owned pets are excluded from the killing-blow credit).
-// cmb_giantslayer needs a blow five levels up, so past this ceiling minus
-// five the deed is permanently out of reach for the character. PINNED:
-// shipping a higher-level creditable mob is a conscious re-decision of the
-// stranded threshold (the content-integrity test cross-checks the ceiling
+// The highest level any giantslayer-creditable mob can ever spawn at: S-rank
+// rift floors now hold a flat level 23 (rift/ranks.ts RIFT_MAX_MOB_LEVEL),
+// heroic instances pin every mob to 22 (content/dungeon_difficulty.ts), and
+// nothing else exceeds the player cap itself (dummies, the world boss, and
+// owned pets are excluded from the killing-blow credit). cmb_giantslayer needs
+// a blow five levels up, so past this ceiling minus five (23 - 5 = 18) the
+// deed is permanently out of reach; a capped player (20) is at level 20 which
+// is above 18, so the deed IS permanently stranded in rifts for capped
+// characters and the retro auto-heal DOES fire. Giantslayer is no longer
+// earnable inside S-rank rifts (maintainer-accepted in v0.23.0 rank retune).
+// PINNED: shipping a higher-level creditable mob is a conscious re-decision of
+// the stranded threshold (the content-integrity test cross-checks the ceiling
 // against the real tables).
-export const MAX_CREDITABLE_MOB_LEVEL = 22;
+export const MAX_CREDITABLE_MOB_LEVEL = 23;
+
+// How many recent unlock ids the IWorldDeeds.deedsRecent() read returns, on
+// every host: the Sim serves its live grant order, the online client fetches
+// the same count from the server's character_deeds record. Slightly above the
+// Book's 5-slot recent strip so the view core keeps spares after it dedups
+// the session-fresh unlocks against the fetched order.
+export const DEEDS_RECENT_CAP = 8;
 
 // Dungeon final bosses whose kill credit bumps deedStats.dungeonClears (keys
 // '<dungeonId>' and '<dungeonId>:heroic') and the dungeonFinalBossKills
 // counter. PINNED as of v1: a future dungeon's boss gets a new deed; this
 // list never grows an earned requirement.
-const FINAL_BOSS_DUNGEONS: Record<string, string> = {
+export const FINAL_BOSS_DUNGEONS: Record<string, string> = {
   morthen: 'hollow_crypt',
   vael_the_mistcaller: 'sunken_bastion',
   ysolei: 'drowned_temple',
   korzul_the_gravewyrm: 'gravewyrm_sanctum',
   nythraxis_scourge_of_thornpeak: 'nythraxis_boss_arena',
+  // Without this entry Zulgar kills write no dungeonClears record, so the
+  // dgn_wildheart_basin deed pair ships permanently unearnable (0/1 forever).
+  wildheart_high_priest: 'wildheart_basin',
+  // The Crucible of the Last Spring raid credits per boss room: each raid
+  // room is its own dungeon id, and each boss dies through the generic
+  // kill-credit path (no bespoke lockout roster yet; the launch pass owns
+  // that), so the eligible snapshot (downed members included) is the
+  // recipient set, the wildheart precedent.
+  ignivar_herald_of_the_last_flame: 'ignivar_raid_arena',
+  varkhul_forgefather_of_the_last_flame: 'ignivar_inner_crucible',
 };
 
 // Perfection tasks: zero player deaths inside the boss's heroic instance
 // while the boss is engaged. Tainted by onPlayerDeathForDeeds; the window
 // re-arms on evade/reset/respawn (resetDeedEncounter).
-const FLAWLESS_TASKS: Record<string, string> = {
+export const FLAWLESS_TASKS: Record<string, string> = {
   morthen: 'dgn_morthen_flawless',
   ysolei: 'dgn_ysolei_flawless',
   korzul_the_gravewyrm: 'dgn_korzul_flawless',
   nythraxis_scourge_of_thornpeak: 'dgn_nythraxis_deathless',
+  varkhul_forgefather_of_the_last_flame: 'dgn_varkhul_flawless',
 };
 
 // Kill-order tasks: at boss death, every add it summoned this attempt is dead.
-const ADD_TASKS: Record<string, string> = {
+export const ADD_TASKS: Record<string, string> = {
   vael_the_mistcaller: 'dgn_vael_thralls',
   ysolei: 'dgn_ysolei_moonspawn',
   grand_necromancer_velkhar: 'dgn_velkhar_bonewalkers',
@@ -140,7 +188,7 @@ const ADD_TASKS: Record<string, string> = {
 // Positioning tasks tainted when the boss's signature splash strikes a player
 // other than its current target (Olen's Reaping Arc cleave; Nythraxis's
 // Gravebreaker frontal arc). One taint flag per boss attempt.
-const SPLASH_TASKS: Record<string, string> = {
+export const SPLASH_TASKS: Record<string, string> = {
   knight_commander_olen: 'dgn_olen_arc',
   nythraxis_scourge_of_thornpeak: 'dgn_nythraxis_gravebreaker',
 };
@@ -170,6 +218,7 @@ const ENCOUNTER_ROOM_RADIUS: Record<string, number> = {
 };
 
 const THUNZHARR_ID = 'thunzharr_waking_peak';
+const BALGATH_ID = 'balgath_cyclops';
 const WOLF_PACK_TEMPLATE = 'forest_wolf';
 const BOG_BLOAT_TEMPLATE = 'bog_bloat';
 const MENDER_TEMPLATE = 'gravecaller_mender';
@@ -191,8 +240,12 @@ const SANCTUM_SPEED_DEED = 'dgn_sanctum_speed';
 
 // The named overworld terrors whose kill credit feeds a 'slain:<templateId>'
 // visited mark (the chr_*_rares deeds). Pinned so the visited set stays
-// bounded by construction.
-const RARE_SLAIN_TEMPLATES = new Set([
+// bounded by construction; every live rare CAMPS mob belongs here UNLESS it
+// already has an alternate credit path (the content-integrity test in
+// tests/deeds_content.test.ts cross-checks the exact set against CAMPS/MOBS,
+// with sethrael_palecoil as the one documented exception: its kill is
+// required by q_palecoil, which already feeds prog_mere_at_rest).
+export const RARE_SLAIN_TEMPLATES = new Set([
   'old_greyjaw',
   'mogger',
   'grix_the_tunnelking',
@@ -201,19 +254,160 @@ const RARE_SLAIN_TEMPLATES = new Set([
   'mirejaw_the_ravenous',
   'sloomtooth_the_drowned',
   'sister_nhalia',
+  'grubjaw',
   'ironvein_foreman',
   'brutok_skullsmasher',
   'voskar_emberwing',
   'marrowlord_varkas',
+  'old_cragmaw',
+  'shardlord_kazzix',
+  'gleamstag',
+  'old_marrowshell',
+  'aurelhorn',
+  // The Drakelands dragonkin brood rework (v0.35): the four standing
+  // broodlords (rare-flagged camp elites). Cindraleth's deed rides her kill
+  // QUEST trigger instead of a slain mark, so the shipped boss template
+  // needs no rare flag.
+  'drakemaw_broodlord',
 ]);
 
 // Zone fishing catches that count as "a fish" for the chr_ first-cast deeds
 // (weeds and empty hooks do not count). Pinned to the authored tables.
-const ZONE_FISH: Record<string, readonly string[]> = {
-  eastbrook_vale: ['raw_mirror_trout', 'raw_river_perch', 'glimmerfin_koi'],
-  mirefen_marsh: ['raw_marsh_pike', 'raw_bog_eel', 'glimmerfin_koi'],
-  thornpeak_heights: ['raw_frostgill_trout', 'raw_stonescale_carp', 'glimmerfin_koi'],
+// Exported for the new-zone checklist (tests/professions_zone_rollout.test.ts):
+// a complete zone's first-cast deed is only earnable if a row here writes its
+// fish:<zone> mark, so the checklist sweeps this table too.
+// THE THREE HIGH-BAND CATCHES JOIN EVERY ROW (masterwrought Phase 11i), and
+// the verdict is written here rather than left implicit. They are uniform
+// across zones by construction (each sits in every zone's cell for its band at
+// the same weight), so every water that draws a real table or the Vale fallback
+// can land all three. Leaving them out would make the first-catch deed marks
+// silently incomplete for exactly the zones the new bands are authored against,
+// which is the harder bug to find later; the deeds_content guard intersects
+// each row against the tables its zone ACTUALLY draws, so an unearned row would
+// red there instead of sitting dormant.
+export const ZONE_FISH: Record<string, readonly string[]> = {
+  eastbrook_vale: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  mirefen_marsh: [
+    'raw_marsh_pike',
+    'raw_bog_eel',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  thornpeak_heights: [
+    'raw_frostgill_trout',
+    'raw_stonescale_carp',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  // The three bottom-map zones (the phase 20 chronicle pairs, Q26): their
+  // waters draw the Vale FALLBACK tables until the zone-4 pass authors real
+  // ones (professions/fishing.ts, bandTables[zoneId] ?? eastbrook_vale), so
+  // the rows list the fallback's own fish and the deeds_content guard
+  // intersects them against the tables each zone ACTUALLY draws.
+  willowfen: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  galecrest: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  farshore_isle: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  // The remaining starter-tier zones (content/deeds.ts extends the same
+  // chronicle pair to them; drakelands skipped, see the comment there) draw
+  // the same Vale fallback table, so their rows list the same fish.
+  frostveil: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  amberfall: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  nightbloom: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  wraithwood: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  palmreach: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
+  evergarden: [
+    'raw_mirror_trout',
+    'raw_river_perch',
+    'glimmerfin_koi',
+    'raw_deepbarb_catfish',
+    'raw_hollowgill_sturgeon',
+    'raw_stillmere_salmon',
+  ],
 };
+
+// Farming hub zones whose beds feed the chr_ first-harvest chronicle deeds:
+// harvesting a SURVIVING crop from a bed in a listed zone writes its
+// farm:<zone> mark (professions/farming.ts harvestCrop via the
+// onCropHarvestedForDeeds hook below). ANY crop counts on purpose: plantCrop
+// carries no bed-tier gate (probed live in the celebrations phase), so every
+// hub's chronicle is earnable today with vendor-stocked low-tier seeds; the
+// high-tier crop gates never constrain these marks. Exported for the
+// new-zone checklist like ZONE_FISH above: a future farm patch zone earns its
+// chronicle only when a row lands here, and tests/deeds_content.test.ts pins
+// this list against the authored FARM_PATCHES zones from both directions.
+export const FARM_CHRONICLE_ZONES: readonly string[] = [
+  'eastbrook_vale',
+  'mirefen_marsh',
+  'thornpeak_heights',
+  'evergarden',
+];
 
 // The three Chronicler NPCs (interaction-only). Talking to one feeds an
 // 'npc:<templateId>' visited mark; Saul additionally drives the
@@ -228,7 +422,23 @@ const SAUL_TALKS_REQUIRED = 9;
 
 // How close (yards) a POI sweep counts a visit, and the witness radius for
 // chr_peaks_waking_witness (inside interest scope, pinned literal).
-const POI_VISIT_RADIUS = 20;
+// Exported for the placement suite's mirror-lake standability arm, which used
+// to carry its own copy of this number and could drift silently.
+// 24, not a rounder number: within a zone a single-zone all-poi 'visits' deed
+// draws from (today: Wayfarer of the Vale/Marsh/Heights), the tightest
+// as-authored gap between two of its named places is Eastbrook Vale's
+// eastbrook<->reliquary_hill pair at ~49.2yd. A visit radius has to stay
+// under half of that or two distinct places on the same checklist could both
+// grant from one spot; 24 is the most forgiving value that still clears it
+// with margin, and tests/deeds.test.ts (POI_VISIT_RADIUS describe block)
+// pins every such zone's tightest gap against it, so a content edit that
+// narrows one can't silently break this. A cross-zone deed (The Long Road
+// North) is exempt: a player occupies exactly one zone at a time, so two of
+// its marks can never be satisfied from the same spot regardless of radius.
+// Zones with no all-poi wayfarer deed (e.g. Veiled Hollow) sit closer than
+// this in places, which is harmless today since nothing reads two of their
+// poi marks together; the pinned test would catch it the day that changes.
+export const POI_VISIT_RADIUS = 24;
 const THUNZHARR_WITNESS_RADIUS = 100;
 
 // ---------------------------------------------------------------------------
@@ -273,6 +483,14 @@ export function serializeDeedStats(stats: DeedStats): SavedDeedStats | undefined
   return anyCounter || out.itemsDiscovered || out.visited || out.dungeonClears ? out : undefined;
 }
 
+/** The sparse CharacterState fragment for one save (the sim.ts
+ *  serializeCharacter shape every optional field follows): absent when
+ *  serializeDeedStats has nothing to write. */
+export function deedStatsSaveFragment(stats: DeedStats): { deedStats?: SavedDeedStats } {
+  const deedStats = serializeDeedStats(stats);
+  return deedStats ? { deedStats } : {};
+}
+
 export function restoreDeedStats(saved: SavedDeedStats | undefined): DeedStats {
   const stats = freshDeedStats();
   if (!saved) return stats;
@@ -282,10 +500,23 @@ export function restoreDeedStats(saved: SavedDeedStats | undefined): DeedStats {
       if (typeof v === 'number' && Number.isFinite(v) && v > 0) stats.counters[k] = Math.floor(v);
     }
   }
-  // Bounded on load exactly like the write sites: only real item ids enter
-  // itemsDiscovered, and only marks in an authored namespace enter visited,
-  // so a hand-edited save cannot grow either set unboundedly.
-  for (const id of saved.itemsDiscovered ?? []) if (ITEMS[id]) stats.itemsDiscovered.add(id);
+  // Bounded on load like the write sites: only real item ids enter
+  // itemsDiscovered, and only marks in an AUTHORED NAMESPACE enter visited.
+  // Precise about which half that bounds, corrected at the Phase 11e QA: the
+  // itemsDiscovered arm really is bounded, because ITEMS is a closed table.
+  // The visited arm validates the PREFIX only, so the suffix after the colon
+  // is unbounded and a hand-edited save CAN grow that set. Harmless today (the
+  // visits evaluator counts only a deed's own authored markIds, so an invented
+  // mark satisfies nothing), and pre-existing for every namespace, but the old
+  // "cannot grow either set unboundedly" overstated it.
+  //
+  // The id gate on itemsDiscovered is also a ROLLBACK arm, and it is the one
+  // the Phase 11e deploy note first missed: a build whose ITEMS lacks an id
+  // DROPS it here and the next autosave writes the reduced set back.
+  // hasOwn for the same reason as markItemDiscovered: a prototype-named id in
+  // a tampered save indexes an inherited value and must not restore as real.
+  for (const id of saved.itemsDiscovered ?? [])
+    if (Object.hasOwn(ITEMS, id)) stats.itemsDiscovered.add(id);
   for (const mark of saved.visited ?? []) {
     if (typeof mark !== 'string') continue;
     const ns = mark.slice(0, mark.indexOf(':'));
@@ -320,6 +551,10 @@ export interface DeedEncounterState {
   bellTainted: boolean;
   // Live entity ids of every add this boss summoned this attempt.
   addIds: number[];
+  // Adds whose body lies dead but that are not destroyed yet (Velkhar's
+  // Unquenched Bonewalkers, sunk and waiting to rise): the kill-order task
+  // fails while any is pending.
+  pendingAddIds?: Set<number>;
   // World boss only: character keys (deedCharKey) of contributors who died
   // between joining the roster and the kill (cmb_thunzharr_unbroken is personal,
   // not raid-wide). Keyed by character so a relog cannot launder the death.
@@ -477,12 +712,25 @@ export function bumpDeedStat(
 
 /** Record an item id as discovered (first time it ever enters possession).
  *  Also feeds the quality-first marks; `rolledQuality` carries an instance's
- *  rolled quality (gathered rares) which beats the static def quality. */
+ *  rolled quality (gathered rares) which beats the static def quality.
+ *  `opts.retro` is set ONLY by the join-time seed pass (seedItemDiscovery):
+ *  it makes the Reliquary fill silent and flags the events it emits, so a
+ *  veteran's first login after a rollout never reads as a live find. Every
+ *  live acquisition site omits it.
+ *
+ *  `opts.movement` is the inventory hub's matching flag for a grant that
+ *  relocated a copy somebody already held (trade, mail, market, a re-mint).
+ *  DISCOVERY IS UNAFFECTED by it, deliberately: seeing a relic for the first
+ *  time across a trade window still discovers it and still fills its catalog
+ *  slot. It rides here only so the Reliquary's first-find stamp can tell "you
+ *  found this on clear N" from "this arrived from somewhere", which is a claim
+ *  about provenance rather than about ownership. */
 export function markItemDiscovered(
   ctx: SimContext,
   meta: PlayerMeta,
   itemId: string,
   rolledQuality?: string,
+  opts?: Readonly<{ retro?: boolean; movement?: boolean }>,
 ): void {
   // A heroic instance drops the generated heroic_<base> variant in place of
   // the base item (same display name, same set membership); collection deeds
@@ -491,21 +739,33 @@ export function markItemDiscovered(
   // through here, retro-crediting held variants). Bases are never variants
   // themselves, so the walk visits at most two ids; the depth cap only
   // guards against a malformed def cycle ever landing in content.
+  // A `relicOf` tier (a Tarnished or Sovereign hoard piece) credits the piece it
+  // is a tier of the same way, with one difference: its QUALITY is its own. A
+  // rare Tarnished copy must never mark the epic its plain tier is.
   let id: string | undefined = itemId;
+  let viaTier = false;
   for (let depth = 0; id !== undefined && depth < 3; depth++) {
     // Annotated: indexing by the reassigned `id` would otherwise circularly
     // infer through def.heroicOf (TS7022).
-    const def: ItemDef | undefined = ITEMS[id];
+    // hasOwn, not truthiness: ITEMS carries Object.prototype, so a tampered
+    // container key like '__proto__' or 'toString' indexes an inherited value
+    // and would otherwise enter the PERSISTED discovery ledger as a real id.
+    const def: ItemDef | undefined = Object.hasOwn(ITEMS, id) ? ITEMS[id] : undefined;
     if (!def) return; // bounded by construction: only real item ids enter the set
     if (!meta.deedStats.itemsDiscovered.has(id)) {
       meta.deedStats.itemsDiscovered.add(id);
       markDeedDirtyKey(ctx, meta.entityId, 'items');
+      // Reliquary sparse first-find + capped recent for catalogued relics only.
+      // Rides the same first-obtain hub (including buyback); never dual-writes
+      // discovery and never forces saveCharacter (30s autosave / leave).
+      onReliquaryItemDiscovered(ctx, meta, id, opts);
     }
     const quality = (id === itemId ? rolledQuality : undefined) ?? def.quality;
-    if (quality === 'rare' || quality === 'epic' || quality === 'legendary') {
+    if (!viaTier && (quality === 'rare' || quality === 'epic' || quality === 'legendary')) {
       markVisited(ctx, meta, `quality:${quality}`);
     }
-    id = def.heroicOf;
+    viaTier = def.heroicOf === undefined && def.relicOf !== undefined;
+    id = def.heroicOf ?? def.relicOf;
   }
 }
 
@@ -523,12 +783,23 @@ export function grantDeed(
   ctx: SimContext,
   meta: PlayerMeta,
   deedId: string,
-  opts?: { retro?: boolean },
+  opts?: Readonly<{ retro?: boolean }>,
 ): boolean {
+  // DEEDS is a plain object, so a bare index resolves a prototype key
+  // ('__proto__', 'constructor') to a truthy Object.prototype member that
+  // sails past `!def`. Unlike the cosmetic setters, this path has no later
+  // reward-kind gate to catch it: an unguarded hit would run `renown +=
+  // undefined` (NaN, and it feeds the SQL sort index) and add a non-string
+  // legacy value to unlockedMilestones. Guard at the source.
+  if (!Object.hasOwn(DEEDS, deedId)) return false;
   const def = DEEDS[deedId];
   if (!def) return false;
   if (meta.deedsEarned.has(deedId)) return false;
   meta.deedsEarned.set(deedId, ctx.utcDay);
+  // The account ledger lists this character among the deed's earners from the
+  // same stamp (src/sim/account_ledger.ts): both books and the Reliquary grant
+  // lane read the union; every other deed's evaluator stays character-scoped.
+  recordAccountDeed(meta.accountLedger, deedId, selfEarner(meta, ctx.utcDay));
   meta.renown += def.renown;
   const legacy = MILESTONE_DEED_TO_LEGACY[deedId];
   if (legacy) meta.unlockedMilestones.add(legacy);
@@ -542,24 +813,108 @@ export function grantDeed(
     pid: meta.entityId,
     ...(opts?.retro ? { retro: true } : {}),
   });
+  // Achievement pets (content/buddy_sources.ts): a deed that names
+  // a companion grants it on the same call, retro grants
+  // included (a character who earned the deed before the pet existed gets it
+  // at their next login). The grant is idempotent and draws no rng.
+  const buddyReward = BUDDY_DEED_REWARDS[deedId];
+  if (buddyReward) grantBuddy(ctx, meta.entityId, buddyReward);
+  // Horizons titles score catalogRankOwned. Live grant of a title relic can
+  // cross a Curator threshold; keep display rank and zero-Renown bridges aligned
+  // without waiting for join retro. The rank bridges for ranks 2 to 4 are
+  // themselves Horizons titles (rank 5 deliberately is not: it rewards window
+  // border chrome, so it never scores rank in turn), and maybeSync early-outs
+  // when every bridge for the current rank is already earned.
+  if (def.reward?.kind === 'title' && isHorizonsTitleDeed(deedId)) {
+    // ONE ownership snapshot shared by both syncs (its deed surface is a
+    // live reference, so the rank sync's grants are visible to the ladder).
+    // The sharing is per LEVEL, not per cascade: each ladder grant re-enters
+    // grantDeed and this hook builds a fresh snapshot for its own level, so
+    // a full ladder cascade builds a handful of snapshots. Bounded by the
+    // ladder depth and once-ever per character; accepted.
+    const titleOwnership = accountReliquaryOwnership(meta);
+    const retroOpts = opts?.retro ? ({ retro: true } as const) : undefined;
+    maybeSyncCuratorRankDeeds(ctx, meta, retroOpts, titleOwnership);
+    // A title relic earned ANYWHERE (a pvp title as the last missing relic)
+    // can complete a completion-ladder read the moment it lands, so the
+    // ladder syncs here beside the rank bridges rather than waiting for the
+    // next item/mark fill. Recursion through grantDeed terminates: grants are
+    // monotone over a finite id set (deedsEarned only grows, checked live per
+    // deed) and the sync's early-out short-circuits once all five ladder
+    // deeds are earned.
+    syncReliquaryCompletionDeeds(ctx, meta, retroOpts, titleOwnership);
+  }
   return true;
 }
 
 /** Select (or clear, with null) the displayed title: the ONE validator both
  *  worlds reach (the Sim method offline, the server dispatch online). A
  *  non-null id is accepted only when the player has EARNED the deed and its
- *  reward is a title; invalid input is a SILENT no-op (defensive against
- *  stale clients: no error event, no player text). On accept the meta field
- *  and the entity wire field are written together, so both read paths agree
- *  within the same tick. */
-export function setActiveTitle(meta: PlayerMeta, e: Entity, deedId: string | null): void {
+ *  reward is a title, or when it is a developer-badge rung title
+ *  (src/sim/dev_badge_titles.ts, not a deed) the entity's resolved badge tier
+ *  reaches; invalid input is a SILENT no-op (defensive against stale clients:
+ *  no error event, no player text). On accept the meta field and the entity
+ *  wire field are written together, so both read paths agree within the same
+ *  tick. `restore` is the join path only: the badge tier resolves AFTER join,
+ *  so a persisted rung title is taken as saved and re-checked by the server
+ *  once the tier lands (reconcileDevBadgeTitle). */
+export function setActiveTitle(
+  meta: PlayerMeta,
+  e: Entity,
+  deedId: string | null,
+  opts?: Readonly<{ restore?: boolean }>,
+): void {
   if (deedId !== null) {
     if (typeof deedId !== 'string') return;
-    if (!meta.deedsEarned.has(deedId)) return;
+    if (deedId === REFERRAL_TITLE) {
+      if (!ownsReferralTitle(meta.referralRewards)) return;
+      meta.activeTitle = deedId;
+      e.title = deedId;
+      return;
+    }
+    if (devBadgeTitleTier(deedId) !== undefined) {
+      if (!opts?.restore && !canWearDevBadgeTitle(deedId, e.devTier)) return;
+      meta.activeTitle = deedId;
+      e.title = deedId;
+      return;
+    }
+    // Account-wide: a deed earned by ANY character on the account unlocks its
+    // cosmetic for every character (the ledger's display lane).
+    if (!meta.deedsEarned.has(deedId) && !meta.accountLedger.deeds.has(deedId)) return;
+    // DEEDS is a plain object. The reward-kind check below already refuses a
+    // bare prototype key on its own (Object.prototype has no `reward`), so this
+    // hasOwn guard's real job is to stay correct if Object.prototype is ever
+    // polluted elsewhere, which would otherwise make a prototype-key id resolve
+    // a truthy reward. grantDeed needs the same guard for a stronger reason: it
+    // has no later kind check to catch the prototype hit.
+    if (!Object.hasOwn(DEEDS, deedId)) return;
     if (DEEDS[deedId]?.reward?.kind !== 'title') return;
   }
   meta.activeTitle = deedId;
   e.title = deedId;
+}
+
+/** Select (or clear, with null) the displayed nameplate border: the ONE
+ *  validator both worlds reach, the exact sibling of setActiveTitle above. The
+ *  stored value is the DEED ID, never the reward slug (consumers derive the
+ *  slug via DEEDS[id].reward.slug), so a slug rename is a content edit rather
+ *  than a save migration. A non-null id is accepted only when the player has
+ *  EARNED the deed and its reward is a border; invalid input is a SILENT no-op
+ *  (defensive against stale clients: no error event, no player text). On
+ *  accept the meta field and the entity wire field are written together, so
+ *  both read paths agree within the same tick. */
+export function setActiveBorder(meta: PlayerMeta, e: Entity, deedId: string | null): void {
+  if (deedId !== null) {
+    if (typeof deedId !== 'string') return;
+    // Account-wide, exactly like setActiveTitle above.
+    if (!meta.deedsEarned.has(deedId) && !meta.accountLedger.deeds.has(deedId)) return;
+    // Same prototype-key guard as setActiveTitle above: the two validators
+    // stay identical in shape so neither drifts into a weaker check.
+    if (!Object.hasOwn(DEEDS, deedId)) return;
+    if (DEEDS[deedId]?.reward?.kind !== 'border') return;
+  }
+  meta.activeBorder = deedId;
+  e.border = deedId;
 }
 
 // ---------------------------------------------------------------------------
@@ -582,9 +937,39 @@ export const METER_DIRTY_KEYS: Record<DeedMeterId, readonly string[]> = {
   talentPoints: [],
   arenaRankedMatches: [],
   arenaRankedWins: [],
+  bgWins: [],
+  bgCaptures: [],
+  // The meter reads PlayerMeta.lifetimeHonor directly, never a deedStats ledger,
+  // so no narrow dirty key could name anything it consumes: [] is the only
+  // honest value, which is the condition the guard test instruments for.
+  //
+  // Note what this DOES cost, precisely, because an earlier draft of this comment
+  // overstated it. The three RESULT sites mark a full pass (battleground result,
+  // ranked arena end, fiesta return), but the mid-match drip does not:
+  // awardBattlegroundKillHonor, awardBattlegroundAssistHonor and
+  // awardFiestaKillHonor all grant honor without marking. So a rank threshold
+  // crossed by a killing blow grants at the end of that match rather than on the
+  // tick it was crossed. That is a few minutes of latency on a cosmetic title,
+  // it is identical on every host, and retro-grant-on-load backstops it, so it is
+  // accepted rather than fixed: adding a mark to the per-kill path would put deed
+  // work on a combat hot path to make a title appear slightly sooner.
+  lifetimeHonor: [],
+  // Faction standing reads PlayerMeta.factions directly, never a deedStats
+  // ledger, so no narrow key could name it. The two award sites (the world
+  // quest turn-in in world_quests.ts and /dev rep in dev_commands.ts) mark a
+  // full pass right after awardFactionReputation, so a tier crossing grants
+  // on the tick it happens.
+  standingRiftWatch: [],
+  standingChurchOrder: [],
+  standingAutomatons: [],
+  // Reads the top-level PlayerMeta.clueCasketsOpened count, never a deedStats
+  // ledger, so no narrow key could name it; the one writer (the casket open
+  // site in clue_casket.ts) marks a full pass right after the increment.
+  clueCasketsOpened: [],
   vcupWins: [],
   vcupGuildWins: [],
   bankPurchasedSlots: [],
+  bankSocketsUnlocked: [],
   townFocusPoints: [],
   delveLoreCount: [],
   companionRankBest: [],
@@ -687,9 +1072,23 @@ const METERS: Record<DeedMeterId, (meta: PlayerMeta) => number> = {
   talentPoints: (m) => pointsSpent(m.talents),
   arenaRankedMatches: (m) => m.arenaWins + m.arenaLosses + m.arena2v2Wins + m.arena2v2Losses,
   arenaRankedWins: (m) => m.arenaWins + m.arena2v2Wins,
+  bgWins: (m) => m.bgWins,
+  bgCaptures: (m) => m.bgCaptures,
+  // LIFETIME honor, never the spendable balance: a rank once earned survives
+  // every purchase at the WARFARE quartermaster.
+  lifetimeHonor: (m) => m.lifetimeHonor,
+  // Faction standing per allied faction (awardFactionReputation only adds).
+  // Optional chaining: a legacy save restores without the block until the
+  // first award seeds it.
+  standingRiftWatch: (m) => m.factions?.rift_watch ?? 0,
+  standingChurchOrder: (m) => m.factions?.church_order ?? 0,
+  standingAutomatons: (m) => m.factions?.automatons ?? 0,
+  // Lifetime Treasure Caskets opened. Tolerates a missing field the same way.
+  clueCasketsOpened: (m) => m.clueCasketsOpened ?? 0,
   vcupWins: (m) => m.vcupWins,
   vcupGuildWins: (m) => m.vcupGuildWins,
   bankPurchasedSlots: (m) => m.bank.purchasedSlots,
+  bankSocketsUnlocked: (m) => m.bank.unlockedSockets,
   townFocusPoints: (m) => {
     // Allocation-free sum (tick-tail predicate: no Object.values array).
     let n = 0;
@@ -722,24 +1121,9 @@ const FLAGS: Record<DeedFlagId, (meta: PlayerMeta, e: Entity) => boolean> = {
   // Guild membership is server-stamped onto the entity; offline it stays ''
   // (never satisfiable there, matching the offline-sandbox model).
   guildMember: (_m, e) => e.guild !== '',
-  // Slot list PINNED as of v1 (the launch EQUIP_SLOTS); a future twelfth slot
-  // does not grow this deed.
-  allEquipSlotsFilled: (m) =>
-    (
-      [
-        'mainhand',
-        'helmet',
-        'neck',
-        'shoulder',
-        'chest',
-        'waist',
-        'legs',
-        'gloves',
-        'feet',
-        'ring1',
-        'ring2',
-      ] as const
-    ).every((slot) => !!m.equipment[slot]),
+  // Slot list PINNED as of v1 (LAUNCH_PAPERDOLL_SLOTS); a future twelfth slot
+  // does not grow this deed, so already-earned rows keep their meaning.
+  allEquipSlotsFilled: (m) => LAUNCH_PAPERDOLL_SLOTS.every((slot) => !!m.equipment[slot]),
   nonDefaultSkin: (m) => m.skinCatalog === 'mech' || m.skin > 0,
   // The marked set resets whenever the authoritative reward window advances,
   // so containment of all four ids already means one complete circuit.
@@ -946,8 +1330,8 @@ export function updateDeeds(ctx: SimContext): void {
   }
 }
 
-// The 1 Hz sweep behind the poisVisited marks (within 20 yd of a named
-// ZoneDef poi), the Thunzharr witness mark, and the roster-restriction fold
+// The 1 Hz sweep behind the poisVisited marks (within POI_VISIT_RADIUS of a
+// named ZoneDef poi), the Thunzharr witness mark, and the roster-restriction fold
 // (every live hate-table member of a participant-tracked boss, so a non-damager
 // who leaves before the kill still counts against the trio cap). Deterministic:
 // fixed cadence on the sim clock, insertion-order iteration, zero rng.
@@ -970,7 +1354,7 @@ function sweepProximityMarks(ctx: SimContext): void {
   for (const meta of ctx.players.values()) {
     const e = ctx.entities.get(meta.entityId);
     if (!e || e.dead) continue;
-    const zone = zoneAt(e.pos.z);
+    const zone = zoneAt(e.pos.x, e.pos.z);
     for (const poi of zone.pois ?? []) {
       // The mark keys on the stable poi id, never the display label (a label copy
       // edit must not strand exploration progress). Custom-map pois may omit the
@@ -1027,37 +1411,90 @@ export function unionLegacyMilestones(meta: PlayerMeta): void {
  *  every load (the saved number exists only for a later SQL sort index). */
 export function recomputeRenown(meta: PlayerMeta): void {
   let renown = 0;
-  for (const id of meta.deedsEarned.keys()) renown += DEEDS[id]?.renown ?? 0;
+  // deedsEarned keys come verbatim from the save, so a hostile blob can carry
+  // a prototype key; hasOwn keeps the bare index from resolving Object.prototype
+  // (the `?? 0` already coerces the miss to 0, so this only makes the intent
+  // explicit and matches the grantDeed guard above).
+  for (const id of meta.deedsEarned.keys())
+    if (Object.hasOwn(DEEDS, id)) renown += DEEDS[id]?.renown ?? 0;
   meta.renown = renown;
 }
 
+const RETRO_SEED = { retro: true } as const;
+
 /** Seed the discovery ledger from what the character already holds (bags,
- *  bank, equipment, and the vendor buyback list, whose entries were all once
- *  possessed), so veterans keep credit for what they still own. Runs on
- *  every join; the set only grows, so re-seeding is idempotent. */
+ *  bank, the Materials Vault, equipment, and the vendor buyback list, whose
+ *  entries were all once possessed), so veterans keep credit for what they
+ *  still own. Runs on every join; the set only grows, so re-seeding is
+ *  idempotent.
+ *
+ *  Every call here is RETRO: the character already owned these before the
+ *  join, so the Reliquary fills silently (no recent push, no invented clear
+ *  provenance) and the events carry the retro flag. This is the ONLY caller
+ *  that sets it, and the flag buys exactly three things: the CLIENT collapses
+ *  the fills into one catch-up summary line instead of a toast per relic; the
+ *  deedUnlocked grants this join pass produces skip the server's guild /
+ *  activity-feed fan-out through its ev.retro gate; and the server's
+ *  illumination marquee (the detectActivity reliquaryUnlock arm in
+ *  server/game.ts) drops retro events, so a seed-pass fill that completes a
+ *  page never marquees. reliquaryUnlock's presentation payload is self-scoped
+ *  (HEAVY_SELF_EVENTS), but its illuminatedPageId field drives that marquee
+ *  fan-out since Phase 18: a new retro-shaped emit path that drops the flag
+ *  would announce every back-catalog illumination at join. */
 export function seedItemDiscovery(ctx: SimContext, meta: PlayerMeta): void {
   for (const slot of meta.inventory) {
-    markItemDiscovered(ctx, meta, slot.itemId, slot.instance?.rolled?.quality);
+    markItemDiscovered(ctx, meta, slot.itemId, slot.instance?.rolled?.quality, RETRO_SEED);
   }
   for (const slot of meta.bank.inventory) {
-    markItemDiscovered(ctx, meta, slot.itemId, slot.instance?.rolled?.quality);
+    markItemDiscovered(ctx, meta, slot.itemId, slot.instance?.rolled?.quality, RETRO_SEED);
   }
-  for (const [slot, itemId] of Object.entries(meta.equipment) as [
-    EquipSlot,
-    string | undefined,
-  ][]) {
+  // Ordinary vault stock carries no instance quality. Sorted: stock is
+  // persisted as an object keyed by item id and Postgres jsonb re-orders object
+  // keys, so the raw walk order differs between a server-loaded and an offline
+  // character. The PERSISTED itemsDiscovered array is already host-identical
+  // (serializeDeedStats sorts on the way out); this protects the LIVE Set order
+  // that rides the dstats self wire.
+  for (const itemId of Object.keys(meta.vault.stock).sort()) {
+    markItemDiscovered(ctx, meta, itemId, undefined, RETRO_SEED);
+  }
+  // Identity-preserving vault rows retain rolled quality. Sort on every field
+  // that can affect the discovery marks, rather than on JSON serialization
+  // whose nested key order differs after a Postgres jsonb round trip.
+  for (const slot of [...meta.vault.special].sort((a, b) => {
+    const ak = `${a.itemId}\u0000${a.instance?.rolled?.quality ?? ''}\u0000${a.craftedRecipeId ?? ''}`;
+    const bk = `${b.itemId}\u0000${b.instance?.rolled?.quality ?? ''}\u0000${b.craftedRecipeId ?? ''}`;
+    return ak < bk ? -1 : ak > bk ? 1 : 0;
+  })) {
+    markItemDiscovered(ctx, meta, slot.itemId, slot.instance?.rolled?.quality, RETRO_SEED);
+  }
+  // Sorted for the same reason: meta.equipment is rebuilt by spreading the save
+  // blob, so its key order is jsonb-hostage too.
+  for (const [slot, itemId] of (
+    Object.entries(meta.equipment) as [EquipSlot, string | undefined][]
+  ).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
     if (itemId)
-      markItemDiscovered(ctx, meta, itemId, meta.equipmentInstance[slot]?.rolled?.quality);
+      markItemDiscovered(
+        ctx,
+        meta,
+        itemId,
+        meta.equipmentInstance[slot]?.rolled?.quality,
+        RETRO_SEED,
+      );
   }
   for (const bagId of meta.bags) {
-    if (bagId) markItemDiscovered(ctx, meta, bagId);
+    if (bagId) markItemDiscovered(ctx, meta, bagId, undefined, RETRO_SEED);
+  }
+  // Bank socket bags (phase 06): a persisted container position like the
+  // carried sockets above, so a bag parked in the bank still seeds discovery.
+  for (const bagId of meta.bank.socketBags) {
+    if (bagId) markItemDiscovered(ctx, meta, bagId, undefined, RETRO_SEED);
   }
   for (const slot of meta.vendorBuyback) {
     // Buyback entries can carry an instance payload (masterwork/signed sales,
     // #2398); the rolled quality rides along like the sibling loops so
     // quality-first discovery credit is never under-counted for a row that
     // preserved its instance.
-    markItemDiscovered(ctx, meta, slot.itemId, slot.instance?.rolled?.quality);
+    markItemDiscovered(ctx, meta, slot.itemId, slot.instance?.rolled?.quality, RETRO_SEED);
   }
 }
 
@@ -1114,6 +1551,41 @@ export function retroFallbackGrants(ctx: SimContext, meta: PlayerMeta, player: E
   if (player.level >= MAX_LEVEL && meta.restedXp <= 0) {
     grantDeed(ctx, meta, 'prog_well_rested', { retro: true });
   }
+  // Stranded: the muster's rack lends its pikes to level 19 and below only (muster_pike.ts),
+  // so past that level the pike drill behind Point Taken can never be finished again, and a
+  // level never goes back down. Below the cap the drill's own turn-in stays the only grant.
+  if (player.level > MUSTER_PIKE_MAX_LEVEL && !meta.questsDone.has('q_muster_pike_drill')) {
+    grantDeed(ctx, meta, 'cmb_point_taken', { retro: true });
+  }
+  // Proof: unique catalogued Reliquary fills already live on itemsDiscovered.
+  // Veterans who crossed Curator rank thresholds before the rank deed bridges
+  // shipped get cosmetic titles/borders on join (zero Renown; grantDeed is
+  // idempotent). Live rank-ups still grant from onItemDiscovered.
+  // Catalog marks reuse the visit ledger (gather_event:*, masterwork:*, and
+  // since Phase 21 the slain:* rare proofs), which their own live call sites
+  // write when the real event happens: silent retro only (no unlock toast),
+  // and never a kill or a craft history nobody performed.
+  // Deliberately UNCOUNTED too: the client's one join summary line spends
+  // retro reliquaryUnlock events (item fills only); mark refills emit nothing
+  // and stay out of that count, so this call's return value is dropped.
+  // Must run BEFORE the rank sync so a mark that refills here can rank up.
+  syncReliquaryMarksFromVisited(meta);
+  // ONE ownership snapshot for the three syncs below (deed surface live, so
+  // each sync sees the grants of the one before it; a join would otherwise
+  // scan inventory + bank once per sync).
+  const joinOwnership = accountReliquaryOwnership(meta);
+  syncCuratorRankDeeds(ctx, meta, { retro: true }, joinOwnership);
+  // Phase 18 completion ladder, retro-flagged like the rank bridges: a
+  // veteran who finished a flagship page, the Conquerors shelf, or the whole
+  // catalog before the ladder shipped is credited silently at join.
+  syncReliquaryCompletionDeeds(ctx, meta, { retro: true }, joinOwnership);
+  // The join sweep for the sticky illumination record (silent, no events): a
+  // pre-Phase-18 blob has no illuminatedPages at all, and without this sweep
+  // a veteran's already-complete pages would marquee as FIRST illuminations
+  // on a later catalog-growth re-completion. Runs AFTER the ladder sync by
+  // choice, though order is inert today: the ladder emits no reliquaryUnlock,
+  // so it cannot race the sweep's silent recording.
+  syncIlluminatedPages(meta, joinOwnership);
 }
 
 // ---------------------------------------------------------------------------
@@ -1225,6 +1697,24 @@ export function onPlayerDeathForDeeds(ctx: SimContext, e: Entity): void {
 export function onBossAddsSummonedForDeeds(ctx: SimContext, boss: Entity, addIds: number[]): void {
   if (!ADD_TASKS[boss.templateId]) return;
   ensureEncounter(ctx, boss.id).addIds.push(...addIds);
+}
+
+/** A tracked boss's dead add is pending (its body lies dead but it will rise
+ *  again: Velkhar's Unquenched Bonewalkers) or no longer pending. */
+export function setBossAddPendingForDeeds(
+  ctx: SimContext,
+  boss: Entity,
+  addId: number,
+  pending: boolean,
+): void {
+  if (!ADD_TASKS[boss.templateId]) return;
+  const st = ensureEncounter(ctx, boss.id);
+  if (!pending) {
+    st.pendingAddIds?.delete(addId);
+    return;
+  }
+  st.pendingAddIds ??= new Set();
+  st.pendingAddIds.add(addId);
 }
 
 /** The boss's tracked splash (Reaping Arc cleave / Gravebreaker arc) struck a
@@ -1360,8 +1850,15 @@ export function onMobKillCreditForDeeds(
   }
 
   // chr_*_rares: party kills credit every eligible member, like quest credit.
+  // The Reliquary trophy rides the same arm (the crafting / gather_events /
+  // interaction dual-write idiom): the visit is the durable ledger copy the
+  // join-time retro reads, the noteReliquaryMark is the live fill with its
+  // unlock toast and recent-ring push.
   if (RARE_SLAIN_TEMPLATES.has(mob.templateId)) {
-    for (const meta of eligible) markVisited(ctx, meta, `slain:${mob.templateId}`);
+    for (const meta of eligible) {
+      markVisited(ctx, meta, `slain:${mob.templateId}`);
+      noteReliquaryMark(ctx, meta, `slain:${mob.templateId}`);
+    }
   }
 
   // cmb_giantslayer: the killing blow itself (a pet's blow credits its
@@ -1413,6 +1910,7 @@ export function onMobKillCreditForDeeds(
   const inst = instanceForMob(ctx, mob);
   if (FINAL_BOSS_DUNGEONS[mob.templateId] && mob.templateId !== 'nythraxis_scourge_of_thornpeak') {
     onDungeonFinalBossKilledForDeeds(ctx, mob, inst, eligible);
+    onDungeonClearedForWeeklyQuests(ctx, FINAL_BOSS_DUNGEONS[mob.templateId], eligible);
   }
 
   // Encounter skill tasks resolve at the tracked boss's death; recipients are
@@ -1426,9 +1924,12 @@ export function onMobKillCreditForDeeds(
       ? playersInRoom(ctx, mob, roomRadius, ctx.instanceOriginOf(inst))
       : playersInInstance(ctx, inst)
     : eligible;
+  // the tasks this kill met, for Lantern Hall's task contracts (guild_contracts.ts) below
+  const tasksMet: string[] = [];
   const flawlessDeed = FLAWLESS_TASKS[mob.templateId];
   if (flawlessDeed && inst?.difficulty === 'heroic' && !st?.deathTainted) {
     for (const meta of taskRecipients) grantDeed(ctx, meta, flawlessDeed);
+    tasksMet.push(flawlessDeed);
   }
   const trioDeed = TRIO_TASKS[mob.templateId];
   if (trioDeed) {
@@ -1444,15 +1945,21 @@ export function onMobKillCreditForDeeds(
   }
   const addDeed = ADD_TASKS[mob.templateId];
   if (addDeed) {
-    const allDead = (st?.addIds ?? []).every((id) => {
-      const add = ctx.entities.get(id);
-      return !add || add.dead;
-    });
-    if (allDead) for (const meta of taskRecipients) grantDeed(ctx, meta, addDeed);
+    const allDead =
+      (st?.pendingAddIds?.size ?? 0) === 0 &&
+      (st?.addIds ?? []).every((id) => {
+        const add = ctx.entities.get(id);
+        return !add || add.dead;
+      });
+    if (allDead) {
+      for (const meta of taskRecipients) grantDeed(ctx, meta, addDeed);
+      tasksMet.push(addDeed);
+    }
   }
   const splashDeed = SPLASH_TASKS[mob.templateId];
   if (splashDeed && !st?.splashTainted) {
     for (const meta of taskRecipients) grantDeed(ctx, meta, splashDeed);
+    tasksMet.push(splashDeed);
   }
   const bellDeed = BELL_TASKS[mob.templateId];
   if (bellDeed && !st?.bellTainted) {
@@ -1461,6 +1968,17 @@ export function onMobKillCreditForDeeds(
   if (mob.templateId === 'nythraxis_scourge_of_thornpeak' && !st?.rageResolved) {
     for (const meta of taskRecipients) grantDeed(ctx, meta, 'dgn_nythraxis_wardens');
   }
+  // Lantern Hall's weekly contracts ride the same credit: the kill's eligible roster, the
+  // encounter's recipients and the tasks met (src/sim/guild_contracts.ts)
+  onKillForGuildContracts(
+    ctx,
+    mob,
+    inst?.difficulty === 'heroic',
+    eligible,
+    taskRecipients,
+    tasksMet,
+    (meta, deedId) => grantDeed(ctx, meta, deedId),
+  );
   ctx.deedRuntime.encounters.delete(mob.id);
 }
 
@@ -1471,7 +1989,10 @@ export function onNythraxisKillForDeeds(
   boss: Entity,
   roomMetas: PlayerMeta[],
 ): void {
-  onDungeonFinalBossKilledForDeeds(ctx, boss, instanceForMob(ctx, boss), roomMetas);
+  const instance = instanceForMob(ctx, boss);
+  onDungeonFinalBossKilledForDeeds(ctx, boss, instance, roomMetas);
+  onDungeonClearedForWeeklyQuests(ctx, FINAL_BOSS_DUNGEONS[boss.templateId], roomMetas);
+  emitReferralBossEvidence(ctx, boss, roomMetas, instance?.dungeonId);
 }
 
 /** World-boss credit: the loot-roster snapshot (never pruned by dying). */
@@ -1480,6 +2001,27 @@ export function onWorldBossKilledForDeeds(
   mob: Entity,
   contributors: PlayerMeta[],
 ): void {
+  // Per-boss credit, matched on template id. An explicit branch per boss rather than a
+  // table because the deeds differ in SHAPE: only Thunzharr has an unbroken-run deed, so a
+  // table would carry optionals most bosses never use.
+  // Old Thatchgrin (Gourdlight Eve's field boss): his seasonal feat (feat_old_thatchgrin).
+  if (mob.templateId === THATCHGRIN_ID) {
+    for (const meta of contributors) {
+      bumpDeedStat(ctx, meta, 'thatchgrinKills', 1);
+      // the whole-event checklist's leaf (feat_gourdlight_eve_complete)
+      markVisited(ctx, meta, GOURDLIGHT_THATCHGRIN_MARK);
+    }
+    ctx.deedRuntime.encounters.delete(mob.id);
+    return;
+  }
+  if (mob.templateId === BALGATH_ID) {
+    for (const meta of contributors) {
+      grantDeed(ctx, meta, 'cmb_balgath');
+      bumpDeedStat(ctx, meta, 'balgathKills', 1);
+    }
+    ctx.deedRuntime.encounters.delete(mob.id);
+    return;
+  }
   if (mob.templateId !== THUNZHARR_ID) return;
   const st = ctx.deedRuntime.encounters.get(mob.id);
   for (const meta of contributors) {
@@ -1600,120 +2142,12 @@ export function onArenaMatchEndForDeeds(
 }
 
 // ---------------------------------------------------------------------------
-// Vale Cup sites
+// Vale Cup sites: REMOVED with the minigame (the New Eastbrook program,
+// docs/design/eastbrook-revamp/master-plan.md). The vale cup deed CATALOG
+// rows stay retired-in-place: their meters persist on PlayerMeta and the
+// meter map below keeps historical progress readable, but no live site
+// grants them anymore.
 // ---------------------------------------------------------------------------
-
-// The Cup match shape the deed sites read. Kept structural (vale_cup.ts owns
-// the real VcMatch) so this module never imports the cup module.
-export interface CupMatchForDeeds {
-  id: number;
-  bracket: number;
-  rated: boolean;
-  golden: boolean;
-  scoreA: number;
-  scoreB: number;
-  teamA: number[];
-  teamB: number[];
-  roles: Record<number, string>;
-  benched: Set<number>;
-  practice: unknown | null;
-}
-
-// Personal outcomes count only in QUEUED bouts (rated or bot-backfilled);
-// practice bouts and offline-staged bouts never count for any Cup deed.
-function cupQueuedBout(match: CupMatchForDeeds): boolean {
-  return match.practice === null;
-}
-
-/** A personal ball touch (kick, grip, trap, or dribble nudge). Feeds the
- *  Chronicle debut immediately and the per-match memory pvp_vcup_first_match
- *  reads at full time. Backfill bots are real PlayerMeta players, so they are
- *  skipped explicitly (a bot must never accrue deed state). */
-export function onCupTouchForDeeds(ctx: SimContext, match: CupMatchForDeeds, pid: number): void {
-  if (!cupQueuedBout(match)) return;
-  if (ctx.vcup.botPids.includes(pid)) return;
-  let touched = ctx.deedRuntime.cupTouched.get(match.id);
-  if (!touched) {
-    touched = new Set();
-    ctx.deedRuntime.cupTouched.set(match.id, touched);
-  }
-  touched.add(pid);
-  const meta = ctx.players.get(pid);
-  if (meta) grantDeed(ctx, meta, 'chr_vale_cup_debut');
-}
-
-/** A goal was scored by `team`; resolve the scoring pid exactly like the
- *  scorer-name banner (last kicker within the kick window, else last
- *  toucher; an own goal never credits an opponent). Rated matches only. */
-export function onCupGoalForDeeds(
-  ctx: SimContext,
-  match: CupMatchForDeeds,
-  _team: 'A' | 'B',
-  scorerPid: number | null,
-): void {
-  if (!match.rated || scorerPid === null) return;
-  const meta = ctx.players.get(scorerPid);
-  if (!meta) return;
-  grantDeed(ctx, meta, 'pvp_vcup_first_goal');
-  if (match.golden) grantDeed(ctx, meta, 'pvp_vcup_golden_goal');
-  if (match.bracket >= 3) {
-    let goals = ctx.deedRuntime.cupGoals.get(match.id);
-    if (!goals) {
-      goals = new Map();
-      ctx.deedRuntime.cupGoals.set(match.id, goals);
-    }
-    const n = (goals.get(scorerPid) ?? 0) + 1;
-    goals.set(scorerPid, n);
-    if (n >= 3) grantDeed(ctx, meta, 'pvp_vcup_hat_trick');
-  }
-}
-
-/** A keeper save (shot at or above the save speed floor), rated only. */
-export function onCupSaveForDeeds(
-  ctx: SimContext,
-  match: CupMatchForDeeds,
-  keeperPid: number,
-): void {
-  if (!match.rated) return;
-  const meta = ctx.players.get(keeperPid);
-  if (meta) grantDeed(ctx, meta, 'pvp_vcup_first_save');
-}
-
-/** Standing applied for one pid inside the rated result loop: the win meters
- *  move here, and a winning keeper with a clean sheet earns it now (roles and
- *  scores are final; the meta is still seated). */
-export function onCupStandingForDeeds(
-  ctx: SimContext,
-  match: CupMatchForDeeds,
-  pid: number,
-  team: 'A' | 'B',
-  winner: 'A' | 'B' | null,
-): void {
-  // The Cup win meters moved in the caller's standing loop: full pass.
-  markDeedsDirty(ctx, pid);
-  if (winner !== team) return;
-  if (match.roles[pid] !== 'keeper' || match.benched.has(pid)) return;
-  const opposingScore = team === 'A' ? match.scoreB : match.scoreA;
-  if (opposingScore !== 0) return;
-  const meta = ctx.players.get(pid);
-  if (meta) grantDeed(ctx, meta, 'pvp_vcup_clean_sheet');
-}
-
-/** Full time: seeing the match out seated with a personal touch earns the
- *  debut match deed (bot-backfilled queued bouts count for this debut only).
- *  Also drops the per-match memory. */
-export function onCupMatchEndForDeeds(ctx: SimContext, match: CupMatchForDeeds): void {
-  const touched = ctx.deedRuntime.cupTouched.get(match.id);
-  if (cupQueuedBout(match) && touched) {
-    for (const pid of [...match.teamA, ...match.teamB]) {
-      if (match.benched.has(pid) || !touched.has(pid)) continue;
-      const meta = ctx.players.get(pid);
-      if (meta) grantDeed(ctx, meta, 'pvp_vcup_first_match');
-    }
-  }
-  ctx.deedRuntime.cupTouched.delete(match.id);
-  ctx.deedRuntime.cupGoals.delete(match.id);
-}
 
 // ---------------------------------------------------------------------------
 // Delve sites
@@ -1804,6 +2238,27 @@ export function onFishCaughtForDeeds(
   if ((ZONE_FISH[zoneId] ?? []).includes(itemId)) markVisited(ctx, meta, `fish:${zoneId}`);
 }
 
+/** A harvest collected a SURVIVING crop from a farm bed in `zoneId` (withered
+ *  plots pay husks, never a chronicle: the fish rule that weeds and boots do
+ *  not count). Writes the farm:<zone> mark the chr_ first-harvest chronicle
+ *  deeds read. Marks only, zero rng, draw-order neutral (the deed-credit
+ *  line in src/sim/professions/CLAUDE.md). */
+export function onCropHarvestedForDeeds(
+  ctx: SimContext,
+  meta: PlayerMeta,
+  zoneId: string,
+  cropId?: string,
+): void {
+  if (FARM_CHRONICLE_ZONES.includes(zoneId)) markVisited(ctx, meta, `farm:${zoneId}`);
+  // The per-crop collection mark (masterwrought DECISION E). Gated on the
+  // catalog so a crop id that is not a shipped crop can never mint a mark: the
+  // namespace has to stay bounded, which is the same rule the zone list above
+  // follows and what the namespace assertion in the deeds tests exists for.
+  if (cropId !== undefined && FARM_CROP_IDS.has(cropId)) {
+    markVisited(ctx, meta, `farm_crop:${cropId}`);
+  }
+}
+
 /** A plain /roll (classic 1-100 bounds) landed exactly 100. */
 export function onChatRollForDeeds(
   ctx: SimContext,
@@ -1855,4 +2310,56 @@ export const VISITED_MARK_NAMESPACES = [
   // already carries (they serialized fine but were dropped on load while the
   // namespace was unregistered).
   'gather_event',
+  // Per-craft rare-tier milestones (issue #2055): the first rare-or-better
+  // output a player crafts IN THAT CRAFT (professions/crafting.ts craftItem).
+  'craft_rare',
+  // Lifetime masterwork procs (first ever, then first per craft), written on
+  // the same arm as the Reliquary mark in professions/crafting.ts. The visit
+  // is the durable proof of the proc, so it must survive a save: without the
+  // namespace registered it would serialize fine and be dropped on load,
+  // exactly the gather_event bug above, and the mark could never refill.
+  'masterwork',
+  // Farming celebration marks (the celebrations phase): farm:planted, the
+  // first-planting proof written at plant success, and the farm:<zone>
+  // first-harvest chronicle marks (onCropHarvestedForDeeds above), both
+  // written from professions/farming.ts. Registered so restoreDeedStats
+  // keeps them across saves (the gather_event lesson above).
+  'farm',
+  // Per-CROP first-harvest marks, farm_crop:<cropId>, the collection behind
+  // col_farm_roster (masterwrought DECISION E). A separate namespace from
+  // 'farm' above on purpose: that one is zone-keyed and closed at four, this
+  // one is crop-keyed and grows with the catalog, so keeping them apart is
+  // what lets each be reasoned about on its own.
+  //
+  // REGISTERING IT IS THE WHOLE POINT, not bookkeeping. An unregistered
+  // namespace serializes fine and is silently DROPPED by restoreDeedStats on
+  // load, so the collection could never refill and the deed would be
+  // unearnable for anyone who logs out mid-roster. That is the gather_event
+  // and masterwork bug twice over; tests/deeds_content.test.ts pins the round
+  // trip rather than trusting this comment.
+  'farm_crop',
+  // The apex feast craft mark (masterwrought Phase 11k), written at the same
+  // craft-credit arm as craft_rare and masterwork above. ONE key today,
+  // 'apex_feast:crafted', deliberately bounded rather than keyed per feast id:
+  // the deed asks whether a player has cooked an apex feast at all, and the
+  // three rungs are the same act with a different plate on it, so a per-id key
+  // would write three permanent entries where the question has one answer.
+  //
+  // REGISTERED FOR THE USUAL REASON, which this packet has now paid for three
+  // times (gather_event, masterwork, farm_crop): an unregistered namespace
+  // serializes fine and is silently DROPPED by restoreDeedStats on load, so the
+  // mark could never refill and the deed would be unearnable for anyone who
+  // logs out after the craft. tests/deeds_content.test.ts pins the round trip
+  // rather than trusting this comment.
+  'apex_feast',
+  // Scheduled ferry crossings (transport_ferry.ts), one mark per direction,
+  // ferry:<from berth>_<to berth>, written when a living passenger steps off
+  // at the destination. Registered so a save keeps a one-way crossing until
+  // the return trip completes the deed.
+  'ferry',
+  // Gourdlight Eve's whole-event checklist (content/gourdlight_eve_deeds.ts): knocks,
+  // frights per town, errands, the Thatchgrin kill and the pumpkin hunt, every id built
+  // from the event's own tables (seasonal/gourdlight_deed_marks.ts writes them).
+  // Registered so a save keeps a half-done checklist across sessions and editions.
+  'gourdlight',
 ] as const;

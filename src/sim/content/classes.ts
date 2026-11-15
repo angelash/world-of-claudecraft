@@ -1,9 +1,12 @@
+import { type AbilityOutputScaling, buildAbilityOutputScaling } from '../ability_output_scaling';
+import { resolveTalentHitMult } from '../talent_hit_mult';
 import {
   type AbilityDef,
   type AbilityEffect,
   type AuraKind,
   type CoreStats,
   type PlayerClass,
+  type PoisonCoat,
   TEMPORAL_HOURGLASS_ALLY_COOLDOWN_RATE,
   TEMPORAL_HOURGLASS_CAPTURE_RADIUS,
   TEMPORAL_HOURGLASS_DURATION,
@@ -15,9 +18,27 @@ import {
   TEMPORAL_HOURGLASS_SELF_RADIUS,
   type WeaponInfo,
 } from '../types';
+import {
+  TEMPORAL_CASCADE_CAST_SECONDS,
+  TEMPORAL_CASCADE_ECHO_DURATION_SECONDS,
+  TEMPORAL_ECHO_DURATION_SECONDS,
+  TEMPORAL_ECHO_SINGLE_CONVERSION,
+} from './chronomancy_tuning';
+import { COURIER_ABILITY } from './courier';
+import {
+  CHRONOWEAVE_2PC_ECHO_CONVERT_SINGLE,
+  GROVESPRING_2PC_SWIFTMEND_HEAL_MULT,
+  GROVESPRING_4PC_OVERBLOOM_HARVEST_PCT,
+  HEXTHREAD_2PC_NEEDLE_DOOM_BONUS,
+  MOONSCORCH_2PC_TEMPEST_EXTEND_CAP_SEC,
+  setBonusFlag,
+  WILDFANG_2PC_REDHARVEST_ENERGY_MULT,
+} from './ignivar_set_bonuses';
+import { PALADIN_CORE_ABILITIES } from './paladin_core_abilities';
+import { PRIEST_ABILITIES } from './priest';
+import { MENDING_WATERS_MANA_COST, TIDECALL_MANA_COST } from './shaman_tuning';
 import { TALENT_ABILITIES_V2 } from './talent_abilities_v2';
 import type { TalentModifiers } from './talents';
-import { SPORT_ABILITIES } from './vale_cup';
 
 // ---------------------------------------------------------------------------
 // Player classes — per-level base stats follow classic-era growth curves.
@@ -34,14 +55,14 @@ export interface ClassDef {
   hpPerLevel: number;
   baseMana: number;
   manaPerLevel: number;
-  resourceType: 'rage' | 'mana' | 'energy';
+  resourceType: 'rage' | 'mana' | 'energy' | 'focus';
   startWeapon: string;
   startOffhand?: string;
   startChest: string;
   // Consumables in a fresh character's bags: every class carries food; the
   // mana classes also carry water. Saved characters load their own bags.
   startItems: { itemId: string; count: number }[];
-  // hunters: auto shot (8yd deadzone). casters: wand (wand:true → no deadzone,
+  // hunters: auto shot (no deadzone since v0.45). casters: wand (wand:true → no deadzone,
   // fires a magic-school bolt so they don't run into melee to auto-attack, #94)
   ranged?: WeaponInfo & {
     maxRange: number;
@@ -88,6 +109,11 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
       'raging_gale',
       'raised_guard',
       'pummel',
+      // Seething Fury: authored as a plain L10 active (def below) but orphaned
+      // when the v2 talent integration deleted the v1 class-tree grant
+      // (war_berserker_rage) without re-homing it - abilitiesKnownAt could
+      // never return it (owner report: unfindable on a live L20 warrior).
+      'berserker_rage',
       'execute',
       'furious_mending',
       'iron_resolve',
@@ -125,16 +151,24 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     id: 'mage',
     name: 'Mage',
     baseStats: { str: 10, agi: 12, sta: 14, int: 24, spi: 22, armor: 25 },
-    statsPerLevel: { str: 0, agi: 0, sta: 1, int: 3, spi: 2, armor: 4 },
+    statsPerLevel: { str: 0, agi: 0, sta: 2, int: 3, spi: 2, armor: 4 },
     baseHp: 40,
-    hpPerLevel: 12,
+    hpPerLevel: 15,
     baseMana: 100,
     manaPerLevel: 24,
     resourceType: 'mana',
     startWeapon: 'gnarled_staff',
     startChest: 'apprentice_robe',
     startItems: START_RATIONS_MANA,
-    ranged: { min: 3, max: 6, speed: 1.8, maxRange: 30, minRange: 0, wand: true, school: 'arcane' },
+    ranged: {
+      min: 3,
+      max: 6,
+      speed: 1.8,
+      maxRange: 30,
+      minRange: 0,
+      wand: true,
+      school: 'arcane',
+    },
     abilities: [
       'fireball',
       'frost_armor',
@@ -213,7 +247,7 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     id: 'rogue',
     name: 'Rogue',
     baseStats: { str: 17, agi: 25, sta: 17, int: 11, spi: 12, armor: 40 },
-    statsPerLevel: { str: 1, agi: 3, sta: 1, int: 0, spi: 0, armor: 8 },
+    statsPerLevel: { str: 1, agi: 3, sta: 2, int: 0, spi: 0, armor: 8 },
     baseHp: 45,
     hpPerLevel: 15,
     baseMana: 100, // energy cap
@@ -243,9 +277,12 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
       'instant_poison',
       'adrenaline_rush',
       'deadly_poison',
+      'melting_acid',
+      'nightshade_coating',
       'blind',
       'stealth',
       'kick',
+      'venom_dart',
     ],
     color: 0xfcee58,
   },
@@ -260,25 +297,58 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     manaPerLevel: 20,
     resourceType: 'mana',
     startWeapon: 'training_mace',
+    startOffhand: 'eastbrook_buckler',
     startChest: 'recruit_tunic',
     startItems: START_RATIONS_MANA,
     abilities: [
       'seal_of_righteousness',
       'holy_light',
-      'devotion_aura',
-      'judgement',
       'blessing_of_might',
       'divine_protection',
       'hammer_of_justice',
       'lay_on_hands',
-      'holy_taunt',
       'flash_of_light',
       'exorcism',
       'consecration',
       'righteous_fury',
-      'retribution_aura',
       'rebuke',
       'sacred_bulwark',
+      'holy_shock',
+      'holy_shield',
+      'crusader_strike',
+      'divine_ascension',
+      'devotion_ward',
+      'radiant_devotion',
+      'dawn_devotion',
+      'grace_devotion',
+      'retribution_aura',
+      'hammer_of_grace',
+      'hushbrand',
+      'solar_step',
+      'solar_invocation',
+      'recall_the_fallen',
+      'beacon_of_light',
+      'final_edict',
+      'dawnfall',
+      'faithforged_guard',
+      'hammer_of_wrath',
+      'guardian_covenant',
+      'avenging_wrath',
+      'sun_gods_verdict',
+      'valkyrs_calling',
+      'mercy_lance',
+      'sacred_form',
+      'dawns_embrace',
+      'radiant_chorus',
+      'life_covenant',
+      'aegis_first_dawn',
+      'vowkeeper_strike',
+      'bastion_rite',
+      'sunward_disc',
+      'sacred_challenge',
+      'bastion_sweep',
+      'oath_chain',
+      'veilbound_march',
     ],
     color: 0xf58ca0,
   },
@@ -289,21 +359,32 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     statsPerLevel: { str: 1, agi: 3, sta: 2, int: 1, spi: 1, armor: 8 },
     baseHp: 50,
     hpPerLevel: 15,
-    baseMana: 80,
-    manaPerLevel: 18,
-    resourceType: 'mana',
+    baseMana: 100,
+    manaPerLevel: 0,
+    resourceType: 'focus',
     startWeapon: 'rusty_hatchet',
     startChest: 'footpad_jerkin',
-    startItems: START_RATIONS_MANA,
-    ranged: { min: 5, max: 9, speed: 2.3, maxRange: 35, minRange: 8 },
+    startItems: START_RATIONS,
+    ranged: { min: 5, max: 9, speed: 2.3, maxRange: 35, minRange: 0 },
     abilities: [
       'raptor_strike',
+      'pack_command',
+      'stampede',
+      'measured_shot',
       'aspect_of_the_hawk',
       'serpent_sting',
       'arcane_shot',
       'concussive_shot',
       'mongoose_bite',
+      'hunting_momentum',
+      'fieldcraft_reentry',
       'wing_clip',
+      'trailbreak',
+      'wildheart',
+      'shellskin',
+      'frostjaw_trap',
+      'bear_trap',
+      'scatterbolt',
       'tame_beast',
       'dismiss_pet',
       'revive_pet',
@@ -311,7 +392,12 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
       'aspect_of_the_cheetah',
       'aimed_shot',
       'rapid_fire',
+      'shrapnel_charge',
+      'bloodtrail_assault',
+      'tactical_camo',
+      'play_dead',
       'volley',
+      'phosphor_flask',
       'counter_shot',
     ],
     color: 0xa6d84f,
@@ -320,16 +406,24 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     id: 'priest',
     name: 'Priest',
     baseStats: { str: 10, agi: 11, sta: 13, int: 22, spi: 24, armor: 20 },
-    statsPerLevel: { str: 0, agi: 0, sta: 1, int: 2, spi: 3, armor: 4 },
+    statsPerLevel: { str: 0, agi: 0, sta: 2, int: 2, spi: 3, armor: 4 },
     baseHp: 38,
-    hpPerLevel: 11,
+    hpPerLevel: 15,
     baseMana: 110,
     manaPerLevel: 26,
     resourceType: 'mana',
     startWeapon: 'gnarled_staff',
     startChest: 'apprentice_robe',
     startItems: START_RATIONS_MANA,
-    ranged: { min: 3, max: 6, speed: 1.8, maxRange: 30, minRange: 0, wand: true, school: 'holy' },
+    ranged: {
+      min: 3,
+      max: 6,
+      speed: 1.8,
+      maxRange: 30,
+      minRange: 0,
+      wand: true,
+      school: 'holy',
+    },
     abilities: [
       'smite',
       'lesser_heal',
@@ -341,6 +435,18 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
       'heal',
       'mind_flay',
       'flash_heal',
+      'veilstep',
+      'psychic_scream',
+      'scouring_mercy',
+      'prayer_of_healing',
+      'holy_nova',
+      'seraphic_vigil',
+      'shadowform',
+      'vampiric_touch',
+      'void_rupture',
+      'summon_tithefiend',
+      'prayer_of_returning',
+      'spirit_bomb',
     ],
     color: 0xc6d4f0,
   },
@@ -359,16 +465,29 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     startItems: START_RATIONS_MANA,
     abilities: [
       'lightning_bolt',
+      'thunder_reservoir',
+      'lightning_overload',
+      'lava_burst',
+      'thunderstorm',
+      'chain_lightning',
       'rockbiter_weapon',
+      'galeheart_weapon',
+      'warspirit_cadence',
+      'stormsurge',
+      'lifespring_weapon',
+      'unleash_weapon',
+      'elemental_trance',
       'healing_wave',
+      'tidecall',
+      'ancestor_return',
       'earth_shock',
       'lightning_shield',
       'flame_shock',
       'flametongue_weapon',
       'frost_shock',
-      'frostbrand_weapon',
       'ghost_wolf',
       'earthquake',
+      'bloodlust',
     ],
     color: 0x4e8aea,
   },
@@ -376,36 +495,71 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     id: 'warlock',
     name: 'Warlock',
     baseStats: { str: 11, agi: 12, sta: 15, int: 21, spi: 21, armor: 22 },
-    statsPerLevel: { str: 0, agi: 0, sta: 1, int: 3, spi: 2, armor: 4 },
+    statsPerLevel: { str: 0, agi: 0, sta: 2, int: 3, spi: 2, armor: 4 },
     baseHp: 42,
-    hpPerLevel: 12,
+    hpPerLevel: 15,
     baseMana: 105,
     manaPerLevel: 25,
     resourceType: 'mana',
     startWeapon: 'gnarled_staff',
     startChest: 'apprentice_robe',
     startItems: START_RATIONS_MANA,
-    ranged: { min: 3, max: 6, speed: 1.8, maxRange: 30, minRange: 0, wand: true, school: 'shadow' },
+    ranged: {
+      min: 3,
+      max: 6,
+      speed: 1.8,
+      maxRange: 30,
+      minRange: 0,
+      wand: true,
+      school: 'shadow',
+    },
     abilities: [
       'shadow_bolt',
       'summon_imp',
       'demon_skin',
       'immolate',
       'corruption',
+      'evil_eye',
+      'maledict_gaze',
+      'needle_of_fate',
+      'sentence',
       'life_tap',
+      'cursed_accomplice',
       'summon_voidwalker',
       'curse_of_agony',
       'drain_life',
-      'fear',
       'searing_pain',
+      'soul_lance',
+      'litany_of_guilt',
+      'umbral_anchor',
+      'soulwell',
+      'chaos_bolt',
+      'hex_of_violence',
+      'ossuary_mark',
+      'fear',
+      'cruel_pact',
       'shadowburn',
-      'summon_succubus',
-      'summon_felhunter',
-      'summon_felguard',
+      'ruinous_brand',
+      'cinderhide',
+      'vicarious_suffering',
       'summon_infernal',
-      'summon_doomguard',
       'rain_of_fire',
       'spell_lock',
+      'possess_evil_eye',
+      'hour_of_judgment',
+      'coven',
+      'soul_harvest',
+      'raise_graveguard',
+      'raise_skeletal_warrior',
+      'raise_bone_mage',
+      'bone_armor',
+      'corpse_explosion',
+      'funeral_harvest',
+      'unholy_command',
+      'reaping_command',
+      'sacrifice_undead',
+      'raise_gravewing',
+      'army_of_the_dead',
     ],
     color: 0xa785e6,
   },
@@ -423,15 +577,24 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
     startChest: 'footpad_jerkin',
     startItems: START_RATIONS_MANA,
     // The same fixed class wand the other casters carry, in the druid's nature
-    // school. Form-aware: available only in caster form and Moonwing Form; the
+    // school. Form-aware: available only in caster, Moonwing and Sporemender Form; the
     // bear/cat/travel shapeshifts fight with claws (see combat/form_swing.ts
     // rangedAutoProfile, which the auto-attack loop resolves through).
-    ranged: { min: 3, max: 6, speed: 1.8, maxRange: 30, minRange: 0, wand: true, school: 'nature' },
+    ranged: {
+      min: 3,
+      max: 6,
+      speed: 1.8,
+      maxRange: 30,
+      minRange: 0,
+      wand: true,
+      school: 'nature',
+    },
     abilities: [
       'wrath',
       'healing_touch',
       'mark_of_the_wild',
       'moonfire',
+      'moonseed',
       'rejuvenation',
       'thorns',
       'entangling_roots',
@@ -439,11 +602,14 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
       'bear_charge',
       'maul',
       'growl',
+      'challenging_roar',
       'demoralizing_roar',
+      'frenzied_regeneration',
       'cat_form',
       'prowl',
       'rake',
       'claw',
+      'scratch',
       'regrowth',
       'ferocious_bite',
       'barkskin',
@@ -456,12 +622,18 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
       'hibernate',
       'dash',
       'pounce',
+      'hamstring_bite',
       'insect_swarm',
       'tigers_fury',
       'rip',
       'hurricane',
       'skull_bash',
       'primal_reflexes',
+      'wildwake',
+      'grove_awakening',
+      'sporemender_form',
+      'spore_burst',
+      'natures_boon',
     ],
     color: 0xff8c1a,
   },
@@ -473,8 +645,16 @@ export const CLASSES: Record<PlayerClass, ClassDef> = {
 
 const MAGE_PERSONAL_BARRIER_SPELL_POWER_COEFF = 0.5;
 const MAGE_TEMPORAL_BARRIER_SPELL_POWER_COEFF = 0.25;
+// Psalm of Warding: the classic 0.10 shield coefficient on every rank, read off
+// the caster's healPower (Spell Power + Healing Power) through absorbBonus.
+export const PRIEST_PSALM_OF_WARDING_SPELL_POWER_COEFF = 0.1;
+// Mass Barrier (mage row-17 raid cooldown): the same per-target coefficient as
+// Temporal Barrier, applied to every shielded ally from the caster's healPower.
+export const MAGE_MASS_BARRIER_SPELL_POWER_COEFF = 0.25;
 
 export const ABILITIES: Record<string, AbilityDef> = {
+  courier: COURIER_ABILITY,
+  ...PALADIN_CORE_ABILITIES,
   // ====================== WARRIOR ======================
   heroic_strike: {
     id: 'heroic_strike',
@@ -536,7 +716,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     exclusiveGroup: 'warrior_shout',
     // 1800s matches the other five standardized class raid buffs (int, armor,
     // AP, stamina, stats all run 30 min); 120s was the odd one out.
-    effects: [{ type: 'buffTarget', kind: 'buff_ap_pct', value: 10, duration: 1800, party: true }],
+    effects: [
+      {
+        type: 'buffTarget',
+        kind: 'buff_ap_pct',
+        value: 10,
+        duration: 1800,
+        party: true,
+      },
+    ],
     description: 'A shout that increases the attack power of all party members by $b% for 30 min.',
   },
   demoralizing_shout: {
@@ -620,7 +808,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'hamstring',
     name: 'Hobbling Cut',
     class: 'warrior',
-    learnLevel: 5,
+    learnLevel: 4,
     cost: 10,
     castTime: 0,
     cooldown: 0,
@@ -705,7 +893,12 @@ export const ABILITIES: Record<string, AbilityDef> = {
         cost: 15,
         effects: [
           { type: 'weaponStrike', bonus: 15, cannotBeDodged: true },
-          { type: 'selfBuff', kind: 'overpower_charge', value: 0.2, duration: 15 },
+          {
+            type: 'selfBuff',
+            kind: 'overpower_charge',
+            value: 0.2,
+            duration: 15,
+          },
         ],
       },
     ],
@@ -918,11 +1111,11 @@ export const ABILITIES: Record<string, AbilityDef> = {
     description:
       'Brace behind your shield: you take 50% reduced Physical damage for 6 sec. Stores up to 2 charges. (Protection)',
   },
-  // Protection's rage-dump survival wall (operator design, Ignorar Dolor): the
-  // FIRST spendsAllResource ability. `cost` is the 20-rage minimum gate; casting
-  // spends up to spendResourceCap (40) rage from the bar and grants a damage-absorb
-  // shield (the priest-style 'absorb' aura kind, drained by dealDamage and read by
-  // the HUD absorb bar) soaking 4 damage per rage actually spent, up to 10 sec.
+  // Protection's survival wall (operator design, Ignorar Dolor): a flat 20 rage
+  // buys a damage-absorb shield (the priest-style 'absorb' aura kind, drained by
+  // dealDamage and read by the HUD absorb bar) worth 20% of the warrior's max
+  // health at cast time, up to 10 sec. It scales with the health pool, so it
+  // keeps pace with gear instead of capping at a fixed rage-bought amount.
   iron_resolve: {
     id: 'iron_resolve',
     name: 'Iron Resolve',
@@ -930,16 +1123,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 14,
     specs: ['prot'],
     cost: 20,
-    spendsAllResource: true,
-    spendResourceCap: 40,
     castTime: 0,
     cooldown: 15,
     range: 0,
     school: 'physical',
     requiresTarget: false,
-    effects: [{ type: 'absorbSpentResource', mult: 4, duration: 10 }],
+    effects: [{ type: 'absorb', amount: 0, casterMaxHpPct: 0.2, duration: 10 }],
     description:
-      'Grit your teeth and ignore the pain: spends up to 40 rage (20 minimum) to absorb 4 damage per rage spent, lasting up to 10 sec. (Protection)',
+      'Grit your teeth and ignore the pain: a shield absorbs damage equal to 20% of your maximum health when cast, lasting up to 10 sec. (Protection)',
   },
   // Protection's frontal control slam (operator design, Ola de Choque): modest
   // aoe damage plus a 3 sec stun, restricted to enemies in the MELEE_ARC
@@ -956,7 +1147,16 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'physical',
     requiresTarget: false,
-    effects: [{ type: 'aoeDamage', min: 15, max: 20, radius: 8, frontal: true, stunSec: 3 }],
+    effects: [
+      {
+        type: 'aoeDamage',
+        min: 15,
+        max: 20,
+        radius: 8,
+        frontal: true,
+        stunSec: 3,
+      },
+    ],
     description:
       'Send a shockwave through the ground: enemies in front of you within 8 yards take $d damage and are stunned for 3 sec. (Protection)',
   },
@@ -1181,8 +1381,19 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'physical',
     requiresTarget: false,
-    threat: { flat: 30 },
-    effects: [{ type: 'aoeDamage', min: 18, max: 24, radius: 8, frontal: true, softCap: 5 }],
+    // v0.38 tank threat parity: damage-scaling threat with the classic flat kept
+    // as the low-gear floor.
+    threat: { flat: 30, mult: 2.5 },
+    effects: [
+      {
+        type: 'aoeDamage',
+        min: 18,
+        max: 24,
+        radius: 8,
+        frontal: true,
+        softCap: 5,
+      },
+    ],
     description:
       'Attack in a wide arc, dealing 18 to 24 Physical damage to all enemies in front of you. Above 5 targets the damage is reduced. When you dodge or parry, your next Revenge may cost no rage. (Protection)',
   },
@@ -1241,7 +1452,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     offGcd: true,
     exclusiveGroup: 'warrior_stance',
-    effects: [{ type: 'selfBuff', kind: 'defensive_stance', value: 0.9, duration: 3600 }],
+    effects: [
+      {
+        type: 'selfBuff',
+        kind: 'defensive_stance',
+        value: 0.9,
+        duration: 3600,
+      },
+    ],
     description:
       'A defensive combat stance: you generate 30% more threat but deal and take 10% less damage. Cast Battle Stance to return to the offensive.',
   },
@@ -1259,14 +1477,17 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'physical',
     requiresTarget: true,
-    threat: { flat: 100 }, // classic rank-1 value (260 by rank 5 at 58)
+    // 120/160 (v0.38 tank threat parity, was the band-scaled classic 100/130):
+    // Armor Shear is the prot filler whose flat threat pays no heroic armor
+    // tax, so it carries the physical tank's parity margin.
+    threat: { flat: 120 },
     effects: [{ type: 'sunder', armor: 25, maxStacks: 5 }],
     ranks: [
       {
         rank: 2,
         level: 16,
         cost: 15,
-        threatFlat: 130,
+        threatFlat: 160,
         effects: [{ type: 'sunder', armor: 40, maxStacks: 5 }],
       },
     ],
@@ -1400,14 +1621,22 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'arcane',
     requiresTarget: false,
-    effects: [{ type: 'buffTarget', kind: 'buff_int_pct', value: 5, duration: 1800, party: true }],
+    effects: [
+      {
+        type: 'buffTarget',
+        kind: 'buff_int_pct',
+        value: 5,
+        duration: 1800,
+        party: true,
+      },
+    ],
     description: 'Increases the Intellect of all party members by $b% for 30 min.',
   },
   frostbolt: {
     id: 'frostbolt',
     name: 'Rimelance',
     class: 'mage',
-    learnLevel: 4,
+    learnLevel: 2,
     cost: 25,
     castTime: 1.5,
     cooldown: 0,
@@ -1522,13 +1751,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     description:
       "Loose three icy bolts for $d Frost damage each and plant Winter's Chill on the target: its next 2 incoming compatible spells treat it as frozen. Brain Freeze makes Winterlash instant and skips its cooldown. (Frost)",
   },
-  // Frozen Orb: the roaming Icicle generator (combat/frozen_orb.ts). Instant,
+  // Frostglobe: the roaming Icicle generator (combat/frozen_orb.ts). Instant,
   // 45s cooldown; the orb drifts forward pulsing frost damage + a 30% snare
   // once per second for 8s. Each striking pulse banks one Icicle. Blizzard
   // shortens its cooldown (below).
   frozen_orb: {
     id: 'frozen_orb',
-    name: 'Frozen Orb',
+    name: 'Frostglobe',
     class: 'mage',
     learnLevel: 15,
     specs: ['frost'],
@@ -1538,27 +1767,45 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'frost',
     requiresTarget: false,
-    effects: [{ type: 'frozenOrb', min: 8, max: 11, radius: 6, duration: 8, interval: 1 }],
+    effects: [
+      {
+        type: 'frozenOrb',
+        min: 8,
+        max: 11,
+        radius: 6,
+        duration: 8,
+        interval: 1,
+      },
+    ],
     ranks: [
       {
         rank: 2,
         level: 18,
         cost: 70,
-        effects: [{ type: 'frozenOrb', min: 14, max: 18, radius: 6, duration: 8, interval: 1 }],
+        effects: [
+          {
+            type: 'frozenOrb',
+            min: 14,
+            max: 18,
+            radius: 6,
+            duration: 8,
+            interval: 1,
+          },
+        ],
       },
     ],
     description:
       'Release an orb of swirling frost that drifts forward for 8 sec, dealing $d Frost damage each second to nearby enemies and slowing them by 30%. Each striking pulse generates one Icicle. (Frost)',
   },
-  // Glacial Spike: the frost spec's slow, heavy spender. Gated on a FULL Icicles
+  // Rimeneedle: the frost spec's slow, heavy spender. Gated on a FULL Icicles
   // stack (requiresAuraStacks 5), which the cast consumes; it lands a big frost
   // hit and freezes the target with a short root, so the follow-up Ice Lance and
   // spells Brittle Ruin even where the target was not already frozen. The Icicles
-  // build-up lives in combat/frost_mage.ts (fed by Rimelance impacts + Frozen Orb
+  // build-up lives in combat/frost_mage.ts (fed by Rimelance impacts + Frostglobe
   // pulses); the freeze reuses the shared root effect so isRooted counts it.
   glacial_spike: {
     id: 'glacial_spike',
-    name: 'Glacial Spike',
+    name: 'Rimeneedle',
     class: 'mage',
     learnLevel: 16,
     specs: ['frost'],
@@ -1590,7 +1837,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   // Blizzard: the frost AoE workhorse, a ground-aimed channel on the
   // rain_of_fire template plus a snare rider (the position-channel aoeSlow
-  // pulse) and the Frozen Orb refund (frostMageChannelPulse, 0.5s per enemy
+  // pulse) and the Frostglobe refund (frostMageChannelPulse, 0.5s per enemy
   // struck, at most 3s per cast).
   blizzard: {
     id: 'blizzard',
@@ -1606,7 +1853,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetMode: 'position',
     // Owner playtest 2026-07-11: no longer a channel. A 2 sec cast places the
     // storm, which then pulses on its own for 6 sec (a groundAoE with the
-    // snare + Frozen Orb refund riders; delayed skips the on-cast pulse so
+    // snare + Frostglobe refund riders; delayed skips the on-cast pulse so
     // the first wave lands as the storm visibly forms).
     castTime: 2,
     effects: [
@@ -1626,7 +1873,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description:
-      'Conjures an ice storm at the target area: after a 2 sec cast it rages for 6 sec, dealing 12 to 16 Frost damage each second and slowing enemies by 40%. Each enemy struck shaves 0.5 sec off Frozen Orb, up to 3 sec per cast. (Frost)',
+      'Conjures an ice storm at the target area: after a 2 sec cast it rages for 6 sec, dealing 12 to 16 Frost damage each second and slowing enemies by 40%. Each enemy struck shaves 0.5 sec off Frostglobe, up to 3 sec per cast. (Frost)',
   },
   // Frente Glacial: Frost's hold-to-charge cone. The 2.4 sec cast is the
   // authoritative maximum charge clock; releasing earlier selects one of the
@@ -1828,8 +2075,18 @@ export const ABILITIES: Record<string, AbilityDef> = {
     projectile: false,
     effects: [{ type: 'directDamage', min: 27, max: 35 }],
     ranks: [
-      { rank: 2, level: 12, cost: 60, effects: [{ type: 'directDamage', min: 44, max: 54 }] },
-      { rank: 3, level: 18, cost: 85, effects: [{ type: 'directDamage', min: 68, max: 82 }] },
+      {
+        rank: 2,
+        level: 12,
+        cost: 60,
+        effects: [{ type: 'directDamage', min: 44, max: 54 }],
+      },
+      {
+        rank: 3,
+        level: 18,
+        cost: 85,
+        effects: [{ type: 'directDamage', min: 68, max: 82 }],
+      },
     ],
     description: 'Blasts the enemy for $d Fire damage. Instant.',
   },
@@ -1848,8 +2105,24 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     effects: [{ type: 'directDamage', min: 8, max: 8 }], // per missile
     ranks: [
-      { rank: 2, level: 14, cost: 75, effects: [{ type: 'directDamage', min: 14, max: 14 }] },
-      { rank: 3, level: 20, cost: 105, effects: [{ type: 'directDamage', min: 22, max: 22 }] },
+      {
+        rank: 2,
+        level: 14,
+        cost: 75,
+        effects: [{ type: 'directDamage', min: 14, max: 14 }],
+      },
+      {
+        rank: 3,
+        level: 18,
+        cost: 90,
+        effects: [{ type: 'directDamage', min: 18, max: 18 }],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 105,
+        effects: [{ type: 'directDamage', min: 22, max: 22 }],
+      },
     ],
     description:
       'Launches Aether Darts at the enemy, causing $d Arcane damage each second for 3 sec.',
@@ -1858,7 +2131,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'polymorph',
     name: 'Bewitch',
     class: 'mage',
-    learnLevel: 7,
+    learnLevel: 6,
     cost: 50,
     castTime: 1.5,
     cooldown: 0,
@@ -1866,7 +2139,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'arcane',
     requiresTarget: true,
     effects: [{ type: 'polymorph', duration: 15 }],
-    ranks: [{ rank: 2, level: 18, cost: 70, effects: [{ type: 'polymorph', duration: 20 }] }],
+    ranks: [
+      {
+        rank: 2,
+        level: 18,
+        cost: 70,
+        effects: [{ type: 'polymorph', duration: 20 }],
+      },
+    ],
     description:
       'Transforms the enemy into a toad for up to $t sec. The toad wanders and heals rapidly. Any damage breaks the effect. Beasts and humanoids only.',
   },
@@ -1879,7 +2159,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'frost_nova',
     name: 'Icebind',
     class: 'mage',
-    learnLevel: 5,
+    learnLevel: 3,
     cost: 35,
     castTime: 0,
     cooldown: 22,
@@ -1964,36 +2244,88 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'rain_of_fire',
     name: 'Rain of Fire',
     class: 'warlock',
-    learnLevel: 18,
-    cost: 85,
+    learnLevel: 8,
+    cost: 45,
+    ruinCost: 3,
     castTime: 0,
-    cooldown: 10,
+    cooldown: 0,
     range: 30,
     school: 'fire',
     requiresTarget: false,
     targetMode: 'position',
-    channel: { duration: 4, ticks: 4 },
-    effects: [{ type: 'aoeDamage', min: 14, max: 18, radius: 7 }],
+    specs: ['destruction'],
+    effects: [
+      {
+        type: 'groundAoE',
+        min: 5,
+        max: 7,
+        radius: 7,
+        duration: 4,
+        interval: 1,
+        delayed: true,
+      },
+    ],
+    ranks: [
+      {
+        rank: 2,
+        level: 18,
+        cost: 60,
+        effects: [
+          {
+            type: 'groundAoE',
+            min: 8,
+            max: 11,
+            radius: 7,
+            duration: 6,
+            interval: 1,
+            delayed: true,
+          },
+        ],
+      },
+    ],
     description:
-      'Calls a rain of fire onto the target area for 4 sec, burning enemies for $d Fire damage each second.',
+      'Spends 3 Wrack to rain fire over the target area for 4 sec, increasing to 6 sec at rank 2. Desolation calls down the first wave immediately.',
   },
   volley: {
     id: 'volley',
     name: 'Volley',
     class: 'hunter',
     learnLevel: 11,
+    // Fieldcraft throws Phosphor Flask in this slot instead.
+    excludeSpecs: ['survival'],
     cost: 60,
     castTime: 0,
-    cooldown: 8,
+    cooldown: 10,
     range: 35,
     school: 'physical',
     scalesWith: 'ranged',
     requiresTarget: false,
     targetMode: 'position',
-    channel: { duration: 3, ticks: 6 },
-    effects: [{ type: 'aoeDamage', min: 12, max: 16, radius: 8 }],
+    // Instant: the arrows keep falling for the full 3 sec after the hunter moves on
+    // (combat/hunter_ground_zone.ts keeps the armor mitigation the channel had).
+    effects: [{ type: 'groundAoE', min: 12, max: 16, radius: 8, duration: 3, interval: 0.5 }],
     description:
-      'Rains arrows on the target area for 3 sec, dealing $d damage every 0.5 sec to enemies caught in it.',
+      'Rain arrows over an 8-yard area for 3 sec. Enemies in the area take $d Physical damage every 0.5 sec. Damage increases with Ranged Attack Power.',
+  },
+  phosphor_flask: {
+    id: 'phosphor_flask',
+    name: 'Phosphor Flask',
+    class: 'hunter',
+    specs: ['survival'],
+    learnLevel: 11,
+    cost: 60,
+    castTime: 0,
+    cooldown: 10,
+    range: 35,
+    school: 'fire',
+    scalesWith: 'ranged',
+    requiresTarget: false,
+    targetMode: 'position',
+    // Fieldcraft's Volley: the same zone, burning instead of raining arrows. Only
+    // enemies standing in the flames take damage; nothing lingers once they leave.
+    effects: [{ type: 'groundAoE', min: 12, max: 16, radius: 8, duration: 3, interval: 0.5 }],
+    description:
+      'A sealed vessel carrying a reactive chemical mix that bursts into white-hot flame over an 8 yard area for 3 sec. Enemies standing in the flames take $d Fire damage every 0.5 sec. Damage increases with Ranged Attack Power.',
   },
   hurricane: {
     id: 'hurricane',
@@ -2014,8 +2346,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   earthquake: {
     id: 'earthquake',
-    name: 'Earthquake',
+    name: 'Faultwake',
     class: 'shaman',
+    specs: ['elemental'],
     learnLevel: 18,
     cost: 80,
     castTime: 0,
@@ -2024,9 +2357,18 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'nature',
     requiresTarget: false,
     targetMode: 'position',
-    effects: [{ type: 'groundAoE', min: 13, max: 17, radius: 8, duration: 6, interval: 1.5 }],
+    effects: [
+      {
+        type: 'groundAoE',
+        min: 13,
+        max: 17,
+        radius: 8,
+        duration: 6,
+        interval: 1.5,
+      },
+    ],
     description:
-      'Shakes the target area for 6 sec, battering enemies for $d Nature damage every 1.5 sec.',
+      'Shake an 8-yard area for 6 sec, dealing $d Nature damage every 1.5 sec. Damage increases with Spell Power. Thundercall: consume all Thunder, dealing 20% more damage per Thunder (100% at 5).',
   },
   scorch: {
     id: 'scorch',
@@ -2072,8 +2414,11 @@ export const ABILITIES: Record<string, AbilityDef> = {
     // The kit's hardest hit flies as the visibly heavier bolt (render-only).
     projectileFx: 'heavyBolt',
     effects: [
-      { type: 'directDamage', min: 170, max: 225 },
-      { type: 'dot', total: 48, duration: 12, interval: 2 },
+      // The first-ten-seed isolated combat sweep put 60s fire below frost.
+      // A 5% Pyrelance lift restores sustained parity while keeping the 27s
+      // burst beneath its 1.6x ceiling and leaving Ignite's contract intact.
+      { type: 'directDamage', min: 179, max: 236 },
+      { type: 'dot', total: 50, duration: 12, interval: 2 },
     ],
     description:
       'Hurls an immense fiery boulder that causes $d Fire damage plus additional damage over time.',
@@ -2097,8 +2442,24 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 62, max: 74 }],
     ranks: [
-      { rank: 2, level: 12, cost: 70, effects: [{ type: 'heal', min: 105, max: 125 }] },
-      { rank: 3, level: 18, cost: 95, effects: [{ type: 'heal', min: 150, max: 178 }] },
+      {
+        rank: 2,
+        level: 12,
+        cost: 70,
+        effects: [{ type: 'heal', min: 105, max: 125 }],
+      },
+      {
+        rank: 3,
+        level: 18,
+        cost: 95,
+        effects: [{ type: 'heal', min: 150, max: 178 }],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 110,
+        effects: [{ type: 'heal', min: 218, max: 258 }],
+      },
     ],
     description:
       'Draws an ally a moment forward in time, mending $d health as the body settles into its healthier future self. (Chronomancy signature)',
@@ -2154,6 +2515,19 @@ export const ABILITIES: Record<string, AbilityDef> = {
           },
         ],
       },
+      {
+        rank: 4,
+        level: 20,
+        cost: 120,
+        effects: [
+          {
+            type: 'absorb',
+            amount: 232,
+            duration: 10,
+            spellPowerCoeff: MAGE_TEMPORAL_BARRIER_SPELL_POWER_COEFF,
+          },
+        ],
+      },
     ],
     description:
       'Shifts the target a heartbeat out of the present, a temporal shell absorbing $d damage for 10 sec before the timeline snaps back.',
@@ -2161,7 +2535,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   // ---- Chronomancy (healer) Phase 2: Temporal Echo, docs/prd/mage-chronomancy.md
   // section 13. Instant, on the GCD, no cooldown. A small initial heal (the sibling
   // `heal` effect, feeds $d) plus the per-caster mark (the `temporalEcho` effect,
-  // feeds $t). While marked, 35% of the mage's single-target Arcane damage and 15%
+  // feeds $t). While marked, 40% of the mage's single-target Arcane damage and 15%
   // of area Arcane damage heals the ally (combat/chronomancy.ts). Re-casting MOVES
   // the mark. Values are PLAYTEST-provisional (PRD section 13.14 / 14).
   temporal_echo: {
@@ -2179,7 +2553,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [
       { type: 'heal', min: 24, max: 30 },
-      { type: 'temporalEcho', duration: 15 },
+      { type: 'temporalEcho', duration: TEMPORAL_ECHO_DURATION_SECONDS },
     ],
     ranks: [
       {
@@ -2188,7 +2562,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
         cost: 60,
         effects: [
           { type: 'heal', min: 40, max: 50 },
-          { type: 'temporalEcho', duration: 15 },
+          { type: 'temporalEcho', duration: TEMPORAL_ECHO_DURATION_SECONDS },
         ],
       },
       {
@@ -2197,23 +2571,32 @@ export const ABILITIES: Record<string, AbilityDef> = {
         cost: 85,
         effects: [
           { type: 'heal', min: 58, max: 70 },
-          { type: 'temporalEcho', duration: 15 },
+          { type: 'temporalEcho', duration: TEMPORAL_ECHO_DURATION_SECONDS },
+        ],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 90,
+        effects: [
+          { type: 'heal', min: 84, max: 102 },
+          { type: 'temporalEcho', duration: TEMPORAL_ECHO_DURATION_SECONDS },
         ],
       },
     ],
     description:
-      'Marks an ally with an echo of a healthier moment, mending $d health at once. For $t sec, part of the Arcane damage you deal is drawn back through the echo to heal them.',
+      'Marks an ally with an echo of a healthier moment, mending $d health at once. For $t sec, $x% of your other single-target Arcane damage and $y% of your area Arcane damage heals them. Aether Surge and Aether Darts instead heal them for $z% of the damage they deal.',
   },
   // ---- Chronomancy (healer) Phase 4: Cascada temporal (Temporal Cascade),
-  // docs/prd/mage-chronomancy.md Phase 4. The GROUP version of Temporal Echo: a 2s
+  // docs/prd/mage-chronomancy.md Phase 4. The GROUP version of Temporal Echo: a 1.5s
   // cast that centers on the friendly target (which must be the caster or a living
   // group/raid member and is ALWAYS included) and marks the nearest allies within
   // 15 yd of it, up to five total. Each takes a small initial heal and a REDUCED
-  // group echo (13% single / 6% area conversion, combat/chronomancy.ts) for 8 sec.
-  // The 15s cooldown plus the 8s window keep five echoes from ever being sustained.
-  // A pre-existing individual echo on a target is kept at 35% (never downgraded),
+  // group echo (13% single / 6% area conversion, combat/chronomancy.ts) for 15 sec.
+  // The 17s cooldown keeps five echoes from being sustained without the raid set.
+  // A pre-existing individual echo on a target is kept at 40% (never downgraded),
   // still initial-healed, and counts within the five. PLAYTEST-provisional values
-  // (owner 2026-07-12), gated by tests/chronomancy_balance.test.ts.
+  // (owner 2026-07-12), gated by tests/chronomancy_cascade_aoe.test.ts.
   temporal_cascade: {
     id: 'temporal_cascade',
     name: 'Temporal Cascade',
@@ -2221,19 +2604,18 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 12,
     specs: ['arcane'],
     cost: 90,
-    castTime: 2,
+    castTime: TEMPORAL_CASCADE_CAST_SECONDS,
     cooldown: 17,
     range: 30,
     school: 'arcane',
     requiresTarget: true,
     targetType: 'friendly',
-    // Group/raid-only: the cast is refused (no cost/cooldown) on a friendly that is
-    // not the caster or a party/raid member, so an out-of-group target never wastes it.
-    partyOnlyTarget: true,
+    // Targets any friendly ally or self. Prioritizes group/raid members, but can be
+    // cast solo or on friendly allies/practice targets outside a group.
     effects: [
       {
         type: 'massTemporalEcho',
-        duration: 10,
+        duration: TEMPORAL_CASCADE_ECHO_DURATION_SECONDS,
         radius: 15,
         maxTargets: 5,
         heal: { min: 14, max: 18 },
@@ -2247,7 +2629,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [
           {
             type: 'massTemporalEcho',
-            duration: 10,
+            duration: TEMPORAL_CASCADE_ECHO_DURATION_SECONDS,
             radius: 15,
             maxTargets: 5,
             heal: { min: 22, max: 28 },
@@ -2261,7 +2643,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [
           {
             type: 'massTemporalEcho',
-            duration: 10,
+            duration: TEMPORAL_CASCADE_ECHO_DURATION_SECONDS,
             radius: 15,
             maxTargets: 5,
             heal: { min: 28, max: 36 },
@@ -2270,7 +2652,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description:
-      'Sends an echo cascading through your group: the target and up to four of their nearest allies are mended at once and each marked for $t sec, drawing part of the Arcane damage you deal back through their echoes to heal them. (Chronomancy)',
+      'Sends an echo cascading through your group: the target and up to four of their nearest allies are mended at once, healing for more on those who have lost the most health, and each marked for $t sec, drawing part of the Arcane damage you deal back through their echoes to heal them. Aether Surge and Aether Darts create an equal healing reserve from every group Echo, shared among marked allies below 60% health according to missing health. (Chronomancy)',
   },
   // ---- Chronomancy combat resurrection: Temporal Reversal. Rewinds a DEAD group/raid
   // member's timeline back to life at their corpse, IN COMBAT, with a fraction of their
@@ -2292,11 +2674,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetsDead: true,
     effects: [{ type: 'resurrectAlly', hpFrac: 0.35 }],
     description:
-      "Rewinds a fallen ally's timeline, returning them to life at their body with a portion of their health and mana, even in the thick of combat. (Chronomancy)",
+      "Rewinds a fallen ally's timeline, returning them to life at your side with 35% of their health and mana, even in the thick of combat. (Chronomancy)",
   },
   // ---- Chronomancy out-of-combat mass resurrection. The base seven-second cast
   // and mana cost are provisional playtest values. It has no target and rewinds all
   // dead members on the authoritative group or raid roster at cast completion.
+  // requiresOutOfCombat is a real gate: the engaged pass (combat/engaged_combat.ts)
+  // holds everyone a live mob still carries on its hate table, and an engaged boss
+  // holds every nearby member of its attackers' group, so a backline caster cannot
+  // drop combat mid-fight by idling through the 5s linger.
   collective_reversal: {
     id: 'collective_reversal',
     name: 'Collective Reversal',
@@ -2313,7 +2699,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     projectile: false,
     effects: [{ type: 'massResurrectGroup', hpFrac: 0.3 }],
     description:
-      'Rewinds every fallen member of your group or raid, returning them to life at their body with 30% health and mana. Cannot be cast in combat. (Chronomancy)',
+      'Rewinds every fallen member of your group or raid within 40 yards and in your line of sight, returning them to life at your side with 30% health and mana. Cannot be cast in combat. (Chronomancy)',
   },
   // ---- Chronomancy (healer) "Correct" pillar: Rewind (Rebobinar), the raid
   // cooldown. docs/prd/mage-chronomancy.md. Instant, no target, self-centered 40 yd
@@ -2334,7 +2720,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'arcane',
     requiresTarget: false, // instant, self-centered: no target needed
-    effects: [{ type: 'rewind', fraction: 0.3, maxHpFraction: 0.35, windowSec: 5, radius: 40 }],
+    effects: [
+      {
+        type: 'rewind',
+        fraction: 0.3,
+        maxHpFraction: 0.35,
+        windowSec: 5,
+        radius: 40,
+      },
+    ],
     description:
       'Sends an arcane wave through your group or raid, rewinding time to restore 30% of the damage each ally within 40 yards took over the last 5 seconds (up to 35% of their maximum health). Cannot be a critical effect. (Chronomancy)',
   },
@@ -2399,7 +2793,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'perfectMoment' }],
     description:
-      'Seize your perfect moment: instantly gain 4 Arcane Charges, and for 10 sec Aether Darts does not consume them. (Chronomancer)',
+      'Seize your perfect moment: instantly gain 4 Arcane Charges, and for 10 sec Aether Darts does not consume them and deals 20% increased damage. (Chronomancer)',
   },
   temporal_acceleration: {
     id: 'temporal_acceleration',
@@ -2434,7 +2828,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   // damage reads N, then banks N+1); a traveling bolt would race a back-to-back
   // recast. Each held Arcane Charge scales damage (+30%) and cost (x1.9, steep)
   // via combat/chronomancy.ts; Aether Darts consumes the charges. PLAYTEST-
-  // provisional: the base cost is DERIVED by tests/chronomancy_balance.test.ts to
+  // provisional: the base cost is DERIVED by tests/chronomancy_balance_targets.test.ts to
   // land the conservative rotation near 70-80s to OOM at the level-20 pool.
   arcane_surge: {
     id: 'arcane_surge',
@@ -2442,7 +2836,10 @@ export const ABILITIES: Record<string, AbilityDef> = {
     class: 'mage',
     learnLevel: 5,
     specs: ['arcane'],
-    cost: 16,
+    // The integrated level-20 stat curve pushed the conservative rotation to
+    // 65.6s OOM at 16 mana. Fourteen restores the signed 70-80s sustain window
+    // without relaxing the emergency-spam or damage-separation contracts.
+    cost: 14,
     castTime: 2,
     cooldown: 0,
     range: 30,
@@ -2451,12 +2848,24 @@ export const ABILITIES: Record<string, AbilityDef> = {
     // Instant impact at cast completion (no traveling bolt): keeps the charge
     // read/write in one deterministic order, see combat/chronomancy.ts.
     projectile: false,
-    // (base cost is `cost: 16` above; DERIVED via the balance harness so the
+    // (base cost is `cost: 14` above; DERIVED via the balance harness so the
     // targets hold WITH the 25% free-cast proc's mana relief.)
-    // Low base damage (DERIVED via tests/chronomancy_balance.test.ts): the
-    // conservative rotation must sustain clearly under Piro/Cryo (>=35% below);
+    // Low base damage (DERIVED via tests/chronomancy_balance_targets.test.ts): the
+    // conservative rotation must sustain clearly under Piro/Cryo (>=22% below);
     // the payoff is ramping it with charges (and the Echo healing it feeds).
     effects: [{ type: 'directDamage', min: 10, max: 13 }],
+    // The builder originally shipped with no rank ladder, leaving its level-5
+    // packet unchanged at the level-20 cap. Every rank re-states the DERIVED
+    // base cost (14, see above) so the charge-driven mana curve stays exactly
+    // where the harness put it and only the damage learns with the player.
+    // `cost` is required on AbilityRank, so it has to be repeated, not omitted:
+    // a rank row that drifts from the base cost silently re-tunes the OOM
+    // window for every level at or above that rank.
+    ranks: [
+      { rank: 2, level: 10, cost: 14, effects: [{ type: 'directDamage', min: 11, max: 13 }] },
+      { rank: 3, level: 15, cost: 14, effects: [{ type: 'directDamage', min: 11, max: 14 }] },
+      { rank: 4, level: 20, cost: 14, effects: [{ type: 'directDamage', min: 12, max: 14 }] },
+    ],
     description:
       "Draws a surge of raw aether through the enemy for $d damage. Each cast leaves an Arcane Charge that raises your next Aether Surge's damage and cast speed (5% faster each) but sharply raises its mana cost, stacking up to 4; Aether Darts spends the charges. Each cast can also arm Aether Rush, making your next Aether Surge free and twice as fast to cast.",
   },
@@ -2516,6 +2925,28 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
 
   // ====================== ROGUE ======================
+  venom_dart: {
+    id: 'venom_dart',
+    name: 'Venom Dart',
+    class: 'rogue',
+    learnLevel: 14,
+    cost: 25,
+    castTime: 0,
+    cooldown: 8,
+    range: 20,
+    school: 'nature',
+    requiresTarget: true,
+    awardsCombo: 1,
+    // The Knifework wound-tending accent (owner playtest: the loop wanted a
+    // fourth rotational button, and the Venomrend wound kept expiring before
+    // the next rend). The extension itself lives in rogueEngineOnCast.
+    effects: [{ type: 'directDamage', min: 30, max: 40 }],
+    description: 'Flick a poisoned dart for $d Nature damage. Awards 1 combo point.',
+    specNotes: {
+      assassination:
+        'Adds 1 Venom Ritual and extends your venom wound by 6 sec (the wound never goes above 20 sec).',
+    },
+  },
   sinister_strike: {
     id: 'sinister_strike',
     name: 'Wicked Slash',
@@ -2528,13 +2959,36 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: true,
     awardsCombo: 1,
-    effects: [{ type: 'weaponStrike', bonus: 3 }],
+    // Thuggery engine (combat/rogue_engines.ts): while the Redline window
+    // runs, the builder button is Haymaker, the pip-deepening heavy hit.
+    actionReplacement: { abilityId: 'body_blow', auraKind: 'redline', minStacks: 1 },
+    effects: [{ type: 'weaponStrike', bonus: 3, normalized: true }],
     ranks: [
-      { rank: 2, level: 8, cost: 45, effects: [{ type: 'weaponStrike', bonus: 6 }] },
-      { rank: 3, level: 14, cost: 45, effects: [{ type: 'weaponStrike', bonus: 12 }] },
-      { rank: 4, level: 20, cost: 45, effects: [{ type: 'weaponStrike', bonus: 18 }] },
+      {
+        rank: 2,
+        level: 8,
+        cost: 45,
+        effects: [{ type: 'weaponStrike', bonus: 6, normalized: true }],
+      },
+      {
+        rank: 3,
+        level: 14,
+        cost: 45,
+        effects: [{ type: 'weaponStrike', bonus: 12, normalized: true }],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 45,
+        effects: [{ type: 'weaponStrike', bonus: 18, normalized: true }],
+      },
     ],
     description: 'An instant strike for weapon damage plus $d. Awards 1 combo point.',
+    specNotes: {
+      assassination: 'Adds 1 Venom Ritual (max 6).',
+      combat:
+        'While Redline is active, this button becomes Haymaker: 130% weapon damage plus 10, awards 2 combo points, and adds 1 Redline (max 4).',
+    },
   },
   eviscerate: {
     id: 'eviscerate',
@@ -2548,6 +3002,16 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: true,
     spendsCombo: true,
+    // Knifework engine (combat/rogue_engines.ts): at 6 Venom Ritual stages
+    // the button transforms into Venomrend, the detonation finisher (six
+    // against a five-thrust cycle alternates Dirt Nap and Venomrend).
+    // Thuggery engine: while the Redline window runs the same button is
+    // Lights Out, the cash-out that ends the run. The aura kinds are
+    // spec-gated, so at most one rule can match.
+    actionReplacement: [
+      { abilityId: 'venomrend', auraKind: 'venom_ritual', minStacks: 6 },
+      { abilityId: 'knockout_blow', auraKind: 'redline', minStacks: 1 },
+    ],
     effects: [{ type: 'finisherDamage', base: 4, perCombo: 7, variance: 4 }],
     ranks: [
       {
@@ -2564,42 +3028,73 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description: 'Finishing move that causes $d.',
+    specNotes: {
+      assassination:
+        'At 6 Venom Ritual, this button becomes Venomrend: a strike that instantly deals all the damage your bleeds would still have dealt, plants a fresh venom wound, and restores 20 energy.',
+      combat:
+        'Landing this with 4 or more combo points starts Redline for 8 sec: Wicked Slash becomes Haymaker and this button becomes Lights Out (45 plus 35 per combo point, hitting 25% harder for each Redline built, restores 25 energy). Spend it before Redline ends.',
+    },
   },
   backstab: {
     id: 'backstab',
     name: 'Craven Thrust',
     class: 'rogue',
-    learnLevel: 4,
-    cost: 60,
+    learnLevel: 3,
+    cost: 50,
     castTime: 0,
     cooldown: 0,
     range: 0,
     school: 'physical',
     requiresTarget: true,
     awardsCombo: 1,
-    effects: [{ type: 'weaponStrike', bonus: 11, requiresBehind: true, weaponMult: 1.5 }],
+    effects: [
+      {
+        type: 'weaponStrike',
+        bonus: 11,
+        requiresBehind: true,
+        weaponMult: 1.5,
+      },
+    ],
     ranks: [
       {
         rank: 2,
         level: 12,
-        cost: 60,
-        effects: [{ type: 'weaponStrike', bonus: 20, requiresBehind: true, weaponMult: 1.5 }],
+        cost: 50,
+        effects: [
+          {
+            type: 'weaponStrike',
+            bonus: 20,
+            requiresBehind: true,
+            weaponMult: 1.5,
+          },
+        ],
       },
       {
         rank: 3,
         level: 18,
-        cost: 60,
-        effects: [{ type: 'weaponStrike', bonus: 32, requiresBehind: true, weaponMult: 1.5 }],
+        cost: 50,
+        effects: [
+          {
+            type: 'weaponStrike',
+            bonus: 32,
+            requiresBehind: true,
+            weaponMult: 1.5,
+          },
+        ],
       },
     ],
     description:
       "Drive your dagger into the target's back for 150% weapon damage plus $d. Must be behind the target. Requires a dagger. Awards 1 combo point.",
+    specNotes: {
+      assassination:
+        'Each strike adds 1 Venom Ritual (max 6) and refunds 15 energy. At 6 Venom Ritual, Dirt Nap becomes Venomrend (it deals all your remaining bleed damage at once).',
+    },
   },
   gouge: {
     id: 'gouge',
     name: 'Eye Jab',
     class: 'rogue',
-    learnLevel: 6,
+    learnLevel: 5,
     cost: 45,
     castTime: 0,
     cooldown: 10,
@@ -2623,16 +3118,17 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description:
-      'Strikes the target for $d damage, incapacitating it for 4 sec. Any damage breaks the effect. Awards 1 combo point.',
+      'Strikes the target for $d damage, incapacitating it for 4 sec, and resets your own weapon swing timer so your queued auto attack does not break it. Any damage breaks the effect. Awards 1 combo point.',
   },
   evasion: {
     id: 'evasion',
+    tooltipOmitEffectLines: true,
     name: 'Ghostfoot',
     class: 'rogue',
-    learnLevel: 8,
+    learnLevel: 6,
     cost: 0,
     castTime: 0,
-    cooldown: 300,
+    cooldown: 90,
     range: 0,
     school: 'physical',
     requiresTarget: false,
@@ -2645,25 +3141,30 @@ export const ABILITIES: Record<string, AbilityDef> = {
     name: 'Cutthroat Tempo',
     class: 'rogue',
     learnLevel: 10,
-    cost: 25,
+    cost: 0,
     castTime: 0,
     cooldown: 0,
     range: 0,
     school: 'physical',
     requiresTarget: true,
+    offGcd: true,
     spendsCombo: true,
-    effects: [{ type: 'finisherHaste', mult: 1.3, basedur: 9, perCombo: 3 }],
+    // Engines feel pass (owner playtest): at real energy cadence a 24 sec max
+    // uptime meant the buff was down every build cycle; 12 + 4 per combo
+    // (32 sec at 5) keeps upkeep to roughly one refresh per engine payoff.
+    effects: [{ type: 'finisherHaste', mult: 1.3, basedur: 12, perCombo: 4 }],
     description:
-      'Finishing move that increases melee attack speed by 30%. Lasts longer per combo point.',
+      'Finishing move that increases melee attack speed by 30% for 12 sec plus 4 sec per combo point (5 combo points: 32 sec).',
   },
   sprint: {
     id: 'sprint',
+    tooltipOmitEffectLines: true,
     name: 'Swift Heels',
     class: 'rogue',
     learnLevel: 10,
     cost: 0,
     castTime: 0,
-    cooldown: 300,
+    cooldown: 60,
     range: 0,
     school: 'physical',
     requiresTarget: false,
@@ -2675,7 +3176,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'kidney_shot',
     name: 'Low Blow',
     class: 'rogue',
-    learnLevel: 8,
+    learnLevel: 7,
     cost: 25,
     castTime: 0,
     cooldown: 20,
@@ -2683,15 +3184,16 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: true,
     spendsCombo: true,
-    effects: [{ type: 'finisherStun', base: 1, perCombo: 1 }],
-    description: 'Finishing move that stuns the target. Lasts 1 sec longer per combo point.',
+    effects: [{ type: 'finisherStun', base: 2, perCombo: 1 }],
+    description:
+      'Finishing move that stuns the target for 2 sec plus 1 sec per combo point (5 combo points: 7 sec).',
   },
   ambush: {
     id: 'ambush',
     name: "Lurker's Strike",
     class: 'rogue',
-    learnLevel: 5,
-    cost: 60,
+    learnLevel: 4,
+    cost: 50,
     castTime: 0,
     cooldown: 0,
     range: 0,
@@ -2699,26 +3201,41 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     awardsCombo: 1,
     requiresStealth: true,
-    effects: [{ type: 'weaponStrike', bonus: 28, requiresBehind: true, weaponMult: 2.5 }],
+    effects: [
+      {
+        type: 'weaponStrike',
+        bonus: 28,
+        requiresBehind: true,
+        weaponMult: 2.5,
+      },
+    ],
     description:
       'Strike from the shadows for 250% weapon damage plus $d. Must be stealthed and behind the target. Requires a dagger. Awards 1 combo point.',
+    specNotes: {
+      subtlety:
+        'From Duskveil, double both the weapon damage and flat bonus, and gain 1 Gloam (max 3). Stealth still requires a dagger and attacking from behind. At 3 Gloam, using this without stealth costs nothing, spends all 3 Gloam and starts Shadow Veil for 6 sec. Veiled Edge adds 50% to its weapon damage, without increasing the flat bonus. Veiled Edge does not stack with the stealth bonus.',
+    },
   },
   stealth: {
     id: 'stealth',
+    tooltipOmitEffectLines: true,
     name: 'Duskveil',
     class: 'rogue',
     learnLevel: 2,
     cost: 0,
     castTime: 0,
-    cooldown: 10,
+    cooldown: 0,
     range: 0,
     school: 'physical',
     requiresTarget: false,
     offGcd: true,
     requiresOutOfCombat: true,
-    effects: [{ type: 'selfBuff', kind: 'stealth', value: 0.5, duration: 3600 }],
+    effects: [{ type: 'selfBuff', kind: 'stealth', value: 1.0, duration: 3600 }],
     description:
-      'Conceals you in the shadows: enemies barely notice you, but you move 50% slower. Attacking or taking damage breaks Duskveil. Cast again to step out.',
+      'Conceals you in the shadows: enemies barely notice you, and you move at full speed. Attacking or taking damage breaks Duskveil. Cast again to step out.',
+    specNotes: {
+      subtlety: 'Each opener you use from Duskveil adds 1 Gloam (max 3).',
+    },
   },
   adrenaline_rush: {
     id: 'adrenaline_rush',
@@ -2727,7 +3244,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 20,
     cost: 0,
     castTime: 0,
-    cooldown: 180,
+    cooldown: 90,
     range: 0,
     school: 'physical',
     requiresTarget: false,
@@ -2765,13 +3282,17 @@ export const ABILITIES: Record<string, AbilityDef> = {
     ],
     description:
       "Loop a wire around the enemy's throat, causing $d damage now and bleeding it for $o over 18 sec. Must be stealthed. Awards 1 combo point.",
+    specNotes: {
+      subtlety:
+        'Used from Duskveil this adds 1 Gloam (max 3). At 3 Gloam you can use it WITHOUT stealth: that use costs nothing, spends all 3 Gloam, and starts the 6 sec Shadow Veil.',
+    },
   },
   cheap_shot: {
     id: 'cheap_shot',
     name: 'Gut Punch',
     class: 'rogue',
     learnLevel: 8,
-    cost: 60,
+    cost: 50,
     castTime: 0,
     cooldown: 0,
     range: 0,
@@ -2785,30 +3306,39 @@ export const ABILITIES: Record<string, AbilityDef> = {
     ],
     description:
       'Strike the target for $d damage, stunning it for 4 sec. Must be stealthed. Awards 2 combo points.',
+    specNotes: {
+      subtlety:
+        'Used from Duskveil this adds 1 Gloam (max 3). At 3 Gloam you can use it WITHOUT stealth: that use costs nothing, spends all 3 Gloam, and starts the 6 sec Shadow Veil.',
+    },
   },
   sap: {
     id: 'sap',
     name: 'Sap',
     class: 'rogue',
     learnLevel: 10,
-    cost: 65,
+    cost: 0,
     castTime: 0,
     cooldown: 0,
-    range: 0,
+    range: 10,
     school: 'physical',
     requiresTarget: true,
     requiresStealth: true,
     requiresOutOfCombat: true,
+    // The classic setup tool: it neither reveals the rogue (preservesStealth in
+    // effect_dispatch) nor starts a fight, so the victim wakes where it stood.
+    // Its PvP diminishing returns ride the 'incapacitate' category, the same
+    // full/half/quarter/immune ladder Gripping Roots uses (src/sim/incapacitate_dr.ts).
+    noCombatEntry: true,
     effects: [{ type: 'incapacitate', duration: 8 }],
     description:
-      'Incapacitates the target for 8 sec. Must be stealthed and out of combat. Any damage breaks the effect.',
+      'Incapacitates the target for 8 sec without breaking Duskveil or starting a fight. Must be stealthed and out of combat. Any damage breaks the effect.',
   },
   crippling_poison: {
     id: 'crippling_poison',
     name: 'Leaden Venom',
     class: 'rogue',
     learnLevel: 12,
-    cost: 40,
+    cost: 35,
     castTime: 0,
     cooldown: 0,
     range: 0,
@@ -2833,9 +3363,11 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: true,
     spendsCombo: true,
-    // Finisher: lands the full Sunder cap (5 stacks = 10% armor) in one cast.
-    effects: [{ type: 'sunder', armor: 170, maxStacks: 5, full: true }],
-    description: 'Finishing move that exposes the target, reducing its armor by $d% for 30 sec.',
+    // Finisher: each combo point spent lands one Sunder stack (5 points = the
+    // full 5-stack cap, 10% armor), classic Expose Armor style.
+    effects: [{ type: 'sunder', armor: 170, maxStacks: 5, perCombo: true }],
+    description:
+      'Finishing move that exposes the target for 30 sec: each combo point spent reduces its armor by 2% (5 combo points: $d%).',
   },
   rupture: {
     id: 'rupture',
@@ -2849,12 +3381,16 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: true,
     spendsCombo: true,
-    effects: [{ type: 'dot', total: 96, duration: 16, interval: 2 }],
-    description: 'Finishing move that wounds the target, causing it to bleed for $d over 16 sec.',
+    effects: [
+      { type: 'dot', total: 96, duration: 16, interval: 2, baseDuration: 6, perComboDuration: 2 },
+    ],
+    description:
+      'Finishing move that wounds the target: it bleeds every 2 sec, for 6 sec plus 2 sec per combo point (5 combo points: 16 sec and $d total damage).',
   },
   vanish: {
     id: 'vanish',
-    name: 'Smokestep',
+    tooltipOmitEffectLines: true,
+    name: 'Smokefade',
     class: 'rogue',
     learnLevel: 18,
     cost: 0,
@@ -2864,9 +3400,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: false,
     offGcd: true,
-    effects: [{ type: 'selfBuff', kind: 'stealth', value: 0.5, duration: 10 }],
+    effects: [{ type: 'selfBuff', kind: 'stealth', value: 1.0, duration: 10 }],
     description:
-      'Melt from sight, entering Duskveil even in combat. You move 50% slower while hidden. Lasts up to 10 sec.',
+      'Melt from sight, entering Duskveil even in combat. You move at full speed while hidden. Lasts up to 10 sec.',
   },
   instant_poison: {
     id: 'instant_poison',
@@ -2879,9 +3415,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'nature',
     requiresTarget: false,
-    effects: [{ type: 'imbue', bonus: 8, duration: 1800 }],
+    effects: [{ type: 'imbue', bonus: 14, duration: 1800 }],
     description:
-      'Coats your weapon for 30 min, causing each of your melee swings to deal 8 additional Nature damage.',
+      'Coats your weapon for 30 min, causing each of your melee swings to deal $d additional Nature damage.',
   },
   deadly_poison: {
     id: 'deadly_poison',
@@ -2894,9 +3430,78 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'nature',
     requiresTarget: false,
-    effects: [{ type: 'imbue', bonus: 14, duration: 1800 }],
+    // The DoT poison, and the reason it is not just a bigger Adder's Bite: the
+    // coat itself adds no flat swing damage (bonus 0), it festers a stacking
+    // Nature DoT on whatever it strikes. Every landed swing adds a stack (cap 5)
+    // and refreshes the 12 sec timer, so per-tick damage climbs 4 -> 20 the
+    // longer you stay on one target. Classic Deadly Poison, on the same
+    // stacking-DoT shape the mob `stackPoison` mechanic already uses.
+    effects: [
+      {
+        type: 'imbue',
+        bonus: 0,
+        duration: 1800,
+        coat: { rider: 'stackDot', perTick: 4, maxStacks: 5, duration: 12, interval: 2 },
+      },
+    ],
     description:
-      'Coats your weapon for 30 min, causing each of your melee swings to deal 14 additional Nature damage.',
+      'Coats your weapon for 30 min. Each of your melee swings adds a stack of venom to the target, up to 5, and refreshes the 12 sec duration. Each stack deals $d Nature damage every 2 sec.',
+  },
+  // The two utility poisons. Both are weapon COATS, in the Adder's Bite mould
+  // rather than the Leaden Venom one: same class, cost, school, and 30 min
+  // duration as the damage poisons, cast on yourself, and every landed melee
+  // swing lands the rider on whatever you struck. They shipped as 40-energy
+  // targeted nukes by mistake (issue #3774), which is not what a coating is.
+  // Only the rider differs between them, so no new balance number is invented
+  // beyond the two the design asked for (5% armor, 25% healing taken, 12 sec
+  // each, matching Leaden Venom's 12 sec snare).
+  melting_acid: {
+    id: 'melting_acid',
+    name: 'Melting Acid',
+    class: 'rogue',
+    learnLevel: 16,
+    cost: 40,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [
+      {
+        type: 'imbue',
+        bonus: 0,
+        duration: 1800,
+        coat: { rider: 'debuff', kind: 'melting_acid', value: 0.05, duration: 12 },
+      },
+    ],
+    description:
+      'Coats your weapon for 30 min. Each of your melee swings splashes the target with caustic acid, reducing its armor by 5% for 12 sec.',
+  },
+  nightshade_coating: {
+    id: 'nightshade_coating',
+    name: 'Nightshade Coating',
+    class: 'rogue',
+    learnLevel: 18,
+    cost: 40,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [
+      // Reuses the existing healing-taken debuff kind (combat/heal.ts folds
+      // every mortal_wound aura in). The rider borrows the coat's aura id (the
+      // ability id), so it never evicts a warrior's Maiming Strike debuff or
+      // vice versa.
+      {
+        type: 'imbue',
+        bonus: 0,
+        duration: 1800,
+        coat: { rider: 'debuff', kind: 'mortal_wound', value: 0.25, duration: 12 },
+      },
+    ],
+    description:
+      'Coats your weapon for 30 min. Each of your melee swings coats the target in nightshade, reducing the healing it receives by 25% for 12 sec.',
   },
   blind: {
     id: 'blind',
@@ -2905,7 +3510,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 20,
     cost: 50,
     castTime: 0,
-    cooldown: 120,
+    cooldown: 60,
     range: 5,
     school: 'physical',
     requiresTarget: true,
@@ -2926,23 +3531,23 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'holy',
     requiresTarget: false,
-    effects: [{ type: 'imbue', bonus: 4, duration: 30, judgeMin: 10, judgeMax: 18 }],
+    effects: [{ type: 'imbue', bonus: 4, duration: 30 }],
     ranks: [
       {
         rank: 2,
         level: 10,
         cost: 35,
-        effects: [{ type: 'imbue', bonus: 7, duration: 30, judgeMin: 18, judgeMax: 28 }],
+        effects: [{ type: 'imbue', bonus: 7, duration: 30 }],
       },
       {
         rank: 3,
         level: 16,
         cost: 50,
-        effects: [{ type: 'imbue', bonus: 11, duration: 30, judgeMin: 30, judgeMax: 44 }],
+        effects: [{ type: 'imbue', bonus: 11, duration: 30 }],
       },
     ],
     description:
-      'Fills you with Holy power for 30 sec, causing each of your melee swings to deal $d additional Holy damage. Unleash with Verdict.',
+      'Fills you with Holy power for 30 sec, causing each of your melee swings to deal $d additional Holy damage.',
   },
   holy_light: {
     id: 'holy_light',
@@ -2950,7 +3555,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     class: 'paladin',
     learnLevel: 1,
     cost: 25,
-    castTime: 2.5,
+    castTime: 1.5,
     cooldown: 0,
     range: 30,
     school: 'holy',
@@ -2958,11 +3563,12 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 42, max: 51 }],
     ranks: [
-      { rank: 2, level: 8, cost: 50, effects: [{ type: 'heal', min: 76, max: 90 }] },
-      { rank: 3, level: 14, cost: 70, effects: [{ type: 'heal', min: 122, max: 144 }] },
-      { rank: 4, level: 20, cost: 117, effects: [{ type: 'heal', min: 275, max: 322 }] },
+      { rank: 2, level: 8, cost: 35, effects: [{ type: 'heal', min: 76, max: 90 }] },
+      { rank: 3, level: 14, cost: 50, effects: [{ type: 'heal', min: 122, max: 144 }] },
+      { rank: 4, level: 20, cost: 65, effects: [{ type: 'heal', min: 190, max: 222 }] },
     ],
-    description: 'Heals a friendly target for $d.',
+    description:
+      'Quickly heals a friendly target for $d. Restoring health generates 1 Devotion, even without a specialization. Radiant Resonance or Solar Reprisal makes it instant.',
   },
   devotion_aura: {
     id: 'devotion_aura',
@@ -2977,24 +3583,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     exclusiveGroup: 'paladin_aura',
     effects: [
-      { type: 'buffTarget', kind: 'buff_armor_pct', value: 10, duration: 1800, party: true },
+      {
+        type: 'buffTarget',
+        kind: 'buff_armor_pct',
+        value: 10,
+        duration: 1800,
+        party: true,
+      },
     ],
     description: 'Increases the armor of all party members by $b% for 30 min.',
-  },
-  judgement: {
-    id: 'judgement',
-    name: 'Verdict',
-    class: 'paladin',
-    learnLevel: 4,
-    cost: 30,
-    castTime: 0,
-    cooldown: 10,
-    range: 10,
-    school: 'holy',
-    requiresTarget: true,
-    effects: [{ type: 'judgement' }],
-    description:
-      'Unleashes your active Seal upon the enemy, consuming it to deal its judgement damage.',
   },
   blessing_of_might: {
     id: 'blessing_of_might',
@@ -3008,7 +3605,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'holy',
     requiresTarget: true,
     targetType: 'friendly',
-    effects: [{ type: 'buffTarget', kind: 'buff_ap_pct', value: 10, duration: 1800, party: true }],
+    effects: [
+      {
+        type: 'buffTarget',
+        kind: 'buff_ap_pct',
+        value: 10,
+        duration: 1800,
+        party: true,
+      },
+    ],
     description:
       'Blesses the party, increasing the attack power of all party members by $b% for 30 min.',
   },
@@ -3019,16 +3624,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 6,
     cost: 15,
     castTime: 0,
-    cooldown: 180,
+    cooldown: 30,
     range: 0,
     school: 'holy',
     requiresTarget: false,
     offGcd: true,
-    effects: [{ type: 'absorb', amount: 50, duration: 10 }],
-    ranks: [
-      { rank: 2, level: 14, cost: 25, effects: [{ type: 'absorb', amount: 110, duration: 10 }] },
-    ],
-    description: 'A holy shield absorbs $d damage for 10 sec.',
+    effects: [{ type: 'absorb', amount: 0, casterMaxHpPct: 0.25, duration: 10 }],
+    description:
+      'A holy shield absorbs $d% of your maximum health for $t sec. Enduring Protection increases the shield.',
   },
   // Paladin tank cooldown: a predictive divine cheat-death (the `guardian_ward`
   // aura, consumed by an enemy lethal blow in damage.ts). Its short window and
@@ -3053,7 +3656,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'hammer_of_justice',
     name: 'Sundering Gavel',
     class: 'paladin',
-    learnLevel: 8,
+    learnLevel: 2,
     cost: 30,
     castTime: 0,
     cooldown: 60,
@@ -3061,14 +3664,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'holy',
     requiresTarget: true,
     effects: [{ type: 'stun', duration: 3 }],
-    ranks: [{ rank: 2, level: 16, cost: 45, effects: [{ type: 'stun', duration: 4 }] }],
     description: 'Stuns the target for $t sec.',
   },
   lay_on_hands: {
     id: 'lay_on_hands',
     name: 'Last Rite',
     class: 'paladin',
-    learnLevel: 10,
+    // Level 8 so the row-8 pick that upgrades it (Steady Hands) has something to
+    // upgrade the moment it is taken.
+    learnLevel: 8,
     cost: 0,
     castTime: 0,
     cooldown: 600,
@@ -3076,15 +3680,16 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'holy',
     requiresTarget: true,
     targetType: 'friendly',
-    effects: [{ type: 'heal', min: 250, max: 250 }],
-    ranks: [{ rank: 2, level: 18, cost: 0, effects: [{ type: 'heal', min: 600, max: 600 }] }],
-    description: 'A massive surge of healing: restores $d health. 10 min cooldown.',
+    effects: [{ type: 'heal', min: 0, max: 0, casterMaxHpPct: 1, canCrit: false }],
+    description:
+      'A massive surge that restores $d% of your maximum health and generates 1 Devotion when it restores health. 10 min cooldown.',
   },
   holy_taunt: {
     id: 'holy_taunt',
     name: 'Sacred Goad',
     class: 'paladin',
     learnLevel: 10,
+    specs: ['protection'],
     cost: 0,
     castTime: 0,
     cooldown: 10,
@@ -3110,7 +3715,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 62, max: 76 }],
     ranks: [{ rank: 2, level: 20, cost: 46, effects: [{ type: 'heal', min: 90, max: 110 }] }],
-    description: 'A quick, efficient flash of Light that heals a friendly target for $d.',
+    description:
+      'A quick, efficient burst of Light that heals a friendly target for $d. Restoring health generates 1 Devotion, even without a specialization.',
   },
   exorcism: {
     id: 'exorcism',
@@ -3126,51 +3732,85 @@ export const ABILITIES: Record<string, AbilityDef> = {
     effects: [{ type: 'directDamage', min: 46, max: 56 }],
     description: 'Banishes the wicked with Holy wrath, causing $d Holy damage.',
   },
-  consecration: {
-    id: 'consecration',
-    name: 'Holy Ground',
-    class: 'paladin',
-    learnLevel: 8,
-    cost: 60,
-    castTime: 0,
-    cooldown: 8,
-    range: 0,
-    school: 'holy',
-    requiresTarget: false,
-    effects: [{ type: 'groundAoE', min: 28, max: 34, radius: 8, duration: 10, interval: 2 }],
-    description:
-      'Consecrates the ground beneath you, searing nearby enemies for $d Holy damage every 2 sec for 10 sec.',
-  },
   righteous_fury: {
     id: 'righteous_fury',
     name: 'Burning Oath',
     class: 'paladin',
-    learnLevel: 16,
-    cost: 30,
-    castTime: 0,
-    cooldown: 0,
-    range: 0,
-    school: 'holy',
-    requiresTarget: false,
-    effects: [{ type: 'selfBuff', kind: 'righteous_fury', value: 1.6, duration: 1800 }],
-    description:
-      "Increases the threat generated by your Holy damage by 60% for 30 min. The tanking paladin's cornerstone.",
-  },
-  retribution_aura: {
-    id: 'retribution_aura',
-    name: 'Requital Aura',
-    class: 'paladin',
-    learnLevel: 16,
+    learnLevel: 5,
+    specs: ['protection'],
     cost: 0,
     castTime: 0,
     cooldown: 0,
     range: 0,
     school: 'holy',
     requiresTarget: false,
-    exclusiveGroup: 'paladin_aura',
-    effects: [{ type: 'selfBuff', kind: 'thorns', value: 5, duration: 1800 }],
+    passive: true,
+    effects: [],
     description:
-      'Surrounds you with holy energy for 30 min, dealing 5 Holy damage to any enemy that strikes you in melee.',
+      'Passively increases the threat generated by your Holy damage by 30%. Faithwarden only.',
+  },
+  retribution_aura: {
+    id: 'retribution_aura',
+    name: 'Requital Aura',
+    class: 'paladin',
+    learnLevel: 7,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'holy',
+    requiresTarget: false,
+    exclusiveGroup: 'paladin_devotion',
+    // Ranked from level 7. The reflect is a FLAT value: it takes no spell power,
+    // no attack power and no level coefficient, and no talent touches it, so a
+    // single authored number is the aura's whole lifetime. At 5 it read as real
+    // pressure at 7 and as rounding error by 20, next to a kit that hits for 95 to
+    // 115. The ranks keep it worth the aura slot all the way up; Sacred Concord
+    // still triples whichever rank is live.
+    effects: [
+      {
+        type: 'buffTarget',
+        kind: 'thorns',
+        value: 5,
+        duration: 0,
+        permanent: true,
+        party: true,
+      },
+    ],
+    ranks: [
+      {
+        rank: 2,
+        level: 13,
+        cost: 0,
+        effects: [
+          {
+            type: 'buffTarget',
+            kind: 'thorns',
+            value: 12,
+            duration: 0,
+            permanent: true,
+            party: true,
+          },
+        ],
+      },
+      {
+        rank: 3,
+        level: 18,
+        cost: 0,
+        effects: [
+          {
+            type: 'buffTarget',
+            kind: 'thorns',
+            value: 22,
+            duration: 0,
+            permanent: true,
+            party: true,
+          },
+        ],
+      },
+    ],
+    description:
+      'Surrounds you and your party with holy energy until death or replacement. Enemies that strike an affected ally in melee take $b Holy damage, and affected allies deal $b additional Holy damage with auto-attacks. Replaces your own Bastion Devotion. Another Paladin casting Requital Aura refreshes it instead of stacking.',
   },
 
   // ====================== HUNTER ======================
@@ -3181,6 +3821,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 10,
     cost: 0,
     castTime: 6,
+    // Every hunter cast is mobile (Fieldcraft rework, PR 4488).
+    castWhileMoving: true,
     cooldown: 0,
     range: 20,
     school: 'nature',
@@ -3208,36 +3850,151 @@ export const ABILITIES: Record<string, AbilityDef> = {
     name: 'Patch Up',
     class: 'hunter',
     learnLevel: 10,
-    cost: 45,
+    cost: 0,
     castTime: 3,
+    castWhileMoving: true,
     cooldown: 0,
     range: 0,
     school: 'nature',
     requiresTarget: false,
-    effects: [{ type: 'hot', total: 240, duration: 12, interval: 3 }],
+    // The heal is a share of the companion's own pool, not a flat total, so the
+    // numbers live in combat/hunter_patch_up.ts and the effect list stays empty.
+    effects: [],
     description:
-      'Patch up your companion, restoring 240 health over 12 sec if it is alive. If it is dead, revive it at 35% health.',
+      "Restore 10% of your living companion's maximum health every sec for 8 sec. If your companion is dead, revive it with 50% health instead.",
   },
   raptor_strike: {
     id: 'raptor_strike',
     name: 'Gutting Strike',
     class: 'hunter',
     learnLevel: 1,
-    cost: 15,
+    excludeSpecs: ['beast_mastery', 'marksmanship'],
+    excludeSpecsAtLevel: 5,
+    cost: 0,
     castTime: 0,
-    cooldown: 6,
+    cooldown: 0,
     range: 0,
     school: 'physical',
     requiresTarget: true,
-    onNextSwing: true,
-    offGcd: true,
-    effects: [{ type: 'weaponDamage', bonus: 5 }],
+    effects: [{ type: 'weaponStrike', bonus: 1, weaponMult: 0.1 }],
     ranks: [
-      { rank: 2, level: 8, cost: 25, effects: [{ type: 'weaponDamage', bonus: 11 }] },
-      { rank: 3, level: 14, cost: 35, effects: [{ type: 'weaponDamage', bonus: 18 }] },
-      { rank: 4, level: 20, cost: 45, effects: [{ type: 'weaponDamage', bonus: 27 }] },
+      {
+        rank: 2,
+        level: 8,
+        cost: 0,
+        effects: [{ type: 'weaponStrike', bonus: 2, weaponMult: 0.1 }],
+      },
+      {
+        rank: 3,
+        level: 14,
+        cost: 0,
+        effects: [{ type: 'weaponStrike', bonus: 3, weaponMult: 0.1 }],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 0,
+        effects: [{ type: 'weaponStrike', bonus: 16, weaponMult: 0.1 }],
+      },
     ],
-    description: 'A strong melee attack that increases damage by $d. Activates on your next swing.',
+    description:
+      'Strike for 10% weapon damage plus $d. A hit restores 15 Focus and grants 1 Hunting Momentum. Damage increases with Attack Power through weapon damage.',
+  },
+  pack_command: {
+    id: 'pack_command',
+    name: 'Pack Command',
+    class: 'hunter',
+    specs: ['beast_mastery'],
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    cooldown: 4,
+    range: 35,
+    school: 'physical',
+    requiresTarget: true,
+    actionReplacement: {
+      abilityId: 'unleash_beast',
+      auraKind: 'hunter_ferocity',
+      minStacks: 3,
+    },
+    effects: [{ type: 'packCommand', min: 36, max: 48, focus: 20, ferocityDuration: 30 }],
+    description:
+      "Command your living pet to strike for 36 to 48 Physical damage. Damage increases with the pet's Attack Power. A hit restores 20 Focus and grants 1 Pack Ferocity for 30 sec, up to 3. Each stack increases all damage dealt by your pet by 10%. This strike uses the stacks you had before the hit.",
+  },
+  unleash_beast: {
+    id: 'unleash_beast',
+    name: 'Unleash Beast',
+    class: 'hunter',
+    specs: ['beast_mastery'],
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 35,
+    school: 'physical',
+    requiresTarget: true,
+    effects: [
+      {
+        type: 'unleashBeast',
+        primaryMin: 42,
+        primaryMax: 53,
+        clapMin: 57,
+        clapMax: 75,
+        secondaryClapMult: 1.5,
+        radius: 6,
+        frenzyDuration: 8,
+      },
+    ],
+    description:
+      "Consume 3 Pack Ferocity after your pet strikes for 42 to 53 Physical damage and claps every enemy within 6 yards for 57 to 75. The clap deals 50% more damage to enemies other than the main target. The strike and clap use Pack Ferocity's full 30% pet damage bonus and increase with the pet's Attack Power. For 8 sec afterward, the pet deals 25% more damage, attacks 35% faster, and makes Fell Shot cleave up to 2 enemies within 5 yards of the target.",
+  },
+  stampede: {
+    id: 'stampede',
+    name: 'Stampede',
+    class: 'hunter',
+    specs: ['beast_mastery'],
+    learnLevel: 17,
+    cost: 0,
+    castTime: 0,
+    cooldown: 90,
+    range: 35,
+    school: 'physical',
+    requiresTarget: true,
+    effects: [
+      {
+        type: 'hunterStampede',
+        beasts: 3,
+        duration: 12,
+        attackInterval: 2,
+        min: 18,
+        max: 24,
+        rangedPowerCoeff: 0.08,
+      },
+    ],
+    description:
+      'Summon 3 beasts for 12 sec. Each attacks every 2 sec for $d Physical damage. The shown damage includes 8% of your Ranged Attack Power before pet damage bonuses. The beasts snapshot Pack Ferocity when summoned, gaining 10% damage per stack. While Stampede is on cooldown, successful Pack Commands have a 20% chance to reset it, guaranteed after 5 failed chances. It cannot reset while the beasts are active. (Packlord)',
+  },
+  measured_shot: {
+    id: 'measured_shot',
+    name: 'Measured Shot',
+    class: 'hunter',
+    specs: ['marksmanship'],
+    learnLevel: 5,
+    cost: 0,
+    castTime: 1.5,
+    castWhileMoving: true,
+    cooldown: 0,
+    range: 35,
+    school: 'physical',
+    projectile: true,
+    scalesWith: 'ranged',
+    requiresTarget: true,
+    effects: [
+      { type: 'directDamage', min: 38, max: 48 },
+      { type: 'gainResource', amount: 20 },
+    ],
+    description:
+      'Shoot the target for $d Physical damage. A hit restores 20 Focus. Damage increases with Ranged Attack Power.',
   },
   aspect_of_the_hawk: {
     id: 'aspect_of_the_hawk',
@@ -3266,18 +4023,17 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'selfBuff', kind: 'buff_ap', value: 50, duration: 1800 }],
       },
     ],
-    description: 'Take on the aspect of the hawk, increasing attack power by $b for 30 min.',
+    description: "Adopt Harrier's Guise, increasing your Attack Power by $b for 30 min.",
   },
   serpent_sting: {
     id: 'serpent_sting',
     name: 'Venom Barb',
     class: 'hunter',
-    learnLevel: 4,
+    learnLevel: 3,
     cost: 15,
     castTime: 0,
     cooldown: 0,
     range: 35,
-    minRange: 8,
     school: 'nature',
     scalesWith: 'ranged',
     requiresTarget: true,
@@ -3296,38 +4052,42 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'dot', total: 55, duration: 15, interval: 3 }],
       },
     ],
-    description: 'Stings the target, dealing $d Nature damage over 15 sec.',
+    description:
+      'Deal $d total Nature damage over 15 sec, once every 3 sec. Damage increases with Ranged Attack Power.',
   },
   arcane_shot: {
     id: 'arcane_shot',
     name: 'Fell Shot',
     class: 'hunter',
-    learnLevel: 5,
+    learnLevel: 2,
     cost: 25,
     castTime: 0,
     cooldown: 6,
     range: 35,
-    minRange: 8,
     school: 'arcane',
     scalesWith: 'ranged',
     requiresTarget: true,
     effects: [{ type: 'directDamage', min: 13, max: 17 }],
     ranks: [
-      { rank: 2, level: 12, cost: 40, effects: [{ type: 'directDamage', min: 24, max: 30 }] },
-      { rank: 3, level: 18, cost: 55, effects: [{ type: 'directDamage', min: 38, max: 47 }] },
+      { rank: 2, level: 12, cost: 25, effects: [{ type: 'directDamage', min: 24, max: 30 }] },
+      { rank: 3, level: 18, cost: 25, effects: [{ type: 'directDamage', min: 38, max: 47 }] },
     ],
-    description: 'An instant shot that deals $d Arcane damage.',
+    description:
+      'Shoot the target for $d Arcane damage. Damage increases with Ranged Attack Power.',
+    specNotes: {
+      marksmanship:
+        'Coldsight Read from a completed Fevered Draw makes your next Fell Shot deal 75% more damage. Firing the shot spends Read.',
+    },
   },
   concussive_shot: {
     id: 'concussive_shot',
     name: 'Rattling Shot',
     class: 'hunter',
-    learnLevel: 8,
+    learnLevel: 7,
     cost: 20,
     castTime: 0,
     cooldown: 12,
     range: 35,
-    minRange: 8,
     school: 'physical',
     projectile: true, // a fired shot: damage/slow resolve when the bolt lands
     // A fired shot: its flat damage scales off Ranged AP like the other shots,
@@ -3338,31 +4098,66 @@ export const ABILITIES: Record<string, AbilityDef> = {
       { type: 'directDamage', min: 4, max: 6 },
       { type: 'slow', mult: 0.5, duration: 4 },
     ],
-    description: 'Dazes the target for $d damage, slowing movement by 50% for 4 sec.',
+    description:
+      'Shoot the target for $d Physical damage and slow it by 50% for 4 sec. Damage increases with Ranged Attack Power.',
   },
   mongoose_bite: {
     id: 'mongoose_bite',
-    name: 'Counterfang',
+    name: 'Woundrend',
     class: 'hunter',
+    specs: ['survival'],
     learnLevel: 10,
-    cost: 10,
+    cost: 30,
     castTime: 0,
-    cooldown: 5,
+    cooldown: 0,
     range: 0,
     school: 'physical',
     requiresTarget: true,
-    requiresDodgeProc: true,
-    effects: [{ type: 'weaponStrike', bonus: 12, cannotBeDodged: true }],
+    effects: [{ type: 'weaponStrike', bonus: 22, weaponMult: 0.45 }],
     ranks: [
       {
         rank: 2,
         level: 16,
-        cost: 10,
-        effects: [{ type: 'weaponStrike', bonus: 24, cannotBeDodged: true }],
+        cost: 30,
+        effects: [{ type: 'weaponStrike', bonus: 54, weaponMult: 0.45 }],
       },
     ],
     description:
-      'Counterattack after the target dodges for weapon damage plus $d. Cannot be dodged.',
+      'Strike for 45% weapon damage plus $d. If the target has your Bloodhook Wound, deal 1 wound tick immediately and refresh the wound to 12 sec. Damage increases with Attack Power through weapon damage.',
+  },
+  hunting_momentum: {
+    id: 'hunting_momentum',
+    name: 'Hunting Momentum',
+    class: 'hunter',
+    specs: ['survival'],
+    learnLevel: 5,
+    passive: true,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    effects: [],
+    description:
+      'Passive: Gutting Strike and a Shrapnel Charge that hits an enemy each grant 1 Hunting Momentum, up to 3. Momentum lasts until spent or until you leave combat, and each stack increases your movement speed by 15%. At 3 stacks, Woundrend deals 60% more strike damage and consumes the stacks. (Fieldcraft)',
+  },
+  fieldcraft_reentry: {
+    id: 'fieldcraft_reentry',
+    name: 'Armed Re-entry',
+    class: 'hunter',
+    specs: ['survival'],
+    learnLevel: 5,
+    passive: true,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    effects: [],
+    description:
+      'Passive: With Hunting Momentum, Trailbreak arms your next Gutting Strike or Bloodhook for 12 sec. Gutting Strike deals 15% more damage per stack. Bloodhook deals 18 to 24 extra Physical damage, increased by 15% per stack and by Ranged Attack Power. At 3 stacks, either attack consumes Hunting Momentum. (Fieldcraft)',
   },
   wing_clip: {
     id: 'wing_clip',
@@ -3379,7 +4174,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
       { type: 'directDamage', min: 3, max: 5 },
       { type: 'slow', mult: 0.6, duration: 10 },
     ],
-    description: 'Inflicts a wound for $d damage, slowing the enemy by 40% for 10 sec.',
+    description:
+      'Slash the target for $d Physical damage and slow it by 40% for 10 sec. Damage increases with Attack Power.',
   },
   aspect_of_the_monkey: {
     id: 'aspect_of_the_monkey',
@@ -3394,13 +4190,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     exclusiveGroup: 'aspect',
     effects: [{ type: 'selfBuff', kind: 'buff_dodge', value: 0.08, duration: 1800 }],
-    description: 'Take on the aspect of the monkey, increasing your dodge chance by 8% for 30 min.',
+    description: "Adopt Marten's Guise, increasing your dodge chance by 8% for 30 min.",
   },
   aspect_of_the_cheetah: {
     id: 'aspect_of_the_cheetah',
     name: "Courser's Guise",
     class: 'hunter',
-    learnLevel: 14,
+    learnLevel: 5,
     cost: 20,
     castTime: 0,
     cooldown: 0,
@@ -3409,45 +4205,281 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     exclusiveGroup: 'aspect',
     effects: [{ type: 'selfBuff', kind: 'buff_speed', value: 1.3, duration: 1800 }],
-    description: 'Take on the aspect of the cheetah, increasing movement speed by 30% for 30 min.',
+    description:
+      "Adopt Courser's Guise, increasing your movement speed by 30% for 30 min. While active, taking damage dazes you, halving your movement speed for 2 sec (each hit refreshes the daze).",
+  },
+  pack_rally: {
+    id: 'pack_rally',
+    name: 'Pack Rally',
+    class: 'hunter',
+    learnLevel: 17,
+    cost: 20,
+    castTime: 0,
+    cooldown: 90,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    exclusiveGroup: 'aspect',
+    effects: [
+      { type: 'selfBuff', kind: 'buff_speed', value: 1.3, duration: 1800 },
+      { type: 'hunterPackRally', duration: 10, radius: 30 },
+    ],
+    description:
+      "Adopt Courser's Guise. You, your companion, and group or raid allies within 30 yards gain 30% movement speed and 10% attack, casting, and channeling speed for 10 sec.",
   },
   aimed_shot: {
     id: 'aimed_shot',
     name: 'Long Draw',
     class: 'hunter',
+    specs: ['marksmanship'],
     learnLevel: 11,
-    cost: 50,
-    castTime: 3.0,
-    cooldown: 6,
+    cost: 35,
+    castTime: 2.5,
+    castWhileMoving: true,
+    cooldown: 0,
     range: 35,
-    minRange: 8,
     school: 'physical',
     projectile: true, // a fired shot: damage resolves when the arrow lands
     scalesWith: 'ranged',
     requiresTarget: true,
-    effects: [{ type: 'directDamage', min: 50, max: 62 }],
-    description: 'A carefully aimed shot that deals $d damage.',
+    effects: [{ type: 'directDamage', min: 89, max: 109 }],
+    description:
+      'Shoot the target for $d Physical damage. Damage increases with Ranged Attack Power. Coldsight Read from a completed Fevered Draw makes your next Long Draw deal 50% more damage. Starting the cast spends Read.',
   },
   rapid_fire: {
     id: 'rapid_fire',
     name: 'Fevered Draw',
     class: 'hunter',
-    learnLevel: 20,
+    specs: ['marksmanship'],
+    learnLevel: 14,
     cost: 0,
     castTime: 0,
-    cooldown: 300,
+    castWhileMoving: true,
+    channel: { duration: 2.4, ticks: 6 },
+    cooldown: 12,
+    range: 35,
+    school: 'physical',
+    projectile: true,
+    scalesWith: 'ranged',
+    requiresTarget: true,
+    effects: [{ type: 'directDamage', min: 19, max: 26 }],
+    description:
+      'Fire 6 shots over 2.4 sec while moving. Each shot deals $d Physical damage and increases with Ranged Attack Power. Completing all 6 shots grants Coldsight Read for 10 sec: your next Long Draw deals 50% more damage, or your next Fell Shot deals 75% more. Starting either shot spends Read, even if interrupted.',
+  },
+  shrapnel_charge: {
+    id: 'shrapnel_charge',
+    name: 'Shrapnel Charge',
+    class: 'hunter',
+    specs: ['survival'],
+    learnLevel: 11,
+    cost: 0,
+    castTime: 0,
+    // Fieldcraft rework: an uncapped cone fired from the hunter on a 10 sec cooldown.
+    cooldown: 10,
+    range: 0,
+    school: 'physical',
+    scalesWith: 'ranged',
+    requiresTarget: false,
+    effects: [
+      {
+        type: 'hunterShrapnel',
+        primaryMin: 24,
+        primaryMax: 30,
+        splashMin: 7,
+        splashMax: 9,
+        coneRange: 10,
+        coneAngleDeg: 90,
+        spreadTotal: 12,
+        spreadDuration: 6,
+        spreadInterval: 2,
+      },
+    ],
+    description:
+      'Blast a 10-yard cone in front of you. Your target, or the nearest enemy hit if your target is outside the cone, takes 24 to 30 Physical damage. Every other enemy in the cone takes 7 to 9 and bleeds for 12 damage over 6 sec. If the main target has your Bloodhook Wound, deal 1 wound tick immediately. Hitting an enemy grants 1 Hunting Momentum. Direct damage increases with Ranged Attack Power.',
+  },
+  bloodtrail_assault: {
+    id: 'bloodtrail_assault',
+    name: 'Bloodtrail Assault',
+    class: 'hunter',
+    specs: ['survival'],
+    learnLevel: 17,
+    cost: 0,
+    castTime: 0,
+    cooldown: 90,
     range: 0,
     school: 'physical',
     requiresTarget: false,
     offGcd: true,
-    effects: [{ type: 'selfBuff', kind: 'buff_haste', value: 1.4, duration: 15 }],
-    description: 'Increases your attack speed by 40% for 15 sec.',
+    effects: [{ type: 'selfBuff', kind: 'hunter_bloodtrail', value: 1, duration: 12 }],
+    description:
+      'For 12 sec, Bloodhook spreads a 60%-strength wound to up to 2 enemies within 5 yards, Woundrend commands an 18-damage pet attack, and Shrapnel Charge reaches 2 yards farther, deals 25% more base damage to its main target, and triggers 50% more wound damage. While you have no living pet, your Focus also regenerates 100% faster.',
+  },
+  trailbreak: {
+    id: 'trailbreak',
+    name: 'Trailbreak',
+    class: 'hunter',
+    learnLevel: 4,
+    cost: 0,
+    castTime: 0,
+    cooldown: 15,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    offGcd: true,
+    effects: [{ type: 'hunterTrailbreak', distance: 25 }],
+    description:
+      'Leap 25 yards backward and break free of roots and movement slows. Landing grants 50% movement speed for 3 sec. If you have Hunting Momentum, refresh it and arm Re-entry for 12 sec.',
+  },
+  wildheart: {
+    id: 'wildheart',
+    name: 'Wildheart',
+    class: 'hunter',
+    learnLevel: 6,
+    cost: 0,
+    castTime: 0,
+    cooldown: 45,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    offGcd: true,
+    effects: [{ type: 'selfHealPctMax', pct: 0.3 }],
+    description: 'Immediately restore 30% of your maximum health.',
+  },
+  shellskin: {
+    id: 'shellskin',
+    name: 'Shellskin',
+    class: 'hunter',
+    learnLevel: 8,
+    cost: 0,
+    castTime: 0,
+    cooldown: 60,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    offGcd: true,
+    effects: [{ type: 'selfBuff', kind: 'shield_wall', value: 0.6, duration: 8 }],
+    description: 'Reduce damage taken by 60% for 8 sec, but prevent attacks while active.',
+  },
+  play_dead: {
+    id: 'play_dead',
+    tooltipOmitEffectLines: true,
+    name: 'Play Dead',
+    class: 'hunter',
+    learnLevel: 10,
+    cost: 0,
+    castTime: 0,
+    cooldown: 30,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    offGcd: true,
+    // Display-only death (combat/hunter_play_dead.ts): the hunter never dies.
+    effects: [{ type: 'hunterPlayDead', movingGrace: 1 }],
+    description:
+      'Fall to the ground and appear dead: your health and Focus show as empty to everyone. Enemies forget you, and enemy players targeting you lose their target. Moving, attacking, or using another ability ends it. Cast while moving, you have 1 sec to stop before moving ends it. Cast again to get up.',
+  },
+  tactical_camo: {
+    id: 'tactical_camo',
+    tooltipOmitEffectLines: true,
+    name: 'Tactical Camo',
+    class: 'hunter',
+    specs: ['survival'],
+    learnLevel: 10,
+    cost: 0,
+    castTime: 0,
+    cooldown: 10,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    offGcd: true,
+    requiresOutOfCombat: true,
+    // Duskveil's stealth at 80% movement speed: attacking or taking damage breaks it.
+    effects: [{ type: 'selfBuff', kind: 'stealth', value: 0.8, duration: 3600 }],
+    description:
+      'Blend into your surroundings: enemies barely notice you, and you move at 80% speed. Attacking or taking damage breaks Tactical Camo. Cast again to step out. (Fieldcraft)',
+  },
+  frostjaw_trap: {
+    id: 'frostjaw_trap',
+    name: 'Frostjaw Trap',
+    class: 'hunter',
+    learnLevel: 11,
+    cost: 0,
+    castTime: 0,
+    cooldown: 30,
+    range: 30,
+    school: 'frost',
+    requiresTarget: false,
+    // Thrown at a chosen ground point like the Hourglass of Suspension; enemy
+    // players never see the armed trap (combat/hunter_trap.ts).
+    targetMode: 'position',
+    effects: [
+      {
+        type: 'frostjawTrap',
+        radius: 4,
+        armTime: 0.75,
+        lifetime: 60,
+        rootDuration: 3,
+        slowMult: 0.5,
+        slowDuration: 4,
+      },
+    ],
+    description:
+      'Place a trap at the selected location. It arms after 0.75 sec and lasts 1 min, and only you and your group can see it. The first enemy to trigger it is rooted for 3 sec, and enemies within 4 yards are slowed by 50% for 4 sec.',
+  },
+  bear_trap: {
+    id: 'bear_trap',
+    name: 'Bear Trap',
+    class: 'hunter',
+    learnLevel: 16,
+    cost: 0,
+    castTime: 0,
+    cooldown: 30,
+    range: 30,
+    school: 'physical',
+    scalesWith: 'ranged',
+    requiresTarget: false,
+    targetMode: 'position',
+    // Frostjaw's placement and trigger rules. The jaws bleed the victim for 1.5x
+    // Venom Barb's top rank (55 base plus 15% Ranged AP over 15 sec) and slow it.
+    effects: [
+      {
+        type: 'hunterBearTrap',
+        radius: 4,
+        armTime: 0.75,
+        lifetime: 60,
+        bleedTotal: 83,
+        bleedDuration: 15,
+        bleedInterval: 3,
+        rangedPowerCoeff: 0.225,
+        slowMult: 0.5,
+        slowDuration: 4,
+      },
+    ],
+    description:
+      'Place a trap at the selected location. It arms after 0.75 sec and lasts 1 min, and only you and your group can see it. The first enemy to trigger it bleeds for $d Physical damage over 15 sec and is slowed by 50% for 4 sec. Damage increases with Ranged Attack Power. Only one Bear Trap can be active at a time. Placing another replaces it. It can coexist with your Frostjaw Trap.',
+  },
+  scatterbolt: {
+    id: 'scatterbolt',
+    name: 'Scatterbolt',
+    class: 'hunter',
+    learnLevel: 12,
+    cost: 0,
+    castTime: 0,
+    cooldown: 15,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    offGcd: true,
+    // Shrapnel Charge's 90 degree cone at 8 yards: no damage, only displacement.
+    effects: [{ type: 'hunterScatterbolt', coneRange: 8, coneAngleDeg: 90, pushTo: 20 }],
+    description:
+      'Fire a spray of bolts in an 8-yard cone (90 degrees) in front of you, knocking enemies back up to 20 yards from you. Knockback-immune enemies are unaffected. Deals no damage.',
   },
 
   // ====================== PRIEST ======================
   smite: {
     id: 'smite',
-    name: 'Smite',
+    name: 'Scouring Hymn',
     class: 'priest',
     learnLevel: 1,
     cost: 20,
@@ -3458,7 +4490,12 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     effects: [{ type: 'directDamage', min: 15, max: 20 }],
     ranks: [
-      { rank: 2, level: 8, cost: 32, effects: [{ type: 'directDamage', min: 26, max: 33 }] },
+      {
+        rank: 2,
+        level: 8,
+        cost: 32,
+        effects: [{ type: 'directDamage', min: 26, max: 33 }],
+      },
       {
         rank: 3,
         level: 14,
@@ -3474,7 +4511,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'directDamage', min: 64, max: 78 }],
       },
     ],
-    description: 'Smites the enemy for $d Holy damage.',
+    description:
+      'Deal $d Holy damage. Damage increases with Spell Power. Doctrine converts this damage into healing through your links. If no injured linked group member is within 30 yards, heal the lowest-health injured group member within 30 yards for 15% of the damage.',
   },
   lesser_heal: {
     id: 'lesser_heal',
@@ -3490,11 +4528,26 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 47, max: 58 }],
     ranks: [
-      { rank: 2, level: 6, cost: 45, effects: [{ type: 'heal', min: 72, max: 86 }] },
-      { rank: 3, level: 12, cost: 65, effects: [{ type: 'heal', min: 110, max: 132 }] },
-      { rank: 4, level: 20, cost: 85, effects: [{ type: 'heal', min: 160, max: 192 }] },
+      {
+        rank: 2,
+        level: 6,
+        cost: 45,
+        effects: [{ type: 'heal', min: 72, max: 86 }],
+      },
+      {
+        rank: 3,
+        level: 12,
+        cost: 65,
+        effects: [{ type: 'heal', min: 110, max: 132 }],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 85,
+        effects: [{ type: 'heal', min: 160, max: 192 }],
+      },
     ],
-    description: 'Heals a friendly target for $d.',
+    description: 'Heal a friendly target for $d. Healing increases with Spell Power.',
   },
   power_word_fortitude: {
     id: 'power_word_fortitude',
@@ -3509,13 +4562,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     targetType: 'friendly',
     effects: [{ type: 'buffTarget', kind: 'buff_sta_pct', value: 5, duration: 1800, party: true }],
-    description: 'Increases the Stamina of all party members by $b% for 30 min.',
+    description: 'Increase the Stamina of every party member by $b% for 30 min.',
   },
   shadow_word_pain: {
     id: 'shadow_word_pain',
     name: 'Dirge of Decay',
     class: 'priest',
-    learnLevel: 4,
+    learnLevel: 2,
     cost: 25,
     castTime: 0,
     cooldown: 0,
@@ -3537,13 +4590,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'dot', total: 84, duration: 18, interval: 3 }],
       },
     ],
-    description: 'A word of darkness causes $d Shadow damage over 18 sec.',
+    description:
+      'Deal $d total Shadow damage over 18 sec, once every 3 sec. Damage increases with Spell Power. Vespers ticks can critically strike, using your spell critical chance and critical damage bonus. Vespers already includes 10% more damage and grants 1 Gloomtithe per tick on your Effigy. Reapplying your active Dirge to an enemy mob refreshes your existing Dirges on all living hostile mobs within 30 yards of you and in line of sight. This does not spread Dirge to new targets.',
   },
   power_word_shield: {
     id: 'power_word_shield',
     name: 'Psalm of Warding',
     class: 'priest',
-    learnLevel: 6,
+    learnLevel: 4,
     cost: 45,
     castTime: 0,
     cooldown: 6,
@@ -3551,19 +4605,63 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'holy',
     requiresTarget: true,
     targetType: 'friendly',
-    effects: [{ type: 'absorb', amount: 48, duration: 30 }],
-    ranks: [
-      { rank: 2, level: 12, cost: 70, effects: [{ type: 'absorb', amount: 90, duration: 30 }] },
-      { rank: 3, level: 18, cost: 100, effects: [{ type: 'absorb', amount: 145, duration: 30 }] },
-      { rank: 4, level: 20, cost: 130, effects: [{ type: 'absorb', amount: 210, duration: 30 }] },
+    effects: [
+      {
+        type: 'absorb',
+        amount: 48,
+        duration: 30,
+        spellPowerCoeff: PRIEST_PSALM_OF_WARDING_SPELL_POWER_COEFF,
+      },
     ],
-    description: 'Shields the target, absorbing $d damage for 30 sec.',
+    ranks: [
+      {
+        rank: 2,
+        level: 12,
+        cost: 70,
+        effects: [
+          {
+            type: 'absorb',
+            amount: 90,
+            duration: 30,
+            spellPowerCoeff: PRIEST_PSALM_OF_WARDING_SPELL_POWER_COEFF,
+          },
+        ],
+      },
+      {
+        rank: 3,
+        level: 18,
+        cost: 100,
+        effects: [
+          {
+            type: 'absorb',
+            amount: 145,
+            duration: 30,
+            spellPowerCoeff: PRIEST_PSALM_OF_WARDING_SPELL_POWER_COEFF,
+          },
+        ],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 130,
+        effects: [
+          {
+            type: 'absorb',
+            amount: 210,
+            duration: 30,
+            spellPowerCoeff: PRIEST_PSALM_OF_WARDING_SPELL_POWER_COEFF,
+          },
+        ],
+      },
+    ],
+    description:
+      'Shield a friendly target, absorbing $d damage for 30 sec. Doctrine also links the target for 30 sec. Your Scouring Hymn and hostile Scouring Mercy heal linked group members while they are within 30 yards of you.',
   },
   renew: {
     id: 'renew',
     name: 'Lingering Grace',
     class: 'priest',
-    learnLevel: 8,
+    learnLevel: 6,
     cost: 30,
     castTime: 0,
     cooldown: 0,
@@ -3586,13 +4684,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'hot', total: 205, duration: 15, interval: 3 }],
       },
     ],
-    description: 'Heals the target for $d over 15 sec.',
+    description:
+      'Heal the target for $d over 15 sec, once every 3 sec. Healing increases with Spell Power.',
   },
   mind_blast: {
     id: 'mind_blast',
     name: 'Mindfracture',
     class: 'priest',
-    learnLevel: 5,
+    learnLevel: 3,
     cost: 50,
     castTime: 1.5,
     cooldown: 8,
@@ -3601,10 +4700,21 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     effects: [{ type: 'directDamage', min: 42, max: 46 }],
     ranks: [
-      { rank: 2, level: 14, cost: 70, effects: [{ type: 'directDamage', min: 60, max: 66 }] },
-      { rank: 3, level: 20, cost: 95, effects: [{ type: 'directDamage', min: 86, max: 94 }] },
+      {
+        rank: 2,
+        level: 14,
+        cost: 70,
+        effects: [{ type: 'directDamage', min: 60, max: 66 }],
+      },
+      {
+        rank: 3,
+        level: 20,
+        cost: 95,
+        effects: [{ type: 'directDamage', min: 86, max: 94 }],
+      },
     ],
-    description: "Blasts the target's mind for $d Shadow damage.",
+    description:
+      'Deal $d Shadow damage. Damage increases with Spell Power. Vespers binds a target with your Dirge of Decay as its Effigy, grants 1 Gloomtithe, and echoes 30% of the damage to up to 3 other enemies with your Dirge.',
   },
   heal: {
     id: 'heal',
@@ -3620,7 +4730,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 165, max: 195 }],
     ranks: [{ rank: 2, level: 20, cost: 130, effects: [{ type: 'heal', min: 335, max: 390 }] }],
-    description: 'A slow but powerful prayer that heals a friendly target for $d.',
+    description: 'Heal a friendly target for $d. Healing increases with Spell Power.',
   },
   mind_flay: {
     id: 'mind_flay',
@@ -3631,12 +4741,12 @@ export const ABILITIES: Record<string, AbilityDef> = {
     castTime: 0,
     channel: { duration: 3, ticks: 3 },
     cooldown: 0,
-    range: 20,
+    range: 30,
     school: 'shadow',
     requiresTarget: true,
     effects: [{ type: 'drainTick', min: 12, max: 12, healFrac: 0 }],
     description:
-      "Assaults the target's mind with Shadow energy, causing $d Shadow damage each second for 3 sec.",
+      'Channel for 3 sec, dealing $d Shadow damage each second. Damage increases with Spell Power. Vespers ticks can critically strike, using your spell critical chance and critical damage bonus.',
   },
   flash_heal: {
     id: 'flash_heal',
@@ -3651,7 +4761,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 174, max: 206 }],
-    description: 'A fast prayer that heals a friendly target for $d.',
+    description: 'Heal a friendly target for $d. Healing increases with Spell Power.',
   },
 
   // ====================== SHAMAN ======================
@@ -3691,12 +4801,101 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'directDamage', min: 75, max: 85 }],
       },
     ],
-    description: 'Hurls a bolt of lightning for $d Nature damage.',
+    description:
+      'Deal $d Nature damage. Damage increases with Spell Power. Thundercall: a hit grants 1 Thunder.',
+  },
+  thunder_reservoir: {
+    id: 'thunder_reservoir',
+    name: 'Thunder Reservoir',
+    class: 'shaman',
+    specs: ['elemental'],
+    learnLevel: 5,
+    passive: true,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [],
+    description:
+      'Passive: Arc Bolt, Skybranch, and Magma Burst grant Thunder, up to 5. Earthen Jolt consumes all Thunder and deals 25% more damage per Thunder (125% at 5). Faultwake consumes all Thunder and deals 20% more damage per Thunder (100% at 5). (Thundercall)',
+  },
+  // Thundercall v0.44 rework (docs/prd/shaman-thundercall-elemental-v028.md,
+  // "v0.44.0 rework"): the classic Lightning Overload talent at its 5/5 value,
+  // baseline for the spec. Runtime: combat/shaman_thundercall_kit.ts.
+  lightning_overload: {
+    id: 'lightning_overload',
+    name: 'Arc Overload',
+    class: 'shaman',
+    specs: ['elemental'],
+    learnLevel: 10,
+    passive: true,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [],
+    description:
+      'Passive: Arc Bolt and Skybranch have a 20% chance to Overload, striking their first target again for 50% of the damage dealt and granting 1 Thunder. (Thundercall)',
+  },
+  // The Wrath-era Lava Burst: a fire nuke that always crits on a target
+  // burning with the caster's own Cinder Jolt, reset by Magma Surge.
+  lava_burst: {
+    id: 'lava_burst',
+    name: 'Magma Burst',
+    class: 'shaman',
+    specs: ['elemental'],
+    learnLevel: 12,
+    cost: 45,
+    castTime: 2.0,
+    cooldown: 8,
+    range: 30,
+    school: 'fire',
+    requiresTarget: true,
+    projectileFx: 'heavyBolt',
+    effects: [{ type: 'directDamage', min: 63, max: 71 }],
+    ranks: [
+      {
+        rank: 2,
+        level: 20,
+        cost: 70,
+        effects: [{ type: 'directDamage', min: 105, max: 119 }],
+      },
+    ],
+    description:
+      'Deal $d Fire damage. A hit grants 1 Thunder. Always critically strikes a target burning with your Cinder Jolt. A critical strike deals an extra 24% of the normal hit. Magma Surge: each Cinder Jolt tick has a 20% chance to reset this cooldown and make your next Magma Burst within 10 sec instant. Damage increases with Spell Power. (Thundercall)',
+  },
+  // The Wrath-era Thunderstorm: the spec's panic button. The 8% mana return
+  // is applied by combat/shaman_thundercall_kit.ts; the knockback is not
+  // modelled (no mob displacement primitive), so it slows instead.
+  thunderstorm: {
+    id: 'thunderstorm',
+    name: 'Stormbreak',
+    class: 'shaman',
+    specs: ['elemental'],
+    learnLevel: 16,
+    cost: 0,
+    castTime: 0,
+    cooldown: 45,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [
+      { type: 'aoeDamage', min: 55, max: 63, radius: 10 },
+      { type: 'aoeSlow', mult: 0.5, duration: 5, radius: 10 },
+    ],
+    description:
+      'Call down a thunderclap, dealing $d Nature damage to enemies within 10 yards and slowing them by 50% for 5 sec. Restores 8% of your maximum Mana. Damage increases with Spell Power. (Thundercall)',
   },
   rockbiter_weapon: {
     id: 'rockbiter_weapon',
     name: 'Stonebound Weapon',
     class: 'shaman',
+    excludeSpecs: ['elemental', 'restoration'],
+    excludeSpecsAtLevel: 5,
     learnLevel: 1,
     cost: 20,
     castTime: 0,
@@ -3704,20 +4903,117 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'nature',
     requiresTarget: false,
-    effects: [{ type: 'imbue', bonus: 5, duration: 300 }],
+    effects: [{ type: 'imbue', bonus: 5, duration: 1800 }],
     ranks: [
-      { rank: 2, level: 8, cost: 30, effects: [{ type: 'imbue', bonus: 9, duration: 300 }] },
-      { rank: 3, level: 16, cost: 45, effects: [{ type: 'imbue', bonus: 14, duration: 300 }] },
+      { rank: 2, level: 8, cost: 30, effects: [{ type: 'imbue', bonus: 9, duration: 1800 }] },
+      { rank: 3, level: 16, cost: 45, effects: [{ type: 'imbue', bonus: 14, duration: 1800 }] },
     ],
     description:
-      'Imbues your weapon with the fury of stone: each swing deals $d additional damage for 5 min.',
+      'Imbue your weapon for 30 min. Each swing deals $d extra damage. Warspirit also gains 40% armor and 20% Stamina, takes 15% less damage, is immune to critical strikes from creatures, and generates two and three quarter times as much threat. Earthen Jolt forces its target to attack you for 3 sec, and Thunder Ward grants 10% damage reduction for 3 sec.',
   },
-  // Restoration shaman signature (granted only via the Restoration spec, not in the base
-  // kit). v1 is a strong single-target heal; the multi-target "chain" bounce is a
-  // follow-up once a bounce/jump primitive exists.
+  galeheart_weapon: {
+    id: 'galeheart_weapon',
+    name: 'Galeheart Weapon',
+    class: 'shaman',
+    specs: ['enhancement'],
+    learnLevel: 5,
+    cost: 25,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [{ type: 'imbue', bonus: 0, duration: 1800 }],
+    description: 'Imbue both weapons for 30 min, enabling Warspirit Cadence.',
+  },
+  warspirit_cadence: {
+    id: 'warspirit_cadence',
+    name: 'Warspirit Cadence',
+    class: 'shaman',
+    specs: ['enhancement'],
+    learnLevel: 5,
+    passive: true,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [],
+    description:
+      'Passive: Dual-wield attacks have no extra miss chance. Every 3rd landed weapon attack triggers 2 Galeheart Echoes for 25% Nature damage and grants Stormcast for 12 sec. Stormcast makes your next Arc Bolt, Jolt, or Mending Waters instant and cost 50% less Mana. Ancestral Strike counts as 2 attacks. (Warspirit)',
+  },
+  stormsurge: {
+    id: 'stormsurge',
+    name: 'Stormsurge',
+    class: 'shaman',
+    specs: ['enhancement'],
+    learnLevel: 14,
+    passive: true,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [],
+    description:
+      'Passive: While Ancestral Strike is on cooldown, consuming Stormcast has a 25% chance to reset it. If the first 3 chances fail, the 4th always resets it. (Warspirit)',
+  },
+  lifespring_weapon: {
+    id: 'lifespring_weapon',
+    name: 'Lifespring Weapon',
+    class: 'shaman',
+    specs: ['restoration'],
+    learnLevel: 5,
+    cost: 25,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [{ type: 'imbue', bonus: 0, duration: 1800 }],
+    description:
+      'Imbue your weapon for 30 min. Mending Waters and Tidecall add 20% more healing to Mending Current.',
+  },
+  // Shared Shaman action whose effect follows the active spec weapon enchant.
+  elemental_trance: {
+    id: 'elemental_trance',
+    name: 'Elemental Trance',
+    class: 'shaman',
+    specs: ['enhancement'],
+    learnLevel: 20,
+    cost: 0,
+    castTime: 0,
+    cooldown: 120,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [{ type: 'selfBuff', kind: 'buff_dr', value: 0.3, duration: 15 }],
+    description:
+      'Enter an elemental trance for 15 sec, reducing damage taken by 30% and converting 20% of all damage you deal into mana. (Warspirit signature)',
+  },
+  unleash_weapon: {
+    id: 'unleash_weapon',
+    name: 'Unleash Weapon',
+    class: 'shaman',
+    learnLevel: 14,
+    cost: 35,
+    castTime: 0,
+    cooldown: 15,
+    range: 30,
+    school: 'nature',
+    requiresTarget: true,
+    targetType: 'any',
+    projectile: false,
+    effects: [],
+    description:
+      'Trigger your active weapon enchant. Pyrebrand: deal 54 to 64 Fire damage plus 30% of your Spell Power and gain 2 Thunder. Galeheart: strike with your weapon, advance Warspirit Cadence, and gain 20% attack speed for 6 sec. Stonebound: strike for 75% weapon damage, force the target to attack you for 3 sec, and take 20% less damage for 4 sec. Lifespring: consume Mending Current, heal for 125% of its remaining healing, and reduce the next hit within 8 sec by 50% of the health restored.',
+  },
+  // Restoration Shaman signature, granted only by the Spiritcall spec.
   chain_heal: {
     id: 'chain_heal',
-    name: 'Chain Heal',
+    name: 'Cascading Mend',
     class: 'shaman',
     learnLevel: 10,
     cost: 60,
@@ -3727,16 +5023,45 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'nature',
     requiresTarget: true,
     targetType: 'friendly',
-    effects: [{ type: 'chainHeal', min: 120, max: 145, jumps: 2, falloff: 0.5, radius: 12 }],
+    effects: [
+      {
+        type: 'chainHeal',
+        min: 120,
+        max: 145,
+        jumps: 2,
+        falloff: 0.5,
+        radius: 12,
+      },
+    ],
     description:
-      'Heals a friendly target for 120 to 145, then jumps to up to 2 additional nearby allies, healing for 50% less with each jump. (Restoration signature)',
+      'Heal a friendly target for $d, then jump to up to 2 allies within 12 yards. Each jump heals for 50% of the previous target. Each ally reached consumes your remaining Mending Current and immediately heals for 125% of the amount consumed. The initial heal increases with Spell Power. (Spiritcall signature)',
+  },
+  // ---- Spiritmend out-of-combat mass resurrection. Like Collective Reversal,
+  // the combat hold prevents casting during an active encounter.
+  ancestor_return: {
+    id: 'ancestor_return',
+    name: "Ancestors' Return",
+    class: 'shaman',
+    specs: ['restoration'],
+    learnLevel: 20,
+    cost: 250,
+    castTime: 7,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    requiresOutOfCombat: true,
+    projectile: false,
+    effects: [{ type: 'massResurrectGroup', hpFrac: 0.3 }],
+    description:
+      'Call every fallen member of your group or raid within 40 yards and in your line of sight back to your side with 30% health and mana. Cannot be cast in combat. (Spiritcall)',
   },
   healing_wave: {
     id: 'healing_wave',
     name: 'Mending Waters',
     class: 'shaman',
     learnLevel: 1,
-    cost: 25,
+    cost: MENDING_WATERS_MANA_COST,
     castTime: 1.5,
     cooldown: 0,
     range: 30,
@@ -3745,7 +5070,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 36, max: 44 }],
     ranks: [
-      { rank: 2, level: 6, cost: 40, castTime: 2.0, effects: [{ type: 'heal', min: 56, max: 68 }] },
+      {
+        rank: 2,
+        level: 6,
+        cost: 40,
+        castTime: 2.0,
+        effects: [{ type: 'heal', min: 56, max: 68 }],
+      },
       {
         rank: 3,
         level: 12,
@@ -3768,13 +5099,32 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'heal', min: 200, max: 238 }],
       },
     ],
-    description: 'Heals a friendly target for $d.',
+    description:
+      "Heal a friendly target for $d. Healing increases with Spell Power. Spiritcall: store 50% of the full heal before overhealing as Mending Current for 12 sec, up to 30% of the target's maximum health.",
+  },
+  tidecall: {
+    id: 'tidecall',
+    name: 'Tidecall',
+    class: 'shaman',
+    specs: ['restoration'],
+    learnLevel: 10,
+    cost: TIDECALL_MANA_COST,
+    castTime: 0,
+    cooldown: 12,
+    maxCharges: 2,
+    range: 30,
+    school: 'nature',
+    requiresTarget: true,
+    targetType: 'friendly',
+    effects: [{ type: 'heal', min: 58, max: 72 }],
+    description:
+      "Heal a friendly target for $d. Healing increases with Spell Power. Add the full heal before overhealing to Mending Current, up to 30% of the target's maximum health.",
   },
   earth_shock: {
     id: 'earth_shock',
     name: 'Earthen Jolt',
     class: 'shaman',
-    learnLevel: 4,
+    learnLevel: 2,
     cost: 30,
     castTime: 0,
     cooldown: 6,
@@ -3783,16 +5133,27 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     effects: [{ type: 'directDamage', min: 19, max: 22 }],
     ranks: [
-      { rank: 2, level: 10, cost: 45, effects: [{ type: 'directDamage', min: 33, max: 38 }] },
-      { rank: 3, level: 16, cost: 65, effects: [{ type: 'directDamage', min: 54, max: 61 }] },
+      {
+        rank: 2,
+        level: 10,
+        cost: 45,
+        effects: [{ type: 'directDamage', min: 33, max: 38 }],
+      },
+      {
+        rank: 3,
+        level: 16,
+        cost: 65,
+        effects: [{ type: 'directDamage', min: 54, max: 61 }],
+      },
     ],
-    description: 'Instantly shocks the target with concussive force for $d Nature damage.',
+    description:
+      'Deal $d Nature damage. Damage increases with Spell Power. Thundercall: consume all Thunder, dealing 25% more damage per Thunder (125% at 5). Stonebound: force the target to attack you for 3 sec.',
   },
   lightning_shield: {
     id: 'lightning_shield',
     name: 'Thunder Ward',
     class: 'shaman',
-    learnLevel: 5,
+    learnLevel: 3,
     cost: 25,
     castTime: 0,
     cooldown: 0,
@@ -3842,13 +5203,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description:
-      'Surrounds you with crackling lightning: melee attackers take $b Nature damage, up to 3 charges and at most once every 5 seconds.',
+      'Surround yourself with lightning for 10 min. The next 3 melee attacks against you deal $b Nature damage to the attacker, at most once every 5 sec.',
   },
   flame_shock: {
     id: 'flame_shock',
     name: 'Cinder Jolt',
     class: 'shaman',
-    learnLevel: 8,
+    learnLevel: 4,
     cost: 35,
     castTime: 0,
     cooldown: 6,
@@ -3870,12 +5231,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
         ],
       },
     ],
-    description: 'Sears the target with fire for $d damage plus $o over 12 sec.',
+    description:
+      'Deal $d Fire damage, then $o Fire damage over $t sec. The initial hit increases with Spell Power.',
   },
   flametongue_weapon: {
     id: 'flametongue_weapon',
     name: 'Pyrebrand Weapon',
     class: 'shaman',
+    specs: ['elemental'],
     learnLevel: 5,
     cost: 25,
     castTime: 0,
@@ -3883,18 +5246,17 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'fire',
     requiresTarget: false,
-    effects: [{ type: 'imbue', bonus: 8, duration: 300 }],
+    effects: [{ type: 'imbue', bonus: 8, duration: 1800 }],
     ranks: [
-      { rank: 2, level: 18, cost: 40, effects: [{ type: 'imbue', bonus: 13, duration: 300 }] },
+      { rank: 2, level: 18, cost: 40, effects: [{ type: 'imbue', bonus: 13, duration: 1800 }] },
     ],
-    description:
-      'Imbues your weapon with elemental fire: each swing deals $d additional Fire damage for 5 min.',
+    description: 'Imbues your weapon for 30 min. Each swing deals $d additional Fire damage.',
   },
   frost_shock: {
     id: 'frost_shock',
     name: 'Rime Jolt',
     class: 'shaman',
-    learnLevel: 8,
+    learnLevel: 6,
     cost: 50,
     castTime: 0,
     cooldown: 6,
@@ -3906,7 +5268,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
       { type: 'slow', mult: 0.5, duration: 8 },
     ],
     description:
-      'Instantly shocks the target with frost for $d Frost damage and slows its movement by 50% for 8 sec.',
+      'Deal $d Frost damage and slow the target by 50% for 8 sec. Damage increases with Spell Power.',
   },
   frostbrand_weapon: {
     id: 'frostbrand_weapon',
@@ -3921,7 +5283,12 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'imbue', bonus: 8, duration: 300 }],
     ranks: [
-      { rank: 2, level: 20, cost: 40, effects: [{ type: 'imbue', bonus: 13, duration: 300 }] },
+      {
+        rank: 2,
+        level: 20,
+        cost: 40,
+        effects: [{ type: 'imbue', bonus: 13, duration: 300 }],
+      },
     ],
     description:
       'Imbues your weapon with biting frost: each swing deals $d additional damage for 5 min.',
@@ -3930,7 +5297,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'ghost_wolf',
     name: 'Shadewolf',
     class: 'shaman',
-    learnLevel: 16,
+    learnLevel: 5,
     cost: 35,
     castTime: 2.0,
     cooldown: 0,
@@ -3939,7 +5306,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'selfBuff', kind: 'buff_speed', value: 1.4, duration: 3600 }],
     description:
-      'Turns you into a Shadewolf, increasing movement speed by 40%. Cast again to return to normal form.',
+      'Become a Shadewolf and move 40% faster. Cast again to return to your normal form.',
   },
   stormstrike: {
     id: 'stormstrike',
@@ -3954,14 +5321,256 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     effects: [{ type: 'weaponStrike', bonus: 26 }],
     description:
-      'Channels the storm through your weapon, instantly striking for weapon damage plus $d.',
+      'Strike for weapon damage plus $d and advance Warspirit Cadence by 2 steps. Damage increases with Attack Power through weapon damage.',
   },
 
   // ====================== WARLOCK ======================
+  evil_eye: {
+    id: 'evil_eye',
+    name: 'Evil Eye',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 5,
+    cost: 15,
+    castTime: 0,
+    cooldown: 1,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    projectile: false,
+    effects: [{ type: 'afflictionEvilEye' }],
+    description:
+      'Marks one enemy as the focus of your curses. Moving the Eye preserves Condemnation but does not refresh its 20 sec expiry.',
+  },
+  maledict_gaze: {
+    id: 'maledict_gaze',
+    name: 'Maledict Gaze',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: false,
+    passive: true,
+    effects: [],
+    description:
+      'Your Maledict Eye attacks your selected primary Evil Eye every 2.5 sec for Shadow damage. Possess the Evil Eye doubles its attack speed.',
+  },
+  needle_of_fate: {
+    id: 'needle_of_fate',
+    name: 'Needle of Fate',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 5,
+    cost: 25,
+    castTime: 1.5,
+    cooldown: 0,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    effects: [
+      { type: 'afflictionNeedle', doom: 7 },
+      { type: 'directDamage', min: 22, max: 27 },
+    ],
+    ranks: [
+      {
+        rank: 2,
+        level: 12,
+        cost: 30,
+        effects: [
+          { type: 'afflictionNeedle', doom: 7 },
+          { type: 'directDamage', min: 36, max: 43 },
+        ],
+      },
+      {
+        rank: 3,
+        level: 20,
+        cost: 35,
+        effects: [
+          { type: 'afflictionNeedle', doom: 7 },
+          { type: 'directDamage', min: 41, max: 49 },
+        ],
+      },
+    ],
+    // The sim-source description keeps the BASE literal 7 (the $-form
+    // contract in tests/ability_tooltip_consistency.test.ts: brace tokens are
+    // reserved for the translated catalog). The catalog row splices the
+    // RESOLVED payload as {needleDoom}, so Hexthread 2pc wearers read 9 there.
+    description:
+      'Pierces the enemy for $d Shadow damage and generates 7 Condemnation on impact if it still bears your Evil Eye. Completing a cast moves your primary Evil Eye to the target and adds a Fate Thread for 12 sec, up to 3. Fate Threads stay with you when the Eye moves or its target dies. Targeting a secondary Coven Eye swaps it with the primary Eye.',
+  },
+  sentence: {
+    id: 'sentence',
+    name: 'Sentence',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 5,
+    cost: 40,
+    castTime: 0,
+    cooldown: 0,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    requiresAuraKind: 'affliction_doom',
+    requiresAuraStacks: 20,
+    effects: [{ type: 'afflictionSentence' }],
+    description:
+      'Consumes all Condemnation and Fate Threads to pass sentence on the enemy. Each Thread increases damage by 6%. Added effects escalate at 20, 50, 80, and 100 Condemnation. Its damage scaling flattens after level 16.',
+  },
+  cursed_accomplice: {
+    id: 'cursed_accomplice',
+    name: 'Cursed Accomplice',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 7,
+    cost: 40,
+    castTime: 0,
+    cooldown: 0,
+    range: 40,
+    school: 'shadow',
+    requiresTarget: true,
+    targetType: 'friendly',
+    partyOnlyTarget: true,
+    effects: [{ type: 'afflictionAccomplice' }],
+    description:
+      'Links your Maledict Eye when no ally is selected, making its Gaze generate 2 Condemnation. Linking one selected group member makes only their damage to your Evil Eye generate 3 instead. A new link replaces the previous one and may trigger once every 2 sec.',
+  },
+  hex_of_violence: {
+    id: 'hex_of_violence',
+    name: 'Hex of Violence',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 12,
+    cost: 55,
+    castTime: 0,
+    cooldown: 15,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    projectile: false,
+    effects: [
+      {
+        type: 'afflictionViolence',
+        duration: 8,
+        charges: 3,
+        doomPerProc: 7,
+        damage: 16,
+        interval: 2,
+        tickDoom: 2,
+      },
+    ],
+    description:
+      'Hexes the enemy for 8 sec, dealing Shadow damage and generating 2 Condemnation every 2 sec. Its next 3 damaging actions each generate 7 Condemnation and lash it for 17 Shadow damage.',
+  },
+  cruel_pact: {
+    id: 'cruel_pact',
+    name: 'Cruel Pact',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 9,
+    cost: 0,
+    castTime: 0,
+    cooldown: 20,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [
+      {
+        type: 'afflictionCruelPact',
+        healthPct: 0.12,
+        manaPctMax: 0.015,
+        doom: 20,
+      },
+    ],
+    description:
+      'Sacrifices 12% of your maximum health to restore 1.5% of your maximum mana and generate 20 Condemnation. Cannot be used at or below 20% health.',
+  },
+  vicarious_suffering: {
+    id: 'vicarious_suffering',
+    name: 'Vicarious Suffering',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 14,
+    cost: 50,
+    castTime: 0,
+    cooldown: 30,
+    range: 40,
+    school: 'shadow',
+    requiresTarget: true,
+    targetType: 'friendly',
+    effects: [{ type: 'afflictionVicarious', duration: 8, maxDoom: 15 }],
+    description:
+      'Links your suffering for 8 sec and generates up to 15 Condemnation from hostile hits. On yourself, reduces damage taken by 20%. On an ally, redirects up to 20% to you without taking you below 15% health.',
+  },
+  possess_evil_eye: {
+    id: 'possess_evil_eye',
+    name: 'Possess the Evil Eye',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 13,
+    cost: 75,
+    castTime: 0,
+    cooldown: 45,
+    offGcd: true,
+    // An off-GCD burst opener pressed in the middle of the Needle cast or Consume
+    // channel it empowers (the same door Cinderfall and Phoenix Trance use):
+    // without this the busy guard rejected the press and the player gained no
+    // Condemnation.
+    usableWhileCasting: true,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    projectile: false,
+    effects: [{ type: 'afflictionPossession', duration: 15, doom: 35 }],
+    description:
+      'The Maledictor possesses your primary Evil Eye for 15 sec and generates 35 Condemnation. Needle of Fate casts in 1 sec and generates 2 extra Condemnation, Consume can be channeled while moving, and Sentence deals 25% more damage and releases a delayed echo for 60% damage, tapering to 30% across levels 17-20.',
+  },
+  hour_of_judgment: {
+    id: 'hour_of_judgment',
+    name: 'Hour of Judgment',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 20,
+    cost: 0,
+    castTime: 0,
+    cooldown: 90,
+    offGcd: true,
+    // Off-GCD burst opener, pressable through a running cast or channel; see
+    // possess_evil_eye above.
+    usableWhileCasting: true,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    projectile: false,
+    effects: [{ type: 'afflictionJudgment', duration: 15, doom: 40, refund: 50 }],
+    description:
+      'Calls judgment upon your primary Evil Eye for 15 sec, granting 40 Condemnation and 3 Fate Threads, activating Possession, doubling Condemnation generated through the primary Eye, and increasing Sentence damage by 20%. The first Sentence refunds 50 Condemnation.',
+  },
+  coven: {
+    id: 'coven',
+    name: 'Coven',
+    class: 'warlock',
+    specs: ['affliction'],
+    learnLevel: 17,
+    cost: 120,
+    castTime: 0,
+    cooldown: 90,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    projectile: false,
+    effects: [{ type: 'afflictionCoven', duration: 15, radius: 15, maxSecondary: 4 }],
+    description:
+      'Creates secondary Evil Eyes on up to 4 nearby enemies for 15 sec. They feed the shared Condemnation pool at 50%, and Sentence echoes to them for 35% damage.',
+  },
   shadow_bolt: {
     id: 'shadow_bolt',
     name: 'Gloom Bolt',
     class: 'warlock',
+    excludeSpecs: ['affliction', 'demonology'],
     learnLevel: 1,
     cost: 25,
     castTime: 1.7,
@@ -3969,28 +5578,54 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 30,
     school: 'shadow',
     requiresTarget: true,
-    effects: [{ type: 'directDamage', min: 13, max: 18 }],
+    effects: [{ type: 'directDamage', min: 36, max: 50 }],
+    // Preserve the former rank coefficients after the Destruction cast passive.
+    // The faster casts reduce the entire hit once, including Spell Power.
     ranks: [
       {
         rank: 2,
         level: 8,
         cost: 38,
-        castTime: 2.2,
-        effects: [{ type: 'directDamage', min: 24, max: 31 }],
+        castTime: 2.0,
+        effects: [
+          {
+            type: 'directDamage',
+            min: 67,
+            max: 87,
+            damageMult: 0.8,
+            spellPowerCoeff: (2.2 * 0.97) / 3.5,
+          },
+        ],
       },
       {
         rank: 3,
         level: 14,
         cost: 55,
-        castTime: 2.7,
-        effects: [{ type: 'directDamage', min: 42, max: 53 }],
+        castTime: 2.0,
+        effects: [
+          {
+            type: 'directDamage',
+            min: 118,
+            max: 148,
+            damageMult: 0.8,
+            spellPowerCoeff: (2.7 * 0.97) / 3.5,
+          },
+        ],
       },
       {
         rank: 4,
         level: 20,
         cost: 80,
-        castTime: 3.0,
-        effects: [{ type: 'directDamage', min: 68, max: 84 }],
+        castTime: 2.0,
+        effects: [
+          {
+            type: 'directDamage',
+            min: 126,
+            max: 156,
+            damageMult: 0.8,
+            spellPowerCoeff: (3.0 * 0.97) / 3.5,
+          },
+        ],
       },
     ],
     description: 'Sends a shadowy bolt at the enemy for $d Shadow damage.',
@@ -4021,13 +5656,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
         effects: [{ type: 'selfBuff', kind: 'buff_armor', value: 80, duration: 1800 }],
       },
     ],
-    description: 'Demonic skin increases your armor by $b for 30 min.',
+    description:
+      'Demonic skin increases your armor by $b for 30 min. Pact Deepened can double this armor and reduce magic damage taken while Fiendhide is active.',
   },
   immolate: {
     id: 'immolate',
     name: 'Burning Pact',
     class: 'warlock',
-    learnLevel: 1,
+    specs: ['destruction'],
+    learnLevel: 5,
     cost: 25,
     castTime: 2.0,
     cooldown: 0,
@@ -4035,8 +5672,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'fire',
     requiresTarget: true,
     effects: [
-      { type: 'directDamage', min: 11, max: 11 },
-      { type: 'dot', total: 20, duration: 15, interval: 3 },
+      { type: 'directDamage', min: 31, max: 31 },
+      { type: 'dot', total: 56, duration: 15, interval: 3 },
     ],
     ranks: [
       {
@@ -4044,8 +5681,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
         level: 10,
         cost: 40,
         effects: [
-          { type: 'directDamage', min: 22, max: 22 },
-          { type: 'dot', total: 35, duration: 15, interval: 3 },
+          { type: 'directDamage', min: 62, max: 62 },
+          { type: 'dot', total: 98, duration: 15, interval: 3 },
         ],
       },
       {
@@ -4053,8 +5690,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
         level: 16,
         cost: 60,
         effects: [
-          { type: 'directDamage', min: 38, max: 38 },
-          { type: 'dot', total: 60, duration: 15, interval: 3 },
+          { type: 'directDamage', min: 70, max: 70 },
+          { type: 'dot', total: 100, duration: 15, interval: 3 },
         ],
       },
     ],
@@ -4064,7 +5701,8 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'corruption',
     name: 'Blackrot',
     class: 'warlock',
-    learnLevel: 4,
+    excludeSpecs: ['affliction', 'demonology', 'destruction'],
+    learnLevel: 2,
     cost: 35,
     castTime: 2.0,
     cooldown: 0,
@@ -4092,7 +5730,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'life_tap',
     name: 'Hard Bargain',
     class: 'warlock',
-    learnLevel: 6,
+    excludeSpecs: ['affliction'],
+    excludeSpecsAtLevel: 14,
+    learnLevel: 4,
     cost: 0,
     castTime: 0,
     cooldown: 0,
@@ -4101,8 +5741,18 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'lifeTap', hp: 30, mana: 30 }],
     ranks: [
-      { rank: 2, level: 14, cost: 0, effects: [{ type: 'lifeTap', hp: 55, mana: 55 }] },
-      { rank: 3, level: 20, cost: 0, effects: [{ type: 'lifeTap', hp: 85, mana: 85 }] },
+      {
+        rank: 2,
+        level: 14,
+        cost: 0,
+        effects: [{ type: 'lifeTap', hp: 55, mana: 55 }],
+      },
+      {
+        rank: 3,
+        level: 20,
+        cost: 0,
+        effects: [{ type: 'lifeTap', hp: 85, mana: 85 }],
+      },
     ],
     description: 'Converts $d health into $d mana.',
   },
@@ -4110,6 +5760,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'curse_of_agony',
     name: 'Hex of Anguish',
     class: 'warlock',
+    excludeSpecs: ['affliction', 'demonology', 'destruction'],
     learnLevel: 8,
     cost: 25,
     castTime: 0,
@@ -4138,36 +5789,158 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'drain_life',
     name: 'Consume',
     class: 'warlock',
-    learnLevel: 10,
-    cost: 35,
+    excludeSpecs: ['demonology'],
+    learnLevel: 6,
+    cost: 25,
     castTime: 0,
-    channel: { duration: 5, ticks: 5 },
+    channel: { duration: 3, ticks: 3 },
     cooldown: 0,
     range: 20,
     school: 'shadow',
     requiresTarget: true,
-    effects: [{ type: 'drainTick', min: 7, max: 7, healFrac: 1 }],
+    effects: [{ type: 'drainTick', min: 7, max: 7, healFrac: 0.7 }],
+    ranks: [
+      {
+        rank: 2,
+        level: 14,
+        cost: 35,
+        effects: [{ type: 'drainTick', min: 12, max: 12, healFrac: 0.7 }],
+      },
+      {
+        rank: 3,
+        level: 20,
+        cost: 45,
+        effects: [{ type: 'drainTick', min: 17, max: 17, healFrac: 0.7 }],
+      },
+    ],
+    description:
+      "Consumes the target's vitality, dealing $d Shadow damage each second and transferring 70% of it as health. Affliction transfers all of it instead. When channeled on your primary Evil Eye, it consumes all Fate Threads at the start, and each Thread generates 1 extra Condemnation per tick.",
+  },
+  soul_lance: {
+    id: 'soul_lance',
+    name: 'Soul Lance',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 9,
+    cost: 35,
+    castTime: 1.6,
+    cooldown: 8,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    effects: [{ type: 'directDamage', min: 30, max: 36 }],
     ranks: [
       {
         rank: 2,
         level: 14,
         cost: 50,
-        effects: [{ type: 'drainTick', min: 12, max: 12, healFrac: 1 }],
+        effects: [{ type: 'directDamage', min: 50, max: 60 }],
       },
       {
         rank: 3,
         level: 20,
-        cost: 70,
-        effects: [{ type: 'drainTick', min: 17, max: 17, healFrac: 1 }],
+        cost: 65,
+        effects: [{ type: 'directDamage', min: 80, max: 95 }],
       },
     ],
-    description: "Drains the target's life, transferring $d health to you each second for 5 sec.",
+    description:
+      'Hurls a spectral lance for $d Shadow damage. Against your Ossuary Mark, 50% of its damage is added to the mark.',
+  },
+  litany_of_guilt: {
+    id: 'litany_of_guilt',
+    name: 'Litany of Guilt',
+    class: 'warlock',
+    specs: ['affliction'],
+    // Hexcraft had no area damage at all before level 11, which is half of the
+    // game. Rank 1 lands at 8 as a deliberately weak two-target wave; ranks 2
+    // and 3 keep the values Litany already had at 11 and 20, so nothing that
+    // existed before is nerfed.
+    learnLevel: 8,
+    cost: 35,
+    castTime: 0,
+    cooldown: 20,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    projectile: false,
+    effects: [
+      {
+        type: 'afflictionLitany',
+        duration: 6,
+        radius: 8,
+        maxTargets: 2,
+        damage: 5,
+      },
+    ],
+    ranks: [
+      {
+        rank: 2,
+        level: 11,
+        cost: 50,
+        effects: [
+          {
+            type: 'afflictionLitany',
+            duration: 8,
+            radius: 8,
+            maxTargets: 4,
+            damage: 9,
+          },
+        ],
+      },
+      {
+        rank: 3,
+        level: 20,
+        cost: 65,
+        effects: [
+          {
+            type: 'afflictionLitany',
+            duration: 8,
+            radius: 8,
+            maxTargets: 4,
+            damage: 14,
+          },
+        ],
+      },
+    ],
+    description:
+      'Curses your primary Evil Eye for 6 sec. Condemnation gains release a wave that damages up to 2 other enemies within 8 yd, at most once per second. Rank 2 extends it to 8 sec and 4 enemies.',
+  },
+  umbral_anchor: {
+    id: 'umbral_anchor',
+    name: 'Umbral Anchor',
+    class: 'warlock',
+    learnLevel: 3,
+    cost: 25,
+    castTime: 0,
+    cooldown: 45,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'warlockUmbralAnchor', duration: 300, maxRange: 40 }],
+    description:
+      'First cast: anchors your shadow at your feet for 5 min. Recast within 40 m to return there, consuming the anchor and starting a 45 sec cooldown.',
+  },
+  soulwell: {
+    id: 'soulwell',
+    name: 'Soulwell',
+    class: 'warlock',
+    learnLevel: 8,
+    cost: 80,
+    castTime: 3,
+    cooldown: 300,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    requiresOutOfCombat: true,
+    effects: [{ type: 'summonSoulwell', duration: 180 }],
+    description:
+      'Summons a Soulwell for 3 min. While outside combat, group members can refill their Soul Stones up to 3. A Soul Stone restores 25% of maximum health and shares the potion cooldown.',
   },
   fear: {
     id: 'fear',
     name: 'Harrow',
     class: 'warlock',
-    learnLevel: 14,
+    learnLevel: 10,
     cost: 40,
     castTime: 1.5,
     cooldown: 0,
@@ -4175,21 +5948,22 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'shadow',
     requiresTarget: true,
     fearDr: true,
-    effects: [{ type: 'incapacitate', duration: 8 }],
+    effects: [{ type: 'incapacitate', duration: 5 }],
     description:
-      'Strikes terror into the enemy, leaving it cowering for up to 8 sec. Any damage breaks the effect.',
+      "Strikes terror into the enemy, leaving it cowering for up to 5 sec. Damage totaling 8% of the target's maximum health breaks the effect.",
   },
   searing_pain: {
     id: 'searing_pain',
     name: 'Sear',
     class: 'warlock',
-    learnLevel: 14,
+    learnLevel: 7,
     cost: 35,
     castTime: 1.5,
     cooldown: 0,
     range: 30,
     school: 'fire',
     requiresTarget: true,
+    excludeSpecs: ['affliction', 'demonology', 'destruction'],
     effects: [{ type: 'directDamage', min: 30, max: 38 }],
     description: 'Sears the enemy with agonizing fire for $d Fire damage. Quick to cast.',
   },
@@ -4197,20 +5971,77 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'shadowburn',
     name: 'Duskfire',
     class: 'warlock',
-    learnLevel: 14,
-    cost: 70,
+    learnLevel: 12,
+    cost: 35,
+    ruinCost: 1,
     castTime: 0,
-    cooldown: 15,
-    range: 20,
+    cooldown: 12,
+    range: 30,
     school: 'shadow',
     requiresTarget: true,
-    effects: [{ type: 'directDamage', min: 56, max: 66 }],
-    description: 'Instantly blasts the target with searing shadow for $d Shadow damage.',
+    specs: ['destruction'],
+    // executeThreshold, not requiresTargetHpBelow: Duskfire is STRICTLY below 20%
+    // (a target sitting exactly on the line is not claimable), which is what its
+    // description promises and what the Wrack-refund window is tuned around.
+    // Warrior Execute keeps the looser at-or-below requiresTargetHpBelow gate.
+    executeThreshold: 0.2,
+    effects: [
+      { type: 'duskfireClaim', duration: 5 },
+      { type: 'directDamage', min: 72, max: 84 },
+    ],
+    description:
+      'Spends 1 Wrack to execute an enemy below 20% health for $d Shadow damage. Refunds its Wrack if the claimed target dies within 5 sec.',
+  },
+  ruinous_brand: {
+    id: 'ruinous_brand',
+    name: 'Ruinous Brand',
+    class: 'warlock',
+    learnLevel: 10,
+    cost: 35,
+    castTime: 0,
+    cooldown: 20,
+    range: 30,
+    school: 'fire',
+    requiresTarget: true,
+    projectile: false,
+    specs: ['destruction'],
+    effects: [{ type: 'ruinousBrand', duration: 15, charges: 3 }],
+    description:
+      'Brands an enemy for 15 sec. Your next 3 direct spells echo for 25% damage against the branded enemy, or copy 50% damage to it when cast against another target. Ruinbolt echoes also count as critical hits, without another critical damage multiplier.',
+  },
+  // Ruination's personal defensive. It is the siege caster's only active
+  // mitigation: Fiendhide is passive armor and Sanguine Covenant costs a
+  // talent point. Placed at level 8 so every specialization gains its
+  // defensive button at the same level (Necromancy takes Bone Armor there).
+  cinderhide: {
+    id: 'cinderhide',
+    name: 'Cinderhide',
+    class: 'warlock',
+    learnLevel: 8,
+    cost: 0,
+    castTime: 0,
+    cooldown: 120,
+    range: 0,
+    school: 'fire',
+    requiresTarget: false,
+    specs: ['destruction'],
+    effects: [
+      {
+        type: 'selfBuff',
+        kind: 'buff_dr',
+        value: 0.25,
+        duration: 10,
+        auraId: 'cinderhide',
+        auraName: 'Cinderhide',
+      },
+    ],
+    description: 'Hardens your skin to cooling slag for 10 sec, reducing all damage taken by 25%.',
   },
   summon_imp: {
     id: 'summon_imp',
     name: 'Summon Emberkin',
     class: 'warlock',
+    excludeSpecs: ['affliction', 'demonology'],
     learnLevel: 1,
     cost: 50,
     castTime: 5,
@@ -4219,14 +6050,35 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'shadow',
     requiresTarget: false,
     effects: [{ type: 'summonDemon', mobId: 'emberkin' }],
+    ranks: [
+      {
+        rank: 2,
+        level: 8,
+        cost: 50,
+        effects: [{ type: 'summonDemon', mobId: 'emberkin' }],
+      },
+      {
+        rank: 3,
+        level: 14,
+        cost: 50,
+        effects: [{ type: 'summonDemon', mobId: 'emberkin' }],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 50,
+        effects: [{ type: 'summonDemon', mobId: 'emberkin' }],
+      },
+    ],
     description:
-      'Summons an Emberkin under the command of the Warlock. The Emberkin hurls Ashbolts at your enemies from afar. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+      'Summons an Emberkin under the command of the Warlock. The Emberkin casts Felbolt at your enemies from afar. Summoning a new demon dismisses your current one. You may have one demon at a time.',
   },
   summon_voidwalker: {
     id: 'summon_voidwalker',
-    name: 'Summon Gloomshade',
+    name: 'Summon Duskmurk',
     class: 'warlock',
-    learnLevel: 8,
+    excludeSpecs: ['affliction', 'demonology'],
+    learnLevel: 5,
     cost: 80,
     castTime: 5,
     cooldown: 0,
@@ -4235,82 +6087,291 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'summonDemon', mobId: 'gloomshade' }],
     description:
-      'Summons a Gloomshade under the command of the Warlock. The Gloomshade is a sturdy demon that taunts your enemies and soaks up punishment. Summoning a new demon dismisses your current one. You may have one demon at a time.',
-  },
-  summon_succubus: {
-    id: 'summon_succubus',
-    name: 'Summon Duskborn',
-    class: 'warlock',
-    learnLevel: 12,
-    cost: 100,
-    castTime: 5,
-    cooldown: 0,
-    range: 0,
-    school: 'shadow',
-    requiresTarget: false,
-    effects: [{ type: 'summonDemon', mobId: 'duskborn' }],
-    description:
-      'Summons a Duskborn under the command of the Warlock. The Duskborn is a fragile demon that strikes quickly and hits hard in melee. Summoning a new demon dismisses your current one. You may have one demon at a time.',
-  },
-  summon_felhunter: {
-    id: 'summon_felhunter',
-    name: 'Summon Spellhound',
-    class: 'warlock',
-    learnLevel: 14,
-    cost: 120,
-    castTime: 5,
-    cooldown: 0,
-    range: 0,
-    school: 'shadow',
-    requiresTarget: false,
-    effects: [{ type: 'summonDemon', mobId: 'spellhound' }],
-    description:
-      'Summons a Spellhound under the command of the Warlock. The Spellhound harries enemies from range with Gloombite and excels at hunting spellcasters. Summoning a new demon dismisses your current one. You may have one demon at a time.',
-  },
-  summon_felguard: {
-    id: 'summon_felguard',
-    name: 'Summon Warfiend',
-    class: 'warlock',
-    learnLevel: 16,
-    cost: 150,
-    castTime: 5,
-    cooldown: 0,
-    range: 0,
-    school: 'shadow',
-    requiresTarget: false,
-    effects: [{ type: 'summonDemon', mobId: 'warfiend' }],
-    description:
-      'Summons a Warfiend under the command of the Warlock. The Warfiend is a durable melee demon that wades into battle and holds its own. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+      'Summons a Duskmurk under the command of the Warlock. This sturdy demon taunts enemies and uses Abyssal Chain to drag distant normal enemies back into reach. Bosses cannot be pulled. Summoning a new demon dismisses your current one. You may have one demon at a time.',
   },
   summon_infernal: {
     id: 'summon_infernal',
     name: 'Summon Pyre Colossus',
     class: 'warlock',
-    learnLevel: 18,
-    cost: 140,
-    castTime: 6,
+    learnLevel: 13,
+    cost: 100,
+    castTime: 0,
     cooldown: 180,
-    range: 0,
+    range: 30,
     school: 'fire',
     requiresTarget: false,
-    effects: [{ type: 'summonDemon', mobId: 'pyre_colossus' }],
+    targetMode: 'position',
+    specs: ['destruction'],
+    effects: [
+      { type: 'aoeDamage', min: 58, max: 72, radius: 6 },
+      { type: 'summonPyreColossus', duration: 30 },
+    ],
     description:
-      'Binds a Pyre Colossus to your will — a hulking juggernaut with crushing melee and the deepest health and armor of any demon. A long cooldown gates its raw power. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+      'Calls a Pyre Colossus down at the target area, dealing 64-79 Fire damage on impact. It fights for 30 sec without replacing your demon, burns nearby enemies every 2 sec, and generates 1 Wrack every 1 sec.',
   },
-  summon_doomguard: {
-    id: 'summon_doomguard',
-    name: 'Summon Wraithborn',
+  soul_harvest: {
+    id: 'soul_harvest',
+    name: 'Essence Reap',
     class: 'warlock',
-    learnLevel: 20,
-    cost: 150,
-    castTime: 6,
-    cooldown: 180,
+    specs: ['demonology'],
+    learnLevel: 5,
+    cost: 30,
+    castTime: 1.8,
+    cooldown: 0,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    effects: [
+      { type: 'directDamage', min: 16, max: 20 },
+      { type: 'gainSoulFragments', amount: 1 },
+    ],
+    ranks: [
+      {
+        rank: 2,
+        level: 10,
+        cost: 45,
+        effects: [
+          { type: 'directDamage', min: 32, max: 39 },
+          { type: 'gainSoulFragments', amount: 1 },
+        ],
+      },
+      {
+        rank: 3,
+        level: 20,
+        cost: 55,
+        effects: [
+          { type: 'directDamage', min: 44, max: 55 },
+          { type: 'gainSoulFragments', amount: 1 },
+        ],
+      },
+    ],
+    description:
+      'Tears at the enemy soul for $d Shadow damage and creates 1 Soul Fragment, up to 5.',
+  },
+  raise_graveguard: {
+    id: 'raise_graveguard',
+    name: 'Raise Graveguard',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 5,
+    cost: 0,
+    castTime: 2.5,
+    cooldown: 3,
     range: 0,
     school: 'shadow',
     requiresTarget: false,
-    effects: [{ type: 'summonDemon', mobId: 'wraithborn' }],
+    effects: [{ type: 'summonUndead', templateId: 'graveguard', temporary: false }],
     description:
-      'Binds a Wraithborn to your will — an elite demon that rains heavy Shadow damage from afar. A long cooldown gates its devastating power. Summoning a new demon dismisses your current one. You may have one demon at a time.',
+      'Raises a permanent defensive companion. Graveguard automatically taunts, intercepts 20% of your damage through Grave Dominion, and Reaping Command makes it taunt and take 30% less damage for 4 sec.',
+  },
+  raise_skeletal_warrior: {
+    id: 'raise_skeletal_warrior',
+    name: 'Raise Skeletal Warrior',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 5,
+    cost: 20,
+    soulFragmentCost: 1,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [
+      {
+        type: 'summonUndead',
+        templateId: 'necromancy_skeletal_warrior',
+        temporary: true,
+      },
+    ],
+    description:
+      'Spends 1 Soul Fragment to add a persistent Skeletal Warrior to your 2-slot Dominion. Only one may serve you. It cleaves nearby enemies for 45% damage every 6 sec, and Reaping Command pins its target with a 40% slow for 4 sec.',
+  },
+  raise_bone_mage: {
+    id: 'raise_bone_mage',
+    name: 'Raise Bone Mage',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 8,
+    cost: 35,
+    soulFragmentCost: 2,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [
+      {
+        type: 'summonUndead',
+        templateId: 'necromancy_bone_mage',
+        temporary: true,
+      },
+    ],
+    description:
+      'Spends 2 Soul Fragments to add a persistent ranged Bone Mage to your 2-slot Dominion. Only one may serve you. Its attacks expose the target to 5% more magic damage for 6 sec, and Reaping Command raises that weakness to 8%.',
+  },
+  bone_armor: {
+    id: 'bone_armor',
+    name: 'Bone Armor',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 8,
+    cost: 45,
+    castTime: 0,
+    cooldown: 45,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'selfAbsorbPctMax', pct: 0.2, duration: 12 }],
+    description: 'Wraps you in bone, absorbing damage equal to 20% of your maximum health.',
+  },
+  corpse_explosion: {
+    id: 'corpse_explosion',
+    name: 'Corpse Explosion',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 11,
+    cost: 30,
+    castTime: 0,
+    cooldown: 8,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: false,
+    targetMode: 'position',
+    effects: [{ type: 'aoeDamage', min: 48, max: 60, radius: 8, canCrit: true }],
+    description:
+      'Sacrifices a Skeletal Warrior first, then a Bone Mage, and a Gravewing only as a last resort. Among duplicates it chooses the one with the least remaining duration, then the weakest, to deal $d Shadow damage at the chosen location.',
+  },
+  funeral_harvest: {
+    id: 'funeral_harvest',
+    name: 'Funeral Harvest',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    passive: true,
+    effects: [],
+    description:
+      'When an enemy recently damaged by you or your undead dies, you gain 1 Soul Fragment. This can occur once every 3 sec.',
+  },
+  ossuary_mark: {
+    id: 'ossuary_mark',
+    name: 'Ossuary Mark',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 12,
+    cost: 30,
+    castTime: 0,
+    cooldown: 20,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    projectile: false,
+    effects: [
+      {
+        type: 'necromancyOssuaryMark',
+        duration: 15,
+        storedDamagePct: 0.2,
+        soulLanceBonusPct: 0.5,
+        deathRadius: 6,
+      },
+    ],
+    description:
+      'Marks an enemy for 15 sec, storing 20% of damage dealt by you and your undead. Recast to detonate it. If the marked enemy dies, it explodes within 6 yards and creates 1 Soul Fragment.',
+  },
+  unholy_command: {
+    id: 'unholy_command',
+    name: 'Unholy Command',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 13,
+    cost: 40,
+    soulFragmentCost: 3,
+    castTime: 0,
+    cooldown: 45,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'commandUndead', duration: 12, dmgPct: 0.25, hastePct: 0.2 }],
+    description:
+      'Spends 3 Soul Fragments to command all of your undead to deal 25% more damage and act 20% faster for 12 sec.',
+  },
+  reaping_command: {
+    id: 'reaping_command',
+    name: 'Reaping Command',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 14,
+    cost: 45,
+    soulFragmentCost: 2,
+    castTime: 0,
+    cooldown: 8,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: true,
+    projectile: false,
+    effects: [{ type: 'reapingCommand' }],
+    description:
+      "Spends 2 Soul Fragments to command every undead servant to strike in unison. Graveguards taunt and brace, Warriors pin, Bone Mages expose magic defenses, and Gravewing rends all enemies hit. Reaping Command ignores and does not reset each servant's own ability cooldown.",
+  },
+  sacrifice_undead: {
+    id: 'sacrifice_undead',
+    name: 'Sacrifice Undead',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 7,
+    cost: 0,
+    castTime: 0,
+    cooldown: 30,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'sacrificeUndead', healPctMax: 0.25 }],
+    description: 'Destroys one Dominion servant to restore 25% of your maximum health.',
+  },
+  raise_gravewing: {
+    id: 'raise_gravewing',
+    name: 'Raise Gravewing',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 17,
+    cost: 45,
+    soulFragmentCost: 2,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [
+      {
+        type: 'summonUndead',
+        templateId: 'necromancy_gravewing',
+        temporary: true,
+      },
+    ],
+    description:
+      'Spends 2 Soul Fragments to add a persistent Gravewing to your 2-slot Dominion. Only one may serve you. It cleaves nearby enemies for 65% damage every 5 sec, and Reaping Command makes every enemy struck take 8% more damage for 5 sec.',
+  },
+  army_of_the_dead: {
+    id: 'army_of_the_dead',
+    name: 'Army of the Dead',
+    class: 'warlock',
+    specs: ['demonology'],
+    learnLevel: 16,
+    cost: 100,
+    castTime: 1.5,
+    cooldown: 120,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [{ type: 'armyOfDead', duration: 20 }],
+    description:
+      'Tears open a grave portal to raise a temporary Skeletal Warrior, Bone Mage, and Gravewing for 20 sec, filling the ranks your standing Dominion servants leave empty.',
   },
 
   // ====================== DRUID ======================
@@ -4334,10 +6395,19 @@ export const ABILITIES: Record<string, AbilityDef> = {
         castTime: 2.0,
         effects: [{ type: 'directDamage', min: 24, max: 29 }],
       },
-      { rank: 3, level: 14, cost: 48, effects: [{ type: 'directDamage', min: 38, max: 45 }] },
-      { rank: 4, level: 20, cost: 70, effects: [{ type: 'directDamage', min: 60, max: 71 }] },
+      { rank: 3, level: 14, cost: 48, effects: [{ type: 'directDamage', min: 70, max: 84 }] },
+      {
+        rank: 4,
+        level: 20,
+        cost: 70,
+        effects: [{ type: 'directDamage', min: 38, max: 48, spellPowerCoeff: 0.4 }],
+      },
     ],
     description: 'Hurls a bolt of nature energy for $d Nature damage.',
+    specNotes: {
+      balance:
+        'In Moonwing Form, each completed cast adds 1 Moontide (max 3). At 3 Moontide, Moonseed becomes Moonsurge and Skyfall becomes Sunwake.',
+    },
   },
   healing_touch: {
     id: 'healing_touch',
@@ -4353,14 +6423,38 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [{ type: 'heal', min: 37, max: 51 }],
     ranks: [
-      { rank: 2, level: 8, cost: 45, castTime: 3.0, effects: [{ type: 'heal', min: 68, max: 86 }] },
-      { rank: 3, level: 14, cost: 75, effects: [{ type: 'heal', min: 115, max: 140 }] },
-      { rank: 4, level: 20, cost: 110, effects: [{ type: 'heal', min: 254, max: 302 }] },
+      {
+        rank: 2,
+        level: 8,
+        cost: 45,
+        castTime: 3.0,
+        effects: [{ type: 'heal', min: 68, max: 86 }],
+      },
+      {
+        rank: 3,
+        level: 14,
+        cost: 75,
+        effects: [{ type: 'heal', min: 115, max: 140 }],
+      },
+      {
+        rank: 4,
+        level: 20,
+        cost: 110,
+        effects: [{ type: 'heal', min: 254, max: 302 }],
+      },
     ],
     description: 'Heals a friendly target for $d.',
+    specNotes: {
+      // The three cast times are VERDANCE_WILDMEND_CAST_TIMES
+      // (combat/druid_engines.ts), pinned to this note by
+      // tests/druid_engines.test.ts.
+      restoration:
+        'Each completed cast adds 1 Verdance (max 3). Banked Verdance shortens this cast: 2.2 sec at 1 Verdance, 1.9 sec at 2, and 1.5 sec at 3.',
+    },
   },
   mark_of_the_wild: {
     id: 'mark_of_the_wild',
+    tooltipOmitEffectLines: true,
     name: 'Wildward',
     class: 'druid',
     learnLevel: 1,
@@ -4372,7 +6466,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     targetType: 'friendly',
     effects: [
-      { type: 'buffTarget', kind: 'buff_stats_pct', value: 5, duration: 1800, party: true },
+      {
+        type: 'buffTarget',
+        kind: 'buff_stats_pct',
+        value: 5,
+        duration: 1800,
+        party: true,
+      },
     ],
     description:
       'Places the Wildward on the party, increasing all attributes of all party members by $b% for 30 min.',
@@ -4381,7 +6481,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'moonfire',
     name: 'Lunar Tempest',
     class: 'druid',
-    learnLevel: 4,
+    learnLevel: 2,
     cost: 25,
     castTime: 0,
     cooldown: 0,
@@ -4407,18 +6507,51 @@ export const ABILITIES: Record<string, AbilityDef> = {
         level: 16,
         cost: 60,
         effects: [
-          { type: 'directDamage', min: 28, max: 34 },
-          { type: 'dot', total: 40, duration: 12, interval: 3 },
+          { type: 'directDamage', min: 50, max: 60 },
+          { type: 'dot', total: 70, duration: 12, interval: 3 },
         ],
       },
     ],
     description: 'Burns the enemy with moonfire for $d Arcane damage plus damage over time.',
+    specNotes: {
+      balance: 'Keep it burning: Moonseed extends it by 6 sec.',
+    },
+  },
+  moonseed: {
+    id: 'moonseed',
+    name: 'Moonseed',
+    class: 'druid',
+    specs: ['balance'],
+    learnLevel: 10,
+    cost: 35,
+    castTime: 0,
+    cooldown: 8,
+    range: 30,
+    school: 'arcane',
+    requiresTarget: true,
+    requiresAuraKind: 'form_moonkin',
+    consumesRequiredAura: false,
+    actionReplacement: {
+      abilityId: 'moonlash',
+      auraKind: 'moontide',
+      minStacks: 3,
+      actorAuraKind: 'form_moonkin',
+    },
+    effects: [
+      { type: 'directDamage', min: 20, max: 26 },
+      { type: 'extendDot', dot: 'moonfire', seconds: 6, maxBonus: 6 },
+    ],
+    // The per-application extension cap is the $t splice (the resolved
+    // extendDot maxBonus, see abilityDurationValue): Moonscorch 2pc wearers
+    // read 12 there, everyone else the base 6.
+    description:
+      'Moonwing Form only. Strikes for $d Arcane damage, adds 1 Moontide (max 3), and extends your Lunar Tempest by 6 sec, up to $t sec per application. At 3 Moontide, this button becomes Moonsurge: an instant strike for 136 to 162 Arcane damage (plus spell power) that spends all 3.',
   },
   rejuvenation: {
     id: 'rejuvenation',
-    name: 'Wildbloom',
+    name: 'Sporemending',
     class: 'druid',
-    learnLevel: 4,
+    learnLevel: 3,
     cost: 25,
     castTime: 0,
     cooldown: 0,
@@ -4448,9 +6581,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description: 'Heals the target for $d over 12 sec.',
+    specNotes: {
+      restoration:
+        'Each cast adds 1 Verdance (max 3), including a refresh of a bloom already ticking. At 3 Verdance, Fleetmend becomes Overbloom.',
+    },
   },
   thorns: {
     id: 'thorns',
+    tooltipOmitEffectLines: true,
     name: 'Briarguard',
     class: 'druid',
     learnLevel: 6,
@@ -4482,7 +6620,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'entangling_roots',
     name: 'Gripping Roots',
     class: 'druid',
-    learnLevel: 8,
+    learnLevel: 7,
     cost: 35,
     castTime: 1.5,
     cooldown: 0,
@@ -4505,6 +6643,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   bear_form: {
     id: 'bear_form',
+    tooltipOmitEffectLines: true,
     name: 'Bruin Form',
     class: 'druid',
     learnLevel: 8,
@@ -4516,7 +6655,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'selfBuff', kind: 'form_bear', value: 0.65, duration: 3600 }],
     description:
-      'Shapeshift into a bear: armor +130%, greatly increased attack power, your attacks build rage and generate 30% more threat. Cast again to return to caster form.',
+      'Shapeshift into a bear: armor +110%, maximum health +30%, greatly increased attack power, your attacks build rage and generate 30% more threat. You swing twice as fast for half the damage per swing, and each swing builds double rage. Shifting into any form grants Loping Stride, a short burst of movement speed. Cast again to return to caster form.',
   },
   bear_charge: {
     id: 'bear_charge',
@@ -4531,10 +6670,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: true,
     offGcd: true,
-    requiresForm: 'bear',
+    // No form requirement since v0.43: Bruin Rush is pressable from ANY form
+    // and from caster form, and shifts the druid into Bruin Form on the way in
+    // (combat/druid_form_entry.ts). usableInForm keeps the shapeshift lock from
+    // refusing the press while wearing Cat, Fleet or Moonwing.
+    usableInForm: true,
     effects: [{ type: 'charge' }, { type: 'stun', duration: 1 }],
     description:
-      'Rush an enemy, generating 9 rage and stunning it for 1 sec. 8-25 yd range. Bruin Form only.',
+      'Shift into Bruin Form if you are not already, then rush an enemy, generating 9 rage and stunning it for 1 sec. For 3 sec afterwards, or until you leave combat, Cat Form is free and Pins that target (the one you Rushed), slowing it by 50% for 4 sec. 8-25 yd range. Usable in any form.',
   },
   maul: {
     id: 'maul',
@@ -4550,19 +6693,27 @@ export const ABILITIES: Record<string, AbilityDef> = {
     onNextSwing: true,
     offGcd: true,
     requiresForm: 'bear',
-    threat: { flat: 35 }, // classic 180 at rank 7/level 58, scaled to the 1-20 band
+    // v0.38 tank threat parity: the swing scales with weapon damage, so the
+    // threat rides a multiplier like Sweeping Claws; the small flat is the
+    // low-gear floor (was flat 35/50, the classic 180-at-58 scaling).
+    threat: { flat: 15, mult: 2.5 },
     effects: [{ type: 'weaponDamage', bonus: 18 }],
+    actionReplacement: { abilityId: 'marrowbreak', auraKind: 'old_blood', minStacks: 3 },
     ranks: [
       {
         rank: 2,
         level: 16,
         cost: 15,
-        threatFlat: 50,
+        threatFlat: 20,
         effects: [{ type: 'weaponDamage', bonus: 27 }],
       },
     ],
     description:
       'A mauling attack that increases melee damage by $d and causes a high amount of threat. Activates on your next swing. Bruin Form only.',
+    specNotes: {
+      feral:
+        'Each hit that lands adds 1 Old Blood; at 3 Old Blood this button becomes Marrowbreak: a strike for 78 to 96 damage at high threat; below half health it instead heals you for 18% of your maximum health and refunds 15 rage.',
+    },
   },
   growl: {
     id: 'growl',
@@ -4580,6 +6731,28 @@ export const ABILITIES: Record<string, AbilityDef> = {
     effects: [{ type: 'taunt' }],
     description:
       'Menaces the target: your threat rises to match its most hated enemy and it is compelled to attack you for 3 sec. Bruin Form only.',
+  },
+  // Bruin Form's aoe taunt, the fan-out of Menace exactly as Defiant Bellow is
+  // the fan-out of Goad on the warrior: every hostile mob in radius goes
+  // through the SHARED applyTaunt entry, so threat lifts to the top of each
+  // table and the mob is forced onto the druid. Form-gated rather than
+  // spec-gated, matching every other Bruin ability (Menace, Bonecrush,
+  // Sweeping Claws): the form IS the tank commitment for a druid.
+  challenging_roar: {
+    id: 'challenging_roar',
+    name: 'Baleful Roar',
+    class: 'druid',
+    learnLevel: 12,
+    cost: 10,
+    castTime: 0,
+    cooldown: 60,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    requiresForm: 'bear',
+    effects: [{ type: 'aoeTaunt', radius: 10 }],
+    description:
+      'A baleful roar: every enemy within 10 yards is taunted, its threat toward you rising to match its most hated enemy, and it is compelled to attack you for 3 sec. Bruin Form only.',
   },
   demoralizing_roar: {
     id: 'demoralizing_roar',
@@ -4607,9 +6780,10 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   cat_form: {
     id: 'cat_form',
-    name: 'Wolf Form',
+    tooltipOmitEffectLines: true,
+    name: 'Cat Form',
     class: 'druid',
-    learnLevel: 5,
+    learnLevel: 4,
     cost: 30,
     castTime: 0,
     cooldown: 0,
@@ -4618,23 +6792,34 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'selfBuff', kind: 'form_cat', value: 0.71, duration: 3600 }],
     description:
-      'Shapeshift into a wolf: agility rises with your level, attack power +8 plus 2 per level, your attacks use energy and combo points, and you generate 29% less threat. Cast again to return to caster form.',
+      'Shapeshift into a cat: agility rises with your level, attack power +8 plus 2 per level, your attacks use energy and combo points, you move 15% faster, and you generate 29% less threat. Shifting into any form grants Loping Stride, a short burst of movement speed. Cast again to return to caster form.',
   },
   prowl: {
     id: 'prowl',
+    tooltipOmitEffectLines: true,
     name: 'Stalk',
     class: 'druid',
-    learnLevel: 5,
+    learnLevel: 4,
     cost: 0,
     castTime: 0,
     cooldown: 0,
     range: 0,
     school: 'physical',
     requiresTarget: false,
-    requiresForm: 'cat',
+    // No form requirement since v0.43: Stalk is pressable from ANY form and
+    // from caster form, and shifts the druid into Cat Form on the way in
+    // (combat/druid_stalk.ts). usableInForm keeps the shapeshift lock from
+    // refusing the press while wearing Bruin, Fleet or Moonwing, and keeps the
+    // auto-unshift rule from stripping the form instead. It stays ON the
+    // global cooldown (no offGcd), so the shift costs a GCD like any shift.
+    usableInForm: true,
     requiresOutOfCombat: true,
-    effects: [{ type: 'selfBuff', kind: 'stealth', value: 0.5, duration: 3600 }],
-    description: 'Enter stealth while in Wolf Form, moving 50% slower. Cannot be used in combat.',
+    // 1.0: feral stealth moves at full speed (Wildfang kit pass 2; it was a
+    // 0.95 near-full crawl before), the feral scouting identity. Rogue Duskveil
+    // now matches it (1.0), with Skulduggery at 1.15.
+    effects: [{ type: 'selfBuff', kind: 'stealth', value: 1.0, duration: 3600 }],
+    description:
+      'Shift into Cat Form if you are not already, and enter stealth. Usable in any form. Cannot be used in combat.',
   },
   rake: {
     id: 'rake',
@@ -4649,10 +6834,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     awardsCombo: 1,
     requiresForm: 'cat',
-    requiresStealth: true,
     effects: [
       { type: 'weaponStrike', bonus: 8 },
-      { type: 'dot', total: 30, duration: 9, interval: 3 },
+      { type: 'dot', total: 30, duration: 18, interval: 3 },
     ],
     ranks: [
       {
@@ -4660,17 +6844,20 @@ export const ABILITIES: Record<string, AbilityDef> = {
         level: 18,
         cost: 35,
         effects: [
-          { type: 'weaponStrike', bonus: 12 },
-          { type: 'dot', total: 48, duration: 9, interval: 3 },
+          { type: 'weaponStrike', bonus: 34 },
+          { type: 'dot', total: 99, duration: 18, interval: 3 },
         ],
       },
     ],
     description:
-      'A stealth opener that rakes the enemy for weapon damage plus $d and causes bleeding damage over 9 sec. Awards 1 combo point. Wolf Form only.',
+      'Flense the enemy for weapon damage plus $d and cause $o bleeding damage over 18 sec. Awards 1 combo point. Cat Form only.',
+    specNotes: {
+      feral: 'Each hit that lands adds 1 Old Blood (max 3).',
+    },
   },
   claw: {
     id: 'claw',
-    name: 'Claw',
+    name: 'Rendclaw',
     class: 'druid',
     learnLevel: 5,
     cost: 45,
@@ -4681,15 +6868,56 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     awardsCombo: 1,
     requiresForm: 'cat',
-    effects: [{ type: 'weaponStrike', bonus: 12 }],
-    ranks: [{ rank: 2, level: 18, cost: 45, effects: [{ type: 'weaponStrike', bonus: 20 }] }],
-    description: 'Claw the enemy for weapon damage plus $d. Awards 1 combo point. Wolf Form only.',
+    effects: [{ type: 'weaponStrike', bonus: 25 }],
+    ranks: [{ rank: 2, level: 18, cost: 45, effects: [{ type: 'weaponStrike', bonus: 55 }] }],
+    description: 'Claw the enemy for weapon damage plus $d. Awards 1 combo point. Cat Form only.',
+    specNotes: {
+      feral: 'Each hit that lands adds 1 Old Blood (max 3).',
+    },
+  },
+  scratch: {
+    id: 'scratch',
+    name: 'Scratch',
+    class: 'druid',
+    // The Cat Form sweep builder: Rendclaw's damage profile (the same flat
+    // bonus per rank, the same Wildfang baseline row in spec_baselines.ts) and
+    // Rendclaw's price, baseline for every druid, but every enemy within 6 yd
+    // takes its own swing (combat/druid_scratch.ts), each landed hit paying a
+    // combo point. Usable with nobody in reach: the sweep still goes off and
+    // spots any stealthed enemy inside it. Learned at 8, the first ding past
+    // the early-curve cap (tests/early_ability_curve.test.ts: levels 4 to 7
+    // already teach two core actives each).
+    learnLevel: 8,
+    cost: 45,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    awardsCombo: 1,
+    requiresForm: 'cat',
+    effects: [{ type: 'weaponStrike', bonus: 25, sweepRadius: 6 }],
+    ranks: [
+      {
+        rank: 2,
+        level: 18,
+        cost: 45,
+        effects: [{ type: 'weaponStrike', bonus: 55, sweepRadius: 6 }],
+      },
+    ],
+    description:
+      'Scratch through nearby targets within 6 yards for weapon damage plus $d. Awards 1 combo point per target hit. Reveals stealthed enemies in the sweep. Cat Form only.',
+    specNotes: {
+      feral: 'Each hit that lands adds 1 Old Blood (max 3).',
+    },
   },
   ferocious_bite: {
     id: 'ferocious_bite',
     name: 'Gorebite',
     class: 'druid',
-    learnLevel: 14,
+    // Learned at 8 (was 14) so the combo points Rendclaw and Flense build from
+    // level 5 have a spender for every druid, not only ferals with Redharvest.
+    learnLevel: 6,
     cost: 35,
     castTime: 0,
     cooldown: 0,
@@ -4698,8 +6926,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     spendsCombo: true,
     requiresForm: 'cat',
-    effects: [{ type: 'finisherDamage', base: 10, perCombo: 14, variance: 6 }],
-    description: 'Finishing move that causes $d. Wolf Form only.',
+    effects: [{ type: 'finisherDamage', base: 45, perCombo: 39, variance: 8 }],
+    actionReplacement: { abilityId: 'redharvest', auraKind: 'old_blood', minStacks: 3 },
+    description: 'Finishing move that causes $d. Cat Form only.',
+    specNotes: {
+      feral:
+        'Each hit that lands adds 1 Old Blood; at 3 Old Blood this button becomes Redharvest, which spends the Old Blood for a stronger strike that also instantly deals all the damage your Flense and Bloodrift would still have dealt, and restores energy.',
+    },
   },
   swipe: {
     id: 'swipe',
@@ -4717,6 +6950,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     effects: [{ type: 'aoeDamage', min: 12, max: 15, radius: 5 }],
     description:
       'Sweep your claws through nearby enemies for $d damage. Causes extra threat. Bruin Form only.',
+    specNotes: {
+      feral: 'Each hit that lands adds 1 Old Blood (max 3).',
+    },
   },
   regrowth: {
     id: 'regrowth',
@@ -4732,7 +6968,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     targetType: 'friendly',
     effects: [
       { type: 'heal', min: 52, max: 62 },
-      { type: 'hot', total: 49, duration: 21, interval: 3 },
+      { type: 'hot', total: 49, duration: 15, interval: 3, closingHealFromDirect: true },
     ],
     ranks: [
       {
@@ -4741,14 +6977,20 @@ export const ABILITIES: Record<string, AbilityDef> = {
         cost: 72,
         effects: [
           { type: 'heal', min: 75, max: 90 },
-          { type: 'hot', total: 71, duration: 21, interval: 3 },
+          { type: 'hot', total: 71, duration: 15, interval: 3, closingHealFromDirect: true },
         ],
       },
     ],
-    description: 'Heals a friendly target for $d and an additional amount over 21 sec.',
+    description:
+      'Heals a friendly target for $d and an additional amount over 15 sec. If the effect runs its full duration, it heals the target again for the same amount as the initial heal.',
+    specNotes: {
+      restoration:
+        'Each cast adds 1 Verdance (max 3), including a refresh of a bloom already ticking.',
+    },
   },
   barkskin: {
     id: 'barkskin',
+    tooltipOmitEffectLines: true,
     name: 'Oakhide',
     class: 'druid',
     learnLevel: 16,
@@ -4759,17 +7001,28 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'nature',
     requiresTarget: false,
     offGcd: true,
-    // A tank cooldown, so it must fire mid-fight in Bruin Form (or Wolf Form)
+    // A tank cooldown, so it must fire mid-fight in Bruin Form (or Cat Form)
     // like Primal Reflexes/Primal Surge below, not just pre-cast in caster form.
     usableInForm: true,
-    effects: [{ type: 'selfBuff', kind: 'buff_armor', value: 150, duration: 15 }],
-    description: 'Your skin hardens like bark, increasing armor by 150 for 15 sec.',
+    // A PERCENTAGE since v0.43, not the old flat 150. buff_armor_pct carries
+    // integer percentage POINTS (25 = +25%) and recalcPlayerStats folds it last
+    // (entity.ts), after the form multiplier and the armor masteries, so a bear
+    // tank's Oakhide scales with the armor it actually has instead of decaying
+    // into noise as gear grows. The flat arm was worth about 4% of a geared
+    // bear pool.
+    effects: [{ type: 'selfBuff', kind: 'buff_armor_pct', value: 20, duration: 15 }],
+    // Literal, not the $b resolved-value placeholder: introducing a token into
+    // this row breaks the en-vs-locale interpolation-parity guard
+    // (tests/i18n_completeness.test.ts) for all 20 overlays, whose translations
+    // carry no token. Same shape the flat 150 shipped with.
+    description: 'Your skin hardens like bark, increasing armor by 20% for 15 sec.',
   },
   // Druid tank cooldown: a dodge-based defensive (distinct from Oakhide's armor
   // boost). Usable while shapeshifted so a bear tank pops it mid-fight; buff_dodge
   // rides into dodgeChance in recalcPlayerStats.
   primal_reflexes: {
     id: 'primal_reflexes',
+    tooltipOmitEffectLines: true,
     name: 'Primal Reflexes',
     class: 'druid',
     learnLevel: 20,
@@ -4795,11 +7048,22 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 30,
     school: 'arcane',
     requiresTarget: true,
-    effects: [{ type: 'directDamage', min: 80, max: 112 }],
+    effects: [{ type: 'directDamage', min: 135, max: 185 }],
+    actionReplacement: {
+      abilityId: 'sunlance',
+      auraKind: 'moontide',
+      minStacks: 3,
+      actorAuraKind: 'form_moonkin',
+    },
     description: 'Calls down a bolt of stellar fire, causing $d Arcane damage.',
+    specNotes: {
+      balance:
+        'In Moonwing Form, each completed cast adds 1 Moontide (max 3). At 3 Moontide, this button becomes Sunwake: an instant strike for 80 to 100 Nature damage plus a 45 burn over 9 sec, restoring 35 mana and spending all 3.',
+    },
   },
   travel_form: {
     id: 'travel_form',
+    tooltipOmitEffectLines: true,
     name: 'Fleet Form',
     class: 'druid',
     learnLevel: 11,
@@ -4811,7 +7075,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'selfBuff', kind: 'form_travel', value: 1.4, duration: 3600 }],
     description:
-      'Instantly shift into a swift travel form, increasing movement speed by 40%. You cannot use other abilities while shifted, but can shift in or out of combat, ideal for escaping.',
+      'Instantly shift into a swift fleet form, increasing movement speed by 40% and removing breakable roots and slows. You cannot use other abilities while shifted, but can shift in or out of combat, ideal for escaping. Shifting into any form grants Loping Stride, a short burst of movement speed.',
   },
   enrage: {
     id: 'enrage',
@@ -4856,7 +7120,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'nature',
     requiresTarget: true,
     effects: [{ type: 'faerieFire', duration: 40 }],
-    description: "Decreases the target's armor by $d% for 40 sec. Does not stack with Armor Shear.",
+    description: "Decreases the target's armor by $d% for 40 sec.",
   },
   hibernate: {
     id: 'hibernate',
@@ -4870,13 +7134,17 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'nature',
     requiresTarget: true,
     effects: [{ type: 'incapacitate', duration: 8 }],
-    description: 'Forces the target into a deep sleep for up to 8 sec. Any damage will awaken it.',
+    description:
+      'Forces the target into a deep sleep for up to 8 sec. Any damage will awaken it. Against players, each repeat within 18 sec lasts half as long as the one before, and the fourth fails.',
   },
   dash: {
     id: 'dash',
+    tooltipOmitEffectLines: true,
     name: 'Dash',
     class: 'druid',
-    learnLevel: 18,
+    // Learned at 12 (was 18): Cat Form is 4 and Fleet Form 11, and a sprint
+    // two levels before the cap arrived after most of the leveling PvP.
+    learnLevel: 12,
     cost: 0,
     castTime: 0,
     cooldown: 60,
@@ -4884,27 +7152,99 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: false,
     offGcd: true,
-    requiresForm: 'cat',
+    // Pressable from ANY form (and caster form): it shifts the druid into Cat
+    // Form on the way in (combat/druid_form_entry.ts), instantly and still off
+    // the global cooldown, so it doubles as the panic escape out of Bruin.
+    usableInForm: true,
     effects: [{ type: 'selfBuff', kind: 'buff_speed', value: 1.5, duration: 15 }],
-    description: 'Sprint forward, increasing movement speed by 50% for 15 sec. Wolf Form only.',
+    description:
+      'Shift into Cat Form if you are not already, then sprint, increasing movement speed by 50% for 15 sec. Usable in any form. Instant, and does not trigger the global cooldown.',
   },
   pounce: {
     id: 'pounce',
     name: 'Slinkstrike',
     class: 'druid',
-    learnLevel: 18,
+    // Learned at 8 (was 18) so Stalk has its payoff soon after it is learned
+    // instead of thirteen levels later.
+    learnLevel: 7,
     cost: 50,
     castTime: 0,
     cooldown: 0,
-    range: 8,
+    // 0 to 25 yd: the stealth opener reaches from range, so the cat can open
+    // on a target without first creeping to melee.
+    range: 25,
+    minRange: 0,
     school: 'physical',
     requiresTarget: true,
     awardsCombo: 1,
     requiresForm: 'cat',
     requiresStealth: true,
     effects: [{ type: 'stun', duration: 2 }],
+    // Out of stealth the same button is Lunge, the in-combat gap closer
+    // (combat/action_replacement.ts absentAuraKind). The hotbar keeps the
+    // pounce id; Lunge is never learned as a second action.
+    actionReplacement: { abilityId: 'lunge', absentAuraKind: 'stealth' },
     description:
-      'A stealth opener that stuns the target for 2 sec. Awards 1 combo point. Wolf Form only.',
+      'A stealth opener that stuns the target for 2 sec. Awards 1 combo point and, as Wildfang, adds 1 Old Blood (max 3). Cat Form only. Out of stealth this button is Lunge.',
+  },
+  lunge: {
+    id: 'lunge',
+    name: 'Lunge',
+    class: 'druid',
+    // Reached only through the Slinkstrike button (learnLevel 7); listed at
+    // the same level for the record, never in the druid kit list.
+    learnLevel: 7,
+    cost: 40,
+    castTime: 0,
+    cooldown: 12,
+    // 25 yd since v0.43, matching Bruin Rush's outer reach. minRange stays 0,
+    // so unlike Bruin Rush (which needs 8 yd of runway) Lunge is pressable at
+    // any distance inside its range.
+    range: 25,
+    minRange: 0,
+    school: 'physical',
+    requiresTarget: true,
+    awardsCombo: 1,
+    // Off the global cooldown, like Bruin Rush: a gap closer that ate a GCD on
+    // arrival left the druid standing in melee unable to strike for the rest of
+    // it, which is the opposite of what a gap closer is for. The 12 sec
+    // cooldown is what paces it, not the GCD.
+    offGcd: true,
+    // No form requirement since v0.43: Lunge is pressable from ANY form and
+    // from caster form, and shifts the druid into Cat Form on the way in
+    // (combat/druid_form_entry.ts). The press that shifts is billed against
+    // the energy the shift hands over: a full bar out of combat, the parked
+    // Cat pool mid-fight (combat/cat_form_energy.ts).
+    usableInForm: true,
+    // The cast only starts the charge route; the 60% weapon strike and the
+    // combo point land on ARRIVAL through combat/druid_lunge.ts (the
+    // Bloodhook shape), so a route that ends short strikes nothing and hands
+    // the cooldown back. LUNGE_WEAPON_MULT there owns the 60.
+    effects: [{ type: 'charge' }],
+    description:
+      'Shift into Cat Form if you are not already, then lunge at an enemy up to 25 yd away. On arrival, deals 60% weapon damage, awards 1 combo point and, as Wildfang, adds 1 Old Blood (max 3); a lunge cut short refunds its cooldown. Usable in any form.',
+  },
+  hamstring_bite: {
+    id: 'hamstring_bite',
+    name: 'Takedown',
+    class: 'druid',
+    learnLevel: 12,
+    cost: 30,
+    castTime: 0,
+    cooldown: 20,
+    range: 0,
+    school: 'physical',
+    requiresTarget: true,
+    spendsCombo: true,
+    requiresForm: 'cat',
+    // Low Blow's former shape and numbers (finisherStun): 2 sec at 1 combo
+    // point up to 6 sec at 5 (Low Blow itself now runs 3 to 7), retuned on
+    // review from 0.5 + 0.5 per point (a 3 sec cap
+    // was one GCD of control); the controlled-stun diminishing category
+    // beside Concuss (stun_dr.ts).
+    effects: [{ type: 'finisherStun', base: 1, perCombo: 1 }],
+    description:
+      'Finishing move that stuns the target for 1 sec plus 1 sec per combo point (5 combo points: 6 sec). Cat Form only.',
   },
   insect_swarm: {
     id: 'insect_swarm',
@@ -4922,22 +7262,33 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   tigers_fury: {
     id: 'tigers_fury',
-    name: 'Wolfsblood',
+    tooltipOmitEffectLines: true,
+    name: 'Lynxblood',
     class: 'druid',
     learnLevel: 20,
-    cost: 30,
+    // Free with a 30 energy surge: the classic-era fix for a cooldown top
+    // parses never pressed. As a 30 energy spend the buff returned less than
+    // the same energy pushed through the Flense/Redharvest cycle, so it was a
+    // DPS loss whenever it displaced cycle energy; as a surge it is feral's
+    // burst-window button and rewards timing a Flense inside the AP window.
+    cost: 0,
     castTime: 0,
     cooldown: 30, // balance pass: was 0 (spammable permanent +40 AP)
     range: 0,
     school: 'physical',
     requiresTarget: false,
+    // A burst-window button pressed alongside the rotation, not instead of it.
+    offGcd: true,
     requiresForm: 'cat',
-    effects: [{ type: 'selfBuff', kind: 'buff_ap', value: 40, duration: 6 }],
-    description: 'Increases attack power by $b for $t sec. Wolf Form only.',
+    effects: [
+      { type: 'selfBuff', kind: 'buff_ap', value: 40, duration: 6 },
+      { type: 'gainResource', amount: 30 },
+    ],
+    description: 'Surges 30 energy and increases attack power by $b for $t sec. Cat Form only.',
   },
   rip: {
     id: 'rip',
-    name: 'Rip',
+    name: 'Bloodrift',
     class: 'druid',
     learnLevel: 14,
     cost: 30,
@@ -4948,9 +7299,16 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     spendsCombo: true,
     requiresForm: 'cat',
-    effects: [{ type: 'dot', total: 60, duration: 12, interval: 2 }],
+    effects: [
+      // Doubled (was 156 total: 36 base plus 24 per point) so the finisher
+      // bleed earns its press against Gorebite in the feral cycle.
+      { type: 'dot', total: 312, duration: 24, interval: 2, baseTotal: 72, perComboTotal: 48 },
+    ],
     description:
-      'Finishing move that causes $d Bleed damage over 12 sec. Consumes combo points. Wolf Form only.',
+      'Finishing move that makes the target bleed every 2 sec for 24 sec: 72 damage plus 48 per combo point spent (5 combo points: $d total). Cat Form only.',
+    specNotes: {
+      feral: 'The landed hit adds 1 Old Blood (max 3).',
+    },
   },
 
   // ============== TALENT-GRANTED (Warrior) ==============
@@ -4976,7 +7334,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
       // Deep Wounds passive (Arms restructure 2026-07-08): Maiming Strike leaves
       // a bleed. Arms-scoped naturally (mortal_strike is Arms-granted). A distinct
       // auraId keeps it from overwriting the mortal_wound healing debuff above.
-      { type: 'dot', total: 30, duration: 6, interval: 3, auraId: 'deep_wounds' },
+      {
+        type: 'dot',
+        total: 30,
+        duration: 6,
+        interval: 3,
+        auraId: 'deep_wounds',
+      },
     ],
     description:
       'A vicious strike dealing weapon damage plus $d and reducing healing the target receives by 50% for 10 sec. Applies Gaping Wounds (bleed). (Arms signature)',
@@ -5018,9 +7382,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'physical',
     requiresTarget: true,
-    threat: { flat: 110 },
+    // v0.38 tank threat parity: multiplicative so the signature scales with
+    // damage and gear like the Faithwarden kit, with the classic flat kept as
+    // the gear-independent floor (physical damage pays the heroic armor tax
+    // that the paladin's Holy kit ignores).
+    threat: { flat: 110, mult: 3.5 },
+    // weaponMult 0.5 -> 1 (v0.38 tank threat parity): the signature swings the
+    // full weapon so its multiplicative threat has real damage to scale.
     effects: [
-      { type: 'weaponStrike', bonus: 30, weaponMult: 0.5 },
+      { type: 'weaponStrike', bonus: 30, weaponMult: 1 },
       { type: 'gainResource', amount: 15 },
     ],
     description:
@@ -5104,12 +7474,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   heroic_leap: {
     id: 'heroic_leap',
-    name: 'Heroic Leap',
+    name: 'Vaulting Charge',
     class: 'warrior',
     learnLevel: 6,
     cost: 0,
     castTime: 0,
-    cooldown: 20,
+    // 30s (was 20s, owner 2026-08-07): the warrior mobility budget in PvP is the
+    // whole point of the level-5 row re-cut above, and Vaulting Charge is the other
+    // half of it. Base kit, so this lands on all three specs.
+    cooldown: 30,
     range: 30,
     school: 'physical',
     requiresTarget: false,
@@ -5139,7 +7512,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   // design draft, tune VALUE not SHAPE) ------
   storm_bolt: {
     id: 'storm_bolt',
-    name: 'Storm Bolt',
+    name: 'Thunderhurl',
     class: 'warrior',
     learnLevel: 11,
     cost: 10,
@@ -5170,10 +7543,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'physical',
     requiresTarget: false,
     // Classic-era shape (25 rage / 3 min / 5 targets / 8 yd / 8 sec) scaled to
-    // the 1-20 band: cost and cooldown tuned down, the fear itself unchanged.
-    effects: [{ type: 'aoeFear', duration: 8, radius: 8, maxTargets: 5 }],
+    // the 1-20 band: cost and cooldown tuned down. The DURATION now diverges too
+    // (owner 2026-08-07, 8 -> 4): classic's 8 sec left the melee class with a
+    // longer fear than either caster whose identity is fear (Psychic Scream 4,
+    // then-current Howl of Terror 3), and PVP_FEAR_DR_RESET (60s) is half this cooldown, so DR
+    // never engages and every cast landed the full 8. 4 anchors on Psychic Scream
+    // rather than on an invented number.
+    effects: [{ type: 'aoeFear', duration: 4, radius: 8, maxTargets: 5 }],
     description:
-      'A terrifying shout that sends up to 5 enemies within 8 yards fleeing in fear for 8 sec. Damage may break the effect.',
+      'A terrifying shout that sends up to 5 enemies within 8 yards fleeing in fear for 4 sec. Damage may break the effect.',
   },
   bladestorm: {
     id: 'bladestorm',
@@ -5202,7 +7580,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   victory_rush: {
     id: 'victory_rush',
-    name: 'Victory Rush',
+    name: "Victor's Surge",
     class: 'warrior',
     learnLevel: 8,
     cost: 0,
@@ -5256,6 +7634,64 @@ export const ABILITIES: Record<string, AbilityDef> = {
     effects: [{ type: 'selfBuff', kind: 'die_by_sword', value: 0.3, duration: 8 }],
     description:
       'Defensive cooldown: for 8 sec you take 30% less damage and dodge far more attacks.',
+  },
+  // The level-5 mobility row's peel option (replaces Double Charge, which stored a
+  // second Onrush use and, under the parallel per-charge recharge model, handed PvP
+  // warriors two 25-yard gap closers plus two stuns per 15 sec).
+  //
+  // Deliberately NOT a second Onrush: it reuses the `charge` effect but targets a
+  // FRIENDLY player, so it adds mobility and a peel without adding pressure. The row
+  // job is mobility with no direct damage increase (docs/design/class-design-rules.md),
+  // and this carries no damage, no control, and no rage.
+  //
+  // No `specs` field: this ability is ONLY ever reached as a row grant, and grants
+  // bypass the level and spec gates in abilitiesKnownAt, so a `specs` list here would
+  // be dead weight rather than a restriction. (Contrast die_by_sword above, which
+  // carries specs:['arms'] because it is ALSO Arms base kit; its row grant still
+  // reaches every spec.)
+  //
+  // The shield is ranked rather than flat so it tracks the health curve at roughly 6-7%
+  // of maximum health across the band it is usable in (252 hp at level 5, 822 at 20); a
+  // flat value tuned for the cap would be three times as strong at level 5. It is well
+  // under a dedicated healer shield (Psalm of Warding rank 4 absorbs 210) by design.
+  //
+  // Those two claims are the reason for the numbers, so they are PINNED rather than
+  // left as prose: tests/warrior_intervene.test.ts asserts the share of the health
+  // curve at each rank's own unlock level and the ceiling against the healer shield.
+  // An absolutes-only test would have gone green on any re-tune that broke both.
+  intervene: {
+    id: 'intervene',
+    name: 'Intervene',
+    class: 'warrior',
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    // 30s (owner 2026-08-07), deliberately DOUBLE the hostile Onrush's 15s: this
+    // row exists to reduce the warrior mobility budget in PvP, so the replacement
+    // must not hand back a short-cooldown reposition through the friendly door.
+    cooldown: 30,
+    range: 25,
+    minRange: 8,
+    school: 'physical',
+    requiresTarget: true,
+    targetType: 'friendly',
+    offGcd: true,
+    effects: [{ type: 'charge' }, { type: 'absorb', amount: 18, duration: 6 }],
+    ranks: [
+      {
+        rank: 2,
+        level: 11,
+        cost: 0,
+        effects: [{ type: 'charge' }, { type: 'absorb', amount: 34, duration: 6 }],
+      },
+      {
+        rank: 3,
+        level: 17,
+        cost: 0,
+        effects: [{ type: 'charge' }, { type: 'absorb', amount: 50, duration: 6 }],
+      },
+    ],
+    description: 'Rush to a friendly player, shielding them from $d damage for 6 sec.',
   },
   recklessness: {
     id: 'recklessness',
@@ -5311,7 +7747,14 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'physical',
     requiresTarget: false,
-    effects: [{ type: 'partyMeleeBuff', attackSpeedMult: 1 / 1.1, dmgPct: 0.1, duration: 20 }],
+    effects: [
+      {
+        type: 'partyMeleeBuff',
+        attackSpeedMult: 1 / 1.1,
+        dmgPct: 0.1,
+        duration: 20,
+      },
+    ],
     description:
       'Imbue your weapon with the blood of your foes: you and your melee allies gain 10% attack speed and 10% damage for 20 sec.',
   },
@@ -5320,7 +7763,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   // Not in CLASSES.*.abilities. Unlocked only via spec grants.
   crusader_strike: {
     id: 'crusader_strike',
-    name: 'Crusader Strike',
+    name: 'Oathstrike',
     class: 'paladin',
     learnLevel: 10,
     cost: 30,
@@ -5334,28 +7777,29 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   metamorphosis: {
     id: 'metamorphosis',
-    name: 'Dread Aspect',
+    name: 'Lich Form',
     class: 'warlock',
+    specs: ['demonology'],
     learnLevel: 10,
-    cost: 75,
+    cost: 0,
     castTime: 0,
     cooldown: 180,
     range: 0,
     school: 'shadow',
     requiresTarget: false,
     effects: [
-      { type: 'selfBuff', kind: 'form_metamorph', value: 1, duration: 20 },
+      { type: 'selfBuff', kind: 'form_lich', value: 1, duration: 20 },
       { type: 'selfBuff', kind: 'buff_spelldmg', value: 0.2, duration: 20 },
       { type: 'selfBuff', kind: 'buff_spellhaste', value: 0.2, duration: 20 },
-      { type: 'petBuff', kind: 'pet_damage_pct', value: 50, duration: 20 },
-      { type: 'petBuff', kind: 'pet_spellhaste', value: 0.2, duration: 20 },
+      { type: 'gainSoulFragments', amount: 3 },
+      { type: 'empowerUndeadArmy', duration: 20, dmgPct: 0.5, hastePct: 0.2 },
     ],
     description:
-      'Transform into a monstrous demon for 20 sec, increasing your spell damage by 20% and casting speed by 20%. Your demon gains 50% damage and 20% casting speed. (Demonology signature)',
+      'Become a Lich for 20 sec, creating 3 Soul Fragments and increasing your spell damage and casting speed by 20%. Your undead deal 50% more damage and act 20% faster, and Soul Lance pierces through its target to strike up to 2 nearby enemies for 50% of its damage. (Necromancy signature)',
   },
   holy_shock: {
     id: 'holy_shock',
-    name: 'Holy Shock',
+    name: 'Lightjolt',
     class: 'paladin',
     learnLevel: 10,
     cost: 55,
@@ -5383,42 +7827,62 @@ export const ABILITIES: Record<string, AbilityDef> = {
     description:
       'Shocks a friendly target with Holy energy to heal them, or an enemy for $d Holy damage. (Holy signature)',
   },
-  holy_shield: {
-    id: 'holy_shield',
-    name: 'Hallowed Wall',
-    class: 'paladin',
-    learnLevel: 10,
-    cost: 30,
-    castTime: 0,
-    cooldown: 8,
-    range: 30,
-    school: 'holy',
-    requiresTarget: true,
-    effects: [
-      { type: 'directDamage', min: 90, max: 110 },
-      { type: 'chainDamage', min: 60, max: 75, jumps: 2, falloff: 1, radius: 10 },
-      { type: 'selfBuff', kind: 'buff_armor', value: 150, duration: 10 },
-    ],
-    description:
-      'Hurls a radiant aegis at an enemy for 90 to 110 Holy damage, then bounces to 2 nearby enemies for 60 to 75 Holy damage each. (Protection signature)',
-  },
   bestial_wrath: {
     id: 'bestial_wrath',
     name: 'Howling Rage',
     class: 'hunter',
     learnLevel: 10,
-    cost: 40,
+    cost: 0,
     castTime: 0,
-    cooldown: 120,
+    cooldown: 90,
     range: 0,
     school: 'nature',
     requiresTarget: false,
+    offGcd: true,
+    effects: [{ type: 'howlingRage', duration: 12 }],
+    description:
+      'Grant 3 Pack Ferocity. Your next Unleash Beast within 20 sec deals 50% more strike and clap damage, and its frenzy lasts 12 sec instead of 8. (Packlord signature)',
+  },
+  cold_focus: {
+    id: 'cold_focus',
+    name: 'Cold Focus',
+    class: 'hunter',
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    cooldown: 90,
+    range: 0,
+    school: 'physical',
+    requiresTarget: false,
+    offGcd: true,
+    effects: [{ type: 'selfBuff', kind: 'hunter_cold_focus', value: 1, duration: 12 }],
+    description:
+      'For 12 sec, Measured Shot restores 30 Focus, and Long Draw costs 25% less and casts 30% faster. (Coldsight signature)',
+  },
+  bloodhook: {
+    id: 'bloodhook',
+    name: 'Bloodhook',
+    class: 'hunter',
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    cooldown: 10,
+    range: 25,
+    school: 'physical',
+    requiresTarget: true,
     effects: [
-      { type: 'selfBuff', kind: 'buff_ap_pct', value: 20, duration: 15 },
-      { type: 'petBuff', kind: 'pet_damage_pct', value: 100, duration: 15 },
+      {
+        type: 'hunterBloodhook',
+        bleedTotal: 34,
+        bleedDuration: 12,
+        bleedInterval: 3,
+        rangedPowerCoeff: 0.26,
+        slowMult: 0.7,
+        slowDuration: 3,
+      },
     ],
     description:
-      'Sends you into a bestial rage, increasing your attack power by 20% and your pet damage by 100% for 15 sec. (Beast Mastery signature)',
+      'Charge to an enemy and apply Bloodhook Wound, dealing 34 base Physical damage plus 26% of your Ranged Attack Power over 12 sec in 4 ticks. On arrival, slow the target by 30% for 3 sec. (Fieldcraft signature)',
   },
   trueshot_aura: {
     id: 'trueshot_aura',
@@ -5433,18 +7897,17 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'aoeAllyAttackPower', apPct: 10, duration: 1800, radius: 30 }],
     description:
-      'Inspires nearby allies, increasing attack power by 10% for 30 min. (Marksmanship signature)',
+      'Increase the Attack Power of allies within 30 yards by 10% for 30 min. (Marksmanship signature)',
   },
   wyvern_sting: {
     id: 'wyvern_sting',
-    name: 'Wyvern Sting',
+    name: 'Drakesting',
     class: 'hunter',
     learnLevel: 10,
     cost: 35,
     castTime: 0,
     cooldown: 60,
     range: 30,
-    minRange: 8,
     school: 'nature',
     scalesWith: 'ranged',
     requiresTarget: true,
@@ -5511,7 +7974,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   icy_veins: {
     id: 'icy_veins',
     specs: ['frost'],
-    name: 'Icy Veins',
+    name: 'Coldsurge',
     class: 'mage',
     learnLevel: 12,
     cost: 0,
@@ -5529,6 +7992,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   cold_blood: {
     id: 'cold_blood',
+    tooltipOmitEffectLines: true,
     name: "Killer's Calm",
     class: 'rogue',
     learnLevel: 10,
@@ -5538,12 +8002,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'physical',
     requiresTarget: false,
-    effects: [{ type: 'selfBuff', kind: 'next_attack_crit', value: 1, duration: 60 }],
+    effects: [{ type: 'selfBuff', kind: 'next_attack_crit', value: 1, duration: 60, charges: 5 }],
     description:
-      'Focuses your killing intent so your next attack is a critical strike. (Assassination signature)',
+      'Focuses your killing intent so your next 5 attacks are critical strikes. (Knifework signature)',
   },
   blade_flurry: {
     id: 'blade_flurry',
+    tooltipOmitEffectLines: true,
     name: 'Mirrored Blades',
     class: 'rogue',
     learnLevel: 10,
@@ -5553,9 +8018,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'physical',
     requiresTarget: false,
-    effects: [{ type: 'selfBuff', kind: 'buff_haste', value: 1.2, duration: 12 }],
+    effects: [{ type: 'selfBuff', kind: 'buff_haste', value: 1.2, duration: 30 }],
     description:
-      'Unleashes a flurry of blades, increasing attack speed by 20% for 12 sec. (Combat signature)',
+      'Unleashes a flurry of blades, increasing attack speed by 20% for 30 sec. (Thuggery signature)',
   },
   hemorrhage: {
     id: 'hemorrhage',
@@ -5575,7 +8040,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
       { type: 'applyDebuff', kind: 'bleed_vuln', value: 0.4, duration: 12 },
     ],
     description:
-      'Strikes the enemy for weapon damage plus $d, causes bleeding damage over 12 sec, and increases bleed damage taken by 40%. Awards 1 combo point. (Subtlety signature)',
+      'Strikes the enemy for weapon damage plus $d, causes bleeding damage over 12 sec, and increases bleed damage taken by 40%. Awards 1 combo point. Every 2nd use adds 1 Gloam (max 3). (Skulduggery signature)',
   },
   power_infusion: {
     id: 'power_infusion',
@@ -5589,14 +8054,19 @@ export const ABILITIES: Record<string, AbilityDef> = {
     school: 'holy',
     requiresTarget: true,
     targetType: 'friendly',
-    effects: [{ type: 'buffTarget', kind: 'buff_spellhaste', value: 0.2, duration: 15 }],
+    effects: [
+      { type: 'buffTarget', kind: 'buff_spellhaste', value: 0.2, duration: 15 },
+      { type: 'buffTarget', kind: 'buff_dmg_done', value: 0.2, duration: 15 },
+      { type: 'buffTarget', kind: 'buff_heal_done', value: 0.2, duration: 15 },
+    ],
     description:
-      'Infuses a friendly target with power, increasing spell haste by 20% for 15 sec. (Discipline signature)',
+      'Anoints a friendly target, increasing damage, healing, and casting speed by 20% for 15 sec.',
   },
   holy_nova: {
     id: 'holy_nova',
-    name: 'Holy Nova',
+    name: 'Sunburst Canticle',
     class: 'priest',
+    specs: ['holy'],
     learnLevel: 10,
     cost: 70,
     castTime: 0,
@@ -5620,12 +8090,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description:
-      'Causes an explosion of Mending Light, healing nearby allies for $d and damaging nearby enemies. (Holy signature)',
+      'Heal allies within 10 yards for $d and deal 24 to 30 Holy damage to enemies in the same area. Both amounts increase with Spell Power. (Benison baseline)',
   },
   shadowform: {
     id: 'shadowform',
     name: 'Gloamveil',
     class: 'priest',
+    specs: ['shadow'],
     learnLevel: 10,
     cost: 60,
     castTime: 0,
@@ -5633,9 +8104,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'shadow',
     requiresTarget: false,
-    effects: [{ type: 'selfBuff', kind: 'form_shadow', value: 15, duration: 3600 }],
+    effects: [{ type: 'selfBuff', kind: 'form_shadow', value: 25, duration: 3600 }],
     description:
-      'Assume a Gloamveil, empowering shadow magic until you shift back. Cast again to return to normal form. (Shadow signature)',
+      'Enter Gloamveil, increasing your Shadow damage by 25%. Cast it again to leave Gloamveil. (Vespers signature)',
   },
   elemental_mastery: {
     id: 'elemental_mastery',
@@ -5644,12 +8115,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 10,
     cost: 45,
     castTime: 0,
-    cooldown: 120,
+    cooldown: 90,
     range: 0,
     school: 'nature',
     requiresTarget: false,
-    effects: [{ type: 'selfBuff', kind: 'next_cast_instant', value: 1, duration: 60 }],
-    description: 'Calls on primal mastery, making your next spell instant. (Elemental signature)',
+    effects: [],
+    description:
+      'For 12 sec, Arc Bolt grants 2 Thunder. Your next Arc Bolt or Skybranch is instant, and your next full Thunder payoff deals 25% more damage. (Thundercall signature)',
   },
   siphon_life: {
     id: 'siphon_life',
@@ -5670,19 +8142,26 @@ export const ABILITIES: Record<string, AbilityDef> = {
     id: 'conflagrate',
     name: 'Conflagrate',
     class: 'warlock',
+    specs: ['destruction'],
     learnLevel: 10,
-    cost: 55,
+    cost: 40,
     castTime: 0,
-    cooldown: 6,
+    cooldown: 18,
+    maxCharges: 2,
     range: 30,
     school: 'fire',
     requiresTarget: true,
-    effects: [{ type: 'consumeAura', auraIds: ['immolate'], deal: { min: 54, max: 64 } }],
+    effects: [{ type: 'destructionConflagrate' }, { type: 'directDamage', min: 118, max: 140 }],
     description:
-      'Consumes your Burning Pact on the enemy to ignite them for $d Fire damage. (Destruction signature)',
+      // The sim-source description keeps the BASE literal 2 (the $-form
+      // contract in tests/ability_tooltip_consistency.test.ts); the catalog
+      // row splices the RESOLVED count as {charges}, so Ruincaller 2pc
+      // wearers read 3 there.
+      'Advances one future tick of your Burning Pact, then ignites the target for $d Fire damage. Generates 1 Wrack and 1 Desolation. Holds 2 charges. (Destruction signature)',
   },
   moonkin_form: {
     id: 'moonkin_form',
+    tooltipOmitEffectLines: true,
     name: 'Moonwing Form',
     class: 'druid',
     learnLevel: 10,
@@ -5694,7 +8173,88 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [{ type: 'selfBuff', kind: 'form_moonkin', value: 0, duration: 3600 }],
     description:
-      'Shapeshift into a fearsome Moonkin, increasing your spell damage by 20% and your armor by 50%. Lasts until you shift out. Cast again to return to caster form. (Balance signature)',
+      'Shapeshift into a fearsome Moonkin, increasing your spell damage by 20% and your armor by 50%. Lasts until you shift out. Shifting into any form grants Loping Stride, a short burst of movement speed. Cast again to return to caster form. (Balance signature)',
+  },
+  // Groveheart's caster form, the healer twin of Moonwing Form: a Groveheart
+  // signature beside Fleetmend (granted on the spec pick, talents_classic.ts),
+  // still spec-gated to Restoration through `specs`, a toggle like every form,
+  // and it keeps the whole spellbook and the mana bar. The +20% healing done,
+  // the +40% armor and the 20% slower pace read the form aura live
+  // (combat/druid_sporemender.ts, entity.ts, player_motion.ts); Loping Stride
+  // rides the druid FORM_ABILITY_IDS set (combat/druid_engines.ts).
+  sporemender_form: {
+    id: 'sporemender_form',
+    tooltipOmitEffectLines: true,
+    name: 'Sporemender Form',
+    class: 'druid',
+    specs: ['restoration'],
+    learnLevel: 10,
+    cost: 55,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [{ type: 'selfBuff', kind: 'form_sporemender', value: 0, duration: 3600 }],
+    description:
+      'Shapeshift into a Sporemender, increasing your healing done by 20% and your armor by 40%, but reducing your movement speed by 20%. All of your caster-form spells stay usable. Lasts until you shift out. Shifting into any form grants Loping Stride, a short burst of movement speed. Cast again to return to caster form. (Groveheart signature)',
+  },
+  spore_burst: {
+    id: 'spore_burst',
+    name: 'Spore Burst',
+    class: 'druid',
+    // The splash heal-and-damage both caster specs lacked (owner design
+    // 2026-10-12). Wildfang does not get it.
+    specs: ['balance', 'restoration'],
+    learnLevel: 10,
+    cost: 90,
+    castTime: 0,
+    cooldown: 30,
+    range: 40,
+    school: 'nature',
+    requiresTarget: false,
+    targetMode: 'position',
+    // Placed on the floor with a 5 sec fuse everyone can see, so it hits
+    // harder than an instant heal or nuke: one roll for every ally and enemy
+    // in the 8 yd splash (Galeheart's radius), uncapped
+    // (combat/druid_spore_burst.ts).
+    effects: [
+      { type: 'sporeBurst', min: 250, max: 250, healMin: 250, healMax: 250, radius: 8, fuse: 5 },
+    ],
+    description:
+      'Summons a spore burster onto the target area. After $t sec it bursts, healing allies for $h and dealing $d Nature damage to enemies within 8 yards.',
+    specNotes: {
+      balance: 'At 3 Moontide it is 25% stronger and spends your Moontide.',
+      restoration:
+        'Also applies Sporemending to each ally it heals. At full Verdance it is 25% stronger and spends your Verdance.',
+    },
+  },
+  // Nature's Boon as a spellbook passive: the window itself is armed by
+  // combat/druid_natures_boon.ts; this row only teaches it, per spec.
+  natures_boon: {
+    id: 'natures_boon',
+    name: "Nature's Boon",
+    class: 'druid',
+    specs: ['feral', 'balance', 'restoration'],
+    learnLevel: 10,
+    passive: true,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    effects: [],
+    description:
+      "Your spells can arm Nature's Boon for 10 sec: the spell it names becomes free, 25% stronger, and castable in any form. A fresh proc refreshes the duration.",
+    specNotes: {
+      feral:
+        'Each landed melee auto-attack has a 1 in 15 chance to arm it for Sporemending, or for Oakhide while in Bruin Form.',
+      balance:
+        'Each Wildbolt or Skyfall you cast has a 10% chance to arm it for Spore Burst, at most once every 10 sec.',
+      restoration:
+        'Each tick of your heal-over-time effects has a 10% chance to arm it for Spore Burst, at most once every 10 sec.',
+    },
   },
   feral_charge: {
     id: 'feral_charge',
@@ -5711,11 +8271,11 @@ export const ABILITIES: Record<string, AbilityDef> = {
     usableInForm: true,
     effects: [{ type: 'feralCharge' }],
     description:
-      'Unleash a primal surge. In Wolf Form, Energy regeneration is increased by 100% for 10 sec. In Bruin Form, instantly generates 50 Rage. (Feral signature)',
+      'Unleash a primal surge. In Cat Form, Energy regeneration is increased by 100% for 10 sec. In Bruin Form, instantly generates 50 Rage. (Feral signature)',
   },
   swiftmend: {
     id: 'swiftmend',
-    name: 'Swiftmend',
+    name: 'Fleetmend',
     class: 'druid',
     learnLevel: 10,
     cost: 55,
@@ -5726,8 +8286,193 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: true,
     targetType: 'friendly',
     effects: [{ type: 'consumeAura', auraKind: 'hot', heal: { min: 105, max: 125 } }],
+    actionReplacement: { abilityId: 'overbloom', auraKind: 'verdance', minStacks: 3 },
     description:
-      'Consumes a heal-over-time effect on a friendly target to heal them for $d. (Restoration signature)',
+      'Consumes a heal-over-time effect on a friendly target to heal them for $d. Sporemending, Second Bloom, and Wildmend casts each add 1 Verdance; at 3 Verdance this button becomes Overbloom, which instantly heals every ally carrying your heal-over-time effects for 60% of what those effects had left. (Groveheart signature)',
+  },
+  moonlash: {
+    id: 'moonlash',
+    name: 'Moonsurge',
+    class: 'druid',
+    specs: ['balance'],
+    learnLevel: 10,
+    cost: 80,
+    castTime: 0,
+    cooldown: 0,
+    range: 30,
+    school: 'arcane',
+    requiresTarget: true,
+    // The Moontide-3 gate lives on the Skyfall transform rules, the only
+    // path to this def; the form guard blocks a stale out-of-form resolve
+    // and must never eat the form itself.
+    requiresAuraKind: 'form_moonkin',
+    consumesRequiredAura: false,
+    effects: [{ type: 'directDamage', min: 136, max: 162, spellPowerCoeff: 0.32 }],
+    description:
+      'Spends your 3 Moontide for a heavy strike of $d Arcane damage: the damage choice. Sunwake spends the same 3 Moontide, so pick one.',
+  },
+  sunlance: {
+    id: 'sunlance',
+    name: 'Sunwake',
+    class: 'druid',
+    specs: ['balance'],
+    learnLevel: 10,
+    cost: 45,
+    castTime: 0,
+    cooldown: 0,
+    range: 30,
+    school: 'nature',
+    requiresTarget: true,
+    // Same contract as Moonlash: the transform rules own the Moontide-3
+    // gate, the def guards only the form and must never eat it.
+    requiresAuraKind: 'form_moonkin',
+    consumesRequiredAura: false,
+    effects: [
+      { type: 'directDamage', min: 80, max: 100, spellPowerCoeff: 0.32 },
+      { type: 'dot', total: 45, duration: 9, interval: 3 },
+      { type: 'gainResource', amount: 35 },
+    ],
+    description:
+      'Spends your 3 Moontide for a strike of $d Nature damage plus a $o burn over 9 sec, and restores 35 mana: the mana choice. Moonsurge spends the same 3 Moontide, so pick one.',
+  },
+  redharvest: {
+    id: 'redharvest',
+    name: 'Redharvest',
+    class: 'druid',
+    specs: ['feral'],
+    // The rank ladder starts at 5 where spec commitment does, but the
+    // finisher is REACHED through the transforming Gorebite button, which
+    // learns at 8: that is the first level the ladder is castable (combo
+    // points used to accrue unspendable until 14). Rank 3 restores the
+    // pre-rank live values, so level-20 balance and existing parses are
+    // untouched.
+    learnLevel: 5,
+    cost: 35,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'physical',
+    requiresTarget: true,
+    requiresForm: 'cat',
+    requiresAuraKind: 'old_blood',
+    requiresAuraStacks: 3,
+    spendsCombo: true,
+    comboOptional: true,
+    effects: [
+      { type: 'finisherDamage', base: 35, perCombo: 20, variance: 6 },
+      { type: 'consumeDot', dot: 'rake' },
+      { type: 'consumeDot', dot: 'rip' },
+      { type: 'gainResource', amount: 15 },
+    ],
+    ranks: [
+      {
+        rank: 2,
+        level: 10,
+        cost: 35,
+        effects: [
+          { type: 'finisherDamage', base: 52, perCombo: 32, variance: 8 },
+          { type: 'consumeDot', dot: 'rake' },
+          { type: 'consumeDot', dot: 'rip' },
+          { type: 'gainResource', amount: 22 },
+        ],
+      },
+      {
+        rank: 3,
+        level: 16,
+        cost: 35,
+        effects: [
+          { type: 'finisherDamage', base: 70, perCombo: 43, variance: 10 },
+          { type: 'consumeDot', dot: 'rake' },
+          { type: 'consumeDot', dot: 'rip' },
+          { type: 'gainResource', amount: 30 },
+        ],
+      },
+    ],
+    description:
+      'Spends your 3 Old Blood: strike for $d, instantly deal all the damage your Flense and Bloodrift would still have dealt, remove both bleeds, and restore energy. Works with zero combo points.',
+  },
+  marrowbreak: {
+    id: 'marrowbreak',
+    name: 'Marrowbreak',
+    class: 'druid',
+    specs: ['feral'],
+    learnLevel: 10,
+    cost: 15,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'physical',
+    requiresTarget: true,
+    requiresForm: 'bear',
+    requiresAuraKind: 'old_blood',
+    requiresAuraStacks: 3,
+    threat: { flat: 110, mult: 2 },
+    effects: [
+      { type: 'directDamage', min: 78, max: 96 },
+      { type: 'druidMarrowbreakGuard', belowFrac: 0.5, healPctMaxHp: 0.18, rage: 15 },
+    ],
+    description:
+      'Spends your 3 Old Blood for a heavy, high-threat strike of $d damage. Below half health it instead heals you for 18% of your maximum health and refunds 15 rage.',
+  },
+  overbloom: {
+    id: 'overbloom',
+    name: 'Overbloom',
+    class: 'druid',
+    specs: ['restoration'],
+    learnLevel: 10,
+    cost: 55,
+    castTime: 0,
+    cooldown: 8,
+    range: 30,
+    school: 'nature',
+    requiresTarget: true,
+    targetType: 'friendly',
+    requiresAuraKind: 'verdance',
+    requiresAuraStacks: 3,
+    effects: [{ type: 'druidOverbloom', harvestPct: 0.6 }],
+    // The harvest fraction is the $b splice (the resolved druidOverbloom
+    // harvestPct, see abilityBuffValue): Grovespring 4pc wearers read 75
+    // there, everyone else the base 60.
+    description:
+      'Spends your 3 Verdance: every ally carrying your heal-over-time effects is instantly healed for $b% of the healing those effects had left, the effects are removed, and the target gets a fresh Sporemending.',
+  },
+
+  // Groveheart combat resurrection retains its five-minute cooldown.
+  wildwake: {
+    id: 'wildwake',
+    name: 'Wildwake',
+    class: 'druid',
+    specs: ['restoration'],
+    learnLevel: 16,
+    cost: 60,
+    castTime: 2,
+    cooldown: 300,
+    range: 30,
+    school: 'nature',
+    requiresTarget: true,
+    targetType: 'friendly',
+    targetsDead: true,
+    effects: [{ type: 'resurrectAlly', hpFrac: 0.35 }],
+    description:
+      'Coax a fallen ally into sudden bloom, returning them to life at your side with 35% of their health and mana, even in the thick of combat. (Groveheart)',
+  },
+  grove_awakening: {
+    id: 'grove_awakening',
+    name: 'Grove Awakening',
+    class: 'druid',
+    specs: ['restoration'],
+    learnLevel: 20,
+    cost: 250,
+    castTime: 7,
+    cooldown: 0,
+    range: 0,
+    school: 'nature',
+    requiresTarget: false,
+    requiresOutOfCombat: true,
+    projectile: false,
+    effects: [{ type: 'massResurrectGroup', hpFrac: 0.3 }],
+    description:
+      'Call every fallen member of your group or raid within 40 yards and in your line of sight back to your side with 30% health and mana. Cannot be cast in combat. (Groveheart)',
   },
 
   // Baseline class interrupts: every caster-pressuring class trains a short-cooldown
@@ -5750,7 +8495,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   blink: {
     id: 'blink',
-    name: 'Flickerstep',
+    name: 'Flitstep',
     class: 'mage',
     // Joins the base kit at 5 (see the 'blink' entry in the mage kit list): two
     // level-5 choice-row options modify it, so it must exist by then, not at 10.
@@ -5771,21 +8516,20 @@ export const ABILITIES: Record<string, AbilityDef> = {
     learnLevel: 10,
     cost: 35,
     castTime: 0,
-    cooldown: 20,
+    cooldown: 15,
     range: 35,
-    minRange: 8,
     school: 'physical',
     scalesWith: 'ranged',
     requiresTarget: true,
+    offGcd: true,
     effects: [{ type: 'interrupt', lockout: 4 }],
-    description:
-      'Interrupts spellcasting and prevents any spell in that school from being cast for 4 sec. (Hunter talent)',
+    description: 'Interrupt the target and prevent spells from that school for 4 sec.',
   },
   counterspell: {
     id: 'counterspell',
-    name: 'Spellbreak',
+    name: 'Spellsever',
     class: 'mage',
-    learnLevel: 5,
+    learnLevel: 4,
     cost: 45,
     castTime: 0,
     cooldown: 24,
@@ -5872,7 +8616,13 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   meteor: {
     id: 'meteor',
-    name: 'Meteor',
+    // 'Skystone', not 'Meteor': the def name and the catalog English had
+    // drifted apart since the phase 03 naming sweep scrubbed the display name
+    // (src/ui/i18n.catalog/abilities.ts), and the catalog's is the ratified
+    // one. The ID stays 'meteor' (ids are frozen); only the English display
+    // name moves, which is the sanctioned pure-rename class of parity golden
+    // delta (tests/parity/CLAUDE.md).
+    name: 'Skystone',
     class: 'mage',
     learnLevel: 16,
     specs: ['fire'],
@@ -5948,13 +8698,19 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'arcane',
     requiresTarget: false,
-    // One dispatch applies the vanish, the damage cut (duration + linger so it
-    // survives an early break), and strips up to two DoTs (effect_dispatch).
+    // One dispatch strips up to two DoTs and applies the vanish. Its configured
+    // damage cut starts only once that vanish ends (effect_dispatch).
     effects: [
-      { type: 'greaterInvisibility', duration: 20, drValue: 0.9, linger: 3, removeDotCount: 2 },
+      {
+        type: 'greaterInvisibility',
+        duration: 20,
+        drValue: 0.9,
+        afterDuration: 2,
+        removeDotCount: 2,
+      },
     ],
     description:
-      'Vanish for 20 sec: removes 2 damage-over-time effects and you take 90% less damage while invisible and shortly after. (Mage talent)',
+      'Vanish for 20 sec and remove 2 damage-over-time effects. When the invisibility ends, take 90% less damage for 2 sec. (Mage talent)',
   },
   rings_of_frost: {
     id: 'rings_of_frost',
@@ -6008,7 +8764,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
       },
     ],
     description:
-      'Finishes the cooldown on Flickerstep, Frostveil, and Greater Invisibility. (Mage talent)',
+      'Finishes the cooldown on Flitstep, Frostveil, and Greater Invisibility. (Mage talent)',
   },
   mass_barrier: {
     id: 'mass_barrier',
@@ -6021,9 +8777,20 @@ export const ABILITIES: Record<string, AbilityDef> = {
     range: 0,
     school: 'frost',
     requiresTarget: false,
-    effects: [{ type: 'aoeAllyAbsorb', amount: 130, duration: 60, radius: 30, maxTargets: 5 }],
+    effects: [
+      {
+        type: 'aoeAllyAbsorb',
+        // Raid cooldown (owner 2026-10-20): a short, large shield sized to cover
+        // one normal boss hit, scaling with healPower like Temporal Barrier.
+        amount: 250,
+        duration: 15,
+        radius: 30,
+        maxTargets: 5,
+        spellPowerCoeff: MAGE_MASS_BARRIER_SPELL_POWER_COEFF,
+      },
+    ],
     description:
-      'Shields you and up to 4 nearby allies within 30 yd, each absorbing 130 damage for 60 sec. (Mage talent)',
+      'Shields you and up to 4 nearby allies within 30 yd, each absorbing $d damage for 15 sec. (Mage talent)',
   },
   overload: {
     id: 'overload',
@@ -6072,7 +8839,15 @@ export const ABILITIES: Record<string, AbilityDef> = {
     // A FRIENDLY ground zone at the caster's feet: each pulse buffs allies
     // standing inside (the groundAoE allyBuffPct rider; no damage, no rng).
     effects: [
-      { type: 'groundAoE', min: 0, max: 0, radius: 8, duration: 15, interval: 2, allyBuffPct: 0.1 },
+      {
+        type: 'groundAoE',
+        min: 0,
+        max: 0,
+        radius: 8,
+        duration: 15,
+        interval: 2,
+        allyBuffPct: 0.1,
+      },
     ],
     description:
       'Inscribe a rune of power at your feet for 15 sec: allies standing within 8 yd deal 10% more damage. (Mage talent)',
@@ -6144,7 +8919,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
     requiresTarget: false,
     effects: [],
     description:
-      'Passive: your spell critical strikes burn the target for 40% of the damage dealt over 6 sec, stacking. (Fire mastery)',
+      'Passive: your spell critical strikes burn the target for 30% of the damage dealt over 6 sec, stacking. (Fire mastery)',
   },
   hot_streak: {
     id: 'hot_streak',
@@ -6211,30 +8986,71 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   spell_lock: {
     id: 'spell_lock',
-    name: 'Gag Order',
+    name: 'Abyssal Gag',
     class: 'warlock',
     learnLevel: 10,
     cost: 35,
     castTime: 0,
     cooldown: 24,
     range: 30,
-    school: 'physical',
+    school: 'shadow',
     requiresTarget: true,
-    effects: [{ type: 'interrupt', lockout: 5 }],
+    effects: [{ type: 'interrupt', lockout: 4 }],
     description:
-      'Interrupts spellcasting and prevents any spell in that school from being cast for 5 sec. (Warlock talent)',
+      'Interrupts spellcasting and prevents any spell in that school from being cast for 4 sec. (Warlock talent)',
   },
 
   // Canonical Talents V2 active grants. These are absent from baseline class kits
   // and become known only through the selected row's `grant` effect.
   ...TALENT_ABILITIES_V2,
+  ...PRIEST_ABILITIES,
 
   // The Vale Cup sport kit (class-agnostic; docs/prd/vale-cup.md). Merged here
   // so every ABILITIES consumer (casting, icons, hotbar validation, tooltips)
   // resolves sport ids; no class lists them, so abilitiesKnownAt never grants
   // them outside a match (resolveSportKit is the only entry).
-  ...SPORT_ABILITIES,
+
+  clockwork_shock_bomb: {
+    id: 'clockwork_shock_bomb',
+    name: 'Clockwork Shock Bomb',
+    class: 'warrior',
+    learnLevel: 1,
+    cost: 0,
+    castTime: 0,
+    cooldown: 60,
+    range: 30,
+    school: 'nature',
+    requiresTarget: false,
+    targetMode: 'position',
+    effects: [
+      {
+        type: 'aoeDamage',
+        min: 120,
+        max: 160,
+        radius: 5,
+      },
+    ],
+    description:
+      'Throws a Clockwork Shock Bomb at the target location, dealing 120 to 160 Nature damage to enemies within 5 yards.',
+  },
 };
+
+const PALADIN_LEGACY_ABILITY_IDS = [
+  'seal_of_righteousness',
+  'devotion_aura',
+  'blessing_of_might',
+  'holy_taunt',
+  'flash_of_light',
+  'exorcism',
+  'rebuke',
+  'sacred_bulwark',
+  'holy_shock',
+  'crusader_strike',
+] as const;
+
+for (const abilityId of PALADIN_LEGACY_ABILITY_IDS) {
+  ABILITIES[abilityId].hiddenFromPlayer = true;
+}
 
 // A class ability resolved to a concrete rank, with talent modifiers already
 // folded into its cost / cast / cooldown / effects. The combat path reads only
@@ -6242,6 +9058,7 @@ export const ABILITIES: Record<string, AbilityDef> = {
 // sim's ResolvedAbility.
 export interface KnownAbility {
   def: AbilityDef;
+  outputScaling?: AbilityOutputScaling;
   rank: number;
   cost: number;
   castTime: number;
@@ -6251,8 +9068,11 @@ export interface KnownAbility {
   threatMult: number;
   castWhileMoving?: boolean; // talent-granted mobility (def.castWhileMoving covers baseline)
   damagePushbackImmune?: boolean;
+  ignoreStealthRequirement?: boolean; // Cheap Trick: the resolved ability drops requiresStealth
   charges?: number; // resolved total uses; undefined means one use
   bonusCharges?: number; // +N stored uses resolved from def/talents; drives the abilityCharges recharge model
+  /** Individual Temporal Echo conversion after worn-set resolution. */
+  echoConvertSingle?: number;
 }
 
 // Scale one effect's damage/heal magnitudes, returning a NEW effect object - the
@@ -6293,6 +9113,17 @@ const SCALABLE_BUFF_KINDS: ReadonlySet<AuraKind> = new Set([
   'thorns',
 ]);
 
+/** Scale a weapon coat's DAMAGE rider by a talent multiplier (Redhanded's
+ *  "your poison damage by 10%"). Only the stacking DoT carries damage; the
+ *  utility riders are armor and healing percentages, not damage, so they are
+ *  deliberately left alone. `perTick` stays UNROUNDED: the aura rounds
+ *  perTick x stacks once, at apply time (combat/poison_coating.ts), so a 10%
+ *  bump that would vanish into a rounded 4 still reads at higher stacks. */
+function scalePoisonCoatDamage(coat: PoisonCoat | undefined, mul: number): PoisonCoat | undefined {
+  if (coat === undefined || coat.rider !== 'stackDot') return coat;
+  return { ...coat, perTick: coat.perTick * mul };
+}
+
 function scaleEffect(
   eff: AbilityEffect,
   dmgMult: number,
@@ -6301,6 +9132,12 @@ function scaleEffect(
   hotMult: number,
   absorbMult: number,
   flat: number,
+  // v0.42.0 class balance: dmgMult WITHOUT the offense-only spec tuning
+  // (talent_hit_mult.ts's legacyDmgMult), used ONLY by the flat-magnitude
+  // buff branch below so the new offense-only component can never inflate an
+  // armor/stat/spellpower buff riding the same ability. Required, not
+  // defaulted to dmgMult: a future call site must choose explicitly.
+  buffDmgMult: number,
 ): AbilityEffect {
   switch (eff.type) {
     case 'weaponDamage':
@@ -6317,12 +9154,22 @@ function scaleEffect(
         min: Math.round(eff.min * dmgMult + flat),
         max: Math.round(eff.max * dmgMult + flat),
       };
-    case 'dot':
+    case 'dot': {
       // A directPct rider snapshots an already-scaled direct hit; scaling the
       // fraction again would double-apply the talent/global damage modifier.
-      return eff.directPct
-        ? { ...eff }
-        : { ...eff, total: Math.round(eff.total * dmgMult * dotMult + flat) };
+      if (eff.directPct) return { ...eff };
+      const scaled = { ...eff, total: Math.round(eff.total * dmgMult * dotMult + flat) };
+      // A combo-scaled finisher bleed (Bloodrift) derives its tick value from
+      // baseTotal + perComboTotal x points, IGNORING `total`, so scaling `total`
+      // alone would leave the whole payload inert against damage modifiers.
+      // (baseDuration/perComboDuration are seconds, not damage: Bleed Out buys
+      // more ticks at the same scaled value, so they are deliberately untouched.)
+      if (eff.perComboTotal !== undefined) {
+        scaled.baseTotal = Math.round((eff.baseTotal ?? 0) * dmgMult * dotMult + flat);
+        scaled.perComboTotal = Math.round(eff.perComboTotal * dmgMult * dotMult);
+      }
+      return scaled;
+    }
     case 'aoeDamage':
     case 'aoeHeal':
       return {
@@ -6330,10 +9177,44 @@ function scaleEffect(
         min: Math.round(eff.min * (eff.type === 'aoeHeal' ? healMult : dmgMult) + flat),
         max: Math.round(eff.max * (eff.type === 'aoeHeal' ? healMult : dmgMult) + flat),
       };
+    case 'sporeBurst':
+      // Both halves of the burst: the damage roll takes the damage multiplier
+      // and the heal roll the heal multiplier, as aoeDamage and aoeHeal do.
+      return {
+        ...eff,
+        min: Math.round(eff.min * dmgMult + flat),
+        max: Math.round(eff.max * dmgMult + flat),
+        healMin: Math.round(eff.healMin * healMult + flat),
+        healMax: Math.round(eff.healMax * healMult + flat),
+      };
+    case 'chainDamage':
+      return {
+        ...eff,
+        min: Math.round(eff.min * dmgMult + flat),
+        max: Math.round(eff.max * dmgMult + flat),
+      };
     case 'aoeRoot':
-      return { ...eff, min: Math.round(eff.min * dmgMult), max: Math.round(eff.max * dmgMult) };
+      return {
+        ...eff,
+        min: Math.round(eff.min * dmgMult),
+        max: Math.round(eff.max * dmgMult),
+      };
     case 'drainTick':
-      return { ...eff, min: Math.round(eff.min * dmgMult), max: Math.round(eff.max * dmgMult) };
+      return {
+        ...eff,
+        min: Math.round(eff.min * dmgMult),
+        max: Math.round(eff.max * dmgMult),
+      };
+    case 'afflictionSentence':
+      return {
+        ...eff,
+        damageMult: (eff.damageMult ?? 1) * dmgMult,
+        flat: (eff.flat ?? 0) + flat,
+      };
+    case 'afflictionViolence':
+      return { ...eff, damage: Math.round(eff.damage * dmgMult + flat) };
+    case 'afflictionLitany':
+      return { ...eff, damage: Math.round(eff.damage * dmgMult + flat) };
     case 'finisherDamage':
       return {
         ...eff,
@@ -6344,18 +9225,12 @@ function scaleEffect(
       return {
         ...eff,
         bonus: Math.round(eff.bonus * dmgMult + flat),
-        judgeMin:
-          eff.judgeMin === undefined ? undefined : Math.round(eff.judgeMin * dmgMult + flat),
-        judgeMax:
-          eff.judgeMax === undefined ? undefined : Math.round(eff.judgeMax * dmgMult + flat),
-      };
-    case 'judgement':
-      return {
-        ...eff,
-        dmgMult: (eff.dmgMult ?? 1) * dmgMult,
-        flat: (eff.flat ?? 0) + flat,
+        // A coat's damage rider scales with the same multiplier; the flat add
+        // is a per-SWING number and would be nonsense on a per-tick rider.
+        coat: scalePoisonCoatDamage(eff.coat, dmgMult),
       };
     case 'heal':
+      if (eff.casterMaxHpPct !== undefined) return eff;
       return {
         ...eff,
         min: Math.round(eff.min * healMult + flat),
@@ -6367,8 +9242,30 @@ function scaleEffect(
         min: Math.round(eff.min * healMult + flat),
         max: Math.round(eff.max * healMult + flat),
       };
+    case 'paladinAegis':
+      return {
+        ...eff,
+        tickMin: Math.round(eff.tickMin * healMult + flat),
+        tickMax: Math.round(eff.tickMax * healMult + flat),
+        finalMin: Math.round(eff.finalMin * healMult),
+        finalMax: Math.round(eff.finalMax * healMult),
+      };
+    case 'massTemporalEcho':
+      // Like heal/chainHeal, the initial-heal base is talent scaled here so it
+      // matches the SP rider talentHealMult now applies at the effect_dispatch.ts
+      // call site (Chronoweave's "all healing" bonus was previously a no-op here).
+      return {
+        ...eff,
+        heal: {
+          min: Math.round(eff.heal.min * healMult + flat),
+          max: Math.round(eff.heal.max * healMult + flat),
+        },
+      };
     case 'hot':
-      return { ...eff, total: Math.round(eff.total * healMult * hotMult + flat) };
+      return {
+        ...eff,
+        total: Math.round(eff.total * healMult * hotMult + flat),
+      };
     case 'consumeAura':
       // `flat` is added once, to the PRIMARY magnitude only: deal when present,
       // else heal (a dual deal+heal def must not double-apply a flat talent mod).
@@ -6388,6 +9285,18 @@ function scaleEffect(
           : undefined,
       };
     case 'absorb':
+      return {
+        ...eff,
+        amount: Math.round(eff.amount * healMult * absorbMult + flat),
+        casterMaxHpPct:
+          eff.casterMaxHpPct === undefined
+            ? undefined
+            : Math.round(eff.casterMaxHpPct * healMult * absorbMult * 10_000) / 10_000,
+      };
+    case 'aoeAllyAbsorb':
+      // Mass Barrier's per-target base takes the same talent heal and global
+      // absorb multipliers as a single-target shield; the healPower rider the
+      // dispatch adds uses the identical product (effect_dispatch.ts).
       return { ...eff, amount: Math.round(eff.amount * healMult * absorbMult + flat) };
     // Only the buff kinds whose value is a flat MAGNITUDE (armor, attack power, a flat
     // primary stat, spell power, thorns damage) scale with a damage-power mod. Every
@@ -6400,12 +9309,23 @@ function scaleEffect(
     case 'buffTarget':
     case 'selfBuff':
       return SCALABLE_BUFF_KINDS.has(eff.kind)
-        ? { ...eff, value: Math.round(eff.value * dmgMult + flat) }
+        ? { ...eff, value: Math.round(eff.value * buffDmgMult + flat) }
         : eff;
     case 'lifeTap':
-      return { ...eff, mana: Math.round(eff.mana * dmgMult + flat) };
+      // Same policy as gainResource below: a health-to-mana conversion is
+      // economy, not damage. Scaling only the mana half would also break the
+      // authored hp == mana symmetry the Hard Bargain tooltip promises
+      // ("Converts {damage} health into {damage} mana"). Intentional yield
+      // scaling rides the per-ability buffPct (Blood Credit), applied at the
+      // effect_dispatch lifeTap arm.
+      return eff;
     case 'gainResource':
-      return { ...eff, amount: Math.round(eff.amount * dmgMult + flat) };
+      // Resource generation is economy, not damage. Damage modifiers must not
+      // alter an authored Focus, Rage, or Energy gain.
+      return eff;
+    case 'hunterBloodhook':
+    case 'hunterShrapnel':
+      return { ...eff, damageMult: (eff.damageMult ?? 1) * dmgMult };
     case 'groundAoE':
       // Rune of Power's pulse is an ally damage-done buff, not a damage roll
       // (its authored min/max are 0/0): leave it untouched so a flat talent
@@ -6418,7 +9338,7 @@ function scaleEffect(
             max: Math.round(eff.max * dmgMult + flat),
           };
     case 'repositionToAim':
-      // Heroic Leap's landing hit is a groundAoE-shaped rider on the
+      // Vaulting Charge's landing hit is a groundAoE-shaped rider on the
       // reposition; scale it the same way a groundAoE pulse scales.
       return eff.landingAoe
         ? {
@@ -6438,12 +9358,23 @@ function scaleEffect(
 // Fold precomputed talent modifiers into one resolved ability (FR-5.3). Global
 // melee/spell/heal mults apply to every ability of the right school; per-ability
 // mods stack on top and also tune cost / cast time / cooldown.
-function applyTalentMods(entry: KnownAbility, mods: TalentModifiers): void {
+export function applyTalentMods(entry: KnownAbility, mods: TalentModifiers): void {
+  entry.outputScaling = buildAbilityOutputScaling(entry.def, entry.def.class, mods);
   const am = mods.abilities[entry.def.id];
-  const physical = entry.def.school === 'physical';
-  const globalDmg = physical ? mods.global.meleeDmgPct : mods.global.spellDmgPct;
-  const dmgMult = 1 + globalDmg + (am?.dmgPct ?? 0);
-  const healMult = 1 + mods.global.healPct + (am?.dmgPct ?? 0);
+  if (entry.def.id === 'temporal_echo') {
+    entry.echoConvertSingle = mods.selected[setBonusFlag('chronoweave', 2)]
+      ? CHRONOWEAVE_2PC_ECHO_CONVERT_SINGLE
+      : TEMPORAL_ECHO_SINGLE_CONVERSION;
+  }
+  // dmgMult/healMult come from the shared talent_hit_mult resolver: the SAME
+  // function combat sites (effect_dispatch.ts/casting_lifecycle.ts/auto_attack.ts)
+  // call to scale a resolved ability's runtime SP/AP/weapon rider, so the
+  // authored-base bake here and the rider scaling at combat time can never drift
+  // apart. (The melee bucket also covers hunter's ranged-AP shots regardless of
+  // magic school: `scalesWith: 'ranged'` is exclusively set on hunter abilities
+  // (arcane_shot, serpent_sting, wyvern_sting are non-physical), so Marksmanship's
+  // Iron Aim ("ranged ability damage") reaches Arcane Shot, the spec's arcane nuke.)
+  const { dmgMult, healMult, legacyDmgMult } = resolveTalentHitMult(entry.def, mods);
   const dotMult = 1 + mods.global.dotDmgPct;
   const hotMult = 1 + mods.global.hotHealPct;
   const absorbMult = 1 + mods.global.absorbPct;
@@ -6462,7 +9393,7 @@ function applyTalentMods(entry: KnownAbility, mods: TalentModifiers): void {
     flat !== 0
   ) {
     entry.effects = entry.effects.map((e) =>
-      scaleEffect(e, dmgMult, healMult, dotMult, hotMult, absorbMult, flat),
+      scaleEffect(e, dmgMult, healMult, dotMult, hotMult, absorbMult, flat, legacyDmgMult),
     );
   }
   if (am) {
@@ -6472,8 +9403,27 @@ function applyTalentMods(entry: KnownAbility, mods: TalentModifiers): void {
     // Flat cooldown ADD (seconds), after the percent: Snap Bewitch turns a
     // cooldown-less cast instant by trading in a real cooldown.
     if (am.cooldownFlat) entry.cooldown = Math.max(0, entry.cooldown + am.cooldownFlat);
+    if (am.durationFlat) {
+      entry.effects = entry.effects.map((effect) => {
+        if (
+          effect.type === 'selfBuff' ||
+          effect.type === 'buffTarget' ||
+          effect.type === 'absorb' ||
+          effect.type === 'hot' ||
+          // Emberfury 2pc (the Crucible set doc's rewrite-list extension):
+          // the Enrage an enrageChance effect grants reads its RESOLVED
+          // duration, so a durationFlat row lengthens the buff for engine
+          // and tooltip alike.
+          effect.type === 'enrageChance'
+        ) {
+          return { ...effect, duration: Math.max(0, effect.duration + (am.durationFlat ?? 0)) };
+        }
+        return effect;
+      });
+    }
     if (am.castWhileMoving) entry.castWhileMoving = true;
     if (am.damagePushbackImmune) entry.damagePushbackImmune = true;
+    if (am.ignoreStealthRequirement) entry.ignoreStealthRequirement = true;
     // Stored uses (Double Charge): base 1 unless the def itself is
     // charge-limited (maxCharges, already resolved onto entry.charges); the
     // combat gate + recharge live in casting_lifecycle / updateTimers, keyed
@@ -6493,13 +9443,106 @@ function applyTalentMods(entry: KnownAbility, mods: TalentModifiers): void {
           ? { ...e, value: scaleBuffValue(e.kind, e.value, mul) }
           : e.type === 'finisherHaste'
             ? { ...e, mult: 1 + (e.mult - 1) * mul }
-            : // Weapon coats scale their per-swing rider (Redhanded's poison
-              // damage; a re-coat picks up the new value).
+            : // Weapon coats scale their per-swing rider AND their coat rider
+              // (Redhanded's poison damage: the flat swing bonus on Adder's
+              // Bite, the per-stack tick on Festering Venom). A re-coat picks
+              // up the new value.
               e.type === 'imbue'
-              ? { ...e, bonus: Math.round(e.bonus * mul) }
-              : e,
+              ? {
+                  ...e,
+                  bonus: Math.round(e.bonus * mul),
+                  coat: scalePoisonCoatDamage(e.coat, mul),
+                }
+              : // A spend-all shield's rage-to-absorb rate is the
+                // buff-shaped value on absorbSpentResource, so the generic
+                // per-ability knob reaches it and the tooltip splice reads
+                // the same resolved rate the dispatch consumes.
+                e.type === 'absorbSpentResource'
+                ? { ...e, mult: Math.round(e.mult * mul) }
+                : // Forgewall 2pc (Iron Resolve 20% to 25% of max health): a
+                  // shield's flat amount and its max-health fraction are both
+                  // buff-shaped, so the per-ability knob scales them and the
+                  // {damage} splice reads the same resolved fraction the
+                  // dispatch consumes.
+                  e.type === 'absorb'
+                  ? {
+                      ...e,
+                      amount: Math.round(e.amount * mul),
+                      casterMaxHpPct:
+                        e.casterMaxHpPct === undefined
+                          ? undefined
+                          : Math.round(e.casterMaxHpPct * mul * 10_000) / 10_000,
+                    }
+                  : e,
       );
     }
+  }
+  // Hexthread 2pc (the Crucible set doc): Needle of Fate grants 2 additional
+  // Condemnation. The bonus is baked into the RESOLVED afflictionNeedle
+  // payload, the ONE number the dispatch (resolveNeedleOfFate) and the
+  // {needleDoom} description splice both read, so the engine and the printed
+  // figure can never diverge. eyeGeneration still multiplies the total after
+  // (x0.5-with-rounding secondary Eyes, x2 under Hour of Judgment), the set
+  // doc's disclosures.
+  if (entry.def.id === 'needle_of_fate' && mods.selected[setBonusFlag('hexthread', 2)] === true) {
+    entry.effects = entry.effects.map((e) =>
+      e.type === 'afflictionNeedle' ? { ...e, doom: e.doom + HEXTHREAD_2PC_NEEDLE_DOOM_BONUS } : e,
+    );
+  }
+  // Moonscorch 2pc (the Crucible set doc): Moonseed may extend Lunar Tempest
+  // twice per application. The per-application cap is baked into the RESOLVED
+  // extendDot effect (6 -> 12), the ONE number the extendOwnedDot dispatch
+  // and the {duration} description splice both read; the per-press extension
+  // (seconds 6) stays untouched, so each press still adds 6 sec and the
+  // third press stays dead. Deterministic, no rng involved.
+  if (entry.def.id === 'moonseed' && mods.selected[setBonusFlag('moonscorch', 2)] === true) {
+    entry.effects = entry.effects.map((e) =>
+      e.type === 'extendDot' ? { ...e, maxBonus: MOONSCORCH_2PC_TEMPEST_EXTEND_CAP_SEC } : e,
+    );
+  }
+  // Wildfang 2pc (the Crucible set doc): Redharvest restores 45 energy, up
+  // from 30 (rank-3 truth). The multiplier is baked into the RESOLVED
+  // gainResource amount, the one number the dispatch's resource grant reads;
+  // Math.floor keeps the rank ladder at 22/33/45. gainResource is exempt from
+  // the generic damage scaling above (economy, not damage), so this is the
+  // one write. Deterministic, no rng involved.
+  if (
+    entry.def.id === 'redharvest' &&
+    mods.selected[setBonusFlag('wildfang_emberhide', 2)] === true
+  ) {
+    entry.effects = entry.effects.map((e) =>
+      e.type === 'gainResource'
+        ? { ...e, amount: Math.floor(e.amount * WILDFANG_2PC_REDHARVEST_ENERGY_MULT) }
+        : e,
+    );
+  }
+  // Grovespring 2pc (the Crucible set doc): Swiftmend heals 25 percent more.
+  // A bespoke rewrite of the RESOLVED consumeAura heal (the set doc's named
+  // eff.heal hook: no generic knob reaches it without folding into the
+  // additive baseline), applied AFTER the generic scaling so the bend is an
+  // exact 1.25x on the resolved base; the $d tooltip splice reads the same
+  // range. The healPower rider keeps its base scaling (disclosed).
+  if (entry.def.id === 'swiftmend' && mods.selected[setBonusFlag('grovespring', 2)] === true) {
+    entry.effects = entry.effects.map((e) =>
+      e.type === 'consumeAura' && e.heal
+        ? {
+            ...e,
+            heal: {
+              min: Math.round(e.heal.min * GROVESPRING_2PC_SWIFTMEND_HEAL_MULT),
+              max: Math.round(e.heal.max * GROVESPRING_2PC_SWIFTMEND_HEAL_MULT),
+            },
+          }
+        : e,
+    );
+  }
+  // Grovespring 4pc (the Crucible set doc): Overbloom harvests 75 percent.
+  // The fraction is baked into the RESOLVED druidOverbloom effect, the ONE
+  // number resolveDruidOverbloom and the {buff} description splice both
+  // read. Deterministic, no rng involved.
+  if (entry.def.id === 'overbloom' && mods.selected[setBonusFlag('grovespring', 4)] === true) {
+    entry.effects = entry.effects.map((e) =>
+      e.type === 'druidOverbloom' ? { ...e, harvestPct: GROVESPRING_4PC_OVERBLOOM_HARVEST_PCT } : e,
+    );
   }
 }
 
@@ -6509,6 +9552,7 @@ export function abilitiesKnownAt(
   cls: PlayerClass,
   level: number,
   mods?: TalentModifiers,
+  questsDone?: ReadonlySet<string>,
 ): KnownAbility[] {
   const out: KnownAbility[] = [];
   const baseIds = CLASSES[cls].abilities;
@@ -6520,8 +9564,23 @@ export function abilitiesKnownAt(
   for (const id of ids) {
     const def = ABILITIES[id];
     if (!def) continue;
+    // Retired ids stay in ABILITIES so persisted action bars can identify and
+    // discard them, but they are not authoritative actions. Keeping them in
+    // `known` would let modified clients and RL slots cast abilities the
+    // official spellbook deliberately hides.
+    if (def.hiddenFromPlayer) continue;
     const granted = grantIds.has(id) || !baseIds.includes(id);
-    if (!granted && def.learnLevel > level) continue; // class kit is level-gated; grants bypass it
+    // Paladin specialization signatures also live in its authored class kit.
+    // Keep their requested progression levels authoritative instead of letting
+    // the generic signature grant reveal Mercy Lance, Final Edict, or Sunward
+    // Disc early. Row-granted actives remain grants and still bypass level gates.
+    const paladinBaseKitGrant = cls === 'paladin' && baseIds.includes(id);
+    if ((!granted || paladinBaseKitGrant) && def.learnLevel > level) continue;
+    // Quest-gated kit: a quest-locked ability stays hidden until its unlocking
+    // quest is in questsDone (paladin's recall_the_fallen <- q_rite_of_redemption).
+    // Grants bypass entirely (already scoped). Learned permanently: questsDone is
+    // durable, so a returning character keeps it through the load-time rebuild.
+    if (!granted && def.requiresQuest && !questsDone?.has(def.requiresQuest)) continue;
     // Spec-gated kit: a spec-restricted ability is shown ONLY when the player's
     // committed spec is in its `specs` list. With no spec chosen the shared base
     // kit stays but every spec-exclusive drops out, so exclusivity is visible
@@ -6572,6 +9631,11 @@ export function abilitiesKnownAt(
       effects = [...effects, { type: 'gainResource', amount: 20 }];
       cooldown = 6;
     }
+    if (id === 'drain_life' && mods?.spec === 'affliction') {
+      effects = effects.map((effect) =>
+        effect.type === 'drainTick' ? { ...effect, healFrac: 1 } : effect,
+      );
+    }
     const entry: KnownAbility = {
       def,
       rank,
@@ -6595,7 +9659,13 @@ export function abilitiesKnownAt(
     // on the abilityCharges recharge model. Resolved HERE (the shared known-list
     // builder) so BOTH worlds see it: the offline Sim's meta.known and the
     // ClientWorld's locally recomputed list, which is what the action bar badges.
-    if (id === 'ice_block' && mods?.spec === 'frost') entry.bonusCharges = 1;
+    // Sets the resolved cap (`charges`) with the bonus, like the maxCharges arm
+    // above: normalizeAbilityCharges and the legacy-save caps read `charges`, so a
+    // bonus-only stamp collapsed the pool on every equip swap (refunding a use).
+    if (id === 'ice_block' && mods?.spec === 'frost') {
+      entry.charges = 2;
+      entry.bonusCharges = 1;
+    }
     if (mods) applyTalentMods(entry, mods);
     out.push(entry);
   }

@@ -4,37 +4,58 @@
 // site) to a UNIT VIEW (the values the painter writes). It has NO hardcoded
 // element id and NO single-instance assumption: it is a pure function of the
 // descriptor, so the same descriptor always yields the same view (DOM-free,
-// i18n-free, no Math.random / Date.now / performance.now). The player frame is the
-// FIRST instance through this seam; target and party are added as further
-// instances of the EXACT seam with no core change, so the descriptor deliberately
-// carries the FULL field set target and party need even though the player leaves
-// some at their always-present values.
+// translation-free (no t()/tEntity), no Math.random / Date.now / performance.now).
+// The player frame is the FIRST instance through this seam; target and party are
+// added as further instances of the EXACT seam with no core change, so the
+// descriptor deliberately carries the FULL field set target and party need even
+// though the player leaves some at their always-present values.
 //
 // What the core actually computes (the rest is a typed pass-through that pins the
 // contract): the present/hidden gate (a unit may be absent), the absorb-shield
 // overlay via the shared absorbBarView core (so player/target/party never
 // re-derive it), and the resource-type DISCRIMINATOR (which also folds the player
-// block's `rage : energy : mana` ternary and adds the `none` case a target frame
+// block's live rage, energy, focus, or mana state and adds the `none` case a target frame
 // with no resource bar needs). Health/resource fractions and the hp/resource TEXT
 // are preformatted at the call site (allocation-light: no raw entity references,
-// no per-element garbage), exactly as the inline player block computed them.
+// no per-element garbage), exactly as the inline player block computed them; the
+// ONE exception is the absorb-shield total appended to hpText ("523 / 600 (60)"),
+// which the core derives itself from the raw absorb input via absorbBarView and so
+// cannot be preformatted upstream. That number is routed through formatNumber
+// (useGrouping:false, matching hud_frames.ts) so its digits follow the active
+// locale like every other unit-frame number.
 
 import type { ResourceType } from '../sim/types';
-import { type AbsorbBarInput, absorbBarView } from './absorb_bar';
+import {
+  type AbsorbBarInput,
+  type AbsorbBarView,
+  absorbBarView,
+  absorbBarViewInto,
+} from './absorb_bar';
+import { formatNumber } from './i18n';
+
+// The absorb-total suffix appended to hpText ("523 / 600 (60)") runs through
+// formatNumber with useGrouping:false so its digits follow the active locale
+// like every other unit-frame number, matching hud_frames.ts. This is the
+// core's one narrow, deliberate use of the i18n runtime: it calls no
+// t()/tEntity (see tests/unit_frame.test.ts), so it still emits no
+// translated STRINGS, only locale-correct digits for a number it derives
+// internally (absorbBarView's total) that the call site has no way to
+// preformat itself.
+const ABSORB_TEXT_OPTS: Intl.NumberFormatOptions = { maximumFractionDigits: 0, useGrouping: false };
 
 /**
  * The resource-bar discriminator the painter routes to a class on the resource
- * container. The three power types are mutually exclusive; `none` is the
- * no-resource-bar case a target frame needs (it has no rage/energy/mana bar). The
- * player is always one of the three power types, never `none`.
+ * container. The four power types are mutually exclusive; `none` is the
+ * no-resource-bar case a target frame needs. The player always uses a live power
+ * type and never `none`.
  */
-export type UnitResourceClass = 'rage' | 'energy' | 'mana' | 'none';
+export type UnitResourceClass = 'rage' | 'energy' | 'focus' | 'mana' | 'none';
 
 /**
  * The resource input the descriptor carries. `none` marks a unit with no resource
  * bar (target). `ResourceType | null` is the live power: the player's resourceType
  * is `ResourceType | null` (null is the mana default), and the core maps it to a
- * UnitResourceClass exactly as the old inline `rage : energy : mana` ternary did.
+ * UnitResourceClass.
  */
 export type UnitResourceKind = ResourceType | 'none' | null;
 
@@ -66,6 +87,8 @@ export interface UnitFrameDescriptor {
   levelText: string | null;
   /** The unit's display name. */
   name: string;
+  /** Current self PvP exposure, supplied only by the player frame. */
+  pvpRisk?: boolean;
   /** The name line's title decoration (the Book of Deeds display title),
    *  PRE-LOCALIZED at the call site (the core stays i18n-free): everything the
    *  locale pattern places before the name (`titlePre`) and after it
@@ -73,6 +96,18 @@ export interface UnitFrameDescriptor {
    *  (player, party); absent means empty decoration. */
   titlePre?: string;
   titlePost?: string;
+  /** The operator-applied Cheater tag, PRE-LOCALIZED at the call site through
+   *  cheaterTagLabel (the core stays i18n-free), '' when the unit wears no mark.
+   *  Optional and absent for instances with no tag surface. A separate field from
+   *  titlePre on purpose: the title is a cosmetic REWARD the player chose and the
+   *  tag is a SANCTION they cannot, so they must never share a slot that a
+   *  reordering could make them contend for. */
+  cheaterTag?: string;
+  /** The Book of Deeds border SLUG (never a deed id), RESOLVED AT THE CALL SITE
+   *  via deedBorderSlug, exactly like titlePre's pre-localized decoration: the
+   *  core stays a pass-through and never touches the deed catalog. '' or absent
+   *  means no border, which is also what a stale or title-reward id resolves to. */
+  borderSlug?: string;
   /** The portrait identity. The PAINTER owns the repaint gate (repaint only when
    *  this key changes); the core just exposes it so target's lastPortraitTarget
    *  gating is the same code path. */
@@ -87,6 +122,13 @@ export interface UnitFrameDescriptor {
   /** The unit is beyond party range (a party member past PARTY_FRAME_RANGE_YD);
    *  the painter dims the frame. The player and a target are always in range. */
   outOfRange: boolean;
+  /** The party-scoped raid target marker on this unit (IWorld.markerFor: index
+   *  0..7, or null for an unmarked unit), read at the call site. Optional and
+   *  absent for instances without a marker surface (player, party); absent means
+   *  unmarked. The target frame shows it beside the portrait so a player can tell
+   *  WHICH of several stacked same-name mobs they hold, the same symbol the
+   *  nameplate floats over the mob in the world. */
+  raidMarker?: number | null;
 }
 
 /** The values the painter writes, derived from a descriptor by unitFrameView. */
@@ -100,24 +142,42 @@ export interface UnitFrameView {
   resText: string;
   levelText: string | null;
   name: string;
+  pvpRisk?: boolean;
   /** The pre-localized title decoration around the name ('' when untitled or
    *  the instance has no title surface). */
   titlePre: string;
   titlePost: string;
+  /** The pre-localized Cheater tag ('' when unmarked or the instance has no tag
+   *  surface). */
+  cheaterTag: string;
+  /** The call-site-resolved Book of Deeds border slug ('' when borderless or the
+   *  instance has no border surface). */
+  borderSlug: string;
   portraitKey: string;
   /** The absorb-shield overlay fraction (hp + absorb) / maxHp, clamped by
-   *  absorbBarView; equals hpFrac when there is no shield. Kept for the player /
-   *  target painter's left-filled overlay. */
+   *  absorbBarView; equals hpFrac when there is no shield. Kept for call sites
+   *  and tests that read the shield's right edge. */
   absorbFrac: number;
-  /** The left edge of the visible shield segment (party frames' positioned
-   *  segment; the player/target painter ignores it). */
+  /** The left edge of the visible shield segment: where the painter seats the
+   *  hatched overlay, so the hatch never lies over plain health. */
   absorbStartFrac: number;
-  /** The width of the visible shield segment. */
+  /** The width of the visible shield segment; 0 when there is no shield. */
   absorbSizeFrac: number;
   /** The shield reaches/passes the bar's right edge (fully shielded). */
   absorbOvershield: boolean;
   dead: boolean;
   outOfRange: boolean;
+  /** The raid marker index (0..7) to show beside the portrait, or null when the
+   *  unit is unmarked or the instance has no marker surface. */
+  raidMarker: number | null;
+}
+
+export interface UnitFrameBuffer {
+  view: UnitFrameView;
+  absorb: AbsorbBarView;
+  absorbTextBase: string;
+  absorbTextTotal: number;
+  absorbText: string;
 }
 
 // The not-present view: every field at a no-op default. A shared constant (no
@@ -131,8 +191,11 @@ const HIDDEN: UnitFrameView = {
   resText: '',
   levelText: null,
   name: '',
+  pvpRisk: false,
   titlePre: '',
   titlePost: '',
+  cheaterTag: '',
+  borderSlug: '',
   portraitKey: '',
   absorbFrac: 0,
   absorbStartFrac: 0,
@@ -140,6 +203,7 @@ const HIDDEN: UnitFrameView = {
   absorbOvershield: false,
   dead: false,
   outOfRange: false,
+  raidMarker: null,
 };
 
 // The no-shield absorb result, matching absorbBarView's shape for a null entity.
@@ -153,15 +217,28 @@ const NO_ABSORB = {
 
 /**
  * Map the descriptor's resource kind to the painter's class discriminator. This
- * IS the old inline player ternary (`rage : energy : mana`, where null falls
- * through to mana) plus the `none` case a target frame needs. Pure and exhaustive.
+ * Maps every live power type, with null falling through to mana, plus the `none`
+ * case a target frame needs. Pure and exhaustive.
  */
 export function unitResourceClass(kind: UnitResourceKind): UnitResourceClass {
   if (kind === 'none') return 'none';
   if (kind === 'rage') return 'rage';
   if (kind === 'energy') return 'energy';
+  if (kind === 'focus') return 'focus';
   // 'mana' or null: the player's default branch, byte-identical to the old ternary.
   return 'mana';
+}
+
+/**
+ * The absorb overlay's transform: the hatched shield segment ONLY, seated at its
+ * own left edge. A bar with no shield collapses to zero width, so a healthy unit
+ * shows the plain health gradient instead of a hatch laid over the whole bar.
+ * `scale` is the caller's already-formatted scaleX for the segment's width, so a
+ * party row keeps its quantized precision.
+ */
+export function absorbSegmentTransform(startFrac: number, sizeFrac: number, scale: string): string {
+  if (sizeFrac <= 0) return scale;
+  return `translateX(${startFrac * 100}%) ${scale}`;
 }
 
 /**
@@ -171,7 +248,10 @@ export function unitResourceClass(kind: UnitResourceKind): UnitResourceClass {
 export function unitFrameView(d: UnitFrameDescriptor): UnitFrameView {
   if (!d.present) return HIDDEN;
   const absorb = d.absorb ? absorbBarView(d.absorb) : NO_ABSORB;
-  const hpText = d.showAbsorbText && absorb.total > 0 ? `${d.hpText} (${absorb.total})` : d.hpText;
+  const hpText =
+    d.showAbsorbText && absorb.total > 0
+      ? `${d.hpText} (${formatNumber(absorb.total, ABSORB_TEXT_OPTS)})`
+      : d.hpText;
   return {
     present: true,
     hpFrac: d.hpFrac,
@@ -181,8 +261,11 @@ export function unitFrameView(d: UnitFrameDescriptor): UnitFrameView {
     resText: d.resText,
     levelText: d.levelText,
     name: d.name,
+    pvpRisk: d.pvpRisk ?? false,
     titlePre: d.titlePre ?? '',
     titlePost: d.titlePost ?? '',
+    cheaterTag: d.cheaterTag ?? '',
+    borderSlug: d.borderSlug ?? '',
     portraitKey: d.portraitKey,
     absorbFrac: absorb.fillFrac,
     absorbStartFrac: absorb.startFrac,
@@ -190,5 +273,110 @@ export function unitFrameView(d: UnitFrameDescriptor): UnitFrameView {
     absorbOvershield: absorb.overshield,
     dead: d.dead,
     outOfRange: d.outOfRange,
+    raidMarker: d.raidMarker ?? null,
   };
+}
+
+/** Allocate the long-lived buffers used by one HUD unit-frame instance. */
+export function newUnitFrameBuffer(): UnitFrameBuffer {
+  return {
+    view: {
+      present: false,
+      hpFrac: 0,
+      hpText: '',
+      resClass: 'none',
+      resFrac: 0,
+      resText: '',
+      levelText: null,
+      name: '',
+      pvpRisk: false,
+      titlePre: '',
+      titlePost: '',
+      cheaterTag: '',
+      borderSlug: '',
+      portraitKey: '',
+      absorbFrac: 0,
+      absorbStartFrac: 0,
+      absorbSizeFrac: 0,
+      absorbOvershield: false,
+      dead: false,
+      outOfRange: false,
+      raidMarker: null,
+    },
+    absorb: {
+      total: 0,
+      fillFrac: 0,
+      startFrac: 0,
+      sizeFrac: 0,
+      overshield: false,
+    },
+    absorbTextBase: '',
+    absorbTextTotal: 0,
+    absorbText: '',
+  };
+}
+
+/**
+ * Fill one caller-owned unit-frame view. This is the per-frame HUD path; the
+ * allocating unitFrameView wrapper remains available to pure callers/tests.
+ */
+export function unitFrameViewInto(buffer: UnitFrameBuffer, d: UnitFrameDescriptor): UnitFrameView {
+  const out = buffer.view;
+  if (!d.present) {
+    out.present = false;
+    out.hpFrac = 0;
+    out.hpText = '';
+    out.resClass = 'none';
+    out.resFrac = 0;
+    out.resText = '';
+    out.levelText = null;
+    out.name = '';
+    out.pvpRisk = false;
+    out.titlePre = '';
+    out.titlePost = '';
+    out.cheaterTag = '';
+    out.borderSlug = '';
+    out.portraitKey = '';
+    out.absorbFrac = 0;
+    out.absorbStartFrac = 0;
+    out.absorbSizeFrac = 0;
+    out.absorbOvershield = false;
+    out.dead = false;
+    out.outOfRange = false;
+    out.raidMarker = null;
+    return out;
+  }
+
+  const absorb = d.absorb ? absorbBarViewInto(buffer.absorb, d.absorb) : NO_ABSORB;
+  out.present = true;
+  out.hpFrac = d.hpFrac;
+  if (d.showAbsorbText && absorb.total > 0) {
+    if (d.hpText !== buffer.absorbTextBase || absorb.total !== buffer.absorbTextTotal) {
+      buffer.absorbTextBase = d.hpText;
+      buffer.absorbTextTotal = absorb.total;
+      buffer.absorbText = `${d.hpText} (${formatNumber(absorb.total, ABSORB_TEXT_OPTS)})`;
+    }
+    out.hpText = buffer.absorbText;
+  } else {
+    out.hpText = d.hpText;
+  }
+  out.resClass = unitResourceClass(d.resourceKind);
+  out.resFrac = d.resFrac;
+  out.resText = d.resText;
+  out.levelText = d.levelText;
+  out.name = d.name;
+  out.pvpRisk = d.pvpRisk ?? false;
+  out.titlePre = d.titlePre ?? '';
+  out.titlePost = d.titlePost ?? '';
+  out.cheaterTag = d.cheaterTag ?? '';
+  out.borderSlug = d.borderSlug ?? '';
+  out.portraitKey = d.portraitKey;
+  out.absorbFrac = absorb.fillFrac;
+  out.absorbStartFrac = absorb.startFrac;
+  out.absorbSizeFrac = absorb.sizeFrac;
+  out.absorbOvershield = absorb.overshield;
+  out.dead = d.dead;
+  out.outOfRange = d.outOfRange;
+  out.raidMarker = d.raidMarker ?? null;
+  return out;
 }

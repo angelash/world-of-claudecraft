@@ -20,6 +20,7 @@ import {
   localToWorld,
   samplePolyline,
 } from '../src/sim/eastbrook_layout';
+import { FENBRIDGE_LAYOUT, FENBRIDGE_STATIONS_BY_ID } from '../src/sim/fenbridge_layout';
 import {
   findPath,
   PLAYER_BODY_RADIUS,
@@ -65,11 +66,14 @@ function standAt(sim: Sim, pid: number, target: { x: number; z: number }): Entit
 
 function stableTownNpcPayload(): Record<string, Omit<NpcDef, 'pos' | 'facing'> | NpcDef> {
   return Object.fromEntries(
-    Object.entries(ZONE1_NPCS).map(([id, def]) => {
-      if (def.dynamic) return [id, def];
-      const { pos: _pos, facing: _facing, ...stable } = def;
-      return [id, stable];
-    }),
+    // The new independent keeper has its own placement and service tests.
+    Object.entries(ZONE1_NPCS)
+      .filter(([id]) => id !== 'eastbrook_vault_keeper')
+      .map(([id, def]) => {
+        if (def.dynamic) return [id, def];
+        const { pos: _pos, facing: _facing, ...stable } = def;
+        return [id, stable];
+      }),
   );
 }
 
@@ -77,17 +81,19 @@ function midpoint(a: { x: number; z: number }, b: { x: number; z: number }) {
   return { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
 }
 
+// Returns where the follower actually stopped (within 0.2 yd of `to`), so a
+// walk made of several legs can start each leg from the last one's arrival.
 function expectWalkableRoute(
   label: string,
   from: { x: number; z: number },
   to: { x: number; z: number },
   bodyRadius: number,
-): void {
+): { x: number; z: number } {
   const options = {
     seed: SEED,
     bodyRadius,
     maxClimbSlope: PLAYER_MAX_CLIMB_SLOPE,
-    minGround: (x: number, z: number) => waterLevelAt(x, z) - PLAYER_SWIM_DEPTH,
+    minGround: (x: number, z: number) => waterLevelAt(x, z, SEED) - PLAYER_SWIM_DEPTH,
     maxSpan: 128,
   } as const;
   let route = findPath(from, to, options);
@@ -130,7 +136,7 @@ function expectWalkableRoute(
     const previousGround = groundHeight(current.x, current.z, SEED);
     const nextGround = groundHeight(resolved.x, resolved.z, SEED);
     expect(nextGround, `${label} enters deep water`).toBeGreaterThanOrEqual(
-      waterLevelAt(resolved.x, resolved.z) - PLAYER_SWIM_DEPTH,
+      waterLevelAt(resolved.x, resolved.z, SEED) - PLAYER_SWIM_DEPTH,
     );
     expect(
       (nextGround - previousGround) / Math.max(moved, Number.EPSILON),
@@ -147,6 +153,27 @@ function expectWalkableRoute(
   expect(Math.hypot(to.x - current.x, to.z - current.z), `${label} endpoint`).toBeLessThanOrEqual(
     0.2,
   );
+  return current;
+}
+
+// One unbroken walk through the points in order: every leg goes through
+// expectWalkableRoute (so every stride keeps its fence, collision, deep-water
+// and climb-slope checks and every leg must arrive), and each leg starts
+// where the one before it stopped, never back on the waypoint itself.
+function expectWalkableLegs(
+  label: string,
+  points: readonly { x: number; z: number }[],
+  bodyRadius: number,
+): void {
+  let at = points[0];
+  for (let leg = 1; leg < points.length; leg++) {
+    at = expectWalkableRoute(
+      `${label} leg ${leg} of ${points.length - 1}`,
+      at,
+      points[leg],
+      bodyRadius,
+    );
+  }
 }
 
 function placeEntity(sim: Sim, entity: Entity, point: { x: number; z: number }): void {
@@ -160,6 +187,38 @@ function placeEntity(sim: Sim, entity: Entity, point: { x: number; z: number }):
   sim.rebucket(entity);
 }
 
+// Re-minted 2026-08-18 for the harbor move (commit d19aa33f76,
+// docs/design/eastbrook-revamp/site-plan.md): the fixture's premise is "the
+// same world with the town expressed as plain legacy prop rows", so both
+// worlds present identical collision everywhere. The old-town rows that used
+// to sit here now stand on ground that became Wolf Run open country, and a
+// scattered wolf spawn deflected off a house row that existed only in this
+// fixture. Every row below is probed from the live derived ZONE1_PROPS and
+// EASTBROOK_LAYOUT values: the six harbor lots as plain building rows (the
+// chapel keeps its assetId because an assetId-less chapel collides as the
+// legacy COMPOSED tower-and-hall pair, not the authored single OBB the live
+// town presents), the well beacon row at its civic square position, the two
+// sized market stalls (w/d/height drive the authored OBB collider), the
+// three smithy-yard fences at their probed endpoints, and no town campfire
+// (the retired [3, -4] row sat inside what is now Wolf Run: exactly the
+// class of collider that forked the wolf projection). Round 4 dropped the
+// armoury landmark row: the live town no longer places it, and the barracks
+// garrison that took the lot rides through unchanged as decorProps in BOTH
+// worlds via the ...current spread. Round 6b re-probed the two stall rows to
+// the opened-out market square: this fixture only holds if its plain rows carry
+// the SAME collision as the live authored stalls, so a stale position here
+// forks the wolf projection at the bottom of this file rather than the town.
+// Re-minted 2026-10 for the Tidehold rebuild: six placed buildings replaced
+// the eleven kit shells, so the six building rows are re-probed from the live
+// ZONE1_PROPS records (each one the building's WALL box). The old rows stood
+// on ground the rebuild cleared (the kit bank, chapel and workshops), which
+// made them colliders and calm pads present in this fixture and nowhere else.
+// Each row keeps its record id and nothing else of the authored record: a
+// placed building is solid past its wall box (a bell tower, a strongroom, a
+// forge shelter), and those annex boxes are found by id and standing place
+// (placedBuildingAnnexes), so an id-less row would leave the live town with
+// solids this fixture lacks. The chapel still keeps an assetId, for the same
+// reason as before.
 function legacyEastbrookProps(current: ZonePropsDef): ZonePropsDef {
   const townBuildingIds = new Set(
     [...EASTBROOK_LAYOUT.preservedBuildings, ...EASTBROOK_LAYOUT.buildings].map(
@@ -169,34 +228,105 @@ function legacyEastbrookProps(current: ZonePropsDef): ZonePropsDef {
   return {
     ...current,
     buildings: [
-      { kind: 'house', x: 10, z: 12, w: 7, d: 6, rot: -0.4 },
-      { kind: 'house', x: -10, z: 10, w: 6, d: 5, rot: 0.5 },
       {
-        kind: 'inn',
-        landmark: 'eastbrook_grand_armoury',
-        x: 17.5,
-        z: -5.5,
-        w: 13,
-        d: 9,
-        rot: -Math.PI / 2,
+        id: 'eastbrook_bank',
+        kind: 'house',
+        x: 30.38,
+        z: -115,
+        w: 23.4,
+        d: 16.24,
+        rot: Math.PI / 2,
       },
-      { kind: 'chapel', x: -16, z: -8, w: 5, d: 7, rot: 0.9 },
+      {
+        id: 'eastbrook_smithy',
+        kind: 'house',
+        x: -34.06,
+        z: -113.48,
+        w: 14.3,
+        d: 11.7,
+        rot: Math.PI,
+      },
+      {
+        id: 'eastbrook_inn',
+        kind: 'inn',
+        x: -40.51,
+        z: -72.3,
+        w: 26,
+        d: 16.9,
+        rot: Math.PI / 2,
+      },
+      {
+        id: 'eastbrook_chapel',
+        kind: 'chapel',
+        assetId: '/models/tidehold/hall.glb',
+        x: -64,
+        z: -115.57,
+        w: 15.6,
+        d: 28.6,
+        rot: Math.PI,
+      },
+      { id: 'eastbrook_apothecary', kind: 'house', x: -7.02, z: -82.03, w: 14.3, d: 10.92, rot: 0 },
+      { id: 'eastbrook_quay_cottage', kind: 'house', x: -75, z: -49.9, w: 16.58, d: 11.12, rot: 0 },
       ...current.buildings.filter((building) => !building.id || !townBuildingIds.has(building.id)),
     ],
     wells: [
-      { x: 0, z: 2, r: 1.5 },
-      ...current.wells.filter((well) => well.id !== EASTBROOK_LAYOUT.civic.wellBeacon.id),
+      // The legacy fixture is the PRE-rebuild world, so it keeps an unnamed
+      // well on the civic point and strips whatever the rebuild seats there.
+      // The RADIUS follows the live centrepiece rather than the old 1.5, for
+      // the same reason the mailbox row below follows the live pillar: this
+      // test's whole premise is identical collision in both worlds, and a
+      // 0.1 yard difference on a solid in the middle of the square is exactly
+      // the kind of thing that deflects one wanderer 2,000 ticks later and
+      // reds this as a mystery.
+      { x: -14.75, z: -102, r: EASTBROOK_LAYOUT.civic.monument.radius },
+      ...current.wells.filter((well) => well.id !== EASTBROOK_LAYOUT.civic.monument.id),
     ],
     stalls: [
-      { x: -8.5, z: 3, rot: Math.PI / 2, r: 1.7 },
-      { x: 9.5, z: 17.5, rot: -2.7, r: 1.7, smithy: true },
-      { x: 0, z: 11.5, rot: Math.PI, r: 1.8 },
+      {
+        x: -20.5,
+        z: -94,
+        rot: 2.4805494847391065,
+        r: 1.7804493814764857,
+        w: 2.8,
+        d: 2.2,
+        height: 2.7,
+      },
+      {
+        x: -19,
+        z: -108,
+        rot: 0.6610431688506869,
+        r: 1.7804493814764857,
+        w: 2.8,
+        d: 2.2,
+        height: 2.7,
+      },
       ...current.stalls.filter((stall) => !stall.id?.startsWith('eastbrook_market_stall_')),
     ],
-    campfires: [[3, -4], ...current.campfires],
     fences: [
-      { x1: 16, z1: 16, x2: 22, z2: 4 },
-      { x1: -16, z1: 14, x2: -20, z2: 2 },
+      {
+        x1: 4.395154415649398,
+        z1: -123.83357574154984,
+        x2: 2.8746281909495415,
+        z2: -124.59383885389975,
+        width: 0.28,
+        height: 0.9,
+      },
+      {
+        x1: 4.529318494299386,
+        z1: -123.43108350559987,
+        x2: 0.7727242920997393,
+        z2: -115.91789510120057,
+        width: 0.28,
+        height: 0.9,
+      },
+      {
+        x1: 0.37023205614977694,
+        z1: -115.78373102255058,
+        x2: -1.1502941685500798,
+        z2: -116.5439941349005,
+        width: 0.28,
+        height: 0.9,
+      },
       ...current.fences.filter((fence) => !fence.id?.startsWith('eastbrook_fence_')),
     ],
     benches: current.benches?.filter((bench) => !bench.id.startsWith('eastbrook_')),
@@ -206,26 +336,26 @@ function legacyEastbrookProps(current: ZonePropsDef): ZonePropsDef {
 
 describe('Eastbrook authored gameplay data integration', () => {
   it('replaces only the town prop inventory and preserves every exterior prop row in order', () => {
+    // Round 4: the preserved Grand Armoury row retired with the barracks
+    // swap; the building table is exactly the authored layout lots now, and
+    // the KayKit barracks + watch tower garrison the old lot as decorProps
+    // (pinned in tests/eastbrook_grand_armoury.test.ts).
     expect(ZONE1_PROPS.buildings.map((building) => building.id)).toEqual([
-      'eastbrook_grand_armoury',
       ...EASTBROOK_LAYOUT.buildings.map((building) => building.id),
+      EASTBROOK_LAYOUT.weeklyVault.id,
     ]);
-    expect(ZONE1_PROPS.buildings[0]).toMatchObject({
-      id: 'eastbrook_grand_armoury',
-      kind: 'house',
-      landmark: 'eastbrook_grand_armoury',
-      x: 17.5,
-      z: -5.5,
-      w: 13,
-      d: 9,
-      rot: -Math.PI / 2,
-    });
+    expect(ZONE1_PROPS.buildings.some((building) => building.landmark)).toBe(false);
+    // Re-pinned 2026-08-18 for the harbor move (commit d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md): the well beacon moved with
+    // the civic square to the harbor site. Round 7 replaced it in place with
+    // the Realm Builder monument, which keeps the point and tightens the
+    // radius onto its own art.
     expect(ZONE1_PROPS.wells).toEqual([
       expect.objectContaining({
-        id: EASTBROOK_LAYOUT.civic.wellBeacon.id,
-        x: -0.75,
-        z: 2,
-        r: 1.5,
+        id: EASTBROOK_LAYOUT.civic.monument.id,
+        x: -14.75,
+        z: -102,
+        r: 3.19,
       }),
     ]);
     expect(
@@ -252,27 +382,41 @@ describe('Eastbrook authored gameplay data integration', () => {
       EASTBROOK_LAYOUT.fences.map((fence) => fence.id),
     );
 
-    expect(ZONE1_PROPS.mines).toEqual([{ x: -88, z: -68, rot: 0.8 }]);
+    expect(ZONE1_PROPS.mines).toEqual([{ x: -38, z: 138, rot: 0.8 }]);
     expect(ZONE1_PROPS.docks).toEqual([
       { x: -64, z: 60, rot: -2.2, hutLocal: { x: 2.8, z: 2.4, hw: 1.7, hd: 1.5 } },
     ]);
+    // Re-pinned for owner refinement round 6: the vale bandit camp swapped
+    // centers with the wild boar camp, so the first two tents, the first two
+    // crates and the first campfire (the band's own dressing) travelled north
+    // with it, while Gorrak's rows stayed put. The same round added a
+    // fisherman's camp on the strand south of the quay, one tent and one fire
+    // beside the beached rowboats.
+    // Re-pinned again for owner round 6b: Gorrak's camp joined the main bandit
+    // band northeast, so his two tents, his two crates and his fire travelled
+    // with the boss to the reunited camp around (115, 42).
+    // Re-pinned for the World of ClaudeCraft Studio map's arrangement: the
+    // fisherman's camp moved down the strand to the water's edge, and the two
+    // rowboats beside its old spot went with the move.
     expect(ZONE1_PROPS.tents).toEqual([
-      { x: 62, z: -61, rot: 0.4, scale: 1 },
-      { x: 69, z: -69, rot: 2.1, scale: 1 },
-      { x: 88, z: -86, rot: 1.2, scale: 1.3 },
-      { x: 95, z: -94, rot: -0.6, scale: 1 },
+      { x: 58, z: 25, rot: 0.4, scale: 1 },
+      { x: 68, z: 16, rot: 2.1, scale: 1 },
+      { x: 113, z: 47, rot: 1.2, scale: 1.3 },
+      { x: 119, z: 39, rot: -0.6, scale: 1 },
+      { x: -104.5, z: -81.9, rot: -1.658, scale: 1 },
     ]);
     expect(ZONE1_PROPS.crates).toEqual([
-      [60, -63],
-      [66, -67],
-      [87, -88],
-      [93, -90],
-      [70, -72],
+      [56, 22],
+      [64, 26],
+      [112, 44],
+      [118, 40],
+      [66, 14],
     ]);
     expect(ZONE1_PROPS.campfires).toEqual([
-      [65, -65],
-      [90, -90],
-      [-80, -60],
+      [59, 17],
+      [111, 46],
+      [-101.52, -78.71],
+      [-30, 146],
       [-61, 56],
     ]);
     expect(ZONE1_PROPS.mudHuts).toEqual([
@@ -280,35 +424,59 @@ describe('Eastbrook authored gameplay data integration', () => {
       [-78, 54],
       [-69, 55],
     ]);
+    // The chapel-rise ruin (-5, -60) is gone: the smithy of the World of
+    // ClaudeCraft Studio map's arrangement stands on its south columns.
     expect(ZONE1_PROPS.ruinRings).toEqual([
-      { x: 80, z: 78, ringR: 7, columns: 7 },
-      { x: -5, z: -60, ringR: 8, columns: 6 },
+      // the Fallen Chapel stands on this ring's site: it is bare
+      // (tests/hollow_crypt_entrance.test.ts)
+      { x: 80, z: 78, ringR: 7, columns: 7, bare: true },
     ]);
+    // Re-pinned 2026-08-18 for the harbor move (commit d19aa33f76): the
+    // Eastbrook graveyard row moved to the chapel green; the second
+    // (exterior) row is unchanged. Re-pinned again for owner refinement
+    // round 6, which added two anchors: the north-Vale yard on the Copper Dig
+    // road that gives the new gy_vale_north release its headstones, and a
+    // second chapel-green plot filling the west half of the wrought-iron
+    // churchyard enclosure.
+    // Re-pinned for owner round 6b: the retired Vale Chapel Yard anchor at
+    // (4, -56) is gone with its graveyard record, because its Pale Keeper stood
+    // 15 yd from the rebuilt Eastbrook Rest and read as a duplicate.
+    // Re-pinned for the World of ClaudeCraft Studio map's arrangement: the
+    // churchyard moved with the chapel, its two plots inside the iron rails
+    // beside the chapel's north wall.
     expect(ZONE1_PROPS.graveyards).toEqual([
-      { x: -14, z: -14 },
-      { x: 4, z: -56 },
+      { x: 37.5, z: -99.3 },
+      { x: -22, z: 118 },
+      { x: 28.5, z: -107.8 },
     ]);
-    expect(ZONE1_PROPS.delveMarkers).toEqual([{ x: -5, z: -52, delveId: 'collapsed_reliquary' }]);
+    // Re-pinned for owner refinement round 6b: the Collapsed Reliquary mouth
+    // left the town chapel rise and moved to the Mirror Lake shore, so the
+    // delve marker travels with it (src/sim/content/zone1.ts delveMarkers).
+    expect(ZONE1_PROPS.delveMarkers).toEqual([{ x: -136, z: 112, delveId: 'collapsed_reliquary' }]);
   });
 
-  it('routes every preserved exterior road through its authoritative five-yard gate', () => {
-    expect(ZONE1_ROADS).toHaveLength(6);
+  // Re-pinned 2026-08-18 for the harbor move (commit d19aa33f76,
+  // docs/design/eastbrook-revamp/site-plan.md), then for owner refinement
+  // round 3: the wall and its gates are retired by design, so every road
+  // carries gateId null and there is no gate crossing to contain. Round 3
+  // added the inn lane (appended last, the by-index spread rule), trimmed
+  // the beach promenade to the pulled-in strand, and re-tied the coast
+  // track to hug the new waterline.
+  it('keeps every preserved exterior road on its authored prefix with no gate crossing', () => {
+    expect(ZONE1_ROADS).toHaveLength(7);
     for (let index = 0; index < EASTBROOK_LAYOUT.roads.length; index++) {
       const authored = EASTBROOK_LAYOUT.roads[index];
       expect(ZONE1_ROADS[index].slice(0, authored.points.length)).toEqual(authored.points);
-      const gate = EASTBROOK_LAYOUT.wall.gates.find(
-        (candidate) => candidate.id === authored.gateId,
-      );
-      if (!gate) throw new Error(`missing gate ${authored.gateId}`);
-      expect(ZONE1_ROADS[index]).toContainEqual(gate.crossing);
+      expect(authored.gateId).toBeNull();
     }
     expect(ZONE1_ROADS.map((road) => road.at(-1))).toEqual([
-      { x: -2, z: 78 },
-      { x: 55, z: 12 },
+      { x: -32, z: 140 },
+      { x: -92, z: -56 },
       { x: 65, z: -65 },
-      { x: -66, z: 58 },
-      { x: -70, z: -55 },
-      { x: 78, z: 74 },
+      { x: -9.2, z: -134 },
+      { x: -9, z: -100.4 },
+      { x: -96, z: -66 },
+      { x: -44, z: -98 },
     ]);
   });
 
@@ -322,17 +490,234 @@ describe('Eastbrook authored gameplay data integration', () => {
       'smith_haldren',
       'fisherman_brandt',
       'foreman_odell',
+      'eastbrook_vault_keeper',
       'bursar_fernando',
       'card_master',
-      'groundskeeper_bram',
       'chronicler_saul',
       'forgemistress_darva',
       'cook_marlow',
       'weaver_ottilie',
       'tinker_gizzel',
+      'farmer_jessica',
     ]);
+    // Reminted for the paladin-only Dawnbound Tome chain, which hangs q_divine_tome
+    // off Brother Aldric. The payload covers everything but pos/facing, so a quest
+    // added to a town NPC moves it; the placement assertions below still pin every
+    // position independently.
+    // Everything except pos/facing, hashed: the placement rebuild must not have
+    // touched any other NpcDef field. Re-minted deliberately when the gathered
+    // materials came off the station masters' vendorItems rows (the ruling that
+    // no NPC stocks a gathered material), which is a content change to this
+    // payload, not placement drift. Any UNEXPLAINED move here is the bug it
+    // was written to catch.
+    //
+    // Re-minted a second time when Eastbrook stopped stocking the tier-2 and
+    // tier-3 land tools, the hub rule that a zone sells the tiers its own
+    // nodes use (Eastbrook is entirely tier-1 ground). Exactly three of the 16
+    // payloads moved and all three moves are vendorItems rows: trader_wilkes
+    // (six tools dropped, both rods kept), forgemistress_darva (two picks
+    // dropped) and tinker_gizzel (four axes and sickles dropped). Nothing else
+    // in any def, and no placement field, changed. The three row assertions
+    // that follow re-check that those are still the rows this case owns.
+    //
+    // Re-minted a third time by phase 05 of the bank-storage packet, which put
+    // the Burlap Reagent Pouch (the one vendor-sold materials-only bag) on the
+    // two counters that already stock bags: trader_wilkes and weaver_ottilie,
+    // appended at the END of both lists. Exactly two of the payloads moved and
+    // both moves are vendorItems rows. Nothing else in any def, and no
+    // placement field, changed.
+    //
+    // The moved rows, asserted BEFORE the digest below so they actually
+    // run: a failing expect throws, so stating them after the hash meant they
+    // never evaluated in the one case they exist to describe. Ordered this way
+    // a drift in some OTHER field of some other NPC moves the hash while these
+    // stay green, which is the diagnostic the digest alone cannot give.
+    //
+    // Re-minted a third time at the farming go-live, when the kitchens
+    // master took on the two produce work orders: exactly one payload moved
+    // and the move is cook_marlow's questIds row (two order ids appended
+    // after q_prof_workorder_kitchens). The row assertion below re-checks
+    // that this is still the row this case owns.
+    expect(ZONE1_NPCS.cook_marlow.questIds).toEqual([
+      'q_prof_attune_apothecary',
+      'q_prof_amends_apothecary',
+      'q_prof_workorder_kitchens',
+      'q_prof_workorder_kitchens_wheat',
+      'q_prof_workorder_kitchens_rice',
+    ]);
+    // Re-minted again at the release/v0.41.0 sync, where the Sowfield
+    // demolition retired Groundskeeper Bram with the Vale Cup module: his
+    // whole record (the one dynamic payload) left the table, and no other def
+    // or placement field moved. MEASURED on the merged tree.
+    // Re-minted for Intentional Gathering (PR3): field_kit, the
+    // corpse-harvest key, joined six vendorItems rows: trader_wilkes,
+    // forgemistress_darva, weaver_ottilie, and tinker_gizzel (each one row,
+    // ahead of that counter's existing final row), fisherman_brandt
+    // (appended last, after simple_fishing_pole, his only prior row), and
+    // farmer_jessica (appended last, after garden_hoe; see her own row
+    // assertion below). Nothing else in any def, and no placement field,
+    // changed. The counterfactual ahead of the digest strips exactly these
+    // six field_kit rows and reproduces the PRE-PR3 hash byte for byte,
+    // isolating the digest move to those six single-row insertions.
+    expect(ZONE1_NPCS.trader_wilkes.vendorItems).toEqual([
+      'baked_bread',
+      'spring_water',
+      'roasted_boar',
+      'tough_jerky',
+      'minor_healing_potion',
+      'minor_mana_potion',
+      'linen_pouch',
+      'travelers_knapsack',
+      'copper_mining_pick',
+      'handaxe',
+      'gathering_sickle',
+      'ironreel_fishing_rod',
+      'silverstream_fishing_rod',
+      'field_kit',
+      'burlap_reagent_pouch',
+    ]);
+    expect(ZONE1_NPCS.fisherman_brandt.vendorItems).toEqual(['simple_fishing_pole', 'field_kit']);
+    expect(ZONE1_NPCS.weaver_ottilie.vendorItems).toEqual([
+      'linen_pouch',
+      'travelers_knapsack',
+      'gathering_sickle',
+      'field_kit',
+      'spool_of_thread',
+      'burlap_reagent_pouch',
+    ]);
+    expect(ZONE1_NPCS.forgemistress_darva.vendorItems).toEqual([
+      'copper_mining_pick',
+      'field_kit',
+      'smithing_flux',
+    ]);
+    expect(ZONE1_NPCS.tinker_gizzel.vendorItems).toEqual([
+      'handaxe',
+      'simple_fishing_pole',
+      'field_kit',
+      'arcanite_bar',
+    ]);
+    // Re-minted a third time for the farming go-live: farmer_jessica joined
+    // ZONE1_NPCS as the seventeenth def (a non-town NPC with an inline pos
+    // outside the wall, like Bram, so the 15 town placements below are
+    // untouched and ZONE1_TOWN_NPC_IDS keeps its length). Her payload is the
+    // only new row; the sixteen prior payloads are byte-identical (zone1.ts
+    // diff-checked). The row assertion that follows owns her stock.
+    // Re-minted a fifth time for Intentional Gathering (PR3): field_kit
+    // appended last, after garden_hoe (see the row-assertion group above).
+    expect(ZONE1_NPCS.farmer_jessica.vendorItems).toEqual([
+      'vale_wheat_seed',
+      'brook_carrot_seed',
+      'brook_carrot',
+      'compost',
+      'garden_hoe',
+      'field_kit',
+    ]);
+    // Re-minted a fourth time (2026-08-18) for the harbor move (commit
+    // d19aa33f76, docs/design/eastbrook-revamp/site-plan.md; the reword
+    // itself landed with the wave D waterfront, 88f14c6078): exactly one
+    // non-placement field moved, Apothecary Lin's greeting, because the
+    // spider wood she warns about sits northeast of the harbor site instead
+    // of east of the old ring. Asserted BEFORE the digest, same as the
+    // vendor rows above, so the one moved field is described where it can
+    // actually fail.
+    expect(ZONE1_NPCS.apothecary_lin.greeting).toBe(
+      'Careful where you step in the northeastern woods, friend.',
+    );
+    // Re-minted at the merge of release/v0.41.0 into feature/masterwrought
+    // (base 9a89e3483e, release tip ff2837da1f): the branch's farmer_jessica
+    // row and the two produce work orders on cook_marlow combine with the
+    // release's Bram retirement, Lin's harbor greeting and the Eastbrook
+    // rebuild rounds, so the merged payload hashes to a value matching
+    // NEITHER parent. Parent values for the record: ours
+    // 7f0a09f0bd4c4d83845c57e760b92981af62338feab28ed570ec1390eedfd5e9, the
+    // release 2f6072ad2baa2341ce32484144915a0d6cbc9836d0ed4c9d70112e3dbeb87146.
+    // Measured on the merged working tree (npx vitest run
+    // tests/eastbrook_gameplay_integration.test.ts, with zone1.ts and the
+    // layout both conflict-free) and set to exactly what it reported.
+    //
+    // Re-minted at the 11n vendor floor (qr-11n-WIDE): exactly one payload
+    // moved and the move is smith_haldren's vendorItems row, the four
+    // byte-identical crafted gear rows pulled (eastbrook_arming_sword,
+    // eastbrook_chain_vest, eastbrook_wool_trousers, tanned_leather_jerkin).
+    // Nothing else in any def, and no placement field, changed. The row
+    // assertion below is asserted BEFORE the digest, same as the vendor rows
+    // above, so the one moved field is described where it can actually fail;
+    // tests/vendor_floor.test.ts owns the deeper per-id keeps.
+    expect(ZONE1_NPCS.smith_haldren.vendorItems).toEqual([
+      'eastbrook_greatsword',
+      'bronzework_mace',
+      'vale_carving_knife',
+      'hickory_shortstaff',
+      'eastbrook_buckler',
+      'valespun_robe',
+      'hobnail_boots',
+    ]);
+    // Re-minted at the merge of release/v0.41.0 (tip d3f8bae369 onward) into
+    // feature/masterwrought: the branch's 11n vendor floor pull combines with
+    // the release's Burlap Reagent Pouch rows on trader_wilkes and
+    // weaver_ottilie (bank-storage phase 05), so the merged payload hashes to
+    // a value matching NEITHER parent. Parent values for the record: ours
+    // a9448fdddffaac362da8792a7a013d2a840122c2c12a25adb73779767952e14d, the
+    // release 3943f298cc9eff07d9dc040c8ff68d401da70e4a1ba9c17efc681aebc0fede44.
+    // Measured on the merged working tree (zone1.ts conflict-free) and set to
+    // exactly what it reported.
+    //
+    // Re-minted at the Phase 18 seed-feeding copy pass (commit 58e904a4b6),
+    // which cleared the grandfathered em dashes out of the prose the mediawiki
+    // seed publishes. Exactly two payload fields moved, both greetings, both
+    // rewordings of a dash: The Merchant's market line takes a comma and
+    // Brandt's takes an ellipsis. No other field, no placement field, and no
+    // key order changed (proved by replaying the pre-pass zone1.ts against the
+    // current siblings: the payload reproduces the previous digest above with
+    // only these two strings restored). Both are asserted BEFORE the digest,
+    // same as the vendor and greeting rows above, so each moved field is
+    // described where it can actually fail.
+    expect(ZONE1_NPCS.the_merchant.greeting).toBe(
+      'Welcome to the World Market, $C. Buy from every adventurer in the realm, or set out your own wares and let coin find you.',
+    );
+    expect(ZONE1_NPCS.fisherman_brandt.greeting).toBe(
+      'Blrb-glub... sorry, been listening to those fish-men too long.',
+    );
+    // PRE-PR3 counterfactual: strip exactly the six field_kit rows the
+    // row-assertion group above just proved are real (trader_wilkes,
+    // fisherman_brandt, forgemistress_darva, weaver_ottilie, tinker_gizzel,
+    // farmer_jessica), one row each, and the remaining payload reproduces the
+    // digest that was pinned here before PR3 (Intentional Gathering) landed,
+    // byte for byte. That is the proof the whole hash move is these six
+    // insertions and nothing else: any other drift in any other field would
+    // still show up as a mismatch on THIS expectation.
+    const PR3_FIELD_KIT_VENDOR_ROWS = [
+      'trader_wilkes',
+      'fisherman_brandt',
+      'forgemistress_darva',
+      'weaver_ottilie',
+      'tinker_gizzel',
+      'farmer_jessica',
+    ] as const;
+    function withoutPr3FieldKitRows(): Record<string, Omit<NpcDef, 'pos' | 'facing'> | NpcDef> {
+      const payload = stableTownNpcPayload();
+      for (const id of PR3_FIELD_KIT_VENDOR_ROWS) {
+        const def = payload[id];
+        const items = def.vendorItems;
+        if (!items) throw new Error(`${id} has no vendorItems to strip field_kit from`);
+        const idx = items.indexOf('field_kit');
+        if (idx < 0) throw new Error(`${id} vendorItems carries no field_kit row to strip`);
+        payload[id] = {
+          ...def,
+          vendorItems: [...items.slice(0, idx), ...items.slice(idx + 1)],
+        };
+      }
+      return payload;
+    }
+    expect(
+      createHash('sha256').update(JSON.stringify(withoutPr3FieldKitRows())).digest('hex'),
+      'stripping exactly the six PR3 field_kit rows reproduces the pre-PR3 digest',
+    ).toBe('ef35b8640f9ed213e86dbac9b04ba7a8ec9cdde6179d3859e833519dcaabb6c2');
+    // CURRENT digest, WITH the six field_kit rows. Measured on the merged
+    // working tree; the counterfactual above already proves the only content
+    // difference from the pre-PR3 payload is those six rows.
     expect(createHash('sha256').update(JSON.stringify(stableTownNpcPayload())).digest('hex')).toBe(
-      '92c37779f6a29982ec3541169d995fc4365c9696a9b7a0e2fd32713094073db1',
+      'ecc22e457d1f325155266ede8bd5306f73d9d5057854316b502f43c9e4dcd8a3',
     );
     expect(ZONE1_TOWN_NPC_IDS).toHaveLength(15);
     for (const id of ZONE1_TOWN_NPC_IDS) {
@@ -340,25 +725,42 @@ describe('Eastbrook authored gameplay data integration', () => {
       expect(ZONE1_NPCS[id].pos).toEqual(placement.position);
       expect(ZONE1_NPCS[id].facing).toBe(placement.facing);
     }
-    expect(ZONE1_NPCS.groundskeeper_bram).toMatchObject({
-      pos: { x: -6, z: -82 },
-      facing: Math.PI,
-      dynamic: true,
+    // Groundskeeper Bram's inline placement pin stood here until the release
+    // retired him with the Sowfield and the Vale Cup; Farmer Jessica's is now
+    // the one non-layout Eastbrook placement.
+    // The farmer's inline seat beside the allotments (the go-live), pinned
+    // here as the non-layout Eastbrook placement; the world-side proof (never
+    // nudged, beside the beds, off the road) lives in
+    // tests/farmer_npc_placement.test.ts.
+    expect(ZONE1_NPCS.farmer_jessica).toMatchObject({
+      pos: { x: -15.5, z: -81.5 },
+      facing: -Math.PI / 2,
+      farmer: true,
     });
+    expect(ZONE1_NPCS.farmer_jessica.dynamic).toBeUndefined();
   });
 
+  // Re-pinned 2026-08-18 for the harbor move (commit d19aa33f76,
+  // docs/design/eastbrook-revamp/site-plan.md): FURY moved with the chapel
+  // to the chapel green; position and facing probed from the live layout.
+  // Re-pinned for owner round 6b: FURY is the honor quartermaster, a service
+  // NPC, so he left the chapel step (7 yd from Brother Aldric) for the town's
+  // eastern edge; his facing is still derived, so it moved with him.
+  // Re-pinned for the World of ClaudeCraft Studio map's arrangement: the north
+  // road swings west round the smithy's forge shelter over his old stand, so
+  // he keeps the town's edge between that road and the coast track.
   it('spawns layout-authored FURY under a reserved id without shifting nextId or RNG', () => {
     expect(EASTBROOK_NPC_PLACEMENTS_BY_ID.fury).toEqual({
       id: 'fury',
-      position: { x: -22.5, z: -7.5 },
-      facing: 1.171280832795522,
+      position: { x: 21, z: -83.5 },
+      facing: -2.0570389598824015,
       anchorId: 'eastbrook_chapel',
       bodyRadius: 0.6,
     });
     expect(BUILTIN_WORLD.npcs[FURY_NPC_ID]).toMatchObject({
       id: 'fury',
-      pos: { x: -22.5, z: -7.5 },
-      facing: 1.171280832795522,
+      pos: { x: 21, z: -83.5 },
+      facing: -2.0570389598824015,
       dynamic: true,
     });
     expect(FURY_ENTITY_ID).toBe(1_000_000_001);
@@ -393,12 +795,12 @@ describe('Eastbrook authored gameplay data integration', () => {
       id: 1_000_000_001,
       kind: 'npc',
       templateId: 'fury',
-      x: -22.5,
-      z: -7.5,
-      spawnX: -22.5,
-      spawnZ: -7.5,
-      facing: 1.171280832795522,
-      prevFacing: 1.171280832795522,
+      x: 21,
+      z: -83.5,
+      spawnX: 21,
+      spawnZ: -83.5,
+      facing: -2.0570389598824015,
+      prevFacing: -2.0570389598824015,
     });
     expect([...withFury.entities.keys()].filter((id) => id !== FURY_ENTITY_ID)).toEqual([
       ...withoutFury.entities.keys(),
@@ -407,6 +809,11 @@ describe('Eastbrook authored gameplay data integration', () => {
     expect(withFury.rng.next()).toBe(withoutFury.rng.next());
   });
 
+  // Owner round 6b widened the station-to-master band from 3 yd to 4.5 yd:
+  // forgemistress_darva now stands 4.2 yd out and tinker_gizzel 3.2 yd out, on
+  // opposite sides of their adjacent benches, so the crafts lane stops reading
+  // as one huddle. Each master still works their own station, which is the
+  // failure this bound exists to catch.
   it('moves the four Eastbrook stations with their masters and preserves every other station field', () => {
     for (const station of STATIONS.slice(0, 4)) {
       const placement = EASTBROOK_STATIONS_BY_ID[station.id];
@@ -424,14 +831,16 @@ describe('Eastbrook authored gameplay data integration', () => {
           station.pos.x - ZONE1_NPCS[station.masterNpcId].pos.x,
           station.pos.z - ZONE1_NPCS[station.masterNpcId].pos.z,
         ),
-      ).toBeLessThanOrEqual(3);
+      ).toBeLessThanOrEqual(4.5);
     }
     expect(STATIONS.slice(4)).toEqual([
       {
         id: 'station_fenbridge_tannery',
         type: 'tannery',
         zoneId: 'mirefen_marsh',
-        pos: { x: -13, z: 314 },
+        // Fenbridge's own layout owns its station (the painted rebuild moved it
+        // to the tanning yard behind the bank)
+        pos: { ...FENBRIDGE_STATIONS_BY_ID.station_fenbridge_tannery.position },
         masterNpcId: 'tanner_hesk',
       },
       {
@@ -451,12 +860,38 @@ describe('Eastbrook authored gameplay data integration', () => {
         x: EASTBROOK_LAYOUT.services.mailbox.position.x,
         z: EASTBROOK_LAYOUT.services.mailbox.position.z,
       },
-      { x: 6, z: 294 },
+      // Fenbridge's own layout owns its mailbox (the painted rebuild moved it to
+      // the crossroads)
+      { ...FENBRIDGE_LAYOUT.services.mailbox.position },
       { x: 6, z: 654 },
+      { x: -33, z: 1025 },
+      { x: 397, z: 1905 },
+      { x: -23, z: 1555 },
+      { x: -353, z: 2067 },
+      // Bridgemere's moved to the island inn's forecourt (the painted inn
+      // stands over the old square, sim/painted_towns/bridgemere.ts)
+      { x: -366.5, z: 351.5 },
+      { x: -364, z: 1415 },
+      { x: 354, z: 1436 },
+      { x: -294, z: 815 },
+      { x: 314, z: 816 },
+      { x: 427, z: 355 },
+      { x: 299, z: 76 },
+      // The Proving Shore tutorial island's camp mailbox (Dawnrest Camp hub
+      // at (-300, 50) offset (-6, 6)), the one authored row carrying a
+      // facing (rotated to face the camp ground).
+      { x: -306, z: 56, facing: Math.PI },
     ]);
-    expect(PLAYER_START).toEqual({ x: 2, z: -2 });
-    expect(EASTBROOK_LAYOUT.services.graveyard.position).toEqual({ x: -14, z: -14 });
-    expect(EASTBROOK_LAYOUT.services.graveyard.legacyReleasePoint).toEqual({ x: -12, z: -14 });
+    // Re-pinned 2026-08-18 for the harbor move (commit d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md): the spawn moved to the
+    // harbor quay and the graveyard contract to the chapel green. Every
+    // behavioral test in this file consumes PLAYER_START symbolically, so
+    // the moved spawn is re-pinned here as exported data.
+    // Re-pinned for the World of ClaudeCraft Studio map's arrangement: the
+    // graveyard moved with the chapel into the churchyard beside it.
+    expect(PLAYER_START).toEqual({ x: -94, z: -58 });
+    expect(EASTBROOK_LAYOUT.services.graveyard.position).toEqual({ x: 37.5, z: -99.3 });
+    expect(EASTBROOK_LAYOUT.services.graveyard.legacyReleasePoint).toEqual({ x: 39.5, z: -99.3 });
   });
 });
 
@@ -497,7 +932,7 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
     }
   });
 
-  it('uses exact authored collider shapes, heights, and camera-occlusion policy', () => {
+  it('uses exact authored collider shapes and visual heights', () => {
     const colliders = colliderInternalsForTest.staticWorldColliders(SEED);
     const stall = EASTBROOK_LAYOUT.market.stalls[0];
     const stallCollider = colliders.find(
@@ -511,7 +946,6 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
       hw: stall.width / 2,
       hd: stall.depth / 2,
       rot: stall.rotation,
-      camGhost: false,
     });
     expect(
       colliders.find(
@@ -526,32 +960,33 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
       'retired artisan stall collider',
     ).toBeUndefined();
 
-    const well = EASTBROOK_LAYOUT.civic.wellBeacon;
+    const well = EASTBROOK_LAYOUT.civic.monument;
     const wellCollider = colliders.find(
       (collider) =>
         collider.type === 'circle' &&
         collider.x === well.position.x &&
         collider.z === well.position.z,
     );
-    expect(wellCollider).toMatchObject({ type: 'circle', r: well.radius, camGhost: false });
+    expect(wellCollider).toMatchObject({ type: 'circle', r: well.radius });
     expect(wellCollider?.cameraTopY).toBeCloseTo(
       groundHeight(well.position.x, well.position.z, SEED) + well.height,
     );
 
-    const wall = EASTBROOK_LAYOUT.wall.segments[0];
-    const wallCollider = colliders.find(
-      (collider) =>
-        collider.type === 'obb' &&
-        collider.x === wall.footprint.center.x &&
-        collider.z === wall.footprint.center.z,
-    );
-    expect(wallCollider).toMatchObject({
-      type: 'obb',
-      hw: wall.footprint.halfWidth,
-      hd: wall.footprint.halfDepth,
-      rot: wall.footprint.rotation,
-      camGhost: false,
-    });
+    // Re-pinned 2026-08-18 for the harbor move (commit d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md): the town wall is retired
+    // by design, so this is now an ABSENCE pin, mirroring the retired
+    // artisan stall above: the layout exposes zero segments and no static
+    // OBB stands on the old wall ring.
+    expect(EASTBROOK_LAYOUT.wall.segments).toHaveLength(0);
+    expect(EASTBROOK_LAYOUT.wall.gates).toHaveLength(0);
+    expect(
+      colliders.filter(
+        (collider) =>
+          collider.type === 'obb' &&
+          Math.abs(Math.hypot(collider.x, collider.z) - EASTBROOK_LAYOUT.wall.radius) < 1.5,
+      ),
+      'retired wall ring colliders',
+    ).toHaveLength(0);
 
     const fence = EASTBROOK_LAYOUT.fences[0];
     const fenceCenter = midpoint(fence.start, fence.end);
@@ -566,7 +1001,6 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
       type: 'obb',
       hd: fence.width / 2,
       isFence: true,
-      camGhost: true,
     });
     expect(fenceCollider?.cameraTopY).toBeCloseTo(
       groundHeight(fenceCenter.x, fenceCenter.z, SEED) + fence.height,
@@ -584,7 +1018,6 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
       hw: board.nativeDimensions.width / 2,
       hd: board.nativeDimensions.depth / 2,
       rot: board.rotation,
-      camGhost: true,
     });
     expect(boardCollider?.cameraTopY).toBeCloseTo(
       groundHeight(board.position.x, board.position.z, SEED) + board.nativeDimensions.height,
@@ -630,12 +1063,80 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
     }
   });
 
-  it('pathfinds bidirectionally from the square to every gate, service, NPC, station, and entrance', () => {
-    // East side of the civic ring: inside the square, clear of the offset well
-    // and benches, and directly connected to the start/east-road circulation.
-    const square = { x: 3, z: 0 };
+  it('walks the graveyard route in through the churchyard gap, never through a rail', () => {
+    // The churchyard's iron rails are walk-through dressing, so the clear-path
+    // check above cannot see them; the route to the Pale Keeper still keeps to
+    // the way in (the gap the rails leave at the yard's north-east corner). A
+    // drawn rail runs about 3.85 yd along its own local x; 1.95 is a hair
+    // over its half length.
+    const RAIL_HALF_LENGTH = 1.95;
+    const graveyard = EASTBROOK_LAYOUT.services.graveyard.position;
+    const rails = (ZONE1_PROPS.decorProps ?? [])
+      .filter(
+        (prop) =>
+          prop.key === 'gardenIronFence' &&
+          Math.hypot(prop.x - graveyard.x, prop.z - graveyard.z) < 30,
+      )
+      .map((prop) => ({
+        a: localToWorld(prop, prop.rot ?? 0, -RAIL_HALF_LENGTH, 0),
+        b: localToWorld(prop, prop.rot ?? 0, RAIL_HALF_LENGTH, 0),
+      }));
+    // the yard's fifteen rails, so the sweep below is not vacuous
+    expect(rails).toHaveLength(15);
+    const route = EASTBROOK_LAYOUT.services.routes.find(
+      (candidate) => candidate.id === 'eastbrook_graveyard_route',
+    );
+    if (!route) throw new Error('missing graveyard route');
+    const toRail = (point: { x: number; z: number }, a: typeof point, b: typeof point) => {
+      const abx = b.x - a.x;
+      const abz = b.z - a.z;
+      const t = Math.max(
+        0,
+        Math.min(1, ((point.x - a.x) * abx + (point.z - a.z) * abz) / (abx * abx + abz * abz)),
+      );
+      return Math.hypot(point.x - a.x - abx * t, point.z - a.z - abz * t);
+    };
+    for (const point of samplePolyline(route.points, 0.1)) {
+      for (const rail of rails) {
+        expect(toRail(point, rail.a, rail.b), `route at ${point.x}, ${point.z}`).toBeGreaterThan(
+          route.bodyRadius + 0.5,
+        );
+      }
+    }
+    // and it ends within talking reach of the Pale Keeper over the first stone
+    const end = route.points[route.points.length - 1];
+    expect(Math.hypot(end.x - graveyard.x, end.z - graveyard.z)).toBeLessThan(INTERACT_RANGE);
+  });
+
+  // Re-anchored 2026-08-18 for the harbor move (commit d19aa33f76,
+  // docs/design/eastbrook-revamp/site-plan.md): the square anchor moved to
+  // the new market square and the six retired gate destinations left the
+  // list with the wall (36 became 30). Round 3 promoted the trio of decor
+  // homes into layout buildings, adding their entrances (33). Round 4
+  // retired the preserved armoury from placement, dropping its entrance (32).
+  // Round 6 removed eastbrook_home_rise from the layout after live review,
+  // dropping its entrance too (31), then appended the harbour quarter's three
+  // coastal buildings along the dock road, each bringing its own entrance
+  // back into the proof (34).
+  // Re-pinned 2026-10 for the Tidehold rebuild: six placed buildings replaced
+  // the eleven kit shells, so eleven entrances became six (29). Every one of
+  // the six is still walked to and from the square below.
+  it('pathfinds bidirectionally from the square to every service, NPC, station, and entrance', () => {
+    // A standing spot in the square, DERIVED from the centrepiece rather than
+    // hardcoded. It used to be (-12.5, -100.5), which was clear of the well
+    // beacon's 1.5 cylinder and is now buried inside the Realm Builder
+    // monument's 3.19 one: round 8 doubled the statue, and the square's old
+    // middle is the statue. Deriving it keeps this proof honest through the
+    // next resize instead of quietly starting a route inside a collider.
+    // A yard and a bit off the plinth, on the open east quadrant the layout
+    // deliberately leaves clear as the spawn-to-square arrival lane (east is
+    // NEGATIVE x here).
+    const monumentCentre = EASTBROOK_LAYOUT.civic.monument;
+    const square = {
+      x: monumentCentre.position.x - (monumentCentre.radius + 1.2),
+      z: monumentCentre.position.z,
+    };
     const destinations = [
-      ...EASTBROOK_LAYOUT.wall.gates.map((gate) => ({ id: gate.id, point: gate.crossing })),
       ...EASTBROOK_LAYOUT.services.npcs.map((npc) => ({ id: npc.id, point: npc.position })),
       ...EASTBROOK_LAYOUT.services.stations.map((station) => ({
         id: station.id,
@@ -657,7 +1158,7 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
         (building) => ({ id: `${building.id}:entrance`, point: building.frontStandingPoint }),
       ),
     ];
-    expect(destinations).toHaveLength(36);
+    expect(destinations).toHaveLength(29);
     const moverProfiles = [
       { id: 'player', bodyRadius: PLAYER_BODY_RADIUS },
       // Pet locomotion deliberately shares PLAYER_BODY_RADIUS; keep this
@@ -721,19 +1222,19 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
 
   it('makes the new inn the sole Eastbrook rest area and uses rotation-correct local transforms', () => {
     const inn = ZONE1_PROPS.buildings.find((building) => building.id === 'eastbrook_inn');
-    const armoury = ZONE1_PROPS.buildings.find(
-      (building) => building.id === 'eastbrook_grand_armoury',
-    );
-    if (!inn || !armoury) throw new Error('missing Eastbrook rest fixtures');
+    if (!inn) throw new Error('missing Eastbrook rest fixtures');
+    // Round 4: the armoury retired from placement, so no zone1 building row
+    // carries its landmark and the barracks lot front grants no rest.
+    expect(ZONE1_PROPS.buildings.some((building) => building.landmark)).toBe(false);
     const innPlacement = EASTBROOK_LAYOUT.buildings.find(
       (building) => building.id === 'eastbrook_inn',
     );
     if (!innPlacement) throw new Error('missing authored Eastbrook inn');
     const restPoint = innPlacement.frontStandingPoint;
-    const armouryPoint = EASTBROOK_LAYOUT.preservedBuildings[0].frontStandingPoint;
+    const barracksFront = { x: 12, z: -5.5 };
     expect(isBlocked(SEED, restPoint.x, restPoint.z, 0.5)).toBe(false);
     expect(isResting({ inCombat: false, pos: { ...restPoint, y: 0 } } as Entity)).toBe(true);
-    expect(isResting({ inCombat: false, pos: { ...armouryPoint, y: 0 } } as Entity)).toBe(false);
+    expect(isResting({ inCombat: false, pos: { ...barracksFront, y: 0 } } as Entity)).toBe(false);
 
     const arbitrary = { kind: 'inn', x: 37, z: -19, w: 8, d: 3, rot: 0.731 } as const;
     const inside = localToWorld({ x: arbitrary.x, z: arbitrary.z }, arbitrary.rot, 3.9, 1.4);
@@ -748,11 +1249,18 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
     const saul = npcEntity(sim, 'chronicler_saul');
     const mailbox = sim.entities.get(sim.postOffice.mailboxIds[0]);
     if (!mailbox) throw new Error('missing Eastbrook mailbox');
-    const facePoint = { x: -0.44414815667112084, z: -13.06726401073832 };
+    // Re-measured 2026-08-18 for the harbor move (commit d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md): Saul now works beside the
+    // noticeboard at the bank corner and the mailbox pillar moved across the
+    // square, so the measured face point (saul.pos plus 1.5 yd along his
+    // facing, taken from the runtime entity) is far outside mailbox reach
+    // rather than a stride from it. The targetless-interact regression this
+    // stages is unchanged.
+    const facePoint = { x: 11.032050294337843, z: -86.25192455849323 };
 
     expect(Math.hypot(facePoint.x - saul.pos.x, facePoint.z - saul.pos.z)).toBeCloseTo(1.5, 12);
     const mailboxDistance = Math.hypot(facePoint.x - mailbox.pos.x, facePoint.z - mailbox.pos.z);
-    expect(mailboxDistance).toBe(5.584952654260954);
+    expect(mailboxDistance).toBe(24.090753748334464);
     expect(mailboxDistance).toBeGreaterThan(INTERACT_RANGE);
 
     const talkToNpc = vi.spyOn(sim, 'talkToNpc');
@@ -803,6 +1311,7 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
     expect(sim.drainEvents()).toContainEqual({
       type: 'noticeboard',
       noticeboardId: 'noticeboard_eastbrook',
+      boardId: 'eastbrook_noticeboard',
       state: 'empty',
       pid: first,
     });
@@ -814,7 +1323,7 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
     const buyerMeta = sim.meta(first);
     if (!buyerMeta) throw new Error('missing buyer metadata');
     buyerMeta.copper = 10_000;
-    sim.buyItem(trader.id, 'baked_bread', first);
+    sim.buyItem(trader.id, 'baked_bread', undefined, first);
     expect(sim.countItem('baked_bread', first)).toBeGreaterThan(0);
 
     const marshal = npcEntity(sim, 'marshal_redbrook');
@@ -840,7 +1349,10 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
   });
 
   it('keeps the fixed-seed world projection stable through wandering and respawn', {
-    timeout: 30000,
+    // Two complete shipped-world simulations run through wandering and respawn.
+    // Loaded five-worker CI can exceed the old 90s budget while the bounded
+    // projection still completes deterministically.
+    timeout: 180000,
   }, () => {
     const stabilitySeed = 4_242;
     const legacyWorld = {
@@ -848,7 +1360,22 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
       props: legacyEastbrookProps(BUILTIN_WORLD.props),
       services: {
         ...BUILTIN_WORLD.services,
-        mailboxes: [{ x: 7, z: -8 }, ...MAILBOXES.slice(1)],
+        // Re-probed from the live layout for owner round 6b. The fixture used
+        // to hold the OLD town's mailbox literal (7, -8) in this slot, and that
+        // is the same trap the legacy town campfire fell into above: the old
+        // post spot is Wolf Run open country now, so it was a collider present
+        // in this world and nowhere else. It went unnoticed until this round's
+        // camp and graveyard moves reflowed the shared wander stream and walked
+        // wolf 88 across it at tick 547, deflecting it in the legacy world
+        // only. The premise here is identical collision in both worlds, so the
+        // row follows the live pillar.
+        mailboxes: [
+          {
+            x: EASTBROOK_LAYOUT.services.mailbox.position.x,
+            z: EASTBROOK_LAYOUT.services.mailbox.position.z,
+          },
+          ...MAILBOXES.slice(1),
+        ],
       },
     };
     setActiveWorldContent(legacyWorld);
@@ -861,10 +1388,22 @@ describe('Eastbrook runtime collision, spawn, and services', () => {
     setActiveWorldContent(BUILTIN_WORLD);
     const rebuilt = new Sim({ seed: stabilitySeed, playerClass: 'warrior', noPlayer: true });
 
+    // The freight yard moved clear of the Weekly Vault's terrain pad.
+    // Both worlds now compare every spawn height as well as its x/z position.
     const stableProjection = (sim: Sim) =>
       [...sim.entities.values()]
         .filter((entity) => entity.kind === 'mob' || entity.kind === 'object')
-        .filter((entity) => entity.templateId !== 'mailbox')
+        // The mailbox and the Realm Builder monument are static services the
+        // REBUILT world seats and the legacy fixture has no equivalent for.
+        // Both are inert click targets with no collider of their own (the
+        // monument's solid is the wells row above, which both worlds carry),
+        // so neither can move a wanderer: excluding them compares the two
+        // worlds' actual simulations rather than their service rosters.
+        .filter(
+          (entity) =>
+            entity.templateId !== 'mailbox' &&
+            entity.templateId !== EASTBROOK_LAYOUT.civic.monument.templateId,
+        )
         .map((entity) => ({
           id: entity.id,
           kind: entity.kind,
@@ -941,6 +1480,22 @@ describe('the first sixty seconds: starter pull lanes from spawn', () => {
       .sort((a, b) => a.d - b.d)
       .slice(0, 2);
     expect(nearest.length).toBe(2);
+    // The walk out goes the way a player goes, by the main street. The
+    // Tidehold rebuild (2026-10) put a wide building across each old beeline:
+    // the quay cottage across the wolf camp's (its detour climbed the quay
+    // pad's north-east rim, a 0.36 yd kerb in one stride) and the 26 yd tavern
+    // front across the boar camp's. So the wolf walk leaves the quay by the
+    // street south of the cottage, to where it has rounded the cottage at
+    // (-70, -68), and the boar walk carries on along the street to the square
+    // at (-26, -101) before heading east. One waypoint each, both on the
+    // street itself (pinned below); the pull spot and its checks are unchanged.
+    const viaMainStreet: Record<string, readonly { x: number; z: number }[]> = {
+      forest_wolf: [{ x: -70, z: -68 }],
+      wild_boar: [{ x: -26, z: -101 }],
+    };
+    for (const via of Object.values(viaMainStreet)) {
+      for (const waypoint of via) expect(ZONE1_ROADS[1]).toContainEqual(waypoint);
+    }
     for (const { camp } of nearest) {
       // The pull spot as a player finds it: walk the pathfinder's own route
       // out of town and stop at the first waypoint inside ranged pull
@@ -950,7 +1505,7 @@ describe('the first sixty seconds: starter pull lanes from spawn', () => {
         seed: SEED,
         bodyRadius: 0.5,
         maxClimbSlope: PLAYER_MAX_CLIMB_SLOPE,
-        minGround: (x: number, z: number) => waterLevelAt(x, z) - PLAYER_SWIM_DEPTH,
+        minGround: (x: number, z: number) => waterLevelAt(x, z, SEED) - PLAYER_SWIM_DEPTH,
         maxSpan: 160,
       });
       expect(route.length, `${camp.mobId} has a route from spawn`).toBeGreaterThan(0);
@@ -958,7 +1513,11 @@ describe('the first sixty seconds: starter pull lanes from spawn', () => {
         route.find((p) => Math.hypot(p.x - camp.center.x, p.z - camp.center.z) <= 25) ??
         route[route.length - 1];
       expect(isBlocked(SEED, pull.x, pull.z, 0.5), `${camp.mobId} pull spot`).toBe(false);
-      expectWalkableRoute(`${camp.mobId} camp approach`, PLAYER_START, pull, 0.5);
+      expectWalkableLegs(
+        `${camp.mobId} camp approach`,
+        [PLAYER_START, ...(viaMainStreet[camp.mobId] ?? []), pull],
+        0.5,
+      );
       expect(lineOfSightClear(SEED, pull, camp.center), `${camp.mobId} pull sight lane`).toBe(true);
       expect(
         Math.hypot(pull.x - camp.center.x, pull.z - camp.center.z),
@@ -975,7 +1534,7 @@ describe('the first sixty seconds: starter pull lanes from spawn', () => {
         seed: SEED,
         bodyRadius: 0.5,
         maxClimbSlope: PLAYER_MAX_CLIMB_SLOPE,
-        minGround: (x: number, z: number) => waterLevelAt(x, z) - PLAYER_SWIM_DEPTH,
+        minGround: (x: number, z: number) => waterLevelAt(x, z, SEED) - PLAYER_SWIM_DEPTH,
         maxSpan: 160,
       });
       expect(route.length, `${camp.mobId} at ${camp.center.x},${camp.center.z}`).toBeGreaterThan(0);

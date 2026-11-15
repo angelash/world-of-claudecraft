@@ -1,5 +1,6 @@
 import type { AiIntentType, AiProfileSnapshot, AiSpeechFingerprint } from './ai_types';
 import { buildForkAiProfilePack } from './fork_pack';
+import { buildUpstreamNpcProfilePack } from './upstream_npc_pack';
 
 export interface AiAgentProfile {
   id: string;
@@ -88,7 +89,11 @@ const SPEECH_FINGERPRINTS = {
   herbalist: {
     sentenceRhythm: 'precise and quiet, like a field note spoken under breath',
     addressStyle: 'uses patient, traveler, or the player name when concern is personal',
-    favoriteStarts: ['Bitter sap on the air', 'Do not touch that yet', 'The leaves are telling on it'],
+    favoriteStarts: [
+      'Bitter sap on the air',
+      'Do not touch that yet',
+      'The leaves are telling on it',
+    ],
     sensoryBias: ['bitter sap', 'venom', 'breath tone', 'wet leaves'],
     avoidedPhrases: ['clearly indicates', 'it is important to note', 'I would recommend'],
   },
@@ -109,7 +114,11 @@ const SPEECH_FINGERPRINTS = {
   scholar: {
     sentenceRhythm: 'careful theory, one caveat, then a small concrete clue',
     addressStyle: 'keeps address formal unless memory has made the player familiar',
-    favoriteStarts: ['If the marks are honest', 'I would not call it proof', 'That pattern is older than it looks'],
+    favoriteStarts: [
+      'If the marks are honest',
+      'I would not call it proof',
+      'That pattern is older than it looks',
+    ],
     sensoryBias: ['marginal notes', 'old stone', 'star maps', 'artifact traces'],
     avoidedPhrases: ['definitely proves', 'as an AI', 'to summarize'],
   },
@@ -129,7 +138,8 @@ const SPEECH_FINGERPRINTS = {
   },
   object: {
     sentenceRhythm: 'short inspection prose, visible detail first, no inner monologue',
-    addressStyle: 'does not address the player unless the object has visible writing or omen-like presence',
+    addressStyle:
+      'does not address the player unless the object has visible writing or omen-like presence',
     favoriteStarts: ['The surface shows', 'A cold seam runs', 'Dust gathers'],
     sensoryBias: ['texture', 'marks', 'smell', 'light'],
     avoidedPhrases: ['it seems like', 'you should', 'overall'],
@@ -144,8 +154,6 @@ const SPEECH_FINGERPRINTS = {
 } satisfies Record<string, AiSpeechFingerprint>;
 
 type SpeechFingerprintKey = keyof typeof SPEECH_FINGERPRINTS;
-
-export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = buildForkAiProfilePack(BASIC_NPC_INTENTS);
 
 export const GENERIC_NPC_AI_PROFILE: AiAgentProfile = {
   id: 'npc.generic.living_world',
@@ -172,14 +180,31 @@ export const GENERIC_NPC_AI_PROFILE: AiAgentProfile = {
     attractedToTags: ['food', 'valuable', 'tool'],
     avoidsTags: ['cursed', 'undead', 'demon'],
   },
-  timeWeatherSensitivity: { dayEnergy: 0.5, nightFatigue: 0.55, clearNightAwe: 0.35, rainIrritation: 0.4, fogFear: 0.35 },
+  timeWeatherSensitivity: {
+    dayEnergy: 0.5,
+    nightFatigue: 0.55,
+    clearNightAwe: 0.35,
+    rainIrritation: 0.4,
+    fogFear: 0.35,
+  },
 };
 
 export const GENERIC_MOB_AI_PROFILE: AiAgentProfile = {
   id: 'mob.generic.living_world',
   appliesTo: [],
-  persona: 'A creature ruled by family instinct, immediate scene pressure, and rare individual quirks.',
-  allowedIntentTypes: ['lookAt', 'faceEntity', 'pause', 'commentOnScene', 'inspectObject', 'approachObject', 'avoidObject', 'seekShelter', ...PET_COMMAND_INTENTS],
+  persona:
+    'A creature ruled by family instinct, immediate scene pressure, and rare individual quirks.',
+  allowedIntentTypes: [
+    'lookAt',
+    'faceEntity',
+    'pause',
+    'commentOnScene',
+    'inspectObject',
+    'approachObject',
+    'avoidObject',
+    'seekShelter',
+    ...PET_COMMAND_INTENTS,
+  ],
   allowedLineIds: [
     'hudChrome.aiSpeech.itemInterestApproach',
     'hudChrome.aiSpeech.itemInterestAvoid',
@@ -206,10 +231,22 @@ export const GENERIC_MOB_AI_PROFILE: AiAgentProfile = {
   ],
   fallbackLineId: 'hudChrome.aiSpeech.itemInterestInspect',
   canonSensitive: false,
-  knowledgeScope: ['visible creature family instinct', 'nearby dropped objects', 'weather', 'time of day', 'immediate danger'],
-  tabooTopics: ['quest truth', 'reward promises', 'private player data', 'combat outcome guarantees'],
+  knowledgeScope: [
+    'visible creature family instinct',
+    'nearby dropped objects',
+    'weather',
+    'time of day',
+    'immediate danger',
+  ],
+  tabooTopics: [
+    'quest truth',
+    'reward promises',
+    'private player data',
+    'combat outcome guarantees',
+  ],
   socialMemory: {
-    style: 'Keeps only creature-level impressions: scent, fear, possession, repeated player patterns, and scene pressure.',
+    style:
+      'Keeps only creature-level impressions: scent, fear, possession, repeated player patterns, and scene pressure.',
     recognitionLineId: 'hudChrome.aiSpeech.singularityRemembersPlayer',
     rumorLineId: 'hudChrome.aiSpeech.singularityRemembersScene',
   },
@@ -222,13 +259,20 @@ export const GENERIC_MOB_AI_PROFILE: AiAgentProfile = {
     attractedToTags: ['food', 'meat', 'fish', 'valuable', 'trophy', 'relic', 'singularity'],
     avoidsTags: ['fire', 'holy', 'cursed', 'unknownPower'],
   },
-  timeWeatherSensitivity: { dayEnergy: 0.45, nightFatigue: 0.35, clearNightAwe: 0.3, rainIrritation: 0.25, fogFear: 0.45 },
+  timeWeatherSensitivity: {
+    dayEnergy: 0.45,
+    nightFatigue: 0.35,
+    clearNightAwe: 0.3,
+    rainIrritation: 0.25,
+    fogFear: 0.45,
+  },
 };
 
 export const GENERIC_OBJECT_AI_PROFILE: AiAgentProfile = {
   id: 'object.generic.living_world',
   appliesTo: [],
-  persona: 'A scene object described through nearby weather, structure tags, and visible item semantics.',
+  persona:
+    'A scene object described through nearby weather, structure tags, and visible item semantics.',
   allowedIntentTypes: ['commentOnScene', 'inspectObject'],
   allowedLineIds: [
     'hudChrome.aiSpeech.objectInspectForge',
@@ -250,14 +294,22 @@ export const GENERIC_OBJECT_AI_PROFILE: AiAgentProfile = {
   },
 };
 
+export const AI_AGENT_PROFILES: readonly AiAgentProfile[] = [
+  ...buildForkAiProfilePack(BASIC_NPC_INTENTS),
+  ...buildUpstreamNpcProfilePack(GENERIC_NPC_AI_PROFILE),
+];
+
 export function profileFor(kind: 'npc' | 'mob' | 'object', templateId: string): AiAgentProfile {
-  return AI_AGENT_PROFILES.find((profile) =>
-    profile.appliesTo.some((target) => target.kind === kind && target.templateId === templateId),
-  ) ?? (kind === 'object'
-    ? GENERIC_OBJECT_AI_PROFILE
-    : kind === 'mob'
-      ? GENERIC_MOB_AI_PROFILE
-      : GENERIC_NPC_AI_PROFILE);
+  return (
+    AI_AGENT_PROFILES.find((profile) =>
+      profile.appliesTo.some((target) => target.kind === kind && target.templateId === templateId),
+    ) ??
+    (kind === 'object'
+      ? GENERIC_OBJECT_AI_PROFILE
+      : kind === 'mob'
+        ? GENERIC_MOB_AI_PROFILE
+        : GENERIC_NPC_AI_PROFILE)
+  );
 }
 
 export function compactProfileSnapshot(profile: AiAgentProfile): AiProfileSnapshot {
@@ -277,7 +329,9 @@ export function compactProfileSnapshot(profile: AiAgentProfile): AiProfileSnapsh
 }
 
 export function speechFingerprintForProfile(profile: AiAgentProfile): AiSpeechFingerprint {
-  return cloneSpeechFingerprint(profile.speechFingerprint ?? SPEECH_FINGERPRINTS[speechFingerprintKeyForProfile(profile)]);
+  return cloneSpeechFingerprint(
+    profile.speechFingerprint ?? SPEECH_FINGERPRINTS[speechFingerprintKeyForProfile(profile)],
+  );
 }
 
 function speechFingerprintKeyForProfile(profile: AiAgentProfile): SpeechFingerprintKey {
@@ -290,15 +344,21 @@ function speechFingerprintKeyForProfile(profile: AiAgentProfile): SpeechFingerpr
     ...profile.knowledgeScope,
     ...profile.tabooTopics,
     profile.socialMemory.style,
-  ].join(' ').toLowerCase();
+  ]
+    .join(' ')
+    .toLowerCase();
 
   if (/(brother|priest|chapel|grave|dead|undead|omen|rite|absolution)/.test(text)) return 'priest';
-  if (/(merchant|trader|provisioner|quartermaster|market|coin|supply|store|price|trade)/.test(text)) return 'merchant';
-  if (/(apothecary|herbalist|herb|venom|poultice|plant|remedy|poison)/.test(text)) return 'herbalist';
-  if (/(fisher|tide|lake|water|dock|shore|reed|moonlit|drowned|murloc)/.test(text)) return 'tidewatcher';
+  if (/(merchant|trader|provisioner|quartermaster|market|coin|supply|store|price|trade)/.test(text))
+    return 'merchant';
+  if (/(apothecary|herbalist|herb|venom|poultice|plant|remedy|poison)/.test(text))
+    return 'herbalist';
+  if (/(fisher|tide|lake|water|dock|shore|reed|moonlit|drowned|murloc)/.test(text))
+    return 'tidewatcher';
   if (/(smith|armorer|foreman|forge|steel|anvil|blade|armor|ore|mine)/.test(text)) return 'smith';
   if (/(ranger|scout|glade|trail|tracks|forest|warden of the woods)/.test(text)) return 'scout';
-  if (/(marshal|captain|warden|patrol|watch|military|guard|defense|gate)/.test(text)) return 'commander';
+  if (/(marshal|captain|warden|patrol|watch|military|guard|defense|gate)/.test(text))
+    return 'commander';
   if (/(loremaster|scholar|ancient|artifact|record|archive|theory)/.test(text)) return 'scholar';
   return 'generic';
 }

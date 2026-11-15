@@ -10,7 +10,6 @@
 import { describe, expect, it } from 'vitest';
 import { craftMaxSkillFor } from '../src/sim/content/professions';
 import { ALL_RECIPES, recipeById } from '../src/sim/content/recipes';
-import { STATIONS } from '../src/sim/data';
 import { craftSkillGainMultiplier } from '../src/sim/professions/archetype';
 import { resolveCraft, resolveCraftForRecipe } from '../src/sim/professions/crafting';
 import { stationsOfType } from '../src/sim/professions/stations';
@@ -36,7 +35,7 @@ function mustMeta(sim: Sim, pid: number): PlayerMeta {
 // recipe's station (same harness idiom as professions_crafting.test.ts).
 function placeAtStationFor(sim: Sim, pid: number, recipe: ProfessionRecipeRecord) {
   if (!recipe.stationType) return;
-  const station = stationsOfType(STATIONS, recipe.stationType)[0];
+  const station = stationsOfType(sim.stationPlacements, recipe.stationType)[0];
   const entity = (sim as any).entities.get(pid);
   entity.pos.x = station.pos.x;
   entity.pos.z = station.pos.z;
@@ -71,18 +70,16 @@ describe('learning-coupled craft XP: taught-nothing crafts pay nothing', () => {
     grantMantleMats(sim, pid);
     const before = meta.lifetimeXp;
 
-    const throttleBefore = meta.craftThrottle.count;
-
     const first = resolveCraft((sim as any).ctx, pid, MANTLE.id);
 
-    // The craft itself still works: item granted, materials consumed, the
-    // shared action throttle still spent (at skill 125 the specialization
-    // discount reduces the listed 7 ore + 5 flux to 5 + 4).
+    // The craft itself still works: item granted, materials consumed (at skill
+    // 125 the specialization discount reduces the listed 7 ore + 5 flux to 5 + 4).
+    // Craft Cast System: action throttle is retired; pacing is cast duration.
     expect(first.ok).toBe(true);
     expect(sim.countItem('sootscale_mantle', pid)).toBe(1);
     expect(sim.countItem('thorium_ore', pid)).toBe(2);
     expect(sim.countItem('smithing_flux', pid)).toBe(1);
-    expect(meta.craftThrottle.count).toBe(throttleBefore + 1);
+    expect(meta.craftThrottle).toEqual({ windowStart: 0, count: 0 });
     // But it taught nothing, so it pays nothing: no lifetime XP, no skill.
     expect(meta.lifetimeXp).toBe(before);
     expect(meta.craftSkills.armorcrafting).toBe(125);
@@ -94,10 +91,13 @@ describe('learning-coupled craft XP: taught-nothing crafts pay nothing', () => {
     expect(meta.lifetimeXp).toBe(before);
   });
 
-  it('the skillReq-150 tool chain grants zero XP at the engineering cap (the full-multiplier hole)', () => {
-    // recipe_arcanite_mining_pick is tier 6, above ANY reachable capability
-    // (cap 125 = tier 5), so the four-state curve alone reads FULL for it
-    // forever; the applied-delta coupling is what zeroes it at the cap.
+  it('the apex tool chain grants zero XP at the engineering cap (the applied-delta coupling)', () => {
+    // recipe_arcanite_mining_pick sits at tier 5, exactly the cap tier, since
+    // masterwrought Phase 11o retired its fictional 150 rung (it was tier 6
+    // before, the old full-multiplier hole; AMENDED 2026-08-31, masterwrought
+    // qr-11o-150). Either way the four-state curve
+    // reads FULL for a capped crafter; the applied-delta coupling is what
+    // zeroes the XP at the cap.
     const sim = makeSim();
     const pid = sim.playerId;
     sim.setPlayerLevel(20);
@@ -105,8 +105,14 @@ describe('learning-coupled craft XP: taught-nothing crafts pay nothing', () => {
     setMajors(meta, 'engineering', 'armorcrafting');
     meta.craftSkills.engineering = craftMaxSkillFor('engineering');
     const recipe = recipeById('recipe_arcanite_mining_pick')!;
+    // The mechanism claim above, pinned rather than prose: the row really
+    // sits at the cap rung since the 11o re-tier.
+    expect(recipe.skillReq).toBe(125);
     placeAtStationFor(sim, pid, recipe);
     grantItem(sim, 'arcanite_bar', 2, pid);
+    // The tier-5 pick gained the thornpeak fine grade alongside the refined
+    // bar (D8), so the tier-4 pick has to have actually been swung.
+    grantItem(sim, 'fine_thorium_ore', 2, pid);
     grantItem(sim, 'thorium_mining_pick', 1, pid);
     const before = meta.lifetimeXp;
 
@@ -139,7 +145,11 @@ describe('learning-coupled craft XP: taught-nothing crafts pay nothing', () => {
 });
 
 describe('learning-coupled craft XP: legitimate play keeps its grant', () => {
-  it('a capped character learning the craft keeps the full 100 XP per craft', () => {
+  it('a capped character learning the craft keeps the full-multiplier grant (55 XP)', () => {
+    // The mantle carries level 17 since the masterwrought Phase 11o
+    // re-level (20 before it, a flat 100 here): base 20 + 4 * 17 = 88, then
+    // the green falloff at player 20 (diff -3, zeroDiff 8) pays
+    // round(88 * 5 / 8) = 55. The skill multiplier is still the full 1.
     const sim = makeSim();
     const pid = sim.playerId;
     sim.setPlayerLevel(20);
@@ -152,11 +162,13 @@ describe('learning-coupled craft XP: legitimate play keeps its grant', () => {
     const result = resolveCraft((sim as any).ctx, pid, MANTLE.id);
 
     expect(result.ok).toBe(true);
-    expect(meta.lifetimeXp).toBe(before + 100);
+    expect(meta.lifetimeXp).toBe(before + 55);
     expect(meta.craftSkills.armorcrafting).toBe(1);
   });
 
-  it('an attuned low-level crafter keeps the sub-cap upscale (120 XP at level 10)', () => {
+  it('an attuned low-level crafter keeps the sub-cap upscale (106 XP at level 10)', () => {
+    // Level-17 mantle at player 10: diff +7 clamps to +4, so
+    // round(88 * 1.2) = 106 (was 120 at the pre-11o level 20).
     const sim = makeSim();
     const pid = sim.playerId;
     sim.setPlayerLevel(10);
@@ -169,7 +181,7 @@ describe('learning-coupled craft XP: legitimate play keeps its grant', () => {
     const result = resolveCraft((sim as any).ctx, pid, MANTLE.id);
 
     expect(result.ok).toBe(true);
-    expect(meta.xp).toBe(before + 120);
+    expect(meta.xp).toBe(before + 106);
     expect(meta.craftSkills.armorcrafting).toBe(1);
   });
 
@@ -187,7 +199,8 @@ describe('learning-coupled craft XP: legitimate play keeps its grant', () => {
     const result = resolveCraft((sim as any).ctx, pid, MANTLE.id);
 
     expect(result.ok).toBe(true);
-    expect(meta.lifetimeXp).toBe(before + 50);
+    // Half of the level-17 grant: round(55 * 0.5) = 28.
+    expect(meta.lifetimeXp).toBe(before + 28);
     expect(meta.craftSkills.armorcrafting).toBe(100.5);
   });
 
@@ -235,7 +248,9 @@ describe('learning-coupled craft XP: legitimate play keeps its grant', () => {
     const result = resolveCraft((sim as any).ctx, pid, MANTLE.id);
 
     expect(result.ok).toBe(true);
-    expect(meta.lifetimeXp).toBe(before + 40);
+    // The clamped 0.4-point delta scales the level-17 grant:
+    // round(55 * 0.4) = 22.
+    expect(meta.lifetimeXp).toBe(before + 22);
     expect(meta.craftSkills.armorcrafting).toBe(125);
   });
 });

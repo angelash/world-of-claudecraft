@@ -111,7 +111,12 @@ export function classifyCanonSubject(entity: Entity): CanonGuardSubject {
   if (entity.kind === 'npc' && entity.vendorItems.length > 0) return 'questRewardSource';
   if (entity.kind === 'mob' && entity.questIds.length > 0) return 'criticalQuestMob';
   if (entity.kind === 'object') {
-    if (entity.dungeonId || entity.templateId === 'dungeon_door' || entity.templateId === 'dungeon_exit') return 'dungeonGate';
+    if (
+      entity.dungeonId ||
+      entity.templateId === 'dungeon_door' ||
+      entity.templateId === 'dungeon_exit'
+    )
+      return 'dungeonGate';
     if (entity.questIds.length > 0 || entity.objectItemId !== null) return 'criticalQuestObject';
   }
   return 'ordinary';
@@ -119,10 +124,12 @@ export function classifyCanonSubject(entity: Entity): CanonGuardSubject {
 
 export function dynamicTextViolatesQuestGuard(text: string): boolean {
   const normalized = text.toLowerCase();
-  return QUEST_DYNAMIC_TEXT_BLOCKLIST.some((phrase) => normalized.includes(phrase))
-    || /https?:\/\//i.test(text)
-    || /<[^>]+>/.test(text)
-    || /\[[^\]]+\]\([^)]+\)/.test(text);
+  return (
+    QUEST_DYNAMIC_TEXT_BLOCKLIST.some((phrase) => normalized.includes(phrase)) ||
+    /https?:\/\//i.test(text) ||
+    /<[^>]+>/.test(text) ||
+    /\[[^\]]+\]\([^)]+\)/.test(text)
+  );
 }
 
 export function validateCanonSpeech(speech: AiSpeech): CanonGuardResult {
@@ -138,7 +145,15 @@ export function validateCanonDecision(
   context: AiJobContextV1,
   subject: CanonGuardSubject,
 ): CanonGuardResult {
-  if (context.questFacts.some((fact) => fact.visibility !== 'knownToPlayer' && fact.visibility !== 'currentObjective' && fact.visibility !== 'nearbyClue' && fact.visibility !== 'rumored')) {
+  if (
+    context.questFacts.some(
+      (fact) =>
+        fact.visibility !== 'knownToPlayer' &&
+        fact.visibility !== 'currentObjective' &&
+        fact.visibility !== 'nearbyClue' &&
+        fact.visibility !== 'rumored',
+    )
+  ) {
     return { ok: false, reason: 'quest fact visibility is not allowed in AI context' };
   }
   for (const speech of decision.speech) {
@@ -150,7 +165,8 @@ export function validateCanonDecision(
     return { ok: false, reason: `intent ${blockedIntent.type} is blocked for ${subject}` };
   }
   const questHint = decision.intents.find((intent) => intent.type === 'questHint');
-  if (questHint && context.questFacts.length === 0) return { ok: false, reason: 'quest hint requires a visible quest fact' };
+  if (questHint && context.questFacts.length === 0)
+    return { ok: false, reason: 'quest hint requires a visible quest fact' };
   return { ok: true };
 }
 
@@ -165,11 +181,17 @@ function blockedIntentForSubject(
 
 function allowedIntentsForSubject(subject: CanonGuardSubject): GuardedIntentSet | null {
   switch (subject) {
-    case 'criticalQuestNpc': return CRITICAL_QUEST_NPC_INTENTS;
-    case 'criticalQuestMob': return CRITICAL_QUEST_MOB_INTENTS;
-    case 'criticalQuestObject': return CRITICAL_QUEST_OBJECT_INTENTS;
-    case 'dungeonGate': return DUNGEON_GATE_INTENTS;
-    case 'questRewardSource': return QUEST_REWARD_SOURCE_INTENTS;
-    case 'ordinary': return null;
+    case 'criticalQuestNpc':
+      return CRITICAL_QUEST_NPC_INTENTS;
+    case 'criticalQuestMob':
+      return CRITICAL_QUEST_MOB_INTENTS;
+    case 'criticalQuestObject':
+      return CRITICAL_QUEST_OBJECT_INTENTS;
+    case 'dungeonGate':
+      return DUNGEON_GATE_INTENTS;
+    case 'questRewardSource':
+      return QUEST_REWARD_SOURCE_INTENTS;
+    case 'ordinary':
+      return null;
   }
 }

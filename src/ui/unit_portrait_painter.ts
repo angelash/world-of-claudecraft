@@ -10,9 +10,19 @@
 // lives in unit_portrait.ts (and is unit-tested there).
 // ---------------------------------------------------------------------------
 
-import { playerPortraitDataUrl } from '../render/characters/portrait';
+import type { NpcPortraitSource } from '../render/characters/manifest';
+import type { ModularLook } from '../render/characters/modular';
+import {
+  cachedPortraitDataUrl,
+  modularPortraitDataUrl,
+  playerPortraitDataUrl,
+  visualPortraitDataUrl,
+} from '../render/characters/portrait';
 import type { PlayerClass } from '../sim/types';
+import { crestIconUrl } from './crest_icon_art';
 import { iconCanvas } from './icons';
+import { FACE_PORTRAIT_SKIN, type NonPlayerPortraitSubject } from './nonplayer_portrait_core';
+import type { PlayerPortraitSubject } from './player_portrait_core';
 import {
   CREST_OVERSCAN,
   overscanRect,
@@ -25,11 +35,11 @@ function defaultDpr(): number {
   return typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1;
 }
 
-const HEADSHOT_CACHE_MAX = 32;
+const PORTRAIT_IMAGE_CACHE_MAX = 32;
 
 /**
  * Owns painting for the unit-frame portrait canvases. One instance is shared by
- * the player and target frames; it caches decoded headshot images by URL.
+ * the player and target frames; it caches decoded portrait images by URL.
  */
 export class UnitPortraitPainter {
   private readonly imgCache = new Map<string, HTMLImageElement>();
@@ -46,7 +56,7 @@ export class UnitPortraitPainter {
 
   private rememberImage(url: string, img: HTMLImageElement): void {
     this.imgCache.set(url, img);
-    if (this.imgCache.size <= HEADSHOT_CACHE_MAX) return;
+    if (this.imgCache.size <= PORTRAIT_IMAGE_CACHE_MAX) return;
     const oldest = this.imgCache.keys().next().value;
     if (oldest !== undefined) this.imgCache.delete(oldest);
   }
@@ -68,25 +78,40 @@ export class UnitPortraitPainter {
     return { ctx, size };
   }
 
-  /** Paint a procedural crest, overscanned so the emblem fills the circle.
-   *  Also clears any pending headshot decode for this canvas (a late `load`
-   *  checks `dataset.portrait` and bails) so it can't repaint over the crest. */
+  /** Paint an immediate procedural fallback, then replace it with the matching
+   *  static crest after decode. The dataset guard prevents an older request
+   *  from repainting a canvas whose framed unit changed in the meantime. */
   drawCrest(canvas: HTMLCanvasElement, crestId: string): void {
     canvas.dataset.portrait = '';
     const { ctx, size } = this.begin(canvas);
     const { dx, dy, dw, dh } = overscanRect(size, CREST_OVERSCAN);
     ctx.drawImage(iconCanvas('crest', crestId, size), dx, dy, dw, dh);
+    const url = crestIconUrl(crestId);
+    if (url) this.drawDecodedImage(canvas, url, CREST_OVERSCAN);
   }
 
   /** Paint a 3D-headshot data URL. The decode is async even for a data URL, so
    *  tag the canvas with the desired URL and only draw if it still matches on
    *  load (the framed unit may have changed mid-decode). */
   drawHeadshot(canvas: HTMLCanvasElement, url: string, onError?: () => void): void {
+    this.drawDecodedImage(canvas, url, 1, onError);
+  }
+
+  /** Decode and paint one portrait image at its subject-specific scale. Static
+   *  crests use the same overscan as their procedural fallback; headshots stay
+   *  at 1:1 so their intentionally framed faces are not cropped. */
+  private drawDecodedImage(
+    canvas: HTMLCanvasElement,
+    url: string,
+    overscan: number,
+    onError?: () => void,
+  ): void {
     canvas.dataset.portrait = url;
     const draw = (img: HTMLImageElement) => {
       if (canvas.dataset.portrait !== url) return; // unit changed mid-decode
       const { ctx, size } = this.begin(canvas);
-      ctx.drawImage(img, 0, 0, size, size);
+      const { dx, dy, dw, dh } = overscanRect(size, overscan);
+      ctx.drawImage(img, dx, dy, dw, dh);
     };
     const fail = () => {
       if (canvas.dataset.portrait !== url) return; // unit changed mid-decode
@@ -113,6 +138,99 @@ export class UnitPortraitPainter {
   drawClass(canvas: HTMLCanvasElement, cls: PlayerClass, skin: number): void {
     const url = playerPortraitDataUrl(cls, skin);
     if (url) this.drawHeadshot(canvas, url);
+    else this.drawCrest(canvas, `class_${cls}`);
+  }
+
+  /** Paint the Combat Mech cosmetic body in its worn chroma, what a mech
+   *  wearer actually looks like in the world. Falls back to the class portrait
+   *  (skin 0: `skin` is a CHROMA index here, not a class-atlas index) until
+   *  the lazily-loaded mech assets can render a portrait. */
+  drawMech(canvas: HTMLCanvasElement, chromaSkin: number, cls: PlayerClass): void {
+    const url = visualPortraitDataUrl('player_mech', chromaSkin);
+    if (url) this.drawHeadshot(canvas, url);
+    else this.drawClass(canvas, cls, 0);
+  }
+
+  /** Paint whichever body a player entity's frame shows, as resolved by
+   *  player_portrait_core.ts: the same rule for the player frame and for a
+   *  player in the target or target-of-target frame. */
+  drawPlayer(canvas: HTMLCanvasElement, subject: PlayerPortraitSubject<ModularLook>): void {
+    if (subject.kind === 'mech') this.drawMech(canvas, subject.chroma, subject.cls);
+    else if (subject.kind === 'composed')
+      this.drawModularPlayer(canvas, subject.visualKey, subject.look, subject.cls, subject.skin);
+    else {
+      // The body in the player's OWN head (a WOC body keys its portrait on the
+      // head look). While that capture runs, the default headshot for the body
+      // is the interim if it is already cached: a PEEK, so the wait never
+      // starts a second capture of a face about to be replaced.
+      const url =
+        visualPortraitDataUrl(subject.visualKey, subject.skin, 'headshot', subject.head) ??
+        (subject.head ? cachedPortraitDataUrl(subject.visualKey, subject.skin) : null);
+      if (url) this.drawHeadshot(canvas, url);
+      else this.drawCrest(canvas, `class_${subject.cls}`);
+    }
+  }
+
+  /** Paint whatever a frame holding a non-player shows, as resolved by
+   *  nonplayer_portrait_core.ts: the same rule for the target, target-of-target
+   *  and pet frames. A face is the live headshot of the character's own head on
+   *  its class body, the capture a player's frame asks for (drawPlayer's class
+   *  arm). Its interim is the crest, never the body's default face: that face
+   *  is nobody the player is looking at. A decode failure falls back to the
+   *  crest too. Answers whether the subject's own image was painted: false is
+   *  the crest standing in, which for a face means its capture is still owed. */
+  drawNonPlayer(
+    canvas: HTMLCanvasElement,
+    subject: NonPlayerPortraitSubject<NpcPortraitSource['head']>,
+  ): boolean {
+    const crest = (): void => this.drawCrest(canvas, subject.crestId);
+    const url =
+      subject.kind === 'face'
+        ? visualPortraitDataUrl(subject.visualKey, FACE_PORTRAIT_SKIN, 'headshot', subject.head)
+        : subject.kind === 'art'
+          ? subject.url
+          : null;
+    if (url) this.drawHeadshot(canvas, url, crest);
+    else crest();
+    return url !== null;
+  }
+
+  /**
+   * Paint a headshot of a COMPOSED character, that player's own face, hair and
+   * colours, rather than the stock portrait for their class.
+   *
+   * Falls back through the class portrait and then the crest, because a look
+   * can be unpaintable for a frame or two: the modular GLB is streamed like any
+   * other, and a portrait asked for before it lands returns null.
+   *
+   * The class portrait is a PEEK (cachedPortraitDataUrl), never the live
+   * getter: the live getter kicks its own capture on a miss, which for a
+   * composed subject is a second offscreen build, upload and encode of a face
+   * the composed capture replaces a few frames later. With every player a
+   * target frame can hold composed, that doubled the portrait work of a tab
+   * through a crowd; the post-entry prewarm fills the class headshots anyway
+   * (the default skin only, on the iOS memory profile).
+   *
+   * The trade-off: a composed subject whose capture FAILS holds the crest
+   * until that prewarm reaches its class and skin (750 ms per unit across the
+   * catalog; never, for an alternate skin on the iOS memory profile), where
+   * the old ladder recovered to the class face within one capture. Rare (the
+   * lane backs a failing key off), so the crest is accepted as the interim.
+   */
+  drawModularPlayer(
+    canvas: HTMLCanvasElement,
+    visualKey: string,
+    look: ModularLook,
+    cls: PlayerClass,
+    skin: number,
+  ): void {
+    const url = modularPortraitDataUrl(visualKey, look);
+    if (url) {
+      this.drawHeadshot(canvas, url);
+      return;
+    }
+    const stock = cachedPortraitDataUrl(`player_${cls}`, skin);
+    if (stock) this.drawHeadshot(canvas, stock);
     else this.drawCrest(canvas, `class_${cls}`);
   }
 }

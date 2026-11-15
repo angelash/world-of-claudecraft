@@ -31,37 +31,121 @@ import {
 // truth. Keep this list SHORT and justified; prefer a placeholder in the
 // description over a new entry here.
 const NUMBER_ALLOWLIST: Record<string, number[]> = {
+  // Courser's Guise daze lasts COURSER_DAZE_DURATION (combat/hunter_shared.ts),
+  // a fixed constant applied by the damage hook, not an ability effect field.
+  aspect_of_the_cheetah: [2],
+  // Grace Devotion's mana cadence is stamped by effect_dispatch from its effect kind.
+  grace_devotion: [5],
+  // The Soul Stone heal fraction is SOUL_STONE_HEAL_PCT_MAX (src/sim/soulwell.ts),
+  // an engine constant, not an effects-array value.
+  soulwell: [25],
+  // Pact Deepened's magic reduction lives in the talent stat resolver.
+  demon_skin: [5],
+  // Flash of Light's Devotion comes from the Paladin generation table, not its heal effect.
+  flash_of_light: [1],
+  // Lay on Hands Devotion comes from the Paladin generation table, not its heal effect.
+  lay_on_hands: [1],
+  // Hammer of Grace generates Devotion through the class table; Solar Reprisal's
+  // full-damage self-heal is applied by the dedicated Paladin proc module.
+  hammer_of_grace: [1, 100],
   // "generating 9 rage and stunning it for 1 sec": both are constants in the
   // charge arm of effect_dispatch.ts, not effect fields.
   charge: [9, 1],
-  bear_charge: [9, 1],
+  // Bruin Rush also cites its Pin rider (combat/druid_engines.ts: the 3 sec
+  // window, the 50% slow, the 4 sec Pin), engine constants like the 9 and 1.
+  bear_charge: [9, 1, 3, 50, 4],
+  // Slinkstrike cites the Old Blood cap it banks toward. That 3 is
+  // OLD_BLOOD_STAGES (combat/druid_engines.ts), an engine constant the bank
+  // site enforces, not a field on the stun effect that could drift by rank.
+  pounce: [3],
   // "30% more threat": the stance threat multiplier inside threatModifier.
-  // Bear form's "armor +130%" is the recalcPlayerStats multiplier (2.3, the
-  // 2026-07 tank-parity pass) in entity.ts, not the form effect's value.
+  // Bear form's "armor +110%" and "maximum health +30%" are the
+  // recalcPlayerStats multipliers (2.1 and 1.3, the v0.38 tank-parity pass)
+  // in entity.ts, not the form effect's value.
   defensive_stance: [30],
   // Battle Stance's rage multiplier is applied by resourceGainMultiplier.
   battle_stance: [10],
   // Valor Roar's Protection-only damage reduction is applied when the party
   // maximum-health aura is created, rather than stored on its shared effect.
   rallying_cry: [5],
-  bear_form: [30, 130],
+  bear_form: [30, 110],
   // "compelled to attack you for 3 sec": the taunt compel window in threat.ts.
   taunt: [3],
   holy_taunt: [3],
   growl: [3],
+  // Baleful Roar cites the same compel window plus its own aoeTaunt radius.
+  challenging_roar: [3, 10],
   // "attack power +8 plus 2 per level": the cat-form AP constants in
-  // recalcPlayerStats (entity.ts), not effect fields.
-  cat_form: [8, 2],
+  // recalcPlayerStats (entity.ts), not effect fields. "you move 15% faster":
+  // CAT_FORM_MOVE_MULT (types.ts), read by moveSpeedMult; the form_cat effect
+  // value is the threat multiplier.
+  cat_form: [8, 2, 15],
   // "for 30 sec": the sunder aura duration hardcoded in effect_dispatch.ts.
   faerie_fire: [30],
-  expose_armor: [30],
   sunder_armor: [30],
   // "Conjures 2 ...": the stack size hardcoded in casting_lifecycle.ts.
   conjure_water: [2],
+  // Worked per-combo examples (owner feedback: every finisher must spell out
+  // its combo scaling): "5 combo points: N sec" is derived from base+perCombo,
+  // not a raw effect field.
+  kidney_shot: [5, 6],
+  // Takedown (id hamstring_bite) states its resolved max the way Low Blow does.
+  hamstring_bite: [5, 6],
+  // Lunge's 60% weapon strike lands on arrival through combat/druid_lunge.ts
+  // (LUNGE_WEAPON_MULT), so it is not an effect field on the def.
+  lunge: [60],
+  slice_and_dice: [5, 32],
+  rupture: [2, 6, 5, 16],
+  expose_armor: [2, 5, 30],
+  rip: [5],
+  // Druid spec-engine interaction lines: the cited numbers are engine
+  // constants in combat/druid_engines.ts (the Moonseed extension seconds on
+  // the Lunar Tempest line, the Verdance stage cap on the Sporemending line),
+  // not per-rank effect fields.
+  moonfire: [6],
+  rejuvenation: [5],
+  // Rogue spec-engine interaction lines: the cited numbers are engine
+  // constants in combat/rogue_engines.ts (ritual stages, stage refund, the
+  // Redline window seconds and its 4+ combo opener, the shadow veil seconds,
+  // the Venom Dart wound extension), not per-rank effect fields.
+  eviscerate: [4, 8],
+  backstab: [15, 6],
+  garrote: [6],
+  ambush: [6],
+  venom_dart: [6],
   conjure_food: [2],
-  // Patch Up's dead-pet revive fraction is owned by the pet lifecycle branch;
-  // the living-pet HoT remains fully data-driven by the ability effect.
-  revive_pet: [35],
+  // Patch Up's pet-pool heal share and revive fraction live in
+  // combat/hunter_patch_up.ts (shares of the pet's own health, not effect fields).
+  revive_pet: [10, 8, 50],
+  // Fieldcraft's Focus, Momentum, and re-entry rules live in hunter_fieldcraft.ts.
+  raptor_strike: [1, 3, 8, 15],
+  // The landing sprint (50% for 3 sec) lives in combat/hunter_tick.ts.
+  // The "arm Re-entry for 12 sec" window is stamped by trailbreak().
+  trailbreak: [12, 15, 18, 24, 50, 3],
+  // The Priest spec relationship rules are post-damage hooks rather than ability effects.
+  smite: [15, 30],
+  // 10 = VESPERS_DOT_DAMAGE_MULT (1.1), applied by resolveVespersAbility at
+  // cast time, not by the ability effect table.
+  shadow_word_pain: [1, 10],
+  mind_blast: [1, 3, 30],
+  // Thundercall and Stonebound values live in their spec runtime modules.
+  lightning_bolt: [1, 5],
+  rockbiter_weapon: [3, 10, 15, 20, 40],
+  earth_shock: [3, 5, 25, 125],
+  // Spiritmend deposits are calculated after the direct heal resolves.
+  healing_wave: [12, 30, 50],
+  // Unleash Weapon dispatches to four spec enchant implementations. Their
+  // values live in shaman_unleash_weapon.ts and shaman_spiritmend.ts rather
+  // than one shared ability effect array.
+  unleash_weapon: [54, 64, 30, 2, 20, 6, 75, 3, 4, 125, 8, 50],
+  // Harrow's deterministic break budget is WARLOCK_FEAR_DAMAGE_BUDGET_PCT
+  // (src/sim/combat/warlock_fear.ts), applied when the aura is created.
+  fear: [8],
+  // The shared Temporal Exhaustion gate is owned by combat/haste_burst.ts.
+  bloodlust: [10],
+  // Divine Ascension's resource price, charge count and lifetime are owned by
+  // the dedicated paladin devotion state machine, not an AbilityEffect.
+  divine_ascension: [20, 5, 45],
 };
 
 // Every resolved rank of every class ability (deduped by rank).
@@ -132,7 +216,7 @@ function proseNumbers(description: string): number[] {
 }
 
 const PLACEHOLDERS = /\$([a-zA-Z])/g;
-const SUPPORTED = new Set(['d', 'o', 'b', 't', 'h', 'e', 'p', 'g', 's', 'a']);
+const SUPPORTED = new Set(['d', 'o', 'b', 't', 'h', 'e', 'p', 'g', 's', 'a', 'x', 'y', 'z']);
 
 describe('ability descriptions match their resolved effects', () => {
   const classes = Object.keys(CLASSES) as PlayerClass[];
@@ -171,7 +255,14 @@ describe('ability descriptions match their resolved effects', () => {
           if (desc.includes('$t')) {
             expect(abilityDurationValue(known), `${at}: $t has no timed effect`).not.toBeNull();
           }
-          if (/\$(?:h|e|p|g|s|a)/.test(desc)) {
+          if (desc.includes('$h')) {
+            expect(
+              abilityTemporalHourglassValues(known) ??
+                known.effects.find((effect) => effect.type === 'heal'),
+              `${at}: $h has no healing effect`,
+            ).toBeTruthy();
+          }
+          if (/\$(?:e|p|g|s|a)/.test(desc)) {
             expect(
               abilityTemporalHourglassValues(known),
               `${at}: Hourglass placeholders have no temporalHourglass effect`,

@@ -1,0 +1,229 @@
+import { describe, expect, it } from 'vitest';
+import { fogFarForBuiltGround } from '../src/render/chunk_residency_core';
+import {
+  ARRIVAL_NEIGHBOR_STREAM_RADIUS,
+  claimZoneStreamRecheck,
+  createZoneStreamRecheck,
+  distanceSqToZone,
+  INITIAL_SKY_PREWARM_RADIUS,
+  ZONE_STREAM_RECHECK_DISTANCE,
+  zoneEntryPoint,
+  zonesWithinStreamingHorizon,
+} from '../src/render/zone_streaming';
+import {
+  activeZoneList,
+  BUILTIN_WORLD,
+  setActiveWorldContent,
+  ZONES,
+  zoneAt,
+} from '../src/sim/data';
+
+// The outdoor fog clamp itself moved to chunk_residency_core (it keys off the
+// nearest unbuilt CHUNK now, not the nearest unprepared zone rectangle), so its
+// behaviour is pinned in tests/chunk_residency.test.ts. What stays here is the
+// zone policy that is still live: which zones to stream, and in what order.
+
+describe('renderer zone-streaming horizon', () => {
+  it('keeps a zero-radius query scoped to the containing zone', () => {
+    expect(zonesWithinStreamingHorizon(ZONES, 0, 0, 0).map((zone) => zone.id)).toEqual([
+      'eastbrook_vale',
+    ]);
+  });
+
+  it('includes a neighbouring column before the player crosses its boundary', () => {
+    const ids = zonesWithinStreamingHorizon(ZONES, 150, 0, 80, 1, 0).map((zone) => zone.id);
+    expect(ids).toEqual(['eastbrook_vale', 'farshore_isle']);
+    const farshore = ZONES.find((zone) => zone.id === 'farshore_isle');
+    if (!farshore) throw new Error('expected Farshore in built-in zones');
+    expect(distanceSqToZone(farshore, 150, 0)).toBe(30 * 30);
+  });
+
+  it('limits the spawn horizon to nearby regions instead of the whole world', () => {
+    const ids = zonesWithinStreamingHorizon(ZONES, 0, 0, 470, 1, 0).map((zone) => zone.id);
+    expect(ids).toEqual([
+      'eastbrook_vale',
+      'farshore_isle',
+      'mirefen_marsh',
+      'galecrest',
+      'proving_shore', // the tutorial island, one cell west of the vale
+      'willowfen',
+    ]);
+    expect(ids.length).toBeLessThan(ZONES.length / 2);
+  });
+
+  it('limits loading-screen sky uploads to the active and immediately adjacent biomes', () => {
+    const nearby = zonesWithinStreamingHorizon(ZONES, 2, -2, INITIAL_SKY_PREWARM_RADIUS);
+    expect(nearby.map((zone) => zone.id)).toEqual([
+      'eastbrook_vale',
+      'farshore_isle',
+      'mirefen_marsh',
+      'proving_shore', // the tutorial island shares the vale biome, so no new sky
+    ]);
+    expect([...new Set(nearby.map((zone) => zone.biome))]).toEqual(['vale', 'marsh']);
+  });
+
+  it('prioritizes the camera-facing zone when adjacent boundaries tie', () => {
+    const east = zonesWithinStreamingHorizon(ZONES, 0, 0, 470, 1, 0).map((zone) => zone.id);
+    const north = zonesWithinStreamingHorizon(ZONES, 0, 0, 470, 0, 1).map((zone) => zone.id);
+    expect(east.indexOf('farshore_isle')).toBeLessThan(east.indexOf('mirefen_marsh'));
+    expect(north.indexOf('mirefen_marsh')).toBeLessThan(north.indexOf('farshore_isle'));
+  });
+
+  it('prepares the travel-direction zone before a marginally nearer sideways zone', () => {
+    // Regression for the Mirefen crossing stall: from the spawn walk north,
+    // Farshore (178 yd east) is strictly nearer than Mirefen (182 yd north),
+    // so nearest-first ordering spent the whole approach building the isle
+    // while the player crossed into an unprepared marsh.
+    const ids = zonesWithinStreamingHorizon(ZONES, 2, -2, 470, 0, 1).map((zone) => zone.id);
+    expect(ids[0]).toBe('eastbrook_vale');
+    expect(ids.indexOf('mirefen_marsh')).toBeLessThan(ids.indexOf('farshore_isle'));
+    // A stationary east-facing camera still takes the strictly nearer isle.
+    const east = zonesWithinStreamingHorizon(ZONES, 2, -2, 470, 1, 0).map((zone) => zone.id);
+    expect(east.indexOf('farshore_isle')).toBeLessThan(east.indexOf('mirefen_marsh'));
+  });
+
+  it('uses a non-zero movement threshold for cheap frame-loop rechecks', () => {
+    expect(ZONE_STREAM_RECHECK_DISTANCE).toBeGreaterThan(0);
+  });
+
+  it('claims a recheck on the first call, on travel, and on a horizon change, never in between', () => {
+    const check = createZoneStreamRecheck();
+    expect(claimZoneStreamRecheck(check, 10, 20, 340)).toBe(true);
+    expect(check).toEqual({ x: 10, z: 20, far: 340 });
+    // Less than the threshold away, same horizon: the frame loop skips.
+    expect(claimZoneStreamRecheck(check, 10 + ZONE_STREAM_RECHECK_DISTANCE - 0.5, 20, 340)).toBe(
+      false,
+    );
+    expect(claimZoneStreamRecheck(check, 10, 20, 340.5)).toBe(false);
+    expect(check).toEqual({ x: 10, z: 20, far: 340 });
+    // Travel is measured from the last CLAIMED position, not the last call.
+    expect(claimZoneStreamRecheck(check, 10, 20 + ZONE_STREAM_RECHECK_DISTANCE, 340)).toBe(true);
+    expect(check).toEqual({ x: 10, z: 20 + ZONE_STREAM_RECHECK_DISTANCE, far: 340 });
+    // A yard of horizon change re-claims in place.
+    expect(claimZoneStreamRecheck(check, 10, 44, 341)).toBe(true);
+    // Forcing the next recheck (a failed prepare) is a NaN position.
+    check.x = Number.NaN;
+    expect(claimZoneStreamRecheck(check, 10, 44, 341)).toBe(true);
+    expect(check.x).toBe(10);
+  });
+
+  it('every entry point resolves back to its own zone, even from a boundary camera', () => {
+    // Regression for the willowfen starvation: the un-inset nearest rectangle
+    // point of a zone west of the camera lands exactly on its exclusive max-x
+    // edge, zoneAt resolves it to the neighbour, the prepare no-ops, and the
+    // streaming queue entry is consumed without ever building the zone.
+    const cameras = [
+      { x: 25, z: -16 }, // the vale spawn camera that starved willowfen live
+      { x: 0, z: 0 },
+      { x: 500, z: 2000 },
+      { x: -500, z: 900 },
+    ];
+    for (const zone of ZONES) {
+      for (const cam of cameras) {
+        const entry = zoneEntryPoint(zone, cam.x, cam.z);
+        expect(zoneAt(entry.x, entry.z).id, `${zone.id} from (${cam.x}, ${cam.z})`).toBe(zone.id);
+      }
+    }
+  });
+});
+
+describe('teleport-arrival neighbourhood', () => {
+  it('reaches every neighbour that would clamp a Drakelands portal landing', () => {
+    // A realm portal into the Drakelands lands on the zone's western margin:
+    // the Frostveil rectangle is 37 yd away and the Wraithwood 51 yd. Preparing
+    // only the destination there left the player looking at a 45-yard wall of
+    // ember haze (measured: still clamped after 198 s).
+    const landing = { x: 217, z: 1871 };
+    expect(zoneAt(landing.x, landing.z).id).toBe('drakelands');
+    const arrival = zonesWithinStreamingHorizon(
+      ZONES,
+      landing.x,
+      landing.z,
+      ARRIVAL_NEIGHBOR_STREAM_RADIUS,
+    );
+    expect([...arrival.map((zone) => zone.id)].sort()).toEqual([
+      'drakelands',
+      'frostveil',
+      'wraithwood',
+    ]);
+  });
+
+  it('reaches the Mirefen border from a Thornpeak south-edge login', () => {
+    // Reported live: logging in at (-2, 580) put the player 40 yd from the
+    // Mirefen rectangle, and the peaks preset's 850-yard vista sat at the
+    // 45-yard floor for about a minute.
+    const login = { x: -2, z: 580 };
+    expect(zoneAt(login.x, login.z).id).toBe('thornpeak_heights');
+    const arrival = zonesWithinStreamingHorizon(
+      ZONES,
+      login.x,
+      login.z,
+      ARRIVAL_NEIGHBOR_STREAM_RADIUS,
+    );
+    expect([...arrival.map((zone) => zone.id)].sort()).toEqual([
+      'mirefen_marsh',
+      'thornpeak_heights',
+    ]);
+  });
+
+  it('streams nothing extra for a landing in the middle of a rectangle', () => {
+    // The Eastbrook hearthstone: no other rectangle is within the radius, so
+    // the common arrival pays exactly what it paid before.
+    const arrival = zonesWithinStreamingHorizon(ZONES, 0, 0, ARRIVAL_NEIGHBOR_STREAM_RADIUS);
+    expect(arrival.map((zone) => zone.id)).toEqual(['eastbrook_vale']);
+  });
+
+  it('caps built-ground visibility at the current outdoor ceiling', () => {
+    const grid = { size: 60, countX: 4, countZ: 4, originX: -120, originZ: -120 };
+    expect(fogFarForBuiltGround(grid, () => false, 0, 0, 500)).toBe(500);
+    expect(fogFarForBuiltGround(grid, () => false, 0, 0, 2100)).toBe(850);
+  });
+});
+
+describe('active world streaming zones', () => {
+  it('is the ZONES table itself for the built-in world', () => {
+    setActiveWorldContent(null);
+    expect(activeZoneList()).toBe(ZONES);
+  });
+
+  it('streams an authored world using its own explicit rectangles', () => {
+    const world = {
+      ...BUILTIN_WORLD,
+      worldHalfX: 400,
+      zones: [
+        {
+          id: 'blank_world',
+          name: '',
+          xMin: -400,
+          xMax: 400,
+          zMin: -400,
+          zMax: 400,
+          levelRange: [1, 1] as [number, number],
+          biome: 'vale' as const,
+          hub: { x: 0, z: 0, radius: 8, name: '' },
+          graveyard: { x: 0, z: 0 },
+          lakes: [],
+          pois: [],
+          welcome: '',
+        },
+      ],
+    };
+    setActiveWorldContent(world);
+    try {
+      const zones = activeZoneList();
+      expect(zones).toBe(world.zones);
+      expect(zones.map((zone) => zone.id)).toEqual(['blank_world']);
+      // A camera in the authored west margin queues its owning rectangle,
+      // rather than looking for unrelated shipped zone ids.
+      const margin = { x: -380, z: -380 };
+      expect(zones.some((zone) => distanceSqToZone(zone, margin.x, margin.z) === 0)).toBe(true);
+      // ...and the zone the queue prepares is the one the sim clamp (zoneAt)
+      // resolves for that position, so ownership and preparation agree.
+      const containing = zones.filter((zone) => distanceSqToZone(zone, margin.x, margin.z) === 0);
+      expect(containing.map((zone) => zone.id)).toContain(zoneAt(margin.x, margin.z).id);
+      expect(zonesWithinStreamingHorizon(zones, margin.x, margin.z, 0)).toEqual(world.zones);
+    } finally {
+      setActiveWorldContent(null);
+    }
+  });
+});

@@ -16,6 +16,7 @@ vi.mock('../server/db', () => ({
 }));
 
 import { type ClientSession, GameServer } from '../server/game';
+import { consumeMovementFramesV2 } from '../server/movement_input_timeline_v2';
 
 function fakeWs() {
   return {
@@ -78,13 +79,16 @@ describe('GameServer hosted play seams', () => {
     server.sim.partyInvite(member.pid, leader.pid);
     server.sim.partyAccept(member.pid);
     const state = server.buildHostedPlayLiveState(101);
-    const party = state?.self?.party as {
-      members?: Array<{
-        pid?: number;
-        qlog?: Array<{ questId: string; counts: number[]; state: string }>;
-        qdone?: string[];
-      }>;
-    } | null | undefined;
+    const party = state?.self?.party as
+      | {
+          members?: Array<{
+            pid?: number;
+            qlog?: Array<{ questId: string; counts: number[]; state: string }>;
+            qdone?: string[];
+          }>;
+        }
+      | null
+      | undefined;
     const memberWire = party?.members?.find((entry) => entry.pid === member.pid);
 
     expect(memberWire).toMatchObject({
@@ -171,6 +175,73 @@ describe('GameServer hosted play seams', () => {
     expect(session.lastInputSeq).toBe(8);
   });
 
+  it('hands v2 movement to hosted control and back after a long observed session', () => {
+    const server = new GameServer();
+    const session = expectJoined(
+      server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null, false, { movementWireVersion: 2 }),
+    );
+    const meta = server.sim.meta(session.pid)!;
+    const entity = server.sim.entities.get(session.pid)!;
+    const dispatch = (ct: number, mi: Record<string, number>) =>
+      server.handleMessage(session, JSON.stringify({ t: 'input', ct, seq: ct, mi }));
+    const tick = () => {
+      consumeMovementFramesV2(server.sim, [session]);
+      server.sim.tick();
+    };
+
+    // Queued manual movement must not replay when ownership changes.
+    dispatch(0, { b: 1 });
+    server.setHostedPlayObserved(101, true);
+    server.applyHostedPlayMoveInput(101, { f: 1 }, 0);
+    const before = { ...entity.pos };
+    tick();
+    expect(meta.moveInput.forward).toBe(true);
+    expect(entity.pos.z).toBeGreaterThan(before.z);
+
+    // The authenticated client's clock continues past the ordinary sanity bound.
+    server.sim.time += 100;
+    dispatch(2000, { f: 0 });
+    tick();
+    expect(meta.moveInput.forward).toBe(true);
+    expect(session.lastInputSeq).toBe(2000);
+
+    server.setHostedPlayObserved(101, false);
+    tick();
+    expect(meta.moveInput.forward).toBe(false);
+    dispatch(2001, { b: 1 });
+    tick();
+    expect(meta.moveInput.back).toBe(true);
+    expect(session.lastConsumedCt).toBe(2001);
+
+    // Re-anchoring is one-time: normal v2 bounds still reject forged future ticks.
+    dispatch(999999, { f: 1 });
+    dispatch(2002, { b: 0 });
+    tick();
+    expect(meta.moveInput.forward).toBe(false);
+    expect(meta.moveInput.back).toBe(false);
+    expect(session.lastConsumedCt).toBe(2002);
+    expect(session.movementTimeline?.rejectedSanityBound).toBe(1);
+  });
+
+  it('preserves v2 hosted ownership when a linkdead session resumes', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(
+      server.join(ws, 1, 101, 'Hero', 'warrior', null, false, { movementWireVersion: 2 }),
+    );
+    server.setHostedPlayObserved(101, true);
+    expect(server.socketClosed(session, ws, { withMarket: false })).toBe(true);
+    const resumed = expectJoined(
+      server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null, false, { movementWireVersion: 2 }),
+    );
+    expect(resumed).toBe(session);
+    server.setHostedPlayObserved(101, true);
+    server.applyHostedPlayMoveInput(101, { f: 1 }, 0);
+    consumeMovementFramesV2(server.sim, [resumed]);
+    server.sim.tick();
+    expect(server.sim.meta(session.pid)?.moveInput.forward).toBe(true);
+  });
+
   it('captures hosted-play social state and recent events while observation is enabled', () => {
     const server = new GameServer();
     const session = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));
@@ -178,69 +249,191 @@ describe('GameServer hosted play seams', () => {
     server.setHostedPlayObserved(101, true);
     (server as any).send(session, {
       t: 'social',
-      friends: [{
-        id: 201,
-        name: 'Aleph',
-        cls: 'warrior',
-        level: 5,
-        realm: 'Test Realm',
-        online: true,
-        status: 'online',
-        zone: 'Eastbrook Vale',
-      }],
+      friends: [
+        {
+          id: 201,
+          name: 'Aleph',
+          cls: 'warrior',
+          level: 5,
+          realm: 'Test Realm',
+          online: true,
+          status: 'online',
+          zone: 'Eastbrook Vale',
+        },
+      ],
       blocks: [{ id: 301, name: 'Blocked' }],
       ignores: [],
       guild: null,
+      myPledge: null,
     });
     (server as any).send(session, {
       t: 'events',
-      list: [{
+      list: [
+        {
+          type: 'chat',
+          fromPid: 201,
+          from: 'Aleph',
+          text: 'hey there',
+          channel: 'whisper',
+          pid: session.pid,
+        },
+      ],
+    });
+
+    expect(server.buildHostedPlayLiveState(101)?.social).toEqual({
+      friends: [
+        {
+          id: 201,
+          name: 'Aleph',
+          cls: 'warrior',
+          level: 5,
+          realm: 'Test Realm',
+          online: true,
+          status: 'online',
+          zone: 'Eastbrook Vale',
+        },
+      ],
+      blocks: [{ id: 301, name: 'Blocked' }],
+      ignores: [],
+      guild: null,
+      myPledge: null,
+    });
+    expect(server.drainHostedPlayRecentEvents(101)).toEqual([
+      {
         type: 'chat',
         fromPid: 201,
         from: 'Aleph',
         text: 'hey there',
         channel: 'whisper',
         pid: session.pid,
-      }],
-    });
-
-    expect(server.buildHostedPlayLiveState(101)?.social).toEqual({
-      friends: [{
-        id: 201,
-        name: 'Aleph',
-        cls: 'warrior',
-        level: 5,
-        realm: 'Test Realm',
-        online: true,
-        status: 'online',
-        zone: 'Eastbrook Vale',
-      }],
-      blocks: [{ id: 301, name: 'Blocked' }],
-      ignores: [],
-      guild: null,
-    });
-    expect(server.drainHostedPlayRecentEvents(101)).toEqual([{
-      type: 'chat',
-      fromPid: 201,
-      from: 'Aleph',
-      text: 'hey there',
-      channel: 'whisper',
-      pid: session.pid,
-    }]);
+      },
+    ]);
     expect(server.drainHostedPlayRecentEvents(101)).toEqual([]);
 
     server.setHostedPlayObserved(101, false);
     (server as any).send(session, {
       t: 'events',
-      list: [{
-        type: 'chat',
-        fromPid: 202,
-        from: 'Bran',
-        text: 'ping',
-        channel: 'whisper',
-        pid: session.pid,
-      }],
+      list: [
+        {
+          type: 'chat',
+          fromPid: 202,
+          from: 'Bran',
+          text: 'ping',
+          channel: 'whisper',
+          pid: session.pid,
+        },
+      ],
     });
     expect(server.drainHostedPlayRecentEvents(101)).toEqual([]);
+  });
+  it('observes exactly each raw recipient frame after private, block and server-only filtering', () => {
+    const server = new GameServer();
+    const a = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));
+    const b = expectJoined(server.join(fakeWs(), 2, 102, 'Peer', 'warrior', null));
+    a.blockListLoaded = b.blockListLoaded = true;
+    server.setHostedPlayObserved(101, true);
+    server.setHostedPlayObserved(102, true);
+    vi.spyOn(server as any, 'isBlockedSender').mockImplementation(
+      (viewer: unknown, fromPid: unknown) => viewer === a && fromPid === b.pid,
+    );
+    for (const owner of [a, b]) vi.mocked(owner.ws.send).mockClear();
+    (server as any).routeEvents([
+      { type: 'log', text: 'private-a', pid: a.pid },
+      { type: 'log', text: 'private-b', pid: b.pid },
+      {
+        type: 'chat',
+        channel: 'whisper',
+        from: 'Peer',
+        fromPid: b.pid,
+        text: 'blocked',
+        pid: a.pid,
+      },
+      { type: 'referralEvidence', pid: a.pid },
+      { type: 'log', text: 'public' },
+    ]);
+    for (const owner of [a, b]) {
+      const wire = vi
+        .mocked(owner.ws.send)
+        .mock.calls.map(([text]) => JSON.parse(String(text)))
+        .filter((frame) => frame.t === 'events')
+        .flatMap((frame) => frame.list);
+      expect(
+        wire.some((event) => event.type === 'referralEvidence' || event.text === 'blocked'),
+      ).toBe(false);
+      expect(wire.some((event) => event.text === (owner === a ? 'private-b' : 'private-a'))).toBe(
+        false,
+      );
+      expect(wire.some((event) => event.text === (owner === a ? 'private-a' : 'private-b'))).toBe(
+        true,
+      );
+      expect(server.drainHostedPlayRecentEvents(owner.characterId)).toEqual(wire);
+      expect(server.drainHostedPlayRecentEvents(owner.characterId)).toEqual([]);
+    }
+    const overflow = Array.from({ length: 40 }, (_, i) => ({ type: 'log', text: `public-${i}` }));
+    (server as any).routeEvents(overflow);
+    for (const owner of [a, b]) {
+      expect(server.drainHostedPlayRecentEvents(owner.characterId)).toEqual(overflow.slice(-32));
+    }
+    server.setHostedPlayObserved(101, false);
+    (server as any).routeEvents([{ type: 'log', text: 'disabled', pid: a.pid }]);
+    expect(server.drainHostedPlayRecentEvents(101)).toEqual([]);
+  });
+
+  it('preserves ignore and spectator privacy on the raw event capture path', () => {
+    const server = new GameServer();
+    const a = expectJoined(server.join(fakeWs(), 1, 101, 'Hero', 'warrior', null));
+    const b = expectJoined(server.join(fakeWs(), 2, 102, 'Peer', 'warrior', null));
+    const spectator = expectJoined(server.join(fakeWs(), 3, 103, 'Watcher', 'warrior', null));
+    for (const owner of [a, b, spectator]) {
+      owner.blockListLoaded = true;
+      server.setHostedPlayObserved(owner.characterId, true);
+      vi.mocked(owner.ws.send).mockClear();
+    }
+    a.ignoredIds.add(b.characterId);
+    spectator.spectating = { characterId: b.characterId, name: b.name };
+    const events = [
+      { type: 'chat', channel: 'say', from: b.name, fromPid: b.pid, text: 'ignored-public' },
+      {
+        type: 'chat',
+        channel: 'whisper',
+        from: b.name,
+        fromPid: b.pid,
+        text: 'allowed-whisper',
+        pid: a.pid,
+      },
+      {
+        type: 'chat',
+        channel: 'whisper',
+        from: a.name,
+        fromPid: a.pid,
+        text: 'target-private',
+        pid: b.pid,
+      },
+      {
+        type: 'chat',
+        channel: 'whisper',
+        from: a.name,
+        fromPid: a.pid,
+        text: 'spectator-own',
+        pid: spectator.pid,
+      },
+    ];
+    (server as any).routeEvents(events);
+    for (const owner of [a, b, spectator]) {
+      const wire = vi
+        .mocked(owner.ws.send)
+        .mock.calls.map(([text]) => JSON.parse(String(text)))
+        .filter((frame) => frame.t === 'events')
+        .flatMap((frame) => frame.list);
+      expect(server.drainHostedPlayRecentEvents(owner.characterId)).toEqual(wire);
+    }
+    const wireText = (owner: ClientSession) =>
+      vi
+        .mocked(owner.ws.send)
+        .mock.calls.map(([text]) => JSON.parse(String(text)))
+        .filter((frame) => frame.t === 'events')
+        .flatMap((frame) => frame.list.map((event: { text: string }) => event.text));
+    expect(wireText(a)).toEqual(['allowed-whisper']);
+    expect(wireText(spectator)).toEqual(['ignored-public', 'spectator-own']);
   });
 });

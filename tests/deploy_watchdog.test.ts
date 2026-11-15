@@ -3,13 +3,11 @@ import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { bashExecutable, bashFixtureEnv, bashPath } from './helpers/bash_fixture';
 
-const read = (filename: string) => readFileSync(filename, 'utf8').replace(/\r\n/g, '\n');
-const watchdog = read('deploy/game_watchdog.sh');
-const userData = read('deploy/user-data.sh');
-const deployDoc = read('DEPLOY.md');
-const gitBash = join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe');
-const bash = process.platform === 'win32' && existsSync(gitBash) ? gitBash : 'bash';
+const watchdog = readFileSync('deploy/game_watchdog.sh', 'utf8');
+const userData = readFileSync('deploy/user-data.sh', 'utf8');
+const deployDoc = readFileSync('DEPLOY.md', 'utf8');
 
 describe('game watchdog deploy contract', () => {
   // Docker's `restart: unless-stopped` only fires when the container process EXITS,
@@ -132,21 +130,42 @@ describe('game watchdog install', () => {
   });
 
   // /livez can now answer 503, which makes it a public wedge oracle unless the edge
-  // hides it; /metrics exposes operational internals. The 404 block must sit on BOTH
-  // vhosts (site and admin domain), with the same path list, or one edge stays open.
-  // split() counts occurrences, so a drift between the two heredocs fails here.
+  // hides it; /metrics exposes operational internals; /internal/* is the bot and deploy
+  // internal API, reachable today with nothing but a shared secret header in front of it,
+  // so the edge 404 is defense in depth on top of that secret rather than the gate, and
+  // it also keeps the internal surface's 404-vs-401 behavior differences off the public
+  // edge. The 404 block must sit on BOTH vhosts (site and admin domain), with the same
+  // path list, or one edge stays open. split() counts occurrences, so a drift between
+  // the two heredocs fails here.
   it('hides the ops endpoints at the public edge, identically on both domains', () => {
+    expect(userData.split('@ops path /livez /readyz /metrics /internal/*')).toHaveLength(3);
+    // Both lines are deliberate. The first pins the full matcher; the second counts the
+    // same two occurrences THROUGH ITS PREFIX, which is what proves no third, stale
+    // short-form copy survives anywhere in the file. Without it a leftover
+    // `@ops path /livez /readyz /metrics` line (the exact shape this change replaced,
+    // and the shape a by-hand retrofit would re-add) would push this count to 4 and
+    // still leave the first assertion green.
     expect(userData.split('@ops path /livez /readyz /metrics')).toHaveLength(3);
     expect(userData.split('respond 404')).toHaveLength(3);
   });
 
   // user-data.sh writes that block at first boot only, so a host provisioned before
   // it existed keeps proxying /livez publicly, and /livez can now answer 503: a
-  // public oracle for exactly when the world loop is down. The runbook must carry
-  // the by-hand retrofit (matcher, validate, reload) or the fix never reaches a
-  // host that is already running.
+  // public oracle for exactly when the world loop is down. The same host also proxies
+  // /internal/*, whose only gate is a shared secret header, and whose 404-vs-401
+  // behavior differences are themselves a public signal; the edge 404 is defense in
+  // depth over that secret, not a replacement for it. The runbook must carry the
+  // by-hand retrofit (matcher, validate, reload) or the fix never reaches a host that
+  // is already running.
   it('documents the by-hand Caddy retrofit for an already-provisioned host', () => {
-    expect(deployDoc).toContain('@ops path /livez /readyz /metrics');
+    // Counted, not just contained, mirroring the user-data.sh pins above: the doc
+    // carries TWO @ops snippets (the first-boot Caddyfile mirror and the
+    // retrofit), and a bare toContain is satisfied by either, so the first-boot
+    // mirror reverting to the short form would hand an operator a snippet that
+    // leaves /internal/* public while this stayed green. The prefix count catches
+    // a stale short-form copy riding back in (it would push the count to 4).
+    expect(deployDoc.split('@ops path /livez /readyz /metrics /internal/*')).toHaveLength(3);
+    expect(deployDoc.split('@ops path /livez /readyz /metrics')).toHaveLength(3);
     expect(deployDoc).toContain('respond @ops 404');
     expect(deployDoc).toContain('sudo caddy validate --config /etc/caddy/Caddyfile');
     expect(deployDoc).toContain('sudo systemctl reload caddy');
@@ -174,22 +193,22 @@ describe('update runbook guards', () => {
   // documented gate that cannot run on a fresh host is not a gate.
   it('runs the type-check drift gate, with devDependencies actually installed', () => {
     expect(deployDoc).toContain('npx tsc --noEmit');
-    expect(deployDoc).toContain('npm ci');
+    expect(deployDoc).toContain('pnpm install --frozen-lockfile');
     // The two substrings above are satisfiable by two unrelated lines. The gate only
-    // works if `npm ci` (to get devDependencies) and `npx tsc --noEmit` run TOGETHER
-    // inside node:26-slim, because a deploy host has neither Node nor devDependencies.
-    // Pin the whole invocation as one contiguous block so a split can never pass. It
-    // must sweep every .env and .git out of the copy (the host .env holds every
-    // production secret, and a nested clone's .env or .git config can carry tokens),
-    // and pass --ignore-scripts so dependency install hooks cannot run as root with
-    // network access: losing either turns the type-check into a secret-exfiltration
-    // surface on every deploy. The --memory/--memory-swap bound keeps the gate,
-    // which runs on the live box before the game stops, from creating the host
-    // memory pressure the game service's mem_limit exists to prevent.
+    // works if `pnpm install` (to get devDependencies) and `npx tsc --noEmit` run
+    // TOGETHER inside node:26-slim, because a deploy host has neither Node nor
+    // devDependencies. Pin the whole invocation as one contiguous block so a split
+    // can never pass. It must sweep every .env and .git out of the copy (the host
+    // .env holds every production secret, and a nested clone's .env or .git config
+    // can carry tokens), and pass --ignore-scripts so dependency install hooks
+    // cannot run as root with network access: losing either turns the type-check
+    // into a secret-exfiltration surface on every deploy. The --memory/--memory-swap
+    // bound keeps the gate, which runs on the live box before the game stops, from
+    // creating the host memory pressure the game service's mem_limit exists to prevent.
     expect(deployDoc).toContain(
       [
         'sudo docker run --rm --memory 2g --memory-swap 2g -v /opt/eastbrook:/src:ro -w /app node:26-slim \\',
-        "  sh -c 'cp -a /src/. /app && find /app \\( -name .git -o -name .env \\) -prune -exec rm -rf {} + && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit'",
+        "  sh -c 'cp -a /src/. /app && find /app \\( -name .git -o -name .env \\) -prune -exec rm -rf {} + && npm install -g pnpm@10.34.5 && pnpm install --frozen-lockfile --ignore-scripts && npx tsc --noEmit'",
       ].join('\n'),
     );
   });
@@ -228,16 +247,19 @@ interface Harness {
   stateFile: string;
   lockFile: string;
   restartLog: string;
+  timeoutLog: string;
 }
 
-// A temp PATH dir holding two shims. `docker` prints a scripted `<running> <health>`
-// pair for `inspect` and records every `restart` invocation to a file; `flock` (which
-// may be entirely ABSENT on macOS) is overridden so the lock decision is deterministic
-// and cross-platform, controllable via SHIM_FLOCK_EXIT. Prepending this dir to PATH
-// makes both shims win over any real binary, and keeps the script off real docker.
+// A temp PATH dir holding three shims. `docker` prints a scripted `<running> <health>`
+// pair for `inspect` and records every `restart` invocation to a file; `flock` and GNU
+// `timeout` (both may be absent on macOS) are overridden so lock and timeout behavior
+// stay deterministic and cross-platform. Prepending this dir to PATH makes the shims
+// win over any real binaries and keeps the script off real docker.
 function makeHarness(): Harness {
   const dir = mkdtempSync(join(tmpdir(), 'woc-watchdog-'));
   harnessDirs.push(dir);
+  // Normalize checkout line endings, without changing the production script.
+  writeFileSync(join(dir, 'watchdog.sh'), watchdog.replace(/\r\n/g, '\n'));
   const dockerShim = `#!/usr/bin/env bash
 if [ "$1" = "inspect" ]; then
   if [ "\${SHIM_INSPECT_HANG:-0}" = "1" ]; then exec sleep 5; fi
@@ -262,8 +284,46 @@ exit "\${SHIM_FLOCK_EXIT:-0}"
 `;
   writeFileSync(join(dir, 'flock'), flockShim);
   chmodSync(join(dir, 'flock'), 0o755);
+  const timeoutShim = `
+const { spawn } = require('node:child_process');
+const { appendFileSync } = require('node:fs');
+const args = process.argv.slice(2);
+appendFileSync(process.env.SHIM_TIMEOUT_LOG, JSON.stringify({
+  args,
+  dryRun: process.env.WATCHDOG_DRY_RUN,
+  cooldown: process.env.WATCHDOG_COOLDOWN,
+  inspectTimeout: process.env.WATCHDOG_INSPECT_TIMEOUT,
+  restartTimeout: process.env.WATCHDOG_RESTART_TIMEOUT,
+}) + '\\n');
+if (args[0] === '-k') args.splice(0, 2);
+const seconds = Number(args.shift());
+// Fail closed: only the fixture docker script is ever executable here, even if
+// the caller's PATH changes. Windows cannot spawn an extensionless shell script.
+if (args.shift() !== 'docker') process.exit(125);
+const child = spawn(${JSON.stringify(bashExecutable())}, [${JSON.stringify(bashPath(join(dir, 'docker')))}, ...args], { stdio: 'inherit' });
+let timedOut = false;
+const timer = setTimeout(() => {
+  timedOut = true;
+  child.kill('SIGTERM');
+}, seconds * 1000);
+child.on('error', () => {
+  clearTimeout(timer);
+  process.exit(125);
+});
+child.on('exit', (code) => {
+  clearTimeout(timer);
+  process.exit(timedOut ? 124 : (code ?? 125));
+});
+`;
+  writeFileSync(join(dir, 'timeout.cjs'), timeoutShim);
+  writeFileSync(
+    join(dir, 'timeout'),
+    '#!/usr/bin/env bash\nexec "$SHIM_NODE" "$SHIM_TIMEOUT_JS" "$@"\n',
+  );
+  chmodSync(join(dir, 'timeout'), 0o755);
   return {
     dir,
+    timeoutLog: join(dir, 'timeout-calls.ndjson'),
     stateFile: join(dir, 'state'),
     lockFile: join(dir, 'lock'),
     restartLog: join(dir, 'restart.log'),
@@ -280,19 +340,50 @@ function runWatchdog(
   h: Harness,
   opts: { inspect: string; args?: string[]; env?: Record<string, string> },
 ): RunResult {
-  const res = spawnSync(bash, [WATCHDOG_SCRIPT, ...(opts.args ?? [])], {
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      PATH: `${h.dir}:${process.env.PATH ?? ''}`,
-      WATCHDOG_CONTAINER: CONTAINER,
-      WATCHDOG_STATE_FILE: h.stateFile,
-      WATCHDOG_LOCK_FILE: h.lockFile,
-      SHIM_INSPECT: opts.inspect,
-      SHIM_RESTART_LOG: h.restartLog,
-      ...opts.env,
+  // Exercise production defaults, not duplicate defaults in the fixture. Ambient
+  // operator settings must not change these isolated fake-service cases.
+  const env = Object.fromEntries(
+    Object.entries(bashFixtureEnv()).filter(([key]) => !/^(watchdog_|shim_)/i.test(key)),
+  );
+  const res = spawnSync(
+    bashExecutable(),
+    [
+      '--noprofile',
+      '--norc',
+      '-c',
+      `
+export PATH="$SHIM_DIR:$PATH"
+for tool in docker flock timeout; do
+  [ "$(command -v "$tool")" = "$SHIM_DIR/$tool" ] || exit 126
+done
+exec bash "$SHIM_DIR/watchdog.sh" "$@"
+`,
+      'watchdog-fixture',
+      ...(opts.args ?? []),
+    ],
+    {
+      encoding: 'utf8',
+      timeout: 15000,
+      env: {
+        ...env,
+        SHIM_DIR: bashPath(h.dir),
+        SHIM_NODE: bashPath(process.execPath),
+        SHIM_TIMEOUT_JS: join(h.dir, 'timeout.cjs').replace(/\\/g, '/'),
+        SHIM_TIMEOUT_LOG: join(h.dir, 'timeout-calls.ndjson'),
+        WATCHDOG_CONTAINER: CONTAINER,
+        WATCHDOG_STATE_FILE: bashPath(h.stateFile),
+        WATCHDOG_LOCK_FILE: bashPath(h.lockFile),
+        SHIM_INSPECT_HANG: '0',
+        SHIM_INSPECT_EXIT: '0',
+        SHIM_RESTART_HANG: '0',
+        SHIM_RESTART_EXIT: '0',
+        SHIM_FLOCK_EXIT: '0',
+        SHIM_INSPECT: opts.inspect,
+        SHIM_RESTART_LOG: bashPath(h.restartLog),
+        ...opts.env,
+      },
     },
-  });
+  );
   const restarted =
     existsSync(h.restartLog) && readFileSync(h.restartLog, 'utf8').includes(CONTAINER);
   return { status: res.status, output: `${res.stdout}${res.stderr}`, restarted };
@@ -308,6 +399,80 @@ afterAll(() => {
 });
 
 describe('game watchdog behavior (executed against a fake docker)', () => {
+  it('uses production defaults with all behavioral WATCHDOG variables absent', () => {
+    const h = makeHarness();
+    const res = runWatchdog(h, { inspect: 'true unhealthy' });
+    expect(res.status).toBe(0);
+    expect(res.restarted).toBe(true);
+    const calls = readFileSync(h.timeoutLog, 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(calls).toHaveLength(2);
+    for (const call of calls) {
+      expect(call).not.toHaveProperty('dryRun');
+      expect(call).not.toHaveProperty('cooldown');
+      expect(call).not.toHaveProperty('inspectTimeout');
+      expect(call).not.toHaveProperty('restartTimeout');
+    }
+    expect(calls[0].args.slice(0, 5)).toEqual(['-k', '5', '55', 'docker', 'inspect']);
+    expect(calls[1].args).toEqual(['-k', '5', '150', 'docker', 'restart', CONTAINER]);
+  });
+
+  it('uses the production 300-second cooldown without an environment override', () => {
+    const h = makeHarness();
+    writeFileSync(h.stateFile, `${nowSeconds() - 200}\n`);
+    const res = runWatchdog(h, { inspect: 'true unhealthy' });
+    expect(res.status).toBe(0);
+    expect(res.restarted).toBe(false);
+    expect(res.output).toContain('cooldown 300s');
+  });
+
+  it('honors explicit cooldown and timeout overrides', () => {
+    const h = makeHarness();
+    writeFileSync(h.stateFile, `${nowSeconds() - 200}\n`);
+    const res = runWatchdog(h, {
+      inspect: 'true unhealthy',
+      env: {
+        WATCHDOG_COOLDOWN: '60',
+        WATCHDOG_INSPECT_TIMEOUT: '13',
+        WATCHDOG_RESTART_TIMEOUT: '29',
+      },
+    });
+    expect(res.status).toBe(0);
+    expect(res.restarted).toBe(true);
+    const calls = readFileSync(h.timeoutLog, 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(calls[0].args.slice(0, 5)).toEqual(['-k', '5', '13', 'docker', 'inspect']);
+    expect(calls[1].args).toEqual(['-k', '5', '29', 'docker', 'restart', CONTAINER]);
+  });
+
+  it('honors an explicit dry-run environment setting without restarting', () => {
+    const h = makeHarness();
+    const res = runWatchdog(h, {
+      inspect: 'true unhealthy',
+      env: { WATCHDOG_DRY_RUN: '1' },
+    });
+    expect(res.status).toBe(0);
+    expect(res.restarted).toBe(false);
+    expect(res.output).toContain('DRY RUN');
+    expect(existsSync(h.stateFile)).toBe(false);
+  });
+
+  it.each(['docker', 'flock', 'timeout'])(
+    'refuses execution if the fixture %s shim is missing',
+    (tool) => {
+      const h = makeHarness();
+      rmSync(join(h.dir, tool));
+      const res = runWatchdog(h, { inspect: 'true unhealthy' });
+      expect(res.status).toBe(126);
+      expect(res.restarted).toBe(false);
+      expect(existsSync(h.stateFile)).toBe(false);
+    },
+  );
+
   // The harness must be able to observe a REAL restart, or every negative case below
   // passes vacuously. An unhealthy, running container is the one case the watchdog
   // exists for: if this stops restarting, a wedged world never recovers on its own.
@@ -516,7 +681,10 @@ describe('game watchdog behavior (executed against a fake docker)', () => {
   // A syntax error anywhere in the script would ship green through every string-grep
   // pin above; parsing it (and the executed cases) is what actually catches one.
   it('parses without a syntax error', () => {
-    const res = spawnSync(bash, ['-n', WATCHDOG_SCRIPT], { encoding: 'utf8' });
+    const res = spawnSync(bashExecutable(), ['-n', WATCHDOG_SCRIPT], {
+      encoding: 'utf8',
+      env: bashFixtureEnv(),
+    });
     expect(res.status).toBe(0);
   });
 });

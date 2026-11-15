@@ -39,7 +39,9 @@
 // / `el.style.*`) on elements handed to them, but never reach for a browser global,
 // so the host itself imports cleanly under Vitest.
 
+import type { MaterialComposition } from '../sim/material_sources';
 import type { ItemDef, ItemInstancePayload } from '../sim/types';
+import type { MaterialSourcesDialogOptions } from './material_sources_dialog';
 
 /**
  * Facet 1: the presentation dep-bag. Exactly the icon / money / tooltip helpers a
@@ -48,16 +50,31 @@ import type { ItemDef, ItemInstancePayload } from '../sim/types';
  * hands it to every window that renders items, so the helpers live in one place.
  */
 export interface PainterHostPresentation {
-  /** `<img>` markup for an item's procedural icon. */
-  itemIcon(item: ItemDef): string;
+  /** `<img>` markup for an item's procedural icon. The optional `quality` is
+   *  the cell's INSTANCE-effective quality (worn_item_cell_view.ts): a
+   *  promoted legendary copy gets its orange rim here rather than its def
+   *  tier's, and every item cell routes through this one dep so the icon
+   *  seam stays injected (the phase 13 QA). */
+  itemIcon(item: ItemDef, quality?: ItemDef['quality']): string;
   /** Localized coin markup (gold/silver/copper) for a copper amount. */
   moneyHtml(copper: number): string;
   /** Full item tooltip markup (name, stats, compare). The optional per-copy
    *  instance payload adds the masterwork seal, enchanted marker, baked bonus
-   *  stats, and maker's mark lines (Professions 2.0). */
-  itemTooltip(item: ItemDef, instance?: ItemInstancePayload): string;
+   *  stats, and maker's mark lines (Professions 2.0). The optional
+   *  `materialSources` is the hovered STACK's per-unit provenance: a surface
+   *  that has the slot in hand passes it and the card gains one line per
+   *  contributor, and one that does not simply omits it. Every surface showing
+   *  OWNED stacks should pass it (the all-surfaces item-mark doctrine in
+   *  src/ui/CLAUDE.md: a fact about the item must not vanish between windows). */
+  itemTooltip(
+    item: ItemDef,
+    instance?: ItemInstancePayload,
+    materialSources?: MaterialComposition,
+  ): string;
   /** Attach a lazily-built tooltip to an element. */
-  attachTooltip(el: HTMLElement, html: () => string): void;
+  attachTooltip(el: HTMLElement, html: () => string, isSpell?: () => boolean): void;
+  /** Open the uncapped source details/picker surface when the host has mounted it. */
+  openMaterialSources?(options: MaterialSourcesDialogOptions): void;
 }
 
 /**
@@ -69,10 +86,29 @@ export interface PainterHostPresentation {
  * Canvas painter touches the context directly and uses these writers only for the
  * DOM bits it owns (e.g. a `#zone-label` text node).
  *
- * setText/setDisplay/setTransform/setWidth are SINGLE-SLOT (one cached string per
- * element, since each owns one DOM facet). setStyleProp/toggleClass/setAttr are
- * MULTI-SLOT (keyed per (element, prop) / (element, class) / (element, attr)), since
- * one element holds many custom properties, toggled classes, and attributes.
+ * setText/setDisplay/setTransform/setWidth are SINGLE-SLOT (one cached
+ * (kind, value) entry per element, since each owns one DOM facet).
+ * setStyleProp/toggleClass/setAttr are MULTI-SLOT (keyed per (element, prop) /
+ * (element, class) / (element, attr)), since one element holds many custom
+ * properties, toggled classes, and attributes.
+ *
+ * THE GUARANTEE IS PER (ELEMENT, KIND), NOT PER ELEMENT, and the difference is a
+ * defect that has shipped. Because the four single-slot writers share ONE entry
+ * per element, an element written through TWO DIFFERENT single-slot writers has
+ * that entry flipped by each call, the equality below is false every time, and
+ * BOTH writes bypass elision FOREVER. Nothing renders wrong, so no behavior test
+ * fails; the writes just never elide and count as real writes in hotDomWrites.
+ * It shipped at seven sites across five modules, the worst being the aura stacks
+ * badge (setDisplay + setText on one node, every frame, per stacking aura).
+ *
+ * SO: a node that needs two facets gives the second one its OWN slot. Use
+ * setStyleProp for a CSS property (its contract covers a standard property, not
+ * just a `--var`: `setStyleProp(el, 'display', v)` is byte-for-byte the write
+ * setDisplay performs, keyed per (element, 'display')), toggleClass when the
+ * state belongs in the stylesheet, or setAttr for an attribute. Two separate
+ * ELEMENTS work equally well and are sometimes the honest answer; a second cache
+ * slot is simply cheaper than a second node.
+ * Guarded by tests/painter_single_slot_collision_guard.test.ts.
  */
 export interface PainterHostWriters {
   /** Set `el.textContent`, eliding a repeat of the same text. */
@@ -101,48 +137,102 @@ export interface PainterHostWriters {
    * written every frame per slot (Top risk 4); the rendered string still comes from
    * the core's `t()` call each frame, this only elides the DOM write.
    */
-  setAttr(el: HTMLElement, name: string, value: string): void;
+  /** null removes the attribute (elided like any other value). */
+  setAttr(el: HTMLElement, name: string, value: string | null): void;
+}
+
+/**
+ * Which of the four single-slot DOM facets last wrote an element. Compared as a
+ * component beside the raw value, so the elision check never composes a key
+ * string.
+ */
+export type SingleSlotKind = 'text' | 'display' | 'transform' | 'width';
+
+/**
+ * One single-slot cache entry: the writer kind plus the raw value it last
+ * wrote. A value change MUTATES the entry in place (this cache is a deliberate
+ * mutable hot-path structure), so after an element's first routed write both
+ * the skip path and the repeat-write path allocate nothing.
+ */
+export interface SingleSlotEntry {
+  kind: SingleSlotKind;
+  value: string;
+}
+
+/** The shared single-slot elision cache (Hud's private `hotWriteCache` field).
+ * A WeakMap on purpose: entries are keyed by element and never enumerated, and
+ * a strong Map pinned every element ever routed through a writer, including
+ * DOM-removed party/raid rows, for the whole session. */
+export type SingleSlotCache = WeakMap<HTMLElement, SingleSlotEntry>;
+
+/**
+ * The single-slot elision decision, shared VERBATIM by Hud's private writers and
+ * the facet below over the SAME cache, so the two can never disagree on an
+ * element. Returns true when the caller must perform the DOM write (the cache is
+ * already updated), false when the write elides. Allocation-free after an
+ * element's first routed write BY CONTRACT: it compares the (kind, value)
+ * components directly and never composes a `display:` + value style key, which
+ * the old shape built BEFORE the skip check, allocating a discarded string on
+ * every ELIDED call. tests/painter_host.test.ts pins both the decision table and
+ * the allocation-free skip path.
+ */
+export function shouldWriteSingleSlot(
+  cache: SingleSlotCache,
+  el: HTMLElement,
+  kind: SingleSlotKind,
+  value: string,
+): boolean {
+  const entry = cache.get(el);
+  if (entry === undefined) {
+    cache.set(el, { kind, value });
+    return true;
+  }
+  if (entry.kind === kind && entry.value === value) return false;
+  entry.kind = kind;
+  entry.value = value;
+  return true;
 }
 
 /**
  * Build the write-elision facet over the supplied caches. The four single-slot
- * writers share `cache` (one string per element); setStyleProp/toggleClass/setAttr
- * use the multi-slot `stylePropCache` / `classCache` / `attrCache` (a per-element
- * inner map keyed by prop / class / attr). Every closure reports each real write via
- * `onWrite` and each elided write via `onSkip`, so a host that builds the facet from
- * its own caches + counters keeps a single skip-rate across its direct writes and
- * the painter writes. The key scheme matches Hud's private writers exactly (raw text
- * for setText; `display:`/`transform:`/`width:` prefixes for the style writers; the
- * raw value for setStyleProp; `on`/`off` for toggleClass; the raw value for setAttr)
- * so the two never disagree on the same element.
+ * writers share `cache` (one (kind, value) entry per element, decided by
+ * `shouldWriteSingleSlot` above, the same helper Hud's private writers call);
+ * setStyleProp/toggleClass/setAttr use the multi-slot `stylePropCache` /
+ * `classCache` / `attrCache` (a per-element inner map keyed by prop / class /
+ * attr, compared against the raw value). Every closure reports each real write
+ * via `onWrite` and each elided write via `onSkip`, so a host that builds the
+ * facet from its own caches + counters keeps a single skip-rate across its
+ * direct writes and the painter writes. No writer composes a key string on any
+ * path: an elided frame allocates nothing.
  */
+// Cache sentinel for a removed attribute; no real attribute value can be it.
+const ATTR_REMOVED = '\u0000';
+
 export function makeWriterFacet(
-  cache: Map<HTMLElement, string>,
-  stylePropCache: Map<HTMLElement, Map<string, string>>,
-  classCache: Map<HTMLElement, Map<string, string>>,
-  attrCache: Map<HTMLElement, Map<string, string>>,
+  cache: SingleSlotCache,
+  stylePropCache: WeakMap<HTMLElement, Map<string, string>>,
+  classCache: WeakMap<HTMLElement, Map<string, string>>,
+  attrCache: WeakMap<HTMLElement, Map<string, string>>,
   onWrite: () => void,
   onSkip: () => void,
 ): PainterHostWriters {
-  const write = (el: HTMLElement, key: string, apply: () => void): void => {
-    if (cache.get(el) === key) {
-      onSkip();
-      return;
+  const shouldWrite = (el: HTMLElement, kind: SingleSlotKind, value: string): boolean => {
+    if (shouldWriteSingleSlot(cache, el, kind, value)) {
+      onWrite();
+      return true;
     }
-    cache.set(el, key);
-    onWrite();
-    apply();
+    onSkip();
+    return false;
   };
   // Multi-slot variant: resolves (or lazily creates) the per-element inner map and
   // elides per (element, slot). Used by setStyleProp/toggleClass so one element can
   // hold many independent props/classes without them clobbering each other's cache.
-  const writeSlot = (
-    store: Map<HTMLElement, Map<string, string>>,
+  const shouldWriteSlot = (
+    store: WeakMap<HTMLElement, Map<string, string>>,
     el: HTMLElement,
     slot: string,
     value: string,
-    apply: () => void,
-  ): void => {
+  ): boolean => {
     let slots = store.get(el);
     if (slots === undefined) {
       slots = new Map();
@@ -150,40 +240,36 @@ export function makeWriterFacet(
     }
     if (slots.get(slot) === value) {
       onSkip();
-      return;
+      return false;
     }
     slots.set(slot, value);
     onWrite();
-    apply();
+    return true;
   };
   return {
-    setText: (el, text) =>
-      write(el, text, () => {
-        el.textContent = text;
-      }),
-    setDisplay: (el, display) =>
-      write(el, `display:${display}`, () => {
-        el.style.display = display;
-      }),
-    setTransform: (el, transform) =>
-      write(el, `transform:${transform}`, () => {
-        el.style.transform = transform;
-      }),
-    setWidth: (el, width) =>
-      write(el, `width:${width}`, () => {
-        el.style.width = width;
-      }),
-    setStyleProp: (el, prop, value) =>
-      writeSlot(stylePropCache, el, prop, value, () => {
-        el.style.setProperty(prop, value);
-      }),
-    toggleClass: (el, cls, on) =>
-      writeSlot(classCache, el, cls, on ? 'on' : 'off', () => {
-        el.classList.toggle(cls, on);
-      }),
-    setAttr: (el, name, value) =>
-      writeSlot(attrCache, el, name, value, () => {
-        el.setAttribute(name, value);
-      }),
+    setText: (el, text) => {
+      if (shouldWrite(el, 'text', text)) el.textContent = text;
+    },
+    setDisplay: (el, display) => {
+      if (shouldWrite(el, 'display', display)) el.style.display = display;
+    },
+    setTransform: (el, transform) => {
+      if (shouldWrite(el, 'transform', transform)) el.style.transform = transform;
+    },
+    setWidth: (el, width) => {
+      if (shouldWrite(el, 'width', width)) el.style.width = width;
+    },
+    setStyleProp: (el, prop, value) => {
+      if (shouldWriteSlot(stylePropCache, el, prop, value)) el.style.setProperty(prop, value);
+    },
+    toggleClass: (el, cls, on) => {
+      if (shouldWriteSlot(classCache, el, cls, on ? 'on' : 'off')) el.classList.toggle(cls, on);
+    },
+    setAttr: (el, name, value) => {
+      if (shouldWriteSlot(attrCache, el, name, value === null ? ATTR_REMOVED : value)) {
+        if (value === null) el.removeAttribute(name);
+        else el.setAttribute(name, value);
+      }
+    },
   };
 }

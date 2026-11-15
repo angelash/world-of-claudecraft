@@ -11,14 +11,17 @@
 // family (the destruction-confirm precedent), opened by the onUnbind
 // callback, never a bespoke prompt here.
 
+import type { ItemDef } from '../../../sim/types';
 import { markDialogRoot } from '../../dialog_root';
-import { itemDisplayName } from '../../entity_i18n';
 import { esc } from '../../esc';
+import { focusedWithin, restoreFirstEnabled } from '../../focus_restore';
 import { formatMoney, formatNumber, t } from '../../i18n';
 import { QUALITY_COLOR } from '../../icons';
+import { itemNameColor } from '../../item_name_color';
 import type { PainterHostPresentation } from '../../painter_host';
 import { qualityGlowShadow } from '../../quality_glow';
 import { svgIcon } from '../../ui_icons';
+import { wornItemCellParts } from '../../worn_item_cell_view';
 import type { UnbindRow, UnbindView } from './unbind_view';
 
 export interface UnbindWindowDeps extends PainterHostPresentation {
@@ -27,8 +30,13 @@ export interface UnbindWindowDeps extends PainterHostPresentation {
   onClose(): void;
 }
 
-function rowName(row: UnbindRow): string {
-  return row.item ? itemDisplayName(row.item) : row.itemId;
+/** The cell authority for the row's copy (the FIRST bound copy, the one the
+ *  resolver unbinds): its chosen name and its effective quality, so a named
+ *  or legendary-rolled bound copy reads as itself beside its tooltip. */
+function rowParts(row: UnbindRow): { name: string; quality: ItemDef['quality'] } {
+  return row.item
+    ? wornItemCellParts(row.item, row.instance)
+    : { name: row.itemId, quality: undefined };
 }
 
 /** Paint the unbind panel from a prepared view. */
@@ -44,8 +52,19 @@ export function renderUnbindWindow(
   // A standalone trapping window (the train/mailbox shape): announce it as a
   // labeled dialog for the focus contract.
   markDialogRoot(el, { label: t('hudChrome.unbind.title', { name: masterName }) });
+  // Inventory and purse deltas repaint this window uninitiated (#2931), so
+  // carry keyboard focus across the wipe per the focus-across-a-REBUILD
+  // contract (the train_window idiom): the exact control when it survived
+  // enabled, else outward row neighbors, else the close button.
+  const focused = focusedWithin(el);
+  const focusKey = focused?.dataset.focusKey ?? null;
+  const focusedSlot = focused?.classList.contains('unbind-row')
+    ? [...el.querySelectorAll<HTMLButtonElement>('button.unbind-row')].indexOf(
+        focused as HTMLButtonElement,
+      )
+    : -1;
   const scrollTop = el.scrollTop;
-  el.innerHTML = `<div class="panel-title"><span>${esc(t('hudChrome.unbind.title', { name: masterName }))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('hudChrome.unbind.close'))}">${svgIcon('close')}</button></div>`;
+  el.innerHTML = `<div class="panel-title ui-win-head"><span class="ui-win-title">${esc(t('hudChrome.unbind.title', { name: masterName }))}</span><button type="button" class="x-btn ui-x-btn" data-close data-focus-key="close" aria-label="${esc(t('hudChrome.unbind.close'))}">${svgIcon('close')}</button></div>`;
 
   const intro = document.createElement('div');
   intro.className = 'vi-sub unbind-intro';
@@ -60,23 +79,32 @@ export function renderUnbindWindow(
   }
 
   for (const row of view.rows) {
-    const name = rowName(row);
+    // One authority read per row (name + the quality the rim and glow share).
+    const parts = rowParts(row);
+    const name = parts.name;
     const fee = formatMoney(row.feeCopper);
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'vendor-item unbind-row';
+    button.className = 'vendor-item ui-card unbind-row';
     button.disabled = !row.affordable;
+    // Its own focus key so the restore ladder can find the same item row
+    // across a rebuild (one row per bound item id, so the id is the identity).
+    button.dataset.focusKey = `unbind:${row.itemId}`;
     button.setAttribute('aria-label', t('hudChrome.unbind.unbindAria', { name, fee }));
     const countSuffix =
       row.boundCount > 1 ? ` x${formatNumber(row.boundCount, { maximumFractionDigits: 0 })}` : '';
     // Quality-glow socket and fee treatment: the train_window idiom (gold
     // action chip when affordable, plain error-tint price when not).
-    const glow = row.item?.quality ? qualityGlowShadow(QUALITY_COLOR[row.item.quality]) : '';
-    const iconHtml = `<span class="crafting-recipe-socket"${glow ? ` style="box-shadow:${glow}"` : ''}>${row.item ? deps.itemIcon(row.item) : ''}</span>`;
+    const quality = parts.quality;
+    const glow = quality ? qualityGlowShadow(QUALITY_COLOR[quality]) : '';
+    const iconHtml = `<span class="crafting-recipe-socket ui-socket ui-socket--bag"${glow ? ` style="box-shadow:${glow}"` : ''}>${row.item ? deps.itemIcon(row.item, quality) : ''}</span>`;
     const feeHtml = row.affordable
-      ? `<span class="vi-price-chip">${esc(fee)}</span>`
+      ? `<span class="vi-price-chip ui-chip is-on">${esc(fee)}</span>`
       : `<span class="vi-price unaffordable">${esc(fee)}</span>`;
-    button.innerHTML = `${iconHtml}<span class="vi-name">${esc(name)}${esc(countSuffix)}<span class="vi-sub">${esc(t('hudChrome.unbind.rowSub'))}</span></span>${feeHtml}`;
+    // One cell authority for BOTH halves: the rim above and the name here read
+    // the same instance-effective quality, so a promoted copy can never wear a
+    // legendary rim over a def-tier name.
+    button.innerHTML = `${iconHtml}<span class="vi-name"${row.item ? ` style="color:${itemNameColor({ kind: row.item.kind, quality })}"` : ''}>${esc(name)}${esc(countSuffix)}<span class="vi-sub ui-muted">${esc(t('hudChrome.unbind.rowSub'))}</span></span>${feeHtml}`;
     button.addEventListener('click', () => deps.onUnbind(row.itemId, row.feeCopper));
     if (row.item) {
       const item = row.item;
@@ -88,4 +116,26 @@ export function renderUnbindWindow(
   el.querySelector('[data-close]')?.addEventListener('click', () => deps.onClose());
   el.style.display = 'block';
   el.scrollTop = scrollTop;
+  // Restore focus LAST (a bare focus() may scroll the row into view, which
+  // must win over the raw scroll restore for a keyboard player; with no
+  // captured key, mouse users keep their exact scroll). Dataset equality
+  // rather than an attribute selector: the keys embed item ids and this
+  // needs no CSS.escape (the vendor_window precedent).
+  if (focusKey) {
+    const keyed = [...el.querySelectorAll<HTMLButtonElement>('[data-focus-key]')];
+    const exact = keyed.find((b) => b.dataset.focusKey === focusKey);
+    // The same-slot ladder: the row's own slot first (after an unbind the
+    // list shifts and it holds the next item), then outward neighbors,
+    // before the close fallback.
+    const ladder = [...el.querySelectorAll<HTMLButtonElement>('button.unbind-row')];
+    const slot = focusedSlot >= 0 ? Math.min(focusedSlot, ladder.length - 1) : -1;
+    const neighbors: (HTMLButtonElement | undefined)[] = [];
+    if (slot >= 0) {
+      for (let step = 0; step < ladder.length; step++) {
+        if (ladder[slot + step]) neighbors.push(ladder[slot + step]);
+        if (step > 0 && ladder[slot - step]) neighbors.push(ladder[slot - step]);
+      }
+    }
+    restoreFirstEnabled([exact, ...neighbors, keyed.find((b) => b.dataset.focusKey === 'close')]);
+  }
 }

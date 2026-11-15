@@ -20,13 +20,27 @@ export const TRIPO_BASE = 'https://openapi.tripo3d.ai/v3';
 
 // Generation model ids (pin dated forms, aliases drift).
 export const MODEL_LOWPOLY = 'P1-20260311'; // low-poly game specialist
+export const MODEL_P2 = 'P2-20260801'; // P2.0: low-poly specialist, wider face budget, sharper silhouettes
 export const MODEL_HIFI = 'v3.1-20260211'; // flagship H-series
+
+/** The generation model for a `--model` quality word: lowpoly (default), p2, hifi. */
+export function modelFor(quality) {
+  if (quality === 'hifi') return MODEL_HIFI;
+  if (quality === 'p2') return MODEL_P2;
+  return MODEL_LOWPOLY;
+}
+
+/** The quality word recorded in a job for a `--model` option (default lowpoly). */
+export function modelQuality(quality) {
+  return quality === 'hifi' || quality === 'p2' ? quality : 'lowpoly';
+}
 export const RIG_MODEL_BIPED = 'v1.0-20240301'; // biped only, 90+ preset:biped:* clips
 export const RIG_MODEL_ALL = 'v2.5-20260210'; // all rig types, small preset set
 
 const MAX_RETRIES = 5;
 const POLL_INTERVAL_MS = 2000;
 const DEFAULT_TASK_TIMEOUT_MS = 15 * 60 * 1000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -34,11 +48,29 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  *  `idempotent: false` (task-creating POSTs) retries only rate/concurrency
  *  429s, never 5xx: a 5xx after server-side creation would double-create a
  *  PAID task. Failed creations are safe to re-run manually (job resume). */
-async function request(path, { method = 'GET', body, form, idempotent = method === 'GET' } = {}) {
+async function request(
+  path,
+  {
+    method = 'GET',
+    body,
+    form,
+    idempotent = method === 'GET',
+    timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+    maxRetries = MAX_RETRIES,
+  } = {},
+) {
   const url = `${TRIPO_BASE}${path}`;
+  const attempts = Number.isFinite(maxRetries)
+    ? Math.max(1, Math.min(MAX_RETRIES, Math.floor(maxRetries)))
+    : MAX_RETRIES;
   let lastErr;
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     let res;
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(new Error(`${method} ${path} timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
     try {
       res = await fetch(url, {
         method,
@@ -47,17 +79,25 @@ async function request(path, { method = 'GET', body, form, idempotent = method =
           ...(body ? { 'Content-Type': 'application/json' } : {}),
         },
         body: form ?? (body ? JSON.stringify(body) : undefined),
+        signal: controller.signal,
       });
     } catch (err) {
+      const requestError = controller.signal.aborted
+        ? new Error(`${method} ${path} timed out after ${timeoutMs}ms`)
+        : err;
       // Network error. For a non-idempotent (task-creating) POST the request
       // may have reached the server, so retrying could double-create a paid
       // task: fail instead and let the job-ledger resume path recover.
       if (!idempotent) {
+        if (controller.signal.aborted) throw requestError;
         throw new Error(`${method} ${path} network error (not retried, task may exist): ${err}`);
       }
-      lastErr = err;
+      lastErr = requestError;
+      if (attempt + 1 >= attempts) break;
       await sleep(1000 * 2 ** attempt);
       continue;
+    } finally {
+      clearTimeout(timeout);
     }
     const text = await res.text();
     let json;
@@ -88,12 +128,13 @@ async function request(path, { method = 'GET', body, form, idempotent = method =
             ? Math.max(1000, resetAt * 1000 - Date.now())
             : 1000 * 2 ** attempt;
       lastErr = new Error(msg);
+      if (attempt + 1 >= attempts) break;
       await sleep(Math.min(waitMs, 30_000));
       continue;
     }
     throw new Error(msg);
   }
-  throw new Error(`Tripo request failed after ${MAX_RETRIES} attempts: ${lastErr?.message}`);
+  throw new Error(`Tripo request failed after ${attempts} attempts: ${lastErr?.message}`);
 }
 
 export async function balance() {
@@ -102,8 +143,8 @@ export async function balance() {
 
 /** Fetch one task's detail (status, credits_consumed, output). Used by the QA
  *  cost report to price each recorded task id. */
-export async function getTask(taskId) {
-  return request(`/tasks/${taskId}`);
+export async function getTask(taskId, { timeoutMs, maxRetries } = {}) {
+  return request(`/tasks/${taskId}`, { timeoutMs, maxRetries });
 }
 
 /** Upload a local image or model file; returns a file_token string. */
@@ -216,10 +257,10 @@ export async function generateModel({
   onTaskCreated,
 }) {
   // smart_low_poly (clean hand-crafted topology, +10 credits) is an H-series
-  // (>= v3.0) option; P1 is already a low-poly specialist and rejects it.
+  // (>= v3.0) option; the P-series are already low-poly specialists and reject it.
   const extras = {
     ...(faceLimit ? { face_limit: faceLimit } : {}),
-    ...(smartLowPoly && !model.startsWith('P1') ? { smart_low_poly: true } : {}),
+    ...(smartLowPoly && !model.startsWith('P') ? { smart_low_poly: true } : {}),
     texture,
     pbr,
   };
@@ -236,6 +277,58 @@ export async function generateModel({
   } else {
     throw new Error('generateModel needs an image or a prompt');
   }
+  onTaskCreated?.(taskId);
+  const task = await pollTask(taskId, { onProgress });
+  return { taskId, task };
+}
+
+/** The fixed angles multiview generation reads, in Tripo's own order. */
+export const MULTIVIEW_ANGLES = ['front', 'left', 'back', 'right'];
+
+/** The `inputs` list for multiview-to-model: one view-keyed entry per angle that is
+ *  present, in MULTIVIEW_ANGLES order. Front is required (Tripo rejects a set
+ *  without it); any other angle may be left out. Pure, so the order is testable. */
+export function multiviewInputs(resolved) {
+  if (!resolved?.front) throw new Error('multiview generation needs a front view');
+  const unknown = Object.keys(resolved).filter((angle) => !MULTIVIEW_ANGLES.includes(angle));
+  if (unknown.length) throw new Error(`unknown multiview angle(s): ${unknown.join(', ')}`);
+  return MULTIVIEW_ANGLES.filter((angle) => resolved[angle]).map((angle) => ({
+    [angle]: resolved[angle],
+  }));
+}
+
+/** Generate a 3D model from separate fixed-angle views of one subject (a T-pose concept
+ *  drawn front, left and back), the art team's model step: Smart Mesh P2.0 by default.
+ *  `views` maps an angle to a local image path, URL or Tripo file ref. `quad` asks P2
+ *  for a quad mesh (P1 rejects it). `textureSize` is the texture map's edge in pixels
+ *  (the art guide asks for 1024). Returns {taskId, task} like generateModel. */
+export async function generateModelFromViews({
+  views,
+  model = MODEL_P2,
+  faceLimit,
+  texture = true,
+  pbr = true,
+  quad = false,
+  textureQuality,
+  textureSize,
+  onProgress,
+  onTaskCreated,
+}) {
+  const resolved = {};
+  for (const [angle, image] of Object.entries(views ?? {})) {
+    if (image) resolved[angle] = await resolveImageInput(image);
+  }
+  const body = {
+    inputs: multiviewInputs(resolved),
+    model,
+    texture,
+    pbr,
+    ...(faceLimit ? { face_limit: faceLimit } : {}),
+    ...(quad && model.startsWith('P2') ? { quad: true } : {}),
+    ...(textureQuality ? { texture_quality: textureQuality } : {}),
+    ...(textureSize ? { texture_size: textureSize } : {}),
+  };
+  const taskId = await createTask('/generation/multiview-to-model', body);
   onTaskCreated?.(taskId);
   const task = await pollTask(taskId, { onProgress });
   return { taskId, task };

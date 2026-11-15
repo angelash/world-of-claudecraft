@@ -18,14 +18,17 @@ vi.mock('../server/db', () => ({
   loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
-import {
-  type AiActivePollRuleV1,
-  AiActiveTriggerService,
-} from '../server/ai/active_triggers';
-import type { AiDecisionV1, AiJobContextV1, AiProvider, AiProviderOutput, AiProviderTimingSnapshot } from '../server/ai/ai_types';
+import { type AiActivePollRuleV1, AiActiveTriggerService } from '../server/ai/active_triggers';
+import type {
+  AiDecisionV1,
+  AiJobContextV1,
+  AiProvider,
+  AiProviderOutput,
+  AiProviderTimingSnapshot,
+} from '../server/ai/ai_types';
 import type { AiAuditRecord, AiAuditSink } from '../server/ai_audit';
 import { AI_ACTIVE_TRIGGER_INTERVAL_MS, type ClientSession, GameServer } from '../server/game';
-import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
+import { EASTBROOK_LAYOUT, EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
 import { dist2d } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
 
@@ -133,7 +136,11 @@ function activeDecision(context: AiJobContextV1, text: string): AiDecisionV1 {
     confidence: 1,
     speech: [{ mode: 'dynamicText', language: 'en', text }],
     intents: [{ type: 'commentOnScene' }],
-    audit: { shortReason: 'active trigger provider decision', usedPlayerInput: false, safetyNotes: [] },
+    audit: {
+      shortReason: 'active trigger provider decision',
+      usedPlayerInput: false,
+      safetyNotes: [],
+    },
   };
 }
 
@@ -189,11 +196,7 @@ function moveServerEntity(server: GameServer, entityId: number, x: number, z: nu
   if (entity.kind === 'player') server.sim.playerGrid.update(entity);
 }
 
-function isolateCandidate(
-  server: GameServer,
-  targetId: number,
-  kind: 'npc' | 'mob',
-): void {
+function isolateCandidate(server: GameServer, targetId: number, kind: 'npc' | 'mob'): void {
   const target = server.sim.entities.get(targetId);
   if (!target) throw new Error('missing isolation target');
   for (const entity of [...server.sim.entities.values()]) {
@@ -259,13 +262,16 @@ describe('server AI active triggers', () => {
     installActiveTriggers(server);
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
     isolateCandidate(server, npc.id, 'npc');
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
-    let runtimeBeforeStop: ReturnType<GameServer['aiActiveTriggerDiagnostics']>['runtime'] | null = null;
+    let runtimeBeforeStop: ReturnType<GameServer['aiActiveTriggerDiagnostics']>['runtime'] | null =
+      null;
 
     try {
       server.start();
@@ -275,19 +281,23 @@ describe('server AI active triggers', () => {
       server.stop();
     }
 
-    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      speakerName: npc.name,
-      durationMs: 1_400,
-      pid: session.pid,
-    }));
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      speakerName: npc.name,
-      speech: expect.objectContaining({ mode: 'lineId' }),
-      source: 'local',
-      pid: session.pid,
-    }));
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        speakerName: npc.name,
+        durationMs: 1_400,
+        pid: session.pid,
+      }),
+    );
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        speakerName: npc.name,
+        speech: expect.objectContaining({ mode: 'lineId' }),
+        source: 'local',
+        pid: session.pid,
+      }),
+    );
     expect(server.aiActiveTriggerMetrics()).toMatchObject({
       activePollDue: 1,
       activePollFired: 1,
@@ -313,7 +323,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
     isolateCandidate(server, npc.id, 'npc');
@@ -342,7 +354,9 @@ describe('server AI active triggers', () => {
     installActiveTriggers(server);
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
     isolateCandidate(server, npc.id, 'npc');
@@ -350,32 +364,41 @@ describe('server AI active triggers', () => {
     server.sim.addItem('roasted_boar', 1, session.pid);
     fc.sent.length = 0;
 
-    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    server.handleMessage(
+      session,
+      JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }),
+    );
     fc.sent.length = 0;
     const [queued] = server.aiActiveTriggerDiagnostics().eventQueue;
-    expect(queued).toEqual(expect.objectContaining({
-      kind: 'item_discarded',
-      itemId: 'roasted_boar',
-      playerEntityId: session.pid,
-    }));
+    expect(queued).toEqual(
+      expect.objectContaining({
+        kind: 'item_discarded',
+        itemId: 'roasted_boar',
+        playerEntityId: session.pid,
+      }),
+    );
 
     (server as any).runAiActiveTriggers(queued.nextAttemptAtMs);
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.worldTraceNpcFood',
-        values: expect.objectContaining({ itemId: 'roasted_boar' }),
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+      expect.objectContaining({
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.worldTraceNpcFood',
+          values: expect.objectContaining({ itemId: 'roasted_boar' }),
+        }),
+        source: 'local',
+        pid: session.pid,
       }),
-      source: 'local',
-      pid: session.pid,
-    }));
+    );
     expect(npc.aiActiveMoveTarget).not.toBeNull();
     expect(server.sim.countItem('roasted_boar', session.pid)).toBe(0);
-    expect(server.aiActiveTriggerDiagnostics().eventQueue).toContainEqual(expect.objectContaining({
-      kind: 'world_director',
-      itemId: 'roasted_boar',
-      directorIntent: 'echoTrace',
-    }));
+    expect(server.aiActiveTriggerDiagnostics().eventQueue).toContainEqual(
+      expect.objectContaining({
+        kind: 'world_director',
+        itemId: 'roasted_boar',
+        directorIntent: 'echoTrace',
+      }),
+    );
     expect(server.aiActiveTriggerMetrics()).toMatchObject({
       activeEventQueued: 2,
       activeEventFired: 1,
@@ -395,7 +418,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
     isolateCandidate(server, npc.id, 'npc');
@@ -406,30 +431,36 @@ describe('server AI active triggers', () => {
       sim: server.sim,
       events: [{ type: 'questDone', questId: 'q_wolves', pid: session.pid }],
     });
-    expect(server.aiLifeLayerDiagnostics().worldDirectorStates).toContainEqual(expect.objectContaining({
-      lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
-      proposal: expect.objectContaining({ intent: 'echoQuestRelief' }),
-    }));
+    expect(server.aiLifeLayerDiagnostics().worldDirectorStates).toContainEqual(
+      expect.objectContaining({
+        lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+        proposal: expect.objectContaining({ intent: 'echoQuestRelief' }),
+      }),
+    );
 
     (server as any).runAiActiveTriggers(1_000);
 
-    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      durationMs: 800,
-      pid: session.pid,
-    }));
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
-        values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        durationMs: 800,
+        pid: session.pid,
       }),
-      reaction: expect.objectContaining({
-        planKind: 'echoQuestRelief',
+    );
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+          values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+        }),
+        reaction: expect.objectContaining({
+          planKind: 'echoQuestRelief',
+        }),
+        source: 'local',
+        pid: session.pid,
       }),
-      source: 'local',
-      pid: session.pid,
-    }));
+    );
     expect(server.aiActiveTriggerDiagnostics().eventQueue).toHaveLength(0);
     expect(server.aiActiveTriggerMetrics()).toMatchObject({
       activeEventQueued: 1,
@@ -448,7 +479,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
     const before = mainlineSnapshot(server, session.pid);
@@ -464,7 +497,10 @@ describe('server AI active triggers', () => {
     }
 
     expect(eventsOf(fc, 'aiSpeech').length).toBeGreaterThan(0);
-    expect(server.aiActiveTriggerMetrics().activeEventFired + server.aiActiveTriggerMetrics().activePollFired).toBeGreaterThan(0);
+    expect(
+      server.aiActiveTriggerMetrics().activeEventFired +
+        server.aiActiveTriggerMetrics().activePollFired,
+    ).toBeGreaterThan(0);
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 
@@ -477,7 +513,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const wolf = [...server.sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf');
+    const wolf = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'forest_wolf',
+    );
     if (!wolf) throw new Error('missing forest wolf');
     moveServerEntity(server, wolf.id, 80, 86);
     teleportNear(server, session.pid, wolf.id);
@@ -487,16 +525,20 @@ describe('server AI active triggers', () => {
 
     (server as any).runAiActiveTriggers(1_000);
 
-    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
-      speakerId: wolf.id,
-      durationMs: 900,
-      pid: session.pid,
-    }));
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: wolf.id,
-      reaction: expect.objectContaining({ kind: 'avoid' }),
-      pid: session.pid,
-    }));
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(
+      expect.objectContaining({
+        speakerId: wolf.id,
+        durationMs: 900,
+        pid: session.pid,
+      }),
+    );
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+      expect.objectContaining({
+        speakerId: wolf.id,
+        reaction: expect.objectContaining({ kind: 'avoid' }),
+        pid: session.pid,
+      }),
+    );
     expect(wolf.aiState).toBe('flee');
     expect(wolf.aggroTargetId).toBe(session.pid);
     expect(wolf.inCombat).toBe(true);
@@ -512,7 +554,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     server.sim.time = 8 * 60;
     teleportNear(server, session.pid, npc.id);
@@ -523,11 +567,13 @@ describe('server AI active triggers', () => {
 
     (server as any).runAiActiveTriggers(1_000);
 
-    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      durationMs: 700,
-      pid: session.pid,
-    }));
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        durationMs: 700,
+        pid: session.pid,
+      }),
+    );
     expect(npc.aiActiveMoveTarget).not.toBeNull();
 
     for (let i = 0; i < 40; i++) server.sim.tick();
@@ -548,7 +594,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'apothecary_lin');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'apothecary_lin',
+    );
     if (!npc) throw new Error('missing Apothecary Lin');
     server.sim.time = 8 * 60;
     teleportNear(server, session.pid, npc.id);
@@ -558,21 +606,29 @@ describe('server AI active triggers', () => {
 
     (server as any).runAiActiveTriggers(1_000);
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.apothecaryLinAwake' }),
-      reaction: expect.objectContaining({
-        planKind: 'herbalism',
-        targetItemId: 'eastbrook_apothecary_bench',
-        sceneTags: expect.arrayContaining(['focus:eastbrook_apothecary_bench', 'herb', 'sniffHerbs']),
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.apothecaryLinAwake' }),
+        reaction: expect.objectContaining({
+          planKind: 'herbalism',
+          targetItemId: 'eastbrook_apothecary_bench',
+          sceneTags: expect.arrayContaining([
+            'focus:eastbrook_apothecary_bench',
+            'herb',
+            'sniffHerbs',
+          ]),
+        }),
+        pid: session.pid,
       }),
-      pid: session.pid,
-    }));
+    );
     expect(npc.aiActiveMoveTarget).not.toBeNull();
-    expect(dist2d(npc.aiActiveMoveTarget!, {
-      ...EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position,
-      y: npc.pos.y,
-    })).toBeLessThanOrEqual(2.1);
+    expect(
+      dist2d(npc.aiActiveMoveTarget!, {
+        ...EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position,
+        y: npc.pos.y,
+      }),
+    ).toBeLessThanOrEqual(2.1);
     expect(mainlineSnapshot(server, session.pid)).toEqual(before);
   });
 
@@ -587,13 +643,26 @@ describe('server AI active triggers', () => {
     const fc = fakeWs();
     const session = joinServer(server, fc);
     server.sim.time = 8 * 60;
-    const merchant = [...server.sim.entities.values()].find((entity) => entity.templateId === 'the_merchant');
-    const marshal = [...server.sim.entities.values()].find((entity) => entity.templateId === 'marshal_redbrook');
+    const merchant = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'the_merchant',
+    );
+    const marshal = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'marshal_redbrook',
+    );
     if (!merchant || !marshal) throw new Error('missing social sequence NPCs');
-    moveServerEntity(server, merchant.id, 9, 17);
-    moveServerEntity(server, marshal.id, 12, 17);
-    moveServerEntity(server, session.pid, 9, 18);
-    isolateOfficialProfessionMasters(server, 9, 17);
+    const market = EASTBROOK_LAYOUT.market.stalls.find(
+      (stall) => stall.id === 'eastbrook_market_stall_world_market',
+    )!.position;
+    moveServerEntity(server, merchant.id, market.x, market.z);
+    moveServerEntity(server, marshal.id, market.x + 3, market.z);
+    moveServerEntity(server, session.pid, market.x, market.z + 1);
+    // The sequence under test has exactly these two participants.
+    for (const candidate of server.sim.entities.values()) {
+      if (candidate.kind !== 'npc' || candidate.id === merchant.id || candidate.id === marshal.id) {
+        continue;
+      }
+      moveServerEntity(server, candidate.id, market.x + 80 + candidate.id, market.z + 80);
+    }
     const before = mainlineSnapshot(server, session.pid);
     fc.sent.length = 0;
 
@@ -614,30 +683,42 @@ describe('server AI active triggers', () => {
       expect(eventsOf(fc, 'aiThinking')).toHaveLength(1);
       await vi.advanceTimersByTimeAsync(3_700);
 
-      expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-        speakerId: merchant.id,
-        speech: expect.objectContaining({
-          lineId: 'hudChrome.aiSpeech.merchantMarketPulse',
-          values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+      expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+        expect.objectContaining({
+          speakerId: merchant.id,
+          speech: expect.objectContaining({
+            lineId: 'hudChrome.aiSpeech.merchantMarketPulse',
+            values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+          }),
+          reaction: expect.objectContaining({
+            targetItemId: 'eastbrook_market_stall',
+            sceneTags: expect.arrayContaining([
+              'focus:eastbrook_market_stall',
+              'coin',
+              'watchCrowd',
+            ]),
+          }),
+          pid: session.pid,
         }),
-        reaction: expect.objectContaining({
-          targetItemId: 'eastbrook_market_stall',
-          sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+      );
+      expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+        expect.objectContaining({
+          speakerId: marshal.id,
+          speech: expect.objectContaining({
+            lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake',
+            values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+          }),
+          reaction: expect.objectContaining({
+            targetItemId: 'eastbrook_market_stall',
+            sceneTags: expect.arrayContaining([
+              'focus:eastbrook_market_stall',
+              'coin',
+              'watchCrowd',
+            ]),
+          }),
+          pid: session.pid,
         }),
-        pid: session.pid,
-      }));
-      expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-        speakerId: marshal.id,
-        speech: expect.objectContaining({
-          lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake',
-          values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
-        }),
-        reaction: expect.objectContaining({
-          targetItemId: 'eastbrook_market_stall',
-          sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
-        }),
-        pid: session.pid,
-      }));
+      );
       expect(merchant.aiActiveMoveTarget).not.toBeNull();
       expect(marshal.aiActiveMoveTarget).not.toBeNull();
       expect(server.aiActiveTriggerMetrics()).toMatchObject({
@@ -665,7 +746,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
     isolateCandidate(server, npc.id, 'npc');
@@ -675,50 +758,56 @@ describe('server AI active triggers', () => {
     (server as any).runAiActiveTriggers(1_000);
     await Promise.resolve();
 
-    expect(eventsOf(fc, 'aiThinking')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      durationMs: 650,
-      pid: session.pid,
-    }));
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      source: 'codex',
-      speech: expect.objectContaining({
-        mode: 'dynamicText',
-        text: 'Keep the lantern low tonight.',
+    expect(eventsOf(fc, 'aiThinking')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        durationMs: 650,
+        pid: session.pid,
       }),
-      pid: session.pid,
-    }));
-    expect(sink.records).toEqual([expect.objectContaining({
-      trigger: 'active_poll',
-      templateId: 'brother_aldric',
-      entityKind: 'npc',
-      providerSource: 'codex',
-      status: 'accepted',
-      outputMode: 'dynamic_text_experiment',
-      error: '',
-      deliveredSummary: expect.arrayContaining([
-        expect.stringContaining('thinking:Brother Aldric:650'),
-        'Keep the lantern low tonight.',
-      ]),
-      providerTimings: expect.objectContaining({
-        provider: 'codex-app-server',
-        totalMs: 987,
-      }),
-      chain: expect.objectContaining({
-        requestContext: expect.objectContaining({ promptText: 'active prompt' }),
-        provider: expect.objectContaining({
-          rawOutput: '{"speech":[]}',
-          source: 'codex',
+    );
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        source: 'codex',
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          text: 'Keep the lantern low tonight.',
         }),
-        delivered: expect.objectContaining({
-          textSummary: expect.arrayContaining([
-            expect.stringContaining('thinking:Brother Aldric:650'),
-            'Keep the lantern low tonight.',
-          ]),
+        pid: session.pid,
+      }),
+    );
+    expect(sink.records).toEqual([
+      expect.objectContaining({
+        trigger: 'active_poll',
+        templateId: 'brother_aldric',
+        entityKind: 'npc',
+        providerSource: 'codex',
+        status: 'accepted',
+        outputMode: 'dynamic_text_experiment',
+        error: '',
+        deliveredSummary: expect.arrayContaining([
+          expect.stringContaining('thinking:Brother Aldric:650'),
+          'Keep the lantern low tonight.',
+        ]),
+        providerTimings: expect.objectContaining({
+          provider: 'codex-app-server',
+          totalMs: 987,
+        }),
+        chain: expect.objectContaining({
+          requestContext: expect.objectContaining({ promptText: 'active prompt' }),
+          provider: expect.objectContaining({
+            rawOutput: '{"speech":[]}',
+            source: 'codex',
+          }),
+          delivered: expect.objectContaining({
+            textSummary: expect.arrayContaining([
+              expect.stringContaining('thinking:Brother Aldric:650'),
+              'Keep the lantern low tonight.',
+            ]),
+          }),
         }),
       }),
-    })]);
+    ]);
   });
 
   it('records proactive event-driven provider replies into the AI audit sink', async () => {
@@ -734,7 +823,9 @@ describe('server AI active triggers', () => {
     (server as any).aiActiveTriggers = service;
     const fc = fakeWs();
     const session = joinServer(server, fc);
-    const npc = [...server.sim.entities.values()].find((entity) => entity.templateId === 'brother_aldric');
+    const npc = [...server.sim.entities.values()].find(
+      (entity) => entity.templateId === 'brother_aldric',
+    );
     if (!npc) throw new Error('missing Brother Aldric');
     teleportNear(server, session.pid, npc.id);
     isolateCandidate(server, npc.id, 'npc');
@@ -742,31 +833,38 @@ describe('server AI active triggers', () => {
     server.sim.addItem('roasted_boar', 1, session.pid);
     fc.sent.length = 0;
 
-    server.handleMessage(session, JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }));
+    server.handleMessage(
+      session,
+      JSON.stringify({ t: 'cmd', cmd: 'discard', item: 'roasted_boar', count: 1 }),
+    );
     session.lastActivityAt = -60_000;
     fc.sent.length = 0;
     const [queued] = server.aiActiveTriggerDiagnostics().eventQueue;
     (server as any).runAiActiveTriggers(queued.nextAttemptAtMs);
     await Promise.resolve();
 
-    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(expect.objectContaining({
-      speakerId: npc.id,
-      source: 'codex',
-      speech: expect.objectContaining({
-        mode: 'dynamicText',
-        text: 'Someone dropped meat in the mud.',
+    expect(eventsOf(fc, 'aiSpeech')).toContainEqual(
+      expect.objectContaining({
+        speakerId: npc.id,
+        source: 'codex',
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          text: 'Someone dropped meat in the mud.',
+        }),
+        pid: session.pid,
       }),
-      pid: session.pid,
-    }));
-    expect(sink.records).toEqual([expect.objectContaining({
-      trigger: 'active_event',
-      templateId: 'brother_aldric',
-      providerSource: 'codex',
-      status: 'accepted',
-      deliveredSummary: expect.arrayContaining([
-        expect.stringContaining('thinking:Brother Aldric:700'),
-        'Someone dropped meat in the mud.',
-      ]),
-    })]);
+    );
+    expect(sink.records).toEqual([
+      expect.objectContaining({
+        trigger: 'active_event',
+        templateId: 'brother_aldric',
+        providerSource: 'codex',
+        status: 'accepted',
+        deliveredSummary: expect.arrayContaining([
+          expect.stringContaining('thinking:Brother Aldric:700'),
+          'Someone dropped meat in the mud.',
+        ]),
+      }),
+    ]);
   });
 });

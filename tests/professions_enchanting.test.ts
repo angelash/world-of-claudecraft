@@ -5,12 +5,14 @@
 
 import { describe, expect, it } from 'vitest';
 import { ENCHANTS } from '../src/sim/content/enchants';
+import { STATIONS } from '../src/sim/content/professions';
+import { recipeById } from '../src/sim/content/recipes';
 import { ITEMS } from '../src/sim/data';
 import { characterDerivedStats } from '../src/sim/entity';
 import { canStackInstancePayloads } from '../src/sim/item_instance_merge';
 import { removePreferFungible } from '../src/sim/items';
-import { CRAFT_THROTTLE_MAX_PER_WINDOW } from '../src/sim/professions/action_throttle';
 import {
+  APEX_TIER_REAGENT,
   consumeEnchantedVictim,
   disenchantItem,
   disenchantYield,
@@ -24,11 +26,43 @@ import {
   resolveApplyEnchant,
   resolveDisenchant,
 } from '../src/sim/professions/enchanting';
-import { Sim } from '../src/sim/sim';
-import { type InvSlot, xpForLevel } from '../src/sim/types';
+import {
+  PERFECTING_ATTEMPT_COST,
+  PERFECTING_HEADSTART_RANK,
+  PERFECTING_RANKS,
+  PERFECTING_SKILL_REQ,
+} from '../src/sim/professions/perfecting';
+import { type StationType, stationsOfType } from '../src/sim/professions/stations';
+import { createRiftGearInstance, sanitizeRiftGearInstance } from '../src/sim/rift/progression';
+import { type PlayerMeta, Sim } from '../src/sim/sim';
+import { type Entity, type InvSlot, xpForLevel } from '../src/sim/types';
+import { enchantTargets, wornEnchantTargets } from '../src/ui/hud/professions/enchant_apply_view';
+import { completeEnchantFamilyCast, runCraft } from './helpers/enchant_family_cast';
+import { EMPTY_TEST_WORLD } from './sim_shared';
 
+// Every case here drives disenchant/applyEnchant directly against items the
+// test itself grants via addItem/addItemInstance, on the player entity Sim
+// always creates; nothing ever reads a camp, npc, or ground object, and no
+// test ever levels through zone/travel/vendor logic. EMPTY_TEST_WORLD keeps
+// zones/roads/props/services and drops only camps/npcs/groundObjects, so
+// Sim construction skips spawning every built-in camp mob.
 function makeSim(seed = 7) {
-  return new Sim({ seed, playerClass: 'warrior', autoEquip: false });
+  return new Sim({ seed, playerClass: 'warrior', autoEquip: false, world: EMPTY_TEST_WORLD });
+}
+
+// The tests/professions_capacity.test.ts idiom: count rng draws over a call
+// so a "yields only the primary" claim is provably zero-draw, not just
+// unchecked.
+function countDraws<T>(sim: Sim, fn: () => T): { result: T; draws: number } {
+  let draws = 0;
+  sim.ctx.rng.setObserver(() => {
+    draws += 1;
+  });
+  try {
+    return { result: fn(), draws };
+  } finally {
+    sim.ctx.rng.setObserver(null);
+  }
 }
 
 describe('disenchant', () => {
@@ -47,6 +81,63 @@ describe('disenchant', () => {
     const result = resolveDisenchant(sim.ctx, sim.playerId, 'eastbrook_arming_sword');
     expect(result.ok).toBe(false);
     expect(result.reason).toBe('not_held');
+  });
+
+  // A held offhand is equipment (quality, requiredClass) exactly like a
+  // weapon or armor piece, so it must be disenchantable the same way: this
+  // warrior can never equip valefire_lantern (CASTER_ALL only), which is
+  // exactly the case where disenchant is the only way to get value from it.
+  it('a held offhand disenchants like any other equipment piece', () => {
+    expect(isDisenchantable(ITEMS.valefire_lantern)).toBe(true);
+    const sim = makeSim();
+    const pid = sim.playerId;
+    sim.addItem('valefire_lantern', 1, pid);
+    const result = resolveDisenchant(sim.ctx, pid, 'valefire_lantern');
+    expect(result.ok).toBe(true);
+    expect(result.materialItemId).toBe('arcane_dust');
+    expect(result.count).toBeGreaterThan(0);
+    expect(sim.countItem('valefire_lantern', pid)).toBe(0);
+  });
+
+  // resolveDisenchant above proves the resolver arm; the player actually hits
+  // the disenchantItem COMMAND, which calls the very same isDisenchantable
+  // through evaluateDisenchantAdmission at cast start (and again at
+  // complete). This is not a second predicate to fix, but it IS a separately
+  // hand-copied deny chain around that shared call (see
+  // tests/professions_admission_drift.test.ts), so it closes the loop end to
+  // end rather than assuming the resolver's behavior carries through.
+  it('the disenchantItem command entry point admits a held offhand', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    sim.addItem('valefire_lantern', 1, pid);
+    sim.disenchantItem('valefire_lantern');
+    expect(sim.lastDisenchantResult).toBeNull();
+    completeEnchantFamilyCast(sim);
+    expect(sim.lastDisenchantResult?.ok).toBe(true);
+    expect(sim.countItem('valefire_lantern', pid)).toBe(0);
+  });
+
+  // The uncommon valefire_lantern above only reaches the sub-rare arm. An
+  // epic held offhand reaches the isRarePlus branch, where
+  // typedSecondaryFor falls through to null (neither armor nor weapon): the
+  // resolve must yield the FIXED single primary and draw ZERO rng, the same
+  // shape jewelry gets, never silently rolling a phantom secondary.
+  it('an epic held offhand disenchants to the primary alone with zero rng draws', () => {
+    expect(ITEMS.wraithfire_orb.quality).toBe('epic');
+    expect(ITEMS.wraithfire_orb.kind).toBe('held_offhand');
+    const sim = makeSim();
+    const pid = sim.playerId;
+    sim.addItem('wraithfire_orb', 1, pid);
+    const { result, draws } = countDraws(sim, () =>
+      resolveDisenchant(sim.ctx, pid, 'wraithfire_orb'),
+    );
+    expect(result.ok).toBe(true);
+    expect(result.materialItemId).toBe('arcane_shard');
+    expect(result.count).toBe(1);
+    expect(result.secondaryItemId).toBeUndefined();
+    expect(result.secondaryCount).toBeUndefined();
+    expect(draws).toBe(0);
+    expect(sim.countItem('wraithfire_orb', pid)).toBe(0);
   });
 
   it('disenchanting consumes the item and yields the dedicated arcane material, not plain salvage junk', () => {
@@ -99,6 +190,9 @@ describe('disenchant', () => {
     const sim = makeSim();
     sim.addItem('eastbrook_arming_sword', 1, sim.playerId);
     sim.disenchantItem('eastbrook_arming_sword');
+    // Phase 4: command starts a cast; result lands on complete.
+    expect(sim.lastDisenchantResult).toBeNull();
+    completeEnchantFamilyCast(sim);
     expect(sim.lastDisenchantResult?.ok).toBe(true);
     const denied = disenchantItem(sim.ctx, 'nonexistent_item_id');
     expect(denied.ok).toBe(false);
@@ -297,6 +391,33 @@ describe('applyEnchant', () => {
     expect(sim.ctx.countFungibleItem('eastbrook_arming_sword', pid)).toBe(0);
   });
 
+  // Regression for issue #2825: every shipped offhand item (eastbrook_buckler
+  // is a shield, ItemDef.slot 'offhand') was refused wrong_slot by every
+  // enchant, since enchants.ts defined a base enchant for every equip slot
+  // EXCEPT 'offhand'. Exercises the real content item end to end: apply,
+  // then equip, and check the stat lands.
+  it('applies to a real shipped offhand item (a shield), the slot every enchant used to refuse', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    expect(ITEMS.eastbrook_buckler.slot).toBe('offhand');
+    const baseSta = sim.player.stats.sta;
+    sim.addItem('eastbrook_buckler', 1, pid);
+    sim.addItem('arcane_dust', 5, pid);
+    const result = resolveApplyEnchant(
+      sim.ctx,
+      pid,
+      'eastbrook_buckler',
+      'enchant_offhand_stamina',
+    );
+    expect(result.ok).toBe(true);
+    expect(sim.countItem('arcane_dust', pid)).toBe(0);
+    expect(sim.ctx.countFungibleItem('eastbrook_buckler', pid)).toBe(0);
+
+    expect(ENCHANTS.enchant_offhand_stamina.statBonus.sta).toBe(3);
+    sim.equipItem('eastbrook_buckler');
+    expect(sim.player.stats.sta).toBe(baseSta + 3);
+  });
+
   it('equipping the enchanted copy boosts the matching stat; unequipping preserves it in bags', () => {
     const sim = makeSim();
     const pid = sim.playerId;
@@ -435,6 +556,8 @@ describe('applyEnchant', () => {
     sim.addItem('eastbrook_arming_sword', 1, pid);
     sim.addItem('arcane_dust', 5, pid);
     sim.applyEnchant('eastbrook_arming_sword', 'enchant_weapon_might');
+    expect(sim.lastEnchantResult).toBeNull();
+    completeEnchantFamilyCast(sim);
     expect(sim.lastEnchantResult?.ok).toBe(true);
   });
 
@@ -493,7 +616,12 @@ describe('applyEnchant', () => {
     expect(state).not.toBeNull();
     expect(state!.equipmentInstance?.mainhand?.rolled?.stats?.str).toBe(2);
 
-    const reloadedSim = new Sim({ seed: 7, playerClass: 'warrior', noPlayer: true });
+    const reloadedSim = new Sim({
+      seed: 7,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: EMPTY_TEST_WORLD,
+    });
     const reloadedPid = reloadedSim.addPlayer('warrior', 'Reload', { state: state! });
     const reloadedMeta = reloadedSim.meta(reloadedPid)!;
     const reloadedEntity = reloadedSim.entities.get(reloadedPid)!;
@@ -509,7 +637,12 @@ describe('applyEnchant', () => {
     // absent entirely, not just empty.
     delete (state as { equipmentInstance?: unknown }).equipmentInstance;
 
-    const reloadedSim = new Sim({ seed: 7, playerClass: 'warrior', noPlayer: true });
+    const reloadedSim = new Sim({
+      seed: 7,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: EMPTY_TEST_WORLD,
+    });
     expect(() => reloadedSim.addPlayer('warrior', 'Legacy', { state })).not.toThrow();
     const reloadedPid = reloadedSim.addPlayer('warrior', 'Legacy2', { state });
     const meta = reloadedSim.meta(reloadedPid)!;
@@ -564,6 +697,152 @@ describe('applyEnchant', () => {
 // The authoritative predicate is now isEnchantedInstance (the explicit
 // `enchant` marker, or the legacy bare-stats arm), the enchant merges stats
 // ADDITIVELY, and double-enchant stays blocked for old and new copies alike.
+describe('Riftbound bands take enchants at every rung (rift/progression.ts)', () => {
+  const BAND = 'riftbound_band_of_might';
+  const RING_ENCHANT = 'enchant_ring_strength';
+  const OTHER_RING_ENCHANT = 'enchant_ring_agility';
+  const bonusOf = (id: string) => ENCHANTS[id].statBonus;
+
+  it('a plain band never reads as enchanted, but a band carrying the marker does', () => {
+    const band = createRiftGearInstance('band', 'S', 'warrior', 1);
+    expect(band.instance.rolled?.stats).not.toEqual({});
+    expect(isEnchantedInstance(band.instance)).toBe(false);
+    expect(isEnchantedInstance({ ...band.instance, enchant: RING_ENCHANT })).toBe(true);
+  });
+
+  it('a bagged band takes a ring enchant: ladder line plus the bonus, dust spent', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const band = createRiftGearInstance('band', 'S', 'warrior', pid);
+    const ladder = { ...band.instance.rolled?.stats };
+    sim.ctx.addItemInstance(band.itemId, band.instance, pid);
+    sim.addItem('arcane_dust', 5, pid);
+    const result = resolveApplyEnchant(sim.ctx, pid, BAND, RING_ENCHANT);
+    expect(result.ok).toBe(true);
+    expect(sim.countItem('arcane_dust', pid)).toBeLessThan(5);
+    const slot = sim.ctx.resolve(pid)!.meta.inventory.find((s) => s.itemId === BAND);
+    expect(slot?.instance?.enchant).toBe(RING_ENCHANT);
+    expect(slot?.instance?.rift?.upgradeLevel).toBe(0);
+    expect(slot?.instance?.rolled?.stats).toEqual({
+      ...ladder,
+      str: (ladder.str ?? 0) + (bonusOf(RING_ENCHANT).str ?? 0),
+    });
+  });
+
+  it('the enchant survives the load rebuild, an essence upgrade, and a gem socket', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const band = createRiftGearInstance('band', 'S', 'warrior', pid);
+    sim.ctx.addItemInstance(band.itemId, band.instance, pid);
+    sim.addItem('arcane_dust', 5, pid);
+    expect(resolveApplyEnchant(sim.ctx, pid, BAND, RING_ENCHANT).ok).toBe(true);
+    const enchanted = sim.ctx.resolve(pid)!.meta.inventory.find((s) => s.itemId === BAND)!
+      .instance!;
+    // The load path: the rebuild is the ONLY writer of a band's rolled line,
+    // so what the apply minted must equal what the sanitizer rebuilds.
+    const reloaded = sanitizeRiftGearInstance(BAND, enchanted, pid);
+    expect(reloaded?.enchant).toBe(RING_ENCHANT);
+    expect(reloaded?.rolled?.stats).toEqual(enchanted.rolled?.stats);
+    // Upgraded and socketed: the bonus rides on top of the new ladder line.
+    const upgraded = sanitizeRiftGearInstance(
+      BAND,
+      {
+        ...enchanted,
+        rift: { ...enchanted.rift!, upgradeLevel: 2, gems: ['rift_gem_crimson'] },
+      },
+      pid,
+    );
+    const bare = createRiftGearInstance('band', 'S', 'warrior', pid, 2, ['rift_gem_crimson']);
+    expect(upgraded?.rolled?.stats).toEqual({
+      ...bare.instance.rolled?.stats,
+      str: (bare.instance.rolled?.stats?.str ?? 0) + (bonusOf(RING_ENCHANT).str ?? 0),
+    });
+    expect(isEnchantedInstance(upgraded!)).toBe(true);
+  });
+
+  it('the load rebuild drops an enchant marker that is unknown, off-slot, or Perfected-only', () => {
+    const band = createRiftGearInstance('band', 'S', 'warrior', 1);
+    const helmet = Object.values(ENCHANTS).find((e) => e.itemSlot !== 'ring')!.id;
+    // A band is never Perfected, so a Perfected-only marker (unreachable
+    // through the apply, which refuses not_perfected) can only be tampered
+    // state: dropped, and its bonus never priced. Probed through a ring-slot
+    // stand-in so the guard is pinned even while no ring Lucent tier ships.
+    const perfectedOnly = Object.values(ENCHANTS).find((e) => e.requiresPerfected)!;
+    ENCHANTS.__probe_ring_lucent = {
+      ...perfectedOnly,
+      id: '__probe_ring_lucent',
+      itemSlot: 'ring',
+    };
+    try {
+      const tampered = sanitizeRiftGearInstance(
+        BAND,
+        { ...band.instance, enchant: '__probe_ring_lucent' },
+        1,
+      );
+      expect(tampered?.enchant).toBeUndefined();
+      expect(tampered?.rolled?.stats).toEqual(band.instance.rolled?.stats);
+    } finally {
+      delete ENCHANTS.__probe_ring_lucent;
+    }
+    expect(
+      sanitizeRiftGearInstance(BAND, { ...band.instance, enchant: 'nope' }, 1)?.enchant,
+    ).toBeUndefined();
+    const wrong = sanitizeRiftGearInstance(BAND, { ...band.instance, enchant: helmet }, 1);
+    expect(wrong?.enchant).toBeUndefined();
+    expect(wrong?.rolled?.stats).toEqual(band.instance.rolled?.stats);
+  });
+
+  it('the enchant picker offers a band, bagged or worn', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const bagged = createRiftGearInstance('band', 'S', 'warrior', pid);
+    const worn = createRiftGearInstance('band-worn', 'A', 'warrior', pid);
+    sim.ctx.addItemInstance(bagged.itemId, bagged.instance, pid);
+    sim.ctx.addItemInstance(worn.itemId, worn.instance, pid);
+    while (sim.player.level < 20) sim.grantXp(xpForLevel(sim.player.level));
+    sim.equipItem(BAND, pid);
+    expect(sim.ctx.resolve(pid)!.meta.equipment.ring1).toBe(BAND);
+    const meta = sim.ctx.resolve(pid)!.meta;
+    expect(enchantTargets(meta.inventory, RING_ENCHANT).map((row) => row.itemId)).toContain(BAND);
+    expect(
+      wornEnchantTargets(meta.equipment, meta.equipmentInstance, RING_ENCHANT).map(
+        (row) => row.itemId,
+      ),
+    ).toContain(BAND);
+  });
+
+  it('a worn band is enchanted in place, and a confirmed replace swaps the bonus', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const band = createRiftGearInstance('band', 'S', 'warrior', pid);
+    const ladder = { ...band.instance.rolled?.stats };
+    sim.ctx.addItemInstance(band.itemId, band.instance, pid);
+    while (sim.player.level < 20) sim.grantXp(xpForLevel(sim.player.level));
+    sim.equipItem(BAND, pid);
+    expect(sim.ctx.resolve(pid)!.meta.equipment.ring1).toBe(BAND);
+    sim.addItem('arcane_dust', 10, pid);
+    expect(resolveApplyEnchant(sim.ctx, pid, BAND, RING_ENCHANT, 'ring1').ok).toBe(true);
+    const meta = sim.ctx.resolve(pid)!.meta;
+    expect(meta.equipmentInstance.ring1?.enchant).toBe(RING_ENCHANT);
+    expect(resolveApplyEnchant(sim.ctx, pid, BAND, OTHER_RING_ENCHANT, 'ring1').reason).toBe(
+      'already_enchanted',
+    );
+    expect(resolveApplyEnchant(sim.ctx, pid, BAND, OTHER_RING_ENCHANT, 'ring1', true).ok).toBe(
+      true,
+    );
+    const swapped = meta.equipmentInstance.ring1!;
+    expect(swapped.enchant).toBe(OTHER_RING_ENCHANT);
+    expect(swapped.rift?.tier).toBe('S');
+    expect(swapped.rolled?.stats).toEqual({
+      ...ladder,
+      agi: (ladder.agi ?? 0) + (bonusOf(OTHER_RING_ENCHANT).agi ?? 0),
+    });
+    expect(sanitizeRiftGearInstance(BAND, swapped, pid)?.rolled?.stats).toEqual(
+      swapped.rolled?.stats,
+    );
+  });
+});
+
 describe('isEnchantedInstance (the masterwork guard predicate)', () => {
   it('distinguishes enchanted copies from masterwork and plain crafted copies', () => {
     // Marker-carrying (new) enchanted copy.
@@ -696,6 +975,7 @@ describe('ENCHANTS table integrity', () => {
   // itemSlot fails here rather than silently making the enchant unusable.
   const VALID_ITEM_SLOTS = new Set([
     'mainhand',
+    'offhand',
     'helmet',
     'neck',
     'shoulder',
@@ -706,15 +986,53 @@ describe('ENCHANTS table integrity', () => {
     'feet',
     'ring',
   ]);
-  const VALID_STAT_KEYS = new Set(['str', 'agi', 'sta', 'int', 'spi', 'armor']);
+  const VALID_STAT_KEYS = new Set([
+    'str',
+    'agi',
+    'sta',
+    'int',
+    'spi',
+    'armor',
+    // The learned faction formulas' axes (content/enchants.ts EnchantStatAxis);
+    // recalcPlayerStats reads all four from a copy's rolled stats.
+    'spellPower',
+    'healingPower',
+    'critRating',
+    'hasteRating',
+  ]);
 
   it('every enchant is well-formed: id matches its key, a valid slot, real reagents, a real bonus', () => {
     for (const [key, e] of Object.entries(ENCHANTS)) {
       expect(e.id).toBe(key);
       expect(VALID_ITEM_SLOTS.has(e.itemSlot)).toBe(true);
-      // A real, non-empty stat bonus using only categories recalcPlayerStats reads.
+      // Stat enchants still need a real, non-empty bonus. A proc-only weapon
+      // enchant may omit flat stats only when its complete runtime shape is valid.
       const bonusKeys = Object.keys(e.statBonus);
-      expect(bonusKeys.length).toBeGreaterThan(0);
+      if (e.weaponProc) {
+        expect(['mainhand', 'offhand']).toContain(e.itemSlot);
+        // Exactly one primary-stat axis (Zeal's strength or Grace's agility);
+        // heal and hasteMult are optional riders, everything present is a
+        // finite positive number, and the stat and heal amounts are integers.
+        const keys = Object.keys(e.weaponProc).sort();
+        expect(keys).toContain('ppm');
+        expect(keys).toContain('duration');
+        expect(keys.filter((k) => k === 'strength' || k === 'agility')).toHaveLength(1);
+        for (const key of keys) {
+          expect(['agility', 'duration', 'hasteMult', 'heal', 'ppm', 'strength']).toContain(key);
+        }
+        for (const value of Object.values(e.weaponProc)) {
+          expect(Number.isFinite(value)).toBe(true);
+          expect(value).toBeGreaterThan(0);
+        }
+        expect(Number.isInteger(e.weaponProc.strength ?? e.weaponProc.agility)).toBe(true);
+        if (e.weaponProc.heal !== undefined) expect(Number.isInteger(e.weaponProc.heal)).toBe(true);
+        if (e.weaponProc.hasteMult !== undefined) {
+          expect(e.weaponProc.hasteMult).toBeGreaterThan(1);
+        }
+        expect(e.description?.trim().length ?? 0).toBeGreaterThan(0);
+      } else {
+        expect(bonusKeys.length).toBeGreaterThan(0);
+      }
       for (const k of bonusKeys) {
         expect(VALID_STAT_KEYS.has(k)).toBe(true);
         expect(e.statBonus[k as keyof typeof e.statBonus]).toBeGreaterThan(0);
@@ -790,6 +1108,158 @@ describe('quality-tiered enchanting gains', () => {
     });
   });
 
+  it('derives an enchant gain tier from its reagent defs (dust 0, essence 1, shard 2, lucent 3)', () => {
+    // EnchantDef carries no tier field: the existing tier notion is the
+    // arcane reagent ladder, read off the reagent ITEM DEFS' quality (max
+    // over the list). Pin the four material qualities so a def re-tune
+    // cannot silently reshuffle every enchant's gain tier.
+    expect(ITEMS.arcane_dust.quality).toBe('common');
+    expect(ITEMS.arcane_essence.quality).toBe('uncommon');
+    expect(ITEMS.arcane_shard.quality).toBe('rare');
+    expect(enchantGainTier(ENCHANTS.enchant_weapon_might)).toBe(0);
+    expect(enchantGainTier(ENCHANTS.enchant_chest_stamina)).toBe(1);
+    expect(enchantGainTier(ENCHANTS.enchant_weapon_greater_might)).toBe(2);
+
+    // The apex rung is the one that CANNOT be read off item quality: the
+    // reagent is authored common/white so the junk sweep never vendors it,
+    // which is why enchantGainTier names it explicitly. Pin that premise
+    // (the reagent id as a literal, and the quality that would mis-score it)
+    // before the two arms that only pass while the named arm exists.
+    expect(APEX_TIER_REAGENT).toBe('lucent_reagent');
+    expect(ITEMS.lucent_reagent.quality).toBe('common');
+    // Decisive: delete the named apex arm and this boots enchant, whose whole
+    // bill is lucent plus dust, falls all the way to 0.
+    expect(ENCHANTS.enchant_feet_lucent_agility.reagents.map((r) => r.itemId)).toEqual([
+      'lucent_reagent',
+      'arcane_dust',
+    ]);
+    expect(enchantGainTier(ENCHANTS.enchant_feet_lucent_agility)).toBe(3);
+    // ...and the same deletion drops the shard-carrying apex weapon enchant to
+    // its shard rung, 2, so the apex tier saturates into Greater unnoticed.
+    expect(enchantGainTier(ENCHANTS.enchant_weapon_lucent_might)).toBe(3);
+    // The int twin (phase 10 QA D10-D1, landed at the head of phase 11)
+    // carries the byte-identical bill, so it scores the same apex rung.
+    expect(enchantGainTier(ENCHANTS.enchant_weapon_lucent_spellpower)).toBe(3);
+  });
+
+  it('a fresh disenchanter still gains the full point from a common piece (orange at capability 0)', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = sim.players.get(pid)!;
+    sim.addItem('eastbrook_arming_sword', 1, pid);
+    expect(resolveDisenchant(sim.ctx, pid, 'eastbrook_arming_sword').ok).toBe(true);
+    // Derivation: base 1 * curve(capability 0, min(common 0, pre-archetype
+    // ceiling 2) = 0) = 1 (at/above capability -> full).
+    expect(meta.craftSkills.enchanting).toBe(1);
+  });
+
+  it('a crafted signed disenchant keeps material rewards but grants no enchanting skill', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = sim.players.get(pid)!;
+    sim.ctx.addItemInstance('moggers_copper_cudgel', { signer: meta.name }, pid);
+
+    const result = resolveDisenchant(sim.ctx, pid, 'moggers_copper_cudgel');
+
+    expect(result.ok).toBe(true);
+    expect(result.materialItemId).toBe('arcane_essence');
+    expect(result.count).toBe(1);
+    expect(sim.countItem('moggers_copper_cudgel', pid)).toBe(0);
+    expect(sim.countItem('arcane_essence', pid)).toBe(1);
+    // Phase 4: enchant-family no longer stamps craftThrottle.
+    expect(meta.craftThrottle.count).toBe(0);
+    expect(meta.craftSkills.enchanting ?? 0).toBe(0);
+  });
+
+  it('a plain non-crafted eligible disenchant still grants enchanting skill', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = sim.players.get(pid)!;
+    sim.addItem('moggers_copper_cudgel', 1, pid);
+
+    const result = resolveDisenchant(sim.ctx, pid, 'moggers_copper_cudgel');
+
+    expect(result.ok).toBe(true);
+    expect(sim.countItem('moggers_copper_cudgel', pid)).toBe(0);
+    expect(sim.countItem('arcane_essence', pid)).toBe(1);
+    expect(meta.craftThrottle.count).toBe(0);
+    expect(meta.craftSkills.enchanting).toBe(ENCHANTING_SKILL_GAIN);
+  });
+
+  it('commons gray out at capability 3 (skill 75): the disenchant still succeeds with zero gain', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = sim.players.get(pid)!;
+    meta.craftSkills.enchanting = 75; // capability 3
+    sim.addItem('eastbrook_arming_sword', 1, pid);
+    const result = resolveDisenchant(sim.ctx, pid, 'eastbrook_arming_sword');
+    // Zero gain must never block the action itself: the item is consumed and
+    // the material granted exactly as before.
+    expect(result.ok).toBe(true);
+    expect(sim.countItem('eastbrook_arming_sword', pid)).toBe(0);
+    // Derivation: min(common 0, ceiling 2) = 0, three tiers below capability
+    // 3 -> gray 0.
+    expect(meta.craftSkills.enchanting).toBe(75);
+  });
+
+  it('an epic disenchant under the pre-archetype rare ceiling grants the rare-tier gain, never zero', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = sim.players.get(pid)!;
+    meta.craftSkills.enchanting = 75; // capability 3
+    expect(ITEMS.morthens_cryptforged_hauberk.quality).toBe('epic');
+    sim.addItem('morthens_cryptforged_hauberk', 1, pid);
+    expect(resolveDisenchant(sim.ctx, pid, 'morthens_cryptforged_hauberk').ok).toBe(true);
+    // Derivation: min(epic 3, pre-archetype ceiling 2) = 2, one tier below
+    // capability 3 -> yellow 0.5 (the SOFT ceiling: crafting's hard rule
+    // would have zeroed a tier-3 recipe here).
+    expect(meta.craftSkills.enchanting).toBe(75.5);
+  });
+
+  it('the apply arm reads the enchant tier: a Greater enchant outgains a dust enchant at capability 1', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = sim.players.get(pid)!;
+    meta.craftSkills.enchanting = 25; // capability 1
+    sim.addItem('eastbrook_arming_sword', 1, pid);
+    sim.addItem('arcane_dust', 5, pid);
+    expect(
+      resolveApplyEnchant(sim.ctx, pid, 'eastbrook_arming_sword', 'enchant_weapon_might').ok,
+    ).toBe(true);
+    // Derivation: dust enchant tier 0, one below capability 1 -> yellow 0.5.
+    expect(meta.craftSkills.enchanting).toBe(25.5);
+    sim.addItem('eastbrook_arming_sword', 1, pid);
+    sim.addItem('arcane_shard', 1, pid);
+    sim.addItem('arcane_essence', 2, pid);
+    expect(
+      resolveApplyEnchant(sim.ctx, pid, 'eastbrook_arming_sword', 'enchant_weapon_greater_might')
+        .ok,
+    ).toBe(true);
+    // Derivation: shard-derived tier 2 (still capability 1 at skill 25.5),
+    // at/above capability -> full 1. Total 25.5 + 1 = 26.5.
+    expect(meta.craftSkills.enchanting).toBe(26.5);
+  });
+});
+
+// Phase 12c: enchanting gains are quality-tiered under the SOFT archetype
+// ceiling (archetype.ts enchantingGainMultiplier). The flat-1-per-action rule
+// is retired: ENCHANTING_SKILL_GAIN stays 1 but is now the BASE, multiplied
+// by the four-state curve over min(input tier, archetype ceiling). The pure
+// min()/curve arms live in archetype_ceiling.test.ts; these pin the resolver
+// wiring and the content maps.
+describe('quality-tiered enchanting gains (Phase 12c)', () => {
+  it('pins the base gain and the quality-to-tier map to literals', () => {
+    expect(ENCHANTING_SKILL_GAIN).toBe(1);
+    expect(ENCHANTING_GAIN_TIER_BY_QUALITY).toEqual({
+      poor: 0,
+      common: 0,
+      uncommon: 1,
+      rare: 2,
+      epic: 3,
+      legendary: 4,
+    });
+  });
+
   it('derives an enchant gain tier from its reagent defs (dust 0, essence 1, shard 2)', () => {
     // EnchantDef carries no tier field: the existing tier notion is the
     // arcane reagent ladder, read off the reagent ITEM DEFS' quality (max
@@ -812,38 +1282,6 @@ describe('quality-tiered enchanting gains', () => {
     // Derivation: base 1 * curve(capability 0, min(common 0, pre-archetype
     // ceiling 2) = 0) = 1 (at/above capability -> full).
     expect(meta.craftSkills.enchanting).toBe(1);
-  });
-
-  it('a crafted signed disenchant keeps material rewards and throttle but grants no enchanting skill', () => {
-    const sim = makeSim();
-    const pid = sim.playerId;
-    const meta = sim.players.get(pid)!;
-    sim.ctx.addItemInstance('moggers_copper_cudgel', { signer: meta.name }, pid);
-
-    const result = resolveDisenchant(sim.ctx, pid, 'moggers_copper_cudgel');
-
-    expect(result.ok).toBe(true);
-    expect(result.materialItemId).toBe('arcane_essence');
-    expect(result.count).toBe(1);
-    expect(sim.countItem('moggers_copper_cudgel', pid)).toBe(0);
-    expect(sim.countItem('arcane_essence', pid)).toBe(1);
-    expect(meta.craftThrottle.count).toBe(1);
-    expect(meta.craftSkills.enchanting ?? 0).toBe(0);
-  });
-
-  it('a plain non-crafted eligible disenchant still grants enchanting skill', () => {
-    const sim = makeSim();
-    const pid = sim.playerId;
-    const meta = sim.players.get(pid)!;
-    sim.addItem('moggers_copper_cudgel', 1, pid);
-
-    const result = resolveDisenchant(sim.ctx, pid, 'moggers_copper_cudgel');
-
-    expect(result.ok).toBe(true);
-    expect(sim.countItem('moggers_copper_cudgel', pid)).toBe(0);
-    expect(sim.countItem('arcane_essence', pid)).toBe(1);
-    expect(meta.craftThrottle.count).toBe(1);
-    expect(meta.craftSkills.enchanting).toBe(ENCHANTING_SKILL_GAIN);
   });
 
   it('commons gray out at capability 3 (skill 75): the disenchant still succeeds with zero gain', () => {
@@ -920,7 +1358,12 @@ function wearing(
   itemId: string,
   opts: { cls?: 'warrior' | 'rogue'; dust?: number; instance?: Record<string, unknown> } = {},
 ) {
-  const sim = new Sim({ seed: 7, playerClass: opts.cls ?? 'rogue', autoEquip: false });
+  const sim = new Sim({
+    seed: 7,
+    playerClass: opts.cls ?? 'rogue',
+    autoEquip: false,
+    world: EMPTY_TEST_WORLD,
+  });
   const pid = sim.playerId;
   if (opts.instance) sim.ctx.addItemInstance(itemId, opts.instance as never, pid);
   else sim.addItem(itemId, 1, pid);
@@ -1038,17 +1481,14 @@ describe('apply enchant to WORN gear (in place)', () => {
     expect(meta.equipmentInstance.mainhand).toBeUndefined();
   });
 
-  it('draws from the SAME action throttle as the bagged arm', () => {
+  it('Phase 5: worn apply ignores inert craftThrottle (cast paces, not quota)', () => {
     const { sim, pid, meta } = wearing('mainhand', WORN_SWORD, { dust: 5 });
-    // Spend the whole shared window on bagged salvages, then the worn enchant
-    // must deny at the boundary with nothing consumed.
-    sim.addItem(WORN_SWORD, CRAFT_THROTTLE_MAX_PER_WINDOW, pid);
-    for (let i = 0; i < CRAFT_THROTTLE_MAX_PER_WINDOW; i++) sim.salvageItem(WORN_SWORD, pid);
+    meta.craftThrottle = { windowStart: sim.ctx.time, count: 999 };
     const result = resolveApplyEnchant(sim.ctx, pid, WORN_SWORD, WORN_ENCHANT, 'mainhand');
-    expect(result.ok).toBe(false);
-    expect(result.reason).toBe('throttled');
-    expect(sim.countItem('arcane_dust', pid)).toBe(5);
-    expect(meta.equipmentInstance.mainhand).toBeUndefined();
+    expect(result.ok).toBe(true);
+    expect(sim.countItem('arcane_dust', pid)).toBe(0);
+    expect(meta.equipmentInstance.mainhand?.enchant).toBe(WORN_ENCHANT);
+    expect(meta.craftThrottle.count).toBe(999);
   });
 
   it('has NO bag-capacity gate: a completely full pack still enchants worn gear', () => {
@@ -1085,10 +1525,65 @@ describe('apply enchant to WORN gear (in place)', () => {
     expect(meta.equipmentInstance.offhand).toBeUndefined();
   });
 
+  it('dual wield, BOTH hands enchanted: the weapon term lands TWICE on the character', () => {
+    // ADDED AT PHASE 15, the R5 weapon-term MULTIPLICITY, and the arm above is
+    // exactly why it was needed: read alone, "the mainhand slot enchants ONLY
+    // the mainhand copy" invites the inference that a weapon enchant applies
+    // once per character. It does not. A one-hand weapon declares
+    // ItemDef.slot 'mainhand' and is legal in the offhand, and the enchant
+    // slot gate compares itemDef.slot to enchant.itemSlot, so both worn
+    // weapons accept every mainhand enchant and recalcPlayerStats reads both
+    // instances in the same loop. The packet's ratified R5 arithmetic counted
+    // this term once, which is why the apex weapon rung was trimmed to half
+    // its ladder step; this pin is what keeps the reason visible.
+    const { sim, pid, meta } = wearing('mainhand', WORN_SWORD, { dust: 20 });
+    sim.addItem(WORN_SWORD, 1, pid);
+    sim.equipItemToSlot(WORN_SWORD, 'offhand', pid);
+    const before = sim.player.stats.str;
+
+    // The FORFEITED line first, the other arm of the same gate (the Phase 15
+    // QA): the offhand hand holding a mainhand-kind weapon REFUSES an
+    // offhand-slot enchant, because the gate compares the ITEM's declared
+    // slot, not the hand it sits in. Probed BEFORE any enchant lands so the
+    // copy is fresh: a broken gate here would APPLY the enchant and red on
+    // ok:true, not merely on a different deny reason (the round-2 mutation
+    // pass proved the after-the-fact probe killed only through the reason
+    // pin, via already_enchanted).
+    const refused = resolveApplyEnchant(
+      sim.ctx,
+      pid,
+      WORN_SWORD,
+      'enchant_offhand_stamina',
+      'offhand',
+    );
+    expect(refused.ok, 'an offhand enchant on a mainhand-kind weapon').toBe(false);
+    expect((refused as { reason?: string }).reason).toBe('wrong_slot');
+    expect(meta.equipmentInstance.offhand?.enchant, 'nothing landed on the fresh copy').toBe(
+      undefined,
+    );
+
+    expect(resolveApplyEnchant(sim.ctx, pid, WORN_SWORD, WORN_ENCHANT, 'mainhand').ok).toBe(true);
+    expect(resolveApplyEnchant(sim.ctx, pid, WORN_SWORD, WORN_ENCHANT, 'offhand').ok).toBe(true);
+    expect(meta.equipmentInstance.mainhand?.enchant).toBe(WORN_ENCHANT);
+    expect(meta.equipmentInstance.offhand?.enchant).toBe(WORN_ENCHANT);
+
+    const bonus = ENCHANTS[WORN_ENCHANT].statBonus.str ?? 0;
+    expect(bonus, 'the fixture enchant really carries strength').toBeGreaterThan(0);
+    expect(
+      sim.player.stats.str - before,
+      'both payloads reach the derived stat book, so the term is 2x',
+    ).toBe(bonus * 2);
+  });
+
   it('two rings, identical copies: the ring2 slot enchants ONLY the ring2 copy', () => {
     const RING = 'seal_of_the_nine_oaths'; // slot 'ring', covers ring1 AND ring2
     const RING_ENCHANT = 'enchant_ring_spirit';
-    const sim = new Sim({ seed: 7, playerClass: 'rogue', autoEquip: false });
+    const sim = new Sim({
+      seed: 7,
+      playerClass: 'rogue',
+      autoEquip: false,
+      world: EMPTY_TEST_WORLD,
+    });
     const pid = sim.playerId;
     while (sim.player.level < 20) sim.grantXp(xpForLevel(sim.player.level));
     sim.addItem(RING, 2, pid);
@@ -1100,15 +1595,26 @@ describe('apply enchant to WORN gear (in place)', () => {
     for (const reagent of ENCHANTS[RING_ENCHANT].reagents) {
       sim.addItem(reagent.itemId, reagent.count, pid);
     }
+    // The ring is epic, so each copy was minted with its own tracked identity
+    // (item_tracking.ts): neither worn copy is payload-free, and the two are
+    // told apart by guid. The ring1 copy must come through byte-identical.
+    const ring1Before = structuredClone(meta.equipmentInstance.ring1);
+    const ring2Guid = meta.equipmentInstance.ring2?.guid;
+    expect(ring1Before?.guid).toBeDefined();
+    expect(ring2Guid).toBeDefined();
+    expect(ring1Before?.guid).not.toBe(ring2Guid);
 
     expect(resolveApplyEnchant(sim.ctx, pid, RING, RING_ENCHANT, 'ring2').ok).toBe(true);
     expect(meta.equipmentInstance.ring2?.enchant).toBe(RING_ENCHANT);
-    expect(meta.equipmentInstance.ring1).toBeUndefined();
+    expect(meta.equipmentInstance.ring2?.guid, 'ring2 enchanted in place').toBe(ring2Guid);
+    expect(meta.equipmentInstance.ring1, 'ring1 untouched').toEqual(ring1Before);
+    expect(meta.equipmentInstance.ring1?.enchant).toBeUndefined();
   });
 
   it('the applyEnchant command entry point forwards the slot and stashes the result', () => {
     const { sim, pid, meta } = wearing('mainhand', WORN_SWORD, { dust: 5 });
     sim.applyEnchant(WORN_SWORD, WORN_ENCHANT, 'mainhand', undefined, pid);
+    completeEnchantFamilyCast(sim, pid);
     expect(sim.lastEnchantResult?.ok).toBe(true);
     expect(meta.equipmentInstance.mainhand?.enchant).toBe(WORN_ENCHANT);
     // Same skill gain as the bagged arm (dust enchant tier 0, capability 0 ->
@@ -1129,7 +1635,12 @@ describe('apply enchant to WORN gear (in place)', () => {
     expect(state!.equipmentInstance?.mainhand?.enchant).toBe(WORN_ENCHANT);
     expect(state!.equipmentInstance?.mainhand?.rolled?.stats?.str).toBe(2);
 
-    const reloadedSim = new Sim({ seed: 7, playerClass: 'rogue', noPlayer: true });
+    const reloadedSim = new Sim({
+      seed: 7,
+      playerClass: 'rogue',
+      noPlayer: true,
+      world: EMPTY_TEST_WORLD,
+    });
     const reloadedPid = reloadedSim.addPlayer('rogue', 'Reload', { state: state! });
     expect(reloadedSim.meta(reloadedPid)!.equipmentInstance.mainhand?.enchant).toBe(WORN_ENCHANT);
     expect(reloadedSim.entities.get(reloadedPid)!.stats.str).toBe(boostedStr);
@@ -1141,7 +1652,10 @@ describe('apply enchant to WORN gear (in place)', () => {
 // settled rulings under test: one-step replace gated on the confirmReplace
 // flag; the old enchant destroyed outright with NO material refund; the swap
 // surgical (signer, masterwork stats, boundTo, bindOnTrade byte-identical);
-// the identical-enchant-id re-apply denied with its own reason on every arm;
+// the identical-enchant-id re-apply is a NORMAL replace with confirmReplace
+// set, on every arm (a player-requested QoL: reagents spent, stats net
+// unchanged, skill still gained), and stays denied with its own reason ONLY
+// when confirmReplace is absent, same as any other already-enchanted target;
 // no new gates (same shared throttle, reagents only); and no code path that
 // silently overwrites.
 // ---------------------------------------------------------------------------
@@ -1193,12 +1707,10 @@ describe('replacing an enchant behind explicit confirmation (#2415)', () => {
     expect(sim.countItem('arcane_shard', pid)).toBe(0);
     expect(sim.countItem('arcane_essence', pid)).toBe(0);
     expect(sim.countItem('arcane_dust', pid)).toBe(0);
-    // Replacement is just an apply: the same quality-tiered skill gain landed
-    // and exactly ONE shared-throttle stamp was spent on it (one apply + one
-    // replace = two stamps total; a stamp-free replace would sidestep the
-    // shared 10-per-60s pace entirely).
+    // Replacement is just an apply: the same quality-tiered skill gain landed.
+    // Phase 4: enchant-family no longer stamps craftThrottle.
     expect(meta.craftSkills.enchanting).toBeGreaterThan(skillAfterApply);
-    expect(meta.craftThrottle.count).toBe(2);
+    expect(meta.craftThrottle.count).toBe(0);
   });
 
   it('grants EXACTLY the plain apply gain for the same enchant tier (same curve, same input)', () => {
@@ -1327,21 +1839,213 @@ describe('replacing an enchant behind explicit confirmation (#2415)', () => {
     }
   });
 
-  it('denies same_enchant on the identical enchant id: no reagents spent, no throttle stamped', () => {
+  it('allows re-applying the identical enchant id (QoL): reagents spent, stats net unchanged, skill still gained', () => {
     const sim = makeSim();
     const pid = sim.playerId;
     sim.ctx.addItemInstance(SWORD, { enchant: MIGHT, rolled: { stats: { str: 2 } } }, pid);
     sim.addItem('arcane_dust', 5, pid);
     const meta = sim.ctx.resolve(pid)!.meta;
-    const stampsBefore = meta.craftThrottle.count;
+    const skillBefore = meta.craftSkills.enchanting;
     const result = resolveApplyEnchant(sim.ctx, pid, SWORD, MIGHT, undefined, true);
-    expect(result.ok).toBe(false);
-    expect(result.reason).toBe('same_enchant');
-    // Pure deny: nothing consumed, nothing stamped, payload untouched.
-    expect(sim.countItem('arcane_dust', pid)).toBe(5);
-    expect(meta.craftThrottle.count).toBe(stampsBefore);
+    expect(result.ok).toBe(true);
+    // Reagents are spent even though the enchant does not actually change.
+    expect(sim.countItem('arcane_dust', pid)).toBe(0);
+    // Old bonus subtracted, the SAME bonus re-added: net byte-identical stats
+    // and marker, so this is purely a reagent-for-skill trade, not a re-roll.
     const slot = meta.inventory.find((s) => s.itemId === SWORD);
+    expect(slot?.instance?.enchant).toBe(MIGHT);
     expect(slot?.instance?.rolled?.stats).toEqual({ str: 2 });
+    // The whole point: a controlled way to burn materials and train
+    // Enchanting on a piece the player intends to keep.
+    expect(meta.craftSkills.enchanting).toBeGreaterThan(skillBefore);
+  });
+
+  // The two cases above prove the same-enchant reapply on a bare
+  // {enchant, rolled.stats} fixture. Neither carries a Perfecting record or
+  // real craft provenance, so neither can catch a regression where the
+  // replace mint drops that metadata (e.g. a shortcut that returns the
+  // victim untouched instead of routing through replacedEnchantPayloadFor,
+  // or a rebuilt payload that forgets craftedRecipeId/perfected/
+  // perfectingBonus/perfectingBound). This describe crafts a REAL Crucible
+  // collection piece (the masterwork proc head start, crafting.ts) and walks
+  // it through the REAL Perfecting rank track to Perfected
+  // (professions/perfecting.ts), so the victim carries every legal field a
+  // live copy would, minted by the shipped pipelines rather than
+  // hand-stamped.
+  describe('same-enchant reapply on a REAL crafted + Perfected copy: Perfecting state and provenance survive', () => {
+    const CRUCIBLE_CHEST = 'crucible_str_mail_chest'; // apex armor, warrior-wearable, chest
+    const CRUCIBLE_CHEST_RECIPE = 'recipe_crucible_str_mail_chest';
+    const CHEST_ENCHANT = 'enchant_chest_stamina'; // itemSlot chest, sta +4, 3 dust + 2 essence
+
+    /** The identity/provenance fields a same-enchant reapply must never
+     *  disturb: the invslot craft marker (bagged) or its payload-carried
+     *  twin (worn), the signer, and the whole Perfecting record. */
+    function provenanceOf(
+      craftedRecipeId: string | undefined,
+      instance: InvSlot['instance'],
+    ): unknown {
+      return {
+        craftedRecipeId,
+        signer: instance?.signer,
+        perfected: instance?.perfected,
+        perfectingBonus: instance?.perfectingBonus,
+        perfectingBound: instance?.perfectingBound,
+        boundTo: instance?.boundTo,
+      };
+    }
+
+    /** Craft one real Crucible chest piece with the masterwork proc forced
+     *  (the head start), then force every Perfecting attempt roll to
+     *  succeed until the copy reaches Perfected. Returns the bag index the
+     *  crafted copy landed in. */
+    function craftPerfectedChest(sim: Sim, pid: number, meta: PlayerMeta): number {
+      const recipe = recipeById(CRUCIBLE_CHEST_RECIPE);
+      if (!recipe) throw new Error('the crucible chest recipe exists');
+      meta.craftSkills.armorcrafting = PERFECTING_SKILL_REQ;
+      // The apex bumped tier is legendary, above the rare ceiling a dormant
+      // craft reads (archetype.ts archetypeCeilingFor): an active major in
+      // this craft is what actually grants the masterwork head start.
+      meta.archetype.activeArchetype = 'armorcrafting';
+      meta.knownRecipes?.add(recipe.id);
+      if (recipe.stationType) {
+        const station = stationsOfType(STATIONS, recipe.stationType as StationType)[0];
+        const e = sim.entities.get(pid) as Entity;
+        e.pos.x = station.pos.x;
+        e.pos.z = station.pos.z;
+        e.prevPos = { ...e.pos };
+      }
+      for (const g of recipe.reagents) sim.addItem(g.itemId, g.count, pid);
+      // Enough Perfecting attempt materials for the whole remaining walk.
+      for (const c of PERFECTING_ATTEMPT_COST) {
+        sim.addItem(c.itemId, c.count * PERFECTING_RANKS, pid);
+      }
+      // Force every rng draw (the proc, then every Perfecting attempt) to
+      // hit: the professions_masterwork/perfecting.ts forced-roll idiom.
+      (sim.rng as unknown as { next: () => number }).next = () => 0;
+      runCraft(sim, recipe.id, false, pid);
+      expect(meta.lastCraftResult?.ok, 'the craft really lands').toBe(true);
+      expect(meta.lastCraftResult?.masterwork, 'the forced proc hits').toBe(true);
+      const bag = meta.inventory.findIndex((s) => s.itemId === CRUCIBLE_CHEST);
+      expect(bag, 'the crafted copy is really in the bags').toBeGreaterThanOrEqual(0);
+      expect(meta.inventory[bag].instance?.perfecting, 'the head-start rank landed').toBe(
+        PERFECTING_HEADSTART_RANK,
+      );
+      for (let i = 0; i < PERFECTING_RANKS - PERFECTING_HEADSTART_RANK; i++) {
+        sim.perfectItemAs(pid, { bag, itemId: CRUCIBLE_CHEST });
+      }
+      const perfectedSlot = meta.inventory[bag];
+      expect(perfectedSlot.itemId, 'the copy is really Perfected before the test body runs').toBe(
+        CRUCIBLE_CHEST,
+      );
+      expect(perfectedSlot.instance?.perfected, 'the fixture is really Perfected').toBe(true);
+      // A Crucible collection copy bakes perfectingBonus (withPerfectingBonus)
+      // and binds on it: both must survive the reapply below untouched.
+      expect(
+        perfectedSlot.instance?.perfectingBonus,
+        'a real Crucible copy carries a baked bonus record',
+      ).toBeTruthy();
+      expect(perfectedSlot.instance?.perfectingBound, 'and the permanent bind').toBe(true);
+      expect(perfectedSlot.instance?.signer, 'and the crafter signature').toBeTruthy();
+      expect(perfectedSlot.craftedRecipeId, 'and the bagged craft marker').toBe(recipe.id);
+      return bag;
+    }
+
+    it('bagged: reapplying the same enchant id leaves Perfecting state, provenance, and net stats byte-identical', () => {
+      const sim = makeSim();
+      const pid = sim.playerId;
+      const meta = sim.players.get(pid)!;
+      craftPerfectedChest(sim, pid, meta);
+      sim.addItem('arcane_dust', 20, pid);
+      sim.addItem('arcane_essence', 20, pid);
+
+      // A fresh (non-replace) apply first, so the copy genuinely carries the
+      // enchant under test: merged additively onto the Perfecting bonus.
+      expect(resolveApplyEnchant(sim.ctx, pid, CRUCIBLE_CHEST, CHEST_ENCHANT).ok).toBe(true);
+      const beforeIdx = meta.inventory.findIndex(
+        (s) => s.itemId === CRUCIBLE_CHEST && s.instance?.enchant === CHEST_ENCHANT,
+      );
+      expect(beforeIdx, 'the enchanted copy is really in the bags').toBeGreaterThanOrEqual(0);
+      const before = meta.inventory[beforeIdx];
+      const provenanceBefore = provenanceOf(before.craftedRecipeId, before.instance);
+      const statsBefore = { ...before.instance?.rolled?.stats };
+      const dustBefore = sim.countItem('arcane_dust', pid);
+      const essenceBefore = sim.countItem('arcane_essence', pid);
+      const skillBefore = meta.craftSkills.enchanting;
+
+      // THE CASE UNDER TEST: confirmed replace with the SAME enchant id.
+      const result = resolveApplyEnchant(
+        sim.ctx,
+        pid,
+        CRUCIBLE_CHEST,
+        CHEST_ENCHANT,
+        undefined,
+        true,
+      );
+      expect(result.ok).toBe(true);
+
+      const after = meta.inventory.find((s) => s.itemId === CRUCIBLE_CHEST);
+      expect(after?.instance?.enchant).toBe(CHEST_ENCHANT);
+      // Would fail if the same-enchant case were shortcut back to a deny, or
+      // if the replace mint dropped/rebuilt the payload without carrying the
+      // Perfecting record and craft provenance through byte-identical.
+      expect(provenanceOf(after?.craftedRecipeId, after?.instance)).toEqual(provenanceBefore);
+      // The old CHEST_ENCHANT bonus subtracted, the identical one re-added:
+      // net byte-identical stats, Perfecting bonus included.
+      expect(after?.instance?.rolled?.stats).toEqual(statsBefore);
+      // The real mechanic cost: the enchant's own reagent bill actually left
+      // the bags (never a reagent-free no-op).
+      expect(sim.countItem('arcane_dust', pid)).toBe(dustBefore - 3);
+      expect(sim.countItem('arcane_essence', pid)).toBe(essenceBefore - 2);
+      expect(meta.craftSkills.enchanting).toBeGreaterThan(skillBefore);
+    });
+
+    it('worn: reapplying the same enchant id leaves Perfecting state, provenance, and net stats byte-identical', () => {
+      const sim = makeSim();
+      const pid = sim.playerId;
+      const meta = sim.players.get(pid)!;
+      sim.setPlayerLevel(20); // the collection piece's requiredLevel
+      craftPerfectedChest(sim, pid, meta);
+      sim.equipItem(CRUCIBLE_CHEST, pid);
+      expect(meta.equipment.chest, 'the crafted copy is really worn').toBe(CRUCIBLE_CHEST);
+      // Equip bridges the bagged craft marker onto the payload's own field
+      // (items.ts equipmentPayloadFor): re-confirm it rode across the move.
+      expect(meta.equipmentInstance.chest?.craftedRecipeId).toBe(CRUCIBLE_CHEST_RECIPE);
+      sim.addItem('arcane_dust', 20, pid);
+      sim.addItem('arcane_essence', 20, pid);
+
+      expect(resolveApplyEnchant(sim.ctx, pid, CRUCIBLE_CHEST, CHEST_ENCHANT, 'chest').ok).toBe(
+        true,
+      );
+      const before = meta.equipmentInstance.chest;
+      expect(before?.perfected, 'still Perfected after the fresh apply').toBe(true);
+      const provenanceBefore = provenanceOf(before?.craftedRecipeId, before);
+      const statsBefore = { ...before?.rolled?.stats };
+      const dustBefore = sim.countItem('arcane_dust', pid);
+      const essenceBefore = sim.countItem('arcane_essence', pid);
+      const skillBefore = meta.craftSkills.enchanting;
+
+      // THE CASE UNDER TEST: confirmed replace with the SAME enchant id, on
+      // the WORN arm (the payload itself carries craftedRecipeId here, so a
+      // clone-and-mutate replace preserves it with no separate re-stamp;
+      // this is the case a payload-reconstruction regression would miss).
+      const result = resolveApplyEnchant(
+        sim.ctx,
+        pid,
+        CRUCIBLE_CHEST,
+        CHEST_ENCHANT,
+        'chest',
+        true,
+      );
+      expect(result.ok).toBe(true);
+
+      const after = meta.equipmentInstance.chest;
+      expect(after?.enchant).toBe(CHEST_ENCHANT);
+      expect(provenanceOf(after?.craftedRecipeId, after)).toEqual(provenanceBefore);
+      expect(after?.rolled?.stats).toEqual(statsBefore);
+      expect(sim.countItem('arcane_dust', pid)).toBe(dustBefore - 3);
+      expect(sim.countItem('arcane_essence', pid)).toBe(essenceBefore - 2);
+      expect(meta.craftSkills.enchanting).toBeGreaterThan(skillBefore);
+    });
   });
 
   it('replaces a LEGACY pre-marker copy wholesale: rolled.stats becomes exactly the new bonus', () => {
@@ -1483,21 +2187,21 @@ describe('replacing an enchant behind explicit confirmation (#2415)', () => {
     expect(a.sim.ctx.rng.next()).toBe(b.sim.ctx.rng.next());
   });
 
-  it('draws from the SAME shared action throttle: a spent window denies the replace with nothing consumed', () => {
+  it('Phase 5: bagged replace ignores inert craftThrottle (cast paces, not quota)', () => {
     const sim = makeSim();
     const pid = sim.playerId;
+    const meta = sim.players.get(pid)!;
     sim.ctx.addItemInstance(SWORD, { enchant: MIGHT, rolled: { stats: { str: 2 } } }, pid);
     sim.addItem('arcane_dust', 5, pid);
-    sim.addItem(SWORD, CRAFT_THROTTLE_MAX_PER_WINDOW, pid);
-    for (let i = 0; i < CRAFT_THROTTLE_MAX_PER_WINDOW; i++) sim.salvageItem(SWORD, pid);
+    meta.craftThrottle = { windowStart: sim.ctx.time, count: 999 };
     const result = resolveApplyEnchant(sim.ctx, pid, SWORD, AGILITY, undefined, true);
-    expect(result.ok).toBe(false);
-    expect(result.reason).toBe('throttled');
-    expect(sim.countItem('arcane_dust', pid)).toBe(5);
+    expect(result.ok).toBe(true);
+    expect(sim.countItem('arcane_dust', pid)).toBe(0);
     const enchanted = sim.ctx
       .resolve(pid)!
       .meta.inventory.find((s) => s.itemId === SWORD && s.instance);
-    expect(enchanted?.instance?.enchant).toBe(MIGHT);
+    expect(enchanted?.instance?.enchant).toBe(AGILITY);
+    expect(meta.craftThrottle.count).toBe(999);
   });
 
   it('replaces a WORN enchanted copy in place: stats re-baked, signer intact, reagents spent', () => {
@@ -1523,16 +2227,18 @@ describe('replacing an enchant behind explicit confirmation (#2415)', () => {
     expect(sim.countItem(WORN_SWORD, pid)).toBe(0);
   });
 
-  it('denies same_enchant on the WORN arm too, with nothing consumed', () => {
+  it('allows re-applying the identical enchant id on the WORN arm too: reagents spent, stats unchanged', () => {
     const { sim, pid, meta } = wearing('mainhand', WORN_SWORD, {
       dust: 5,
       instance: { enchant: WORN_ENCHANT, rolled: { stats: { str: 2 } } },
     });
+    const skillBefore = meta.craftSkills.enchanting;
     const result = resolveApplyEnchant(sim.ctx, pid, WORN_SWORD, WORN_ENCHANT, 'mainhand', true);
-    expect(result.ok).toBe(false);
-    expect(result.reason).toBe('same_enchant');
+    expect(result.ok).toBe(true);
     expect(meta.equipmentInstance.mainhand?.enchant).toBe(WORN_ENCHANT);
-    expect(sim.countItem('arcane_dust', pid)).toBe(5);
+    expect(meta.equipmentInstance.mainhand?.rolled?.stats).toEqual({ str: 2 });
+    expect(sim.countItem('arcane_dust', pid)).toBe(0);
+    expect(meta.craftSkills.enchanting).toBeGreaterThan(skillBefore);
   });
 
   it('refuses a WORN marker id that no longer resolves (corrupt save): already_enchanted, untouched', () => {
@@ -1612,7 +2318,12 @@ describe('replacing an enchant behind explicit confirmation (#2415)', () => {
     expect(saved?.instance?.signer).toBe('Tester');
     expect(saved?.instance?.bindOnTrade).toBe(true);
 
-    const reloadedSim = new Sim({ seed: 7, playerClass: 'warrior', noPlayer: true });
+    const reloadedSim = new Sim({
+      seed: 7,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: EMPTY_TEST_WORLD,
+    });
     const reloadedPid = reloadedSim.addPlayer('warrior', 'Reload', { state: state! });
     const loaded = reloadedSim.meta(reloadedPid)!.inventory.find((s) => s.itemId === SWORD);
     expect(loaded?.instance?.enchant).toBe(AGILITY);
@@ -1654,11 +2365,11 @@ describe('replaceVictimIndex / consumeEnchantedVictim (the shared victim walk)',
     expect(stacked[0].count).toBe(1);
     // Clone-on-survival: mutating the returned payload never reaches the
     // surviving stack's shared payload (the removeEnchantableItem contract).
-    consumed!.rolled!.stats!.str = 99;
+    consumed!.instance!.rolled!.stats!.str = 99;
     expect(stacked[0].instance?.rolled?.stats?.str).toBe(2);
 
     const single: InvSlot[] = [{ itemId: GEAR, count: 1, instance: { enchant: 'x' } }];
-    expect(consumeEnchantedVictim(single, GEAR)?.enchant).toBe('x');
+    expect(consumeEnchantedVictim(single, GEAR)?.instance?.enchant).toBe('x');
     expect(single).toHaveLength(0);
     expect(consumeEnchantedVictim([{ itemId: GEAR, count: 1 }], GEAR)).toBeUndefined();
   });

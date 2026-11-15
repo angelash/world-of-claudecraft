@@ -29,8 +29,8 @@ vi.mock('../server/db', () => ({
 }));
 
 import { type ClientSession, GameServer } from '../server/game';
-import { ClientWorld } from '../src/net/online';
 import type { PlayerClass } from '../src/sim/types';
+import { bareClient } from './helpers/bare_client';
 
 const ITEM_ID = 'eastbrook_ritual_vestments';
 
@@ -70,56 +70,6 @@ function broadcast(server: GameServer): void {
 
 function cmd(server: GameServer, session: ClientSession, msg: Record<string, unknown>): void {
   server.handleMessage(session, JSON.stringify({ t: 'cmd', ...msg }));
-}
-
-// A ClientWorld without the WebSocket plumbing, to drive applySnapshot with the
-// REAL captured server snap (the tests/snapshots.test.ts bareClient idiom,
-// trimmed to the fields the ents decode path touches).
-function bareClient(pid: number, playerClass: PlayerClass = 'warrior'): ClientWorld {
-  const c: any = Object.create(ClientWorld.prototype);
-  c.cfg = { seed: 20061, playerClass };
-  c.entities = new Map();
-  c.playerId = pid;
-  c.ownPlayerId = pid;
-  c.ownPlayerClass = playerClass;
-  c.spectating = null;
-  c.cupInfo = null;
-  c.sportRole = null;
-  c.moveInput = {};
-  c.inventory = [];
-  c.vendorBuyback = [];
-  c.equipment = {};
-  c.accountCosmetics = { completedQuestIds: [], mechChromaIds: [] };
-  c.copper = 0;
-  c.honor = 0;
-  c.lifetimeHonor = 0;
-  c.xp = 0;
-  c.known = [];
-  c.questLog = new Map();
-  c.questsDone = new Set();
-  c.pendingQuestCommands = new Map();
-  c.partyInfo = null;
-  c.selectedDungeonDifficulty = 'normal';
-  c.tradeInfo = null;
-  c.duelInfo = null;
-  c.lastSnapAt = 0;
-  c.snapInterval = 50;
-  c.serverTickHz = null;
-  c.missingSince = new Map();
-  c.pendingFacingDelta = 0;
-  c.connected = true;
-  c.eventQueue = [];
-  c.mouselookFacing = null;
-  c.lastInputSentAt = 0;
-  c.lastInputSig = '';
-  c.inputSeq = 0;
-  c.pendingInputSeqSentAt = new Map();
-  c.ackedInputSeq = 0;
-  c.inputEchoSamples = [];
-  c.spectateFacingPending = false;
-  c.pendingSpectateFacing = null;
-  c.nodeCooldowns = new Map();
-  return c;
 }
 
 describe('eqi over a real server broadcast into applySnapshot (liveness, not shape)', () => {
@@ -200,6 +150,49 @@ describe('eqi over a real server broadcast into applySnapshot (liveness, not sha
   });
 });
 
+describe('eqi carries the player-chosen legendary name (Masterwrought phase 13)', () => {
+  it('an inspected promoted copy ships its name and active Perfected marker, not private state', () => {
+    const server = new GameServer();
+    const fcA = fakeWs();
+    const a = joinServer(server, fcA, 3, 'Namer');
+    const fcB = fakeWs();
+    const b = joinServer(server, fcB, 4, 'Inspector');
+
+    // The promoted shape the sim mints (rolled quality override plus the
+    // chosen name plus the Perfected stamp); the server is the only place
+    // payloads are born, the suite header's rule.
+    const promoted = {
+      rolled: { quality: 'legendary', masterwork: true, stats: { int: 3 } },
+      signer: 'Namer',
+      name: "Vel'tara's Oath",
+      perfected: true as const,
+      perfecting: 4,
+      boundTo: a.pid,
+    };
+    server.sim.addItemInstance(ITEM_ID, structuredClone(promoted), a.pid);
+    cmd(server, a, { cmd: 'equip', item: ITEM_ID });
+    fcB.sent.length = 0;
+    server.sim.tick();
+    broadcast(server);
+    const snap = lastSnap(fcB.sent);
+    const rec = snap?.ents.find((r: any) => r.id === a.pid);
+    // The active marker now supports rank-aware comparisons after exchanging
+    // ranks. Intermediate progress and binding identity stay off the peer wire.
+    expect(rec?.eqi?.chest?.name).toBe("Vel'tara's Oath");
+    expect(rec?.eqi?.chest?.rolled?.quality).toBe('legendary');
+    expect(rec?.eqi?.chest?.perfected).toBe(true);
+    expect(rec?.eqi?.chest?.perfecting).toBeUndefined();
+    expect(rec?.eqi?.chest?.boundTo).toBeUndefined();
+
+    // Liveness through the real decode: the inspecting client's mirror
+    // carries the name for the inspect window's widened itemTooltip.
+    const client = bareClient(b.pid);
+    (client as any).applySnapshot(snap);
+    expect(client.entities.get(a.pid)?.equippedInstances?.chest?.name).toBe("Vel'tara's Oath");
+    expect(client.entities.get(a.pid)?.equippedInstances?.chest?.perfected).toBe(true);
+  });
+});
+
 describe('server authority over instance payloads', () => {
   it('a client-supplied instance on a trade_offer wire message is stripped, never granted', () => {
     // Equip/craft/use commands carry only string ids, so an instance payload is
@@ -252,17 +245,48 @@ describe('inspect_window painter instance threading (source pins)', () => {
   const painter = readFileSync(new URL('../src/ui/inspect_window.ts', import.meta.url), 'utf8');
   const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
 
-  it('threads the inspected entity payload per slot into both paperdoll columns', () => {
-    expect(painter).toContain('this.buildSlotRow(cell, e.equippedInstances[cell.slot])');
+  it('threads the inspected entity payloads through the pure core into the paperdoll cells', () => {
+    // Since the 2026-08-27 QA round the payloads ride the VIEW MODEL: the
+    // painter hands equippedInstances to buildInspectView, and the core
+    // threads them into buildPaperdollView (third argument), whose cells carry
+    // each slot's eqi-projected instance for the row AND the tooltip.
+    // The 2026-08-27 host-parity ruling: SELF hands the full worn mirror via
+    // openInspect's fourth parameter; a peer stays on the eqi-shaped entity.
+    expect(painter).toContain('equippedInstances: selfEquippedInstances ?? e.equippedInstances');
+    const view = readFileSync(new URL('../src/ui/inspect_view.ts', import.meta.url), 'utf8');
+    expect(view).toContain(
+      'buildPaperdollView(input.equippedItems, items, input.equippedInstances)',
+    );
   });
 
-  it('the slot row forwards the instance into the tooltip builder', () => {
-    expect(painter).toContain(
-      'this.deps.attachTooltip(row, () => this.deps.itemTooltip(item, instance))',
+  it('the slot row forwards both the worn payload and wearer into the tooltip builder', () => {
+    expect(painter).toContain('const { slot, item, instance } = cell;');
+    expect(painter).toMatch(
+      /this\.deps\.attachTooltip\(row,\s*\(\) =>\s*this\.deps\.itemTooltip\(item, instance \?\? undefined, wearer\)/,
+    );
+    expect(painter).toContain('this.buildSlotRow(cell, wearer)');
+    expect(hud).toMatch(
+      /itemTooltip: \(item, instance, wearer\) =>\s*this\.itemTooltip\(item, false, instance, undefined, wearer\)/,
     );
   });
 
   it('hud.ts openInspect is now a thin delegate to the painter', () => {
-    expect(hud).toContain('this.inspectWindow.openInspect(e, Date.now())');
+    // Retargeted at Phase 20 QA, and the cause is a real call-shape change, not
+    // a formatting churn: the delegate grew a THIRD argument (the viewer's own
+    // live Curator standing, handed over only for the local player), so the old
+    // single-line `openInspect(e, Date.now())` spelling no longer exists. The
+    // pin still says the same thing, that hud.ts hands the entity and the clock
+    // straight to the painter instead of building the card itself, now across
+    // the wrap. The third argument and its pid gate are pinned separately in
+    // tests/inspect_window.test.ts, beside the parameter they feed.
+    //
+    // Comment-stripped, so the prose above the call in hud.ts (which discusses
+    // the delegate) cannot satisfy the pin on its own.
+    const hudCode = hud.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    const at = hudCode.indexOf('openInspect(pid: number): void {');
+    expect(at, 'Hud.openInspect is missing').toBeGreaterThan(-1);
+    expect(hudCode.slice(at, at + 320)).toMatch(
+      /this\.inspectWindow\.openInspect\(\s*e,\s*Date\.now\(\),/,
+    );
   });
 });

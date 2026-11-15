@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { SimEvent } from '../src/sim/types';
 import { MeterData } from '../src/ui/meters';
+import { breakdownKey } from '../src/ui/meters_breakdown_view';
+import { buildMeterRows } from '../src/ui/meters_rows_view';
 import type { IWorld } from '../src/world_api';
 
 // minimal IWorld stand-in: entity map + player + party
@@ -28,7 +30,12 @@ function fakeWorld(): IWorld {
   } as unknown as IWorld;
 }
 
-const dmg = (sourceId: number, targetId: number, amount: number): SimEvent =>
+const dmg = (
+  sourceId: number,
+  targetId: number,
+  amount: number,
+  ability: string | null = null,
+): SimEvent =>
   ({
     type: 'damage',
     sourceId,
@@ -36,19 +43,21 @@ const dmg = (sourceId: number, targetId: number, amount: number): SimEvent =>
     amount,
     crit: false,
     school: 'physical',
-    ability: null,
+    ability,
     kind: 'hit',
   }) as SimEvent;
-const heal = (sourceId: number, targetId: number, amount: number, cueOnly = false): SimEvent =>
-  ({
-    type: 'heal2',
-    sourceId,
-    targetId,
-    amount,
-    crit: false,
-    ability: 'Heal',
-    cueOnly,
-  }) as SimEvent;
+// `ability` sits ahead of `cueOnly`/`hot`: the per-ability breakdown reads it on most
+// calls, while the audio-only HoT cue and the periodic-tick flag are the two cases
+// that need the flags.
+const heal = (
+  sourceId: number,
+  targetId: number,
+  amount: number,
+  ability = 'Heal',
+  cueOnly = false,
+  hot = false,
+): SimEvent =>
+  ({ type: 'heal2', sourceId, targetId, amount, crit: false, ability, cueOnly, hot }) as SimEvent;
 
 describe('combat meters', () => {
   it('tallies party damage and healing into the current encounter and all-time', () => {
@@ -69,11 +78,83 @@ describe('combat meters', () => {
     expect(m.current!.mainMobId).toBe(51);
   });
 
+  it('credits an absorb (a shield soaking a hit) to the shielder as healing, under the shield name', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const absorb = {
+      type: 'absorb',
+      sourceId: 2,
+      targetId: 1,
+      amount: 45,
+      ability: 'Temporal Aegis',
+      abilityId: 'temporal_aegis',
+    } as SimEvent;
+    m.onEvent(absorb, w, party, 1000);
+    expect(m.current).not.toBeNull();
+    const t = m.current!.tallies.get(2)!;
+    expect(t.heal).toBe(45);
+    expect(t.healByAbility.get(breakdownKey(null, 'Temporal Aegis'))?.amount).toBe(45);
+    expect(m.allTime.tallies.get(2)!.heal).toBe(45);
+    // A mob's own shield (source outside the party) is not party healing.
+    m.onEvent({ ...(absorb as object), sourceId: 50, targetId: 50 } as SimEvent, w, party, 1500);
+    expect(m.current!.tallies.get(50)).toBeUndefined();
+  });
+
+  // A direct heal on a full-health target lands as amount 0 with the whole heal
+  // in `overheal` (src/sim/combat/heal.ts). It healed nothing, so it adds no
+  // healing, hit, or crit, but its overheal still counts toward the ability.
+  it('counts the overheal of a heal that landed entirely as overheal', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const key = breakdownKey(null, 'Flash Heal');
+    m.onEvent(
+      { ...(heal(2, 1, 600, 'Flash Heal') as object), overheal: 200 } as SimEvent,
+      w,
+      party,
+      1000,
+    );
+    m.onEvent(
+      { ...(heal(2, 1, 0, 'Flash Heal') as object), overheal: 450, crit: true } as SimEvent,
+      w,
+      party,
+      1500,
+    );
+    for (const enc of [m.current!, m.allTime]) {
+      const t = enc.tallies.get(2)!;
+      const entry = t.healByAbility.get(key)!;
+      expect(entry.overheal).toBe(650);
+      expect(entry.amount).toBe(600);
+      expect(entry.hits).toBe(1);
+      expect(entry.crits ?? 0).toBe(0);
+      expect(entry.minHit).toBe(600);
+      expect(t.heal).toBe(600);
+      expect(t.hits).toBe(1);
+      expect(t.crits).toBe(0);
+    }
+  });
+
+  it('records overheal for an ability whose only heals were full overheals, without a heal value', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    m.onEvent({ ...(heal(2, 1, 0, 'Renew') as object), overheal: 90 } as SimEvent, w, party, 1000);
+    const t = m.current!.tallies.get(2)!;
+    expect(t.healByAbility.get(breakdownKey(null, 'Renew'))?.overheal).toBe(90);
+    expect(t.healByAbility.get(breakdownKey(null, 'Renew'))?.amount).toBe(0);
+    expect(t.heal).toBe(0);
+    expect(t.hits).toBe(0);
+    // An outsider's full overheal is not party healing.
+    m.onEvent({ ...(heal(99, 1, 0, 'Renew') as object), overheal: 90 } as SimEvent, w, party, 1100);
+    expect(m.current!.tallies.has(99)).toBe(false);
+  });
+
   it('ignores a cueOnly heal2 (the HoT-application sound cue): no encounter opens, no tally, no lastActivity bump', () => {
     const w = fakeWorld();
     const party = new Set([1, 2]);
     const m = new MeterData(0);
-    m.onEvent(heal(2, 1, 0, true), w, party, 1000);
+    m.onEvent(heal(2, 1, 0, 'Heal', true), w, party, 1000);
     expect(m.current).toBeNull();
     expect(m.allTime.tallies.has(2)).toBe(false);
     // a real event afterward opens the encounter fresh, proving the cue left no trace
@@ -155,10 +236,21 @@ describe('combat meters', () => {
     const m = new MeterData(0);
     m.onEvent(dmg(50, 1, 12), w, party, 1000); // wolf bites the tank
     expect(m.current).not.toBeNull();
-    expect(m.current!.tallies.size).toBe(0);
+    expect(m.current!.tallies.get(1)?.dmg ?? 0).toBe(0);
+    expect(m.current!.tallies.get(1)?.dmgTaken).toBe(12);
+    expect(
+      buildMeterRows({
+        tallies: m.current!.tallies.values(),
+        tab: 'dmg',
+        liveThreat: null,
+        petsByOwner: null,
+        mainMobId: null,
+        aggroPid: null,
+      }),
+    ).toEqual([]);
   });
 
-  it('can tally controlled pet damage when the HUD includes the pet in the party set', () => {
+  it('folds controlled pet damage into its owner row instead of giving the pet its own', () => {
     const w = fakeWorld();
     const party = new Set([1, 2, 3]);
     (w.entities as Map<number, any>).set(3, {
@@ -169,10 +261,88 @@ describe('combat meters', () => {
       ownerId: 1,
     });
     const m = new MeterData(0);
-    m.onEvent(dmg(3, 50, 18), w, party, 1000);
+    m.onEvent(dmg(1, 50, 30, 'Aimed Shot'), w, party, 1000);
+    m.onEvent(dmg(3, 50, 18, 'Claw'), w, party, 1100);
+    // one row, the owner's, carrying both their own and their pet's damage
+    expect(m.current!.tallies.size).toBe(1);
+    expect(m.current!.tallies.has(3)).toBe(false);
+    const hunter = m.current!.tallies.get(1)!;
+    expect(hunter.name).toBe('Hero');
+    expect(hunter.dmg).toBe(48);
+    // the pet's damage is still attributable in the hover breakdown
+    const rows = [...hunter.dmgByAbility.values()];
+    expect(rows).toContainEqual({ ability: 'Aimed Shot', petName: null, amount: 30 });
+    expect(rows).toContainEqual({ ability: 'Claw', petName: 'Wolf Pet', amount: 18 });
+    // the folded pet damage counts toward the owner on the threat-tab fallback
+    expect(hunter.dmgByMob.get(50)).toBe(48);
+  });
+
+  it('breaks a member damage and healing down per ability, merging repeat casts', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    m.onEvent(dmg(1, 50, 10), w, party, 1000); // melee swing: ability null
+    m.onEvent(dmg(1, 50, 12), w, party, 1500);
+    m.onEvent(dmg(1, 50, 40, 'Mortal Strike'), w, party, 2000);
+    m.onEvent(heal(2, 1, 30, 'Flash Heal'), w, party, 2500);
+    m.onEvent(heal(2, 1, 20, 'Flash Heal'), w, party, 3000);
+    m.onEvent(heal(2, 1, 15, 'Renew'), w, party, 3500);
+    const warrior = m.current!.tallies.get(1)!;
+    expect([...warrior.dmgByAbility.values()]).toEqual([
+      { ability: null, petName: null, amount: 22 },
+      { ability: 'Mortal Strike', petName: null, amount: 40 },
+    ]);
+    expect(warrior.healByAbility.size).toBe(0);
+    const priest = m.current!.tallies.get(2)!;
+    expect([...priest.healByAbility.values()]).toEqual([
+      { ability: 'Flash Heal', petName: null, amount: 50 },
+      { ability: 'Renew', petName: null, amount: 15 },
+    ]);
+    // all-time accumulates the same split
+    expect([...m.allTime.tallies.get(2)!.healByAbility.values()]).toEqual([
+      { ability: 'Flash Heal', petName: null, amount: 50 },
+      { ability: 'Renew', petName: null, amount: 15 },
+    ]);
+  });
+
+  it('folds a pet heal into its owner row too', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2, 4]);
+    (w.entities as Map<number, any>).set(4, {
+      id: 4,
+      kind: 'mob',
+      name: 'Voidwalker',
+      templateId: 'voidwalker',
+      ownerId: 2,
+    });
+    const m = new MeterData(0);
+    m.onEvent(heal(4, 1, 25, 'Consume Shadows'), w, party, 1000);
+    expect(m.current!.tallies.has(4)).toBe(false);
+    const owner = m.current!.tallies.get(2)!;
+    expect(owner.name).toBe('Pal');
+    expect(owner.heal).toBe(25);
+    expect([...owner.healByAbility.values()]).toEqual([
+      { ability: 'Consume Shadows', petName: 'Voidwalker', amount: 25 },
+    ]);
+  });
+
+  it('credits temporary guardian damage to its player owner', () => {
+    const w = fakeWorld();
+    (w.entities as Map<number, any>).set(4, {
+      id: 4,
+      kind: 'mob',
+      name: 'Tithefiend',
+      templateId: 'guardian_tithefiend',
+      ownerId: 2,
+    });
+    const party = new Set([1, 2, 4]);
+    const m = new MeterData(0);
+
+    m.onEvent(dmg(4, 50, 22), w, party, 1000);
+
     expect(m.current).not.toBeNull();
-    expect(m.current!.tallies.get(3)!.name).toBe('Wolf Pet');
-    expect(m.current!.tallies.get(3)!.dmg).toBe(18);
+    expect(m.current!.tallies.get(2)).toMatchObject({ name: 'Pal', cls: 'priest', dmg: 22 });
+    expect(m.current!.tallies.has(4)).toBe(false);
   });
 
   it('merges a reconnecting party member into one row instead of duplicating them under their new pid', () => {
@@ -198,12 +368,12 @@ describe('combat meters', () => {
     expect(palRows[0].dmg).toBe(50);
   });
 
-  it('keeps two live same-named pets in separate rows instead of merging them by name', () => {
+  it('routes two live same-named pets to their own owners, never onto one shared row', () => {
     const w = fakeWorld();
     // two warlocks running the same demon template both have a pet named
     // "Imp" (createDemonPet sets pet.name = template.name), each with its
-    // own live pid. Both stay in the party set the whole time, so this must
-    // never look like a reconnect.
+    // own live pid. Folding by name alone would merge them; folding by ownerId
+    // keeps each imp's damage on the warlock that summoned it.
     (w.entities as Map<number, any>).set(10, {
       id: 10,
       kind: 'mob',
@@ -220,11 +390,346 @@ describe('combat meters', () => {
     });
     const party = new Set([1, 2, 10, 11]);
     const m = new MeterData(0);
-    m.onEvent(dmg(10, 50, 20), w, party, 1000);
-    m.onEvent(dmg(11, 50, 30), w, party, 1500);
-    m.onEvent(dmg(10, 50, 5), w, party, 2000);
+    m.onEvent(dmg(10, 50, 20, 'Firebolt'), w, party, 1000);
+    m.onEvent(dmg(11, 50, 30, 'Firebolt'), w, party, 1500);
+    m.onEvent(dmg(10, 50, 5, 'Firebolt'), w, party, 2000);
     expect(m.current!.tallies.size).toBe(2);
-    expect(m.current!.tallies.get(10)!.dmg).toBe(25);
-    expect(m.current!.tallies.get(11)!.dmg).toBe(30);
+    expect(m.current!.tallies.get(1)!.dmg).toBe(25);
+    expect(m.current!.tallies.get(2)!.dmg).toBe(30);
+    expect([...m.current!.tallies.get(1)!.dmgByAbility.values()]).toEqual([
+      { ability: 'Firebolt', petName: 'Imp', amount: 25 },
+    ]);
+  });
+
+  it("latches the mob's live hate table so the fight's real threat survives its death", () => {
+    // The reported bug: real threat (stance/ability multipliers) runs well
+    // above raw damage. The kill clears the mob's hate table before the
+    // client ever reads it again, so without a latch the tab would
+    // "recalculate" down to the damage that landed the killing blow.
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const wolf = w.entities.get(50) as any;
+    wolf.threat = new Map([[1, 3000]]);
+    m.onEvent(dmg(1, 50, 400), w, party, 1000);
+    expect(m.current!.threatSnapshotByMob.get(50)).toEqual(new Map([[1, 3000]]));
+
+    // the killing blow: the server clears the hate table before this event is
+    // even processed, exactly like the real death sequence
+    wolf.dead = true;
+    wolf.threat.clear();
+    m.onEvent(dmg(1, 50, 600), w, party, 1100);
+
+    // the snapshot survives the live table being wiped out from under it
+    expect(m.current!.threatSnapshotByMob.get(50)).toEqual(new Map([[1, 3000]]));
+  });
+
+  it('refreshes frozen threat when healing threat lands between the last hit and death', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const wolf = w.entities.get(50) as any;
+    wolf.threat = new Map([[1, 3000]]);
+    m.onEvent(dmg(1, 50, 100), w, party, 1000);
+
+    wolf.threat = new Map([
+      [1, 3000],
+      [2, 120],
+    ]);
+    m.onEvent(heal(2, 1, 240, 'Flash Heal'), w, party, 1100);
+
+    wolf.dead = true;
+    wolf.threat.clear();
+    m.onEvent(dmg(1, 50, 600), w, party, 1200);
+
+    expect(m.current!.threatSnapshotByMob.get(50)).toEqual(
+      new Map([
+        [1, 3000],
+        [2, 120],
+      ]),
+    );
+  });
+
+  it('refreshes frozen threat for flat threat events that deal zero damage', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const wolf = w.entities.get(50) as any;
+    wolf.threat = new Map([[1, 3000]]);
+    m.onEvent(dmg(1, 50, 100), w, party, 1000);
+
+    wolf.threat = new Map([[1, 3600]]);
+    m.onEvent(dmg(1, 50, 0, 'Taunt'), w, party, 1100);
+
+    wolf.dead = true;
+    wolf.threat.clear();
+    m.onEvent(dmg(1, 50, 600), w, party, 1200);
+
+    expect(m.current!.threatSnapshotByMob.get(50)).toEqual(new Map([[1, 3600]]));
+  });
+
+  it('never latches an empty hate table over a real one', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const wolf = w.entities.get(50) as any;
+    wolf.threat = new Map([[1, 900]]);
+    m.onEvent(dmg(1, 50, 100), w, party, 1000);
+    wolf.threat.clear(); // e.g. left combat but did not die
+    m.onEvent(dmg(1, 50, 50), w, party, 1100);
+    expect(m.current!.threatSnapshotByMob.get(50)).toEqual(new Map([[1, 900]]));
+  });
+
+  it('leaves an unowned mob and a pet whose owner is outside the party off the meter', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    (w.entities as Map<number, any>).set(12, {
+      id: 12,
+      kind: 'mob',
+      name: 'Imp',
+      templateId: 'imp',
+      ownerId: 99, // a rival warlock's pet: neither it nor its owner is in the party
+    });
+    const m = new MeterData(0);
+    m.onEvent(dmg(12, 50, 40, 'Firebolt'), w, party, 1000);
+    // neither side of that hit is ours, so it does not even open an encounter
+    expect(m.current).toBeNull();
+    // and it must not fold onto pid 99 or onto anyone once the party IS fighting
+    m.onEvent(dmg(1, 50, 10), w, party, 1100);
+    m.onEvent(dmg(12, 50, 40, 'Firebolt'), w, party, 1200);
+    expect([...m.current!.tallies.keys()]).toEqual([1]);
+    expect(m.current!.tallies.get(1)!.dmg).toBe(10);
+  });
+
+  it('a HoT tick does not extend the inactivity clock, so the segment still closes on schedule (#meter-hot-cooldown)', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    // The kill: the last REAL combat activity.
+    m.onEvent(dmg(1, 50, 10), w, party, 1000);
+    (w.entities.get(50) as any).dead = true;
+    (w.entities.get(50) as any).aggroTargetId = null;
+    (w.entities.get(51) as any).aggroTargetId = null;
+    // The healer's Renew keeps ticking on the tank after the kill, well inside
+    // the 5s grace window each time it lands.
+    m.onEvent(heal(2, 1, 15, 'Renew', false, true), w, party, 3000);
+    m.onEvent(heal(2, 1, 15, 'Renew', false, true), w, party, 5000);
+    // 5s after the LAST REAL activity (1000), with no live mob holding aggro,
+    // the segment must already be closed, regardless of the HoT ticks.
+    m.update(w, party, 6001);
+    expect(m.current).toBeNull();
+    expect(m.history.length).toBe(1);
+    expect(m.history[0].tallies.get(1)!.dmg).toBe(10);
+    // The ticks that landed before the close still count toward the healer's total.
+    expect(m.history[0].tallies.get(2)!.heal).toBe(30);
+  });
+
+  // A HoT rolling on a full-health tank after the kill ticks as pure overheal
+  // (amount 0, hot): its overheal counts, but like any tick it is passive.
+  it('a fully overhealed HoT tick adds its overheal without holding the segment open', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    m.onEvent(dmg(1, 50, 10), w, party, 1000);
+    (w.entities.get(50) as any).dead = true;
+    (w.entities.get(50) as any).aggroTargetId = null;
+    (w.entities.get(51) as any).aggroTargetId = null;
+    const tick = { ...(heal(2, 1, 0, 'Renew', false, true) as object), overheal: 40 } as SimEvent;
+    m.onEvent(tick, w, party, 3000);
+    m.onEvent(tick, w, party, 5000);
+    m.update(w, party, 6001);
+    expect(m.current).toBeNull();
+    const healer = m.history[0].tallies.get(2)!;
+    expect(healer.heal).toBe(0);
+    expect(healer.healByAbility.get(breakdownKey(null, 'Renew'))?.overheal).toBe(80);
+  });
+
+  // The death recap keeps only the last few events, so a "+0" row per HoT tick
+  // on a topped-off player would push out the damage that explains the death.
+  it('keeps fully overhealed HoT ticks out of the death recap', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    m.onEvent(dmg(50, 1, 40, 'Bite'), w, party, 1000);
+    const tick = { ...(heal(2, 1, 0, 'Renew', false, true) as object), overheal: 40 } as SimEvent;
+    m.onEvent(tick, w, party, 1500);
+    m.onEvent(heal(2, 1, 25, 'Renew', false, true), w, party, 2000);
+    const recap = m.deathRecapBuffer.getRecentEvents(1);
+    expect(recap.map((e) => [e.ability, e.amount])).toEqual([
+      ['Bite', 40],
+      ['Renew', 25],
+    ]);
+  });
+
+  it('a lone HoT tick with no open segment does not spawn a phantom combat segment', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    m.onEvent(heal(2, 1, 20, 'Renew', false, true), w, party, 1000);
+    expect(m.current).toBeNull();
+    expect(m.allTime.tallies.has(2)).toBe(false);
+  });
+
+  it('a HoT ticking through the gap between pulls never merges them into one segment (#meter-hot-cooldown)', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    // Pull 1 ends.
+    m.onEvent(dmg(1, 50, 10), w, party, 1000);
+    (w.entities.get(50) as any).dead = true;
+    (w.entities.get(50) as any).aggroTargetId = null;
+    (w.entities.get(51) as any).aggroTargetId = null;
+    m.update(w, party, 6001); // 5s later, no live mob: segment 1 closes.
+    expect(m.current).toBeNull();
+    // The healer keeps a HoT rolling on the tank between pulls, well past the close.
+    m.onEvent(heal(2, 1, 15, 'Renew', false, true), w, party, 9000);
+    expect(m.current).toBeNull(); // the stray tick alone must not reopen anything
+    // Pull 2 starts: a genuinely fresh segment, not merged with the stray tick.
+    m.onEvent(dmg(1, 50, 7), w, party, 10_000);
+    expect(m.current!.tallies.get(1)!.dmg).toBe(7);
+    expect(m.current!.tallies.has(2)).toBe(false);
+    expect(m.history.length).toBe(1); // pull 1 alone, still in history
+  });
+  describe('PvP hits on a player target (duel, arena, battleground)', () => {
+    // Duel opponent: a player entity that is NOT in the party set.
+    const pvpWorld = (): IWorld => {
+      const w = fakeWorld();
+      w.entities.set(3, { id: 3, kind: 'player', name: 'Rival', templateId: 'rogue' } as never);
+      return w;
+    };
+
+    it('tallies party damage dealt to a player target and labels the segment after the opponent', () => {
+      const w = pvpWorld();
+      const party = new Set([1, 2]);
+      const m = new MeterData(0);
+      m.onEvent(dmg(1, 3, 40, 'Mortal Strike'), w, party, 1000);
+      m.onEvent(dmg(1, 3, 25), w, party, 1500);
+      expect(m.current).not.toBeNull();
+      expect(m.current!.tallies.get(1)!.dmg).toBe(65);
+      expect([...m.current!.tallies.get(1)!.dmgByAbility.values()]).toEqual([
+        { ability: 'Mortal Strike', petName: null, amount: 40 },
+        { ability: null, petName: null, amount: 25 },
+      ]);
+      expect(m.allTime.tallies.get(1)!.dmg).toBe(65);
+      expect(m.current!.label).toBe('Rival');
+      // A player target is never a threat subject: the Threat tab stays mob-only.
+      expect(m.current!.mainMobId).toBeNull();
+      expect(m.current!.mainMobTemplateId).toBeNull();
+      expect(m.current!.threatSnapshotByMob.size).toBe(0);
+    });
+
+    it('does not credit the opponent hitting a party member, and keeps a mob label over a duel label', () => {
+      const w = pvpWorld();
+      const party = new Set([1, 2]);
+      const m = new MeterData(0);
+      m.onEvent(dmg(3, 1, 80), w, party, 1000); // opponent hits me: keeps the segment alive, no row
+      expect(m.current).not.toBeNull();
+      expect(m.current!.tallies.has(3)).toBe(false);
+      m.onEvent(dmg(1, 50, 10), w, party, 1200); // a mob joins the fight
+      m.onEvent(dmg(1, 3, 30), w, party, 1400);
+      expect(m.current!.tallies.get(1)!.dmg).toBe(40);
+      expect(m.current!.label).toBe('Wolf');
+      expect(m.current!.mainMobId).toBe(50);
+    });
+
+    it('never credits a self-sourced DoT tick or a hit on a party member, and keeps the default label', () => {
+      const w = pvpWorld();
+      const party = new Set([1, 2]);
+      const m = new MeterData(0);
+      m.onEvent(dmg(1, 1, 3, 'Bad Air'), w, party, 1000); // delve affix ticking on myself
+      m.onEvent(dmg(1, 2, 12, 'Whirlwind'), w, party, 1200); // party member as the target
+      expect(m.current).not.toBeNull();
+      expect(m.current!.tallies.has(1)).toBe(false);
+      expect(m.current!.label).toBe('Combat');
+      m.onEvent(dmg(1, 999, 40), w, party, 1400); // target missing from the world
+      expect(m.current!.tallies.has(1)).toBe(false);
+    });
+
+    it('latches the first opponent as the label instead of flipping per hit', () => {
+      const w = pvpWorld();
+      w.entities.set(4, { id: 4, kind: 'player', name: 'Second', templateId: 'mage' } as never);
+      const party = new Set([1, 2]);
+      const m = new MeterData(0);
+      m.onEvent(dmg(1, 3, 10), w, party, 1000);
+      m.onEvent(dmg(1, 4, 50), w, party, 1100);
+      expect(m.current!.tallies.get(1)!.dmg).toBe(60);
+      expect(m.current!.label).toBe('Rival');
+    });
+  });
+
+  it('tallies damage taken and absorbed per ability and mob', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const biteEvent: SimEvent = {
+      type: 'damage',
+      sourceId: 50,
+      targetId: 1,
+      amount: 150,
+      absorbed: 50,
+      crit: false,
+      school: 'physical',
+      ability: 'Bite',
+      kind: 'hit',
+    };
+    m.onEvent(biteEvent, w, party, 1000);
+    const tank = m.current!.tallies.get(1)!;
+    expect(tank.dmgTaken).toBe(150);
+    expect(tank.absorbed).toBe(50);
+    expect([...tank.dmgTakenByAbility.values()]).toEqual([
+      { ability: 'Bite', petName: null, amount: 150 },
+    ]);
+    expect(tank.dmgTakenByMob.get(50)).toBe(150);
+  });
+
+  it('tallies interrupts when party applies a lockout aura', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const interruptEvent: SimEvent = {
+      type: 'aura',
+      gained: true,
+      auraKind: 'lockout',
+      sourceId: 1,
+      targetId: 50,
+      name: 'Pummel',
+    };
+    m.onEvent(interruptEvent, w, party, 1000);
+    const warrior = m.current!.tallies.get(1)!;
+    expect(warrior.interrupts).toBe(1);
+    expect([...warrior.interruptsByAbility.values()]).toEqual([
+      { ability: 'Pummel', petName: null, amount: 1 },
+    ]);
+  });
+
+  it('tallies deaths when a party member dies', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    const deathEvent: SimEvent = {
+      type: 'playerDeath',
+      pid: 2,
+    };
+    m.onEvent(deathEvent, w, party, 1000);
+    const priest = m.current!.tallies.get(2)!;
+    expect(priest.deaths).toBe(1);
+  });
+
+  it('resets current fight and all history/session data', () => {
+    const w = fakeWorld();
+    const party = new Set([1, 2]);
+    const m = new MeterData(0);
+    m.onEvent(dmg(1, 50, 100), w, party, 1000);
+    expect(m.current).not.toBeNull();
+    expect(m.allTime.tallies.get(1)!.dmg).toBe(100);
+
+    m.resetCurrent();
+    expect(m.current).toBeNull();
+    expect(m.allTime.tallies.get(1)!.dmg).toBe(100);
+
+    m.resetAll(2000);
+    expect(m.current).toBeNull();
+    expect(m.history.length).toBe(0);
+    expect(m.allTime.tallies.size).toBe(0);
   });
 });

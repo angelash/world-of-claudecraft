@@ -1,6 +1,9 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ensureLocaleLoaded, setLanguage, supportedLanguages } from '../src/ui/i18n';
-import { localizeServerText, tServer } from '../src/ui/server_i18n';
+import { GUILD_CREATION_FEE_COPPER } from '../src/sim/guild_bank';
+import { ensureLocaleLoaded, formatMoney, setLanguage, supportedLanguages } from '../src/ui/i18n';
+import { localizeServerText, parseEnglishCompactMoney, tServer } from '../src/ui/server_i18n';
 
 // Messages the authoritative server emits as plain English; the client must
 // re-render them in the active locale (friends/guild/world/who/moderation).
@@ -35,12 +38,41 @@ describe('server-sent message localization', () => {
     'You are blocking Mira. Remove them from your block list first.',
     'Your block list is still loading. Try /who again in a moment.',
     'Mira added to friends.',
+    'You cannot add Mira as a friend.',
     'Your friends list is full.',
     "No character named 'Zzz' exists.",
     'Bob has joined the guild.',
     'Bob is now Officer.',
     'Bob is already Guild Master.',
+    // Guild custom ranks (server/social.ts rankLabel): a guild-titled or
+    // untitled custom rank rides in [brackets], plus the three new refusals /
+    // notices, all emitted from server/social.ts (an S3 blind spot for the
+    // bracketed arm, so pinned here byte for byte).
+    'Bob is now [Veteran].',
+    'Bob is now [Rank 3].',
+    'Bob is already [Rank 2].',
+    'You can only do that to members below your own rank.',
+    'That rank title is not allowed.',
+    'The guild ranks have been updated.',
     'You found the guild <Knights>! You are its Guild Master.',
+    // Guild Bank Phase 3 refusals, emitted from server/game.ts (the creation
+    // fee gate) and server/social.ts (the disband guard): byte-bound pins,
+    // because both files are S3 blind spots and a drift between the emit
+    // literal and these matchers ships English to every locale.
+    'You need 1 gold to found a guild.',
+    // Guild bank gold movement notices (server/guild_bank_gold_notice.ts), an
+    // S3 blind spot like the two above; the money token covers every unit mix.
+    'Ada deposited 5g 20s 3c into the guild bank.',
+    'Ada deposited 5g 0s into the guild bank.',
+    'Bob withdrew 25s from the guild bank.',
+    'Bob withdrew 7c from the guild bank.',
+    'The guild bank must be emptied before the guild can be disbanded.',
+    'You are busy. Try again in a moment.',
+    'The guild bank is still saving a recent change. Try again in a moment.',
+    // guildCreate's screened-name refusal (guild.nameNotAllowed): emitted from
+    // server/social.ts, which the S3 guard does not scan, so the emit literal
+    // is pinned to the EXACT matcher here like the tiers above.
+    'That guild name is not allowed.',
     'You have been removed from <Knights>.',
     'Mira has been removed from the guild by Bob.',
     'Mira has entered World of ClaudeCraft.',
@@ -123,6 +155,23 @@ describe('server-sent message localization', () => {
     setLanguage('en');
   });
 
+  it('parses the guild bank notice money back to copper and re-renders it per locale', async () => {
+    expect(parseEnglishCompactMoney('5g 20s 3c')).toBe(52_003);
+    expect(parseEnglishCompactMoney('5g 0s')).toBe(50_000);
+    expect(parseEnglishCompactMoney('25s')).toBe(2_500);
+    expect(parseEnglishCompactMoney('7c')).toBe(7);
+    expect(parseEnglishCompactMoney('')).toBe(0);
+    await ensureLocaleLoaded('de_DE');
+    setLanguage('de_DE');
+    const out = localizeServerText('Ada deposited 5g 20s 3c into the guild bank.');
+    expect(out).toBe(
+      tServer('guild.bankGoldDeposited', { name: 'Ada', amount: formatMoney(52_003) }),
+    );
+    expect(out).toContain('Ada');
+    expect(out).toContain('Gildenbank');
+    setLanguage('en');
+  });
+
   it('returns null for text that is not a server message', () => {
     setLanguage('es');
     expect(localizeServerText('This is an ordinary chat line.')).toBeNull();
@@ -166,6 +215,25 @@ describe('server-sent message localization', () => {
         expect(found, `${lang}.${key} placeholders`).toBe(expected[key]);
       }
     }
+    setLanguage('en');
+  });
+});
+
+describe('the guild creation fee line stays matchable', () => {
+  it('the fee is whole gold, so the integer-splicing RULE keeps matching it', async () => {
+    // The matcher splices `(\d+)`: a fee that stopped being whole gold would
+    // emit "You need 1.5 gold..." and ship raw English to every locale with
+    // nothing else reddening. Driven from the REAL content constant, not a
+    // literal, so changing the price is what fails this.
+    const gold = GUILD_CREATION_FEE_COPPER / 10_000;
+    expect(Number.isInteger(gold), `fee must be whole gold, got ${gold}`).toBe(true);
+    expect(gold).toBeGreaterThan(0);
+    await ensureLocaleLoaded('es');
+    setLanguage('es');
+    const line = `You need ${gold} gold to found a guild.`;
+    const localized = localizeServerText(line);
+    expect(localized).not.toBe(line); // it really matched
+    expect(localized).toContain(String(gold)); // ...and kept the amount
     setLanguage('en');
   });
 });
@@ -306,6 +374,119 @@ describe('localizeServerDuration maps formatDuration output (via the filter-mute
       expect(localizeServerText(input), `es duration ${c.duration}`).toBe(
         `Estás silenciado y no puedes chatear durante ${c.es} más.`,
       );
+    }
+    setLanguage('en');
+  });
+});
+
+// The S3 emit scanner (tests/localization_fixes.test.ts) reads server/game.ts
+// only, and the guild bank op coordinator emits its own player notices
+// (host.sendPlayerNotice literals) from a sibling module, so those literals
+// would drift from the matcher unguarded. Pin them here: every literal the
+// coordinator emits must be recognized and must not stay English.
+describe('guild bank op coordinator notices stay matchable', () => {
+  const src = fs.readFileSync(
+    path.resolve(process.cwd(), 'server/guild_bank_op_coordinator.ts'),
+    'utf8',
+  );
+  const literals = [...src.matchAll(/sendPlayerNotice\(\s*'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]);
+
+  it('finds the coordinator notices, the unsettled gate refusal included', () => {
+    expect(literals).toContain(
+      'The guild bank is still saving a recent change. Try again in a moment.',
+    );
+    expect(literals).toContain('The guild bank is closing. Try again in a moment.');
+    expect(literals).toContain('You are busy. Try again in a moment.');
+  });
+
+  it('localizes every coordinator notice in every non-English locale', async () => {
+    for (const lang of supportedLanguages) {
+      await ensureLocaleLoaded(lang);
+      setLanguage(lang);
+      for (const text of literals) {
+        const out = localizeServerText(text);
+        expect(out, `${lang}: "${text}" should be recognized`).not.toBeNull();
+        if (lang !== 'en' && lang !== 'en_CA') {
+          expect(out, `${lang}: "${text}" should not stay English`).not.toBe(text);
+        }
+      }
+    }
+    setLanguage('en');
+  });
+});
+
+describe('guild custom rank lines (docs/prd/guild-custom-ranks.md)', () => {
+  it('splices a guild title verbatim and re-localizes an untitled Rank N', async () => {
+    setLanguage('en');
+    expect(localizeServerText('Bob is now [Veteran].')).toBe('Bob is now Veteran.');
+    expect(localizeServerText('Bob is now [Rank 3].')).toBe('Bob is now Rank 3.');
+    await ensureLocaleLoaded('es');
+    setLanguage('es');
+    expect(localizeServerText('Bob is now [Veteran].')).toBe('Bob ahora es Veteran.');
+    expect(localizeServerText('Bob is already [Rank 2].')).toBe('Bob ya es Rango 2.');
+    setLanguage('en');
+  });
+
+  it('never captures the sim lines that share the "is now / is already" shape', () => {
+    setLanguage('en');
+    // These belong to sim_i18n (it runs AFTER this matcher): a catch-all rank
+    // rule here would swallow them, which is why custom titles are bracketed.
+    for (const simLine of [
+      'Your group listing is now full.',
+      'Master Looter is now Bob.',
+      'Your pet is already alive.',
+      'The door is already open.',
+    ]) {
+      expect(localizeServerText(simLine), simLine).toBeNull();
+    }
+  });
+});
+
+// The GM tool notices (server/moderation_service.ts) are English on the wire and
+// re-rendered client-side. Every one must be recognized, and staff-authored free
+// text (announcements, watch notes) must pass through untouched even when it
+// happens to look like another server message.
+describe('GM tool strings round-trip through localizeServerText', () => {
+  const lines = [
+    'Usage: /visible on|off',
+    'You are already visible.',
+    'You are already invisible.',
+    'You are now visible.',
+    'You are now invisible. Players and creatures can no longer see or target you.',
+    'Usage: /watch ["<name>" [note]]',
+    'Usage: /unwatch "<name>"',
+    "No character named 'Bob'.",
+    'Added Bob to the watchlist.',
+    'Removed Bob from the watchlist.',
+    'Bob is not on the watchlist.',
+    'The watchlist is empty.',
+    'Watchlist (3):',
+    'Watched: Bob',
+    'Watched: Bob (gold seller)',
+    '...and 4 more.',
+    'Watchlist: Bob just logged in.',
+    'Watchlist: Alt just logged in (watched as Bob).',
+    'Watch note: Bob is not jailed.',
+    'Usage: /announce <message>',
+    '[Announcement] Fury: Bob is not jailed. Restart at 10:00.',
+  ];
+
+  it('recognizes every line and renders the English source exactly', () => {
+    setLanguage('en');
+    for (const line of lines) expect(localizeServerText(line), line).toBe(line);
+  });
+
+  it('keeps names and staff-authored text verbatim in every locale', () => {
+    for (const lang of supportedLanguages) {
+      setLanguage(lang);
+      expect(
+        localizeServerText('[Announcement] Fury: Bob is not jailed. Restart at 10:00.'),
+      ).toContain('Bob is not jailed. Restart at 10:00.');
+      expect(localizeServerText('Watch note: Bob is not jailed.')).toContain('Bob is not jailed.');
+      expect(localizeServerText('Watchlist: Alt just logged in (watched as Bob).')).toContain(
+        'Alt',
+      );
+      expect(localizeServerText('Watched: Bob (gold seller)')).toContain('gold seller');
     }
     setLanguage('en');
   });

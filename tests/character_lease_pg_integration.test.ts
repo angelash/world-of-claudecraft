@@ -5,6 +5,7 @@
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { materialSourceConnection } from '../server/material_source_connection';
 import type { CharacterState } from '../src/sim/sim';
 
 const DB_URL = process.env.TEST_DATABASE_URL;
@@ -26,7 +27,7 @@ describeDb('character lease save ordering (real Postgres)', () => {
     process.env.DATABASE_URL = DB_URL;
     db = await import('../server/db');
     ({ REALM: realm } = await import('../server/realm'));
-    control = new Pool({ connectionString: DB_URL, max: 4 });
+    control = new Pool({ ...materialSourceConnection(DB_URL as string), max: 4 });
     await db.ensureSchema();
   }, 120_000);
 

@@ -65,6 +65,11 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 //                 AND a wrong header both answer 401 'not authenticated'
 //                 (daily_rewards.ts internalAuthorized), and it never falls back
 //                 to RESTART_COUNTDOWN_SECRET.
+//   secret-dashboard  x-woc-dashboard-secret / DASHBOARD_INTERNAL_SECRET, the
+//                 internal ops dashboard's own gate. Deliberately NOT the deploy
+//                 or discord secret: the dashboard reads player trade history, so
+//                 its credential must be revocable without taking down deploys or
+//                 the bot.
 //   dev-gated     guarded by ALLOW_DEV_COMMANDS=1
 export const AUTH_SCOPE = {
   public: 'public',
@@ -74,6 +79,7 @@ export const AUTH_SCOPE = {
   secretDeploy: 'secret-deploy',
   secretDiscord: 'secret-discord',
   secretDailyReward: 'secret-daily-reward',
+  secretDashboard: 'secret-dashboard',
   devGated: 'dev-gated',
 } as const;
 export type AuthScope = (typeof AUTH_SCOPE)[keyof typeof AUTH_SCOPE];
@@ -256,6 +262,32 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: REQUIRE_OWNED.bola404,
     match: /^\/api\/characters\/(\d+)\/sheet$/,
+  },
+  // Registry-only RouteDef born AFTER the migration (the new-route rule,
+  // server/http/CLAUDE.md): no legacy ladder arm, so no match regex; the
+  // legacy rollback answers 404 for it by design. The owner-sheet gate pair
+  // (read-tier bearer + requireOwnedCharacter) exactly.
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/characters/:id/deeds-recent',
+    handler: 'server/characters.ts deedsRecentHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
+  },
+  // Registry-only like deeds-recent, but a MUTATION: active session required
+  // (activeGuard), one-shot reroll spend behind requireOwnedCharacter.
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/characters/:id/appearance-reroll',
+    handler: 'server/characters.ts appearanceRerollHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
   },
   {
     dispatcher: DISPATCH.mainApi,
@@ -512,6 +544,18 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: null,
   },
+  // Sets a real password on an account that has none yet (an Apple- or
+  // Discord-provisioned account); once one exists it 409s to the change flow above.
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/account/password/set-initial',
+    handler: 'handleApi arm: /api/account/password/set-initial (handleAccountSetInitialPassword)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
   // Unauthenticated by design: forgot takes a username and always answers 200
   // (anti-enumeration); reset is authorized by the emailed token.
   {
@@ -755,7 +799,10 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     handler: 'handleApi arm: /api/wallet/link (DELETE)',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.full,
-    limiter: null,
+    // The R11 rate-limit rider: the ladder arm gates with walletLinkRateLimited
+    // before handleWalletUnlink (the challenge/link POST rows keep limiter null
+    // because those two self-limit INSIDE their handlers, not in the ladder).
+    limiter: 'walletLinkRateLimited',
     requireOwnedExpected: null,
   },
   {
@@ -923,15 +970,36 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: 'wocBalanceRateLimited',
     requireOwnedExpected: null,
   },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/seeker/entitlement',
+    handler: 'server/seeker_entitlement.ts entitlementStatusHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/seeker/entitlement',
+    handler: 'server/seeker_entitlement.ts entitlementClaimHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'rateLimit(WALLET_LINK_POLICY)',
+    requireOwnedExpected: null,
+  },
   // Daily-rewards player family (v0.19.0, server/daily_rewards.ts): served by
   // the handleDailyRewardApi sub-dispatcher behind the main.ts PREFIX arm
   // `url.startsWith('/api/daily-rewards')`, which runs bearerActiveAccount
   // (full active session, read tokens 403) BEFORE delegating, method- and
   // subpath-agnostic. The prefix has NO trailing-slash boundary, so a no-slash
   // sibling like '/api/daily-rewardsfoo' also enters the family (auth first,
-  // then the in-family 404) instead of falling through the ladder. No rate
-  // limiter on any of the three (spin relies on the one-spin-per-day 409 guard
-  // only). In-family fallthrough (wrong method or unknown subpath, after auth)
+  // then the in-family 404) instead of falling through the ladder. Native Seeker
+  // spins additionally use the shared handler's IP-and-account RPC-work limiter;
+  // web spins retain the one-spin-per-day 409 guard. In-family fallthrough
+  // (wrong method or unknown subpath, after auth)
   // is 404 { error: 'unknown endpoint' }.
   {
     dispatcher: DISPATCH.mainApi,
@@ -962,7 +1030,7 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     handler: 'handleDailyRewardApi arm: /api/daily-rewards/spin',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.full,
-    limiter: null,
+    limiter: 'SEEKER_SPIN_VERIFY_POLICY (native Seeker only)',
     requireOwnedExpected: null,
   },
   {
@@ -987,6 +1055,16 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     method: 'POST',
     path: '/api/claudium/stripe/webhook',
     handler: 'handleClaudiumStripeWebhook',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.public,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/claudium/membership/stripe/webhook',
+    handler: 'handleMembershipStripeWebhook',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.public,
     limiter: null,
@@ -1069,6 +1147,76 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
   {
     dispatcher: DISPATCH.mainApi,
     method: 'GET',
+    path: '/api/claudium/membership-token',
+    handler: 'handleClaudiumApi membership token arm',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/claudium/membership-token/checkout',
+    handler: 'handleClaudiumApi membership token arm',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'claudiumMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/claudium/membership-token/claim',
+    handler: 'handleClaudiumApi membership token arm',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'claudiumMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/claudium/subscription/annual/claim',
+    handler: 'handleClaudiumApi annual membership reward arm',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'claudiumMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/claudium/subscription',
+    handler: 'handleClaudiumApi subscription arm',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/claudium/subscription/checkout',
+    handler: 'handleClaudiumApi subscription arm',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'claudiumMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/claudium/subscription/portal',
+    handler: 'handleClaudiumApi subscription arm',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'claudiumMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
     path: '/api/claudium/store',
     handler: 'handleClaudiumApi arm: /api/claudium/store',
     contentType: PROBLEM_JSON,
@@ -1140,6 +1288,47 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: 'publicReadRateLimited',
     requireOwnedExpected: null,
   },
+  // Realm Builder of the Month: the public roll the Eastbrook Vale monument
+  // reads while a client loads the world. Registry-only RouteDef born after the
+  // migration (server/http/CLAUDE.md), so no legacy ladder arm. Anonymous and
+  // db-backed, so it takes the shared per-IP public-read budget in-handler.
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/realm-builder',
+    handler: 'server/realm_builder.ts publicRollHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.public,
+    limiter: 'publicReadRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    // The World Quest rankings: one medal world quest's public best-attempt
+    // ladder, paged, with the named viewer's own standing (public, behind the
+    // shared public read limiter; no account scope).
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/world-quests/leaderboard',
+    handler:
+      'server/world_quest_leaderboard.ts worldQuestLeaderboardHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.public,
+    limiter: 'publicReadRateLimited',
+    requireOwnedExpected: null,
+  },
+
+  // The signpost guild board's roster drill-in: registry-only RouteDef born
+  // after the migration, no legacy ladder arm (server/http/CLAUDE.md).
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/guilds/roster',
+    handler: 'server/guild_roster.ts rosterHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.public,
+    limiter: 'publicReadRateLimited',
+    requireOwnedExpected: null,
+  },
   {
     dispatcher: DISPATCH.mainApi,
     method: 'GET',
@@ -1159,6 +1348,326 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     authScope: AUTH_SCOPE.full,
     limiter: null,
     requireOwnedExpected: null,
+  },
+  // The queue-pop Discord DM opt-in toggle (server/discord_queue_pings.ts):
+  // the deeds broadcasts pair's shape exactly (read-tier GET, full-scope POST).
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/discord/queue-pings',
+    handler: 'server/discord_queue_pings.ts queuePingsReadHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/discord/queue-pings',
+    handler: 'server/discord_queue_pings.ts queuePingsHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  // Reliquary (server/reliquary.ts): the population-rarity aggregate, a
+  // registry-only RouteDef born after the migration like the deeds family, and
+  // the deeds-rarity row shape exactly (anonymous public JSON read, budgeted
+  // in-handler with publicReadRateLimited).
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/reliquary/rarity',
+    handler: 'server/reliquary.ts rarityHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.public,
+    limiter: 'publicReadRateLimited',
+    requireOwnedExpected: null,
+  },
+  // Thornhollow Fields (server/battleground.ts): a registry-only RouteDef born after
+  // the migration, per the same new-route rule as the deeds family. Public
+  // anonymous ladder read, rate-limited in-handler with publicReadRateLimited
+  // (the deeds-rarity row shape).
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/battleground/leaderboard',
+    handler: 'server/battleground.ts bgLeaderboardHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.public,
+    limiter: 'publicReadRateLimited',
+    requireOwnedExpected: null,
+  },
+  // OTA update check (server/ota_updates.ts): registry-only RouteDef, same
+  // new-route rule as the deeds trio. The Capgo capacitor-updater plugin in
+  // the native mobile shells POSTs its device/version check-in here; the
+  // server answers from the cached self-hosted bundle manifest (no DB), and
+  // OTA_MANIFEST_URL unset keeps the feature dark (always "no update").
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/ota/updates',
+    handler: 'server/ota_updates.ts otaUpdatesHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.public,
+    limiter: 'publicReadRateLimited',
+    requireOwnedExpected: null,
+  },
+  // $WOC Exchange family (server/woc_market_routes.ts): registry-only
+  // RouteDefs, config-gated dark (woc_market.disabled until
+  // WOC_MARKET_ENABLED=1). Listing/bid/settlement ids are deliberately
+  // NOT owner-scoped loaders: browse and detail are public marketplace
+  // data for any authenticated player, and the mutating arms resolve
+  // ownership inside the service (a foreign id answers the domain's own
+  // 404-flavored woc_market.not_yours), so the account BOLA clause does
+  // not apply.
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/status',
+    handler: 'server/woc_market_routes.ts statusHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/listings',
+    handler: 'server/woc_market_routes.ts browseHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/listings/:id',
+    handler: 'server/woc_market_routes.ts listingDetailHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.publicRead,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/estimate',
+    handler: 'server/woc_market_routes.ts estimateHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/me',
+    handler: 'server/woc_market_routes.ts myActivityHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/offers',
+    handler: 'server/woc_market_routes.ts listOffersHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/trade-partner',
+    handler: 'server/woc_market_routes.ts tradePartnerHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/offers',
+    handler: 'server/woc_market_routes.ts createOfferHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/offers/:id/accept',
+    handler: 'server/woc_market_routes.ts acceptOfferHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/offers/:id/decline',
+    handler: 'server/woc_market_routes.ts declineOfferHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/offers/:id/withdraw',
+    handler: 'server/woc_market_routes.ts withdrawOfferHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/history/:itemId',
+    handler: 'server/woc_market_routes.ts historyHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.publicRead,
+  },
+  {
+    // The Browse seller click-through: a seller's recent completed trades,
+    // the same public sale rows the per-item history serves, pivoted.
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/seller-history/:name',
+    handler: 'server/woc_market_routes.ts sellerHistoryHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.publicRead,
+  },
+  {
+    // The Sales History tab: every completed sale on the realm, paged and
+    // most-recent-first, over the Browse filter axes (no :param, so no
+    // requireOwned; the account gate is the shared read guard).
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/woc-market/sales',
+    handler: 'server/woc_market_routes.ts salesHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    // Step-up challenge issuance (B6/R1): mints the single-use wallet
+    // challenge the two custody movers verify; its own rate bucket.
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/step-up/challenge',
+    handler: 'server/woc_market_routes.ts stepUpChallengeHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/listings',
+    handler: 'server/woc_market_routes.ts createListingHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/listings/:id/cancel',
+    handler: 'server/woc_market_routes.ts cancelListingHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/listings/:id/bids',
+    handler: 'server/woc_market_routes.ts placeBidHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.publicRead,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/bids/:id/bond-quote',
+    handler: 'server/woc_market_routes.ts bondQuoteHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/bids/:id/bond',
+    handler: 'server/woc_market_routes.ts confirmBondHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/bids/:id/abandon',
+    handler: 'server/woc_market_routes.ts abandonBidHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/listings/:id/buy-now',
+    handler: 'server/woc_market_routes.ts buyNowHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.publicRead,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/settlements/:id/quote',
+    handler: 'server/woc_market_routes.ts settlementQuoteHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/woc-market/settlements/:id/confirm',
+    handler: 'server/woc_market_routes.ts confirmSettlementHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'wocMarketMutationRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.bola404,
   },
   // Steam link family (server/steam/routes.ts): registry-only RouteDefs, same
   // new-route rule as the deeds pair. The whole trio is env-gated dark
@@ -1189,6 +1698,39 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     method: 'GET',
     path: '/api/steam/status',
     handler: 'server/steam/routes.ts statusHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.bearer,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  // Epic link family (server/epic/routes.ts): registry-only RouteDefs, twin of
+  // the Steam trio. Env-gated dark (epic.disabled 503 until EPIC_ENABLED=1);
+  // linking is NEVER an identity or session source.
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'POST',
+    path: '/api/epic/link',
+    handler: 'server/epic/routes.ts linkHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: 'epicLinkRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'DELETE',
+    path: '/api/epic/link',
+    handler: 'server/epic/routes.ts unlinkHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.full,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.mainApi,
+    method: 'GET',
+    path: '/api/epic/status',
+    handler: 'server/epic/routes.ts statusHandler (registry-only RouteDef)',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.bearer,
     limiter: null,
@@ -1358,7 +1900,7 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     handler: 'assetIdMatch',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.full,
-    limiter: null,
+    limiter: 'assetUploadRateLimited',
     requireOwnedExpected: REQUIRE_OWNED.bola404,
     match: /^\/api\/assets\/(\d+)$/,
   },
@@ -1422,6 +1964,68 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: REQUIRE_OWNED.operator404,
     match: /^\/admin\/api\/moderation\/accounts\/(\d+)\/chat-mute$/,
+  },
+  // The Cheater mark pair (src/sim/moderation/): registry-only RouteDefs born
+  // AFTER the migration (the new-route rule, server/http/CLAUDE.md), so neither
+  // has a legacy handleAdminApi arm and neither carries a `match` regex; there is
+  // no dispatcher regex literal for the freshness gate to compare one against,
+  // and the legacy rollback answers 404 for both by design. Their RouteDef path
+  // template is their one dispatch source, so surface_inventory.test.ts lists
+  // both in REGISTRY_ONLY_PARAM_PATHS. The operator gate pair and the envelope
+  // are the chat-mute row's exactly.
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/cheater-mark',
+    handler: 'server/admin.ts cheaterMarkHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/lift-cheater-mark',
+    handler: 'server/admin.ts liftCheaterMarkHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  // The admin-panel kick (server/admin_kick_api.ts): registry-only like the
+  // Cheater mark pair, same shape, same REGISTRY_ONLY_PARAM_PATHS listing.
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/kick',
+    handler: 'server/admin.ts adminKickHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  // The world quest block pair (server/world_quest_block_api.ts): registry-only
+  // like the Cheater mark pair, same shape, same REGISTRY_ONLY_PARAM_PATHS listing.
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/world-quests-block',
+    handler: 'server/admin.ts worldQuestBlockHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/world-quests-unblock',
+    handler: 'server/admin.ts worldQuestBlockHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
   },
   {
     dispatcher: DISPATCH.admin,
@@ -1492,6 +2096,53 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
   {
     dispatcher: DISPATCH.admin,
     method: 'POST',
+    path: '/admin/api/moderation/characters/:id/restore-item',
+    handler: 'restoreItemMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/moderation\/characters\/(\d+)\/restore-item$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/characters/:id/restore-slot',
+    handler: 'restoreSlotMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/moderation\/characters\/(\d+)\/restore-slot$/,
+  },
+  // The phase 13 legendary-name strip: registry-only like the cheater-mark
+  // pair (no legacy *Match regex; the RouteDef path template is its one
+  // dispatch source, listed in REGISTRY_ONLY_PARAM_PATHS).
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/characters/:id/clear-item-name',
+    handler: 'server/admin.ts clearItemNameHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  // The buddy grant channel (server/buddy_wire.ts): registry-only like the
+  // clear-item-name route above.
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/moderation/characters/:id/grant-buddy',
+    handler: 'server/admin.ts grantBuddyHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
     path: '/admin/api/moderation/accounts/:id/lift-mute',
     handler: 'liftMuteMatch',
     contentType: PROBLEM_JSON,
@@ -1533,6 +2184,97 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     requireOwnedExpected: REQUIRE_OWNED.operator404,
     match: /^\/admin\/api\/accounts\/(\d+)\/reset-password$/,
   },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/accounts/:id/general-chat-rate-limit',
+    handler: 'generalChatRateLimitMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/accounts\/(\d+)\/general-chat-rate-limit$/,
+  },
+  // Economy oversight (p2p market launch): the rich list, per-account gold
+  // breakdown, and the persisted suspicion-flag workflow.
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/wealth/top',
+    handler: 'handleAdminApi arm: /admin/api/wealth/top',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: 'adminOversightReadRateLimited',
+    requireOwnedExpected: null,
+  },
+  // Live market listing metrics (Masterwrought supply oversight): registry-only
+  // like the clear-item-name route (no legacy ladder arm; the RouteDef path is
+  // the one dispatch source). No limiter: a warm in-memory cached read with
+  // zero DB cost, the overview precedent.
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/market/metrics',
+    handler: 'server/admin.ts marketMetricsHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/accounts/:id/wealth',
+    handler: 'accountWealthMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: 'adminOversightReadRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/accounts\/(\d+)\/wealth$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/accounts/:id/flags',
+    handler: 'accountFlagsMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: 'adminOversightReadRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/accounts\/(\d+)\/flags$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/flags',
+    handler: 'handleAdminApi arm: /admin/api/flags',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: 'adminOversightReadRateLimited',
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/flags/:id/status',
+    handler: 'flagStatusMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: 'adminFlagWriteRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/flags\/(\d+)\/status$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/flags/:id/note',
+    handler: 'flagNoteMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: 'adminFlagWriteRateLimited',
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/flags\/(\d+)\/note$/,
+  },
   // Account flair: the operator-set AI mark and an official streamer's links.
   {
     dispatcher: DISPATCH.admin,
@@ -1555,6 +2297,28 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: REQUIRE_OWNED.operator404,
     match: /^\/admin\/api\/accounts\/(\d+)\/streamer$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/guilds/:id/rename',
+    handler: 'guildRenameMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/guilds\/(\d+)\/rename$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/guilds/:id/bank/purge-slot',
+    handler: 'guildBankPurgeMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/guilds\/(\d+)\/bank\/purge-slot$/,
   },
   {
     dispatcher: DISPATCH.admin,
@@ -1632,6 +2396,73 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     method: 'GET',
     path: '/admin/api/overview',
     handler: 'handleAdminApi arm: /admin/api/overview',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  // Ad-spend ledger: registry-only RouteDefs born AFTER the migration (the
+  // new-route rule, server/http/CLAUDE.md): no legacy ladder arm, so the
+  // legacy rollback answers 404 for them by design.
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/ad-spend',
+    handler: 'server/ad_spend.ts listHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/ad-spend',
+    handler: 'server/ad_spend.ts upsertHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/ad-spend/delete',
+    handler: 'server/ad_spend.ts deleteHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  // Realm Builder of the Month roll: registry-only RouteDefs born AFTER the
+  // migration (the new-route rule, server/http/CLAUDE.md), so no legacy ladder
+  // arm and the legacy rollback answers 404 for them by design. Both arms carry
+  // content.moderate (server/admin_routes.ts).
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/realm-builders',
+    handler: 'server/realm_builder.ts adminListHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/realm-builders',
+    handler: 'server/realm_builder.ts adminUpsertHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/realm-builders/delete',
+    handler: 'server/realm_builder.ts adminDeleteHandler (registry-only RouteDef)',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.admin,
     limiter: null,
@@ -1746,7 +2577,7 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     authScope: AUTH_SCOPE.admin,
     limiter: null,
     requireOwnedExpected: REQUIRE_OWNED.operator404,
-    match: /^\/admin\/api\/ai\/audit\/([^\/]+)$/,
+    match: /^\/admin\/api\/ai\/audit\/([^/]+)$/,
   },
   {
     dispatcher: DISPATCH.admin,
@@ -1995,12 +2826,64 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
   {
     dispatcher: DISPATCH.admin,
     method: 'GET',
+    path: '/admin/api/guilds',
+    handler: 'handleAdminApi arm: /admin/api/guilds',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
     path: '/admin/api/shared-ips',
     handler: 'handleAdminApi arm: /admin/api/shared-ips',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.admin,
     limiter: null,
     requireOwnedExpected: null,
+  },
+  // $WOC Exchange operator arms (moderation.read / moderation.act rows in
+  // server/admin_routes.ts).
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/woc-market/listings',
+    handler: 'server/woc_market_routes.ts adminListingsHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/woc-market/listings/:id/suspend',
+    handler: 'server/woc_market_routes.ts adminSuspendListingHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/woc-market/sales/:id/excluded',
+    handler: 'server/woc_market_routes.ts adminSaleExcludedHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/woc-market/accounts/:id/clear-strikes',
+    handler: 'server/woc_market_routes.ts adminClearStrikesHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
   },
   {
     dispatcher: DISPATCH.admin,
@@ -2045,6 +2928,36 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
   {
     dispatcher: DISPATCH.admin,
     method: 'GET',
+    path: '/admin/api/unstuck-reports',
+    handler: 'handleAdminApi arm: /admin/api/unstuck-reports',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/item-ledger',
+    handler: 'handleAdminApi arm: /admin/api/item-ledger',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/items/:guid',
+    handler: 'handleAdminApi arm: /admin/api/items/:guid',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
     path: '/admin/api/bug-reports/:id/screenshot',
     handler: 'bugScreenshotMatch',
     contentType: PROBLEM_JSON,
@@ -2052,6 +2965,28 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: REQUIRE_OWNED.operator404,
     match: /^\/admin\/api\/bug-reports\/(\d+)\/screenshot$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/bug-reports/:id/resolve',
+    handler: 'bugReportResolveMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/bug-reports\/(\d+)\/(resolve|dismiss)$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'POST',
+    path: '/admin/api/bug-reports/:id/dismiss',
+    handler: 'bugReportResolveMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/bug-reports\/(\d+)\/(resolve|dismiss)$/,
   },
   {
     dispatcher: DISPATCH.admin,
@@ -2078,6 +3013,17 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
   {
     dispatcher: DISPATCH.admin,
     method: 'GET',
+    path: '/admin/api/characters/:id/professions',
+    handler: 'characterProfessionsMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/characters\/(\d+)\/professions$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
     path: '/admin/api/accounts/:id/daily-rewards-events',
     handler: 'dailyRewardEventsMatch',
     contentType: PROBLEM_JSON,
@@ -2085,6 +3031,39 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: REQUIRE_OWNED.operator404,
     match: /^\/admin\/api\/accounts\/(\d+)\/daily-rewards-events$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/guilds/:id/history',
+    handler: 'guildHistoryMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/guilds\/(\d+)\/history$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/guilds/:id/bank',
+    handler: 'guildBankStateMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/guilds\/(\d+)\/bank$/,
+  },
+  {
+    dispatcher: DISPATCH.admin,
+    method: 'GET',
+    path: '/admin/api/guilds/:id',
+    handler: 'guildDetailMatch',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.admin,
+    limiter: null,
+    requireOwnedExpected: REQUIRE_OWNED.operator404,
+    match: /^\/admin\/api\/guilds\/(\d+)$/,
   },
   {
     dispatcher: DISPATCH.admin,
@@ -2186,6 +3165,50 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: null,
   },
+  // The ops dashboard's Exchange reads. Registry-only (no legacy ladder
+  // twin): they postdate the frozen ladders, so there is nothing to reproduce.
+  {
+    dispatcher: DISPATCH.internal,
+    method: 'GET',
+    path: '/internal/woc-market/listings',
+    handler: 'internal.ts RouteDef: /internal/woc-market/listings',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.secretDashboard,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.internal,
+    method: 'GET',
+    path: '/internal/woc-market/p2p-trades',
+    handler: 'internal.ts RouteDef: /internal/woc-market/p2p-trades',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.secretDashboard,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    dispatcher: DISPATCH.internal,
+    method: 'GET',
+    path: '/internal/woc-market/stuck',
+    handler: 'internal.ts RouteDef: /internal/woc-market/stuck',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.secretDashboard,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  {
+    // The parked-review operator arm: the one WRITE on the dashboard-secret
+    // surface, ruling a review-parked settlement through the transition CAS.
+    dispatcher: DISPATCH.internal,
+    method: 'POST',
+    path: '/internal/woc-market/settlements/:id/resolve',
+    handler: 'internal.ts RouteDef: /internal/woc-market/settlements/:id/resolve',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.secretDashboard,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
   {
     dispatcher: DISPATCH.internal,
     method: 'GET',
@@ -2236,41 +3259,15 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     limiter: null,
     requireOwnedExpected: null,
   },
-  {
-    dispatcher: DISPATCH.internal,
-    method: 'GET',
-    path: '/internal/discord/relay',
-    handler: 'handleDiscordInternal arm: /internal/discord/relay',
-    contentType: PROBLEM_JSON,
-    authScope: AUTH_SCOPE.secretDiscord,
-    limiter: null,
-    requireOwnedExpected: null,
-  },
-  {
-    dispatcher: DISPATCH.internal,
-    method: 'GET',
-    path: '/internal/discord/activity',
-    handler: 'handleDiscordInternal arm: /internal/discord/activity',
-    contentType: PROBLEM_JSON,
-    authScope: AUTH_SCOPE.secretDiscord,
-    limiter: null,
-    requireOwnedExpected: null,
-  },
+  // The retired per-endpoint GET pickups (relay, activity, and the standalone
+  // daily-rewards-winners read) have NO rows here: the bot's consolidated
+  // outbox poll replaced them and both their arms were removed together
+  // (#2791), so a request to those paths answers the ladder's terminal 404.
   {
     dispatcher: DISPATCH.internal,
     method: 'POST',
     path: '/internal/discord/members-meta',
     handler: 'handleDiscordInternal arm: /internal/discord/members-meta',
-    contentType: PROBLEM_JSON,
-    authScope: AUTH_SCOPE.secretDiscord,
-    limiter: null,
-    requireOwnedExpected: null,
-  },
-  {
-    dispatcher: DISPATCH.internal,
-    method: 'GET',
-    path: '/internal/discord/daily-rewards-winners',
-    handler: 'handleDiscordInternal arm: /internal/discord/daily-rewards-winners',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.secretDiscord,
     limiter: null,
@@ -2291,6 +3288,40 @@ export const SURFACE_INVENTORY: readonly SurfaceRoute[] = [
     method: 'GET',
     path: '/internal/discord/flaired-ids',
     handler: 'handleDiscordInternal arm: /internal/discord/flaired-ids',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.secretDiscord,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  // The batched flex read the Discord bot's sweep uses instead of asking the
+  // per-id /internal/discord/flex once per online user. It is the first
+  // REGISTRY-ONLY internal route: born after the pipeline migration, so it has
+  // NO handleDiscordInternal arm and no legacy rollback twin by design (the
+  // new-route rule in server/http/CLAUDE.md), which is why the handler anchors
+  // on the exported RouteDef symbol rather than on a legacy ladder arm.
+  {
+    dispatcher: DISPATCH.internal,
+    method: 'POST',
+    path: '/internal/discord/flex-batch',
+    handler: 'server/internal.ts flexBatchHandler (registry-only RouteDef)',
+    contentType: PROBLEM_JSON,
+    authScope: AUTH_SCOPE.secretDiscord,
+    limiter: null,
+    requireOwnedExpected: null,
+  },
+  // The consolidated bot poll: the relay, activity and linked-member change
+  // feeds drained together with the winner-day announcements, so the bot makes
+  // one request per interval instead of three plus a full member sweep. Since
+  // #2791 this is the ONLY pickup surface: the per-endpoint GETs it replaced
+  // are retired from both arms. The second REGISTRY-ONLY internal route, same
+  // reason as flex-batch above (born after the migration, no
+  // handleDiscordInternal arm, so the handler anchors on the exported RouteDef
+  // symbol).
+  {
+    dispatcher: DISPATCH.internal,
+    method: 'GET',
+    path: '/internal/discord/outbox',
+    handler: 'server/internal.ts outboxHandler (registry-only RouteDef)',
     contentType: PROBLEM_JSON,
     authScope: AUTH_SCOPE.secretDiscord,
     limiter: null,

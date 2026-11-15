@@ -11,6 +11,7 @@
 import type { TranslationKey } from '../i18n.catalog';
 
 export const fr_CA: Partial<Record<TranslationKey, string>> = {
+  'hud.errors.tradeAlreadyTrading': 'Ce joueur est déjà en train de faire un échange.',
   'guide.professions.craftMasteryBody':
     "Quelques attentes honnêtes : la montée jusqu'au plafond de 125 d'un métier demande au moins 125 fabrications réussies, chaque fabrication à gain complet vous faisant progresser d'exactement un point, et en pratique un peu plus au fur et à mesure que les recettes s'estompent entre les échelons du formateur. La fabrication elle-même est rapide ; c'est l'approvisionnement qui constitue le vrai voyage, alors prévoyez quelques soirées dédiées à la récolte et à l'artisanat par métier.\n\nLes métiers de récolte atteignent leur plafond de 100 au fil d'une progression normale si vous récoltez en voyageant, bien que le dernier tronçon réclame les noeuds de haut palier du grand nord. La Pêche est la longue route par conception : selon son propre barème de gain, 200 points de maîtrise représentent plus de trois mille prises. Grand Pêcheur est un titre qui se gagne au fil d'une saison de soirées tranquilles, pas d'une fin de semaine.",
   'download.macCta': 'Telecharger la version macOS',
@@ -20,7 +21,7 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   // hudChrome.statInfo.* overrides.
   'seo.title': 'World of ClaudeCraft: MMO Web de style classique',
   'seo.description':
-    'Lancez-vous dans une aventure épique dans World of ClaudeCraft, un micro-MMO de style classique jouable directement dans votre navigateur. Rejoignez un monde partagé et persistant, faites monter vos classes en niveau et terrassez vos ennemis.',
+    'Jouez à World of ClaudeCraft, un MMO gratuit sur navigateur. Explorez, accomplissez des quêtes et parcourez des donjons entre amis. Aucun téléchargement nécessaire.',
   'seo.operatingSystem': 'Navigateur Web',
   'a11y.toggleMenu': 'Ouvrir ou fermer le menu',
   'loading.assetsFailed': 'Le chargement des ressources a échoué: rechargez la page. {error}',
@@ -79,22 +80,22 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   'delveUi.board.marks': "Marques d'excavation : {count}",
   'delveUi.board.openDelveAria': 'Ouvrir le tableau des excavations depuis {name}',
   'delveUi.board.title': 'Tableau des excavations',
-  'delveUi.boss.varric.bell.emote': 'Le diacre Varric empoigne la cloche enfouie à deux mains!',
+  'delveUi.boss.varric.bell.emote': 'Le diacre Vandric empoigne la cloche enfouie à deux mains!',
   'delveUi.boss.varric.bell.impact': 'Le glas de la cloche fissure le sol de la chambre!',
   'delveUi.boss.varric.bell.lesson':
     "Glas funèbre : un choc au sol toutes les douze secondes. Éloignez-vous avant l'impact.",
-  'delveUi.boss.varric.bell.log': 'Le diacre Varric se met à sonner la cloche funéraire.',
-  'delveUi.boss.varric.bell.warning': 'Éloignez-vous du diacre Varric!',
+  'delveUi.boss.varric.bell.log': 'Le diacre Vandric se met à sonner la cloche funéraire.',
+  'delveUi.boss.varric.bell.warning': 'Éloignez-vous du diacre Vandric!',
   'delveUi.boss.varric.mid60':
-    'Le diacre Varric lit des noms dans le registre avec un triomphe tremblant.',
+    'Le diacre Vandric lit des noms dans le registre avec un triomphe tremblant.',
   'delveUi.boss.varric.pull':
     'Vous foulez la poussière sacrée avec des intentions impures. À genoux, et soyez compté.',
-  'delveUi.boss.varric.raise.emote': 'Le diacre Varric appelle des noms des tombes brisées!',
-  'delveUi.boss.varric.raise.interrupt_fail': "Les morts répondent à l'appel du diacre Varric!",
+  'delveUi.boss.varric.raise.emote': 'Le diacre Vandric appelle des noms des tombes brisées!',
+  'delveUi.boss.varric.raise.interrupt_fail': "Les morts répondent à l'appel du diacre Vandric!",
   'delveUi.boss.varric.raise.interrupt_ok': 'Le rite funèbre vacille.',
   'delveUi.boss.varric.raise.lesson':
     'Interrompez la tombe fissurée en cinq secondes, sinon les morts se lèvent à son appel.',
-  'delveUi.boss.varric.raise.log': 'Le diacre Varric entame Relever les morts.',
+  'delveUi.boss.varric.raise.log': 'Le diacre Vandric entame Relever les morts.',
   'delveUi.boss.varric.raise.object': "La tombe fissurée frémit d'un souffle volé.",
   'delveUi.boss.varric.raise.warning': 'Arrêtez le rite funèbre!',
   'delveUi.chest.flavor': "Les morts ont cédé ce qu'ils pouvaient épargner.",
@@ -138,11 +139,7 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   'entities.abilities.blazing_barrier.description':
     'Entoure-toi de feu et absorbe {damage} points de dégâts pendant 60 s. (Feu)',
   'entities.abilities.cold_snap.name': 'Rappel hivernal',
-  'entities.abilities.cold_snap.description':
-    'Réinitialise la recharge de Pas scintillant, Voile de givre et Invisibilité accrue. (Talent de mage)',
   'entities.abilities.greater_invisibility.name': 'Invisibilité accrue',
-  'entities.abilities.greater_invisibility.description':
-    'Disparais pendant 20 s : enlève 2 effets de dégâts périodiques et réduit de 90% les dégâts que tu subis tant que tu es invisible et pour un court moment après. (Talent de mage)',
   'entities.abilities.hot_streak.name': 'Suite flamboyante',
   'entities.abilities.hot_streak.description':
     "Passif : deux coups critiques de suite avec tes sorts de Feu (Boule de feu, Trait de feu, Brûlure, Explosion pyrotechnique ou Choc de flammes) rendent ta prochaine Explosion pyrotechnique ou ton prochain Choc de flammes instantané et gratuit. Les sorts qui dépensent cet effet comptent pour la suite SUIVANTE, même les incantations gratuites; Choc de flammes ne compte qu'une fois, peu importe le nombre d'ennemis touchés, et seul le premier impact peut compter. (Feu)",
@@ -153,7 +150,7 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
     'Passif : les coups critiques de tes sorts enflamment la cible et lui infligent 40% des dégâts causés sur 6 s; cet effet se cumule. (Maîtrise du Feu)',
   'entities.abilities.mass_barrier.name': 'Bouclier collectif',
   'entities.abilities.mass_barrier.description':
-    'Pose un bouclier sur toi et sur un maximum de 4 alliés proches dans un rayon de 30 m; chacun absorbe 130 points de dégâts pendant 60 s. (Talent de mage)',
+    'Pose un bouclier sur toi et sur un maximum de 4 alliés proches dans un rayon de 30 m; chacun absorbe {damage} points de dégâts pendant 15 s. (Talent de mage)',
   'entities.abilities.overload.name': 'Surpuissance',
   'entities.abilities.overload.description':
     'Ton prochain sort gagne 40% de puissance, mais coûte 50% de mana de plus. Dure 10 s. (Talent de mage)',
@@ -188,6 +185,7 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
     "Vous ne pouvez pas entrer dans une excavation pendant un match d'arène.",
   'sim.delve.duringDuel': 'Vous ne pouvez pas entrer dans une excavation pendant un duel.',
   'sim.delve.graveFalters': 'Le rite funèbre vacille.',
+  'sim.delve.enemiesRemain': "Réglez d'abord le sort des ennemis restants.",
   'sim.delve.mechanismOpen':
     "Un mécanisme s'ouvre dans un déclic tout près. Un passage s'ouvre vers le nord : trouvez le portail de sortie devant vous.",
   'sim.delve.notInDelve': "Vous n'êtes pas dans une excavation.",
@@ -261,7 +259,6 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   'hudChrome.auraEffect.imbueRange': 'Arme enchantée : {min} à {max} dégâts bonus au Verdict',
   'hudChrome.auraEffect.stealth': 'Dissimulé ; vitesse de déplacement réduite de {pct}%',
   'hudChrome.auraEffect.formBear': 'Forme de Bruin : points de vie et armure accrus',
-  'hudChrome.auraEffect.formCat': 'Forme féline : dégâts de mêlée et énergie',
   'hudChrome.auraEffect.formTravel': 'Forme de Fleet : vitesse de déplacement accrue de {pct}%',
   'hudChrome.auraEffect.defensiveStance':
     'Guarded Stance : dégâts encaissés réduits, menace accrue',
@@ -289,10 +286,62 @@ export const fr_CA: Partial<Record<TranslationKey, string>> = {
   'hudChrome.auraEffect.bloodbath':
     'Accroît les chances de coup critique et les dégâts infligés de {pct}%',
   'hudChrome.auraEffect.dieBySword': 'Diminue les dégâts subis de {pct}%',
-  'hudChrome.auraEffect.victoryRush': 'Élan de victoire est prêt',
   'hudChrome.auraEffect.maxHpPct': 'Accroît les points de vie maximum de {pct}%',
   'hudChrome.statInfo.desc.parry':
     'Vos chances de parer entièrement une attaque de mêlée de front, sans subir de dégâts. Un coup porté dans le dos ne peut pas être paré.',
+  'hudChrome.chatQuota.limitReached':
+    'Limite du clavardage Général atteinte. Réessayez dans {seconds}.',
+  'hudChrome.chatQuota.pending':
+    "Votre message précédent dans le clavardage Général est toujours en cours d'envoi. Réessayez dans un instant.",
+  'hudChrome.chatQuota.unavailable':
+    "Le clavardage Général est temporairement indisponible. Réessayez d'ici peu.",
   'hudChrome.interfaceTabs.chat': 'Clavardage',
   'hudChrome.options.mouseoverCast': 'Lancement au survol sur les cadres de groupe',
+  'hud.errors.marketListBound': 'Cet objet est lié et ne peut pas être inscrit au marché.',
+  'hudChrome.mailbox.result.noMailBound':
+    'Cet objet est lié et ne peut pas être envoyé par la poste.',
+  'hud.prompts.guildInviteCancelled':
+    'Une invitation de guilde en attente a été annulée parce que la guilde a été renommée.',
+  'hud.prompts.guildRenamed': "Votre guilde a été renommée en {name} par l'équipe de modération.",
+  'hudChrome.bags.itemAriaLocked': '{item}, quantité {count}, barré',
+  'hudChrome.bags.itemLockedLine': 'Barré',
+  'hudChrome.bags.lockItem': "Barrer l'objet",
+  'hudChrome.bags.unlockItem': "Débarrer l'objet",
+  'hudChrome.crafting.reagentLocked': 'Un composant pour cela est barré.',
+  'hudChrome.enchanting.salvageLocked': 'Cet objet est barré.',
+  'hudChrome.otaUpdate.applying': 'Actualización descargada. Reiniciando el juego para aplicarla.',
+  'hudChrome.otaUpdate.continueAnyway': 'Continuar sin actualizar',
+  'hudChrome.otaUpdate.downloading': 'Descargando actualización: {percent}',
+  'hudChrome.otaUpdate.incompatible':
+    'Se necesita una actualización para jugar. Se aplicará en cuanto termine la descarga.',
+  'hudChrome.otaUpdate.progressLabel': 'Progreso de descarga de la actualización',
+  'hudChrome.otaUpdate.title': 'Actualización del juego',
+  'apiError.cheater_mark.admin_target': "Les comptes d'opérateur ne peuvent pas être marqués.",
+  'apiError.cheater_mark.invalid_duration': "Entrez une durée de marquage d'au moins une seconde.",
+  'auth.designCodeHint':
+    'Copiez ce code pour sauvegarder ou partager cette apparence. Collez un code ici et importez-le pour la charger.',
+  'auth.designCodeCopyManual':
+    'La copie automatique est bloquée ici. Le code est sélectionné; copiez-le avec votre clavier.',
+  'auth.designCodeErrVersion': "Ce code d'apparence vient d'une version plus récente du jeu.",
+  'auth.designCodeErrMalformed':
+    "Ce code d'apparence est endommagé. Copiez le code au complet et réessayez.",
+  // Release-fill batch (fr_CA divergences over fr_FR): the "increase X" stat/value
+  // phrasing consistently uses accroit/accroitre in this overlay (see the
+  // hudChrome.auraEffect.increase.*/reduce.*/vulnerability precedents above), and
+  // the Chat frame label follows the established Clavardage term (see
+  // hudChrome.interfaceTabs.chat). Every other autoFillable key in this batch
+  // resolves identically to its filled fr_FR value, so no override is added for it.
+  'hudChrome.auraEffect.makersBrand':
+    "Pendant {duration} s, chaque cumul accroît les dégâts subis de la part de Varkhul de {pct}%. Cumul jusqu'à {max} fois. Les tanks doivent échanger à {swap} cumuls.",
+  'hudChrome.bank.vaultUpgrade': 'Accroître chaque plafond à {cap}',
+  'hudChrome.bank.vaultUpgradeConfirm':
+    'Accroître chaque plafond de matériau à {cap} pour {price}?',
+  'hudChrome.raidBossGuide.varkhul.legionSummary':
+    'Les Gardiens du creuset incantent Séisme du creuset pour accroître la chaleur de la forge, tandis que les Artificiers des cendres utilisent Protocole de réparation pour soigner Varkhul.',
+  'hudChrome.raidBossGuide.varkhul.makersBrandSummary':
+    'Varkhul frappe son tank actuel et applique un effet cumulable qui accroît tous les dégâts subis de sa part.',
+  'hudChrome.interfaceUnlock.frameNames.chat': 'Clavardage',
+  'hudChrome.bags.capacityPools':
+    'Articles {generalUsed}/{generalTotal}, matériaux {materialsUsed}/{materialsTotal}',
+  'hudChrome.bags.emptyMaterialsOnly': 'Matériaux seulement',
 };

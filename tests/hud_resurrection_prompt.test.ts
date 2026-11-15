@@ -1,7 +1,17 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { inertCharacters } from './helpers/inert_characters';
+
+// Hud reaches the character model preload; keep it inert
+// (tests/helpers/inert_characters.ts has the why).
+vi.mock('../src/render/characters', () => inertCharacters.barrel());
+vi.mock('../src/render/characters/assets', () => inertCharacters.assets());
+vi.mock('../src/render/characters/portrait', () => inertCharacters.portrait());
+
 import { Hud } from '../src/ui/hud';
+import { t } from '../src/ui/i18n';
+import { contactAtOnce } from './helpers/renderer_contact';
 
 interface PromptHarness {
   promptSequence: number;
@@ -80,4 +90,102 @@ describe('HUD resurrection confirmation prompt', () => {
     expect(previous.isConnected).toBe(false);
     expect(hud.resurrectionPromptEl).toBe(null);
   });
+
+  it('an offer arriving while the player is alive never paints a prompt', () => {
+    // Online, a rez can complete against a player who is no longer dead (they
+    // released, respawned, or took another healer's rez while this cast was in
+    // flight). The arm used to show the centred prompt unconditionally, and
+    // the per-frame `!p.dead` closer removed it on the very next frame: a
+    // one-frame dark-panel flash at 34% centre, and an offer that was
+    // unanswerable anyway (the sim keeps offers only for dead players).
+    const hud = eventHarness({ dead: false });
+
+    hud.handleEvents([offerEvent()]);
+
+    expect(document.querySelector('#prompt-stack')?.childElementCount).toBe(0);
+    expect(hud.resurrectionPromptEl).toBe(null);
+  });
+
+  it('an offer arriving while dead still shows the prompt', () => {
+    // The guard must not eat the real thing: the normal online order delivers
+    // the death snapshot ticks before any rez can finish casting.
+    const hud = eventHarness({ dead: true });
+
+    hud.handleEvents([offerEvent()]);
+
+    expect(document.querySelector('#prompt-stack')?.childElementCount).toBe(1);
+    expect(hud.resurrectionPromptEl).not.toBe(null);
+  });
 });
+
+describe('the respawn chat line', () => {
+  // The sim tags a Keeper revive's respawn event with sickness: 'resurrection'
+  // exactly when The Keeper's Toll landed; the HUD reads that tag to say the
+  // character is back but weaker, and keeps the penalty-free line otherwise.
+  it('says weaker for a tagged respawn and rested for a plain one', () => {
+    const tagged = eventHarness({ dead: false });
+    tagged.handleEvents([{ type: 'respawn', pid: 17, sickness: 'resurrection' }]);
+    expect(tagged.log).toHaveBeenCalledTimes(1);
+    expect(tagged.log.mock.calls[0][0]).toBe(t('hud.system.respawnKeeperToll'));
+    expect(tagged.log.mock.calls[0][0]).toMatch(/weaker/);
+
+    const plain = eventHarness({ dead: false });
+    plain.handleEvents([{ type: 'respawn', pid: 17 }]);
+    expect(plain.log).toHaveBeenCalledTimes(1);
+    expect(plain.log.mock.calls[0][0]).toBe(t('hud.system.respawn'));
+    expect(plain.log.mock.calls[0][0]).not.toMatch(/weaker|Toll/);
+  });
+});
+
+// A minimal Hud able to run the handleEvents resurrectionOffer arm (the
+// noticeboard suite's Object.create idiom; stub every field the drain touches).
+interface EventHarness {
+  sim: {
+    playerId: number;
+    player: { dead: boolean; pos: { x: number; z: number } };
+    craftingIdentity: { synced: boolean };
+    craftSkills: Record<string, number>;
+    gatheringProficiency: Record<string, number>;
+  };
+  renderer: {
+    handleEvent: ReturnType<typeof vi.fn>;
+    // the event sound waits for a swing's blade contact (contact_queue.ts); none here
+    atContact: typeof contactAtOnce;
+  };
+  playEventSfx: ReturnType<typeof vi.fn>;
+  meters: { onEvent: ReturnType<typeof vi.fn> };
+  isNythraxisEvent: ReturnType<typeof vi.fn>;
+  showBanner: ReturnType<typeof vi.fn>;
+  log: ReturnType<typeof vi.fn>;
+  prevCraftSkills: Record<string, number> | null;
+  craftTierUpDrains: number;
+  promptSequence: number;
+  resurrectionPromptEl: HTMLElement | null;
+  handleEvents(events: unknown[]): void;
+}
+
+function eventHarness(player: { dead: boolean }): EventHarness {
+  const hud = Object.create(Hud.prototype) as unknown as EventHarness;
+  hud.sim = {
+    playerId: 17,
+    player: { dead: player.dead, pos: { x: 0, z: 0 } },
+    craftingIdentity: { synced: false },
+    craftSkills: {},
+    gatheringProficiency: {},
+  };
+  hud.renderer = { handleEvent: vi.fn(), atContact: contactAtOnce };
+  hud.playEventSfx = vi.fn();
+  hud.meters = { onEvent: vi.fn() };
+  hud.isNythraxisEvent = vi.fn(() => false);
+  hud.showBanner = vi.fn();
+  hud.log = vi.fn();
+  hud.prevCraftSkills = null;
+  hud.craftTierUpDrains = 0;
+  hud.promptSequence = 0;
+  hud.resurrectionPromptEl = null;
+  return hud;
+}
+
+function offerEvent(): unknown {
+  return { type: 'resurrectionOffer', fromName: 'Lumina', pid: 17 };
+}

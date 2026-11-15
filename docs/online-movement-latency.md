@@ -11,6 +11,19 @@ chosen should get its own spec under `docs/prd/`.
 File references were verified against the tree on the date above; per `docs/CLAUDE.md`,
 trust the intent and re-find exact lines if they have drifted.
 
+## Option 3 note (the later rework)
+
+Option 3, full client-side prediction with server reconciliation, later shipped
+as movement wire v2: per-tick input frames, a server-side input timeline, and
+exact-match replay reconciliation. Its design authority is
+`docs/design/movement-reconciliation.md`, and the mandatory simulated-latency
+harness this report calls for exists as
+`tests/movement_latency_baseline.test.ts` (strict mode is the feel bar). The
+client-authoritative option below remains rejected; the display-extrapolator
+constraints this report frames stay in force only for the retained legacy v1
+path. The note below describes the earlier Option 1/2 rollout this report
+originally shipped with.
+
 ## Implementation note (what actually shipped)
 
 Options 1 and 2 below, the movement-kernel extraction, and the rule amendment
@@ -32,19 +45,40 @@ here so the survey is not read as the as-built spec:
   simple blend the survey sketched: the authoritative pose is compared against
   the display's own pose one measured echo ago (history ring), with the gain
   bounded by the delay so the loop cannot ring, and the leash clamping the pose
-  only. See the header of `src/render/self_motion.ts`.
+  only. See the header of `src/render/self_motion.ts`. A long render frame is
+  the one sanctioned exception to both halves: it freezes the anchor and then
+  delivers a burst, so the leash lends the block's own ground (bounded by
+  `BLOCK_EPISODE_MAX_MS`) and the servo sits out the resume sweep, pinned by
+  `describe('long render frames')` in `tests/self_motion.test.ts`.
 - **The extrapolation cap landed at 350 ms**, not the surveyed 150 to 200:
   below the real RTT the display rides the leash and steering feels gluey.
 - **The rule amendment has three parts**, not two (`src/net/CLAUDE.md`):
   outcome prediction still banned; display-layer pose extrapolation sanctioned
   under four constraints (applies to `src/render/self_motion.ts`); the heading
   reclassified as client-authoritative input, to which the "never sent"
-  constraint deliberately does not apply.
+  constraint deliberately does not apply. Constraints (a) and (b) carry the
+  long-frame exception recorded above and in `src/net/CLAUDE.md`.
 - Also shipped: the adaptive render lead (`src/game/self_alpha_lead.ts`), the
   shared kernel (`src/sim/player_motion.ts`, bit-for-bit parity-tested), and
   hysteresis fixes for pre-existing animation flicker the smoother display made
   visible (`src/render/locomotion.ts`). Step 4 of the recommendation
   (re-measure before considering full reconciliation) still stands.
+
+### Follow-up: rifts joined the predicted band (2026-08-24, issue #3479)
+
+Option 2 originally shipped with rifts (and delves) excluded outright: every
+key press there showed the full round trip, which read as "rifts feel
+noticeably heavier than the overworld." Rifts are now predicted the same as
+regular dungeons. The gap was wiring, not data: the online client already
+receives the rift floor descriptor and regenerates identical geometry from it
+with the same pure generator the server runs, so the fix is registering that
+geometry under a real `riftCollisionToken` (`src/net/online.ts`) and having
+the predictor strip/reapply the raised-tier lift around its kernel step
+(`src/render/self_motion_rift_lift.ts`), instead of predicting a flat floor
+against a server pose that is not one. Delves remain excluded (a separate,
+still-open gap: their per-run door and prop state is not mirrored
+client-side). See `src/net/CLAUDE.md`'s locomotion-anticipation entry for the
+constraint-by-constraint detail.
 
 ## Executive Read
 
@@ -111,7 +145,9 @@ These assets make the options below much cheaper here than in a typical engine:
   problem, not a porting problem.
 - **Sequence numbers and acks already exist.** Every input frame carries `seq`; the
   server folds it into `session.lastInputSeq` and echoes it back as `snap.self.ack`
-  (`server/game.ts`). The client already converts acks into a round-trip latency EMA
+  (`server/game.ts` through `server/input_seq.ts`; the client's `target` command rides
+  the same counter, which is how the online mirror tells a post-command snapshot from
+  a stale one, see `src/net/target_echo.ts`). The client already converts acks into a round-trip latency EMA
   (`onlineInputEchoMs`, `src/main.ts`) used for click-to-move stop padding and the perf
   overlay. This is half the plumbing of a reconciliation system, today used only as
   telemetry.

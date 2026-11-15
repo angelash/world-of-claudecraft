@@ -1,0 +1,168 @@
+import { describe, expect, it, vi } from 'vitest';
+import { decodeWeeklyRewardInfo, sendWeekly } from '../src/net/weekly_rewards_wire';
+import { emptyWeeklyRewards } from '../src/sim/weekly_rewards';
+import { buildWeeklyRewardsView } from '../src/ui/weekly_rewards_view';
+import { bareClient } from './helpers/bare_client';
+
+describe('weekly reward wire', () => {
+  it('forwards focus selection without predicting a changed server preference', () => {
+    const state = emptyWeeklyRewards(604800000);
+    state.lootSpec = 'fire';
+    const client = bareClient(1, {
+      weeklyRewardInfo: { state },
+      cmd: vi.fn(),
+    });
+    client.setWeeklyLootSpec('arcane');
+    client.setWeeklyLootSpec(null);
+    expect((client as any).cmd.mock.calls).toEqual([
+      [{ cmd: 'weekly_loot_spec', spec: 'arcane' }],
+      [{ cmd: 'weekly_loot_spec', spec: null }],
+    ]);
+    expect(client.weeklyRewardInfo!.state.lootSpec).toBe('fire');
+  });
+
+  it('decodes the current focus and each revealed reward focus independently', () => {
+    const state = emptyWeeklyRewards(604800000);
+    state.lootSpec = 'frost';
+    state.vaults = [
+      {
+        resetAtMs: 1000,
+        choices: [
+          { pool: 'raid', itemId: 'orb_of_the_last_spring', opened: true, lootSpec: 'arcane' },
+        ],
+      },
+    ];
+    const info = decodeWeeklyRewardInfo({
+      state,
+      nowMs: 2000,
+      playerLevel: 20,
+      canClaim: true,
+      worldQuestsAvailable: false,
+      readyWeeks: 1,
+    })!;
+    expect(info.state.lootSpec).toBe('frost');
+    expect(info.state.vaults[0].choices[0].lootSpec).toBe('arcane');
+  });
+  it('sends the chosen table with the current open token, never with a claim', () => {
+    const info = {
+      state: emptyWeeklyRewards(604800000),
+      nowMs: 1000,
+      playerLevel: 20,
+      canClaim: true,
+      worldQuestsAvailable: false,
+      readyWeeks: 1,
+    };
+    const messages: unknown[] = [];
+    sendWeekly(info, '1000:0', 'open', (message) => messages.push(message), 'ysolei');
+    sendWeekly(info, '1000:0', 'claim', (message) => messages.push(message), 'ysolei');
+    expect(messages).toEqual([
+      { cmd: 'weekly_reward_open', choice: '1000:0', token: '604800000:0', tables: ['ysolei'] },
+      { cmd: 'weekly_reward_claim', choice: '1000:0', token: '604800000:0' },
+    ]);
+  });
+  it('preserves concealed slots and opening status without accepting unopened item details', () => {
+    const state = emptyWeeklyRewards(604800000);
+    state.vaults = [
+      {
+        resetAtMs: 1000,
+        choices: [
+          { pool: 'raid' },
+          { pool: 'dungeon', opening: true },
+          { pool: 'raid', itemId: 'orb_of_the_last_spring' },
+          { pool: 'raid', itemId: 'orb_of_the_last_spring', opened: true },
+        ],
+      },
+    ];
+    const info = decodeWeeklyRewardInfo({
+      state,
+      nowMs: 2000,
+      playerLevel: 20,
+      canClaim: true,
+      worldQuestsAvailable: false,
+      readyWeeks: 1,
+    })!;
+    expect(info.state.vaults[0].choices).toEqual([
+      { pool: 'raid' },
+      { pool: 'dungeon', opening: true },
+      { pool: 'raid' },
+      { pool: 'raid', itemId: 'orb_of_the_last_spring', opened: true },
+    ]);
+  });
+  it('round-trips the bounded ledger and rejects malformed envelopes', () => {
+    const info = {
+      state: emptyWeeklyRewards(604800000),
+      nowMs: 1000,
+      playerLevel: 20,
+      canClaim: true,
+      worldQuestsAvailable: false,
+      readyWeeks: 0,
+    };
+    info.state.raids = [2, 0, 0];
+    info.state.raidClears = [2, 1, 1];
+    info.state.raidUnlocks = [2, 0, 0];
+    expect(decodeWeeklyRewardInfo(JSON.parse(JSON.stringify(info)))).toEqual(info);
+    expect(decodeWeeklyRewardInfo({ ...info, nowMs: NaN })).toBeNull();
+    expect(decodeWeeklyRewardInfo({ ...info, canClaim: 'yes' })).toBeNull();
+    for (const playerLevel of [undefined, 0, -1, NaN, 1.5, '20'])
+      expect(decodeWeeklyRewardInfo({ ...info, playerLevel })).toBeNull();
+    expect(decodeWeeklyRewardInfo(null)).toBeNull();
+  });
+  it('keeps the current-week boss map through the online decoder and preview', () => {
+    const state = emptyWeeklyRewards(604800000);
+    state.bossUnlocks = { morthen: 2, ysolei: 2 };
+    state.weeklyBossUnlocks = { ysolei: 2 };
+    const info = decodeWeeklyRewardInfo(
+      JSON.parse(
+        JSON.stringify({
+          state,
+          nowMs: 1000,
+          playerLevel: 20,
+          canClaim: true,
+          worldQuestsAvailable: false,
+          readyWeeks: 0,
+        }),
+      ),
+    )!;
+    expect(info.state.weeklyBossUnlocks).toEqual({ ysolei: 2 });
+    expect(
+      buildWeeklyRewardsView(info, 'mage')[1].pools[1].tables.map((table) => table.id),
+    ).toEqual(['drowned_temple']);
+  });
+  it('preserves a delta-omitted ledger and clears it when the keeper gate closes', () => {
+    const client = bareClient(1);
+    const info = {
+      state: emptyWeeklyRewards(604800000),
+      nowMs: 1000,
+      playerLevel: 20,
+      canClaim: true,
+      worldQuestsAvailable: false,
+      readyWeeks: 0,
+    };
+    const apply = (extra: object) =>
+      (client as any).applySnapshot({
+        t: 'snap',
+        tick: 1,
+        ents: [],
+        self: {
+          id: 1,
+          k: 'player',
+          tid: 'mage',
+          nm: 'Collector',
+          lv: 20,
+          x: 0,
+          y: 0,
+          z: 0,
+          f: 0,
+          hp: 100,
+          mhp: 100,
+          ...extra,
+        },
+      });
+    apply({ weeklyRewards: info });
+    expect(client.weeklyRewardInfo).toEqual(info);
+    apply({});
+    expect(client.weeklyRewardInfo).toEqual(info);
+    apply({ weeklyRewards: null });
+    expect(client.weeklyRewardInfo).toBeNull();
+  });
+});

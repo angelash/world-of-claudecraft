@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml/badge.svg)](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-r165-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-RL%20env-0C7BDC)](https://gymnasium.farama.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-[![Version](https://img.shields.io/badge/version-0.31.0-blue)](../../package.json)
+[![Version](https://img.shields.io/badge/version-0.45.8-blue)](../../package.json)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.fr_FR.md)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/worldofclaudecraft)
 
@@ -92,7 +92,7 @@ npm install
 npm run dev        # then open http://localhost:5173 and choose Play Offline
 ```
 
-Nommez votre personnage, choisissez l'une des neuf classes, et vous démarrez à **Eastbrook Vale** (niveaux 1-7), une ville marchande entourée de pôles : les coulées de loups au nord, les prés de sangliers à l'est, les bois de Sableweb à l'ouest, Mirror Lake au nord-ouest, une mine de cuivre infestée de fouisseurs au sud-ouest, et une chapelle en ruine peuplée de morts agités au nord-est, avec le camp de bandits de Gorrak au sud-est. La route du nord grimpe par un col de montagne jusqu'à **Mirefen Marsh** (6-13, pôle Fenbridge) et continue jusqu'à **Thornpeak Heights** (13-20, pôle Highwatch). La graine du monde est fixée dans `src/main.ts`, c'est donc le même endroit à chaque visite.
+Nommez votre personnage, choisissez l'une des neuf classes, et vous démarrez à **Eastbrook Vale** (niveaux 1-7), une ville marchande entourée de pôles : les coulées de loups au nord, les prés de sangliers à l'est, les bois de Sableweb à l'ouest, Mirror Lake au nord-ouest, une mine de cuivre infestée de fouisseurs au sud-ouest, et une chapelle en ruine peuplée de morts agités au nord-est, avec le camp de bandits de Gorrak au sud-est. La route du nord grimpe par un col de montagne jusqu'à **Mirefen Marsh** (6-13, pôle Fenbridge) et continue jusqu'à **Thornpeak Heights** (13-20, pôle Highwatch). La graine du monde est fixée dans `src/sim/world_seed.ts`, c'est donc le même endroit à chaque visite.
 
 ### Applications de bureau pour Windows, Linux et macOS
 
@@ -234,7 +234,7 @@ Chaque instance tourne aussi en **Héroïque** : des ennemis de niveau supérieu
 
 ### Delves
 
-Les delves sont un mode pour petit groupe distinct et évolutif, à un ou deux joueurs, reconstruit à partir de salles aléatoires à chaque partie et se terminant sur un coffre de reliquaire verrouillé qui s'ouvre par un mini-jeu de crochetage plutôt que par un jet de butin. **The Collapsed Reliquary** (niveau 7 et plus) se termine sur Deacon Varric, avec une compagne IA, Tessa, qui combat à vos côtés si vous y allez seul. **The Drowned Litany** (niveau 12 et plus) suit la piste jusqu'à un sanctuaire inondé en bordure de Mirefen Marsh. Un tableau des delves fixe le palier : l'Héroïque augmente le niveau des ennemis et ajoute un affixe aléatoire pour des récompenses plus riches.
+Les delves sont un mode pour petit groupe distinct et évolutif, à un ou deux joueurs, reconstruit à partir de salles aléatoires à chaque partie et se terminant sur un coffre de reliquaire verrouillé qui s'ouvre par un mini-jeu de crochetage plutôt que par un jet de butin. **The Collapsed Reliquary** (niveau 7 et plus) se termine sur Deacon Vandric, avec une compagne IA, Tessa, qui combat à vos côtés si vous y allez seul. **The Drowned Litany** (niveau 12 et plus) suit la piste jusqu'à un sanctuaire inondé en bordure de Mirefen Marsh. Un tableau des delves fixe le palier : l'Héroïque augmente le niveau des ennemis et ajoute un affixe aléatoire pour des récompenses plus riches.
 
 ### JcJ classé (the Ashen Coliseum)
 

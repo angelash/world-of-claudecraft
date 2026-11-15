@@ -7,8 +7,8 @@ import type {
   AiSpeechPolishSnapshot,
   AiValidationResult,
 } from './ai_types';
-import { validateCanonDecision } from './canon_guard';
 import type { CanonGuardSubject } from './canon_guard';
+import { validateCanonDecision } from './canon_guard';
 import { profileFor } from './profiles';
 import { polishDynamicSpeech } from './speech_style';
 
@@ -33,20 +33,27 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
   if (decision.schemaVersion !== 1) return rejected('schema version mismatch');
   if (decision.jobId !== context.jobId) return rejected('job id mismatch');
   if (decision.ttlMs <= 0 || decision.ttlMs > MAX_TTL_MS) return rejected('ttl out of range');
-  if (decision.confidence < MIN_CONFIDENCE || decision.confidence > MAX_CONFIDENCE) return rejected('confidence out of range');
-  if (decision.entityRef.entityId !== context.entity.entityId
-    || decision.entityRef.templateId !== context.entity.templateId
-    || decision.entityRef.kind !== context.entity.kind) {
+  if (decision.confidence < MIN_CONFIDENCE || decision.confidence > MAX_CONFIDENCE)
+    return rejected('confidence out of range');
+  if (
+    decision.entityRef.entityId !== context.entity.entityId ||
+    decision.entityRef.templateId !== context.entity.templateId ||
+    decision.entityRef.kind !== context.entity.kind
+  ) {
     return rejected('entity ref mismatch');
   }
   const maxSpeechEntries = maxSpeechEntriesForContext(context);
-  if (decision.speech.length > maxSpeechEntries) return rejected('too many speech entries for context');
+  if (decision.speech.length > maxSpeechEntries)
+    return rejected('too many speech entries for context');
 
   const profile = profileFor(context.entity.kind, context.entity.templateId);
   for (const intent of decision.intents) {
-    if (!context.allowedIntents.includes(intent.type)) return rejected(`intent ${intent.type} not allowed by context`);
-    if (!profile.allowedIntentTypes.includes(intent.type)) return rejected(`intent ${intent.type} not allowed by profile`);
-    if (intent.lineId && !profile.allowedLineIds.includes(intent.lineId)) return rejected(`line id ${intent.lineId} not allowed by profile`);
+    if (!context.allowedIntents.includes(intent.type))
+      return rejected(`intent ${intent.type} not allowed by context`);
+    if (!profile.allowedIntentTypes.includes(intent.type))
+      return rejected(`intent ${intent.type} not allowed by profile`);
+    if (intent.lineId && !profile.allowedLineIds.includes(intent.lineId))
+      return rejected(`line id ${intent.lineId} not allowed by profile`);
   }
 
   const canon = validateCanonDecision(decision, context, subject);
@@ -56,14 +63,17 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
 
   const events: SimEvent[] = [];
   const speechFingerprintSource = speechFingerprintSourceForContext(context);
-  const speechFingerprint = context.entity.kind === 'mob'
-    ? context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint
-    : context.profile?.speechFingerprint ?? context.familySemantics?.speechFingerprint;
+  const speechFingerprint =
+    context.entity.kind === 'mob'
+      ? (context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint)
+      : (context.profile?.speechFingerprint ?? context.familySemantics?.speechFingerprint);
   const speechPolish = emptySpeechPolishSnapshot(speechFingerprintSource);
   for (const speech of decision.speech) {
     if (speech.mode === 'lineId') {
-      if (!profile.allowedLineIds.includes(speech.lineId)) return rejected(`line id ${speech.lineId} not allowed by profile`);
-      if (context.allowedLineIds && !context.allowedLineIds.includes(speech.lineId)) return rejected(`line id ${speech.lineId} not allowed by context`);
+      if (!profile.allowedLineIds.includes(speech.lineId))
+        return rejected(`line id ${speech.lineId} not allowed by profile`);
+      if (context.allowedLineIds && !context.allowedLineIds.includes(speech.lineId))
+        return rejected(`line id ${speech.lineId} not allowed by context`);
       events.push({
         type: 'aiSpeech',
         speakerId: entity.id,
@@ -75,9 +85,16 @@ export function validateAiDecision(input: AiIntentValidationInput): AiValidation
       });
       continue;
     }
-    if (context.outputMode === 'line_id_only') return rejected('dynamic speech is blocked in line_id_only mode');
-    if (speech.language !== context.locale) return rejected('dynamic speech language does not match player locale');
-    const polish = polishDynamicSpeech(speech.text, context.locale, speechFingerprint, context.topic);
+    if (context.outputMode === 'line_id_only')
+      return rejected('dynamic speech is blocked in line_id_only mode');
+    if (speech.language !== context.locale)
+      return rejected('dynamic speech language does not match player locale');
+    const polish = polishDynamicSpeech(
+      speech.text,
+      context.locale,
+      speechFingerprint,
+      context.topic,
+    );
     speechPolish.processed++;
     speechPolish.lastChanged = polish.changed;
     speechPolish.lastLocale = context.locale;
@@ -142,7 +159,8 @@ function reactionFromProviderIntents(
 
 function reactionKindForIntent(intent: AiIntent['type']): AiSpeechReaction['kind'] | null {
   switch (intent) {
-    case 'approachObject': return 'approach';
+    case 'approachObject':
+      return 'approach';
     case 'avoidObject':
     case 'seekShelter':
       return 'avoid';
@@ -160,17 +178,31 @@ function reactionKindForIntent(intent: AiIntent['type']): AiSpeechReaction['kind
 function validateIntentTargets(
   intent: AiIntent,
   context: AiJobContextV1,
-): { ok: true; hasTarget: boolean; targetEntityId?: number; targetObjectId?: number; targetItemId?: string } | { ok: false; reason: string } {
+):
+  | {
+      ok: true;
+      hasTarget: boolean;
+      targetEntityId?: number;
+      targetObjectId?: number;
+      targetItemId?: string;
+    }
+  | { ok: false; reason: string } {
   const visibleEntityIds = visibleIntentEntityIds(context);
   const visibleObjectEntityIds = visibleIntentObjectEntityIds(context);
   const visibleItemIds = visibleIntentItemIds(context);
   const targetEntityId = intent.targetEntityId;
   const targetObjectId = intent.targetObjectId;
   const targetItemId = intent.targetItemId;
-  if (targetEntityId !== undefined && (!Number.isInteger(targetEntityId) || !visibleEntityIds.has(targetEntityId))) {
+  if (
+    targetEntityId !== undefined &&
+    (!Number.isInteger(targetEntityId) || !visibleEntityIds.has(targetEntityId))
+  ) {
     return { ok: false, reason: 'intent targetEntityId is not visible in context' };
   }
-  if (targetObjectId !== undefined && (!Number.isInteger(targetObjectId) || !visibleObjectEntityIds.has(targetObjectId))) {
+  if (
+    targetObjectId !== undefined &&
+    (!Number.isInteger(targetObjectId) || !visibleObjectEntityIds.has(targetObjectId))
+  ) {
     return { ok: false, reason: 'intent targetObjectId is not visible in context' };
   }
   if (targetItemId !== undefined && !visibleItemIds.has(targetItemId)) {
@@ -178,7 +210,8 @@ function validateIntentTargets(
   }
   return {
     ok: true,
-    hasTarget: targetEntityId !== undefined || targetObjectId !== undefined || targetItemId !== undefined,
+    hasTarget:
+      targetEntityId !== undefined || targetObjectId !== undefined || targetItemId !== undefined,
     ...(targetEntityId === undefined ? {} : { targetEntityId }),
     ...(targetObjectId === undefined ? {} : { targetObjectId }),
     ...(targetItemId === undefined ? {} : { targetItemId }),
@@ -190,12 +223,18 @@ function visibleIntentEntityIds(context: AiJobContextV1): Set<number> {
     context.player.entityId,
     context.entity.entityId,
     ...(context.scene?.companions.map((companion) => companion.entityId) ?? []),
-    ...(context.scene?.nearbySemanticObjects.flatMap((object) => object.entityId === null ? [] : [object.entityId]) ?? []),
+    ...(context.scene?.nearbySemanticObjects.flatMap((object) =>
+      object.entityId === null ? [] : [object.entityId],
+    ) ?? []),
   ]);
 }
 
 function visibleIntentObjectEntityIds(context: AiJobContextV1): Set<number> {
-  return new Set(context.scene?.nearbySemanticObjects.flatMap((object) => object.entityId === null ? [] : [object.entityId]) ?? []);
+  return new Set(
+    context.scene?.nearbySemanticObjects.flatMap((object) =>
+      object.entityId === null ? [] : [object.entityId],
+    ) ?? [],
+  );
 }
 
 function visibleIntentItemIds(context: AiJobContextV1): Set<string> {
@@ -246,7 +285,10 @@ function isLowInformationDynamicSpeech(text: string, locale: string): boolean {
   }
   if (locale === 'en' || locale === 'en_CA' || locale.toLowerCase().startsWith('en')) {
     const lower = normalized.toLowerCase();
-    const words = lower.replace(/[^a-z0-9'?\s]/g, '').split(/\s+/).filter(Boolean);
+    const words = lower
+      .replace(/[^a-z0-9'?\s]/g, '')
+      .split(/\s+/)
+      .filter(Boolean);
     if (!/[?]$/.test(lower)) return false;
     if (words.length <= 2) return true;
     return isThinEnglishQuestion(words);
@@ -291,12 +333,11 @@ const LOW_INFORMATION_ENGLISH_QUESTION_WORDS = new Set([
 
 function isThinEnglishQuestion(words: readonly string[]): boolean {
   if (words.length > 4) return false;
-  const cleanedWords = words
-    .map((word) => word.replace(/^\W+|\W+$/g, ''))
-    .filter(Boolean);
+  const cleanedWords = words.map((word) => word.replace(/^\W+|\W+$/g, '')).filter(Boolean);
   if (isVagueSensoryQuestion(cleanedWords)) return true;
-  const meaningfulWords = cleanedWords
-    .filter((word) => !LOW_INFORMATION_ENGLISH_QUESTION_WORDS.has(word));
+  const meaningfulWords = cleanedWords.filter(
+    (word) => !LOW_INFORMATION_ENGLISH_QUESTION_WORDS.has(word),
+  );
   return meaningfulWords.length === 0;
 }
 
@@ -304,7 +345,9 @@ const LOW_INFORMATION_SENSORY_QUESTION_VERBS = new Set(['feel', 'hear', 'notice'
 const LOW_INFORMATION_SENSORY_QUESTION_TARGETS = new Set(['it', 'that', 'this']);
 
 function isVagueSensoryQuestion(words: readonly string[]): boolean {
-  return words.length >= 2
-    && LOW_INFORMATION_SENSORY_QUESTION_VERBS.has(words[0] ?? '')
-    && LOW_INFORMATION_SENSORY_QUESTION_TARGETS.has(words[1] ?? '');
+  return (
+    words.length >= 2 &&
+    LOW_INFORMATION_SENSORY_QUESTION_VERBS.has(words[0] ?? '') &&
+    LOW_INFORMATION_SENSORY_QUESTION_TARGETS.has(words[1] ?? '')
+  );
 }

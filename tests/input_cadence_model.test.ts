@@ -1,5 +1,5 @@
 // The cadence-model test matrix (packet-3-input-cadence.md, R13 + R14): a
-// deterministic timeline generator models the REAL client input send scheme,
+// deterministic timeline generator models both REAL client input send arms. V1 is
 // the unconditional interval timer plus the changed-only gated rAF flush that
 // share one gate clock in src/net/online.ts, built from the REAL constants in
 // src/net/input_send_cadence.ts (the R13 lockstep: a client cadence change
@@ -16,6 +16,7 @@ import {
   classifyMsgLane,
   consumeLaneToken,
   createMsgLanes,
+  MSG_LANE_MOVEMENT_BURST,
   MSG_LANE_MOVEMENT_REFILL_PER_SECOND,
 } from '../server/msg_lanes';
 import {
@@ -25,12 +26,17 @@ import {
   type MsgDropCause,
   tallyDrop,
 } from '../server/msg_rate_limit';
+import { InputTickSampler } from '../src/game/input_tick_sampler';
 import {
   INPUT_FLUSH_GATE_MS,
   INPUT_SEND_TIMER_INTERVAL_MS,
   inputFlushGateOpen,
 } from '../src/net/input_send_cadence';
-import { TURN_SPEED } from '../src/sim/types';
+import {
+  MOVEMENT_FRAME_V2_PENDING_CAP,
+  MovementFrameV2Outbox,
+} from '../src/net/movement_frame_v2_wire';
+import { DT, emptyMoveInput, TURN_SPEED } from '../src/sim/types';
 
 // ---------------------------------------------------------------------------
 // Frame builders: the serialized shapes the real client puts on the wire, so
@@ -38,7 +44,7 @@ import { TURN_SPEED } from '../src/sim/types';
 // of real traffic (input frames land in the measured 74 to 106 byte range).
 // ---------------------------------------------------------------------------
 
-type FrameKind = 'input' | 'cast' | 'chat' | 'telemetry' | 'challenge' | 'logout';
+type FrameKind = 'input' | 'cast' | 'chat' | 'telemetry' | 'challenge' | 'rename' | 'logout';
 
 interface SendEvent {
   atMs: number; // receive time; equals send time except in the stall arm
@@ -58,6 +64,15 @@ function inputRaw(seq: number, facing: number): string {
   });
 }
 
+function inputRawV2(seq: number, ct: number): string {
+  return JSON.stringify({
+    t: 'input',
+    seq,
+    ct,
+    mi: { f: 1, b: 0, tl: 0, tr: 0, sl: 0, sr: 0, j: 0, dv: 0, sf: 0 },
+  });
+}
+
 function castRaw(): string {
   return JSON.stringify({ t: 'cmd', cmd: 'castSlot', slot: 0 });
 }
@@ -67,6 +82,9 @@ function chatRaw(line: number): string {
 }
 
 const TELEMETRY_RAW = JSON.stringify({ t: 'cmd', cmd: 'telemetry', apm: 42 });
+// A pet rename: the name-screen lane's tenant (R5), a dialog action at a
+// human cadence of single digits per minute.
+const RENAME_RAW = JSON.stringify({ t: 'cmd', cmd: 'pet_rename', name: 'Rex' });
 const CHALLENGE_RAW = JSON.stringify({
   t: 'cmd',
   cmd: 'challengeResponse',
@@ -76,7 +94,7 @@ const CHALLENGE_RAW = JSON.stringify({
 const LOGOUT_RAW = JSON.stringify({ t: 'logout' });
 
 // ---------------------------------------------------------------------------
-// The client cadence model (R13): one merged walk over the timer grid and the
+// The v1 client cadence model (R13): one merged walk over the timer grid and the
 // rAF grid, reproducing the online.ts sendInput scheme from the REAL imported
 // constants. The timer arm sends unconditionally and the flush arm sends only
 // when the input signature changed AND the shared gate is open; EVERY send
@@ -138,6 +156,23 @@ function heldTurnInputStream(hz: number, timerOffsetMs: number, durationMs: numb
   return events;
 }
 
+function sampledV2InputStream(durationMs: number, neutralAtMs: number | null = null): SendEvent[] {
+  const sampler = new InputTickSampler();
+  const events: SendEvent[] = [];
+  let seq = 0;
+  sampler.reset(0);
+  for (let now = 0; now <= durationMs; now++) {
+    if (now === neutralAtMs) {
+      const neutral = sampler.emitNeutralFrame(now);
+      events.push({ atMs: now, kind: 'input', raw: inputRawV2(++seq, neutral.ct) });
+    }
+    for (const frame of sampler.advance(now, () => ({ mi: emptyMoveInput(), facing: null }))) {
+      events.push({ atMs: now, kind: 'input', raw: inputRawV2(++seq, frame.ct) });
+    }
+  }
+  return events;
+}
+
 function everyMs(
   startMs: number,
   stepMs: number,
@@ -166,7 +201,7 @@ function mergeStreams(...streams: SendEvent[][]): SendEvent[] {
 // R6, exempt frames never lane-checked, a kick tearing the session down).
 // ---------------------------------------------------------------------------
 
-type DropCause = MsgDropCause | 'lane_movement' | 'lane_command' | 'lane_chat';
+type DropCause = MsgDropCause | 'lane_movement' | 'lane_command' | 'lane_chat' | 'lane_name_screen';
 
 interface DropRecord {
   atMs: number;
@@ -183,7 +218,7 @@ interface ChainOutcome {
 }
 
 function zeroKindCounts(): Record<FrameKind, number> {
-  return { input: 0, cast: 0, chat: 0, telemetry: 0, challenge: 0, logout: 0 };
+  return { input: 0, cast: 0, chat: 0, telemetry: 0, challenge: 0, rename: 0, logout: 0 };
 }
 
 // Receive-time epoch: an arbitrary real-world second, so the abuse window's
@@ -280,8 +315,16 @@ function buildMix(mix: MixName, hz: number, offsetMs: number): SendEvent[] {
         () => TELEMETRY_RAW,
       );
       const challenge: SendEvent[] = [{ atMs: 13_700, kind: 'challenge', raw: CHALLENGE_RAW }];
+      // Pet renames on the name-screen lane: one per 4 s (an ADMISSION check
+      // at a dialog cadence, not a refill pin; the literal lives in
+      // tests/msg_lanes.test.ts) plus one burst-sized mash of five inside a
+      // second on a full bucket, which pins the burst: a smaller one drops one.
+      const rename = mergeStreams(
+        everyMs(4000, 4000, MATRIX_DURATION_MS - 1, 'rename', () => RENAME_RAW),
+        everyMs(22_000, 10, 22_040, 'rename', () => RENAME_RAW),
+      );
       const logout: SendEvent[] = [{ atMs: MATRIX_DURATION_MS, kind: 'logout', raw: LOGOUT_RAW }];
-      return mergeStreams(input, gcd, mash, chat, telemetry, challenge, logout);
+      return mergeStreams(input, gcd, mash, chat, telemetry, challenge, rename, logout);
     }
   }
 }
@@ -328,11 +371,11 @@ function expectHonestInputLoad(events: SendEvent[], combo: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Client constant lockstep (R13).
+// Client constant lockstep (R13), with separate v1 and v2 arms.
 // ---------------------------------------------------------------------------
 
 describe('client cadence constant lockstep', () => {
-  it('pins the model constants to the real client cadence exports', () => {
+  it('pins the v1 model constants to the real client cadence exports', () => {
     // The matrix maths above derives from these two imports; if the client
     // cadence ever changes these pins flag the contract for deliberate
     // re-sizing instead of letting the matrix drift.
@@ -347,13 +390,58 @@ describe('client cadence constant lockstep', () => {
     expect(inputFlushGateOpen(1500, Number.NEGATIVE_INFINITY)).toBe(true);
   });
 
-  it('keeps both server refills above the analytic input stream hard cap', () => {
+  it('keeps both server refills above the analytic v1 input stream hard cap', () => {
     // The R5 sizing property, cross-pinned against the REAL client constants:
     // flush arm at most 1000 / gate, timer arm 1000 / interval on top.
     const analyticCap = 1000 / INPUT_FLUSH_GATE_MS + 1000 / INPUT_SEND_TIMER_INTERVAL_MS;
     expect(analyticCap).toBeCloseTo(82.5, 6);
     expect(MSG_LANE_MOVEMENT_REFILL_PER_SECOND).toBeGreaterThan(analyticCap);
     expect(MSG_RATE_REFILL_PER_SECOND).toBeGreaterThan(analyticCap);
+  });
+
+  it('keeps the v2 sampler, neutral frame, and flush burst inside the movement lane', () => {
+    const durationMs = 30_000;
+    const steady = sampledV2InputStream(durationMs);
+    expect(steady).toHaveLength(durationMs / (DT * 1000));
+    expectCleanRun(runChain(steady), 'v2 steady sampler');
+    expect(steady.length / (durationMs / 1000)).toBe(20);
+    expect(1 / DT).toBeLessThan(MSG_LANE_MOVEMENT_REFILL_PER_SECOND);
+
+    const withNeutral = sampledV2InputStream(durationMs, 10_025);
+    expect(withNeutral).toHaveLength(steady.length);
+    expect(withNeutral.some((event) => event.atMs === 10_025)).toBe(true);
+    expectCleanRun(runChain(withNeutral), 'v2 neutral frame');
+
+    const sent: string[] = [];
+    const socket = { bufferedAmount: 100_000, send: (raw: string) => sent.push(raw) };
+    const outbox = new MovementFrameV2Outbox();
+    let lastSeq = 0;
+    for (let ct = 0; ct <= MOVEMENT_FRAME_V2_PENDING_CAP; ct++) {
+      lastSeq = outbox.send(
+        socket,
+        true,
+        { ct, mi: emptyMoveInput(), facing: null },
+        lastSeq,
+      ).lastSeq;
+    }
+    expect(sent).toHaveLength(0);
+    expect(lastSeq).toBe(0);
+
+    socket.bufferedAmount = 0;
+    lastSeq = outbox.send(
+      socket,
+      true,
+      { ct: MOVEMENT_FRAME_V2_PENDING_CAP + 1, mi: emptyMoveInput(), facing: null },
+      lastSeq,
+    ).lastSeq;
+    expect(sent).toHaveLength(MOVEMENT_FRAME_V2_PENDING_CAP + 1);
+    expect(lastSeq).toBe(MOVEMENT_FRAME_V2_PENDING_CAP + 1);
+    expect(sent.map((raw) => JSON.parse(raw).ct)).toEqual(
+      Array.from({ length: MOVEMENT_FRAME_V2_PENDING_CAP + 1 }, (_, index) => index + 1),
+    );
+    expect(sent.length).toBeLessThan(MSG_LANE_MOVEMENT_BURST);
+    const flush = sent.map((raw) => ({ atMs: 1000, kind: 'input' as const, raw }));
+    expectCleanRun(runChain(flush), 'v2 backpressure flush');
   });
 
   it('ends the harness session at a clean logout and processes nothing after it', () => {

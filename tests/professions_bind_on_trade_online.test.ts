@@ -12,14 +12,16 @@
 //      never even begin.
 //   2. The bindOnTrade JSONB persistence round-trip: an armed-unstamped payload
 //      and a stamped payload both survive serializeCharacter -> JSON -> load
-//      byte-identically inside an InvSlot, and an absurd persisted count on an
-//      armed instanced stack load-clamps through the SHARED bags.ts
-//      instancedCountCap ceiling (no bespoke bypass for the new payload shape).
-//   3+4. Online throttled-deny surfacing + cross-action attribution over a live
-//      GameServer: the shared 10-per-60s window (action_throttle.ts) is spent by
-//      mixed real actions, and the (MAX+1)th action denies over the wire with
-//      ITS OWN event type / reason 'throttled', never a sibling action's event,
-//      consuming nothing.
+//      byte-identically inside an InvSlot; resonant_steel is a source-aware
+//      material, so an absurd persisted count refuses the whole load when the
+//      per-source composition no longer sums to it (no bespoke bypass for the
+//      new payload shape), and is tolerated as legacy excess, per-source
+//      bucket intact, when the composition stays internally consistent.
+//   3+4. Online concurrent-cast busy deny + cross-action attribution over a live
+//      GameServer (Craft Cast System Phase 5 retired the shared throttle): a
+//      second profession action while one cast is live denies with ITS OWN
+//      event type / reason 'busy', never a sibling action's event, consuming
+//      nothing.
 //
 // These arms deliberately do NOT duplicate the shipped suites: the offline
 // resolver/yield/trade-lock semantics, the single-client online routing of a
@@ -50,12 +52,11 @@ vi.mock('../server/db', () => ({
 }));
 
 import { type ClientSession, GameServer } from '../server/game';
-import { ClientWorld } from '../src/net/online';
-import { instancedCountCap } from '../src/sim/bags';
-import { ITEMS } from '../src/sim/data';
-import { CRAFT_THROTTLE_MAX_PER_WINDOW } from '../src/sim/professions/action_throttle';
+import type { ClientWorld } from '../src/net/online';
 import { type PlayerMeta, Sim } from '../src/sim/sim';
-import type { InvSlot, PlayerClass, SimEvent } from '../src/sim/types';
+import type { InvSlot, SimEvent } from '../src/sim/types';
+import { bareClient } from './helpers/bare_client';
+import { completeEnchantFamilyCast } from './helpers/enchant_family_cast';
 
 // A common one-hand weapon: disenchants to arcane_dust (sub-rare, no typed
 // secondary) and salvages to bone_fragments. Both actions draw the shared
@@ -118,6 +119,12 @@ function routeTick(server: GameServer): void {
   (server as unknown as { routeEvents(e: SimEvent[]): void }).routeEvents(server.sim.tick());
 }
 
+/** Complete a running profession cast on the server sim and route its events. */
+function flushProfessionCast(server: GameServer, pid: number): void {
+  completeEnchantFamilyCast(server.sim as never, pid);
+  routeTick(server);
+}
+
 function broadcast(server: GameServer): void {
   (server as unknown as { broadcastSnapshots(): void }).broadcastSnapshots();
 }
@@ -152,57 +159,6 @@ function tradeSessionFor(
   return (server.sim as unknown as { ctx: { trades: Map<number, any> } }).ctx.trades.get(pid);
 }
 
-// A ClientWorld without the WebSocket plumbing, to drive applySnapshot directly
-// (the tests/snapshots.test.ts bareClient shape).
-function bareClient(pid: number, playerClass: PlayerClass = 'warrior'): ClientWorld {
-  const c: any = Object.create(ClientWorld.prototype);
-  c.cfg = { seed: 20061, playerClass };
-  c.entities = new Map();
-  c.playerId = pid;
-  c.ownPlayerId = pid;
-  c.ownPlayerClass = playerClass;
-  c.spectating = null;
-  c.cupInfo = null;
-  c.lastVcupRemainder = null;
-  c.lastVcupShared = null;
-  c.sportRole = null;
-  c.moveInput = {};
-  c.inventory = [];
-  c.vendorBuyback = [];
-  c.equipment = {};
-  c.accountCosmetics = { completedQuestIds: [], mechChromaIds: [] };
-  c.copper = 0;
-  c.honor = 0;
-  c.lifetimeHonor = 0;
-  c.xp = 0;
-  c.known = [];
-  c.questLog = new Map();
-  c.questsDone = new Set();
-  c.pendingQuestCommands = new Map();
-  c.partyInfo = null;
-  c.selectedDungeonDifficulty = 'normal';
-  c.tradeInfo = null;
-  c.duelInfo = null;
-  c.lastSnapAt = 0;
-  c.snapInterval = 50;
-  c.serverTickHz = null;
-  c.missingSince = new Map();
-  c.pendingFacingDelta = 0;
-  c.connected = true;
-  c.eventQueue = [];
-  c.mouselookFacing = null;
-  c.lastInputSentAt = 0;
-  c.lastInputSig = '';
-  c.inputSeq = 0;
-  c.pendingInputSeqSentAt = new Map();
-  c.ackedInputSeq = 0;
-  c.inputEchoSamples = [];
-  c.spectateFacingPending = false;
-  c.pendingSpectateFacing = null;
-  c.nodeCooldowns = new Map();
-  return c;
-}
-
 function applySnap(client: ClientWorld, snap: unknown): void {
   (client as unknown as { applySnapshot(s: unknown): void }).applySnapshot(snap);
 }
@@ -221,11 +177,13 @@ describe('online bind-on-trade arc (two sessions, live GameServer)', () => {
     placeAt(server, b.pid, FIELD_B);
 
     // A disenchants two rares -> two armed, unstamped resonant_steel copies that
-    // stack into one slot of count 2 (byte-equal payloads).
+    // stack into one slot of count 2 (byte-equal payloads). Cast-paced: flush
+    // each cast before starting the next (concurrent start is busy).
     server.sim.addItem(RARE_WEAPON, 2, a.pid);
     cmd(server, a, { cmd: 'disenchant_item', item: RARE_WEAPON });
+    flushProfessionCast(server, a.pid);
     cmd(server, a, { cmd: 'disenchant_item', item: RARE_WEAPON });
-    routeTick(server);
+    flushProfessionCast(server, a.pid);
     const aStack = serverInv(server, a.pid).find((s) => s.itemId === SECONDARY);
     expect(aStack?.count).toBe(2);
     expect(aStack?.instance?.bindOnTrade).toBe(true);
@@ -297,7 +255,18 @@ describe('online bind-on-trade arc (two sessions, live GameServer)', () => {
     expect(eventsFor(fcA.sent, 'error').length).toBe(aErrBeforeReoffer); // no bound deny
     const aSession = tradeSessionFor(server, a.pid);
     const aOffer = aSession?.a === a.pid ? aSession?.offerA : aSession?.offerB;
-    expect(aOffer?.items).toEqual([{ itemId: SECONDARY, count: 1 }]);
+    // The staged slot carries the armed payload since the per-copy staging
+    // change: the counterparty SEES bind arming before agreeing. The single
+    // unit is unrecorded provenance (no gatherer, no signer), stated exactly
+    // as its own source bucket rather than dropped from the comparison.
+    expect(aOffer?.items).toEqual([
+      {
+        itemId: SECONDARY,
+        count: 1,
+        instance: { bindOnTrade: true },
+        materialSources: [{ source: {}, count: 1 }],
+      },
+    ]);
     cmd(server, a, { cmd: 'trade_cancel' });
   });
 });
@@ -334,7 +303,7 @@ describe('bindOnTrade persistence round-trip (serialize -> JSONB -> load)', () =
     expect(stamped?.count).toBe(1);
   });
 
-  it('an absurd persisted count on an armed instanced stack load-clamps through the SHARED instancedCountCap', () => {
+  it('an absurd persisted count on an armed instanced stack refuses the load unless the composition stays internally consistent (no bespoke bypass for the new payload shape)', () => {
     const src = freshSim();
     const pid = src.addPlayer('warrior', 'Src');
     src.ctx.addItemInstance(SECONDARY, { bindOnTrade: true }, pid);
@@ -342,101 +311,110 @@ describe('bindOnTrade persistence round-trip (serialize -> JSONB -> load)', () =
     const state = src.serializeCharacter(pid);
     if (!state) throw new Error('serializeCharacter returned null');
     const wire = JSON.parse(JSON.stringify(state)) as typeof state;
-    // Tamper: inflate the armed stack's persisted count far past any legitimate
-    // merge could build.
+    // Tamper: inflate ONLY the top-level count, past any legitimate merge
+    // could build, while leaving the persisted per-source composition (one
+    // unrecorded unit) untouched. resonant_steel is now a source-aware
+    // material (an enchanting reagent), so the shared bags.ts
+    // instancedCountCap ceiling that clamps a NON-material instanced stack
+    // never runs for it (materials tolerate legacy excess; packing applies
+    // the cap on every later grant, never on raw load). What DOES run is the
+    // exact-composition gate: a top-level count with no matching bucket sum
+    // is an internally inconsistent payload, and the load refuses whole
+    // rather than silently laundering the tamper into a wider stack.
     const tampered = wire.inventory.find((s) => s.itemId === SECONDARY);
     if (!tampered) throw new Error('no persisted resonant_steel slot');
     tampered.count = 9999;
 
     const dst = freshSim(9);
-    const loadedPid = dst.addPlayer('warrior', 'Dst', { state: wire });
-    const loaded = (dst.ctx.resolve(loadedPid)?.meta.inventory ?? []).find(
+    const before = dst.ctx.players.size;
+    expect(() => dst.addPlayer('warrior', 'Dst', { state: wire })).toThrow(
+      /material source state is invalid; refusing character load/,
+    );
+    // Nothing was half-created by the refused load.
+    expect(dst.ctx.players.size).toBe(before);
+
+    // The same tamper, but with the composition kept in step (a single
+    // unrecorded bucket honestly claiming the inflated total): the exact
+    // per-source accounting the new model is built on, not a dropped field.
+    const consistent = JSON.parse(JSON.stringify(state)) as typeof state;
+    const consistentSlot = consistent.inventory.find((s) => s.itemId === SECONDARY);
+    if (!consistentSlot) throw new Error('no persisted resonant_steel slot');
+    consistentSlot.count = 9999;
+    (consistentSlot as unknown as InvSlot).materialSources = [{ source: {}, count: 9999 }];
+
+    const dst2 = freshSim(11);
+    const loadedPid = dst2.addPlayer('warrior', 'Dst2', { state: consistent });
+    const loaded = (dst2.ctx.resolve(loadedPid)?.meta.inventory ?? []).find(
       (s) => s.itemId === SECONDARY,
     );
-    // The load consumed the SHARED bags.ts helper: the armed payload is mergeable
-    // (no charges), so it caps at the item's stack size, NOT at 1, and NOT at the
-    // tampered 9999. No bespoke bypass for the new bindOnTrade shape.
-    const cap = instancedCountCap(ITEMS[SECONDARY], { bindOnTrade: true });
-    expect(loaded?.count).toBe(cap);
-    expect(cap).toBeGreaterThan(1); // mergeable arm (stack size), not the one-per-slot charge arm
-    expect(loaded?.count).toBeLessThan(9999); // genuinely clamped
+    // No bespoke bypass in the OTHER direction either: a genuinely
+    // consistent material composition is tolerated legacy excess, never
+    // silently clamped or destroyed, and its per-source bucket rides along.
+    expect(loaded?.count).toBe(9999);
+    expect(loaded?.materialSources).toEqual([{ source: {}, count: 9999 }]);
     expect(loaded?.instance).toEqual({ bindOnTrade: true }); // payload itself untouched
   });
 });
 
 // ---------------------------------------------------------------------------
-// Arms 3 + 4: online throttled-deny surfacing and cross-action attribution.
-// The shared window (action_throttle.ts) is burned by REAL mixed actions over a
-// live GameServer; no sim.tick runs during the burn, so sim.time (and the
-// window) never advances until the deny is observed.
+// Arms 3 + 4: online concurrent-cast busy deny and cross-action attribution.
+// Craft Cast System Phase 5: cast duration paces; a second action while a cast
+// is live denies with reason 'busy' on that action's own event type.
 // ---------------------------------------------------------------------------
-describe('online shared-throttle deny surfacing (live GameServer)', () => {
-  it('a throttled disenchant surfaces reason "throttled" over the event AND the denc delta, consuming nothing', () => {
+describe('online concurrent-cast busy deny surfacing (live GameServer)', () => {
+  it('a busy disenchant surfaces reason "busy" over the event AND the denc delta, consuming nothing', () => {
     const server = new GameServer();
     const fc = fakeWs();
     const st = joinServer(server, fc, 611, 'Windowed');
     placeAt(server, st.pid, FIELD_A);
-    // 11 copies: 10 to burn the shared window via a genuine MIX (5 salvage + 5
-    // disenchant), 1 left for the throttled attempt.
-    server.sim.addItem(COMMON_WEAPON, CRAFT_THROTTLE_MAX_PER_WINDOW + 1, st.pid);
+    server.sim.addItem(COMMON_WEAPON, 2, st.pid);
 
-    const half = CRAFT_THROTTLE_MAX_PER_WINDOW / 2;
-    for (let i = 0; i < half; i++) cmd(server, st, { cmd: 'salvage_item', item: COMMON_WEAPON });
-    for (let i = 0; i < CRAFT_THROTTLE_MAX_PER_WINDOW - half; i++)
-      cmd(server, st, { cmd: 'disenchant_item', item: COMMON_WEAPON });
-    // The window is now spent by mixed action types. Capture the pre-deny stock.
+    // Start a salvage cast (holds the non-spell cast slot).
+    cmd(server, st, { cmd: 'salvage_item', item: COMMON_WEAPON });
     const weaponsBefore = server.sim.countItem(COMMON_WEAPON, st.pid);
     const dustBefore = server.sim.countItem(DUST, st.pid);
-    expect(weaponsBefore).toBe(1);
+    expect(weaponsBefore).toBe(2);
 
     cmd(server, st, { cmd: 'disenchant_item', item: COMMON_WEAPON });
     routeTick(server);
 
-    // Immediacy arm: the pid-scoped disenchantResult carries reason 'throttled'.
     const denc = eventsFor(fc.sent, 'disenchantResult');
-    const throttled = denc[denc.length - 1];
-    if (throttled?.type !== 'disenchantResult') throw new Error('expected disenchantResult');
-    expect(throttled.ok).toBe(false);
-    expect(throttled.reason).toBe('throttled');
-    expect(throttled.pid).toBe(st.pid);
+    const busy = denc[denc.length - 1];
+    if (busy?.type !== 'disenchantResult') throw new Error('expected disenchantResult');
+    expect(busy.ok).toBe(false);
+    expect(busy.reason).toBe('busy');
+    expect(busy.pid).toBe(st.pid);
 
-    // Convergence arm: the denc self-delta mirrors the throttled stash, and a
-    // real ClientWorld decodes it onto lastDisenchantResult.
     broadcast(server);
     const snap = lastSnap(fc.sent);
     if (!snap) throw new Error('no snapshot');
     const stash = server.sim.lastDisenchantResultFor(st.pid);
-    expect(stash?.reason).toBe('throttled');
+    expect(stash?.reason).toBe('busy');
     expect(snap.self.denc).toEqual(stash);
     const client = bareClient(st.pid);
     applySnap(client, snap);
     expect(client.lastDisenchantResult).toEqual(stash);
 
-    // The throttled attempt consumed nothing and granted nothing.
     expect(server.sim.countItem(COMMON_WEAPON, st.pid)).toBe(weaponsBefore);
     expect(server.sim.countItem(DUST, st.pid)).toBe(dustBefore);
   });
 
-  it('a throttled salvage after disenchant spends denies with salvageResult, NEVER a disenchantResult', () => {
+  it('a busy salvage after a live disenchant denies with salvageResult, NEVER a disenchantResult', () => {
     const server = new GameServer();
     const fc = fakeWs();
     const st = joinServer(server, fc, 612, 'Attributed');
     placeAt(server, st.pid, FIELD_A);
-    // 11 copies: 10 disenchants spend the shared window, 1 left to salvage.
-    server.sim.addItem(COMMON_WEAPON, CRAFT_THROTTLE_MAX_PER_WINDOW + 1, st.pid);
+    server.sim.addItem(COMMON_WEAPON, 2, st.pid);
 
-    for (let i = 0; i < CRAFT_THROTTLE_MAX_PER_WINDOW; i++)
-      cmd(server, st, { cmd: 'disenchant_item', item: COMMON_WEAPON });
-    routeTick(server); // drain the burn's disenchantResult events
+    cmd(server, st, { cmd: 'disenchant_item', item: COMMON_WEAPON });
+    routeTick(server);
     const lastDencBefore = server.sim.lastDisenchantResultFor(st.pid);
-    expect(lastDencBefore?.ok).toBe(true); // the burn ended on a success
+    // Start may leave lastDisenchantResult unset until complete; busy path sets
+    // salvageResult only. Capture mark after the first command's events.
     const mark = fc.sent.length;
     const weaponsBefore = server.sim.countItem(COMMON_WEAPON, st.pid);
-    expect(weaponsBefore).toBe(1);
+    expect(weaponsBefore).toBe(2);
 
-    // The (MAX+1)th action is a SALVAGE: it sees the window spent by disenchants
-    // (the window is genuinely shared across action types) and denies with its
-    // OWN event type.
     cmd(server, st, { cmd: 'salvage_item', item: COMMON_WEAPON });
     routeTick(server);
 
@@ -444,13 +422,10 @@ describe('online shared-throttle deny surfacing (live GameServer)', () => {
     expect(newSalv).toHaveLength(1);
     if (newSalv[0].type !== 'salvageResult') throw new Error('expected salvageResult');
     expect(newSalv[0].ok).toBe(false);
-    expect(newSalv[0].reason).toBe('throttled');
-    // Discrimination: the throttled salvage emitted NO disenchantResult, and it
-    // did not overwrite the disenchant stash either.
+    expect(newSalv[0].reason).toBe('busy');
     expect(eventsFor(fc.sent, 'disenchantResult', mark)).toEqual([]);
     expect(server.sim.lastDisenchantResultFor(st.pid)).toEqual(lastDencBefore);
-    expect(server.sim.lastSalvageResultFor(st.pid)?.reason).toBe('throttled');
-    // Nothing consumed by the throttled attempt.
+    expect(server.sim.lastSalvageResultFor(st.pid)?.reason).toBe('busy');
     expect(server.sim.countItem(COMMON_WEAPON, st.pid)).toBe(weaponsBefore);
   });
 });

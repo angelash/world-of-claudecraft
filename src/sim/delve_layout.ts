@@ -1,7 +1,7 @@
 // Compact delve module layouts as plain numbers, mirrors dungeon_layout.ts for
 // modular 10 to 20 minute instances (~40yd wide, ~80yd deep). Sim layer: no
 // three.js imports.
-import type { Collider } from './colliders';
+import type { LayoutCollider } from './colliders';
 import {
   isLitanyModuleId,
   type LitanyModuleId,
@@ -148,7 +148,7 @@ export const RELIQUARY_FINALE_LAYOUT: DungeonLayout = {
   // Two tomb rows in the south half; north fighting ring stays clear.
   tombs: grid(16, 28, 12, [-19, 19]),
   stubs: [],
-  // Wider dais (r=12) so Deacon Varric's 8yd Bell Toll stomp fits without
+  // Wider dais (r=12) so Deacon Vandric's 8yd Bell Toll stomp fits without
   // the boss immediately stepping off the platform.
   dais: { x: 0, z: 80, r: 12 },
   clutter: FINALE_CLUTTER,
@@ -189,7 +189,7 @@ export const DELVE_MODULE_LAYOUTS: Record<DelveModuleId, DungeonLayout> = {
 };
 
 /** Interior collision set for a delve module, in instance-local coordinates. */
-export function delveModuleColliders(moduleId: DelveModuleId): Collider[] {
+export function delveModuleColliders(moduleId: DelveModuleId): LayoutCollider[] {
   if (isLitanyModuleId(moduleId)) return litanyModuleColliders(moduleId);
   return layoutColliders(DELVE_MODULE_LAYOUTS[moduleId]);
 }

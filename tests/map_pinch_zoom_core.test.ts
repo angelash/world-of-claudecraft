@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   MAP_MIN_ZOOM,
@@ -6,6 +7,8 @@ import {
   MapPinchZoomCore,
   mapPinchZoomFactor,
   nextMapZoom,
+  zoomOutExitsZoneLevel,
+  zoomOutLevelExit,
 } from '../src/ui/map_pinch_zoom_core';
 import { MAP_MAX_ZOOM } from '../src/ui/map_window_view';
 
@@ -36,6 +39,62 @@ describe('map pinch zoom core', () => {
     expect(MAP_MAX_ZOOM).toBe(6);
     expect(nextMapZoom(1, 100)).toBe(6);
     expect(nextMapZoom(6, 0.01)).toBe(1);
+  });
+
+  it('turns a zoom-out at full extent into the continent overview, and nothing else', () => {
+    // The case the rule exists for: at MAP_MIN_ZOOM the zone map already shows the
+    // whole zone, so nextMapZoom clamps and the minus button used to do nothing.
+    expect(nextMapZoom(MAP_MIN_ZOOM, 1 / 1.4)).toBe(MAP_MIN_ZOOM);
+    expect(zoomOutExitsZoneLevel(MAP_MIN_ZOOM, 1 / 1.4)).toBe(true);
+    // Still zoomed in: the zoom-out is a real zoom, not a level change.
+    expect(zoomOutExitsZoneLevel(1.4, 1 / 1.4)).toBe(false);
+    expect(zoomOutExitsZoneLevel(MAP_MAX_ZOOM, 0.01)).toBe(false);
+    // Zoom IN never leaves the level, and a pinch inside its deadzone (factor
+    // exactly 1) is not a zoom-out at all.
+    expect(zoomOutExitsZoneLevel(MAP_MIN_ZOOM, 1.4)).toBe(false);
+    expect(zoomOutExitsZoneLevel(MAP_MIN_ZOOM, 1)).toBe(false);
+    // A zoom state below the minimum (a clamp that has not run yet) still counts.
+    expect(zoomOutExitsZoneLevel(0.5, 0.9)).toBe(true);
+    expect(zoomOutExitsZoneLevel(Number.NaN, 0.9)).toBe(false);
+  });
+
+  it('turns a zoom-out on the instance plan into the zone map, and keeps the zone rule', () => {
+    // The reported gap: inside a raid or dungeon the map showed the floor plan
+    // and every zoom-out (minus button, wheel-down, pinch) was swallowed, so the
+    // world map was unreachable by the gesture players reach for first. The plan
+    // has no zoom of its own, so ANY zoom-out there leaves for the zone map,
+    // whatever the stale zone zoom value happens to be.
+    expect(zoomOutLevelExit('instance', MAP_MIN_ZOOM, 1 / 1.4)).toBe('zone');
+    expect(zoomOutLevelExit('instance', MAP_MAX_ZOOM, 1 / 1.2)).toBe('zone');
+    expect(zoomOutLevelExit('instance', Number.NaN, 0.9)).toBe('zone');
+    // Zoom-in and a deadzone pinch (factor exactly 1) never leave the plan.
+    expect(zoomOutLevelExit('instance', MAP_MIN_ZOOM, 1.4)).toBeNull();
+    expect(zoomOutLevelExit('instance', MAP_MIN_ZOOM, 1)).toBeNull();
+    // The zone map keeps its own rule: only a zoom-out at full extent leaves.
+    expect(zoomOutLevelExit('zone', MAP_MIN_ZOOM, 1 / 1.4)).toBe('continent');
+    expect(zoomOutLevelExit('zone', 1.4, 1 / 1.4)).toBeNull();
+    expect(zoomOutLevelExit('zone', MAP_MIN_ZOOM, 1.4)).toBeNull();
+    // The continent overview is the top: nothing to zoom out to.
+    expect(zoomOutLevelExit('continent', MAP_MIN_ZOOM, 1 / 1.4)).toBeNull();
+  });
+
+  it('is wired into every world-map zoom-out path, including the instance plan', () => {
+    // The rule lives in Hud.zoomMap, which the minus button, the wheel and the
+    // pinch gesture all funnel through, so all three inherit it from one place.
+    // The guard is on the painted LEVEL, not the player's position: the zone map
+    // is reachable from inside an instance (map_surface_core.ts) and zooms there
+    // too, and the instance plan's only zoom is the zoom-out that leaves it.
+    const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+    expect(hud).toContain("$('#map-zoom-out')?.addEventListener('click', () => this.zoomMap(");
+    expect(hud).toContain('onZoom: (factor) => this.zoomMap(factor)');
+    expect(hud).toMatch(
+      /private zoomMap\(factor: number\): void \{(?:\s*\/\/[^\n]*)*\s*const exit = zoomOutLevelExit\(this\.mapLevel, this\.mapZoom, factor\);\s*if \(exit\) \{\s*this\.setMapLevel\(exit\);\s*return;\s*\}\s*if \(this\.mapLevel !== 'zone'\) return;/,
+    );
+    // The wheel handler no longer pre-filters on the zone level (that filter
+    // would have swallowed the instance zoom-out before zoomMap saw it).
+    expect(hud).not.toContain(
+      "if (this.mapLevel !== 'zone') return; // no per-zone zoom on the overview",
+    );
   });
 
   it('drives the pinch state machine through plain pointer inputs', () => {

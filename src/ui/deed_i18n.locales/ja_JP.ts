@@ -7,6 +7,163 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  exp_arcane_calligraphy: {
+    name: '揺るがぬ筆運び',
+    desc: 'イーストブルック渓谷で秘術の書道を完了する。',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: '星明かりに記されて',
+    desc: 'イーストブルック渓谷の秘術の書道でゴールド評価を獲得する。',
+    title: 'ルーンを呼ぶ者',
+  },
+  exp_dawnhold_castle: {
+    name: '庭園に開かれた扉',
+    desc: 'ドーンホールド城を訪ね、日差しあふれる庭園の広間を巡ろう。',
+  },
+  exp_the_last_keep: {
+    name: '静寂の広間',
+    desc: '最後の砦の扉をくぐり、静まり返った広間を歩こう。',
+  },
+  pvp_bg_first_capture: {
+    name: '手中の軍旗',
+    desc: 'ソーンホロウ平原で旗を奪う。',
+  },
+  pvp_bg_first_win: {
+    name: 'ソーンホロウ初陣を飾る',
+    desc: 'ソーンホロウ平原で勝利する。',
+  },
+  pvp_bg_wins_25: {
+    name: 'ソーンホロウの番人',
+    desc: 'ソーンホロウ平原で25回勝利する。',
+    title: '旗手',
+  },
+  pvp_bg_captures_100: {
+    name: '百の軍旗',
+    desc: 'ソーンホロウ平原で通算100枚の旗を奪う。',
+  },
+  dgn_rift: {
+    name: 'リフト踏破者',
+    desc: 'フロアボスを倒してリフトを攻略する。',
+  },
+  dgn_rift_s_rank: {
+    name: 'リフトの君主',
+    desc: 'Sランクのリフトを攻略する。リフトポータルが出現させうる最高難度の階級だ。',
+  },
+  col_reliquary_rank_2: {
+    name: '戦利品の守り手',
+    desc: '聖遺物庫でキュレーターランク2に到達する（固有の聖遺物10種を収蔵）。',
+    title: '戦利品の守り手',
+  },
+  col_reliquary_rank_3: {
+    name: '目録編纂者',
+    desc: '聖遺物庫でキュレーターランク3に到達する（固有の聖遺物25種を収蔵）。',
+    title: '目録編纂者',
+  },
+  col_reliquary_rank_4: {
+    name: '首席キュレーター',
+    desc: '聖遺物庫でキュレーターランク4に到達する（固有の聖遺物50種を収蔵）。',
+    title: '首席キュレーター',
+  },
+  col_reliquary_rank_5: {
+    name: '永遠の戦利品',
+    desc: '聖遺物庫でキュレーターランク5に到達する（固有の聖遺物100種を収蔵）。',
+  },
+  pvp_honor_sergeant: {
+    name: '陣砕き',
+    desc: '生涯名誉10,000を獲得する。使っても階級を失うことはない。',
+    title: '陣砕き',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: '野荒らし',
+    desc: '生涯名誉40,000を獲得する。本物の戦を一シーズン戦い抜いてきた証だ。',
+    title: '野荒らし',
+  },
+  pvp_honor_field_marshal: {
+    name: '戦の冠',
+    desc: '生涯名誉150,000を獲得する。どのレルムでも希少であり、それでいい。',
+    title: '戦の冠',
+  },
+  col_reliquary_complete: {
+    name: '大いなる聖遺物庫',
+    desc: 'キャラクターが所蔵できる聖遺物庫のすべての聖遺物を収蔵する。のちに目録が増えても、この記録が取り消されることはない。',
+    title: '宝物庫のキュレーター',
+  },
+  col_reliquary_conquerors: {
+    name: '征服者の棚',
+    desc: '聖遺物庫の征服者の棚にあるすべての聖遺物を収蔵する。のちに目録が増えても、この記録が取り消されることはない。',
+    title: '宝物庫破り',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'ナイスラクシスの照耀',
+    desc: '聖遺物庫の「英雄: ナイスラクシスのレイド」のページを照耀する。',
+    title: 'ナイスラクシスの光',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'サンザールの照耀',
+    desc: '聖遺物庫の「サンザール、目覚めし峰」のページを照耀する。',
+    title: 'サンザールの光',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: '聖所の照耀',
+    desc: '聖遺物庫の「英雄: 墓ワームの聖所」のページを照耀する。',
+    title: '聖所の光',
+  },
+  chr_drakemaw_broodlord: {
+    name: '卵砕き',
+    desc: '咆哮と薙ぎ払い、そして業火をくぐり抜け、卵に囲まれた火口の巣主を討ち取れ。',
+  },
+  chr_maw_matriarch: {
+    name: '空の静寂',
+    desc: 'ドレイクモウを見下ろす火口のねぐらで、シンドラレス、火口の母竜を討ち取れ。',
+  },
+  chr_frostveil_gatherer: {
+    name: '段丘の収穫',
+    desc: 'Frostveilで鉱脈、木立、薬草畑を収穫する。',
+  },
+  chr_frostveil_first_cast: {
+    name: '湖沼の初氷',
+    desc: 'Frostveilの水辺で魚を釣る。',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Amberfallの収穫',
+    desc: 'Amberfallで鉱脈、木立、薬草畑を収穫する。',
+  },
+  chr_amberfall_first_cast: {
+    name: '大湿原の一匹',
+    desc: 'Amberfallの水辺で魚を釣る。',
+  },
+  chr_nightbloom_gatherer: {
+    name: '夢見る収穫',
+    desc: 'Nightbloomで鉱脈、木立、薬草畑を収穫する。',
+  },
+  chr_nightbloom_first_cast: {
+    name: '月の泉の波紋',
+    desc: 'Nightbloomの水辺で魚を釣る。',
+  },
+  chr_wraithwood_gatherer: {
+    name: '樹冠の下の収穫',
+    desc: 'Wraithwoodで鉱脈、木立、薬草畑を収穫する。',
+  },
+  chr_wraithwood_first_cast: {
+    name: '鏡の入り江への一投',
+    desc: 'Wraithwoodの水辺で魚を釣る。',
+  },
+  chr_palmreach_gatherer: {
+    name: '椰子浜の収穫',
+    desc: 'Palmreachで鉱脈、木立、薬草畑を収穫する。',
+  },
+  chr_palmreach_first_cast: {
+    name: 'サファイア潟への一投',
+    desc: 'Palmreachの水辺で魚を釣る。',
+  },
+  chr_evergarden_gatherer: {
+    name: '花壇の恵み',
+    desc: 'Evergardenで鉱脈、木立、薬草畑を収穫する。',
+  },
+  chr_evergarden_first_cast: {
+    name: '花びら池への一投',
+    desc: 'Evergardenの水辺で魚を釣る。',
+  },
   pvp_card_duel_first_win: {
     name: '我が流儀',
     desc: 'カードマスターのもとでカードデュエルに勝利する。',
@@ -50,7 +207,7 @@ export const table: DeedLocaleTable = {
   prog_herbalism_100: { name: '野辺の名人', desc: '薬草学の熟練度100に到達する。' },
   prog_master_gatherer: {
     name: '採集の達人',
-    desc: '採掘、伐採、薬草学、釣りのうち、いずれか3つの熟練度100に到達する。',
+    desc: 'いずれか3つの採集職で熟練度100に到達する。',
   },
   prog_first_craft: { name: '手仕事の味', desc: '初めての製作を成功させる。' },
   prog_craft_specialist: {
@@ -197,7 +354,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: '鳴りやむ鐘',
-    desc: '彼が甦らせる葬儀の鐘鳴らしをすべて先に仕留めてから、助祭ヴァリックを倒す。',
+    desc: '彼が甦らせる葬儀の鐘鳴らしをすべて先に仕留めてから、助祭ヴァンドリックを倒す。',
   },
   dlv_nhalia_bells: {
     name: '鐘鎮め',
@@ -210,7 +367,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: '渓谷年代記 第二章',
-    desc: 'ソールの年代記の第二章を仕上げる：盗賊、泥ひれの潜伏者、鉱山の害獣どもを退治し、ソウフィールドで試合をこなし、聖遺物庫へ挑む。',
+    desc: '山賊、マーロック、鉱山の害獣を討ち、聖遺物庫に挑んで、ソールの年代記の第2章を完了する。',
   },
   chr_vale_chapter_iii: {
     name: '渓谷の年代記',
@@ -227,8 +384,8 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_packbreaker: { name: '群れ崩し', desc: '10秒以内に森の狼を3体倒す。' },
   chr_vale_cup_debut: {
+    desc: 'ソウフィールドで行われるヴェイルカップの試合に出場し、ボールに触れる。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: '銅の手桶の挑戦者',
-    desc: 'ソウフィールドでのヴェイルカップの試合に出場し、ボールに触れる。',
   },
   chr_vale_rares: {
     name: '渓谷の恐怖',
@@ -273,12 +430,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'ソーンピークの年代記',
-    desc: '山の物語を最後まで見届ける：ワーム教団を壊滅させ、聖所を鎮め、目覚めし峰を打ち倒し、岩山に名だたる恐怖をことごとく討ち倒す。',
+    desc: '山の物語を最後まで見届ける：竜誓団を壊滅させ、聖所を鎮め、目覚めし峰を打ち倒し、岩山に名だたる恐怖をことごとく討ち倒す。',
     title: 'ソーンピークの語り部',
   },
   chr_peaks_sparring: {
     name: '城壁の型稽古',
-    desc: 'ハイウォッチの高台にある訓練用ダミーに合計1,000のダメージを与える。',
+    desc: '訓練用ダミーに合計1,000のダメージを与える。',
   },
   chr_peaks_glimmer_cast: {
     name: '冷たい水、さらに冷たい光',
@@ -362,7 +519,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'お得意様',
-    desc: '補給係ヴェックスの品揃え全10点を発見する。',
+    desc: '補給係ヴェックスの装備品全10点を発見する。',
   },
   col_glimmerfin: {
     name: '希望のきらめき',
@@ -400,56 +557,74 @@ export const table: DeedLocaleTable = {
   pvp_duel_first_win: { name: '表へ出ろ', desc: '決闘に勝利する。' },
   pvp_duel_grace: { name: '謙虚さの心得', desc: '威厳をおおむね保ったまま、決闘に敗れる。' },
   pvp_vcup_first_match: {
+    desc: 'ソウフィールドでヴェイルカップの試合を、勝敗にかかわらず最後まで戦い抜く。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: 'ピッチに立つ',
-    desc: '勝ち負けを問わず、ソウフィールドでのヴェイルカップの試合を最後まで戦い抜く。',
   },
-  pvp_vcup_first_win: { name: '初めての銀杯', desc: 'ヴェイルカップのレート戦に勝利する。' },
-  pvp_vcup_wins_10: { name: '熟練ボアボーラー', desc: 'ヴェイルカップのレート戦で10勝する。' },
+  pvp_vcup_first_win: {
+    name: '初めての銀杯',
+    desc: 'レート制ヴェイルカップの試合に勝利する。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
+  },
+  pvp_vcup_wins_10: {
+    name: '熟練ボアボーラー',
+    desc: 'レート制ヴェイルカップの試合で10勝する。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
+  },
   pvp_vcup_wins_25: {
+    desc: 'レート制ヴェイルカップの試合で25勝する。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: 'ボアボールの伝説',
-    desc: 'ヴェイルカップのレート戦で25勝する。',
     title: 'ボアボールの伝説',
   },
-  pvp_vcup_first_goal: { name: 'まずは一点', desc: 'ヴェイルカップのレート戦でゴールを決める。' },
+  pvp_vcup_first_goal: {
+    name: 'まずは一点',
+    desc: 'レート制ヴェイルカップの試合でゴールを決める。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
+  },
   pvp_vcup_hat_trick: {
+    desc: '3対3以上のレート制ヴェイルカップの試合で、1試合に3ゴールを決める。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: 'ハットトリックの英雄',
-    desc: '3v3以上の部門で、ヴェイルカップのレート戦1試合中に3ゴールを決める。',
   },
   pvp_vcup_golden_goal: {
+    desc: 'レート制ヴェイルカップの試合を決めるゴールデンゴールを決める。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: '黄金の瞬間',
-    desc: 'ヴェイルカップのレート戦に決着をつけるゴールデンゴールを叩き込む。',
   },
   pvp_vcup_first_save: {
+    desc: '3対3以上のレート制ヴェイルカップの試合で、キーパーとしてセーブする。手の感触を試すほど速いシュートだけが対象で、やさしいキャッチは対象外。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: '鉄壁の両手',
-    desc: 'ヴェイルカップのレート戦でキーパーとしてセーブを決める。',
   },
   pvp_vcup_clean_sheet: {
+    desc: '3対3以上のレート制ヴェイルカップの試合で、キーパーとして無失点で勝利する。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: '何ひとつ通さない',
-    desc: 'キーパーとして無失点のまま、ヴェイルカップのレート戦に勝利する。',
   },
   pvp_vcup_guild_win: {
+    desc: '自分のギルドの旗を掲げて参加したレート制ヴェイルカップの試合に勝利する。ヴェイルカップの試合はもうプレイできないため、新たに獲得することはできない。',
     name: '旗の名にかけて',
-    desc: 'ギルドの旗を掲げて出場したヴェイルカップのレート戦に勝利する。',
   },
   pvp_fiesta_first_bout: {
+    desc: '勝敗にかかわらず、Fiestaの2対2の試合を最後まで戦い抜く。Fiestaの試合はアリーナのキューからなくなったため、新たに獲得することはできない。',
     name: '宴への乱入者',
-    desc: '勝ち負けを問わず、2v2フィエスタの一戦を最後まで戦い抜く。',
   },
-  pvp_fiesta_first_win: { name: '宴の主役', desc: '2v2フィエスタの一戦に勝利する。' },
-  pvp_fiesta_double: { name: '二丁上がり', desc: 'フィエスタで4秒以内に2回の撃破を決める。' },
+  pvp_fiesta_first_win: {
+    name: '宴の主役',
+    desc: 'Fiestaの2対2の試合に勝利する。Fiestaの試合はアリーナのキューからなくなったため、新たに獲得することはできない。',
+  },
+  pvp_fiesta_double: {
+    name: '二丁上がり',
+    desc: 'Fiestaで4秒以内に2回テイクダウンする。Fiestaの試合はアリーナのキューからなくなったため、新たに獲得することはできない。',
+  },
   pvp_fiesta_shutdown: {
+    desc: '3連勝以上のFiestaの敵をテイクダウンする。Fiestaの試合はアリーナのキューからなくなったため、新たに獲得することはできない。',
     name: '祭りに水を差す者',
-    desc: 'フィエスタで、3連続撃破以上の勢いに乗った敵を仕留める。',
   },
   pvp_fiesta_full_build: {
+    desc: '3ウェーブすべてで強化を1つ固定した状態で、Fiestaの試合に勝利する。Fiestaの試合はアリーナのキューからなくなったため、新たに獲得することはできない。',
     name: '宴の正装',
-    desc: '3回のウェーブすべてで強化を確定させた状態で、フィエスタの一戦に勝利する。',
   },
   pvp_fiesta_powerups: {
+    desc: 'リングの4種のパワーアップ、スピードデーモン、コロッサス、ムーンブーツ、バーサーカーを、それぞれ少なくとも1回取得する。Fiestaの試合はアリーナのキューからなくなったため、新たに獲得することはできない。',
     name: '全部ひとつずつ',
-    desc: 'リングの4種のパワーアップ、スピードデーモン、コロッサス、ムーンブーツ、バーサーカーをそれぞれ1回以上手に入れる。',
   },
-  pvp_fiesta_five_kills: { name: '宴を背負う者', desc: 'フィエスタの一戦で5回の撃破を決める。' },
+  pvp_fiesta_five_kills: {
+    name: '宴を背負う者',
+    desc: '1回のFiestaの試合で5回テイクダウンする。Fiestaの試合はアリーナのキューからなくなったため、新たに獲得することはできない。',
+  },
   soc_first_party: { name: '持つべきものは仲間', desc: '他のプレイヤーとパーティを組む。' },
   soc_full_house: { name: 'フルハウス', desc: '5人満員のパーティでダンジョンを攻略する。' },
   soc_guild_joined: { name: '同じ旗の下に', desc: 'ギルドの一員になる。' },
@@ -676,5 +851,476 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: '解体師の庭',
     desc: '装備品を50点解体して素材に戻す。',
+  },
+  dgn_wildheart_basin: {
+    name: '盆地の逆襲',
+    desc: 'ワイルドハート盆地で盆地の声ズルガーを倒す。',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: '英雄: ワイルドハート盆地',
+    desc: '英雄難易度のワイルドハート盆地で盆地の声ズルガーを倒す。',
+  },
+  chr_peaks_gatherer: {
+    name: '高嶺の実り',
+    desc: 'ソーンピーク高地で鉱脈、木立、薬草の茂みをそれぞれ採取する。',
+  },
+  chr_marsh_rares_ii: {
+    name: '大食らい、勘定に載る',
+    desc: '最初の勘定から漏れていたマイアフェン湿地の4体目の恐怖、大食らいのグラブジョーを討ち倒す。',
+  },
+  chr_peaks_rares_ii: {
+    name: '岩山にさらに刻まれし名',
+    desc: '最初の勘定から漏れていたソーンピーク高地のさらなる2体の恐怖、老いたるクラグモーと砕片王カジックスを討ち倒す。',
+  },
+  chr_gleamstag: {
+    name: '先に手を出さぬ伝説',
+    desc: '追い詰められない限り襲ってこない、稀少で人目を避けるエリート、グリームスタッグを討ち倒す。',
+  },
+  chr_hollow_rares: {
+    name: '群れは忘れない',
+    desc: 'ヴェールの幽谷を彷徨う2体の稀少ボス、老いたるマロウシェルと群れの長アウレルホーンを討ち倒す。',
+  },
+  chr_willowfen_gatherer: {
+    name: 'フェンの恵み',
+    desc: 'ウィローフェンで鉱脈、木立、薬草の茂みをそれぞれ採取する。',
+  },
+  chr_willowfen_first_cast: {
+    name: 'リリームーアの波紋',
+    desc: 'ウィローフェンの水辺で魚を釣り上げる。',
+  },
+  chr_galecrest_gatherer: {
+    name: '岬の収穫',
+    desc: 'ゲイルクレストで鉱脈、木立、薬草の茂みをそれぞれ採取する。',
+  },
+  chr_galecrest_first_cast: {
+    name: 'ミラーターンに糸を垂れて',
+    desc: 'ゲイルクレストの水辺で魚を釣り上げる。',
+  },
+  chr_farshore_gatherer: {
+    name: '島の糧',
+    desc: '遠つ岸で鉱脈、木立、薬草の茂みをそれぞれ採取する。',
+  },
+  chr_farshore_first_cast: {
+    name: 'カモメは知っている',
+    desc: '遠つ岸の水辺で魚を釣り上げる。',
+  },
+  prog_engineering_rare: {
+    name: '精密工作',
+    desc: '工作で初めてのレア級アイテムを作る。',
+  },
+  prog_alchemy_rare: {
+    name: '稀少な逸品',
+    desc: '錬金術で初めてのレア級アイテムを作る。',
+  },
+  prog_cooking_rare: {
+    name: '忘れられぬ一皿',
+    desc: '料理で初めてのレア級アイテムを作る。',
+  },
+  prog_leatherworking_rare: {
+    name: '上質ななめし',
+    desc: '皮革加工で初めてのレア級アイテムを作る。',
+  },
+  prog_tailoring_rare: {
+    name: '名匠の一針',
+    desc: '裁縫で初めてのレア級アイテムを作る。',
+  },
+  prog_weaponcrafting_rare: {
+    name: '磨き上げた輝き',
+    desc: '武器鍛冶で初めてのレア級アイテムを作る。',
+  },
+  prog_armorcrafting_rare: {
+    name: '完璧な装甲',
+    desc: '防具鍛冶で初めてのレア級アイテムを作る。',
+  },
+  prog_jewelcrafting_rare: {
+    name: '磨かれた輝き',
+    desc: '宝石細工で初めてのレア級アイテムを作る。',
+  },
+  prog_jewelcrafting_50: {
+    name: '刻面と透かし細工',
+    desc: '宝石細工のスキルで50に到達する。',
+  },
+  prog_grandmaster_jewelcrafting: {
+    name: '宝石細工の大師',
+    desc: '宝石細工のスキルで125に到達し、その道の極みに立つ。',
+    title: '宝石細工の大師',
+  },
+  prog_inscription_rare: {
+    name: '見事な墨書',
+    desc: '銘文で初めてのレア級アイテムを作る。',
+  },
+  prog_inscription_50: {
+    name: '羽根ペンと顔料',
+    desc: '銘文のスキルで50に到達する。',
+  },
+  prog_grandmaster_inscription: {
+    name: '銘文の大師',
+    desc: '銘文のスキルで125に到達し、その道の極みに立つ。',
+    title: '銘文の大師',
+  },
+  prog_ready_for_an_adventure: {
+    name: '冒険の準備は万端',
+    desc: '修練の浜を卒業する。島でのすべての課題を終え、渡しの鐘を鳴らしてイーストブルックへ帰る。',
+  },
+  soc_strongbox_outfitter: {
+    name: '最初のスロット',
+    desc: '初めて銀行バッグスロットを解放する。',
+  },
+  soc_four_bags_deep: {
+    name: '四つのスロット',
+    desc: '銀行バッグスロットを4つすべて解放する。',
+  },
+  dgn_ignivar: {
+    name: '先触れ、ここに墜つ',
+    desc: '最後の泉のるつぼで「イグニヴァル、最後の炎の先触れ」を倒す。',
+  },
+  dgn_ignivar_heroic: {
+    name: '英雄: 先触れ、ここに墜つ',
+    desc: '英雄難易度で「イグニヴァル、最後の炎の先触れ」を倒す。',
+  },
+  dgn_varkhul: {
+    name: '鍛冶場、冷え果てる',
+    desc: '内部るつぼで「最後の炎の鍛造父、ヴァルクル」を倒す。',
+  },
+  dgn_varkhul_heroic: {
+    name: '英雄: 鍛冶場、冷え果てる',
+    desc: '英雄難易度で「最後の炎の鍛造父、ヴァルクル」を倒す。',
+  },
+  dgn_varkhul_flawless: {
+    name: '消えぬ熾火',
+    desc: 'レイドの誰ひとり死なせずに、英雄難易度で「最後の炎の鍛造父、ヴァルクル」を倒す。',
+    title: '無傷',
+  },
+  hid_forgebreaker: {
+    name: '解き放たれた泉',
+    desc: 'フォージブレイカーを自ら鍛え、完成した槌を携えてメイリンのもとへ戻る。',
+  },
+  col_set_bramblehide: {
+    name: 'ルーツのブランブルハイド',
+    desc: 'ルーツのブランブルハイドの全部位を発見する。',
+  },
+  col_deepest_cast: {
+    desc: 'Clockreelの釣り竿を手に入れる。最深部の獲物に届く唯一の竿だ。',
+    name: '最深の一投',
+  },
+  prog_first_planting: { desc: '畑に初めて作物を植える。', name: '種まきの始まり' },
+  chr_vale_first_harvest: {
+    desc: 'イーストブルック渓谷の畑で、初めて元気に育った作物を収穫する。',
+
+    name: '谷の初穂',
+  },
+  chr_marsh_first_harvest: {
+    desc: 'マイアフェン湿地の畑で、初めて元気に育った作物を収穫する。',
+    name: '泥炭に芽吹く',
+  },
+  chr_peaks_first_harvest: {
+    desc: 'ソーンピーク高地の畑で、初めて元気に育った作物を収穫する。',
+    name: '岩峰の実り',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Evergardenの畑で、初めて元気に育った作物を収穫する。',
+    name: '楽園の畑',
+  },
+  col_golden_harvest: {
+    desc: '黄金の収穫を得て、その知らせをゾーン全体に届ける。',
+    name: '黄金の収穫',
+  },
+  prog_farming_100: {
+    desc: '農耕の熟練度100に到達する。',
+    name: '収穫の達人',
+    title: '収穫の達人',
+  },
+  col_farm_roster: { desc: '4つの畑で育つすべての作物を収穫する。', name: 'すべての畝に実りを' },
+  prog_field_to_feast: {
+    desc: '最上級の宴を料理し、レイド全体が囲める食卓を作る。',
+    name: '畑から祝宴へ',
+  },
+  prog_legendmaker: {
+    desc: '創造の証書で完全化された作品を伝説に引き上げ、自分だけの名前を与える。',
+
+    name: '伝説を生む者',
+  },
+  exp_harbor_to_harbor: {
+    name: '港から港へ',
+    desc: 'イーストブルックとムーンレスト、ウィックハーバーとワームウォッチ、二つの渡し船でそれぞれ往復する。',
+  },
+  exp_forge_helper: {
+    name: '手を貸す鎚',
+    desc: 'ワームウォッチで鍛冶師マーラの盾作りを手伝う。',
+  },
+  exp_last_barricade: {
+    name: '最後の防柵',
+    desc: 'アンデッドの大軍から森の峠を守り抜く。',
+  },
+  exp_borrowed_face: {
+    name: '借り物の顔',
+    desc: 'フェンブリッジの衛兵に紛れ込んだ潜入者の正体を暴いて倒す。',
+  },
+  exp_windrider_slalom: {
+    name: 'ウィンドライダー・スラローム',
+    desc: 'ゲイルクレストの峡谷を抜ける機械仕掛けのグライダー滑空を完了する。',
+  },
+  exp_duskweave_dispatches: {
+    name: '宵織りの命令書',
+    desc: 'ヴァレリーの宵織りのマントをまとって、盗賊の命令書を取り戻す。',
+  },
+  exp_wisp_maze: {
+    name: '迷宮の灯り',
+    desc: '盗まれた財布をすべて取り戻し、エバーガーデンの迷宮から脱出する。',
+  },
+  prog_rift_watch_trusted: {
+    name: 'リフトの見張りの信頼',
+    desc: 'リフトの見張りで信頼に達する。',
+  },
+  prog_church_order_trusted: {
+    name: '教会修道会の信頼',
+    desc: '教会修道会で信頼に達する。',
+  },
+  prog_automatons_trusted: {
+    name: 'オートマトンの信頼',
+    desc: 'オートマトンで信頼に達する。',
+  },
+  prog_rift_watch_champion: {
+    name: 'リフトの見張りのチャンピオン',
+    desc: 'リフトの見張りでチャンピオンに達する。',
+    title: 'リフト守護者',
+  },
+  prog_church_order_champion: {
+    name: '教会修道会のチャンピオン',
+    desc: '教会修道会でチャンピオンに達する。',
+    title: '暁の番人',
+  },
+  prog_automatons_champion: {
+    name: 'オートマトンのチャンピオン',
+    desc: 'オートマトンでチャンピオンに達する。',
+    title: '鍛冶大匠',
+  },
+  prog_faction_champion_all: {
+    name: '全勢力のチャンピオン',
+    desc: 'リフトの見張り、教会修道会、オートマトンのすべてでチャンピオンに達する。',
+  },
+  exp_clue_first_casket: {
+    name: '宝箱発見',
+    desc: '手がかりの巻物の宝探しの最後に掘り出した宝箱を開ける。',
+  },
+  exp_clue_ten_caskets: {
+    name: '宝探しの名手',
+    desc: '手がかりの巻物の宝探しの最後に掘り出した宝箱を10個開ける。',
+    title: '宝探しの名手',
+  },
+  cmb_coinsack_caught: {
+    name: '現行犯',
+    desc: '埋もれた財宝の中で、小銭袋のすばしっこが金を持って逃げる前に倒す。',
+  },
+  exp_wisp_maze_hard: {
+    name: '影よりも明るく',
+    desc: 'ハードで盗まれた財布をすべて取り戻し、エバーガーデンの迷宮から脱出する。',
+  },
+  prog_titan: { name: '巨神', desc: '生涯経験値を合計10,000,000獲得する。', title: '巨神' },
+  pvp_flag_1h: {
+    name: '勇敢なる者',
+    desc: 'オープンワールドまたはPvP戦で生存中、ワールドPvPを有効にして合計1時間プレイする。聖域、PvEインスタンス、死亡、ログアウト中は進行が止まり、無効にするとリセットされる。獲得した称号は永久に残る。',
+    title: '勇敢なる者',
+  },
+  pvp_flag_3h: {
+    name: '反骨の者',
+    desc: 'オープンワールドまたはPvP戦で生存中、ワールドPvPを有効にして合計3時間プレイする。聖域、PvEインスタンス、死亡、ログアウト中は進行が止まり、無効にするとリセットされる。獲得した称号は永久に残る。',
+    title: '反骨の者',
+  },
+  pvp_flag_6h: {
+    name: '恐れ知らず',
+    desc: 'オープンワールドまたはPvP戦で生存中、ワールドPvPを有効にして合計6時間プレイする。聖域、PvEインスタンス、死亡、ログアウト中は進行が止まり、無効にするとリセットされる。獲得した称号は永久に残る。',
+    title: '恐れ知らず',
+  },
+  pvp_flag_24h: {
+    name: '不屈の者',
+    desc: 'オープンワールドまたはPvP戦で生存中、ワールドPvPを有効にして合計24時間プレイする。聖域、PvEインスタンス、死亡、ログアウト中は進行が止まり、無効にするとリセットされる。獲得した称号は永久に残る。',
+    title: '不屈の者',
+  },
+  pvp_flag_168h: {
+    name: '不撓の者',
+    desc: 'オープンワールドまたはPvP戦で生存中、ワールドPvPを有効にして合計7日プレイする。聖域、PvEインスタンス、死亡、ログアウト中は進行が止まり、無効にするとリセットされる。獲得した称号は永久に残る。',
+    title: '不撓の者',
+  },
+  dgn_guild_first_contract: {
+    name: '契約成立',
+    desc: '燈火の館の週替わりダンジョン契約を1件達成する。',
+  },
+  dgn_guild_ten_contracts: {
+    name: '掲示板の常連',
+    desc: '燈火の館の週替わりダンジョン契約を10件達成する。',
+  },
+  dgn_guild_fifty_contracts: {
+    name: '契約の古強者',
+    desc: '燈火の館の週替わりダンジョン契約を50件達成する。',
+  },
+  feat_guild_writ_runner: {
+    name: '令状運び',
+    desc: '燈火の館の補給係ギャリック・ホルトから燈火の印章6個で購入した。',
+    title: '令状運び',
+  },
+  feat_guild_hallsworn: {
+    name: '館の誓約者',
+    desc: '燈火の館の補給係ギャリック・ホルトから燈火の印章14個で購入した。',
+    title: '館の誓約者',
+  },
+  feat_guild_of_lantern_hall: {
+    name: '燈火の館の者',
+    desc: '燈火の館の補給係ギャリック・ホルトから燈火の印章24個で購入した。',
+    title: '燈火の館の者',
+  },
+  cmb_balgath: {
+    name: '監督者の終焉',
+    desc: '埋もれた監督者を墳墓へ送り返す。',
+  },
+  cmb_balgath_ten: {
+    name: '墳丘は何も留めぬ',
+    desc: '埋もれた監督者を10回倒す。',
+  },
+  cmb_point_taken: {
+    name: '突きの心得',
+    desc: '集結所の訓練場で藁の監督者の灯火を消し、その板に本来の一撃を叩き込む。',
+  },
+  dgn_olen_buttress: {
+    name: '城壁を守れ',
+    desc: '跳ね返る防壁を2人目のプレイヤーに一度も当てずに、騎士司令官オレンを倒す。',
+  },
+  dgn_ossick_moored: {
+    name: '安息の港',
+    desc: '誰も溺死の穴へ引きずり込まれずに、牢番オシックを倒す。',
+  },
+  dgn_vael_beacon: {
+    name: '灯台の光を頼りに',
+    desc: '霧の影を1体も破裂させずに、フォグバインダーのヴァエルを倒す。',
+  },
+  dgn_turretback: {
+    name: '立ち退き通知',
+    desc: '誰も霊体の舷側砲撃に当たらずに、難破船の船長を倒す。',
+  },
+  dgn_selthe_pitch: {
+    name: 'すべての声が調和する',
+    desc: 'すべての合唱を2人以上で分担し、独唱を他の誰にも当てずに、聖歌母セルセを倒す。',
+  },
+  dgn_colossus_mirror: {
+    name: '硝子を砕け',
+    desc: 'すべての鏡像を出現から15秒以内に破壊し、潮硝子の巨像を倒す。',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: '濡れずに生還',
+    desc: '誰も潮の激突に当たらずに、溺月の化身イソレイを倒す。',
+  },
+  dgn_mere_hydra: {
+    name: 'すべての首を落とせ',
+    desc: '湖のヒュドラの3本の首を、互いに10秒以内の間隔で倒す。',
+  },
+  dgn_crypt_knellwyrm: {
+    name: '髪の毛一本焦がさずに',
+    desc: '誰も焼き払い飛行の炎を受けずに、弔鐘竜を倒す。',
+  },
+  dgn_turnkey_cage: {
+    name: '我らを縛る檻はない',
+    desc: '誰も鉄の檻で押し潰されずに、牢の鍵番を倒す。',
+  },
+  dgn_beastmaster_apart: {
+    name: '寄せつけぬ狩り',
+    desc: '群れの絆の有効時間を合計10秒未満に抑え、牙王の獣使いと大ジャガーを倒す。',
+  },
+  dgn_gorgebloom_clean: {
+    name: '雑草駆除',
+    desc: '茨の芽を1本も育てさせずに、ゴージブルームを倒す。',
+  },
+  dgn_zulgar_uncaught: {
+    name: '捕らわれぬ者',
+    desc: '誰も引き裂かれずに、盆地の声ズルガーを倒す。',
+  },
+  dgn_great_saurian: {
+    name: '倒れた巨獣',
+    desc: 'グレート・サウリアンと鞍楼の呪詛使いを、互いに20秒以内の間隔で倒す。',
+  },
+  dgn_korgath_all_chains: {
+    name: '慈悲ある結末',
+    desc: '4本の鎖をすべて破壊してから、縛られしコルガスを倒す。',
+  },
+  dgn_korgath_still_bound: {
+    name: '錠は保たれる',
+    desc: '少なくとも2本の鎖を最後まで破壊せずに、ヒロイック難易度で縛られしコルガスを倒す。',
+  },
+  dgn_velkhar_cold: {
+    name: '冷たい慰め',
+    desc: '蘇ったボーンウォーカーを1体も二度目に蘇らせずに、大死霊術師ヴェルカーを倒す。',
+  },
+  dgn_korzul_thin_ice: {
+    name: '薄氷',
+    desc: '湖の19枚の氷板のうち、少なくとも12枚を壊さずに、墓ワームのコルズルを倒す。',
+  },
+  dgn_sledge_tusker: {
+    name: '冷たい積荷',
+    desc: '誰も踏みつけに当たらずに、そり引きの巨牙獣を倒す。',
+  },
+  dgn_drowned_temple_cantor: {
+    name: '最後の一節',
+    desc: '蒼白の聖歌隊の最後の聖歌隊長を傍らに連れ、溺月の化身イソレイを倒す。',
+    title: '聖歌隊の証人',
+  },
+  dgn_marrow_tidy: {
+    name: '整った教会墓地',
+    desc: 'すべての開いた墓穴を鐘の中庭の端に配置して、墓守マロウを倒す。',
+  },
+  dgn_lady_nobody_hanging: {
+    name: '誰も宙吊りにしない',
+    desc: '凍てつく抱擁から誰も落とさせずに、骨冷えの貴婦人を倒す。',
+  },
+  dgn_ilvane_hush: {
+    name: 'さあ、お静かに',
+    desc: '虚ろの葬送歌を誰にも当てずに、聖歌隊長イルヴェインを倒す。',
+  },
+  dgn_morthen_candlelight: {
+    name: 'すべての蝋燭に火を',
+    desc: '鎮まらぬ結界が現れてから20秒以内に4本すべての追悼の蝋燭を灯し直し、墓呼びのモーセンを倒す。',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'すべての戸口で',
+    desc: 'ゴードライトの宵の間に、三つの町でノックに応じる町人全員にトリック・オア・トリートをする。',
+  },
+  feat_gourdlight_errands: {
+    name: 'ヘスターの使い走り',
+    desc: 'ヘスター・ゴードウィックの日替わりのゴードライトの宵のお使いを、それぞれ一度は終わらせる。',
+  },
+  feat_gourdlight_frights: {
+    name: '三つの町を驚かせて',
+    desc: 'ヘスターの「わっ！」のお使いで、三つの町それぞれで町人を一人驚かせる。',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'ゴードライト、始めから終わりまで',
+    desc: 'ゴードライトの宵をすべてやり遂げる：オールド・サッチグリンを倒し、幽霊カボチャをすべて見つけ、ヘスターのお使いをすべて終わらせ、すべての戸口をノックし、三つの町それぞれで町人を驚かせる。',
+    title: 'ゴードの誓い人',
+  },
+  feat_gourdlight_guise: {
+    name: 'ゴードライトの仮装',
+    desc: 'ゴードライトの宵の間に、猪の草地の先の畑にいるオールド・サッチグリンから彫りカボチャの頭を手に入れ、所持する。',
+  },
+  feat_old_thatchgrin: {
+    name: '刈り株と灰',
+    desc: 'ゴードライトの宵の間に、猪の草地の先のカボチャ畑でオールド・サッチグリンの討伐に加わる。',
+  },
+  feat_title_gourdlit: {
+    name: 'ゴードリット',
+    desc: 'ゴードライトの宵の間に、ヘスター・ゴードウィックからゴードライトの菓子と交換したゴードリットの証書を読む。',
+    title: 'ゴードリット',
+  },
+  feat_title_trickster: {
+    name: 'トリックスター',
+    desc: 'ゴードライトの宵の間に、ヘスター・ゴードウィックからゴードライトの菓子と交換したトリックスターの証書を読む。',
+    title: 'トリックスター',
+  },
+  feat_title_hollow_grinned: {
+    name: 'うつろに笑う者',
+    desc: 'ゴードライトの宵の間に、ヘスター・ゴードウィックからゴードライトの菓子と交換したうつろな笑みの証書を読む。',
+    title: 'うつろに笑う者',
+  },
+  feat_pumpkin_hunter: {
+    name: 'カボチャハンター',
+    desc: 'ゴードライトの宵の間に、世界各地に隠された幽霊カボチャをすべて見つける。',
+    title: 'うつろなる者',
   },
 };

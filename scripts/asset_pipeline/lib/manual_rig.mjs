@@ -157,7 +157,12 @@ function distToSegment(p, a, b) {
 }
 
 /** Rig `rawGlbPath` onto `referenceGlbPath`'s skeleton; write to `outPath`.
- *  Options: yaw ('auto' -90deg default via preRotated=false), armY override.
+ *  Options: yaw ('auto' -90deg default via preRotated=false), armY override,
+ *  rigidHeadFrom (a fraction of the fitted height above the feet: every vertex
+ *  above it binds 100% to the head joint, blended over rigidHeadBlend below it).
+ *  The rigid head is for oversized head silhouettes (a mushroom cap, a big
+ *  helm) whose rim overhangs the shoulders: the distance solver hands those rim
+ *  vertices arm and clavicle weight, so the rim bends with every arm swing.
  *  Returns a fit report. */
 export async function manualRigOntoReference(rawGlbPath, referenceGlbPath, outPath, opts = {}) {
   const K = opts.influences ?? 4;
@@ -256,7 +261,22 @@ export async function manualRigOntoReference(rawGlbPath, referenceGlbPath, outPa
   const rawArmY = armYSum / Math.max(1, armN) - min[1]; // above feet
   const scale = wristAbove / rawArmY;
   const midX = (min[0] + max[0]) / 2;
-  const midZ = (min[2] + max[2]) / 2;
+  let midZ = (min[2] + max[2]) / 2;
+  if (opts.centerTorso) {
+    // A tail or a long snout drags the bounds' middle off the body. Centre the
+    // depth on the torso instead: the column round the spine, hips to chest.
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const arr of rotatedPerPrim) {
+      for (let v = 0; v < arr.length; v += 3) {
+        const up = (arr[v + 1] - min[1]) / (max[1] - min[1]);
+        if (up < 0.3 || up > 0.6 || Math.abs(arr[v] - midX) > 0.25 * maxAbsX) continue;
+        if (arr[v + 2] < lo) lo = arr[v + 2];
+        if (arr[v + 2] > hi) hi = arr[v + 2];
+      }
+    }
+    if (hi > lo) midZ = (lo + hi) / 2;
+  }
 
   // Pass 2: final positions (feet at y=0, centered XZ) + weights.
   const report = {
@@ -269,6 +289,12 @@ export async function manualRigOntoReference(rawGlbPath, referenceGlbPath, outPa
     refHeight: +(refBounds.max[1] - refBounds.min[1]).toFixed(2),
     verts: 0,
   };
+  const headJoint = byName.has('head') ? byName.get('head') : -1;
+  const fitHeight = (max[1] - min[1]) * scale;
+  const rigidFromY =
+    typeof opts.rigidHeadFrom === 'number' ? groundY + opts.rigidHeadFrom * fitHeight : null;
+  const rigidBlendY = (opts.rigidHeadBlend ?? 0.03) * fitHeight;
+  if (rigidFromY !== null) report.rigidHeadFrom = opts.rigidHeadFrom;
   const built = rawPrims.map((prim, pi) => {
     const rot = rotatedPerPrim[pi];
     const n = rot.length / 3;
@@ -306,8 +332,23 @@ export async function manualRigOntoReference(rawGlbPath, referenceGlbPath, outPa
         if (merged.length >= K && merged.length > 8) break;
       }
       merged.sort((a, b) => b.w - a.w);
-      const top = merged.slice(0, K);
-      const sum = top.reduce((s2, c) => s2 + c.w, 0) || 1;
+      let top = merged.slice(0, K);
+      let sum = top.reduce((s2, c) => s2 + c.w, 0) || 1;
+      // Rigid head: above the cut, the head joint owns the vertex outright;
+      // inside the blend band below it, the solved weights fade into it.
+      if (headJoint >= 0 && rigidFromY !== null) {
+        const t = rigidBlendY > 0 ? (p[1] - (rigidFromY - rigidBlendY)) / rigidBlendY : 1;
+        const h = Math.max(0, Math.min(1, p[1] >= rigidFromY ? 1 : t));
+        if (h > 0) {
+          const scaled = top.map((c) => ({ joint: c.joint, w: (c.w / sum) * (1 - h) }));
+          const hit = scaled.find((c) => c.joint === headJoint);
+          if (hit) hit.w += h;
+          else scaled.push({ joint: headJoint, w: h });
+          scaled.sort((a2, b2) => b2.w - a2.w);
+          top = scaled.slice(0, K);
+          sum = top.reduce((s2, c) => s2 + c.w, 0) || 1;
+        }
+      }
       for (let k = 0; k < 4; k++) {
         jointsAttr[v * 4 + k] = top[k]?.joint ?? 0;
         weightsAttr[v * 4 + k] = (top[k]?.w ?? 0) / sum;
@@ -339,7 +380,16 @@ export async function manualRigOntoReference(rawGlbPath, referenceGlbPath, outPa
   });
 
   // --- Rebuild the reference doc: drop its meshes, add the new skinned body -
-  for (const node of root.listNodes()) if (node.getMesh()) node.setMesh(null);
+  // The reference's skinned part nodes (Knight_ArmLeft, ...) go too, not just
+  // their meshes: an emptied node keeps its skin reference, so the output would
+  // ship one dead skin per reference part, and any later pass that prunes them
+  // (the KTX2 texture conversion) trips its structural-invariant check.
+  for (const node of root.listNodes()) {
+    if (!node.getMesh()) continue;
+    node.setMesh(null);
+    if (node.listChildren().length === 0) node.dispose();
+    else node.setSkin(null);
+  }
   for (const mesh of root.listMeshes()) mesh.dispose();
 
   const buffer = root.listBuffers()[0];

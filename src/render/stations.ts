@@ -20,9 +20,11 @@ import * as THREE from 'three';
 import type { StationDef } from '../sim/types';
 import { terrainHeight } from '../sim/world';
 import { loadGltf } from './assets/loader';
-import { registerPreload } from './assets/preload';
-import { GFX, surfaceMat } from './gfx';
+import { registerDeferredPreload } from './assets/preload';
+import { EMISSIVE_LIGHT, GFX, surfaceMat } from './gfx';
+import { addInstancedParts, type GlbTemplatePart, glbTemplateParts } from './glb_instanced_props';
 import { type StationPropKind, stationPropPlacements } from './stations_core';
+import { applySurfaceDetail, wornFamilyFor } from './worn_stone';
 
 // Half-step (yd) used to finite-difference the local ground slope under each
 // prop so furniture-scale props tilt with the terrain (artisan_row idiom).
@@ -76,15 +78,64 @@ const FIRE_LIGHT_RANGE = 16;
 const FIRE_LIGHT_DECAY = 2;
 const FIRE_LIGHT_Y = 1.2;
 
+/** The kitchens flame cone: lathe profile, warm Lambert, ember-triggering
+ *  color. Shared by the town station build below and the placed mobile
+ *  station (mobile_stations.ts), so a field fire is byte-matched to a town
+ *  one. `geo` is the caller's shared lathe (stationFlameGeometry). */
+export function stationFlameGeometry(): THREE.LatheGeometry {
+  return new THREE.LatheGeometry(
+    FLAME_PROFILE.map(([r, y]) => new THREE.Vector2(r, y)),
+    7,
+  );
+}
+
+export const STATION_FLAME_Y = FLAME_Y;
+export const STATION_FLAME_BASE_SCALE = FLAME_BASE_SCALE;
+
+export function stationFlameMaterial(usePbr: boolean): THREE.MeshLambertMaterial {
+  const mat = new THREE.MeshLambertMaterial({
+    color: 0xffaa33,
+    emissive: 0xff6600,
+    emissiveIntensity: usePbr ? EMISSIVE_LIGHT : 1.4,
+    transparent: true,
+    opacity: 0.92,
+  });
+  // Named so a capture's live-program row can name the flame program
+  // (the coach_trail_materials.ts precedent).
+  mat.name = 'stations:flame';
+  return mat;
+}
+
+export function buildStationFlame(geo: THREE.BufferGeometry, usePbr: boolean): THREE.Mesh {
+  const flame = new THREE.Mesh(geo, stationFlameMaterial(usePbr));
+  flame.position.y = FLAME_Y;
+  flame.scale.setScalar(FLAME_BASE_SCALE);
+  return flame;
+}
+
 const loadedStationGltf = new Map<StationPropKind, THREE.Group>();
+const stationSceneLoads = new Map<StationPropKind, Promise<THREE.Group>>();
+
+/** The parsed station model, retained for the session once loaded. Another
+ *  consumer of the same GLB reads it here rather than through loadGltf:
+ *  props.ts releases the loader entry after its own extraction, so a later
+ *  loadGltf of that url fetches and parses the file a second time. */
+export function loadStationScene(kind: StationPropKind): Promise<THREE.Group> {
+  let task = stationSceneLoads.get(kind);
+  if (!task) {
+    task = loadGltf(STATION_ASSET_URL[kind]).then((gltf) => {
+      loadedStationGltf.set(kind, gltf.scene);
+      return gltf.scene;
+    });
+    task.catch(() => stationSceneLoads.delete(kind));
+    stationSceneLoads.set(kind, task);
+  }
+  return task;
+}
 
 if (typeof window !== 'undefined') {
-  for (const [kind, url] of Object.entries(STATION_ASSET_URL) as [StationPropKind, string][]) {
-    registerPreload(
-      loadGltf(url).then((gltf) => {
-        loadedStationGltf.set(kind, gltf.scene);
-      }),
-    );
+  for (const kind of Object.keys(STATION_ASSET_URL) as StationPropKind[]) {
+    registerDeferredPreload(() => loadStationScene(kind));
   }
 }
 
@@ -94,35 +145,71 @@ export const stationsPreloadInternalsForTest = {
   targetHeight: STATION_TARGET_HEIGHT,
 };
 
-function buildFallbackMesh(kind: StationPropKind): THREE.Object3D {
-  const h = STATION_TARGET_HEIGHT[kind];
-  const geo = new THREE.BoxGeometry(h * 0.7, h, h * 0.7);
-  const mesh = new THREE.Mesh(geo, surfaceMat({ color: 0x8a6a4a }));
-  mesh.position.y = h / 2;
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  return mesh;
+// One template part per mesh primitive of a station model, with the per-kind
+// height normalization baked in: normalize = T(0, -scaledMinY, 0) * S(scale),
+// exactly the transform the old per-placement clones applied, so instanced
+// placement is pixel-identical. That identity assumes the GLB scene ROOT has
+// no x/z offset (GLTFLoader always creates a fresh identity root): the old
+// clone path applied the scale around the reseated root, which cancels a
+// root y offset exactly but would drift x/z by offset*(1-scale).
+
+// Loader cache scenes are IMMUTABLE and Object3D.clone shares materials, so
+// the surface-detail layer goes on a one-time CLONE cached per source
+// material (glass stays clean via the shared skip list; everything else on
+// the 'tools' palette atlas reads as workbench wood).
+const stationMatCache = new Map<string, THREE.Material>();
+
+export function resetStationProfileCaches(): void {
+  stationMatCache.clear();
+  stationPartsCache.clear();
 }
 
-function buildStationMesh(kind: StationPropKind): THREE.Object3D {
+// The height-normalized parts per kind, memoized once the GLB has loaded:
+// the parts are read-only and shared, and re-deriving them costs a full
+// scene traversal plus a Box3 fit per call, which the placed-station mirror
+// would otherwise pay three times per station in one frame when a hub's
+// stations enter interest scope together. A fallback (not-yet-loaded) answer
+// is never cached: its box geometry is minted per call and owned by the
+// caller.
+const stationPartsCache = new Map<StationPropKind, GlbTemplatePart[]>();
+
+function stationMaterial(src: THREE.Material): THREE.Material {
+  const cached = stationMatCache.get(src.uuid);
+  if (cached) return cached;
+  let out = src;
+  const worn = wornFamilyFor('tools', src.name, { transparent: src.transparent === true });
+  if (worn && (src as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+    out = src.clone();
+    applySurfaceDetail(out as THREE.MeshStandardMaterial, worn.family, {
+      strength: worn.strength,
+    });
+  }
+  stationMatCache.set(src.uuid, out);
+  return out;
+}
+
+/** Whether the kind's GLB has loaded (a fallback box part otherwise, whose
+ *  geometry the caller minted and owns). Exported for mobile_stations.ts. */
+export function stationModelLoaded(kind: StationPropKind): boolean {
+  return loadedStationGltf.has(kind);
+}
+
+/** The height-normalized mesh primitives of one station prop, wearing the
+ *  shared worn-detail material cache. Exported for mobile_stations.ts, so a
+ *  PLACED station draws the very same parts and materials as the town one. */
+export function stationTemplateParts(kind: StationPropKind): GlbTemplatePart[] {
+  const cached = stationPartsCache.get(kind);
+  if (cached) return cached;
+  // The shared glb_instanced_props kernel (extracted at farming Phase 7 QA on
+  // the rule of three); the worn-detail material cache rides mapMaterial.
   const loaded = loadedStationGltf.get(kind);
-  if (!loaded) return buildFallbackMesh(kind);
-  const inst = loaded.clone(true);
-  // Normalize to the target height and re-seat the base at y=0 (the GLB's
-  // authored origin is not guaranteed to sit on the ground plane).
-  const box = new THREE.Box3().setFromObject(inst);
-  const rawHeight = box.max.y - box.min.y;
-  const scale = rawHeight > 1e-4 ? STATION_TARGET_HEIGHT[kind] / rawHeight : 1;
-  inst.scale.setScalar(scale);
-  const scaledBox = new THREE.Box3().setFromObject(inst);
-  inst.position.y -= scaledBox.min.y;
-  inst.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
-    }
+  const parts = glbTemplateParts(loaded, STATION_TARGET_HEIGHT[kind], {
+    fallbackWidthFactor: 0.7,
+    makeFallbackMat: () => surfaceMat({ color: 0x8a6a4a }),
+    mapMaterial: stationMaterial,
   });
-  return inst;
+  if (loaded) stationPartsCache.set(kind, parts);
+  return parts;
 }
 
 export interface StationPropsView {
@@ -155,36 +242,36 @@ export function buildStationProps(seed: number, stations: readonly StationDef[])
   const fireLights: THREE.PointLight[] = [];
   if (stations.length === 0) return { group, flames, fireLights };
 
-  const flameGeo = new THREE.LatheGeometry(
-    FLAME_PROFILE.map(([r, y]) => new THREE.Vector2(r, y)),
-    7,
-  );
+  const flameGeo = stationFlameGeometry();
   const usePbr = GFX.standardMaterials;
 
+  // Group placements per (kind x region cell) and instance one mesh per
+  // model part: 18 per-placement GLB clones (a draw per primitive each)
+  // become one draw per (kind x part x hub cluster), and the per-cluster
+  // bounds keep off-screen hubs frustum-cullable (a single world-spanning
+  // batch would draw everywhere, forever).
+  const byKind = new Map<string, { kind: StationPropKind; mats: THREE.Matrix4[] }>();
+  const holderMatrix = new THREE.Matrix4();
+  const one = new THREE.Vector3(1, 1, 1);
+  const pos = new THREE.Vector3();
   for (const p of stationPropPlacements(stations)) {
-    const obj = buildStationMesh(p.kind);
-    const holder = new THREE.Group();
-    holder.add(obj);
-    holder.position.set(p.x, terrainHeight(p.x, p.z, seed), p.z);
+    pos.set(p.x, terrainHeight(p.x, p.z, seed), p.z);
     const yawQuat = new THREE.Quaternion().setFromAxisAngle(WORLD_UP, p.rot);
     const tiltQuat = new THREE.Quaternion().setFromUnitVectors(
       WORLD_UP,
       groundNormal(p.x, p.z, seed),
     );
-    holder.quaternion.copy(tiltQuat.multiply(yawQuat));
+    const quat = tiltQuat.multiply(yawQuat);
+    holderMatrix.compose(pos, quat, one);
+    const clusterKey = `${p.kind}:${Math.floor(p.x / 180)}:${Math.floor(p.z / 180)}`;
+    const bucket = byKind.get(clusterKey);
+    if (bucket) bucket.mats.push(holderMatrix.clone());
+    else byKind.set(clusterKey, { kind: p.kind, mats: [holderMatrix.clone()] });
     if (p.kind === 'campfire') {
-      const flame = new THREE.Mesh(
-        flameGeo,
-        new THREE.MeshLambertMaterial({
-          color: 0xffaa33,
-          emissive: 0xff6600,
-          emissiveIntensity: usePbr ? 2.2 : 1.4,
-          transparent: true,
-          opacity: 0.92,
-        }),
-      );
-      flame.position.y = FLAME_Y;
-      flame.scale.setScalar(FLAME_BASE_SCALE);
+      const holder = new THREE.Group();
+      holder.position.copy(pos);
+      holder.quaternion.copy(quat);
+      const flame = buildStationFlame(flameGeo, usePbr);
       holder.add(flame);
       flames.push(flame);
       const light = new THREE.PointLight(
@@ -196,8 +283,12 @@ export function buildStationProps(seed: number, stations: readonly StationDef[])
       light.position.y = FIRE_LIGHT_Y;
       holder.add(light);
       fireLights.push(light);
+      group.add(holder);
     }
-    group.add(holder);
+  }
+  const matrix = new THREE.Matrix4();
+  for (const { kind, mats: matrices } of byKind.values()) {
+    addInstancedParts(group, `stationProps:${kind}`, stationTemplateParts(kind), matrices, matrix);
   }
   return { group, flames, fireLights };
 }

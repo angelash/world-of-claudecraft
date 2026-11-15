@@ -13,8 +13,10 @@ vi.mock('../server/db', () => ({
 }));
 
 import { type ClientSession, GameServer } from '../server/game';
-import { ClientWorld } from '../src/net/online';
+import type { ClientWorld } from '../src/net/online';
+import { createGroundObject } from '../src/sim/entity';
 import type { Entity } from '../src/sim/types';
+import { bareClient } from './helpers/bare_client';
 
 interface FakeClient {
   sent: any[];
@@ -86,33 +88,6 @@ function besideViewer(viewer: Entity, d: number): { x: number; z: number } {
   return { x: viewer.pos.x + dx, z: viewer.pos.z };
 }
 
-// A ClientWorld without the WebSocket plumbing, to drive applySnapshot directly.
-function bareClient(pid: number): ClientWorld {
-  const c: any = Object.create(ClientWorld.prototype);
-  c.cfg = { seed: 20061, playerClass: 'warrior' };
-  c.entities = new Map();
-  c.missingSince = new Map(); // despawn-grace bookkeeping (set by the real field initializer)
-  c.playerId = pid;
-  c.moveInput = {};
-  c.inventory = [];
-  c.equipment = {};
-  c.copper = 0;
-  c.xp = 0;
-  c.known = [];
-  c.questLog = new Map();
-  c.questsDone = new Set();
-  c.partyInfo = null;
-  c.tradeInfo = null;
-  c.duelInfo = null;
-  c.lastSnapAt = 0;
-  c.snapInterval = 50;
-  c.pendingFacingDelta = 0;
-  c.connected = true;
-  c.eventQueue = [];
-  c.mouselookFacing = null;
-  return c;
-}
-
 describe('crowd interest management', () => {
   let server: GameServer;
   let viewerFc: FakeClient;
@@ -133,6 +108,34 @@ describe('crowd interest management', () => {
     const at = besideViewer(v, d);
     placeAt(server, subject.pid, at.x, at.z);
   }
+
+  it('shows a vault only to its owner and current party, removing it on party leave', () => {
+    placeSubjectAt(10);
+    const pos = besideViewer(server.sim.entities.get(viewer.pid)!, 15);
+    const portal = createGroundObject(
+      90_050,
+      '',
+      'Buried Hoard',
+      server.sim.groundPos(pos.x, pos.z),
+    );
+    portal.templateId = 'hoard_entrance';
+    portal.vaultOwnerPid = subject.pid;
+    portal.vaultOwnerCharacterId = subject.characterId;
+    server.sim.entities.set(portal.id, portal);
+    server.sim.grid.insert(portal);
+    broadcast(server);
+    expect(entRecord(lastSnap(viewerFc.sent), portal.id)).toBeNull();
+    expect(entRecord(lastSnap(subjectFc.sent), portal.id)).not.toBeNull();
+    server.sim.partyInvite(viewer.pid, subject.pid);
+    server.sim.partyAccept(viewer.pid);
+    step(server);
+    expect(entRecord(lastSnap(viewerFc.sent), portal.id)).not.toBeNull();
+    server.sim.partyLeave(viewer.pid);
+    step(server);
+    expect(entRecord(lastSnap(viewerFc.sent), portal.id)).toBeNull();
+    expect(inKeep(lastSnap(viewerFc.sent), portal.id)).toBe(false);
+    expect(viewer.sentEnts.has(portal.id)).toBe(false);
+  });
 
   it('sends full identity on first sight and lite records afterwards', () => {
     placeSubjectAt(30);
@@ -439,6 +442,128 @@ describe('crowd interest management', () => {
     expect(inKeep(snap, rogue.pid)).toBe(false);
   });
 
+  it('a corpse or a ghost detects no stealthed stranger, though alive it would', () => {
+    const rogueFc = fakeWs();
+    const rogue = joinServer(server, rogueFc, 3, 'GraveSneak', 'rogue');
+    server.sim.setPlayerLevel(10, viewer.pid);
+    server.sim.setPlayerLevel(10, rogue.pid);
+    const v = server.sim.entities.get(viewer.pid)!;
+    const r = server.sim.entities.get(rogue.pid)!;
+    placeAt(server, rogue.pid, v.pos.x + 6, v.pos.z);
+    server.sim.targetEntity(null, rogue.pid);
+    server.sim.castAbility('stealth', rogue.pid);
+
+    // Alive, the friendly detection radius admits a stealthed stranger at 6yd.
+    viewerFc.sent.length = 0;
+    step(server);
+    expect(entRecord(lastSnap(viewerFc.sent), rogue.pid)).not.toBeNull();
+
+    // Dead where it stood: isHostileTo is false for a dead viewer, which used
+    // to drop it into that same friendly radius.
+    v.hp = 0;
+    v.dead = true;
+    viewerFc.sent.length = 0;
+    step(server);
+    let snap = lastSnap(viewerFc.sent);
+    expect(entRecord(snap, rogue.pid)).toBeNull();
+    expect(inKeep(snap, rogue.pid)).toBe(false);
+
+    // Released, then run back to the same spot.
+    server.sim.releaseSpirit(viewer.pid);
+    expect(v.ghost).toBe(true);
+    placeAt(server, viewer.pid, r.pos.x - 6, r.pos.z);
+    viewerFc.sent.length = 0;
+    step(server);
+    snap = lastSnap(viewerFc.sent);
+    expect(entRecord(snap, rogue.pid)).toBeNull();
+    expect(inKeep(snap, rogue.pid)).toBe(false);
+
+    // Its own party is still seen.
+    server.sim.partyInvite(rogue.pid, viewer.pid);
+    server.sim.partyAccept(rogue.pid);
+    expect(server.sim.partyOf(viewer.pid)?.members).toContain(rogue.pid);
+    viewerFc.sent.length = 0;
+    step(server);
+    expect(entRecord(lastSnap(viewerFc.sent), rogue.pid)).not.toBeNull();
+  });
+
+  it('ships a released ghost only to its own party or raid', () => {
+    const mateFc = fakeWs();
+    const mate = joinServer(server, mateFc, 3, 'Mate');
+    server.sim.partyInvite(mate.pid, subject.pid);
+    server.sim.partyAccept(mate.pid);
+    const v = server.sim.entities.get(viewer.pid)!;
+    const near = besideViewer(v, 4);
+    placeAt(server, mate.pid, near.x, near.z);
+    placeSubjectAt(10);
+    const s = server.sim.entities.get(subject.pid)!;
+    const shipped = (fc: FakeClient): boolean => {
+      const snap = lastSnap(fc.sent);
+      return entRecord(snap, subject.pid) !== null || inKeep(snap, subject.pid);
+    };
+
+    // The body before release stays visible to everyone.
+    s.hp = 0;
+    s.dead = true;
+    viewerFc.sent.length = 0;
+    mateFc.sent.length = 0;
+    step(server);
+    expect(shipped(viewerFc)).toBe(true);
+    expect(shipped(mateFc)).toBe(true);
+
+    // Released and standing in the same place: the stranger loses it, the
+    // party member keeps it.
+    server.sim.releaseSpirit(subject.pid);
+    expect(s.ghost).toBe(true);
+    placeSubjectAt(10);
+    viewerFc.sent.length = 0;
+    mateFc.sent.length = 0;
+    step(server);
+    expect(shipped(viewerFc)).toBe(false);
+    expect(shipped(mateFc)).toBe(true);
+
+    // A raid counts the same: once the stranger joins the raid it sees the ghost.
+    for (let i = 0; i < 3; i++) {
+      const filler = joinServer(server, fakeWs(), 10 + i, `Filler${i}`);
+      server.sim.partyInvite(filler.pid, subject.pid);
+      server.sim.partyAccept(filler.pid);
+    }
+    server.sim.convertPartyToRaid(subject.pid);
+    server.sim.partyInvite(viewer.pid, subject.pid);
+    server.sim.partyAccept(viewer.pid);
+    const raid = server.sim.partyOf(viewer.pid);
+    expect(raid?.raid).toBe(true);
+    expect(raid?.members).toContain(subject.pid);
+    viewerFc.sent.length = 0;
+    step(server);
+    expect(shipped(viewerFc)).toBe(true);
+  });
+
+  it('lets a stranger ghost be seen by other ghosts (the classic graveyard crowd)', () => {
+    placeSubjectAt(10);
+    const s = server.sim.entities.get(subject.pid)!;
+    const v = server.sim.entities.get(viewer.pid)!;
+    const shipped = (): boolean => {
+      const snap = lastSnap(viewerFc.sent);
+      return entRecord(snap, subject.pid) !== null || inKeep(snap, subject.pid);
+    };
+    s.hp = 0;
+    s.dead = true;
+    server.sim.releaseSpirit(subject.pid);
+    placeSubjectAt(10);
+    viewerFc.sent.length = 0;
+    step(server);
+    expect(shipped(), 'a living stranger does not see the ghost').toBe(false);
+    v.hp = 0;
+    v.dead = true;
+    server.sim.releaseSpirit(viewer.pid);
+    expect(v.ghost).toBe(true);
+    placeSubjectAt(10);
+    viewerFc.sent.length = 0;
+    step(server);
+    expect(shipped(), 'a ghost sees the other ghost').toBe(true);
+  });
+
   it('keeps stationary npcs visible out to the legacy 120yd radius', () => {
     const npc = [...server.sim.entities.values()].find((e) => e.kind === 'npc')!;
     // viewer 110yd from the npc, subject player at the same distance
@@ -559,6 +684,44 @@ describe('client crowd protocol', () => {
     expect(e.kind).toBe('player');
     expect(e.level).toBeGreaterThan(0);
     expect(e.pos.x).toBe(rec.x);
+  });
+
+  it('sends buried hoard rarity as identity, preserves it on lite, and clears it with a full record', () => {
+    const viewerEntity = server.sim.entities.get(viewer.pid)!;
+    const pos = besideViewer(viewerEntity, 30);
+    const entrance = createGroundObject(
+      90_002,
+      '',
+      'Buried Hoard',
+      server.sim.groundPos(pos.x, pos.z),
+    );
+    entrance.templateId = 'hoard_entrance';
+    entrance.vaultRarity = 'legendary';
+    server.sim.entities.set(entrance.id, entrance);
+    server.sim.grid.insert(entrance);
+
+    broadcast(server);
+    let snap = apply();
+    let rec = entRecord(snap, entrance.id);
+    expect(rec).toMatchObject({ k: 'object', tid: 'hoard_entrance', vr: 'legendary' });
+    expect(client.entities.get(entrance.id)?.vaultRarity).toBe('legendary');
+
+    viewerFc.sent.length = 0;
+    step(server, [entrance.id]);
+    snap = apply();
+    rec = entRecord(snap, entrance.id);
+    expect(rec.k).toBeUndefined();
+    expect(rec.vr).toBeUndefined();
+    expect(client.entities.get(entrance.id)?.vaultRarity).toBe('legendary');
+
+    entrance.vaultRarity = undefined;
+    viewerFc.sent.length = 0;
+    step(server);
+    snap = apply();
+    rec = entRecord(snap, entrance.id);
+    expect(rec.k).toBe('object');
+    expect(rec).not.toHaveProperty('vr');
+    expect(client.entities.get(entrance.id)?.vaultRarity).toBeUndefined();
   });
 
   it('ignores lite records for unknown ids without creating ghosts', () => {

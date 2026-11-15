@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml/badge.svg)](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-r165-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-RL%20env-0C7BDC)](https://gymnasium.farama.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-[![Version](https://img.shields.io/badge/version-0.31.0-blue)](../../package.json)
+[![Version](https://img.shields.io/badge/version-0.45.8-blue)](../../package.json)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.zh_CN.md)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/worldofclaudecraft)
 
@@ -92,7 +92,7 @@ npm install
 npm run dev        # then open http://localhost:5173 and choose Play Offline
 ```
 
-为你的角色命名，从九个职业中任选其一，你将从 **Eastbrook Vale**（1 至 7 级）开始，这是一座集市镇，四周环绕着各处据点：北面是狼群出没地，东面是野猪草甸，西面是 Sableweb 林地，西北是 Mirror Lake，西南是一处遍布掘地怪的铜矿坑，东北是一座栖息着不安息亡者的废弃礼拜堂，东南则是 Gorrak 的强盗营地。北路翻越一道山口进入 **Mirefen Marsh**（6 至 13 级，据点 Fenbridge），再向上通往 **Thornpeak Heights**（13 至 20 级，据点 Highwatch）。世界种子在 `src/main.ts` 中固定，所以每次造访都是同一个地方。
+为你的角色命名，从九个职业中任选其一，你将从 **Eastbrook Vale**（1 至 7 级）开始，这是一座集市镇，四周环绕着各处据点：北面是狼群出没地，东面是野猪草甸，西面是 Sableweb 林地，西北是 Mirror Lake，西南是一处遍布掘地怪的铜矿坑，东北是一座栖息着不安息亡者的废弃礼拜堂，东南则是 Gorrak 的强盗营地。北路翻越一道山口进入 **Mirefen Marsh**（6 至 13 级，据点 Fenbridge），再向上通往 **Thornpeak Heights**（13 至 20 级，据点 Highwatch）。世界种子在 `src/sim/world_seed.ts` 中固定，所以每次造访都是同一个地方。
 
 ### 面向 Windows、Linux 和 macOS 的桌面应用
 
@@ -234,7 +234,7 @@ Gravecaller 主线贯穿三个五人精英副本，第四个则守在一道月�
 
 ### Delves
 
-Delves 是一种独立的、可缩放的小队模式，供一到两名玩家游玩，每次进入都会从随机房间重建，终点是一只上锁的圣物箱，它靠开锁小游戏打开，而不是靠战利品掷骰。**The Collapsed Reliquary**（7 级及以上）终点是 Deacon Varric，单人挑战时会有一位 AI 同伴 Tessa 与你并肩作战。**The Drowned Litany**（12 级及以上）循着线索深入 Mirefen Marsh 边缘一座被水淹没的圣所。一块 delve 公告板用来设定层级：英雄会提升敌人等级并加入一条随机词缀，以换取更丰厚的奖励。
+Delves 是一种独立的、可缩放的小队模式，供一到两名玩家游玩，每次进入都会从随机房间重建，终点是一只上锁的圣物箱，它靠开锁小游戏打开，而不是靠战利品掷骰。**The Collapsed Reliquary**（7 级及以上）终点是 Deacon Vandric，单人挑战时会有一位 AI 同伴 Tessa 与你并肩作战。**The Drowned Litany**（12 级及以上）循着线索深入 Mirefen Marsh 边缘一座被水淹没的圣所。一块 delve 公告板用来设定层级：英雄会提升敌人等级并加入一条随机词缀，以换取更丰厚的奖励。
 
 ### 排名制 PvP（the Ashen Coliseum）
 

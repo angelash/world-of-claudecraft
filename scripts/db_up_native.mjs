@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 import process from 'node:process';
-import {
-  ensureNativePostgresRunning,
-  getNativePostgresConfig,
-} from './native_postgres.mjs';
+import { ensureNativePostgresRunning, getNativePostgresConfig } from './native_postgres.mjs';
 
 try {
   const config = getNativePostgresConfig();

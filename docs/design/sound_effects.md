@@ -85,7 +85,6 @@ not change the exit code), so the shipped world clips, which predate the mono
 policy, do not break the gate before the one-time re-process. Pass
 `npm run sfx:check -- --strict` to promote them to failures, and
 `npm run sfx:conform` (`--fix`) to conform loudness and downmix in a single pass.
-
 A third advisory category flags a `custom: true` key whose measured LUFS lands
 suspiciously close to the generated-content target (`TARGET_LUFS`, -14): the
 fingerprint of a key that was loudness-targeted before `custom: true` was set on
@@ -100,8 +99,13 @@ apart; verify by ear or against the source before treating a hit as a defect.
 
 ### `src/game/sfx.ts` — `Sfx` (singleton `sfx`)
 A decoupled 3D engine with **its own `AudioContext` + `AudioListener`** (siblings:
-`audio`/`music`/`voice`). Driven by the `sfxVolume` setting (wired alongside
-`audio.setVolume` in `main.ts`). API:
+`audio`/`music`/`voice`). Two output buses, one per Audio panel slider: the
+effects master driven by the `sfxVolume` setting (wired alongside
+`audio.setVolume` in `main.ts`) and the ambience bus driven by `ambientVolume`.
+`sfxMixBus` (`src/game/sfx_mix_bus.ts`) picks the bus per clip key: the
+manifest's `ambience` category plus the procedural crowd bed go to ambience;
+everything else, including the point emitters of gameplay objects (rift portal,
+buried hoard, rift hazards), stays on effects. API:
 - `init()` — gated on the same user gesture as `audio.init()` (`enterWorld`);
   preloads the startup working set and lazily deduplicates fetch/decode work for
   contextual cues.
@@ -129,6 +133,13 @@ which already computes interpolated position, `loco.speed/moving`, `swimming`,
   `zoneBiomeAt(z)` (vale→grass, marsh→dirt, peaks→stone) → water if wading →
   dock decks→wood → dungeon→stone → snow if weather is snowing. Suppressed while airborne /
   swimming / dead and gated by `d2 < SFX_RANGE_SQ`.
+- **Mount running:** the same distance accumulator fires a mount-specific
+  `sink.mountRun(x,y,z, mountKey, surface, self)` gait beat while a grounded mount
+  runs. Mount walking stays quiet. These cues use the normal SFX mix and remain
+  audible when the optional on-foot footstep setting is disabled. A mount with no
+  `mount_run_<key>` in the catalog (the Lanternback Troll and the Chimeglass
+  Tortoise) falls back to the plain `foot_<surface>` cue at running-step gain and
+  pitch: hence the `surface` argument, which the custom-cue branch ignores.
 - **Jump / land / splash / swim:** per-view edge detection on `airborne` and
   `swimming` transitions fires `sink.movement('jump'|'land'|'splash'|'swim', …)`.
 - **Listener:** after the camera is positioned (~L1583), `sink.setListener(camPos,
@@ -186,6 +197,24 @@ until that loop stops.
 | `foot_wood` | 0.5 | single boot step on hollow wooden planks, dull creak, close |
 | `foot_snow` | 0.5 | single boot step crunching fresh snow, soft compression |
 | `foot_water` | 0.6 | single footstep wading in shallow water, splashy, close |
+| `mount_run_valorsteed` | 0.39 | armored warhorse gallop |
+| `mount_run_grag_bear` | 0.70 | pitched-down paired heavy footfalls |
+| `mount_run_stalkglider_snail` | 0.55 | rapid slime surge |
+| `mount_run_aether_hover_cycle` | 0.65 | hovercraft acceleration pulse |
+| `mount_run_shadowjump_toad` | 0.52 | slime spring and damp footfall |
+| `mount_run_stormfeather_griffin` | 0.51 | large wing rush and hard talon contact |
+| `mount_run_thunderstrut_gobbler` | 0.40 | higher feather rush and quick claw contact |
+| `mount_run_goblin_rocket_sled_start` | 1.41 | authored forward rocket ignition ramp, hard-spliced into sustain |
+| `mount_run_goblin_rocket_sled` | 9.53 | seamless forward rocket burner sustain loop |
+| `mount_run_goblin_rocket_sled_stop` | 2.04 | authored forward rocket shutdown ramp, directly interruptible |
+| `mount_run_goblin_rocket_sled_reverse_start` | 1.28 | authored reverse turbine ignition ramp, directly interruptible |
+| `mount_run_goblin_rocket_sled_reverse` | 10.53 | seamless reverse rocket sustain loop |
+| `mount_run_goblin_rocket_sled_reverse_stop` | 1.18 | authored reverse turbine shutdown ramp, directly interruptible |
+| `mount_run_terrorspark_groundshaker` | 0.55 | compact tread clatter with a low mechanical drive pulse |
+| `mount_run_mech_bird` | 0.68 | servo footsteps assembled 1-2-1 per stride (scripts/gen_mech_bird_sfx.mjs) |
+| `mount_idle_mech_bird` | 10 | standstill powered-on servo hum loop (Sfx.mountIdle) |
+| `mount_jump_mech_bird` | 0.67 | launch servo burst, replaces move_jump while riding (Sfx.movement mount arm) |
+| `mount_land_mech_bird` | 0.67 | pitch-settled landing clank, replaces move_land while riding |
 | `move_jump` | 0.5 | quick light gear/leather exertion and fabric rustle, a person leaping up |
 | `move_land` | 0.6 | a person landing from a jump, boots thud with armor and gear settle |
 | `move_splash` | 0.8 | a body plunging into water, big splash |
@@ -213,6 +242,15 @@ until that loop stops.
 | `combat_crit` | 0.6 | a brutal devastating critical strike, heavy bone-crunching impact with a sharp ring |
 | `player_hurt` | 0.6 | a human warrior grunting in sudden pain from a hit |
 | `player_death` | 1.2 | a human warrior's final pained death cry collapsing to the ground |
+| `player_hurt_female` | 0.6 | the same grunt, female voice |
+| `player_death_female` | 1.3 | the same death cry, female voice |
+
+The two `_female` keys are selected per character by `playerVoiceCue`
+(`src/ui/combat_sfx.ts`) from the modular creator's authored gender, which rides
+the entity identity wire as `modularAppearance`. Only an explicit
+`gender: 'female'` diverts; a male look, a character authored before the creator
+shipped, and an unreadable appearance all keep the base key, and a female cue
+that is not buffered yet falls back to the base key rather than to silence.
 
 ### Spell casts (spatial, looping while channeling)
 | key | dur | loop | prompt summary |
@@ -314,6 +352,31 @@ as footstep variant choice, not gameplay-affecting).
 | `amb_dungeon` | ✓ | global | a dark stone dungeon interior, dripping water echoes and a low ominous drone |
 | `amb_rain` | ✓ | global | steady rainfall pattering with occasional distant thunder |
 | `amb_snow` | ✓ | global | a soft muffled snowy wind, quiet and cold |
+| `amb_tavern` | yes | global, gated | a tavern room: overlapping talk and laughter, mugs, the hearth and a little lute music (project-synthesized, `scripts/gen_tavern_ambience_sfx.mjs`) |
+
+Point ambience (`amb_campfire`/`amb_forge`) shares the same falloff every
+other positional sound uses by default, but `amb_forge` gets its own,
+narrower audible-distance override (`FORGE_MAX_DISTANCE`, `src/game/sfx.ts`;
+`makePanner`/`loop`/`tooFar` all take an optional refDistance/maxDistance
+override, defaulting to the shared constants so nothing else's range shifts).
+This sets the stage for future station ambiences (Professions 2.0's other
+station types: kitchens, apothecary, tannery, loom, toolworks, see issue
+#2208) to get their own audible radius the same way: a new `AmbientPointSource`
+`kind` plus a named constant, no changes to the override mechanism itself.
+
+The Mirefen tavern's room bed (`amb_tavern`, point kind `tavern`) is the one point
+source that does not pan: `src/render/world_audio.ts` anchors it at the hall's middle
+(built-in world only), and `src/game/sfx.ts` plays it as a stereo bed through a
+lowpass (`setLoopLowpass`) whose level and cutoff come from the pure
+`src/game/tavern_ambience_core.ts` for where the player stands (the avatar's eye the
+renderer passes to `ambience()`, never the camera, which trails the player and sits in
+the doorway while they stand in the hall): full and clear inside
+the hall and the nook, muffled and quieter outside (loudest before the open door,
+fading over `TAVERN_AMBIENCE_RADIUS` yards from it, a low murmur through the walls
+close round the rest), blended over a couple of yards across the doorway so walking
+in and out never steps (`tests/tavern_ambience_core.test.ts`). The clip is a custom
+master baked as a seamless 16-bar loop; regenerate it with
+`node scripts/gen_tavern_ambience_sfx.mjs`, then `npm run sfx:manifest`.
 
 ### Interface and personal event cues
 
@@ -337,7 +400,7 @@ Fiesta) and every world/spatial sound ignore the toggle.
 | `ui_quest_done`, `ui_level_up`, `ui_cosmetic_unlock` | progression feedback (cosmetic/skin unlocks split off from level-up so they no longer share a sound) |
 | `ui_achievement` | Book of Deeds unlock chime |
 | `ui_whisper`, `ui_sheep`, `ui_death` | message, transformation, and defeat events (`ui_death` also covers Fiesta/Yumi/Vale Cup match-loss; Arena rating loss has its own `ui_arena_loss`) |
-| `ui_duel_challenge`, `ui_duel_countdown`, `ui_duel_start`, `ui_duel_end` | shared "a match is starting" lifecycle: a real duel and an Arena queue pop reuse this same family (deliberately, not a mixup). Vale Cup shares challenge/countdown/end but has its own kickoff cue, `ui_vcup_kickoff`, split off from `ui_duel_start` so a real duel-start recording does not also fire for the soccer minigame. Unlike most notification cues, this family is never silenced by the Interface & Feedback Sounds toggle (same category as the ready-check chime), since a real challenge is time-critical to respond to. Party invite, guild invite, and a resurrection offer play the same `ui_duel_challenge` clip through the separate `invitePrompt()` method instead (the old, separate, misnamed `ui_quest_accept` those used is retired): same sound, but gated by the toggle like a normal notification, since those prompts aren't time-critical the way a real challenge is. |
+| `ui_duel_challenge`, `ui_duel_countdown`, `ui_duel_start`, `ui_duel_end` | shared "a match is starting" lifecycle: a real duel and an Arena queue pop reuse this same family (deliberately, not a mixup). Unlike most notification cues, this family is never silenced by the Interface & Feedback Sounds toggle (same category as the ready-check chime), since a real challenge is time-critical to respond to. Party invite, guild invite, and a resurrection offer play the same `ui_duel_challenge` clip through the separate `invitePrompt()` method instead (the old, separate, misnamed `ui_quest_accept` those used is retired): same sound, but gated by the toggle like a normal notification, since those prompts aren't time-critical the way a real challenge is. |
 | `ui_ready_check` | group ready-check three-note prompt |
 | `ui_weapon_sheathe`, `ui_weapon_unsheathe` | weapon stow toggle (Z key) |
 | `ui_fiesta_word_0` through `ui_fiesta_word_3` | escalating Fiesta takedown tiers |
@@ -457,12 +520,19 @@ decode is a no-op for them; that fold still protects any stereo asset (a
 not-yet-re-processed clip, or a bespoke upload) from wasting positional buffer
 memory.
 
+The `mount_*.mp3` entries are custom, optimized edits of CC0 or public-domain
+sources and are never sent to ElevenLabs. Their exact provenance is recorded in
+`CREDITS.md`. Running the generator without an API key is sufficient to rebuild
+the manifest when every generated clip already exists.
+
 ## Efficiency budget
 - One decoded `AudioBuffer` per loaded clip, shared across all sources. Only the
   startup set is eager; contextual assets are loaded once on demand.
 - `MAX_VOICES` concurrent one-shots; over-cap plays are dropped (oldest-wins).
 - Footsteps gated by `d2 < SFX_RANGE_SQ` (reuses the renderer's per-entity squared
   distance) and a per-entity stride accumulator — no timers, no per-frame alloc.
+- Mount gait beats reuse that distance gate and accumulator with a longer stride
+  distance so each custom clip decays before the next one begins.
 - Ambience/cast loops are a small pool of persistent sources, cross-faded by gain.
 - Listener updated once per frame; panners use cheap `equalpower` + linear rolloff
   with a hard `maxDistance` so far sounds cost nothing.

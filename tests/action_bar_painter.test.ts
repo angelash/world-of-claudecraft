@@ -71,6 +71,7 @@ function slotState(over: Partial<ActionBarSlotState> = {}): ActionBarSlotState {
     kind: 'ability',
     abilityId: 'x',
     itemId: null,
+    petCommand: null,
     iconKey: 'ability:x',
     cooldownRemaining: 0,
     cooldownTotal: 0,
@@ -82,9 +83,16 @@ function slotState(over: Partial<ActionBarSlotState> = {}): ActionBarSlotState {
     usable: true,
     outOfRange: false,
     queued: false,
+    aiming: false,
     procGlow: false,
     empowered: false,
+    naturesBoonGlow: false,
+    ascensionSpender: false,
+    ascensionCostLabel: '',
+    fateConsumeReady: false,
+    fateSentenceReady: false,
     ariaLabel: 'A',
+    ariaDescription: '',
     keybindLabel: 'K',
     ...over,
   };
@@ -111,7 +119,12 @@ describe('ActionBarPainter: routes every write through the elided writers', () =
           usable: false,
           outOfRange: true,
           queued: true,
+          aiming: true,
+          procGlow: true,
           empowered: true,
+          ascensionSpender: true,
+          ascensionCostLabel: '-1',
+          fateConsumeReady: true,
           ariaLabel: 'aria1',
           keybindLabel: '1',
         }),
@@ -128,12 +141,24 @@ describe('ActionBarPainter: routes every write through the elided writers', () =
       { m: 'setStyleProp', args: [el.rechargeOverlay, 'height', '25%'] },
       { m: 'setText', args: [el.cdText, '3'] },
       { m: 'toggleClass', args: [el.btn, 'empty', false] },
+      { m: 'toggleClass', args: [el.btn, 'ability', true] },
       { m: 'toggleClass', args: [el.btn, 'unusable', true] },
       { m: 'toggleClass', args: [el.btn, 'oor', true] },
       { m: 'toggleClass', args: [el.btn, 'queued', true] },
-      { m: 'toggleClass', args: [el.btn, 'proc', false] },
+      { m: 'toggleClass', args: [el.btn, 'aiming', true] },
+      { m: 'toggleClass', args: [el.btn, 'proc', true] },
       { m: 'toggleClass', args: [el.btn, 'empowered', true] },
+      { m: 'toggleClass', args: [el.btn, 'natures-boon', false] },
+      { m: 'toggleClass', args: [el.btn, 'ascension-spender', true] },
+      { m: 'toggleClass', args: [el.btn, 'fate-consume-ready', true] },
+      { m: 'toggleClass', args: [el.btn, 'fate-sentence-ready', false] },
+      // Every toggleClass first, then every setAttr: the painter batches by
+      // writer so a frame touches classList once and the attribute map once.
+      { m: 'setAttr', args: [el.btn, 'data-ascension-cost', '-1'] },
       { m: 'setAttr', args: [el.btn, 'aria-label', 'aria1'] },
+      { m: 'setAttr', args: [el.btn, 'aria-description', ''] },
+      { m: 'setAttr', args: [el.btn, 'aria-disabled', 'true'] },
+      { m: 'setAttr', args: [el.btn, 'aria-pressed', 'true'] },
       { m: 'setText', args: [el.keybindEl, '1'] },
     ]);
   });
@@ -154,12 +179,73 @@ describe('ActionBarPainter: routes every write through the elided writers', () =
       args: [el.label, 'background-image', 'URL()'],
     });
   });
+
+  it('keeps the fixed attack button pressed while auto-attack is active', () => {
+    const { calls, writers } = recordingFacet();
+    const el = slotElements('attack');
+    const painter = new ActionBarPainter(
+      writers,
+      { container: CONTAINER, slots: [el] },
+      (key) => `URL(${key})`,
+    );
+
+    painter.paint({
+      manySpells: false,
+      slots: [slotState({ kind: 'attack', aiming: false, queued: true })],
+    });
+
+    expect(calls).toContainEqual({
+      m: 'setAttr',
+      args: [el.btn, 'aria-pressed', 'true'],
+    });
+  });
+
+  it('keeps the proc marker visible without animation and in forced-colors mode', () => {
+    const css = readFileSync(new URL('../src/styles/hud.css', import.meta.url), 'utf8');
+    const libraryCss = readFileSync(new URL('../src/styles/library.css', import.meta.url), 'utf8');
+    const mobileCss = readFileSync(
+      new URL('../src/styles/hud.mobile.css', import.meta.url),
+      'utf8',
+    );
+    // Proc chrome now belongs to ui-socket; hud.css owns only its animated pulse frames.
+    expect(libraryCss).toMatch(
+      /\.ui-socket\.is-proc,\s*\.ui-socket\.proc \{[\s\S]*?border-color: var\(--color-proc-rim\);[\s\S]*?var\(--color-proc-glow\)/,
+    );
+    expect(css).toMatch(/\.action-btn\.proc \{\s*animation: abtn-proc-pulse/);
+    expect(css).toContain('box-shadow: var(--glow-action-proc-soft);');
+    expect(css).toContain('box-shadow: var(--glow-action-proc-strong);');
+    expect(css).toMatch(
+      /@media \(forced-colors: active\) \{[\s\S]*?\.action-btn\.proc \{[\s\S]*?border: 3px double Highlight;[\s\S]*?outline: 1px solid CanvasText;/,
+    );
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.action-btn\.proc,[\s\S]*?animation: none;/,
+    );
+    // The ring reads the same proc tokens as the socket primitive; only the blur radius tiers.
+    expect(mobileCss).toMatch(
+      /#mobile-action-ring button\.proc \{[\s\S]*?border-color: var\(--color-proc-rim\);[\s\S]*?calc\(12px \* var\(--fx-shadow, 1\)\)[\s\S]*?var\(--color-proc-glow\)/,
+    );
+    expect(mobileCss).toMatch(
+      /@media \(forced-colors: active\) \{[\s\S]*?#mobile-action-ring button\.proc \{[\s\S]*?border: 3px double Highlight;[\s\S]*?outline: 1px solid CanvasText;/,
+    );
+    expect(mobileCss).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?#mobile-action-ring button\.proc,[\s\S]*?animation: none;/,
+    );
+  });
+
+  it('styles the aiming marker on desktop slots and mobile ring buttons', () => {
+    const css = readFileSync(new URL('../src/styles/hud.css', import.meta.url), 'utf8');
+
+    // The double gold ring distinguishes armed targeting from the steady focus ring.
+    expect(css).toMatch(
+      /\.action-btn\.aiming,\s*body\.mobile-touch #mobile-action-ring button\.aiming \{\s*outline: 3px double var\(--gold\);\s*outline-offset: 1px;\s*\}/,
+    );
+  });
 });
 
 // --- Elision against a REAL facet over recording elements ----------------------
 
 function recordingEl() {
-  const setAttrCalls: Array<[string, string]> = [];
+  const setAttrCalls: Array<[string, string | null]> = [];
   const node = {
     textContent: '',
     style: {
@@ -170,6 +256,9 @@ function recordingEl() {
     },
     setAttribute(name: string, value: string): void {
       setAttrCalls.push([name, value]);
+    },
+    removeAttribute(name: string): void {
+      setAttrCalls.push([name, null]);
     },
   };
   return { setAttrCalls, el: node as unknown as HTMLElement };
@@ -201,21 +290,63 @@ function fakeDeps(): ActionBarDeps {
 function idleWorld(): ActionBarWorldInput {
   return {
     player: {
+      id: 1,
       autoAttack: false,
       dead: false,
       resource: 100,
       cooldowns: new Map(),
       gcdRemaining: 0,
       potionCdRemaining: 0,
+      resourceType: 'mana' as const,
+      savedMana: 0,
       queuedOnSwing: null,
-      stealthed: false,
       auras: [],
       pos: { x: 0, y: 0, z: 0 },
     },
     target: null,
     inventory: [],
+    stealthed: false,
+    entities: [],
+    activeAimSlot: null,
   };
 }
+
+describe('ActionBarPainter: aria-pressed scoping', () => {
+  it('removes aria-pressed from an ordinary cast slot instead of writing false', () => {
+    const facet = makeWriterFacet(
+      new Map(),
+      new Map(),
+      new Map(),
+      new Map(),
+      () => {},
+      () => {},
+    );
+    const btn = recordingEl();
+    const el: ActionBarSlotElements = {
+      btn: btn.el,
+      label: recordingEl().el,
+      countEl: recordingEl().el,
+      keybindEl: recordingEl().el,
+      cdOverlay: recordingEl().el,
+      cdText: recordingEl().el,
+      rechargeOverlay: recordingEl().el,
+    };
+    const painter = new ActionBarPainter(
+      facet,
+      { container: recordingEl().el, slots: [el] },
+      (key) => `URL(${key})`,
+    );
+
+    painter.paint({
+      manySpells: false,
+      slots: [slotState({ kind: 'ability', aiming: false, queued: false })],
+    });
+
+    const ariaPressedWrites = btn.setAttrCalls.filter(([name]) => name === 'aria-pressed');
+    expect(ariaPressedWrites).toEqual([['aria-pressed', null]]);
+    expect(ariaPressedWrites).not.toContainEqual(['aria-pressed', 'false']);
+  });
+});
 
 describe('ActionBarPainter: aria-label + icon elision (Top risks 1 + 4)', () => {
   it('writes the aria DOM attribute only on change while t() fires every tick', () => {

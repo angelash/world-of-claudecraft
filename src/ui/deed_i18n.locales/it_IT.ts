@@ -7,6 +7,114 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: "Pronto per l'Avventura",
+    desc: "Diplomati alla Riva della Prova: completa ogni lezione sull'isola, poi suona la campana del traghetto per tornare a Eastbrook.",
+  },
+  exp_dawnhold_castle: {
+    name: 'Una Porta Aperta nel Giardino',
+    desc: 'Fai visita al Castello Dawnhold e passeggia per le sue sale soleggiate del giardino.',
+  },
+  exp_the_last_keep: {
+    name: 'Le Sale Silenziose',
+    desc: "Varca le porte dell'Ultima Rocca e percorri le sue sale silenziose.",
+  },
+  pvp_bg_first_capture: {
+    name: 'Vessillo in Mano',
+    desc: 'Cattura una bandiera ai Campi di Thornhollow.',
+  },
+  pvp_bg_first_win: {
+    name: 'La Valletta Resiste',
+    desc: 'Vinci una battaglia ai Campi di Thornhollow.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Guardiano della Valletta',
+    desc: 'Vinci 25 battaglie ai Campi di Thornhollow.',
+    title: 'Portabandiera',
+  },
+  pvp_bg_captures_100: {
+    name: 'Cento Vessilli',
+    desc: 'Cattura 100 bandiere ai Campi di Thornhollow nel corso della tua carriera.',
+  },
+  dgn_rift: {
+    name: 'Camminasquarci',
+    desc: 'Completa uno Squarcio sconfiggendo il suo boss di piano.',
+  },
+  dgn_rift_s_rank: {
+    name: 'Sovrano degli Squarci',
+    desc: 'Completa uno Squarcio di rango S, il livello più difficile che un portale di Squarcio può generare.',
+  },
+  pvp_honor_sergeant: {
+    name: 'Spezzalinee',
+    desc: 'Guadagna 10.000 Onore nel corso della tua vita. Spenderlo non ti farà mai perdere il grado.',
+    title: 'Spezzalinee',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Devastacampi',
+    desc: 'Guadagna 40.000 Onore nel corso della tua vita, una stagione di guerra vera alle spalle.',
+    title: 'Devastacampi',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Coronato dalla guerra',
+    desc: 'Guadagna 150.000 Onore nel corso della tua vita. Raro in qualsiasi reame, ed è giusto che sia così.',
+    title: 'Coronato dalla guerra',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Spezzacovata',
+    desc: 'Uccidi un Signore della covata di Drakemaw tra le sue uova, superando il grido, il fendente e il fuoco.',
+  },
+  chr_maw_matriarch: {
+    name: 'Il Cielo Tace',
+    desc: 'Uccidi Cindraleth, la Matriarca delle Fauci, nel suo nido nel cratere sopra il Drakemaw.',
+  },
+  chr_frostveil_gatherer: {
+    name: 'Raccolto sui terrazzamenti',
+    desc: 'Raccogli una vena di minerale, un gruppo di legna e un appezzamento d erbe nel Frostveil.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Primo ghiaccio sul lago',
+    desc: 'Pesca un pesce nelle acque del Frostveil.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Il raccolto di Amberfall',
+    desc: 'Raccogli una vena di minerale, un gruppo di legna e un appezzamento d erbe ad Amberfall.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'Una preda dalla grande palude',
+    desc: 'Pesca un pesce nelle acque di Amberfall.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'Il raccolto sognante',
+    desc: 'Raccogli una vena di minerale, un gruppo di legna e un appezzamento d erbe a Nightbloom.',
+  },
+  chr_nightbloom_first_cast: {
+    name: 'Un’Onda alla Fonte Lunare',
+    desc: 'Pesca un pesce nelle acque di Nightbloom.',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Raccolto sotto la volta',
+    desc: 'Raccogli una vena di minerale, un gruppo di legna e un appezzamento d erbe nel Wraithwood.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Un lancio nella baia dello specchio',
+    desc: 'Pesca un pesce nelle acque del Wraithwood.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Raccolto sulla spiaggia di palme',
+    desc: 'Raccogli una vena di minerale, un gruppo di legna e un appezzamento d erbe a Palmreach.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Lancio nella laguna di zaffiro',
+    desc: 'Pesca un pesce nelle acque di Palmreach.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'Il dono del parterre',
+    desc: 'Raccogli una vena di minerale, un gruppo di legna e un appezzamento d erbe a Evergarden.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Un lancio sullo stagno dei petali',
+    desc: 'Pesca un pesce nelle acque di Evergarden.',
+  },
   pvp_card_duel_first_win: {
     name: 'Regole di Casa',
     desc: 'Vinci un Duello di Carte dal Maestro delle Carte.',
@@ -91,7 +199,70 @@ export const table: DeedLocaleTable = {
   },
   prog_master_gatherer: {
     name: 'Maestro Raccoglitore',
-    desc: 'Raggiungi 100 di competenza in almeno tre tra Estrazione, Disboscamento, Erboristeria e Pesca.',
+    desc: 'Raggiungi 100 di competenza in tre mestieri di raccolta qualsiasi.',
+  },
+  prog_jewelcrafting_rare: {
+    name: 'Lucidato fino allo Splendore',
+    desc: 'Crea il tuo primo oggetto di livello raro in Oreficeria.',
+  },
+  prog_jewelcrafting_50: {
+    name: 'Sfaccetta e Filigrana',
+    desc: 'Raggiungi 50 di abilità in Oreficeria.',
+  },
+  prog_grandmaster_jewelcrafting: {
+    name: 'Gran Maestro di Oreficeria',
+    desc: 'Raggiungi 125 di abilità in Oreficeria, il vertice assoluto del mestiere.',
+    title: 'Gran Maestro di Oreficeria',
+  },
+  prog_inscription_rare: {
+    name: 'Scritto con Inchiostro Pregiato',
+    desc: 'Crea il tuo primo oggetto di livello raro in Inscrizione.',
+  },
+  prog_inscription_50: {
+    name: 'Penna e Pigmento',
+    desc: 'Raggiungi 50 di abilità in Inscrizione.',
+  },
+  prog_grandmaster_inscription: {
+    name: 'Gran Maestro di Inscrizione',
+    desc: 'Raggiungi 125 di abilità in Iscrizione, il vertice assoluto del mestiere.',
+    title: 'Gran Maestro di Inscrizione',
+  },
+  col_deepest_cast: {
+    name: 'La Cattura Più Profonda',
+    desc: 'Ottieni una canna da pesca Clockreel, l’unica che raggiunge le catture più profonde.',
+  },
+  prog_first_planting: {
+    name: 'E Così si Semina',
+    desc: 'Pianta la tua prima coltura in un’aiuola.',
+  },
+  chr_vale_first_harvest: {
+    name: 'I Primi Frutti della Valle',
+    desc: 'Raccogli la tua prima coltura rigogliosa da un’aiuola nella Valle di Eastbrook.',
+  },
+  chr_marsh_first_harvest: {
+    name: 'Germogli nella Torba',
+    desc: 'Raccogli la tua prima coltura rigogliosa da un’aiuola nella Palude di Mirefen.',
+  },
+  chr_peaks_first_harvest: {
+    name: 'Un Raccolto tra le Cime',
+    desc: 'Raccogli la tua prima coltura rigogliosa da un’aiuola nelle Alture di Thornpeak.',
+  },
+  chr_evergarden_first_harvest: {
+    name: 'Un Appezzamento in Paradiso',
+    desc: 'Raccogli la tua prima coltura rigogliosa da un’aiuola nell’Evergarden.',
+  },
+  prog_farming_100: {
+    name: 'Maestro del Raccolto',
+    desc: 'Raggiungi 100 di competenza in Agricoltura.',
+    title: 'Maestro del Raccolto',
+  },
+  col_farm_roster: {
+    name: 'Ogni Solco Riempito',
+    desc: 'Raccogli ogni coltura prodotta dai quattro giardini.',
+  },
+  prog_field_to_feast: {
+    name: 'Dal Campo al Banchetto',
+    desc: 'Cucina un banchetto d’apice, il tavolo a cui mangia un’intera incursione.',
   },
   prog_first_craft: {
     name: 'Fatto a Mano',
@@ -208,7 +379,7 @@ export const table: DeedLocaleTable = {
     title: 'Abbattiwyrm',
   },
   dgn_sanctum_speed: {
-    name: 'Scatto nel Santuario',
+    name: 'Corsa al Santuario',
     desc: 'Sconfiggi Korzul il Gravewyrm entro 15 minuti da quando il tuo gruppo rivendica il Santuario del Gravewyrm.',
   },
   dgn_nythraxis_gravebreaker: {
@@ -274,7 +445,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'Le Campane Tacciono',
-    desc: 'Sconfiggi il Diacono Varric quando ogni Campanaro Funebre che risveglia è già stato ucciso.',
+    desc: 'Sconfiggi il Diacono Vandric quando ogni Campanaro Funebre che risveglia è già stato ucciso.',
   },
   dlv_nhalia_bells: {
     name: 'Fermacampane',
@@ -287,7 +458,6 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Cronaca della Valle, Capitolo II',
-    desc: 'Concludi il secondo capitolo della cronaca di Saul: banditi, murloc e parassiti della miniera sterminati, una partita giocata al Campo della Scrofa e il Reliquiario affrontato.',
   },
   chr_vale_chapter_iii: {
     name: 'Cronaca della Valle',
@@ -307,8 +477,8 @@ export const table: DeedLocaleTable = {
     desc: 'Uccidi 3 Lupi della foresta entro 10 secondi.',
   },
   chr_vale_cup_debut: {
+    desc: 'Scendi in campo e tocca la palla in una partita della Coppa della Valle al Il Campo della Scrofa. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Contendente del Secchio di Rame',
-    desc: 'Scendi in campo e tocca la palla in una partita della Coppa della Valle al Campo della Scrofa.',
   },
   chr_vale_rares: {
     name: 'I Terrori della Valle',
@@ -353,12 +523,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'Cronaca di Thornpeak',
-    desc: "Porta a compimento l'intera storia della montagna: il Culto del Wyrm spezzato, il Santuario ridotto al silenzio, il Picco Risvegliato abbattuto e ogni terrore famigerato delle rupi eliminato.",
+    desc: 'Ripercorri tutta la storia della montagna: i Broodsworn spezzati, il Santuario ridotto al silenzio, il Picco Risvegliato abbattuto e ogni terrore nominato delle cime sconfitto.',
     title: 'di Thornpeak',
   },
   chr_peaks_sparring: {
     name: 'Esercitazioni sul Muro',
-    desc: "Infliggi 1.000 danni totali al manichino d'allenamento sopra Highwatch.",
+    desc: "Infliggi 1.000 danni totali a un manichino d'allenamento.",
   },
   chr_peaks_glimmer_cast: {
     name: 'Acqua Fredda, Luce più Fredda',
@@ -448,7 +618,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Cliente di Riguardo',
-    desc: 'Scopri tutti e dieci i pezzi della mercanzia del Quartiermastro Vex.',
+    desc: 'Scopri tutti e dieci i pezzi di equipaggiamento della mercanzia del Quartiermastro Vex.',
   },
   col_glimmerfin: {
     name: 'Un Barlume di Speranza',
@@ -501,70 +671,73 @@ export const table: DeedLocaleTable = {
     desc: 'Perdi un duello con la dignità quasi intatta.',
   },
   pvp_vcup_first_match: {
+    desc: 'Porta a termine una partita completa della Coppa della Valle al Il Campo della Scrofa, vincendo o perdendo. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Scarpini in Campo',
-    desc: "Porta a termine un'intera partita di Coppa della Valle al Campo della Scrofa, vinta o persa che sia.",
   },
   pvp_vcup_first_win: {
+    desc: 'Vinci una partita classificata della Coppa della Valle. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Primo Trofeo in Bacheca',
-    desc: 'Vinci una partita classificata di Coppa della Valle.',
   },
   pvp_vcup_wins_10: {
+    desc: 'Vinci 10 partite classificate della Coppa della Valle. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Vecchia Volpe del Boarball',
-    desc: 'Vinci 10 partite classificate di Coppa della Valle.',
   },
   pvp_vcup_wins_25: {
+    desc: 'Vinci 25 partite classificate della Coppa della Valle. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Leggenda del Boarball',
-    desc: 'Vinci 25 partite classificate di Coppa della Valle.',
     title: 'Leggenda del Boarball',
   },
   pvp_vcup_first_goal: {
+    desc: 'Segna un gol in una partita classificata della Coppa della Valle. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'A Segno',
-    desc: 'Segna un gol in una partita classificata di Coppa della Valle.',
   },
   pvp_vcup_hat_trick: {
+    desc: 'Segna tre gol nella stessa partita classificata della Coppa della Valle, nella categoria 3 contro 3 o superiore. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Eroe della Tripletta',
-    desc: 'Segna tre gol in una singola partita classificata di Coppa della Valle, nella categoria 3v3 o superiore.',
   },
   pvp_vcup_golden_goal: {
+    desc: 'Segna il golden goal che decide una partita classificata della Coppa della Valle. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: "Momento d'Oro",
-    desc: "Segna il gol d'oro che decide una partita classificata di Coppa della Valle.",
   },
   pvp_vcup_first_save: {
+    desc: 'Effettua una parata come portiere in una partita classificata della Coppa della Valle, nella categoria 3 contro 3 o superiore. Conta solo un tiro abbastanza veloce da mettere alla prova la presa; una presa morbida non conta. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Mani Sicure',
-    desc: 'Effettua una parata da portiere in una partita classificata di Coppa della Valle.',
   },
   pvp_vcup_clean_sheet: {
+    desc: 'Vinci una partita classificata della Coppa della Valle come portiere senza subire gol, nella categoria 3 contro 3 o superiore. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Di Qui Non Si Passa',
-    desc: 'Vinci da portiere una partita classificata di Coppa della Valle senza subire gol.',
   },
   pvp_vcup_guild_win: {
+    desc: 'Vinci una partita classificata della Coppa della Valle sotto lo stendardo della tua gilda. Le partite della Coppa della Valle non sono più giocabili, quindi questo non può più essere ottenuto.',
     name: 'Per il Vessillo',
-    desc: 'Vinci una partita classificata di Coppa della Valle disputata sotto il vessillo della tua gilda.',
   },
   pvp_fiesta_first_bout: {
+    desc: 'Combatti in un incontro Fiesta completo 2 contro 2, vincendo o perdendo. Gli incontri Fiesta non sono più offerti nella coda dell’Arena, quindi questo non può più essere ottenuto.',
     name: 'Imbucato alla Fiesta',
-    desc: 'Combatti per intero uno scontro Fiesta 2v2, vinto o perso che sia.',
   },
-  pvp_fiesta_first_win: { name: "L'Anima della Fiesta", desc: 'Vinci uno scontro Fiesta 2v2.' },
+  pvp_fiesta_first_win: {
+    name: "L'Anima della Fiesta",
+    desc: 'Vinci un incontro Fiesta 2 contro 2. Gli incontri Fiesta non sono più offerti nella coda dell’Arena, quindi questo non può più essere ottenuto.',
+  },
   pvp_fiesta_double: {
+    desc: 'Metti a segno due atterramenti in Fiesta entro quattro secondi. Gli incontri Fiesta non sono più offerti nella coda dell’Arena, quindi questo non può più essere ottenuto.',
     name: 'Doppio Guaio',
-    desc: 'Metti a segno due abbattimenti nella Fiesta nel giro di quattro secondi.',
   },
   pvp_fiesta_shutdown: {
+    desc: 'Abbatti un avversario di Fiesta con una serie di almeno tre. Gli incontri Fiesta non sono più offerti nella coda dell’Arena, quindi questo non può più essere ottenuto.',
     name: 'Guastafeste',
-    desc: 'Abbatti un avversario della Fiesta che vanta una serie di tre o più abbattimenti.',
   },
   pvp_fiesta_full_build: {
+    desc: 'Vinci un incontro Fiesta con un potenziamento bloccato in tutte e tre le ondate. Gli incontri Fiesta non sono più offerti nella coda dell’Arena, quindi questo non può più essere ottenuto.',
     name: "In Tiro per l'Occasione",
-    desc: 'Vinci uno scontro della Fiesta avendo fissato un potenziamento in ognuna delle tre ondate.',
   },
   pvp_fiesta_powerups: {
+    desc: 'Raccogli almeno una volta ciascuno dei quattro potenziamenti dell’anello: Demone della Velocità, Colosso, Stivali Lunari e Berserker. Gli incontri Fiesta non sono più offerti nella coda dell’Arena, quindi questo non può più essere ottenuto.',
     name: 'Uno per Tipo',
-    desc: 'Raccogli almeno una volta ognuno dei quattro power-up del ring: Demone della Velocità, Colosso, Stivali Lunari e Berserker.',
   },
   pvp_fiesta_five_kills: {
+    desc: 'Metti a segno cinque atterramenti in un singolo incontro Fiesta. Gli incontri Fiesta non sono più offerti nella coda dell’Arena, quindi questo non può più essere ottenuto.',
     name: 'Squadra in Spalla',
-    desc: 'Metti a segno cinque abbattimenti in un singolo scontro della Fiesta.',
   },
   soc_first_party: {
     name: 'Meglio in Compagnia',
@@ -591,7 +764,7 @@ export const table: DeedLocaleTable = {
   soc_market_magnate: {
     name: 'Magnate del Mercato',
     desc: "Riscuoti un totale complessivo di 100 monete d'oro dalle tue vendite al Mercato Mondiale.",
-    title: 'Magnate',
+    title: 'Grande Mercante',
   },
   soc_by_ravens_wing: {
     name: "Sull'Ala del Corvo",
@@ -843,5 +1016,470 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'Il Cantiere dei Demolitore',
     desc: "Smantella 50 pezzi d'equipaggiamento ricavandone materie prime.",
+  },
+  dgn_wildheart_basin: {
+    name: 'Il Bacino Morde Ancora',
+    desc: 'Sconfiggi Zulgar, Voce del Bacino, nel Bacino di Wildheart.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Eroico: Il Bacino di Wildheart',
+    desc: 'Sconfiggi Zulgar, Voce del Bacino, nel Bacino di Wildheart in difficoltà Eroica.',
+  },
+  chr_peaks_gatherer: {
+    name: 'Raccolto delle Alture',
+    desc: "Raccogli una vena di minerale, un ceppo di legname e una macchia d'erbe sulle Alture di Thornpeak.",
+  },
+  chr_marsh_rares_ii: {
+    name: 'Il Ghiottone, Messo in Conto',
+    desc: 'Uccidi Grubjaw il Ghiottone, un quarto terrore famigerato della Palude di Mirefen rimasto fuori dal primo conteggio.',
+  },
+  chr_peaks_rares_ii: {
+    name: 'Altri Nomi Incisi nella Rupe',
+    desc: 'Uccidi il Vecchio Cragmaw e il Signore delle Schegge Kazzix, altri due terrori famigerati delle Alture di Thornpeak rimasti fuori dal primo conteggio.',
+  },
+  chr_gleamstag: {
+    name: 'La Leggenda che Non Colpiva per Prima',
+    desc: 'Uccidi il Cervo Lucente, un élite raro e schivo che non attacca se non viene messo alle strette.',
+  },
+  chr_hollow_rares: {
+    name: 'Il Branco Ricorda',
+    desc: 'Uccidi il Vecchio Marrowshell e Aurelhorn, Primo del Branco, i due boss rari erranti della Valletta.',
+  },
+  chr_willowfen_gatherer: {
+    name: "L'Abbondanza del Willowfen",
+    desc: "Raccogli una vena di minerale, un ceppo di legname e una macchia d'erbe nel Willowfen.",
+  },
+  chr_willowfen_first_cast: {
+    name: 'Increspature nelle Lilymoors',
+    desc: 'Pesca un pesce nelle acque del Willowfen.',
+  },
+  chr_galecrest_gatherer: {
+    name: 'Raccolto sul Promontorio',
+    desc: "Raccogli una vena di minerale, un ceppo di legname e una macchia d'erbe nel Galecrest.",
+  },
+  chr_galecrest_first_cast: {
+    name: 'Una Lenza nel Laghetto Specchio',
+    desc: 'Pesca un pesce nelle acque del Galecrest.',
+  },
+  chr_farshore_gatherer: {
+    name: "Provviste dell'Isola",
+    desc: "Raccogli una vena di minerale, un ceppo di legname e una macchia d'erbe sul Farshore.",
+  },
+  chr_farshore_first_cast: {
+    name: 'Ciò che Sanno i Gabbiani',
+    desc: 'Pesca un pesce nelle acque del Farshore.',
+  },
+  prog_engineering_rare: {
+    name: 'Ingegneria di precisione',
+    desc: 'Forgia il tuo primo oggetto di qualità rara in Ingegneria.',
+  },
+  prog_alchemy_rare: {
+    name: "Un'annata rara",
+    desc: 'Forgia il tuo primo oggetto di qualità rara in Alchimia.',
+  },
+  prog_cooking_rare: {
+    name: 'Un piatto da ricordare',
+    desc: 'Forgia il tuo primo oggetto di qualità rara in Cucina.',
+  },
+  prog_leatherworking_rare: {
+    name: 'Concia raffinata',
+    desc: 'Forgia il tuo primo oggetto di qualità rara in Lavorazione del Cuoio.',
+  },
+  prog_tailoring_rare: {
+    name: 'Un punto da maestro',
+    desc: 'Forgia il tuo primo oggetto di qualità rara in Sartoria.',
+  },
+  prog_weaponcrafting_rare: {
+    name: 'Temprato fino a brillare',
+    desc: 'Forgia il tuo primo oggetto di qualità rara in Forgiatura di Armi.',
+  },
+  prog_armorcrafting_rare: {
+    name: 'Placcato alla perfezione',
+    desc: 'Forgia il tuo primo oggetto di qualità rara in Forgiatura di Armature.',
+  },
+  col_reliquary_rank_2: {
+    name: 'Custode dei bottini',
+    desc: 'Raggiungi il grado di Curatore 2 nel Reliquiario (10 reliquie uniche catalogate).',
+    title: 'Custode dei bottini',
+  },
+  col_reliquary_rank_3: {
+    name: 'Il Catalogatore',
+    desc: 'Raggiungi il grado di Curatore 3 nel Reliquiario (25 reliquie uniche catalogate).',
+    title: 'il Catalogatore',
+  },
+  col_reliquary_rank_4: {
+    name: 'Arcicuratore',
+    desc: 'Raggiungi il grado di Curatore 4 nel Reliquiario (50 reliquie uniche catalogate).',
+    title: 'Arcicuratore',
+  },
+  col_reliquary_rank_5: {
+    name: 'Bottini Eterni',
+    desc: 'Raggiungi il grado di Curatore 5 nel Reliquiario (100 reliquie uniche catalogate).',
+  },
+  col_reliquary_complete: {
+    name: 'Il Grande Reliquiario',
+    desc: 'Cataloga ogni reliquia del Reliquiario che un personaggio possa conservare. Se il catalogo cresce in seguito, non te lo toglie mai.',
+    title: 'Curatore della Camera del Tesoro',
+  },
+  col_reliquary_conquerors: {
+    name: 'Scaffale dei Conquistatori',
+    desc: 'Cataloga ogni reliquia dello scaffale Conquistatori del Reliquiario. Se il catalogo cresce in seguito, non te lo toglie mai.',
+    title: 'Sfondacamere',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis miniata',
+    desc: 'Minia la pagina Eroico: Raid di Nythraxis del Reliquiario.',
+    title: 'Luce di Nythraxis',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr miniata',
+    desc: 'Minia la pagina Thunzharr, il Picco Risvegliato del Reliquiario.',
+    title: 'Luce di Thunzharr',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Santuario miniato',
+    desc: 'Minia la pagina Eroico: Santuario del Gravewyrm del Reliquiario.',
+    title: 'Luce del Santuario',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Il Primo Alloggiamento',
+    desc: 'Sblocca il tuo primo alloggiamento per sacca della banca.',
+  },
+  soc_four_bags_deep: {
+    name: 'Tutti gli Alloggiamenti',
+    desc: 'Sblocca tutti e quattro gli alloggiamenti per sacca della banca.',
+  },
+  dgn_ignivar: {
+    name: "L'Araldo Cade",
+    desc: 'Sconfiggi Ignivar, Araldo dell’Ultima Fiamma, nel Crogiolo dell’Ultima Fonte.',
+  },
+  dgn_ignivar_heroic: {
+    name: "Eroico: L'Araldo Cade",
+    desc: 'Sconfiggi Ignivar, Araldo dell’Ultima Fiamma, in difficoltà Eroica.',
+  },
+  dgn_varkhul: {
+    name: 'La Forgia si Spegne',
+    desc: 'Sconfiggi Varkhul, Padre della Forgia dell’Ultima Fiamma, nel Crogiolo Interiore.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Eroico: La Forgia si Spegne',
+    desc: 'Sconfiggi Varkhul, Padre della Forgia dell’Ultima Fiamma, in difficoltà Eroica.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Nemmeno una Brace Perduta',
+    desc: 'Sconfiggi Varkhul, Padre della Forgia dell’Ultima Fiamma, in difficoltà Eroica senza che un solo membro del raid muoia.',
+    title: "l'Incombusto",
+  },
+  col_set_bramblehide: {
+    name: 'Pelle di Rovo di Roots',
+    desc: 'Scopri ogni pezzo della Pelle di Rovo di Roots.',
+  },
+  col_golden_harvest: {
+    name: 'Raccolto Dorato',
+    desc: 'Ottieni un raccolto dorato e fallo sapere a tutta la zona.',
+  },
+  prog_legendmaker: {
+    name: 'Creatore di Leggende',
+    desc: 'Eleva un lavoro Perfezionato a leggendario con una Impresa della Creazione e dagli un nome tutto suo.',
+  },
+  hid_forgebreaker: {
+    name: 'Una Fonte Liberata',
+    desc: 'Forgia personalmente Spezzaforgia e torna da Maelin con il martello finito.',
+  },
+  exp_arcane_calligraphy: {
+    name: 'Una Mano Ferma',
+    desc: 'Completa la Calligrafia Arcana nella Valle di Eastbrook.',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'Scritto nella Luce delle Stelle',
+    desc: 'Ottieni una valutazione Oro nella Calligrafia Arcana.',
+    title: 'Evocarune',
+  },
+  exp_forge_helper: {
+    name: "Un Martello d'Aiuto",
+    desc: 'Aiuta Fabbro Mara a completare uno scudo a Wyrmwatch.',
+  },
+  exp_last_barricade: {
+    name: "L'Ultima Barricata",
+    desc: "Difendi il passo nella foresta dall'orda di non morti.",
+  },
+  exp_borrowed_face: {
+    name: 'Un Volto in Prestito',
+    desc: "Smaschera e sconfiggi l'infiltrato tra la Guardia di Fenbridge.",
+  },
+  exp_windrider_slalom: {
+    name: 'Slalom del Cavalcavento',
+    desc: "Completa la discesa con l'aliante meccanico attraverso il canyon del Galecrest.",
+  },
+  exp_duskweave_dispatches: {
+    name: 'Dispacci Crepuscolotessuti',
+    desc: 'Recupera i dispacci dei banditi indossando il mantello incantato di Valerie.',
+  },
+  exp_wisp_maze: {
+    name: 'Una Luce nel Labirinto',
+    desc: "Recupera le borse di monete rubate e fuggi dal labirinto dell'Evergarden.",
+  },
+  prog_rift_watch_trusted: {
+    name: 'Fidato dalla Guardia degli Squarci',
+    desc: 'Raggiungi la reputazione Fidata con la Guardia degli Squarci.',
+  },
+  prog_church_order_trusted: {
+    name: "Fidato dall'Ordine della Chiesa",
+    desc: "Raggiungi la reputazione Fidata con l'Ordine della Chiesa.",
+  },
+  prog_automatons_trusted: {
+    name: 'Fidato dagli Automi',
+    desc: 'Raggiungi la reputazione Fidata con gli Automi.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Campione della Guardia degli Squarci',
+    desc: 'Raggiungi la reputazione Campione con la Guardia degli Squarci.',
+    title: 'Guardiano degli Squarci',
+  },
+  prog_church_order_champion: {
+    name: "Campione dell'Ordine della Chiesa",
+    desc: "Raggiungi la reputazione Campione con l'Ordine della Chiesa.",
+    title: "Custode dell'Alba",
+  },
+  prog_automatons_champion: {
+    name: 'Campione degli Automi',
+    desc: 'Raggiungi la reputazione Campione con gli Automi.',
+    title: 'Mastro Forgiatore',
+  },
+  prog_faction_champion_all: {
+    name: 'Campione di Ogni Vessillo',
+    desc: "Raggiungi la reputazione Campione con la Guardia degli Squarci, l'Ordine della Chiesa e gli Automi.",
+  },
+  exp_clue_first_casket: {
+    name: 'Tesoro Trovato',
+    desc: 'Apri un Cofanetto del Tesoro dissotterrato alla fine di una caccia con pergamena indizio.',
+  },
+  exp_clue_ten_caskets: {
+    name: 'Cacciatore di Tesori',
+    desc: 'Apri 10 Cofanetti del Tesoro dissotterrati alla fine di cacce con pergamena indizio.',
+    title: 'Cacciatore di Tesori',
+  },
+  exp_harbor_to_harbor: {
+    name: 'Da Porto a Porto',
+    desc: 'Naviga su entrambi i traghetti andata e ritorno: da Eastbrook a Moonrest, e da Wickharbor a Wyrmwatch.',
+  },
+  cmb_coinsack_caught: {
+    name: 'Colto con le mani nel sacco',
+    desc: "Cattura uno Scansafatiche Coinsack in un Tesoro Sepolto prima che scappi con l'oro.",
+  },
+  exp_wisp_maze_hard: {
+    name: 'Piu luminosa delle ombre',
+    desc: 'Recupera i borselli rubati e fuggi dal labirinto di Evergarden in modalita Hard.',
+  },
+  prog_titan: {
+    name: 'Titano',
+    desc: 'Ottieni 10.000.000 di esperienza complessiva nella tua vita.',
+    title: 'Titano',
+  },
+  pvp_flag_1h: {
+    name: 'Audace',
+    desc: 'Mantieni il PvP mondiale attivo per 1 ora di gioco mentre sei vivo nel mondo aperto o in una partita PvP. Santuari, istanze PvE, morte e disconnessione sospendono i progressi; disattivarlo li azzera. I titoli ottenuti sono permanenti.',
+    title: 'Audace',
+  },
+  pvp_flag_3h: {
+    name: 'Ribelle',
+    desc: 'Mantieni il PvP mondiale attivo per 3 ore di gioco mentre sei vivo nel mondo aperto o in una partita PvP. Santuari, istanze PvE, morte e disconnessione sospendono i progressi; disattivarlo li azzera. I titoli ottenuti sono permanenti.',
+    title: 'Ribelle',
+  },
+  pvp_flag_6h: {
+    name: 'Impavido',
+    desc: 'Mantieni il PvP mondiale attivo per 6 ore di gioco mentre sei vivo nel mondo aperto o in una partita PvP. Santuari, istanze PvE, morte e disconnessione sospendono i progressi; disattivarlo li azzera. I titoli ottenuti sono permanenti.',
+    title: 'Impavido',
+  },
+  pvp_flag_24h: {
+    name: 'Inflessibile',
+    desc: 'Mantieni il PvP mondiale attivo per 24 ore di gioco mentre sei vivo nel mondo aperto o in una partita PvP. Santuari, istanze PvE, morte e disconnessione sospendono i progressi; disattivarlo li azzera. I titoli ottenuti sono permanenti.',
+    title: 'Inflessibile',
+  },
+  pvp_flag_168h: {
+    name: 'Indomabile',
+    desc: 'Mantieni il PvP mondiale attivo per 7 giorni di gioco mentre sei vivo nel mondo aperto o in una partita PvP. Santuari, istanze PvE, morte e disconnessione sospendono i progressi; disattivarlo li azzera. I titoli ottenuti sono permanenti.',
+    title: 'Indomabile',
+  },
+  cmb_balgath: {
+    name: 'Mai più caposquadra',
+    desc: 'Rimanda il Caposquadra Sepolto nel suo tumulo.',
+  },
+  cmb_balgath_ten: {
+    name: 'Il tumulo non trattiene nulla',
+    desc: 'Abbatti il Caposquadra Sepolto dieci volte.',
+  },
+  cmb_point_taken: {
+    name: 'Messaggio appuntito',
+    desc: "Spegni la lanterna del Caposquadra di paglia nel campo di addestramento dell'adunata e sfrutta le sue assi.",
+  },
+  dgn_olen_buttress: {
+    name: 'Tenete il muro',
+    desc: 'Sconfiggi il Cavaliere Comandante Olen senza che il suo Baluardo Rimbalzante colpisca mai un secondo giocatore.',
+  },
+  dgn_ossick_moored: {
+    name: 'Porto sicuro',
+    desc: "Sconfiggi il Carceriere Ossick senza che nessuno venga trascinato nella Fossa dell'Annegamento.",
+  },
+  dgn_vael_beacon: {
+    name: 'Alla luce del faro',
+    desc: "Sconfiggi Vael il Vincolanebbia senza far esplodere nemmeno un'Ombra di Nebbia.",
+  },
+  dgn_turretback: {
+    name: 'Avviso di sfratto',
+    desc: 'Sconfiggi il Capitano del Relitto senza che nessuno venga colpito da Bordata Spettrale.',
+  },
+  dgn_selthe_pitch: {
+    name: 'Ogni voce intonata',
+    desc: 'Sconfiggi la Madre del Coro Selthe condividendo ogni Coro tra almeno due giocatori e senza che alcun Assolo tocchi qualcun altro.',
+  },
+  dgn_colossus_mirror: {
+    name: 'Rompi il vetro',
+    desc: 'Sconfiggi il Colosso di Vetro delle Maree distruggendo ogni Riflesso entro 15 secondi dalla comparsa.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: "All'asciutto",
+    desc: 'Sconfiggi Ysolei, Avatar della Luna Annegata, senza che nessuno venga colpito dal suo Schianto della Marea.',
+  },
+  dgn_mere_hydra: {
+    name: 'Tutte le teste a terra',
+    desc: "Uccidi tutte e tre le teste dell'Idra dello Stagno entro 10 secondi l'una dall'altra.",
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Neanche un capello bruciato',
+    desc: 'Sconfiggi il Drago del Rintocco Funebre senza che nessuno venga bruciato dal suo Passaggio della Pira.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Nessuna gabbia può trattenerci',
+    desc: 'Sconfiggi il Secondino della Prigione senza che nessuno venga schiacciato in una Gabbia di Ferro.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Tenuti a distanza',
+    desc: 'Sconfiggi il Signore delle Bestie Signore delle Zanne e il suo Grande Giaguaro con Legame del Branco attivo per meno di 10 secondi complessivi.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Controllo delle erbacce',
+    desc: 'Sconfiggi il Fiore Vorace senza che cresca nemmeno un Germoglio spinoso.',
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Mai catturati',
+    desc: 'Sconfiggi Zulgar, Voce del Bacino, senza che nessuno venga Sbranato.',
+  },
+  dgn_great_saurian: {
+    name: 'Titano abbattuto',
+    desc: "Sconfiggi il Grande Sauro e il suo Invocatore di Maledizioni della Portantina entro 20 secondi l'uno dall'altro.",
+  },
+  dgn_korgath_all_chains: {
+    name: 'Una fine più gentile',
+    desc: 'Sconfiggi Korgath il Vincolato con tutte e quattro le sue catene spezzate.',
+  },
+  dgn_korgath_still_bound: {
+    name: 'La serratura regge',
+    desc: 'Sconfiggi Korgath il Vincolato a difficoltà Eroica senza aver mai spezzato almeno due delle sue catene.',
+  },
+  dgn_velkhar_cold: {
+    name: 'Freddo conforto',
+    desc: "Sconfiggi il Gran Negromante Velkhar senza che alcun Camminatore d'Ossa Rianimato risorga una seconda volta.",
+  },
+  dgn_korzul_thin_ice: {
+    name: 'Ghiaccio sottile',
+    desc: 'Sconfiggi Korzul il Dragone Sepolcrale con almeno dodici delle diciannove lastre del lago intatte.',
+  },
+  dgn_sledge_tusker: {
+    name: 'Carico freddo',
+    desc: 'Sconfiggi lo Zannuto da Slitta senza che nessuno venga colpito dal suo Calpestamento.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: "L'ultima strofa",
+    desc: "Sconfiggi Ysolei, Avatar della Luna Annegata, con l'Ultimo Cantore del Coro Pallido al tuo fianco.",
+    title: 'Testimone del Coro',
+  },
+  dgn_marrow_tidy: {
+    name: 'Un cimitero ordinato',
+    desc: 'Sconfiggi il Sagrestano Marrow collocando ogni Tomba Aperta al bordo del Cortile della Campana.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Nessuno lasciato sospeso',
+    desc: "Sconfiggi la Dama del Gelo d'Ossa senza che lasci mai cadere qualcuno dal suo Abbraccio Gelido.",
+  },
+  dgn_ilvane_hush: {
+    name: 'Silenzio, ora',
+    desc: 'Sconfiggi la Cantora Ilvane senza che il suo Lamento del Vuoto colpisca mai qualcuno.',
+  },
+  dgn_morthen_candlelight: {
+    name: 'Ogni candela accesa',
+    desc: "Sconfiggi Morthen l'Evocatombe dopo aver riacceso tutte e quattro le Candele della Rimembranza entro 20 secondi dalla comparsa della sua Protezione Inquieta.",
+  },
+  dgn_guild_first_contract: {
+    name: 'Mandato firmato',
+    desc: 'Completa uno dei contratti settimanali dei sotterranei della Sala della Lanterna.',
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Assiduo alla bacheca',
+    desc: 'Completa 10 contratti settimanali dei sotterranei della Sala della Lanterna.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Veterano dei contratti',
+    desc: 'Completa 50 contratti settimanali dei sotterranei della Sala della Lanterna.',
+  },
+  feat_guild_writ_runner: {
+    name: 'Corriere dei Mandati',
+    desc: 'Acquistato da Garrick Holt, quartiermastro della Sala della Lanterna, per 6 Sigilli della Lanterna.',
+    title: 'Corriere dei Mandati',
+  },
+  feat_guild_hallsworn: {
+    name: 'Giurato della Sala',
+    desc: 'Acquistato da Garrick Holt, quartiermastro della Sala della Lanterna, per 14 Sigilli della Lanterna.',
+    title: 'Giurato della Sala',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Della Sala della Lanterna',
+    desc: 'Acquistato da Garrick Holt, quartiermastro della Sala della Lanterna, per 24 Sigilli della Lanterna.',
+    title: 'della Sala della Lanterna',
+  },
+  feat_gourdlight_guise: {
+    name: 'Travestimento della Notte delle zucche',
+    desc: 'Possiedi una Testa di zucca intagliata, presa al Vecchio Thatchgrin nel suo campo oltre il Prato dei cinghiali durante la Notte delle zucche.',
+  },
+  feat_old_thatchgrin: {
+    name: 'Stoppie e cenere',
+    desc: 'Aiuta a sconfiggere il Vecchio Thatchgrin nel suo orto di zucche oltre il Prato dei cinghiali durante la Notte delle zucche.',
+  },
+  feat_title_gourdlit: {
+    name: 'L’Illuminato dalle zucche',
+    desc: 'Leggi una Pergamena dell’Illuminato dalle zucche, ottenuta da Hester Gourdwick in cambio di Dolcetti della Notte delle zucche durante l’evento.',
+    title: 'l’Illuminato dalle zucche',
+  },
+  feat_title_trickster: {
+    name: 'Burlone',
+    desc: 'Leggi una Pergamena del Burlone, ottenuta da Hester Gourdwick in cambio di Dolcetti della Notte delle zucche durante l’evento.',
+    title: 'Burlone',
+  },
+  feat_title_hollow_grinned: {
+    name: 'Il Sorriso cavo',
+    desc: 'Leggi una Pergamena del Sorriso cavo, ottenuta da Hester Gourdwick in cambio di Dolcetti della Notte delle zucche durante l’evento.',
+    title: 'dal Sorriso cavo',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Cacciatore di zucche',
+    desc: 'Trova tutte le Zucche infestate nascoste nel mondo durante la Notte delle zucche.',
+    title: 'il Cavo',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Ogni soglia',
+    desc: 'Chiedi dolcetto o scherzetto a tutti gli abitanti che rispondono alla porta a Eastbrook, Fenbridge e Highwatch durante la Notte delle zucche.',
+  },
+  feat_gourdlight_errands: {
+    name: 'Agli ordini di Hester',
+    desc: 'Completa almeno una volta ciascuna delle commissioni a rotazione di Hester Gourdwick per la Notte delle zucche.',
+  },
+  feat_gourdlight_frights: {
+    name: 'Tre città spaventate',
+    desc: 'Durante la commissione Bu! di Hester, spaventa un abitante in ciascuna città: Eastbrook, Fenbridge e Highwatch.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'La Notte delle zucche dall’inizio alla fine',
+    desc: 'Completa tutta la Notte delle zucche: sconfiggi il Vecchio Thatchgrin, trova tutte le Zucche infestate, completa ogni commissione di Hester, bussa a ogni porta e spaventa un abitante in ciascuna delle tre città.',
+    title: 'il Giurato delle zucche',
   },
 };

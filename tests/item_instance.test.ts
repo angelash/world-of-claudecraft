@@ -102,7 +102,11 @@ describe('item-instance payload (#1165)', () => {
 
     const state = sim.serializeCharacter(sim.playerId)!;
     const saved = state.inventory.find((s) => s.itemId === 'wolf_fang');
-    expect(saved).toEqual({ itemId: 'wolf_fang', count: 3 });
+    expect(saved).toEqual({
+      itemId: 'wolf_fang',
+      count: 3,
+      materialSources: [{ count: 3, source: {} }],
+    });
     expect(saved && 'instance' in saved).toBe(false);
   });
 
@@ -130,7 +134,8 @@ describe('item-instance payload (#1165)', () => {
     const slots = sim.meta(sim.playerId)!.inventory.filter((s) => s.itemId === 'wolf_fang');
     expect(slots).toHaveLength(1);
     expect(slots[0].count).toBe(3);
-    expect(slots[0].instance?.signer).toBe('Aldric');
+    expect(slots[0].instance?.signer).toBeUndefined();
+    expect(slots[0].materialSources).toEqual([{ count: 3, source: { signer: 'Aldric' } }]);
   });
 
   it('a zero-count grant is a full no-op: no slot, no loot line', () => {
@@ -205,6 +210,57 @@ describe('item-instance payload (#1165)', () => {
     // the instanced copy was never touched by the escrow
     expect(
       sim.meta(seller)?.inventory.some((s) => s.itemId === 'apprentice_staff' && s.instance),
+    ).toBe(true);
+  });
+
+  it('trade preserves an instanced copy instead of flattening its payload', () => {
+    const sim = makeWorld();
+    const seller = sim.addPlayer('warrior', 'Seller');
+    const buyer = sim.addPlayer('mage', 'Buyer');
+    // A signed (but unbound) copy: boundTo is the Maker's Bond trade LOCK
+    // (social/trade.ts isTradeLocked), so a payload carrying it can never be
+    // offered; the flatten guard rides an ordinary signed payload instead.
+    sim.addItemInstance('apprentice_staff', { signer: 'Aldric' }, seller);
+
+    sim.tradeRequest(buyer, seller);
+    sim.tradeAccept(buyer);
+    sim.tradeSetOffer([{ itemId: 'apprentice_staff', count: 1 }], 0, seller);
+    sim.tradeConfirm(seller);
+    sim.tradeConfirm(buyer);
+
+    expect(sim.countItem('apprentice_staff', buyer)).toBe(1);
+    expect(
+      sim
+        .meta(buyer)
+        ?.inventory.some(
+          (slot) => slot.itemId === 'apprentice_staff' && slot.instance?.signer === 'Aldric',
+        ),
+    ).toBe(true);
+    expect(sim.meta(seller)?.inventory.some((slot) => slot.itemId === 'apprentice_staff')).toBe(
+      false,
+    );
+  });
+
+  it('trade moves a plain copy without touching a same-id instanced copy', () => {
+    const sim = makeWorld();
+    const seller = sim.addPlayer('warrior', 'Seller');
+    const buyer = sim.addPlayer('mage', 'Buyer');
+    sim.addItem('apprentice_staff', 1, seller);
+    sim.addItemInstance('apprentice_staff', { signer: 'Aldric', boundTo: seller }, seller);
+
+    sim.tradeRequest(buyer, seller);
+    sim.tradeAccept(buyer);
+    sim.tradeSetOffer([{ itemId: 'apprentice_staff', count: 1 }], 0, seller);
+    sim.tradeConfirm(seller);
+    sim.tradeConfirm(buyer);
+
+    expect(sim.countItem('apprentice_staff', buyer)).toBe(1);
+    expect(
+      sim
+        .meta(seller)
+        ?.inventory.some(
+          (slot) => slot.itemId === 'apprentice_staff' && slot.instance?.signer === 'Aldric',
+        ),
     ).toBe(true);
   });
 });
@@ -382,21 +438,27 @@ describe('identical-payload stacking (Professions 2.0)', () => {
     let slots = sim.meta(sim.playerId)!.inventory.filter((s) => s.itemId === 'wolf_fang');
     expect(slots).toHaveLength(1);
     expect(slots[0].count).toBe(2);
-    expect(slots[0].instance).toEqual({ signer: 'Ana' });
+    expect(slots[0].instance).toBeUndefined();
+    expect(slots[0].materialSources).toEqual([{ count: 2, source: { signer: 'Ana' } }]);
     sim.addItemInstance('wolf_fang', { signer: 'Ana' }, sim.playerId);
     slots = sim.meta(sim.playerId)!.inventory.filter((s) => s.itemId === 'wolf_fang');
     expect(slots).toHaveLength(1);
     expect(slots[0].count).toBe(3);
   });
 
-  it('a signer mismatch and plain-vs-signed both keep their own slots', () => {
+  it('a material stack coalesces unrecorded and signer buckets into one slot', () => {
     const sim = makeSim();
     sim.addItemInstance('wolf_fang', { signer: 'Ana' }, sim.playerId);
     sim.addItemInstance('wolf_fang', { signer: 'Bru' }, sim.playerId);
     sim.addItem('wolf_fang', 1, sim.playerId);
     const slots = sim.meta(sim.playerId)!.inventory.filter((s) => s.itemId === 'wolf_fang');
-    expect(slots).toHaveLength(3);
-    expect(slots.every((s) => s.count === 1)).toBe(true);
+    expect(slots).toHaveLength(1);
+    expect(slots[0].count).toBe(3);
+    expect(slots[0].materialSources).toEqual([
+      { count: 1, source: {} },
+      { count: 1, source: { signer: 'Ana' } },
+      { count: 1, source: { signer: 'Bru' } },
+    ]);
   });
 
   it('an enchanted or bound copy never merges with a merely-signed stack', () => {
@@ -465,7 +527,8 @@ describe('identical-payload stacking (Professions 2.0)', () => {
     consumed.signer = 'Mallory';
     const survivor = sim.meta(sim.playerId)!.inventory.find((s) => s.itemId === 'wolf_fang')!;
     expect(survivor.count).toBe(2);
-    expect(survivor.instance).toEqual({ signer: 'Ana' });
+    expect(survivor.instance).toBeUndefined();
+    expect(survivor.materialSources).toEqual([{ count: 2, source: { signer: 'Ana' } }]);
   });
 
   it('a partially-consumed stack returns deep clones: mutating them never reaches the survivor', () => {
@@ -477,17 +540,19 @@ describe('identical-payload stacking (Professions 2.0)', () => {
     sim.addItemInstance('wolf_fang', { ...payload, rolled: { ...payload.rolled } }, sim.playerId);
     sim.addItemInstance('wolf_fang', { ...payload, rolled: { ...payload.rolled } }, sim.playerId);
     const [consumed] = sim.removeEnchantableItem('wolf_fang', 1, sim.playerId);
-    expect(consumed).toEqual({ signer: 'Ana', rolled: { masterwork: true, stats: { str: 1 } } });
+    expect(consumed).toEqual({
+      instance: { rolled: { masterwork: true, stats: { str: 1 } } },
+      craftedRecipeId: undefined,
+      materialSources: [{ count: 1, source: { signer: 'Ana' } }],
+    });
     // The enchant path mutates the payload it gets back; the surviving stack's
     // shared payload must stay untouched.
-    consumed.enchant = 'enchant_weapon_might';
-    consumed.rolled!.stats!.str = 99;
+    consumed.instance!.enchant = 'enchant_weapon_might';
+    consumed.instance!.rolled!.stats!.str = 99;
     const survivor = sim.meta(sim.playerId)!.inventory.find((s) => s.itemId === 'wolf_fang')!;
     expect(survivor.count).toBe(1);
-    expect(survivor.instance).toEqual({
-      signer: 'Ana',
-      rolled: { masterwork: true, stats: { str: 1 } },
-    });
+    expect(survivor.instance).toEqual({ rolled: { masterwork: true, stats: { str: 1 } } });
+    expect(survivor.materialSources).toEqual([{ count: 1, source: { signer: 'Ana' } }]);
   });
 
   it('a count-3 signed stack round-trips serializeCharacter as one slot', () => {
@@ -496,22 +561,28 @@ describe('identical-payload stacking (Professions 2.0)', () => {
     const state = sim.serializeCharacter(sim.playerId)!;
     const saved = state.inventory.filter((s) => s.itemId === 'wolf_fang');
     expect(saved).toHaveLength(1);
-    expect(saved[0]).toEqual({ itemId: 'wolf_fang', count: 3, instance: { signer: 'Ana' } });
+    expect(saved[0]).toEqual({
+      itemId: 'wolf_fang',
+      count: 3,
+      materialSources: [{ count: 3, source: { signer: 'Ana' } }],
+    });
 
     const sim2 = new Sim({ seed: 42, playerClass: 'warrior', autoEquip: false });
     const pid2 = sim2.addPlayer('warrior', 'Reloaded', { state });
     const loaded = sim2.meta(pid2)!.inventory.filter((s) => s.itemId === 'wolf_fang');
     expect(loaded).toHaveLength(1);
     expect(loaded[0].count).toBe(3);
-    expect(loaded[0].instance).toEqual({ signer: 'Ana' });
+    expect(loaded[0].instance).toBeUndefined();
+    expect(loaded[0].materialSources).toEqual([{ count: 3, source: { signer: 'Ana' } }]);
   });
 
-  it('addPlayer clamps a tampered counted instanced slot with the same rule as the bank arm', () => {
+  it('addPlayer refuses corrupt composition, retains legacy excess and clamps charged copies', () => {
     const sim = makeSim();
     sim.addItemInstance('wolf_fang', { signer: 'Ana' }, sim.playerId);
     const state = JSON.parse(JSON.stringify(sim.serializeCharacter(sim.playerId)!));
     const signed = state.inventory.find(
-      (s: { itemId: string; instance?: unknown }) => s.itemId === 'wolf_fang' && s.instance,
+      (s: { itemId: string; materialSources?: unknown }) =>
+        s.itemId === 'wolf_fang' && s.materialSources,
     );
     signed.count = 999; // hand-edited past the merge-legal cap
     state.inventory.push({
@@ -526,13 +597,20 @@ describe('identical-payload stacking (Professions 2.0)', () => {
     });
 
     const sim2 = new Sim({ seed: 42, playerClass: 'warrior', autoEquip: false });
-    const pid2 = sim2.addPlayer('warrior', 'Tampered', { state });
+    expect(() => sim2.addPlayer('warrior', 'Tampered', { state })).toThrow(
+      'material source state is invalid',
+    );
+    // A legacy count can be recovered without inventing a composition. Charged
+    // copies retain their old clamp; unknown item definitions retain their stock.
+    delete signed.materialSources;
+    signed.instance = { signer: 'Ana' };
+    const pid2 = sim2.addPlayer('warrior', 'Legacy', { state });
     const inv = sim2.meta(pid2)!.inventory;
     const counts = (pred: (s: (typeof inv)[number]) => boolean) =>
       inv.filter(pred).map((s) => s.count);
-    expect(counts((s) => s.itemId === 'wolf_fang' && !!s.instance && !s.instance.charges)).toEqual([
-      stackSizeOf(ITEMS.wolf_fang),
-    ]);
+    expect(
+      counts((s) => s.itemId === 'wolf_fang' && !!s.materialSources && !s.instance?.charges),
+    ).toEqual([999]);
     expect(counts((s) => s.itemId === 'wolf_fang' && !!s.instance?.charges)).toEqual([1]);
     expect(counts((s) => s.itemId === 'unknown_id_xyz')).toEqual([30]);
   });

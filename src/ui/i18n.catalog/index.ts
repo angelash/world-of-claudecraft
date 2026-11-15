@@ -7,6 +7,9 @@ import { ITEM_SETS } from '../../sim/data';
 import { worldEntityText as worldNames } from '../world_entity_i18n';
 import { abilityStrings, classAbilityNames } from './abilities';
 import { apiErrorStrings } from './api_error';
+import { bossJournalStrings } from './boss_journal';
+import { clueStrings } from './clues';
+import { dungeonGuideStrings } from './dungeon_guides';
 import { editorStrings } from './editor';
 import { gameStrings } from './game';
 import { guideStrings } from './guide';
@@ -15,10 +18,15 @@ import { hudChromeStrings } from './hud_chrome';
 import { itemNames, itemStrings } from './items';
 import { mergeEntities, mergeExtra, mergeStrings } from './merge';
 import { questStrings } from './quests';
+import { referralCardStrings } from './referral_cards';
+import { seasonalStrings } from './seasonal';
 import { shellStrings } from './shell';
 
 export { abilityStrings, classAbilityNames } from './abilities';
 export { apiErrorStrings } from './api_error';
+export { bossJournalStrings } from './boss_journal';
+export { clueStrings } from './clues';
+export { dungeonGuideStrings } from './dungeon_guides';
 export { editorStrings } from './editor';
 export {
   gameStrings,
@@ -42,13 +50,17 @@ export { hudChromeStrings } from './hud_chrome';
 export { itemNames, itemStrings } from './items';
 export { mergeEntities, mergeExtra, mergeStrings } from './merge';
 export { questStrings } from './quests';
+export { seasonalStrings } from './seasonal';
 // Re-export the catalog public surface (every name the old i18n.en.ts exported).
 export { shellStrings } from './shell';
 
-type ItemSetEntityText = Record<
-  string,
-  { name: string; bonus2?: string; bonus3?: string; bonus4?: string }
->;
+/** English entity text per item set: the set `name` plus one `bonus<pieces>`
+ *  leaf for every tier the set actually authored. Keyed by the tier's PIECE
+ *  COUNT rather than a fixed bonus2/bonus3/bonus4 triple, so a family with a
+ *  different breakpoint (the WARFARE sets' 2/4/7) mints its own keys instead of
+ *  silently reusing the 4-piece one. See ItemSetBonusField in entity_i18n.ts,
+ *  which resolves the same field back to its count. */
+type ItemSetEntityText = Record<string, { name: string } & Record<string, string>>;
 
 const itemSetEntityText: ItemSetEntityText = Object.fromEntries(
   Object.values(ITEM_SETS)
@@ -56,18 +68,11 @@ const itemSetEntityText: ItemSetEntityText = Object.fromEntries(
     .map((set) => {
       // Only tiers the set actually has: the leveling haste kits carry a single
       // 3-piece tier, so emitting a bonus2 row would bake in an id-fallback string.
-      const bonus2 = set.bonuses.find((bonus) => bonus.pieces === 2)?.text;
-      const bonus3 = set.bonuses.find((bonus) => bonus.pieces === 3)?.text;
-      const bonus4 = set.bonuses.find((bonus) => bonus.pieces === 4)?.text;
-      return [
-        set.id,
-        {
-          name: set.name,
-          ...(bonus2 ? { bonus2 } : {}),
-          ...(bonus3 ? { bonus3 } : {}),
-          ...(bonus4 ? { bonus4 } : {}),
-        },
-      ];
+      const bonuses: Record<string, string> = {};
+      for (const bonus of [...set.bonuses].sort((a, b) => a.pieces - b.pieces)) {
+        bonuses[`bonus${bonus.pieces}`] = bonus.text;
+      }
+      return [set.id, { name: set.name, ...bonuses }];
     }),
 );
 
@@ -85,6 +90,7 @@ export type Leaves<T, D extends number = 5> = [D] extends [never]
     : '';
 
 export const en = {
+  referralCards: referralCardStrings,
   meta: { builtOn: 'Built {date}' },
   realmTypes: { normal: 'Normal', pvp: 'PvP', rp: 'RP', rpPvp: 'RP-PvP' },
   devCommand: {
@@ -129,9 +135,13 @@ export const en = {
       x: 'X',
       z: 'Z',
       dungeon: 'Dungeon',
+      town: 'Town',
       difficulty: 'Difficulty',
       name: 'Name',
       spec: 'Spec',
+      // Blank means every planted bed, which is what the farmgrow command
+      // itself does without an argument; the action description says so.
+      bed: 'Bed id (optional)',
     },
     difficulty: { normal: 'Normal', heroic: 'Heroic' },
     actions: {
@@ -173,6 +183,11 @@ export const en = {
         label: 'Equip fresh-20 kit',
         description: 'Wear the pre-Sanctum level-20 preset for a spec, bags first. Gear only.',
       },
+      biskit: {
+        label: 'Equip BIS-20 kit',
+        description:
+          'Wear the strongest complete raid-parse loadout observed for a spec. Gear only.',
+      },
       gold: { label: 'Add gold', description: 'Add gold to the current purse.' },
       quest: { label: 'Complete quest', description: 'Complete a specific quest by id.' },
       quests: {
@@ -187,7 +202,13 @@ export const en = {
         label: 'Grant gathering skill',
         description: 'Increase a gathering profession.',
       },
+      farmgrow: {
+        label: 'Ripen crops',
+        description:
+          'Bring your planted crop beds to their ready time, or one bed by id. Nothing else changes: the outcome was rolled when you planted.',
+      },
       teleport: { label: 'Teleport', description: 'Move to exact world coordinates.' },
+      town: { label: 'Town hub', description: 'Teleport to a town hub by name.' },
       dungeon: {
         label: 'Enter dungeon',
         description: 'Enter a dungeon with dev gate bypass.',
@@ -210,6 +231,16 @@ export const en = {
         label: 'Seed listing board',
         description: 'Create a premade listing scenario.',
       },
+      hillwarn: {
+        label: 'Hill countdown',
+        description: 'Announce a hill now; it rises after the full warning.',
+      },
+      hillnow: { label: 'Raise hill now', description: 'Raise a hill at once and stand on it.' },
+      hillrise: {
+        label: 'Skip hill countdown',
+        description: 'Raise the announced hill right away.',
+      },
+      hillend: { label: 'End hill', description: 'Make the current hill fall now.' },
     },
   },
   game: gameStrings,
@@ -221,8 +252,17 @@ export const en = {
     pristineVein: '{finder} struck a pristine vein!',
     ancientHeartwood: '{finder} felled an ancient heartwood!',
     moonlitBloom: '{finder} discovered a moonlit bloom!',
+    goldenHarvest: '{finder} reaped a golden harvest!',
   },
   apiError: apiErrorStrings,
+  // Clue Scroll hunt titles and per-step riddles (src/ui/i18n.catalog/clues.ts).
+  clues: clueStrings,
+  // Seasonal events: names, trick-or-treat lines, tricks (src/ui/i18n.catalog/seasonal.ts).
+  seasonal: seasonalStrings,
+  // The dungeon lore guides' lines and dialog (src/ui/i18n.catalog/dungeon_guides.ts).
+  dungeonGuide: dungeonGuideStrings,
+  // The five-player dungeon boss guides (src/ui/i18n.catalog/boss_journal.ts).
+  bossJournal: bossJournalStrings,
   guide: guideStrings,
   editor: editorStrings,
   // Cosmetic skin-select event overlay. Rarity names reuse itemUi.quality.*.
@@ -288,6 +328,17 @@ export const en = {
     terms: 'Terms of Service',
     privacy: 'Privacy Policy',
     discordLabel: 'Join the Discord',
+    // Studio name on the footer link to levystreet.com; a brand, kept verbatim in every locale.
+    levyStreet: 'Levy Street',
+    // Footer row linking the player guides (the /mmorpgs, /games-like and /browser
+    // pages served beside the game). English page titles; the pages are English-only.
+    guidesLabel: 'Player guides',
+    guideFree: 'Free MMORPGs',
+    guideGamesLikeWow: 'Games like WoW',
+    guideBest: 'Best MMORPGs',
+    guideNew: 'New MMORPGs',
+    guideBrowser: 'Browser MMORPGs',
+    guideGamesLikeDiablo: 'Games like Diablo',
   },
   settings: {
     languageLoading: 'Loading language...',
@@ -315,8 +366,8 @@ export const en = {
     viewAll: 'View all updates on GitHub',
   },
   download: {
-    title: 'Download Desktop Launcher',
-    desc: 'Get the standalone launcher for optimized performance and full-screen play.',
+    title: 'Download the desktop app',
+    desc: 'Play on Windows, macOS, or Linux with the same account and characters.',
     macCta: 'Download for macOS',
     windowsCta: 'Download for Windows',
     linuxCta: 'Download for Linux',
@@ -337,19 +388,17 @@ export const en = {
       'Instant single-player world in your browser. Nothing is saved: perfect for a quick brawl or testing.',
     offlineAria: 'Play Offline: start an instant local single-player session',
     tipTitle: 'TIP:',
-    tipText:
-      'For the smoothest experience, turn off ad blocker extensions on this site. Community reports found some blockers can cause lag.',
+    tipText: 'Game running slowly? Try disabling your ad blocker for this site.',
     serverOnline: 'Online',
     serverOffline: 'Offline',
     play: 'Play',
     playAria: 'Play World of ClaudeCraft',
+    // The Play button while a first visit's game client downloads, then boots.
+    playLoading: 'Loading',
+    playStarting: 'Starting',
     serverLabel: 'Choose your world',
     serverAria: 'Select world: Online or Offline',
     serverOfflineSub: 'Instant local world',
-    caLabel: '$WOC Contract Address',
-    caCopyAria: 'Copy contract address',
-    caNote:
-      'WOC is our community token. It is not needed to play. Join Discord to discuss the WOC utility and flywheel.',
   },
   auth: {
     enterRealm: 'Enter the World',
@@ -362,6 +411,7 @@ export const en = {
     email: 'Email',
     emailPlaceholder: 'you@example.com',
     emailError: 'Please enter a valid email address.',
+    marketingOptIn: 'Email me game news and updates (optional)',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
     rememberOptions: 'Remember sign-in options',
@@ -376,6 +426,423 @@ export const en = {
     realm: 'World',
     newCharacter: 'New Character',
     appearance: 'Appearance',
+    // The launcher turntable's loading placeholder (src/ui/preview_loading_silhouette.ts):
+    // its status text while the 3D character is still loading.
+    modelLoading: 'Loading character...',
+    // The phone creator's one-time gesture hint beside the 3D model
+    // (src/ui/preview_touch_hint.ts): two fingers spreading apart zoom the camera in.
+    previewPinchHint: 'Pinch to zoom',
+    // Modular character customization (every class): the body is composed
+    // from parts, so these pick the parts and recolour skin/hair.
+    customize: 'Customize',
+    body: 'Body',
+    genderMale: 'Male',
+    genderFemale: 'Female',
+    // The body pick as players see it: a body type, never a gender label.
+    bodyTypeA: 'Type A',
+    bodyTypeB: 'Type B',
+    // WOC modular-head variants (src/render/characters/woc_head_catalog.ts
+    // builds these keys as auth.wocHead.<slot>.<id>).
+    wocHead: {
+      hair: {
+        swept: 'Swept',
+        long: 'Long',
+        mohawk: 'Mohawk',
+        quiff: 'Cropped Quiff',
+        undercut: 'Undercut',
+        topknot: 'Topknot',
+        shoulder: 'Shoulder Length',
+        bald: 'Bald',
+        waves: 'Waves',
+        ponytail: 'High Ponytail',
+        braid: 'Braid',
+        bob: 'Bob',
+        crown: 'Braided Crown',
+        twins: 'Twin Braids',
+        curls: 'Curly Updo',
+      },
+      beard: {
+        none: 'Clean Shaven',
+        moustache: 'Moustache',
+        handlebar: 'Handlebar',
+        goatee: 'Goatee',
+        chin: 'Chin Beard',
+        boxed: 'Boxed Beard',
+        long: 'Long Beard',
+        chops: 'Mutton Chops',
+        chinstrap: 'Chinstrap',
+      },
+      nose: {
+        default: 'Classic',
+        broad: 'Broad',
+        aquiline: 'Aquiline',
+        button: 'Button',
+        soft: 'Soft',
+      },
+      mouth: {
+        default: 'Classic',
+        full: 'Full',
+        smirk: 'Smirk',
+        relaxed: 'Relaxed',
+        cupids_bow: "Cupid's Bow",
+        narrow: 'Narrow',
+        thin: 'Thin',
+        rounded: 'Rounded',
+      },
+      brows: {
+        default: 'Classic',
+        slim: 'Slim',
+        arched: 'Arched',
+        soft: 'Soft',
+        straight: 'Straight',
+        relaxed: 'Relaxed',
+        soft_arch: 'Soft Arch',
+        rounded: 'Rounded',
+      },
+      ears: {
+        default: 'Classic',
+        large: 'Large',
+        pointed: 'Pointed',
+        round: 'Round',
+      },
+      eyes: {
+        default: 'Classic',
+        almond: 'Almond',
+        hooded: 'Hooded',
+      },
+    },
+    // The WOC face builder (src/ui/woc_head_builder.ts): its category menu,
+    // section and slider labels, piercing presets and swatch names.
+    wocBuilder: {
+      cat: {
+        bodyType: 'Body Type',
+        skinTone: 'Skin Tone',
+        face: 'Face',
+        eyesBrows: 'Eyes and Brows',
+        eyeColor: 'Eye Color',
+        hairstyle: 'Hairstyle',
+        facialHair: 'Facial Hair',
+        hairColor: 'Hair Color',
+        browColor: 'Eyebrow Color',
+        piercings: 'Piercings',
+      },
+      section: {
+        hair: 'Hairstyle',
+        nose: 'Nose',
+        mouth: 'Lips',
+        brows: 'Brow Shape',
+        ears: 'Ears',
+        eyes: 'Eye Shape',
+      },
+      slider: {
+        eyeSpacing: 'Eye Spacing',
+        eyeSize: 'Eye Size',
+        eyeTilt: 'Eye Tilt',
+        browHeight: 'Brow Height',
+        chinWidth: 'Chin Width',
+        bodyScale: 'Body Size',
+      },
+      // The letter on each body-type tile. Decorative (the tile's label names
+      // the type), and kept a Latin letter in every locale, like "Type A".
+      bodyGlyph: {
+        a: 'A',
+        b: 'B',
+      },
+      piercing: {
+        none: 'None',
+        lobes: 'Lobes',
+        ears: 'Full Ears',
+        brow: 'Brow',
+        nose: 'Nostril',
+        septum: 'Septum',
+        lip: 'Lip',
+        full: 'Full Set',
+      },
+      skin: {
+        porcelain: 'Porcelain',
+        ivory: 'Ivory',
+        rose: 'Rose',
+        peach: 'Peach',
+        fair: 'Fair',
+        beige: 'Beige',
+        sand: 'Sand',
+        honey: 'Honey',
+        olive: 'Olive',
+        caramel: 'Caramel',
+        tan: 'Tan',
+        bronze: 'Bronze',
+        chestnut: 'Chestnut',
+        umber: 'Umber',
+        mahogany: 'Mahogany',
+        ebony: 'Ebony',
+      },
+      eye: {
+        brown: 'Brown',
+        darkBrown: 'Dark Brown',
+        hazel: 'Hazel',
+        amber: 'Amber',
+        green: 'Green',
+        teal: 'Teal',
+        blue: 'Blue',
+        paleBlue: 'Pale Blue',
+        grey: 'Grey',
+        violet: 'Violet',
+      },
+      hairColor: {
+        platinum: 'Platinum',
+        blonde: 'Blonde',
+        golden: 'Golden',
+        copper: 'Copper',
+        red: 'Red',
+        auburn: 'Auburn',
+        lightBrown: 'Light Brown',
+        brown: 'Brown',
+        darkBrown: 'Dark Brown',
+        black: 'Black',
+        silver: 'Silver',
+        white: 'White',
+      },
+      matchHair: 'Match Hair',
+      resetDefault: 'Reset to Default',
+      customColorAria: 'Pick a custom color',
+      customSkinAria: 'Pick a custom skin tone',
+    },
+    hair: 'Hair',
+    brows: 'Eyebrows',
+    skinTone: 'Skin Tone',
+    hairColor: 'Hair Color',
+    lightness: 'Light / Dark',
+    colorWheelAria: '{label} color wheel: drag to pick hue and saturation',
+    lightnessAria: '{label} lightness',
+    // Each colour row is a strip of preset swatches plus this one, which opens
+    // the hue wheel for a colour no preset covers.
+    customColor: 'Custom',
+    // A preset swatch shows a colour and carries no text, so this is its
+    // accessible name. Parameterised rather than one string per shade: colour
+    // names do not survive translation cleanly and there are dozens of them.
+    colorPresetAria: '{label} preset {n}',
+    beard: 'Beard',
+    // Face shaping. The six sliders each drive a PAIR of morph targets
+    // (nose_up / nose_dn); the mouth is a crease in the face rather than a
+    // separate part, so its variants are exclusive presets.
+    face: 'Face',
+    faceNose: 'Nose',
+    faceEyes: 'Eye Size',
+    faceJaw: 'Jaw',
+    faceBrow: 'Brow',
+    faceCheeks: 'Cheeks',
+    faceChin: 'Chin',
+    bodyShoulders: 'Shoulders',
+    bodyChest: 'Chest',
+    bodyHips: 'Hips',
+    bodyHands: 'Hand Size',
+    bodyElbows: 'Elbows',
+    bodyKnees: 'Knees',
+    bodyFeet: 'Feet',
+    mouth: 'Mouth',
+    mouthNeutral: 'Neutral',
+    mouthLips: 'Full lips',
+    mouthSmile: 'Smile',
+    mouthFrown: 'Frown',
+    mouthWide: 'Wide',
+    mouthPout: 'Pout',
+    mouthGrin: 'Grin',
+    mouthOpen: 'Open',
+    mouthAwe: 'Awe',
+    // Ears and eyes became their own parts, so they can be swapped and
+    // scaled; the smirk left the base mesh and became a slider.
+    faceEars: 'Ears',
+    faceSmirk: 'Smirk',
+    eyeShape: 'Eye Shape',
+    eyeColor: 'Eye Color',
+    earShape: 'Ear Shape',
+    lashes: 'Eyelashes',
+    lashesOn: 'On',
+    lashesOff: 'Off',
+    lashColor: 'Eyelash Color',
+    // The outfit colorway row: a strip of dye swatches for the worn armour
+    // set. `classic` is the atlas as authored.
+    outfit: 'Outfit Color',
+    outfitClassic: 'Classic',
+    outfitCrimson: 'Crimson',
+    outfitEmber: 'Ember',
+    outfitGold: 'Gold',
+    outfitForest: 'Forest',
+    outfitEmerald: 'Emerald',
+    outfitTeal: 'Teal',
+    outfitAzure: 'Azure',
+    outfitRoyal: 'Royal Blue',
+    outfitViolet: 'Violet',
+    outfitMagenta: 'Magenta',
+    outfitRose: 'Rose',
+    outfitOnyx: 'Onyx',
+    outfitIvory: 'Ivory',
+    outfitGilded: 'Gilded',
+    outfitBonewrought: 'Bonewrought',
+    outfitObsidian: 'Obsidian',
+    outfitVerdigris: 'Verdigris',
+    outfitBloodforged: 'Bloodforged',
+    // Makeup. Each row is a strip of colour swatches whose first entry is OFF,
+    // so these names are the accessible label for a chip that shows a colour
+    // rather than text.
+    lipstick: 'Lipstick',
+    blush: 'Blush',
+    eyeshadow: 'Eyeshadow',
+    makeupNone: 'None',
+    shadeRose: 'Rose',
+    shadeCoral: 'Coral',
+    shadeRuby: 'Ruby',
+    shadeBerry: 'Berry',
+    shadePlum: 'Plum',
+    shadeNude: 'Nude',
+    shadePeach: 'Peach',
+    shadeWarm: 'Warm',
+    shadeMauve: 'Mauve',
+    shadeSmoke: 'Smoke',
+    shadeBronze: 'Bronze',
+    shadeTeal: 'Teal',
+    // Rolls everything EXCEPT the body, which the player has just chosen.
+    randomize: 'Randomize Look',
+    randomizeShort: 'Random',
+    // Not part of the character: it shows the same character wearing the set's
+    // helmet, so the face they are picking can be checked against it.
+    helmPreview: 'Show Helmet',
+    // The customizer's fourth category tab: the finishing pass (makeup,
+    // jewellery, helm preview) rather than a body part. Body / Face / Hair
+    // reuse the keys above.
+    style: 'Style',
+    // Restores the default look for the chosen body; the counterpart to
+    // randomize above, and like it, it keeps the body selection.
+    resetLook: 'Reset Look',
+    resetShort: 'Reset',
+    // The customizer's Share tab: every changeable feature serialized as a
+    // named value in one line (the design code), exported and imported there.
+    // The face builder uses the same word for its footer toggle button and as
+    // the title of the Share page it opens (the face code), so keep it a verb
+    // that reads on a button.
+    shareTab: 'Share',
+    designCode: 'Design code',
+    designCodeHint:
+      'Copy this code to save or share this look. Paste a code here and import it to load one.',
+    copyCode: 'Copy code',
+    importCode: 'Import',
+    designCodeCopied: 'Design code copied.',
+    designCodeCopyManual:
+      'Automatic copy is blocked here. The code is selected, copy it with your keyboard.',
+    designCodeImported: 'Design imported.',
+    designCodeImportedPartial: 'Design imported. Values this version does not know were skipped.',
+    designCodeErrEmpty: 'Paste a design code first.',
+    designCodeErrHeader: 'That does not look like a design code.',
+    designCodeErrVersion: 'That design code comes from a newer game version.',
+    designCodeErrMalformed: 'That design code is damaged. Copy the whole code and try again.',
+    browFlat: 'Flat',
+    browArched: 'Arched',
+    browThin: 'Thin',
+    browBushy: 'Bushy',
+    browWorried: 'Worried',
+    browSharp: 'Sharp',
+    browRound: 'Round',
+    eyeRound: 'Round',
+    eyeAlmond: 'Almond',
+    eyeNarrow: 'Narrow',
+    eyeWide: 'Wide',
+    eyeSharp: 'Sharp',
+    eyeDroopy: 'Droopy',
+    eyeSleepy: 'Sleepy',
+    eyeWideset: 'Wide-set',
+    eyeCat: 'Cat',
+    eyeDoe: 'Doe',
+    earRound: 'Round',
+    earPointed: 'Pointed',
+    earSmall: 'Small',
+    earWide: 'Wide',
+    hairBald: 'Bald',
+    hairBuzz: 'Buzz Cut',
+    hairCrew: 'Clipper Cut',
+    hairCrewcut: 'Textured Crew Cut',
+    hairPixie: 'Pixie Cut',
+    hairSweptpixie: 'Swept Pixie',
+    hairQuiff: 'Brushed-Up Quiff',
+    hairSidepart: 'Classic Side Part',
+    hairMessy: 'Messy Short Spikes',
+    hairCurlycap: 'Short Curly Cap',
+    hairPompadour: 'Short Pompadour',
+    hairSweptback: 'Medium Swept-Back',
+    hairFauxhawk: 'Faux Hawk',
+    hairMohawk: 'Full Mohawk',
+    hairTopknot: 'Top Knot',
+    hairWarriorbraid: 'Warrior Braid',
+    hairHighbun: 'High Bun',
+    hairLowbun: 'Low Bun',
+    hairBraidcrown: 'Braided Crown',
+    hairAfro: 'Rounded Afro',
+    hairCurlyafro: 'Curly Afro',
+    hairChinbob: 'Chin-Length Bob',
+    hairBluntbangs: 'Blunt Bangs Bob',
+    hairWavybob: 'Wavy Bob',
+    hairAsymbob: 'Asymmetric Bob',
+    hairCurtains: 'Curtain Middle Part',
+    hairHighpony: 'High Ponytail',
+    hairSidepony: 'Side Ponytail',
+    hairHalfbun: 'Half-Up Bun',
+    hairLayered: 'Shoulder-Length Layered',
+    hairCurls: 'Loose Curls',
+    hairLongwavy: 'Long Wavy',
+    hairLongcenterpart: 'Long Center Part',
+    hairLongpart: 'Long Straight Centre Part',
+    hairMullet: 'Chunky Mullet',
+    hairTwinbraids: 'Twin Braids',
+    hairLowpony: 'Low Ponytail',
+    hairFantasybraid: 'Fantasy Braid',
+    beardNone: 'None',
+    beardStubble: 'Stubble',
+    beardScruff: 'Scruff',
+    beardMutton: 'Mutton Chops',
+    beardGoatee: 'Goatee',
+    beardChinpuff: 'Chin Puff',
+    beardStache: 'Moustache',
+    beardHorseshoe: 'Horseshoe',
+    beardShortbox: 'Boxed',
+    beardFull: 'Full',
+    beardVikingb: 'Braided',
+    beardWizard: 'Wizard',
+    beardStubbleBeard: 'Heavy Stubble',
+    browNone: 'None',
+    browSoft: 'Soft',
+    browThick: 'Thick',
+    browAngled: 'Angled',
+    // "Piercings", not "Earrings": the set includes a nose ring, and the
+    // fantasy sets carry face piercings too (see the note below).
+    earrings: 'Piercings',
+    jewelMaterial: 'Jewellery Material',
+    jewelDefault: 'As Forged',
+    jewelGold: 'Gold',
+    jewelSilver: 'Silver',
+    jewelBone: 'Bone',
+    jewelIron: 'Iron',
+    jewelCopper: 'Copper',
+    jewelBronze: 'Bronze',
+    jewelObsidian: 'Obsidian',
+    jewelJade: 'Jade',
+    jewelAmethyst: 'Amethyst',
+    jewelRuby: 'Ruby',
+    jewelPearl: 'Pearl',
+    jewelTurquoise: 'Turquoise',
+    earNone: 'None',
+    earStud: 'Stud',
+    earHoop: 'Hoop',
+    // Fantasy jewellery. The last three sets also carry a face piercing, which
+    // is why they are named for the whole look rather than for the earring.
+    earBone: 'Bone Charm',
+    earBonehoop: 'Bone Ring',
+    earMoon: 'Moon Crescent',
+    earMoonstar: 'Moonlit Star',
+    earRunic: 'Rune Stone',
+    earChain: 'Beaded Drop',
+    earSeptum: 'Nose Ring',
+    earWarden: "Warden's Iron",
+    earCuff: 'Cuff',
+    earFeather: 'Feather',
     class: 'Class',
     name: 'Name',
     chromaOption: 'Chroma {n}',
@@ -422,6 +889,16 @@ export const en = {
     unlink: 'Unlink',
     unlinkTitle: 'Remove wallet verification from this account',
     unlinkAria: 'Remove wallet verification from this account',
+    // The R11 re-auth prompt (src/ui/wallet_reauth_prompt.ts): changing or
+    // removing a linked wallet asks for the account password first.
+    reauthTitle: 'Confirm wallet change',
+    reauthUnlinkTitle: 'Confirm wallet removal',
+    reauthHelp: 'For your security, enter your account password to authorize this change.',
+    reauthNoPassword:
+      'This account signs in without a password. Set a password in account settings first, then try again.',
+    reauthConfirm: 'Confirm',
+    reauthCancel: 'Cancel',
+    reauthClose: 'Close',
     signOut: 'Disconnect',
     signOutTitle: 'Disconnect the wallet app on this browser',
     signOutAria: 'Disconnect the wallet app on this browser',
@@ -468,6 +945,8 @@ export const en = {
       'Choose an installed browser wallet, or open Reown AppKit for Phantom, Solflare, Backpack, and more.',
     mobileAppHelp:
       'Choose Phantom or Solflare. Your wallet app will ask for approval. Keep this game open and return to it when finished.',
+    seekerAppHelp:
+      'Continue with Seed Vault Wallet. Review the connection and verification requests in Seed Vault, then return to the game.',
     standaloneAppHelp:
       'Wallet connections are not available in the Home Screen app yet. Open World of ClaudeCraft in Safari or Chrome to use Phantom or Solflare.',
     openAppTitle: 'Continue in {wallet}',
@@ -493,6 +972,8 @@ export const en = {
         'Choose a wallet extension in this browser. You will sign a verification message, then return to the desktop app.',
       paymentBody:
         'Choose the wallet linked to your account and approve the transaction in this browser.',
+      stepUpBody:
+        'Choose the wallet linked to your account and sign the $WOC Exchange authorization message. Signing is free and moves no funds.',
       extensionHelp:
         'No compatible wallet extension was found. Install or unlock Phantom, Solflare, or another Solana browser wallet, then retry.',
       safety: 'World of ClaudeCraft never asks for your recovery phrase or private key.',
@@ -628,6 +1109,226 @@ export const en = {
   // Locale overlays are English-filled + marked pending by the i18n build until a
   // translation pass. ENGLISH ONLY here; never add per-locale blocks to this section.
   sim: {
+    // Procedural Rift sim-emitted player text (src/sim/rift/runs.ts). Same model
+    // as sim.delve below: the sim emits English, sim_i18n.ts re-localizes. The
+    // {name} value is the generated floor name (spliced verbatim, like build names).
+    rift: {
+      allUnstable: 'All rifts are unstable right now. Try again soon.',
+      enterFloor: 'You step through the rift into {name}.',
+      descendFloor: 'You descend deeper into {name}.',
+      stepBack: 'You step back through the rift.',
+      pylonLit: 'A rune pylon flares to life ({lit}/{total}).',
+      wayDownOpens: 'The way down tears open.',
+      exitOpens: 'The rift shudders. A way home tears open behind the fallen.',
+      // The Buried Hoard (a treasure map's vault) keeps its own entry and clear lines.
+      hoardEnter: 'You climb down into {name}.',
+      hoardExitOpens: 'The hoard is yours. Return to the entrance to climb out.',
+      hoardStepBack: 'You climb back out through the hoard entrance.',
+      hoardNotYours: 'This hoard was dug up by another party.',
+      hoardEntrantsFull: 'This hoard has already admitted five adventurers.',
+      portalOpens: 'A {tier}-rank rift tears open in {zone}!',
+      portalSealed: 'The {tier}-rank rift in {zone} has been sealed.',
+      portalCollapses: 'The {tier}-rank rift in {zone} collapses.',
+      lootRecoveryNotice:
+        "The rift's entrance will hold a while yet: should your party fall, you may still walk back for what you earned.",
+      levelGate: 'Only adventurers of level {level} or higher may enter this rift.',
+      deadEntry: 'You cannot enter a rift while dead.',
+      deadEntryCombat:
+        'Your party is still in combat. The dead may re-enter once the fighting stops.',
+      iceGoalLit: 'The frost sigil blazes. The way stirs.',
+      socketsShut: 'The sockets grind shut. The way stirs.',
+      seqProgress: 'The runes answer in turn ({step}/{total}).',
+      seqReset: 'The runes go dark. Begin again.',
+      gateOpen: 'The gate grinds open.',
+      orbSealed: 'The orb is sealed by the ritual below.',
+      orbWakes: "The pentagram's flame gutters out. Something wakes on the altar.",
+      orbOpensGate: 'The Blood Orb flares. The gates of the temple grind open.',
+      alreadyCleared: 'This rift has already been cleared by {names}.',
+      raceLost: 'The rift has already been cleared by {names}. Your run ends.',
+      raceWorldWin: '{names} won the {tier}-rank Rift race in {seconds}s!',
+      raceWinBanner: 'Rift Race Won - {seconds}s',
+      raceLostBanner: 'Rift Already Cleared',
+      forgeUpgraded: 'Rift upgrade completed for {name}.',
+      forgeEnchanted: 'Rift enchant completed for {name}.',
+      forgeSocketed: 'Rift gem socketed for {name}.',
+      forgeGemReplaced: 'Rift gem replaced for {name}: {gem} destroyed.',
+      // Boss lethal death-zone detonation log lines (src/sim/mob/locomotion.ts).
+      // Each fires at the moment a telegraphed zone expires. Emitted in English
+      // by the sim; re-localized via the sim.rift.detonate* rules in sim_i18n.ts.
+      detonateGlacialGrave: 'Glacial Grave detonates!',
+      detonateAbsoluteZero: 'Absolute Zero erupts!',
+      detonateMagmaWell: 'Magma Well erupts!',
+      detonateCoreMeltdown: 'Core Meltdown detonates!',
+      detonateVenomPool: 'Venom Pool erupts!',
+      detonateBroodmothersMark: "Broodmother's Mark detonates!",
+      detonateSoulGrave: 'Soul Grave detonates!',
+      detonateDeathSentence: 'Death Sentence falls!',
+      detonateEarthshatter: 'Earthshatter detonates!',
+      detonateFinalJudgment: 'Final Judgment lands!',
+      detonateVoidRift: 'Void Rift detonates!',
+      detonateArcaneAnnihilation: 'Arcane Annihilation erupts!',
+      detonateLightningRod: 'Lightning Rod strikes!',
+      detonateStormcallersWrath: "Stormcaller's Wrath erupts!",
+      detonateAbyssalMaw: 'Abyssal Maw closes!',
+      detonateCrushingDepth: 'Crushing Depth crushes!',
+      // Rift and Buried Hoard boss yells (MobTemplate.yells + the bigCast /
+      // deathZoneCast / deathZoneStrike .yell lines in src/sim/content/rift/mobs.ts).
+      // The sim emits the English as yell-channel chat; src/ui/rift_text_i18n.ts
+      // re-localizes it by exact text. Key = boss short id + the content slot.
+      yell: {
+        mushroomEngage: 'The spores will have you.',
+        mushroomSummon: 'Grow, my little ones!',
+        moleEngage: 'The ground is mine.',
+        moleSummon: 'Down you come!',
+        batEngage: 'Screeeee!',
+        batSummon: 'To me, my flock!',
+        mimicEngage: 'Hungry... so hungry.',
+        mimicSummon: 'More gold, more gold!',
+        frostBigCast: 'The white wind rises.',
+        frostDeathZoneCast: 'The frost claims you.',
+        frostDeathZoneStrike: 'Nothing survives the deep cold.',
+        frostEngage: 'The cold takes all things in the end.',
+        frostEnrage: 'FREEZE!',
+        emberBigCast: 'BURN.',
+        emberDeathZoneCast: 'The magma rises.',
+        emberDeathZoneStrike: 'THE FORGE CONSUMES ALL.',
+        emberEngage: 'The forge hungers.',
+        emberSummon: 'Rise from the slag!',
+        emberEnrage: 'ASH AND CINDER!',
+        venomBigCast: 'Drown in venom!',
+        venomDeathZoneCast: 'Drown in poison.',
+        venomDeathZoneStrike: 'YOU CANNOT FLEE MY CHILDREN.',
+        venomEngage: 'My children are always hungry.',
+        venomSummon: 'Feast, little ones!',
+        necroBigCast: 'Your souls are forfeit.',
+        necroDeathZoneCast: 'Your soul is forfeit.',
+        necroDeathZoneStrike: 'DEATH CLAIMS ALL.',
+        necroEngage: 'Death is only the beginning.',
+        necroSummon: 'Rise!',
+        bruteBigCast: 'I BREAK YOU!',
+        bruteDeathZoneCast: 'THE EARTH SHATTERS.',
+        bruteDeathZoneStrike: 'YOU FALL HERE.',
+        bruteEngage: 'I will crush you!',
+        bruteEnrage: 'RAAAGH!',
+        arcaneBigCast: 'Witness true power.',
+        arcaneDeathZoneCast: 'Reality tears.',
+        arcaneDeathZoneStrike: 'ANNIHILATED.',
+        arcaneEngage: 'You should not have come.',
+        arcaneEnrage: 'KNEEL!',
+        stormBigCast: 'The sky answers!',
+        stormDeathZoneCast: 'The sky answers your call.',
+        stormDeathZoneStrike: 'THE STORM DEVOURS.',
+        stormEngage: 'The storm answers to me!',
+        stormEnrage: 'THE SKY FALLS!',
+        tideDeathZoneCast: 'The deep takes you.',
+        tideDeathZoneStrike: 'DRAWN INTO THE ABYSS.',
+        tideEngage: 'The deep claims you.',
+        tideSummon: 'Rise from the depths!',
+        ritualistBigCast: 'The pact is sealed in fire!',
+        ritualistEngage: 'You trespass on bound ground.',
+        ritualistSummon: 'Answer me, things below!',
+        pitlordBigCast: 'THE PIT CLAIMS YOU.',
+        pitlordEngage: 'Kneel, or burn.',
+        pitlordEnrage: 'THE CITADEL DEVOURS!',
+      },
+      // Generated rift and Buried Hoard place names (src/sim/rift/rift_gen.ts
+      // generateRiftPlan / generateRiftFloor, src/sim/content/rift/infernal_citadel.ts).
+      // The sim composes English from a theme name, a noun, a suffix and a depth;
+      // src/ui/rift_text_i18n.ts parses that grammar and rebuilds it from these keys.
+      place: {
+        hoardFloor: '{theme} Buried Hoard',
+        sanctumFloor: '{theme} Sanctum: Depth {depth}',
+        reachesFloor: '{theme} Reaches: Depth {depth}',
+        upgradedFloor: '{title}: {theme} Depth {depth}',
+        hoardPlan: 'The Buried {noun} Hoard',
+        riftPlan: 'The {noun} {suffix}',
+        citadelPlan: 'The {noun} Citadel',
+        infernalCitadel: 'The Infernal Citadel',
+        hoardEntrance: 'Buried Hoard entrance',
+        // Theme names, keyed by RiftTheme.id (themes.ts, cave_themes.ts) plus the
+        // authored Infernal Citadel.
+        theme: {
+          frost: 'Frostbound',
+          ember: 'Emberforge',
+          venom: 'Venomweald',
+          bone: 'Boneyard',
+          brute: 'Warcamp',
+          void: 'Voidscar',
+          storm: 'Stormspire',
+          tide: 'Sunken',
+          spore: 'Spore Hollow',
+          burrow: 'Deep Burrow',
+          roost: 'Bat Roost',
+          mimic: 'False Vault',
+          infernal: 'Infernal Citadel',
+        },
+        // RiftTheme.nouns plus INFERNAL_NOUNS, keyed by the lowercased English noun.
+        noun: {
+          rime: 'Rime',
+          hoarfrost: 'Hoarfrost',
+          glacier: 'Glacier',
+          frost: 'Frost',
+          ember: 'Ember',
+          cinder: 'Cinder',
+          magma: 'Magma',
+          ash: 'Ash',
+          venom: 'Venom',
+          thorn: 'Thorn',
+          bramble: 'Bramble',
+          spider: 'Spider',
+          bone: 'Bone',
+          marrow: 'Marrow',
+          ossuary: 'Ossuary',
+          grave: 'Grave',
+          war: 'War',
+          skull: 'Skull',
+          iron: 'Iron',
+          blood: 'Blood',
+          void: 'Void',
+          shadow: 'Shadow',
+          umbral: 'Umbral',
+          dusk: 'Dusk',
+          storm: 'Storm',
+          tempest: 'Tempest',
+          thunder: 'Thunder',
+          gale: 'Gale',
+          sunken: 'Sunken',
+          abyssal: 'Abyssal',
+          drowned: 'Drowned',
+          tide: 'Tide',
+          spore: 'Spore',
+          toadstool: 'Toadstool',
+          mould: 'Mould',
+          mycelium: 'Mycelium',
+          burrow: 'Burrow',
+          tunnel: 'Tunnel',
+          delve: 'Delve',
+          loam: 'Loam',
+          roost: 'Roost',
+          echo: 'Echo',
+          guano: 'Guano',
+          hollow: 'Hollow',
+          coffer: 'Coffer',
+          strongbox: 'Strongbox',
+          tithe: 'Tithe',
+          gilt: 'Gilt',
+          brimstone: 'Brimstone',
+          pitfire: 'Pitfire',
+          pactbound: 'Pactbound',
+        },
+        // RIFT_SUFFIXES (rift_gen.ts), keyed by the lowercased English suffix.
+        suffix: {
+          abyss: 'Abyss',
+          depths: 'Depths',
+          descent: 'Descent',
+          hollow: 'Hollow',
+          labyrinth: 'Labyrinth',
+          warren: 'Warren',
+          sanctum: 'Sanctum',
+          rift: 'Rift',
+        },
+      },
+    },
     delve: {
       cannotEnterNow: 'You cannot enter a delve right now.',
       leaveDungeonFirst: 'Leave the dungeon first.',
@@ -688,11 +1389,20 @@ export const en = {
       companionMaxRank: 'This companion is already fully upgraded.',
       companionMarksRequired: 'You need {marks} Delve Marks to upgrade {name}.',
       cannotAffordCompanionUpgrade: 'You cannot afford this upgrade.',
+      // ONE producer emits this exact English today, matched to this key by
+      // the one anchored rule in sim_i18n.ts: the delve Marks shop
+      // (delves/runs.ts delveBuyShopItem). The NPC vendor's proficiency row
+      // gate used to be the second producer, but R22 retired that deny
+      // (items.ts buyItem no longer refuses on proficiency; the row renders
+      // an advisory instead). The sentence stays generic because the matcher
+      // keys on the TEXT: a delve-flavored reword is safe now, but re-check
+      // the emitter census first, the way this comment failed to be.
       shopItemLocked: 'You have not unlocked that item yet.',
       shopMarksRequired: 'You need {marks} Delve Marks to buy {name}.',
       shopSealPremiumOnly:
         "This seal yields only to a master's hand. Only the Premium ante can open it.",
       passageSealed: 'The passage is sealed.',
+      enemiesRemain: 'Clear the remaining enemies first.',
       moveCloserPassage: 'Move closer to the passage.',
       moveCloserChest: 'Move closer to the chest.',
       moveCloserReliquary: 'Move closer to the reliquary.',
@@ -701,6 +1411,12 @@ export const en = {
       moveCloserStairs: 'Move closer to the stairs.',
       nhaliaCantorShield: 'Cantors, hold the note!',
       nhaliaBlackwaterMark: '{name} marks {player} with Blackwater!',
+    },
+    // The faction quartermaster refusal (src/sim/items.ts, the faction-price
+    // arm of a vendor purchase). The sim emits English; sim_i18n.ts matches it
+    // and localizes {currency} through hudChrome.currencies.
+    factionVendor: {
+      currencyRequired: 'You need {amount} {currency} to purchase that.',
     },
     lockpick: {
       lockYields: 'The lock yields! {tier} spoils.',
@@ -807,6 +1523,34 @@ export const en = {
     buyConfirmTitle: 'Confirm Purchase',
     buyConfirmBody: 'Buy {item} for {marks} Heroic Marks? Marks purchases cannot be refunded.',
     buyConfirmAccept: 'Buy',
+    buyConfirmCancel: 'Cancel',
+  },
+  crucibleShop: {
+    // The Crucible Quartermaster window (Ignivar raid sigil redemption):
+    // title/close reuse the vendor keys; only the sigil-specific strings live
+    // here. {list} is the viewer's held sigils with counts; {sigil} is the
+    // one token a row costs.
+    // The gossip-dialog row label: its OWN copy (never "Browse Goods"), since
+    // a redemption counter is not a goods grid.
+    browse: 'Redeem Sigils',
+    browseAria: 'Redeem Crucible sigils with {name}',
+    // The zero-rows arm of the shop grid; unreachable while every class has
+    // sets, but a silently empty panel is the worse failure mode.
+    empty: 'No set pieces are redeemable for your class.',
+    balance: 'Your sigils: {list}',
+    // One held-sigil entry inside {list}: the window composes each through
+    // this key and joins them with formatList, so a locale can reorder the
+    // count and name and keep its own list punctuation (the
+    // hudChrome.enchanting.replaceConfirmCostItem pattern).
+    balanceEntry: '{name} x{count}',
+    noSigils: 'You hold no Crucible sigils.',
+    price: '1 {sigil}',
+    buyAria: 'Redeem {sigil} for {item}',
+    // Confirm dialog gating each redemption: a consumed sigil records no
+    // buyback, so a mis-tap would be unrefundable without it.
+    buyConfirmTitle: 'Confirm Redemption',
+    buyConfirmBody: 'Redeem your {sigil} for {item}? A consumed sigil cannot be refunded.',
+    buyConfirmAccept: 'Redeem',
     buyConfirmCancel: 'Cancel',
   },
   // The Card Master window (Card Duel minigame): queue join/leave affordance
@@ -989,24 +1733,24 @@ export const en = {
     boss: {
       varric: {
         bell: {
-          emote: 'Deacon Varric grips the buried bell with both hands!',
-          log: 'Deacon Varric begins to toll the burial bell.',
-          warning: 'Move away from Deacon Varric!',
+          emote: 'Deacon Vandric grips the buried bell with both hands!',
+          log: 'Deacon Vandric begins to toll the burial bell.',
+          warning: 'Move away from Deacon Vandric!',
           impact: "The bell's toll cracks the chamber floor!",
           lesson: 'Bell Toll: a ground slam every twelve seconds. Move out before it lands.',
         },
         raise: {
-          emote: 'Deacon Varric calls names from the broken graves!',
-          log: 'Deacon Varric begins Raise Dead.',
+          emote: 'Deacon Vandric calls names from the broken graves!',
+          log: 'Deacon Vandric begins Raise Dead.',
           warning: 'Stop the grave rite!',
           object: 'The cracked grave shudders with stolen breath.',
           interrupt_ok: 'The grave rite falters.',
-          interrupt_fail: "The dead answer Deacon Varric's call!",
+          interrupt_fail: "The dead answer Deacon Vandric's call!",
           lesson: 'Interrupt the cracked grave within five seconds or the dead rise to his call.',
         },
         pull: 'You step on hallowed dust with unclean purpose. Kneel, and be counted.',
         intro: 'No soul is lost. Only misplaced.',
-        mid60: 'Deacon Varric reads names from the ledger with shaking triumph.',
+        mid60: 'Deacon Vandric reads names from the ledger with shaking triumph.',
         mid30: 'The burial bell answers every name he speaks.',
         defeat: 'No... I had the names... I had them all...',
       },
@@ -1046,7 +1790,6 @@ export const en = {
   yumi: {
     bracket3: 'Yumi 3v3',
     bracket5: 'Yumi 5v5',
-    enterQueue: 'Join Protect Yumi!',
     queue: {
       join: 'You join the Protect Yumi queue. Guard your familiar…',
       leave: 'You leave the Protect Yumi queue.',
@@ -1084,10 +1827,6 @@ export const en = {
   },
   fiesta: {
     bracket: 'Fiesta',
-    enterQueue: 'Join the Fiesta!',
-    practice: '🎉 Practice vs Bots',
-    practiceNote:
-      'Offline practice: spawns 3 AI bots and queues you for a 2v2 Fiesta. Click again to stop.',
     banner: {
       wave: 'WAVE {wave}/{total} — CHOOSE AN AUGMENT!',
       augmentGained: 'Augment gained: {name}!',
@@ -1144,6 +1883,7 @@ export const en = {
     },
     augment: {
       choose: 'Choose an Augment',
+      cardAria: '{name} ({category}) - {description}',
       aug_brutality: { name: 'Brutality', desc: 'Your physical strikes hit 15% harder.' },
       aug_spellfire: { name: 'Grimfire', desc: 'Your spells deal 15% more damage.' },
       aug_toughness: { name: 'Toughness', desc: 'Gain 12% maximum health.' },
@@ -1247,7 +1987,7 @@ export const en = {
       reliquary_shoulder: { name: 'Crumbled Spaulders' },
       reliquary_gloves_rog: { name: 'Bonewarden Grips' },
       deacon_reliquary_helm: { name: "Deacon's Reliquary Helm" },
-      varric_shadow_cowl: { name: "Varric's Shadow Cowl" },
+      varric_shadow_cowl: { name: "Vandric's Shadow Cowl" },
       siltguard_helm: { name: 'Siltguard Helm' },
       bulwark_rusted_pauldrons: { name: 'Bulwark-Rusted Pauldrons' },
       nhalias_bell_maul: { name: "Nhalia's Bell-Maul" },
@@ -1282,7 +2022,23 @@ export const en = {
       crypt_ritual_circle: { name: 'Ritual Circle' },
       kings_signet: { name: "King's Signet" },
       event_skin_token: { name: 'Mysterious Cosmetic Cache' },
+      emissary_cache: { name: "Emissary's Cache" },
+      // World PvP trophy (src/sim/pvp/world_pvp_spoils.ts); each looted copy
+      // reads as "<name>'s Skull" (hudChrome.worldPvp.skullName).
+      pvp_trophy_skull: { name: 'Trophy Skull' },
+      // The World PvP Skull Bag (src/sim/pvp/skull_bag.ts), sold for honor.
+      pvp_skull_bag: { name: 'Skull Bag' },
+      // Clue Scrolls (world quests, Stage 3): the scroll and the casket it buries.
+      clue_scroll: { name: 'Clue Scroll' },
+      treasure_casket: { name: 'Treasure Casket' },
       heroic_mark: { name: 'Heroic Mark' },
+      // Lantern Hall's contract currency (content/guild_contracts.ts).
+      lantern_seal: { name: 'Lantern Seal' },
+      // ...and the guild's war horse its quartermaster sells for them.
+      reins_lantern_hall_destrier: { name: 'Reins of the Lantern Hall Destrier' },
+      wyrmfall_core: { name: 'Wyrmfall Core' },
+      sundered_essence: { name: 'Sundered Essence' },
+      makers_ember: { name: "Maker's Ember" },
       eastbrook_buckler: { name: 'Eastbrook Buckler' },
       eastbrook_greatsword: { name: 'Eastbrook Greatsword' },
       highwatch_greatsword: { name: 'Highwatch Greatsword' },
@@ -1306,7 +2062,7 @@ export const en = {
       cryptplate_helm: { name: 'Cryptplate Helm' },
       shadowpulse_slippers: { name: 'Shadowpulse Slippers' },
       bonechill_cord: { name: 'Bonechill Cord' },
-      mistforged_pauldrons: { name: 'Mistforged Pauldrons' },
+      mistforged_pauldrons: { name: 'Fogforged Pauldrons' },
       tideguard_faceguard: { name: 'Tideguard Faceguard' },
       sunken_court_mantle: { name: 'Sunken Court Mantle' },
       lunar_choir_leggings: { name: 'Lunar Choir Leggings' },
@@ -1315,6 +2071,12 @@ export const en = {
       gravewyrm_claws: { name: 'Gravewyrm Claws' },
       gravescale_girdle: { name: 'Gravescale Girdle' },
       wyrmchoir_handwraps: { name: 'Wyrmchoir Handwraps' },
+      basin_stalkers_tunic: { name: "Basin Stalker's Tunic" },
+      verdant_heart_vestment: { name: 'Verdant-Heart Vestment' },
+      sunbone_ritual_hauberk: { name: 'Sunbone Ritual Hauberk' },
+      greatfang_of_the_basin: { name: 'Greatfang of the Basin' },
+      sunbone_oracles_crown: { name: "Sunbone Oracle's Crown" },
+      bloodmane_war_legguards: { name: 'Bloodmane War-Legguards' },
       deathless_greatblade: { name: 'Deathless Greatblade' },
       soulforged_warplate: { name: 'Soulforged Warplate' },
       stormcallers_focus: { name: "Stormcaller's Focus" },
@@ -1369,6 +2131,86 @@ export const en = {
       nighttalon_waistband: { name: 'Direfang Waistband' },
       soulflame_cord: { name: 'Wraithfire Cord' },
       stormcallers_waistguard: { name: 'Galecall Waistguard' },
+      // The stablemaster's riding-skill service entry (buyItem delegates to
+      // learnRiding; never lands in the bags).
+      riding_training: { name: 'Riding Training' },
+      // Collectible mount reins (boss drops; src/sim/mounts.ts mountOwned).
+      // reins_valorsteed is the one bought from the stablemaster, not looted.
+      reins_valorsteed: { name: 'Reins of the Valorsteed' },
+      reins_grag_bear: { name: 'Reins of the Goliath Grag-Bear' },
+      reins_stalkglider_snail: { name: 'Reins of the Moss-Shell Stalk-Glider' },
+      reins_aether_hover_cycle: { name: 'Ignition Key: Aether-Jouster Hover-Cycle' },
+      reins_shadowjump_toad: { name: 'Reins of Kama-Kage the Shadow-Jump Toad' },
+      reins_stormfeather_griffin: { name: 'Reins of the Sky-Reach Stormfeather' },
+      reins_thunderstrut_gobbler: { name: 'Reins of Thunderstrut the Grand Gobbler' },
+      // Ignivar raid legendary drops (Varkhul the Forgefather); dev-give-only
+      // until the raid loot pass wires them.
+      varkhul_forgebreaker: { name: 'Forgebreaker, Engine of Varkhul' },
+      varkhul_emberward: { name: 'Emberward, Bulwark of Varkhul' },
+      // The trinket slot's items (src/sim/content/trinkets.ts TRINKET_ITEMS).
+      bastion_sigil: { name: 'Bastion Sigil' },
+      mooring_stone: { name: 'Mooring Stone' },
+      menders_hourglass: { name: "Mender's Hourglass" },
+      wellspring_seed: { name: 'Wellspring Seed' },
+      paired_talons: { name: 'Paired Talons' },
+      hunters_tally: { name: "Hunter's Tally" },
+      stormjar: { name: 'Stormjar' },
+      echoing_lens: { name: 'Echoing Lens' },
+      gamblers_die: { name: "Gambler's Die" },
+      sundered_prism: { name: 'Sundered Prism' },
+      wayfarers_lodestone: { name: "Wayfarer's Lodestone" },
+      medallion_of_defiance: { name: 'Medallion of Defiance' },
+      duelists_brand: { name: "Duelist's Brand" },
+      // The Crucible of the Last Spring raid trinkets (Ignivar and Varkhul).
+      forgefathers_temper: { name: "Forgefather's Temper" },
+      kindling_orb: { name: 'Kindling Orb' },
+      molten_fletching: { name: 'Molten Fletching' },
+      last_flame_lantern: { name: 'Last Flame Lantern' },
+      heart_of_the_crucible: { name: 'Heart of the Crucible' },
+      // The Sunken Bastion's heroic Gaoler Ossick.
+      gaolers_iron_key: { name: "Gaoler's Iron Key" },
+      // The Wildheart Basin's heroic Fanglord Beastmaster and Gorgebloom.
+      fanglords_whistle: { name: "Fanglord's Whistle" },
+      gorgebloom_seedpod: { name: 'Gorgebloom Seedpod' },
+      // The Gravewyrm Sanctum's heroic Korgath, Velkhar and Korzul.
+      foremans_last_link: { name: "Foreman's Last Link" },
+      phial_of_the_tithe: { name: 'Phial of the Tithe' },
+      quenchwater_flask: { name: 'Quenchwater Flask' },
+      // Faction Quartermaster vendor items
+      rift_watchers_band: { name: "Rift Watcher's Band" },
+      rift_surveyors_satchel: { name: "Rift Surveyor's Satchel" },
+      riftwalkers_tunic: { name: "Riftwalker's Tunic" },
+      riftwarden_voidblade: { name: "Riftwarden's Voidblade" },
+      champion_rift_band: { name: "Champion's Rift Band" },
+      order_prayer_beads: { name: 'Order Prayer Beads' },
+      vestments_of_the_acolyte: { name: 'Vestments of the Acolyte' },
+      templar_dawn_shield: { name: "Templar's Dawn Shield" },
+      dawnkeeper_consecrated_mace: { name: "Dawnkeeper's Consecrated Mace" },
+      champion_dawn_medallion: { name: "Champion's Dawn Medallion" },
+      automaton_cog_ring: { name: 'Automaton Cog Ring' },
+      clockwork_tinkers_pack: { name: "Clockwork Tinker's Pack" },
+      artificers_welding_cowl: { name: "Artificer's Welding Cowl" },
+      forgemaster_crag_cleaver: { name: "Forgemaster's Crag Cleaver" },
+      champion_forged_loop: { name: "Champion's Forged Loop" },
+      // Faction ladder rework (world-quest reputation): the periphery rows
+      // and the four learned formulas, docs/design/factions.md.
+      tidewatchers_locket: { name: "Tidewatcher's Locket" },
+      riftwalkers_cord: { name: "Riftwalker's Cord" },
+      riftwalkers_treads: { name: "Riftwalker's Treads" },
+      formula_riftwalkers_grace: { name: "Formula: Riftwalker's Grace" },
+      riftwardens_pendant: { name: "Riftwarden's Pendant" },
+      acolytes_signet: { name: "Acolyte's Signet" },
+      cord_of_the_dawn: { name: 'Cord of the Dawn' },
+      dawnlit_slippers: { name: 'Dawnlit Slippers' },
+      formula_dawnfire_etching: { name: 'Formula: Dawnfire Etching' },
+      formula_dawns_benediction: { name: "Formula: Dawn's Benediction" },
+      champions_dawn_loop: { name: "Champion's Dawn Loop" },
+      dawnkeepers_circle: { name: "Dawnkeeper's Circle" },
+      cogwork_choker: { name: 'Cogwork Choker' },
+      forgemasters_girdle: { name: "Forgemaster's Girdle" },
+      forgemasters_sabatons: { name: "Forgemaster's Sabatons" },
+      formula_piston_drive: { name: 'Formula: Piston Drive' },
+      forgewall_gorget: { name: 'Forgewall Gorget' },
     },
     itemSets: itemSetEntityText,
     mobs: {
@@ -1376,6 +2218,10 @@ export const en = {
       ...mergeEntities.en.mobs,
       ...mergeExtra.en.mobs,
       water_elemental: { name: 'Water Elemental' },
+      graveguard: { name: 'Graveguard' },
+      necromancy_skeletal_warrior: { name: 'Skeletal Warrior' },
+      necromancy_bone_mage: { name: 'Bone Mage' },
+      necromancy_gravewing: { name: 'Gravewing' },
     },
     npcs: { ...worldNames.en.entities.npcs, ...mergeExtra.en.npcs },
     quests: {

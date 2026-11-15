@@ -1,19 +1,13 @@
-import type { PlayerClass } from '../../src/sim/types';
 import {
   HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE,
   type HostedPlayAutoInviteTargetPartySize,
 } from '../../src/hosted_play_settings';
+import type { PlayerClass } from '../../src/sim/types';
 import type { AmbientPlayerBotLlmDecisionStatus } from '../ambient_bots/types';
 
-export type HostedPlayMode =
-  | 'offline'
-  | 'disabled'
-  | 'active'
-  | 'paused';
+export type HostedPlayMode = 'offline' | 'disabled' | 'active' | 'paused';
 
-export type HostedPlayPartyMode =
-  | 'solo'
-  | 'follow_leader';
+export type HostedPlayPartyMode = 'solo' | 'follow_leader';
 
 export type HostedPlayGroupMode =
   | ''
@@ -26,9 +20,7 @@ export type HostedPlayGroupMode =
   | 'prepare_party'
   | 'recover_party';
 
-export type HostedPlayPauseReason =
-  | ''
-  | 'runtime_error';
+export type HostedPlayPauseReason = '' | 'runtime_error';
 
 export interface HostedPlayPreferences {
   resumeOnLogin: boolean;

@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { AUGMENTS } from '../src/sim/content/augments';
 import { CHOICE_ROWS } from '../src/sim/content/choice_rows';
+import { DEEDS } from '../src/sim/content/deeds';
+import { OVERWORLD_GRAVEYARDS } from '../src/sim/content/graveyards';
 import { ROW_TREES, TALENTS } from '../src/sim/content/talents';
 import { ABILITIES, DUNGEONS, ITEM_SETS, ITEMS, MOBS, NPCS, QUESTS, ZONES } from '../src/sim/data';
 import { en } from '../src/ui/i18n.resolved.generated/en';
@@ -104,6 +106,56 @@ const HARDCODED_VERBATIM: string[] = [
   'Imp',
   'Succubus',
   'Infernal',
+  // Masterwrought Phase 03 naming audit (R15, 2026-08-07): confirmed collisions
+  // renamed display-only; the old names arm here so a content edit or merge
+  // cannot quietly reintroduce them. Verdicts + evidence:
+  // docs/design/naming-audit.md; map rows in ip-refactor/NAME-MAP.md.
+  'Crusader Strike',
+  'Heroic Leap',
+  'Holy Nova',
+  'Icy Veins',
+  'Victory Rush',
+  'Wyvern Sting',
+  'Glacial Spike',
+  'Frozen Orb',
+  'Holy Shock',
+  'Storm Bolt',
+  'Sanctum Sprint',
+  'Knight-Lieutenant',
+  'Harvest Sprite',
+  'Hellfire Ring',
+  'Hellfire Citadel',
+  'Spellsteal',
+  'Swiftmend',
+  'Smokestep',
+  'Spellbreak',
+  'Gloomshade',
+  'Wrathwing',
+  'Flickerstep',
+  'Hellsteel',
+  'Winterbite',
+  'Frostmane',
+  'Nightkin',
+  'Varric',
+  'Okku',
+  'Wyrmcult',
+  'Cryptbloom',
+  'Mistforged',
+  'Terrorspark',
+  'Gallowmere',
+  'Eldergleam',
+  'Moonwell',
+  'Spiritmend',
+  // ip-NAME-BORDERLINE ITEM 5 (maintainer ruling 2026-08-20, executed
+  // 2026-08-29): the 'Enchant <Slot> - <Stat>' scheme re-cut to
+  // '<Slot> Etching: <Tier> <Stat>'. Only the two retired rows verified as
+  // verbatim LIVE WoW enchant names are armed here; the other 44 retired rows
+  // were not individually verified against WoW's live enchant list, and the
+  // scheme-shape guard in tests/originality_renames.test.ts (no enchant name
+  // may match /^Enchant\s/) is the load-bearing protection for the whole
+  // formula either way.
+  'Enchant Gloves - Agility',
+  'Enchant Chest - Greater Stamina',
 ];
 
 // The explicit PROSE-SCAN set (C1-owned flavor text): word-boundary regexes
@@ -223,6 +275,21 @@ const KEEP_EXEMPTIONS: { entry: string; value: string; fieldIncludes: string }[]
   // 'Taunt'), operator-approved keeps, NOT the renamed priest/warrior abilities.
   { entry: 'Heal', value: 'Heal', fieldIncludes: 'meters.healingShort' },
   { entry: 'Taunt', value: 'Taunt', fieldIncludes: 'pet.taunt' },
+  // PROVISIONAL, pending the operator's ruling (rename or keep): the release's
+  // authored rift set piece (src/sim/content/rift/infernal_citadel.ts) shipped this
+  // name from sim content, which this scan never read; the Buried Hoards merge
+  // (2026-09-28) moved rift place names into the catalog, so the scan sees it now.
+  // Scoped to exactly these two fields: any other 'Infernal' still fails the gate.
+  { entry: 'Infernal', value: 'The Infernal Citadel', fieldIncludes: 'rift.place.infernalCitadel' },
+  { entry: 'Infernal', value: 'Infernal Citadel', fieldIncludes: 'rift.place.theme.infernal' },
+  // PROVISIONAL, pending the maintainer's sign-off on the PR: the Crucible hunter
+  // quiver (src/sim/content/ignivar_loot.ts) is named Infernal Quiver at the
+  // operator's request. The denylist arms 'Infernal' for the warlock demon pet; here
+  // it is the adjective on a quiver, and the only exact-phrase hit is a Path of
+  // Exile cosmetic skin, not a gear item. Scoped to the item def and its catalog
+  // name (both fields end in items.infernal_quiver.name); any other 'Infernal'
+  // still fails the gate.
+  { entry: 'Infernal', value: 'Infernal Quiver', fieldIncludes: 'items.infernal_quiver.name' },
 ];
 function isKeptException(field: string, value: string, entry: string): boolean {
   return KEEP_EXEMPTIONS.some(
@@ -426,6 +493,19 @@ function collectViolations(): Violation[] {
     });
   }
 
+  // Deed names + earned-title texts and graveyard labels (Phase 03 audit:
+  // 'Sanctum Sprint' / 'Knight-Lieutenant' / 'Eldergleam Rest' were dead arms
+  // because neither surface was scanned; deed DESCS stay prose-scan-only).
+  for (const [id, deed] of Object.entries(DEEDS)) {
+    scanNameValue(`deeds.${id}.name`, id, deed.name, false, out);
+    if (deed.reward?.kind === 'title' && typeof deed.reward.text === 'string') {
+      scanNameValue(`deeds.${id}.reward.text`, id, deed.reward.text, false, out);
+    }
+  }
+  for (const gy of OVERWORLD_GRAVEYARDS) {
+    scanNameValue(`graveyards.${gy.id}.name`, gy.id, gy.name, false, out);
+  }
+
   // The explicit C1 prose fields (quest/greeting prose ONLY - see PROSE_SCAN).
   for (const [id, quest] of Object.entries(QUESTS)) {
     scanProseValue(`quests.${id}.text`, id, quest.text, out);
@@ -514,10 +594,129 @@ describe('ip_scrub - verbatim-WoW denylist scanner (G0)', () => {
     }
   });
 
+  it('teeth: every Phase 03 hardcoded arm fires on its old name (no inert entry)', () => {
+    // A typo'd or whitespace-damaged denylist entry is silently inert; this
+    // fixture replays every old display name of the Phase 03 rename wave and
+    // requires each of the 38 entries added for it (35 at phase close, the
+    // QA round's Hellfire Citadel, and the Phase 16 Etching re-cut's two
+    // verified-verbatim WoW enchant rows) to produce a violation.
+    const PHASE03_OLD_NAMES = [
+      'Crusader Strike',
+      'Heroic Leap',
+      'Holy Nova',
+      'Icy Veins',
+      'Victory Rush',
+      'Wyvern Sting',
+      'Glacial Spike',
+      'Frozen Orb',
+      'Holy Shock',
+      'Storm Bolt',
+      'Sanctum Sprint',
+      'Knight-Lieutenant',
+      'Harvest Sprite',
+      'Hellfire Ring',
+      'Spellsteal',
+      'Swiftmend',
+      'Smokestep',
+      'Spellbreak',
+      'Summon Gloomshade',
+      'Wrathwing',
+      'Flickerstep',
+      'Hellsteel Sweep',
+      'Winterbite',
+      'Frostmane Yeti',
+      'Nightkin Stargazer',
+      'Deacon Varric',
+      'Okku',
+      'Wyrmcult Zealot',
+      'Cryptbloom Shoulderguards',
+      'Mistforged Pauldrons',
+      'Terrorspark Groundshaker',
+      'Gallowmere',
+      'Eldergleam Rest',
+      'The Moonwell',
+      'Spiritmend',
+      'The Hellfire Citadel',
+      'Enchant Gloves - Agility',
+      'Enchant Chest - Greater Stamina',
+    ];
+    const PHASE03_ENTRIES = [
+      'Crusader Strike',
+      'Heroic Leap',
+      'Holy Nova',
+      'Icy Veins',
+      'Victory Rush',
+      'Wyvern Sting',
+      'Glacial Spike',
+      'Frozen Orb',
+      'Holy Shock',
+      'Storm Bolt',
+      'Sanctum Sprint',
+      'Knight-Lieutenant',
+      'Harvest Sprite',
+      'Hellfire Ring',
+      'Spellsteal',
+      'Swiftmend',
+      'Smokestep',
+      'Spellbreak',
+      'Gloomshade',
+      'Wrathwing',
+      'Flickerstep',
+      'Hellsteel',
+      'Winterbite',
+      'Frostmane',
+      'Nightkin',
+      'Varric',
+      'Okku',
+      'Wyrmcult',
+      'Cryptbloom',
+      'Mistforged',
+      'Terrorspark',
+      'Gallowmere',
+      'Eldergleam',
+      'Moonwell',
+      'Spiritmend',
+      'Hellfire Citadel',
+      'Enchant Gloves - Agility',
+      'Enchant Chest - Greater Stamina',
+    ];
+    const out: Violation[] = [];
+    PHASE03_OLD_NAMES.forEach((name, i) => {
+      scanNameValue(`fixture.${i}.name`, `fixture_${i}`, name, false, out);
+    });
+    const fired = new Set(out.map((v) => v.denylistEntry));
+    for (const entry of PHASE03_ENTRIES) {
+      expect(fired.has(entry), `hardcoded arm "${entry}" never fired on the fixture`).toBe(true);
+    }
+  });
+
+  it('teeth: the Infernal Quiver exemption is scoped to that one item name', () => {
+    const hits = (field: string, value: string): Violation[] => {
+      const out: Violation[] = [];
+      scanNameValue(field, 'fixture', value, false, out);
+      return out;
+    };
+    // Positive control: the exempted value on its own item is clean, in the sim
+    // def layer and the resolved English catalog layer alike.
+    expect(hits('items.infernal_quiver.name', 'Infernal Quiver')).toEqual([]);
+    expect(hits('i18n.en.entities.items.infernal_quiver.name', 'Infernal Quiver')).toEqual([]);
+    // The 'Infernal' arm still fires on the same value on any other item.
+    for (const field of ['items.other_item.name', 'items.heroic_infernal_quiver.name']) {
+      expect(
+        hits(field, 'Infernal Quiver').map((v) => v.denylistEntry),
+        field,
+      ).toEqual(['Infernal']);
+    }
+    // And on any other 'Infernal' value on the exempted item itself.
+    expect(
+      hits('items.infernal_quiver.name', 'Infernal Blade').map((v) => v.denylistEntry),
+    ).toEqual(['Infernal']);
+  });
+
   it("teeth: reports ZERO hits on the game's own original names", () => {
     const fixture = [
       'Gravecaller',
-      'Wyrmcult',
+      'Broodsworn',
       'Nythraxis',
       'Korzul the Gravewyrm',
       'Voskar the Emberwing',

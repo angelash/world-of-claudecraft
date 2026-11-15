@@ -18,15 +18,42 @@ import type { FctKind } from './fct_core';
 export type FctSpawnSource =
   | {
       readonly type: 'damage';
-      /** The damage event's kind: an avoidance word (miss/dodge/parry/resist) or a landed hit. */
-      readonly damageKind: 'miss' | 'dodge' | 'parry' | 'resist' | 'hit';
+      /**
+       * The damage event's kind: an avoidance word (miss/dodge/parry/resist/evade), a
+       * plain landed hit, or a shield block (also a landed hit, still dealing real
+       * reduced damage, so it is NOT grouped with the avoidance words below).
+       */
+      readonly damageKind: 'miss' | 'dodge' | 'parry' | 'resist' | 'evade' | 'block' | 'hit';
       /** Whether an ability fired (a landed hit splits damage-done into -ability vs -auto). */
       readonly ability: boolean;
       readonly crit: boolean;
       readonly isPlayerSource: boolean;
+      /** Whether a temporary guardian owned by the player caused the event. */
+      readonly isPlayerOwnedSource?: boolean;
+      readonly isPlayerTarget: boolean;
+      /**
+       * The whole hit landed inside an absorb shield: zero damage got through, and
+       * an absorb floater is being spawned for it separately. The NUMBER is then
+       * suppressed, because a bare "0" beside "Absorbed (240)" is the misleading
+       * half of the pair: it reads as a broken attack rather than a soaked one.
+       * Heals already work this way (their call site guards on `amount > 0`);
+       * damage simply never got the same guard.
+       */
+      readonly fullyAbsorbed?: boolean;
+    }
+  | {
+      /**
+       * A hit whose damage an absorb shield soaked (the damage event's `absorbed`
+       * amount). BOTH sides of the swing get the floater: the defender reads it over
+       * their own character, and the ATTACKER reads it over the target, which is the
+       * only feedback saying their hit did not do nothing. The role flags carry the
+       * same meaning as the damage arm's, so a hit between two other entities floats
+       * nothing here exactly as it does there.
+       */
+      readonly type: 'absorb';
+      readonly isPlayerSource: boolean;
       readonly isPlayerTarget: boolean;
     }
-  | { readonly type: 'absorb' }
   | { readonly type: 'heal'; readonly crit: boolean; readonly isPlayerTarget: boolean }
   | { readonly type: 'xp' }
   | { readonly type: 'rested-xp' }
@@ -39,24 +66,77 @@ export interface FctSpawnShape {
   /** Drives the miss/dodge colour token (self #bbb vs other #fff); ignored by every other kind. */
   readonly isSelf: boolean;
   readonly crit: boolean;
+  /**
+   * Seconds to hold this floater before it appears, for an ability whose authored
+   * contacts land after the cast tick (Red Harvest's three blades). Never set by
+   * fctSpawnShape, which is a pure discrimination: the painter stamps it from the beat
+   * stager (fct_stage_core.ts) and honours it, and the spawn sites carry it onto the
+   * FctEvent with the rest of the shape. Absent or 0 means spawn at once, which is
+   * every other floater in the game.
+   */
+  readonly delaySec?: number;
+  /** The raw amount of an outgoing hit (for the big-hit emphasis); outgoing hits only. */
+  readonly amount?: number;
 }
 
 /**
- * Resolve the FCT spawn shape for an event, or null when nothing floats. The only null case
- * is a landed hit where the local player is neither the source nor the target (a mob hitting
- * another mob): the live hud.ts site spawned no floater there, so the byte-faithful result is
- * null. Every other case always floats. Pure: same input always yields the same shape.
+ * The damage-event field the vivid look reads beyond the discrimination: the hit's raw
+ * amount. Structural, so the hud.ts spawn site hands in the damage SimEvent it already has
+ * (both an offline Sim event and a ClientWorld-mirrored one carry `amount`).
+ */
+export interface FctDamageFlavorSource {
+  readonly amount?: number;
+}
+
+/**
+ * Stamp the amount of the local player's OWN outgoing hit onto its spawn shape, so the
+ * painter can weigh the hit against the player's running average. `ownHit` says the local
+ * player dealt it directly: a pet's or guardian's hit carries no amount, so it neither feeds
+ * nor trips the big-hit emphasis.
+ * Every other shape (an avoidance word, incoming damage, a heal, null) passes
+ * through unchanged: incoming damage keeps its one hostile red on purpose, because "you are
+ * being hurt" must read the same whatever hurt you. Pure: same input, same output.
+ */
+export function withDamageFlavor(
+  shape: FctSpawnShape | null,
+  ev: FctDamageFlavorSource,
+  ownHit = true,
+): FctSpawnShape | null {
+  if (shape === null) return null;
+  if (!ownHit) return shape;
+  if (
+    shape.kind !== 'damage-done-ability' &&
+    shape.kind !== 'damage-done-auto' &&
+    shape.kind !== 'damage-done-block'
+  ) {
+    return shape;
+  }
+  return { ...shape, amount: ev.amount };
+}
+
+/**
+ * Resolve the FCT spawn shape for an event, or null when nothing floats. Both null cases are
+ * the same rule: a hit (landed damage, or damage an absorb shield soaked) where the local
+ * player is neither the source nor the target, e.g. a mob hitting another mob. The live
+ * hud.ts sites spawned no floater there, so the byte-faithful result is null. Every other
+ * case always floats. Pure: same input always yields the same shape.
  */
 export function fctSpawnShape(src: FctSpawnSource): FctSpawnShape | null {
   switch (src.type) {
     case 'damage': {
+      // A fully soaked hit floats no number on EITHER side: the absorb floater is
+      // the honest report, and the zero beside it says the opposite of the truth.
+      // Checked before the avoidance words on purpose, since those carry no amount
+      // and can never be fully absorbed.
+      if (src.fullyAbsorbed) return null;
       // Avoidance words always float; self vs other only flips the colour token.
       // Parry reuses the dodge colour token (its own word is spread on at the call site).
       if (
         src.damageKind === 'miss' ||
         src.damageKind === 'dodge' ||
         src.damageKind === 'parry' ||
-        src.damageKind === 'resist'
+        src.damageKind === 'resist' ||
+        src.damageKind === 'evade'
       )
         return {
           kind: src.damageKind === 'parry' ? 'dodge' : src.damageKind,
@@ -66,18 +146,39 @@ export function fctSpawnShape(src: FctSpawnSource): FctSpawnShape | null {
       // A landed hit: the player dealing it (and not to itself) floats damage-done; the
       // player taking it floats damage-taken; a hit between two non-player entities floats
       // nothing (the live site's `if (isPlayerSource && !isPlayerTarget) ... else if
-      // (isPlayerTarget)` with no else).
-      if (src.isPlayerSource && !src.isPlayerTarget)
+      // (isPlayerTarget)` with no else). A shield block takes the SAME role split (it is
+      // still a landed hit, just reduced by blockValue) but its own -block kind, so it
+      // reads with its own colour/word instead of a plain hit's.
+      if ((src.isPlayerSource || src.isPlayerOwnedSource) && !src.isPlayerTarget)
         return {
-          kind: src.ability ? 'damage-done-ability' : 'damage-done-auto',
+          kind:
+            src.damageKind === 'block'
+              ? 'damage-done-block'
+              : src.ability
+                ? 'damage-done-ability'
+                : 'damage-done-auto',
           isSelf: false,
           crit: src.crit,
         };
-      if (src.isPlayerTarget) return { kind: 'damage-taken', isSelf: true, crit: src.crit };
+      if (src.isPlayerTarget)
+        return {
+          kind: src.damageKind === 'block' ? 'damage-taken-block' : 'damage-taken',
+          isSelf: true,
+          crit: src.crit,
+        };
       return null;
     }
     case 'absorb':
-      return { kind: 'absorb', isSelf: true, crit: false };
+      // Same role split as a landed hit, and for the same reason: the floater is
+      // anchored on the entity that ATE the damage, so `isSelf` records whether that
+      // entity is the local player (true when you are shielded, false when you are the
+      // attacker watching a shielded target soak your hit). A shielded exchange between
+      // two other entities is not the local player's feedback and floats nothing, which
+      // is the second null case. The absorb colour token does not branch on isSelf (both
+      // sides read the same .fct-absorb style), so the flag is carried for the anchor's
+      // honesty rather than for a colour swap.
+      if (!src.isPlayerSource && !src.isPlayerTarget) return null;
+      return { kind: 'absorb', isSelf: src.isPlayerTarget, crit: false };
     case 'heal':
       return { kind: 'heal', isSelf: src.isPlayerTarget, crit: src.crit };
     case 'xp':

@@ -78,11 +78,12 @@ export class AiBossEncounterMemoryStore {
     evidence: string[];
   }): AiBossEncounterMemory {
     this.prune(input.nowSeconds);
-    const existing = this.memories.find((candidate) =>
-      candidate.sceneId === input.sceneId
-      && candidate.templateId === input.entity.templateId
-      && candidate.sourcePlayerEntityId === input.sourcePlayerEntityId
-      && candidate.outcome === input.outcome,
+    const existing = this.memories.find(
+      (candidate) =>
+        candidate.sceneId === input.sceneId &&
+        candidate.templateId === input.entity.templateId &&
+        candidate.sourcePlayerEntityId === input.sourcePlayerEntityId &&
+        candidate.outcome === input.outcome,
     );
     if (existing) {
       existing.entityId = input.entity.id;
@@ -116,10 +117,17 @@ export class AiBossEncounterMemoryStore {
     return copyMemory(memory);
   }
 
-  memoryForScene(sceneId: string | null | undefined, playerEntityId: number, nowSeconds: number): AiBossEncounterMemory | null {
+  memoryForScene(
+    sceneId: string | null | undefined,
+    playerEntityId: number,
+    nowSeconds: number,
+  ): AiBossEncounterMemory | null {
     if (!sceneId) return null;
     this.prune(nowSeconds);
-    const memory = this.memories.find((candidate) => candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId);
+    const memory = this.memories.find(
+      (candidate) =>
+        candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId,
+    );
     if (!memory) return null;
     const age = Math.max(0, nowSeconds - memory.updatedAt);
     return {
@@ -168,15 +176,19 @@ export class AiBossEncounterPhaseCueStore {
     if (input.entity.dead || input.entity.maxHp <= 0 || input.entity.hp <= 0) return null;
     const phase = phaseForHealth(input.entity.hp / input.entity.maxHp);
     if (!phase) return null;
-    const existing = this.cues.find((cue) =>
-      cue.entityId === input.entity.id
-      && cue.templateId === input.entity.templateId
-      && cue.sourcePlayerEntityId === input.sourcePlayerEntityId
-      && cue.phase === phase,
+    const existing = this.cues.find(
+      (cue) =>
+        cue.entityId === input.entity.id &&
+        cue.templateId === input.entity.templateId &&
+        cue.sourcePlayerEntityId === input.sourcePlayerEntityId &&
+        cue.phase === phase,
     );
     if (existing) return null;
 
-    const healthPct = Math.max(1, Math.min(99, Math.round((input.entity.hp / input.entity.maxHp) * 100)));
+    const healthPct = Math.max(
+      1,
+      Math.min(99, Math.round((input.entity.hp / input.entity.maxHp) * 100)),
+    );
     const cue: AiBossEncounterPhaseCue = {
       cueId: `boss-phase-${++this.sequence}`,
       sceneId: input.sceneId,
@@ -225,7 +237,11 @@ export function bossEncounterScale(entity: Entity): AiBossEncounterScale | null 
   return null;
 }
 
-export function bossEncounterPhaseEvent(cue: AiBossEncounterPhaseCue, speaker: Entity, pid: number): SimEvent {
+export function bossEncounterPhaseEvent(
+  cue: AiBossEncounterPhaseCue,
+  speaker: Entity,
+  pid: number,
+): SimEvent {
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
@@ -251,7 +267,11 @@ export function bossEncounterPhaseEvent(cue: AiBossEncounterPhaseCue, speaker: E
   };
 }
 
-export function bossEncounterMemoryEvent(memory: AiBossEncounterMemory, speaker: Entity, pid: number): SimEvent {
+export function bossEncounterMemoryEvent(
+  memory: AiBossEncounterMemory,
+  speaker: Entity,
+  pid: number,
+): SimEvent {
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
@@ -284,15 +304,19 @@ function phaseForHealth(hpFraction: number): AiBossEncounterPhase | null {
 
 function lineIdForPhase(phase: AiBossEncounterPhase): AiBossEncounterPhaseLineId {
   switch (phase) {
-    case 'bloodied': return 'hudChrome.aiSpeech.bossPhaseBloodied';
-    case 'desperate': return 'hudChrome.aiSpeech.bossPhaseDesperate';
+    case 'bloodied':
+      return 'hudChrome.aiSpeech.bossPhaseBloodied';
+    case 'desperate':
+      return 'hudChrome.aiSpeech.bossPhaseDesperate';
   }
 }
 
 function lineIdForOutcome(outcome: AiBossEncounterOutcome): AiBossEncounterLineId {
   switch (outcome) {
-    case 'defeated': return 'hudChrome.aiSpeech.bossMemoryDefeated';
-    case 'wipe': return 'hudChrome.aiSpeech.bossMemoryWipe';
+    case 'defeated':
+      return 'hudChrome.aiSpeech.bossMemoryDefeated';
+    case 'wipe':
+      return 'hudChrome.aiSpeech.bossMemoryWipe';
   }
 }
 
@@ -306,7 +330,11 @@ function heatFor(scale: AiBossEncounterScale, outcome: AiBossEncounterOutcome): 
   return outcome === 'wipe' ? Math.min(1, base + 0.05) : base;
 }
 
-function mergeRecent(previous: readonly string[], next: readonly string[], limit: number): string[] {
+function mergeRecent(
+  previous: readonly string[],
+  next: readonly string[],
+  limit: number,
+): string[] {
   return [...next, ...previous.filter((value) => !next.includes(value))].slice(0, limit);
 }
 

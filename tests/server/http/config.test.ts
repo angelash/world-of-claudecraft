@@ -29,8 +29,10 @@ describe('loadConfig', () => {
     expect(cfg.dispatch).toBe('new');
     expect(cfg.port).toBe(8787);
     expect(cfg.allowDevCommands).toBe(false);
+    expect(cfg.provisionTestAccounts).toBe(false);
     expect(cfg.turnstileSecret).toBe('');
     expect(cfg.maxWsPerIpHard).toBe(20);
+    expect(cfg.wsPerMessageDeflate).toBe(true);
     expect(cfg.maxPlayersPerRealm).toBe(5000);
     expect(cfg.githubRepo).toBe('levy-street/world-of-claudecraft');
     expect(cfg.githubToken).toBe('');
@@ -42,6 +44,13 @@ describe('loadConfig', () => {
     expect(cfg.playSessionRetentionDays).toBe(180);
     expect(cfg.accountIpAssociationRetentionDays).toBe(730);
     expect(cfg.playerActivityRetentionDays).toBe(400);
+    expect(cfg.unstuckReportRetentionDays).toBe(90);
+    expect(cfg.passwordResetRequestRetentionDays).toBe(30);
+    expect(cfg.emailChangeRequestRetentionDays).toBe(30);
+    expect(cfg.emailLogRetentionDays).toBe(90);
+    expect(cfg.playerReportRetentionDays).toBe(180);
+    expect(cfg.bugReportRetentionDays).toBe(90);
+    expect(cfg.chatViolationRetentionDays).toBe(90);
     expect(cfg.retentionSweepUtcHour).toBe(5);
     expect(cfg.retentionSweepMaxRowsPerRun).toBe(50000);
     expect(cfg.requireWebLogin).toBe(false);
@@ -180,6 +189,51 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...MIN_ENV, ALLOW_DEV_COMMANDS: '0' }).allowDevCommands).toBe(false);
   });
 
+  it('strictly parses PROVISION_TEST_ACCOUNTS and keeps it off by default', () => {
+    expect(loadConfig({ ...MIN_ENV }).provisionTestAccounts).toBe(false);
+    expect(loadConfig({ ...MIN_ENV, PROVISION_TEST_ACCOUNTS: '' }).provisionTestAccounts).toBe(
+      false,
+    );
+    expect(loadConfig({ ...MIN_ENV, PROVISION_TEST_ACCOUNTS: '0' }).provisionTestAccounts).toBe(
+      false,
+    );
+    expect(loadConfig({ ...MIN_ENV, PROVISION_TEST_ACCOUNTS: 'false' }).provisionTestAccounts).toBe(
+      false,
+    );
+    expect(loadConfig({ ...MIN_ENV, PROVISION_TEST_ACCOUNTS: '1' }).provisionTestAccounts).toBe(
+      true,
+    );
+    expect(loadConfig({ ...MIN_ENV, PROVISION_TEST_ACCOUNTS: 'TRUE' }).provisionTestAccounts).toBe(
+      true,
+    );
+    expect(() => loadConfig({ ...MIN_ENV, PROVISION_TEST_ACCOUNTS: 'yes' })).toThrow(
+      /PROVISION_TEST_ACCOUNTS/,
+    );
+  });
+
+  it('keeps WS_PERMESSAGE_DEFLATE on unless explicitly turned off', () => {
+    const on = (value?: string) =>
+      loadConfig(
+        value === undefined ? { ...MIN_ENV } : { ...MIN_ENV, WS_PERMESSAGE_DEFLATE: value },
+      ).wsPerMessageDeflate;
+    // Compose forwards an unset switch as the empty string, which must stay on.
+    expect(on()).toBe(true);
+    expect(on('')).toBe(true);
+    expect(on('1')).toBe(true);
+    expect(on('TRUE')).toBe(true);
+    expect(on('0')).toBe(false);
+    expect(on('false')).toBe(false);
+    expect(on('FALSE')).toBe(false);
+    expect(() => on('off')).toThrow(/WS_PERMESSAGE_DEFLATE/);
+  });
+
+  it('ignores the retired COMMUNITY_TEST_RIFTS flag entirely', () => {
+    // The dense rift population is the one policy on every host now; a stale
+    // host .env value must neither throw nor surface on the config object.
+    const config = loadConfig({ ...MIN_ENV, COMMUNITY_TEST_RIFTS: 'yes' });
+    expect('communityTestRifts' in config).toBe(false);
+  });
+
   it('reads the numeric and string overrides', () => {
     const cfg = loadConfig({
       ...MIN_ENV,
@@ -237,7 +291,7 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...MIN_ENV, MAX_PLAYERS_PER_REALM: ' 0 ' }).maxPlayersPerRealm).toBe(0);
   });
 
-  it('reads the retention day keys on the chat-log contract: empty is the default, whitespace is keep-forever', () => {
+  it('reads every retention day key on the chat-log contract: empty is the default, whitespace is keep-forever', () => {
     const cases = [
       {
         key: 'DAILY_REWARD_EVENTS_RETENTION_DAYS',
@@ -254,7 +308,53 @@ describe('loadConfig', () => {
       },
       { key: 'PLAYER_ACTIVITY_RETENTION_DAYS', field: 'playerActivityRetentionDays', dflt: 400 },
       { key: 'AI_AUDIT_RETENTION_DAYS', field: 'aiAuditRetentionDays', dflt: 90 },
+      { key: 'UNSTUCK_REPORT_RETENTION_DAYS', field: 'unstuckReportRetentionDays', dflt: 90 },
+      {
+        key: 'PASSWORD_RESET_REQUEST_RETENTION_DAYS',
+        field: 'passwordResetRequestRetentionDays',
+        dflt: 30,
+      },
+      {
+        key: 'EMAIL_CHANGE_REQUEST_RETENTION_DAYS',
+        field: 'emailChangeRequestRetentionDays',
+        dflt: 30,
+      },
+      { key: 'EMAIL_LOG_RETENTION_DAYS', field: 'emailLogRetentionDays', dflt: 90 },
+      { key: 'PLAYER_REPORT_RETENTION_DAYS', field: 'playerReportRetentionDays', dflt: 180 },
+      { key: 'BUG_REPORT_RETENTION_DAYS', field: 'bugReportRetentionDays', dflt: 90 },
+      { key: 'CHAT_VIOLATION_RETENTION_DAYS', field: 'chatViolationRetentionDays', dflt: 90 },
+      {
+        key: 'WOC_MARKET_LISTINGS_RETENTION_DAYS',
+        field: 'wocMarketListingsRetentionDays',
+        dflt: 180,
+      },
+      {
+        key: 'WOC_MARKET_ABANDONS_RETENTION_DAYS',
+        field: 'wocMarketAbandonsRetentionDays',
+        dflt: 30,
+      },
+      {
+        key: 'WOC_MARKET_OFFERS_RETENTION_DAYS',
+        field: 'wocMarketOffersRetentionDays',
+        dflt: 180,
+      },
+      {
+        // Comfortably above the listings window on purpose (the config.ts
+        // rationale): a booked claim must outlive the rows that could
+        // re-drive its ref.
+        key: 'WOC_MARKET_CUSTODY_CLAIMS_RETENTION_DAYS',
+        field: 'wocMarketCustodyClaimsRetentionDays',
+        dflt: 365,
+      },
     ] as const;
+    // The outlive invariant between the two defaults, asserted rather than
+    // narrated: a default retune that lets the claims window sag to (or
+    // under) the listings window quietly re-arms the delivery duplication
+    // for unparseable legacy refs, whose ONLY protection is the window.
+    const defaults = loadConfig(MIN_ENV);
+    expect(defaults.wocMarketCustodyClaimsRetentionDays).toBeGreaterThan(
+      defaults.wocMarketListingsRetentionDays,
+    );
     for (const { key, field, dflt } of cases) {
       // A set value overrides the default.
       expect(loadConfig({ ...MIN_ENV, [key]: '7' })[field]).toBe(7);

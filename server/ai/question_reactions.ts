@@ -12,13 +12,18 @@ export function topicReactionEvent(
 ): SimEvent | null {
   switch (context.topic) {
     case 'recent':
-      return line(context, speaker, memory.interactionCount >= 2
-        ? 'hudChrome.aiSpeech.topicRecentKnown'
-        : 'hudChrome.aiSpeech.topicRecentFirstMeet', {
-        speakerName: speaker.name,
-        playerName: context.player.name,
-        count: memory.interactionCount,
-      });
+      return line(
+        context,
+        speaker,
+        memory.interactionCount >= 2
+          ? 'hudChrome.aiSpeech.topicRecentKnown'
+          : 'hudChrome.aiSpeech.topicRecentFirstMeet',
+        {
+          speakerName: speaker.name,
+          playerName: context.player.name,
+          count: memory.interactionCount,
+        },
+      );
     case 'rumor':
       if (rumor) return null;
       return line(context, speaker, 'hudChrome.aiSpeech.topicRumorQuiet', {
@@ -31,19 +36,29 @@ export function topicReactionEvent(
         playerName: context.player.name,
       });
     case 'quest_hint':
-      return line(context, speaker, context.questFacts.length > 0
-        ? 'hudChrome.aiSpeech.topicQuestHint'
-        : 'hudChrome.aiSpeech.topicQuestNoHint', {
-        speakerName: speaker.name,
-        playerName: context.player.name,
-      });
+      return line(
+        context,
+        speaker,
+        context.questFacts.length > 0
+          ? 'hudChrome.aiSpeech.topicQuestHint'
+          : 'hudChrome.aiSpeech.topicQuestNoHint',
+        {
+          speakerName: speaker.name,
+          playerName: context.player.name,
+        },
+      );
     case 'greeting':
     case undefined:
       return null;
   }
 }
 
-function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: Record<string, string | number>): SimEvent {
+function line(
+  context: AiJobContextV1,
+  speaker: Entity,
+  lineId: string,
+  values: Record<string, string | number>,
+): SimEvent {
   const projection = topicDirectorProjection(context);
   return {
     type: 'aiSpeech',
@@ -60,8 +75,12 @@ function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: 
   };
 }
 
-function topicDirectorProjection(context: AiJobContextV1): { reaction: 'approach' | 'avoid' | 'inspect'; targetRef: string; reasonTags: string[] } | null {
-  const family = mobFamilyFromValue(context.familySemantics?.family) ?? (context.entity.kind === 'npc' ? 'humanoid' : null);
+function topicDirectorProjection(
+  context: AiJobContextV1,
+): { reaction: 'approach' | 'avoid' | 'inspect'; targetRef: string; reasonTags: string[] } | null {
+  const family =
+    mobFamilyFromValue(context.familySemantics?.family) ??
+    (context.entity.kind === 'npc' ? 'humanoid' : null);
   if (!family || !context.directorProposals) return null;
   for (const proposal of context.directorProposals.slice(0, 3)) {
     const projection = familyDirectorProjectionFor(proposal, { family });
@@ -69,20 +88,21 @@ function topicDirectorProjection(context: AiJobContextV1): { reaction: 'approach
     return {
       reaction: projection.reaction,
       targetRef: proposal.targetRef,
-      reasonTags: [
-        ...profileDirectorProjectionTags(context.profile),
-        ...projection.reasonTags,
-      ],
+      reasonTags: [...profileDirectorProjectionTags(context.profile), ...projection.reasonTags],
     };
   }
   return null;
 }
 
 function topicSceneTags(context: AiJobContextV1, projectionTags: readonly string[]): string[] {
-  return context.scene ? [...new Set([
-    ...context.scene.locationTags,
-    ...context.scene.structureTags,
-    ...context.scene.environmentalTags,
-    ...projectionTags,
-  ])].slice(0, 8) : [...projectionTags].slice(0, 8);
+  return context.scene
+    ? [
+        ...new Set([
+          ...context.scene.locationTags,
+          ...context.scene.structureTags,
+          ...context.scene.environmentalTags,
+          ...projectionTags,
+        ]),
+      ].slice(0, 8)
+    : [...projectionTags].slice(0, 8);
 }

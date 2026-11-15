@@ -41,13 +41,26 @@ directory lives in git history before 2026-07-11.
   if unwanted.
 - Paragon and mythic reward TITLES where the legacy milestones granted
   borders: deliberate, and changing it now would invalidate persisted
-  activeTitle picks.
+  activeTitle and activeBorder picks. Note the premise has moved: this call
+  was made when a border was a badge flourish, and Phase 19 made borders real
+  nameplate and portrait chrome with their own picker, so whether these two
+  should now grant borders instead of (or beside) titles is a live maintainer
+  question rather than a settled one.
 
 ## Deferred until an engine surface exists
 
 See also the deferred section in `docs/design/deeds.md`.
 
-- `prog_ringwright`: jewelcrafting and inscription have zero recipes.
+- `prog_ringwright`: the engine-surface blocker is GONE (the Masterwrought
+  phase 06 inscription catalog gave the last craft its gain path and
+  shipped `prog_inscription_rare` / `prog_inscription_50` /
+  `prog_grandmaster_inscription`), but the ring deed itself has no recorded
+  design: no trigger shape, threshold, name, or renown anywhere, and its
+  reserved companions `prog_three_paths` / `prog_ninefold` are equally
+  unspecced. Deferred awaiting a maintainer design ruling (queued at the
+  phase 06 QA). Jewelcrafting and inscription are both fully off this
+  list: each base catalog shipped its rare-tier milestone and its
+  skill-50 / Grandmaster pair.
 - `soc_first_salvage` and `soc_salvage_50`: salvage has no player-facing
   wiring on any host; the salvagesPerformed counter ships with the
   transcription; ACH_FIRST_SALVAGE is held unregistered.
@@ -69,8 +82,8 @@ Rolling the server binary back past this feature is the one direction the
 deeds persistence cannot heal itself from (the `server/deeds_records.ts`
 header comment calls this out): the base serializer reconstructs only the
 fields it knows, so the FIRST save a pre-deeds binary makes strips `deeds`,
-`deedStats`, `activeTitle`, and `renown` from that character's
-`characters.state` blob. Before rolling back, snapshot the characters table:
+`deedStats`, `activeTitle`, `activeBorder`, and `renown` from that
+character's `characters.state` blob. Before rolling back, snapshot the characters table:
 
 ```sh
 pg_dump "$DATABASE_URL" --table=characters --format=custom \
@@ -97,7 +110,7 @@ Genuinely unrecoverable once a base binary saves a character:
 - The deedStats lifetime counters.
 - The per-deed earn-day stamps (the utcDay values in the persisted `deeds`
   map; a retro re-grant stamps the current day, not the original).
-- The persisted activeTitle pick.
+- The persisted activeTitle and activeBorder picks.
 - Event-witnessed deeds no state predicate can re-prove: the retro pass can
   only grant what the surviving blob demonstrates.
 
@@ -107,7 +120,7 @@ earned map on every load, so it never needs hand-repair. For characters
 that saved under the base binary with no snapshot, `character_deeds` is the
 recovery seed: their earned ids are still known even though the blob no
 longer carries them, so a restore script can rebuild the `deeds` map from
-the table (earn days, deedStats, and activeTitle stay lost).
+the table (earn days, deedStats, activeTitle, and activeBorder stay lost).
 
 ### Rollout population
 
@@ -158,9 +171,6 @@ script-driven, off-peak only.
   would silently retune `soc_by_ravens_wing`.
 - The leaderboard header subtitle reads Lifetime XP on every tab
   (pre-existing shared chrome, not deeds-owned).
-- The nameplate declutter stack offset (fixed 20 px) does not model the
-  deed-title subtitle line on a titled plate; cosmetic clustering only, the
-  same class as the guild-tag line.
 - Daily-rewards moderation writes (setDailyRewardsBan and the IP form)
   commit without firing the onAccountModerated cache-bust hook; benign today
   because that hook busts only the lifetime-XP and guild board caches;

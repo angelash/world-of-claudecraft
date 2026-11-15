@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { Sim } from '../src/sim/sim';
+import { ALL_EQUIP_SLOTS, type EquipSlot } from '../src/sim/types';
 
 function makeWorld() {
   return new Sim({ seed: 7, playerClass: 'warrior', noPlayer: true });
@@ -45,12 +46,17 @@ describe('serializeCharacter <-> addPlayer round-trip (G2 persistence)', () => {
     meta.loadouts = [{ name: 'PvP', alloc: meta.talents, bar: [] }];
     meta.activeLoadout = 0;
     meta.delveMarks = 17;
+    meta.heroicMarks = 23;
     meta.delveClears = { crypt: 4 };
     meta.companionUpgrades = { tessa: 2 };
     meta.delveLoreUnlocked = new Set(['lore_1']);
     meta.delveDaily = { date: '2026-06-26', firstClearXp: new Set(['crypt']), markClears: 2 };
     meta.bank.inventory = [
-      { itemId: 'linen_scrap', count: 9 },
+      // linen_scrap is a material: its canonical anonymous composition is an
+      // explicit materialSources row, not a bare count, so the hand-stuffed
+      // row already matches what a load normalizes it to and the round trip
+      // stays byte-identical.
+      { itemId: 'linen_scrap', count: 9, materialSources: [{ source: {}, count: 9 }] },
       { itemId: 'worn_sword', count: 1, instance: { signer: 'Ana' } },
     ];
     meta.bank.purchasedSlots = 6;
@@ -75,6 +81,7 @@ describe('serializeCharacter <-> addPlayer round-trip (G2 persistence)', () => {
     expect(s2.lifetimeHonor).toBe(654);
     expect(s2.honorArenaDaily).toEqual(meta.honorArenaDaily);
     expect(s2.delveMarks).toBe(17);
+    expect(s2.heroicMarks).toBe(23);
     expect(s2.loadouts?.length).toBe(1);
     expect(s2.skinCatalog).toBe('mech');
     expect(s2.bank?.purchasedSlots).toBe(6);
@@ -118,6 +125,23 @@ describe('serializeCharacter <-> addPlayer round-trip (G2 persistence)', () => {
       'lifetimeXp',
       'restedXp',
       'bank',
+      // The later optional blocks, added by the Phase 11d QA migration review.
+      // A fresh seed character omits most of these anyway, so listing them costs
+      // nothing today; the point is that this list is the "oldest production
+      // save" model, and a field left off it is a field this arm silently stops
+      // modelling the moment a seed character does start carrying it.
+      'heroicDaily',
+      'reliquary',
+      'deeds',
+      'farmPlots',
+      'craftDaily',
+      'wyrmfallDaily',
+      'emberWeekAnchor',
+      // The release/v0.41.0 Materials Vault block (added at the seventh sync
+      // merge): serializeCharacter emits it unconditionally, so the oldest
+      // production save must strip it here or the arm silently stops
+      // modelling a vault-less load.
+      'vault',
     ]) {
       delete legacy[key];
     }
@@ -140,7 +164,17 @@ describe('serializeCharacter <-> addPlayer round-trip (G2 persistence)', () => {
     expect(m.loadouts).toEqual([]);
     expect(m.prestigeRank).toBe(0);
     expect(m.restedXp).toBe(0);
-    expect(m.bank).toEqual({ inventory: [], purchasedSlots: 0, bonusSlots: 0 });
+    expect(m.bank).toEqual({
+      inventory: [],
+      purchasedSlots: 0,
+      bonusSlots: 0,
+      unlockedSockets: 0,
+      socketBags: [null, null, null, null],
+      appliedStorageKeys: [],
+    });
+    // A vault-less save loads to the defaulted locked vault and re-saves in
+    // the pre-feature sparse shape (empty stock, no special list, rung 0).
+    expect(sim2.serializeCharacter(pid)?.vault).toEqual({ stock: {}, upgrades: 0 });
     // re-serializing a defaulted character does not throw and fills the new fields.
     expect(() => sim2.serializeCharacter(pid)).not.toThrow();
     expect(sim2.serializeCharacter(pid)!.delveMarks).toBe(0);
@@ -156,5 +190,42 @@ describe('serializeCharacter <-> addPlayer round-trip (G2 persistence)', () => {
     const s = sim.serializeCharacter(pid)!;
     expect(s.level).toBe(8);
     expect(s.xp).toBe(1234);
+  });
+});
+
+// equipmentInstance is the per-slot instanced-copy payload map: an enchant, a
+// masterwork copy's baked stats, a Rift-forged upgrade, crafted provenance, a
+// signer. Losing one silently reverts worn gear to plain on the next login, so
+// every LIVE slot has to survive the save/load boundary.
+//
+// Driven by ALL_EQUIP_SLOTS rather than a hand-listed set, deliberately: the
+// offhand payload was dropped for exactly as long as it took one load-path
+// validator to reach for the frozen launch-era slot list instead of the live
+// one, and a hand-listed test would have been written from that same stale
+// list. Parameterizing over the live list is what makes a future twelfth slot
+// inherit this coverage instead of needing someone to remember.
+describe('equipmentInstance survives the save/load boundary for every live slot', () => {
+  it.each([...ALL_EQUIP_SLOTS])('keeps the %s instance payload', (slot: EquipSlot) => {
+    const sim = makeWorld();
+    const pid = sim.addPlayer('warrior', 'Enchanted');
+    const meta = sim.meta(pid)!;
+    // The item id is irrelevant to the payload plumbing under test (the load
+    // path keys on the slot being worn, not on the def), so one real id in
+    // every slot keeps the fixture honest without 12 slot-legal picks.
+    meta.equipment[slot] = 'worn_sword';
+    meta.equipmentInstance[slot] = { enchant: 'test_enchant', rolled: { stats: { str: 3 } } };
+
+    const saved = sim.serializeCharacter(pid)!;
+    expect(saved.equipmentInstance?.[slot]).toEqual({
+      enchant: 'test_enchant',
+      rolled: { stats: { str: 3 } },
+    });
+
+    const sim2 = makeWorld();
+    const pid2 = sim2.addPlayer('warrior', 'Enchanted', { state: saved });
+    expect(sim2.meta(pid2)!.equipmentInstance[slot]).toEqual({
+      enchant: 'test_enchant',
+      rolled: { stats: { str: 3 } },
+    });
   });
 });

@@ -87,7 +87,6 @@ export const EASTBROOK_TOWN_REBUILD_PLACEMENT_INVENTORY = Object.freeze({
     'eastbrook_fence_smithy_west',
     'eastbrook_fence_smithy_outer',
     'eastbrook_fence_smithy_east',
-    'eastbrook_fence_market_outer',
   ]),
   artisanRow: Object.freeze([]),
   benches: Object.freeze([
@@ -116,8 +115,8 @@ export const EASTBROOK_TOWN_POLISH_V2_PLACEMENT_INVENTORY = Object.freeze({
   ]),
 });
 
-const EASTBROOK_TOWN_HISTORICAL_TRIANGLES = 29_644;
-const EASTBROOK_TOWN_POLISH_V2_TRIANGLES = 28_330;
+const EASTBROOK_TOWN_HISTORICAL_TRIANGLES = 29_436;
+const EASTBROOK_TOWN_POLISH_V2_TRIANGLES = 28_902;
 
 const EMPTY_TOWN_PLACEMENT_INVENTORY = Object.freeze(
   Object.fromEntries(
@@ -125,13 +124,22 @@ const EMPTY_TOWN_PLACEMENT_INVENTORY = Object.freeze(
   ),
 );
 
-export function expectedTownPlacementInventory(expectedTown, contractId = null) {
+export function expectedTownPlacementInventory(
+  expectedTown,
+  contractId = null,
+  captureContractSnapshot = null,
+) {
   if (typeof expectedTown !== 'boolean') {
     throw new Error('expectedTown must be a boolean');
   }
-  const rebuildInventory = contractId
-    ? townCaptureContract(contractId).placementInventory
-    : EASTBROOK_TOWN_REBUILD_PLACEMENT_INVENTORY;
+  if (captureContractSnapshot !== null && captureContractSnapshot.id !== contractId) {
+    throw new Error('town placement contract snapshot id does not match the requested contract');
+  }
+  const rebuildInventory =
+    captureContractSnapshot?.placementInventory ??
+    (contractId
+      ? townCaptureContract(contractId).placementInventory
+      : EASTBROOK_TOWN_REBUILD_PLACEMENT_INVENTORY);
   return expectedTown
     ? Object.freeze({
         legacy: EMPTY_TOWN_PLACEMENT_INVENTORY,
@@ -256,6 +264,9 @@ export const EASTBROOK_TOWN_CAPTURE_VIEWS = Object.freeze([
   }),
   Object.freeze({
     name: 'armoury-relation',
+    // HISTORICAL: frozen at the capture-time aim; the committed evidence
+    // records this exact view. The round-4 barracks re-aim rides the matched
+    // override table below, never this row.
     camera: Object.freeze({ x: 34, y: 15, z: 25 }),
     target: Object.freeze({ x: 10, y: 4, z: -2 }),
   }),
@@ -320,54 +331,95 @@ export const EASTBROOK_TOWN_PERF_SCENARIOS = Object.freeze([
 // The accepted rebuild evidence above is immutable. Polish evidence opts into
 // these additional views instead of replacing or renaming any of the original
 // fifteen view contracts.
+// Re-aimed 2026-08-18 for the Eastbrook harbor move (layout v3, commit
+// d19aa33f76, docs/design/eastbrook-revamp/site-plan.md): every polish subject
+// re-lotted, so each target follows its layout-derived subject point and each
+// camera was re-seated collision-clear on the subject's public side. View
+// names stay immutable evidence naming ('west-wall-quartermaster' included:
+// FURY now stands by the graveyard, wall or no wall).
+// Re-aimed for owner round 6b's world wave: the two market stalls opened out
+// across the square (world market to (-20.5, -94), provisions to (-19, -108)),
+// so each target follows its stall's derived front standing point and each
+// camera rides the same move, holding its former offset from the target. Both
+// targets and both cameras re-probed collision-clear at camera height.
+// Re-aimed 2026-10 for the Tidehold rebuild: six placed buildings replaced the
+// eleven kit shells and face local -Z. Of these views only Lin's subject moved
+// (to her shop door on the square); every other subject holds its point, and
+// each camera re-probed collision-clear at seed 20061.
+// Re-aimed for the World of ClaudeCraft Studio map's arrangement of the same
+// town: Lin's shop went down to the strand and FURY stepped off the north
+// road's new swing round the smithy, so their two portraits follow them;
+// every other subject holds its point.
 export const EASTBROOK_TOWN_POLISH_CAPTURE_VIEWS = Object.freeze([
   Object.freeze({
     name: 'stall-world-market',
     subject: 'eastbrook_market_stall_world_market',
-    camera: Object.freeze({ x: -2.54, y: 6, z: 5.47 }),
-    target: Object.freeze({ x: -4.55381837226296, y: 2.5, z: 8.20975183498178 }),
+    camera: Object.freeze({ x: -16, y: 6, z: -93 }),
+    target: Object.freeze({ x: -19.517695018376127, y: 2.5, z: -95.26296354780212 }),
   }),
   Object.freeze({
     name: 'stall-provisions',
     subject: 'eastbrook_market_stall_provisions',
-    camera: Object.freeze({ x: -3, y: 6, z: 0 }),
-    target: Object.freeze({ x: -7.421769629642221, y: 2.5, z: 0.7630378263298812 }),
+    camera: Object.freeze({ x: -14.5, y: 6, z: -109 }),
+    target: Object.freeze({ x: -18.017695018376127, y: 2.5, z: -106.73703645219788 }),
   }),
+  // The live portrait follows Lin to the civic square. Historical
+  // captures retain their original camera records and frozen source identity.
+  // World of ClaudeCraft Studio map's arrangement: she stands at
+  // (-24.5, -112.5) between the square and her shop down on the strand,
+  // facing the square. The target is her stand; the camera holds its 5 yd on
+  // her public-facing side, toward the square.
   Object.freeze({
     name: 'apothecary-lin',
     subject: 'apothecary_lin',
-    camera: Object.freeze({ x: 1.8, y: 6, z: 6 }),
-    target: Object.freeze({ x: 2.8431593444121797, y: 2.5, z: 9.717148252611294 }),
+    camera: Object.freeze({ x: -20.96, y: 6, z: -108.96 }),
+    target: Object.freeze({ x: -24.5, y: 2.5, z: -112.5 }),
   }),
   Object.freeze({
     name: 'ravenpost-mailbox',
     subject: 'mailbox_eastbrook',
-    camera: Object.freeze({ x: 0, y: 5, z: -2 }),
-    target: Object.freeze({ x: 0, y: 2, z: -6.2 }),
+    camera: Object.freeze({ x: -10, y: 5, z: -93.5 }),
+    target: Object.freeze({ x: -10, y: 2, z: -96.7 }),
   }),
   Object.freeze({
     name: 'noticeboard',
     subject: 'eastbrook_noticeboard',
-    camera: Object.freeze({ x: 5, y: 6, z: -4 }),
-    target: Object.freeze({ x: 9.010050506338834, y: 2.2, z: -7.010050506338834 }),
+    camera: Object.freeze({ x: 1, y: 6, z: -92.5 }),
+    target: Object.freeze({ x: 3.844569834250236, y: 2.2, z: -89.79055748182878 }),
   }),
+  // Round 7 pointed this at the Realm Builder monument, which replaced the well
+  // beacon on the same civic point; round 8 doubled that statue, and the aim
+  // had to move out with it. It sits on the southwest diagonal, between the
+  // south and west benches and a yard clear of the plinth: due south is a
+  // seat, the middle is the statue, and this point is probed for collision
+  // with a half-yard body. Camera unchanged, so it is still the flank it
+  // always framed, now with a great deal more to frame.
   Object.freeze({
     name: 'civic-motion',
-    subject: 'eastbrook_civic_well_beacon',
-    camera: Object.freeze({ x: -10, y: 6, z: -7 }),
-    target: Object.freeze({ x: -0.75, y: 2.8, z: 0 }),
+    subject: 'eastbrook_realm_builder_monument',
+    camera: Object.freeze({ x: -8, y: 6, z: -110 }),
+    target: Object.freeze({ x: -12.05, y: 4.5, z: -105.2 }),
   }),
   Object.freeze({
     name: 'ravenpost-chronicler',
     subject: 'chronicler_saul',
-    camera: Object.freeze({ x: -10, y: 6.5, z: -11 }),
-    target: Object.freeze({ x: 0, y: 2.5, z: -14.5 }),
+    camera: Object.freeze({ x: 10.5, y: 6.5, z: -85 }),
+    target: Object.freeze({ x: 10.2, y: 2.5, z: -87.5 }),
   }),
+  // Re-aimed for owner round 6b's world wave: FURY is a service NPC (the honor
+  // quartermaster), so he left the chapel step for the town's eastern edge at
+  // (16, -78). The view is re-seated, never retired: same name, same subject,
+  // target on his authored stand and the camera carrying its former 4.47 yd
+  // offset, which still lands on his (re-derived) public-facing side and probes
+  // collision-clear at camera height. Re-seated again for the World of
+  // ClaudeCraft Studio map's arrangement: the north road swings round the
+  // smithy over his old stand, so he stands at (21, -83.5) and the camera
+  // keeps its 4.47 yd on his public-facing side.
   Object.freeze({
     name: 'west-wall-quartermaster',
     subject: 'fury',
-    camera: Object.freeze({ x: -16, y: 6, z: -3 }),
-    target: Object.freeze({ x: -22.5, y: 2.5, z: -7.5 }),
+    camera: Object.freeze({ x: 17.05, y: 6, z: -85.59 }),
+    target: Object.freeze({ x: 21, y: 2.5, z: -83.5 }),
   }),
 ]);
 
@@ -375,30 +427,80 @@ export const EASTBROOK_TOWN_POLISH_CAPTURE_VIEWS = Object.freeze([
 // before/after evidence shares this derived list so outward service moves can
 // be framed from their public faces without invalidating accepted PR #2356
 // evidence. The matching baseline deliberately uses these same cameras.
+// Re-derived 2026-08-18 to the layout v3 harbor lots (commit d19aa33f76,
+// docs/design/eastbrook-revamp/site-plan.md): every service target sits on its
+// building's front standing point and every camera stands collision-clear on
+// the public face. 'chapel-and-weaving' keeps its historical pairing even
+// though v3 parted the two buildings by about 53 yards; the only region
+// public-side of BOTH fronts is east of the bank, so that camera is now a
+// wide establishing shot across the civic square.
+// Re-aimed 2026-10 for the Tidehold rebuild: six placed buildings replaced the
+// eleven kit shells and face local -Z, so every door, and every public face,
+// turned. The bank, smithy and inn targets sit on their buildings' front
+// standing points (1.8 yd off the wall at the door) and each camera stands
+// outside the model, on the door side. The weaving workshop and the toolworks
+// went with the shells; their stations and masters still hold the crafts
+// lane, so those halves of the pairing are the stations now, whose public
+// side is the way their masters face (the retired lots' own turn).
 export const EASTBROOK_TOWN_POLISH_MATCHED_VIEW_OVERRIDES = Object.freeze({
+  'armoury-relation': Object.freeze({
+    // Round 4: the armoury retired from placement and the KayKit barracks
+    // garrison holds the lot; the matched view aims just off the barracks
+    // west facade (its rectangle collider owns the lot center).
+    camera: Object.freeze({ x: 34, y: 15, z: 25 }),
+    target: Object.freeze({ x: 12.5, y: 4, z: -5.5 }),
+  }),
+  // World of ClaudeCraft Studio map's arrangement: the bank stands at the
+  // harbour end of the main street, its door looking up the street to the
+  // square; the camera stands 11 yd out on the bursar's side of the door, so
+  // he and the banker chest sit in the near frame.
   'bank-and-chest': Object.freeze({
-    camera: Object.freeze({ x: 5, y: 7, z: 2 }),
-    target: Object.freeze({ x: 14.156943251329539, y: 3.2, z: 8.685223202016726 }),
+    camera: Object.freeze({ x: -49.32, y: 7, z: -101.42 }),
+    target: Object.freeze({ x: -54.98, y: 3.2, z: -111.32 }),
   }),
+  // The smithy stands north of the square on the old chapel rise, its door
+  // looking down to the square; the camera stands 12 yd out, a step toward
+  // the forge shelter at its west end, so the shelter is in frame with the
+  // door.
   'smithy-and-forge': Object.freeze({
-    camera: Object.freeze({ x: 10, y: 7, z: 8 }),
-    target: Object.freeze({ x: 3.687633548766497, y: 3, z: 15.598153967032626 }),
+    camera: Object.freeze({ x: -12, y: 7, z: -93.65 }),
+    target: Object.freeze({ x: -8.28, y: 3, z: -81.86 }),
   }),
+  // The inn stands up the slope north of the farm plots; its kitchen yard
+  // keeps its old ground beside the inn lane, so the camera stands down the
+  // lane just past the yard and looks up it to the door, the kitchens in the
+  // near frame.
   'inn-and-kitchens': Object.freeze({
-    camera: Object.freeze({ x: 0, y: 8, z: 8 }),
-    target: Object.freeze({ x: -10.018829436136041, y: 3, z: 13.621842145917809 }),
+    camera: Object.freeze({ x: -46, y: 9, z: -93 }),
+    target: Object.freeze({ x: -34.51, y: 3, z: -69.99 }),
   }),
   'chapel-and-weaving': Object.freeze({
-    camera: Object.freeze({ x: 0, y: 12, z: 4 }),
-    target: Object.freeze({ x: -13.2, y: 3, z: -10.5 }),
+    // Round 8: the aim was (-13, -100), the middle of the square, and the
+    // doubled Realm Builder monument now stands there: a target inside a
+    // collider fails the clearance probe. Moved a yard past the plinth's west
+    // face, still an establishing shot across the square with the statue as
+    // its backdrop.
+    // Tidehold: the placed bank's model covered the old camera spot at
+    // (26, -100), so the camera stepped 10 yd in. The bank has gone to the
+    // harbour end since and the chapel stands on the rise west of the
+    // square; the same spot is public-side of the chapel's door and of the
+    // loom station (the weaving half), between the square and the chapel.
+    camera: Object.freeze({ x: 16, y: 12, z: -100.5 }),
+    target: Object.freeze({ x: -10.5, y: 3, z: -100 }),
   }),
+  // Tidehold: the toolworks building retired with the kit shells, and the
+  // toolworks station still stands on its old front standing point with
+  // Tinker Gizzel beside it, so this view keeps its station framing as is.
   'toolworks-service-perimeter': Object.freeze({
-    camera: Object.freeze({ x: 4, y: 7, z: -9 }),
-    target: Object.freeze({ x: 5, y: 5, z: -14.25 }),
+    camera: Object.freeze({ x: -11, y: 7, z: -120 }),
+    target: Object.freeze({ x: -13.614789156231515, y: 5, z: -124.42218373434727 }),
   }),
+  // Moved in lockstep with the polish view above for owner round 6b: this entry
+  // has always mirrored that view exactly, and a matched shot aimed at the
+  // stall's vacated ground would photograph empty square.
   'stall-world-market': Object.freeze({
-    camera: Object.freeze({ x: -6, y: 6, z: 0 }),
-    target: Object.freeze({ x: -5.75, y: 2.5, z: 7 }),
+    camera: Object.freeze({ x: -16, y: 6, z: -93 }),
+    target: Object.freeze({ x: -19.517695018376127, y: 2.5, z: -95.26296354780212 }),
   }),
 });
 
@@ -413,6 +515,14 @@ export const EASTBROOK_TOWN_POLISH_MATCHED_CAPTURE_VIEWS = Object.freeze([
   }),
 ]);
 
+// FROZEN EVIDENCE, not a live description. Every field below is compared
+// against the committed capture metadata in
+// docs/screenshots/eastbrook-vale-rebuild/polish/metadata/, which records the
+// town as it stood when those frames were shot: the well beacon, and the
+// beacon shader at v1. The Realm Builder monument replaced both in round 7 and
+// the captures were NOT retaken, so this keeps saying what the pictures show.
+// Retaking them is its own deliberate change, and it moves these names, the
+// asset list above and the legacy inventory together.
 export const EASTBROOK_TOWN_MOTION_CAPTURE = Object.freeze({
   viewName: 'civic-motion',
   frameIntervalMs: 1_600,
@@ -431,14 +541,55 @@ export const EASTBROOK_TOWN_MOTION_CAPTURE = Object.freeze({
 const MAILBOX_ASSET_URL = '/models/props/mailbox_pillar.glb';
 const NOTICEBOARD_ASSET_URL = '/models/props/eastbrook_noticeboard.glb';
 export const EASTBROOK_POLISH_BASELINE_REVISION = '3ab740db453bd8b5858a52c304edc811c9d520ca';
+// DELIBERATE EXCLUSION (recorded by the Phase 16 QA, 2026-08-30): the zone
+// prewarm-group builders extracted out of renderer.ts into
+// src/render/zone_prewarm_groups.ts are NOT a leaf here. The polish evidence's
+// claims are about the town's meshes, shaders, layout and view policy, none of
+// which the prewarm grouping decides; the rendererIntegration leaf still
+// covers the renderer's own call sites. Add the module as a leaf at the next
+// legitimate re-mint only if a future capture's claims come to depend on
+// prewarm behavior.
+// SECOND DELIBERATE EXCLUSION (2026-09-12): the monument impostor's GLSL,
+// extracted out of the civicShader module into
+// src/render/realm_builder_monument_impostor_glsl.ts, is NOT a leaf here, and
+// this is the same shape as the exclusion above rather than a new judgement.
+// The extraction bought a real-context link of the shipped strings: importing
+// the fx module into a browser test cost +1.2 s of import time on a file whose
+// own assertions cost 110 ms, while a dependency-free source module costs
+// nothing. Applying the exclusion note's own test, do the polish evidence's
+// claims depend on these bytes: no. MONUMENT_IMPOSTOR_RANGE is 72
+// (realm_builder_monument_fx_core.ts) and the monument sits at (-14.75, -102)
+// (CIVIC_FEATURE_CENTER); every polish view that can contain it is within
+// 51 yd, the farthest being apothecary-lin at 50.6, so the captures show the
+// statue BODY and can never show the impostor card. The one polish view beyond
+// that range (camera (34, 15, 25), target (12.5, 4, -5.5)) is aimed at another
+// district, away from the monument. (The 2026-10 Tidehold re-aim moved the
+// farthest live camera to inn-and-kitchens at 58 yd, still inside 72; Lin's
+// is now 6 yd off the statue. The World of ClaudeCraft Studio map's
+// arrangement re-aimed the service and portrait cameras it moved to within
+// 36 yd of it, FURY's portrait the farthest at 35.8.) The civicShader leaf still seals the
+// wiring (which strings, which uniforms, fog: true), and the bytes themselves
+// now carry a stronger guard than a sha256: a real driver links them in
+// tests/browser/dry_compile_sources.browser.test.ts. Add the module as a leaf
+// at the next legitimate re-mint only if a future capture is retaken from
+// beyond 72 yd with the monument in frame.
 export const EASTBROOK_POLISH_PROVENANCE_INPUTS = Object.freeze({
   townAssetSourceFingerprint: 'scripts/assets/eastbrook_town/source_fingerprint.mjs',
   authoritativeLayout: 'src/sim/eastbrook_layout.ts',
-  civicShader: 'src/render/eastbrook_civic_beacon.ts',
+  // Round 8 repointed this leaf. It used to be eastbrook_civic_beacon.ts, the
+  // shader that animated the well beacon's floating crystal inside the merged
+  // emissive batch; that module was deleted when the Realm Builder monument
+  // replaced the crystal and left the batch entirely. The KEY is unchanged on
+  // purpose (it is a name in the committed capture metadata), and it still
+  // means the same thing: the module that animates the square's centrepiece.
+  civicShader: 'src/render/realm_builder_monument_fx.ts',
   townRuntime: 'src/render/eastbrook_town.ts',
   mailboxRuntime: 'src/render/mailbox.ts',
   noticeboardRuntime: 'src/render/noticeboard.ts',
   rendererIntegration: 'src/render/renderer.ts',
+  entityGroundSample: 'src/render/entity_ground_sample.ts',
+  entityGroundSampleCore: 'src/render/entity_ground_sample_core.ts',
+  entityViewPolicy: 'src/render/entity_view_policy_core.ts',
   viewPriorityPolicy: 'src/render/prewarm_policy.ts',
   mailboxSourceFingerprint: 'scripts/assets/eastbrook_mailbox/source_fingerprint.mjs',
   mailboxGlb: 'public/models/props/mailbox_pillar.glb',
@@ -557,6 +708,9 @@ export function deriveEastbrookPolishCompositeProvenance({
   mailboxRuntimeSha256,
   noticeboardRuntimeSha256,
   rendererIntegrationSha256,
+  entityGroundSampleSha256,
+  entityGroundSampleCoreSha256,
+  entityViewPolicySha256,
   viewPriorityPolicySha256,
   mailboxSourceFingerprint,
   mailboxGlbSha256,
@@ -571,6 +725,9 @@ export function deriveEastbrookPolishCompositeProvenance({
     mailboxRuntimeSha256,
     noticeboardRuntimeSha256,
     rendererIntegrationSha256,
+    entityGroundSampleSha256,
+    entityGroundSampleCoreSha256,
+    entityViewPolicySha256,
     viewPriorityPolicySha256,
     mailboxSourceFingerprint,
     mailboxGlbSha256,
@@ -608,6 +765,18 @@ export function deriveEastbrookPolishCompositeProvenance({
       renderer: {
         path: EASTBROOK_POLISH_PROVENANCE_INPUTS.rendererIntegration,
         sha256: rendererIntegrationSha256,
+      },
+      entityGroundSample: {
+        path: EASTBROOK_POLISH_PROVENANCE_INPUTS.entityGroundSample,
+        sha256: entityGroundSampleSha256,
+      },
+      entityGroundSampleCore: {
+        path: EASTBROOK_POLISH_PROVENANCE_INPUTS.entityGroundSampleCore,
+        sha256: entityGroundSampleCoreSha256,
+      },
+      entityViewPolicy: {
+        path: EASTBROOK_POLISH_PROVENANCE_INPUTS.entityViewPolicy,
+        sha256: entityViewPolicySha256,
       },
       viewPriorityPolicy: {
         path: EASTBROOK_POLISH_PROVENANCE_INPUTS.viewPriorityPolicy,
@@ -655,8 +824,16 @@ function finiteVector2(value) {
   return Number.isFinite(value?.x) && Number.isFinite(value?.z);
 }
 
-export function assertTownAttributionTargetState({ targets, contractId, requestedVisible }) {
-  const contract = townCaptureContract(contractId);
+export function assertTownAttributionTargetState({
+  targets,
+  contractId,
+  requestedVisible,
+  captureContractSnapshot = null,
+}) {
+  if (captureContractSnapshot !== null && captureContractSnapshot.id !== contractId) {
+    throw new Error('town attribution contract snapshot id does not match the requested contract');
+  }
+  const contract = captureContractSnapshot ?? townCaptureContract(contractId);
   if (!Array.isArray(targets) || targets.length !== contract.attributionTargets.length) {
     throw new Error(`${contractId}: attribution target inventory is incomplete`);
   }
@@ -755,8 +932,11 @@ export function assertTownNpcFacingOverlay({ overlay, contractId }) {
   }
 }
 
-export function assertTownMotionEvidence({ evidence, contractId }) {
-  const contract = townCaptureContract(contractId);
+export function assertTownMotionEvidence({ evidence, contractId, captureContractSnapshot = null }) {
+  if (captureContractSnapshot !== null && captureContractSnapshot.id !== contractId) {
+    throw new Error('town motion contract snapshot id does not match the requested contract');
+  }
+  const contract = captureContractSnapshot ?? townCaptureContract(contractId);
   const expected = contract.motionCapture;
   if (!expected) {
     if (evidence !== null) throw new Error(`${contractId}: motion evidence must be absent`);
@@ -1184,6 +1364,7 @@ function assertExactJson(actual, expected, label) {
 export function assertTownCaptureMetadata({
   metadata,
   contractId = null,
+  captureContractSnapshot = null,
   expectedTown,
   expectedArmoury,
   profile,
@@ -1201,7 +1382,12 @@ export function assertTownCaptureMetadata({
     throw new Error('town capture contract id does not match the requested contract');
   }
   const resolvedContractId = contractId ?? metadataContractId;
-  const captureContract = resolvedContractId ? townCaptureContract(resolvedContractId) : null;
+  if (captureContractSnapshot !== null && captureContractSnapshot.id !== resolvedContractId) {
+    throw new Error('town capture contract snapshot id does not match the requested contract');
+  }
+  const captureContract =
+    captureContractSnapshot ??
+    (resolvedContractId ? townCaptureContract(resolvedContractId) : null);
   const expectedComparison = expectedTown
     ? (captureContract?.sourceComparison ?? 'feature-worktree')
     : 'pr-2356-head';
@@ -1257,6 +1443,7 @@ export function assertTownCaptureMetadata({
       targets: metadata.observed?.contractTargets,
       contractId: captureContract.id,
       requestedVisible: true,
+      captureContractSnapshot,
     });
     const contractAssetStates = metadata.observed?.contractAssetStates;
     if (
@@ -1276,12 +1463,17 @@ export function assertTownCaptureMetadata({
       assertTownMotionEvidence({
         evidence: metadata.motionEvidence,
         contractId: captureContract.id,
+        captureContractSnapshot,
       });
     } else if (metadata.motionEvidence !== null) {
       throw new Error('motion evidence was attached to a non-motion capture view');
     }
   }
-  const expectedInventory = expectedTownPlacementInventory(expectedTown, resolvedContractId);
+  const expectedInventory = expectedTownPlacementInventory(
+    expectedTown,
+    resolvedContractId,
+    captureContractSnapshot,
+  );
   assertExactJson(
     metadata.expected,
     {
@@ -1665,10 +1857,16 @@ export function assertTownPerformanceBlockState({
   rootVisible,
   shadowEnabled,
   contractId = null,
+  captureContractSnapshot = null,
 }) {
-  const expectedTriangles = contractId
-    ? townCaptureContract(contractId).townTriangles
-    : EASTBROOK_TOWN_HISTORICAL_TRIANGLES;
+  if (captureContractSnapshot !== null && captureContractSnapshot.id !== contractId) {
+    throw new Error('town performance contract snapshot id does not match the requested contract');
+  }
+  const expectedTriangles =
+    captureContractSnapshot?.townTriangles ??
+    (contractId
+      ? townCaptureContract(contractId).townTriangles
+      : EASTBROOK_TOWN_HISTORICAL_TRIANGLES);
   if (raw.targetName !== EASTBROOK_TOWN_ROOT_NAME) {
     throw new Error(
       `${label}: performance target must be ${EASTBROOK_TOWN_ROOT_NAME}, got ${raw.targetName}`,

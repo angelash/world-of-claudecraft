@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { effectiveSpellHit, spellResistChance } from '../src/sim/combat/spell_resist';
 import { aggregateSetBonuses } from '../src/sim/content/item_sets';
+import { FURY_STOCK } from '../src/sim/content/pvp_honor';
 import { ITEMS } from '../src/sim/data';
 import { itemLevel } from '../src/sim/item_level';
 import { Sim } from '../src/sim/sim';
@@ -76,17 +77,17 @@ describe('combat ratings', () => {
 
   it('hit rating reduces a player melee miss vs a higher-level (Heroic +3) mob', () => {
     const mob = ent({ kind: 'mob', hostile: true, level: 23 });
-    // The +3 above-level miss is capped at ~26%; 5% hit claws it to ~21%.
-    expect(meleeMissChance(20, 23)).toBeCloseTo(0.26);
-    expect(swingMissChance(ent({ hitBonus: 0.05 }), mob)).toBeCloseTo(0.21);
+    // The +3 above-level miss is capped at 19%; 5% hit claws it to 14%.
+    expect(meleeMissChance(20, 23)).toBeCloseTo(0.19);
+    expect(swingMissChance(ent({ hitBonus: 0.05 }), mob)).toBeCloseTo(0.14);
     // Enough hit floors the miss at 0 (hit-capped), never negative.
     expect(swingMissChance(ent({ hitBonus: 0.9 }), mob)).toBe(0);
   });
 
   it('hit rating reduces spell resist by the same amount', () => {
-    // The +3 above-level resist is capped at ~25%; 5% hit claws it to ~20%.
-    expect(spellResistChance(20, 23)).toBeCloseTo(0.25);
-    expect(spellResistChance(20, 23, 0.05)).toBeCloseTo(0.2);
+    // The +3 above-level resist is capped at 18%; 5% hit claws it to 13%.
+    expect(spellResistChance(20, 23)).toBeCloseTo(0.18);
+    expect(spellResistChance(20, 23, 0.05)).toBeCloseTo(0.13);
   });
 
   it('is a no-op with zero hit, preserving the ungeared draw (parity)', () => {
@@ -113,11 +114,25 @@ describe('combat ratings', () => {
     expect(swingMissChance(mob, player)).toBeLessThanOrEqual(0.2); // MOB_VS_PLAYER cap, unchanged
   });
 
-  it('the weak T2 bleed 4-set bonuses now also grant hit rating', () => {
-    const crownforged = aggregateSetBonuses(new Map([['crownforged', 4]]));
-    const nighttalon = aggregateSetBonuses(new Map([['nighttalon', 4]]));
-    expect(crownforged.hitRating).toBe(60);
-    expect(nighttalon.hitRating).toBe(60);
+  it('the lineage bleed capstones grant their halved Hit at 6 pieces, not 4', () => {
+    // The retune: Hit left the 4-piece tier entirely; the 6-piece capstone
+    // pays the halved 30 (3%), the only Hit the old stack still provides.
+    const crownforgedFour = aggregateSetBonuses(new Map([['crownforged', 4]]));
+    expect(crownforgedFour.hitRating).toBe(0);
+    const strengthSix = aggregateSetBonuses(
+      new Map([
+        ['deathlord', 2],
+        ['crownforged', 4],
+      ]),
+    );
+    expect(strengthSix.hitRating).toBe(30);
+    const agilitySix = aggregateSetBonuses(
+      new Map([
+        ['wyrmshadow', 2],
+        ['nighttalon', 4],
+      ]),
+    );
+    expect(agilitySix.hitRating).toBe(30);
   });
 
   it('the heroic marks jewelry carries one combat rating each', async () => {
@@ -132,14 +147,19 @@ describe('combat ratings', () => {
     }
   });
 
-  it('PvP honor jewelry keeps its warfare rating (its own differentiator, unchanged)', () => {
-    // The honor track's jewelry is differentiated by its PvP warfare rating, not a
-    // PvE combat rating; hit/crit/haste are deliberately NOT added there to avoid a
-    // same-level PvP balance change.
+  it('entry-tier PvP honor jewelry keeps its warfare rating (its own differentiator, unchanged)', () => {
+    // The entry tier's jewelry is differentiated by its PvP warfare rating, not a
+    // PvE combat rating; hit/crit/haste are deliberately NOT added there. The
+    // Warfare Season 2 jewelry is the honor jewelry that carries ratings (the PvP
+    // hit cap on its rings), pinned in tests/warfare_season2.test.ts.
+    const entryIds = new Set<string>(FURY_STOCK);
     const honorJewelry = Object.values(ITEMS).filter(
-      (i) => (i.slot === 'ring' || i.slot === 'neck') && (i.pvpOffenseRating ?? 0) > 0,
+      (i) =>
+        (i.slot === 'ring' || i.slot === 'neck') &&
+        (i.pvpOffenseRating ?? 0) > 0 &&
+        entryIds.has(i.id),
     );
-    expect(honorJewelry.length).toBeGreaterThan(0);
+    expect(honorJewelry).toHaveLength(9);
     for (const item of honorJewelry) {
       expect(item.hitRating ?? 0, item.id).toBe(0);
     }
@@ -157,7 +177,9 @@ describe('combat-rating tier ladder', () => {
   it('every ilvl-31 heroic boss-set piece carries exactly one rating', async () => {
     const { HEROIC_ITEMS } = await import('../src/sim/content/heroic_loot');
     const pieces = Object.values(HEROIC_ITEMS).filter((item) => itemLevel(item) === 31);
-    expect(pieces).toHaveLength(28);
+    // 28 pre-Wildheart pieces + the 6 Zulgar heroic drops (Tier-2 basin loot
+    // pass, incl. the crown/legguards replacing the retired-hole dup-paths).
+    expect(pieces).toHaveLength(34);
     for (const item of pieces) {
       expect(ratingCount(item), item.id).toBe(1);
       expect(ratingValues(item), item.id).toEqual([item.weapon ? 50 : 40]);
@@ -170,9 +192,40 @@ describe('combat-rating tier ladder', () => {
   it('enforces the complete 0 -> 1 -> 2 rating ladder by live item level', async () => {
     const { HEROIC_VENDOR_ITEMS } = await import('../src/sim/content/heroic_vendor');
     const vendorIds = new Set(Object.keys(HEROIC_VENDOR_ITEMS));
+    // The 2026-08-30 ilvl-honesty relabels: these items keep their SHIPPED
+    // identity (zero ratings included) while their item level moved to the
+    // level their lines actually occupy, so they sit outside the authored
+    // rating ladder. Membership is pinned: the carve-out must never grow.
+    const ILVL_HONESTY_RELABELED = new Set([
+      'boneglass_shiv',
+      'duskwhisper',
+      'marrowpoint',
+      'deathless_heartwood',
+      'heroic_deathless_heartwood',
+      'kingsbane_last_oath',
+      'heroic_kingsbane_last_oath',
+      'voidsong_dirk',
+      'heart_of_the_rift',
+      'varkhul_forgebreaker',
+      'varkhul_emberward',
+    ]);
+    // Trinkets (content/trinkets.ts) sit outside the ladder too: each carries
+    // exactly one attribute and no combat rating by owner decision, its use
+    // effect is its differentiator. Carved out by SLOT and pinned below: every
+    // trinket at every item level carries zero ratings.
+    const trinkets = Object.values(ITEMS).filter((item) => item.slot === 'trinket');
+    expect(trinkets.length).toBeGreaterThan(0);
+    for (const item of trinkets) expect(ratingCount(item), item.id).toBe(0);
     const allGear = Object.values(ITEMS).filter(
-      (item) => item.slot && itemLevel(item) !== undefined,
+      (item) =>
+        item.slot &&
+        item.slot !== 'trinket' &&
+        itemLevel(item) !== undefined &&
+        !ILVL_HONESTY_RELABELED.has(item.id),
     );
+    for (const id of ILVL_HONESTY_RELABELED) {
+      expect(ITEMS[id], `${id} still exists (carve-out is not stale)`).toBeDefined();
+    }
 
     const ilvl26 = allGear.filter((item) => itemLevel(item) === 26);
     for (const item of ilvl26) {
@@ -188,12 +241,57 @@ describe('combat-rating tier ladder', () => {
       expect(ratingCount(item), item.id).toBe(0);
     }
 
-    // The 8 Nythraxis set pieces plus the 4 offhand-slot / two-hander epics
-    // (bonewrought_greatsword/bulwark, direfang_greatblade, wraithfire_orb) and
-    // the feral ladder's raid capstone (maul_of_the_scourged_wilds).
+    // The 8 Nythraxis set pieces plus the 5 offhand-slot / two-hander epics
+    // (bonewrought_greatsword/bulwark, direfang_greatblade, wraithfire_orb, and
+    // the hunter's direfang_quiver), the feral ladder's raid capstone
+    // (maul_of_the_scourged_wilds), and the seven Roots' Bramblehide pieces
+    // (the feral druid's Strength leather family), and the seven Nythraxis
+    // gap-fill drops (three one-handers, the healer shield, the leather caster
+    // helm, the mail caster gloves and feet).
     const ilvl29 = allGear.filter((item) => itemLevel(item) === 29);
-    expect(ilvl29).toHaveLength(13);
+    expect(ilvl29).toHaveLength(28);
     for (const item of ilvl29) expect(ratingValues(item), item.id).toEqual([20]);
+
+    // ilvl-31: heroic five-man boss pieces (40 rating) + rift clear-time epics
+    // (armor pieces 40, ring 25) + the 32 epic-tier Buried Hoard pieces (20 rating).
+    // Every ilvl-31 PvE gear piece carries exactly one rating, and the WARFARE
+    // honor tier is the one deliberate hole in the ladder: it sits at ilvl 31
+    // carrying ZERO combat ratings. That is load-bearing rather than an oversight.
+    // It is what stops a complete honor kit from substituting for the heroic
+    // tier: same item level, a 10 percent primary-stat discount, no ratings at all,
+    // and set bonuses that contribute nothing outside PvP. Carved out by id rather
+    // than filtered by "has no rating", which would silently absorb any future
+    // PvE piece that lost its rating by accident.
+    const warfareIds = new Set<string>(FURY_STOCK);
+    const ilvl31 = allGear.filter((item) => itemLevel(item) === 31);
+    expect(ilvl31.length).toBeGreaterThan(0);
+    for (const item of ilvl31) {
+      const expected = warfareIds.has(item.id) ? 0 : 1;
+      expect(ratingCount(item), `${item.id} (ilvl 31) carries ${expected} rating(s)`).toBe(
+        expected,
+      );
+    }
+    // The replacement POSITIVE pin: the carve-out must stay a known, bounded set
+    // rather than growing quietly, and both arms must be non-vacuous.
+    const warfareAtIlvl31 = ilvl31.filter((item) => warfareIds.has(item.id));
+    expect(warfareAtIlvl31, 'the whole WARFARE catalog sits at ilvl 31').toHaveLength(47);
+    expect(
+      ilvl31.length - warfareAtIlvl31.length,
+      'ilvl-31 PvE epics still carry their ratings',
+    ).toBeGreaterThan(0);
+
+    // ilvl-33: the legendary-map tier of the Buried Hoard pieces (Sovereign) sits
+    // beside the heroic raid tier, keeping the ilvl-31 rating allowance (40 on
+    // armour, 25 on jewellery, 20 offhand) with exactly one rating: two on a
+    // piece stays the heroic raid tier's identity.
+    const hoardLegendary = allGear.filter(
+      (item) => itemLevel(item) === 33 && item.id.startsWith('legendary_'),
+    );
+    expect(hoardLegendary).toHaveLength(32);
+    for (const item of hoardLegendary) {
+      expect(ratingCount(item), `${item.id} (ilvl 33) carries one rating`).toBe(1);
+      expect(Math.max(...ratingValues(item)), item.id).toBeLessThanOrEqual(40);
+    }
 
     const directHeroicRaidWeapons = new Set([
       'scepter_of_the_deathless_court',
@@ -207,10 +305,14 @@ describe('combat-rating tier ladder', () => {
         (ilvl === 37 && item.heroicOf !== undefined)
       );
     });
-    // 13 pre-existing pieces plus the 5 generated heroic raid variants of the
-    // normal-raid epics (greatsword, greatblade, bulwark, orb, and the feral
-    // ladder capstone maul_of_the_scourged_wilds).
-    expect(heroicRaidGear).toHaveLength(18);
+    // 13 pre-existing pieces plus the 6 generated heroic raid variants of the
+    // normal-raid epics (greatsword, greatblade, bulwark, orb, the hunter's
+    // direfang_quiver, and the feral ladder capstone maul_of_the_scourged_wilds)
+    // plus the 7 generated variants of Roots' Bramblehide and the 7 of the
+    // Nythraxis gap-fill drops.
+    // Minus the two heroic legendaries, which live in the ilvl-honesty
+    // carve-out above with their shipped rating identity.
+    expect(heroicRaidGear).toHaveLength(31);
     for (const item of heroicRaidGear) {
       const ilvl = itemLevel(item);
       const expectedPrimary = ilvl === 37 ? 70 : item.weapon ? 65 : 55;
@@ -222,10 +324,21 @@ describe('combat-rating tier ladder', () => {
     }
   });
 
+  it('heart_of_the_rift (ilvl-35 legendary) carries zero ratings by design', () => {
+    // The rift legendary neck is class-neutral and carries no combat ratings:
+    // its differentiation is a large multi-stat primary-stat block, not ratings.
+    // This is intentional (pinned here so a future tuner does not silently add one).
+    const legendary = ITEMS.heart_of_the_rift;
+    expect(legendary, 'heart_of_the_rift must exist').toBeTruthy();
+    if (legendary) {
+      expect(ratingCount(legendary), 'rift legendary carries no ratings').toBe(0);
+    }
+  });
+
   it('a spell-facing raid legendary (Heartwood staff) takes throughput ratings, never Hit', () => {
     // A rating-less caster/healer base must not default to the game's largest Hit
     // allowance: heals are not resisted by level, matching the healer-facing rule.
-    const staff = ITEMS['heroic_deathless_heartwood'];
+    const staff = ITEMS.heroic_deathless_heartwood;
     expect(staff, 'heroic Heartwood variant should be generated').toBeTruthy();
     if (staff) {
       expect(staff.hitRating ?? 0).toBe(0);

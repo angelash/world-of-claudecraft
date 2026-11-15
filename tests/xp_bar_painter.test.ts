@@ -55,29 +55,49 @@ function paint(view: XpBarView): Call[] {
 }
 
 describe('XpBarPainter: routes every write through the elided writers', () => {
-  it('drives fill width, --xp-fill on BOTH bar and player frame, rested geometry, label, classes', () => {
-    const calls = paint({ fillFrac: 0.5, restedFrac: 0.1, label: 'XP 1 / 2', postCap: false });
+  it('drives fill width, --xp-fill on BOTH bar and player frame, rested geometry, label, percent, classes', () => {
+    const calls = paint({
+      fillFrac: 0.5,
+      restedFrac: 0.1,
+      label: 'XP 1 / 2',
+      percentText: '50%',
+      postCap: false,
+    });
     expect(calls).toEqual([
       { m: 'setWidth', args: [FILL, '50.0%'] },
       { m: 'setStyleProp', args: [BAR, '--xp-fill', '0.5000'] },
       { m: 'setStyleProp', args: [PF, '--xp-fill', '0.5000'] },
       { m: 'setStyleProp', args: [RESTED, 'left', '50.0%'] },
       { m: 'setStyleProp', args: [RESTED, 'width', '10.0%'] },
-      { m: 'setText', args: [LABEL, 'XP 1 / 2'] },
+      // The label carries the always-visible percent INSIDE the rail; the hover
+      // form (current / total) rides data-total, which the ::after content reads.
+      { m: 'setText', args: [LABEL, '50%'] },
+      { m: 'setAttr', args: [LABEL, 'data-total', 'XP 1 / 2'] },
+      { m: 'setAttr', args: [BAR, 'data-percent', '50%'] },
+      { m: 'setAttr', args: [PF, 'data-percent', '50%'] },
       { m: 'toggleClass', args: [BAR, 'overflow', false] },
       { m: 'toggleClass', args: [BAR, 'rested', true] },
     ]);
   });
 
   it('post-cap overflow with no rested: overflow class on, rested class off, width 0.0%', () => {
-    const calls = paint({ fillFrac: 1, restedFrac: 0, label: 'Lv 20 (+7)', postCap: true });
+    const calls = paint({
+      fillFrac: 1,
+      restedFrac: 0,
+      label: 'Lv 20 (+7)',
+      percentText: '100%',
+      postCap: true,
+    });
     expect(calls).toEqual([
       { m: 'setWidth', args: [FILL, '100.0%'] },
       { m: 'setStyleProp', args: [BAR, '--xp-fill', '1.0000'] },
       { m: 'setStyleProp', args: [PF, '--xp-fill', '1.0000'] },
       { m: 'setStyleProp', args: [RESTED, 'left', '100.0%'] },
       { m: 'setStyleProp', args: [RESTED, 'width', '0.0%'] },
-      { m: 'setText', args: [LABEL, 'Lv 20 (+7)'] },
+      { m: 'setText', args: [LABEL, '100%'] },
+      { m: 'setAttr', args: [LABEL, 'data-total', 'Lv 20 (+7)'] },
+      { m: 'setAttr', args: [BAR, 'data-percent', '100%'] },
+      { m: 'setAttr', args: [PF, 'data-percent', '100%'] },
       { m: 'toggleClass', args: [BAR, 'overflow', true] },
       { m: 'toggleClass', args: [BAR, 'rested', false] },
     ]);
@@ -87,6 +107,13 @@ describe('XpBarPainter: routes every write through the elided writers', () => {
 describe('XpBarPainter: no raw DOM writes, no magic values (decisions 5a / 12)', () => {
   const src = readFileSync(new URL('../src/ui/xp_bar_painter.ts', import.meta.url), 'utf8');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  it('keeps the numeric mobile fraction on the root and scopes rail paint to the fill', () => {
+    const css = readFileSync(new URL('../src/styles/hud.css', import.meta.url), 'utf8');
+    // The library rail and mobile ring both name --xp-fill but require different value types.
+    expect(css).toMatch(/#xpbar \.fill \{[\s\S]*?--xp-fill: var\(--xp-rail-fill\);/);
+    expect(css).toMatch(/#xpbar\.overflow \.fill \{\s*--xp-fill: var\(--xp-overflow-fill\);/);
+  });
 
   it('makes no raw style / textContent / classList / setAttribute / setProperty write', () => {
     expect(code).not.toMatch(/\.style\b/);

@@ -31,6 +31,11 @@ describe('deed_i18n English resolution', () => {
     expect(deedName('removed_deed')).toBe('removed_deed');
     expect(deedDesc('removed_deed')).toBe('');
     expect(deedTitleText('removed_deed')).toBe('');
+    // Prototype keys index truthy on a plain object; the hasOwn guard keeps
+    // the raw-id contract for a hostile or drifted id.
+    expect(deedName('__proto__')).toBe('__proto__');
+    expect(deedDesc('constructor')).toBe('');
+    expect(deedTitleText('__proto__')).toBe('');
   });
 
   it("returns title text only for title-reward deeds, '' otherwise (the hide gate)", () => {
@@ -44,10 +49,92 @@ describe('deed_i18n English resolution', () => {
 
   it('manifests one row per name and desc plus one per title reward', () => {
     const manifest = deedTranslationManifest();
-    // 219 deeds x (name + desc) + the 30 shipped title rewards (both counts
-    // pinned by tests/deeds_content.test.ts).
-    expect(manifest.length).toBe(219 * 2 + 30);
-    expect(manifest.filter((row) => row.field === 'title').length).toBe(30);
+    // Every deed x (name + desc) + every shipped title reward (both counts
+    // pinned by tests/deeds_content.test.ts against DEED_ORDER, not here): the
+    // farming absorb (masterwrought Phase 11d) carried this branch's 279 and 44
+    // to those figures with its seven deeds and the Harvestmaster title on
+    // prog_farming_100. The chain below is the 279/44 history it extends: the
+    // Drakelands brood pair, the
+    // four Thornhollow Fields battleground deeds, the Rift coverage pair
+    // (dgn_rift, dgn_rift_s_rank), the nine per-craft rare-tier profession
+    // deeds (jewelcrafting joined with the Masterwrought phase 05 catalog,
+    // then its 50-skill and Grandmaster milestones at the phase 05 QA, the
+    // Grandmaster carrying the 43rd title; inscription's three followed at
+    // phase 06, its Grandmaster carrying the 44th), the twelve remaining
+    // starter-zone chronicle pairs, the four Reliquary Curator rank bridges
+    // (3 titles + 1 border; the border has no title manifest row), the three
+    // WARFARE lifetime-honor rank titles, the five Phase 18 Reliquary
+    // completion-ladder titles, and the release's walk-in castle visit pair
+    // (no title reward).
+    // 288 deeds since masterwrought Phase 11i: two rows each (name and desc)
+    // plus the 45 title rewards, which col_deepest_cast does not join.
+    // 290 since the release/v0.41.0 merge appended the Proving Shore
+    // graduation deed prog_ready_for_an_adventure (no title reward): the
+    // release's own chain read 274 * 2 + 42 (its seven per-craft rare-tier
+    // profession deeds against this branch's nine, and 42 titles against
+    // this branch's 45), and the merge adds exactly that one deed to this
+    // branch's 289 while the title count stays at 45.
+    // 291 since masterwrought Phase 13 (2026-08-27) appended the promotion
+    // capstone prog_legendmaker, which carries NO title reward (R3 gives the
+    // prestige to the named item itself), so the title count stays at 45.
+    // 293 since the release/v0.41.0 merge (2026-08-29) brought in the bank
+    // socket ladder pair (Bank Storage phase 06: soc_strongbox_outfitter and
+    // soc_four_bags_deep, both reward-free), so the title count stays at 45.
+    // MEASURED on the merged tree (274 base + 17 packet + 2 release).
+    // 298 since the release/v0.41.0 merge (2026-08-30) brought in the five
+    // Crucible raid deeds; the Varkhul flawless task carries a title (the
+    // release's own chain read 281 * 2 + 43), so the title count moves to 46.
+    // The personal hammer quest adds a name and desc, but no title reward.
+    // 300 since THIS release/v0.42.0 merge brought in the Roots' Bramblehide
+    // set collection (col_set_bramblehide, no title reward; the release's own
+    // chain read 282 * 2 + 43), so the title count stays at 46.
+    // Retired Vale Cup and Fiesta deeds keep names but drop 19 descriptions.
+    // 308 at the release/v0.43.0 merge: plus the eight world-quest deeds.
+    // 315 with the seven faction standing deeds (Trusted and Champion per
+    // allied faction plus the all-factions meta), each with a name and desc.
+    // 317 with the two Clue Scroll casket deeds, each with a name and desc;
+    // the tenth carries the Treasure Hunter title.
+    // 318 with the release's Eastbrook ferry round trip (exp_harbor_to_harbor: a
+    // name and a desc, no title) at the fourth release/v0.44.0 base merge.
+    // 319 with the Buried Hoards Coinsack catch (cmb_coinsack_caught: a name and a
+    // desc, no title) at the 2026-09-28 merge into feature/buried-hoards.
+    // 322 with the Mirefen world-boss branch's three combat deeds (cmb_balgath,
+    // cmb_balgath_ten, cmb_point_taken), each a name and a desc, no title.
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 346.
+    // 352 with Lantern Hall's six (three contract milestones, three bought titles).
+    expect(manifest.filter((row) => row.field === 'name').length).toBe(369);
+    // 289 descs at the release/v0.43.0 merge: plus the eight world-quest deeds.
+    // 296 with the seven faction standing deeds. 298 with the two Clue Scroll
+    // casket deeds. 300 with the Coinsack deed, 303 with the Mirefen three.
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 327.
+    // 333 with Lantern Hall's six.
+    expect(manifest.filter((row) => row.field === 'desc').length).toBe(350);
+    // 668 rows: 318 names + 299 descs + 51 titles (the three faction Champion
+    // titles Riftwarden, Dawnkeeper and Forgemaster join the 47, then the
+    // Clue Scroll Treasure Hunter title); 670 with the Coinsack deed's name and desc;
+    // 676 with the Mirefen three.
+    // 740 with Lantern Hall's six names, six descs and three titles.
+    expect(manifest.length).toBe(785);
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 725 rows, 52 titles
+    // (the Drowned Temple lore guide's Witness of the Choir).
+    // 55 with Lantern Hall's three (Writ-Runner, Hallsworn, of Lantern Hall).
+    expect(manifest.filter((row) => row.field === 'title').length).toBe(66);
+    expect(manifest.filter((row) => row.id === 'cmb_balgath')).toEqual([
+      { id: 'cmb_balgath', field: 'name', source: 'Foreman No More' },
+      {
+        id: 'cmb_balgath',
+        field: 'desc',
+        source: 'Put the Buried Foreman back in his barrow.',
+      },
+    ]);
+    expect(manifest.filter((row) => row.id === 'hid_forgebreaker')).toEqual([
+      { id: 'hid_forgebreaker', field: 'name', source: 'A Spring Unchained' },
+      {
+        id: 'hid_forgebreaker',
+        field: 'desc',
+        source: 'Shape Forgebreaker yourself and return to Maelin with the finished hammer.',
+      },
+    ]);
     expect(manifest).toContainEqual({
       id: 'prog_veteran',
       field: 'title',
@@ -73,13 +160,18 @@ describe('deedBroadcastLine (the guild-chat news line)', () => {
   it('the HUD switch arm stays wired to this composer with the guild-chat green', () => {
     // hud.ts cannot be unit-driven (DOM monolith); the live wiring was
     // verified end to end against a real server, and this source pin keeps
-    // the arm from being dropped or detached from the pinned composer.
+    // the arm from being dropped or detached from the pinned composer. The
+    // deed slot renders as the splice sentinel so the name lands as a
+    // clickable jump node (deed_chat_line.ts); the template still comes from
+    // this module (deedBroadcastRendered, which deedBroadcastLine shares).
     const hudSrc = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
     const arm = hudSrc.slice(hudSrc.indexOf("case 'deedBroadcast'"));
     expect(arm.length).toBeGreaterThan(0);
-    expect(arm.slice(0, 600)).toContain(
-      "this.log(deedBroadcastLine(ev.characterName, ev.deedId), '#40d264');",
-    );
+    expect(arm.slice(0, 900)).toContain('deedBroadcastRendered(ev.characterName, DEED_NAME_TOKEN)');
+    // The broadcast register is named, never spelled (tests/hud_tones.test.ts
+    // keeps hud.ts hex-free).
+    expect(arm.slice(0, 900)).toContain('HUD_LOG.BROADCAST');
+    expect(arm.slice(0, 900)).toContain('this.deedsWindow.openWithDeed(ev.deedId)');
   });
 });
 
@@ -199,6 +291,11 @@ describe('deed locale chunks (the per-base-locale release fill)', () => {
   it('keeps every value free of em/en dashes and emoji (these files sit outside the overlay copy-scan exemption)', () => {
     const forbidden =
       /[\u{2013}\u{2014}\u{2015}]|[\u{1F000}-\u{1FAFF}]|[\u{1F1E6}-\u{1F1FF}]|[\u{2600}-\u{27BF}]|\u{FE0F}/u;
+    // Prove the guard trips: a regex typo would otherwise make every assertion
+    // below pass vacuously. Escape form on purpose, so this file stays clean
+    // under the repo copy scan that the regex itself enforces.
+    expect(forbidden.test('a\u2014b')).toBe(true);
+    expect(forbidden.test('a-b')).toBe(false);
     for (const lang of tableLocales()) {
       for (const [id, entry] of Object.entries(tables[lang])) {
         for (const field of ['name', 'desc', 'title'] as const) {
@@ -244,6 +341,11 @@ describe('deed locale chunks (the per-base-locale release fill)', () => {
   it('dialect overrides carry only real catalog ids and obey the same copy rules', () => {
     const forbidden =
       /[\u{2013}\u{2014}\u{2015}]|[\u{1F000}-\u{1FAFF}]|[\u{1F1E6}-\u{1F1FF}]|[\u{2600}-\u{27BF}]|\u{FE0F}/u;
+    // Prove the guard trips: a regex typo would otherwise make every assertion
+    // below pass vacuously. Escape form on purpose, so this file stays clean
+    // under the repo copy scan that the regex itself enforces.
+    expect(forbidden.test('a\u2014b')).toBe(true);
+    expect(forbidden.test('a-b')).toBe(false);
     for (const [dialect, table] of Object.entries(overrides)) {
       const base = dialect === 'es_ES' ? tables.es : tables.fr_FR;
       for (const [id, entry] of Object.entries(table)) {

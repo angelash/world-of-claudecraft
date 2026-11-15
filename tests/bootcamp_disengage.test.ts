@@ -1,0 +1,605 @@
+// @vitest-environment happy-dom
+// Graduation teardown: the coach borrows the shared #ui root (the whole HUD)
+// and must never remove it. The v0.40 ferry-crossing freeze was exactly this:
+// disengage() called root.remove() after the coach refactor re-pointed root
+// from its own card to #ui, so riding the ferry off the island deleted the
+// entire HUD subtree and every later Hud.update() threw on a null lookup.
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// The reroute test exercises Bootcamp's Talking Head wiring, not the 3D
+// portrait pipeline. Importing the real portrait renderer starts GLB fetches
+// that can outlive happy-dom teardown and surface Three FileLoader
+// ProgressEvent rejections after otherwise green assertions.
+vi.mock('../src/render/characters/portrait', () => ({
+  modularPortraitDataUrl: vi.fn(() => null),
+  onPortraitsReady: vi.fn(),
+  onPortraitUpdate: vi.fn(),
+  playerPortraitDataUrl: vi.fn(() => null),
+  portraitsReady: vi.fn(() => false),
+  visualPortraitDataUrl: vi.fn(() => null),
+}));
+
+import type { CrossHotbarAction } from '../src/game/cross_hotbar';
+import { GAMEPAD_CONFIRM, GAMEPAD_CYCLE_HUD, GAMEPAD_NONE, GP } from '../src/game/gamepad_map';
+import { Keybinds } from '../src/game/keybinds';
+import type { Renderer } from '../src/render/renderer';
+import { PROVING_SHORE_NPCS } from '../src/sim/content/proving_shore';
+import { CRAB_SUMMON_SITE, LURE_ITEM_ID } from '../src/sim/interactions/crab_summon';
+import { Sim } from '../src/sim/sim';
+import { BootcampOverlay } from '../src/ui/bootcamp';
+
+describe('BootcampOverlay.disengage', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="ui"><div id="petbar"></div></div>';
+  });
+
+  it('removes only its own nodes, never the shared #ui root', () => {
+    const coach = new BootcampOverlay();
+    (coach as unknown as { ensureDom(): void }).ensureDom();
+    const ownNodes = document.querySelectorAll('#ui .tut-prompt, #ui .tut-glow').length;
+    expect(ownNodes, 'the coach minted its own nodes into #ui').toBeGreaterThan(0);
+
+    (coach as unknown as { disengage(): void }).disengage();
+
+    expect(document.getElementById('ui'), '#ui survives graduation').not.toBeNull();
+    expect(document.getElementById('petbar'), 'HUD siblings survive graduation').not.toBeNull();
+    expect(
+      document.querySelectorAll('#ui .tut-prompt, #ui .tut-glow, #talking-head:not([hidden])')
+        .length,
+      'the coach cleans up every node it minted',
+    ).toBe(0);
+  });
+
+  it('mints the coach DOM from a MID-LESSON resume, not only from the arrival caption', () => {
+    // The keepsake-ring round regression: a session resuming with the rail
+    // station already active never fires the one-shot arrival caption, and
+    // captions had become the only ensureDom() caller, so every instruction
+    // bubble no-oped for the whole session. Engagement itself must mint.
+    const coach = new BootcampOverlay();
+    const world = {
+      playerId: 1,
+      player: { id: 1, pos: { x: -300, y: 0, z: 50 }, dead: false, hp: 100 },
+      cfg: { playerClass: 'warrior' },
+      questLog: new Map([['q_ps_strike_true', { state: 'active' }]]),
+      questState: () => null,
+      entities: new Map(),
+    } as never;
+    const renderer = {
+      camYaw: 0,
+      worldToScreen: () => ({ x: Number.NaN, y: Number.NaN }),
+    } as never;
+    const keybinds = { capFor: () => 'F', movementCaps: () => ({}) } as never;
+
+    coach.update(world, renderer, keybinds);
+
+    expect(
+      document.querySelectorAll('#ui .tut-prompt').length,
+      'engagement minted the instruction bubble without any caption firing',
+    ).toBe(1);
+  });
+
+  it('re-engages cleanly after a teardown (the return ferry)', () => {
+    const coach = new BootcampOverlay();
+    const priv = coach as unknown as { ensureDom(): void; disengage(): void };
+    priv.ensureDom();
+    priv.disengage();
+    priv.ensureDom();
+    expect(document.querySelectorAll('#ui .tut-prompt').length, 'one prompt, not zero or two').toBe(
+      1,
+    );
+  });
+});
+
+describe('BootcampOverlay controller prompt wiring', () => {
+  const visibleRect = (): DOMRect => new DOMRect(0, 0, 100, 100);
+  const markVisible = (id: string): void => {
+    const element = document.getElementById(id);
+    if (element) element.getBoundingClientRect = visibleRect;
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="ui"></div>';
+    document.body.className = 'pad-active';
+  });
+
+  function paintControllerPrompt(
+    sim: Sim,
+    focus: { questId: string; state: 'available' | 'active' | 'ready' },
+    entries: { button: number; action: string }[],
+    crossHotbarEnabled = false,
+    options: {
+      crossHotbarSets?: CrossHotbarAction[][];
+      crossHotbarSet?: number;
+      taughtAbilityId?: string | null;
+      casterClass?: boolean;
+      ringPhase?: 'equip' | 'admire' | null;
+    } = {},
+  ): void {
+    const coach = new BootcampOverlay();
+    const internals = coach as unknown as {
+      ensureDom(): void;
+      updatePrompt(
+        world: Sim,
+        renderer: Renderer,
+        keybinds: Keybinds,
+        gamepadBindings: {
+          entries(): { button: number; action: string }[];
+          kind(): 'xbox';
+          crossHotbarEnabled(): boolean;
+          crossHotbarSets(): CrossHotbarAction[][];
+          crossHotbarSet(): number;
+        },
+      ): void;
+      lastFocus: { questId: string; state: 'available' | 'active' | 'ready' };
+      step: null;
+      bellPhase: boolean;
+      casterClass: boolean;
+      taughtAbilityId: string | null;
+      deathPhase: 'alive';
+      ringPhase: 'equip' | 'admire' | null;
+    };
+    internals.ensureDom();
+    internals.lastFocus = focus;
+    internals.step = null;
+    internals.bellPhase = false;
+    internals.casterClass = options.casterClass ?? false;
+    internals.taughtAbilityId = options.taughtAbilityId ?? null;
+    internals.deathPhase = 'alive';
+    internals.ringPhase = options.ringPhase ?? null;
+
+    internals.updatePrompt(
+      sim,
+      {
+        worldToScreen: () => ({ x: 320, y: 180, behind: false }),
+      } as unknown as Renderer,
+      new Keybinds(),
+      {
+        entries: () => entries,
+        kind: () => 'xbox',
+        crossHotbarEnabled: () => crossHotbarEnabled,
+        crossHotbarSets: () => options.crossHotbarSets ?? [],
+        crossHotbarSet: () => options.crossHotbarSet ?? 0,
+      },
+    );
+  }
+
+  function setBagControllerUiState(
+    state:
+      | 'navigateToBlockingWindowClose'
+      | 'closeBlockingWindow'
+      | 'navigateToBags'
+      | 'openBags'
+      | 'navigateToItem'
+      | 'useItem',
+    itemId = LURE_ITEM_ID,
+  ): void {
+    const ui = document.getElementById('ui');
+    if (!ui) return;
+    if (state === 'navigateToBlockingWindowClose' || state === 'closeBlockingWindow') {
+      const closeAttribute = state === 'closeBlockingWindow' ? ' data-close' : '';
+      ui.insertAdjacentHTML(
+        'beforeend',
+        `<section id="bags" class="window panel" style="display:flex"><button class="bag-item" data-coach-item="${itemId}">Item</button></section><section id="vendor-window" class="window panel" style="display:block"><button class="pad-focus" aria-label="Close vendor"${closeAttribute}>Vendor control</button></section>`,
+      );
+      markVisible('bags');
+      markVisible('vendor-window');
+    } else if (state === 'navigateToBags') {
+      ui.insertAdjacentHTML('beforeend', '<button class="pad-focus">Character</button>');
+    } else if (state === 'openBags') {
+      ui.insertAdjacentHTML('beforeend', '<button id="mm-bag" class="pad-focus">Bags</button>');
+    } else {
+      const coachItem = state === 'useItem' ? itemId : 'another_item';
+      ui.insertAdjacentHTML(
+        'beforeend',
+        `<section id="bags" style="display:flex"><button class="bag-item pad-focus" data-coach-item="${coachItem}">Item</button></section>`,
+      );
+    }
+    document.querySelector<HTMLElement>('.pad-focus')?.focus();
+  }
+
+  it('paints the live detected-pad interact glyph over the quest giver', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    const tam = PROVING_SHORE_NPCS.warden_tam;
+    sim.player.pos.x = tam.pos.x;
+    sim.player.pos.z = tam.pos.z;
+
+    paintControllerPrompt(sim, { questId: 'q_ps_the_gauntlet', state: 'available' }, [
+      { button: GP.A, action: GAMEPAD_CONFIRM },
+    ]);
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe('A');
+    expect(document.querySelector<HTMLElement>('.tut-prompt')?.style.display).toBe('flex');
+  });
+
+  it.each([
+    [false, 'D-pad', 'Move to Close character'],
+    [true, 'A', 'Close character'],
+  ] as const)(
+    'recovers when an accidental HUD window blocks Bags (close focused: %s)',
+    (closeFocused, cap, verb) => {
+      const ui = document.getElementById('ui');
+      ui?.insertAdjacentHTML(
+        'beforeend',
+        `<section id="char-window" class="window panel" style="display:block"><button class="pad-focus"${closeFocused ? ' data-close' : ''}>Character control</button><button data-close aria-label="Close character">Close</button></section>`,
+      );
+      markVisible('char-window');
+      const focused = document.querySelector<HTMLElement>('.pad-focus');
+      if (closeFocused) focused?.setAttribute('aria-label', 'Close character');
+      focused?.focus();
+
+      const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+      sim.player.pos.x = CRAB_SUMMON_SITE.x;
+      sim.player.pos.z = CRAB_SUMMON_SITE.z;
+      paintControllerPrompt(sim, { questId: 'q_ps_mother_of_pearl', state: 'active' }, [
+        { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+        { button: GP.A, action: GAMEPAD_CONFIRM },
+      ]);
+
+      expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe(cap);
+      expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(verb);
+    },
+  );
+
+  it('paints the bare d-pad target control over an unselected training effigy', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    const effigy = [...sim.entities.values()].find(
+      (entity) => entity.kind === 'mob' && entity.templateId === 'training_effigy',
+    );
+    expect(effigy).toBeDefined();
+    if (!effigy) return;
+    sim.player.pos.x = effigy.pos.x;
+    sim.player.pos.z = effigy.pos.z;
+    sim.player.targetId = null;
+
+    paintControllerPrompt(sim, { questId: 'q_ps_strike_true', state: 'active' }, [
+      { button: GP.DPAD_RIGHT, action: GAMEPAD_NONE },
+    ]);
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe('D-pad →');
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe('Select');
+  });
+
+  it('paints a swallowed d-pad slot as targeting while the cross hotbar is enabled', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    const effigy = [...sim.entities.values()].find(
+      (entity) => entity.kind === 'mob' && entity.templateId === 'training_effigy',
+    );
+    expect(effigy).toBeDefined();
+    if (!effigy) return;
+    sim.player.pos.x = effigy.pos.x;
+    sim.player.pos.z = effigy.pos.z;
+    sim.player.targetId = null;
+
+    paintControllerPrompt(
+      sim,
+      { questId: 'q_ps_strike_true', state: 'active' },
+      [
+        { button: GP.DPAD_RIGHT, action: 'slot0' },
+        { button: GP.DPAD_LEFT, action: 'slot1' },
+      ],
+      true,
+    );
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe('D-pad →');
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe('Select');
+  });
+
+  it('names the live Attack chord after the training effigy is selected', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    const effigy = [...sim.entities.values()].find(
+      (entity) => entity.kind === 'mob' && entity.templateId === 'training_effigy',
+    );
+    expect(effigy).toBeDefined();
+    if (!effigy) return;
+    sim.player.pos.x = effigy.pos.x;
+    sim.player.pos.z = effigy.pos.z;
+    sim.player.targetId = effigy.id;
+    const primary = Array.from({ length: 16 }, () => null as CrossHotbarAction);
+    primary[2] = { type: 'ability', id: 'attack' };
+
+    paintControllerPrompt(
+      sim,
+      { questId: 'q_ps_strike_true', state: 'active' },
+      [{ button: GP.RB, action: 'cycleHotbarSet' }],
+      true,
+      { crossHotbarSets: [primary] },
+    );
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe('LT + D-pad →');
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe('Attack');
+  });
+
+  it('names the live taught-ability chord in the second effigy drill', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    const effigy = [...sim.entities.values()].find(
+      (entity) => entity.kind === 'mob' && entity.templateId === 'training_effigy',
+    );
+    expect(effigy).toBeDefined();
+    if (!effigy) return;
+    sim.player.pos.x = effigy.pos.x;
+    sim.player.pos.z = effigy.pos.z;
+    sim.player.targetId = effigy.id;
+    const primary = Array.from({ length: 16 }, () => null as CrossHotbarAction);
+    primary[3] = { type: 'ability', id: 'heroic_strike' };
+
+    paintControllerPrompt(sim, { questId: 'q_ps_hone_the_edge', state: 'active' }, [], true, {
+      crossHotbarSets: [primary],
+      taughtAbilityId: 'heroic_strike',
+    });
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe('LT + D-pad ↓');
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe('Use ability');
+  });
+
+  it('keeps the turn-in prompt on Drillmaster Rook when Strike True is ready', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    const rook = PROVING_SHORE_NPCS.drillmaster_rook;
+    sim.player.pos.x = rook.pos.x;
+    sim.player.pos.z = rook.pos.z;
+
+    paintControllerPrompt(sim, { questId: 'q_ps_strike_true', state: 'ready' }, [
+      { button: GP.A, action: GAMEPAD_CONFIRM },
+    ]);
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe('A');
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Turn in quest',
+    );
+  });
+
+  it('derives the ready Rook prompt from the live quest rail', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    sim.questsDone.add('q_ps_the_gauntlet');
+    sim.questLog.set('q_ps_strike_true', {
+      questId: 'q_ps_strike_true',
+      state: 'ready',
+      counts: [1],
+    });
+    const rook = PROVING_SHORE_NPCS.drillmaster_rook;
+    sim.player.pos.x = rook.pos.x;
+    sim.player.pos.z = rook.pos.z;
+    const coach = new BootcampOverlay();
+
+    coach.update(
+      sim,
+      {
+        camYaw: 0,
+        worldToScreen: () => ({ x: 320, y: 180, behind: false }),
+      } as unknown as Renderer,
+      new Keybinds(),
+      {
+        entries: () => [{ button: GP.A, action: GAMEPAD_CONFIRM }],
+        kind: () => 'xbox',
+      },
+    );
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe('A');
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Turn in quest',
+    );
+  });
+
+  it('guides the Mister Crabs summon through HUD navigation, never the system button', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    sim.player.pos.x = CRAB_SUMMON_SITE.x;
+    sim.player.pos.z = CRAB_SUMMON_SITE.z;
+
+    paintControllerPrompt(sim, { questId: 'q_ps_mother_of_pearl', state: 'active' }, [
+      { button: GP.BACK, action: 'bags' },
+      { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+      { button: GP.A, action: GAMEPAD_CONFIRM },
+    ]);
+
+    expect(
+      [...document.querySelectorAll('.tut-prompt .tut-keycap')].map((el) => el.textContent),
+    ).toEqual(['R3']);
+    expect(document.querySelector('.tut-prompt')?.textContent).not.toContain('View');
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Access interface',
+    );
+  });
+
+  it.each([
+    ['navigateToBags', 'D-pad', 'Move to Bags'],
+    ['openBags', 'A', 'Open your bags'],
+    ['navigateToItem', 'D-pad', 'Select Briny Lure'],
+    ['useItem', 'A', 'Summon'],
+  ] as const)('advances the Mister Crabs prompt at %s', (state, expected, verb) => {
+    setBagControllerUiState(state);
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    sim.player.pos.x = CRAB_SUMMON_SITE.x;
+    sim.player.pos.z = CRAB_SUMMON_SITE.z;
+
+    paintControllerPrompt(sim, { questId: 'q_ps_mother_of_pearl', state: 'active' }, [
+      { button: GP.BACK, action: 'bags' },
+      { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+      { button: GP.A, action: GAMEPAD_CONFIRM },
+    ]);
+
+    expect(
+      [...document.querySelectorAll('.tut-prompt .tut-keycap')].map((el) => el.textContent),
+    ).toEqual([expected]);
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(verb);
+  });
+
+  it('uses the HUD-navigation route for centered ring lessons', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+
+    paintControllerPrompt(
+      sim,
+      { questId: 'q_ps_mother_of_pearl', state: 'ready' },
+      [
+        { button: GP.BACK, action: 'bags' },
+        { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+        { button: GP.A, action: GAMEPAD_CONFIRM },
+      ],
+      false,
+      { ringPhase: 'equip' },
+    );
+
+    expect(
+      [...document.querySelectorAll('.tut-prompt .tut-keycap')].map((el) => el.textContent),
+    ).toEqual(['R3']);
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Access interface',
+    );
+  });
+
+  it('keeps the centered ring lesson on keyboard guidance outside controller mode', () => {
+    document.body.className = '';
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+
+    paintControllerPrompt(
+      sim,
+      { questId: 'q_ps_mother_of_pearl', state: 'ready' },
+      [
+        { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+        { button: GP.A, action: GAMEPAD_CONFIRM },
+      ],
+      false,
+      { ringPhase: 'equip' },
+    );
+
+    expect(
+      [...document.querySelectorAll('.tut-prompt .tut-keycap')].map((el) => el.textContent),
+    ).toEqual(['B']);
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Open your bags',
+    );
+  });
+
+  it('does not leak controller caps into the centered touch lesson', () => {
+    document.body.className = 'mobile-touch';
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+
+    paintControllerPrompt(
+      sim,
+      { questId: 'q_ps_mother_of_pearl', state: 'ready' },
+      [
+        { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+        { button: GP.A, action: GAMEPAD_CONFIRM },
+      ],
+      false,
+      { ringPhase: 'equip' },
+    );
+
+    expect(document.querySelectorAll('.tut-prompt .tut-keycap')).toHaveLength(0);
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Open your bags',
+    );
+  });
+
+  it('keeps the pouch lesson centered on bags until the pouch is equipped', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    sim.addItem('linen_pouch', 1);
+
+    paintControllerPrompt(sim, { questId: 'q_ps_pouch_and_purse', state: 'ready' }, [
+      { button: GP.BACK, action: 'bags' },
+      { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+      { button: GP.A, action: GAMEPAD_CONFIRM },
+    ]);
+
+    expect(
+      [...document.querySelectorAll('.tut-prompt .tut-keycap')].map((el) => el.textContent),
+    ).toEqual(['R3']);
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Access interface',
+    );
+    expect(document.querySelector('.tut-prompt')?.classList.contains('tut-prompt-center')).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    ['navigateToBlockingWindowClose', 'D-pad'],
+    ['closeBlockingWindow', 'A'],
+  ] as const)('closes the vendor before navigating to the purchased pouch at %s', (state, cap) => {
+    setBagControllerUiState(state, 'linen_pouch');
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+    sim.addItem('linen_pouch', 1);
+
+    paintControllerPrompt(sim, { questId: 'q_ps_pouch_and_purse', state: 'ready' }, [
+      { button: GP.BACK, action: 'bags' },
+      { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+      { button: GP.A, action: GAMEPAD_CONFIRM },
+    ]);
+
+    expect(document.querySelector('.tut-prompt .tut-keycap')?.textContent).toBe(cap);
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      state === 'navigateToBlockingWindowClose' ? 'Move to Close vendor' : 'Close vendor',
+    );
+  });
+
+  it('uses the HUD-navigation route for the Passing Stone lesson', () => {
+    const sim = new Sim({ seed: 4120, playerClass: 'warrior', autoEquip: true });
+
+    paintControllerPrompt(sim, { questId: 'q_ps_the_long_walk', state: 'active' }, [
+      { button: GP.BACK, action: 'bags' },
+      { button: GP.R3, action: GAMEPAD_CYCLE_HUD },
+      { button: GP.A, action: GAMEPAD_CONFIRM },
+    ]);
+
+    expect(
+      [...document.querySelectorAll('.tut-prompt .tut-keycap')].map((el) => el.textContent),
+    ).toEqual(['R3']);
+    expect(document.querySelector('.tut-prompt .tut-prompt-verb')?.textContent).toBe(
+      'Access interface',
+    );
+    expect(document.querySelector('.tut-prompt')?.textContent).not.toContain('View');
+  });
+});
+
+describe('BootcampOverlay: a bubble whose speaker walks off screen finishes on the panel', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="ui"><div id="petbar"></div></div>';
+  });
+
+  it('re-routes the live line to the Talking Head once Odo leaves view', () => {
+    // showCaption decided bubble or panel ONCE per line, so a line spoken while
+    // Odo was on screen stayed a bubble after he walked off, and the player
+    // never read the rest of it. The coach runs per frame, so the live line is
+    // re-evaluated there.
+    const coach = new BootcampOverlay();
+    const odo = {
+      id: 7,
+      kind: 'npc',
+      templateId: 'ferryman_odo',
+      name: 'Ferryman Odo',
+      pos: { x: -300, y: 0, z: 50 },
+    };
+    const world = {
+      playerId: 1,
+      player: { id: 1, pos: { x: -300, y: 0, z: 50 }, dead: false, hp: 100 },
+      cfg: { playerClass: 'warrior', seed: 1 },
+      questLog: new Map([['q_ps_strike_true', { state: 'active' }]]),
+      questState: () => null,
+      entities: new Map([[odo.id, odo]]),
+    } as never;
+    const bubbles: string[] = [];
+    let onScreen = true;
+    const renderer = {
+      camYaw: 0,
+      worldToScreen: () =>
+        onScreen ? { x: 800, y: 450, behind: false } : { x: 0, y: 0, behind: true },
+      showChatBubble: (_id: number, text: string) => bubbles.push(text),
+    } as never;
+    const keybinds = { capFor: () => 'F', movementCaps: () => ({}) } as never;
+
+    coach.update(world, renderer, keybinds);
+    (coach as unknown as { showCaption(text: string): void }).showCaption('Mind the tide.');
+    expect(bubbles, 'a visible Odo speaks in a world bubble').toEqual(['Mind the tide.']);
+    expect(document.getElementById('talking-head')?.hidden).not.toBe(false);
+
+    // Still on screen: the line stays where it is, and nothing is duplicated.
+    coach.update(world, renderer, keybinds);
+    expect(document.getElementById('talking-head')?.hidden).not.toBe(false);
+
+    onScreen = false;
+    coach.update(world, renderer, keybinds);
+    const panel = document.getElementById('talking-head') as HTMLElement;
+    expect(panel.hidden, 'the rest of the line moved to the panel').toBe(false);
+    expect(panel.querySelector('.th-text')?.textContent).toBe('Mind the tide.');
+    expect(bubbles, 'and it was not spoken again as a bubble').toHaveLength(1);
+  });
+});

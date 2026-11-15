@@ -21,22 +21,25 @@ export function companionReactionEvents(context: AiJobContextV1): SimEvent[] {
   });
 }
 
-export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntityId: number, options: CompanionReactionOptions = {}): SimEvent[] {
+export function companionReactionEventsForScene(
+  scene: SceneFrameV1,
+  playerEntityId: number,
+  options: CompanionReactionOptions = {},
+): SimEvent[] {
   if (scene.companions.length === 0) return [];
-  const sceneTags = [...new Set([
-    ...scene.locationTags,
-    ...scene.structureTags,
-    ...scene.environmentalTags,
-    ...directorSceneTags(options.directorProposals ?? []),
-  ])].slice(0, 8);
+  const sceneTags = [
+    ...new Set([
+      ...scene.locationTags,
+      ...scene.structureTags,
+      ...scene.environmentalTags,
+      ...directorSceneTags(options.directorProposals ?? []),
+    ]),
+  ].slice(0, 8);
   const out: SimEvent[] = [];
   for (const companion of scene.companions.slice(0, 2)) {
     const spec = reactionForCompanion(scene, companion.family, options.directorProposals ?? []);
     if (!spec) continue;
-    const companionSceneTags = [...new Set([
-      ...sceneTags,
-      ...(spec.reasonTags ?? []),
-    ])].slice(0, 8);
+    const companionSceneTags = [...new Set([...sceneTags, ...(spec.reasonTags ?? [])])].slice(0, 8);
     out.push({
       type: 'aiSpeech',
       speakerId: companion.entityId,
@@ -61,44 +64,100 @@ export function companionReactionEventsForScene(scene: SceneFrameV1, playerEntit
   return out;
 }
 
-function reactionForCompanion(scene: SceneFrameV1, family: string | null, directorProposals: readonly AiWorldDirectorProposal[]): CompanionReactionSpec | null {
-  if (family === 'demon' && (scene.locationTags.includes('safeTown') || scene.structureTags.includes('ruinedChapel') || scene.environmentalTags.includes('militaryOrder'))) {
+function reactionForCompanion(
+  scene: SceneFrameV1,
+  family: string | null,
+  directorProposals: readonly AiWorldDirectorProposal[],
+): CompanionReactionSpec | null {
+  if (
+    family === 'demon' &&
+    (scene.locationTags.includes('safeTown') ||
+      scene.structureTags.includes('ruinedChapel') ||
+      scene.environmentalTags.includes('militaryOrder'))
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfDemonDefiance', kind: 'avoid' };
   }
-  if (family === 'undead' && (scene.light.level === 'bright' || scene.environmentalTags.includes('sunlit') || scene.locationTags.includes('safeTown'))) {
+  if (
+    family === 'undead' &&
+    (scene.light.level === 'bright' ||
+      scene.environmentalTags.includes('sunlit') ||
+      scene.locationTags.includes('safeTown'))
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfUndeadDayHollow', kind: 'avoid' };
   }
-  if (family === 'beast' && sceneHasAny(scene, ['deathPressure', 'undeadMemory', 'graveSoil', 'oldBlood', 'hotIron', 'sparks'])) {
+  if (
+    family === 'beast' &&
+    sceneHasAny(scene, [
+      'deathPressure',
+      'undeadMemory',
+      'graveSoil',
+      'oldBlood',
+      'hotIron',
+      'sparks',
+    ])
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy', kind: 'avoid' };
   }
-  if ((family === 'mudfin' || family === 'murloc') && (scene.weather.kind === 'rain' || sceneHasAny(scene, ['shore', 'dock', 'openWater', 'fishSmell', 'wetWood', 'moonlitWater']))) {
+  if (
+    (family === 'mudfin' || family === 'murloc') &&
+    (scene.weather.kind === 'rain' ||
+      sceneHasAny(scene, ['shore', 'dock', 'openWater', 'fishSmell', 'wetWood', 'moonlitWater']))
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfMurlocWaterCall', kind: 'inspect' };
   }
-  if (family === 'spider' && (scene.weather.kind === 'fog' || sceneHasAny(scene, ['lowVisibility', 'marshFog', 'insectNoise', 'graveSoil']))) {
+  if (
+    family === 'spider' &&
+    (scene.weather.kind === 'fog' ||
+      sceneHasAny(scene, ['lowVisibility', 'marshFog', 'insectNoise', 'graveSoil']))
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfSpiderStillness', kind: 'inspect' };
   }
-  if (family === 'elemental' && (scene.weather.kind !== 'clear' || scene.light.tags.includes('starrySky') || sceneHasAny(scene, ['hotIron', 'sparks', 'coldWind', 'thinAir']))) {
+  if (
+    family === 'elemental' &&
+    (scene.weather.kind !== 'clear' ||
+      scene.light.tags.includes('starrySky') ||
+      sceneHasAny(scene, ['hotIron', 'sparks', 'coldWind', 'thinAir']))
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance', kind: 'inspect' };
   }
-  if (family === 'dragonkin' && (scene.light.tags.includes('starrySky') || sceneHasAny(scene, ['highView', 'oldStone', 'cryptGate', 'moonlitWater']))) {
+  if (
+    family === 'dragonkin' &&
+    (scene.light.tags.includes('starrySky') ||
+      sceneHasAny(scene, ['highView', 'oldStone', 'cryptGate', 'moonlitWater']))
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfDragonkinWatch', kind: 'inspect' };
   }
   const directorSpec = reactionForDirectorProposal(family, directorProposals);
   if (directorSpec) return directorSpec;
-  if ((family === 'humanoid' || family === 'burrower' || family === 'troll' || family === 'ogre') && scene.locationTags.includes('safeTown') && scene.time.phase === 'day') {
+  if (
+    (family === 'humanoid' || family === 'burrower' || family === 'troll' || family === 'ogre') &&
+    scene.locationTags.includes('safeTown') &&
+    scene.time.phase === 'day'
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfMortalSafeHaven', kind: 'inspect' };
   }
   const livingOrUnsure = family !== 'undead' && family !== 'demon';
-  if (livingOrUnsure && (scene.danger.undeadPressure >= 0.3 || scene.environmentalTags.includes('deathPressure') || scene.environmentalTags.includes('undeadMemory'))) {
+  if (
+    livingOrUnsure &&
+    (scene.danger.undeadPressure >= 0.3 ||
+      scene.environmentalTags.includes('deathPressure') ||
+      scene.environmentalTags.includes('undeadMemory'))
+  ) {
     return { lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear', kind: 'avoid' };
   }
-  if (scene.weather.kind === 'rain') return { lineId: 'hudChrome.aiSpeech.companionSelfRainTired', kind: 'avoid' };
-  if (scene.light.tags.includes('starrySky')) return { lineId: 'hudChrome.aiSpeech.companionSelfStarrySky', kind: 'inspect' };
-  if (scene.time.phase === 'night' && scene.danger.hostileDensity >= 0.25) return { lineId: 'hudChrome.aiSpeech.companionSelfNightNervous', kind: 'avoid' };
+  if (scene.weather.kind === 'rain')
+    return { lineId: 'hudChrome.aiSpeech.companionSelfRainTired', kind: 'avoid' };
+  if (scene.light.tags.includes('starrySky'))
+    return { lineId: 'hudChrome.aiSpeech.companionSelfStarrySky', kind: 'inspect' };
+  if (scene.time.phase === 'night' && scene.danger.hostileDensity >= 0.25)
+    return { lineId: 'hudChrome.aiSpeech.companionSelfNightNervous', kind: 'avoid' };
   return null;
 }
 
-function reactionForDirectorProposal(family: string | null, proposals: readonly AiWorldDirectorProposal[]): CompanionReactionSpec | null {
+function reactionForDirectorProposal(
+  family: string | null,
+  proposals: readonly AiWorldDirectorProposal[],
+): CompanionReactionSpec | null {
   const mobFamily = mobFamilyFromValue(family);
   if (mobFamily) {
     for (const proposal of proposals.slice(0, 3)) {
@@ -114,37 +173,59 @@ function reactionForDirectorProposal(family: string | null, proposals: readonly 
 
   for (const proposal of proposals.slice(0, 3)) {
     const tags = new Set(proposal.reasonTags);
-    if (proposal.intent === 'raiseCampCaution' || tags.has('mood:haunted') || tags.has('mood:dread')) {
-      if (family === 'undead') return { lineId: 'hudChrome.aiSpeech.companionSelfUndeadDayHollow', kind: 'inspect' };
-      if (family === 'demon') return { lineId: 'hudChrome.aiSpeech.companionSelfDemonDefiance', kind: 'inspect' };
-      if (family === 'elemental') return { lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance', kind: 'inspect' };
+    if (
+      proposal.intent === 'raiseCampCaution' ||
+      tags.has('mood:haunted') ||
+      tags.has('mood:dread')
+    ) {
+      if (family === 'undead')
+        return { lineId: 'hudChrome.aiSpeech.companionSelfUndeadDayHollow', kind: 'inspect' };
+      if (family === 'demon')
+        return { lineId: 'hudChrome.aiSpeech.companionSelfDemonDefiance', kind: 'inspect' };
+      if (family === 'elemental')
+        return { lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance', kind: 'inspect' };
       return { lineId: 'hudChrome.aiSpeech.companionSelfUndeadFear', kind: 'avoid' };
     }
     if (proposal.intent === 'echoTrace' && (tags.has('mood:hungry') || tags.has('trace:food'))) {
-      if (family === 'beast') return { lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy', kind: 'inspect' };
-      if (family === 'mudfin') return { lineId: 'hudChrome.aiSpeech.companionSelfMurlocWaterCall', kind: 'inspect' };
-      if (family === 'elemental') return { lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance', kind: 'inspect' };
+      if (family === 'beast')
+        return { lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy', kind: 'inspect' };
+      if (family === 'mudfin')
+        return { lineId: 'hudChrome.aiSpeech.companionSelfMurlocWaterCall', kind: 'inspect' };
+      if (family === 'elemental')
+        return { lineId: 'hudChrome.aiSpeech.companionSelfElementalResonance', kind: 'inspect' };
     }
-    if ((proposal.intent === 'nudgeNpcRumor' || proposal.intent === 'echoQuestRelief')
-      && (family === 'humanoid' || family === 'burrower' || family === 'troll' || family === 'ogre')) {
+    if (
+      (proposal.intent === 'nudgeNpcRumor' || proposal.intent === 'echoQuestRelief') &&
+      (family === 'humanoid' || family === 'burrower' || family === 'troll' || family === 'ogre')
+    ) {
       return { lineId: 'hudChrome.aiSpeech.companionSelfMortalSafeHaven', kind: 'inspect' };
     }
   }
   return null;
 }
 
-function companionLineIdForProjection(family: NonNullable<ReturnType<typeof mobFamilyFromValue>>, reaction: 'approach' | 'avoid' | 'inspect'): string {
-  if (reaction === 'avoid' && family !== 'undead' && family !== 'demon') return 'hudChrome.aiSpeech.companionSelfUndeadFear';
+function companionLineIdForProjection(
+  family: NonNullable<ReturnType<typeof mobFamilyFromValue>>,
+  reaction: 'approach' | 'avoid' | 'inspect',
+): string {
+  if (reaction === 'avoid' && family !== 'undead' && family !== 'demon')
+    return 'hudChrome.aiSpeech.companionSelfUndeadFear';
   switch (family) {
     case 'beast':
     case 'reptile':
       return 'hudChrome.aiSpeech.companionSelfBeastScentUneasy';
-    case 'mudfin': return 'hudChrome.aiSpeech.companionSelfMurlocWaterCall';
-    case 'spider': return 'hudChrome.aiSpeech.companionSelfSpiderStillness';
-    case 'undead': return 'hudChrome.aiSpeech.companionSelfUndeadDayHollow';
-    case 'elemental': return 'hudChrome.aiSpeech.companionSelfElementalResonance';
-    case 'dragonkin': return 'hudChrome.aiSpeech.companionSelfDragonkinWatch';
-    case 'demon': return 'hudChrome.aiSpeech.companionSelfDemonDefiance';
+    case 'mudfin':
+      return 'hudChrome.aiSpeech.companionSelfMurlocWaterCall';
+    case 'spider':
+      return 'hudChrome.aiSpeech.companionSelfSpiderStillness';
+    case 'undead':
+      return 'hudChrome.aiSpeech.companionSelfUndeadDayHollow';
+    case 'elemental':
+      return 'hudChrome.aiSpeech.companionSelfElementalResonance';
+    case 'dragonkin':
+      return 'hudChrome.aiSpeech.companionSelfDragonkinWatch';
+    case 'demon':
+      return 'hudChrome.aiSpeech.companionSelfDemonDefiance';
     case 'humanoid':
     case 'burrower':
     case 'troll':
@@ -161,7 +242,10 @@ function directorSceneTags(proposals: readonly AiWorldDirectorProposal[]): strin
   return tags;
 }
 
-function sceneHasAny(scene: NonNullable<AiJobContextV1['scene']>, tags: readonly string[]): boolean {
+function sceneHasAny(
+  scene: NonNullable<AiJobContextV1['scene']>,
+  tags: readonly string[],
+): boolean {
   const sceneTags = new Set([
     ...scene.biomeTags,
     ...scene.locationTags,

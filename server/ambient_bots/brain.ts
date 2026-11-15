@@ -367,7 +367,7 @@ interface CombatAbility {
   minRange: number;
   castTime: number;
   cost: number;
-  requiresForm?: 'bear' | 'cat';
+  requiresForm?: 'bear' | 'cat' | readonly ('bear' | 'cat')[];
 }
 
 export function createAmbientPlayerBotBrainState(): AmbientPlayerBotBrainState {
@@ -974,7 +974,7 @@ function nearbyQuestIntakeCanPreemptResupply(
   view: BotWorldView,
   route: AmbientBotQuestRoute,
 ): boolean {
-  const zoneId = zoneAt(view.self.pos.z).id;
+  const zoneId = zoneAt(view.self.pos.x, view.self.pos.z).id;
   if (zoneId === 'eastbrook_vale') return false;
   return view.self.level >= Math.max(1, route.pursueAtLevel - PARTY_ROUTE_MAX_LEVEL_BONUS);
 }
@@ -1168,7 +1168,7 @@ function vendorProfileFor(self: BotSelfView): AmbientBotVendorProfile {
       ? HIGHWATCH_VENDOR_PROFILE
       : FENBRIDGE_VENDOR_PROFILE;
   }
-  const zoneId = zoneAt(self.pos.z).id;
+  const zoneId = zoneAt(self.pos.x, self.pos.z).id;
   if (zoneId === 'thornpeak_heights') return HIGHWATCH_VENDOR_PROFILE;
   if (shouldUseHighwatchStageFromApproach(self)) return HIGHWATCH_VENDOR_PROFILE;
   return zoneId === 'mirefen_marsh' ? FENBRIDGE_VENDOR_PROFILE : EASTBROOK_VENDOR_PROFILE;
@@ -3290,8 +3290,10 @@ function canUseCombatAbility(ability: CombatAbility, self: BotSelfView): boolean
   if ((self.cooldowns[ability.id] ?? 0) > 0.05) return false;
   const form = currentSelfFormKind(self);
   if (ability.requiresForm) {
-    const required = ability.requiresForm === 'bear' ? 'form_bear' : 'form_cat';
-    if (form !== required) return false;
+    const allowed =
+      typeof ability.requiresForm === 'string' ? [ability.requiresForm] : ability.requiresForm;
+    const active = form === 'form_bear' ? 'bear' : form === 'form_cat' ? 'cat' : null;
+    if (active === null || !allowed.includes(active)) return false;
   } else if (form && !isFormToggle(ability.id)) {
     return false;
   }
@@ -3347,7 +3349,7 @@ function grindRouteForView(view: BotWorldView): {
   allowAnyHostileFallback?: boolean;
 } {
   const self = view.self;
-  const zoneId = zoneAt(self.pos.z).id;
+  const zoneId = zoneAt(self.pos.x, self.pos.z).id;
   const level = self.level;
   if (zoneId === 'thornpeak_heights' || shouldUseHighwatchStageFromApproach(self)) {
     return thornpeakGrindRouteForLevel(level);

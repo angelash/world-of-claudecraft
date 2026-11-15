@@ -12,19 +12,30 @@
 // by this painter-mount harness; their pixels get no faked per-marker aria.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { normalizeGraphicsSettingsSnapshot } from '../../src/game/graphics_rebuild_core';
+import { FARM_PATCHES } from '../../src/sim/content/farm_patches';
+import { storageRungSkuForLadderIndex } from '../../src/sim/content/storage_charters';
 import type { TalentAllocation } from '../../src/sim/content/talents';
 import { ITEMS, QUESTS } from '../../src/sim/data';
+import { PERFECTING_SKILL_REQ, perfectingInfoFrom } from '../../src/sim/professions/perfecting';
 import { ALL_CLASSES } from '../../src/sim/types';
 import { ArenaWindow } from '../../src/ui/arena_window';
 import { BagsWindow } from '../../src/ui/bags_window';
+import { BankWindow } from '../../src/ui/bank_window';
 import { CharWindow } from '../../src/ui/char_window';
 import { FOCUSABLE_SELECTOR } from '../../src/ui/focus_manager';
-import { resolveActionBarVisibility } from '../../src/ui/hud/action_bar/action_bar_visibility_core';
+import { PlantSheetWindow } from '../../src/ui/hud/professions/farming_plant_sheet_window';
+import { HarvestJournalWindow } from '../../src/ui/hud/professions/harvest_journal_window';
+import { PerfectingWindow } from '../../src/ui/hud/professions/perfecting_window';
+import { ProfessionsWindow } from '../../src/ui/hud/professions/professions_window';
 import { QuestLogWindow } from '../../src/ui/hud/quest/questlog_window';
+import { renderVendorWindow } from '../../src/ui/hud/vendor/vendor_window';
 import { t } from '../../src/ui/i18n';
+import { ItemDragState } from '../../src/ui/item_drag_state';
 import { LeaderboardWindow } from '../../src/ui/leaderboard_window';
 import { MarketWindow } from '../../src/ui/market_window';
 import { OptionsWindow } from '../../src/ui/options_window';
+import { ReliquaryWindow } from '../../src/ui/reliquary_window';
 import { SocialWindow } from '../../src/ui/social_window';
 import { SpellbookWindow } from '../../src/ui/spellbook_window';
 import { TalentsWindow } from '../../src/ui/talents_window';
@@ -195,19 +206,19 @@ describe('axe: talents window', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Arena (#arena-window) - the offline host (dialog role + named title + close).
+// The merged PvP window (#arena-window) - offline hosts of BOTH tab families
+// (dialog role + named title + close). The window opens on the Thornhollow Fields tab.
 // ---------------------------------------------------------------------------
 
-describe('axe: arena window', () => {
-  it('offline host is clean (dialog role, labelled title)', async () => {
-    const root = host('arena-window');
-    root.style.display = 'none';
-    const win = new ArenaWindow(
+describe('axe: pvp window', () => {
+  const makeWin = (root: HTMLElement) =>
+    new ArenaWindow(
       stubDeps({
         root: () => root,
         world: () =>
           ({
             arenaInfo: null,
+            bgInfo: null,
             playerId: 1,
             player: { name: 'Aurelia' },
             partyInfo: null,
@@ -215,7 +226,23 @@ describe('axe: arena window', () => {
         captureFocus: () => null,
       }),
     );
+
+  it('offline Thornhollow Fields tab (the default) is clean (dialog role, labelled title)', async () => {
+    const root = host('arena-window');
+    root.style.display = 'none';
+    const win = makeWin(root);
     win.toggle();
+    expect(root.getAttribute('aria-labelledby')).toBe('arena-title');
+    expect(root.querySelector('#arena-title')).toBeTruthy();
+    await expectClean(root);
+  });
+
+  it('offline arena tab is clean too, after a strip switch', async () => {
+    const root = host('arena-window');
+    root.style.display = 'none';
+    const win = makeWin(root);
+    win.toggle();
+    win.openTab('1v1');
     expect(root.getAttribute('aria-labelledby')).toBe('arena-title');
     expect(root.querySelector('#arena-title')).toBeTruthy();
     await expectClean(root);
@@ -240,6 +267,7 @@ describe('axe: quest log window', () => {
         world: () =>
           ({
             cfg: { playerClass: 'warrior' },
+            talents: { spec: null },
             player: { name: 'Aurelia' },
             questLog: new Map([[questId, progress]]),
             questsDone: new Set<string>(),
@@ -268,7 +296,7 @@ describe('axe: spellbook window', () => {
         // (IWorld always carries a player); level 1 keeps every row locked.
         world: () =>
           ({ cfg: { playerClass: 'warrior' }, known: [], player: { level: 1 } }) as never,
-        barAbilityIds: () => [],
+        barActions: () => [],
         hasFreeSlot: () => true,
         hasFormBars: () => false,
         captureFocus: () => null,
@@ -297,6 +325,7 @@ describe('axe: options menu', () => {
             player: { name: 'Aurelia', pos: { x: 0, y: 0, z: 0 } },
           }) as never,
         options: () => null,
+        auraOverlays: () => ({ setPlacement: vi.fn() }) as never,
         bugReport: () => null,
         captureFocus: () => null,
       }),
@@ -315,12 +344,24 @@ describe('axe: options menu', () => {
     await expectClean(root);
   });
 
+  it('Overlays sub-view is clean (labelled title that resolves)', async () => {
+    const { root, win } = optionsWindow();
+    win.toggle();
+    root.querySelector<HTMLElement>('.opt-btn[data-menu-action="overlays"]')?.click();
+    expect(root.querySelector('#options-title')?.textContent).toBe(t('hudChrome.options.overlays'));
+    expect(root.getAttribute('aria-labelledby')).toBe('options-title');
+    await expectClean(root);
+  });
+
   it('Performance sub-view names the dialog with aria-label, no dangling idref', async () => {
     const { root, win } = optionsWindow();
     win.toggle(); // main menu first
-    // Navigate to the Performance sub-view the real way: click its menu entry. Its title
-    // comes from the self-contained perf panel (no id=options-title), so the dialog must
-    // name itself via aria-label, NOT keep the now-dangling aria-labelledby.
+    // Navigate to the Performance sub-view the real way: Overlays, then its entry. Its
+    // title comes from the self-contained perf panel (no id=options-title), so the dialog
+    // must name itself via aria-label, NOT keep the now-dangling aria-labelledby.
+    const overlaysBtn = root.querySelector<HTMLElement>('.opt-btn[data-menu-action="overlays"]');
+    expect(overlaysBtn, 'overlays menu entry present').toBeTruthy();
+    overlaysBtn?.click();
     const perfBtn = Array.from(root.querySelectorAll<HTMLElement>('.opt-btn')).find(
       (b) => b.textContent === t('hudChrome.perf.title'),
     );
@@ -331,10 +372,15 @@ describe('axe: options menu', () => {
     await expectClean(root);
   });
 
-  it('enables the third action row through the secondary row and preserves keyboard focus', () => {
+  it('keeps keyboard focus on a combat toggle across its settings rebuild', () => {
+    // The optional-bar rows (showSecondaryActionBar / showThirdActionBar)
+    // deliberately have no options rows any more: the primary bar's plus and
+    // minus buttons are the one control for adding and removing them, and
+    // the edit mode's Frames Settings menu owns the other bar toggles. This
+    // pins the removal and keeps the focus-preservation coverage on a
+    // toggle the Combat tab still renders.
     const values: Record<string, number | boolean> = {
-      showSecondaryActionBar: false,
-      showThirdActionBar: false,
+      startAttackOnAbilityUse: false,
     };
     const settings = {
       get: (key: string) => values[key] ?? false,
@@ -345,19 +391,7 @@ describe('axe: options menu', () => {
     };
     const hooks = {
       settings,
-      onSettingChange: (key: string, value: number | boolean) => {
-        if (key !== 'showSecondaryActionBar' && key !== 'showThirdActionBar') return;
-        const visibility = resolveActionBarVisibility(
-          {
-            secondary: Boolean(values.showSecondaryActionBar),
-            third: Boolean(values.showThirdActionBar),
-          },
-          key,
-          Boolean(value),
-        );
-        values.showSecondaryActionBar = visibility.secondary;
-        values.showThirdActionBar = visibility.third;
-      },
+      onSettingChange: () => {},
       theme: {
         get: () => ({ preset: 'classic', custom: {} }),
         setPreset: () => {},
@@ -377,6 +411,7 @@ describe('axe: options menu', () => {
             player: { name: 'Aurelia', pos: { x: 0, y: 0, z: 0 } },
           }) as never,
         options: () => hooks as never,
+        auraOverlays: () => ({ setPlacement: vi.fn() }) as never,
         bugReport: () => null,
         buildDropdown: () => document.createElement('div'),
         captureFocus: () => null,
@@ -390,24 +425,109 @@ describe('axe: options menu', () => {
       (button) => button.textContent === t('hud.options.interface'),
     );
     interfaceButton?.click();
-    // The Interface panel is tabbed; both action-bar toggles live under Combat.
+    // The Interface panel is tabbed; the surviving auto-attack toggles live
+    // under Combat.
     root.querySelector<HTMLButtonElement>('.opt-tab[data-tab="combat"]')?.click();
 
-    expect(toggle('showThirdActionBar')?.disabled).toBe(true);
-    const secondary = toggle('showSecondaryActionBar');
-    secondary?.focus();
-    secondary?.click();
-    expect(values.showSecondaryActionBar).toBe(true);
-    expect(toggle('showThirdActionBar')?.disabled).toBe(false);
-    expect(document.activeElement).toBe(toggle('showSecondaryActionBar'));
+    // The optional-bar rows are gone from the options window by design.
+    expect(toggle('showSecondaryActionBar')).toBeNull();
+    expect(toggle('showThirdActionBar')).toBeNull();
 
-    toggle('showThirdActionBar')?.click();
-    expect(values.showThirdActionBar).toBe(true);
-    toggle('showSecondaryActionBar')?.click();
-    expect(values.showSecondaryActionBar).toBe(false);
-    expect(values.showThirdActionBar).toBe(false);
-    expect(toggle('showThirdActionBar')?.disabled).toBe(true);
-    expect(document.activeElement).toBe(toggle('showSecondaryActionBar'));
+    const attack = toggle('startAttackOnAbilityUse');
+    expect(attack, 'combat tab renders the auto-attack toggle').toBeTruthy();
+    attack?.focus();
+    attack?.click();
+    expect(values.startAttackOnAbilityUse).toBe(true);
+    expect(document.activeElement).toBe(toggle('startAttackOnAbilityUse'));
+
+    toggle('startAttackOnAbilityUse')?.click();
+    expect(values.startAttackOnAbilityUse).toBe(false);
+    expect(document.activeElement).toBe(toggle('startAttackOnAbilityUse'));
+  });
+
+  it('keeps keyboard focus on a graphics dial across its dependency-driven rebuild', () => {
+    // The test above covers an independent toggle (no rebuild); this one covers
+    // the DEPENDENCY-driven rebuild, where a control is re-rendered with a
+    // different disabled state. The interface no longer carries a boolToggle
+    // pair with a disabled: predicate (the gamepad cross-hotbar pair was
+    // checked: both toggles render independent), so the surviving dependent
+    // pair is the Graphics panel: every dial carries rerender, staging a value
+    // re-renders the WHOLE panel (destroying the clicked button), and the
+    // rebuilt footer's Apply button flips from disabled (draft clean) to
+    // enabled (draft dirty). Focus must ride the rebuild back onto the
+    // clicked dial's rebuilt equivalent (focus_restore.ts, data-focus-key).
+    const values: Record<string, number | boolean> = {};
+    const settings = {
+      get: (key: string) => values[key] ?? 0,
+      set: (key: string, value: number | boolean) => {
+        values[key] = value;
+        return value;
+      },
+    };
+    const hooks = {
+      settings,
+      onSettingChange: () => {},
+      graphicsApplied: () => normalizeGraphicsSettingsSnapshot({}),
+      theme: {
+        get: () => ({ preset: 'classic', custom: {} }),
+        setPreset: () => {},
+        setCustom: () => {},
+        resetCustom: () => {},
+      },
+      perfOverlay: { setPlacement: () => {} },
+    };
+    const root = host('options-menu');
+    root.style.display = 'none';
+    const win = new OptionsWindow(
+      stubDeps({
+        root: () => root,
+        world: () =>
+          ({
+            realm: 'Claudemoon',
+            player: { name: 'Aurelia', pos: { x: 0, y: 0, z: 0 } },
+          }) as never,
+        options: () => hooks as never,
+        auraOverlays: () => ({ setPlacement: vi.fn() }) as never,
+        bugReport: () => null,
+        buildDropdown: () => document.createElement('div'),
+        captureFocus: () => null,
+      }),
+    );
+
+    win.toggle();
+    const graphicsButton = Array.from(root.querySelectorAll<HTMLButtonElement>('.opt-btn')).find(
+      (button) => button.textContent === t('hud.options.graphics'),
+    );
+    expect(graphicsButton, 'main menu renders the Graphics entry').toBeTruthy();
+    graphicsButton?.click();
+
+    // The dependent control starts DISABLED: the draft matches the applied
+    // snapshot, so there is nothing to apply yet.
+    const apply = () => root.querySelector<HTMLButtonElement>('[data-graphics-apply]');
+    expect(apply(), 'graphics panel renders the Apply action').toBeTruthy();
+    expect(apply()?.disabled).toBe(true);
+
+    // The controlling control: a shadow-quality dial value that is NOT the
+    // one currently displayed, so the click genuinely stages a change.
+    const dial = Array.from(
+      root.querySelectorAll<HTMLButtonElement>('[data-focus-key^="shadowQuality:"]'),
+    ).find((button) => button.getAttribute('aria-pressed') === 'false');
+    expect(dial, 'an unselected shadow-quality dial value exists').toBeTruthy();
+    const focusKey = dial?.dataset.focusKey ?? '';
+    dial?.focus();
+    dial?.click(); // stages the draft and re-renders the whole panel
+
+    // The dependent control was re-rendered ENABLED (re-queried: the old
+    // footer node was destroyed by the rebuild).
+    expect(apply()?.disabled).toBe(false);
+    // And keyboard focus survived the rebuild: the active element is the
+    // clicked dial's rebuilt equivalent (a NEW node with the same focus key),
+    // now showing the staged value as selected.
+    const rebuilt = root.querySelector<HTMLButtonElement>(`[data-focus-key="${focusKey}"]`);
+    expect(rebuilt, 'the dial was rebuilt with the same focus key').toBeTruthy();
+    expect(rebuilt).not.toBe(dial);
+    expect(rebuilt?.getAttribute('aria-pressed')).toBe('true');
+    expect(document.activeElement).toBe(rebuilt);
   });
 });
 
@@ -593,7 +713,11 @@ describe('axe: social window', () => {
 // ---------------------------------------------------------------------------
 
 describe('axe: character window', () => {
-  it('paperdoll sheet is clean (dialog role + role=img preview host)', async () => {
+  it('paperdoll and preview are clean and keep their own accessible names', async () => {
+    // The mount picker used to live in this sheet and this test drove it. Reins are
+    // usable items now (bags / action bar -> useItem), so the sheet has no picker
+    // and no mount rows to focus; what is left to hold is the dialog naming and the
+    // preview's own name, which is what the axe pass below actually protects.
     const root = host('char-window');
     root.style.display = 'none';
     const win = new CharWindow(
@@ -602,13 +726,13 @@ describe('axe: character window', () => {
         world: () =>
           ({
             cfg: { playerClass: 'warrior' },
-            player: { name: 'Aurelia', level: 60, skin: 0 },
+            player: { name: 'Aurelia', level: 12, skin: 0, mountKey: '' },
             equipment: {},
             professionsState: { skills: [] },
+            ownedMounts: () => ['valorsteed', 'grag_bear', 'stalkglider_snail'],
           }) as never,
         statCellHtml: () => '',
         statTooltipHtml: () => '',
-        talentSummaryHtml: () => '',
         progressionHtml: () => '',
         slotName: (s: string) => s,
         // The 3D turntable + skin picker are HUD-owned (rendered by callback). The skin
@@ -618,7 +742,13 @@ describe('axe: character window', () => {
           const row = root.querySelector('#char-skin-row');
           if (row) row.innerHTML = '<button type="button" role="listitem">1</button>';
         },
+        attachTooltip: (el: HTMLElement) => {
+          el.addEventListener('focusin', () => {
+            el.dataset.tooltipOpened = 'true';
+          });
+        },
         captureFocus: () => null,
+        dragState: new ItemDragState(),
       }),
     );
     win.toggle();
@@ -632,6 +762,10 @@ describe('axe: character window', () => {
     const titleSubtitle = root.querySelector('#char-title .panel-subtitle')?.textContent ?? '';
     expect(previewName).toBe(t('hudChrome.character.modelPreview'));
     expect(previewName).not.toBe(titleSubtitle);
+    // The picker is GONE, not merely unpopulated: a stray mount row here would mean
+    // the sheet grew a second way to summon a mount beside the reins item.
+    expect(root.querySelector('[data-mount-key]')).toBeNull();
+    expect(root.querySelector('.mount-picker')).toBeNull();
     await expectClean(root);
   });
 });
@@ -658,13 +792,29 @@ function marketInfo(shape: WorldShape): MarketInfo {
     listings: [listing],
     totalCount: 1,
     filter: 'all',
+    itemType: 'all',
+    subtype: 'all',
+    armorClass: 'all',
+    primaryStat: 'all',
+    rarity: 'all',
+    sort: 'name',
+    collapseLowest: false,
     page: 0,
     pageCount: 1,
     collectionCopper: 0,
     collectionItems: [],
+    collectionSales: [],
+    collectionSalesOmitted: 0,
     cutPct: 5,
     maxListings: 10,
     myListingCount: 0,
+    sellPriceItemId: null,
+    sellLowestPrice: null,
+    sweepQuote: null,
+    orders: [],
+    myOrderCount: 0,
+    maxOrders: 6,
+    unlistedMaterials: [],
   };
   // The sim shape may carry extra server-only fields the view ignores; the client mirror
   // carries only the decoded fields (the offline-only-shape trap catches).
@@ -680,7 +830,12 @@ describe('axe: market window (Sim + ClientWorld shapes)', () => {
         stubDeps({
           root: () => root,
           world: () =>
-            ({ marketInfo: marketInfo(shape), copper: 0, marketSearch: () => undefined }) as never,
+            ({
+              marketInfo: marketInfo(shape),
+              copper: 0,
+              marketSearch: () => undefined,
+              marketSellPriceCheck: () => undefined,
+            }) as never,
           hideTooltip: () => undefined,
           captureFocus: () => null,
         }),
@@ -690,9 +845,179 @@ describe('axe: market window (Sim + ClientWorld shapes)', () => {
       expect(root.getAttribute('aria-label')).toBe(t('itemUi.market.title'));
       // The async-results live region is persistent + polite (the lazy-load a11y fix).
       expect(root.querySelector('.mkt-status')?.getAttribute('role')).toBe('status');
+      const groups = root.querySelectorAll<HTMLElement>('[role="group"]');
+      expect(groups).toHaveLength(1);
+      const filters = groups[0];
+      expect(filters.classList.contains('mkt-controls')).toBe(true);
+      expect(filters.getAttribute('aria-label')).toBe(t('itemUi.market.filters'));
+      expect(filters.querySelector('.mkt-search')).toBeTruthy();
+      for (const field of root.querySelectorAll('.mkt-filter')) {
+        expect(field.closest('[role="group"]')).toBe(filters);
+      }
+      expect(root.querySelector('.mkt-filters')?.hasAttribute('role')).toBe(false);
+      await expectClean(root);
+    });
+
+    // Issue 3043: the Sell tab's price-ref line and its off-screen live-region
+    // echo are new markup this suite would otherwise never see (the base fixture
+    // above stages nothing, so buildMarketSell never reaches the 'form' state).
+    it(`Sell tab price reference (a real price) is clean under the ${shape} shape`, async () => {
+      const root = host('market-window');
+      root.style.display = 'none';
+      const win = new MarketWindow(
+        stubDeps({
+          root: () => root,
+          world: () =>
+            ({
+              marketInfo: {
+                ...marketInfo(shape),
+                sellPriceItemId: 'worn_sword',
+                sellLowestPrice: 4200,
+              },
+              inventory: [{ itemId: 'worn_sword', count: 3 }],
+              copper: 0,
+              marketSearch: () => undefined,
+              marketSellPriceCheck: () => undefined,
+              marketList: () => undefined,
+              marketListInstance: () => undefined,
+            }) as never,
+          hideTooltip: () => undefined,
+          captureFocus: () => null,
+        }),
+      );
+      win.open();
+      const tab = root.querySelector<HTMLElement>('[data-tab="sell"]');
+      tab?.click();
+      win.stageSell('worn_sword');
+      const ref = root.querySelector('.mkt-sell-price-ref');
+      expect(ref?.textContent?.length, 'expected the numeric price ref to render').toBeGreaterThan(
+        0,
+      );
+      const status = root.querySelector('.mkt-sell-price-status');
+      expect(status?.getAttribute('role')).toBe('status');
+      expect(status?.getAttribute('aria-live')).toBe('polite');
+      await expectClean(root);
+    });
+
+    it(`Sell tab price reference (no active listings) is clean under the ${shape} shape`, async () => {
+      const root = host('market-window');
+      root.style.display = 'none';
+      const win = new MarketWindow(
+        stubDeps({
+          root: () => root,
+          world: () =>
+            ({
+              marketInfo: {
+                ...marketInfo(shape),
+                sellPriceItemId: 'worn_sword',
+                sellLowestPrice: null,
+                sweepQuote: null,
+                orders: [],
+                myOrderCount: 0,
+                maxOrders: 6,
+                unlistedMaterials: [],
+              },
+              inventory: [{ itemId: 'worn_sword', count: 3 }],
+              copper: 0,
+              marketSearch: () => undefined,
+              marketSellPriceCheck: () => undefined,
+              marketList: () => undefined,
+              marketListInstance: () => undefined,
+            }) as never,
+          hideTooltip: () => undefined,
+          captureFocus: () => null,
+        }),
+      );
+      win.open();
+      const tab = root.querySelector<HTMLElement>('[data-tab="sell"]');
+      tab?.click();
+      win.stageSell('worn_sword');
+      const ref = root.querySelector('.mkt-sell-price-ref');
+      expect(ref?.textContent).toBe(t('itemUi.market.lowestPriceNone'));
       await expectClean(root);
     });
   }
+});
+
+// Issue #2416 (reconnect ordering): onReconnected() fires synchronously inside
+// the client's `hello` handler, before the resent world's first snapshot has
+// decoded. At that instant world().marketInfo (if any) is still the pre-drop
+// echo, which by construction matches the window's own query (it was pushed
+// and echoed back before the socket died). A drift check that ran right there
+// would always read "no drift" and the resync would never fire, which is
+// exactly why onReconnected() only arms a flag: the real comparison happens
+// later, in refreshIfChanged(), once a genuinely post-reconnect MarketInfo
+// arrives (online.ts nulls the mirror on the `hello` reset so "still pending"
+// is unambiguous).
+describe('market window: reconnect resync ordering (#2416)', () => {
+  it('does not resync against the stale pre-drop echo, but does once a post-reconnect echo arrives', async () => {
+    const root = host('market-window');
+    root.style.display = 'none';
+    const searches: unknown[] = [];
+    // The pre-drop echo: the player narrowed to Armor/Chest/Cloth/Intellect,
+    // pushed that query, and the server echoed it back before the socket
+    // died, so this matches the window's own (about-to-be-set) query exactly.
+    let info: MarketInfo | null = {
+      ...marketInfo('client'),
+      filter: '', // matches the window's default (empty) search box
+      itemType: 'armor',
+      subtype: 'chest',
+      armorClass: 'cloth',
+      primaryStat: 'int',
+    };
+    const win = new MarketWindow(
+      stubDeps({
+        root: () => root,
+        world: () =>
+          ({
+            get marketInfo() {
+              return info;
+            },
+            copper: 0,
+            marketSearch: (q: unknown) => searches.push(q),
+            marketSellPriceCheck: () => undefined,
+          }) as never,
+        hideTooltip: () => undefined,
+        captureFocus: () => null,
+      }),
+    );
+    win.open();
+    searches.length = 0; // drop the query push open() itself does
+
+    // Mirror the same narrowing onto the window's own client-side filter state
+    // (the controls survive the socket drop untouched).
+    Object.assign(win, {
+      itemTypeFilter: 'armor',
+      subtypeFilter: 'chest',
+      armorClassFilter: 'cloth',
+      primaryStatFilter: 'int',
+    });
+
+    // hello fires: online.ts nulls the mirror in its reset block (marketInfo is
+    // delta-omitted, so without this it would still read the stale pre-drop
+    // echo, which trivially matches the query) BEFORE calling onReconnected(),
+    // which just arms the flag rather than deciding off a possibly-stale value.
+    info = null;
+    (win as unknown as { onReconnected(): void }).onReconnected();
+    (win as unknown as { refreshIfChanged(): void }).refreshIfChanged();
+    expect(searches, 'must keep waiting while marketInfo is null (still pending)').toHaveLength(0);
+
+    // The resent world's first snapshot decodes: the fresh-join session reset
+    // the server-side query back to default, so the echo no longer matches.
+    info = marketInfo('client');
+    (win as unknown as { refreshIfChanged(): void }).refreshIfChanged();
+    expect(searches, 'must resync once the real post-reconnect echo arrives').toHaveLength(1);
+    expect(searches[0]).toMatchObject({
+      itemType: 'armor',
+      subtype: 'chest',
+      armorClass: 'cloth',
+      primaryStat: 'int',
+    });
+
+    // A second refresh with the same (now-matching) info must not re-push again.
+    (win as unknown as { refreshIfChanged(): void }).refreshIfChanged();
+    expect(searches, 'the flag must clear after resolving once').toHaveLength(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -813,5 +1138,617 @@ describe('axe: bags discard prompt', () => {
     win.close();
     expect(root.style.display).toBe('none');
     expect(document.activeElement).toBe(opener);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Vendor (#vendor-window) - the R22 advisory turn: requirement rows sell, the
+// sub-line is the sighted advisory, and the combined aria-label is the
+// screen-reader one. Rendered through the real painter with the real styles.
+// ---------------------------------------------------------------------------
+
+describe('axe: vendor window advisory rows', () => {
+  it('advisory and plain rows are clean, and the advisory name folds the requirement', async () => {
+    const root = host('vendor-window');
+    const pick = ITEMS.iron_mining_pick;
+    const bread = Object.values(ITEMS).find((i) => i?.kind === 'food') ?? pick;
+    const view = {
+      goods: [
+        {
+          itemId: bread.id,
+          item: bread,
+          price: { copper: 5, honor: 0 },
+          quantity: 1,
+          affordable: true,
+          requirementUnmet: false,
+        },
+        {
+          itemId: 'iron_mining_pick',
+          item: pick,
+          price: { copper: 120, honor: 0 },
+          quantity: 1,
+          affordable: true,
+          requirementUnmet: true,
+          requirement: { professionId: 'mining' as const, proficiency: 40 },
+        },
+      ],
+      buyback: [],
+      honorBalance: 0,
+      hasHonorGoods: false,
+      multiple: 1 as const,
+    };
+    // A literal vendor NAME: the painter interpolates it into the
+    // goodsTitle key itself, so passing a t() result here would nest the
+    // template and render a literal {name}.
+    renderVendorWindow(root, 'Quartermaster Bree', view, {
+      itemIcon: () => '<img alt="">',
+      moneyHtml: (copper: number) => `<span>${copper}c</span>`,
+      itemTooltip: () => '<div></div>',
+      attachTooltip: () => {},
+      hideTooltip: () => {},
+      onBuy: () => {},
+      onQtyChange: () => {},
+      buyCustomMax: () => 0,
+      onBuyBack: () => {},
+      onSellJunk: () => {},
+      onClose: () => {},
+      sellJunk: { enabled: false, proceeds: 0 },
+    });
+    const rows = root.querySelectorAll<HTMLButtonElement>('.vendor-item');
+    expect(rows.length).toBe(2);
+    const advisory = [...rows].find((r) => r.querySelector('.vi-sub'));
+    expect(advisory).toBeTruthy();
+    // The advisory row SELLS and its accessible name carries what the sighted
+    // sub-line says (an aria-label replaces the content as the name).
+    expect(advisory?.disabled).toBe(false);
+    const sub = advisory?.querySelector('.vi-sub')?.textContent ?? '';
+    expect(sub.length).toBeGreaterThan(0);
+    expect(advisory?.getAttribute('aria-label') ?? '').toContain(sub);
+    await expectClean(root);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Professions (#professions-window) - the tool-effect row's interactive chrome
+// (slot/recharge buttons, the R40 "Ask each use" checkbox), rendered through
+// the real window with the real styles. The phase 18 whole-branch review
+// found only the vendor arm covered the packet's new interactive chrome.
+// ---------------------------------------------------------------------------
+
+describe('axe: professions window tool-effect controls', () => {
+  it('slot button, recharge button, and mode checkbox are clean with real names', async () => {
+    const root = host('professions-window');
+    const world = {
+      craftingIdentity: {
+        version: 1,
+        synced: true,
+        craftSkills: {
+          engineering: 0,
+          alchemy: 0,
+          cooking: 30,
+          leatherworking: 0,
+          tailoring: 0,
+          inscription: 0,
+          enchanting: 0,
+          jewelcrafting: 60,
+          weaponcrafting: 25,
+          armorcrafting: 49,
+        },
+        activeArchetype: 'armorcrafting',
+        pairedMajor: 'weaponcrafting',
+        hobbyCraft: 'leatherworking',
+        attunedPairs: ['weaponcrafting+armorcrafting'],
+        switchCount: 2,
+        amendsProgress: 1,
+        amendsRequired: 11,
+      },
+      professionsState: { skills: [{ professionId: 'mining', skill: 30, maxSkill: 300 }] },
+      gatheringProficiency: { mining: 30 },
+      toolEffectSlots: [
+        {
+          professionId: 'mining',
+          effectId: 'gatherers_cache',
+          charges: 12,
+          maxCharges: 30,
+          confirmMode: 'prompt',
+          selfCrafted: true,
+        },
+      ],
+      inventory: [
+        { itemId: 'copper_mining_pick', count: 1 },
+        { itemId: 'artisans_eye', count: 1, instance: { signer: 'Testchar' } },
+      ],
+      // The viewer's planted beds (IWorld myFarmPlots): the window reads the
+      // count for its simplified-mode Farming-row arm (deviation (be)); none
+      // here, the shape every non-farmer reads.
+      myFarmPlots: [],
+      // IWorld.harvestPreference (professions.ts): the stored corpse-harvest
+      // choice the window's entry row reads; All is the shape every player
+      // without a saved preference carries.
+      harvestPreference: { kind: 'all' },
+      player: { name: 'Testchar' },
+    };
+    const win = new ProfessionsWindow(
+      stubDeps({
+        root: () => root,
+        world: () => world as never,
+        consumePeek: () => false,
+        itemIcon: () => '<img alt="">',
+        moneyHtml: (copper: number) => `<span>${copper}c</span>`,
+        itemTooltip: () => '',
+      }),
+    );
+    win.open();
+    // The three controls the review named must actually render: a slot
+    // button (a second effect is slottable from bags), the recharge button
+    // on the live slot, and the R40 per-row mode checkbox.
+    const slot = root.querySelector<HTMLButtonElement>('[data-slot-effect]');
+    const recharge = root.querySelector<HTMLButtonElement>('[data-recharge-profession]');
+    const mode = root.querySelector<HTMLInputElement>('[data-slot-mode]');
+    expect(slot).not.toBeNull();
+    expect(recharge).not.toBeNull();
+    expect(mode).not.toBeNull();
+    // The checkbox's accessible name comes from its wrapping label text.
+    expect(mode?.closest('label')?.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    // Buttons carry visible text as their accessible names, never bare icons.
+    expect(slot?.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    expect(recharge?.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    await expectClean(root);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The plant sheet (#plant-sheet-window) - the bed-verbs window: the seed pick
+// rows as a NAMED RADIOGROUP (single-select, the Phase 14 a11y batch), the
+// three aria-pressed care knob toggles (one disabled with its reason line),
+// the in-flight aria-busy affordance, and the Plant control, painted through
+// the real window with the real styles.
+// ---------------------------------------------------------------------------
+
+describe('axe: plant sheet window seed picks, knobs, and Plant control', () => {
+  it('pick rows, knob toggles, and the Plant control are clean with real names', async () => {
+    const root = host('plant-sheet-window');
+    // CAUTION: handed over through `as never`, so tsc cannot flag a missing
+    // member; the stub carries EVERY key the window's buildInput reads
+    // (inventory, myFarmPlots, professionsState) or the miss is a RUNTIME
+    // throw in this suite only.
+    const world = {
+      inventory: [
+        { itemId: 'vale_wheat_seed', count: 3 },
+        { itemId: 'garden_hoe', count: 1 },
+        { itemId: 'compost', count: 1 },
+      ],
+      myFarmPlots: [],
+      professionsState: { skills: [{ professionId: 'farming', skill: 10, maxSkill: 100 }] },
+      plantCrop: () => {},
+    };
+    const win = new PlantSheetWindow(
+      stubDeps({
+        root: () => root,
+        world: () => world as never,
+      }),
+    );
+    win.open('bed_eastbrook_1');
+    // The three control families must actually render: a seed pick row with
+    // its sow aria, a knob toggle (the tonic one disabled, saying why), and
+    // the one Plant control.
+    const seed = root.querySelector<HTMLButtonElement>('[data-seed-crop]');
+    const tonic = root.querySelector<HTMLButtonElement>('[data-knob="tonic"]');
+    const plant = root.querySelector<HTMLButtonElement>('[data-plant]');
+    expect(seed).not.toBeNull();
+    expect(seed?.getAttribute('aria-label')?.trim().length ?? 0).toBeGreaterThan(0);
+    expect(tonic?.disabled).toBe(true);
+    expect(plant?.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    // The Phase 14 radiogroup semantics, judged by axe with the roles LIVE:
+    // the single-select rows are radios in a group named by the dialog title,
+    // and aria-required-children/parent rules run against the real DOM here.
+    const group = root.querySelector<HTMLElement>('[role="radiogroup"]');
+    expect(group).not.toBeNull();
+    expect(seed?.getAttribute('role')).toBe('radio');
+    expect(seed?.getAttribute('aria-checked')).toBe('true');
+    await expectClean(root);
+    // The in-flight affordance: an armed Plant send reports aria-busy on the
+    // dialog and the busy tree still axes clean.
+    plant?.click();
+    expect(root.getAttribute('aria-busy')).toBe('true');
+    await expectClean(root);
+    win.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The harvest journal (#harvest-journal-window) - the read-only plot list,
+// with the Phase 14 in-dialog ready announcement: a persistent role=status
+// line that names a crop flipping to ready UNDER the open journal. Axed both
+// quiet and announcing.
+// ---------------------------------------------------------------------------
+
+describe('axe: harvest journal rows and the ready status line', () => {
+  it('renders rows clean, and the live status line announces a ready flip', async () => {
+    const root = host('harvest-journal-window');
+    // CAUTION: `as never` handover, same trap as the plant sheet stub above.
+    const world = {
+      myFarmPlots: [
+        {
+          bedId: 'bed_eastbrook_1',
+          cropId: 'vale_wheat',
+          plantedAtMs: 0,
+          readyAtMs: 600_000,
+          compost: false,
+          watch: false,
+          tonic: false,
+          notified: false,
+          status: 'growing',
+        },
+      ],
+      farmPatches: FARM_PATCHES,
+      professionsState: { skills: [{ professionId: 'farming', skill: 40, maxSkill: 100 }] },
+      farmNowMs: () => 0,
+    };
+    const win = new HarvestJournalWindow(
+      stubDeps({
+        root: () => root,
+        world: () => world as never,
+      }),
+    );
+    win.open();
+    const status = root.querySelector<HTMLElement>('.hj-live-status');
+    expect(status).not.toBeNull();
+    expect(status?.getAttribute('role')).toBe('status');
+    expect(status?.textContent).toBe('');
+    await expectClean(root);
+    // The authority flips the plot under the open journal: the SAME status
+    // node announces the crop, and the announcing tree still axes clean.
+    world.myFarmPlots[0].status = 'ready';
+    win.render();
+    expect(root.querySelector<HTMLElement>('.hj-live-status')).toBe(status);
+    expect(status?.textContent?.length ?? 0).toBeGreaterThan(0);
+    await expectClean(root);
+    win.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The Perfecting window (#perfecting-window, Masterwrought phase 14): the
+// third holder of the farming a11y shapes (candidate radiogroup, aria-busy
+// send-once, the persistent role=status region beside the repaint shell) plus
+// the R2 bind warning. The window mints its own root, so no host() here.
+// ---------------------------------------------------------------------------
+
+describe('axe: perfecting window candidates, bind warning, and status region', () => {
+  it('the radiogroup, busy tree, and announcing tree all axe clean with real names', async () => {
+    // CAUTION: `as never` handover, same trap as the plant sheet stub: the
+    // stub must carry every member buildView reads (equipment,
+    // equipmentInstances, inventory, craftingIdentity, perfectingInfo,
+    // perfectItem; craftSkills feeds the stub's own perfectingInfo) or the
+    // miss is a runtime throw here only.
+    const world = {
+      equipment: { mainhand: 'duskforged_warblade' },
+      equipmentInstances: {} as Record<string, unknown>,
+      inventory: [
+        { itemId: 'makers_ember', count: 2 },
+        { itemId: 'sundered_essence', count: 1 },
+        { itemId: 'prismglass_setting', count: 1 },
+      ],
+      craftingIdentity: { synced: true },
+      craftSkills: { weaponcrafting: PERFECTING_SKILL_REQ },
+      perfectItem: () => {},
+      perfectingInfo(ref: unknown) {
+        return perfectingInfoFrom({
+          ref,
+          inventory: world.inventory,
+          equipment: world.equipment,
+          equipmentInstances: world.equipmentInstances,
+          craftSkills: world.craftSkills,
+        } as never);
+      },
+    };
+    const win = new PerfectingWindow({
+      itemIcon: () => '<img class="icon" alt="">',
+      moneyHtml: () => '',
+      itemTooltip: () => '',
+      attachTooltip: () => {},
+      world: () => world as never,
+      closeOthers: () => {},
+      captureFocus: () => null,
+      restoreFocus: () => {},
+    } as never);
+    win.open();
+    const root = document.getElementById('perfecting-window') as HTMLElement;
+    expect(root).not.toBeNull();
+    // The farming shapes, live: single-select radios in a title-named group,
+    // the bind warning present BEFORE any attempt, the status region empty.
+    const group = root.querySelector<HTMLElement>('[role="radiogroup"]');
+    expect(group?.getAttribute('aria-labelledby')).toBe('perfecting-title');
+    const cand = root.querySelector<HTMLButtonElement>('.pf-cand');
+    expect(cand?.getAttribute('role')).toBe('radio');
+    expect(cand?.getAttribute('aria-checked')).toBe('true');
+    expect(root.querySelector('.pf-warning')).not.toBeNull();
+    const live = root.querySelector<HTMLElement>('.pf-live-status');
+    expect(live?.getAttribute('role')).toBe('status');
+    // The structural halves only a browser can judge (the happy-dom unit
+    // suite has no CSS): the shell is display:contents so .pf-body is the
+    // ONE scroller and the root is not (the one-scroller rule).
+    const shell = root.querySelector<HTMLElement>('.pf-shell') as HTMLElement;
+    expect(getComputedStyle(shell).display).toBe('contents');
+    const body = root.querySelector<HTMLElement>('.pf-body') as HTMLElement;
+    expect(getComputedStyle(body).overflowY).toBe('auto');
+    await expectClean(root);
+    // The armed send reports aria-busy on the dialog; the busy tree still
+    // axes clean. (The bind confirm's prompt path needs #prompt-stack, which
+    // this harness does not mount; the busy arm is driven on the bound copy.)
+    world.equipmentInstances = { mainhand: { boundTo: 1, perfecting: 1 } };
+    win.relocalize();
+    (root.querySelector('[data-action]') as HTMLButtonElement).click();
+    expect(root.getAttribute('aria-busy')).toBe('true');
+    await expectClean(root);
+    // A landed rank ANNOUNCES through the SAME node (the journal's two
+    // assertions: identity across the repaint, non-empty content), and the
+    // announcing tree axes clean.
+    world.equipmentInstances = { mainhand: { boundTo: 1, perfecting: 2 } };
+    win.relocalize();
+    expect(root.querySelector('.pf-live-status')).toBe(live);
+    expect(live?.textContent ?? '').not.toBe('');
+    await expectClean(root);
+    win.close();
+    root.remove();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The Reliquary (#reliquary-window) - Phase 13 added a search field, a filter
+// chip group, a real ul/li shelf list, and a roving-tabindex relic grid whose
+// cells carry aria-describedby / aria-keyshortcuts. Every one of those is
+// interactive chrome axe can judge, and the grid is the only roving surface in
+// this window family that is NOT a composite role, so it is worth axing
+// directly rather than trusting the source pins.
+// ---------------------------------------------------------------------------
+
+describe('axe: reliquary window search, filters, and relic grid', () => {
+  function reliquaryWorld() {
+    // CAUTION: the stub is handed over through an `as never` cast below, so
+    // tsc cannot flag a missing member here; a new world read in the window
+    // (like the Phase 15 pinKey identity pair) surfaces as a RUNTIME throw in
+    // this suite only. Keep this stub in step with what the window reads.
+    return {
+      // The Phase 15 pin store keys per character (pinKey reads BOTH), so the
+      // stub carries the identity members every real world has.
+      cfg: { playerClass: 'warrior' },
+      player: { name: 'AxeTester' },
+      deedStats: { itemsDiscovered: new Set<string>() },
+      reliquaryMarks: new Set<string>(),
+      // The account ledger halves (src/sim/account_ledger.ts) every real world carries.
+      reliquaryAccountFinds: new Map<string, never[]>(),
+      accountDeeds: new Map<string, never[]>(),
+      reliquaryRecent: [] as string[],
+      reliquaryFirstFind: {},
+      ownedMounts: () => [] as string[],
+      accountCosmetics: { weaponSkinIds: [] as string[], mountSkinIds: [] as string[] },
+      deedsEarned: new Map<string, number>(),
+      reliquaryPageClearCount: () => undefined,
+      reliquaryCatalogCompletion: () => ({ owned: 0, total: 100 }),
+      reliquaryCuratorRank: () => 0,
+      reliquaryPageCompletion: () => null,
+      reliquaryRarity: () => Promise.resolve(null),
+    };
+  }
+
+  function openReliquary(root: HTMLElement): ReliquaryWindow {
+    const win = new ReliquaryWindow(
+      stubDeps({
+        root: () => root,
+        world: () => reliquaryWorld() as never,
+        consumePeek: () => false,
+        itemIcon: () => '<img alt="">',
+        itemTooltip: () => '',
+      }),
+    );
+    win.open();
+    return win;
+  }
+
+  it('the Overview shelf is clean with a labelled search field', async () => {
+    const root = host('reliquary-window');
+    openReliquary(root);
+    const search = root.querySelector<HTMLInputElement>('.reliquary-search');
+    expect(search).not.toBeNull();
+    // A search input with no visible label needs an accessible one.
+    expect(search?.getAttribute('aria-label')?.trim().length ?? 0).toBeGreaterThan(0);
+    await expectClean(root);
+  });
+
+  it('the page grid is clean: one tab stop, described cells, named chips', async () => {
+    const root = host('reliquary-window');
+    openReliquary(root);
+    // Walk to a real page the way a player does, so axe sees the grid, the
+    // filter chip group, and the ul/li shelf structure that produced it.
+    root.querySelector<HTMLElement>('[data-nav="conquerors"]')?.click();
+    const firstPage = root.querySelector<HTMLElement>('[data-page]');
+    expect(firstPage).not.toBeNull();
+    firstPage?.click();
+
+    const grid = root.querySelector('.reliquary-grid');
+    expect(grid).not.toBeNull();
+    const cells = [...root.querySelectorAll<HTMLElement>('[data-cell-id]')];
+    expect(cells.length).toBeGreaterThan(1);
+    // Roving tabindex: exactly one tab stop, and every cell names its keys and
+    // points at the hint it is described by.
+    expect(cells.filter((c) => c.tabIndex === 0)).toHaveLength(1);
+    for (const cell of cells) {
+      expect(cell.getAttribute('aria-label')?.trim().length ?? 0).toBeGreaterThan(0);
+      expect(cell.getAttribute('aria-describedby')).toBe('reliquary-grid-hint');
+    }
+    // The describedby target must actually exist, or axe reports a dangling
+    // reference and a screen reader announces nothing extra.
+    expect(root.querySelector('#reliquary-grid-hint')).not.toBeNull();
+    // Every filter chip carries visible text as its accessible name.
+    const chips = [...root.querySelectorAll<HTMLElement>('[data-filter]')];
+    expect(chips).toHaveLength(3);
+    for (const chip of chips) {
+      expect(chip.textContent?.trim().length ?? 0).toBeGreaterThan(0);
+    }
+    await expectClean(root);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bank (#bank-window) - the phase 08 footer meter joined in QA 08: the split
+// aria (meterPoolsAria), the focusable meter group, the socket row, and the
+// buy button are all live in this staged near-full, socketed, stocked state,
+// so the whole personal pane meets axe rather than only the bags half of the
+// new aria pair.
+// ---------------------------------------------------------------------------
+
+describe('axe: bank window personal pane (footer meter)', () => {
+  it('a split, near-full, socketed bank axes clean', async () => {
+    const root = host('bank-window');
+    const stack = document.createElement('div');
+    stack.id = 'prompt-stack';
+    document.body.appendChild(stack);
+    const world = {
+      bankInfo: {
+        slots: Array.from({ length: 23 }, () => ({ itemId: 'iron_ore', count: 1 })),
+        capacity: 32,
+        purchasedSlots: 0,
+        bonusSlots: 0,
+        nextExpansionCost: 500,
+        bonusSources: [],
+        socketsUnlocked: 1,
+        socketBags: ['burlap_reagent_pouch', null, null, null],
+        nextSocketCost: 2000000,
+        generalCapacity: 24,
+        materialsCapacity: 8,
+        generalUsed: 21,
+        materialsUsed: 2,
+      },
+      guildBankInfo: null,
+      vaultInfo: null,
+      inventory: [],
+      bags: [null, null, null, null],
+      copper: 1000,
+    };
+    const win = new BankWindow(
+      stubDeps({
+        root: () => root,
+        world: () => world as never,
+        itemIcon: () => '<span class="item-icon"></span>',
+        moneyHtml: (c: number) => `<span class="money-inline">${c}</span>`,
+        itemTooltip: () => '',
+        captureFocus: () => null,
+        consumePeek: () => false,
+      }),
+    );
+    win.open();
+    // The staged state is the fullest one: gilded near-full footer, both meter
+    // segments, the split aria, and the focusable group all up before axe runs.
+    expect(root.querySelector('.bank-footer.near-full')).not.toBeNull();
+    expect(root.querySelector('.bank-meter[role="group"][tabindex="0"]')).not.toBeNull();
+    await expectClean(root);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bank (#bank-window) - the phase 13 Claudium rung purchase, which puts four
+// nodes in the SAME personal-pane footer that the meter arm above can never
+// reach: the second price tag inside the one expand button, that button's
+// aria-busy + disabled in-flight state, the purchase-result band, and the
+// visually hidden region that announces it. They are staged together because
+// that is the one moment all four coexist: a spend still on the wire with the
+// previous result's band still on screen.
+// ---------------------------------------------------------------------------
+
+describe('axe: bank window personal pane (Claudium rung purchase)', () => {
+  it('a dual-tag buy button, busy mid-spend, over a result band axes clean', async () => {
+    const root = host('bank-window');
+    const stack = document.createElement('div');
+    stack.id = 'prompt-stack';
+    document.body.appendChild(stack);
+    // The SKU the staged wire is selling, resolved the way the view core does
+    // (ladder index = purchasedSlots / block), so the busy state below is
+    // latched against the id the painter will actually compare rather than a
+    // `strongbox_rung_NN` literal that drifts when the ladder is re-cut.
+    const sku = storageRungSkuForLadderIndex(0);
+    expect(sku).toBeDefined();
+    const world = {
+      bankInfo: {
+        slots: Array.from({ length: 23 }, () => ({ itemId: 'iron_ore', count: 1 })),
+        capacity: 32,
+        purchasedSlots: 0,
+        bonusSlots: 0,
+        nextExpansionCost: 500,
+        // The wire's own Claudium price for that same next rung. Absent, this
+        // is the normal service-outage shape and the footer stays gold-only.
+        nextRungClaudiumPrice: 1200,
+        bonusSources: [],
+        socketsUnlocked: 1,
+        socketBags: ['burlap_reagent_pouch', null, null, null],
+        nextSocketCost: 2000000,
+        generalCapacity: 24,
+        materialsCapacity: 8,
+        generalUsed: 21,
+        materialsUsed: 2,
+      },
+      guildBankInfo: null,
+      vaultInfo: null,
+      inventory: [],
+      bags: [null, null, null, null],
+      copper: 1000,
+    };
+    const win = new BankWindow(
+      stubDeps({
+        root: () => root,
+        world: () => world as never,
+        itemIcon: () => '<span class="item-icon"></span>',
+        moneyHtml: (c: number) => `<span class="money-inline">${c}</span>`,
+        itemTooltip: () => '',
+        captureFocus: () => null,
+        consumePeek: () => false,
+        // The host-side gate: with no Claudium hooks attached the view core
+        // suppresses the second tag outright and this arm would silently be a
+        // duplicate of the gold-only footer above.
+        storeEnabled: () => true,
+      }),
+    );
+    // Both are read at MARKUP-BUILD time (a repaint may not hand back an
+    // enabled button mid-spend), so they have to be latched before the first
+    // paint, and neither the window nor the controller exposes a public setter.
+    //
+    // RE-POINTED at Bank Storage phase 17, which moved the rung money state
+    // machine out of the window into src/ui/bank_rung_purchase_core.ts. This rig
+    // stages state by NAME, so the move silently turned two writes into
+    // properties nobody reads: the button came back enabled with no band, and
+    // this file is the ONLY guard in the tree that could say so. The full gate
+    // caught it; no unit suite, source pin or review lane did. If these names
+    // move again, they move here in the same change.
+    const state = win as unknown as {
+      rungPurchase: {
+        inFlight: string | null;
+        band: { granted: boolean; reason: string | null } | null;
+      };
+    };
+    state.rungPurchase.inFlight = sku?.id ?? null;
+    state.rungPurchase.band = { granted: false, reason: 'purchase_in_progress' };
+    win.open();
+    // WHY THE PRE-CHECKS: axe over a scope that lost these nodes passes just as
+    // cleanly as one that audits them, so every claim this arm makes rests on
+    // the nodes really being on the page. A gate flipping the tag off, a
+    // renamed wire field, or a busy state that stops reaching the button would
+    // otherwise leave a green arm auditing markup that is not there.
+    const tag = root.querySelector('.bank-buy-tag.bank-buy-tag-claudium');
+    expect(tag).not.toBeNull();
+    expect(tag?.querySelector('img[alt=""]')).not.toBeNull();
+    expect(tag?.querySelector('strong')).not.toBeNull();
+    const btn = root.querySelector<HTMLButtonElement>('.bank-buy-btn[data-focus-key="bank:buy"]');
+    expect(btn).not.toBeNull();
+    expect(btn?.getAttribute('aria-busy')).toBe('true');
+    expect(btn?.disabled).toBe(true);
+    // The accessible name has to be the dual one, not the two prices read back
+    // to back: it is the whole reason the aria-label exists on this button.
+    expect((btn?.getAttribute('aria-label') ?? '').length).toBeGreaterThan(0);
+    expect(root.querySelector('.bank-rung-notice.failure')).not.toBeNull();
+    expect(
+      root.querySelector('span.visually-hidden[data-rung-live][role="status"][aria-live="polite"]'),
+    ).not.toBeNull();
+    await expectClean(root);
   });
 });

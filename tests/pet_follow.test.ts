@@ -4,6 +4,7 @@ import { findPlayerPath } from '../src/sim/pathfind';
 import { Sim } from '../src/sim/sim';
 import type { Entity, Vec3 } from '../src/sim/types';
 import { terrainHeight } from '../src/sim/world';
+import { RL_TEST_WORLD } from './sim_shared';
 
 // Pets heel by pathfinding around obstacles (like a warrior charge route) rather
 // than greedily wedging on a wall and then snapping to the owner. These tests pin
@@ -21,7 +22,7 @@ function place(e: Entity, x: number, z: number): void {
 // and its owner explicitly. Passive mode guarantees the pet never picks a combat
 // target, so it stays in the heel branch under test.
 function setup(petAt: Vec3, ownerAt: Vec3): { sim: Sim; pet: Entity; owner: Entity } {
-  const sim = new Sim({ seed: SEED, playerClass: 'hunter', noPlayer: true });
+  const sim = new Sim({ seed: SEED, playerClass: 'hunter', noPlayer: true, world: RL_TEST_WORLD });
   const pid = sim.addPlayer('hunter', 'Aleph');
   const owner = sim.entities.get(pid)!;
   let pet: Entity | null = null;
@@ -113,17 +114,16 @@ describe('pet heel pathfinding', () => {
     expect(dist(pet.pos, owner.pos)).toBeGreaterThan(30);
   });
 
-  it('routes around the spawn building inside the expanded heel search window', () => {
-    // The 96-cell heel search now covers this 87yd separation and finds the route
-    // around the spawn building, so the pet must run rather than snap.
-    const { sim, pet, owner } = setup({ x: 0, y: 0, z: -5 }, { x: 0, y: 0, z: 82 });
+  it('warps to the owner only as a last resort when no route exists', () => {
+    // 88yd apart with the north-west rim terrain breaking line of sight and no
+    // way round inside the A* search window: no route can be found, so the pet
+    // snaps to heel. Re-staged 2026-10-14 for the Tidehold rebuild of Eastbrook
+    // (#4494): the old (12,-135)/(12,-48) pair's bank no longer breaks the line,
+    // so the pet ran home instead. Staged on terrain, away from the town.
+    const { sim, pet, owner } = setup({ x: -150, y: 0, z: 178 }, { x: -150, y: 0, z: 90 });
     expect(dist(pet.pos, owner.pos)).toBeGreaterThan(60);
-    const before = { ...pet.pos };
     sim.tick();
-    expect(dist(before, pet.pos)).toBeLessThan(1.5);
-    expect(dist(pet.pos, owner.pos)).toBeGreaterThan(30);
-    for (let i = 0; i < 20 * 20; i++) sim.tick();
-    expect(dist(pet.pos, owner.pos)).toBeLessThan(4);
+    expect(dist(pet.pos, owner.pos)).toBeLessThan(1);
   });
 
   it('bounds far-pet recovery instead of tracing line of sight across the world', () => {
@@ -142,13 +142,6 @@ describe('pet heel pathfinding', () => {
     expect(dist(pet.pos, owner.pos)).toBeLessThan(1);
   });
 
-  it('keeps the road graph from suppressing far-pet recovery', () => {
-    const { sim, pet, owner } = setup({ x: 80, y: 0, z: 80 }, { x: 30, y: 0, z: -30 });
-    expect(findPlayerPath(SEED, pet.pos, owner.pos, 96).length).toBeGreaterThan(1);
-    sim.tick();
-    expect(dist(pet.pos, owner.pos)).toBeLessThan(1);
-  });
-
   it('keeps ordinary follow below the forced recovery boundary', () => {
     const below = setup({ x: -10_000, y: 0, z: -10_000 }, { x: -10_000, y: 0, z: -9_904 });
     below.sim.tick();
@@ -157,5 +150,25 @@ describe('pet heel pathfinding', () => {
     const above = setup({ x: -10_000, y: 0, z: -10_000 }, { x: -10_000, y: 0, z: -9_903 });
     above.sim.tick();
     expect(dist(above.pet.pos, above.owner.pos)).toBeLessThan(1);
+  });
+
+  it('routes around the spawn building inside the expanded heel search window', () => {
+    // The 96-cell heel search now covers this 87yd separation and finds the route
+    // around the spawn building, so the pet must run rather than snap.
+    const { sim, pet, owner } = setup({ x: 0, y: 0, z: -5 }, { x: 0, y: 0, z: 82 });
+    expect(dist(pet.pos, owner.pos)).toBeGreaterThan(60);
+    const before = { ...pet.pos };
+    sim.tick();
+    expect(dist(before, pet.pos)).toBeLessThan(1.5);
+    expect(dist(pet.pos, owner.pos)).toBeGreaterThan(30);
+    for (let i = 0; i < 20 * 20; i++) sim.tick();
+    expect(dist(pet.pos, owner.pos)).toBeLessThan(4);
+  });
+
+  it('keeps the road graph from suppressing far-pet recovery', () => {
+    const { sim, pet, owner } = setup({ x: 30, y: 0, z: -30 }, { x: -100, y: 0, z: -100 });
+    expect(findPlayerPath(SEED, pet.pos, owner.pos, 96).length).toBeGreaterThan(1);
+    sim.tick();
+    expect(dist(pet.pos, owner.pos)).toBeLessThan(1);
   });
 });

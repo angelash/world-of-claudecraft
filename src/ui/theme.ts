@@ -25,7 +25,7 @@ export type ThemeKnob =
 
 export type ThemeKnobs = Record<ThemeKnob, string>;
 
-export type PresetId = 'classic' | 'midnight' | 'parchment' | 'highContrast';
+export type PresetId = 'classic' | 'midnight' | 'parchment' | 'highContrast' | 'fancyGold';
 
 export interface ThemeState {
   preset: PresetId;
@@ -59,7 +59,13 @@ export const THEME_KNOB_LABEL_KEY: Record<ThemeKnob, string> = {
   energy: 'energy',
 };
 
-export const PRESET_ORDER: PresetId[] = ['classic', 'midnight', 'parchment', 'highContrast'];
+export const PRESET_ORDER: PresetId[] = [
+  'classic',
+  'fancyGold',
+  'midnight',
+  'parchment',
+  'highContrast',
+];
 
 // `classic` reproduces the shipped gold/dark palette; the others are alternates.
 export const THEME_PRESETS: Record<PresetId, ThemeKnobs> = {
@@ -106,6 +112,29 @@ export const THEME_PRESETS: Record<PresetId, ThemeKnobs> = {
     mana: '#00b0ff',
     rage: '#ff3030',
     energy: '#ffe000',
+  },
+  // "Fancy Gold": the hand-gilded look. WORK IN PROGRESS (owner decision):
+  // the preset is selectable and labelled "(WIP)" in the options menu while
+  // the gilded treatment is still being iterated on; expect its palette and
+  // ornament coverage to change, and do not pin new work to its current
+  // values. Selecting it does two things: these knobs retune the whole UI's
+  // palette, and applyTheme (main.ts) stamps the .fancy-gold-ui root class
+  // that turns on the gilded filigree window frame (perf_ornament_svg.ts +
+  // components.css); every other preset keeps the classic flat panels.
+  // Accent/border are drawn from the same --color-gold-* ramp the filigree
+  // paints with (accent = gold-400's warm gilt, border = gold-700's deep
+  // leaf), over a warm near-black panel, so the general chrome reads as one
+  // hand-gilded set with the ornament.
+  fancyGold: {
+    accent: '#f0c86d',
+    border: '#926321',
+    panel: '#1d1508',
+    text: '#f6ecd2',
+    textMuted: '#c0a468',
+    hp: '#1eb838',
+    mana: '#2b7bd4',
+    rage: '#c0392b',
+    energy: '#e4c531',
   },
 };
 
@@ -239,6 +268,33 @@ export function themeCssVars(knobs: ThemeKnobs): Record<string, string> {
     panelEdge,
     MIN_LARGE_CONTRAST,
   );
+  // The quest-marker tooltip TAG text (the map tooltip's "Repeatable" and
+  // "Available again soon" tags): a lifted rare-adjacent blue that reads AA
+  // on the dark presets but is blue-on-cream on the light Parchment panel,
+  // so it is repaired per preset exactly like --color-gold above, against
+  // BOTH the panel and its gradient edge. The static tokens.css default is
+  // the classic-preset value; this emit keeps every preset at the text tier.
+  const questTagText = ensureReadable(
+    ensureReadable('#3d9bff', panel, MIN_TEXT_CONTRAST),
+    panelEdge,
+    MIN_TEXT_CONTRAST,
+  );
+  // The profession-affinity tooltip line ("Used by Leatherworking, ...", the
+  // tt-material-use class): a soft craft-teal wash over the repaired accent
+  // so multi-use reagents scan apart from the plain tt-desc use lines without
+  // inventing a new rarity color. The wash re-lightens the accent (28% of a
+  // fixed light teal), so it is repaired per preset exactly like --color-gold
+  // above, against BOTH the panel and its gradient edge: unrepaired, the
+  // Parchment mix lands below that floor on the gradient's bottom band. The
+  // 3:1 floor keeps PARITY with the --color-accent family this line derives
+  // from (the shared .tt-desc text ships at that repair today); if that
+  // family is ever raised to the 4.5:1 text tier, raise both together. The
+  // static tokens.css default is the classic-preset value.
+  const materialUseText = ensureReadable(
+    ensureReadable(mixHex(colorGold, '#6ec8d4', 0.28), panel, MIN_LARGE_CONTRAST),
+    panelEdge,
+    MIN_LARGE_CONTRAST,
+  );
   // Overlay text sits over the 3D world (quest tracker), NOT a panel, so it must
   // stay light regardless of preset and lean on its text-shadow for contrast.
   const overlayText = '#f4eede';
@@ -248,6 +304,50 @@ export function themeCssVars(knobs: ThemeKnobs): Record<string, string> {
   // the glyph instead of separating it. The halo needs to sit on the opposite
   // side of the panel's lightness from the text, so flip it light there.
   const textOutline = lightPanel ? '#ffffff' : '#000000';
+  // Library text roles (src/styles/library.css): the secondary shade leans the
+  // body text toward the muted knob, the faint shade leans the muted knob toward
+  // the panel; both are contrast-repaired against the panel and its edge so the
+  // light Parchment preset keeps them readable.
+  const textSecondary = ensureReadable(
+    ensureReadable(mixHex(text, textMuted, 0.18), panel, MIN_TEXT_CONTRAST),
+    panelEdge,
+    MIN_TEXT_CONTRAST,
+  );
+  const textFaint = ensureReadable(
+    ensureReadable(mixHex(textMuted, panel, 0.12), panel, MIN_TEXT_CONTRAST),
+    panelEdge,
+    MIN_TEXT_CONTRAST,
+  );
+  // The soft and strong panel fills are the standard panel gradient at the two
+  // other alphas the boards use (trackers and chat at rest; tooltips, inputs and
+  // confirm dialogs), the strong one pulled a step toward black.
+  // The lifted stops the library composes over the panel: the socket radial's
+  // highlight and the window head's upper stop. Dark panels lift toward a cool
+  // slate (the shipped #2c2c3a / #1c1c29 land exactly), light panels sink a step.
+  const socketHi = lightPanel ? mixHex(panel, '#000000', 0.08) : mixHex(panel, '#434355', 0.5);
+  const panelHi = lightPanel ? mixHex(panel, '#000000', 0.06) : mixHex(panel, '#232333', 0.5);
+  // The glint (inner edge highlight, badge edge, thumb) follows the accent so a
+  // blue preset does not carry a gold hairline; light panels darken it instead.
+  const glint = lightPanel ? mixHex(accent, '#000000', 0.15) : mixHex(accent, '#ffffff', 0.55);
+  // Window-resident control borders follow the border knob (DESIGN.md 4.1: a
+  // border on a themed surface is preset-aware); HUD sockets keep the static rim.
+  const controlBorder = mixHex(border, '#000000', 0.3);
+  // Info and warning are chat text on the boards: repaired to the text tier like
+  // --color-material-use, against the panel and its edge.
+  const info = ensureReadable(
+    ensureReadable('#45c9ff', panel, MIN_TEXT_CONTRAST),
+    panelEdge,
+    MIN_TEXT_CONTRAST,
+  );
+  const warning = ensureReadable(
+    ensureReadable('#ff9d32', panel, MIN_TEXT_CONTRAST),
+    panelEdge,
+    MIN_TEXT_CONTRAST,
+  );
+  const panelStrong = lightPanel ? mixHex(panel, '#ffffff', 0.3) : mixHex(panel, '#000000', 0.24);
+  const panelStrongEdge = lightPanel
+    ? mixHex(panelEdge, '#ffffff', 0.2)
+    : mixHex(panelEdge, '#000000', 0.25);
   return {
     '--gold': accent,
     '--gold-dim': accentDim,
@@ -261,10 +361,22 @@ export function themeCssVars(knobs: ThemeKnobs): Record<string, string> {
     '--panel-base': panel,
     '--panel-bg': `linear-gradient(170deg, ${rgba(panel, 0.95)} 0%, ${rgba(panelEdge, 0.95)} 60%, ${rgba(panelEdge, 0.95)} 100%)`,
     '--panel-edge': panelEdge,
+    '--panel-bg-soft': `linear-gradient(170deg, ${rgba(panel, 0.74)} 0%, ${rgba(panelEdge, 0.74)} 60%, ${rgba(panelEdge, 0.74)} 100%)`,
+    '--panel-bg-strong': `linear-gradient(170deg, ${rgba(panelStrong, 0.97)} 0%, ${rgba(panelStrongEdge, 0.97)} 100%)`,
     '--color-bg-dark': panelEdge,
     '--color-text-light': text,
     '--color-text-muted': textMuted,
+    '--color-text-secondary': textSecondary,
+    '--color-text-faint': textFaint,
+    '--color-info': info,
+    '--color-warning': warning,
+    '--color-socket-hi': socketHi,
+    '--color-panel-hi': panelHi,
+    '--color-glint': glint,
+    '--color-control-border': controlBorder,
     '--color-text-overlay': overlayText,
+    '--color-quest-tag-text': questTagText,
+    '--color-material-use': materialUseText,
     '--text-outline-color': textOutline,
     '--scrollbar-thumb': mixHex(border, '#000000', 0.15),
     '--scrollbar-thumb-hover': border,

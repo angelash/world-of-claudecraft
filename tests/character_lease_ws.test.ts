@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 // ws_auth.ts takes ALL of its DB access through the injected deps bag, including
 // the two character-lease functions, so the handshake drives with no live
 // database and no module mock: the lease fns are vi.fn spies on the deps object.
 import { createWsAuth } from '../server/ws_auth';
+import { freshAccountLedger } from '../src/sim/account_ledger';
 import { ONLINE_WORLD_AUTH_TYPE } from '../src/world_api';
 
 const ALREADY_IN_WORLD = 'character already in world';
@@ -16,7 +16,11 @@ function fakeWs() {
     sent,
     closes,
     ws: {
+      // OPEN mirrors the real ws instance constant beside readyState: the
+      // mid-handshake death re-check compares the two, and a fixture with
+      // readyState but no OPEN reads as died-mid-handshake on every join.
       readyState: 1,
+      OPEN: 1,
       send: (p: string) => sent.push(JSON.parse(p)),
       close: (code?: number, reason?: string) => closes.push({ code, reason }),
       on: () => {},
@@ -61,7 +65,23 @@ function makeDeps(opts: { joinResult?: any; hasSession?: boolean; acquireResult?
     countIpSessions: () => 0,
     hasSessionForCharacter: hasSessionSpy,
     join: joinSpy,
+    drainBuddyGrants: vi.fn(async () => {}),
     clients: { size: 1 },
+    sim: { resetDay: '2026-09-24' },
+    // Consumed by the mid-handshake death re-check on a socket that died
+    // during the awaits; a live-socket fixture never reaches it.
+    socketClosed: vi.fn(() => true),
+    beginGeneralChatRateLimitHydration: vi.fn(() => ({
+      resolve: (policy: unknown) => policy,
+      release: vi.fn(),
+    })),
+    beginChatModerationHydration: vi.fn(() => ({
+      resolve: (moderation: unknown) => moderation,
+      release: vi.fn(),
+    })),
+    // The fresh-join arm asks the action-bar store for a still-queued document
+    // before its post-lease reload; this file has nothing queued.
+    hotbarLayouts: { pending: () => null },
   };
   const deps: any = {
     game,
@@ -73,6 +93,7 @@ function makeDeps(opts: { joinResult?: any; hasSession?: boolean; acquireResult?
     permissionsForRoles: () => new Set<string>(),
     metaRequestUserData: () => ({}),
     metaEventSourceUrl: () => undefined,
+    loadAccountLedger: async () => freshAccountLedger(),
     loadAccountCosmetics: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
     isConnectionRefused: () => false,
     bufferHandshakeMessages: () => () => {},
@@ -83,8 +104,19 @@ function makeDeps(opts: { joinResult?: any; hasSession?: boolean; acquireResult?
     acquireCharacterLease: acquireSpy,
     releaseCharacterLease: releaseSpy,
     bankBonusForAccount: bankBonusSpy,
+    characterCountForAccount: vi.fn(async () => 1),
   };
-  return { deps, game, joinSpy, hasSessionSpy, acquireSpy, releaseSpy, bankBonusSpy, session };
+  return {
+    deps,
+    game,
+    joinSpy,
+    hasSessionSpy,
+    acquireSpy,
+    releaseSpy,
+    bankBonusSpy,
+    session,
+    character,
+  };
 }
 
 beforeEach(() => {
@@ -262,6 +294,45 @@ describe('ws auth character load lease', () => {
       t: 'error',
       error: 'This character must be renamed before entering the world.',
     });
+  });
+
+  it('reloads after the lease and joins with the refreshed state', async () => {
+    const { deps, character, joinSpy, acquireSpy } = makeDeps();
+    const staleCharacter = { ...character, state: { marker: 'before-migration' } };
+    const refreshedCharacter = { ...character, state: { marker: 'after-migration' } };
+    const getCharacterSpy = vi
+      .fn()
+      .mockResolvedValueOnce(staleCharacter)
+      .mockResolvedValueOnce(refreshedCharacter);
+    deps.getCharacter = getCharacterSpy;
+    const { ws } = fakeWs();
+
+    await createWsAuth(deps).authenticateWebSocket(ws, authFrame(7), fakeReq());
+
+    expect(getCharacterSpy).toHaveBeenCalledTimes(2);
+    expect(acquireSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      getCharacterSpy.mock.invocationCallOrder[1],
+    );
+    expect(joinSpy).toHaveBeenCalledTimes(1);
+    expect(joinSpy.mock.calls[0][5]).toEqual({ marker: 'after-migration' });
+  });
+
+  it('releases the acquired lease when the post-lease reload rejects', async () => {
+    const { deps, character, joinSpy, acquireSpy, releaseSpy } = makeDeps();
+    deps.getCharacter = vi
+      .fn()
+      .mockResolvedValueOnce(character)
+      .mockRejectedValueOnce(new Error('reload failed'));
+    const { ws } = fakeWs();
+
+    await expect(
+      createWsAuth(deps).authenticateWebSocket(ws, authFrame(7), fakeReq()),
+    ).rejects.toThrow('reload failed');
+
+    const nonce = acquireSpy.mock.calls[0][2];
+    expect(releaseSpy).toHaveBeenCalledTimes(1);
+    expect(releaseSpy).toHaveBeenCalledWith(character.id, nonce);
+    expect(joinSpy).not.toHaveBeenCalled();
   });
 
   it('awaits a nonce-fenced release when join refuses and no session owns it', async () => {

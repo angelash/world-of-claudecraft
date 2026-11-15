@@ -1,5 +1,6 @@
 import { isBlocked, pathCrossesFence, resolvePosition } from './colliders';
-import { ROADS } from './data';
+import { getActiveWorldContent } from './data';
+import { rideHeight as rideOverWater } from './ride_height';
 import { groundHeight, waterLevelAt } from './world';
 
 // Local A* over a 1-yard grid, used for short forced moves (warrior Charge).
@@ -28,6 +29,8 @@ export interface PathOpts {
   // bottom — is what the body rides, so a sloped bed isn't a wall and the climb
   // check at the shore measures the real waterline-to-bank step.
   swim?: boolean;
+  // Per-Sim rift collision token (colliders.ts registry); 0/undefined = none.
+  riftToken?: number;
 }
 
 function minGroundAt(o: PathOpts, x: number, z: number): number {
@@ -36,10 +39,16 @@ function minGroundAt(o: PathOpts, x: number, z: number): number {
 
 // Height the mover's body actually rides at a cell: the water surface when
 // swimming over submerged ground, the ground itself otherwise. Used only for
-// slope/climb gating so an uneven lake bed doesn't read as a cliff.
-function rideHeight(x: number, z: number, h: number, swim: boolean | undefined): number {
-  const wl = waterLevelAt(x, z);
-  return swim && h < wl ? wl : h;
+// slope/climb gating so an uneven lake bed doesn't read as a cliff. The clamp
+// itself is shared with the movement kernel (ride_height.ts).
+function rideHeight(
+  x: number,
+  z: number,
+  h: number,
+  swim: boolean | undefined,
+  seed: number,
+): number {
+  return swim ? rideOverWater(x, z, h, seed) : h;
 }
 
 const CELL = 1; // yards
@@ -74,7 +83,7 @@ function segmentWalkable(
   const steps = Math.max(1, Math.ceil(d / SMOOTH_SAMPLE_STEP));
   let prevX = from.x;
   let prevZ = from.z;
-  let prevRide = rideHeight(prevX, prevZ, groundHeight(prevX, prevZ, o.seed), o.swim);
+  let prevRide = rideHeight(prevX, prevZ, groundHeight(prevX, prevZ, o.seed), o.swim, o.seed);
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
     const x = from.x + dx * t;
@@ -83,11 +92,12 @@ function segmentWalkable(
     const isEnd = i === steps;
     if (
       (!isEnd || !allowBlockedEnd) &&
-      (h < minGroundAt(o, x, z) || isBlocked(o.seed, x, z, o.bodyRadius, o.ignoreFences))
+      (h < minGroundAt(o, x, z) ||
+        isBlocked(o.seed, x, z, o.bodyRadius, o.ignoreFences, undefined, o.riftToken))
     ) {
       return false;
     }
-    const ride = rideHeight(x, z, h, o.swim);
+    const ride = rideHeight(x, z, h, o.swim, o.seed);
     const stepLen = Math.hypot(x - prevX, z - prevZ);
     const rise = ride - prevRide;
     if (stepLen > 1e-6 && rise > 0 && rise / stepLen > o.maxClimbSlope) return false;
@@ -132,7 +142,7 @@ function roadGraph(): RoadGraph {
     return next;
   };
 
-  for (const road of ROADS) {
+  for (const road of getActiveWorldContent().roads) {
     let prev: number | null = null;
     for (const point of road) {
       const current = nodeIndex(point);
@@ -180,6 +190,7 @@ function findRoadFallbackPath(
   to: { x: number; z: number },
   o: PathOpts,
 ): { x: number; z: number }[] {
+  if (getActiveWorldContent().roads.length === 0) return [];
   if (segmentWalkable(from, to, o, true)) return [{ x: to.x, z: to.z }];
 
   const graph = roadGraph();
@@ -297,7 +308,7 @@ export function findPath(
         i === startIdx ||
         i === goalIdx ||
         (groundAt(i) >= minGroundAt(o, cellX, cellZ) &&
-          !isBlocked(o.seed, cellX, cellZ, o.bodyRadius, o.ignoreFences));
+          !isBlocked(o.seed, cellX, cellZ, o.bodyRadius, o.ignoreFences, undefined, o.riftToken));
       walk[i] = ok ? 1 : -1;
     }
     return walk[i] === 1;
@@ -323,7 +334,8 @@ export function findPath(
   };
   const heapPop = (): number[] => {
     const top = heap[0];
-    const last = heap.pop()!;
+    const last = heap.pop();
+    if (!last) throw new Error('heap underflow');
     if (heap.length > 0) {
       heap[0] = last;
       let i = 0;
@@ -357,7 +369,7 @@ export function findPath(
     }
     const gx = cur % W,
       gz = (cur / W) | 0;
-    const hCur = rideHeight(cx(gx), cz(gz), groundAt(cur), o.swim);
+    const hCur = rideHeight(cx(gx), cz(gz), groundAt(cur), o.swim, o.seed);
     for (let dz = -1; dz <= 1; dz++) {
       for (let dx = -1; dx <= 1; dx++) {
         if (dx === 0 && dz === 0) continue;
@@ -365,21 +377,20 @@ export function findPath(
           nz = gz + dz;
         if (nx < 0 || nx >= W || nz < 0 || nz >= H) continue;
         const n = nz * W + nx;
+        const stepLen = (dx !== 0 && dz !== 0 ? Math.SQRT2 : 1) * CELL;
+        const g = gScore[cur] + stepLen;
+        if (g >= gScore[n]) continue;
         if (!walkable(n)) continue;
         // diagonals only when both orthogonal cells are clear (no corner clipping)
         if (dx !== 0 && dz !== 0 && (!walkable(gz * W + nx) || !walkable(nz * W + gx))) continue;
         const legFrom = cur === startIdx ? from : cellPoint(cur);
         const legTo = n === goalIdx ? to : cellPoint(n);
         if (!segmentWalkable(legFrom, legTo, o, n === goalIdx)) continue;
-        const stepLen = (dx !== 0 && dz !== 0 ? Math.SQRT2 : 1) * CELL;
-        const rise = rideHeight(cx(nx), cz(nz), groundAt(n), o.swim) - hCur;
+        const rise = rideHeight(cx(nx), cz(nz), groundAt(n), o.swim, o.seed) - hCur;
         if (rise > 0 && rise / stepLen > o.maxClimbSlope) continue;
-        const g = gScore[cur] + stepLen;
-        if (g < gScore[n]) {
-          gScore[n] = g;
-          cameFrom[n] = cur;
-          heapPush([g + octile(nx, nz), n]);
-        }
+        gScore[n] = g;
+        cameFrom[n] = cur;
+        heapPush([g + octile(nx, nz), n]);
       }
     }
   }
@@ -406,17 +417,18 @@ export function findPlayerPath(
   maxSpan = 128,
   ignoreFences = false,
   swim = false,
+  riftToken = 0,
   roadFallback = true,
 ): { x: number; z: number }[] {
   if (
     !swim &&
-    groundHeight(from.x, from.z, seed) < waterLevelAt(from.x, from.z) - PLAYER_SWIM_DEPTH
+    groundHeight(from.x, from.z, seed) < waterLevelAt(from.x, from.z, seed) - PLAYER_SWIM_DEPTH
   ) {
-    const shore = resolvePlayerDestination(seed, from);
+    const shore = resolvePlayerDestination(seed, from, false, riftToken);
     if (Math.hypot(shore.x - from.x, shore.z - from.z) > 0.5) {
       return [
         shore,
-        ...findPlayerPath(seed, shore, to, maxSpan, ignoreFences, false, roadFallback),
+        ...findPlayerPath(seed, shore, to, maxSpan, ignoreFences, false, riftToken, roadFallback),
       ];
     }
   }
@@ -429,10 +441,13 @@ export function findPlayerPath(
     // un-climbable banks stop them. Charge keeps the deep-water cutoff, and only
     // inside a declared lake's footprint: a dry sunken feature (crater, tunnel,
     // sinkhole) outside every lake has no floor at all, however deep it goes.
-    minGround: swim ? -Infinity : (x: number, z: number) => waterLevelAt(x, z) - PLAYER_SWIM_DEPTH,
+    minGround: swim
+      ? -Infinity
+      : (x: number, z: number) => waterLevelAt(x, z, seed) - PLAYER_SWIM_DEPTH,
     maxSpan,
     ignoreFences,
     swim,
+    riftToken,
     roadFallback,
   });
 }
@@ -441,20 +456,31 @@ function playerDestinationWalkable(
   seed: number,
   p: { x: number; z: number },
   swim: boolean,
+  riftToken = 0,
 ): boolean {
-  if (isBlocked(seed, p.x, p.z, PLAYER_BODY_RADIUS)) return false;
+  if (isBlocked(seed, p.x, p.z, PLAYER_BODY_RADIUS, false, undefined, riftToken)) return false;
   // Swimmers can stop on the water; walkers can't, so deep water inside a
   // declared lake is rejected and the caller snaps to the nearest shore.
-  return swim || groundHeight(p.x, p.z, seed) >= waterLevelAt(p.x, p.z) - PLAYER_SWIM_DEPTH;
+  return swim || groundHeight(p.x, p.z, seed) >= waterLevelAt(p.x, p.z, seed) - PLAYER_SWIM_DEPTH;
 }
 
 export function resolvePlayerDestination(
   seed: number,
   target: { x: number; z: number },
   swim = false,
+  riftToken = 0,
 ): { x: number; z: number } {
-  const pushed = resolvePosition(seed, target.x, target.z, PLAYER_BODY_RADIUS);
-  if (playerDestinationWalkable(seed, pushed, swim)) return pushed;
+  const pushed = resolvePosition(
+    seed,
+    target.x,
+    target.z,
+    PLAYER_BODY_RADIUS,
+    false,
+    undefined,
+    undefined,
+    riftToken,
+  );
+  if (playerDestinationWalkable(seed, pushed, swim, riftToken)) return pushed;
 
   let best: { x: number; z: number } | null = null;
   let bestD2 = Infinity;
@@ -468,8 +494,17 @@ export function resolvePlayerDestination(
         x: target.x + Math.sin(a) * radius,
         z: target.z + Math.cos(a) * radius,
       };
-      const p = resolvePosition(seed, raw.x, raw.z, PLAYER_BODY_RADIUS);
-      if (!playerDestinationWalkable(seed, p, swim)) continue;
+      const p = resolvePosition(
+        seed,
+        raw.x,
+        raw.z,
+        PLAYER_BODY_RADIUS,
+        false,
+        undefined,
+        undefined,
+        riftToken,
+      );
+      if (!playerDestinationWalkable(seed, p, swim, riftToken)) continue;
       const dx = p.x - target.x,
         dz = p.z - target.z;
       const d2 = dx * dx + dz * dz;

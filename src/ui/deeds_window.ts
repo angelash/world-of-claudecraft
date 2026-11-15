@@ -8,10 +8,21 @@
 // imports Hud and never hardcodes the window id).
 
 import { audio } from '../game/audio';
+import { accountEarnedDays } from '../sim/account_ledger';
 import { DEED_ORDER, DEEDS } from '../sim/content/deeds';
+import { DEEDS_RECENT_CAP } from '../sim/deeds';
 import type { DeedsRarity, IWorld } from '../world_api';
+import {
+  borderAccent,
+  DEED_HERALDRY_ATTR,
+  DEED_HERALDRY_MOTIF_ATTR,
+  deedBorderSlug,
+  deedHeraldryMotifSvg,
+  deedHeraldryStyle,
+} from './deed_border_view';
 import { deedDesc, deedName, deedTitleText } from './deed_i18n';
 import {
+  accountDeedsDigest,
   buildDeedsView,
   DEED_DISPLAY_CATEGORIES,
   DEED_FILTERS,
@@ -20,6 +31,7 @@ import {
   type DeedEntryModel,
   type DeedsFilter,
   type DeedsViewModel,
+  deedJumpCategory,
   deedRarityFraction,
   deedStatsDigest,
   deedsRefreshSig,
@@ -27,9 +39,12 @@ import {
   toggleWatch,
 } from './deeds_view';
 import { markDialogRoot } from './dialog_root';
+import { poiMarkLabel } from './entity_i18n';
 import { esc } from './esc';
+import { focusedWithin } from './focus_restore';
 import {
   formatDateTime,
+  formatList,
   formatNumber,
   getLanguage,
   languageTag,
@@ -78,7 +93,14 @@ const FILTER_LABEL_KEYS: Record<DeedsFilter, TranslationKey> = {
  */
 export function refocusSelector(active: Element | null): string | null {
   if (active === null) return null;
-  for (const attr of ['data-cat', 'data-filter', 'data-watch', 'data-title']) {
+  for (const attr of [
+    'data-cat',
+    'data-filter',
+    'data-watch',
+    'data-title',
+    'data-border-pick',
+    'data-recent',
+  ]) {
     const value = active.getAttribute(attr);
     if (value !== null) {
       const cssValue = value.replace(/["\\]/g, '\\$&');
@@ -127,6 +149,21 @@ export class DeedsWindow {
   // through the facet (null offline or on failure; the slot renders nothing).
   private rarity: DeedsRarity | null = null;
   private rarityFetchSeq = 0;
+  // The host's newest-first unlock order, fetched per open like rarity (null
+  // until it lands; the strip then falls back to the day-granular order).
+  private recentOrder: readonly string[] | null = null;
+  private recentFetchSeq = 0;
+  // This session's non-retro unlock ids in drain order (the HUD's noteUnlocks
+  // feed), bounded to DEEDS_RECENT_CAP: the freshest recency signal.
+  private sessionUnlocks: string[] = [];
+  // One-shot: the deed to spotlight (scroll + focus) after the next paint.
+  private focusDeedId: string | null = null;
+  // Sticky flash target: a cold open always fires fetchRecent (and sometimes
+  // fetchRarity), whose in-place re-render would strip .deed-card-flash before
+  // the first paint. The id is re-attached only when reattachFlash is set by
+  // those fetch arms, never by a user-driven repaint (filter/search/slow band).
+  private flashDeedId: string | null = null;
+  private reattachFlash = false;
 
   constructor(private readonly deps: DeedsWindowDeps) {}
 
@@ -153,12 +190,22 @@ export class DeedsWindow {
     this.opened = true;
     this.lastSig = '';
     this.fetchRarity();
+    this.fetchRecent();
     this.render();
     this.deps.root().style.display = 'flex';
-    // Move keyboard focus into the freshly opened window (onto the close button),
-    // matching the sibling cold windows, so a keyboard user is not stranded on the
-    // opener while the focus trap is active.
-    (this.deps.root().querySelector('[data-close]') as HTMLElement | null)?.focus();
+    // A jump-to-deed open already put the reading position on the landed card
+    // (and may have scrolled under display:none). Prefer that card over the
+    // sibling-window Close park: re-scroll now that the root is visible, and
+    // do not steal focus the jump promised. Plain opens still land on Close.
+    const flashed = this.deps.root().querySelector<HTMLElement>('.deed-card-flash');
+    if (flashed) {
+      if (typeof flashed.scrollIntoView === 'function') {
+        flashed.scrollIntoView({ block: 'center' });
+      }
+      flashed.focus({ preventScroll: true });
+    } else {
+      (this.deps.root().querySelector('[data-close]') as HTMLElement | null)?.focus();
+    }
     audio.click();
   }
 
@@ -174,6 +221,8 @@ export class DeedsWindow {
       .then((rarity) => {
         if (seq !== this.rarityFetchSeq || !this.opened || rarity === null) return;
         this.rarity = rarity;
+        // Fetch-driven rebuild: re-attach a live jump flash (see flashDeedId).
+        this.reattachFlash = true;
         this.render();
       })
       .catch(() => {
@@ -181,11 +230,77 @@ export class DeedsWindow {
       });
   }
 
+  /** One recent-order fetch per fresh open (the rarity pattern): the async
+   *  result repaints in place, the sequence guard drops a stale response
+   *  after a close/reopen race. Session unlocks outrank it in the merge, so a
+   *  character_deeds upsert still in flight cannot misplace a just-earned
+   *  deed. */
+  private fetchRecent(): void {
+    const seq = ++this.recentFetchSeq;
+    this.recentOrder = null;
+    void this.deps
+      .world()
+      .deedsRecent()
+      .then((order) => {
+        if (seq !== this.recentFetchSeq || !this.opened || order === null) return;
+        this.recentOrder = order;
+        // Fetch-driven rebuild: re-attach a live jump flash (see flashDeedId).
+        // Offline this lands on a microtask and would otherwise strip the
+        // spotlight before the first paint on a cold openWithDeed.
+        this.reattachFlash = true;
+        this.render();
+      })
+      .catch(() => {
+        /* null-on-failure is the facet contract; the day fallback stands */
+      });
+  }
+
+  /** The HUD's deed-unlock drain feed: remember this session's non-retro
+   *  unlock order so the recent strip is exact the moment the Book opens
+   *  (the fetched order may predate an upsert still in flight). Bounded to
+   *  DEEDS_RECENT_CAP; an open window repaints immediately. */
+  noteUnlocks(deedIds: readonly string[]): void {
+    if (deedIds.length === 0) return;
+    for (const id of deedIds) this.sessionUnlocks.push(id);
+    const excess = this.sessionUnlocks.length - DEEDS_RECENT_CAP;
+    if (excess > 0) this.sessionUnlocks.splice(0, excess);
+    if (this.opened) this.render();
+  }
+
+  /** Open (or refocus) the Book on one deed's card: the chat deed-link and
+   *  recent-strip jump. Switches to the deed's display category and clears
+   *  the filter/search so the card is guaranteed visible, then spotlights it
+   *  after the paint. A hidden deed not yet earned stays masked (the Book
+   *  must not reveal it), so that jump opens the Book wherever it last was,
+   *  unfocused; an unknown id (content drift) does the same. */
+  openWithDeed(deedId: string): void {
+    // The eligibility + destination decision is the core's (deedJumpCategory
+    // shares the masking predicate with buildDeedsView, so the two cannot
+    // drift): null means an unknown or still-masked deed, and the Book opens
+    // wherever it was, unfocused.
+    const jump = deedJumpCategory(DEEDS, this.earnedUnion(), deedId);
+    if (jump !== null) {
+      this.category = jump;
+      this.filter = 'all';
+      this.search = '';
+      this.focusDeedId = deedId;
+      // Sticky across the open-time recent/rarity fetch re-render.
+      this.flashDeedId = deedId;
+    }
+    if (!this.opened) {
+      this.open();
+      return;
+    }
+    this.render();
+  }
+
   close(): void {
     if (!this.opened) return;
     const el = this.deps.root();
     el.style.display = 'none';
     this.opened = false;
+    this.flashDeedId = null;
+    this.reattachFlash = false;
     this.deps.hideTooltip();
     this.deps.restoreFocus(this.openerFocus);
     this.openerFocus = null;
@@ -200,23 +315,36 @@ export class DeedsWindow {
     }
   }
 
-  /** Slow-band refresh: repaint only when the compact signature moves. The
-   *  stat digest keeps open-window progress bars live while raw counters
-   *  climb between unlocks. Both builders are pure deeds_view exports so
-   *  every repaint dimension stays unit-pinned. */
-  refreshIfChanged(): void {
-    if (!this.opened) return;
+  /** The compact repaint signature over the current world + view state (the
+   *  deedsRefreshSig dimensions, every one unit-pinned). */
+  private currentSig(): string {
     const world = this.deps.world();
-    const sig = deedsRefreshSig({
+    return deedsRefreshSig({
       renown: world.renown,
       earnedCount: world.deedsEarned.size,
+      accountDigest: accountDeedsDigest(world.accountDeeds),
       activeTitle: world.activeTitle,
+      activeBorder: world.activeBorder,
       filter: this.filter,
       search: this.search,
       category: this.category,
       watchRev: this.watchRev,
       statsDigest: deedStatsDigest(world.deedStats),
+      devTier: world.player.devTier ?? 0,
+      referralTitleOwned: world.referralCardsSnapshot?.()?.titleOwned,
     });
+  }
+
+  /** Slow-band refresh: repaint only when the compact signature moves. The
+   *  stat digest keeps open-window progress bars live while raw counters
+   *  climb between unlocks. Both builders are pure deeds_view exports so
+   *  every repaint dimension stays unit-pinned. render() latches the same
+   *  signature after every paint, so the first slow-band tick after an open
+   *  or a jump elides instead of tearing down the frame it just painted
+   *  (which would wipe the jump spotlight within 500ms). */
+  refreshIfChanged(): void {
+    if (!this.opened) return;
+    const sig = this.currentSig();
     if (sig === this.lastSig) return;
     this.lastSig = sig;
     this.render();
@@ -227,7 +355,10 @@ export class DeedsWindow {
     if (!this.opened) return;
     this.pruneWatchedIfStale();
     const active = document.activeElement as HTMLElement | null;
-    const hadFocus = el.contains(active);
+    // The shared reader, not a bare root-containment check: the pointer-only
+    // focus drop parks pointer focus on this root, and the root is not a control
+    // to restore (it would resolve no selector and fall through to Close).
+    const hadFocus = focusedWithin(el) !== null;
     const searchEl = el.querySelector('.deed-search') as HTMLInputElement | null;
     const searchFocus =
       searchEl !== null && active === searchEl
@@ -245,9 +376,9 @@ export class DeedsWindow {
 
     const model = this.buildModel();
     el.innerHTML =
-      `<div class="panel-title"><span>${esc(t('hudChrome.deeds.title'))}</span>` +
-      `<input type="search" class="deed-search" value="${esc(this.search)}" placeholder="${esc(t('hudChrome.deeds.searchPlaceholder'))}" aria-label="${esc(t('hudChrome.deeds.searchAria'))}">` +
-      `<button type="button" class="x-btn" data-close aria-label="${esc(t('hudChrome.deeds.close'))}">${svgIcon('close')}</button></div>` +
+      `<div class="panel-title ui-win-head"><span class="ui-win-title">${esc(t('hudChrome.deeds.title'))}</span>` +
+      `<input type="search" class="deed-search ui-input" value="${esc(this.search)}" placeholder="${esc(t('hudChrome.deeds.searchPlaceholder'))}" aria-label="${esc(t('hudChrome.deeds.searchAria'))}">` +
+      `<button type="button" class="x-btn ui-x-btn" data-close aria-label="${esc(t('hudChrome.deeds.close'))}">${svgIcon('close')}</button></div>` +
       this.summaryHtml(model) +
       `<div class="deeds-body">${this.railHtml(model)}<div class="deeds-scroll">${this.contentHtml(model)}</div></div>` +
       this.filterBarHtml();
@@ -265,6 +396,55 @@ export class DeedsWindow {
       const fresh = refocusSel === null ? null : el.querySelector<HTMLElement>(refocusSel);
       (fresh ?? (el.querySelector('[data-close]') as HTMLElement | null))?.focus();
     }
+    // Jump spotlight: full focus+scroll on the one-shot arm; flash-only reattach
+    // after a fetch-driven rebuild (focus restored because innerHTML orphaned
+    // the previous card, but no re-scroll so a player who nudged the list keeps
+    // their place).
+    if (model.focusDeedId !== null) {
+      this.spotlightCard(el, model.focusDeedId, { focus: true, scroll: true });
+      this.flashDeedId = model.focusDeedId;
+    } else if (this.reattachFlash && this.flashDeedId !== null) {
+      this.spotlightCard(el, this.flashDeedId, { focus: true, scroll: false });
+    }
+    // One-shot regardless of the echo: an id the core could not echo (content
+    // drift between paints) must not stay latched and scroll at some
+    // arbitrary later render.
+    this.focusDeedId = null;
+    this.reattachFlash = false;
+    // Latch the painted state's signature so the next slow-band tick elides:
+    // without this, open() (lastSig = '') and every jump-driven render would
+    // be rebuilt within 500ms, wiping the spotlight and, under
+    // prefers-reduced-motion, the static ring that is the only landing cue.
+    this.lastSig = this.currentSig();
+  }
+
+  /** Spotlight a deed card after paint: flash class always; focus and scroll
+   *  are opt-in so a fetch reattach can keep the gold ring without yanking the
+   *  scroll offset. Pure CSS animation (no timer); reduced-motion swaps in a
+   *  static ring. The selector escape is the refocusSelector rule
+   *  (quote+backslash; CSS.escape is absent in the jsdom test env). */
+  private spotlightCard(
+    el: HTMLElement,
+    deedId: string,
+    opts: { focus: boolean; scroll: boolean },
+  ): void {
+    const cssValue = deedId.replace(/["\\]/g, '\\$&');
+    const card = el.querySelector<HTMLElement>(`.deed-card[data-deed="${cssValue}"]`);
+    if (!card) return;
+    card.tabIndex = -1;
+    if (opts.focus) card.focus({ preventScroll: true });
+    // Guarded: jsdom (the focus/behavior test env) ships no scrollIntoView.
+    if (opts.scroll && typeof card.scrollIntoView === 'function') {
+      card.scrollIntoView({ block: 'center' });
+    }
+    card.classList.add('deed-card-flash');
+  }
+
+  /** The account-wide earned map (own earns plus every alt's), for the two
+   *  callers that take an earned map rather than the whole view input. */
+  private earnedUnion(): ReadonlyMap<string, string> {
+    const world = this.deps.world();
+    return accountEarnedDays(world.deedsEarned, { deeds: world.accountDeeds });
   }
 
   private buildModel(): DeedsViewModel {
@@ -273,9 +453,13 @@ export class DeedsWindow {
     this.ensureWatchLoaded();
     return buildDeedsView({
       deedsEarned: world.deedsEarned,
+      accountDeeds: world.accountDeeds,
       deedStats: world.deedStats,
       renown: world.renown,
       activeTitle: world.activeTitle,
+      activeBorder: world.activeBorder,
+      devTier: world.player.devTier ?? 0,
+      referralTitleOwned: world.referralCardsSnapshot?.()?.titleOwned,
       deeds: DEEDS,
       order: DEED_ORDER,
       category: this.category,
@@ -283,6 +467,9 @@ export class DeedsWindow {
       search: this.search.trim().toLocaleLowerCase(tag),
       watched: this.watchedSet,
       searchText: (id) => `${deedName(id)} ${deedDesc(id)}`.toLocaleLowerCase(tag),
+      recentOrder: this.recentOrder,
+      sessionUnlocks: this.sessionUnlocks,
+      focusDeedId: this.focusDeedId,
     });
   }
 
@@ -296,17 +483,21 @@ export class DeedsWindow {
       `<div class="deeds-summary">` +
       `<span class="deeds-renown">${esc(t('hudChrome.deeds.renownLabel'))} <b>${this.fmt(s.renown)}</b></span>` +
       `<span class="deeds-count">${esc(t('hudChrome.deeds.countLabel', { earned, total }))}</span>` +
-      `<span class="deeds-pct" role="img" aria-label="${esc(t('hudChrome.deeds.completionAria', { earned, total }))}">` +
-      `<span class="deed-bar deeds-completion"><span class="deed-bar-fill" style="width:${pct}%"></span></span> ${esc(pctText)}</span>` +
-      `</div>`;
+      `<span class="deed-bar deeds-completion ui-bar" role="img" aria-label="${esc(t('hudChrome.deeds.completionAria', { earned, total }))}"><span class="deed-bar-fill ui-bar-fill" style="width:${pct}%"></span></span>` +
+      `<span class="deeds-pct">${esc(pctText)}</span>` +
+      // The scope disclosure the ranked-surface rule asks of a re-scoped count
+      // (docs/design/deeds.md): Renown and the earned pair are account-wide.
+      `<span class="ui-chip deeds-scope-note" data-scope-note tabindex="0">${esc(t('hudChrome.deeds.accountScopeNote'))}</span>`;
     if (s.recent.length > 0) {
       const crests = s.recent
         .map(
           (r) =>
-            // alt carries the deed name: the strip has no adjacent visible
-            // text, so an empty alt would hide the recent unlocks entirely
-            // from the accessibility tree.
-            `<img class="deed-crest deed-crest-mini" src="${iconDataUrl('crest', r.crestId, DEED_CREST_SIZE)}" alt="${esc(deedName(r.id))}" title="${esc(deedName(r.id))}">`,
+            // Each crest is a jump button to its deed's card. The button
+            // carries the accessible name (the strip has no adjacent visible
+            // text); the crest img inside stays alt="" so the deed is not
+            // announced twice.
+            `<button type="button" class="deeds-recent-item ui-chip" data-recent="${esc(r.id)}" aria-label="${esc(t('hudChrome.deeds.recentJumpAria', { name: deedName(r.id) }))}" title="${esc(deedName(r.id))}">` +
+            `<img class="deed-crest deed-crest-mini" src="${iconDataUrl('crest', r.crestId, DEED_CREST_SIZE)}" alt=""></button>`,
         )
         .join('');
       html += `<div class="deeds-recent"><span class="deeds-strip-label">${esc(t('hudChrome.deeds.recentLabel'))}</span>${crests}</div>`;
@@ -323,9 +514,9 @@ export class DeedsWindow {
             )}</span></span>`,
         )
         .join('');
-      html += `<div class="deeds-nearest"><span class="deeds-strip-label">${esc(t('hudChrome.deeds.nearestLabel'))}</span>${rows}</div>`;
+      html += `<div class="deeds-nearest ui-card"><span class="deeds-strip-label">${esc(t('hudChrome.deeds.nearestLabel'))}</span>${rows}</div>`;
     }
-    return html;
+    return `${html}</div>`;
   }
 
   private railHtml(model: DeedsViewModel): string {
@@ -334,7 +525,7 @@ export class DeedsWindow {
         const label = t(CATEGORY_LABEL_KEYS[c.category]);
         const on = this.category === c.category;
         return (
-          `<button type="button" class="deeds-cat${on ? ' active' : ''}" data-cat="${c.category}" aria-pressed="${on}" aria-label="${esc(
+          `<button type="button" class="deeds-cat ui-seg-tab${on ? ' active is-on' : ''}" data-cat="${c.category}" aria-pressed="${on}" aria-label="${esc(
             t('hudChrome.deeds.categoryCountAria', {
               category: label,
               earned: this.fmt(c.earned),
@@ -346,10 +537,13 @@ export class DeedsWindow {
       })
       .join('');
     const titlesOn = this.category === 'titles';
+    // The shelf holds both worn cosmetics, so the rail names both: a player
+    // hunting for the border picker must be able to see where it lives.
     const titlesRow =
-      `<button type="button" class="deeds-cat deeds-cat-titles${titlesOn ? ' active' : ''}" data-cat="titles" aria-pressed="${titlesOn}">` +
-      `<span class="deeds-cat-name">${esc(t('hudChrome.deeds.titlesSection'))}</span></button>`;
-    return `<nav class="deeds-rail" aria-label="${esc(t('hudChrome.deeds.categoriesAria'))}">${rows}${titlesRow}</nav>`;
+      `<span class="deeds-cat-divider ui-divider" aria-hidden="true"></span>` +
+      `<button type="button" class="deeds-cat deeds-cat-titles ui-seg-tab${titlesOn ? ' active is-on' : ''}" data-cat="titles" aria-pressed="${titlesOn}">` +
+      `<span class="deeds-cat-name">${esc(t('hudChrome.deeds.cosmeticsSection'))}</span></button>`;
+    return `<nav class="deeds-rail ui-seg" aria-label="${esc(t('hudChrome.deeds.categoriesAria'))}">${rows}${titlesRow}</nav>`;
   }
 
   private contentHtml(model: DeedsViewModel): string {
@@ -359,25 +553,45 @@ export class DeedsWindow {
     return `<div class="deeds-list">${model.entries.map((entry) => this.entryHtml(entry)).join('')}</div>`;
   }
 
+  /** Resolve poi:<zoneId>:<poiId> marks (the core's missingPoiMarkIds) to
+   *  their localized display names via the shared poiMarkLabel resolver
+   *  (entity_i18n.ts), which drops a mark whose zone/poi no longer resolves
+   *  rather than showing a raw id. */
+  private missingPoiLabels(markIds: readonly string[]): string[] {
+    const labels: string[] = [];
+    for (const markId of markIds) {
+      const label = poiMarkLabel(markId);
+      if (label !== null) labels.push(label);
+    }
+    return labels;
+  }
+
   private entryHtml(entry: DeedEntryModel): string {
     const name = deedName(entry.id);
     const chips: string[] = [];
     if (entry.feat)
       chips.push(
-        `<span class="deed-chip deed-feat">${esc(t('hudChrome.deeds.featRibbon'))}</span>`,
+        `<span class="deed-chip deed-feat ui-chip">${esc(t('hudChrome.deeds.featRibbon'))}</span>`,
       );
     if (entry.hiddenBadge)
       chips.push(
-        `<span class="deed-chip deed-hidden">${esc(t('hudChrome.deeds.hiddenBadge'))}</span>`,
+        `<span class="deed-chip deed-hidden ui-chip">${esc(t('hudChrome.deeds.hiddenBadge'))}</span>`,
       );
     if (entry.titleReward)
       chips.push(
-        `<span class="deed-chip deed-title-chip">${esc(t('hudChrome.deeds.titleChip'))}</span>`,
+        `<span class="deed-chip deed-title-chip ui-chip">${esc(t('hudChrome.deeds.titleChip'))}</span>`,
+      );
+    // Deliberate family reuse: the border chip wears the shipped
+    // deed-title-chip class rather than a bespoke one, so the two worn-cosmetic
+    // rewards read as one family on a card and neither can drift in styling.
+    if (entry.borderReward)
+      chips.push(
+        `<span class="deed-chip deed-title-chip ui-chip">${esc(t('hudChrome.deeds.borderChip'))}</span>`,
       );
     // Feats carry no Renown chip (they are zero Renown by rule).
     if (!entry.feat)
       chips.push(
-        `<span class="deed-chip deed-renown">${esc(t('hudChrome.deeds.renownChip', { renown: this.fmt(entry.renown) }))}</span>`,
+        `<span class="deed-chip deed-renown ui-chip">${esc(t('hudChrome.deeds.renownChip', { renown: this.fmt(entry.renown) }))}</span>`,
       );
     let body =
       `<div class="deed-head"><span class="deed-name">${esc(name)}</span>${chips.join('')}</div>` +
@@ -394,7 +608,7 @@ export class DeedsWindow {
             current: this.fmt(entry.progress.current),
             target: this.fmt(entry.progress.target),
           }),
-        )}"><span class="deed-bar"><span class="deed-bar-fill" style="width:${pct}%"></span></span>` +
+        )}"><span class="deed-bar ui-bar"><span class="deed-bar-fill ui-bar-fill" style="width:${pct}%"></span></span>` +
         `<span class="deed-progress-text">${esc(progressText)}</span></div>`;
     }
     // Rarity line: only once a value exists for THIS deed (absent data means
@@ -409,13 +623,52 @@ export class DeedsWindow {
       });
       body += `<div class="deed-rarity">${esc(t('hudChrome.deeds.rarityLine', { percent }))}</div>`;
     }
+    // Which named places are still outstanding on an exploration wayfarer
+    // deed (single-zone like Wayfarer of the Heights, or cross-zone like The
+    // Long Road North), so a player is never left re-walking ground to find
+    // the one mark that never registered (it did; they just could not see
+    // which one). The .deed-rarity class is reused rather than a bespoke
+    // one: both lines are the same "muted secondary fact under the blurb"
+    // role.
+    const missingPlaces = this.missingPoiLabels(entry.missingPoiMarkIds);
+    if (missingPlaces.length > 0) {
+      body += `<div class="deed-rarity">${esc(
+        t('hudChrome.deeds.stillToVisit', { places: formatList(missingPlaces) }),
+      )}</div>`;
+    }
     let foot = '';
-    if (entry.earnedDay !== null) {
+    // The bare date is this character's OWN earn only: for a deed an alt
+    // earned, the ledger line below is the whole fact, and printing the alt's
+    // day as "Earned ..." would read as this character's accomplishment.
+    if (entry.earnedDay !== null && entry.earnedByMe) {
       const date = formatDateTime(new Date(`${entry.earnedDay}T00:00:00Z`), {
         dateStyle: 'medium',
         timeZone: 'UTC',
       });
       foot += `<span class="deed-earned-date">${esc(t('hudChrome.deeds.earnedDate', { date }))}</span>`;
+    }
+    // The account ledger's earners: every character on the account that
+    // accomplished this deed, each with its own date where one is recorded.
+    // Listed whenever anyone else is on it (the Book is account-wide, so the
+    // reader may not be the earner); the same muted-fact role as the date
+    // beside it. Skipped when the only earner is this character: the date
+    // line above already says it, and the name would repeat the date.
+    const ownOnly = entry.earnedByMe && entry.earners.length === 1;
+    if (entry.earners.length > 0 && !ownOnly) {
+      const names = entry.earners.map((earner) =>
+        earner.day === ''
+          ? earner.name
+          : t('hudChrome.deeds.earnerWithDate', {
+              name: earner.name,
+              date: formatDateTime(new Date(`${earner.day}T00:00:00Z`), {
+                dateStyle: 'medium',
+                timeZone: 'UTC',
+              }),
+            }),
+      );
+      foot += `<span class="deed-earned-date deed-earned-by">${esc(
+        t('hudChrome.deeds.earnedBy', { names: formatList(names) }),
+      )}</span>`;
     }
     if (entry.watchable) {
       const atCap = !entry.watched && this.watchedSet.size >= DEED_WATCH_CAP;
@@ -426,11 +679,11 @@ export class DeedsWindow {
       const fullNote = atCap
         ? ` disabled title="${esc(t('hudChrome.deeds.watchFull', { cap: this.fmt(DEED_WATCH_CAP) }))}"`
         : '';
-      foot += `<button type="button" class="deed-watch${entry.watched ? ' watching' : ''}" data-watch="${esc(entry.id)}" aria-pressed="${entry.watched}" aria-label="${esc(aria)}"${fullNote}>${esc(label)}</button>`;
+      foot += `<button type="button" class="deed-watch ui-btn${entry.watched ? ' watching' : ''}" data-watch="${esc(entry.id)}" aria-pressed="${entry.watched}" aria-label="${esc(aria)}"${fullNote}>${esc(label)}</button>`;
     }
     if (foot !== '') foot = `<div class="deed-foot">${foot}</div>`;
     return (
-      `<div class="deed-card${entry.earned ? ' earned' : ' unearned'}" data-deed="${esc(entry.id)}">` +
+      `<div class="deed-card ui-card${entry.earned ? ' earned' : ' unearned'}" data-deed="${esc(entry.id)}">` +
       `<img class="deed-crest${entry.earned ? '' : ' desat'}" src="${iconDataUrl('crest', entry.crestId, DEED_CREST_SIZE)}" alt="">` +
       `<div class="deed-main">${body}${foot}</div></div>`
     );
@@ -444,30 +697,140 @@ export class DeedsWindow {
     return `<b>${esc(deedName(id))}</b><div class="tt-sub">${esc(deedDesc(id))}</div>`;
   }
 
+  /** The worn-cosmetics shelf: the title picker, then the nameplate-border
+   *  picker. Two labelled groups of the same option button (one class, so the
+   *  mobile tap floor and the focus ring already cover both); the pick
+   *  ATTRIBUTE is what keeps their click delegations apart. */
   private titlesHtml(model: DeedsViewModel): string {
-    const rows = model.titles
+    const activeBorder = model.borders.find((option) => option.active)?.id ?? null;
+    return (
+      this.pickerGroupHtml({
+        cls: 'deeds-titles',
+        pickAttr: 'data-title',
+        headingKey: 'hudChrome.deeds.titlesSection',
+        emptyKey: 'hudChrome.deeds.titlesEmpty',
+        options: model.titles,
+        // A title deed (or a developer-badge rung title) carries its own display
+        // text; a border deed carries a slug with no player-facing words, so its
+        // option is named by the deed.
+        label: (id) => (id === null ? t('hudChrome.deeds.titlesNone') : deedTitleText(id)),
+      }) +
+      this.pickerGroupHtml({
+        cls: 'deeds-borders',
+        pickAttr: 'data-border-pick',
+        headingKey: 'hudChrome.deeds.bordersSection',
+        emptyKey: 'hudChrome.deeds.bordersEmpty',
+        options: model.borders,
+        label: (id) => (id === null ? t('hudChrome.deeds.bordersNone') : deedName(id)),
+        decorate: (id, label) => this.borderOptionInner(id, label),
+      }) +
+      `<div class="deeds-border-preview-slot">${this.borderPreviewHtml(activeBorder)}</div>`
+    );
+  }
+
+  /** Canonical seal plus a small material sample and the existing deed name.
+   *  None retains the same footprint but contains no earned material. */
+  private borderOptionInner(id: string | null, label: string): string {
+    const name = esc(label);
+    if (!id) {
+      return `<span class="deed-border-swatch deed-border-swatch-empty" aria-hidden="true"></span>${name}`;
+    }
+    const accent = borderAccent(deedBorderSlug(id));
+    if (!accent) {
+      return `<span class="deed-border-swatch deed-border-swatch-empty" aria-hidden="true"></span>${name}`;
+    }
+    return (
+      `<span class="deed-border-swatch" aria-hidden="true" ${DEED_HERALDRY_ATTR}="${esc(deedBorderSlug(id))}" ${DEED_HERALDRY_MOTIF_ATTR}="${accent.motif}" style="${esc(deedHeraldryStyle(accent))}">` +
+      `<span class="deed-heraldry-seal">${deedHeraldryMotifSvg(accent.motif, 'deed-heraldry-seal-art')}</span>` +
+      `<span class="deed-border-material">${deedHeraldryMotifSvg(accent.motif, 'deed-heraldry-pattern')}</span></span>` +
+      name
+    );
+  }
+
+  /** Representative world token plus interaction reveal. This is rebuilt only
+   *  on picker hover/focus events and carries no command path. */
+  private borderPreviewHtml(id: string | null): string {
+    const slug = deedBorderSlug(id);
+    const accent = borderAccent(slug);
+    const deedId = id ?? '';
+    if (!id || !accent) {
+      return `<div class="deed-heraldry-preview" data-preview-deed="${esc(deedId)}" ${DEED_HERALDRY_ATTR}="" aria-hidden="true"></div>`;
+    }
+    const playerName = esc(this.deps.world().player.name);
+    const grantingDeed = esc(deedName(id));
+    const seal =
+      `<span class="deed-heraldry-seal">` +
+      deedHeraldryMotifSvg(accent.motif, 'deed-heraldry-seal-art') +
+      `</span>`;
+    const pattern = deedHeraldryMotifSvg(accent.motif, 'deed-heraldry-pattern');
+    return (
+      `<div class="deed-heraldry-preview" data-preview-deed="${esc(id)}" ${DEED_HERALDRY_ATTR}="${esc(slug)}" ${DEED_HERALDRY_MOTIF_ATTR}="${accent.motif}" style="${esc(deedHeraldryStyle(accent))}" aria-hidden="true">` +
+      `<div class="deed-heraldry-preview-world">${seal}<span class="deed-heraldry-preview-ribbon deed-heraldry-plaque">${playerName}</span></div>` +
+      `<div class="deed-heraldry-preview-interaction"><span class="deed-heraldry-preview-portrait"></span>${seal}` +
+      `<span class="deed-heraldry-preview-header deed-heraldry-plaque">${pattern}<span class="deed-heraldry-preview-name">${playerName}</span>` +
+      `<span class="deed-heraldry-preview-deed">${grantingDeed}</span></span></div></div>`
+    );
+  }
+
+  private paintBorderPreview(id: string | null): void {
+    const slot = this.deps.root().querySelector<HTMLElement>('.deeds-border-preview-slot');
+    if (slot) slot.innerHTML = this.borderPreviewHtml(id);
+  }
+
+  /** One cosmetic picker group. The option array arrives in catalog order
+   *  behind its None head and renders verbatim; only the None head exists when
+   *  nothing is earned, which is what the empty line reports.
+   *
+   *  The visible head is a real h3 (the window family's section-heading
+   *  level) and the group is named BY it (aria-labelledby), not by a second
+   *  aria-label string: one accessible name, matching the visible text, plus
+   *  a heading a screen reader can navigate to. The id is derived from the
+   *  group class, which is unique per group inside the single-instance
+   *  window. */
+  private pickerGroupHtml(group: {
+    cls: string;
+    pickAttr: string;
+    headingKey: TranslationKey;
+    emptyKey: TranslationKey;
+    options: readonly { id: string | null; active: boolean }[];
+    label(id: string | null): string;
+    decorate?(id: string | null, label: string): string;
+  }): string {
+    const rows = group.options
       .map((option) => {
-        const label =
-          option.id === null ? t('hudChrome.deeds.titlesNone') : deedTitleText(option.id);
-        return `<button type="button" class="deed-title-option${option.active ? ' active' : ''}" data-title="${esc(option.id ?? '')}" aria-pressed="${option.active}">${esc(label)}</button>`;
+        const label = group.label(option.id);
+        const inner = group.decorate ? group.decorate(option.id, label) : esc(label);
+        return `<button type="button" class="deed-title-option${option.active ? ' active' : ''}" ${group.pickAttr}="${esc(option.id ?? '')}" aria-pressed="${option.active}">${inner}</button>`;
       })
       .join('');
     const empty =
-      model.titles.length <= 1
-        ? `<div class="deeds-empty">${esc(t('hudChrome.deeds.titlesEmpty'))}</div>`
-        : '';
-    return `<div class="deeds-titles" role="group" aria-label="${esc(t('hudChrome.deeds.titlesAria'))}">${rows}${empty}</div>`;
+      group.options.length <= 1 ? `<div class="deeds-empty">${esc(t(group.emptyKey))}</div>` : '';
+    const headId = `${group.cls}-head`;
+    return (
+      `<div class="${group.cls}" role="group" aria-labelledby="${headId}">` +
+      `<h3 class="deeds-picker-head" id="${headId}">${esc(t(group.headingKey))}</h3>` +
+      `${rows}${empty}</div>`
+    );
   }
 
   private filterBarHtml(): string {
     const chips = DEED_FILTERS.map((filter) => {
       const on = this.filter === filter;
-      return `<button type="button" class="deed-filter-chip${on ? ' active' : ''}" data-filter="${filter}" aria-pressed="${on}">${esc(t(FILTER_LABEL_KEYS[filter]))}</button>`;
+      return `<button type="button" class="deed-filter-chip ui-chip${on ? ' active' : ''}" data-filter="${filter}" aria-pressed="${on}">${esc(t(FILTER_LABEL_KEYS[filter]))}</button>`;
     }).join('');
     return `<div class="deeds-filterbar" role="group" aria-label="${esc(t('hudChrome.deeds.filterGroupAria'))}">${chips}</div>`;
   }
 
   private wire(el: HTMLElement): void {
+    // The scope note's hint rides the shared tooltip seam (the Reliquary
+    // window's sibling, after jgyy's scope chip in pull request 3933).
+    const scopeNote = el.querySelector<HTMLElement>('[data-scope-note]');
+    if (scopeNote) {
+      this.deps.attachTooltip(
+        scopeNote,
+        () => `<div class="tt-name">${esc(t('hudChrome.deeds.accountScopeHint'))}</div>`,
+      );
+    }
     el.querySelector('[data-close]')?.addEventListener('click', () => {
       this.close();
       audio.click();
@@ -496,6 +859,16 @@ export class DeedsWindow {
         this.filter = (DEED_FILTERS as readonly string[]).includes(filter) ? filter : 'all';
         audio.click();
         this.render();
+      });
+    }
+    // Recent-strip jump: land on that deed's card (category switch + scroll +
+    // flash), the openWithDeed path the chat deed-link also takes.
+    for (const btn of el.querySelectorAll<HTMLElement>('[data-recent]')) {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.recent;
+        if (!id) return;
+        audio.click();
+        this.openWithDeed(id);
       });
     }
     // Touch long-press peek: holding a card shows its tooltip (name + full
@@ -537,6 +910,32 @@ export class DeedsWindow {
         this.render();
       });
     }
+    for (const btn of el.querySelectorAll<HTMLElement>('[data-border-pick]')) {
+      const preview = (): void => this.paintBorderPreview(btn.dataset.borderPick || null);
+      const restorePreview = (): void => {
+        const focused = el.querySelector<HTMLElement>('[data-border-pick]:focus');
+        const focusedId = focused?.dataset.borderPick;
+        this.paintBorderPreview(
+          focusedId !== undefined ? focusedId || null : this.deps.world().activeBorder,
+        );
+      };
+      btn.addEventListener('mouseenter', preview);
+      btn.addEventListener('focus', preview);
+      btn.addEventListener('mouseleave', restorePreview);
+      btn.addEventListener('blur', restorePreview);
+      btn.addEventListener('click', () => {
+        if (this.deps.consumePeek()) {
+          this.deps.hideTooltip();
+          return;
+        }
+        const id = btn.dataset.borderPick ?? '';
+        // No optimistic local copy: the facet echoes the accepted change (the
+        // offline sim synchronously, the mirror on the snapshot echo).
+        this.deps.world().setActiveBorder(id === '' ? null : id);
+        audio.click();
+        this.render();
+      });
+    }
   }
 
   private fmt(n: number): string {
@@ -566,6 +965,11 @@ export class DeedsWindow {
   private ensureWatchLoaded(): void {
     const key = this.watchKey();
     if (key === this.watchedKey) return;
+    // A character SWITCH (never the first key load: unlocks noted before the
+    // first paint must survive it) invalidates the per-character session feed
+    // too, the watch set's own rekey rule: a previous character's unlock
+    // order must not outrank the new character's real recency.
+    if (this.watchedKey !== '') this.sessionUnlocks = [];
     this.watchedKey = key;
     this.watchedSet = new Set();
     try {

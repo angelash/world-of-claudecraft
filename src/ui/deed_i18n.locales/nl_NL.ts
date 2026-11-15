@@ -7,6 +7,115 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: 'Klaar voor een Avontuur',
+    desc: 'Studeer af van de Beproevingskust: voltooi elke les op het eiland, en luid dan de veerklok naar huis, naar Oostbeek.',
+  },
+  exp_dawnhold_castle: {
+    name: 'Een Open Deur in de Tuin',
+    desc: 'Breng een bezoek aan Kasteel Dawnhold en dwaal door zijn zonnige tuinzalen.',
+  },
+  exp_the_last_keep: {
+    name: 'De Stille Zalen',
+    desc: 'Stap door de deuren van De Laatste Burcht en loop door haar stille zalen.',
+  },
+  pvp_bg_first_capture: {
+    name: 'Vaandel in de Hand',
+    desc: 'Verover een vlag in Doornholte-Velden.',
+  },
+  pvp_bg_first_win: {
+    name: 'De Holte Houdt Stand',
+    desc: 'Win een Doornholte-Velden-slagveldwedstrijd.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Wachter van de Holte',
+    desc: 'Win 25 Doornholte-Velden-slagveldwedstrijden.',
+    title: 'Vlaggendrager',
+  },
+  pvp_bg_captures_100: {
+    name: 'Honderd Vaandels',
+    desc: 'Verover in je carrière 100 vlaggen in Doornholte-Velden.',
+  },
+  dgn_rift: {
+    name: 'Riftloper',
+    desc: 'Ontruim een Rift door de baas van de verdieping te verslaan.',
+  },
+  dgn_rift_s_rank: {
+    name: 'Rift-Soeverein',
+    desc: 'Ontruim een S-rangs Rift, de zwaarste rang die een Riftportaal kan voortbrengen.',
+  },
+  pvp_honor_sergeant: {
+    name: 'Liniebreker',
+    desc: 'Verdien 10.000 eer in je levensloop. Ze uitgeven kost je nooit de rang.',
+    title: 'Liniebreker',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Veldplunderaar',
+    desc: 'Verdien 40.000 eer in je levensloop, een heus seizoen oorlog achter de rug.',
+    title: 'Veldplunderaar',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Oorlogsgekroond',
+    desc: 'Verdien 150.000 eer in je levensloop. Zeldzaam op elk rijk, en dat hoort ook zo.',
+    title: 'Oorlogsgekroond',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Broedselbreker',
+    desc: 'Versla een Drakenmuil-Broedheer te midden van zijn eieren, door het gebrul, de maaislag en het vuur heen.',
+  },
+  chr_maw_matriarch: {
+    name: 'De Hemel Valt Stil',
+    desc: 'Versla Cindraleth de Muilmatriarch in haar kraternest boven de Drakenmuil.',
+  },
+  chr_frostveil_gatherer: {
+    name: 'Oogst op de terrassen',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenbed in Frostveil.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Eerste ijs op het tarn',
+    desc: 'Vang een vis in de wateren van Frostveil.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'De oogst van Amberfall',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenbed in Amberfall.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'Een vangst uit het grote moeras',
+    desc: 'Vang een vis in de wateren van Amberfall.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'De dromende oogst',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenbed in Nightbloom.',
+  },
+  chr_nightbloom_first_cast: {
+    desc: 'Vang een vis in de wateren van Nightbloom.',
+
+    name: 'Een rimpeling in de Maanbron',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Oogst onder het bladerdak',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenbed in Wraithwood.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Een worp in de spiegelbaai',
+    desc: 'Vang een vis in de wateren van Wraithwood.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Oogst op het palmenstrand',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenbed in Palmreach.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Werpen in de saffierlagune',
+    desc: 'Vang een vis in de wateren van Palmreach.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'De overvloed van het parterre',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenbed in Evergarden.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Een worp op de bloemblaadjesvijver',
+    desc: 'Vang een vis in de wateren van Evergarden.',
+  },
   pvp_card_duel_first_win: {
     name: 'Eigen Spelregels',
     desc: 'Win een Kaartduel bij de Kaartmeester.',
@@ -85,7 +194,7 @@ export const table: DeedLocaleTable = {
   },
   prog_master_gatherer: {
     name: 'Meesterverzamelaar',
-    desc: 'Bereik 100 vaardigheid in drie van de vier verzamelberoepen Mijnbouw, Houthakken, Kruidenkunde en Vissen.',
+    desc: 'Bereik vaardigheid 100 in drie verschillende verzamelberoepen.',
   },
   prog_first_craft: { name: 'Handwerk', desc: 'Voltooi je eerste geslaagde ambachtswerk.' },
   prog_craft_specialist: {
@@ -196,8 +305,9 @@ export const table: DeedLocaleTable = {
     title: 'Wurmveller',
   },
   dgn_sanctum_speed: {
-    name: 'Heiligdomssprint',
     desc: 'Versla Korzul de Grafwurm binnen 15 minuten nadat je groep het Grafwurm-Heiligdom heeft opgeëist.',
+
+    name: 'Heiligdomsloop',
   },
   dgn_nythraxis_gravebreaker: {
     name: 'Kniel voor Geen Koning',
@@ -236,7 +346,7 @@ export const table: DeedLocaleTable = {
     desc: 'Zuiver de Verdronken Litanie op het Heroïsche niveau.',
   },
   dlv_lore_journal: {
-    name: 'Marginalia',
+    name: 'Kanttekeningen',
     desc: 'Ontgrendel alle vijf de aantekeningen in het delve-dagboek.',
   },
   dlv_companion_max: {
@@ -262,7 +372,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'De Klokken Verstommen',
-    desc: 'Versla Diaken Varric terwijl elke Doodsklokluider die hij doet verrijzen al gedood is.',
+    desc: 'Versla Diaken Vandric terwijl elke Doodsklokluider die hij doet verrijzen al gedood is.',
   },
   dlv_nhalia_bells: {
     name: 'Klokkenstiller',
@@ -275,7 +385,6 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Dalkroniek, Hoofdstuk II',
-    desc: 'Voltooi het tweede hoofdstuk van Sauls kroniek: bandieten, murlocs en mijnongedierte neergeslagen, op het Zeugveld gespeeld en het Reliekschrijn getrotseerd.',
   },
   chr_vale_chapter_iii: {
     name: 'Kroniek van het Dal',
@@ -293,7 +402,6 @@ export const table: DeedLocaleTable = {
   chr_vale_packbreaker: { name: 'Roedelbreker', desc: 'Dood 3 Boswolven binnen 10 seconden.' },
   chr_vale_cup_debut: {
     name: 'Kanshebber op de Koperen Emmer',
-    desc: 'Betreed het veld en raak de bal in een Dalbeker-wedstrijd op het Zeugveld.',
   },
   chr_vale_rares: {
     name: 'Verschrikkingen van het Dal',
@@ -338,12 +446,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'Kroniek van Doorntop',
-    desc: 'Breng het hele verhaal van de berg tot een einde: de Wurmcultus gebroken, het Heiligdom tot zwijgen gebracht, de Ontwakende Piek geveld en elke naamdragende verschrikking van de rotsen ten val gebracht.',
+    desc: 'Zie het hele verhaal van de berg tot het einde: de Broedswornus gebroken, het Heiligdom tot zwijgen gebracht, de Ontwakende Piek geveld en elke genoemde verschrikking van de bergkammen neergehaald.',
     title: 'van Doorntop',
   },
   chr_peaks_sparring: {
     name: 'Muuroefeningen',
-    desc: 'Breng in totaal 1.000 schade toe aan de oefenpop boven Hoogwacht.',
+    desc: 'Breng in totaal 1.000 schade toe aan een oefenpop.',
   },
   chr_peaks_glimmer_cast: {
     name: 'Koud Water, Kouder Licht',
@@ -439,7 +547,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Vaste Klant',
-    desc: 'Ontdek alle tien de stukken uit de voorraad van de Heroïsche Kwartiermeester.',
+    desc: 'Ontdek alle tien de uitrustingsstukken uit de voorraad van de Heroïsche Kwartiermeester.',
   },
   col_glimmerfin: {
     name: 'Een Glansje Hoop',
@@ -493,69 +601,53 @@ export const table: DeedLocaleTable = {
   },
   pvp_vcup_first_match: {
     name: 'Het Veld Op',
-    desc: 'Speel een volledige Dalbeker-wedstrijd op het Zeugveld uit, winst of verlies.',
   },
   pvp_vcup_first_win: {
     name: 'Het Eerste Zilverwerk',
-    desc: 'Win een geklasseerde Dalbeker-wedstrijd.',
   },
   pvp_vcup_wins_10: {
     name: 'Doorgewinterde Zwijnenballer',
-    desc: 'Win 10 geklasseerde Dalbeker-wedstrijden.',
   },
   pvp_vcup_wins_25: {
     name: 'Zwijnenbal-Legende',
-    desc: 'Win 25 geklasseerde Dalbeker-wedstrijden.',
     title: 'Zwijnenbal-Legende',
   },
   pvp_vcup_first_goal: {
     name: 'De Ban Gebroken',
-    desc: 'Scoor een doelpunt in een geklasseerde Dalbeker-wedstrijd.',
   },
   pvp_vcup_hat_trick: {
     name: 'Hattrickheld',
-    desc: 'Scoor drie doelpunten in een enkele geklasseerde Dalbeker-wedstrijd, in de 3v3-divisie of groter.',
   },
   pvp_vcup_golden_goal: {
     name: 'Gouden Moment',
-    desc: 'Scoor de golden goal die een geklasseerde Dalbeker-wedstrijd beslist.',
   },
   pvp_vcup_first_save: {
     name: 'Veilige Handen',
-    desc: 'Verricht een redding als keeper in een geklasseerde Dalbeker-wedstrijd.',
   },
   pvp_vcup_clean_sheet: {
     name: 'De Nul Gehouden',
-    desc: 'Win een geklasseerde Dalbeker-wedstrijd als keeper zonder een doelpunt tegen te krijgen.',
   },
   pvp_vcup_guild_win: {
     name: 'Voor het Vaandel',
-    desc: 'Win een geklasseerde Dalbeker-wedstrijd, aangetreden onder het vaandel van je gilde.',
   },
   pvp_fiesta_first_bout: {
     name: 'Ongenode Gast',
-    desc: 'Vecht een volledige 2v2 Fiesta-partij uit, winst of verlies.',
   },
-  pvp_fiesta_first_win: { name: 'De Gangmaker van de Fiesta', desc: 'Win een 2v2 Fiesta-partij.' },
+  pvp_fiesta_first_win: { name: 'De Gangmaker van de Fiesta' },
   pvp_fiesta_double: {
     name: 'Dubbelslag',
-    desc: 'Scoor twee Fiesta-uitschakelingen binnen vier seconden.',
   },
   pvp_fiesta_shutdown: {
     name: 'Spelbreker',
-    desc: 'Schakel een Fiesta-tegenstander uit die een reeks van drie of meer heeft lopen.',
   },
   pvp_fiesta_full_build: {
     name: 'Gekleed voor de Gelegenheid',
-    desc: 'Win een Fiesta-partij met een vastgezette versterking uit elk van de drie golven.',
   },
   pvp_fiesta_powerups: {
     name: 'Van Alles Eén',
-    desc: 'Pak elk van de vier power-ups in de ring minstens één keer: Snelheidsduivel, Kolos, Maanlaarzen en Berserker.',
   },
   pvp_fiesta_five_kills: {
     name: 'De Kar Trekken',
-    desc: 'Scoor vijf uitschakelingen in een enkele Fiesta-partij.',
   },
   soc_first_party: { name: 'Samen Sterker', desc: 'Vorm een groep met een andere speler.' },
   soc_full_house: {
@@ -816,5 +908,540 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'Het Slopersveld',
     desc: 'Salvage 50 stuks uitrusting terug tot ruwe grondstoffen.',
+  },
+  dgn_wildheart_basin: {
+    name: 'Het Bekken Bijt Terug',
+    desc: 'Versla Zulgar, Stem van het Bekken, in het Wildhartbekken.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Heroïsch: Het Wildhartbekken',
+    desc: 'Versla Zulgar, Stem van het Bekken, in het Wildhartbekken op Heroïsche moeilijkheidsgraad.',
+  },
+  chr_peaks_gatherer: {
+    name: 'Oogst van de Hoogten',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenveldje in Doorntop-Hoogten.',
+  },
+  chr_marsh_rares_ii: {
+    name: 'De Veelvraat, Verrekend',
+    desc: 'Dood Wroetkaak de Veelvraat, een vierde naamdragende verschrikking van Slijkveenmoeras die buiten de eerste telling viel.',
+  },
+  chr_peaks_rares_ii: {
+    name: 'Meer Namen in de Rots Gekerfd',
+    desc: 'Dood de Oude Rotsmuil en Scherfheer Kazzix, nog twee naamdragende verschrikkingen van Doorntop-Hoogten die buiten de eerste telling vielen.',
+  },
+  chr_gleamstag: {
+    name: 'De Legende Die Nooit Als Eerste Toesloeg',
+    desc: 'Dood het Glanshert, een zeldzame, schuwe elite die alleen aanvalt wanneer hij in het nauw wordt gedreven.',
+  },
+  chr_hollow_rares: {
+    name: 'De Kudde Vergeet Niet',
+    desc: 'Dood de Oude Mergschelp en Aurelhorn, Eerste van de Kudde, de twee rondzwervende zeldzame bazen van de Sluierholte.',
+  },
+  chr_willowfen_gatherer: {
+    name: 'Overvloed van het Veenland',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenveldje in het Wilgenveen.',
+  },
+  chr_willowfen_first_cast: {
+    name: 'Rimpelingen in de Liliemoerassen',
+    desc: 'Vang een vis in de wateren van het Wilgenveen.',
+  },
+  chr_galecrest_gatherer: {
+    name: 'Oogst op de Landtong',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenveldje op de Windkam.',
+  },
+  chr_galecrest_first_cast: {
+    name: 'Een Lijn in de Spiegelplas',
+    desc: 'Vang een vis in de wateren van de Windkam.',
+  },
+  chr_farshore_gatherer: {
+    name: 'Eilandproviand',
+    desc: 'Oogst een ertsader, een houtopstand en een kruidenveldje op de Verrekust.',
+  },
+  chr_farshore_first_cast: {
+    name: 'Wat de Meeuwen Weten',
+    desc: 'Vang een vis in de wateren van de Verrekust.',
+  },
+  prog_engineering_rare: {
+    name: 'Precisie-ingenieurswerk',
+    desc: 'Vervaardig je eerste zeldzame stuk in Knutselwerk.',
+  },
+  prog_alchemy_rare: {
+    name: 'Een zeldzame jaargang',
+    desc: 'Vervaardig je eerste zeldzame stuk in Alchemie.',
+  },
+  prog_cooking_rare: {
+    name: 'Een onvergetelijk gerecht',
+    desc: 'Vervaardig je eerste zeldzame stuk in Koken.',
+  },
+  prog_leatherworking_rare: {
+    name: 'Fijn looien',
+    desc: 'Vervaardig je eerste zeldzame stuk in Leerbewerken.',
+  },
+  prog_tailoring_rare: {
+    name: 'Een meesterlijke steek',
+    desc: 'Vervaardig je eerste zeldzame stuk in Kleermaken.',
+  },
+  prog_weaponcrafting_rare: {
+    name: 'Gehard tot glans',
+    desc: 'Vervaardig je eerste zeldzame stuk in Wapensmeden.',
+  },
+  prog_armorcrafting_rare: {
+    name: 'Geplaat tot perfectie',
+    desc: 'Vervaardig je eerste zeldzame stuk in Harnasmaken.',
+  },
+  col_reliquary_rank_2: {
+    name: 'Buitbewaarder',
+    desc: 'Bereik Curator-rang 2 in Het Reliquarium (10 unieke gecatalogiseerde relieken).',
+    title: 'Buitbewaarder',
+  },
+  col_reliquary_rank_3: {
+    name: 'De Catalogiseerder',
+    desc: 'Bereik Curator-rang 3 in Het Reliquarium (25 unieke gecatalogiseerde relieken).',
+    title: 'de Catalogiseerder',
+  },
+  col_reliquary_rank_4: {
+    name: 'Aartscurator',
+    desc: 'Bereik Curator-rang 4 in Het Reliquarium (50 unieke gecatalogiseerde relieken).',
+    title: 'Aartscurator',
+  },
+  col_reliquary_rank_5: {
+    name: 'Eeuwige Buit',
+    desc: 'Bereik Curator-rang 5 in Het Reliquarium (100 unieke gecatalogiseerde relieken).',
+  },
+  col_reliquary_complete: {
+    name: 'Het Grote Reliquarium',
+    desc: 'Catalogiseer elk reliek in Het Reliquarium dat een personage kan behouden. Latere groei van de catalogus neemt het je nooit meer af.',
+    title: 'Curator van de Schatkamer',
+  },
+  col_reliquary_conquerors: {
+    name: 'Plank der Veroveraars',
+    desc: 'Catalogiseer elk reliek op de plank Veroveraars van Het Reliquarium. Latere groei van de catalogus neemt het je nooit meer af.',
+    title: 'Schatkamerbreker',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis verlucht',
+    desc: 'Verlucht de bladzijde Heroïsch: Nythraxis-raid van Het Reliquarium.',
+    title: 'Licht van Nythraxis',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr verlucht',
+    desc: 'Verlucht de bladzijde Thunzharr, de Ontwakende Piek van Het Reliquarium.',
+    title: 'Licht van Thunzharr',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Heiligdom verlucht',
+    desc: 'Verlucht de bladzijde Heroïsch: Grafwurm-Heiligdom van Het Reliquarium.',
+    title: 'Licht van het Heiligdom',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Het Eerste Vak',
+    desc: 'Ontgrendel je eerste banktasvak.',
+  },
+  soc_four_bags_deep: {
+    name: 'Alle Vier de Vakken',
+    desc: 'Ontgrendel alle vier de banktasvakken.',
+  },
+  dgn_ignivar: {
+    name: 'De Heraut Valt',
+    desc: 'Versla Ignivar, Heraut van de Laatste Vlam, in de Smeltkroes van de Laatste Bron.',
+  },
+  dgn_ignivar_heroic: {
+    name: 'Heroïsch: De Heraut Valt',
+    desc: 'Versla Ignivar, Heraut van de Laatste Vlam, op Heroïsche moeilijkheidsgraad.',
+  },
+  dgn_varkhul: {
+    name: 'De Smidse Koelt Af',
+    desc: 'Versla Varkhul, Smidvader van de Laatste Vlam, in de Binnenste Smeltkroes.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Heroïsch: De Smidse Koelt Af',
+    desc: 'Versla Varkhul, Smidvader van de Laatste Vlam, op Heroïsche moeilijkheidsgraad.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Geen Sintel Verloren',
+    desc: 'Versla Varkhul, Smidvader van de Laatste Vlam, op Heroïsche moeilijkheidsgraad zonder dat één raider sterft.',
+    title: 'de Ongeschondene',
+  },
+  col_set_bramblehide: {
+    name: "Roots' Doornhuid",
+    desc: "Ontdek elk onderdeel van Roots' Doornhuid.",
+  },
+  prog_jewelcrafting_rare: {
+    desc: 'Maak je eerste voorwerp van zeldzame rang met Juwelenmaken.',
+
+    name: 'Gepolijst tot Schittering',
+  },
+  prog_jewelcrafting_50: {
+    desc: 'Bereik vaardigheid 50 in Juwelenmaken.',
+    name: 'Facet en Filigraan',
+  },
+  prog_grandmaster_jewelcrafting: {
+    desc: 'Bereik vaardigheid 125 in Juwelenmaken, het absolute hoogtepunt van het ambacht.',
+
+    name: 'Grootmeester Juwelenmaken',
+    title: 'Grootmeester Juwelenmaken',
+  },
+  prog_inscription_rare: {
+    desc: 'Maak je eerste voorwerp van zeldzame rang met Inscriptie.',
+
+    name: 'Geschreven met Fijne Inkt',
+  },
+  prog_inscription_50: { desc: 'Bereik vaardigheid 50 in Inscriptie.', name: 'Pen en Pigment' },
+  prog_grandmaster_inscription: {
+    desc: 'Bereik vaardigheid 125 in Inscriptie, het absolute hoogtepunt van het ambacht.',
+
+    name: 'Grootmeester Inscriptie',
+    title: 'Grootmeester Inscriptie',
+  },
+  col_deepest_cast: {
+    desc: 'Verwerf een Clockreel-hengel, de enige hengel die de diepste vangsten bereikt.',
+
+    name: 'De Diepste Worp',
+  },
+  prog_first_planting: {
+    desc: 'Plant je eerste gewas in een kweekbed.',
+    name: 'Zo Begint het Zaaien',
+  },
+  chr_vale_first_harvest: {
+    desc: 'Oogst je eerste bloeiende gewas uit een kweekbed in het Oostbeekdal.',
+
+    name: 'Eerste Vruchten van het Dal',
+  },
+  chr_marsh_first_harvest: {
+    desc: 'Oogst je eerste bloeiende gewas uit een kweekbed in het Mirefenmoeras.',
+
+    name: 'Spruiten in het Veen',
+  },
+  chr_peaks_first_harvest: {
+    desc: 'Oogst je eerste bloeiende gewas uit een kweekbed in de Doorntop-Hoogten.',
+
+    name: 'Een Gewas tussen de Rotspieken',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Oogst je eerste bloeiende gewas uit een kweekbed in Evergarden.',
+
+    name: 'Een Perceel in het Paradijs',
+  },
+  col_golden_harvest: {
+    desc: 'Oogst een gouden oogst en laat de hele zone ervan weten.',
+
+    name: 'Gouden Oogst',
+  },
+  prog_farming_100: {
+    desc: 'Bereik vaardigheid 100 in Landbouw.',
+    name: 'Oogstmeester',
+    title: 'Oogstmeester',
+  },
+  col_farm_roster: { desc: 'Oogst elk gewas dat de vier tuinen telen.', name: 'Elke Vore Gevuld' },
+  prog_field_to_feast: {
+    desc: 'Bereid een Apex-feestmaal waar een hele raid van kan eten.',
+
+    name: 'Van Veld tot Feestmaal',
+  },
+  prog_legendmaker: {
+    desc: 'Verhef een geperfectioneerd werk met een Inscriptie-oorkonde tot een legende en geef het een unieke naam.',
+
+    name: 'De Legendenmaker',
+  },
+  hid_forgebreaker: {
+    desc: 'Vorm zelf de Smederijbreker en keer terug naar Maelin met de voltooide hamer.',
+
+    name: 'Een Ongeketende Bron',
+  },
+  exp_arcane_calligraphy: {
+    name: 'Een Vaste Hand',
+    desc: 'Voltooi Arcanische Kalligrafie in Oostbeek Dal.',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'Geschreven in Sterrenlicht',
+    desc: 'Behaal een Goudwaardigheid in Arcanische Kalligrafie.',
+    title: 'de Runenschrijver',
+  },
+  exp_forge_helper: {
+    name: 'Een Helpend Hamer',
+    desc: 'Help Smid Mara een schild af te werken bij Wyrmwatch.',
+  },
+  exp_last_barricade: {
+    name: 'De Laatste Barricade',
+    desc: 'Houd het boshoos tegen de ondodenhorde.',
+  },
+  exp_borrowed_face: {
+    name: 'Een Geleend Gezicht',
+    desc: 'Onthul en verslaa de infiltrant onder de Fenbrugs wacht.',
+  },
+  exp_windrider_slalom: {
+    name: 'Windrijder Slalom',
+    desc: 'Voltooi de mechanische zweeftochtval door de Stormkuil canyon.',
+  },
+  exp_duskweave_dispatches: {
+    name: 'Schemerweven Depecches',
+    desc: 'Haal de bandietebrievendepecches terug terwijl je de betoverde mantel van Valerie draagt.',
+  },
+  exp_wisp_maze: {
+    name: 'Een Licht in het Doolhof',
+    desc: 'Haal de gestolen geldbeurzen terug en ontvluch het Evertuindoolhof.',
+  },
+  prog_rift_watch_trusted: {
+    name: 'Vertrouwd door de Riftswacht',
+    desc: 'Bereik Vertrouwde Standing met de Riftswacht.',
+  },
+  prog_church_order_trusted: {
+    name: 'Vertrouwd door de Kerkorde',
+    desc: 'Bereik Vertrouwde Standing met de Kerkorde.',
+  },
+  prog_automatons_trusted: {
+    name: 'Vertrouwd door de Automaten',
+    desc: 'Bereik Vertrouwde Standing met de Automaten.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Kampioen van de Riftswacht',
+    desc: 'Bereik Kampioen Standing met de Riftswacht.',
+    title: 'Riftswachter',
+  },
+  prog_church_order_champion: {
+    name: 'Kampioen van de Kerkorde',
+    desc: 'Bereik Kampioen Standing met de Kerkorde.',
+    title: 'Dageraadwachter',
+  },
+  prog_automatons_champion: {
+    name: 'Kampioen van de Automaten',
+    desc: 'Bereik Kampioen Standing met de Automaten.',
+    title: 'Smidmeester',
+  },
+  prog_faction_champion_all: {
+    name: 'Kampioen van elke Vaan',
+    desc: 'Bereik Kampioen Standing met de Riftswacht, de Kerkorde en de Automaten.',
+  },
+  exp_clue_first_casket: {
+    name: 'Schat Gevonden',
+    desc: 'Open een Schatskist opgegraven aan het eind van een aanwijzingsrol jacht.',
+  },
+  exp_clue_ten_caskets: {
+    name: 'Schatzoeker',
+    desc: 'Open 10 Schatstkisten opgegraven aan het eind van aanwijzingsrol jachten.',
+    title: 'Schatzoeker',
+  },
+  exp_harbor_to_harbor: {
+    name: 'Haven naar Haven',
+    desc: 'Vaar beide veren heen en terug: Oostbeek naar Maanrust, en Wickhaven naar Wyrmwatch.',
+  },
+  cmb_coinsack_caught: {
+    name: 'Betrapt op Heterdaad',
+    desc: 'Vang een Muntzak Haastige in een Begraven Hoard voordat het met het goud vandoor gaat.',
+  },
+  exp_wisp_maze_hard: {
+    name: 'Helderder dan de schaduwen',
+    desc: 'Haal de gestolen muntenbuidels terug en ontsnap uit het Evergarden-doolhof op Hard.',
+  },
+  prog_titan: {
+    name: 'Titaan',
+    desc: 'Verdien in totaal 10.000.000 ervaringspunten.',
+    title: 'Titaan',
+  },
+  pvp_flag_1h: {
+    name: 'Stoutmoedig',
+    desc: 'Houd Wereld-PvP gedurende 1 uur speeltijd aan terwijl je leeft in de open wereld of een PvP-wedstrijd. Heiligdommen, PvE-instanties, dood en uitloggen pauzeren de voortgang; uitschakelen zet hem terug op nul. Verdiende titels blijven permanent.',
+    title: 'Stoutmoedig',
+  },
+  pvp_flag_3h: {
+    name: 'Opstandig',
+    desc: 'Houd Wereld-PvP gedurende 3 uur speeltijd aan terwijl je leeft in de open wereld of een PvP-wedstrijd. Heiligdommen, PvE-instanties, dood en uitloggen pauzeren de voortgang; uitschakelen zet hem terug op nul. Verdiende titels blijven permanent.',
+    title: 'Opstandig',
+  },
+  pvp_flag_6h: {
+    name: 'Onverschrokken',
+    desc: 'Houd Wereld-PvP gedurende 6 uur speeltijd aan terwijl je leeft in de open wereld of een PvP-wedstrijd. Heiligdommen, PvE-instanties, dood en uitloggen pauzeren de voortgang; uitschakelen zet hem terug op nul. Verdiende titels blijven permanent.',
+    title: 'Onverschrokken',
+  },
+  pvp_flag_24h: {
+    name: 'Onverzettelijk',
+    desc: 'Houd Wereld-PvP gedurende 24 uur speeltijd aan terwijl je leeft in de open wereld of een PvP-wedstrijd. Heiligdommen, PvE-instanties, dood en uitloggen pauzeren de voortgang; uitschakelen zet hem terug op nul. Verdiende titels blijven permanent.',
+    title: 'Onverzettelijk',
+  },
+  pvp_flag_168h: {
+    name: 'Ontembaar',
+    desc: 'Houd Wereld-PvP gedurende 7 dagen speeltijd aan terwijl je leeft in de open wereld of een PvP-wedstrijd. Heiligdommen, PvE-instanties, dood en uitloggen pauzeren de voortgang; uitschakelen zet hem terug op nul. Verdiende titels blijven permanent.',
+    title: 'Ontembaar',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Van Lantaarnhal',
+    desc: 'Gekocht van Garrick Holt, kwartiermeester van Lantaarnhal, voor 24 Lantaarnzegels.',
+    title: 'van Lantaarnhal',
+  },
+  feat_guild_hallsworn: {
+    name: 'Halgezworene',
+    desc: 'Gekocht van Garrick Holt, kwartiermeester van Lantaarnhal, voor 14 Lantaarnzegels.',
+    title: 'Halgezworene',
+  },
+  feat_guild_writ_runner: {
+    name: 'Opdrachtenloper',
+    desc: 'Gekocht van Garrick Holt, kwartiermeester van Lantaarnhal, voor 6 Lantaarnzegels.',
+    title: 'Opdrachtenloper',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Contractveteraan',
+    desc: 'Voltooi 50 van de wekelijkse kerkercontracten van Lantaarnhal.',
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Vaste klant bij het bord',
+    desc: 'Voltooi 10 van de wekelijkse kerkercontracten van Lantaarnhal.',
+  },
+  dgn_guild_first_contract: {
+    name: 'Opdracht ondertekend',
+    desc: 'Voltooi één van de wekelijkse kerkercontracten van Lantaarnhal.',
+  },
+  dgn_morthen_candlelight: {
+    name: 'Elke kaars brandt',
+    desc: 'Versla Morthen de Grafroeper nadat je alle vier Herdenkingskaarsen opnieuw hebt aangestoken binnen 20 seconden na het verschijnen van zijn Rusteloze bescherming.',
+  },
+  dgn_ilvane_hush: {
+    name: 'Nu stil',
+    desc: 'Versla Voorzanger Ilvane zonder dat haar Klaagzang van de holte ooit iemand raakt.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Niemand laten hangen',
+    desc: 'Versla de Vrouwe van de Bottenkou zonder dat ze ooit iemand uit haar Bevroren omhelzing laat vallen.',
+  },
+  dgn_marrow_tidy: {
+    name: 'Een keurig kerkhof',
+    desc: 'Versla Koster Marrow met elk Open graf aan de rand van het Klokkerf.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: 'Het laatste vers',
+    desc: 'Versla Ysolei, Avatar van de Verdronken Maan, met de Laatste Voorzanger van het Bleke Koor naast je.',
+    title: 'Getuige van het Koor',
+  },
+  dgn_sledge_tusker: {
+    name: 'Koude lading',
+    desc: 'Versla het Sleeslagtandbeest zonder dat iemand door zijn Vertrappelen wordt geraakt.',
+  },
+  dgn_korzul_thin_ice: {
+    name: 'Dun ijs',
+    desc: 'Versla Korzul de Grafwurm met minstens twaalf van de negentien meerplaten ongebroken.',
+  },
+  dgn_velkhar_cold: {
+    name: 'Schrale troost',
+    desc: 'Versla Grootdodenbezweerder Velkhar zonder dat één herrezen bottenloper een tweede keer herrijst.',
+  },
+  dgn_korgath_still_bound: {
+    name: 'Het slot houdt',
+    desc: 'Versla Korgath de Geketende op heroïsche moeilijkheid waarbij minstens twee van zijn kettingen nooit zijn gebroken.',
+  },
+  dgn_korgath_all_chains: {
+    name: 'Een vriendelijker einde',
+    desc: 'Versla Korgath de Geketende met alle vier zijn kettingen gebroken.',
+  },
+  dgn_great_saurian: {
+    name: 'Gevallen titaan',
+    desc: 'Versla de Grote Sauriër en zijn draagkoetsvloekroeper binnen 20 seconden van elkaar.',
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Nooit gevangen',
+    desc: 'Versla Zulgar, Stem van het Bekken, zonder dat iemand wordt Toegetakeld.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Onkruidbestrijding',
+    desc: 'Versla de Vreetbloem zonder dat er één doornspruit groeit.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Op afstand gehouden',
+    desc: 'Versla de Hoektandheer Beestenmeester en zijn Grote Jaguar terwijl Roedelband in totaal minder dan 10 seconden actief is.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Geen kooi houdt ons vast',
+    desc: 'Versla de Gevangenisbewaarder zonder dat iemand in een IJzeren kooi wordt verpletterd.',
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Geen haar verschroeid',
+    desc: 'Versla de Doodsklokdraak zonder dat iemand door zijn Brandstapelbeschieting wordt verbrand.',
+  },
+  dgn_mere_hydra: {
+    name: 'Alle koppen neer',
+    desc: 'Dood alle drie de koppen van de Meerhydra binnen 10 seconden van elkaar.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: 'Hoog en droog',
+    desc: 'Versla Ysolei, Avatar van de Verdronken Maan, zonder dat iemand door haar Getijdeninslag wordt geraakt.',
+  },
+  dgn_colossus_mirror: {
+    name: 'Breek het glas',
+    desc: 'Versla de Getijdenglaskolos waarbij elke weerspiegeling binnen 15 seconden na verschijning wordt gebroken.',
+  },
+  dgn_selthe_pitch: {
+    name: 'Elke stem zuiver',
+    desc: 'Versla Koormoeder Selthe waarbij elke Koorzang door twee of meer spelers wordt gedeeld en geen Eenstemmige zang iemand anders raakt.',
+  },
+  dgn_turretback: {
+    name: 'Ontruimingsbevel',
+    desc: 'Versla de Schipbreukkapitein zonder dat iemand door Geestensalvo wordt geraakt.',
+  },
+  dgn_vael_beacon: {
+    name: 'Bij het licht van het baken',
+    desc: 'Versla Vael de Mistbinder zonder één mistschim te laten ontploffen.',
+  },
+  dgn_ossick_moored: {
+    name: 'Veilige haven',
+    desc: 'Versla Cipier Ossick zonder dat iemand de Verdrinkingsput in wordt getrokken.',
+  },
+  dgn_olen_buttress: {
+    name: 'Houd de muur',
+    desc: 'Versla Riddercommandant Olen zonder dat zijn Terugkaatsend bolwerk ooit een tweede speler raakt.',
+  },
+  cmb_point_taken: {
+    name: 'Punt gemaakt',
+    desc: 'Doof de lantaarn van de Strovoorman op het oefenerf van de monstering en benut zijn losse planken.',
+  },
+  cmb_balgath_ten: {
+    name: 'De heuvel bewaart niets',
+    desc: 'Haal de Begraven Voorman tien keer neer.',
+  },
+  cmb_balgath: {
+    name: 'Geen voorman meer',
+    desc: 'Stop de Begraven Voorman terug in zijn grafheuvel.',
+  },
+  feat_gourdlight_guise: {
+    name: 'Pompoenlichtvermomming',
+    desc: 'Bezit een Uitgesneden pompoenhoofd, buitgemaakt op Oude Thatchgrin in zijn veld voorbij de Everweide tijdens Pompoenlichtavond.',
+  },
+  feat_old_thatchgrin: {
+    name: 'Stoppels en as',
+    desc: 'Help Oude Thatchgrin op zijn pompoenakker voorbij de Everweide te verslaan tijdens Pompoenlichtavond.',
+  },
+  feat_title_gourdlit: {
+    name: 'De Pompoenverlichte',
+    desc: 'Lees een Oorkonde van de Pompoenverlichte, tijdens Pompoenlichtavond bij Hester Gourdwick geruild voor Pompoenlichtsnoepjes.',
+    title: 'de Pompoenverlichte',
+  },
+  feat_title_trickster: {
+    name: 'Grappenmaker',
+    desc: 'Lees een Oorkonde van de Grappenmaker, tijdens Pompoenlichtavond bij Hester Gourdwick geruild voor Pompoenlichtsnoepjes.',
+    title: 'Grappenmaker',
+  },
+  feat_title_hollow_grinned: {
+    name: 'De Holle Grijns',
+    desc: 'Lees een Oorkonde van de Holle Grijns, tijdens Pompoenlichtavond bij Hester Gourdwick geruild voor Pompoenlichtsnoepjes.',
+    title: 'met de Holle Grijns',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Pompoenjager',
+    desc: 'Vind alle Spookpompoenen die tijdens Pompoenlichtavond over de wereld verborgen zijn.',
+    title: 'de Holle',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Elke drempel',
+    desc: 'Vraag tijdens Pompoenlichtavond om snoep of een streek bij elke inwoner in Eastbrook, Fenbridge en Highwatch die op geklop reageert.',
+  },
+  feat_gourdlight_errands: {
+    name: 'Op Hesters wenken',
+    desc: 'Voltooi elk van Hester Gourdwicks wisselende klusjes voor Pompoenlichtavond minstens eenmaal.',
+  },
+  feat_gourdlight_frights: {
+    name: 'Drie steden geschrokken',
+    desc: 'Laat tijdens Hesters klusje Boe! een inwoner schrikken in elk van de steden Eastbrook, Fenbridge en Highwatch.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'Pompoenlicht van begin tot eind',
+    desc: 'Voltooi heel Pompoenlichtavond: versla Oude Thatchgrin, vind alle Spookpompoenen, voltooi elk klusje van Hester, klop bij elke deur aan en laat in elk van de drie steden een inwoner schrikken.',
+    title: 'de Pompoengezworene',
   },
 };

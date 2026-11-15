@@ -1,9 +1,390 @@
 import { describe, expect, it } from 'vitest';
-import { type AuraEffectInput, auraEffectDescriptor } from '../src/ui/aura_effect';
+import {
+  IGNIVAR_SOAK_REQUIRED_PLAYERS,
+  IGNIVAR_SOAK_SHARED_MAX_HP,
+} from '../src/sim/encounters/ignivar';
+import {
+  VARKHUL_ASSEMBLY_CORE_AURA_ID,
+  VARKHUL_ASSEMBLY_FIXATE_AURA_ID,
+  VARKHUL_ASSEMBLY_LINK_AURA_ID,
+  VARKHUL_CINDER_ORBS_AURA_ID,
+  VARKHUL_FORGE_BEAM_EXPOSURE_AURA_ID,
+  VARKHUL_INTERCEPT_BEAM_DEBUFF_AURA_ID,
+  VARKHUL_INTERCEPT_BEAM_DEBUFF_DAMAGE_TAKEN,
+  VARKHUL_MAKERS_BRAND_AURA_ID,
+  VARKHUL_MAKERS_BRAND_DURATION,
+  VARKHUL_MAKERS_BRAND_MAX_STACKS,
+  VARKHUL_MAKERS_BRAND_PER_STACK,
+  VARKHUL_MAKERS_BRAND_TANK_SWAP_STACKS,
+} from '../src/sim/encounters/varkhul';
+import {
+  NYTHRAXIS_ASCENSION_AURA_ID,
+  NYTHRAXIS_ASCENSION_HASTE_AURA_ID,
+  NYTHRAXIS_BOUND_AURA_ID,
+  NYTHRAXIS_BOUND_SECONDS_NORMAL,
+  NYTHRAXIS_BOUND_STUN_AURA_ID,
+  NYTHRAXIS_BOUND_VULNERABILITY,
+  NYTHRAXIS_UNBOUND_AURA_ID,
+} from '../src/sim/nythraxis_binding_sigil';
+import {
+  NYTHRAXIS_IMPALED_AURA_ID,
+  NYTHRAXIS_IMPALED_TICK_MAX_HP_HEROIC,
+  NYTHRAXIS_IMPALED_TICK_MAX_HP_NORMAL,
+} from '../src/sim/nythraxis_bone_spike';
+import {
+  NYTHRAXIS_BONE_STORM_AURA_ID,
+  NYTHRAXIS_BONE_STORM_RADIUS,
+  NYTHRAXIS_BONE_STORM_WHIRL_TICK_MAX_HP_NORMAL,
+} from '../src/sim/nythraxis_bone_storm';
+import {
+  NYTHRAXIS_DREAD_CURSE_AURA_ID,
+  NYTHRAXIS_DREAD_CURSE_DURATION,
+  NYTHRAXIS_DREAD_CURSE_EVERY,
+  NYTHRAXIS_DREAD_CURSE_HIT_MAX_HP_NORMAL,
+  NYTHRAXIS_DREAD_CURSE_MAX_STACKS,
+  NYTHRAXIS_DREAD_CURSE_PER_STACK_HEROIC,
+  NYTHRAXIS_DREAD_CURSE_PER_STACK_NORMAL,
+  NYTHRAXIS_DREAD_CURSE_TANK_SWAP_STACKS,
+} from '../src/sim/nythraxis_dread_curse';
+import {
+  NYTHRAXIS_CROWN_ENDURES_AURA_ID,
+  NYTHRAXIS_CROWN_ENDURES_HASTE_AURA_ID,
+  NYTHRAXIS_ENRAGE_HASTE_BONUS,
+} from '../src/sim/nythraxis_enrage_clock';
+import { NYTHRAXIS_KINGS_WRATH_AURA_ID } from '../src/sim/nythraxis_kings_wrath';
+import { CAT_FORM_MOVE_MULT } from '../src/sim/types';
+import {
+  VARKHUL_SHARED_PYRE_AURA_ID,
+  VARKHUL_SHARED_PYRE_RAID_DAMAGE_PER_MISSING,
+  VARKHUL_SHARED_PYRE_TOTAL_DAMAGE_HEROIC,
+  VARKHUL_SHARED_PYRE_TOTAL_DAMAGE_NORMAL,
+} from '../src/sim/varkhul_shared_pyre';
+import {
+  type AuraEffectInput,
+  auraEffectDescriptor,
+  auraEffectMaximumFractionDigits,
+} from '../src/ui/aura_effect';
+import { hudChromeStrings } from '../src/ui/i18n.catalog/hud_chrome';
 
 const desc = (a: AuraEffectInput) => auraEffectDescriptor(a);
 
 describe('auraEffectDescriptor', () => {
+  it('explains the specific heal strengthened by each Dawnweave bonus', () => {
+    expect(desc({ kind: 'benison_prayers', value: 0.3, stacks: 3 })).toEqual({
+      key: 'hudChrome.auraEffect.benisonPrayers',
+      nums: { pct: 30 },
+    });
+    expect(desc({ id: 'priest_benison_whisper', kind: 'next_cast_instant', value: 1 })).toEqual({
+      key: 'hudChrome.auraEffect.benisonWhisper',
+      nums: { pct: 100 },
+    });
+    expect(hudChromeStrings.auraEffect.benisonPrayers).toContain('consumes all stacks');
+    expect(hudChromeStrings.auraEffect.benisonWhisper).toContain('Whispered Prayer is instant');
+    expect(hudChromeStrings.auraEffect.benisonWhisper).toContain('before this effect expires');
+    expect(desc({ id: 'other_instant', kind: 'next_cast_instant', value: 1 })).toEqual({
+      key: 'hudChrome.auraEffect.instantCast',
+      nums: {},
+    });
+  });
+
+  it('explains that Ignivar Shared Pyre splits damage inside its circle', () => {
+    expect(desc({ id: 'ignivar_shared_pyre', kind: 'vulnerability', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.sharedPyre',
+      nums: {
+        total: Math.round(IGNIVAR_SOAK_SHARED_MAX_HP * 100),
+        players: IGNIVAR_SOAK_REQUIRED_PLAYERS,
+        perPlayer: Math.round((IGNIVAR_SOAK_SHARED_MAX_HP * 100) / IGNIVAR_SOAK_REQUIRED_PLAYERS),
+      },
+    });
+    expect(IGNIVAR_SOAK_SHARED_MAX_HP).toBe(1.2);
+    expect(IGNIVAR_SOAK_REQUIRED_PLAYERS).toBe(4);
+    expect(hudChromeStrings.auraEffect.sharedPyre).toBe(
+      "Deals {total}% of each player's maximum health, divided by the number of players inside the circle ({perPlayer}% each with {players} players).",
+    );
+  });
+
+  it('explains Varkhul Shared Pyre from its Heroic four-player split', () => {
+    expect(
+      desc({
+        id: VARKHUL_SHARED_PYRE_AURA_ID,
+        kind: 'vulnerability',
+        value: 0,
+        value2: VARKHUL_SHARED_PYRE_TOTAL_DAMAGE_HEROIC,
+        stacks: 4,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.varkhulSharedPyre',
+      nums: { total: 200, players: 4, perPlayer: 50, missingPenalty: 15 },
+    });
+    expect(VARKHUL_SHARED_PYRE_TOTAL_DAMAGE_HEROIC).toBe(2);
+    expect(VARKHUL_SHARED_PYRE_RAID_DAMAGE_PER_MISSING).toBe(0.15);
+  });
+
+  it('explains Varkhul Shared Pyre from its Normal four-player split', () => {
+    expect(
+      desc({
+        id: VARKHUL_SHARED_PYRE_AURA_ID,
+        kind: 'vulnerability',
+        value: 0,
+        value2: 1.4,
+        stacks: 4,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.varkhulSharedPyre',
+      nums: { total: 140, players: 4, perPlayer: 35, missingPenalty: 15 },
+    });
+    expect(hudChromeStrings.auraEffect.varkhulSharedPyre).toBe(
+      "Deals {total}% of each player's maximum health, divided among players inside the circle ({perPlayer}% each with {players} players). Each missing player also deals {missingPenalty}% of maximum health to the entire raid, including players inside the circle.",
+    );
+  });
+
+  it('retains Heroic and Normal tooltip pricing for legacy auras without value2', () => {
+    expect(
+      desc({
+        id: VARKHUL_SHARED_PYRE_AURA_ID,
+        kind: 'vulnerability',
+        value: 0,
+        stacks: 5,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.varkhulSharedPyre',
+      nums: { total: 200, players: 5, perPlayer: 40, missingPenalty: 15 },
+    });
+    expect(
+      desc({
+        id: VARKHUL_SHARED_PYRE_AURA_ID,
+        kind: 'vulnerability',
+        value: 0,
+        stacks: 4,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.varkhulSharedPyre',
+      nums: { total: 140, players: 4, perPlayer: 35, missingPenalty: 15 },
+    });
+    expect(VARKHUL_SHARED_PYRE_TOTAL_DAMAGE_NORMAL).toBe(1.4);
+  });
+
+  it("teaches Maker's Brand from the encounter's live stack constants", () => {
+    expect(
+      desc({
+        id: VARKHUL_MAKERS_BRAND_AURA_ID,
+        kind: 'vulnerability',
+        value: VARKHUL_MAKERS_BRAND_PER_STACK,
+        stacks: VARKHUL_MAKERS_BRAND_TANK_SWAP_STACKS,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.makersBrand',
+      nums: {
+        duration: VARKHUL_MAKERS_BRAND_DURATION,
+        max: VARKHUL_MAKERS_BRAND_MAX_STACKS,
+        pct: Math.round(VARKHUL_MAKERS_BRAND_PER_STACK * 100),
+        swap: VARKHUL_MAKERS_BRAND_TANK_SWAP_STACKS,
+      },
+    });
+    expect(hudChromeStrings.auraEffect.makersBrand).toBe(
+      'For {duration} sec, each stack increases damage taken from Varkhul by {pct}%. Stacks up to {max} times. Tanks should swap at {swap} stacks.',
+    );
+  });
+
+  it('teaches Dread Curse from the live aura value on both tiers', () => {
+    // Normal: one stack, value = 1 x 0.35.
+    expect(
+      desc({
+        id: NYTHRAXIS_DREAD_CURSE_AURA_ID,
+        kind: 'vuln_source',
+        value: NYTHRAXIS_DREAD_CURSE_PER_STACK_NORMAL,
+        stacks: 1,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.nythraxisDreadCurse',
+      nums: {
+        perStack: 35,
+        duration: NYTHRAXIS_DREAD_CURSE_DURATION,
+        stacks: 1,
+        max: NYTHRAXIS_DREAD_CURSE_MAX_STACKS,
+        pct: 35,
+        hit: 25,
+        every: NYTHRAXIS_DREAD_CURSE_EVERY,
+        swap: NYTHRAXIS_DREAD_CURSE_TANK_SWAP_STACKS,
+      },
+    });
+    // Heroic at the swap point: value = 2 x 0.45, read back as 45% per stack.
+    expect(
+      desc({
+        id: NYTHRAXIS_DREAD_CURSE_AURA_ID,
+        kind: 'vuln_source',
+        value: 2 * NYTHRAXIS_DREAD_CURSE_PER_STACK_HEROIC,
+        stacks: 2,
+      })?.nums,
+    ).toMatchObject({
+      perStack: 45,
+      pct: 90,
+      stacks: 2,
+      swap: NYTHRAXIS_DREAD_CURSE_TANK_SWAP_STACKS,
+    });
+    // A mirror that has not carried the value yet falls back to the normal bonus.
+    expect(
+      desc({ id: NYTHRAXIS_DREAD_CURSE_AURA_ID, kind: 'vuln_source', value: 0, stacks: 2 })?.nums,
+    ).toMatchObject({ perStack: 35, pct: 70, stacks: 2 });
+    expect(NYTHRAXIS_DREAD_CURSE_PER_STACK_NORMAL).toBe(0.35);
+    expect(NYTHRAXIS_DREAD_CURSE_PER_STACK_HEROIC).toBe(0.45);
+    expect(NYTHRAXIS_DREAD_CURSE_HIT_MAX_HP_NORMAL).toBe(0.25);
+    expect(hudChromeStrings.auraEffect.nythraxisDreadCurse).toBe(
+      'Each stack increases damage taken from Nythraxis by {perStack}% for {duration} sec: {stacks} of {max} stacks now, {pct}% more damage. Every {every} sec his next hit on his target deals {hit}% of maximum health and adds a stack. Tanks should swap at {swap} stacks.',
+    );
+  });
+
+  it('explains Impaled as the spike drain instead of the generic stun line', () => {
+    expect(desc({ id: NYTHRAXIS_IMPALED_AURA_ID, kind: 'stun', value: 0, value2: 77 })).toEqual({
+      key: 'hudChrome.auraEffect.nythraxisImpaled',
+      nums: { normal: 8, heroic: 10, interval: 1 },
+    });
+    expect(NYTHRAXIS_IMPALED_TICK_MAX_HP_NORMAL).toBe(0.08);
+    expect(NYTHRAXIS_IMPALED_TICK_MAX_HP_HEROIC).toBe(0.1);
+    expect(hudChromeStrings.auraEffect.nythraxisImpaled).toBe(
+      'Impaled on a Bone Spike: you cannot act and lose {normal}% of your maximum health every {interval} sec ({heroic}% on Heroic) until the raid destroys the spike.',
+    );
+    // Any other stun keeps the generic restriction line.
+    expect(desc({ id: 'mob_charge_stun', kind: 'stun', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.stun',
+    });
+  });
+
+  it('explains Deathless Ascension from its live stacks and total aura value', () => {
+    expect(
+      desc({
+        id: NYTHRAXIS_ASCENSION_AURA_ID,
+        kind: 'buff_dmg_done',
+        value: 0.12,
+        stacks: 3,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.nythraxisAscension',
+      nums: { stacks: 3, pct: 12 },
+    });
+    expect(hudChromeStrings.auraEffect.nythraxisAscension).toBe(
+      'Deathless Ascension: {stacks} stacks, {pct}% more damage and attack speed. Drag Nythraxis onto the Binding Sigil to purge it.',
+    );
+  });
+
+  it('explains Bound from its fixed vulnerability and burn duration', () => {
+    expect(
+      desc({
+        id: NYTHRAXIS_BOUND_AURA_ID,
+        kind: 'vulnerability',
+        value: NYTHRAXIS_BOUND_VULNERABILITY,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.nythraxisBound',
+      nums: {
+        pct: Math.round(NYTHRAXIS_BOUND_VULNERABILITY * 100),
+        duration: NYTHRAXIS_BOUND_SECONDS_NORMAL,
+      },
+    });
+    expect(hudChromeStrings.auraEffect.nythraxisBound).toBe(
+      'Bound by the old wards: Nythraxis takes {pct}% more damage for {duration} sec.',
+    );
+  });
+
+  it('explains Unbound from the difficulty-specific aura value', () => {
+    expect(desc({ id: NYTHRAXIS_UNBOUND_AURA_ID, kind: 'buff_dmg_done', value: 0.25 })).toEqual({
+      key: 'hudChrome.auraEffect.nythraxisUnbound',
+      nums: { pct: 25 },
+    });
+    expect(hudChromeStrings.auraEffect.nythraxisUnbound).toBe(
+      'Unbound: Nythraxis deals {pct}% more damage until a Binding Sigil holds him.',
+    );
+  });
+
+  it('skips the mirrored Ascension haste and plain Bound stun effect lines', () => {
+    expect(
+      desc({ id: NYTHRAXIS_ASCENSION_HASTE_AURA_ID, kind: 'buff_haste', value: 1.12 }),
+    ).toBeNull();
+    expect(desc({ id: NYTHRAXIS_BOUND_STUN_AURA_ID, kind: 'stun', value: 0 })).toBeNull();
+  });
+
+  it("explains King's Wrath from the live aura value", () => {
+    expect(desc({ id: NYTHRAXIS_KINGS_WRATH_AURA_ID, kind: 'buff_dmg_done', value: 0.25 })).toEqual(
+      {
+        key: 'hudChrome.auraEffect.nythraxisKingsWrath',
+        nums: { pct: 25 },
+      },
+    );
+    expect(hudChromeStrings.auraEffect.nythraxisKingsWrath).toBe(
+      "King's Wrath: Nythraxis deals {pct}% more damage for the rest of the fight.",
+    );
+  });
+
+  it('explains Bone Storm from its live whirl and radius constants', () => {
+    expect(desc({ id: NYTHRAXIS_BONE_STORM_AURA_ID, kind: 'buff_speed', value: 2.2 })).toEqual({
+      key: 'hudChrome.auraEffect.nythraxisBoneStorm',
+      nums: {
+        tick: Math.round(NYTHRAXIS_BONE_STORM_WHIRL_TICK_MAX_HP_NORMAL * 100),
+        radius: NYTHRAXIS_BONE_STORM_RADIUS,
+      },
+    });
+    expect(hudChromeStrings.auraEffect.nythraxisBoneStorm).toBe(
+      'Bone Storm: Nythraxis ignores threat, whirls for {tick}% of maximum health every second within {radius} yd, and charges raiders. Spread out and run.',
+    );
+  });
+
+  it('explains The Crown Endures from its live stacks and aura values', () => {
+    expect(
+      desc({ id: NYTHRAXIS_CROWN_ENDURES_AURA_ID, kind: 'buff_dmg_done', value: 0.75, stacks: 2 }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.nythraxisCrownEndures',
+      nums: {
+        stacks: 2,
+        pct: 75,
+        haste: Math.round(NYTHRAXIS_ENRAGE_HASTE_BONUS * 100),
+      },
+    });
+    expect(hudChromeStrings.auraEffect.nythraxisCrownEndures).toBe(
+      'The Crown Endures: {stacks} stacks, {pct}% more damage and {haste}% faster attacks. The raid is out of time.',
+    );
+    expect(
+      desc({ id: NYTHRAXIS_CROWN_ENDURES_HASTE_AURA_ID, kind: 'buff_haste', value: 1.5 }),
+    ).toBeNull();
+  });
+
+  it('does not describe the Cinder placement mark as a zero-percent vulnerability', () => {
+    expect(desc({ id: VARKHUL_CINDER_ORBS_AURA_ID, kind: 'vulnerability', value: 0 })).toBeNull();
+  });
+
+  it('teaches the legacy Assembly auras and the live escalating beam exposure', () => {
+    expect(desc({ id: VARKHUL_ASSEMBLY_FIXATE_AURA_ID, kind: 'vulnerability', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.varkhulSentinelsGaze',
+      nums: {},
+    });
+    expect(desc({ id: VARKHUL_ASSEMBLY_CORE_AURA_ID, kind: 'vulnerability', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.varkhulMoltenCore',
+      nums: { interval: 2, min: 2, max: 10 },
+    });
+    expect(desc({ id: VARKHUL_ASSEMBLY_LINK_AURA_ID, kind: 'vulnerability', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.varkhulForgeLink',
+      nums: {},
+    });
+    expect(
+      desc({ id: VARKHUL_FORGE_BEAM_EXPOSURE_AURA_ID, kind: 'vulnerability', value: 0 }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.varkhulCrucibleExposure',
+      nums: {},
+    });
+  });
+
+  it('explains that Tempered Wound increases damage taken from Varkhul', () => {
+    expect(
+      desc({
+        id: VARKHUL_INTERCEPT_BEAM_DEBUFF_AURA_ID,
+        kind: 'vuln_source',
+        value: VARKHUL_INTERCEPT_BEAM_DEBUFF_DAMAGE_TAKEN,
+      }),
+    ).toEqual({
+      key: 'hudChrome.auraEffect.sourceVuln',
+      nums: { pct: 50 },
+    });
+  });
+
   it('describes the cancelable protective Hourglass aura', () => {
     expect(desc({ id: 'temporal_hourglass', kind: 'stasis', value: 1.5 })).toEqual({
       key: 'hudChrome.auraEffect.temporalHourglass',
@@ -32,6 +413,71 @@ describe('auraEffectDescriptor', () => {
     expect(d?.school).toBeUndefined();
   });
 
+  it('describes Mending Current as a whole pool and its relative party-frame size', () => {
+    expect(desc({ id: 'shaman_mending_current', kind: 'hot', value: 300 })).toEqual({
+      key: 'hudChrome.auraEffect.mendingCurrent',
+      nums: { value: 300 },
+    });
+    expect(desc({ id: 'shaman_mending_current', kind: 'hot', value: 300, poolPct: 30 })).toEqual({
+      key: 'hudChrome.auraEffect.mendingCurrentPercent',
+      nums: { pct: 30 },
+    });
+  });
+
+  it('shows the current Pack Ferocity stack and total pet damage bonus', () => {
+    expect(desc({ kind: 'hunter_ferocity', value: 2, stacks: 2 })).toEqual({
+      key: 'hudChrome.auraEffect.hunterFerocity',
+      nums: { stacks: 2, pct: 20 },
+    });
+  });
+
+  it('describes both spell choices offered by Radiant Resonance', () => {
+    expect(desc({ kind: 'paladin_radiant_resonance', value: 0.5 })).toEqual({
+      key: 'hudChrome.auraEffect.radiantResonance',
+      nums: { pct: 50, castTime: 1.5 },
+    });
+    expect(hudChromeStrings.auraEffect.radiantResonance).toBe(
+      "Your next Mending Light is instant, or your next Dawn's Embrace costs {pct}% less mana and casts in {castTime} sec",
+    );
+    expect(auraEffectMaximumFractionDigits(50)).toBe(0);
+    expect(auraEffectMaximumFractionDigits(1.5)).toBe(1);
+  });
+
+  it('describes all three choices offered by Solar Reprisal', () => {
+    expect(desc({ kind: 'paladin_solar_reprisal', value: 0.2 })).toEqual({
+      key: 'hudChrome.auraEffect.solarReprisal',
+      nums: { pct: 20 },
+    });
+    expect(hudChromeStrings.auraEffect.solarReprisal).toBe(
+      'Your next Sunward Disc costs no mana, ignores its cooldown, and deals {pct}% more damage; Hammer of Grace ignores its cooldown and heals for 100% of damage dealt; or Mending Light is instant',
+    );
+  });
+
+  it("describes Dawn's Wrath as a stored empowered Hammer cast", () => {
+    expect(desc({ kind: 'paladin_dawns_wrath', value: 0.2 })).toEqual({
+      key: 'hudChrome.auraEffect.dawnsWrath',
+      nums: { pct: 20 },
+    });
+    expect(hudChromeStrings.auraEffect.dawnsWrath).toBe(
+      'HoW: all HP · +1 use · CD 0 · +{pct}% DMG',
+    );
+  });
+
+  it('teaches every visible Druid engine bank and its live stage', () => {
+    expect(desc({ id: 'moontide', kind: 'moontide', value: 0, stacks: 2 })).toEqual({
+      key: 'hudChrome.auraEffect.moontide',
+      nums: { stacks: 2, max: 3 },
+    });
+    expect(desc({ id: 'old_blood', kind: 'old_blood', value: 0, stacks: 3 })).toEqual({
+      key: 'hudChrome.auraEffect.oldBlood',
+      nums: { stacks: 3, max: 3 },
+    });
+    expect(desc({ id: 'verdance', kind: 'verdance', value: 0, stacks: 3 })).toEqual({
+      key: 'hudChrome.auraEffect.verdance',
+      nums: { stacks: 3, max: 3 },
+    });
+  });
+
   it('reports a movement slow as a percent reduction from the multiplier', () => {
     expect(desc({ kind: 'slow', value: 0.5 })).toEqual({
       key: 'hudChrome.auraEffect.slow',
@@ -51,6 +497,24 @@ describe('auraEffectDescriptor', () => {
       key: 'hudChrome.auraEffect.formFireball',
       nums: { pct: 40 },
     });
+  });
+
+  it('describes both Moonwing Form bonuses', () => {
+    expect(desc({ kind: 'form_moonkin', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.formMoonkin',
+      nums: { pct: 20, armorPct: 50 },
+    });
+  });
+
+  it('describes both Sporemender Form bonuses and its slower pace from the sim constants', () => {
+    expect(desc({ kind: 'form_sporemender', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.formSporemender',
+      nums: { pct: 20, armorPct: 40, slowPct: 20 },
+    });
+  });
+
+  it('safely omits an effect line for a future wire aura kind', () => {
+    expect(desc({ kind: 'future_aura', value: 1 } as unknown as AuraEffectInput)).toBeNull();
   });
 
   it('distinguishes attack-speed slow from haste by the multiplier', () => {
@@ -184,18 +648,126 @@ describe('auraEffectDescriptor', () => {
     });
   });
 
-  it('describes an imbue range when judgement min/max are present', () => {
-    expect(desc({ kind: 'imbue', value: 0, value2: 10, value3: 20 })).toEqual({
-      key: 'hudChrome.auraEffect.imbueRange',
-      nums: { min: 10, max: 20 },
-    });
+  it('describes an active weapon imbue', () => {
     expect(desc({ kind: 'imbue', value: 0 })?.key).toBe('hudChrome.auraEffect.imbue');
   });
 
-  it('returns null for a kind with no meaningful one-line effect', () => {
-    expect(desc({ kind: 'righteous_fury', value: 0 })).not.toBeNull();
-    // A purely cosmetic / structural kind not handled falls back to null.
+  it('teaches the Galeheart Weapon echo mechanic instead of the generic imbue line', () => {
+    expect(desc({ id: 'galeheart_weapon', kind: 'imbue', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.galeheartWeapon',
+      nums: { steps: 3, count: 2, pct: 25 },
+    });
+  });
+
+  it('describes both halves of Elemental Trance (damage reduction and mana return)', () => {
+    expect(desc({ id: 'elemental_trance', kind: 'buff_dr', value: 0.3 })).toEqual({
+      key: 'hudChrome.auraEffect.elementalTrance',
+      nums: { pct: 30, mana: 20 },
+    });
+  });
+
+  it('describes structural states instead of falling back to a blank effect line', () => {
+    expect(desc({ kind: 'righteous_fury', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.righteousFury',
+    });
     expect(desc({ kind: 'lockout', value: 0 })).toEqual({ key: 'hudChrome.auraEffect.lockout' });
+  });
+
+  it('surfaces the exact Necromancy and Dominion state carried by visible auras', () => {
+    expect(desc({ kind: 'soul_fragments', value: 3, stacks: 3 })).toEqual({
+      key: 'hudChrome.auraEffect.resourceCount',
+      nums: { value: 3, max: 5 },
+    });
+    expect(desc({ kind: 'necromancy_ossuary_mark', value: 0.2, value2: 0.5, value3: 6 })).toEqual({
+      key: 'hudChrome.auraEffect.necromancyOssuaryMark',
+      nums: { storedPct: 20, lancePct: 50, radius: 6 },
+    });
+    expect(desc({ kind: 'form_lich', value: 1 })).toEqual({
+      key: 'hudChrome.auraEffect.formLich',
+      nums: { targets: 2, pct: 50 },
+    });
+    expect(desc({ kind: 'pet_spellhaste', value: 0.2 })).toEqual({
+      key: 'hudChrome.auraEffect.petHaste',
+      nums: { pct: 20 },
+    });
+  });
+
+  it('surfaces Affliction and Destruction resources, marks, and offensive windows', () => {
+    expect(desc({ kind: 'affliction_doom', value: 64, stacks: 64 })).toEqual({
+      key: 'hudChrome.auraEffect.resourceCount',
+      nums: { value: 64, max: 100 },
+    });
+    expect(desc({ kind: 'affliction_judgment', value: 20 })).toEqual({
+      key: 'hudChrome.auraEffect.afflictionJudgment',
+      nums: { eyePct: 100, sentencePct: 20, refund: 20 },
+    });
+    expect(desc({ kind: 'desolation', value: 2, stacks: 2 })).toEqual({
+      key: 'hudChrome.auraEffect.desolation',
+      nums: { charges: 2, castPct: 30 },
+    });
+    expect(desc({ kind: 'pyre_guardian', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.pyreGuardian',
+      nums: { ruin: 1, ruinInterval: 1, damage: 84, damageInterval: 2, radius: 8 },
+    });
+  });
+
+  it('describes every formerly blank aura family', () => {
+    const inputs: AuraEffectInput[] = [
+      { kind: 'stasis', value: 1 },
+      { kind: 'pet_damage_pct', value: 100 },
+      { kind: 'buff_spellcrit', value: 0.05 },
+      { kind: 'buff_spelldmg', value: 0.2 },
+      { kind: 'buff_spellhaste', value: 0.2 },
+      { kind: 'sated', value: 0 },
+      { kind: 'cauterize_fatigue', value: 0 },
+      { kind: 'cast_shield', value: 1 },
+      { kind: 'form_moonkin', value: 0 },
+      { kind: 'form_sporemender', value: 0 },
+      { kind: 'form_shadow', value: 15 },
+      { kind: 'affliction_eye', value: 1, tickInterval: 2.5 },
+      { kind: 'affliction_eye_secondary', value: 0.5 },
+      { kind: 'affliction_accomplice', value: 3 },
+      { kind: 'affliction_violence', value: 4, value2: 22, charges: 3 },
+      { kind: 'affliction_vicarious', value: 15 },
+      { kind: 'affliction_possession', value: 1 },
+      { kind: 'affliction_litany', value: 30, value2: 8, value3: 4 },
+      { kind: 'affliction_fate_threads', value: 3, stacks: 3 },
+      { kind: 'affliction_consume_threads', value: 3, stacks: 3 },
+      { kind: 'necromancy_harvest_mark', value: 1 },
+      { kind: 'necromancy_death_echo', value: 0, value2: 0 },
+      { kind: 'warlock_anchor', value: 0, value2: 0, value3: 0 },
+      { kind: 'form_metamorph', value: 1 },
+      { kind: 'buff_energyregen', value: 1 },
+      { kind: 'overpower_charge', value: 0.2, stacks: 2 },
+      { kind: 'sweeping_strikes', value: 1 },
+      { kind: 'fingers_of_frost', value: 0, stacks: 2 },
+      { kind: 'brain_freeze', value: 0 },
+      { kind: 'winters_chill', value: 0, charges: 2 },
+      { kind: 'icicles', value: 5, stacks: 5 },
+      { kind: 'destruction_ruin', value: 4, stacks: 4 },
+      { kind: 'ruinous_brand', value: 0.5, stacks: 3 },
+      { kind: 'duskfire_claim', value: 1 },
+      { kind: 'perfect_moment', value: 0 },
+      { kind: 'bleed_vuln', value: 0.4 },
+      { kind: 'vuln_source', value: 0.2 },
+      { kind: 'next_execute_free', value: 0 },
+      { kind: 'resource_sap', value: 20 },
+      { kind: 'next_attack_crit', value: 1 },
+      { kind: 'heal_echo', value: 60, value2: 0.35 },
+      { kind: 'enrage', value: 0.07 },
+      { kind: 'sudden_death', value: 1 },
+      { kind: 'aoe_echo', value: 0, charges: 2 },
+      { kind: 'sure_crit', value: 1, charges: 3 },
+      { kind: 'internal_cd', value: 0 },
+      { kind: 'temporal_echo', value: 0.4 },
+      { kind: 'arcane_charge', value: 4, stacks: 4 },
+      { kind: 'buff_dr', value: 0.2 },
+      { kind: 'buff_dr_phys', value: 0.5 },
+    ];
+
+    for (const input of inputs) {
+      expect(desc(input)?.key, input.kind).toMatch(/^hudChrome\.auraEffect\./);
+    }
   });
 
   it('is a pure function: same input gives the same output', () => {
@@ -221,5 +793,50 @@ describe('auraEffectDescriptor', () => {
       key: 'hudChrome.auraEffect.heatingUp',
       nums: {},
     });
+  });
+
+  it('discloses the Temporal Echo offensive-driver multiplier', () => {
+    expect(desc({ kind: 'temporal_echo', value: 0.4 })).toEqual({
+      key: 'hudChrome.auraEffect.temporalEcho',
+      nums: { singlePct: 40, areaPct: 15 },
+    });
+    expect(desc({ kind: 'temporal_echo', value: 0.13 })).toEqual({
+      key: 'hudChrome.auraEffect.temporalEcho',
+      nums: { singlePct: 13, areaPct: 6 },
+    });
+    expect(hudChromeStrings.auraEffect.temporalEcho).toContain('4x bonus on an individual');
+    expect(hudChromeStrings.auraEffect.temporalEcho).toContain(
+      'shared among marked allies below 60% health',
+    );
+    expect(hudChromeStrings.auraEffect.temporalEcho).toContain('Aether Surge and Aether Darts');
+    expect(hudChromeStrings.auraEffect.temporalEcho).not.toContain('2x bonus on a group Echo');
+    expect(hudChromeStrings.auraEffect.temporalEcho).not.toContain('7x');
+  });
+
+  it('teaches the carried-flag buff its right-click-to-drop affordance', () => {
+    // The one row that describes an ACTION rather than a stat: without it the
+    // voluntary drop is undiscoverable, since nothing else on screen says it.
+    expect(desc({ id: 'bg_carried_flag', kind: 'flag_carried', value: 0 })).toEqual({
+      key: 'hudChrome.auraEffect.carriedFlag',
+      nums: {},
+    });
+    // The kind alone describes nothing: the id is what earns the line.
+    expect(desc({ id: 'some_other_marker', kind: 'flag_carried', value: 0 })).toBeNull();
+  });
+});
+
+describe('Cat Form buff line (druid Cat Form mobility pass)', () => {
+  it('states the passive move speed from CAT_FORM_MOVE_MULT, not the aura value', () => {
+    // The form_cat aura value is the threat multiplier (0.71); the buff line
+    // resolves the speed the way moveSpeedMult does, so the buff bar and the
+    // Cat Form ability tooltip cannot disagree about what the form does.
+    expect(desc({ kind: 'form_cat', value: 0.71 })).toEqual({
+      key: 'hudChrome.auraEffect.wolfForm',
+      nums: { pct: Math.round((CAT_FORM_MOVE_MULT - 1) * 100) },
+    });
+    expect(desc({ kind: 'form_cat', value: 0.71 })?.nums).toEqual({ pct: 15 });
+    expect(hudChromeStrings.auraEffect.wolfForm).toContain('movement speed increased by {pct}%');
+    // Fleet Form keeps reading its own aura value (1.4 = +40%).
+    expect(desc({ kind: 'form_travel', value: 1.4 })?.nums).toEqual({ pct: 40 });
   });
 });

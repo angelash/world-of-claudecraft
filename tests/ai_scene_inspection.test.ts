@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { Entity } from '../src/sim/types';
 import { sceneFrameFor } from '../server/ai/scene_frame';
 import { sceneInspectionEvent, sceneInspectionLineId } from '../server/ai/scene_inspection';
 import type { AiWorldTrace } from '../server/ai/world_traces';
 import { Sim } from '../src/sim/sim';
+import type { Entity } from '../src/sim/types';
 
 function playerAt(x: number, z: number): { sim: Sim; player: Entity } {
   const sim = new Sim({ seed: 20061, playerClass: 'warrior' });
@@ -18,11 +18,21 @@ function playerAt(x: number, z: number): { sim: Sim; player: Entity } {
 
 describe('AI scene inspection', () => {
   it('maps major scene anchors to distinct inspection lineIds', () => {
-    expect(sceneInspectionLineId(sceneFrameFor(playerAt(8, 17).sim, { x: 8, y: 0, z: 17 }))).toBe('hudChrome.aiSpeech.sceneInspectForge');
-    expect(sceneInspectionLineId(sceneFrameFor(playerAt(80, 86).sim, { x: 80, y: 0, z: 86 }))).toBe('hudChrome.aiSpeech.sceneInspectChapel');
-    expect(sceneInspectionLineId(sceneFrameFor(playerAt(-64, 60).sim, { x: -64, y: 0, z: 60 }))).toBe('hudChrome.aiSpeech.sceneInspectLake');
-    expect(sceneInspectionLineId(sceneFrameFor(playerAt(0, 660).sim, { x: 0, y: 0, z: 660 }))).toBe('hudChrome.aiSpeech.sceneInspectWatchpost');
-    expect(sceneInspectionLineId(sceneFrameFor(playerAt(-152, 610).sim, { x: -152, y: 0, z: 610 }))).toBe('hudChrome.aiSpeech.sceneInspectCrypt');
+    expect(sceneInspectionLineId(sceneFrameFor(playerAt(8, 17).sim, { x: 8, y: 0, z: 17 }))).toBe(
+      'hudChrome.aiSpeech.sceneInspectForge',
+    );
+    expect(sceneInspectionLineId(sceneFrameFor(playerAt(80, 86).sim, { x: 80, y: 0, z: 86 }))).toBe(
+      'hudChrome.aiSpeech.sceneInspectChapel',
+    );
+    expect(
+      sceneInspectionLineId(sceneFrameFor(playerAt(-64, 60).sim, { x: -64, y: 0, z: 60 })),
+    ).toBe('hudChrome.aiSpeech.sceneInspectLake');
+    expect(sceneInspectionLineId(sceneFrameFor(playerAt(0, 660).sim, { x: 0, y: 0, z: 660 }))).toBe(
+      'hudChrome.aiSpeech.sceneInspectWatchpost',
+    );
+    expect(
+      sceneInspectionLineId(sceneFrameFor(playerAt(-152, 610).sim, { x: -152, y: 0, z: 610 })),
+    ).toBe('hudChrome.aiSpeech.sceneInspectCrypt');
   });
 
   it('emits a personal inspect event without mutating the scene', () => {
@@ -66,7 +76,11 @@ describe('AI scene inspection', () => {
       speech: {
         mode: 'lineId',
         lineId: 'hudChrome.aiSpeech.sceneTraceFood',
-        values: expect.objectContaining({ itemId: 'roasted_boar', traceKind: 'food', traceStrength: 62 }),
+        values: expect.objectContaining({
+          itemId: 'roasted_boar',
+          traceKind: 'food',
+          traceStrength: 62,
+        }),
       },
       reaction: { kind: 'inspect', targetItemId: 'roasted_boar', score: 0.62 },
       pid: player.id,

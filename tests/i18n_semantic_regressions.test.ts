@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TranslationKey } from '../src/ui/i18n.catalog';
 import { guideStrings } from '../src/ui/i18n.catalog/guide';
+import { itemNames } from '../src/ui/i18n.catalog/items';
 import { cs_CZ } from '../src/ui/i18n.locales/cs_CZ';
 import { da_DK } from '../src/ui/i18n.locales/da_DK';
 import { de_DE } from '../src/ui/i18n.locales/de_DE';
@@ -19,6 +20,7 @@ import { tr_TR } from '../src/ui/i18n.locales/tr_TR';
 import { vi_VN } from '../src/ui/i18n.locales/vi_VN';
 import { zh_CN } from '../src/ui/i18n.locales/zh_CN';
 import { zh_TW } from '../src/ui/i18n.locales/zh_TW';
+import { pending, translations } from '../src/ui/i18n.resolved.generated';
 
 const locales: Record<string, Partial<Record<TranslationKey, string>>> = {
   cs_CZ,
@@ -45,6 +47,10 @@ function translation(locale: string, key: TranslationKey): string {
   const value = locales[locale]?.[key];
   if (typeof value !== 'string') throw new Error(`${locale} is missing ${key}`);
   return value;
+}
+
+function expectStandaloneNumber(value: string, n: number) {
+  expect(value).toMatch(new RegExp(`(^|\\D)${n}(\\D|$)`));
 }
 
 describe('reviewed localization semantics', () => {
@@ -112,6 +118,25 @@ describe('reviewed localization semantics', () => {
     });
   }
 
+  it('compact legacy item arrays do not shift v0.28 materials after inserted Rift names', () => {
+    const items = itemNames.es.entities.items;
+    expect({
+      rift: items.rift_essence.name,
+      copper: items.copper_ore.name,
+      iron: items.iron_ore.name,
+      log: items.ironbark_log.name,
+      herb: items.silverleaf_herb.name,
+    }).toEqual({
+      rift: 'Rift Essence',
+      copper: 'Copper Ore',
+      iron: 'Iron Ore',
+      log: 'Ironbark Log',
+      // The release renamed the herb's display name (Sheenleaf); the id and
+      // its slot are unchanged, which is what this shift guard pins.
+      herb: 'Sheenleaf Herb',
+    });
+  });
+
   // The q_prof_intro rewrite (PR 2039) removed the stale Latin-script fills
   // for the reworded completion (they sit pending until the release-time
   // locale fill), so only the non-Latin locales, freshly filled in the same
@@ -135,6 +160,44 @@ describe('reviewed localization semantics', () => {
 
   it('pl_PL labels a heroic item rather than heroic mode', () => {
     expect(translation('pl_PL', 'hudChrome.itemHeroicTag')).toBe('[HEROICZNY]');
+  });
+
+  it('resolved Warlock control tooltips describe the current duration and break mechanics', () => {
+    const reviewedKeys: TranslationKey[] = [
+      'entities.abilities.fear.description',
+      'entities.abilities.howl_of_terror.description',
+      'entities.abilities.ossuary_mark.description',
+    ];
+    const localeNames = Object.keys(translations).filter(
+      (lang) => lang !== 'en' && lang !== 'en_CA',
+    );
+
+    for (const lang of localeNames) {
+      const table = translations[lang as keyof typeof translations];
+      const harrow = table.entities.abilities.fear.description;
+      const dreadChorus = table.entities.abilities.howl_of_terror.description;
+      const ossuaryMark = table.entities.abilities.ossuary_mark.description;
+
+      expectStandaloneNumber(harrow, 5);
+      expect(harrow, `${lang} Harrow break threshold`).toMatch(/8\s?%|%\s?8/);
+      expect(harrow, `${lang} Harrow old duration`).not.toMatch(
+        /(^|\D)8\s*(s|sec|sek|秒|초|giây)/i,
+      );
+
+      expectStandaloneNumber(dreadChorus, 5);
+      expect(dreadChorus, `${lang} Dread Chorus break threshold`).toMatch(/8\s?%|%\s?8/);
+      expect(dreadChorus, `${lang} Dread Chorus old duration`).not.toMatch(/(^|\D)3(\D|$)/);
+
+      expectStandaloneNumber(ossuaryMark, 15);
+      expect(ossuaryMark, `${lang} Ossuary Mark storage`).toMatch(/20\s?%|%\s?20/);
+      expect(ossuaryMark, `${lang} Ossuary Mark old duration`).not.toMatch(/(^|\D)12(\D|$)/);
+
+      for (const key of reviewedKeys) {
+        expect(pending[lang as keyof typeof pending] ?? [], `${lang} ${key} pending`).not.toContain(
+          key,
+        );
+      }
+    }
   });
 
   const warriorTooltipTerms: Record<string, { group: string; damage: string }> = {

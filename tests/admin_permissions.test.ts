@@ -101,6 +101,40 @@ describe('admin permission vocabulary', () => {
     expect(isAdminRole('root')).toBe(false);
   });
 
+  it('keeps guildbank.purge SUPERADMIN-only: no dashboard-grantable role reaches it', () => {
+    // The escape hatch destroys player property with no in-game undo, so it is
+    // deliberately outside every assignable role, `admin` included.
+    expect(SUPERADMIN_ONLY_PERMISSIONS).toContain('guildbank.purge');
+    for (const role of ADMIN_ROLES) {
+      const grants = new Set(ROLE_PERMISSIONS[role]).has('guildbank.purge');
+      expect(grants, `${role} grants guildbank.purge`).toBe(role === SUPERADMIN_ROLE);
+    }
+    expect(permissionsForRoles([...ASSIGNABLE_ADMIN_ROLES]).has('guildbank.purge')).toBe(false);
+  });
+
+  it('keeps moderation.clearItemName SUPERADMIN-only: no dashboard-grantable role reaches it', () => {
+    // The legendary-name strip destroys a player-authored name with no
+    // in-game undo, the guildbank.purge doctrine verbatim: outside every
+    // assignable role, `admin` and `moderator` included.
+    expect(SUPERADMIN_ONLY_PERMISSIONS).toContain('moderation.clearItemName');
+    for (const role of ADMIN_ROLES) {
+      const grants = new Set(ROLE_PERMISSIONS[role]).has('moderation.clearItemName');
+      expect(grants, `${role} grants moderation.clearItemName`).toBe(role === SUPERADMIN_ROLE);
+    }
+    expect(permissionsForRoles([...ASSIGNABLE_ADMIN_ROLES]).has('moderation.clearItemName')).toBe(
+      false,
+    );
+  });
+
+  it('keeps realm.motd to admin and superadmin: moderators cannot set the realm message', () => {
+    for (const role of ADMIN_ROLES) {
+      const grants = new Set(ROLE_PERMISSIONS[role]).has('realm.motd');
+      expect(grants, `${role} grants realm.motd`).toBe(
+        role === 'admin' || role === SUPERADMIN_ROLE,
+      );
+    }
+  });
+
   it('keeps the client permission mirror byte-identical to the server vocabulary', () => {
     expect([...CLIENT_ADMIN_PERMISSIONS]).toEqual([...ADMIN_PERMISSIONS]);
   });

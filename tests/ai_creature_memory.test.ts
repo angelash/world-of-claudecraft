@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { AiCreatureMemoryStore, creaturePlanKey, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from '../server/ai/creature_memory';
 import type { AiCreaturePlanKind } from '../server/ai/creature_memory';
-import { droppedItemSemantic } from '../server/ai/scene_frame';
+import {
+  AiCreatureMemoryStore,
+  creaturePlanKey,
+  singularityCreatureMemoryEvent,
+  singularityCreatureSceneMemoryEvent,
+} from '../server/ai/creature_memory';
 import type { SceneFrameV1 } from '../server/ai/scene_frame';
+import { droppedItemSemantic } from '../server/ai/scene_frame';
 import type { IndividualAiProfile, IndividualTrait } from '../server/ai/singularity';
 import type { Entity } from '../src/sim/types';
 
@@ -33,18 +38,34 @@ const scene: SceneFrameV1 = {
   light: { level: 'bright', tags: ['sunlit'] },
   mood: { dayEnergy: 0.7, nightFatigue: 0.1, clearNightAwe: 0, rainIrritation: 0, fogFear: 0 },
   recentSceneEvents: [],
-  danger: { undeadPressure: 0, hostileDensity: 0, corpseDensity: 0, recentDeaths: 0, safeHavenScore: 0.8 },
+  danger: {
+    undeadPressure: 0,
+    hostileDensity: 0,
+    corpseDensity: 0,
+    recentDeaths: 0,
+    safeHavenScore: 0.8,
+  },
 };
 
 describe('AI creature memory', () => {
   it('emits a singularity memory line after repeated player patterns', () => {
     const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 5 });
     const item = droppedItemSemantic('roasted_boar', 0, player.id)!;
-    const first = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 10 });
+    const first = store.noteSingularityReaction({
+      entity: creature,
+      player,
+      individual,
+      nowSeconds: 10,
+    });
     expect(first.interactionCount).toBe(1);
     expect(singularityCreatureMemoryEvent(player, creature, item, first)).toBeNull();
 
-    const second = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 12 });
+    const second = store.noteSingularityReaction({
+      entity: creature,
+      player,
+      individual,
+      nowSeconds: 12,
+    });
     expect(second.interactionCount).toBe(2);
     expect(singularityCreatureMemoryEvent(player, creature, item, second)).toMatchObject({
       speech: {
@@ -66,7 +87,12 @@ describe('AI creature memory', () => {
       pid: player.id,
     });
 
-    const afterExpiry = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 17 });
+    const afterExpiry = store.noteSingularityReaction({
+      entity: creature,
+      player,
+      individual,
+      nowSeconds: 17,
+    });
     expect(afterExpiry.interactionCount).toBe(1);
   });
 
@@ -88,21 +114,37 @@ describe('AI creature memory', () => {
   });
 
   it('forms bounded short-term creature plans after repeated singularity patterns', () => {
-    const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30, planTtlSeconds: 8, maxPlans: 2 });
+    const store = new AiCreatureMemoryStore({
+      memoryTtlSeconds: 30,
+      planTtlSeconds: 8,
+      maxPlans: 2,
+    });
     const item = droppedItemSemantic('roasted_boar', 0, player.id)!;
-    const first = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 10 });
-    expect(store.notePlan({
-      memory: first,
+    const first = store.noteSingularityReaction({
       entity: creature,
       player,
       individual,
-      scene,
-      item,
-      trigger: 'item_discarded',
       nowSeconds: 10,
-    })).toBeNull();
+    });
+    expect(
+      store.notePlan({
+        memory: first,
+        entity: creature,
+        player,
+        individual,
+        scene,
+        item,
+        trigger: 'item_discarded',
+        nowSeconds: 10,
+      }),
+    ).toBeNull();
 
-    const second = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 12 });
+    const second = store.noteSingularityReaction({
+      entity: creature,
+      player,
+      individual,
+      nowSeconds: 12,
+    });
     const plan = store.notePlan({
       memory: second,
       entity: creature,
@@ -118,7 +160,11 @@ describe('AI creature memory', () => {
       kind: 'followScent',
       itemId: 'roasted_boar',
       traits: expect.arrayContaining(['foodFixated', 'stargazer']),
-      evidence: expect.arrayContaining(['trigger:item_discarded', 'trait:foodFixated', 'item:roasted_boar']),
+      evidence: expect.arrayContaining([
+        'trigger:item_discarded',
+        'trait:foodFixated',
+        'item:roasted_boar',
+      ]),
     });
     expect(plan?.intensity).toBeGreaterThan(0.7);
     expect(singularityCreatureMemoryEvent(player, creature, item, second, plan)).toMatchObject({
@@ -155,43 +201,68 @@ describe('AI creature memory', () => {
     ['foodFixated', 'seekFood'],
     ['territorial', 'protectNest'],
     ['vengeful', 'misreadPlayer'],
-  ] as const)('maps %s scene-only singularity patterns to %s plans', (trait: IndividualTrait, kind: AiCreaturePlanKind) => {
-    const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30, planTtlSeconds: 8 });
-    const sceneIndividual: IndividualAiProfile = {
-      ...individual,
-      traits: [trait],
-    };
-    store.noteSingularityReaction({ entity: creature, player, individual: sceneIndividual, nowSeconds: 10 });
-    const second = store.noteSingularityReaction({ entity: creature, player, individual: sceneIndividual, nowSeconds: 12 });
-    const plan = store.notePlan({
-      memory: second,
-      entity: creature,
-      player,
-      individual: sceneIndividual,
-      scene,
-      trigger: 'scene_inspected',
-      nowSeconds: 12,
-    });
+  ] as const)(
+    'maps %s scene-only singularity patterns to %s plans',
+    (trait: IndividualTrait, kind: AiCreaturePlanKind) => {
+      const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30, planTtlSeconds: 8 });
+      const sceneIndividual: IndividualAiProfile = {
+        ...individual,
+        traits: [trait],
+      };
+      store.noteSingularityReaction({
+        entity: creature,
+        player,
+        individual: sceneIndividual,
+        nowSeconds: 10,
+      });
+      const second = store.noteSingularityReaction({
+        entity: creature,
+        player,
+        individual: sceneIndividual,
+        nowSeconds: 12,
+      });
+      const plan = store.notePlan({
+        memory: second,
+        entity: creature,
+        player,
+        individual: sceneIndividual,
+        scene,
+        trigger: 'scene_inspected',
+        nowSeconds: 12,
+      });
 
-    expect(plan).toMatchObject({
-      kind,
-      traits: [trait],
-      evidence: expect.arrayContaining([`trait:${trait}`, 'trigger:scene_inspected']),
-    });
-    expect(singularityCreatureSceneMemoryEvent(player, creature, scene, second, plan)).toMatchObject({
-      reaction: expect.objectContaining({
-        planKind: kind,
-        targetEntityId: player.id,
-      }),
-    });
-  });
+      expect(plan).toMatchObject({
+        kind,
+        traits: [trait],
+        evidence: expect.arrayContaining([`trait:${trait}`, 'trigger:scene_inspected']),
+      });
+      expect(
+        singularityCreatureSceneMemoryEvent(player, creature, scene, second, plan),
+      ).toMatchObject({
+        reaction: expect.objectContaining({
+          planKind: kind,
+          targetEntityId: player.id,
+        }),
+      });
+    },
+  );
 
   it('emits a singularity scene memory line after repeated scene sightings', () => {
     const store = new AiCreatureMemoryStore({ memoryTtlSeconds: 30 });
-    const first = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 10 });
+    const first = store.noteSingularityReaction({
+      entity: creature,
+      player,
+      individual,
+      nowSeconds: 10,
+    });
     expect(singularityCreatureSceneMemoryEvent(player, creature, scene, first)).toBeNull();
 
-    const second = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 12 });
+    const second = store.noteSingularityReaction({
+      entity: creature,
+      player,
+      individual,
+      nowSeconds: 12,
+    });
     expect(singularityCreatureSceneMemoryEvent(player, creature, scene, second)).toMatchObject({
       speech: {
         lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
@@ -221,17 +292,29 @@ describe('AI creature memory', () => {
       weather: { kind: 'clear', intensity: 0.1, tags: ['clearSky'] },
       light: { level: 'dim', tags: ['moonlit', 'starrySky'] },
     };
-    const first = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 10 });
-    const second = store.noteSingularityReaction({ entity: creature, player, individual, nowSeconds: 12 });
-    expect(store.notePlan({
-      memory: first,
+    const first = store.noteSingularityReaction({
       entity: creature,
       player,
       individual,
-      scene: skyScene,
-      trigger: 'scene_inspected',
       nowSeconds: 10,
-    })).toBeNull();
+    });
+    const second = store.noteSingularityReaction({
+      entity: creature,
+      player,
+      individual,
+      nowSeconds: 12,
+    });
+    expect(
+      store.notePlan({
+        memory: first,
+        entity: creature,
+        player,
+        individual,
+        scene: skyScene,
+        trigger: 'scene_inspected',
+        nowSeconds: 10,
+      }),
+    ).toBeNull();
     const plan = store.notePlan({
       memory: second,
       entity: creature,

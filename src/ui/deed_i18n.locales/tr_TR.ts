@@ -7,6 +7,115 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: 'Maceraya Hazır',
+    desc: "Sınav Kıyısı'ndan mezun ol: adadaki her dersi bitir, sonra Doğudere'ye dönmek için feribot çanını çal.",
+  },
+  exp_dawnhold_castle: {
+    name: 'Bahçede Açık Bir Kapı',
+    desc: "Dawnhold Şatosu'na uğra ve güneşli bahçe salonlarında dolaş.",
+  },
+  exp_the_last_keep: {
+    name: 'Sessiz Salonlar',
+    desc: "Son Kale'nin kapılarından geç ve sessiz salonlarında yürü.",
+  },
+  pvp_bg_first_capture: {
+    name: 'Elde Sancak',
+    desc: "Dikenvadi Ovası'nda bir sancak ele geçir.",
+  },
+  pvp_bg_first_win: {
+    name: 'Vadi Tutunuyor',
+    desc: 'Bir Dikenvadi Ovası savaşını kazan.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Vadinin Muhafızı',
+    desc: '25 Dikenvadi Ovası savaşı kazan.',
+    title: 'Sancaktar',
+  },
+  pvp_bg_captures_100: {
+    name: 'Yüz Sancak',
+    desc: "Kariyerin boyunca Dikenvadi Ovası'nda 100 sancak ele geçir.",
+  },
+  dgn_rift: {
+    name: 'Yarık Gezgini',
+    desc: 'Kat şefini yenerek bir Yarığı temizle.',
+  },
+  dgn_rift_s_rank: {
+    name: 'Yarık Hükümdarı',
+    desc: 'Bir Yarık portalının oluşturabileceği en zor kademe olan S dereceli bir Yarığı temizle.',
+  },
+  pvp_honor_sergeant: {
+    name: 'Saf Kıran',
+    desc: 'Ömrün boyunca 10.000 onur kazan. Onu harcamak rütbeni asla kaybettirmez.',
+    title: 'Saf Kıran',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Meydan Yağmacısı',
+    desc: 'Ömrün boyunca 40.000 onur kazan, arkanda gerçek bir savaş mevsimi bırak.',
+    title: 'Meydan Yağmacısı',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Savaş Taçlısı',
+    desc: 'Ömrün boyunca 150.000 onur kazan. Herhangi bir diyarda nadirdir, ve öyle de olmalı.',
+    title: 'Savaş Taçlısı',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Kuluçka Kırıcı',
+    desc: "Bir Ejder Ağzı Yuva Lordu'nu, narasına, yarma darbesine ve ateşine rağmen, yumurtalarının ortasında öldür.",
+  },
+  chr_maw_matriarch: {
+    name: 'Gök Sessizleşiyor',
+    desc: "Ağız Anaerkili Cindraleth'i, Ejder Ağzı'nın üzerindeki krater tüneğinde öldür.",
+  },
+  chr_frostveil_gatherer: {
+    name: 'Teras Hasadi',
+    desc: 'Frostveil de bir cevher damari, bir odun alani ve bir ot yatagi hasat et.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Golcukte Ilk Buz',
+    desc: 'Frostveil sularindan bir balik yakala.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Amberfall Hasadi',
+    desc: 'Amberfall da bir cevher damari, bir odun alani ve bir ot yatagi hasat et.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'Buyuk Batakliktan Bir Av',
+    desc: 'Amberfall sularindan bir balik yakala.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'Dusleyen Hasat',
+    desc: 'Nightbloom da bir cevher damari, bir odun alani ve bir ot yatagi hasat et.',
+  },
+  chr_nightbloom_first_cast: {
+    desc: 'Nightbloom sularindan bir balik yakala.',
+
+    name: 'Ay Kaynağında Bir Dalgalanma',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Golge Altinda Hasat',
+    desc: 'Wraithwood da bir cevher damari, bir odun alani ve bir ot yatagi hasat et.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Ayna Koyunda Bir Atis',
+    desc: 'Wraithwood sularindan bir balik yakala.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Palmiye Kiyisinda Hasat',
+    desc: 'Palmreach te bir cevher damari, bir odun alani ve bir ot yatagi hasat et.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Safir Lagune Atis',
+    desc: 'Palmreach sularindan bir balik yakala.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'Parterin Bereketi',
+    desc: 'Evergarden da bir cevher damari, bir odun alani ve bir ot yatagi hasat et.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Yaprak Havuzunda Bir Atis',
+    desc: 'Evergarden sularindan bir balik yakala.',
+  },
   pvp_card_duel_first_win: {
     name: 'Ev Kuralları',
     desc: "Kart Ustası'nın yanında bir Kart Düellosu kazan.",
@@ -79,7 +188,7 @@ export const table: DeedLocaleTable = {
   },
   prog_master_gatherer: {
     name: 'Usta Toplayıcı',
-    desc: "Madencilik, Odun Kesimi, Şifalı Otçuluk ve Balık Tutma'nın herhangi üçünde 100 yetkinliğe ulaş.",
+    desc: 'Herhangi üç toplama zanaatında 100 yetkinliğe ulaş.',
   },
   prog_first_craft: { name: 'El Emeği Göz Nuru', desc: 'İlk başarılı üretimini tamamla.' },
   prog_craft_specialist: {
@@ -184,8 +293,9 @@ export const table: DeedLocaleTable = {
     title: 'Ejderdeviren',
   },
   dgn_sanctum_speed: {
-    name: 'Mabet Koşusu',
     desc: "Grubunun Mezarejderi Mabedi'ni almasından itibaren 15 dakika içinde Mezarejderi Korzul'u alt et.",
+
+    name: 'Mabed Yarışı',
   },
   dgn_nythraxis_gravebreaker: {
     name: 'Hiçbir Krala Diz Çökme',
@@ -250,7 +360,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'Çanlar Susar',
-    desc: "Diyakoz Varric'i, dirilttiği her Cenaze Çancısı çoktan öldürülmüşken yen.",
+    desc: "Diyakoz Vandric'i, dirilttiği her Cenaze Çancısı çoktan öldürülmüşken yen.",
   },
   dlv_nhalia_bells: {
     name: 'Çan Susturan',
@@ -263,7 +373,6 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Vadi Vakayinamesi, II. Bölüm',
-    desc: "Saul'un vakayinamesinin ikinci bölümünü bitir: haydutları, murlocları ve maden haşaratını hakla, Domuz Tarlası'nda sahaya çık ve Emanetlik'e göğüs ger.",
   },
   chr_vale_chapter_iii: {
     name: "Vadi'nin Vakayinamesi",
@@ -280,8 +389,8 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_packbreaker: { name: 'Sürü Kıran', desc: '10 saniye içinde 3 Orman Kurdu öldür.' },
   chr_vale_cup_debut: {
+    desc: "Domuz Tarlası'da bir Vale Kupası maçında sahaya çıkıp topa dokun. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.",
     name: 'Bakır Kova Adayı',
-    desc: "Domuz Tarlası'ndaki bir Vadi Kupası maçında sahaya çık ve topa dokun.",
   },
   chr_vale_rares: {
     name: "Vadi'nin Dehşetleri",
@@ -326,12 +435,13 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: "Dikenzirve'nin Vakayinamesi",
-    desc: "Dağın hikâyesini sonuna dek götür: Ejder Tarikatı'nı çökert, Mabet'i sustur, Uyanan Zirve'yi devir ve kayalıkların adı bilinen her dehşetini yere ser.",
     title: 'Dikenzirveli',
+
+    desc: 'Dağın tüm hikâyesini gör: Broodsworn’u kır, Mabedi sustur, Uyanan Zirve’yi devir ve kayalıkların adı geçen her dehşetini yere ser.',
   },
   chr_peaks_sparring: {
     name: 'Sur Talimi',
-    desc: "Yüksek Gözcü'nün üstündeki antrenman kuklasına toplam 1.000 hasar ver.",
+    desc: 'Bir antrenman kuklasına toplam 1.000 hasar ver.',
   },
   chr_peaks_glimmer_cast: {
     name: 'Soğuk Su, Daha Soğuk Işık',
@@ -411,7 +521,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Gedikli Müşteri',
-    desc: "Kahramanca Levazımcısı'nın tezgâhındaki on parçanın tamamını keşfet.",
+    desc: "Kahramanca Levazımcısı'nın tezgâhındaki on teçhizat parçasının tamamını keşfet.",
   },
   col_glimmerfin: {
     name: 'Umut Pırıltısı',
@@ -446,64 +556,73 @@ export const table: DeedLocaleTable = {
     desc: 'Onurunu büyük ölçüde koruyarak bir düello kaybet.',
   },
   pvp_vcup_first_match: {
+    desc: "Domuz Tarlası'da bir Vale Kupası maçını kazanarak ya da kaybederek baştan sona tamamla. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.",
     name: 'Sahaya İlk Adım',
-    desc: "Kazan ya da kaybet, Domuz Tarlası'nda bir Vadi Kupası maçını sonuna kadar oyna.",
   },
-  pvp_vcup_first_win: { name: 'İlk Kupa', desc: 'Dereceli bir Vadi Kupası maçı kazan.' },
+  pvp_vcup_first_win: {
+    name: 'İlk Kupa',
+    desc: 'Dereceli bir Vale Kupası maçı kazan. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.',
+  },
   pvp_vcup_wins_10: {
+    desc: '10 dereceli Vale Kupası maçı kazan. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.',
     name: 'Domuztopunun Eski Kurdu',
-    desc: '10 dereceli Vadi Kupası maçı kazan.',
   },
   pvp_vcup_wins_25: {
+    desc: '25 dereceli Vale Kupası maçı kazan. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.',
     name: 'Domuztopu Efsanesi',
-    desc: '25 dereceli Vadi Kupası maçı kazan.',
     title: 'Domuztopu Efsanesi',
   },
-  pvp_vcup_first_goal: { name: 'Siftah', desc: 'Dereceli bir Vadi Kupası maçında gol at.' },
+  pvp_vcup_first_goal: {
+    name: 'Siftah',
+    desc: 'Dereceli bir Vale Kupası maçında gol at. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.',
+  },
   pvp_vcup_hat_trick: {
+    desc: "3'e 3 veya daha büyük kategorideki dereceli bir Vale Kupası maçında tek maçta üç gol at. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.",
     name: 'Hat-Trick Kahramanı',
-    desc: '3v3 ya da daha büyük ligde, tek bir dereceli Vadi Kupası maçında üç gol at.',
   },
   pvp_vcup_golden_goal: {
+    desc: 'Dereceli bir Vale Kupası maçını karara bağlayan altın golü at. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.',
     name: 'Altın An',
-    desc: 'Dereceli bir Vadi Kupası maçının kaderini belirleyen altın golü at.',
   },
   pvp_vcup_first_save: {
+    desc: "3'e 3 veya daha büyük kategorideki dereceli bir Vale Kupası maçında kaleci olarak kurtarış yap. Yalnızca tutuşunu sınayacak kadar hızlı bir şut sayılır; yumuşak bir yakalama sayılmaz. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.",
     name: 'Güvenli Eller',
-    desc: 'Dereceli bir Vadi Kupası maçında kaleci olarak bir kurtarış yap.',
   },
   pvp_vcup_clean_sheet: {
+    desc: "3'e 3 veya daha büyük kategorideki dereceli bir Vale Kupası maçını kaleci olarak gol yemeden kazan. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.",
     name: 'Bu Kaleden Geçilmez',
-    desc: 'Dereceli bir Vadi Kupası maçını kaleci olarak gol yemeden kazan.',
   },
   pvp_vcup_guild_win: {
+    desc: 'Loncanın sancağı altında girilen dereceli bir Vale Kupası maçı kazan. Vale Kupası maçları artık oynanamadığından bu başarı artık kazanılamaz.',
     name: 'Sancak İçin',
-    desc: 'Loncanın sancağı altında katıldığın dereceli bir Vadi Kupası maçını kazan.',
   },
   pvp_fiesta_first_bout: {
+    desc: "Kazansan da kaybetsen de eksiksiz bir 2'ye 2 Fiesta karşılaşmasına katıl. Fiesta karşılaşmaları artık Arena sırasından sunulmadığından bu başarı artık kazanılamaz.",
     name: 'Davetsiz Misafir',
-    desc: 'Kazan ya da kaybet, eksiksiz bir 2v2 Fiesta müsabakasında dövüş.',
   },
-  pvp_fiesta_first_win: { name: "Fiesta'nın Neşesi", desc: 'Bir 2v2 Fiesta müsabakası kazan.' },
+  pvp_fiesta_first_win: {
+    name: "Fiesta'nın Neşesi",
+    desc: "Bir 2'ye 2 Fiesta karşılaşması kazan. Fiesta karşılaşmaları artık Arena sırasından sunulmadığından bu başarı artık kazanılamaz.",
+  },
   pvp_fiesta_double: {
+    desc: 'Dört saniye içinde iki Fiesta rakibini yere ser. Fiesta karşılaşmaları artık Arena sırasından sunulmadığından bu başarı artık kazanılamaz.',
     name: 'Çifte Bela',
-    desc: "Fiesta'da dört saniye içinde rakiplerini iki kez yere ser.",
   },
   pvp_fiesta_shutdown: {
+    desc: 'Üç veya daha uzun galibiyet serisi olan bir Fiesta rakibini yere ser. Fiesta karşılaşmaları artık Arena sırasından sunulmadığından bu başarı artık kazanılamaz.',
     name: 'Oyunbozan',
-    desc: "Fiesta'da, serisi üçe ya da daha fazlasına ulaşmış bir rakibi yere ser.",
   },
   pvp_fiesta_full_build: {
+    desc: 'Üç dalganın her birinden sabitlenmiş bir güçlendirmeyle bir Fiesta karşılaşması kazan. Fiesta karşılaşmaları artık Arena sırasından sunulmadığından bu başarı artık kazanılamaz.',
     name: 'Tepeden Tırnağa Hazır',
-    desc: 'Üç dalganın her birinden birer takviye kilitlenmiş halde bir Fiesta müsabakası kazan.',
   },
   pvp_fiesta_powerups: {
+    desc: 'Dört çember güçlendirmesinin her birini en az bir kez al: Hız Şeytanı, Dev, Ay Çizmeleri ve Berserker. Fiesta karşılaşmaları artık Arena sırasından sunulmadığından bu başarı artık kazanılamaz.',
     name: 'Her Şeyden Bir Tane',
-    desc: 'Dört ring güçlendirmesinin her birini en az bir kez kap: Hız Şeytanı, Kolos, Ay Botları ve Cinnet.',
   },
   pvp_fiesta_five_kills: {
+    desc: 'Tek bir Fiesta karşılaşmasında beş rakibi yere ser. Fiesta karşılaşmaları artık Arena sırasından sunulmadığından bu başarı artık kazanılamaz.',
     name: 'Partiyi Sırtlayan',
-    desc: 'Tek bir Fiesta müsabakasında rakiplerini beş kez yere ser.',
   },
   soc_first_party: {
     name: 'Birlikten Kuvvet Doğar',
@@ -767,5 +886,526 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'Hurda Bahçesi',
     desc: 'Elli teçhizat parçasını hurda işlemine sokarak ham maddelere dönüştür.',
+  },
+  dgn_wildheart_basin: {
+    name: 'Çukurun İntikamı',
+    desc: "Yaban Yürek Çukuru'nda Zulgar, Çukurun Sesi'ni alt et.",
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Kahramanca: Yaban Yürek Çukuru',
+    desc: "Yaban Yürek Çukuru'nda Zulgar, Çukurun Sesi'ni Kahramanca zorlukta alt et.",
+  },
+  chr_peaks_gatherer: {
+    name: 'Yükseklerin Hasadı',
+    desc: "Dikenzirve Tepeleri'nde bir cevher damarı, bir kesimlik ağaç ve bir şifalı ot öbeği topla.",
+  },
+  chr_marsh_rares_ii: {
+    name: 'Obur, Hesaba Katıldı',
+    desc: "Mirefen Bataklığı'nın ilk sayımda atlanan dördüncü namlı dehşeti Obur Grubjaw'ı öldür.",
+  },
+  chr_peaks_rares_ii: {
+    name: 'Kayaya Kazınan Yeni Adlar',
+    desc: "Dikenzirve Tepeleri'nin ilk sayımda atlanan iki namlı dehşetini daha öldür: Yaşlı Cragmaw ve Kıymıkbeyi Kazzix.",
+  },
+  chr_gleamstag: {
+    name: 'Önce Vurmayan Efsane',
+    desc: "Ancak köşeye sıkıştırılınca saldıran ender ve çekingen elit Parıltı Geyiği'ni öldür.",
+  },
+  chr_hollow_rares: {
+    name: 'Sürü Unutmaz',
+    desc: "Örtülü Vadi'nin iki gezgin ender patronunu öldür: Yaşlı Marrowshell ve Sürünün İlki Aurelhorn.",
+  },
+  chr_willowfen_gatherer: {
+    name: 'Söğütlük Bereketi',
+    desc: "Söğüt Bataklığı'nda bir cevher damarı, bir kesimlik ağaç ve bir şifalı ot öbeği topla.",
+  },
+  chr_willowfen_first_cast: {
+    name: "Zambak Bozkırları'nda Su Halkaları",
+    desc: "Söğüt Bataklığı'nın sularından bir balık tut.",
+  },
+  chr_galecrest_gatherer: {
+    name: 'Yamaç Başında Hasat',
+    desc: "Fırtına Sırtı'nda bir cevher damarı, bir kesimlik ağaç ve bir şifalı ot öbeği topla.",
+  },
+  chr_galecrest_first_cast: {
+    name: "Ayna Gölü'nde Bir Misina",
+    desc: "Fırtına Sırtı'nın sularından bir balık tut.",
+  },
+  chr_farshore_gatherer: {
+    name: 'Ada Erzağı',
+    desc: "Uzak Kıyı'da bir cevher damarı, bir kesimlik ağaç ve bir şifalı ot öbeği topla.",
+  },
+  chr_farshore_first_cast: {
+    name: 'Martıların Bildiği',
+    desc: "Uzak Kıyı'nın sularından bir balık tut.",
+  },
+  prog_engineering_rare: {
+    name: 'Hassas Mühendislik',
+    desc: 'Mühendislikte ilk ender eşyanı işle.',
+  },
+  prog_alchemy_rare: {
+    name: 'Ender Bir Yıllık',
+    desc: 'Simyada ilk ender eşyanı işle.',
+  },
+  prog_cooking_rare: {
+    name: 'Unutulmaz Bir Yemek',
+    desc: 'Yemek Pişirmede ilk ender eşyanı işle.',
+  },
+  prog_leatherworking_rare: {
+    name: 'İnce Tabaklama',
+    desc: 'Deri İşlemede ilk ender eşyanı işle.',
+  },
+  prog_tailoring_rare: {
+    name: 'Bir Usta Dikişi',
+    desc: 'Terzilikte ilk ender eşyanı işle.',
+  },
+  prog_weaponcrafting_rare: {
+    name: 'Parlayana Kadar Tavlandı',
+    desc: 'Silah Yapımında ilk ender eşyanı işle.',
+  },
+  prog_armorcrafting_rare: {
+    name: 'Kusursuza Kaplandı',
+    desc: 'Zırh Yapımında ilk ender eşyanı işle.',
+  },
+  col_reliquary_rank_2: {
+    name: 'Ganimet Bekçisi',
+    desc: "Yadigârlık'ta Küratör derecesi 2'ye ulaş (10 benzersiz kataloglanmış yadigâr).",
+    title: 'Ganimet Bekçisi',
+  },
+  col_reliquary_rank_3: {
+    name: 'Kataloglayan',
+    desc: "Yadigârlık'ta Küratör derecesi 3'e ulaş (25 benzersiz kataloglanmış yadigâr).",
+    title: 'Kataloglayan',
+  },
+  col_reliquary_rank_4: {
+    name: 'Baş Küratör',
+    desc: "Yadigârlık'ta Küratör derecesi 4'e ulaş (50 benzersiz kataloglanmış yadigâr).",
+    title: 'Baş Küratör',
+  },
+  col_reliquary_rank_5: {
+    name: 'Ebedi Ganimet',
+    desc: "Yadigârlık'ta Küratör derecesi 5'e ulaş (100 benzersiz kataloglanmış yadigâr).",
+  },
+  col_reliquary_complete: {
+    name: 'Ulu Yadigârlık',
+    desc: "Yadigârlık'ta bir karakterin saklayabileceği her yadigârı kataloğa geçir. Kataloğun sonradan büyümesi bunu senden asla geri almaz.",
+    title: 'Hazine Küratörü',
+  },
+  col_reliquary_conquerors: {
+    name: 'Fatihler Rafı',
+    desc: "Yadigârlık'ın Fatihler rafındaki her yadigârı kataloğa geçir. Kataloğun sonradan büyümesi bunu senden asla geri almaz.",
+    title: 'Hazine Kıran',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis Tezhiplendi',
+    desc: "Yadigârlık'ın Kahramanca: Nythraxis Baskını sayfasını tezhiple.",
+    title: 'Nythraxis Işığı',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr Tezhiplendi',
+    desc: "Yadigârlık'ın Thunzharr, Uyanan Zirve sayfasını tezhiple.",
+    title: 'Thunzharr Işığı',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Mabet Tezhiplendi',
+    desc: "Yadigârlık'ın Kahramanca: Mezarejderi Mabedi sayfasını tezhiple.",
+    title: 'Mabedin Işığı',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Kasa Donanımcısı',
+    desc: 'İlk banka çanta yuvanı aç.',
+  },
+  soc_four_bags_deep: {
+    name: 'Dört Çanta Tam Kapasite',
+    desc: 'Bankadaki dört çanta yuvasının tamamını aç.',
+  },
+  dgn_ignivar: {
+    name: 'Haberci Düştü',
+    desc: 'Son Pınar Potası’nda Ignivar, Son Alevin Habercisi’ni alt et.',
+  },
+  dgn_ignivar_heroic: {
+    name: 'Kahramanca: Haberci Düştü',
+    desc: 'Kahramanca zorlukta Ignivar, Son Alevin Habercisi’ni alt et.',
+  },
+  dgn_varkhul: {
+    name: 'Ocak Soğuyor',
+    desc: 'İç Pota’da Varkhul, Son Alevin Demirhane Babası’nı alt et.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Kahramanca: Ocak Soğuyor',
+    desc: 'Kahramanca zorlukta Varkhul, Son Alevin Demirhane Babası’nı alt et.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Tek Bir Kor Bile Sönmedi',
+    desc: 'Tek bir akıncı bile ölmeden Varkhul, Son Alevin Demirhane Babası’nı Kahramanca zorlukta alt et.',
+    title: 'Yanmaz',
+  },
+  col_set_bramblehide: {
+    name: "Roots'un Dikenli Postu",
+    desc: "Roots'un Dikenli Postu'nun her parçasını keşfet.",
+  },
+  prog_jewelcrafting_rare: {
+    desc: 'Kuyumculukta ilk nadir kademe eşyayı üret.',
+    name: 'Parlaklığa Parlatılmış',
+  },
+  prog_jewelcrafting_50: { desc: 'Kuyumculukta 50 beceriye ulaş.', name: 'Faset ve Telkari' },
+  prog_grandmaster_jewelcrafting: {
+    desc: 'Zanaatın en üstü olan Kuyumculukta 125 beceriye ulaş.',
+    name: 'Büyük Usta Mücevher İşleme',
+    title: 'Büyük Usta Mücevher İşleme',
+  },
+  prog_inscription_rare: {
+    desc: 'Tılsımcılıkta ilk nadir kademe eşyayı üret.',
+    name: 'İnce Mürekkeple Yazılmış',
+  },
+  prog_inscription_50: { desc: 'Tılsımcılıkta 50 beceriye ulaş.', name: 'Kalem ve Pigment' },
+  prog_grandmaster_inscription: {
+    desc: 'Zanaatın en üstü olan Tılsımcılıkta 125 beceriye ulaş.',
+    name: 'Büyük Usta Tılsımcılık',
+    title: 'Büyük Usta Tılsımcılık',
+  },
+  col_deepest_cast: {
+    desc: 'En derin avlara ulaşabilen tek olta olan Saat Çarkı Olta edin.',
+    name: 'En Derin Atış',
+  },
+  prog_first_planting: { desc: 'Bir bahçe yatağına ilk ekinini dik.', name: 'Ekim Böyle Başlar' },
+  chr_vale_first_harvest: {
+    desc: 'Eastbrook Vale içindeki bir bahçe yatağından ilk sağlıklı ekinini hasat et.',
+
+    name: 'Vadinin İlk Meyveleri',
+  },
+  chr_marsh_first_harvest: {
+    desc: 'Mirefen Bataklığı içindeki bir bahçe yatağından ilk sağlıklı ekinini hasat et.',
+
+    name: 'Torf İçindeki Filizler',
+  },
+  chr_peaks_first_harvest: {
+    desc: 'Thornpeak Heights içindeki bir bahçe yatağından ilk sağlıklı ekinini hasat et.',
+
+    name: 'Kayalıklar Arasında Bir Ekin',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Evergarden içindeki bir bahçe yatağından ilk sağlıklı ekinini hasat et.',
+
+    name: 'Cennette Bir Parsel',
+  },
+  col_golden_harvest: {
+    desc: 'Altın bir hasat yap ve tüm bölgenin bunu duymasını sağla.',
+    name: 'Altın Hasat',
+  },
+  prog_farming_100: {
+    desc: 'Tarımda 100 yetkinliğe ulaş.',
+    name: 'Hasat Ustası',
+    title: 'Hasat Ustası',
+  },
+  col_farm_roster: {
+    desc: 'Dört bahçenin yetiştirdiği her ekini hasat et.',
+    name: 'Her Karık Dolu',
+  },
+  prog_field_to_feast: {
+    desc: 'Tüm akının yiyebileceği bir zirve şöleni pişir.',
+    name: 'Tarladan Şölene',
+  },
+  prog_legendmaker: {
+    desc: 'Bir Üretim Senedi ile Kusursuzlaştırılmış bir işi efsaneye yükselt ve ona kendine özgü bir ad ver.',
+
+    name: 'Efsane Yaratan',
+  },
+  hid_forgebreaker: {
+    desc: "Dövme Kıran'ı kendi ellerinle şekillendir ve bitmiş çekiçle Maelin'e dön.",
+
+    name: 'Zincirlerinden Kurtulmuş Bir Kaynak',
+  },
+  exp_arcane_calligraphy: {
+    name: 'İstikrarlı El',
+    desc: "Eastbrook Vale'de Arcane Calligraphy'i tamamla.",
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'Yıldız Işığında Yazılı',
+    desc: "Arcane Calligraphy'de Altın derecelendir.",
+    title: 'Rün Çağırıcısı',
+  },
+  exp_forge_helper: {
+    name: 'Yardımcı Çekiç',
+    desc: "Smith Mara'nın Wyrmwatch'de bir kalkanı tamamlamasına yardım et.",
+  },
+  exp_last_barricade: {
+    name: 'Son Barikat',
+    desc: 'Orman geçidini ölü ordusunun saldırısından tut.',
+  },
+  exp_borrowed_face: {
+    name: 'Ödünç Alınmış Yüz',
+    desc: 'Fenbridge nöbetinin arasındaki casus ortaya çıkar ve yenildir.',
+  },
+  exp_windrider_slalom: {
+    name: 'Rüzgar Binici Slalom',
+    desc: 'Mekanik planör iniş Galecrest boğazından tamamla.',
+  },
+  exp_duskweave_dispatches: {
+    name: 'Alacakaranlık Dokuma Komutları',
+    desc: "Valerie'nin büyülenmiş pelerini giyen halde eşkiya komutlarını kurtar.",
+  },
+  exp_wisp_maze: {
+    name: 'Labirentte Bir Işık',
+    desc: 'Çalınan para keselerini kurtar ve Evergarden labirentinden kaç.',
+  },
+  prog_rift_watch_trusted: {
+    name: 'Rift Watch tarafından Güvenilir',
+    desc: 'Rift Watch ile Güvenilir derecesine ulaş.',
+  },
+  prog_church_order_trusted: {
+    name: 'Church Order tarafından Güvenilir',
+    desc: 'Church Order ile Güvenilir derecesine ulaş.',
+  },
+  prog_automatons_trusted: {
+    name: 'Otomatlar tarafından Güvenilir',
+    desc: 'Otomatlar ile Güvenilir derecesine ulaş.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Rift Watch Şampiyonu',
+    desc: 'Rift Watch ile Şampiyon derecesine ulaş.',
+    title: 'Yarık Bekçi',
+  },
+  prog_church_order_champion: {
+    name: 'Church Order Şampiyonu',
+    desc: 'Church Order ile Şampiyon derecesine ulaş.',
+    title: 'Şafak Bekçi',
+  },
+  prog_automatons_champion: {
+    name: 'Otomatlar Şampiyonu',
+    desc: 'Otomatlar ile Şampiyon derecesine ulaş.',
+    title: 'Dövme Üstası',
+  },
+  prog_faction_champion_all: {
+    name: 'Her Bayrak Şampiyonu',
+    desc: 'Rift Watch, Church Order ve Otomatlar ile Şampiyon derecesine ulaş.',
+  },
+  exp_clue_first_casket: {
+    name: 'Hazine Bulundu',
+    desc: 'İpucu tomarı avının sonunda kazılan bir Hazine Sandığını aç.',
+  },
+  exp_clue_ten_caskets: {
+    name: 'Hazine Avçısı',
+    desc: 'İpucu tomarı avının sonunda kazılan 10 Hazine Sandığını aç.',
+    title: 'Hazine Avçısı',
+  },
+  exp_harbor_to_harbor: {
+    name: "Liman'dan Limana",
+    desc: "Her iki feribotu geri ve ileri sür: Eastbrook'tan Moonrest'e ve Wickharbor'dan Wyrmwatch'e.",
+  },
+  cmb_coinsack_caught: {
+    name: 'Suçüstü Yakalandı',
+    desc: 'Bir Para Kesesi Fasulyesini Gömülü Hazineden kaçmadan önce yakala.',
+  },
+  exp_wisp_maze_hard: {
+    name: 'Golgelerden Daha Parlak',
+    desc: 'Calinan para keselerini geri al ve Evergarden labirentinden Hard zorlugunda kac.',
+  },
+  prog_titan: { name: 'Dev', desc: 'Ömür boyu toplam 10.000.000 deneyim kazan.', title: 'Dev' },
+  pvp_flag_1h: {
+    name: 'Cesur',
+    desc: "Açık dünyada veya bir PvP karşılaşmasında hayattayken Dünya PvP'sini 1 saat oyun süresi boyunca açık tut. Sığınaklar, PvE örnekleri, ölüm ve çıkış ilerlemeyi duraklatır; kapatmak sıfırlar. Kazanılan unvanlar kalıcıdır.",
+    title: 'Cesur',
+  },
+  pvp_flag_3h: {
+    name: 'Meydan Okuyan',
+    desc: "Açık dünyada veya bir PvP karşılaşmasında hayattayken Dünya PvP'sini 3 saat oyun süresi boyunca açık tut. Sığınaklar, PvE örnekleri, ölüm ve çıkış ilerlemeyi duraklatır; kapatmak sıfırlar. Kazanılan unvanlar kalıcıdır.",
+    title: 'Meydan Okuyan',
+  },
+  pvp_flag_6h: {
+    name: 'Korkusuz',
+    desc: "Açık dünyada veya bir PvP karşılaşmasında hayattayken Dünya PvP'sini 6 saat oyun süresi boyunca açık tut. Sığınaklar, PvE örnekleri, ölüm ve çıkış ilerlemeyi duraklatır; kapatmak sıfırlar. Kazanılan unvanlar kalıcıdır.",
+    title: 'Korkusuz',
+  },
+  pvp_flag_24h: {
+    name: 'Boyun Eğmez',
+    desc: "Açık dünyada veya bir PvP karşılaşmasında hayattayken Dünya PvP'sini 24 saat oyun süresi boyunca açık tut. Sığınaklar, PvE örnekleri, ölüm ve çıkış ilerlemeyi duraklatır; kapatmak sıfırlar. Kazanılan unvanlar kalıcıdır.",
+    title: 'Boyun Eğmez',
+  },
+  pvp_flag_168h: {
+    name: 'Yılmaz',
+    desc: "Açık dünyada veya bir PvP karşılaşmasında hayattayken Dünya PvP'sini 7 gün oyun süresi boyunca açık tut. Sığınaklar, PvE örnekleri, ölüm ve çıkış ilerlemeyi duraklatır; kapatmak sıfırlar. Kazanılan unvanlar kalıcıdır.",
+    title: 'Yılmaz',
+  },
+  cmb_balgath: {
+    name: 'Artık Ustabaşı Değil',
+    desc: 'Gömülü Ustabaşını mezarına geri gönder.',
+  },
+  cmb_balgath_ten: {
+    name: 'Höyük Hiçbir Şeyi Tutamaz',
+    desc: 'Gömülü Ustabaşını on kez alt et.',
+  },
+  cmb_point_taken: {
+    name: 'Mesaj Alındı',
+    desc: 'Toplanma talim alanında Saman Ustabaşının fenerini söndür ve tahtalarına darbelerini hissettir.',
+  },
+  dgn_olen_buttress: {
+    name: 'Duvarı Tut',
+    desc: "Şövalye Komutanı Olen'i, Seken Siperinin ikinci bir oyuncuya vurmasına hiç izin vermeden yen.",
+  },
+  dgn_ossick_moored: {
+    name: 'Güvenli Liman',
+    desc: "Zindancı Ossick'i, kimse Boğulma Çukuruna sürüklenmeden yen.",
+  },
+  dgn_vael_beacon: {
+    name: 'İşaret Işığında',
+    desc: "Fogbinder Vael'i, tek bir Sis Gölgesini bile patlatmadan yen.",
+  },
+  dgn_turretback: {
+    name: 'Tahliye Bildirimi',
+    desc: 'Batık Gemi Kaptanını, kimse Hayalet Borda Ateşinden isabet almadan yen.',
+  },
+  dgn_selthe_pitch: {
+    name: 'Her Ses Uyum İçinde',
+    desc: "Koroana Selthe'yi, her Koro iki veya daha fazla kişi arasında paylaşılırken ve hiçbir Tekli Ezgi başkasına değmeden yen.",
+  },
+  dgn_colossus_mirror: {
+    name: 'Camı Kır',
+    desc: 'Gelgit Camı Devini, her Yansıma ortaya çıktıktan sonraki 15 saniye içinde kırılmış olarak yen.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: 'Kupkuru',
+    desc: "Boğulmuş Ay'ın Avatarı Ysolei'yi, kimse onun Gelgit Çarpışından isabet almadan yen.",
+  },
+  dgn_mere_hydra: {
+    name: 'Tüm Başlar Yerde',
+    desc: 'Göl Hidrasının üç başını da birbirinden en fazla 10 saniye arayla öldür.',
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Tek Tüy Bile Yanmadı',
+    desc: 'Ölüm Çanı Ejderini, kimse Rov Alevi Geçişiyle yanmadan yen.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Hiçbir Kafes Bizi Tutamaz',
+    desc: 'Zindan Anahtarcısını, kimse Demir Kafeste ezilmeden yen.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Uzak Tutuldu',
+    desc: 'Diş Lordu Canavar Efendisini ve Büyük Jaguarını, Sürü Bağı toplamda 10 saniyeden az etkin kalacak şekilde yen.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Yabani Ot Temizliği',
+    desc: 'Obur Çiçeği, tek bir Diken Filizi bile büyümeden yen.',
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Hiç Yakalanmadı',
+    desc: "Çukurun Sesi Zulgar'ı, kimse Parçalanmış etkisine uğramadan yen.",
+  },
+  dgn_great_saurian: {
+    name: 'Devrilen Titan',
+    desc: 'Büyük Sürüngeni ve Platform Lanet Çağırıcısını birbirinden en fazla 20 saniye arayla yen.',
+  },
+  dgn_korgath_all_chains: {
+    name: 'Daha Merhametli Bir Son',
+    desc: "Bağlı Korgath'ı dört zincirinin tümü kırılmış olarak yen.",
+  },
+  dgn_korgath_still_bound: {
+    name: 'Kilit Dayanıyor',
+    desc: "Bağlı Korgath'ı Kahramanca zorlukta, en az iki zinciri hiç kırılmamış olarak yen.",
+  },
+  dgn_velkhar_cold: {
+    name: 'Soğuk Teselli',
+    desc: "Büyük Nekromansır Velkhar'ı, tek bir Diriltilmiş Kemik Gezer bile ikinci kez dirilmeden yen.",
+  },
+  dgn_korzul_thin_ice: {
+    name: 'İnce Buz',
+    desc: "Mezar Ejderi Korzul'u, göldeki on dokuz levhanın en az on ikisi kırılmamış olarak yen.",
+  },
+  dgn_sledge_tusker: {
+    name: 'Soğuk Yük',
+    desc: 'Kızak Fildişlisini, kimse onun Çiğnemesinden isabet almadan yen.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: 'Son Kıta',
+    desc: "Boğulmuş Ay'ın Avatarı Ysolei'yi, Solgun Koronun Son Kantoru yanındayken yen.",
+    title: 'Koronun Tanığı',
+  },
+  dgn_marrow_tidy: {
+    name: 'Düzenli Bir Mezarlık',
+    desc: "Zangoç Marrow'u, her Açık Mezar Çan Avlusunun kenarına yerleştirilmiş olarak yen.",
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Kimse Asılı Kalmadı',
+    desc: 'Kemik Donduran Leydiyi, Donmuş Kucaklamasından hiç kimseyi düşürmeden yen.',
+  },
+  dgn_ilvane_hush: {
+    name: 'Artık Sus',
+    desc: "Kantor Ilvane'yi, Boşluğun Ağıdı kimseye hiç isabet etmeden yen.",
+  },
+  dgn_morthen_candlelight: {
+    name: 'Her Mum Yanıyor',
+    desc: "Mezarçağıran Morthen'i, Huzursuz Koruması yükseldikten sonraki 20 saniye içinde dört Anma Mumunun tümünü yeniden yaktıktan sonra yen.",
+  },
+  dgn_guild_first_contract: {
+    name: 'Belge İmzalandı',
+    desc: 'Fener Salonunun haftalık zindan sözleşmelerinden birini tamamla.',
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Panonun Müdavimi',
+    desc: 'Fener Salonunun haftalık zindan sözleşmelerinden 10 tanesini tamamla.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Sözleşme Gazisi',
+    desc: 'Fener Salonunun haftalık zindan sözleşmelerinden 50 tanesini tamamla.',
+  },
+  feat_guild_writ_runner: {
+    name: 'Belge Ulağı',
+    desc: "Fener Salonu levazım subayı Garrick Holt'tan 6 Fener Mührü karşılığında satın alındı.",
+    title: 'Belge Ulağı',
+  },
+  feat_guild_hallsworn: {
+    name: 'Salon Yeminlisi',
+    desc: "Fener Salonu levazım subayı Garrick Holt'tan 14 Fener Mührü karşılığında satın alındı.",
+    title: 'Salon Yeminlisi',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Fener Salonundan',
+    desc: "Fener Salonu levazım subayı Garrick Holt'tan 24 Fener Mührü karşılığında satın alındı.",
+    title: 'Fener Salonundan',
+  },
+  feat_gourdlight_guise: {
+    name: 'Kabak Işığı Görünümü',
+    desc: "Kabak Işığı Gecesi sürerken, Yaban Domuzu Çayırı'nın ötesindeki tarlasında Yaşlı Sırıtan Saman'dan alınan bir Oyulmuş Kabak Başlığı'na sahip ol.",
+  },
+  feat_old_thatchgrin: {
+    name: 'Anız ve Kül',
+    desc: "Kabak Işığı Gecesi sürerken, Yaban Domuzu Çayırı'nın ötesindeki kabak tarlasında Yaşlı Sırıtan Saman'ı devirmeye yardım et.",
+  },
+  feat_title_gourdlit: {
+    name: 'Kabak Işıklı',
+    desc: "Kabak Işığı Gecesi sürerken Hester Kabakfitil'den Kabak Işığı Şekerleri karşılığında alınan Kabak Işıklı'nın Fermanı'nı oku.",
+    title: 'Kabak Işıklı',
+  },
+  feat_title_trickster: {
+    name: 'Şakacı',
+    desc: "Kabak Işığı Gecesi sürerken Hester Kabakfitil'den Kabak Işığı Şekerleri karşılığında alınan Şakacı Fermanı'nı oku.",
+    title: 'Şakacı',
+  },
+  feat_title_hollow_grinned: {
+    name: 'Boş Sırıtan',
+    desc: "Kabak Işığı Gecesi sürerken Hester Kabakfitil'den Kabak Işığı Şekerleri karşılığında alınan Boş Sırıtış Fermanı'nı oku.",
+    title: 'Boş Sırıtan',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Kabak Avcısı',
+    desc: 'Kabak Işığı Gecesi boyunca dünyaya gizlenmiş tüm Perili Kabakları bul.',
+    title: 'İçi Boş',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Her Kapının Eşiği',
+    desc: "Kabak Işığı Gecesi boyunca Doğudere, Bataklık Köprüsü ve Yüksek Gözcü'de kapısını açan tüm kasabalılardan şeker ya da şaka iste.",
+  },
+  feat_gourdlight_errands: {
+    name: "Hester'ın Her Emrine Hazır",
+    desc: "Hester Kabakfitil'in dönüşümlü Kabak Işığı Gecesi işlerinin her birini en az bir kez tamamla.",
+  },
+  feat_gourdlight_frights: {
+    name: 'Üç Kasaba Ürktü',
+    desc: "Hester'ın Böö! işinde Doğudere, Bataklık Köprüsü ve Yüksek Gözcü'nün her birinde bir kasabalıyı korkut.",
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'Baştan Sona Kabak Işığı',
+    desc: "Kabak Işığı Gecesi'nin tamamını yap: Yaşlı Sırıtan Saman'ı devir, tüm Perili Kabakları bul, Hester'ın tüm işlerini bitir, her kapıyı çal ve üç kasabanın her birinde bir kasabalıyı korkut.",
+    title: 'Kabağa Yeminli',
   },
 };

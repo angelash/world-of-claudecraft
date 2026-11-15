@@ -1,6 +1,6 @@
+import { writeAssignedPlayerName } from './assignment';
 import { applyAmbientPlayerBotConfigPatch } from './config';
 import { DEFAULT_AMBIENT_BOT_PROFILES } from './profiles';
-import { writeAssignedPlayerName } from './assignment';
 import type {
   AmbientBotPlanAction,
   AmbientBotProfile,
@@ -173,7 +173,10 @@ export class AmbientPlayerBotService {
     }
 
     for (const cluster of clusters) {
-      const retained = this.trimRetainedAssignments(cluster, retainedAssignmentsByCluster.get(cluster.clusterId) ?? []);
+      const retained = this.trimRetainedAssignments(
+        cluster,
+        retainedAssignmentsByCluster.get(cluster.clusterId) ?? [],
+      );
       for (const entry of retained.kept) {
         pushMapValue(assignedBotIdsByCluster, cluster.clusterId, entry.bot.botId);
         pushClass(seenClassesByCluster, cluster.clusterId, entry.bot.class);
@@ -196,7 +199,10 @@ export class AmbientPlayerBotService {
           if (filled >= cluster.desiredBots) break;
           bot.assignedClusterId = cluster.clusterId;
           bot.assignedPlayerCharacterId = pickClusterAnchorCharacterId(cluster);
-          bot.plannerState = writeAssignedPlayerName(bot.plannerState, cluster.members[0]?.name ?? '');
+          bot.plannerState = writeAssignedPlayerName(
+            bot.plannerState,
+            cluster.members[0]?.name ?? '',
+          );
           if (bot.lifecycleStatus !== 'online') {
             bot.lifecycleStatus = 'reserved';
             bot.reservationUntilMs = nowMs + this.config.reservationMs;
@@ -274,16 +280,23 @@ export class AmbientPlayerBotService {
     }));
     for (const action of actions) this.pushRecentAction(action, nowMs);
     this.metrics.clustersObserved = this.lastClusters.length;
-    this.metrics.desiredBots = this.lastClusters.reduce((sum, cluster) => sum + cluster.desiredBots, 0);
-    this.metrics.assignedBots = this.lastClusters.reduce((sum, cluster) => sum + cluster.assignedBotIds.length, 0);
+    this.metrics.desiredBots = this.lastClusters.reduce(
+      (sum, cluster) => sum + cluster.desiredBots,
+      0,
+    );
+    this.metrics.assignedBots = this.lastClusters.reduce(
+      (sum, cluster) => sum + cluster.assignedBotIds.length,
+      0,
+    );
     this.metrics.loginPlans = actions.filter((action) => action.type === 'loginBot').length;
     this.metrics.logoutPlans = actions.filter((action) => action.type === 'logoutBot').length;
     this.metrics.provisionPlans = actions.filter((action) => action.type === 'provisionBot').length;
-    this.metrics.lastRunReason = humans.length === 0
-      ? 'no_humans_online'
-      : this.metrics.assignedBots >= this.metrics.desiredBots
-        ? 'clusters_satisfied'
-        : 'provision_or_login_required';
+    this.metrics.lastRunReason =
+      humans.length === 0
+        ? 'no_humans_online'
+        : this.metrics.assignedBots >= this.metrics.desiredBots
+          ? 'clusters_satisfied'
+          : 'provision_or_login_required';
     return actions;
   }
 
@@ -293,7 +306,11 @@ export class AmbientPlayerBotService {
       let found: WorkingCluster | null = null;
       for (const cluster of clusters) {
         if (cluster.zoneId !== human.zoneId) continue;
-        if (distSq(cluster.centerX, cluster.centerZ, human.x, human.z) > this.config.clusterRadius ** 2) continue;
+        if (
+          distSq(cluster.centerX, cluster.centerZ, human.x, human.z) >
+          this.config.clusterRadius ** 2
+        )
+          continue;
         found = cluster;
         break;
       }
@@ -311,14 +328,16 @@ export class AmbientPlayerBotService {
       }
       found.members.push(human);
       found.levelTotal += human.level;
-      found.centerX = found.members.reduce((sum, member) => sum + member.x, 0) / found.members.length;
-      found.centerZ = found.members.reduce((sum, member) => sum + member.z, 0) / found.members.length;
+      found.centerX =
+        found.members.reduce((sum, member) => sum + member.x, 0) / found.members.length;
+      found.centerZ =
+        found.members.reduce((sum, member) => sum + member.z, 0) / found.members.length;
     }
     for (const cluster of clusters) {
       cluster.desiredBots = Math.min(
         this.config.maxBotsPerCluster,
-        this.config.soloTargetBots
-          + this.config.extraBotsPerAdditionalPlayer * Math.max(0, cluster.members.length - 1),
+        this.config.soloTargetBots +
+          this.config.extraBotsPerAdditionalPlayer * Math.max(0, cluster.members.length - 1),
       );
     }
     this.stabilizeClusterIds(clusters);
@@ -349,7 +368,10 @@ export class AmbientPlayerBotService {
     existingClasses: ReadonlySet<AmbientPlayerBotRecord['class']>,
   ): AmbientBotProfile[] {
     const scored = this.profiles
-      .map((profile) => ({ profile, score: scoreProfileForCluster(profile, cluster, existingClasses) }))
+      .map((profile) => ({
+        profile,
+        score: scoreProfileForCluster(profile, cluster, existingClasses),
+      }))
       .sort((a, b) => b.score - a.score || a.profile.profileId.localeCompare(b.profile.profileId));
     const picks: AmbientBotProfile[] = [];
     const usedClasses = new Set(existingClasses);
@@ -380,7 +402,10 @@ export class AmbientPlayerBotService {
   private shouldReleaseBot(bot: AmbientPlayerBotRecord, cluster: WorkingCluster): boolean {
     if (bot.lastKnownZoneId && bot.lastKnownZoneId !== cluster.zoneId) return true;
     if (bot.lastKnownX === null || bot.lastKnownZ === null) return false;
-    return distSq(bot.lastKnownX, bot.lastKnownZ, cluster.centerX, cluster.centerZ) > this.config.releaseRadius ** 2;
+    return (
+      distSq(bot.lastKnownX, bot.lastKnownZ, cluster.centerX, cluster.centerZ) >
+      this.config.releaseRadius ** 2
+    );
   }
 
   private prepareBotForReassignment(bot: AmbientPlayerBotRecord): void {
@@ -419,7 +444,8 @@ export class AmbientPlayerBotService {
       }
     }
     for (let i = this.pendingProvisionSlots.length - 1; i >= 0; i--) {
-      if (this.pendingProvisionSlots[i].expiresAtMs <= nowMs) this.pendingProvisionSlots.splice(i, 1);
+      if (this.pendingProvisionSlots[i].expiresAtMs <= nowMs)
+        this.pendingProvisionSlots.splice(i, 1);
     }
   }
 
@@ -433,7 +459,9 @@ export class AmbientPlayerBotService {
     if (retained.length <= cluster.desiredBots) {
       return { kept: [...retained], released: [] };
     }
-    const sorted = [...retained].sort((a, b) => b.score - a.score || a.bot.botId.localeCompare(b.bot.botId));
+    const sorted = [...retained].sort(
+      (a, b) => b.score - a.score || a.bot.botId.localeCompare(b.bot.botId),
+    );
     return {
       kept: sorted.slice(0, cluster.desiredBots),
       released: sorted.slice(cluster.desiredBots),
@@ -497,7 +525,8 @@ export class AmbientPlayerBotService {
     const claimedClusters = new Set<number>();
     const claimedPrevious = new Set<number>();
     for (const match of matches) {
-      if (claimedClusters.has(match.clusterIndex) || claimedPrevious.has(match.previousIndex)) continue;
+      if (claimedClusters.has(match.clusterIndex) || claimedPrevious.has(match.previousIndex))
+        continue;
       clusters[match.clusterIndex].clusterId = previous[match.previousIndex].clusterId;
       claimedClusters.add(match.clusterIndex);
       claimedPrevious.add(match.previousIndex);
@@ -573,10 +602,9 @@ function cloneAction(action: AmbientBotPlanAction): AmbientBotPlanAction {
 }
 
 function compareHumans(a: AmbientHumanPresence, b: AmbientHumanPresence): number {
-  return a.zoneId.localeCompare(b.zoneId)
-    || a.x - b.x
-    || a.z - b.z
-    || a.characterId - b.characterId;
+  return (
+    a.zoneId.localeCompare(b.zoneId) || a.x - b.x || a.z - b.z || a.characterId - b.characterId
+  );
 }
 
 function scoreBotForCluster(
@@ -598,8 +626,8 @@ function scoreBotForCluster(
   if (bot.lastKnownX !== null && bot.lastKnownZ !== null) {
     const distanceRatio = Math.min(
       1,
-      Math.sqrt(distSq(bot.lastKnownX, bot.lastKnownZ, cluster.centerX, cluster.centerZ))
-      / Math.max(1, config.releaseRadius),
+      Math.sqrt(distSq(bot.lastKnownX, bot.lastKnownZ, cluster.centerX, cluster.centerZ)) /
+        Math.max(1, config.releaseRadius),
     );
     score += 18 - distanceRatio * 18;
   }

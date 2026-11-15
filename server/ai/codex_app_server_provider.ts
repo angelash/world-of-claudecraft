@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
 import type {
@@ -8,17 +8,17 @@ import type {
   AiProviderTimingStep,
 } from './ai_types';
 import {
+  type CodexIsolation,
+  codexLockdownArgs,
+  createCodexIsolation,
+  removeCodexIsolation,
+} from './codex_isolation';
+import {
   AI_DECISION_OUTPUT_SCHEMA,
   envPositiveInt,
   parseCodexDecisionOutput,
   resolveCodexBinary,
 } from './codex_worker';
-import {
-  codexLockdownArgs,
-  createCodexIsolation,
-  type CodexIsolation,
-  removeCodexIsolation,
-} from './codex_isolation';
 import { buildCodexDecisionPrompt } from './prompt_builder';
 
 export interface CodexAppServerProviderOptions {
@@ -104,9 +104,21 @@ export class CodexAppServerProvider implements AiProvider {
   constructor(options: CodexAppServerProviderOptions = {}) {
     this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? resolveCodexBinary();
     this.timeoutMs = options.timeoutMs ?? envPositiveInt('AI_CODEX_TIMEOUT_MS', DEFAULT_TIMEOUT_MS);
-    this.startupTimeoutMs = options.startupTimeoutMs ?? envPositiveInt('AI_CODEX_APP_SERVER_STARTUP_TIMEOUT_MS', DEFAULT_STARTUP_TIMEOUT_MS);
-    this.requestTimeoutMs = options.requestTimeoutMs ?? envPositiveInt('AI_CODEX_APP_SERVER_REQUEST_TIMEOUT_MS', DEFAULT_REQUEST_TIMEOUT_MS);
-    this.poolSize = Math.max(1, Math.min(8, Math.floor(options.poolSize ?? envPositiveInt('AI_CODEX_APP_SERVER_POOL_SIZE', DEFAULT_POOL_SIZE))));
+    this.startupTimeoutMs =
+      options.startupTimeoutMs ??
+      envPositiveInt('AI_CODEX_APP_SERVER_STARTUP_TIMEOUT_MS', DEFAULT_STARTUP_TIMEOUT_MS);
+    this.requestTimeoutMs =
+      options.requestTimeoutMs ??
+      envPositiveInt('AI_CODEX_APP_SERVER_REQUEST_TIMEOUT_MS', DEFAULT_REQUEST_TIMEOUT_MS);
+    this.poolSize = Math.max(
+      1,
+      Math.min(
+        8,
+        Math.floor(
+          options.poolSize ?? envPositiveInt('AI_CODEX_APP_SERVER_POOL_SIZE', DEFAULT_POOL_SIZE),
+        ),
+      ),
+    );
     this.codexArgsPrefix = options.codexArgsPrefix ?? [];
     this.sourceEnv = options.sourceEnv ?? process.env;
     this.model = options.model ?? optionalEnv('AI_CODEX_MODEL');
@@ -217,7 +229,9 @@ export class CodexAppServerProvider implements AiProvider {
       if (text.length > remaining) this.stderrTruncated = true;
     });
     child.on('error', (err) => {
-      this.failPending(new Error(`Codex app-server could not start (${this.codexBin}): ${errorMessage(err)}`));
+      this.failPending(
+        new Error(`Codex app-server could not start (${this.codexBin}): ${errorMessage(err)}`),
+      );
     });
     child.on('close', (code, signal) => {
       const reason = code === null ? `signal ${signal ?? 'unknown'}` : `code ${code}`;
@@ -228,27 +242,33 @@ export class CodexAppServerProvider implements AiProvider {
       this.failPending(new Error(`Codex app-server exited with ${reason}${this.stderrSummary()}`));
     });
 
-    await this.sendRequest('initialize', {
-      clientInfo: {
-        name: 'world_of_claudecraft',
-        title: 'World of ClaudeCraft',
-        version: '0.10.0',
+    await this.sendRequest(
+      'initialize',
+      {
+        clientInfo: {
+          name: 'world_of_claudecraft',
+          title: 'World of ClaudeCraft',
+          version: '0.10.0',
+        },
+        capabilities: {
+          experimentalApi: true,
+          optOutNotificationMethods: [
+            'mcpServer/startupStatus/updated',
+            'remoteControl/status/changed',
+            'account/rateLimits/updated',
+            'thread/tokenUsage/updated',
+          ],
+        },
       },
-      capabilities: {
-        experimentalApi: true,
-        optOutNotificationMethods: [
-          'mcpServer/startupStatus/updated',
-          'remoteControl/status/changed',
-          'account/rateLimits/updated',
-          'thread/tokenUsage/updated',
-        ],
-      },
-    }, this.startupTimeoutMs);
+      this.startupTimeoutMs,
+    );
     this.sendNotification('initialized', {});
-    this.workers = await Promise.all(Array.from({ length: this.poolSize }, async () => ({
-      threadId: await this.createThread(),
-      queue: Promise.resolve(),
-    })));
+    this.workers = await Promise.all(
+      Array.from({ length: this.poolSize }, async () => ({
+        threadId: await this.createThread(),
+        queue: Promise.resolve(),
+      })),
+    );
   }
 
   private async createThread(): Promise<string> {
@@ -267,13 +287,18 @@ export class CodexAppServerProvider implements AiProvider {
     return threadId;
   }
 
-  private async runWithWorker<T>(fn: (worker: CodexAppWorker, queueWaitMs: number) => Promise<T>): Promise<T> {
+  private async runWithWorker<T>(
+    fn: (worker: CodexAppWorker, queueWaitMs: number) => Promise<T>,
+  ): Promise<T> {
     const worker = this.nextWorker();
     const queuedAt = performance.now();
     const run = worker.queue
       .catch(() => undefined)
       .then(() => fn(worker, performance.now() - queuedAt));
-    worker.queue = run.then(() => undefined, () => undefined);
+    worker.queue = run.then(
+      () => undefined,
+      () => undefined,
+    );
     return run;
   }
 
@@ -284,7 +309,11 @@ export class CodexAppServerProvider implements AiProvider {
     return worker;
   }
 
-  private async runTurn(worker: CodexAppWorker, promptText: string, steps: AiProviderTimingStep[]): Promise<string> {
+  private async runTurn(
+    worker: CodexAppWorker,
+    promptText: string,
+    steps: AiProviderTimingStep[],
+  ): Promise<string> {
     const turnStartedAt = performance.now();
     const turn = await this.startTurn(worker.threadId);
     let stepStartedAt = performance.now();
@@ -301,18 +330,33 @@ export class CodexAppServerProvider implements AiProvider {
     try {
       await this.sendRequest('turn/start', params, this.requestTimeoutMs);
     } catch (err) {
-      this.cancelActiveTurn(worker.threadId, new Error(`Codex app-server turn/start failed: ${errorMessage(err)}`));
+      this.cancelActiveTurn(
+        worker.threadId,
+        new Error(`Codex app-server turn/start failed: ${errorMessage(err)}`),
+      );
       turn.done.catch(() => undefined);
       throw err;
     }
-    steps.push({ key: 'turnStartAckMs', label: 'turn/start acknowledgement', ms: performance.now() - stepStartedAt });
+    steps.push({
+      key: 'turnStartAckMs',
+      label: 'turn/start acknowledgement',
+      ms: performance.now() - stepStartedAt,
+    });
     await turn.done;
-    steps.push({ key: 'turnCompleteMs', label: 'model turn completed', ms: performance.now() - turnStartedAt });
+    steps.push({
+      key: 'turnCompleteMs',
+      label: 'model turn completed',
+      ms: performance.now() - turnStartedAt,
+    });
     if (turn.firstDeltaMs !== null) {
       steps.push({ key: 'firstDeltaMs', label: 'first streamed token', ms: turn.firstDeltaMs });
     }
     if (turn.firstAgentMessageMs !== null) {
-      steps.push({ key: 'firstAgentMessageMs', label: 'first completed message', ms: turn.firstAgentMessageMs });
+      steps.push({
+        key: 'firstAgentMessageMs',
+        label: 'first completed message',
+        ms: turn.firstAgentMessageMs,
+      });
     }
     const rawOutput = turn.completedAgentMessage || turn.agentMessage;
     if (!rawOutput.trim()) throw new Error('Codex app-server completed without an agent message');
@@ -322,9 +366,15 @@ export class CodexAppServerProvider implements AiProvider {
       worker.threadId = await this.createThread();
     } catch (err) {
       console.warn(`Codex app-server worker thread reset failed: ${errorMessage(err)}`);
-      this.restartAfterFailure(new Error(`Codex app-server worker thread reset failed: ${errorMessage(err)}`));
+      this.restartAfterFailure(
+        new Error(`Codex app-server worker thread reset failed: ${errorMessage(err)}`),
+      );
     } finally {
-      steps.push({ key: 'threadResetMs', label: 'reset app-server worker thread', ms: performance.now() - stepStartedAt });
+      steps.push({
+        key: 'threadResetMs',
+        label: 'reset app-server worker thread',
+        ms: performance.now() - stepStartedAt,
+      });
     }
     return rawOutput.trim();
   }
@@ -394,7 +444,8 @@ export class CodexAppServerProvider implements AiProvider {
       const turn = this.activeTurns.get(stringField(params, 'threadId'));
       if (!turn) return;
       const delta = stringField(params, 'delta');
-      if (delta && turn.firstDeltaMs === null) turn.firstDeltaMs = performance.now() - turn.startedAt;
+      if (delta && turn.firstDeltaMs === null)
+        turn.firstDeltaMs = performance.now() - turn.startedAt;
       turn.agentMessage += delta;
       return;
     }
@@ -404,7 +455,8 @@ export class CodexAppServerProvider implements AiProvider {
       const item = recordField(params, 'item');
       if (stringField(item, 'type') === 'agentMessage') {
         const text = stringField(item, 'text');
-        if (text && turn.firstAgentMessageMs === null) turn.firstAgentMessageMs = performance.now() - turn.startedAt;
+        if (text && turn.firstAgentMessageMs === null)
+          turn.firstAgentMessageMs = performance.now() - turn.startedAt;
         turn.completedAgentMessage = text;
       }
       return;
@@ -426,7 +478,11 @@ export class CodexAppServerProvider implements AiProvider {
     }
   }
 
-  private sendRequest(method: string, params: Record<string, unknown>, timeoutMs: number): Promise<unknown> {
+  private sendRequest(
+    method: string,
+    params: Record<string, unknown>,
+    timeoutMs: number,
+  ): Promise<unknown> {
     const child = this.child;
     if (!child || child.killed || !child.stdin.writable) {
       return Promise.reject(new Error('Codex app-server is not running'));
@@ -502,7 +558,7 @@ function recordField(record: unknown, key: string): Record<string, unknown> {
   if (!record || typeof record !== 'object' || Array.isArray(record)) return {};
   const value = (record as Record<string, unknown>)[key];
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 

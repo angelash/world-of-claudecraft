@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -16,6 +17,9 @@ import {
   mergeHighPerformancePreference,
   PRIME_RELAUNCH_MARKER,
   parseRegQueryData,
+  queryRegValue,
+  REG_QUERY_ALLOWLIST,
+  REG_QUERY_OPTIONS,
   relaunchForLinuxPrime,
   shouldRelaunchForLinuxPrime,
   summarizeGpuDevices,
@@ -349,13 +353,95 @@ describe('hasExplicitOzonePlatformArg', () => {
   });
 });
 
+/** A fake sysfs: which card the firmware brought the screen up on, and each
+ *  card's PCI vendor; a card absent from the map has no PCI attributes, a card
+ *  without `vendor` has an unreadable vendor file. */
+function sysfs(cards: Record<string, { vendor?: string; bootVga: '0' | '1' }>) {
+  return (path: string, encoding: 'utf8'): string => {
+    expect(encoding).toBe('utf8');
+    const match = /^\/sys\/class\/drm\/(card\d+)\/device\/(boot_vga|vendor)$/.exec(path);
+    const card = match ? cards[match[1]] : undefined;
+    if (!match || !card) throw new Error(`ENOENT ${path}`);
+    if (match[2] === 'boot_vga') return `${card.bootVga}\n`;
+    if (card.vendor === undefined) throw new Error(`EACCES ${path}`);
+    return `${card.vendor}\n`;
+  };
+}
+
+const INTEL = '0x8086';
+const NVIDIA = '0x10de';
+const AMD = '0x1002';
+
 describe('isLinuxHybridGpu', () => {
-  it('is true when /sys/class/drm exposes two or more card devices', () => {
+  it('is true on a laptop whose integrated GPU drives the screen next to an NVIDIA card', () => {
     const readdir = (path: string) => {
       expect(path).toBe('/sys/class/drm');
       return ['card0', 'card0-eDP-1', 'card1', 'renderD128', 'renderD129', 'version'];
     };
-    expect(isLinuxHybridGpu(readdir)).toBe(true);
+    const laptop = sysfs({
+      card0: { vendor: INTEL, bootVga: '1' },
+      card1: { vendor: NVIDIA, bootVga: '0' },
+    });
+    expect(isLinuxHybridGpu(readdir, laptop)).toBe(true);
+  });
+
+  it('is false on a desktop where the NVIDIA card already drives the screen', () => {
+    // An Intel ARL iGPU left enabled next to an RTX 3090 on the screen
+    // (measured 2026-08-28): the offload env there fails every EGL display
+    // type ("Invalid visual ID requested") and Chromium disables the GPU.
+    const desktop = sysfs({
+      card1: { vendor: INTEL, bootVga: '0' },
+      card2: { vendor: NVIDIA, bootVga: '1' },
+    });
+    expect(isLinuxHybridGpu(() => ['card1', 'card2', 'renderD128', 'renderD129'], desktop)).toBe(
+      false,
+    );
+  });
+
+  it('keeps an AMD APU plus NVIDIA laptop, and an all-AMD hybrid, on the offload path', () => {
+    const cards = () => ['card0', 'card1'];
+    expect(
+      isLinuxHybridGpu(
+        cards,
+        sysfs({ card0: { vendor: AMD, bootVga: '1' }, card1: { vendor: NVIDIA, bootVga: '0' } }),
+      ),
+    ).toBe(true);
+    expect(
+      isLinuxHybridGpu(
+        cards,
+        sysfs({ card0: { vendor: AMD, bootVga: '1' }, card1: { vendor: AMD, bootVga: '0' } }),
+      ),
+    ).toBe(true);
+  });
+
+  it('falls back to the two-card rule when no card claims the screen or the files are unreadable', () => {
+    const cards = () => ['card0', 'card1'];
+    expect(
+      isLinuxHybridGpu(
+        cards,
+        sysfs({ card0: { vendor: INTEL, bootVga: '0' }, card1: { vendor: NVIDIA, bootVga: '0' } }),
+      ),
+    ).toBe(true);
+    expect(
+      isLinuxHybridGpu(cards, () => {
+        throw new Error('EACCES');
+      }),
+    ).toBe(true);
+    // A card without PCI attributes (a virtual device) is skipped, not fatal.
+    expect(
+      isLinuxHybridGpu(
+        () => ['card0', 'card1', 'card2'],
+        sysfs({ card2: { vendor: NVIDIA, bootVga: '1' } }),
+      ),
+    ).toBe(false);
+    // boot_vga claims the screen but the vendor file is unreadable: that card is skipped
+    // and the two-card rule decides.
+    expect(
+      isLinuxHybridGpu(
+        cards,
+        sysfs({ card0: { bootVga: '1' }, card1: { vendor: NVIDIA, bootVga: '0' } }),
+      ),
+    ).toBe(true);
   });
 
   it('is false on a single-GPU machine (render nodes and connectors do not count)', () => {
@@ -475,6 +561,12 @@ describe('relaunchForLinuxPrime', () => {
         ...LINUX_PRIME_ENV,
         UNRELATED: 'x',
         WOC_PRIME_RELAUNCHED: '1',
+        // The record of what THIS relaunch planted (the player-requested restart in
+        // electron/launch_settings.cjs takes back exactly these): every offload
+        // variable, since the player had set none, and the ozone argument it appended.
+        WOC_PRIME_RELAUNCH_ADDED: [...Object.keys(LINUX_PRIME_ENV), '--ozone-platform=x11'].join(
+          ',',
+        ),
       },
       stdio: 'inherit',
       detached: true,
@@ -493,6 +585,28 @@ describe('relaunchForLinuxPrime', () => {
     expect(calls[0].args).toEqual(['--ozone-platform=x11']);
     const childEnv = calls[0].options.env as Record<string, string>;
     expect(childEnv.WOC_PRIME_RELAUNCHED).toBe('1');
+    // This hop plants no variable of its own, and a marked parent that left no record
+    // keeps the restart's "everything the lever can plant" reading: a record naming the
+    // argument alone would tell it the offload variables are the player's.
+    expect(childEnv).not.toHaveProperty('WOC_PRIME_RELAUNCH_ADDED');
+  });
+
+  it('accumulates the record across a hop that plants nothing new', () => {
+    // The same updater restart, from a child that DID leave a record. The hop adds only
+    // the argument, and the record it hands on still names every variable the chain
+    // planted, so the player-requested restart takes back the whole chain and not just
+    // the last hop of it.
+    const { spawn, calls } = fakeSpawn();
+    const env = {
+      ...LINUX_PRIME_ENV,
+      WOC_PRIME_RELAUNCHED: '1',
+      WOC_PRIME_RELAUNCH_ADDED: Object.keys(LINUX_PRIME_ENV).join(','),
+    };
+    relaunchForLinuxPrime(deps({ spawn, env, execPath: 'x', argv: [] }));
+    const childEnv = calls[0].options.env as Record<string, string>;
+    expect(childEnv.WOC_PRIME_RELAUNCH_ADDED.split(',').sort()).toEqual(
+      [...Object.keys(LINUX_PRIME_ENV), '--ozone-platform=x11'].sort(),
+    );
   });
 
   it('spawns the outer AppImage (env.APPIMAGE), never execPath, inside an AppImage', () => {
@@ -519,6 +633,11 @@ describe('relaunchForLinuxPrime', () => {
     const childEnv = calls[0].options.env as Record<string, string>;
     expect(childEnv.__GLX_VENDOR_LIBRARY_NAME).toBe('mesa');
     expect(childEnv.DRI_PRIME).toBe('1');
+    // The record is what the restart strips, so it must name only what the RELAUNCH
+    // planted: the player's own variable is not in it and survives the restart.
+    const record = childEnv.WOC_PRIME_RELAUNCH_ADDED.split(',');
+    expect(record).toContain('DRI_PRIME');
+    expect(record).not.toContain('__GLX_VENDOR_LIBRARY_NAME');
   });
 
   it('omits the EGL vendor replacement when the NVIDIA ICD json is absent on this machine', () => {
@@ -543,6 +662,10 @@ describe('relaunchForLinuxPrime', () => {
       deps({ spawn, env: {}, execPath: 'x', argv: ['--ozone-platform=wayland'] }),
     );
     expect(calls[0].args).toEqual(['--ozone-platform=wayland']);
+    // Not appended, so not recorded: the restart must not strip the player's own flag.
+    const childEnv = calls[0].options.env as Record<string, string>;
+    expect(childEnv.WOC_PRIME_RELAUNCH_ADDED.split(',')).not.toContain('--ozone-platform=x11');
+    expect(childEnv.WOC_PRIME_RELAUNCH_ADDED).toContain('DRI_PRIME');
   });
 
   it('still appends the explicit flag when argv only carries an ozone HINT', () => {
@@ -564,6 +687,21 @@ describe('relaunchForLinuxPrime', () => {
     const result = relaunchForLinuxPrime(deps({ spawn, env: {}, log: { warn } }));
     expect(result).toBe(false);
     expect(warn).toHaveBeenCalled();
+  });
+
+  it('hears a child that never started, as a warning rather than an uncaught error event', () => {
+    // The async failure (ENOENT on a swapped AppImage) arrives as an 'error'
+    // event; Node throws it as an uncaught exception when nothing listens.
+    const child = Object.assign(new EventEmitter(), { unref: vi.fn() });
+    const warn = vi.fn();
+    expect(relaunchForLinuxPrime(deps({ spawn: () => child, env: {}, log: { warn } }))).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    const failure = new Error('spawn ENOENT');
+    expect(() => child.emit('error', failure)).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('never started'),
+      expect.objectContaining({ err: failure }),
+    );
   });
 });
 
@@ -850,8 +988,14 @@ describe('main.cjs gpu wiring pin', () => {
     // Moving the call inside whenReady is the most damaging silent regression: the
     // appendSwitch pair becomes a no-op (switches must land before 'ready') and the GPU
     // process can beat the registry write, reverting the whole fix while every unit test
-    // above stays green. Module scope = the call sits at column 0.
-    expect(source).toMatch(/^forceHighPerformanceGpu\(\{ app, log \}\);/m);
+    // above stays green. Module scope now means one level in, inside the else arm of the
+    // player's opt-out guard (the switches are appended on every platform before the
+    // function's own gates, so honoring the opt-out means skipping the CALL); the guard
+    // itself is still top-level, and its polarity is pinned in
+    // tests/electron_shell_startup.test.ts.
+    expect(source).toMatch(
+      /^if \(gpuForceDisabledByEnv\) \{\n[^\n]*\n\} else if \(desktopPrefs\.gpuForceOptOut === true\) \{\n[^\n]*\n\} else \{\n {2}forceHighPerformanceGpu\(\{ app, log \}\);\n\}/m,
+    );
     const callAt = source.indexOf('forceHighPerformanceGpu({ app, log });');
     const readyAt = source.indexOf('app.whenReady()');
     expect(callAt).toBeGreaterThan(-1);
@@ -866,9 +1010,12 @@ describe('main.cjs gpu wiring pin', () => {
     // Any of these moving (into whenReady, below initLogging, losing the exit) silently
     // kills the fix while the pure-function tests above stay green.
     // One regex pins the whole shape: guard at column 0 with process.exit(0) as the block
-    // body (comments aside) and nothing else inside.
+    // body (comments aside) and nothing else inside. The guard is now the else arm of the
+    // player's GPU-force opt-out (skipping the relaunch is the only way to honor it, since
+    // the relaunch spawns a process and pins the X11 Ozone backend); the opt-out's own
+    // polarity is pinned in tests/electron_shell_startup.test.ts.
     expect(source).toMatch(
-      /^if \(relaunchForLinuxPrime\(\{ log: console \}\)\) \{\n(?:\s*\/\/[^\n]*\n)*\s*process\.exit\(0\);\n\}/m,
+      /^\} else if \(relaunchForLinuxPrime\(\{ log: console \}\)\) \{\n(?:\s*\/\/[^\n]*\n)*\s*process\.exit\(0\);\n\}/m,
     );
     const guardAt = source.indexOf('if (relaunchForLinuxPrime({ log: console })) {');
     expect(guardAt).toBeGreaterThan(-1);
@@ -920,5 +1067,193 @@ describe('electron-dev.mjs PRIME pre-apply pin', () => {
   it('feeds the pre-applied config into the electron spawn (env and argv both)', () => {
     expect(source).toContain("spawn(electronCommand, ['.', ...prime.args]");
     expect(source).toContain('...prime.env,');
+  });
+});
+
+// --- queryRegValue: the async, read-only single-value reader ------------------
+//
+// The second sanctioned process call in this module. Its whole safety story is
+// "fixed argv, absolute reg.exe, no shell, bounded", and a scan cannot judge the
+// options bag, so the WHOLE options object is pinned with toEqual below: a later
+// `shell: true` or a dropped windowsHide fails here.
+describe('queryRegValue', () => {
+  const KEY = 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Power\\User\\PowerSchemes';
+  const REG = 'C:\\Windows\\System32\\reg.exe';
+
+  /** An execFile seam that records its call and answers with the given result. */
+  function fakeExecFile(result: { err?: unknown; stdout?: string }) {
+    const calls: { command: string; args: string[]; options: unknown }[] = [];
+    const execFile = (
+      command: string,
+      args: string[],
+      options: unknown,
+      callback: (err: unknown, stdout: string) => void,
+    ) => {
+      calls.push({ command, args, options });
+      callback(result.err ?? null, result.stdout ?? '');
+      return undefined;
+    };
+    return { calls, execFile };
+  }
+
+  it('runs reg.exe with the exact argv and the exact options object (no shell)', async () => {
+    const { calls, execFile } = fakeExecFile({
+      stdout: `\r\n${KEY}\r\n    ActivePowerScheme    REG_SZ    381b4222-f694-41f0-9685-ff5bb260df2e\r\n\r\n`,
+    });
+    await queryRegValue(
+      { key: KEY, valueName: 'ActivePowerScheme' },
+      { execFile, env: { SystemRoot: 'C:\\Windows' } },
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].command).toBe(REG);
+    expect(calls[0].args).toEqual(['query', KEY, '/v', 'ActivePowerScheme']);
+    // toEqual, not toMatchObject: an added `shell: true` must fail this.
+    expect(calls[0].options).toEqual({
+      timeout: 1500,
+      windowsHide: true,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024,
+    });
+    expect(REG_QUERY_OPTIONS).toEqual(calls[0].options);
+  });
+
+  it('parses a REG_SZ value', async () => {
+    const { execFile } = fakeExecFile({
+      stdout: `    ActivePowerScheme    REG_SZ    381b4222-f694-41f0-9685-ff5bb260df2e\r\n`,
+    });
+    await expect(
+      queryRegValue({ key: KEY, valueName: 'ActivePowerScheme' }, { execFile }),
+    ).resolves.toEqual({ type: 'sz', value: '381b4222-f694-41f0-9685-ff5bb260df2e' });
+  });
+
+  it('parses a REG_DWORD value from its hex form', async () => {
+    const { execFile } = fakeExecFile({ stdout: '    HwSchMode    REG_DWORD    0x2\r\n' });
+    await expect(
+      queryRegValue(
+        {
+          key: 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers',
+          valueName: 'HwSchMode',
+        },
+        { execFile },
+      ),
+    ).resolves.toEqual({ type: 'dword', value: 2 });
+  });
+
+  it('reports an absent value apart from a failed read', async () => {
+    // reg.exe exits 1 for a missing value; execFile puts that on err.code.
+    const { execFile } = fakeExecFile({ err: Object.assign(new Error('exit 1'), { code: 1 }) });
+    await expect(
+      queryRegValue({ key: KEY, valueName: 'ActiveOverlayDcPowerScheme' }, { execFile }),
+    ).resolves.toEqual({ absent: true });
+  });
+
+  it('answers null on a timeout kill and on any other failure', async () => {
+    const killed = fakeExecFile({
+      err: Object.assign(new Error('killed'), { code: 1, killed: true, signal: 'SIGTERM' }),
+    });
+    await expect(
+      queryRegValue({ key: KEY, valueName: 'ActivePowerScheme' }, { execFile: killed.execFile }),
+    ).resolves.toBeNull();
+    const missing = fakeExecFile({ err: Object.assign(new Error('enoent'), { code: 'ENOENT' }) });
+    await expect(
+      queryRegValue({ key: KEY, valueName: 'ActivePowerScheme' }, { execFile: missing.execFile }),
+    ).resolves.toBeNull();
+  });
+
+  it('answers null for a value type it cannot round-trip', async () => {
+    // An ALLOWED pair (the allowlist is exact), whose stored value is a type
+    // this reader cannot express.
+    const { execFile } = fakeExecFile({
+      stdout: '    ActivePowerScheme    REG_BINARY    00ff\r\n',
+    });
+    await expect(
+      queryRegValue({ key: KEY, valueName: 'ActivePowerScheme' }, { execFile }),
+    ).resolves.toBeNull();
+  });
+
+  it('pins the EXACT allowlist: these five pairs and nothing else', () => {
+    // The whole safety claim of this reader is that it cannot become a general
+    // "read any registry value" primitive. That is true only while the
+    // allowlist is this exact list, so it is pinned element by element rather
+    // than by count or by shape. Growing it is a deliberate edit here.
+    expect(REG_QUERY_ALLOWLIST.map((pair) => ({ ...pair }))).toEqual([
+      { key: KEY, valueName: 'ActivePowerScheme' },
+      { key: KEY, valueName: 'ActiveOverlayAcPowerScheme' },
+      { key: KEY, valueName: 'ActiveOverlayDcPowerScheme' },
+      {
+        key: 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers',
+        valueName: 'HwSchMode',
+      },
+      { key: 'HKCU\\Software\\Microsoft\\GameBar', valueName: 'AutoGameModeEnabled' },
+    ]);
+    // Frozen, so nothing can push a sixth pair on at runtime.
+    expect(Object.isFrozen(REG_QUERY_ALLOWLIST)).toBe(true);
+  });
+
+  it('refuses any pair outside the exact allowlist WITHOUT running anything', async () => {
+    const refusals: { key: unknown; valueName: unknown }[] = [
+      // The case a SHAPE allowlist would have admitted: a perfectly
+      // well-formed HKLM key and an ordinary value name that this app simply
+      // does not read. It is the machine's Windows product id.
+      {
+        key: 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion',
+        valueName: 'ProductId',
+      },
+      // An allowed KEY with a value name from no pair at all.
+      { key: KEY, valueName: 'PreferredPlan' },
+      // An allowed VALUE NAME under a key that never carries it.
+      { key: 'HKCU\\Software\\Microsoft\\GameBar', valueName: 'HwSchMode' },
+      // The pair crossed the other way.
+      {
+        key: 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers',
+        valueName: 'ActivePowerScheme',
+      },
+      // A trailing separator, a case change and a subkey are all different keys.
+      { key: `${KEY}\\`, valueName: 'ActivePowerScheme' },
+      { key: KEY.toLowerCase(), valueName: 'ActivePowerScheme' },
+      { key: `${KEY}\\Sub`, valueName: 'ActivePowerScheme' },
+      // The old shape-rejections, still rejected.
+      { key: 'HKCR\\Something', valueName: 'ActivePowerScheme' },
+      { key: 'HKLM\\System & calc.exe', valueName: 'ActivePowerScheme' },
+      { key: KEY, valueName: 'A/B' },
+      { key: KEY, valueName: '' },
+      // And a non-string on either side.
+      { key: KEY, valueName: undefined },
+      { key: undefined, valueName: 'ActivePowerScheme' },
+      { key: 42, valueName: 'ActivePowerScheme' },
+    ];
+    for (const request of refusals) {
+      const { calls, execFile } = fakeExecFile({ stdout: '' });
+      await expect(
+        queryRegValue(request as { key: string; valueName: string }, { execFile }),
+        JSON.stringify(request),
+      ).resolves.toBeNull();
+      expect(calls, JSON.stringify(request)).toHaveLength(0);
+    }
+  });
+
+  it('admits every allowlisted pair, so the exact list is not merely restrictive', async () => {
+    // The other arm: a list that refused everything would pass the test above
+    // and silently kill the dimension on every real machine.
+    for (const pair of REG_QUERY_ALLOWLIST) {
+      const { calls, execFile } = fakeExecFile({
+        stdout: `    ${pair.valueName}    REG_DWORD    0x1\r\n`,
+      });
+      await expect(queryRegValue({ ...pair }, { execFile })).resolves.toEqual({
+        type: 'dword',
+        value: 1,
+      });
+      expect(calls, pair.valueName).toHaveLength(1);
+      expect(calls[0].args).toEqual(['query', pair.key, '/v', pair.valueName]);
+    }
+  });
+
+  it('answers null rather than throwing when the seam itself throws', async () => {
+    const execFile = () => {
+      throw new Error('blocked');
+    };
+    await expect(
+      queryRegValue({ key: KEY, valueName: 'ActivePowerScheme' }, { execFile }),
+    ).resolves.toBeNull();
   });
 });

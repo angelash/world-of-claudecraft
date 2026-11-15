@@ -83,7 +83,7 @@ describe('canonical Talents V2 row registry', () => {
       warrior
         .find((row) => row.level === 11)
         ?.options.find((o) => o.id === 'war_row_lingering_dread')?.effect.global,
-    ).toEqual({ fearBreakPct: 0.2 });
+    ).toEqual({ fearBreakPct: 0.1 });
     expect(
       warrior
         .find((row) => row.level === 14)
@@ -103,19 +103,20 @@ describe('canonical Talents V2 row registry', () => {
     // The mage rework (e0842ee38) replaced the fire crit-damage mastery with
     // Ignition: spell crits bank 40% of their damage as a stacking burn.
     expect(TALENTS.mage.specs.find((spec) => spec.id === 'fire')?.mastery.effect).toEqual({
-      global: { ignitionPct: 0.4 },
+      global: { ignitionPct: 0.3 },
       stats: { crit: 0.02 },
     });
     expect(TALENTS.paladin.specs.find((spec) => spec.id === 'holy')?.mastery.effect).toEqual({
       global: { critDmgHealPct: 0.5 },
     });
     // Balance pass: False Face is +25% crit damage plus the Duskveil
-    // stealth-speed identity.
+    // stealth-speed identity: Duskveil and Smokefade run at full speed for
+    // every rogue, so buffPct 0.15 lifts the 1.0 aura multiplier to 1.15.
     expect(TALENTS.rogue.specs.find((spec) => spec.id === 'subtlety')?.mastery.effect).toEqual({
       global: { critDmgPhysPct: 0.25 },
       ability: [
-        { ability: 'stealth', buffPct: 0.5 },
-        { ability: 'vanish', buffPct: 0.5 },
+        { ability: 'stealth', buffPct: 0.15 },
+        { ability: 'vanish', buffPct: 0.15 },
       ],
     });
 
@@ -136,9 +137,9 @@ describe('canonical Talents V2 row registry', () => {
       prot: {
         name: 'Recompense',
         description:
-          'Increases all threat you generate by 30% and your armor by 10%. Vanguard: your Stamina is increased by 40% and you gain armor equal to 70% of your Strength.',
+          'Increases all threat you generate by 110% and your armor by 10%. Vanguard: your Stamina is increased by 40% and you gain armor equal to 70% of your Strength.',
         effect: {
-          global: { threatPct: 0.3 },
+          global: { threatPct: 1.1 },
           stats: { armorPct: 0.1, staPct: 0.4, armorFromStrPct: 0.7 },
         },
       },
@@ -215,7 +216,7 @@ describe('canonical Talents V2 allocation', () => {
 
   it('folds each selected row exactly once', () => {
     // The owner mage tree (89d1625a2) replaced Impulse; Double Blink is the
-    // row 5 option that grants one bonus charge (on Flickerstep/blink).
+    // row 5 option that grants one bonus charge (on Flitstep/blink).
     const mods = computeTalentModifiers(
       'mage',
       { spec: null, rows: { 5: 'mag_r5_double_blink' } },

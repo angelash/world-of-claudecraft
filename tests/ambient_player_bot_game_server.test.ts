@@ -17,8 +17,8 @@ vi.mock('../server/db', () => ({
   loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
 }));
 
-import { GameServer, type ClientSession } from '../server/game';
 import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
+import { type ClientSession, GameServer } from '../server/game';
 
 function fakeWs() {
   return {
@@ -78,9 +78,11 @@ describe('GameServer ambient player bot integration', () => {
     process.env.AMBIENT_PLAYER_BOTS_EXPERIMENT = '1';
     const server = new GameServer();
     const human = expectJoined(server.join(fakeWs(), 1, 101, 'Human', 'warrior', null));
-    expectJoined(server.join(fakeWs(), 2, 102, 'Bot', 'warrior', null, false, {
-      ambientBotId: 'bot-1',
-    }));
+    expectJoined(
+      server.join(fakeWs(), 2, 102, 'Bot', 'warrior', null, false, {
+        ambientBotId: 'bot-1',
+      }),
+    );
 
     const actions = server.runAmbientPlayerBotPlanner(1_000);
     const diagnostics = server.ambientPlayerBotDiagnostics();
@@ -98,11 +100,15 @@ describe('GameServer ambient player bot integration', () => {
 
   it('does not count ambient bot sessions against the human per-ip gate', () => {
     const server = new GameServer();
-    expectJoined(server.join(fakeWs(), 1, 101, 'Human', 'warrior', null, false, { ip: '127.0.0.1' }));
-    expectJoined(server.join(fakeWs(), 2, 102, 'Bot', 'warrior', null, false, {
-      ambientBotId: 'bot-1',
-      ip: '127.0.0.1',
-    }));
+    expectJoined(
+      server.join(fakeWs(), 1, 101, 'Human', 'warrior', null, false, { ip: '127.0.0.1' }),
+    );
+    expectJoined(
+      server.join(fakeWs(), 2, 102, 'Bot', 'warrior', null, false, {
+        ambientBotId: 'bot-1',
+        ip: '127.0.0.1',
+      }),
+    );
 
     expect(server.countIpSessions('127.0.0.1')).toBe(2);
     expect(server.countHumanIpSessions('127.0.0.1')).toBe(1);
@@ -117,10 +123,12 @@ describe('GameServer ambient player bot integration', () => {
     const actions = server.runAmbientPlayerBotPlanner(1_000);
     const diagnostics = server.ambientPlayerBotDiagnostics();
 
-    expect(actions).toContainEqual(expect.objectContaining({
-      type: 'loginBot',
-      botId: 'bot-1',
-    }));
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'loginBot',
+        botId: 'bot-1',
+      }),
+    );
     expect(diagnostics.directory.total).toBe(1);
     expect(diagnostics.recentActions).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: 'loginBot', botId: 'bot-1' })]),

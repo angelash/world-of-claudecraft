@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.4/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,6 +7,7 @@
     "defaultBranch": "origin/main"
   },
   "files": {
+    "maxSize": 3145728,
     "includes": [
       "**",
       "!**/node_modules",
@@ -14,10 +15,13 @@
       "!dist-*",
       "!public",
       "!**/*.generated.ts",
+      "!data/maps",
+      "!scripts/ci_shard_weights.generated.json",
       "!src/ui/i18n.resolved.generated",
       "!src/admin/i18n.resolved.generated",
       "!tests/parity/golden",
       "!tests/server/fixtures",
+      "!docs/screenshots",
       "!**/*.svelte",
       "!**/*.min.js",
       "!docs/design/professions-system",
@@ -47,6 +51,27 @@
     }
   },
   "overrides": [
+    {
+      "includes": [
+        "docs/achievements/placeholder-art-completion-2026-08-09/accepted-art.json",
+        "docs/achievements/placeholder-art-completion-2026-08-09/mob-portrait-source-manifest.json",
+        "docs/achievements/placeholder-art-completion-2026-08-09/weapons-a-generation-record.json",
+        "docs/achievements/placeholder-art-completion-2026-08-09/weapons-b-generation-record.json",
+        "docs/achievements/item-art-consistency-2026-08-09/*.json",
+        "docs/perf/hitch/gate.json",
+        "scripts/assets/highwatch_guild/props/props_data.json",
+        "scripts/assets/mirefen_tavern/layout.json",
+        "scripts/assets/mirefen_tavern/props/props_data.json",
+        "scripts/assets/wickharbor_harbor/layout.json",
+        "scripts/assets/wickharbor_wharf/layout.json",
+        "scripts/assets/woc_character/export_split.json",
+        "scripts/assets/woc_character/woc_head_pack.report.json",
+        "scripts/assets/wyrmwatch_harbor/layout.json"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    },
     {
       "includes": ["index.html", "play.html", "guide.html"],
       "formatter": {

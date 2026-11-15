@@ -23,8 +23,9 @@
 // attribute, which our writes change once, so a value change costs exactly one
 // extra (idempotent, then elided) re-measure before the key settles.
 
+import { TARGET_AURAS_BELOW_CLASS } from './aura_bar_side';
 import type { PainterHostWriters } from './painter_host';
-import { partyBelowTargetBottom, safeScale } from './party_below_target_core';
+import { belowTargetSlot, partyBelowTargetBottom, safeScale } from './party_below_target_core';
 import { getUiScale } from './ui_scale';
 
 /** The custom property the below-target CSS rules read (author-space px). */
@@ -58,7 +59,7 @@ export interface PartyBelowTargetEls {
 
 export class PartyBelowTargetPainter {
   private lastKey = '';
-  private lastBottom: number | null = null;
+  private lastActive = false;
   // Bumped whenever the observed elements change size (see the ctor); part of
   // the invalidation key, so a content-driven size change re-measures.
   private resizeEpoch = 0;
@@ -87,15 +88,19 @@ export class PartyBelowTargetPainter {
   }
 
   /**
-   * Per-frame: keep the measured target-stack bottom current and report it.
-   * Returns the author-space bottom the party frames must clear, or null when
-   * no push is needed (no target, no horizontal overlap, missing elements);
-   * the caller drives the below-target class from that nullness.
+   * Per-frame: keep the measured target-stack bottom current and report whether
+   * the below-target seat is in play, which is what the caller drives the
+   * .below-target class from. With a target that is "the stack overlaps the
+   * party column"; with none it is touch's held slot, whose offset comes from
+   * the tier's authored var() fallback rather than from a retained measure.
    */
-  update(targetShown: boolean, memberCount: number, mobile: boolean): number | null {
+  update(targetShown: boolean, memberCount: number, mobile: boolean): boolean {
     const { container, frame, debuffs } = this.els;
-    if (!container || !frame || !debuffs) return null;
-    const key = targetShown ? this.buildKey(memberCount, mobile) : 'off';
+    if (!container || !frame || !debuffs) return false;
+    // The no-target key still carries the tier and viewport: the seat the touch
+    // layout holds without a target is the tier's own, so a rotation or a scale
+    // change while untargeted must still re-run the sensors.
+    const key = `${targetShown ? 1 : 0}|${this.buildKey(memberCount, mobile)}`;
     if (key !== this.lastKey) {
       this.lastKey = key;
       const set = (prop: string, value: number | null): void => {
@@ -105,17 +110,23 @@ export class PartyBelowTargetPainter {
           value === null ? PROP_UNSET : `${value.toFixed(1)}px`,
         );
       };
-      this.lastBottom = targetShown ? this.measure() : null;
-      set(PARTY_BELOW_TARGET_BOTTOM_PROP, this.lastBottom);
-      // The two rows-bound sensors ride the same gate: with no push active
-      // they unset, and the .party-rows rules fall back to their unbounded
+      const slot = belowTargetSlot({
+        measured: targetShown ? this.measure() : null,
+        targetShown,
+        reserve: mobile,
+      });
+      this.lastActive = slot.active;
+      set(PARTY_BELOW_TARGET_BOTTOM_PROP, slot.bottom);
+      // The two rows-bound sensors ride the ACTIVE seat, not the measured
+      // bottom: a held slot with no target still pushes the rows down (off the
+      // tier's authored fallback), so they still need a bound. With no seat at
+      // all they unset and the .party-rows rules fall back to their unbounded
       // defaults.
-      const sensors =
-        targetShown && this.lastBottom !== null ? this.measureRowsBound(mobile) : null;
+      const sensors = slot.active ? this.measureRowsBound(mobile) : null;
       set(PARTY_ROWS_TOP_PROP, sensors?.rowsTop ?? null);
       set(PARTY_ROWS_LIMIT_PROP, sensors?.limit ?? null);
     }
-    return this.lastBottom;
+    return this.lastActive;
   }
 
   // The invalidation key: every input the measured geometry depends on, read
@@ -144,6 +155,13 @@ export class PartyBelowTargetPainter {
       this.win.innerWidth,
       this.win.innerHeight,
       debuffs?.childElementCount ?? 0,
+      // The strip's side (targetAurasBelowFrame) moves the union bottom without
+      // touching any other input, so the toggle must re-run the sensors.
+      (frame?.ownerDocument.body?.getAttribute('class') ?? '')
+        .split(' ')
+        .includes(TARGET_AURAS_BELOW_CLASS)
+        ? 1
+        : 0,
       frame?.getAttribute('class') ?? '',
       frame?.getAttribute('style') ?? '',
       container?.getAttribute('class') ?? '',

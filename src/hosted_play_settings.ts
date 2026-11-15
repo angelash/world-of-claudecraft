@@ -2,23 +2,20 @@ export const HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE = 2;
 export const HOSTED_PLAY_AUTO_INVITE_MAX_PARTY_SIZE = 5;
 export const HOSTED_PLAY_AUTO_INVITE_DEFAULT_PARTY_SIZE = HOSTED_PLAY_AUTO_INVITE_MAX_PARTY_SIZE;
 
-export const HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES = [
-  2,
-  3,
-  4,
-  5,
-] as const;
+export const HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES = [2, 3, 4, 5] as const;
 
 export type HostedPlayAutoInviteTargetPartySize =
-  typeof HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES[number];
+  (typeof HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES)[number];
 
 export function isHostedPlayAutoInviteTargetPartySize(
   value: unknown,
 ): value is HostedPlayAutoInviteTargetPartySize {
-  return typeof value === 'number'
-    && Number.isInteger(value)
-    && value >= HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE
-    && value <= HOSTED_PLAY_AUTO_INVITE_MAX_PARTY_SIZE;
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE &&
+    value <= HOSTED_PLAY_AUTO_INVITE_MAX_PARTY_SIZE
+  );
 }
 
 export function normalizeHostedPlayAutoInviteTargetPartySize(

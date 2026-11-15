@@ -3,13 +3,21 @@ import {
   ALLOWED_PERMISSIONS,
   appNavigationOrigins,
   buildContentSecurityPolicy,
+  CSP_ORIGINS,
   deriveOrigin,
+  EMBEDDED_SUBFRAME_HOST_SUFFIXES,
+  EMBEDDED_SUBFRAME_ORIGINS,
   extractInlineScriptHashes,
+  frameAncestorUrls,
+  frameNavigationAllowed,
   isDevToolsToggleShortcut,
+  isExternalDocumentUrl,
   isSoftwareRenderer,
   isTrustedSender,
   navigationAllowed,
+  navigationDecision,
   originAllowed,
+  toCanonicalExternalUrl,
   withCspHeader,
 } from '../electron/shell_guards.cjs';
 
@@ -82,8 +90,200 @@ describe('navigationAllowed', () => {
     expect(navigationAllowed(verify, true, main)).toBe(false);
     expect(navigationAllowed(verify, false, main)).toBe(true);
   });
+  // The Claudium store mounts Stripe Embedded Checkout in iframes. Stripe starts some
+  // of them on per-session subdomains (Stripe's CSP guidance names *.js.stripe.com and
+  // *.link.com), so the guard admits the exact Stripe origins and those host suffixes,
+  // in subframes only, and never a look-alike host.
+  it('allows the Stripe checkout frames only as embedded subframes', () => {
+    const app = new Set(['app://worldofclaudecraft']);
+    for (const url of [
+      'https://js.stripe.com/v3/embedded-checkout-inner.html',
+      'https://b.js.stripe.com/v3/controller.html',
+      'https://checkout.stripe.com/c/pay/cs_test_123',
+      'https://hooks.stripe.com/three_d_secure/authenticate',
+      'https://link.com/login',
+      'https://checkout.link.com/login',
+    ]) {
+      expect(navigationAllowed(url, false, app)).toBe(true);
+      expect(navigationAllowed(url, true, app)).toBe(false);
+    }
+  });
+
+  it('denies look-alike and non-HTTPS Stripe hosts even in a subframe', () => {
+    const app = new Set(['app://worldofclaudecraft']);
+    for (const url of [
+      'https://evil-js.stripe.com/v3/',
+      'https://js.stripe.com.evil.com/v3/',
+      'https://notlink.com/login',
+      'http://b.js.stripe.com/v3/',
+      'https://api.stripe.com/v1/tokens',
+    ]) {
+      expect(navigationAllowed(url, false, app)).toBe(false);
+    }
+  });
+
   it('denies a malformed navigation URL', () => {
     expect(navigationAllowed('::: not a url', true, main)).toBe(false);
+  });
+});
+
+// Electron fires will-frame-navigate for EVERY frame in the tree, not just the app's own
+// iframes. Stripe Embedded Checkout nests frames of its own inside its iframe: a 3D Secure
+// challenge renders the card issuer's ACS page (an arbitrary bank origin) inside the
+// hooks.stripe.com frame, then returns inside Stripe's frames. Gating those against the
+// app's embed allow-list blanked the challenge and left the checkout greyed out on its
+// processing state in the desktop client only (the Windows membership checkout report).
+describe('frameNavigationAllowed', () => {
+  const app = new Set(['app://worldofclaudecraft', 'http://localhost:5173']);
+  const top = 'app://worldofclaudecraft/play';
+  const hooks = 'https://hooks.stripe.com/three_d_secure/authenticate';
+  const embed = 'https://js.stripe.com/v3/embedded-checkout-inner.html';
+  const acs = 'https://acs.examplebank.co.nz/challenge?id=1';
+
+  it('lets a Stripe-nested 3DS issuer frame and its return page load', () => {
+    for (const url of [
+      acs,
+      'https://worldofclaudecraft.com/store/return?session_id=cs_test_1',
+      'about:blank',
+      'about:srcdoc',
+      'data:text/html,acs',
+      'blob:https://js.stripe.com/1b2c3d',
+    ]) {
+      expect(frameNavigationAllowed(url, false, [hooks, embed, top], app)).toBe(true);
+    }
+    // Every Stripe root, including a per-session js.stripe.com subdomain, relaxes its
+    // subtree the same way.
+    for (const root of [
+      'https://b.js.stripe.com/v3/x',
+      'https://hooks.stripe.com/three_d_secure/authenticate',
+      'https://checkout.stripe.com/c/pay/cs_test_1',
+    ]) {
+      expect(frameNavigationAllowed(acs, false, [root, top], app)).toBe(true);
+    }
+    // A blob minted by a third-party https page below Stripe is that page's own origin.
+    expect(
+      frameNavigationAllowed(
+        'blob:https://acs.examplebank.co.nz/9f',
+        false,
+        [hooks, embed, top],
+        app,
+      ),
+    ).toBe(true);
+  });
+
+  it('does not relax a look-alike Stripe root', () => {
+    for (const root of [
+      'https://js.stripe.com.evil.com/x',
+      'https://evil-js.stripe.com/x',
+      'https://api.stripe.com/x',
+      'http://js.stripe.com/x',
+    ]) {
+      expect(frameNavigationAllowed(acs, false, [root, top], app)).toBe(false);
+    }
+  });
+
+  it('keeps direct children of the app frame on the strict embed allow-list', () => {
+    expect(frameNavigationAllowed('https://evil.com/', false, [top], app)).toBe(false);
+    expect(frameNavigationAllowed(embed, false, [top], app)).toBe(true);
+  });
+
+  it('fails toward the strict rule when ancestry is unknown or does not end at the app', () => {
+    expect(frameNavigationAllowed(acs, false, null, app)).toBe(false);
+    expect(frameNavigationAllowed(acs, false, [], app)).toBe(false);
+    // Truncated walk: hooks is not the main frame, so nothing relaxes.
+    expect(frameNavigationAllowed('https://evil.com/', false, [hooks, embed], app)).toBe(false);
+  });
+
+  it('keeps frames nested under the app or dev own iframes strict', () => {
+    for (const own of ['app://worldofclaudecraft/frame.html', 'http://localhost:5173/x']) {
+      expect(frameNavigationAllowed('https://evil.com/', false, [own, top], app)).toBe(false);
+    }
+  });
+
+  it('relaxes only Stripe roots, never Turnstile, WalletConnect or Link', () => {
+    for (const root of [
+      'https://challenges.cloudflare.com/x',
+      'https://verify.walletconnect.com/x',
+      'https://link.com/x',
+      'https://checkout.link.com/x',
+      'https://evil.com/frame',
+    ]) {
+      expect(frameNavigationAllowed('https://evil.com/', false, [root, top], app)).toBe(false);
+    }
+  });
+
+  it('never relaxes the main frame, plaintext or local schemes, or app-origin documents', () => {
+    expect(frameNavigationAllowed(acs, true, [], app)).toBe(false);
+    for (const url of [
+      'http://acs.examplebank.co.nz/',
+      'file:///C:/Windows/win.ini',
+      'javascript:alert(1)',
+      'app://worldofclaudecraft/index.html',
+      'http://localhost:5173/index.html',
+      'blob:app://worldofclaudecraft/1b2c3d',
+      'blob:http://localhost:5173/1b2c3d',
+      '::: not a url',
+    ]) {
+      expect(frameNavigationAllowed(url, false, [hooks, embed, top], app)).toBe(false);
+    }
+  });
+});
+
+describe('frameAncestorUrls', () => {
+  it('walks parent frames from the nearest up to the main frame', () => {
+    const main = { url: 'app://worldofclaudecraft/play', parent: null };
+    const embed = { url: 'https://js.stripe.com/v3/x', parent: main };
+    const hooks = { url: 'https://hooks.stripe.com/3ds', parent: embed };
+    expect(frameAncestorUrls({ url: 'https://acs.bank/', parent: hooks })).toEqual([
+      'https://hooks.stripe.com/3ds',
+      'https://js.stripe.com/v3/x',
+      'app://worldofclaudecraft/play',
+    ]);
+    expect(frameAncestorUrls(null)).toBeNull();
+  });
+
+  it('returns null when a disposed frame getter throws', () => {
+    const disposed = {
+      url: 'https://acs.bank/',
+      get parent(): never {
+        throw new Error('Render frame was disposed before WebFrameMain could be accessed');
+      },
+    };
+    expect(frameAncestorUrls(disposed)).toBeNull();
+  });
+});
+
+describe('navigationDecision', () => {
+  const app = new Set(['app://worldofclaudecraft']);
+  const main = { url: 'app://worldofclaudecraft/play', parent: null };
+  const embed = { url: 'https://js.stripe.com/v3/x', parent: main };
+  const hooks = { url: 'https://hooks.stripe.com/3ds', parent: embed };
+
+  it('admits a nested 3DS frame and blocks a foreign main-frame navigation', () => {
+    expect(
+      navigationDecision({ url: 'https://acs.bank/c', isMainFrame: false, frame: hooks }, app),
+    ).toEqual({ allowed: true, isMainFrame: false });
+    expect(navigationDecision({ url: 'https://evil.com/', isMainFrame: true }, app)).toEqual({
+      allowed: false,
+      isMainFrame: true,
+    });
+  });
+
+  it('treats a missing isMainFrame as the main frame', () => {
+    expect(navigationDecision({ url: 'https://acs.bank/c', frame: hooks }, app).allowed).toBe(
+      false,
+    );
+  });
+
+  it('blocks instead of throwing when the frame tree is unreadable', () => {
+    const details = {
+      url: 'https://acs.bank/c',
+      isMainFrame: false,
+      get frame(): never {
+        throw new Error('disposed');
+      },
+    };
+    expect(navigationDecision(details, app)).toEqual({ allowed: false, isMainFrame: false });
   });
 });
 
@@ -168,11 +368,16 @@ describe('buildContentSecurityPolicy', () => {
     expect(directive('script-src')).toContain("'sha256-abc123'");
   });
 
-  it('lists the HTTPS API origin, wss:, and blob: explicitly in connect-src', () => {
+  it('lists the HTTPS API origin, wss:, blob:, and data: explicitly in connect-src', () => {
     expect(directive('connect-src')).toContain('https://worldofclaudecraft.com');
     expect(directive('connect-src')).toContain('wss:');
     // blob: is required: GLTFLoader fetch()es a model's embedded textures as blob: URLs.
     expect(directive('connect-src')).toContain('blob:');
+    // data: is required: three's ZSTDDecoder (KTX2Loader's Zstandard path for UASTC
+    // normal/occlusion maps) instantiates its WASM via fetch("data:application/wasm;base64,..."),
+    // a connect-src request to a data: URI. Without it every Zstandard KTX2 GLB is refused and
+    // world entry dies on the desktop shell (issue: desktop CSP blocked the KTX2 zstd decoder).
+    expect(directive('connect-src')).toContain('data:');
   });
 
   it('allows the matching WebSocket origin for a local HTTP API', () => {
@@ -197,6 +402,42 @@ describe('buildContentSecurityPolicy', () => {
     expect(directive('img-src')).toContain('https://secure.walletconnect.com');
     expect(directive('font-src')).toContain('https://fonts.reown.com');
     expect(directive('frame-src')).toContain('https://verify.walletconnect.com');
+  });
+
+  // The Claudium store's card rail loads https://js.stripe.com/v3/ and mounts Stripe's
+  // Embedded Checkout iframes (src/net/stripe_checkout.ts). The desktop shell is the only
+  // host with a CSP, so without these every card purchase there failed with
+  // "Checkout could not be loaded" while the browser build worked (v0.42.0 report).
+  it('allows Stripe.js, the Checkout frames, and the Stripe API on the desktop shell', () => {
+    expect(directive('script-src')).toContain('https://js.stripe.com');
+    expect(directive('script-src')).toContain('https://*.js.stripe.com');
+    expect(directive('frame-src')).toContain('https://js.stripe.com');
+    expect(directive('frame-src')).toContain('https://*.js.stripe.com');
+    expect(directive('frame-src')).toContain('https://hooks.stripe.com');
+    expect(directive('frame-src')).toContain('https://checkout.stripe.com');
+    expect(directive('frame-src')).toContain('https://*.link.com');
+    expect(directive('connect-src')).toContain('https://api.stripe.com');
+    expect(directive('img-src')).toContain('https://*.stripe.com');
+    // The frame allowance and the navigation guard must agree, or the CSP admits a frame
+    // the guard then cancels: every exact Stripe frame origin is also an embedded subframe.
+    for (const origin of CSP_ORIGINS.stripe.frame) {
+      const wildcard = origin.match(/^https:\/\/\*\.(.+)$/);
+      if (wildcard) {
+        // A wildcard frame origin is covered by the suffix list, or the guard cancels it.
+        expect(EMBEDDED_SUBFRAME_HOST_SUFFIXES).toContain(`.${wildcard[1]}`);
+        continue;
+      }
+      expect(EMBEDDED_SUBFRAME_ORIGINS.has(origin)).toBe(true);
+    }
+  });
+
+  // Desktop is the only host that ships a CSP. Linked Discord avatars load from
+  // cdn.discordapp.com (server/discord_oauth.ts DISCORD_CDN_BASE) as <img> and
+  // nameplate-canvas badges; without this origin the desktop client silently
+  // drops every PFP while the web client still paints them.
+  it('allows Discord CDN avatars in img-src so linked PFPs paint on desktop', () => {
+    expect(directive('img-src')).toContain('https://cdn.discordapp.com');
+    expect(CSP_ORIGINS.img).toContain('https://cdn.discordapp.com');
   });
 });
 
@@ -322,5 +563,71 @@ describe('isTrustedSender', () => {
       false,
     );
     expect(isTrustedSender({}, allowed)).toBe(false);
+  });
+});
+
+describe('isExternalDocumentUrl', () => {
+  it('classifies whitepaper pdf and any pdf as external documents', () => {
+    expect(
+      isExternalDocumentUrl('app://worldofclaudecraft/World-of-ClaudeCraft-Whitepaper-v1.0.pdf'),
+    ).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/docs/manual.PDF')).toBe(true);
+  });
+
+  it('classifies legal and support documentation routes as external documents', () => {
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/terms')).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/terms.html')).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/privacy')).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/privacy.html')).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/support')).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/data-deletion')).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/wiki')).toBe(true);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/wiki/')).toBe(true);
+  });
+
+  it('does not classify game client entry points or in-game assets as external documents', () => {
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/')).toBe(false);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/index.html')).toBe(false);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/play')).toBe(false);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/play.html')).toBe(false);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/assets/main.js')).toBe(false);
+    expect(isExternalDocumentUrl('app://worldofclaudecraft/ui/cursors/gauntlet.png')).toBe(false);
+  });
+
+  it('handles invalid urls gracefully without throwing', () => {
+    expect(isExternalDocumentUrl('')).toBe(false);
+    expect(isExternalDocumentUrl('not a url')).toBe(false);
+  });
+});
+
+describe('toCanonicalExternalUrl', () => {
+  const prod = 'https://worldofclaudecraft.com';
+
+  it('rebases app:// document URLs to the canonical production web origin', () => {
+    expect(
+      toCanonicalExternalUrl(
+        'app://worldofclaudecraft/World-of-ClaudeCraft-Whitepaper-v1.0.pdf',
+        APP,
+        prod,
+      ),
+    ).toBe('https://worldofclaudecraft.com/World-of-ClaudeCraft-Whitepaper-v1.0.pdf');
+    expect(toCanonicalExternalUrl('app://worldofclaudecraft/terms', APP, prod)).toBe(
+      'https://worldofclaudecraft.com/terms',
+    );
+    expect(toCanonicalExternalUrl('app://worldofclaudecraft/privacy', APP, prod)).toBe(
+      'https://worldofclaudecraft.com/privacy',
+    );
+  });
+
+  it('preserves query parameters and hash fragments', () => {
+    expect(toCanonicalExternalUrl('app://worldofclaudecraft/terms?lang=es#s1', APP, prod)).toBe(
+      'https://worldofclaudecraft.com/terms?lang=es#s1',
+    );
+  });
+
+  it('leaves http and https URLs untouched', () => {
+    expect(toCanonicalExternalUrl('https://discord.com/invite/woc', APP, prod)).toBe(
+      'https://discord.com/invite/woc',
+    );
   });
 });

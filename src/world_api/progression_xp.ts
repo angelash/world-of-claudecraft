@@ -1,9 +1,25 @@
 import type {
   DevLeaderboardPage,
   GuildLeaderboardPage,
+  GuildRosterInfo,
   LeaderboardPage,
 } from '../sim/leaderboard_page';
+
+export type { GuildRosterEntry, GuildRosterInfo } from '../sim/leaderboard_page';
+
+import type { GuildBoardCategory } from '../sim/guild_board_category';
 import type { PlayerClass } from '../sim/types';
+
+export type { GuildBoardCategory } from '../sim/guild_board_category';
+
+// One officer-plus member the server saw ONLINE when it served the board row
+// (docs/prd/guild-pledge-board.md, "Officers online"): the Guild Master first,
+// then officers, each tier by name. Names are the same public roster names the
+// drill-in shows; no ids, no positions.
+export interface GuildBoardOfficer {
+  name: string;
+  rank: 'leader' | 'officer';
+}
 
 // One ranked row of the lifetime-XP leaderboard (Max-Level XP Overflow). Always
 // computed server-side; the client only displays it.
@@ -19,6 +35,11 @@ export interface LeaderboardEntry {
   // localizes through deed_i18n.ts (never display text), null when untitled
   // (the DeedsLeaderboardEntry shape).
   title: string | null;
+  // The character's guild display name, shown beside the name in the `<Guild>`
+  // treatment the nameplate already uses. Absent when unguilded (guilds live only
+  // in the server social DB, so the offline Sim resolves it from the entity's
+  // passive display field, which stays '' offline).
+  guild?: string;
   realm?: string; // present on the global (cross-realm) home-page board
 }
 
@@ -34,6 +55,23 @@ export interface GuildLeaderboardEntry {
   totalLifetimeXp: number;
   topLevel: number;
   realm?: string; // present on the global (cross-realm) board
+  // Guild pledge board (docs/prd/guild-pledge-board.md): the recruiting status
+  // the Guild Master sets. pledgesOpen absent means the server predates the
+  // pledge board, so the client shows NO pledge affordances at all (never a
+  // guessed default). The note is the Master's free-text recruiting line
+  // ('' omitted from the wire); minLevel 1 means no floor.
+  pledgesOpen?: boolean;
+  pledgeMinLevel?: number;
+  pledgeNote?: string;
+  // Guild board categories (src/sim/guild_board_category.ts): the guild opted
+  // into the new-player-friendly listing. Absent means opted out, so a
+  // pre-category server's rows read as plain guilds.
+  newPlayerFriendly?: boolean;
+  // Officer presence, resolved LIVE against this realm's sessions at serve
+  // time (never cached with the ranking): absent when no Guild Master or
+  // officer is online, or on the cross-realm board, which cannot see other
+  // realms' sessions.
+  onlineOfficers?: GuildBoardOfficer[];
 }
 
 // One ranked row of the DEVELOPER high-score board: contributors ranked by how
@@ -57,6 +95,18 @@ export interface IWorldProgressionXp {
   unlockedMilestones: string[];
   // Classic Rested XP pool (inn-rested kill-XP bonus); 0 when not rested.
   restedXp: number;
+  // True while the player stands in a rest area (an inn, the Mirefen tavern, the
+  // harbormaster's house) out of combat: the classic "Resting" state that fills the
+  // rested pool (src/sim/progression/xp.ts isResting). Both worlds derive it from the
+  // player's own position and combat flag, so it needs no wire field.
+  readonly resting: boolean;
+  // Lifetime played time in seconds for the SELF character (the same running
+  // total the /playtime chat command reports and the save persists). The
+  // offline Sim derives it live from the sim clock; the online ClientWorld
+  // mirrors the server's self wire, which quantizes to whole minutes so the
+  // delta gate ships it about once a minute instead of every tick. Display
+  // only (the character sheet's Time Played line); no gameplay reads it.
+  playtimeSeconds: number;
   // Flat per-craft skill tracking (#1126): one independent, additive-only skill
   // value for each of the ten crafts on the professions ring, keyed by craft id
   // (see src/sim/content/professions.ts and src/sim/professions/wheel.ts). No
@@ -74,7 +124,22 @@ export interface IWorldProgressionXp {
   // The realm-scoped guild high-score board (guilds ranked by summed member
   // lifetime XP), paged server-side the same way as the player board. Guilds are
   // a server-only social system, so the offline Sim resolves an empty page.
-  guildLeaderboard(page?: number, pageSize?: number): Promise<GuildLeaderboardPage>;
+  // `category` narrows the board to guilds wearing that opt-in tag (the
+  // server filters its cached ranking BEFORE paging, so pages stay full and
+  // the total counts only matching guilds); null is the whole board.
+  guildLeaderboard(
+    page?: number,
+    pageSize?: number,
+    category?: GuildBoardCategory | null,
+  ): Promise<GuildLeaderboardPage>;
+  /** The public roster drill-in behind the signpost guild board: the Guild
+   *  Master, then officers, then members, each rank tier ranked by lifetime
+   *  XP. Guilds are online-only, so the offline Sim resolves null, and null
+   *  also answers an unknown guild (both render the localized empty state).
+   *  ClientWorld fetches the cached server read and REJECTS on a transport
+   *  failure or malformed body, so the window can show its retry state
+   *  instead of misreading a dead server as an empty board. */
+  guildRoster(name: string): Promise<GuildRosterInfo | null>;
   // The developer high-score board (contributors ranked by merged PRs), sourced
   // from the repo's GitHub pulls API and paged the same way. The same data for
   // every realm; the offline Sim resolves an empty page.

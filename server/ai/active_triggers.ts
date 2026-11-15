@@ -13,26 +13,41 @@ import type {
 } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
 import {
-  createProviderAuditRecord,
   type AiAuditProviderSource,
   type AiAuditSink,
+  createProviderAuditRecord,
 } from '../ai_audit';
 import { REALM } from '../realm';
-import type { AiJobContextV1, AiProvider, AiProviderDecisionResult, AiProviderOutput, AiProviderTimingSnapshot } from './ai_types';
+import type {
+  AiJobContextV1,
+  AiProvider,
+  AiProviderDecisionResult,
+  AiProviderOutput,
+  AiProviderTimingSnapshot,
+} from './ai_types';
 import { classifyCanonSubject } from './canon_guard';
 import { companionReactionEventsForScene } from './companion_reactions';
-import { compactFamilySemanticsForEntity } from './family_semantics';
-import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
 import type { FamilySceneReaction } from './family_scene_reactions';
+import {
+  familySceneReactionEvent,
+  nearbyFamilySceneCandidates,
+  rankFamilySceneReactions,
+} from './family_scene_reactions';
+import { compactFamilySemanticsForEntity } from './family_semantics';
 import { validateAiDecision } from './intent_validator';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { buildCodexDecisionPrompt } from './prompt_builder';
-import { sceneFrameFor } from './scene_frame';
 import type { SceneObjectSemantic } from './scene_frame';
+import { sceneFrameFor } from './scene_frame';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { individualProfileFor } from './singularity';
+import type {
+  AiWorldDirectorLineId,
+  AiWorldDirectorMood,
+  AiWorldDirectorProposalIntent,
+  AiWorldDirectorState,
+} from './world_director';
 import { worldDirectorEvent } from './world_director';
-import type { AiWorldDirectorLineId, AiWorldDirectorMood, AiWorldDirectorProposalIntent, AiWorldDirectorState } from './world_director';
 
 export type AiActivePollCategory =
   | 'sceneAmbient'
@@ -62,24 +77,11 @@ export type AiActiveQueuedEventKind =
   | 'combat_damage'
   | 'world_director';
 
-export type AiActivePopulationBand =
-  | 'solo'
-  | 'small'
-  | 'busy'
-  | 'crowded'
-  | 'protected';
+export type AiActivePopulationBand = 'solo' | 'small' | 'busy' | 'crowded' | 'protected';
 
-export type AiActiveRuntimeState =
-  | 'disabled'
-  | 'idle'
-  | 'event'
-  | 'poll';
+export type AiActiveRuntimeState = 'disabled' | 'idle' | 'event' | 'poll';
 
-export type AiActiveProviderResult =
-  | ''
-  | 'success'
-  | 'rejected'
-  | 'error';
+export type AiActiveProviderResult = '' | 'success' | 'rejected' | 'error';
 
 export interface AiActivePollRuleV1 {
   ruleId: string;
@@ -306,8 +308,12 @@ export interface AiActiveTriggerServiceOptions {
   auditProviderSource?: Exclude<AiAuditProviderSource, 'fallback' | 'local'>;
 }
 
-export type AiActiveWorldActionBridge = (request: AiActiveMobActionRequest) => AiActiveMobActionResult;
-export type AiActiveNpcActionBridge = (request: AiActiveNpcActionRequest) => AiActiveNpcActionResult;
+export type AiActiveWorldActionBridge = (
+  request: AiActiveMobActionRequest,
+) => AiActiveMobActionResult;
+export type AiActiveNpcActionBridge = (
+  request: AiActiveNpcActionRequest,
+) => AiActiveNpcActionResult;
 
 interface AiActivePollCursorState {
   ruleId: string;
@@ -563,15 +569,32 @@ export class AiActiveTriggerService {
     this.enabled = options.enabled ?? process.env.AI_LIVING_WORLD_EXPERIMENT !== '0';
     this.eventsEnabled = options.eventsEnabled ?? process.env.AI_ACTIVE_EVENTS_ENABLED !== '0';
     this.pollsEnabled = options.pollsEnabled ?? process.env.AI_ACTIVE_POLLS_ENABLED !== '0';
-    this.realActionsEnabled = options.realActionsEnabled ?? process.env.AI_ACTIVE_REAL_ACTIONS_ENABLED !== '0';
+    this.realActionsEnabled =
+      options.realActionsEnabled ?? process.env.AI_ACTIVE_REAL_ACTIONS_ENABLED !== '0';
     this.rules = normalizeActiveRules(options.rules ?? DEFAULT_ACTIVE_POLL_RULES);
-    this.thinkingDurationMs = Math.max(0, Math.floor(options.thinkingDurationMs ?? DEFAULT_THINKING_DURATION_MS));
+    this.thinkingDurationMs = Math.max(
+      0,
+      Math.floor(options.thinkingDurationMs ?? DEFAULT_THINKING_DURATION_MS),
+    );
     this.maxRecentDecisions = Math.max(1, Math.floor(options.maxRecentDecisions ?? 40));
     this.eventTtlMs = Math.max(1_000, Math.floor(options.eventTtlMs ?? DEFAULT_EVENT_TTL_MS));
-    this.maxQueuedEvents = Math.max(1, Math.floor(options.maxQueuedEvents ?? DEFAULT_MAX_QUEUED_EVENTS));
-    this.codexMaxCalls5h = Math.max(0, Math.floor(options.codexMaxCalls5h ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_5H', 600)));
-    this.codexMaxCallsWeek = Math.max(0, Math.floor(options.codexMaxCallsWeek ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_WEEK', 5_000)));
-    this.codexReserveRatio = clamp01(options.codexReserveRatio ?? envRatio('AI_CODEX_ACTIVE_RESERVE_RATIO', 0.2));
+    this.maxQueuedEvents = Math.max(
+      1,
+      Math.floor(options.maxQueuedEvents ?? DEFAULT_MAX_QUEUED_EVENTS),
+    );
+    this.codexMaxCalls5h = Math.max(
+      0,
+      Math.floor(options.codexMaxCalls5h ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_5H', 600)),
+    );
+    this.codexMaxCallsWeek = Math.max(
+      0,
+      Math.floor(
+        options.codexMaxCallsWeek ?? envNonNegativeInt('AI_CODEX_ACTIVE_MAX_CALLS_WEEK', 5_000),
+      ),
+    );
+    this.codexReserveRatio = clamp01(
+      options.codexReserveRatio ?? envRatio('AI_CODEX_ACTIVE_RESERVE_RATIO', 0.2),
+    );
     this.schedulerIntervalMs = Math.max(1_000, Math.floor(options.schedulerIntervalMs ?? 30_000));
     this.provider = options.provider ?? null;
     this.auditSink = options.auditSink ?? null;
@@ -606,7 +629,13 @@ export class AiActiveTriggerService {
     }
   }
 
-  noteItemDiscarded(input: { sim: Sim; pid: number; itemId: string; count: number; nowMs?: number }): void {
+  noteItemDiscarded(input: {
+    sim: Sim;
+    pid: number;
+    itemId: string;
+    count: number;
+    nowMs?: number;
+  }): void {
     if (!this.enabled) return;
     if (!this.eventsEnabled) {
       this.recordSkip('', 'events_disabled', 'event');
@@ -628,15 +657,15 @@ export class AiActiveTriggerService {
       createdAtMs: nowMs,
       expiresAtMs: nowMs + this.eventTtlMs,
       nextAttemptAtMs: nowMs,
-      observations: [
-        'event:item_discarded',
-        `item:${input.itemId}`,
-        `count:${input.count}`,
-      ],
+      observations: ['event:item_discarded', `item:${input.itemId}`, `count:${input.count}`],
     });
   }
 
-  noteWorldDirectorStates(input: { sim: Sim; states: readonly AiWorldDirectorState[]; nowMs?: number }): void {
+  noteWorldDirectorStates(input: {
+    sim: Sim;
+    states: readonly AiWorldDirectorState[];
+    nowMs?: number;
+  }): void {
     if (!this.enabled) return;
     if (!this.eventsEnabled) {
       if (input.states.length > 0) this.recordSkip('', 'events_disabled', 'event');
@@ -646,7 +675,10 @@ export class AiActiveTriggerService {
     for (const state of input.states) {
       if (state.proposal.risk !== 'low') continue;
       if (state.expiresAt <= input.sim.time) continue;
-      const ttlMs = Math.max(1_000, Math.min(this.eventTtlMs, Math.round((state.expiresAt - input.sim.time) * 1000)));
+      const ttlMs = Math.max(
+        1_000,
+        Math.min(this.eventTtlMs, Math.round((state.expiresAt - input.sim.time) * 1000)),
+      );
       this.enqueueEvent({
         eventId: this.nextEventId('director'),
         dedupeKey: `director:${state.sourcePlayerEntityId}:${state.stateId}`,
@@ -654,7 +686,9 @@ export class AiActiveTriggerService {
         playerEntityId: state.sourcePlayerEntityId,
         ...(state.subjectKind === 'item' ? { itemId: state.itemId } : {}),
         ...(state.subjectKind === 'quest' ? { questId: state.itemId } : {}),
-        ...(state.subjectKind === 'encounter' ? { subjectTemplateId: state.subjectTemplateId ?? state.itemId } : {}),
+        ...(state.subjectKind === 'encounter'
+          ? { subjectTemplateId: state.subjectTemplateId ?? state.itemId }
+          : {}),
         directorState: cloneDirectorState(state),
         priority: directorEventPriority(state),
         attempts: 0,
@@ -713,7 +747,14 @@ export class AiActiveTriggerService {
       applyNpcAction: input.applyNpcAction,
     });
     if (eventEvents.length > 0) {
-      this.finishTick(input.nowMs, wallStartedAtMs, sessions.length, 'event', '', eventEvents.length);
+      this.finishTick(
+        input.nowMs,
+        wallStartedAtMs,
+        sessions.length,
+        'event',
+        '',
+        eventEvents.length,
+      );
       return eventEvents;
     }
 
@@ -727,7 +768,10 @@ export class AiActiveTriggerService {
     let tickSkipReason: AiActiveSkipReason | '' = 'not_due';
     const pollSessions = this.selectPollSessions(sessions, this.populationPolicy);
     this.metrics.activeSchedulerSessionsConsidered += pollSessions.length;
-    this.metrics.activeSchedulerSessionsSuppressed += Math.max(0, sessions.length - pollSessions.length);
+    this.metrics.activeSchedulerSessionsSuppressed += Math.max(
+      0,
+      sessions.length - pollSessions.length,
+    );
     for (const rule of this.rules) {
       if (!rule.enabled) continue;
       if (rule.priority < this.populationPolicy.minRulePriority) continue;
@@ -784,7 +828,9 @@ export class AiActiveTriggerService {
       runtime: { ...this.runtime },
       rules: this.rules.map((rule) => ({ ...rule, cooldown: { ...rule.cooldown } })),
       eventQueue: this.eventQueue.map((event) => eventSnapshot(event)),
-      activeSequences: [...this.activeSequences.values()].map((sequence) => sequenceSnapshot(sequence)),
+      activeSequences: [...this.activeSequences.values()].map((sequence) =>
+        sequenceSnapshot(sequence),
+      ),
       cursors: [...this.cursors.values()].map((cursor) => ({ ...cursor })),
       recentDecisions: [...this.recentDecisions],
     };
@@ -898,11 +944,15 @@ export class AiActiveTriggerService {
     if (!player) return { events: [], skipReason: 'player_missing' };
     if (player.dead || player.inCombat) return { events: [], skipReason: 'player_busy_combat' };
 
-    const anchorEntity = input.queued.anchorEntityId !== undefined
-      ? input.sim.entities.get(input.queued.anchorEntityId)
-      : undefined;
-    const anchor = anchorEntity?.pos
-      ?? (input.queued.anchorPos ? { x: input.queued.anchorPos.x, y: player.pos.y, z: input.queued.anchorPos.z } : player.pos);
+    const anchorEntity =
+      input.queued.anchorEntityId !== undefined
+        ? input.sim.entities.get(input.queued.anchorEntityId)
+        : undefined;
+    const anchor =
+      anchorEntity?.pos ??
+      (input.queued.anchorPos
+        ? { x: input.queued.anchorPos.x, y: player.pos.y, z: input.queued.anchorPos.z }
+        : player.pos);
     const candidate = this.bestNpcCandidate(input.sim, anchor, input.nowMs);
     if (!candidate) return { events: [], skipReason: 'no_candidate' };
     if ((this.entityCooldownUntilMs.get(candidate.entity.id) ?? 0) > input.nowMs) {
@@ -915,16 +965,26 @@ export class AiActiveTriggerService {
       ruleId: eventRuleId(input.queued),
       category: 'sceneAmbient',
     };
-    const context = this.contextFor(input.sim, player, candidate.entity, scene, eventRule, input.queued, input.session.locale);
+    const context = this.contextFor(
+      input.sim,
+      player,
+      candidate.entity,
+      scene,
+      eventRule,
+      input.queued,
+      input.session.locale,
+    );
     this.addQueuedEventContext(context, input.queued);
     const sceneEvent = sceneAwarenessEvent(context, candidate.entity);
-    const localEvent: AiSpeechEvent = eventAwarenessEvent(context, candidate.entity, input.queued)
-      ?? (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null)
-      ?? fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
+    const localEvent: AiSpeechEvent =
+      eventAwarenessEvent(context, candidate.entity, input.queued) ??
+      (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null) ??
+      fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
     addFallbackSpeechContext(context, localEvent);
-    const lineId = localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
-      ? localEvent.speech.lineId
-      : undefined;
+    const lineId =
+      localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
+        ? localEvent.speech.lineId
+        : undefined;
     const thinkingEvent: Extract<SimEvent, { type: 'aiThinking' }> = {
       type: 'aiThinking',
       speakerId: candidate.entity.id,
@@ -947,16 +1007,21 @@ export class AiActiveTriggerService {
       createdAtMs: input.nowMs,
     });
     this.tryApplyQueuedEventAction(input.queued, candidate.entity, player, input.applyNpcAction);
-    if (this.tryStartProviderNpcBeat({
-      context,
-      entity: candidate.entity,
-      fallbackEvent: localEvent,
-      rule: eventRule,
-      nowMs: input.nowMs,
-      deliver: input.deliver,
-      deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
-      auditDeliveryEvents: (events) => [this.activeThinkingAuditEvent(candidate.entity, player.id), ...events],
-    })) {
+    if (
+      this.tryStartProviderNpcBeat({
+        context,
+        entity: candidate.entity,
+        fallbackEvent: localEvent,
+        rule: eventRule,
+        nowMs: input.nowMs,
+        deliver: input.deliver,
+        deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
+        auditDeliveryEvents: (events) => [
+          this.activeThinkingAuditEvent(candidate.entity, player.id),
+          ...events,
+        ],
+      })
+    ) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
@@ -975,7 +1040,10 @@ export class AiActiveTriggerService {
         npcId: npc.id,
         playerId: player.id,
         relation: directorNpcMoveRelation(queued.directorState),
-        distance: queued.directorState.mood === 'haunted' || queued.directorState.mood === 'dread' ? 1.6 : 1.1,
+        distance:
+          queued.directorState.mood === 'haunted' || queued.directorState.mood === 'dread'
+            ? 1.6
+            : 1.1,
         durationSeconds: queued.directorState.proposal.intent === 'raiseCampCaution' ? 9 : 7,
         maxDistanceFromHome: npc.questIds.length > 0 || npc.vendorItems.length > 0 ? 3 : 6,
         maxPlayerDistance: CANDIDATE_RADIUS,
@@ -1047,18 +1115,29 @@ export class AiActiveTriggerService {
     }
 
     const scene = sceneFrameFor(input.sim, player.pos, { excludeEntityIds: [player.id] });
-    const context = this.contextFor(input.sim, player, candidate.entity, scene, input.rule, undefined, input.session.locale);
-    const routine = input.rule.category === 'livingRoutine'
-      ? routineAwarenessEvent(context, candidate.entity)
-      : null;
+    const context = this.contextFor(
+      input.sim,
+      player,
+      candidate.entity,
+      scene,
+      input.rule,
+      undefined,
+      input.session.locale,
+    );
+    const routine =
+      input.rule.category === 'livingRoutine'
+        ? routineAwarenessEvent(context, candidate.entity)
+        : null;
     if (routine) this.addNpcRoutineContext(context, routine.plan);
     const sceneEvent = sceneAwarenessEvent(context, candidate.entity);
-    const localEvent: AiSpeechEvent = routine?.event
-      ?? (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null)
-      ?? fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
-    const lineId = localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
-      ? localEvent.speech.lineId
-      : undefined;
+    const localEvent: AiSpeechEvent =
+      routine?.event ??
+      (sceneEvent?.type === 'aiSpeech' ? sceneEvent : null) ??
+      fallbackNpcAmbientEvent(context, candidate.entity, candidate.score);
+    const lineId =
+      localEvent.type === 'aiSpeech' && localEvent.speech.mode === 'lineId'
+        ? localEvent.speech.lineId
+        : undefined;
     const thinkingEvent: AiThinkingEvent = {
       type: 'aiThinking',
       speakerId: candidate.entity.id,
@@ -1074,8 +1153,14 @@ export class AiActiveTriggerService {
       this.metrics.activeRoutineFired++;
       this.metrics.activeRoutineLastKind = routine.kind;
     }
-    this.playerCooldownUntilMs.set(player.id, input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000);
-    this.entityCooldownUntilMs.set(candidate.entity.id, input.nowMs + input.rule.cooldown.perEntitySeconds * 1000);
+    this.playerCooldownUntilMs.set(
+      player.id,
+      input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000,
+    );
+    this.entityCooldownUntilMs.set(
+      candidate.entity.id,
+      input.nowMs + input.rule.cooldown.perEntitySeconds * 1000,
+    );
     this.pushDecision({
       ruleId: input.rule.ruleId,
       playerEntityId: player.id,
@@ -1085,17 +1170,23 @@ export class AiActiveTriggerService {
       lineId,
       createdAtMs: input.nowMs,
     });
-    if (routine) this.tryApplyNpcRoutineAction(candidate.entity, player, routine.plan, input.applyNpcAction);
-    if (this.tryStartProviderNpcBeat({
-      context,
-      entity: candidate.entity,
-      fallbackEvent: localEvent,
-      rule: input.rule,
-      nowMs: input.nowMs,
-      deliver: input.deliver,
-      deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
-      auditDeliveryEvents: (events) => [this.activeThinkingAuditEvent(candidate.entity, player.id), ...events],
-    })) {
+    if (routine)
+      this.tryApplyNpcRoutineAction(candidate.entity, player, routine.plan, input.applyNpcAction);
+    if (
+      this.tryStartProviderNpcBeat({
+        context,
+        entity: candidate.entity,
+        fallbackEvent: localEvent,
+        rule: input.rule,
+        nowMs: input.nowMs,
+        deliver: input.deliver,
+        deferProvider: this.shouldDeferProviderForRecentActivity(input.session, input.nowMs),
+        auditDeliveryEvents: (events) => [
+          this.activeThinkingAuditEvent(candidate.entity, player.id),
+          ...events,
+        ],
+      })
+    ) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
     return { events: [thinkingEvent, localEvent], skipReason: 'not_due' };
@@ -1140,7 +1231,8 @@ export class AiActiveTriggerService {
       this.metrics.activeProviderDeferredForActivity++;
       return false;
     }
-    if (input.rule.providerPolicy === 'localOnly' || input.rule.outputMode === 'lineIdOnly') return false;
+    if (input.rule.providerPolicy === 'localOnly' || input.rule.outputMode === 'lineIdOnly')
+      return false;
     if (!this.providerBudgetAvailable(input.rule, input.nowMs)) return false;
     const jobKey = `${input.rule.ruleId}:${input.context.player.entityId}:${input.entity.id}`;
     if (this.pendingProviderJobs.has(jobKey)) return false;
@@ -1149,11 +1241,10 @@ export class AiActiveTriggerService {
     this.metrics.activeProviderJobs++;
     this.noteCodexProviderCall(input.nowMs);
     const startedAt = Date.now();
-    void this.runProviderNpcBeat(provider, input, startedAt)
-      .finally(() => {
-        this.pendingProviderJobs.delete(jobKey);
-        this.metrics.activeProviderPending = this.pendingProviderJobs.size;
-      });
+    void this.runProviderNpcBeat(provider, input, startedAt).finally(() => {
+      this.pendingProviderJobs.delete(jobKey);
+      this.metrics.activeProviderPending = this.pendingProviderJobs.size;
+    });
     return true;
   }
 
@@ -1177,7 +1268,8 @@ export class AiActiveTriggerService {
         const normalized = normalizeActiveProviderOutput(providerOutput);
         const latencyMs = Math.max(0, Date.now() - startedAt);
         this.metrics.activeLastProviderLatencyMs = latencyMs;
-        if (normalized.providerTimings) this.metrics.activeLastProviderTimings = normalized.providerTimings;
+        if (normalized.providerTimings)
+          this.metrics.activeLastProviderTimings = normalized.providerTimings;
         const result = validateAiDecision({
           decision: normalized.decision,
           context,
@@ -1213,7 +1305,9 @@ export class AiActiveTriggerService {
 
         this.metrics.activeProviderFallbacks++;
         this.recordProviderResult('rejected', reason);
-        const deliveredEvents = input.auditDeliveryEvents?.([input.fallbackEvent]) ?? [input.fallbackEvent];
+        const deliveredEvents = input.auditDeliveryEvents?.([input.fallbackEvent]) ?? [
+          input.fallbackEvent,
+        ];
         this.recordProviderAudit({
           context,
           latencyMs,
@@ -1233,7 +1327,9 @@ export class AiActiveTriggerService {
         const providerError = providerErrorReason(error);
         this.metrics.activeLastProviderLatencyMs = latencyMs;
         this.recordProviderResult('error', providerError);
-        const deliveredEvents = input.auditDeliveryEvents?.([input.fallbackEvent]) ?? [input.fallbackEvent];
+        const deliveredEvents = input.auditDeliveryEvents?.([input.fallbackEvent]) ?? [
+          input.fallbackEvent,
+        ];
         this.recordProviderAudit({
           context,
           latencyMs,
@@ -1259,9 +1355,12 @@ export class AiActiveTriggerService {
     applyAction?: AiActiveWorldActionBridge;
     applyNpcAction?: AiActiveNpcActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
-    const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
-    const sequence = this.buildNpcSocialSequence(input.sim, input.player, scene, input.nowMs)
-      ?? this.buildCreatureSocialSequence(input.sim, input.player, scene, input.nowMs);
+    const scene = sceneFrameFor(input.sim, input.player.pos, {
+      excludeEntityIds: [input.player.id],
+    });
+    const sequence =
+      this.buildNpcSocialSequence(input.sim, input.player, scene, input.nowMs) ??
+      this.buildCreatureSocialSequence(input.sim, input.player, scene, input.nowMs);
     if (!sequence) return { events: [], skipReason: 'no_candidate' };
 
     this.metrics.activePollFired++;
@@ -1269,9 +1368,15 @@ export class AiActiveTriggerService {
     this.metrics.activeLocalReactions += sequence.lineIds.length;
     this.metrics.activeSequenceFired++;
     this.metrics.activeSequenceLastLength = sequence.lineIds.length;
-    this.playerCooldownUntilMs.set(input.player.id, input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000);
+    this.playerCooldownUntilMs.set(
+      input.player.id,
+      input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000,
+    );
     for (const speaker of sequence.speakers) {
-      this.entityCooldownUntilMs.set(speaker.id, input.nowMs + input.rule.cooldown.perEntitySeconds * 1000);
+      this.entityCooldownUntilMs.set(
+        speaker.id,
+        input.nowMs + input.rule.cooldown.perEntitySeconds * 1000,
+      );
     }
     this.pushDecision({
       ruleId: input.rule.ruleId,
@@ -1282,18 +1387,25 @@ export class AiActiveTriggerService {
       lineId: sequence.lineIds[0],
       createdAtMs: input.nowMs,
     });
-    this.tryApplySocialSequenceActions(input.player, sequence, input.applyNpcAction, input.applyAction);
-    if (this.tryStartProviderSocialSequence({
-      sim: input.sim,
-      player: input.player,
-      scene,
+    this.tryApplySocialSequenceActions(
+      input.player,
       sequence,
-      rule: input.rule,
-      nowMs: input.nowMs,
-      locale: input.locale,
-      deliver: input.deliver,
-      deferProvider: input.deferProvider,
-    })) {
+      input.applyNpcAction,
+      input.applyAction,
+    );
+    if (
+      this.tryStartProviderSocialSequence({
+        sim: input.sim,
+        player: input.player,
+        scene,
+        sequence,
+        rule: input.rule,
+        nowMs: input.nowMs,
+        locale: input.locale,
+        deliver: input.deliver,
+        deferProvider: input.deferProvider,
+      })
+    ) {
       const firstThinking = sequence.events[0];
       return { events: firstThinking ? [firstThinking] : [], skipReason: 'not_due' };
     }
@@ -1361,12 +1473,20 @@ export class AiActiveTriggerService {
       nowMs: input.nowMs,
       deferProvider: input.deferProvider,
       auditDeliveryEvents: (firstBeatEvents) => {
-        const providerSequence = this.providerSocialSequenceEvents(input.sequence, firstBeatEvents, input.player.id);
+        const providerSequence = this.providerSocialSequenceEvents(
+          input.sequence,
+          firstBeatEvents,
+          input.player.id,
+        );
         const plannedEvents = providerSequence?.events ?? [...firstBeatEvents, ...continuation];
         return [this.activeThinkingAuditEvent(firstSpeaker, input.player.id), ...plannedEvents];
       },
       deliver: (pid, firstBeatEvents) => {
-        const providerSequence = this.providerSocialSequenceEvents(input.sequence, firstBeatEvents, pid);
+        const providerSequence = this.providerSocialSequenceEvents(
+          input.sequence,
+          firstBeatEvents,
+          pid,
+        );
         if (providerSequence) {
           const immediate = this.schedulePacedSequence({
             sequenceId,
@@ -1424,14 +1544,17 @@ export class AiActiveTriggerService {
     pid: number,
   ): { events: SimEvent[]; lineIds: string[] } | null {
     const providerSpeeches = providerEvents
-      .filter((event): event is AiSpeechEvent =>
-        event.type === 'aiSpeech'
-        && event.source === 'codex'
-        && event.speech.mode === 'dynamicText',
+      .filter(
+        (event): event is AiSpeechEvent =>
+          event.type === 'aiSpeech' &&
+          event.source === 'codex' &&
+          event.speech.mode === 'dynamicText',
       )
       .slice(0, sequence.speakers.length);
     if (providerSpeeches.length < 2) return null;
-    const localSpeeches = sequence.events.filter((event): event is AiSpeechEvent => event.type === 'aiSpeech');
+    const localSpeeches = sequence.events.filter(
+      (event): event is AiSpeechEvent => event.type === 'aiSpeech',
+    );
     const events: SimEvent[] = [];
     const lineIds: string[] = [];
     for (let i = 0; i < providerSpeeches.length; i++) {
@@ -1463,7 +1586,8 @@ export class AiActiveTriggerService {
     const fallbackTailEvents = sequence.events.slice(providerSpeeches.length * 2);
     for (const event of fallbackTailEvents) {
       events.push(event);
-      if (event.type === 'aiSpeech' && event.speech.mode === 'lineId') lineIds.push(event.speech.lineId);
+      if (event.type === 'aiSpeech' && event.speech.mode === 'lineId')
+        lineIds.push(event.speech.lineId);
     }
     const speechCount = events.filter((event) => event.type === 'aiSpeech').length;
     return speechCount >= 2 ? { events, lineIds } : null;
@@ -1480,8 +1604,9 @@ export class AiActiveTriggerService {
       if (!applyAction) return;
       for (let i = 0; i < Math.min(2, sequence.speakers.length); i++) {
         const speaker = sequence.speakers[i];
-        const event = sequence.events.find((candidate): candidate is AiSpeechEvent =>
-          candidate.type === 'aiSpeech' && candidate.speakerId === speaker.id,
+        const event = sequence.events.find(
+          (candidate): candidate is AiSpeechEvent =>
+            candidate.type === 'aiSpeech' && candidate.speakerId === speaker.id,
         );
         if (!event) continue;
         const intent = activeMobActionIntentForRoutine({
@@ -1549,11 +1674,13 @@ export class AiActiveTriggerService {
       speakerNames: [...input.speakerNames],
       speakerTemplateIds: [...input.speakerTemplateIds],
       ...(input.sceneId ? { sceneId: input.sceneId } : {}),
-      ...(input.focusObject ? {
-        focusObjectId: input.focusObject.objectId,
-        focusObjectTemplateId: input.focusObject.templateId,
-        focusDisplayName: input.focusObject.displayName,
-      } : {}),
+      ...(input.focusObject
+        ? {
+            focusObjectId: input.focusObject.objectId,
+            focusObjectTemplateId: input.focusObject.templateId,
+            focusDisplayName: input.focusObject.displayName,
+          }
+        : {}),
       lineIds: [...input.lineIds],
       startedAtMs: input.startedAtMs,
       nextBeatAtMs: input.startedAtMs + delayMs,
@@ -1594,22 +1721,25 @@ export class AiActiveTriggerService {
     deliveredEvents: readonly SimEvent[];
   }): void {
     if (!this.auditSink) return;
-    const promptText = input.promptText
-      ?? (this.auditProviderSource === 'codex' ? buildCodexDecisionPrompt(input.context) : undefined);
-    this.recordAudit(createProviderAuditRecord({
-      auditId: `${input.context.jobId}-${input.providerError ? 'provider-error' : input.result?.ok ? 'accepted' : 'rejected'}-${++this.auditSequence}`,
-      realm: REALM,
-      context: input.context,
-      providerSource: this.auditProviderSource,
-      latencyMs: input.latencyMs,
-      decision: input.decision,
-      result: input.result,
-      providerError: input.providerError,
-      promptText,
-      rawOutput: input.rawOutput,
-      providerTimings: input.providerTimings,
-      deliveredEvents: input.deliveredEvents,
-    }));
+    const promptText =
+      input.promptText ??
+      (this.auditProviderSource === 'codex' ? buildCodexDecisionPrompt(input.context) : undefined);
+    this.recordAudit(
+      createProviderAuditRecord({
+        auditId: `${input.context.jobId}-${input.providerError ? 'provider-error' : input.result?.ok ? 'accepted' : 'rejected'}-${++this.auditSequence}`,
+        realm: REALM,
+        context: input.context,
+        providerSource: this.auditProviderSource,
+        latencyMs: input.latencyMs,
+        decision: input.decision,
+        result: input.result,
+        providerError: input.providerError,
+        promptText,
+        rawOutput: input.rawOutput,
+        providerTimings: input.providerTimings,
+        deliveredEvents: input.deliveredEvents,
+      }),
+    );
   }
 
   private recordAudit(record: Parameters<AiAuditSink['record']>[0]): void {
@@ -1674,7 +1804,9 @@ export class AiActiveTriggerService {
     deferProvider?: boolean;
     applyAction?: AiActiveWorldActionBridge;
   }): { events: SimEvent[]; skipReason: AiActiveSkipReason } {
-    const scene = sceneFrameFor(input.sim, input.player.pos, { excludeEntityIds: [input.player.id] });
+    const scene = sceneFrameFor(input.sim, input.player.pos, {
+      excludeEntityIds: [input.player.id],
+    });
     const result = this.bestCreatureRoutineEvent(input.sim, input.player, scene, input.nowMs);
     if (!result) return { events: [], skipReason: 'no_candidate' };
     if ((this.entityCooldownUntilMs.get(result.entity.id) ?? 0) > input.nowMs) {
@@ -1695,8 +1827,14 @@ export class AiActiveTriggerService {
     this.metrics.activeLocalReactions++;
     this.metrics.activeRoutineFired++;
     this.metrics.activeRoutineLastKind = result.routineKind;
-    this.playerCooldownUntilMs.set(input.player.id, input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000);
-    this.entityCooldownUntilMs.set(result.entity.id, input.nowMs + input.rule.cooldown.perEntitySeconds * 1000);
+    this.playerCooldownUntilMs.set(
+      input.player.id,
+      input.nowMs + input.rule.cooldown.perPlayerSeconds * 1000,
+    );
+    this.entityCooldownUntilMs.set(
+      result.entity.id,
+      input.nowMs + input.rule.cooldown.perEntitySeconds * 1000,
+    );
     this.pushDecision({
       ruleId: input.rule.ruleId,
       playerEntityId: input.player.id,
@@ -1707,18 +1845,30 @@ export class AiActiveTriggerService {
       createdAtMs: input.nowMs,
     });
     this.tryApplyCreatureRoutineAction(result, input.player, input.applyAction);
-    const context = this.contextForCreature(input.sim, input.player, result.entity, scene, input.rule, input.locale);
+    const context = this.contextForCreature(
+      input.sim,
+      input.player,
+      result.entity,
+      scene,
+      input.rule,
+      input.locale,
+    );
     this.addCreatureRoutineContext(context, result);
-    if (this.tryStartProviderNpcBeat({
-      context,
-      entity: result.entity,
-      fallbackEvent: result.event,
-      rule: input.rule,
-      nowMs: input.nowMs,
-      deliver: input.deliver,
-      deferProvider: input.deferProvider,
-      auditDeliveryEvents: (events) => [this.activeThinkingAuditEvent(result.entity, input.player.id), ...events],
-    })) {
+    if (
+      this.tryStartProviderNpcBeat({
+        context,
+        entity: result.entity,
+        fallbackEvent: result.event,
+        rule: input.rule,
+        nowMs: input.nowMs,
+        deliver: input.deliver,
+        deferProvider: input.deferProvider,
+        auditDeliveryEvents: (events) => [
+          this.activeThinkingAuditEvent(result.entity, input.player.id),
+          ...events,
+        ],
+      })
+    ) {
       return { events: [thinkingEvent], skipReason: 'not_due' };
     }
     return { events: [thinkingEvent, result.event], skipReason: 'not_due' };
@@ -1750,7 +1900,7 @@ export class AiActiveTriggerService {
     this.metrics.activeActionsAttempted++;
     this.metrics.activeLastActionKind = kind;
     this.metrics.activeLastActionResult = result.ok ? 'applied' : 'rejected';
-    this.metrics.activeLastActionReason = result.ok ? '' : result.reason ?? 'unknown';
+    this.metrics.activeLastActionReason = result.ok ? '' : (result.reason ?? 'unknown');
     if (result.ok) {
       this.metrics.activeActionsApplied++;
       if (kind.startsWith('mob:')) this.metrics.activeMobActionsApplied++;
@@ -1774,10 +1924,13 @@ export class AiActiveTriggerService {
     const companion = this.bestCompanionRoutineEvent(sim, player, scene, nowMs);
     if (companion) return companion;
 
-    const candidates = nearbyFamilySceneCandidates(scene, sim.entities.values(), player)
-      .filter((entity) => (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs);
+    const candidates = nearbyFamilySceneCandidates(scene, sim.entities.values(), player).filter(
+      (entity) => (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs,
+    );
     this.metrics.activeCandidatesScanned += candidates.length;
-    const reaction = chooseActiveCreatureRoutineReaction(rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed }));
+    const reaction = chooseActiveCreatureRoutineReaction(
+      rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed }),
+    );
     if (!reaction) return null;
     const event = singularityActiveRoutineEvent({
       baseEvent: familySceneReactionEvent(reaction, scene, player.id) as AiSpeechEvent,
@@ -1801,15 +1954,20 @@ export class AiActiveTriggerService {
   ): CreatureRoutineResult | null {
     const ownCompanion = scene.companions.find((companion) => {
       const entity = sim.entities.get(companion.entityId);
-      return entity?.kind === 'mob'
-        && entity.ownerId === player.id
-        && (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs;
+      return (
+        entity?.kind === 'mob' &&
+        entity.ownerId === player.id &&
+        (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs
+      );
     });
     if (!ownCompanion) return null;
     this.metrics.activeCandidatesScanned++;
     const entity = sim.entities.get(ownCompanion.entityId);
     if (!entity) return null;
-    const [event] = companionReactionEventsForScene({ ...scene, companions: [ownCompanion] }, player.id);
+    const [event] = companionReactionEventsForScene(
+      { ...scene, companions: [ownCompanion] },
+      player.id,
+    );
     if (!event || event.type !== 'aiSpeech') return null;
     return {
       entity,
@@ -1820,7 +1978,9 @@ export class AiActiveTriggerService {
 
   private bestNpcCandidate(sim: Sim, origin: Entity['pos'], nowMs: number): Candidate | null {
     const candidates = this.npcCandidates(sim, origin, nowMs);
-    candidates.sort((a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id);
+    candidates.sort(
+      (a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id,
+    );
     return candidates[0] ?? null;
   }
 
@@ -1844,18 +2004,25 @@ export class AiActiveTriggerService {
     scene: ReturnType<typeof sceneFrameFor>,
     nowMs: number,
   ): SocialSequenceResult | null {
-    const candidates = this.npcCandidates(sim, player.pos, nowMs)
-      .sort((a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id);
+    const candidates = this.npcCandidates(sim, player.pos, nowMs).sort(
+      (a, b) => b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id,
+    );
     const preliminaryFocus = socialSequenceFocusObject(
       scene,
       candidates.slice(0, 3).map((candidate) => candidate.entity),
     );
     const focusSpeaker = preliminaryFocus
       ? [...candidates].sort((a, b) => {
-        const relevanceDelta = socialSequenceObjectScoreForSpeaker(preliminaryFocus, b.entity)
-          - socialSequenceObjectScoreForSpeaker(preliminaryFocus, a.entity);
-        return relevanceDelta || b.score - a.score || a.distance - b.distance || a.entity.id - b.entity.id;
-      })[0]
+          const relevanceDelta =
+            socialSequenceObjectScoreForSpeaker(preliminaryFocus, b.entity) -
+            socialSequenceObjectScoreForSpeaker(preliminaryFocus, a.entity);
+          return (
+            relevanceDelta ||
+            b.score - a.score ||
+            a.distance - b.distance ||
+            a.entity.id - b.entity.id
+          );
+        })[0]
       : undefined;
     const speakers = [
       ...(focusSpeaker ? [focusSpeaker] : []),
@@ -1880,15 +2047,17 @@ export class AiActiveTriggerService {
         durationMs,
         pid: player.id,
       });
-      events.push(socialSequenceLine({
-        scene,
-        speaker,
-        partner,
-        player,
-        ...(focusObject ? { focusObject } : {}),
-        lineId: usedLineIds[i],
-        step: i,
-      }));
+      events.push(
+        socialSequenceLine({
+          scene,
+          speaker,
+          partner,
+          player,
+          ...(focusObject ? { focusObject } : {}),
+          lineId: usedLineIds[i],
+          step: i,
+        }),
+      );
     }
     return {
       kind: 'npc',
@@ -1906,8 +2075,9 @@ export class AiActiveTriggerService {
     scene: ReturnType<typeof sceneFrameFor>,
     nowMs: number,
   ): SocialSequenceResult | null {
-    const candidates = nearbyFamilySceneCandidates(scene, sim.entities.values(), player)
-      .filter((entity) => (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs);
+    const candidates = nearbyFamilySceneCandidates(scene, sim.entities.values(), player).filter(
+      (entity) => (this.entityCooldownUntilMs.get(entity.id) ?? 0) <= nowMs,
+    );
     this.metrics.activeCandidatesScanned += candidates.length;
     const reactions = rankFamilySceneReactions(scene, candidates, { worldSeed: sim.cfg.seed });
     const group = bestCreatureSequenceGroup(reactions);
@@ -2042,12 +2212,14 @@ export class AiActiveTriggerService {
         `creature:${creature.templateId}`,
         ...(familySemantics ? [`family:${familySemantics.family}`] : []),
         `individualTier:${individual.tier}`,
-        ...(individual.tier === 'none' ? [] : [
-          `individualScore:${individual.score}`,
-          `individualIntensity:${Math.round(individual.intensity * 100) / 100}`,
-          `individualMemorySeed:${individual.memorySeed}`,
-          ...individual.traits.map((trait) => `individualTrait:${trait}`),
-        ]),
+        ...(individual.tier === 'none'
+          ? []
+          : [
+              `individualScore:${individual.score}`,
+              `individualIntensity:${Math.round(individual.intensity * 100) / 100}`,
+              `individualMemorySeed:${individual.memorySeed}`,
+              ...individual.traits.map((trait) => `individualTrait:${trait}`),
+            ]),
         `time:${scene.time.phase}`,
         `weather:${scene.weather.kind}`,
         `scene:${scene.subsceneId ?? scene.zoneId}`,
@@ -2062,12 +2234,14 @@ export class AiActiveTriggerService {
     context.recentObservations.push(
       `routine:${plan.kind}`,
       `routineLineId:${plan.lineId}`,
-      ...(plan.focusObject ? [
-        `focusObject:${plan.focusObject.objectId}`,
-        `focusTemplate:${plan.focusObject.templateId}`,
-        ...plan.focusObject.tags.slice(0, 3).map((tag) => `focusTag:${tag}`),
-        ...plan.focusObject.affordanceTags.slice(0, 2).map((tag) => `focusAffordance:${tag}`),
-      ] : []),
+      ...(plan.focusObject
+        ? [
+            `focusObject:${plan.focusObject.objectId}`,
+            `focusTemplate:${plan.focusObject.templateId}`,
+            ...plan.focusObject.tags.slice(0, 3).map((tag) => `focusTag:${tag}`),
+            ...plan.focusObject.affordanceTags.slice(0, 2).map((tag) => `focusAffordance:${tag}`),
+          ]
+        : []),
     );
   }
 
@@ -2075,11 +2249,13 @@ export class AiActiveTriggerService {
     const reaction = result.event.reaction;
     context.recentObservations.push(
       `creatureRoutine:${result.routineKind}`,
-      ...(reaction ? [
-        `reaction:${reaction.kind}`,
-        ...(reaction.planKind ? [`planKind:${reaction.planKind}`] : []),
-        ...(reaction.sceneTags ?? []).slice(0, 4).map((tag) => `sceneTag:${tag}`),
-      ] : []),
+      ...(reaction
+        ? [
+            `reaction:${reaction.kind}`,
+            ...(reaction.planKind ? [`planKind:${reaction.planKind}`] : []),
+            ...(reaction.sceneTags ?? []).slice(0, 4).map((tag) => `sceneTag:${tag}`),
+          ]
+        : []),
     );
   }
 
@@ -2091,18 +2267,22 @@ export class AiActiveTriggerService {
       ...(event.subjectTemplateId ? [`eventSubject:${event.subjectTemplateId}`] : []),
       ...(event.outcome ? [`eventOutcome:${event.outcome}`] : []),
       ...(event.phase ? [`eventPhase:${event.phase}`] : []),
-      ...(event.directorState ? [
-        `directorMood:${event.directorState.mood}`,
-        `directorIntent:${event.directorState.proposal.intent}`,
-        `directorSubject:${event.directorState.subjectKind}`,
-      ] : []),
+      ...(event.directorState
+        ? [
+            `directorMood:${event.directorState.mood}`,
+            `directorIntent:${event.directorState.proposal.intent}`,
+            `directorSubject:${event.directorState.subjectKind}`,
+          ]
+        : []),
     );
     if (event.directorState) {
-      context.directorProposals = [{
-        ...event.directorState.proposal,
-        reasonTags: [...event.directorState.proposal.reasonTags],
-        safetyNotes: [...event.directorState.proposal.safetyNotes],
-      }];
+      context.directorProposals = [
+        {
+          ...event.directorState.proposal,
+          reasonTags: [...event.directorState.proposal.reasonTags],
+          safetyNotes: [...event.directorState.proposal.safetyNotes],
+        },
+      ];
     }
   }
 
@@ -2115,9 +2295,10 @@ export class AiActiveTriggerService {
     rule: AiActivePollRuleV1,
     locale = 'en',
   ): AiJobContextV1 {
-    const context = sequence.kind === 'creature'
-      ? this.contextForCreature(sim, player, speaker, scene, rule, locale)
-      : this.contextFor(sim, player, speaker, scene, rule, undefined, locale);
+    const context =
+      sequence.kind === 'creature'
+        ? this.contextForCreature(sim, player, speaker, scene, rule, locale)
+        : this.contextFor(sim, player, speaker, scene, rule, undefined, locale);
     const partner = sequence.speakers.find((candidate) => candidate.id !== speaker.id);
     context.sequenceParticipants = sequence.speakers.map((participant, index) => ({
       slot: index,
@@ -2131,12 +2312,16 @@ export class AiActiveTriggerService {
       `sequenceKind:${sequence.kind}`,
       ...(sequence.family ? [`sequenceFamily:${sequence.family}`] : []),
       ...(partner ? [`partner:${partner.templateId}`, `partnerName:${partner.name}`] : []),
-      ...(sequence.focusObject ? [
-        `focusObject:${sequence.focusObject.objectId}`,
-        `focusTemplate:${sequence.focusObject.templateId}`,
-        ...sequence.focusObject.tags.slice(0, 3).map((tag) => `focusTag:${tag}`),
-        ...sequence.focusObject.affordanceTags.slice(0, 2).map((tag) => `focusAffordance:${tag}`),
-      ] : []),
+      ...(sequence.focusObject
+        ? [
+            `focusObject:${sequence.focusObject.objectId}`,
+            `focusTemplate:${sequence.focusObject.templateId}`,
+            ...sequence.focusObject.tags.slice(0, 3).map((tag) => `focusTag:${tag}`),
+            ...sequence.focusObject.affordanceTags
+              .slice(0, 2)
+              .map((tag) => `focusAffordance:${tag}`),
+          ]
+        : []),
     );
     return context;
   }
@@ -2159,13 +2344,26 @@ export class AiActiveTriggerService {
     return cursor;
   }
 
-  private scheduleNext(rule: AiActivePollRuleV1, cursor: AiActivePollCursorState, nowMs: number): void {
+  private scheduleNext(
+    rule: AiActivePollRuleV1,
+    cursor: AiActivePollCursorState,
+    nowMs: number,
+  ): void {
     cursor.fireCount++;
-    const jitterMs = stableJitterMs(rule.ruleId, cursor.scopeKey, cursor.fireCount, rule.jitterSeconds);
+    const jitterMs = stableJitterMs(
+      rule.ruleId,
+      cursor.scopeKey,
+      cursor.fireCount,
+      rule.jitterSeconds,
+    );
     cursor.nextDueAtMs = nowMs + rule.periodSeconds * 1000 + jitterMs;
   }
 
-  private recordSkip(ruleId: string, reason: AiActiveSkipReason, source: 'poll' | 'event' = 'poll'): void {
+  private recordSkip(
+    ruleId: string,
+    reason: AiActiveSkipReason,
+    source: 'poll' | 'event' = 'poll',
+  ): void {
     if (source === 'event') this.metrics.activeEventSkipped++;
     else this.metrics.activePollSkipped++;
     this.metrics.activeLastRuleId = ruleId;
@@ -2174,7 +2372,8 @@ export class AiActiveTriggerService {
 
   private pushDecision(decision: AiActiveTriggerDecisionSnapshot): void {
     this.recentDecisions.unshift(decision);
-    if (this.recentDecisions.length > this.maxRecentDecisions) this.recentDecisions.length = this.maxRecentDecisions;
+    if (this.recentDecisions.length > this.maxRecentDecisions)
+      this.recentDecisions.length = this.maxRecentDecisions;
     this.metrics.activeLastRuleId = decision.ruleId;
     this.metrics.activeLastSkipReason = '';
   }
@@ -2187,16 +2386,25 @@ export class AiActiveTriggerService {
     const ordered = [...sessions].sort((a, b) => a.pid - b.pid);
     const start = this.schedulerCursor % ordered.length;
     const selected: AiActiveTriggerSessionLike[] = [];
-    for (let offset = 0; offset < ordered.length && selected.length < policy.maxPollSessionsPerTick; offset++) {
+    for (
+      let offset = 0;
+      offset < ordered.length && selected.length < policy.maxPollSessionsPerTick;
+      offset++
+    ) {
       selected.push(ordered[(start + offset) % ordered.length]);
     }
     this.schedulerCursor = (start + policy.maxPollSessionsPerTick) % ordered.length;
     return selected;
   }
 
-  private shouldDeferProviderForRecentActivity(session: AiActiveTriggerSessionLike, nowMs: number): boolean {
-    return session.lastActivityAt !== undefined
-      && nowMs - session.lastActivityAt < ACTIVE_PROVIDER_IDLE_GRACE_MS;
+  private shouldDeferProviderForRecentActivity(
+    session: AiActiveTriggerSessionLike,
+    nowMs: number,
+  ): boolean {
+    return (
+      session.lastActivityAt !== undefined &&
+      nowMs - session.lastActivityAt < ACTIVE_PROVIDER_IDLE_GRACE_MS
+    );
   }
 
   private codexAllowedForRule(rule: AiActivePollRuleV1, nowMs: number): boolean {
@@ -2211,9 +2419,11 @@ export class AiActiveTriggerService {
   private providerBudgetAvailable(rule: AiActivePollRuleV1, nowMs: number): boolean {
     if (rule.providerPolicy === 'localOnly') return false;
     const budget = this.codexBudgetSnapshot(nowMs);
-    return budget.remainingCalls5h > 0
-      && budget.remainingCallsWeek > 0
-      && this.populationPolicy?.codexAdmission !== 'localOnly';
+    return (
+      budget.remainingCalls5h > 0 &&
+      budget.remainingCallsWeek > 0 &&
+      this.populationPolicy?.codexAdmission !== 'localOnly'
+    );
   }
 
   private tryReserveProviderRepair(rule: AiActivePollRuleV1, nowMs: number): boolean {
@@ -2234,7 +2444,9 @@ export class AiActiveTriggerService {
 
   private codexBudgetSnapshot(nowMs: number): AiActiveCodexBudgetSnapshot {
     this.pruneCodexProviderCalls(nowMs);
-    const usedCalls5h = this.codexProviderCallTimesMs.filter((atMs) => nowMs - atMs <= CODEX_WINDOW_5H_MS).length;
+    const usedCalls5h = this.codexProviderCallTimesMs.filter(
+      (atMs) => nowMs - atMs <= CODEX_WINDOW_5H_MS,
+    ).length;
     const usedCallsWeek = this.codexProviderCallTimesMs.length;
     const maxCalls5h = Math.floor(this.codexMaxCalls5h * (1 - this.codexReserveRatio));
     const maxCallsWeek = Math.floor(this.codexMaxCallsWeek * (1 - this.codexReserveRatio));
@@ -2298,7 +2510,8 @@ export class AiActiveTriggerService {
   private nextQueuedEventAtMs(): number {
     let nextAttemptAtMs = 0;
     for (const event of this.eventQueue) {
-      if (nextAttemptAtMs === 0 || event.nextAttemptAtMs < nextAttemptAtMs) nextAttemptAtMs = event.nextAttemptAtMs;
+      if (nextAttemptAtMs === 0 || event.nextAttemptAtMs < nextAttemptAtMs)
+        nextAttemptAtMs = event.nextAttemptAtMs;
     }
     return nextAttemptAtMs;
   }
@@ -2306,12 +2519,17 @@ export class AiActiveTriggerService {
   private oldestQueuedEventAgeMs(nowMs: number): number {
     let oldestCreatedAtMs = 0;
     for (const event of this.eventQueue) {
-      if (oldestCreatedAtMs === 0 || event.createdAtMs < oldestCreatedAtMs) oldestCreatedAtMs = event.createdAtMs;
+      if (oldestCreatedAtMs === 0 || event.createdAtMs < oldestCreatedAtMs)
+        oldestCreatedAtMs = event.createdAtMs;
     }
     return oldestCreatedAtMs > 0 ? Math.max(0, nowMs - oldestCreatedAtMs) : 0;
   }
 
-  private queuedEventFromSimEvent(sim: Sim, event: SimEvent, nowMs: number): AiActiveQueuedEventState | null {
+  private queuedEventFromSimEvent(
+    sim: Sim,
+    event: SimEvent,
+    nowMs: number,
+  ): AiActiveQueuedEventState | null {
     if (event.type === 'questDone' && event.pid !== undefined) {
       return {
         eventId: this.nextEventId('quest'),
@@ -2330,13 +2548,21 @@ export class AiActiveTriggerService {
     }
     if (event.type === 'death') {
       const dead = sim.entities.get(event.entityId);
-      const sourcePlayerId = this.sourcePlayerIdForEntity(sim, event.killerId)
-        ?? (dead?.kind === 'mob' ? dead.tappedById : null);
+      const sourcePlayerId =
+        this.sourcePlayerIdForEntity(sim, event.killerId) ??
+        (dead?.kind === 'mob' ? dead.tappedById : null);
       if (!dead || sourcePlayerId === null) return null;
       const mob = dead.kind === 'mob' ? MOBS[dead.templateId] : undefined;
       const killer = sim.entities.get(event.killerId);
       const killerMob = killer?.kind === 'mob' ? MOBS[killer.templateId] : undefined;
-      const important = Boolean(mob?.boss || mob?.rare || mob?.elite || killerMob?.boss || killerMob?.rare || killerMob?.elite);
+      const important = Boolean(
+        mob?.boss ||
+          mob?.rare ||
+          mob?.elite ||
+          killerMob?.boss ||
+          killerMob?.rare ||
+          killerMob?.elite,
+      );
       if (!important) return null;
       const subject = dead.kind === 'player' && killer?.kind === 'mob' ? killer : dead;
       return {
@@ -2352,7 +2578,11 @@ export class AiActiveTriggerService {
         createdAtMs: nowMs,
         expiresAtMs: nowMs + this.eventTtlMs,
         nextAttemptAtMs: nowMs,
-        observations: ['event:death', `subject:${subject.templateId}`, `outcome:${dead.kind === 'player' ? 'wipe' : 'defeated'}`],
+        observations: [
+          'event:death',
+          `subject:${subject.templateId}`,
+          `outcome:${dead.kind === 'player' ? 'wipe' : 'defeated'}`,
+        ],
       };
     }
     if (event.type === 'damage' && event.kind === 'hit' && event.amount > 0) {
@@ -2378,7 +2608,12 @@ export class AiActiveTriggerService {
         createdAtMs: nowMs,
         expiresAtMs: nowMs + this.eventTtlMs,
         nextAttemptAtMs: nowMs,
-        observations: ['event:damage', `subject:${target.templateId}`, `phase:${phase}`, `amount:${event.amount}`],
+        observations: [
+          'event:damage',
+          `subject:${target.templateId}`,
+          `phase:${phase}`,
+          `amount:${event.amount}`,
+        ],
       };
     }
     return null;
@@ -2403,12 +2638,20 @@ export class AiActiveTriggerService {
       existing.expiresAtMs = Math.max(existing.expiresAtMs, event.expiresAtMs);
       existing.nextAttemptAtMs = Math.min(existing.nextAttemptAtMs, event.nextAttemptAtMs);
       if (event.directorState) existing.directorState = cloneDirectorState(event.directorState);
-      existing.observations = [...new Set([...existing.observations, ...event.observations])].slice(0, 10);
+      existing.observations = [...new Set([...existing.observations, ...event.observations])].slice(
+        0,
+        10,
+      );
       this.metrics.activeNoiseSuppressions++;
       return;
     }
     this.eventQueue.push(event);
-    this.eventQueue.sort((a, b) => b.priority - a.priority || a.createdAtMs - b.createdAtMs || a.eventId.localeCompare(b.eventId));
+    this.eventQueue.sort(
+      (a, b) =>
+        b.priority - a.priority ||
+        a.createdAtMs - b.createdAtMs ||
+        a.eventId.localeCompare(b.eventId),
+    );
     if (this.eventQueue.length > this.maxQueuedEvents) {
       this.eventQueue.length = this.maxQueuedEvents;
       this.metrics.activeEventExpired++;
@@ -2434,7 +2677,12 @@ function candidateScore(entity: Entity, distance: number): number {
   if (entity.questIds.length > 0) score += 0.35;
   if (entity.vendorItems.length > 0) score += 0.2;
   const npc = NPCS[entity.templateId];
-  if (npc && /(marshal|captain|warden|tidewatcher|loremaster|quartermaster|master|keeper)/i.test(`${npc.name} ${npc.title}`)) {
+  if (
+    npc &&
+    /(marshal|captain|warden|tidewatcher|loremaster|quartermaster|master|keeper)/i.test(
+      `${npc.name} ${npc.title}`,
+    )
+  ) {
     score += 0.25;
   }
   return score;
@@ -2449,15 +2697,19 @@ function eventSnapshot(event: AiActiveQueuedEventState): AiActiveQueuedEventSnap
     ...(event.anchorPos === undefined ? {} : { anchorPos: { ...event.anchorPos } }),
     ...(event.itemId === undefined ? {} : { itemId: event.itemId }),
     ...(event.questId === undefined ? {} : { questId: event.questId }),
-    ...(event.subjectTemplateId === undefined ? {} : { subjectTemplateId: event.subjectTemplateId }),
-    ...(event.directorState ? {
-      directorStateId: event.directorState.stateId,
-      directorMood: event.directorState.mood,
-      directorIntent: event.directorState.proposal.intent,
-      directorLineId: event.directorState.lineId,
-      sceneId: event.directorState.sceneId,
-      zoneId: event.directorState.zoneId,
-    } : {}),
+    ...(event.subjectTemplateId === undefined
+      ? {}
+      : { subjectTemplateId: event.subjectTemplateId }),
+    ...(event.directorState
+      ? {
+          directorStateId: event.directorState.stateId,
+          directorMood: event.directorState.mood,
+          directorIntent: event.directorState.proposal.intent,
+          directorLineId: event.directorState.lineId,
+          sceneId: event.directorState.sceneId,
+          zoneId: event.directorState.zoneId,
+        }
+      : {}),
     priority: event.priority,
     attempts: event.attempts,
     createdAtMs: event.createdAtMs,
@@ -2479,7 +2731,9 @@ function sequenceSnapshot(sequence: AiActiveSequenceState): AiActiveSequenceSnap
     speakerTemplateIds: [...sequence.speakerTemplateIds],
     ...(sequence.sceneId ? { sceneId: sequence.sceneId } : {}),
     ...(sequence.focusObjectId ? { focusObjectId: sequence.focusObjectId } : {}),
-    ...(sequence.focusObjectTemplateId ? { focusObjectTemplateId: sequence.focusObjectTemplateId } : {}),
+    ...(sequence.focusObjectTemplateId
+      ? { focusObjectTemplateId: sequence.focusObjectTemplateId }
+      : {}),
     ...(sequence.focusDisplayName ? { focusDisplayName: sequence.focusDisplayName } : {}),
     lineIds: [...sequence.lineIds],
     startedAtMs: sequence.startedAtMs,
@@ -2488,11 +2742,13 @@ function sequenceSnapshot(sequence: AiActiveSequenceState): AiActiveSequenceSnap
   };
 }
 
-function chooseActiveCreatureRoutineReaction(reactions: readonly FamilySceneReaction[]): FamilySceneReaction | null {
+function chooseActiveCreatureRoutineReaction(
+  reactions: readonly FamilySceneReaction[],
+): FamilySceneReaction | null {
   const [top] = reactions;
   if (!top) return null;
-  const singularity = reactions.find((reaction) =>
-    reaction.individual.tier === 'singularity' && reaction.score >= top.score - 0.18,
+  const singularity = reactions.find(
+    (reaction) => reaction.individual.tier === 'singularity' && reaction.score >= top.score - 0.18,
   );
   return singularity ?? top;
 }
@@ -2506,32 +2762,39 @@ function singularityActiveRoutineEvent(input: {
   if (input.reaction.individual.tier !== 'singularity') return input.baseEvent;
   const planKind = singularityActivePlanKind(input.reaction, input.scene);
   const sceneId = input.scene.subsceneId ?? input.scene.zoneId;
-  const baseValues = input.baseEvent.speech.mode === 'lineId' ? input.baseEvent.speech.values ?? {} : {};
+  const baseValues =
+    input.baseEvent.speech.mode === 'lineId' ? (input.baseEvent.speech.values ?? {}) : {};
   return {
     ...input.baseEvent,
-    speech: input.baseEvent.speech.mode === 'lineId'
-      ? {
-        ...input.baseEvent.speech,
-        lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
-        values: {
-          ...baseValues,
-          speakerName: input.reaction.entity.name,
-          speakerTemplateId: input.reaction.entity.templateId,
-          playerName: input.player.name,
-          sceneId,
-        },
-      }
-      : input.baseEvent.speech,
+    speech:
+      input.baseEvent.speech.mode === 'lineId'
+        ? {
+            ...input.baseEvent.speech,
+            lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+            values: {
+              ...baseValues,
+              speakerName: input.reaction.entity.name,
+              speakerTemplateId: input.reaction.entity.templateId,
+              playerName: input.player.name,
+              sceneId,
+            },
+          }
+        : input.baseEvent.speech,
     reaction: {
       kind: input.baseEvent.reaction?.kind ?? input.reaction.reaction,
       ...(input.baseEvent.reaction ?? {}),
       planKind,
-      planIntensity: Math.max(0.65, Math.round(Math.max(input.reaction.score, input.reaction.individual.intensity) * 100) / 100),
-      sceneTags: [...new Set([
-        `singularity:${planKind}`,
-        ...input.reaction.individual.traits.map((trait) => `trait:${trait}`),
-        ...(input.baseEvent.reaction?.sceneTags ?? []),
-      ])].slice(0, 8),
+      planIntensity: Math.max(
+        0.65,
+        Math.round(Math.max(input.reaction.score, input.reaction.individual.intensity) * 100) / 100,
+      ),
+      sceneTags: [
+        ...new Set([
+          `singularity:${planKind}`,
+          ...input.reaction.individual.traits.map((trait) => `trait:${trait}`),
+          ...(input.baseEvent.reaction?.sceneTags ?? []),
+        ]),
+      ].slice(0, 8),
       individualTier: 'singularity',
       individualTraits: input.reaction.individual.traits,
     },
@@ -2543,7 +2806,12 @@ function singularityActivePlanKind(
   scene: ReturnType<typeof sceneFrameFor>,
 ): SingularityActivePlanKind {
   const traits = reaction.individual.traits;
-  if (traits.includes('cowardly') && (reaction.reaction === 'avoid' || scene.danger.undeadPressure >= 0.2 || scene.danger.hostileDensity >= 0.35)) {
+  if (
+    traits.includes('cowardly') &&
+    (reaction.reaction === 'avoid' ||
+      scene.danger.undeadPressure >= 0.2 ||
+      scene.danger.hostileDensity >= 0.35)
+  ) {
     return 'avoidPlayer';
   }
   if (traits.includes('stargazer') && scene.light.tags.includes('starrySky')) return 'watchSky';
@@ -2605,9 +2873,10 @@ function eventAwarenessEvent(
     };
   }
   if (event.kind === 'entity_death' && event.subjectTemplateId) {
-    const lineId = event.outcome === 'wipe'
-      ? 'hudChrome.aiSpeech.bossMemoryWipe'
-      : 'hudChrome.aiSpeech.bossMemoryDefeated';
+    const lineId =
+      event.outcome === 'wipe'
+        ? 'hudChrome.aiSpeech.bossMemoryWipe'
+        : 'hudChrome.aiSpeech.bossMemoryDefeated';
     return {
       type: 'aiSpeech',
       speakerId: speaker.id,
@@ -2615,7 +2884,11 @@ function eventAwarenessEvent(
       speech: {
         mode: 'lineId',
         lineId,
-        values: { ...baseValues, bossTemplateId: event.subjectTemplateId, encounterOutcome: event.outcome ?? 'defeated' },
+        values: {
+          ...baseValues,
+          bossTemplateId: event.subjectTemplateId,
+          encounterOutcome: event.outcome ?? 'defeated',
+        },
       },
       source: 'local',
       reaction: {
@@ -2633,10 +2906,15 @@ function eventAwarenessEvent(
       speakerName: speaker.name,
       speech: {
         mode: 'lineId',
-        lineId: event.phase === 'desperate'
-          ? 'hudChrome.aiSpeech.bossPhaseDesperate'
-          : 'hudChrome.aiSpeech.bossPhaseBloodied',
-        values: { ...baseValues, bossTemplateId: event.subjectTemplateId, encounterPhase: event.phase },
+        lineId:
+          event.phase === 'desperate'
+            ? 'hudChrome.aiSpeech.bossPhaseDesperate'
+            : 'hudChrome.aiSpeech.bossPhaseBloodied',
+        values: {
+          ...baseValues,
+          bossTemplateId: event.subjectTemplateId,
+          encounterPhase: event.phase,
+        },
       },
       source: 'local',
       reaction: {
@@ -2648,7 +2926,12 @@ function eventAwarenessEvent(
     };
   }
   if (event.kind === 'world_director' && event.directorState) {
-    const directorEvent = worldDirectorEvent(context.scene ?? null, speaker, event.directorState, context.player.entityId);
+    const directorEvent = worldDirectorEvent(
+      context.scene ?? null,
+      speaker,
+      event.directorState,
+      context.player.entityId,
+    );
     if (!directorEvent || directorEvent.type !== 'aiSpeech') return null;
     const baseReaction = directorEvent.reaction;
     return {
@@ -2660,11 +2943,13 @@ function eventAwarenessEvent(
         planKind: event.directorState.proposal.intent,
         planIntensity: event.directorState.proposal.intensity,
         planExpiresAt: event.directorState.proposal.expiresAt,
-        sceneTags: [...new Set([
-          `proposal:${event.directorState.proposal.intent}`,
-          `directorState:${event.directorState.stateId}`,
-          ...(directorEvent.reaction?.sceneTags ?? []),
-        ])].slice(0, 8),
+        sceneTags: [
+          ...new Set([
+            `proposal:${event.directorState.proposal.intent}`,
+            `directorState:${event.directorState.stateId}`,
+            ...(directorEvent.reaction?.sceneTags ?? []),
+          ]),
+        ].slice(0, 8),
       },
     };
   }
@@ -2673,7 +2958,14 @@ function eventAwarenessEvent(
 
 function eventSceneTags(context: AiJobContextV1, extra: string): string[] {
   return context.scene
-    ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags, extra])].slice(0, 8)
+    ? [
+        ...new Set([
+          ...context.scene.locationTags,
+          ...context.scene.structureTags,
+          ...context.scene.environmentalTags,
+          extra,
+        ]),
+      ].slice(0, 8)
     : [extra];
 }
 
@@ -2681,12 +2973,16 @@ function addFallbackSpeechContext(context: AiJobContextV1, event: AiSpeechEvent)
   const tags = [
     ...(event.speech.mode === 'lineId' ? [`fallbackLineId:${event.speech.lineId}`] : []),
     `fallbackSource:${event.source}`,
-    ...(event.reaction ? [
-      `fallbackReaction:${event.reaction.kind}`,
-      ...(event.reaction.planKind ? [`fallbackPlanKind:${event.reaction.planKind}`] : []),
-      ...(event.reaction.targetItemId ? [`fallbackTargetItem:${event.reaction.targetItemId}`] : []),
-      ...(event.reaction.sceneTags ?? []).slice(0, 3).map((tag) => `fallbackSceneTag:${tag}`),
-    ] : []),
+    ...(event.reaction
+      ? [
+          `fallbackReaction:${event.reaction.kind}`,
+          ...(event.reaction.planKind ? [`fallbackPlanKind:${event.reaction.planKind}`] : []),
+          ...(event.reaction.targetItemId
+            ? [`fallbackTargetItem:${event.reaction.targetItemId}`]
+            : []),
+          ...(event.reaction.sceneTags ?? []).slice(0, 3).map((tag) => `fallbackSceneTag:${tag}`),
+        ]
+      : []),
   ];
   context.recentObservations.unshift(...tags);
 }
@@ -2740,28 +3036,39 @@ function worldTraceKindForItemId(itemId: string): ActiveWorldTraceKind {
   if (item.kind === 'food' || item.kind === 'drink') return 'food';
   if (item.kind === 'weapon' || item.kind === 'armor' || item.kind === 'tool') return 'valuable';
   if (item.kind === 'quest') return 'generic';
-  if (item.quality === 'rare' || item.quality === 'epic' || item.quality === 'uncommon') return 'valuable';
+  if (item.quality === 'rare' || item.quality === 'epic' || item.quality === 'uncommon')
+    return 'valuable';
   return 'generic';
 }
 
 function npcWorldTraceLineId(kind: ActiveWorldTraceKind): string {
   switch (kind) {
-    case 'singularity': return 'hudChrome.aiSpeech.worldTraceNpcSingularity';
-    case 'cursed': return 'hudChrome.aiSpeech.worldTraceNpcCursed';
-    case 'food': return 'hudChrome.aiSpeech.worldTraceNpcFood';
-    case 'valuable': return 'hudChrome.aiSpeech.worldTraceNpcValuable';
-    case 'generic': return 'hudChrome.aiSpeech.worldTraceNpcGeneric';
+    case 'singularity':
+      return 'hudChrome.aiSpeech.worldTraceNpcSingularity';
+    case 'cursed':
+      return 'hudChrome.aiSpeech.worldTraceNpcCursed';
+    case 'food':
+      return 'hudChrome.aiSpeech.worldTraceNpcFood';
+    case 'valuable':
+      return 'hudChrome.aiSpeech.worldTraceNpcValuable';
+    case 'generic':
+      return 'hudChrome.aiSpeech.worldTraceNpcGeneric';
   }
 }
 
 function itemEventPriority(itemId: string): number {
   const kind = worldTraceKindForItemId(itemId);
   switch (kind) {
-    case 'singularity': return 96;
-    case 'cursed': return 92;
-    case 'valuable': return 88;
-    case 'food': return 84;
-    case 'generic': return 72;
+    case 'singularity':
+      return 96;
+    case 'cursed':
+      return 92;
+    case 'valuable':
+      return 88;
+    case 'food':
+      return 84;
+    case 'generic':
+      return 72;
   }
 }
 
@@ -2816,16 +3123,23 @@ const NPC_ROUTINE_ACTIONS = {
   studying: { relation: 'sideStep', distance: 1.2, durationSeconds: 10 },
   watchingWater: { relation: 'sideStep', distance: 2.0, durationSeconds: 12 },
   herbalism: { relation: 'sideStep', distance: 1.5, durationSeconds: 10 },
-} satisfies Record<NpcRoutineKind, {
-  relation: NonNullable<AiActiveNpcActionRequest['relation']>;
-  distance: number;
-  durationSeconds: number;
-}>;
+} satisfies Record<
+  NpcRoutineKind,
+  {
+    relation: NonNullable<AiActiveNpcActionRequest['relation']>;
+    distance: number;
+    durationSeconds: number;
+  }
+>;
 
 function routineAwarenessEvent(
   context: AiJobContextV1,
   speaker: Entity,
-): { kind: NpcRoutineKind; plan: NpcRoutinePlan; event: Extract<SimEvent, { type: 'aiSpeech' }> } | null {
+): {
+  kind: NpcRoutineKind;
+  plan: NpcRoutinePlan;
+  event: Extract<SimEvent, { type: 'aiSpeech' }>;
+} | null {
   const scene = context.scene;
   if (!scene) return null;
   const profile = profileFor('npc', speaker.templateId);
@@ -2853,36 +3167,89 @@ function npcRoutinePlanFor(
   const role = npcRoutineRoleFor(speaker, profile.id);
   const sensitivity = profile.timeWeatherSensitivity;
   if (scene.weather.kind === 'rain') {
-    if (role === 'herbalist' || role === 'tidewatcher' || (sensitivity?.rainIrritation ?? 0.4) <= 0.15) {
-      return withRoutineFocus(scene, role, profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'rain')));
+    if (
+      role === 'herbalist' ||
+      role === 'tidewatcher' ||
+      (sensitivity?.rainIrritation ?? 0.4) <= 0.15
+    ) {
+      return withRoutineFocus(
+        scene,
+        role,
+        profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'rain')),
+      );
     }
-    return withRoutineFocus(scene, role, routinePlan('shelter', 'hudChrome.aiSpeech.sceneRainWeariness', 'avoid'));
+    return withRoutineFocus(
+      scene,
+      role,
+      routinePlan('shelter', 'hudChrome.aiSpeech.sceneRainWeariness', 'avoid'),
+    );
   }
   if (scene.light.tags.includes('starrySky')) {
     if ((sensitivity?.clearNightAwe ?? 0.35) >= 0.45) {
-      return withRoutineFocus(scene, role, profileRoutinePlan('hudChrome.aiSpeech.sceneClearNightAwe', routineKindForRole(role, 'stars')));
+      return withRoutineFocus(
+        scene,
+        role,
+        profileRoutinePlan(
+          'hudChrome.aiSpeech.sceneClearNightAwe',
+          routineKindForRole(role, 'stars'),
+        ),
+      );
     }
     if ((sensitivity?.nightFatigue ?? 0.4) >= 0.35) {
-      return withRoutineFocus(scene, role, routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid'));
+      return withRoutineFocus(
+        scene,
+        role,
+        routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid'),
+      );
     }
-    return withRoutineFocus(scene, role, routinePlan('watching', 'hudChrome.aiSpeech.sceneClearNightAwe', 'inspect'));
+    return withRoutineFocus(
+      scene,
+      role,
+      routinePlan('watching', 'hudChrome.aiSpeech.sceneClearNightAwe', 'inspect'),
+    );
   }
   if (scene.time.phase === 'night') {
-    if (role === 'priest' || role === 'commander' || role === 'scout' || role === 'tidewatcher' || role === 'scholar') {
-      return withRoutineFocus(scene, role, profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'night')));
+    if (
+      role === 'priest' ||
+      role === 'commander' ||
+      role === 'scout' ||
+      role === 'tidewatcher' ||
+      role === 'scholar'
+    ) {
+      return withRoutineFocus(
+        scene,
+        role,
+        profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'night')),
+      );
     }
-    return withRoutineFocus(scene, role, routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid'));
+    return withRoutineFocus(
+      scene,
+      role,
+      routinePlan('sleeping', 'hudChrome.aiSpeech.sceneNightFatigue', 'avoid'),
+    );
   }
   if (isMealHour(scene.time.hour) && scene.danger.safeHavenScore >= 0.45) {
-    return withRoutineFocus(scene, role, routinePlan('eating', 'hudChrome.aiSpeech.sceneDayEnergy', 'inspect'));
+    return withRoutineFocus(
+      scene,
+      role,
+      routinePlan('eating', 'hudChrome.aiSpeech.sceneDayEnergy', 'inspect'),
+    );
   }
   if (scene.time.phase === 'day' && scene.danger.safeHavenScore >= 0.55) {
-    return withRoutineFocus(scene, role, profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'day')));
+    return withRoutineFocus(
+      scene,
+      role,
+      profileRoutinePlan(profile.fallbackLineId, routineKindForRole(role, 'day')),
+    );
   }
   return null;
 }
 
-function routinePlan(kind: NpcRoutineKind, lineId: string, reactionKind: 'avoid' | 'inspect'): NpcRoutinePlan {
+function routinePlan(
+  kind: NpcRoutineKind,
+  lineId: string,
+  reactionKind: 'avoid' | 'inspect',
+): NpcRoutinePlan {
   return { kind, lineId, reactionKind };
 }
 
@@ -2890,7 +3257,11 @@ function profileRoutinePlan(lineId: string, kind: NpcRoutineKind): NpcRoutinePla
   return routinePlan(kind, lineId, kind === 'sleeping' || kind === 'shelter' ? 'avoid' : 'inspect');
 }
 
-function withRoutineFocus(scene: NonNullable<AiJobContextV1['scene']>, role: NpcRoutineRole, plan: NpcRoutinePlan): NpcRoutinePlan {
+function withRoutineFocus(
+  scene: NonNullable<AiJobContextV1['scene']>,
+  role: NpcRoutineRole,
+  plan: NpcRoutinePlan,
+): NpcRoutinePlan {
   const focusObject = routineFocusObject(scene, role, plan.kind);
   return focusObject ? { ...plan, focusObject } : plan;
 }
@@ -2898,20 +3269,40 @@ function withRoutineFocus(scene: NonNullable<AiJobContextV1['scene']>, role: Npc
 function npcRoutineRoleFor(speaker: Entity, profileId: string): NpcRoutineRole {
   const templateId = speaker.templateId;
   if (profileId.includes('brother_aldric')) return 'priest';
-  if (profileId.includes('merchant') || profileId.includes('trader') || profileId.includes('provisioner') || profileId.includes('quartermaster')) {
+  if (
+    profileId.includes('merchant') ||
+    profileId.includes('trader') ||
+    profileId.includes('provisioner') ||
+    profileId.includes('quartermaster')
+  ) {
     return 'merchant';
   }
-  if (profileId.includes('marshal') || profileId.includes('warden') || profileId.includes('captain')) return 'commander';
+  if (
+    profileId.includes('marshal') ||
+    profileId.includes('warden') ||
+    profileId.includes('captain')
+  )
+    return 'commander';
   if (profileId.includes('apothecary') || profileId.includes('herbalist')) return 'herbalist';
   if (profileId.includes('fisherman') || profileId.includes('tidewatcher')) return 'tidewatcher';
-  if (profileId.includes('foreman') || profileId.includes('smith') || profileId.includes('armorer')) return 'smith';
+  if (profileId.includes('foreman') || profileId.includes('smith') || profileId.includes('armorer'))
+    return 'smith';
   if (profileId.includes('ranger') || profileId.includes('scout')) return 'scout';
   if (profileId.includes('loremaster')) return 'scholar';
-  if (templateId.includes('merchant') || templateId.includes('trader') || templateId.includes('provisioner') || templateId.includes('quartermaster')) return 'merchant';
+  if (
+    templateId.includes('merchant') ||
+    templateId.includes('trader') ||
+    templateId.includes('provisioner') ||
+    templateId.includes('quartermaster')
+  )
+    return 'merchant';
   return 'generic';
 }
 
-function routineKindForRole(role: NpcRoutineRole, moment: 'day' | 'night' | 'rain' | 'stars'): NpcRoutineKind {
+function routineKindForRole(
+  role: NpcRoutineRole,
+  moment: 'day' | 'night' | 'rain' | 'stars',
+): NpcRoutineKind {
   switch (role) {
     case 'priest':
       return 'praying';
@@ -2953,10 +3344,12 @@ function routineLine(
       lineId: plan.lineId,
       values: {
         ...values,
-        ...(plan.focusObject ? {
-          sceneObjectId: plan.focusObject.objectId,
-          sceneObjectTemplateId: plan.focusObject.templateId,
-        } : {}),
+        ...(plan.focusObject
+          ? {
+              sceneObjectId: plan.focusObject.objectId,
+              sceneObjectTemplateId: plan.focusObject.templateId,
+            }
+          : {}),
       },
     },
     source: 'local',
@@ -2967,7 +3360,9 @@ function routineLine(
       planIntensity: 0.35,
       sceneTags: routineSceneTags(context, plan),
       ...(plan.focusObject ? { targetItemId: plan.focusObject.objectId } : {}),
-      ...(plan.focusObject?.entityId !== null && plan.focusObject !== undefined ? { targetObjectId: plan.focusObject.entityId } : {}),
+      ...(plan.focusObject?.entityId !== null && plan.focusObject !== undefined
+        ? { targetObjectId: plan.focusObject.entityId }
+        : {}),
     },
     pid: context.player.entityId,
   };
@@ -2976,19 +3371,21 @@ function routineLine(
 function routineSceneTags(context: AiJobContextV1, plan: NpcRoutinePlan): string[] {
   const focusTags = plan.focusObject
     ? [
-      `focus:${plan.focusObject.objectId}`,
-      ...plan.focusObject.tags.slice(0, 2),
-      ...plan.focusObject.affordanceTags.slice(0, 2),
-    ]
+        `focus:${plan.focusObject.objectId}`,
+        ...plan.focusObject.tags.slice(0, 2),
+        ...plan.focusObject.affordanceTags.slice(0, 2),
+      ]
     : [];
   return context.scene
-    ? [...new Set([
-      ...focusTags,
-      ...context.scene.locationTags,
-      ...context.scene.structureTags,
-      ...context.scene.environmentalTags,
-      `routine:${plan.kind}`,
-    ])].slice(0, 8)
+    ? [
+        ...new Set([
+          ...focusTags,
+          ...context.scene.locationTags,
+          ...context.scene.structureTags,
+          ...context.scene.environmentalTags,
+          `routine:${plan.kind}`,
+        ]),
+      ].slice(0, 8)
     : [...new Set([...focusTags, `routine:${plan.kind}`])].slice(0, 8);
 }
 
@@ -3002,8 +3399,12 @@ function routineFocusObject(
   return scene.nearbySemanticObjects
     .map((object) => ({ object, score: routineFocusScore(object, intentTags) }))
     .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || a.object.distance - b.object.distance || a.object.objectId.localeCompare(b.object.objectId))[0]
-    ?.object;
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.object.distance - b.object.distance ||
+        a.object.objectId.localeCompare(b.object.objectId),
+    )[0]?.object;
 }
 
 function routineFocusIntentTags(
@@ -3012,28 +3413,61 @@ function routineFocusIntentTags(
 ): { tags: readonly string[]; affordances: readonly string[] } | null {
   switch (planKind) {
     case 'praying':
-      return { tags: ['prayerMemory', 'shrine', 'ruinedChapel', 'quiet'], affordances: ['offerPrayer', 'prayUneasily', 'lowerVoice', 'readInscription'] };
+      return {
+        tags: ['prayerMemory', 'shrine', 'ruinedChapel', 'quiet'],
+        affordances: ['offerPrayer', 'prayUneasily', 'lowerVoice', 'readInscription'],
+      };
     case 'trading':
-      return { tags: ['stall', 'marketEdge', 'coin', 'footTraffic'], affordances: ['haggle', 'watchCrowd', 'sniffGoods'] };
+      return {
+        tags: ['stall', 'marketEdge', 'coin', 'footTraffic'],
+        affordances: ['haggle', 'watchCrowd', 'sniffGoods'],
+      };
     case 'forging':
-      return { tags: ['forge', 'hotIron', 'workNoise', 'safeTown'], affordances: ['repairGear', 'warmHands', 'avoidHeat', 'watchSoldiers'] };
+      return {
+        tags: ['forge', 'hotIron', 'workNoise', 'safeTown'],
+        affordances: ['repairGear', 'warmHands', 'avoidHeat', 'watchSoldiers'],
+      };
     case 'watchingWater':
-      return { tags: ['openWater', 'dock', 'reflection', 'fishSmell'], affordances: ['watchReflection', 'drinkWater', 'peerBelow', 'paceCarefully'] };
+      return {
+        tags: ['openWater', 'dock', 'reflection', 'fishSmell'],
+        affordances: ['watchReflection', 'drinkWater', 'peerBelow', 'paceCarefully'],
+      };
     case 'herbalism':
-      return { tags: ['herb', 'alchemy', 'quiet', 'safeTown'], affordances: ['sniffHerbs', 'askRemedy', 'handleCarefully'] };
+      return {
+        tags: ['herb', 'alchemy', 'quiet', 'safeTown'],
+        affordances: ['sniffHerbs', 'askRemedy', 'handleCarefully'],
+      };
     case 'studying':
-      return { tags: ['oldStone', 'prayerMemory', 'quiet', 'weatheredIcon'], affordances: ['readInscription', 'readOldMarks', 'listenForEcho', 'inspectOfferings'] };
+      return {
+        tags: ['oldStone', 'prayerMemory', 'quiet', 'weatheredIcon'],
+        affordances: ['readInscription', 'readOldMarks', 'listenForEcho', 'inspectOfferings'],
+      };
     case 'patrolling':
-      return { tags: ['gate', 'watchPost', 'militaryOrder', 'road'], affordances: ['standGuard', 'signalTown', 'scanRoad', 'readNotice'] };
+      return {
+        tags: ['gate', 'watchPost', 'militaryOrder', 'road'],
+        affordances: ['standGuard', 'signalTown', 'scanRoad', 'readNotice'],
+      };
     case 'scouting':
-      return { tags: ['lowVisibility', 'shore', 'bridge', 'watchPost'], affordances: ['trackRipples', 'listenForSteps', 'crossCarefully', 'hideInReeds'] };
+      return {
+        tags: ['lowVisibility', 'shore', 'bridge', 'watchPost'],
+        affordances: ['trackRipples', 'listenForSteps', 'crossCarefully', 'hideInReeds'],
+      };
     case 'working':
-      return { tags: ['workNoise', 'house', 'stall', 'safeTown'], affordances: ['askForHelp', 'repairGear', 'watchCrowd', 'restNearDoor'] };
+      return {
+        tags: ['workNoise', 'house', 'stall', 'safeTown'],
+        affordances: ['askForHelp', 'repairGear', 'watchCrowd', 'restNearDoor'],
+      };
     case 'eating':
-      return { tags: ['safeTown', 'warmLight', 'marketEdge'], affordances: ['seekShelter', 'restNearDoor', 'watchCrowd'] };
+      return {
+        tags: ['safeTown', 'warmLight', 'marketEdge'],
+        affordances: ['seekShelter', 'restNearDoor', 'watchCrowd'],
+      };
     case 'watching':
       if (role === 'tidewatcher') {
-        return { tags: ['openWater', 'reflection', 'moonlitWater'], affordances: ['watchReflection', 'peerBelow', 'trackRipples'] };
+        return {
+          tags: ['openWater', 'reflection', 'moonlitWater'],
+          affordances: ['watchReflection', 'peerBelow', 'trackRipples'],
+        };
       }
       return null;
     default:
@@ -3046,7 +3480,9 @@ function routineFocusScore(
   intentTags: { tags: readonly string[]; affordances: readonly string[] },
 ): number {
   const tagHits = object.tags.filter((tag) => intentTags.tags.includes(tag)).length;
-  const affordanceHits = object.affordanceTags.filter((tag) => intentTags.affordances.includes(tag)).length;
+  const affordanceHits = object.affordanceTags.filter((tag) =>
+    intentTags.affordances.includes(tag),
+  ).length;
   if (tagHits === 0 && affordanceHits === 0) return 0;
   return affordanceHits * 4 + tagHits * 3 - object.distance * 0.1;
 }
@@ -3114,7 +3550,8 @@ function socialSequenceCanUseProfileLine(scene: ReturnType<typeof sceneFrameFor>
   if (scene.weather.kind !== 'clear') return false;
   if (scene.light.tags.includes('starrySky')) return false;
   if (scene.time.phase !== 'day') return false;
-  if (scene.danger.undeadPressure >= 0.25 || scene.environmentalTags.includes('deathPressure')) return false;
+  if (scene.danger.undeadPressure >= 0.25 || scene.environmentalTags.includes('deathPressure'))
+    return false;
   return true;
 }
 
@@ -3127,11 +3564,12 @@ function socialSequenceLine(input: {
   lineId: string;
   step: number;
 }): AiSpeechEvent {
-  const planKind = input.step === 0
-    ? 'conversationStart'
-    : input.step === 1
-      ? 'conversationReply'
-      : 'conversationAside';
+  const planKind =
+    input.step === 0
+      ? 'conversationStart'
+      : input.step === 1
+        ? 'conversationReply'
+        : 'conversationAside';
   return {
     type: 'aiSpeech',
     speakerId: input.speaker.id,
@@ -3144,10 +3582,12 @@ function socialSequenceLine(input: {
         playerName: input.player.name,
         partnerName: input.partner.name,
         subsceneId: input.scene.subsceneId ?? input.scene.zoneId,
-        ...(input.focusObject ? {
-          sceneObjectId: input.focusObject.objectId,
-          sceneObjectTemplateId: input.focusObject.templateId,
-        } : {}),
+        ...(input.focusObject
+          ? {
+              sceneObjectId: input.focusObject.objectId,
+              sceneObjectTemplateId: input.focusObject.templateId,
+            }
+          : {}),
       },
     },
     source: 'local',
@@ -3155,7 +3595,9 @@ function socialSequenceLine(input: {
       kind: 'inspect',
       targetEntityId: input.partner.id,
       ...(input.focusObject ? { targetItemId: input.focusObject.objectId } : {}),
-      ...(input.focusObject?.entityId !== null && input.focusObject !== undefined ? { targetObjectId: input.focusObject.entityId } : {}),
+      ...(input.focusObject?.entityId !== null && input.focusObject !== undefined
+        ? { targetObjectId: input.focusObject.entityId }
+        : {}),
       score: 0.68,
       planKind,
       planIntensity: 0.45,
@@ -3172,11 +3614,18 @@ function socialSequenceFocusObject(
   return scene.nearbySemanticObjects
     .map((object) => ({
       object,
-      score: speakers.reduce((sum, speaker) => sum + socialSequenceObjectScoreForSpeaker(object, speaker), 0),
+      score: speakers.reduce(
+        (sum, speaker) => sum + socialSequenceObjectScoreForSpeaker(object, speaker),
+        0,
+      ),
     }))
     .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || a.object.distance - b.object.distance || a.object.objectId.localeCompare(b.object.objectId))[0]
-    ?.object;
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.object.distance - b.object.distance ||
+        a.object.objectId.localeCompare(b.object.objectId),
+    )[0]?.object;
 }
 
 function socialSequenceObjectScoreForSpeaker(object: SceneObjectSemantic, speaker: Entity): number {
@@ -3184,36 +3633,76 @@ function socialSequenceObjectScoreForSpeaker(object: SceneObjectSemantic, speake
   const role = npcRoutineRoleFor(speaker, profile.id);
   const intent = socialSequenceIntentTagsForRole(role);
   const tagHits = object.tags.filter((tag) => intent.tags.includes(tag)).length;
-  const affordanceHits = object.affordanceTags.filter((tag) => intent.affordances.includes(tag)).length;
-  const sceneAffinityHits = object.tags.filter((tag) =>
-    profile.sceneAffinities?.likesTags.includes(tag) || profile.sceneAffinities?.commentsOnTags.includes(tag),
+  const affordanceHits = object.affordanceTags.filter((tag) =>
+    intent.affordances.includes(tag),
   ).length;
-  const interestHits = object.tags.filter((tag) => profile.itemInterest?.attractedToTags.includes(tag)).length;
-  return tagHits * 3.5 + affordanceHits * 4 + sceneAffinityHits * 2 + interestHits * 1.5 - object.distance * 0.08;
+  const sceneAffinityHits = object.tags.filter(
+    (tag) =>
+      profile.sceneAffinities?.likesTags.includes(tag) ||
+      profile.sceneAffinities?.commentsOnTags.includes(tag),
+  ).length;
+  const interestHits = object.tags.filter((tag) =>
+    profile.itemInterest?.attractedToTags.includes(tag),
+  ).length;
+  return (
+    tagHits * 3.5 +
+    affordanceHits * 4 +
+    sceneAffinityHits * 2 +
+    interestHits * 1.5 -
+    object.distance * 0.08
+  );
 }
 
-function socialSequenceIntentTagsForRole(
-  role: NpcRoutineRole,
-): { tags: readonly string[]; affordances: readonly string[] } {
+function socialSequenceIntentTagsForRole(role: NpcRoutineRole): {
+  tags: readonly string[];
+  affordances: readonly string[];
+} {
   switch (role) {
     case 'priest':
-      return { tags: ['shrine', 'prayerMemory', 'quiet', 'oldStone'], affordances: ['offerPrayer', 'lowerVoice', 'readInscription', 'listenForEcho'] };
+      return {
+        tags: ['shrine', 'prayerMemory', 'quiet', 'oldStone'],
+        affordances: ['offerPrayer', 'lowerVoice', 'readInscription', 'listenForEcho'],
+      };
     case 'merchant':
-      return { tags: ['stall', 'marketEdge', 'coin', 'footTraffic'], affordances: ['haggle', 'watchCrowd', 'sniffGoods'] };
+      return {
+        tags: ['stall', 'marketEdge', 'coin', 'footTraffic'],
+        affordances: ['haggle', 'watchCrowd', 'sniffGoods'],
+      };
     case 'commander':
-      return { tags: ['road', 'watchPost', 'militaryOrder', 'footTraffic'], affordances: ['standGuard', 'readNotice', 'signalTown', 'watchCrowd'] };
+      return {
+        tags: ['road', 'watchPost', 'militaryOrder', 'footTraffic'],
+        affordances: ['standGuard', 'readNotice', 'signalTown', 'watchCrowd'],
+      };
     case 'herbalist':
-      return { tags: ['herb', 'alchemy', 'quiet', 'safeTown'], affordances: ['sniffHerbs', 'askRemedy', 'handleCarefully'] };
+      return {
+        tags: ['herb', 'alchemy', 'quiet', 'safeTown'],
+        affordances: ['sniffHerbs', 'askRemedy', 'handleCarefully'],
+      };
     case 'tidewatcher':
-      return { tags: ['openWater', 'dock', 'fishSmell', 'reflection'], affordances: ['watchReflection', 'peerBelow', 'paceCarefully'] };
+      return {
+        tags: ['openWater', 'dock', 'fishSmell', 'reflection'],
+        affordances: ['watchReflection', 'peerBelow', 'paceCarefully'],
+      };
     case 'smith':
-      return { tags: ['forge', 'hotIron', 'workNoise', 'safeTown'], affordances: ['repairGear', 'warmHands', 'avoidHeat'] };
+      return {
+        tags: ['forge', 'hotIron', 'workNoise', 'safeTown'],
+        affordances: ['repairGear', 'warmHands', 'avoidHeat'],
+      };
     case 'scout':
-      return { tags: ['bridge', 'lowVisibility', 'shore', 'watchPost'], affordances: ['trackRipples', 'listenForSteps', 'crossCarefully'] };
+      return {
+        tags: ['bridge', 'lowVisibility', 'shore', 'watchPost'],
+        affordances: ['trackRipples', 'listenForSteps', 'crossCarefully'],
+      };
     case 'scholar':
-      return { tags: ['oldStone', 'weatheredIcon', 'quiet', 'prayerMemory'], affordances: ['readInscription', 'readOldMarks', 'inspectOfferings'] };
+      return {
+        tags: ['oldStone', 'weatheredIcon', 'quiet', 'prayerMemory'],
+        affordances: ['readInscription', 'readOldMarks', 'inspectOfferings'],
+      };
     case 'generic':
-      return { tags: ['safeTown', 'house', 'marketEdge', 'quiet'], affordances: ['watchCrowd', 'restNearDoor', 'askForHelp'] };
+      return {
+        tags: ['safeTown', 'house', 'marketEdge', 'quiet'],
+        affordances: ['watchCrowd', 'restNearDoor', 'askForHelp'],
+      };
   }
 }
 
@@ -3224,15 +3713,12 @@ function socialSequenceSceneTags(
 ): string[] {
   const focusTags = focusObject
     ? [
-      `focus:${focusObject.objectId}`,
-      ...focusObject.tags.slice(0, 3),
-      ...socialSequenceFocusAffordanceTags(focusObject),
-    ]
+        `focus:${focusObject.objectId}`,
+        ...focusObject.tags.slice(0, 3),
+        ...socialSequenceFocusAffordanceTags(focusObject),
+      ]
     : [];
-  return [...new Set([
-    ...focusTags,
-    ...sceneTagsWith(scene, `sequence:${planKind}`),
-  ])].slice(0, 8);
+  return [...new Set([...focusTags, ...sceneTagsWith(scene, `sequence:${planKind}`)])].slice(0, 8);
 }
 
 function socialSequenceFocusAffordanceTags(focusObject: SceneObjectSemantic): string[] {
@@ -3257,25 +3743,32 @@ interface CreatureSequenceGroup {
   reactions: FamilySceneReaction[];
 }
 
-function bestCreatureSequenceGroup(reactions: readonly FamilySceneReaction[]): CreatureSequenceGroup | null {
+function bestCreatureSequenceGroup(
+  reactions: readonly FamilySceneReaction[],
+): CreatureSequenceGroup | null {
   const byFamily = new Map<MobFamily, FamilySceneReaction[]>();
   for (const reaction of reactions) {
     const bucket = byFamily.get(reaction.family);
     if (bucket) bucket.push(reaction);
     else byFamily.set(reaction.family, [reaction]);
   }
-  return [...byFamily.entries()]
-    .map(([family, familyReactions]) => ({
-      family,
-      reactions: familyReactions.slice(0, 3),
-      score: familyReactions.slice(0, 3).reduce((sum, reaction) => sum + reaction.score, 0) / Math.min(3, familyReactions.length),
-    }))
-    .filter((group) => group.reactions.length >= 2)
-    .sort((a, b) =>
-      b.reactions.length - a.reactions.length
-      || b.score - a.score
-      || a.family.localeCompare(b.family),
-    )[0] ?? null;
+  return (
+    [...byFamily.entries()]
+      .map(([family, familyReactions]) => ({
+        family,
+        reactions: familyReactions.slice(0, 3),
+        score:
+          familyReactions.slice(0, 3).reduce((sum, reaction) => sum + reaction.score, 0) /
+          Math.min(3, familyReactions.length),
+      }))
+      .filter((group) => group.reactions.length >= 2)
+      .sort(
+        (a, b) =>
+          b.reactions.length - a.reactions.length ||
+          b.score - a.score ||
+          a.family.localeCompare(b.family),
+      )[0] ?? null
+  );
 }
 
 function creatureSequenceLine(input: {
@@ -3285,7 +3778,11 @@ function creatureSequenceLine(input: {
   partner: Entity;
   step: number;
 }): AiSpeechEvent {
-  const event = familySceneReactionEvent(input.reaction, input.scene, input.player.id) as AiSpeechEvent;
+  const event = familySceneReactionEvent(
+    input.reaction,
+    input.scene,
+    input.player.id,
+  ) as AiSpeechEvent;
   const planKind = creatureSequencePlanKind(input.reaction.family, input.step);
   if (event.speech.mode === 'lineId') {
     event.speech = {
@@ -3302,12 +3799,14 @@ function creatureSequenceLine(input: {
     targetEntityId: input.partner.id,
     planKind,
     planIntensity: Math.max(0.35, Math.round(input.reaction.score * 100) / 100),
-    sceneTags: [...new Set([
-      `sequence:${planKind}`,
-      `family:${input.reaction.family}`,
-      ...(event.reaction?.sceneTags ?? []),
-      ...sceneTagsWith(input.scene),
-    ])].slice(0, 8),
+    sceneTags: [
+      ...new Set([
+        `sequence:${planKind}`,
+        `family:${input.reaction.family}`,
+        ...(event.reaction?.sceneTags ?? []),
+        ...sceneTagsWith(input.scene),
+      ]),
+    ].slice(0, 8),
   };
   return event;
 }
@@ -3315,15 +3814,24 @@ function creatureSequenceLine(input: {
 function creatureSequencePlanKind(family: MobFamily, step: number): string {
   if (step === 0) {
     switch (family) {
-      case 'beast': return 'packScentStart';
-      case 'mudfin': return 'murlocAlarmStart';
-      case 'spider': return 'webStillnessStart';
-      case 'burrower': return 'candleSquabbleStart';
-      case 'humanoid': return 'campMutterStart';
-      case 'undead': return 'deathEchoStart';
-      case 'elemental': return 'resonanceStart';
-      case 'dragonkin': return 'bloodlineWatchStart';
-      case 'demon': return 'fearGameStart';
+      case 'beast':
+        return 'packScentStart';
+      case 'mudfin':
+        return 'murlocAlarmStart';
+      case 'spider':
+        return 'webStillnessStart';
+      case 'burrower':
+        return 'candleSquabbleStart';
+      case 'humanoid':
+        return 'campMutterStart';
+      case 'undead':
+        return 'deathEchoStart';
+      case 'elemental':
+        return 'resonanceStart';
+      case 'dragonkin':
+        return 'bloodlineWatchStart';
+      case 'demon':
+        return 'fearGameStart';
       case 'troll':
       case 'ogre':
         return 'bruteAppetiteStart';
@@ -3333,12 +3841,22 @@ function creatureSequencePlanKind(family: MobFamily, step: number): string {
 }
 
 function sceneTagsWith(scene: ReturnType<typeof sceneFrameFor>, ...extra: string[]): string[] {
-  return [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, ...extra])].slice(0, 8);
+  return [
+    ...new Set([
+      ...scene.locationTags,
+      ...scene.structureTags,
+      ...scene.environmentalTags,
+      ...extra,
+    ]),
+  ].slice(0, 8);
 }
 
-function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiveMobActionIntent | null {
+function activeMobActionIntentForRoutine(
+  result: CreatureRoutineResult,
+): AiActiveMobActionIntent | null {
   if (!result.routineKind.startsWith('creature:')) return null;
-  if (result.entity.kind !== 'mob' || result.entity.ownerId !== null || !result.entity.hostile) return null;
+  if (result.entity.kind !== 'mob' || result.entity.ownerId !== null || !result.entity.hostile)
+    return null;
   const family = MOBS[result.entity.templateId]?.family;
   if (!family) return null;
   const reaction = result.event.reaction;
@@ -3348,33 +3866,39 @@ function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiv
   if (tags.has('safeTown') || tags.has('town')) return null;
   if (reaction.kind === 'avoid') return 'flee';
   if (reaction.kind === 'approach') {
-    return family === 'beast'
-      || family === 'humanoid'
-      || family === 'burrower'
-      || family === 'mudfin'
-      || family === 'undead'
-      || family === 'troll'
-      || family === 'ogre'
-      || family === 'dragonkin'
-      || family === 'demon'
+    return family === 'beast' ||
+      family === 'humanoid' ||
+      family === 'burrower' ||
+      family === 'mudfin' ||
+      family === 'undead' ||
+      family === 'troll' ||
+      family === 'ogre' ||
+      family === 'dragonkin' ||
+      family === 'demon'
       ? 'startCombat'
       : null;
   }
   if (reaction.kind === 'inspect') {
-    if (planKind === 'campMutter'
-      || planKind === 'candleGuard'
-      || planKind === 'shoalAlarm'
-      || planKind === 'webVigil'
-      || planKind === 'graveListen'
-      || planKind === 'campGrumble'
-      || planKind === 'territoryLoom'
-      || planKind === 'protectNest'
-      || planKind === 'misreadPlayer'
-      || planKind === 'omenWatch'
-      || planKind === 'guardPlace') {
+    if (
+      planKind === 'campMutter' ||
+      planKind === 'candleGuard' ||
+      planKind === 'shoalAlarm' ||
+      planKind === 'webVigil' ||
+      planKind === 'graveListen' ||
+      planKind === 'campGrumble' ||
+      planKind === 'territoryLoom' ||
+      planKind === 'protectNest' ||
+      planKind === 'misreadPlayer' ||
+      planKind === 'omenWatch' ||
+      planKind === 'guardPlace'
+    ) {
       return 'callForHelp';
     }
-    return family === 'humanoid' || family === 'burrower' || family === 'mudfin' || family === 'troll' || family === 'ogre'
+    return family === 'humanoid' ||
+      family === 'burrower' ||
+      family === 'mudfin' ||
+      family === 'troll' ||
+      family === 'ogre'
       ? 'callForHelp'
       : null;
   }
@@ -3383,9 +3907,12 @@ function activeMobActionIntentForRoutine(result: CreatureRoutineResult): AiActiv
 
 function activeOutputModeForRule(rule: AiActivePollRuleV1): AiJobContextV1['outputMode'] {
   switch (rule.outputMode) {
-    case 'dynamicTextFirst': return 'dynamic_text_experiment';
-    case 'mixedLivingWorld': return 'mixed_living_world';
-    case 'lineIdOnly': return 'line_id_only';
+    case 'dynamicTextFirst':
+      return 'dynamic_text_experiment';
+    case 'mixedLivingWorld':
+      return 'mixed_living_world';
+    case 'lineIdOnly':
+      return 'line_id_only';
   }
 }
 
@@ -3400,10 +3927,12 @@ function normalizeActiveProviderOutput(output: AiProviderOutput): AiProviderDeci
 }
 
 function isProviderDecisionResult(output: AiProviderOutput): output is AiProviderDecisionResult {
-  return typeof output === 'object'
-    && output !== null
-    && 'decision' in output
-    && typeof (output as { decision?: unknown }).decision === 'object';
+  return (
+    typeof output === 'object' &&
+    output !== null &&
+    'decision' in output &&
+    typeof (output as { decision?: unknown }).decision === 'object'
+  );
 }
 
 function providerErrorReason(error: unknown): string {
@@ -3451,7 +3980,10 @@ function normalizeActiveRule(rule: AiActivePollRuleV1): AiActivePollRuleV1 {
   };
 }
 
-function mergeActiveRuleConfig(rule: AiActivePollRuleV1, update: AiActivePollRuleConfigUpdate): AiActivePollRuleV1 {
+function mergeActiveRuleConfig(
+  rule: AiActivePollRuleV1,
+  update: AiActivePollRuleConfigUpdate,
+): AiActivePollRuleV1 {
   return normalizeActiveRule({
     ...rule,
     ...(update.enabled !== undefined ? { enabled: update.enabled } : {}),
@@ -3462,9 +3994,15 @@ function mergeActiveRuleConfig(rule: AiActivePollRuleV1, update: AiActivePollRul
     ...(update.outputMode !== undefined ? { outputMode: update.outputMode } : {}),
     cooldown: {
       ...rule.cooldown,
-      ...(update.cooldown?.perPlayerSeconds !== undefined ? { perPlayerSeconds: update.cooldown.perPlayerSeconds } : {}),
-      ...(update.cooldown?.perEntitySeconds !== undefined ? { perEntitySeconds: update.cooldown.perEntitySeconds } : {}),
-      ...(update.cooldown?.perRuleSeconds !== undefined ? { perRuleSeconds: update.cooldown.perRuleSeconds } : {}),
+      ...(update.cooldown?.perPlayerSeconds !== undefined
+        ? { perPlayerSeconds: update.cooldown.perPlayerSeconds }
+        : {}),
+      ...(update.cooldown?.perEntitySeconds !== undefined
+        ? { perEntitySeconds: update.cooldown.perEntitySeconds }
+        : {}),
+      ...(update.cooldown?.perRuleSeconds !== undefined
+        ? { perRuleSeconds: update.cooldown.perRuleSeconds }
+        : {}),
     },
   });
 }
@@ -3473,9 +4011,11 @@ function parseActiveTriggerConfigUpdate(input: unknown): AiActiveTriggerConfigUp
   const src = asRecord(input, 'active trigger config');
   const patch: AiActiveTriggerConfigUpdate = {};
   if (hasOwn(src, 'enabled')) patch.enabled = boolField(src.enabled, 'enabled');
-  if (hasOwn(src, 'eventsEnabled')) patch.eventsEnabled = boolField(src.eventsEnabled, 'eventsEnabled');
+  if (hasOwn(src, 'eventsEnabled'))
+    patch.eventsEnabled = boolField(src.eventsEnabled, 'eventsEnabled');
   if (hasOwn(src, 'pollsEnabled')) patch.pollsEnabled = boolField(src.pollsEnabled, 'pollsEnabled');
-  if (hasOwn(src, 'realActionsEnabled')) patch.realActionsEnabled = boolField(src.realActionsEnabled, 'realActionsEnabled');
+  if (hasOwn(src, 'realActionsEnabled'))
+    patch.realActionsEnabled = boolField(src.realActionsEnabled, 'realActionsEnabled');
   if (hasOwn(src, 'rules')) {
     if (!Array.isArray(src.rules)) throw new Error('rules must be an array');
     patch.rules = src.rules.map((rule) => parseActiveRuleUpdate(rule));
@@ -3488,23 +4028,51 @@ function parseActiveRuleUpdate(input: unknown): AiActivePollRuleConfigUpdate {
   const ruleId = stringField(src.ruleId, 'ruleId').slice(0, 96);
   const update: AiActivePollRuleConfigUpdate = { ruleId };
   if (hasOwn(src, 'enabled')) update.enabled = boolField(src.enabled, `${ruleId}.enabled`);
-  if (hasOwn(src, 'periodSeconds')) update.periodSeconds = boundedInt(numberField(src.periodSeconds, `${ruleId}.periodSeconds`), 1, 86_400);
-  if (hasOwn(src, 'jitterSeconds')) update.jitterSeconds = boundedInt(numberField(src.jitterSeconds, `${ruleId}.jitterSeconds`), 0, 3_600);
-  if (hasOwn(src, 'priority')) update.priority = boundedInt(numberField(src.priority, `${ruleId}.priority`), 0, 100);
-  if (hasOwn(src, 'providerPolicy')) update.providerPolicy = providerPolicyField(src.providerPolicy, `${ruleId}.providerPolicy`);
-  if (hasOwn(src, 'outputMode')) update.outputMode = outputModeField(src.outputMode, `${ruleId}.outputMode`);
+  if (hasOwn(src, 'periodSeconds'))
+    update.periodSeconds = boundedInt(
+      numberField(src.periodSeconds, `${ruleId}.periodSeconds`),
+      1,
+      86_400,
+    );
+  if (hasOwn(src, 'jitterSeconds'))
+    update.jitterSeconds = boundedInt(
+      numberField(src.jitterSeconds, `${ruleId}.jitterSeconds`),
+      0,
+      3_600,
+    );
+  if (hasOwn(src, 'priority'))
+    update.priority = boundedInt(numberField(src.priority, `${ruleId}.priority`), 0, 100);
+  if (hasOwn(src, 'providerPolicy'))
+    update.providerPolicy = providerPolicyField(src.providerPolicy, `${ruleId}.providerPolicy`);
+  if (hasOwn(src, 'outputMode'))
+    update.outputMode = outputModeField(src.outputMode, `${ruleId}.outputMode`);
   if (hasOwn(src, 'cooldown')) {
     const cooldown = asRecord(src.cooldown, `${ruleId}.cooldown`);
     update.cooldown = {};
-    if (hasOwn(cooldown, 'perPlayerSeconds')) update.cooldown.perPlayerSeconds = boundedInt(numberField(cooldown.perPlayerSeconds, `${ruleId}.cooldown.perPlayerSeconds`), 0, 86_400);
-    if (hasOwn(cooldown, 'perEntitySeconds')) update.cooldown.perEntitySeconds = boundedInt(numberField(cooldown.perEntitySeconds, `${ruleId}.cooldown.perEntitySeconds`), 0, 86_400);
-    if (hasOwn(cooldown, 'perRuleSeconds')) update.cooldown.perRuleSeconds = boundedInt(numberField(cooldown.perRuleSeconds, `${ruleId}.cooldown.perRuleSeconds`), 0, 86_400);
+    if (hasOwn(cooldown, 'perPlayerSeconds'))
+      update.cooldown.perPlayerSeconds = boundedInt(
+        numberField(cooldown.perPlayerSeconds, `${ruleId}.cooldown.perPlayerSeconds`),
+        0,
+        86_400,
+      );
+    if (hasOwn(cooldown, 'perEntitySeconds'))
+      update.cooldown.perEntitySeconds = boundedInt(
+        numberField(cooldown.perEntitySeconds, `${ruleId}.cooldown.perEntitySeconds`),
+        0,
+        86_400,
+      );
+    if (hasOwn(cooldown, 'perRuleSeconds'))
+      update.cooldown.perRuleSeconds = boundedInt(
+        numberField(cooldown.perRuleSeconds, `${ruleId}.cooldown.perRuleSeconds`),
+        0,
+        86_400,
+      );
   }
   return update;
 }
 
 function hasOwn(src: Record<string, unknown>, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(src, key);
+  return Object.hasOwn(src, key);
 }
 
 function asRecord(value: unknown, label: string): Record<string, unknown> {
@@ -3515,7 +4083,8 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
 }
 
 function stringField(value: unknown, label: string): string {
-  if (typeof value !== 'string' || value.trim() === '') throw new Error(`${label} must be a non-empty string`);
+  if (typeof value !== 'string' || value.trim() === '')
+    throw new Error(`${label} must be a non-empty string`);
   return value.trim();
 }
 
@@ -3525,7 +4094,8 @@ function boolField(value: unknown, label: string): boolean {
 }
 
 function numberField(value: unknown, label: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`${label} must be finite`);
+  if (typeof value !== 'number' || !Number.isFinite(value))
+    throw new Error(`${label} must be finite`);
   return value;
 }
 
@@ -3539,7 +4109,8 @@ function providerPolicyField(value: unknown, label: string): AiActivePollRuleV1[
 }
 
 function outputModeField(value: unknown, label: string): AiActivePollRuleV1['outputMode'] {
-  if (value === 'lineIdOnly' || value === 'dynamicTextFirst' || value === 'mixedLivingWorld') return value;
+  if (value === 'lineIdOnly' || value === 'dynamicTextFirst' || value === 'mixedLivingWorld')
+    return value;
   throw new Error(`${label} is not supported`);
 }
 
@@ -3614,14 +4185,25 @@ function fallbackNpcAmbientEvent(
       kind: 'inspect',
       score: Math.round(score * 100) / 100,
       sceneTags: context.scene
-        ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags])].slice(0, 8)
+        ? [
+            ...new Set([
+              ...context.scene.locationTags,
+              ...context.scene.structureTags,
+              ...context.scene.environmentalTags,
+            ]),
+          ].slice(0, 8)
         : [],
     },
     pid: context.player.entityId,
   };
 }
 
-function stableJitterMs(ruleId: string, scopeKey: string, fireCount: number, jitterSeconds: number): number {
+function stableJitterMs(
+  ruleId: string,
+  scopeKey: string,
+  fireCount: number,
+  jitterSeconds: number,
+): number {
   const bound = Math.max(0, Math.floor(jitterSeconds * 1000));
   if (bound === 0) return 0;
   const source = `${ruleId}:${scopeKey}:${fireCount}`;

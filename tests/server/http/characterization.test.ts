@@ -41,6 +41,7 @@ const MAX_POLL_TICKS = 200_000;
 // suite's cold ensureSchema boot) into real work that can exceed vitest's
 // default 10s hookTimeout.
 const BEFORE_ALL_HOOK_TIMEOUT_MS = 60_000;
+const LEADERBOARD_TEST_TIMEOUT_MS = 30_000;
 // Where this surface's goldens live: tests/server/fixtures/main/.
 const FIXTURE_DIR = `${__dirname}/../fixtures/main`;
 
@@ -196,8 +197,6 @@ describe('main /api characterization: leaderboard payload shapes (empty cache)',
   // nothing answers on rejects fast, but a contributor whose local dev Postgres
   // happens to be reachable on that same port pays a real query round trip;
   // give these three real headroom above vitest's 5s default.
-  const LEADERBOARD_TEST_TIMEOUT_MS = 30_000;
-
   it(
     'GET /api/leaderboard default paged board',
     async () => {

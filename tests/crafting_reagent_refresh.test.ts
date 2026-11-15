@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 // Crafting window bag-freshness (issue #2375). The Craft gate is derived
 // entirely from the bag, but the window is a COLD painter: before this suite
@@ -22,11 +22,23 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { inertCharacters } from './helpers/inert_characters';
+
+// Hud reaches the character model preload; keep it inert
+// (tests/helpers/inert_characters.ts has the why).
+vi.mock('../src/render/characters', () => inertCharacters.barrel());
+vi.mock('../src/render/characters/assets', () => inertCharacters.assets());
+vi.mock('../src/render/characters/portrait', () => inertCharacters.portrait());
+
 import { ALL_RECIPES } from '../src/sim/content/recipes';
 import type { InvSlot, ItemDef } from '../src/sim/types';
-import { buildCraftingView, craftingReagentSig, type RecipeDefLike } from '../src/ui/crafting_view';
-import { renderCraftingWindow } from '../src/ui/crafting_window';
 import { Hud } from '../src/ui/hud';
+import {
+  buildCraftingView,
+  craftingReagentSig,
+  type RecipeDefLike,
+} from '../src/ui/hud/professions/crafting_view';
+import { renderCraftingWindow } from '../src/ui/hud/professions/crafting_window';
 
 const VIEWER = 'Fernando';
 
@@ -306,10 +318,25 @@ describe('crafting window bag-freshness wiring (source pins)', () => {
     // Scoped to the method: moving the latch into the probe would leave every
     // other paint cause (the station edge, a craft, a tab switch, the open
     // itself) un-armed, and a whole-file pin would not notice.
-    const renderCrafting = region('private renderCrafting(): void {', 'closeCrafting(): void {');
-    expect(renderCrafting).toContain(
-      'this.lastCraftingReagentSig = craftingReagentSig(this.sim.inventory, this.sim.player.name);',
+    const renderCrafting = region(
+      'private renderCrafting(focusReturnRecipeId = ',
+      'closeCrafting(): void {',
     );
+    // Phase 04 (craft-from-vault) moved this pin: the latch now carries the
+    // craftVaultStock term, read ONCE into a local so the signature and the
+    // build cannot see different snapshots. Whitespace-tolerant on the call
+    // so the formatter's wrap choice cannot re-break it.
+    expect(renderCrafting).toContain('const craftVaultStock = this.sim.craftVaultStock;');
+    expect(renderCrafting).toMatch(
+      /this\.lastCraftingReagentSig = craftingReagentSig\(\s*this\.sim\.inventory,\s*this\.sim\.player\.name,\s*craftVaultStock,?\s*\)/,
+    );
+    // The single-read rule pinned DIRECTLY: exactly one getter read in the
+    // whole method (comments stripped), so a regression that hands the BUILD
+    // a second `this.sim.craftVaultStock` read (the two-snapshots-per-paint
+    // shape the local exists to prevent) reds here even though the sig arm
+    // above would still match.
+    const code = renderCrafting.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    expect(code.match(/this\.sim\.craftVaultStock/g)).toHaveLength(1);
   });
 
   it('the slow band converges an open window in BOTH hosts', () => {
@@ -332,9 +359,12 @@ describe('crafting window bag-freshness wiring (source pins)', () => {
   });
 
   it('the online authoritative inventory delta converges it on the same frame', () => {
-    expect(hud).toMatch(
-      /onInventoryChanged\(\): void \{[^}]*this\.refreshOpenCraftingIfReagentsChanged\(\);\s*\}/,
-    );
+    // Bounded at the METHOD's own two-space closing brace rather than a flat
+    // [^}]* reach from the opener (#2931 made that break this pin once) or
+    // the next definition (whose gap a future method could squat in): inner
+    // blocks close at deeper indents, so the slice is exactly the hook body.
+    const arm = region('onInventoryChanged(): void {', '\n  }');
+    expect(arm).toContain('this.refreshOpenCraftingIfReagentsChanged();');
   });
 
   it('the offline vendor buy converges it on the click', () => {
@@ -354,13 +384,23 @@ function craftingDeps() {
     hideTooltip: vi.fn(),
     onCraft: vi.fn(),
     onClose: vi.fn(),
+    onOpenOrders: vi.fn(),
     itemIcon: vi.fn(() => ''),
     moneyHtml: vi.fn(() => ''),
     itemTooltip: vi.fn(() => ''),
     attachTooltip: vi.fn(),
     commissionChecked: vi.fn((_recipeId: string) => false),
     onToggleCommission: vi.fn(),
+    craftQty: () => 1,
+    onCraftQty: vi.fn(),
+    announce: vi.fn(),
     selectedCraft: () => null as string | null,
+    recipePinned: () => false,
+    onToggleRecipePin: (recipeId: string) => ({
+      pinned: new Set([recipeId]),
+      full: false,
+      changed: true,
+    }),
     onSelectCraft: vi.fn(),
   };
 }
@@ -377,6 +417,26 @@ const BOTH_REAGENTS: InvSlot[] = [
   { itemId: REAGENT_A, count: 3 },
   { itemId: REAGENT_B, count: 3 },
 ];
+
+describe('the fine-substitution suffix renders on BOTH claimed surfaces', () => {
+  it('paints the suffix span and folds the same text into the row aria name', () => {
+    // The phase 14 QA: the visible-line-AND-aria-fold claim had zero
+    // rendered arms (only the view's number was pinned). Base copper is
+    // absent and one fine copy covers the bill, so the reagent row must
+    // carry the suffix in the .crafting-fine-sub span and in the row's
+    // composed aria name.
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    paint(el, [
+      { itemId: 'fine_copper_ore', count: 1 },
+      { itemId: REAGENT_B, count: 1 },
+    ]);
+    const sub = el.querySelector('.crafting-fine-sub');
+    expect(sub?.textContent?.trim()).toBe('(spends 1 fine-grade)');
+    expect(el.querySelector('[aria-label*="spends 1 fine-grade"]')).not.toBeNull();
+    el.remove();
+  });
+});
 
 describe('crafting window repaint preserves the player position', () => {
   it('keeps the tab strip scrolled where the player left it', () => {
@@ -411,6 +471,50 @@ describe('crafting window repaint preserves the player position', () => {
       { itemId: REAGENT_B, count: 2 },
     ]);
     expect((el.querySelector('.crafting-body') as HTMLElement).scrollTop).toBe(64);
+    el.remove();
+  });
+});
+
+describe('the ordinary-grade note renders on BOTH claimed surfaces', () => {
+  it('paints the note span and folds the same text into the row aria name', () => {
+    // The Bronze Hoe report: the player holds the plain grade of a fine-only
+    // reagent. The window must say so in words beside the 0/n count, on the
+    // visible line AND the composed aria name (never color alone).
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const hoe: RecipeDefLike = {
+      id: 'recipe_note_hoe',
+      professionId: 'engineering',
+      resultItemId: 'bronze_hoe',
+      resultCount: 1,
+      reagents: [{ itemId: 'fine_vale_wheat', count: 4 }],
+      skillReq: 0,
+    };
+    renderCraftingWindow(
+      el,
+      buildCraftingView(
+        [hoe],
+        [{ itemId: 'vale_wheat', count: 7 }],
+        {
+          ...ITEMS,
+          vale_wheat: { ...item('vale_wheat'), name: 'Vale Wheat' },
+          fine_vale_wheat: item('fine_vale_wheat'),
+        },
+        {},
+        undefined,
+        undefined,
+        VIEWER,
+      ),
+      craftingDeps(),
+    );
+    const note = el.querySelector('.crafting-ordinary-held');
+    expect(note?.textContent?.trim()).toBe(
+      '(Vale Wheat held: 7, but only the fine grade counts here)',
+    );
+    expect(
+      el.querySelector('[aria-label*="Vale Wheat held: 7, but only the fine grade counts here"]'),
+    ).not.toBeNull();
+    expect(el.querySelector('.crafting-reagent.unsat')).not.toBeNull();
     el.remove();
   });
 });

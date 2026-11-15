@@ -18,11 +18,11 @@ export function ambientBotId(): string {
 }
 
 export function ambientBotAccountUsername(profileId: string): string {
-  const slug = profileId
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    || 'ambient';
+  const slug =
+    profileId
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'ambient';
   const compactSlug = slug.slice(0, 11);
   return `bot_${compactSlug}_${randomBytes(4).toString('hex')}`;
 }

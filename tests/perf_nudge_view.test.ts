@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   dismissPerfNudge,
@@ -131,5 +132,66 @@ describe('isPerfNudgeArmId', () => {
     expect(isPerfNudgeArmId('integrated-gpu')).toBe(true);
     expect(isPerfNudgeArmId('high-dpi')).toBe(false);
     expect(isPerfNudgeArmId('')).toBe(false);
+  });
+});
+
+describe('inactive-dedicated-GPU notice suppression', () => {
+  it('suppresses the integrated arm once the boot notice showed that shell verdict', () => {
+    // The nudge copy tells players the desktop app picks the gaming GPU
+    // automatically, which directly contradicts a notice that just said the
+    // dedicated GPU is idle, so the notice wins and this arm goes quiet.
+    expect(
+      resolvePerfNudge({
+        ...baseInput,
+        suggestionIds: ['integrated-gpu'],
+        discreteNoticeAlreadyShown: true,
+      }),
+    ).toEqual({ shown: false, bodyKey: null });
+  });
+
+  it('still shows the integrated arm when that notice did not show', () => {
+    expect(
+      resolvePerfNudge({
+        ...baseInput,
+        suggestionIds: ['integrated-gpu'],
+        discreteNoticeAlreadyShown: false,
+      }).bodyKey,
+    ).toBe('perfNudge.integratedGpu');
+    // Absent (a caller with no shell verdict at all) reads the same as false.
+    expect(resolvePerfNudge({ ...baseInput, suggestionIds: ['integrated-gpu'] }).bodyKey).toBe(
+      'perfNudge.integratedGpu',
+    );
+  });
+
+  it('the capture helper presses the same element the toast builds', () => {
+    // A capture rig cannot pre-seed this dismissal (the stored value must EQUAL
+    // the triggering id set, which is not known until the analyzer has run), so
+    // scripts/lib/perf_nudge_dismiss.mjs presses the toast's own Dismiss
+    // button. The helper is plain .mjs and cannot import the toast module, so
+    // its two selectors are pinned against the source that builds them: a
+    // rename there would otherwise leave the nudge sitting in every captured
+    // frame, silently, which is how it reached the committed set once already.
+    const toast = readFileSync('src/ui/perf_nudge_toast.ts', 'utf8');
+    const helper = readFileSync('scripts/lib/perf_nudge_dismiss.mjs', 'utf8');
+    expect(toast, 'the toast still builds #perf-nudge').toContain("root.id = 'perf-nudge'");
+    expect(toast, 'the toast still classes its dismiss button').toContain(
+      "dismissButton.className = 'perf-nudge-dismiss'",
+    );
+    expect(helper, 'the helper targets that root id').toContain("ROOT_ID = 'perf-nudge'");
+    expect(helper, 'the helper targets that dismiss class').toContain(
+      "DISMISS_CLASS = 'perf-nudge-dismiss'",
+    );
+  });
+
+  it('does not let the discrete notice suppress the software arm', () => {
+    // The two suppressions are independent: a discrete verdict says nothing
+    // about software rendering, whose explanation the player still needs.
+    expect(
+      resolvePerfNudge({
+        ...baseInput,
+        suggestionIds: ['hardware-acceleration'],
+        discreteNoticeAlreadyShown: true,
+      }),
+    ).toEqual({ shown: true, bodyKey: 'perfNudge.hardwareAccelerationWeb' });
   });
 });

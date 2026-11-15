@@ -1,8 +1,8 @@
 // Source-guard for the 'playerDeath' sim-event audio wiring (the
 // deeds_window.test.ts pattern): pins that the real character-death event
 // plays the dedicated player_death recording via audio.playerDeath(), not
-// the generic ui_death UI stinger shared by every minigame/PvP loss chime
-// (fiesta, Yumi, arena rating, Vale Cup). A prior version of this code used
+// the generic ui_death UI stinger shared by Fiesta, Yumi, Vale Cup, and Rift
+// race loss chimes. A prior version of this code used
 // the shared audio.death() here too, silently reusing a placeholder-era cue
 // for the one event that has a real, distinct recording.
 import { readFileSync } from 'node:fs';
@@ -17,15 +17,21 @@ describe('playerDeath audio wiring', () => {
     expect(start).toBeGreaterThan(-1);
     const end = hud.indexOf('break;', start);
     const body = hud.slice(start, end);
-    expect(body).toContain('audio.playerDeath();');
+    // Matched without the closing paren on purpose: playerDeath now takes the
+    // caller-resolved gendered cue (playerVoiceCue), so pinning `();` would
+    // pin the ARITY rather than the thing this guard is actually about, which
+    // is that the character-death event uses the dedicated recording and never
+    // the generic chime. The negative assertion below is the real anti-regression half.
+    expect(body).toContain('audio.playerDeath(');
     expect(body).not.toContain('audio.death();');
   });
 
   it('leaves every minigame/PvP loss chime on the shared generic cue', () => {
-    // fiesta and Vale Cup losses are NOT a character death and must keep
-    // using the shared stinger. Arena rating loss moved to its own dedicated
-    // audio.arenaLoss() cue (ui_arena_loss), so it no longer counts here.
+    // Fiesta, Yumi, Rift race and Thornhollow Fields losses are NOT a
+    // character death and must keep using the shared stinger. Arena rating and
+    // Card Duel losses use the dedicated audio.arenaLoss() cue, so they do not
+    // count here.
     const matches = hud.match(/audio\.death\(\);/g) ?? [];
-    expect(matches.length).toBe(3);
+    expect(matches.length).toBe(4);
   });
 });

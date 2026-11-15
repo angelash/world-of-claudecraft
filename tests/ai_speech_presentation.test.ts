@@ -66,7 +66,9 @@ describe('AI speech presentation', () => {
       source: 'local',
     };
 
-    expect(aiSpeechPresentationView(ev, '森林狼打量着道路，随后带着新的注意力转向你。', ev.speakerName)).toEqual({
+    expect(
+      aiSpeechPresentationView(ev, '森林狼打量着道路，随后带着新的注意力转向你。', ev.speakerName),
+    ).toEqual({
       channel: 'emote',
       logMode: 'inlineNarration',
       templateKey: 'hud.chat.templates.emote',
@@ -84,7 +86,13 @@ describe('AI speech presentation', () => {
       source: 'local',
     };
 
-    expect(aiSpeechPresentationView(ev, 'The dead are restless tonight. Keep your journal close, Arthur.', ev.speakerName)).toEqual({
+    expect(
+      aiSpeechPresentationView(
+        ev,
+        'The dead are restless tonight. Keep your journal close, Arthur.',
+        ev.speakerName,
+      ),
+    ).toEqual({
       channel: 'say',
       logMode: 'template',
       templateKey: 'hud.chat.templates.say',
@@ -102,7 +110,13 @@ describe('AI speech presentation', () => {
       source: 'local',
     };
 
-    expect(aiSpeechPresentationView(ev, "Rain beads on Brother Aldric's shoulders; the answer comes shorter than usual.", ev.speakerName)).toEqual({
+    expect(
+      aiSpeechPresentationView(
+        ev,
+        "Rain beads on Brother Aldric's shoulders; the answer comes shorter than usual.",
+        ev.speakerName,
+      ),
+    ).toEqual({
       channel: 'emote',
       logMode: 'inlineNarration',
       templateKey: 'hud.chat.templates.emote',
@@ -114,7 +128,9 @@ describe('AI speech presentation', () => {
 
 describe('AI narration text splitting', () => {
   it('reuses the first in-text speaker mention as the clickable speaker token', () => {
-    expect(splitAiNarrationText("Rain beads on Brother Aldric's shoulders.", 'Brother Aldric')).toEqual({
+    expect(
+      splitAiNarrationText("Rain beads on Brother Aldric's shoulders.", 'Brother Aldric'),
+    ).toEqual({
       before: 'Rain beads on ',
       speaker: 'Brother Aldric',
       after: "'s shoulders.",

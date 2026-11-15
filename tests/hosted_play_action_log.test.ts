@@ -2,11 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
-
-import { DUNGEONS, QUESTS } from '../src/sim/data';
-import { hostedPlayActionLogForResult } from '../server/hosted_play/action_log';
 import type { AmbientPlayerBotBrainTickResult } from '../server/ambient_bots/brain';
-import { ensureLocaleLoaded, setLanguage, supportedLanguages, t } from '../src/ui/i18n';
+import { hostedPlayActionLogForResult } from '../server/hosted_play/action_log';
+import { DUNGEONS, QUESTS } from '../src/sim/data';
+import { dungeonDisplayNameFromSource, questTitleFromSource } from '../src/ui/entity_display_core';
+import {
+  ensureLocaleLoaded,
+  getLanguage,
+  setLanguage,
+  supportedLanguages,
+  t,
+} from '../src/ui/i18n';
+import { localizeSystemText } from '../src/ui/system_text_i18n';
 
 const HUD_SRC = fs.readFileSync(path.resolve(process.cwd(), 'src/ui/hud.ts'), 'utf8');
 
@@ -20,41 +27,6 @@ function brainResult(
     commands: [],
     ...patch,
   };
-}
-
-function localizeSystemArm(): { exact: Set<string>; regexes: RegExp[] } {
-  const start = HUD_SRC.indexOf('private localizeSystemText(text: string): string {');
-  if (start < 0) throw new Error('localizeSystemText not found');
-  let depth = 0;
-  let end = HUD_SRC.indexOf('{', start);
-  for (; end < HUD_SRC.length; end++) {
-    if (HUD_SRC[end] === '{') depth++;
-    else if (HUD_SRC[end] === '}') {
-      depth--;
-      if (depth === 0) break;
-    }
-  }
-  const body = HUD_SRC.slice(start, end + 1);
-  const exact = new Set<string>();
-  const exactRe = /(?:^|\n)\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")\s*:/g;
-  for (const match of body.matchAll(exactRe)) {
-    exact.add(JSON.parse(match[1][0] === "'" ? `"${match[1].slice(1, -1).replace(/\\'/g, "'").replace(/"/g, '\\"')}"` : match[1]));
-  }
-  const regexes: RegExp[] = [];
-  const regexRe = /\/((?:\\.|[^/\\\n])+)\/([gimsuy]*)\.exec\(text\)/g;
-  for (const match of body.matchAll(regexRe)) {
-    regexes.push(new RegExp(match[1], match[2].replace('g', '')));
-  }
-  return { exact, regexes };
-}
-
-function recognizedByHud(text: string): boolean {
-  const arm = localizeSystemArm();
-  if (arm.exact.has(text)) return true;
-  return arm.regexes.some((regex) => {
-    regex.lastIndex = 0;
-    return regex.test(text);
-  });
 }
 
 describe('hostedPlayActionLogForResult', () => {
@@ -146,26 +118,46 @@ describe('hostedPlayActionLogForResult', () => {
     }
   });
 
-  it('keeps every hosted-play action log recognized by the HUD system-text matcher', () => {
+  it('keeps every hosted-play action log recognized by the HUD system-text matcher', async () => {
+    expect(HUD_SRC).toContain("import { localizeSystemText } from './system_text_i18n'");
+    expect(HUD_SRC).toContain('localizeSystemText(this.bankWindow.observeStorageText(ev.text))');
     const questName = QUESTS['q_boars']?.name ?? 'q_boars';
     const dungeonName = DUNGEONS['hollow_crypt']?.name ?? 'hollow_crypt';
-    const samples = [
-      `Hosted play: heading to accept ${questName}.`,
-      `Hosted play: working on ${questName}.`,
-      `Hosted play: heading to turn in ${questName}.`,
-      'Hosted play: heading to a vendor for supplies.',
-      'Hosted play: heading to a vendor for an upgrade.',
-      'Hosted play: grinding for experience.',
-      'Hosted play: recovering between pulls.',
-      'Hosted play: retreating to safety.',
-      'Hosted play: releasing spirit.',
-      `Hosted play: gathering a party for ${questName}.`,
-      `Hosted play: leaving ${dungeonName}.`,
-      `Hosted play: leaving the dungeon for ${questName}.`,
-    ];
-
-    for (const sample of samples) {
-      expect(recognizedByHud(sample), sample).toBe(true);
+    const previousLanguage = getLanguage();
+    try {
+      await ensureLocaleLoaded('zh_CN');
+      setLanguage('zh_CN');
+      const quest = { quest: questTitleFromSource(questName) };
+      const dungeon = { dungeon: dungeonDisplayNameFromSource(dungeonName) };
+      const samples = [
+        [`Hosted play: heading to accept ${questName}.`, 'hudChrome.hostedPlay.log.accept', quest],
+        [`Hosted play: working on ${questName}.`, 'hudChrome.hostedPlay.log.questWork', quest],
+        [`Hosted play: heading to turn in ${questName}.`, 'hudChrome.hostedPlay.log.turnIn', quest],
+        ['Hosted play: heading to a vendor for supplies.', 'hudChrome.hostedPlay.log.resupply'],
+        ['Hosted play: heading to a vendor for an upgrade.', 'hudChrome.hostedPlay.log.upgrade'],
+        ['Hosted play: grinding for experience.', 'hudChrome.hostedPlay.log.grind'],
+        ['Hosted play: recovering between pulls.', 'hudChrome.hostedPlay.log.recover'],
+        ['Hosted play: retreating to safety.', 'hudChrome.hostedPlay.log.retreat'],
+        ['Hosted play: releasing spirit.', 'hudChrome.hostedPlay.log.release'],
+        [
+          `Hosted play: gathering a party for ${questName}.`,
+          'hudChrome.hostedPlay.log.gatherParty',
+          quest,
+        ],
+        [`Hosted play: leaving ${dungeonName}.`, 'hudChrome.hostedPlay.log.leaveDungeon', dungeon],
+        [
+          `Hosted play: leaving the dungeon for ${questName}.`,
+          'hudChrome.hostedPlay.log.leaveDungeonForQuest',
+          quest,
+        ],
+      ] as const;
+      for (const [sample, key, values] of samples) {
+        expect(localizeSystemText(sample), sample).toBe(t(key, values));
+        expect(localizeSystemText(sample), sample).not.toBe(sample);
+      }
+      expect(localizeSystemText('An unrelated action.')).toBe('An unrelated action.');
+    } finally {
+      setLanguage(previousLanguage);
     }
   });
 
@@ -173,19 +165,23 @@ describe('hostedPlayActionLogForResult', () => {
     const englishLabel = 'Chat Action Log';
     const englishLog = 'Hosted play: heading to a vendor for supplies.';
 
-    for (const lang of supportedLanguages) {
-      await ensureLocaleLoaded(lang);
-      setLanguage(lang);
-      const label = t('hudChrome.hostedPlay.actionLogLabel');
-      const log = t('hudChrome.hostedPlay.log.resupply');
-      if (lang === 'en' || lang === 'en_CA') {
-        expect(label).toBe(englishLabel);
-        expect(log).toBe(englishLog);
-      } else {
-        expect(label, `${lang} label fallback`).not.toBe(englishLabel);
-        expect(log, `${lang} log fallback`).not.toBe(englishLog);
+    const previousLanguage = getLanguage();
+    try {
+      for (const lang of supportedLanguages) {
+        await ensureLocaleLoaded(lang);
+        setLanguage(lang);
+        const label = t('hudChrome.hostedPlay.actionLogLabel');
+        const log = t('hudChrome.hostedPlay.log.resupply');
+        if (lang === 'en' || lang === 'en_CA') {
+          expect(label).toBe(englishLabel);
+          expect(log).toBe(englishLog);
+        } else {
+          expect(label, `${lang} label fallback`).not.toBe(englishLabel);
+          expect(log, `${lang} log fallback`).not.toBe(englishLog);
+        }
       }
+    } finally {
+      setLanguage(previousLanguage);
     }
-    setLanguage('en');
   });
 });

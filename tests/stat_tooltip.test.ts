@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { spellCritChance } from '../src/sim/combat/spell_combat';
 import { warriorParryChance } from '../src/sim/combat/warrior_hit_table';
 import { CLASSES } from '../src/sim/content/classes';
-import { ITEMS } from '../src/sim/data';
+import { BUILTIN_WORLD, ITEMS } from '../src/sim/data';
 import { recalcPlayerStats } from '../src/sim/entity';
+import { COMBAT_SPIRIT_REGEN_FRACTION } from '../src/sim/mana_regen';
 import { Sim } from '../src/sim/sim';
-import { ALL_CLASSES, armorReduction, type PlayerClass } from '../src/sim/types';
+import { ALL_CLASSES, armorReduction, type PlayerClass, type WorldContent } from '../src/sim/types';
 import {
   agiMeleeApPerPoint,
   buildStatTooltip,
+  combatManaPer5s,
   healthFromStamina,
   isManaClass,
   manaFromIntellect,
@@ -20,12 +23,22 @@ import {
   weaponDps,
 } from '../src/ui/stat_tooltip';
 
+// Every assertion reads player-derived stats (stats/equipment/auras), never
+// ambient world content, so strip camps/npcs/ground objects to keep each Sim
+// construction cheap (same subsystem-world pattern as tests/dot_final_tick.test.ts).
+const STAT_TEST_WORLD: WorldContent = {
+  ...BUILTIN_WORLD,
+  camps: [],
+  npcs: {},
+  groundObjects: [],
+};
+
 // A gear-free, buff-free, talent-free player: autoEquip defaults to false, so the
 // derived stats are a clean function of class base + per-level growth. That lets
 // us reconcile the tooltip's per-stat breakdown against the ONE place the sim
 // derives stats (recalcPlayerStats), so the displayed numbers cannot drift.
 function freshPlayer(cls: PlayerClass, level: number) {
-  const sim = new Sim({ seed: 1, playerClass: cls });
+  const sim = new Sim({ seed: 1, playerClass: cls, world: STAT_TEST_WORLD });
   sim.setPlayerLevel(level);
   return sim.player;
 }
@@ -37,7 +50,9 @@ function inputFor(cls: PlayerClass, p: ReturnType<typeof freshPlayer>): StatTool
     level: p.level,
     attackPower: p.attackPower,
     spellPower: p.spellPower,
+    healPower: p.healPower,
     critChance: p.critChance,
+    spellCritChance: spellCritChance(p),
     dodgeChance: p.dodgeChance,
     critRating: p.critRating,
     hasteRating: p.hasteRating,
@@ -77,7 +92,7 @@ describe('stat tooltip math reconciles with recalcPlayerStats', () => {
       });
 
       it(`${cls} L${level}: agility armor is the agi*2 portion of total armor`, () => {
-        const sim = new Sim({ seed: 1, playerClass: cls });
+        const sim = new Sim({ seed: 1, playerClass: cls, world: STAT_TEST_WORLD });
         sim.setPlayerLevel(level);
         const p = sim.player;
         const def = CLASSES[cls];
@@ -199,6 +214,7 @@ describe('class-aware effect selection', () => {
     const spiDruid = buildStatTooltip('spi', inputFor('druid', druid));
     expect(spiDruid.minorForClass).toBe(false);
     expect(effect(spiDruid.effects, 'manaRegen')).toBeDefined();
+    expect(effect(spiDruid.effects, 'manaRegenCombat')).toBeDefined();
   });
 
   it('derived cells carry their notes and no header', () => {
@@ -238,6 +254,16 @@ describe('pure regen / pool helpers', () => {
     expect(restingManaPer5s(30, 20)).toBe(Math.round(Math.round(30 / 3 + 4 + 4) * 2.5)); // 45
     expect(restingManaPer5s(0, 1)).toBe(Math.round(Math.round(0 + 4 + 0) * 2.5)); // 10
   });
+
+  it('combat regen mirrors the sim: round(full * fraction) per tick, then scaled to per-5s', () => {
+    // full per-tick (spi 30, level 20) = round(30/3 + 4 + 4) = 18; combat per-tick =
+    // round(18 * 0.3) = 5; per-5s = round(5 * 2.5) = 13.
+    const combatPerTick = Math.round((30 / 3 + 4 + 4) * COMBAT_SPIRIT_REGEN_FRACTION);
+    expect(combatManaPer5s(30, 20)).toBe(Math.round(combatPerTick * 2.5)); // 23
+    expect(combatManaPer5s(30, 20)).toBeLessThan(restingManaPer5s(30, 20));
+    // Never negative, even with no Spirit at level 1 (the flat floor persists).
+    expect(combatManaPer5s(0, 1)).toBeGreaterThan(0);
+  });
 });
 
 describe('weaponDps', () => {
@@ -272,9 +298,15 @@ describe('effect wiring reconciles each effect kind with its source', () => {
     expect(effVal('warrior', p, 'sta', 'healthRegen')).toBe(restingHealthPer5s(p.stats.sta));
   });
 
-  it('mana classes wire spirit -> manaRegen and intellect -> spellCritPct', () => {
+  it('mana classes wire spirit -> manaRegen (resting) + manaRegenCombat, and intellect -> spellCritPct', () => {
     const p = freshPlayer('mage', 20);
     expect(effVal('mage', p, 'spi', 'manaRegen')).toBe(restingManaPer5s(p.stats.spi, p.level));
+    // Spirit now also shows an in-combat regen line (the "mp5" share), strictly
+    // positive and strictly below the resting line.
+    const combat = effVal('mage', p, 'spi', 'manaRegenCombat');
+    expect(combat).toBe(combatManaPer5s(p.stats.spi, p.level));
+    expect(combat).toBeGreaterThan(0);
+    expect(combat).toBeLessThan(restingManaPer5s(p.stats.spi, p.level));
     // spell crit = 0.05 + int*0.0008 (sim.ts spellCrit); the line shows the int*0.0008 portion as a percent
     expect(effVal('mage', p, 'int', 'spellCritPct')).toBeCloseTo(p.stats.int * 0.0008 * 100, 6);
   });
@@ -291,8 +323,13 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
     const gear = [];
     for (const id of Object.values(sim.equipment)) {
       const item = id ? ITEMS[id] : null;
-      if (!item || (!item.stats && !item.spellPower)) continue;
-      gear.push({ name: item.id, stats: item.stats, spellPower: item.spellPower });
+      if (!item || (!item.stats && !item.spellPower && !item.healPower)) continue;
+      gear.push({
+        name: item.id,
+        stats: item.stats,
+        spellPower: item.spellPower,
+        healPower: item.healPower,
+      });
     }
     const buffs = p.auras.map((a) => ({ kind: a.kind, value: a.value, name: a.name }));
     return {
@@ -301,7 +338,9 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
       level: p.level,
       attackPower: p.attackPower,
       spellPower: p.spellPower,
+      healPower: p.healPower,
       critChance: p.critChance,
+      spellCritChance: spellCritChance(p),
       dodgeChance: p.dodgeChance,
       critRating: p.critRating,
       hasteRating: p.hasteRating,
@@ -322,14 +361,16 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
     'armor',
     'attackPower',
     'spellPower',
+    'healPower',
     'critChance',
+    'spellCrit',
     'dodge',
   ];
 
   for (const cls of ALL_CLASSES) {
     for (const level of [1, 20]) {
       it(`${cls} L${level}: every cell's sources sum to its displayed value`, () => {
-        const sim = new Sim({ seed: 1, playerClass: cls });
+        const sim = new Sim({ seed: 1, playerClass: cls, world: STAT_TEST_WORLD });
         sim.setPlayerLevel(level);
         const input = inputWithGear(sim, cls);
         for (const stat of STATS) {
@@ -337,7 +378,8 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
           const sum = model.sources.reduce((acc, s) => acc + s.value, 0);
           // Whole-number stats reconcile exactly; the crit/dodge percents carry the
           // 0.05%/agi curve so allow a hair of float slack.
-          const eps = stat === 'critChance' || stat === 'dodge' ? 1e-6 : 0.5;
+          const eps =
+            stat === 'critChance' || stat === 'spellCrit' || stat === 'dodge' ? 1e-6 : 0.5;
           expect(Math.abs(sum - model.statValue)).toBeLessThan(eps);
         }
       });
@@ -345,7 +387,7 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
   }
 
   it('itemizes a flat buff by name and folds talents into the remainder', () => {
-    const sim = new Sim({ seed: 1, playerClass: 'warrior' });
+    const sim = new Sim({ seed: 1, playerClass: 'warrior', world: STAT_TEST_WORLD });
     sim.setPlayerLevel(20);
     const p = sim.player;
     // A flat +20 Stamina buff (e.g. Power Word: Fortitude) must appear as its own
@@ -370,8 +412,38 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
     expect(sum).toBe(sta.statValue);
   });
 
+  it('itemizes a spell crit buff by name on Spell Crit, never on the weapon Crit Chance', () => {
+    const sim = new Sim({ seed: 1, playerClass: 'mage', world: STAT_TEST_WORLD });
+    sim.setPlayerLevel(20);
+    const p = sim.player;
+    // A +5% spell-only crit aura (buff_spellcrit is read live at roll time by
+    // spellCritChance, so no recalc is needed for it to count).
+    p.auras.push({
+      id: 'arcane_focus_test',
+      name: 'Arcane Focus',
+      kind: 'buff_spellcrit',
+      remaining: 10,
+      duration: 10,
+      value: 0.05,
+      sourceId: p.id,
+      school: 'arcane',
+    });
+    const input = inputWithGear(sim, 'mage');
+    const spell = buildStatTooltip('spellCrit', input);
+    const buffLine = spell.sources.find((s) => s.kind === 'buff');
+    expect(buffLine?.name).toBe('Arcane Focus');
+    expect(buffLine?.value).toBeCloseTo(5, 10);
+    expect(spell.statValue).toBeCloseTo(spellCritChance(p) * 100, 10);
+    const sum = spell.sources.reduce((acc, s) => acc + s.value, 0);
+    expect(sum).toBeCloseTo(spell.statValue, 10);
+    // The weapon pool neither gains the aura nor lists it.
+    const weapon = buildStatTooltip('critChance', input);
+    expect(weapon.statValue).toBeCloseTo(p.critChance * 100, 10);
+    expect(weapon.sources.some((s) => s.kind === 'buff')).toBe(false);
+  });
+
   it('spellPower breaks down into Intellect + flat gear/buff Spell Power', () => {
-    const sim = new Sim({ seed: 1, playerClass: 'mage' });
+    const sim = new Sim({ seed: 1, playerClass: 'mage', world: STAT_TEST_WORLD });
     sim.setPlayerLevel(20);
     const p = sim.player;
     const model = buildStatTooltip('spellPower', inputWithGear(sim, 'mage'));
@@ -381,7 +453,7 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
     const sum = model.sources.reduce((acc, s) => acc + s.value, 0);
     expect(sum).toBe(p.spellPower);
     // non-casters get the minor-benefit note on the spell power cell
-    const warriorSim = new Sim({ seed: 1, playerClass: 'warrior' });
+    const warriorSim = new Sim({ seed: 1, playerClass: 'warrior', world: STAT_TEST_WORLD });
     warriorSim.setPlayerLevel(20);
     expect(buildStatTooltip('spellPower', inputWithGear(warriorSim, 'warrior')).minorForClass).toBe(
       true,
@@ -389,7 +461,7 @@ describe('upstream source breakdown reconciles to the displayed stat', () => {
   });
 
   it('cat-form druid attributes armor to the Agility that fed it (before the form bonus)', () => {
-    const sim = new Sim({ seed: 1, playerClass: 'druid' });
+    const sim = new Sim({ seed: 1, playerClass: 'druid', world: STAT_TEST_WORLD });
     sim.setPlayerLevel(20);
     const p = sim.player;
     p.auras.push({

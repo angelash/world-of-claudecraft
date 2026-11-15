@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 //
 // DOM structural guard over the professions window's rebuilt layout surface:
 // the hero band (identity card + ring stage), the two-line craft-row anatomy
@@ -12,8 +12,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { GATHERING_PROFESSIONS } from '../src/sim/content/professions';
 import { requiredAmendsProgress } from '../src/sim/professions/archetype';
-import { ProfessionsWindow, type ProfessionsWindowDeps } from '../src/ui/professions_window';
+import {
+  ProfessionsWindow,
+  type ProfessionsWindowDeps,
+} from '../src/ui/hud/professions/professions_window';
 
 // This file runs under jsdom, where import.meta.url is an http URL that
 // readFileSync rejects; resolve the source-scan reads from __dirname instead.
@@ -21,7 +25,12 @@ const read = (rel: string): string => readFileSync(join(__dirname, rel), 'utf8')
 
 // jsdom ships no 2D canvas, so the procedural icon compositor cannot run here;
 // the painter only ever uses the returned string as an <img src>.
-vi.mock('../src/ui/icons', () => ({
+vi.mock('../src/ui/icons', async (importOriginal) => ({
+  // Additive, never bare (the reliquary_window_behavior lesson): the real
+  // module passes through, QUALITY_COLOR included (the hand-mirrored copy the
+  // bare form needed is retired: a real record cannot drift), and only the
+  // two resolvers below stay stubbed.
+  ...(await importOriginal<typeof import('../src/ui/icons')>()),
   iconDataUrl: () => 'data:,',
   // Echo the requested id into the URL so painter tests catch a wrong or
   // hardcoded profession/gathering resolver argument.
@@ -42,6 +51,24 @@ interface WorldState {
     amendsRequired: number;
   };
   gathering: { professionId: string; skill: number; maxSkill: number }[];
+  toolEffects?: {
+    professionId: string;
+    effectId: string;
+    charges: number;
+    maxCharges: number;
+    confirmMode: 'always' | 'prompt';
+    /** The R48 provenance boolean; optional here so the pre-R48 fixtures
+     *  stay untouched (undefined reads as not-self-crafted, the wire's own
+     *  degraded shape). */
+    selfCrafted?: boolean;
+  }[];
+  // The viewer's bags (IWorld `inventory`), the slot/recharge affordance
+  // input. Defaults to empty: no charms, no buttons, so the existing cases
+  // keep asserting the button-free surface.
+  inventory?: { itemId: string; count: number; instance?: { signer?: string } }[];
+  // The viewer's planted beds (IWorld `myFarmPlots`), the simplified body's
+  // Farming-row arm. Defaults to none, which is what every non-farmer reads.
+  farmPlots?: unknown[];
 }
 
 // An attuned, tiered identity so the window opens in full mode (hero band,
@@ -102,12 +129,17 @@ function makeWindow(
         gatheringProficiency: Object.fromEntries(
           state.gathering.map((row) => [row.professionId, row.skill]),
         ),
+        toolEffectSlots: state.toolEffects ?? [],
+        inventory: state.inventory ?? [],
+        myFarmPlots: state.farmPlots ?? [],
+        player: { name: 'Testchar' },
       }) as never,
     closeOthers: () => {},
     hideTooltip: () => {},
     consumePeek: () => false,
     captureFocus: () => null,
     restoreFocus: () => {},
+    openWiki: () => {},
     itemIcon: () => '',
     moneyHtml: () => '',
     itemTooltip: () => '',
@@ -136,9 +168,10 @@ describe('ProfessionsWindow: hero band structure', () => {
     const hero = mustQuery(el, '.prof-hero');
     // Exact child pin: the hero band holds the identity section and the ring
     // stage, nothing else, in that order.
+    // Both surfaces now inherit their visual treatment from the shared card primitive.
     expect(
       [...hero.children].map((child) => `${child.tagName.toLowerCase()}.${child.className}`),
-    ).toEqual(['section.prof-identity', 'div.prof-ring-stage']);
+    ).toEqual(['section.prof-identity ui-card', 'div.prof-ring-stage ui-card']);
   });
 
   it('keeps the aria surface on the ring itself, never the stage wrapper', () => {
@@ -178,9 +211,10 @@ describe('ProfessionsWindow: craft row anatomy', () => {
         'prof-skill-value',
       ]);
       const chips = mustQuery(row, '.prof-craft-chips');
+      // Shared chips replace the legacy pill styling without changing row content.
       expect([...chips.children].map((child) => child.className)).toEqual([
-        'prof-role-badge',
-        'prof-ceiling',
+        'prof-role-badge ui-chip',
+        'prof-ceiling ui-chip',
       ]);
     }
   });
@@ -240,7 +274,7 @@ describe('ProfessionsWindow: simplified call to action', () => {
     // mapping is pinned at the source: the painter must select the
     // specialized copy exactly when nextUnlock.kind is 'specialized' and the
     // plain raise copy otherwise.
-    const painter = read('../src/ui/professions_window.ts');
+    const painter = read('../src/ui/hud/professions/professions_window.ts');
     expect(painter).toContain("'hudChrome.professions.ctaRaiseSpecialized'");
     expect(painter).toContain("'hudChrome.professions.ctaRaise'");
     const flat = painter.replace(/\s+/g, ' ');
@@ -249,6 +283,186 @@ describe('ProfessionsWindow: simplified call to action', () => {
         "? 'hudChrome.professions.ctaRaiseSpecialized' " +
         ": 'hudChrome.professions.ctaRaise'",
     );
+  });
+});
+
+describe('ProfessionsWindow: the Harvest Journal entry (farming Phase 8, deviation (be))', () => {
+  const farmingRow = { professionId: 'farming', skill: 0, maxSkill: 100 };
+
+  /** A simplified-mode state: never attuned, every craft under the first
+   *  tier, so the identity paragraph and the ONE call to action paint. */
+  function simplifiedState(): WorldState {
+    const state = neverAttunedFullState();
+    state.identity.craftSkills = { cooking: 10 };
+    state.gathering = [];
+    return state;
+  }
+
+  it('renders the opener under the Farming row in full mode and routes its click to the dep', () => {
+    const state = baseState();
+    state.gathering = [{ professionId: 'mining', skill: 30, maxSkill: 300 }, farmingRow];
+    let opened = 0;
+    const { el } = makeWindow(state, {
+      openHarvestJournal: () => {
+        opened++;
+      },
+    });
+    const buttons = el.querySelectorAll<HTMLButtonElement>('button[data-harvest-journal]');
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].textContent).toBe('Harvest Journal');
+    // Under the FARMING row, not the mining one.
+    expect(
+      buttons[0].closest('.prof-gather-row')?.querySelector('.prof-craft-name')?.textContent,
+    ).toBe('Farming');
+    buttons[0].click();
+    expect(opened).toBe(1);
+    // A reader, not a command: the click repaints nothing, so the very same
+    // button node is still there to press again.
+    expect(el.querySelector('button[data-harvest-journal]')).toBe(buttons[0]);
+    buttons[0].click();
+    expect(opened).toBe(2);
+  });
+
+  it('paints NO opener when the host has not wired the journal', () => {
+    const state = baseState();
+    state.gathering = [farmingRow];
+    const { el } = makeWindow(state);
+    expect(el.querySelector('.prof-gather-row')).not.toBeNull();
+    expect(el.querySelector('[data-harvest-journal]')).toBeNull();
+  });
+
+  it('never paints the opener under a non-farming row', () => {
+    const state = baseState();
+    state.gathering = [
+      { professionId: 'mining', skill: 30, maxSkill: 300 },
+      { professionId: 'herbalism', skill: 5, maxSkill: 300 },
+    ];
+    const { el } = makeWindow(state, { openHarvestJournal: () => {} });
+    expect(el.querySelectorAll('.prof-gather-row')).toHaveLength(2);
+    expect(el.querySelector('[data-harvest-journal]')).toBeNull();
+  });
+
+  it('reaches a pre-attunement farmer: simplified mode paints the worked Farming row and its opener', () => {
+    // The live-client finding this arm exists for: simplified mode painted no
+    // gathering section at all, so a farmer who had never crafted to tier 1
+    // had no in-window entry to the journal.
+    const state = simplifiedState();
+    state.gathering = [{ ...farmingRow, skill: 5 }];
+    let opened = 0;
+    const { el } = makeWindow(state, {
+      openHarvestJournal: () => {
+        opened++;
+      },
+    });
+    expect(el.querySelector('.prof-cta')).not.toBeNull();
+    expect(el.querySelector('.prof-hero')).toBeNull(); // still the simplified body
+    const row = mustQuery(el, '.prof-gathering .prof-gather-row');
+    expect(row.querySelector('.prof-craft-name')?.textContent).toBe('Farming');
+    const button = mustQuery(el, 'button[data-harvest-journal]') as HTMLButtonElement;
+    button.click();
+    expect(opened).toBe(1);
+  });
+
+  it('reaches a farmer whose FIRST crop is still growing (skill 0, a bed planted)', () => {
+    const state = simplifiedState();
+    state.gathering = [farmingRow];
+    state.farmPlots = [{ bedId: 'bed_eastbrook_1' }];
+    const { el } = makeWindow(state, { openHarvestJournal: () => {} });
+    expect(el.querySelector('.prof-gathering .prof-gather-row .prof-craft-name')?.textContent).toBe(
+      'Farming',
+    );
+    expect(el.querySelector('button[data-harvest-journal]')).not.toBeNull();
+  });
+
+  it('keeps a fresh character on the ONE call to action: no gathering section at all', () => {
+    const state = simplifiedState();
+    state.gathering = [
+      { professionId: 'mining', skill: 0, maxSkill: 300 },
+      farmingRow,
+      { professionId: 'herbalism', skill: 0, maxSkill: 300 },
+    ];
+    const { el } = makeWindow(state, { openHarvestJournal: () => {} });
+    expect(el.querySelector('.prof-cta')).not.toBeNull();
+    expect(el.querySelector('.prof-gathering')).toBeNull();
+    expect(el.querySelector('[data-harvest-journal]')).toBeNull();
+  });
+
+  it('paints only the WORKED rows in simplified mode (a miner sees Mining, not Farming)', () => {
+    const state = simplifiedState();
+    state.gathering = [{ professionId: 'mining', skill: 30, maxSkill: 300 }, farmingRow];
+    const { el } = makeWindow(state, { openHarvestJournal: () => {} });
+    const names = [...el.querySelectorAll('.prof-gathering .prof-craft-name')].map(
+      (n) => n.textContent,
+    );
+    expect(names).toEqual(['Mining']);
+    expect(el.querySelector('[data-harvest-journal]')).toBeNull();
+  });
+
+  it('keeps the simplified rows to bar plus opener: no slot, recharge, or ask-each-use control', () => {
+    // The simplified body's one call to action is meant to be its only
+    // spender. A syncing or pre-attunement player who holds a charm and a
+    // pick with a worked mining row would otherwise see the resource-spending
+    // slot and recharge buttons there; the same state paints them in full
+    // mode (the slotted-tool-effect describe below), so this arm pins the
+    // per-mode difference rather than the buttons' existence.
+    const state = simplifiedState();
+    state.gathering = [
+      { professionId: 'mining', skill: 30, maxSkill: 300 },
+      { ...farmingRow, skill: 2 },
+    ];
+    state.toolEffects = [
+      {
+        professionId: 'mining',
+        effectId: 'gatherers_cache',
+        charges: 12,
+        maxCharges: 30,
+        confirmMode: 'always',
+        selfCrafted: true,
+      },
+    ];
+    state.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'artisans_eye', count: 1 },
+    ];
+    const { el } = makeWindow(state, { openHarvestJournal: () => {} });
+    expect(el.querySelectorAll('.prof-gathering .prof-gather-row')).toHaveLength(2);
+    expect(el.querySelector('.prof-effect')).toBeNull();
+    expect(el.querySelector('[data-slot-profession]')).toBeNull();
+    expect(el.querySelector('[data-recharge-profession]')).toBeNull();
+    expect(el.querySelector('input[type="checkbox"]')).toBeNull();
+    // The opener is the ONE control the rows carry here.
+    expect(el.querySelectorAll('.prof-gathering button')).toHaveLength(1);
+    expect(el.querySelector('.prof-gathering button')?.hasAttribute('data-harvest-journal')).toBe(
+      true,
+    );
+    // The section sits AFTER the call to action, never before it.
+    const cta = el.querySelector('.prof-cta');
+    const gathering = el.querySelector('.prof-gathering');
+    if (!cta || !gathering) throw new Error('missing cta or gathering');
+    expect(cta.compareDocumentPosition(gathering) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('paints the Farming row the moment the first bed is planted under an OPEN window', () => {
+    // The live half of the signature arm: the slow band re-reads the world,
+    // and the presence fold in professionsRefreshSig is what turns a plant
+    // into a repaint while the window is up. Before the plant the fresh
+    // farmer sees only the call to action.
+    const state = simplifiedState();
+    state.gathering = [farmingRow];
+    state.farmPlots = [];
+    const { w, el } = makeWindow(state, { openHarvestJournal: () => {} });
+    w.refreshIfChanged(); // settle the post-open catch-up repaint
+    expect(el.querySelector('.prof-gathering')).toBeNull();
+    state.farmPlots.push({ bedId: 'bed_eastbrook_1' });
+    w.refreshIfChanged();
+    expect(el.querySelector('.prof-gathering .prof-craft-name')?.textContent).toBe('Farming');
+    expect(el.querySelector('button[data-harvest-journal]')).not.toBeNull();
+    // A second bed moves nothing: the fold is presence, and an unchanged
+    // signature must not rebuild the subtree under a possibly focused control.
+    const opener = el.querySelector('button[data-harvest-journal]');
+    state.farmPlots.push({ bedId: 'bed_eastbrook_2' });
+    w.refreshIfChanged();
+    expect(el.querySelector('button[data-harvest-journal]')).toBe(opener);
   });
 });
 
@@ -286,6 +500,496 @@ describe('ProfessionsWindow: gathering rows', () => {
     expect(el.querySelectorAll('.prof-gather-row')).toHaveLength(0);
     expect(el.querySelector('.prof-gathering')).toBeNull();
   });
+
+  it('sources the denominator from the content cap, never the wire row', () => {
+    // The character sheet's "12 / 0" cure (gathering_view.ts
+    // buildGatheringProficiencyRows): the wire row's maxSkill is the same
+    // number on an honest server but it is not total, so a malformed row must
+    // not paint a nonsense denominator. Two professions with DIFFERENT
+    // content caps, so a hardcoded 100 cannot pass.
+    const state = baseState();
+    state.gathering = [
+      { professionId: 'mining', skill: 12, maxSkill: 0 },
+      { professionId: 'fishing', skill: 30, maxSkill: 0 },
+    ];
+    const { el } = makeWindow(state);
+    const values = [...el.querySelectorAll('.prof-gather-row .prof-skill-value')].map(
+      (node) => node.textContent ?? '',
+    );
+    expect(values).toHaveLength(2);
+    expect(values[0]).toContain('12');
+    expect(values[0]).toContain(String(GATHERING_PROFESSIONS.mining.maxSkill));
+    expect(values[0]).not.toMatch(/\/\s*0\b/);
+    expect(values[1]).toContain(String(GATHERING_PROFESSIONS.fishing.maxSkill));
+  });
+
+  it('a non-finite wire skill renders as 0, never NaN', () => {
+    const state = baseState();
+    state.gathering = [{ professionId: 'mining', skill: Number.NaN, maxSkill: 100 }];
+    const { el } = makeWindow(state);
+    const value = mustQuery(el, '.prof-gather-row .prof-skill-value').textContent ?? '';
+    expect(value).not.toContain('NaN');
+    expect(value).toMatch(/\b0\b/);
+  });
+});
+
+describe('ProfessionsWindow: the slotted tool effect row', () => {
+  const slotted = (over: Record<string, unknown> = {}) => {
+    const state = baseState();
+    state.toolEffects = [
+      {
+        professionId: 'mining',
+        effectId: 'gatherers_cache',
+        charges: 12,
+        maxCharges: 30,
+        confirmMode: 'always',
+        ...over,
+      } as WorldState['toolEffects'] extends (infer R)[] | undefined ? R : never,
+    ];
+    return state;
+  };
+
+  it('paints NO effect line for a player with no slot, which is every player today', () => {
+    // The default surface. An always-present "no effect" line would be three
+    // permanent rows of absence in a window that is otherwise all progress.
+    const { el } = makeWindow(baseState());
+    expect(el.querySelectorAll('.prof-effect')).toHaveLength(0);
+  });
+
+  it('paints one line under the slotted profession only, never under the others', () => {
+    const { el } = makeWindow(slotted());
+    const lines = el.querySelectorAll('.prof-effect');
+    expect(lines).toHaveLength(1);
+    // It must sit INSIDE the mining row, not loose in the section: a line under
+    // the wrong bar would tell the player the wrong tool is affected.
+    const rows = [...el.querySelectorAll('.prof-gather-row')];
+    const owning = rows.filter((r) => r.querySelector('.prof-effect'));
+    expect(owning).toHaveLength(1);
+    expect(owning[0].querySelector('.prof-craft-name')?.textContent).toBe('Mining');
+    expect(lines[0].querySelector('.prof-effect-name')?.textContent).toBe("Gatherer's Cache");
+    expect(lines[0].querySelector('.prof-effect-charges')?.textContent).toBe('12 of 30 charges');
+  });
+
+  it('says a spent slot is spent in words rather than showing 0 of 30', () => {
+    // A bare zero reads like a broken tool. The tool is fine; only the effect
+    // is spent, and it recharges.
+    const { el } = makeWindow(slotted({ charges: 0 }));
+    const line = el.querySelector('.prof-effect');
+    expect(line?.classList.contains('prof-effect-spent')).toBe(true);
+    expect(line?.querySelector('.prof-effect-charges')?.textContent).toBe(
+      'Spent, needs recharging',
+    );
+    expect(el.innerHTML).not.toContain('0 of 30 charges');
+  });
+
+  it('paints nothing for an effect id the name table does not know', () => {
+    // A persisted slot can name an effect a later content change retired; the
+    // row must render nothing rather than print a raw id at a player.
+    const { el } = makeWindow(slotted({ effectId: 'retired_effect' }));
+    expect(el.querySelectorAll('.prof-effect')).toHaveLength(0);
+    expect(el.innerHTML).not.toContain('retired_effect');
+  });
+
+  it('a held charm paints a slot button whose click sends the command, exactly once', () => {
+    const state = baseState();
+    state.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'artisans_eye', count: 1 },
+    ];
+    const sent: [string, string][] = [];
+    const { el } = makeWindow(state, {
+      world: () =>
+        ({
+          craftingIdentity: state.identity,
+          professionsState: { skills: state.gathering },
+          toolEffectSlots: [],
+          inventory: state.inventory,
+          myFarmPlots: state.farmPlots ?? [],
+          player: { name: 'Testchar' },
+          slotToolEffect: (professionId: string, effectId: string) => {
+            sent.push([professionId, effectId]);
+          },
+        }) as never,
+    });
+    const button = el.querySelector<HTMLElement>('[data-slot-effect]');
+    expect(button?.getAttribute('data-slot-profession')).toBe('mining');
+    expect(button?.getAttribute('data-slot-effect')).toBe('artisans_eye');
+    expect(button?.textContent).toBe("Slot Artisan's Eye");
+    button?.click();
+    expect(sent).toEqual([['mining', 'artisans_eye']]);
+    // The sent-guard: a double-click (or a held Enter's key repeats) on the
+    // SAME painted button sends nothing more; the repaint that answers the
+    // command replaces the node, which is what re-arms the button. Guarding
+    // beats disabling, because disabling the focused button drops keyboard
+    // focus to <body>.
+    button?.click();
+    button?.click();
+    expect(sent).toEqual([['mining', 'artisans_eye']]);
+  });
+
+  it('the sent-guard RE-ARMS: a repaint replaces the node, and the timer covers dropped frames', () => {
+    // The guard's safety story has two halves. The ordinary half: the
+    // toolEffectResult repaint rebuilds the subtree, so the fresh node sends
+    // again (a guard keyed on anything but the NODE would leave the button
+    // permanently dead). The residual half: a frame that never reaches the
+    // sim answers with nothing, so a one-shot timer clears the guard on the
+    // SAME node.
+    vi.useFakeTimers();
+    try {
+      const state = baseState();
+      state.inventory = [
+        { itemId: 'copper_mining_pick', count: 1 },
+        { itemId: 'artisans_eye', count: 1 },
+      ];
+      const sent: [string, string][] = [];
+      const { w, el } = makeWindow(state, {
+        world: () =>
+          ({
+            craftingIdentity: state.identity,
+            professionsState: { skills: state.gathering },
+            toolEffectSlots: [],
+            inventory: state.inventory,
+            myFarmPlots: state.farmPlots ?? [],
+            player: { name: 'Testchar' },
+            slotToolEffect: (professionId: string, effectId: string) => {
+              sent.push([professionId, effectId]);
+            },
+          }) as never,
+      });
+      el.querySelector<HTMLElement>('[data-slot-effect]')?.click();
+      expect(sent).toHaveLength(1);
+      // The repaint half: a rebuilt node sends again.
+      w.render();
+      el.querySelector<HTMLElement>('[data-slot-effect]')?.click();
+      expect(sent).toHaveLength(2);
+      // The timer half: no repaint at all, the guard clears on its own.
+      const stale = el.querySelector<HTMLElement>('[data-slot-effect]');
+      stale?.click();
+      expect(sent).toHaveLength(2); // guarded
+      vi.advanceTimersByTime(2100);
+      stale?.click();
+      expect(sent).toHaveLength(3); // re-armed without any repaint
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('exact affordance parity through the WINDOW: viewerName and selfCrafted are really wired', () => {
+    // The end-to-end half of the R48 parity claim: the core is proven in
+    // professions_view.test.ts, but buildInput's threading of
+    // world.player.name and row.selfCrafted is what the servers-agree
+    // guarantee actually rides on. A full SELF-crafted slot with a spare
+    // self-signed copy is the resolver's no_gain case, so the window must
+    // paint NO slot button; the identical state with foreign provenance is
+    // the sanctioned upgrade, so the button must appear.
+    const noGain = slotted({ charges: 20, maxCharges: 20, selfCrafted: true });
+    noGain.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'gatherers_cache', count: 1, instance: { signer: 'Testchar' } },
+    ];
+    const { el: noGainEl } = makeWindow(noGain);
+    expect(noGainEl.querySelector('[data-slot-effect]')).toBeNull();
+
+    const upgrade = slotted({ charges: 20, maxCharges: 20, selfCrafted: false });
+    upgrade.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'gatherers_cache', count: 1, instance: { signer: 'Testchar' } },
+    ];
+    const { el: upgradeEl } = makeWindow(upgrade);
+    expect(upgradeEl.querySelector('[data-slot-effect="gatherers_cache"]')).not.toBeNull();
+  });
+
+  it('prototype-key ids from the wire drop their rows instead of throwing mid-paint', () => {
+    // Both name tables are plain object literals; a row naming
+    // 'constructor' must fall out at the hasOwn guards, not resolve a
+    // function into t().
+    const state = baseState();
+    state.gathering.push({ professionId: 'constructor', skill: 1, maxSkill: 100 });
+    state.toolEffects = [
+      {
+        professionId: 'mining',
+        effectId: 'constructor',
+        charges: 5,
+        maxCharges: 20,
+        confirmMode: 'always',
+      },
+    ];
+    const { el } = makeWindow(state);
+    // The mining row paints (its effect row is dropped for the unknown id);
+    // the 'constructor' gathering row is dropped whole.
+    expect(el.querySelectorAll('.prof-gather-row').length).toBeGreaterThan(0);
+    expect(el.innerHTML).not.toContain('function Object');
+    expect(el.querySelectorAll('.prof-effect')).toHaveLength(0);
+  });
+
+  it('the recharge price line previews the resolver count, marginal top-up included', () => {
+    // The phase 12 QA hand-off: the cost preview beside the button. A
+    // copper-pick slot at 3 of 20 restores 17: ceil(17/10) = 2 dust...
+    const deep = slotted({ charges: 3, maxCharges: 20 });
+    deep.inventory = [{ itemId: 'copper_mining_pick', count: 1 }];
+    const { el } = makeWindow(deep);
+    // Exact-line pins (the phase 14 QA: digit substrings let a 10x count
+    // mutation ship green, '20 x' still contains '2').
+    const price = el.querySelector('.prof-effect-price')?.textContent ?? '';
+    expect(price).toBe('Recharge: 2 x Chime Dust');
+    // ...and the blind marginal top-up: 19 of 20 restores one charge and
+    // STILL prices one full material (the ceil floor), stated before the
+    // click instead of discovered after it.
+    const marginal = slotted({ charges: 19, maxCharges: 20 });
+    marginal.inventory = [{ itemId: 'copper_mining_pick', count: 1 }];
+    const { el: marginalEl } = makeWindow(marginal);
+    const marginalPrice = marginalEl.querySelector('.prof-effect-price')?.textContent ?? '';
+    expect(marginalPrice).toBe('Recharge: 1 x Chime Dust');
+    // No preview without a button: the full slot renders neither.
+    const full = slotted({ charges: 20, maxCharges: 20 });
+    full.inventory = [{ itemId: 'copper_mining_pick', count: 1 }];
+    const { el: fullEl } = makeWindow(full);
+    expect(fullEl.querySelector('.prof-effect-price')).toBeNull();
+  });
+
+  it('a fresh open seeds each toggle from the live slot mode (the phase 14 QA)', () => {
+    // The capture truth-test showed a prompt-mode slot chipping "Asks each
+    // use" beside an UNCHECKED "Ask each use" toggle. A fresh open now
+    // reflects each live slot's real mode.
+    const prompt = slotted({ confirmMode: 'prompt' });
+    prompt.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'artisans_eye', count: 1 },
+    ];
+    const { el } = makeWindow(prompt);
+    const box = el.querySelector<HTMLInputElement>('[data-slot-mode="mining"]');
+    expect(box).toBeTruthy();
+    expect(box?.checked).toBe(true);
+    // The control arm: an 'always' slot opens unchecked.
+    const always = slotted();
+    always.inventory = prompt.inventory;
+    const { el: alwaysEl } = makeWindow(always);
+    expect(alwaysEl.querySelector<HTMLInputElement>('[data-slot-mode="mining"]')?.checked).toBe(
+      false,
+    );
+  });
+
+  it('flipping Ask-each-use changes which slot buttons exist (the resolver sees the sent mode)', () => {
+    // The no_gain mode conjunct, driven through the REAL toggle (the phase
+    // 14 QA found no arm where the threading changed an outcome): a full
+    // 'always' cache slot refuses a same-mode remint, so its button is
+    // absent; with the toggle on, the same remint is a mode gain and the
+    // button appears. The second charm keeps the actions row (and the
+    // toggle itself) painted in both states.
+    const state = slotted({ charges: 20, maxCharges: 20 });
+    state.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'artisans_eye', count: 1 },
+      { itemId: 'gatherers_cache', count: 1 },
+    ];
+    const { el } = makeWindow(state);
+    expect(el.querySelector('[data-slot-effect="artisans_eye"]')).not.toBeNull();
+    expect(el.querySelector('[data-slot-effect="gatherers_cache"]')).toBeNull();
+    const box = el.querySelector<HTMLInputElement>('[data-slot-mode="mining"]');
+    expect(box).toBeTruthy();
+    if (!box) return;
+    box.checked = true;
+    box.dispatchEvent(new Event('change'));
+    expect(el.querySelector('[data-slot-effect="gatherers_cache"]')).not.toBeNull();
+  });
+
+  it('the farming row offers slot buttons but NEVER the Ask-each-use toggle (no confirm channel)', () => {
+    // The Phase 5 QA self-erase trap: prompt-mode farming mints are refused
+    // at the resolver (promptSlotRefused: harvest_crop has no confirm
+    // channel), so a farming toggle was a checkbox whose tick re-asked the
+    // resolver with a mode it refuses for every effect, emptied the row's
+    // slottable set, and erased the whole actions row (toggle included)
+    // until reopen. The toggle is suppressed THROUGH THE SAME predicate the
+    // resolver reads, and the slot buttons stay.
+    const state = baseState();
+    state.gathering = [
+      { professionId: 'mining', skill: 30, maxSkill: 300 },
+      { professionId: 'farming', skill: 10, maxSkill: 100 },
+    ];
+    state.inventory = [
+      { itemId: 'garden_hoe', count: 1 },
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'gatherers_cache', count: 2 },
+    ];
+    const { el } = makeWindow(state);
+    // The farming slot affordance survives...
+    expect(el.querySelector('[data-slot-profession="farming"]')).not.toBeNull();
+    // ...its mode toggle never renders...
+    expect(el.querySelector('[data-slot-mode="farming"]')).toBeNull();
+    // ...and the mining control keeps ITS toggle beside its own button, so
+    // this is the farming policy, not a blanket toggle removal.
+    expect(el.querySelector('[data-slot-profession="mining"]')).not.toBeNull();
+    expect(el.querySelector('[data-slot-mode="mining"]')).not.toBeNull();
+  });
+
+  it('the preview prices with the viewer craft skills: specialization shrinks the count', () => {
+    // The phase 14 QA: every recharge fixture lacked selfCrafted, so the
+    // old {} skills argument previewed identically. An EPIC pick refills a
+    // spent slot to 50 charges (restored 50, 5 undiscounted materials): the
+    // original-crafter discount alone prices ceil(2.5) = 3, and enchanting
+    // specialization (skill 75, the cache charm's craft) drops it to
+    // ceil(1.875) = 2, so the previewed count moves with
+    // input.identity.craftSkills exactly and a revert to the old {} reads 3.
+    const noSpec = slotted({ charges: 0, maxCharges: 20, selfCrafted: true });
+    noSpec.inventory = [{ itemId: 'arcanite_mining_pick', count: 1 }];
+    const { el: noSpecEl } = makeWindow(noSpec);
+    const noSpecPrice = noSpecEl.querySelector('.prof-effect-price')?.textContent ?? '';
+    expect(noSpecPrice).toMatch(/^Recharge: 3 x /);
+    const spec = slotted({ charges: 0, maxCharges: 20, selfCrafted: true });
+    spec.inventory = [{ itemId: 'arcanite_mining_pick', count: 1 }];
+    spec.identity.craftSkills.enchanting = 75;
+    const { el: specEl } = makeWindow(spec);
+    const specPrice = specEl.querySelector('.prof-effect-price')?.textContent ?? '';
+    expect(specPrice).toMatch(/^Recharge: 2 x /);
+  });
+
+  it('a rechargeable slot paints the recharge button; a full or tool-less one does not', () => {
+    const rechargeState = slotted({ charges: 3, maxCharges: 20 });
+    rechargeState.inventory = [{ itemId: 'copper_mining_pick', count: 1 }];
+    const sent: string[] = [];
+    const { el } = makeWindow(rechargeState, {
+      world: () =>
+        ({
+          craftingIdentity: rechargeState.identity,
+          professionsState: { skills: rechargeState.gathering },
+          toolEffectSlots: rechargeState.toolEffects,
+          inventory: rechargeState.inventory,
+          myFarmPlots: rechargeState.farmPlots ?? [],
+          player: { name: 'Testchar' },
+          rechargeToolEffect: (professionId: string) => {
+            sent.push(professionId);
+          },
+        }) as never,
+    });
+    const button = el.querySelector<HTMLElement>('[data-recharge-profession]');
+    expect(button?.textContent).toBe('Recharge');
+    button?.click();
+    expect(sent).toEqual(['mining']);
+    // The recharge button carries the same sent-guard as the slot button.
+    button?.click();
+    button?.click();
+    expect(sent).toEqual(['mining']);
+    // Full slot at the re-derived max: no button.
+    const fullState = slotted({ charges: 20, maxCharges: 20 });
+    fullState.inventory = [{ itemId: 'copper_mining_pick', count: 1 }];
+    const { el: fullEl } = makeWindow(fullState);
+    expect(fullEl.querySelector('[data-recharge-profession]')).toBeNull();
+    // Tool gone: the resolver refuses, so the affordance stays off.
+    const toollessState = slotted({ charges: 3, maxCharges: 20 });
+    const { el: toollessEl } = makeWindow(toollessState);
+    expect(toollessEl.querySelector('[data-recharge-profession]')).toBeNull();
+  });
+});
+
+describe('ProfessionsWindow: tool-effect hover cards', () => {
+  const slotted = (over: Record<string, unknown> = {}) => {
+    const state = baseState();
+    state.toolEffects = [
+      {
+        professionId: 'mining',
+        effectId: 'gatherers_cache',
+        charges: 12,
+        maxCharges: 30,
+        confirmMode: 'always',
+        ...over,
+      } as WorldState['toolEffects'] extends (infer R)[] | undefined ? R : never,
+    ];
+    return state;
+  };
+
+  it('a live effect row mints data-effect-tip, joins the tab order, and attaches the charm card', () => {
+    const attached: { el: HTMLElement; html: () => string }[] = [];
+    const { el } = makeWindow(slotted(), {
+      attachTooltip: (target, html) => attached.push({ el: target, html }),
+    });
+    const row = el.querySelector<HTMLElement>('.prof-effect');
+    expect(row?.getAttribute('data-effect-tip')).toBe('gatherers_cache');
+    // The row is a div, so without a tab stop the card would be mouse-only;
+    // once the charm is slotted and no spare is carried this row is the only
+    // surface still explaining the bonus. The focus key is what the restore
+    // ladder re-lands a focused row on after a repaint (the focus rig pins
+    // the restore itself).
+    expect(row?.getAttribute('tabindex')).toBe('0');
+    expect(row?.getAttribute('data-focus-key')).toBe('effect:mining');
+    const card = attached.find((a) => a.el === row);
+    expect(card).toBeDefined();
+    const html = card?.html() ?? '';
+    expect(html).toContain('Gatherer&#39;s Cache');
+    expect(html).toContain('Tool charm');
+    expect(html).toContain('+1 yield per harvest while charged.');
+    // The standalone card never tells the player to open the window they are in.
+    expect(html).not.toContain('Open Professions to slot this');
+  });
+
+  it('a slot button attaches the same standalone card for its own effect', () => {
+    const state = baseState();
+    state.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'artisans_eye', count: 1 },
+    ];
+    const attached: { el: HTMLElement; html: () => string }[] = [];
+    const { el } = makeWindow(state, {
+      attachTooltip: (target, html) => attached.push({ el: target, html }),
+    });
+    const button = el.querySelector<HTMLElement>('[data-slot-effect]');
+    const card = attached.find((a) => a.el === button);
+    expect(card).toBeDefined();
+    const html = card?.html() ?? '';
+    expect(html).toContain('Artisan&#39;s Eye');
+    expect(html).toContain('Raises the harvest grade by 1 tool tier while charged.');
+  });
+
+  it('a peeked long-press release inspects: it never slots and never recharges', () => {
+    // The TouchPeekGuard contract (touch_peek.ts): showing the hover card on
+    // a touch hold means the release click must be swallowed, or reading
+    // what a charm does would BURN the charm (slot) or spend materials
+    // (recharge). Both handlers consume the peek before acting.
+    const state = slotted({ charges: 3, maxCharges: 20 });
+    state.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'artisans_eye', count: 1 },
+    ];
+    const slots: string[] = [];
+    const recharges: string[] = [];
+    const worldOver = () =>
+      ({
+        craftingIdentity: state.identity,
+        professionsState: { skills: state.gathering },
+        toolEffectSlots: state.toolEffects,
+        inventory: state.inventory,
+        myFarmPlots: state.farmPlots ?? [],
+        player: { name: 'Testchar' },
+        slotToolEffect: (professionId: string) => {
+          slots.push(professionId);
+        },
+        rechargeToolEffect: (professionId: string) => {
+          recharges.push(professionId);
+        },
+      }) as never;
+    let hidden = 0;
+    const peeked = makeWindow(state, {
+      world: worldOver,
+      consumePeek: () => true,
+      hideTooltip: () => {
+        hidden++;
+      },
+    });
+    const hiddenAfterOpen = hidden; // render() itself hides once per repaint
+    peeked.el.querySelector<HTMLElement>('[data-slot-effect]')?.click();
+    peeked.el.querySelector<HTMLElement>('[data-recharge-profession]')?.click();
+    expect(slots).toEqual([]);
+    expect(recharges).toEqual([]);
+    // The swallowed release also DISMISSES the card (the bags cell contract):
+    // on touch there is no mouseleave, so without this the card would stay
+    // painted over the window.
+    expect(hidden).toBe(hiddenAfterOpen + 2);
+    // The other arm: a plain tap / desktop click (no peek) still acts.
+    const tapped = makeWindow(state, { world: worldOver, consumePeek: () => false });
+    tapped.el.querySelector<HTMLElement>('[data-slot-effect]')?.click();
+    tapped.el.querySelector<HTMLElement>('[data-recharge-profession]')?.click();
+    expect(slots).toEqual(['mining']);
+    expect(recharges).toEqual(['mining']);
+  });
 });
 
 describe('professions window: two-column craft list CSS', () => {
@@ -305,5 +1009,96 @@ describe('professions window: two-column craft list CSS', () => {
     expect(start).toBeGreaterThanOrEqual(0);
     const rule = css.slice(start, css.indexOf('}', start));
     expect(rule).toContain('grid-template-columns: minmax(0, 1fr);');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The R40 prompt-mode surfaces: the "Ask each use" toggle (painter-local,
+// configures the NEXT mint), the mode riding the sent command, and the live
+// slot's "Asks each use" chip. Window-level on purpose: the mode-in-the-wire
+// claim rides buildInput/wire, not the view core alone.
+// ---------------------------------------------------------------------------
+
+describe('ProfessionsWindow: R40 prompt-mode surfaces', () => {
+  function charmState(): WorldState {
+    const state = baseState();
+    state.inventory = [
+      { itemId: 'copper_mining_pick', count: 1 },
+      { itemId: 'artisans_eye', count: 1 },
+    ];
+    return state;
+  }
+
+  function windowWith(state: WorldState, sent: unknown[][]) {
+    return makeWindow(state, {
+      world: () =>
+        ({
+          craftingIdentity: state.identity,
+          professionsState: { skills: state.gathering },
+          toolEffectSlots: state.toolEffects ?? [],
+          inventory: state.inventory ?? [],
+          myFarmPlots: state.farmPlots ?? [],
+          player: { name: 'Testchar' },
+          slotToolEffect: (...args: unknown[]) => {
+            sent.push(args);
+          },
+        }) as never,
+    });
+  }
+
+  it('renders the toggle beside the slot buttons; unchecked sends the plain two-arg command', () => {
+    const sent: unknown[][] = [];
+    const { el } = windowWith(charmState(), sent);
+    const box = el.querySelector<HTMLInputElement>('[data-slot-mode="mining"]');
+    expect(box).not.toBeNull();
+    expect(box?.checked).toBe(false);
+    el.querySelector<HTMLElement>('[data-slot-effect]')?.click();
+    // No third argument at all: the unchecked send stays byte-identical.
+    expect(sent).toEqual([['mining', 'artisans_eye']]);
+  });
+
+  it('a checked toggle survives the rebuild it triggers and mints prompt mode', () => {
+    const sent: unknown[][] = [];
+    const { el } = windowWith(charmState(), sent);
+    const box = el.querySelector<HTMLInputElement>('[data-slot-mode="mining"]');
+    if (!box) throw new Error('missing mode toggle');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    // The change handler repaints (the slottable set can move with the
+    // mode); the fresh checkbox must still be checked or the choice silently
+    // resets under the player.
+    const fresh = el.querySelector<HTMLInputElement>('[data-slot-mode="mining"]');
+    expect(fresh).not.toBeNull();
+    expect(fresh?.checked).toBe(true);
+    el.querySelector<HTMLElement>('[data-slot-effect]')?.click();
+    expect(sent).toEqual([['mining', 'artisans_eye', 'prompt']]);
+  });
+
+  it('a live prompt slot chips "Asks each use"; an always slot chips nothing', () => {
+    const state = baseState();
+    state.toolEffects = [
+      {
+        professionId: 'mining',
+        effectId: 'gatherers_cache',
+        charges: 12,
+        maxCharges: 30,
+        confirmMode: 'prompt',
+      },
+    ];
+    const { el } = makeWindow(state);
+    expect(el.querySelector('.prof-effect-mode')?.textContent).toBe('Asks each use');
+
+    const always = baseState();
+    always.toolEffects = [
+      {
+        professionId: 'mining',
+        effectId: 'gatherers_cache',
+        charges: 12,
+        maxCharges: 30,
+        confirmMode: 'always',
+      },
+    ];
+    const { el: alwaysEl } = makeWindow(always);
+    expect(alwaysEl.querySelector('.prof-effect-mode')).toBeNull();
   });
 });

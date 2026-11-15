@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { CRAFT_RING } from '../src/sim/content/professions';
-import { buildProfessionsView } from '../src/ui/professions_view';
+import { buildProfessionsView } from '../src/ui/hud/professions/professions_view';
 import type { CraftingIdentityView } from '../src/world_api/professions';
 
 function identity(craftSkills: Record<string, number>): CraftingIdentityView {
@@ -33,6 +33,10 @@ describe('professions wheel: enchanting is reachable', () => {
 
   it('renders an enchanting craft row whose bar reflects craftSkills.enchanting', () => {
     const model = buildProfessionsView({
+      viewerName: 'Testchar',
+      farmPlotCount: 0,
+      toolEffects: [],
+      inventory: [],
       identity: identity({ enchanting: 40, weaponcrafting: 10 }),
       gathering: [],
     });
@@ -44,8 +48,22 @@ describe('professions wheel: enchanting is reachable', () => {
   });
 
   it('moves the enchanting bar when the skill value moves', () => {
-    const low = buildProfessionsView({ identity: identity({ enchanting: 0 }), gathering: [] });
-    const high = buildProfessionsView({ identity: identity({ enchanting: 100 }), gathering: [] });
+    const low = buildProfessionsView({
+      viewerName: 'Testchar',
+      farmPlotCount: 0,
+      identity: identity({ enchanting: 0 }),
+      gathering: [],
+      toolEffects: [],
+      inventory: [],
+    });
+    const high = buildProfessionsView({
+      viewerName: 'Testchar',
+      farmPlotCount: 0,
+      identity: identity({ enchanting: 100 }),
+      gathering: [],
+      toolEffects: [],
+      inventory: [],
+    });
     const skillOf = (m: ReturnType<typeof buildProfessionsView>) =>
       m.crafts.find((c) => c.identity.craftId === 'enchanting')?.bar.skill;
     expect(skillOf(low)).toBe(0);

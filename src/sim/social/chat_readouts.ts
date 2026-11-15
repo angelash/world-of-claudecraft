@@ -19,18 +19,21 @@ import {
   talentPointsAtLevel,
   talentsFor,
 } from '../content/talents';
+import { MEDALLION_USE_COOLDOWN_KEY } from '../content/trinkets';
 import {
   ABILITIES,
   abilitiesKnownAt,
   CLASSES,
   DUNGEON_LIST,
+  getActiveWorldContent,
   ITEMS,
   QUESTS,
-  ZONES,
   zoneAt,
 } from '../data';
 import { formatMoney } from '../format_money';
+import { COMBAT_SPIRIT_REGEN_FRACTION, FIVE_SECOND_RULE_SECONDS } from '../mana_regen';
 import { MARKET_MAX_LISTINGS } from '../market';
+import { dungeonDoorPos } from '../moved_objects';
 import * as petCommands from '../pet/pet_commands';
 import { FALL_SAFE_DISTANCE, type PlayerMeta } from '../sim';
 import type { SimContext } from '../sim_context';
@@ -38,8 +41,10 @@ import { threatEntries } from '../threat';
 import {
   type ArenaFormat,
   type Aura,
-  type AuraKind,
+  CRAFT_CAST_ID,
+  DISENCHANT_CAST_ID,
   dist2d,
+  ENCHANT_CAST_ID,
   type Entity,
   type EquipSlot,
   FISHING_CAST_ID,
@@ -48,8 +53,12 @@ import {
   MAX_LEVEL,
   MELEE_RANGE,
   questObjectiveRequired,
+  SALVAGE_CAST_ID,
+  SUNDER_CAST_ID,
+  TOOL_RECHARGE_CAST_ID,
   xpForLevel,
 } from '../types';
+import { isUnstuckSystemCooldown } from '../unstuck_cooldown';
 import { groundHeight } from '../world';
 
 const NEARBY_RANGE = 40; // /nearby scan radius — wider than say, tighter than yell
@@ -106,29 +115,44 @@ export function partyReadout(ctx: SimContext, pid: number): string {
 }
 // Self-only readout for "/zones": lists every overworld zone in travel order
 // (south -> north) with its level range, tagging the zone the player is in.
-// `currentZ` is the player's world Z (use zoneAt(currentZ) to find their zone).
-// ZONES is the ordered ZoneDef[] from ./data; each has .name and
-// .levelRange = [min, max].
-export function zonesReadout(currentZ: number): string {
-  if (ZONES.length === 0) return 'No zones are defined.';
-  const here = zoneAt(currentZ);
-  const parts = ZONES.map((z) => {
+// `currentX`/`currentZ` are the player's world position (zoneAt picks their
+// zone). The zone list is the ACTIVE content's ordered ZoneDef[]; each has
+// .name and .levelRange = [min, max].
+export function zonesReadout(currentX: number, currentZ: number): string {
+  // The ACTIVE zone list, so the roster and the "you are here" tag (zoneAt
+  // walks the active zones too) resolve the same world on a custom map;
+  // byte-identical on shipped hosts.
+  const zones = getActiveWorldContent().zones;
+  if (zones.length === 0) return 'No zones are defined.';
+  const here = zoneAt(currentX, currentZ);
+  // travel order, not append order: south to north, then west to east
+  // within a row (a column zone appends LAST for rng-stream stability)
+  const ordered = [...zones].sort((a, b) => a.zMin - b.zMin || (a.xMin ?? -180) - (b.xMin ?? -180));
+  const parts = ordered.map((z) => {
     const line = `${z.name} (Lvl ${z.levelRange[0]}-${z.levelRange[1]})`;
     return z.id === here.id ? `${line} [you are here]` : line;
   });
-  return `Zones (${ZONES.length}): ${parts.join(', ')}.`;
+  return `Zones (${zones.length}): ${parts.join(', ')}.`;
 }
 // Self-only readout of a character's Ashen Coliseum standing. Reads only the
-// persisted PlayerMeta arena fields (no new state). Draws count as neither a
-// win nor a loss (see resolveArena), so "matches played" is wins + losses.
+// persisted PlayerMeta arena fields (no new state). A draw IS a match played:
+// it moves the rating and it is the third figure of the record every other
+// arena surface shows, so counting it only in the denominator here would leave
+// /arena saying "no matches played yet" to someone the ladder already lists.
 export function arenaReadout(meta: PlayerMeta): string {
-  const part = (label: ArenaFormat, rating: number, wins: number, losses: number): string => {
-    const played = wins + losses;
+  const part = (
+    label: ArenaFormat,
+    rating: number,
+    wins: number,
+    losses: number,
+    draws: number,
+  ): string => {
+    const played = wins + losses + draws;
     if (played <= 0) return `${label} Rating ${rating} - no matches played yet`;
     const pct = Math.round((wins / played) * 100);
-    return `${label} Rating ${rating} - ${wins} wins, ${losses} losses (${pct}% win rate)`;
+    return `${label} Rating ${rating} - ${wins} wins, ${losses} losses, ${draws} draws (${pct}% win rate)`;
   };
-  return `Arena: ${part('1v1', meta.arenaRating, meta.arenaWins, meta.arenaLosses)}. ${part('2v2', meta.arena2v2Rating, meta.arena2v2Wins, meta.arena2v2Losses)}.`;
+  return `Arena: ${part('1v1', meta.arenaRating, meta.arenaWins, meta.arenaLosses, meta.arenaDraws)}. ${part('2v2', meta.arena2v2Rating, meta.arena2v2Wins, meta.arena2v2Losses, meta.arena2v2Draws)}.`;
 }
 export function buybackReadout(meta: PlayerMeta): string {
   const slots = meta.vendorBuyback.filter((s) => ITEMS[s.itemId] && s.count > 0);
@@ -146,14 +170,16 @@ export function comboReadout(e: Entity): string {
   if (e.comboPoints <= 0) return 'You have no combo points built up.';
   return `Combo points: ${e.comboPoints}/5.`;
 }
-// Readout for "/combat": reads only the live Entity.inCombat / combatTimer
-// (no new fields). combatTimer is "time since last combat event"; a player
-// lingers in combat until it reaches COMBAT_LINGER (the literal 5s drop-out
-// window applied in updatePlayers, sim.ts where inCombat is recomputed). If
-// inCombat is still set past that window, an enemy is actively engaged, so no
-// countdown can be promised.
-export function combatReadout(e: Entity): string {
+// Readout for "/combat": reads the live Entity.inCombat / combatTimer plus
+// `heldByEnemies`, the caller's answer from combat/engaged_combat.ts
+// (isHeldInCombat: an enemy still carries the player on its hate table, or an
+// engaged boss holds their group). combatTimer is "time since last combat
+// event"; a player only lingers in combat until it reaches COMBAT_LINGER (the
+// literal 5s window the coordinator's engaged pass applies in sim.ts) when no
+// enemy holds them, so a countdown is promised only then.
+export function combatReadout(e: Entity, heldByEnemies: boolean): string {
   if (!e.inCombat) return 'You are not in combat.';
+  if (heldByEnemies) return 'You are in combat (enemies still engaged).';
   const COMBAT_LINGER = 5;
   const remaining = COMBAT_LINGER - e.combatTimer;
   if (remaining > 0) {
@@ -166,9 +192,11 @@ export function combatReadout(e: Entity): string {
 // only the static DUNGEON_LIST (already entrance-sorted by index) and the
 // door zone via zoneAt — no new fields.
 export function dungeonsReadout(): string {
-  const parts = DUNGEON_LIST.map(
-    (d) => `${d.name} (${zoneAt(d.doorPos.z).name}, ${d.suggestedPlayers} players)`,
-  );
+  const moves = getActiveWorldContent().objectMoves;
+  const parts = DUNGEON_LIST.map((d) => {
+    const door = dungeonDoorPos(moves, d);
+    return `${d.name} (${zoneAt(door.x, door.z).name}, ${d.suggestedPlayers} players)`;
+  });
   return `Dungeons (${parts.length}): ${parts.join(', ')}.`;
 }
 // Readout for "/consider": sizes up the current target's level versus yours.
@@ -195,7 +223,7 @@ export function considerReadout(ctx: SimContext, self: Entity): string {
 // (the same labels the HUD pins on the map) and your live position — no new
 // fields.
 export function poisReadout(self: Entity): string {
-  const zone = zoneAt(self.pos.z);
+  const zone = zoneAt(self.pos.x, self.pos.z);
   if (zone.pois.length === 0) return `${zone.name} has no notable landmarks.`;
   const parts = zone.pois
     .map((p) => ({ label: p.label, d: dist2d(self.pos, { x: p.x, y: 0, z: p.z }) }))
@@ -303,20 +331,21 @@ export function formReadout(e: Entity): string {
   return `You are in ${form.name}.`;
 }
 // Self-only readout of the five-second-rule mana state (#103 out-of-combat
-// regen). `fiveSecondRule` is the seconds elapsed since the player last spent
-// mana on an ability (reset to 0 at sim.ts cast path, bumped by DT each tick);
-// out-of-combat mana regen only ticks once it reaches FSR_THRESHOLD. Only
-// mana users have meaningful state here — rage/energy classes never spend mana.
+// regen, plus the Spirit-in-combat "mp5" regen). `fiveSecondRule` is the seconds
+// elapsed since the player last spent mana on an ability (reset to 0 at sim.ts
+// cast path, bumped by DT each tick). Spirit regen runs at the reduced combat
+// rate (COMBAT_SPIRIT_REGEN_FRACTION) while the rule is active, then at full rate
+// once it reaches FIVE_SECOND_RULE_SECONDS. Only mana users have meaningful state
+// here: rage/energy classes never spend mana.
 export function manaRegenReadout(e: Entity): string {
-  const FSR_THRESHOLD = 5; // matches the `fiveSecondRule >= 5` gate in updateRegen
   if (e.resourceType !== 'mana') {
     return 'Mana regeneration does not apply to your class.';
   }
-  if (e.fiveSecondRule >= FSR_THRESHOLD) {
-    return 'Your mana is regenerating (out of combat for 5s+).';
+  if (e.fiveSecondRule >= FIVE_SECOND_RULE_SECONDS) {
+    return 'Your mana is regenerating at full rate (out of combat for 5s+).';
   }
-  const resumesIn = Math.ceil(FSR_THRESHOLD - e.fiveSecondRule);
-  return `Mana regen is paused — resumes in ${resumesIn}s (you spent mana recently).`;
+  const resumesIn = Math.ceil(FIVE_SECOND_RULE_SECONDS - e.fiveSecondRule);
+  return `Your mana is regenerating at ${Math.round(COMBAT_SPIRIT_REGEN_FRACTION * 100)}% while in combat, full rate in ${resumesIn}s (you spent mana recently).`;
 }
 // Self-only readout of vertical/fall state — surfaces the otherwise-invisible
 // jump physics (sim.ts updatePlayerMovement). Reads only live Entity fields and
@@ -409,10 +438,11 @@ function auraLabel(a: Aura): string {
 // remainder showing as "(1s)", matching how /buffs renders aura timers.
 //
 export function cooldownsReadout(e: Entity): string {
-  if (e.cooldowns.size === 0) return 'No abilities are on cooldown.';
   const parts = [...e.cooldowns]
+    .filter(([id]) => !isUnstuckSystemCooldown(id) && id !== MEDALLION_USE_COOLDOWN_KEY)
     .sort((a, b) => a[1] - b[1])
     .map(([id, remaining]) => `${ABILITIES[id]?.name ?? id} (${Math.ceil(remaining)}s)`);
+  if (parts.length === 0) return 'No abilities are on cooldown.';
   return `Abilities on cooldown (${parts.length}): ${parts.join(', ')}.`;
 }
 // Self-only readout of the active quest log: one entry per tracked quest with
@@ -568,6 +598,24 @@ export function castingReadout(e: Entity): string {
     // The gather cast is public state (castRemaining/castTotal broadcast),
     // so an honest countdown is safe here, unlike the fishing arm above.
     return `You are gathering: ${remaining}s of ${total}s remaining.`;
+  }
+  if (e.castingAbility === CRAFT_CAST_ID) {
+    return `You are crafting: ${remaining}s of ${total}s remaining.`;
+  }
+  if (e.castingAbility === DISENCHANT_CAST_ID) {
+    return `You are disenchanting: ${remaining}s of ${total}s remaining.`;
+  }
+  if (e.castingAbility === ENCHANT_CAST_ID) {
+    return `You are enchanting: ${remaining}s of ${total}s remaining.`;
+  }
+  if (e.castingAbility === SALVAGE_CAST_ID) {
+    return `You are salvaging: ${remaining}s of ${total}s remaining.`;
+  }
+  if (e.castingAbility === SUNDER_CAST_ID) {
+    return `You are sundering: ${remaining}s of ${total}s remaining.`;
+  }
+  if (e.castingAbility === TOOL_RECHARGE_CAST_ID) {
+    return `You are recharging a tool effect: ${remaining}s of ${total}s remaining.`;
   }
   const name = ABILITIES[e.castingAbility]?.name ?? e.castingAbility;
   const verb = e.channeling ? 'Channeling' : 'Casting';

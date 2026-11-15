@@ -6,13 +6,17 @@
 // through the seam; the foreign callers (handleDeath, the addItem/removeItem/buyBackItem
 // inventory hub, finalizeQuestAccept, interactNpcForQuests, and the N1 crypt
 // interactObjectForQuests) invoke them via ctx.onMobKilledForQuests /
-// ctx.onInventoryChangedForQuests / ctx.checkQuestReady.
+// ctx.onInventoryChangedForQuests / ctx.checkQuestReady. The farming action arm
+// (onCropFarmedForQuests) rides the seam too since the masterwrought Phase 18
+// fold: professions/farming.ts calls ctx.onCropFarmedForQuests beside its
+// sibling crediters (bound in buildSimContext like the rest).
 //
 // src/sim-pure: imports only sibling sim types + the QUESTS data table (no render/ui/
 // game/net/DOM/Three, no Math.random/Date.now), so it runs unchanged in Node, the
 // browser, and the headless RL env.
 
 import { QUESTS } from '../data';
+import { countAcrossGrades, materialGradeIds } from '../professions/material_grades';
 import type { PlayerMeta } from '../sim';
 import type { SimContext } from '../sim_context';
 import {
@@ -22,8 +26,16 @@ import {
   type QuestProgress,
   questObjectiveRequired,
 } from '../types';
+import { completeForgebreakerCraftQuest } from './forgebreaker_ember';
+import { ownedItemCount } from './quest_owned_count';
 
-function emitQuestProgress(
+/** The one questProgress emit: `${label}: ${cur}/${req}` text (matched by the
+ *  client i18n re-localizer, so every credit path must go through here rather
+ *  than hand-rolling the string) plus the wire fields the HUD tracker reads.
+ *  Exported for the island's sentinel-objective credit modules
+ *  (tutorial/gauntlet_run.ts, tutorial/signpost_read.ts), which bump their
+ *  count outside the discrete-objective walk below. */
+export function emitQuestProgress(
   ctx: SimContext,
   meta: PlayerMeta,
   qp: QuestProgress,
@@ -47,9 +59,11 @@ function creditDiscreteQuestObjectives(
   ctx: SimContext,
   meta: PlayerMeta,
   matches: (objective: QuestObjective) => boolean,
+  onlyQuestId?: string,
 ): void {
   for (const qp of meta.questLog.values()) {
     if (qp.state !== 'active') continue;
+    if (onlyQuestId !== undefined && qp.questId !== onlyQuestId) continue;
     const quest = QUESTS[qp.questId];
     let changed = false;
     quest.objectives.forEach((objective, objectiveIndex) => {
@@ -72,6 +86,39 @@ export function onMobKilledForQuests(ctx: SimContext, mob: Entity, meta: PlayerM
   );
 }
 
+/**
+ * Credit ONE quest's kill objectives for this mob, and nothing else in the log. For a
+ * system that widens who a kill counts for on a single quest (the muster's weekly credits
+ * every world-boss contributor, src/sim/muster_trophy.ts) without widening every other
+ * kill objective that names the same mob. Capped like every credit: a player the ordinary
+ * kill path already credited is not counted twice.
+ */
+export function onMobKilledForQuest(
+  ctx: SimContext,
+  mobTemplateId: string,
+  meta: PlayerMeta,
+  questId: string,
+): void {
+  creditDiscreteQuestObjectives(
+    ctx,
+    meta,
+    (objective) => objective.type === 'kill' && objective.targetMobId === mobTemplateId,
+    questId,
+  );
+}
+
+/**
+ * Credit a named world event (objective type 'event'). The emitting system module is the
+ * authority on when the event happened; this only counts it against active quests.
+ */
+export function onQuestEventForQuests(ctx: SimContext, meta: PlayerMeta, eventId: string): void {
+  creditDiscreteQuestObjectives(
+    ctx,
+    meta,
+    (objective) => objective.type === 'event' && objective.eventId === eventId,
+  );
+}
+
 /** Credit a recipe objective only after the authoritative craft resolver succeeds. */
 export function onRecipeCraftedForQuests(
   ctx: SimContext,
@@ -83,6 +130,7 @@ export function onRecipeCraftedForQuests(
     meta,
     (objective) => objective.type === 'craft' && objective.recipeId === recipeId,
   );
+  completeForgebreakerCraftQuest(ctx, recipeId, meta);
 }
 
 /** Credit a gather objective only after the node's authoritative grant succeeds. */
@@ -95,9 +143,41 @@ export function onNodeGatheredForQuests(
   creditDiscreteQuestObjectives(ctx, meta, (objective) => {
     if (objective.type !== 'gather') return false;
     if (objective.nodeType !== undefined && objective.nodeType !== node.type) return false;
-    if (objective.itemId !== undefined && objective.itemId !== itemId) return false;
+    // Grade-aware like the collect arm below (D8): `itemId` is the id the
+    // harvest actually granted, which is the FINE grade whenever the player's
+    // tool outclasses the material, so matching the declared id alone would
+    // silently stop crediting an item-keyed gather objective for exactly the
+    // players who upgraded. No shipped objective uses this arm today (all four
+    // key on nodeType), which is precisely why it would have rotted unnoticed.
+    if (objective.itemId !== undefined && !materialGradeIds(objective.itemId).includes(itemId)) {
+      return false;
+    }
     return true;
   });
+}
+
+/** Credit a farm objective only after the plant or harvest ACTION commits
+ *  (src/sim/professions/farming.ts plantCrop after the plot write and
+ *  harvestCrop after the grant, on EVERY harvest outcome, withered included:
+ *  the visit is the deed). The gather precedent: inventory cannot prove the
+ *  deed (produce is a fungible material and the seed is spent), so this arm
+ *  never reads bags. `cropId` narrows to one crop when the objective names
+ *  one; `patchId` is marker guidance only (quest_targets.ts) and never gates
+ *  the credit. Draws NO rng. */
+export function onCropFarmedForQuests(
+  ctx: SimContext,
+  action: 'plant' | 'harvest',
+  cropId: string,
+  meta: PlayerMeta,
+): void {
+  creditDiscreteQuestObjectives(
+    ctx,
+    meta,
+    (objective) =>
+      objective.type === 'farm' &&
+      objective.action === action &&
+      (objective.cropId === undefined || objective.cropId === cropId),
+  );
 }
 
 export function onInventoryChangedForQuests(ctx: SimContext, meta: PlayerMeta): void {
@@ -110,7 +190,21 @@ export function onInventoryChangedForQuests(ctx: SimContext, meta: PlayerMeta): 
     quest.objectives.forEach((obj, i) => {
       if (obj.type === 'collect' && obj.itemId) {
         const required = questObjectiveRequired(quest, qp, i);
-        const have = Math.min(required, ctx.countItem(obj.itemId, meta.entityId));
+        // Counted across the objective's material grades (D8,
+        // professions/material_grades.ts): a fine grade IS its base material,
+        // worked with a better tool, and the turn-in spends it the same way.
+        // Without this a player carrying any tier-2 tool would watch a
+        // "Copper Ore delivered" objective sit at 0 while their bags filled
+        // with fine copper ore, since eastbrook_vale is all tier-1 nodes and
+        // the plain grade stops dropping for them entirely.
+        const carried = countAcrossGrades(obj.itemId, (id) => ctx.countItem(id, meta.entityId));
+        // An ownership objective (QuestDef.keepsCollectedItems) also counts
+        // worn equipment and bag sockets, so equipping the quest's item
+        // cannot un-complete it.
+        const have = Math.min(
+          required,
+          quest.keepsCollectedItems ? ownedItemCount(carried, meta, obj.itemId) : carried,
+        );
         if (have !== qp.counts[i]) {
           if (have > qp.counts[i]) meta.counters.questProgress += have - qp.counts[i];
           qp.counts[i] = have;

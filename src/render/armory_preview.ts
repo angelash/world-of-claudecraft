@@ -13,10 +13,22 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { WEAPON_SKINS } from '../sim/content/weapon_skins';
 import { CharacterVisual } from './characters';
-import { weaponSkinDisplayModel } from './characters/assets';
-import { type PreviewAppearance, previewAppearanceVisual } from './characters/preview_appearance';
+import {
+  onCharacterAssetReady,
+  visualAssetsResident,
+  weaponSkinDisplayModel,
+} from './characters/assets';
+import { weaponSkinModelUrl } from './characters/manifest';
+import {
+  appearanceSignature,
+  type PreviewAppearance,
+  previewAppearanceVisual,
+  previewTryOnMainhand,
+} from './characters/preview_appearance';
 import { disposeOwnedWeaponSkinMaterials } from './characters/weapon_skin_materials';
 import { trackWebGLContext } from './context_release';
+import { previewPixelRatio } from './preview_pixel_ratio';
+import { shaderDebugRequested } from './shader_debug_flag';
 import {
   createWeaponVfx,
   SCENE_PRESETS,
@@ -30,6 +42,8 @@ export type ArmorySceneKey = 'day' | 'dusk' | 'night';
 export type ArmoryPreviewMode = 'character' | 'weapon';
 
 export interface ArmoryPreviewHandle {
+  setActive(active: boolean): void;
+  setAppearance(appearance: PreviewAppearance): void;
   setSkin(skinId: string | null): void;
   setMode(mode: ArmoryPreviewMode): void;
   setScene(scene: ArmorySceneKey): void;
@@ -45,6 +59,9 @@ const IDLE_STATE = {
   dead: false,
   casting: false,
   swimming: false,
+  submerged: false,
+  swimPitch: 0,
+  wading: false,
   sitting: false,
 };
 
@@ -56,13 +73,41 @@ const LIGHT_POSITIONS: [number, number, number][] = [
   [-1.5, 3, -3.5],
 ];
 
+type CachedWeaponRig = {
+  root: THREE.Group;
+  model: THREE.Object3D;
+  vfx: WeaponVfxHandle | null;
+  extras: THREE.Object3D | null;
+  float: { bob: number; spin: number; lift: number } | null;
+  floatBase: number;
+  floatTime: number;
+  targetHeight: number;
+};
+
+/**
+ * Whether the try-on body for `appearance` is resident, so createArmoryPreview can build it
+ * (a WOC base and clip library stream on first use, and a rig built before they land
+ * throws). When not, kicks the fetch and calls `onReady` once, the moment they land.
+ */
+export function armoryPreviewReady(appearance: PreviewAppearance, onReady: () => void): boolean {
+  const key = previewAppearanceVisual(appearance).visualKey;
+  if (visualAssetsResident(key)) return true;
+  const stop = onCharacterAssetReady(() => {
+    if (!visualAssetsResident(key, false)) return;
+    stop();
+    onReady();
+  });
+  return false;
+}
+
 export function createArmoryPreview(
   container: HTMLElement,
   canvas: HTMLCanvasElement,
   appearance: PreviewAppearance,
 ): ArmoryPreviewHandle {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.debug.checkShaderErrors = shaderDebugRequested();
+  renderer.setPixelRatio(previewPixelRatio(window.devicePixelRatio));
   renderer.setSize(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight), false);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -108,35 +153,85 @@ export function createArmoryPreview(
   // Character-mode rig: the player's own body wearing the skin.
   const characterGroup = new THREE.Group();
   scene.add(characterGroup);
-  const pv = previewAppearanceVisual(appearance);
-  const visual = new CharacterVisual(
+  let currentAppearance = appearance;
+  const pv = previewAppearanceVisual(currentAppearance);
+  let appearanceSig = appearanceSignature(appearance);
+  // the player's real hands: a weapon slot with nothing equipped is an empty hand, as in
+  // the world
+  let visual = new CharacterVisual(
     pv.visualKey,
     0xffffff,
     appearance.skin,
     pv.weaponItemId,
     pv.weaponOverride,
     pv.offhandItemId,
+    null,
+    { bareWhenUnarmed: true },
   );
   characterGroup.add(visual.root);
   // This rig's camera matches the VFX sprite math's native 35 degree fov.
   visual.setWeaponVfxCameraFov(35);
+  // The character-mode skin swap is substantially more expensive than the
+  // standalone weapon clone: it rebuilds hand attachments, material snapshots
+  // and rarity VFX. Keep one bounded rig per catalogue skin, just as weaponRigs
+  // below does for the showcase mode, so switching a card only reparents an
+  // already-built root instead of spending ~30ms in
+  // CharacterVisual.setWeaponSkin on the click handler.
+  const characterRigs = new Map<string, CharacterVisual>([['', visual]]);
+
+  function createCharacterRig(nextSkinId: string | null): CharacterVisual {
+    const nextAppearance = previewAppearanceVisual(currentAppearance);
+    // The try-on holds the real hands, and the offhand rides along so a skin
+    // whose type sits in the offhand previews on that hand (the same mirror the
+    // world draws); a skin neither hand can show dresses a stand-in mainhand.
+    const rig = new CharacterVisual(
+      nextAppearance.visualKey,
+      0xffffff,
+      currentAppearance.skin,
+      previewTryOnMainhand(nextSkinId, nextAppearance.weaponItemId, nextAppearance.offhandItemId),
+      nextAppearance.weaponOverride,
+      nextAppearance.offhandItemId,
+      null,
+      { bareWhenUnarmed: true },
+    );
+    rig.setWeaponVfxCameraFov(35);
+    if (nextSkinId) rig.setWeaponSkin(nextSkinId);
+    return rig;
+  }
+
+  function selectCharacterRig(nextSkinId: string | null): void {
+    const key = nextSkinId ?? '';
+    let next = characterRigs.get(key);
+    if (!next) {
+      next = createCharacterRig(nextSkinId);
+      characterRigs.set(key, next);
+    }
+    if (next !== visual) {
+      visual.root.removeFromParent();
+      visual = next;
+      characterGroup.add(visual.root);
+    }
+    visual.setWeaponVfxPixelScale(pixelHeight());
+  }
 
   // Weapon-mode rig: the skin alone on a turntable, with its showcase extras.
   const weaponGroup = new THREE.Group();
   scene.add(weaponGroup);
-  let weaponModel: THREE.Object3D | null = null;
-  let weaponVfx: WeaponVfxHandle | null = null;
-  let weaponExtras: THREE.Object3D | null = null;
-  // Loot-inspect float state (mirrors the offline inspector's grounded showcase).
-  let weaponFloat: { bob: number; spin: number; lift: number } | null = null;
-  let weaponFloatBase = 0;
-  let weaponFloatTime = 0;
-  let weaponTargetH = 2.0;
+  // Keep every warmed weapon rig alive for this WebGL context. Disposing a
+  // material also releases its linked WebGLProgram in Three, which made a
+  // seemingly successful loading-screen warmup compile again on the first
+  // real click. Hidden cached rigs retain those programs, textures and geometry
+  // while only the selected one participates in rendering.
+  const weaponRigs = new Map<string, CachedWeaponRig>();
+  let activeWeaponRig: CachedWeaponRig | null = null;
 
   let mode: ArmoryPreviewMode = 'character';
   let sceneKey: ArmorySceneKey = 'day';
   let skinId: string | null = null;
+  let active = false;
   let disposed = false;
+  let renderWidth = Math.max(1, container.clientWidth);
+  let renderHeight = Math.max(1, container.clientHeight);
 
   const pixelHeight = () => Math.max(1, Math.round(canvas.clientHeight * renderer.getPixelRatio()));
 
@@ -148,7 +243,7 @@ export function createArmoryPreview(
       // Frame the grounded, normalized model (weaponTargetH tall, hovering by
       // the tier float lift), matching the offline inspector's showcase: the
       // whole blade plus the ground pool stay in view at the 35 degree fov.
-      const top = weaponTargetH + (weaponFloat?.lift ?? 0) + 0.15;
+      const top = (activeWeaponRig?.targetHeight ?? 2) + (activeWeaponRig?.float?.lift ?? 0) + 0.15;
       camera.position.set(0, top * 0.56, top * 1.8);
       camera.lookAt(0, top * 0.5, 0);
     }
@@ -176,56 +271,96 @@ export function createArmoryPreview(
     bloom.threshold = preset.bloomThreshold ?? tierBloom?.threshold ?? DEFAULT_BLOOM.threshold;
   }
 
-  function clearWeaponRig(): void {
-    if (weaponVfx) {
-      weaponVfx.dispose();
-      weaponVfx = null;
-    }
-    if (weaponExtras) {
-      weaponExtras.removeFromParent();
-      weaponExtras = null;
-    }
-    if (weaponModel) {
-      disposeOwnedWeaponSkinMaterials(weaponModel);
-      weaponModel.removeFromParent();
-      weaponModel = null;
-    }
-    weaponFloat = null;
-  }
-
-  function buildWeaponRig(): void {
-    clearWeaponRig();
-    if (!skinId) return;
-    weaponModel = weaponSkinDisplayModel(skinId);
-    if (!weaponModel) return;
-    const def = WEAPON_SKINS[skinId];
+  function ensureWeaponRig(id: string): CachedWeaponRig | null {
+    const cached = weaponRigs.get(id);
+    if (cached) return cached;
+    const model = weaponSkinDisplayModel(id);
+    if (!model) return null;
+    const def = WEAPON_SKINS[id];
     const spec = def ? WEAPON_VFX[def.model] : null;
     // Normalize exactly like the offline inspector's grounded showcase (scale
     // to the family display height, center x/z, ground min.y at 0) so the
     // weapon-to-rig-to-pool arrangement is 1:1 with what the artist tuned.
-    weaponTargetH = def?.weaponType === 'staff' ? 2.3 : def?.weaponType === 'dagger' ? 1.3 : 2.0;
-    const box = new THREE.Box3().setFromObject(weaponModel);
+    const targetHeight =
+      def?.weaponType === 'staff' ? 2.3 : def?.weaponType === 'dagger' ? 1.3 : 2.0;
+    const box = new THREE.Box3().setFromObject(model);
     const h = box.max.y - box.min.y || 1;
-    weaponModel.scale.setScalar(weaponTargetH / h);
-    weaponModel.updateMatrixWorld(true);
-    const grounded = new THREE.Box3().setFromObject(weaponModel);
+    model.scale.setScalar(targetHeight / h);
+    model.updateMatrixWorld(true);
+    const grounded = new THREE.Box3().setFromObject(model);
     const center = grounded.getCenter(new THREE.Vector3());
-    weaponModel.position.x -= center.x;
-    weaponModel.position.z -= center.z;
-    weaponModel.position.y -= grounded.min.y;
-    weaponFloatBase = weaponModel.position.y;
-    weaponFloatTime = 0;
-    weaponFloat = spec ? (TIERS[spec.tier]?.float ?? null) : null;
-    weaponGroup.add(weaponModel);
+    model.position.x -= center.x;
+    model.position.z -= center.z;
+    model.position.y -= grounded.min.y;
+    const root = new THREE.Group();
+    root.visible = false;
+    root.add(model);
+    weaponGroup.add(root);
+    let vfx: WeaponVfxHandle | null = null;
+    let extras: THREE.Object3D | null = null;
     if (def && spec) {
-      weaponVfx = createWeaponVfx(weaponModel, spec, { grounded: true });
-      weaponVfx.setBackdropVisible(false);
-      weaponVfx.setTuning(weaponVfxTuningFor(def.model, spec.tier));
-      weaponVfx.setPixelScale(pixelHeight());
-      weaponExtras = weaponVfx.sceneExtras;
-      weaponExtras.position.set(0, 0.02, 0);
-      weaponGroup.add(weaponExtras);
+      vfx = createWeaponVfx(model, spec, { grounded: true });
+      vfx.setBackdropVisible(false);
+      vfx.setTuning(weaponVfxTuningFor(def.model, spec.tier));
+      vfx.setPixelScale(pixelHeight());
+      extras = vfx.sceneExtras;
+      extras.position.set(0, 0.02, 0);
+      root.add(extras);
     }
+    const rig: CachedWeaponRig = {
+      root,
+      model,
+      vfx,
+      extras,
+      float: spec ? (TIERS[spec.tier]?.float ?? null) : null,
+      floatBase: model.position.y,
+      floatTime: 0,
+      targetHeight,
+    };
+    weaponRigs.set(id, rig);
+    return rig;
+  }
+
+  function selectSkin(next: string | null): void {
+    // Re-selecting the CURRENT skin is a no-op only while its rig exists: a
+    // streamed skin clicked before its GLB arrived has skinId set but no rig,
+    // and the reselect after arrival is how the weapon finally appears.
+    if (disposed || (next === skinId && (next === null || activeWeaponRig !== null))) return;
+    if (activeWeaponRig) activeWeaponRig.root.visible = false;
+    skinId = next;
+    selectCharacterRig(next);
+    activeWeaponRig = next ? ensureWeaponRig(next) : null;
+    if (activeWeaponRig) {
+      activeWeaponRig.root.visible = true;
+      activeWeaponRig.vfx?.setPixelScale(pixelHeight());
+    }
+    applyScene();
+    frameCamera();
+  }
+
+  /** Rebuild the character rigs for a new appearance. */
+  function applyAppearance(next: PreviewAppearance): void {
+    const nextSig = appearanceSignature(next);
+    if (nextSig === appearanceSig) return;
+    appearanceSig = nextSig;
+    currentAppearance = next;
+    for (const rig of characterRigs.values()) rig.dispose();
+    characterRigs.clear();
+    visual = createCharacterRig(skinId);
+    characterRigs.set(skinId ?? '', visual);
+    characterGroup.add(visual.root);
+    visual.setWeaponVfxPixelScale(pixelHeight());
+  }
+
+  function disposeWeaponRigs(): void {
+    for (const rig of weaponRigs.values()) {
+      rig.vfx?.dispose();
+      rig.extras?.removeFromParent();
+      disposeOwnedWeaponSkinMaterials(rig.model);
+      rig.root.removeFromParent();
+    }
+    weaponRigs.clear();
+    activeWeaponRig = null;
   }
 
   function applyMode(): void {
@@ -235,12 +370,17 @@ export function createArmoryPreview(
     frameCamera();
   }
 
-  const clock = new THREE.Clock();
+  // THREE.Timer, not the r183-deprecated Clock. Clock's stop()/start() pause
+  // protocol maps to reset-on-resume: while inactive the loop never calls
+  // update(), and reset() re-anchors before the first resumed frame so the
+  // paused span never enters a delta.
+  const timer = new THREE.Timer();
   let raf: number | null = null;
   const animate = () => {
-    if (disposed) return;
-    raf = requestAnimationFrame(animate);
-    const dt = Math.min(clock.getDelta(), 0.1);
+    raf = null;
+    if (disposed || !active) return;
+    timer.update();
+    const dt = Math.min(timer.getDelta(), 0.1);
     if (mode === 'character') {
       characterGroup.rotation.y += dt * 0.45;
       visual.update(dt, IDLE_STATE, true);
@@ -249,64 +389,105 @@ export function createArmoryPreview(
       weaponGroup.rotation.y += dt * 0.55;
       // The offline inspector's loot float: a slow hover above the pool. Same
       // formula (lift + half-sine bob); the turntable stands in for its spin.
-      if (weaponModel && weaponFloat) {
-        weaponFloatTime += dt;
-        weaponModel.position.y =
-          weaponFloatBase +
-          weaponFloat.lift +
-          weaponFloat.bob * (1 + Math.sin(weaponFloatTime * 1.1)) * 0.5;
+      const rig = activeWeaponRig;
+      if (rig?.float) {
+        rig.floatTime += dt;
+        rig.model.position.y =
+          rig.floatBase +
+          rig.float.lift +
+          rig.float.bob * (1 + Math.sin(rig.floatTime * 1.1)) * 0.5;
       }
-      weaponVfx?.update(dt);
+      rig?.vfx?.update(dt);
     }
     composer.render();
+    if (active && !disposed) raf = requestAnimationFrame(animate);
   };
 
   const resize = () => {
-    const w = Math.max(1, container.clientWidth);
-    const h = Math.max(1, container.clientHeight);
+    if (disposed || !active) return;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    // A parked/hidden stage can briefly report zero during DOM moves. Keep the
+    // last useful buffer instead of shrinking it to 1x1 and reallocating again
+    // on the next animation frame.
+    if (w <= 0 || h <= 0) return;
+    if (w === renderWidth && h === renderHeight) return;
+    renderWidth = w;
+    renderHeight = h;
     renderer.setSize(w, h, false);
     composer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     visual.setWeaponVfxPixelScale(pixelHeight());
-    weaponVfx?.setPixelScale(pixelHeight());
+    activeWeaponRig?.vfx?.setPixelScale(pixelHeight());
   };
   const observer = new ResizeObserver(resize);
   observer.observe(container);
+  const unsubscribeCharacterAssetReady = onCharacterAssetReady((url) => {
+    if (disposed) return;
+    for (const [id, rig] of characterRigs) {
+      if (!id || weaponSkinModelUrl(id) !== url) continue;
+      if (rig === visual && skinId === id) rig.refreshWeaponSkin();
+      else {
+        rig.dispose();
+        characterRigs.delete(id);
+      }
+    }
+    if (!skinId || weaponSkinModelUrl(skinId) !== url) return;
+    activeWeaponRig = ensureWeaponRig(skinId);
+    if (activeWeaponRig) {
+      activeWeaponRig.root.visible = true;
+      activeWeaponRig.vfx?.setPixelScale(pixelHeight());
+    }
+    applyScene();
+    frameCamera();
+  });
 
   applyScene();
   applyMode();
-  animate();
 
   return {
+    setActive(next: boolean): void {
+      if (disposed) return;
+      if (next === active) return;
+      active = next;
+      if (!active) {
+        if (raf !== null) cancelAnimationFrame(raf);
+        raf = null;
+        return;
+      }
+      resize();
+      timer.reset();
+      if (raf === null) raf = requestAnimationFrame(animate);
+    },
+    setAppearance(next: PreviewAppearance): void {
+      if (disposed) return;
+      applyAppearance(next);
+    },
     setSkin(next: string | null): void {
-      if (disposed || next === skinId) return;
-      skinId = next;
-      visual.setWeaponSkin(next);
-      visual.setWeaponVfxPixelScale(pixelHeight());
-      buildWeaponRig();
-      applyScene();
-      // The display height is per weapon family: re-frame in weapon mode so a
-      // dagger-to-sword swap does not keep the old framing.
-      frameCamera();
+      selectSkin(next);
     },
     setMode(next: ArmoryPreviewMode): void {
-      if (disposed || next === mode) return;
+      if (disposed) return;
+      if (next === mode) return;
       mode = next;
       applyMode();
     },
     setScene(next: ArmorySceneKey): void {
-      if (disposed || next === sceneKey) return;
+      if (disposed) return;
+      if (next === sceneKey) return;
       sceneKey = next;
       applyScene();
     },
     dispose(): void {
       if (disposed) return;
       disposed = true;
+      unsubscribeCharacterAssetReady();
       if (raf !== null) cancelAnimationFrame(raf);
       observer.disconnect();
-      clearWeaponRig();
-      visual.dispose();
+      disposeWeaponRigs();
+      for (const rig of characterRigs.values()) rig.dispose();
+      characterRigs.clear();
       composer.dispose();
       renderer.dispose();
       // Reclaim the GL context NOW (mirrors CharacterPreview.dispose): browsers

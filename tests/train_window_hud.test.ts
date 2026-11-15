@@ -13,24 +13,50 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { methodBody } from './helpers/method_body';
 
-const hudSource = readFileSync(resolve(__dirname, '../src/ui/hud.ts'), 'utf8');
+// Comment-stripped (the crafting_reagent_refresh idiom, `://` preserved):
+// prose alone must never satisfy a pin, and a commented-out call must never
+// keep one green.
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+const hudSource = stripComments(readFileSync(resolve(__dirname, '../src/ui/hud.ts'), 'utf8'));
+
+/** One hud.ts method's body, via the shared two-space-close bound. */
+function hudMethod(opener: string): string {
+  return methodBody(hudSource, opener);
+}
 
 function trainResultArm(): string {
   const start = hudSource.indexOf("case 'trainResult': {");
-  // The unbindResult arm sits between trainResult and
-  // masterwork; the slice ends at the NEXT case so the single-surface pins
-  // below stay scoped to the trainResult arm alone.
-  const end = hudSource.indexOf("case 'unbindResult': {", start);
+  // Stop at the next case label, including a delegated arm without braces.
+  // No neighbouring event may satisfy this event's source pins.
+  const end = hudSource.indexOf("case '", start + "case 'trainResult':".length);
   expect(start, 'trainResult case arm present in handleEvents').toBeGreaterThan(-1);
-  expect(end, 'trainResult arm precedes the unbindResult arm').toBeGreaterThan(start);
+  expect(end, 'trainResult arm has a following case').toBeGreaterThan(start);
   return hudSource.slice(start, end);
 }
 
 describe('hud.ts trainResult event arm (source pins)', () => {
   it('logs the learned line on ok and maps all five deny reasons to training keys', () => {
     const arm = trainResultArm();
-    expect(arm).toContain("t('hudChrome.training.learned'");
+    expect(arm).toContain('this.log(learnedProfessionMessage(ev.recipeId), PROF_LOG_GRANT);');
+    expect(hudSource).toContain(
+      "import { learnedProfessionMessage } from './hud/professions/learned_profession_name';",
+    );
+    // The shared helper covers trainer recipes, collection manuals and enchant
+    // formulas; its runtime branches are exercised by learned_profession_name.
+    const messageSource = stripComments(
+      readFileSync(
+        resolve(__dirname, '../src/ui/hud/professions/learned_profession_name.ts'),
+        'utf8',
+      ),
+    );
+    expect(messageSource).toContain(
+      "return t('hudChrome.training.learned', { recipe: learnedProfessionName(recipeId) });",
+    );
     for (const key of [
       'hudChrome.training.tierUnmet',
       'hudChrome.training.cannotAfford',
@@ -132,9 +158,13 @@ describe('hud.ts train window wiring (source pins)', () => {
     // begin() false swallows the activation, so a rapid double-click sends
     // train_recipe exactly once and train_already_known can never surface
     // from the trainer window; the immediate renderTrain paints the disabled
-    // pending row as the first click's feedback.
+    // pending row as the first click's feedback. The while-dead arm comes
+    // FIRST: the sim's dead gate (src/sim/dead_gate.ts) refuses the command
+    // with the shared error line and emits NO trainResult, so a flight
+    // opened for it would only sit disabled until its TTL; the click still
+    // sends, so the refusal line is the feedback.
     expect(hudSource).toMatch(
-      /private trainRecipeClicked\(recipeId: string\): void \{\s*\n\s*if \(!this\.trainLearns\.begin\(recipeId, performance\.now\(\)\)\) return;\s*\n\s*this\.sim\.trainRecipe\(recipeId\);\s*\n\s*this\.renderTrain\(\);/,
+      /private trainRecipeClicked\(recipeId: string\): void \{\s*\n(\s*\/\/[^\n]*\n)*\s*if \(this\.sim\.player\.dead\) \{\s*\n\s*this\.sim\.trainRecipe\(recipeId\);\s*\n\s*return;\s*\n\s*\}\s*\n\s*if \(!this\.trainLearns\.begin\(recipeId, performance\.now\(\)\)\) return;\s*\n\s*this\.sim\.trainRecipe\(recipeId\);\s*\n\s*this\.renderTrain\(\);/,
     );
     expect(hudSource).toMatch(
       /import \{ TrainLearnTracker \} from '\.\/hud\/vendor\/train_learn_core';/,
@@ -146,6 +176,60 @@ describe('hud.ts train window wiring (source pins)', () => {
     expect(hudSource).toContain(
       'confirmedRecipes: this.trainLearns.confirmedIds(identity.knownRecipes)',
     );
+  });
+
+  it('reprices every open service window on an inventory/purse delta', () => {
+    // Online a trainer fee is a money-only self delta and heroic marks are a
+    // bag count: trainResult can repaint before ClientWorld mirrors the new
+    // copper, so stale rows advertised fees the purse no longer covered.
+    // onInventoryChanged is the edge that keeps vendor affordability honest
+    // (#2373); it must dispatch the whole family through the shared helper.
+    const hook = hudMethod('onInventoryChanged(): void {');
+    expect(hook).toContain('this.repaintOpenServiceWindows();');
+    // The helper carries one open-plus-shown guard per service window, so a
+    // future edit cannot drop the train arm alone (the language fan-out
+    // registry pins the relocalize call site; THIS pins the membership).
+    // The vendor/heroic guards are pinned as their FULL condition lines: the
+    // display half is the behavior that changed when the old unguarded
+    // renderVendor arm moved into the helper.
+    const helper = hudMethod('private repaintOpenServiceWindows(): void {');
+    expect(helper).toContain(
+      "this.openVendorNpcId !== null && $('#vendor-window').style.display === 'block'",
+    );
+    expect(helper).toContain('this.renderVendor();');
+    expect(helper).toContain(
+      "this.openHeroicVendorNpcId !== null && $('#vendor-window').style.display === 'block'",
+    );
+    expect(helper).toContain('this.renderHeroicVendor();');
+    expect(helper).toContain('this.openTrainNpcId !== null');
+    expect(helper).toContain("$('#train-window').style.display === 'block'");
+    expect(helper).toContain('this.renderTrain();');
+    expect(helper).toContain('this.openUnbindNpcId !== null');
+    expect(helper).toContain("$('#unbind-window').style.display === 'block'");
+    expect(helper).toContain('this.renderUnbind();');
+  });
+
+  it("the guards' display sentinel matches what every service painter sets", () => {
+    // The helper's `=== 'block'` guards and each painter's
+    // `el.style.display = 'block'` are independent literals with nothing else
+    // tying them: a painter moved to 'flex' (as #crafting-window uses) would
+    // silently stop its window repainting on this edge while both sides'
+    // separate pins stayed green. Painter sources are comment-stripped for
+    // the same reason hud.ts is: prose must never satisfy the pin.
+    const helper = hudMethod('private repaintOpenServiceWindows(): void {');
+    expect(helper.match(/=== 'block'/g)).toHaveLength(5);
+    for (const painter of [
+      'vendor_window.ts',
+      'heroic_vendor_window.ts',
+      'train_window.ts',
+      'unbind_window.ts',
+      'warfare_vendor_window.ts',
+    ]) {
+      const src = stripComments(
+        readFileSync(resolve(__dirname, `../src/ui/hud/vendor/${painter}`), 'utf8'),
+      );
+      expect(src, painter).toContain("el.style.display = 'block';");
+    }
   });
 });
 

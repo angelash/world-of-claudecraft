@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -42,14 +42,16 @@ describe('i18n resolved-artifact reproducibility', () => {
   it('keeps the retired sha256 baseline out of version control', () => {
     // The aggregate baseline left version control in the degit change: a
     // re-committed copy would resurrect the guaranteed pairwise merge conflict
-    // between concurrent key-adding PRs. `--error-unmatch` throws only when
-    // the path is untracked, so this pins the file staying untracked.
-    expect(() =>
-      execFileSync('git', ['ls-files', '--error-unmatch', '--', 'src/ui/i18n.resolved.sha256'], {
-        cwd: root,
-        encoding: 'utf8',
-      }),
-    ).toThrow();
+    // between concurrent key-adding PRs. Keep stderr captured so this expected
+    // negative probe does not look like a gate failure in the combined log.
+    const retiredShaPath = 'src/ui/i18n.resolved.sha256';
+    const res = spawnSync('git', ['ls-files', '--error-unmatch', '--', retiredShaPath], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    expect(res.status).toBe(1);
+    expect(res.stderr).toContain(retiredShaPath);
+    expect(res.error).toBeUndefined();
   }, 15000);
 
   it('regenerating src/ui/i18n.resolved.generated/ leaves the committed directory unchanged', () => {
@@ -67,15 +69,19 @@ describe('i18n resolved-artifact reproducibility', () => {
     ).not.toThrow();
   }, 15000);
 
-  it('regenerates byte-identically across two perturbed-env runs (determinism)', () => {
-    // The committed directory keeps the freshness check above; this ADDS the stronger
-    // determinism guarantee - double-generate into two throwaway temp dirs under
-    // perturbed TZ / LC_ALL / temp-path and assert every emitted slice is byte-identical
-    // across the runs (a hidden locale/timezone/path dependency would surface as a diff).
-    // outFiles omitted => the whole emitted tree (all per-locale slices + barrel + the
-    // flat key union, which the override mode emits into the same directory) is compared.
-    expect(() => assertDeterministic({ script: buildScript })).not.toThrow();
-  }, 15000);
+  it(
+    'regenerates byte-identically across two perturbed-env runs (determinism)',
+    () => {
+      // The committed directory keeps the freshness check above; this ADDS the stronger
+      // determinism guarantee - double-generate into two throwaway temp dirs under
+      // perturbed TZ / LC_ALL / temp-path and assert every emitted slice is byte-identical
+      // across the runs (a hidden locale/timezone/path dependency would surface as a diff).
+      // outFiles omitted => the whole emitted tree (all per-locale slices + barrel + the
+      // flat key union, which the override mode emits into the same directory) is compared.
+      expect(() => assertDeterministic({ script: buildScript })).not.toThrow();
+    },
+    process.platform === 'win32' ? 120_000 : 15_000,
+  );
 });
 
 describe('flat TranslationKey union reproducibility', () => {
@@ -106,13 +112,17 @@ describe('flat TranslationKey union reproducibility', () => {
     ).not.toThrow();
   }, 15000);
 
-  it('appears in the determinism outFiles byte-identically across perturbed runs', () => {
-    // Pins BOTH halves of the override contract: the generator honors
-    // I18N_OUT_DIR for the union emit (assertDeterministic throws "did not emit"
-    // if the file lands anywhere else), and the emitted bytes are identical
-    // across the two perturbed-env runs.
-    expect(() =>
-      assertDeterministic({ script: buildScript, outFiles: ['translation_keys.generated.ts'] }),
-    ).not.toThrow();
-  }, 15000);
+  it(
+    'appears in the determinism outFiles byte-identically across perturbed runs',
+    () => {
+      // Pins BOTH halves of the override contract: the generator honors
+      // I18N_OUT_DIR for the union emit (assertDeterministic throws "did not emit"
+      // if the file lands anywhere else), and the emitted bytes are identical
+      // across the two perturbed-env runs.
+      expect(() =>
+        assertDeterministic({ script: buildScript, outFiles: ['translation_keys.generated.ts'] }),
+      ).not.toThrow();
+    },
+    process.platform === 'win32' ? 120_000 : 15_000,
+  );
 });

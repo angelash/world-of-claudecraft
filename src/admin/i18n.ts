@@ -1,3 +1,9 @@
+// format.ts imports adminLanguageTag/t from here, so this pair is a deliberate
+// ESM cycle: both sides use the other only inside function bodies (hoisted
+// declarations, live bindings), never at module-evaluation time. Keeping the
+// Intl construction in format.ts is what the centralization guard
+// (tests/i18n_extra_tables.test.ts) requires.
+import { fmtNumber } from './format';
 import { en_XA, pending, translations } from './i18n.resolved.generated';
 import { LOCALE_LOADERS } from './i18n.resolved.generated/loaders';
 
@@ -180,12 +186,25 @@ export function t(key: string, params?: Record<string, string | number>): string
 // Server-sent operator-error bodies (server/admin.ts) mapped to localized admin
 // strings. Unknown / transport / code-diagnostic errors fall through to English on
 // purpose (the localization design principle: only operator-facing UI is translated).
-const ADMIN_ERROR_KEYS: Record<string, string> = {
+// Exported for the tests/admin coupling guard: every server error prose a
+// handler emits must have a row here, or an operator sees raw English.
+export const ADMIN_ERROR_KEYS: Record<string, string> = {
+  'invalid ai audit id': 'error.invalidAiAuditId',
+  'ai audit record not found': 'error.aiAuditNotFound',
+  'invalid active trigger configuration': 'error.invalidActiveTriggerConfig',
+  'invalid ambient bot configuration': 'error.invalidAmbientBotConfig',
+  'invalid ambient bot control patch': 'error.invalidAmbientBotControlPatch',
+  'ambient bot runtime is not available on this process': 'error.ambientBotRuntimeUnavailable',
+  'ambient bot logout all failed': 'error.ambientBotLogoutAllFailed',
   'too many attempts, wait a minute and try again': 'error.tooManyAttempts',
+  'too many failed attempts, wait a few minutes and try again': 'error.tooManyFailedAttempts',
   'invalid username or password': 'error.invalidCredentials',
   'this account does not have admin access': 'error.noAdminAccess',
+  'invalid authentication code': 'error.invalidTwoFactorCode',
   'admin accounts cannot be suspended or banned': 'error.cannotModerateAdmin',
   'open report not found': 'error.reportNotFound',
+  'open bug report not found': 'error.bugReportNotFound',
+  'invalid item guid': 'error.invalidItemGuid',
   'account not found': 'error.accountNotFound',
   'account is not suspended': 'error.accountNotSuspended',
   'moderation action failed': 'error.moderationFailed',
@@ -194,10 +213,36 @@ const ADMIN_ERROR_KEYS: Record<string, string> = {
   'chat unmute failed': 'error.chatUnmuteFailed',
   'account is not chat muted': 'error.accountNotChatMuted',
   'moderation reason is required': 'error.moderationReasonRequired',
+  'a general chat rate limit or null is required': 'error.generalChatRateLimitRequired',
+  'messages must be an integer from 1 to 1000': 'error.generalChatRateLimitMessages',
+  'windowminutes must be an integer from 1 to 1440': 'error.generalChatRateLimitWindowMinutes',
   'suspension expiry must be in the future': 'error.moderationExpiryFuture',
   'character not found': 'error.characterNotFound',
+  'character already has that': 'error.characterAlreadyHasThat',
+  'buddy grant failed': 'error.buddyGrantFailed',
+  'guild not found': 'error.guildNotFound',
+  'guild name is already taken': 'error.guildNameTaken',
+  'guild name must change': 'error.guildNameUnchanged',
+  'a moderation reason is required (500 chars max)': 'error.generalChatRateLimitReasonInvalid',
+  'guild member limit exceeded': 'error.guildMemberLimit',
+  // The guild bank dormant-slot escape hatch (server/admin.ts).
+  'a slot index is required': 'error.guildBankSlotRequired',
+  'the item id in that slot is required': 'error.guildBankItemRequired',
+  'that guild has no loaded bank': 'error.guildBankNotLoaded',
+  'no member of that guild is online to persist the change': 'error.guildBankNoCarrier',
+  'that slot is not a stuck item': 'error.guildBankSlotNotStuck',
+  'the change could not be saved and was rolled back': 'error.guildBankSaveFailed',
+  'that guild is being deleted, so its bank is closed': 'error.guildBankDeleting',
+  'the guild bank change was refused': 'error.guildBankPurgeRefused',
+  'guild name must be 3-24 letters with single spaces': 'error.guildNameInvalid',
+  // The guild list's 503 single-flight busy path (the one guild prose the
+  // release left unmapped; surfaced by the merge-audit gate run). Mapped to
+  // the same key the guild directory already renders for ANY failed list
+  // read, so a localized operator sees exactly what the release shipped.
+  'guild list busy, try again': 'guilds.loadFailed',
   'invalid streamer link': 'error.invalidStreamerLink',
   'admin accounts cannot be chat muted': 'error.cannotChatMuteAdmin',
+  'admin accounts cannot be rate limited': 'error.cannotRateLimitAdmin',
   'tier must be "soft" or "hard"': 'error.invalidWordTier',
   'word is empty after normalization': 'error.wordEmptyAfterNormalization',
   'word not found': 'error.wordNotFound',
@@ -215,10 +260,116 @@ const ADMIN_ERROR_KEYS: Record<string, string> = {
   'password reset failed': 'error.resetPasswordFailed',
   'password must be at least 6 chars': 'error.passwordTooShort',
   'password must be at most 128 chars': 'error.passwordTooLong',
+  // R35 GM professions tooling (inspector + restores).
+  'character is not online on this realm': 'error.characterNotOnline',
+  'unknown item id': 'error.unknownItemId',
+  'count must be a whole number between 1 and 20': 'error.restoreCountRange',
+  'unknown gathering profession id': 'error.unknownGatheringProfession',
+  'unknown tool effect id': 'error.unknownToolEffect',
+  'the character owns no tool for that profession': 'error.restoreNoTool',
+  'that profession already has a slotted effect': 'error.restoreAlreadySlotted',
+  // Pre-existing prose the phase 15 scan guard surfaced as unmatched.
+  'an overrides object is required': 'error.antibotOverridesRequired',
+  asset_not_found: 'error.assetNotFound',
+  map_not_found: 'error.mapNotFound',
+  'internal error': 'error.internal',
+  'unknown admin endpoint': 'error.unknownEndpoint',
+  'that effect cannot be slotted on that profession': 'error.restoreBadPair',
+  'character went offline before the restore landed': 'error.restoreWentOffline',
+  'item restore failed': 'error.restoreItemFailed',
+  'slot restore failed': 'error.restoreSlotFailed',
+  // The phase 13 legendary-name strip's catch fallback (clearItemNameHandler).
+  'item name clear failed': 'error.itemNameClearFailed',
+  // The strip's typed outcome proses (server/clear_item_name.ts runClearItemName
+  // plus the lease-fenced save's refusal): surfaced through a VARIABLE, so the
+  // fail() scan above cannot see them; the reverse-map pin in
+  // tests/admin/professions_restore.test.ts holds every one to a key here.
+  'name exactly one target: a worn slot, a bag cell, or all: true':
+    'error.clearItemNameTargetForms',
+  'unknown equipment slot': 'error.clearItemNameUnknownSlot',
+  'all must be the literal true': 'error.clearItemNameAllLiteral',
+  'a bag target needs both the cell index and its item id': 'error.clearItemNameBagPair',
+  'bag must be a non-negative whole number': 'error.clearItemNameBagIndex',
+  'character is online on this realm; disconnect them first': 'error.clearItemNameOnline',
+  'no named copy matched that target': 'error.clearItemNameNoMatch',
+  'character came online before the strip landed; kick them and retry':
+    'error.clearItemNameCameOnline',
+  'character holds a live session lease; kick them (or wait out the lease) and retry':
+    'error.clearItemNameLeased',
+  // The LIVE arm's own race (Masterwrought phase 18 QA): the session left between
+  // the online check and the in-memory strip. It reads the opposite way round from
+  // clearItemNameCameOnline above, which is the offline arm losing its race to a
+  // session arriving, so the two cannot share a key.
+  'character went offline before the strip landed; retry': 'error.clearItemNameWentOffline',
+  // Named-constant, multi-line, and `err.message ?? literal` fallback prose the
+  // widened phase 15 scan guard surfaced (it now flattens the source, resolves
+  // single-identifier arguments through server/admin.ts's own constants, and
+  // reads the ternary fallback literal).
+  'ai must be a boolean': 'error.aiFlagRequired',
+  'streamer must be a boolean': 'error.streamerFlagRequired',
+  // The Cheater mark routes emit stable codes, never prose
+  // (server/cheater_mark_api.ts); reason_required reuses the shared
+  // moderation-reason key so the two alerts read identically.
+  'cheater_mark.reason_required': 'error.moderationReasonRequired',
+  'cheater_mark.invalid_duration': 'error.cheaterMarkDurationInvalid',
+  'cheater_mark.not_marked': 'error.cheaterMarkNotMarked',
+  'cheater_mark.admin_target': 'error.cheaterMarkAdminTarget',
+  // The world quest block routes emit stable codes the same way
+  // (server/world_quest_block_api.ts).
+  'world_quest_block.reason_required': 'error.moderationReasonRequired',
+  'world_quest_block.already_blocked': 'error.worldQuestBlockAlreadyBlocked',
+  'world_quest_block.not_blocked': 'error.worldQuestBlockNotBlocked',
+  'world_quest_block.admin_target': 'error.worldQuestBlockAdminTarget',
+  // The admin-panel kick emits stable codes the same way (server/admin_kick_api.ts).
+  'kick.reason_required': 'error.moderationReasonRequired',
+  'kick.target_offline': 'error.kickTargetOffline',
+  'kick.admin_target': 'error.kickAdminTarget',
+  'a links object is required': 'error.streamerLinksRequired',
+  'failed to update account flair': 'error.accountFlairFailed',
+  'a valid daily rewards date is required': 'error.dailyRewardDayRequired',
+  'daily rewards moderation failed': 'error.dailyRewardsModerationFailed',
+  'daily rewards ip moderation failed': 'error.dailyRewardsIpModerationFailed',
+  'failed to add note': 'error.addNoteFailed',
+  'chat strikes reset failed': 'error.chatStrikesResetFailed',
+  'reactivation failed': 'error.reactivationFailed',
+  // Economy oversight (wealth + suspicion-flag workflow, server/admin.ts).
+  'too many requests, wait a moment and try again': 'error.tooManyRequests',
+  'flag not found': 'error.flagNotFound',
+  'invalid flag status': 'error.flagInvalidStatus',
+  'that status change is not allowed': 'error.flagInvalidTransition',
+  'this account already has an open flag of that kind': 'error.flagActiveExists',
+  'a note is required': 'error.flagNoteRequired',
+  // The GM item restore's optional lost-copy link (restoreItemBodyError).
+  'derived-from must be an item id': 'error.restoreDerivedFromInvalid',
 };
 export function localizeAdminError(message: string): string {
-  const key = ADMIN_ERROR_KEYS[message.trim().toLowerCase()];
-  return key ? t(key) : message;
+  const normalized = message.trim().toLowerCase();
+  const key = ADMIN_ERROR_KEYS[normalized];
+  if (!key) {
+    // The server owns this clamp; read its bounds instead of copying them.
+    const bagRange = /^bag must be a whole number from (\d+) to (\d+)$/.exec(normalized);
+    if (bagRange) {
+      return t('error.clearItemNameBagRange', {
+        min: fmtNumber(Number(bagRange[1])),
+        max: fmtNumber(Number(bagRange[2])),
+      });
+    }
+    return message;
+  }
+  // The quota-bound proses carry locale-grouped numbers. Formatting lives in
+  // src/admin/format.ts (the admin's one sanctioned Intl home, mirroring the
+  // game's src/ui/i18n.ts formatNumber), so the bounds are formatted there and
+  // this module stays free of ad-hoc Intl construction.
+  if (key === 'error.generalChatRateLimitMessages') {
+    return t(key, { min: fmtNumber(1), max: fmtNumber(1_000) });
+  }
+  if (key === 'error.generalChatRateLimitWindowMinutes') {
+    return t(key, { min: fmtNumber(1), max: fmtNumber(1_440) });
+  }
+  if (key === 'error.generalChatRateLimitReasonInvalid') {
+    return t(key, { max: fmtNumber(500) });
+  }
+  return t(key);
 }
 
 // Operator-facing class label for the dashboard tables/charts. The class id is the

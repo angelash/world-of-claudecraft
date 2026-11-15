@@ -32,8 +32,16 @@ export class AmbientBotCodexCliProvider implements AmbientBotLlmProvider {
 
   constructor(options: AmbientBotCodexCliProviderOptions = {}) {
     this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? resolveCodexBinary();
-    this.timeoutMs = options.timeoutMs ?? envPositiveInt('AMBIENT_PLAYER_BOTS_LLM_TIMEOUT_MS', envPositiveInt('AI_CODEX_TIMEOUT_MS', DEFAULT_TIMEOUT_MS));
-    this.maxStderrBytes = Math.max(0, Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES));
+    this.timeoutMs =
+      options.timeoutMs ??
+      envPositiveInt(
+        'AMBIENT_PLAYER_BOTS_LLM_TIMEOUT_MS',
+        envPositiveInt('AI_CODEX_TIMEOUT_MS', DEFAULT_TIMEOUT_MS),
+      );
+    this.maxStderrBytes = Math.max(
+      0,
+      Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES),
+    );
     this.codexArgsPrefix = options.codexArgsPrefix ?? [];
     this.sourceEnv = options.sourceEnv ?? process.env;
   }
@@ -166,17 +174,26 @@ export class AmbientBotCodexCliProvider implements AmbientBotLlmProvider {
         if (text.length > remaining) stderrTruncated = true;
       });
       child.on('error', (error) => {
-        finish(new Error(`ambient bot Codex CLI could not start (${this.codexBin}): ${errorMessage(error)}`));
+        finish(
+          new Error(
+            `ambient bot Codex CLI could not start (${this.codexBin}): ${errorMessage(error)}`,
+          ),
+        );
       });
       child.on('close', (code, signal) => {
         if (code === 0) finish();
-        else finish(new Error(codexExitMessage({
-          code,
-          signal,
-          stderr,
-          stderrTruncated,
-          structuredErrorSummary: state.structuredErrorSummary,
-        })));
+        else
+          finish(
+            new Error(
+              codexExitMessage({
+                code,
+                signal,
+                stderr,
+                stderrTruncated,
+                structuredErrorSummary: state.structuredErrorSummary,
+              }),
+            ),
+          );
       });
     });
   }
@@ -200,9 +217,10 @@ function parseCodexJsonEvent(line: string, state: CodexJsonEventState): void {
   const record = payload as Record<string, unknown>;
   const type = typeof record.type === 'string' ? record.type : '';
   if (type === 'item.completed') {
-    const item = record.item && typeof record.item === 'object'
-      ? record.item as Record<string, unknown>
-      : null;
+    const item =
+      record.item && typeof record.item === 'object'
+        ? (record.item as Record<string, unknown>)
+        : null;
     if (item?.type === 'agent_message' && typeof item.text === 'string' && item.text.trim()) {
       state.lastAgentMessage = item.text.trim();
     }
@@ -265,9 +283,7 @@ function codexExitMessage(input: {
   stderrTruncated: boolean;
   structuredErrorSummary: string | null;
 }): string {
-  const status = input.code === null
-    ? `signal ${input.signal ?? 'unknown'}`
-    : `code ${input.code}`;
+  const status = input.code === null ? `signal ${input.signal ?? 'unknown'}` : `code ${input.code}`;
   const details = [
     input.structuredErrorSummary,
     input.stderr.trim(),

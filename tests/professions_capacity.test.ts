@@ -21,10 +21,13 @@ import {
 } from '../src/sim/professions/enchanting';
 import { masterworkBonusStats } from '../src/sim/professions/masterwork';
 import { maxSalvageYield, resolveSalvage, salvageYield } from '../src/sim/professions/salvage';
+import type { StationType } from '../src/sim/professions/stations';
+import { stationsOfType } from '../src/sim/professions/stations';
 import type { ProfessionRecipeRecord } from '../src/sim/professions/types';
 import type { Rng } from '../src/sim/rng';
 import { Sim } from '../src/sim/sim';
-import type { ItemDef } from '../src/sim/types';
+import type { InvSlot, ItemDef } from '../src/sim/types';
+import { EMPTY_TEST_WORLD } from './sim_shared';
 
 const FILLER = 'simple_fishing_pole'; // tool: one per slot, merges with nothing
 const SWORD = 'eastbrook_arming_sword'; // common mainhand weapon
@@ -107,7 +110,7 @@ const qaMwRecipe: ProfessionRecipeRecord = {
 } as ProfessionRecipeRecord;
 
 function makeSim(seed = 11) {
-  return new Sim({ seed, playerClass: 'warrior', autoEquip: false });
+  return new Sim({ seed, playerClass: 'warrior', autoEquip: false, world: EMPTY_TEST_WORLD });
 }
 
 function metaOf(sim: Sim, pid: number) {
@@ -138,6 +141,13 @@ function standAtStation(sim: Sim, pid: number): void {
   const e = sim.ctx.entities.get(pid)!;
   e.pos.x = STATIONS[0].pos.x;
   e.pos.z = STATIONS[0].pos.z;
+}
+
+function standAtStationType(sim: Sim, pid: number, stationType: StationType): void {
+  const station = stationsOfType(STATIONS, stationType)[0];
+  const e = sim.ctx.entities.get(pid)!;
+  e.pos.x = station.pos.x;
+  e.pos.z = station.pos.z;
 }
 
 describe('craft capacity gate (#2350)', () => {
@@ -629,4 +639,141 @@ describe('unbind split capacity gate (#2350)', () => {
     expect(freed?.instance?.bindOnTrade).toBe(true);
     expect(m.inventory.length).toBe(16);
   });
+});
+
+// Signed food now shares physical stacks with unsigned units and other makers.
+// The capacity scratch still must reject truly incompatible copies before
+// spending reagents, money, skill or XP, and admit compatible source merges
+// without dropping any original or newly crafted units.
+describe('rare-quality signing composes with the capacity gate (#2446 review coverage)', () => {
+  function fullBagsWithOutput(output: InvSlot) {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    // 11 filler slots + 1 output stack + 4 partially consumed reagent slots.
+    const m = setBags(sim, pid, 11);
+    m.inventory.push(output);
+    m.copper = 100000;
+    m.knownRecipes.add('recipe_anglers_feast_platter');
+    m.craftSkills.cooking = 50;
+    standAtStationType(sim, pid, 'kitchens');
+    for (const [itemId, count] of [
+      ['raw_frostgill_trout', 3],
+      ['raw_bog_eel', 3],
+      ['sunpetal_herb', 2],
+      ['cooking_salt', 3],
+    ] as const) {
+      m.inventory.push({ itemId, count });
+    }
+    expect(bagCapacity(m.bags)).toBe(16);
+    expect(m.inventory).toHaveLength(16);
+    expect(m.name).toBe('Adventurer');
+    expect(stackSizeOf(ITEMS.anglers_feast_platter)).toBe(20);
+    return { sim, pid, m };
+  }
+
+  it.each([
+    { label: 'bound', count: 1, instance: { boundTo: 999 } },
+    { label: 'locked', count: 1, instance: { locked: true } },
+    { label: 'different recipe', count: 1, craftedRecipeId: 'other_recipe' },
+    { label: 'compatible with room for only two units', count: 18 },
+  ])(
+    'denies a multi-copy signed craft when its only room is a $label stack',
+    ({ label: _label, ...identity }) => {
+      const { sim, pid, m } = fullBagsWithOutput({
+        itemId: 'anglers_feast_platter',
+        ...identity,
+      });
+      const before = sim.serializeCharacter(pid);
+      const inventoryBefore = structuredClone(m.inventory);
+      const skillsBefore = structuredClone(m.craftSkills);
+      const xpBefore = m.lifetimeXp;
+      sim.drainEvents();
+
+      const { result, draws } = countDraws(sim, () =>
+        resolveCraft(sim.ctx, pid, 'recipe_anglers_feast_platter'),
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        recipeId: 'recipe_anglers_feast_platter',
+        reason: 'no_bag_space',
+      });
+      expect(draws).toBe(0);
+      expect(sim.serializeCharacter(pid)).toEqual(before);
+      expect(m.inventory).toEqual(inventoryBefore);
+      expect(m.craftSkills).toEqual(skillsBefore);
+      expect(m.lifetimeXp).toBe(xpBefore);
+      expect(sim.drainEvents()).toEqual([]);
+      expect(sim.countItem('anglers_feast_platter', pid)).toBe(identity.count);
+      expect(sim.countItem('raw_frostgill_trout', pid)).toBe(3);
+      expect(m.copper).toBe(100000);
+    },
+  );
+
+  it.each([
+    {
+      label: 'plain',
+      count: 1,
+      instance: undefined,
+      expected: [
+        { source: {}, count: 1 },
+        { source: { signer: 'Adventurer' }, count: 3 },
+      ],
+    },
+    {
+      label: 'another maker',
+      count: 1,
+      instance: { signer: 'OtherMaker' },
+      expected: [
+        { source: { signer: 'Adventurer' }, count: 3 },
+        { source: { signer: 'OtherMaker' }, count: 1 },
+      ],
+    },
+    {
+      label: 'plain at the stack boundary',
+      count: 17,
+      instance: undefined,
+      expected: [
+        { source: {}, count: 17 },
+        { source: { signer: 'Adventurer' }, count: 3 },
+      ],
+    },
+  ])(
+    'merges all three signed outputs into a compatible $label stack at full bags',
+    ({ count, instance, expected }) => {
+      const { sim, pid, m } = fullBagsWithOutput({
+        itemId: 'anglers_feast_platter',
+        count,
+        ...(instance ? { instance } : {}),
+      });
+      const xpBefore = m.lifetimeXp;
+      const { result, draws } = countDraws(sim, () =>
+        resolveCraft(sim.ctx, pid, 'recipe_anglers_feast_platter'),
+      );
+      expect(result).toEqual({
+        ok: true,
+        recipeId: 'recipe_anglers_feast_platter',
+        itemId: 'anglers_feast_platter',
+        count: 3,
+        quality: 'rare',
+        selfSignedBonusApplied: false,
+      });
+      expect(draws).toBe(1);
+      expect(m.inventory).toHaveLength(16);
+      expect(m.inventory.filter((slot) => slot.itemId === 'anglers_feast_platter')).toEqual([
+        { itemId: 'anglers_feast_platter', count: count + 3, materialSources: expected },
+      ]);
+      for (const itemId of [
+        'raw_frostgill_trout',
+        'raw_bog_eel',
+        'sunpetal_herb',
+        'cooking_salt',
+      ]) {
+        expect(sim.countItem(itemId, pid), itemId).toBe(1);
+      }
+      expect(m.copper).toBe(99960);
+      expect(m.craftSkills.cooking).toBe(51);
+      expect(m.lifetimeXp - xpBefore).toBe(120);
+    },
+  );
 });

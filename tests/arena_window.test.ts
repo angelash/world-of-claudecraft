@@ -12,14 +12,29 @@ import { describe, expect, it } from 'vitest';
 const src = readFileSync(new URL('../src/ui/arena_window.ts', import.meta.url), 'utf8');
 const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/styles/components.css', import.meta.url), 'utf8');
 
 describe('arena_window: WCAG chrome (focusable controls + focus-return)', () => {
-  it('drives the panel from the pure view core', () => {
+  it('drives the panels from all three pure cores', () => {
     expect(code).toContain('buildArenaView(');
+    expect(code).toContain('buildBgWindowView(');
+    expect(code).toContain('buildPvpTabs(');
+  });
+
+  it('exposes the tab deep entry and tab-prefixes every live render-skip sig', () => {
+    // openTab is the Thornhollow Fields deep entry (hud.toggleBattleground rides it).
+    expect(code).toContain('openTab(tab: PvpTabId)');
+    // The two live signatures carry the tab and the strip's lock state, so a
+    // tab switch or a lock change can never be skipped by a colliding sig. They
+    // are also named apart, because both arms guard the same `lastSig` field
+    // with the same shape and the drive registry pins one of them by name.
+    expect(code).toContain('const ravenriftSig = `ravenrift|');
+    expect(code).toContain('const sig = `${tab}|');
   });
 
   it('gives the close control a real button with an aria-label', () => {
-    expect(code).toContain('class="x-btn" data-close aria-label=');
+    // W12: the legacy hook remains beside the shared close-button primitive.
+    expect(code).toContain('class="x-btn ui-x-btn" data-close aria-label=');
     expect(code).toContain("t('hud.arena.close')");
   });
 
@@ -37,8 +52,69 @@ describe('arena_window: WCAG chrome (focusable controls + focus-return)', () => 
     expect(code).toContain('this.openerFocus = this.deps.captureFocus()');
   });
 
-  it('keeps the offline / not-yet-synced unavailable note', () => {
+  // Both ranked tabs now carry the same two ladder sections in the same order:
+  // who is online right now, then the all-time board. The Thornhollow arm
+  // reuses the arena's ladder-row markup family rather than a bespoke one.
+  it('renders the live online ladder above the all-time board on the Thornhollow tab', () => {
+    expect(code).toContain("t('hudChrome.bg.ladderOnline')");
+    expect(code).toContain("t('hudChrome.bg.noChallengers')");
+    expect(code).toContain('this.bgOnlineLadderHtml(view.ladder)');
+    // Order inside the Thornhollow body: the first-win chip, the queue
+    // affordance it invites a click on, then the online section, then all-time.
+    expect(code).toContain('this.bgFirstWinChipHtml(view.firstWinBonus)');
+    expect(code).toContain('this.bgActionHtml(view.action)');
+    // The COMPOSED expression, not the declarations above it: the sections are
+    // built in a different order than they are concatenated.
+    const bgBody = code.slice(
+      code.indexOf('private bgBodyHtml'),
+      code.indexOf('private bgActionHtml'),
+    );
+    const composed = bgBody.slice(bgBody.indexOf('return ('));
+    // W12: the first-win state moved into the stat grid while Double Honor stays above it.
+    expect(bgBody.indexOf('bgFirstWinChipHtml')).toBeLessThan(bgBody.indexOf('return ('));
+    expect(composed.indexOf('bgDoubleHonorChipHtml')).toBeLessThan(composed.indexOf('stats'));
+    expect(composed.indexOf('stats')).toBeLessThan(composed.indexOf('bgActionHtml'));
+    expect(composed.indexOf('bgActionHtml')).toBeLessThan(composed.indexOf('onlineSection'));
+    expect(composed.indexOf('onlineSection')).toBeLessThan(composed.indexOf('allTimeSection'));
+    // The shared row family (the arena's ladderHtml markup), not a bespoke one:
+    // read the new builder's own body rather than counting occurrences.
+    const body = code.slice(
+      code.indexOf('private bgOnlineLadderHtml('),
+      code.indexOf('private bgLadderHtml('),
+    );
+    expect(body.length).toBeGreaterThan(0); // both builders present, in that order
+    expect(body).toContain('class="ladder-row');
+    expect(body).toContain('class="ladder-empty"');
+    expect(body).toContain('class="rank"');
+    expect(body).toContain("t('hudChrome.bg.playerClassTitle'");
+    // The live rows carry no level: that title key belongs to the all-time board.
+    expect(body).not.toContain('playerLevelClassTitle');
+  });
+
+  it('uses the board-sized two-column layout and queued action twins', () => {
+    // W12: the shipping content now follows the Arena board without inventing a queue clock.
+    expect(css).toContain('width: min(760px, calc(100vw - 40px))');
+    expect(css).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(code).toContain('class="arena-layout"');
+    expect(code).toContain('class="pvp-queue-actions"');
+    expect(code).toContain('disabled aria-disabled="true"');
+  });
+
+  it('keeps the offline / not-yet-synced unavailable note on both tabs', () => {
     expect(code).toContain("t('hud.arena.offlineNote')");
+    expect(code).toContain("t('hudChrome.bg.offlineNote')");
+  });
+
+  it('every panel state emits the dialog label id, the Thornhollow Fields title included', () => {
+    // markDialogRoot(labelledBy: 'arena-title') is set once on open; both
+    // title builders must therefore carry the id in every rebuilt panel.
+    // W12: the shared title primitive is emitted on both labelled title spans.
+    expect(code).toContain(
+      '<span id="arena-title" class="ui-win-title">${esc(t(\'hud.arena.title\'))}',
+    );
+    expect(code).toContain(
+      '<span id="arena-title" class="ui-win-title">${esc(t(\'hudChrome.bg.title\'))}',
+    );
   });
 });
 
@@ -75,7 +151,13 @@ describe('arena_window: mediumHud redraw call site', () => {
     expect(hud).toContain(
       "if (inArenaMatch && !this.arenaMatchSeen && $('#arena-window').style.display === 'block') {",
     );
+    // The Thornhollow Fields match-start auto-close routes through the same painter.
+    expect(hud).toContain(
+      "if (inBgMatch && !this.bgMatchSeen && $('#arena-window').style.display === 'block') {",
+    );
     expect(hud).not.toContain("'#arena-window').style.display = 'none'");
+    // hud.toggleBattleground deep-opens the merged window on the Thornhollow Fields tab.
+    expect(hud).toContain("this.arenaWindow.openTab('ravenrift')");
   });
 });
 
@@ -84,8 +166,9 @@ describe('arena_window: offline skip-rebuild sentinel (collision-proof)', () => 
     const m = code.match(/ARENA_OFFLINE_SIG\s*=\s*'([^']*)'/);
     expect(m, 'ARENA_OFFLINE_SIG literal').not.toBeNull();
     const sentinel = m ? m[1] : '';
-    // The live sig is JSON.stringify([...]) so it always starts with '['; the sentinel must not,
-    // or an offline->live transition could wrongly skip a real rebuild.
+    // The live sig is tab-prefixed (`ravenrift|...` / `1v1|...`), never this bare
+    // token, so an offline->live transition can never wrongly skip a rebuild; the
+    // sentinel also must not start with '[' (the shape of a raw JSON sig).
     expect(sentinel.length).toBeGreaterThan(0);
     expect(sentinel.startsWith('[')).toBe(false);
     // The offline branch early-returns on the sentinel (builds once per open, not every tick).
@@ -104,5 +187,19 @@ describe('arena_window: map row (slot-parity arena maps)', () => {
     expect(src).toContain("drowned_court: 'hud.arena.map.drownedCourt'");
     expect(src).toMatch(/const mapRow = matchMap\s*\?/);
     expect(src).toContain("t('hud.arena.mapName', { name: t(ARENA_MAP_KEY[matchMap]) })");
+  });
+});
+
+// W20: the height ignored the #ui zoom divisor every sibling window applies, so
+// at a non-default ui-scale the window overshot the viewport it was capped to.
+describe('arena window height', () => {
+  it('divides the viewport cap by --window-scale like its siblings', () => {
+    const at = css.indexOf('\n  #arena-window {');
+    expect(at).toBeGreaterThan(-1);
+    const body = css.slice(at, css.indexOf('}', at));
+    expect(body).toContain(
+      'height: min(480px, calc(var(--app-vh, 100vh) * 0.85 / var(--window-scale) - 24px));',
+    );
+    expect(body).not.toContain('calc(var(--app-vh, 100vh) * 0.85 - 24px)');
   });
 });

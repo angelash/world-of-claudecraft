@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import type { AiJobContextV1 } from '../server/ai/ai_types';
 import { objectInspectionEvent } from '../server/ai/object_reactions';
-import { lightSemanticFor, timeSemanticAt, timeWeatherMood, weatherSemanticAt } from '../server/ai/time_weather_model';
+import {
+  lightSemanticFor,
+  timeSemanticAt,
+  timeWeatherMood,
+  weatherSemanticAt,
+} from '../server/ai/time_weather_model';
 import type { Entity } from '../src/sim/types';
 
-function object(itemId: string | null, templateId = itemId ? `ground_${itemId}` : 'dungeon_door'): Entity {
+function object(
+  itemId: string | null,
+  templateId = itemId ? `ground_${itemId}` : 'dungeon_door',
+): Entity {
   return {
     id: 10,
     kind: 'object',
@@ -24,7 +32,11 @@ function eventLineId(event: ReturnType<typeof objectInspectionEvent>): string | 
   return event.speech.lineId;
 }
 
-function context(sceneTags: { location?: string[]; structure?: string[]; environmental?: string[] }): AiJobContextV1 {
+function context(sceneTags: {
+  location?: string[];
+  structure?: string[];
+  environmental?: string[];
+}): AiJobContextV1 {
   const time = timeSemanticAt(0);
   const weather = weatherSemanticAt('eastbrook_vale', 0);
   const light = lightSemanticFor(time, weather);
@@ -84,13 +96,19 @@ function context(sceneTags: { location?: string[]; structure?: string[]; environ
 
 describe('objectInspectionEvent', () => {
   it('uses forge language for metal objects in forge scenes', () => {
-    const event = objectInspectionEvent(context({ structure: ['forge'], environmental: ['hotIron'] }), object('redbrook_blade'));
+    const event = objectInspectionEvent(
+      context({ structure: ['forge'], environmental: ['hotIron'] }),
+      object('redbrook_blade'),
+    );
     expect(event?.type).toBe('aiSpeech');
     expect(eventLineId(event)).toBe('hudChrome.aiSpeech.objectInspectForge');
   });
 
   it('uses lake language for shore objects', () => {
-    const event = objectInspectionEvent(context({ location: ['shore', 'fishing'], environmental: ['openWater'] }), object('moongate_rubbing'));
+    const event = objectInspectionEvent(
+      context({ location: ['shore', 'fishing'], environmental: ['openWater'] }),
+      object('moongate_rubbing'),
+    );
     expect(event?.type).toBe('aiSpeech');
     expect(eventLineId(event)).toBe('hudChrome.aiSpeech.objectInspectLake');
   });

@@ -14,7 +14,10 @@ import {
   maxDisenchantYield,
 } from '../src/sim/professions/enchanting';
 import type { ItemDef } from '../src/sim/types';
-import { disenchantYieldLines, disenchantYieldPreview } from '../src/ui/disenchant_yield_view';
+import {
+  disenchantYieldLines,
+  disenchantYieldPreview,
+} from '../src/ui/hud/professions/disenchant_yield_view';
 
 /** A live disenchantable def of the requested quality and kind, so every arm is
  *  exercised against real content rather than a fixture. */
@@ -62,11 +65,27 @@ describe('disenchantYieldPreview', () => {
     expect(preview?.secondary).toEqual({ itemId: typedSecondaryFor(def), min: 1, max: 2 });
   });
 
-  it('a rare+ piece with NO typed material (jewelry) previews the primary alone', () => {
-    // Jewelry carries no armor class, so typedSecondaryFor returns null and the
-    // preview must not promise a secondary. Live jewelry is epic-tier here.
-    const def = defFor('epic', (d) => typedSecondaryFor(d) === null);
-    expect(def.slot === 'ring' || def.slot === 'neck').toBe(true);
+  // typedSecondaryFor only branches on kind 'armor' (by armorType) and
+  // 'weapon', so jewelry (no armor class) AND a held offhand both return
+  // null: the preview must not promise a secondary for either. Two explicit
+  // cases, not one predicate loosened to match both, so a defFor() picking
+  // the wrong one of the two can never silently drop coverage of the other
+  // (a first-match helper over ITEMS is exactly this fragile).
+  it('a rare+ jewelry piece (no armor class) previews the primary alone', () => {
+    const def = defFor(
+      'epic',
+      (d) => typedSecondaryFor(d) === null && (d.slot === 'ring' || d.slot === 'neck'),
+    );
+    expect(def.kind).toBe('armor');
+    const preview = disenchantYieldPreview(def);
+    expect(preview?.primary).toEqual({ itemId: 'arcane_shard', min: 1, max: 1 });
+    expect(preview?.secondary).toBeUndefined();
+    expect(disenchantYieldLines(def).length).toBe(2);
+  });
+
+  it('a rare+ held offhand (no weapon/armor type) previews the primary alone', () => {
+    const def = defFor('epic', (d) => typedSecondaryFor(d) === null && d.kind === 'held_offhand');
+    expect(def.slot).toBe('offhand');
     const preview = disenchantYieldPreview(def);
     expect(preview?.primary).toEqual({ itemId: 'arcane_shard', min: 1, max: 1 });
     expect(preview?.secondary).toBeUndefined();

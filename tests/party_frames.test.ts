@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { ABILITIES } from '../src/sim/data';
+import { preparePartyFrameAuras } from '../src/sim/party_frame_info';
+import type { Aura } from '../src/sim/types';
 import {
   DEFAULT_PARTY_FRAME_DISPLAY,
+  PARTY_FRAME_RANGE_YD,
   partyFrameAuraIsRelevant,
+  partyFrameHeaderState,
   partyFrameHealthText,
   partyFrameSignature,
+  prioritizePartyFrameAuras,
+  readPartyFrameDisplayConfig,
   resolvePartyFrameStyle,
   selectPartyFrameMembers,
 } from '../src/ui/party_frames';
@@ -36,12 +43,50 @@ describe('party frame style resolution', () => {
   });
 });
 
+describe('party frame header state', () => {
+  it('counts the local player and derives the disclosure state without DOM state', () => {
+    // Four other members' rows plus the hidden local player is a party of five.
+    expect(partyFrameHeaderState(4, false)).toEqual({ visible: true, count: 5, collapsed: false });
+    expect(partyFrameHeaderState(4, true)).toEqual({ visible: true, count: 5, collapsed: true });
+    expect(partyFrameHeaderState(0, true)).toEqual({ visible: false, count: 0, collapsed: true });
+  });
+
+  it('matches the full roster size for the rows the selector hands the painter', () => {
+    const info: PartyInfo = {
+      leader: 1,
+      raid: false,
+      master: { enabled: false, looter: 0, threshold: 'uncommon' },
+      members: [member(1, 1), member(2, 1), member(3, 1), member(4, 1)],
+    };
+    for (const showSelf of [false, true]) {
+      const config = { ...DEFAULT_PARTY_FRAME_DISPLAY, showSelf };
+      const rows = selectPartyFrameMembers(info, 1, { x: 0, z: 0 }, undefined, config);
+      expect(partyFrameHeaderState(rows.length, false, showSelf).count).toBe(4);
+    }
+  });
+
+  it('does not count the local player twice when their own row is shown', () => {
+    expect(partyFrameHeaderState(5, false, true)).toEqual({
+      visible: true,
+      count: 5,
+      collapsed: false,
+    });
+    expect(partyFrameHeaderState(0, false, true)).toEqual({
+      visible: false,
+      count: 0,
+      collapsed: false,
+    });
+  });
+});
+
 describe('party frame aura relevance', () => {
   it('hides passive maintenance buffs but keeps healer effects and harmful auras', () => {
     expect(partyFrameAuraIsRelevant({ id: 'imbue', kind: 'imbue' })).toBe(false);
     expect(partyFrameAuraIsRelevant({ id: 'arcane_intellect', kind: 'buff_int_pct' })).toBe(false);
     expect(partyFrameAuraIsRelevant({ id: 'sacred_shield', kind: 'cast_shield' })).toBe(true);
     expect(partyFrameAuraIsRelevant({ id: 'temporal_echo', kind: 'temporal_echo' })).toBe(true);
+    expect(partyFrameAuraIsRelevant({ id: 'priest_doctrine', kind: 'doctrine' })).toBe(true);
+    expect(partyFrameAuraIsRelevant({ id: 'seraphic_vigil', kind: 'heal_echo' })).toBe(true);
     expect(partyFrameAuraIsRelevant({ id: 'renew', kind: 'hot' })).toBe(true);
     expect(partyFrameAuraIsRelevant({ id: 'power_word_shield', kind: 'absorb' })).toBe(true);
     expect(partyFrameAuraIsRelevant({ id: 'ice_block', kind: 'stasis' })).toBe(true);
@@ -51,9 +96,30 @@ describe('party frame aura relevance', () => {
       false,
     );
     expect(partyFrameAuraIsRelevant({ id: 'temporal_exhaustion', kind: 'sated' })).toBe(false);
-    expect(partyFrameAuraIsRelevant({ id: 'well_fed', kind: 'buff_sta' })).toBe(false);
+    // the live unified food-buff id (Masterwrought 11c): every buff food
+    // mints 'well_fed' (value 5 is the capstone dish's real magnitude, so
+    // the fixture walks the predicate exactly as the live aura does)
+    expect(partyFrameAuraIsRelevant({ id: 'well_fed', kind: 'buff_sta', value: 5 })).toBe(false);
     expect(partyFrameAuraIsRelevant({ id: 'rend', kind: 'dot' })).toBe(true);
     expect(partyFrameAuraIsRelevant({ id: 'wither', kind: 'buff_ap', neg: 1 })).toBe(true);
+  });
+
+  it('keeps Doctrine and Vigil first when the visible strip is crowded', () => {
+    const ordered = prioritizePartyFrameAuras([
+      { id: 'renew', kind: 'hot' },
+      { id: 'rend', kind: 'dot', neg: 1 },
+      { id: 'seraphic_vigil', kind: 'heal_echo' },
+      { id: 'power_word_shield', kind: 'absorb' },
+      { id: 'priest_doctrine', kind: 'doctrine' },
+    ]);
+
+    expect(ordered.map((aura) => aura.id)).toEqual([
+      'priest_doctrine',
+      'seraphic_vigil',
+      'renew',
+      'rend',
+      'power_word_shield',
+    ]);
   });
 });
 
@@ -123,6 +189,7 @@ describe('party frame member selection', () => {
       showResource: true,
       showAbsorbs: true,
       showAuras: true,
+      showPets: true,
       healthText: 1,
       sort: 0,
       presentation: 0,
@@ -148,6 +215,7 @@ describe('party frame member selection', () => {
       showResource: true,
       showAbsorbs: true,
       showAuras: true,
+      showPets: true,
       healthText: 1,
       sort: 1,
       presentation: 0,
@@ -164,6 +232,7 @@ describe('party frame health text and tactical information', () => {
     expect(partyFrameHealthText(75, 100, 1, format)).toBe('percent:0.75');
     expect(partyFrameHealthText(75, 100, 2, format)).toBe('number:75');
     expect(partyFrameHealthText(75, 100, 3, format)).toBe('number:75 / number:100');
+    expect(partyFrameHealthText(75, 100, 4, format)).toBe('number:75 / number:100 (percent:0.75)');
   });
 
   it('does not reveal Temporal Cascade target selection on party frames', () => {
@@ -198,6 +267,16 @@ describe('party frame signature (the per-frame short-circuit)', () => {
   it('is stable: the same party yields the same signature (so an unchanged party short-circuits)', () => {
     const pos = { x: 0, z: 0 };
     expect(partyFrameSignature(info(), 1, pos)).toBe(partyFrameSignature(info(), 1, pos));
+  });
+
+  it('changes when the selected party target changes so the raid halo repaints', () => {
+    const party = info();
+    const pos = { x: 0, z: 0 };
+    expect(
+      partyFrameSignature(party, 1, pos, undefined, DEFAULT_PARTY_FRAME_DISPLAY, undefined, 2),
+    ).not.toBe(
+      partyFrameSignature(party, 1, pos, undefined, DEFAULT_PARTY_FRAME_DISPLAY, undefined, 3),
+    );
   });
 
   it('skips the local player but encodes every other member + leader / raid / group', () => {
@@ -298,6 +377,7 @@ describe('party frame signature (the per-frame short-circuit)', () => {
       { showResource: false },
       { showAbsorbs: false },
       { showAuras: false },
+      { showPets: false },
       { healthText: 2 as const },
       { sort: 1 as const },
       { presentation: 2 as const },
@@ -347,14 +427,16 @@ describe('ClientWorld-vs-Sim out-of-range parity', () => {
     }
   });
 
-  it('pins the accepted divergence at the exact 100yd boundary (sub-cm rounding flips oor)', () => {
-    // dist 100.003: the full-precision Sim is out of range (100.003 > 100); the mirror
-    // rounds the coordinate to 100.00, which is NOT > 100, so it reads in range. This
+  it('pins the accepted divergence at the exact range boundary (sub-cm rounding flips oor)', () => {
+    // Just past the threshold: the full-precision Sim is out of range; the mirror
+    // rounds the coordinate back onto it, which is NOT > the threshold, so it reads
+    // in range. Taken FROM the constant rather than spelled as a literal, which is how
+    // this test came to pin a 100yd boundary that no ability could reach. This
     // ~2cm knife-edge disagreement at the threshold is the accepted
     // tolerance (like the absorb case). Pinning it gives the parity block teeth: a change
     // to the comparison (> vs >=), the range constant, or the mirror's rounding model
     // would move this boundary and fail here, where the ~50yd cases cannot.
-    const dist = 100.003;
+    const dist = PARTY_FRAME_RANGE_YD + 0.003;
     const sim: PartyInfo = {
       leader: 1,
       raid: false,
@@ -369,5 +451,266 @@ describe('ClientWorld-vs-Sim out-of-range parity', () => {
     };
     expect(selectPartyFrameMembers(sim, 1, playerPos)[0].oor).toBe(true);
     expect(selectPartyFrameMembers(mirror, 1, playerPos)[0].oor).toBe(false);
+  });
+});
+
+// The pet sliver is fed from the client's own entity roster, not the party wire, so
+// nothing on the wire moves when a party member's pet takes damage. If the signature
+// did not fold pet health, updatePartyFrames would short-circuit and the sliver would
+// freeze at whatever it first painted. These pin both halves of that.
+describe('party pets in the selector and the signature', () => {
+  // `member` is module-scoped above; the party fixture is local to this block.
+  const info = (): PartyInfo => ({
+    leader: 1,
+    raid: false,
+    master: { enabled: false, looter: 0, threshold: 'uncommon' },
+    members: [member(1, 1), member(2, 1, 10, 0), member(3, 1, 20, 0)],
+  });
+  const pets = (
+    over: Partial<{ hp: number; maxHp: number; dead: boolean; id: number; name: string }> = {},
+  ) => new Map([[2, { id: 90, name: 'Fang', hp: 30, maxHp: 40, dead: false, ...over }]]);
+
+  it('attaches a member pet from the roster map', () => {
+    const rows = selectPartyFrameMembers(
+      info(),
+      1,
+      { x: 0, z: 0 },
+      undefined,
+      {
+        ...DEFAULT_PARTY_FRAME_DISPLAY,
+      },
+      pets(),
+    );
+    const withPet = rows.find((r) => r.pid === 2);
+    expect(withPet?.pet?.name).toBe('Fang');
+    expect(withPet?.pet?.id).toBe(90);
+  });
+
+  it('leaves members with no pet in the map untouched', () => {
+    const rows = selectPartyFrameMembers(
+      info(),
+      1,
+      { x: 0, z: 0 },
+      undefined,
+      {
+        ...DEFAULT_PARTY_FRAME_DISPLAY,
+      },
+      pets(),
+    );
+    for (const r of rows) if (r.pid !== 2) expect(r.pet).toBeUndefined();
+  });
+
+  it('attaches nothing when Show Pets is off', () => {
+    const rows = selectPartyFrameMembers(
+      info(),
+      1,
+      { x: 0, z: 0 },
+      undefined,
+      {
+        ...DEFAULT_PARTY_FRAME_DISPLAY,
+        showPets: false,
+      },
+      pets(),
+    );
+    expect(rows.every((r) => r.pet === undefined)).toBe(true);
+  });
+
+  it('MOVES the signature when a pet loses health', () => {
+    const party = info();
+    const pos = { x: 0, z: 0 };
+    const before = partyFrameSignature(
+      party,
+      1,
+      pos,
+      undefined,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      pets(),
+    );
+    const after = partyFrameSignature(
+      party,
+      1,
+      pos,
+      undefined,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      pets({ hp: 12 }),
+    );
+    expect(after).not.toBe(before);
+  });
+
+  // renamePet changes ONLY the name; every other pet and member field stays put. The
+  // sliver's accessible label is built from that name, so if the signature ignored it
+  // updatePartyFrames would short-circuit and a screen-reader user would keep hearing
+  // the old name. Everything paintPet reads has to be folded, not just the numbers.
+  it('MOVES the signature when a pet is RENAMED and nothing else changes', () => {
+    const party = info();
+    const pos = { x: 0, z: 0 };
+    const before = partyFrameSignature(
+      party,
+      1,
+      pos,
+      undefined,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      pets(),
+    );
+    const renamed = partyFrameSignature(
+      party,
+      1,
+      pos,
+      undefined,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      pets({ name: 'Shadowfang' }),
+    );
+    expect(renamed).not.toBe(before);
+  });
+
+  it('MOVES the signature when a pet dies, is dismissed, or is swapped', () => {
+    const party = info();
+    const pos = { x: 0, z: 0 };
+    const live = partyFrameSignature(party, 1, pos, undefined, DEFAULT_PARTY_FRAME_DISPLAY, pets());
+    const dead = partyFrameSignature(
+      party,
+      1,
+      pos,
+      undefined,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      pets({ dead: true }),
+    );
+    const gone = partyFrameSignature(
+      party,
+      1,
+      pos,
+      undefined,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      new Map(),
+    );
+    const swapped = partyFrameSignature(
+      party,
+      1,
+      pos,
+      undefined,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      pets({ id: 91 }),
+    );
+    expect(dead).not.toBe(live);
+    expect(gone).not.toBe(live);
+    expect(swapped).not.toBe(live);
+  });
+
+  it('ignores the pet map entirely when Show Pets is off', () => {
+    const party = info();
+    const pos = { x: 0, z: 0 };
+    const cfg = { ...DEFAULT_PARTY_FRAME_DISPLAY, showPets: false };
+    expect(partyFrameSignature(party, 1, pos, undefined, cfg, pets())).toBe(
+      partyFrameSignature(party, 1, pos, undefined, cfg, new Map()),
+    );
+  });
+
+  it('is stable across repeated calls with the same pet state', () => {
+    const party = info();
+    const pos = { x: 0, z: 0 };
+    expect(partyFrameSignature(party, 1, pos, undefined, DEFAULT_PARTY_FRAME_DISPLAY, pets())).toBe(
+      partyFrameSignature(party, 1, pos, undefined, DEFAULT_PARTY_FRAME_DISPLAY, pets()),
+    );
+  });
+
+  it('badges at the range a helpful spell actually reaches, taken from the ability table', () => {
+    // The bug this fixes: the badge fired at 100 yards while every friendly cast
+    // is 30, so a member from 30 to 100 yards out showed a clean row and refused
+    // every heal. Derived from the real table, never a second copy of the number,
+    // so retuning heal range fails HERE instead of silently desyncing the badge.
+    const castable = Object.values(ABILITIES).filter(
+      (a) => a.requiresTarget && (a.targetType === 'friendly' || a.targetType === 'any'),
+    );
+    expect(castable.length, 'the table really does declare friendly targets').toBeGreaterThan(10);
+    const longest = Math.max(...castable.map((a) => a.range));
+    expect(PARTY_FRAME_RANGE_YD).toBe(longest);
+  });
+
+  it('badges a member past that range, and does not badge one inside it', () => {
+    const pos = { x: 0, z: 0 };
+    const at = (d: number) => {
+      const info: PartyInfo = {
+        leader: 1,
+        raid: false,
+        master: { enabled: false, looter: 0, threshold: 'uncommon' },
+        members: [member(1, 1), member(2, 1, d, 0)],
+      };
+      return selectPartyFrameMembers(info, 1, pos).find((m) => m.pid === 2)?.oor;
+    };
+    expect(at(PARTY_FRAME_RANGE_YD - 1), 'inside the cast range: reachable').toBe(false);
+    expect(at(PARTY_FRAME_RANGE_YD + 1), 'past it: badged').toBe(true);
+    // The old threshold, which is the middle of the reported dead zone.
+    expect(at(60), 'the 60yd case healers complained about now badges').toBe(true);
+  });
+});
+
+// The other half of the Aura.flask wire question (tests/snapshots.test.ts pins
+// the entity-snapshot half): the party-frame payload projects each aura through
+// preparePartyFrameAuras into an explicitly built summary, so the flask marker
+// stops there too and a party row can never badge a member's flask. The
+// projection is a hand-written object literal rather than a spread, which is
+// exactly why it needs a pin: adding one line to it would widen the payload for
+// every member of every party with nothing else red.
+describe('party frame aura summary carries no flask marker', () => {
+  // A flask-MARKED aura of a party-frame-relevant kind. Contrived on purpose:
+  // a real flask buff (buff_sta) is not relevant to a party frame at all, so it
+  // never reaches the projection, and pinning the projection needs an aura that
+  // does. What is under test is the summary's key set, not which auras qualify.
+  const markedRelevantAura: Aura = {
+    id: 'power_word_shield',
+    name: 'Psalm of Warding',
+    kind: 'absorb',
+    remaining: 12,
+    duration: 12,
+    value: 250,
+    sourceId: 7,
+    school: 'holy',
+    flask: true,
+  };
+
+  it('projects a fixed key set, so the marker never reaches a party row', () => {
+    const prepared = preparePartyFrameAuras([markedRelevantAura], 1000);
+    expect(prepared, 'the aura really reached the projection').toHaveLength(1);
+    const summary = prepared[0].summary as unknown as Record<string, unknown>;
+    expect('flask' in summary, 'the marker stopped at the projection').toBe(false);
+    // The WHOLE key set, so any other widening fails here too: id and kind
+    // always ride, remaining always rides, and neg/poolPct are conditional on a
+    // negative value and on Mending Current respectively (neither applies here).
+    expect(Object.keys(summary).sort()).toEqual(['id', 'kind', 'remaining']);
+  });
+});
+
+describe('readPartyFrameDisplayConfig', () => {
+  it('falls back to the defaults before the settings store attaches', () => {
+    expect(readPartyFrameDisplayConfig(undefined)).toEqual(DEFAULT_PARTY_FRAME_DISPLAY);
+  });
+
+  it('keeps every default for a store whose keys are all missing', () => {
+    expect(readPartyFrameDisplayConfig({ get: () => undefined })).toEqual(
+      DEFAULT_PARTY_FRAME_DISPLAY,
+    );
+  });
+
+  it('reads every key from the store, rounding the choice values', () => {
+    const values: Record<string, number | boolean> = {
+      partyFrameShowSelf: true,
+      partyFrameShowResource: false,
+      partyFrameShowAbsorbs: true,
+      partyFrameShowAuras: false,
+      partyFrameShowPets: false,
+      partyFrameStyle: 2,
+      partyFrameHealthText: 4.2,
+      partyFrameSort: 1,
+    };
+    expect(readPartyFrameDisplayConfig({ get: (key) => values[key] })).toEqual({
+      showSelf: true,
+      showResource: false,
+      showAbsorbs: true,
+      showAuras: false,
+      showPets: false,
+      presentation: 2,
+      healthText: 4,
+      sort: 1,
+    });
   });
 });

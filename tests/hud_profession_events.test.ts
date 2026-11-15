@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 // The HUD render sink for the four Professions 2.0 text-free
 // SimEvents (profTrendNudge, profTierTutorial, attuned, attunedZone). The sim
@@ -13,16 +13,24 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { inertCharacters } from './helpers/inert_characters';
+
+// Hud reaches the character model preload; keep it inert
+// (tests/helpers/inert_characters.ts has the why).
+vi.mock('../src/render/characters', () => inertCharacters.barrel());
+vi.mock('../src/render/characters/assets', () => inertCharacters.assets());
+vi.mock('../src/render/characters/portrait', () => inertCharacters.portrait());
+
 import { audio } from '../src/game/audio';
 import { ARCHETYPE_PAIR_TARGETS } from '../src/sim/professions/archetype';
 import { archetypeTitleText } from '../src/ui/char_window';
 import { tEntity } from '../src/ui/entity_i18n';
 import { Hud } from '../src/ui/hud';
-import { t } from '../src/ui/i18n';
 import {
   attunementMasterForPair,
   type ProfessionEventInput,
-} from '../src/ui/profession_event_lines_core';
+} from '../src/ui/hud/professions/profession_event_lines_core';
+import { t } from '../src/ui/i18n';
 import type { CraftingIdentityView } from '../src/world_api/professions';
 
 // jsdom ships no matchMedia; the handler reads only `.matches` to derive the
@@ -231,7 +239,10 @@ describe('Hud.handleProfessionEvent', () => {
 describe('sim-event switch routing (source pin)', () => {
   // join(process.cwd()) rather than import.meta.url: under jsdom the module
   // URL is not a file: scheme (the confirm_dialog_key_activation precedent).
-  const hudSource = readFileSync(join(process.cwd(), 'src/ui/hud.ts'), 'utf8').replace(/\r\n/g, '\n');
+  const hudSource = readFileSync(join(process.cwd(), 'src/ui/hud.ts'), 'utf8').replace(
+    /\r\n/g,
+    '\n',
+  );
 
   it('all four SimEvent types route to handleProfessionEvent', () => {
     expect(hudSource).toMatch(

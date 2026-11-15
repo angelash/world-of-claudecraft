@@ -232,7 +232,7 @@ in this worktree (branch `analysis/healing-montecarlo`):
   `src/sim/mob/mob_swing.ts` (on-swing hook beside the cleave affix),
   `src/sim/types.ts` (state field). Tests:
   `tests/nythraxis_gravebreaker_charged.test.ts` (new, red against the old
-  design), six rewritten pins in `tests/nythraxis_raid.test.ts`, parity
+  design), six rewritten pins in `tests/nythraxis_raid_unit.test.ts`, parity
   scenario updated and `nythraxis_full_pull` golden re-minted
   (`UPDATE_PARITY=1`). Green: nythraxis suites (148), parity (183),
   architecture guard, `tsc`. Run the full gate before merging.
@@ -268,6 +268,13 @@ original bench tank (2452 hp / 3367 armor) came from armor-heavy stat weights
 that traded 310 base HP away. The harness now uses the max-EHP pick and
 applies both buff layers to every bench tank (`applyTankRaidBuffs`).
 
+Provenance (qr-19-ref-armor-calibration-constant, 2026-09-01): 2861 is a PINNED constant, not a live
+measurement of the catalog. The committed max-armour kit pins at 4085
+(`tests/heroic_difficulty_floors.test.ts`), and whether 2861 was ever the raw kit armour or a
+prot-mastery-folded reading is UNSETTLED, so it is not re-based here and rides the packet's R5
+re-measure. The pairing above is a max-EHP (stamina-first) pick, not the max-armour one the
+floor suites name, which is a third basis for the same number.
+
 Re-measured on the corrected 3072-HP tank (charged Gravebreaker, live heal
 scaling; old-tank artifacts preserved as `*_tank2452.json`):
 
@@ -302,8 +309,9 @@ deploy_watchdog cases):
 1. Tank crit immunity (`src/sim/combat/tank_crit_immunity.ts` + the one mob
    crit roll in `Sim.mobSwing`; roll still drawn for parity): prot warrior,
    protection paladin, feral druid IN Sloth Form. Pinned by
-   `tests/tank_crit_immunity.test.ts` (immune trio at zero crits, control
-   specs still critted).
+   the `tests/tank_crit_immunity_*_pair.test.ts` trio, warrior, paladin, and
+   druid, over the shared `tests/tank_crit_immunity_util.ts` (immune spec at
+   zero crits, control specs still critted).
 2. Heal-side Spell Power doubled (`HEALING_SP_SCALE = 2` in spell_scaling.ts,
    direct heals + HoTs; absorbs deliberately excluded: the only
    coefficient-carrying shields are MAGE barriers, and the healer shield
@@ -339,6 +347,12 @@ counts double for heals, so int/SP itemization is the interim lever).
 Full sweep of all four heroic dungeons (every spawn-list mob, summon chains,
 and the fire-path code for each mechanic). Armor profiles: tank 2861 /
 mail 1500 / cloth 700; BiS non-tank pools run 557-1800.
+
+Provenance (qr-19-ref-armor-calibration-constant, 2026-09-01): the tank 2861 profile above is a PINNED constant, not a live
+measurement of the catalog. The committed max-armour kit pins at 4085
+(`tests/heroic_difficulty_floors.test.ts`), and whether 2861 was ever the raw kit armour or a
+prot-mastery-folded reading is UNSETTLED, so it is not re-based here and rides the packet's R5
+re-measure.
 
 1. SUMMONED-ADD MISSILES ARE SYSTEMIC (three bosses, not one). Vael: 2x
    drowned_thrall per wave at 32.5x (two waves). Ysolei: 2x moonspawn at
@@ -423,6 +437,10 @@ comps. i18n release debt: the reworded bear_form description (+90% -> +130%).
 - The bench tank (statScore pick: 3367 armor / 2452 HP) trades HP for armor vs
   the floors-test reference warrior (2861 armor / 2762 HP); net mitigation is
   comparable.
+  Provenance (qr-19-ref-armor-calibration-constant, 2026-09-01): the 2861 side of that comparison is
+  a PINNED constant, not a live catalog read; the committed max-armour kit pins at 4085
+  (`tests/heroic_difficulty_floors.test.ts`) and the constant's basis (raw kit or
+  prot-mastery-folded) is UNSETTLED, so it rides the packet's R5 re-measure.
 - No dungeon-finder party DPS was simulated in benches A-C; kill-window
   estimates there use party DPS of 135-195. Bench D measures real raid DPS
   (mage filler, ~120-150 each at BiS).

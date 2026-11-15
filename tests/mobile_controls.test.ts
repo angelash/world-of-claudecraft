@@ -461,9 +461,12 @@ function installMobileControlDom(): {
   moreButton: FakeElement;
   moreModal: FakeElement;
   emoteButton: FakeElement;
+  mountButton: FakeElement;
   discordButton: FakeElement;
   donateButton: FakeElement;
+  wikiButton: FakeElement;
   chatButton: FakeElement;
+  barEditorButton: FakeElement;
   windowTarget: EventTarget;
 } {
   const autorunTarget = new FakeElement();
@@ -486,9 +489,12 @@ function installMobileControlDom(): {
     ['mobile-more', new FakeElement()],
     ['mobile-extra-controls', new FakeElement()],
     ['mobile-emote', new FakeElement()],
+    ['mobile-mounts', new FakeElement()],
     ['mobile-discord', new FakeElement()],
     ['mobile-donate', new FakeElement()],
+    ['mobile-wiki', new FakeElement()],
     ['mobile-chat', new FakeElement()],
+    ['mobile-bar-editor', new FakeElement()],
     // The chat composer, so exitChatReply (value clear + blur) is exercised in the
     // fake DOM: the setActive draft-survival test reads its .value.
     ['chat-input', new FakeElement()],
@@ -525,9 +531,12 @@ function installMobileControlDom(): {
     moreButton: elements.get('mobile-more')!,
     moreModal: elements.get('mobile-extra-controls')!,
     emoteButton: elements.get('mobile-emote')!,
+    mountButton: elements.get('mobile-mounts')!,
     discordButton: elements.get('mobile-discord')!,
     donateButton: elements.get('mobile-donate')!,
+    wikiButton: elements.get('mobile-wiki')!,
     chatButton: elements.get('mobile-chat')!,
+    barEditorButton: elements.get('mobile-bar-editor')!,
     windowTarget,
   };
 }
@@ -559,6 +568,7 @@ function mobileCallbacks() {
     onSocial: noop,
     onDiscord: noop,
     onDonate: noop,
+    onWiki: noop,
     onEmotes: noop,
     onArena: noop,
     onDungeonFinder: noop,
@@ -566,13 +576,19 @@ function mobileCallbacks() {
     onQuestLog: noop,
     onCharacter: noop,
     onBags: noop,
+    onMeters: noop,
     onCrafting: noop,
     onSpellbook: noop,
+    onBarEditor: noop,
     onTalents: noop,
     onMap: noop,
     onLeaderboard: noop,
     onDailyRewards: noop,
+    onWocMarket: noop,
+    onMountToggle: noop,
     onDeeds: noop,
+    onReliquary: noop,
+    onLootExplorer: noop,
     onProfessions: noop,
     onNameplates: () => false,
     onMusic: () => true,
@@ -1246,6 +1262,56 @@ describe('MobileControls pointer lifecycle', () => {
     expect(emotes).toBe(1);
   });
 
+  it('fires the bar-editor callback when the More-tray Edit button is tapped', () => {
+    // The touch-only entry point into the bar editor, and the reason it lives in
+    // the More tray rather than on the ring: binding is a setup action and must
+    // leave the live combat surface entirely (the long-press rearrange it
+    // replaces armed underneath the radial and swapped slots mid-fight).
+    const { barEditorButton } = installMobileControlDom();
+    const input = {
+      setTouchMove: () => {},
+      clearTouchMove: () => {},
+      setTouchLook: () => {},
+      setTouchLookVector: () => {},
+    } as unknown as Input;
+
+    let opens = 0;
+    const callbacks = {
+      ...mobileCallbacks(),
+      onBarEditor: () => {
+        opens += 1;
+      },
+    };
+    new MobileControls(input, callbacks).start();
+
+    barEditorButton.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+
+    expect(opens).toBe(1);
+  });
+
+  it('fires the mount callback when the More-tray Mount button is tapped', () => {
+    const { mountButton } = installMobileControlDom();
+    const input = {
+      setTouchMove: () => {},
+      clearTouchMove: () => {},
+      setTouchLook: () => {},
+      setTouchLookVector: () => {},
+    } as unknown as Input;
+
+    let mountToggles = 0;
+    const callbacks = {
+      ...mobileCallbacks(),
+      onMountToggle: () => {
+        mountToggles += 1;
+      },
+    };
+    new MobileControls(input, callbacks).start();
+
+    mountButton.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+
+    expect(mountToggles).toBe(1);
+  });
+
   it('fires the Discord callback when the on-screen Discord button is tapped', () => {
     const { discordButton } = installMobileControlDom();
     const input = {
@@ -1290,6 +1356,29 @@ describe('MobileControls pointer lifecycle', () => {
     donateButton.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
 
     expect(donate).toBe(1);
+  });
+
+  it('fires the Wiki callback when the More-tray Wiki button is tapped', () => {
+    const { wikiButton } = installMobileControlDom();
+    const input = {
+      setTouchMove: () => {},
+      clearTouchMove: () => {},
+      setTouchLook: () => {},
+      setTouchLookVector: () => {},
+    } as unknown as Input;
+
+    let wiki = 0;
+    const callbacks = {
+      ...mobileCallbacks(),
+      onWiki: () => {
+        wiki += 1;
+      },
+    };
+    new MobileControls(input, callbacks).start();
+
+    wikiButton.dispatchEvent(new Event('click', { bubbles: true, cancelable: true }));
+
+    expect(wiki).toBe(1);
   });
 
   it('closes the open More modal when tapping outside it', () => {

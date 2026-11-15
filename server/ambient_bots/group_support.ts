@@ -1,9 +1,9 @@
 import type { KnownAbility } from '../../src/sim/content/classes';
 import type { Role, TalentAllocation } from '../../src/sim/content/talents';
 import { computeTalentModifiers } from '../../src/sim/content/talents';
+import { abilitiesKnownAt, CLASSES, ITEMS, MOBS } from '../../src/sim/data';
 import { parseTalentAllocation } from '../../src/sim/talent_allocation_input';
-import { CLASSES, ITEMS, MOBS, abilitiesKnownAt } from '../../src/sim/data';
-import { MELEE_RANGE, angleTo, dist2d, type InvSlot } from '../../src/sim/types';
+import { angleTo, dist2d, type InvSlot, MELEE_RANGE } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import {
   type PartyCombatTarget,
@@ -12,8 +12,8 @@ import {
   travelGoalToPartyMember,
   travelGoalToPartyTarget,
 } from '../party_coordination';
-import { maybePrepareForPullFromLiveState } from './pre_combat';
 import { planAmbientPartyRoles } from './party_roles';
+import { maybePrepareForPullFromLiveState } from './pre_combat';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 

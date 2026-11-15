@@ -1,11 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { Sim } from '../src/sim/sim';
-import { groundHeight } from '../src/sim/world';
-import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord } from '../server/ai/ai_types';
+import { describe, expect, it, vi } from 'vitest';
+import type {
+  AiDecisionV1,
+  AiJobContextV1,
+  AiMemoryAuditRecord,
+  AiProvider,
+} from '../server/ai/ai_types';
+import {
+  AiLifeLayer,
+  type AiMemoryBudgetEnforcementResult,
+  type AiMemoryBudgetPolicy,
+  type AiMemoryPersistence,
+  type AiMemoryPersistenceQuery,
+} from '../server/ai/life_layer';
 import { cloneMemoryAudit } from '../server/ai/memory_audit';
-import { AiLifeLayer, type AiMemoryBudgetEnforcementResult, type AiMemoryBudgetPolicy, type AiMemoryPersistence, type AiMemoryPersistenceQuery } from '../server/ai/life_layer';
-import type { AiProvider } from '../server/ai/ai_types';
 import { PgAiMemoryDb } from '../server/ai_memory_db';
+import { Sim } from '../src/sim/sim';
+import { ordinaryDiscardFixture, teleportNear } from './helpers/ai_discard_fixture';
 
 class FakeMemoryDb implements AiMemoryPersistence {
   saved: AiMemoryAuditRecord[][] = [];
@@ -92,7 +102,9 @@ class FakeMemoryDb implements AiMemoryPersistence {
 
   releasePrune(): void {
     this.blockPrune = false;
-    this.pruneResolvers.splice(0).forEach((resolve) => resolve());
+    this.pruneResolvers.splice(0).forEach((resolve) => {
+      resolve();
+    });
   }
 
   holdBudget(): void {
@@ -101,19 +113,10 @@ class FakeMemoryDb implements AiMemoryPersistence {
 
   releaseBudget(): void {
     this.blockBudget = false;
-    this.budgetResolvers.splice(0).forEach((resolve) => resolve());
+    this.budgetResolvers.splice(0).forEach((resolve) => {
+      resolve();
+    });
   }
-}
-
-function teleportNear(sim: Sim, pid: number, targetId: number): void {
-  const player = sim.entities.get(pid)!;
-  const target = sim.entities.get(targetId)!;
-  player.pos.x = target.pos.x + 1;
-  player.pos.z = target.pos.z;
-  player.pos.y = groundHeight(player.pos.x, player.pos.z, sim.cfg.seed);
-  player.prevPos = { ...player.pos };
-  sim.grid.update(player);
-  sim.playerGrid.update(player);
 }
 
 function makeSim(): { sim: Sim; pid: number; npcId: number; wolfId: number } {
@@ -147,6 +150,14 @@ const unavailableProvider: AiProvider = {
   },
 };
 
+function makeDiscardSim() {
+  const { sim, pid } = makeSim();
+  return {
+    ...ordinaryDiscardFixture(sim, pid),
+    provider: { decide: vi.fn(unavailableProvider.decide) },
+  };
+}
+
 function persistedDirectorSignal(playerEntityId: number): AiMemoryAuditRecord {
   return {
     kind: 'worldDirectorState',
@@ -169,9 +180,10 @@ function aiSpeechLineIds(events: readonly unknown[]): string[] {
   return events
     .map((event) => {
       if (!event || typeof event !== 'object') return null;
-      const speech = (event as { type?: string; speech?: { mode?: string; lineId?: string } }).speech;
+      const speech = (event as { type?: string; speech?: { mode?: string; lineId?: string } })
+        .speech;
       return (event as { type?: string }).type === 'aiSpeech' && speech?.mode === 'lineId'
-        ? speech.lineId ?? null
+        ? (speech.lineId ?? null)
         : null;
     })
     .filter((lineId): lineId is string => lineId !== null);
@@ -179,26 +191,36 @@ function aiSpeechLineIds(events: readonly unknown[]): string[] {
 
 describe('AI memory persistence integration', () => {
   it('persists item-discard memory writes without delaying local AI speech delivery', async () => {
-    const { sim, pid, wolfId } = makeSim();
-    teleportNear(sim, pid, wolfId);
+    const { sim, pid, provider } = makeDiscardSim();
     const db = new FakeMemoryDb();
-    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const layer = new AiLifeLayer({ enabled: true, provider, memoryDb: db });
     const delivered: unknown[] = [];
 
-    layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => delivered.push(...events) });
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.itemInterestApproach' }),
-    }));
+    layer.handleItemDiscarded({
+      sim,
+      pid,
+      itemId: 'roasted_boar',
+      count: 1,
+      deliver: (events) => delivered.push(...events),
+    });
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.itemInterestApproach' }),
+      }),
+    );
 
     await layer.flushMemoryWrites();
+    expect(provider.decide).not.toHaveBeenCalled();
 
     const saved = db.saved.flat();
-    expect(saved).toEqual(expect.arrayContaining([
-      expect.objectContaining({ kind: 'worldTrace', itemId: 'roasted_boar' }),
-      expect.objectContaining({ kind: 'worldDirectorState', itemId: 'roasted_boar' }),
-      expect.objectContaining({ kind: 'rumor', itemId: 'roasted_boar' }),
-    ]));
+    expect(saved).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'worldTrace', itemId: 'roasted_boar' }),
+        expect.objectContaining({ kind: 'worldDirectorState', itemId: 'roasted_boar' }),
+        expect.objectContaining({ kind: 'rumor', itemId: 'roasted_boar' }),
+      ]),
+    );
     expect(layer.memoryPersistenceDiagnostics()).toMatchObject({ pending: 0, errors: [] });
     expect(layer.runtimeMetrics()).toMatchObject({
       localReactions: 1,
@@ -213,20 +235,30 @@ describe('AI memory persistence integration', () => {
     db.loaded = [persistedSignal];
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
-        expect(context.memorySignals).toContainEqual(expect.objectContaining({
-          kind: 'rumor',
-          refId: 'persisted-rumor-1',
-          reason: 'persistedFixture',
-        }));
+        expect(context.memorySignals).toContainEqual(
+          expect.objectContaining({
+            kind: 'rumor',
+            refId: 'persisted-rumor-1',
+            reason: 'persistedFixture',
+          }),
+        );
         return {
           schemaVersion: 1,
           jobId: context.jobId,
-          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          entityRef: {
+            kind: context.entity.kind,
+            entityId: context.entity.entityId,
+            templateId: context.entity.templateId,
+          },
           ttlMs: 5000,
           confidence: 1,
           speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
           intents: [{ type: 'commentOnScene' }],
-          audit: { shortReason: 'uses persisted memory signal', usedPlayerInput: false, safetyNotes: [] },
+          audit: {
+            shortReason: 'uses persisted memory signal',
+            usedPlayerInput: false,
+            safetyNotes: [],
+          },
         };
       },
     };
@@ -276,16 +308,18 @@ describe('AI memory persistence integration', () => {
     });
     await layer.flushMemoryWrites();
 
-    expect(db.saved.flat()).toContainEqual(expect.objectContaining({
-      kind: 'creatureMemory',
-      refId: expect.stringContaining(`active:scheduler:${pid}:${wolf.id}:watchSky`),
-      entityId: wolf.id,
-      templateId: wolf.templateId,
-      lineIds: ['hudChrome.aiSpeech.singularityRemembersScene'],
-      reason: 'active:scheduler:mob:watchSky',
-      salience: expect.any(Number),
-      expiresAt: expect.any(Number),
-    }));
+    expect(db.saved.flat()).toContainEqual(
+      expect.objectContaining({
+        kind: 'creatureMemory',
+        refId: expect.stringContaining(`active:scheduler:${pid}:${wolf.id}:watchSky`),
+        entityId: wolf.id,
+        templateId: wolf.templateId,
+        lineIds: ['hudChrome.aiSpeech.singularityRemembersScene'],
+        reason: 'active:scheduler:mob:watchSky',
+        salience: expect.any(Number),
+        expiresAt: expect.any(Number),
+      }),
+    );
     const [saved] = db.saved.flat();
     expect(saved.salience).toBeGreaterThan(0.85);
     expect((saved.expiresAt ?? 0) - sim.time).toBe(21 * 24 * 60 * 60);
@@ -297,42 +331,66 @@ describe('AI memory persistence integration', () => {
 
   it('feeds persisted director signals into object inspection context after a fresh life layer starts', async () => {
     const { sim, pid } = makeSim();
-    const object = [...sim.entities.values()].find((entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil')!;
+    const object = [...sim.entities.values()].find(
+      (entity) => entity.kind === 'object' && entity.objectItemId === 'gravecaller_sigil',
+    )!;
     teleportNear(sim, pid, object.id);
     const db = new FakeMemoryDb();
     db.loaded = [
       persistedDirectorSignal(pid),
-      { ...persistedDirectorSignal(pid + 1), refId: 'other-player-director', sourcePlayerEntityId: pid + 1 },
+      {
+        ...persistedDirectorSignal(pid + 1),
+        refId: 'other-player-director',
+        sourcePlayerEntityId: pid + 1,
+      },
       { ...persistedDirectorSignal(pid), refId: 'expired-director', expiresAt: 0, salience: 1 },
     ];
     const calls: AiJobContextV1[] = [];
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
         calls.push(context);
-        expect(context.memorySignals).toContainEqual(expect.objectContaining({
-          kind: 'worldDirectorState',
-          refId: 'persisted-director-covetous',
-          itemId: 'redbrook_blade',
-        }));
-        expect(context.memorySignals?.some((signal) => signal.refId === 'other-player-director')).toBe(false);
-        expect(context.memorySignals?.some((signal) => signal.refId === 'expired-director')).toBe(false);
-        expect(context.recentObservations).toContain('persistedMemory:worldDirectorState:region:redbrook_blade');
-        expect(context.directorProposals).toContainEqual(expect.objectContaining({
-          proposalId: 'persisted-director-covetous:persisted-proposal',
-          intent: 'nudgeNpcRumor',
-          targetRef: 'redbrook_blade',
-          suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
-          safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
-        }));
+        expect(context.memorySignals).toContainEqual(
+          expect.objectContaining({
+            kind: 'worldDirectorState',
+            refId: 'persisted-director-covetous',
+            itemId: 'redbrook_blade',
+          }),
+        );
+        expect(
+          context.memorySignals?.some((signal) => signal.refId === 'other-player-director'),
+        ).toBe(false);
+        expect(context.memorySignals?.some((signal) => signal.refId === 'expired-director')).toBe(
+          false,
+        );
+        expect(context.recentObservations).toContain(
+          'persistedMemory:worldDirectorState:region:redbrook_blade',
+        );
+        expect(context.directorProposals).toContainEqual(
+          expect.objectContaining({
+            proposalId: 'persisted-director-covetous:persisted-proposal',
+            intent: 'nudgeNpcRumor',
+            targetRef: 'redbrook_blade',
+            suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+            safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
+          }),
+        );
         return {
           schemaVersion: 1,
           jobId: context.jobId,
-          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          entityRef: {
+            kind: context.entity.kind,
+            entityId: context.entity.entityId,
+            templateId: context.entity.templateId,
+          },
           ttlMs: 5000,
           confidence: 1,
           speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.objectInspectGrave' }],
           intents: [{ type: 'inspectObject', lineId: 'hudChrome.aiSpeech.objectInspectGrave' }],
-          audit: { shortReason: 'uses restored director memory', usedPlayerInput: false, safetyNotes: [] },
+          audit: {
+            shortReason: 'uses restored director memory',
+            usedPlayerInput: false,
+            safetyNotes: [],
+          },
         };
       },
     };
@@ -341,19 +399,29 @@ describe('AI memory persistence integration', () => {
     const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
     const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
 
-    await layer.handleObjectInspection({ sim, pid, objectId: object.id, locale: 'en', deliver: (events) => delivered.push(...events) });
+    await layer.handleObjectInspection({
+      sim,
+      pid,
+      objectId: object.id,
+      locale: 'en',
+      deliver: (events) => delivered.push(...events),
+    });
 
     expect(calls).toHaveLength(1);
-    expect(db.loadCalls).toContainEqual(expect.objectContaining({
-      sourcePlayerEntityId: pid,
-      zoneId: 'eastbrook_vale',
-      limit: 8,
-    }));
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: object.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.objectInspectGrave' }),
-    }));
+    expect(db.loadCalls).toContainEqual(
+      expect.objectContaining({
+        sourcePlayerEntityId: pid,
+        zoneId: 'eastbrook_vale',
+        limit: 8,
+      }),
+    );
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: object.id,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.objectInspectGrave' }),
+      }),
+    );
     expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
@@ -368,44 +436,59 @@ describe('AI memory persistence integration', () => {
     const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
     const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
 
-    await layer.handleSceneInspection({ sim, pid, locale: 'en', deliver: (events) => delivered.push(...events) });
-
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: pid,
-      speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
-        values: expect.objectContaining({
-          itemId: 'redbrook_blade',
-          directorMood: 'covetous',
-          directorHeat: 72,
-        }),
-      }),
-      reaction: expect.objectContaining({
-        kind: 'inspect',
-        targetItemId: 'redbrook_blade',
-        sceneTags: expect.arrayContaining(['director:covetous', 'persistedMemory']),
-      }),
+    await layer.handleSceneInspection({
+      sim,
       pid,
-    }));
-    expect(layer.diagnostics()).toContainEqual(expect.objectContaining({
-      status: 'local_reaction',
-      intents: expect.arrayContaining(['readPersistedWorldDirectorState']),
-    }));
+      locale: 'en',
+      deliver: (events) => delivered.push(...events),
+    });
+
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: pid,
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
+          values: expect.objectContaining({
+            itemId: 'redbrook_blade',
+            directorMood: 'covetous',
+            directorHeat: 72,
+          }),
+        }),
+        reaction: expect.objectContaining({
+          kind: 'inspect',
+          targetItemId: 'redbrook_blade',
+          sceneTags: expect.arrayContaining(['director:covetous', 'persistedMemory']),
+        }),
+        pid,
+      }),
+    );
+    expect(layer.diagnostics()).toContainEqual(
+      expect.objectContaining({
+        status: 'local_reaction',
+        intents: expect.arrayContaining(['readPersistedWorldDirectorState']),
+      }),
+    );
     expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
 
   it('keeps gameplay feedback flowing when persistence is temporarily unavailable', async () => {
-    const { sim, pid, wolfId } = makeSim();
-    teleportNear(sim, pid, wolfId);
+    const { sim, pid, provider } = makeDiscardSim();
     const db = new FakeMemoryDb();
     db.failSave = true;
-    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const layer = new AiLifeLayer({ enabled: true, provider, memoryDb: db });
     const delivered: unknown[] = [];
 
-    layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => delivered.push(...events) });
+    layer.handleItemDiscarded({
+      sim,
+      pid,
+      itemId: 'roasted_boar',
+      count: 1,
+      deliver: (events) => delivered.push(...events),
+    });
     await layer.flushMemoryWrites();
+    expect(provider.decide).not.toHaveBeenCalled();
 
     expect(delivered.length).toBeGreaterThan(0);
     expect(layer.memoryPersistenceDiagnostics()).toMatchObject({
@@ -537,15 +620,21 @@ describe('AI memory persistence integration', () => {
   });
 
   it('clears volatile overlays and persisted audit records as one admin memory operation', async () => {
-    const { sim, pid, wolfId } = makeSim();
-    teleportNear(sim, pid, wolfId);
+    const { sim, pid, provider } = makeDiscardSim();
     const db = new FakeMemoryDb();
     db.clearCount = 4;
-    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const layer = new AiLifeLayer({ enabled: true, provider, memoryDb: db });
     const delivered: unknown[] = [];
 
-    layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => delivered.push(...events) });
+    layer.handleItemDiscarded({
+      sim,
+      pid,
+      itemId: 'roasted_boar',
+      count: 1,
+      deliver: (events) => delivered.push(...events),
+    });
     await layer.flushMemoryWrites();
+    expect(provider.decide).not.toHaveBeenCalled();
 
     expect(delivered.length).toBeGreaterThan(0);
     expect(layer.memoryDiagnostics().rumors.length).toBeGreaterThan(0);
@@ -556,7 +645,12 @@ describe('AI memory persistence integration', () => {
     expect(result.rumors).toBeGreaterThan(0);
     expect(result.worldTraces).toBeGreaterThan(0);
     expect(result.worldDirectorStates).toBeGreaterThan(0);
-    expect(result.totalCleared).toBeGreaterThanOrEqual(result.persistedMemoryRecords + result.rumors + result.worldTraces + result.worldDirectorStates);
+    expect(result.totalCleared).toBeGreaterThanOrEqual(
+      result.persistedMemoryRecords +
+        result.rumors +
+        result.worldTraces +
+        result.worldDirectorStates,
+    );
     expect(layer.memoryDiagnostics()).toEqual({ npcMemories: [], rumors: [] });
     expect(layer.worldTraceDiagnostics()).toEqual([]);
     expect(layer.worldDirectorDiagnostics()).toEqual([]);
@@ -565,21 +659,40 @@ describe('AI memory persistence integration', () => {
   });
 
   it('prevents restart-style persisted memory echoes after an admin clear', async () => {
-    const { sim, pid, wolfId } = makeSim();
-    teleportNear(sim, pid, wolfId);
+    const { sim, pid, provider } = makeDiscardSim();
     const db = new FakeMemoryDb();
-    const firstLayer = new AiLifeLayer({ enabled: true, provider: unavailableProvider, memoryDb: db });
+    const firstLayer = new AiLifeLayer({
+      enabled: true,
+      provider,
+      memoryDb: db,
+    });
     const discardedEvents: unknown[] = [];
 
-    firstLayer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => discardedEvents.push(...events) });
+    firstLayer.handleItemDiscarded({
+      sim,
+      pid,
+      itemId: 'roasted_boar',
+      count: 1,
+      deliver: (events) => discardedEvents.push(...events),
+    });
     await firstLayer.flushMemoryWrites();
+    expect(provider.decide).not.toHaveBeenCalled();
     db.loaded = db.saved.flat().map(cloneMemoryAudit);
 
-    const restartedLayer = new AiLifeLayer({ enabled: true, provider: unavailableProvider, memoryDb: db });
+    const restartedLayer = new AiLifeLayer({
+      enabled: true,
+      provider,
+      memoryDb: db,
+    });
     const beforeQuestLog = JSON.stringify([...sim.meta(pid)!.questLog]);
     const beforeDone = JSON.stringify([...sim.meta(pid)!.questsDone]);
     const restoredEvents: unknown[] = [];
-    await restartedLayer.handleSceneInspection({ sim, pid, locale: 'en', deliver: (events) => restoredEvents.push(...events) });
+    await restartedLayer.handleSceneInspection({
+      sim,
+      pid,
+      locale: 'en',
+      deliver: (events) => restoredEvents.push(...events),
+    });
 
     expect(discardedEvents.length).toBeGreaterThan(0);
     expect(aiSpeechLineIds(restoredEvents)).toContain('hudChrome.aiSpeech.worldDirectorHungry');
@@ -590,11 +703,22 @@ describe('AI memory persistence integration', () => {
     const clearResult = await restartedLayer.clearMemory(sim.time);
     expect(clearResult.persistedMemoryRecords).toBeGreaterThan(0);
 
-    const clearedRestartLayer = new AiLifeLayer({ enabled: true, provider: unavailableProvider, memoryDb: db });
+    const clearedRestartLayer = new AiLifeLayer({
+      enabled: true,
+      provider,
+      memoryDb: db,
+    });
     const afterClearEvents: unknown[] = [];
-    await clearedRestartLayer.handleSceneInspection({ sim, pid, locale: 'en', deliver: (events) => afterClearEvents.push(...events) });
+    await clearedRestartLayer.handleSceneInspection({
+      sim,
+      pid,
+      locale: 'en',
+      deliver: (events) => afterClearEvents.push(...events),
+    });
 
-    expect(aiSpeechLineIds(afterClearEvents)).not.toContain('hudChrome.aiSpeech.worldDirectorHungry');
+    expect(aiSpeechLineIds(afterClearEvents)).not.toContain(
+      'hudChrome.aiSpeech.worldDirectorHungry',
+    );
     expect(JSON.stringify([...sim.meta(pid)!.questLog])).toBe(beforeQuestLog);
     expect(JSON.stringify([...sim.meta(pid)!.questsDone])).toBe(beforeDone);
   });
@@ -633,16 +757,16 @@ describe('AI memory persistence integration', () => {
   });
 
   it('records prune failures without throwing or dropping queued writes', async () => {
-    const { sim, pid, wolfId } = makeSim();
-    teleportNear(sim, pid, wolfId);
+    const { sim, pid, provider } = makeDiscardSim();
     const db = new FakeMemoryDb();
     db.failSave = true;
     db.failPrune = true;
-    const layer = new AiLifeLayer({ enabled: true, memoryDb: db });
+    const layer = new AiLifeLayer({ enabled: true, provider, memoryDb: db });
     layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: () => {} });
 
     await expect(layer.pruneExpiredMemory(500, 100)).resolves.toBe(0);
     await layer.flushMemoryWrites();
+    expect(provider.decide).not.toHaveBeenCalled();
 
     const diagnostics = layer.memoryPersistenceDiagnostics();
     expect(diagnostics).toMatchObject({
@@ -669,12 +793,14 @@ describe('AI memory persistence integration', () => {
       },
     });
 
-    await expect(db.enforceBudget({
-      maxTotalRecords: 3,
-      maxRecordsPerPlayer: 2,
-      maxRecordsPerKind: { rumor: 1, worldTrace: 1 },
-      batchSize: 5,
-    })).resolves.toMatchObject({
+    await expect(
+      db.enforceBudget({
+        maxTotalRecords: 3,
+        maxRecordsPerPlayer: 2,
+        maxRecordsPerKind: { rumor: 1, worldTrace: 1 },
+        batchSize: 5,
+      }),
+    ).resolves.toMatchObject({
       totalDeleted: 4,
       deletedByTotal: 1,
       deletedByPlayer: 1,

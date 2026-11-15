@@ -14,6 +14,10 @@
 // drift away from the talent tree. Two of those declared roles are worth noting
 // because they are not the genre default: mage/arcane is a HEALER in this game, and
 // druid/feral is a TANK.
+//
+// Each spec's leading primary stat is SPEC_PRIMARY_STAT's (content/spec_primary_stat.ts,
+// pinned by tests/spec_primary_stat.test.ts). Enhancement and Feral are Strength specs
+// here, not the genre's Agility: shaman and druid attack power never reads Agility.
 
 import type { PlayerClass } from '../types';
 
@@ -27,6 +31,11 @@ export interface DevKitRole {
   // Melee specs value weapon dps far more than casters, who mostly want the stats on
   // the stick. Drives the weapon term in the scorer.
   melee: boolean;
+  // Healer specs additionally value the Healing Power affix. Explicit because the
+  // directionality contract runs one way: Spell Power heals too, but Healing
+  // Power never damages, so a damage caster must not score it or the healer
+  // pieces of the same tier outbid its own set.
+  healer?: true;
   // Tanks value stamina and armor over raw output, and take a shield when the class
   // can hold one.
   tank?: boolean;
@@ -38,7 +47,6 @@ const PHYS_STR = { str: 1, agi: 0.5, sta: 0.6 } as const;
 const PHYS_AGI = { agi: 1, str: 0.4, sta: 0.6 } as const;
 // Tanks: survivability first. Stamina leads outright.
 const TANK_STR = { sta: 1, str: 0.7, agi: 0.4 } as const;
-const TANK_AGI = { sta: 1, agi: 0.8, str: 0.3 } as const;
 // Casters: intellect leads; a little spirit for regen, a little stamina to live.
 const CASTER = { int: 1, spi: 0.35, sta: 0.4 } as const;
 // Healers: intellect still leads but spirit matters far more than for a nuker.
@@ -53,7 +61,7 @@ export const DEV_KIT_ROLES: Readonly<Record<PlayerClass, readonly DevKitRole[]>>
     { spec: 'prot', weights: TANK_STR, melee: true, tank: true, hands: 'shield' },
   ],
   paladin: [
-    { spec: 'holy', weights: HEALER, melee: false, hands: 'shield' },
+    { spec: 'holy', weights: HEALER, melee: false, healer: true, hands: 'shield' },
     { spec: 'protection', weights: TANK_STR, melee: true, tank: true, hands: 'shield' },
     { spec: 'retribution', weights: PHYS_STR, melee: true },
   ],
@@ -68,23 +76,21 @@ export const DEV_KIT_ROLES: Readonly<Record<PlayerClass, readonly DevKitRole[]>>
     { spec: 'subtlety', weights: PHYS_AGI, melee: true, hands: 'dualWield' },
   ],
   priest: [
-    { spec: 'discipline', weights: HEALER, melee: false },
-    { spec: 'holy', weights: HEALER, melee: false },
+    { spec: 'discipline', weights: HEALER, melee: false, healer: true },
+    { spec: 'holy', weights: HEALER, melee: false, healer: true },
     { spec: 'shadow', weights: CASTER, melee: false },
   ],
   shaman: [
     { spec: 'elemental', weights: CASTER, melee: false },
-    // Enhancement is the melee shaman, agility-led unlike its two caster siblings.
-    // NOT dual-wield: canDualWield (equipment_rules.ts) grants that to rogues and
-    // fury warriors ONLY, so claiming it here would ask for an offhand weapon the
-    // equip rules refuse and leave the slot empty instead of taking a held offhand.
-    { spec: 'enhancement', weights: PHYS_AGI, melee: true },
-    { spec: 'restoration', weights: HEALER, melee: false, hands: 'shield' },
+    // Enhancement is the Strength-led melee shaman and its shared cadence advances
+    // from both hands, so the test kit must exercise its real dual-wield rotation.
+    { spec: 'enhancement', weights: PHYS_STR, melee: true, hands: 'dualWield' },
+    { spec: 'restoration', weights: HEALER, melee: false, healer: true, hands: 'shield' },
   ],
   mage: [
     // Declared HEALER in talents.ts (this game's arcane mage heals), so it is
     // weighted as one. Not a mistake, and not the genre default.
-    { spec: 'arcane', weights: HEALER, melee: false },
+    { spec: 'arcane', weights: HEALER, melee: false, healer: true },
     { spec: 'fire', weights: CASTER, melee: false },
     { spec: 'frost', weights: CASTER, melee: false },
   ],
@@ -95,10 +101,10 @@ export const DEV_KIT_ROLES: Readonly<Record<PlayerClass, readonly DevKitRole[]>>
   ],
   druid: [
     { spec: 'balance', weights: CASTER, melee: false },
-    // Declared TANK in talents.ts. Agility-led rather than strength-led, and no
-    // shield: druids cannot hold one.
-    { spec: 'feral', weights: TANK_AGI, melee: true, tank: true },
-    { spec: 'restoration', weights: HEALER, melee: false },
+    // Declared TANK in talents.ts. Strength-led like the other tanks (Agility still
+    // counts, for the bear's dodge), and no shield: druids cannot hold one.
+    { spec: 'feral', weights: TANK_STR, melee: true, tank: true },
+    { spec: 'restoration', weights: HEALER, melee: false, healer: true },
   ],
 });
 

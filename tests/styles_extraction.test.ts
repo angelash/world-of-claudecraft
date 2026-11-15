@@ -87,7 +87,7 @@ describe('CSS extraction: barrel + seam wiring', () => {
     // SUBLAYERS, not top-level layers. hud-mobile is ordered AFTER shell so the
     // in-game mobile overrides of pre-game shell elements win as they did when inline.
     expect(barrel).toContain(
-      '@layer tokens, base, layout, components, hud, shell, hud-mobile, index-extra, play-extra;',
+      '@layer tokens, base, layout, library, components, hud, shell, hud-mobile, index-extra, play-extra;',
     );
   });
 
@@ -99,15 +99,37 @@ describe('CSS extraction: barrel + seam wiring', () => {
       'tokens.css',
       'base.css',
       'layout.css',
+      'library.css',
       'hud.css',
+      'hud.priest.css',
       'components.css',
+      'referral_cards.css',
       'shell.css',
       'hud.mobile.css',
+      'shell.website.css',
+      'shell.website-pages.css',
     ]) {
       const imp = `@import "./${m}";`;
       expect(barrel, `barrel must @import ${m}`).toContain(imp);
       expect(barrel.split(imp).length - 1, `barrel must @import ${m} exactly once`).toBe(1);
     }
+  });
+
+  it('self-hosts the same webfont set as the /wiki guide', () => {
+    // src/styles/fonts.css replaced the Google Fonts stylesheet on both game entries; the
+    // guide declares the identical set, so the two never drift apart.
+    const faces = (css: string) => css.match(/@font-face \{[\s\S]*?\n\}/g) ?? [];
+    const game = faces(read('src/styles/fonts.css'));
+    expect(game.length).toBeGreaterThanOrEqual(20);
+    expect(game).toEqual(faces(read('src/guide/styles.css')));
+    for (const entry of ['index.html', 'play.html']) {
+      expect(read(entry), entry).not.toContain('fonts.googleapis.com');
+      expect(read(entry), entry).toContain(
+        '<link rel="stylesheet" href="/src/styles/fonts.css" />',
+      );
+    }
+    // Linked per entry, not through the barrel (see the header of fonts.css).
+    expect(barrel).not.toContain('fonts.css');
   });
 
   it('@imports in cascade order, with hud.css BEFORE components.css (same @layer components tie-break)', () => {
@@ -121,10 +143,13 @@ describe('CSS extraction: barrel + seam wiring', () => {
       'tokens.css',
       'base.css',
       'layout.css',
+      'library.css',
       'hud.css',
       'components.css',
       'shell.css',
       'hud.mobile.css',
+      'shell.website.css',
+      'shell.website-pages.css',
     ];
     for (let i = 1; i < order.length; i++) {
       expect(at(order[i]), `${order[i]} must be imported after ${order[i - 1]}`).toBeGreaterThan(

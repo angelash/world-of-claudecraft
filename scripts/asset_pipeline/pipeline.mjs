@@ -12,7 +12,7 @@
 //     [--prompt "curved ember-glowing blade"] [--image path|url] [--family sword] \
 //     [--items item_id1,item_id2] [--model-file existing.glb] [--flip] [--roll deg] [--apply] [--job id]
 //   node scripts/asset_pipeline/pipeline.mjs prop --name market_fountain --height 2.4 \
-//     [--prompt "..."] [--image ...] [--rotate-y 90] [--apply] [--job id]
+//     [--prompt "..."] [--image ...] [--rotate-y 90] [--max-texture 256] [--apply] [--job id]
 //   node scripts/asset_pipeline/pipeline.mjs creature --name bog_lurker \
 //     [--prompt "..."] [--image ...] [--rig-type biped] [--height 2.0] [--job id]
 //   node scripts/asset_pipeline/pipeline.mjs skin --class warrior --suffix lava \
@@ -26,6 +26,8 @@
 //   node scripts/asset_pipeline/pipeline.mjs validate --file x.glb --kind weapon|prop|creature [--family sword]
 //   node scripts/asset_pipeline/pipeline.mjs preview --file x.glb [--out dir]
 //   node scripts/asset_pipeline/pipeline.mjs library [--serve [--port 5180]] [--category weapons,skins] [--open]
+//   node scripts/asset_pipeline/pipeline.mjs fit [--port 5184]   (Fit Studio: gizmo-place modular
+//     hair/piercings; Save writes tmp/modular/anchors.json for the Blender rebuild)
 //   node scripts/asset_pipeline/pipeline.mjs status [--job id]
 //
 // Keys: TRIPO_API_KEY (required), OPENAI_API_KEY (optional gpt-image-2 concepts).
@@ -43,6 +45,7 @@ import {
   inspectGlb,
   normalizeProp,
   normalizeWeapon,
+  propNormalizeVariant,
 } from './lib/glb.mjs';
 import {
   appendCreditsRow,
@@ -461,7 +464,7 @@ async function cmdWeapon() {
       prompt: opt('prompt')
         ? conceptPrompt({ kind: 'weapon', description: opt('prompt'), family })
         : null,
-      model: opt('model') === 'hifi' ? tripo.MODEL_HIFI : tripo.MODEL_LOWPOLY,
+      model: tripo.modelFor(opt('model')),
       faceLimit: faceLimitOpt(CATEGORY_SPECS.weapon.faceLimit),
     });
   }
@@ -561,7 +564,7 @@ async function cmdProp() {
   const gen = await generateStage(job, {
     input,
     prompt: opt('prompt') ? conceptPrompt({ kind: 'prop', description: opt('prompt') }) : null,
-    model: opt('model') === 'hifi' ? tripo.MODEL_HIFI : tripo.MODEL_LOWPOLY,
+    model: tripo.modelFor(opt('model')),
     faceLimit: faceLimitOpt(CATEGORY_SPECS.prop.faceLimit),
   });
   if (await reviewStop(job, 'generate', gen.raw)) return;
@@ -569,10 +572,22 @@ async function cmdProp() {
   if (await reviewStop(job, 'texture', tex?.glb ?? gen.raw)) return;
 
   const built = job.path(`${name}.glb`);
-  const rotateY = (Number(opt('rotate-y', 0)) * Math.PI) / 180;
-  const rotVariant = String(opt('rotate-y', 0));
-  await job.step(`normalize_r${rotVariant}`, () =>
-    normalizeProp(tex?.glb ?? gen.raw, built, { height, rotateY }),
+  const rotateYDeg = Number(opt('rotate-y', 0));
+  const rotateY = (rotateYDeg * Math.PI) / 180;
+  const maxTex = Number(opt('max-texture', 512));
+  if (!Number.isInteger(maxTex) || maxTex < 4) {
+    throw new Error('--max-texture must be an integer of at least 4 pixels');
+  }
+  const normalizeVariant = propNormalizeVariant({ height, rotateYDeg, maxTex });
+  job.set('propConfig', {
+    height,
+    rotateYDeg,
+    maxTex,
+    faceLimit: faceLimitOpt(CATEGORY_SPECS.prop.faceLimit),
+    model: tripo.modelQuality(opt('model')),
+  });
+  await job.step(`normalize_${normalizeVariant}`, () =>
+    normalizeProp(tex?.glb ?? gen.raw, built, { height, rotateY, maxTex }),
   );
 
   const check = await validateProp(built, { height });
@@ -583,7 +598,7 @@ async function cmdProp() {
     printReport(job, { ok: false, errors: check.errors });
     throw new Error('prop failed validation');
   }
-  await previewStage(job, built, `preview_r${rotVariant}`);
+  await previewStage(job, built, `preview_${normalizeVariant}`);
 
   const actions = [];
   if (flag('apply')) {
@@ -627,7 +642,7 @@ async function cmdCreature() {
   const gen = await generateStage(job, {
     input,
     prompt: opt('prompt') ? conceptPrompt({ kind: 'creature', description: opt('prompt') }) : null,
-    model: opt('model') === 'hifi' ? tripo.MODEL_HIFI : tripo.MODEL_LOWPOLY,
+    model: tripo.modelFor(opt('model')),
     faceLimit: faceLimitOpt(CATEGORY_SPECS.creature.faceLimit),
   });
   if (await reviewStop(job, 'generate', gen.raw)) return;
@@ -1125,7 +1140,11 @@ async function cmdSkinmodel() {
  *  output carries the reference rig's ENTIRE clip library natively (all 22
  *  KayKit clips for the knight) plus the real handslot bones, at zero Tripo
  *  cost. Assumes a Tripo-style raw mesh (T-pose, facing +X); --pre-rotated
- *  skips the yaw for meshes already facing +Z. */
+ *  skips the yaw for meshes already facing +Z; --center-torso centres the depth
+ *  on the torso rather than the bounds (a tail or snout drags those off).
+ *  --rigid-head-from <frac> binds
+ *  everything above that fraction of the body height to the head joint (an
+ *  oversized cap or helm whose rim would otherwise bend with the arms). */
 async function cmdRigManual() {
   const raw = opt('raw');
   const name = opt('name');
@@ -1143,6 +1162,9 @@ async function cmdRigManual() {
     const { manualRigOntoReference } = await import('./lib/manual_rig.mjs');
     return manualRigOntoReference(resolve(raw), reference, built, {
       preRotated: flag('pre-rotated'),
+      centerTorso: flag('center-torso'),
+      ...(opt('rigid-head-from') ? { rigidHeadFrom: Number(opt('rigid-head-from')) } : {}),
+      ...(opt('rigid-head-blend') ? { rigidHeadBlend: Number(opt('rigid-head-blend')) } : {}),
     });
   });
   job.log(`manual rig: scale ${fit.scale}, ${fit.verts} verts skinned, ${fit.clips} native clips`);
@@ -1358,6 +1380,26 @@ async function cmdLibrary() {
   }
 }
 
+async function cmdFit() {
+  const { serveFitStudio, fitState } = await import('./lib/fit_studio.mjs');
+  const st = fitState();
+  if (!st.characterGlb) {
+    throw new Error(
+      'fit: no modular character GLB found (run the modular rebuild, or ship ' +
+        'public/models/chars/modular/warrior_modular.glb)',
+    );
+  }
+  const port = Number(opt('port', 5184));
+  const { url } = await serveFitStudio({ port });
+  console.log(`\nFit Studio serving at ${url}`);
+  console.log(`  character: ${st.characterGlb}`);
+  console.log(`  hair sculpts: ${st.hair.length} (tmp/modular/hair_src)`);
+  console.log('  place each hair/piercing with the gizmo, Save writes tmp/modular/anchors.json,');
+  console.log('  and the next modular rebuild seats it exactly there. Ctrl-C to stop.');
+  if (!flag('no-open')) await openInBrowser(url);
+  // the http server keeps the process alive
+}
+
 // Open a URL/file in the OS browser without ever crashing the caller: the opener
 // binary is platform-specific and may be absent (headless Linux), so a missing
 // command must be swallowed (async 'error' event), not thrown.
@@ -1443,6 +1485,7 @@ const COMMANDS = {
   preview: cmdPreview,
   'preview-held': cmdPreviewHeld,
   library: cmdLibrary,
+  fit: cmdFit,
   qa: cmdQa,
   status: cmdStatus,
   balance: cmdBalance,

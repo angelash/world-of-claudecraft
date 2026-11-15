@@ -314,6 +314,66 @@
     pointer-events: none;
   }
 
+  .desktop-login-exit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 7px 14px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-input);
+    color: var(--color-primary-dim);
+    font-family: var(--font-heading);
+    font-size: 13.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: var(--cursor-point);
+    box-shadow: inset 0 1px 0 var(--color-primary-glow);
+    transition:
+      color var(--transition-speed) var(--transition-ease),
+      border-color var(--transition-speed) var(--transition-ease),
+      background-color var(--transition-speed) var(--transition-ease),
+      box-shadow var(--transition-speed) var(--transition-ease);
+  }
+
+  .desktop-login-exit[hidden] {
+    display: none;
+  }
+
+  .desktop-login-exit:hover {
+    color: var(--color-primary);
+    border-color: var(--color-border-focus);
+    background: var(--color-bg-dark);
+    box-shadow:
+      0 0 10px var(--color-primary-glow),
+      inset 0 1px 0 var(--color-primary-glow-heavy);
+  }
+
+  .desktop-login-exit:active {
+    color: var(--color-text-light);
+    border-color: var(--color-primary-dim);
+    background: var(--color-bg-dark);
+    box-shadow: inset 0 2px 4px var(--color-primary-glow);
+  }
+
+  .desktop-login-exit:focus-visible {
+    outline: 3px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  @media (forced-colors: active) {
+    .desktop-login-exit {
+      border-color: ButtonText;
+    }
+
+    .desktop-login-exit:focus-visible {
+      outline-color: Highlight;
+    }
+  }
+
   /* Donate: the header's primary call-to-action (filled gold so it reads as the
      main action, unlike the ghost nav links). Mirrored as a footer social link
      and an in-game community button. */
@@ -356,6 +416,68 @@
     width: 16px;
     height: 16px;
     display: block;
+  }
+
+  /* Steam wishlist reminder, the header companion to the Donate CTA above.
+     Deliberately the quieter of the pair: at most one gold action per surface
+     (DESIGN.md 10.1), and Donate already holds it, so the wishlist takes the
+     ink-and-silver ghost variant at the same 40px height and reads as a second
+     option rather than a second shout. Steam's #66c0f4 arrives on hover and
+     keyboard focus only. hud.css owns the in-game chip and the one rule that
+     suppresses every wishlist surface at once. */
+  .steam-wishlist-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-default);
+    background: linear-gradient(180deg, #1b1b26 0%, #0d0d14 100%);
+    /* This control keeps a fixed dark plate under every theme, so its resting
+       ink must stay fixed too. Theme gold becomes dark brown on Parchment and
+       falls below AA against this plate; this silver holds above 7:1. */
+    color: #b8bcc8;
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition:
+      color var(--transition-speed) var(--transition-ease),
+      border-color var(--transition-speed) var(--transition-ease),
+      box-shadow var(--transition-speed) var(--transition-ease);
+  }
+  .steam-wishlist-cta:hover,
+  .steam-wishlist-cta:focus-visible {
+    color: #eaf4ff;
+    border-color: #66c0f4;
+    box-shadow:
+      0 2px 12px rgba(102, 192, 244, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .steam-wishlist-cta .ui-icon {
+    width: 17px;
+    height: 17px;
+  }
+  /* The footer twin keeps every .social-link behaviour, including the gold hover
+     the row shares and the icon-only collapse on narrow viewports; it only needs
+     the hydrated glyph sized like the inline marks beside it. Left at the base
+     .social-link svg specificity on purpose, so the narrow-viewport 18px rule
+     later in this sheet still wins over it. */
+  .social-link.steam-wishlist-social {
+    /* .social-link uses themed gold, but this sibling retains the fixed dark
+       plate above; keep the small label AA-safe on Parchment too. */
+    color: #b8bcc8;
+  }
+  .steam-wishlist-social svg {
+    width: 16px;
+    height: 16px;
   }
 
   /* Wallet verification CTA. It is a gold action until the account has a
@@ -554,10 +676,15 @@
     height: 14px;
     display: block;
   }
-  .wallet-mini:hover,
-  .wallet-mini:focus-visible {
+  .wallet-mini:hover {
     color: var(--color-text-light);
     border-color: var(--gold-dim);
+    outline: none;
+  }
+  .wallet-mini:focus,
+  .wallet-mini:focus-visible {
+    color: var(--color-text-light);
+    border-color: var(--gold);
     outline: none;
   }
   #btn-wallet-unlink:hover,
@@ -711,11 +838,13 @@
 
   /* Footer donate link keeps the social-link shape but warms up on hover. */
   .footer-lang-row,
-  .footer-legal-row {
+  .footer-legal-row,
+  .footer-guides-row {
     display: flex;
     justify-content: center;
   }
-  .footer-legal-row {
+  .footer-legal-row,
+  .footer-guides-row {
     gap: 14px;
     flex-wrap: wrap;
   }
@@ -1419,6 +1548,13 @@
   .hs-vlvl {
     color: var(--color-text-muted, #b9ac82);
   }
+  /* The `<Guild>` tag beside a ranked player's name. It rides inside .hs-name
+     rather than as its own grid column, so both the desktop grid and the mobile
+     stacked areas below keep their existing column/area sets. */
+  .hs-guild {
+    color: var(--color-text-muted, #b9ac82);
+    font-size: 11px;
+  }
   .hs-lvl,
   .hs-vlvl {
     text-align: center;
@@ -1979,13 +2115,19 @@
     inset: 0;
     z-index: 150;
     display: none;
-    background: #0a0d14 url("/loading-screen.jpg") center / cover no-repeat;
+    background-color: #0a0d14;
+    background-image:
+      linear-gradient(180deg, #02040bbd 0%, #02040b26 34%, #02040b1a 58%, #02040bd9 100%),
+      var(--loading-backdrop-image, none);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
     padding: 6vh 0 7vh;
     opacity: 1;
-    transition: opacity 0.35s ease;
+    transition: opacity calc(0.35s * var(--motion-scale)) ease;
   }
   #loading-screen.visible {
     display: flex;
@@ -2020,7 +2162,13 @@
     height: 100%;
     width: 0%;
     background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dim));
-    transition: width 0.2s ease;
+    transition: width calc(0.2s * var(--motion-scale)) ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #loading-screen,
+    #ls-fill {
+      transition: none;
+    }
   }
   #ls-status {
     color: var(--color-text-light);
@@ -2377,127 +2525,6 @@
     letter-spacing: 0.8px;
     margin-right: var(--spacing-xs);
   }
-  /* $WOC contract address, click-to-copy pill, sits under the performance tip. */
-  #token-ca {
-    margin: var(--spacing-lg) auto 0;
-    padding-top: var(--spacing-md);
-    border-top: 1px solid rgba(255, 209, 0, 0.14);
-    width: 100%;
-    max-width: 600px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-sm);
-  }
-  .token-ca-label {
-    font-family: var(--font-heading);
-    color: var(--color-primary);
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    font-size: 12px;
-    text-shadow:
-      0 0 8px var(--color-primary-glow),
-      1px 1px 2px #000;
-  }
-  .token-ca-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    max-width: 100%;
-    margin: 0;
-    padding: 9px var(--spacing-md);
-    background: rgba(11, 11, 18, 0.6);
-    border: 1px solid rgba(199, 148, 26, 0.45);
-    border-radius: var(--radius-md);
-    color: var(--color-text-light);
-    cursor: var(--cursor-point);
-    font: inherit;
-    text-align: left;
-    transition:
-      border-color var(--transition-speed) var(--transition-ease),
-      box-shadow var(--transition-speed) var(--transition-ease),
-      background var(--transition-speed) var(--transition-ease);
-  }
-  .token-ca-pill:hover,
-  .token-ca-pill:focus-visible {
-    border-color: var(--color-primary);
-    background: rgba(11, 11, 18, 0.85);
-    box-shadow: 0 0 12px var(--color-primary-glow);
-    outline: none;
-  }
-  .token-ca-addr {
-    font-family: "SFMono-Regular", ui-monospace, "Cascadia Code", "Courier New", monospace;
-    font-size: 13px;
-    letter-spacing: 0.4px;
-    color: var(--color-text-light);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-shadow: 1px 1px 2px #000;
-  }
-  .token-ca-copy {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    color: var(--color-primary-dim);
-    transition: color var(--transition-speed) var(--transition-ease);
-  }
-  .token-ca-pill:hover .token-ca-copy {
-    color: var(--color-primary);
-  }
-  .token-ca-copy svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-  }
-  .token-ca-copy .icon-check {
-    display: none;
-  }
-  .token-ca-feedback {
-    display: none;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    color: var(--color-text-success);
-  }
-  /* Small print under the pill: token disclaimer + community call-to-action. */
-  .token-ca-note {
-    margin: 0;
-    max-width: 520px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    line-height: 1.55;
-    color: var(--color-text-muted);
-    text-align: center;
-    text-shadow: 1px 1px 2px #000;
-  }
-  /* Copied state, swap clipboard glyph for a check, reveal the confirmation. */
-  #token-ca.is-copied .token-ca-pill {
-    border-color: var(--color-text-success);
-  }
-  #token-ca.is-copied .token-ca-copy {
-    color: var(--color-text-success);
-  }
-  #token-ca.is-copied .token-ca-copy .icon-clipboard {
-    display: none;
-  }
-  #token-ca.is-copied .token-ca-copy .icon-check {
-    display: block;
-  }
-  #token-ca.is-copied .token-ca-feedback {
-    display: block;
-  }
-  @media (max-width: 520px) {
-    .token-ca-addr {
-      font-size: 11px;
-      letter-spacing: 0.2px;
-    }
-    .token-ca-pill {
-      padding: 8px var(--spacing-sm);
-    }
-  }
   .auth-panel {
     width: 100%;
     max-width: 360px;
@@ -2530,6 +2557,21 @@
     border-bottom: 1px solid rgba(78, 61, 29, 0.25);
     transition: background-color var(--transition-speed);
     border-radius: var(--radius-sm);
+  }
+  .membership-locked {
+    color: var(--color-text-muted);
+    background: var(--color-bg-input);
+  }
+  .char-row.membership-locked .char-name,
+  .char-row.membership-locked .char-sub {
+    color: var(--color-text-muted);
+  }
+  .membership-slot {
+    min-height: 48px;
+    cursor: default;
+  }
+  .membership-slot .char-sub {
+    white-space: normal;
   }
   .char-row:hover {
     background: rgba(255, 255, 255, 0.02);
@@ -2611,6 +2653,92 @@
     .char-delete-btn {
       transition: none;
     }
+  }
+  .char-row .char-zone-hint {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  /* Raid lockouts the character still carries: a native <details> disclosure
+     (the news panel's pattern) whose summary is the label plus the locked
+     count behind a rotating triangle, and whose body lists one line per
+     locked raid (name + countdown), so a narrow roster column never wraps a
+     raid name away from its timer. */
+  .char-row .char-lockout-hint {
+    max-width: 340px;
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+  /* The summary is a tap target: min-height plus line-height bring it to the
+     24px WCAG 2.2 SC 2.5.8 absolute floor on desktop and the 40px touch floor
+     under body.mobile-touch (the gathering goal's Sources summary sets the
+     same two floors), without changing the visible text. */
+  .char-row .char-lockout-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 24px;
+    padding: 2px 0;
+    line-height: 20px;
+    cursor: pointer;
+    list-style: none;
+    color: var(--color-accent);
+    user-select: none;
+  }
+  body.mobile-touch .char-row .char-lockout-label {
+    min-height: 40px;
+    line-height: 40px;
+    padding: 0;
+  }
+  .char-row .char-lockout-label::-webkit-details-marker {
+    display: none;
+  }
+  .char-row .char-lockout-label::before {
+    content: "\25b8";
+    display: inline-block;
+    width: 10px;
+    color: var(--gold-dim);
+    transition: transform 0.15s ease;
+  }
+  .char-row .char-lockout-hint[open] > .char-lockout-label::before {
+    transform: rotate(90deg);
+  }
+  .char-row .char-lockout-label:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 1px;
+  }
+  .char-row .char-lockout-group {
+    display: block;
+    padding-left: 10px;
+  }
+  .char-row .char-lockout-group-name {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-text-muted);
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+  }
+  /* Inline flow (name, then the countdown) rather than a two-column row: the
+     roster's text column is narrow, so a right-aligned timer left most of a
+     wrapped raid name's lines empty. */
+  .char-row .char-lockout-item {
+    display: block;
+    padding-left: 12px;
+    text-indent: -6px;
+  }
+  .char-row .char-lockout-item::before {
+    content: "\00b7";
+    margin-right: 3px;
+    opacity: 0.6;
+  }
+  .char-row .char-lockout-time {
+    white-space: nowrap;
+    color: var(--color-warning);
   }
   .char-row .char-inworld-hint {
     display: block;
@@ -2768,6 +2896,16 @@
       background: linear-gradient(180deg, #0008 0%, #0002 18%, #0002 78%, #000c 100%);
       box-shadow: none;
       overflow: hidden;
+    }
+    /* The #hero-view subpanel rule near the top of this sheet (two ids,
+       margin-top: 10px) outranks the takeover selector above, so its
+       margin reset lost and the fixed panel began 10px down: a strip of the
+       landing backdrop showed along the top edge with no blur or shade.
+       Restate the reset at a specificity that wins. Pinned by
+       tests/browser/charscreen_takeover_edges.browser.test.ts. */
+    #hero-view #offline-select.cs-wow,
+    body:not(.mobile-touch) #hero-view :is(#charselect-panel, #charcreate-panel).cs-wow {
+      margin: 0;
     }
     /* The online panels' card layout is a grid, and grid-placement on an
        absolutely-positioned child would anchor it to its grid AREA rather
@@ -2931,7 +3069,10 @@
     body:not(.mobile-touch) #charcreate-panel.cs-wow .mini-class .mini-class-portrait {
       width: 62px;
       height: 62px;
-      border-radius: 50%;
+      /* The crest art is a rounded square with its own frame, so a round
+         medallion would slice its corners off; a percentage radius keeps the
+         same silhouette at the 48px size the narrow layout drops to. */
+      border-radius: 18%;
       border: 3px solid #2c2c3a;
       outline: 1px solid #000;
       background: radial-gradient(circle at 35% 30%, #23233a, #0d0d16);
@@ -3116,15 +3257,16 @@
       justify-content: flex-end;
       margin: 0;
     }
-    /* $WOC Wallet and Developer become two matching stacked cards on the
+    /* Wallet, Developer, Steam, and Epic become matching stacked cards on the
        account bar: the service name reads as the card's own header, the
        action row sits under it, and the helper caption anchors the foot,
        instead of a label floating beside a button row with its caption
        dangling underneath. Overrides the base .cs-wallet row layout (label
        beside actions, separator border-top), which the card/mobile layouts
-       keep. */
+       keep. Each card still starts hidden until its own advert / link state
+       lights it. */
     body:not(.mobile-touch) #charselect-panel.cs-wow
-      :is(.cs-wallet-group, .cs-github-group, .cs-steam-group) {
+      :is(.cs-wallet-group, .cs-github-group, .cs-steam-group, .cs-epic-group) {
       flex-direction: column;
       align-items: stretch;
       justify-content: flex-start;
@@ -3150,13 +3292,27 @@
       max-width: 300px;
       font-size: 10px;
     }
-    /* Below 1800px the two cards (verified wallet + linked developer) plus
-       the realm/sort controls no longer fit the account bar on one line
-       with their helper captions, so the bar wraps tall and eats stage
-       height: drop the captions (every action keeps its title/aria text)
-       so the wrapped cards stay short. */
+    /* Below 1800px the stacked account cards plus the realm/sort controls
+       no longer fit the account bar on one line with their helper captions,
+       so the bar wraps tall and eats stage height: drop the captions (every
+       action keeps its title/aria text) so the wrapped cards stay short. */
     @media (max-width: 1799px) {
       body:not(.mobile-touch) #charselect-panel.cs-wow .cs-wallet-help {
+        display: none;
+      }
+    }
+    /* The 1800px threshold above was tuned for the two-to-three-card bar.
+       With BOTH storefront cards lit (Steam and Epic advertised together,
+       the four-card worst case beside wallet + developer) the captioned
+       cards alone run past 1300px, so a 1920px bar wraps tall again: in
+       that state the captions drop up to a wider threshold. Caption text is
+       helper copy only; every action keeps its title/aria text, so nothing
+       actionable is hidden. */
+    @media (max-width: 2199px) {
+      body:not(.mobile-touch)
+        #charselect-panel.cs-wow
+        .cs-head-row:has(.cs-steam-group:not([hidden])):has(.cs-epic-group:not([hidden]))
+        .cs-wallet-help {
         display: none;
       }
     }
@@ -3320,6 +3476,18 @@
     body:not(.mobile-touch) #charselect-panel.cs-wow #char-list .char-name {
       overflow-wrap: anywhere;
     }
+    /* The grid track (minmax(0, 1fr)) is the text column's true width: the
+       flex layout's 150px floor overflowed it under the action buttons, which
+       only showed once the lockout rows right-aligned their countdowns. */
+    body:not(.mobile-touch) #charselect-panel.cs-wow #char-list .char-id {
+      min-width: 0;
+    }
+    /* With the column at its true track width the level line may no longer
+       fit on one line at the narrow end of the desktop range; wrap it rather
+       than let the nowrap flex rule overflow it under the action buttons. */
+    body:not(.mobile-touch) #charselect-panel.cs-wow #char-list .char-sub {
+      white-space: normal;
+    }
     body:not(.mobile-touch) #charselect-panel.cs-wow #char-list .char-actions {
       display: grid;
       grid-template-columns: minmax(112px, 1fr);
@@ -3332,6 +3500,12 @@
     }
     body:not(.mobile-touch) #charselect-panel.cs-wow #char-list .char-delete-btn {
       justify-self: end;
+    }
+    /* One-shot redesign: a quiet gold accent so the limited, spend-once offer
+       reads as special without out-shouting Enter World above it. */
+    body:not(.mobile-touch) #charselect-panel.cs-wow #char-list .reroll-char-btn {
+      color: var(--gold-dim);
+      border-color: var(--gold-dim);
     }
     /* The class summary's base type is sized for the small pre-game card
        (10px to 12px); on the full-screen stage it reads too small. Scale the
@@ -3506,7 +3680,7 @@
       box-shadow 0.12s,
       color 0.12s;
   }
-  .skin-swatch:hover,
+  .skin-swatch:where(:not(:disabled)):hover,
   .skin-swatch:focus-visible {
     border-color: rgba(255, 255, 255, 0.5);
     color: #fff;
@@ -3515,6 +3689,16 @@
     border-color: var(--class-color, #33c1f1);
     color: #fff;
     box-shadow: 0 0 9px var(--class-color, #33c1f1);
+  }
+  /* A swatch that takes no click right now (the Combat Mech while
+     COMBAT_MECH_WEARABLE in src/ui/hud/cosmetics is off). It stays in the row,
+     greyed, so the owner still sees the chroma. The hover lift above is
+     withheld through :where, which leaves an enabled swatch's specificity as
+     it was. */
+  .skin-swatch:disabled {
+    cursor: var(--cursor-arrow);
+    opacity: 0.4;
+    filter: grayscale(0.7);
   }
   .skin-unequip-btn {
     min-height: 34px;
@@ -3614,6 +3798,25 @@
 
   .auth-field:has(input:focus) .auth-label {
     color: var(--color-primary);
+  }
+
+  /* The marketing opt-in row: an inline checkbox beside its label text, so it
+     must escape the block/width-100% treatment generic auth inputs get. */
+  .auth-optin .auth-optin-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+    color: var(--color-text-muted);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .auth-panel-premium .auth-optin input[type="checkbox"] {
+    display: inline-block;
+    width: auto;
+    margin-top: 2px;
+    accent-color: var(--color-primary);
+    cursor: pointer;
   }
 
   .auth-panel-premium input {
@@ -4519,6 +4722,27 @@
     font-family: var(--font-heading);
     font-size: 20px;
     text-shadow: 1px 1px 3px #000;
+    padding: 24px;
+    text-align: center;
+    overflow: auto;
+  }
+
+  .fatal-overlay-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .fatal-overlay-actions button {
+    margin: 0;
+    min-height: 40px;
+    max-width: 100%;
+  }
+
+  .fatal-overlay-status {
+    min-height: 1.5em;
+    font-size: 16px;
   }
 
   .char-list-message {
@@ -4648,6 +4872,308 @@
     font-size: 13px;
     mask-image: linear-gradient(180deg, #000 0%, #000 88%, transparent 100%);
     -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 88%, transparent 100%);
+  }
+
+  /* One-shot appearance redesign: the customizer docked in the news panel's
+     slot. The customizer body scrolls inside the fixed panel height; the
+     Save / Keep actions stay pinned below it. */
+  .cs-reroll-panel #charselect-reroll-host {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .cs-reroll-actions {
+    flex: none;
+    display: flex;
+    gap: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+  }
+  .cs-reroll-actions .btn {
+    flex: 1 1 0;
+  }
+  /* The shared .auth-error rule below (written for the char-create input
+     tooltips) positions errors absolutely below their anchor. That anchor
+     assumption breaks here: the reroll panel docks as position:absolute on
+     desktop, so an absolute error paints over the 3D stage instead of
+     flowing under the Save/Keep actions. Reset it to a normal flow child.
+     Double-id selector so it wins over the shared rule regardless of the
+     two rules' relative source order (equal id+class specificity otherwise). */
+  #charselect-reroll #charselect-reroll-error {
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: auto;
+    margin-top: var(--spacing-sm);
+  }
+
+  /* ---------- Char-select $WOC Exchange panel ---------- */
+  /* Docks in the same .cs-news-panel slot as the news feed and the reroll
+     editor above (box/position/mobile treatment shared for free); this
+     section is only the content inside that box. src/ui/charselect_woc_market_panel.ts. */
+  #charselect-woc-market {
+    display: flex;
+    flex-direction: column;
+  }
+  .csm-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    flex: none;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--color-border-default);
+  }
+  .csm-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin: 0;
+  }
+  #csm-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .csm-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex: none;
+    margin-bottom: var(--spacing-sm);
+  }
+  .csm-tab {
+    flex: 1 1 0;
+    padding: 6px 10px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    background: var(--color-chrome-ground);
+    border: 1px solid var(--color-border-showcase);
+    border-radius: var(--radius-xs);
+    cursor: var(--cursor-point);
+  }
+  .csm-tab-selected {
+    color: var(--color-white);
+    border-color: var(--gold-dim);
+    background: var(--panel-bg-strong);
+  }
+  .csm-tab:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  .csm-filter {
+    flex: none;
+    margin-bottom: var(--spacing-sm);
+  }
+  .csm-filter-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+  .csm-filter-input {
+    font-size: 13px;
+    padding: 6px 8px;
+    background: var(--color-chrome-ground);
+    border: 1px solid var(--color-border-showcase);
+    border-radius: var(--radius-xs);
+    color: var(--color-text-light);
+  }
+  .csm-pager {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    flex: none;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-xs);
+  }
+  .csm-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: var(--color-chrome-glyph);
+    background: var(--color-chrome-ground);
+    border: 1px solid var(--color-border-showcase);
+    border-radius: var(--radius-xs);
+    cursor: var(--cursor-point);
+  }
+  .csm-page-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .csm-page-btn:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  .csm-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  /* The shared status faces (loading/error/empty, woc_market_chrome.ts): same
+     reasoning as the item cell below, this module's own CSS is scoped to
+     #woc-market-window. */
+  #charselect-woc-market .wm-status {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg) var(--spacing-md);
+    color: var(--color-text-muted);
+    text-align: center;
+  }
+  #charselect-woc-market .wm-status-error {
+    color: var(--color-text-error);
+  }
+  #charselect-woc-market .wm-status .ui-icon {
+    width: 18px;
+    height: 18px;
+  }
+  /* The shared icon-plus-name pair the Exchange window itself uses
+     (wocItemCellHtml, woc_market_chrome.ts): that module's own CSS is scoped
+     to #woc-market-window, so this panel repeats the same three rules under
+     its own id rather than reusing markup with no layout. */
+  #charselect-woc-market .wm-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    vertical-align: middle;
+  }
+  #charselect-woc-market .wm-icon {
+    flex: none;
+  }
+  #charselect-woc-market .wm-name {
+    font-weight: 700;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .csm-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 8px 4px;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border-default) 60%, transparent);
+    font-size: 12px;
+  }
+  .csm-row .wm-item {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+  .csm-seller {
+    color: var(--color-text-muted);
+  }
+  .csm-price {
+    color: var(--color-text-light);
+    font-weight: 600;
+  }
+  .csm-buynow {
+    color: var(--gold-dim);
+  }
+  .csm-time {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .csm-web {
+    flex: none;
+    padding-top: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border-default);
+    text-align: center;
+  }
+  .csm-web-link {
+    color: var(--gold-dim);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .csm-web-link:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  .csm-web-note {
+    margin: 4px 0 0;
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+  .csm-back {
+    flex: none;
+  }
+  /* The Sales History tab reuses the Exchange window's own table builder
+     (wocSalesTableHtml, woc_market_sales_html.ts) verbatim, so its markup
+     needs the same table/seller-link rules that module's CSS scopes to
+     #woc-market-window. */
+  #charselect-woc-market .wm-history {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+  #charselect-woc-market .wm-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+  #charselect-woc-market .wm-table th,
+  #charselect-woc-market .wm-table td {
+    padding: 6px var(--spacing-xs);
+    text-align: left;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+    border-bottom: 1px solid var(--color-border-default);
+  }
+  #charselect-woc-market .wm-table th {
+    font: 700 11px / 14px var(--font-ui);
+    color: var(--color-text-muted);
+    border-bottom-color: var(--border);
+  }
+  #charselect-woc-market .wm-table.wm-sales-table th:nth-child(1) {
+    width: 30%;
+  }
+  #charselect-woc-market .wm-table.wm-sales-table th:nth-child(2),
+  #charselect-woc-market .wm-table.wm-sales-table th:nth-child(3) {
+    width: 15%;
+  }
+  #charselect-woc-market .wm-table.wm-sales-table th:nth-child(4) {
+    width: 16%;
+  }
+  #charselect-woc-market .wm-table.wm-sales-table th:nth-child(5) {
+    width: 12%;
+  }
+  #charselect-woc-market button.wm-seller-link {
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    background: none;
+    border: 0;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: var(--cursor-point);
+  }
+  #charselect-woc-market button.wm-seller-link:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
   }
 
   .class-details-content {
@@ -4956,6 +5482,11 @@
     height: 100% !important;
   }
 
+  /* Touch: the stage takes its own pinch, pan and turn gestures (CharacterPreview's touch stage). */
+  body.mobile-touch .char-preview-container canvas {
+    touch-action: none;
+  }
+
   /* The selected-character name plate over the 3D stage. Belongs to the desktop
      docked layout (the only one with a full 3D turntable); mobile shows the name
      on each roster card already, so it stays hidden by default and the docked
@@ -5176,7 +5707,10 @@
     margin: 0;
     overflow: visible;
   }
-  body.mobile-touch #charselect-panel #charselect-news {
+  /* Both docked panels, by CLASS rather than by #charselect-news: the redesign
+     editor sits in the same slot with the same chrome, and an id-keyed override
+     left it on the desktop 520px height with none of these fixes. */
+  body.mobile-touch #charselect-panel .cs-news-panel {
     flex: none;
     width: 100%;
     height: auto;
@@ -5185,8 +5719,11 @@
     margin-bottom: 0;
   }
   /* The page is the scroller on mobile: the feed renders at natural height
-     (no nested scroll region, no bottom fade hiding the tail mid-read). */
-  body.mobile-touch #charselect-panel .cs-news-feed {
+     (no nested scroll region, no bottom fade hiding the tail mid-read). The
+     customizer follows the same rule, or it scrolls inside a panel that is
+     itself scrolling. */
+  body.mobile-touch #charselect-panel .cs-news-feed,
+  body.mobile-touch #charselect-panel .cs-reroll-panel #charselect-reroll-host {
     flex: none;
     min-height: 0;
     overflow: visible;
@@ -5212,7 +5749,9 @@
   }
   body.mobile-touch .char-row .char-actions {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
+    grid-auto-flow: column;
+    grid-auto-columns: auto;
     gap: 7px;
     width: 100%;
   }
@@ -5612,7 +6151,7 @@
     border-radius: 3px;
   }
 
-  /* Class buttons with a portrait preview of that class */
+  /* Class buttons with that class's crest alongside the name */
   .mini-class.has-portrait {
     display: flex;
     align-items: center;
@@ -5626,7 +6165,6 @@
     height: 36px;
     border-radius: 7px;
     object-fit: cover;
-    object-position: 50% 15%;
     flex: 0 0 auto;
     background: radial-gradient(circle at 50% 34%, #232234, #0c0c14);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -5667,6 +6205,101 @@
   #charcreate-panel .cs-form-actions {
     margin-top: auto;
     padding-top: 16px;
+  }
+
+  /* ---------- Offline creator on phones ----------
+     Below the 861px cs-wow takeover the creator is this stacked card, which
+     still assumed ~400px of width: the class grid's intrinsic min-content
+     inflated the panel past a 375px viewport (#hero-view is a grid item with
+     min-width:auto, so it grew instead of shrinking), clipping the right chip
+     column and the title. Phones get a panel that genuinely fits, chips that
+     shrink and ellipsize, and the 3D preview lifted ABOVE the appearance dock
+     and actions, so the character being built is on screen while editing it
+     instead of below Enter World. */
+  @media (max-width: 540px) {
+    #hero-view {
+      min-width: 0;
+    }
+    #offline-select {
+      min-width: 0;
+      max-width: 100%;
+      padding: 18px 14px;
+    }
+    #offline-select .auth-title {
+      font-size: clamp(22px, 6.5vw, 32px);
+    }
+    #offline-select .mini-class-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    /* Medallion chips (the desktop takeover's silhouette at card scale):
+       crest above a small full label, instead of the row layout whose labels
+       ellipsized to three letters at this width. */
+    #offline-select .mini-class {
+      min-width: 0;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 5px;
+      padding: 8px 2px 6px;
+      text-align: center;
+    }
+    #offline-select .mini-class .mini-class-portrait {
+      width: 42px;
+      height: 42px;
+    }
+    #offline-select .mini-class .mini-class-label {
+      flex: 0 0 auto;
+      max-width: 100%;
+      font-size: 10px;
+      letter-spacing: 0.4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    /* Unwrap both columns and the create form (the desktop takeover already
+       proves each tolerates display:contents) so the layout's flex column can
+       interleave the two halves; `order` then slots the model preview right
+       under the class chips. */
+    #offline-select .charselect-col-left,
+    #offline-select .charselect-col-right,
+    #offline-select .char-create {
+      display: contents;
+    }
+    #offline-select .auth-label {
+      order: 1;
+    }
+    #offline-select .char-input-group {
+      order: 2;
+    }
+    #offline-select .mini-class-row {
+      order: 3;
+      margin-bottom: 0;
+    }
+    /* The preview rides along: pinned under the 58px sticky site header while
+       the appearance rows scroll, so every change lands on a character you can
+       still see. Height gives shorter phones their options back; the solid
+       backdrop stops the rows reading through it while stuck; z-index sits
+       above the dock (auto) and below the site header (20). */
+    #offline-select .char-preview-container {
+      order: 4;
+      position: sticky;
+      top: 62px;
+      z-index: 10;
+      height: clamp(180px, 38vh, 300px);
+      background: linear-gradient(180deg, rgba(13, 13, 20, 0.97) 0%, rgba(8, 8, 13, 0.99) 100%);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
+    }
+    #offline-select #offline-skin-row {
+      order: 5;
+    }
+    #offline-select #offline-appearance {
+      order: 6;
+    }
+    #offline-select .auth-actions {
+      order: 7;
+    }
+    #offline-select #offline-class-details {
+      order: 8;
+    }
   }
   #btn-charcreate-back,
   #btn-charselect-back {
@@ -5904,16 +6537,20 @@
      the compact header are inspect-specific. */
   #inspect-window {
     width: 740px;
+    overflow-y: auto;
   }
-  /* Compact rich-card header: name + level/class chip + badge rows (the big
-     portrait chip is dropped for the rich card; the remote card keeps it below). */
+  /* The rich profile opens with one centered ceremonial mantle: earned identity,
+     standing, and honors stay composed above the read-only paperdoll. The remote
+     card keeps its simpler portrait treatment below. */
   .inspect-card {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    padding: 2px 2px 10px;
-    text-align: left;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 4px 2px 10px;
+    box-sizing: border-box;
+    text-align: center;
   }
   /* The out-of-range remote card is unchanged: centered portrait + name + a plain
      level/class line + optional guild. */
@@ -5928,9 +6565,172 @@
     height: 132px;
   }
   .inspect-name {
-    font-family: var(--title-font);
     font-size: 20px;
-    color: #f0ead8;
+  }
+  .inspect-card-remote .inspect-name {
+    font-family: var(--title-font);
+    color: var(--color-text-light);
+  }
+  /* Largest member of the Deed Heraldry family. The face stays a shallow 60px,
+     while the medallion keys into a blackened collar and the granting deed hangs
+     from one quiet provenance tab below it. */
+  .inspect-heraldry-banner {
+    position: relative;
+    box-sizing: border-box;
+    width: min(100%, 580px);
+    height: 72px;
+    padding-left: 48px;
+    overflow: visible;
+  }
+  .inspect-heraldry-banner::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: 36px;
+    z-index: 2;
+    width: 28px;
+    height: 16px;
+    box-sizing: border-box;
+    border-top: 1px solid var(--border-accent-frame, transparent);
+    border-bottom: 1px solid var(--border-accent-edge, transparent);
+    background: var(--deed-heraldry-well, transparent);
+    pointer-events: none;
+  }
+  .inspect-heraldry-face {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 60px;
+    padding: 5px 68px 5px 28px;
+    overflow: hidden;
+    text-align: center;
+  }
+  .inspect-heraldry-face[data-border]:not([data-border=""]) {
+    border: 1px solid var(--border-accent-frame, transparent);
+    outline: 1px solid var(--border-accent-edge, transparent);
+    outline-offset: -2px;
+    background-color: var(--border-accent-frame, transparent);
+    --deed-heraldry-plaque-fill: color-mix(
+      in srgb,
+      var(--deed-heraldry-well, transparent) 94%,
+      var(--border-accent-edge, transparent)
+    );
+    --deed-heraldry-plaque-top: color-mix(
+      in srgb,
+      var(--deed-heraldry-well, transparent) 90%,
+      var(--border-accent-frame, transparent)
+    );
+    --deed-heraldry-plaque-bottom: color-mix(
+      in srgb,
+      var(--deed-heraldry-well, transparent) 88%,
+      var(--border-accent-edge, transparent)
+    );
+    box-shadow: 0 0 calc(4px * var(--fx-shadow, 1)) var(--border-accent-glow, transparent);
+  }
+  .inspect-heraldry-banner .deed-heraldry-seal {
+    position: absolute;
+    top: 30px;
+    left: 0;
+    z-index: 3;
+    width: 64px;
+    height: 64px;
+    transform: translateY(-50%);
+  }
+  .inspect-heraldry-face .deed-heraldry-pattern {
+    position: absolute;
+    top: 50%;
+    right: 18px;
+    width: 44px;
+    height: 44px;
+    transform: translateY(-50%);
+    opacity: 0.09;
+    stroke: var(--border-accent-frame, transparent);
+    stroke-width: 1.25;
+    pointer-events: none;
+  }
+  .inspect-heraldry-copy {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    height: 100%;
+    text-align: center;
+  }
+  .inspect-heraldry-banner .inspect-name {
+    overflow: hidden;
+    font-size: 21px;
+    line-height: 22px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .inspect-heraldry-banner .inspect-title {
+    overflow: hidden;
+    color: var(--color-text-overlay);
+    font-style: italic;
+    line-height: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .inspect-heraldry-deed {
+    position: absolute;
+    left: calc(50% + 24px);
+    bottom: 0;
+    z-index: 4;
+    box-sizing: border-box;
+    width: min(52%, 260px);
+    max-width: 260px;
+    height: 18px;
+    padding: 2px 18px;
+    overflow: hidden;
+    background-color: var(--border-accent-frame, transparent);
+    --deed-heraldry-plaque-fill: color-mix(
+      in srgb,
+      var(--deed-heraldry-well, transparent) 92%,
+      var(--border-accent-edge, transparent)
+    );
+    color: var(--color-text-overlay);
+    font-size: 10px;
+    line-height: 14px;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-overflow: ellipsis;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  @media (forced-colors: active) {
+    .inspect-heraldry-face[data-border]:not([data-border=""]) {
+      border-color: CanvasText;
+      outline-color: CanvasText;
+      box-shadow: none;
+      background-color: CanvasText;
+    }
+    .inspect-heraldry-banner .deed-heraldry-seal {
+      border-color: CanvasText;
+      background-color: Canvas;
+      box-shadow: none;
+    }
+    .inspect-heraldry-banner::before {
+      border-color: CanvasText;
+      background: Canvas;
+    }
+    .inspect-heraldry-face .deed-heraldry-pattern {
+      stroke: CanvasText;
+    }
+    .inspect-heraldry-deed {
+      color: CanvasText;
+      background-color: CanvasText;
+      box-shadow: none;
+    }
+    .inspect-honor-rail::before {
+      background: CanvasText;
+    }
+    .inspect-honor-rail .inspect-holder {
+      border-color: CanvasText;
+      background: Canvas;
+      box-shadow: none;
+    }
   }
   .inspect-title {
     font-size: 12px;
@@ -5941,73 +6741,123 @@
   .inspect-meta {
     display: inline-block;
     padding: 4px 9px;
-    font-size: 10.5px;
     line-height: 1;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border-showcase);
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.3);
   }
+  .inspect-standing-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    width: min(100%, 620px);
+  }
+  /* The Reliquary standing line (labeled completion pair + named Curator rank)
+     reuses the level/class chip family UNCHANGED, so the card keeps one pill
+     language and the two lines render identically by design. .inspect-reliquary
+     is a semantic hook for tests and future rules, not an override: the base
+     .inspect-meta rule above is what paints it. (This note documents that
+     deliberate ABSENCE of a compound rule; it is not about the remote-card
+     rule below.) */
   .inspect-card-remote .inspect-meta {
     padding: 0;
     font-size: 13px;
     border: none;
     background: none;
   }
-  /* $WOC holder-tier flair badge in the inspect/profile window */
+  .inspect-honor-rail {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 300px));
+    justify-content: center;
+    gap: 6px;
+    width: min(100%, 620px);
+  }
+  .inspect-honor-rail::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 0;
+    width: min(76%, 360px);
+    height: 1px;
+    background: color-mix(in srgb, var(--color-border-showcase) 46%, transparent);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  /* Earned honors become a secondary ledger beneath the mantle instead of a
+     loose column of capsules. Badge art and tier halos remain unchanged. */
   .inspect-holder {
-    display: inline-flex;
+    position: relative;
+    z-index: 1;
+    display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 6px;
-    padding: 5px 14px 5px 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 6px 10px 6px 7px;
     border: 1px solid var(--color-border-default);
-    border-radius: 999px;
-    background: rgba(11, 11, 18, 0.55);
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--panel-base) 28%, #08080d);
+    box-shadow:
+      inset 0 1px rgba(255, 255, 255, 0.04),
+      inset 3px 0 var(--color-border-showcase);
+    text-align: left;
   }
   .inspect-holder-badge {
     width: 32px;
     height: 32px;
     display: block;
-    filter: drop-shadow(0 1px 2px #000);
+    filter: drop-shadow(0 1px 2px var(--color-keyline));
   }
   /* $WOC holder badge halo on the player card: same static per-tier glow as the
      nameplate (hue via inline --holder-glow, strength from the tokens.css
      tunables), stronger for the two band IV regalia. Only the holder badge opts
      in (via .inspect-holder-halo), never the shared Discord badges. */
   .inspect-holder-badge.inspect-holder-halo {
-    filter: drop-shadow(0 1px 2px #000)
+    filter: drop-shadow(0 1px 2px var(--color-keyline))
       drop-shadow(0 0 var(--holder-halo) var(--holder-glow, transparent));
   }
   .inspect-holder-badge.inspect-holder-halo.inspect-holder-halo-strong {
-    filter: drop-shadow(0 1px 2px #000)
+    filter: drop-shadow(0 1px 2px var(--color-keyline))
       drop-shadow(0 0 var(--holder-halo-strong) var(--holder-glow, transparent));
   }
   /* Contributor (dev-tier) badge halo on the inspect card: same shared strength
      tunables, hue via inline --dev-glow, stronger for the significant tiers. Only
      the dev badge opts in (via .inspect-dev-halo), never the shared Discord badges. */
   .inspect-holder-badge.inspect-dev-halo {
-    filter: drop-shadow(0 1px 2px #000)
+    filter: drop-shadow(0 1px 2px var(--color-keyline))
       drop-shadow(0 0 var(--holder-halo) var(--dev-glow, transparent));
   }
   .inspect-holder-badge.inspect-dev-halo.inspect-dev-halo-strong {
-    filter: drop-shadow(0 1px 2px #000)
+    filter: drop-shadow(0 1px 2px var(--color-keyline))
       drop-shadow(0 0 var(--holder-halo-strong) var(--dev-glow, transparent));
+  }
+  /* Curator sigil halo on the inspect card: the same shared strength tunable as
+     the two ladders above, hue via inline --curator-glow. The sigil is a SINGLE
+     rung (Eternal Curator only), so unlike them it has no -strong twin to earn.
+     Only the sigil opts in (via .inspect-curator-halo), never the shared Discord
+     badges. */
+  .inspect-holder-badge.inspect-curator-halo {
+    filter: drop-shadow(0 1px 2px var(--color-keyline))
+      drop-shadow(0 0 var(--holder-halo) var(--curator-glow, transparent));
   }
   .inspect-holder-text {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    min-width: 0;
     line-height: 1.2;
   }
   .inspect-holder-name {
+    max-width: 100%;
+    overflow: hidden;
     font-family: var(--title-font);
     font-size: 14px;
-    color: #f0ead8;
+    color: var(--color-text-light);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .inspect-holder-sub {
-    font-size: 11px;
-    color: var(--color-text-muted);
+  .inspect-honor-rail .inspect-holder-sub {
+    color: color-mix(in srgb, var(--color-text-overlay) 72%, transparent);
   }
   /* Worn-gear paperdoll in the inspect/profile window (read-only). It reuses the
      shared .paperdoll / .equip-col / .equip-slot showcase family (44px sockets,
@@ -6018,11 +6868,31 @@
     margin-top: 4px;
   }
   .inspect-equip-title {
-    font-family: var(--title-font);
-    font-size: 13px;
-    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 5px;
     text-align: center;
-    letter-spacing: 0.04em;
+  }
+  .inspect-equip-title::before,
+  .inspect-equip-title::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-border-showcase) 35%,
+      var(--color-border-showcase) 65%,
+      transparent
+    );
+  }
+  /* The armor columns stretch to the stage height and space their rows evenly,
+     so five sockets read as a band beside the tall inspect stage rather than a
+     cluster at its top. */
+  .inspect-paperdoll .equip-col {
+    align-self: stretch;
+    justify-content: space-evenly;
   }
   /* The model stage takes the inspected player's CLASS color, delivered as the
      --inspect-class-color custom property the painter sets. Fixed width so the
@@ -6030,28 +6900,73 @@
      taller than the sheet stage to frame the pulled-back inspect camera. */
   #inspect-window .inspect-model-panel {
     min-height: 400px;
-    border: 1px solid var(--inspect-class-color, #5a4a20);
+    border: 1px solid var(--color-border-showcase);
+    outline: 1px solid
+      color-mix(in srgb, var(--inspect-class-color, var(--color-border-default)) 38%, transparent);
+    outline-offset: -5px;
     box-shadow:
-      0 0 14px 0 color-mix(in srgb, var(--inspect-class-color, #5a4a20) 35%, transparent),
-      inset 0 0 0 1px rgba(0, 0, 0, 0.8),
-      inset 0 0 60px rgba(0, 0, 0, 0.55);
+      0 0 10px 0
+      color-mix(in srgb, var(--inspect-class-color, var(--color-border-default)) 18%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-keyline) 80%, transparent),
+      inset 0 0 60px color-mix(in srgb, var(--color-keyline) 55%, transparent);
     background:
       radial-gradient(
-        ellipse 62% 46% at 50% 58%,
-        color-mix(in srgb, var(--inspect-class-color, #5a4a20) 13%, transparent),
-        transparent 72%
+        ellipse 66% 48% at 50% 62%,
+        color-mix(
+          in srgb,
+          var(--inspect-class-color, var(--color-border-default)) 15%,
+          transparent
+        ),
+        transparent 74%
       ),
-      linear-gradient(to bottom, rgba(20, 16, 8, 0.35), rgba(0, 0, 0, 0.5));
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-card-hi) 22%, transparent),
+        color-mix(in srgb, var(--color-keyline) 54%, transparent)
+      );
   }
   #inspect-window .inspect-model-panel::after {
     content: "";
     position: absolute;
-    left: 22%;
-    right: 22%;
-    bottom: 40px;
-    height: 26px;
-    background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(0, 0, 0, 0.55), transparent 70%);
+    left: 18%;
+    right: 18%;
+    bottom: 34px;
+    height: 30px;
+    border-top: 1px solid
+      color-mix(in srgb, var(--inspect-class-color, var(--color-border-default)) 32%, transparent);
+    background: radial-gradient(
+      ellipse 50% 50% at 50% 45%,
+      color-mix(in srgb, var(--color-keyline) 62%, transparent),
+      transparent 72%
+    );
     pointer-events: none;
+  }
+  /* Gearscore (average worn item level), centered just under the stage's
+     class-colored floor line above, which sits 64px off the stage bottom. */
+  #inspect-window .inspect-gearscore {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 30px;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 8px;
+    pointer-events: none;
+    font-family: var(--title-font);
+    text-shadow: 0 1px 2px color-mix(in srgb, var(--color-keyline) 85%, transparent);
+  }
+  #inspect-window .inspect-gearscore-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-text-overlay) 72%, transparent);
+  }
+  #inspect-window .inspect-gearscore b {
+    font-size: 17px;
+    font-weight: normal;
+    color: var(--gold);
   }
 
   @media (min-width: 900px) {
@@ -6217,7 +7132,9 @@
   body.mobile-touch #char-list .char-row .char-actions {
     grid-area: actions;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
+    grid-auto-flow: column;
+    grid-auto-columns: auto;
     gap: 7px;
     width: 100%;
   }
@@ -6282,9 +7199,67 @@
       align-items: center;
       gap: 8px;
     }
-    body.mobile-touch #charselect-panel .cs-wallet,
-    body.mobile-touch #charselect-panel .cs-wallet-hidden-note {
+    body.mobile-touch:not(.seeker-wallet-enabled) #charselect-panel .cs-wallet,
+    body.mobile-touch:not(.seeker-wallet-enabled) #charselect-panel .cs-wallet-hidden-note {
       display: none;
+    }
+    /* Seeker wallet strip: pair the service name and verified helper as one
+       header row, then keep every connection action on the row below. */
+    body.mobile-touch.seeker-wallet-enabled #charselect-panel .cs-wallet-group {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      column-gap: 12px;
+      row-gap: 7px;
+      align-items: center;
+    }
+    body.mobile-touch.seeker-wallet-enabled #charselect-panel .cs-wallet-main {
+      display: contents;
+    }
+    body.mobile-touch.seeker-wallet-enabled #charselect-panel .cs-wallet-group > .cs-wallet-label {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: center;
+      width: auto;
+      margin: 0;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+    body.mobile-touch.seeker-wallet-enabled #charselect-panel .cs-wallet-help {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: center;
+      justify-self: start;
+      width: auto;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      text-align: left;
+      line-height: 1.35;
+    }
+    body.mobile-touch.seeker-wallet-enabled #charselect-panel .cs-wallet-actions {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      width: 100%;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    body.mobile-touch.seeker-wallet-enabled #charselect-panel :is(.wallet-cta, .wallet-mini) {
+      min-width: 40px;
+      min-height: 40px;
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+    body.mobile-touch.seeker-wallet-enabled #charselect-panel .wallet-status {
+      min-height: 36px;
+      max-width: 290px;
+      padding: 5px 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     body.mobile-touch #charselect-panel .cs-controls {
       gap: 6px;
@@ -6394,7 +7369,9 @@
     }
     body.mobile-touch #char-list .char-row .char-actions {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr;
+      grid-auto-flow: column;
+      grid-auto-columns: auto;
       gap: 6px;
       width: 100%;
     }
@@ -6417,7 +7394,7 @@
       min-height: 110px;
       min-width: 0;
     }
-    body.mobile-touch #charselect-panel #charselect-news {
+    body.mobile-touch #charselect-panel .cs-news-panel {
       grid-column: 1 / -1;
       box-sizing: border-box;
       width: auto;
@@ -6575,14 +7552,17 @@
       padding: 5px 8px;
       font-size: 11.5px;
     }
+    /* The stage takes most of the right column (the face builder's close-up has
+       to read on a phone held sideways; a 100px strip left the face a few dozen
+       pixels tall) and the class blurb scrolls in what is left. */
     body.mobile-touch #offline-select .char-preview-container {
-      height: 100px;
-      min-height: 0;
-      flex-shrink: 0;
+      height: auto;
+      flex: 1.8 1 0;
+      min-height: 150px;
     }
     body.mobile-touch #offline-select .class-details-panel {
-      flex: 1 1 auto;
-      min-height: 0;
+      flex: 1 1 0;
+      min-height: 72px;
       overflow-y: auto;
       margin-top: 6px;
     }
@@ -6705,7 +7685,10 @@
     width: 100%;
   }
 
-  @media (max-width: 860px) {
+  /* The added wishlist action makes the full localized desktop header too wide
+     below 1121px. Collapse the menu before any action is clipped by
+     #start-screen's intentional horizontal overflow guard. */
+  @media (max-width: 1120px) {
     /* Mobile First Homepage Header and Hamburger Menu */
     .mobile-menu-toggle {
       display: flex;
@@ -6816,6 +7799,36 @@
     .social-link svg {
       width: 18px;
       height: 18px;
+    }
+  }
+
+  /* Between the collapsed-menu breakpoint and a comfortably wide desktop,
+     retain the wishlist action as an icon-labelled-by-aria. This keeps long
+     locale nav labels (notably German) inside the viewport at 1200px. */
+  @media (min-width: 1121px) and (max-width: 1280px) {
+    .steam-wishlist-cta {
+      width: 40px;
+      padding-inline: 0;
+      justify-content: center;
+    }
+    .steam-wishlist-cta span {
+      display: none;
+    }
+  }
+
+  /* Borderless desktop builds add Exit Game to the action group. Keep that
+     desktop-only combination on its own centered row until the full German
+     header has reliable one-row clearance; web and windowed shells retain the
+     ordinary layout because their exit control remains hidden. */
+  @media (min-width: 1121px) and (max-width: 1440px) {
+    body.desktop-app.desktop-login-exit-shown .homepage-header {
+      grid-template-rows: auto auto;
+      row-gap: var(--spacing-xs);
+    }
+    body.desktop-app.desktop-login-exit-shown .header-actions {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      justify-self: center;
     }
   }
 
@@ -7540,33 +8553,167 @@
   }
 
   /* ---------- desktop update toast (Electron shell) ---------- */
-  /* Owned by src/ui/desktop_update_toast.ts: a fixed, non-blocking notice for
+  /* Owned by src/ui/desktop_update_toast.ts: a fixed, non-blocking card for
      the auto-updater (website desktop builds only). Lives at shell level so it
-     renders on both the pre-game shell and in-world. */
+     renders on both the pre-game shell and in-world. One FIXED width (not a
+     max-width over a single flex row): the old layout let the buttons squeeze
+     the message column until it clipped; the card now stacks title, body,
+     progress, and actions so every localized string gets the full width. */
   #desktop-update-toast {
     position: fixed;
-    top: var(--spacing-md);
-    right: var(--spacing-md);
+    /* Same safe-area handling as the sibling toasts below: inert on the
+       desktop shell today, correct if the card ever meets a notch. */
+    top: calc(var(--spacing-md) + env(safe-area-inset-top, 0px));
+    right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
     z-index: 260;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--spacing-sm);
-    max-width: min(440px, calc(100vw - 2 * var(--spacing-md)));
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: linear-gradient(180deg, rgba(21, 21, 31, 0.96) 0%, rgba(11, 11, 18, 0.98) 100%);
+    width: min(400px, calc(100vw - 2 * var(--spacing-md)));
+    padding: var(--spacing-md);
+    background: linear-gradient(180deg, rgba(21, 21, 31, 0.97) 0%, rgba(11, 11, 18, 0.98) 100%);
+    /* Even 1px border on all sides (same language as #gpu-notice / #perf-nudge).
+       No accent left stripe: that read as generic toast chrome. */
     border: 1px solid var(--color-border-default);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     color: var(--color-text-light);
     font-family: var(--font-sans);
     font-size: 13px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    line-height: 1.45;
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.65),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    animation: desktop-update-in 240ms ease-out;
   }
   #desktop-update-toast[hidden] {
     display: none;
   }
-  #desktop-update-toast button {
+  @keyframes desktop-update-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .desktop-update-icon {
     flex-shrink: 0;
-    padding: 4px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    /* Token-only halo: the accent presets recompute --color-primary-glow, so
+       a literal outer stop would stay gold while the inner stop follows the
+       accent; fading to transparent keeps it one hue under every preset. */
+    background: radial-gradient(circle at 35% 30%, var(--color-primary-glow), transparent 75%);
+    border: 1px solid var(--color-border-default);
+    color: var(--color-primary);
+  }
+  .desktop-update-icon .ui-icon {
+    width: 15px;
+    height: 15px;
+  }
+  .desktop-update-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--color-primary-glow);
+    border-top-color: var(--color-primary);
+    animation: desktop-update-spin 900ms linear infinite;
+  }
+  @keyframes desktop-update-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .desktop-update-content {
+    flex: 1;
+    min-width: 0;
+    /* One title line plus one body line (the checking card's height), so the
+       title-only up-to-date card resolves in place instead of shrinking. */
+    min-height: 42px;
+  }
+  .desktop-update-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-primary);
+    /* Room for the corner dismiss control, so a long localized title can
+       never run underneath it. */
+    padding-right: var(--spacing-lg);
+    overflow-wrap: break-word;
+  }
+  #desktop-update-toast[data-mode="ready"] .desktop-update-title {
+    padding-right: 0;
+  }
+  .desktop-update-body {
+    margin-top: 2px;
+    color: var(--color-text-muted);
+    overflow-wrap: break-word;
+  }
+  .desktop-update-body[hidden] {
+    display: none;
+  }
+  .desktop-update-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+  }
+  .desktop-update-progress[hidden] {
+    display: none;
+  }
+  .desktop-update-progress-track {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+  .desktop-update-progress-fill {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--color-primary-dim), var(--color-primary));
+    transition: width 300ms ease;
+  }
+  .desktop-update-progress-pct {
+    flex-shrink: 0;
+    min-width: 34px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .desktop-update-whats-new {
+    display: inline-block;
+    margin-top: var(--spacing-sm);
+    font-size: 12px;
+    color: var(--color-text-muted);
+    text-decoration: none;
+  }
+  .desktop-update-whats-new[hidden] {
+    display: none;
+  }
+  .desktop-update-whats-new:hover {
+    color: var(--color-text-primary);
+    text-decoration: underline;
+  }
+  .desktop-update-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+  }
+  .desktop-update-actions[hidden] {
+    display: none;
+  }
+  .desktop-update-actions button {
+    min-height: 28px;
+    padding: 4px 14px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--color-border-default);
     border-radius: var(--radius-sm);
@@ -7574,11 +8721,98 @@
     font: inherit;
     cursor: var(--cursor-point);
   }
-  #desktop-update-toast button:hover {
+  .desktop-update-actions .desktop-update-restart {
+    background: var(--color-primary-glow);
+    border-color: var(--color-primary-dim);
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+  .desktop-update-actions .desktop-update-restart:hover {
+    background: var(--color-primary-glow-heavy);
     border-color: var(--color-primary);
   }
-  #desktop-update-toast .desktop-update-restart {
+  .desktop-update-actions .desktop-update-later:hover {
     border-color: var(--color-primary);
+  }
+  .desktop-update-close {
+    position: absolute;
+    top: var(--spacing-xs);
+    right: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: var(--cursor-point);
+  }
+  .desktop-update-close:hover {
+    color: var(--color-text-light);
+  }
+  .desktop-update-close[hidden] {
+    display: none;
+  }
+  .desktop-update-close .ui-icon {
+    width: 12px;
+    height: 12px;
+  }
+  #desktop-update-toast button:focus-visible {
+    outline: 3px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #desktop-update-toast {
+      animation: none;
+    }
+    .desktop-update-spinner {
+      /* A frozen partial ring reads as a stuck control; solid-color the ring
+         so it stays a state glyph when the rotation is dropped. */
+      animation: none;
+      border-color: var(--color-primary);
+    }
+    .desktop-update-progress-fill {
+      transition: none;
+    }
+  }
+  /* The card is desktop-Electron-only, but Electron ships on touchscreen
+     laptops: give its controls the coarse-pointer touch floor the sibling
+     toasts carry, and keep the title clear of the enlarged corner dismiss. */
+  @media (pointer: coarse) {
+    .desktop-update-actions button,
+    .desktop-update-close {
+      min-height: 40px;
+      min-width: 40px;
+    }
+    .desktop-update-whats-new {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+    }
+    .desktop-update-title {
+      padding-right: 44px;
+    }
+    #desktop-update-toast[data-mode="ready"] .desktop-update-title {
+      padding-right: 0;
+    }
+  }
+  /* Download progress is conveyed by the .fill gradient, which forced-colors
+     strips (same failure class the cast bars pin in base.css): pin the fill
+     to Highlight so the filled width survives. Same layer and later in the
+     sheet than the base fill rule, so no !important is needed here. The
+     forced palette also flattens the spinner's four border colors into one,
+     which turns the rotation into invisible motion: stop it and let the
+     solid ring read as the state glyph, like the reduced-motion arm above. */
+  @media (forced-colors: active) {
+    .desktop-update-progress-fill {
+      background: Highlight;
+    }
+    .desktop-update-spinner {
+      animation: none;
+    }
   }
 
   /* ---------- software rendering notice ---------- */
@@ -7606,6 +8840,15 @@
     font-family: var(--font-sans);
     font-size: 13px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+  /* Only a shell that actually mints the update card (the class is stamped by
+     initDesktopUpdateToast once its bridge capability check passes) reserves
+     the taller first slot; every other session keeps the original 56px slot.
+     216px covers the tallest localized ready card under pointer:coarse
+     (32px padding + 2px borders + two 20.3px title lines + three 18.85px
+     body lines + 8px margin + 40px actions is about 201px). */
+  body.desktop-update-card #gpu-notice {
+    top: calc(var(--spacing-md) + 216px + env(safe-area-inset-top, 0px));
   }
   #gpu-notice[hidden] {
     display: none;
@@ -7641,17 +8884,23 @@
   /* ---------- performance nudge toast ---------- */
   /* Owned by src/ui/perf_nudge_toast.ts: the one-time machine-local performance
      nudge (packet 0 rulings R14-R16), a SIBLING of the software rendering
-     notice above with the same visual language. It sits one slot BELOW the
-     gpu-notice slot so the stack can never overlap; the two toasts are mutually
-     exclusive by construction (the nudge's software arm is suppressed when the
-     boot notice showed), but the fixed slot keeps a defensive ordering anyway. */
+     notice above with the same visual language. It sits one slot below the
+     gpu-notice TOP, but the 56px offset only clears a one-line notice: every
+     gpu-notice body wraps taller at the 440px cap (98px in English, 114px in
+     ru_RU, phase 3 QA measurement), so the two must not show together. Today
+     they cannot: the notice shows at boot, before the nudge's first 30 s
+     check, or not at all, because the shell re-pushes its verdict only on a
+     did-finish-load reload, which resets the page and the nudge with it. Any
+     future mid-session verdict push (gpu-info-update or similar) must add a
+     supersede or stacking story here first; see the phase 3 QA notes in
+     docs/desktop-client-update/progress.md. */
   #perf-nudge {
     position: fixed;
     /* Same safe-area handling as #gpu-notice: clear of a notch on mobile
-       shells, zero everywhere else; 112px clears both toast slots above.
-       Unlike the pre-game portrait sibling, this toast surfaces IN-GAME,
-       where web mobile is landscape-only, so the right edge also clears a
-       rotated notch / rounded corner. */
+       shells, zero everywhere else; 112px clears the update-toast slot (56px)
+       plus the gpu-notice slot. Unlike the pre-game portrait sibling, this
+       toast surfaces IN-GAME, where web mobile is landscape-only, so the
+       right edge also clears a rotated notch / rounded corner. */
     top: calc(var(--spacing-md) + 112px + env(safe-area-inset-top, 0px));
     right: calc(var(--spacing-md) + env(safe-area-inset-right, 0px));
     z-index: 260;
@@ -7667,6 +8916,11 @@
     font-family: var(--font-sans);
     font-size: 13px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+  /* The update card's taller slot (216px, see #gpu-notice) pushes this third
+     slot down with it; sessions without the card keep the 112px stack. */
+  body.desktop-update-card #perf-nudge {
+    top: calc(var(--spacing-md) + 272px + env(safe-area-inset-top, 0px));
   }
   #perf-nudge[hidden] {
     display: none;
@@ -7697,5 +8951,2182 @@
       min-height: 40px;
       min-width: 40px;
     }
+  }
+
+  /* ---------- unsupported browser notice ---------- */
+  /* Owned by src/game/browser_support_notice.ts: a one-time, dismissible
+     advisory shown at boot to a player on a browser outside the officially
+     supported set (Chrome, Firefox, Safari), never in the desktop app or a
+     native mobile shell (issue #2266). Bottom-left so it never collides with
+     the top-right toast stack (#gpu-notice / #perf-nudge / update toast). */
+  #browser-support-notice {
+    position: fixed;
+    left: calc(var(--spacing-md) + env(safe-area-inset-left, 0px));
+    bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+    z-index: 260;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    max-width: min(420px, calc(100vw - 2 * var(--spacing-md)));
+    padding: var(--spacing-md);
+    background: linear-gradient(180deg, rgba(21, 21, 31, 0.96) 0%, rgba(11, 11, 18, 0.98) 100%);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-light);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+  .browser-support-notice-title {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .browser-support-notice-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+  .browser-support-notice-actions button {
+    padding: 6px 12px;
+    min-height: 24px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-sm);
+    color: inherit;
+    font: inherit;
+    cursor: var(--cursor-point);
+  }
+  .browser-support-notice-desktop {
+    border-color: var(--color-primary);
+  }
+  .browser-support-notice-actions button:hover {
+    border-color: var(--color-primary);
+  }
+  .browser-support-notice-actions button:focus-visible {
+    outline: 3px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .browser-support-notice-actions button {
+      min-height: 40px;
+      min-width: 40px;
+    }
+  }
+
+  /* ---------- first-login graphics prompt ---------- */
+  /* Pre-game modal over the start screen (src/ui/graphics_choice_prompt.ts). The dialog is a
+     .ui-panel and the confirm a .ui-btn--gold; this section only sets geometry and type. The
+     backdrop pads by the safe-area insets so a notched landscape phone keeps the dialog clear. */
+  .graphics-prompt-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    box-sizing: border-box;
+    background: var(--color-options-scrim);
+  }
+  .graphics-prompt-dialog {
+    width: min(460px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 18px;
+    box-sizing: border-box;
+    animation: graphics-prompt-in 160ms ease-out;
+  }
+  @keyframes graphics-prompt-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .graphics-prompt-title {
+    margin: 0 0 6px;
+    font-family: var(--title-font);
+    font-size: 19px;
+    font-weight: normal;
+    color: var(--gold);
+  }
+  .graphics-prompt-desc,
+  .graphics-prompt-note {
+    margin: 0 0 14px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .graphics-prompt-note {
+    margin: 0;
+    font-size: 12px;
+  }
+  .graphics-prompt-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .graphics-prompt-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    cursor: var(--cursor-point);
+  }
+  .graphics-prompt-option:has(.graphics-prompt-radio:checked) {
+    border-color: var(--gold);
+  }
+  .graphics-prompt-option:has(.graphics-prompt-radio:focus-visible) {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+  .graphics-prompt-radio {
+    flex: none;
+    margin-top: 2px;
+    accent-color: var(--gold);
+    width: 18px;
+    height: 18px;
+  }
+  .graphics-prompt-option-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .graphics-prompt-option-title {
+    color: var(--color-text-light);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .graphics-prompt-option-desc {
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  /* The "change it later" note shares the confirm's row, so the prompt stays one row shorter. */
+  .graphics-prompt-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .graphics-prompt-confirm {
+    flex: none;
+    min-width: 120px;
+  }
+  /* Landscape phones: two option columns and tighter spacing so the whole prompt fits
+     without scrolling on a short viewport. */
+  @media (max-height: 520px) and (min-width: 560px) {
+    .graphics-prompt-dialog {
+      width: min(640px, 100%);
+      padding: 12px 14px;
+    }
+    .graphics-prompt-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .graphics-prompt-option {
+      padding: 7px 10px;
+    }
+    .graphics-prompt-desc {
+      margin-bottom: 8px;
+    }
+    .graphics-prompt-actions {
+      margin-top: 8px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .graphics-prompt-dialog {
+      animation: none;
+    }
+  }
+  body.reduce-motion .graphics-prompt-dialog {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Modular-character appearance customizer (character creation).
+   Mounted into #charcreate-appearance / #offline-appearance by main.ts; every
+   class routes through the modular body, so this is THE creation appearance UI.
+
+   A compact tabbed panel in the register of a AAA creator: panel chrome
+   (title + whole-look tools), a Body/Face/Hair/Style tab rail, and one
+   scrolling page of rows per tab, stepper capsules for the long style lists,
+   centre-notched sliders for the morph pairs, switches for booleans, swatch
+   strips for makeup, HSL wheels for colours. These rules live OUTSIDE
+   @layer shell on purpose (like the dock rules they replace): the docks must
+   outrank the layered panel layouts at any specificity.
+   --------------------------------------------------------------------------- */
+.appearance-customizer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  /* stacked/narrow layouts: a readable column, not full-bleed */
+  max-width: 348px;
+  padding: 10px 10px 8px;
+  font-family: var(--font-sans);
+  background: linear-gradient(172deg, rgba(17, 17, 26, 0.92) 0%, rgba(9, 9, 14, 0.94) 100%);
+  border: 1px solid var(--color-border-showcase);
+  outline: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: 10px;
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+/* ------------------------------------------------------------ panel chrome */
+.appearance-customizer .ac-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.appearance-customizer .ac-title {
+  font-family: var(--title-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.appearance-customizer .ac-tools {
+  display: flex;
+  gap: 5px;
+}
+
+.appearance-customizer .ac-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  /* labelled pills, not bare icons: the die and the circular arrow did not
+     say what they do on their own. Width is content-driven now; the height
+     stays on the old 26px grid so the header line is unchanged. */
+  height: 26px;
+  padding: 0 8px 0 6px;
+  color: #cbbd97;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 6px;
+  cursor: var(--cursor-point);
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.appearance-customizer .ac-tool:hover {
+  color: #ffe9a8;
+  background: rgba(200, 168, 56, 0.14);
+  border-color: rgba(200, 168, 56, 0.55);
+}
+
+.appearance-customizer .ac-tool:active {
+  transform: translateY(0.5px);
+}
+
+.appearance-customizer .ac-tool-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- tab rail */
+.appearance-customizer .ac-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 8px;
+}
+
+.appearance-customizer .ac-tab {
+  height: 26px;
+  padding: 0 2px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: var(--cursor-point);
+  /* the five labels are translated: never let a longer locale wrap the rail */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.appearance-customizer .ac-tab:hover {
+  color: var(--color-text-light);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.appearance-customizer .ac-tab.sel {
+  color: #ffe9a8;
+  background: linear-gradient(180deg, rgba(200, 168, 56, 0.24), rgba(200, 168, 56, 0.1));
+  border-color: rgba(200, 168, 56, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* ------------------------------------------------------------------ pages */
+.appearance-customizer .ac-pages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 168, 56, 0.35) transparent;
+  /* keep row content clear of the scrollbar gutter */
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+.appearance-customizer .ac-pages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.appearance-customizer .ac-pages::-webkit-scrollbar-thumb {
+  background: rgba(200, 168, 56, 0.28);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.appearance-customizer .ac-page {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.appearance-customizer .ac-page[hidden] {
+  display: none;
+}
+
+.appearance-customizer .ac-div {
+  height: 1px;
+  margin: 4px 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-border-showcase) 18%,
+    var(--color-border-showcase) 82%,
+    transparent
+  );
+}
+
+/* ------------------------------------------------------------------- rows */
+.appearance-customizer .ac-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.appearance-customizer .ac-label {
+  flex: 0 0 86px;
+  font-size: 10.5px;
+  line-height: 1.25;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim, #b9a883);
+}
+
+.appearance-customizer .ac-sub {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim, #b9a883);
+  opacity: 0.8;
+}
+
+/* ------------------------------------------------- segmented pair (body) */
+.appearance-customizer .ac-seg {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.appearance-customizer .ac-seg-btn {
+  height: 30px;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 6px;
+  cursor: var(--cursor-point);
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.appearance-customizer .ac-seg-btn:hover {
+  color: var(--color-text-light);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.appearance-customizer .ac-seg-btn.sel {
+  color: #ffe9a8;
+  background: linear-gradient(180deg, rgba(200, 168, 56, 0.26), rgba(120, 92, 34, 0.22));
+  border-color: rgba(226, 190, 108, 0.75);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* -------------------------------------------------------- stepper capsule */
+.appearance-customizer .ac-step {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  height: 28px;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.appearance-customizer .ac-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  padding: 0;
+  color: #cbbd97;
+  background: transparent;
+  border: 0;
+  cursor: var(--cursor-point);
+  transition:
+    color 120ms ease,
+    background 120ms ease;
+}
+
+.appearance-customizer .ac-step-btn:hover {
+  color: #ffe9a8;
+  background: rgba(200, 168, 56, 0.16);
+}
+
+.appearance-customizer .ac-step-btn:active {
+  background: rgba(200, 168, 56, 0.26);
+}
+
+/* The value IS a <select>, so browsing the whole list is one click and the
+   row stays a single 28px capsule whatever the list length. Chrome-less and
+   centred so it reads as the stepper's value, not a form control. */
+.appearance-customizer .ac-step-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+  text-align-last: center;
+  color: var(--color-text-light);
+  background: transparent;
+  border: 0;
+  border-inline: 1px solid var(--color-border-showcase);
+  border-radius: 0;
+  appearance: none;
+  cursor: var(--cursor-point);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 120ms ease;
+}
+
+.appearance-customizer .ac-step-value:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* The popup list is drawn by the platform, which does NOT inherit the panel's
+   colours, without this the options come out as dark text on a dark menu on
+   some platforms and are unreadable. */
+.appearance-customizer .ac-step-value option {
+  color: #e8dcc0;
+  background: #1a1712;
+}
+
+/* ---------------------------------------------------------------- sliders */
+.appearance-customizer .ac-slide {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  height: 24px;
+  min-width: 0;
+}
+
+.appearance-customizer .ac-slider {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: var(--cursor-point);
+}
+
+/* --ac-track is written per element by the lightness slider (a dark → light
+   ramp of its own hue, so the direction of travel is visible rather than
+   captioned). The morph sliders never set it and keep the neutral rail. */
+.appearance-customizer .ac-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ac-track, rgba(255, 255, 255, 0.1));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.appearance-customizer .ac-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, #c8a838 70%, #8a713a);
+  border: 1px solid #6f5a2a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.appearance-customizer .ac-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ac-track, rgba(255, 255, 255, 0.1));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.appearance-customizer .ac-slider::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, #c8a838 70%, #8a713a);
+  border: 1px solid #6f5a2a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* The sculpted default sits mid-track; the notch makes the detent visible so
+   "unchanged" reads at a glance across a column of sliders. */
+.appearance-customizer .ac-notch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  background: rgba(240, 235, 216, 0.22);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------- switch */
+.appearance-customizer .ac-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 10px;
+  cursor: var(--cursor-point);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.appearance-customizer .ac-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #8b8069;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  transition:
+    left 140ms ease,
+    background 140ms ease;
+}
+
+.appearance-customizer .ac-switch[aria-checked="true"] {
+  background: rgba(200, 168, 56, 0.32);
+  border-color: rgba(226, 190, 108, 0.75);
+}
+
+.appearance-customizer .ac-switch[aria-checked="true"]::after {
+  left: 20px;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, #c8a838 75%);
+}
+
+/* --------------------------------------------------------- makeup swatches */
+.appearance-customizer .ac-swatches {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.appearance-customizer .ac-mk-swatch {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(180, 150, 90, 0.45);
+  border-radius: 50%;
+  background: transparent;
+  cursor: var(--cursor-point);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+}
+
+.appearance-customizer .ac-mk-swatch:hover {
+  transform: scale(1.12);
+}
+
+.appearance-customizer .ac-mk-swatch.sel {
+  border-color: #fff6dd;
+  box-shadow:
+    0 0 0 2px rgba(226, 190, 108, 0.9),
+    0 0 6px rgba(226, 190, 108, 0.5);
+}
+
+/* OFF is a swatch too, drawn as an empty chip struck through, so the row does
+   not need a separate on/off control next to it. */
+.appearance-customizer .ac-mk-none {
+  background:
+    linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1px),
+      rgba(226, 190, 108, 0.75) calc(50% - 1px),
+      rgba(226, 190, 108, 0.75) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    rgba(0, 0, 0, 0.32);
+}
+
+/* ------------------------------------------------------------ colour rows */
+.appearance-customizer .ac-color {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(70, 58, 28, 0.55);
+  border-radius: 8px;
+}
+
+.appearance-customizer .ac-color-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.appearance-customizer .ac-color-head .ac-label {
+  flex: 1 1 auto;
+}
+
+/* Live readback of the picked colour, up in the row header where it reads as
+   the row's value. */
+.appearance-customizer .ac-chipdot {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(240, 235, 216, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* The preset strip: the row's primary control. Left-aligned under the header
+   and allowed to wrap, so a fourteen-shade hair palette is two tidy lines
+   rather than a scroller. */
+.appearance-customizer .ac-sw-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.appearance-customizer .ac-sw {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid rgba(180, 150, 90, 0.45);
+  border-radius: 50%;
+  background: transparent;
+  cursor: var(--cursor-point);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease;
+}
+
+.appearance-customizer .ac-sw:hover {
+  transform: scale(1.12);
+}
+
+.appearance-customizer .ac-sw.sel {
+  border-color: #fff6dd;
+  box-shadow:
+    0 0 0 2px rgba(226, 190, 108, 0.9),
+    0 0 6px rgba(226, 190, 108, 0.5);
+}
+
+/* Custom reads as "every other colour": the full hue circle in the chip, so it
+   is obviously not one more shade in the strip. */
+.appearance-customizer .ac-sw-custom {
+  background: conic-gradient(
+    from 90deg,
+    #ff4d4d,
+    #ffd24d,
+    #4dff77,
+    #4dd2ff,
+    #7a4dff,
+    #ff4dd2,
+    #ff4d4d
+  );
+  position: relative;
+}
+
+.appearance-customizer .ac-sw-custom::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: rgba(10, 10, 16, 0.82);
+  transition: inset 120ms ease;
+}
+
+/* Open: the hole closes up, so the chip reads as "this menu is showing". */
+.appearance-customizer .ac-color.open .ac-sw-custom::after {
+  inset: 8px;
+}
+
+/* The picker drawer. Bordered and inset so it reads as a menu that opened off
+   the chip rather than more of the row. */
+.appearance-customizer .ac-custom[hidden] {
+  display: none;
+}
+
+.appearance-customizer .ac-custom {
+  margin-top: 2px;
+  padding: 7px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(200, 168, 56, 0.3);
+  border-radius: 7px;
+}
+
+.appearance-customizer .ac-color-body {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.appearance-customizer .ac-wheel-holder {
+  position: relative;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.appearance-customizer .ac-wheel {
+  display: block;
+  border-radius: 50%;
+  cursor: crosshair;
+  touch-action: none;
+  box-shadow:
+    0 0 0 1px rgba(180, 150, 90, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* Selection puck: centred on its coordinate, so it must not eat the pointer. */
+.appearance-customizer .ac-wheel-dot {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -6px 0 0 -6px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+
+.appearance-customizer .ac-color-right {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ share */
+/* The Share tab: the design code (one readable feature=value line) in a
+   monospace box, over Copy / Import. Coarse pointers get the 16px input floor
+   from base.css, so nothing here sets a smaller font on the textarea. */
+.appearance-customizer .ac-share-hint {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.appearance-customizer .ac-code {
+  width: 100%;
+  min-height: 84px;
+  padding: 7px 9px;
+  font-family: ui-monospace, Consolas, "Cascadia Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #e6dcbf;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 7px;
+  resize: vertical;
+  /* the code is one long line of fields: wrap anywhere rather than scroll */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  scrollbar-width: thin;
+}
+
+.appearance-customizer .ac-share-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.appearance-customizer .ac-share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cbbd97;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 6px;
+  cursor: var(--cursor-point);
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.appearance-customizer .ac-share-btn:hover {
+  color: #ffe9a8;
+  background: rgba(200, 168, 56, 0.14);
+  border-color: rgba(200, 168, 56, 0.55);
+}
+
+.appearance-customizer .ac-share-btn:active {
+  transform: translateY(0.5px);
+}
+
+/* Tokens, not literals: the theme presets recompute the --color-* vars at
+   runtime, so a raw hex here would not follow a theme switch. */
+.appearance-customizer .ac-share-status {
+  min-height: 16px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-success);
+}
+
+.appearance-customizer .ac-share-status.err {
+  color: var(--color-text-error);
+}
+
+/* ------------------------------------------------------------------ focus */
+.appearance-customizer
+:is(
+  .ac-tab,
+  .ac-tool,
+  .ac-seg-btn,
+  .ac-step-value,
+  .ac-switch,
+  .ac-mk-swatch,
+  .ac-sw,
+  .ac-slider,
+  .ac-wheel,
+  .ac-code,
+  .ac-share-btn
+):focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* ------------------------------------------------------------ touch floor */
+@media (pointer: coarse) {
+  .appearance-customizer .ac-row {
+    min-height: 40px;
+  }
+  .appearance-customizer .ac-tab,
+  .appearance-customizer .ac-seg-btn,
+  .appearance-customizer .ac-step,
+  .appearance-customizer .ac-share-btn,
+  .appearance-customizer .ac-tool {
+    height: 40px;
+  }
+  .appearance-customizer .ac-tool {
+    /* height only: a labelled pill must stay content-width, and the old
+       40px square would clip the word */
+    padding: 0 10px 0 8px;
+  }
+  .appearance-customizer .ac-step-btn {
+    flex-basis: 36px;
+  }
+  .appearance-customizer .ac-switch {
+    width: 46px;
+    height: 24px;
+  }
+  .appearance-customizer .ac-switch::after {
+    width: 18px;
+    height: 18px;
+  }
+  .appearance-customizer .ac-switch[aria-checked="true"]::after {
+    left: 24px;
+  }
+  .appearance-customizer .ac-mk-swatch,
+  .appearance-customizer .ac-sw {
+    width: 28px;
+    height: 28px;
+  }
+  .appearance-customizer .ac-sw-custom::after {
+    inset: 7px;
+  }
+  .appearance-customizer .ac-color.open .ac-sw-custom::after {
+    inset: 11px;
+  }
+  .appearance-customizer .ac-slide {
+    height: 34px;
+  }
+}
+
+/* ------------------------------------------------------------------ docks */
+/* Both creator panels are full-viewport "WoW takeover" stages at >=861px (the
+   create panel only without body.mobile-touch): the turntable is a full-bleed
+   absolute layer at z-index 1, and the customizer docks over its left edge as
+   a fixed column, clear of the centred name entry above and the class rail
+   below. z-index 3 is what the panels' other docks use to sit above the
+   canvas, without it the canvas swallows every click. The panel is a fixed
+   dock and the page area inside it scrolls, so the column never collides with
+   the rail whatever a tab holds. */
+@media (min-width: 861px) {
+  #offline-select .appearance-customizer,
+  body:not(.mobile-touch) #charcreate-panel.cs-wow .appearance-customizer {
+    position: absolute;
+    left: 22px;
+    top: 126px;
+    /* max-height, not bottom: the panel hugs whatever the open tab holds (Body
+       is two rows, Face is a dozen) instead of always drawing a full-height
+       frame with dead space under a short tab. The cap keeps it clear of the
+       class rail, whose medallions + labels reach about 182px up from the
+       panel edge (measured, both creators), plus breathing room. */
+    max-height: calc(100% - 322px);
+    width: 318px;
+    max-width: none;
+    margin-top: 0;
+    z-index: 3;
+  }
+}
+
+/* Narrow / stacked layouts flow the panel in the form column instead. The
+   create form's section captions double the panel's own title there, and the
+   preset strip they captioned is gone (CREATION_SKIN_PRESETS), so the caption
+   is dropped rather than the panel renamed. */
+#charcreate-panel .skin-picker-header {
+  display: none;
+}
+
+/* ---------- woc face builder ---------- */
+/* Character creation and the Redesign editor on a WOC body. Mounted by
+   src/ui/woc_head_builder.ts into the same hosts as the modular customizer
+   above. A AAA creator layout: a category menu on the left, the open
+   category's options in a panel beside it, a Randomize / Reset / Share footer.
+   Tokens only, pinned at zero raw colour literals by
+   tests/css_raw_color_ratchet.test.ts; swatch fills arrive as --whb-sw from
+   the painter. Like the customizer rules, these live outside @layer shell so
+   the dock outranks the layered panel layouts. */
+.whb {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  font-family: var(--font-sans);
+  color: var(--color-text-light);
+}
+
+.whb-shell {
+  display: grid;
+  grid-template-columns: 158px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.whb-menu-wrap,
+.whb-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 10px;
+  box-shadow:
+    0 12px 34px color-mix(in srgb, var(--color-bg-dark) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-text-light) 5%, transparent);
+}
+
+.whb-menu-wrap {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 6px 8px;
+  min-height: 0;
+}
+
+.whb-title {
+  padding: 0 8px 8px;
+  margin-bottom: 4px;
+  font-family: var(--title-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  border-bottom: 1px solid var(--color-border-showcase);
+}
+
+.whb-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.whb-cat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px 0 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: var(--cursor-point);
+  transition:
+    color 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    padding-left 160ms ease;
+}
+
+.whb-cat::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 2px;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--color-primary-glow);
+  transform: translateY(-50%);
+  transition: height 160ms ease;
+}
+
+.whb-cat:hover {
+  color: var(--color-text-light);
+  background: color-mix(in srgb, var(--gold-dim) 10%, transparent);
+}
+
+.whb-cat.sel {
+  padding-left: 18px;
+  color: var(--gold);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--gold-dim) 24%, transparent),
+    color-mix(in srgb, var(--gold-dim) 4%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--gold-dim) 55%, transparent);
+}
+
+.whb-cat.sel::before {
+  height: 18px;
+}
+
+/* a long single-word translation wraps inside the fixed menu column */
+.whb-cat-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.whb-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 10px 10px 8px;
+  animation: whb-panel-in 180ms ease;
+}
+
+/* The tab panel and the Share region take turns in one grid cell: the class's
+   display would otherwise outrank the hidden attribute's. */
+.whb-panel[hidden] {
+  display: none;
+}
+
+@keyframes whb-panel-in {
+  from {
+    opacity: 0.4;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.whb-panel-title {
+  padding: 0 2px 8px;
+  margin-bottom: 8px;
+  font-family: var(--title-font);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  border-bottom: 1px solid var(--color-border-showcase);
+}
+
+.whb-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* the scroll box clips on every side, so inset the content by the width of
+     a focus outline (2px + 2px offset): an edge control's ring stays whole */
+  padding: 4px;
+}
+
+.whb-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.whb-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.whb-opts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.whb-opt,
+.whb-match,
+.whb-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  background: var(--color-card-inset);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 6px;
+  cursor: var(--cursor-point);
+  transition:
+    color 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 120ms ease;
+}
+
+.whb-opt:hover,
+.whb-match:hover,
+.whb-custom:hover {
+  border-color: color-mix(in srgb, var(--gold-dim) 70%, transparent);
+  background: color-mix(in srgb, var(--gold-dim) 12%, transparent);
+}
+
+.whb-opt:active,
+.whb-match:active {
+  transform: translateY(0.5px);
+}
+
+.whb-opt.sel,
+.whb-match.sel,
+.whb-custom.sel {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--gold-dim) 26%, transparent),
+    color-mix(in srgb, var(--gold-dim) 8%, transparent)
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent),
+    0 0 12px var(--color-primary-glow);
+}
+
+.whb-opts-body {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.whb-opts-body .whb-opt {
+  flex-direction: column;
+  min-height: 92px;
+  gap: 6px;
+  font-family: var(--title-font);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.whb-opt-glyph {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-family: var(--title-font);
+  font-size: 20px;
+  color: var(--gold-dim);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 50%;
+  background: var(--color-card-inset);
+}
+
+.whb-opt.sel .whb-opt-glyph {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+}
+
+/* One colour's radio group: the brows' Match Hair chip over the swatch grid. */
+.whb-swatch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.whb-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 7px;
+}
+
+/* The skin run (sixteen tones) packs two even rows of eight rather than a
+   ragged third row. */
+.whb-swatches-skin {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.whb-sw {
+  aspect-ratio: 1;
+  width: 100%;
+  min-width: 24px;
+  padding: 0;
+  background: var(--whb-sw);
+  border: 2px solid var(--color-border-showcase);
+  border-radius: 50%;
+  box-shadow: inset 0 -3px 6px color-mix(in srgb, var(--color-bg-dark) 35%, transparent);
+  cursor: var(--cursor-point);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+/* Hover lights the rim, never scales the chip (the no-scale rule for chips). */
+.whb-sw:hover {
+  border-color: var(--gold-dim);
+  box-shadow:
+    inset 0 -3px 6px color-mix(in srgb, var(--color-bg-dark) 35%, transparent),
+    0 0 0 1px var(--gold-dim);
+}
+
+.whb-sw.sel {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 2px var(--color-bg-dark),
+    0 0 0 3px var(--gold),
+    0 0 12px var(--color-primary-glow);
+}
+
+.whb-match-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--whb-sw);
+  border: 1px solid var(--color-border-showcase);
+}
+
+.whb-custom {
+  justify-content: flex-start;
+}
+
+.whb-custom-input {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 4px;
+  cursor: var(--cursor-point);
+}
+
+.whb-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.whb-slider-value {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-dim);
+}
+
+/* Evenly spaced marks under a slider's track (the body size: -5, 0, +5). */
+.whb-slider-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -2px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-dim);
+  opacity: 0.75;
+}
+
+.whb-slider {
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  accent-color: var(--gold-dim);
+  cursor: var(--cursor-point);
+  appearance: none;
+}
+
+.whb-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--gold-dim) 0 var(--whb-fill, 50%),
+    var(--color-border-showcase) var(--whb-fill, 50%) 100%
+  );
+}
+
+.whb-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border-showcase);
+}
+
+.whb-slider::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--gold-dim);
+}
+
+.whb-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--color-bg-dark);
+  box-shadow: 0 0 8px var(--color-primary-glow);
+}
+
+.whb-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--color-bg-dark);
+}
+
+.whb-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.whb-foot-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  font-family: var(--title-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  background: var(--panel-bg);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 8px;
+  cursor: var(--cursor-point);
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.whb-foot-btn:hover {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 12px var(--color-primary-glow);
+}
+
+/* The footer's Share button: gold (below, with Copy), with its glyph, on a row
+   of its own under Random and Reset, so the way to save and send a face reads
+   at a glance. Lit while the Share page is up. */
+.whb-foot-share {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.whb-foot-glyph {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+/* The Share page: the face code in a monospace box that is also where a code
+   is pasted, Copy / Import under it, then a status line. Coarse pointers get
+   the 16px input floor from base.css, so nothing here sets a smaller font on
+   the box there. */
+.whb-share-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.whb-share-code {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 104px;
+  padding: 8px 10px;
+  font-family: ui-monospace, Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-light);
+  background: var(--color-card-inset);
+  /* a text box's edge has to read against the panel (3:1), which the
+     showcase border colour does not on its own */
+  border: 1px solid color-mix(in srgb, var(--gold-dim) 60%, transparent);
+  border-radius: 6px;
+  resize: vertical;
+  /* the code is one long line of fields: wrap anywhere rather than scroll */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  scrollbar-width: thin;
+}
+
+/* Copy and Import side by side while both labels fit, each on a row of its own
+   when they do not (a narrow panel, a long translation): a button is never
+   narrower than its label, and a row shares its spare width out. */
+.whb-share-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.whb-share-btn {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  font-family: var(--title-font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  background: var(--color-card-inset);
+  border: 1px solid var(--color-border-showcase);
+  border-radius: 6px;
+  cursor: var(--cursor-point);
+  transition:
+    color 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.whb-share-btn:hover {
+  border-color: color-mix(in srgb, var(--gold-dim) 70%, transparent);
+  background: color-mix(in srgb, var(--gold-dim) 12%, transparent);
+}
+
+/* Gold, the builder's call to action: the footer's Share button and Copy, the
+   Share page's main action. After both buttons' own rules, so it wins. */
+.whb-foot-share,
+.whb-share-copy {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--gold-dim) 26%, transparent),
+    color-mix(in srgb, var(--gold-dim) 8%, transparent)
+  );
+}
+
+.whb-foot-share:hover,
+.whb-foot-share.sel {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--gold) 30%, transparent),
+    0 0 14px var(--color-primary-glow);
+}
+
+.whb-share-copy:hover {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px var(--color-primary-glow);
+}
+
+.whb-share-status {
+  min-height: 18px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-success);
+}
+
+.whb-share-status.err {
+  color: var(--color-text-error);
+}
+
+.whb-cat:focus-visible,
+.whb-opt:focus-visible,
+.whb-match:focus-visible,
+.whb-custom-input:focus-visible,
+.whb-sw:focus-visible,
+.whb-slider:focus-visible,
+.whb-foot-btn:focus-visible,
+.whb-share-code:focus-visible,
+.whb-share-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .whb-panel {
+    animation: none;
+  }
+  .whb-cat,
+  .whb-cat::before,
+  .whb-opt,
+  .whb-match,
+  .whb-custom,
+  .whb-sw,
+  .whb-foot-btn,
+  .whb-share-btn {
+    transition: none;
+  }
+}
+
+/* Forced colors replace every fill, border and shadow, which would turn each
+   swatch into the same system-colour disc and drop every "selected" cue. The
+   swatch and Match Hair fills ARE the information, so they keep their
+   authored colour; the selected state is redrawn in Highlight. */
+@media (forced-colors: active) {
+  .whb-sw,
+  .whb-match-dot {
+    forced-color-adjust: none;
+  }
+  .whb-sw {
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+  .whb-sw.sel {
+    border-color: Highlight;
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+  .whb-opt.sel,
+  .whb-match.sel,
+  .whb-custom.sel,
+  .whb-cat.sel,
+  .whb-foot-share.sel {
+    border-color: Highlight;
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  /* The roving tabindex lands on the selected control, whose Highlight outline
+     above would otherwise replace the focus ring: keep focus its own ring. */
+  .whb-opt.sel:focus-visible,
+  .whb-match.sel:focus-visible,
+  .whb-cat.sel:focus-visible,
+  .whb-sw.sel:focus-visible,
+  .whb-foot-share.sel:focus-visible {
+    outline: 3px solid CanvasText;
+    outline-offset: 2px;
+  }
+  .whb-cat.sel::before {
+    background: Highlight;
+  }
+  .whb-slider::-webkit-slider-runnable-track {
+    background: CanvasText;
+  }
+  .whb-slider::-webkit-slider-thumb {
+    background: Highlight;
+  }
+}
+
+@media (pointer: coarse) {
+  .whb-cat,
+  .whb-opt,
+  .whb-match,
+  .whb-custom,
+  .whb-foot-btn,
+  .whb-share-btn {
+    min-height: 40px;
+  }
+  /* Touch: every swatch clears the 40px target floor, in even rows (the skin
+     run 4 x 4, the hair and brow runs 4 x 3, the eyes 5 x 2), capped so a
+     wide sheet does not blow them up. */
+  .whb-swatches,
+  .whb-swatches-skin {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-items: center;
+    gap: 8px;
+  }
+  .whb-swatches-eye {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .whb-sw {
+    min-width: 40px;
+    max-width: 52px;
+  }
+  /* the range input and its thumb are touch targets like any other */
+  .whb-slider {
+    height: 40px;
+  }
+  .whb-slider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -10px;
+  }
+  .whb-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Dock: the full-viewport creator stages (>=861px) float the builder over
+   the turntable's left edge, clear of the name entry and the class rail. */
+@media (min-width: 861px) {
+  #offline-select .whb,
+  body:not(.mobile-touch) #charcreate-panel.cs-wow .whb {
+    position: absolute;
+    left: 22px;
+    top: 126px;
+    /* hugs the open category; the cap keeps it clear of the class rail */
+    max-height: calc(100% - 322px);
+    width: 468px;
+    max-width: none;
+    margin-top: 0;
+    z-index: 3;
+  }
+  #offline-select .whb .whb-shell,
+  body:not(.mobile-touch) #charcreate-panel.cs-wow .whb .whb-shell {
+    align-items: start;
+  }
+  #offline-select .whb .whb-panel,
+  body:not(.mobile-touch) #charcreate-panel.cs-wow .whb .whb-panel {
+    max-height: 100%;
+    overflow: hidden;
+  }
+  /* a short window caps the dock below the ten categories: the menu then
+     scrolls inside its own column instead of spilling over the footer */
+  #offline-select .whb .whb-menu-wrap,
+  body:not(.mobile-touch) #charcreate-panel.cs-wow .whb .whb-menu-wrap {
+    max-height: 100%;
+  }
+  #offline-select .whb .whb-menu,
+  body:not(.mobile-touch) #charcreate-panel.cs-wow .whb .whb-menu {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px;
+  }
+}
+
+/* Narrow: the menu becomes a horizontal tab strip over the options sheet,
+   scrolling inside itself so the page never scrolls sideways. */
+@media (max-width: 860px) {
+  .whb {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .whb-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .whb-menu-wrap {
+    padding: 6px;
+  }
+  .whb-title {
+    display: none;
+  }
+  .whb-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    /* the strip clips on every side: inset it by a focus ring (2px + 2px) */
+    padding: 4px;
+    scroll-padding-inline: 4px;
+  }
+  .whb-menu::-webkit-scrollbar {
+    display: none;
+  }
+  .whb-cat {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    scroll-snap-align: start;
+    padding: 0 12px;
+  }
+  .whb-cat.sel {
+    padding-left: 12px;
+  }
+  .whb-cat::before {
+    left: 50%;
+    top: auto;
+    bottom: 2px;
+    width: 0;
+    height: 3px;
+    transform: translateX(-50%);
+    transition: width 160ms ease;
+  }
+  .whb-cat.sel::before {
+    width: 22px;
+    height: 3px;
+  }
+  .whb-panel-body {
+    /* dvh (every browser on the .browserslistrc floor has it): the visible
+       viewport, not the large one a mobile toolbar overlaps */
+    max-height: 46dvh;
+  }
+  .whb-opts {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  }
+  /* the sheet's own cap above leaves a short landscape phone little room: the
+     code box scrolls inside itself so Copy and Import stay in view */
+  .whb-share-code {
+    max-height: 26dvh;
+  }
+}
+
+/* The narrow block above re-declares the tab underline's transition after the
+   reduced-motion block, so it is switched off again here, in source order. */
+@media (max-width: 860px) and (prefers-reduced-motion: reduce) {
+  .whb-cat::before {
+    transition: none;
+  }
+}
+
+.whb[hidden] {
+  display: none;
+}
+
+/* ---------- character preview loading silhouette ---------- */
+/* The launcher turntable's loading placeholder (src/ui/preview_loading_silhouette.ts):
+   a gold outline of a person over the still-empty stage with a lighter gold
+   sheen sweeping inside it, removed the moment the 3D character draws. It sits
+   in whichever .char-preview-container holds the stage, above the WebGL canvas
+   and below the stage's name plate (z-index 3). The two art boxes follow the
+   camera framings (src/render/characters/preview_framing.ts), as measured on
+   the WOC body (about 3 units tall): the desktop full-body framing stands the
+   model from its crown at about 14% of the stage height down to its feet at
+   about 80%, and the phone's head-and-shoulders opening shot fills the stage
+   with head and shoulders, the chest cut on the bottom edge. Tokens only. Back
+   inside @layer shell (the customizer and face builder above are not, on
+   purpose): nothing here has to outrank a panel layout. */
+@layer shell {
+  /* z-index 1: over the canvas whatever their DOM order, under the name plate,
+     and the least it can claim where the container forms no stacking context. */
+  .preview-loading-silhouette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    animation: pls-fade-in 150ms ease-out both;
+  }
+  /* Each art box is centred on the stage (the body box spans its width, the
+     bust box more, below); the SVG's xMidYMax meet centres the figure and keeps
+     its base (the soles, or the chest cut) on the box's bottom edge, shrinking
+     it in place on a stage too narrow for the box. */
+  .preview-loading-silhouette .pls-art {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    overflow: visible;
+  }
+  .preview-loading-silhouette .pls-art-body {
+    top: 14%;
+    height: 66%;
+  }
+  /* The bust box runs past both stage edges (the container clips), so on a
+     narrow phone stage the head and shoulders stay height-bound, crown near
+     12%, with the shoulders running off both sides as the close shot frames
+     them, instead of shrinking down to fit the width. */
+  .preview-loading-silhouette .pls-art-bust {
+    top: 12%;
+    left: -15%;
+    width: 130%;
+    height: 88%;
+  }
+  .preview-loading-silhouette:not([data-shape="bust"]) .pls-art-bust,
+  .preview-loading-silhouette[data-shape="bust"] .pls-art-body {
+    display: none;
+  }
+  .preview-loading-silhouette .pls-outline {
+    fill: color-mix(in srgb, var(--gold) 7%, transparent);
+    stroke: var(--gold);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+  /* The sweep rect is three figure boxes wide and tall, and fill-box makes the
+     keyframe's percentages its own size, so one keyframe serves both arts. The
+     band crosses at a steady pace from just clear of the figures' top-left to
+     just past their bottom-right, then rests off the figure until the next
+     sweep: one pass every 1.6 s. */
+  .preview-loading-silhouette .pls-sheen {
+    transform-box: fill-box;
+    animation: pls-sweep 1.6s linear infinite;
+  }
+  .preview-loading-silhouette .pls-stop-edge {
+    stop-color: var(--color-gold-300);
+    stop-opacity: 0;
+  }
+  .preview-loading-silhouette .pls-stop-core {
+    stop-color: var(--color-gold-300);
+    stop-opacity: 0.6;
+  }
+  @keyframes pls-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pls-sweep {
+    0% {
+      transform: translate(-15%, -15%);
+    }
+    75%,
+    100% {
+      transform: translate(21%, 21%);
+    }
+  }
+  /* Reduced motion: no sweep and no fade; a still, softer inside fill keeps it
+     reading as a placeholder. The OS setting always applies; the in-game one
+     applies wherever the page stamps body.reduce-motion (main.ts does so from
+     the in-world options today, not yet on the launcher). */
+  @media (prefers-reduced-motion: reduce) {
+    .preview-loading-silhouette {
+      animation: none;
+    }
+    .preview-loading-silhouette .pls-sheen {
+      animation: none;
+      display: none;
+    }
+    .preview-loading-silhouette .pls-outline {
+      fill: color-mix(in srgb, var(--color-gold-300) 18%, transparent);
+    }
+  }
+  body.reduce-motion .preview-loading-silhouette {
+    animation: none;
+  }
+  body.reduce-motion .preview-loading-silhouette .pls-sheen {
+    animation: none;
+    display: none;
+  }
+  body.reduce-motion .preview-loading-silhouette .pls-outline {
+    fill: color-mix(in srgb, var(--color-gold-300) 18%, transparent);
+  }
+}
+
+/* ---------- character preview touch hint ---------- */
+/* The phone creator's one-time gesture hint (src/ui/preview_touch_hint.ts): a slim tab
+   docked to the 3D stage's left edge, beside the model and never over it, where two
+   fingertips spread apart along a diagonal (a pinch) over the words "Pinch to zoom". It
+   slides out of the stage's edge a beat after the model draws, and back into it the moment
+   the player first moves the model; after that it never shows on the device again. Only a
+   touch stage offers it (CharacterPreview, preview_touch_core.ts touchHintOffered). It
+   takes no touches, so a pinch that starts on it reaches the canvas, and it sits over the
+   canvas and the loading silhouette (z-index 1) but under the stage's name plate
+   (z-index 3). No glass (backdrop-filter): the phone interface drops it as a compositor cost
+   against the live canvas, so the tab's own fill carries the contrast. The glyph's resting
+   pose is the SPREAD one (fingertips apart, chevrons lit), so wherever its loop does not
+   run (reduced motion) or is paused (the ambient-animation knob, --fx-ambient-anim) it still
+   reads as a pinch; the loop rides --motion-scale like the HUD's. Tokens only. */
+@layer shell {
+  .preview-touch-hint {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    box-sizing: border-box;
+    width: 70px;
+    padding: 9px 6px 10px 4px;
+    border: 1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+    border-left: 0;
+    border-radius: 0 16px 16px 0;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-bg-dark) 92%, transparent),
+      color-mix(in srgb, var(--color-bg-dark) 70%, transparent)
+    );
+    box-shadow:
+      0 0 16px color-mix(in srgb, var(--gold) 18%, transparent),
+      inset -1px 0 0 color-mix(in srgb, var(--color-gold-300) 22%, transparent);
+    color: var(--color-gold-300);
+    pointer-events: none;
+    transform: translate(0, -50%);
+    animation: pth-dock-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.12) 450ms both;
+  }
+  /* The exit: back into the stage's edge (the container clips it), then the node goes
+     (PREVIEW_TOUCH_HINT_LEAVE_MS covers this run). */
+  .preview-touch-hint[data-state="leaving"] {
+    animation: pth-dock-out 300ms ease-in both;
+  }
+  .preview-touch-hint .pth-glyph {
+    display: block;
+    width: 32px;
+    height: 32px;
+    overflow: visible;
+  }
+  .preview-touch-hint .pth-ring {
+    fill: color-mix(in srgb, var(--gold) 6%, transparent);
+    stroke: color-mix(in srgb, var(--gold) 38%, transparent);
+    stroke-width: 1.2px;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: pth-ring 2.4s ease-in-out infinite;
+  }
+  .preview-touch-hint .pth-trail {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-gold-300) 40%, transparent);
+    stroke-width: 1px;
+    stroke-linecap: round;
+    stroke-dasharray: 1.5 2.5;
+  }
+  .preview-touch-hint .pth-arrow {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.8px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: pth-arrow 2.4s ease-in-out infinite;
+  }
+  .preview-touch-hint .pth-tip {
+    fill: var(--color-gold-300);
+    stroke: var(--gold);
+    stroke-width: 1.2px;
+  }
+  .preview-touch-hint .pth-tip-a {
+    transform: translate(-6px, -6px);
+    animation: pth-tip-a 2.4s ease-in-out infinite;
+  }
+  .preview-touch-hint .pth-tip-b {
+    transform: translate(6px, 6px);
+    animation: pth-tip-b 2.4s ease-in-out infinite;
+  }
+  /* The loop's pace and the ambient-animation knob, on every looping part. */
+  .preview-touch-hint .pth-ring,
+  .preview-touch-hint .pth-arrow,
+  .preview-touch-hint .pth-tip-a,
+  .preview-touch-hint .pth-tip-b {
+    animation-duration: calc(2.4s * var(--motion-scale, 1));
+    animation-play-state: var(--fx-ambient-anim, running);
+  }
+  .preview-touch-hint .pth-label {
+    font-family: var(--title-font);
+    font-size: 9.5px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-transform: uppercase;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    color: var(--color-gold-300);
+    text-shadow: 0 1px 3px var(--color-bg-dark);
+  }
+  /* Korean breaks between syllables by default; keep its words whole (each one fits). The
+     page's lang follows the chosen language (main.ts translatePage). */
+  .preview-touch-hint .pth-label:lang(ko) {
+    word-break: keep-all;
+  }
+  @keyframes pth-dock-in {
+    from {
+      opacity: 0;
+      transform: translate(-105%, -50%);
+    }
+    to {
+      opacity: 1;
+      transform: translate(0, -50%);
+    }
+  }
+  @keyframes pth-dock-out {
+    from {
+      opacity: 1;
+      transform: translate(0, -50%);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-105%, -50%);
+    }
+  }
+  /* One pinch every 2.4 s, starting from the spread pose: hold it, draw the fingertips in
+     along the diagonal while the ring closes and the chevrons fade, hold, then spread them
+     out again as the chevrons light. */
+  @keyframes pth-tip-a {
+    0%,
+    22% {
+      transform: translate(-6px, -6px);
+    }
+    50%,
+    64% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(-6px, -6px);
+    }
+  }
+  @keyframes pth-tip-b {
+    0%,
+    22% {
+      transform: translate(6px, 6px);
+    }
+    50%,
+    64% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(6px, 6px);
+    }
+  }
+  @keyframes pth-ring {
+    0%,
+    22% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50%,
+    64% {
+      opacity: 0.45;
+      transform: scale(0.7);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes pth-arrow {
+    0%,
+    22% {
+      opacity: 1;
+    }
+    38%,
+    74% {
+      opacity: 0;
+    }
+    96%,
+    100% {
+      opacity: 1;
+    }
+  }
+  /* Reduced motion: no slide and no pinch loop; the glyph rests in its spread pose and the
+     exit is a plain removal. The OS setting always applies; the in-game one applies wherever
+     the page stamps body.reduce-motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .preview-touch-hint,
+    .preview-touch-hint[data-state="leaving"],
+    .preview-touch-hint .pth-ring,
+    .preview-touch-hint .pth-arrow,
+    .preview-touch-hint .pth-tip-a,
+    .preview-touch-hint .pth-tip-b {
+      animation: none;
+    }
+    .preview-touch-hint[data-state="leaving"] {
+      opacity: 0;
+    }
+  }
+  body.reduce-motion .preview-touch-hint,
+  body.reduce-motion .preview-touch-hint[data-state="leaving"],
+  body.reduce-motion .preview-touch-hint .pth-ring,
+  body.reduce-motion .preview-touch-hint .pth-arrow,
+  body.reduce-motion .preview-touch-hint .pth-tip-a,
+  body.reduce-motion .preview-touch-hint .pth-tip-b {
+    animation: none;
+  }
+  body.reduce-motion .preview-touch-hint[data-state="leaving"] {
+    opacity: 0;
   }
 }

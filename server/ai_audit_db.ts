@@ -1,14 +1,14 @@
 import type { Pool } from 'pg';
+import type { AiProviderTimingSnapshot } from './ai/ai_types';
 import type {
-  AiAuditEntityKind,
   AiAuditChain,
+  AiAuditEntityKind,
   AiAuditEventSummary,
   AiAuditPlayerAction,
   AiAuditProviderSource,
   AiAuditRecord,
   AiAuditStatus,
 } from './ai_audit';
-import type { AiProviderTimingSnapshot } from './ai/ai_types';
 import { REALM } from './realm';
 
 const REALM_SQL_DEFAULT = REALM.replace(/'/g, "''");
@@ -78,7 +78,10 @@ export const AI_AUDIT_RETENTION_INVALID_INDEX_DROP_SQL =
   'DROP INDEX CONCURRENTLY IF EXISTS ai_audit_records_retention';
 
 interface QueryablePool {
-  query(sql: string, values?: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>;
+  query(
+    sql: string,
+    values?: readonly unknown[],
+  ): Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>;
 }
 
 export async function pruneAiAuditRecordsBatch(
@@ -193,7 +196,10 @@ export class PgAiAuditDb {
     );
   }
 
-  async recentRecords(limit = 20, options: AiAuditRecentRecordOptions = {}): Promise<AiAuditRecord[]> {
+  async recentRecords(
+    limit = 20,
+    options: AiAuditRecentRecordOptions = {},
+  ): Promise<AiAuditRecord[]> {
     const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
     const res = await this.db.query(
       `SELECT payload
@@ -206,7 +212,7 @@ export class PgAiAuditDb {
     return res.rows
       .map((row) => normalizeAiAuditRecord(row.payload))
       .filter((record): record is AiAuditRecord => record !== null)
-      .map((record) => options.includeChain ? record : withoutAiAuditChain(record));
+      .map((record) => (options.includeChain ? record : withoutAiAuditChain(record)));
   }
 
   async recordByAuditId(auditId: string): Promise<AiAuditRecord | null> {
@@ -250,9 +256,11 @@ export function normalizeAiAuditRecord(value: unknown): AiAuditRecord | null {
   const playerAction = normalizeAiAuditPlayerAction(src.playerAction);
   const deliveredSummary = textArray(src.deliveredSummary, 12, 600);
   const chain = normalizeAiAuditChain(src.chain);
-  const hasChain = typeof src.hasChain === 'boolean' ? src.hasChain || chain !== null : chain !== null;
-  const providerTimings = normalizeAiProviderTimings(src.providerTimings)
-    ?? normalizeAiProviderTimings(chain?.provider.timings);
+  const hasChain =
+    typeof src.hasChain === 'boolean' ? src.hasChain || chain !== null : chain !== null;
+  const providerTimings =
+    normalizeAiProviderTimings(src.providerTimings) ??
+    normalizeAiProviderTimings(chain?.provider.timings);
   const promptChars = intValue(src.promptChars) || chain?.requestContext.promptChars || 0;
   const rawOutputChars = intValue(src.rawOutputChars) || chain?.provider.rawOutputChars || 0;
   return {
@@ -307,9 +315,10 @@ function withoutAiAuditChain(record: AiAuditRecord): AiAuditRecord {
 function normalizeAiAuditPlayerAction(value: unknown): AiAuditPlayerAction | null {
   if (!value || typeof value !== 'object') return null;
   const src = value as Record<string, unknown>;
-  const protocolSrc = src.protocol && typeof src.protocol === 'object'
-    ? src.protocol as Record<string, unknown>
-    : {};
+  const protocolSrc =
+    src.protocol && typeof src.protocol === 'object'
+      ? (src.protocol as Record<string, unknown>)
+      : {};
   const kind = textValue(src.kind, 96);
   if (!kind) return null;
   return {
@@ -343,7 +352,10 @@ function normalizeAiAuditChain(value: unknown): AiAuditChain | null {
   return {
     playerAction,
     requestContext: {
-      context: boundedJsonValue(requestContext.context, 200_000) as AiAuditChain['requestContext']['context'],
+      context: boundedJsonValue(
+        requestContext.context,
+        200_000,
+      ) as AiAuditChain['requestContext']['context'],
       promptText,
       promptChars: intValue(requestContext.promptChars) || promptText.length,
       promptTruncated: booleanValue(requestContext.promptTruncated),
@@ -353,7 +365,9 @@ function normalizeAiAuditChain(value: unknown): AiAuditChain | null {
       rawOutput,
       rawOutputChars: intValue(provider.rawOutputChars) || rawOutput.length,
       rawOutputTruncated: booleanValue(provider.rawOutputTruncated),
-      parsedDecision: objectOrNull(provider.parsedDecision) as AiAuditChain['provider']['parsedDecision'],
+      parsedDecision: objectOrNull(
+        provider.parsedDecision,
+      ) as AiAuditChain['provider']['parsedDecision'],
       ...(providerTimings ? { timings: providerTimings } : {}),
       error: textValue(provider.error, 1_200),
     },
@@ -375,17 +389,17 @@ function normalizeAiProviderTimings(value: unknown): AiProviderTimingSnapshot | 
   const provider = textValue(src.provider, 80);
   const steps = Array.isArray(src.steps)
     ? src.steps
-      .slice(0, 32)
-      .map((entry) => {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
-        const step = entry as Record<string, unknown>;
-        const key = textValue(step.key, 80);
-        const label = textValue(step.label, 160);
-        const ms = numberValue(step.ms);
-        if (!key) return null;
-        return { key, label, ms };
-      })
-      .filter((entry): entry is AiProviderTimingSnapshot['steps'][number] => entry !== null)
+        .slice(0, 32)
+        .map((entry) => {
+          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+          const step = entry as Record<string, unknown>;
+          const key = textValue(step.key, 80);
+          const label = textValue(step.label, 160);
+          const ms = numberValue(step.ms);
+          if (!key) return null;
+          return { key, label, ms };
+        })
+        .filter((entry): entry is AiProviderTimingSnapshot['steps'][number] => entry !== null)
     : [];
   const totalMs = numberValue(src.totalMs);
   if (!provider && steps.length === 0 && totalMs <= 0) return null;
@@ -431,13 +445,13 @@ function normalizeAiAuditEventSummary(value: unknown): AiAuditEventSummary | nul
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : {};
 }
 
 function objectOrNull(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 

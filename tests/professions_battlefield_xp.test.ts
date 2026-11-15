@@ -6,6 +6,7 @@ import {
 } from '../src/sim/professions/battlefield_xp';
 import { emptyCraftSkills } from '../src/sim/professions/wheel';
 import { Sim } from '../src/sim/sim';
+import type { InvSlot } from '../src/sim/types';
 
 function makeSim(seed = 42) {
   return new Sim({ seed, playerClass: 'warrior', autoEquip: false });
@@ -426,8 +427,8 @@ describe('Battlefield Experience wired into potion-drunk (#1149)', () => {
       { signer: meta.name, rolled: { quality: 'rare' } },
       pid,
     );
-    // Plain copies picked up afterward (later slot, own stack since instanced
-    // slots never merge with fungible stacks).
+    // Plain copies picked up afterward stay separate because their quality
+    // differs from the rare signed potion.
     sim.addItem('minor_healing_potion', 2, pid);
     const entity = (sim as any).entities.get(pid);
     entity.hp = 1;
@@ -439,9 +440,39 @@ describe('Battlefield Experience wired into potion-drunk (#1149)', () => {
     expect(meta.craftSkills.alchemy).toBe(0);
     expect(sim.countItem('minor_healing_potion', pid)).toBe(2); // 1 signed + 1 plain left
     const remainingSigned = meta.inventory.find(
-      (s: any) => s.itemId === 'minor_healing_potion' && s.instance?.signer === meta.name,
+      (s: InvSlot) =>
+        s.itemId === 'minor_healing_potion' &&
+        s.materialSources?.some((entry) => entry.source.signer === meta.name && entry.count === 1),
     );
     expect(remainingSigned).toBeDefined();
+  });
+});
+
+// Regression: recipeForResultItem (content/recipes.ts) previously searched
+// COMMON_RECIPES only, even though it is documented as a reverse lookup over
+// every recipe and ALL_RECIPES (aggregating COMMON_RECIPES, TOOL_RECIPES,
+// CASTER_HUB_RECIPES, COMBO_RECIPES, and LADDER_RECIPES) already existed in
+// the same file. That silently broke Battlefield Experience for every
+// ladder/tool/combo/caster-hub recipe, including both shipped alchemy rare
+// potions. This exercises the REAL shipped recipe_sunpetal_healing_draught
+// output (LADDER_RECIPES, genuinely quality 'rare' per profession_items.ts,
+// no quality mutation needed, unlike the def-quality fallback cases above)
+// drunk end to end through the real potion-drunk tracked event (items.ts
+// useItem), proving the lookup covers a genuine LADDER_RECIPES item.
+describe('Battlefield Experience credits a real LADDER_RECIPES output (regression)', () => {
+  it('a self-signed sunpetal healing draught (recipe_sunpetal_healing_draught, LADDER_RECIPES) drunk by its signer trickles alchemy skill', () => {
+    expect(ITEMS.sunpetal_healing_draught.quality).toBe('rare');
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = (sim as any).players.get(pid);
+    meta.archetype.activeArchetype = 'alchemy';
+    sim.addItemInstance('sunpetal_healing_draught', { signer: meta.name }, pid);
+    const entity = (sim as any).entities.get(pid);
+    entity.hp = 1;
+
+    sim.useItem('sunpetal_healing_draught', pid);
+
+    expect(meta.craftSkills.alchemy).toBe(BATTLEFIELD_XP_TRICKLE);
   });
 });
 

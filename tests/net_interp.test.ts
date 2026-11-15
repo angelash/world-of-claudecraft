@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ClientWorld } from '../src/net/online';
 import {
   DEFAULT_NET_INTERVAL_MS,
   facingAlpha,
   POS_EXTRAPOLATION_CAP,
   remoteEntityAlpha,
 } from '../src/render/net_interp_core';
+import { bareClient } from './helpers/bare_client';
 
 // Regression for the "immobile characters strobe" report (prod capture,
 // flicker-events.json): an idle mob's only record in minutes is a wander
@@ -49,48 +49,6 @@ describe('facingAlpha', () => {
     expect(facingAlpha(1.25)).toBe(1);
   });
 });
-
-// A ClientWorld without the WebSocket plumbing, to drive applySnapshot directly
-// (the snapshots.test.ts idiom).
-function bareClient(pid: number): ClientWorld {
-  const c: any = Object.create(ClientWorld.prototype);
-  c.cfg = { seed: 20061, playerClass: 'warrior' };
-  c.entities = new Map();
-  c.playerId = pid;
-  c.ownPlayerId = pid;
-  c.ownPlayerClass = 'warrior';
-  c.spectating = null;
-  c.moveInput = {};
-  c.inventory = [];
-  c.vendorBuyback = [];
-  c.equipment = {};
-  c.accountCosmetics = { completedQuestIds: [], mechChromaIds: [] };
-  c.copper = 0;
-  c.xp = 0;
-  c.known = [];
-  c.questLog = new Map();
-  c.questsDone = new Set();
-  c.pendingQuestCommands = new Map();
-  c.partyInfo = null;
-  c.tradeInfo = null;
-  c.duelInfo = null;
-  c.lastSnapAt = 0;
-  c.snapInterval = 50;
-  c.missingSince = new Map();
-  c.pendingFacingDelta = 0;
-  c.connected = true;
-  c.eventQueue = [];
-  c.mouselookFacing = null;
-  c.lastInputSentAt = 0;
-  c.lastInputSig = '';
-  c.inputSeq = 0;
-  c.pendingInputSeqSentAt = new Map();
-  c.ackedInputSeq = 0;
-  c.inputEchoSamples = [];
-  c.spectateFacingPending = false;
-  c.pendingSpectateFacing = null;
-  return c;
-}
 
 // Phase 06 companion pin (packet-0-instruments R11): remote-entity continuity
 // across a 400 ms broadcast gap. While records are missing, the renderer
@@ -166,6 +124,65 @@ describe('ClientWorld gap-resume continuity', () => {
     );
     const poseAfterX = tracked.prevPos.x + (tracked.pos.x - tracked.prevPos.x) * alphaAfter;
     expect(poseAfterX).toBeCloseTo(poseBeforeX, 2);
+  });
+});
+
+// Jitter-resilience regression (entity_reanchor.ts): the flat 40yd snap
+// threshold ignored elapsed time, so a fast-but-plausible mover crossed it
+// during an ordinary network gap and got a hard pop instead of a glide.
+describe('ClientWorld jitter resilience (entity_reanchor)', () => {
+  const self = {
+    id: 1,
+    k: 'player',
+    tid: 'warrior',
+    nm: 'Watcher',
+    lv: 10,
+    x: 0,
+    y: 0,
+    z: 0,
+    f: 0,
+    hp: 100,
+    mhp: 100,
+    res: 0,
+    mres: 100,
+    rtype: 'rage',
+  };
+  const mob = (x: number, full = false) => ({
+    id: 2,
+    ...(full ? { k: 'mob', tid: 'forest_wolf', nm: 'Forest Wolf', lv: 5 } : {}),
+    x,
+    y: 0,
+    z: 3,
+    f: 0,
+    hp: 50,
+    mhp: 50,
+  });
+
+  it('a fast-plausible move (~45yd over a 2s gap) glides instead of hard-snapping', () => {
+    const client = bareClient(1);
+    const internals = client as unknown as { applySnapshot(snapshot: unknown): void };
+    internals.applySnapshot({ t: 'snap', ents: [mob(0, true)], self });
+    const tracked = client.entities.get(2);
+    if (!tracked) throw new Error('mob entity missing');
+    (tracked as any).netUpdatedAt = performance.now() - 2000;
+    internals.applySnapshot({ t: 'snap', ents: [mob(45)], self });
+    // the OLD flat 40yd threshold would have hard-snapped: prevPos.x === 45
+    // exactly. The plausible-speed window (24 yd/s over this 2s gap) glides
+    // instead, so prevPos must NOT land exactly on the new wire position.
+    expect(tracked.pos.x).toBe(45);
+    expect(tracked.prevPos.x).not.toBeCloseTo(45, 6);
+  });
+
+  it('a genuine teleport in a short gap still hard-snaps (regression guard)', () => {
+    const client = bareClient(1);
+    const internals = client as unknown as { applySnapshot(snapshot: unknown): void };
+    internals.applySnapshot({ t: 'snap', ents: [mob(0, true)], self });
+    const tracked = client.entities.get(2);
+    if (!tracked) throw new Error('mob entity missing');
+    (tracked as any).netUpdatedAt = performance.now() - 100;
+    internals.applySnapshot({ t: 'snap', ents: [mob(200)], self });
+    expect(tracked.pos.x).toBe(200);
+    expect(tracked.prevPos.x).toBe(200);
   });
 });
 

@@ -14,11 +14,27 @@
 // quality-glow helper as the character sheet; the paperdoll columns come from
 // char_view's arrays via the pure core, so inspect inherits the sheet's 6/6 split.
 
+import { TALENTS } from '../sim/content/talents';
 import { ITEMS } from '../sim/data';
-import type { EquipSlot, ItemInstancePayload, PlayerClass, SkinCatalog } from '../sim/types';
+import type {
+  EquipSlot,
+  ItemDef,
+  ItemInstancePayload,
+  ItemProvenance,
+  PlayerClass,
+  SkinCatalog,
+} from '../sim/types';
+import type { CharacterProfile } from '../world_api';
 import { attachAvatarFallback } from './avatar_fallback';
-import type { PaperdollSlot } from './char_view';
-import { deedTitleText } from './deed_i18n';
+import type { PaperdollSlot, PaperdollView } from './char_view';
+import { CURATOR_SIGIL_GLOW, curatorSigilBadgeClass, curatorSigilDataUrl } from './curator_sigil';
+import {
+  DEED_HERALDRY_ATTR,
+  DEED_HERALDRY_MOTIF_ATTR,
+  deedHeraldryMotifSvg,
+  deedHeraldryStyle,
+} from './deed_border_view';
+import { deedName, deedTitleText } from './deed_i18n';
 import {
   devCardBadgeClass,
   devTierBadgeDataUrl,
@@ -28,7 +44,7 @@ import {
 import { markDialogRoot } from './dialog_root';
 import { discordRoleTagLabel } from './discord_role_tag';
 import { discordStatusBadgeDataUrl, discordStatusDisplayName } from './discord_tier';
-import { classDisplayName, itemDisplayName } from './entity_i18n';
+import { classDisplayName } from './entity_i18n';
 import { esc } from './esc';
 import {
   holderCardBadgeClass,
@@ -37,32 +53,61 @@ import {
   holderTierDisplayName,
 } from './holder_tier';
 import { formatNumber, t } from './i18n';
-import { iconDataUrl, QUALITY_COLOR } from './icons';
+import { iconDataUrl } from './icons';
 import {
   buildInspectRemoteView,
   buildInspectView,
+  type InspectBorderModel,
+  type InspectCuratorBadgeModel,
+  type InspectCuratorModel,
   type InspectDevModel,
   type InspectDiscordModel,
+  type InspectHeaderModel,
   type InspectHolderModel,
 } from './inspect_view';
+import { type ItemHistoryHolder, itemHistoryProvenanceFor } from './item_history_access_view';
+import {
+  appendItemHistoryActionAfter,
+  attachItemHistoryContextMenu,
+  closeItemHistoryDialogForOwner,
+  openItemHistoryDialog,
+} from './item_history_dialog';
 import type { PainterHostPresentation } from './painter_host';
-import { hydratePortraits, portraitChipHtml } from './portrait_chip';
+import { hydratePortraits, type ModularLook, portraitChipHtml } from './portrait_chip';
 import { qualityGlowShadow } from './quality_glow';
+import { curatorRankNameKey } from './reliquary_view';
+import { tTalent } from './talent_i18n';
 import { svgIcon } from './ui_icons';
+import { wornItemCellParts } from './worn_item_cell_view';
 
 /** The inspected entity fields the painter reads (a structural subset of the
  *  live EntityView / ClientWorld mirror; all already client-side). */
+/** The creation pick's shape (ModularAppearance's gender), kept structural so
+ *  this painter imports nothing from the render layer. */
+type BodyPick = { readonly gender?: unknown } | null | undefined;
+
 export interface InspectEntity {
   templateId: string;
   name: string;
   level: number;
+  membershipActive?: boolean;
+  referralInviterName?: string;
   skin?: number;
   /** Which catalog `skin` indexes into (the wire `cat` identity field). */
   skinCatalog?: SkinCatalog;
   /** Active Book of Deeds title (a deed id), if any. */
   title?: string | null;
+  /** Active Book of Deeds border (a deed id, never a slug), if any. */
+  border?: string | null;
+  /** The mirrored talent specialization id (null = none chosen). */
+  specId?: string | null;
   equippedItems: Partial<Record<EquipSlot, string>>;
   equippedInstances: Partial<Record<EquipSlot, ItemInstancePayload>>;
+  /** The paperdoll eye (the wire helm bit): a WOC body on the stage hides its
+   *  helm exactly as the world does. */
+  helmHidden?: boolean;
+  /** The creation pick (body/face), which selects a WOC class's body file. */
+  modularAppearance?: BodyPick;
   /** The server-resolved active Armory weapon skin (wire wsk), render-only. */
   weaponSkinId?: string | null;
   holderTier?: number;
@@ -75,6 +120,11 @@ export interface InspectEntity {
   devTier?: number;
   devMergedPrs?: number;
   githubLogin?: string;
+  /** Server-computed Curator standing (wire crk/cro/crt): rank plus the
+   *  character-scoped completion pair behind it. */
+  curatorRank?: number;
+  relicsOwned?: number;
+  relicsTotal?: number;
 }
 
 /** The out-of-range remote-profile inputs (the public character sheet subset). */
@@ -84,12 +134,22 @@ export interface InspectRemoteProfile {
   cls: PlayerClass;
   skin: number;
   guild: string | null;
+  /** Specialization id; absent when the source does not know it. */
+  specId?: string | null;
+  /** Worn gear, only from a consented source (a group applicant's snapshot). */
+  gear?: Partial<Record<EquipSlot, string>>;
 }
 
 /** Hud-supplied glue. The presentation bag (icon/tooltip) plus world-free window
  *  concerns: focus capture/return, and the shared turntable mount (Hud owns the
  *  single WebGL preview lifecycle, so it re-parents the canvas into the stage). */
-export interface InspectWindowDeps extends PainterHostPresentation {
+export interface InspectWindowDeps extends Omit<PainterHostPresentation, 'itemTooltip'> {
+  /** Resolve adaptive equipment against its wearer, never the viewing player. */
+  itemTooltip(
+    item: ItemDef,
+    instance: ItemInstancePayload | undefined,
+    wearer: InspectEntity,
+  ): string;
   root(): HTMLElement;
   closeOthers(): void;
   hideTooltip(): void;
@@ -109,6 +169,15 @@ export interface InspectWindowDeps extends PainterHostPresentation {
       mainhand: string | null;
       weaponSkinId: string | null;
       offhand: string | null;
+      /** The inspected player's authored look (their `app` identity field),
+       *  so the turntable shows the face they built, not the stock class rig;
+       *  null for a pre-creator character. */
+      look: ModularLook | null;
+      /** The inspected player's mirrored worn set and helm-visibility bit, so
+       *  a WOC modular body on the stage wears exactly what the world draws. */
+      wornEquipment: Readonly<Partial<Record<EquipSlot, string>>>;
+      helmHidden: boolean;
+      appearance: BodyPick;
     },
   ): void;
 }
@@ -129,6 +198,7 @@ export class InspectWindow {
   close(): void {
     const el = this.deps.root();
     if (el.style.display !== 'block') return;
+    closeItemHistoryDialogForOwner(el);
     el.style.display = 'none';
     this.deps.hideTooltip();
     this.deps.restoreFocus(this.openerFocus);
@@ -136,8 +206,28 @@ export class InspectWindow {
   }
 
   /** Rich in-range inspect: compact header, identity badges, live class-colored
-   *  turntable, and the worn 6/6 paperdoll. */
-  openInspect(e: InspectEntity, now: number): void {
+   *  turntable, and the worn 6/6 paperdoll.
+   *
+   *  `selfStanding` is the viewer's own LIVE Curator standing, and Hud passes it
+   *  only when the inspected entity is the viewer (see Hud.openInspect). It is a
+   *  parameter rather than a field on InspectEntity deliberately: InspectEntity
+   *  mirrors the wire, and this standing never crosses the wire at all. */
+  openInspect(
+    e: InspectEntity,
+    now: number,
+    selfStanding?: { curatorRank: number; owned: number; total: number } | null,
+    // The viewer's own LIVE worn payloads (IWorld.equipmentInstances), passed
+    // only for self-inspect, same doctrine as selfStanding: the entity mirror
+    // is eqi-shaped ONLINE (no perfected), so without this the self card's
+    // Unique-Equipped tag would diverge between hosts (2026-08-27 ruling).
+    selfEquippedInstances?: Partial<Record<EquipSlot, ItemInstancePayload>>,
+    // The inspected player's authored look, resolved by the Hud from the LIVE
+    // entity through the render layer's look provider (modularLookFor). A
+    // parameter for the same reason as selfStanding: InspectEntity mirrors the
+    // wire, and a composed look is a render-layer resolution over it, not a
+    // wire field, so the window never casts the mirror back to an Entity.
+    look?: ModularLook | null,
+  ): void {
     const cls = e.templateId as PlayerClass;
     const el = this.deps.root();
     this.captureOpener();
@@ -147,10 +237,18 @@ export class InspectWindow {
         name: e.name,
         level: e.level,
         cls,
+        specId: e.specId ?? null,
         skin: e.skin ?? 0,
         skinCatalog: e.skinCatalog ?? 'class',
         deedTitleText: e.title ? deedTitleText(e.title) : '',
+        border: e.border ?? null,
+        borderDeedName: e.border ? deedName(e.border) : '',
+        curatorRank: e.curatorRank ?? 0,
+        relicsOwned: typeof e.relicsOwned === 'number' ? e.relicsOwned : null,
+        relicsTotal: typeof e.relicsTotal === 'number' ? e.relicsTotal : null,
+        selfStanding: selfStanding ?? null,
         equippedItems: e.equippedItems,
+        equippedInstances: selfEquippedInstances ?? e.equippedInstances,
         holderTier: e.holderTier ?? 0,
         holderBalance: e.holderBalance ?? null,
         discordTier: e.discordTier ?? 0,
@@ -168,34 +266,36 @@ export class InspectWindow {
     );
     markDialogRoot(el, { labelledBy: 'inspect-window-title' });
     const { header } = model;
-    const titleHtml = header.deedTitle
-      ? `<div class="inspect-title">${esc(header.deedTitle)}</div>`
-      : '';
-    el.innerHTML =
-      this.panelTitleHtml() +
-      `<div class="inspect-card">` +
-      `<div class="inspect-name">${esc(header.name)}</div>` +
-      titleHtml +
-      `<div class="inspect-meta">${esc(
-        t('itemUi.equipment.levelClass', {
-          level: formatNumber(header.level, { maximumFractionDigits: 0 }),
-          className: classDisplayName(cls),
-        }),
-      )}</div>` +
+    const standingHtml = `<div class="inspect-meta ui-chip ui-num">${esc(
+      t('itemUi.equipment.levelClass', {
+        level: formatNumber(header.level, { maximumFractionDigits: 0 }),
+        className: classDisplayName(cls),
+      }),
+    )}</div>${specChipHtml(cls, header.specId)}${this.curatorLineHtml(model.curator)}`;
+    const honorHtml =
       this.holderHtml(model.badges.holder) +
       this.discordHtml(model.badges.discord) +
       this.devHtml(model.badges.dev) +
+      this.curatorHtml(model.badges.curator);
+    el.innerHTML =
+      this.panelTitleHtml() +
+      `<div class="inspect-card ui-card">` +
+      this.headerHtml(header) +
+      `<div class="inspect-standing-row">${standingHtml}</div>` +
+      (honorHtml ? `<div class="inspect-honor-rail">${honorHtml}</div>` : '') +
       `</div>` +
       // The class-colored model stage, delivered as a CSS custom property so the
       // stylesheet paints the border / glow / haze in the inspected player's hue.
       `<div class="inspect-equip">` +
-      `<div class="inspect-equip-title">${esc(t('classDetails.sections.equipment'))}</div>` +
+      `<div class="inspect-equip-title ui-h">${esc(t('classDetails.sections.equipment'))}</div>` +
       `<div class="paperdoll inspect-paperdoll">` +
       `<div class="equip-col" id="inspect-equip-left"></div>` +
       `<div class="char-model-panel inspect-model-panel" style="--inspect-class-color:${header.classColor}">` +
       `<div id="inspect-model-preview" class="char-model-preview" role="img" aria-label="${esc(t('hudChrome.character.modelPreview'))}"></div>` +
+      this.gearScoreHtml(model.gearScore) +
       `</div>` +
       `<div class="equip-col equip-col-right" id="inspect-equip-right"></div>` +
+      `<div class="equip-row-weapons" id="inspect-equip-weapons"></div>` +
       `</div></div>`;
     hydratePortraits(el);
     // Degrade a failed Discord avatar to the plain status badge (never the browser's
@@ -207,12 +307,12 @@ export class InspectWindow {
         img.src = discordStatusBadgeDataUrl(e.discordTier ?? 0);
       });
     }
-    const leftCol = el.querySelector('#inspect-equip-left');
-    const rightCol = el.querySelector('#inspect-equip-right');
-    for (const cell of model.gear.left)
-      leftCol?.appendChild(this.buildSlotRow(cell, e.equippedInstances[cell.slot]));
-    for (const cell of model.gear.right)
-      rightCol?.appendChild(this.buildSlotRow(cell, e.equippedInstances[cell.slot]));
+    // A worn tracked copy's Item history reads the RAW worn payload (the cell's
+    // instance is the stripped tooltip trim): the public projection for another
+    // player's gear, the viewer's own record on a self-inspect.
+    const worn = selfEquippedInstances ?? e.equippedInstances;
+    const holder: ItemHistoryHolder = selfEquippedInstances ? 'self' : 'other';
+    this.paintGear(el, model.gear, e, (cell) => itemHistoryProvenanceFor(worn[cell.slot], holder));
     const stage = el.querySelector<HTMLElement>('#inspect-model-preview');
     if (stage) {
       this.deps.mountPreview(stage, {
@@ -222,6 +322,10 @@ export class InspectWindow {
         mainhand: e.equippedItems.mainhand ?? null,
         offhand: e.equippedItems.offhand ?? null,
         weaponSkinId: e.weaponSkinId ?? null,
+        look: look ?? null,
+        wornEquipment: e.equippedItems,
+        helmHidden: e.helmHidden ?? false,
+        appearance: e.modularAppearance ?? null,
       });
     }
     el.querySelector('[data-close]')?.addEventListener('click', () => this.close());
@@ -234,52 +338,244 @@ export class InspectWindow {
     const el = this.deps.root();
     this.captureOpener();
     this.deps.closeOthers();
-    const model = buildInspectRemoteView(profile);
+    const model = buildInspectRemoteView(profile, ITEMS);
     markDialogRoot(el, { labelledBy: 'inspect-window-title' });
-    const guildHtml = model.guild ? `<div class="inspect-meta">${esc(model.guild)}</div>` : '';
+    const guildHtml = model.guild
+      ? `<div class="inspect-meta ui-meta ui-muted">${esc(model.guild)}</div>`
+      : '';
     el.innerHTML =
       this.panelTitleHtml() +
-      `<div class="inspect-card inspect-card-remote">` +
+      `<div class="inspect-card inspect-card-remote ui-card">` +
       portraitChipHtml({ cls: model.cls, skin: profile.skin, name: model.name, variant: 'lg' }) +
       `<div class="inspect-name">${esc(model.name)}</div>` +
-      `<div class="inspect-meta">${esc(
+      `<div class="inspect-meta ui-meta ui-muted">${esc(
         t('itemUi.equipment.levelClass', {
           level: formatNumber(model.level, { maximumFractionDigits: 0 }),
           className: classDisplayName(model.cls),
         }),
       )}</div>` +
+      (profile.specId === undefined ? '' : specChipHtml(model.cls, model.specId)) +
       guildHtml +
-      `</div>`;
+      `</div>` +
+      (model.gear
+        ? `<div class="inspect-equip inspect-equip--remote">` +
+          `<div class="inspect-equip-title ui-h">${esc(t('classDetails.sections.equipment'))}</div>` +
+          `<div class="paperdoll inspect-paperdoll inspect-paperdoll--remote">` +
+          `<div class="equip-col" id="inspect-equip-left"></div>` +
+          `<div class="equip-col equip-col-right" id="inspect-equip-right"></div>` +
+          `<div class="equip-row-weapons" id="inspect-equip-weapons"></div>` +
+          `</div></div>`
+        : '');
     hydratePortraits(el);
+    if (model.gear)
+      this.paintGear(el, model.gear, {
+        templateId: profile.cls,
+        name: profile.name,
+        level: profile.level,
+        specId: profile.specId,
+        equippedItems: profile.gear ?? {},
+        equippedInstances: {},
+      });
     el.querySelector('[data-close]')?.addEventListener('click', () => this.close());
     el.style.display = 'block';
   }
 
+  // The Item history doors on a worn tracked copy's row (the bank cell rule,
+  // item_history_access_view.ts 'gridCell'): the row becomes focusable so the
+  // Context Menu key reaches it, right-click opens it on desktop, and touch
+  // layouts get the visible button beneath it. A paperdoll column has no room
+  // for a desktop button per slot.
+  private attachSlotHistory(
+    row: HTMLElement,
+    cell: PaperdollSlot,
+    history: ItemProvenance | null,
+  ): void {
+    if (!cell.item || history === null) return;
+    const name = wornItemCellParts(cell.item, cell.instance).name;
+    row.tabIndex = 0;
+    // A focus stop must do something on every keyboard: Enter and Space open
+    // the history too (no Context Menu key on a Mac keyboard), and the row
+    // announces what it opens.
+    row.setAttribute('role', 'button');
+    row.setAttribute('aria-haspopup', 'dialog');
+    row.setAttribute('aria-label', t('hudChrome.itemHistory.openAria', { item: name }));
+    row.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openItemHistoryDialog({ itemName: name, provenance: history, opener: row });
+    });
+    attachItemHistoryContextMenu(row, name, history);
+    appendItemHistoryActionAfter(row, name, history, 'gridCell');
+  }
+
+  /** Player Info from the public character sheet (a chat-name lookup): no gear.
+   *  The sheet names the spec in English, so it maps back to the spec id. */
+  openProfile(profile: CharacterProfile): void {
+    const cls = profile.cls as PlayerClass;
+    const spec = TALENTS[cls]?.specs.find((entry) => entry.name === profile.spec);
+    this.openRemote({
+      name: profile.name,
+      level: profile.level,
+      cls,
+      skin: profile.skin,
+      guild: profile.guild,
+      specId: spec?.id ?? null,
+    });
+  }
+
+  // `historyFor` names a worn tracked copy's Item history record, if any
+  // (attachSlotHistory); the remote profile card passes none (no payloads).
+  private paintGear(
+    el: HTMLElement,
+    gear: PaperdollView,
+    wearer: InspectEntity,
+    historyFor?: (cell: PaperdollSlot) => ItemProvenance | null,
+  ): void {
+    const columns: [Element | null, readonly PaperdollSlot[]][] = [
+      [el.querySelector('#inspect-equip-left'), gear.left],
+      [el.querySelector('#inspect-equip-right'), gear.right],
+      [el.querySelector('#inspect-equip-weapons'), gear.weapons],
+    ];
+    for (const [col, cells] of columns) {
+      for (const cell of cells) {
+        const row = this.buildSlotRow(cell, wearer);
+        col?.appendChild(row);
+        if (historyFor) this.attachSlotHistory(row, cell, historyFor(cell));
+      }
+    }
+  }
+
+  // The Gearscore readout, painted inside the model stage just under its
+  // class-colored floor line (the stage's ::after). Omitted when nothing worn
+  // has an item level.
+  private gearScoreHtml(score: number | null): string {
+    if (score === null) return '';
+    return (
+      `<div class="inspect-gearscore ui-num">` +
+      `<span class="inspect-gearscore-label">${esc(t('hudChrome.charSheet.gearScore'))}</span>` +
+      `<b>${esc(formatNumber(score, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}</b>` +
+      `</div>`
+    );
+  }
+
   private panelTitleHtml(): string {
     return (
-      `<div class="panel-title"><span id="inspect-window-title">${esc(t('character.profile'))}</span>` +
-      `<button type="button" class="x-btn" data-close aria-label="${esc(t('character.closeProfile'))}">${svgIcon('close')}</button></div>`
+      `<div class="panel-title ui-win-head"><span id="inspect-window-title" class="ui-win-title">${esc(t('character.profile'))}</span>` +
+      `<button type="button" class="x-btn ui-x-btn" data-close aria-label="${esc(t('character.closeProfile'))}">${svgIcon('close')}</button></div>`
     );
   }
 
   // One read-only equipment row for the inspect window: icon, slot name, and the
   // equipped item (quality-tinted, quality-glow socket) with its tooltip. No
-  // unequip / drag affordances (another player's gear is view-only).
-  private buildSlotRow(cell: PaperdollSlot, instance?: ItemInstancePayload): HTMLElement {
-    const { slot, item } = cell;
+  // unequip / drag affordances (another player's gear is view-only). Like the
+  // character sheet's buildSlotRow, the row describes the worn COPY (the
+  // all-surfaces item-cell rule): the cell's eqi-projected instance drives the
+  // effective quality (row color, icon rim, glow) and a promoted copy's
+  // player-chosen name replaces the def name. The chosen name is
+  // player-authored text, so it is esc'd raw, never through t().
+  private buildSlotRow(cell: PaperdollSlot, wearer: InspectEntity): HTMLElement {
+    const { slot, item, instance } = cell;
     const row = document.createElement('div');
     row.className = 'equip-slot';
-    const qColor = item ? (QUALITY_COLOR[item.quality ?? 'common'] ?? '') : '';
+    const parts = item ? wornItemCellParts(item, instance) : null;
+    const wornName = parts ? parts.name : null;
+    const qColor = parts ? parts.color : '';
     const icon = item
-      ? this.deps.itemIcon(item)
+      ? this.deps.itemIcon(item, parts?.quality)
       : `<img class="item-icon" src="${iconDataUrl('item', 'slot_empty')}" alt="" draggable="false">`;
-    row.innerHTML = `${icon}<div><div class="slot-name">${esc(this.deps.slotName(slot))}</div><div class="slot-item"${item ? ` style="color:${qColor}"` : ''}>${item ? esc(itemDisplayName(item)) : esc(t('itemUi.equipment.empty'))}</div></div>`;
+    row.innerHTML = `<span class="equip-quality-socket">${icon}${parts?.qualityBadgeLabelled ?? ''}</span><div><div class="slot-name">${esc(this.deps.slotName(slot))}</div><div class="slot-item"${item ? ` style="color:${qColor}"` : ''}>${wornName !== null ? esc(wornName) : esc(t('itemUi.equipment.empty'))}</div></div>`;
     if (item) {
       const iconEl = row.querySelector<HTMLImageElement>('.item-icon');
       if (iconEl) iconEl.style.boxShadow = qualityGlowShadow(qColor);
-      this.deps.attachTooltip(row, () => this.deps.itemTooltip(item, instance));
+      this.deps.attachTooltip(row, () =>
+        this.deps.itemTooltip(item, instance ?? undefined, wearer),
+      );
     }
     return row;
+  }
+
+  private headerHtml(header: InspectHeaderModel): string {
+    const titleHtml = header.deedTitle
+      ? `<div class="inspect-title">${esc(header.deedTitle)}</div>`
+      : '';
+    const border = header.border;
+    if (!border) return `<div class="inspect-name ui-cin">${esc(header.name)}</div>${titleHtml}`;
+    return (
+      `<div class="inspect-heraldry-banner"${this.borderAttrs(border)}>` +
+      `<div class="inspect-heraldry-face deed-heraldry-plaque deed-heraldry-plaque-ceremonial"${this.borderIdentityAttrs(border)}>` +
+      deedHeraldryMotifSvg(border.motif, 'deed-heraldry-pattern') +
+      `<div class="inspect-heraldry-copy">` +
+      `<div class="inspect-name ui-cin">${esc(header.name)}</div>` +
+      titleHtml +
+      `</div></div>` +
+      `<span class="deed-heraldry-seal" aria-hidden="true">${deedHeraldryMotifSvg(border.motif, 'deed-heraldry-seal-art')}</span>` +
+      `<div class="inspect-heraldry-deed deed-heraldry-plaque deed-heraldry-plaque-tab"${this.borderIdentityAttrs(border)}>${esc(border.deedName)}</div>` +
+      `</div>`
+    );
+  }
+
+  // The pure core already palette-gated the slug. One shared style builder
+  // carries the exact material tokens every cold heraldry surface consumes.
+  private borderAttrs(border: InspectBorderModel | null): string {
+    if (!border) return '';
+    return `${this.borderIdentityAttrs(border)} style="${esc(deedHeraldryStyle(border))}"`;
+  }
+
+  private borderIdentityAttrs(border: InspectBorderModel): string {
+    return (
+      ` ${DEED_HERALDRY_ATTR}="${esc(border.slug)}"` +
+      ` ${DEED_HERALDRY_MOTIF_ATTR}="${border.motif}"`
+    );
+  }
+
+  // The Reliquary standing line: the labeled completion pair plus the named
+  // Curator rank. It reuses the character sheet's own three chrome keys
+  // (charCompletionLabel, charCompletion, and the rank-name key), so the LABEL,
+  // the pair wording, and the rung name are one source of text across both
+  // surfaces. The composition differs by design: the sheet lays these out as
+  // rows in the Reliquary block, the card packs them into one dot-separated
+  // meta line.
+  private curatorLineHtml(curator: InspectCuratorModel | null): string {
+    if (!curator) return '';
+    const pair = t('hudChrome.reliquary.charCompletion', {
+      owned: formatNumber(curator.owned, { maximumFractionDigits: 0 }),
+      total: formatNumber(curator.total, { maximumFractionDigits: 0 }),
+    });
+    const rankName = t(curatorRankNameKey(curator.rank), {
+      rank: formatNumber(curator.rank, { maximumFractionDigits: 0 }),
+    });
+    return (
+      `<div class="inspect-meta inspect-reliquary ui-chip ui-num">` +
+      `${esc(t('hudChrome.reliquary.charCompletionLabel'))}: ${esc(pair)} · ${esc(rankName)}` +
+      `</div>`
+    );
+  }
+
+  // The Curator sigil badge: the Reliquary's rank-5 honor mark, rendered through
+  // the same .inspect-holder row family as the three flair badges above it so the
+  // four read as one column. Cosmetic identity only.
+  private curatorHtml(curator: InspectCuratorBadgeModel | null): string {
+    if (!curator) return '';
+    const rankName = t(curatorRankNameKey(curator.rank), {
+      rank: formatNumber(curator.rank, { maximumFractionDigits: 0 }),
+    });
+    return (
+      `<div class="inspect-holder ui-card">` +
+      // alt="" like the three sibling tier badges: the row already prints the
+      // rung name and a sub-line, so a localized alt on the art made a screen
+      // reader announce the same row three times. sigilCaption keeps the job of
+      // naming what the picture IS, but as the VISIBLE sub-line, which labels
+      // the mark for every reader at once (the key was named sigilAria until
+      // Phase 20 QA; the suffix misdeclared the render sink to translators once
+      // the string stopped being alt text). The sub used to repeat the window
+      // title ("The Reliquary"), which named the surface rather than the honor
+      // and was the least useful of the three announcements.
+      `<img class="${curatorSigilBadgeClass()}" style="--curator-glow:${CURATOR_SIGIL_GLOW}" src="${curatorSigilDataUrl()}" alt="" draggable="false">` +
+      `<div class="inspect-holder-text">` +
+      `<div class="inspect-holder-name">${esc(rankName)}</div>` +
+      `<div class="inspect-holder-sub ui-meta ui-muted">${esc(t('hudChrome.reliquary.sigilCaption'))}</div>` +
+      `</div></div>`
+    );
   }
 
   private holderHtml(holder: InspectHolderModel | null): string {
@@ -295,11 +591,11 @@ export class InspectWindow {
           )
         : esc(t('wallet.holder'));
     return (
-      `<div class="inspect-holder">` +
+      `<div class="inspect-holder ui-card">` +
       `<img class="${holderCardBadgeClass(tierDef)}" style="--holder-glow:${tierDef.glow}" src="${holderTierBadgeDataUrl(tierDef)}" alt="" draggable="false">` +
       `<div class="inspect-holder-text">` +
       `<div class="inspect-holder-name">${esc(holderTierDisplayName(tierDef))}</div>` +
-      `<div class="inspect-holder-sub">${sub}</div>` +
+      `<div class="inspect-holder-sub ui-meta ui-muted">${sub}</div>` +
       `</div></div>`
     );
   }
@@ -311,18 +607,18 @@ export class InspectWindow {
       : `<img class="inspect-holder-badge" src="${discordStatusBadgeDataUrl(discord.tierIndex)}" alt="" draggable="false">`;
     const memberSinceHtml =
       discord.memberDays !== null
-        ? `<div class="inspect-holder-sub">${esc(t('hudChrome.discord.memberSince'))}: ${esc(t('hudChrome.discord.memberSinceDays', { days: formatNumber(discord.memberDays, { maximumFractionDigits: 0 }) }))}</div>`
+        ? `<div class="inspect-holder-sub ui-meta ui-muted">${esc(t('hudChrome.discord.memberSince'))}: ${esc(t('hudChrome.discord.memberSinceDays', { days: formatNumber(discord.memberDays, { maximumFractionDigits: 0 }) }))}</div>`
         : '';
     const roleLabel = discordRoleTagLabel(discord.role);
     const roleHtml = roleLabel
-      ? `<div class="inspect-holder-sub inspect-discord-role">${esc(roleLabel)}</div>`
+      ? `<div class="inspect-holder-sub inspect-discord-role ui-meta ui-muted">${esc(roleLabel)}</div>`
       : '';
     return (
-      `<div class="inspect-holder">` +
+      `<div class="inspect-holder ui-card">` +
       img +
       `<div class="inspect-holder-text">` +
       `<div class="inspect-holder-name">${esc(discord.name ? discord.name : discordStatusDisplayName(discord.tierIndex))}</div>` +
-      `<div class="inspect-holder-sub">${esc(t('hudChrome.discord.title'))} · ${esc(discordStatusDisplayName(discord.tierIndex))}</div>` +
+      `<div class="inspect-holder-sub ui-meta ui-muted">${esc(t('hudChrome.discord.title'))} · ${esc(discordStatusDisplayName(discord.tierIndex))}</div>` +
       memberSinceHtml +
       roleHtml +
       `</div></div>`
@@ -339,16 +635,25 @@ export class InspectWindow {
         })
       : t('hudChrome.devBadge.contributor');
     const devLoginHtml = dev.githubLogin
-      ? `<div class="inspect-holder-sub inspect-dev-login">@${esc(dev.githubLogin)}</div>`
+      ? `<div class="inspect-holder-sub inspect-dev-login ui-meta ui-muted">@${esc(dev.githubLogin)}</div>`
       : '';
     return (
-      `<div class="inspect-holder">` +
+      `<div class="inspect-holder ui-card">` +
       `<img class="${devCardBadgeClass(devTierDef)}" style="--dev-glow:${devTierDef.glow}" src="${devTierBadgeDataUrl(devTierDef)}" alt="" draggable="false">` +
       `<div class="inspect-holder-text">` +
       `<div class="inspect-holder-name">${esc(devTierDisplayName(devTierDef))}</div>` +
-      `<div class="inspect-holder-sub">${esc(devSub)}</div>` +
+      `<div class="inspect-holder-sub ui-meta ui-muted">${esc(devSub)}</div>` +
       devLoginHtml +
       `</div></div>`
     );
   }
+}
+
+/** The specialization chip: the localized spec name, or "no specialization". */
+function specChipHtml(cls: PlayerClass, specId: string | null): string {
+  const spec = specId ? TALENTS[cls]?.specs.find((entry) => entry.id === specId) : undefined;
+  const label = spec
+    ? tTalent({ kind: 'talentSpec', spec, field: 'name' })
+    : t('game.talents.noSpec');
+  return `<div class="inspect-meta inspect-spec ui-chip">${esc(label)}</div>`;
 }

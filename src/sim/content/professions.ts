@@ -1,6 +1,8 @@
 // Gathering profession content (data-as-code, exempt from module-first size
 // rules per root CLAUDE.md: this is a declarative table, not logic). Starter
-// set is Mining, Logging, Herbalism; the state and gain logic live in
+// set was Mining, Logging, Herbalism; Fishing (Professions 2.0) and Farming
+// (the farming program, ungainable until its growth phase ships) joined
+// later. The state and gain logic live in
 // ../professions/gathering.ts behind the SimContext seam. `icon` is a plain
 // identifier (no emoji glyph, per the repo copy rule); a future UI surface
 // resolves it to a procedural icon the same way ability/item icons do.
@@ -17,13 +19,14 @@
 // resolve, proc, and yield, only skill gain stops.
 
 import { EASTBROOK_STATIONS_BY_ID } from '../eastbrook_layout';
+import { FENBRIDGE_STATIONS_BY_ID } from '../fenbridge_layout';
 import type { ProfessionRecord } from '../professions/types';
 import type { StationDef, StationType } from '../types';
 import { ZONE1_ZONE } from './zone1';
 import { ZONE2_ZONE } from './zone2';
 import { ZONE3_ZONE } from './zone3';
 
-export type GatheringProfessionId = 'mining' | 'logging' | 'herbalism' | 'fishing';
+export type GatheringProfessionId = 'mining' | 'logging' | 'herbalism' | 'fishing' | 'farming';
 
 export interface GatheringProfessionDef extends ProfessionRecord {
   id: GatheringProfessionId;
@@ -65,34 +68,54 @@ export const GATHERING_PROFESSIONS: Record<GatheringProfessionId, GatheringProfe
     icon: 'fishing',
     description: 'Reeling catches from the rivers and lakes across the zones.',
   },
+  farming: {
+    id: 'farming',
+    category: 'gathering',
+    maxSkill: 100,
+    name: 'Farming',
+    icon: 'farming',
+    description: 'Raising crops from seed in tended beds and harvesting them by hand.',
+  },
 };
 
 // Stable iteration order, used for defaulting/normalizing a per-player
-// proficiency record. Keep in sync with GATHERING_PROFESSIONS above. Fishing is
-// appended LAST (Professions 2.0) so the pre-existing iteration order
-// of the starter three is preserved for every consumer that walks this list.
+// proficiency record. Keep in sync with GATHERING_PROFESSIONS above. Fishing
+// (Professions 2.0) and then Farming are each appended LAST when they ship, so
+// the pre-existing iteration order of everything already in this list is
+// preserved for every consumer that walks it.
 export const GATHERING_PROFESSION_IDS: GatheringProfessionId[] = [
   'mining',
   'logging',
   'herbalism',
   'fishing',
+  'farming',
 ];
 
 // Tool effect slotting (#1136): a slottable bonus layered on top of a base
 // gathering tool's tier (see ../professions/tools.ts). Each effect carries its
-// own starting durability, separate from the base tool's tier gating. Whether
-// a given use spends a charge is NOT a fixed per-effect chance: it is rolled
-// from the rarity-scaled consumption curve (#1139,
-// `../professions/tools.ts` `effectConsumptionChance`), comparing the tool's
-// own rarity against the rarity of what it is being used on, so the same
-// effect sips charges against a low-rarity target and spends them every use
-// against an equal-or-higher-rarity one. `kind` selects which harvest/craft
-// outcome field the bonus adjusts.
+// own starting durability, separate from the base tool's tier gating.
+// Depletion is DETERMINISTIC and CONDITIONAL: a use spends exactly one charge
+// when the bonus actually changed the granted outcome (R42, settled at the
+// gather command boundary), and never draws rng to decide it (the #1139
+// rolled-consumption idea was retired so the harvest path could keep its
+// pinned two-draw contract),
+// and the tool's rarity enters at MINT time instead, as extra starting
+// charges (startingDurabilityFor). `kind` selects which harvest/craft outcome
+// field the bonus adjusts.
 // Corpse-harvest yield map (#1141): component tag -> the item id a profession
 // harvest of a tagged corpse yields (claim logic: src/sim/professions/gathering.ts,
-// command body: src/sim/interaction.ts harvestCorpse). Only tags with a concrete
-// item wired up so far are listed here; the four families shipped content also
-// tags (claw, tusk, gills, horn) are still waiting on theirs.
+// command body: src/sim/interaction.ts harvestCorpse). EVERY family shipped
+// content tags is listed here. History, since the gap it closes is the kind
+// that reopens quietly: #1141 shipped six rows (hide, fang, silk, venomSac,
+// meat, cloth); `claw` and `tusk` were wired at #2905 (fen_troll's family);
+// `horn` and `gills` were wired at Masterwrought Phase 11m, reusing two
+// shipped ids rather than minting new ones:
+// horn reads as the same hard keratin as tusk, so it feeds curved_tusk, the
+// thinnest mapped family in the 11m census; gills feeds mudfin_scale, the
+// trophy 11l promoted out of quality 'poor' so the junk sweep never sells it.
+// The phase's one authorized new item id was NOT taken for either row.
+// tests/harvest_geography.test.ts pins that no template carries a tag absent
+// from this table, so the next orphan tag is a red test, not a dead corpse.
 //
 // THIS TABLE IS THE HARVEST GATE, not just a yield lookup (#2513). A corpse is
 // harvestable exactly when it carries a family listed here (isHarvestableCorpse,
@@ -101,18 +124,38 @@ export const GATHERING_PROFESSION_IDS: GatheringProfessionId[] = [
 //    all, and an explicit command is refused pre-claim with
 //    error.corpseNothingToHarvest, exactly like a template carrying no tags.
 //    It does NOT become single-use claimed, which is what it used to do while
-//    granting nothing and reporting nothing. `fen_troll` (claw, tusk) is the one
-//    shipped template in that state.
-//  - A template that MIXES a listed family with an unlisted one is untouched:
-//    it harvests normally, and only a pick naming nothing but unlisted families
-//    is refused (#2509, forfeitsEveryMappedYield).
-// So wiring a new family here is not a yield-only change: it re-enables the
-// harvest affordance on every template carrying that tag, with no code change.
+//    granting nothing and reporting nothing. Wiring `claw` and `tusk` here
+//    closed that gap for `fen_troll` (claw, tusk), the one shipped template
+//    that used to sit in that state (#2513/#2514 called this out by name).
+//  - A template that MIXES a listed family with an unlisted one harvests
+//    normally, and only a pick naming nothing but unlisted families is refused
+//    (#2509, forfeitsEveryMappedYield). Its YIELDS, though, do depend on this
+//    table (#2514): an unlisted family is never extracted, so it is always
+//    forfeited breadth and it raises the concentration bonus on whatever the
+//    pick does extract (professions/gathering.ts harvestConcentrationBonus).
+// So wiring a new family here is neither a yield-only nor a local change. It
+// re-enables the harvest affordance on every template carrying that tag with no
+// code change, AND it re-tunes the bonus back down on every MIXED template
+// carrying that same tag (wiring `claw` and `tusk` moved old_greyjaw, wild_boar,
+// sethrael_palecoil, and every other mixed claw/tusk template back down toward
+// bonus 0, exactly the self-healing the #2514 ruling predicted; wiring `horn`
+// and `gills` did the same for the last six mixed templates, the four
+// `gills, hide` swamp dwellers and the two horn carriers, so no shipped
+// template mixes mapped and unmapped families any more and the mixed shapes
+// live only in the retagged test fixtures, tests/helpers/unmapped_family.ts).
+// The same runs the other way: adding a decorative unlisted tag to a mob
+// widens that mob's bonus denominator, which is a balance edit. The bound that
+// keeps it honest (a corpse never out-pays the tag list it advertises) is a
+// checked property in tests/mob_component_tags.test.ts, not an assumption.
 // The v0.21.0 collision gap is closed: hide/silk/venomSac now yield the
 // dedicated profession materials (content/profession_items.ts), so a harvest
 // never grants quest-collect credit. The old quest items (boar_hide via
 // q_boars kill loot, webwood_silk via q_spiders, widow_venom_sac via q_widows)
 // keep their quest roles only.
+//
+// ORDER IS A SAVE CONTRACT: TOWN_FOCUS_COMPONENTS (../professions/focus.ts) is
+// Object.keys of this table, in this order, and the Town Focus panel renders
+// its rows in that order, so new families are APPENDED, never inserted.
 export const HARVEST_COMPONENT_ITEMS: Readonly<Record<string, string>> = {
   hide: 'rough_hide',
   fang: 'wolf_fang',
@@ -120,15 +163,23 @@ export const HARVEST_COMPONENT_ITEMS: Readonly<Record<string, string>> = {
   venomSac: 'venom_gland',
   meat: 'game_meat',
   cloth: 'homespun_cloth',
+  claw: 'sharp_claw',
+  tusk: 'curved_tusk',
+  horn: 'curved_tusk',
+  gills: 'mudfin_scale',
 };
 
 // Monster material access tiers (Professions 2.0): which tool tier
 // the corpse-harvest premium (signed/specimen) arm requires per component
-// family, checked against the player's best owned gathering tool of ANY
-// profession (professions/tools.ts bestOwnedAnyGatherToolTier). EVERY
+// family, checked against the player's best WIELDABLE gathering tool of ANY
+// profession (R22/R50: professions/wield_gate.ts
+// bestWieldableAnyGatherToolTier). EVERY
 // HARVEST_COMPONENT_ITEMS key is listed explicitly, ALL at 1 in wave one
 // (the prime directive: all pre-existing content stays bare-hands
-// harvestable); future corpse families may ship higher.
+// harvestable); future corpse families may ship higher. horn and gills
+// (Phase 11m) join at 1 for the same reason: both were tagged on shipped,
+// bare-hands corpses long before they yielded anything, so a higher tier
+// would gate a corpse a player has been harvesting all along.
 export const MONSTER_MATERIAL_TIERS: Readonly<Record<string, number>> = {
   hide: 1,
   fang: 1,
@@ -136,6 +187,10 @@ export const MONSTER_MATERIAL_TIERS: Readonly<Record<string, number>> = {
   venomSac: 1,
   meat: 1,
   cloth: 1,
+  claw: 1,
+  tusk: 1,
+  horn: 1,
+  gills: 1,
 };
 
 // The access tier for one component family. An unlisted component (a future
@@ -151,21 +206,47 @@ export function monsterMaterialTierFor(component: string): number {
 // specimen as a SIGNED instance in addition to the plain component grant
 // (src/sim/interaction.ts harvestCorpse). Families without a specimen keep
 // the fallback behavior (the regular component itself grants signed).
+//
+// claw is listed here (tusk is not) purely to keep the capacity pre-gate's
+// one-specimen-less-family-per-corpse premise honest: fang/cloth/tusk were
+// the specimen-less trio, and at the time no shipped template carried two of
+// them together (checked in tests/corpse_harvest_sim.test.ts). Leaving claw
+// specimen-less too would have put fen_troll (claw, tusk) and old_greyjaw
+// (hide, fang, claw) each over that line.
+//
+// horn and gills carry NO specimen, as a
+// decision and not a default: both sit at MONSTER_MATERIAL_TIERS 1, the
+// bare-hands floor, and a signed pristine jackpot on a bare-hands-floor
+// component would invert the premium ladder that tier table exists to state
+// (the rare-or-better roll is the reward for reaching a family, not a free
+// ride on the one every corpse already gives away). Both therefore keep the
+// fallback behaviour: the plain component itself grants signed at rare+.
+// That makes the specimen-less set five families (fang, cloth, tusk, horn,
+// gills), and the one-per-corpse premise above now has to be checked against
+// the 11m tag spread rather than assumed: the spread refused two of its
+// settled candidates for exactly this premise (dune_troll's fang beside tusk,
+// frostmane_yeti's fang beside horn) and routed tusk to the Farshore's
+// Sundered Horror instead, so the tests/corpse_harvest_sim.test.ts guard holds
+// at a worst count of ONE over every tagged template. It is left standing
+// rather than papered over with a specimen row here, because a horn or tusk
+// specimen would be the ladder inversion above and a fang one would move
+// #2139's measured crossing case.
 export const HARVEST_COMPONENT_SPECIMENS: Readonly<Record<string, string>> = {
   hide: 'pristine_hide',
   silk: 'pristine_silk',
   venomSac: 'pristine_venom_gland',
   meat: 'prime_cut',
+  claw: 'pristine_claw',
 };
 
 // Tool effect slotting (#1136): a slottable bonus layered on top of a base
 // gathering tool's tier (see ../professions/tools.ts). Each effect carries its
-// own starting durability, separate from the base tool's tier gating. Whether
-// a given use spends a charge is rolled from the rarity-scaled consumption
-// curve (#1139, ../professions/tools.ts effectConsumptionChance), not a fixed
-// per-effect chance. `kind` selects which harvest/craft outcome field the
-// bonus adjusts.
-export type ToolEffectId = 'gatherers_cache' | 'artisans_eye' | 'quickening_charm';
+// own starting durability, separate from the base tool's tier gating. A use
+// spends exactly one charge, deterministically (depleteEffect, rng-free) and
+// only when the bonus changed the granted outcome (R42); tool rarity buys
+// extra STARTING charges rather than cheaper spends. `kind` selects which
+// harvest/craft outcome field the bonus adjusts.
+export type ToolEffectId = 'gatherers_cache' | 'artisans_eye' | 'quickening_charm' | 'makers_charm';
 
 export interface ToolEffectDef {
   id: ToolEffectId;
@@ -219,6 +300,26 @@ export const TOOL_EFFECTS: Record<ToolEffectId, ToolEffectDef> = {
     startingDurability: 20,
     craftId: 'enchanting',
   },
+  // The apex rung (Masterwrought phase 09): the SAME quantity mechanic as
+  // gatherers_cache at the next bonus step, never a new effect kind (R14).
+  // The step is quantity rather than quality because a quality bonus above 1
+  // would mint fine grades over bare hands until the grade resolver grows a
+  // real-tool floor (the one-point margin pinned in
+  // tests/professions_tools.test.ts). The first non-enchanting effect:
+  // craftId 'engineering' keys the specialization recharge discount to the
+  // craft that mints it (../professions/tools.ts reads craftId per effect).
+  // startingDurability stays at the family's 20 so the R30/R47 recharge
+  // price family prices this rung identically to its kin.
+  makers_charm: {
+    id: 'makers_charm',
+    name: "Maker's Charm",
+    icon: 'makers_charm',
+    description: 'Slotted onto a gathering tool: yields two extra units per harvest.',
+    kind: 'quantity',
+    bonus: 2,
+    startingDurability: 20,
+    craftId: 'engineering',
+  },
 };
 
 // Stable iteration order, used the same way GATHERING_PROFESSION_IDS is.
@@ -226,6 +327,7 @@ export const TOOL_EFFECT_IDS: ToolEffectId[] = [
   'gatherers_cache',
   'artisans_eye',
   'quickening_charm',
+  'makers_charm',
 ];
 // Ten-craft ring content: pure data plus pure helper functions. No engine logic,
 // no mechanic wiring: this file only defines the ring geometry (order, pole tags)
@@ -380,13 +482,33 @@ export const MOBILE_CRAFTING_STATION_DURATION_TICKS = 20 * 60 * 10; // 10 minute
 // - `CRAFT_GOLD_SINK_COPPER_PER_BUDGET`: copper fee per point of a recipe's
 //   `itemLevelBudget`, charged on every successful craft (proportional to the
 //   value of what is being produced, same axis P4/P8 already scale off).
-// - `CRAFT_THROTTLE_WINDOW_SECONDS` / `CRAFT_THROTTLE_MAX_PER_WINDOW`: a flat
-//   cap on successful crafts (any recipe) per rolling sim-time window, so a
-//   maxed specialist cannot flood the market faster than this rate regardless
-//   of skill or material supply.
+// Craft Cast System Phase 5 retired the shared 10-per-60s action throttle:
+// pace is cast duration (plus materials, gold sink, stations, skill ceilings).
 export const CRAFT_GOLD_SINK_COPPER_PER_BUDGET = 2;
-export const CRAFT_THROTTLE_WINDOW_SECONDS = 60;
-export const CRAFT_THROTTLE_MAX_PER_WINDOW = 10;
+
+// Craft cast duration table (Craft Cast System Phase 1): content knobs for
+// professions/craft_cast_duration.ts. Locked starting numbers from the
+// implementation plan; retune with evidence, not feel. Floor/ceiling clamp
+// every computed duration so a future band cannot slip past the UX range.
+export const CRAFT_CAST_DURATION_FIELD_SEC = 1.75;
+export const CRAFT_CAST_DURATION_SKILL_25_SEC = 2.5;
+export const CRAFT_CAST_DURATION_SKILL_50_SEC = 3.0;
+export const CRAFT_CAST_DURATION_SKILL_75_SEC = 3.5;
+export const CRAFT_CAST_DURATION_SKILL_100_OR_COMBO_SEC = 4.0;
+export const CRAFT_CAST_DURATION_FLOOR_SEC = 1.5;
+export const CRAFT_CAST_DURATION_CEILING_SEC = 5.0;
+
+// Enchant-family cast duration (Craft Cast System Phase 4): fixed 1.5 s for
+// disenchant, apply-enchant, and salvage.
+export const ENCHANT_FAMILY_CAST_DURATION_SEC = 1.5;
+
+// Tool-effect recharge cast duration (Craft Cast System Phase 5): fixed 1.5 s.
+export const TOOL_RECHARGE_CAST_DURATION_SEC = 1.5;
+
+// Craft Cast System Phase 3: hard cap on crafts per craft_item start (UI qty
+// stepper, wire count, and sim clamp all share this ceiling). Materials and
+// bag space still stop a batch mid-run when they run out.
+export const CRAFT_BATCH_MAX = 50;
 
 // Crafting stations and masters (Professions 2.0): the content half
 // of ../professions/stations.ts. The old single level-20 crafting hub
@@ -400,8 +522,17 @@ export const CRAFT_THROTTLE_MAX_PER_WINDOW = 10;
 export const STATION_RADIUS = 20;
 
 // Which station type serves each craft. Crafts absent from this table
-// (jewelcrafting, inscription, enchanting) have no physical station and no
-// station-bound recipes today.
+// (jewelcrafting, inscription, enchanting) have no station of their OWN;
+// their recipes may still bind to a foreign station per record via
+// `stationType` (enchanting's two tool-effect charms at the toolworks,
+// jewelcrafting's nine base-catalog recipes at the forge, inscription's
+// seven at the apothecary). Absence here means only that no station type is
+// named after the craft.
+// Key ORDER is load-bearing: professions/stations.ts craftsForStationType
+// returns keys in this order and the gossip Crafting shortcut
+// (src/ui/hud/quest/master_craft_core.ts) takes the first as its tie-break
+// (weaponcrafting before armorcrafting at the forge); pinned in
+// tests/professions_crafting_hub.test.ts.
 export const STATION_TYPE_BY_CRAFT: Readonly<Record<string, StationType>> = {
   weaponcrafting: 'forge',
   armorcrafting: 'forge',
@@ -452,8 +583,7 @@ export const STATIONS: readonly StationDef[] = [
     id: 'station_fenbridge_tannery',
     type: 'tannery',
     zoneId: ZONE2_ZONE.id,
-    // Northwest edge of Fenbridge, downwind of the square.
-    pos: { x: -13, z: 314 },
+    pos: { ...FENBRIDGE_STATIONS_BY_ID.station_fenbridge_tannery.position },
     masterNpcId: 'tanner_hesk',
   },
   {

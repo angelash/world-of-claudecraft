@@ -25,6 +25,20 @@ export interface LetterDef {
   delaySeconds?: number;
 }
 
+export const MEMBERSHIP_TOKEN_LETTER: LetterDef = {
+  letterId: 'membership_token_delivery',
+  senderName: 'The Ravenpost',
+  subject: 'Your membership token',
+  body: 'Your purchased token is enclosed. Redeem it to add 30 days of membership to your account, or trade it with another adventurer.',
+};
+
+export const MEMBERSHIP_ANNUAL_LETTER: LetterDef = {
+  letterId: 'membership_annual_reward',
+  senderName: 'The Ravenpost',
+  subject: 'Your annual membership mount',
+  body: 'Your annual membership payment is complete. The Nightwing Chimaera is now unlocked for every character on your account, and its reins are enclosed. It stays yours after membership expires. Riding skill is required.',
+};
+
 // The one-time service letter. Sent to every character that has never been
 // welcomed (new characters right away, pre-mail characters on their next
 // login), so it doubles as the feature announcement.
@@ -61,6 +75,27 @@ export const HEROIC_MARK_LETTER: LetterDef = {
   delaySeconds: 0,
 };
 
+// Wyrmfall Core reward letter (Masterwrought phase 04): posted to a final-boss
+// participant who entered the run but was absent at the corpse when the cores
+// paid out (awardWyrmfallCores in professions/masterwrought_materials.ts). The
+// core stacks ride as the attachment; the PostOffice fills `items` per kill
+// (the count is rolled per kill), so this base carries none. Body stays
+// count-free so the letterId localizes cleanly. The Quartermaster signs the
+// normal-raid deliveries too: the packet keeps one materials postman rather
+// than minting a difficulty-split sender (recorded in the phase ledger).
+export const WYRMFALL_CORE_LETTER: LetterDef = {
+  letterId: 'wyrmfall_core_reward',
+  senderName: 'The Heroic Quartermaster',
+  subject: 'Your Wyrmfall Cores',
+  body:
+    'The beast fell while you fought from the back, or from the dirt. Your ' +
+    'share of its Wyrmfall Cores flies to you here rather than being lost to ' +
+    'the corpse-pickers. Put them to good work at a bench.\n\n' +
+    '- The Heroic Quartermaster',
+  copper: 0,
+  delaySeconds: 0,
+};
+
 // The one-time mastery reset notice (Professions 2.0): sent by the
 // tick mail phase to every pre-curve character whose load-time normalize just
 // zeroed their craft skills and gathering proficiencies (see
@@ -82,6 +117,104 @@ export const MASTERY_RESET_LETTER: LetterDef = {
     'The climb is honest now. Cheap work will not carry you. Seek harder ' +
     'recipes, richer veins, and deeper waters.\n\n' +
     'With respect,\nThe Guildhall',
+  delaySeconds: 0,
+};
+
+// $WOC Exchange custody letters (the server-side marketplace): the broker's
+// system mail carrying an escrowed copy back to its seller, delivering a won
+// or bought item to its buyer, or recording a completed sale for the seller.
+// Bodies stay value-free (no prices, no item names): the attachment IS the
+// payload and the Exchange window carries the numbers, so each letterId
+// localizes as one static text.
+export const WOC_MARKET_DELIVERY_LETTER: LetterDef = {
+  letterId: 'woc_market_delivery',
+  senderName: 'The Exchange Broker',
+  subject: 'Your Exchange purchase',
+  body:
+    'The sale is settled and the goods are yours. The attached parcel carries ' +
+    'the exact item you paid for, held in escrow from the moment it was ' +
+    'listed until your payment cleared.\n\n' +
+    'A record of the sale lives in the Exchange ledger.\n\n' +
+    '- The Exchange Broker',
+  delaySeconds: 0,
+};
+
+export const WOC_MARKET_RETURN_LETTER: LetterDef = {
+  letterId: 'woc_market_return',
+  senderName: 'The Exchange Broker',
+  subject: 'Your Exchange listing has ended',
+  body:
+    'Your listing ended without a completed sale: the auction found no buyer, ' +
+    'the reserve was not met, the listing was withdrawn, or the winning ' +
+    'bidder failed to settle. Your goods return to you unharmed with this ' +
+    'letter, exactly as they were escrowed.\n\n' +
+    '- The Exchange Broker',
+  delaySeconds: 0,
+};
+
+// The Exchange Broker's letter ids, the ONE list the post's expiry sweep reads:
+// an UNREAD Exchange letter rides a much longer unread window than any other
+// letter (a sale or return notice waits for its owner; the ceiling is
+// MAIL_EXCHANGE_UNREAD_EXPIRY_SECONDS in post_office.ts). These are PERSISTED
+// tokens (every booked row carries its letterId), so the literals here must
+// match the three WOC_MARKET_* defs in this module byte for byte, and
+// tests/mail_expiry.test.ts pins the strings themselves, not the defs.
+export const WOC_MARKET_LETTER_IDS: ReadonlySet<string> = new Set([
+  'woc_market_delivery',
+  'woc_market_return',
+  'woc_market_sold',
+]);
+
+export function isWocMarketLetterId(letterId: string | undefined): boolean {
+  return letterId !== undefined && WOC_MARKET_LETTER_IDS.has(letterId);
+}
+
+export const WOC_MARKET_SOLD_LETTER: LetterDef = {
+  letterId: 'woc_market_sold',
+  senderName: 'The Exchange Broker',
+  subject: 'Your Exchange listing sold',
+  // Payload-only, like the other two: this module is currency-blind, so the
+  // money language (the fee split, where proceeds land) belongs to the
+  // Exchange window, which can read the real figures. A letter that asserts a
+  // payment route it cannot see would also go stale the day that route changes.
+  body:
+    'Your listing sold and the buyer settled in full. The Exchange ledger ' +
+    'carries the record of the sale, and your Exchange activity shows the ' +
+    'settled amount and its breakdown.\n\n' +
+    '- The Exchange Broker',
+  delaySeconds: 0,
+};
+
+// A vault reward not collected from its chest reaches the character through
+// the Ravenpost. The actual item copies and coin are attached per clear, so
+// this text stays true for every rarity and party size.
+export const HOARD_REWARD_LETTER: LetterDef = {
+  letterId: 'hoard_vault_reward',
+  senderName: 'The Ravenpost',
+  subject: 'Your vault reward',
+  body:
+    'The vault was cleared, but your share was not collected from the ' +
+    'chest. The ravens have brought it to you here, with the goods and coin ' +
+    'you earned attached.\n\n' +
+    '- The Ravenpost',
+  delaySeconds: 0,
+};
+
+// World quest reward letter: a world quest reward item (the quest's fixed
+// extra, the day's item slot piece, the slate's treasure map, a treasure
+// hunt's casket, or the weekly charge's cache) that did not fit in the bags
+// when it was earned. The item rides as the attachment;
+// world_quest_reward_mail.ts fills `items` per grant, so this base carries
+// none. Body stays count-free so the letterId localizes cleanly.
+export const WORLD_QUEST_REWARD_LETTER: LetterDef = {
+  letterId: 'world_quest_reward',
+  senderName: 'The Ravenpost',
+  subject: 'Your world quest reward',
+  body:
+    'Your bags were full when you earned this world quest reward, so the ' +
+    'ravens have brought it to you here instead. Make some room and collect ' +
+    'it from any raven pillar.\n\n' +
+    '- The Ravenpost',
   delaySeconds: 0,
 };
 
@@ -472,4 +605,41 @@ for (const pairId of Object.keys(MASTER_TIER_LETTERS)) {
   if (!MASTER_TIER_PAIRS.includes(pairId)) {
     throw new Error(`MASTER_TIER_LETTERS has unexpected pair ${pairId}`);
   }
+}
+
+// Every authored letter keyed by letterId, ONE builder for both client
+// registries (src/ui/entity_i18n.ts LETTERS_BY_ID, the localization source
+// knownLetterId answers from, and src/ui/world_entity_i18n.ts, the English
+// key-set source the catalog reads). The two used to hand-seed their own
+// copies of this map, and the Wyrmfall Core letter reached one but not the
+// other, so knownLetterId('wyrmfall_core_reward') read false and the mailbox
+// fell back to the wire-shipped English in every locale while the overlays
+// carried live fills nobody could reach. Building both from here removes the
+// second registry; tests/entity_i18n_guards.test.ts pins the two key sets
+// equal in both directions. A NEW letter still owes its LETTER_IDS ordering
+// row in world_entity_i18n.ts (that guard reds until it lands).
+export function authoredLettersById(): Record<string, LetterDef> {
+  const byId: Record<string, LetterDef> = {
+    [WELCOME_LETTER.letterId]: WELCOME_LETTER,
+    [HEROIC_MARK_LETTER.letterId]: HEROIC_MARK_LETTER,
+    [WYRMFALL_CORE_LETTER.letterId]: WYRMFALL_CORE_LETTER,
+    [MASTERY_RESET_LETTER.letterId]: MASTERY_RESET_LETTER,
+    // The $WOC Exchange's three delivery letters, which reached this builder
+    // through the release sync: they were hand-seeded into entity_i18n's own
+    // copy of this map, the exact second registry this builder exists to
+    // retire.
+    [WOC_MARKET_DELIVERY_LETTER.letterId]: WOC_MARKET_DELIVERY_LETTER,
+    [WOC_MARKET_RETURN_LETTER.letterId]: WOC_MARKET_RETURN_LETTER,
+    [WOC_MARKET_SOLD_LETTER.letterId]: WOC_MARKET_SOLD_LETTER,
+    [HOARD_REWARD_LETTER.letterId]: HOARD_REWARD_LETTER,
+    [MEMBERSHIP_TOKEN_LETTER.letterId]: MEMBERSHIP_TOKEN_LETTER,
+    [MEMBERSHIP_ANNUAL_LETTER.letterId]: MEMBERSHIP_ANNUAL_LETTER,
+    [WORLD_QUEST_REWARD_LETTER.letterId]: WORLD_QUEST_REWARD_LETTER,
+  };
+  for (const letter of Object.values(QUEST_LETTERS)) byId[letter.letterId] = letter;
+  for (const letter of Object.values(GUILD_TREND_LETTERS)) byId[letter.letterId] = letter;
+  for (const byTier of Object.values(MASTER_TIER_LETTERS)) {
+    for (const letter of Object.values(byTier)) byId[letter.letterId] = letter;
+  }
+  return byId;
 }

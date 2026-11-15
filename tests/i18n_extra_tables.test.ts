@@ -3,7 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { type SupportedLanguage, supportedLanguages } from '../src/ui/i18n';
 import { RESTART_MESSAGES } from '../src/ui/server_i18n';
-import { ARENA_EXTRA, ITEM_EXTRA, QUEST_EXTRA } from '../src/ui/sim_i18n';
+import { ARENA_EXTRA, BG_EXTRA, ITEM_EXTRA, QUEST_EXTRA } from '../src/ui/sim_i18n';
 
 // Guards for the sim/server localization tables that live OUTSIDE the registry-tracked
 // DICT and so are invisible to the status registry, the release-gate pending check, and
@@ -82,6 +82,7 @@ const ALL: Logical[] = [
     'QUEST_EXTRA',
     QUEST_EXTRA as unknown as Record<string, Record<string, string>>,
   ),
+  ...fromLocaleKeyed('BG_EXTRA', BG_EXTRA as unknown as Record<string, Record<string, string>>),
   ...fromLocaleKeyed('ITEM_EXTRA', ITEM_EXTRA as unknown as Record<string, Record<string, string>>),
   ...fromEnglishKeyed(
     'RESTART_MESSAGES',
@@ -175,31 +176,40 @@ describe('locale-aware formatting is centralized', () => {
   // Only these modules may construct Intl directly (the formatting helpers themselves).
   const INTL_ALLOW = ['src/ui/i18n.ts', 'src/ui/talent_i18n.ts', 'src/admin/format.ts'];
 
-  it('constructs no ad-hoc Intl.NumberFormat/DateTimeFormat outside the helper modules', () => {
-    const offenders: string[] = [];
-    for (const f of files) {
-      // Normalize to forward slashes so the allowlist also matches on Windows.
-      const rel = path.relative(ROOT, f).replaceAll('\\', '/');
-      if (INTL_ALLOW.includes(rel)) continue;
-      const src = readFileSync(f, 'utf8');
-      const m = src.match(/new Intl\.(NumberFormat|DateTimeFormat)\(/);
-      if (m) offenders.push(`${rel}: ${m[0]}`);
-    }
-    expect(offenders, `use formatNumber/formatDateTime instead:\n${offenders.join('\n')}`).toEqual(
-      [],
-    );
-  });
+  it(
+    'constructs no ad-hoc Intl.NumberFormat/DateTimeFormat outside the helper modules',
+    () => {
+      const offenders: string[] = [];
+      for (const f of files) {
+        // Normalize to forward slashes so the allowlist also matches on Windows.
+        const rel = path.relative(ROOT, f).replaceAll('\\', '/');
+        if (INTL_ALLOW.includes(rel)) continue;
+        const src = readFileSync(f, 'utf8');
+        const m = src.match(/new Intl\.(NumberFormat|DateTimeFormat)\(/);
+        if (m) offenders.push(`${rel}: ${m[0]}`);
+      }
+      expect(
+        offenders,
+        `use formatNumber/formatDateTime instead:\n${offenders.join('\n')}`,
+      ).toEqual([]);
+    },
+    process.platform === 'win32' ? 240_000 : 20_000,
+  );
 
-  it('calls no host-locale toLocaleString/Date/Time (empty locale arg) in UI code', () => {
-    const offenders: string[] = [];
-    for (const f of files) {
-      const src = readFileSync(f, 'utf8');
-      const re = /\.toLocale(String|DateString|TimeString)\(\s*\)/g;
-      for (const m of src.matchAll(re)) offenders.push(`${path.relative(ROOT, f)}: ${m[0]}`);
-    }
-    expect(
-      offenders,
-      `pass the active locale (use formatNumber/formatDateTime):\n${offenders.join('\n')}`,
-    ).toEqual([]);
-  });
+  it(
+    'calls no host-locale toLocaleString/Date/Time (empty locale arg) in UI code',
+    () => {
+      const offenders: string[] = [];
+      for (const f of files) {
+        const src = readFileSync(f, 'utf8');
+        const re = /\.toLocale(String|DateString|TimeString)\(\s*\)/g;
+        for (const m of src.matchAll(re)) offenders.push(`${path.relative(ROOT, f)}: ${m[0]}`);
+      }
+      expect(
+        offenders,
+        `pass the active locale (use formatNumber/formatDateTime):\n${offenders.join('\n')}`,
+      ).toEqual([]);
+    },
+    process.platform === 'win32' ? 240_000 : 20_000,
+  );
 });

@@ -22,72 +22,137 @@ export function sceneAwarenessEvent(context: AiJobContextV1, speaker: Entity): S
   };
 
   if (demonCompanion && isOrderedOrSacredScene(scene)) {
-    return line(context, speaker, 'hudChrome.aiSpeech.sceneDemonCompanionUnease', {
-      ...commonValues,
-      companionName: demonCompanion.displayName,
-      companionTemplateId: demonCompanion.templateId,
-    }, 'avoid', demonCompanion.entityId);
+    return line(
+      context,
+      speaker,
+      'hudChrome.aiSpeech.sceneDemonCompanionUnease',
+      {
+        ...commonValues,
+        companionName: demonCompanion.displayName,
+        companionTemplateId: demonCompanion.templateId,
+      },
+      'avoid',
+      demonCompanion.entityId,
+    );
   }
   if (undeadCompanion && isLivingTownScene(scene)) {
-    return line(context, speaker, 'hudChrome.aiSpeech.sceneUndeadCompanionUnease', {
-      ...commonValues,
-      companionName: undeadCompanion.displayName,
-      companionTemplateId: undeadCompanion.templateId,
-    }, 'avoid', undeadCompanion.entityId);
+    return line(
+      context,
+      speaker,
+      'hudChrome.aiSpeech.sceneUndeadCompanionUnease',
+      {
+        ...commonValues,
+        companionName: undeadCompanion.displayName,
+        companionTemplateId: undeadCompanion.templateId,
+      },
+      'avoid',
+      undeadCompanion.entityId,
+    );
   }
   if (companion && scene.danger.undeadPressure >= 0.3) {
-    return line(context, speaker, 'hudChrome.aiSpeech.companionUndeadFear', {
-      ...commonValues,
-      companionName: companion.displayName,
-      companionTemplateId: companion.templateId,
-    }, 'avoid', companion.entityId);
+    return line(
+      context,
+      speaker,
+      'hudChrome.aiSpeech.companionUndeadFear',
+      {
+        ...commonValues,
+        companionName: companion.displayName,
+        companionTemplateId: companion.templateId,
+      },
+      'avoid',
+      companion.entityId,
+    );
   }
-  const profileFearsUndeadPressure = profileAvoidsAny(profile, ['deathPressure', 'undeadMemory', 'graveSoil', 'cursed']);
-  if (scene.danger.undeadPressure >= (profileFearsUndeadPressure ? 0.28 : 0.45) || scene.environmentalTags.includes('deathPressure')) {
+  const profileFearsUndeadPressure = profileAvoidsAny(profile, [
+    'deathPressure',
+    'undeadMemory',
+    'graveSoil',
+    'cursed',
+  ]);
+  if (
+    scene.danger.undeadPressure >= (profileFearsUndeadPressure ? 0.28 : 0.45) ||
+    scene.environmentalTags.includes('deathPressure')
+  ) {
     return line(context, speaker, 'hudChrome.aiSpeech.sceneUndeadPressure', commonValues, 'avoid');
   }
-  if (scene.weather.kind === 'rain' && (sensitivity.rainIrritation >= 0.15 || profileCommentsOn(profile, 'rain'))) {
-    return line(context, speaker, 'hudChrome.aiSpeech.sceneRainWeariness', commonValues, 'seekShelter');
+  if (
+    scene.weather.kind === 'rain' &&
+    (sensitivity.rainIrritation >= 0.15 || profileCommentsOn(profile, 'rain'))
+  ) {
+    return line(
+      context,
+      speaker,
+      'hudChrome.aiSpeech.sceneRainWeariness',
+      commonValues,
+      'seekShelter',
+    );
   }
-  if (scene.weather.kind === 'fog' && (sensitivity.fogFear >= 0.25 || profileCommentsOn(profile, 'fog'))) {
+  if (
+    scene.weather.kind === 'fog' &&
+    (sensitivity.fogFear >= 0.25 || profileCommentsOn(profile, 'fog'))
+  ) {
     return line(context, speaker, 'hudChrome.aiSpeech.sceneFogUnease', commonValues, 'inspect');
   }
-  if (scene.light.tags.includes('starrySky')
-    && (scene.subsceneId === 'mirror_lake_dock' || sensitivity.clearNightAwe >= 0.45 || profileCommentsOn(profile, 'starrySky'))) {
+  if (
+    scene.light.tags.includes('starrySky') &&
+    (scene.subsceneId === 'mirror_lake_dock' ||
+      sensitivity.clearNightAwe >= 0.45 ||
+      profileCommentsOn(profile, 'starrySky'))
+  ) {
     return line(context, speaker, 'hudChrome.aiSpeech.sceneClearNightAwe', commonValues, 'inspect');
   }
-  if (scene.time.phase === 'day' && scene.danger.safeHavenScore >= 0.6 && sensitivity.dayEnergy >= 0.35) {
+  if (
+    scene.time.phase === 'day' &&
+    scene.danger.safeHavenScore >= 0.6 &&
+    sensitivity.dayEnergy >= 0.35
+  ) {
     return line(context, speaker, 'hudChrome.aiSpeech.sceneDayEnergy', commonValues, 'inspect');
   }
-  if (scene.time.phase === 'night'
-    && scene.danger.safeHavenScore < 0.6
-    && (scene.danger.hostileDensity >= 0.3 || sensitivity.nightFatigue >= 0.45)) {
+  if (
+    scene.time.phase === 'night' &&
+    scene.danger.safeHavenScore < 0.6 &&
+    (scene.danger.hostileDensity >= 0.3 || sensitivity.nightFatigue >= 0.45)
+  ) {
     return line(context, speaker, 'hudChrome.aiSpeech.sceneNightFatigue', commonValues, 'avoid');
   }
   return null;
 }
 
-function profileAvoidsAny(profile: ReturnType<typeof profileFor>, tags: readonly string[]): boolean {
-  return tags.some((tag) => profile.sceneAffinities?.avoidsTags.includes(tag) || profile.itemInterest?.avoidsTags.includes(tag));
+function profileAvoidsAny(
+  profile: ReturnType<typeof profileFor>,
+  tags: readonly string[],
+): boolean {
+  return tags.some(
+    (tag) =>
+      profile.sceneAffinities?.avoidsTags.includes(tag) ||
+      profile.itemInterest?.avoidsTags.includes(tag),
+  );
 }
 
 function profileCommentsOn(profile: ReturnType<typeof profileFor>, tag: string): boolean {
-  return Boolean(profile.sceneAffinities?.commentsOnTags.includes(tag) || profile.sceneAffinities?.likesTags.includes(tag));
+  return Boolean(
+    profile.sceneAffinities?.commentsOnTags.includes(tag) ||
+      profile.sceneAffinities?.likesTags.includes(tag),
+  );
 }
 
 function isOrderedOrSacredScene(scene: NonNullable<AiJobContextV1['scene']>): boolean {
-  return scene.locationTags.includes('safeTown')
-    || scene.locationTags.includes('watchPost')
-    || scene.structureTags.includes('ruinedChapel')
-    || scene.structureTags.includes('brokenBell')
-    || scene.environmentalTags.includes('militaryOrder');
+  return (
+    scene.locationTags.includes('safeTown') ||
+    scene.locationTags.includes('watchPost') ||
+    scene.structureTags.includes('ruinedChapel') ||
+    scene.structureTags.includes('brokenBell') ||
+    scene.environmentalTags.includes('militaryOrder')
+  );
 }
 
 function isLivingTownScene(scene: NonNullable<AiJobContextV1['scene']>): boolean {
-  return scene.locationTags.includes('safeTown')
-    || scene.locationTags.includes('town')
-    || scene.light.level === 'bright'
-    || scene.environmentalTags.includes('sunlit');
+  return (
+    scene.locationTags.includes('safeTown') ||
+    scene.locationTags.includes('town') ||
+    scene.light.level === 'bright' ||
+    scene.environmentalTags.includes('sunlit')
+  );
 }
 
 function line(
@@ -107,7 +172,15 @@ function line(
     reaction: {
       kind: kind === 'seekShelter' ? 'inspect' : kind,
       ...(targetEntityId !== undefined ? { targetEntityId } : {}),
-      sceneTags: context.scene ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags])].slice(0, 8) : [],
+      sceneTags: context.scene
+        ? [
+            ...new Set([
+              ...context.scene.locationTags,
+              ...context.scene.structureTags,
+              ...context.scene.environmentalTags,
+            ]),
+          ].slice(0, 8)
+        : [],
     },
     pid: context.player.entityId,
   };

@@ -1,16 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  type AiActivePollRuleV1,
   AiActiveTriggerService,
   DEFAULT_ACTIVE_POLL_RULES,
-  type AiActivePollRuleV1,
 } from '../server/ai/active_triggers';
-import { AiWorldDirectorStore } from '../server/ai/world_director';
 import type { AiJobContextV1, AiProvider } from '../server/ai/ai_types';
-import { individualProfileFor, type IndividualTrait } from '../server/ai/singularity';
-import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
+import { type IndividualTrait, individualProfileFor } from '../server/ai/singularity';
+import { AiWorldDirectorStore } from '../server/ai/world_director';
+import { EASTBROOK_LAYOUT, EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
 import { Sim } from '../src/sim/sim';
 import { dist2d, type SimEvent } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
+
+const market = EASTBROOK_LAYOUT.market.stalls.find(
+  (s) => s.id === 'eastbrook_market_stall_world_market',
+)!;
 
 function testRule(overrides: Partial<AiActivePollRuleV1> = {}): AiActivePollRuleV1 {
   return {
@@ -33,7 +37,10 @@ function testRule(overrides: Partial<AiActivePollRuleV1> = {}): AiActivePollRule
   };
 }
 
-function makeWorld(templateId = 'brother_aldric'): { sim: Sim; pid: number; npcId: number } {
+function makeWorld(
+  templateId = 'brother_aldric',
+  npcTemplates = [templateId],
+): { sim: Sim; pid: number; npcId: number } {
   const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
   const pid = sim.addPlayer('warrior', 'Ari');
   const npc = [...sim.entities.values()].find((entity) => entity.templateId === templateId);
@@ -46,19 +53,10 @@ function makeWorld(templateId = 'brother_aldric'): { sim: Sim; pid: number; npcI
   player.prevPos = { ...player.pos };
   sim.grid.update(player);
   sim.playerGrid.update(player);
-  // Official v0.29 added profession masters beside existing hub NPCs. Move
-  // only those new candidates out of range so the pre-existing social layouts
-  // (including their deliberate three-speaker sequences) stay intact.
-  for (const templateId of [
-    'alchemist_verane',
-    'cook_marlow',
-    'forgemistress_darva',
-    'tanner_hesk',
-    'tinker_gizzel',
-    'weaver_ottilie',
-  ]) {
-    const candidate = [...sim.entities.values()].find((entity) => entity.templateId === templateId);
-    if (candidate && candidate.id !== npc.id) {
+  // Candidate sets are deliberate: new canonical NPCs must not silently
+  // replace the named speaker or change a sequence's intended participant count.
+  for (const candidate of sim.entities.values()) {
+    if (candidate.kind === 'npc' && !npcTemplates.includes(candidate.templateId)) {
       moveEntity(sim, candidate.id, npc.pos.x + 80 + candidate.id, npc.pos.z + 80 + candidate.id);
     }
   }
@@ -66,13 +64,17 @@ function makeWorld(templateId = 'brother_aldric'): { sim: Sim; pid: number; npcI
 }
 
 function entityByTemplate(sim: Sim, templateId: string) {
-  const entity = [...sim.entities.values()].find((candidate) => candidate.templateId === templateId);
+  const entity = [...sim.entities.values()].find(
+    (candidate) => candidate.templateId === templateId,
+  );
   if (!entity) throw new Error(`missing ${templateId}`);
   return entity;
 }
 
 function entitiesByTemplate(sim: Sim, templateId: string) {
-  const entities = [...sim.entities.values()].filter((candidate) => candidate.templateId === templateId);
+  const entities = [...sim.entities.values()].filter(
+    (candidate) => candidate.templateId === templateId,
+  );
   if (entities.length === 0) throw new Error(`missing ${templateId}`);
   return entities;
 }
@@ -84,6 +86,7 @@ function moveEntity(sim: Sim, entityId: number, x: number, z: number): void {
   entity.pos.z = z;
   entity.pos.y = groundHeight(entity.pos.x, entity.pos.z, sim.cfg.seed);
   entity.prevPos = { ...entity.pos };
+  if (entity.kind !== 'player') entity.spawnPos = { ...entity.pos };
   sim.grid.update(entity);
   if (entity.kind === 'player') sim.playerGrid.update(entity);
 }
@@ -116,13 +119,17 @@ function isolateNpcCandidate(sim: Sim, npcId: number): void {
   }
 }
 
-function isolateMobCandidate(sim: Sim, mobId: number): void {
-  const target = sim.entities.get(mobId);
+function isolateMobCandidates(sim: Sim, mobIds: number[]): void {
+  const target = sim.entities.get(mobIds[0]);
   if (!target) throw new Error('missing target mob');
   for (const entity of [...sim.entities.values()]) {
-    if (entity.kind !== 'mob' || entity.id === mobId) continue;
+    if (entity.kind !== 'mob' || mobIds.includes(entity.id)) continue;
     moveEntity(sim, entity.id, target.pos.x + 90 + entity.id, target.pos.z + 90 + entity.id);
   }
+}
+
+function isolateMobCandidate(sim: Sim, mobId: number): void {
+  isolateMobCandidates(sim, [mobId]);
 }
 
 function singularityMobByTrait(sim: Sim, trait: IndividualTrait) {
@@ -183,16 +190,18 @@ describe('AI active trigger service', () => {
     const disabled = service.updateConfig({
       pollsEnabled: false,
       realActionsEnabled: false,
-      rules: [{
-        ruleId: 'test_scene_ambient',
-        enabled: false,
-        periodSeconds: 12,
-        jitterSeconds: 3,
-        priority: 12,
-        providerPolicy: 'codexPreferred',
-        outputMode: 'mixedLivingWorld',
-        cooldown: { perPlayerSeconds: 4, perEntitySeconds: 5, perRuleSeconds: 6 },
-      }],
+      rules: [
+        {
+          ruleId: 'test_scene_ambient',
+          enabled: false,
+          periodSeconds: 12,
+          jitterSeconds: 3,
+          priority: 12,
+          providerPolicy: 'codexPreferred',
+          outputMode: 'mixedLivingWorld',
+          cooldown: { perPlayerSeconds: 4, perEntitySeconds: 5, perRuleSeconds: 6 },
+        },
+      ],
     });
 
     expect(disabled.pollsEnabled).toBe(false);
@@ -216,12 +225,19 @@ describe('AI active trigger service', () => {
       rules: [{ ruleId: 'test_scene_ambient', enabled: true, periodSeconds: 1, priority: 100 }],
     });
 
-    expect(enabled.rules[0]).toMatchObject({ ruleId: 'test_scene_ambient', enabled: true, periodSeconds: 1, priority: 100 });
+    expect(enabled.rules[0]).toMatchObject({
+      ruleId: 'test_scene_ambient',
+      enabled: true,
+      periodSeconds: 1,
+      priority: 100,
+    });
     expect(service.tick({ sim, sessions: [{ pid }], nowMs: 2_000 })).toEqual([
       expect.objectContaining({ type: 'aiThinking' }),
       expect.objectContaining({ type: 'aiSpeech' }),
     ]);
-    expect(() => service.updateConfig({ rules: [{ ruleId: 'missing_rule' }] })).toThrow('unknown active trigger rule');
+    expect(() => service.updateConfig({ rules: [{ ruleId: 'missing_rule' }] })).toThrow(
+      'unknown active trigger rule',
+    );
   });
 
   it('fires a personal thinking cue and localized speech for a nearby NPC', () => {
@@ -231,19 +247,23 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiThinking',
-      speakerId: npcId,
-      durationMs: 1_500,
-      pid,
-    }));
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      speech: expect.objectContaining({ mode: 'lineId' }),
-      source: 'local',
-      pid,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiThinking',
+        speakerId: npcId,
+        durationMs: 1_500,
+        pid,
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({ mode: 'lineId' }),
+        source: 'local',
+        pid,
+      }),
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activePollDue: 1,
       activePollFired: 1,
@@ -300,24 +320,28 @@ describe('AI active trigger service', () => {
       events: [{ type: 'questDone', questId: 'q_wolves', pid }],
       nowMs: 1_000,
     });
-    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(expect.objectContaining({
-      kind: 'quest_done',
-      questId: 'q_wolves',
-      playerEntityId: pid,
-    }));
+    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(
+      expect.objectContaining({
+        kind: 'quest_done',
+        questId: 'q_wolves',
+        playerEntityId: pid,
+      }),
+    );
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({
-        mode: 'lineId',
-        lineId: expect.stringMatching(/QuestRumorEcho$/),
-        values: expect.objectContaining({ questId: 'q_wolves' }),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          mode: 'lineId',
+          lineId: expect.stringMatching(/QuestRumorEcho$/),
+          values: expect.objectContaining({ questId: 'q_wolves' }),
+        }),
+        source: 'local',
+        pid,
       }),
-      source: 'local',
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeEventQueued: 1,
       activeEventFired: 1,
@@ -335,10 +359,12 @@ describe('AI active trigger service', () => {
     const requests: unknown[] = [];
 
     service.noteItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, nowMs: 1_000 });
-    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(expect.objectContaining({
-      kind: 'item_discarded',
-      anchorPos: droppedAt,
-    }));
+    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(
+      expect.objectContaining({
+        kind: 'item_discarded',
+        anchorPos: droppedAt,
+      }),
+    );
     const events = service.tick({
       sim,
       sessions: [{ pid }],
@@ -349,26 +375,35 @@ describe('AI active trigger service', () => {
       },
     });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.worldTraceNpcFood',
-        values: expect.objectContaining({ itemId: 'roasted_boar' }),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          mode: 'lineId',
+          lineId: 'hudChrome.aiSpeech.worldTraceNpcFood',
+          values: expect.objectContaining({ itemId: 'roasted_boar' }),
+        }),
+        reaction: expect.objectContaining({
+          kind: 'inspect',
+          targetItemId: 'roasted_boar',
+          targetPos: droppedAt,
+          actionDurationMs: 1900,
+          actionOffset: 0.18,
+        }),
+        source: 'local',
+        pid,
       }),
-      reaction: expect.objectContaining({
-        kind: 'inspect',
-        targetItemId: 'roasted_boar',
-        targetPos: droppedAt,
-        actionDurationMs: 1900,
-        actionOffset: 0.18,
-      }),
-      source: 'local',
-      pid,
-    }));
-    const speech = events.find((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+    );
+    const speech = events.find(
+      (event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech',
+    );
     expect(requests).toEqual([
-      expect.objectContaining({ kind: 'shortMove', npcId: speech?.speakerId, playerId: pid, relation: 'towardPlayer' }),
+      expect.objectContaining({
+        kind: 'shortMove',
+        npcId: speech?.speakerId,
+        playerId: pid,
+        relation: 'towardPlayer',
+      }),
     ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeEventQueued: 1,
@@ -398,7 +433,13 @@ describe('AI active trigger service', () => {
             },
             ttlMs: 1_000,
             confidence: 0.9,
-            speech: [{ mode: 'dynamicText', language: 'en', text: 'You dropped supper where ants can find it.' }],
+            speech: [
+              {
+                mode: 'dynamicText',
+                language: 'en',
+                text: 'You dropped supper where ants can find it.',
+              },
+            ],
             intents: [{ type: 'commentOnScene' }],
             audit: {
               shortReason: 'discarded food event',
@@ -442,16 +483,18 @@ describe('AI active trigger service', () => {
         'fallbackTargetItem:roasted_boar',
       ]),
     });
-    expect(delivered.flat()).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({
-        mode: 'dynamicText',
-        language: 'en',
-        text: 'You dropped supper where ants can find it.',
+    expect(delivered.flat()).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          language: 'en',
+          text: 'You dropped supper where ants can find it.',
+        }),
+        source: 'codex',
+        pid,
       }),
-      source: 'codex',
-      pid,
-    }));
+    );
     expect(service.diagnosticsSnapshot().eventQueue).toHaveLength(0);
     expect(service.runtimeMetrics()).toMatchObject({
       activeEventQueued: 1,
@@ -476,17 +519,19 @@ describe('AI active trigger service', () => {
     const requests: unknown[] = [];
 
     service.noteWorldDirectorStates({ sim, states: [state], nowMs: 1_000 });
-    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(expect.objectContaining({
-      kind: 'world_director',
-      questId: 'q_wolves',
-      directorStateId: state.stateId,
-      directorMood: 'relieved',
-      directorIntent: 'echoQuestRelief',
-      directorLineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
-      sceneId: 'eastbrook_chapel',
-      zoneId: 'eastbrook_vale',
-      observations: expect.arrayContaining(['event:world_director', 'proposal:echoQuestRelief']),
-    }));
+    expect(service.diagnosticsSnapshot().eventQueue).toContainEqual(
+      expect.objectContaining({
+        kind: 'world_director',
+        questId: 'q_wolves',
+        directorStateId: state.stateId,
+        directorMood: 'relieved',
+        directorIntent: 'echoQuestRelief',
+        directorLineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+        sceneId: 'eastbrook_chapel',
+        zoneId: 'eastbrook_vale',
+        observations: expect.arrayContaining(['event:world_director', 'proposal:echoQuestRelief']),
+      }),
+    );
 
     const events = service.tick({
       sim,
@@ -498,26 +543,38 @@ describe('AI active trigger service', () => {
       },
     });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
-        values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          mode: 'lineId',
+          lineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+          values: expect.objectContaining({ questId: 'q_wolves', directorMood: 'relieved' }),
+        }),
+        reaction: expect.objectContaining({
+          kind: 'inspect',
+          planId: state.proposal.proposalId,
+          planKind: 'echoQuestRelief',
+          planIntensity: state.proposal.intensity,
+          sceneTags: expect.arrayContaining([
+            'proposal:echoQuestRelief',
+            `directorState:${state.stateId}`,
+          ]),
+        }),
+        source: 'local',
+        pid,
       }),
-      reaction: expect.objectContaining({
-        kind: 'inspect',
-        planId: state.proposal.proposalId,
-        planKind: 'echoQuestRelief',
-        planIntensity: state.proposal.intensity,
-        sceneTags: expect.arrayContaining(['proposal:echoQuestRelief', `directorState:${state.stateId}`]),
-      }),
-      source: 'local',
-      pid,
-    }));
-    const speech = events.find((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+    );
+    const speech = events.find(
+      (event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech',
+    );
     expect(requests).toEqual([
-      expect.objectContaining({ kind: 'shortMove', npcId: speech?.speakerId, playerId: pid, relation: 'towardPlayer' }),
+      expect.objectContaining({
+        kind: 'shortMove',
+        npcId: speech?.speakerId,
+        playerId: pid,
+        relation: 'towardPlayer',
+      }),
     ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeEventQueued: 1,
@@ -553,7 +610,13 @@ describe('AI active trigger service', () => {
             },
             ttlMs: 1_000,
             confidence: 0.9,
-            speech: [{ mode: 'dynamicText', language: 'en', text: 'The chapel road exhales after the wolf trouble.' }],
+            speech: [
+              {
+                mode: 'dynamicText',
+                language: 'en',
+                text: 'The chapel road exhales after the wolf trouble.',
+              },
+            ],
             intents: [{ type: 'commentOnScene' }],
             audit: {
               shortReason: 'director quest relief',
@@ -586,12 +649,14 @@ describe('AI active trigger service', () => {
     expect(seenContext).toMatchObject({
       trigger: 'active_event',
       outputMode: 'mixed_living_world',
-      directorProposals: [expect.objectContaining({
-        proposalId: state.proposal.proposalId,
-        intent: 'echoQuestRelief',
-        suggestedLineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
-        reasonTags: expect.arrayContaining(['proposal:questEcho']),
-      })],
+      directorProposals: [
+        expect.objectContaining({
+          proposalId: state.proposal.proposalId,
+          intent: 'echoQuestRelief',
+          suggestedLineId: 'hudChrome.aiSpeech.worldDirectorQuestComplete',
+          reasonTags: expect.arrayContaining(['proposal:questEcho']),
+        }),
+      ],
       recentObservations: expect.arrayContaining([
         'event:world_director',
         'directorMood:relieved',
@@ -600,15 +665,17 @@ describe('AI active trigger service', () => {
         'fallbackPlanKind:echoQuestRelief',
       ]),
     });
-    expect(delivered.flat()).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({
-        mode: 'dynamicText',
-        language: 'en',
+    expect(delivered.flat()).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          mode: 'dynamicText',
+          language: 'en',
+        }),
+        source: 'codex',
+        pid,
       }),
-      source: 'codex',
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeProviderCalls: 1,
       activeProviderJobs: 1,
@@ -663,7 +730,9 @@ describe('AI active trigger service', () => {
     const pids = [pid, ...extraPids];
     const service = new AiActiveTriggerService({ rules: [testRule({ priority: 50 })] });
 
-    expect(service.tick({ sim, sessions: pids.map((id) => ({ pid: id })), nowMs: 1_000 })).toEqual([]);
+    expect(service.tick({ sim, sessions: pids.map((id) => ({ pid: id })), nowMs: 1_000 })).toEqual(
+      [],
+    );
 
     expect(service.diagnosticsSnapshot().populationPolicy).toMatchObject({
       band: 'protected',
@@ -706,7 +775,9 @@ describe('AI active trigger service', () => {
   });
 
   it('defaults NPC living routines to dynamic provider text with local fallback metadata', async () => {
-    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_living_routine');
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find(
+      (candidate) => candidate.ruleId === 'npc_living_routine',
+    );
     if (!rule) throw new Error('missing NPC living routine rule');
     expect(rule).toMatchObject({
       providerPolicy: 'codexAllowed',
@@ -769,19 +840,21 @@ describe('AI active trigger service', () => {
         'routineLineId:hudChrome.aiSpeech.sceneDayEnergy',
       ]),
     });
-    expect(delivered).toEqual([[
-      expect.objectContaining({
-        type: 'aiSpeech',
-        speakerId: npcId,
-        speech: expect.objectContaining({
-          mode: 'dynamicText',
-          language: 'zh_CN',
-          text: '午饭点到了。',
+    expect(delivered).toEqual([
+      [
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: npcId,
+          speech: expect.objectContaining({
+            mode: 'dynamicText',
+            language: 'zh_CN',
+            text: '午饭点到了。',
+          }),
+          source: 'codex',
+          pid,
         }),
-        source: 'codex',
-        pid,
-      }),
-    ]]);
+      ],
+    ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeProviderCalls: 1,
       activeProviderJobs: 1,
@@ -804,12 +877,14 @@ describe('AI active trigger service', () => {
       codexMaxCalls5h: 1,
       codexMaxCallsWeek: 1,
       codexReserveRatio: 0,
-      rules: [testRule({
-        ruleId: 'test_living_budget_fallback',
-        category: 'livingRoutine',
-        providerPolicy: 'codexAllowed',
-        outputMode: 'dynamicTextFirst',
-      })],
+      rules: [
+        testRule({
+          ruleId: 'test_living_budget_fallback',
+          category: 'livingRoutine',
+          providerPolicy: 'codexAllowed',
+          outputMode: 'dynamicTextFirst',
+        }),
+      ],
     });
     const nowMs = Date.now();
     service.noteCodexProviderCall(nowMs - 100);
@@ -824,12 +899,17 @@ describe('AI active trigger service', () => {
     });
 
     expect(provider.decide).not.toHaveBeenCalled();
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-      source: 'local',
-      pid,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          mode: 'lineId',
+          lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+        }),
+        source: 'local',
+        pid,
+      }),
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeCodexBudgetDenied: 1,
       activeProviderCalls: 1,
@@ -849,12 +929,14 @@ describe('AI active trigger service', () => {
     } satisfies AiProvider;
     const service = new AiActiveTriggerService({
       provider,
-      rules: [testRule({
-        ruleId: 'test_recent_activity_provider_defer',
-        category: 'livingRoutine',
-        providerPolicy: 'codexAllowed',
-        outputMode: 'dynamicTextFirst',
-      })],
+      rules: [
+        testRule({
+          ruleId: 'test_recent_activity_provider_defer',
+          category: 'livingRoutine',
+          providerPolicy: 'codexAllowed',
+          outputMode: 'dynamicTextFirst',
+        }),
+      ],
     });
 
     const events = service.tick({
@@ -871,7 +953,10 @@ describe('AI active trigger service', () => {
       expect.objectContaining({ type: 'aiThinking', pid }),
       expect.objectContaining({
         type: 'aiSpeech',
-        speech: expect.objectContaining({ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+        speech: expect.objectContaining({
+          mode: 'lineId',
+          lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+        }),
         source: 'local',
         pid,
       }),
@@ -893,15 +978,17 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
-        values: expect.objectContaining({ playerName: 'Ari', speakerName: 'Brother Aldric' }),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+          values: expect.objectContaining({ playerName: 'Ari', speakerName: 'Brother Aldric' }),
+        }),
+        reaction: expect.objectContaining({ kind: 'inspect', planKind: 'praying' }),
+        pid,
       }),
-      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'praying' }),
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
       activeRoutineLastKind: 'praying',
@@ -929,16 +1016,18 @@ describe('AI active trigger service', () => {
 
       const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-      expect(events, templateId).toContainEqual(expect.objectContaining({
-        type: 'aiSpeech',
-        speakerId: npcId,
-        speech: expect.objectContaining({
-          lineId,
-          values: expect.objectContaining({ playerName: 'Ari' }),
+      expect(events, templateId).toContainEqual(
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: npcId,
+          speech: expect.objectContaining({
+            lineId,
+            values: expect.objectContaining({ playerName: 'Ari' }),
+          }),
+          reaction: expect.objectContaining({ kind: 'inspect', planKind }),
+          pid,
         }),
-        reaction: expect.objectContaining({ kind: 'inspect', planKind }),
-        pid,
-      }));
+      );
       expect(service.runtimeMetrics().activeRoutineLastKind, templateId).toBe(planKind);
     }
   });
@@ -953,12 +1042,14 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
-      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'eating' }),
-      pid,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneDayEnergy' }),
+        reaction: expect.objectContaining({ kind: 'inspect', planKind: 'eating' }),
+        pid,
+      }),
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
       activeRoutineLastKind: 'eating',
@@ -991,13 +1082,15 @@ describe('AI active trigger service', () => {
       },
     });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-      reaction: expect.objectContaining({ planKind: 'praying' }),
-      pid,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+        reaction: expect.objectContaining({ planKind: 'praying' }),
+        pid,
+      }),
+    );
     expect(requests).toEqual([
       expect.objectContaining({ kind: 'shortMove', npcId, playerId: pid, maxDistanceFromHome: 3 }),
     ]);
@@ -1045,26 +1138,30 @@ describe('AI active trigger service', () => {
       },
     });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.apothecaryLinAwake' }),
-      reaction: expect.objectContaining({
-        kind: 'inspect',
-        planKind: 'herbalism',
-        targetItemId: 'eastbrook_apothecary_bench',
-        sceneTags: expect.arrayContaining(['focus:eastbrook_apothecary_bench', 'herb', 'sniffHerbs']),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.apothecaryLinAwake' }),
+        reaction: expect.objectContaining({
+          kind: 'inspect',
+          planKind: 'herbalism',
+          targetItemId: 'eastbrook_apothecary_bench',
+          sceneTags: expect.arrayContaining([
+            'focus:eastbrook_apothecary_bench',
+            'herb',
+            'sniffHerbs',
+          ]),
+        }),
+        pid,
       }),
-      pid,
-    }));
+    );
     expect(requests).toEqual([
       expect.objectContaining({
         kind: 'shortMove',
         npcId,
         playerId: pid,
-        targetPos: expect.objectContaining(
-          EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position,
-        ),
+        targetPos: expect.objectContaining(EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position),
       }),
     ]);
     expect(service.runtimeMetrics()).toMatchObject({
@@ -1084,18 +1181,24 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-      reaction: expect.objectContaining({
-        kind: 'inspect',
-        planKind: 'praying',
-        targetItemId: 'eastbrook_wayside_shrine',
-        sceneTags: expect.arrayContaining(['focus:eastbrook_wayside_shrine', 'prayerMemory', 'offerPrayer']),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+        reaction: expect.objectContaining({
+          kind: 'inspect',
+          planKind: 'praying',
+          targetItemId: 'eastbrook_wayside_shrine',
+          sceneTags: expect.arrayContaining([
+            'focus:eastbrook_wayside_shrine',
+            'prayerMemory',
+            'offerPrayer',
+          ]),
+        }),
+        pid,
       }),
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
       activeRoutineLastKind: 'praying',
@@ -1111,12 +1214,14 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneClearNightAwe' }),
-      reaction: expect.objectContaining({ kind: 'inspect', planKind: 'praying' }),
-      pid,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneClearNightAwe' }),
+        reaction: expect.objectContaining({ kind: 'inspect', planKind: 'praying' }),
+        pid,
+      }),
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
       activeRoutineLastKind: 'praying',
@@ -1133,12 +1238,14 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneNightFatigue' }),
-      reaction: expect.objectContaining({ kind: 'avoid', planKind: 'sleeping' }),
-      pid,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.sceneNightFatigue' }),
+        reaction: expect.objectContaining({ kind: 'avoid', planKind: 'sleeping' }),
+        pid,
+      }),
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
       activeRoutineLastKind: 'sleeping',
@@ -1148,8 +1255,9 @@ describe('AI active trigger service', () => {
   it('lets nearby wild creatures show family life without touching mainline state', () => {
     const { sim, pid } = makeWorld();
     const wolf = entityByTemplate(sim, 'forest_wolf');
-    moveEntity(sim, wolf.id, 8, 17);
-    moveEntity(sim, pid, 9, 17);
+    moveEntity(sim, wolf.id, market.position.x, market.position.z);
+    isolateMobCandidate(sim, wolf.id);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const before = mainlineSnapshot(sim, pid);
     const service = new AiActiveTriggerService({
       rules: [testRule({ ruleId: 'test_creature_forge', category: 'creatureRoutine' })],
@@ -1157,24 +1265,33 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiThinking',
-      speakerId: wolf.id,
-      pid,
-    }));
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: wolf.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy' }),
-      reaction: expect.objectContaining({
-        kind: 'avoid',
-        planKind: 'keepDistanceFromFire',
-        individualTier: expect.any(String),
-        sceneTags: expect.arrayContaining(['family:beast', 'routine:keepDistanceFromFire', 'forge', 'workNoise']),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiThinking',
+        speakerId: wolf.id,
+        pid,
       }),
-      source: 'local',
-      pid,
-    }));
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: wolf.id,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy' }),
+        reaction: expect.objectContaining({
+          kind: 'avoid',
+          planKind: 'keepDistanceFromFire',
+          individualTier: expect.any(String),
+          sceneTags: expect.arrayContaining([
+            'family:beast',
+            'routine:keepDistanceFromFire',
+            'forge',
+            'workNoise',
+          ]),
+        }),
+        source: 'local',
+        pid,
+      }),
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activePollFired: 1,
       activeRoutineFired: 1,
@@ -1184,7 +1301,9 @@ describe('AI active trigger service', () => {
   });
 
   it('defaults creature routines to dynamic provider text with family semantics', async () => {
-    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'creature_living_routine');
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find(
+      (candidate) => candidate.ruleId === 'creature_living_routine',
+    );
     if (!rule) throw new Error('missing creature living routine rule');
     expect(rule).toMatchObject({
       providerPolicy: 'codexAllowed',
@@ -1194,8 +1313,9 @@ describe('AI active trigger service', () => {
     const { sim, pid } = makeWorld();
     const wolf = entityByTemplate(sim, 'forest_wolf');
     const individual = individualProfileFor(wolf, sim.cfg.seed);
-    moveEntity(sim, wolf.id, 8, 17);
-    moveEntity(sim, pid, 9, 17);
+    moveEntity(sim, wolf.id, market.position.x, market.position.z);
+    isolateMobCandidate(sim, wolf.id);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     let seenContext: AiJobContextV1 | null = null;
     const provider: AiProvider = {
       async decide(context) {
@@ -1256,19 +1376,21 @@ describe('AI active trigger service', () => {
         'planKind:keepDistanceFromFire',
       ]),
     });
-    expect(delivered).toEqual([[
-      expect.objectContaining({
-        type: 'aiSpeech',
-        speakerId: wolf.id,
-        speech: expect.objectContaining({
-          mode: 'dynamicText',
-          language: 'en',
-          text: 'Sniffs once. Fire.',
+    expect(delivered).toEqual([
+      [
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: wolf.id,
+          speech: expect.objectContaining({
+            mode: 'dynamicText',
+            language: 'en',
+            text: 'Sniffs once. Fire.',
+          }),
+          source: 'codex',
+          pid,
         }),
-        source: 'codex',
-        pid,
-      }),
-    ]]);
+      ],
+    ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeProviderCalls: 1,
       activeProviderJobs: 1,
@@ -1291,32 +1413,36 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiThinking',
-      speakerId: singularity.id,
-      pid,
-    }));
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: singularity.id,
-      speech: expect.objectContaining({
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
-        values: expect.objectContaining({
-          playerName: 'Ari',
-          speakerTemplateId: singularity.templateId,
-          individualAlias: 'stargazer',
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiThinking',
+        speakerId: singularity.id,
+        pid,
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: singularity.id,
+        speech: expect.objectContaining({
+          mode: 'lineId',
+          lineId: 'hudChrome.aiSpeech.singularityRemembersScene',
+          values: expect.objectContaining({
+            playerName: 'Ari',
+            speakerTemplateId: singularity.templateId,
+            individualAlias: 'stargazer',
+          }),
         }),
+        reaction: expect.objectContaining({
+          planKind: 'watchSky',
+          individualTier: 'singularity',
+          individualTraits: expect.arrayContaining(['stargazer']),
+          sceneTags: expect.arrayContaining(['singularity:watchSky', 'trait:stargazer']),
+        }),
+        source: 'local',
+        pid,
       }),
-      reaction: expect.objectContaining({
-        planKind: 'watchSky',
-        individualTier: 'singularity',
-        individualTraits: expect.arrayContaining(['stargazer']),
-        sceneTags: expect.arrayContaining(['singularity:watchSky', 'trait:stargazer']),
-      }),
-      source: 'local',
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
       activeRoutineLastKind: expect.stringContaining('singularity:watchSky'),
@@ -1349,17 +1475,23 @@ describe('AI active trigger service', () => {
       },
     });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: wolf.id,
-      reaction: expect.objectContaining({ kind: 'avoid' }),
-      pid,
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: wolf.id,
+        reaction: expect.objectContaining({ kind: 'avoid' }),
+        pid,
+      }),
+    );
     expect(requests).toEqual([
       expect.objectContaining({ intent: 'flee', mobId: wolf.id, playerId: pid }),
     ]);
     expect(results).toEqual([
-      expect.objectContaining({ ok: true, intent: 'flee', affectedEntityIds: expect.arrayContaining([wolf.id]) }),
+      expect.objectContaining({
+        ok: true,
+        intent: 'flee',
+        affectedEntityIds: expect.arrayContaining([wolf.id]),
+      }),
     ]);
     expect(wolf.aiState).toBe('flee');
     expect(wolf.aggroTargetId).toBe(pid);
@@ -1399,7 +1531,9 @@ describe('AI active trigger service', () => {
       }),
     });
 
-    expect(events).toContainEqual(expect.objectContaining({ type: 'aiSpeech', speakerId: wolf.id }));
+    expect(events).toContainEqual(
+      expect.objectContaining({ type: 'aiSpeech', speakerId: wolf.id }),
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeActionsAttempted: 1,
       activeActionsApplied: 0,
@@ -1425,17 +1559,21 @@ describe('AI active trigger service', () => {
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: wolf.id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy' }),
-      reaction: expect.objectContaining({
-        kind: 'avoid',
-        sceneTags: expect.arrayContaining(['ruinedChapel', 'undeadMemory']),
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: wolf.id,
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.companionSelfBeastScentUneasy',
+        }),
+        reaction: expect.objectContaining({
+          kind: 'avoid',
+          sceneTags: expect.arrayContaining(['ruinedChapel', 'undeadMemory']),
+        }),
+        source: 'local',
+        pid,
       }),
-      source: 'local',
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activeRoutineFired: 1,
       activeRoutineLastKind: 'companion:beast:avoid',
@@ -1444,13 +1582,15 @@ describe('AI active trigger service', () => {
   });
 
   it('builds a paced NPC social sequence with reciprocal attention targets', () => {
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const before = mainlineSnapshot(sim, pid);
     const service = new AiActiveTriggerService({
       thinkingDurationMs: 800,
@@ -1458,8 +1598,13 @@ describe('AI active trigger service', () => {
     });
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
-    const thinking = events.filter((event): event is Extract<typeof event, { type: 'aiThinking' }> => event.type === 'aiThinking');
-    const speech = events.filter((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+    const thinking = events.filter(
+      (event): event is Extract<typeof event, { type: 'aiThinking' }> =>
+        event.type === 'aiThinking',
+    );
+    const speech = events.filter(
+      (event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech',
+    );
     const speakerIds = thinking.map((event) => event.speakerId);
 
     expect(events).toHaveLength(6);
@@ -1467,37 +1612,46 @@ describe('AI active trigger service', () => {
     expect(speech).toHaveLength(3);
     expect(thinking.map((event) => event.durationMs)).toEqual([800, 2_000, 3_200]);
     expect(speakerIds).toEqual(expect.arrayContaining([merchant.id, marshal.id]));
-    expect(speech).toContainEqual(expect.objectContaining({
-      speakerId: merchant.id,
-      speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.merchantMarketPulse',
-        values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+    expect(speech).toContainEqual(
+      expect.objectContaining({
+        speakerId: merchant.id,
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.merchantMarketPulse',
+          values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+        }),
+        reaction: expect.objectContaining({
+          targetItemId: 'eastbrook_market_stall',
+          planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
+          sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+        }),
+        pid,
       }),
-      reaction: expect.objectContaining({
-        targetItemId: 'eastbrook_market_stall',
-        planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
-        sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+    );
+    expect(speech).toContainEqual(
+      expect.objectContaining({
+        speakerId: marshal.id,
+        speech: expect.objectContaining({
+          lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake',
+          values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+        }),
+        reaction: expect.objectContaining({
+          targetItemId: 'eastbrook_market_stall',
+          planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
+          sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
+        }),
+        pid,
       }),
-      pid,
-    }));
-    expect(speech).toContainEqual(expect.objectContaining({
-      speakerId: marshal.id,
-      speech: expect.objectContaining({
-        lineId: 'hudChrome.aiSpeech.marshalRedbrookAwake',
-        values: expect.objectContaining({ playerName: 'Ari', partnerName: expect.any(String) }),
+    );
+    expect(speech).toContainEqual(
+      expect.objectContaining({
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.topicRecentKnown' }),
+        reaction: expect.objectContaining({
+          targetEntityId: speakerIds[0],
+          planKind: 'conversationAside',
+        }),
+        pid,
       }),
-      reaction: expect.objectContaining({
-        targetItemId: 'eastbrook_market_stall',
-        planKind: expect.stringMatching(/^conversation(Start|Reply)$/),
-        sceneTags: expect.arrayContaining(['focus:eastbrook_market_stall', 'coin', 'watchCrowd']),
-      }),
-      pid,
-    }));
-    expect(speech).toContainEqual(expect.objectContaining({
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.topicRecentKnown' }),
-      reaction: expect.objectContaining({ targetEntityId: speakerIds[0], planKind: 'conversationAside' }),
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activePollFired: 1,
       activeSequenceFired: 1,
@@ -1509,20 +1663,24 @@ describe('AI active trigger service', () => {
 
   it('defaults NPC social sequences to a dynamic provider opening beat', async () => {
     vi.useFakeTimers();
-    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find(
+      (candidate) => candidate.ruleId === 'npc_social_sequence',
+    );
     if (!rule) throw new Error('missing NPC social sequence rule');
     expect(rule).toMatchObject({
       providerPolicy: 'codexAllowed',
       outputMode: 'dynamicTextFirst',
     });
 
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     let seenContext: AiJobContextV1 | null = null;
     const provider: AiProvider = {
       async decide(context) {
@@ -1566,15 +1724,21 @@ describe('AI active trigger service', () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      expect(immediate).toEqual([
-        expect.objectContaining({ type: 'aiThinking', pid }),
-      ]);
+      expect(immediate).toEqual([expect.objectContaining({ type: 'aiThinking', pid })]);
       expect(seenContext).toMatchObject({
         trigger: 'active_poll',
         outputMode: 'dynamic_text_experiment',
         sequenceParticipants: expect.arrayContaining([
-          expect.objectContaining({ entityId: merchant.id, templateId: merchant.templateId, name: merchant.name }),
-          expect.objectContaining({ entityId: marshal.id, templateId: marshal.templateId, name: marshal.name }),
+          expect.objectContaining({
+            entityId: merchant.id,
+            templateId: merchant.templateId,
+            name: merchant.name,
+          }),
+          expect.objectContaining({
+            entityId: marshal.id,
+            templateId: marshal.templateId,
+            name: marshal.name,
+          }),
         ]),
         recentObservations: expect.arrayContaining([
           'rule:npc_social_sequence',
@@ -1591,20 +1755,24 @@ describe('AI active trigger service', () => {
         templateId: openerContext.entity.templateId,
         name: openerContext.entity.name,
       });
-      expect(delivered.flat()).toContainEqual(expect.objectContaining({
-        type: 'aiSpeech',
-        speech: expect.objectContaining({
-          mode: 'dynamicText',
-          language: 'en',
-          text: 'Coin sounds sharp tonight.',
+      expect(delivered.flat()).toContainEqual(
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speech: expect.objectContaining({
+            mode: 'dynamicText',
+            language: 'en',
+            text: 'Coin sounds sharp tonight.',
+          }),
+          source: 'codex',
+          pid,
         }),
-        source: 'codex',
-        pid,
-      }));
-      expect(delivered.flat()).toContainEqual(expect.objectContaining({
-        type: 'aiThinking',
-        pid,
-      }));
+      );
+      expect(delivered.flat()).toContainEqual(
+        expect.objectContaining({
+          type: 'aiThinking',
+          pid,
+        }),
+      );
       expect(service.runtimeMetrics()).toMatchObject({
         activeProviderCalls: 1,
         activeProviderJobs: 1,
@@ -1620,15 +1788,19 @@ describe('AI active trigger service', () => {
 
   it('paces multiple provider social sequence lines across nearby participants', async () => {
     vi.useFakeTimers();
-    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find(
+      (candidate) => candidate.ruleId === 'npc_social_sequence',
+    );
     if (!rule) throw new Error('missing NPC social sequence rule');
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     let seenContext: AiJobContextV1 | null = null;
     const provider: AiProvider = {
       async decide(context) {
@@ -1645,7 +1817,11 @@ describe('AI active trigger service', () => {
             ttlMs: 1_000,
             confidence: 0.9,
             speech: [
-              { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
+              {
+                mode: 'dynamicText',
+                language: 'en',
+                text: 'The market awning smells of wet rope.',
+              },
               { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
               { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
             ],
@@ -1683,10 +1859,21 @@ describe('AI active trigger service', () => {
       if (!capturedContext) throw new Error('provider did not receive social sequence context');
       expect(capturedContext).toMatchObject({
         sequenceParticipants: expect.arrayContaining([
-          expect.objectContaining({ entityId: merchant.id, templateId: merchant.templateId, name: merchant.name }),
-          expect.objectContaining({ entityId: marshal.id, templateId: marshal.templateId, name: marshal.name }),
+          expect.objectContaining({
+            entityId: merchant.id,
+            templateId: merchant.templateId,
+            name: merchant.name,
+          }),
+          expect.objectContaining({
+            entityId: marshal.id,
+            templateId: marshal.templateId,
+            name: marshal.name,
+          }),
         ]),
-        recentObservations: expect.arrayContaining(['sequence:social', expect.stringMatching(/^partnerName:/)]),
+        recentObservations: expect.arrayContaining([
+          'sequence:social',
+          expect.stringMatching(/^partnerName:/),
+        ]),
       });
       expect(capturedContext.sequenceParticipants?.[0]).toMatchObject({
         slot: 0,
@@ -1699,7 +1886,11 @@ describe('AI active trigger service', () => {
           expect.objectContaining({
             type: 'aiSpeech',
             speakerId: capturedContext.entity.entityId,
-            speech: { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
+            speech: {
+              mode: 'dynamicText',
+              language: 'en',
+              text: 'The market awning smells of wet rope.',
+            },
             source: 'codex',
             reaction: expect.objectContaining({
               targetItemId: 'eastbrook_market_stall',
@@ -1726,7 +1917,11 @@ describe('AI active trigger service', () => {
         expect.objectContaining({
           type: 'aiSpeech',
           speakerId: expect.any(Number),
-          speech: { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+          speech: {
+            mode: 'dynamicText',
+            language: 'en',
+            text: 'Keep the coins under the dry plank.',
+          },
           source: 'codex',
           reaction: expect.objectContaining({ planKind: 'conversationReply' }),
           pid,
@@ -1743,15 +1938,19 @@ describe('AI active trigger service', () => {
 
   it('keeps local tail beats when provider social sequence returns fewer lines than the scene can support', async () => {
     vi.useFakeTimers();
-    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find(
+      (candidate) => candidate.ruleId === 'npc_social_sequence',
+    );
     if (!rule) throw new Error('missing NPC social sequence rule');
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const delivered: SimEvent[][] = [];
     const service = new AiActiveTriggerService({
       provider: {
@@ -1768,8 +1967,16 @@ describe('AI active trigger service', () => {
               ttlMs: 1_000,
               confidence: 0.9,
               speech: [
-                { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
-                { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+                {
+                  mode: 'dynamicText',
+                  language: 'en',
+                  text: 'The market awning smells of wet rope.',
+                },
+                {
+                  mode: 'dynamicText',
+                  language: 'en',
+                  text: 'Keep the coins under the dry plank.',
+                },
               ],
               intents: [{ type: 'commentOnScene' }],
               audit: {
@@ -1801,7 +2008,11 @@ describe('AI active trigger service', () => {
       expect(delivered[0]).toEqual([
         expect.objectContaining({
           type: 'aiSpeech',
-          speech: { mode: 'dynamicText', language: 'en', text: 'The market awning smells of wet rope.' },
+          speech: {
+            mode: 'dynamicText',
+            language: 'en',
+            text: 'The market awning smells of wet rope.',
+          },
           source: 'codex',
           pid,
         }),
@@ -1815,7 +2026,11 @@ describe('AI active trigger service', () => {
       expect(delivered[2]).toEqual([
         expect.objectContaining({
           type: 'aiSpeech',
-          speech: { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+          speech: {
+            mode: 'dynamicText',
+            language: 'en',
+            text: 'Keep the coins under the dry plank.',
+          },
           source: 'codex',
           pid,
         }),
@@ -1842,7 +2057,9 @@ describe('AI active trigger service', () => {
 
   it('uses the dynamic provider for wild creature social sequence openers', async () => {
     vi.useFakeTimers();
-    const rule = DEFAULT_ACTIVE_POLL_RULES.find((candidate) => candidate.ruleId === 'npc_social_sequence');
+    const rule = DEFAULT_ACTIVE_POLL_RULES.find(
+      (candidate) => candidate.ruleId === 'npc_social_sequence',
+    );
     if (!rule) throw new Error('missing NPC social sequence rule');
     const { sim, pid } = makeWorld();
     for (const npc of [...sim.entities.values()].filter((entity) => entity.kind === 'npc')) {
@@ -1850,9 +2067,13 @@ describe('AI active trigger service', () => {
     }
     const wolves = entitiesByTemplate(sim, 'forest_wolf').slice(0, 2);
     if (wolves.length < 2) throw new Error('missing wolf pair');
-    moveEntity(sim, wolves[0].id, 8, 17);
-    moveEntity(sim, wolves[1].id, 10, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, wolves[0].id, market.position.x, market.position.z);
+    moveEntity(sim, wolves[1].id, market.position.x + 2, market.position.z);
+    isolateMobCandidates(
+      sim,
+      wolves.map((w) => w.id),
+    );
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     let seenContext: AiJobContextV1 | null = null;
     const provider: AiProvider = {
       async decide(context) {
@@ -1868,7 +2089,9 @@ describe('AI active trigger service', () => {
             },
             ttlMs: 1_000,
             confidence: 0.9,
-            speech: [{ mode: 'dynamicText', language: 'en', text: 'The pack hates this forge smoke.' }],
+            speech: [
+              { mode: 'dynamicText', language: 'en', text: 'The pack hates this forge smoke.' },
+            ],
             intents: [{ type: 'commentOnScene' }],
             audit: {
               shortReason: 'creature social opener',
@@ -1913,22 +2136,26 @@ describe('AI active trigger service', () => {
           'partner:forest_wolf',
         ]),
       });
-      expect(delivered.flat()).toContainEqual(expect.objectContaining({
-        type: 'aiSpeech',
-        speakerId: wolves[0].id,
-        speech: expect.objectContaining({
-          mode: 'dynamicText',
-          language: 'en',
-          text: 'The pack hates this forge smoke.',
+      expect(delivered.flat()).toContainEqual(
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: wolves[0].id,
+          speech: expect.objectContaining({
+            mode: 'dynamicText',
+            language: 'en',
+            text: 'The pack hates this forge smoke.',
+          }),
+          source: 'codex',
+          pid,
         }),
-        source: 'codex',
-        pid,
-      }));
-      expect(delivered.flat()).toContainEqual(expect.objectContaining({
-        type: 'aiThinking',
-        speakerId: wolves[1].id,
-        pid,
-      }));
+      );
+      expect(delivered.flat()).toContainEqual(
+        expect.objectContaining({
+          type: 'aiThinking',
+          speakerId: wolves[1].id,
+          pid,
+        }),
+      );
       expect(service.runtimeMetrics()).toMatchObject({
         activeProviderCalls: 1,
         activeProviderJobs: 1,
@@ -1943,13 +2170,15 @@ describe('AI active trigger service', () => {
   });
 
   it('applies short NPC actions when social sequences become live behavior', () => {
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const requests: unknown[] = [];
     const service = new AiActiveTriggerService({
       thinkingDurationMs: 800,
@@ -1967,7 +2196,10 @@ describe('AI active trigger service', () => {
     });
 
     const speakerIds = events
-      .filter((event): event is Extract<typeof event, { type: 'aiThinking' }> => event.type === 'aiThinking')
+      .filter(
+        (event): event is Extract<typeof event, { type: 'aiThinking' }> =>
+          event.type === 'aiThinking',
+      )
       .map((event) => event.speakerId);
     expect(requests).toEqual([
       expect.objectContaining({
@@ -1975,14 +2207,14 @@ describe('AI active trigger service', () => {
         npcId: speakerIds[0],
         playerId: pid,
         relation: 'sideStep',
-        targetPos: expect.objectContaining({ x: 15, z: 14 }),
+        targetPos: expect.objectContaining(market.position),
       }),
       expect.objectContaining({
         kind: 'shortMove',
         npcId: speakerIds[1],
         playerId: pid,
         relation: 'towardPlayer',
-        targetPos: expect.objectContaining({ x: 15, z: 14 }),
+        targetPos: expect.objectContaining(market.position),
       }),
     ]);
     expect(service.runtimeMetrics()).toMatchObject({
@@ -2002,9 +2234,13 @@ describe('AI active trigger service', () => {
     }
     const wolves = entitiesByTemplate(sim, 'forest_wolf').slice(0, 2);
     if (wolves.length < 2) throw new Error('missing wolf pair');
-    moveEntity(sim, wolves[0].id, 8, 17);
-    moveEntity(sim, wolves[1].id, 10, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, wolves[0].id, market.position.x, market.position.z);
+    moveEntity(sim, wolves[1].id, market.position.x + 2, market.position.z);
+    isolateMobCandidates(
+      sim,
+      wolves.map((w) => w.id),
+    );
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const before = mainlineSnapshot(sim, pid);
     const service = new AiActiveTriggerService({
       thinkingDurationMs: 800,
@@ -2012,32 +2248,41 @@ describe('AI active trigger service', () => {
     });
 
     const events = service.tick({ sim, sessions: [{ pid }], nowMs: 1_000 });
-    const thinking = events.filter((event): event is Extract<typeof event, { type: 'aiThinking' }> => event.type === 'aiThinking');
-    const speech = events.filter((event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech');
+    const thinking = events.filter(
+      (event): event is Extract<typeof event, { type: 'aiThinking' }> =>
+        event.type === 'aiThinking',
+    );
+    const speech = events.filter(
+      (event): event is Extract<typeof event, { type: 'aiSpeech' }> => event.type === 'aiSpeech',
+    );
 
     expect(events).toHaveLength(4);
     expect(thinking).toHaveLength(2);
     expect(speech).toHaveLength(2);
     expect(thinking.map((event) => event.speakerId)).toEqual(wolves.map((wolf) => wolf.id));
-    expect(speech[0]).toEqual(expect.objectContaining({
-      speakerId: wolves[0].id,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy' }),
-      reaction: expect.objectContaining({
-        kind: 'avoid',
-        targetEntityId: wolves[1].id,
-        planKind: 'packScentStart',
-        sceneTags: expect.arrayContaining(['sequence:packScentStart', 'family:beast']),
+    expect(speech[0]).toEqual(
+      expect.objectContaining({
+        speakerId: wolves[0].id,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.familySceneBeastUneasy' }),
+        reaction: expect.objectContaining({
+          kind: 'avoid',
+          targetEntityId: wolves[1].id,
+          planKind: 'packScentStart',
+          sceneTags: expect.arrayContaining(['sequence:packScentStart', 'family:beast']),
+        }),
+        pid,
       }),
-      pid,
-    }));
-    expect(speech[1]).toEqual(expect.objectContaining({
-      speakerId: wolves[1].id,
-      reaction: expect.objectContaining({
-        targetEntityId: wolves[0].id,
-        planKind: 'creatureSequenceReply',
+    );
+    expect(speech[1]).toEqual(
+      expect.objectContaining({
+        speakerId: wolves[1].id,
+        reaction: expect.objectContaining({
+          targetEntityId: wolves[0].id,
+          planKind: 'creatureSequenceReply',
+        }),
+        pid,
       }),
-      pid,
-    }));
+    );
     expect(service.runtimeMetrics()).toMatchObject({
       activePollFired: 1,
       activeSequenceFired: 1,
@@ -2056,6 +2301,10 @@ describe('AI active trigger service', () => {
     if (murlocs.length < 2) throw new Error('missing murloc pair');
     moveEntity(sim, murlocs[0].id, -75, 57);
     moveEntity(sim, murlocs[1].id, -73, 57);
+    isolateMobCandidates(
+      sim,
+      murlocs.map((m) => m.id),
+    );
     moveEntity(sim, pid, -74, 58);
     const before = mainlineSnapshot(sim, pid);
     const requests: unknown[] = [];
@@ -2077,17 +2326,23 @@ describe('AI active trigger service', () => {
       },
     });
 
-    expect(events).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: murlocs[0].id,
-      reaction: expect.objectContaining({ planKind: 'murlocAlarmStart' }),
-      pid,
-    }));
-    expect(requests).toContainEqual(expect.objectContaining({ mobId: murlocs[0].id, playerId: pid, social: true }));
-    expect(results).toContainEqual(expect.objectContaining({
-      ok: true,
-      affectedEntityIds: expect.arrayContaining([murlocs[0].id]),
-    }));
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: murlocs[0].id,
+        reaction: expect.objectContaining({ planKind: 'murlocAlarmStart' }),
+        pid,
+      }),
+    );
+    expect(requests).toContainEqual(
+      expect.objectContaining({ mobId: murlocs[0].id, playerId: pid, social: true }),
+    );
+    expect(results).toContainEqual(
+      expect.objectContaining({
+        ok: true,
+        affectedEntityIds: expect.arrayContaining([murlocs[0].id]),
+      }),
+    );
     expect(murlocs.some((murloc) => murloc.inCombat && murloc.aggroTargetId === pid)).toBe(true);
     const metrics = service.runtimeMetrics();
     expect(metrics.activeActionsAttempted).toBeGreaterThanOrEqual(1);
@@ -2099,13 +2354,15 @@ describe('AI active trigger service', () => {
 
   it('delivers social sequence beats over time when a live deliver callback is available', async () => {
     vi.useFakeTimers();
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const delivered: SimEvent[][] = [];
     const service = new AiActiveTriggerService({
       thinkingDurationMs: 800,
@@ -2128,9 +2385,7 @@ describe('AI active trigger service', () => {
       await vi.advanceTimersByTimeAsync(799);
       expect(delivered).toEqual([]);
       await vi.advanceTimersByTimeAsync(1);
-      expect(delivered).toEqual([
-        [expect.objectContaining({ type: 'aiSpeech', pid })],
-      ]);
+      expect(delivered).toEqual([[expect.objectContaining({ type: 'aiSpeech', pid })]]);
       await vi.advanceTimersByTimeAsync(900);
       expect(delivered).toHaveLength(2);
       expect(delivered[1]).toEqual([
@@ -2138,9 +2393,7 @@ describe('AI active trigger service', () => {
       ]);
       await vi.advanceTimersByTimeAsync(2_000);
       expect(delivered).toHaveLength(3);
-      expect(delivered[2]).toEqual([
-        expect.objectContaining({ type: 'aiSpeech', pid }),
-      ]);
+      expect(delivered[2]).toEqual([expect.objectContaining({ type: 'aiSpeech', pid })]);
     } finally {
       service.stop();
       vi.useRealTimers();
@@ -2149,17 +2402,21 @@ describe('AI active trigger service', () => {
 
   it('exposes and cancels running paced sequences before delayed beats deliver', async () => {
     vi.useFakeTimers();
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const delivered: SimEvent[][] = [];
     const service = new AiActiveTriggerService({
       thinkingDurationMs: 800,
-      rules: [testRule({ ruleId: 'test_social_sequence_cancel_admin', category: 'socialSequence' })],
+      rules: [
+        testRule({ ruleId: 'test_social_sequence_cancel_admin', category: 'socialSequence' }),
+      ],
     });
 
     try {
@@ -2200,15 +2457,17 @@ describe('AI active trigger service', () => {
 
   it('cancels paced social sequence beats when the player enters combat', async () => {
     vi.useFakeTimers();
-    const { sim, pid } = makeWorld();
+    const { sim, pid } = makeWorld('the_merchant', [
+      'the_merchant',
+      'marshal_redbrook',
+      'foreman_odell',
+    ]);
     sim.time = 8 * 60;
     const merchant = entityByTemplate(sim, 'the_merchant');
     const marshal = entityByTemplate(sim, 'marshal_redbrook');
     const player = sim.entities.get(pid);
     if (!player) throw new Error('missing player');
-    moveEntity(sim, merchant.id, 9, 17);
-    moveEntity(sim, marshal.id, 12, 17);
-    moveEntity(sim, pid, 9, 18);
+    moveEntity(sim, pid, market.frontStandingPoint.x, market.frontStandingPoint.z);
     const delivered: SimEvent[][] = [];
     const service = new AiActiveTriggerService({
       thinkingDurationMs: 800,
@@ -2268,11 +2527,13 @@ describe('AI active trigger service', () => {
     const delivered: ReturnType<AiActiveTriggerService['tick']>[] = [];
     const service = new AiActiveTriggerService({
       provider,
-      rules: [testRule({
-        ruleId: 'test_provider_dynamic',
-        providerPolicy: 'codexPreferred',
-        outputMode: 'mixedLivingWorld',
-      })],
+      rules: [
+        testRule({
+          ruleId: 'test_provider_dynamic',
+          providerPolicy: 'codexPreferred',
+          outputMode: 'mixedLivingWorld',
+        }),
+      ],
     });
 
     const immediate = service.tick({
@@ -2342,11 +2603,13 @@ describe('AI active trigger service', () => {
     const delivered: ReturnType<AiActiveTriggerService['tick']>[] = [];
     const service = new AiActiveTriggerService({
       provider,
-      rules: [testRule({
-        ruleId: 'test_provider_rejection_reason',
-        providerPolicy: 'codexPreferred',
-        outputMode: 'mixedLivingWorld',
-      })],
+      rules: [
+        testRule({
+          ruleId: 'test_provider_rejection_reason',
+          providerPolicy: 'codexPreferred',
+          outputMode: 'mixedLivingWorld',
+        }),
+      ],
     });
 
     const immediate = service.tick({
@@ -2360,15 +2623,17 @@ describe('AI active trigger service', () => {
     expect(immediate).toEqual([
       expect.objectContaining({ type: 'aiThinking', speakerId: npcId, pid }),
     ]);
-    expect(delivered).toEqual([[
-      expect.objectContaining({
-        type: 'aiSpeech',
-        speakerId: npcId,
-        speech: expect.objectContaining({ mode: 'lineId' }),
-        source: 'local',
-        pid,
-      }),
-    ]]);
+    expect(delivered).toEqual([
+      [
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: npcId,
+          speech: expect.objectContaining({ mode: 'lineId' }),
+          source: 'local',
+          pid,
+        }),
+      ],
+    ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeProviderCalls: 2,
       activeProviderJobs: 2,
@@ -2420,7 +2685,13 @@ describe('AI active trigger service', () => {
             },
             ttlMs: 1_000,
             confidence: 0.9,
-            speech: [{ mode: 'dynamicText', language: 'en', text: 'The chapel bell shakes dust from the rafters.' }],
+            speech: [
+              {
+                mode: 'dynamicText',
+                language: 'en',
+                text: 'The chapel bell shakes dust from the rafters.',
+              },
+            ],
             intents: [{ type: 'commentOnScene' }],
             audit: {
               shortReason: 'repair with concrete scene hook',
@@ -2434,11 +2705,13 @@ describe('AI active trigger service', () => {
     const delivered: ReturnType<AiActiveTriggerService['tick']>[] = [];
     const service = new AiActiveTriggerService({
       provider,
-      rules: [testRule({
-        ruleId: 'test_provider_repair_success',
-        providerPolicy: 'codexPreferred',
-        outputMode: 'mixedLivingWorld',
-      })],
+      rules: [
+        testRule({
+          ruleId: 'test_provider_repair_success',
+          providerPolicy: 'codexPreferred',
+          outputMode: 'mixedLivingWorld',
+        }),
+      ],
     });
 
     const immediate = service.tick({
@@ -2463,19 +2736,21 @@ describe('AI active trigger service', () => {
       'providerRepair:writeOneConcreteGroundedLine',
       'providerRepair:avoidVagueSensoryQuestions',
     ]);
-    expect(delivered).toEqual([[
-      expect.objectContaining({
-        type: 'aiSpeech',
-        speakerId: npcId,
-        speech: expect.objectContaining({
-          mode: 'dynamicText',
-          language: 'en',
-          text: 'Shakes dust from the rafters.',
+    expect(delivered).toEqual([
+      [
+        expect.objectContaining({
+          type: 'aiSpeech',
+          speakerId: npcId,
+          speech: expect.objectContaining({
+            mode: 'dynamicText',
+            language: 'en',
+            text: 'Shakes dust from the rafters.',
+          }),
+          source: 'codex',
+          pid,
         }),
-        source: 'codex',
-        pid,
-      }),
-    ]]);
+      ],
+    ]);
     expect(service.runtimeMetrics()).toMatchObject({
       activeProviderCalls: 2,
       activeProviderJobs: 2,

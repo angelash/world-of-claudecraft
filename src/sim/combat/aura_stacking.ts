@@ -10,25 +10,59 @@ import type { Aura } from '../types';
 // or listed here; a new group buff with neither guard fails that test loudly.
 export const SOURCE_INDEPENDENT_GROUP_BUFF_AURA_IDS: ReadonlySet<string> = new Set([
   'arcane_intellect',
+  // Pack Rally uses three fixed aura ids. A later Hunter refreshes the group
+  // effect instead of multiplying it across sources.
+  'hunter_pack_rally_speed',
+  'hunter_pack_rally_haste',
+  'hunter_pack_rally_spellhaste',
   // Wildfang Rally (v0.27.1): two hunters must not double the +45 AP / +5%
   // haste; both halves dedupe across sources like every other group buff.
   'aspect_of_the_wild',
   'aspect_of_the_wild_ap',
   'battle_shout',
   'blessing_of_might',
+  'blessing_of_the_dawn',
   'devotion_aura',
+  // The overhauled Paladin aura kit. Every one is a persistent party buff, so a
+  // second Paladin running the SAME aura refreshes it instead of granting the
+  // effect twice: no double 5% damage reduction, no double thorns, no two copies
+  // of one Devotion. Distinct auras still coexist (Bastion plus Requital, or one
+  // Paladin's Dawn next to another's Grace), which is what the tooltips mean by
+  // Devotions from different Paladins working together.
+  'devotion_ward',
+  'retribution_aura',
+  'radiant_devotion',
+  'dawn_devotion',
+  'grace_devotion',
   // Emboldening Roar (Fury aoeAllySureCrit): two Fury warriors must not stack
   // two separate 3-charge guaranteed-crit auras on a shared ally.
   'emboldening_roar_crit',
   'mark_of_the_wild',
+  // Mass Barrier (mage aoeAllyAbsorb): two mages must not stack two separate
+  // absorb shields on a shared ally; the later cast replaces the first (its
+  // value is that caster's, since the shield scales with the caster healPower).
+  'mass_barrier',
+  // Nature's Fury (druid buff_spellcrit pulse): two druids in the same party
+  // pulsing onto a shared ally must not double the 3% spell-crit bonus.
+  'natures_fury',
   'power_word_fortitude',
   'rallying_cry_dr',
   'rallying_cry_hp',
   'rune_of_power',
   'sanguine_aura',
+  'soulwell',
   'trueshot_aura_ap', // Sureflight Aura (hunter aoeAllyAttackPower)
   'temporal_hourglass',
+  'temporal_aegis',
+  'aura_mastery',
 ]);
+
+// The caster of a buff restored from a save (aura_persist.ts) when that caster
+// was someone other than the wearer: entity ids are boot-local, so the original
+// caster cannot be named. 0 is never a live entity id (Sim.nextId starts at 1),
+// and isOwnAura already reads it as "unattributed". Any same-id application
+// replaces such a copy, so a relog can never let one buff stack twice.
+export const RESTORED_AURA_SOURCE_ID = 0;
 
 export function auraReplacementConflicts(auras: readonly Aura[], aura: Aura): number[] {
   const replaceAcrossSources = SOURCE_INDEPENDENT_GROUP_BUFF_AURA_IDS.has(aura.id);
@@ -36,7 +70,13 @@ export function auraReplacementConflicts(auras: readonly Aura[], aura: Aura): nu
   for (let i = auras.length - 1; i >= 0; i--) {
     const existing = auras[i];
     if (existing.id !== aura.id) continue;
-    if (replaceAcrossSources || existing.sourceId === aura.sourceId) out.push(i);
+    if (
+      replaceAcrossSources ||
+      existing.sourceId === aura.sourceId ||
+      existing.sourceId === RESTORED_AURA_SOURCE_ID
+    ) {
+      out.push(i);
+    }
   }
   return out;
 }

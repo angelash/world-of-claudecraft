@@ -1,13 +1,6 @@
-import {
-  GUILD_TREND_LETTERS,
-  HEROIC_MARK_LETTER,
-  type LetterDef,
-  MASTER_TIER_LETTERS,
-  MASTERY_RESET_LETTER,
-  QUEST_LETTERS,
-  WELCOME_LETTER,
-} from '../sim/content/letters';
+import { authoredLettersById } from '../sim/content/letters';
 import { DELVES, DUNGEONS, MOBS, NPCS, QUESTS, ZONES } from '../sim/data';
+import { STUDIO_CONTENT } from '../sim/studio_content';
 
 // English world-entity names + narratives (mobs, NPCs, quests, zones, dungeons).
 //
@@ -25,6 +18,41 @@ import { DELVES, DUNGEONS, MOBS, NPCS, QUESTS, ZONES } from '../sim/data';
 // declared-base merge in the build resolver (scripts/i18n_build.mjs). Only `.en` is
 // consumed, so this object carries only `en`.
 
+// Historical name keys remain for maintained locale overlays. They do not
+// register active mobs, rewards or Hunting entries.
+const RETIRED_BUDDY_NAMES = {
+  buddy_ember_fox: { name: 'Ember Fox' },
+  buddy_moss_hare: { name: 'Moss Hare' },
+  buddy_frog: { name: 'Frog' },
+  buddy_crimson_claw_crab: { name: 'Crimson Claw Crab' },
+  buddy_golden_sentinel: { name: 'Golden Sentinel' },
+  buddy_nightfang: { name: 'Nightfang' },
+  buddy_tuskhorn_boar: { name: 'Tuskhorn Boar' },
+  buddy_emerald_wolf: { name: 'Emerald Wolf' },
+  buddy_tiger: { name: 'Tiger' },
+  buddy_cate_coin: { name: 'Cate Coin' },
+  buddy_alon: { name: 'Alon' },
+  buddy_trollface: { name: 'Trollface' },
+  buddy_ansem: { name: 'Ansem' },
+  buddy_triple_t: { name: 'Triple T' },
+  buddy_kekius: { name: 'Kekius' },
+  buddy_solbot: { name: 'Solbot' },
+  buddy_frostfire: { name: 'Frostfire' },
+  buddy_rocky: { name: 'Rocky' },
+  buddy_proud_grunt: { name: 'Proud Grunt' },
+  buddy_loot_goblin: { name: 'Loot Goblin' },
+  buddy_penny_goldspark: { name: 'Penny Goldspark' },
+  buddy_stag: { name: 'Stag' },
+  buddy_alpaca: { name: 'Alpaca' },
+  buddy_bull: { name: 'Bull' },
+  buddy_spider: { name: 'Spider' },
+  buddy_raptor: { name: 'Raptor' },
+  buddy_skeleton: { name: 'Skeleton' },
+  buddy_crystal_tide: { name: 'Crystal Tide' },
+  buddy_phantom: { name: 'Phantom' },
+  buddy_emberfall_phoenix: { name: 'Emberfall Phoenix' },
+} as const;
+
 const MOB_IDS = [
   'yumi_cat',
   'forest_wolf',
@@ -34,13 +62,18 @@ const MOB_IDS = [
   'mudfin_murloc',
   'tunnel_rat',
   'vale_bandit',
+  'eastbrook_freight_caravan',
+  'willowfen_remedy_caravan',
+  'frostveil_supply_caravan',
   'restless_bones',
+  'marrow_restless_bones',
   'gorrak',
   'mire_prowler',
   'deepfen_murloc',
   'mire_widow',
   'mirefen_broodmother',
   'drowned_dead',
+  'fenbridge_infiltrator',
   'fen_troll',
   'grubjaw',
   'gravecaller_cultist',
@@ -48,6 +81,19 @@ const MOB_IDS = [
   'gravecaller_mender',
   'deacon_voss',
   'training_dummy',
+  // The rest of the Highwatch practice row (sim/content/practice_dummies.ts).
+  'friendly_player_dummy',
+  'normal_boss_dummy',
+  'heroic_boss_dummy',
+  // The Eastbrook hub's own level-5 practice targets (sim/content/practice_dummies.ts).
+  'hub_training_dummy',
+  'hub_healing_dummy',
+  // Eastbrook Healing Training Ground allies (sim/content/healing_training.ts).
+  'healing_dummy_tank',
+  'healing_dummy_soldier',
+  'healing_dummy_scout',
+  'healing_dummy_caster',
+  'healing_dummy_ranger',
   'ridge_stalker',
   'deeprock_kobold',
   'thornpeak_ogre',
@@ -63,11 +109,75 @@ const MOB_IDS = [
   'bonechill_widow',
   'sexton_marrow',
   'morthen',
+  // The Hollow Crypt rework (sim/content/hollow_crypt.ts).
+  'ossuary_sentinel',
+  'hollow_gravedigger',
+  'rime_egg_sac',
+  'rimeweb_hatchling',
+  'rimeweb_spinner',
+  'candlewright_acolyte',
+  'hollow_chorister',
+  'bound_soul',
+  'rimeweb',
+  'cantor_ilvane',
+  // The Hollow Crypt trash (sim/content/hollow_crypt_trash.ts).
+  'crypt_ossuary_warrior',
+  'crypt_gravecaller_adept',
+  'crypt_ossuary_cutthroat',
+  'crypt_gravecaller_necromancer',
+  'crypt_bone_minion',
+  'crypt_bone_brute',
+  // Reassemble's bones (the crypt trash mechanics pass, trash_kit/crypt_kit.ts).
+  'crypt_bone_pile',
+  'crypt_chapel_gargoyle',
+  'crypt_crow_caller',
+  'crypt_carrion_crow',
+  'crypt_ossuary_drake',
+  // The Hollow Crypt finale (sim/content/hollow_crypt.ts).
+  'crypt_knellwyrm',
+  // Morthen's Rite: the usable body at each candle's foot (the relight).
+  'crypt_remembrance_candle',
   'bastion_revenant',
   'tidebound_acolyte',
   'drowned_thrall',
   'knight_commander_olen',
   'vael_the_mistcaller',
+  // The Sunken Bastion rework (sim/content/sunken_bastion.ts).
+  'drowned_watchman',
+  'fogbound_arbalest',
+  'barnacle_crawler',
+  'bastion_warhound',
+  'mistweaver',
+  'drowned_sergeant',
+  'shackled_prisoner',
+  'gaol_turnkey',
+  'turretback_hermit',
+  'vael_fog_shade',
+  'gaoler_ossick',
+  // The Bastion's fifth pass: the Turnkey's Iron Cage and Ossick's anchor.
+  'bastion_gaol_cage',
+  'bastion_drowned_anchor',
+  // The Drowned Temple rework (sim/content/drowned_temple.ts); the per-class
+  // Reflections all wear the one name.
+  'lagoon_snapper',
+  'ice_wraith',
+  'moonlit_siren',
+  'tidewisp',
+  'drowned_pilgrim',
+  'mere_hydra_head_left',
+  'mere_hydra_head_center',
+  'mere_hydra_head_right',
+  'tideglass_colossus',
+  'tideglass_reflection',
+  'tideglass_reflection_warrior',
+  'tideglass_reflection_paladin',
+  'tideglass_reflection_hunter',
+  'tideglass_reflection_rogue',
+  'tideglass_reflection_priest',
+  'tideglass_reflection_shaman',
+  'tideglass_reflection_mage',
+  'tideglass_reflection_warlock',
+  'tideglass_reflection_druid',
   'sanctum_boneguard',
   'sanctum_drakonid',
   'raised_bonewalker',
@@ -87,6 +197,15 @@ const MOB_IDS = [
   'nythraxis_heroic_priest_add',
   'nythraxis_heroic_rogue_add',
   'nythraxis_scourge_of_thornpeak',
+  'nythraxis_bone_spike',
+  'ignivar_herald_of_the_last_flame',
+  'ignivar_heart_of_the_end',
+  'ignivar_ember_sentinel',
+  'ignivar_crucible_warden',
+  'ignivar_cinder_artificer',
+  'varkhul_forgefather_of_the_last_flame',
+  // Ignivar raid approach: the downed forge automaton packs (DUNGEON_MOBS).
+  'derelict_mech',
   // Collapsed Reliquary delve mobs
   'reliquary_ledger_wraith',
   'reliquary_funeral_ringer',
@@ -101,19 +220,260 @@ const MOB_IDS = [
   'deepfen_spearjaw',
   'mirefen_widowling',
   'spider_egg_sac',
+  // Quest-dedupe pass (zones 1 to 3): the Broodmother clutch and the new elites.
+  'spider_egg',
+  'widow_hatchling',
+  'drowned_warlord',
+  'brakka_wallbreaker',
+  'threnos_first_voice',
   'grave_silt_bulwark',
   'sump_troll_devourer',
   'choir_thrall',
   'sister_nhalia_drowned_canticle',
   'edda_reedhand',
   'tolling_bell',
-  'vale_cup_ball',
   // Thornpeak Heights world boss + its summoned adds
   'thunzharr_waking_peak',
+  'balgath_cyclops',
   'thunzharr_stormling',
+  // The Mirefen muster around Balgath's crater (src/sim/content/mirefen_muster.ts).
+  'muster_footman',
+  'muster_chaplain',
+  'muster_sergeant',
+  // The command camp's drill yard: the mallet man and the training effigy.
+  'muster_drillmaster',
+  'muster_effigy',
+  // Gourdlight Eve's field boss and his adds (content/gourdlight_eve_scarecrow.ts)
+  'gourdlight_thatchgrin',
+  'gourdlight_crow',
+  'gourdlight_strawling',
+  'gourdlight_swelling_gourd',
+  // Ambient Highwatch Stables horse (zone 3)
+  'stable_horse',
+  // Procedural Rift creature pool (src/sim/content/rift/mobs.ts). Dev/endless
+  // content; English names come from the MOBS table like every other id here.
+  'hoard_brood_egg',
+  'hoard_brood_hatchling',
+  'hoard_healing_tide_totem',
+  'hoard_bound_pulsar',
+  'hoard_abyssal_tentacle',
+  'hoard_silk_cocoon',
+  'hoard_brood_cocoon',
+  'hoard_coinsack_scurrier',
+  'hoard_boss_mushroom',
+  'hoard_sporeling',
+  'hoard_bloat_cap',
+  'hoard_boss_mole',
+  'hoard_boss_bat',
+  'hoard_boss_mimic',
+  'hoard_bat_swarmling',
+  'rift_spawnling',
+  'rift_bonewalker',
+  'rift_frost_revenant',
+  'rift_rime_elemental',
+  'rift_ember_fiend',
+  'rift_magma_brute',
+  'rift_venom_weaver',
+  'rift_thornback',
+  'rift_boneclad',
+  'rift_marrow_troll',
+  'rift_marrow_golem',
+  'rift_void_acolyte',
+  'rift_dread_stalker',
+  'rift_storm_caller',
+  'rift_stormscale',
+  'rift_tide_thrall',
+  'rift_deep_lurker',
+  'rift_stone_ogre',
+  'rift_boss_frost',
+  'rift_boss_ember',
+  'rift_boss_venom',
+  'rift_boss_necro',
+  'rift_boss_brute',
+  'rift_boss_arcane',
+  'rift_boss_storm',
+  'rift_boss_tide',
+  // the Veiled Hollow
+  'glimmerwisp',
+  'duskwisp',
+  'veiled_stag',
+  'veiled_doe',
+  'gleamstag',
+  'sporeling_gatherer',
+  'corrupted_sporeling',
+  'mushroom_pixie',
+  'treant_elder',
+  'ancient_guardian',
+  'waking_warden',
+  'old_marrowshell',
+  'aurelhorn',
+  'snowdrift_wolf',
+  'ice_wisp',
+  'rime_elemental',
+  'fen_sprite',
+  'frostmane_yeti',
+  'terrace_howler',
+  'apprentice_wren',
+  'emberwing_drake',
+  'ashbone_raider',
+  'ashbone_warcaller',
+  'dune_troll',
+  'cindraleth_maw_matriarch',
+  'dragonkin_egg',
+  'dragonkin_whelp',
+  'dragonkin_broodguard',
+  'drakemaw_broodlord',
+  'gilded_stag',
+  'gloam_fox',
+  'orchard_treant',
+  'the_meredark',
+  'harvest_sprite',
+  'mere_lurker',
+  'bogtoad',
+  'drowsy_croaker',
+  'lily_wisp',
+  'willow_sprite',
+  'moonfleece_grazer',
+  'gloam_strider',
+  'nightkin_stargazer',
+  'barrow_king',
+  'barrow_wight',
+  'widowsilk_spinner',
+  'wood_wraith',
+  'gravenbark_shambler',
+  'pale_huntsman',
+  'gravedigger_mosley',
+  'tide_scuttler',
+  'thicket_boar',
+  'canopy_weaver',
+  'idol_guardian',
+  'castaway_navigator',
+  'topiary_stag',
+  'topiary_wolf',
+  'hedge_gnome',
+  'hedge_knight',
+  'the_topiary_bull',
+  'moor_ram',
+  'gale_wisp',
+  'shoal_scuttler',
+  'downs_bandit',
+  'wreck_thief',
+  'the_wreck_warden',
+  'drowned_deckhand',
+  'riftspawn',
+  'breach_wretch',
+  'void_stalker',
+  'sundered_horror',
+  'fisher_bram',
+  // The Proving Shore (tutorial island, src/sim/content/proving_shore.ts).
+  'training_effigy',
+  'shore_scuttler',
+  'mister_crabs',
+  // The Infernal Citadel set-piece (src/sim/content/rift/infernal_citadel.ts).
+  'rift_hellguard',
+  'rift_pact_acolyte',
+  'rift_boss_ritualist',
+  'rift_boss_pitlord',
+  // The Wildheart Basin jungle dungeon (src/sim/content/wildheart.ts).
+  'wildheart_stalker',
+  'wildheart_ravager',
+  'wildheart_hexcaller',
+  'wildheart_beastmaster',
+  // The Wildheart Basin rework (docs/design/dungeon-rework/wildheart_basin.md).
+  'sunbone_totem_binder',
+  'sunbone_totem',
+  // The Wildheart trash mechanics pass: the Totem-Binder's fear totem.
+  'sunbone_dread_totem',
+  'basin_raptor',
+  'spore_toad',
+  'vine_lasher',
+  'great_saurian',
+  'howdah_hexcaller',
+  'fanglord_jaguar',
+  'the_gorgebloom',
+  'wildheart_high_priest',
+  // The Gravewyrm Sanctum rework (docs/design/dungeon-rework/gravewyrm_sanctum.md).
+  'broodsworn_thawcaller',
+  'broodsworn_goadsmith',
+  'broodsworn_pyre_tender',
+  'soul_brazier',
+  'rime_whelp',
+  'ogre_sledge_hauler',
+  'glacier_splinter',
+  'sledge_tusker',
+  // Korgath's Seal Shackles (encounters/gravewyrm_sanctum/korgath.ts).
+  'sanctum_shackle_hammer',
+  'sanctum_shackle_tongs',
+  'sanctum_shackle_anvil',
+  'sanctum_shackle_bellows',
+  // The Gorgebloom's sprouts (encounters/wildheart_basin/gorgebloom.ts).
+  'thorn_sprout',
+  // Zulgar's Hunting Spear: the usable body a teammate pulls out
+  // (encounters/wildheart_basin/zulgar_spear.ts).
+  'wildheart_hunting_spear',
+  // Cosmetic buddy followers (src/sim/content/buddy_mobs.ts). Their nameplate
+  // is off by default (the dedicated "Show Pet Names" option), but the
+  // canonical-fallback name still has to resolve in every locale the moment
+  // a player turns it on.
+  'buddy_ember_fox',
+  'buddy_emberfall_phoenix',
+  'buddy_moss_hare',
+  'buddy_frog',
+  'buddy_crimson_claw_crab',
+  'buddy_golden_sentinel',
+  'buddy_nightfang',
+  'buddy_tuskhorn_boar',
+  'buddy_emerald_wolf',
+  'buddy_tiger',
+  'buddy_cate_coin',
+  'buddy_alon',
+  'buddy_trollface',
+  'buddy_ansem',
+  'buddy_triple_t',
+  'buddy_kekius',
+  'buddy_solbot',
+  'buddy_frostfire',
+  'buddy_rocky',
+  'buddy_proud_grunt',
+  'buddy_loot_goblin',
+  'buddy_penny_goldspark',
+  'buddy_stag',
+  'buddy_alpaca',
+  'buddy_horse',
+  'buddy_bull',
+  'buddy_spider',
+  'buddy_raptor',
+  'buddy_skeleton',
+  'buddy_crystal_lich',
+  'buddy_forgemaw',
+  'buddy_sprites',
+  'buddy_crystal_tide',
+  'buddy_phantom',
 ] as const;
 
 const NPC_IDS = [
+  'glider_instructor',
+  'glider_apprentice',
+  'shadow_cloak_scout',
+  'shadow_guard_north',
+  'shadow_guard_south',
+  'shadow_guard_east',
+  'shadow_guard_west',
+  'shadow_sentry_south',
+  'shadow_sentry_north',
+  'shadow_watch_west',
+  'shadow_watch_east',
+  'forge_instructor',
+  'infiltrator_captain',
+  'infiltrator_nella',
+  'infiltrator_orin',
+  'infiltrator_bram',
+  'infiltrator_tessa',
+  'wisp_maze_keeper',
+  'weekly_emissary',
+  'calligraphy_instructor',
+  'calligraphy_apprentice_1',
+  'calligraphy_apprentice_2',
   'the_merchant',
   'marshal_redbrook',
   'trader_wilkes',
@@ -122,7 +482,12 @@ const NPC_IDS = [
   'smith_haldren',
   'fisherman_brandt',
   'foreman_odell',
+  'stablemaster_marla', // the stablemaster: teaches riding lessons (Highwatch, zone 3)
   'warden_fenwick',
+  // The Mirefen world boss's level-spread mechanic: he lends the Shardpike.
+  'socketwright_skerrit',
+  // The muster's leader at the command camp (raised with the army; the muster quests).
+  'muster_commander',
   'brother_aldric_fen',
   'provisioner_hale',
   'herbalist_yara',
@@ -134,30 +499,133 @@ const NPC_IDS = [
   'armorer_hode',
   'heroic_quartermaster', // Heroic Marks vendor (Highwatch, zone 3)
   'fury', // Honor Quartermaster and WARFARE vendor (Eastbrook, zone 1)
+  'warmarshal_draven_kole', // Master of the Warfare Stores, the WARFARE vendor (Highwatch, zone 3)
   'loremaster_caddis',
   'auctioneer_voss', // second World Market auctioneer (Highwatch, zone 3)
-  'bursar_fernando', // Gilded Strongbox banker (Eastbrook, zone 1)
+  'bursar_fernando',
+  'eastbrook_vault_keeper', // Gilded Strongbox banker (Eastbrook, zone 1)
   'card_master', // Card Duel minigame queue desk (Eastbrook, zone 1)
   'bursar_petra_vell', // Gilded Strongbox banker (Fenbridge, zone 2)
   'bursar_aldous_crane', // Gilded Strongbox banker (Highwatch, zone 3)
   'brother_aldric_raid', // dynamically-spawned raid turn-in NPC (Crypt of Nythraxis)
+  'archivist_maelin_emberward', // dev-only Ignivar raid historian
+  'archivist_maelin_ember_projection', // Maelin's instanced raid checkpoint projection
+  'crucible_quartermaster', // Ignivar raid sigil-redemption vendor (Halls of the First Tempering)
   'brother_halven', // Collapsed Reliquary delve board NPC
   'brother_halven_marsh', // Drowned Litany delve board NPC (same character, marsh camp)
   'spirit_healer', // the graveyard angel (spawned at every graveyard + dungeon entry)
-  'groundskeeper_bram', // Vale Cup queue master at the Sowfield gate (docs/prd/vale-cup.md)
   'chronicler_saul', // Book of Deeds Chronicler (Eastbrook, zone 1)
   'chronicler_osric_fenn', // Book of Deeds Chronicler (Fenbridge, zone 2)
   'chronicler_edda_hartwell', // Book of Deeds Chronicler (Highwatch, zone 3)
+  // Eldershine, the Veiled Hollow
+  'keeper_saelwyn',
+  'loremother_bryn',
+  'provisioner_fenna',
+  'wardsmith_orun',
+  'archivist_tullo',
+  'huntsman_deral',
+  // Icemantle, the Frostveil Reach
+  'warden_kaldra',
+  'hearthkeeper_maeve',
+  'scout_einna',
+  'aurorist_veyla',
+  'trapper_brosk',
+  // Wyrmwatch, the Drakelands
+  'gatecaptain_brannoc',
+  'quartermaster_sela',
+  'scout_yerrin',
+  'harbormaster_tamsin', // the Harbormaster's House at the Wyrmwatch cliff harbor
+  'innkeeper_maudie', // the Mirefen tavern on the Fenbridge road
+  // ...and its seated regulars (src/sim/content/mirefen_tavern_patrons.ts)
+  'patron_amos_eelby',
+  'patron_grissel_sedgeworth',
+  'patron_ned_oxley',
+  'patron_hester_quillby',
+  'gourdlight_keeper', // Gourdlight Eve's keeper (content/gourdlight_eve.ts), Eastbrook
+  // Lanternmere, the Amberfall
+  'reeve_ottoline',
+  'waywatcher_sorrel',
+  'ferrymaster_caddow',
+  'orchardist_pomeline',
+  // Bridgemere, the Willowfen
+  'waykeeper_pell',
+  'bridgewright_alden',
+  'netter_maris',
+  'mother_sedge',
+  // Moonrest, the Nightbloom
+  'lamplighter_sorrel',
+  'lira_dewsong',
+  'weaver_amelle',
+  'astronomer_cassian',
+  // Gibbetmere, the Wraithwood
+  'lampman_cobb',
+  'sexton_marrow',
+  'widow_tansy',
+  'vicar_creel',
+  // Drifthaven, the Palmreach
+  'strandwatcher_pell',
+  'salvage_boss_ryna',
+  'pearlmother_isha',
+  'hermit_okku',
+  // Hedgewick, the Evergarden
+  'gatewarden_pell',
+  'head_gardener_amaranth',
+  'wickmother_sorrel',
+  'gardener_yew',
+  // Wickharbor, the Galecrest
+  'watcher_maren',
+  'harbormaster_odile',
+  'keeper_bram',
+  'salvager_edda',
+  // Gullhaven, the Farshore redoubt
+  'warden_coalfast',
+  'riftwatch_ollun',
+  'quartermaster_edda',
+  'mender_saul',
+  'bellkeeper_tam',
+  'fisher_nell',
+  'riftwright_maelis', // the Rift Forge (Gullhaven, Farshore)
+  // The faction quartermasters and the World Quest taskmaster
+  // (src/sim/content/faction_vendors.ts).
+  'npc_rift_watch_quartermaster',
+  'npc_church_order_quartermaster',
+  'npc_automaton_quartermaster',
+  'npc_wq_taskmaster',
   'forgemistress_darva', // crafting-station master: forge (Eastbrook, zone 1)
   'cook_marlow', // crafting-station master: kitchens (Eastbrook, zone 1)
   'weaver_ottilie', // crafting-station master: loom (Eastbrook, zone 1)
   'tinker_gizzel', // crafting-station master: toolworks (Eastbrook, zone 1)
   'tanner_hesk', // crafting-station master: tannery (Fenbridge, zone 2)
   'alchemist_verane', // crafting-station master: apothecary (Highwatch, zone 3)
+  'guildmaster_hesper_dunmore', // the Highwatch guild's guildmaster (zone 3)
+  'contract_clerk_tobias_wren', // the Highwatch guild's contract clerk (zone 3)
+  'guild_quartermaster_garrick_holt', // the Highwatch guild's quartermaster (zone 3)
+  'guild_recruiter_mira_fairweather', // the Highwatch guild's recruiter (zone 3)
+  // The farmer NPCs (the farming go-live), one per farming hub, in the same
+  // tier order as the corresponding FARM_PATCHES rows.
+  'farmer_jessica', // Eastbrook allotments (zone 1, tier 1)
+  'farmer_teasel', // Fenbridge raised beds (zone 2, tier 2)
+  'farmer_hollis', // Highwatch terraces (zone 3, tier 3)
+  'farmer_verbena', // the Evergarden parterre (tier 4)
+  // the Proving Shore (tutorial island) + its Eastbrook-spawn greeter
+  'wayfarer_bryn',
+  'instructor_maren',
+  'quartermaster_finch',
+  'ferryman_odo',
+  'bursar_wick',
+  'warden_tam',
+  'overseer_pell',
+  'drillmaster_rook',
+  'tidewarden_nel',
+  // the Eastbrook quay's sparring master (content/practice_dummies.ts)
+  'drillmaster_hale',
+  // the Drowned Temple's lore guide (content/drowned_temple_cantor.ts)
+  'cantor_laverock',
 ] as const;
 
 const QUEST_IDS = [
   'q_prof_intro',
+  'q_farm_intro',
   'q_wolves',
   'q_greyjaw',
   'q_boars',
@@ -173,9 +641,15 @@ const QUEST_IDS = [
   'q_hollow',
   'q_sexton',
   'q_gravecallers_trail',
+  'q_divine_tome',
   'q_bandits',
   'q_ringleader',
   'q_fenbridge_muster',
+  // The Mirefen muster's chain (src/sim/content/mirefen_muster_quests.ts).
+  'q_muster_summons',
+  'q_muster_pike_drill',
+  'q_muster_trophy',
+  'q_socketwrights_due',
   'q_prowlers',
   'q_prowler_pelts',
   'q_fen_supplies',
@@ -188,6 +662,7 @@ const QUEST_IDS = [
   'q_drowned',
   'q_drowned_censers',
   'q_no_rest',
+  'q_rite_of_redemption',
   'q_trolls',
   'q_troll_fetishes',
   'q_grubjaw',
@@ -231,6 +706,11 @@ const QUEST_IDS = [
   'q_nythraxis_sealed_crypt',
   'q_nythraxis_bound_guardian',
   'q_nythraxis_scourges_end',
+  'q_ignivar_echoes_in_iron',
+  'q_ignivar_heralds_heart',
+  'q_ignivar_the_forgefather',
+  'q_forgefathers_requiem',
+  'q_requiem_at_the_forge',
   'q_mogger',
   'q_prof_attune_smith',
   'q_prof_attune_outfitter',
@@ -242,20 +722,188 @@ const QUEST_IDS = [
   'q_prof_amends_bombardier',
   'q_prof_workorder_forge',
   'q_prof_workorder_kitchens',
+  'q_prof_workorder_kitchens_wheat',
+  'q_prof_workorder_kitchens_rice',
   'q_prof_workorder_loom',
   'q_prof_workorder_toolworks',
   'q_prof_workorder_tannery',
   'q_prof_workorder_apothecary',
+  'q_riding_lessons',
+  // the Veiled Hollow
+  'q_veil_thinned',
+  'q_gleaming_antlers',
+  'q_wisp_lights',
+  'q_calming_the_deep',
+  'q_spore_hearts',
+  'q_monument_tour',
+  'q_grove_menace',
+  'q_shards_of_starfall',
+  'q_treant_accord',
+  'q_spore_tide',
+  'q_sunken_court',
+  'q_wardens_echoes',
+  'q_waking_warden',
+  'q_seal_restored',
+  'q_hollow_the_huntsman',
+  'q_hollow_old_marrowshell',
+  'q_hollow_first_of_the_herd',
   'q_prof_hobby_switch',
+  // the Frostveil Reach
+  'q_fv_snowline_report',
+  'q_fv_wolves_at_the_door',
+  'q_fv_winter_pelts',
+  'q_fv_ember_caches',
+  'q_fv_lights_over_steps',
+  'q_fv_silent_trapline',
+  'q_fv_aurora_motes',
+  'q_fv_rime_unbound',
+  'q_fv_sprung_traps',
+  'q_fv_howl_above',
+  'q_fv_seeing_wren_home',
+  'q_fv_frostmane_tyrant',
+  // the Drakelands
+  'q_dk_ash_on_the_wind',
+  'q_dk_trolls_on_the_road',
+  'q_dk_scorched_stores',
+  'q_dk_banners_over_the_dunes',
+  'q_dk_watcher_at_the_wargate',
+  'q_dk_marrow_and_ash',
+  'q_dk_scales_of_the_maw',
+  'q_dk_matriarch_of_the_maw',
+  // the Amberfall
+  'q_af_goldmelt_road',
+  'q_af_foxes_in_the_lamplight',
+  'q_af_lanterns_on_the_water',
+  'q_af_orchard_call',
+  'q_af_amber_from_the_herd',
+  'q_af_what_took_the_moorings',
+  'q_af_sprites_and_spigots',
+  'q_af_the_meredark',
+  // the Willowfen
+  'q_wf_across_the_fenway',
+  'q_wf_rope_chewers',
+  'q_wf_eels_for_the_smokehouse',
+  'q_wf_mind_the_moorings',
+  'q_wf_witch_of_willowweep',
+  'q_wf_toll_and_tangle',
+  'q_wf_wisplight_charms',
+  'q_wf_croakers_hush',
+  // the Nightbloom
+  'q_nb_road_of_lanterns',
+  'q_nb_striders_in_the_dark',
+  'q_nb_wool_by_moonlight',
+  'q_nb_night_gardens',
+  'q_nb_eyes_on_the_vigil',
+  'q_nb_charts_of_the_stones',
+  'q_nb_restless_mounds',
+  'q_nb_the_barrow_king',
+  // the Wraithwood
+  'q_ww_bells_of_gallowmere',
+  'q_ww_silk_in_the_eaves',
+  'q_ww_widows_skeins',
+  'q_ww_candles_at_the_bounds',
+  'q_ww_the_last_vicar',
+  'q_ww_wraiths_of_the_tarn',
+  'q_ww_what_the_bark_holds',
+  'q_ww_walking_mosley_home',
+  'q_ww_horn_of_the_huntsman',
+  // the Palmreach
+  'q_pr_down_to_drifthaven',
+  'q_pr_wreck_line_cargo',
+  'q_pr_scuttler_cull',
+  'q_pr_boars_in_the_gardens',
+  'q_pr_the_man_who_went_in',
+  'q_pr_canopy_silk',
+  'q_pr_the_lost_navigator',
+  'q_pr_what_the_drums_guard',
+  'q_pr_idol_guardian',
+  // the Evergarden
+  'q_eg_gate_report',
+  'q_eg_hungry_shapes',
+  'q_eg_stolen_shears',
+  'q_eg_who_trims_the_hedges',
+  'q_eg_gnomes_in_the_green',
+  'q_eg_bloom_clippings',
+  'q_eg_four_statues',
+  'q_eg_bull_of_the_court',
+  // the Farshore
+  'q_fs_bell_at_the_landing',
+  'q_fs_hold_the_riftfields',
+  'q_fs_steel_for_the_redoubt',
+  'q_fs_the_three_bells',
+  'q_fs_song_before_the_break',
+  'q_fs_moss_and_mending',
+  'q_fs_bram_come_home',
+  'q_fs_stalkers_off_the_light',
+  'q_fs_the_great_break',
+  // the Proving Shore (tutorial island)
+  'q_ps_the_gauntlet',
+  'q_ps_strike_true',
+  'q_ps_hone_the_edge',
+  'q_ps_shell_and_claw',
+  'q_ps_mother_of_pearl',
+  'q_ps_the_wreck_line',
+  'q_ps_pouch_and_purse',
+  'q_ps_the_signpost',
+  'q_ps_the_long_walk',
+  'q_ps_set_sail',
+  // the Galecrest
+  'q_gc_down_the_windway',
+  'q_gc_wool_off_the_downs',
+  'q_gc_scuttlers_in_the_pots',
+  'q_gc_keeper_of_the_flame',
+  'q_gc_lanterns_on_the_shear',
+  'q_gc_wind_against_the_wick',
+  'q_gc_the_far_shore',
+  'q_gc_dead_mens_cargo',
+  'q_gc_the_wreck_warden',
+  // the Eastbrook hub dummy lesson (content/practice_dummies.ts)
+  'q_hub_know_your_numbers',
+  'q_hub_healing_numbers',
+  // Gourdlight Eve's daily rounds (content/gourdlight_eve.ts)
+  'q_gourdlight_rounds',
+  // ...and its rotating dailies (content/gourdlight_eve_dailies.ts)
+  'q_gourdlight_daily_patch',
+  'q_gourdlight_daily_boo',
+  'q_gourdlight_daily_wicks',
+  'q_gourdlight_daily_towns',
+  'q_gourdlight_daily_feathers',
+  'q_gourdlight_daily_baskets',
 ] as const;
 
-const ZONE_IDS = ['eastbrook_vale', 'mirefen_marsh', 'thornpeak_heights'] as const;
+const ZONE_IDS = [
+  'eastbrook_vale',
+  'mirefen_marsh',
+  'thornpeak_heights',
+  'veiled_hollow',
+  'drakelands',
+  'frostveil',
+  'amberfall',
+  'willowfen',
+  'nightbloom',
+  'wraithwood',
+  'palmreach',
+  'evergarden',
+  'galecrest',
+  'farshore_isle',
+  // Appended last, matching the ZONES order in sim/data.ts.
+  'goldcrest_harbor',
+  'proving_shore',
+] as const;
 const DUNGEON_IDS = [
   'hollow_crypt',
   'sunken_bastion',
   'gravewyrm_sanctum',
   'nythraxis_crypt',
   'nythraxis_boss_arena',
+  'ignivar_forge_lift',
+  'ignivar_forge_approach',
+  'ignivar_raid_arena',
+  'ignivar_molten_assembly',
+  'ignivar_inner_crucible',
+  'wildheart_basin',
+  'the_last_keep',
+  'dawnhold_castle',
 ] as const;
 const DELVE_IDS = ['collapsed_reliquary', 'drowned_litany'] as const;
 // Ravenpost authored letters (src/sim/content/letters.ts): the welcome letter
@@ -266,6 +914,9 @@ const LETTER_IDS = [
   'letter_q_greyjaw',
   'letter_q_hollow',
   'heroic_marks_reward',
+  // The absent-participant Wyrmfall Core delivery (Masterwrought phase 04,
+  // WYRMFALL_CORE_LETTER in src/sim/content/letters.ts).
+  'wyrmfall_core_reward',
   // Guild trend letters (Professions 2.0), one per canonical adjacent
   // pair in CRAFT_RING order (GUILD_TREND_LETTERS in src/sim/content/letters.ts).
   'guild_trend_engineering_alchemy',
@@ -303,6 +954,17 @@ const LETTER_IDS = [
   'prof_tier_engineering_alchemy_3',
   'prof_tier_engineering_alchemy_4',
   'prof_tier_engineering_alchemy_5',
+  // $WOC Exchange custody letters (the server-side marketplace,
+  // WOC_MARKET_*_LETTER in src/sim/content/letters.ts).
+  'woc_market_delivery',
+  'membership_token_delivery',
+  'membership_annual_reward',
+  'woc_market_return',
+  'woc_market_sold',
+  'hoard_vault_reward',
+  // The full-bags world quest reward delivery (WORLD_QUEST_REWARD_LETTER in
+  // src/sim/content/letters.ts).
+  'world_quest_reward',
 ] as const;
 
 type MobId = (typeof MOB_IDS)[number];
@@ -324,7 +986,12 @@ type QuestTranslation = {
 type QuestTranslations = Record<QuestId, QuestTranslation>;
 type ZoneTranslations = Record<
   ZoneId,
-  { name: string; welcome: string; pois: Record<number, { label: string }> }
+  {
+    name: string;
+    welcome: string;
+    welcomeDone?: string;
+    pois: Record<number, { label: string }>;
+  }
 >;
 type DungeonTranslations = Record<
   DungeonId,
@@ -349,6 +1016,9 @@ type WorldEntityTranslations = {
     delveRiteShrineSkullInteract: string;
     mailboxName: string;
     noticeboardName: string;
+    farmPatchName: string;
+    realmBuilderMonumentName: string;
+    musterRackName: string;
   };
   entities: {
     mobs: MobTranslations;
@@ -376,14 +1046,30 @@ function orderedValues<T>(ids: readonly string[], source: Record<string, T>): T[
   });
 }
 
+// Studio-authored rows (src/sim/studio_content.ts) join the live registries only
+// while an authored map is active, but their names are translated like every
+// other row, so the English source reads the base tables plus that overlay.
+const MOB_SOURCE = { ...STUDIO_CONTENT.mobs, ...MOBS };
+const NPC_SOURCE = { ...STUDIO_CONTENT.npcs, ...NPCS };
+const QUEST_SOURCE = { ...STUDIO_CONTENT.quests, ...QUESTS };
+const DUNGEON_SOURCE = { ...STUDIO_CONTENT.dungeons, ...DUNGEONS };
+const ZONE_SOURCE = [
+  ...ZONES,
+  ...STUDIO_CONTENT.zones.filter((zone) => !ZONES.some((base) => base.id === zone.id)),
+];
+
 function makeEnglishWorldEntities(): WorldEntityTranslations {
   const mobs = {} as MobTranslations;
-  orderedValues(MOB_IDS, MOBS).forEach((mob) => {
-    mobs[mob.id as MobId] = { name: mob.name };
+  MOB_IDS.forEach((id) => {
+    // The Studio overlay rides MOB_SOURCE; the retired buddy keys stay for the
+    // maintained locale overlays (see RETIRED_BUDDY_NAMES).
+    const mob = MOB_SOURCE[id] ?? RETIRED_BUDDY_NAMES[id as keyof typeof RETIRED_BUDDY_NAMES];
+    if (!mob) throw new Error(`Missing world entity source entry for ${id}`);
+    mobs[id] = { name: mob.name };
   });
 
   const npcs = {} as NpcTranslations;
-  orderedValues(NPC_IDS, NPCS).forEach((npc) => {
+  orderedValues(NPC_IDS, NPC_SOURCE).forEach((npc) => {
     npcs[npc.id as NpcId] = {
       name: npc.name,
       title: npc.title,
@@ -392,7 +1078,7 @@ function makeEnglishWorldEntities(): WorldEntityTranslations {
   });
 
   const quests = {} as QuestTranslations;
-  orderedValues(QUEST_IDS, QUESTS).forEach((quest) => {
+  orderedValues(QUEST_IDS, QUEST_SOURCE).forEach((quest) => {
     const objectiveRecord = {} as Record<number, { label: string }>;
     quest.objectives.forEach((objective, objectiveIndex) => {
       objectiveRecord[objectiveIndex] = { label: objective.label };
@@ -406,7 +1092,7 @@ function makeEnglishWorldEntities(): WorldEntityTranslations {
   });
 
   const zones = {} as ZoneTranslations;
-  ZONES.forEach((zone) => {
+  ZONE_SOURCE.forEach((zone) => {
     const poiRecord = {} as Record<number, { label: string }>;
     zone.pois.forEach((poi, index) => {
       poiRecord[index] = { label: poi.label };
@@ -414,12 +1100,15 @@ function makeEnglishWorldEntities(): WorldEntityTranslations {
     zones[zone.id as ZoneId] = {
       name: zone.name,
       welcome: normalizeSourceText(zone.welcome),
+      ...(zone.welcomeDone !== undefined
+        ? { welcomeDone: normalizeSourceText(zone.welcomeDone) }
+        : {}),
       pois: poiRecord,
     };
   });
 
   const dungeons = {} as DungeonTranslations;
-  orderedValues(DUNGEON_IDS, DUNGEONS).forEach((dungeon) => {
+  orderedValues(DUNGEON_IDS, DUNGEON_SOURCE).forEach((dungeon) => {
     dungeons[dungeon.id as DungeonId] = {
       name: dungeon.name,
       enterText: normalizeSourceText(dungeon.enterText),
@@ -436,16 +1125,10 @@ function makeEnglishWorldEntities(): WorldEntityTranslations {
     };
   });
 
-  const lettersById: Record<string, LetterDef> = {
-    [WELCOME_LETTER.letterId]: WELCOME_LETTER,
-    [HEROIC_MARK_LETTER.letterId]: HEROIC_MARK_LETTER,
-    [MASTERY_RESET_LETTER.letterId]: MASTERY_RESET_LETTER,
-  };
-  for (const letter of Object.values(QUEST_LETTERS)) lettersById[letter.letterId] = letter;
-  for (const letter of Object.values(GUILD_TREND_LETTERS)) lettersById[letter.letterId] = letter;
-  for (const byTier of Object.values(MASTER_TIER_LETTERS)) {
-    for (const letter of Object.values(byTier)) lettersById[letter.letterId] = letter;
-  }
+  // The one shared letter map (src/sim/content/letters.ts authoredLettersById),
+  // the same source entity_i18n.ts answers knownLetterId from; LETTER_IDS above
+  // fixes the ORDER and orderedValues throws for an id it lacks.
+  const lettersById = authoredLettersById();
   const letters = {} as LetterTranslations;
   orderedValues(LETTER_IDS, lettersById).forEach((letter) => {
     letters[letter.letterId as LetterId] = {
@@ -471,6 +1154,9 @@ function makeEnglishWorldEntities(): WorldEntityTranslations {
       delveRiteShrineSkullInteract: 'Skull Shrine: Press F to touch it',
       mailboxName: 'Mailbox',
       noticeboardName: 'Notice Board',
+      farmPatchName: 'Garden Beds',
+      realmBuilderMonumentName: 'Realm Builder Monument',
+      musterRackName: 'Muster Weapon Rack',
     },
     entities: { mobs, npcs, quests, zones, dungeons, delves, letters },
   };

@@ -4,9 +4,18 @@
 // both the renderer and the NameplatePainter can share objectDisplayName without
 // a renderer <-> painter import cycle.
 
-import type { Entity } from '../sim/types';
-import { dungeonDisplayName, tEntity } from '../ui/entity_i18n';
+import type { HarborRouteMarkerDestination } from '../sim/content/harbor_route_markers';
+import { IGNIVAR_LORE_OBJECTS } from '../sim/content/ignivar_raid_lore';
+import { MUSTER_RACK_TEMPLATE_ID } from '../sim/content/mirefen_muster';
+import { type Entity, REALM_BUILDER_MONUMENT_TEMPLATE_ID } from '../sim/types';
+import { investigationObjectLabel } from '../ui/entity_display_core';
+import { dungeonDisplayName, poiMarkLabel, tEntity, zoneDisplayName } from '../ui/entity_i18n';
+import { feastTitleFor } from '../ui/hud/professions/feast_title';
+import { mobileStationTitleFor } from '../ui/hud/professions/mobile_station_title';
 import { t } from '../ui/i18n';
+import { localizeRiftPlaceName } from '../ui/rift_text_i18n';
+import { localizeSimText } from '../ui/sim_i18n';
+import { forgeObjectLabel } from '../ui/world_quest_forge_view';
 
 export function mobDisplayName(mobId: string): string {
   return tEntity({ kind: 'mob', id: mobId, field: 'name' });
@@ -16,17 +25,45 @@ export function npcDisplayName(npcId: string): string {
   return tEntity({ kind: 'npc', id: npcId, field: 'name' });
 }
 
+/** The destination a harbor route marker's board reads
+ *  (render/harbor_route_markers.ts): a zone's name or a town's map label,
+ *  both already localized; empty for a mark content has retired. */
+export function harborDestinationLabel(dest: HarborRouteMarkerDestination): string {
+  return dest.kind === 'zone' ? zoneDisplayName(dest.zone) : (poiMarkLabel(dest.mark) ?? '');
+}
+
+/** What Lantern Hall's gateway board reads (render/highwatch_guild_sign.ts): the guild's
+ *  name and the line under it, both localized. */
+export function guildSignLabels(): { name: string; subtitle: string } {
+  return { name: t('hudChrome.guildHall.title'), subtitle: t('hudChrome.guildHall.signSubtitle') };
+}
+
 export function objectDisplayName(entity: Entity): string {
+  const investigationLabel = investigationObjectLabel(entity.objectItemId ?? entity.templateId);
+  if (investigationLabel) return investigationLabel;
+  const forgeLabel = forgeObjectLabel(entity.objectItemId ?? entity.templateId);
+  if (forgeLabel) return forgeLabel;
   if (entity.templateId === 'mailbox') {
     return t('worldContent.mailboxName');
   }
   if (entity.templateId === 'noticeboard_eastbrook') {
     return t('worldContent.noticeboardName');
   }
+  if (entity.templateId === REALM_BUILDER_MONUMENT_TEMPLATE_ID) {
+    return t('worldContent.realmBuilderMonumentName');
+  }
+  // The muster's weapon rack lends a pike, but it is the RACK a player clicks: name it,
+  // never the item it hands out.
+  if (entity.templateId === MUSTER_RACK_TEMPLATE_ID) {
+    return t('worldContent.musterRackName');
+  }
+  if (entity.templateId === 'soulwell') {
+    return tEntity({ kind: 'ability', id: 'soulwell', field: 'name' });
+  }
   if (entity.templateId === 'delve_locked_chest') {
     return t('worldContent.delveLockedChestInteract');
   }
-  if (entity.templateId === 'delve_reward_chest') {
+  if (entity.templateId === 'delve_reward_chest' || entity.templateId === 'hoard_reward_chest') {
     return t('worldContent.delveRewardChestInteract');
   }
   if (entity.templateId === 'delve_surface_exit') {
@@ -75,6 +112,33 @@ export function objectDisplayName(entity: Entity): string {
     return entity.templateId === 'dungeon_exit'
       ? t('worldContent.dungeonExitName', { name: dungeonName })
       : dungeonName;
+  }
+  // A placed feast of ANY tier (Phase 12; widened by masterwrought Phase 11k):
+  // the entity's wire name is the PLACER'S raw player name, a VALUE, and the
+  // displayed title composes it into the localized "{name}'s <Feast>" here on
+  // the painter side (sim and server stay language-agnostic). The rule lives
+  // in the shared src/ui/hud/professions/feast_title.ts leaf, which src/ui/entity_display_name
+  // also reads, so the world label and the target frame cannot drift.
+  const feastTitle = feastTitleFor(entity.templateId, entity.name);
+  if (feastTitle !== null) return feastTitle;
+  // A placed mobile crafting station: "{name}'s Grand Cauldron", the same
+  // shared-leaf rule (src/ui/hud/professions/mobile_station_title.ts).
+  const stationTitle = mobileStationTitleFor(entity.templateId, entity.name);
+  if (stationTitle !== null) return stationTitle;
+  // These four development-raid records are interactOnly narrative props, not
+  // inventory items. Their lore handler returns before generic pickup, so keep
+  // them out of ITEMS (and its mandatory icon-art contract) while still giving
+  // their authored entity names an exact localization source.
+  if (entity.objectItemId && Object.hasOwn(IGNIVAR_LORE_OBJECTS, entity.objectItemId)) {
+    return localizeSimText(entity.name) ?? entity.name;
+  }
+  // Rift portals and Buried Hoard entrances carry the generator's English place
+  // name ("The Rime Abyss", "The Buried Spore Hoard"); rebuild it from keys.
+  if (entity.templateId === 'rift_portal' || entity.templateId === 'hoard_entrance') {
+    return localizeRiftPlaceName(entity.name) ?? entity.name;
+  }
+  if (entity.templateId === 'dawn_battle_standard') {
+    return tEntity({ kind: 'item', id: 'dawn_battle_standard', field: 'name' });
   }
   // Collectible/quest ground objects carry the item id they grant; localize the
   // nameplate through the item dictionary instead of the raw English name.

@@ -1,6 +1,6 @@
 import type { Pool } from 'pg';
-import type { AiMemoryBudgetEnforcementResult, AiMemoryBudgetPolicy } from './ai/life_layer';
 import type { AiMemoryAuditKind, AiMemoryAuditRecord, AiMemoryAuditScope } from './ai/ai_types';
+import type { AiMemoryBudgetEnforcementResult, AiMemoryBudgetPolicy } from './ai/life_layer';
 import { REALM } from './realm';
 
 const REALM_SQL_DEFAULT = REALM.replace(/'/g, "''");
@@ -53,7 +53,10 @@ export interface AiMemoryDbQuery {
 }
 
 interface QueryablePool {
-  query(sql: string, values?: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>;
+  query(
+    sql: string,
+    values?: readonly unknown[],
+  ): Promise<{ rows: Array<Record<string, unknown>>; rowCount?: number | null }>;
 }
 
 export class PgAiMemoryDb {
@@ -165,12 +168,24 @@ export class PgAiMemoryDb {
 
   async enforceBudget(policy: AiMemoryBudgetPolicy): Promise<AiMemoryBudgetEnforcementResult> {
     const budget = normalizeMemoryBudgetPolicy(policy);
-    const deletedByTotal = await this.deleteOverTotalBudget(budget.maxTotalRecords, budget.batchSize);
-    const deletedByPlayer = await this.deleteOverPlayerBudget(budget.maxRecordsPerPlayer, budget.batchSize);
+    const deletedByTotal = await this.deleteOverTotalBudget(
+      budget.maxTotalRecords,
+      budget.batchSize,
+    );
+    const deletedByPlayer = await this.deleteOverPlayerBudget(
+      budget.maxRecordsPerPlayer,
+      budget.batchSize,
+    );
     const deletedByKind: Partial<Record<AiMemoryAuditKind, number>> = {};
     let deletedKinds = 0;
-    for (const [kind, maxRecords] of Object.entries(budget.maxRecordsPerKind) as Array<[AiMemoryAuditKind, number]>) {
-      const deleted = await this.deleteOverKindBudget(kind, maxRecords, Math.max(1, budget.batchSize - deletedKinds));
+    for (const [kind, maxRecords] of Object.entries(budget.maxRecordsPerKind) as Array<
+      [AiMemoryAuditKind, number]
+    >) {
+      const deleted = await this.deleteOverKindBudget(
+        kind,
+        maxRecords,
+        Math.max(1, budget.batchSize - deletedKinds),
+      );
       if (deleted > 0) deletedByKind[kind] = deleted;
       deletedKinds += deleted;
       if (deletedKinds >= budget.batchSize) break;
@@ -202,7 +217,10 @@ export class PgAiMemoryDb {
     return res.rowCount ?? 0;
   }
 
-  private async deleteOverPlayerBudget(maxRecordsPerPlayer: number, batchSize: number): Promise<number> {
+  private async deleteOverPlayerBudget(
+    maxRecordsPerPlayer: number,
+    batchSize: number,
+  ): Promise<number> {
     const res = await this.db.query(
       `WITH ranked AS (
          SELECT id,
@@ -226,7 +244,11 @@ export class PgAiMemoryDb {
     return res.rowCount ?? 0;
   }
 
-  private async deleteOverKindBudget(kind: AiMemoryAuditKind, maxRecords: number, batchSize: number): Promise<number> {
+  private async deleteOverKindBudget(
+    kind: AiMemoryAuditKind,
+    maxRecords: number,
+    batchSize: number,
+  ): Promise<number> {
     const res = await this.db.query(
       `WITH ranked AS (
          SELECT id,
@@ -269,7 +291,15 @@ export function normalizeAiMemoryAuditRecord(value: unknown): AiMemoryAuditRecor
   const sourcePlayerEntityId = numberValue(src.sourcePlayerEntityId);
   const salience = numberValue(src.salience);
   const reason = stringValue(src.reason);
-  if (!isMemoryKind(kind) || !isMemoryScope(scope) || !refId || sourcePlayerEntityId === null || salience === null || !reason) return null;
+  if (
+    !isMemoryKind(kind) ||
+    !isMemoryScope(scope) ||
+    !refId ||
+    sourcePlayerEntityId === null ||
+    salience === null ||
+    !reason
+  )
+    return null;
   return {
     kind,
     refId,
@@ -281,7 +311,9 @@ export function normalizeAiMemoryAuditRecord(value: unknown): AiMemoryAuditRecor
     ...(stringValue(src.templateId) ? { templateId: stringValue(src.templateId) } : {}),
     ...(stringValue(src.itemId) ? { itemId: stringValue(src.itemId) } : {}),
     ...(stringValue(src.questId) ? { questId: stringValue(src.questId) } : {}),
-    ...(isSubjectKind(stringValue(src.subjectKind)) ? { subjectKind: stringValue(src.subjectKind) as AiMemoryAuditRecord['subjectKind'] } : {}),
+    ...(isSubjectKind(stringValue(src.subjectKind))
+      ? { subjectKind: stringValue(src.subjectKind) as AiMemoryAuditRecord['subjectKind'] }
+      : {}),
     lineIds: stringArray(src.lineIds),
     salience: Math.max(0, Math.min(1, salience)),
     ...(numberValue(src.createdAt) !== null ? { createdAt: numberValue(src.createdAt)! } : {}),
@@ -304,12 +336,14 @@ function stringArray(value: unknown): string[] {
 }
 
 function isMemoryKind(value: string): value is AiMemoryAuditRecord['kind'] {
-  return value === 'npcInteraction'
-    || value === 'rumor'
-    || value === 'worldTrace'
-    || value === 'creatureMemory'
-    || value === 'bossMemory'
-    || value === 'worldDirectorState';
+  return (
+    value === 'npcInteraction' ||
+    value === 'rumor' ||
+    value === 'worldTrace' ||
+    value === 'creatureMemory' ||
+    value === 'bossMemory' ||
+    value === 'worldDirectorState'
+  );
 }
 
 function isMemoryScope(value: string): value is AiMemoryAuditScope {
@@ -322,11 +356,17 @@ function isSubjectKind(value: string): value is NonNullable<AiMemoryAuditRecord[
 
 function normalizeMemoryBudgetPolicy(policy: AiMemoryBudgetPolicy): AiMemoryBudgetPolicy {
   const maxTotalRecords = positiveInt(policy.maxTotalRecords, 1);
-  const maxRecordsPerPlayer = Math.min(maxTotalRecords, positiveInt(policy.maxRecordsPerPlayer, maxTotalRecords));
+  const maxRecordsPerPlayer = Math.min(
+    maxTotalRecords,
+    positiveInt(policy.maxRecordsPerPlayer, maxTotalRecords),
+  );
   const batchSize = positiveInt(policy.batchSize, 1);
   const maxRecordsPerKind: Partial<Record<AiMemoryAuditKind, number>> = {};
-  for (const [kind, value] of Object.entries(policy.maxRecordsPerKind) as Array<[AiMemoryAuditKind, number]>) {
-    if (isMemoryKind(kind)) maxRecordsPerKind[kind] = Math.min(maxTotalRecords, positiveInt(value, maxTotalRecords));
+  for (const [kind, value] of Object.entries(policy.maxRecordsPerKind) as Array<
+    [AiMemoryAuditKind, number]
+  >) {
+    if (isMemoryKind(kind))
+      maxRecordsPerKind[kind] = Math.min(maxTotalRecords, positiveInt(value, maxTotalRecords));
   }
   return { maxTotalRecords, maxRecordsPerPlayer, maxRecordsPerKind, batchSize };
 }

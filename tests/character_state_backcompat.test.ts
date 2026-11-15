@@ -34,13 +34,23 @@ describe('character state JSONB back-compat', () => {
       inventory: [{ itemId: 'wolf_fang', count: 3 }],
       purchasedSlots: 6,
       bonusSlots: 0,
+      // Live meta always carries the socket fields and the applied
+      // storage-purchase keys (sanitize materializes all three); at their
+      // defaults the serializer omits them, which the 3-field state.bank
+      // expectation below deliberately pins.
+      unlockedSockets: 0,
+      socketBags: [null, null, null, null],
+      appliedStorageKeys: [],
     };
 
     const state = sim.serializeCharacter(pid)!;
-    expect(state.vendorBuyback).toEqual([{ itemId: 'roasted_boar', count: 2 }]);
+    // Legacy unsigned rows save with explicit unknown-source units.
+    expect(state.vendorBuyback).toEqual([
+      { itemId: 'roasted_boar', count: 2, materialSources: [{ source: {}, count: 2 }] },
+    ]);
     expect(state.delveClears).toEqual({ d_reservoir: 3 });
     expect(state.bank).toEqual({
-      inventory: [{ itemId: 'wolf_fang', count: 3 }],
+      inventory: [{ itemId: 'wolf_fang', count: 3, materialSources: [{ source: {}, count: 3 }] }],
       purchasedSlots: 6,
       bonusSlots: 0,
     });
@@ -77,7 +87,14 @@ describe('character state JSONB back-compat', () => {
     expect(reloadedMeta.vendorBuyback).toEqual([]);
     expect(reloadedMeta.delveClears).toEqual({});
     expect(reloadedMeta.companionUpgrades).toEqual({});
-    expect(reloadedMeta.bank).toEqual({ inventory: [], purchasedSlots: 0, bonusSlots: 0 });
+    expect(reloadedMeta.bank).toEqual({
+      inventory: [],
+      purchasedSlots: 0,
+      bonusSlots: 0,
+      unlockedSockets: 0,
+      socketBags: [null, null, null, null],
+      appliedStorageKeys: [],
+    });
 
     // And it re-serializes cleanly with the defaults in place.
     const reserialized = sim2.serializeCharacter(reloadedPid)!;
@@ -85,5 +102,16 @@ describe('character state JSONB back-compat', () => {
     expect(reserialized.delveClears).toEqual({});
     expect(reserialized.companionUpgrades).toEqual({});
     expect(reserialized.bank).toEqual({ inventory: [], purchasedSlots: 0, bonusSlots: 0 });
+    expect(reserialized).toEqual({
+      ...state,
+      vendorBuyback: [],
+      delveClears: {},
+      companionUpgrades: {},
+      bank: { inventory: [], purchasedSlots: 0, bonusSlots: 0 },
+    });
+
+    const sim3 = makeSim();
+    const canonicalPid = sim3.addPlayer('warrior', 'Reloaded', { state: reserialized });
+    expect(sim3.serializeCharacter(canonicalPid)).toEqual(reserialized);
   });
 });

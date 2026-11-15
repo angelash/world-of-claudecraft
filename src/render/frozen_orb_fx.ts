@@ -1,4 +1,4 @@
-// Frozen Orb visual: the roaming ice sphere the frost mage releases (WoW-style
+// Frostglobe visual: the roaming ice sphere the frost mage releases (WoW-style
 // reference: a translucent blue orb drifting forward, swirling shards, frosty
 // glow, sparkling frost trail). The sim's orb is pure state (ctx.frozenOrbs,
 // never wired); the client animates the flight locally from three 'orb'
@@ -12,11 +12,15 @@
 // resolver, spawn()/halt()/resume() from the 'orb' events, update(dt) once per
 // frame from the same block that ticks the other transient systems (vfx /
 // lightPulses). Per-frame work is allocation-free: geometries are built once
-// and shared; materials and the trail buffer are per orb (they animate) and
-// disposed when the orb expires. Math.random here is fine: this is the
-// renderer, the determinism ban is sim-only.
+// and shared; materials are per-role free lists (mage-heavy fights spawn and
+// expire many orbs in a burst, so a released material is returned to its
+// role's pool and reacquired by the next spawn instead of a fresh
+// new/dispose round trip; a pool disposes past a fixed cap so it stays
+// bounded). The trail buffer stays per orb. Math.random here is fine: this
+// is the renderer, the determinism ban is sim-only.
 
 import * as THREE from 'three';
+import type { SimEvent } from '../sim/types';
 import { SCHOOL_COLORS } from './vfx';
 
 const ORB_HOVER = 1.15; // yards the sphere floats above the terrain
@@ -44,6 +48,9 @@ const TRAIL_SIZE = 0.14;
 const TRAIL_SPREAD = 0.45; // spawn scatter around the orb's heart (yards)
 const TRAIL_DRIFT = 0.6; // outward drift speed (yards/s)
 const TRAIL_SINK = 0.5; // downward drift (yards/s), melting snowfall
+// Per-role material pool cap: generous headroom over any plausible concurrent
+// orb count so a pool bounds memory without ever binding in normal play.
+const MAX_POOL_SIZE = 32;
 
 export interface FrozenOrbSpawn {
   sourceId: number;
@@ -84,15 +91,25 @@ function easeOutCubic(t: number): number {
 }
 
 export class FrozenOrbFx {
-  private readonly scene: THREE.Scene;
+  // Only add/remove are used, so a plain Group can host the boot stand-in.
+  private readonly scene: Pick<THREE.Object3D, 'add' | 'remove'>;
   private readonly groundY: (x: number, z: number) => number;
   private readonly orbs: OrbFx[] = [];
   // Shared geometry, built lazily on the first spawn and reused for every orb.
   private shellGeo: THREE.SphereGeometry | null = null;
   private coreGeo: THREE.SphereGeometry | null = null;
   private shardGeo: THREE.TetrahedronGeometry | null = null;
+  // Per-role free lists: a released material is pushed here instead of
+  // disposed, and popped by the next spawn instead of constructed fresh.
+  private readonly shellPool: THREE.MeshStandardMaterial[] = [];
+  private readonly corePool: THREE.MeshBasicMaterial[] = [];
+  private readonly shardPool: THREE.MeshStandardMaterial[] = [];
+  private readonly trailPool: THREE.PointsMaterial[] = [];
 
-  constructor(scene: THREE.Scene, groundY: (x: number, z: number) => number) {
+  constructor(
+    scene: Pick<THREE.Object3D, 'add' | 'remove'>,
+    groundY: (x: number, z: number) => number,
+  ) {
     this.scene = scene;
     this.groundY = groundY;
   }
@@ -109,31 +126,10 @@ export class FrozenOrbFx {
     const frost = new THREE.Color(SCHOOL_COLORS.frost);
     // Translucent icy shell: the emissive term keeps it readable in shade and
     // feeds the bloom pass a soft blue halo without an actual light.
-    const shellMat = new THREE.MeshStandardMaterial({
-      color: frost,
-      emissive: frost.clone().multiplyScalar(0.55),
-      roughness: 0.18,
-      metalness: 0,
-      transparent: true,
-      opacity: SHELL_OPACITY,
-      depthWrite: false,
-    });
+    const shellMat = this.acquireShellMat(frost);
     // Bright additive heart, over the bloom threshold so the orb glows.
-    const coreMat = new THREE.MeshBasicMaterial({
-      color: frost.clone().multiplyScalar(1.9),
-      transparent: true,
-      opacity: CORE_OPACITY,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const shardMat = new THREE.MeshStandardMaterial({
-      color: 0xcfeaff,
-      emissive: frost.clone().multiplyScalar(0.35),
-      roughness: 0.25,
-      metalness: 0,
-      transparent: true,
-      opacity: SHARD_OPACITY,
-    });
+    const coreMat = this.acquireCoreMat(frost);
+    const shardMat = this.acquireShardMat(frost);
 
     const group = new THREE.Group();
     group.add(new THREE.Mesh(this.shellGeo, shellMat));
@@ -172,15 +168,7 @@ export class FrozenOrbFx {
     }
     const trailGeo = new THREE.BufferGeometry();
     trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
-    const trailMat = new THREE.PointsMaterial({
-      color: frost.clone().multiplyScalar(1.7),
-      size: TRAIL_SIZE,
-      transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      sizeAttenuation: true,
-    });
+    const trailMat = this.acquireTrailMat(frost);
     const trail = new THREE.Points(trailGeo, trailMat);
     trail.frustumCulled = false; // world-scattered motes; the pool is tiny
     this.scene.add(trail);
@@ -207,6 +195,92 @@ export class FrozenOrbFx {
       elapsed: 0,
       halted: false,
     });
+  }
+
+  private acquireShellMat(frost: THREE.Color): THREE.MeshStandardMaterial {
+    const pooled = this.shellPool.pop();
+    if (pooled) {
+      pooled.color.set(frost);
+      pooled.emissive.set(frost).multiplyScalar(0.55);
+      pooled.opacity = SHELL_OPACITY;
+      return pooled;
+    }
+    const material = new THREE.MeshStandardMaterial({
+      color: frost,
+      emissive: frost.clone().multiplyScalar(0.55),
+      roughness: 0.18,
+      metalness: 0,
+      transparent: true,
+      opacity: SHELL_OPACITY,
+      depthWrite: false,
+    });
+    material.name = 'frozenOrb:shell';
+    return material;
+  }
+
+  private acquireCoreMat(frost: THREE.Color): THREE.MeshBasicMaterial {
+    const pooled = this.corePool.pop();
+    if (pooled) {
+      pooled.color.set(frost).multiplyScalar(1.9);
+      pooled.opacity = CORE_OPACITY;
+      return pooled;
+    }
+    const material = new THREE.MeshBasicMaterial({
+      color: frost.clone().multiplyScalar(1.9),
+      transparent: true,
+      opacity: CORE_OPACITY,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    material.name = 'frozenOrb:core';
+    return material;
+  }
+
+  private acquireShardMat(frost: THREE.Color): THREE.MeshStandardMaterial {
+    const pooled = this.shardPool.pop();
+    if (pooled) {
+      pooled.color.set(0xcfeaff);
+      pooled.emissive.set(frost).multiplyScalar(0.35);
+      pooled.opacity = SHARD_OPACITY;
+      return pooled;
+    }
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xcfeaff,
+      emissive: frost.clone().multiplyScalar(0.35),
+      roughness: 0.25,
+      metalness: 0,
+      transparent: true,
+      opacity: SHARD_OPACITY,
+    });
+    material.name = 'frozenOrb:shards';
+    return material;
+  }
+
+  private acquireTrailMat(frost: THREE.Color): THREE.PointsMaterial {
+    const pooled = this.trailPool.pop();
+    if (pooled) {
+      pooled.color.set(frost).multiplyScalar(1.7);
+      pooled.opacity = 0.85;
+      return pooled;
+    }
+    const material = new THREE.PointsMaterial({
+      color: frost.clone().multiplyScalar(1.7),
+      size: TRAIL_SIZE,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+    material.name = 'frozenOrb:trail';
+    return material;
+  }
+
+  // Return a released material to its role's pool, up to the fixed cap; past
+  // the cap it is disposed like before, so pool memory stays bounded.
+  private release<T extends THREE.Material>(pool: T[], mat: T): void {
+    if (pool.length < MAX_POOL_SIZE) pool.push(mat);
+    else mat.dispose();
   }
 
   /** The orb latched onto an enemy: freeze the drift at the server's real spot. */
@@ -290,11 +364,120 @@ export class FrozenOrbFx {
     const orb = this.orbs[index];
     this.scene.remove(orb.group);
     this.scene.remove(orb.trail);
-    orb.shellMat.dispose();
-    orb.coreMat.dispose();
-    orb.shardMat.dispose();
-    orb.trailMat.dispose();
+    this.release(this.shellPool, orb.shellMat);
+    this.release(this.corePool, orb.coreMat);
+    this.release(this.shardPool, orb.shardMat);
+    this.release(this.trailPool, orb.trailMat);
     orb.trail.geometry.dispose();
     this.orbs.splice(index, 1);
   }
+
+  /** Renderer teardown (renderer_resource_lifecycle.ts): every live orb is
+   *  removed (its materials return to the pools), then the pools and the
+   *  shared geometries are disposed. Idempotent, and a spawn afterwards
+   *  rebuilds the geometries lazily exactly like the first spawn did. */
+  dispose(): void {
+    while (this.orbs.length > 0) this.remove(this.orbs.length - 1);
+    const pools: THREE.Material[][] = [
+      this.shellPool,
+      this.corePool,
+      this.shardPool,
+      this.trailPool,
+    ];
+    for (const pool of pools) {
+      for (const mat of pool) mat.dispose();
+      pool.length = 0;
+    }
+    this.shellGeo?.dispose();
+    this.coreGeo?.dispose();
+    this.shardGeo?.dispose();
+    this.shellGeo = null;
+    this.coreGeo = null;
+    this.shardGeo = null;
+  }
+}
+
+/**
+ * The boot manifest's stand-in: one visual of its own, holding one orb that is
+ * never updated and so never expires, so the programs a live Frostglobe draws
+ * (shell, core, shards, sparkle trail) are linked behind the loading cover and
+ * stay referenced for the session. The live pools mint their own materials,
+ * but a program is shared by cache key and these are never released. The
+ * shell and shards are MeshStandard on every tier, so on Low nothing else held
+ * their program and the first orb linked it live. Registered in
+ * ABILITY_MATERIAL_SOURCES.
+ */
+interface FrozenOrbStandIn {
+  root: THREE.Group;
+  materials: THREE.Material[];
+}
+let frozenOrbStandIn: FrozenOrbStandIn | null = null;
+
+export function buildFrozenOrbStandIn(): FrozenOrbStandIn {
+  if (!frozenOrbStandIn) {
+    const root = new THREE.Group();
+    root.name = 'frozen-orb-stand-in';
+    new FrozenOrbFx(root, () => 0).spawn({
+      sourceId: -1,
+      x: 0,
+      z: 0,
+      dirX: 0,
+      dirZ: 1,
+      speed: 0,
+      duration: Number.MAX_SAFE_INTEGER,
+    });
+    const materials: THREE.Material[] = [];
+    root.traverse((object) => {
+      const material = (object as THREE.Mesh).material;
+      if (material && !Array.isArray(material) && !materials.includes(material)) {
+        materials.push(material);
+      }
+    });
+    frozenOrbStandIn = { root, materials };
+  }
+  return frozenOrbStandIn;
+}
+
+export function frozenOrbStandInMaterials(): readonly THREE.Material[] {
+  return buildFrozenOrbStandIn().materials;
+}
+
+/** The 'spellfxAt' fields the orb flight reads; the fx union keeps a typo in
+ *  the dispatch arm a compile error. */
+export interface FrozenOrbSpellfxEvent {
+  fx: Extract<SimEvent, { type: 'spellfxAt' }>['fx'];
+  x: number;
+  z: number;
+  sourceId?: number;
+  phase?: 'release' | 'halt' | 'resume';
+  dirX?: number;
+  dirZ?: number;
+  speed?: number;
+  duration?: number;
+}
+
+/**
+ * The Frostglobe flight, animated locally from its three moments: 'release'
+ * starts the drift, 'halt'/'resume' freeze and restart it at the server's
+ * real coordinates when the orb latches onto an enemy. The caller's pulse
+ * novas stay the area telegraph, so no actionable information rides on this
+ * mesh. Moved verbatim from the renderer's event switch; returns true when
+ * the event was consumed.
+ */
+export function handleFrozenOrbSpellfxEvent(fx: FrozenOrbFx, ev: FrozenOrbSpellfxEvent): boolean {
+  if (ev.fx !== 'orb') return false;
+  const orbSource = ev.sourceId ?? -1;
+  if (ev.phase === 'halt') fx.halt(orbSource, ev.x, ev.z);
+  else if (ev.phase === 'resume') fx.resume(orbSource, ev.x, ev.z);
+  else
+    fx.spawn({
+      sourceId: orbSource,
+      x: ev.x,
+      z: ev.z,
+      dirX: ev.dirX ?? 0,
+      dirZ: ev.dirZ ?? 1,
+      speed: ev.speed ?? 2.5,
+      duration: ev.duration ?? 8,
+    });
+  return true;
 }

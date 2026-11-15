@@ -7,6 +7,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   statSync,
@@ -24,16 +25,38 @@ import {
 } from '../scripts/assets/eastbrook_grand_armoury/source_fingerprint.mjs';
 import { artisanRowPreloadInternalsForTest } from '../src/render/artisan_row_props';
 import { MEDIA_ASSETS } from '../src/render/assets/manifest.generated';
+import { balgathBoulderKitPreloadInternalsForTest } from '../src/render/balgath_boulder_kit';
+import { balgathStarwakeKitPreloadInternalsForTest } from '../src/render/balgath_starwake_kit';
 import { bankerChestPreloadInternalsForTest } from '../src/render/banker_chest';
+import { battlegroundRuneModelPreloadInternalsForTest } from '../src/render/battleground_rune_model';
 import { marshDressingPreloadInternalsForTest } from '../src/render/delve_marsh_dressing';
 import { delvePropsPreloadInternalsForTest } from '../src/render/delve_props';
 import { doorPortalPreloadInternalsForTest } from '../src/render/door_portal';
+import { drownedTempleEntrancePreloadInternalsForTest } from '../src/render/drowned_temple_entrance';
 import { eastbrookGrandArmouryInternalsForTest } from '../src/render/eastbrook_grand_armoury';
+import { farmPatchesPreloadInternalsForTest } from '../src/render/farm_patches';
 import { fishPreloadInternalsForTest } from '../src/render/fish';
+import { galeFeaturesPreloadInternalsForTest } from '../src/render/gale_features';
+import { gardenFeaturesPreloadInternalsForTest } from '../src/render/garden_features';
 import { gatherNodePreloadInternalsForTest } from '../src/render/gather_nodes';
+import { gliderCourseVisualPreloadInternalsForTest } from '../src/render/glider_course_visual';
+import { harborRouteMarkerInternalsForTest } from '../src/render/harbor_route_markers';
+import { hoardEntrancePreloadInternalsForTest } from '../src/render/hoard_entrance';
+import { hollowCryptEntrancePreloadInternalsForTest } from '../src/render/hollow_crypt_entrance';
+import { ignivarEnvPropsInternalsForTest } from '../src/render/ignivar_env_props';
 import { mailboxPreloadInternalsForTest } from '../src/render/mailbox';
+import { mirefenTavernInternalsForTest } from '../src/render/mirefen_tavern';
+import { propPreloadInternalsForTest } from '../src/render/props';
 import { questObjectPreloadInternalsForTest } from '../src/render/quest_objects';
+import { sanctumSealGatePreloadInternalsForTest } from '../src/render/sanctum_seal_gate';
 import { stationsPreloadInternalsForTest } from '../src/render/stations';
+import { sunkenBastionEntrancePreloadInternalsForTest } from '../src/render/sunken_bastion_entrance';
+import { transportShipInternalsForTest } from '../src/render/transport_ship';
+import { wickharborHarborInternalsForTest } from '../src/render/wickharbor_harbor';
+import { wickharborWharfInternalsForTest } from '../src/render/wickharbor_wharf';
+import { wildheartBasinEntrancePreloadInternalsForTest } from '../src/render/wildheart_basin_entrance';
+import { wispMazeKitPreloadInternalsForTest } from '../src/render/wisp_maze_kit';
+import { wyrmwatchHarborInternalsForTest } from '../src/render/wyrmwatch_harbor';
 import { yumiMazePreloadInternalsForTest } from '../src/render/yumi_maze';
 import { EASTBROOK_GRAND_ARMOURY } from '../src/sim/building_layout';
 import type { BuildingDef } from '../src/sim/types';
@@ -67,7 +90,7 @@ const armouryFinalPipelineEnabled =
     item.src?.endsWith('eastbrook_grand_armoury-final.glb'),
   ) ?? false;
 const ARMOURY_SHIPPING_BYTE_CEILING = 160 * 1024;
-const ARMOURY_SHIPPING_SHA256 = '182ea1aa3741a17a00947b63e1a2e8c7e0dec44f3bfd9165b6f1d9ef93e37595';
+const ARMOURY_SHIPPING_SHA256 = '0406e413bfcc1637618e946e6b80cbab58274b1ec6e05d40f9db5a9cdbc40ca4';
 const MANIFEST_HASH_LENGTH = 12;
 
 function expectAssetExistsAndManifested(url: string): void {
@@ -484,8 +507,67 @@ async function expectArmouryGlbContract(
 }
 
 describe('GLB-replacement asset preload sets resolve to real, manifested files', () => {
+  it('Gravewyrm Sanctum Seal Gate assets', () => {
+    for (const url of sanctumSealGatePreloadInternalsForTest.urls)
+      expectAssetExistsAndManifested(url);
+  });
+  it('Sunken Bastion Drowned Gate Tower assets', () => {
+    for (const url of sunkenBastionEntrancePreloadInternalsForTest.urls)
+      expectAssetExistsAndManifested(url);
+  });
+  it('Hollow Crypt Fallen Chapel assets', () => {
+    for (const url of hollowCryptEntrancePreloadInternalsForTest.urls)
+      expectAssetExistsAndManifested(url);
+  });
+  it('Drowned Temple Moon Stair assets', () => {
+    for (const url of drownedTempleEntrancePreloadInternalsForTest.urls)
+      expectAssetExistsAndManifested(url);
+  });
+  it('Wildheart Basin Jaguar Maw assets', () => {
+    for (const url of wildheartBasinEntrancePreloadInternalsForTest.urls)
+      expectAssetExistsAndManifested(url);
+  });
+  it('buried hoard entrance asset', () => {
+    for (const url of hoardEntrancePreloadInternalsForTest.urls)
+      expectAssetExistsAndManifested(url);
+  });
+  it('wisp maze kit asset', () => {
+    for (const url of wispMazeKitPreloadInternalsForTest.urls) expectAssetExistsAndManifested(url);
+  });
   it('leaping fish asset', () => {
     expectAssetExistsAndManifested(fishPreloadInternalsForTest.fishAssetUrl);
+  });
+
+  it('transport ship assets', () => {
+    for (const url of Object.values(transportShipInternalsForTest.models)) {
+      expectAssetExistsAndManifested(url);
+    }
+  });
+
+  it('harbor route marker asset', () => {
+    expectAssetExistsAndManifested(harborRouteMarkerInternalsForTest.assetUrl);
+  });
+
+  it('wyrmwatch cliff harbor asset', () => {
+    expectAssetExistsAndManifested(wyrmwatchHarborInternalsForTest.assetUrl);
+  });
+
+  it('wickharbor ferry wharf asset', () => {
+    expectAssetExistsAndManifested(wickharborWharfInternalsForTest.assetUrl);
+  });
+
+  it('wickharbor harbor asset', () => {
+    expectAssetExistsAndManifested(wickharborHarborInternalsForTest.assetUrl);
+  });
+
+  it('mirefen tavern asset', () => {
+    expectAssetExistsAndManifested(mirefenTavernInternalsForTest.assetUrl);
+    // ...and its texture-tier files, which a low or phone profile loads in its place
+    for (const tier of ['half', 'quarter']) {
+      expectAssetExistsAndManifested(
+        mirefenTavernInternalsForTest.assetUrl.replace(/\.glb$/, `.${tier}.glb`),
+      );
+    }
   });
 
   it('gather node assets', () => {
@@ -496,6 +578,39 @@ describe('GLB-replacement asset preload sets resolve to real, manifested files',
 
   it('mailbox pillar asset', () => {
     expectAssetExistsAndManifested(mailboxPreloadInternalsForTest.mailboxAssetUrl);
+  });
+
+  // The farm patch set: garden beds, the compost bin, and the per-family crop
+  // stage and withered meshes. The renderer's own url list is the source here,
+  // so a family or stage added to the core without an export reds this.
+  it('farm patch assets', () => {
+    const urls = farmPatchesPreloadInternalsForTest.modelUrls;
+    // The full committed set: bed + bin + shared sprout + 3 families x
+    // (stage2, stage3, stage4, withered), plus BOTH harvest feast tables (the
+    // Phase 12 party trestle table and the Phase 18 apex pedestal banquet the
+    // three role feasts wear). A new family, stage or table moves this count
+    // deliberately, in the same change that commits its GLB.
+    expect(urls.length).toBe(17);
+    for (const url of urls) expectAssetExistsAndManifested(url);
+  });
+
+  // Thornhollow Fields rune pads: all three defs are filled in now, so this
+  // sweeps the real set. Existence + manifest presence is all it claims; the
+  // per-file sha256 and parsed-shape contract for those three bodies lives in
+  // tests/battleground_rune_models.test.ts, which is what stands in for the
+  // deterministic exporter they do not have.
+  it('battleground rune pad assets', () => {
+    for (const url of battlegroundRuneModelPreloadInternalsForTest.urls()) {
+      expectAssetExistsAndManifested(url);
+    }
+  });
+
+  it('Balgath boulder kit asset', () => {
+    expectAssetExistsAndManifested(balgathBoulderKitPreloadInternalsForTest.url);
+  });
+
+  it('Balgath starwake kit asset', () => {
+    expectAssetExistsAndManifested(balgathStarwakeKitPreloadInternalsForTest.url);
   });
 
   it('banker chest asset', () => {
@@ -573,7 +688,7 @@ describe('GLB-replacement asset preload sets resolve to real, manifested files',
       'scripts/assets/specs/eastbrook_grand_armoury.json',
       'scripts/assets/eastbrook_grand_armoury/source_fingerprint.mjs',
       'scripts/assets/build_assets.mjs',
-      'package-lock.json',
+      'pnpm-lock.yaml',
     ]);
     expect(eastbrookGrandArmourySourceFingerprint(repoDir)).toMatch(/^[0-9a-f]{64}$/);
   });
@@ -589,7 +704,7 @@ describe('GLB-replacement asset preload sets resolve to real, manifested files',
 
       const knownFingerprint = eastbrookGrandArmourySourceFingerprint(fixtureRoot);
       expect(knownFingerprint).toBe(
-        'b4b18c6f18c4961912a8c556ce6823082b45bd247efeda9ceed69eb68339c726',
+        'd65cf120df170c401df25d801c1f55288451dbe82a44740e678af166d293b02e',
       );
 
       const mutatedPath = path.join(fixtureRoot, EASTBROOK_GRAND_ARMOURY_SOURCE_FILES[0]);
@@ -661,6 +776,13 @@ describe('GLB-replacement asset preload sets resolve to real, manifested files',
 
   it('dungeon door arch asset', () => {
     expectAssetExistsAndManifested(doorPortalPreloadInternalsForTest.doorArchAssetUrl);
+    expectAssetExistsAndManifested(doorPortalPreloadInternalsForTest.wildheartGateAssetUrl);
+  });
+
+  it('ignivar raid dressing prop assets', () => {
+    for (const url of Object.values(ignivarEnvPropsInternalsForTest.urls)) {
+      expectAssetExistsAndManifested(url);
+    }
   });
 
   it('quest object assets', () => {
@@ -677,6 +799,60 @@ describe('GLB-replacement asset preload sets resolve to real, manifested files',
 
   it('crafting station prop assets (Professions 2.0)', () => {
     for (const url of Object.values(stationsPreloadInternalsForTest.assetUrl)) {
+      expectAssetExistsAndManifested(url);
+    }
+  });
+
+  it('Wildheart Basin jungle prop assets', () => {
+    // The bespoke caldera renderer that drew these retired with the Basin's
+    // rework (render/wildheart_basin); the shipped models stay (the door
+    // portal draws the jaguar gate, the creature looks the mask totem).
+    // The Jaguar Maw (the Basin's world entrance) is a landmark, not a prop:
+    // tests/wildheart_basin_entrance_asset.test.ts pins its own bytes and budget.
+    const shipped = readdirSync(path.join(publicDir, 'models/props'))
+      .filter(
+        (f) =>
+          /^wildheart_.*\.glb$/.test(f) &&
+          f !== 'wildheart_basin_kit.glb' &&
+          !f.startsWith('wildheart_basin_entrance'),
+      )
+      .map((f) => `/models/props/${f}`);
+    expect(shipped.length).toBeGreaterThanOrEqual(10);
+    for (const url of shipped) {
+      expectAssetExistsAndManifested(url);
+      const file = path.join(publicDir, url.replace(/^\//, ''));
+      const size = statSync(file).size;
+      expect(size, `${url} should meet the static-prop size floor`).toBeGreaterThanOrEqual(40_000);
+      // KTX2 textures (tests/glb_texture_compression.test.ts) are larger on
+      // disk than the webp they replaced because they stay GPU-compressed in
+      // memory; the ceiling still catches an unoptimized re-export, which
+      // lands megabytes above this.
+      expect(size, `${url} should meet the static-prop size ceiling`).toBeLessThanOrEqual(256_000);
+      expect(
+        readGlbJson(path.join(publicDir, url.replace(/^\//, ''))).extensionsUsed,
+        `${url} should use Meshopt`,
+      ).toContain('EXT_meshopt_compression');
+    }
+  });
+
+  it('Great Maze hedge wall and arch assets', () => {
+    for (const url of Object.values(gardenFeaturesPreloadInternalsForTest.mazeAssetUrl)) {
+      expectAssetExistsAndManifested(url);
+    }
+  });
+
+  it('Old Beacon tower drum assets', () => {
+    for (const url of galeFeaturesPreloadInternalsForTest.towerAssetUrl) {
+      expectAssetExistsAndManifested(url);
+    }
+  });
+
+  it('Windrider glider apparatus (world quests round 2)', () => {
+    expectAssetExistsAndManifested(gliderCourseVisualPreloadInternalsForTest.apparatusAssetUrl);
+  });
+
+  it('every decor prop asset (the full PROP_ASSET_DEFS catalog)', () => {
+    for (const url of Object.values(propPreloadInternalsForTest.propAssetUrl)) {
       expectAssetExistsAndManifested(url);
     }
   });

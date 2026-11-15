@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  aiContentCoverageReport, aiContentReviewChecklist, aiProfileAuthoringValidationReport, aiProfilePreviewReport,
+  aiContentCoverageReport,
+  aiContentReviewChecklist,
+  aiProfileAuthoringValidationReport,
+  aiProfilePreviewReport,
 } from '../server/ai/content_coverage';
 import { hudChromeStrings } from '../src/ui/i18n.catalog/hud_chrome';
 
@@ -75,11 +78,17 @@ describe('AI content coverage report', () => {
       fallbackLineId: 'hudChrome.aiSpeech.brotherAldricAwake',
       canonSensitive: true,
       hasTimeWeatherSensitivity: true,
-      sceneAffinities: { likes: expect.any(Number), avoids: expect.any(Number), comments: expect.any(Number) },
+      sceneAffinities: {
+        likes: expect.any(Number),
+        avoids: expect.any(Number),
+        comments: expect.any(Number),
+      },
       itemInterest: { attracted: expect.any(Number), avoids: expect.any(Number) },
       missingAuthoringFields: [],
     });
-    expect(aldric?.appliesTo).toEqual(expect.arrayContaining([{ kind: 'npc', templateId: 'brother_aldric' }]));
+    expect(aldric?.appliesTo).toEqual(
+      expect.arrayContaining([{ kind: 'npc', templateId: 'brother_aldric' }]),
+    );
     expect(aldric?.personaExcerpt.length ?? 0).toBeLessThanOrEqual(110);
   });
 
@@ -105,7 +114,9 @@ describe('AI content coverage report', () => {
 
     expect(checklist.status).toBe('pass');
     expect(checklist.generatedFrom).toBe('aiContentCoverageReport');
-    expect(checklist.validationCommands).toEqual(['npx vitest run tests/ai_content_coverage.test.ts']);
+    expect(checklist.validationCommands).toEqual([
+      'npx vitest run tests/ai_content_coverage.test.ts',
+    ]);
     expect(checklist.items.map((item) => item.id)).toEqual([
       'mob-family-semantics',
       'interactive-npc-profiles',

@@ -1,16 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { ClientWorld } from '../src/net/online';
-import { zoneAt } from '../src/sim/data';
+import { MOUNT_KEYS, MOUNTS } from '../src/sim/content/mounts';
+import { BUILTIN_WORLD, MOBS, NPCS, zoneAt } from '../src/sim/data';
 import { grantDeed } from '../src/sim/deeds';
+import { createMob } from '../src/sim/entity';
 import { emitMobYell } from '../src/sim/mob/yells';
+import { ownedMounts } from '../src/sim/mounts';
 import { Sim } from '../src/sim/sim';
 import type { SimContext } from '../src/sim/sim_context';
 import * as chatMod from '../src/sim/social/chat';
-import type { SimEvent } from '../src/sim/types';
+import type { SimEvent, WorldContent } from '../src/sim/types';
 import { groundHeight } from '../src/sim/world';
+import { bareClient } from './helpers/bare_client';
+
+// Chat/emote/presence tests only ever talk between hand-added players (the
+// /played and /playtime timelines tick a minute-plus of world time), so none
+// of the hundreds of ambient overworld mobs/NPCs/objects matter. Keep every
+// terrain- and zone-relevant field identical to BUILTIN_WORLD while stripping
+// only the constructor-spawned entity content.
+const CHAT_TEST_WORLD: WorldContent = {
+  ...BUILTIN_WORLD,
+  camps: [],
+  npcs: {},
+  groundObjects: [],
+};
 
 function makeWorld() {
-  return new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+  return new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true, world: CHAT_TEST_WORLD });
 }
 
 function teleport(sim: Sim, pid: number, x: number, z: number) {
@@ -245,6 +260,7 @@ describe('chat channels', () => {
     expect(help.length).toBeGreaterThan(0);
     const text = help.map((e) => e.text).join('\n');
     expect(text).toContain('/w <name> <message>');
+    expect(text).toContain('/unstuck');
     expect(text).toContain('/who');
   });
 
@@ -353,7 +369,7 @@ describe('chat channels', () => {
     const a = sim.addPlayer('warrior', 'Aleph');
     teleport(sim, a, 12, -340);
     sim.tick();
-    const zone = zoneAt(-340);
+    const zone = zoneAt(0, -340);
     const [lo, hi] = zone.levelRange;
     sim.chat('/where', a);
     const events = sim.tick();
@@ -382,14 +398,14 @@ describe('chat channels', () => {
     );
     // once past a minute the line switches to "Xm Ys" form
     expect(played?.text).toMatch(/^Time played this session: 1m \d+s\.$/);
-  });
+  }, 90_000);
 
   it('/where accepts the /loc and /zone aliases', () => {
     const sim = makeWorld();
     const a = sim.addPlayer('warrior', 'Aleph');
     teleport(sim, a, 0, -40);
     sim.tick();
-    const expected = `You are in ${zoneAt(-40).name}`;
+    const expected = `You are in ${zoneAt(0, -40).name}`;
     for (const cmd of ['/loc', '/zone']) {
       sim.chat(cmd, a);
       const events = sim.tick();
@@ -483,7 +499,7 @@ describe('chat channels', () => {
     let delivered = 0;
     let throttled = false;
     for (let i = 0; i < 40; i++) {
-      sim.chat('/g spam ' + i, a);
+      sim.chat(`/g spam ${i}`, a);
       const events = sim.tick(); // ~0.05s of refill per tick
       if (events.some((e) => e.type === 'chat')) delivered++;
       if (events.some((e) => e.type === 'error' && /too quickly/i.test(e.text))) throttled = true;
@@ -832,30 +848,6 @@ describe('trade completion event', () => {
 });
 
 describe('snapshot interpolation continuity', () => {
-  function bareClient(pid: number): any {
-    const c: any = Object.create(ClientWorld.prototype);
-    c.cfg = { seed: 42, playerClass: 'warrior' };
-    c.entities = new Map();
-    c.playerId = pid;
-    c.inventory = [];
-    c.equipment = {};
-    c.copper = 0;
-    c.xp = 0;
-    c.known = [];
-    c.questLog = new Map();
-    c.questsDone = new Set();
-    c.partyInfo = null;
-    c.tradeInfo = null;
-    c.duelInfo = null;
-    c.lastSnapAt = 0;
-    c.snapInterval = 50;
-    c.pendingFacingDelta = 0;
-    c.connected = true;
-    c.eventQueue = [];
-    c.mouselookFacing = null;
-    return c;
-  }
-
   const wire = (id: number, x: number) => ({
     id,
     k: 'player',
@@ -871,7 +863,7 @@ describe('snapshot interpolation continuity', () => {
   });
 
   it('re-anchors prevPos at the rendered pose instead of the last server pose', () => {
-    const c = bareClient(7);
+    const c = bareClient(7, { cfg: { seed: 42, playerClass: 'warrior' } });
     const self = (x: number) => ({
       ...wire(7, x),
       res: 0,
@@ -888,15 +880,15 @@ describe('snapshot interpolation continuity', () => {
       stats: { str: 1, agi: 1, sta: 1, int: 1, spi: 1, armor: 0 },
       weapon: { min: 1, max: 2, speed: 2 },
     });
-    c.applySnapshot({ t: 'snap', tick: 1, time: 0, self: self(0), ents: [] });
-    const e = c.entities.get(7);
+    (c as any).applySnapshot({ t: 'snap', tick: 1, time: 0, self: self(0), ents: [] });
+    const e = c.entities.get(7)!;
     // second snapshot lands: the player moved server-side from x=0 to x=10
-    c.applySnapshot({ t: 'snap', tick: 2, time: 0.05, self: self(10), ents: [] });
+    (c as any).applySnapshot({ t: 'snap', tick: 2, time: 0.05, self: self(10), ents: [] });
     // third snapshot from x=10 to x=20: prevPos must sit on the segment the
     // renderer was drawing (between 0 and 10, or slightly past 10 when the
     // frame extrapolated) — never reset all the way back to the old pose
     // unless no time passed at all
-    c.applySnapshot({ t: 'snap', tick: 3, time: 0.1, self: self(20), ents: [] });
+    (c as any).applySnapshot({ t: 'snap', tick: 3, time: 0.1, self: self(20), ents: [] });
     expect(e.pos.x).toBe(20);
     expect(e.prevPos.x).toBeGreaterThanOrEqual(0);
     expect(e.prevPos.x).toBeLessThanOrEqual(12.5); // <= 1.25 extrapolation cap
@@ -905,7 +897,7 @@ describe('snapshot interpolation continuity', () => {
   });
 
   it('mirrors overhead emotes from snapshots and clears them when absent', () => {
-    const c = bareClient(7);
+    const c = bareClient(7, { cfg: { seed: 42, playerClass: 'warrior' } });
     const self = (emo?: string, emoSeq?: number) => ({
       ...wire(7, 0),
       ...(emo ? { emo, emoSeq } : {}),
@@ -923,14 +915,14 @@ describe('snapshot interpolation continuity', () => {
       stats: { str: 1, agi: 1, sta: 1, int: 1, spi: 1, armor: 0 },
       weapon: { min: 1, max: 2, speed: 2 },
     });
-    c.applySnapshot({ t: 'snap', tick: 1, time: 0, self: self('laugh', 4), ents: [] });
+    (c as any).applySnapshot({ t: 'snap', tick: 1, time: 0, self: self('laugh', 4), ents: [] });
     expect(c.entities.get(7)?.overheadEmoteId).toBe('laugh');
     expect(c.entities.get(7)?.overheadEmoteSeq).toBe(4);
 
-    c.applySnapshot({ t: 'snap', tick: 2, time: 0.05, self: self('laugh', 5), ents: [] });
+    (c as any).applySnapshot({ t: 'snap', tick: 2, time: 0.05, self: self('laugh', 5), ents: [] });
     expect(c.entities.get(7)?.overheadEmoteSeq).toBe(5);
 
-    c.applySnapshot({ t: 'snap', tick: 3, time: 0.1, self: self(), ents: [] });
+    (c as any).applySnapshot({ t: 'snap', tick: 3, time: 0.1, self: self(), ents: [] });
 
     expect(c.entities.get(7)?.overheadEmoteId).toBeNull();
   });
@@ -1186,9 +1178,13 @@ describe('chat module (direct, no Sim)', () => {
     const line = chatMod.inspectReadout(target, e);
     expect(line).toContain('Bet: Level 7');
     expect(line).toContain('50%');
-    // 8 lines: the 7 original groups plus the ignore/block line
-    expect(chatMod.helpLines().length).toBe(8);
+    // 11 lines: the original groups plus ignore/block, localized recovery help,
+    // the World PvP flag line (/pvp, /pvp on, /pvp off) and the King of the Hill
+    // line (/hill).
+    expect(chatMod.helpLines().length).toBe(11);
+    expect(chatMod.helpLines().join('\n')).toContain('/hill says where the hill stands');
     expect(chatMod.helpLines().join('\n')).toContain('/ignore <name>');
+    expect(chatMod.helpLines().join('\n')).toContain('/pvp toggles your PvP flag');
   });
 
   it('handleDevChat: parses dev cheats; returns undefined for non-dev input', () => {
@@ -1228,6 +1224,71 @@ describe('chat module (direct, no Sim)', () => {
     expect(chatMod.handleDevChat(ctx, 'hello world', 1)).toBe(undefined);
   });
 
+  it('/dev mounts grants every catalog reins and raises the level to the riding gate', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true, devCommands: true });
+    const pid = sim.addPlayer('warrior', 'Rider');
+    sim.drainEvents();
+    sim.chat('/dev mounts', pid);
+    const events = sim.drainEvents();
+    const meta = sim.meta(pid);
+    expect(meta).toBeDefined();
+    // Every catalog mount is owned (the reins item is in the bags)...
+    expect(ownedMounts(meta as any)).toEqual([...MOUNT_KEYS]);
+    expect(ownedMounts(meta as any)).toContain('terrorspark_groundshaker');
+    // ...and the level 1 rider was raised to 20, the stablemaster's buy gate and
+    // the only level that still matters in the mount flow (mounts themselves have
+    // no per-mount level gate).
+    expect(sim.entities.get(pid)?.level).toBe(20);
+    // 17 with Gourdlight Eve and the mounts already on main. Spelled as a literal on
+    // purpose rather than derived from MOUNT_KEYS.length: the row above already
+    // proves ownership against the catalog, so deriving this one too would let a
+    // catalog that silently lost a mount pass both.
+    expect(
+      events.some((e: any) => e.type === 'log' && /^\[dev\] Granted 17 mount reins/.test(e.text)),
+    ).toBe(true);
+    // A second run is idempotent: everything already owned, nothing granted twice.
+    sim.chat('/dev mounts', pid);
+    const again = sim.drainEvents();
+    expect(
+      again.some((e: any) => e.type === 'log' && /^\[dev\] Granted 0 mount reins/.test(e.text)),
+    ).toBe(true);
+    for (const key of MOUNT_KEYS) {
+      const itemId = `reins_${key}`;
+      const held = (meta as any).inventory.filter((s: any) => s.itemId === itemId);
+      expect(held.length, `${itemId} granted exactly once`).toBe(1);
+    }
+  });
+
+  it('/dev mountquest levels to the lesson gate, funds 100g, and teleports to the stables', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true, devCommands: true });
+    const pid = sim.addPlayer('warrior', 'Pupil');
+    sim.drainEvents();
+    const copperBefore = sim.meta(pid)?.copper ?? 0;
+    sim.chat('/dev mountquest', pid);
+    const events = sim.drainEvents();
+    const e = sim.entities.get(pid);
+    // Level 20 (the riding-lesson gate), exactly 100g richer, standing in
+    // Marla's yard beside her authored position.
+    expect(e?.level).toBe(20); // MOUNT_TRAIN_MIN_LEVEL
+    expect(sim.meta(pid)?.copper).toBe(copperBefore + 100 * 10000);
+    const marla = NPCS.stablemaster_marla;
+    expect(Math.hypot((e?.pos.x ?? 0) - marla.pos.x, (e?.pos.z ?? 0) - marla.pos.z)).toBeLessThan(
+      6,
+    );
+    expect(
+      events.some((ev: any) => ev.type === 'log' && /^\[dev\] level 20, 100g added/.test(ev.text)),
+    ).toBe(true);
+    // Already at the gate (20 is also the level cap): a re-run adds gold but
+    // never re-levels, and the [dev] line drops the level note.
+    sim.chat('/dev mountquest', pid);
+    const again = sim.drainEvents();
+    expect(sim.entities.get(pid)?.level).toBe(20);
+    expect(sim.meta(pid)?.copper).toBe(copperBefore + 2 * 100 * 10000);
+    expect(again.some((ev: any) => ev.type === 'log' && /^\[dev\] 100g added/.test(ev.text))).toBe(
+      true,
+    );
+  });
+
   it('a handled /dev command never falls through to the unknown-command error', () => {
     // Repro for the live bug: /dev gold added the gold AND showed the red
     // "Unknown command" toast, because chat()'s call site only returned early
@@ -1256,7 +1317,7 @@ describe('chat module (direct, no Sim)', () => {
     expect(chatMod.handleDevChat(ctx, '/dev', 1)).toBe(null);
     // Every subcommand the parser accepts must be listed, so the help can never
     // silently drift behind the commands again (the "/dev bot" omission this pins).
-    for (const cmd of ['level', 'tp', 'give', 'gold', 'quest', 'quests', 'bot'])
+    for (const cmd of ['level', 'tp', 'give', 'gold', 'quest', 'quests', 'bot', 'hp'])
       expect(help, `help omits /dev ${cmd}`).toContain(`/dev ${cmd}`);
   });
 });
@@ -1422,7 +1483,9 @@ describe('chat speaker titles (Book of Deeds)', () => {
     const a = titledSpeaker(sim);
     teleport(sim, a, 0, -40);
     sim.tick();
-    const mob = [...sim.entities.values()].find((e) => e.kind === 'mob' && !e.dead)!;
+    // CHAT_TEST_WORLD strips the ambient camps, so hand-spawn the yelling mob.
+    const mob = createMob(sim.nextId++, MOBS.forest_wolf, 2, { x: 0, y: 0, z: -40 });
+    sim.entities.set(mob.id, mob);
     emitMobYell(sim.ctx, mob, 'Graaah!', 1e9);
     const msgs = chatEvents(sim.tick()).filter((m) => m.from === mob.name);
     expect(msgs.length).toBeGreaterThan(0);
@@ -1454,5 +1517,102 @@ describe('chat speaker titles (Book of Deeds)', () => {
     const toTarget = msgs.find((m) => m.pid === b)!;
     expect(toTarget.fromTitle).toBe('prog_veteran');
     expect(toTarget.classId).toBe('warrior');
+  });
+});
+
+describe('raid warning (/rw, /ab, /raidwarning)', () => {
+  it('party leader broadcasts raid warning to all party members', () => {
+    const sim = makeWorld();
+    const leader = sim.addPlayer('warrior', 'Leader');
+    const member1 = sim.addPlayer('priest', 'Healer');
+    const member2 = sim.addPlayer('mage', 'Caster');
+    const outsider = sim.addPlayer('rogue', 'Outsider');
+    teleport(sim, leader, 0, -40);
+    teleport(sim, member1, 10, -40);
+    teleport(sim, member2, 500, 500); // far away
+    teleport(sim, outsider, 2, -40);
+
+    sim.partyInvite(member1, leader);
+    sim.partyAccept(member1);
+    sim.partyInvite(member2, leader);
+    sim.partyAccept(member2);
+    sim.tick();
+
+    // /rw
+    sim.chat('/rw Stack on boss now!', leader);
+    const msgsRw = chatEvents(sim.tick());
+    expect(msgsRw).toHaveLength(3);
+    expect(
+      msgsRw.every((m) => m.channel === 'raidWarning' && m.text === 'Stack on boss now!'),
+    ).toBe(true);
+    const pidsRw = msgsRw.map((m) => m.pid).sort();
+    expect(pidsRw).toEqual([leader, member1, member2].sort());
+
+    // /ab (Spanish client alias: alerta de banda)
+    sim.chat('/ab Cuidado con el fuego!', leader);
+    const msgsAb = chatEvents(sim.tick());
+    expect(msgsAb).toHaveLength(3);
+    expect(
+      msgsAb.every((m) => m.channel === 'raidWarning' && m.text === 'Cuidado con el fuego!'),
+    ).toBe(true);
+
+    // /raidwarning (full command name)
+    sim.chat('/raidwarning Phase two incoming!', leader);
+    const msgsFull = chatEvents(sim.tick());
+    expect(msgsFull).toHaveLength(3);
+    expect(
+      msgsFull.every((m) => m.channel === 'raidWarning' && m.text === 'Phase two incoming!'),
+    ).toBe(true);
+  });
+
+  it('rejects raid warning from a non-leader party member', () => {
+    const sim = makeWorld();
+    const leader = sim.addPlayer('warrior', 'Leader');
+    const member = sim.addPlayer('priest', 'Healer');
+
+    sim.partyInvite(member, leader);
+    sim.partyAccept(member);
+    sim.tick();
+
+    sim.chat('/rw I want to be heard', member);
+    const events = sim.tick();
+    const chatMsgs = chatEvents(events);
+    expect(chatMsgs).toHaveLength(0);
+
+    const err = events.find((e): e is Extract<SimEvent, { type: 'error' }> => e.type === 'error');
+    expect(err).toBeDefined();
+    expect(err?.pid).toBe(member);
+    expect(err?.text).toBe('You are not the party leader.');
+  });
+
+  it('rejects raid warning when not in a party', () => {
+    const sim = makeWorld();
+    const solo = sim.addPlayer('warrior', 'Solo');
+    sim.tick();
+
+    sim.chat('/rw Nobody will hear this', solo);
+    const events = sim.tick();
+    const chatMsgs = chatEvents(events);
+    expect(chatMsgs).toHaveLength(0);
+
+    const err = events.find((e): e is Extract<SimEvent, { type: 'error' }> => e.type === 'error');
+    expect(err).toBeDefined();
+    expect(err?.pid).toBe(solo);
+    expect(err?.text).toBe('You are not in a party.');
+  });
+
+  it('drops empty raid warning messages without error', () => {
+    const sim = makeWorld();
+    const leader = sim.addPlayer('warrior', 'Leader');
+    const member = sim.addPlayer('priest', 'Healer');
+
+    sim.partyInvite(member, leader);
+    sim.partyAccept(member);
+    sim.tick();
+
+    sim.chat('/rw     ', leader);
+    const events = sim.tick();
+    expect(chatEvents(events)).toHaveLength(0);
+    expect(events.filter((e) => e.type === 'error')).toHaveLength(0);
   });
 });

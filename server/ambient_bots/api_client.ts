@@ -59,11 +59,7 @@ export class AmbientPlayerBotApiClient implements AmbientPlayerBotApi {
     name: string,
     cls: PlayerClass,
   ): Promise<AmbientCreateCharacterResult> {
-    return this.postJson(
-      '/api/characters',
-      { name, class: cls },
-      token,
-    );
+    return this.postJson('/api/characters', { name, class: cls }, token);
   }
 
   private async postJson<T>(path: string, body: unknown, token?: string): Promise<T> {
@@ -77,7 +73,8 @@ export class AmbientPlayerBotApiClient implements AmbientPlayerBotApi {
     });
     const payload = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const message = typeof payload?.error === 'string' ? payload.error : `${path} failed with ${res.status}`;
+      const message =
+        typeof payload?.error === 'string' ? payload.error : `${path} failed with ${res.status}`;
       throw new Error(message);
     }
     return payload as T;

@@ -1,0 +1,251 @@
+import * as THREE from 'three';
+import { floorVfxRenderOrder } from './floor_vfx_layer';
+import { surfaceMat } from './gfx';
+import type { PaladinAscensionVisualPlan } from './paladin_ascension_core';
+import { isSharedMaterial } from './shared_resource';
+
+const REFERENCE_HEIGHT = 1.8;
+const SEAL_GEOMETRY = new THREE.PlaneGeometry(1, 1);
+const ASCENSION_GOLD = 0xffe88f;
+const CROWN_BAND_GEOMETRY = new THREE.CylinderGeometry(0.34, 0.36, 0.14, 24, 1, true);
+const CROWN_RIM_GEOMETRY = new THREE.TorusGeometry(0.35, 0.025, 6, 24);
+const CROWN_PRONG_GEOMETRY = new THREE.ConeGeometry(0.07, 0.36, 4);
+const CROWN_JEWEL_GEOMETRY = new THREE.SphereGeometry(0.045, 8, 6);
+const CROWN_PRONG_COUNT = 8;
+const HOVER_HEIGHT = 0.08;
+
+function buildSunSealTexture(): THREE.DataTexture {
+  const size = 64;
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = x - size / 2;
+      const dy = y - size / 2;
+      const diamond = Math.abs(dx) + Math.abs(dy);
+      const ring = Math.abs(Math.hypot(dx, dy) - 19) < 2;
+      const cross =
+        (Math.abs(dx) < 3 && Math.abs(dy) < 15) || (Math.abs(dy) < 3 && Math.abs(dx) < 15);
+      const ray = Math.abs(diamond - 26) < 2;
+      if (!ring && !cross && !ray) continue;
+      const offset = (y * size + x) * 4;
+      data[offset] = 255;
+      data[offset + 1] = 242;
+      data[offset + 2] = 168;
+      data[offset + 3] = cross ? 255 : 220;
+    }
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.needsUpdate = true;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  return texture;
+}
+
+const SUN_SEAL_TEXTURE = buildSunSealTexture();
+
+function sealMaterial(): THREE.MeshBasicMaterial {
+  const material = new THREE.MeshBasicMaterial({
+    color: ASCENSION_GOLD,
+    map: SUN_SEAL_TEXTURE,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+  });
+  material.name = 'paladinAscension:seal';
+  return material;
+}
+
+function crownMaterial(): THREE.Material {
+  return surfaceMat({
+    color: 0xffca54,
+    emissive: 0x7a3600,
+    emissiveIntensity: 0.72,
+    metalness: 0.82,
+    roughness: 0.2,
+    side: THREE.DoubleSide,
+  });
+}
+
+function buildSolarCrown(material: THREE.Material): THREE.Group {
+  const crown = new THREE.Group();
+  crown.name = 'paladin-ascension-solar-crown';
+
+  const band = new THREE.Mesh(CROWN_BAND_GEOMETRY, material);
+  band.name = 'paladin-ascension-crown-band';
+  crown.add(band);
+
+  for (const [name, y] of [
+    ['lower', -0.07],
+    ['upper', 0.07],
+  ] as const) {
+    const rim = new THREE.Mesh(CROWN_RIM_GEOMETRY, material);
+    rim.name = `paladin-ascension-crown-${name}-rim`;
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = y;
+    crown.add(rim);
+  }
+
+  const prongs = new THREE.InstancedMesh(CROWN_PRONG_GEOMETRY, material, CROWN_PRONG_COUNT);
+  prongs.name = 'paladin-ascension-crown-prongs';
+  const jewels = new THREE.InstancedMesh(CROWN_JEWEL_GEOMETRY, material, CROWN_PRONG_COUNT);
+  jewels.name = 'paladin-ascension-crown-jewels';
+  const transform = new THREE.Object3D();
+  for (let index = 0; index < CROWN_PRONG_COUNT; index++) {
+    const angle = (index / CROWN_PRONG_COUNT) * Math.PI * 2;
+    const prongHeight = index % 2 === 0 ? 0.36 : 0.29;
+    transform.position.set(Math.cos(angle) * 0.3, 0.08 + prongHeight / 2, Math.sin(angle) * 0.3);
+    transform.scale.set(1, prongHeight / 0.36, 1);
+    transform.rotation.set(0, -angle + Math.PI / 4, 0);
+    transform.updateMatrix();
+    prongs.setMatrixAt(index, transform.matrix);
+
+    transform.position.set(Math.cos(angle) * 0.3, 0.09 + prongHeight, Math.sin(angle) * 0.3);
+    transform.scale.setScalar(1);
+    transform.rotation.set(0, 0, 0);
+    transform.updateMatrix();
+    jewels.setMatrixAt(index, transform.matrix);
+  }
+  prongs.instanceMatrix.needsUpdate = true;
+  jewels.instanceMatrix.needsUpdate = true;
+  crown.add(prongs, jewels);
+
+  return crown;
+}
+
+export class PaladinAscensionVisual {
+  /** The ground seal: parented to the view group, so it stays at the feet
+   *  (under the mount) while the rider sits a saddle higher. */
+  readonly group = new THREE.Group();
+  /** The solar crown: parented to the rider anchor (rider_anchor.ts), so it
+   *  crowns the head wherever the seat carries it. */
+  readonly crown: THREE.Group;
+  private readonly groundSeal: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private readonly solarCrown: THREE.Group;
+  private readonly solarCrownMaterial: THREE.Material;
+  private readonly size: number;
+  private readonly crownBaseY: number;
+
+  constructor(characterHeight: number) {
+    this.group.name = 'paladin-ascension-visual';
+    this.group.visible = false;
+
+    this.size = Math.max(0.72, Math.min(1.4, characterHeight / REFERENCE_HEIGHT));
+    this.groundSeal = new THREE.Mesh(SEAL_GEOMETRY, sealMaterial());
+    this.groundSeal.name = 'paladin-ascension-ground-seal';
+    this.groundSeal.rotation.x = -Math.PI / 2;
+    this.groundSeal.position.y = 0.055;
+    this.groundSeal.scale.setScalar(1.65 * this.size);
+    this.groundSeal.renderOrder = floorVfxRenderOrder('player', 0);
+    this.group.add(this.groundSeal);
+
+    this.solarCrownMaterial = crownMaterial();
+    this.solarCrown = buildSolarCrown(this.solarCrownMaterial);
+    this.crownBaseY = characterHeight + 0.2 * this.size;
+    this.solarCrown.position.y = this.crownBaseY;
+    this.solarCrown.scale.setScalar(0.94 * this.size);
+    this.crown = new THREE.Group();
+    this.crown.name = 'paladin-ascension-crown-anchor';
+    this.crown.visible = false;
+    this.crown.add(this.solarCrown);
+  }
+
+  /**
+   * Show or hide the seal and crown, and lift the rig (`hoverTarget`, the
+   * rider root) by the hover while Ascension is up.
+   *
+   * The lift is ADDED to the height the renderer placed the rig at THIS frame,
+   * so call it after the rider placement (placeRider, or the mount attitude
+   * pass in updateMountPresentation), which rewrites that height every frame.
+   * It must never latch a base height of its own: the visual lives for the
+   * whole view once built, and a latched height pinned the paladin to wherever
+   * the first Ascension caught them, on the ground under every later mount or
+   * floating at seat height after a dismount.
+   */
+  update(
+    plan: PaladinAscensionVisualPlan,
+    _dt: number,
+    _reducedMotion: boolean,
+    hoverTarget: THREE.Object3D | null = null,
+  ): void {
+    this.group.visible = plan.active;
+    this.crown.visible = plan.active;
+    const hoverOffset = plan.active ? HOVER_HEIGHT * this.size : 0;
+    if (hoverTarget && hoverOffset !== 0) hoverTarget.position.y += hoverOffset;
+    this.solarCrown.position.y = this.crownBaseY + hoverOffset;
+  }
+
+  dispose(): void {
+    this.group.removeFromParent();
+    this.crown.removeFromParent();
+    this.groundSeal.material.dispose();
+    // The crown wears the surfaceMat cache's shared instance: every other
+    // crown in view and the boot stand-in draw with it too.
+    if (!isSharedMaterial(this.solarCrownMaterial)) this.solarCrownMaterial.dispose();
+  }
+}
+
+export function syncPaladinAscensionVisual(
+  visual: PaladinAscensionVisual | null,
+  parent: THREE.Group,
+  riderParent: THREE.Group,
+  characterHeight: number,
+  plan: PaladinAscensionVisualPlan,
+  dt: number,
+  reducedMotion: boolean,
+  hoverTarget: THREE.Object3D | null = null,
+): PaladinAscensionVisual | null {
+  let current = visual;
+  if (plan.active && !current) {
+    current = new PaladinAscensionVisual(characterHeight);
+    parent.add(current.group);
+    riderParent.add(current.crown);
+  }
+  current?.update(plan, dt, reducedMotion, hoverTarget);
+  return current;
+}
+
+/**
+ * The boot manifest's stand-in: one hidden visual, seal and crown, never
+ * disposed, so the programs a live Divine Ascension draws (the two-pass seal,
+ * the crown on a Mesh and on an InstancedMesh) are linked behind the loading
+ * cover and stay referenced for the session. The live visual is built per
+ * character view when the aura first shows, after every prewarm entry ran, so
+ * its first cast used to link the crown inside a live frame. The crown
+ * material is the tier's shared surfaceMat, so the stand-in is rebuilt with
+ * the profile (resetPaladinAscensionProfileCaches). Registered in
+ * ABILITY_MATERIAL_SOURCES.
+ */
+interface PaladinAscensionStandIn {
+  root: THREE.Group;
+  materials: THREE.Material[];
+}
+let paladinAscensionStandIn: PaladinAscensionStandIn | null = null;
+
+export function buildPaladinAscensionStandIn(): PaladinAscensionStandIn {
+  if (!paladinAscensionStandIn) {
+    const root = new THREE.Group();
+    root.name = 'paladin-ascension-stand-in';
+    const visual = new PaladinAscensionVisual(REFERENCE_HEIGHT);
+    root.add(visual.group, visual.crown);
+    const materials: THREE.Material[] = [];
+    root.traverse((object) => {
+      const material = (object as THREE.Mesh).material;
+      if (material && !Array.isArray(material) && !materials.includes(material)) {
+        materials.push(material);
+      }
+    });
+    paladinAscensionStandIn = { root, materials };
+  }
+  return paladinAscensionStandIn;
+}
+
+export function paladinAscensionStandInMaterials(): readonly THREE.Material[] {
+  return buildPaladinAscensionStandIn().materials;
+}
+
+export function resetPaladinAscensionProfileCaches(): void {
+  paladinAscensionStandIn = null;
+}

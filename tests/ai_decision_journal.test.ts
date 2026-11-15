@@ -1,19 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { AiLifeLayer } from '../server/ai/life_layer';
+import { describe, expect, it, vi } from 'vitest';
 import type { AiDecisionV1, AiJobContextV1, AiProvider } from '../server/ai/ai_types';
+import { AiLifeLayer } from '../server/ai/life_layer';
 import { Sim } from '../src/sim/sim';
-import { groundHeight } from '../src/sim/world';
-
-function teleportNear(sim: Sim, pid: number, targetId: number): void {
-  const player = sim.entities.get(pid)!;
-  const target = sim.entities.get(targetId)!;
-  player.pos.x = target.pos.x + 1;
-  player.pos.z = target.pos.z;
-  player.pos.y = groundHeight(player.pos.x, player.pos.z, sim.cfg.seed);
-  player.prevPos = { ...player.pos };
-  sim.grid.update(player);
-  sim.playerGrid.update(player);
-}
+import { ordinaryDiscardFixture, teleportNear } from './helpers/ai_discard_fixture';
 
 function makeSim(): { sim: Sim; pid: number; npcId: number } {
   const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
@@ -27,15 +16,21 @@ describe('AI decision journal', () => {
   it('records rejected provider output and falls back to local NPC speech', async () => {
     const provider: AiProvider = {
       async decide(context: AiJobContextV1): Promise<AiDecisionV1> {
-        expect(context.memorySignals).toContainEqual(expect.objectContaining({
-          kind: 'npcInteraction',
-          refId: expect.stringMatching(/^npc:\d+:brother_aldric$/),
-          sourcePlayerEntityId: expect.any(Number),
-        }));
+        expect(context.memorySignals).toContainEqual(
+          expect.objectContaining({
+            kind: 'npcInteraction',
+            refId: expect.stringMatching(/^npc:\d+:brother_aldric$/),
+            sourcePlayerEntityId: expect.any(Number),
+          }),
+        );
         return {
           schemaVersion: 1,
           jobId: context.jobId,
-          entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+          entityRef: {
+            kind: context.entity.kind,
+            entityId: context.entity.entityId,
+            templateId: context.entity.templateId,
+          },
           ttlMs: 5000,
           confidence: 1,
           speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.merchantMarketPulse' }],
@@ -48,20 +43,35 @@ describe('AI decision journal', () => {
     const layer = new AiLifeLayer({ enabled: true, provider });
     const delivered: unknown[] = [];
 
-    await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) });
-
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      source: 'local',
+    await layer.handleNpcInteraction({
+      sim,
       pid,
-    }));
-    expect(layer.diagnostics()).toEqual([expect.objectContaining({
-      status: 'rejected',
-      templateId: 'brother_aldric',
-      lineIds: ['hudChrome.aiSpeech.merchantMarketPulse'],
-      memoryWrites: [expect.objectContaining({ kind: 'npcInteraction', refId: expect.stringMatching(/^npc:\d+:brother_aldric$/) })],
-    })]);
+      npcId,
+      locale: 'en',
+      deliver: (events) => delivered.push(...events),
+    });
+
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        source: 'local',
+        pid,
+      }),
+    );
+    expect(layer.diagnostics()).toEqual([
+      expect.objectContaining({
+        status: 'rejected',
+        templateId: 'brother_aldric',
+        lineIds: ['hudChrome.aiSpeech.merchantMarketPulse'],
+        memoryWrites: [
+          expect.objectContaining({
+            kind: 'npcInteraction',
+            refId: expect.stringMatching(/^npc:\d+:brother_aldric$/),
+          }),
+        ],
+      }),
+    ]);
     expect(layer.runtimeMetrics()).toMatchObject({
       providerCalls: 1,
       providerSuccesses: 1,
@@ -84,14 +94,24 @@ describe('AI decision journal', () => {
     const layer = new AiLifeLayer({ enabled: true, provider });
     const delivered: unknown[] = [];
 
-    await expect(layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) })).resolves.toBeUndefined();
+    await expect(
+      layer.handleNpcInteraction({
+        sim,
+        pid,
+        npcId,
+        locale: 'en',
+        deliver: (events) => delivered.push(...events),
+      }),
+    ).resolves.toBeUndefined();
 
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speakerId: npcId,
-      source: 'local',
-      pid,
-    }));
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speakerId: npcId,
+        source: 'local',
+        pid,
+      }),
+    );
     expect(layer.diagnostics()).toEqual([
       expect.objectContaining({
         status: 'provider_error',
@@ -113,13 +133,24 @@ describe('AI decision journal', () => {
     expect(layer.runtimeMetrics().generatedEvents).toBe(1);
   });
 
-  it('records local item-discard reactions for replay diagnostics', () => {
+  it('records local item-discard reactions for replay diagnostics', async () => {
     const { sim, pid } = makeSim();
-    const layer = new AiLifeLayer({ enabled: true, journalSize: 4 });
-    const wolf = [...sim.entities.values()].find((entity) => entity.templateId === 'forest_wolf')!;
-    teleportNear(sim, pid, wolf.id);
+    ordinaryDiscardFixture(sim, pid);
+    const provider: AiProvider = {
+      decide: vi.fn(async () => {
+        throw new Error('provider must not run for a local discard');
+      }),
+    };
+    const layer = new AiLifeLayer({ enabled: true, journalSize: 4, provider });
 
-    layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: () => {} });
+    await layer.handleItemDiscarded({
+      sim,
+      pid,
+      itemId: 'roasted_boar',
+      count: 1,
+      deliver: () => {},
+    });
+    expect(provider.decide).not.toHaveBeenCalled();
 
     expect(layer.diagnostics()[0]).toMatchObject({
       status: 'local_reaction',

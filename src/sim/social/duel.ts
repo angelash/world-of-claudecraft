@@ -10,9 +10,11 @@
 // here via SimContext; `entityInDungeon` / `hasPendingSocialInvite` likewise stay
 // on Sim and are read through the seam.
 
+import { ownedNecromancyUndead } from '../combat/necromancy';
 import type { DuelState } from '../sim';
 import type { SimContext } from '../sim_context';
-import { DT, dist2d } from '../types';
+import { DT, dist2d, type Entity } from '../types';
+import { duelZoneIdAt } from './duel_zone';
 
 const DUEL_COUNTDOWN = 3;
 const DUEL_FORFEIT_DISTANCE = 60;
@@ -30,7 +32,7 @@ export function duelRequest(ctx: SimContext, targetPid: number, pid?: number): v
     ctx.error(r.meta.entityId, 'You cannot duel in Nythraxis Raid Arena.');
     return;
   }
-  if (ctx.duels.has(r.meta.entityId) || ctx.duels.has(targetPid)) {
+  if (duelFor(ctx, r.meta.entityId) || duelFor(ctx, targetPid)) {
     ctx.error(r.meta.entityId, 'A duel is already in progress.');
     return;
   }
@@ -77,7 +79,7 @@ export function duelAccept(ctx: SimContext, pid?: number): void {
     ctx.error(r.meta.entityId, 'You cannot duel in Nythraxis Raid Arena.');
     return;
   }
-  if (ctx.duels.has(invite.fromPid) || ctx.duels.has(r.meta.entityId)) {
+  if (duelFor(ctx, invite.fromPid) || duelFor(ctx, r.meta.entityId)) {
     ctx.error(r.meta.entityId, 'A duel is already in progress.');
     return;
   }
@@ -86,6 +88,10 @@ export function duelAccept(ctx: SimContext, pid?: number): void {
     b: r.meta.entityId,
     state: 'countdown',
     timer: DUEL_COUNTDOWN,
+    controlled: new Map([
+      [invite.fromPid, new Set<number>()],
+      [r.meta.entityId, new Set<number>()],
+    ]),
   };
   ctx.duels.set(duel.a, duel);
   ctx.duels.set(duel.b, duel);
@@ -114,6 +120,10 @@ export function updateDuels(ctx: SimContext): void {
   for (const duel of ctx.duels.values()) {
     if (seen.has(duel)) continue;
     seen.add(duel);
+    // Already ended (either by an earlier same-tick lethal hit or a stale
+    // entry awaiting purge): nothing left to evaluate, just fall through to
+    // the purge sweep below.
+    if (duel.endedTick !== undefined) continue;
     const ea = ctx.entities.get(duel.a);
     const eb = ctx.entities.get(duel.b);
     if (!ea || !eb) {
@@ -137,6 +147,24 @@ export function updateDuels(ctx: SimContext): void {
       }
       continue;
     }
+    // Remember what each side CONTROLS while it is still resolvable. An Aura
+    // carries only `sourceId`, so once a pet despawns nothing can map its dot
+    // back to the owner; the clamp meanwhile treats that dot as the opponent's
+    // for the whole bout. Recording the id here is what lets the end clear
+    // exactly what the clamp was protecting against. Necromancy temporary
+    // undead are deliberately excluded from petOf (they must never replace or
+    // persist as the owner's primary pet), so they need their own recording
+    // pass here: the clamp already treats their damage as the opponent's
+    // (pvpController resolves ANY owned mob, not just petOf's one), but without
+    // this a dot one of them left behind survives a mid-duel expiry the same
+    // way an unrecorded pet's used to.
+    for (const dPid of [duel.a, duel.b]) {
+      const pet = ctx.petOf(dPid);
+      if (pet) duel.controlled?.get(dPid)?.add(pet.id);
+      for (const undead of ownedNecromancyUndead(ctx, dPid)) {
+        duel.controlled?.get(dPid)?.add(undead.id);
+      }
+    }
     // forfeit by running away or dying to something else
     if (dist2d(ea.pos, eb.pos) > DUEL_FORFEIT_DISTANCE) {
       endDuel(ctx, duel, null);
@@ -146,12 +174,64 @@ export function updateDuels(ctx: SimContext): void {
       endDuel(ctx, duel, duel.a);
     }
   }
+  // Purge every duel endDuel() marked ended (this tick or, in the rare case
+  // it was ended outside a tick entirely, an earlier one) now that combat for
+  // this tick has fully resolved. Deferring the delete out of endDuel() is
+  // what lets a reciprocal lethal hit landing later in the SAME tick still
+  // find the duel and get clamped instead of producing a real death.
+  for (const [pid, duel] of ctx.duels) {
+    if (duel.endedTick !== undefined) ctx.duels.delete(pid);
+  }
+}
+
+/**
+ * Strip every aura on `target` whose source resolves, through `pvpController`,
+ * to the player `controllerPid`: the opponent themselves and anything they
+ * control. Delegates the removal to `clearAurasFromSource` per distinct source
+ * so the fade events and the stat recalc stay that function's business.
+ *
+ * An `Aura` carries only `sourceId`, so a dot from a pet that has already
+ * DESPAWNED cannot be attributed to its owner by any reader at the moment the
+ * duel ends. That is what `controlled` is for: the duel records the ids while
+ * they are still resolvable (see `updateDuels`), and this clears against that
+ * set as well, so a despawned source is covered too.
+ *
+ * The raw-id fallback below is still load-bearing for the case `controlled`
+ * cannot cover: a duel restored or hand-built without the map (it is optional).
+ */
+function clearAurasFromController(
+  ctx: SimContext,
+  target: Entity | undefined,
+  controllerPid: number,
+  controlled: ReadonlySet<number> | undefined,
+): void {
+  if (!target) return;
+  const sources = new Set<number>();
+  for (const a of target.auras) {
+    const src = ctx.entities.get(a.sourceId);
+    // Resolving through pvpController is what widens this past the opponent's
+    // own id to anything they control. When the source ENTITY is gone (a pet
+    // that died or was dismissed between the last tick and the end) there is
+    // nothing left to resolve, so fall back to the raw id comparison this
+    // replaced: never clear less than the old code did.
+    const byController = src
+      ? ctx.pvpController(src)?.id === controllerPid
+      : a.sourceId === controllerPid;
+    // ...or it came from something the opponent controlled at any point in the
+    // bout, which is the only way to catch a source that has since despawned.
+    if (byController || controlled?.has(a.sourceId)) sources.add(a.sourceId);
+  }
+  for (const sourceId of sources) ctx.clearAurasFromSource(target, sourceId);
 }
 
 // winnerPid null = draw/cancelled
 export function endDuel(ctx: SimContext, duel: DuelState, winnerPid: number | null): void {
-  ctx.duels.delete(duel.a);
-  ctx.duels.delete(duel.b);
+  // Idempotent: a same-tick reciprocal lethal hit re-enters here after the
+  // first hit already ended this same duel (the damage-clamp lookup in
+  // combat/damage.ts still matches it via endedTick). Only the first call
+  // performs the actual teardown and stat/emit side effects.
+  if (duel.endedTick !== undefined) return;
+  duel.endedTick = ctx.tickCount;
   const aMeta = ctx.players.get(duel.a);
   const bMeta = ctx.players.get(duel.b);
   const ea = ctx.entities.get(duel.a);
@@ -163,12 +243,27 @@ export function endDuel(ctx: SimContext, duel: DuelState, winnerPid: number | nu
       e.autoAttack = false;
     }
   }
-  if (ea) ctx.clearAurasFromSource(ea, duel.b);
-  if (eb) ctx.clearAurasFromSource(eb, duel.a);
+  // Clear what the OPPONENT did, using the same definition of "the opponent"
+  // the lethal clamp uses. The clamp resolves a damage source through
+  // pvpController, so anything the opponent controls (their pet) cannot kill a
+  // duelist for the whole bout; clearing only auras stamped with the opponent's
+  // own entity id left a pet's dot ticking on a body handed back at 1 hp with no
+  // clamp left, and the next tick killed for real. Two halves of one duel must
+  // not disagree about whose doing something was.
+  clearAurasFromController(ctx, ea, duel.b, duel.controlled?.get(duel.b));
+  clearAurasFromController(ctx, eb, duel.a, duel.controlled?.get(duel.a));
   if (winnerPid !== null && aMeta && bMeta) {
     const winner = winnerPid === duel.a ? aMeta : bMeta;
     const loser = winnerPid === duel.a ? bMeta : aMeta;
-    ctx.emit({ type: 'duelEnd', winnerName: winner.name, loserName: loser.name });
+    const winnerEntity = winnerPid === duel.a ? ea : eb;
+    ctx.emit({
+      type: 'duelEnd',
+      winnerName: winner.name,
+      loserName: loser.name,
+      winnerPid,
+      loserPid: loser.entityId,
+      zoneId: winnerEntity ? duelZoneIdAt(winnerEntity.pos) : null,
+    });
     // Only decided duels count; timed-out or cancelled duels resolve with a
     // null winner and count nothing.
     ctx.bumpDeedStat(winner, 'duelsWon', 1);
@@ -181,5 +276,52 @@ export function endDuel(ctx: SimContext, duel: DuelState, winnerPid: number | nu
 }
 
 export function duelFor(ctx: SimContext, pid: number): DuelState | null {
-  return ctx.duels.get(pid) ?? null;
+  const duel = ctx.duels.get(pid);
+  // An ended duel lingers in ctx.duels until updateDuels() purges it at
+  // tick-tail (see endDuel above); every consumer except the damage-clamp
+  // lookup in combat/damage.ts must keep seeing it as gone the instant it
+  // ends, matching the old synchronous-delete behavior.
+  return duel && duel.endedTick === undefined ? duel : null;
+}
+
+export function duelInfoFor(
+  ctx: SimContext,
+  pid: number,
+): import('../../world_api').DuelInfo | null {
+  const d = duelFor(ctx, pid);
+  if (!d) return null;
+  const otherPid = d.a === pid ? d.b : d.a;
+  return { otherPid, otherName: ctx.players.get(otherPid)?.name ?? '?', state: d.state };
+}
+
+/**
+ * True when `opponent` just ended a duel against `recipient` on THIS very
+ * tick. A duel that ends still lingers in `ctx.duels` (see the comment on
+ * `duelFor` above) because the clamp in `combat/damage.ts` calls `endDuel`
+ * SYNCHRONOUSLY mid-swing: it strips every aura the opponent had inflicted
+ * (`clearAurasFromController`) BEFORE returning control to the swing shell
+ * (`combat/auto_attack.ts`), which then fires proc effects (weapon procs,
+ * set-bonus procs) unconditionally right after. Without this check, the
+ * killing blow's own crit can stamp a fresh hostile aura on the loser a beat
+ * after the clear already ran, and nothing purges that one afterward: the
+ * duel is over, so it rides out with no clamp left to stop it, and kills the
+ * 1-hp loser for real seconds later.
+ *
+ * Resolves `opponent` through `pvpController`, the same definition of "the
+ * opponent" `clearAurasFromController` uses, so a pet or Necromancy undead
+ * source is covered exactly like a direct opponent hit. Requires the
+ * resolved controller be the SIDE OPPOSITE `recipient`: a player's own
+ * self-targeted proc (a heal, a self-buff) is never something the duel's end
+ * would have cleared, and must keep applying even on the ending tick.
+ */
+export function duelJustEndedBetween(
+  ctx: SimContext,
+  recipient: Entity,
+  opponent: Entity,
+): boolean {
+  if (recipient.kind !== 'player') return false;
+  const duel = ctx.duels.get(recipient.id);
+  if (!duel || duel.endedTick !== ctx.tickCount) return false;
+  const opponentPid = recipient.id === duel.a ? duel.b : duel.a;
+  return ctx.pvpController(opponent)?.id === opponentPid;
 }

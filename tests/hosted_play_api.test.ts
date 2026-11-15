@@ -2,13 +2,12 @@ import { readFileSync } from 'node:fs';
 import type * as http from 'node:http';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { Api } from '../src/net/online';
 import {
   HOSTED_PLAY_CONTROL_MAX_PER_MINUTE,
   hostedPlayControlRateLimited,
   resetHostedPlayControlRateLimits,
 } from '../server/ratelimit';
+import { Api } from '../src/net/online';
 
 const MAIN = readFileSync(join(__dirname, '..', 'server', 'main.ts'), 'utf8');
 

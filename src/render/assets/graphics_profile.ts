@@ -1,0 +1,174 @@
+import { resetBankerChestProfileCaches } from '../banker_chest';
+import { prepareCanopyDetailProfileAssets } from '../canopy_detail';
+import { prepareCharacterProfileAssets, resetCharacterProfileCaches } from '../characters/assets';
+import { resetSpiritVeilLedger } from '../characters/ghost_veil';
+import { prepareCityClutterProfileAssets, resetCityClutterProfileCaches } from '../city_clutter';
+import { prepareCliffScreeProfileAssets, resetCliffScreeProfileCaches } from '../cliff_scree';
+import { prepareStoneDetailProfileAssets } from '../detail_normals';
+import { resetDoorPortalProfileCaches } from '../door_portal';
+import {
+  prepareEastbrookGrandArmouryProfileAssets,
+  resetEastbrookGrandArmouryProfileCaches,
+} from '../eastbrook_grand_armoury';
+import { resetEastbrookSurfaceProfileCaches } from '../eastbrook_surface_atlas';
+import {
+  prepareEastbrookTownProfileAssets,
+  resetEastbrookTownProfileCaches,
+} from '../eastbrook_town';
+import {
+  prepareFenbridgeTownProfileAssets,
+  resetFenbridgeTownProfileCaches,
+} from '../fenbridge_town';
+import { resetFireballTravelProfileCaches } from '../fireball_travel_visual';
+import { prepareFoliageProfileAssets, resetFoliageProfileCaches } from '../foliage';
+import { resetFrostNovaRootProfileCaches } from '../frost_nova_root_visual';
+import { type GfxSettings, resetSurfaceMaterialProfileCache } from '../gfx';
+import { resetGoblinRocketSledProfileCaches } from '../goblin_rocket_sled_fx';
+import { prepareGreatTreeProfileAssets } from '../great_tree_prewarm';
+import { clearGroundDecorPrewarmDraws } from '../ground_decor_prewarm';
+import {
+  prepareHarborRouteMarkerAssets,
+  resetHarborRouteMarkerCaches,
+} from '../harbor_route_markers';
+import {
+  prepareHighwatchTownProfileAssets,
+  resetHighwatchTownProfileCaches,
+} from '../highwatch_town';
+import { resetIceBlockProfileCaches } from '../ice_block_visual';
+import { resetJailSceneProfileCaches } from '../jail_scene';
+import { prepareMailboxProfileAssets, resetMailboxProfileCaches } from '../mailbox';
+import { prepareMirefenTavernAssets, resetMirefenTavernCaches } from '../mirefen_tavern';
+import { prepareNoticeboardProfileAssets, resetNoticeboardProfileCaches } from '../noticeboard';
+import { preparePaintedTownProfileAssets, resetPaintedTownProfileCaches } from '../painted_towns';
+import { resetPaladinAscensionProfileCaches } from '../paladin_ascension_visual';
+import { preparePropProfileAssets, resetPropProfileCaches } from '../props';
+import { resetQuestObjectProfileCaches } from '../quest_objects';
+import { resetSanctumExitPortalProfileCaches } from '../sanctum_exit_portal';
+import { ensureSkyAssetsAt } from '../sky';
+import { resetStationProfileCaches } from '../stations';
+import { resetTemporalHourglassProfileCaches } from '../temporal_hourglass_visual';
+import { prepareTerrainProfileAssets } from '../terrain';
+import { prepareTransportShipAssets, resetTransportShipCaches } from '../transport_ship';
+import { prepareWaterProfileAssets } from '../water';
+import { prepareWickharborHarborAssets, resetWickharborHarborCaches } from '../wickharbor_harbor';
+import { prepareWickharborWharfAssets, resetWickharborWharfCaches } from '../wickharbor_wharf';
+import { prepareSurfaceDetailProfileAssets, resetSurfaceDetailProfileCaches } from '../worn_stone';
+import { prepareWyrmwatchHarborAssets, resetWyrmwatchHarborCaches } from '../wyrmwatch_harbor';
+
+export type GraphicsProfilePosition = Readonly<{ x: number; z: number }>;
+export type GraphicsProfileAssetProgress = (done: number, total: number) => void;
+
+type GraphicsProfileAssetPreparer = (
+  target: Readonly<GfxSettings>,
+  position: GraphicsProfilePosition,
+) => Promise<void>;
+
+const PREPARERS: readonly GraphicsProfileAssetPreparer[] = [
+  (target) => prepareTerrainProfileAssets(target),
+  (target) => prepareWaterProfileAssets(target),
+  (target) => prepareStoneDetailProfileAssets(target),
+  (target) => prepareSurfaceDetailProfileAssets(target),
+  (target) => prepareCanopyDetailProfileAssets(target),
+  (target) => prepareGreatTreeProfileAssets(target),
+  (target) => prepareFoliageProfileAssets(target),
+  (target) => preparePropProfileAssets(target),
+  (target) => prepareCharacterProfileAssets(target),
+  (target, position) => ensureSkyAssetsAt(position.x, position.z, target),
+  (target) =>
+    Promise.all([
+      prepareCliffScreeProfileAssets(target),
+      prepareCityClutterProfileAssets(target),
+      prepareEastbrookTownProfileAssets(target),
+      prepareFenbridgeTownProfileAssets(target),
+      prepareHighwatchTownProfileAssets(target),
+      preparePaintedTownProfileAssets(target),
+      prepareEastbrookGrandArmouryProfileAssets(),
+      prepareMailboxProfileAssets(),
+      prepareNoticeboardProfileAssets(),
+      prepareTransportShipAssets(),
+      prepareHarborRouteMarkerAssets(),
+      prepareWyrmwatchHarborAssets(),
+      prepareWickharborWharfAssets(),
+      prepareWickharborHarborAssets(),
+      // the painted tavern follows the target profile's texture tier, like the towns
+      prepareMirefenTavernAssets(target),
+    ]).then(() => undefined),
+];
+
+const RESETTERS = [
+  ['gfx', resetSurfaceMaterialProfileCache],
+  ['surface_detail', resetSurfaceDetailProfileCaches],
+  ['foliage', resetFoliageProfileCaches],
+  ['props', resetPropProfileCaches],
+  ['characters', resetCharacterProfileCaches],
+  // The veil's linked-tuple ledger belongs to the retiring renderer's programs.
+  ['spirit_veil', resetSpiritVeilLedger],
+  ['stations', resetStationProfileCaches],
+  ['eastbrook_surface_atlas', resetEastbrookSurfaceProfileCaches],
+  ['eastbrook_town', resetEastbrookTownProfileCaches],
+  ['fenbridge_town', resetFenbridgeTownProfileCaches],
+  ['highwatch_town', resetHighwatchTownProfileCaches],
+  ['painted_towns', resetPaintedTownProfileCaches],
+  ['banker_chest', resetBankerChestProfileCaches],
+  ['mailbox', resetMailboxProfileCaches],
+  ['noticeboard', resetNoticeboardProfileCaches],
+  ['eastbrook_grand_armoury', resetEastbrookGrandArmouryProfileCaches],
+  ['quest_objects', resetQuestObjectProfileCaches],
+  ['jail_scene', resetJailSceneProfileCaches],
+  ['cliff_scree', resetCliffScreeProfileCaches],
+  ['city_clutter', resetCityClutterProfileCaches],
+  ['door_portal', resetDoorPortalProfileCaches],
+  ['sanctum_exit_portal', resetSanctumExitPortalProfileCaches],
+  ['fireball_travel_visual', resetFireballTravelProfileCaches],
+  ['frost_nova_root_visual', resetFrostNovaRootProfileCaches],
+  ['ice_block_visual', resetIceBlockProfileCaches],
+  ['temporal_hourglass_visual', resetTemporalHourglassProfileCaches],
+  ['transport_ship', resetTransportShipCaches],
+  ['harbor_route_markers', resetHarborRouteMarkerCaches],
+  ['wyrmwatch_harbor', resetWyrmwatchHarborCaches],
+  ['wickharbor_wharf', resetWickharborWharfCaches],
+  ['wickharbor_harbor', resetWickharborHarborCaches],
+  ['mirefen_tavern', resetMirefenTavernCaches],
+  ['paladin_ascension_visual', resetPaladinAscensionProfileCaches],
+  // The shared plume pair bakes the composer's HDR colour gain at build.
+  ['goblin_rocket_sled_fx', resetGoblinRocketSledProfileCaches],
+  // The boot twin manifest for the lazy ground-decor pools holds the LIVE
+  // materials of the retiring profile: a rebuild mints new ones, and a twin
+  // wearing a retired material links a program nothing will ever draw.
+  ['ground_decor_prewarm', clearGroundDecorPrewarmDraws],
+] as const satisfies readonly (readonly [owner: string, reset: () => void])[];
+
+/**
+ * Prepare every source asset channel needed by a requested graphics profile.
+ * This calls loaders directly and never registers work in the boot preload
+ * registry. Each channel owns its resident/in-flight state, so concurrent and
+ * repeated calls share work, while a rejected load is removed and can retry.
+ */
+export async function prepareGraphicsProfileAssets(
+  target: Readonly<GfxSettings>,
+  position: GraphicsProfilePosition,
+  onProgress?: GraphicsProfileAssetProgress,
+): Promise<void> {
+  const total = PREPARERS.length;
+  let done = 0;
+  const tasks = PREPARERS.map((prepare) =>
+    Promise.resolve()
+      .then(() => prepare(target, position))
+      .finally(() => onProgress?.(++done, total)),
+  );
+  await Promise.all(tasks);
+}
+
+/**
+ * Invalidate only profile-derived templates and materials. Loaded textures,
+ * parsed source assets, and static URL/catalog recipes remain available for
+ * the next rebuild.
+ */
+export function resetGraphicsProfileDerivedCaches(): void {
+  for (const [, reset] of RESETTERS) reset();
+}
+
+export const graphicsProfileAssetsInternalsForTest = {
+  channelCount: PREPARERS.length,
+  resetOwners: RESETTERS.map(([owner]) => owner),
+};

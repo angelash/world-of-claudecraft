@@ -2,16 +2,60 @@
 //
 // Unlike parties/duels/trades (which live in the ephemeral Sim, keyed by
 // transient entity ids), these outlive a play session and are keyed by
-// character id. The business logic here is deliberately decoupled from both
+// character identity at the API boundary (friends and blocks persist per account).
+// The business logic here is deliberately decoupled from both
 // Postgres and the WebSocket layer: it talks to a `SocialDb` (so tests can use
 // an in-memory fake) and a `SocialTransport` (so it can deliver messages to
 // whoever happens to be online without knowing about sockets). game.ts wires
 // the real Postgres + socket implementations in.
 
 import type { ChatSenderFlair } from '../src/sim/account_flair';
+import { GUILD_CREATION_FEE_COPPER } from '../src/sim/guild_bank';
+import { pledgeCooldownActive } from '../src/sim/guild_pledge_ladder';
+import {
+  effectiveGuildRankId,
+  GUILD_RANK_LEADER_ID,
+  GUILD_RANK_MEMBER_ID,
+  GUILD_RANK_OFFICER_ID,
+  type GuildRankDef,
+  type GuildRankId,
+  guildBankStampRank,
+  guildRankCan,
+  guildRankCanRemove,
+  guildRankDemoteTo,
+  guildRankIndex,
+  guildRankOutranks,
+  guildRankPromoteTo,
+  guildStepDownRankId,
+  resolveGuildRankLadder,
+  sanitizeGuildRankLadder,
+} from '../src/sim/guild_ranks';
+import {
+  GUILD_ROSTER_MAX_MEMBERS,
+  guildRosterCap,
+  guildRosterNextPagePrice,
+} from '../src/sim/guild_roster';
+import { guildTierForLifetimeXp } from '../src/sim/guild_tier';
 import type { PlayerClass } from '../src/sim/types';
+import type { GuildPledgeSettings } from '../src/world_api/social_graph';
+import {
+  ACCOUNT_FRIEND_PAGE_SIZE,
+  type AccountFriendPage,
+  type AccountFriendResult,
+  type AccountFriendRow,
+} from './account_friends_db';
+import type { GuildPledgeSettingsInput } from './guild_pledge_settings_cmd';
+import { type PresenceSubject, presenceHiddenFrom } from './presence_privacy';
 
+// The built-in rank TIERS: the vocabulary of the live sim's guild membership
+// stamp (src/sim/guild_bank.ts GUILD_RANKS, pinned lockstep by
+// tests/guild_bank.test.ts). A member's STORED rank is a GuildRankId on the
+// guild's ladder (src/sim/guild_ranks.ts), which the service collapses to one
+// of these tiers only when it stamps the sim (guildBankStampRank).
 export type GuildRank = 'leader' | 'officer' | 'member';
+export type { GuildRankDef, GuildRankId };
+
+const GUILD_CREATION_FEE_GOLD = GUILD_CREATION_FEE_COPPER / 10_000;
 
 // Where a character is and what they're doing, for friend/guild rosters.
 // `realm` is the world/shard the character lives on (stored per character so
@@ -38,6 +82,7 @@ export interface CharInfo extends CharRef {
 }
 
 export interface FriendEntry extends CharInfo {
+  tier?: 'friend' | 'bound';
   // The selected Book of Deeds title: a deed id (never display text; the
   // client localizes through deed_i18n), null when untitled.
   activeTitle: string | null;
@@ -49,10 +94,16 @@ export interface FriendEntry extends CharInfo {
 }
 
 export interface GuildMemberEntry extends CharInfo {
-  rank: GuildRank;
+  // The member's rank id on the guild's ladder (GuildView.ranks), already
+  // resolved: an id the ladder does not know is sent as the joining rank.
+  rank: GuildRankId;
   // ISO-8601 timestamp of the member's most recent world-entry, or null if never
   // recorded. Serialized server-side (server/social_db.ts) and shown in the roster.
   lastLogin: string | null;
+  // Epoch-ms timestamp of when the member joined the guild (guild_members.joined_at,
+  // NOT NULL in the DDL, so null is the defensive arm only). Drives the client's
+  // roster tenure badges.
+  joinedAt: number | null;
   // The selected Book of Deeds title (a deed id, null untitled), as on FriendEntry.
   activeTitle: string | null;
   online: boolean;
@@ -76,39 +127,78 @@ export interface GuildEventRow {
 export interface GuildView {
   id: number;
   name: string;
-  rank: GuildRank;
+  // The viewer's rank id on `ranks` (resolved like GuildMemberEntry.rank).
+  rank: GuildRankId;
+  // The guild's rank ladder (docs/prd/guild-custom-ranks.md), most senior
+  // first: every member's title and what each rank may do. The client derives
+  // its button and tab visibility from it (UX only; every op re-checks here).
+  ranks: GuildRankDef[];
   // The guild billboard: a short officer-set message pinned atop the Guild tab
   // ('' when unset), with the setter's display name for attribution.
   motd: string;
   motdSetBy: string;
   members: GuildMemberEntry[];
   events: GuildEventRow[];
+  // Guild pledge board: the recruiting settings every member sees, and the
+  // open pledges (officer-plus only; empty for plain members).
+  pledgeSettings: GuildPledgeSettings;
+  pledges: (CharInfo & { sinceMs: number })[];
+  // The guild colour tier (sim/guild_tier.ts) for the nameplate line.
+  tier: number;
+  // Roster expansion (docs/prd/guild-roster-expansion.md): the seats this
+  // guild may fill (base seats plus bought pages) and the copper price of the
+  // NEXT page, null once the ladder is complete. Server-derived from the
+  // guild row (src/sim/guild_roster.ts), never client-computed: the Guild tab
+  // renders the count against memberCap and the leader's buy button from the
+  // price, and the service re-prices from the row at purchase time anyway.
+  memberCap: number;
+  nextRosterPrice: number | null;
 }
 
 export interface SocialSnapshot {
   friends: FriendEntry[];
+  friendsNextCursor?: number | null;
+  friendsCursor?: number;
   blocks: CharRef[];
+  blocksNextCursor?: number | null;
+  blocksCursor?: number;
+  blocksUnavailable?: boolean;
   ignores: CharRef[];
   guild: GuildView | null;
+  // The viewer's own pledge ('' family when none): the public aspiration line.
+  myPledge: { guildName: string; sinceMs: number; tier: number } | null;
 }
 
 // Storage abstraction. The Postgres implementation lives in social_db.ts; the
 // tests provide an in-memory one. Every method is keyed by character id.
+/** One pledge per character per window: the officer-notification fan-out is
+ *  the spam vector, so the cooldown applies to ANY new pledge (switch or
+ *  withdraw-and-re-pledge included; the stamp survives withdraw). */
+export const PLEDGE_REPLEDGE_COOLDOWN_MS = 5 * 60_000;
+
 export interface SocialDb {
   findCharacterByName(name: string): Promise<CharInfo | null>;
   getCharacter(id: number): Promise<CharInfo | null>;
-  // friends (one-directional, classic style: no acceptance needed)
-  addFriend(charId: number, friendId: number): Promise<void>;
-  removeFriend(charId: number, friendId: number): Promise<void>;
+  // Ordinary friends are one-directional account edges. Bound friends come from signup.
+  addFriend(charId: number, friendId: number): Promise<AccountFriendResult> | Promise<void>;
+  removeFriend(
+    charId: number,
+    friendId: number,
+  ): Promise<'removed' | 'missing' | 'bound' | 'busy'> | Promise<void>;
   // activeTitle is the friend's selected Book of Deeds title (a deed id the
   // client localizes, never English; the charactersForDeedsBoard read shape).
-  listFriends(charId: number): Promise<(CharInfo & { activeTitle: string | null })[]>;
-  whoFriended(charId: number): Promise<number[]>; // reverse lookup
+  listFriends(charId: number, afterCursor?: number): Promise<AccountFriendRow[]>;
+  listFriendPage?(charId: number, afterCursor?: number): Promise<AccountFriendPage>;
+  whoFriended(charId: number, onlineCharacterIds?: readonly number[]): Promise<number[]>; // reverse lookup
   // blocks (one-directional ignore)
-  addBlock(charId: number, blockedId: number): Promise<void>;
-  removeBlock(charId: number, blockedId: number): Promise<void>;
+  addBlock(charId: number, blockedId: number): Promise<AccountFriendResult> | Promise<void>;
+  removeBlock(charId: number, blockedId: number): Promise<'ok' | 'busy'> | Promise<void>;
   listBlocks(charId: number): Promise<CharRef[]>;
-  blockedIds(charId: number): Promise<number[]>;
+  listBlockPage?(
+    charId: number,
+    afterCursor?: number,
+  ): Promise<{ blocks: CharRef[]; nextCursor: number | null }>;
+  blockedIds(charId: number, candidates?: readonly number[]): Promise<number[]>;
   // ignores (one-directional, chat-only; may coexist with a friendship)
   addIgnore(charId: number, ignoredId: number): Promise<void>;
   removeIgnore(charId: number, ignoredId: number): Promise<void>;
@@ -117,31 +207,100 @@ export interface SocialDb {
   // guilds (a character belongs to at most one)
   // create the guild and seat its leader in one transaction, so a racing or
   // duplicate create packet can never orphan a leaderless guild
-  createGuildWithLeader(
-    name: string,
-    leaderId: number,
-  ): Promise<{ guildId: number } | { error: 'name_taken' | 'already_in_guild' }>;
+  createGuildWithLeader(name: string, leaderId: number): Promise<GuildCreateResult>;
   deleteGuild(id: number): Promise<void>;
-  guildMembership(
-    charId: number,
-  ): Promise<{ guildId: number; guildName: string; rank: GuildRank } | null>;
-  // seat a member atomically, enforcing the cap under concurrent accepts
+  // rosterPages is the guild's bought roster pages (guilds.roster_pages,
+  // already floored into the ladder): the cap and the next page's price both
+  // derive from it (src/sim/guild_roster.ts), and it rides the membership
+  // read so neither the snapshot nor the invite gate pays a second query.
+  // `ranks` is the guild's resolved rank ladder (guilds.ranks through
+  // resolveGuildRankLadder), riding the same read so every rank-permission
+  // gate below costs no extra query.
+  guildMembership(charId: number): Promise<{
+    guildId: number;
+    guildName: string;
+    rank: GuildRankId;
+    rosterPages: number;
+    ranks: GuildRankDef[];
+  } | null>;
+  // The resolved ladder of a guild the caller is not necessarily in (the
+  // pledge notification fan-out reads who may recruit).
+  guildRanks(guildId: number): Promise<GuildRankDef[]>;
+  // Replace the guild's ladder, compare-and-set on `leaderCharId` STILL being
+  // its Guild Master (false = refused, nothing written). Members holding a
+  // rank the new ladder drops fall back to the joining rank in the same
+  // transaction.
+  setGuildRankLadder(
+    guildId: number,
+    leaderCharId: number,
+    ladder: readonly GuildRankDef[],
+  ): Promise<boolean>;
+  // seat a member atomically, enforcing the cap under concurrent accepts. The
+  // cap is the guild's OWN (base seats plus bought pages), read from the guild
+  // row under the same lock as the seat, never a caller-supplied number.
+  // requirePledge additionally consumes the character's pledge to THIS guild
+  // inside the same transaction and refuses with 'no_pledge' when it is gone:
+  // the pledge is the seat's consent, so a withdraw or decline racing the
+  // caller's read must roll the seat back, never seat a player who said no.
   addGuildMemberAtomic(
     guildId: number,
     charId: number,
-    rank: GuildRank,
-    limit: number,
-  ): Promise<'ok' | 'full' | 'already_member' | 'no_guild'>;
+    rank: GuildRankId,
+    requirePledge?: boolean,
+  ): Promise<'ok' | 'full' | 'already_member' | 'no_guild' | 'no_pledge'>;
   removeGuildMember(charId: number): Promise<void>;
-  setGuildRank(charId: number, rank: GuildRank): Promise<void>;
-  guildMembers(
+  // Rank write predicated on BOTH the character and the guild the caller
+  // authorized against, returning whether a row actually moved. False means
+  // the target left that guild (or switched guilds) between the caller's
+  // membership read and this write: the caller must treat it as a refusal
+  // and stamp nothing (the live membership stamp gates the guild bank, so a
+  // stamp the DB refused is privilege escalation, see guildSetRank).
+  setGuildRank(charId: number, guildId: number, rank: GuildRankId): Promise<boolean>;
+  // hand off the Guild Master title atomically: locks the guild row, re-checks
+  // that fromCharId is still the leader and toCharId is still a member of the
+  // SAME guild, then promotes/demotes both rows in one transaction, so two
+  // racing transfers can never both succeed and leave two Guild Masters. The
+  // former leader steps down to `stepDownRank` (guildStepDownRankId).
+  transferGuildLeader(
     guildId: number,
-  ): Promise<
-    (CharInfo & { rank: GuildRank; lastLogin: string | null; activeTitle: string | null })[]
+    fromCharId: number,
+    toCharId: number,
+    stepDownRank: GuildRankId,
+  ): Promise<'ok' | 'not_leader' | 'not_member' | 'no_guild'>;
+  guildMembers(guildId: number): Promise<
+    (CharInfo & {
+      rank: GuildRankId;
+      lastLogin: string | null;
+      activeTitle: string | null;
+      joinedAt: number | null;
+    })[]
   >;
   // guild billboard (motd): the officer-set message + setter name on the guilds row
   setGuildMotd(guildId: number, motd: string, setBy: string): Promise<void>;
   guildMotd(guildId: number): Promise<{ motd: string; motdSetBy: string }>;
+  // guild pledge board (docs/prd/guild-pledge-board.md)
+  guildByName(name: string): Promise<{ id: number; name: string } | null>;
+  guildPledgeSettings(guildId: number): Promise<GuildPledgeSettings>;
+  /** An absent `newPlayerFriendly` keeps the stored flag: the store merges it
+   *  inside the write (one statement), never read-then-write. */
+  setGuildPledgeSettings(guildId: number, settings: GuildPledgeSettingsInput): Promise<void>;
+  guildPledges(guildId: number): Promise<(CharInfo & { sinceMs: number })[]>;
+  pledgeOf(charId: number): Promise<{ guildId: number; guildName: string; sinceMs: number } | null>;
+  upsertPledge(charId: number, guildId: number): Promise<void>;
+  deletePledge(charId: number): Promise<void>;
+  /** The last time this character PLEDGED (epoch ms), surviving withdraw;
+   *  null when they never pledged. Backs the re-pledge cooldown. */
+  lastPledgeAtMs(charId: number): Promise<number | null>;
+  /** Stamp now() as the character's last pledge time (upsert). */
+  touchPledgeCooldown(charId: number): Promise<void>;
+  accountIdForCharacter(charId: number): Promise<number | null>;
+  pledgeLadder(
+    guildId: number,
+    accountId: number,
+  ): Promise<{ rejectCount: number; rejectedAtMs: number } | null>;
+  bumpPledgeLadder(guildId: number, accountId: number): Promise<number>;
+  wipePledgeLadder(guildId: number, accountId: number): Promise<void>;
+  guildLifetimeXpTotal(guildId: number): Promise<number>;
   // guild calendar events (the event calendar's guild lane)
   guildEvents(guildId: number, fromDay: string): Promise<GuildEventRow[]>;
   guildEventCount(guildId: number, fromDay: string): Promise<number>;
@@ -157,8 +316,15 @@ export interface SocialDb {
   pruneGuildEvents(guildId: number, beforeDay: string): Promise<void>;
 }
 
+export type GuildCreateResult =
+  | { guildId: number }
+  | { error: 'name_taken' | 'already_in_guild' | 'busy' | 'insufficient_funds' };
+
+export type GuildCreator = (name: string, leaderId: number) => Promise<GuildCreateResult>;
+
 export interface SocialActor {
   characterId: number;
+  accountId?: number;
   name: string;
   // The actor's selected Book of Deeds title (a deed id, never display text),
   // read from the LIVE sim meta by the caller (game.ts actorFor). Absent when
@@ -175,6 +341,13 @@ export interface SocialActor {
 // Presence + delivery, provided by game.ts. Keeps this module ignorant of
 // sockets and the live client map.
 export interface SocialTransport {
+  onlineCharacterIds?(): readonly number[];
+  // Host uses its account-to-live-session index. Never query once per friend.
+  onlineFriendForAccount?(accountId: number): (CharInfo & { activeTitle: string | null }) | null;
+  // Account friendship and privacy mutations must refresh every live alt.
+  pushAccountSnapshots?(characterId: number): void;
+  onAccountFriendsChanged?(characterId: number): Promise<void>;
+  onAccountBlocksChanged?(characterId: number): Promise<void> | void;
   byCharacterId(id: number): SocialActor | null;
   byName(name: string): SocialActor | null;
   isOnline(id: number): boolean;
@@ -185,6 +358,19 @@ export interface SocialTransport {
   deliver(characterId: number, events: SocialEvent[]): void;
   // re-send the full social panel state to a character if online
   pushSnapshot(characterId: number): void;
+  // The online character's presence subject (server/presence_privacy.ts: its
+  // setting and its own friends list), or null when not online. game.ts hands
+  // the LIVE session, so the friend-edge methods below can refresh its friend
+  // set in place. Optional so a transport without the setting reads as
+  // 'everyone'.
+  presenceSubject?(characterId: number): PresenceSubject | null;
+  // An admin rename already committed in the DB. Update the online member's
+  // live Sim state and notify their client without re-reading or rebuilding
+  // the full social snapshot.
+  onGuildRenamed(characterId: number, guildId: number, oldName: string, newName: string): void;
+  // Stamp an online character's guild pledge nameplate line + guild colour
+  // tier onto the live sim (sim.setPlayerPledge); no-op when offline.
+  applyPledge(characterId: number, pledgeGuild: string, guildTier: number): void;
   // a character's block set changed; refresh the in-memory chat filter
   onBlocksChanged(characterId: number, blockedIds: number[]): void;
   // a character's ignore set changed; refresh the in-memory chat filter
@@ -194,9 +380,77 @@ export interface SocialTransport {
   // (guildsFounded is the one server-produced DeedStatKey; see its doc in
   // src/sim/types.ts)
   onGuildFounded(characterId: number): void;
-  // true if `recipientId` has `senderCharacterId` on their BLOCK list, so
-  // guild/officer chat can honour the same filter say/whisper already apply
-  isBlocking(recipientId: number, senderCharacterId: number): boolean;
+  // Roster expansion (docs/prd/guild-roster-expansion.md): buy the NEXT page
+  // for the Guild Master, priced by the service from the guild row (never a
+  // client-supplied amount) and paid from their OWN purse. The transport owns
+  // the whole purchase (server/guild_roster_transport.ts): the live purse
+  // charge, the exact post-charge snapshot, and ONE atomic write that commits
+  // the page, a receipt, and the charged purse together, refunding the live
+  // purse on every known refusal and abandoning the live session on an
+  // unknown COMMIT rather than refunding a page that may have landed.
+  buyRosterPage(
+    characterId: number,
+    guildId: number,
+    expectedPages: number,
+    price: number,
+  ): Promise<GuildRosterPurchase>;
+  // A guild membership or rank mutation just COMMITTED in the DB for this
+  // character. The transport owner re-stamps the live sim SYNCHRONOUSLY (the
+  // session-only PlayerMeta.guildMembership stamp plus the nameplate guild
+  // name, one combined entry point), because the Guild Bank's officer-plus
+  // gate reads the stamped rank: routing this through the async pushSnapshot
+  // path alone would leave a stale-rank window between the DB commit and the
+  // snapshot's arrival. Called with null on leave, kick, and disband. Offline
+  // characters have no live sim state to stamp (the owner no-ops); the join
+  // path re-stamps them from the snapshot chokepoint. `rank` is the built-in
+  // TIER (GuildRank), never a ladder rank id: the service collapses the
+  // member's rank through the guild's ladder first (guildBankStampRank).
+  onGuildMembershipChanged(
+    characterId: number,
+    membership: { guildId: number; guildName: string; rank: GuildRank } | null,
+  ): void;
+  // The guild CREATE just committed (the same success arm that stamps the
+  // founder, after onGuildMembershipChanged). The transport owner seeds the
+  // new guild's EMPTY book into the LIVE sim. Production's injected creator
+  // has already committed the durable empty book and paid founder state in
+  // the same transaction; this hook is deliberately live-state-only.
+  onGuildCreated(characterId: number, guildId: number): void;
+  // The guild DELETE just committed (the empty-bank guard below passed). The
+  // transport owner EVICTS the guild's book from the live sim so the map
+  // stays bounded and a re-created guild id can never inherit a stale book;
+  // the guild_banks row cascades away with the guilds DELETE.
+  onGuildDisbanded(guildId: number): void;
+  // OPEN the guild-delete window and report what the guild's LIVE bank book
+  // holds, for the empty-bank guard both guild-deleting paths run. Returns
+  // null when the guard must fail CLOSED: no book is loaded (an unloaded book
+  // cannot prove the DB row is empty, and disbanding would cascade-delete it),
+  // a session holds unflushed book work, or another delete already holds the
+  // window.
+  //
+  // The window, not just the read, is the point. The guard is synchronous but
+  // the DELETE is two awaits away, and dispatched guild bank ops are NOT
+  // tick-gated: an op landing in that gap used to be destroyed outright by the
+  // FK cascade with its dirty mark wiped by the post-commit hook. While the
+  // window is held every guild bank op for that guild is refused, so the guard
+  // still means what it says at the moment the row actually goes away.
+  //
+  // ONLY call endGuildBankDelete when this returned non-null: a null means the
+  // window was not taken (possibly because someone else holds it), and
+  // releasing it would open the gap under them.
+  beginGuildBankDelete(guildId: number): { copper: number; items: number } | null;
+  // CLOSE the window opened above. Must run on every arm (refusal, throw, or
+  // commit), or that guild's bank stays refused until the realm restarts.
+  endGuildBankDelete(guildId: number): void;
+  // True when the recipient blocks the sender. Async deliveries carry the
+  // captured account ID because the sender may log out during their DB reads.
+  isBlocking(recipientId: number, senderCharacterId: number, senderAccountId?: number): boolean;
+  // true once `characterId`'s persisted block list has finished loading into
+  // the live session (or the character is offline, where there is nothing to
+  // load and no live presence to leak). Presence independently requires both
+  // live caches to be complete; an empty or rehydrating cache cannot prove
+  // absence of a block. Mirrors the canShowInWho fail-closed guard for the
+  // presence() / announcePresence() paths in this file.
+  blockListLoaded(characterId: number): boolean;
   // true if `recipientId` has `senderCharacterId` on their IGNORE list. Guild and
   // officer chat fan out through deliver() and never pass the routeEvents chat
   // filter, so they must consult the ignore list here, exactly as for blocks.
@@ -228,15 +482,30 @@ export type SocialEvent =
       classId?: PlayerClass;
     }
   | { type: 'guildInvite'; fromName: string; guildName: string }
+  | { type: 'guildInviteCancelled' }
+  | { type: 'guildRenamed'; guildId: number; newName: string }
   // Structured guild-calendar outcome; the client renders the visible line
   // from the code (the sim's mailResult convention, so no server English here).
   | { type: 'calendarResult'; code: CalendarResultCode }
   // Structured guild-billboard outcome, same convention as calendarResult.
   | { type: 'motdResult'; code: MotdResultCode }
+  // Structured roster-expansion refusal, same convention as calendarResult:
+  // the client renders the line from the code. `price` (copper) rides only
+  // the cannotAfford arm so the line can name the page's price.
+  | { type: 'guildRosterResult'; code: GuildRosterResultCode; price?: number }
+  // A guild's roster just grew (the page COMMITTED): delivered to every
+  // online member, the buyer included, as the success line. Carries the
+  // buyer's display name and the new cap only, never English.
+  | { type: 'guildRosterExpanded'; byName: string; cap: number }
   // A guildmate's or followed friend's marquee deed unlock. Carries the deed
   // ID only, never English (the client composes the line from deed_i18n plus
   // its own chrome key, the calendarResult convention).
   | { type: 'deedBroadcast'; characterName: string; deedId: string }
+  // A guildmate's or followed friend's first-ever Reliquary page Illumination
+  // (Phase 18). Carries the page ID only, never English (the client composes
+  // the line from reliquary_i18n plus its own chrome key, the deedBroadcast
+  // convention).
+  | { type: 'reliquaryIlluminationBroadcast'; characterName: string; pageId: string }
   // Bot-only hint: the regular player UI ignores unknown event types, while the
   // ambient bot social loop uses this to reciprocate a player's friend add.
   | { type: 'friendAddedBy'; fromName: string };
@@ -253,10 +522,29 @@ export type CalendarResultCode =
 // Guild billboard command outcomes ('set' is the success; the rest refusals).
 export type MotdResultCode = 'set' | 'notInGuild' | 'notOfficer';
 
+// Roster-expansion refusals (all refusals: the success is the guild-wide
+// guildRosterExpanded event). Mirrored in src/sim/types.ts for the client
+// event switch; tests/social_system.test.ts pins the two declarations equal.
+export type GuildRosterResultCode = 'notInGuild' | 'notLeader' | 'maxed' | 'cannotAfford' | 'retry';
+
+// The outcome of one page purchase as the transport reports it
+// (server/guild_roster_transport.ts): 'ok' carries the pages now bought;
+// 'retry' may carry the cause the dispatcher should log; 'session_lost'
+// means the buyer's live session is gone or was abandoned to durable truth,
+// so there is nobody to answer; 'busy' is a repeated command while the
+// character's own purchase is still in flight (its answer is coming).
+export type GuildRosterPurchase =
+  | { outcome: 'ok'; pages: number }
+  | { outcome: 'cannotAfford' | 'stale' | 'no_guild' | 'session_lost' | 'busy' }
+  | { outcome: 'retry'; error?: unknown };
+
 const FRIEND_LIMIT = 50;
 const BLOCK_LIMIT = 50;
 const IGNORE_LIMIT = 50;
-const GUILD_MEMBER_LIMIT = 100;
+// The roster cap is PER GUILD now (base seats plus bought pages,
+// src/sim/guild_roster.ts guildRosterCap): every seat path reads it from the
+// guild row. GUILD_ROSTER_MAX_MEMBERS is the absolute bound the admin
+// backoffice pages at and the rename fan-out is capped by.
 const GUILD_INVITE_TTL_MS = 60_000;
 const GUILD_MESSAGE_MAX = 200;
 // Guild billboard: the officer-set message pinned atop the Guild tab.
@@ -298,74 +586,225 @@ export function validateGuildName(name: string): string | null {
   return trimmed;
 }
 
-const RANK_LABEL: Record<GuildRank, string> = {
-  leader: 'Guild Master',
-  officer: 'Officer',
-  member: 'Member',
+// The English label of a built-in rank left at its default title. Server
+// English: the client matcher (src/ui/server_i18n.ts localizeRank) maps these
+// back onto its rank keys, and a guild's own title passes through verbatim.
+const DEFAULT_RANK_LABEL: Record<string, string> = {
+  [GUILD_RANK_LEADER_ID]: 'Guild Master',
+  [GUILD_RANK_OFFICER_ID]: 'Officer',
+  [GUILD_RANK_MEMBER_ID]: 'Member',
 };
+
+// The label a rank-change line names: a built-in rank left at its default
+// title is its bare English label (the pre-ladder lines, byte-identical);
+// anything else rides in [brackets], the guild's own title verbatim or 'Rank N'
+// (its ladder position) for an untitled custom rank. The brackets are what
+// let the client matcher (src/ui/server_i18n.ts) pick a player-authored title
+// out of "X is now [title]." without a catch-all rule that would also swallow
+// the sim's ordinary "... is now full." lines.
+function rankLabel(ladder: readonly GuildRankDef[], id: GuildRankId): string {
+  const index = guildRankIndex(ladder, id);
+  const rank = ladder[index];
+  if (rank && rank.name !== '') return `[${rank.name}]`;
+  const builtIn = DEFAULT_RANK_LABEL[rank?.id ?? GUILD_RANK_MEMBER_ID];
+  return builtIn ?? `[Rank ${index}]`;
+}
+
+/** The built-in tier a snapshot's viewer stamps onto the live sim (the guild
+ *  bank gate, see GuildRank): their rank collapsed through the snapshot's own
+ *  ladder, which a frame from an older builder may omit (the default ladder
+ *  then, whose tiers are the pre-ladder ranks). */
+export function guildStampRankOf(guild: {
+  rank: GuildRankId;
+  ranks?: readonly GuildRankDef[];
+}): GuildRank {
+  return guildBankStampRank(guild.ranks ?? resolveGuildRankLadder(null), guild.rank);
+}
 
 export class SocialService {
   private pendingGuildInvites = new Map<
     number,
-    { guildId: number; guildName: string; fromName: string; expiresAt: number }
+    {
+      guildId: number;
+      guildName: string;
+      fromCharacterId: number;
+      fromName: string;
+      expiresAt: number;
+    }
   >();
+  private pendingGuildInviteesByGuild = new Map<number, Set<number>>();
+
+  /** Once the creator reports a commit, durable truth cannot be demoted by a
+   *  live notification failure. Isolate every follow-up so callers never
+   *  mistake a thrown transport hook for a rolled-back guild creation. */
+  private afterGuildCreateCommit(label: string, run: () => void): void {
+    try {
+      run();
+    } catch (error) {
+      console.error(`guild create post-commit ${label} failed:`, error);
+    }
+  }
 
   constructor(
     private readonly db: SocialDb,
     private readonly tx: SocialTransport,
     private readonly now: () => number = () => Date.now(),
+    // Guild-name content screen, injected so the service stays hermetic in tests:
+    // production wires offensiveName from server/auth.ts (server/game.ts). Required
+    // on purpose (no fail-open default): every construction site must decide what
+    // it screens. Applies at creation only; existing guild names are never
+    // retro-scanned here.
+    private readonly isNameOffensive: (name: string) => boolean,
+    // Chat-filter hard tier for the pledge board note, the same injected-screen
+    // doctrine as isNameOffensive (production wires ChatFilter.findHardHit,
+    // server/game.ts): the note fans out to every town signpost's guild board
+    // (src/ui/hud/guild_board/), so a hard word is refused at write time like
+    // a chat line, never stored. Soft words are
+    // deliberately untouched here; each client masks them by its own filter
+    // setting, the chat doctrine.
+    private readonly findHardHit: (text: string) => string | null,
   ) {}
 
   // -------------------------------------------------------------------------
   // Snapshot (drives the client Social panel)
   // -------------------------------------------------------------------------
 
-  async snapshot(charId: number): Promise<SocialSnapshot> {
-    const [friends, blocks, ignores, membership] = await Promise.all([
-      this.db.listFriends(charId),
-      this.db.listBlocks(charId),
+  async snapshot(
+    charId: number,
+    afterFriendCursor = 0,
+    afterBlockCursor = 0,
+  ): Promise<SocialSnapshot> {
+    const [page, blockPage, ignores, membership, blockedIds] = await Promise.all([
+      this.db.listFriendPage
+        ? this.db.listFriendPage(charId, afterFriendCursor)
+        : this.db.listFriends(charId, afterFriendCursor).then((friends) => ({
+            friends: friends.slice(0, ACCOUNT_FRIEND_PAGE_SIZE),
+            nextCursor:
+              friends.length > ACCOUNT_FRIEND_PAGE_SIZE
+                ? friends[ACCOUNT_FRIEND_PAGE_SIZE - 1].id
+                : null,
+          })),
+      this.db.listBlockPage
+        ? this.db.listBlockPage(charId, afterBlockCursor)
+        : this.db.listBlocks(charId).then((blocks) => ({ blocks, nextCursor: null })),
       this.db.listIgnores(charId),
       this.db.guildMembership(charId),
+      this.db.blockedIds(charId, this.tx.onlineCharacterIds?.()),
     ]);
+    const blockedByViewer = new Set(blockedIds);
     let guild: GuildView | null = null;
     if (membership) {
       const fromDay = shiftDay(this.todayIso(), -GUILD_EVENT_KEEP_PAST_DAYS);
-      const [members, events, motd] = await Promise.all([
+      const ladder = membership.ranks;
+      // The open pledges are recruitment work: only a rank that may invite
+      // sees them (the pre-ladder officer-plus rule on the default ladder).
+      const officerPlus = guildRankCan(ladder, membership.rank, 'invite');
+      const [members, events, motd, pledgeSettings, pledges, xpTotal] = await Promise.all([
         this.db.guildMembers(membership.guildId),
         this.db.guildEvents(membership.guildId, fromDay),
         this.db.guildMotd(membership.guildId),
+        this.db.guildPledgeSettings(membership.guildId),
+        officerPlus
+          ? this.db.guildPledges(membership.guildId)
+          : Promise.resolve([] as (CharInfo & { sinceMs: number })[]),
+        this.db.guildLifetimeXpTotal(membership.guildId),
       ]);
       guild = {
         id: membership.guildId,
         name: membership.guildName,
-        rank: membership.rank,
+        rank: effectiveGuildRankId(ladder, membership.rank),
+        ranks: ladder,
         motd: motd.motd,
         motdSetBy: motd.motdSetBy,
         members: members
-          .map((m) => ({ ...m, ...this.presence(m.id) }))
-          .sort((a, b) => rankOrder(a.rank) - rankOrder(b.rank) || a.name.localeCompare(b.name)),
+          .map((m) => ({
+            ...m,
+            rank: effectiveGuildRankId(ladder, m.rank),
+            ...this.presence(charId, m.id, blockedByViewer),
+            // last_login updates at world entry, so a hidden member would read
+            // "last seen two minutes ago" while showing offline.
+            ...(this.hiddenFrom(m.id, charId) ? { lastLogin: null } : {}),
+          }))
+          .sort(
+            (a, b) =>
+              guildRankIndex(ladder, a.rank) - guildRankIndex(ladder, b.rank) ||
+              a.name.localeCompare(b.name),
+          ),
         events,
+        pledgeSettings,
+        pledges,
+        tier: guildTierForLifetimeXp(xpTotal),
+        memberCap: guildRosterCap(membership.rosterPages),
+        nextRosterPrice: guildRosterNextPagePrice(membership.rosterPages),
       };
     }
+    const myPledgeRow = membership ? null : await this.db.pledgeOf(charId);
     return {
-      friends: friends
-        .map((f) => ({ ...f, ...this.presence(f.id) }))
+      myPledge: myPledgeRow
+        ? {
+            guildName: myPledgeRow.guildName,
+            sinceMs: myPledgeRow.sinceMs,
+            tier: guildTierForLifetimeXp(await this.db.guildLifetimeXpTotal(myPledgeRow.guildId)),
+          }
+        : null,
+      friendsCursor: afterFriendCursor,
+      friendsNextCursor: page.nextCursor,
+      friends: page.friends
+        .map((f) => {
+          const live =
+            f.accountId === undefined ? null : this.tx.onlineFriendForAccount?.(f.accountId);
+          // A blocked account must not reveal which alt it is currently playing.
+          const livePresence = live ? this.presence(charId, live.id, blockedByViewer) : null;
+          const shown = live && livePresence?.online ? live : f;
+          return {
+            id: shown.id,
+            name: shown.name,
+            cls: shown.cls,
+            level: shown.level,
+            realm: shown.realm,
+            activeTitle: shown.activeTitle,
+            ...(f.tier ? { tier: f.tier } : {}),
+            ...this.presence(charId, shown.id, blockedByViewer),
+          };
+        })
         .sort((a, b) => Number(b.online) - Number(a.online) || a.name.localeCompare(b.name)),
-      blocks,
+      blocks: blockPage.blocks.sort((a, b) => a.name.localeCompare(b.name)),
+      blocksCursor: afterBlockCursor,
+      blocksNextCursor: blockPage.nextCursor,
       ignores,
       guild,
     };
   }
 
   // Collapse a character's online presence into the fields a roster row needs.
-  private presence(charId: number): {
+  // A friend or guild edge can survive a block on either side (blockAdd only
+  // ever cleans the blocker's OWN outgoing friend edge, and never touches guild
+  // membership at all), so this hides live position and online status the same
+  // way canShowInWho already hides /who visibility: bidirectionally, and
+  // regardless of which side added the other or blocked the other.
+  private presence(
+    viewerCharId: number,
+    otherCharId: number,
+    viewerBlockedIds: Set<number>,
+  ): {
     online: boolean;
     zone?: string;
     status?: PresenceStatus;
     x?: number;
     z?: number;
   } {
-    const loc = this.tx.locationOf(charId);
+    if (
+      otherCharId !== viewerCharId &&
+      (!this.tx.blockListLoaded(viewerCharId) ||
+        viewerBlockedIds.has(otherCharId) ||
+        this.tx.isBlocking(viewerCharId, otherCharId) ||
+        !this.tx.blockListLoaded(otherCharId) ||
+        this.tx.isBlocking(otherCharId, viewerCharId) ||
+        this.hiddenFrom(otherCharId, viewerCharId))
+    ) {
+      return { online: false };
+    }
+    const loc = this.tx.locationOf(otherCharId);
     return loc
       ? { online: true, zone: loc.zone, status: loc.status, x: loc.x, z: loc.z }
       : { online: false };
@@ -381,6 +820,72 @@ export class SocialService {
 
   private info(charId: number, text: string, color = '#aaf'): void {
     this.tx.deliver(charId, [{ type: 'log', text, color }]);
+  }
+
+  private rememberGuildInvite(
+    inviteeId: number,
+    invite: {
+      guildId: number;
+      guildName: string;
+      fromCharacterId: number;
+      fromName: string;
+      expiresAt: number;
+    },
+  ): void {
+    this.takeGuildInvite(inviteeId);
+    this.pendingGuildInvites.set(inviteeId, invite);
+    let invitees = this.pendingGuildInviteesByGuild.get(invite.guildId);
+    if (!invitees) {
+      invitees = new Set<number>();
+      this.pendingGuildInviteesByGuild.set(invite.guildId, invitees);
+    }
+    invitees.add(inviteeId);
+  }
+
+  private takeGuildInvite(inviteeId: number) {
+    const invite = this.pendingGuildInvites.get(inviteeId);
+    if (!invite) return undefined;
+    this.pendingGuildInvites.delete(inviteeId);
+    const invitees = this.pendingGuildInviteesByGuild.get(invite.guildId);
+    invitees?.delete(inviteeId);
+    if (invitees?.size === 0) this.pendingGuildInviteesByGuild.delete(invite.guildId);
+    return invite;
+  }
+
+  // Called only after the admin DB transaction has committed. The bounded
+  // member ids are already known to that transaction, so this path performs
+  // no DB reads and never fans out full social snapshots. The cap below is
+  // re-applied here on purpose rather than trusted from the caller: the two
+  // bounds are independent, so dropping either one alone cannot turn this
+  // into an unbounded fan-out.
+  guildRenamed(
+    guildId: number,
+    oldName: string,
+    newName: string,
+    memberCharacterIds: readonly number[],
+  ): void {
+    const members = new Set<number>();
+    for (const id of memberCharacterIds) {
+      if (!Number.isInteger(id) || id <= 0) continue;
+      members.add(id);
+      if (members.size >= GUILD_ROSTER_MAX_MEMBERS) break;
+    }
+    const invitees = [...(this.pendingGuildInviteesByGuild.get(guildId) ?? [])];
+    for (const inviteeId of invitees) {
+      const invite = this.takeGuildInvite(inviteeId);
+      if (!invite) continue;
+      const cancelled: SocialEvent[] = [{ type: 'guildInviteCancelled' }];
+      this.tx.deliver(inviteeId, cancelled);
+      if (invite.fromCharacterId !== inviteeId) {
+        this.tx.deliver(invite.fromCharacterId, cancelled);
+      }
+    }
+
+    for (const characterId of members) {
+      if (this.tx.isOnline(characterId)) {
+        this.tx.onGuildRenamed(characterId, guildId, oldName, newName);
+      }
+    }
   }
 
   // Resolve a target character by name for a friend/block/invite action,
@@ -406,15 +911,20 @@ export class SocialService {
   async friendAdd(actor: SocialActor, name: string): Promise<void> {
     const target = await this.resolveTarget(actor, name);
     if (!target) return;
-    if (target.id === actor.characterId) {
+    const [actorAccount, targetAccount] = await Promise.all([
+      this.db.accountIdForCharacter(actor.characterId),
+      this.db.accountIdForCharacter(target.id),
+    ]);
+    if (
+      target.id === actor.characterId ||
+      (actorAccount !== null && actorAccount === targetAccount)
+    ) {
       this.err(actor.characterId, 'You cannot befriend yourself.');
       return;
     }
-    // friends and ignore are mutually exclusive — blockAdd drops an ignored
-    // player from your friends, so friendAdd must refuse the reverse, or a
-    // player could end up both ignored and friended at once.
-    const blocks = await this.db.listBlocks(actor.characterId);
-    if (blocks.some((b) => b.id === target.id)) {
+    // Account blocks cover every alt; chat-only ignores may coexist with friends.
+    const blocks = await this.db.blockedIds(actor.characterId, [target.id]);
+    if (blocks.includes(target.id)) {
       this.err(
         actor.characterId,
         `You are blocking ${target.name}. Remove them from your block list first.`,
@@ -422,18 +932,61 @@ export class SocialService {
       return;
     }
     const friends = await this.db.listFriends(actor.characterId);
-    if (friends.some((f) => f.id === target.id)) {
+    if (
+      friends.some(
+        (f) => f.id === target.id || (targetAccount !== null && f.accountId === targetAccount),
+      )
+    ) {
       this.err(actor.characterId, `${target.name} is already your friend.`);
       return;
     }
-    if (friends.length >= FRIEND_LIMIT) {
+    // A block is meant to be mutual (canShowInWho, broadcastDeedUnlock, and
+    // guildInvite all enforce it both ways): if the TARGET has blocked the
+    // actor, refuse the add too, or a blocked stalker could re-add the person
+    // who blocked them and keep live-tracking their position and online
+    // status through the one-directional friend list. The target may be
+    // offline, so this reads the DB rather than the live session set. This
+    // check runs AFTER the "already your friend" check above so re-running
+    // `/friend add` on an existing friend edge always answers the same way,
+    // even once the target blocks the actor: keeping the reply stable there
+    // avoids handing a blocker-detection oracle to an already-added friend.
+    const targetBlockedIds = await this.db.blockedIds(target.id, [actor.characterId]);
+    if (targetBlockedIds.includes(actor.characterId)) {
+      this.err(actor.characterId, `You cannot add ${target.name} as a friend.`);
+      return;
+    }
+    if (
+      friends.every((friend) => friend.accountId === undefined) &&
+      friends.length >= FRIEND_LIMIT
+    ) {
       this.err(actor.characterId, 'Your friends list is full.');
       return;
     }
-    await this.db.addFriend(actor.characterId, target.id);
+    const result = await this.db.addFriend(actor.characterId, target.id);
+    if (result === 'busy') {
+      this.err(actor.characterId, 'You are busy. Try again in a moment.');
+      return;
+    }
+    if (result === 'self') {
+      this.err(actor.characterId, 'You cannot befriend yourself.');
+      return;
+    }
+    if (result === 'already') {
+      this.err(actor.characterId, `${target.name} is already your friend.`);
+      return;
+    }
+    if (result === 'full') {
+      this.err(actor.characterId, 'Your friends list is full.');
+      return;
+    }
+    if (result === 'blocked' || result === 'missing') {
+      this.err(actor.characterId, `You cannot add ${target.name} as a friend.`);
+      return;
+    }
     this.info(actor.characterId, `${target.name} added to friends.`);
     this.tx.deliver(target.id, [{ type: 'friendAddedBy', fromName: actor.name }]);
-    this.push(actor.characterId);
+    await this.friendPresenceChanged(actor.characterId, target.id);
+    this.pushFriendAccount(actor.characterId);
   }
 
   async friendRemove(actor: SocialActor, name: string): Promise<void> {
@@ -443,22 +996,147 @@ export class SocialService {
       return;
     }
     const friends = await this.db.listFriends(actor.characterId);
-    if (!friends.some((f) => f.id === target.id)) {
+    const removed = await this.db.removeFriend(actor.characterId, target.id);
+    // Character-only adapters predate explicit write outcomes. Production checks
+    // membership in the DELETE itself, including edges beyond the first page.
+    if (removed === undefined) {
+      if (!friends.some((friend) => friend.id === target.id)) {
+        this.err(actor.characterId, `${target.name} is not on your friends list.`);
+        return;
+      }
+    }
+    if (removed === 'busy') {
+      this.err(actor.characterId, 'You are busy. Try again in a moment.');
+      return;
+    }
+    if (removed === 'bound') {
+      this.err(actor.characterId, 'Bound friends are linked by their referral invitation.');
+      return;
+    }
+    if (removed === 'missing') {
       this.err(actor.characterId, `${target.name} is not on your friends list.`);
       return;
     }
-    await this.db.removeFriend(actor.characterId, target.id);
     this.info(actor.characterId, `${target.name} removed from friends.`);
-    this.push(actor.characterId);
+    await this.friendPresenceChanged(actor.characterId, target.id);
+    this.pushFriendAccount(actor.characterId);
+  }
+
+  private async friendPresenceChanged(
+    actorId: number,
+    otherId: number,
+    notifyOther = true,
+  ): Promise<void> {
+    if (this.tx.onAccountFriendsChanged) await this.tx.onAccountFriendsChanged(actorId);
+    else {
+      const subject = this.tx.presenceSubject?.(actorId);
+      if (subject)
+        subject.friendIds = new Set((await this.db.listFriends(actorId)).map((f) => f.id));
+    }
+    if (notifyOther && this.tx.isOnline(otherId)) this.push(otherId);
+  }
+
+  async refreshPresenceWatchers(actor: SocialActor): Promise<void> {
+    const pushed = new Set<number>();
+    const pushOnce = (id: number): void => {
+      if (pushed.has(id) || !this.tx.isOnline(id)) return;
+      pushed.add(id);
+      this.push(id);
+    };
+    pushOnce(actor.characterId);
+    for (const id of await this.db.whoFriended(actor.characterId, this.tx.onlineCharacterIds?.()))
+      pushOnce(id);
+    const membership = await this.db.guildMembership(actor.characterId);
+    if (membership)
+      for (const member of await this.db.guildMembers(membership.guildId)) pushOnce(member.id);
+  }
+
+  private pushFriendAccount(charId: number): void {
+    if (this.tx.pushAccountSnapshots) this.tx.pushAccountSnapshots(charId);
+    else this.push(charId);
   }
 
   // Called by game.ts when a character logs in/out, so friends watching them
-  // see a come-online / go-offline notice (and refresh their panel).
-  async announcePresence(actor: SocialActor, online: boolean): Promise<void> {
-    const watchers = await this.db.whoFriended(actor.characterId);
+  // see a come-online / go-offline notice (and refresh their panel). Filtered
+  // bidirectionally by block, the same as broadcastDeedUnlock: a friend-of-me
+  // or guild edge on the OTHER side survives a block (blockAdd only cleans the
+  // blocker's own outgoing friend edge, never guild membership), so without
+  // this a blocked stalker (or someone the actor blocked) would keep hearing
+  // the actor's login/logout and getting their panel refreshed with the
+  // actor's live position.
+
+  // Presence privacy (server/presence_privacy.ts): does the online character
+  // `subjectId` hide their presence from `viewerId`? The block-equivalent rule
+  // at every presence point.
+  private hiddenFrom(subjectId: number, viewerId: number): boolean {
+    const subject = this.tx.presenceSubject?.(subjectId);
+    return (
+      !!subject && presenceHiddenFrom(subject, viewerId, this.tx.byCharacterId(viewerId)?.accountId)
+    );
+  }
+
+  // A frozen copy of an online subject, for a decision that outlives an await.
+  private presenceSnapshot(characterId: number): PresenceSubject | null {
+    const s = this.tx.presenceSubject?.(characterId);
+    return s
+      ? {
+          characterId: s.characterId,
+          presenceMode: s.presenceMode,
+          accountId: s.accountId,
+          friendAccountIds: new Set(s.friendAccountIds),
+          friendIds: new Set(s.friendIds),
+        }
+      : null;
+  }
+
+  // Online as a PUBLIC surface reports it (the guild board's officers online):
+  // a session AND not hiding. An anonymous viewer is nobody's friend, so any
+  // setting but 'everyone' reads offline there.
+  shownOnlinePublicly(characterId: number): boolean {
+    if (!this.tx.isOnline(characterId)) return false;
+    return (this.tx.presenceSubject?.(characterId)?.presenceMode ?? 'everyone') === 'everyone';
+  }
+
+  // Re-send one character's own panel: the /presence selector snaps back to
+  // the real setting when a change was throttled or failed.
+  resyncPanel(characterId: number): void {
+    this.push(characterId);
+  }
+
+  // A quiet chat system line to one online character (no error banner): the
+  // /presence confirmation (server/presence_privacy.ts).
+  noticeTo(characterId: number, text: string): void {
+    this.tx.deliver(characterId, [{ type: 'log', text, color: '#7fd4ff' }]);
+  }
+
+  async announcePresence(
+    actor: SocialActor,
+    online: boolean,
+    capturedSubject?: PresenceSubject,
+  ): Promise<void> {
+    // Taken BEFORE the first await: on logout the session leaves the live map
+    // while the reads below are in flight, and a verdict read afterwards would
+    // fail open and tell a hidden player's friends "has gone offline".
+    const subject = capturedSubject ?? this.presenceSnapshot(actor.characterId);
+    const [watchers, actorBlockedIds] = await Promise.all([
+      this.db.whoFriended(actor.characterId, this.tx.onlineCharacterIds?.()),
+      this.db.blockedIds(actor.characterId, this.tx.onlineCharacterIds?.()),
+    ]);
+    const actorBlocked = new Set(actorBlockedIds);
+    // Fail closed the same way presence() does: while otherId's own block
+    // list is still loading (a just-joined watcher or guildmate), we cannot
+    // yet tell whether they blocked the actor, so treat that as a block
+    // rather than deliver the notice or refresh their panel.
+    const blockedPair = (otherId: number): boolean =>
+      actorBlocked.has(otherId) ||
+      !this.tx.blockListLoaded(otherId) ||
+      this.tx.isBlocking(otherId, actor.characterId, actor.accountId) ||
+      (subject !== null &&
+        presenceHiddenFrom(subject, otherId, this.tx.byCharacterId(otherId)?.accountId));
     const notified = new Set<number>();
     for (const watcherId of watchers) {
       if (!this.tx.isOnline(watcherId)) continue;
+      if (blockedPair(watcherId)) continue;
       this.tx.deliver(watcherId, [
         {
           type: 'log',
@@ -477,6 +1155,7 @@ export class SocialService {
       const members = await this.db.guildMembers(membership.guildId);
       for (const m of members) {
         if (m.id === actor.characterId || notified.has(m.id) || !this.tx.isOnline(m.id)) continue;
+        if (blockedPair(m.id)) continue;
         this.push(m.id);
         notified.add(m.id);
       }
@@ -495,7 +1174,7 @@ export class SocialService {
       return;
     }
     const blocks = await this.db.listBlocks(actor.characterId);
-    if (blocks.some((b) => b.id === target.id)) {
+    if ((await this.db.blockedIds(actor.characterId, [target.id])).includes(target.id)) {
       this.err(actor.characterId, `${target.name} is already blocked.`);
       return;
     }
@@ -503,12 +1182,40 @@ export class SocialService {
       this.err(actor.characterId, 'Your block list is full.');
       return;
     }
-    await this.db.addBlock(actor.characterId, target.id);
-    // blocking someone also drops them from your friends list
-    await this.db.removeFriend(actor.characterId, target.id);
+    const result = await this.db.addBlock(actor.characterId, target.id);
+    if (result === 'busy') {
+      this.err(actor.characterId, 'You are busy. Try again in a moment.');
+      return;
+    }
+    if (result === 'self') {
+      this.err(actor.characterId, 'You cannot block yourself.');
+      return;
+    }
+    if (result === 'already') {
+      this.err(actor.characterId, `${target.name} is already blocked.`);
+      return;
+    }
+    if (result === 'full') {
+      this.err(actor.characterId, 'Your block list is full.');
+      return;
+    }
+    if (result === 'missing' || result === 'blocked') return;
+    // The account store removes the ordinary edge in the block transaction.
+    // Older character-only adapters retain their separate removal operation.
+    if (result === undefined) await this.db.removeFriend(actor.characterId, target.id);
     this.info(actor.characterId, `${target.name} is now blocked.`);
-    this.tx.onBlocksChanged(actor.characterId, await this.db.blockedIds(actor.characterId));
-    this.push(actor.characterId);
+    if (this.tx.onAccountBlocksChanged) await this.tx.onAccountBlocksChanged(actor.characterId);
+    else
+      this.tx.onBlocksChanged(
+        actor.characterId,
+        await this.db.blockedIds(actor.characterId, this.tx.onlineCharacterIds?.()),
+      );
+    if (!this.tx.onAccountBlocksChanged)
+      await this.friendPresenceChanged(actor.characterId, target.id, false);
+    this.pushFriendAccount(actor.characterId);
+    // The target's own panel must lose the actor's presence too, or it stays
+    // frozen "online" on their side for the rest of the session (#2437).
+    this.pushFriendAccount(target.id);
   }
 
   async blockRemove(actor: SocialActor, name: string): Promise<void> {
@@ -517,15 +1224,27 @@ export class SocialService {
       this.err(actor.characterId, `No character named '${name}' on your block list.`);
       return;
     }
-    const blocks = await this.db.listBlocks(actor.characterId);
-    if (!blocks.some((b) => b.id === target.id)) {
+    const blocks = await this.db.blockedIds(actor.characterId, [target.id]);
+    if (!blocks.includes(target.id)) {
       this.err(actor.characterId, `${target.name} is not on your block list.`);
       return;
     }
-    await this.db.removeBlock(actor.characterId, target.id);
+    const result = await this.db.removeBlock(actor.characterId, target.id);
+    if (result === 'busy') {
+      this.err(actor.characterId, 'You are busy. Try again in a moment.');
+      return;
+    }
     this.info(actor.characterId, `${target.name} is no longer blocked.`);
-    this.tx.onBlocksChanged(actor.characterId, await this.db.blockedIds(actor.characterId));
-    this.push(actor.characterId);
+    if (this.tx.onAccountBlocksChanged) await this.tx.onAccountBlocksChanged(actor.characterId);
+    else
+      this.tx.onBlocksChanged(
+        actor.characterId,
+        await this.db.blockedIds(actor.characterId, this.tx.onlineCharacterIds?.()),
+      );
+    if (!this.tx.onAccountBlocksChanged)
+      await this.friendPresenceChanged(actor.characterId, target.id, false);
+    this.pushFriendAccount(actor.characterId);
+    this.pushFriendAccount(target.id);
   }
 
   // "/blocklist": echo the blocked names back to the actor.
@@ -608,101 +1327,156 @@ export class SocialService {
   // Guilds
   // -------------------------------------------------------------------------
 
-  async guildCreate(actor: SocialActor, rawName: string): Promise<void> {
+  // Returns true ONLY on the committed success arm; false on every refusal.
+  // Production injects its paid atomic creator after validation and content
+  // screening; hermetic callers retain the social DB's membership-only path.
+  async guildCreate(
+    actor: SocialActor,
+    rawName: string,
+    create: GuildCreator = (name, leaderId) => this.db.createGuildWithLeader(name, leaderId),
+  ): Promise<boolean> {
     const name = validateGuildName(rawName);
     if (!name) {
       this.err(actor.characterId, 'Guild names are 3-24 letters (spaces allowed).');
-      return;
+      return false;
     }
-    const result = await this.db.createGuildWithLeader(name, actor.characterId);
+    // Content screen (server-authoritative; the client has no say): refuse an
+    // offensive name before any row is created, so a refused create never exists.
+    if (this.isNameOffensive(name)) {
+      this.err(actor.characterId, 'That guild name is not allowed.');
+      // false, never a bare return: the caller still owns a bounded in-flight
+      // identity and ledger-capacity reservation even though the paid creator
+      // was never invoked.
+      return false;
+    }
+    // Read before the create: its transaction clears any standing pledge
+    // (founding a guild is joining one), and the live tag plus the old
+    // guild's board need the pre-clear row to know what to refresh.
+    const priorPledge = await this.db.pledgeOf(actor.characterId);
+    const result = await create(name, actor.characterId);
     if ('error' in result) {
-      this.err(
-        actor.characterId,
+      const message =
         result.error === 'name_taken'
           ? `A guild named '${name}' already exists.`
-          : 'You are already in a guild.',
-      );
-      return;
+          : result.error === 'already_in_guild'
+            ? 'You are already in a guild.'
+            : result.error === 'insufficient_funds'
+              ? `You need ${GUILD_CREATION_FEE_GOLD} gold to found a guild.`
+              : 'You are busy. Try again in a moment.';
+      this.err(actor.characterId, message);
+      return false;
     }
+    // Founder is seated as leader in the same transaction as the create: stamp
+    // the live sim before any push resolves (the guild bank rank gate).
+    this.afterGuildCreateCommit('membership stamp', () =>
+      this.tx.onGuildMembershipChanged(actor.characterId, {
+        guildId: result.guildId,
+        guildName: name,
+        rank: 'leader',
+      }),
+    );
+    // Same success arm, right after the stamp: mirror the already-committed
+    // empty book into the live sim. The injected creator owns the durable fee
+    // and receipt; this transport hook is live-state-only.
+    this.afterGuildCreateCommit('bank seed', () =>
+      this.tx.onGuildCreated(actor.characterId, result.guildId),
+    );
     // Founder credit rides the transport seam: soc_guild_founded reads the
     // guildsFounded deed stat, which only this success arm may ever produce
     // (a refused create above must never reach it).
-    this.tx.onGuildFounded(actor.characterId);
-    this.info(
-      actor.characterId,
-      `You found the guild <${name}>! You are its Guild Master.`,
-      '#40ff7f',
+    this.afterGuildCreateCommit('founder credit', () => this.tx.onGuildFounded(actor.characterId));
+    if (priorPledge) {
+      // The create transaction consumed the founder's standing pledge:
+      // restamp the live tag from durable truth (now empty) so a later guild
+      // leave cannot resurface it, and refresh the pledged guild's board so
+      // the row does not linger there. Awaited rather than routed through
+      // afterGuildCreateCommit: that helper is synchronous, so a rejection
+      // here would escape its try/catch as an unhandled rejection.
+      await this.refreshPledgeBadge(actor.characterId);
+      await this.pushGuild(priorPledge.guildId);
+    }
+    this.afterGuildCreateCommit('success notice', () =>
+      this.info(
+        actor.characterId,
+        `You found the guild <${name}>! You are its Guild Master.`,
+        '#40ff7f',
+      ),
     );
-    this.push(actor.characterId);
+    this.afterGuildCreateCommit('snapshot push', () => this.push(actor.characterId));
+    return true;
   }
 
-  async guildInvite(actor: SocialActor, name: string): Promise<void> {
+  /** 'sent' when a real invite went out, 'blocked' for the silent fake-success
+   *  arm (the target blocks the inviter), 'refused' when the actor was told
+   *  why nothing happened. Callers that resolve a pledge off this outcome
+   *  (guildPledgeDecide) must only do so on a definite resolution. */
+  async guildInvite(actor: SocialActor, name: string): Promise<'sent' | 'blocked' | 'refused'> {
     const membership = await this.db.guildMembership(actor.characterId);
     if (!membership) {
       this.err(actor.characterId, 'You are not in a guild.');
-      return;
+      return 'refused';
     }
-    if (membership.rank === 'member') {
+    if (!guildRankCan(membership.ranks, membership.rank, 'invite')) {
       this.err(actor.characterId, 'Only officers and the Guild Master may invite.');
-      return;
+      return 'refused';
     }
     const target = await this.resolveTarget(actor, name);
-    if (!target) return;
+    if (!target) return 'refused';
     if (target.id === actor.characterId) {
       this.err(actor.characterId, 'You are already in the guild.');
-      return;
+      return 'refused';
     }
     if (!this.tx.isOnline(target.id)) {
       this.err(actor.characterId, `${target.name} must be online to be invited.`);
-      return;
+      return 'refused';
     }
     if (await this.db.guildMembership(target.id)) {
       this.err(actor.characterId, `${target.name} is already in a guild.`);
-      return;
+      return 'refused';
     }
     const existing = this.pendingGuildInvites.get(target.id);
     if (existing && existing.expiresAt >= this.now()) {
       this.err(actor.characterId, `${target.name} already has a pending guild invitation.`);
-      return;
+      return 'refused';
     }
     const members = await this.db.guildMembers(membership.guildId);
-    if (members.length >= GUILD_MEMBER_LIMIT) {
+    if (members.length >= guildRosterCap(membership.rosterPages)) {
       this.err(actor.characterId, 'Your guild is full.');
-      return;
+      return 'refused';
     }
     // A target who has the inviter on their ignore list never sees the invite.
     // From the inviter's side this is indistinguishable from an ordinary
     // decline (guildDecline is silent): the usual confirmation, then nothing.
     // No pending state is created, so other guilds can still invite the target.
-    if (this.tx.isBlocking(target.id, actor.characterId)) {
+    if (this.tx.isBlocking(target.id, actor.characterId, actor.accountId)) {
       this.info(actor.characterId, `You have invited ${target.name} to the guild.`);
-      return;
+      return 'blocked';
     }
-    this.pendingGuildInvites.set(target.id, {
+    this.rememberGuildInvite(target.id, {
       guildId: membership.guildId,
       guildName: membership.guildName,
+      fromCharacterId: actor.characterId,
       fromName: actor.name,
       expiresAt: this.now() + GUILD_INVITE_TTL_MS,
     });
+    // A real invite wipes the pledge rejection ladder for this guild: the
+    // guild saying "we do want you" (docs/prd/guild-pledge-board.md).
+    const invitedAccount = await this.db.accountIdForCharacter(target.id);
+    if (invitedAccount !== null) await this.db.wipePledgeLadder(membership.guildId, invitedAccount);
     this.tx.deliver(target.id, [
       { type: 'guildInvite', fromName: actor.name, guildName: membership.guildName },
     ]);
     this.info(actor.characterId, `You have invited ${target.name} to the guild.`);
+    return 'sent';
   }
 
   async guildAccept(actor: SocialActor): Promise<void> {
-    const invite = this.pendingGuildInvites.get(actor.characterId);
-    this.pendingGuildInvites.delete(actor.characterId);
+    const invite = this.takeGuildInvite(actor.characterId);
     if (!invite || invite.expiresAt < this.now()) {
       this.err(actor.characterId, 'The guild invitation has expired.');
       return;
     }
-    const result = await this.db.addGuildMemberAtomic(
-      invite.guildId,
-      actor.characterId,
-      'member',
-      GUILD_MEMBER_LIMIT,
-    );
+    const result = await this.db.addGuildMemberAtomic(invite.guildId, actor.characterId, 'member');
     if (result === 'no_guild') {
       this.err(actor.characterId, 'That guild no longer exists.');
       return;
@@ -715,14 +1489,331 @@ export class SocialService {
       this.err(actor.characterId, 'That guild is full.');
       return;
     }
+    // Joining any guild clears the character's pledge (the aspiration ended,
+    // one way or the other).
+    const priorPledge = await this.db.pledgeOf(actor.characterId);
+    await this.db.deletePledge(actor.characterId);
+    // Seated in the DB: stamp the live sim before any push resolves. The
+    // 'member' tier is the fail-closed stamp (read-only vault): the invite
+    // carries no ladder, so a guild whose joining rank holds the vault gets
+    // its exact tier from the pushGuild snapshot below, never a wider one.
+    this.tx.onGuildMembershipChanged(actor.characterId, {
+      guildId: invite.guildId,
+      guildName: invite.guildName,
+      rank: 'member',
+    });
+    if (priorPledge) {
+      // Restamp the live pledge tag from durable truth (now empty): the guild
+      // label shadows it while guilded, but without the restamp a later guild
+      // leave resurfaces a stale "pledged" nameplate line until relog. When
+      // the pledge was to a DIFFERENT guild, refresh that board too so the
+      // row does not linger there.
+      await this.refreshPledgeBadge(actor.characterId);
+      if (priorPledge.guildId !== invite.guildId) await this.pushGuild(priorPledge.guildId);
+    }
     await this.broadcastGuild(invite.guildId, [
       { type: 'log', text: `${actor.name} has joined the guild.`, color: '#40ff7f' },
     ]);
     await this.pushGuild(invite.guildId);
   }
 
-  guildDecline(actor: SocialActor): void {
-    this.pendingGuildInvites.delete(actor.characterId);
+  // ---- guild pledges (docs/prd/guild-pledge-board.md) ----
+
+  /** Deliver a log line to every ONLINE member of a guild whose rank may
+   *  recruit (the 'invite' permission: the pre-ladder officer-plus set). */
+  private async notifyGuildOfficers(guildId: number, text: string): Promise<void> {
+    const [members, ladder] = await Promise.all([
+      this.db.guildMembers(guildId),
+      this.db.guildRanks(guildId),
+    ]);
+    for (const m of members) {
+      if (!guildRankCan(ladder, m.rank, 'invite')) continue;
+      if (!this.tx.isOnline(m.id)) continue;
+      this.tx.deliver(m.id, [{ type: 'log', text, color: '#ffd070' }]);
+    }
+  }
+
+  async guildPledge(actor: SocialActor, guildName: string): Promise<void> {
+    // Anti-spam cooldown: every successful pledge notifies the target guild's
+    // online officers, so rapid pledge-hopping (pledge, switch, withdraw and
+    // re-pledge) is a broadcast spam vector. One pledge per character per
+    // window, whatever the target; the stamp survives withdraw by design.
+    const lastPledgeMs = await this.db.lastPledgeAtMs(actor.characterId);
+    if (lastPledgeMs !== null) {
+      const remainingMs = PLEDGE_REPLEDGE_COOLDOWN_MS - (this.now() - lastPledgeMs);
+      if (remainingMs > 0) {
+        const minutes = Math.max(1, Math.ceil(remainingMs / 60_000));
+        this.err(
+          actor.characterId,
+          `You can pledge again in ${minutes} more minute${minutes === 1 ? '' : 's'}.`,
+        );
+        return;
+      }
+    }
+    if (await this.db.guildMembership(actor.characterId)) {
+      this.err(actor.characterId, 'You are already in a guild.');
+      return;
+    }
+    const guild = await this.db.guildByName(guildName);
+    if (!guild) {
+      this.err(actor.characterId, 'No guild by that name.');
+      return;
+    }
+    const settings = await this.db.guildPledgeSettings(guild.id);
+    if (!settings.enabled) {
+      this.err(actor.characterId, `${guild.name} is not accepting pledges.`);
+      return;
+    }
+    const me = await this.db.getCharacter(actor.characterId);
+    if (!me) return;
+    if (me.level < settings.minLevel) {
+      this.err(actor.characterId, `${guild.name} accepts pledges from level ${settings.minLevel}.`);
+      return;
+    }
+    const accountId = await this.db.accountIdForCharacter(actor.characterId);
+    if (accountId !== null) {
+      const ladder = await this.db.pledgeLadder(guild.id, accountId);
+      if (
+        ladder &&
+        ladder.rejectCount > 0 &&
+        pledgeCooldownActive(ladder.rejectCount, ladder.rejectedAtMs, this.now())
+      ) {
+        this.err(actor.characterId, `${guild.name} has declined your pledge for now.`);
+        return;
+      }
+    }
+    const prior = await this.db.pledgeOf(actor.characterId);
+    await this.db.upsertPledge(actor.characterId, guild.id);
+    await this.db.touchPledgeCooldown(actor.characterId);
+    this.info(actor.characterId, `You have pledged to ${guild.name}.`);
+    if (prior && prior.guildId !== guild.id) {
+      // Replacing a pledge is one implicit withdraw; the old guild's officers
+      // simply see the pledge gone on their next look, no noise.
+      void this.pushGuild(prior.guildId);
+    }
+    await this.notifyGuildOfficers(guild.id, `${actor.name} has pledged to your guild.`);
+    await this.refreshPledgeBadge(actor.characterId);
+    await this.pushGuild(guild.id);
+    this.tx.pushSnapshot(actor.characterId);
+  }
+
+  async guildPledgeWithdraw(actor: SocialActor): Promise<void> {
+    const pledge = await this.db.pledgeOf(actor.characterId);
+    if (!pledge) {
+      this.err(actor.characterId, 'You have no pledge to withdraw.');
+      return;
+    }
+    await this.db.deletePledge(actor.characterId);
+    this.info(actor.characterId, `You have withdrawn your pledge to ${pledge.guildName}.`);
+    await this.refreshPledgeBadge(actor.characterId);
+    await this.pushGuild(pledge.guildId);
+    this.tx.pushSnapshot(actor.characterId);
+  }
+
+  async guildPledgeDecide(actor: SocialActor, name: string, accept: boolean): Promise<void> {
+    const membership = await this.db.guildMembership(actor.characterId);
+    if (!membership) {
+      this.err(actor.characterId, 'You are not in a guild.');
+      return;
+    }
+    if (!guildRankCan(membership.ranks, membership.rank, 'invite')) {
+      this.err(actor.characterId, 'Only officers and the Guild Master may manage pledges.');
+      return;
+    }
+    const target = await this.db.findCharacterByName(name);
+    if (!target) {
+      this.err(actor.characterId, `No character named '${name}' exists.`);
+      return;
+    }
+    const pledge = await this.db.pledgeOf(target.id);
+    if (!pledge || pledge.guildId !== membership.guildId) {
+      this.err(actor.characterId, `${target.name} has no pledge to your guild.`);
+      return;
+    }
+    if (accept) {
+      if (!this.tx.isOnline(target.id)) {
+        await this.seatOfflinePledger(actor, target, membership);
+        return;
+      }
+      // Online: accept sends the standard guild invite; membership stays the
+      // invite flow's (which also wipes the ladder). The pledge is the
+      // player's standing request, so it only resolves on a definite outcome:
+      // joining deletes it (guildAccept), and a pledger who already joined a
+      // guild since pledging left the request stale, so it drops here. Every
+      // other refusal (full, a pending invite) AND the silent blocked arm
+      // leave the request standing: whether the row survives an accept never
+      // depends on the block relationship, so the BOARD is not a block
+      // oracle. (The invite flow's own refusal messages remain a separate,
+      // pre-existing observation surface; see guildInvite.)
+      const outcome = await this.guildInvite(actor, target.name);
+      if (outcome === 'refused' && (await this.db.guildMembership(target.id))) {
+        await this.db.deletePledge(target.id);
+        await this.refreshPledgeBadge(target.id);
+        this.tx.pushSnapshot(target.id);
+      }
+      await this.pushGuild(membership.guildId);
+      return;
+    }
+    // With the pledge surviving an accept, reject is now reachable while the
+    // accept's invite is still pending. The officer's explicit "no" must stop
+    // the join, not just bump the ladder, so a same-guild pending invite is
+    // cancelled here, both sides notified (the guildRenamed cancel shape).
+    const pending = this.pendingGuildInvites.get(target.id);
+    if (pending && pending.guildId === membership.guildId) {
+      this.takeGuildInvite(target.id);
+      const cancelled: SocialEvent[] = [{ type: 'guildInviteCancelled' }];
+      this.tx.deliver(target.id, cancelled);
+      if (pending.fromCharacterId !== target.id) {
+        this.tx.deliver(pending.fromCharacterId, cancelled);
+      }
+    }
+    await this.db.deletePledge(target.id);
+    const accountId = await this.db.accountIdForCharacter(target.id);
+    if (accountId !== null) await this.db.bumpPledgeLadder(membership.guildId, accountId);
+    this.info(actor.characterId, `You have declined ${target.name}'s pledge.`);
+    if (this.tx.isOnline(target.id)) {
+      this.tx.deliver(target.id, [
+        {
+          type: 'log',
+          text: `${membership.guildName} has declined your pledge.`,
+          color: '#ff8080',
+        },
+      ]);
+    }
+    await this.refreshPledgeBadge(target.id);
+    await this.pushGuild(membership.guildId);
+    this.tx.pushSnapshot(target.id);
+  }
+
+  /** Seat an OFFLINE pledger directly. The pledge is the player's standing
+   *  request to join, so officer acceptance completes membership without the
+   *  online invite handshake (which cannot reach an offline character); they
+   *  find themselves in the guild on their next login (the join path stamps
+   *  membership from durable truth). A full guild keeps the request on the
+   *  board so the officer can free a seat and accept again; a pledger who
+   *  joined a guild since pledging left the request stale, so that arm
+   *  drops it. */
+  private async seatOfflinePledger(
+    actor: SocialActor,
+    target: { id: number; name: string },
+    membership: { guildId: number; guildName: string; ranks: GuildRankDef[] },
+  ): Promise<void> {
+    const result = await this.db.addGuildMemberAtomic(
+      membership.guildId,
+      target.id,
+      'member',
+      true,
+    );
+    if (result === 'no_guild') {
+      this.err(actor.characterId, 'That guild no longer exists.');
+      return;
+    }
+    if (result === 'full') {
+      // The pledge stays: the officer can free a seat and accept again.
+      this.err(actor.characterId, 'Your guild is full.');
+      return;
+    }
+    if (result === 'already_member') {
+      // The pledger joined a guild since pledging: the pledge is stale. The
+      // badge restamp covers a login racing this arm (no-op while offline).
+      await this.db.deletePledge(target.id);
+      await this.refreshPledgeBadge(target.id);
+      this.err(actor.characterId, `${target.name} is already in a guild.`);
+      await this.pushGuild(membership.guildId);
+      this.tx.pushSnapshot(target.id);
+      return;
+    }
+    if (result === 'no_pledge') {
+      // A withdraw or decline landed between the officer's pledge read and
+      // the seat transaction: the consent is gone, so the seat rolled back.
+      this.err(actor.characterId, `${target.name} has no pledge to your guild.`);
+      await this.pushGuild(membership.guildId);
+      return;
+    }
+    // Seated in the DB with the pledge consumed in the same transaction, and
+    // acceptance wipes the rejection ladder exactly like a real invite (the
+    // guild said "we do want you", docs/prd/guild-pledge-board.md).
+    const accountId = await this.db.accountIdForCharacter(target.id);
+    if (accountId !== null) await this.db.wipePledgeLadder(membership.guildId, accountId);
+    // No-ops while they stay offline; covers a login racing the seat.
+    this.tx.onGuildMembershipChanged(target.id, {
+      guildId: membership.guildId,
+      guildName: membership.guildName,
+      rank: guildBankStampRank(membership.ranks, GUILD_RANK_MEMBER_ID),
+    });
+    await this.refreshPledgeBadge(target.id);
+    await this.broadcastGuild(membership.guildId, [
+      { type: 'log', text: `${target.name} has joined the guild.`, color: '#40ff7f' },
+    ]);
+    await this.pushGuild(membership.guildId);
+  }
+
+  async setGuildPledgeSettings(
+    actor: SocialActor,
+    settings: GuildPledgeSettingsInput,
+  ): Promise<void> {
+    const membership = await this.db.guildMembership(actor.characterId);
+    if (!membership) {
+      this.err(actor.characterId, 'You are not in a guild.');
+      return;
+    }
+    if (!guildRankCan(membership.ranks, membership.rank, 'invite')) {
+      this.err(actor.characterId, 'Only officers and the Guild Master may manage pledges.');
+      return;
+    }
+    const minLevel = Math.max(1, Math.min(60, Math.floor(settings.minLevel) || 1));
+    // The guildSetMotd clamp treatment: the slice cuts UTF-16 code units, so a
+    // boundary landing inside a surrogate pair would store a lone surrogate
+    // that pg encodes as U+FFFD; drop the orphaned half instead.
+    let note = String(settings.note ?? '')
+      .trim()
+      .slice(0, 90);
+    const last = note.charCodeAt(note.length - 1);
+    if (last >= 0xd800 && last <= 0xdbff) note = note.slice(0, -1);
+    if (note !== '' && this.findHardHit(note) !== null) {
+      this.err(actor.characterId, 'That board note is not allowed.');
+      return;
+    }
+    // The category opt-in is optional on the wire (guild_pledge_settings_cmd.ts):
+    // a client that predates it leaves the stored flag alone, merged by the
+    // store inside its one write (no extra read, no read-modify-write race).
+    await this.db.setGuildPledgeSettings(membership.guildId, {
+      enabled: !!settings.enabled,
+      minLevel,
+      note,
+      ...(settings.newPlayerFriendly === undefined
+        ? {}
+        : { newPlayerFriendly: settings.newPlayerFriendly }),
+    });
+    await this.pushGuild(membership.guildId);
+  }
+
+  /** Restamp an online character's nameplate pledge line + guild colour tier
+   *  from durable truth (tx no-ops when offline). */
+  private async refreshPledgeBadge(charId: number): Promise<void> {
+    if (!this.tx.isOnline(charId)) return;
+    const pledge = await this.db.pledgeOf(charId);
+    const tier = pledge
+      ? guildTierForLifetimeXp(await this.db.guildLifetimeXpTotal(pledge.guildId))
+      : 0;
+    this.tx.applyPledge(charId, pledge?.guildName ?? '', tier);
+  }
+
+  async guildDecline(actor: SocialActor): Promise<void> {
+    const invite = this.takeGuildInvite(actor.characterId);
+    if (!invite) return;
+    // Declining the invite from the guild you pledged to is an explicit
+    // withdrawal of that standing request. Without this, the surviving
+    // pledge would let an officer seat the decliner directly the moment
+    // they log off (a consent bypass). An invite from any OTHER guild
+    // leaves the pledge untouched.
+    const pledge = await this.db.pledgeOf(actor.characterId);
+    if (pledge && pledge.guildId === invite.guildId) {
+      await this.db.deletePledge(actor.characterId);
+      await this.refreshPledgeBadge(actor.characterId);
+      await this.pushGuild(invite.guildId);
+      this.tx.pushSnapshot(actor.characterId);
+    }
   }
 
   async guildLeave(actor: SocialActor): Promise<void> {
@@ -742,10 +1833,54 @@ export class SocialService {
       );
       return;
     }
+    // Last member out DELETES the guild below, which cascades the guild_banks
+    // row away exactly like /gdisband, so the SAME empty-bank guard must hold
+    // here: a solo Guild Master's /gquit with a stocked bank would otherwise
+    // destroy the book's copper and items. Checked BEFORE the member row is
+    // removed, so a refusal leaves the membership untouched; fails CLOSED on
+    // an unloaded book (null holdings), because an unloaded book cannot prove
+    // the persisted row is empty.
+    let deleteWindow = false;
+    if (others.length === 0) {
+      const holdings = this.tx.beginGuildBankDelete(membership.guildId);
+      deleteWindow = holdings !== null;
+      if (!holdings || holdings.copper > 0 || holdings.items > 0) {
+        if (deleteWindow) this.tx.endGuildBankDelete(membership.guildId);
+        this.err(
+          actor.characterId,
+          'The guild bank must be emptied before the guild can be disbanded.',
+        );
+        return;
+      }
+    }
+    try {
+      await this.finishGuildLeave(actor, membership, others);
+    } finally {
+      // The window spans the guard to the DELETE and its post-commit hooks;
+      // releasing it early (or not at all) is what reopens the gap.
+      if (deleteWindow) this.tx.endGuildBankDelete(membership.guildId);
+    }
+  }
+
+  /** The committed tail of guildLeave, after the empty-bank guard: the member
+   *  row, the stamp clear, and (for the last member out) the guilds DELETE that
+   *  cascades the book row away. Split out so the caller can hold the
+   *  guild-delete window across all of it with one try/finally. */
+  private async finishGuildLeave(
+    actor: SocialActor,
+    membership: { guildId: number; guildName: string },
+    others: { id: number }[],
+  ): Promise<void> {
     await this.db.removeGuildMember(actor.characterId);
+    // Removed in the DB: clear the live sim stamp before any push resolves
+    // (both arms below; the guild bank rank gate must not see a stale rank).
+    this.tx.onGuildMembershipChanged(actor.characterId, null);
     if (others.length === 0) {
       // last member out: the guild ceases to exist
       await this.db.deleteGuild(membership.guildId);
+      // Committed: evict the (empty) book, the same post-DELETE hook as
+      // guildDisband, so no stale book survives keyed to a dead guild id.
+      this.tx.onGuildDisbanded(membership.guildId);
       this.info(
         actor.characterId,
         `You have left <${membership.guildName}>. The guild has disbanded.`,
@@ -783,8 +1918,39 @@ export class SocialService {
       this.err(actor.characterId, `${target.name} is not in your guild.`);
       return;
     }
-    await this.db.setGuildRank(target.id, 'leader');
-    await this.db.setGuildRank(actor.characterId, 'officer');
+    const stepDownRank = guildStepDownRankId(membership.ranks);
+    const result = await this.db.transferGuildLeader(
+      membership.guildId,
+      actor.characterId,
+      target.id,
+      stepDownRank,
+    );
+    if (result === 'no_guild') {
+      this.err(actor.characterId, 'That guild no longer exists.');
+      return;
+    }
+    if (result === 'not_leader') {
+      // lost a race with another transfer between the checks above and here
+      this.err(actor.characterId, 'Only the Guild Master may promote a new leader.');
+      return;
+    }
+    if (result === 'not_member') {
+      this.err(actor.characterId, `${target.name} is not in your guild.`);
+      return;
+    }
+    // Both rows moved in one DB transaction (target -> leader, former leader
+    // -> the ladder's most senior rank below it): stamp both live sims before
+    // any push resolves.
+    this.tx.onGuildMembershipChanged(target.id, {
+      guildId: membership.guildId,
+      guildName: membership.guildName,
+      rank: 'leader',
+    });
+    this.tx.onGuildMembershipChanged(actor.characterId, {
+      guildId: membership.guildId,
+      guildName: membership.guildName,
+      rank: guildBankStampRank(membership.ranks, stepDownRank),
+    });
     await this.broadcastGuild(membership.guildId, [
       {
         type: 'log',
@@ -806,13 +1972,43 @@ export class SocialService {
       this.err(actor.characterId, 'Only the Guild Master may disband the guild.');
       return;
     }
-    const members = await this.db.guildMembers(membership.guildId);
-    await this.db.deleteGuild(membership.guildId);
-    for (const m of members) {
-      if (this.tx.isOnline(m.id)) {
-        this.info(m.id, `<${membership.guildName}> has been disbanded.`, '#ffd100');
-        this.push(m.id);
+    // The guild bank guard: the guilds DELETE below cascades the guild_banks
+    // row away, so a disband while the bank holds ANY copper or item would
+    // destroy them. The LIVE sim book is authoritative here (every flushed op
+    // came from it); null means no book is loaded, which fails CLOSED, because
+    // an unloaded book cannot prove the persisted row is empty (the oversized-
+    // row boot skip is exactly this state, and its row must survive).
+    //
+    // The guard OPENS the guild-delete window and holds it all the way to the
+    // DELETE: the guildMembers read below is an await, and a dispatched guild
+    // bank op is not tick-gated, so an op landing in that gap was previously
+    // destroyed by the cascade with its dirty mark wiped by onGuildDisbanded.
+    const holdings = this.tx.beginGuildBankDelete(membership.guildId);
+    if (!holdings || holdings.copper > 0 || holdings.items > 0) {
+      if (holdings) this.tx.endGuildBankDelete(membership.guildId);
+      this.err(
+        actor.characterId,
+        'The guild bank must be emptied before the guild can be disbanded.',
+      );
+      return;
+    }
+    try {
+      const members = await this.db.guildMembers(membership.guildId);
+      await this.db.deleteGuild(membership.guildId);
+      // Committed: evict the (empty) book from the live sim AFTER the guard
+      // passed, so the map stays bounded and a re-created guild id starts fresh.
+      this.tx.onGuildDisbanded(membership.guildId);
+      for (const m of members) {
+        // Every member's stamp clears, online or not (the transport no-ops for
+        // characters with no live session; they re-stamp null at next join).
+        this.tx.onGuildMembershipChanged(m.id, null);
+        if (this.tx.isOnline(m.id)) {
+          this.info(m.id, `<${membership.guildName}> has been disbanded.`, '#ffd100');
+          this.push(m.id);
+        }
       }
+    } finally {
+      this.tx.endGuildBankDelete(membership.guildId);
     }
   }
 
@@ -822,7 +2018,8 @@ export class SocialService {
       this.err(actor.characterId, 'You are not in a guild.');
       return;
     }
-    if (membership.rank === 'member') {
+    const ladder = membership.ranks;
+    if (!guildRankCan(ladder, membership.rank, 'remove')) {
       this.err(actor.characterId, 'Only officers and the Guild Master may remove members.');
       return;
     }
@@ -840,15 +2037,24 @@ export class SocialService {
       this.err(actor.characterId, `${target.name} is not in your guild.`);
       return;
     }
-    if (targetMembership.rank === 'leader') {
+    const targetRank = effectiveGuildRankId(ladder, targetMembership.rank);
+    if (targetRank === GUILD_RANK_LEADER_ID) {
       this.err(actor.characterId, 'You cannot remove the Guild Master.');
       return;
     }
-    if (targetMembership.rank === 'officer' && membership.rank !== 'leader') {
-      this.err(actor.characterId, 'Only the Guild Master may remove an officer.');
+    // A rank's powers over another member reach strictly LOWER ranks only.
+    if (!guildRankCanRemove(ladder, membership.rank, targetRank)) {
+      this.err(
+        actor.characterId,
+        targetRank === GUILD_RANK_OFFICER_ID
+          ? 'Only the Guild Master may remove an officer.'
+          : 'You can only do that to members below your own rank.',
+      );
       return;
     }
     await this.db.removeGuildMember(target.id);
+    // Removed in the DB: clear the live sim stamp before any push resolves.
+    this.tx.onGuildMembershipChanged(target.id, null);
     if (this.tx.isOnline(target.id)) {
       this.info(target.id, `You have been removed from <${membership.guildName}>.`, '#ffd100');
       this.push(target.id);
@@ -863,18 +2069,32 @@ export class SocialService {
     await this.pushGuild(membership.guildId);
   }
 
-  async guildSetRank(actor: SocialActor, name: string, rank: GuildRank): Promise<void> {
+  // /gpromote and /gdemote: move a member ONE rank up or down the guild's
+  // ladder. Gated on the 'promote' permission (the Guild Master's alone on
+  // the default ladder), and only ever between ranks strictly below the
+  // actor's own: nobody lifts a member to their own rank or above, and the
+  // Guild Master title itself only moves by transfer.
+  async guildPromote(actor: SocialActor, name: string): Promise<void> {
+    await this.guildStepRank(actor, name, 'promote');
+  }
+
+  async guildDemote(actor: SocialActor, name: string): Promise<void> {
+    await this.guildStepRank(actor, name, 'demote');
+  }
+
+  private async guildStepRank(
+    actor: SocialActor,
+    name: string,
+    direction: 'promote' | 'demote',
+  ): Promise<void> {
     const membership = await this.db.guildMembership(actor.characterId);
     if (!membership) {
       this.err(actor.characterId, 'You are not in a guild.');
       return;
     }
-    if (membership.rank !== 'leader') {
+    const ladder = membership.ranks;
+    if (!guildRankCan(ladder, membership.rank, 'promote')) {
       this.err(actor.characterId, 'Only the Guild Master may change ranks.');
-      return;
-    }
-    if (rank === 'leader') {
-      this.err(actor.characterId, 'Use a guild transfer to hand over leadership.');
       return;
     }
     const target = await this.db.findCharacterByName(String(name ?? '').trim());
@@ -887,13 +2107,100 @@ export class SocialService {
       this.err(actor.characterId, `${target.name} is not in your guild.`);
       return;
     }
-    if (targetMembership.rank === rank) {
-      this.err(actor.characterId, `${target.name} is already ${RANK_LABEL[rank]}.`);
+    const targetRank = effectiveGuildRankId(ladder, targetMembership.rank);
+    if (!guildRankOutranks(ladder, membership.rank, targetRank)) {
+      this.err(actor.characterId, 'You can only do that to members below your own rank.');
       return;
     }
-    await this.db.setGuildRank(target.id, rank);
+    const rank =
+      direction === 'promote'
+        ? guildRankPromoteTo(ladder, membership.rank, targetRank)
+        : guildRankDemoteTo(ladder, membership.rank, targetRank);
+    if (rank === null) {
+      // The Guild Master promoting the most senior rank below them (only a
+      // transfer goes higher), or anyone demoting the joining rank: the
+      // pre-ladder "already Officer / already Member" answers. A non-leader
+      // promoting someone right below their own rank is out of reach instead.
+      const atEdge = direction === 'demote' || membership.rank === GUILD_RANK_LEADER_ID;
+      this.err(
+        actor.characterId,
+        atEdge
+          ? `${target.name} is already ${rankLabel(ladder, targetRank)}.`
+          : 'You can only do that to members below your own rank.',
+      );
+      return;
+    }
+    const moved = await this.db.setGuildRank(target.id, membership.guildId, rank);
+    if (!moved) {
+      // The target's row left this guild (a leave, kick, disband, or guild
+      // switch committed between the membership read above and the UPDATE):
+      // the predicated write matched no row, so NOTHING changed in the DB and
+      // NOTHING may be stamped. Stamping here would assert a rank the DB
+      // refused, which the guild bank's officer gate would honor: privilege
+      // escalation with no corrective push (a removed character is no longer
+      // in pushGuild's member list).
+      this.err(actor.characterId, `${target.name} is not in your guild.`);
+      return;
+    }
+    // Rank moved in the DB (row confirmed): stamp the live sim before any
+    // push resolves. A demote lands on the guild bank's officer gate
+    // IMMEDIATELY (the stale-rank window is privilege-escalation-shaped).
+    this.tx.onGuildMembershipChanged(target.id, {
+      guildId: membership.guildId,
+      guildName: membership.guildName,
+      rank: guildBankStampRank(ladder, rank),
+    });
     await this.broadcastGuild(membership.guildId, [
-      { type: 'log', text: `${target.name} is now ${RANK_LABEL[rank]}.`, color: '#40ff7f' },
+      { type: 'log', text: `${target.name} is now ${rankLabel(ladder, rank)}.`, color: '#40ff7f' },
+    ]);
+    await this.pushGuild(membership.guildId);
+  }
+
+  // Replace the guild's rank ladder (docs/prd/guild-custom-ranks.md): the
+  // titles, their order, and what each may do. Guild Master only. The ladder
+  // arrives untrusted and is validated whole by the shared sanitizer; a
+  // malformed one is dropped without a reply (the client runs the same
+  // sanitizer before it sends, so only a tampered or stale frame lands
+  // there, the parseGuildPledgeSettingsCommand precedent). Titles are player
+  // text shown to the whole guild, so they take the same hard-word screen as
+  // the pledge board note.
+  async guildSetRanks(actor: SocialActor, rawLadder: unknown): Promise<void> {
+    const membership = await this.db.guildMembership(actor.characterId);
+    if (!membership) {
+      this.err(actor.characterId, 'You are not in a guild.');
+      return;
+    }
+    if (membership.rank !== GUILD_RANK_LEADER_ID) {
+      this.err(actor.characterId, 'Only the Guild Master may change ranks.');
+      return;
+    }
+    const ladder = sanitizeGuildRankLadder(rawLadder);
+    if (!ladder) return;
+    if (ladder.some((r) => r.name !== '' && this.findHardHit(r.name) !== null)) {
+      this.err(actor.characterId, 'That rank title is not allowed.');
+      return;
+    }
+    const saved = await this.db.setGuildRankLadder(membership.guildId, actor.characterId, ladder);
+    if (!saved) {
+      // Lost leadership between the gate above and the compare-and-set.
+      this.err(actor.characterId, 'Only the Guild Master may change ranks.');
+      return;
+    }
+    // Committed: every member's permissions may have moved (a regranted or
+    // revoked vault, a deleted rank's holders now at the joining rank), so
+    // re-stamp every member's live vault tier before any push resolves. The
+    // transport no-ops for offline members; they stamp from durable truth at
+    // their next join.
+    const members = await this.db.guildMembers(membership.guildId);
+    for (const m of members) {
+      this.tx.onGuildMembershipChanged(m.id, {
+        guildId: membership.guildId,
+        guildName: membership.guildName,
+        rank: guildBankStampRank(ladder, m.rank),
+      });
+    }
+    await this.broadcastGuild(membership.guildId, [
+      { type: 'log', text: 'The guild ranks have been updated.', color: '#40ff7f' },
     ]);
     await this.pushGuild(membership.guildId);
   }
@@ -927,30 +2234,62 @@ export class SocialService {
       // (the speaker always sees their own line); mirrors say/whisper filtering.
       // Guild chat never passes through routeEvents, so the ignore check has to
       // happen here or ignoring a guildmate would do nothing in this channel.
-      if (m.id !== actor.characterId && this.tx.isBlocking(m.id, actor.characterId)) continue;
+      if (
+        m.id !== actor.characterId &&
+        this.tx.isBlocking(m.id, actor.characterId, actor.accountId)
+      )
+        continue;
       if (m.id !== actor.characterId && this.tx.isIgnoringChat(m.id, actor.characterId)) continue;
       this.tx.deliver(m.id, [event]);
     }
     return true;
   }
 
-  // Fan one marquee deed unlock out to the earner's online guildmates and the
-  // players who friended the earner (friends are one-directional: whoever put
-  // the earner on THEIR list chose to follow them, the position-push rule).
+  // Fan one marquee deed unlock out to the earner's online guildmates and
+  // followers (broadcastToEarnerAudience below owns the audience semantics).
   // Pure delivery: the caller (game.ts) has already applied the marquee bar,
-  // the retro gate, and the earner's opt-out; this resolves the audience and
-  // filters it BIDIRECTIONALLY: each recipient's block list is honoured like
-  // guild chat (a deed unlock is not chat, so the lighter chat-only ignore does
-  // not hide it), and the earner's own block list also excludes a recipient
-  // (blockAdd only unfriends the earner's edge, so a blocked follower would
-  // otherwise stay in whoFriended and keep hearing these). The earner never
-  // receives it (their own toast is client-side from the sim event).
+  // the retro gate, and the earner's opt-out.
   async broadcastDeedUnlock(actor: SocialActor, deedId: string): Promise<void> {
-    const event: SocialEvent = { type: 'deedBroadcast', characterName: actor.name, deedId };
+    await this.broadcastToEarnerAudience(actor, {
+      type: 'deedBroadcast',
+      characterName: actor.name,
+      deedId,
+    });
+  }
+
+  // Fan one first-ever Reliquary page Illumination (Phase 18) out to the same
+  // audience a marquee deed unlock reaches. Pure delivery, the
+  // broadcastDeedUnlock contract exactly: the caller (game.ts) has already
+  // applied the first-ever gate (the sim's sticky illuminatedPages set), the
+  // retro gate, the fail-closed page validation, and the earner's opt-out.
+  async broadcastIllumination(actor: SocialActor, pageId: string): Promise<void> {
+    await this.broadcastToEarnerAudience(actor, {
+      type: 'reliquaryIlluminationBroadcast',
+      characterName: actor.name,
+      pageId,
+    });
+  }
+
+  // The one earner-audience computation both celebration broadcasts share (a
+  // pure move of broadcastDeedUnlock's body): the earner's online guildmates
+  // and the players who friended the earner (friends are one-directional:
+  // whoever put the earner on THEIR list chose to follow them, the
+  // position-push rule). Resolves the audience and filters it
+  // BIDIRECTIONALLY: each recipient's block list is honoured like guild chat
+  // (a celebration is not chat, so the lighter chat-only ignore does not hide
+  // it), and the earner's own block list also excludes a recipient (blockAdd
+  // only unfriends the earner's edge, so a blocked follower would otherwise
+  // stay in whoFriended and keep hearing these). The earner never receives it
+  // (their own toast is client-side from the sim event).
+  private async broadcastToEarnerAudience(actor: SocialActor, event: SocialEvent): Promise<void> {
+    // A celebration says the earner is on: it skips everyone their presence
+    // setting hides them from, decided before the first await (see
+    // announcePresence).
+    const subject = this.presenceSnapshot(actor.characterId);
     const [membership, followerIds, earnerBlockedIds] = await Promise.all([
       this.db.guildMembership(actor.characterId),
-      this.db.whoFriended(actor.characterId),
-      this.db.blockedIds(actor.characterId),
+      this.db.whoFriended(actor.characterId, this.tx.onlineCharacterIds?.()),
+      this.db.blockedIds(actor.characterId, this.tx.onlineCharacterIds?.()),
     ]);
     const earnerBlocked = new Set(earnerBlockedIds);
     const audience = new Set<number>(followerIds);
@@ -960,13 +2299,16 @@ export class SocialService {
     for (const id of audience) {
       if (id === actor.characterId) continue;
       if (!this.tx.isOnline(id)) continue;
-      if (this.tx.isBlocking(id, actor.characterId)) continue;
+      if (this.tx.isBlocking(id, actor.characterId, actor.accountId)) continue;
       if (earnerBlocked.has(id)) continue;
+      if (subject !== null && presenceHiddenFrom(subject, id, this.tx.byCharacterId(id)?.accountId))
+        continue;
       this.tx.deliver(id, [event]);
     }
   }
 
-  // Officer chat (/o): officers + Guild Master only, delivered to the same.
+  // Officer chat (/o): ranks holding the 'officerChat' permission (officers
+  // + the Guild Master on the default ladder), delivered to the same.
   async officerChat(actor: SocialActor, rawText: string): Promise<boolean> {
     const text = String(rawText ?? '')
       .trim()
@@ -977,7 +2319,8 @@ export class SocialService {
       this.err(actor.characterId, 'You are not in a guild.');
       return false;
     }
-    if (membership.rank === 'member') {
+    const ladder = membership.ranks;
+    if (!guildRankCan(ladder, membership.rank, 'officerChat')) {
       this.err(actor.characterId, 'Only officers and the Guild Master can use officer chat.');
       return false;
     }
@@ -992,9 +2335,13 @@ export class SocialService {
     };
     const members = await this.db.guildMembers(membership.guildId);
     for (const m of members) {
-      if ((m.rank === 'officer' || m.rank === 'leader') && this.tx.isOnline(m.id)) {
+      if (guildRankCan(ladder, m.rank, 'officerChat') && this.tx.isOnline(m.id)) {
         // honour the recipient's block and ignore lists, just like guild/say/whisper
-        if (m.id !== actor.characterId && this.tx.isBlocking(m.id, actor.characterId)) continue;
+        if (
+          m.id !== actor.characterId &&
+          this.tx.isBlocking(m.id, actor.characterId, actor.accountId)
+        )
+          continue;
         if (m.id !== actor.characterId && this.tx.isIgnoringChat(m.id, actor.characterId)) continue;
         this.tx.deliver(m.id, [event]);
       }
@@ -1023,7 +2370,7 @@ export class SocialService {
       this.calendarResult(actor.characterId, 'notInGuild');
       return;
     }
-    if (membership.rank === 'member') {
+    if (!guildRankCan(membership.ranks, membership.rank, 'events')) {
       this.calendarResult(actor.characterId, 'notOfficer');
       return;
     }
@@ -1066,8 +2413,79 @@ export class SocialService {
     this.tx.deliver(charId, [{ type: 'motdResult', code }]);
   }
 
-  // Set (or clear, with '') the guild billboard. Officers + the Guild Master
-  // only; the text is server-clamped and the wire layer has already run the
+  private rosterResult(charId: number, code: GuildRosterResultCode, price?: number): void {
+    this.tx.deliver(charId, [
+      price === undefined
+        ? { type: 'guildRosterResult', code }
+        : { type: 'guildRosterResult', code, price },
+    ]);
+  }
+
+  // Buy the next roster page (docs/prd/guild-roster-expansion.md): Guild
+  // Master only, priced from the guild row, paid from the buyer's OWN purse.
+  // The transport owns the purchase itself (server/guild_roster_transport.ts):
+  // the live purse charge, the exact post-charge snapshot, and ONE atomic
+  // write that commits the page, a receipt, and the charged purse together
+  // (server/guild_roster_page_db.ts), so no crash, takeover, or lost answer
+  // can leave a page bought and unpaid, or a landed page refunded. This
+  // method prices, gates, and turns the outcome into player messages. The
+  // compare-and-set inside the write lets a double-click (or two clients) pay
+  // for one page at most and re-checks the buyer's rank at commit: the loser
+  // is refunded and asked to retry from the fresh price.
+  async guildBuyRosterPage(actor: SocialActor): Promise<void> {
+    const membership = await this.db.guildMembership(actor.characterId);
+    if (!membership) {
+      this.rosterResult(actor.characterId, 'notInGuild');
+      return;
+    }
+    if (membership.rank !== 'leader') {
+      this.rosterResult(actor.characterId, 'notLeader');
+      return;
+    }
+    const price = guildRosterNextPagePrice(membership.rosterPages);
+    if (price === null) {
+      this.rosterResult(actor.characterId, 'maxed');
+      return;
+    }
+    const purchase = await this.tx.buyRosterPage(
+      actor.characterId,
+      membership.guildId,
+      membership.rosterPages,
+      price,
+    );
+    if (purchase.outcome !== 'ok') {
+      switch (purchase.outcome) {
+        case 'cannotAfford':
+          this.rosterResult(actor.characterId, 'cannotAfford', price);
+          return;
+        case 'stale':
+          this.rosterResult(actor.characterId, 'retry');
+          return;
+        case 'no_guild':
+          this.rosterResult(actor.characterId, 'notInGuild');
+          return;
+        case 'retry':
+          // The write failed for a reason that is not the buyer's: the retry
+          // line lands first (the one line that fits an unexplained miss),
+          // then the cause goes to the dispatcher's log.
+          this.rosterResult(actor.characterId, 'retry');
+          if (purchase.error !== undefined) throw purchase.error;
+          return;
+        default:
+          // session_lost: the buyer's live session is gone or was abandoned
+          // to durable truth, so there is nobody to answer. busy: their own
+          // purchase is still in flight and will answer for itself.
+          return;
+      }
+    }
+    await this.broadcastGuild(membership.guildId, [
+      { type: 'guildRosterExpanded', byName: actor.name, cap: guildRosterCap(purchase.pages) },
+    ]);
+    await this.pushGuild(membership.guildId);
+  }
+
+  // Set (or clear, with '') the guild billboard. Ranks holding the 'motd'
+  // permission only (officers + the Guild Master on the default ladder); the text is server-clamped and the wire layer has already run the
   // mute/rate/content gates (game.ts, the guild_event_create stack).
   async guildSetMotd(actor: SocialActor, rawText: string): Promise<void> {
     const membership = await this.db.guildMembership(actor.characterId);
@@ -1075,7 +2493,7 @@ export class SocialService {
       this.motdResult(actor.characterId, 'notInGuild');
       return;
     }
-    if (membership.rank === 'member') {
+    if (!guildRankCan(membership.ranks, membership.rank, 'motd')) {
       this.motdResult(actor.characterId, 'notOfficer');
       return;
     }
@@ -1098,7 +2516,7 @@ export class SocialService {
       this.calendarResult(actor.characterId, 'notInGuild');
       return;
     }
-    if (membership.rank === 'member') {
+    if (!guildRankCan(membership.ranks, membership.rank, 'events')) {
       this.calendarResult(actor.characterId, 'notOfficer');
       return;
     }
@@ -1126,10 +2544,6 @@ export class SocialService {
 
   // Drop a character's pending invite when they disconnect.
   forget(charId: number): void {
-    this.pendingGuildInvites.delete(charId);
+    this.takeGuildInvite(charId);
   }
-}
-
-function rankOrder(rank: GuildRank): number {
-  return rank === 'leader' ? 0 : rank === 'officer' ? 1 : 2;
 }

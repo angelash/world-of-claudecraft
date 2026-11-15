@@ -38,41 +38,57 @@ const PLAN_BADGE_KEYS: Record<string, TranslationKey> = {
   working: 'hudChrome.aiReaction.inspect',
 };
 
-const ZH_EMOTE_START = /^(?:开口前|说话前|出声前|答话前|回话前|偷偷|悄悄|默默|轻轻|缓缓|抬头|低头|偏头|侧耳|缩了缩|耸耸肩|点点头|摇摇头|瞥了一眼|瞥了眼|看了看|打量着|打量了下|闻了闻|嗅了嗅|盯着|后退半步|退了半步|向前一步|靠近了些|沉默了片刻|顿了顿)/;
-const ZH_EMOTE_VERB = /(?:瞥|抬头|低头|偏头|侧耳|缩|耸肩|点头|摇头|看了看|打量|闻|嗅|盯|后退|靠近|沉默|顿)/;
-const EN_EMOTE_START = /^(?:before speaking|before he speaks|before she speaks|without a word|instead of answering)\b/i;
-const EN_EMOTE_VERB = /^(?:glances|nods|shakes\s+his\s+head|shakes\s+her\s+head|stiffens|pauses|leans\s+(?:closer|in|forward)|sniffs|tilts\s+(?:his|her|its)\s+head|squints|steps\s+(?:back|closer|forward)|backs\s+away|flinches|hesitates|looks\s+(?:up|down|over|aside|away|at|toward|towards))\b/i;
+const ZH_EMOTE_START =
+  /^(?:开口前|说话前|出声前|答话前|回话前|偷偷|悄悄|默默|轻轻|缓缓|抬头|低头|偏头|侧耳|缩了缩|耸耸肩|点点头|摇摇头|瞥了一眼|瞥了眼|看了看|打量着|打量了下|闻了闻|嗅了嗅|盯着|后退半步|退了半步|向前一步|靠近了些|沉默了片刻|顿了顿)/;
+const ZH_EMOTE_VERB =
+  /(?:瞥|抬头|低头|偏头|侧耳|缩|耸肩|点头|摇头|看了看|打量|闻|嗅|盯|后退|靠近|沉默|顿)/;
+const EN_EMOTE_START =
+  /^(?:before speaking|before he speaks|before she speaks|without a word|instead of answering)\b/i;
+const EN_EMOTE_VERB =
+  /^(?:glances|nods|shakes\s+his\s+head|shakes\s+her\s+head|stiffens|pauses|leans\s+(?:closer|in|forward)|sniffs|tilts\s+(?:his|her|its)\s+head|squints|steps\s+(?:back|closer|forward)|backs\s+away|flinches|hesitates|looks\s+(?:up|down|over|aside|away|at|toward|towards))\b/i;
 const FIXED_SAY_LINE_IDS = new Set<string>([
   'hudChrome.aiSpeech.brotherAldricAwake',
   'hudChrome.aiSpeech.merchantMarketPulse',
 ]);
 
-export function aiReactionBadgeView(reaction: AiSpeechEvent['reaction']): AiReactionBadgeView | null {
+export function aiReactionBadgeView(
+  reaction: AiSpeechEvent['reaction'],
+): AiReactionBadgeView | null {
   if (!reaction || reaction.kind === 'ignore') return null;
-  const targetEntityId = typeof reaction.targetEntityId === 'number'
-    ? reaction.targetEntityId
-    : typeof reaction.targetObjectId === 'number'
-      ? reaction.targetObjectId
+  const targetEntityId =
+    typeof reaction.targetEntityId === 'number'
+      ? reaction.targetEntityId
+      : typeof reaction.targetObjectId === 'number'
+        ? reaction.targetObjectId
+        : undefined;
+  const planIntensity =
+    typeof reaction.planIntensity === 'number'
+      ? Math.max(0, Math.min(1, reaction.planIntensity))
+      : 0;
+  const planKind =
+    typeof reaction.planKind === 'string' && reaction.planKind.length > 0
+      ? reaction.planKind
       : undefined;
-  const planIntensity = typeof reaction.planIntensity === 'number'
-    ? Math.max(0, Math.min(1, reaction.planIntensity))
-    : 0;
-  const planKind = typeof reaction.planKind === 'string' && reaction.planKind.length > 0 ? reaction.planKind : undefined;
-  const targetPos = reaction.targetPos
-    && Number.isFinite(reaction.targetPos.x)
-    && Number.isFinite(reaction.targetPos.z)
-    ? { x: reaction.targetPos.x, z: reaction.targetPos.z }
-    : undefined;
-  const actionDurationMs = typeof reaction.actionDurationMs === 'number'
-    ? Math.max(700, Math.min(6000, Math.round(reaction.actionDurationMs)))
-    : undefined;
-  const actionOffset = typeof reaction.actionOffset === 'number'
-    ? Math.max(0.04, Math.min(1.2, reaction.actionOffset))
-    : undefined;
+  const targetPos =
+    reaction.targetPos &&
+    Number.isFinite(reaction.targetPos.x) &&
+    Number.isFinite(reaction.targetPos.z)
+      ? { x: reaction.targetPos.x, z: reaction.targetPos.z }
+      : undefined;
+  const actionDurationMs =
+    typeof reaction.actionDurationMs === 'number'
+      ? Math.max(700, Math.min(6000, Math.round(reaction.actionDurationMs)))
+      : undefined;
+  const actionOffset =
+    typeof reaction.actionOffset === 'number'
+      ? Math.max(0.04, Math.min(1.2, reaction.actionOffset))
+      : undefined;
   const planned = planKind !== undefined || planIntensity > 0;
   const base: AiReactionBadgeView = {
     kind: reaction.kind,
-    labelKey: planKind ? PLAN_BADGE_KEYS[planKind] ?? BADGE_KEYS[reaction.kind] : BADGE_KEYS[reaction.kind],
+    labelKey: planKind
+      ? (PLAN_BADGE_KEYS[planKind] ?? BADGE_KEYS[reaction.kind])
+      : BADGE_KEYS[reaction.kind],
     ...(targetEntityId === undefined ? {} : { targetEntityId }),
     ...(targetPos === undefined ? {} : { targetPos }),
   };
@@ -123,7 +139,9 @@ function looksLikeDynamicEmote(text: string, locale: string, speakerName: string
   if (isEnglishLocale(locale)) {
     if (EN_EMOTE_START.test(normalized)) return true;
     if (EN_EMOTE_VERB.test(normalized)) return true;
-    return /^(?:he|she|it|they)\s+(?=(?:glances|nods|shakes|stiffens|pauses|leans|sniffs|tilts|squints|steps|backs|flinches|hesitates|looks)\b)/i.test(normalized);
+    return /^(?:he|she|it|they)\s+(?=(?:glances|nods|shakes|stiffens|pauses|leans|sniffs|tilts|squints|steps|backs|flinches|hesitates|looks)\b)/i.test(
+      normalized,
+    );
   }
   return false;
 }
@@ -136,7 +154,10 @@ function normalizeDynamicEmoteText(text: string, locale: string, speakerName: st
   return stripped;
 }
 
-export function splitAiNarrationText(text: string, speakerName: string): {
+export function splitAiNarrationText(
+  text: string,
+  speakerName: string,
+): {
   before: string;
   speaker: string | null;
   after: string;
@@ -155,7 +176,10 @@ export function splitAiNarrationText(text: string, speakerName: string): {
 function normalizeChineseEmoteText(text: string): string {
   let out = text.trim();
   out = out.replace(/^(?:开口前|说话前|出声前|答话前|回话前)[，,、\s]*/, '');
-  out = out.replace(/^(?:他|她|它)(?=(?:偷偷|悄悄|默默|轻轻|缓缓|抬头|低头|偏头|侧耳|缩了缩|耸耸肩|点点头|摇摇头|瞥了一眼|瞥了眼|看了看|打量着|打量了下|闻了闻|嗅了嗅|盯着|后退半步|退了半步|向前一步|靠近了些|沉默了片刻|顿了顿))/, '');
+  out = out.replace(
+    /^(?:他|她|它)(?=(?:偷偷|悄悄|默默|轻轻|缓缓|抬头|低头|偏头|侧耳|缩了缩|耸耸肩|点点头|摇摇头|瞥了一眼|瞥了眼|看了看|打量着|打量了下|闻了闻|嗅了嗅|盯着|后退半步|退了半步|向前一步|靠近了些|沉默了片刻|顿了顿))/,
+    '',
+  );
   out = out.replace(/^[，,、。！？!?：:\s]+/, '').trim();
   if (out && !/[。！？!?]$/.test(out)) out += '。';
   return out;
@@ -228,7 +252,11 @@ function emotePresentation(text: string): AiSpeechPresentationView {
   };
 }
 
-function narrationPresentation(text: string, speakerName: string, bubbleText?: string): AiSpeechPresentationView {
+function narrationPresentation(
+  text: string,
+  speakerName: string,
+  bubbleText?: string,
+): AiSpeechPresentationView {
   return {
     channel: 'emote',
     logMode: 'inlineNarration',

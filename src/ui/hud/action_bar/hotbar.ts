@@ -5,8 +5,15 @@ import {
 } from '../../../sim/content/talents';
 import { abilitiesKnownAt } from '../../../sim/data';
 import type { AbilityDef, PlayerClass } from '../../../sim/types';
+import type { PetCommand } from '../../../world_api/pet';
+import { isPetSlotCommand } from './pet_slot_core';
 
-export type HotbarAction = { type: 'ability'; id: string } | { type: 'item'; id: string } | null;
+// A 'pet' slot runs one of the pet-bar commands (pet_slot_core.ts).
+export type HotbarAction =
+  | { type: 'ability'; id: string }
+  | { type: 'item'; id: string }
+  | { type: 'pet'; id: PetCommand }
+  | null;
 
 export interface HotbarStorage {
   getItem(key: string): string | null;
@@ -46,9 +53,14 @@ export function attackDragDisposition(
 
 /** One rule for every action-bar entry point: passive abilities are informational only. */
 export function isAbilityActionBarEligible(
-  ability: Pick<AbilityDef, 'passive'> | null | undefined,
+  ability: Pick<AbilityDef, 'passive' | 'hiddenFromPlayer'> | null | undefined,
 ): boolean {
-  return ability !== null && ability !== undefined && ability.passive !== true;
+  return (
+    ability !== null &&
+    ability !== undefined &&
+    ability.passive !== true &&
+    ability.hiddenFromPlayer !== true
+  );
 }
 
 export function sanitizeHotbarAction(
@@ -99,6 +111,7 @@ export function parseHotbarAction(
   if (action.type === 'ability' && abilityExists(action.id))
     return { type: 'ability', id: action.id };
   if (action.type === 'item' && itemExists(action.id)) return { type: 'item', id: action.id };
+  if (action.type === 'pet' && isPetSlotCommand(action.id)) return { type: 'pet', id: action.id };
   return null;
 }
 
@@ -113,6 +126,32 @@ export function parseStoredHotbarAction(
   } catch {
     return null;
   }
+}
+
+/** Write a dragged action onto a drag's DataTransfer (the action bar reads it
+ *  back on drop): the encoded action plus the id as plain text. Shared by the
+ *  bar's own slot drag and the paperdoll's worn-trinket drag. */
+export function writeHotbarDragData(
+  dt: Pick<DataTransfer, 'setData'> | null,
+  action: Exclude<HotbarAction, null>,
+): void {
+  if (!dt) return;
+  dt.setData(HOTBAR_ACTION_MIME, encodeHotbarAction(action));
+  dt.setData('text/plain', action.id);
+}
+
+/** Read the dragged action back off a drop's DataTransfer, or null when it
+ *  carries none (or one that no longer resolves). */
+export function readHotbarDragData(
+  dt: Pick<DataTransfer, 'getData'> | null,
+  abilityExists: (id: string) => boolean,
+  itemExists: (id: string) => boolean,
+): Exclude<HotbarAction, null> | null {
+  return parseStoredHotbarAction(
+    dt?.getData(HOTBAR_ACTION_MIME) || null,
+    abilityExists,
+    itemExists,
+  );
 }
 
 export function attackSlotStorageKey(formSlotMapKey: string): string {
@@ -144,6 +183,34 @@ export function saveAttackSlotAction(
 
 export function actionForAttackSlot(showAttackButton: boolean, action: HotbarAction): HotbarAction {
   return showAttackButton ? null : action;
+}
+
+// The freed Attack slot's (barSlot 0, "Show Attack Button" off) DISPLAY fallback
+// for an ability the ACTIVE build does not currently grant. The assignment is
+// deliberately not scoped to any one talent build (ActionBarController keeps it
+// across a reload/build switch instead of treating "not granted right now" as
+// garbage, see isAttackSlotStoredAbilityEligible), so the bar must still paint
+// SOMETHING for it: resolving only against the live known-ability list painted
+// the slot fully empty the moment the granting build went inactive, which looked
+// exactly like the assignment being cleared even though it survives in storage.
+// Returns a display-only stub (no talent resolution, since the granting build is
+// not the active one), typed to satisfy ActionBarAbility with known:false, which
+// action_bar_view.ts renders dimmed and unusable without the live cost/cooldown/
+// proc math (none of it applies to an ability the player cannot currently cast).
+export type FreedAttackSlotAbility = { def: AbilityDef; cost: number; known: false };
+
+export function freedAttackSlotDisplayAbility(
+  action: HotbarAction,
+  abilityDef: (id: string) => AbilityDef | undefined,
+): FreedAttackSlotAbility | null {
+  if (action?.type !== 'ability') return null;
+  const def = abilityDef(action.id);
+  // Defense in depth: the stored action is already filtered to a real,
+  // non-passive/non-hidden ability by ActionBarController on every write path
+  // (isAttackSlotStoredAbilityEligible / isAbilityPlacementAllowed both apply
+  // isAbilityActionBarEligible), but this display path re-derives straight from
+  // the static table, so it re-checks the module's own rule rather than trust it.
+  return def && isAbilityActionBarEligible(def) ? { def, cost: 0, known: false } : null;
 }
 
 export function assignAttackSlotAction(
@@ -225,17 +292,22 @@ export function placeItemOnSlot(
   return next;
 }
 
-// Given a completed touch drag (mobile long-press pick-up + drag-to-slot), decide
-// whether it resolves to a swap. `targetIndex` is null when the pointer released
-// outside any slot (cancel); releasing back on the source slot is also a no-op
-// cancel, not a swap-with-itself. Pure so hud.ts's pointer-event finish handler
-// stays a thin call site instead of inlining this branch.
-export function resolveMobileHotbarDrop(
-  sourceIndex: number,
-  targetIndex: number | null,
-): number | null {
-  if (targetIndex === null || targetIndex === sourceIndex) return null;
-  return targetIndex;
+/** The pet command a slot holds, or null: every action-bar view's petCommand(). */
+export function hotbarPetCommand(action: HotbarAction): PetCommand | null {
+  return action?.type === 'pet' ? action.id : null;
+}
+
+// A pet command copies onto the slot like an item does: the pet bar keeps its own
+// button, and the same command may sit on more than one slot.
+export function placePetOnSlot(
+  actions: readonly HotbarAction[],
+  command: PetCommand,
+  targetIndex: number,
+): HotbarAction[] {
+  const next = actions.slice();
+  if (targetIndex < 0 || targetIndex >= next.length) return next;
+  next[targetIndex] = { type: 'pet', id: command };
+  return next;
 }
 
 export function swapHotbarSlots(
@@ -262,8 +334,11 @@ export function swapHotbarSlots(
 export function buildDefaultFormBar(
   kitAbilityIds: readonly string[],
   slots: number,
-): HotbarAction[] {
-  const next: HotbarAction[] = Array.from({ length: slots }, () => null);
+): ({ type: 'ability'; id: string } | null)[] {
+  const next: ({ type: 'ability'; id: string } | null)[] = Array.from(
+    { length: slots },
+    () => null,
+  );
   const seen = new Set<string>();
   let i = 0;
   for (const id of kitAbilityIds) {
@@ -334,6 +409,22 @@ export function loadoutKnownAbilityIds(
   );
 }
 
+// The ability ids an allocation itself GRANTS (its spec signature and every
+// choice-row spell), narrowed to the bar-eligible known set above. These are
+// the spells a spec defines, so a bar that lacks one of them (a per-spec bar
+// seeded from the pre-spec key, a build saved while that was the live bar) is
+// treated as a stale capture and gets them auto-placed: ActionBarController's
+// legacy-seed heal and applyLoadout both use exactly this set, nothing wider.
+export function loadoutGrantedAbilityIds(
+  cls: PlayerClass,
+  alloc: TalentAllocation,
+  level: number,
+): Set<string> {
+  const known = loadoutKnownAbilityIds(cls, alloc, level);
+  const mods = computeTalentModifiers(cls, alloc, level);
+  return new Set(mods.grants.map((grant) => grant.ability).filter((id) => known.has(id)));
+}
+
 function normalizeLoadoutBarSlots(
   bar: readonly (string | null)[],
   slots: number,
@@ -372,8 +463,9 @@ export function applyLoadoutBar(
     if (i >= normalizedBar.length) return current[i] ?? null;
     const v = normalizedBar[i];
     if (typeof v === 'string' && abilityExists(v)) return { type: 'ability' as const, id: v };
+    // A pet command is not an ability either, so it survives the switch the same way.
     const existing = current[i];
-    return existing?.type === 'item' ? existing : null;
+    return existing?.type === 'item' || existing?.type === 'pet' ? existing : null;
   });
 }
 
@@ -385,12 +477,66 @@ export function syncHotbarActions(
   // this sweeps a passive left on a bar saved by an older build (and, with the
   // auto-place set already excluding passives, blocks it from ever re-landing).
   isPassive: (id: string) => boolean = () => false,
+  choiceGroups?: readonly (readonly string[])[],
 ): { actions: HotbarAction[]; changed: boolean } {
   const known = new Set(knownAbilityIds);
+
+  // Map each removed ability ID to the slot it occupied
+  const removedSlots = new Map<string, number>();
+  for (let i = 0; i < actions.length; i++) {
+    const action = actions[i];
+    if (action?.type === 'ability' && (!known.has(action.id) || isPassive(action.id))) {
+      removedSlots.set(action.id, i);
+    }
+  }
+
+  // Build choice group map: abilityId -> group
+  const groupMap = new Map<string, readonly string[]>();
+  if (choiceGroups) {
+    for (const group of choiceGroups) {
+      for (const id of group) {
+        groupMap.set(id, group);
+      }
+    }
+  }
+
+  // Check if any ability to be auto-placed can inherit a slot vacated by a sibling choice
+  const reservedSlots = new Map<string, number>();
+  const usedRemovedSlots = new Set<number>();
+  for (const id of knownAbilityIds) {
+    if (isPassive(id)) continue;
+    if (
+      actions.some(
+        (action) => action?.type === 'ability' && action.id === id && !removedSlots.has(id),
+      )
+    ) {
+      continue;
+    }
+
+    const group = groupMap.get(id);
+    if (group) {
+      for (const siblingId of group) {
+        if (siblingId === id) continue;
+        const slot = removedSlots.get(siblingId);
+        if (slot !== undefined && !usedRemovedSlots.has(slot)) {
+          reservedSlots.set(id, slot);
+          usedRemovedSlots.add(slot);
+          break;
+        }
+      }
+    }
+  }
+
   const next = actions.map((action) =>
     action?.type === 'ability' && (!known.has(action.id) || isPassive(action.id)) ? null : action,
   );
-  let changed = next.some((action, i) => action !== actions[i]);
+
+  // Put reserved choice replacements in their inherited slot
+  for (const [id, slot] of reservedSlots) {
+    next[slot] = { type: 'ability', id };
+  }
+
+  // Put any other newly known abilities in the first available null slot
   for (const id of knownAbilityIds) {
     if (isPassive(id)) continue;
     if (next.some((action) => action?.type === 'ability' && action.id === id)) continue;
@@ -398,7 +544,12 @@ export function syncHotbarActions(
     const empty = next.indexOf(null);
     if (empty === -1) continue;
     next[empty] = { type: 'ability', id };
-    changed = true;
   }
+
+  const changed = next.some((action, i) => {
+    const orig = actions[i];
+    if (action === null || orig === null) return action !== orig;
+    return action.type !== orig.type || action.id !== orig.id;
+  });
   return { actions: next, changed };
 }

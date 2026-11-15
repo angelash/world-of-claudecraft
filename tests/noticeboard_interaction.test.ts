@@ -1,7 +1,15 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { inertCharacters } from './helpers/inert_characters';
+
+// Hud reaches the character model preload; keep it inert
+// (tests/helpers/inert_characters.ts has the why).
+vi.mock('../src/render/characters', () => inertCharacters.barrel());
+vi.mock('../src/render/characters/assets', () => inertCharacters.assets());
+vi.mock('../src/render/characters/portrait', () => inertCharacters.portrait());
+
 import { objectDisplayName } from '../src/render/entity_labels';
 import { colliderInternalsForTest } from '../src/sim/colliders';
 import { noticeboardDefByEntityId } from '../src/sim/content/noticeboards';
@@ -23,11 +31,13 @@ import {
 } from '../src/sim/types';
 import { Hud } from '../src/ui/hud';
 import { ensureLocaleLoaded, setLanguage, t } from '../src/ui/i18n';
+import { contactAtOnce } from './helpers/renderer_contact';
 
 const SEED = 20_061;
 const EMPTY_NOTICEBOARD_EVENT = {
   type: 'noticeboard',
   noticeboardId: 'noticeboard_eastbrook',
+  boardId: 'eastbrook_noticeboard',
   state: 'empty',
 } as const;
 
@@ -99,10 +109,27 @@ describe('active-world noticeboard service', () => {
       noPlayer: true,
       world: worldWithoutBoard,
     });
+    // The board is the ONLY difference between the two worlds: both are plain
+    // copies of the built-in content. (The built-in world itself also carries
+    // the Weekly Vault's identity-gated terrain pad, sim/eastbrook_vault_terrain.ts,
+    // which since the Tidehold rebuild stands at the square's south edge and
+    // shifts the ground under the mailbox, the ferry bell and two NPCs by
+    // millimetres. Comparing a copy against the original would measure that
+    // pad, not the board.)
+    const worldWithBoard: WorldContent = { ...BUILTIN_WORLD };
+    setActiveWorldContent(worldWithBoard);
+    const withBoard = new Sim({
+      seed: SEED,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: worldWithBoard,
+    });
     setActiveWorldContent(null);
-    const withBoard = new Sim({ seed: SEED, playerClass: 'warrior', noPlayer: true });
     const board = noticeboard(withBoard);
 
+    // Re-pinned 2026-08 for the harbor move (d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md): the board moved to the civic
+    // square at (5, -89), facing the well (facingToward the civic center).
     expect(board).toMatchObject({
       id: EASTBROOK_LAYOUT.services.noticeboard.entityId,
       kind: 'object',
@@ -110,10 +137,10 @@ describe('active-world noticeboard service', () => {
       name: 'Notice Board',
       objectItemId: null,
       lootable: true,
-      facing: -0.7853981633974483,
-      prevFacing: -0.7853981633974483,
+      facing: -2.17084654019665,
+      prevFacing: -2.17084654019665,
     });
-    expect({ x: board.pos.x, z: board.pos.z }).toEqual({ x: 10, z: -8 });
+    expect({ x: board.pos.x, z: board.pos.z }).toEqual({ x: 5, z: -89 });
     expect(withBoard.nextId).toBe(withoutBoard.nextId);
 
     const stableProjection = (sim: Sim) =>
@@ -192,9 +219,9 @@ describe('active-world noticeboard service', () => {
           Math.hypot(right.pos.x - board.pos.x, right.pos.z - board.pos.z),
       )[0];
     if (!nearestService) throw new Error('missing service NPC near noticeboard');
-    expect(nearestService.templateId).toBe('tinker_gizzel');
+    expect(nearestService.templateId).toBe('chronicler_saul');
     expect(Math.hypot(nearestService.pos.x - board.pos.x, nearestService.pos.z - board.pos.z)).toBe(
-      6.553027797228726,
+      5.412023651093922,
     );
 
     const talkToNpc = vi.spyOn(sim, 'talkToNpc');
@@ -214,7 +241,10 @@ describe('active-world noticeboard service', () => {
     expect(t('hudChrome.noticeboard.empty')).toBe('Nothing seems posted.');
   });
 
-  it('routes the structured event through the HUD localized empty-board log branch', () => {
+  it('routes the structured event to the guild board window (empty) or the popup (listings)', () => {
+    // The empty arm no longer banners: a board with no authored listings IS
+    // the guild board, so the branch opens the window; authored listings keep
+    // the transient popup. No literal English in either arm.
     const source = readFileSync('src/ui/hud.ts', 'utf8');
     const handleEventsAt = source.indexOf('handleEvents(events: SimEvent[]): void {');
     const noticeboardCaseAt = source.indexOf("case 'noticeboard':", handleEventsAt);
@@ -223,23 +253,27 @@ describe('active-world noticeboard service', () => {
     expect(noticeboardCaseAt).toBeGreaterThan(handleEventsAt);
     expect(nextCaseAt).toBeGreaterThan(noticeboardCaseAt);
     const branch = source.slice(noticeboardCaseAt, nextCaseAt);
-    const resolveAt = branch.indexOf("const message = t('hudChrome.noticeboard.empty');");
-    const bannerAt = branch.indexOf('this.showBanner(message);');
-    const logAt = branch.indexOf("this.log(message, '#c8b98f');");
-    expect(resolveAt).toBeGreaterThan(-1);
-    expect(bannerAt).toBeGreaterThan(resolveAt);
-    expect(logAt).toBeGreaterThan(bannerAt);
+    expect(branch).toContain(
+      'presentNoticeboardEvent(ev, this.noticeboardPopup, this.leaderboardWindow, (id) =>',
+    );
+    expect(branch).toContain('this.openGuildBoard(id)');
+    expect(branch).not.toContain('showBanner');
     expect(branch).not.toContain('Nothing seems posted.');
   });
 
-  it('renders the personal event once as the same localized transient banner and durable log', async () => {
+  it('opens the guild board window once for the personal empty-board event', async () => {
     interface NoticeboardHudHarness {
       sim: {
         playerId: number;
         craftingIdentity: { synced: boolean };
         craftSkills: Record<string, number>;
+        gatheringProficiency: Record<string, number>;
       };
-      renderer: { handleEvent: ReturnType<typeof vi.fn> };
+      renderer: {
+        handleEvent: ReturnType<typeof vi.fn>;
+        // the event sound waits for a swing's blade contact (contact_queue.ts); none here
+        atContact: typeof contactAtOnce;
+      };
       playEventSfx: ReturnType<typeof vi.fn>;
       meters: { onEvent: ReturnType<typeof vi.fn> };
       isNythraxisEvent: ReturnType<typeof vi.fn>;
@@ -255,8 +289,9 @@ describe('active-world noticeboard service', () => {
       playerId: 17,
       craftingIdentity: { synced: false },
       craftSkills: {},
+      gatheringProficiency: {},
     };
-    hud.renderer = { handleEvent: vi.fn() };
+    hud.renderer = { handleEvent: vi.fn(), atContact: contactAtOnce };
     hud.playEventSfx = vi.fn();
     hud.meters = { onEvent: vi.fn() };
     hud.isNythraxisEvent = vi.fn(() => false);
@@ -264,17 +299,20 @@ describe('active-world noticeboard service', () => {
     hud.log = vi.fn();
     hud.prevCraftSkills = null;
     hud.craftTierUpDrains = 0;
+    const openGuildBoard = vi.fn();
+    (hud as unknown as { openGuildBoard: () => void }).openGuildBoard = openGuildBoard;
 
     await ensureLocaleLoaded('ja_JP');
     setLanguage('ja_JP');
     hud.handleEvents([{ ...EMPTY_NOTICEBOARD_EVENT, pid: 17 }]);
 
-    const message = t('hudChrome.noticeboard.empty');
-    expect(message).toBe('何も貼られていないようだ。');
-    expect(hud.showBanner).toHaveBeenCalledTimes(1);
-    expect(hud.showBanner).toHaveBeenCalledWith(message);
-    expect(hud.log).toHaveBeenCalledTimes(1);
-    expect(hud.log).toHaveBeenCalledWith(message, '#c8b98f');
+    // The window opens exactly once, handed the board's own id (the guild
+    // board picks its default category from it), and no transient banner or
+    // log line fires: the board itself is the feedback now.
+    expect(openGuildBoard).toHaveBeenCalledTimes(1);
+    expect(openGuildBoard).toHaveBeenCalledWith('eastbrook_noticeboard');
+    expect(hud.showBanner).not.toHaveBeenCalled();
+    expect(hud.log).not.toHaveBeenCalled();
     expect(hud.renderer.handleEvent).toHaveBeenCalledWith({
       ...EMPTY_NOTICEBOARD_EVENT,
       pid: 17,
@@ -341,7 +379,6 @@ describe('active-world noticeboard service', () => {
       hd: 0.3,
       rot: 0.25,
       cameraTopY: present.groundPos(118, -76).y + 2.6,
-      camGhost: true,
     });
   });
 

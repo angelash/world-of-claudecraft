@@ -15,6 +15,7 @@ import {
   battlefieldExperienceTrickle,
 } from '../src/sim/professions/battlefield_xp';
 import { requiredReagentCount } from '../src/sim/professions/crafting';
+import { isOriginalCrafter } from '../src/sim/professions/tools';
 import { emptyCraftSkills } from '../src/sim/professions/wheel';
 import type { CharacterState, PlayerMeta } from '../src/sim/sim';
 
@@ -24,6 +25,63 @@ function st(partial: Record<string, unknown>): CharacterState {
 }
 
 describe('rekeyInstanceSigner (force-rename sweep)', () => {
+  it('rekeys courier-held instance and material signatures without rewriting historical gatherers', () => {
+    const cargo = [
+      {
+        itemId: 'wyrmfall_pendant',
+        count: 1,
+        instance: { signer: 'Oldname', boundTo: 7, name: 'Keep' },
+      },
+      { itemId: 'wyrmfall_pendant', count: 1, instance: { signer: 'Other' } },
+      {
+        itemId: 'iron_bar',
+        count: 2,
+        materialSources: [
+          {
+            count: 2,
+            source: {
+              signer: 'Oldname',
+              gatherer: { kind: 'character', id: 7, name: 'Oldname' },
+            },
+          },
+        ],
+      },
+      ...Array.from({ length: 21 }, () => ({
+        itemId: 'linen_scrap',
+        count: 1,
+        instance: { signer: 'Oldname' },
+      })),
+    ];
+    const state = st({
+      courier: {
+        phase: 'outbound',
+        x: 3,
+        z: 4,
+        bankerId: 9,
+        retryRemaining: 0,
+        revision: 3,
+        cargo,
+        withdrawals: [{ index: 0, fingerprint: 'unchanged' }],
+      },
+    });
+    const expected = structuredClone(state);
+    for (const slot of expected.courier!.cargo) {
+      if (slot.instance?.signer === 'Oldname') slot.instance.signer = 'Newname';
+    }
+    expected.courier!.cargo[2].materialSources = [
+      {
+        count: 2,
+        source: {
+          signer: 'Newname',
+          gatherer: { kind: 'character', id: 7, name: 'Oldname' },
+        },
+      },
+    ];
+    expect(rekeyInstanceSigner(state, 'Oldname', 'Newname')).toBe(true);
+    expect(state).toEqual(expected);
+    expect(rekeyInstanceSigner(state, 'Oldname', 'Newname')).toBe(false);
+  });
+
   it('rewrites the old-name signer across bags, bank, and the equipped-instance map, nothing else', () => {
     const state = st({
       inventory: [
@@ -129,6 +187,42 @@ describe('rekeyInstanceSigner (force-rename sweep)', () => {
     );
   });
 
+  it('rewrites slot.craftedBy so the original-crafter recharge discount survives a rename', () => {
+    // The fourth signer-derived identity (the acquisition craft): a slotted
+    // effect's craftedBy is stamped from the consumed charm's signer, and
+    // isOriginalCrafter compares it against the LIVE name, so a sweep that
+    // skipped it would retire the renamer's own discount forever.
+    const state = st({
+      inventory: [],
+      toolEffectSlots: {
+        mining: {
+          effectId: 'gatherers_cache',
+          durability: 7,
+          maxDurability: 20,
+          craftedBy: 'Oldname',
+          confirmMode: 'always',
+        },
+        logging: {
+          effectId: 'artisans_eye',
+          durability: 20,
+          maxDurability: 20,
+          craftedBy: 'SomeoneElse',
+          confirmMode: 'always',
+        },
+      },
+    });
+    expect(rekeyInstanceSigner(state, 'Oldname', 'Newname')).toBe(true);
+    expect(state.toolEffectSlots?.mining?.craftedBy).toBe('Newname');
+    // Foreign provenance passes through untouched: the sweep renames one
+    // person, never re-attributes another's work.
+    expect(state.toolEffectSlots?.logging?.craftedBy).toBe('SomeoneElse');
+    // And the real discount predicate agrees under the new name.
+    const slot = state.toolEffectSlots?.mining;
+    if (!slot) throw new Error('slot fixture');
+    expect(isOriginalCrafter(slot, 'Newname')).toBe(true);
+    expect(isOriginalCrafter(slot, 'Oldname')).toBe(false);
+  });
+
   it('the #1145 self-signed discount follows the new name (the real crafting predicate)', () => {
     const state = st({
       inventory: [{ itemId: 'bone_fragments', count: 1, instance: { signer: 'Oldname' } }],
@@ -176,5 +270,35 @@ describe('rekeyInstanceSigner (force-rename sweep)', () => {
     skills = emptyCraftSkills();
     expect(observe()).toBe(BATTLEFIELD_XP_TRICKLE);
     expect(skills.alchemy).toBe(BATTLEFIELD_XP_TRICKLE);
+  });
+});
+
+describe('the whole-branch sweep completion: buyback and the legacy plural map', () => {
+  it('rewrites signers in the vendor buyback ring', () => {
+    // The fifth signer-bearing blob region: a sold self-signed copy waits
+    // here for five minutes and buyBackItem re-grants the exact payload, so
+    // a rename inside the window must follow it or the discount (and after
+    // a reclaim, the NAME) detaches from its owner.
+    const state = st({
+      vendorBuyback: [
+        { itemId: 'gatherers_cache', count: 1, instance: { signer: 'Oldname' } },
+        { itemId: 'gatherers_cache', count: 1, instance: { signer: 'SomeoneElse' } },
+      ],
+    });
+    expect(rekeyInstanceSigner(state, 'Oldname', 'Newname')).toBe(true);
+    expect(state.vendorBuyback).toEqual([
+      { itemId: 'gatherers_cache', count: 1, instance: { signer: 'Newname' } },
+      { itemId: 'gatherers_cache', count: 1, instance: { signer: 'SomeoneElse' } },
+    ]);
+  });
+
+  it('rewrites signers under the legacy plural equipmentInstances key too', () => {
+    // The loader still reads `equipmentInstance ?? equipmentInstances`, so a
+    // legacy blob's signers are live data the sweep must reach.
+    const state = st({
+      equipmentInstances: { chest: { signer: 'Oldname' } },
+    });
+    expect(rekeyInstanceSigner(state, 'Oldname', 'Newname')).toBe(true);
+    expect(state.equipmentInstances).toEqual({ chest: { signer: 'Newname' } });
   });
 });

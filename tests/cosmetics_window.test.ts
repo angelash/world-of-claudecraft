@@ -1,0 +1,417 @@
+// @vitest-environment jsdom
+//
+// The Cosmetics window painter against a fake IWorld: every action must cross
+// the seam exactly once with the right arguments, the tab strip must switch and
+// refocus, an unowned card must offer nothing, and a changed snapshot must
+// repaint the worn state.
+
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MOUNT_SKIN_IDS } from '../src/sim/content/mount_skins';
+import { MECH_CHROMAS } from '../src/sim/content/skins';
+import { WEAPON_SKIN_LIST } from '../src/sim/content/weapon_skins';
+import { CosmeticsWindow } from '../src/ui/hud/cosmetics/cosmetics_window';
+import { t } from '../src/ui/i18n';
+
+vi.mock('../src/game/audio', () => ({ audio: { click: vi.fn() } }));
+
+interface FakeWorld {
+  player: {
+    templateId: string;
+    mainhandItemId: string | null;
+    skinCatalog: 'class' | 'mech';
+    skin: number;
+    mountSkinId: string | null;
+    buddyKey?: string;
+  };
+  accountCosmetics: {
+    completedQuestIds: string[];
+    mechChromaIds: string[];
+    weaponSkinIds: string[];
+    weaponSkinLoadout: Record<string, string>;
+    mountSkinIds: string[];
+  };
+  ownedMounts: () => string[];
+  ownedBuddies: () => string[];
+  pendingBuddies: () => string[];
+  summonBuddy: ReturnType<typeof vi.fn>;
+  changeMountSkin: ReturnType<typeof vi.fn>;
+  changeWeaponSkin: ReturnType<typeof vi.fn>;
+  changeSkin: ReturnType<typeof vi.fn>;
+  unequipMechChroma: ReturnType<typeof vi.fn>;
+}
+
+function fakeWorld(): FakeWorld {
+  const world: FakeWorld = {
+    player: {
+      templateId: 'warrior',
+      mainhandItemId: 'worn_sword',
+      skinCatalog: 'class',
+      skin: 0,
+      mountSkinId: null,
+    },
+    accountCosmetics: {
+      completedQuestIds: [],
+      mechChromaIds: [MECH_CHROMAS[0].id],
+      weaponSkinIds: ['ice_fang_sword', 'glaciersplit_axe'],
+      weaponSkinLoadout: {},
+      mountSkinIds: ['mech_bird'],
+    },
+    ownedMounts: () => ['valorsteed'],
+    ownedBuddies: () => ['horse'],
+    pendingBuddies: () => ['crystal_lich'],
+    summonBuddy: vi.fn((key: string) => {
+      world.player.buddyKey = world.player.buddyKey === key ? '' : key;
+    }),
+    changeMountSkin: vi.fn((id: string | null) => {
+      world.player.mountSkinId = id;
+    }),
+    changeWeaponSkin: vi.fn(),
+    changeSkin: vi.fn(),
+    unequipMechChroma: vi.fn(),
+  };
+  return world;
+}
+
+function makeWindow(
+  world: FakeWorld,
+  store?: {
+    previewMountSkin: ReturnType<typeof vi.fn>;
+    previewWeaponSkin: ReturnType<typeof vi.fn>;
+  } | null,
+): { w: CosmeticsWindow; el: HTMLElement } {
+  const el = document.createElement('div');
+  el.id = 'cosmetics-window';
+  document.body.appendChild(el);
+  const w = new CosmeticsWindow({
+    root: () => el,
+    world: () => world as never,
+    closeOthers: vi.fn(),
+    hideTooltip: vi.fn(),
+    captureFocus: () => null,
+    restoreFocus: vi.fn(),
+    store: () =>
+      store === null
+        ? null
+        : ({
+            closePreviews: vi.fn(),
+            ...(store ?? { previewMountSkin: vi.fn(), previewWeaponSkin: vi.fn() }),
+          } as never),
+  });
+  return { w, el };
+}
+
+const card = (el: HTMLElement, id: string): HTMLElement =>
+  el.querySelector<HTMLElement>(`[data-card="${id}"]`) as HTMLElement;
+const action = (el: HTMLElement, act: string, id?: string): HTMLButtonElement | null =>
+  el.querySelector<HTMLButtonElement>(`button[data-act="${act}"]${id ? `[data-id="${id}"]` : ''}`);
+
+beforeEach(() => {
+  document.body.innerHTML = '';
+});
+
+describe('CosmeticsWindow', () => {
+  it('renders shipped decorative art for every catalog mount and owned weapon skin', () => {
+    const world = fakeWorld();
+    world.accountCosmetics.weaponSkinIds = WEAPON_SKIN_LIST.map((skin) => skin.id);
+    const { w, el } = makeWindow(world);
+    w.open();
+    for (const id of MOUNT_SKIN_IDS) {
+      const image = card(el, id).querySelector<HTMLImageElement>('.cos-card-art-mount img');
+      expect(image?.getAttribute('src')).toBe(`/ui/store/mount_skins/${id}.webp`);
+      expect(image?.alt).toBe('');
+      expect(image?.getAttribute('loading')).toBe('lazy');
+      expect(image?.parentElement?.getAttribute('aria-hidden')).toBe('true');
+      const src = image?.getAttribute('src');
+      if (!src) throw new Error(`Missing mount art: ${id}`);
+      expect(existsSync(resolve('public', src.slice(1)))).toBe(true);
+      expect(card(el, id).classList.contains('ui-card')).toBe(true);
+    }
+    w.open('skins');
+    for (const { id } of WEAPON_SKIN_LIST) {
+      const image = card(el, id).querySelector<HTMLImageElement>('.cos-card-art-weapon img');
+      expect(image?.getAttribute('src')).toBe(`/ui/store/armory/${id}.webp`);
+      expect(image?.alt).toBe('');
+      expect(image?.getAttribute('decoding')).toBe('async');
+      const src = image?.getAttribute('src');
+      if (!src) throw new Error(`Missing weapon art: ${id}`);
+      expect(existsSync(resolve('public', src.slice(1)))).toBe(true);
+    }
+  });
+
+  it('ignores unknown cosmetic ids without requesting fabricated image paths', () => {
+    const world = fakeWorld();
+    world.accountCosmetics.weaponSkinIds = ['unknown-weapon'];
+    world.accountCosmetics.mechChromaIds = ['unknown-chroma'];
+    const { w, el } = makeWindow(world);
+    for (const tab of ['skins', 'mech'] as const) {
+      w.open(tab);
+      expect(el.querySelector('.cos-empty.ui-card')).not.toBeNull();
+      expect(el.querySelector('.cos-empty-title')?.textContent).not.toBe('');
+      expect(el.querySelector('.cos-card-image')).toBeNull();
+      expect(el.querySelector('.cos-action')).toBeNull();
+    }
+  });
+
+  it('equips and dismisses only collected buddies, while preserving pending and locked states', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open('buddies');
+    expect(el.querySelectorAll('.cos-card')).toHaveLength(4);
+    expect(card(el, 'horse').textContent).toContain('Tug, the Warhorse');
+    expect(el.querySelectorAll('.cos-scope-account')).toHaveLength(4);
+    expect(card(el, 'horse').querySelector('.cos-scope-account')?.textContent).toBe('Account');
+    expect(el.querySelector('.cos-scope-character')).toBeNull();
+    expect(el.querySelector('[data-buddy-drag], [draggable="true"]')).toBeNull();
+    expect(card(el, 'crystal_lich').textContent).toContain('A presence follows you');
+    expect(action(el, 'summon-buddy', 'crystal_lich')).toBeNull();
+    expect(action(el, 'summon-buddy', 'forgemaw')).toBeNull();
+    expect(el.querySelector('[data-id="sapling"]')).toBeNull();
+    expect(action(el, 'summon-buddy', 'sprites')).toBeNull();
+    const summon = action(el, 'summon-buddy', 'horse')!;
+    summon.focus();
+    summon.click();
+    expect(world.summonBuddy).toHaveBeenCalledExactlyOnceWith('horse');
+    expect(action(el, 'summon-buddy', 'horse')?.textContent).toBe('Dismiss');
+    expect(document.activeElement).toBe(action(el, 'summon-buddy', 'horse'));
+    action(el, 'summon-buddy', 'horse')?.click();
+    expect(world.summonBuddy).toHaveBeenCalledTimes(2);
+    expect(action(el, 'summon-buddy', 'horse')?.textContent).toBe('Summon');
+  });
+
+  it('offers no buddy drag controls and does not create action-bar drag payloads', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open('buddies');
+    expect(el.querySelector('[data-buddy-drag], [draggable="true"]')).toBeNull();
+    expect(el.textContent).not.toContain('Drag to action bar');
+    const drag = new Event('dragstart', { bubbles: true });
+    const transfer = { setData: vi.fn(), effectAllowed: '' };
+    Object.defineProperty(drag, 'dataTransfer', { value: transfer });
+    card(el, 'horse').dispatchEvent(drag);
+    expect(transfer.setData).not.toHaveBeenCalled();
+    expect(world.summonBuddy).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a revealed buddy and skips unchanged companion snapshots', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open('buddies');
+    const original = card(el, 'horse');
+    w.refreshIfChanged();
+    expect(card(el, 'horse')).toBe(original);
+    world.ownedBuddies = () => ['horse', 'crystal_lich'];
+    world.pendingBuddies = () => [];
+    world.player.buddyKey = 'crystal_lich';
+    w.refreshIfChanged();
+    expect(action(el, 'summon-buddy', 'crystal_lich')?.textContent).toBe('Dismiss');
+    expect(card(el, 'crystal_lich').textContent).not.toContain('A presence follows you');
+  });
+
+  it('opens on the Mounts tab with every catalog skin, actions only on owned ones', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.toggle();
+    expect(w.isOpen).toBe(true);
+    expect(el.querySelectorAll('.cos-tab')).toHaveLength(4);
+    expect(el.querySelector('.cos-tab.on')?.getAttribute('data-tab')).toBe('mounts');
+    expect(card(el, 'mech_bird')).toBeTruthy();
+    expect(card(el, 'chimeglass_tortoise')).toBeTruthy();
+    expect(card(el, 'rickshaw_mount')).toBeTruthy();
+    expect(action(el, 'wear-mount', 'mech_bird')).toBeTruthy();
+    // Unowned: no wear action, the store state instead. The Preview button is
+    // on every card (the skin can be seen before it is bought).
+    expect(card(el, 'chimeglass_tortoise').querySelector('.cos-action')).toBeNull();
+    expect(card(el, 'chimeglass_tortoise').querySelector('.cos-state.store')).toBeTruthy();
+    expect(card(el, 'rickshaw_mount').querySelector('.cos-action')).toBeNull();
+    expect(action(el, 'preview-mount', 'chimeglass_tortoise')).toBeTruthy();
+    expect(action(el, 'preview-mount', 'mech_bird')).toBeTruthy();
+    // Preview is its own class: `.cos-action[data-id]` (the browser suite's
+    // Enter target) must resolve to the wear / take-off button, never Preview.
+    expect(action(el, 'preview-mount', 'mech_bird')?.classList.contains('cos-action')).toBe(false);
+    expect(action(el, 'preview-mount', 'mech_bird')?.classList.contains('cos-preview')).toBe(true);
+    expect(el.querySelector('.cos-action[data-id="mech_bird"]')).toBe(
+      action(el, 'wear-mount', 'mech_bird'),
+    );
+    // Scope badges are on every card.
+    expect(card(el, 'mech_bird').querySelector('.cos-scope-account')).toBeTruthy();
+  });
+
+  it('tolerates a host with no store window: Preview is inert and close never throws', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world, null);
+    w.toggle();
+    expect(() => action(el, 'preview-mount', 'mech_bird')?.click()).not.toThrow();
+    expect(world.changeMountSkin).not.toHaveBeenCalled();
+    expect(() => w.close()).not.toThrow();
+    expect(w.isOpen).toBe(false);
+  });
+
+  it('routes Preview on a mount card and a weapon row to the store host, never to IWorld', () => {
+    const world = fakeWorld();
+    const store = { previewMountSkin: vi.fn(), previewWeaponSkin: vi.fn() };
+    const { w, el } = makeWindow(world, store);
+    w.open();
+    // A store-only skin previews too: seeing it is the point of the button.
+    action(el, 'preview-mount', 'chimeglass_tortoise')?.click();
+    expect(store.previewMountSkin).toHaveBeenCalledWith('chimeglass_tortoise');
+    expect(world.changeMountSkin).not.toHaveBeenCalled();
+    w.open('skins');
+    action(el, 'preview-skin', 'ice_fang_sword')?.click();
+    expect(store.previewWeaponSkin).toHaveBeenCalledWith('ice_fang_sword');
+    expect(world.changeWeaponSkin).not.toHaveBeenCalled();
+    // Every Preview carries its accessible name.
+    expect(action(el, 'preview-skin', 'ice_fang_sword')?.getAttribute('aria-label')).toContain(
+      'Preview',
+    );
+  });
+
+  it('wears and takes off a mount skin through IWorld exactly once each and repaints', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open();
+    action(el, 'wear-mount', 'mech_bird')?.click();
+    expect(world.changeMountSkin).toHaveBeenCalledTimes(1);
+    expect(world.changeMountSkin).toHaveBeenCalledWith('mech_bird');
+    // Repainted from the (synchronously mutated) world: now worn, with Take off.
+    expect(card(el, 'mech_bird').classList.contains('worn')).toBe(true);
+    expect(card(el, 'mech_bird').querySelector('.cos-scope-character')).toBeTruthy();
+    action(el, 'takeoff-mount', 'mech_bird')?.click();
+    expect(world.changeMountSkin).toHaveBeenCalledTimes(2);
+    expect(world.changeMountSkin).toHaveBeenLastCalledWith(null);
+    expect(card(el, 'mech_bird').classList.contains('worn')).toBe(false);
+  });
+
+  it('applies and detaches weapon skins with the right arguments, gating apply on the held type', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open('skins');
+    expect(el.querySelector('.cos-tab.on')?.getAttribute('data-tab')).toBe('skins');
+    // Holding a sword: the sword skin can apply, the axe skin cannot.
+    const applySword = action(el, 'apply-skin', 'ice_fang_sword');
+    const applyAxe = action(el, 'apply-skin', 'glaciersplit_axe');
+    expect(applySword?.disabled).toBe(false);
+    expect(applyAxe?.disabled).toBe(true);
+    applyAxe?.click();
+    expect(world.changeWeaponSkin).not.toHaveBeenCalled();
+    applySword?.click();
+    expect(world.changeWeaponSkin).toHaveBeenCalledWith('ice_fang_sword');
+    // Once applied (the world mirrors it), the row offers Detach with the type.
+    world.accountCosmetics.weaponSkinLoadout = { sword: 'ice_fang_sword' };
+    w.refreshIfChanged();
+    const detach = action(el, 'detach-skin', 'ice_fang_sword');
+    expect(detach?.dataset.type).toBe('sword');
+    detach?.click();
+    expect(world.changeWeaponSkin).toHaveBeenLastCalledWith(null, 'sword');
+  });
+
+  // The Combat Mech is switched off (COMBAT_MECH_WEARABLE in cosmetics_view.ts):
+  // an owned chroma keeps its card, but Wear is disabled and labelled
+  // unavailable. Taking a worn one off still works. When the switch flips back,
+  // the click below goes back to expecting changeSkin(0, 'mech').
+  it('shows Wear disabled on an owned mech chroma, and still takes a worn one off', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open('mech');
+    const id = MECH_CHROMAS[0].id;
+    const wear = action(el, 'wear-mech', id);
+    expect(wear).not.toBeNull();
+    expect(wear?.disabled).toBe(true);
+    expect(wear?.getAttribute('aria-disabled')).toBe('true');
+    expect(wear?.textContent).toBe(t('hudChrome.wocStore.unavailable'));
+    wear?.click();
+    expect(world.changeSkin).not.toHaveBeenCalled();
+    world.player.skinCatalog = 'mech';
+    world.player.skin = 0;
+    w.refreshIfChanged();
+    expect(card(el, id).classList.contains('worn')).toBe(true);
+    action(el, 'takeoff-mech', id)?.click();
+    expect(world.unequipMechChroma).toHaveBeenCalledWith(id);
+  });
+
+  it('switches tabs from the strip and shows the empty states', () => {
+    const world = fakeWorld();
+    world.accountCosmetics.weaponSkinIds = [];
+    world.accountCosmetics.mechChromaIds = [];
+    const { w, el } = makeWindow(world);
+    w.open();
+    (el.querySelector('.cos-tab[data-tab="skins"]') as HTMLElement).click();
+    expect(el.querySelector('.cos-tab.on')?.getAttribute('data-tab')).toBe('skins');
+    expect(el.querySelector('.cos-empty')).toBeTruthy();
+    (el.querySelector('.cos-tab[data-tab="mech"]') as HTMLElement).click();
+    expect(el.querySelector('.cos-tab.on')?.getAttribute('data-tab')).toBe('mech');
+    expect(el.querySelector('.cos-empty')).toBeTruthy();
+    // The strip carries the roving tabindex: exactly one focusable tab.
+    expect(el.querySelectorAll('.cos-tab[tabindex="0"]')).toHaveLength(1);
+  });
+
+  it('allows cosmetic selection without reins and skips unchanged repaint', () => {
+    const world = fakeWorld();
+    world.ownedMounts = () => [];
+    const { w, el } = makeWindow(world);
+    w.open();
+    expect(el.querySelector('.cos-hint')).toBeNull();
+    const before = el.innerHTML;
+    w.refreshIfChanged();
+    expect(el.innerHTML).toBe(before);
+  });
+
+  it('retains the same card action through wear, takeoff and account refresh', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open();
+    action(el, 'wear-mount', 'mech_bird')!.focus();
+    action(el, 'wear-mount', 'mech_bird')!.click();
+    expect(document.activeElement).toBe(action(el, 'takeoff-mount', 'mech_bird'));
+    world.accountCosmetics.mountSkinIds.push('rickshaw_mount');
+    w.refreshIfChanged();
+    expect(document.activeElement).toBe(action(el, 'takeoff-mount', 'mech_bird'));
+    action(el, 'takeoff-mount', 'mech_bird')!.click();
+    expect(document.activeElement).toBe(action(el, 'wear-mount', 'mech_bird'));
+  });
+
+  it('falls back to the selected tab when a refreshed action is disabled or removed', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open('skins');
+    action(el, 'apply-skin', 'ice_fang_sword')!.focus();
+    world.player.mainhandItemId = null;
+    w.refreshIfChanged();
+    expect(action(el, 'apply-skin', 'ice_fang_sword')!.disabled).toBe(true);
+    expect(document.activeElement).toBe(el.querySelector('.cos-tab.on'));
+    w.open('mounts');
+    action(el, 'wear-mount', 'mech_bird')!.focus();
+    world.accountCosmetics.mountSkinIds = [];
+    w.refreshIfChanged();
+    expect(document.activeElement).toBe(el.querySelector('.cos-tab.on'));
+  });
+
+  it('preserves close and tab focus on relocalize without stealing outside or parked focus', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open();
+    for (const selector of ['[data-close]', '.cos-tab.on']) {
+      el.querySelector<HTMLElement>(selector)!.focus();
+      w.relocalize();
+      expect(document.activeElement).toBe(el.querySelector(selector));
+    }
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    outside.focus();
+    w.relocalize();
+    expect(document.activeElement).toBe(outside);
+    el.tabIndex = -1;
+    el.focus();
+    w.relocalize();
+    expect(document.activeElement).toBe(el);
+  });
+
+  it('closes through the corner button and returns focus', () => {
+    const world = fakeWorld();
+    const { w, el } = makeWindow(world);
+    w.open();
+    (el.querySelector('[data-close]') as HTMLElement).click();
+    expect(w.isOpen).toBe(false);
+  });
+});

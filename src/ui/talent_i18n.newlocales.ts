@@ -46,6 +46,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'tankování', healer: 'léčení', dps: 'poškození' },
     perRank: ' za stupeň',
     noEffect: 'Poskytuje bonus specializace.',
+    whileWord: 'během',
+    vsWord: 'proti',
+    thenWord: 'poté',
+    upToWord: 'až',
+    atLeastWord: 'alespoň',
     chooseOne: (name) => 'Vyber jednu možnost pro ' + name + '.',
     specDescription: (className, role, abilityName) =>
       'Specializace pro ' +
@@ -100,6 +105,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'tank', healer: 'helbreder', dps: 'skade' },
     perRank: ' pr. rang',
     noEffect: 'Giver en specialiseringsfordel.',
+    whileWord: 'mens',
+    vsWord: 'mod',
+    thenWord: 'derefter',
+    upToWord: 'op til',
+    atLeastWord: 'mindst',
     chooseOne: (name) => 'Vælg én ' + name + '-mulighed.',
     specDescription: (className, role, abilityName) =>
       className + '-specialisering med fokus på ' + role + '. Signaturevne: ' + abilityName + '.',
@@ -148,6 +158,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'tank', healer: 'penyembuh', dps: 'kerusakan' },
     perRank: ' per tingkat',
     noEffect: 'Memberikan manfaat spesialisasi.',
+    whileWord: 'selama',
+    vsWord: 'vs',
+    thenWord: 'lalu',
+    upToWord: 'hingga',
+    atLeastWord: 'setidaknya',
     chooseOne: (name) => 'Pilih salah satu opsi ' + name + '.',
     specDescription: (className, role, abilityName) =>
       'Spesialisasi ' +
@@ -204,6 +219,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'tank', healer: 'genezer', dps: 'schade' },
     perRank: ' per rang',
     noEffect: 'Biedt een specialisatievoordeel.',
+    whileWord: 'tijdens',
+    vsWord: 'tegen',
+    thenWord: 'dan',
+    upToWord: 'tot',
+    atLeastWord: 'minstens',
     chooseOne: (name) => 'Kies één ' + name + '-optie.',
     specDescription: (className, role, abilityName) =>
       className +
@@ -255,6 +275,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'tank', healer: 'uzdrowiciel', dps: 'obrażenia' },
     perRank: ' na poziom',
     noEffect: 'Zapewnia korzyść specjalizacji.',
+    whileWord: 'podczas',
+    vsWord: 'przeciw',
+    thenWord: 'potem',
+    upToWord: 'do',
+    atLeastWord: 'co najmniej',
     chooseOne: (name) => 'Wybierz jedną opcję: ' + name + '.',
     specDescription: (className, role, abilityName) =>
       'Specjalizacja klasy ' +
@@ -307,6 +332,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'tank', healer: 'läkare', dps: 'skada' },
     perRank: ' per rang',
     noEffect: 'Ger en specialiseringsfördel.',
+    whileWord: 'under',
+    vsWord: 'mot',
+    thenWord: 'sedan',
+    upToWord: 'upp till',
+    atLeastWord: 'minst',
     chooseOne: (name) => 'Välj ett ' + name + '-alternativ.',
     specDescription: (className, role, abilityName) =>
       className + '-specialisering inriktad på ' + role + '. Signaturförmåga: ' + abilityName + '.',
@@ -353,6 +383,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'tank', healer: 'şifacı', dps: 'hasar' },
     perRank: ' her rütbede',
     noEffect: 'Bir uzmanlık avantajı sağlar.',
+    whileWord: 'sırasında',
+    vsWord: 'karşı',
+    thenWord: 'ardından',
+    upToWord: 'en fazla',
+    atLeastWord: 'en az',
     chooseOne: (name) => 'Bir ' + name + ' seçeneği seçin.',
     specDescription: (className, role, abilityName) =>
       role + ' odaklı ' + className + ' uzmanlığı. İmza yeteneği: ' + abilityName + '.',
@@ -401,6 +436,11 @@ export const TALENT_NEW: Record<
     roleLabels: { tank: 'đỡ đòn', healer: 'trị liệu', dps: 'sát thương' },
     perRank: ' mỗi cấp',
     noEffect: 'Mang lại lợi ích chuyên môn hóa.',
+    whileWord: 'trong khi',
+    vsWord: 'với',
+    thenWord: 'sau đó',
+    upToWord: 'tối đa',
+    atLeastWord: 'ít nhất',
     chooseOne: (name) => 'Chọn một tùy chọn ' + name + '.',
     specDescription: (className, role, abilityName) =>
       'Chuyên môn hóa ' +
@@ -423,7 +463,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   cs_CZ: {
     'Adrenaline Junkie': 'Adrenalinový šílenec',
     'Aspect Mastery': 'Mistrovství aspektů',
-    'Aura Mastery': 'Mistrovství aur',
+    'Sacred Concord': 'Posvátný soulad',
     'Battlemage Armor': 'Zbroj bitevního mága',
     'Blessed Momentum': 'Požehnaný spád',
     'Blessed Recovery': 'Požehnané zotavení',
@@ -506,7 +546,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   nl_NL: {
     'Adrenaline Junkie': 'Adrenalineverslaafde',
     'Aspect Mastery': 'Aspectmeesterschap',
-    'Aura Mastery': 'Aurameesterschap',
+    'Sacred Concord': 'Heilige eendracht',
     'Battlemage Armor': 'Strijdmagiërpantser',
     'Blessed Momentum': 'Gezegende vaart',
     'Blessed Recovery': 'Gezegend herstel',
@@ -589,7 +629,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   pl_PL: {
     'Adrenaline Junkie': 'Nałóg adrenaliny',
     'Aspect Mastery': 'Mistrzostwo aspektów',
-    'Aura Mastery': 'Mistrzostwo aur',
+    'Sacred Concord': 'Święta zgoda',
     'Battlemage Armor': 'Pancerz maga bitewnego',
     'Blessed Momentum': 'Błogosławiony pęd',
     'Blessed Recovery': 'Błogosławiona odnowa',
@@ -672,7 +712,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   id_ID: {
     'Adrenaline Junkie': 'Pecandu Adrenalin',
     'Aspect Mastery': 'Penguasaan Aspek',
-    'Aura Mastery': 'Penguasaan Aura',
+    'Sacred Concord': 'Harmoni suci',
     'Battlemage Armor': 'Zirah Penyihir Tempur',
     'Blessed Momentum': 'Momentum Terberkati',
     'Blessed Recovery': 'Pemulihan Terberkati',
@@ -755,7 +795,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   tr_TR: {
     'Adrenaline Junkie': 'Adrenalin Tutkunu',
     'Aspect Mastery': 'Suret Ustalığı',
-    'Aura Mastery': 'Aura Ustalığı',
+    'Sacred Concord': 'Kutsal ahenk',
     'Battlemage Armor': 'Savaş Büyücüsü Zırhı',
     'Blessed Momentum': 'Kutsanmış İvme',
     'Blessed Recovery': 'Kutsanmış Toparlanma',
@@ -838,7 +878,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   sv_SE: {
     'Adrenaline Junkie': 'Adrenalinberoende',
     'Aspect Mastery': 'Aspektmästerskap',
-    'Aura Mastery': 'Auramästerskap',
+    'Sacred Concord': 'Helig samklang',
     'Battlemage Armor': 'Stridsmagikerrustning',
     'Blessed Momentum': 'Välsignat momentum',
     'Blessed Recovery': 'Välsignad återhämtning',
@@ -921,7 +961,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   vi_VN: {
     'Adrenaline Junkie': 'Kẻ Nghiện Adrenalin',
     'Aspect Mastery': 'Tinh Thông Dạng Thức',
-    'Aura Mastery': 'Tinh Thông Hào Quang',
+    'Sacred Concord': 'Thánh hòa',
     'Battlemage Armor': 'Giáp Pháp Sư Chiến',
     'Blessed Momentum': 'Đà Phước Lành',
     'Blessed Recovery': 'Hồi Phục Phước Lành',
@@ -1004,7 +1044,7 @@ export const TALENT_NEW_TITLE_OVERRIDES: Record<
   da_DK: {
     'Adrenaline Junkie': 'Adrenalinjæger',
     'Aspect Mastery': 'Aspektmesterskab',
-    'Aura Mastery': 'Auramesterskab',
+    'Sacred Concord': 'Hellig samklang',
     'Battlemage Armor': 'Kampmagikerrustning',
     'Blessed Momentum': 'Velsignet fremdrift',
     'Blessed Recovery': 'Velsignet genopretning',

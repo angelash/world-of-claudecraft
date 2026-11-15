@@ -6,11 +6,13 @@ import type { AmbientPlayerBotLiveState } from '../server/ambient_bots/ws_client
 import { HostedPlayRuntime, type HostedPlayRuntimeGame } from '../server/hosted_play/runtime';
 import type { SimEvent } from '../src/sim/types';
 
-function liveState(overrides: {
-  self?: Partial<AmbientPlayerBotLiveState['self']>;
-  entities?: Array<Record<string, unknown>>;
-  social?: AmbientPlayerBotLiveState['social'];
-} = {}): AmbientPlayerBotLiveState {
+function liveState(
+  overrides: {
+    self?: Partial<AmbientPlayerBotLiveState['self']>;
+    entities?: Array<Record<string, unknown>>;
+    social?: AmbientPlayerBotLiveState['social'];
+  } = {},
+): AmbientPlayerBotLiveState {
   const self = {
     id: 11,
     x: 4,
@@ -40,7 +42,7 @@ function liveState(overrides: {
     self,
     entities: new Map<number, Record<string, unknown>>([
       [11, self],
-      ...((overrides.entities ?? []).map((entity) => [Number(entity.id), entity] as const)),
+      ...(overrides.entities ?? []).map((entity) => [Number(entity.id), entity] as const),
     ]),
     social: overrides.social ?? {
       friends: [],
@@ -126,14 +128,16 @@ describe('HostedPlayRuntime llm overlay', () => {
           { id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 },
         ],
       }),
-      [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'hey, what are you doing?',
-        channel: 'whisper',
-        pid: 11,
-      }],
+      [
+        {
+          type: 'chat',
+          fromPid: 201,
+          from: 'Aleph',
+          text: 'hey, what are you doing?',
+          channel: 'whisper',
+          pid: 11,
+        },
+      ],
     );
     const provider: AmbientBotLlmProvider = {
       decide: vi.fn(async ({ promptText }) => {
@@ -250,14 +254,16 @@ describe('HostedPlayRuntime llm overlay', () => {
           { id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 },
         ],
       }),
-      [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'hey, what are you doing?',
-        channel: 'whisper',
-        pid: 11,
-      }],
+      [
+        {
+          type: 'chat',
+          fromPid: 201,
+          from: 'Aleph',
+          text: 'hey, what are you doing?',
+          channel: 'whisper',
+          pid: 11,
+        },
+      ],
     );
     const provider: AmbientBotLlmProvider = {
       decide: vi.fn(async ({ promptText }) => {

@@ -22,15 +22,51 @@ viewport, the 2D canvas/view/model trio).
 - **`playtest.ts` hands off to the game**: it stashes a `WorldContent` in
   sessionStorage (`EDITOR_PLAYTEST_KEY` from `src/game/editor_playtest.ts`) and
   navigates; the game boots OFFLINE into it. Playtest never talks to the server.
+- **Saving is a three-way split, keep the layers apart**: `persist.ts` is the pure
+  never-throws (de)serializer plus the local map store (parsing/validation is the
+  SHARED sanitizer in `src/sim/map_doc.ts`, the same one the server applies to stored
+  documents; one localStorage key per map so saving map B never rewrites map A's
+  bytes); `file_io.ts` is the DOM download/pick wrapper kept apart so the serializer
+  stays DOM-free; `map_io.ts` orchestrates saves, the per-map autosave draft slots
+  (`woc_editor_draft:<id>`, so saving map B can never destroy map A's only autosave),
+  and the server link, whose optimistic version is held IN MEMORY per tab and only
+  seeded from localStorage on first resolve, so a stale tab gets the server 409
+  instead of silently overwriting another tab's save. `save_lifecycle_core.ts` is the
+  pure edit-generation compare that keeps a mid-save edit from being marked clean.
+- **Bulk inserts clamp at the push site**: every paste/procgen/placement append goes
+  through `edit_caps_core.ts` against the document caps in `src/sim/map_doc.ts`, so
+  the sanitizer never has to silently truncate a saved document on the next load.
+- **Player-uploaded assets resolve from the id alone**: `user_assets.ts` owns the
+  `user/<sha256>` scheme; resolution is PURE (a map referencing another player's
+  public upload renders with no registry entry), the session registry only labels
+  the asset browser's Uploaded tab.
+- **Built-in gameplay objects move by id, never as placements**: farm beds,
+  practice dummies, gather nodes and dungeon doors keep their ids (persisted
+  save keys, spawn slots), so a move is a `MapDoc.objectMoves` entry keyed
+  `<kind>:<id>` that the projection carries into `WorldContent.objectMoves`
+  and every sim reader resolves through `src/sim/moved_objects.ts`.
+  `object_moves_core.ts` (roster, record edit, pick) and
+  `object_move_controller.ts` (select, drag, nudge, Reset, one undo per
+  gesture) own the editor half; `3d/movable_objects_view.ts` the live preview.
+- **Legacy roads change by index, never in place**: a world-seeded map carries the
+  shipped dirt roads in `content.roads`, which the editor never rewrites; a moved
+  or removed one is a `MapDoc.roadEdits` entry keyed by its index, applied by
+  `road_edit_core.ts` `applyRoadEdits` in the active world and the projection
+  (`custom_map.ts`), and merged per key by the change-only push. Authored roads
+  (`MapDoc.roadDefs`) are edited by id. `road_edit_controller.ts` (select, drag,
+  bend, delete, remove, Reset, one undo per gesture) owns the City Build Roads
+  tab's Edit mode.
+- **The tutorial can never block**: `tutorial.ts` drives the pure `TutorialModel`
+  (`tutorial_core.ts`) over real UI anchors; Skip is always available, a
+  missing/hidden anchor step is skipped, Esc bails, and a blocked localStorage
+  reports "seen" so broken storage never loops the auto-start.
 
 ## Where a new editor tool lands (module-first)
 Its own sibling module under `src/editor/`: a pure `*_core.ts` decision module
 (DOM-free, deterministic; exemplars: `undo_core.ts`, `stamp_core.ts`,
 `placement_transform_core.ts`) plus a thin DOM consumer that `app.ts` composes.
 Never append tool logic to `app.ts`. Its test goes in `tests/editor_<name>.test.ts`
-(enumerate the live suite with `ls tests/editor_*.test.ts`). Bug fix: reproduce
-with a failing test first (extract the buried logic into a core if needed), then
-the smallest change that turns it green.
+(enumerate the live suite with `ls tests/editor_*.test.ts`).
 
 ## i18n
 Editor strings live under the `editor` namespace in `src/ui/i18n.catalog/editor.ts`

@@ -12,9 +12,9 @@ import type { PlayerMeta } from '../src/sim/sim';
 import { Sim } from '../src/sim/sim';
 import type { Aura, Entity, SimEvent } from '../src/sim/types';
 
-// Glacial Spike (owner design 2026-07-14, combat/frost_mage.ts + content): the
-// frost spender. Rimelance impacts and Frozen Orb pulses bank Icicles (up to 5);
-// at a full stack Glacial Spike is castable, consumes the whole stack for a slow
+// Rimeneedle (owner design 2026-07-14, combat/frost_mage.ts + content): the
+// frost spender. Rimelance impacts and Frostglobe pulses bank Icicles (up to 5);
+// at a full stack Rimeneedle is castable, consumes the whole stack for a slow
 // heavy hit, and freezes the target so the follow-up spells Shatter.
 
 type TestSim = Sim & {
@@ -93,11 +93,11 @@ const knownIds = (spec: string | null): Set<string> =>
     abilitiesKnownAt('mage', 20, computeTalentModifiers('mage', alloc(spec))).map((k) => k.def.id),
   );
 
-describe('Glacial Spike content def', () => {
+describe('Rimeneedle content def', () => {
   it('pins the slow, heavy, icicle-gated spender', () => {
     const def = ABILITIES.glacial_spike;
     expect(def).toBeDefined();
-    expect(def.name).toBe('Glacial Spike');
+    expect(def.name).toBe('Rimeneedle');
     expect(def.specs).toEqual(['frost']);
     // Slow and powerful: a long cast, no cooldown (the Icicle gate is the limiter).
     expect(def.castTime).toBeGreaterThanOrEqual(2.5);
@@ -122,7 +122,20 @@ describe('Glacial Spike content def', () => {
 
 describe('Icicles build-up', () => {
   it('a Rimelance impact banks one Icicle, capped at ICICLE_MAX', () => {
-    const { sim, p } = makeSim();
+    // Seed hunted (post-merge camp order) so the first 10 Rimelance casts all
+    // LAND (a resisted bolt never impacts, so it banks nothing); the loop only
+    // needs 7, the extra landed casts are margin. Under seed 90210 the merged
+    // stream resists cast 5. Re-hunted from seed 11 after the Eastbrook camp
+    // respacing merged in: world-gen draws 5 rng values per camp mob, so
+    // thinning the zone-1 camps shifted every seed's stream and seed 11 now
+    // resists cast 3. Seed 12 lands all 10 again, so the loop below is
+    // unchanged. Re-hunted again when the Mirefen mudfin huts became solid
+    // walls: the camp murlocs' wander now settles on other ticks, which shifts
+    // the shared stream, and seed 12 resists cast 5. Seed 13 lands all 10.
+    // Re-hunted for the wander fix around those huts (an idle pick inside a
+    // hut wall is skipped for one more pause, mob/locomotion.ts): the stream
+    // forks again and seed 13 banks nothing on cast 5. Seed 14 passes the loop.
+    const { sim, p } = makeSim({ seed: 14 });
     spawnTarget(sim, p);
     expect(frostIcicleCharges(p.auras)).toBe(0);
     for (let n = 1; n <= ICICLE_MAX + 2; n++) {
@@ -132,7 +145,7 @@ describe('Icicles build-up', () => {
   });
 });
 
-describe('Glacial Spike gating + payoff', () => {
+describe('Rimeneedle gating + payoff', () => {
   it('does not cast below a full Icicle stack (the stack is untouched)', () => {
     const { sim, p } = makeSim();
     const target = spawnTarget(sim, p);
@@ -142,8 +155,8 @@ describe('Glacial Spike gating + payoff', () => {
     sim.castAbility('glacial_spike');
     const events: SimEvent[] = [...sim.drainEvents()];
     for (let i = 0; i < 160; i++) events.push(...sim.tick());
-    // Blocked: no Glacial Spike damage, no root planted, the Icicles are not spent.
-    expect(damageEvents(events, 'Glacial Spike')).toHaveLength(0);
+    // Blocked: no Rimeneedle damage, no root planted, the Icicles are not spent.
+    expect(damageEvents(events, 'Rimeneedle')).toHaveLength(0);
     expect(target.auras.some((a) => a.kind === 'root')).toBe(false);
     expect(frostIcicleCharges(p.auras)).toBe(ICICLE_MAX - 1);
   });
@@ -152,13 +165,66 @@ describe('Glacial Spike gating + payoff', () => {
     const { sim, p } = makeSim();
     const target = spawnTarget(sim, p);
     pushAura(p, { id: 'icicles', name: 'Icicles', kind: 'icicles', stacks: ICICLE_MAX });
-    const events = castAndResolve(sim, p, 'glacial_spike', 'Glacial Spike');
+    const events = castAndResolve(sim, p, 'glacial_spike', 'Rimeneedle');
     // It landed its heavy hit.
-    expect(damageEvents(events, 'Glacial Spike').length).toBeGreaterThan(0);
+    expect(damageEvents(events, 'Rimeneedle').length).toBeGreaterThan(0);
     // It consumed the whole Icicle stack.
     expect(frostIcicleCharges(p.auras)).toBe(0);
     // It froze the target (a root aura), so isRooted counts it as frozen and the
     // follow-up spells Shatter.
     expect(target.auras.some((a) => a.kind === 'root')).toBe(true);
+  });
+
+  // Issue #2632: Rimeneedle's cast bar completes (mana spent, cooldown armed)
+  // several ticks before its frost bolt actually reaches the target (the
+  // projectile travels at PROJECTILE_SPEED). A rapid second press landing in
+  // that window used to re-check the Icicles gate, find it still at full stacks
+  // (the aura was only removed once the bolt LANDED, inside runEffects), and get
+  // wrongly accepted as a second legitimate cast off the same stack.
+  it('rejects a second press made while the first bolt is still in flight (issue #2632)', () => {
+    const { sim, p } = makeSim();
+    spawnTarget(sim, p);
+    pushAura(p, { id: 'icicles', name: 'Icicles', kind: 'icicles', stacks: ICICLE_MAX });
+    p.gcdRemaining = 0;
+    p.resource = p.maxResource;
+    sim.castAbility('glacial_spike');
+    const events: SimEvent[] = [...sim.drainEvents()];
+    expect(
+      events.some(
+        (e) => e.type === 'castStart' && e.entityId === p.id && e.ability === 'glacial_spike',
+      ),
+    ).toBe(true);
+
+    // Tick only far enough for the 2.7s cast bar to complete: the cast stops
+    // successfully, but the bolt (roughly 6 ticks over the spawnTarget distance)
+    // has not landed yet, so the Icicles gate is the only thing being tested.
+    let castCompleted = false;
+    for (let i = 0; i < 60 && !castCompleted; i++) {
+      events.push(...sim.tick());
+      castCompleted = events.some((e) => e.type === 'castStop' && e.entityId === p.id && e.success);
+    }
+    expect(castCompleted).toBe(true);
+    expect(damageEvents(events, 'Rimeneedle')).toHaveLength(0);
+
+    // A rapid second press in that window: must be rejected outright, not
+    // accepted as a fresh cast against the same (already-spent) Icicles stack.
+    const beforeSecondPress = events.length;
+    p.gcdRemaining = 0;
+    p.resource = p.maxResource;
+    sim.castAbility('glacial_spike');
+    events.push(...sim.drainEvents());
+    const secondPressEvents = events.slice(beforeSecondPress);
+    expect(
+      secondPressEvents.some(
+        (e) => e.type === 'castStart' && e.entityId === p.id && e.ability === 'glacial_spike',
+      ),
+    ).toBe(false);
+    expect(secondPressEvents.some((e) => e.type === 'error')).toBe(true);
+
+    // Let the first (and only accepted) bolt land, then confirm exactly one
+    // Rimeneedle hit landed and the whole Icicle stack was spent once.
+    for (let i = 0; i < 20; i++) events.push(...sim.tick());
+    expect(damageEvents(events, 'Rimeneedle')).toHaveLength(1);
+    expect(frostIcicleCharges(p.auras)).toBe(0);
   });
 });

@@ -17,7 +17,7 @@ const hudCss = read('src/styles/hud.css');
 const applier = read('src/ui/ui_effects_applier.ts');
 const main = read('src/main.ts');
 
-describe('tokens.css - :root seeds (full-Ultra defaults) + glass low drop', () => {
+describe('tokens.css - :root seeds (full-Ultra defaults) + glass low/touch drop', () => {
   it('seeds the three --fx-* tokens to their full-effect values so calc/var reads are inert by default', () => {
     expect(tokensCss).toContain('--fx-shadow: 1;');
     expect(tokensCss).toContain('--fx-ambient-anim: running;');
@@ -32,18 +32,39 @@ describe('tokens.css - :root seeds (full-Ultra defaults) + glass low drop', () =
     expect(webkitIdx).toBeGreaterThan(-1);
     expect(stdIdx).toBeGreaterThan(webkitIdx);
   });
+
+  it('ALSO drops glass whole-rule whenever the touch interface is up, independent of data-fx-level', () => {
+    // The touch chrome sits over the live WebGL canvas at ANY graphics preset (a
+    // compositor cost, not a 3D-tier one), so body.mobile-touch joins the same
+    // selector list as data-fx-level="low" rather than depending on it.
+    expect(tokensCss).toContain('body.mobile-touch *,');
+    expect(tokensCss).toContain('body.mobile-touch *::before,');
+    expect(tokensCss).toContain('body.mobile-touch *::after {');
+    // Both selector groups feed the SAME declaration block (one rule, not two
+    // separate ones that could drift apart in strength or ordering).
+    const dropRule = tokensCss.match(
+      /:root\[data-fx-level="low"\] \*,\s*:root\[data-fx-level="low"\] \*::before,\s*:root\[data-fx-level="low"\] \*::after,\s*body\.mobile-touch \*,\s*body\.mobile-touch \*::before,\s*body\.mobile-touch \*::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/,
+    );
+    expect(dropRule).not.toBeNull();
+  });
 });
 
 describe('hud.css - glow scales with --fx-shadow (0 at low), structural shadows literal', () => {
   it('multiplies the four decorative outer-glow blurs by --fx-shadow', () => {
-    expect(hudCss).toContain('0 0 calc(8px * var(--fx-shadow, 1)) #e74c3c99'); // player portrait
+    expect(hudCss).toMatch(
+      /0 0 calc\(8px \* var\(--fx-shadow, 1\)\)\s+color-mix\(in srgb, var\(--color-danger\) 60%, transparent\)/,
+    ); // player portrait
     expect(hudCss).toContain('0 0 calc(8px * var(--fx-shadow, 1)) #4fc3ff66'); // rest indicator
     expect(hudCss).toContain('0 0 calc(5px * var(--fx-shadow, 1)) #ff5533aa'); // combo pips
-    expect(hudCss).toContain('0 0 calc(7px * var(--fx-shadow, 1)) #e74c3c99'); // party-frame combat
+    expect(hudCss).toMatch(
+      /0 0 calc\(7px \* var\(--fx-shadow, 1\)\)\s+color-mix\(in srgb, var\(--color-danger\) 60%, transparent\)/,
+    ); // party-frame combat
   });
 
   it('keeps the inset structural shadow literal (not token-scaled)', () => {
-    expect(hudCss).toContain('inset 0 0 12px #0009');
+    expect(hudCss).toMatch(
+      /inset 0 0 12px color-mix\(in srgb, var\(--color-keyline\) 60%, transparent\)/,
+    );
   });
 });
 
@@ -51,7 +72,8 @@ describe('hud.css - ambient loops gate on --fx-ambient-anim + --motion-scale', (
   it('gives every ambient loop a play-state token (paused at low/reduced)', () => {
     const playStates =
       hudCss.match(/animation-play-state: var\(--fx-ambient-anim, running\);/g) ?? [];
-    // combat-flash, rest, talent, fiesta, party-badge, daily-rewards chest + icon, ai-tag
+    // combat-flash, rest, talent, fiesta, party-badge, daily-rewards icon,
+    // ai-tag, steam-wishlist sheen. The separate chest glow was retired.
     expect(playStates.length).toBe(8);
   });
 
@@ -94,6 +116,20 @@ describe('hud.css - FCT crit sheds the pop at low (keeps the number)', () => {
     expect(hudCss).toContain('animation-name: fct-rise;');
     // fct-rise must exist as a keyframe target (the swap is inert if it does not).
     expect(hudCss).toContain('@keyframes fct-rise {');
+  });
+});
+
+describe('hud.css - target aura expiry sheds motion at low without hiding the cue', () => {
+  it('replaces the blink with a static brightness marker only on the low tier', () => {
+    expect(hudCss).toMatch(
+      /@media \(prefers-reduced-motion: no-preference\) \{\s*\.ta-row\.expiring \.ta-icon \{\s*animation: aura-expire-blink/,
+    );
+    const rule = hudCss.match(
+      /:root\[data-fx-level="low"\] \.ta-row\.expiring \.ta-icon \{[^}]*\}/,
+    );
+    expect(rule).not.toBeNull();
+    expect(rule?.[0]).toContain('animation: none;');
+    expect(rule?.[0]).toContain('filter: brightness(1.4);');
   });
 });
 

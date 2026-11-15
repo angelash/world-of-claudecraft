@@ -1,5 +1,8 @@
 import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { KAYKIT_WEAPON_ACCESSORY, VARIANT_GRIPS } from '../src/render/characters/assets';
+import { BACK_GRIP_FAMILIES } from '../src/render/characters/back_grips';
 
 import {
   KAYKIT_SHIELD_ACCESSORIES,
@@ -18,14 +21,35 @@ import {
 import { WEAPON_SKIN_LIST } from '../src/sim/content/weapon_skins';
 import { ITEMS } from '../src/sim/data';
 import { weaponHand } from '../src/sim/equipment_rules';
+import { iconDataUrl, weaponIconUrl } from '../src/ui/icons';
 import { ITEM_WEAPON_VARIANTS } from '../src/ui/weapon_variants';
 
-// The per-item held weapon models: each weapon item maps (via the shared
-// ITEM_WEAPON_VARIANTS table) to a variant key that must have BOTH a 3D model GLB
-// (held in-hand) and a 2D icon JPG (bag), so the held weapon always matches its
-// inventory icon.
+function withTemporaryOwnProperty(
+  target: object,
+  key: PropertyKey,
+  value: unknown,
+  run: () => void,
+): void {
+  const original = Object.getOwnPropertyDescriptor(target, key);
+  Object.defineProperty(target, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true,
+  });
+  try {
+    run();
+  } finally {
+    if (original) Object.defineProperty(target, key, original);
+    else Reflect.deleteProperty(target, key);
+  }
+}
+
+// Held-model mappings and painted inventory art are deliberately independent.
+// ITEM_WEAPON_VARIANTS selects the in-world GLB and retains its legacy preview
+// JPG, while weaponIconUrl selects bespoke per-item WebP artwork.
 describe('held weapon models', () => {
-  it('every weapon variant has a model GLB and an icon JPG on disk', () => {
+  it('every weapon variant has a model GLB and legacy preview JPG on disk', () => {
     const keys = [...new Set(Object.values(ITEM_WEAPON_VARIANTS))];
     expect(keys.length).toBeGreaterThan(0);
     for (const key of keys) {
@@ -34,16 +58,141 @@ describe('held weapon models', () => {
     }
   });
 
+  it('every live heroic weapon inherits its base painted icon and held model', () => {
+    const heroicWeapons = Object.values(ITEMS)
+      .filter((item) => item.kind === 'weapon' && item.heroicOf !== undefined)
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    expect(heroicWeapons.map((item) => item.id)).toEqual([
+      'heroic_bonewrought_greatsword',
+      'heroic_courtiers_bonefang',
+      'heroic_deathless_heartwood',
+      'heroic_direfang_greatblade',
+      'heroic_duskwhisper',
+      'heroic_falls_blessed_staff',
+      'heroic_fang_of_korzul',
+      'heroic_fanglords_beastspear',
+      'heroic_fogbinders_rod',
+      'heroic_gaolyard_cudgel',
+      'heroic_gravecallers_rod',
+      'heroic_gravecourt_hewer',
+      'heroic_gravewyrm_thornmaul',
+      'heroic_kingsbane_last_oath',
+      'heroic_knight_commanders_longsword',
+      'heroic_maul_of_the_scourged_wilds',
+      'heroic_merecleaver',
+      'heroic_moonwrack_stave',
+      'heroic_nightfangs_greatstaff',
+      'heroic_rimeweb_fang',
+      'heroic_sextons_spadehaft',
+      'heroic_staff_of_the_gravewyrm',
+      'heroic_staff_of_velkhar',
+      'heroic_thornpeak_wardblade',
+      'heroic_tideglass_shiv',
+      'heroic_turnkeys_shank',
+      'heroic_wildheart_fangknife',
+      'heroic_wildheart_hexwood_staff',
+      'heroic_wildheart_tuskblade',
+      'heroic_wyrmfang_greatblade',
+    ]);
+
+    for (const heroic of heroicWeapons) {
+      const baseId = heroic.heroicOf;
+      expect(baseId, `${heroic.id} must name a base item`).toBeDefined();
+      if (!baseId) continue;
+
+      const base = ITEMS[baseId];
+      expect(base?.kind, `${heroic.id} base ${baseId} must be a weapon`).toBe('weapon');
+      expect(Object.hasOwn(ITEM_WEAPON_VARIANTS, heroic.id), heroic.id).toBe(false);
+      expect(Object.hasOwn(ITEM_WEAPON_VARIANTS, baseId), baseId).toBe(true);
+
+      const variant = ITEM_WEAPON_VARIANTS[baseId];
+      expect(variant, `${baseId} must have a real variant`).toBeTruthy();
+      if (!variant) continue;
+
+      expect(existsSync(`public/models/weapons/${variant}.glb`), `${variant}.glb missing`).toBe(
+        true,
+      );
+      expect(existsSync(`public/ui/weapons/${variant}.jpg`), `${variant}.jpg missing`).toBe(true);
+      expect(iconDataUrl('item', heroic.id), `${heroic.id} bag icon`).toBe(
+        `/ui/items/${baseId}.webp`,
+      );
+      expect(itemWeaponModelUrl(heroic.id), `${heroic.id} held model`).toBe(
+        `models/weapons/${variant}.glb`,
+      );
+      expect(iconDataUrl('item', heroic.id), `${heroic.id} inventory portrait`).toBe(
+        iconDataUrl('item', baseId),
+      );
+    }
+
+    expect(weaponIconUrl('worn_sword')).toBe('/ui/items/worn_sword.webp');
+    for (const hostile of ['__proto__', 'constructor', 'toString', 'hasOwnProperty']) {
+      expect(weaponIconUrl(hostile), hostile).toBeNull();
+      expect(itemWeaponModelUrl(hostile), `${hostile} mainhand`).toBeNull();
+      expect(itemOffhandModelUrl(hostile), `${hostile} offhand`).toBeNull();
+    }
+    expect(weaponIconUrl('stale_server_weapon_id')).toBeNull();
+    expect(itemWeaponModelUrl('stale_server_weapon_id')).toBeNull();
+    expect(itemOffhandModelUrl('stale_server_weapon_id')).toBeNull();
+  });
+
+  it('prefers direct painted and held identities over heroic inheritance', () => {
+    const heroicId = 'heroic_wyrmfang_greatblade';
+    const heroic = ITEMS[heroicId];
+    const originalBaseId = heroic.heroicOf;
+    expect(originalBaseId).toBe('wyrmfang_greatblade');
+    expect(Object.hasOwn(ITEM_WEAPON_VARIANTS, heroicId)).toBe(false);
+
+    withTemporaryOwnProperty(heroic, 'heroicOf', 'worn_sword', () => {
+      withTemporaryOwnProperty(ITEM_WEAPON_VARIANTS, heroicId, 'dagger_a', () => {
+        expect(weaponIconUrl(heroicId)).toBe(`/ui/items/${heroicId}.webp`);
+        expect(iconDataUrl('item', heroicId)).toBe(`/ui/items/${heroicId}.webp`);
+        expect(itemWeaponModelUrl(heroicId)).toBe('models/weapons/dagger_a.glb');
+        expect(itemOffhandModelUrl(heroicId)).toBe('models/weapons/dagger_a.glb');
+      });
+    });
+
+    expect(heroic.heroicOf).toBe(originalBaseId);
+    expect(Object.hasOwn(ITEM_WEAPON_VARIANTS, heroicId)).toBe(false);
+  });
+
+  it('rejects prototype keys inherited through heroicOf for bag and held art', () => {
+    const heroicId = 'heroic_wyrmfang_greatblade';
+    const heroic = ITEMS[heroicId];
+    const originalBaseId = heroic.heroicOf;
+    expect(Object.hasOwn(ITEM_WEAPON_VARIANTS, heroicId)).toBe(false);
+
+    for (const hostileBaseId of ['__proto__', 'constructor', 'toString', 'hasOwnProperty']) {
+      withTemporaryOwnProperty(heroic, 'heroicOf', hostileBaseId, () => {
+        expect(weaponIconUrl(heroicId), `${hostileBaseId} bag`).toBeNull();
+        expect(itemWeaponModelUrl(heroicId), `${hostileBaseId} mainhand`).toBeNull();
+        expect(itemOffhandModelUrl(heroicId), `${hostileBaseId} offhand`).toBeNull();
+      });
+    }
+
+    expect(heroic.heroicOf).toBe(originalBaseId);
+  });
+
   it('itemWeaponModelUrl resolves mapped items and ignores everything else', () => {
-    expect(itemWeaponModelUrl('worn_sword')).toBe('models/weapons/sword_a.glb');
-    expect(itemWeaponModelUrl('fen_reaver_glaive')).toBe('models/weapons/scythe.glb');
-    expect(itemWeaponModelUrl('eastbrook_greatsword')).toBe('models/weapons/adv_sword_2handed.glb');
-    expect(itemWeaponModelUrl('highwatch_greatsword')).toBe('models/weapons/adv_sword_2handed.glb');
+    expect(itemWeaponModelUrl('worn_sword')).toBe('models/weapons/sword_starter.glb');
+    expect(itemWeaponModelUrl('fen_reaver_glaive')).toBe('models/weapons/spear_field_iron.glb');
+    expect(itemWeaponModelUrl('eastbrook_greatsword')).toBe(
+      'models/weapons/sword_field_2h_iron.glb',
+    );
+    expect(itemWeaponModelUrl('highwatch_greatsword')).toBe(
+      'models/weapons/sword_field_2h_steel.glb',
+    );
+    expect(itemWeaponModelUrl('vanguard_verdict_greatsword')).toBe(
+      'models/weapons/sword_rare_a_royal.glb',
+    );
     expect(itemWeaponModelUrl('deathless_greatblade')).toBe(
-      'models/weapons/adv_sword_2handed_color.glb',
+      'models/weapons/sword_rare_a_spectral.glb',
     );
     expect(itemWeaponModelUrl('heroic_wyrmfang_greatblade')).toBe(
-      'models/weapons/adv_sword_2handed_color.glb',
+      'models/weapons/sword_rare_a_ember.glb',
+    );
+    expect(itemWeaponModelUrl('kingsbane_last_oath')).toBe(
+      'models/weapons/sword_epic_deathless_crucible_heart.glb',
     );
     expect(itemWeaponModelUrl('chest_armor_not_a_weapon')).toBeNull();
     expect(itemWeaponModelUrl(null)).toBeNull();
@@ -76,25 +225,120 @@ describe('held weapon models', () => {
     expect(unmapped.map((item) => item.id)).toEqual([]);
   });
 
-  // The wraithfire_orb (and its generated heroic clone) plus the valefire_lantern
-  // are the known held model gaps: the shared art set has no orb or lantern model
-  // to map them to, so they need new art, not a table row. Pinning the exact set
-  // makes the exception conscious: a future held_offhand item must either map to
-  // a model or extend this pin.
-  it('pins the held_offhand items without a model (orb and lantern)', () => {
+  // The orbs, the lantern, and the quivers (each with its generated heroic
+  // clone where the source is heroic-eligible) are the remaining held model
+  // gaps: the shared art set has no orb, lantern, or quiver model to map them
+  // to, so they need new art, not a table row. The quivers are a softer gap
+  // than the orbs: the hunter's ranger.glb already carries a built-in quiver
+  // mesh, so an unmapped quiver reads correctly on the body instead of
+  // showing nothing. The three inscription tomes LEFT this pin at the phase
+  // 06 QA, and voidbound_grimoire followed them out at phase 18: all four map
+  // to the procedural tome GLBs (scripts/assets/inscription_tomes, pinned by
+  // tests/inscription_tome_assets.test.ts).
+  // Pinning the exact set makes the exception conscious: a future held_offhand
+  // item must either map to a model or extend this pin.
+  it('pins the held_offhand items without a model (orbs, lantern and quivers)', () => {
     const heldOffhands = Object.values(ITEMS).filter((item) => item.kind === 'held_offhand');
     const unmapped = heldOffhands
       .filter((item) => itemOffhandModelUrl(item.id) === null)
       .map((item) => item.id)
       .sort();
-    expect(unmapped).toEqual(['heroic_wraithfire_orb', 'valefire_lantern', 'wraithfire_orb']);
+    expect(unmapped).toEqual([
+      // The dungeon reworks' held offhands: the Hollow Crypt's Cantor's Hymnal
+      // and the Drowned Temple's Chorus Conch (each with its Heroic clone). A
+      // hymnal and a conch have no shared held model yet.
+      'cantors_hymnal',
+      // The Buried Hoard held offhands (a chalice and a void orb, each in its three
+      // map-rarity tiers) are the orb class of gap: the shared art set has no
+      // chalice or orb model, so they need new art, not a table row.
+      'chalice_of_living_tides',
+      'chorus_conch',
+      // The two Crucible held offhands follow the wraithfire_orb precedent
+      // (a held orb/censer with no dedicated GLB yet).
+      'cinder_of_the_first_design',
+      // copperlens_ocular: masterwrought Phase 11o's on-ramp gadget parks
+      // with its register sibling gyrelens_array below (the same lens-array
+      // class of gap; no shared model exists) until the art wave. RULED
+      // (qr-19-held-offhand-model-park, 2026-09-01, under
+      // qr-19-best-for-project): the park is RATIFIED for both lenses, so
+      // this is a ruled park rather than an open question, and the art wave
+      // that closes it is the maintainer's, not this phase's.
+      'copperlens_ocular',
+      'cragmaw_huntquiver',
+      'direfang_quiver',
+      // gyrelens_array: the shared art set has no lens-array model (the orb
+      // class of gap). Its phase 09 register sibling voidbound_grimoire LEFT
+      // this pin at phase 18: it was the half of the park with an existing
+      // pattern to follow, so it got its own procedural tome GLB
+      // (tome_voidbound) instead of an entry here. RULED
+      // (qr-19-held-offhand-model-park, 2026-09-01, under
+      // qr-19-best-for-project): the lens half KEEPS the park, precisely
+      // because a lens array has no pattern to reuse and the gap is
+      // cosmetic only. Commissioning is the maintainer's art wave.
+      'gravewyrm_bone_quiver',
+      'gyrelens_array',
+      'heroic_cantors_hymnal',
+      'heroic_chorus_conch',
+      'heroic_direfang_quiver',
+      'heroic_gravewyrm_bone_quiver',
+      'heroic_wraithfire_orb',
+      // The Crucible hunter quiver joins its quiver siblings: worn on the
+      // back by ranger.glb, so no held GLB.
+      'infernal_quiver',
+      'legendary_chalice_of_living_tides',
+      'legendary_orb_collapsing_void',
+      'moggers_hide_quiver',
+      'orb_collapsing_void',
+      'orb_of_the_last_spring',
+      'rare_chalice_of_living_tides',
+      'rare_orb_collapsing_void',
+      'valefire_lantern',
+      'wraithfire_orb',
+    ]);
+    // The retirement itself, stated as its own assertion so a re-add cannot
+    // pass by quietly restoring the row above.
+    expect(unmapped).not.toContain('voidbound_grimoire');
+  });
+
+  it('every inscription tome resolves its own held model GLB on disk', () => {
+    const expected: Record<string, string> = {
+      silverleaf_primer: 'models/weapons/tome_silverleaf.glb',
+      goldleaf_folio: 'models/weapons/tome_goldleaf.glb',
+      sunpetal_grimoire: 'models/weapons/tome_sunpetal.glb',
+      voidbound_grimoire: 'models/weapons/tome_voidbound.glb',
+    };
+    for (const [itemId, url] of Object.entries(expected)) {
+      expect(itemOffhandModelUrl(itemId), itemId).toBe(url);
+      expect(existsSync(path.join(__dirname, '..', 'public', url)), `${url} missing`).toBe(true);
+    }
+  });
+
+  it('every tome basename rides the VAR_BOOK grip family, hand and back', () => {
+    // Without an accessory row a model still renders but sits at the raw bone
+    // transform (no lift, no flip, no clamp), which no behavior suite can
+    // see: pin the table rows plus both grip tables the family resolves to.
+    for (const key of ['tome_silverleaf', 'tome_goldleaf', 'tome_sunpetal', 'tome_voidbound']) {
+      expect(KAYKIT_WEAPON_ACCESSORY[key], key).toBe('VAR_BOOK');
+    }
+    expect(VARIANT_GRIPS.VAR_BOOK).toBeDefined();
+    expect(BACK_GRIP_FAMILIES.has('VAR_BOOK')).toBe(true);
   });
 
   it('resolves actual offhands independently from the mainhand model', () => {
-    expect(itemOffhandModelUrl('eastbrook_buckler')).toBe('models/weapons/shield_round.glb');
-    expect(itemOffhandModelUrl('highwatch_wallshield')).toBe('models/weapons/shield_square.glb');
-    expect(itemOffhandModelUrl('rusty_dagger')).toBe('models/weapons/dagger_a.glb');
-    expect(itemOffhandModelUrl('heroic_fang_of_korzul')).toBe('models/weapons/dagger_c.glb');
+    expect(itemOffhandModelUrl('eastbrook_buckler')).toBe('models/weapons/shield_starter.glb');
+    expect(itemOffhandModelUrl('highwatch_wallshield')).toBe(
+      'models/weapons/shield_field_steel.glb',
+    );
+    expect(itemOffhandModelUrl('bonewrought_bulwark')).toBe(
+      'models/weapons/shield_rare_a_teal.glb',
+    );
+    expect(itemOffhandModelUrl('duskforged_bulwark')).toBe(
+      'models/weapons/shield_rare_a_violet.glb',
+    );
+    expect(itemOffhandModelUrl('rusty_dagger')).toBe('models/weapons/dagger_starter.glb');
+    expect(itemOffhandModelUrl('heroic_fang_of_korzul')).toBe(
+      'models/weapons/dagger_rare_b_violet.glb',
+    );
     expect(itemOffhandModelUrl('chest_armor_not_an_offhand')).toBeNull();
     expect(itemOffhandModelUrl(null)).toBeNull();
     expect(itemOffhandModelUrl(undefined)).toBeNull();
@@ -105,6 +349,8 @@ describe('held weapon models', () => {
     for (const url of [
       itemOffhandModelUrl('eastbrook_buckler'),
       itemOffhandModelUrl('highwatch_wallshield'),
+      itemOffhandModelUrl('bonewrought_bulwark'),
+      itemOffhandModelUrl('pearlward_aegis'),
     ]) {
       expect(url).not.toBeNull();
       if (!url) continue;
@@ -163,7 +409,15 @@ describe('held weapon models', () => {
     const TYPES = [
       'sword',
       'dagger',
+      // dagger-family model names that carry a VAR_DAGGER grip without the
+      // literal 'dagger' token (the base dagger grip is 'Knife'): fangs and
+      // knives (ice_fang, whittler_s_knife, obsidian_fang, ...).
+      'fang',
+      'knife',
       'staff',
+      // The staff family's older spelling, on a bespoke model: craterglass_stave
+      // (VAR_STAFF in assets.ts).
+      'stave',
       'hammer',
       'axe',
       'mace',
@@ -189,7 +443,9 @@ describe('held weapon models', () => {
     expect(players).toContain('player_mech');
     for (const key of players) {
       const def = VISUALS[key];
-      if (key === 'player_hunter') {
+      // both hunter bodies: the fixed rig and its composed (modular) variant
+      // share the class hand layout, so both keep the crossbow
+      if (key.startsWith('player_hunter')) {
         expect(def.weaponSlots, 'hunter must keep its crossbow').toBeUndefined();
       } else {
         expect(def.weaponSlots?.includes(0), `${key} should swap its mainhand`).toBe(true);
@@ -236,9 +492,20 @@ describe('held weapon models', () => {
     expect(rogue?.weaponSlots).toEqual([0]);
     expect(rogue?.offhandSlot).toBe(1);
     expect(rogue?.attach?.length).toBe(2);
-    expect(mechHeldWeaponOverride('paladin')?.offhandSlot).toBe(1);
-    expect(mechHeldWeaponOverride('shaman')?.offhandSlot).toBe(1);
-    for (const cls of ['hunter', 'priest', 'mage', 'warlock', 'druid'] as const) {
+    // The phase 06 QA gave priest, mage, and druid a real offhand slot (the
+    // inscription tomes), so the mech mirrors it for them exactly as it does
+    // for the shield classes. The warlock keeps its FIXED class spellbook
+    // (deliberately no offhandSlot; an equipped tome keeps the book visual),
+    // and the hunter has no offhand at all.
+    for (const cls of ['paladin', 'shaman', 'priest', 'mage', 'druid'] as const) {
+      expect(mechHeldWeaponOverride(cls)?.offhandSlot, cls).toBe(1);
+    }
+    // Accepted side effect, recorded in the Phase 06 QA ledger: a WEAPONLESS
+    // caster in the mech now shows the class staff base where it used to show
+    // the mech's sword default (the same layout adoption the shield classes
+    // already had). An armed character is unaffected (index 0 is a swap slot).
+    expect(mechHeldWeaponOverride('mage')?.attach?.[0]?.url).toBe('models/weapons/staff.glb');
+    for (const cls of ['hunter', 'warlock'] as const) {
       expect(mechHeldWeaponOverride(cls), `${cls} should keep the mech default`).toBeNull();
     }
 
@@ -298,11 +565,11 @@ describe('weapon skin held models', () => {
     expect(offhandModelUrl(null, 'frostbite_dagger')).toBeNull();
   });
 
-  it('ships 29 distinct skin model urls, all in the boot preload manifest', () => {
+  it("ships 34 distinct skin model urls (the store's 29, Lantern Hall's blade and its four elemental arms), all in the boot preload manifest", () => {
     const urls = weaponSkinModelUrls();
     expect(urls.length).toBe(WEAPON_SKIN_LIST.length);
-    expect(urls.length).toBe(29);
-    expect(new Set(urls).size).toBe(29);
+    expect(urls.length).toBe(34);
+    expect(new Set(urls).size).toBe(34);
     const manifest = new Set(manifestUrls());
     for (const url of urls) {
       expect(url.startsWith('models/weapons/'), url).toBe(true);

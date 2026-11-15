@@ -6,17 +6,27 @@
 # src/ - client & shared simulation source
 
 Everything the browser client needs plus the shared game core. Directories with
-their own CLAUDE.md: `sim/` (+ `sim/content/`, `sim/professions/`, `sim/pvp/`),
-`render/` (+ `render/characters/`), `game/`, `ui/` (+ `ui/hud/`), `styles/`,
-`net/`, `admin/`, `guide/` (+ `guide/viewer/`), plus `world_api/` and `editor/`
-(below). Read the local one before working in an area.
+their own CLAUDE.md: `sim/` (+ `sim/content/`, `sim/professions/`, `sim/physics/`,
+`sim/pvp/`), `render/` (+ `render/characters/`), `game/`, `ui/` (+ `ui/hud/`),
+`styles/`, `net/`, `admin/`, `guide/` (+ `guide/viewer/`), plus `world_api/` and
+`editor/` (below). Read the local one before working in an area.
 
 ## Entries (what loads what)
-- `index.html` AND `play.html` both load `src/main.ts`. Guard index-only DOM
-  lookups with `?.`: `/play` lacks the marketing shell, and an unguarded lookup
+- `play.html` loads `src/main.ts`; `index.html` loads `src/boot.ts`, which imports the
+  style barrel and then `src/main.ts` as a dynamic import. On a plain first visit
+  (`bootModeFor` in `src/ui/landing_first_core.ts`) the landing page paints without the
+  client and `src/main.ts` starts on the first interaction (`src/ui/landing_first.ts`
+  holds and replays a button click made before then); every other visit starts it at
+  once. Either way `src/main.ts` runs the same code on both entries. Guard index-only
+  DOM lookups with `?.`: `/play` lacks the marketing shell, and an unguarded lookup
   throws there (a bug class that has shipped before).
 - `guide.html` loads `src/guide/main.ts`; `editor.html` loads `src/editor/main.ts`;
   `admin.html` is the standalone Svelte admin SPA (`src/admin/`).
+- `wallet-handoff.html` loads `src/wallet_handoff.ts` (with its `_authorization`/`_focus`
+  siblings): the standalone wallet-link handoff page. Its net glue is split by host:
+  `src/net/wallet_handoff_browser.ts` (browser) vs `src/net/desktop_wallet_handoff.ts`
+  (desktop shell), and the tracked `public/wallet-return.html` closes the loop. Spec:
+  `docs/prd/woc/wallet-link.md`.
 - `music_editor.html` is a dev-only tool that writes `src/game/music_overrides.generated.ts`.
 
 ## Dependency direction: do not violate
@@ -35,10 +45,19 @@ lets the same `sim/` run offline, on the server, and headless.
   to "not `sim/`": (a) `render/` may import **pure, deterministic** sim geometry/data
   helpers so it shares the sim's terrain/movement math instead of re-deriving it
   (exemplars: `sim/world` terrain heights, `sim/player_motion` run by the
-  display-only self extrapolator `render/self_motion.ts`, `sim/data`; enumerate the
-  live set with `grep -rn "from '.*sim/" src/render`); reaching into mutable `Sim`
-  state or `sim/sim.ts` logic stays forbidden. (b) `render`/`game` use `ui/`'s
-  i18n + icon surface (`t`, `tEntity`, `ui/icons`).
+  display-only self extrapolator `render/self_motion.ts`, `sim/data`, and the
+  placement readouts for anything the sim COLLIDES with, so the mesh and the
+  collider come from one list: `colliders.bankerChestSpots`,
+  `colliders.streetlampPlacements` + its `sim/streetlamp_layout`/`streetlamp_style`
+  leaves; enumerate the live set with `grep -rn "from '.*sim/" src/render`);
+  reaching into mutable `Sim` state or `sim/sim.ts` logic stays forbidden. (b) `render`/`game`
+  use `ui/`'s i18n + icon surface (`t`, `tEntity`, `ui/icons`) AND its host-agnostic pure-core
+  LEAVES, so one resolution rule serves both the HUD and the 3D scene instead of being
+  written twice (exemplars: `ui/text_sprite_cache` for label rasterizing,
+  `ui/root_state_classes` for the state-class names a `game/` module stamps,
+  `ui/deed_border_view` for the deed id -> border palette both the nameplate canvas and the
+  portrait ring paint from; enumerate the live set with `grep -rn "from '.*ui/" src/render`).
+  A leaf qualifies only while it stays pure: no DOM, no `IWorld`, no mutable UI state.
 - `net/` -> `sim/` (types plus **pure display helpers** such as `abilitiesKnownAt`/
   `computeQuestState`; the server re-validates everything) + `world_api.ts`
   (`ClientWorld implements IWorld`).
@@ -48,7 +67,8 @@ lets the same `sim/` run offline, on the server, and headless.
 - `runtime.ts` / `client_origin.ts` -> desktop/native runtime detection (the
   desktop bridge) and the shared asset/REST origin policy; presentation modules
   use `client_origin.ts` instead of importing `net/`. `site_presence.ts` is the
-  standalone marketing-page heartbeat.
+  standalone marketing-page heartbeat; other small top-level leaves follow the same
+  pattern (e.g. `device_memory_hint.ts`, `discord_login_start.ts`).
 - `admin/` -> standalone (its own `admin.html` entry); independent of the game client.
 
 ## Where a new feature lands (module-first)

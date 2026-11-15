@@ -1,5 +1,9 @@
 import { zoneAt } from '../../src/sim/data';
-import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../../src/sim/eastbrook_layout';
+import {
+  EASTBROOK_BUILDINGS_BY_ID,
+  EASTBROOK_LAYOUT,
+  EASTBROOK_NPC_PLACEMENTS_BY_ID,
+} from '../../src/sim/eastbrook_layout';
 import type { Vec3 } from '../../src/sim/types';
 import { dist2d } from '../../src/sim/types';
 import type { LightSemantic, TimeSemantic, WeatherSemantic } from './time_weather_model';
@@ -41,9 +45,37 @@ export interface SceneSemantics {
   light: LightSemantic;
 }
 
-const EASTBROOK_SCENE_CENTER = { x: 8, z: 17 } as const;
-const EASTBROOK_APOTHECARY_POINT =
-  EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position;
+const EASTBROOK_SCENE_CENTER = EASTBROOK_LAYOUT.civic.center;
+const EASTBROOK_WORK_POINTS = {
+  forge: {
+    point: EASTBROOK_LAYOUT.buildings
+      .find((b) => b.id === 'eastbrook_smithy')!
+      .annexes.find((a) => a.id === 'eastbrook_smithy:forge_shelter')!.center,
+    radius: 10,
+  },
+  smithy: { point: EASTBROOK_BUILDINGS_BY_ID.eastbrook_smithy.position, radius: 12 },
+  market: {
+    point: EASTBROOK_LAYOUT.market.stalls.find(
+      (s) => s.id === 'eastbrook_market_stall_world_market',
+    )!.position,
+    radius: 11,
+  },
+  apothecary: { point: EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.position, radius: 12 },
+  shrine: { point: EASTBROOK_NPC_PLACEMENTS_BY_ID.brother_aldric.position, radius: 12 },
+};
+const EASTBROOK_SCENE_RADIUS = Math.ceil(
+  Math.max(
+    36,
+    ...Object.values(EASTBROOK_WORK_POINTS).map(
+      ({ point, radius }) =>
+        Math.hypot(point.x - EASTBROOK_SCENE_CENTER.x, point.z - EASTBROOK_SCENE_CENTER.z) + radius,
+    ),
+  ),
+);
+function eastbrookOffset(kind: keyof typeof EASTBROOK_WORK_POINTS) {
+  const { point, radius } = EASTBROOK_WORK_POINTS[kind];
+  return { dx: point.x - EASTBROOK_SCENE_CENTER.x, dz: point.z - EASTBROOK_SCENE_CENTER.z, radius };
+}
 
 export const SCENE_ANCHORS: readonly SceneAnchor[] = [
   {
@@ -51,28 +83,52 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     label: 'Eastbrook Forge',
     x: EASTBROOK_SCENE_CENTER.x,
     z: EASTBROOK_SCENE_CENTER.z,
-    radius: 36,
+    radius: EASTBROOK_SCENE_RADIUS,
     biomeTags: ['vale', 'town'],
     locationTags: ['town', 'marketEdge', 'safeTown'],
     structureTags: ['forge', 'stall', 'house'],
     environmentalTags: ['hotIron', 'sparks', 'workNoise', 'warmLight', 'safeTown'],
     semanticObjects: [
-      { id: 'eastbrook_forge_hearth', label: 'Forge Hearth', tags: ['forge', 'hotIron', 'sparks', 'workNoise'], featureTags: ['orangeCoals', 'hammerMarks', 'sootBlackenedStone'], affordanceTags: ['warmHands', 'repairGear', 'avoidHeat'], dx: 0, dz: 0, radius: 10 },
-      { id: 'eastbrook_smithy_house', label: 'Smithy House', tags: ['house', 'warmLight', 'safeTown', 'livedIn'], featureTags: ['litWindows', 'smokeCurl', 'stackedFirewood'], affordanceTags: ['seekShelter', 'askForHelp', 'restNearDoor'], dx: -5, dz: 4, radius: 12 },
-      { id: 'eastbrook_market_stall', label: 'Market Stall', tags: ['stall', 'marketEdge', 'coin', 'footTraffic'], featureTags: ['hangingCloth', 'countingTray', 'scuffedCounter'], affordanceTags: ['haggle', 'sniffGoods', 'watchCrowd'], dx: 7, dz: -3, radius: 11 },
+      {
+        id: 'eastbrook_forge_hearth',
+        label: 'Forge Hearth',
+        tags: ['forge', 'hotIron', 'sparks', 'workNoise'],
+        featureTags: ['orangeCoals', 'hammerMarks', 'sootBlackenedStone'],
+        affordanceTags: ['warmHands', 'repairGear', 'avoidHeat'],
+        ...eastbrookOffset('forge'),
+      },
+      {
+        id: 'eastbrook_smithy_house',
+        label: 'Smithy House',
+        tags: ['house', 'warmLight', 'safeTown', 'livedIn'],
+        featureTags: ['litWindows', 'smokeCurl', 'stackedFirewood'],
+        affordanceTags: ['seekShelter', 'askForHelp', 'restNearDoor'],
+        ...eastbrookOffset('smithy'),
+      },
+      {
+        id: 'eastbrook_market_stall',
+        label: 'Market Stall',
+        tags: ['stall', 'marketEdge', 'coin', 'footTraffic'],
+        featureTags: ['hangingCloth', 'countingTray', 'scuffedCounter'],
+        affordanceTags: ['haggle', 'sniffGoods', 'watchCrowd'],
+        ...eastbrookOffset('market'),
+      },
       {
         id: 'eastbrook_apothecary_bench',
         label: 'Apothecary Bench',
         tags: ['alchemy', 'herb', 'safeTown', 'quiet'],
         featureTags: ['dryingBundles', 'glassVials', 'mortarDust'],
         affordanceTags: ['sniffHerbs', 'askRemedy', 'handleCarefully'],
-        // Keep the fork's semantic work point aligned with Lin's canonical
-        // v0.30 placement instead of the removed legacy drying-rack location.
-        dx: EASTBROOK_APOTHECARY_POINT.x - EASTBROOK_SCENE_CENTER.x,
-        dz: EASTBROOK_APOTHECARY_POINT.z - EASTBROOK_SCENE_CENTER.z,
-        radius: 12,
+        ...eastbrookOffset('apothecary'),
       },
-      { id: 'eastbrook_wayside_shrine', label: 'Wayside Shrine', tags: ['shrine', 'prayerMemory', 'quiet', 'safeTown'], featureTags: ['waxDrips', 'prayerRibbons', 'weatheredIcon'], affordanceTags: ['offerPrayer', 'lowerVoice', 'readInscription'], dx: -22, dz: -27, radius: 12 },
+      {
+        id: 'eastbrook_wayside_shrine',
+        label: 'Wayside Shrine',
+        tags: ['shrine', 'prayerMemory', 'quiet', 'safeTown'],
+        featureTags: ['waxDrips', 'prayerRibbons', 'weatheredIcon'],
+        affordanceTags: ['offerPrayer', 'lowerVoice', 'readInscription'],
+        ...eastbrookOffset('shrine'),
+      },
     ],
   },
   {
@@ -86,9 +142,36 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     structureTags: ['ruinedChapel', 'cryptGate', 'brokenBell'],
     environmentalTags: ['graveSoil', 'oldStone', 'undeadMemory', 'deathPressure'],
     semanticObjects: [
-      { id: 'fallen_chapel_altar', label: 'Broken Chapel Altar', tags: ['ruinedChapel', 'oldStone', 'graveSoil', 'prayerMemory'], featureTags: ['crackedSlate', 'meltedCandles', 'freshScratches'], affordanceTags: ['prayUneasily', 'inspectOfferings', 'avoidDesecration'], dx: -2, dz: 1, radius: 18 },
-      { id: 'fallen_chapel_bell', label: 'Broken Bell', tags: ['brokenBell', 'oldStone', 'silence', 'undeadMemory'], featureTags: ['splitBronze', 'ropeFray', 'birdDroppings'], affordanceTags: ['listenForEcho', 'startleAtSound', 'hideBehindStone'], dx: 5, dz: -6, radius: 14 },
-      { id: 'fallen_crypt_gate', label: 'Crypt Gate', tags: ['cryptGate', 'sealedAir', 'deathPressure', 'dungeonEntrance'], featureTags: ['rustedBars', 'coldDraft', 'boneDust'], affordanceTags: ['hesitateAtThreshold', 'guardEntrance', 'fleeFromDark'], dx: 0, dz: 10, radius: 16 },
+      {
+        id: 'fallen_chapel_altar',
+        label: 'Broken Chapel Altar',
+        tags: ['ruinedChapel', 'oldStone', 'graveSoil', 'prayerMemory'],
+        featureTags: ['crackedSlate', 'meltedCandles', 'freshScratches'],
+        affordanceTags: ['prayUneasily', 'inspectOfferings', 'avoidDesecration'],
+        dx: -2,
+        dz: 1,
+        radius: 18,
+      },
+      {
+        id: 'fallen_chapel_bell',
+        label: 'Broken Bell',
+        tags: ['brokenBell', 'oldStone', 'silence', 'undeadMemory'],
+        featureTags: ['splitBronze', 'ropeFray', 'birdDroppings'],
+        affordanceTags: ['listenForEcho', 'startleAtSound', 'hideBehindStone'],
+        dx: 5,
+        dz: -6,
+        radius: 14,
+      },
+      {
+        id: 'fallen_crypt_gate',
+        label: 'Crypt Gate',
+        tags: ['cryptGate', 'sealedAir', 'deathPressure', 'dungeonEntrance'],
+        featureTags: ['rustedBars', 'coldDraft', 'boneDust'],
+        affordanceTags: ['hesitateAtThreshold', 'guardEntrance', 'fleeFromDark'],
+        dx: 0,
+        dz: 10,
+        radius: 16,
+      },
     ],
   },
   {
@@ -102,9 +185,36 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     structureTags: ['dock', 'hut'],
     environmentalTags: ['fishSmell', 'openWater', 'quietRipples', 'moonlitWater'],
     semanticObjects: [
-      { id: 'mirror_lake_planks', label: 'Weathered Dock Planks', tags: ['dock', 'wetWood', 'fishSmell', 'footTraffic'], featureTags: ['slickBoards', 'ropeCoils', 'fishScales'], affordanceTags: ['sniffFish', 'paceCarefully', 'peerBelow'], dx: 0, dz: 0, radius: 16 },
-      { id: 'mirror_lake_hut', label: 'Lake Hut', tags: ['hut', 'shore', 'shelter', 'fishing'], featureTags: ['patchedRoof', 'netHooks', 'oilLamp'], affordanceTags: ['seekShelter', 'borrowBait', 'listenAtDoor'], dx: -6, dz: 5, radius: 14 },
-      { id: 'mirror_lake_waterline', label: 'Quiet Waterline', tags: ['openWater', 'quietRipples', 'moonlitWater', 'reflection'], featureTags: ['softRipples', 'silverReflections', 'muddyBank'], affordanceTags: ['drinkWater', 'watchReflection', 'avoidDeepWater'], dx: 8, dz: -4, radius: 18 },
+      {
+        id: 'mirror_lake_planks',
+        label: 'Weathered Dock Planks',
+        tags: ['dock', 'wetWood', 'fishSmell', 'footTraffic'],
+        featureTags: ['slickBoards', 'ropeCoils', 'fishScales'],
+        affordanceTags: ['sniffFish', 'paceCarefully', 'peerBelow'],
+        dx: 0,
+        dz: 0,
+        radius: 16,
+      },
+      {
+        id: 'mirror_lake_hut',
+        label: 'Lake Hut',
+        tags: ['hut', 'shore', 'shelter', 'fishing'],
+        featureTags: ['patchedRoof', 'netHooks', 'oilLamp'],
+        affordanceTags: ['seekShelter', 'borrowBait', 'listenAtDoor'],
+        dx: -6,
+        dz: 5,
+        radius: 14,
+      },
+      {
+        id: 'mirror_lake_waterline',
+        label: 'Quiet Waterline',
+        tags: ['openWater', 'quietRipples', 'moonlitWater', 'reflection'],
+        featureTags: ['softRipples', 'silverReflections', 'muddyBank'],
+        affordanceTags: ['drinkWater', 'watchReflection', 'avoidDeepWater'],
+        dx: 8,
+        dz: -4,
+        radius: 18,
+      },
     ],
   },
   {
@@ -118,9 +228,36 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     structureTags: ['bridge', 'watchPost'],
     environmentalTags: ['wetWood', 'marshFog', 'chokePoint', 'insectNoise'],
     semanticObjects: [
-      { id: 'fenbridge_planks', label: 'Fenbridge Planks', tags: ['bridge', 'wetWood', 'chokePoint', 'footTraffic'], featureTags: ['muddyBootprints', 'looseBoards', 'waterStains'], affordanceTags: ['blockPath', 'listenForSteps', 'crossCarefully'], dx: 0, dz: 0, radius: 18 },
-      { id: 'fenbridge_gatepost', label: 'Gatepost', tags: ['gate', 'watchPost', 'militaryOrder', 'safeTown'], featureTags: ['knifeMarks', 'watchLantern', 'postedNotice'], affordanceTags: ['standGuard', 'readNotice', 'signalTown'], dx: -7, dz: 4, radius: 14 },
-      { id: 'fenbridge_reeds', label: 'Marsh Reeds', tags: ['marshFog', 'insectNoise', 'shore', 'lowVisibility'], featureTags: ['tallReeds', 'buzzingGnats', 'mudChannels'], affordanceTags: ['hideInReeds', 'avoidBitingInsects', 'trackRipples'], dx: 8, dz: -5, radius: 16 },
+      {
+        id: 'fenbridge_planks',
+        label: 'Fenbridge Planks',
+        tags: ['bridge', 'wetWood', 'chokePoint', 'footTraffic'],
+        featureTags: ['muddyBootprints', 'looseBoards', 'waterStains'],
+        affordanceTags: ['blockPath', 'listenForSteps', 'crossCarefully'],
+        dx: 0,
+        dz: 0,
+        radius: 18,
+      },
+      {
+        id: 'fenbridge_gatepost',
+        label: 'Gatepost',
+        tags: ['gate', 'watchPost', 'militaryOrder', 'safeTown'],
+        featureTags: ['knifeMarks', 'watchLantern', 'postedNotice'],
+        affordanceTags: ['standGuard', 'readNotice', 'signalTown'],
+        dx: -7,
+        dz: 4,
+        radius: 14,
+      },
+      {
+        id: 'fenbridge_reeds',
+        label: 'Marsh Reeds',
+        tags: ['marshFog', 'insectNoise', 'shore', 'lowVisibility'],
+        featureTags: ['tallReeds', 'buzzingGnats', 'mudChannels'],
+        affordanceTags: ['hideInReeds', 'avoidBitingInsects', 'trackRipples'],
+        dx: 8,
+        dz: -5,
+        radius: 16,
+      },
     ],
   },
   {
@@ -134,8 +271,26 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     structureTags: ['ruinedChapel', 'drownedStones'],
     environmentalTags: ['graveSoil', 'marshFog', 'wetStone', 'undeadMemory'],
     semanticObjects: [
-      { id: 'drowned_chapel_stones', label: 'Drowned Chapel Stones', tags: ['ruinedChapel', 'drownedStones', 'wetStone', 'graveSoil'], featureTags: ['waterlineStains', 'lichenScript', 'sunkenTiles'], affordanceTags: ['stepAroundWater', 'readOldMarks', 'feelWatched'], dx: 0, dz: 0, radius: 20 },
-      { id: 'drowned_reed_bed', label: 'Reed Bed', tags: ['marshFog', 'shore', 'lowVisibility', 'insectNoise'], featureTags: ['bentReeds', 'floatingPollen', 'hiddenTracks'], affordanceTags: ['hideInReeds', 'trackMovement', 'avoidAmbush'], dx: 9, dz: -4, radius: 18 },
+      {
+        id: 'drowned_chapel_stones',
+        label: 'Drowned Chapel Stones',
+        tags: ['ruinedChapel', 'drownedStones', 'wetStone', 'graveSoil'],
+        featureTags: ['waterlineStains', 'lichenScript', 'sunkenTiles'],
+        affordanceTags: ['stepAroundWater', 'readOldMarks', 'feelWatched'],
+        dx: 0,
+        dz: 0,
+        radius: 20,
+      },
+      {
+        id: 'drowned_reed_bed',
+        label: 'Reed Bed',
+        tags: ['marshFog', 'shore', 'lowVisibility', 'insectNoise'],
+        featureTags: ['bentReeds', 'floatingPollen', 'hiddenTracks'],
+        affordanceTags: ['hideInReeds', 'trackMovement', 'avoidAmbush'],
+        dx: 9,
+        dz: -4,
+        radius: 18,
+      },
     ],
   },
   {
@@ -149,9 +304,36 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     structureTags: ['tower', 'wall', 'forge'],
     environmentalTags: ['coldWind', 'highView', 'militaryOrder', 'thinAir'],
     semanticObjects: [
-      { id: 'highwatch_tower_wall', label: 'Tower Wall', tags: ['tower', 'wall', 'highView', 'militaryOrder'], featureTags: ['windCutStone', 'arrowSlits', 'frostEdges'], affordanceTags: ['scanRoad', 'takeCover', 'leanIntoWind'], dx: 0, dz: 0, radius: 18 },
-      { id: 'highwatch_signal_fire', label: 'Signal Fire', tags: ['watchPost', 'coldWind', 'warning', 'safeTown'], featureTags: ['stackedPitch', 'smokeTrail', 'charredBasin'], affordanceTags: ['warmHands', 'signalDanger', 'watchSmoke'], dx: 7, dz: -5, radius: 14 },
-      { id: 'highwatch_field_forge', label: 'Field Forge', tags: ['forge', 'hotIron', 'militaryOrder', 'workNoise'], featureTags: ['travelAnvil', 'dentedHelms', 'coalCrate'], affordanceTags: ['repairGear', 'warmHands', 'watchSoldiers'], dx: -6, dz: 6, radius: 12 },
+      {
+        id: 'highwatch_tower_wall',
+        label: 'Tower Wall',
+        tags: ['tower', 'wall', 'highView', 'militaryOrder'],
+        featureTags: ['windCutStone', 'arrowSlits', 'frostEdges'],
+        affordanceTags: ['scanRoad', 'takeCover', 'leanIntoWind'],
+        dx: 0,
+        dz: 0,
+        radius: 18,
+      },
+      {
+        id: 'highwatch_signal_fire',
+        label: 'Signal Fire',
+        tags: ['watchPost', 'coldWind', 'warning', 'safeTown'],
+        featureTags: ['stackedPitch', 'smokeTrail', 'charredBasin'],
+        affordanceTags: ['warmHands', 'signalDanger', 'watchSmoke'],
+        dx: 7,
+        dz: -5,
+        radius: 14,
+      },
+      {
+        id: 'highwatch_field_forge',
+        label: 'Field Forge',
+        tags: ['forge', 'hotIron', 'militaryOrder', 'workNoise'],
+        featureTags: ['travelAnvil', 'dentedHelms', 'coalCrate'],
+        affordanceTags: ['repairGear', 'warmHands', 'watchSoldiers'],
+        dx: -6,
+        dz: 6,
+        radius: 12,
+      },
     ],
   },
   {
@@ -165,21 +347,40 @@ export const SCENE_ANCHORS: readonly SceneAnchor[] = [
     structureTags: ['cryptGate', 'oldStone'],
     environmentalTags: ['sealedAir', 'deathPressure', 'graveSoil', 'oldBlood'],
     semanticObjects: [
-      { id: 'abandoned_crypt_gate', label: 'Abandoned Crypt Gate', tags: ['cryptGate', 'sealedAir', 'oldStone', 'dungeonEntrance'], featureTags: ['ironFrost', 'scratchedWarnings', 'breathMist'], affordanceTags: ['hesitateAtThreshold', 'guardEntrance', 'listenForDead'], dx: 0, dz: 0, radius: 18 },
-      { id: 'abandoned_crypt_steps', label: 'Sunken Steps', tags: ['oldStone', 'graveSoil', 'oldBlood', 'deathPressure'], featureTags: ['bloodDarkGrout', 'unevenSteps', 'boneChips'], affordanceTags: ['backAway', 'followTracks', 'feelWatched'], dx: 4, dz: 7, radius: 14 },
+      {
+        id: 'abandoned_crypt_gate',
+        label: 'Abandoned Crypt Gate',
+        tags: ['cryptGate', 'sealedAir', 'oldStone', 'dungeonEntrance'],
+        featureTags: ['ironFrost', 'scratchedWarnings', 'breathMist'],
+        affordanceTags: ['hesitateAtThreshold', 'guardEntrance', 'listenForDead'],
+        dx: 0,
+        dz: 0,
+        radius: 18,
+      },
+      {
+        id: 'abandoned_crypt_steps',
+        label: 'Sunken Steps',
+        tags: ['oldStone', 'graveSoil', 'oldBlood', 'deathPressure'],
+        featureTags: ['bloodDarkGrout', 'unevenSteps', 'boneChips'],
+        affordanceTags: ['backAway', 'followTracks', 'feelWatched'],
+        dx: 4,
+        dz: 7,
+        radius: 14,
+      },
     ],
   },
 ];
 
 export function sceneSemanticsAt(pos: Vec3, simTimeSeconds: number): SceneSemantics {
-  const zone = zoneAt(pos.z);
+  const zone = zoneAt(pos.x, pos.z);
   const zoneId = zone.id;
   const anchor = sceneAnchorAt(pos);
-  const baseBiomeTags = zoneId === 'eastbrook_vale'
-    ? ['vale', 'forest']
-    : zoneId === 'mirefen_marsh'
-      ? ['marsh', 'wetland']
-      : ['peaks', 'highland'];
+  const baseBiomeTags =
+    zoneId === 'eastbrook_vale'
+      ? ['vale', 'forest']
+      : zoneId === 'mirefen_marsh'
+        ? ['marsh', 'wetland']
+        : ['peaks', 'highland'];
   const time = timeSemanticAt(simTimeSeconds);
   const weather = weatherSemanticAt(zoneId, simTimeSeconds);
   const light = lightSemanticFor(time, weather);
@@ -187,9 +388,17 @@ export function sceneSemanticsAt(pos: Vec3, simTimeSeconds: number): SceneSemant
     zoneId,
     subsceneId: anchor?.id ?? null,
     biomeTags: mergeUnique(baseBiomeTags, anchor?.biomeTags),
-    locationTags: mergeUnique(anchor?.locationTags ?? [], dist2d(pos, { x: zone.hub.x, y: pos.y, z: zone.hub.z }) <= zone.hub.radius ? ['town', 'safeTown'] : []),
+    locationTags: mergeUnique(
+      anchor?.locationTags ?? [],
+      dist2d(pos, { x: zone.hub.x, y: pos.y, z: zone.hub.z }) <= zone.hub.radius
+        ? ['town', 'safeTown']
+        : [],
+    ),
     structureTags: [...(anchor?.structureTags ?? [])],
-    environmentalTags: mergeUnique([...(anchor?.environmentalTags ?? []), ...weather.tags, ...light.tags], time.tags),
+    environmentalTags: mergeUnique(
+      [...(anchor?.environmentalTags ?? []), ...weather.tags, ...light.tags],
+      time.tags,
+    ),
     time,
     weather,
     light,

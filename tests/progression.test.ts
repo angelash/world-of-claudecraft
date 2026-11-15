@@ -4,6 +4,9 @@
 // whatever the content modules currently export, so they hold as zones grow.
 import { describe, expect, it } from 'vitest';
 import { CHOICE_ROW_LEVELS, CHOICE_ROWS } from '../src/sim/content/choice_rows';
+import { FACTION_VENDOR_GATES } from '../src/sim/content/faction_vendors';
+import { FARM_CROPS } from '../src/sim/content/farm_crops';
+import { CURSED_CANDLE_ID, PATCH_PUMPKIN_ID } from '../src/sim/content/gourdlight_eve_dailies';
 import {
   ABILITIES,
   ALL_RECIPES,
@@ -30,9 +33,12 @@ import { HARVEST_COMPONENT_ITEMS, NODE_MATERIAL_TABLE } from '../src/sim/profess
 import { Sim } from '../src/sim/sim';
 import { ALL_CLASSES, MAX_LEVEL, XP_TABLE, type ZoneDef } from '../src/sim/types';
 import { terrainHeight, WATER_LEVEL } from '../src/sim/world';
+import { WORLD_BOSSES } from '../src/sim/world_boss';
+import { WORLD_SEED } from '../src/sim/world_seed';
 
-const WORLD_SEED = 20061; // production seed (main.ts / server/game.ts)
-const SCRIPTED_COLLECT_ITEMS = new Set(['the_codfather']);
+// Scripted sources: the Codfather's catch, and Gourdlight Eve's patch pumpkins and cursed
+// candles, which the open event lays out as ground objects (src/sim/seasonal/gourdlight_dailies.ts).
+const SCRIPTED_COLLECT_ITEMS = new Set(['the_codfather', PATCH_PUMPKIN_ID, CURSED_CANDLE_ID]);
 
 // The complete set of ways a collect-objective item can legitimately enter a
 // player's bags. The mob-loot / ground-object / scripted trio is the original
@@ -40,9 +46,11 @@ const SCRIPTED_COLLECT_ITEMS = new Set(['the_codfather']);
 // materials use: gather-node harvest (NODE_MATERIAL_TABLE grants copper_ore,
 // ironbark_log, goldleaf_herb in their zones) and corpse harvest
 // (HARVEST_COMPONENT_ITEMS maps a component tag to game_meat, spider_silk,
-// rough_hide, etc). Both the obtainability check and its negative control call
+// rough_hide, etc), plus the farm harvest path the produce work orders use
+// (FARM_CROPS: harvestCrop grants a crop's produceItemId, vale_wheat, marsh_rice,
+// etc), and crafted recipe outputs. Both the obtainability check and its negative control call
 // this one predicate, so the negative control proves the REAL model, not a copy.
-function collectItemAcquirable(itemId: string): boolean {
+function collectItemAcquirable(itemId: string, recipes = ALL_RECIPES): boolean {
   const fromLoot = Object.values(MOBS).some((m) => m.loot.some((l) => l.itemId === itemId));
   const fromGround = GROUND_OBJECTS.some((g) => g.itemId === itemId);
   const fromScript = SCRIPTED_COLLECT_ITEMS.has(itemId);
@@ -50,7 +58,24 @@ function collectItemAcquirable(itemId: string): boolean {
     Object.values(byZone).some((row) => row.itemId === itemId),
   );
   const fromHarvest = Object.values(HARVEST_COMPONENT_ITEMS).includes(itemId);
-  return fromLoot || fromGround || fromScript || fromNode || fromHarvest;
+  const fromFarm = Object.values(FARM_CROPS).some((crop) => crop.produceItemId === itemId);
+  // A vendor's stock is an acquisition source too: the tutorial island's
+  // buy-a-pick lesson (q_ps_tools_of_the_trade) is deliberately fulfilled at
+  // a vendor stall, teaching the purchase flow itself. (Merge note: the
+  // shipped lesson is q_ps_pouch_and_purse collecting linen_pouch, the one
+  // collect objective only the vendor arm satisfies on the merged tree.)
+  const fromVendor = Object.values(NPCS).some((n) => n.vendorItems?.includes(itemId) === true);
+  const fromCraft = recipes.some((r) => r.resultItemId === itemId && r.resultCount > 0);
+  return (
+    fromLoot ||
+    fromGround ||
+    fromScript ||
+    fromNode ||
+    fromHarvest ||
+    fromFarm ||
+    fromVendor ||
+    fromCraft
+  );
 }
 
 describe('content referential integrity', () => {
@@ -119,25 +144,93 @@ describe('content referential integrity', () => {
     expect(problems).toEqual([]);
   });
 
+  it('recognizes the taught quest craft without treating an uncrafted legendary as obtainable', () => {
+    expect(QUESTS.q_forgefathers_requiem.recipeReward).toBe('recipe_varkhul_forgebreaker');
+    expect(QUESTS.q_requiem_at_the_forge.requiresQuest).toBe('q_forgefathers_requiem');
+    expect(collectItemAcquirable('varkhul_forgebreaker')).toBe(true);
+    expect(
+      collectItemAcquirable(
+        'varkhul_forgebreaker',
+        ALL_RECIPES.filter((recipe) => recipe.id !== 'recipe_varkhul_forgebreaker'),
+      ),
+    ).toBe(false);
+  });
+
   it('the collect-obtainability model rejects a fabricated unobtainable item (negative control)', () => {
-    // Decisive guard so the widened model (with the gather-node and
-    // corpse-harvest paths for the work-order materials) can never go all-
-    // permissive: an item that lives in NO mob loot table, ground object,
-    // scripted set, gather-node material row, or corpse-harvest component map
-    // must still be classified unacquirable. The four real acquisition paths are
-    // re-proven acquirable here so a later refactor that drops a path reds this.
+    // Decisive guard so the widened model (with the gather-node, corpse-
+    // harvest, and farm-harvest paths for the work-order materials) can never
+    // go all-permissive: an item that lives in NO mob loot table, ground
+    // object, scripted set, gather-node material row, corpse-harvest component
+    // map, or crop produce column must still be classified unacquirable. The
+    // real acquisition paths are re-proven acquirable here so a later refactor
+    // that drops a path reds this. The farm arm's negative side WAS a crop SEED
+    // (vale_wheat_seed: farming content that nothing harvests out of the
+    // ground) while vendor stock sat outside the model; the release/v0.41.0
+    // merge added the vendor arm, and every seed is farmer vendor stock (all
+    // four tiers since Phase 11e, tier 4 also boss loot), so a seed is now
+    // honestly acquirable and that negative retired. Fine produce is NOT a
+    // substitute negative either: harvestCrop grants it on the quality roll,
+    // so the model would only be recording its own blind spot. The fabricated
+    // id stays the negative control, and the vendor arm is re-proven on the
+    // one collect objective that only a stall fulfils today.
     expect(collectItemAcquirable('totally_not_a_real_item_xyz')).toBe(false);
+    expect(collectItemAcquirable('vale_wheat_seed')).toBe(true); // farmer vendor stock
+    expect(collectItemAcquirable('linen_pouch')).toBe(true); // vendor stock only (pouch lesson)
     expect(collectItemAcquirable('copper_ore')).toBe(true); // gather-node material
     expect(collectItemAcquirable('ironbark_log')).toBe(true); // gather-node material
     expect(collectItemAcquirable('goldleaf_herb')).toBe(true); // gather-node material
     expect(collectItemAcquirable('game_meat')).toBe(true); // corpse-harvest component
     expect(collectItemAcquirable('spider_silk')).toBe(true); // corpse-harvest component
     expect(collectItemAcquirable('rough_hide')).toBe(true); // corpse-harvest component
+    expect(collectItemAcquirable('vale_wheat')).toBe(true); // farm-harvest produce
+    expect(collectItemAcquirable('marsh_rice')).toBe(true); // farm-harvest produce
   });
 
   it('QUEST_ORDER covers every quest exactly once', () => {
     expect([...QUEST_ORDER].sort()).toEqual(Object.keys(QUESTS).sort());
     expect(new Set(QUEST_ORDER).size).toBe(QUEST_ORDER.length);
+  });
+
+  it('every camp-spawned mob has an unconditional loot entry (copper at minimum)', () => {
+    // The v0.32.0 realms shipped 34 camp-spawned mobs with empty loot arrays
+    // and another 20 whose only entries were quest-gated: rollLoot
+    // (src/sim/loot/loot_roll.ts) drives entirely off template.loot, so both
+    // shapes drop nothing outside their quest, not even copper. Require at
+    // least one entry with no questId gate. The sanctioned lootless camp
+    // spawns are the practice target and the ambient stable horse (both
+    // non-combat fixtures by design), plus the Gilded Stag: the farm-yield
+    // economy model (tests/economy_yield.test.ts) uses it as the quest-only,
+    // zero-coin exemplar on purpose. The quest-dedupe content pass added the
+    // Broodmother egg clutch (spider_egg): a destructible quest object, not a
+    // combatant (dmgBase 0, moveSpeed 0, aggroRadius 0, xpMult 0, damageable
+    // only on q_broodmother via requiresQuestId), so it is lootless by design
+    // like the other fixtures, not a v0.32.0-style empty-loot regression.
+    const LOOTLESS_FIXTURES = new Set([
+      'training_dummy',
+      // The rest of the Highwatch practice row: practice targets you can never
+      // really fell, so a drop would be a bug, not an omission.
+      'friendly_player_dummy',
+      'normal_boss_dummy',
+      'heroic_boss_dummy',
+      'stable_horse',
+      'gilded_stag',
+      'spider_egg',
+    ]);
+    const problems: string[] = [];
+    const seen = new Set<string>();
+    for (const c of CAMPS) {
+      if (seen.has(c.mobId) || LOOTLESS_FIXTURES.has(c.mobId)) continue;
+      seen.add(c.mobId);
+      const t = MOBS[c.mobId];
+      // Puzzle-object mobs (xpMult 0: the 1 HP dragonkin egg, the spider
+      // egg-sac pattern) pay no XP and carry no loot BY DESIGN: the hatched
+      // fight is the reward, and a lootable shell would sparkle every corpse
+      // in a clutch. The xpMult-0 marker is the principled gate.
+      if (t?.xpMult === 0) continue;
+      if (t && !t.loot.some((l) => !l.questId))
+        problems.push(`${c.mobId} spawns from a camp with no unconditional loot`);
+    }
+    expect(problems).toEqual([]);
   });
 
   it('all loot tables, vendor stock, camps and dungeon spawns resolve', () => {
@@ -152,7 +245,14 @@ describe('content referential integrity', () => {
     for (const npc of Object.values(NPCS)) {
       for (const itemId of npc.vendorItems ?? []) {
         if (!ITEMS[itemId]) problems.push(`${npc.id}: vendor item ${itemId} missing`);
-        else if (!ITEMS[itemId].buyValue && !ITEMS[itemId].priceHonor)
+        // A faction quartermaster row is priced in marks (FACTION_VENDOR_GATES).
+        else if (
+          !ITEMS[itemId].buyValue &&
+          !ITEMS[itemId].priceHonor &&
+          // a seasonal keeper's row is priced in the event's token (priceItem)
+          !((ITEMS[itemId].priceItem?.count ?? 0) > 0) &&
+          !((FACTION_VENDOR_GATES[itemId]?.currencyCost ?? 0) > 0)
+        )
           problems.push(`${npc.id}: vendor item ${itemId} has no purchase price`);
       }
       for (const qid of npc.questIds) {
@@ -174,9 +274,70 @@ describe('content referential integrity', () => {
     expect(problems).toEqual([]);
   });
 
-  it('zones tile the world strip and content sits inside its zone band', () => {
-    for (let i = 0; i + 1 < ZONES.length; i++) {
-      expect(ZONES[i].zMax).toBe(ZONES[i + 1].zMin);
+  it('every kill-quest target mob actually spawns somewhere', () => {
+    // v0.34.0 shipped q_gc_scuttlers_in_the_pots (shoal_scuttler) and
+    // q_gc_wind_against_the_wick (gale_wisp) with kill targets that resolved
+    // fine in MOBS but had zero camp or dungeon spawn entry: unfinishable,
+    // and blocking the downstream Galecrest chain via requiresQuest. The
+    // "every quest reference resolves" test above only checks the mob id
+    // exists, never that anything spawns it, so this closes that gap.
+    // Script-spawned quest mobs are the documented exceptions: neither a
+    // world camp nor a dungeon spawn list creates them. bound_guardian is a
+    // Nythraxis raid-encounter add (src/sim/encounters/nythraxis.ts);
+    // mister_crabs is the Proving Shore's tide-pool summon, called up by the
+    // Briny Lure through summonQuestMob (src/sim/interactions/crab_summon.ts)
+    // and re-summonable while its quest is active, so it can never strand.
+    const SCRIPT_SPAWNED = new Set(['bound_guardian', 'mister_crabs']);
+    const spawning = new Set<string>();
+    for (const c of CAMPS) spawning.add(c.mobId);
+    for (const d of DUNGEON_LIST) for (const s of d.spawns) spawning.add(s.mobId);
+    // World bosses have no camp: the world-boss scheduler spawns each on its own cadence
+    // (src/sim/world_boss.ts WORLD_BOSSES), so a kill quest on one (the Mirefen muster's
+    // weekly on Balgath) is finishable whenever he is up.
+    for (const b of WORLD_BOSSES) spawning.add(b.templateId);
+    const problems: string[] = [];
+    for (const q of Object.values(QUESTS)) {
+      for (const obj of q.objectives) {
+        if (
+          obj.type === 'kill' &&
+          obj.targetMobId &&
+          !spawning.has(obj.targetMobId) &&
+          !SCRIPT_SPAWNED.has(obj.targetMobId)
+        ) {
+          problems.push(`${q.id}: kill target ${obj.targetMobId} has no camp/dungeon spawn source`);
+        }
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it('zones tile the grid and content sits inside its zone band', () => {
+    // the strip column tiles south to north exactly as it always did
+    const strip = ZONES.filter((zn) => (zn.xMin ?? -180) <= -180 && (zn.xMax ?? 180) >= 180);
+    for (let i = 0; i + 1 < strip.length; i++) {
+      expect(strip[i].zMax).toBe(strip[i + 1].zMin);
+    }
+    // the columns stack beside the strip: bands may straddle strip rows
+    // (the realms kept their sizes when the grid landed), so the invariants
+    // are: no two zone rects overlap, and every column shares some z with
+    // the strip (an unreachable island would be a bug)
+    const x0 = (zn: (typeof ZONES)[number]) => zn.xMin ?? -180;
+    const x1 = (zn: (typeof ZONES)[number]) => zn.xMax ?? 180;
+    for (const a of ZONES) {
+      for (const b of ZONES) {
+        if (a.id >= b.id) continue;
+        const overlap = x0(a) < x1(b) && x1(a) > x0(b) && a.zMin < b.zMax && a.zMax > b.zMin;
+        expect(overlap, `${a.id} and ${b.id} rects must not overlap`).toBe(false);
+      }
+    }
+    const stripMin = strip[0].zMin;
+    const stripMax = strip[strip.length - 1].zMax;
+    for (const zn of ZONES) {
+      if (x0(zn) <= -180 && x1(zn) >= 180) continue;
+      expect(
+        zn.zMin < stripMax && zn.zMax > stripMin,
+        `${zn.id} band overlaps the strip somewhere`,
+      ).toBe(true);
     }
     const problems: string[] = [];
     const inWorld = (x: number, z: number) =>

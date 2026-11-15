@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml/badge.svg)](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-r165-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-RL%20env-0C7BDC)](https://gymnasium.farama.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-[![Version](https://img.shields.io/badge/version-0.31.0-blue)](../../package.json)
+[![Version](https://img.shields.io/badge/version-0.45.8-blue)](../../package.json)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.da_DK.md)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/worldofclaudecraft)
 
@@ -92,7 +92,7 @@ npm install
 npm run dev        # then open http://localhost:5173 and choose Play Offline
 ```
 
-Navngiv din karakter, vælg en af de ni klasser, og du starter i **Eastbrook Vale** (level 1-7), en handelsby omkranset af hubs: ulveløb mod nord, vildsvineenge mod øst, Sableweb-skoven mod vest, Mirror Lake mod nordvest, en burrower-plaget kobbergrav mod sydvest, og et ødelagt kapel med rastløse døde mod nordøst, med Gorraks banditlejr mod sydøst. Nordvejen stiger op gennem et bjergpas ind i **Mirefen Marsh** (6-13, hub Fenbridge) og videre op til **Thornpeak Heights** (13-20, hub Highwatch). Verdens-seed'en er fastlåst i `src/main.ts`, så det er det samme sted ved hvert besøg.
+Navngiv din karakter, vælg en af de ni klasser, og du starter i **Eastbrook Vale** (level 1-7), en handelsby omkranset af hubs: ulveløb mod nord, vildsvineenge mod øst, Sableweb-skoven mod vest, Mirror Lake mod nordvest, en burrower-plaget kobbergrav mod sydvest, og et ødelagt kapel med rastløse døde mod nordøst, med Gorraks banditlejr mod sydøst. Nordvejen stiger op gennem et bjergpas ind i **Mirefen Marsh** (6-13, hub Fenbridge) og videre op til **Thornpeak Heights** (13-20, hub Highwatch). Verdens-seed'en er fastlåst i `src/sim/world_seed.ts`, så det er det samme sted ved hvert besøg.
 
 ### Desktop-apps til Windows, Linux, og macOS
 
@@ -234,7 +234,7 @@ Hver instance kører også på **Heroic**: fjender af højere level, skarpere me
 
 ### Delves
 
-Delves er en separat, skalerbar mode for små grupper på én eller to spillere, genopbygget fra randomiserede kamre i hvert gennemløb og med en låst relikvie-kiste til sidst, der åbnes gennem et dirke-minispil frem for et loot roll. **The Collapsed Reliquary** (level 7 og op) ender ved Deacon Varric, med en AI-ledsager, Tessa, der kæmper ved din side, hvis du går solo. **The Drowned Litany** (level 12 og op) følger sporet ind i en oversvømmet helligdom i udkanten af Mirefen Marsh. En delve-tavle sætter tier'en: Heroic hæver fjendernes levels og tilføjer et tilfældigt affix for rigere belønninger.
+Delves er en separat, skalerbar mode for små grupper på én eller to spillere, genopbygget fra randomiserede kamre i hvert gennemløb og med en låst relikvie-kiste til sidst, der åbnes gennem et dirke-minispil frem for et loot roll. **The Collapsed Reliquary** (level 7 og op) ender ved Deacon Vandric, med en AI-ledsager, Tessa, der kæmper ved din side, hvis du går solo. **The Drowned Litany** (level 12 og op) følger sporet ind i en oversvømmet helligdom i udkanten af Mirefen Marsh. En delve-tavle sætter tier'en: Heroic hæver fjendernes levels og tilføjer et tilfældigt affix for rigere belønninger.
 
 ### Ranket PvP (the Ashen Coliseum)
 

@@ -10,13 +10,15 @@
 
 import { ITEMS } from '../data';
 import { canEquipItem } from '../equipment_rules';
-import type { PlayerClass, WeaponSkinLoadout, WeaponSkinType } from '../types';
+import type { PlayerClass, SkinCatalog, WeaponSkinLoadout, WeaponSkinType } from '../types';
 import { WEAPON_SKINS } from './weapon_skins';
 
 export type ItemWeaponType = WeaponSkinType | 'polearm';
 
 export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
+  membership_staff: 'staff',
   // Swords
+  thornpeak_wardblade: 'sword', // EPIC: Nythraxis gap-fill tank one-hander
   worn_sword: 'sword',
   ironedge_longsword: 'sword',
   thorium_warblade: 'sword',
@@ -38,9 +40,15 @@ export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
   moonscale_saber: 'sword',
   deathless_greatblade: 'sword',
   final_argument_greatblade: 'sword',
+  veilsteel_blade: 'sword',
   bonewrought_greatsword: 'sword',
   direfang_greatblade: 'sword',
+  hoarfrost_edge: 'sword',
+  duskforged_warblade: 'sword',
+  wildheart_tuskblade: 'sword',
+  greatfang_of_the_basin: 'sword',
   // Daggers
+  courtiers_bonefang: 'dagger', // EPIC: Nythraxis gap-fill rogue dagger
   rusty_dagger: 'dagger',
   whetted_iron_dirk: 'dagger',
   keen_dirk: 'dagger',
@@ -60,6 +68,10 @@ export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
   skullsplitter_dirk: 'dagger',
   gutripper_shiv: 'dagger',
   fang_of_korzul: 'dagger',
+  rimefang: 'dagger',
+  marrowpoint: 'dagger',
+  duskwhisper: 'dagger',
+  boneglass_shiv: 'dagger',
   icevein_dirk: 'dagger',
   tideglass_dirk: 'dagger',
   drownedmoon_kris: 'dagger',
@@ -67,6 +79,9 @@ export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
   drowned_choir_fang: 'dagger',
   mistcallers_fang: 'dagger',
   first_blood_razor: 'dagger',
+  duskfang_dirk: 'dagger',
+  wildheart_fangknife: 'dagger',
+  voidsong_dirk: 'dagger',
   // Maces
   training_mace: 'mace',
   copper_flanged_mace: 'mace',
@@ -81,10 +96,15 @@ export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
   drownedmoon_maul: 'mace',
   nhalias_bell_maul: 'mace',
   fenshadow_maul: 'mace',
+  foremans_barrowmaul: 'mace',
+  craterglass_stave: 'staff',
   gravewyrm_thornmaul: 'mace',
   maul_of_the_scourged_wilds: 'mace',
   wildsoul_maul: 'mace',
+  ridgebreaker: 'mace',
+  varkhul_forgebreaker: 'mace',
   // Axes
+  gravecourt_hewer: 'axe', // EPIC: Nythraxis gap-fill dual-wield one-hander
   rusty_hatchet: 'axe',
   copper_bearded_axe: 'axe',
   arcanite_war_axe: 'axe',
@@ -95,6 +115,7 @@ export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
   deacons_cleaver: 'axe',
   drogmars_skullcleaver: 'axe',
   gravewyrm_cleaver: 'axe',
+  pitlords_cleaver: 'axe',
   // Staves
   gnarled_staff: 'staff',
   elderwood_battle_staff: 'staff',
@@ -119,6 +140,8 @@ export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
   briarroot_staff: 'staff',
   cragthorn_greatstaff: 'staff',
   nightfangs_greatstaff: 'staff',
+  gleamwood_stave: 'staff',
+  wildheart_hexwood_staff: 'staff',
   // Wands
   drowned_tide_scepter: 'wand',
   palecoil_rod: 'wand',
@@ -131,6 +154,51 @@ export const WEAPON_TYPE_BY_ITEM: Record<string, ItemWeaponType> = {
   tidereaver_gaff: 'polearm',
   ironbark_boar_spear: 'polearm',
   fen_reaver_glaive: 'polearm',
+  fanglords_beastspear: 'polearm',
+  // Crucible of the Last Spring raid weapons (content/ignivar_loot.ts).
+  forgefathers_warhammer: 'mace',
+  springtouched_crozier: 'mace',
+  cinderfang_kris: 'dagger',
+  slagrender_cleaver: 'axe',
+  anvilguard_blade: 'sword',
+  heart_of_the_end_greatblade: 'sword',
+  staff_of_the_last_spring: 'staff',
+  forgefire_spire: 'staff',
+  wand_of_quenched_sparks: 'wand',
+  // A pike IS a polearm, and this row is what makes the two authorities agree: the render
+  // side already tags its model `VAR_POLEARM` (characters/assets.ts), and an unclassified
+  // weapon here reads as null, which is the mismatch tests/weapon_skins.test.ts catches. No
+  // skin targets polearms, so this is classification only, never new cosmetic surface.
+  skerrits_shardpike: 'polearm',
+  muster_shardpike: 'polearm',
+  // Faction quartermaster epics (content/faction_vendors.ts).
+  riftwarden_voidblade: 'sword',
+  dawnkeeper_consecrated_mace: 'mace',
+  forgemaster_crag_cleaver: 'axe',
+  // Warfare Season 2 honor weapons (content/pvp_honor_season2.ts).
+  vanguard_verdict_greatsword: 'sword',
+  vanguard_oath_blade: 'sword',
+  vanguard_fang_dagger: 'dagger',
+  vanguard_warstaff: 'staff',
+  // The five-dungeon rework's weapons (the *_items.ts module of each dungeon).
+  // A spade reads as a two-hand axe, the Tunnelking's Spade precedent.
+  sextons_spadehaft: 'axe',
+  sextons_burial_spade: 'axe',
+  rimeweb_fang: 'dagger',
+  knight_commanders_longsword: 'sword',
+  gaolyard_cudgel: 'mace',
+  tideglass_shiv: 'dagger',
+  tideglass_warmaul: 'mace',
+  falls_blessed_staff: 'staff',
+  hammer_of_the_open_lock: 'mace',
+  // The lower dungeons' normal blues (the same *_items.ts modules): the two
+  // caster rods read as wands, the shank as a dagger.
+  gravecallers_rod: 'wand',
+  turnkeys_shank: 'dagger',
+  fogbinders_rod: 'wand',
+  merecleaver: 'axe',
+  moonwrack_stave: 'staff',
+  vanguard_feral_staff: 'staff',
 };
 
 /**
@@ -148,41 +216,125 @@ export function weaponTypeForItem(itemId: string | null | undefined): ItemWeapon
 }
 
 /**
- * Skin types the player may apply right now. Requires an equipped mainhand
- * weapon. Hunters always display the class ranged weapon regardless of the
- * equipped item, so they may apply bow and crossbow skins; every other class
- * displays the equipped item, so the skin must match that item's type.
+ * Skin types the player may apply right now, in RESOLUTION ORDER (the first
+ * entry present in the loadout is the one displayed). Requires an equipped
+ * weapon in at least one hand: the mainhand's type comes first, then the
+ * offhand's when a dual-wielder holds a DIFFERENT weapon type there (a rogue
+ * with a dagger mainhand and a mace offhand may apply a mace skin, which then
+ * shows on the offhand alone; see mainhandShowsWeaponSkin). Reported from live
+ * play: the rules once read the mainhand only, so an offhand-held mace could
+ * never take the mace skin the account owned.
+ *
+ * Which types apply depends on the BODY, not just the class, because the body
+ * decides what the hand actually shows. The hunter rig displays a fixed ranged
+ * attach and never the equipped item (`player_hunter` carries no `weaponSlots`,
+ * so only a bow/crossbow skin can replace it), which is why hunters take the
+ * ranged types rather than their weapon's. The Combat Mech is a separate body
+ * that DOES swap in the equipped mainhand, so a mech hunter can additionally
+ * skin the weapon they are really holding.
+ *
+ * Ranged stays first for a mech hunter: it preserves the look a hunter already
+ * had before putting the suit on, and a player who prefers the weapon skin
+ * clears the ranged one (`Sim.setWeaponSkin(pid, null, type)`), so nothing is
+ * locked out either way.
  */
 export function skinnableWeaponTypesFor(
   cls: string,
   mainhandItemId: string | null | undefined,
+  skinCatalog: SkinCatalog,
+  offhandItemId: string | null | undefined = null,
 ): WeaponSkinType[] {
-  if (!mainhandItemId) return [];
-  // Crossbow first: it is the hunter's native visual, so with both types in the
-  // loadout the crossbow skin wins resolution deterministically.
-  if (cls === 'hunter') return ['crossbow', 'bow'];
-  const t = weaponTypeForItem(mainhandItemId);
-  if (!t || t === 'polearm') return [];
-  return [t];
+  // Empty hands apply nothing. A bare mainhand beside an offhand WEAPON still
+  // counts (a rogue who unequipped the dagger keeps the mace); a shield or held
+  // offhand alone does not. The hunter arm keeps its exact old answer: it
+  // needs a mainhand (hunters never dual-wield, so the offhand is never a
+  // weapon there anyway).
+  if (!mainhandItemId && (cls === 'hunter' || !weaponTypeForItem(offhandItemId))) return [];
+  const item = heldWeaponSkinTypes(mainhandItemId, offhandItemId);
+  // Crossbow before bow: they share the one ranged display slot, so with both
+  // in the loadout the crossbow skin wins resolution deterministically.
+  if (cls !== 'hunter') return item;
+  return skinCatalog === 'mech' ? ['crossbow', 'bow', ...item] : ['crossbow', 'bow'];
+}
+
+/** The skinnable weapon types actually held, mainhand first, offhand second,
+ *  deduplicated (two daggers count once). Polearms and non-weapons contribute
+ *  nothing. Pure and host-agnostic. */
+function heldWeaponSkinTypes(
+  mainhandItemId: string | null | undefined,
+  offhandItemId: string | null | undefined,
+): WeaponSkinType[] {
+  const out: WeaponSkinType[] = [];
+  for (const id of [mainhandItemId, offhandItemId]) {
+    const held = weaponTypeForItem(id);
+    if (!held || held === 'polearm' || out.includes(held)) continue;
+    out.push(held);
+  }
+  return out;
 }
 
 /**
- * The skin the player's held weapon should show right now: the first loadout
- * entry whose weapon type is applicable to the equipped mainhand (and whose
- * skin still targets that type), or null. Pure; both hosts and the renderer
- * preview rely on this exact resolution.
+ * The skin the player's held weapons should show right now: the first loadout
+ * entry whose weapon type is applicable to the equipped hands (and whose skin
+ * still targets that type), or null. Pure; both hosts and the renderer
+ * preview rely on this exact resolution. One skin id rides the wire; each hand
+ * then shows it only when its own weapon type matches (mainhandShowsWeaponSkin
+ * and offhandMirrorsWeaponSkin).
  */
 export function resolveActiveWeaponSkin(
   cls: string,
   mainhandItemId: string | null | undefined,
   loadout: WeaponSkinLoadout | null | undefined,
+  skinCatalog: SkinCatalog,
+  offhandItemId: string | null | undefined = null,
 ): string | null {
   if (!loadout) return null;
-  for (const t of skinnableWeaponTypesFor(cls, mainhandItemId)) {
+  for (const t of skinnableWeaponTypesFor(cls, mainhandItemId, skinCatalog, offhandItemId)) {
     const skinId = loadout[t];
     if (skinId && WEAPON_SKINS[skinId]?.weaponType === t) return skinId;
   }
   return null;
+}
+
+/** The held-hands view resolveActiveWeaponSkin reads off a player entity (the
+ *  Sim entity and the ClientWorld mirror both carry exactly these fields). */
+export interface WeaponSkinBearer {
+  templateId: string;
+  mainhandItemId: string | null;
+  offhandItemId: string | null;
+  weaponSkinLoadout: WeaponSkinLoadout;
+  /** Absent on a ClientWorld mirror entity that has not received `cat`: class body. */
+  skinCatalog?: SkinCatalog;
+}
+
+/** resolveActiveWeaponSkin over a player entity's own fields. For player
+ *  entities templateId is the class id (createPlayer). */
+export function resolveEntityWeaponSkin(e: WeaponSkinBearer): string | null {
+  return resolveActiveWeaponSkin(
+    e.templateId,
+    e.mainhandItemId,
+    e.weaponSkinLoadout,
+    e.skinCatalog ?? 'class',
+    e.offhandItemId,
+  );
+}
+
+/**
+ * True when the active weapon skin renders on the MAINHAND: a ranged skin
+ * always does (it replaces the hunter rig's fixed ranged attach, or takes the
+ * Combat Mech's swap slot, whatever the hand holds), a melee skin only while
+ * the mainhand holds a weapon of the skin's type. A dagger mainhand beside a
+ * skinned offhand mace keeps its own dagger model. Mirror of
+ * offhandMirrorsWeaponSkin for the other hand; pure and cosmetic-only.
+ */
+export function mainhandShowsWeaponSkin(
+  skinId: string | null | undefined,
+  mainhandItemId: string | null | undefined,
+): boolean {
+  const def = skinId ? WEAPON_SKINS[skinId] : null;
+  if (!def) return false;
+  if (def.weaponType === 'bow' || def.weaponType === 'crossbow') return true;
+  return weaponTypeForItem(mainhandItemId) === def.weaponType;
 }
 
 /**
@@ -207,13 +359,18 @@ export function offhandMirrorsWeaponSkin(
   return weaponTypeForItem(offhandItemId) === def.weaponType;
 }
 
-/** True when `skinType` may be applied with the given class and mainhand item. */
+/** True when `skinType` may be applied with the given class, held items and
+ *  displayed body. */
 export function weaponSkinTypeMatches(
   cls: string,
   mainhandItemId: string | null | undefined,
   skinType: WeaponSkinType,
+  skinCatalog: SkinCatalog,
+  offhandItemId: string | null | undefined = null,
 ): boolean {
-  return skinnableWeaponTypesFor(cls, mainhandItemId).includes(skinType);
+  return skinnableWeaponTypesFor(cls, mainhandItemId, skinCatalog, offhandItemId).includes(
+    skinType,
+  );
 }
 
 /**
@@ -252,13 +409,20 @@ const eligibleByType = new Map<WeaponSkinType, readonly PlayerClass[]>();
 
 /**
  * Every class that can ever APPLY a skin of this weapon type (the store card
- * eligibility chips). Hunters always display the class ranged weapon, so bow
- * and crossbow are hunter-only and hunters are never eligible for any other
- * type. Other types derive from the item data: a class is eligible when it can
- * equip a proficiency-locked weapon of the type (starter weapons carry no
- * class lock and would mark every type all-class, so locked rows decide; a
- * type with no locked rows falls back to the full equip check). Memoized: the
- * item data is static content.
+ * eligibility chips). Bow and crossbow are hunter-only: they replace the
+ * hunter rig's fixed ranged attach, which no other class has. Every other type
+ * derives from the item data: a class is eligible when it can equip a
+ * proficiency-locked weapon of the type (starter weapons carry no class lock
+ * and would mark every type all-class, so locked rows decide; a type with no
+ * locked rows falls back to the full equip check).
+ *
+ * Hunters are NOT excluded from the melee types. They were, back when no body
+ * could show a hunter's equipped weapon, but the Combat Mech does, so a hunter
+ * holding a sword in the suit really can apply a sword skin and the chip would
+ * be lying. The item data already answers this per type, so no hunter carve-out
+ * is needed: hunters appear for exactly the types they can equip. Whether the
+ * skin applies to the body they are wearing RIGHT NOW is the separate
+ * `canApplyNow` question (`skinnableWeaponTypesFor`). Memoized: static content.
  */
 export function eligibleClassesForWeaponSkinType(type: WeaponSkinType): readonly PlayerClass[] {
   const memo = eligibleByType.get(type);
@@ -272,9 +436,7 @@ export function eligibleClassesForWeaponSkinType(type: WeaponSkinType): readonly
       .flatMap((id) => (ITEMS[id] ? [ITEMS[id]] : []));
     const locked = items.filter((item) => item.requiredClass);
     const pool = locked.length ? locked : items;
-    out = CLASS_ORDER.filter(
-      (cls) => cls !== 'hunter' && pool.some((item) => canEquipItem(cls, item)),
-    );
+    out = CLASS_ORDER.filter((cls) => pool.some((item) => canEquipItem(cls, item)));
   }
   eligibleByType.set(type, out);
   return out;

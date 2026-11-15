@@ -11,8 +11,8 @@
 // PLAYER bar (#castbar) and the TARGET bar (#tf-castbar) from their own element
 // sets. The two differ only in their options, never in a branch on "which bar":
 //   - `resolveCastLabel` localizes the cast id. The player resolves it through
-//     castDisplayName (the ability's localized name); the target shows the raw cast
-//     id, byte-faithful to its inline block, by passing the identity resolver.
+//     castDisplayName (the ability's localized name); the target resolves through
+//     abilityDisplayNameFromSource (hud.ts).
 //   - the eat/drink overlay is PLAYER-ONLY: the target never eats/drinks, so its
 //     paint input simply omits `consume` and the consume branch is unreachable for
 //     it (the generic-Entity cast path stays the target's whole story).
@@ -24,13 +24,22 @@
 // `.channel` CSS class, never a hex in TS; the percent precision and the consume
 // label keys are named constants; CONSUME_DURATION lives in the core, not here.
 
-import type { CastBarState, ConsumeBarState, ConsumeMode } from '../render/cast_bar';
+import type {
+  CastBarState,
+  ConsumeBarState,
+  ConsumeMode,
+  MountSummonBarState,
+} from '../render/cast_bar';
 import { formatNumber, type TranslationKey, t } from './i18n';
+import { mountDisplayName } from './mount_labels';
 import type { PainterHostWriters } from './painter_host';
 
 // The channel class drives the draining (vs filling) fill color via CSS; a channel,
 // a fishing channel, and the eat/drink overlay all use it.
 const CHANNEL_CLASS = 'channel';
+const UI_CHANNEL_CLASS = 'ui-cast--channel';
+const UI_CONSUME_CLASS = 'ui-cast--consume';
+type CastBarStyle = 'cast' | 'channel' | 'consume';
 // The display value when the bar is shown, and the hidden value.
 const SHOWN_DISPLAY = 'block';
 const HIDDEN_DISPLAY = 'none';
@@ -63,12 +72,14 @@ export interface CastBarElements {
 /** Per-instance options that are not DOM element refs. */
 export interface CastBarOptions {
   /** Resolve the cast id into the visible label. The player localizes it
-   *  (castDisplayName); the target shows the raw id (the identity resolver),
-   *  byte-faithful to its inline block. */
+   *  (castDisplayName); the target through abilityDisplayNameFromSource. */
   resolveCastLabel: (state: CastBarState) => string;
   /** Clear the inner fill/label/timer + channel class when the bar is hidden (the
    *  player's inline block did; the target only set display:none). */
   clearOnHide?: boolean;
+  /** Display value when shown (default 'block'; the crafting window's cast
+   *  strip is a flex row). */
+  shownDisplay?: string;
 }
 
 /** The per-frame source the painter draws from. */
@@ -80,6 +91,10 @@ export interface CastBarPaintInput {
   /** The player's eat/drink overlay from consumeBarState; the target OMITS it, so
    *  the target instance can never render eat/drink. */
   consume?: ConsumeBarState;
+  /** The player's mount summon channel from mountSummonBarState; the target OMITS
+   *  it. Shown only when a summon is in progress (mountCastKey non-empty). Priority:
+   *  below cast but above eat/drink, since you cannot cast while mounting. */
+  mountSummon?: MountSummonBarState;
 }
 
 export class CastBarPainter {
@@ -92,16 +107,26 @@ export class CastBarPainter {
   paint(input: CastBarPaintInput): void {
     if (input.cast.visible) {
       this.paintBar(
-        input.cast.channel,
+        input.cast.channel ? 'channel' : 'cast',
         input.cast.fill,
         this.opts.resolveCastLabel(input.cast),
         input.castRemaining,
+      );
+    } else if (input.mountSummon?.visible) {
+      // PLAYER-ONLY: mount summon channel uses the channel styling (draining bar).
+      // The label is the localized mount name (mountDisplayName), which resolves
+      // the mount key through the i18n name map; falls back to the raw key.
+      this.paintBar(
+        'channel',
+        input.mountSummon.fill,
+        mountDisplayName(input.mountSummon.mountKey),
+        input.mountSummon.remaining,
       );
     } else if (input.consume?.visible) {
       // PLAYER-ONLY: the consume overlay uses the channel styling and the localized
       // eat/drink label resolved from the core's stable mode discriminator.
       this.paintBar(
-        true,
+        'consume',
         input.consume.fill,
         t(CONSUME_LABEL_KEYS[input.consume.mode]),
         input.consume.remaining,
@@ -110,6 +135,8 @@ export class CastBarPainter {
       this.writers.setDisplay(this.el.bar, HIDDEN_DISPLAY);
       if (this.opts.clearOnHide) {
         this.writers.toggleClass(this.el.bar, CHANNEL_CLASS, false);
+        this.writers.toggleClass(this.el.bar, UI_CHANNEL_CLASS, false);
+        this.writers.toggleClass(this.el.bar, UI_CONSUME_CLASS, false);
         this.writers.setWidth(this.el.fill, EMPTY_FILL);
         this.writers.setText(this.el.label, '');
         this.writers.setText(this.el.timer, '');
@@ -117,12 +144,13 @@ export class CastBarPainter {
     }
   }
 
-  // Show the bar with a fill/label/timer, in the exact write order of the inline
-  // blocks (display, channel, width, label, timer) so the elided-writer cache keys
-  // line up byte-for-byte and the skip-rate accounting is unchanged.
-  private paintBar(channel: boolean, fill: number, label: string, remaining: number): void {
-    this.writers.setDisplay(this.el.bar, SHOWN_DISPLAY);
-    this.writers.toggleClass(this.el.bar, CHANNEL_CLASS, channel);
+  // Show the bar with a fill/label/timer. State classes are written before the
+  // progress and text values so every painter instance follows the same order.
+  private paintBar(style: CastBarStyle, fill: number, label: string, remaining: number): void {
+    this.writers.setDisplay(this.el.bar, this.opts.shownDisplay ?? SHOWN_DISPLAY);
+    this.writers.toggleClass(this.el.bar, CHANNEL_CLASS, style !== 'cast');
+    this.writers.toggleClass(this.el.bar, UI_CHANNEL_CLASS, style === 'channel');
+    this.writers.toggleClass(this.el.bar, UI_CONSUME_CLASS, style === 'consume');
     this.writers.setWidth(this.el.fill, `${(fill * 100).toFixed(PERCENT_FRACTION_DIGITS)}%`);
     this.writers.setText(this.el.label, label);
     this.writers.setText(this.el.timer, this.timerText(remaining));

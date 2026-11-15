@@ -3,12 +3,8 @@
 // runs without ever constructing the pg pool: the fakes have zero runtime imports,
 // so this suite needs no DATABASE_URL, no mock, and no live Postgres.
 import { describe, expect, it } from 'vitest';
-import type {
-  ArenaLeaderRow,
-  CharacterRow,
-  GuildLeaderRow,
-  LifetimeXpLeaderRow,
-} from '../../../server/db';
+import type { ArenaLeaderRow, CharacterRow, LifetimeXpLeaderRow } from '../../../server/db';
+import type { GuildLeaderRow } from '../../../server/guild_board_db';
 import type { LiveReportTarget } from '../../../server/moderation_db';
 import { FakeCharactersDb, FakeLeaderboardDb, FakeReportsDb } from './fake_db';
 
@@ -35,6 +31,7 @@ function xpRow(name: string, lifetimeXp: number): LifetimeXpLeaderRow {
     lifetimeXp,
     prestigeRank: 0,
     activeTitle: null,
+    guild: null,
   };
 }
 
@@ -118,7 +115,15 @@ describe('FakeLeaderboardDb', () => {
   it('returns seeded arena and guild rows', async () => {
     const db = new FakeLeaderboardDb();
     const arena: ArenaLeaderRow[] = [
-      { name: 'Gladiator', class: 'warrior', level: 60, rating: 2400, wins: 50, losses: 5 },
+      {
+        name: 'Gladiator',
+        class: 'warrior',
+        level: 60,
+        rating: 2400,
+        wins: 50,
+        losses: 5,
+        draws: 0,
+      },
     ];
     const guilds: GuildLeaderRow[] = [
       {
@@ -127,6 +132,10 @@ describe('FakeLeaderboardDb', () => {
         memberCount: 30,
         totalLifetimeXp: 9999,
         topLevel: 60,
+        pledgesEnabled: true,
+        pledgeMinLevel: 1,
+        pledgeNote: '',
+        newPlayerFriendly: false,
       },
     ];
     db.seedArena(arena);

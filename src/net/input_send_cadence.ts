@@ -1,12 +1,12 @@
-// Client input send cadence (R13, docs/design/player-performance/
-// packet-3-input-cadence.md): the two constants and the gate predicate the
-// online client's input stream runs on, extracted from src/net/online.ts so
+// Legacy v1 client input send cadence (R13, docs/design/player-performance/
+// packet-3-input-cadence.md): the two constants and the gate predicate that
+// arm runs on, extracted from src/net/online.ts so
 // the server-side cadence-model matrix (tests/input_cadence_model.test.ts)
 // imports the REAL send scheme instead of copying magic numbers. A client
 // cadence change flips the matrix loudly instead of silently invalidating
 // the server inbound contract it was sized against.
 //
-// The scheme, as online.ts implements it: an unconditional interval timer
+// The v1 scheme, as online.ts implements it: an unconditional interval timer
 // sends the current input every INPUT_SEND_TIMER_INTERVAL_MS with no change
 // check, and a changed-only requestAnimationFrame flush (flushInput) sends
 // between timer beats only when the input signature changed AND the shared
@@ -17,8 +17,8 @@
 // plus the timer's 20 per second), which the server's inbound contract is
 // sized against (server/msg_rate_limit.ts, server/msg_lanes.ts).
 //
-// Pure constants plus predicate, no imports and no DOM, so the module loads
-// unchanged in Node tests. Client-side send coalescing itself stays OUT of
+// Pure constants, the gate predicate and the send-path helpers, no imports and
+// no DOM, so the module loads unchanged in Node tests. Client-side send coalescing itself stays OUT of
 // scope per the packet's R13 and Decision 3: the facing-feel cluster in
 // src/game/ assumes the heading reaches the wire every frame the gate allows.
 
@@ -36,4 +36,18 @@ export const INPUT_FLUSH_GATE_MS = 16;
  */
 export function inputFlushGateOpen(nowMs: number, lastSentAtMs: number): boolean {
   return nowMs - lastSentAtMs >= INPUT_FLUSH_GATE_MS;
+}
+
+/** Which path asked online.ts sendInput for a frame. */
+export type InputSendMode = 'periodic' | 'changed' | 'forced-neutral' | 'forced-facing';
+
+/** Two facings are the same heading on the wire (wrap-aware, to float noise). */
+export const inputFacingsMatch = (a: number, b: number): boolean =>
+  Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) <= 1e-12;
+
+/** The one-shot inputs a send must carry even when nothing else changed. */
+export interface PendingTransientInput {
+  jump: boolean;
+  turnLeft: boolean;
+  turnRight: boolean;
 }

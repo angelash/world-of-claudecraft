@@ -7,6 +7,114 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: 'Bereit für ein Abenteuer',
+    desc: 'Schließe die Bewährungsküste ab: Beende jede Lektion auf der Insel und läute dann die Fährglocke heim nach Eastbrook.',
+  },
+  exp_dawnhold_castle: {
+    name: 'Eine offene Tür im Garten',
+    desc: 'Statte Schloss Dawnhold einen Besuch ab und wandle durch seine sonnigen Gartenhallen.',
+  },
+  exp_the_last_keep: {
+    name: 'Die stillen Hallen',
+    desc: 'Tritt durch die Tore der Letzten Feste und durchschreite ihre stillen Hallen.',
+  },
+  pvp_bg_first_capture: {
+    name: 'Banner in der Hand',
+    desc: 'Erobere eine Flagge in den Thornhollow-Feldern.',
+  },
+  pvp_bg_first_win: {
+    name: 'Die Senke hält',
+    desc: 'Gewinne ein Schlachtfeld in den Thornhollow-Feldern.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Wärter der Senke',
+    desc: 'Gewinne 25 Schlachtfelder in den Thornhollow-Feldern.',
+    title: 'Fahnenträger',
+  },
+  pvp_bg_captures_100: {
+    name: 'Hundert Banner',
+    desc: 'Erobere im Laufe deiner Karriere 100 Flaggen in den Thornhollow-Feldern.',
+  },
+  dgn_rift: {
+    name: 'Risswandler',
+    desc: 'Bereinige einen Riss, indem du seinen Boss besiegst.',
+  },
+  dgn_rift_s_rank: {
+    name: 'Rissherrscher',
+    desc: 'Bereinige einen Riss vom Rang S, der schwersten Stufe, die ein Rissportal erzeugen kann.',
+  },
+  pvp_honor_sergeant: {
+    name: 'Linienbrecher',
+    desc: 'Verdiene im Laufe deines Lebens 10.000 Ehre. Sie auszugeben kostet dich nie den Rang.',
+    title: 'Linienbrecher',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Feldverheerer',
+    desc: 'Verdiene im Laufe deines Lebens 40.000 Ehre, eine Saison echten Krieges hinter dir.',
+    title: 'Feldverheerer',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Kriegsgekrönt',
+    desc: 'Verdiene im Laufe deines Lebens 150.000 Ehre. Selten auf jedem Reich, und das sollte es auch sein.',
+    title: 'Kriegsgekrönt',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Gelegebrecher',
+    desc: 'Einen Drakenrachen-Brutfürsten inmitten seiner Eier erlegen, durch Schrei, Hieb und Feuer hindurch.',
+  },
+  chr_maw_matriarch: {
+    name: 'Der Himmel verstummt',
+    desc: 'Cindraleth, die Rachen-Matriarchin, in ihrem Kraterhorst über dem Drakenrachen erlegen.',
+  },
+  chr_frostveil_gatherer: {
+    name: 'Ernte auf den Terrassen',
+    desc: 'Ernte eine Erzader, einen Holzbestand und ein Krauterbeet im Frostveil.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Erstes Eis auf dem Bergsee',
+    desc: 'Fange einen Fisch in den Gewassern des Frostveil.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Die Ernte von Amberfall',
+    desc: 'Ernte eine Erzader, einen Holzbestand und ein Krauterbeet in Amberfall.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'Ein Fang aus dem Grossen Moor',
+    desc: 'Fange einen Fisch in den Gewassern von Amberfall.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'Die traumende Ernte',
+    desc: 'Ernte eine Erzader, einen Holzbestand und ein Krauterbeet in Nightbloom.',
+  },
+  chr_nightbloom_first_cast: {
+    desc: 'Fange einen Fisch in den Gewässern von Nightbloom.',
+    name: 'Eine Welle an der Mondquelle',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Ernte unter dem Blatterdach',
+    desc: 'Ernte eine Erzader, einen Holzbestand und ein Krauterbeet im Wraithwood.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Ein Wurf in der Spiegelbucht',
+    desc: 'Fange einen Fisch in den Gewassern des Wraithwood.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Ernte am Palmenstrand',
+    desc: 'Ernte eine Erzader, einen Holzbestand und ein Krauterbeet in Palmreach.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Wurf in die Saphirlagune',
+    desc: 'Fange einen Fisch in den Gewassern von Palmreach.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'Die Gabe des Parterres',
+    desc: 'Ernte eine Erzader, einen Holzbestand und ein Krauterbeet in Evergarden.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Ein Wurf auf dem Blutenteich',
+    desc: 'Fange einen Fisch in den Gewassern von Evergarden.',
+  },
   pvp_card_duel_first_win: {
     name: 'Nach eigenen Regeln',
     desc: 'Gewinne einen Kartenkampf beim Kartenmeister.',
@@ -49,7 +157,7 @@ export const table: DeedLocaleTable = {
     title: 'Champion',
   },
   prog_paragon: {
-    name: 'Paragon',
+    name: 'Vorbild',
     desc: 'Sammle insgesamt 1.000.000 Erfahrung.',
     title: 'Paragon',
   },
@@ -77,7 +185,7 @@ export const table: DeedLocaleTable = {
   },
   prog_master_gatherer: {
     name: 'Meistersammler',
-    desc: 'Erreiche eine Fertigkeit von 100 in beliebigen drei von Bergbau, Holzfällen, Kräuterkunde und Angeln.',
+    desc: 'Erreiche in drei beliebigen Sammelberufen eine Fertigkeit von 100.',
   },
   prog_first_craft: {
     name: 'Handarbeit',
@@ -191,8 +299,8 @@ export const table: DeedLocaleTable = {
     title: 'Wyrmfäller',
   },
   dgn_sanctum_speed: {
-    name: 'Sprint durchs Heiligtum',
-    desc: 'Besiege Korzul den Gravewyrm binnen 15 Minuten, nachdem deine Gruppe das Gravewyrm-Heiligtum beansprucht hat.',
+    desc: 'Besiege Korzul den Gravewyrm innerhalb von 15 Minuten, nachdem deine Gruppe das Gravewyrm-Heiligtum beansprucht hat.',
+    name: 'Schnelllauf im Heiligtum',
   },
   dgn_nythraxis_gravebreaker: {
     name: 'Knie vor keinem König',
@@ -257,7 +365,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'Das Geläut verklingt',
-    desc: 'Besiege Diakon Varric, während jeder Begräbnisläuter, den er erweckt, bereits erschlagen ist.',
+    desc: 'Besiege Diakon Vandric, während jeder Begräbnisläuter, den er erweckt, bereits erschlagen ist.',
   },
   dlv_nhalia_bells: {
     name: 'Glockenstiller',
@@ -270,7 +378,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Talchronik, Kapitel II',
-    desc: 'Schließe das zweite Kapitel von Sauls Chronik ab: Banditen, Schlammflossen und Minengeziefer erledigt, auf dem Saufeld gespielt und den Abstieg ins Reliquiar gewagt.',
+    desc: 'Schließe das zweite Kapitel von Sauls Chronik ab: Besiege Banditen, Murlocs und Minenungeziefer und stelle dich dem Reliquiar.',
   },
   chr_vale_chapter_iii: {
     name: 'Die Chronik des Tals',
@@ -291,7 +399,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_cup_debut: {
     name: 'Anwärter auf den Kupfereimer',
-    desc: 'Betritt das Feld und berühre den Ball in einem Vale-Cup-Match auf dem Saufeld.',
+    desc: 'Betritt das Spielfeld und berühre den Ball in einem Talpokalspiel auf dem Saatfeld. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   chr_vale_rares: {
     name: 'Die Schrecken des Tals',
@@ -336,12 +444,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'Die Chronik von Thornpeak',
-    desc: 'Führe die ganze Geschichte des Berges zu Ende: der Wyrmkult zerschlagen, das Heiligtum zum Schweigen gebracht, der Erwachende Gipfel gefällt und jeder namhafte Schrecken der Felsen niedergestreckt.',
+    desc: 'Erlebe die ganze Geschichte des Berges: Brütler gebrochen, Heiligtum zum Schweigen gebracht, Erwachender Gipfel gefällt und jeder benannte Schrecken der Klippen besiegt.',
     title: 'von Thornpeak',
   },
   chr_peaks_sparring: {
     name: 'Drill an der Mauer',
-    desc: 'Verursache insgesamt 1.000 Schaden an der Trainingspuppe über Highwatch.',
+    desc: 'Verursache insgesamt 1.000 Schaden an einer Trainingspuppe.',
   },
   chr_peaks_glimmer_cast: {
     name: 'Kaltes Wasser, kälteres Licht',
@@ -434,7 +542,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Stammkunde',
-    desc: 'Entdecke alle zehn Stücke aus dem Vorrat des Heroischen Quartiermeisters.',
+    desc: 'Entdecke alle zehn Ausrüstungsstücke aus dem Vorrat des Heroischen Quartiermeisters.',
   },
   col_glimmerfin: {
     name: 'Ein Schimmer Hoffnung',
@@ -488,66 +596,72 @@ export const table: DeedLocaleTable = {
   },
   pvp_vcup_first_match: {
     name: 'Stiefel auf dem Rasen',
-    desc: 'Bestreite ein Talpokal-Match auf dem Saufeld bis zum Schlusspfiff, ob Sieg oder Niederlage.',
+    desc: 'Spiele ein ganzes Talpokalspiel auf dem Saatfeld zu Ende, ob Sieg oder Niederlage. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
-  pvp_vcup_first_win: { name: 'Der erste Pott', desc: 'Gewinne ein gewertetes Talpokal-Match.' },
+  pvp_vcup_first_win: {
+    name: 'Der erste Pott',
+    desc: 'Gewinne ein gewertetes Talpokalspiel. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
+  },
   pvp_vcup_wins_10: {
     name: 'Keilerball-Routinier',
-    desc: 'Gewinne 10 gewertete Talpokal-Matches.',
+    desc: 'Gewinne 10 gewertete Talpokalspiele. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_vcup_wins_25: {
     name: 'Keilerball-Legende',
-    desc: 'Gewinne 25 gewertete Talpokal-Matches.',
     title: 'Keilerball-Legende',
+    desc: 'Gewinne 25 gewertete Talpokalspiele. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_vcup_first_goal: {
     name: 'Der Bann ist gebrochen',
-    desc: 'Erziele ein Tor in einem gewerteten Talpokal-Match.',
+    desc: 'Erziele ein Tor in einem gewerteten Talpokalspiel. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_vcup_hat_trick: {
     name: 'Hattrick-Held',
-    desc: 'Erziele drei Tore in einem einzigen gewerteten Talpokal-Match, im 3v3-Modus oder größer.',
+    desc: 'Erziele drei Tore in einem einzigen gewerteten Talpokalspiel im Format 3v3 oder größer. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_vcup_golden_goal: {
     name: 'Goldener Moment',
-    desc: 'Erziele das Golden Goal, das ein gewertetes Talpokal-Match entscheidet.',
+    desc: 'Erziele das Golden Goal, das ein gewertetes Talpokalspiel entscheidet. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_vcup_first_save: {
     name: 'Sichere Hände',
-    desc: 'Pariere als Torhüter einen Ball in einem gewerteten Talpokal-Match.',
+    desc: 'Pariere als Torwart einen Schuss in einem gewerteten Talpokalspiel im Format 3v3 oder größer. Nur ein Schuss, der schnell genug ist, um deinen Griff auf die Probe zu stellen, zählt; ein leichtes Fangen genügt nicht. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_vcup_clean_sheet: {
     name: 'An mir kommt keiner vorbei',
-    desc: 'Gewinne ein gewertetes Talpokal-Match als Torhüter, ohne ein Tor zu kassieren.',
+    desc: 'Gewinne als Torwart ein gewertetes Talpokalspiel im Format 3v3 oder größer, ohne ein Tor zu kassieren. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_vcup_guild_win: {
     name: 'Für das Banner',
-    desc: 'Gewinne ein gewertetes Talpokal-Match, zu dem du unter dem Banner deiner Gilde angetreten bist.',
+    desc: 'Gewinne ein gewertetes Talpokalspiel, zu dem du unter dem Banner deiner Gilde angetreten bist. Talpokalspiele sind nicht mehr spielbar; diese Tat kann daher nicht mehr neu verdient werden.',
   },
   pvp_fiesta_first_bout: {
     name: 'Partycrasher',
-    desc: 'Bestreite eine volle 2v2-Fiesta-Runde, ob Sieg oder Niederlage.',
+    desc: 'Bestreite einen ganzen 2v2-Fiesta-Kampf, ob Sieg oder Niederlage. Fiesta-Kämpfe werden in der Arenawarteschlange nicht mehr angeboten; diese Tat kann nicht mehr neu verdient werden.',
   },
-  pvp_fiesta_first_win: { name: 'Die Seele der Fiesta', desc: 'Gewinne eine 2v2-Fiesta-Runde.' },
+  pvp_fiesta_first_win: {
+    name: 'Die Seele der Fiesta',
+    desc: 'Gewinne einen 2v2-Fiesta-Kampf. Fiesta-Kämpfe werden in der Arenawarteschlange nicht mehr angeboten; diese Tat kann nicht mehr neu verdient werden.',
+  },
   pvp_fiesta_double: {
     name: 'Doppelter Ärger',
-    desc: 'Erziele zwei Fiesta-Niederschläge innerhalb von vier Sekunden.',
+    desc: 'Erziele zwei Fiesta-Abschüsse innerhalb von vier Sekunden. Fiesta-Kämpfe werden in der Arenawarteschlange nicht mehr angeboten; diese Tat kann nicht mehr neu verdient werden.',
   },
   pvp_fiesta_shutdown: {
     name: 'Spielverderber',
-    desc: 'Schalte einen Fiesta-Gegner aus, der auf einer Serie von drei oder mehr steht.',
+    desc: 'Besiege einen Fiesta-Gegner mit einer Serie von mindestens drei Abschüssen. Fiesta-Kämpfe werden in der Arenawarteschlange nicht mehr angeboten; diese Tat kann nicht mehr neu verdient werden.',
   },
   pvp_fiesta_full_build: {
     name: 'Passend gekleidet',
-    desc: 'Gewinne eine Fiesta-Runde mit einer gesicherten Verstärkung aus jeder der drei Wellen.',
+    desc: 'Gewinne einen Fiesta-Kampf mit je einer festgelegten Verstärkung aus allen drei Wellen. Fiesta-Kämpfe werden in der Arenawarteschlange nicht mehr angeboten; diese Tat kann nicht mehr neu verdient werden.',
   },
   pvp_fiesta_powerups: {
     name: 'Von jedem eins',
-    desc: 'Schnapp dir jedes der vier Ring-Power-ups mindestens einmal: Tempoteufel, Koloss, Mondstiefel und Berserker.',
+    desc: 'Sammle jede der vier Ringverstärkungen mindestens einmal ein: Geschwindigkeitsdämon, Koloss, Mondstiefel und Berserker. Fiesta-Kämpfe werden in der Arenawarteschlange nicht mehr angeboten; diese Tat kann nicht mehr neu verdient werden.',
   },
   pvp_fiesta_five_kills: {
     name: 'Partyträger',
-    desc: 'Erziele fünf Niederschläge in einer einzigen Fiesta-Runde.',
+    desc: 'Erziele fünf Abschüsse in einem einzigen Fiesta-Kampf. Fiesta-Kämpfe werden in der Arenawarteschlange nicht mehr angeboten; diese Tat kann nicht mehr neu verdient werden.',
   },
   soc_first_party: {
     name: 'Gemeinsam stärker',
@@ -808,5 +922,533 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'Der Schrottplatz',
     desc: 'Zerlege 50 Ausrüstungsstücke zu Rohmaterialien.',
+  },
+  dgn_wildheart_basin: {
+    name: 'Das Becken beißt zurück',
+    desc: 'Besiege Zulgar, Stimme des Beckens, im Wildherzbecken.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Heroisch: Das Wildherzbecken',
+    desc: 'Besiege Zulgar, Stimme des Beckens, im Wildherzbecken auf heroischem Schwierigkeitsgrad.',
+  },
+  chr_peaks_gatherer: {
+    name: 'Die Ernte der Höhen',
+    desc: 'Ernte in den Thornpeak-Höhen eine Erzader, ein Gehölz und ein Kräuterbeet.',
+  },
+  chr_marsh_rares_ii: {
+    name: 'Der Vielfraß, nachgetragen',
+    desc: 'Erlege Grubjaw den Vielfraß, einen vierten namhaften Schrecken des Mirefen-Moors, den die erste Zählung ausließ.',
+  },
+  chr_peaks_rares_ii: {
+    name: 'Mehr in den Fels gemeißelte Namen',
+    desc: 'Erlege den Alten Felsmaul und Splitterlord Kazzix, zwei weitere namhafte Schrecken der Thornpeak-Höhen, die die erste Zählung ausließ.',
+  },
+  chr_gleamstag: {
+    name: 'Die Legende, die nie zuerst zuschlug',
+    desc: 'Erlege den Glanzhirsch, einen seltenen, scheuen Elite, der nur angreift, wenn man ihn in die Enge treibt.',
+  },
+  chr_hollow_rares: {
+    name: 'Die Herde vergisst nicht',
+    desc: 'Erlege die Alte Markschale und Aurelhorn, den Ersten der Herde, die beiden wandernden seltenen Bosse der Schleiersenke.',
+  },
+  chr_willowfen_gatherer: {
+    name: 'Gaben des Moorlands',
+    desc: 'Ernte im Weidenmoor eine Erzader, ein Gehölz und ein Kräuterbeet.',
+  },
+  chr_willowfen_first_cast: {
+    name: 'Wellenkreise in den Lilienmooren',
+    desc: 'Fange einen Fisch aus den Gewässern des Weidenmoors.',
+  },
+  chr_galecrest_gatherer: {
+    name: 'Ernte auf der Landzunge',
+    desc: 'Ernte auf dem Windkamm eine Erzader, ein Gehölz und ein Kräuterbeet.',
+  },
+  chr_galecrest_first_cast: {
+    name: 'Eine Schnur im Spiegelweiher',
+    desc: 'Fange einen Fisch aus den Gewässern des Windkamms.',
+  },
+  chr_farshore_gatherer: {
+    name: 'Inselproviant',
+    desc: 'Ernte auf der Fernküste eine Erzader, ein Gehölz und ein Kräuterbeet.',
+  },
+  chr_farshore_first_cast: {
+    name: 'Was die Möwen wissen',
+    desc: 'Fange einen Fisch aus den Gewässern der Fernküste.',
+  },
+  prog_engineering_rare: {
+    name: 'Präzisionsingenieurwesen',
+    desc: 'Fertige dein erstes seltenes Ausrüstungsstück im Ingenieurswesen.',
+  },
+  prog_alchemy_rare: {
+    name: 'Ein seltener Jahrgang',
+    desc: 'Fertige dein erstes seltenes Ausrüstungsstück in der Alchemie.',
+  },
+  prog_cooking_rare: {
+    name: 'Ein unvergessliches Gericht',
+    desc: 'Fertige dein erstes seltenes Ausrüstungsstück im Kochen.',
+  },
+  prog_leatherworking_rare: {
+    name: 'Feine Gerberei',
+    desc: 'Fertige dein erstes seltenes Ausrüstungsstück in der Lederverarbeitung.',
+  },
+  prog_tailoring_rare: {
+    name: 'Ein meisterhafter Stich',
+    desc: 'Fertige dein erstes seltenes Ausrüstungsstück in der Schneiderei.',
+  },
+  prog_weaponcrafting_rare: {
+    name: 'Zu Glanz gehärtet',
+    desc: 'Fertige dein erstes seltenes Ausrüstungsstück in der Waffenherstellung.',
+  },
+  prog_armorcrafting_rare: {
+    name: 'Zur Perfektion gepanzert',
+    desc: 'Fertige dein erstes seltenes Ausrüstungsstück in der Rüstungsherstellung.',
+  },
+  col_reliquary_rank_2: {
+    name: 'Beutewahrer',
+    desc: 'Erreiche Kustos-Rang 2 im Reliquiar (10 einzigartige katalogisierte Reliquien).',
+    title: 'Beutewahrer',
+  },
+  col_reliquary_rank_3: {
+    name: 'Der Katalogisierer',
+    desc: 'Erreiche Kustos-Rang 3 im Reliquiar (25 einzigartige katalogisierte Reliquien).',
+    title: 'der Katalogisierer',
+  },
+  col_reliquary_rank_4: {
+    name: 'Erzkustos',
+    desc: 'Erreiche Kustos-Rang 4 im Reliquiar (50 einzigartige katalogisierte Reliquien).',
+    title: 'Erzkustos',
+  },
+  col_reliquary_rank_5: {
+    name: 'Ewige Beute',
+    desc: 'Erreiche Kustos-Rang 5 im Reliquiar (100 einzigartige katalogisierte Reliquien).',
+  },
+  col_reliquary_complete: {
+    name: 'Das Große Reliquiar',
+    desc: 'Katalogisiere jede Reliquie des Reliquiars, die ein Charakter behalten kann. Ein späteres Wachstum des Katalogs nimmt sie dir nie wieder.',
+    title: 'Kustos des Gewölbes',
+  },
+  col_reliquary_conquerors: {
+    name: 'Regal der Eroberer',
+    desc: 'Katalogisiere jede Reliquie im Regal Eroberer des Reliquiars. Ein späteres Wachstum des Katalogs nimmt sie dir nie wieder.',
+    title: 'Gewölbebrecher',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis illuminiert',
+    desc: 'Illuminiere die Seite Heroisch: Nythraxis-Schlachtzug des Reliquiars.',
+    title: 'Licht von Nythraxis',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr illuminiert',
+    desc: 'Illuminiere die Seite Thunzharr, der Erwachende Gipfel des Reliquiars.',
+    title: 'Licht von Thunzharr',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Heiligtum illuminiert',
+    desc: 'Illuminiere die Seite Heroisch: Gravewyrm-Heiligtum des Reliquiars.',
+    title: 'Licht des Heiligtums',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Schatullenausstatter',
+    desc: 'Schalte deinen ersten Banktaschen-Steckplatz frei.',
+  },
+  soc_four_bags_deep: {
+    name: 'Alle vier Taschen',
+    desc: 'Schalte alle vier Banktaschen-Steckplätze frei.',
+  },
+  dgn_ignivar: {
+    name: 'Der Herold fällt',
+    desc: 'Besiege Ignivar, Herold der Letzten Flamme, im Schmelztiegel der Letzten Quelle.',
+  },
+  dgn_ignivar_heroic: {
+    name: 'Heroisch: Der Herold fällt',
+    desc: 'Besiege Ignivar, Herold der Letzten Flamme, auf heroischem Schwierigkeitsgrad.',
+  },
+  dgn_varkhul: {
+    name: 'Die Schmiede erkaltet',
+    desc: 'Besiege Varkhul, Schmiedevater der Letzten Flamme, im Inneren Schmelztiegel.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Heroisch: Die Schmiede erkaltet',
+    desc: 'Besiege Varkhul, Schmiedevater der Letzten Flamme, auf heroischem Schwierigkeitsgrad.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Keine Glut geht verloren',
+    desc: 'Besiege Varkhul, Schmiedevater der Letzten Flamme, auf heroischem Schwierigkeitsgrad, ohne dass ein einziges Schlachtzugsmitglied stirbt.',
+    title: 'Unversengt',
+  },
+  col_set_bramblehide: {
+    name: "Roots' Dornenhaut",
+    desc: "Entdecke jedes Teil von Roots' Dornenhaut.",
+  },
+  prog_jewelcrafting_rare: {
+    desc: 'Stelle deinen ersten Gegenstand der seltenen Stufe mit Juwelierskunst her.',
+    name: 'Zu Glanz poliert',
+  },
+  prog_jewelcrafting_50: {
+    desc: 'Erreiche eine Fertigkeit von 50 in Juwelierskunst.',
+    name: 'Fassetten und Filigran',
+  },
+  prog_grandmaster_jewelcrafting: {
+    desc: 'Erreiche eine Fertigkeit von 125 in Juwelierskunst, den Gipfel dieses Handwerks.',
+    name: 'Großmeister der Juwelierskunst',
+    title: 'Großmeister der Juwelierskunst',
+  },
+  prog_inscription_rare: {
+    desc: 'Stelle deinen ersten Gegenstand der seltenen Stufe mit Inschriftenkunde her.',
+    name: 'In feiner Tinte geschrieben',
+  },
+  prog_inscription_50: {
+    desc: 'Erreiche eine Fertigkeit von 50 in Inschriftenkunde.',
+    name: 'Feder und Pigment',
+  },
+  prog_grandmaster_inscription: {
+    desc: 'Erreiche eine Fertigkeit von 125 in Inschriftenkunde, den Gipfel dieses Handwerks.',
+    name: 'Großmeister der Inschriftenkunde',
+    title: 'Großmeister der Inschriftenkunde',
+  },
+  col_deepest_cast: {
+    desc: 'Erhalte eine Uhrspulen-Angelrute, die einzige Rute, die die tiefsten Fänge erreicht.',
+    name: 'Der tiefste Wurf',
+  },
+  prog_first_planting: {
+    desc: 'Pflanze deine erste Feldfrucht in einem Gartenbeet.',
+    name: 'Hier beginnt die Saat',
+  },
+  chr_vale_first_harvest: {
+    desc: 'Ernte deine erste gedeihende Feldfrucht aus einem Gartenbeet im Eastbrook-Tal.',
+    name: 'Erstlinge des Tals',
+  },
+  chr_marsh_first_harvest: {
+    desc: 'Ernte deine erste gedeihende Feldfrucht aus einem Gartenbeet im Mirefen-Moor.',
+    name: 'Sprossen im Torf',
+  },
+  chr_peaks_first_harvest: {
+    desc: 'Ernte deine erste gedeihende Feldfrucht aus einem Gartenbeet in den Thornpeak-Höhen.',
+    name: 'Eine Ernte zwischen Klippen',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Ernte deine erste gedeihende Feldfrucht aus einem Gartenbeet im Evergarten.',
+    name: 'Ein Beet im Paradies',
+  },
+  prog_farming_100: {
+    desc: 'Erreiche eine Pflanzenfertigkeit von 100.',
+    name: 'Erntemeister',
+    title: 'Erntemeister',
+  },
+  col_farm_roster: {
+    desc: 'Ernte jede Feldfrucht, die die vier Gärten anbauen.',
+    name: 'Jede Furche gefüllt',
+  },
+  prog_field_to_feast: {
+    desc: 'Koche ein Apex-Festmahl, von dessen Tafel ein ganzer Schlachtzug isst.',
+    name: 'Vom Feld zum Festmahl',
+  },
+  col_golden_harvest: {
+    desc: 'Ernte eine goldene Ernte und lass die ganze Zone davon erfahren.',
+    name: 'Goldene Ernte',
+  },
+  prog_legendmaker: {
+    desc: 'Erhebe ein perfektioniertes Werk mit einer Urkunde des Schaffens zur Legende und gib ihm einen einzigartigen Namen.',
+    name: 'Der Legendenmacher',
+  },
+  hid_forgebreaker: {
+    desc: 'Forme Schmiedebrecher selbst und kehre mit dem fertigen Hammer zu Maelin zurück.',
+    name: 'Eine entfesselte Quelle',
+  },
+  exp_arcane_calligraphy: {
+    name: 'Eine ruhige Hand',
+    desc: 'Schließe Arkane Kalligraphie im Eastbrook-Tal ab.',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'In Sternenlicht geschrieben',
+    desc: 'Erziele eine Goldwertung in Arkane Kalligraphie.',
+    title: 'der Runenrufer',
+  },
+  exp_forge_helper: {
+    name: 'Ein helfender Hammer',
+    desc: 'Hilf Schmiedin Mara, in Wyrmwatch einen Schild fertigzustellen.',
+  },
+  exp_last_barricade: {
+    name: 'Die letzte Barrikade',
+    desc: 'Halte den Waldpass gegen die Horde der Untoten.',
+  },
+  exp_borrowed_face: {
+    name: 'Ein geliehenes Gesicht',
+    desc: 'Entlarve und besiege den Eindringling in der Fenbridge-Wache.',
+  },
+  exp_windrider_slalom: {
+    name: 'Windreiter-Slalom',
+    desc: 'Schließe den mechanischen Gleitflug durch den Canyon des Windkamms ab.',
+  },
+  exp_duskweave_dispatches: {
+    name: 'Depeschen aus Dämmergewebe',
+    desc: 'Birg die Banditendepeschen, während du Valeries verzauberten Umhang trägst.',
+  },
+  exp_wisp_maze: {
+    name: 'Ein Licht im Labyrinth',
+    desc: 'Birg die gestohlenen Geldbeutel und entkomme dem Labyrinth des Immergartens.',
+  },
+  prog_rift_watch_trusted: {
+    name: 'Das Vertrauen der Risswacht',
+    desc: 'Erreiche den Rang Vertraut bei der Risswacht.',
+  },
+  prog_church_order_trusted: {
+    name: 'Das Vertrauen des Kirchenordens',
+    desc: 'Erreiche den Rang Vertraut beim Kirchenorden.',
+  },
+  prog_automatons_trusted: {
+    name: 'Das Vertrauen der Automaten',
+    desc: 'Erreiche den Rang Vertraut bei den Automaten.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Champion der Risswacht',
+    desc: 'Erreiche den Rang Champion bei der Risswacht.',
+    title: 'Risswächter',
+  },
+  prog_church_order_champion: {
+    name: 'Champion des Kirchenordens',
+    desc: 'Erreiche den Rang Champion beim Kirchenorden.',
+    title: 'Morgenhüter',
+  },
+  prog_automatons_champion: {
+    name: 'Champion der Automaten',
+    desc: 'Erreiche den Rang Champion bei den Automaten.',
+    title: 'Schmiedemeister',
+  },
+  prog_faction_champion_all: {
+    name: 'Champion jedes Banners',
+    desc: 'Erreiche den Rang Champion bei der Risswacht, dem Kirchenorden und den Automaten.',
+  },
+  exp_clue_first_casket: {
+    name: 'Schatz gefunden',
+    desc: 'Öffne ein Schatzkästchen, das am Ende einer Hinweisschriftrollen-Suche ausgegraben wurde.',
+  },
+  exp_clue_ten_caskets: {
+    name: 'Schatzjäger',
+    desc: 'Öffne 10 Schatzkästchen, die am Ende von Hinweisschriftrollen-Suchen ausgegraben wurden.',
+    title: 'Schatzjäger',
+  },
+  exp_harbor_to_harbor: {
+    name: 'Von Hafen zu Hafen',
+    desc: 'Segle mit beiden Fähren hin und zurück: von Eastbrook nach Moonrest und von Wickharbor nach Wyrmwatch.',
+  },
+  cmb_coinsack_caught: {
+    name: 'Auf frischer Tat ertappt',
+    desc: 'Schnap dir einen Münzsakk-Ratte in einem Begrabenen Hort, bevor er mit dem Gold entwischt.',
+  },
+  exp_wisp_maze_hard: {
+    name: 'Heller als die Schatten',
+    desc: 'Hol die gestohlenen Geldborsen zuruck und entkomme dem Evergarden-Labyrinth auf Hard.',
+  },
+  prog_titan: {
+    name: 'Gigant',
+    desc: 'Verdiene insgesamt 10.000.000 Erfahrungspunkte.',
+    title: 'Gigant',
+  },
+  pvp_flag_1h: {
+    name: 'Kühn',
+    desc: 'Lasse Welt-PvP für 1 Stunde Spielzeit aktiviert, während du lebendig in der offenen Welt oder in einem PvP-Kampf bist. Heiligtümer, PvE-Instanzen, Tod und Ausloggen pausieren den Fortschritt; Ausschalten setzt ihn zurück. Verdiente Titel bleiben dauerhaft erhalten.',
+    title: 'Kühn',
+  },
+  pvp_flag_3h: {
+    name: 'Aufbegehrend',
+    desc: 'Lasse Welt-PvP für 3 Stunden Spielzeit aktiviert, während du lebendig in der offenen Welt oder in einem PvP-Kampf bist. Heiligtümer, PvE-Instanzen, Tod und Ausloggen pausieren den Fortschritt; Ausschalten setzt ihn zurück. Verdiente Titel bleiben dauerhaft erhalten.',
+    title: 'Aufbegehrend',
+  },
+  pvp_flag_6h: {
+    name: 'Furchtlos',
+    desc: 'Lasse Welt-PvP für 6 Stunden Spielzeit aktiviert, während du lebendig in der offenen Welt oder in einem PvP-Kampf bist. Heiligtümer, PvE-Instanzen, Tod und Ausloggen pausieren den Fortschritt; Ausschalten setzt ihn zurück. Verdiente Titel bleiben dauerhaft erhalten.',
+    title: 'Furchtlos',
+  },
+  pvp_flag_24h: {
+    name: 'Unbeugsam',
+    desc: 'Lasse Welt-PvP für 24 Stunden Spielzeit aktiviert, während du lebendig in der offenen Welt oder in einem PvP-Kampf bist. Heiligtümer, PvE-Instanzen, Tod und Ausloggen pausieren den Fortschritt; Ausschalten setzt ihn zurück. Verdiente Titel bleiben dauerhaft erhalten.',
+    title: 'Unbeugsam',
+  },
+  pvp_flag_168h: {
+    name: 'Unbezwingbar',
+    desc: 'Lasse Welt-PvP für 7 Tage Spielzeit aktiviert, während du lebendig in der offenen Welt oder in einem PvP-Kampf bist. Heiligtümer, PvE-Instanzen, Tod und Ausloggen pausieren den Fortschritt; Ausschalten setzt ihn zurück. Verdiente Titel bleiben dauerhaft erhalten.',
+    title: 'Unbezwingbar',
+  },
+  cmb_balgath: {
+    name: 'Kein Vorarbeiter mehr',
+    desc: 'Schicke den Begrabenen Vorarbeiter zurück in seinen Grabhügel.',
+  },
+  cmb_balgath_ten: {
+    name: 'Der Hügel behält nichts',
+    desc: 'Besiege den Begrabenen Vorarbeiter zehnmal.',
+  },
+  cmb_point_taken: {
+    name: 'Spitze verstanden',
+    desc: 'Lösche die Laterne des Strohvorarbeiters auf dem Übungsplatz des Aufgebots und nutze seine abgefallenen Bretter.',
+  },
+  dgn_olen_buttress: {
+    name: 'Haltet die Mauer',
+    desc: 'Besiege Ritterkommandant Olen, ohne dass sein Abprallendes Bollwerk jemals einen zweiten Spieler trifft.',
+  },
+  dgn_ossick_moored: {
+    name: 'Sicherer Hafen',
+    desc: 'Besiege Kerkermeister Ossick, ohne dass jemand in die Grube des Ertrinkens gezogen wird.',
+  },
+  dgn_vael_beacon: {
+    name: 'Im Licht des Leuchtfeuers',
+    desc: 'Besiege Vael den Nebelbinder, ohne einen einzigen Nebelschatten zerplatzen zu lassen.',
+  },
+  dgn_turretback: {
+    name: 'Räumungsbescheid',
+    desc: 'Besiege den Schiffswrackkapitän, ohne dass jemand von der Geisterbreitseite getroffen wird.',
+  },
+  dgn_selthe_pitch: {
+    name: 'Jede Stimme im Einklang',
+    desc: 'Besiege Chormutter Selthe, wobei jeder Chor von mindestens zwei Personen geteilt wird und kein Solo jemand anderen berührt.',
+  },
+  dgn_colossus_mirror: {
+    name: 'Zerbrecht das Glas',
+    desc: 'Besiege den Gezeitenglaskoloss, wobei jedes Spiegelbild innerhalb von 15 Sekunden nach seinem Erscheinen zerbrochen wird.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: 'Auf dem Trockenen',
+    desc: 'Besiege Ysolei, Avatar des Ertrunkenen Mondes, ohne dass jemand von ihrem Gezeiteneinschlag getroffen wird.',
+  },
+  dgn_mere_hydra: {
+    name: 'Alle Köpfe unten',
+    desc: 'Töte alle drei Köpfe der Seehydra innerhalb von 10 Sekunden voneinander.',
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Kein Haar versengt',
+    desc: 'Besiege den Totengeläutwyrm, ohne dass jemand von seinem Scheiterhaufen-Feuerflug verbrannt wird.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Kein Käfig hält uns',
+    desc: 'Besiege den Kerkerwärter, ohne dass jemand in einem Eisenkäfig zerquetscht wird.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Auf Abstand gehalten',
+    desc: 'Besiege den Fangfürsten-Bestienmeister und seinen Großen Jaguar, wobei Rudelband insgesamt weniger als 10 Sekunden aktiv ist.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Unkrautbekämpfung',
+    desc: 'Besiege die Schlingblüte, ohne dass ein einziger Dornenspross wächst.',
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Niemals erwischt',
+    desc: 'Besiege Zulgar, Stimme des Beckens, ohne dass jemand zerfleischt wird.',
+  },
+  dgn_great_saurian: {
+    name: 'Gestürzter Titan',
+    desc: 'Besiege den Großsaurier und seinen Sänftenfluchrufer innerhalb von 20 Sekunden voneinander.',
+  },
+  dgn_korgath_all_chains: {
+    name: 'Ein gnädigeres Ende',
+    desc: 'Besiege Korgath den Gebundenen, nachdem alle vier seiner Ketten zerbrochen wurden.',
+  },
+  dgn_korgath_still_bound: {
+    name: 'Das Schloss hält',
+    desc: 'Besiege Korgath den Gebundenen auf heroischem Schwierigkeitsgrad, wobei mindestens zwei seiner Ketten niemals zerbrochen werden.',
+  },
+  dgn_velkhar_cold: {
+    name: 'Kalter Trost',
+    desc: 'Besiege Großnekromant Velkhar, ohne dass ein einziger erweckter Knochenwandler ein zweites Mal aufsteht.',
+  },
+  dgn_korzul_thin_ice: {
+    name: 'Dünnes Eis',
+    desc: 'Besiege Korzul den Gravewyrm, wobei mindestens zwölf der neunzehn Eisplatten auf dem See unzerbrochen bleiben.',
+  },
+  dgn_sledge_tusker: {
+    name: 'Kalte Fracht',
+    desc: 'Besiege den Schlittenhauer, ohne dass jemand von seinem Trampeln getroffen wird.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: 'Die letzte Strophe',
+    desc: 'Besiege Ysolei, Avatar des Ertrunkenen Mondes, mit dem Letzten Kantor des Bleichen Chors an deiner Seite.',
+    title: 'Zeuge des Chors',
+  },
+  dgn_marrow_tidy: {
+    name: 'Ein ordentlicher Kirchhof',
+    desc: 'Besiege Küster Marrow, wobei jedes Offene Grab am Rand des Glockenhofs angelegt wird.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Niemand bleibt hängen',
+    desc: 'Besiege die Lady des Knochenfrosts, ohne dass sie jemals jemanden aus ihrer Gefrorenen Umarmung fallen lässt.',
+  },
+  dgn_ilvane_hush: {
+    name: 'Sei jetzt still',
+    desc: 'Besiege Kantor Ilvane, ohne dass ihr Klagelied der Hohlen jemals jemanden trifft.',
+  },
+  dgn_morthen_candlelight: {
+    name: 'Jede Kerze brennt',
+    desc: 'Besiege Morthen den Gravecaller, nachdem alle vier Gedenkkerzen innerhalb von 20 Sekunden nach dem Erscheinen seines Schutzes der Ruhelosen wieder angezündet wurden.',
+  },
+  dgn_guild_first_contract: {
+    name: 'Auftrag unterzeichnet',
+    desc: 'Schließe einen wöchentlichen Dungeonauftrag der Laternenhalle ab.',
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Stammgast am Brett',
+    desc: 'Schließe 10 wöchentliche Dungeonaufträge der Laternenhalle ab.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Auftragsveteran',
+    desc: 'Schließe 50 wöchentliche Dungeonaufträge der Laternenhalle ab.',
+  },
+  feat_guild_writ_runner: {
+    name: 'Auftragsbote',
+    desc: 'Bei Garrick Holt, dem Rüstmeister der Laternenhalle, für 6 Laternensiegel gekauft.',
+    title: 'Auftragsbote',
+  },
+  feat_guild_hallsworn: {
+    name: 'Hallengeschworen',
+    desc: 'Bei Garrick Holt, dem Rüstmeister der Laternenhalle, für 14 Laternensiegel gekauft.',
+    title: 'Hallengeschworen',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Von der Laternenhalle',
+    desc: 'Bei Garrick Holt, dem Rüstmeister der Laternenhalle, für 24 Laternensiegel gekauft.',
+    title: 'von der Laternenhalle',
+  },
+  feat_gourdlight_guise: {
+    name: 'Kürbislichtverkleidung',
+    desc: 'Besitze einen Geschnitzten Kürbiskopf, erbeutet vom Alten Thatchgrin auf seinem Feld hinter der Eberwiese während der Kürbislichtnacht.',
+  },
+  feat_old_thatchgrin: {
+    name: 'Stoppeln und Asche',
+    desc: 'Hilf dabei, den Alten Thatchgrin während der Kürbislichtnacht auf seinem Kürbisacker hinter der Eberwiese zu besiegen.',
+  },
+  feat_title_gourdlit: {
+    name: 'Der Kürbiserleuchtete',
+    desc: 'Lies eine Urkunde des Kürbiserleuchteten, während der Kürbislichtnacht bei Hester Gourdwick gegen Kürbislicht-Süßigkeiten eingetauscht.',
+    title: 'der Kürbiserleuchtete',
+  },
+  feat_title_trickster: {
+    name: 'Schelm',
+    desc: 'Lies eine Urkunde des Schelms, während der Kürbislichtnacht bei Hester Gourdwick gegen Kürbislicht-Süßigkeiten eingetauscht.',
+    title: 'Schelm',
+  },
+  feat_title_hollow_grinned: {
+    name: 'Der Hohlgrinser',
+    desc: 'Lies eine Urkunde des Hohlgrinsers, während der Kürbislichtnacht bei Hester Gourdwick gegen Kürbislicht-Süßigkeiten eingetauscht.',
+    title: 'der Hohlgrinser',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Kürbisjäger',
+    desc: 'Finde während der Kürbislichtnacht alle in der Welt versteckten Spukkürbisse.',
+    title: 'der Hohle',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Jede Türschwelle',
+    desc: 'Verlange während der Kürbislichtnacht Süßes oder Saures bei allen Stadtbewohnern in Eastbrook, Fenbridge und Highwatch, die auf ein Klopfen antworten.',
+  },
+  feat_gourdlight_errands: {
+    name: 'Auf Hesters Geheiß',
+    desc: 'Erledige jeden von Hester Gourdwicks wechselnden Aufträgen zur Kürbislichtnacht mindestens einmal.',
+  },
+  feat_gourdlight_frights: {
+    name: 'Drei erschreckte Städte',
+    desc: 'Erschrecke bei Hesters Auftrag Buh! je einen Stadtbewohner in Eastbrook, Fenbridge und Highwatch.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'Kürbislicht von Anfang bis Ende',
+    desc: 'Erlebe die gesamte Kürbislichtnacht: Besiege den Alten Thatchgrin, finde alle Spukkürbisse, erledige jeden Auftrag von Hester, klopfe an jede Tür und erschrecke je einen Bewohner in jeder der drei Städte.',
+    title: 'der Kürbisgeschworene',
   },
 };

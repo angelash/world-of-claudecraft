@@ -1,7 +1,7 @@
 <!-- src/render/: the Three.js renderer. Root + src CLAUDE.md (the IWorld seam,
      the import-direction rules, determinism, build commands) already apply, do
-     NOT repeat them. This file is render-local only. characters/ has its own
-     CLAUDE.md. -->
+     NOT repeat them. This file is render-local only. characters/ and
+     ability_vfx/ have their own CLAUDE.md. -->
 
 # src/render/: Three.js renderer
 
@@ -19,12 +19,107 @@ Everything else is a sibling module in one of these families:
   owns: `terrain.ts` (chunked LOD + PBR splat), `props.ts`/`foliage.ts`/
   `dungeon.ts` (instanced/merged GLBs), `water.ts` (terrain-aware water bodies;
   shore-depth and tier core in `water_core.ts`, sleeping GPU height field and
-  facing-aligned character volume wakes in `water_simulation.ts`), `sky.ts`. Event/minigame scenes follow
-  the same pattern: `jail_scene.ts`, `vale_cup_*.ts`, `yumi_*.ts`.
+  facing-aligned character volume wakes in `water_simulation.ts`; the surface
+  itself is the FFT ocean in `ocean/`, see its `CLAUDE.md`), `sky.ts`.
+  Event/minigame scenes follow the same pattern: `jail_scene.ts`,
+  `yumi_*.ts`, `battleground*.ts` (Thornhollow Fields:
+  kit-module field from the pure `battleground_core.ts` manifest, entity props
+  in `battleground_props.ts`). Rift portals: `door_portal.ts` also builds the
+  bespoke world-rift gate GLB with its rank-tinted energy membrane
+  (`buildRiftGateBody`), and `rift_rank.ts` is the floating C/B/A/S rank badge
+  above a world rift portal.
 - **Per-frame overlay/FX modules** ticked from `sync()`: `vfx.ts` (pooled
-  particles), `weather.ts`, `character_effects.ts`.
+  particles), `weather.ts` (any weathered biome inside the camera box drives
+  precipitation and masked spawns keep it over that zone's own cells, so a
+  neighbouring realm's snow is visible from outside; decisions in
+  `weather_field_core.ts`), `character_effects.ts`.
+- **Gloamveil's floor and smoke layer** (`gloam_field.ts`, owned by `Vfx`): the
+  Shadow priest's form outside the body. One field per renderer holds the dark
+  smoke (`gloam_smoke.ts`, an ALPHA-blended cloud: the additive cloud in
+  `vfx.ts` can only add light, so "dark" there is invisible) and one draped
+  pool per wearer with its wake and entry ring (`gloam_pool.ts`). The renderer
+  drives it: the entity loop reports each presented wearer once a frame
+  (`vfx.gloam.wearer`) with the rig's cue, then closes the frame
+  (`vfx.gloam.update`) with the viewer's reduced-motion setting. Everything
+  else is decided in three pure cores: what each tier and reduced motion keep
+  and who is tracked (`gloam_field_core.ts`), where a stain lies and when it
+  may be laid (`gloam_pool_core.ts`), the puff pool (`gloam_smoke_core.ts`).
+  Its contracts, each pinned in `tests/gloam_field.test.ts`: every stain sits
+  on the top rung of the `ground` band, alone, so the dark never covers a
+  player or encounter floor effect (`docs/design/vfx-floor-layering.md`);
+  ground samples come from the renderer's own seed-bound sampler, which
+  costs about ten microseconds a call, so the floor is REMEMBERED on a
+  world-aligned grid of the pool's own cell (`GloamGround`) and a lay reads it
+  between nodes: a moving pool is laid every frame and samples only the nodes
+  it has just reached, the entry ring samples only the vertices its front is
+  about to reach, and every new sample is spent from ONE per-frame allowance
+  shared by all of them (where it runs out a vertex keeps the height it had
+  and the lay is finished on a later frame, and the field rotates who is
+  served first); every stain draws with one of two materials built once
+  (per-stain values are written in `onBeforeRender`); the root is attached
+  through `attachSceneGroupGated` over hidden stand-ins, at construction and
+  again on a context restore, so its three programs link before anything
+  under it draws and a gate that never settles is caught by the watchdog; a
+  pool whose wearer is gone is parked and reused (a bounded few), so a camera
+  turning away and back mints no buffer; the field disposes everything it
+  built. The body half is `characters/gloam_climb.ts`.
+- **Cross-surface shader services** own a shared uniform block plus a GLSL
+  snippet that SEVERAL materials splice, never a copy per material.
+  `biome_haze_field.ts` (+ its `_core`) is the reference: one small world-space
+  DataTexture of per-zone haze colour and strength (colour carries the zone's
+  light level and its baked weather veil, so a twilight realm reads dim and a
+  snowing one white from outside), which `terrain.ts`, the far vista tiles and
+  `water.ts` all splice at the same anchor (immediately before
+  `<fog_fragment>`) on the same uniform objects, so distant land carries its
+  own realm's atmosphere and the detail-horizon handoff cannot draw a ring.
+  The sky dome (`sky.ts`) is a fourth consumer on the same uniforms: a
+  directional horizon-band tint sampled along the view ray, applied before
+  the dome's own fog band so the camera zone's fog still owns the true rim.
+  The renderer builds the field once from its outdoor fog presets and pushes
+  the camera + `dnGrade.fog` per frame; `?zonehaze=off` is the A/B switch.
 - **The nameplate suite** (below) owns all overhead text and badges.
 - **Pure logic cores** (below) hold Node-tested per-frame decisions.
+- **Chosen cadence:** `chosen_cadence.ts` is module state (like `arrival_cover.ts`)
+  between the frame loop's Frame Rate Limit wiring (`src/game/frame_cadence_wiring.ts`,
+  the writer of the chosen interval, its miss share and the quality hold) and the
+  renderer (the writer of the governor readings the automatic limit waits on: shedding,
+  at baseline, in combat). Under a chosen cadence the governor judges the MISS SHARE
+  (`chosen_cadence_pressure_core.ts`), never the wall interval, and every consumer that
+  reads a frame interval as load goes through `frameLoadMs`. A new renderer clears the
+  renderer-side readings (`resetChosenCadenceForRenderer`).
+- **Far-visible landmarks:** `boss_impostor.ts` (+ its `_core`) keeps a WORLD
+  BOSS on screen from across the zone, long past the 80yd entity band, by
+  baking a ring of yaw views of his real model into one atlas and drawing a
+  camera-facing quad that blends the two bracketing views. Same technique as
+  the far-foliage impostors, but the subject MOVES and TURNS, so the bearing is
+  taken relative to his own facing. The HANDOFF to the rig is a hard cut keyed
+  off the rig's own visibility (`bossImpostorShows`: the sprite draws only while
+  the renderer is NOT drawing his rig), never a second distance curve: a curve
+  of its own has to reproduce the rig's 80-in/96-out hysteresis to the frame or
+  it opens a double-draw band each way, which is what the first cut shipped. The
+  cut is invisible because the quad sits on the far mesh's exact frame
+  (`bossImpostorFrameMetrics` / `bossImpostorQuadPlacement`, on the same
+  interpolated pose), is baked from the same `idleGeo` the far LOD draws, and is
+  re-graded by the live day/night grade (`bossImpostorLightGrade`), so a
+  midnight sprite is as dark as the rig it replaces. A sleeping boss draws no
+  sprite at all (he is a landmark at his lair, not on the horizon). Three
+  enforcement points must agree or the feature is a silent no-op: this module,
+  the server's interest widening (`server/interest_policy.ts` `landmarkRange`),
+  and the shared candidate query that would otherwise never return him. When
+  copying the bake loop, copy the `setRenderTarget`-per-cell too: three latches
+  a target's viewport and scissor at BIND time, so mutating them on an
+  already-bound target puts every view in one cell and the sprite draws as a
+  grey rectangle.
+- **World-boss ward cues** (`eye_ward_marker_core.ts` + `characters/eye_ward_marker.ts`,
+  `eye_ward_badge.ts` + `eye_ward_badge_field.ts`, driven by
+  `eye_ward_marker_drive.ts`): the reticle on the boss's eye and the state badge
+  over his head. The split that matters is the `EyeWardMarkerRole`: "aim the pike
+  HERE" is an instruction and is gated on carrying the pike, while "his ward is
+  down, your damage lands" is the raid's damage window and shows for EVERYONE.
+  Collapsing the two is how the twenty players doing the damage ended up never
+  being told. State is read off the boss's own ward AURAS, which the sim already
+  maintains as pure presentation of two timestamps, so a second viewer needs no
+  new wire field.
 - **Perf governors:** `render_budget.ts` (adaptive frame budget, see
   Performance) and `crowd_lod.ts` (pure character LOD policy: the band plan
   `characterLodBands` returns, which pulls shadow/anim cadence in as rig counts
@@ -32,7 +127,60 @@ Everything else is a sibling module in one of these families:
   the frozen single-draw far mesh takes over. Its extension eases out on the
   crowd knee, the per-tier `GFX.farCharacterAnimScale` ceiling, and live budget
   pressure; cosmetic-only, and `showsStaticFarMesh` keeps anything a player
-  reacts to out of the frozen mesh inside the uncrowded base range).
+  reacts to out of the frozen mesh inside the uncrowded base range). The per-view
+  swap goes through `far_lod_latch.ts` / `far_lod_latch_core.ts` (distance
+  hysteresis, a dwell, a moving grace; the applied far scale slews per frame), so a
+  noisy edge never flickers a creature between rig and far mesh; an actionable pose
+  still returns to the rig at once.
+- **Zone-feature cull:** `zone_feature_sweep.ts` is the per-frame sweep the renderer
+  drives over every attached feature cull group, a thin consumer of
+  `zone_feature_visibility_core.ts` (the fog or detail-horizon rule on the group's
+  XZ footprint, the apparent-size reach, the sun-shadow range with hysteresis). A
+  feature module registers sub-groups through `cullGroups` (the water flora's
+  per-region groups, the Willowfen's per-(family, cell) groups) and may set
+  `ZONE_FEATURE_EXTENT_KEY` on a DRESSING group to opt into the reach: the group is
+  shed once its largest instance is under `ZONE_FEATURE_MIN_APPARENT_PX` at the fixed
+  reference view, so a one-off giant keeps its whole group to the horizon with nothing
+  to write anywhere. Never on a collider-backed family (the distance rule alone), never
+  a per-family distance table.
+- **Low coconut batches:** `jungle_features.ts` builds coconut parts through
+  `static_instance_cells.ts` before zone attach, preparation and shadow registration.
+  `GFX.coconutCellSize` controls the build-time grid (`?gfxo=coconutCellSize:0`
+  restores one batch per part). Cells share the original geometry/material and keep
+  every placement; only ordinary full-bounds frustum rejection changes. They do not
+  register separate distance or apparent-size culls. The jungle view disposes its
+  cell buffers and rebaked coconut geometry through `renderer_resource_lifecycle.ts`,
+  never borrowed GLB materials. Tests: `static_instance_cells.test.ts` and
+  `jungle_feature_cells.test.ts`.
+- **Zone streaming + residency:** `zone_streaming.ts` (pure policy: WHICH
+  zones to materialize and in what order, feeding the renderer's background
+  prepare queue), `chunk_residency_core.ts` (chunk-level "how far can the
+  camera see before unbuilt ground" answer the outdoor fog clamp keys off),
+  `resident_scenery_core.ts` (whole-scene traversal/shadow skip policy), and
+  `assets/residency_budget.ts` (dev-channel accounting of where decoded bytes
+  sit; English console output by design).
+- **WebGL context lifecycle:** `context_recycle.ts` (`recycleWebGL2Context`
+  cycles the ONE WebGL2 context through `WEBGL_lose_context` on a renderer
+  rebuild so the same canvas + context is reused instead of a second context
+  being minted), `context_release.ts` (forces context loss on `pagehide`:
+  browsers cap live WebGL contexts per GPU process at ~16 and reclaim lost
+  ones lazily, and the client reloads on every logout),
+  `context_loss_recovery.ts` (`attachContextRecoveryHandlers`: the game
+  canvas's one persistent watchdog for an UNPLANNED loss that never restores,
+  e.g. a genuinely dead GPU/driver; distinct from three.js's own
+  `webglcontextlost` handler, which already requests restoration for the
+  entire life of a live renderer, and from `context_recycle.ts`'s short-lived
+  listener, which covers the deliberate rebuild's dispose-then-reconstruct
+  gap), and `software_renderer.ts` (the SINGLE source of truth for detecting a
+  software rasterizer from the adapter string; `gfx.ts`, `perf_doctor.ts`, and
+  `perf_reporter.ts` all consume it so the detectors cannot drift).
+  An in-place loss and restore is `context_restore.ts` (pure half
+  `context_restore_core.ts`): every "this GPU work is done" record registers its reset
+  or re-bake in `context_restore_registry.ts` next to the record (the source scan in
+  `tests/context_restore_registry.test.ts` fails a new record with no answer), a link
+  that straddles a loss is linked again (`context_generation.ts`, read by the compile
+  arms), and the world draw is held for at most `CONTEXT_RESTORE_HOLD_MAX_MS` while
+  the visible set links (`context_restore_hold.ts`).
 - `view_create_retry.ts`: bounded cooldown state for fail-soft character builds
   in per-frame paths, including required targets, form swaps, and visual-key
   swaps (`tests/view_create_retry.test.ts`).
@@ -55,9 +203,59 @@ Everything else is a sibling module in one of these families:
   moves). All display-only, all gated by the reduced-motion switch; driven
   from `renderer.ts` `updateCamera` and the hud event hooks
   (`tests/camera_*_core.test.ts`).
-- `voxel_terrain.ts`: verification-only prototype (proposal #1611, driven by
-  `scripts/`, NOT the live path); live terrain is `terrain.ts` sampling sim heights.
-
+- `interior_camera.ts` over `interior_camera_core.ts`: the indoor camera clamp, the ONE
+  scoped exception on the built-in world to the pinned rule that scene geometry never shortens
+  the chase boom (`tests/graphics_overhaul_integration.test.ts`). A walk-in building registers
+  its AIR (boxes, optionally rounded by a vertical cylinder, plus its openings onto the world;
+  square to the world's axes, or to the building's own `InteriorFrame`, an origin and a turn,
+  for one stood at any other angle: every query still takes world points) with
+  `registerCameraInterior` when it is built and drops it on teardown; while the player's
+  eye stands in it, the drawn camera stays in that air (pull-in at once, eased release, the
+  least flattening under a lintel or a ceiling, a lift or swing over a cramped spot, a cut to
+  the eyes in a corner nothing escapes; a `preserve-angle` interior instead keeps the
+  requested ray and only shortens the boom along it); walking in, the lens is held under the
+  door's head and follows through the doorway from outside (`interiorEntryCap`, a ray out
+  through an opening runs on past it), so nothing is cut away round the player; bodies
+  outside lose their nameplates and chat bubbles unless seen through an opening. Outdoors it
+  touches nothing. Reference registrants: every town view that stands painted buildings (the
+  placed-town view `placed_town_buildings.ts` behind Highwatch, `eastbrook_town.ts`,
+  `fenbridge_town.ts`) registers each walk-in building's air through its own registrar
+  (`placed_town_interiors.ts`: cleared as the view builds, one `add` per building it stands)
+  from `placed_town_interior_core.ts` (rooms and doors per model at authored size, carried to
+  the record's scale, turn and seat; a new walk-in model needs its entry there, pinned against
+  its baked collision by `tests/placed_town_interior_core.test.ts`). The Highwatch and
+  Fenbridge views also hand the same doors to their camera fade, so a walk-in building stays
+  solid while the player steps in with the lens still outside looking through the door
+  (`fenbridge_town_visibility_core.ts` `doorways`, read in `doorwayFrame` for a turned
+  building); Eastbrook's roof fade takes no doors, so there a walk-in building fades while the
+  lens is outside it. The Mirefen tavern (`mirefen_tavern.ts`) registers its own air from
+  `mirefen_tavern_interior_core.ts`. The chase camera's floor (ground, rift tier, maze hedges)
+  is `chase_camera_floor_core.ts`.
+- **Studio (authored maps) and the editor:** two directories, each with its
+  own `CLAUDE.md` and `index.ts` barrel. `authored_map/` holds what the
+  renderer does ONLY on an authored map (chase-boom clamps and look-up dolly,
+  the gameplay fog band, authored lighting, cave/carve/rail/fluid/decal layers,
+  the under-world mask); every call site is gated on `isBuiltinWorldActive()`
+  or the editor camera, so the built-in world draws exactly what the release
+  did. `editor_api/` is `renderer.editor`, the map editor's facade (a new
+  editor hook lands there, never as a public `Renderer` method).
+- **Renderer facades and per-frame helpers** extracted under the monolith
+  ratchet: `renderer.picking` (`world_picking.ts`: entity, gather-node, mover
+  and ground picks), the speech bubbles (`chat_bubble_layer.ts`), click
+  markers / AoE rings / ground-aim reticle (`ground_feedback.ts`), the Tab cone overlay
+  (`target_cone_overlay.ts`), god-ray shafts (`god_ray_shafts.ts`), and the
+  per-biome fog/light/god-ray tables (`outdoor_biome_presets.ts`). A new
+  public picking method lands on its facade, not on `Renderer`.
+- **Sitting on furniture** (the seats are `src/sim/seat_anchor.ts`): the sim keeps a seated
+  body on its seat's STAND spot; `seated_pose.ts` over the pure `seated_pose_core.ts` draws it
+  in the seat (the root at the seat anchor, turned to the seat, the rig ROOT lifted onto the
+  seat surface so the group's step smoothing never eases over a seat) and walks it in and out.
+  Two hooks and nothing else: `entityRenderPose` (`deck_frame.ts`) calls `applySeatedPose`,
+  the animation fill calls `applySeatAnim`. The chair clips (`sit_anims.glb`, wired by
+  `manifest.ts` `seats()` onto every Rig_Medium body, chosen by `characters/seat_clips.ts`)
+  are authored in the seat's anchor space, so the visual SNAPS (never crossfades) into and
+  out of the seated states. The pointer's seat pick is `seat_pick.ts` over
+  `seat_pick_core.ts`, driven by `src/game/seat_interact.ts`.
 ## Module-first: pure core + thin painter (where NEW render logic lands)
 New per-frame decision logic (visibility, anchors, interpolation, region/LOD
 selection) is its own Three/DOM/i18n-free `*_core.ts` or `*_view.ts` module,
@@ -66,24 +264,28 @@ every on-disk `src/render` `*_view`/`*_core`, fails CI on unregistered ones,
 and scans the set Three/DOM/i18n-free and deterministic). The Three/DOM half
 is a thin painter the renderer drives; reference pair: `nameplate_view.ts` +
 `nameplate_painter.ts` (the render twin of src/ui's `unit_portrait` pattern).
-The core's test is a plain Vitest importing it directly. Fix bugs test-first:
-reproduce in the matching Vitest (extract buried logic into a core if needed),
-then the smallest change that turns it green; a repro never needs a browser.
+The core's test is a plain Vitest importing it directly; a repro never needs a
+browser (the bug-fix workflow itself lives in root CLAUDE.md and the
+`extract-and-test` skill).
 
 ## The nameplate suite (overhead text/badges land here, never renderer.ts)
 `nameplate_view.ts` is the pure plan (show/hide, anchor lift, urgency, threat,
 combo; allocation-free: `nameplatePlanInto` fills a caller-owned `NameplatePlan`).
 `nameplate_painter.ts` does the Three projection, DOM writes, and ALL the
-localization (per-tier cadence via `ui_tier_knobs.nameplateIntervalSec`); the
-significant-contributor name glow lives there too. Narrow helpers:
-`nameplate_combo/threat/projection/declutter.ts` plus `entity_labels.ts`
+localization; the significant-contributor name glow lives there too. The
+per-tier cadence lever (`ui_tier_knobs.nameplateIntervalSec`) is applied by
+`renderer.ts`, which gates how often the painter runs; the painter has no
+cadence logic of its own. Narrow helpers:
+`nameplate_combo/threat/projection.ts` plus `entity_labels.ts`
 (shared localized display names). Drive changes from `tests/nameplate_*.test.ts`.
 
 ## gfx.ts: the shared core (read this before touching any subsystem)
-- **`GFX` quality tiers** (`low`/`medium`/`high`/`ultra`). Every tier-dependent knob lives
-  here, not in scattered ternaries. The renderer MUST call `initGfxTier(webgl)`
-  right after creating the `WebGLRenderer` and before building scene content
-  (software GL maps to `low`; `?gfx=low|medium|high|ultra` / `?lowgfx` force a tier).
+- **`GFX` quality tiers** (the `GfxTier` ladder; ranks are monotone, so gate a
+  knob via `gfxTierAtLeast`, never a `=== 'ultra'` string compare a new top
+  tier silently skips). Every tier-dependent knob lives here, not in scattered
+  ternaries. The renderer MUST call `initGfxTier(webgl)` right after creating
+  the `WebGLRenderer` and before building scene content (software GL defaults
+  to `low`; `?gfx=<tier>` / `?lowgfx` force a tier).
 - **`surfaceMat(opts)`** is the material factory: it dedupes by
   `(color|maps|flags)` so hundreds of boxes share a few programs. Use it instead
   of `new MeshStandardMaterial`; `MeshLambertMaterial` is auto-substituted on low.
@@ -98,6 +300,30 @@ significant-contributor name glow lives there too. Narrow helpers:
 - **VFX:** add an effect to `vfx.ts` (emit into the pooled particle cloud; HDR
   colour multipliers via `hdr()` so it blooms on composer tiers). Sprite atlas
   cells are append-only (`SPRITE_FILES`/`SPR` must stay in sync).
+- **Per-ability class VFX have two sanctioned landing spots.** Default: a
+  declarative spec in a class-owned `*_vfx_specs.ts` module (exemplars:
+  `destruction_vfx_specs.ts`, `necromancy_vfx_specs.ts`,
+  `warlock_vfx_specs.ts`) REGISTERED in `ability_vfx_registry.ts`, which plays
+  the gallery anatomy on the pooled `ability_vfx/` engine (see its CLAUDE.md).
+  A bespoke `src/render/` module (the `paladin_*_visual.ts` set,
+  `warlock_meteor_fx.ts`, `necromancy_*_fx.ts`, the frost/mage modules) is for
+  effects that need scene objects the pooled primitive families cannot
+  express; even then the pure math lands in a registered `_core`.
+- **Every floor-anchored VFX takes its `renderOrder` from the floor ladder**
+  (`floor_vfx_layer_core.ts` policy, `floor_vfx_layer.ts` the Three-side twin):
+  `floorVfxRenderOrder(layer, step)` with a band of `ground` (the world's own
+  marks), `player` (class ability ground VFX, plus the normal-blended click and
+  AoE feedback on its top rung), `encounter` (boss telegraphs, soaks, hazards,
+  death zones) or `reticle` (the additive aim guide), bottom to top, so a
+  mechanic a player must react to always paints over what a player emits. Never
+  a bare integer; never on a Group (three promotes a Group's renderOrder to
+  `groupOrder`, which outranks the whole ladder; use `applyFloorVfxLayer` for a
+  subtree). Register the module and its band in `tests/floor_vfx_layer.test.ts`,
+  or name it there as out of scope with a reason (its completeness sweep fails a
+  bare `renderOrder` that is neither); design in `docs/design/vfx-floor-layering.md`.
+  A pooled bespoke subtree calls `tagVfxSubtree` once it is fully built: the
+  warm-up walk selects on each object's OWN tag, so tagging only the root hides
+  its drawables from the prewarm and the cast gate.
 - **Models are real GLB assets** (CC0 kits, Tripo-generated models, and the
   image-to-GLB procedural exporters: props, foliage, dungeon, fish, gather nodes,
   mailbox, delve props, characters, the Eastbrook town kit), loaded via
@@ -107,25 +333,846 @@ significant-contributor name glow lives there too. Narrow helpers:
   parsed-GLB contract test, and its own thin `src/render/<asset>.ts` adapter
   (exemplars: `banker_chest.ts`, `eastbrook_grand_armoury.ts`, `noticeboard.ts`).
 ## Asset loading (`assets/`)
-`loader.ts` (`loadGltf`/`loadHdr`/`loadTexture`, one parse per URL) plus these
-rules, all CI-enforced:
+`loader.ts` (`loadGltf`/`loadTexture`/`loadKtx2Texture`, one parse per URL, plus
+`loadBitmapTexture`, the `loadTexture` twin that decodes off the main thread for a large
+sheet whose upload would otherwise pay the decode; a caller that keeps such a texture
+releases its bitmap after upload through `bitmap_sheet_release.ts`) plus these rules, all
+CI-enforced:
 - **Cache results are IMMUTABLE: clone before mutating.** `releaseGltf(url)` drops
   the cache entry after geometry is extracted.
-- **`preload.ts` is the boot gate.** Subsystems call `registerPreload(promise)` at
-  import time and `startGame` awaits `assetsReady()`, so `build*()` can read resolved
-  assets synchronously. A new module-load fetch MUST `registerPreload`.
+- **A loaded GLB carries no parser.** `loadGltf` resolves a `LoadedGltf` (the GLTF
+  minus `parser`): the parser held a copy of the binary chunk and every bufferView,
+  embedded images included, for as long as the GLTF stayed cached. Data only the
+  parser has is extracted in the loader's post-parse hooks, before the drop
+  (`tests/gltf_parser_release.test.ts` pins the drop and bans `src/` readers).
+- **Never `dispose()` a shared GLB-cache texture that may still be drawn.** With the
+  KTX2 mip release (`assets/ktx2_mip_release.ts`) its CPU data is full-shape stubs and
+  its restore source drops on dispose, so a later re-upload renders black.
+- **A geometry's coarser levels are index lists in `assets/geometry_lod.ts`** (filled by
+  the loader's `WOC_lod` plugin, `assets/woc_lod_plugin.ts`). A level draws through a
+  variant over the source's own attribute objects, which goes with its source's dispose
+  and never alone; a transform keeps a level only through `carryGeometryLod` or
+  `mergeGeometryLod`, so anything else derived from a geometry carries no levels (it draws
+  the one index it was given). The WOC flows that use them are in `characters/CLAUDE.md`.
+- **iPhones keep character-side KTX2 mips at or under 512.** `assets/ktx2_mip_cap.ts`
+  trims the chains of GLBs under `KTX2_MIP_CAP_MODEL_ROOTS` and of the skin atlases in
+  the loader's parse resolve chains, before any upload, on the iOS memory profile of a
+  phone-class user agent only (iPads, Android and desktop keep full chains). A capped
+  root must stay exempt from the mip release; both pinned by `tests/ktx2_mip_cap.test.ts`.
+- **`preload.ts` is the boot gate, and it has TWO lanes.** `startGame` awaits
+  `assetsReady()` either way, so `build*()` still reads resolved assets
+  synchronously; the lanes differ only in WHEN the fetch starts. A new module-load
+  fetch MUST register in one of them, and for world content that is the deferred one:
+  - `registerDeferredPreload(() => load...())` for world content. Nothing runs until
+    `startGame` calls `beginDeferredPreloads()`. The thunk must CREATE the promise
+    when invoked, never close over one already in flight.
+  - `registerPreload(promise)` stays eager, for the few assets the LAUNCHER itself
+    draws. Today that is `characters/assets.ts` (the character-creation preview) and
+    `placed_assets.ts` (which runs during world build, not at import). The character
+    boot set registers at the loader's BACKGROUND priority: the launcher's stage asks
+    for its own body's files as demands (`directBuildAssetsResident`) and never waits
+    on the set, so a creature it will never draw cannot hold its character back.
+  Fetching world content at import meant merely reaching the home screen decoded the
+  whole set, and the spike crossed WKWebView's per-process ceiling: a 12 GB iPhone 17
+  Pro was killed 1.6s in and reloaded forever, unseen by the entry crash guard (it
+  only arms inside `startGame`). Guarded by `tests/defer_launcher_preloads.test.ts`,
+  which also pins that the lane opens BEFORE the `assetsReady()` that gates the
+  Renderer, and fails on any new eager registrant outside the two allowed files.
+- **Player bodies have a loading model of their own: nothing a body needs in order
+  to be DRAWN streams on first sight.** A player is the entity a player reacts to
+  most, so its body, nameplate and click target exist the frame it enters range
+  (the fairness rule: enemy positions are actionable), on every device and link.
+  Three tiers, the file sets in the pure `characters/woc_entry_core.ts` and
+  `characters/woc_crowd_prefetch_core.ts`:
+  - **Entry-critical, awaited.** Both body fits' base and animation library and
+    both head cores: the minimum to draw ANY player. One task in the deferred lane
+    (`characters/woc_entry_preload.ts`, registered by `characters/assets.ts`), so
+    it starts at Play, never on the launcher, and `assetsReady()` waits for it
+    before the Renderer exists. A file of it that cannot be fetched fails the
+    entry, loudly, like any critical asset.
+  - **Prefetched right after first paint, never awaited.** The rest of the crowd
+    set: every hairstyle and facial hair file, every armor set of both fits at
+    the tier OTHER characters draw, every under-armor atlas
+    (`characters/woc_crowd_prefetch.ts`, started by the same first painted frame
+    as the creature stream, `startStreamedCharacterPreloads`). Background work
+    end to end: the downloads wait behind every file somebody needs now, an
+    armor pack is prepared as a BACKGROUND unit of the work queue, nothing is
+    attached, and a failure is nobody's loss. Only on an unconstrained profile:
+    a constrained one (every phone, every iOS host) prefetches NOTHING, since
+    its page runs near its memory ceiling and no device measurement says the
+    whole crowd set fits, and neither does a browser that sends the Save-Data
+    hint. It re-plans when a preset change moves the crowd's
+    tier, and never runs on the launcher. `?woccrowdprefetch=off` (dev) switches
+    it off, the A/B arm that prices it.
+  - **On demand, each with a stand-in that draws meanwhile.** A hair or beard file
+    (the bare head), an armor set (the body's own suit), an under-armor atlas
+    (the suit's own atlas), the top detail tier (the medium file). The prefetch
+    only makes the stand-in rare; a body that meets a file before it lands draws
+    the stand-in on every profile. A new streamed piece of a player body names
+    its stand-in or joins the entry-critical set; it never holds the body back.
+  The launcher is the one place a body itself is fetched on demand: its previews
+  ask per body (`visualAssetsResident`, and `directBuildAssetsResident` for the
+  weapons the build hangs too, built on `onCharacterAssetReady`; a fetch that
+  failed is asked for again after its cooldown, so the wait ends).
+  `characters/woc_entry_prepare.ts` then runs under the curtain, ahead of the
+  prewarm's budget clock: the local player's own hair and beard get a bounded
+  chance to settle, and both fits are prepared, so neither happens in a live
+  frame. Guards: `tests/woc_entry_preload.test.ts` (the sets derived from the
+  manifest and catalog, nothing started before the lane opens, the wait and what
+  it does not wait for), `tests/woc_entry_prepare.test.ts`,
+  `tests/woc_crowd_prefetch.test.ts` (the plan per profile, nothing on a
+  constrained one, background and once, started by the first painted frame only).
+- **The load queues have two classes** (`assets/load_queue_core.ts`, the queue
+  `loader.ts` schedules on). `loadGltf(url)` is a DEMAND; `{ priority:
+  'background' }` is speculative bulk (the post-entry creature stream on the iOS
+  memory profile, the crowd prefetch above; `loadKtx2Texture` takes the same
+  option for an atlas fetched ahead of need). A waiting demand always starts
+  before any waiting background load, first come first served inside a class,
+  and a background load still waiting when its file is demanded is promoted, on
+  the same promise. Background loads never hold every slot of a queue that has
+  more than one: one stays free for a demand, which would otherwise wait out a
+  bulk download already on the wire (and its retries). So a file somebody needs
+  now never waits out a stream of files nobody has asked for. A new bulk fetch
+  passes `background`; nothing else changes for a caller. Guards:
+  `tests/load_queue_core.test.ts`,
+  `tests/render_asset_load_priority.test.ts`,
+  `tests/character_stream_priority.test.ts`.
 - **Preload sets are tier-INDEPENDENT.** They freeze at the import-time tier
   guess but placement runs against the LIVE tier, so a preload set must be a
   superset of EVERY tier's placement set or world entry crashes with "asset not
   preloaded" (the v0.16.0 P0; see the comment in `characters/manifest.ts` and
   `tests/render_asset_preload.test.ts`).
+- **A deferred thunk may skip its load on one profile only when every consumer
+  awaits it.** The Drakelands kit (the ember prop GLBs and the Ignivar templates)
+  resolves at once on the iOS memory profile (`drakelands_kit_lane_core.ts`
+  `drakelandsKitBootThunk`) and loads on approach instead: the zone prepare
+  awaits `drakelands_kit_lane.ts` before it builds the ember features, and the
+  build refuses to run until every template was attempted and settled (the
+  fortress is collider-backed in the sim, so a build that outran its loads would
+  leave those pieces invisible but solid; a template that still fails after the
+  loader's retries is skipped for the session, as at boot). The raid dressing
+  awaits the templates itself, and the visible-zone lane holds the zone out of
+  its one-at-a-time queue until the kit is resident. A synchronous `build*()`
+  reader never gets this exception. Pinned by `tests/drakelands_kit_lane.test.ts`
+  and `tests/drakelands_kit_renderer_seam.test.ts`.
 - **Every asset under `public/` must be in the media manifest** (regenerate via
   `node scripts/build_media_manifest.mjs generate`, automatic in `npm run build`).
   `tests/render_glb_replacement_assets.test.ts` fails on a GLB missing from
   disk or the manifest; export a `*PreloadInternalsForTest` (see `fish.ts`)
   so it covers your module.
 
+## World-entry prewarm (warm-up is a manifest entry, never ad-hoc)
+`renderer.ts`'s prewarm runs a manifest of explicit entries (ids like
+`vfx.ability-primitives`) so the first in-world frames do not hitch. Any heavy
+NEW subsystem's warm-up must land as a manifest entry, in the right lane:
+- `prewarm_policy.ts` is the pure decision layer. Constrained (phone-class
+  WebKit) devices run a deliberately MINIMAL manifest
+  (`CONSTRAINED_PREWARM_KEEP`) because a full one is a world-entry
+  process-kill risk two ways: main-thread occupancy trips iOS's
+  responsiveness watchdog, and a fully warmed manifest re-inflates GPU memory
+  past the per-process ceiling. That rationale is written only in this
+  module's header; read it before changing any entry.
+- Entries dropped by the entry deadline resume in the background as explicit
+  SMALL units (`prewarm_resume.ts`; deliberately no whole-entry callback,
+  because `requestIdleCallback` cannot preempt synchronous work once it
+  starts; `CONSTRAINED_PREWARM_RESUME` in `prewarm_policy.ts` names what
+  constrained devices push to the background instead of the entry).
+- The initial page entry has one shared first-paint boundary. Before it,
+  `programs.compile-submit` admits only the settled visible `scene` group;
+  hidden archetype/material catalogs become bounded
+  `programs.compile-post-paint` debt. Ordinary `LIVE_VIEW` entity gates and
+  scenery reveal compiles wait on the same boundary, while target/casting
+  `ACTIONABLE_VIEW` gates still start immediately. `post.initial-frame` is the
+  presentation-owned exception: it renders the composer once with the scene
+  root hidden, so fullscreen post shaders and targets warm under the curtain
+  without turning hidden catalog debt into a whole-world draw.
+- `prewarm_pass.ts` sequences the BACKGROUND zone prewarm (live frames keep
+  rendering, so its groups MUST stay invisible; hidden objects still link
+  their programs because compile traverses via `scene.traverse`, not
+  `traverseVisible`). One documented exception in `withHiddenPrewarmGroups`:
+  a reveal that lands INSIDE its window is kept, because the only other
+  writer of a feature group's visibility there is its own gated attach, whose
+  reveal follows the gate's colour, shadow, settle, upload and touch arms, so
+  it draws linked programs only; restoring the captured "hidden" over it left
+  a lazily built feature invisible for good (the Willowfen dressing).
+- Shared machinery: `compile_gate.ts` (fail-soft async shader-compile gating
+  that also BOUNDS in-flight driver links during snapshot bursts, plus the
+  `SerialGateLane` for gates that arrive in a burst), `linked_program_touch.ts`
+  (the gate's tail: fetch every linked variant's uniform tables so the reveal
+  draw issues no synchronous first-use query),
+  `background_gpu_queue.ts` (the one priority arbiter for idle-time work that
+  reaches WebGL). That queue decides ORDER; it also admits under the per-frame
+  BUDGET of `gpu_prep_budget_core.ts` (wired by `gpu_prep_admission.ts`), which
+  learns a syncMs per label kind and spends the headroom left by the tier's
+  drop-frame threshold, defers a refused unit frame by frame under a starvation
+  bound, and arms only once the frame clock runs, with `?prep=legacy` restoring
+  the old ADMISSION only (every unit admitted at once, the ledger still
+  learning); the reveal-gate policy has no legacy arm and keeps revealing
+  piecewise under its soft deadline whatever that flag says. The touch tail runs as one budgeted queue
+  unit PER PROGRAM (`linked_program_touch_lane.ts`) on the live gates, on the
+  reveal host, and on the world-entry compile lane. Each of those three once
+  ended at the shadow arm and left its programs paying the uniform-table round
+  trip on their first live draw; the boot lane opts in through the `tail` of
+  `initial_scene_compile_units.ts`, whose `entryCompileTail` binds the same
+  settle and touch arms the gates use. Its readiness comes
+  from the SETTLE and never from a driver query: a settled gate records its
+  target's current programs in `linked_program_readiness.ts` and the walk reads
+  that record, because three latches `programReady` false after one missed poll,
+  so `isReady()` on a program that has been linked and drawing for a minute
+  re-issues COMPLETION_STATUS synchronously (5558 ms on the main thread in the
+  2026-08-18 production capture, with eighteen reveal units parked behind it).
+  A settle means EVERY VARIANT, not the one slot three polled: `compileAsync`
+  polls `materialProperties.currentProgram` per material, while a material
+  can carry several program variants in `materialProperties.programs` (skinned
+  and rigid, morph counts, the depth twin's own map) and a material SHARED by
+  concurrent gates (the composed bodies' skin detail, jewels, class tints) has
+  that slot repointed by another gate's prologue mid-poll, so the sibling
+  variants linked unpolled, were never marked, and paid their link at first
+  draw or first uniform query in a live frame (28 raced pending links, 39 to
+  125 ms each, in the same capture). Every gate piece therefore runs a THIRD
+  arm after its colour and shadow compiles, the variant settle
+  (`program_variant_settle.ts`, enumeration and pass in the pure
+  `program_variant_settle_core.ts`, the depth twins found through
+  `prewarmDepthMaterialsOf`): an asynchronous poll of every program of the
+  piece's materials at three's own compileAsync cadence and backoff, bounded
+  by the piece's deadline (`PieceDeadline`, handed to each piece by
+  `runPieces`), recording each program as it answers ready. That poll is the
+  ONE place this code asks `isReady()`; a piece is settled only when every
+  variant answered, timed out otherwise. A settled gate links
+  programs but uploads NOTHING (three's `compileAsync` never reaches
+  `WebGLTextures`), so the same gates also run an upload lane: one budgeted
+  queue unit per non-resident texture under the root (`texture_prep_lane.ts`,
+  enumeration and the residency predicate in the pure `texture_prep_core.ts`,
+  label kind `upload:texture` with the size class appended, `upload-mid` from
+  512x512 texels and `upload-big` from 1024x1024, so a large upload is priced by
+  its own class; a second context that moves onto the lane passes its own label,
+  `upload-preview:texture`, though the paperdoll and portrait contexts still run
+  their sliced upload today). A texture whose image has not arrived or not
+  finished decoding is not a candidate (three uploads nothing for it and would
+  leave it non-resident, so it would be re-queued at every gate). **The order
+  inside a gate is LINK, then UPLOADS, then the TOUCH tail, then settle**,
+  because the touch's driver round trip flushes behind everything already
+  queued, so uploads paid after it are simply measured by it. The lane never
+  releases its tail (an upload is main-thread driver work with no off-thread
+  arm), never re-arms `needsUpdate` on a texture it does not own (a KTX2 texture
+  whose CPU mips were released comes back black; the DataTexture chunk path
+  re-arms it per update range by design, that is how three consumes ranges),
+  and never wraps its uploads in `compilePrewarmColorPrograms`' render-target
+  dance (`initTexture` dispatches on the texture's own flags and unbinds
+  itself, so there is nothing to restore). `idle_queue.ts`
+  (idle-slot queue draining),
+  `prewarm_depth_material.ts` (the shadow arm's depth material: it must link
+  the SAME program three's `WebGLShadowMap` draws, so it never sets
+  `depthPacking` and keys one instance per caster shape; a three bump is
+  re-read from three's source, pinned by `tests/prewarm_depth_material.test.ts`,
+  never guessed). The shadow arm (`renderer.ts` `compileShadowPrograms`)
+  swaps a twin onto EVERY mesh under the gated root, casting at gate time or
+  not: `castShadow` is a runtime distance toggle (entity shadow band, zone
+  shadow volume, gather nodes) that flips frames after the gate ran, and a
+  rig gated beyond the band otherwise links its depth program cold at its
+  first shadow draw. Use these, never a bespoke idle loop.
+- **Streamed decor reveals PIECEWISE, per root, nearest first.** The reveal
+  gates (`reveal_gate_core.ts` policy, `reveal_gate.ts` host adapter over the
+  one `reveal_compile_host.ts`) hold a cull's FIRST hidden-to-visible flip
+  until the subtree's programs are linked. A key still warms only once every
+  root behind it is ready, but the core also tracks each root (`rootReady`),
+  so a consumer whose roots draw independently shows each one as its own
+  compile lands: the towns do exactly that (`town_reveal_core.ts`
+  `townPiecewiseRevealInto`, closest root to the camera first, at most
+  `TOWN_PIECEWISE_REVEALS_PER_FRAME` per frame), because a town key is every
+  static batch plus every building group and flipping all of them on the frame
+  the slowest link settles IS the burst the gate exists to prevent. A root
+  once shown is never hidden again (`numPointLights` is in three's program
+  cache key, so a hide and re-show links fresh programs). The props bands and
+  the foliage buckets are one root per key, and a far cell's bake meshes swap
+  as one representation (its first near flip back after a proven bake holds
+  ON the bake under `<key>:near`, `prop_cell_core.ts` `propCellNearKey`, until
+  the members' own programs link), so those consults stay all-or-nothing. The
+  props HIDEABLES (each camera-ghost building, tent or campfire group) carry
+  NO first-sight gate of their own, by measurement: gating them put 116 keys
+  into the reveal pipeline at once on the Eastbrook ride and the iGPU could
+  not settle them inside the watchdog, so they hid 10 s and drew cold anyway;
+  the near-flip hold is what covers a building's unique kit materials.
+  The two consults that used to SKIP the gate (a prop band already inside half
+  the fog, a camera already inside a town's cull radius: the teleport-arrival
+  shape) are IMMINENT HOLDS now, because the premise that such an arrival rides
+  a cover whose zone prepare compiled the scene is false wherever the boot
+  manifest dropped that content, and revealing on the jump frame linked the
+  whole town kit in live frames. They consult and hold like any other reveal;
+  what imminence buys is ORDER, never an early draw. There is NO wall-clock
+  reveal bound anywhere: the cores take no clock, a held root shows when its own
+  compile lands, and the only other ends of a hold are the
+  `REVEAL_GATE_WATCHDOG_MS` watchdog and the two reach floors below.
+  IMMINENT KEYS GO FIRST, AND NEAREST FIRST. The consult carries the flag into
+  the gate's request (`reveal_gate_core.ts` `allow(key, imminent)`), which
+  carries it into `reveal_compile_host.ts`: that key's link, upload and touch
+  pieces ride at `LIVE_VIEW` instead of `VISIBLE_PREWARM`, still under the
+  actionable gates. Within a key the roots are submitted nearest to the camera
+  first (`town_reveal_core.ts` `orderTownRootsNearestFirst`, called by each town
+  view at request time off that frame's camera), and across keys a frame's
+  escaping bands are consulted in distance order (`prop_cull_core.ts`
+  `updatePropCullables` over a reused `PropCullPass`; the sort runs only on a
+  frame with two or more of them). `gpu_prep_events.ts` counts the marked keys
+  as `imminentHolds` (under the entry cover's establishing shot, below, EVERY
+  consulted key is marked, so a first-spawn entry's count is the whole
+  opening view, not the keys the camera stood among).
+  TWO REACH FLOORS, and they are the only reveals that may draw a root
+  unlinked: colliders are never invisible at arm's length. Bands keep
+  `PROP_CULL_REVEAL_REACH` (40 yd, instant, gate or not). Towns get
+  `TOWN_REVEAL_REACH_YD` (12 yd, applied in the piecewise pass on the first held
+  frame, budget-free, counted as `rootsReach`), and it is DELIBERATELY the
+  smaller one: a town kit's programs are shared across its buildings, so
+  revealing one unlinked building links the whole kit cold in that live frame.
+  It is the fairness floor, not a comfort radius. It also applies ONLY to
+  FOOTPRINT-anchored roots (`TownPiecewiseReveal.footprint`, set by each town
+  view): every town-spanning static batch anchors at the town centre, so a
+  camera standing there is at arm's length of all of them at once, and reach is
+  a collider argument a batch cannot make.
+  THE ENTRY HORIZON BOUNDS WHAT IS CONSULTED. The reveal-gated painters (the
+  props view, both town views, foliage) cull against
+  `EntryDetailHorizonAdmission.sceneryCullFar` (`entry_detail_horizon_core.ts`
+  `entrySceneryCullFar`): the frame's cull far capped at the horizon's open
+  ring while the entry horizon is active, at BOTH frame sites (the prewarm
+  frame and the live frame). Before the far-terrain stand-in is complete the
+  renderer culls at scene fog rather than the horizon, and one such frame
+  under the entry cover requested every scenery key out to that fog (measured
+  on the Proving Shore spawn: 81 keys at once, 46 of them beyond the first
+  ring, both mainland towns included), so the spawn's own decor waited behind
+  keys the horizon then hid, whose watchdogs later revealed them cold. A key
+  beyond the ring is not consulted, so nothing is requested for it until the
+  ring reaches it or the camera does (real-geometry keys: foliage SPRITE rows
+  cull against the atmospheric far, which the cap leaves alone, so an impostor
+  bucket beyond the ring still consults its gate). The cap holds on the frames
+  the horizon cannot tick (before `vistaLive()`, `advanceFromFrame` is not
+  fed): that window is the one it exists for, and nothing beyond the ring
+  could draw there anyway, since every such key is gate-held until its link.
+  `snapshot().sceneryCap` reports the ring scenery culled at, distinct from
+  `cap`, which reads the target on those frames. Terrain keeps the wide cull
+  far: nothing it draws rides the reveal lane.
+  The ARRIVAL COVER (`arrival_cover.ts`, raised by `src/game/arrival_warmup.ts`
+  for the whole blocking teleport chain, and at world entry) does two things and
+  neither of them reveals anything. It makes the curtain WAIT on the gates
+  (`awaitArrivalReveals`, at most `ARRIVAL_REVEAL_SETTLE_MAX_MS`, zero online
+  with ONE exception: the world entry that opens on the first-spawn cinematic's
+  ESTABLISHING SHOT, `settleWorldEntryCover` `establishingShot`, waits the same
+  bound online, and while that cover is up EVERY reveal consult is imminent,
+  `arrival_cover.ts` `arrivalEstablishingShotActive` read by `reveal_gate.ts`,
+  because the wide opening view of the village is what a new player sees
+  first and the chase camera's imminence radius does not describe it)
+  so an arrival lifts with its decor linked the way boot does. The wait's outcome
+  is an `arrival` event keyed `entry-wait` or `entry-wait:establishing-shot`
+  (waited ms, the bound, the imminent keys still held at the lift), which the
+  perf beacon summarizes with the reveal counters as `rawSummary.entryReveal`
+  (`src/game/perf_entry_reveal_core.ts`): the fleet-side watch for the bound. Its first check
+  happens after ONE poll interval, never synchronously: the wait starts before
+  any cull has consulted a gate at the new position, so a synchronous check read
+  "nothing held" because nothing had been asked yet. At world entry that wait
+  sits behind `afterActiveAnimationMs`, which is driven by
+  `requestAnimationFrame`, so a HIDDEN TAB keeps the cover raised until frames
+  resume; nothing renders meanwhile, so nothing is being hidden from anyone. It
+  also switches
+  `gpu_prep_admission.ts` onto the cover rule (`gpu_prep_budget_core.ts`
+  `gpuPrepCoverAdmits`): under a curtain there is no frame to protect, so
+  everything from `TAIL_PIECE` up is admitted on the `cover` reason, and
+  `BOOT_DEBT` / `BACKGROUND` / `BOOT_RESUME` are refused on
+  `cover-not-arrival`. Admitting those too is what starved the arrival
+  (measured: after a second of hold, 0 of 1 roots ready per band key and 0 of 12
+  on the town, because the debt lane drained ahead of them). A
+  `cover-not-arrival` refusal does NOT age: the adapter answers `agesDeferral`
+  false for it (`background_gpu_queue.ts` consults the hook in `noteFrame`),
+  because ticking `deferredFrames` through a whole curtain left every one of
+  those units past `maxDeferFrames` and admitted the entire debt lane as
+  `starvation` on the first live frame after the drop. The cover is DEPTH-counted
+  (`setArrivalCover(true|false)` increments and decrements, floored at zero): the
+  blocking arrival and the world-entry settle are independent owners that can
+  overlap, and the curtain stands until the last of them drops it. Beside the
+  cover, the blocking arrival also HOLDS THE WORLD DRAW for the same span
+  (`src/game/presentation_gate.ts` `worldDrawHeld`); see `src/game/CLAUDE.md`,
+  the `arrival_warmup.ts` row.
+  Two deadlines beside it, and only one of them reveals: a SOFT deadline per key, from
+  the budget's learned reveal cost (one gate PIECE, since a reveal compile is one
+  queue unit per material group) times the piece count of the key's roots clamped into
+  [`REVEAL_SOFT_DEADLINE_MIN_MS`, `REVEAL_GATE_WATCHDOG_MS`], records a
+  `reveal-soft-deadline` gpu-prep event with the key's ready/total roots and
+  changes nothing. That learned cost is the compileAsync PROLOGUE (1 to 3 ms),
+  not the driver's link wall time, so the deadline sits at its floor in
+  practice: a learned wall time is future work, and it is telemetry either
+  way; the `REVEAL_GATE_WATCHDOG_MS` hard watchdog still reveals ungated and now
+  carries the same counts, plus the `reveal` aggregate in
+  `gpu_prep_events.ts` (keys held, roots held, roots revealed piecewise, roots
+  revealed on a reach floor, roots still compiling at a watchdog), so a capture
+  can attribute a first-draw stall to the roots that never linked in time. On
+  initial page entry, neither deadline starts while the loading curtain owns
+  presentation: `startAfterInitialPaint` starts the reveal compile and both
+  clocks together after the first painted world frame. Later arrivals read the
+  already-settled page boundary and retain the normal immediate clock.
+- **The camera-occluder fade is a GATED flip (`occluder_fade_gate.ts`).** A
+  structure that blocks the eye-to-camera segment fades by flipping
+  `transparent` on its per-structure clones (`occluder_fade.ts`) or by drawing
+  a pooled transparent stand-in (`instanced_occluder_ghosts.ts`), and three
+  keys a SECOND program on that flip. The boot manifest stages one hidden twin
+  per fade program (`props.ghost-fade-variants`, `foliage.materials`), but both
+  entries are droppable and resume in the lowest lane, while the player's
+  first camera turn after the curtain is exactly when a house or a tree
+  crosses the segment: on a boot that dropped them the flip linked inside that
+  live frame. So the flip consults a reveal gate whose key is the program
+  identity (`occluder_ghost_variant_key.ts`, or `instancedGhostKey`) and whose
+  root is a hidden twin on that program (`buildOccluderFadeTwin`, the ONE
+  recipe the prewarm and the gate share; `instancedGhostTwin` for the pools,
+  built with the live stand-in's own `createInstancedGhostMaterial`). A cold
+  key fires the twin's compile through the reveal compile host and holds: an
+  EDGE consult (the camera is inside the structure now) names the actionable
+  floor, `compile(root, imminent, namedPriority)`, and escalates a key a
+  prefetch already queued at the ordinary priority (one more compile of the
+  same twin, the key settling on either result); the painter's per-frame path is
+  `advanceOccluderFade`, which keeps the structure OPAQUE while its alpha keeps
+  stepping and writes the flip the frame the link settles; the tree hides ask
+  `InstancedOccluderGhosts.allReady` for every part before the first acquire.
+  Restoring to the authored state never consults, and a structure that
+  clears the camera while still held never flips at all. WHAT THE PLAYER SEES
+  during a hold is the structure itself, opaque, exactly as before it crossed
+  the segment: the hold delays a cosmetic see-through, never a representation
+  (every entity behind the wall keeps drawing; the camera cannot see through
+  the wall yet, as it could not before the fade existed), the same trade the
+  character-effect swap makes, and the hold ends on the twin's settle or the
+  reveal watchdog, never on a clock. Structures within
+  `OCCLUDER_FADE_PREFETCH_YD` of the camera (geometry: the cinematic's opening
+  pull-back, past the wheel range) ask ahead of their first occlusion,
+  `prefetchOccluderFadeWithin` / `prefetchAll`, at the ordinary reveal
+  priority, or imminent under an arrival cover so the covered wait links them
+  too. No installed gate (no async compile, tests, the editor) means the
+  historical immediate flip; `renderer_resource_lifecycle.ts` uninstalls it
+  with the renderer, and the twins (one per program, retained for the gate's
+  life, never disposed while installed) go with it. A new fade painter uses
+  `advanceOccluderFade` and mints its records with `occluderFadeRecordFor`
+  (one record per material AND mesh variant: a plain and an instanced mesh
+  of one material are two programs); every instanced-ghost consumer (trees,
+  the Yumi maze walls, the battleground placements) decides through
+  `occluderKeepsInstances` before `acquire`. Pinned by
+  `tests/occluder_fade_gate.test.ts` and `tests/occluder_fade_core.test.ts`.
+  On the DITHERED style (`occluder_dither_fade.ts` `ditherFadeEnabled`, the
+  `GFX.ditheredGhostFade` setting) none of the above runs: a hideable material
+  stays opaque and drops fragments on one Bayer pattern, so there is no second
+  program, no twin, no gate consult and no ghost prewarm, and the restore is
+  one step. Structures read a uniform; ONE instance of a batch reads a
+  per-instance HIDE attribute (`instanced_dither_fade.ts`, 0 = drawn, so a
+  geometry without the attribute draws fully) that `InstancedOccluderGhosts`
+  writes instead of swapping in a stand-in. The layer is attached where the
+  batch material is MADE (`withInstancedDitherFade` for a material the module
+  owns, `ghostFadeBatchMaterial` for a borrowed one), never at the first
+  occlusion, and each hideable batch draws a geometry SHELL
+  (`ghostHideGeometry`: the source's attribute objects plus its own hide
+  buffer) that leaves only through `disposeGhostHideGeometry`, because three's
+  geometry dispose deletes the buffer of every attribute still attached.
+  Pinned by `tests/instanced_dither_fade.test.ts`.
+- **The Proving Shore coach's guidance is prewarmed AND gated.** The golden
+  ribbon, target ring, body aura, objective beam and camp ring
+  (`coach_trail.ts`) used to mint their materials and canvas textures on the
+  frame the coach's route or target first changed, by bare `scene.add`, and
+  to dispose the ribbon material on every station change: the island's first
+  accepted quest linked three programs inside a live frame. The materials are
+  now the page-wide set in `coach_trail_materials.ts`, staged by the boot
+  manifest on the ability-material lane (`ABILITY_MATERIAL_SOURCES`, the
+  lazy-cache sweep enforces the registration), and every guidance object is
+  built at construction under one root the trail attaches through
+  `attachSceneGroupGated` with the renderer's compile gate, so the root stays
+  hidden until the programs link whatever the boot kept; rebuilds only swap
+  geometry. The zone archetype prewarm also takes the kill targets of the
+  zone's quests (`zone_prewarm_templates_core.ts`), so a summon-only quest
+  mob (the island's Mister Crabs) is staged with the camps. Pinned by
+  `tests/coach_trail_materials.test.ts` and
+  `tests/zone_prewarm_templates_core.test.ts`.
+- **Every gate names its stand-in: NEVER LEAVE AN ENTITY WITH NO REPRESENTATION.**
+  A gate hides a still-linking object so its reveal draw cannot stall the frame;
+  the link is not cancellable and the gate timeout is diagnostic only, so the
+  hidden window is UNBOUNDED. That is fair only while something else still tells
+  the player the entity is there. The reference is the far-bake gate
+  (`characters/far_lod_reveal_core.ts` `farMeshShown`: the articulated rig keeps
+  drawing until the baked mesh links). `entity_gate_stand_in_core.ts` holds the
+  rule: `ENTITY_GATE_STAND_INS` (one row per gate call site, naming what it hides
+  and what still draws), `applyCharacterFormVisibility` (the base body is the
+  stand-in for a linking FORM rig, held there by `characterFormReadyMask`, which
+  treats a rig behind its gate as absent), and `entityHasNoBody`, which the
+  nameplate painter uses to force a plate on OVER the player's nameplate toggles
+  for the one gate with no in-world stand-in (the arrival gate hides the whole
+  group). A new gate adds a row AND a case to `tests/entity_gate_stand_in.test.ts`;
+  its coverage pin reds on any unregistered call site, over the gate shapes its
+  `GATE_CALL_SITES` table names (the three renderer wrappers plus
+  `spiritCompileGate`, the puppet pool's own consult of the host gate it takes
+  through `setSpiritCompileGate`). That one REFUSES the spawn instead of
+  holding it, because an apparition that pops in late is worse than one that
+  never came: the rest of the impact sequence is the stand-in, and the refusals
+  are counted as `gpuPrep.gates.spiritSpawnsRefused`.
+  The rule has a SECOND-CONTEXT arm: the paperdoll / Inspect preview holds its
+  own draws on a cold open (`characters/preview_open_gate_core.ts`, armed from
+  `Hud.mountSharedPreview`) while that context links, uploads and touches, and
+  its stand-in is a 2D layer, a cached portrait or the class crest, painted
+  over the empty canvas by `src/ui/preview_stand_in.ts` with `aria-busy`, on
+  EVERY arm including a rebuild in the same container (the mount resizes the
+  renderer first, and `setSize` reassigns `canvas.width`, which clears the
+  drawing buffer: there is no retained frame left to stand in). It
+  needs no `ENTITY_GATE_STAND_INS` row: that table is world ENTITIES the
+  renderer hides in the live scene, and this gate hides nothing in the world.
+  Its escape is the reveal gates' rule, a soft deadline that records a
+  `gate-timeout` gpu-prep event under the `preview-open` key and draws anyway.
+- **A program only ONE encounter can reach warms at that interior's attach,
+  never in the boot manifest** (`interior_encounter_prewarm.ts` spec +
+  `_pass.ts` + `_host.ts`, kill switch `?encounterPrewarm=0`): the mechanic
+  visuals an encounter builds lazily in live combat (Varkhul's and Ignivar's
+  sets, the Nythraxis floor telegraphs). The built visuals are kept alive and
+  never disposed (three releases the program with the last material), and the
+  builds drain across idle slots before the compile, because built in one loop
+  they land on the attach frame. Nythraxis' Soul Rend mark used to be this
+  module's biggest tenant (a lit transparent clone per marked body, catalog and
+  live arm); it now draws the spirit veil, whose family the boot manifest
+  links, so it needs nothing here.
+  Warm nothing whose cost you have not measured: Brother Aldric was in this
+  spec until an A/B from a start zone that had never compiled his model showed
+  his spawn linking ZERO programs (the player bodies on screen already carry
+  them; that was his old stock rig, and the spawn has not been measured again on
+  the priest's WOC body he wears now). Varkhul's rig is the measured opposite (the harvest caught its body
+  programs linking live at the pull), so the Varkhul set stages it first,
+  through the live view's own factory, beside a held Forgestorm warning twin
+  (each storm disposes its warnings, and a program no material uses survives
+  only in the patched three's bounded released-program FIFO). The claim is per
+  staged SET, not per interior
+  (`unclaimedEncounterPrewarmSets`): the Ignivar raid's sets start in the
+  Forge-Lift, its first and quietest room, and every later raid room finds them
+  claimed, so each set is built once per session.
+
+## GPU work: every new producer is a client of the scheduler
+The sections above are the machinery; this is the contract EVERY new producer of
+GPU work signs. Each rule names its seam and its guard.
+- **Every material a live frame can draw for the first time after the curtain has
+  a prewarm home:** a twin in an existing prewarm manifest entry, or a compile
+  gate at its first appearance (`compileGate`, `attachSceneGroupGated` in
+  `gated_scene_attach.ts`, a reveal gate). Never a bare `scene.add` of a group
+  carrying new materials after boot; never a module-scope material cache filled on
+  first cast without being registered. Guards:
+  `tests/ability_material_prewarm_sweep.test.ts`, the `buildInterior` gating pin in
+  `tests/renderer_compile_gate.test.ts`, and the `live-program` events in
+  `perfStats().gpuPrep`, whose count on an offline tour of the touched content is
+  the acceptance bar of a render PR. The fleet-side count of the same first seconds
+  is `post_reveal_links_core.ts`: `live_program_watch.ts` hosts one window per page,
+  armed at the first `markGpuHitchReveal` (the world entry; later arrivals only
+  count), sampled from the same present-host calls, closed 20 s later on the last
+  in-window count; `PerfMonitor` snapshots it as `postRevealLinks` and the beacon
+  ships it beside `entryReveal` (`tests/post_reveal_links_core.test.ts`, the host
+  block in `tests/live_program_watch.test.ts`).
+- **Every program-key change on a VISIBLE material rides a gated swap with a
+  stand-in.** The key inputs: texture-slot presence, `transparent` / `blending` /
+  `alphaToCoverage` / `alphaHash`, `defines`, `onBeforeCompile` /
+  `customProgramCacheKey` (three's default key IS the hook source), skinning and
+  instancing, and any `needsUpdate` on a drawn material.
+  `materialProgramSignature` (`prewarm_policy.ts`) is the enumeration, with its
+  dimension-by-dimension contract test in `tests/prewarm_policy.test.ts`; `live-program`
+  catches what it misses.
+- **Never add, remove, or hide a directional, hemisphere, spot, or rect-area light
+  after boot:** those counts are program-cache-key inputs, so one change relinks
+  every lit material in view. Re-GRADE the constructor's one sun/hemi pair through
+  `interior_light_rig.ts` instead. The outdoor hemisphere fill constants live in
+  `outdoor_light_rig_core.ts`: the Lambert terrain derives its `uTerrainFillBoost`
+  from them (`terrainFillBoostTarget`), so retune them there, never inline.
+  Point lights ride the budget
+  (`point_light_budget.ts`) and reach three only through the carriers
+  (`point_light_carriers.ts`): a fixed set of lights, the only ones three gathers
+  in the world scene, packed each render with the live sources first because the
+  lit programs stop their point loop at the first black slot. A new point light in
+  the world scene is a carrier source (marked, and in a listed registry), never a
+  light three gathers itself. Guards: `tests/render_light_census_pin.test.ts` (the
+  allowlist of every non-point light constructed under `src/render`),
+  `tests/point_light_budget.test.ts` and `tests/point_light_carriers.test.ts` (the
+  allowlist of every point-light producer and its route to a carrier). There is
+  no exception: the Wildheart caldera rig used to add a fill pair to the world
+  scene at interior build, and
+  because interiors are never removed, every material drawn after a Palm Reach
+  visit relinked under the new census (132 programs at one graveyard in the
+  2026-09-12 hunt). Its grade is the `wildheartField` state of the rig now.
+- **Every new secondary GL context links (`compileAsync`) and uploads
+  (`uploadTexturesInSlices`, `texture_prewarm.ts`) before its first draw, and sets
+  `debug.checkShaderErrors = shaderDebugRequested()` on the renderer it just built,
+  ahead of that renderer's first `render()`.** Guard: the secondary-context pins in
+  `tests/shader_debug_flag.test.ts`.
+- **Every `THREE.ShaderChunk` patch installs at module scope, from its own module
+  (`final_color_nan_guard.ts` is the template), unless it is scoped to exactly one
+  renderer on purpose** (`installPbrPointLightShaderPruning`, `pbr_fragment_shader.ts`,
+  called only from `initGfxTier`, since only the world renderer needs it today). This
+  repo builds more than one `WebGLRenderer` outside `initGfxTier`
+  (`characters/preview.ts`, `characters/portrait.ts`, `armory_preview.ts`,
+  `src/editor/asset_thumbs.ts`, `src/guide/viewer/scene.ts`,
+  `src/dev/outfit_audit.ts`): a call sited inside `initGfxTier` alone reaches only the
+  world renderer, and a per-site call is easy to miss on one of the others. Guard:
+  `tests/final_color_nan_guard.test.ts`.
+- **Cel-shading R&D look (`?cel=on`, opt-in, reload to flip).** `cel_shading_core.ts`
+  reads the URL knobs (`cellight=off`, `celbands=2|3`, `celedge`, `cellit`, `celmid`,
+  `celink`, `celinkwidth`, `celsat`) and builds the toon ramp, a patch over the
+  DIRECTIONAL loop of `lights_fragment_begin` only (point lights and the hemisphere
+  fill stay smooth); `cel_shading.ts` installs it at module scope (the template above).
+  Exactly one outline path draws per chain. With an output grade (Medium and up), the
+  depth-based ink is the grade's `CEL_INK` arm (`post_cel_ink_glsl.ts`, wired like the
+  FXAA arm: no pass, no target, taps clamped to the region); it reads N8AO's beauty
+  depth, or on any RenderPass chain (including AO-off High and up) the current
+  composer read buffer's own depth texture. The look
+  turns the grade on for Low (`celNeedsGradePass`, applied in `settingsFor` before the
+  `?gfxo=` overrides), so Low draws the same ink as Medium. iOS keeps its memory-driven
+  no-grade profile; there `syncCelMaterialInk` (driven from `activateGfxProfile`)
+  inserts a material ink block into `opaque_fragment` instead: a rim on the geometric
+  normal gated on curvature per yard and on distance, plus the saturation. It reads
+  weakly on hard-edged low-poly models, which is why Low takes the grade instead. No flag means the stock chunks byte
+  for byte and no ink define. Guards: `tests/cel_shading_core.test.ts`,
+  `tests/post_output_grade.test.ts` and the real-WebGL
+  `tests/browser/cel_shading.browser.test.ts`.
+- **Palette lab (`?palette=on`, dev tool).** `palette_lab/` swaps a zone's whole colour
+  look live (ground palette, fog/light rows, sky gradient, water, bloom, display grade);
+  its own `CLAUDE.md` has the model. Every shader arm it adds is compile-time behind the
+  flag (the grade's `PALETTE_GRADE` define, the dome's gradient block), so a normal session
+  builds the stock shaders byte for byte. The ground re-bake rides
+  `ground_palette_override_core.ts` (main thread, the zone build worker and the far vista
+  re-read it by version) and `renderer.editor.recolorGround` (colour buffers only).
+- **No new queue, no new lane, no fourth gate.** New work rides
+  `background_gpu_queue.ts` at an existing `GPU_WORK_PRIORITY`, carries a
+  `kind:instance` label whose kind the budget can learn (`gpuPrepKindOfLabel`),
+  and, if it holds a representation back, names its stand-in in
+  `ENTITY_GATE_STAND_INS` plus a case in `tests/entity_gate_stand_in.test.ts`. A
+  compile gate submits one unit per material group and variant of its root
+  (the material tuple plus what three's program cache key reads off the node:
+  skinning, instancing, morph targets, the geometry attributes), one
+  representative compile per group plus its variant settle
+  (`CompileGateQueue.runPieces` over `linkPieceWork`, `compile_gate_pieces.ts`,
+  the settle arm bound by `pieceProgramSettle`), never a whole root in one unit:
+  the queue paces between units, and a driver that compiles shader source at
+  submission charged every program of a root to the one unit. Each piece arms
+  the gate timeout for its OWN work (the driver latency of one unit), so queue
+  pacing between pieces never counts against it. No
+  wall-clock constant calibrated on one machine inside a gate: the arrival lesson
+  is that a hold ends on evidence (its own compile settling), on the
+  `REVEAL_GATE_WATCHDOG_MS` watchdog, or on a reach floor, never on a tuned timer.
+- **CPU construction pieces ride the same queue and budget.** Main-thread work a
+  view build would otherwise pay inside its frame (a composed look's procedural
+  decal maps and head cuts, measured at 94 percent of a composed build) is cut into
+  pieces the budget can price (a map as a chain of row bands, `LOOK_BAND_ROWS` rows
+  per unit, a structural fraction of the map so the budget decides how many units
+  fit a frame; a cut as one unit), deduped by style key, and enqueued at the view's
+  priority. The live candidate whose pieces are not resident builds its body NOW
+  without its face decals (the body IS the stand-in: nameplate, click target and
+  silhouette on the frame it enters range, never an invisible player, per the
+  fairness rule) and the decals attach later, one budgeted queue unit per body
+  (`LookPieces.attachWhenReady`, so a crowd sharing a look never attaches in one
+  burst), through the visual's compile gate (`CharacterVisual.attachDeferredDecals`,
+  hidden until their programs link).
+  Under a cover and for the local target the build stays synchronous, decals
+  included. Seam: `characters/look_pieces.ts` (`composedLookPiecesFor`,
+  `perfStats().lookPieces`) and `AssembleOptions.deferDecals`, guarded by
+  `tests/look_pieces.test.ts`, `tests/deferred_face_decals.test.ts` and
+  `tests/renderer_look_pieces_hold.test.ts`. A WOC body's far LOD is the same
+  shape (`characters/woc_far_bake.ts` `queueWocFarBake`: the bake as vertex-band
+  units, one look at a time and one bake per look, then one mount unit per
+  body, the rig standing in; `tests/woc_far_queue.test.ts`): no far bake runs
+  inside `setFar`, `setProxyShadow` or `update()` for a body that has a compile
+  gate and the work queue that came with it.
+- **No material buys a second scene pass: transmission is forbidden.** A material with
+  `transmission > 0` (a `MeshPhysicalMaterial`; GLTFLoader mints one for a glTF material
+  carrying `KHR_materials_transmission`) makes three draw the whole opaque scene a second
+  time per frame into a viewport-sized HalfFloat target with mipmaps
+  (`WebGLRenderer.renderTransmissionPass`), for as long as the object is on screen: a 4 s
+  first frame and a doubled draw cost on an integrated GPU, which no prewarm can remove
+  (measured 2026-08-28 on the water elemental's `living_water`). Translucency here is
+  alpha blending (`transparent`, `opacity`, `depthWrite: false`, the alphaMode BLEND
+  state). The loader neutralizes every transmissive material on a parsed GLB
+  (`assets/transmission_neutralize.ts`), and `tests/transmission_neutralize.test.ts` names
+  the shipped models that carry the extension so a new one is listed on purpose; a
+  procedural `new THREE.MeshPhysicalMaterial(` that sets `transmission`, `thickness` or
+  `attenuationColor` is a defect. Guard: `render-performance-reviewer` (its second-pass
+  check).
+- **The shader warm-up worker rides the gates, never beside them.** A Web Worker
+  owns a second WebGL2 context (`shader_warm_worker.ts`) that links the same GLSL the
+  game context is about to link, so the game's link is a driver program-cache hit
+  (the cache key is the translated source plus the context's enabled extension set,
+  which is why `renderer_extensions.ts` enables one pinned set on every context
+  before its first link). The client (`shader_warm_client.ts`, pure policy in
+  `shader_warm_client_core.ts`) resolves a MODE from the player's option and the
+  backend class (`gpu_backend_class_core.ts`, read off the renderer string): `auto`
+  is `all` only on a backend a FIELD measurement showed worth the worker, and none is
+  today (`WORKER_WORTH_BACKENDS` is empty, so `auto` is `off` everywhere. The options row is
+  withdrawn meanwhile (`SHADER_WARM_OPTION_OFFERED`): the stored value is kept for the
+  row's return but reads as `auto` for the worker, because a stored On nobody can turn
+  off would run a worker for good, while the character-select corpus still honours a
+  stored Off; only a `?shaderwarm=` pin starts the worker): D3D11 passed on a bench and the 0.43 fleet experiment
+  (half the D3D11 profiles with the worker, half without) found no gain it could detect;
+  Metal reads like Vulkan on its one datapoint and has no in-game measurement; it is
+  `off` on every OpenGL and GLES class,
+  where the worker only relocates the stall into the GPU process (measured 2026-08-28
+  on Linux NVIDIA, Linux Intel and Android Mali), and `off` on Vulkan, where a cold
+  link is already as cheap as a hit and the first draw is free while the worker's own
+  links cost three to six times more (measured 2026-08-30 on an RTX 3060, an RTX 3090
+  and an Intel iGPU); iOS is `off` whatever the setting (a second context is a
+  per-process ceiling risk there); `?shaderwarm=auto|off|reveal|all` overrides
+  (`0` and `1` are aliases of `off` and `all`, one grammar for both arms below), and
+  `?shaderwarmready=<ms>` lengthens the worker's ready deadline for a probe on a
+  backend whose GPU process is busy at boot (Windows OpenGL).
+  THE CHARACTER-SELECT CORPUS (`src/game/shader_cache_warmup.ts`, decisions in
+  `shader_warmup_core.ts`) is the other arm of the same cache. Its REPLAY half is
+  the ONE producer that is not a client of the scheduler, by construction rather
+  than by exemption: it replays the previous session's recorded program set on a
+  hidden context while the character-select screen is idle, before any `Renderer`
+  (and so any `background_gpu_queue`) exists, one program per animation frame, and
+  every world entry stops it as its first statement (`enterWorld` and
+  `startOffline`, pinned by the wiring block of `tests/shader_cache_warmup.test.ts`),
+  so no live frame ever shares the main thread with a submission; what the GPU
+  process still resolves after the click is the entry's own program set landing in
+  the shared cache. Its RECORD half runs in live frames 25 s after the reveal, so it
+  IS a client: `main.ts` hands it the renderer's queue
+  (`finishShaderWarmup(renderer.webgl, { queue: renderer.backgroundGpuWork })`) and
+  `src/game/shader_corpus_slices.ts` runs one BACKGROUND unit per BATCH of
+  program reads (`CORPUS_READ_BATCH`; a read is a synchronous driver round trip
+  that waits for the GPU frame in flight, paid once per batch), per chunk
+  encoded and per chunk fed to the gzip stream (the deflate runs on the main
+  thread inside the write, so the gzip unit holds its tail), under the `corpus-read`,
+  `corpus-encode` and `corpus-gzip` label kinds the budget prices separately. It
+  reads the same stored option and the same pin as the worker (`readWarmupQuery`):
+  Off silences it, `auto` and On keep it (the backend rule is the worker's: a
+  second context linking DURING play; this arm was measured on the OpenGL desktops
+  where `auto` turns the worker off), iOS never mints its context, and a stored
+  record is bounded before, during and after inflation
+  (`SHADER_CORPUS_MAX_BYTES`, `SHADER_CORPUS_PROGRAM_LIMIT`).
+  The worker is a client of the EXISTING gates: `shader_warm_gate.ts` assembles a
+  root's program sources through the three patch's dry-compile hook
+  (`program_sources.ts`; the hook calls each live material's `onBeforeCompile`
+  once more against a throwaway shader object, so a hook must stay idempotent and
+  must never keep the shader object it was handed), posts them to the worker, and
+  holds the gate's link piece until the worker answers or `SHADER_WARM_LANE_HOLD_CAP_MS`
+  passes (`shader_warm_lane.ts`; a hold that expires abandons its request so the worker
+  drops what nobody else waits for; three breaker rules end it:
+  `SHADER_WARM_TIMEOUT_BREAKER` holds in a row during which the worker settled NOTHING
+  (wedged: whether each hold expired on its cap, refusal `hold-timeouts:wedged`, or
+  ended on the worker's own link deadline, refusal `hold-failures:wedged`; the deadline
+  is shorter than the cap, so a single-program hold on a machine whose links never
+  settle always ends the second way, and a rule that counted expiries alone never
+  fired there), or `SHADER_WARM_EXPIRED_SHARE_BREAKER` of the last `SHADER_WARM_HOLD_WINDOW`
+  holds expired whatever it answered meanwhile (too slow for the demand); a slow worker
+  that keeps most holds served is kept). The third rule fires FIRST, on the worker's own
+  evidence and before any hold has paid: once it has settled `SHADER_WARM_EVIDENCE_LINKS`
+  links AND its first stats message has landed (the window is the divisor), the queue
+  ahead of the OLDEST outstanding hold, at the mean wall
+  this worker's links have actually cost, spread over the window that message reported,
+  is measured against what is left of the cap that hold's caller passed in
+  (`shaderWarmCannotServe`, refusal `cannot-serve:hold-cap`). Where NO link has settled
+  at all, the links the worker gave up on at `SHADER_WARM_LINK_DEADLINE_MS` stand in as
+  the evidence (the `link-deadline` failure carries the wall the link had run, a lower
+  bound the client keeps apart as `censoredLinks`), at the same floor, under its own
+  refusal `cannot-serve:hold-cap:censored` so the fleet can tell that arm from the
+  baseline; one settled link puts the rule back on the settled evidence, so a tab
+  throttled early on a healthy machine is never judged on its deadlines. Ahead is the worker's own
+  order, PRIORITY first and arrival only within one priority, so a live view held behind
+  a catalog's backlog is not charged for what the worker serves after it; the caller
+  also stamps when its cap clock started (`holdShaderPrograms`' `startedAtMs`), since a
+  lane asks inside a queue unit whose promise settles later. It is relative by
+  construction and carries no machine constant, the caller owning the cap and the worker
+  supplying the wall: on the laptop whose links cost about half a second it retires
+  seconds early with nothing expired, and where links are ten times shorter it never
+  fires at all. That verdict prices ONE burst, so it RELEASES the burst's held gates
+  (they link on the game context at once) and gives their requests back like an expiry
+  does (the worker drops what nobody else waits for: a second link of the same text in its
+  context would only compete for the busy driver); no gate holds again until the worker
+  owes nothing, in practice the links already in flight (bypass `standing-down`, and a hold
+  asked after the release is refused on the spot; a worker silent for two link deadlines
+  while the gates stand down is not ticking and retires as `standing-down:silent`), so the next
+  verdict can only come from a later burst, and the `SHADER_WARM_RELEASE_BREAKER`th
+  retires it. A released hold feeds neither expiry rule (a release with a link deadline
+  inside it would otherwise retire the worker the release kept). Read off a window that
+  had just halved, a final verdict retired a worker that warmed 174 programs on the next
+  launch (RTX 3060, 2026-09-12). The worker paces its links with the AIMD budget
+  under a RELATIVE judge (`shader_warm_settle_judge_core.ts`): a settle is read against
+  what this driver costs for a link of COMPARABLE size it has to itself, per thousand
+  GLSL characters, never against a millisecond bound (the absolute 150/400 ms bounds
+  pinned a cold Windows D3D11 at one link for a whole session, on the one backend that
+  overlaps links, 2026-08-30); solo evidence opens the window to two and no further,
+  a cache hit teaches nothing, and a halving is followed by a cooldown. A program the
+  worker's context REJECTS is not congestion and never halves the window (`markRejected`);
+  a link past its deadline still does. The boot lane
+  (`link_rate_budget.ts`) still runs the absolute bounds; the seam
+  (`AdaptiveLinkBudgetConfig.judgeSettlement`) is how it adopts the same rule later,
+  and a unit that linked nothing reaches the judge flagged `cheap` and teaches it
+  nothing (the boot sweep's already-linked views would otherwise set the etalon).
+  No new queue, no new lane: the hold is one more piece on
+  the caller's queue at the caller's priority, and the actionable floor and
+  imminent consults bypass it (`shaderWarmDecision`). The worker never draws, so it
+  is the one secondary context exempt from the `checkShaderErrors` rule, and it
+  goes with the renderer through `renderer_resource_lifecycle.ts` (`disposeShaderWarm`)
+  and on `pagehide`. The audit (`shader_warm_audit.ts`) names every program the game
+  context linked without a warm request (`unexpected`), so a new producer that
+  bypasses the gates shows up by key; `perfStats().shaderWarm` and
+  `perfStats().shaderWarmAudit` are the local readout, and of the worker's half only the
+  bounded projection `shaderWarmBeaconSummary` builds (`src/game/perf_shader_warm_core.ts`:
+  worker state, refusal, mode, setting, backend, counts, hold time summed and as wall
+  time, releases) rides the perf beacon, as `rawSummary.shaderWarm`
+  plus the typed `shaderWarmWorkerActive` and `shaderWarmRefusal` fields; the audit and
+  the adapter string ride none of it.
+  The readout also names the first programs the worker failed (`failedPrograms`).
+  A capture taken under `?diagnostics` also runs the scene census, whose
+  bucket-visibility diffs link programs no live frame asks for: those are charged to
+  `outOfBand` at the same host hooks that discard the burst's draws
+  (`renderer.captureSceneCensus`, which BRACKETS the burst: the census runs in its own
+  task, so without a begin the prologue of a gate that minted between the last present
+  and the census is charged to it), so read `unexpected` as the gates' own escapes.
+  The cast-VFX gate (`cast_vfx_readiness_core.ts`,
+  `cast_vfx_prewarm.ts`) is the same idea one level up, PER CAST and per
+  program FAMILY (`cast_vfx_family.ts`: the engine every class draws, the
+  Warrior kit, the Crucible trinket relics, which no cast waits on and whose
+  cosmetic holds wait on their own bit): one ready bit per family, and a cast
+  draws its whole composition or nothing on the mask of the families it draws from
+  (`ability_vfx/cast_requirements.ts`: the engine, plus the kit for a Warrior
+  appearance and no other class), decided at its first entry point and kept
+  for the rest of that cast (`ability_vfx/cast_admission_core.ts`), while a
+  per-frame hold shows the frame its families are ready. A family opens on its
+  programs or on its own deadline, counted from the first consult that asks
+  for it (a diagnostics snapshot starts no clock), and a kit the device
+  declined never holds a cast. Every gated pool re-checks its own family at
+  spawn and skips (`AbilityVfxFx.setCastVfxSpawnGate`), counting a
+  `requirementMiss` a wrong mask would show instead of a live link
+  (`tests/ability_vfx_cast_requirements.test.ts` walks every spec'd id through
+  the real painter). The class pools, lazy stand-ins
+  and generic basics keep their compile units in the same warm-up but never
+  hold a cast, since none of them draws behind the gate (a bespoke visual
+  joins by a row in `CAST_VFX_FAMILIES`, a tag on its drawables and its ids in
+  the resolver); linked means the settle
+  record of `linked_program_readiness.ts`, which each cast unit writes once its
+  compile settled, and so does the stand-in slot's own resume link
+  (`castVfxStandInSlot`), the only unit that links the stand-ins after a dropped
+  entry; never the presence of `currentProgram`, assigned before the
+  link resolves, and never a driver query from a live frame. The reads a
+  player ACTS on never wait behind it: the
+  terrain-draped area ring and a mob's windup clip on the cast path, and on the
+  per-frame path the hard-CC band (stun, fear, root), re-held right after the
+  sleep that releases the held entity's cosmetic pools (`tests/ability_vfx_cast_gate.test.ts`).
+  Because those two draw through a closed gate, their programs (the band's
+  overlay cloud, the ring) link and are proved in their own deadline-exempt
+  boot entry, `vfx.cast-first-reads` (`castVfxFirstReadsEntry`), with the Vfx
+  particle cloud and the Last Flame Lantern's light (drawn with no readiness
+  check, `AbilityVfx.firstReadDrawables`), ahead of `vfx.ability-primitives`;
+  dropped past the hard deadline or skipped on the minimal manifest, it resumes
+  as program debt ahead of the primitives, whose units run engine, then kit,
+  then relic, first (`tests/cast_vfx_first_reads.test.ts`).
+- **Verify, do not assert.** `?perf`, then `__game.renderer.perfStats().gpuPrep`: the
+  budget snapshot, the event ring (`live-program`, `gate-timeout`, `reveal-watchdog`,
+  `reveal-soft-deadline`, `submit-stop`, `attach-watchdog`, `touch-unproven` (programs a
+  world gate's touch tail found unproven by any settle, the ones a walk mark used to
+  bless and block on), plus the `arrival` mark one per teleport-class landing), and the
+  reveal counters. The CPU side of the same picture is `perfStats().buildLedger`
+  (`build_ledger_core.ts`: main-thread ms per view build class and per zone feature
+  builder, each kind's worst sample and when it happened (`maxAtMs`, the one frame
+  anchor a nested `view-part:` kind keeps), the worst frame, the slowest builds) and `perfStats().zoneStreaming` (the last prepare's stage wall-times);
+  the hitch tracker's `zone-build`, `view-create` and `off-frame` causes read from
+  them, on a sample ALIGNED with the span its dt measures (`hitch_frame_align_core.ts`:
+  the previous callback plus the gap before this one), so a cause inside a callback
+  is filed on the frame that paid it.
+  External capture: `node scripts/gpu_hitch_capture.mjs`. Dispatch
+  `render-performance-reviewer` on any diff that lands a producer under these rules.
+
 ## i18n: overhead labels are the only string surface here
+One deliberate exception: `scene_census_core.ts`'s table/format helpers feed the
+`?perf` overlay, a dev diagnostic that stays English by the `src/game/CLAUDE.md`
+perf-overlay carve-out; never reuse them in player-facing chrome.
 The renderer is geometry/shaders; the overhead-text surface is
 `nameplate_painter.ts` (owns `t`/`tEntity`/`formatNumber`) plus
 `entity_labels.ts` (localized display-name helpers, lifted out of `renderer.ts`
@@ -154,18 +1201,86 @@ dungeon-aware wrapper (flat floor past `DUNGEON_X_THRESHOLD`); plain
 collision/movement.
 
 ## Performance discipline: this runs at frame rate
+- **A per-frame roster walk runs on CHANGE, never on the frame.** The missing-view
+  candidate scan lives in `view_candidate_scan_core.ts`: `viewCandidateScanDue` walks
+  the roster at once when `IWorld.entityRosterVersion` (bumped by both worlds on every
+  entity add or drop) or the view count changed, when the player, their target or the
+  create range changed, when the center jumped past `VIEW_CANDIDATE_RESCAN_MOVE_YD`
+  (a teleport), and otherwise every `VIEW_CANDIDATE_RESCAN_FRAMES` frames for an entity
+  crossing the draw-range edge; in between the renderer consumes the last ranked list
+  (the drop pass stays per frame). A new input the list depends on (a quest-log flip, a
+  phase change) is a new trigger there, never a return to the per-frame walk. The same
+  version keys the meters' party set and the rift ambience; a raid readout walks the
+  instance slots (`src/sim/instance_entities.ts`); the tree occluder fade walks a grid
+  (`tree_hide_index_core.ts`); the fishing bobbers take their anglers from the view loop.
 - Three.js is **version-pinned in `package.json`**; the post chain lives in
   `post.ts` (its header comment documents the pass order and the N8AO
   subtleties) plus the `n8ao` package (SSAO). The `postprocessing` dep in
   `package.json` is n8ao's peer dependency, not imported directly, so don't
   remove it as "unused." Don't bump Three or swap the chain casually: shaders
   here patch the pinned release's shader chunks via `onBeforeCompile`, so any
-  bump means re-verifying every patched chunk.
+  bump means re-verifying every patched chunk. A bump also touches KTX2:
+  `assets/ktx2_support.ts` hand-builds a `workerConfig` on its no-context
+  fallback arm (a shape KTX2Loader owns and can change between releases), wraps
+  the private `_createTexture` hook to capture restore sources for
+  `assets/ktx2_mip_release.ts` (fails soft to resident mips if the hook moves,
+  see `tests/ktx2_support.test.ts`), and
+  the shipped `public/basis/` transcoder must be regenerated from the new three
+  via `node scripts/patch_basis_transcoder.mjs` (never a raw copy: the shipped
+  JS carries an eval-free embind patch so the KTX2 blob worker survives the
+  Electron shell CSP, which has no 'unsafe-eval'). `tests/glb_texture_compression.test.ts`
+  pins shipped === patch(vendored) and `tests/basis_transcoder_csp.test.ts` pins
+  the no-dynamic-code invariant; both go red on a raw re-copy.
 - Reuse, don't allocate: instancing for repeats, merge one-offs per
   (material, z-band), share materials via `surfaceMat`, distance-cull/LOD in
   `sync` (see the `*_RANGE_SQ` constants). No per-frame `new THREE.*` in hot paths;
   reuse the `tmpV` scratch vectors / scratch arrays already in `renderer.ts`.
+  The VFX world-anchor seam follows the same rule with an explicit contract:
+  `vfx_anchor.ts` `createVfxAnchor` takes an optional caller-owned destination,
+  so a per-frame path passes its own scratch (the reading is valid only until
+  that scratch is reused) and a one-shot spawn path omits it and gets a fresh
+  retainable vector.
+- **A cosmetic subsystem answers to a lever, and the lever says which job it is
+  doing.** `weapon_vfx_shed_core.ts` is the shape to copy: it FADES (both arms
+  floored above the multiplier at which a part stops drawing) and leaves REMOVAL
+  to the character LOD swap, which already owns it on inputs the whole render
+  path shares. Read its header before adding a shed of your own, including why
+  the distance arm is anchored to the fixed `CHARACTER_LOD_RANGE_SQ` and not to
+  the live crowd-adaptive band edge, and
+  `docs/design/graphics-settings-fairness.md` for why that choice is what keeps
+  a fade fairness-safe.
+- **Work that a hidden subtree cannot show is work not to do.** The far-LOD swap
+  hides `modelWrap`, so anything parented into the rig (a held weapon and its
+  VFX) stops being drawn without any of its own flags changing; a per-frame
+  driver over such a subtree should skip. Check the swap ACTUALLY happened
+  (`CharacterVisual.setFar` keeps the rig visible when no baked mesh exists,
+  or while a fresh bake's materials are still linking behind the far-bake
+  compile gate, while `isFar` reads true either way), never just the intent
+  flag: `farMeshShown` in `characters/far_lod_reveal_core.ts` is that
+  predicate.
+- **Cloning a material? Use `material_clone_hooks.ts`.** `Material.clone()` copies
+  userData but silently DROPS `onBeforeCompile`, and three keys its program cache
+  on `customProgramCacheKey()`, whose default return value IS
+  `onBeforeCompile.toString()`. So a bare clone of a patched material (rim glow,
+  the worn surface-detail layer, the armour dye that carries a player's outfit
+  colorway `characters/armor_dye.ts`, the vertex-colour emissive layer both towns'
+  lit building materials carry, `vertex_color_emissive.ts`) both renders un-patched AND links a whole new
+  program on its first draw, wherever that draw lands. `cloneMaterialWithHooks`
+  re-attaches exactly the layers the source carried, in the source's order, so
+  the composed key comes out identical and the clone reuses the linked program.
 - **`render_budget.ts` is the renderer's adaptive-budget core** (tier-driven frame
   budget + telemetry, keyed off `gfx.ts` quality bands). `renderer.ts` owns it,
   degrades against it, and pushes the resulting grass/foliage/vfx quality levels into
-  those subsystems. Consult it rather than reinventing a frame-level budget.
+  those subsystems. Consult it rather than reinventing a frame-level budget. Its `post`
+  level is the post chain's shed (`post_shed_core.ts` pure rungs, `post_shed.ts` painter
+  over the passes `post.ts` built): pass toggles and one-time target clears only, the
+  FXAA grade twin compiled under `post.initial-frame`, `?postshed=off|<0..1>` for a bench.
+  The shed's rungs are the reason the composer tiers now have a lever below the density
+  floors; when a chain sheds its full-frame passes, `post_plan_core.ts`'s region contract
+  is where dynamic resolution could re-open for it (not done).
+  Its external-frame-cap reading (`externalFrameCap`, a 30 Hz panel or a throttled tab)
+  is built from CPU-side numbers that cannot tell a display cap from a GPU-bound frame
+  under vsync, so it is never asserted on sight: the candidate opens a probe that sheds
+  every rung, dwells, restores and dwells again, and only an unmoved cadence latches the
+  cap; a moved one is refused and the session sheds under the normal rules, ending in
+  the `floored` reason once nothing is left (`tests/render_budget_frame_cap.test.ts`).

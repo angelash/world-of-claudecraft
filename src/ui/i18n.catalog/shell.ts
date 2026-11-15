@@ -8,17 +8,25 @@
 
 export const shellStrings = {
   en: {
+    landing: {
+      headline: 'Adventure with friends.',
+      contribute: 'Contribute to the game',
+      tools: 'Tools',
+      records: 'WoC Records',
+      scout: 'WoC Scout',
+      parseService: 'WoC Parse Service',
+    },
     seo: {
       title: 'World of ClaudeCraft: Classic-Style Web MMO',
       description:
-        'Embark on an epic adventure in World of ClaudeCraft, a classic-style micro-MMO playable directly in your browser. Join a persistent shared world, level up classes, and defeat enemies!',
+        'Play World of ClaudeCraft, a free browser MMO. Explore, complete quests, and run dungeons with friends. No download required.',
       genre: 'MMORPG',
       playMode: 'Multiplayer',
       applicationCategory: 'Game',
       operatingSystem: 'Web browser',
       officialLabel: 'Official World of ClaudeCraft website',
       officialBody:
-        'worldofclaudecraft.com is the official free browser MMO for the Claudemoon world. Play online with a persistent character, explore solo offline, read the wiki, and follow verified community links from this site.',
+        'The official home of World of ClaudeCraft. Play online, read the wiki, and find community links here.',
     },
     a11y: {
       goHome: 'Go to homepage',
@@ -42,6 +50,8 @@ export const shellStrings = {
       connectingRealm: 'Connecting to world...',
       assetsFailed: 'Asset loading failed: try reloading. {error}',
       rendererFailed: 'Could not start the renderer: try reloading. {error}',
+      rendererContextLost:
+        'The 3D renderer lost its graphics context and could not recover. Please reload.',
       enterTimeout: 'Could not enter world. The connection timed out. Is the game server running?',
       connectionLost: 'Connection to the server was lost.',
       reconnectingAttempt:
@@ -56,6 +66,8 @@ export const shellStrings = {
         'Too many connections to this world are coming from your network. Please close extra game windows or try again in a few minutes.',
       messageRateExceeded:
         'You were disconnected for sending actions too quickly. Please wait a moment and log back in.',
+      // The admin-panel kick: {reason} is the operator's free text, interpolated verbatim.
+      kickedByModerator: 'A moderator has disconnected you: {reason}',
       tips: {
         classes:
           'Tip: each of the 9 classes plays differently. Try a few before committing to one.',
@@ -71,6 +83,10 @@ export const shellStrings = {
         loadouts:
           'Tip: save more than one talent loadout to swap between builds without spending points twice.',
         pvp: 'Tip: challenge another player to a friendly duel, or queue for the Ashen Coliseum arena, to test your build.',
+        // The tips rotation renders through a bare t(key) with no values, so no
+        // tip can name a live keybind without going stale when a player rebinds
+        // it. This one used to spell out Shift+X; it now stays chord-free.
+        reliquary: 'Tip: the Reliquary tracks the unique spoils you collect, shelf by shelf.',
       },
     },
     errors: {
@@ -82,6 +98,10 @@ export const shellStrings = {
       selectClass: 'Please select a class.',
       pickClass: 'Pick a class.',
       returnToLogin: 'Return to Login',
+      searchUpdates: 'Search for updates',
+      noUpdateFound: 'No update found. Try again shortly.',
+      updateUnavailable: 'Update through your game store or download the latest client.',
+      updateSearchFailed: 'Could not check for updates. Please try again.',
       api: {
         tooManyAttempts: 'Too many attempts. Wait a minute and try again.',
         usernameShape: 'Username must be 3-24 characters and use letters, digits, or underscore.',
@@ -105,23 +125,50 @@ export const shellStrings = {
         accountSuspended: 'This account is suspended until {date}.',
         alreadyInWorld: 'Character is already in world.',
         accountSessionLimit: 'Too many characters on this account are already in the world.',
+        worldFightHold:
+          'Another character on this account is still in the world after a fight. Try again in a few minutes.',
         takenOver: 'Your character was taken over by another session.',
+        // A fresh join while the character's vault reward mail is still being
+        // restored (server/vault_mail_take_guard.ts joinError).
+        vaultMailRecovering: 'Your vault reward mail is being restored. Try again shortly.',
         renameBeforeEntering: 'This character must be renamed before entering the world.',
         renameNotPermitted: 'Renaming this character is not allowed.',
         unsupportedMediaType: 'Unsupported request format.',
         crossSiteOrigin: 'Request blocked for security reasons.',
       },
     },
-    // Desktop (Electron) shell surfaces: the auto-update toast rendered by the
+    // Desktop (Electron) shell surfaces: the auto-update card rendered by the
     // renderer (src/ui/desktop_update_toast.ts) and the crash-dialog strings
     // the renderer pushes to the main process (src/game/desktop_shell_strings.ts,
     // mirrored by electron/shell_strings.cjs DEFAULT_SHELL_STRINGS in English).
     desktop: {
       update: {
-        downloading: 'Downloading update {version}...',
-        ready: 'Update {version} is ready. It installs when you quit, or restart now.',
+        // Classic desktop-client voice (Discord / VS Code / Steam style): short
+        // titles, calm bodies, primary action first on the ready card.
+        checkingTitle: 'Checking for updates...',
+        checkingBody: 'New versions download while you play.',
+        uptodateTitle: "You're up to date",
+        downloadingTitle: 'Downloading update {version}...',
+        downloadingBody: 'You can keep playing. It installs when you quit.',
+        readyTitle: 'Update {version} is ready',
+        readyBody: 'Restart to install now, or keep playing and it installs when you quit.',
         restart: 'Restart now',
         later: 'Later',
+        dismiss: 'Dismiss',
+        whatsNew: 'See what changed in your browser',
+      },
+      // OS notifications the shell posts while the player is away from the
+      // window (src/game/desktop_notifications.ts). Title and body cross the
+      // bridge already rendered: the main process has no i18n runtime.
+      notify: {
+        updateReadyTitle: 'Update {version} is ready',
+        // The versionless arm (a 'downloaded' event carrying no version, which
+        // the update core deliberately supports): rendering '' through the
+        // {version} slot above would read "Update  is ready".
+        updateReadyTitleNoVersion: 'Update is ready',
+        updateReadyBody: 'Restart World of ClaudeCraft to apply the update.',
+        partyInviteTitle: 'Party invite',
+        partyInviteBody: '{name} invited you to a party.',
       },
       crash: {
         title: 'World of ClaudeCraft',
@@ -129,6 +176,23 @@ export const shellStrings = {
         reload: 'Reload',
         quit: 'Quit',
         fatalBody: 'World of ClaudeCraft hit an unexpected error and needs to close.',
+      },
+      // The host diagnostic's native save dialog (electron/host_diag.cjs): the
+      // shell opens an OS file dialog, which has no i18n runtime of its own, so
+      // these ride the same push as the crash strings above
+      // (src/game/desktop_shell_strings.ts -> DEFAULT_SHELL_STRINGS).
+      hostDiag: {
+        saveTitle: 'Save system report',
+        saveButton: 'Save',
+        // The label of the format row in the dialog's type dropdown.
+        fileType: 'JSON file',
+      },
+      // Borderless-mode title-bar control (index.html / play.html pre-game
+      // headers): the only way out when the shell hides the native window
+      // controls. Namespaced `titlebar`, never `window`, so the key never reads
+      // as a browser-global reach in the src/ui purity sweep.
+      titlebar: {
+        exitGame: 'Exit Game',
       },
     },
     // Software-rendering notice (src/ui/gpu_notice_toast.ts): shown once when
@@ -139,8 +203,26 @@ export const shellStrings = {
     gpuNotice: {
       bodyDesktop:
         'The game is running without GPU acceleration and will be slow. Update your graphics drivers, then restart the game. On Windows, also set the game to High performance under Settings > System > Display > Graphics.',
+      bodyDiscreteInactive:
+        'The game is not using the dedicated (gaming) GPU and is running on the power-saving GPU instead, so performance will suffer. Update your graphics drivers, then restart the game. On Windows, also set the game to High performance under Settings > System > Display > Graphics.',
       bodyWeb:
         'The game is running without GPU acceleration and will be slow. Enable hardware acceleration in your browser settings, update your graphics drivers, then restart your browser.',
+      // Hybrid-GPU variant (issue #2119): shown at boot when the session is
+      // likely on an integrated GPU on a laptop that also has a discrete one.
+      // Never shown inside the desktop shell (it already forces the discrete
+      // adapter), so the split below is purely by OS.
+      hybridBodyWindows:
+        'This session is rendering on the integrated (power-saving) GPU. If this computer also has a discrete gaming GPU, set your browser to High performance under Settings > System > Display > Graphics, then restart it. The desktop app picks the discrete GPU automatically.',
+      hybridBodyLinux:
+        'This session is rendering on the integrated (power-saving) GPU. If this computer also has a discrete gaming GPU, your browser or graphics driver may offer its own GPU selection setting, or your distribution may offer a GPU switching tool (such as PRIME or optimus-manager). The desktop app picks the discrete GPU automatically.',
+      // The Linux desktop app could not start on the backend the player picked
+      // (Graphics > System) and rescued the session onto a lower one. Says what
+      // happened and that the game is fine, because it is: the fallback costs
+      // loading smoothness, never playability.
+      bodyRequestedBackend:
+        'The game could not start on the graphics backend you picked, so it is running on OpenGL instead. Everything works; loading and the first minutes may stutter more. You can pick a backend again under Options, Graphics, System.',
+      hybridBodyOther:
+        'This session is rendering on the integrated (power-saving) GPU. If this computer also has a discrete gaming GPU, check your browser and operating system graphics settings to enable it. The desktop app picks the discrete GPU automatically.',
       dismiss: 'Dismiss',
     },
     // Performance nudge (src/ui/perf_nudge_toast.ts): the gpuNotice sibling
@@ -188,10 +270,24 @@ export const shellStrings = {
     character: {
       loading: 'Loading...',
       noneYet: 'No characters yet. Create one below.',
+      membershipRequired: 'Renew your membership to play this character.',
+      membershipSlots: 'Unlock slots with a membership',
+      emptySlot: 'Available character slot',
       levelClass: 'Level {level} {className}',
       inWorld: 'in world',
       takeOver: 'Take Over',
       inWorldHint: 'Already in world. Log out elsewhere, or take over.',
+      // The roster row's zone line ({zone} = the localized zone name).
+      currentLocation: 'Current location: {zone}',
+      // Summary of the roster row's collapsible lockout list ({count} = how
+      // many are locked), then its three group headings; each locked entry
+      // inside reads "<name> <countdown>" (hudChrome.raidLockout templates).
+      lockouts: 'Lockouts ({count})',
+      lockoutRaids: 'Raids',
+      lockoutDungeons: 'Dungeons',
+      lockoutWorldBosses: 'World bosses',
+      // Weekly quests locked until the weekly reset (src/sim/quests/weekly_quest_lock.ts).
+      lockoutWeeklyQuests: 'Weekly quests',
       takeOverConfirm:
         'This will disconnect this character from another session and bring it here. Continue?',
       renameRequired: 'rename required',
@@ -211,6 +307,12 @@ export const shellStrings = {
       sortName: 'Name',
       sortRecent: 'Recently Played',
       sortPlaytime: 'Playtime',
+      redesign: 'Redesign',
+      redesignHint:
+        'This character predates the new character creator. You get one free redesign; it is used when you save.',
+      redesignTitle: 'Redesign {name}',
+      redesignSave: 'Save New Look',
+      redesignCancel: 'Keep Current Look',
     },
     deleteCharacter: {
       title: 'Delete Character',
@@ -239,6 +341,7 @@ export const shellStrings = {
         mana: 'Mana',
         energy: 'Energy',
         rage: 'Rage',
+        focus: 'Focus',
       },
       roles: {
         warrior: 'Tank / Melee DPS',
@@ -307,6 +410,18 @@ export const shellStrings = {
       otherStandaloneDetail: 'Keep your device in landscape fullscreen.',
       otherInstallDetail:
         'Install or add this page to your Home screen for the best fullscreen mobile experience.',
+    },
+    graphicsPrompt: {
+      title: 'Choose Your Graphics',
+      intro:
+        'Pick a graphics preset for this device. Lower presets run smoother; higher ones look richer.',
+      autoDesc: 'Picks a preset that suits this device. Detected: {preset}.',
+      lowDesc: 'Smoothest performance. Best for phones, tablets, and older or integrated graphics.',
+      mediumDesc: 'A balance of visuals and performance. Suits most laptops.',
+      highDesc: 'More detail and fuller scenery. Suits a dedicated graphics card.',
+      ultraDesc: 'The richest fixed preset. Suits a high-end graphics card.',
+      changeLater: 'You can change this any time in Options, under Graphics Quality.',
+      confirm: 'Continue',
     },
     serverUnavailable: {
       title: 'World of ClaudeCraft - World Unavailable',
@@ -439,6 +554,7 @@ export const shellStrings = {
         mana: 'Maná',
         energy: 'Energía',
         rage: 'Ira',
+        focus: 'Concentración',
       },
       roles: {
         warrior: 'Tanque / DPS cuerpo a cuerpo',
@@ -642,6 +758,7 @@ export const shellStrings = {
         mana: 'Maná',
         energy: 'Energía',
         rage: 'Ira',
+        focus: 'Concentración',
       },
       roles: {
         warrior: 'Tanque / DPS cuerpo a cuerpo',
@@ -846,6 +963,7 @@ export const shellStrings = {
         mana: 'Mana',
         energy: 'Énergie',
         rage: 'Rage',
+        focus: 'Concentration',
       },
       roles: {
         warrior: 'Tank / DPS mêlée',
@@ -1050,6 +1168,7 @@ export const shellStrings = {
         mana: 'Mana',
         energy: 'Énergie',
         rage: 'Rage',
+        focus: 'Concentration',
       },
       roles: {
         warrior: 'Tank / DPS mêlée',
@@ -1266,6 +1385,7 @@ export const shellStrings = {
         mana: 'Mana',
         energy: 'Energy',
         rage: 'Rage',
+        focus: 'Focus',
       },
       roles: {
         warrior: 'Tank / Melee DPS',
@@ -1468,6 +1588,7 @@ export const shellStrings = {
         mana: 'Mana',
         energy: 'Energia',
         rage: 'Rabbia',
+        focus: 'Concentrazione',
       },
       roles: {
         warrior: 'Tank / DPS da mischia',
@@ -1672,6 +1793,7 @@ export const shellStrings = {
         mana: 'Mana',
         energy: 'Energie',
         rage: 'Wut',
+        focus: 'Fokus',
       },
       roles: {
         warrior: 'Tank / Nahkampf-DPS',
@@ -1873,6 +1995,7 @@ export const shellStrings = {
         mana: '法力',
         energy: '能量',
         rage: '怒气',
+        focus: '集中值',
       },
       roles: {
         warrior: '坦克 / 近战 DPS',
@@ -2061,6 +2184,7 @@ export const shellStrings = {
         mana: '法力',
         energy: '能量',
         rage: '怒氣',
+        focus: '集中值',
       },
       roles: {
         warrior: '坦克 / 近戰 DPS',
@@ -2250,6 +2374,7 @@ export const shellStrings = {
         mana: '마나',
         energy: '기력',
         rage: '분노',
+        focus: '집중',
       },
       roles: {
         warrior: '탱커 / 근접 DPS',
@@ -2450,6 +2575,7 @@ export const shellStrings = {
         mana: 'マナ',
         energy: 'エネルギー',
         rage: '怒り',
+        focus: '集中値',
       },
       roles: {
         warrior: 'タンク / 近接DPS',
@@ -2648,6 +2774,7 @@ export const shellStrings = {
         mana: 'Mana',
         energy: 'Energia',
         rage: 'Raiva',
+        focus: 'Foco',
       },
       roles: {
         warrior: 'Tanque / DPS corpo a corpo',
@@ -2851,6 +2978,7 @@ export const shellStrings = {
         mana: 'Мана',
         energy: 'Энергия',
         rage: 'Ярость',
+        focus: 'Концентрация',
       },
       roles: {
         warrior: 'Танк / ближний DPS',

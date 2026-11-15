@@ -6,9 +6,10 @@
 // Needs `npm run dev` running on :5173.
 //   node scripts/mobile_layout_audit.mjs
 //   EXPECT_PORTRAIT_PLAYABLE=1 node scripts/mobile_layout_audit.mjs
-import puppeteer from 'puppeteer-core';
+
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import puppeteer from 'puppeteer-core';
 
 import { BROWSER_PATH } from './browser_path.mjs';
 
@@ -48,7 +49,8 @@ function sleep(ms) {
 }
 
 function alphaSuffix() {
-  return Date.now().toString(36)
+  return Date.now()
+    .toString(36)
     .replace(/\d/g, (d) => 'abcdefghij'[Number(d)])
     .slice(-7);
 }
@@ -75,7 +77,9 @@ async function forceCoarsePointer(page) {
 }
 
 async function bootOffline(page, viewport) {
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36');
+  await page.setUserAgent(
+    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36',
+  );
   await page.setViewport(viewportConfig(viewport));
   await forceCoarsePointer(page);
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: WAIT });
@@ -90,9 +94,12 @@ async function bootOffline(page, viewport) {
   await page.click('#btn-start-offline');
   await sleep(400);
   await page.evaluate(() => document.getElementById('mobile-preflight-continue')?.click());
-  await page.waitForFunction(() => {
-    return Boolean(window.__game?.sim?.player && document.body.classList.contains('game-active'));
-  }, { timeout: 60000, polling: 250 });
+  await page.waitForFunction(
+    () => {
+      return Boolean(window.__game?.sim?.player && document.body.classList.contains('game-active'));
+    },
+    { timeout: 60000, polling: 250 },
+  );
   await sleep(800);
 }
 
@@ -102,7 +109,9 @@ async function openOfflinePanel(page) {
     const opened = await page.evaluate(() => {
       const offline = document.querySelector('#offline-select');
       if (offline && !offline.hasAttribute('hidden')) return true;
-      document.querySelector('#btn-offline')?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      document
+        .querySelector('#btn-offline')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       return !!offline && !offline.hasAttribute('hidden');
     });
     if (opened) return;
@@ -126,7 +135,8 @@ function auditLayoutInPage(viewportName, portraitExpected, expectPortraitPlayabl
   const notes = [];
 
   const docWidth = Math.max(root.scrollWidth, body.scrollWidth);
-  if (docWidth > vw + 1) failures.push(`horizontal overflow: document ${docWidth}px > viewport ${vw}px`);
+  if (docWidth > vw + 1)
+    failures.push(`horizontal overflow: document ${docWidth}px > viewport ${vw}px`);
 
   const visibleRect = (selector) => {
     const el = document.querySelector(selector);
@@ -175,23 +185,28 @@ function auditLayoutInPage(viewportName, portraitExpected, expectPortraitPlayabl
   if (criticalOffscreen.length > 0) failures.push(...criticalOffscreen);
 
   const smallTargets = [];
-  for (const el of document.querySelectorAll('#mobile-combat-controls .mobile-btn, #mobile-extra-controls .mobile-btn, .action-btn')) {
+  for (const el of document.querySelectorAll(
+    '#mobile-combat-controls .mobile-btn, #mobile-extra-controls .mobile-btn, .action-btn',
+  )) {
     const cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.pointerEvents === 'none') continue;
+    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.pointerEvents === 'none')
+      continue;
     const r = el.getBoundingClientRect();
     if (r.width <= 0 || r.height <= 0) continue;
     if (r.width < 40 || r.height < 40) {
       smallTargets.push(`${el.id || el.className}: ${Math.round(r.width)}x${Math.round(r.height)}`);
     }
   }
-  if (smallTargets.length > 0) failures.push(`touch targets below 40px: ${smallTargets.join(', ')}`);
+  if (smallTargets.length > 0)
+    failures.push(`touch targets below 40px: ${smallTargets.join(', ')}`);
 
   const move = document.getElementById('mobile-move-joystick')?.getBoundingClientRect();
   const camera = document.getElementById('mobile-camera-joystick')?.getBoundingClientRect();
   const combat = document.getElementById('mobile-combat-controls')?.getBoundingClientRect();
   const actionbar = document.getElementById('bottom-bar')?.getBoundingClientRect();
   const overlaps = [];
-  const overlap = (a, b) => a && b && !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+  const overlap = (a, b) =>
+    a && b && !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
   if (overlap(move, combat)) overlaps.push('move joystick overlaps combat row');
   if (overlap(camera, combat)) overlaps.push('camera joystick overlaps combat row');
   if (overlap(move, actionbar)) overlaps.push('move joystick overlaps action bar');
@@ -207,7 +222,8 @@ function auditLayoutInPage(viewportName, portraitExpected, expectPortraitPlayabl
     if (expectPortraitPlayable) failures.push(message);
     else notes.push(message);
   }
-  if (!portraitExpected && rotateVisible) failures.push(`${viewportName} unexpectedly shows rotate-device overlay`);
+  if (!portraitExpected && rotateVisible)
+    failures.push(`${viewportName} unexpectedly shows rotate-device overlay`);
 
   return {
     viewportName,
@@ -235,13 +251,23 @@ async function runViewport(browser, viewport) {
     await bootOffline(page, viewport);
     const hudShot = path.join(OUT_DIR, `${viewport.name}-hud.png`);
     await page.screenshot({ path: hudShot });
-    const hud = await page.evaluate(auditLayoutInPage, viewport.name, viewport.portraitExpected, EXPECT_PORTRAIT_PLAYABLE);
+    const hud = await page.evaluate(
+      auditLayoutInPage,
+      viewport.name,
+      viewport.portraitExpected,
+      EXPECT_PORTRAIT_PLAYABLE,
+    );
 
     await page.evaluate(() => document.getElementById('mobile-more')?.click());
     await sleep(350);
     const moreShot = path.join(OUT_DIR, `${viewport.name}-more.png`);
     await page.screenshot({ path: moreShot });
-    const more = await page.evaluate(auditLayoutInPage, `${viewport.name}-more`, viewport.portraitExpected, EXPECT_PORTRAIT_PLAYABLE);
+    const more = await page.evaluate(
+      auditLayoutInPage,
+      `${viewport.name}-more`,
+      viewport.portraitExpected,
+      EXPECT_PORTRAIT_PLAYABLE,
+    );
 
     const allFailures = [...hud.failures, ...more.failures, ...pageErrors];
     return {

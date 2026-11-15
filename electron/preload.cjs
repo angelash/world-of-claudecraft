@@ -19,6 +19,25 @@ const { contextBridge, ipcRenderer } = require('electron');
 // rendererErrorLogEntry), which never trusts this side's counting.
 const MAX_FORWARDED_ERRORS = 30;
 const MAX_TEXT = 4000;
+
+// The game context the host diagnostic may carry, duplicated from
+// GAME_INFO_KEYS in electron/host_diag.cjs rather than imported: this preload
+// runs sandboxed, where require() reaches a handful of built-ins and no local
+// module. Main re-applies the real whitelist, so this copy is a pre-cap, not the
+// trust boundary; tests/electron_host_diag.test.ts pins the two lists equal.
+const HOST_DIAG_GAME_KEYS = [
+  'sessionId',
+  'releaseVersion',
+  'buildId',
+  'graphicsPreset',
+  'gfxTier',
+  'glRenderer',
+  'glVendor',
+  'renderScale',
+  'targetFps',
+  'zone',
+  'locale',
+];
 let forwardedErrors = 0;
 
 const clampString = (value, max) => (typeof value === 'string' ? value.slice(0, max) : '');
@@ -118,10 +137,25 @@ contextBridge.exposeInMainWorld('wocDesktop', {
   // a click whose ticket can never exist.
   steamLinkSupported: () => ipcRenderer.invoke('desktop-steam-capability'),
   walletConnectionSupported: () => ipcRenderer.invoke('desktop-wallet-capability'),
+  // Whether the $WOC Exchange may attach in this shell (website distribution
+  // only; Steam and Epic builds answer false and get no Exchange UI at all).
+  wocExchangeSupported: () => ipcRenderer.invoke('desktop-exchange-capability'),
   // Signal that a link attempt has settled (the server verify resolved or
   // rejected) so the shell can cancel the Steam auth ticket (Valve's
   // CancelAuthTicket contract). Fire-and-forget; the main handler is idempotent.
   steamLinkSettled: () => ipcRenderer.invoke('desktop-steam-link-settled'),
+  // An Epic link proof (string) for POST /api/epic/link, or null when Epic is
+  // unavailable (website/steam build, no launcher exchange code, adapter
+  // missing). The main-process handler never rejects; epic.cjs owns every
+  // failure arm.
+  epicLinkProof: () => ipcRenderer.invoke('desktop-epic-link-proof'),
+  // Whether the shell can mint Epic link proofs at all (false on packaged
+  // website/steam builds). Capability can be true even when a given mint
+  // returns null (no native EOS / no launcher session yet).
+  epicLinkSupported: () => ipcRenderer.invoke('desktop-epic-capability'),
+  // Signal that an Epic link attempt has settled so any cancelable adapter
+  // handle can be released. Fire-and-forget; the main handler is idempotent.
+  epicLinkSettled: () => ipcRenderer.invoke('desktop-epic-link-settled'),
   // Auto-update events (website distribution only; the channel is simply
   // silent on Steam/dev builds). Payloads are the whitelisted shapes built in
   // electron/update_events.cjs.
@@ -136,4 +170,205 @@ contextBridge.exposeInMainWorld('wocDesktop', {
     return () => ipcRenderer.removeListener('desktop-update-event', listener);
   },
   installUpdate: () => ipcRenderer.invoke('desktop-update-install'),
+  checkForUpdates: () => ipcRenderer.invoke('desktop-update-check'),
+  // The shell's GPU verdict, pushed once the GPU process has reported (and again
+  // after a crash-recovery reload). Payloads are the whitelisted shape built in
+  // electron/gpu_status_events.cjs; the renderer localizes the notice itself.
+  onGpuStatus: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => {
+      if (
+        payload &&
+        typeof payload === 'object' &&
+        typeof payload.softwareRendering === 'boolean' &&
+        typeof payload.discreteInactive === 'boolean' &&
+        typeof payload.adapter === 'string'
+      ) {
+        callback(payload);
+      }
+    };
+    ipcRenderer.on('desktop-gpu-status', listener);
+    return () => ipcRenderer.removeListener('desktop-gpu-status', listener);
+  },
+  // Whether the player has opted out of the shell forcing the discrete GPU.
+  // Both are about the NEXT launch: the force levers run before Electron's own
+  // startup, so the shell stores the choice rather than applying it live. The
+  // setter answers whether the value actually reached disk.
+  getGpuForceOptOut: () => ipcRenderer.invoke('desktop-get-gpu-force-opt-out'),
+  setGpuForceOptOut: (optOut) =>
+    ipcRenderer.invoke('desktop-set-gpu-force-opt-out', optOut === true),
+  // The Linux GPU backend: the stored setting ('auto' | 'vulkan' | 'opengl'), the rung
+  // this launch is ACTUALLY running, whether that fell short of what was asked for, and
+  // whether the lever exists on this platform. The SETTING is about the next launch (the
+  // switches land before Electron's own startup); `active` is about this one, which is
+  // what the options row shows so a player who picked Vulkan on a machine that cannot run
+  // it does not read "Vulkan" while playing on OpenGL. The setter answers whether the
+  // value reached disk; main refuses anything outside its setting list.
+  getGpuBackend: () => ipcRenderer.invoke('desktop-get-gpu-backend'),
+  setGpuBackend: (value) => ipcRenderer.invoke('desktop-set-gpu-backend', String(value)),
+  // The same state, pushed the moment the launch is judged, so a page already sitting on
+  // the options row updates instead of showing the pre-judgement reading for the session.
+  onGpuBackendState: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => {
+      if (
+        payload &&
+        typeof payload === 'object' &&
+        typeof payload.setting === 'string' &&
+        typeof payload.active === 'string' &&
+        typeof payload.requestedUnavailable === 'boolean' &&
+        typeof payload.supported === 'boolean'
+      ) {
+        callback(payload);
+      }
+    };
+    ipcRenderer.on('desktop-gpu-backend-state', listener);
+    return () => ipcRenderer.removeListener('desktop-gpu-backend-state', listener);
+  },
+  // The game's own WebGL renderer string, reported once its context exists: the evidence
+  // the shell's Vulkan trial verdict is judged on (getGPUInfo can leave the renderer
+  // string empty on Linux). Fire-and-forget, capped here so no unbounded string crosses.
+  reportGpuRenderer: (renderer, parallelCompile) => {
+    // The extension flag crosses as a strict boolean or not at all.
+    const flag = parallelCompile === true ? true : parallelCompile === false ? false : undefined;
+    ipcRenderer.send('desktop-report-gpu-renderer', String(renderer).slice(0, 256), flag);
+  },
+  // Whether this platform has a backend choice at all (Linux only), answered
+  // synchronously so the options row can be gated the moment the window opens.
+  hasGpuBackendChoice: process.platform === 'linux',
+  // The next-launch settings (the GPU force opt-out, the backend) as THIS process read
+  // them at startup, frozen: the getters above serve the STORED values, which a setter
+  // moves live, so this is how the game tells "changed, restart to apply" from "already
+  // running" (src/game/desktop_next_launch_settings.ts).
+  getLaunchSettings: () => ipcRenderer.invoke('desktop-get-launch-settings'),
+  // Restart the shell at the player's request. Answers false when the new process never
+  // started (this one keeps running); on success this process quits and no answer lands.
+  restartApp: () => ipcRenderer.invoke('desktop-restart-app'),
+  // How the shell presents its window: 'borderless' (full screen) or 'windowed'.
+  // The setter applies live AND stores for the next launch, and answers whether
+  // the choice actually reached disk. An unknown mode is refused here rather
+  // than crossing the bridge, so main only ever sees a value it can apply.
+  getDisplayMode: () => ipcRenderer.invoke('desktop-get-display-mode'),
+  setDisplayMode: (mode) => {
+    if (mode !== 'borderless' && mode !== 'windowed') return Promise.resolve(false);
+    return ipcRenderer.invoke('desktop-set-display-mode', mode);
+  },
+  // The host facts the automatic perf report carries (memory, this app's own
+  // working sets, battery, and the Windows power/GPU-scheduling settings the
+  // browser sandbox cannot see). Argument-free, and everything it answers is
+  // already a plain scalar folded to a closed vocabulary on the main side.
+  getHostEssentials: () => ipcRenderer.invoke('desktop-host-essentials'),
+  // The host diagnostic: the shell collects the machine's configuration and the
+  // player saves ONE JSON file to send to support. The game's own context comes
+  // along, pre-sanitized HERE to the same key whitelist main accepts (a fresh
+  // object, so no renderer prototype or getter crosses the bridge, and strings
+  // pre-capped so a hostile page cannot ship an unbounded payload across the
+  // IPC; main re-clamps without trusting these caps). Answers
+  // { status, nativeStatus, fileName? }: the base name only, never a path.
+  runHostDiag: (game) => {
+    const clean = {};
+    if (game && typeof game === 'object') {
+      for (const key of HOST_DIAG_GAME_KEYS) {
+        const value = game[key];
+        if (typeof value === 'string') clean[key] = value.slice(0, 128);
+        else if (typeof value === 'number' && Number.isFinite(value)) clean[key] = value;
+      }
+    }
+    return ipcRenderer.invoke('desktop-host-diag-run', clean);
+  },
+  // One argument-free application exit capability. Main re-checks the sender
+  // and live window before accepting the normal app.quit lifecycle request.
+  quitApp: () => ipcRenderer.invoke('desktop-app-quit'),
+  // Gamepad activity, so the shell can keep the display awake during a
+  // controller-only session (gamepad input does not reset the OS idle timer).
+  // Fire-and-forget from the renderer's input loop: it returns nothing and
+  // swallows a rejection, because a shell that cannot take the lease must never
+  // surface an unhandled rejection in the game's input path.
+  notifyGamepadActivity: () => {
+    ipcRenderer.invoke('desktop-gamepad-activity').catch(() => {});
+  },
+  // An OS notification, with both strings already rendered by the renderer's
+  // t(). Refused here unless it is one of the two kinds main will accept, and
+  // rebuilt into a fresh object so no renderer prototype crosses the bridge,
+  // pre-capped so a hostile page cannot ship unbounded strings across the IPC
+  // (main re-clamps to the visible 120/240 without trusting these caps).
+  // Fire-and-forget: it returns nothing, swallows the rejection, and guards the
+  // synchronous throw, because a shell that cannot notify must never surface an
+  // error in the caller's path.
+  showNotification: (payload) => {
+    if (!payload || typeof payload !== 'object') return;
+    const kind = payload.kind;
+    if (kind !== 'update-ready' && kind !== 'party-invite') return;
+    if (typeof payload.title !== 'string' || typeof payload.body !== 'string') return;
+    const message = { kind, title: payload.title.slice(0, 512), body: payload.body.slice(0, 1024) };
+    try {
+      ipcRenderer.invoke('desktop-show-notification', message).catch(() => {});
+    } catch {}
+  },
+  // The Discord Rich Presence line, with the details string already rendered by
+  // the renderer's t(). null is the clear. Rebuilt into a fresh object (nested
+  // timestamps included) so no renderer prototype crosses the bridge, and
+  // pre-capped so a hostile page cannot ship an unbounded string across the IPC
+  // (main re-clamps to the visible 128 without trusting this cap). Fire-and-
+  // forget: it returns nothing, swallows the rejection, and guards the
+  // synchronous throw, because a shell that cannot report presence must never
+  // surface an error in the caller's path.
+  setDiscordActivity: (activity) => {
+    let message = null;
+    if (activity !== null) {
+      if (!activity || typeof activity !== 'object') return;
+      if (typeof activity.details !== 'string') return;
+      message = { details: activity.details.slice(0, 256) };
+      const timestamps = activity.timestamps;
+      if (timestamps && typeof timestamps === 'object' && typeof timestamps.start === 'number') {
+        message.timestamps = { start: timestamps.start };
+      }
+    }
+    try {
+      ipcRenderer.invoke('desktop-set-discord-activity', message).catch(() => {});
+    } catch {}
+  },
+  // The player's Discord presence setting. Refused here unless it is a real
+  // boolean, so main only ever sees a value it can store; fire-and-forget for
+  // the same reason as the activity above.
+  setDiscordPresenceEnabled: (enabled) => {
+    if (enabled !== true && enabled !== false) return;
+    try {
+      ipcRenderer.invoke('desktop-set-discord-presence-enabled', enabled).catch(() => {});
+    } catch {}
+  },
+  // Whether the shell's window is minimized or hidden, pushed from the main
+  // process because the page cannot see it: the window sets
+  // backgroundThrottling:false, which keeps document.visibilityState at
+  // 'visible' the whole time it is minimized.
+  onPresentationChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => {
+      if (payload && typeof payload === 'object' && typeof payload.hidden === 'boolean') {
+        callback(payload);
+      }
+    };
+    ipcRenderer.on('desktop-presentation-changed', listener);
+    return () => ipcRenderer.removeListener('desktop-presentation-changed', listener);
+  },
+  // The scale factor of the display the window sits on, pushed when it changes.
+  // The display's identity decides main-side whether a change is worth sending
+  // and never crosses the bridge. The finiteness check is not ceremony: the
+  // renderer resolves a pixel ratio from this, so a NaN would poison every
+  // frame after it.
+  onDisplayChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => {
+      if (
+        payload &&
+        typeof payload === 'object' &&
+        typeof payload.scaleFactor === 'number' &&
+        Number.isFinite(payload.scaleFactor)
+      ) {
+        callback(payload);
+      }
+    };
+    ipcRenderer.on('desktop-display-changed', listener);
+    return () => ipcRenderer.removeListener('desktop-display-changed', listener);
+  },
 });

@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml/badge.svg)](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-r165-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-RL%20env-0C7BDC)](https://gymnasium.farama.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-[![Version](https://img.shields.io/badge/version-0.31.0-blue)](../../package.json)
+[![Version](https://img.shields.io/badge/version-0.45.8-blue)](../../package.json)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.ko_KR.md)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/worldofclaudecraft)
 
@@ -92,7 +92,7 @@ npm install
 npm run dev        # then open http://localhost:5173 and choose Play Offline
 ```
 
-캐릭터 이름을 정하고, 아홉 클래스 중 하나를 고르면, **Eastbrook Vale**(레벨 1-7)에서 시작합니다. 이곳은 여러 거점으로 둘러싸인 시장 마을입니다: 북쪽으로 늑대 사냥터, 동쪽으로 멧돼지 초원, 서쪽으로 the Sableweb 숲, 북서쪽으로 Mirror Lake, 남서쪽으로 굴파는 짐승이 들끓는 구리 채굴장, 북동쪽으로 안식 없는 망자가 있는 폐허가 된 예배당, 그리고 남동쪽으로 Gorrak의 산적 야영지가 있습니다. 북쪽 길은 산길을 따라 **Mirefen Marsh**(6-13, 거점 Fenbridge)로 오르고, 거기서 더 올라 **Thornpeak Heights**(13-20, 거점 Highwatch)에 닿습니다. 세계 시드는 `src/main.ts`에 고정되어 있어, 방문할 때마다 같은 장소입니다.
+캐릭터 이름을 정하고, 아홉 클래스 중 하나를 고르면, **Eastbrook Vale**(레벨 1-7)에서 시작합니다. 이곳은 여러 거점으로 둘러싸인 시장 마을입니다: 북쪽으로 늑대 사냥터, 동쪽으로 멧돼지 초원, 서쪽으로 the Sableweb 숲, 북서쪽으로 Mirror Lake, 남서쪽으로 굴파는 짐승이 들끓는 구리 채굴장, 북동쪽으로 안식 없는 망자가 있는 폐허가 된 예배당, 그리고 남동쪽으로 Gorrak의 산적 야영지가 있습니다. 북쪽 길은 산길을 따라 **Mirefen Marsh**(6-13, 거점 Fenbridge)로 오르고, 거기서 더 올라 **Thornpeak Heights**(13-20, 거점 Highwatch)에 닿습니다. 세계 시드는 `src/sim/world_seed.ts`에 고정되어 있어, 방문할 때마다 같은 장소입니다.
 
 ### Windows, Linux, macOS용 데스크톱 앱
 
@@ -234,7 +234,7 @@ the Gravecaller 스토리라인은 세 개의 5인 정예 인스턴스를 관통
 
 ### 델브
 
-델브는 한두 명의 플레이어를 위한 별개의 확장형 소규모 모드로, 매 진행마다 무작위 방으로 재구축되고, 전리품 굴림이 아니라 자물쇠 따기 미니게임으로 열리는 잠긴 성유물 상자에서 끝납니다. **The Collapsed Reliquary**(레벨 7 이상)는 Deacon Varric에서 끝나며, 솔로로 진행하면 AI 동료 Tessa가 곁에서 함께 싸웁니다. **The Drowned Litany**(레벨 12 이상)는 그 흔적을 따라 Mirefen Marsh 가장자리의 물에 잠긴 사원으로 이어집니다. 델브 게시판에서 등급을 정합니다: 영웅은 적 레벨을 올리고 무작위 접사를 추가하여 더 풍부한 보상을 줍니다.
+델브는 한두 명의 플레이어를 위한 별개의 확장형 소규모 모드로, 매 진행마다 무작위 방으로 재구축되고, 전리품 굴림이 아니라 자물쇠 따기 미니게임으로 열리는 잠긴 성유물 상자에서 끝납니다. **The Collapsed Reliquary**(레벨 7 이상)는 Deacon Vandric에서 끝나며, 솔로로 진행하면 AI 동료 Tessa가 곁에서 함께 싸웁니다. **The Drowned Litany**(레벨 12 이상)는 그 흔적을 따라 Mirefen Marsh 가장자리의 물에 잠긴 사원으로 이어집니다. 델브 게시판에서 등급을 정합니다: 영웅은 적 레벨을 올리고 무작위 접사를 추가하여 더 풍부한 보상을 줍니다.
 
 ### 랭크 PvP (the Ashen Coliseum)
 

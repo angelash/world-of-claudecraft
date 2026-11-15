@@ -7,6 +7,115 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: 'Sẵn Sàng Phiêu Lưu',
+    desc: 'Tốt nghiệp Bờ Biển Thử Thách: hoàn thành mọi bài học trên đảo, rồi rung chuông phà để trở về Đông Khê.',
+  },
+  exp_dawnhold_castle: {
+    name: 'Cánh Cửa Mở Trong Vườn',
+    desc: 'Ghé thăm Lâu Đài Dawnhold và dạo quanh những sảnh vườn ngập nắng.',
+  },
+  exp_the_last_keep: {
+    name: 'Những Sảnh Đường Tĩnh Lặng',
+    desc: 'Bước qua cánh cửa Pháo Đài Cuối Cùng và dạo bước qua những sảnh đường tĩnh lặng.',
+  },
+  pvp_bg_first_capture: {
+    name: 'Cờ Trong Tay',
+    desc: 'Chiếm một lá cờ tại Cánh Đồng Trũng Gai.',
+  },
+  pvp_bg_first_win: {
+    name: 'Trũng Gai Vững Bền',
+    desc: 'Thắng một trận Cánh Đồng Trũng Gai.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Người Trấn Giữ Trũng Gai',
+    desc: 'Thắng 25 trận Cánh Đồng Trũng Gai.',
+    title: 'Người Cầm Cờ',
+  },
+  pvp_bg_captures_100: {
+    name: 'Một Trăm Lá Cờ',
+    desc: 'Chiếm 100 lá cờ tại Cánh Đồng Trũng Gai trong suốt sự nghiệp của bạn.',
+  },
+  dgn_rift: {
+    name: 'Người Đi Xuyên Rạn Nứt',
+    desc: 'Dọn sạch một Rạn Nứt bằng cách đánh bại trùm của tầng đó.',
+  },
+  dgn_rift_s_rank: {
+    name: 'Quân Vương Rạn Nứt',
+    desc: 'Dọn sạch một Rạn Nứt hạng S, bậc khó nhất mà một cổng Rạn Nứt có thể sinh ra.',
+  },
+  pvp_honor_sergeant: {
+    name: 'Kẻ Phá Trận',
+    desc: 'Kiếm được 10.000 danh dự trong suốt cuộc đời nhân vật. Tiêu nó đi không bao giờ khiến bạn mất cấp bậc.',
+    title: 'Kẻ Phá Trận',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Kẻ Tàn Phá Chiến Trường',
+    desc: 'Kiếm được 40.000 danh dự trong suốt cuộc đời nhân vật, cả một mùa chiến tranh thực sự phía sau bạn.',
+    title: 'Kẻ Tàn Phá Chiến Trường',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Vương Miện Chiến Tranh',
+    desc: 'Kiếm được 150.000 danh dự trong suốt cuộc đời nhân vật. Hiếm có trên bất kỳ vương quốc nào, và nó nên như vậy.',
+    title: 'Vương Miện Chiến Tranh',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Kẻ Phá Vỡ Ổ Trứng',
+    desc: 'Hạ gục một Lãnh Chúa Bầy Drakemaw giữa bầy trứng của nó, vượt qua tiếng gầm, đòn chém bổ, và ngọn lửa.',
+  },
+  chr_maw_matriarch: {
+    name: 'Bầu Trời Lặng Yên',
+    desc: 'Hạ gục Cindraleth Mẫu Chúa Hàm trong tổ miệng núi lửa của nó, phía trên Drakemaw.',
+  },
+  chr_frostveil_gatherer: {
+    name: 'Thu hoach tren ruong bac thang',
+    desc: 'Thu hoach mot mach quang, mot vung go va mot luong thao moc o Frostveil.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Lop bang dau tren ho nho',
+    desc: 'Cau mot con ca trong vung nuoc Frostveil.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Vu thu hoach Amberfall',
+    desc: 'Thu hoach mot mach quang, mot vung go va mot luong thao moc o Amberfall.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'Me ca tu dam lon',
+    desc: 'Cau mot con ca trong vung nuoc Amberfall.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'Vu thu hoach mong mo',
+    desc: 'Thu hoach mot mach quang, mot vung go va mot luong thao moc o Nightbloom.',
+  },
+  chr_nightbloom_first_cast: {
+    desc: 'Cau mot con ca trong vung nuoc Nightbloom.',
+
+    name: 'Gợn Sóng Trên Suối Trăng',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Thu hoach duoi tan cay',
+    desc: 'Thu hoach mot mach quang, mot vung go va mot luong thao moc o Wraithwood.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Lan cau trong vinh guong',
+    desc: 'Cau mot con ca trong vung nuoc Wraithwood.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Thu hoach tren bai co',
+    desc: 'Thu hoach mot mach quang, mot vung go va mot luong thao moc o Palmreach.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Tha cau o dam sapphire',
+    desc: 'Cau mot con ca trong vung nuoc Palmreach.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'Loc cua vuon hoa',
+    desc: 'Thu hoach mot mach quang, mot vung go va mot luong thao moc o Evergarden.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Lan cau tren ao canh hoa',
+    desc: 'Cau mot con ca trong vung nuoc Evergarden.',
+  },
   pvp_card_duel_first_win: {
     name: 'Luật Của Ta',
     desc: 'Thắng một ván Đấu Bài tại Bậc Thầy Bài.',
@@ -79,7 +188,7 @@ export const table: DeedLocaleTable = {
   prog_herbalism_100: { name: 'Bậc Thầy Đồng Cỏ', desc: 'Đạt 100 điểm thành thạo Thảo Dược Học.' },
   prog_master_gatherer: {
     name: 'Bậc Thầy Thu Thập',
-    desc: 'Đạt 100 điểm thành thạo trong bất kỳ ba trong số Khai Khoáng, Đốn Gỗ, Thảo Dược Học, và Câu Cá.',
+    desc: 'Đạt 100 điểm thành thạo trong bất kỳ ba nghề thu thập nào.',
   },
   prog_first_craft: {
     name: 'Làm Bằng Đôi Tay',
@@ -193,8 +302,9 @@ export const table: DeedLocaleTable = {
     title: 'Kẻ Đốn Long',
   },
   dgn_sanctum_speed: {
-    name: 'Nước Rút Thánh Đường',
     desc: 'Đánh bại Korzul Mộ Long trong vòng 15 phút kể từ khi tổ đội của bạn tiến chiếm Thánh Đường Mộ Long.',
+
+    name: 'Cuộc Đua Thánh Điện',
   },
   dgn_nythraxis_gravebreaker: {
     name: 'Không Quỳ Trước Vua Nào',
@@ -253,7 +363,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'Chuông Ngừng Ngân',
-    desc: 'Đánh bại Chấp Sự Varric khi mọi Kẻ Rung Chuông Tang Lễ hắn dựng dậy đều đã bị diệt từ trước.',
+    desc: 'Đánh bại Chấp Sự Vandric khi mọi Kẻ Rung Chuông Tang Lễ hắn dựng dậy đều đã bị diệt từ trước.',
   },
   dlv_nhalia_bells: {
     name: 'Kẻ Lặng Chuông',
@@ -266,7 +376,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Biên Niên Sử Thung Lũng, Chương II',
-    desc: 'Hoàn thành chương thứ hai trong biên niên sử của Saul: dẹp yên lũ cướp, đám murloc và loài sâu bọ trong mỏ, so tài trên Sân Heo Nái, và liều mình bước vào Thánh Tích Sụp Đổ.',
+    desc: 'Hoàn thành chương hai trong biên niên sử của Saul: hạ bọn cướp, murloc và sâu bọ hầm mỏ, rồi dũng cảm bước vào Kỳ Trân Các.',
   },
   chr_vale_chapter_iii: {
     name: 'Trọn Bộ Biên Niên Sử Thung Lũng',
@@ -283,8 +393,8 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_packbreaker: { name: 'Kẻ Phá Bầy', desc: 'Hạ 3 Sói Rừng trong vòng 10 giây.' },
   chr_vale_cup_debut: {
+    desc: 'Ra sân và chạm bóng trong một trận Cúp Vale tại Sân Heo Nái. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Kẻ Tranh Xô Đồng',
-    desc: 'Ra sân và chạm bóng trong một trận Cúp Thung Lũng tại Sân Heo Nái.',
   },
   chr_vale_rares: {
     name: 'Nỗi Kinh Hoàng Thung Lũng',
@@ -329,12 +439,13 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'Trọn Bộ Biên Niên Sử Đỉnh Gai',
-    desc: 'Theo trọn câu chuyện của ngọn núi: Long Giáo bị đập tan, Thánh Đường Mộ Long phải bặt tiếng, Đỉnh Núi Thức Giấc bị quật ngã, và mọi nỗi kinh hoàng hữu danh của vách đá đều bị hạ gục.',
     title: 'Xứ Đỉnh Gai',
+
+    desc: 'Theo trọn câu chuyện của ngọn núi: đánh tan Giáo Phái Thệ Long, làm Thánh Điện im tiếng, hạ Đỉnh Núi Thức Giấc và tiêu diệt mọi nỗi kinh hoàng có tên giữa các vách đá.',
   },
   chr_peaks_sparring: {
     name: 'Luyện Đòn Trên Tường',
-    desc: 'Gây tổng cộng 1.000 sát thương lên Hình Nộm Tập Luyện phía trên Vọng Đài Cao.',
+    desc: 'Gây tổng cộng 1.000 sát thương lên một hình nộm tập luyện.',
   },
   chr_peaks_glimmer_cast: {
     name: 'Nước Lạnh, Ánh Sáng Còn Lạnh Hơn',
@@ -427,7 +538,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Khách Quen Hạng Nhất',
-    desc: 'Khám phá đủ cả mười món hàng của Quân Nhu Trưởng Vex.',
+    desc: 'Khám phá đủ cả mười món trang bị của Quân Nhu Trưởng Vex.',
   },
   col_glimmerfin: {
     name: 'Tia Hy Vọng Lấp Lánh',
@@ -480,67 +591,73 @@ export const table: DeedLocaleTable = {
     desc: 'Thua một trận đấu tay đôi mà thể diện vẫn gần như nguyên vẹn.',
   },
   pvp_vcup_first_match: {
+    desc: 'Chơi trọn một trận Cúp Vale tại Sân Heo Nái, thắng hay thua đều được. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Đôi Giày Chạm Cỏ',
-    desc: 'Chơi trọn vẹn một trận Cúp Thung Lũng tại Sân Heo Nái, dù thắng hay thua.',
   },
   pvp_vcup_first_win: {
+    desc: 'Thắng một trận Cúp Vale xếp hạng. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Chiếc Cúp Đầu Tay',
-    desc: 'Thắng một trận Cúp Thung Lũng xếp hạng.',
   },
-  pvp_vcup_wins_10: { name: 'Cầu Thủ Dạn Dày', desc: 'Thắng 10 trận Cúp Thung Lũng xếp hạng.' },
+  pvp_vcup_wins_10: {
+    name: 'Cầu Thủ Dạn Dày',
+    desc: 'Thắng 10 trận Cúp Vale xếp hạng. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
+  },
   pvp_vcup_wins_25: {
+    desc: 'Thắng 25 trận Cúp Vale xếp hạng. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Huyền Thoại Bóng Heo Rừng',
-    desc: 'Thắng 25 trận Cúp Thung Lũng xếp hạng.',
     title: 'Huyền Thoại Bóng Heo Rừng',
   },
   pvp_vcup_first_goal: {
+    desc: 'Ghi bàn trong một trận Cúp Vale xếp hạng. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Khai Nòng',
-    desc: 'Ghi một bàn thắng trong một trận Cúp Thung Lũng xếp hạng.',
   },
   pvp_vcup_hat_trick: {
+    desc: 'Ghi ba bàn trong cùng một trận Cúp Vale xếp hạng, ở hạng 3v3 trở lên. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Người Hùng Hat-trick',
-    desc: 'Ghi ba bàn trong cùng một trận Cúp Thung Lũng xếp hạng, ở nhánh 3v3 trở lên.',
   },
   pvp_vcup_golden_goal: {
+    desc: 'Ghi bàn thắng vàng quyết định một trận Cúp Vale xếp hạng. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Khoảnh Khắc Vàng',
-    desc: 'Ghi bàn thắng vàng định đoạt một trận Cúp Thung Lũng xếp hạng.',
   },
   pvp_vcup_first_save: {
+    desc: 'Thực hiện một pha cản phá với vai trò thủ môn trong trận Cúp Vale xếp hạng ở hạng 3v3 trở lên. Chỉ cú sút đủ nhanh để thử thách khả năng bắt bóng mới được tính; bắt bóng nhẹ không được tính. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Đôi Tay Vững Vàng',
-    desc: 'Cản phá một pha bóng trong vai thủ môn ở một trận Cúp Thung Lũng xếp hạng.',
   },
   pvp_vcup_clean_sheet: {
+    desc: 'Thắng một trận Cúp Vale xếp hạng với vai trò thủ môn mà không để thủng lưới, ở hạng 3v3 trở lên. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Đừng Hòng Qua Được Ta',
-    desc: 'Thắng một trận Cúp Thung Lũng xếp hạng trong vai thủ môn mà không để thủng lưới bàn nào.',
   },
   pvp_vcup_guild_win: {
+    desc: 'Thắng một trận Cúp Vale xếp hạng dưới lá cờ bang hội của bạn. Các trận Cúp Vale không còn chơi được, nên thành tích này không thể kiếm mới.',
     name: 'Vì Màu Cờ Sắc Áo',
-    desc: 'Thắng một trận Cúp Thung Lũng xếp hạng khi ra sân dưới kỳ hiệu bang hội của bạn.',
   },
   pvp_fiesta_first_bout: {
+    desc: 'Đấu trọn một trận Fiesta 2v2, thắng hay thua đều được. Các trận Fiesta không còn xuất hiện trong hàng chờ Đấu Trường, nên thành tích này không thể kiếm mới.',
     name: 'Khách Không Mời',
-    desc: 'Đấu trọn một trận Fiesta 2v2, dù thắng hay thua.',
   },
-  pvp_fiesta_first_win: { name: 'Linh Hồn Của Bữa Tiệc', desc: 'Thắng một trận Fiesta 2v2.' },
+  pvp_fiesta_first_win: {
+    name: 'Linh Hồn Của Bữa Tiệc',
+    desc: 'Thắng một trận Fiesta 2v2. Các trận Fiesta không còn xuất hiện trong hàng chờ Đấu Trường, nên thành tích này không thể kiếm mới.',
+  },
   pvp_fiesta_double: {
+    desc: 'Hạ hai đối thủ trong Fiesta trong vòng bốn giây. Các trận Fiesta không còn xuất hiện trong hàng chờ Đấu Trường, nên thành tích này không thể kiếm mới.',
     name: 'Họa Vô Đơn Chí',
-    desc: 'Ghi hai pha hạ gục trong Fiesta chỉ trong bốn giây.',
   },
   pvp_fiesta_shutdown: {
+    desc: 'Hạ một đối thủ Fiesta đang có chuỗi từ ba mạng trở lên. Các trận Fiesta không còn xuất hiện trong hàng chờ Đấu Trường, nên thành tích này không thể kiếm mới.',
     name: 'Kẻ Phá Đám',
-    desc: 'Hạ gục một đối thủ Fiesta đang trên chuỗi ba mạng trở lên.',
   },
   pvp_fiesta_full_build: {
+    desc: 'Thắng một trận Fiesta với một cường hóa được khóa từ cả ba đợt. Các trận Fiesta không còn xuất hiện trong hàng chờ Đấu Trường, nên thành tích này không thể kiếm mới.',
     name: 'Chỉnh Tề Dự Tiệc',
-    desc: 'Thắng một trận Fiesta sau khi chốt món tăng cường ở cả ba đợt.',
   },
   pvp_fiesta_powerups: {
+    desc: 'Nhặt mỗi cường hóa vòng đấu trong bốn loại ít nhất một lần: Quỷ Tốc Độ, Người Khổng Lồ, Giày Mặt Trăng và Cuồng Sĩ. Các trận Fiesta không còn xuất hiện trong hàng chờ Đấu Trường, nên thành tích này không thể kiếm mới.',
     name: 'Mỗi Thứ Một Chút',
-    desc: 'Nhặt đủ cả bốn món tăng lực trên võ đài ít nhất một lần: Quỷ Tốc Độ, Người Khổng Lồ, Giày Mặt Trăng và Kẻ Cuồng Chiến.',
   },
   pvp_fiesta_five_kills: {
+    desc: 'Hạ năm đối thủ trong một trận Fiesta. Các trận Fiesta không còn xuất hiện trong hàng chờ Đấu Trường, nên thành tích này không thể kiếm mới.',
     name: 'Gánh Cả Bữa Tiệc',
-    desc: 'Ghi năm pha hạ gục trong cùng một trận Fiesta.',
   },
   soc_first_party: { name: 'Có Nhau Vẫn Hơn', desc: 'Gia nhập một tổ đội cùng người chơi khác.' },
   soc_full_house: { name: 'Kín Đội Hình', desc: 'Dọn sạch một hầm ngục với tổ đội đủ năm người.' },
@@ -813,5 +930,542 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'Bãi Phế Liệu',
     desc: 'Tháo dỡ 50 món trang bị thành nguyên liệu thô.',
+  },
+  dgn_wildheart_basin: {
+    name: 'Lòng Chảo Phản Đòn',
+    desc: 'Đánh bại Zulgar, Tiếng Nói Của Vùng Trũng, trong Lòng Chảo Trái Tim Hoang Dã.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Anh Hùng: Lòng Chảo Trái Tim Hoang Dã',
+    desc: 'Đánh bại Zulgar, Tiếng Nói Của Vùng Trũng, trong Lòng Chảo Trái Tim Hoang Dã ở độ khó Anh Hùng.',
+  },
+  chr_peaks_gatherer: {
+    name: 'Mùa Gặt Chốn Non Cao',
+    desc: 'Thu hoạch một mạch quặng, một cụm gỗ và một khóm thảo dược tại Cao Nguyên Đỉnh Gai.',
+  },
+  chr_marsh_rares_ii: {
+    name: 'Kẻ Phàm Ăn, Được Ghi Sổ',
+    desc: 'Hạ Grubjaw Phàm Ăn, nỗi kinh hoàng hữu danh thứ tư của Đầm Lầy Bùn Sâu bị bỏ sót trong lần điểm danh đầu tiên.',
+  },
+  chr_peaks_rares_ii: {
+    name: 'Thêm Những Cái Tên Khắc Vào Vách Đá',
+    desc: 'Hạ Cragmaw Già và Lãnh Chúa Mảnh Vỡ Kazzix, thêm hai nỗi kinh hoàng hữu danh của Cao Nguyên Đỉnh Gai bị bỏ sót trong lần điểm danh đầu tiên.',
+  },
+  chr_gleamstag: {
+    name: 'Huyền Thoại Không Bao Giờ Ra Tay Trước',
+    desc: 'Hạ Hươu Lấp Lánh, một tinh anh hiếm gặp và nhút nhát, chỉ tấn công khi bị dồn vào đường cùng.',
+  },
+  chr_hollow_rares: {
+    name: 'Bầy Đàn Ghi Nhớ',
+    desc: 'Hạ Marrowshell Già và Aurelhorn, Kẻ Đầu Đàn, hai trùm hiếm lang thang của Thung Lũng Sương Phủ.',
+  },
+  chr_willowfen_gatherer: {
+    name: 'Lộc Trời Đầm Liễu',
+    desc: 'Thu hoạch một mạch quặng, một cụm gỗ và một khóm thảo dược tại Đầm Liễu.',
+  },
+  chr_willowfen_first_cast: {
+    name: 'Gợn Sóng Nơi Lilymoors',
+    desc: 'Câu một con cá từ vùng nước của Đầm Liễu.',
+  },
+  chr_galecrest_gatherer: {
+    name: 'Mùa Gặt Trên Mũi Đất',
+    desc: 'Thu hoạch một mạch quặng, một cụm gỗ và một khóm thảo dược tại Đỉnh Gió Lộng.',
+  },
+  chr_galecrest_first_cast: {
+    name: 'Buông Câu Xuống Hồ Gương',
+    desc: 'Câu một con cá từ vùng nước của Đỉnh Gió Lộng.',
+  },
+  chr_farshore_gatherer: {
+    name: 'Lương Thảo Hải Đảo',
+    desc: 'Thu hoạch một mạch quặng, một cụm gỗ và một khóm thảo dược tại Bờ Biển Xa Xôi.',
+  },
+  chr_farshore_first_cast: {
+    name: 'Điều Lũ Mòng Biển Biết',
+    desc: 'Câu một con cá từ vùng nước của Bờ Biển Xa Xôi.',
+  },
+  prog_engineering_rare: {
+    name: 'Cơ Khí Chính Xác',
+    desc: 'Chế tạo vật phẩm hiếm đầu tiên trong Cơ Khí.',
+  },
+  prog_alchemy_rare: {
+    name: 'Rượu Vang Quý Hiếm',
+    desc: 'Chế tạo vật phẩm hiếm đầu tiên trong Giả Kim.',
+  },
+  prog_cooking_rare: {
+    name: 'Món Ăn Đáng Nhớ',
+    desc: 'Chế tạo vật phẩm hiếm đầu tiên trong Nấu Ăn.',
+  },
+  prog_leatherworking_rare: {
+    name: 'Thuộc Da Tinh Xảo',
+    desc: 'Chế tạo vật phẩm hiếm đầu tiên trong Thuộc Da.',
+  },
+  prog_tailoring_rare: {
+    name: 'Đường Kim Bậc Thầy',
+    desc: 'Chế tạo vật phẩm hiếm đầu tiên trong May Vá.',
+  },
+  prog_weaponcrafting_rare: {
+    name: 'Tôi Luyện Đến Sáng Bóng',
+    desc: 'Chế tạo vật phẩm hiếm đầu tiên trong Rèn Vũ Khí.',
+  },
+  prog_armorcrafting_rare: {
+    name: 'Mạ Đến Hoàn Hảo',
+    desc: 'Chế tạo vật phẩm hiếm đầu tiên trong Rèn Giáp.',
+  },
+  col_reliquary_rank_2: {
+    name: 'Người Giữ Chiến Lợi',
+    desc: 'Đạt cấp Quản Thủ 2 trong Kỳ Trân Các (10 kỳ trân độc nhất đã biên mục).',
+    title: 'Người Giữ Chiến Lợi',
+  },
+  col_reliquary_rank_3: {
+    name: 'Người Biên Mục',
+    desc: 'Đạt cấp Quản Thủ 3 trong Kỳ Trân Các (25 kỳ trân độc nhất đã biên mục).',
+    title: 'Người Biên Mục',
+  },
+  col_reliquary_rank_4: {
+    name: 'Đại Quản Thủ',
+    desc: 'Đạt cấp Quản Thủ 4 trong Kỳ Trân Các (50 kỳ trân độc nhất đã biên mục).',
+    title: 'Đại Quản Thủ',
+  },
+  col_reliquary_rank_5: {
+    name: 'Chiến Lợi Vĩnh Hằng',
+    desc: 'Đạt cấp Quản Thủ 5 trong Kỳ Trân Các (100 kỳ trân độc nhất đã biên mục).',
+  },
+  col_reliquary_complete: {
+    name: 'Đại Kỳ Trân Các',
+    desc: 'Biên mục mọi kỳ trân trong Kỳ Trân Các mà một nhân vật có thể giữ. Về sau mục lục có mở rộng cũng không bao giờ lấy lại điều đó.',
+    title: 'Quản Thủ Kho Báu',
+  },
+  col_reliquary_conquerors: {
+    name: 'Kệ Kẻ Chinh Phục',
+    desc: 'Biên mục mọi kỳ trân trên kệ Kẻ Chinh Phục của Kỳ Trân Các. Về sau mục lục có mở rộng cũng không bao giờ lấy lại điều đó.',
+    title: 'Kẻ Phá Kho Báu',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis Rực Sáng',
+    desc: 'Làm rực sáng trang Anh Hùng: Raid Nythraxis của Kỳ Trân Các.',
+    title: 'Ánh Sáng Nythraxis',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr Rực Sáng',
+    desc: 'Làm rực sáng trang Thunzharr, Đỉnh Núi Thức Giấc của Kỳ Trân Các.',
+    title: 'Ánh Sáng Thunzharr',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Thánh Đường Rực Sáng',
+    desc: 'Làm rực sáng trang Anh Hùng: Thánh Đường Mộ Long của Kỳ Trân Các.',
+    title: 'Ánh Sáng Thánh Đường',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Người Trang Bị Két Sắt',
+    desc: 'Mở khóa ô túi ngân hàng đầu tiên của bạn.',
+  },
+  soc_four_bags_deep: {
+    name: 'Trọn Bộ Bốn Túi',
+    desc: 'Mở khóa cả bốn ô túi ngân hàng.',
+  },
+  dgn_ignivar: {
+    name: 'Sứ Giả Ngã Xuống',
+    desc: 'Đánh bại Ignivar, Sứ Giả Ngọn Lửa Cuối Cùng, tại Lò Luyện Suối Nguồn Cuối Cùng.',
+  },
+  dgn_ignivar_heroic: {
+    name: 'Anh Hùng: Sứ Giả Ngã Xuống',
+    desc: 'Đánh bại Ignivar, Sứ Giả Ngọn Lửa Cuối Cùng, ở độ khó Anh Hùng.',
+  },
+  dgn_varkhul: {
+    name: 'Lò Rèn Nguội Lạnh',
+    desc: 'Đánh bại Varkhul, Tổ Phụ Lò Rèn của Ngọn Lửa Cuối Cùng, tại Lò Luyện Bên Trong.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Anh Hùng: Lò Rèn Nguội Lạnh',
+    desc: 'Đánh bại Varkhul, Tổ Phụ Lò Rèn của Ngọn Lửa Cuối Cùng, ở độ khó Anh Hùng.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Không Một Tia Lửa Nào Tắt',
+    desc: 'Đánh bại Varkhul, Tổ Phụ Lò Rèn của Ngọn Lửa Cuối Cùng, ở độ khó Anh Hùng mà không một thành viên raid nào tử trận.',
+    title: 'Kẻ Bất Thiêu',
+  },
+  col_set_bramblehide: {
+    name: 'Da Gai Của Roots',
+    desc: 'Khám phá đủ mọi món của bộ Da Gai Của Roots.',
+  },
+  prog_jewelcrafting_rare: {
+    desc: 'Chế tạo vật phẩm bậc hiếm đầu tiên trong nghề Kim Hoàn.',
+    name: 'Đánh Bóng Đến Rực Rỡ',
+  },
+  prog_jewelcrafting_50: {
+    desc: 'Đạt 50 điểm kỹ năng trong nghề Kim Hoàn.',
+    name: 'Mặt Cắt Và Hoa Văn',
+  },
+  prog_grandmaster_jewelcrafting: {
+    desc: 'Đạt 125 điểm kỹ năng trong nghề Kim Hoàn, đỉnh cao của nghề.',
+
+    name: 'Đại Sư Chế Tác Trang Sức',
+    title: 'Đại Sư Chế Tác Trang Sức',
+  },
+  prog_inscription_rare: {
+    desc: 'Chế tạo vật phẩm bậc hiếm đầu tiên trong nghề Khắc Chữ.',
+    name: 'Viết Bằng Mực Tinh Xảo',
+  },
+  prog_inscription_50: {
+    desc: 'Đạt 50 điểm kỹ năng trong nghề Khắc Chữ.',
+    name: 'Bút Lông Và Sắc Tố',
+  },
+  prog_grandmaster_inscription: {
+    desc: 'Đạt 125 điểm kỹ năng trong nghề Khắc Chữ, đỉnh cao của nghề.',
+
+    name: 'Đại Sư Minh Văn',
+    title: 'Đại Sư Minh Văn',
+  },
+  col_deepest_cast: {
+    desc: 'Có được Cần Câu Clockreel, cây cần duy nhất có thể câu được những mẻ cá sâu nhất.',
+
+    name: 'Cú Quăng Câu Sâu Nhất',
+  },
+  prog_first_planting: {
+    desc: 'Trồng vụ mùa đầu tiên của bạn trong một luống vườn.',
+    name: 'Khởi Đầu Từ Hạt Giống',
+  },
+  chr_vale_first_harvest: {
+    desc: 'Thu hoạch vụ mùa tươi tốt đầu tiên từ luống vườn ở Thung Lũng Eastbrook.',
+
+    name: 'Trái Đầu Mùa Của Thung Lũng',
+  },
+  chr_marsh_first_harvest: {
+    desc: 'Thu hoạch vụ mùa tươi tốt đầu tiên từ luống vườn ở Đầm Lầy Mirefen.',
+
+    name: 'Mầm Non Trong Than Bùn',
+  },
+  chr_peaks_first_harvest: {
+    desc: 'Thu hoạch vụ mùa tươi tốt đầu tiên từ luống vườn ở Cao Nguyên Thornpeak.',
+
+    name: 'Vụ Mùa Giữa Vách Đá',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Thu hoạch vụ mùa tươi tốt đầu tiên từ luống vườn ở Vườn Vĩnh Hằng.',
+
+    name: 'Mảnh Vườn Chốn Thiên Đường',
+  },
+  col_golden_harvest: {
+    desc: 'Gặt một vụ mùa vàng và để cả khu vực nghe thấy tin này.',
+    name: 'Mùa Gặt Vàng',
+  },
+  prog_farming_100: {
+    desc: 'Đạt 100 điểm thành thạo nghề Nông.',
+    name: 'Bậc Thầy Thu Hoạch',
+    title: 'Bậc Thầy Thu Hoạch',
+  },
+  col_farm_roster: {
+    desc: 'Thu hoạch mọi vụ mùa mà bốn khu vườn trồng được.',
+    name: 'Mọi Luống Đều Đầy',
+  },
+  prog_field_to_feast: {
+    desc: 'Nấu một bữa tiệc đỉnh cao mà cả raid có thể cùng ăn.',
+    name: 'Từ Đồng Ruộng Đến Yến Tiệc',
+  },
+  prog_legendmaker: {
+    desc: 'Dùng Giấy Chế Tác để nâng một tác phẩm Đã Hoàn Thiện thành huyền thoại và đặt cho nó một cái tên riêng.',
+
+    name: 'Người Tạo Huyền Thoại',
+  },
+  hid_forgebreaker: {
+    desc: 'Tự tay tạo hình Kẻ Phá Lò rồi trở về gặp Maelin với chiếc búa đã hoàn thành.',
+
+    name: 'Suối Nguồn Thoát Xiềng',
+  },
+  exp_arcane_calligraphy: {
+    name: 'Bàn Tay Ổn Định',
+    desc: 'Hoàn thành Thư Pháp Bí Thuật ở Thung Lũng Eastbrook.',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'Viết Trong Ánh Sáng Sao',
+    desc: 'Kiếm được xếp hạng Vàng trong Thư Pháp Bí Thuật.',
+    title: 'Người Gọi Runes',
+  },
+  exp_forge_helper: {
+    name: 'Búa Giúp Đỡ',
+    desc: 'Giúp đỡ Thợ Rèn Mara hoàn thành một chiếc khiên tại Wyrmwatch.',
+  },
+  exp_last_barricade: {
+    name: 'Hàng Rào Cuối Cùng',
+    desc: 'Giữ vững lối vào rừng chống lại đoàn quân tử thần.',
+  },
+  exp_borrowed_face: {
+    name: 'Khuôn Mặt Mượn Của Mình',
+    desc: 'Phơi bày và đánh bại kẻ ngoại tình trong canh kỵ Fenbridge.',
+  },
+  exp_windrider_slalom: {
+    name: 'Slalom Người Cưỡi Gió',
+    desc: 'Hoàn thành cuộc đường dốc máy lượn cơ học qua hẻm núi Galecrest.',
+  },
+  exp_duskweave_dispatches: {
+    name: 'Công Văn Duskweave',
+    desc: 'Lấy lại công văn kẻ cướp đường trong khi mặc áo choàng phù phép của Valerie.',
+  },
+  exp_wisp_maze: {
+    name: 'Ánh Sáng Trong Mê Cung',
+    desc: 'Lấy lại túi tiền bị đánh cắp và thoát khỏi mê cung Evergarden.',
+  },
+  prog_rift_watch_trusted: {
+    name: 'Được Tin Tưởng Bởi Rìa Nứt',
+    desc: 'Đạt được danh tiếng Được Tin Tưởng với Rìa Nứt.',
+  },
+  prog_church_order_trusted: {
+    name: 'Được Tin Tưởng Bởi Tông Đồ Nhà Thờ',
+    desc: 'Đạt được danh tiếng Được Tin Tưởng với Tông Đồ Nhà Thờ.',
+  },
+  prog_automatons_trusted: {
+    name: 'Được Tin Tưởng Bởi Tự Động Hóa',
+    desc: 'Đạt được danh tiếng Được Tin Tưởng với Tự Động Hóa.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Nhà Vô Địch Của Rìa Nứt',
+    desc: 'Đạt được danh tiếng Nhà Vô Địch với Rìa Nứt.',
+    title: 'Người Bảo Vệ Rìa Nứt',
+  },
+  prog_church_order_champion: {
+    name: 'Nhà Vô Địch Của Tông Đồ Nhà Thờ',
+    desc: 'Đạt được danh tiếng Nhà Vô Địch với Tông Đồ Nhà Thờ.',
+    title: 'Người Giữ Bình Minh',
+  },
+  prog_automatons_champion: {
+    name: 'Nhà Vô Địch Của Tự Động Hóa',
+    desc: 'Đạt được danh tiếng Nhà Vô Địch với Tự Động Hóa.',
+    title: 'Chủ Lò Rèn',
+  },
+  prog_faction_champion_all: {
+    name: 'Nhà Vô Địch Của Mọi Biểu Ngữ',
+    desc: 'Đạt được danh tiếng Nhà Vô Địch với Rìa Nứt, Tông Đồ Nhà Thờ và Tự Động Hóa.',
+  },
+  exp_clue_first_casket: {
+    name: 'Kho Bạu Tìm Thấy',
+    desc: 'Mở một Rương Kho Bạu khai quật ở cuối cuộc thám hiểm câu đố gợi ý.',
+  },
+  exp_clue_ten_caskets: {
+    name: 'Thợ Săn Kho Bạu',
+    desc: 'Mở 10 Rương Kho Bạu khai quật ở cuối những cuộc thám hiểm câu đố gợi ý.',
+    title: 'Thợ Săn Kho Bạu',
+  },
+  exp_harbor_to_harbor: {
+    name: 'Cảng Tới Cảng',
+    desc: 'Chạy cả hai phà qua lại: Eastbrook đến Moonrest, và Wickharbor đến Wyrmwatch.',
+  },
+  cmb_coinsack_caught: {
+    name: 'Bắt Quả Tang',
+    desc: 'Bắt được một Chuột Chạy Túi Tiền trong một Kho Báu Bị Chôn trước khi nó trốn thoát với vàng.',
+  },
+  exp_wisp_maze_hard: {
+    name: 'Sang hon bong toi',
+    desc: 'Thu hoi cac tui tien bi danh cap va thoat khoi me cung Evergarden o do kho Hard.',
+  },
+  prog_titan: {
+    name: 'Cự Nhân',
+    desc: 'Tích lũy tổng cộng 10.000.000 kinh nghiệm trọn đời.',
+    title: 'Cự Nhân',
+  },
+  pvp_flag_1h: {
+    name: 'Táo Bạo',
+    desc: 'Duy trì PvP Thế Giới trong 1 giờ thời gian chơi khi còn sống ở thế giới mở hoặc một trận PvP. Thánh địa, phụ bản PvE, cái chết và đăng xuất tạm dừng tiến độ; tắt PvP sẽ đặt lại tiến độ. Danh hiệu đã nhận là vĩnh viễn.',
+    title: 'Táo Bạo',
+  },
+  pvp_flag_3h: {
+    name: 'Bất Phục',
+    desc: 'Duy trì PvP Thế Giới trong 3 giờ thời gian chơi khi còn sống ở thế giới mở hoặc một trận PvP. Thánh địa, phụ bản PvE, cái chết và đăng xuất tạm dừng tiến độ; tắt PvP sẽ đặt lại tiến độ. Danh hiệu đã nhận là vĩnh viễn.',
+    title: 'Bất Phục',
+  },
+  pvp_flag_6h: {
+    name: 'Vô Úy',
+    desc: 'Duy trì PvP Thế Giới trong 6 giờ thời gian chơi khi còn sống ở thế giới mở hoặc một trận PvP. Thánh địa, phụ bản PvE, cái chết và đăng xuất tạm dừng tiến độ; tắt PvP sẽ đặt lại tiến độ. Danh hiệu đã nhận là vĩnh viễn.',
+    title: 'Vô Úy',
+  },
+  pvp_flag_24h: {
+    name: 'Bất Khuất',
+    desc: 'Duy trì PvP Thế Giới trong 24 giờ thời gian chơi khi còn sống ở thế giới mở hoặc một trận PvP. Thánh địa, phụ bản PvE, cái chết và đăng xuất tạm dừng tiến độ; tắt PvP sẽ đặt lại tiến độ. Danh hiệu đã nhận là vĩnh viễn.',
+    title: 'Bất Khuất',
+  },
+  pvp_flag_168h: {
+    name: 'Bất Bại',
+    desc: 'Duy trì PvP Thế Giới trong 7 ngày thời gian chơi khi còn sống ở thế giới mở hoặc một trận PvP. Thánh địa, phụ bản PvE, cái chết và đăng xuất tạm dừng tiến độ; tắt PvP sẽ đặt lại tiến độ. Danh hiệu đã nhận là vĩnh viễn.',
+    title: 'Bất Bại',
+  },
+  cmb_balgath: {
+    name: 'Không Còn Là Đốc Công',
+    desc: 'Đưa Đốc Công Bị Chôn về lại mộ của hắn.',
+  },
+  cmb_balgath_ten: {
+    name: 'Gò Mộ Chẳng Giữ Được Gì',
+    desc: 'Hạ Đốc Công Bị Chôn mười lần.',
+  },
+  cmb_point_taken: {
+    name: 'Đã Hiểu Mũi Nhọn',
+    desc: 'Dập đèn của Đốc Công Rơm ở sân tập của trại tập kết và đánh vào những tấm ván của nó bằng đòn đủ sức.',
+  },
+  dgn_olen_buttress: {
+    name: 'Giữ Vững Tường Thành',
+    desc: 'Hạ Hiệp Sĩ Chỉ Huy Olen mà không để Thành Lũy Bật Lại của hắn trúng người chơi thứ hai lần nào.',
+  },
+  dgn_ossick_moored: {
+    name: 'Bến Cảng An Toàn',
+    desc: 'Hạ Cai Ngục Ossick mà không ai bị kéo xuống Hố Chết Đuối.',
+  },
+  dgn_vael_beacon: {
+    name: 'Dưới Ánh Hải Đăng',
+    desc: 'Hạ Vael Kẻ Trói Sương mà không làm nổ bất kỳ Bóng Sương nào.',
+  },
+  dgn_turretback: {
+    name: 'Lệnh Trục Xuất',
+    desc: 'Hạ Thuyền Trưởng Tàu Đắm mà không ai trúng Loạt Pháo Ma.',
+  },
+  dgn_selthe_pitch: {
+    name: 'Mọi Giọng Đều Hòa Điệu',
+    desc: 'Hạ Mẫu Ca Selthe khi mọi Đồng Ca đều được ít nhất hai người chia sẻ và không Đơn Ca nào chạm người khác.',
+  },
+  dgn_colossus_mirror: {
+    name: 'Đập Vỡ Kính',
+    desc: 'Hạ Cự Tượng Kính Triều khi mọi Ảnh Phản Chiếu đều bị phá trong vòng 15 giây sau khi xuất hiện.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: 'Cao Và Khô Ráo',
+    desc: 'Hạ Ysolei, Hóa Thân Nguyệt Chết Chìm, mà không ai trúng Triều Va Đập của cô ta.',
+  },
+  dgn_mere_hydra: {
+    name: 'Mọi Đầu Đều Gục',
+    desc: 'Giết cả ba đầu của Hydra Hồ trong vòng 10 giây tính từ đầu tiên đến đầu cuối.',
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Không Cháy Một Sợi Tóc',
+    desc: 'Hạ Rồng Chuông Tử mà không ai bị đốt bởi Lướt Phun Lửa Thiêu của nó.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Không Lồng Nào Giam Được Ta',
+    desc: 'Hạ Kẻ Giữ Chìa Nhà Lao mà không ai bị nghiền trong Lồng Sắt.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Giữ Ngoài Tầm',
+    desc: 'Hạ Thuần Thú Sư Lãnh Chúa Nanh cùng Báo Đốm Lớn của hắn với tổng thời gian Liên Kết Bầy Đàn tồn tại dưới 10 giây.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Diệt Cỏ Dại',
+    desc: 'Hạ Hoa Hẻm Núi mà không để bất kỳ Chồi Gai nào mọc lên.',
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Chưa Từng Bị Bắt',
+    desc: 'Hạ Zulgar, Tiếng Nói Của Vùng Trũng, mà không ai bị Vồ Xé.',
+  },
+  dgn_great_saurian: {
+    name: 'Người Khổng Lồ Gục Ngã',
+    desc: 'Hạ Đại Thằn Lằn và Kẻ Gọi Bùa Trên Bành của nó cách nhau không quá 20 giây.',
+  },
+  dgn_korgath_all_chains: {
+    name: 'Kết Thúc Nhân Từ Hơn',
+    desc: 'Hạ Korgath Bị Trói khi cả bốn sợi xích của hắn đều đã đứt.',
+  },
+  dgn_korgath_still_bound: {
+    name: 'Khóa Vẫn Giữ Vững',
+    desc: 'Hạ Korgath Bị Trói ở độ khó Anh Hùng với ít nhất hai sợi xích của hắn chưa từng bị phá.',
+  },
+  dgn_velkhar_cold: {
+    name: 'Niềm An Ủi Lạnh Lẽo',
+    desc: 'Hạ Đại Tử Linh Sư Velkhar mà không để bất kỳ Kẻ Bước Xương Được Hồi Sinh nào trỗi dậy lần hai.',
+  },
+  dgn_korzul_thin_ice: {
+    name: 'Băng Mỏng',
+    desc: 'Hạ Korzul Mộ Long khi ít nhất mười hai trong số mười chín mảng băng trên hồ vẫn nguyên vẹn.',
+  },
+  dgn_sledge_tusker: {
+    name: 'Hàng Hóa Lạnh',
+    desc: 'Hạ Thú Nanh Kéo Xe mà không ai trúng Giẫm Đạp của nó.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: 'Khổ Ca Cuối',
+    desc: 'Hạ Ysolei, Hóa Thân Nguyệt Chết Chìm, với Người Lĩnh Xướng Cuối của Ca Đoàn Nhợt Nhạt bên cạnh.',
+    title: 'Nhân Chứng Ca Đoàn',
+  },
+  dgn_marrow_tidy: {
+    name: 'Nghĩa Địa Gọn Gàng',
+    desc: 'Hạ Quản Mộ Marrow với mọi Mộ Mở đều được đặt ở rìa Sân Chuông.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Không Ai Bị Bỏ Treo',
+    desc: 'Hạ Phu Nhân Lạnh Xương mà không để cô ta làm rơi ai khỏi Vòng Ôm Băng Giá.',
+  },
+  dgn_ilvane_hush: {
+    name: 'Im Nào',
+    desc: 'Hạ Người Lĩnh Xướng Ilvane mà không để Khúc Tang Rỗng của cô ta trúng bất kỳ ai.',
+  },
+  dgn_morthen_candlelight: {
+    name: 'Mọi Ngọn Nến Đều Sáng',
+    desc: 'Hạ Morthen Kẻ Gọi Mộ sau khi thắp lại cả bốn Nến Tưởng Niệm trong vòng 20 giây kể từ khi Kết Giới Bất An của hắn xuất hiện.',
+  },
+  dgn_guild_first_contract: {
+    name: 'Khế Ước Đã Ký',
+    desc: 'Hoàn thành một hợp đồng hầm ngục hằng tuần của Sảnh Đèn Lồng.',
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Khách Quen Bảng Tin',
+    desc: 'Hoàn thành 10 hợp đồng hầm ngục hằng tuần của Sảnh Đèn Lồng.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Cựu Binh Hợp Đồng',
+    desc: 'Hoàn thành 50 hợp đồng hầm ngục hằng tuần của Sảnh Đèn Lồng.',
+  },
+  feat_guild_writ_runner: {
+    name: 'Người Chạy Khế Ước',
+    desc: 'Mua từ Garrick Holt, quân nhu của Sảnh Đèn Lồng, với 6 Ấn Đèn Lồng.',
+    title: 'Người Chạy Khế Ước',
+  },
+  feat_guild_hallsworn: {
+    name: 'Người Thề Với Sảnh',
+    desc: 'Mua từ Garrick Holt, quân nhu của Sảnh Đèn Lồng, với 14 Ấn Đèn Lồng.',
+    title: 'Người Thề Với Sảnh',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Người Của Sảnh Đèn Lồng',
+    desc: 'Mua từ Garrick Holt, quân nhu của Sảnh Đèn Lồng, với 24 Ấn Đèn Lồng.',
+    title: 'Người Của Sảnh Đèn Lồng',
+  },
+  feat_gourdlight_guise: {
+    name: 'Hóa Trang Đèn Bí Ngô',
+    desc: 'Sở hữu Đầu Bí Ngô Chạm Khắc lấy từ Lão Rơm Cười ở ruộng bên kia Đồng Cỏ Lợn Lòi trong Đêm Đèn Bí Ngô.',
+  },
+  feat_old_thatchgrin: {
+    name: 'Gốc Rạ Và Tro',
+    desc: 'Góp sức hạ Lão Rơm Cười tại ruộng bí bên kia Đồng Cỏ Lợn Lòi trong Đêm Đèn Bí Ngô.',
+  },
+  feat_title_gourdlit: {
+    name: 'Người Mang Ánh Bí Ngô',
+    desc: 'Đọc Chứng Thư Ánh Bí Ngô đổi từ Hester Bấc Bí Ngô bằng Kẹo Đèn Bí Ngô trong Đêm Đèn Bí Ngô.',
+    title: 'Người Mang Ánh Bí Ngô',
+  },
+  feat_title_trickster: {
+    name: 'Kẻ Tinh Quái',
+    desc: 'Đọc Chứng Thư Kẻ Tinh Quái đổi từ Hester Bấc Bí Ngô bằng Kẹo Đèn Bí Ngô trong Đêm Đèn Bí Ngô.',
+    title: 'Kẻ Tinh Quái',
+  },
+  feat_title_hollow_grinned: {
+    name: 'Kẻ Cười Rỗng',
+    desc: 'Đọc Chứng Thư Nụ Cười Rỗng đổi từ Hester Bấc Bí Ngô bằng Kẹo Đèn Bí Ngô trong Đêm Đèn Bí Ngô.',
+    title: 'Kẻ Cười Rỗng',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Thợ Săn Bí Ngô',
+    desc: 'Tìm tất cả Bí Ngô Ma Ám ẩn khắp thế giới trong Đêm Đèn Bí Ngô.',
+    title: 'Kẻ Rỗng',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Mọi Bậc Cửa',
+    desc: 'Xin kẹo hoặc ghẹo mọi người dân mở cửa ở Đông Khê, Cầu Đầm và Vọng Đài Cao trong Đêm Đèn Bí Ngô.',
+  },
+  feat_gourdlight_errands: {
+    name: 'Sẵn Sàng Phục Vụ Hester',
+    desc: 'Hoàn thành ít nhất một lần mỗi việc vặt luân phiên của Hester Bấc Bí Ngô trong Đêm Đèn Bí Ngô.',
+  },
+  feat_gourdlight_frights: {
+    name: 'Ba Thị Trấn Hoảng Hốt',
+    desc: 'Trong việc vặt Hù! của Hester, dọa một người dân ở mỗi nơi: Đông Khê, Cầu Đầm và Vọng Đài Cao.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'Đèn Bí Ngô Từ Đầu Đến Cuối',
+    desc: 'Hoàn thành toàn bộ Đêm Đèn Bí Ngô: hạ Lão Rơm Cười, tìm tất cả Bí Ngô Ma Ám, làm mọi việc vặt của Hester, gõ mọi cánh cửa và dọa một người dân ở mỗi thị trấn trong ba nơi.',
+    title: 'Người Thề Với Bí Ngô',
   },
 };

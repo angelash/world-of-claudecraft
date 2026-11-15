@@ -1,3 +1,5 @@
+import { apiUrl } from './client_origin';
+
 const STORAGE_KEY = 'woc_site_visitor_id';
 const HEARTBEAT_MS = 45_000;
 
@@ -7,7 +9,10 @@ function randomVisitorId(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-function visitorId(): string {
+/** The stable per-browser visitor id (get-or-create). Exported so signup
+ *  attribution (src/attribution.ts) can link the pre-signup web session to
+ *  the created account; storage-unavailable degrades to an ephemeral id. */
+export function visitorId(): string {
   try {
     const existing = localStorage.getItem(STORAGE_KEY);
     if (existing) return existing;
@@ -28,11 +33,20 @@ function pageName(fallback: string): string {
   return path || fallback;
 }
 
+let presenceStarted = false;
+
+/**
+ * Start the page's presence heartbeat. Once per page: the landing-first boot
+ * (src/ui/landing_first.ts) starts it before the client loads, and main.ts calls it
+ * again at boot.
+ */
 export function startSitePresence(fallbackPage = 'home'): void {
+  if (presenceStarted) return;
+  presenceStarted = true;
   const id = visitorId();
   const send = () => {
     if (document.visibilityState === 'hidden') return;
-    void fetch('/api/site-presence', {
+    void fetch(apiUrl('/api/site-presence'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visitorId: id, page: pageName(fallbackPage) }),

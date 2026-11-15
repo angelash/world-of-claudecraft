@@ -24,6 +24,22 @@ export function isOwnedPetHostile(
   return owner && owner.kind === 'player' ? isPlayerHostile(owner) : pet.hostile;
 }
 
+// The selection ring's verdict: a controlled pet inherits its owner's reaction (a
+// player's pet is hostile only in PvP), an uncontrolled mob keeps its own flag, and a
+// player takes the player-vs-player verdict. Moved out of renderer.ts verbatim.
+export function isHostileSelectionTarget(
+  target: Entity,
+  entities: Map<number, Entity>,
+  isPlayerHostile: (p: Entity) => boolean,
+): boolean {
+  if (target.kind === 'mob') {
+    return target.ownerId !== null
+      ? isOwnedPetHostile(target, entities, isPlayerHostile)
+      : target.hostile;
+  }
+  return isPlayerHostile(target);
+}
+
 // True when a mob is a friendly controlled pet (owned and not hostile to the
 // viewer) — the case that should get a friendly nameplate instead of the
 // level-difference "con" color.
@@ -33,6 +49,19 @@ export function isFriendlyPet(
   isPlayerHostile: (p: Entity) => boolean,
 ): boolean {
   return e.kind === 'mob' && e.ownerId !== null && !isOwnedPetHostile(e, entities, isPlayerHostile);
+}
+
+// True when a MOB reads as hostile to the viewer, folding in the same pet rule as
+// above: an owned pet inherits its owner's reaction, anything else answers with
+// its own `hostile` flag. The friendly-nameplate keybind asks this per plate
+// (nameplate_friendly_core.ts), so it lives with the other two helpers rather
+// than being re-derived at the call site.
+export function isMobHostileToViewer(
+  e: Entity,
+  entities: Map<number, Entity>,
+  isPlayerHostile: (p: Entity) => boolean,
+): boolean {
+  return e.ownerId !== null ? isOwnedPetHostile(e, entities, isPlayerHostile) : e.hostile;
 }
 
 // The classic level-difference ("con") color for a wild mob's nameplate, with a

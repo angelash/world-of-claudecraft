@@ -2,7 +2,7 @@
 // section 13. The healer marks ONE ally with a per-caster echo aura; while it
 // rides, a fraction of the mage's EFFECTIVE (post-mitigation, post-absorb,
 // non-overkill) Arcane damage is siphoned back as healing onto the marked ally:
-// 35% of single-target Arcane damage, 15% of area Arcane damage. Applying the
+// 40% of single-target Arcane damage, 15% of area Arcane damage. Applying the
 // mark also does a small direct heal (owned by the effect dispatcher, not this
 // module). Re-casting MOVES the mark to the new ally (one own mark at a time).
 // Two chronomancers keep independent marks on the same ally, filtered by
@@ -19,11 +19,26 @@
 // Date.now/performance.now (enforced by tests/architecture.test.ts).
 
 import { isDebuffAura, isPartyFrameRelevantAura } from '../aura_classify';
+import {
+  PERFECT_MOMENT_DARTS_DAMAGE_MULT,
+  TEMPORAL_AEGIS_CAP_MAX_HP_FRACTION,
+  TEMPORAL_AEGIS_DURATION_SECONDS,
+  TEMPORAL_ECHO_AREA_CONVERSION,
+  TEMPORAL_ECHO_ROTATION_CONVERSION_MULTIPLIER,
+  TEMPORAL_ECHO_SINGLE_CONVERSION,
+} from '../content/chronomancy_tuning';
+import {
+  VANGUARD_ARCANE_4PC_SPEED_DURATION_SEC,
+  VANGUARD_ARCANE_4PC_SPEED_MULT,
+} from '../content/vanguard_set_bonuses_b';
 import { ABILITIES } from '../data';
 import { recordCascadeConversion, recordCascadeDamage } from '../dev/cascade_playtest';
 import type { SimContext } from '../sim_context';
 import type { Aura, Entity } from '../types';
+import { allocateGroupEchoEmergencyBonusRates } from './chronomancy_echo_distribution';
+import { onCraftedCollectionHeal } from './crafted_collection_effects';
 import { consumeHealAbsorb, healingTakenMult, healingThreat } from './heal';
+import { wearsSetBonus } from './set_bonus_wearer';
 
 // The mark aura kind and ability id (they share one string so the buff bar and
 // the tooltip resolve the icon/name straight from ABILITIES['temporal_echo']).
@@ -32,21 +47,37 @@ export const TEMPORAL_ECHO_ID = 'temporal_echo';
 // matcher (sim_i18n) localizes them exactly like a Temporal Mend heal, never the
 // raw id. Falls back to the id if the record is ever missing.
 const TEMPORAL_ECHO_NAME = ABILITIES[TEMPORAL_ECHO_ID]?.name ?? 'Temporal Echo';
-// Playtest-provisional (PRD section 13.1 / 13.14): 15s window, 35% single-target
+export const TEMPORAL_AEGIS_ID = 'temporal_aegis';
+export const TEMPORAL_AEGIS_NAME = 'Temporal Aegis';
+// Playtest-provisional (PRD section 13.1 / 13.14): 22.5s window, 40% single-target
 // conversion, 15% area conversion. Not balance-locked.
-export const TEMPORAL_ECHO_DURATION = 15;
-export const ECHO_CONVERT_SINGLE = 0.35;
-export const ECHO_CONVERT_AOE = 0.15;
+export const ECHO_CONVERT_SINGLE = TEMPORAL_ECHO_SINGLE_CONVERSION;
+export const ECHO_CONVERT_AOE = TEMPORAL_ECHO_AREA_CONVERSION;
 // Cascada temporal (Phase 4 group echo, docs/prd/mage-chronomancy.md): the group
 // version marks up to five allies with a REDUCED conversion, 13% single-target /
-// 6% area Arcane. Each marked ally converts its OWN coefficient independently (no
-// shared budget), so the aggregate across five marks is intentionally larger than a
-// single 35% mark: that is the AoE-healing payoff, gated by cost/cooldown/window.
+// 6% area Arcane. Each marked ally converts its OWN base coefficient independently;
+// the offensive drivers add the shared emergency reserve documented below. The
+// aggregate across five marks is intentionally larger than a single 40% mark: that
+// is the AoE-healing payoff, gated by cost/cooldown/window.
 export const ECHO_GROUP_CONVERT_SINGLE = 0.13;
 export const ECHO_GROUP_CONVERT_AOE = 0.06;
+// Aether Surge and Aether Darts are Chronomancy's committed offensive-healing
+// loop. Their low damage is intentional (the complete healer loop is held to
+// 50-70 percent of a pure DPS), so the raw 40 percent mark coefficient only
+// produced about 18 HPS at level 20. Weight those two spells x4 for the individual
+// Echo. Group Echoes retain their base rate and contribute an equal bonus-rate reserve
+// that is concentrated on low-health group marks. This does not increase damage or
+// multiply Arcane Explosion, wands, or other incidental Arcane hits. The Chronoweave
+// 2pc mark still changes 0.40 to 0.50 before the individual multiplier, preserving its
+// 25 percent relative gain.
+export const ECHO_ROTATION_CONVERSION_MULT = TEMPORAL_ECHO_ROTATION_CONVERSION_MULTIPLIER;
+
+function isEchoRotationDriver(abilityId: string | null): boolean {
+  return abilityId === ARCANE_SURGE_ID || abilityId === 'arcane_missiles';
+}
 
 /** The conversion rate a Temporal Echo mark heals at, from its stored origin.
- *  Single-target (35% / 13%) reads the coefficient stored on the aura; the area
+ *  Single-target (40% / 13%) reads the coefficient stored on the aura; the area
  *  rate (15% / 6%) is derived from echoGroup so an AoE hit keeps its reduction. */
 function echoRateFor(a: Aura, aoe: boolean): number {
   if (aoe) return a.echoGroup ? ECHO_GROUP_CONVERT_AOE : ECHO_CONVERT_AOE;
@@ -126,9 +157,16 @@ export function placeTemporalEcho(
   duration: number,
 ): void {
   stripIndividualEcho(ctx, caster.id); // one own individual mark -> re-cast moves it
+  // Chronoweave 2pc (Aetherweave Vestments): wearers place a 50% single-target
+  // mark. Baked HERE, the one placement write, so combat (echoConvertRate) and
+  // the aura tooltip (value) read the same rate; snapshot-at-placement means a
+  // gear swap keeps the placed rate until the echo is re-cast. Group/area
+  // rates stay base: the set copy promises single-target only. Draws no rng.
+  const singleRate =
+    ctx.resolvedAbility(TEMPORAL_ECHO_ID, caster.id)?.echoConvertSingle ?? ECHO_CONVERT_SINGLE;
   // applyAura replaces this caster's existing mark on `target` by (id, sourceId), so
   // casting the single echo onto an ally that carries this caster's GROUP echo UPGRADES
-  // it to the 35% individual mark (owner rule: group -> individual). If that individual
+  // it to the 40% individual mark (owner rule: group -> individual). If that individual
   // later moves away, the ally is simply left bare (no group rebuild in v1).
   ctx.applyAura(target, {
     id: TEMPORAL_ECHO_ID,
@@ -136,11 +174,13 @@ export function placeTemporalEcho(
     kind: 'temporal_echo',
     remaining: duration,
     duration,
-    value: 1,
+    // Mirror the live single-target conversion coefficient in the generic value
+    // field so online aura tooltips can show the exact rate without a bespoke wire.
+    value: singleRate,
     sourceId: caster.id,
     school: 'arcane',
     echoGroup: false,
-    echoConvertRate: ECHO_CONVERT_SINGLE,
+    echoConvertRate: singleRate,
   });
   // The identity beat: a temporal glyph blooms directly on the ally. It is
   // target-anchored (no wave, no projectile) and flows to the online client
@@ -159,8 +199,10 @@ export function placeTemporalEcho(
  * known (`dealt` = pre-hit hp minus post-hit hp, so absorbed / avoided / overkill
  * damage is already excluded). No-op unless the SOURCE is a player who currently
  * holds a Temporal Echo mark out and the damage school is Arcane. Heals the marked
- * ally by `dealt * rate` (single-target 35%, area 15%). Draws no rng; applies the
- * heal through applyEchoHeal (never dealDamage) so it can never recurse.
+ * ally from `dealt * rate`. Surge and Darts receive the individual rotation weight
+ * and smart group reserve defined above; every other Arcane source keeps its raw
+ * coefficient. Draws no rng; applies the heal through applyEchoHeal (never dealDamage)
+ * so it can never recurse.
  */
 export function chronomancyConvertArcaneDamage(
   ctx: SimContext,
@@ -168,35 +210,54 @@ export function chronomancyConvertArcaneDamage(
   dealt: number,
   school: string,
   aoe: boolean,
+  abilityId: string | null = null,
 ): void {
-  if (!source || source.kind !== 'player' || school !== 'arcane' || dealt <= 0) return;
+  if (source?.kind !== 'player' || school !== 'arcane' || dealt <= 0) return;
   recordCascadeDamage(source, dealt); // DEV playtest tally (no-op without a session)
-  // Heal EVERY ally this mage currently marks, each at its OWN stored coefficient
-  // (single 35%/15%, group 13%/6%). With only the single-target echo this is exactly
-  // one ally as before; the Cascada group version can ride up to five marks at once.
-  // No shared budget: each mark converts independently. Stable Map iteration order
-  // keeps the fan-out deterministic; a dead ally is skipped. Each ally holds at most
-  // one mark from this source (applyAura dedupes by id+sourceId), so break after it.
+  // Snapshot every living mark before applying any heal. That makes the smart group
+  // reserve depend on the health state at impact, never on entity iteration order.
+  // Each ally holds at most one mark from this source (applyAura dedupes by
+  // id+sourceId), so break after it.
+  const echoes: { ally: Entity; aura: Aura; rate: number }[] = [];
   for (const e of ctx.entities.values()) {
     if (e.dead) continue;
     for (const a of e.auras) {
       if (a.kind === 'temporal_echo' && a.sourceId === source.id) {
-        applyEchoHeal(ctx, source, e, dealt, echoRateFor(a, aoe));
+        echoes.push({ ally: e, aura: a, rate: echoRateFor(a, aoe) });
         break;
       }
     }
+  }
+
+  const rotationDriver = isEchoRotationDriver(abilityId);
+  const groupBonusRates = rotationDriver
+    ? allocateGroupEchoEmergencyBonusRates(
+        echoes.map(({ ally, aura, rate }) => ({
+          id: ally.id,
+          hp: ally.hp,
+          maxHp: ally.maxHp,
+          baseRate: rate,
+          contributesToPool: aura.echoGroup === true,
+        })),
+      )
+    : new Map<number, number>();
+
+  for (const { ally, aura, rate } of echoes) {
+    const individualRate =
+      rotationDriver && !aura.echoGroup ? rate * ECHO_ROTATION_CONVERSION_MULT : rate;
+    applyEchoHeal(ctx, source, ally, dealt, individualRate + (groupBonusRates.get(ally.id) ?? 0));
   }
 }
 
 /**
  * Resolve and ORDER the full Cascada temporal target list before any heal or aura
- * is applied (owner rule). Eligible = the caster plus LIVING members of the caster's
- * group/raid (never external friendlies or NPCs). The `primary` (the ability's
- * friendly target) must be one of those and is ALWAYS included first; the remaining
- * slots go to the members nearest to the PRIMARY (not the mage) within `radius`,
- * ordered by (distance, then stable id), capped at `maxTargets` total. Never random.
- * Returns [] if the primary is not a valid living group/raid member (the cast is
- * refused upstream). Draws no rng.
+ * is applied. The `primary` (the ability's friendly target) is ALWAYS included first.
+ * Additional targets within `radius` of `primary` are chosen up to `maxTargets` total.
+ * Group/raid members of the caster are ALWAYS prioritized first (closest to primary
+ * within the group tier). If remaining slots exist, other living friendly allies
+ * (players, companions, friendly practice targets) are included, nearest to primary.
+ * Ties broken by stable entity id. Returns [] if primary is dead or not friendly.
+ * Draws no rng.
  */
 export function selectCascadeTargets(
   ctx: SimContext,
@@ -205,28 +266,41 @@ export function selectCascadeTargets(
   radius: number,
   maxTargets: number,
 ): Entity[] {
+  if (primary.dead) return [];
+  if (primary.id !== caster.id && !ctx.isFriendlyTo(caster, primary)) return [];
+
   const party = ctx.partyOf(caster.id);
-  const memberIds = party ? party.members : [caster.id];
-  const memberSet = new Set(memberIds);
-  // The primary must be the caster or a living member of the caster's group/raid.
-  if (!memberSet.has(primary.id) || primary.dead) return [];
+  const partyMemberSet = party ? new Set(party.members) : null;
+
   const px = primary.pos.x;
   const pz = primary.pos.z;
   const r2 = radius * radius;
-  const extras: { e: Entity; d2: number }[] = [];
-  for (const pid of memberIds) {
-    if (pid === primary.id) continue;
-    const e = ctx.entities.get(pid);
-    const meta = ctx.players.get(pid); // players only, no NPC party companions
-    if (!e || !meta || e.dead) continue;
+
+  const extras: { e: Entity; d2: number; isPartyMember: boolean }[] = [];
+
+  for (const e of ctx.entities.values()) {
+    if (e.id === primary.id || e.dead) continue;
     const dx = e.pos.x - px;
     const dz = e.pos.z - pz;
     const d2 = dx * dx + dz * dz;
-    if (d2 > r2) continue; // outside the radius from the primary
-    extras.push({ e, d2 });
+    if (d2 > r2) continue;
+    if (e.id !== caster.id && !ctx.isFriendlyTo(caster, e)) continue;
+
+    const isPartyMember = partyMemberSet?.has(e.id) ?? false;
+    extras.push({ e, d2, isPartyMember });
   }
-  // Nearest to the primary first; ties broken by stable id, never randomly.
-  extras.sort((a, b) => a.d2 - b.d2 || a.e.id - b.e.id);
+
+  // Priority:
+  // 1. Group/raid members always prioritized over non-group friendlies.
+  // 2. Nearest to the primary within each tier.
+  // 3. Deterministic entity ID tie-break.
+  extras.sort((a, b) => {
+    if (a.isPartyMember !== b.isPartyMember) {
+      return a.isPartyMember ? -1 : 1;
+    }
+    return a.d2 - b.d2 || a.e.id - b.e.id;
+  });
+
   const chosen: Entity[] = [primary];
   for (const x of extras) {
     if (chosen.length >= maxTargets) break;
@@ -238,8 +312,8 @@ export function selectCascadeTargets(
 /**
  * Place (or refresh) THIS caster's Cascada group echo on one selected ally, honoring
  * the individual-overlap rule: if the ally already carries the caster's INDIVIDUAL
- * echo it keeps the 35% mark (never downgraded), and the group cast only EXTENDS it
- * up to `duration` when it has less left, never refreshing it back to its full 15s.
+ * echo it keeps the 40% mark (never downgraded), and the group cast only EXTENDS it
+ * up to `duration` when it has less left, never refreshing it back to its full 22.5s.
  * Otherwise a 13% group echo is applied (applyAura replaces this caster's prior group
  * mark on the ally by id+sourceId). The small initial heal is applied by the effect
  * dispatcher, not here. Draws no rng.
@@ -252,7 +326,7 @@ export function placeGroupEcho(
 ): void {
   const existing = ally.auras.find((a) => a.kind === 'temporal_echo' && a.sourceId === caster.id);
   if (existing && !existing.echoGroup) {
-    // Individual echo present: keep 35%, only extend UP TO `duration` (never to 15s).
+    // Individual echo present: keep 40%, only extend UP TO `duration` (never to 22.5s).
     if (existing.remaining < duration) existing.remaining = duration;
     return;
   }
@@ -262,7 +336,9 @@ export function placeGroupEcho(
     kind: 'temporal_echo',
     remaining: duration,
     duration,
-    value: 1,
+    // See placeTemporalEcho: value is player-facing wire state; the combat reader
+    // still uses echoConvertRate/echoGroup as its authoritative coefficients.
+    value: ECHO_GROUP_CONVERT_SINGLE,
     sourceId: caster.id,
     school: 'arcane',
     echoGroup: true,
@@ -278,13 +354,60 @@ export function placeGroupEcho(
 }
 
 /**
+ * Convert excess healing (overheal) from Temporal Echo into a stacking absorb
+ * shield (Temporal Aegis). Capped at 20% of the ally's maximum health.
+ * Refreshes the 15s shield window on each application. Draws no rng.
+ */
+export function applyTemporalAegis(
+  ctx: SimContext,
+  source: Entity,
+  ally: Entity,
+  amount: number,
+): void {
+  if (ally.dead || amount <= 0) return;
+  const maxCap = Math.round(ally.maxHp * TEMPORAL_AEGIS_CAP_MAX_HP_FRACTION);
+  if (maxCap <= 0) return;
+
+  const existing = ally.auras.find((a) => a.id === TEMPORAL_AEGIS_ID);
+  const currentAbsorb = existing?.value ?? 0;
+  const newAbsorb = Math.min(maxCap, currentAbsorb + amount);
+  if (newAbsorb <= 0) return;
+
+  ctx.applyAura(ally, {
+    id: TEMPORAL_AEGIS_ID,
+    name: TEMPORAL_AEGIS_NAME,
+    kind: 'absorb',
+    remaining: TEMPORAL_AEGIS_DURATION_SECONDS,
+    duration: TEMPORAL_AEGIS_DURATION_SECONDS,
+    value: newAbsorb,
+    sourceId: source.id,
+    school: 'arcane',
+  });
+}
+
+/**
  * Apply a Temporal Echo conversion heal onto the marked ally. NON-crit by design
  * (the damage crit already fattened `dealt`). Rounds per hit so each Arcane impact
  * heals on its own (PRD: Arcane Missiles heals per missile). Honors the ally's
  * incoming-heal reduction and heal-absorb shields and clamps to missing health
  * exactly like the normal heal channel, then fans out effective-healing threat.
+ * Excess healing above full health generates/refreshes a Temporal Aegis shield
+ * capped at 20% of the ally's max health.
  * Emits a `heal2` (the number + heal-glow pulse over the ally on both hosts).
  */
+/**
+ * Scaling divisor for Chronomancy Echo conversion from the caster's Healing Power.
+ * With divisor 1200, gear with Healing Power (such as the Aetherweave raid set)
+ * provides gentle scaling on converted Echo healing without inflating enemy damage.
+ */
+export const CHRONOMANCY_ECHO_HEAL_POWER_DIVISOR = 1200;
+
+export function echoHealPowerMultiplier(source: Entity): number {
+  const bonusHealing = Math.max(0, (source.healPower ?? 0) - (source.spellPower ?? 0));
+  if (bonusHealing <= 0) return 1;
+  return 1 + bonusHealing / CHRONOMANCY_ECHO_HEAL_POWER_DIVISOR;
+}
+
 function applyEchoHeal(
   ctx: SimContext,
   source: Entity,
@@ -293,25 +416,38 @@ function applyEchoHeal(
   rate: number,
 ): void {
   if (ally.dead) return;
-  let healed = Math.round(dealt * rate * healingTakenMult(ctx, ally));
+  const hpMult = echoHealPowerMultiplier(source);
+  let healed = Math.round(dealt * rate * hpMult * healingTakenMult(ctx, ally));
   if (healed <= 0) return;
   healed = consumeHealAbsorb(ctx, ally, healed);
   const preClamp = healed;
-  healed = Math.min(healed, ally.maxHp - ally.hp);
+  const missingHp = Math.max(0, ally.maxHp - ally.hp);
+  healed = Math.min(preClamp, missingHp);
+  const overheal = preClamp - healed;
   // DEV playtest tally (no-op without an active session): the applied heal plus the
   // portion lost to the missing-hp clamp (overheal). Never alters the healed value.
-  recordCascadeConversion(source, healed, preClamp - healed);
-  if (healed <= 0) return;
-  ally.hp += healed;
-  ctx.emit({
-    type: 'heal2',
-    sourceId: source.id,
-    targetId: ally.id,
-    amount: healed,
-    crit: false,
-    ability: TEMPORAL_ECHO_NAME,
-  });
-  healingThreat(ctx, source, ally, healed);
+  recordCascadeConversion(source, healed, overheal);
+  onCraftedCollectionHeal(ctx, source, ally, overheal);
+  if (healed > 0) {
+    ally.hp += healed;
+  }
+  if (healed > 0 || overheal > 0) {
+    ctx.emit({
+      type: 'heal2',
+      sourceId: source.id,
+      targetId: ally.id,
+      amount: healed,
+      crit: false,
+      ability: TEMPORAL_ECHO_NAME,
+      ...(overheal > 0 ? { overheal } : {}),
+    });
+    if (healed > 0) {
+      healingThreat(ctx, source, ally, healed);
+    }
+  }
+  if (overheal > 0) {
+    applyTemporalAegis(ctx, source, ally, overheal);
+  }
 }
 
 // ---- Chronomancy Phase 3: the Arcane rotation engine (Aether Surge charges),
@@ -323,8 +459,9 @@ function applyEchoHeal(
 // aura that expires 10s after the last cast (refreshed each cast). Aether Darts
 // (arcane_missiles) CONSUMES every charge on its FIRST landed missile and splits
 // a flat Arcane bonus across its missiles. That bonus is plain Arcane damage, so
-// Temporal Echo heals from it at the normal 35% (NO hidden heal bonus). The
-// damage increase alone is what feeds more Echo healing.
+// Temporal Echo heals from the resulting damage. The offensive-rotation rules
+// above apply x4 to an individual mark and concentrate the group reserve on
+// low-health marked allies.
 //
 // Determinism: every function here draws NO rng and keeps all state on the aura
 // (charges) or two per-channel entity flags (the Darts dump). Aether Surge is
@@ -335,8 +472,8 @@ function applyEchoHeal(
 export const ARCANE_SURGE_ID = 'arcane_surge';
 const ARCANE_SURGE_NAME = ABILITIES[ARCANE_SURGE_ID]?.name ?? 'Aether Surge';
 // PLAYTEST-provisional (PRD 13.4 / 14). The base cost lives on the ABILITIES
-// record; it is DERIVED via tests/chronomancy_balance.test.ts to land the
-// conservative rotation near 70-80s to OOM at the real level-20 pool.
+// record; it is DERIVED via tests/chronomancy_balance_targets.test.ts to land
+// the conservative rotation near 70-80s to OOM at the real level-20 pool.
 export const AETHER_SURGE_MAX_CHARGES = 4;
 export const AETHER_SURGE_DMG_PER_CHARGE = 0.3; // +30% damage per charge (linear, moderate)
 export const AETHER_SURGE_COST_PER_CHARGE = 1.0; // x2 cost per charge (geometric: each charge DOUBLES the cost)
@@ -349,6 +486,28 @@ export const AETHER_DARTS_BONUS_PER_CHARGE = 9;
 // this many missiles instead of the ability's default 3, in the same channel time
 // (more base hits + more Echo conversion). Below max charges it stays the default.
 export const AETHER_DARTS_FULL_CHARGE_MISSILES = 5;
+
+/** Pure action-bar predicate: a full Arcane Charge bank makes Aether Darts the
+ *  actionable spender. Structural aura input keeps offline and online HUDs on
+ *  the same mirrored state; malformed values are harmlessly treated as empty. */
+export function aetherDartsProcGlowActive(
+  auras: readonly { kind: string; value?: number; stacks?: number }[],
+  abilityId: string,
+): boolean {
+  if (abilityId !== 'arcane_missiles') return false;
+  for (const aura of auras) {
+    if (aura.kind !== 'arcane_charge') continue;
+    const charges = aura.stacks ?? aura.value;
+    if (
+      typeof charges === 'number' &&
+      Number.isInteger(charges) &&
+      charges >= AETHER_SURGE_MAX_CHARGES
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 // Free-cast proc (owner 2026-07-12): each Aether Surge has a chance to make the
 // NEXT Aether Surge cost no mana. Softens the escalating mana wall and rewards
 // staying on the spender. Provisional chance; the free window is generous so a
@@ -448,8 +607,9 @@ export function armAetherSurgeFree(ctx: SimContext, caster: Entity): void {
 // seconds of chained full-charge barrages. Deterministic aura writes, no rng.
 export const PERFECT_MOMENT_ID = 'perfect_moment';
 export const PERFECT_MOMENT_DURATION = 10;
+export { PERFECT_MOMENT_DARTS_DAMAGE_MULT };
 
-/** Whether the caster's Perfect Moment window is open (Darts keeps its charges). */
+/** Whether the caster's Perfect Moment window is open (Darts keeps its charges and deals +20% damage). */
 export function perfectMomentActive(e: Entity): boolean {
   return e.auras.some((a) => a.id === PERFECT_MOMENT_ID);
 }
@@ -462,7 +622,7 @@ export function applyPerfectMoment(ctx: SimContext, caster: Entity): void {
     id: PERFECT_MOMENT_ID,
     name: 'Perfect Moment',
     kind: 'perfect_moment',
-    value: 0,
+    value: 0.2,
     remaining: PERFECT_MOMENT_DURATION,
     duration: PERFECT_MOMENT_DURATION,
     sourceId: caster.id,
@@ -529,4 +689,34 @@ export function aetherDartsBoltBonus(ctx: SimContext, caster: Entity, ticks: num
     caster.aetherDartsBonusPerBolt = bolts > 0 ? Math.round(total / bolts) : 0;
   }
   return caster.aetherDartsBonusPerBolt ?? 0;
+}
+
+/** The Hourbinder's 4pc speed aura id: its own id, because a buffTarget row
+ *  would take the bare 'temporal_barrier' id and replace the barrier absorb. */
+export const HOURBINDER_HASTE_ID = 'set_vanguard_mage_arcane_4pc';
+
+/** Hourbinder's Vestments 4pc (Warfare Season 2): Temporal Barrier also
+ *  quickens the shielded target (self when cast with no friendly target).
+ *  Called once per resolved Temporal Barrier from the mage post-cast rider
+ *  (frostMageAfterCast); a recast refreshes it. Draws no rng. */
+export function hourbinderBarrierHaste(
+  ctx: SimContext,
+  caster: Entity,
+  abilityId: string,
+  target: Entity | null,
+): void {
+  if (abilityId !== 'temporal_barrier') return;
+  if (!wearsSetBonus(ctx, caster, 'vanguard_mage_arcane', 4)) return;
+  const shielded = target ?? caster;
+  if (shielded.dead) return;
+  ctx.applyAura(shielded, {
+    id: HOURBINDER_HASTE_ID,
+    name: 'Temporal Barrier',
+    kind: 'buff_speed',
+    remaining: VANGUARD_ARCANE_4PC_SPEED_DURATION_SEC,
+    duration: VANGUARD_ARCANE_4PC_SPEED_DURATION_SEC,
+    value: VANGUARD_ARCANE_4PC_SPEED_MULT,
+    sourceId: caster.id,
+    school: 'arcane',
+  });
 }

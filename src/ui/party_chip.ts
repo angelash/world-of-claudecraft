@@ -7,11 +7,12 @@
 // primitives (createElement, className, the inline chevron SVG, the role / aria
 // attributes) the per-frame painter must not touch.
 //
-// The chevron follows the repo's existing pattern (the #mobile-consumables-toggle
-// chip): an inline .ui-icon SVG (the hand-authored `next` triangle from ui_icons.ts,
-// no unicode arrow) that CSS rotates when the container gains .party-expanded. The
-// chip is a real <button> that meets the 40px touch floor via hud.mobile.css, and
-// its click toggles the collapse state through the supplied callback.
+// The chevron follows the repo's existing pattern (the mobile "More" tray
+// toggle, #mobile-more): an inline .ui-icon SVG (the hand-authored `next`
+// triangle from ui_icons.ts, no unicode arrow) that CSS rotates when the
+// container gains .party-expanded. The chip is a real <button> that meets the
+// 40px touch floor via hud.mobile.css, and its click toggles the collapse
+// state through the supplied callback.
 
 import { svgIcon } from './ui_icons';
 
@@ -25,6 +26,12 @@ export const PARTY_CHIP_LABEL_CLASS = 'party-chip-label';
 export interface PartyChip {
   el: HTMLButtonElement;
   label: HTMLElement;
+}
+
+export interface PartyFrameHeader {
+  el: HTMLButtonElement;
+  label: HTMLElement;
+  count: HTMLElement;
 }
 
 /**
@@ -42,13 +49,31 @@ export function createPartyChip(doc: Document, onToggle: () => void): PartyChip 
   // A disclosure control: aria-expanded reflects the collapse state (the painter
   // updates it through the elided setAttr on each toggle). Starts collapsed.
   btn.setAttribute('aria-expanded', 'false');
-  // The chevron: the same inline .ui-icon SVG the consumables chip uses (the
-  // hand-authored `next` triangle), decorative (aria-hidden), rotated by CSS when
-  // the party frames expand. No unicode arrow (the repo pattern is CSS/SVG).
+  // The chevron: the same inline .ui-icon SVG the mobile More tray toggle uses
+  // (the hand-authored `next` triangle), decorative (aria-hidden), rotated by
+  // CSS when the party frames expand. No unicode arrow (the repo pattern is CSS/SVG).
   btn.insertAdjacentHTML('afterbegin', svgIcon('next'));
   const label = doc.createElement('span');
   label.className = PARTY_CHIP_LABEL_CLASS;
   btn.appendChild(label);
   btn.addEventListener('click', onToggle);
   return { el: btn, label };
+}
+
+/** Build the unbacked desktop Party disclosure once; mutable text and state use the painter facet. */
+export function createPartyFrameHeader(doc: Document, onToggle: () => void): PartyFrameHeader {
+  const btn = doc.createElement('button');
+  btn.id = 'party-frame-header';
+  btn.className = 'party-frame-header ui-cin ui-outline';
+  btn.type = 'button';
+  btn.setAttribute('aria-controls', 'party-frame-rows');
+  btn.setAttribute('aria-expanded', 'true');
+  const label = doc.createElement('span');
+  label.className = 'party-frame-header-label';
+  const count = doc.createElement('span');
+  count.className = 'party-frame-header-count';
+  btn.append(label, count);
+  btn.insertAdjacentHTML('beforeend', svgIcon('next'));
+  btn.addEventListener('click', onToggle);
+  return { el: btn, label, count };
 }

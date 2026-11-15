@@ -7,11 +7,13 @@
 // (audio click, persistence) through the callbacks. Visuals reuse the existing
 // `.set-row`/`.set-*` CSS in index.html so panels stay consistent.
 
+const RANGE_FILL_FULL_PCT = 100;
+
 /** Build a labelled `.set-row` shell. Returns the row plus its name span so the
  *  caller (or the builders below) can append the control(s) into column 2+. */
 export function settingRow(label: string): { row: HTMLDivElement; name: HTMLSpanElement } {
   const row = document.createElement('div');
-  row.className = 'set-row';
+  row.className = 'set-row ui-stat-row';
   const name = document.createElement('span');
   name.className = 'set-name';
   name.textContent = label;
@@ -20,13 +22,17 @@ export function settingRow(label: string): { row: HTMLDivElement; name: HTMLSpan
 }
 
 /** A titled card/section container (role="group"), labelled for assistive tech. */
-export function settingsCard(parent: HTMLElement, title: string, opts: { className?: string } = {}): HTMLDivElement {
+export function settingsCard(
+  parent: HTMLElement,
+  title: string,
+  opts: { className?: string } = {},
+): HTMLDivElement {
   const card = document.createElement('div');
-  card.className = `perf-card${opts.className ? ` ${opts.className}` : ''}`;
+  card.className = `perf-card ui-card${opts.className ? ` ${opts.className}` : ''}`;
   card.setAttribute('role', 'group');
   card.setAttribute('aria-label', title);
   const head = document.createElement('div');
-  head.className = 'perf-card-title';
+  head.className = 'perf-card-title ui-h';
   head.textContent = title;
   card.appendChild(head);
   parent.appendChild(card);
@@ -34,7 +40,11 @@ export function settingsCard(parent: HTMLElement, title: string, opts: { classNa
 }
 
 /** A lighter subhead used inside a card (e.g. metric-group headers). */
-export function subhead(parent: HTMLElement, title: string, className = 'perf-group-head'): HTMLDivElement {
+export function subhead(
+  parent: HTMLElement,
+  title: string,
+  className = 'perf-group-head',
+): HTMLDivElement {
   const h = document.createElement('div');
   h.className = className;
   h.textContent = title;
@@ -59,11 +69,12 @@ export function toggleControl(o: ToggleOpts): { row: HTMLDivElement; sync: () =>
   const { row } = settingRow(o.label);
   const toggle = document.createElement('button');
   toggle.type = 'button';
-  toggle.className = 'btn set-toggle';
+  toggle.className = 'btn ui-btn ui-btn--plate set-toggle';
   const sync = (): void => {
     const on = o.get();
     toggle.textContent = on ? o.onLabel : o.offLabel;
     toggle.classList.toggle('off', !on);
+    toggle.classList.toggle('is-off', !on);
     toggle.setAttribute('aria-pressed', String(on));
     toggle.setAttribute('aria-label', o.label);
   };
@@ -93,7 +104,10 @@ export interface SliderOpts {
 /** A labelled range slider with a live readout. Returns `setValue()` so an
  *  external change (e.g. drag-to-move) can push a new value into the control
  *  without a full re-render. */
-export function sliderControl(o: SliderOpts): { row: HTMLDivElement; setValue: (v: number) => void } {
+export function sliderControl(o: SliderOpts): {
+  row: HTMLDivElement;
+  setValue: (v: number) => void;
+} {
   const { row } = settingRow(o.label);
   const slider = document.createElement('input');
   slider.type = 'range';
@@ -105,14 +119,31 @@ export function sliderControl(o: SliderOpts): { row: HTMLDivElement; setValue: (
   slider.setAttribute('aria-label', o.label);
   const val = document.createElement('span');
   val.className = 'set-val';
-  const readout = (): void => { val.textContent = o.format(o.get()); };
+  const paintFill = (): void => {
+    const value = Number(slider.value);
+    const span = o.max - o.min;
+    const pct = span > 0 ? ((value - o.min) / span) * RANGE_FILL_FULL_PCT : 0;
+    slider.style.setProperty('--range-fill', `${Math.max(0, Math.min(RANGE_FILL_FULL_PCT, pct))}%`);
+  };
+  const readout = (): void => {
+    val.textContent = o.format(o.get());
+  };
   readout();
-  slider.addEventListener('input', () => { o.set(Number(slider.value)); readout(); });
+  paintFill();
+  slider.addEventListener('input', () => {
+    o.set(Number(slider.value));
+    readout();
+    paintFill();
+  });
   row.append(slider, val);
   o.parent.appendChild(row);
   return {
     row,
-    setValue: (v: number) => { slider.value = String(v); readout(); },
+    setValue: (v: number) => {
+      slider.value = String(v);
+      readout();
+      paintFill();
+    },
   };
 }
 

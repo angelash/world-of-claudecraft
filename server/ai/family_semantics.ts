@@ -54,7 +54,12 @@ export const MOB_FAMILIES: readonly MobFamily[] = [
   'demon',
 ] as const;
 
-const COMMON_PASSIVE_INTENTS: AiIntentType[] = ['lookAt', 'pause', 'commentOnScene', 'inspectObject'];
+const COMMON_PASSIVE_INTENTS: AiIntentType[] = [
+  'lookAt',
+  'pause',
+  'commentOnScene',
+  'inspectObject',
+];
 
 export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
   beast: {
@@ -68,7 +73,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'approachObject', 'avoidObject', 'inspectObject', 'pause'],
     visibleBehaviors: ['sniff', 'circle', 'growl', 'backAway', 'guardFood'],
     speechStyle: 'Use body language, sound, and hesitation more than human explanation.',
-    moodBias: { fear: 0.35, curiosity: 0.45, hunger: 0.75, territory: 0.7, reverence: 0.05, disgust: 0.2, fatigue: 0.25 },
+    moodBias: {
+      fear: 0.35,
+      curiosity: 0.45,
+      hunger: 0.75,
+      territory: 0.7,
+      reverence: 0.05,
+      disgust: 0.2,
+      fatigue: 0.25,
+    },
   },
   humanoid: {
     family: 'humanoid',
@@ -81,7 +94,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: [...COMMON_PASSIVE_INTENTS, 'approachObject', 'seekShelter'],
     visibleBehaviors: ['appraise', 'haggle', 'threaten', 'whisper', 'callAlly'],
     speechStyle: 'Judge value, danger, status, and social consequence.',
-    moodBias: { fear: 0.45, curiosity: 0.55, hunger: 0.25, territory: 0.4, reverence: 0.25, disgust: 0.35, fatigue: 0.35 },
+    moodBias: {
+      fear: 0.45,
+      curiosity: 0.55,
+      hunger: 0.25,
+      territory: 0.4,
+      reverence: 0.25,
+      disgust: 0.35,
+      fatigue: 0.35,
+    },
   },
   mudfin: {
     family: 'mudfin',
@@ -94,7 +115,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'approachObject', 'avoidObject', 'inspectObject', 'pause'],
     visibleBehaviors: ['gurgle', 'cluster', 'dartTowardWater', 'tiltHead'],
     speechStyle: 'Short wet sounds, crowd reactions, and sudden movement carry the meaning.',
-    moodBias: { fear: 0.45, curiosity: 0.65, hunger: 0.45, territory: 0.55, reverence: 0.15, disgust: 0.15, fatigue: 0.15 },
+    moodBias: {
+      fear: 0.45,
+      curiosity: 0.65,
+      hunger: 0.45,
+      territory: 0.55,
+      reverence: 0.15,
+      disgust: 0.15,
+      fatigue: 0.15,
+    },
   },
   spider: {
     family: 'spider',
@@ -107,7 +136,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'inspectObject', 'avoidObject', 'pause'],
     visibleBehaviors: ['holdStill', 'sideStep', 'retreatToWeb', 'tapGround'],
     speechStyle: 'Predatory stillness and small movements matter more than words.',
-    moodBias: { fear: 0.25, curiosity: 0.5, hunger: 0.6, territory: 0.65, reverence: 0.05, disgust: 0.2, fatigue: 0.1 },
+    moodBias: {
+      fear: 0.25,
+      curiosity: 0.5,
+      hunger: 0.6,
+      territory: 0.65,
+      reverence: 0.05,
+      disgust: 0.2,
+      fatigue: 0.1,
+    },
   },
   burrower: {
     family: 'burrower',
@@ -120,7 +157,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: [...COMMON_PASSIVE_INTENTS, 'approachObject', 'avoidObject'],
     visibleBehaviors: ['clutchCandle', 'snatchSmallObject', 'squeal', 'hideBehindAlly'],
     speechStyle: 'Nervous, acquisitive, and quick to blame the dark.',
-    moodBias: { fear: 0.7, curiosity: 0.55, hunger: 0.2, territory: 0.35, reverence: 0.2, disgust: 0.25, fatigue: 0.3 },
+    moodBias: {
+      fear: 0.7,
+      curiosity: 0.55,
+      hunger: 0.2,
+      territory: 0.35,
+      reverence: 0.2,
+      disgust: 0.25,
+      fatigue: 0.3,
+    },
   },
   reptile: {
     family: 'reptile',
@@ -133,7 +178,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'approachObject', 'avoidObject', 'inspectObject', 'pause'],
     visibleBehaviors: ['holdStill', 'tasteAir', 'bask', 'lunge', 'backAway'],
     speechStyle: 'Use watchful stillness, heat, scent, and sudden movement more than explanation.',
-    moodBias: { fear: 0.3, curiosity: 0.45, hunger: 0.65, territory: 0.65, reverence: 0.05, disgust: 0.15, fatigue: 0.2 },
+    moodBias: {
+      fear: 0.3,
+      curiosity: 0.45,
+      hunger: 0.65,
+      territory: 0.65,
+      reverence: 0.05,
+      disgust: 0.15,
+      fatigue: 0.2,
+    },
   },
   undead: {
     family: 'undead',
@@ -146,7 +199,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'approachObject', 'inspectObject', 'pause'],
     visibleBehaviors: ['whisper', 'stareAtLiving', 'driftCloser', 'makeLivingUneasy'],
     speechStyle: 'Cold, fragmentary, and pulled by unfinished memory.',
-    moodBias: { fear: 0.1, curiosity: 0.35, hunger: 0.05, territory: 0.55, reverence: 0.65, disgust: 0.1, fatigue: 0.05 },
+    moodBias: {
+      fear: 0.1,
+      curiosity: 0.35,
+      hunger: 0.05,
+      territory: 0.55,
+      reverence: 0.65,
+      disgust: 0.1,
+      fatigue: 0.05,
+    },
   },
   troll: {
     family: 'troll',
@@ -159,7 +220,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'approachObject', 'inspectObject', 'commentOnScene'],
     visibleBehaviors: ['laugh', 'sniffFood', 'loom', 'stallFight'],
     speechStyle: 'Coarse appetite, threats, and jokes that sound like hunger.',
-    moodBias: { fear: 0.25, curiosity: 0.45, hunger: 0.85, territory: 0.55, reverence: 0.1, disgust: 0.2, fatigue: 0.2 },
+    moodBias: {
+      fear: 0.25,
+      curiosity: 0.45,
+      hunger: 0.85,
+      territory: 0.55,
+      reverence: 0.1,
+      disgust: 0.2,
+      fatigue: 0.2,
+    },
   },
   ogre: {
     family: 'ogre',
@@ -172,7 +241,15 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'approachObject', 'commentOnScene', 'pause'],
     visibleBehaviors: ['poundGround', 'blockPath', 'loomCloser', 'misreadIntent'],
     speechStyle: 'Direct, territorial, and often confidently wrong.',
-    moodBias: { fear: 0.2, curiosity: 0.35, hunger: 0.8, territory: 0.8, reverence: 0.05, disgust: 0.15, fatigue: 0.45 },
+    moodBias: {
+      fear: 0.2,
+      curiosity: 0.35,
+      hunger: 0.8,
+      territory: 0.8,
+      reverence: 0.05,
+      disgust: 0.15,
+      fatigue: 0.45,
+    },
   },
   elemental: {
     family: 'elemental',
@@ -185,20 +262,43 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'inspectObject', 'pause', 'commentOnScene'],
     visibleBehaviors: ['resonate', 'pulse', 'turnSuddenly', 'fallSilent'],
     speechStyle: 'Speak as pressure, pulse, and resonance rather than mortal emotion.',
-    moodBias: { fear: 0.15, curiosity: 0.55, hunger: 0.0, territory: 0.5, reverence: 0.35, disgust: 0.05, fatigue: 0.0 },
+    moodBias: {
+      fear: 0.15,
+      curiosity: 0.55,
+      hunger: 0.0,
+      territory: 0.5,
+      reverence: 0.35,
+      disgust: 0.05,
+      fatigue: 0.0,
+    },
   },
   dragonkin: {
     family: 'dragonkin',
     familyName: 'Dragonkin',
     baseInstincts: ['ancientMemory', 'majesty', 'territory', 'bloodline', 'judgment'],
-    sceneAmplifiers: ['highPlace', 'ancientRuin', 'dragonBone', 'treasure', 'strongMagic', 'moonlight'],
+    sceneAmplifiers: [
+      'highPlace',
+      'ancientRuin',
+      'dragonBone',
+      'treasure',
+      'strongMagic',
+      'moonlight',
+    ],
     sceneSuppressors: ['defiledRuin', 'bindingCircle', 'pettyTheft', 'weakTaunt'],
     attractedItemTags: ['treasure', 'magic', 'relic', 'ancient', 'dragon'],
     avoidedItemTags: ['defiled', 'binding', 'falseOffering'],
     likelyIntents: ['lookAt', 'inspectObject', 'commentOnScene', 'pause'],
     visibleBehaviors: ['lookDown', 'slowTurn', 'judgePlayer', 'rememberInsult'],
     speechStyle: 'Grave, old, and appraising, with a long memory for disrespect.',
-    moodBias: { fear: 0.12, curiosity: 0.5, hunger: 0.1, territory: 0.8, reverence: 0.55, disgust: 0.3, fatigue: 0.1 },
+    moodBias: {
+      fear: 0.12,
+      curiosity: 0.5,
+      hunger: 0.1,
+      territory: 0.8,
+      reverence: 0.55,
+      disgust: 0.3,
+      fatigue: 0.1,
+    },
   },
   demon: {
     family: 'demon',
@@ -211,14 +311,23 @@ export const FAMILY_SEMANTICS: Record<MobFamily, FamilySemantics> = {
     likelyIntents: ['lookAt', 'approachObject', 'inspectObject', 'commentOnScene'],
     visibleBehaviors: ['taunt', 'leanTowardFear', 'tempt', 'needleCompanion'],
     speechStyle: 'Tempting, cruel, and amused by fear or sacred boundaries.',
-    moodBias: { fear: 0.1, curiosity: 0.5, hunger: 0.65, territory: 0.35, reverence: 0.0, disgust: 0.45, fatigue: 0.0 },
+    moodBias: {
+      fear: 0.1,
+      curiosity: 0.5,
+      hunger: 0.65,
+      territory: 0.35,
+      reverence: 0.0,
+      disgust: 0.45,
+      fatigue: 0.0,
+    },
   },
 };
 
 const FAMILY_SPEECH_FINGERPRINTS = {
   beast: {
     sentenceRhythm: 'sniff, hesitate, react; if words appear, keep them broken and territorial',
-    addressStyle: 'does not address the player politely; tracks scent, posture, hunger, or pack threat',
+    addressStyle:
+      'does not address the player politely; tracks scent, posture, hunger, or pack threat',
     favoriteStarts: ['Sniffs hard', 'Hackles rise', 'Circles once'],
     sensoryBias: ['scent', 'blood warmth', 'fur bristle', 'ground vibration'],
     avoidedPhrases: ['I would suggest', 'overall', 'this indicates'],
@@ -302,11 +411,18 @@ const FAMILY_SPEECH_FINGERPRINTS = {
   },
 } satisfies Record<MobFamily, AiSpeechFingerprint>;
 
-const TEMPLATE_INSTINCT_OVERRIDES: Record<string, { addInstincts?: string[]; addAttractedTags?: string[]; addAvoidedTags?: string[] }> = {
+const TEMPLATE_INSTINCT_OVERRIDES: Record<
+  string,
+  { addInstincts?: string[]; addAttractedTags?: string[]; addAvoidedTags?: string[] }
+> = {
   forest_wolf: { addInstincts: ['packHunt', 'scentTrail'], addAttractedTags: ['meat', 'blood'] },
   wild_boar: { addInstincts: ['rooting', 'startleCharge'], addAttractedTags: ['food'] },
   brightwood_hare: { addInstincts: ['panicFlight'], addAvoidedTags: ['predator', 'loudNoise'] },
-  gravecaller_cultist: { addInstincts: ['secretRite', 'fearOfFailure'], addAttractedTags: ['cursed', 'grave', 'relic'], addAvoidedTags: ['guardPost'] },
+  gravecaller_cultist: {
+    addInstincts: ['secretRite', 'fearOfFailure'],
+    addAttractedTags: ['cursed', 'grave', 'relic'],
+    addAvoidedTags: ['guardPost'],
+  },
   tunnel_rat: { addInstincts: ['candlePanic'], addAttractedTags: ['candle', 'tool'] },
   stormcrag_elemental: { addInstincts: ['stormPulse'], addAttractedTags: ['storm', 'stone'] },
 };

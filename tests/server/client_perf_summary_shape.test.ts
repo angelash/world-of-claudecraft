@@ -7,8 +7,10 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  type ClientPerfModelRow,
   type ClientPerfSummaryRow,
   cleanHours,
+  mapClientPerfModelRows,
   mapClientPerfSummaryRows,
   mapSuggestionCountRows,
   PERF_SUMMARY_LIMITS,
@@ -59,7 +61,9 @@ function expectedAgg(seed: number) {
 
 const KEY_COLUMNS = {
   preset: 'graphics_preset',
+  gfxtier: 'gfx_tier',
   gpu: 'gl_renderer_bucket',
+  backend: 'gl_backend',
   browser: 'browser_family',
   os: 'os_family',
   scenario: 'zone_or_scenario',
@@ -70,13 +74,17 @@ const KEY_COLUMNS = {
 function totalsRow(seed: number): Row {
   return {
     graphics_preset: null,
+    gfx_tier: null,
     gl_renderer_bucket: null,
+    gl_backend: null,
     browser_family: null,
     os_family: null,
     zone_or_scenario: null,
     crowd_bucket: null,
     g_preset: 1,
+    g_gfxtier: 1,
     g_gpu: 1,
+    g_backend: 1,
     g_browser: 1,
     g_os: 1,
     g_scenario: 1,
@@ -111,23 +119,28 @@ describe('mapClientPerfSummaryRows classification', () => {
       bucketRow('preset', '', 1, 1, 3),
       totalsRow(9),
       bucketRow('gpu', 'adreno', 1, 1, 4),
+      bucketRow('backend', 'opengl-es', 1, 1, 11),
       bucketRow('browser', 'Chrome', 1, 1, 5),
       bucketRow('os', 'Windows', 1, 1, 6),
       bucketRow('scenario', 'elwynn', 1, 1, 7),
       bucketRow('crowd', '25-49', 1, 1, 8),
+      bucketRow('gfxtier', 'ultra', 1, 1, 10),
     ]);
     expect(out.totals).toEqual(expectedAgg(9));
     expect(out.byPreset).toEqual([{ key: '', ...expectedAgg(3) }]);
     expect(out.byGpu).toEqual([{ key: 'adreno', ...expectedAgg(4) }]);
+    expect(out.byBackend).toEqual([{ key: 'opengl-es', ...expectedAgg(11) }]);
     expect(out.byBrowser).toEqual([{ key: 'Chrome', ...expectedAgg(5) }]);
     expect(out.byOs).toEqual([{ key: 'Windows', ...expectedAgg(6) }]);
     expect(out.byScenario).toEqual([{ key: 'elwynn', ...expectedAgg(7) }]);
     expect(out.byCrowd).toEqual([{ key: '25-49', ...expectedAgg(8) }]);
     expect(out.worstGpuBuckets).toEqual([{ key: 'adreno', ...expectedAgg(4) }]);
+    expect(out.byGfxTier).toEqual([{ key: 'ultra', ...expectedAgg(10) }]);
   });
 
-  it('folds the legacy empty-string crowd key to unknown at read time, and ONLY there', () => {
-    // Pre-column rows aggregate under crowd_bucket '' (ruling R3); the mapper
+  it('folds the legacy empty-string key to unknown for crowd AND backend, and ONLY there', () => {
+    // Pre-column rows aggregate under crowd_bucket '' (ruling R3) and, since
+    // the column was added later, gl_backend '' the same way; the mapper
     // relabels them 'unknown' without merging them into the real unknown
     // bucket (percentiles do not compose), while every other list keeps ''
     // as-is (the preset '' key is legitimate data).
@@ -135,12 +148,21 @@ describe('mapClientPerfSummaryRows classification', () => {
       bucketRow('crowd', '', 1, 1, 3),
       bucketRow('crowd', 'unknown', 2, 2, 4),
       bucketRow('preset', '', 1, 1, 5),
+      bucketRow('backend', '', 1, 1, 6),
+      bucketRow('backend', 'unknown', 2, 2, 7),
+      bucketRow('gpu', '', 1, 1, 8),
     ]);
     expect(out.byCrowd).toEqual([
       { key: 'unknown', ...expectedAgg(3) },
       { key: 'unknown', ...expectedAgg(4) },
     ]);
+    expect(out.byBackend).toEqual([
+      { key: 'unknown', ...expectedAgg(6) },
+      { key: 'unknown', ...expectedAgg(7) },
+    ]);
     expect(out.byPreset).toEqual([{ key: '', ...expectedAgg(5) }]);
+    // The negative arm: the gpu list is NOT one of the folding lists.
+    expect(out.byGpu).toEqual([{ key: '', ...expectedAgg(8) }]);
   });
 
   it('returns the totals row as-is, never rebuilt from the bucket rows', () => {
@@ -166,6 +188,17 @@ describe('mapClientPerfSummaryRows classification', () => {
     const out = mapClientPerfSummaryRows([bucketRow('preset', null, 1, 1, 2)]);
     expect(out.byPreset).toEqual([{ key: '', ...expectedAgg(2) }]);
   });
+
+  it('routes a gfx_tier row by its own bit, distinct from graphics_preset', () => {
+    // gfx_tier and graphics_preset are two independent segmentation columns on
+    // the same table; a row grouped by one must never be misread as the other.
+    const out = mapClientPerfSummaryRows([
+      bucketRow('gfxtier', 'low', 1, 1, 11),
+      bucketRow('preset', 'low', 1, 1, 12),
+    ]);
+    expect(out.byGfxTier).toEqual([{ key: 'low', ...expectedAgg(11) }]);
+    expect(out.byPreset).toEqual([{ key: 'low', ...expectedAgg(12) }]);
+  });
 });
 
 describe('mapClientPerfSummaryRows ordering', () => {
@@ -177,6 +210,14 @@ describe('mapClientPerfSummaryRows ordering', () => {
       bucketRow('browser', 'zeta', 1, 2, 2),
     ]);
     expect(out.byBrowser.map((b) => b.key)).toEqual(['zeta', 'alpha']);
+  });
+
+  it('orders byGfxTier by the volume rank, same as every other single-column set', () => {
+    const out = mapClientPerfSummaryRows([
+      bucketRow('gfxtier', 'insane', 2, 1, 1),
+      bucketRow('gfxtier', 'medium', 1, 2, 2),
+    ]);
+    expect(out.byGfxTier.map((b) => b.key)).toEqual(['medium', 'insane']);
   });
 
   it('serves byGpu and worstGpuBuckets from the SAME gpu rows under their own rank each', () => {
@@ -212,6 +253,7 @@ describe('mapClientPerfSummaryRows caps', () => {
     for (let i = 1; i <= 21; i++) rows.push(bucketRow('os', `o${i}`, i, i, i));
     for (let i = 1; i <= 22; i++) rows.push(bucketRow('browser', `b${i}`, i, i, i));
     for (let i = 1; i <= 10; i++) rows.push(bucketRow('crowd', `c${i}`, i, i, i));
+    for (let i = 1; i <= 22; i++) rows.push(bucketRow('gfxtier', `t${i}`, i, i, i));
     const out = mapClientPerfSummaryRows(rows);
     expect(out.byPreset).toHaveLength(20);
     expect(out.byPreset[19].key).toBe('p20');
@@ -227,18 +269,25 @@ describe('mapClientPerfSummaryRows caps', () => {
     expect(out.byCrowd).toHaveLength(8);
     expect(out.byCrowd[7].key).toBe('c8');
     expect(out.byCrowd.map((b) => b.key)).not.toContain('c9');
+    expect(out.byGfxTier).toHaveLength(20);
+    expect(out.byGfxTier[19].key).toBe('t20');
+    expect(out.byGfxTier.map((b) => b.key)).not.toContain('t21');
   });
 
   it('pins the per-array caps to the literal numbers the admin lists show', () => {
     expect(PERF_SUMMARY_LIMITS).toEqual({
       byPreset: 20,
+      byGfxTier: 20,
       byGpu: 50,
+      byBackend: 10,
       byBrowser: 20,
       byOs: 20,
       byScenario: 30,
       byCrowd: 8,
       worstGpu: 20,
       suggestionCounts: 12,
+      byModel: 50,
+      byHpMismatch: 50,
     });
   });
 });
@@ -291,6 +340,7 @@ describe('mapClientPerfSummaryRows empty window', () => {
     // The no-rows fallback and an explicit empty record produce the same shape.
     expect(out.totals).toEqual(perfAggregateFromRow({}));
     expect(out.byPreset).toEqual([]);
+    expect(out.byGfxTier).toEqual([]);
     expect(out.byGpu).toEqual([]);
     expect(out.byBrowser).toEqual([]);
     expect(out.byOs).toEqual([]);
@@ -307,5 +357,97 @@ describe('cleanHours', () => {
     expect(cleanHours(Number.NaN)).toBe(24);
     expect(cleanHours(24)).toBe(24);
     expect(cleanHours(7.9)).toBe(7);
+  });
+});
+
+describe('mapClientPerfModelRows', () => {
+  const base: ClientPerfModelRow = {
+    os_family: 'windows',
+    gl_model: 'nvidia-rtx-4070',
+    gpu_hp_adapter: null,
+    g_hp: 1,
+    vol_rank: 1,
+    sample_count: 10,
+    median_fps: 55,
+    p95_frame_ms: 25,
+    p99_frame_ms: 33,
+    context_loss_count: 2,
+    avg_render_scale: 0.9,
+    avg_effective_render_scale: 0.8,
+  };
+
+  it('classifies on the g_hp bit ALONE, never on the adapter value', () => {
+    // The trap this pins: gpu_hp_adapter is TEXT NOT NULL DEFAULT '', so a
+    // triple-set row can legitimately carry '' as DATA. Routing on "is the
+    // adapter empty" instead of the bit would file that row under byModel and
+    // silently invent a pair aggregate that double-counts its reports.
+    const out = mapClientPerfModelRows([
+      { ...base, g_hp: 0, gpu_hp_adapter: '', vol_rank: 1 },
+      { ...base, g_hp: 1, gpu_hp_adapter: null, vol_rank: 1 },
+    ]);
+    expect(out.byModel).toHaveLength(1);
+    expect(out.byHpMismatch).toHaveLength(1);
+    expect(out.byHpMismatch[0].gpuHpAdapter).toBe('');
+    // The pair row never grows an adapter field it has no value for.
+    expect('gpuHpAdapter' in out.byModel[0]).toBe(false);
+  });
+
+  it('carries both key columns and the full aggregate through', () => {
+    const out = mapClientPerfModelRows([
+      {
+        ...base,
+        g_hp: 0,
+        os_family: 'macos',
+        gl_model: 'apple-m4-pro',
+        gpu_hp_adapter: 'apple-m4-pro',
+      },
+    ]);
+    expect(out.byHpMismatch[0]).toEqual({
+      osFamily: 'macos',
+      glModel: 'apple-m4-pro',
+      gpuHpAdapter: 'apple-m4-pro',
+      sampleCount: 10,
+      medianFps: 55,
+      p95FrameMs: 25,
+      p99FrameMs: 33,
+      contextLossCount: 2,
+      avgRenderScale: 0.9,
+      avgEffectiveRenderScale: 0.8,
+    });
+  });
+
+  it('orders by the statement rank, not by input order or sample count', () => {
+    // Ordering is the database's job (its collation decides the key tie-break);
+    // re-sorting here would disagree with it on non-ASCII keys.
+    const out = mapClientPerfModelRows([
+      { ...base, gl_model: 'third', vol_rank: 3, sample_count: 99 },
+      { ...base, gl_model: 'first', vol_rank: 1, sample_count: 1 },
+      { ...base, gl_model: 'second', vol_rank: 2, sample_count: 50 },
+    ]);
+    expect(out.byModel.map((b) => b.glModel)).toEqual(['first', 'second', 'third']);
+  });
+
+  it('caps each list independently at its own limit', () => {
+    const rows: ClientPerfModelRow[] = [];
+    for (let i = 0; i < PERF_SUMMARY_LIMITS.byModel + 10; i++) {
+      rows.push({ ...base, gl_model: `model-${i}`, vol_rank: i + 1 });
+      rows.push({
+        ...base,
+        g_hp: 0,
+        gl_model: `model-${i}`,
+        gpu_hp_adapter: `hp-${i}`,
+        vol_rank: i + 1,
+      });
+    }
+    const out = mapClientPerfModelRows(rows);
+    expect(out.byModel).toHaveLength(PERF_SUMMARY_LIMITS.byModel);
+    expect(out.byHpMismatch).toHaveLength(PERF_SUMMARY_LIMITS.byHpMismatch);
+  });
+
+  it('folds a NULL key to the empty string and shapes an empty result', () => {
+    const out = mapClientPerfModelRows([{ ...base, os_family: null, gl_model: null }]);
+    expect(out.byModel[0].osFamily).toBe('');
+    expect(out.byModel[0].glModel).toBe('');
+    expect(mapClientPerfModelRows([])).toEqual({ byModel: [], byHpMismatch: [] });
   });
 });

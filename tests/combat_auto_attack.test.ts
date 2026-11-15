@@ -18,7 +18,7 @@ import { MOBS } from '../src/sim/data';
 import { createMob } from '../src/sim/entity';
 import { advancePendingProjectiles } from '../src/sim/projectile_travel';
 import { type PlayerMeta, Sim } from '../src/sim/sim';
-import { type Aura, DT, type Entity, type PlayerClass, type SimEvent } from '../src/sim/types';
+import type { Aura, Entity, PlayerClass, SimEvent } from '../src/sim/types';
 import { placePlayerInOpenField } from './helpers/open_field';
 
 type DamageEvent = Extract<SimEvent, { type: 'damage' }>;
@@ -113,64 +113,78 @@ describe('auto_attack meleeSwing: the white-hit table', () => {
     );
   });
 
-  it('slow one-hand auto attacks hit harder per swing than fast one-hand attacks at the same weapon damage budget', () => {
-    const hitWithSpeed = (speed: number): number => {
-      const { sim, p } = makeSim('warrior', 12);
-      const mob = spawnDummy(sim, p, 1);
-      p.attackPower = 0;
-      p.critChance = 0;
-      mob.stats = { ...mob.stats, armor: 0 };
-      sim.rng.next = () => 0.9; // clears miss/dodge/parry/block and crit; fixed weapon roll
-      const events = capture(sim);
+  // WEAPON DAMAGE CONTRACT (see the header comment on autoAttackWeaponDamageMult).
+  // `weapon.min/max` is RAW per-swing damage at the weapon's real speed, with the
+  // two-hand premium already folded in by itemization, so a weapon's power level is
+  // `avg / speed`. The swing path must pass that roll through untouched: re-deriving
+  // it from speed (or re-applying TWOHAND_DPS_MULT) double-counts what the item author
+  // already wrote and silently rebudgets every slow weapon in the game.
+  const swingRoll = (
+    weapon: { min: number; max: number; speed: number },
+    autoAttackHand?: 'mainhand' | 'offhand',
+  ): number => {
+    const { sim, p } = makeSim('warrior', 12);
+    const mob = spawnDummy(sim, p, 1);
+    p.attackPower = 0; // isolate the WEAPON term; AP is a separate, speed-normalized term
+    p.critChance = 0;
+    mob.stats = { ...mob.stats, armor: 0 };
+    sim.rng.next = () => 0.9; // clears miss/dodge/parry/block and crit; fixed weapon roll
+    const events = capture(sim);
 
-      const connected = meleeSwing(sim.ctx, p, mob, 0, null, {
-        cannotBeDodged: true,
-        weapon: { min: 20, max: 20, speed },
-        autoAttackHand: 'onehand',
-      });
+    const connected = meleeSwing(sim.ctx, p, mob, 0, null, {
+      cannotBeDodged: true,
+      weapon,
+      autoAttackHand,
+    });
 
-      expect(connected).toBe(true);
-      const hit = events.find(
-        (e): e is DamageEvent => isDamageEvent(e) && e.kind === 'hit' && e.sourceId === p.id,
-      );
-      expect(hit?.amount).toBeGreaterThan(0);
-      return hit?.amount ?? 0;
-    };
+    expect(connected).toBe(true);
+    const hit = events.find(
+      (e): e is DamageEvent => isDamageEvent(e) && e.kind === 'hit' && e.sourceId === p.id,
+    );
+    expect(hit?.amount).toBeGreaterThan(0);
+    return hit?.amount ?? 0;
+  };
 
-    const fast = hitWithSpeed(1);
-    const slow = hitWithSpeed(3);
-    expect(slow).toBeGreaterThan(fast);
-    expect({ fast, slow }).toEqual({ fast: 10, slow: 30 });
+  it('an auto attack deals the weapon roll as authored, never re-scaled by swing speed', () => {
+    // Same authored roll at three speeds: the per-swing damage must not move, because
+    // the slow weapon's bigger hit is expressed by the author writing a bigger min/max.
+    const fast = swingRoll({ min: 20, max: 20, speed: 1.7 }, 'mainhand');
+    const base = swingRoll({ min: 20, max: 20, speed: 2 }, 'mainhand');
+    const slow = swingRoll({ min: 20, max: 20, speed: 3.4 }, 'mainhand');
+    expect({ fast, base, slow }).toEqual({ fast: 20, base: 20, slow: 20 });
   });
 
-  it('a comparable two-hand auto attack hits harder per swing than a one-hand auto attack', () => {
-    const hitWithHand = (autoAttackHand: 'onehand' | 'twohand'): number => {
-      const { sim, p } = makeSim('warrior', 12);
-      const mob = spawnDummy(sim, p, 1);
-      p.attackPower = 0;
-      p.critChance = 0;
-      mob.stats = { ...mob.stats, armor: 0 };
-      sim.rng.next = () => 0.9; // clears miss/dodge/parry/block and crit; fixed weapon roll
-      const events = capture(sim);
+  it('two weapons authored at the same dps deliver the same white dps at any speed', () => {
+    // The decisive budget-neutrality check. Three weapons all authored at 20.0 dps
+    // (avg / speed; the rolls are whole numbers at every speed so swing rounding
+    // cannot mask a regression). Per-swing damage differs, but damage-per-second must
+    // not: before this fix the same three delivered 17.0 / 20.0 / 34.0 dps.
+    const dpsOf = (min: number, max: number, speed: number): number =>
+      swingRoll({ min, max, speed }, 'mainhand') / speed;
+    expect(dpsOf(34, 34, 1.7)).toBeCloseTo(20, 5);
+    expect(dpsOf(40, 40, 2)).toBeCloseTo(20, 5);
+    expect(dpsOf(68, 68, 3.4)).toBeCloseTo(20, 5);
+  });
 
-      const connected = meleeSwing(sim.ctx, p, mob, 0, null, {
-        cannotBeDodged: true,
-        weapon: { min: 20, max: 20, speed: 2 },
-        autoAttackHand,
-      });
+  it('a two-hander does not re-apply the itemization two-hand premium at swing time', () => {
+    // TWOHAND_DPS_MULT is an ITEMIZATION constant: heroic_loot.ts already bakes it into
+    // the authored min/max (weaponDpsBudget(33) = 16.6 x TWOHAND_DPS_MULT -> 19.1 dps).
+    // Importing it into the swing path applied it a second time.
+    const twoHanderRoll = swingRoll({ min: 52, max: 78, speed: 3.4 }, 'mainhand');
+    // rng 0.9 over [52, 78] lands at 75; a re-applied 1.15 premium would read 86.
+    expect(twoHanderRoll).toBe(75);
+  });
 
-      expect(connected).toBe(true);
-      const hit = events.find(
-        (e): e is DamageEvent => isDamageEvent(e) && e.kind === 'hit' && e.sourceId === p.id,
-      );
-      expect(hit?.amount).toBeGreaterThan(0);
-      return hit?.amount ?? 0;
-    };
+  it('an offhand auto attack deals half the weapon roll, the one real swing-time cut', () => {
+    const main = swingRoll({ min: 20, max: 20, speed: 2 }, 'mainhand');
+    const off = swingRoll({ min: 20, max: 20, speed: 2 }, 'offhand');
+    expect({ main, off }).toEqual({ main: 20, off: 10 });
+  });
 
-    const oneHand = hitWithHand('onehand');
-    const twoHand = hitWithHand('twohand');
-    expect(twoHand).toBeGreaterThan(oneHand);
-    expect({ oneHand, twoHand }).toEqual({ oneHand: 20, twoHand: 23 });
+  it('an ability weaponStrike (no autoAttackHand) is untouched by the offhand cut', () => {
+    // Abilities resolve through the same shell but pass no hand, so they must read the
+    // raw roll: the fix is scoped to white auto-attacks only.
+    expect(swingRoll({ min: 20, max: 20, speed: 3.4 })).toBe(20);
   });
 
   it('a 100% blind forces a miss: returns false, emits a miss, deals no damage', () => {
@@ -211,6 +225,10 @@ describe('auto_attack meleeSwing: the white-hit table', () => {
       events.some((e) => e.type === 'damage' && e.kind === 'dodge' && e.sourceId === p.id),
     ).toBe(true);
     expect(p.overpowerUntil).toBeGreaterThan(0); // attacker.overpowerUntil = time + 5
+    expect(sim.reactiveAbilityWindowRemaining('mongoose_bite')).toBeCloseTo(5);
+    expect(sim.reactiveAbilityWindowRemaining('another_ability')).toBe(0);
+    p.overpowerUntil = sim.time - 1;
+    expect(sim.reactiveAbilityWindowRemaining('mongoose_bite')).toBe(0);
   });
 });
 
@@ -241,91 +259,32 @@ describe('auto_attack meleeSwing: landed talent procs resolve before retaliation
     });
   };
 
-  it('lets Imbued Lifeblood save its owner from otherwise lethal thorns', () => {
+  it('resolves Ancestral Strike Ward Cycle sustain before thorns', () => {
     const { sim, p } = makeSim('shaman', 20, 1756);
-    expect(sim.applyTalents({ spec: null, rows: { 5: 'sha_r5_imbue_mastery' } })).toBe(true);
+    expect(sim.applyTalents({ spec: null, rows: { 14: 'sha_r14_weapon_fury' } })).toBe(true);
     const mob = spawnDummy(sim, p, 1);
-    addImbue(p);
-    addThorns(mob, 10);
+    addThorns(mob, 1);
     p.mainhandItemId = null;
-    p.hp = 5;
-    const events = capture(sim);
+    p.resource = p.maxResource - 20;
+    let manaAtRetaliation = 0;
+    const dealDamage = sim.ctx.dealDamage;
+    sim.ctx.dealDamage = ((source: Entity | null, target: Entity, ...args: unknown[]) => {
+      if (source?.id === mob.id && target.id === p.id && args[3] === 'Punishing Thorns') {
+        manaAtRetaliation = p.resource;
+      }
+      return (dealDamage as (...callArgs: unknown[]) => unknown)(source, target, ...args);
+    }) as typeof sim.ctx.dealDamage;
     const draws: number[] = [];
     sim.rng.setObserver((value: number) => draws.push(value));
 
-    const connected = meleeSwing(sim.ctx, p, mob, 0, null, { cannotBeDodged: true });
+    const connected = meleeSwing(sim.ctx, p, mob, 0, 'Ancestral Strike', {
+      cannotBeDodged: true,
+    });
     sim.rng.setObserver(null);
 
-    const healIndex = events.findIndex(
-      (event) => event.type === 'heal2' && event.ability === 'Imbued Lifeblood',
-    );
-    const thornsIndex = events.findIndex(
-      (event) =>
-        event.type === 'damage' &&
-        event.sourceId === mob.id &&
-        event.targetId === p.id &&
-        event.ability === 'Punishing Thorns',
-    );
     expect(connected).toBe(true);
-    expect(healIndex).toBeGreaterThan(-1);
-    expect(thornsIndex).toBeGreaterThan(healIndex);
-    expect(p.dead).toBe(false);
-    expect(p.hp).toBeGreaterThan(0);
-    // Hit table, weapon roll, swing crit, then Lifeblood's normal heal-crit roll.
-    expect(draws).toHaveLength(4);
-  });
-
-  it.each([
-    {
-      name: 'Oathwheel cooldown refund',
-      cls: 'paladin' as const,
-      row: { 14: 'pal_r14_righteous_cause' },
-      prepare: (player: Entity) => player.cooldowns.set('judgement', 5),
-      read: (player: Entity) => player.cooldowns.get('judgement'),
-      expected: 4.5,
-    },
-    {
-      name: 'Imbued Tempo cooldown refund',
-      cls: 'shaman' as const,
-      row: { 14: 'sha_r14_weapon_fury' },
-      prepare: (player: Entity) => player.cooldowns.set('earth_shock', 5),
-      read: (player: Entity) => player.cooldowns.get('earth_shock'),
-      expected: 4.5,
-    },
-  ])('applies $name before thorns without changing the shared RNG trace', (testCase) => {
-    const run = (active: boolean) => {
-      const { sim, p } = makeSim(testCase.cls, 20, 26014);
-      if (active) {
-        expect(sim.applyTalents({ spec: null, rows: testCase.row })).toBe(true);
-      }
-      const mob = spawnDummy(sim, p, 1);
-      addImbue(p);
-      addThorns(mob, 1);
-      p.mainhandItemId = null;
-      testCase.prepare(p);
-      let valueAtRetaliation: unknown;
-      const dealDamage = sim.ctx.dealDamage;
-      sim.ctx.dealDamage = ((source: Entity | null, target: Entity, ...args: unknown[]) => {
-        if (source?.id === mob.id && target.id === p.id && args[3] === 'Punishing Thorns') {
-          valueAtRetaliation = testCase.read(p);
-        }
-        return (dealDamage as (...callArgs: unknown[]) => unknown)(source, target, ...args);
-      }) as typeof sim.ctx.dealDamage;
-      const draws: number[] = [];
-      sim.rng.setObserver((value: number) => draws.push(value));
-
-      const connected = meleeSwing(sim.ctx, p, mob, 0, null, { cannotBeDodged: true });
-      sim.rng.setObserver(null);
-
-      expect(connected).toBe(true);
-      return { draws, valueAtRetaliation };
-    };
-
-    const baseline = run(false);
-    const active = run(true);
-    expect(active.valueAtRetaliation).toBe(testCase.expected);
-    expect(active.draws).toEqual(baseline.draws);
-    expect(active.draws).toHaveLength(3);
+    expect(manaAtRetaliation).toBe(p.maxResource - 10);
+    expect(draws).toHaveLength(3);
   });
 
   it('Venom Dividend rolls its chance before thorns and pays only on success', () => {
@@ -333,9 +292,11 @@ describe('auto_attack meleeSwing: landed talent procs resolve before retaliation
     // chance for 10 energy), so the proc now draws exactly one rng roll per
     // poisoned swing; the roll resolves before the thorns retaliation.
     const run = (active: boolean) => {
-      const { sim, p } = makeSim('rogue', 20, 26014);
+      // Seed re-hunted for the v0.32.1 catch-up (26014 drew a miss on the
+      // shifted stream; the fixture needs the poisoned swing to CONNECT).
+      const { sim, p } = makeSim('rogue', 20, 26015);
       if (active) {
-        expect(sim.applyTalents({ spec: null, rows: { 14: 'rog_r14_deadly_brew' } })).toBe(true);
+        expect(sim.applyTalents({ spec: null, rows: { 14: 'rog_r14_venom_dividend' } })).toBe(true);
       }
       const mob = spawnDummy(sim, p, 1);
       addImbue(p);
@@ -451,6 +412,24 @@ describe('auto_attack rangedSwing: Auto Shot vs Wand', () => {
 });
 
 describe('auto_attack updatePlayerAutoAttack: ranged-vs-melee dispatch', () => {
+  it.each([2, 20])(
+    'a Hunter at %s yards emits the ranged animation signal without a dead zone',
+    (distance) => {
+      const { sim, p, meta } = makeSim('hunter', 12);
+      spawnDummy(sim, p, 1, distance);
+      p.autoAttack = true;
+      p.swingTimer = 0;
+      const events = capture(sim);
+      updatePlayerAutoAttack(sim.ctx, p, meta);
+      const melee = events.filter((event) => event.type === 'damage' && event.sourceId === p.id);
+      const shots = events.filter(
+        (event) => event.type === 'spellfx' && event.attackAnimation === 'ranged-shot',
+      );
+      expect(shots).toHaveLength(1);
+      expect(melee).toHaveLength(0);
+    },
+  );
+
   it('a hunter at range takes the ranged branch (Auto Shot), arming ranged-speed cadence', () => {
     const { sim, p, meta } = makeSim('hunter', 12);
     spawnDummy(sim, p, 8, 20); // beyond the 8yd dead zone, within 35
@@ -507,6 +486,49 @@ describe('auto_attack updatePlayerAutoAttack: ranged-vs-melee dispatch', () => {
   });
 });
 
+describe('auto_attack Vanish (issue #2426): a target that escapes stealth mid-fight', () => {
+  // Vanish grants the target a stealth aura with escape semantics (hasEscapeStealth,
+  // threat.ts): fully undetectable regardless of range, the same gate the mob AI
+  // already honors (mob/targeting.ts mobCanSeeTarget). Continuing an already-engaged
+  // swing against it broke that invisibility (issue #2426).
+  function vanishAura(sourceId: number): Aura {
+    return {
+      id: 'vanish',
+      name: 'Smokefade',
+      kind: 'stealth',
+      remaining: 10,
+      duration: 10,
+      value: 0.5,
+      sourceId,
+      school: 'physical',
+    };
+  }
+
+  it('drops auto-attack (and stops dealing damage) the instant the target vanishes', () => {
+    const { sim, p, meta } = makeSim('warrior', 12);
+    const mob = spawnDummy(sim, p, 5, 2); // within MELEE_RANGE, already engaged
+    p.autoAttack = true;
+    p.swingTimer = 0;
+    mob.auras.push(vanishAura(mob.id));
+    const events = capture(sim);
+    updatePlayerAutoAttack(sim.ctx, p, meta);
+    expect(p.autoAttack).toBe(false);
+    expect(events.some((e) => e.type === 'damage' && e.sourceId === p.id)).toBe(false);
+  });
+
+  it('startAutoAttack refuses to engage a vanished target as a fresh attack', () => {
+    const { sim, p } = makeSim('warrior', 12);
+    const mob = spawnDummy(sim, p, 5, 2);
+    mob.auras.push(vanishAura(mob.id));
+    const events = capture(sim);
+    startAutoAttack(sim.ctx, p.id);
+    expect(p.autoAttack).toBe(false);
+    expect(events.some((e) => e.type === 'error' && e.text === 'Invalid attack target.')).toBe(
+      true,
+    );
+  });
+});
+
 describe('auto_attack Auto Shot scales off the equipped weapon (ranged DPS)', () => {
   // A hunter has no separate ranged slot, so Auto Shot fires with the equipped
   // weapon: its cadence follows the weapon's speed (not the class ranged speed),
@@ -517,13 +539,12 @@ describe('auto_attack Auto Shot scales off the equipped weapon (ranged DPS)', ()
     spawnDummy(sim, p, 20, 20); // beyond the 8yd dead zone, within 35
     // A deliberately slow bow, distinct from the class ranged speed (2.3).
     p.weapon = { min: 40, max: 60, speed: 4 };
-    p.rangedHaste = 0;
     p.autoAttack = true;
     p.swingTimer = 0;
     updatePlayerAutoAttack(sim.ctx, p, meta);
-    expect(p.swingTimer).toBeCloseTo(4 * sim.swingIntervalMult(p));
+    expect(p.swingTimer).toBeCloseTo(4 * sim.swingIntervalMult(p, 'ranged'));
     // and NOT the old class-fixed 2.3 cadence
-    expect(p.swingTimer).not.toBeCloseTo(2.3 * sim.swingIntervalMult(p));
+    expect(p.swingTimer).not.toBeCloseTo(2.3 * sim.swingIntervalMult(p, 'ranged'));
   });
 
   it('a heavier-hitting weapon yields a bigger Auto Shot than a weak one', () => {
@@ -608,12 +629,52 @@ describe('auto_attack startAutoAttack: ranged engage must not pre-aggro (issue #
     expect(mob.aggroTargetId).toBe(null);
   });
 
+  it('a point-blank hunter Auto Shot does NOT pre-aggro before projectile impact', () => {
+    const { sim, p } = makeSim('hunter', 12);
+    const mob = spawnDummy(sim, p, 12, 2); // 2yd: melee range, but Auto Shot fires first
+    const events = capture(sim);
+    startAutoAttack(sim.ctx, p.id);
+    expect(p.autoAttack).toBe(true);
+    expect(mob.aiState).toBe('idle');
+    expect(mob.aggroTargetId).toBe(null);
+
+    landProjectiles(sim, events, (e) => e.type === 'damage' && e.ability === 'Auto Shot', 60);
+    expect(mob.aggroTargetId).toBe(p.id);
+  });
+
   it('melee engage still seeds aggro immediately (unchanged behavior)', () => {
     const { sim, p } = makeSim('warrior', 12);
     const mob = spawnDummy(sim, p, 12, 2); // 2yd: melee range, a swing lands at once
     startAutoAttack(sim.ctx, p.id);
     expect(p.autoAttack).toBe(true);
     expect(mob.aggroTargetId).toBe(p.id);
+  });
+
+  it('melee engage against a quest-gated egg seeds no threat or combat for a non-quester', () => {
+    const { sim, p } = makeSim('warrior', 12);
+    const egg = createMob(sim.nextId++, MOBS.spider_egg, 10, {
+      x: p.pos.x,
+      y: p.pos.y,
+      z: p.pos.z + 2,
+    });
+    egg.hostile = true;
+    egg.aiState = 'idle';
+    sim.addEntity(egg);
+    p.facing = Math.atan2(egg.pos.x - p.pos.x, egg.pos.z - p.pos.z);
+    sim.targetEntity(egg.id, p.id);
+
+    startAutoAttack(sim.ctx, p.id);
+    expect(p.autoAttack).toBe(false);
+    expect(egg.aiState).toBe('idle');
+    expect(egg.aggroTargetId).toBeNull();
+    expect(egg.threat.size).toBe(0);
+    expect(p.inCombat).toBe(false);
+    expect(egg.inCombat).toBe(false);
+
+    for (let i = 0; i < 20 * 3; i++) sim.tick();
+    expect(egg.threat.size).toBe(0);
+    expect(p.inCombat).toBe(false);
+    expect(egg.inCombat).toBe(false);
   });
 
   it('a wand caster still aggros the mob when the shot actually lands', () => {

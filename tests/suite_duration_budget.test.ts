@@ -1,0 +1,335 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { declaredTimeouts, maskCommentsAndStrings } from './helpers/declared_timeouts';
+import { expectScansOnlyThroughSharedWalkers } from './helpers/scan_guard_self_audit';
+import { sourceFilesUnder } from './helpers/source_files_under';
+
+// THE ANTI-WHALE RATCHET (docs/qa-gate.md, "Declared duration budgets").
+//
+// One giant test file sets the wall clock of whichever 2-worker CI job draws
+// it: the owned-class balance harness reached 788 to 842 seconds as ONE file
+// before it was split, and the warlock sustain suite drifted to 359 seconds in
+// the shard pool with nothing to say so. This guard makes that drift a red
+// diff instead of a slow surprise, off DECLARED vitest timeouts, which are the
+// only deterministic signal available at review time.
+//
+// It reads ALLOWANCES, not runtimes (tests/helpers/declared_timeouts.ts is
+// the parser, a masking scanner anchored to registration heads; the fixtures
+// below are its executable specification). The rules are conscious-decision
+// ratchets, in the monolith_budget mold:
+//  - a single test (or hook) may not declare more than SINGLE_TEST_CAP unless
+//    its file has an exact-match exception row here. One test is one worker
+//    chain: it cannot parallelize, so its allowance IS a job-wall floor. For a
+//    test, split it along its cost clusters; for a hook, shrink the hook's
+//    work. Shrink an exception when the test splits; growing one is a
+//    maintainer decision that needs its reasoning in the PR body.
+//  - a file whose declared sum exceeds DEFAULT_FILE_ALLOWANCE needs an
+//    exact-match ledger row. The remedies, in preference order: split the file
+//    (the owned-class and chronomancy splits are the worked precedent, and the
+//    extract-and-test skill has the recipe), move the heavy case to a
+//    lane-owned suite (a MEASURED decision under the 90-second rule that
+//    scripts/lib/ci_shard_plan.mjs documents beside CI_LONG_SUITES), or add
+//    the row deliberately.
+//  - rows and exceptions are EXACT, so any timeout edit in a listed file
+//    touches this ledger in the same change, and a row for a file that no
+//    longer exceeds the default must be deleted (the ratchet direction).
+//  - a timeout the parser cannot size (an unresolvable identifier) fails the
+//    suite outright: hiding an allowance behind a constant is not an escape.
+//
+// Lane membership itself stays a MEASURED decision, deliberately not enforced
+// here: tests/audit_conservation_property.test.ts declares 2,700 seconds of
+// allowance across its property cases yet measured 55.1 seconds in-lane and
+// was evicted, so declared sums must never drive the lane list.
+
+const SINGLE_TEST_CAP = 480_000;
+
+// file -> the exact largest single declared timeout it is allowed to carry.
+// Every entry must exceed SINGLE_TEST_CAP (an exception at or under the cap
+// is dead weight and fails below).
+const SINGLE_TEST_EXCEPTIONS: ReadonlyMap<string, number> = new Map([
+  // The Nythraxis matrix runs its full boss ladder as one case. Splitting it
+  // is the standing follow-up; shrink this when that lands. Raised 720s to
+  // 1200s for the v0.38 tank pass, which doubled the Monte Carlo roster from
+  // two boss tanks to four: the case measured 218s solo (was ~120s), and the
+  // two child runs it spawns now carry 480s timeouts each, so the case budget
+  // must clear 960s to let a child fail on its own bound rather than here.
+  // Same ~5x lane-contention headroom the 720s row carried, not looser.
+  ['tests/nythraxis_matrix.test.ts', 1_200_000],
+  // These finite Windows matrices measured 469s and 451s under contention.
+  // Their aggregated comparisons stay intact, with a deliberate 600s ceiling;
+  // POSIX diet and nightly sweep allowances retain their existing values.
+  ['tests/owned_class_raid_armor_avoidance.test.ts', 600_000],
+  ['tests/owned_class_balance_role_bands.test.ts', 600_000],
+  // Two full production exports plus real POSIX and Node installer integrity
+  // proofs already carry this Windows allowance. The parser now sees the
+  // formatted platform expression; it must not silently escape this ledger.
+  ['tests/sfx_export_core.test.ts', 600_000],
+]);
+
+const DEFAULT_FILE_ALLOWANCE = 300_000;
+
+// file -> exact declared diet-arm sum, for every file above the default.
+// A Windows/POSIX allowance contributes its larger arm on every host. Complete
+// formatted trailing arguments count too; these rows record existing budgets.
+const FILE_ALLOWANCE_LEDGER: ReadonlyMap<string, number> = new Map([
+  ['tests/architecture.test.ts', 360_000],
+  ['tests/audit_conservation_property.test.ts', 2_700_000],
+  ['tests/battleground_band.test.ts', 480_000],
+  // Three independent real-mixer fixtures reset and import the render graph;
+  // Windows intake gets 120s per case, with POSIX and pose assertions intact.
+  ['tests/character_cast_snap_in.test.ts', 360_000],
+  // Three independent cast-entry/recovery fixtures carry the same Windows
+  // render-intake allowance, with their fixed-frame playback proofs intact.
+  ['tests/character_cast_playout.test.ts', 360_000],
+  // Five independently reset iOS-profile loader graphs, each preserving the
+  // real queue-priority and deduplication assertions with pending mock assets.
+  ['tests/character_stream_priority.test.ts', 600_000],
+  // The shared PostgreSQL fence fixture (createdb + the schema ladder) carries
+  // a 120s beforeAll, a 30s afterAll drop, and independently bounded lease,
+  // nonce, offline-writer and market-backfill proofs against real lock_timeout.
+  // All complete trailing declarations count: 3 * 120_000 + 16 * 30_000.
+  ['tests/character_save_statement_pg_integration.test.ts', 840_000],
+  ['tests/chronomancy_balance_targets.test.ts', 420_000],
+  // Cold Windows plans walk the complete source and test corpus. Single
+  // planning children have a 180s deadline inside 240s cases; pairs have 420s.
+  // The real zero-leg run is separate from the paired plan proof. Invalid
+  // argv, nested Vitest and list children retain their original bounds.
+  ['tests/ci_shard_plan.test.ts', 3_970_000],
+  ['tests/discord_db_integration.test.ts', 420_000],
+  // The Mirefen tavern's whole-world build (the collider grid, the floor fold and the keeper
+  // spawn over a full Sim) carries three raised cases: 180_000 + 120_000 + 120_000 plus
+  // default-bounded rest, measured at 480_000 in all.
+  ['tests/mirefen_tavern.test.ts', 480_000],
+  ['tests/dragonkin_whelp_litter.test.ts', 420_000],
+  // The claim roster pulls, resets and kills every dungeon boss in full
+  // instance runs: 180_000 + 3 * 120_000.
+  ['tests/dungeon_run_roster.test.ts', 540_000],
+  // Korzul's wake and pull: one whole-crypt build at 180_000 plus six encounter
+  // cases at 60_000 each, every one over the 20 s default under a loaded run:
+  // 180_000 + 6 * 60_000.
+  ['tests/gravewyrm_korzul.test.ts', 540_000],
+  // The Moon Stair entrance suite builds a whole shipped world (makeSim) in each of its
+  // eight walk and spawn cases, each raised to 180_000 for a cold CI build: 8 * 180_000.
+  // The rest stay default-bounded; the file measured 4.6 s of test time locally.
+  ['tests/drowned_temple_entrance.test.ts', 1_440_000],
+  ['tests/druid_balance_probe.test.ts', 630_000],
+  ['tests/emerald_deck_escape.test.ts', 540_000],
+  // Six independent player-verb reachability scans read the whole client
+  // source corpus. Windows disk allowances preserve every verb and call-site
+  // assertion; POSIX keeps the 20s default for each scan.
+  ['tests/farm_verb_reachability.test.ts', 1_440_000],
+  ['tests/gate_select_plan.test.ts', 720_000],
+  ['tests/guild_bank_pg_integration.test.ts', 840_000],
+  ['tests/hud_frame_coverage.test.ts', 480_000],
+  ['tests/hunter_dps_balance.test.ts', 400_000],
+  // Two finite source-corpus formatting guards, each with a Windows disk-scan
+  // allowance. The locale checks and POSIX deadlines remain unchanged.
+  ['tests/i18n_extra_tables.test.ts', 480_000],
+  ['tests/item_icons.test.ts', 720_000],
+  ['tests/mob_portrait_source_manifest.test.ts', 630_000],
+  // Three real-mixer setup paths; the pure picker and manifest census retain
+  // their previous bounds. Fixed-frame stance timing is unchanged.
+  ['tests/muster_guard_hold.test.ts', 360_000],
+  // Seven independently reset nameplate/locale graphs, including every
+  // non-Latin role label, with no assertion or readiness deadline removed.
+  ['tests/nameplate_npc_role.test.ts', 840_000],
+  // Five independently reset nameplate graphs retain the pledge/member and
+  // canvas/CSS palette assertions; only Windows fixture intake gets headroom.
+  ['tests/nameplate_pledge.test.ts', 600_000],
+  // Each of ten independent Windows cases resets and imports its real render
+  // fixture. Keep the fixed-frame and work-count assertions inside each case;
+  // POSIX retains its 20s default. These are intake allowances, not lane weights.
+  ['tests/npc_woc_body.test.ts', 1_200_000],
+  ['tests/nythraxis_matrix.test.ts', 1_200_000],
+  ['tests/owned_class_balance_dps_probes.test.ts', 360_000],
+  // The unchanged Windows matrix measured 422s; its POSIX diet stays 300s.
+  ['tests/owned_class_balance_dps_metrics.test.ts', 480_000],
+  ['tests/owned_class_balance_role_bands.test.ts', 600_000],
+  // The Groveheart harness: its 60 s healing probe measured about 13 s alone
+  // and 17 s under vitest, too close to the 20 s default under a loaded full
+  // run, so it takes the long-sims 120 s budget beside the 300 s contract case:
+  // 120_000 + 300_000 = 420_000 (the same shape as the chronomancy targets).
+  ['tests/owned_class_balance_groveheart.test.ts', 420_000],
+  ['tests/owned_class_raid_armor_avoidance.test.ts', 600_000],
+  // The unchanged Windows raid probes measured 331s; POSIX keeps 300s.
+  ['tests/owned_class_raid_sustain_bands.test.ts', 480_000],
+  ['tests/point_light_carriers.test.ts', 720_000],
+  ['tests/professions_archetype.test.ts', 480_000],
+  ['tests/quest_link.test.ts', 480_000],
+  // The two independent tier-sensitive-suite scans each walk the complete
+  // test tree. Both retain their original assertions and POSIX deadlines.
+  ['tests/release_i18n_tier_coverage.test.ts', 480_000],
+  // Native Windows validation of malformed, nonconforming and wrong-codec
+  // fixtures measured 110s; preserve the same full negative-case corpus.
+  ['tests/sfx_export_core.test.ts', 810_000],
+  ['tests/sfx_studio_server_security.test.ts', 450_000],
+  ['tests/storage_price_guard.test.ts', 480_000],
+  ['tests/transmission_neutralize.test.ts', 480_000],
+  // Ten independently reloaded equipment/body fixtures use the same Windows
+  // intake allowance as the NPC body suite, without changing their assertions.
+  ['tests/unarmed_empty_hand.test.ts', 1_200_000],
+  ['tests/woc_hunter_aim_release.test.ts', 540_000],
+  // The shared PostgreSQL escrow fixture carries a 30s setup hook plus ten
+  // independently bounded 30s cases. The exact row records that existing
+  // parallelizable shape without promoting the suite into the measured lane.
+  ['tests/woc_market_delivery_pg_integration.test.ts', 330_000],
+  // The 2026-08-23 warlock viability round doubled each anchor file's scope
+  // (the heroic Nythraxis contract plus the historical level-20 tripwire,
+  // four probe runs each); same suite family as the druid/owned probes above.
+  ['tests/warlock_anchor_affliction.test.ts', 480_000],
+  ['tests/warlock_anchor_demonology.test.ts', 480_000],
+  ['tests/warlock_anchor_destruction.test.ts', 480_000],
+  // Three unchanged 300s simulated fight windows measured 184 to 313 seconds
+  // each on a contended Windows host. Their Windows execution ceiling is now
+  // 480s per case; POSIX retains 120s, and every seed, tick and band stays fixed.
+  ['tests/warlock_five_minute_windows.test.ts', 1_440_000],
+]);
+
+// The corpus is every .ts and .mjs under tests/, NOT just *.test.ts: vitest
+// collects .test.mjs files too, and a vi.setConfig({ testTimeout }) in an
+// imported helper (tests/tank_crit_immunity_util.ts declares one) is a real
+// file-wide allowance that a test-files-only scan would never see.
+function suiteTimeouts(): Map<string, ReturnType<typeof declaredTimeouts>> {
+  const out = new Map<string, ReturnType<typeof declaredTimeouts>>();
+  for (const found of sourceFilesUnder('tests')) {
+    if (!/\.(ts|mjs)$/.test(found.file)) continue;
+    out.set(`tests/${found.file}`, declaredTimeouts(readFileSync(found.full, 'utf8')));
+  }
+  return out;
+}
+
+describe('suite duration budget (declared-timeout ratchet)', () => {
+  const suite = suiteTimeouts();
+
+  it('walks the whole suite recursively and actually parses timeouts', () => {
+    // Recursion pinning per the scan-guard rules: the floor sits ABOVE the
+    // depth-2 truncation count (2,734 on 2026-08-13, vs 2,802 full and 2,499
+    // flat), and the pinned member lives three segments deep, so a walk that
+    // silently stopped descending fails both ways.
+    expect(suite.size).toBeGreaterThanOrEqual(2_760);
+    expect(suite.has('tests/server/http/characterization.test.ts')).toBe(true);
+    const withTimeouts = [...suite.values()].filter((entry) => entry.sum > 0).length;
+    // Vacuity floor near the real count (82 on 2026-08-13): a parser change
+    // that stopped matching the repo's real declaration forms fails here, not
+    // by quietly emptying every rule below.
+    expect(withTimeouts).toBeGreaterThanOrEqual(70);
+    const nythraxis = suite.get('tests/nythraxis_matrix.test.ts');
+    expect(nythraxis?.sum).toBe(1_200_000);
+    expect(Math.max(...(nythraxis?.perTest ?? [0]))).toBe(1_200_000);
+  });
+
+  it('refuses any timeout the parser cannot size', () => {
+    for (const [file, { unparsed }] of suite) {
+      expect(
+        unparsed,
+        `${file} declares a timeout behind an identifier this parser cannot resolve; bind it ` +
+          'to a same-file numeric const or inline the literal, so the ledger can see it',
+      ).toEqual([]);
+    }
+  });
+
+  it('parses every declared-timeout form, the executable spec', () => {
+    const per = (src: string) => declaredTimeouts(src).perTest;
+    // The forms that COUNT.
+    expect(per(`it('a', () => { run(); }, 120_000);`)).toEqual([120_000]);
+    expect(per(`it('b', { timeout: 240_000 }, () => { run(); });`)).toEqual([240_000]);
+    expect(per(`it('c', () => { run(); }, FULL ? 900_000 : 300_000);`)).toEqual([300_000]);
+    expect(per(`it('d', { timeout: FULL ? 720_000 : 90_000 }, fn);`)).toEqual([90_000]);
+    expect(per(`it.each(['x'] as const)('%s runs', (s) => { run(s); }, 180_000);`)).toEqual([
+      180_000,
+    ]);
+    expect(per(`beforeAll(async () => { await seed(); }, 120_000);`)).toEqual([120_000]);
+    expect(per(`vi.setConfig({ testTimeout: 30_000 });`)).toEqual([30_000]);
+    expect(per(`const HOOK_MS = 60_000;\nbeforeAll(() => { seed(); }, HOOK_MS);`)).toEqual([
+      60_000,
+    ]);
+    // The forms that MUST NOT count: spawn options, ordinary call arguments,
+    // fixture objects inside a body, string and comment text, and values at
+    // or under the repo default testTimeout.
+    expect(per(`execFileSync(cmd, args, { timeout: 300_000 });`)).toEqual([]);
+    expect(per(`const o = makeOptions({ visible: true }, 120_000);`)).toEqual([]);
+    expect(per(`it('e', () => { expect(rows).toEqual([{ timeout: 120_000 }]); });`)).toEqual([]);
+    expect(per(`it('f', () => { log('statement_timeout: 900000'); });`)).toEqual([]);
+    expect(per(`// it('old', () => { run(); }, 900_000);`)).toEqual([]);
+    expect(per(`it('g', () => { run(); }, 15_000);`)).toEqual([]);
+    expect(per(`setTimeout(() => { poll(); }, 30_000);`)).toEqual([]);
+    // A method call on a LOCAL VARIABLE named test is not a registration.
+    expect(per(`test.controller.advance('a', 'b', 60_000);`)).toEqual([]);
+    // A regex literal with an odd quote count must not swallow the rest of
+    // the file into string state.
+    expect(per(`const R = /it's/;\nit('r', () => { run(); }, 600_000);`)).toEqual([600_000]);
+    // A trailing identifier in the TIMEOUT SLOT (previous argument is a
+    // function literal) counts by position, whatever its name; a trailing
+    // identifier after an options object is a test-fn reference and does not.
+    expect(per(`const BUDGET = 600_000;\nit('x', () => { run(); }, BUDGET);`)).toEqual([600_000]);
+    expect(per(`it('y', { timeout: 240_000 }, myTestFn);`)).toEqual([240_000]);
+    // Unresolvable identifiers surface instead of vanishing.
+    expect(declaredTimeouts(`it('h', { timeout: IMPORTED_MS }, fn);`).unparsed).toHaveLength(1);
+    expect(declaredTimeouts(`it('i', () => { run(); }, importedBudget);`).unparsed).toHaveLength(1);
+    // The mask keeps template interpolations bracket-balanced.
+    expect(maskCommentsAndStrings(`\`a \${b(1)} c\``).includes('b(1)')).toBe(true);
+  });
+
+  it('caps every single declared test timeout at the worker-chain bound', () => {
+    for (const [file, { perTest }] of suite) {
+      const largest = Math.max(0, ...perTest);
+      const exception = SINGLE_TEST_EXCEPTIONS.get(file);
+      if (exception !== undefined) {
+        expect(
+          largest,
+          `${file}: the single-test exception is exact; shrink the row when the test splits, ` +
+            'and growing it is a maintainer decision that needs its reasoning in the PR body',
+        ).toBe(exception);
+        continue;
+      }
+      expect(
+        largest,
+        `${file} declares a ${Math.round(largest / 1000)}s single-test allowance (cap ` +
+          `${SINGLE_TEST_CAP / 1000}s). One test is one worker chain and cannot parallelize: ` +
+          'split a test along its cost clusters (the owned-class balance split is the ' +
+          'precedent), shrink a hook, or add an exact exception row in ' +
+          'tests/suite_duration_budget.test.ts deliberately.',
+      ).toBeLessThanOrEqual(SINGLE_TEST_CAP);
+    }
+    for (const [file, value] of SINGLE_TEST_EXCEPTIONS) {
+      expect(suite.has(file), `${file}: stale single-test exception row`).toBe(true);
+      expect(
+        value,
+        `${file}: a single-test exception at or under the cap is dead weight; delete it`,
+      ).toBeGreaterThan(SINGLE_TEST_CAP);
+    }
+  });
+
+  it('pins the per-file declared allowance ledger exactly, both directions', () => {
+    for (const [file, { sum }] of suite) {
+      const row = FILE_ALLOWANCE_LEDGER.get(file);
+      if (row !== undefined) {
+        expect(
+          sum,
+          `${file}: the ledger row is exact; any timeout edit here updates the row in the ` +
+            'same change (and a split LOWERS it)',
+        ).toBe(row);
+        continue;
+      }
+      expect(
+        sum,
+        `${file} declares ${Math.round(sum / 1000)}s of summed allowance (default ` +
+          `${DEFAULT_FILE_ALLOWANCE / 1000}s). Split the file along its cost clusters, move the ` +
+          'heavy case to a lane-owned suite (a MEASURED decision; scripts/lib/ci_shard_plan.mjs, ' +
+          'CI_LONG_SUITES), or add an exact ledger row in tests/suite_duration_budget.test.ts ' +
+          'deliberately.',
+      ).toBeLessThanOrEqual(DEFAULT_FILE_ALLOWANCE);
+    }
+    for (const [file, row] of FILE_ALLOWANCE_LEDGER) {
+      expect(suite.has(file), `${file}: stale ledger row (file gone; delete the row)`).toBe(true);
+      expect(
+        row,
+        `${file}: ledger row at or under the default is dead weight; delete it`,
+      ).toBeGreaterThan(DEFAULT_FILE_ALLOWANCE);
+    }
+  });
+
+  it('reads the tree only through the shared walker', () => {
+    expectScansOnlyThroughSharedWalkers(import.meta.url, ['source_files_under']);
+  });
+});

@@ -10,6 +10,7 @@ import {
   shouldApproachPickedEntity,
 } from '../src/game/interactions';
 import { type Entity, INTERACT_RANGE } from '../src/sim/types';
+import type { BgInfo, BgMatchInfo, BgPlayerInfo } from '../src/world_api/battleground';
 
 function stubEntity(partial: Partial<Entity> & Pick<Entity, 'id' | 'kind'>): Entity {
   return {
@@ -93,6 +94,38 @@ describe('hoverCursorKind', () => {
     expect(hoverCursorKind(npc, 1, new Set())).toBe('friendly');
   });
 
+  it("returns friendly (the gauntlet) for the muster's weapon rack, and only while it lends", () => {
+    const rack = stubEntity({ id: 9, kind: 'object', templateId: 'muster_weapon_rack' });
+    rack.lootable = true;
+    expect(hoverCursorKind(rack, 1, new Set())).toBe('friendly');
+    rack.lootable = false;
+    expect(hoverCursorKind(rack, 1, new Set())).toBe('default');
+    // Any other ground object keeps the plain arrow it always had.
+    const crate = stubEntity({ id: 10, kind: 'object', templateId: 'supply_crate' });
+    crate.lootable = true;
+    expect(hoverCursorKind(crate, 1, new Set())).toBe('default');
+  });
+
+  it('returns friendly (the gauntlet) for a usable encounter body the player cannot attack', () => {
+    // A Remembrance Candle's body in Morthen's Rite: held, never hostile, and
+    // the thing to click. The direct pick now resolves a hover over it to the
+    // candle, and the plain arrow gave no cue that it does something.
+    const candle = stubEntity({ id: 20, kind: 'mob', templateId: 'crypt_remembrance_candle' });
+    expect(hoverCursorKind(candle, 1, new Set())).toBe('friendly');
+    // Only while it can be used: a spent or dead body is scenery again.
+    candle.hp = 0;
+    expect(hoverCursorKind(candle, 1, new Set())).toBe('default');
+    candle.hp = 100;
+    candle.dead = true;
+    expect(hoverCursorKind(candle, 1, new Set())).toBe('default');
+    // A usable body the player CAN attack (the Soul Brazier) keeps the attack cursor.
+    const brazier = stubEntity({ id: 21, kind: 'mob', templateId: 'soul_brazier', hostile: true });
+    expect(hoverCursorKind(brazier, 1, new Set())).toBe('attack');
+    // A non-hostile mob with nothing to use keeps the plain arrow.
+    const critter = stubEntity({ id: 22, kind: 'mob', templateId: 'marrow_restless_bones' });
+    expect(hoverCursorKind(critter, 1, new Set())).toBe('default');
+  });
+
   it('returns friendly for other players', () => {
     const ally = stubEntity({ id: 4, kind: 'player' });
     const stranger = stubEntity({ id: 5, kind: 'player' });
@@ -130,6 +163,22 @@ describe('hoverCursorKind', () => {
 });
 
 describe('activePvpOpponentIds', () => {
+  it('clears and refills a caller-owned set', () => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    const ids = new Set([99]);
+    const result = activePvpOpponentIds(
+      {
+        playerId: 1,
+        player,
+        duelInfo: { otherPid: 2, otherName: 'Duelist', state: 'active' },
+      },
+      ids,
+    );
+
+    expect(result).toBe(ids);
+    expect([...ids]).toEqual([2]);
+  });
+
   it('includes active duel and every arena enemy', () => {
     const player = stubEntity({ id: 1, kind: 'player' });
     const ids = activePvpOpponentIds({
@@ -142,13 +191,14 @@ describe('activePvpOpponentIds', () => {
         rating: 1500,
         wins: 0,
         losses: 0,
+        draws: 0,
         format: '1v1',
         standings: {
-          '1v1': { rating: 1500, wins: 0, losses: 0 },
-          '2v2': { rating: 1500, wins: 0, losses: 0 },
-          fiesta: { rating: 1500, wins: 0, losses: 0 },
-          yumi3: { rating: 1500, wins: 0, losses: 0 },
-          yumi5: { rating: 1500, wins: 0, losses: 0 },
+          '1v1': { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          '2v2': { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          fiesta: { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          yumi3: { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          yumi5: { rating: 1500, wins: 0, losses: 0, draws: 0 },
         },
         ladder: [],
         ladders: { '1v1': [], '2v2': [], fiesta: [], yumi3: [], yumi5: [] },
@@ -188,13 +238,14 @@ describe('activePvpOpponentIds', () => {
       rating: 1500,
       wins: 0,
       losses: 0,
+      draws: 0,
       format: 'yumi3' as const,
       standings: {
-        '1v1': { rating: 1500, wins: 0, losses: 0 },
-        '2v2': { rating: 1500, wins: 0, losses: 0 },
-        fiesta: { rating: 1500, wins: 0, losses: 0 },
-        yumi3: { rating: 1500, wins: 0, losses: 0 },
-        yumi5: { rating: 1500, wins: 0, losses: 0 },
+        '1v1': { rating: 1500, wins: 0, losses: 0, draws: 0 },
+        '2v2': { rating: 1500, wins: 0, losses: 0, draws: 0 },
+        fiesta: { rating: 1500, wins: 0, losses: 0, draws: 0 },
+        yumi3: { rating: 1500, wins: 0, losses: 0, draws: 0 },
+        yumi5: { rating: 1500, wins: 0, losses: 0, draws: 0 },
       },
       ladder: [],
       ladders: { '1v1': [], '2v2': [], fiesta: [], yumi3: [], yumi5: [] },
@@ -253,13 +304,14 @@ describe('activePvpOpponentIds', () => {
         rating: 1500,
         wins: 0,
         losses: 0,
+        draws: 0,
         format: '1v1',
         standings: {
-          '1v1': { rating: 1500, wins: 0, losses: 0 },
-          '2v2': { rating: 1500, wins: 0, losses: 0 },
-          fiesta: { rating: 1500, wins: 0, losses: 0 },
-          yumi3: { rating: 1500, wins: 0, losses: 0 },
-          yumi5: { rating: 1500, wins: 0, losses: 0 },
+          '1v1': { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          '2v2': { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          fiesta: { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          yumi3: { rating: 1500, wins: 0, losses: 0, draws: 0 },
+          yumi5: { rating: 1500, wins: 0, losses: 0, draws: 0 },
         },
         ladder: [],
         ladders: { '1v1': [], '2v2': [], fiesta: [], yumi3: [], yumi5: [] },
@@ -278,6 +330,127 @@ describe('activePvpOpponentIds', () => {
     });
 
     expect(ids.size).toBe(0);
+  });
+
+  // Thornhollow Fields (5v5 CTF). The sim's isHostileTo treats the opposing
+  // TEAM as hostile for the whole live match and resolves an owned pet to its
+  // owner, so every attack affordance this set drives (hover cursor, click
+  // marker, attack-move, attack-nearest, pad auto-target) must agree: an
+  // enemy fighter and an enemy warlock's demon are attackable, a teammate and
+  // a teammate's pet are not.
+  const bgRow = (pid: number, team: number): BgPlayerInfo => ({
+    pid,
+    name: `P${pid}`,
+    cls: 'warlock',
+    team,
+    carrying: false,
+    dead: false,
+    kills: 0,
+    deaths: 0,
+    captures: 0,
+    assists: 0,
+  });
+  const bgInfoWith = (match: BgMatchInfo | null): BgInfo => ({
+    rating: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    captures: 0,
+    queued: false,
+    queueSize: 0,
+    queuedParty: 0,
+    firstWinBonusReady: false,
+    doubleHonorActive: false,
+    proposal: null,
+    requeueIn: 0,
+    match,
+    ladder: [],
+  });
+  const bgMatch: BgMatchInfo = {
+    state: 'active',
+    myTeam: 0,
+    capsToWin: 3,
+    scores: [0, 0],
+    flags: [
+      { state: 'home', carrierPid: null, carrierName: null, carrierTeam: null },
+      { state: 'home', carrierPid: null, carrierName: null, carrierTeam: null },
+    ],
+    players: [bgRow(1, 0), bgRow(5, 0), bgRow(6, 1), bgRow(7, 1)],
+    countdown: 0,
+    timeLeft: 600,
+    waveIn: [10, 10],
+    respawnIn: 0,
+    winner: null,
+  };
+
+  it('includes every opposing-team fighter of an active battleground match, never a teammate', () => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    const ids = activePvpOpponentIds({ playerId: 1, player, bgInfo: bgInfoWith(bgMatch) });
+    expect([...ids].sort()).toEqual([6, 7]);
+  });
+
+  it('ignores a battleground match that is not active (countdown / ended) or absent', () => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    expect(
+      activePvpOpponentIds({
+        playerId: 1,
+        player,
+        bgInfo: bgInfoWith({ ...bgMatch, state: 'countdown' }),
+      }).size,
+    ).toBe(0);
+    expect(
+      activePvpOpponentIds({
+        playerId: 1,
+        player,
+        bgInfo: bgInfoWith({ ...bgMatch, state: 'ended' }),
+      }).size,
+    ).toBe(0);
+    expect(activePvpOpponentIds({ playerId: 1, player, bgInfo: bgInfoWith(null) }).size).toBe(0);
+  });
+
+  it('includes an enemy-owned pet (the sim resolves a pet to its owner), never an ally pet', () => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    const enemyDemon = stubEntity({ id: 60, kind: 'mob', ownerId: 6, hostile: false });
+    const allyDemon = stubEntity({ id: 50, kind: 'mob', ownerId: 5, hostile: false });
+    const ownDemon = stubEntity({ id: 10, kind: 'mob', ownerId: 1, hostile: false });
+    const wildWolf = stubEntity({ id: 70, kind: 'mob', ownerId: null, hostile: true });
+    const entities = new Map<number, Entity>([
+      [1, player],
+      [60, enemyDemon],
+      [50, allyDemon],
+      [10, ownDemon],
+      [70, wildWolf],
+    ]);
+    const ids = activePvpOpponentIds({
+      playerId: 1,
+      player,
+      entities,
+      bgInfo: bgInfoWith(bgMatch),
+    });
+    expect([...ids].sort((a, b) => a - b)).toEqual([6, 7, 60]);
+    // The same verdict every consumer reads:
+    expect(isAttackableEntity(enemyDemon, 1, ids)).toBe(true);
+    expect(isAttackableEntity(allyDemon, 1, ids)).toBe(false);
+    expect(isAttackableEntity(ownDemon, 1, ids)).toBe(false);
+    expect(isAttackableEntity(wildWolf, 1, ids)).toBe(true); // wild-hostile, as before
+    expect(hoverCursorKind(enemyDemon, 1, new Set(), ids)).toBe('attack');
+    expect(hoverCursorKind(allyDemon, 1, new Set(), ids)).toBe('default');
+  });
+
+  it('includes a duel / arena opponent pet too (same owner resolution)', () => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    const rivalPet = stubEntity({ id: 20, kind: 'mob', ownerId: 2, hostile: false });
+    const entities = new Map<number, Entity>([
+      [1, player],
+      [20, rivalPet],
+    ]);
+    const ids = activePvpOpponentIds({
+      playerId: 1,
+      player,
+      entities,
+      duelInfo: { otherPid: 2, otherName: 'Duelist', state: 'active' },
+    });
+    expect([...ids].sort((a, b) => a - b)).toEqual([2, 20]);
   });
 });
 
@@ -332,6 +505,72 @@ describe('handlePickedEntity', () => {
 
     expect(handlePickedEntity(world, hud, 2, button, 10, 20)).toBe(true);
     expect(hud.openLoot).toHaveBeenCalledWith(2, 10, 20);
+  });
+
+  // A dead PLAYER's body carries loot only while it holds World PvP spoils
+  // (src/sim/pvp/world_pvp_spoils.ts); the killer opens it like a corpse, and a
+  // plain dead player (no spoils) still only targets.
+  it.each([0, 2])("opens a World PvP body's spoils with button %i", (button) => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    const body = stubEntity({
+      id: 2,
+      kind: 'player',
+      dead: true,
+      lootable: true,
+      tappedById: 1,
+      loot: {
+        copper: 2_000,
+        items: [
+          {
+            itemId: 'pvp_trophy_skull',
+            count: 1,
+            personalFor: [1],
+            materialSources: [
+              { source: { gatherer: { kind: 'character', id: 2, name: 'Bet' } }, count: 1 },
+            ],
+          },
+        ],
+      },
+      pos: { x: 1, y: 0, z: 0 },
+    });
+    const plain = stubEntity({ id: 3, kind: 'player', dead: true, pos: { x: 1, y: 0, z: 0 } });
+    const world = {
+      playerId: 1,
+      player,
+      entities: new Map([
+        [1, player],
+        [2, body],
+        [3, plain],
+      ]),
+      targetEntity: vi.fn(),
+    } as unknown as Parameters<typeof handlePickedEntity>[0];
+    const hud = {
+      openLoot: vi.fn(),
+      closeContextMenu: () => {},
+    } as unknown as Parameters<typeof handlePickedEntity>[1];
+
+    expect(handlePickedEntity(world, hud, 2, button, 10, 20)).toBe(true);
+    expect(hud.openLoot).toHaveBeenCalledWith(2, 10, 20);
+    expect(handlePickedEntity(world, hud, 3, button, 10, 20)).toBe(false);
+    expect(hud.openLoot).toHaveBeenCalledTimes(1);
+    expect(world.targetEntity).toHaveBeenCalledWith(3);
+  });
+
+  it('walks toward an out-of-range World PvP body with spoils, never toward a bare dead player', () => {
+    const player = stubEntity({ id: 1, kind: 'player' });
+    const far = { x: 30, y: 0, z: 0 };
+    const body = stubEntity({
+      id: 2,
+      kind: 'player',
+      dead: true,
+      lootable: true,
+      tappedById: 1,
+      loot: { copper: 500, items: [] },
+      pos: far,
+    });
+    const plain = stubEntity({ id: 3, kind: 'player', dead: true, pos: far });
+    expect(shouldApproachPickedEntity(player, body, false)).toBe(true);
+    expect(shouldApproachPickedEntity(player, plain, false)).toBe(false);
   });
 
   it.each([0, 2])('preserves movement when button %i finds no visible corpse loot', (button) => {
@@ -699,6 +938,23 @@ describe('handlePickedEntity while dead (the ghost/death loop)', () => {
     expect(handlePickedEntity(world, hud, 2, 2, 10, 20)).toBe(true);
     // The click opens the HUD confirm (which owns sending the command on OK);
     // it must never send the resurrect command directly.
+    expect(calls).toContain('requestSpiritHealerResurrect');
+    expect(calls).not.toContain('resurrectAtSpiritHealer');
+    expect(calls).not.toContain('openQuestDialog');
+  });
+
+  it('a ghost left-clicking the Spirit Healer routes through the same confirm gate', () => {
+    // The raise is a conversation (no ghost-prompt button any more), and the
+    // left-click arm "talks too" for trackpad players, so a ghost's left-click on
+    // the Keeper must not be a silent target-only no-op.
+    const healer = stubEntity({
+      id: 2,
+      kind: 'npc',
+      templateId: 'spirit_healer',
+      pos: { x: 3, y: 0, z: 0 },
+    });
+    const { world, hud, calls } = rig({ dead: true, ghost: true }, healer);
+    expect(handlePickedEntity(world, hud, 2, 0, 10, 20)).toBe(true);
     expect(calls).toContain('requestSpiritHealerResurrect');
     expect(calls).not.toContain('resurrectAtSpiritHealer');
     expect(calls).not.toContain('openQuestDialog');

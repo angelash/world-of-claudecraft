@@ -6,13 +6,33 @@ type TestQuery = (
   values?: readonly unknown[],
 ) => Promise<QueryResult<Record<string, unknown>>>;
 
-const db = vi.hoisted(() => ({
-  query: vi.fn<TestQuery>(),
-  connect: vi.fn<() => Promise<PoolClient>>(),
-}));
+const db = vi.hoisted(() => {
+  const query = vi.fn<TestQuery>();
+  // The statement handed to a runWithStatementTimeout callback: forwards to the
+  // shared query spy (so every test's result chain keeps its order) through a
+  // DISTINCT spy, so a test can tell a bounded statement from a bare pool one.
+  const boundedQuery = vi.fn<TestQuery>((text, values) => query(text, values));
+  const runWithStatementTimeout = vi.fn(
+    (_timeoutMs: number, fn: (q: TestQuery) => Promise<unknown>) => fn(boundedQuery),
+  );
+  return {
+    query,
+    boundedQuery,
+    runWithStatementTimeout,
+    connect: vi.fn<() => Promise<PoolClient>>(),
+  };
+});
 
 vi.mock('../server/db', () => ({
-  pool: db,
+  pool: { query: db.query, connect: db.connect },
+  runWithStatementTimeout: db.runWithStatementTimeout,
+}));
+
+// The suspicion-flag emitter is its own unit (tests/suspicion_flags.test.ts);
+// here it only matters that the burst path hands it the report's signals and
+// cohort, so it is mocked inert.
+vi.mock('../server/suspicion_flags', () => ({
+  flagRegistrationBurst: vi.fn(),
 }));
 
 import {
@@ -22,18 +42,27 @@ import {
   createPlayerReport,
   createSuspiciousRegistrationReport,
   forceCharacterRename,
+  ignoreReport,
   liftAccountChatMute,
   moderateAccount,
   moderationQueue,
   moderationReportsForAccount,
   muteAccountChat,
+  prunePlayerReportsBatch,
+  RECENT_REGISTRATIONS_TIMEOUT_MS,
+  reactivateAccountAudited,
   recordInGameAction,
+  recordItemNameClear,
+  resetChatStrikesAudited,
   setDailyRewardsBan,
   setDailyRewardsIpBan,
   setOnAccountModerated,
+  setOnModerationQueueChanged,
 } from '../server/moderation_db';
+import { REALM } from '../server/realm';
+import { flagRegistrationBurst } from '../server/suspicion_flags';
 
-const { query, connect } = db;
+const { query, boundedQuery, runWithStatementTimeout, connect } = db;
 
 function queryResult<T extends QueryResultRow>(rows: T[], rowCount = rows.length): QueryResult<T> {
   return {
@@ -57,6 +86,9 @@ function clientStub() {
 beforeEach(() => {
   query.mockReset();
   connect.mockReset();
+  // mockClear only: the pass-through implementations must survive resets.
+  boundedQuery.mockClear();
+  runWithStatementTimeout.mockClear();
 });
 
 describe('moderation report helpers', () => {
@@ -98,10 +130,10 @@ describe('moderation report helpers', () => {
 
   it('creates a system moderation report for suspicious sequential registration bursts', async () => {
     query
-      .mockResolvedValueOnce(queryResult([{ n: 31 }])) // same numeric prefix
-      .mockResolvedValueOnce(queryResult([{ n: 1 }])) // same IP
-      .mockResolvedValueOnce(queryResult([{ n: 1 }])) // same /24
-      .mockResolvedValueOnce(queryResult([{ n: 1 }])) // same UA
+      .mockResolvedValueOnce(queryResult([{ n: 31, cohort_ids: [42, 41] }])) // same numeric prefix
+      .mockResolvedValueOnce(queryResult([{ n: 1, cohort_ids: [42] }])) // same IP
+      .mockResolvedValueOnce(queryResult([{ n: 1, cohort_ids: [42] }])) // same /24
+      .mockResolvedValueOnce(queryResult([{ n: 1, cohort_ids: [42] }])) // same UA
       .mockResolvedValueOnce(queryResult([])) // duplicate report check
       .mockResolvedValueOnce(queryResult([{ id: 123 }])); // insert
 
@@ -114,6 +146,37 @@ describe('moderation report helpers', () => {
 
     expect(result.created).toBe(true);
     expect(result.signals).toContain('31 accounts with username prefix "aintgrave" in 10 minutes');
+    // Each signal is ONE read: the count and the newest-first burst cohort ride
+    // the same window/ban predicate, so a tripped signal never re-scans the
+    // window with a second per-signal id query. The match is materialised once
+    // in a CTE and the cohort is a LIMIT-bounded top-N over it (never an
+    // in-aggregate sort of the whole match set, which IS the flood).
+    const [countSql, countParams] = query.mock.calls[0];
+    expect(countSql).toMatch(/WITH m AS \(\s*SELECT id FROM accounts/);
+    expect(countSql).toContain('(SELECT count(*)::int FROM m) AS n');
+    expect(countSql).toContain('ARRAY(SELECT id FROM m ORDER BY id DESC LIMIT 50) AS cohort_ids');
+    expect(countSql).not.toMatch(/array_agg/);
+    expect(countSql).toContain("created_at > now() - ($1 || ' minutes')::interval");
+    expect(countSql).toContain('banned_at IS NULL');
+    expect(countSql).toContain("lower(username) LIKE $2 || '%'");
+    expect(countParams).toEqual(['10', 'aintgrave']);
+    // Every burst read is bounded: they run detached on the registration path
+    // with no concurrency cap, so a flood-sized match must die at 2 s rather
+    // than pin pooled clients for the 15 s session default.
+    expect(RECENT_REGISTRATIONS_TIMEOUT_MS).toBe(2_000);
+    expect(runWithStatementTimeout).toHaveBeenCalledTimes(4);
+    for (const [timeoutMs] of runWithStatementTimeout.mock.calls) expect(timeoutMs).toBe(2_000);
+    expect(boundedQuery).toHaveBeenCalledTimes(4);
+    expect(boundedQuery.mock.calls.map(([sql]) => sql)).toEqual(
+      query.mock.calls.slice(0, 4).map(([sql]) => sql),
+    );
+    // The duplicate check and the insert stay on the bare pool.
+    expect(boundedQuery.mock.calls.map(([sql]) => sql)).not.toContainEqual(
+      expect.stringMatching(/player_reports/),
+    );
+    expect(query.mock.calls[1][1]).toEqual(['10', '203.0.113.44']);
+    expect(query.mock.calls[2][1]).toEqual(['10', '203.0.113.%']);
+    expect(query.mock.calls[3][1]).toEqual(['10', 'Mozilla/5.0']);
     expect(query.mock.calls[4][0]).toMatch(/FROM player_reports/);
     expect(query.mock.calls[5][0]).toMatch(/INSERT INTO player_reports/);
     expect(query.mock.calls[5][1]).toEqual([
@@ -121,6 +184,115 @@ describe('moderation report helpers', () => {
       'spam',
       expect.stringContaining('Automated registration pattern'),
     ]);
+    expect(query).toHaveBeenCalledTimes(6);
+    // No second per-signal id query: the ONLY statements reading accounts are
+    // the four CTE-shaped burst reads, and none starts as a bare id rescan.
+    const accountReads = query.mock.calls
+      .map(([sql]) => sql)
+      .filter((sql) => /FROM accounts/.test(sql));
+    expect(accountReads).toHaveLength(4);
+    for (const sql of accountReads) expect(sql).toMatch(/^\s*WITH m AS/);
+    expect(query.mock.calls.map(([sql]) => sql)).not.toContainEqual(
+      expect.stringMatching(/^\s*SELECT id FROM accounts/),
+    );
+    // The suspicion flag mirrors the report, carrying the tripped signals and
+    // the burst cohort of the TRIPPED signal only as related accounts.
+    expect(flagRegistrationBurst).toHaveBeenCalledWith({
+      accountId: 42,
+      signals: result.signals,
+      cohortAccountIds: [42, 41],
+    });
+  });
+
+  it('degrades a failed signal read instead of losing the report and the flag', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    query
+      .mockResolvedValueOnce(queryResult([{ n: 31, cohort_ids: [42, 41] }])) // same numeric prefix
+      .mockRejectedValueOnce(new Error('statement timeout')) // same IP: the flood-sized read dies
+      .mockResolvedValueOnce(queryResult([{ n: 1, cohort_ids: [42] }])) // same /24
+      .mockResolvedValueOnce(queryResult([{ n: 1, cohort_ids: [42] }])) // same UA
+      .mockResolvedValueOnce(queryResult([])) // duplicate report check
+      .mockResolvedValueOnce(queryResult([{ id: 123 }])); // insert
+
+    const result = await createSuspiciousRegistrationReport({
+      accountId: 42,
+      username: 'aintgrave1031',
+      ip: '203.0.113.44',
+      userAgent: 'Mozilla/5.0',
+    });
+
+    // The failed signal reads as no matches; the others still earn the report
+    // and the flag (the loss would land exactly when the box is busiest).
+    expect(result.created).toBe(true);
+    expect(result.signals).toContain('31 accounts with username prefix "aintgrave" in 10 minutes');
+    expect(result.signals.some((s) => s.includes('from IP'))).toBe(false);
+    expect(query.mock.calls[5][0]).toMatch(/INSERT INTO player_reports/);
+    expect(flagRegistrationBurst).toHaveBeenCalledWith({
+      accountId: 42,
+      signals: result.signals,
+      cohortAccountIds: [42, 41],
+    });
+    expect(err).toHaveBeenCalledWith('registration burst signal read failed:', expect.any(Error));
+    err.mockRestore();
+  });
+
+  it('unions the burst cohorts of every tripped signal in signal order, deduped', async () => {
+    vi.mocked(flagRegistrationBurst).mockClear();
+    query
+      .mockResolvedValueOnce(queryResult([{ n: 31, cohort_ids: [42, 41, 40] }])) // prefix trips
+      .mockResolvedValueOnce(queryResult([{ n: 9, cohort_ids: [42, 39] }])) // IP trips
+      .mockResolvedValueOnce(queryResult([{ n: 1, cohort_ids: [99] }])) // /24 does not
+      .mockResolvedValueOnce(queryResult([{ n: 61, cohort_ids: [42, 41, 38] }])) // UA trips
+      .mockResolvedValueOnce(queryResult([])) // duplicate report check
+      .mockResolvedValueOnce(queryResult([{ id: 124 }])); // insert
+
+    const result = await createSuspiciousRegistrationReport({
+      accountId: 42,
+      username: 'aintgrave1031',
+      ip: '203.0.113.44',
+      userAgent: 'Mozilla/5.0',
+    });
+
+    expect(result.created).toBe(true);
+    expect(result.signals).toHaveLength(3);
+    expect(flagRegistrationBurst).toHaveBeenCalledWith({
+      accountId: 42,
+      signals: result.signals,
+      cohortAccountIds: [42, 41, 40, 39, 38],
+    });
+    // Only TRIPPED signals contribute: the untripped /24 read carried an id
+    // (99) that no tripped cohort holds, and it never reaches the flag.
+    const { cohortAccountIds } = vi.mocked(flagRegistrationBurst).mock.calls[0][0];
+    expect(cohortAccountIds).not.toContain(99);
+  });
+
+  it('reads an empty burst cohort when the window matched no account', async () => {
+    vi.mocked(flagRegistrationBurst).mockClear();
+    // ARRAY(subselect) over zero rows is an empty array ({}), never NULL; the
+    // Array.isArray guard still tolerates a NULL cell (the second read) so a
+    // driver quirk degrades to an empty cohort rather than a throw. A tripped
+    // signal can still carry an empty cohort when the mock forces the count.
+    query
+      .mockResolvedValueOnce(queryResult([{ n: 31, cohort_ids: [] }]))
+      .mockResolvedValueOnce(queryResult([{ n: 0, cohort_ids: null }]))
+      .mockResolvedValueOnce(queryResult([{ n: 0, cohort_ids: [] }]))
+      .mockResolvedValueOnce(queryResult([{ n: 0, cohort_ids: [] }]))
+      .mockResolvedValueOnce(queryResult([]))
+      .mockResolvedValueOnce(queryResult([{ id: 125 }]));
+
+    const result = await createSuspiciousRegistrationReport({
+      accountId: 42,
+      username: 'aintgrave1031',
+      ip: '203.0.113.44',
+      userAgent: 'Mozilla/5.0',
+    });
+
+    expect(result.created).toBe(true);
+    expect(flagRegistrationBurst).toHaveBeenCalledWith({
+      accountId: 42,
+      signals: result.signals,
+      cohortAccountIds: [],
+    });
   });
 
   it('does not create a system moderation report without a suspicious registration signal', async () => {
@@ -284,8 +456,34 @@ describe('moderation report helpers', () => {
       'tone it down',
       new Date(expiresAt),
     ]);
-    expect(client.query.mock.calls[3][0]).toBe('COMMIT');
+    // Mirrors moderateAccount's ban/suspend arm: a chat mute is punitive, so it
+    // resolves whatever open report led to it in the same transaction.
+    expect(client.query.mock.calls[3][0]).toMatch(/UPDATE player_reports/);
+    expect(client.query.mock.calls[3][1]).toEqual([2, 1, 'tone it down']);
+    expect(client.query.mock.calls[4][0]).toBe('COMMIT');
+    expect(client.query.mock.calls).toHaveLength(5);
     expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves the reported account open reports when muting its chat', async () => {
+    const client = clientStub();
+    connect.mockResolvedValue(client as unknown as PoolClient);
+    const expiresAt = new Date(Date.now() + 3600_000).toISOString();
+
+    await muteAccountChat({
+      accountId: 2,
+      adminAccountId: 1,
+      reason: 'chat abuse',
+      expiresAt,
+    });
+
+    const reportUpdateCall = client.query.mock.calls.find((call) =>
+      /UPDATE player_reports/.test(String(call[0])),
+    );
+    if (!reportUpdateCall) throw new Error('player_reports update query not found');
+    expect(reportUpdateCall[0]).toMatch(/status = 'actioned'/);
+    expect(reportUpdateCall[0]).toMatch(/reported_account_id = \$1 AND status = 'open'/);
+    expect(reportUpdateCall[1]).toEqual([2, 1, 'chat abuse']);
   });
 
   it('lifts an active chat mute and writes a dedicated audit action', async () => {
@@ -329,6 +527,90 @@ describe('moderation report helpers', () => {
     expect(client.query.mock.calls[2][0]).toBe('ROLLBACK');
   });
 
+  it('rejects reactivation without a reason', async () => {
+    await expect(
+      reactivateAccountAudited({ accountId: 2, adminAccountId: 1, reason: '   ' }),
+    ).rejects.toThrow(/reason/);
+    expect(query).not.toHaveBeenCalled();
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  it('reactivates an account and writes an audit action in one transaction', async () => {
+    const client = clientStub();
+    connect.mockResolvedValue(client as unknown as PoolClient);
+
+    await reactivateAccountAudited({
+      accountId: 2,
+      adminAccountId: 1,
+      reason: 'appeal accepted',
+    });
+
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(client.query.mock.calls[0][0]).toBe('BEGIN');
+    expect(client.query.mock.calls[1][0]).toMatch(/deactivated_at = NULL/);
+    expect(client.query.mock.calls[1][1]).toEqual([2]);
+    expect(client.query.mock.calls[2][0]).toMatch(/account_moderation_actions/);
+    expect(client.query.mock.calls[2][1]).toEqual([2, 1, 'reactivate', 'appeal accepted', null]);
+    expect(client.query.mock.calls[3][0]).toBe('COMMIT');
+    expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a chat-strikes reset without a reason', async () => {
+    await expect(
+      resetChatStrikesAudited({ accountId: 2, adminAccountId: 1, reason: '' }),
+    ).rejects.toThrow(/reason/);
+    expect(query).not.toHaveBeenCalled();
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  it('resets chat strikes and writes an audit action when the account exists', async () => {
+    const client = clientStub();
+    client.query
+      .mockResolvedValueOnce(queryResult([])) // BEGIN
+      .mockResolvedValueOnce(queryResult([], 1)) // UPDATE, one row
+      .mockResolvedValue(queryResult([]));
+    connect.mockResolvedValue(client as unknown as PoolClient);
+
+    const found = await resetChatStrikesAudited({
+      accountId: 2,
+      adminAccountId: 1,
+      reason: 'appeal accepted',
+    });
+
+    expect(found).toBe(true);
+    expect(client.query.mock.calls[1][0]).toMatch(/chat_strikes = 0/);
+    expect(client.query.mock.calls[1][1]).toEqual([2]);
+    expect(client.query.mock.calls[2][0]).toMatch(/account_moderation_actions/);
+    expect(client.query.mock.calls[2][1]).toEqual([
+      2,
+      1,
+      'chat_strikes_reset',
+      'appeal accepted',
+      null,
+    ]);
+    expect(client.query.mock.calls[3][0]).toBe('COMMIT');
+  });
+
+  it('skips the audit row and returns false for an unknown account', async () => {
+    const client = clientStub();
+    client.query
+      .mockResolvedValueOnce(queryResult([])) // BEGIN
+      .mockResolvedValueOnce(queryResult([], 0)) // UPDATE, no rows
+      .mockResolvedValue(queryResult([]));
+    connect.mockResolvedValue(client as unknown as PoolClient);
+
+    const found = await resetChatStrikesAudited({
+      accountId: 999,
+      adminAccountId: 1,
+      reason: 'appeal accepted',
+    });
+
+    expect(found).toBe(false);
+    const stmts = client.query.mock.calls.map((c) => String(c[0]));
+    expect(stmts.some((s) => s.includes('account_moderation_actions'))).toBe(false);
+    expect(stmts).toEqual(['BEGIN', expect.stringMatching(/chat_strikes = 0/), 'COMMIT']);
+  });
+
   it('requires a moderation reason for suspend and ban actions', async () => {
     await expect(
       moderateAccount({
@@ -358,8 +640,35 @@ describe('moderation report helpers', () => {
     expect(client.query.mock.calls[1][1]).toEqual([2, 'appeal accepted']);
     expect(client.query.mock.calls[2][0]).toMatch(/account_moderation_actions/);
     expect(client.query.mock.calls[2][1]).toEqual([2, 1, 'unban', 'appeal accepted', null]);
-    expect(client.query.mock.calls[4][0]).toBe('COMMIT');
+    // unban is a reversal action, symmetric to unsuspend: it must not touch
+    // player_reports, or a fresh, unreviewed report against an already-banned
+    // account gets silently closed the moment an unrelated appeal is granted.
+    expect(client.query.mock.calls.some((call) => /player_reports/.test(String(call[0])))).toBe(
+      false,
+    );
+    expect(client.query.mock.calls[3][0]).toBe('COMMIT');
+    expect(client.query.mock.calls).toHaveLength(4);
     expect(client.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a pre-existing open report untouched when unbanning (parity with unsuspend)', async () => {
+    const client = clientStub();
+    connect.mockResolvedValue(client as unknown as PoolClient);
+
+    await moderateAccount({
+      accountId: 2,
+      adminAccountId: 1,
+      action: 'unban',
+      reason: 'unrelated appeal granted',
+    });
+
+    // moderateAccount never reads player_reports directly: the only way a report
+    // could be affected is the closing UPDATE, so proving that statement is never
+    // issued proves any pre-existing open report on this account is left as-is.
+    const reportUpdate = client.query.mock.calls.find((call) =>
+      /UPDATE player_reports/.test(String(call[0])),
+    );
+    expect(reportUpdate).toBeUndefined();
   });
 
   it('unsuspends an active suspension and writes a dedicated audit action', async () => {
@@ -625,6 +934,14 @@ describe('moderation report helpers', () => {
     });
 
     expect(result).toEqual({ accountId: 2 });
+    // The gating account lookup is realm-scoped (the phase 13 micro-review
+    // sweep), pinned as SQL text plus the literal realm like its two siblings,
+    // so the qual cannot be dropped again with a green suite: a foreign
+    // realm's character id must resolve to no account here.
+    expect(query.mock.calls[0][0]).toContain(
+      'SELECT account_id FROM characters WHERE id = $1 AND realm = $2',
+    );
+    expect(query.mock.calls[0][1]).toEqual([20, 'Claudemoon']);
     // The whole transaction must run on one pinned client, not arbitrary pooled
     // connections, otherwise BEGIN/…/COMMIT are not actually atomic.
     expect(connect).toHaveBeenCalledTimes(1);
@@ -946,5 +1263,205 @@ describe('moderation bust hook wiring', () => {
     expect(statements(client)).toContain('COMMIT');
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
+  });
+});
+
+// setOnModerationQueueChanged backs the moderation queue's cached base read
+// (server/moderation_queue_cache.ts): every write that changes what that read
+// would return must fire it exactly once, after commit, so the cache never
+// serves a resolved report or a stale account status for a whole TTL window.
+// Kept separate from the onAccountModerated suite above: the two hooks are
+// independent (moderateAccount fires both; muteAccountChat and ignoreReport
+// fire only this one), so a regression in one must never hide inside the
+// other's assertions.
+describe('moderation queue cache bust hook wiring', () => {
+  afterEach(() => {
+    setOnModerationQueueChanged(null);
+  });
+
+  it('fires once, after COMMIT, when moderateAccount bans an account', async () => {
+    const client = clientStub();
+    connect.mockResolvedValue(client as unknown as PoolClient);
+    const hook = vi.fn();
+    setOnModerationQueueChanged(hook);
+
+    await moderateAccount({
+      accountId: 2,
+      adminAccountId: 1,
+      action: 'ban',
+      reason: 'cheating',
+    });
+
+    expect(hook).toHaveBeenCalledTimes(1);
+    expect(client.query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
+  });
+
+  it('fires once when muteAccountChat resolves the account open reports', async () => {
+    const client = clientStub();
+    connect.mockResolvedValue(client as unknown as PoolClient);
+    const hook = vi.fn();
+    setOnModerationQueueChanged(hook);
+
+    await muteAccountChat({
+      accountId: 2,
+      adminAccountId: 1,
+      reason: 'harassment',
+      expiresAt: '2999-01-01T00:00:00.000Z',
+    });
+
+    expect(hook).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires once when ignoreReport actually resolves an open report', async () => {
+    query.mockResolvedValueOnce(queryResult([], 1));
+    const hook = vi.fn();
+    setOnModerationQueueChanged(hook);
+
+    await expect(ignoreReport(5, 1, 'not actionable')).resolves.toBe(true);
+
+    expect(hook).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fire when ignoreReport matches no open report', async () => {
+    query.mockResolvedValueOnce(queryResult([], 0));
+    const hook = vi.fn();
+    setOnModerationQueueChanged(hook);
+
+    await expect(ignoreReport(5, 1, 'not actionable')).resolves.toBe(false);
+
+    expect(hook).not.toHaveBeenCalled();
+  });
+
+  it('does not fire when the moderateAccount transaction fails', async () => {
+    const client = clientStub();
+    client.query.mockImplementation(async (text: string) => {
+      if (/UPDATE accounts/.test(text)) throw new Error('boom');
+      return queryResult([]);
+    });
+    connect.mockResolvedValue(client as unknown as PoolClient);
+    const hook = vi.fn();
+    setOnModerationQueueChanged(hook);
+
+    await expect(
+      moderateAccount({ accountId: 2, adminAccountId: 1, action: 'ban', reason: 'cheating' }),
+    ).rejects.toThrow('boom');
+
+    expect(hook).not.toHaveBeenCalled();
+  });
+
+  it('a throwing hook never turns a committed ban into an error', async () => {
+    const client = clientStub();
+    connect.mockResolvedValue(client as unknown as PoolClient);
+    setOnModerationQueueChanged(() => {
+      throw new Error('hook exploded');
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      moderateAccount({ accountId: 2, adminAccountId: 1, action: 'ban', reason: 'cheating' }),
+    ).resolves.toBeUndefined();
+
+    expect(client.query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+});
+
+describe('prunePlayerReportsBatch (the retention-sweep primitive)', () => {
+  // Mirrors tests/unstuck_db.test.ts's pruneUnstuckReportsBatch suite: the
+  // sweep owns cadence, budget, and batching, this primitive owns exactly
+  // one bounded delete on the shared pool.
+  it('runs one sibling-shaped bounded delete that excludes open reports', async () => {
+    query.mockResolvedValueOnce(queryResult([], 3));
+
+    await expect(prunePlayerReportsBatch(180, 1000)).resolves.toBe(3);
+
+    expect(connect).not.toHaveBeenCalled();
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql, params] = query.mock.calls[0];
+    expect(sql).toContain('DELETE FROM player_reports');
+    // An open report must never be eligible: moderationQueue and
+    // moderationReportsForAccount above only ever read status = 'open' rows,
+    // so the exclusion is what keeps a still-visible report from vanishing.
+    expect(sql).toContain("status != 'open'");
+    expect(sql).toContain("created_at < now() - ($1::int * INTERVAL '1 day')");
+    expect(sql).toContain('ORDER BY created_at ASC, id ASC');
+    expect(sql).toContain('LIMIT $2');
+    expect(params).toEqual([180, 1000]);
+  });
+
+  it('keeps forever on zero and negative retention (the destructive-delete safe side)', async () => {
+    await expect(prunePlayerReportsBatch(0, 1000)).resolves.toBe(0);
+    await expect(prunePlayerReportsBatch(-3, 1000)).resolves.toBe(0);
+    await expect(prunePlayerReportsBatch(Number.NaN, 1000)).resolves.toBe(0);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('normalizes fractional retention days up to one full day, never to zero', async () => {
+    query.mockResolvedValueOnce(queryResult([], 0));
+    await prunePlayerReportsBatch(0.5, 1000);
+    expect(query.mock.calls[0][1]).toEqual([1, 1000]);
+  });
+
+  it('floors the batch size at one row (no LIMIT 0 infinite no-op)', async () => {
+    query.mockResolvedValueOnce(queryResult([], 0));
+    await prunePlayerReportsBatch(180, 0);
+    expect(query.mock.calls[0][1]).toEqual([180, 1]);
+  });
+
+  it('a driver null rowCount reads as zero deleted, not a crash or NaN', async () => {
+    query.mockResolvedValueOnce(queryResult([], null as unknown as number));
+    await expect(prunePlayerReportsBatch(180, 1000)).resolves.toBe(0);
+  });
+});
+
+describe('recordItemNameClear (the legendary-name strip audit row)', () => {
+  it('realm-scopes the account lookup, matching getCharacterById', async () => {
+    query
+      .mockResolvedValueOnce(queryResult([{ account_id: 9 }]))
+      .mockResolvedValueOnce(queryResult([]));
+    await expect(
+      recordItemNameClear({
+        characterId: 5,
+        adminAccountId: 7,
+        detail: 'all copies',
+        reason: 'reported slur',
+      }),
+    ).resolves.toEqual({ accountId: 9 });
+    const [lookupSql, lookupParams] = query.mock.calls[0];
+    expect(lookupSql).toContain('SELECT account_id FROM characters WHERE id = $1 AND realm = $2');
+    // The realm as a LITERAL (the admin_professions_db sibling's shape): the
+    // imported constant on both sides would move together.
+    expect(lookupParams).toEqual([5, 'Claudemoon']);
+    expect(REALM).toBe('Claudemoon');
+    const [insertSql, insertParams] = query.mock.calls[1];
+    expect(insertSql).toContain('INSERT INTO account_moderation_actions');
+    expect(insertParams?.[0]).toBe(9);
+    expect(insertParams?.[2]).toBe('clear_item_name');
+    expect(insertParams?.[3]).toBe(
+      '[requested clear_item_name all copies for character 5] reported slur',
+    );
+  });
+
+  it('a cross-realm character id resolves no account and writes NO audit row', async () => {
+    // Without the realm qual this realm process would happily stamp its audit
+    // row against another realm's account for the same numeric id.
+    query.mockResolvedValueOnce(queryResult([]));
+    await expect(
+      recordItemNameClear({
+        characterId: 5,
+        adminAccountId: 7,
+        detail: 'all copies',
+        reason: 'reported slur',
+      }),
+    ).rejects.toThrow('character not found');
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a missing reason before any query', async () => {
+    await expect(
+      recordItemNameClear({ characterId: 5, adminAccountId: 7, detail: 'all copies', reason: '' }),
+    ).rejects.toThrow('moderation reason is required');
+    expect(query).not.toHaveBeenCalled();
   });
 });

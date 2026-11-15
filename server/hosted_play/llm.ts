@@ -1,9 +1,9 @@
+import type { AmbientBotPlanDecisionV1 } from '../ambient_bots/llm_types';
 import type { AmbientPlayerBotPendingReply } from '../ambient_bots/social';
 import type {
   AmbientPlayerBotLlmConfig,
   AmbientPlayerBotLlmDecisionStatus,
 } from '../ambient_bots/types';
-import type { AmbientBotPlanDecisionV1 } from '../ambient_bots/llm_types';
 
 export interface HostedPlayLlmState {
   readonly enabled: boolean;
@@ -101,12 +101,7 @@ export function cloneHostedPlayPendingReply(
   };
 }
 
-function intEnv(
-  env: NodeJS.ProcessEnv,
-  key: string,
-  fallback: number,
-  min: number,
-): number {
+function intEnv(env: NodeJS.ProcessEnv, key: string, fallback: number, min: number): number {
   const raw = Number(env[key] ?? fallback);
   if (!Number.isFinite(raw)) return fallback;
   return Math.max(min, Math.floor(raw));

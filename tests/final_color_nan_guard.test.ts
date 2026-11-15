@@ -1,0 +1,260 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import * as THREE from 'three';
+import { afterEach, describe, expect, it } from 'vitest';
+import type { GraphicsSettingsSnapshot } from '../src/game/graphics_rebuild_core';
+import { installFinalColorNanGuard } from '../src/render/final_color_nan_guard';
+import { activateGfxProfile, type GfxCapabilities, resolveGfxProfile } from '../src/render/gfx';
+import { finiteGuardStatement } from '../src/render/post_finite_guard_glsl';
+import { expectScansOnlyThroughSharedWalkers } from './helpers/scan_guard_self_audit';
+import { sourceFilesUnder } from './helpers/source_files_under';
+import { stripComments } from './helpers/strip_comments';
+
+const originalOpaqueFragment = THREE.ShaderChunk.opaque_fragment;
+const originalFogFragment = THREE.ShaderChunk.fog_fragment;
+const OPAQUE_WRITE = 'gl_FragColor = vec4( outgoingLight, diffuseColor.a );';
+
+// three's resolveIncludes, reading the live THREE.ShaderChunk the same way.
+function resolveIncludes(source: string): string {
+  return source.replace(/^[ \t]*#include +<([\w\d./]+)>/gm, (_line, name: string) => {
+    const chunk = (THREE.ShaderChunk as Record<string, string | undefined>)[name];
+    if (chunk === undefined) throw new Error(`unknown shader chunk ${name}`);
+    return resolveIncludes(chunk);
+  });
+}
+
+const desktopCapabilities: GfxCapabilities = Object.freeze({
+  deviceMemory: 8,
+  hardwareConcurrency: 12,
+  maxTouchPoints: 0,
+  coarsePointer: false,
+  narrowViewport: false,
+  gpuRenderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 4080)',
+  nativeApp: false,
+  tightMemory: false,
+  platform: 'other',
+  softwareRendering: false,
+});
+
+const basePreferences: GraphicsSettingsSnapshot = {
+  graphicsPreset: 2,
+  terrainDetail: 1,
+  foliageDensity: 1,
+  surfaceDetail: 1,
+  effectsQuality: 1,
+  shadowQuality: 1,
+  antiAliasing: 1,
+  bloomQuality: 1,
+  ambientOcclusion: 1,
+  viewDistance: 1,
+  waterQuality: 1,
+  characterDetail: 1,
+  dynamicLights: 1,
+  particleEffects: 1,
+  ghostFade: 1,
+};
+
+afterEach(() => {
+  THREE.ShaderChunk.opaque_fragment = originalOpaqueFragment;
+  THREE.ShaderChunk.fog_fragment = originalFogFragment;
+});
+
+describe('installFinalColorNanGuard', () => {
+  it('installs itself as an import side effect, before any test here calls it explicitly', () => {
+    // This file's own top-level import above is the only thing that has run
+    // so far; nothing in this test calls installFinalColorNanGuard first, yet
+    // the shared THREE.ShaderChunk is already patched.
+    expect(THREE.ShaderChunk.opaque_fragment).toContain('WOC_OPAQUE_NAN_GUARD');
+    expect(THREE.ShaderChunk.fog_fragment).toContain('WOC_FOG_NAN_GUARD');
+  });
+
+  it('reports unchanged calling the default (THREE.ShaderChunk) form again: already installed', () => {
+    expect(installFinalColorNanGuard()).toBe(false);
+  });
+
+  it('detects a change when either chunk differs, and is idempotent on a synthetic source pair', () => {
+    // Independent of THREE.ShaderChunk's real (already-patched) state: minimal
+    // stand-ins containing just the anchor each core patch function requires.
+    const chunks = {
+      opaque_fragment: 'gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
+      fog_fragment: 'gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );',
+    };
+    const changed = installFinalColorNanGuard(chunks);
+    expect(changed).toBe(true);
+    expect(chunks.opaque_fragment).toContain('WOC_OPAQUE_NAN_GUARD');
+    expect(chunks.fog_fragment).toContain('WOC_FOG_NAN_GUARD');
+
+    const changedAgain = installFinalColorNanGuard(chunks);
+    expect(changedAgain).toBe(false);
+  });
+});
+
+describe('installFinalColorNanGuard call sites', () => {
+  it('module scope installs unconditionally, so no renderer construction site has to remember to', () => {
+    // characters/preview.ts, characters/portrait.ts and armory_preview.ts each
+    // build their own WebGLRenderer and never call initGfxTier; a per-site call
+    // was tried and missed two of those three. The last statement in the
+    // module is the bare, unconditional install call: importing this module
+    // anywhere in the game client's static import graph (it is, via gfx.ts,
+    // itself imported from main.ts) is what covers all of them.
+    const source = readFileSync(
+      new URL('../src/render/final_color_nan_guard.ts', import.meta.url),
+      'utf8',
+    );
+    const lastStatement = source
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => !line.startsWith('//'))
+      .at(-1);
+    expect(lastStatement).toBe('installFinalColorNanGuard();');
+  });
+
+  it('gfx.ts imports final_color_nan_guard.ts for the module-scope install, and never calls it directly', () => {
+    // gfx.ts is what every renderer in this codebase reaches, directly or
+    // transitively (world renderer, CharacterPreview, character portraits,
+    // armory preview, the guide viewer, the editor's asset thumbnails, the
+    // outfit-audit dev tool): a bare import here is what actually gives all
+    // of them the guard. installPbrPointLightShaderPruning is DIFFERENT: it
+    // stays an explicit call inside initGfxTier on purpose (see the comment
+    // there), since only the world renderer needs point-light pruning today.
+    // A call here for the NaN guard would be provably dead code (the bare
+    // import below, itself a static dependency of this file, always runs
+    // first) with a comment implying otherwise; that was tried and reverted.
+    const gfx = readFileSync(new URL('../src/render/gfx.ts', import.meta.url), 'utf8');
+    expect(gfx).toMatch(/^import ['"]\.\/final_color_nan_guard['"];?\s*$/m);
+    expect(gfx).not.toContain('installFinalColorNanGuard(');
+  });
+
+  it('the world renderer reaches gfx.ts (and so the guard) before it can compile or render', () => {
+    // Comments stripped, so a commented-out call cannot satisfy an anchor (and
+    // prose naming one cannot reorder them), as the sibling ordering pins do.
+    const renderer = stripComments(
+      readFileSync(new URL('../src/render/renderer.ts', import.meta.url), 'utf8'),
+    );
+    // Anchored on the assignment, not on `new THREE.WebGLRenderer`: the
+    // construction itself lives in webgl_context_fallback.ts. Every offset is
+    // asserted found, so a later move reds this pin instead of comparing -1.
+    const rendererCreated = renderer.indexOf('this.webgl = created.webgl');
+    expect(rendererCreated).toBeGreaterThanOrEqual(0);
+    const rendererInit = renderer.indexOf('initGfxTier(this.webgl)', rendererCreated);
+    const firstCompile = renderer.indexOf('this.webgl.compile', rendererCreated);
+    const firstRender = renderer.indexOf('this.webgl.render', rendererCreated);
+    expect(rendererInit).toBeGreaterThanOrEqual(0);
+    expect(firstCompile).toBeGreaterThanOrEqual(0);
+    expect(firstRender).toBeGreaterThanOrEqual(0);
+
+    expect(rendererInit).toBeGreaterThan(rendererCreated);
+    expect(firstCompile).toBeGreaterThan(rendererInit);
+    expect(firstRender).toBeGreaterThan(rendererInit);
+  });
+});
+
+describe('patchOpaqueFragmentNanGuard coverage in stock shaders', () => {
+  it('does not depend on <fog_fragment> being present to scrub outgoingLight', () => {
+    // The opaque guard scrubs outgoingLight before the opaque write whether or
+    // not USE_FOG is defined. Walking ShaderLib keeps this pinned on the stock
+    // materials that reach <opaque_fragment>, without depending on fog_fragment
+    // as a second line of defense for the same value.
+    const withOpaque: string[] = [];
+    for (const [name, shader] of Object.entries(THREE.ShaderLib)) {
+      const hasOpaque = shader.fragmentShader.includes('#include <opaque_fragment>');
+      if (hasOpaque) withOpaque.push(name);
+    }
+    expect(withOpaque.length).toBeGreaterThan(0);
+    expect(THREE.ShaderChunk.opaque_fragment).toContain(
+      'outgoingLight.x = ( ( floatBitsToUint( outgoingLight.x )',
+    );
+    expect(THREE.ShaderChunk.opaque_fragment).not.toContain('#ifndef USE_FOG');
+  });
+
+  it('guards the opaque write in every ShaderLib family that includes <opaque_fragment>', () => {
+    // The three patch leaves this chunk stock, so the runtime guard is the
+    // only NaN/Inf scrub on the write. The family set is literal so a three
+    // bump that adds or drops a family reds here and gets reviewed.
+    const families = Object.entries(THREE.ShaderLib)
+      .filter(([, shader]) => shader.fragmentShader.includes('#include <opaque_fragment>'))
+      .map(([name]) => name)
+      .sort();
+    expect(families).toEqual([
+      'basic',
+      'dashed',
+      'lambert',
+      'matcap',
+      'phong',
+      'physical',
+      'points',
+      'sprite',
+      'standard',
+      'toon',
+    ]);
+    const guardedWrite =
+      '// WOC_OPAQUE_NAN_GUARD\n' +
+      finiteGuardStatement('diffuseColor.a') +
+      finiteGuardStatement('outgoingLight.x') +
+      finiteGuardStatement('outgoingLight.y') +
+      finiteGuardStatement('outgoingLight.z') +
+      OPAQUE_WRITE;
+    for (const name of families) {
+      const resolved = resolveIncludes(THREE.ShaderLib[name].fragmentShader);
+      expect(resolved.split(OPAQUE_WRITE).length - 1, name).toBe(1);
+      expect(resolved.includes(guardedWrite), name).toBe(true);
+      expect(resolved.includes('outgoingLight.x < 0.0 || outgoingLight.x >= 0.0'), name).toBe(
+        false,
+      );
+    }
+  });
+
+  it(
+    'leaves no src/ module able to bypass the chunk guard',
+    () => {
+      // The guard lives in THREE.ShaderChunk.opaque_fragment, so a material that
+      // replaced '#include <opaque_fragment>' (onBeforeCompile or a copied
+      // ShaderLib string) or inlined the stock write would skip it. Only the two
+      // guard modules may name the chunk or spell its write.
+      expectScansOnlyThroughSharedWalkers(import.meta.url, ['source_files_under']);
+      const srcRoot = fileURLToPath(new URL('../src/', import.meta.url));
+      const files = sourceFilesUnder(srcRoot);
+      expect(files.length).toBeGreaterThan(3000);
+      const naming = files
+        .filter(({ full }) => {
+          const text = readFileSync(full, 'utf8');
+          return /opaque_fragment|outgoingLight, diffuseColor(?:\\)?\.a/.test(text);
+        })
+        .map(({ file }) => file);
+      // The cel-shading material ink (`?cel=on`) also names the chunk: it INSERTS
+      // a block before the write and never replaces the include, so the guard
+      // still runs; tests/cel_shading_core.test.ts pins that it composes with
+      // the guard in either order and comes back out leaving the guard intact.
+      expect(naming).toEqual([
+        'render/cel_shading.ts',
+        'render/cel_shading_core.ts',
+        'render/final_color_nan_guard.ts',
+        'render/final_color_nan_guard_core.ts',
+      ]);
+    },
+    process.platform === 'win32' ? 240_000 : 20_000,
+  );
+
+  it('keeps global chunks patched across profile activation', () => {
+    THREE.ShaderChunk.opaque_fragment = originalOpaqueFragment;
+    THREE.ShaderChunk.fog_fragment = originalFogFragment;
+    installFinalColorNanGuard();
+
+    const gradePassProfile = resolveGfxProfile(desktopCapabilities, basePreferences, '');
+    expect(gradePassProfile.settings.gradePass).toBe(true);
+    activateGfxProfile(gradePassProfile);
+    expect(THREE.ShaderChunk.opaque_fragment).toContain('WOC_OPAQUE_NAN_GUARD');
+    expect(THREE.ShaderChunk.fog_fragment).toContain('WOC_FOG_NAN_GUARD');
+
+    const directProfile = resolveGfxProfile(
+      desktopCapabilities,
+      { ...basePreferences, graphicsPreset: 1 },
+      '',
+    );
+    expect(directProfile.settings.gradePass).toBe(false);
+    activateGfxProfile(directProfile);
+    expect(THREE.ShaderChunk.opaque_fragment).toContain('WOC_OPAQUE_NAN_GUARD');
+    expect(THREE.ShaderChunk.fog_fragment).toContain('WOC_FOG_NAN_GUARD');
+  });
+});

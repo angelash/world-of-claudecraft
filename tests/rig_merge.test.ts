@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import {
+  animatedNodeNames,
   BIND_EPS,
   mergeSkinnedParts,
   REBIND_EPS,
@@ -63,7 +64,8 @@ function makePart(
   bones: THREE.Bone[],
   inverses: THREE.Matrix4[],
   positions: number[],
-  material = new THREE.MeshBasicMaterial(),
+  material: THREE.Material = new THREE.MeshBasicMaterial(),
+  morphs?: Record<string, number[]>,
 ): THREE.SkinnedMesh {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -78,9 +80,21 @@ function makePart(
     new THREE.Float32BufferAttribute([0.7, 0.3, 0, 0, 0.4, 0.6, 0, 0, 0.5, 0.5, 0, 0], 4),
   );
   geo.setIndex([0, 1, 2]);
+  if (morphs) {
+    const names = Object.keys(morphs);
+    geo.morphTargetsRelative = true;
+    geo.morphAttributes.position = names.map(
+      (n) => new THREE.Float32BufferAttribute(morphs[n], 3) as THREE.BufferAttribute,
+    );
+  }
   const mesh = new THREE.SkinnedMesh(geo, material);
   const skeleton = new THREE.Skeleton(bones, inverses);
   mesh.bind(skeleton, new THREE.Matrix4());
+  if (morphs) {
+    const names = Object.keys(morphs);
+    mesh.morphTargetDictionary = Object.fromEntries(names.map((n, i) => [n, i]));
+    mesh.morphTargetInfluences = names.map(() => 0);
+  }
   return mesh;
 }
 
@@ -199,6 +213,104 @@ describe('rebakeGeometry', () => {
     expect(out.attributes.skinIndex.array).toBeInstanceOf(Uint16Array);
     expect(out.attributes.skinIndex.getY(0)).toBe(1);
   });
+
+  it('carries relative morph deltas through the linear part of the rebake', () => {
+    // A glTF morph target is a DISPLACEMENT (morphTargetsRelative), so it takes
+    // the rebake's rotation and scale and never its translation. Applying the
+    // full matrix would offset every blendshape by the part's own dequantization
+    // origin, which reads as a face that jumps the moment a slider leaves zero.
+    const bones = makeBones();
+    const inverses = restInverses(bones);
+    const part = makePart(bones, inverses, [0.2, 0.6, -0.1, -0.4, 0.9, 0.3, 0.5, -0.2, 0.7]);
+    part.geometry.morphTargetsRelative = true;
+    part.geometry.morphAttributes.position = [
+      new THREE.Float32BufferAttribute([1, 0, 0, 0, 1, 0, 0, 0, 1], 3),
+    ];
+    const m = new THREE.Matrix4().makeScale(2, 3, 4).setPosition(10, 20, 30);
+
+    const out = rebakeGeometry(part.geometry, m);
+
+    expect(out.morphTargetsRelative).toBe(true);
+    const delta = out.morphAttributes.position?.[0];
+    expect(delta?.getX(0)).toBeCloseTo(2, 5);
+    expect(delta?.getY(1)).toBeCloseTo(3, 5);
+    expect(delta?.getZ(2)).toBeCloseTo(4, 5);
+    // the translation must NOT have leaked into a displacement
+    expect(delta?.getY(0)).toBeCloseTo(0, 5);
+  });
+
+  it('transforms an absolute morph target by the whole matrix', () => {
+    const bones = makeBones();
+    const part = makePart(bones, restInverses(bones), [0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    part.geometry.morphTargetsRelative = false;
+    part.geometry.morphAttributes.position = [
+      new THREE.Float32BufferAttribute([1, 0, 0, 0, 1, 0, 0, 0, 1], 3),
+    ];
+
+    const out = rebakeGeometry(
+      part.geometry,
+      new THREE.Matrix4().makeScale(2, 3, 4).setPosition(10, 20, 30),
+    );
+
+    expect(out.morphTargetsRelative).toBe(false);
+    expect(out.morphAttributes.position?.[0]?.getX(0)).toBeCloseTo(12, 5);
+    expect(out.morphAttributes.position?.[0]?.getY(0)).toBeCloseTo(20, 5);
+  });
+
+  it('takes a morph NORMAL delta through the normal matrix, un-normalized', () => {
+    // A morph normal is a DELTA, so its length is its own: normalizing it (the
+    // way the base normal attribute is) would rewrite every blend weight.
+    const bones = makeBones();
+    const part = makePart(bones, restInverses(bones), [0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    part.geometry.morphTargetsRelative = true;
+    part.geometry.morphAttributes.position = [
+      new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0, 0, 0, 0], 3),
+    ];
+    part.geometry.morphAttributes.normal = [
+      new THREE.Float32BufferAttribute([1, 0, 0, 0, 1, 0, 0, 0, 1], 3),
+    ];
+
+    const out = rebakeGeometry(part.geometry, new THREE.Matrix4().makeScale(2, 4, 8));
+
+    // normal matrix of a pure scale is the inverse transpose: 1/2, 1/4, 1/8
+    const normal = out.morphAttributes.normal?.[0];
+    expect(normal?.getX(0)).toBeCloseTo(0.5, 5);
+    expect(normal?.getY(1)).toBeCloseTo(0.25, 5);
+    expect(normal?.getZ(2)).toBeCloseTo(0.125, 5);
+  });
+
+  it('copies a morph COLOUR delta component-wise, geometry transforms untouched', () => {
+    const bones = makeBones();
+    const part = makePart(bones, restInverses(bones), [0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    part.geometry.morphTargetsRelative = true;
+    part.geometry.morphAttributes.color = [
+      new THREE.Float32BufferAttribute(
+        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 0.15, 0.25],
+        4,
+      ),
+    ];
+
+    const out = rebakeGeometry(part.geometry, new THREE.Matrix4().makeScale(2, 4, 8));
+
+    const color = out.morphAttributes.color?.[0];
+    expect(color?.itemSize).toBe(4);
+    expect(color?.getX(0)).toBeCloseTo(0.1, 6);
+    expect(color?.getY(0)).toBeCloseTo(0.2, 6);
+    expect(color?.getZ(0)).toBeCloseTo(0.3, 6);
+    expect(color?.getW(0)).toBeCloseTo(0.4, 6);
+    expect(color?.getX(2)).toBeCloseTo(0.9, 6);
+  });
+
+  it('leaves a morph-free geometry morph-free', () => {
+    // three defines USE_MORPHTARGETS on PRESENCE, so minting an empty list here
+    // would relink every rebaked part against a program it does not need.
+    const bones = makeBones();
+    const part = makePart(bones, restInverses(bones), [0, 0, 0, 1, 0, 0, 0, 1, 0]);
+
+    const out = rebakeGeometry(part.geometry, new THREE.Matrix4());
+
+    expect(Object.keys(out.morphAttributes)).toEqual([]);
+  });
 });
 
 describe('mergeSkinnedParts', () => {
@@ -227,6 +339,14 @@ describe('mergeSkinnedParts', () => {
     });
     return n;
   };
+
+  it('extracts animated scene-node names from Three animation tracks', () => {
+    const clip = new THREE.AnimationClip('wrapper motion', 1, [
+      new THREE.VectorKeyframeTrack('wrapper.position', [0, 1], [0, 0, 0, 1, 0, 0]),
+    ]);
+
+    expect(animatedNodeNames([clip])).toEqual(new Set(['wrapper']));
+  });
 
   it('collapses per-primitive bind data into one mesh, one skeleton', () => {
     const { root } = rig((canon, i) => {
@@ -273,6 +393,113 @@ describe('mergeSkinnedParts', () => {
       expect(after.y).toBeCloseTo(before[i].y, 4);
       expect(after.z).toBeCloseTo(before[i].z, 4);
     }
+  });
+
+  it('merges static sibling wrappers with the same world transform', () => {
+    const { root, bones, parts } = rig((canon, i) => {
+      const t = new THREE.Matrix4().makeScale(0.4 + i * 0.1, 0.5, 0.6).setPosition(i * 0.1, 0, 0);
+      return canon.map((m) => new THREE.Matrix4().copy(m).multiply(t));
+    });
+    for (const part of parts) {
+      const wrapper = new THREE.Group();
+      root.add(wrapper);
+      wrapper.add(part);
+    }
+    root.updateMatrixWorld(true);
+    const before = parts.flatMap((part) =>
+      [0, 1, 2].map((index) => skinVertex(part, index, bones).applyMatrix4(part.matrixWorld)),
+    );
+
+    mergeSkinnedParts(root, new Set());
+
+    expect(countSkinned(root)).toBe(1);
+    const mergedMeshes: THREE.SkinnedMesh[] = [];
+    root.traverse((object) => {
+      if ((object as THREE.SkinnedMesh).isSkinnedMesh) {
+        mergedMeshes.push(object as THREE.SkinnedMesh);
+      }
+    });
+    const merged = mergedMeshes[0];
+    if (!merged) throw new Error('sibling-wrapper merge produced no mesh');
+    merged.updateMatrixWorld(true);
+    for (let i = 0; i < before.length; i++) {
+      const after = skinVertex(merged, i, bones).applyMatrix4(merged.matrixWorld);
+      expect(after.x).toBeCloseTo(before[i].x, 4);
+      expect(after.y).toBeCloseTo(before[i].y, 4);
+      expect(after.z).toBeCloseTo(before[i].z, 4);
+    }
+  });
+
+  it('keeps sibling wrappers separate when an animation targets either chain', () => {
+    const { root, parts } = rig((canon) => canon.map((matrix) => matrix.clone()));
+    for (let i = 0; i < parts.length; i++) {
+      const wrapper = new THREE.Group();
+      wrapper.name = `wrapper_${i}`;
+      root.add(wrapper);
+      wrapper.add(parts[i]);
+    }
+
+    mergeSkinnedParts(root, new Set(['wrapper_1']));
+
+    expect(countSkinned(root)).toBe(2);
+  });
+
+  it('keeps a directly animated mesh out of a sibling-wrapper merge', () => {
+    const { root, parts } = rig((canon) => canon.map((matrix) => matrix.clone()));
+    for (let i = 0; i < parts.length; i++) {
+      const wrapper = new THREE.Group();
+      parts[i].name = `mesh_${i}`;
+      root.add(wrapper);
+      wrapper.add(parts[i]);
+    }
+
+    mergeSkinnedParts(root, new Set(['mesh_1']));
+
+    expect(countSkinned(root)).toBe(2);
+  });
+
+  it('does not merge wrappers under different grandparents', () => {
+    const { root, parts } = rig((canon) => canon.map((matrix) => matrix.clone()));
+    const left = new THREE.Group();
+    const right = new THREE.Group();
+    root.add(left, right);
+    for (let i = 0; i < parts.length; i++) {
+      const wrapper = new THREE.Group();
+      (i < 2 ? left : right).add(wrapper);
+      wrapper.add(parts[i]);
+    }
+
+    mergeSkinnedParts(root, new Set());
+
+    expect(countSkinned(root)).toBe(2);
+  });
+
+  it('does not merge meshes whose wrapper visibility differs', () => {
+    const { root, parts } = rig((canon) => canon.map((matrix) => matrix.clone()));
+    for (let i = 0; i < parts.length; i++) {
+      const wrapper = new THREE.Group();
+      wrapper.visible = i !== 1;
+      root.add(wrapper);
+      wrapper.add(parts[i]);
+    }
+
+    mergeSkinnedParts(root, new Set());
+
+    expect(countSkinned(root)).toBe(2);
+  });
+
+  it('does not merge sibling wrappers with different world transforms', () => {
+    const { root, parts } = rig((canon) => canon.map((matrix) => matrix.clone()));
+    for (let i = 0; i < parts.length; i++) {
+      const wrapper = new THREE.Group();
+      wrapper.position.x = i;
+      root.add(wrapper);
+      wrapper.add(parts[i]);
+    }
+
+    mergeSkinnedParts(root, new Set());
+
+    expect(countSkinned(root)).toBe(3);
   });
 
   it('leaves parts whose bind data no single transform explains unmerged', () => {
@@ -333,9 +560,10 @@ describe('mergeSkinnedParts', () => {
     expect(parts[2].parent).toBe(root);
   });
 
-  it('never merges a part carrying morph targets', () => {
-    // rebakeGeometry rebuilds only attributes + index, so a merged morph target
-    // would vanish silently. Refuse the merge instead of dropping the data.
+  it('refuses a bucket whose morph targets cannot be named', () => {
+    // A merged buffer has ONE target list driven by index, so a part is only
+    // placeable on it through its target NAMES. Merging an unnamed target by
+    // position would move the wrong blendshape, silently.
     const { root, parts } = rig((canon) => canon.map((m) => m.clone()));
     parts[2].geometry.morphAttributes.position = [
       new THREE.Float32BufferAttribute(new Float32Array(9), 3),
@@ -343,9 +571,162 @@ describe('mergeSkinnedParts', () => {
 
     mergeSkinnedParts(root);
 
-    expect(countSkinned(root)).toBe(2);
-    expect(parts[2].parent).toBe(root);
+    expect(countSkinned(root)).toBe(3);
     expect(parts[2].geometry.morphAttributes.position).toHaveLength(1);
+  });
+
+  it('merges parts with different morph targets onto one union list', () => {
+    // The composed body's nine skin parts each carry the subset of the body
+    // sliders that reaches them (two on a hand, six on the torso). Merging them
+    // is the whole point of the union plan.
+    const bones = makeBones();
+    const inverses = restInverses(bones);
+    const material = new THREE.MeshBasicMaterial();
+    const root = new THREE.Object3D();
+    root.add(bones[0]);
+    const pos = [0.2, 0.6, -0.1, -0.4, 0.9, 0.3, 0.5, -0.2, 0.7];
+    const arm = makePart(bones, inverses, pos, material, {
+      body_elbows_up: [0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0],
+    });
+    const torso = makePart(bones, inverses, pos, material, {
+      body_chest_up: [0, 0.25, 0, 0, 0.25, 0, 0, 0.25, 0],
+    });
+    const hair = makePart(bones, inverses, pos, material);
+    root.add(arm, torso, hair);
+
+    mergeSkinnedParts(root);
+
+    expect(countSkinned(root)).toBe(1);
+    let merged: THREE.SkinnedMesh | null = null;
+    root.traverse((o) => {
+      if ((o as THREE.SkinnedMesh).isSkinnedMesh) merged = o as THREE.SkinnedMesh;
+    });
+    const mesh = merged as unknown as THREE.SkinnedMesh;
+    expect(mesh.morphTargetDictionary).toEqual({ body_elbows_up: 0, body_chest_up: 1 });
+    expect(mesh.morphTargetInfluences).toEqual([0, 0]);
+    expect(mesh.geometry.morphTargetsRelative).toBe(true);
+    const targets = mesh.geometry.morphAttributes.position;
+    expect(targets).toHaveLength(2);
+    expect(targets?.[0]?.count).toBe(9);
+    // the arm's slider moves the arm's three vertices and nothing else
+    expect(targets?.[0]?.getX(0)).toBeCloseTo(0.5, 5);
+    expect(targets?.[0]?.getX(3)).toBeCloseTo(0, 5);
+    expect(targets?.[0]?.getX(6)).toBeCloseTo(0, 5);
+    // ...and the torso's slider moves only the torso's
+    expect(targets?.[1]?.getY(0)).toBeCloseTo(0, 5);
+    expect(targets?.[1]?.getY(3)).toBeCloseTo(0.25, 5);
+    expect(targets?.[1]?.getY(6)).toBeCloseTo(0, 5);
+  });
+
+  it('never merges across a differing partition key', () => {
+    // The merged mesh has ONE name, so a fact a later pass reads off the node
+    // name (lipstick on the mouth's lips, the jewel and band material rules)
+    // must be uniform inside a bucket.
+    const bones = makeBones();
+    const inverses = restInverses(bones);
+    const material = new THREE.MeshBasicMaterial();
+    const root = new THREE.Object3D();
+    root.add(bones[0]);
+    const pos = [0.2, 0.6, -0.1, -0.4, 0.9, 0.3, 0.5, -0.2, 0.7];
+    const ear = makePart(bones, inverses, pos, material);
+    ear.name = 'M_Ear_round';
+    const lips = makePart(bones, inverses, pos, material);
+    lips.name = 'M_Mouth_neutral_0';
+    root.add(ear, lips);
+
+    mergeSkinnedParts(root, undefined, {
+      partitionKey: (mesh) => (mesh.name.includes('_Mouth_') ? 'mouth' : 'part'),
+    });
+
+    expect(countSkinned(root)).toBe(2);
+  });
+
+  it('refuses a bucket whose parts disagree on a morph kind item size', () => {
+    // mergeGeometries cannot reconcile a vec3 and a vec4 target list either;
+    // refusing here keeps the merge's own contract, one shape per output kind.
+    const bones = makeBones();
+    const inverses = restInverses(bones);
+    const material = new THREE.MeshBasicMaterial();
+    const root = new THREE.Object3D();
+    root.add(bones[0]);
+    const pos = [0.2, 0.6, -0.1, -0.4, 0.9, 0.3, 0.5, -0.2, 0.7];
+    const rgb = makePart(bones, inverses, pos, material, {
+      tint: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    });
+    const rgba = makePart(bones, inverses, pos, material, {
+      tint: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    });
+    rgb.geometry.morphAttributes.color = [new THREE.Float32BufferAttribute(new Float32Array(9), 3)];
+    rgba.geometry.morphAttributes.color = [
+      new THREE.Float32BufferAttribute(new Float32Array(12), 4),
+    ];
+    root.add(rgb, rgba);
+
+    mergeSkinnedParts(root);
+
+    expect(countSkinned(root)).toBe(2);
+  });
+
+  it('refuses a bucket whose morph dictionary does not account for every target', () => {
+    // A half-named list is worse than an unnamed one: the union plan would place
+    // the named target and silently drop the rest onto slot -1.
+    const bones = makeBones();
+    const inverses = restInverses(bones);
+    const material = new THREE.MeshBasicMaterial();
+    const root = new THREE.Object3D();
+    root.add(bones[0]);
+    const pos = [0.2, 0.6, -0.1, -0.4, 0.9, 0.3, 0.5, -0.2, 0.7];
+    const named = makePart(bones, inverses, pos, material, { jaw_up: new Array(9).fill(0) });
+    const half = makePart(bones, inverses, pos, material, {
+      jaw_up: new Array(9).fill(0),
+      jaw_dn: new Array(9).fill(0),
+    });
+    // two targets, one name: index 1 is unaccounted for
+    half.morphTargetDictionary = { jaw_up: 0 };
+    root.add(named, half);
+
+    mergeSkinnedParts(root);
+
+    expect(countSkinned(root)).toBe(2);
+    expect(half.geometry.morphAttributes.position).toHaveLength(2);
+  });
+
+  it('refuses a bucket whose parts disagree on which morph kinds are present', () => {
+    // three defines USE_MORPHTARGETS on PRESENCE, so a present-but-empty list
+    // is a different program variant from an absent one and cannot be
+    // normalized away; mergeGeometries refuses such a set outright.
+    const bones = makeBones();
+    const inverses = restInverses(bones);
+    const material = new THREE.MeshBasicMaterial();
+    const root = new THREE.Object3D();
+    root.add(bones[0]);
+    const pos = [0.2, 0.6, -0.1, -0.4, 0.9, 0.3, 0.5, -0.2, 0.7];
+    const plain = makePart(bones, inverses, pos, material);
+    const empty = makePart(bones, inverses, pos, material);
+    empty.geometry.morphAttributes.position = [];
+    root.add(plain, empty);
+
+    mergeSkinnedParts(root);
+
+    expect(countSkinned(root)).toBe(2);
+    expect(empty.geometry.morphAttributes.position).toEqual([]);
+  });
+
+  it('refuses a bucket whose parts disagree on morph relativity', () => {
+    const bones = makeBones();
+    const inverses = restInverses(bones);
+    const material = new THREE.MeshBasicMaterial();
+    const root = new THREE.Object3D();
+    root.add(bones[0]);
+    const pos = [0.2, 0.6, -0.1, -0.4, 0.9, 0.3, 0.5, -0.2, 0.7];
+    const a = makePart(bones, inverses, pos, material, { jaw_up: [1, 0, 0, 1, 0, 0, 1, 0, 0] });
+    const b = makePart(bones, inverses, pos, material, { jaw_up: [1, 0, 0, 1, 0, 0, 1, 0, 0] });
+    b.geometry.morphTargetsRelative = false;
+    root.add(a, b);
+
+    mergeSkinnedParts(root);
+
+    expect(countSkinned(root)).toBe(2);
   });
 
   it('carries the canonical render flags onto the merged mesh', () => {

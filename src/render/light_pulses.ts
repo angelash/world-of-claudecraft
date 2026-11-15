@@ -1,10 +1,16 @@
 // Transient point-light pulses for talent moments (proc surges, ward blooms,
 // detonations): a tiny pooled set of THREE.PointLights the renderer flashes at
 // an entity and forgets. Purely cosmetic (the graphics-fairness rule): the
-// pool size shrinks with the static fx tier and the whole system is a no-op
-// when the tier disables composer effects, so no tier gains information.
+// pool size shrinks with the static fx tier, so no tier gains information.
+//
+// The whole pool is created eagerly in the constructor and every light stays
+// `visible` forever at intensity 0. The pulses are carrier sources
+// (point_light_carriers.ts): three never gathers them, the carriers draw the
+// live ones, and the pool size is part of the pinned carrier count.
 import * as THREE from 'three';
 import { GFX } from './gfx';
+import { markPointLightSource } from './point_light_carriers_core';
+import { spellEffectsMuted } from './spell_effects_switch';
 
 interface Pulse {
   light: THREE.PointLight;
@@ -23,31 +29,84 @@ const SCHOOL_LIGHT: Record<string, number> = {
   physical: 0xffd9b0,
 };
 
+/** Composer-off tiers keep at most one live pulse; richer tiers a few. */
+export function lightPulsePoolSize(): number {
+  return GFX.composer ? 4 : 1;
+}
+
 export class LightPulses {
   private pool: Pulse[] = [];
+  readonly lights: THREE.PointLight[] = [];
 
-  constructor(private scene: THREE.Scene) {}
+  constructor(scene: THREE.Scene) {
+    // GFX is final by construction time (initGfxTier runs before any scene
+    // content), so eager-create exactly the tier's capacity. capacity() is
+    // still consulted per pulse and clamped to the pool as a guard.
+    for (let i = 0; i < this.capacity(); i++) {
+      const light = new THREE.PointLight(0xffffff, 0, 7, 2);
+      markPointLightSource(light);
+      scene.add(light);
+      this.pool.push({ light, remaining: 0, duration: 1, peak: 1 });
+      this.lights.push(light);
+    }
+  }
 
   private capacity(): number {
-    // Composer-off tiers keep at most one live pulse; richer tiers a few.
-    return GFX.composer ? 4 : 1;
+    return lightPulsePoolSize();
   }
 
   /** Flash a short-lived point light at a world position. */
   pulse(at: THREE.Vector3, school: string, intensity = 6, duration = 0.45, range = 7): void {
-    const cap = this.capacity();
-    let slot = this.pool.find((p) => p.remaining <= 0);
-    if (!slot && this.pool.length < cap) {
-      const light = new THREE.PointLight(0xffffff, 0, range, 2);
-      light.visible = false;
-      this.scene.add(light);
-      slot = { light, remaining: 0, duration: 1, peak: 1 };
-      this.pool.push(slot);
+    // Every caller is a spell or ability moment: a pulse inside a muted
+    // caster's event is skipped (spell_effects_switch.ts). The lights stay
+    // allocated either way, so no program or light count changes.
+    if (spellEffectsMuted()) return;
+    const cap = Math.min(this.capacity(), this.pool.length);
+    if (cap === 0) return;
+    let slot: Pulse | undefined;
+    for (let i = 0; i < cap; i++) {
+      if (this.pool[i].remaining <= 0) {
+        slot = this.pool[i];
+        break;
+      }
     }
     if (!slot) {
       // Pool saturated: steal the dimmest pulse so big moments always show.
-      slot = this.pool.reduce((a, b) => (a.remaining < b.remaining ? a : b));
+      slot = this.pool[0];
+      for (let i = 1; i < cap; i++) {
+        if (this.pool[i].remaining < slot.remaining) slot = this.pool[i];
+      }
     }
+    this.light(slot, at, school, intensity, duration, range);
+  }
+
+  /** Flash a pulse only into a free slot, never stealing a live one: for a steady
+   *  ambient flicker (a burning hut) that must not cut a talent moment short.
+   *  Returns whether it lit. */
+  pulseIfFree(
+    at: THREE.Vector3,
+    school: string,
+    intensity = 6,
+    duration = 0.45,
+    range = 7,
+  ): boolean {
+    const cap = Math.min(this.capacity(), this.pool.length);
+    for (let i = 0; i < cap; i++) {
+      if (this.pool[i].remaining > 0) continue;
+      this.light(this.pool[i], at, school, intensity, duration, range);
+      return true;
+    }
+    return false;
+  }
+
+  private light(
+    slot: Pulse,
+    at: THREE.Vector3,
+    school: string,
+    intensity: number,
+    duration: number,
+    range: number,
+  ): void {
     slot.light.color.setHex(SCHOOL_LIGHT[school] ?? 0xffe28a);
     slot.light.position.copy(at);
     slot.light.position.y += 1.1;
@@ -55,7 +114,6 @@ export class LightPulses {
     slot.remaining = duration;
     slot.duration = duration;
     slot.peak = intensity;
-    slot.light.visible = true;
   }
 
   /** Advance and decay every live pulse; called once per frame. */
@@ -65,7 +123,6 @@ export class LightPulses {
       p.remaining -= dt;
       if (p.remaining <= 0) {
         p.light.intensity = 0;
-        p.light.visible = false;
         continue;
       }
       // Fast attack, smooth quadratic decay.

@@ -1,0 +1,871 @@
+import { readFileSync } from 'node:fs';
+import * as THREE from 'three';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  createFireLightAdopter,
+  pruneFireLights,
+  reparentStrandedLightsToScene,
+  runFireLightBudgetPass,
+} from '../src/render/fire_light_registry';
+import {
+  applyPointLightBudget,
+  flickerContributingFireLights,
+  type RankedPointLight,
+  reconcileViewPointLights,
+} from '../src/render/point_light_budget';
+import { POINT_LIGHT_SOURCE_MASK } from '../src/render/point_light_carriers_core';
+import { freezeStaticMatrices } from '../src/render/static_matrix';
+import { codeWithoutLineComments } from './helpers/code_without_line_comments';
+
+const RANGE_SQ = 100 * 100;
+
+/** Every source read in this file strips full-line // comments first, the
+ *  tests/loopback_guard.test.ts rule: the code these pins name is explained in
+ *  prose right beside itself, so a commented-out line must neither satisfy a
+ *  pin nor break one. Comment out the guarded prune statement and the pins
+ *  below go red, which is the whole point of pinning it. */
+function sourceOf(relativePath: string): string {
+  return codeWithoutLineComments(readFileSync(new URL(relativePath, import.meta.url), 'utf8'));
+}
+
+function rendererSource(): string {
+  return sourceOf('../src/render/renderer.ts');
+}
+
+/** The `budgetFireLights` body alone. Several pins below are ordinary lines to
+ *  write anywhere in a 13k-line coordinator, so they are anchored here rather
+ *  than matched against the whole file. */
+function budgetFireLightsBody(renderer: string): string {
+  const start = renderer.indexOf('  private budgetFireLights(');
+  expect(start, 'budgetFireLights was renamed; re-anchor these pins').toBeGreaterThan(-1);
+  const end = renderer.indexOf('\n  private ', start + 1);
+  expect(end).toBeGreaterThan(start);
+  return renderer.slice(start, end);
+}
+
+/** The `runFireLightBudgetPass` body alone, closed by the function's own
+ *  brace, so a pin cannot match past it. */
+function budgetPassBody(): string {
+  const source = sourceOf('../src/render/fire_light_registry.ts');
+  const start = source.indexOf('export function runFireLightBudgetPass(');
+  expect(start, 'runFireLightBudgetPass was renamed; re-anchor these pins').toBeGreaterThan(-1);
+  const end = source.indexOf('\n}\n', start);
+  expect(end).toBeGreaterThan(start);
+  return source.slice(start, end);
+}
+
+function rankedLight(x: number, z: number, base: number | null = 5): RankedPointLight {
+  const light = new THREE.PointLight(0xffffff, base ?? 5, 10, 2);
+  light.position.set(x, 0, z);
+  return { light, d2: 0, worldPos: new THREE.Vector3(x, 0, z), base, dynamic: false };
+}
+
+function visibleCount(ranked: RankedPointLight[]): number {
+  return ranked.filter((entry) => entry.light.visible).length;
+}
+
+describe('applyPointLightBudget', () => {
+  it('keeps exactly min(ranked, visibleCount) lights visible', () => {
+    for (const count of [0, 2, 6, 9]) {
+      const ranked: RankedPointLight[] = [];
+      for (let i = 0; i < count; i++) ranked.push(rankedLight(i * 2, 0));
+      expect(applyPointLightBudget(ranked, 0, 0, 6, 6, RANGE_SQ)).toBe(Math.min(count, 6));
+      expect(visibleCount(ranked)).toBe(Math.min(count, 6));
+    }
+  });
+
+  it('sorts by distance so the visible set is the nearest one', () => {
+    const a = rankedLight(1, 0);
+    const b = rankedLight(2, 0);
+    const c = rankedLight(3, 0);
+    const ranked = [c, b, a];
+    applyPointLightBudget(ranked, 0, 0, 2, 2, RANGE_SQ);
+    expect(a.light.visible).toBe(true);
+    expect(b.light.visible).toBe(true);
+    expect(c.light.visible).toBe(false);
+  });
+
+  it('keeps the prior full-rank order when discarded-tail lights later tie', () => {
+    const a = rankedLight(4, 0);
+    const b = rankedLight(1, 0);
+    const c = rankedLight(3, 0);
+    const d = rankedLight(2, 0);
+    const ranked = [a, b, c, d];
+
+    applyPointLightBudget(ranked, 0, 0, 2, 2, RANGE_SQ);
+    expect(ranked.map((entry) => entry.light)).toEqual([b.light, d.light, c.light, a.light]);
+
+    c.worldPos.set(1, 0, 0);
+    a.worldPos.set(-1, 0, 0);
+    b.worldPos.set(10, 0, 0);
+    d.worldPos.set(11, 0, 0);
+    applyPointLightBudget(ranked, 0, 0, 2, 1, RANGE_SQ);
+
+    expect(ranked.slice(0, 2).map((entry) => entry.light)).toEqual([c.light, a.light]);
+    expect(c.light.intensity).toBe(5);
+    expect(a.light.intensity).toBe(0);
+  });
+
+  it('only lights inside the live budget and range shine', () => {
+    const near = rankedLight(1, 0);
+    const mid = rankedLight(5, 0);
+    const far = rankedLight(500, 0);
+    // Already sorted by distance, so this stays green regardless of the sort guard.
+    const ranked = [near, mid, far];
+    applyPointLightBudget(ranked, 0, 0, 6, 2, RANGE_SQ);
+    expect(near.light.intensity).toBe(5);
+    expect(mid.light.intensity).toBe(5);
+    expect(far.light.intensity).toBe(0);
+    expect(far.light.visible).toBe(true); // counted, but contributes nothing
+  });
+
+  it('sorts by distance when the live budget truncates fewer lights than visibleCount', () => {
+    // liveBudget(2) < ranked.length(3) <= visibleCount(6): a sort guard keyed off
+    // visibleCount alone would skip sorting here even though the live budget still
+    // truncates the ranked list, so array order (not distance) would pick the
+    // winners. All three lights sit inside range so only the live-budget cutoff
+    // is under test.
+    const near = rankedLight(1, 0);
+    const mid = rankedLight(5, 0);
+    const farInRange = rankedLight(50, 0);
+    const ranked = [farInRange, near, mid]; // misordered: farthest listed first
+    applyPointLightBudget(ranked, 0, 0, 6, 2, RANGE_SQ);
+    expect(near.light.intensity).toBe(5);
+    expect(mid.light.intensity).toBe(5);
+    expect(farInRange.light.intensity).toBe(0);
+  });
+
+  it('leaves base-less (externally driven) light intensity alone while shining', () => {
+    const driven = rankedLight(1, 0, null);
+    driven.light.intensity = 7;
+    applyPointLightBudget([driven], 0, 0, 6, 6, RANGE_SQ);
+    expect(driven.light.intensity).toBe(7);
+    const outOfRange = rankedLight(500, 0, null);
+    outOfRange.light.intensity = 7;
+    applyPointLightBudget([outOfRange], 0, 0, 6, 6, RANGE_SQ);
+    expect(outOfRange.light.intensity).toBe(0);
+  });
+
+  it('flickers only fire lights that survive the live budget and range', () => {
+    const near = rankedLight(1, 0, null);
+    const overBudget = rankedLight(2, 0, null);
+    const uncounted = rankedLight(3, 0, null);
+    near.fireIndex = 4;
+    overBudget.fireIndex = 5;
+    uncounted.fireIndex = 6;
+    near.light.userData.baseIntensity = 8;
+    overBudget.light.intensity = 91;
+    uncounted.light.intensity = 92;
+    const ranked = [uncounted, overBudget, near];
+
+    applyPointLightBudget(ranked, 0, 0, 2, 1, RANGE_SQ);
+    flickerContributingFireLights(ranked, 0.75, 2, 1, RANGE_SQ);
+
+    expect(near.light.intensity).toBe(8 + Math.sin(0.75 * 11 + 4 * 1.7) * 2.5 * (8 / 11));
+    expect(overBudget.light.intensity).toBe(0);
+    expect(uncounted.light.intensity).toBe(92);
+  });
+
+  it('does not flicker view lights or counted fire lights outside range', () => {
+    const fire = rankedLight(1, 0, null);
+    const view = rankedLight(2, 0, null);
+    const outOfRange = rankedLight(500, 0, null);
+    fire.fireIndex = 2;
+    outOfRange.fireIndex = 3;
+    view.light.intensity = 77;
+    outOfRange.light.intensity = 78;
+    const ranked = [fire, view, outOfRange];
+
+    applyPointLightBudget(ranked, 0, 0, 6, 6, RANGE_SQ);
+    flickerContributingFireLights(ranked, 0.5, 6, 6, RANGE_SQ);
+
+    expect(fire.light.intensity).toBe(11 + Math.sin(0.5 * 11 + 2 * 1.7) * 2.5);
+    expect(view.light.intensity).toBe(77);
+    expect(outOfRange.light.intensity).toBe(0);
+  });
+
+  // The pin's blind spot (found via BENCH_LIGHT_AUDIT on the geared-arrival
+  // bench): three's render counts a point light iff its WHOLE ancestor chain
+  // is visible, but the budget only drove light.visible. A budget-chosen
+  // light under a group the world hid (zone streaming, far-LOD wrap, a
+  // compile gate) kept its counted slot while the render dropped it, so the
+  // drawn numPointLights wandered 4..10 and every new value relinked every
+  // lit material in view.
+  describe('drawn-eligibility (hidden ancestors, detached lights)', () => {
+    function inScene(scene: THREE.Object3D, entry: RankedPointLight, parent?: THREE.Object3D) {
+      (parent ?? scene).add(entry.light);
+      return entry;
+    }
+
+    it('a light under a hidden ancestor gives its slot to the next eligible light', () => {
+      const scene = new THREE.Scene();
+      const hiddenGroup = new THREE.Group();
+      hiddenGroup.visible = false;
+      scene.add(hiddenGroup);
+      const near = inScene(scene, rankedLight(1, 0), hiddenGroup);
+      const mid = inScene(scene, rankedLight(5, 0));
+      const far = inScene(scene, rankedLight(9, 0));
+      const ranked = [near, mid, far];
+
+      const drawn = applyPointLightBudget(ranked, 0, 0, 2, 2, RANGE_SQ, scene);
+
+      expect(drawn).toBe(2);
+      expect(mid.light.visible).toBe(true);
+      expect(far.light.visible).toBe(true);
+      expect(near.light.visible).toBe(false);
+    });
+
+    it('an ineligible dynamic light skips the world-matrix walk entirely', () => {
+      // getWorldPosition walks and recomputes the whole ancestor matrix chain.
+      // A light nothing can draw (the far-LOD swap hid the rig carrying it, a
+      // streamed group is off) can never hold a counted slot, so paying that
+      // walk for it is pure waste, and a crowd of weapon-skin lights is exactly
+      // where it adds up. Eligibility is decided first and gates the read.
+      const scene = new THREE.Scene();
+      const hiddenGroup = new THREE.Group();
+      hiddenGroup.visible = false;
+      scene.add(hiddenGroup);
+      const hidden = inScene(scene, rankedLight(1, 0), hiddenGroup);
+      hidden.dynamic = true;
+      const shown = inScene(scene, rankedLight(5, 0));
+      shown.dynamic = true;
+      const hiddenRead = vi.spyOn(hidden.light, 'getWorldPosition');
+      const shownRead = vi.spyOn(shown.light, 'getWorldPosition');
+
+      applyPointLightBudget([hidden, shown], 0, 0, 2, 2, RANGE_SQ, scene);
+
+      expect(hiddenRead).not.toHaveBeenCalled();
+      // The eligible one still refreshes: a moving VFX light must not rank on
+      // a stale position.
+      expect(shownRead).toHaveBeenCalledTimes(1);
+      expect(hidden.light.visible).toBe(false);
+      expect(shown.light.visible).toBe(true);
+    });
+
+    it('a light not attached under the scene root is not drawn-eligible', () => {
+      const scene = new THREE.Scene();
+      const attached = inScene(scene, rankedLight(2, 0));
+      const detached = rankedLight(1, 0); // never added to the scene
+      const ranked = [detached, attached];
+
+      const drawn = applyPointLightBudget(ranked, 0, 0, 2, 2, RANGE_SQ, scene);
+
+      expect(drawn).toBe(1);
+      expect(attached.light.visible).toBe(true);
+      expect(detached.light.visible).toBe(false);
+    });
+
+    it('returns the drawn count, ancestry included', () => {
+      const scene = new THREE.Scene();
+      const hidden = new THREE.Group();
+      hidden.visible = false;
+      scene.add(hidden);
+      const ranked = [
+        inScene(scene, rankedLight(1, 0), hidden),
+        inScene(scene, rankedLight(2, 0), hidden),
+        inScene(scene, rankedLight(3, 0)),
+      ];
+
+      const drawn = applyPointLightBudget(ranked, 0, 0, 6, 6, RANGE_SQ, scene);
+
+      expect(drawn).toBe(1);
+    });
+
+    it('re-admits a light the frame its ancestor is revealed', () => {
+      const scene = new THREE.Scene();
+      const group = new THREE.Group();
+      group.visible = false;
+      scene.add(group);
+      const gated = inScene(scene, rankedLight(1, 0), group);
+      const other = inScene(scene, rankedLight(5, 0));
+      const ranked = [gated, other];
+
+      expect(applyPointLightBudget(ranked, 0, 0, 1, 1, RANGE_SQ, scene)).toBe(1);
+      expect(other.light.visible).toBe(true);
+      expect(gated.light.visible).toBe(false);
+
+      group.visible = true;
+      expect(applyPointLightBudget(ranked, 0, 0, 1, 1, RANGE_SQ, scene)).toBe(1);
+      expect(gated.light.visible).toBe(true);
+      expect(other.light.visible).toBe(false);
+    });
+
+    it('without a scene root every ranked light stays eligible (legacy shape)', () => {
+      const ranked = [rankedLight(1, 0), rankedLight(2, 0)];
+      const drawn = applyPointLightBudget(ranked, 0, 0, 6, 6, RANGE_SQ);
+      expect(drawn).toBe(2);
+      expect(visibleCount(ranked)).toBe(2);
+    });
+  });
+
+  it('keeps every top-level light in the bounded prewarm mask, so the carriers stay counted', () => {
+    // The bounded render hides most top-level scene children out of band of
+    // the budget pass. The carriers are top-level lights, and the count they
+    // pin is every lit program's NUM_POINT_LIGHTS: hiding one would link a
+    // variant the live render never draws. The sources it hides only go dark.
+    const source = rendererSource();
+    const methodStart = source.indexOf('private renderBoundedPrewarmRoot(');
+    const methodEnd = source.indexOf('private renderPrewarmPass(', methodStart);
+    expect(methodStart).toBeGreaterThan(-1);
+    expect(methodEnd).toBeGreaterThan(methodStart);
+    const method = source.slice(methodStart, methodEnd);
+    expect(method).toContain('const isLight = (entry as THREE.Light).isLight === true;');
+    expect(method).toContain('const keepVisible = entry === group || isLight ||');
+    expect(method).not.toMatch(/\bpads?\b|lightPads/i);
+    expect(source).not.toContain('lightPads');
+  });
+
+  it('wires the drawn-eligibility root: the renderer hands in its own scene', () => {
+    // Ancestry must be checked against the real root, or a light under a
+    // hidden group holds a counted slot it never draws. The pass moved out of
+    // renderer.ts into fire_light_registry.ts under the monolith ratchet; the
+    // halves are pinned where they now live.
+    const method = budgetPassBody();
+    expect(method).toContain('applyPointLightBudget(');
+    expect(method).toContain('pass.scene,');
+
+    // The renderer must still hand its OWN scene in, so ancestry is checked
+    // against the real root rather than a detached one. Anchored to the budget
+    // method: `scene: this.scene,` is an ordinary line to write anywhere in a
+    // 13k-line coordinator, so a whole-file match would pass on an unrelated one.
+    expect(budgetFireLightsBody(rendererSource())).toContain('scene: this.scene,');
+  });
+
+  it('makes a view light a carrier source the moment it is reconciled, visible or not', () => {
+    // View lights are often born visible (delve props, the quest circle, the
+    // soulwell), and a render or compile before the next rank rebuild would
+    // gather one beside the carriers.
+    const group = new THREE.Group();
+    const born = new THREE.PointLight(0x44ff88, 1.2, 6, 2);
+    group.add(born);
+    const all: THREE.PointLight[] = [];
+    reconcileViewPointLights(group, [], all);
+    expect(all).toEqual([born]);
+    expect(born.visible).toBe(true);
+    expect(born.layers.mask).toBe(POINT_LIGHT_SOURCE_MASK);
+  });
+
+  it('ranks every fire and view light as a carrier source before it can show one', () => {
+    // A ranked light the budget shows while it still sits on a camera layer is
+    // gathered by three beside the carriers: the count moves, and it lands
+    // behind a black carrier where the shader loop has already stopped.
+    const scene = new THREE.Scene();
+    const fire = new THREE.PointLight(0xffaa66, 8, 12, 2);
+    const view = new THREE.PointLight(0x66aaff, 4, 9, 2);
+    fire.visible = false;
+    view.visible = false;
+    scene.add(fire, view);
+    runFireLightBudgetPass({
+      rank: [],
+      rankDirty: true,
+      fireLights: [fire],
+      viewLights: [view],
+      px: 0,
+      pz: 0,
+      visibleCount: 6,
+      liveBudget: 6,
+      rangeSq: RANGE_SQ,
+      scene,
+      flickerTime: null,
+    });
+    expect(fire.visible).toBe(true);
+    expect(view.visible).toBe(true);
+    expect(fire.layers.mask).toBe(POINT_LIGHT_SOURCE_MASK);
+    expect(view.layers.mask).toBe(POINT_LIGHT_SOURCE_MASK);
+  });
+
+  it('wires mid-session fx lights into the same ranked budget', () => {
+    // An fx that mints a point light mid-session (the warlock infernal) must
+    // hand it to the renderer's registration seam: marked dynamic, hidden until
+    // the first budget pass ranks it, in the SAME viewLights pool with the rank
+    // marked dirty, and spliced back out on release. Any half dropped puts an
+    // unranked visible light in the scene, which changes numPointLights and
+    // relinks every lit material in view.
+    const source = rendererSource();
+    const registerStart = source.indexOf('private registerBudgetPointLight(');
+    const releaseStart = source.indexOf('private releaseBudgetPointLight(');
+    const budgetStart = source.indexOf('private budgetFireLights(');
+    expect(registerStart).toBeGreaterThan(-1);
+    expect(releaseStart).toBeGreaterThan(registerStart);
+    expect(budgetStart).toBeGreaterThan(releaseStart);
+
+    const register = source.slice(registerStart, releaseStart);
+    expect(register).toContain(
+      "if (typeof light.userData.budgetBase !== 'number') light.userData.budgetDynamic = true;",
+    );
+    expect(register).toContain('light.visible = false;');
+    expect(register).toContain('markPointLightSource(light);');
+    expect(register).toContain('this.viewLights.push(light);');
+    expect(register).toContain('this.lightRankDirty = true;');
+
+    const release = source.slice(releaseStart, budgetStart);
+    expect(release).toContain('this.viewLights.indexOf(light)');
+    expect(release).toContain('this.viewLights.splice(index, 1);');
+    expect(release).toContain('this.lightRankDirty = true;');
+
+    // The seam object, and the two owners actually handed it: the warlock
+    // meteor fx and every placed-GLB view (the editor's live one included).
+    const seamStart = source.indexOf('private readonly budgetLights = {');
+    expect(seamStart).toBeGreaterThan(-1);
+    const seam = source.slice(seamStart, source.indexOf('};', seamStart));
+    expect(seam).toContain(
+      'register: (light: THREE.PointLight) => this.registerBudgetPointLight(light),',
+    );
+    expect(seam).toContain(
+      'release: (light: THREE.PointLight) => this.releaseBudgetPointLight(light),',
+    );
+    const fxStart = source.indexOf('this.warlockMeteorFx = new WarlockMeteorFx(');
+    const fxEnd = source.indexOf('this.necromancyGroundFx = new NecromancyGroundFx(', fxStart);
+    expect(fxStart).toBeGreaterThan(-1);
+    expect(fxEnd).toBeGreaterThan(fxStart);
+    expect(source.slice(fxStart, fxEnd)).toContain('this.budgetLights,');
+    const placed = [...source.matchAll(/new PlacedAssetsView\(([^)]*)\)/g)].map((m) => m[1]);
+    expect(placed).toHaveLength(2);
+    for (const args of placed) expect(args).toMatch(/, this\.budgetLights$/);
+  });
+
+  it('a post-pass fx lifecycle re-run ranks the landing light on the frame it lands', () => {
+    // Frame order on a meteor landing: budget pass first, then the fx update
+    // releases the visible fall light and registers the hidden impact light.
+    // Without the recovery re-run the impact light stays hidden, so no
+    // carrier draws it until the next frame.
+    const VISIBLE = 4;
+    const ranked: RankedPointLight[] = [];
+    for (let i = 0; i < 6; i++) ranked.push(rankedLight(i * 2 + 2, 0));
+    const fall = new THREE.PointLight(0xffffff, 9, 26, 1.7);
+    const fallEntry: RankedPointLight = {
+      light: fall,
+      d2: 0,
+      worldPos: new THREE.Vector3(1, 0, 0),
+      base: null,
+      dynamic: false,
+    };
+    ranked.push(fallEntry);
+
+    applyPointLightBudget(ranked, 0, 0, VISIBLE, VISIBLE, RANGE_SQ);
+    expect(fall.visible).toBe(true);
+    expect(visibleCount(ranked)).toBe(VISIBLE);
+
+    // Landing: the fx releases the visible fall light and registers the
+    // impact light hidden (the registration seam hides it on the way in).
+    ranked.splice(ranked.indexOf(fallEntry), 1);
+    const impact = new THREE.PointLight(0xffffff, 14, 28, 1.5);
+    impact.visible = false;
+    ranked.push({
+      light: impact,
+      d2: 0,
+      worldPos: new THREE.Vector3(0.5, 0, 0),
+      base: null,
+      dynamic: true,
+    });
+
+    // The defect: without the recovery pass the impact light stays dark.
+    expect(impact.visible).toBe(false);
+    expect(visibleCount(ranked)).toBe(VISIBLE - 1);
+
+    applyPointLightBudget(ranked, 0, 0, VISIBLE, VISIBLE, RANGE_SQ);
+    expect(impact.visible).toBe(true);
+    expect(visibleCount(ranked)).toBe(VISIBLE);
+
+    // Impact expiry releases its light too; the re-run hands its slot on.
+    ranked.pop();
+    applyPointLightBudget(ranked, 0, 0, VISIBLE, VISIBLE, RANGE_SQ);
+    expect(visibleCount(ranked)).toBe(VISIBLE);
+  });
+
+  it('both frame paths re-run the budget after the meteor fx update', () => {
+    // The meteor fx is the one budget-light owner updating after the pass: a
+    // landing or expiry frame must re-run the budget before rendering, or the
+    // landing light is drawn one frame late.
+    const source = rendererSource();
+    const sites = [
+      ...source.matchAll(/this\.warlockMeteorFx\.update\(dt, this\.reducedMotion\(\)\);/g),
+    ];
+    expect(sites.length).toBe(2);
+    const windows = sites.map((site) => {
+      const from = (site.index ?? 0) + site[0].length;
+      const next = source.indexOf('this.necromancyGroundFx.update(', from);
+      expect(next).toBeGreaterThan(from);
+      return source.slice(from, next);
+    });
+    // The prewarm frame path budgets without flicker, the live sync path with:
+    // each recovery call must mirror its own path's primary pass exactly.
+    expect(windows[0]).toContain(
+      'if (this.lightRankDirty) this.budgetFireLights(p.pos.x, p.pos.z);',
+    );
+    expect(windows[1]).toContain(
+      'if (this.lightRankDirty) this.budgetFireLights(p.pos.x, p.pos.z, true);',
+    );
+  });
+
+  it('wires contributor flicker after the renderer completes selection', () => {
+    const method = budgetPassBody();
+    const selection = method.indexOf('applyPointLightBudget(');
+    const flickerGate = method.indexOf('if (pass.flickerTime !== null) {');
+    const flickerCall = method.indexOf('flickerContributingFireLights(');
+
+    expect(selection).toBeGreaterThan(-1);
+    expect(flickerGate).toBeGreaterThan(selection);
+    expect(flickerCall).toBeGreaterThan(flickerGate);
+    // The flicker arm is only reached because the renderer asks for it on the
+    // live frame path; pin that call where it lives.
+    const renderer = rendererSource();
+    expect(renderer).toContain('this.budgetFireLights(p.pos.x, p.pos.z, true);');
+  });
+});
+
+describe('fire-light adoption sink', () => {
+  // three counts a light into numPointLights the moment it is visible, whatever
+  // its intensity, and that count sits in every material's program cache key: a
+  // light visible before the budget ranks it changes the count for the frames in
+  // between and relinks every material drawn in them (measured at 100 to 200 ms
+  // per relink). Adoption has to hide AND dirty, and these drive the real
+  // factory so dropping either line in production turns them red.
+  function adopterOver(registry: THREE.PointLight[]) {
+    let dirty = 0;
+    const adopter = createFireLightAdopter(
+      () => registry,
+      () => {
+        dirty++;
+      },
+    );
+    return { adopter, dirtyCount: () => dirty };
+  }
+
+  it('hides an adopted light and marks the rank dirty in the same step', () => {
+    const registry: THREE.PointLight[] = [];
+    const { adopter, dirtyCount } = adopterOver(registry);
+    const light = new THREE.PointLight(0xffffff, 9, 24, 2);
+    expect(light.visible, 'three creates a point light visible').toBe(true);
+
+    adopter.adopt(light);
+
+    expect(light.visible).toBe(false);
+    expect(light.layers.mask).toBe(POINT_LIGHT_SOURCE_MASK);
+    expect(registry).toEqual([light]);
+    expect(dirtyCount()).toBe(1);
+  });
+
+  it('adopts every light of a multi-light sink push', () => {
+    // The rebuild guard compares rank length against a COUNT, so the dirty mark
+    // cannot be skipped: a balanced add-and-remove would leave a stale rank.
+    const registry: THREE.PointLight[] = [];
+    const { adopter, dirtyCount } = adopterOver(registry);
+    const lights = [
+      new THREE.PointLight(0xffffff, 1, 4, 2),
+      new THREE.PointLight(0xffffff, 2, 5, 2),
+      new THREE.PointLight(0xffffff, 3, 6, 2),
+    ];
+
+    expect(adopter.sink.push(...lights)).toBe(3);
+
+    expect(lights.every((light) => light.visible === false)).toBe(true);
+    expect(registry).toEqual(lights);
+    expect(dirtyCount()).toBe(3);
+  });
+
+  it('wires the renderer adopter to the live registry and the real dirty flag', () => {
+    // The cases here drive the factory with test doubles, so both arguments
+    // could be wrong in renderer.ts with every one of them green: a captured
+    // array instead of the getter (the registry is REASSIGNED in the
+    // constructor, see the case below) or a callback that dirties nothing.
+    // Neither is reachable without a WebGL context, so the construction site
+    // is pinned where it lives.
+    const renderer = rendererSource();
+    const start = renderer.indexOf('private readonly fireLightAdopter = createFireLightAdopter(');
+    expect(start, 'the adopter field moved; re-anchor this pin').toBeGreaterThan(-1);
+    const end = renderer.indexOf('\n  );', start);
+    expect(end).toBeGreaterThan(start);
+    const construction = renderer.slice(start, end);
+    expect(construction).toContain('() => this.fireLights,');
+    expect(construction).toContain('this.lightRankDirty = true;');
+  });
+
+  it('reads the registry through the getter, so a reassigned array still adopts', () => {
+    // renderer.ts assigns `this.fireLights = props.fireLights` after the adopter
+    // is constructed; a captured array would silently adopt into a dead one.
+    let registry: THREE.PointLight[] = [];
+    const adopter = createFireLightAdopter(
+      () => registry,
+      () => {},
+    );
+    const replaced: THREE.PointLight[] = [];
+    registry = replaced;
+    const light = new THREE.PointLight(0xffffff, 5, 10, 2);
+
+    adopter.adopt(light);
+
+    expect(replaced).toEqual([light]);
+  });
+
+  it('wires every post-construction registry mutation through adoption', () => {
+    // Source-scan, because no unit case can see whether a CALL SITE bypassed the
+    // seam. A bare `this.fireLights.push` after the constructor's mass hide, or a
+    // retire that forgets the dirty mark, reinstates the relink bug.
+    const renderer = rendererSource();
+    expect(renderer).toContain(
+      'for (const light of view.glowLights ?? []) this.fireLightAdopter.adopt(light)',
+    );
+    expect(renderer).toContain(
+      'for (const light of this.jailScene.glowLights) this.fireLightAdopter.adopt(light)',
+    );
+    // retireInteriorGroup must dirty the rank on REMOVAL: the guard is a count,
+    // so an add and a remove of equal size would leave the rank stale. The
+    // prune now ANSWERS whether it removed anything (pruneFireLights, covered
+    // behaviourally below), so the renderer half is a single guarded statement
+    // instead of a mark buried in a loop whose position a scan could only
+    // approximate.
+    const retireStart = renderer.indexOf('private retireInteriorGroup(');
+    const retireEnd = renderer.indexOf('private ensureDungeons(', retireStart);
+    expect(retireStart).toBeGreaterThan(-1);
+    expect(retireEnd).toBeGreaterThan(retireStart);
+    expect(renderer.slice(retireStart, retireEnd)).toContain(
+      'if (pruneFireLights(this.fireLights, doomed)) this.lightRankDirty = true;',
+    );
+  });
+
+  it('reports whether a prune actually removed a light', () => {
+    // The behavioural half of the retire rule. The return value is the whole
+    // point: a prune that removed nothing must NOT dirty the rank (that is just
+    // churn), and one that removed something must, because the rebuild guard
+    // compares a count and a balanced add-and-remove leaves it stale.
+    const doomedLight = new THREE.PointLight(0xffffff, 5, 10, 2);
+    const keptLight = new THREE.PointLight(0xffffff, 5, 10, 2);
+    const registry = [keptLight, doomedLight];
+
+    expect(pruneFireLights(registry, new Set())).toBe(false);
+    expect(registry).toEqual([keptLight, doomedLight]);
+
+    expect(pruneFireLights(registry, new Set([doomedLight]))).toBe(true);
+    expect(registry).toEqual([keptLight]);
+
+    // A second prune over the same doomed set is a no-op and says so.
+    expect(pruneFireLights(registry, new Set([doomedLight]))).toBe(false);
+  });
+
+  it('lets nothing reach the raw registry after the constructor hides it', () => {
+    // The omission half of the seam. The cases above pin that the KNOWN call
+    // sites adopt; this one pins that a NEW one cannot skip it, which is the
+    // failure mode the seam exists for (three sites got it wrong by hand).
+    //
+    // The constructor's mass hide is the boundary: everything pushed before it
+    // is swept visible=false by that line, so a bare push there is harmless,
+    // while one after it puts a visible, unranked light in the scene.
+    // Comments are stripped first: this file's subject matter means the phrase
+    // appears in prose right beside the code, and a commented-out call must
+    // neither satisfy nor break the pin (the tests/loopback_guard.test.ts rule).
+    const renderer = rendererSource();
+    const MASS_HIDE = 'for (const light of this.fireLights) light.visible = false;';
+    const massHide = renderer.indexOf(MASS_HIDE);
+    expect(massHide, 'the constructor mass hide moved; re-anchor this guard').toBeGreaterThan(-1);
+
+    // ALLOWLIST, not a list of forbidden mutators. A scan that only forbade
+    // `this.fireLights.push(` and friends left four ways past the seam open:
+    // a positional argument (`buildX(this.fireLights)`), a differently named
+    // property (`lights: this.fireLights`), a local alias
+    // (`const lights = this.fireLights;` followed by an ordinary push), and a
+    // destructure (`const { fireLights } = this;`). The scan therefore matches
+    // the BARE name, not `this.fireLights`, and every line carrying it after
+    // the hide has to be one of these sanctioned READS, so a new reach fails by
+    // default and arrives here to be declared.
+    const SANCTIONED_READS = [
+      /^\s*\(\) => this\.fireLights,$/,
+      /^\s*if \(pruneFireLights\(this\.fireLights,/,
+      /^\s*fireLights: this\.fireLights,$/,
+      /^\s*fireLights: this\.fireLightAdopter\.sink,$/,
+      /^\s*for \(const light of [\w.]*\bfireLights\b\) this\.fireLightAdopter\.adopt\(light\);$/,
+    ];
+    const isSanctioned = (line: string): boolean =>
+      SANCTIONED_READS.some((form) => form.test(line));
+    // Positive control: nothing above proves the patterns REJECT anything, and
+    // a pattern loose enough to accept a push would fail silently in exactly
+    // the case this guard exists for.
+    for (const bypass of [
+      '      this.fireLights.push(light);',
+      '      const lights = this.fireLights;',
+      '      const { fireLights } = this;',
+      '      buildSomething(this.fireLights);',
+      '      lights: this.fireLights,',
+    ]) {
+      expect(isSanctioned(bypass), `the scan accepts a bypass: ${bypass.trim()}`).toBe(false);
+    }
+
+    // The one positional raw handoff, declared rather than pattern-matched: the
+    // DungeonInteriors construction in ensureDungeons passes the raw registry
+    // (plus its rank-dirty hook) for the world editor's KEYED interior rebuild,
+    // which has to splice exactly its own lights back out, the same reason the
+    // battleground takes it. Lights still JOIN through the sink argument above
+    // it. Exactly one bare line, inside that method only.
+    const dungeonStart = renderer.indexOf('  private ensureDungeons(): DungeonInteriors {');
+    const dungeonEnd = renderer.indexOf('\n  }\n', dungeonStart);
+    expect(dungeonStart).toBeGreaterThan(massHide);
+    const dungeonBody = renderer.slice(dungeonStart, dungeonEnd);
+    expect(dungeonBody.match(/^\s*this\.fireLights,$/gm)).toHaveLength(1);
+    expect(dungeonBody).toContain('this.fireLightAdopter.sink,');
+    const outsideDungeons = renderer.slice(0, dungeonStart) + renderer.slice(dungeonEnd);
+    const reaches = outsideDungeons
+      .slice(massHide + MASS_HIDE.length)
+      .split('\n')
+      .filter((line) => /\bfireLights\b/.test(line));
+    // The carrier sources (a read-only list the carriers pack from), the two
+    // prunes (interior retire, the editor's fluid-pool rebuild), the two raw
+    // handoffs (battleground, budget pass), the sink handoff, and the
+    // station-props adoption loop. A floor keeps the loop from passing
+    // vacuously if the name ever moves wholesale.
+    expect(reaches).toHaveLength(7);
+    for (const line of reaches) {
+      expect(isSanctioned(line), `unsanctioned reach past the adoption seam: ${line.trim()}`).toBe(
+        true,
+      );
+    }
+
+    // And the raw array escapes the seam exactly once, to the battleground:
+    // buildBgFieldLights hides its own lights and its release path SPLICES,
+    // which an append-only sink cannot express. Every other subsystem takes
+    // `fireLightAdopter.sink`. The budget pass reads the registry too, so its
+    // own method is excluded rather than counted.
+    // Whitespace-tolerant on both halves: a Biome reflow that wraps the
+    // property or moves the call's closing brace must not turn this red, since
+    // no seam was crossed. Only a genuinely NEW handoff should.
+    const budget = budgetFireLightsBody(renderer);
+    const outsideBudget = renderer.replace(budget, '');
+    const handoffs = [...outsideBudget.matchAll(/fireLights:\s*this\.fireLights\b/g)];
+    expect(handoffs).toHaveLength(1);
+    // The handoff lives in the host the renderer hands battleground_views.ts,
+    // which builds the field copies (the branch itself was extracted).
+    const bgStart = outsideBudget.indexOf('private battlegroundViewHost(): BattlegroundViewHost {');
+    const bgEnd = outsideBudget.indexOf('compileGate:', bgStart);
+    expect(bgStart).toBeGreaterThan(-1);
+    expect(bgEnd).toBeGreaterThan(bgStart);
+    expect(handoffs[0].index).toBeGreaterThan(bgStart);
+    expect(handoffs[0].index).toBeLessThan(bgEnd);
+  });
+
+  it('gives the jail gate light to the budget with its authored intensity', () => {
+    // Source-scan: buildJailScene mints canvas textures, so it cannot run in
+    // this suite's plain-Node env. The light used to be in NO registry while its
+    // group is toggled every frame AFTER the budget pass, so it moved
+    // numPointLights whenever the jail came into camera range. Adoption also
+    // puts it under the fire flicker, which centres on userData.baseIntensity
+    // (11 when unset), so the authored 9 has to travel with it.
+    const jail = sourceOf('../src/render/jail_scene.ts');
+    expect(jail).toContain('glowLights: THREE.PointLight[];');
+    expect(jail).toContain('light.userData.baseIntensity = 9;');
+    expect(jail).toContain('glowLights.push(light);');
+    const declaration = jail.indexOf('const light = new THREE.PointLight(0x86b4ff, 9, 24, 2);');
+    expect(declaration, 'the jail gate light moved or changed its authored value').toBeGreaterThan(
+      -1,
+    );
+    expect(jail.indexOf('light.userData.baseIntensity = 9;')).toBeGreaterThan(declaration);
+  });
+
+  it('lifts the jail gate light out of the group the cull sweep toggles', () => {
+    // Adoption alone was not enough. The budget ranks against the ancestry it
+    // SEES, and updateVisibility writes jailScene.group.visible AFTER the
+    // frame's budget pass, so on the frame the group flips from shown to hidden
+    // a counted light silently goes dark for that frame. The renderer half is
+    // pinned below; this is the mechanism.
+    const scene = new THREE.Scene();
+    const group = new THREE.Group();
+    group.position.set(100, 5, -40);
+    // NESTED, not a direct child: the rule the helper states is about the next
+    // builder parenting a glow into a holder of its own, so a scan of
+    // group.children alone would pass every case here while leaving that light
+    // stranded. The nesting also makes the world-position arithmetic non-trivial.
+    const holder = new THREE.Group();
+    holder.position.set(1, 0, 1);
+    const light = new THREE.PointLight(0x86b4ff, 9, 24, 2);
+    light.position.set(1, 6, 2);
+    holder.add(light);
+    group.add(holder);
+    scene.add(group);
+    const ranked: RankedPointLight[] = [
+      { light, d2: 0, worldPos: new THREE.Vector3(), base: 9, dynamic: false },
+    ];
+
+    // Inside the group, the cull toggle takes the light out of the drawn set.
+    group.visible = false;
+    expect(applyPointLightBudget(ranked, 0, 0, 6, 6, RANGE_SQ, scene)).toBe(0);
+    group.visible = true;
+
+    const moved = reparentStrandedLightsToScene(scene, group);
+
+    expect(moved).toEqual([light]);
+    expect(light.parent).toBe(scene);
+    // Same place in the world, so the gate still glows where it was authored.
+    expect(light.getWorldPosition(new THREE.Vector3()).toArray()).toEqual([102, 11, -37]);
+    group.visible = false;
+    expect(applyPointLightBudget(ranked, 0, 0, 6, 6, RANGE_SQ, scene)).toBe(1);
+  });
+
+  it('refuses a light a world position cannot describe, instead of moving it wrong', () => {
+    // The lift preserves POSITION only, which is the whole of a point light and
+    // not the whole of the others: a directional light's `target` would stay
+    // behind in the group, and a hemisphere light has no position at all. Those
+    // carry the same cache-key hazard on numDirLights / numHemiLights (the
+    // Wildheart caldera interior builds exactly this pair), so the helper has
+    // to say so rather than lift one silently wrong.
+    const scene = new THREE.Scene();
+    const group = new THREE.Group();
+    group.name = 'wildheartField';
+    group.position.set(100, 5, -40);
+    const sun = new THREE.DirectionalLight(0xffe0a6, 0.88);
+    sun.target.position.set(0, 2, 135);
+    const point = new THREE.PointLight(0xffffff, 5, 20, 2);
+    group.add(sun, sun.target, new THREE.HemisphereLight(0xdff4da, 0x6d5131, 0.9), point);
+    scene.add(group);
+    const errors: string[] = [];
+    const realError = console.error;
+    console.error = (message: string) => errors.push(message);
+
+    let moved: THREE.PointLight[];
+    try {
+      moved = reparentStrandedLightsToScene(scene, group);
+    } finally {
+      console.error = realError;
+    }
+
+    // The point light still moves; the others stay put and are named.
+    expect(moved).toEqual([point]);
+    expect(sun.parent).toBe(group);
+    expect(sun.target.parent).toBe(group);
+    expect(errors).toHaveLength(2);
+    for (const message of errors) {
+      expect(message).toContain('wildheartField');
+      expect(message).toContain('only covers point lights');
+    }
+    expect(errors.join(' ')).toContain('DirectionalLight');
+    expect(errors.join(' ')).toContain('HemisphereLight');
+  });
+
+  it('recomposes the matrix of an already frozen light it lifts', () => {
+    // buildJailScene calls freezeStaticMatrices before the renderer ever sees
+    // the group, and that clears matrixAutoUpdate. Without an explicit
+    // recompose the new local position never reaches the matrix and the light
+    // keeps lighting the spot it used to occupy.
+    const scene = new THREE.Scene();
+    const group = new THREE.Group();
+    group.position.set(100, 5, -40);
+    const light = new THREE.PointLight(0x86b4ff, 9, 24, 2);
+    light.position.set(2, 6, 3);
+    group.add(light);
+    scene.add(group);
+    freezeStaticMatrices(group);
+    expect(light.matrixAutoUpdate).toBe(false);
+
+    reparentStrandedLightsToScene(scene, group);
+    scene.updateMatrixWorld(true);
+
+    expect(light.getWorldPosition(new THREE.Vector3()).toArray()).toEqual([102, 11, -37]);
+  });
+
+  it('applies the lift at both light-bearing attach points', () => {
+    // The rule lives at the attach points, not with each builder: a feature
+    // builder that parents a glow into its own group must not be able to
+    // reintroduce the stall. These two are the whole set today (the generic
+    // zone-feature attach and the jail, which is added directly).
+    const renderer = rendererSource();
+    expect(renderer).toContain('reparentStrandedLightsToScene(this.scene, view.group);');
+    expect(renderer).toContain('reparentStrandedLightsToScene(this.scene, this.jailScene.group);');
+  });
+});

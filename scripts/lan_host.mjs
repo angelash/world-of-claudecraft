@@ -27,18 +27,18 @@ function lanAddressRank(address) {
 }
 
 export function resolveForcedLanBindHost(env = process.env) {
-  return trimEnv(env.WOC_LAN_BIND_HOST)
-    || trimEnv(env.LAN_BIND_HOST)
-    || DEFAULT_LAN_BIND_HOST;
+  return trimEnv(env.WOC_LAN_BIND_HOST) || trimEnv(env.LAN_BIND_HOST) || DEFAULT_LAN_BIND_HOST;
 }
 
 export function resolveLanBindHost(env = process.env) {
-  return trimEnv(env.WOC_LAN_BIND_HOST)
-    || trimEnv(env.LAN_BIND_HOST)
-    || trimEnv(env.HOST)
-    || trimEnv(env.BIND_HOST)
-    || trimEnv(env.VITE_DEV_HOST)
-    || DEFAULT_LAN_BIND_HOST;
+  return (
+    trimEnv(env.WOC_LAN_BIND_HOST) ||
+    trimEnv(env.LAN_BIND_HOST) ||
+    trimEnv(env.HOST) ||
+    trimEnv(env.BIND_HOST) ||
+    trimEnv(env.VITE_DEV_HOST) ||
+    DEFAULT_LAN_BIND_HOST
+  );
 }
 
 export function hostForLocalProbe(bindHost) {

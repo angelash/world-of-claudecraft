@@ -19,7 +19,9 @@
 // both a Sim-shaped and a ClientWorld-mirror-shaped snapshot.
 
 import { ITEMS } from '../sim/data';
-import type { ItemDef } from '../sim/types';
+import { isTransferLockedInstance } from '../sim/item_instance_transfer';
+import { isLoadableItemProvenance, publicProvenanceView } from '../sim/item_provenance';
+import type { ItemDef, ItemInstancePayload, ItemProvenance } from '../sim/types';
 import type { MarketInfo, MarketListingView } from '../world_api';
 import {
   MARKET_ARMOR_TYPE_FILTERS,
@@ -31,7 +33,7 @@ import {
   type MarketSubtypeFilter,
 } from './market_filters';
 
-export type MarketTab = 'browse' | 'sell' | 'collect';
+export type MarketTab = 'browse' | 'sell' | 'collect' | 'orders' | 'history';
 
 /** Copper in one gold / one silver, for splitting a suggested ask into coins. */
 export const COPPER_PER_GOLD = 10000;
@@ -67,10 +69,21 @@ export type MarketBrowseBody =
 export interface MarketSellForm {
   itemId: string;
   item: ItemDef;
-  /** How many of this item the player holds (the quantity cap). */
+  /** How many of this item the player holds (the quantity cap). Always 1 for
+   *  an instanced staging: instanced listings are single-copy. */
   have: number;
   /** A gentle starting ask, pre-split into gold / silver / copper inputs. */
   suggested: { gold: number; silver: number; copper: number };
+  /** The staged copy's payload (issue 1165): present when the player clicked an
+   *  instanced copy, which lists as ITSELF via marketListInstance. */
+  instance?: ItemInstancePayload;
+  /** The item's current lowest active listing price, PER UNIT, matching this
+   *  form's "price each" field (issue #3043). A number when the server's echo
+   *  confirms it for this exact item; null when the server confirms no active
+   *  listings exist; absent while the echo has not caught up yet (an item just
+   *  staged, or a stale snapshot) so the painter shows nothing rather than a
+   *  price that might belong to a different item. */
+  priceRef?: number | null;
 }
 
 /**
@@ -94,12 +107,60 @@ export interface MarketSellMeta {
 export interface MarketCollectRow {
   item: ItemDef;
   count: number;
+  /** The returned copy's payload (issue 1165): an expired instanced listing waits
+   *  here with its enchant/signature intact, and the tooltip shows it. */
+  instance?: ItemInstancePayload;
 }
 
-/** The Collect tab body: nothing to collect, or proceeds + item stacks. */
+/**
+ * One row on the History tab: a completed sale. Distinct from MarketCollectRow
+ * above, which is goods coming BACK (an expired or reclaimed listing); these
+ * goods are gone and what the row explains is the gold they brought in.
+ */
+export interface MarketSaleRow {
+  item: ItemDef;
+  /** The sold copy's own CHOSEN name, when the sale stamped one. The row
+   *  describes a past transaction with no copy left to inspect, so the ledger
+   *  is the only thing that can still say WHICH copy sold; without it a seller
+   *  with two listings of one id reads two identical rows. Absent for a plain
+   *  copy, and the painter falls back to the def name. */
+  itemName?: string;
+  count: number;
+  /** Net copper this sale contributed, after the Merchant's cut. */
+  proceeds: number;
+  buyerName: string;
+}
+
+/**
+ * The Collect tab body: nothing to collect, or proceeds + returned item stacks.
+ * The itemized sale ledger behind `proceeds` is the separate History tab
+ * (below), not this body: Collect is the action tab (claim the purse, reclaim
+ * returned goods), History is the read-only record of what sold.
+ */
 export type MarketCollectBody =
   | { state: 'empty' }
-  | { state: 'items'; proceeds: number; rows: MarketCollectRow[] };
+  | {
+      state: 'items';
+      proceeds: number;
+      rows: MarketCollectRow[];
+    };
+
+/**
+ * The History tab body: the itemized ledger of the player's own recent sales
+ * (split out of Collect so a sale stays visible here after its proceeds are
+ * claimed, not only while the purse is still unpaid).
+ */
+export type MarketHistoryBody =
+  | { state: 'empty' }
+  | {
+      state: 'items';
+      /** Itemized sales, oldest first. */
+      sales: MarketSaleRow[];
+      /** Sales not listed in `sales`: dropped by the sim's ledger cap, or skipped
+       *  here because the item id no longer resolves. This tab reports the count
+       *  instead of quietly under-listing. */
+      salesOmitted: number;
+    };
 
 /**
  * The full market view-model: the data-absent state, or one of the three tab
@@ -109,7 +170,11 @@ export type MarketView =
   | { kind: 'no-data' }
   | { kind: 'browse'; body: MarketBrowseBody }
   | { kind: 'sell'; body: MarketSellBody; meta: MarketSellMeta }
-  | { kind: 'collect'; body: MarketCollectBody };
+  | { kind: 'collect'; body: MarketCollectBody }
+  // The Wanted tab builds its own body in market_orders_core.ts (buildMarketOrders
+  // needs the viewer's bag counts, which this builder does not take).
+  | { kind: 'orders' }
+  | { kind: 'history'; body: MarketHistoryBody };
 
 /** Inputs the painter feeds the builder each render. */
 export interface MarketViewInput {
@@ -120,6 +185,8 @@ export interface MarketViewInput {
   sellItemId: string | null;
   /** How many of `sellItemId` the player holds (0 when nothing staged). */
   sellHave: number;
+  /** The staged copy's payload when an instanced copy was clicked (issue 1165). */
+  sellInstance?: ItemInstancePayload | null;
 }
 
 /** True when any dropdown is narrowing the browse. */
@@ -136,10 +203,10 @@ function filtersActive(filters: MarketFilters): boolean {
 /**
  * Build the Browse tab body. The server already filtered (search + type/subtype/
  * rarity) and paginated, so `info.listings` IS the page to show: the viewer's own
- * listings (always wired, for reclaim) plus one page of other sellers' listings.
- * `info.page` / `info.pageCount` drive the pager; `info.totalCount` is the full match
- * count (the viewer's own listings plus all others). `filters` only chooses the
- * empty-state copy.
+ * visible listings plus one page of other sellers' listings. Outside collapse mode
+ * every matching own row wires for reclaim; collapse mode may narrow those rows too.
+ * `info.page` / `info.pageCount` drive the pager; `info.totalCount` is the visible
+ * match count. `filters` only chooses the empty-state copy.
  */
 export function buildMarketBrowse(info: MarketInfo, filters: MarketFilters): MarketBrowseBody {
   const rows: MarketBrowseRow[] = [];
@@ -152,10 +219,9 @@ export function buildMarketBrowse(info: MarketInfo, filters: MarketFilters): Mar
     const reason = info.filter.trim() ? 'search' : filtersActive(filters) ? 'filtered' : 'browse';
     return { state: 'empty', reason };
   }
-  // The pager and range note describe the paged OTHER listings; the viewer's own
-  // listings ride on top of every page and are not counted in the range. The server
-  // wires all of the viewer's own matches on every page, so subtracting them from
-  // totalCount (mine + others) yields the true count of paged others.
+  // The pager and range note describe the paged OTHER listings; the viewer's visible
+  // own listings ride on top of every page and are not counted in the range. Subtracting
+  // those visible own rows from totalCount yields the true count of paged others.
   const othersOnPage = rows.reduce((n, r) => n + (r.listing.mine ? 0 : 1), 0);
   const mineOnPage = rows.length - othersOnPage;
   const othersTotal = info.totalCount - mineOnPage;
@@ -173,12 +239,25 @@ export function buildMarketBrowse(info: MarketInfo, filters: MarketFilters): Mar
   };
 }
 
-/** Build the Sell tab body for the staged item (`sellHave` is its bag count). */
-export function buildMarketSell(sellItemId: string | null, sellHave: number): MarketSellBody {
+/** Build the Sell tab body for the staged item (`sellHave` is its bag count).
+ *  `sellInstance` is the staged copy's payload: an instanced staging is a
+ *  single-copy form (have 1, no quantity stepper), and a transfer-locked copy
+ *  (defence in depth; the bags click already blocks it) cannot market. */
+export function buildMarketSell(
+  sellItemId: string | null,
+  sellHave: number,
+  sellInstance?: ItemInstancePayload | null,
+  priceEcho?: { itemId: string | null; lowestPrice: number | null },
+): MarketSellBody {
   const item = sellItemId ? ITEMS[sellItemId] : null;
   if (!sellItemId || !item || sellHave <= 0) return { state: 'pick-empty' };
   if (item.kind === 'quest' || item.noMarketList || item.soulbound)
     return { state: 'cannot-market' };
+  if (sellInstance && isTransferLockedInstance(sellInstance)) return { state: 'cannot-market' };
+  // Only trust the echo when it names THIS item: a stale echo across an item
+  // switch (staging a new item before the next snapshot lands) must never
+  // display a price that belongs to the previous item.
+  const priceRef = priceEcho && priceEcho.itemId === sellItemId ? priceEcho.lowestPrice : undefined;
   // A gentle starting ask: the vendor shop price when the item has one, but
   // never more than 10x its vendor sell value (the recipe-economy rework re-priced
   // four commons' sellValues while deliberately keeping their historical shop
@@ -194,12 +273,22 @@ export function buildMarketSell(sellItemId: string | null, sellHave: number): Ma
   const copper = suggested % COPPER_PER_SILVER;
   return {
     state: 'form',
-    form: { itemId: sellItemId, item, have: sellHave, suggested: { gold, silver, copper } },
+    form: {
+      itemId: sellItemId,
+      item,
+      have: sellInstance ? 1 : sellHave,
+      suggested: { gold, silver, copper },
+      ...(sellInstance ? { instance: sellInstance } : {}),
+      ...(priceRef !== undefined ? { priceRef } : {}),
+    },
   };
 }
 
 /** Build the Collect tab body from a snapshot. */
 export function buildMarketCollect(info: MarketInfo): MarketCollectBody {
+  // Only gold and returned goods pend here. The sale ledger rides the same
+  // collection object but is History: Collect never clears it, so it never makes
+  // this tab non-empty (a 0-copper sale has nothing to claim).
   if (info.collectionCopper <= 0 && info.collectionItems.length === 0) {
     return { state: 'empty' };
   }
@@ -207,9 +296,34 @@ export function buildMarketCollect(info: MarketInfo): MarketCollectBody {
   for (const slot of info.collectionItems) {
     const item = ITEMS[slot.itemId];
     if (!item) continue;
-    rows.push({ item, count: slot.count });
+    rows.push({ item, count: slot.count, ...(slot.instance ? { instance: slot.instance } : {}) });
   }
   return { state: 'items', proceeds: info.collectionCopper, rows };
+}
+
+/** Build the History tab body from a snapshot: the itemized sale ledger. */
+export function buildMarketHistory(info: MarketInfo): MarketHistoryBody {
+  const sales: MarketSaleRow[] = [];
+  // An id a content edit retired can no longer be named, so the row is dropped;
+  // it counts as omitted rather than vanishing, because its gold is still inside
+  // the Collect tab's proceeds total.
+  let salesOmitted = info.collectionSalesOmitted;
+  for (const sale of info.collectionSales) {
+    const item = ITEMS[sale.itemId];
+    if (!item) {
+      salesOmitted += 1;
+      continue;
+    }
+    sales.push({
+      item,
+      ...(sale.itemName ? { itemName: sale.itemName } : {}),
+      count: sale.count,
+      proceeds: sale.proceeds,
+      buyerName: sale.buyerName,
+    });
+  }
+  if (sales.length === 0 && salesOmitted === 0) return { state: 'empty' };
+  return { state: 'items', sales, salesOmitted };
 }
 
 /**
@@ -224,7 +338,10 @@ export function buildMarketView(input: MarketViewInput): MarketView {
   if (tab === 'sell') {
     return {
       kind: 'sell',
-      body: buildMarketSell(input.sellItemId, input.sellHave),
+      body: buildMarketSell(input.sellItemId, input.sellHave, input.sellInstance, {
+        itemId: info.sellPriceItemId,
+        lowestPrice: info.sellLowestPrice,
+      }),
       meta: {
         cutPct: info.cutPct,
         myListingCount: info.myListingCount,
@@ -232,7 +349,9 @@ export function buildMarketView(input: MarketViewInput): MarketView {
       },
     };
   }
-  return { kind: 'collect', body: buildMarketCollect(info) };
+  if (tab === 'orders') return { kind: 'orders' };
+  if (tab === 'collect') return { kind: 'collect', body: buildMarketCollect(info) };
+  return { kind: 'history', body: buildMarketHistory(info) };
 }
 
 /**
@@ -296,7 +415,10 @@ export function marketFilterMenus(itemType: MarketItemTypeFilter): MarketFilterM
  */
 export function marketCollectBadgeCount(info: MarketInfo | null): number {
   if (!info) return 0;
-  return (info.collectionCopper > 0 ? 1 : 0) + info.collectionItems.length;
+  // The purse counts ONCE however many sales fill it. Sale ledger rows never
+  // count: they are History, kept after the gold is collected.
+  const purse = info.collectionCopper > 0 ? 1 : 0;
+  return purse + info.collectionItems.length;
 }
 
 /** The minimap-corner collect indicator (the mailIndicatorView pattern). */
@@ -311,4 +433,19 @@ export interface MarketCollectIndicatorView {
  */
 export function marketCollectIndicatorView(pending: boolean): MarketCollectIndicatorView {
   return { visible: pending === true };
+}
+
+/**
+ * The record a browse row's Item history door shows for a listed tracked copy
+ * (MarketListingView.history), or null when the row offers none. The sim
+ * already ships the public projection; the row re-validates it against the
+ * persisted shape (isLoadableItemProvenance) and projects it again, so a
+ * version-skewed or malformed row never puts `undefined` into a history
+ * line and never carries a character id into the dialog.
+ */
+export function marketListingItemHistory(
+  listing: Pick<MarketListingView, 'history'>,
+): ItemProvenance | null {
+  const history: unknown = listing.history;
+  return isLoadableItemProvenance(history) ? publicProvenanceView(history) : null;
 }

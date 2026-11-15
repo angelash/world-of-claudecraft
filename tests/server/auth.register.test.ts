@@ -79,7 +79,7 @@ function installDb(overrides: Parameters<typeof setAuthDbForTests>[0] = {}): voi
     setAccountEmail: async () => {},
     emailAccountCreated: () => {},
     createSuspiciousRegistrationReport: async () => ({ created: false, signals: [] }),
-    captureReferral: async () => {},
+    resolveReferralSignup: async () => null,
     trackAccountCreated: async () => {},
     ...overrides,
   });
@@ -150,6 +150,13 @@ describe('register handler', () => {
     expect(await runHandler({ username: 'newhero', password: '123' })).toEqual({
       status: 400,
       body: { error: 'password must be at least 6 chars', code: 'account.password_too_short' },
+    });
+  });
+
+  it('rejects a password over the maximum length with 400 (not the too-short error)', async () => {
+    expect(await runHandler({ username: 'newhero', password: 'a'.repeat(129) })).toEqual({
+      status: 400,
+      body: { error: 'password must be at most 128 chars', code: 'account.password_too_long' },
     });
   });
 
@@ -295,7 +302,77 @@ describe('register handler', () => {
     expect(emailCreated).toEqual([]);
   });
 
-  it('fires the best-effort suspicious-registration report and referral capture', async () => {
+  it('captures the signup context (attribution, locale, opt-in) fire-and-forget', async () => {
+    const captures: Array<{
+      id: number;
+      profile: { locale: string | null; marketingOptIn: boolean };
+    }> = [];
+    installDb({
+      captureSignupContext: (id, _req, _body, profile) => {
+        captures.push({ id, profile });
+      },
+    });
+    const out = await runHandler(
+      { username: 'newhero', password: 'secret123', email: 'a@b.co', marketingOptIn: true },
+      { headers: { 'accept-language': 'pt-BR,pt;q=0.9' } },
+    );
+    expect(out.status).toBe(200);
+    expect(captures).toEqual([{ id: 7, profile: { locale: 'pt_BR', marketingOptIn: true } }]);
+  });
+
+  it('resolves referral attribution before creating the new account and returning credentials', async () => {
+    let finish!: () => void;
+    let started!: () => void;
+    const began = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    installDb({
+      resolveReferralSignup: async () => {
+        started();
+        await pending;
+        return null;
+      },
+    });
+    let completed = false;
+    const response = runHandler({
+      username: 'newhero',
+      password: 'secret123',
+      email: 'a@b.co',
+      ref: 'aldric',
+    }).then((value) => {
+      completed = true;
+      return value;
+    });
+    await began;
+    // Let all nested handler/response microtasks settle. A single microtask can
+    // falsely pass even when capture has been changed back to fire-and-forget.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(completed).toBe(false);
+    finish();
+    expect((await response).status).toBe(200);
+  });
+
+  it('does not create an unlinked account when referral resolution fails', async () => {
+    let creates = 0;
+    installDb({
+      createAccount: async () => {
+        creates++;
+        return SUCCESS_ACCOUNT;
+      },
+      resolveReferralSignup: async () => {
+        throw new Error('unavailable');
+      },
+    });
+    await expect(
+      runHandler({ username: 'newhero', password: 'secret123', email: 'a@b.co', ref: 'aldric' }),
+    ).rejects.toThrow('unavailable');
+    expect(creates).toBe(0);
+  });
+
+  it('passes resolved attribution into the atomic account create while reports remain best effort', async () => {
     let suspicious = 0;
     let referral = 0;
     installDb({
@@ -303,8 +380,18 @@ describe('register handler', () => {
         suspicious++;
         return { created: false, signals: [] };
       },
-      captureReferral: async () => {
+      resolveReferralSignup: async () => {
         referral++;
+        return {
+          referrerAccountId: 9,
+          slug: 'aldric',
+          memberEligible: false,
+          inviterName: 'Aldric',
+        };
+      },
+      createAccount: async (_name, _hash, _meta, opts) => {
+        expect(opts?.referral).toMatchObject({ referrerAccountId: 9, slug: 'aldric' });
+        return SUCCESS_ACCOUNT;
       },
     });
     const out = await runHandler({ username: 'newhero', password: 'secret123', email: 'a@b.co' });

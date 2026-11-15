@@ -16,7 +16,17 @@ export interface MoveFlags {
 export interface LookDelta {
   yaw: number;
   pitch: number;
+  // True while the stick is deflected past the deadzone this frame, independent
+  // of whether the scaled yaw/pitch happen to compute to zero (a zero `dt` or
+  // `speed` would otherwise mask a real deflection). Lets a consumer drive a
+  // "look active" signal (see Input.setGamepadLookActive) off the raw stick
+  // state rather than the scaled delta.
+  active: boolean;
 }
+
+export type PadCastHold =
+  | { kind: 'slot'; slot: number }
+  | { kind: 'xhb'; action: { type: 'ability' | 'item'; id: string } };
 
 // --- W3C "Standard Gamepad" indices --------------------------------------
 // https://w3c.github.io/gamepad/#remapping, fixed across Xbox/DualShock/Switch
@@ -92,9 +102,18 @@ export const BINDABLE_BUTTONS: number[] = Object.keys(GAMEPAD_BUTTON_LABELS)
 // Xbox pad (the bottom button reads "B" on a Switch pad, "A" on an Xbox pad).
 // We detect the brand from Gamepad.id and label each button with the glyph that
 // player sees. Bindings stay position-indexed, so the DEFAULT layout is
-// unchanged: "bottom face button = jump" holds on every pad; only the shown text
-// differs. Like GAMEPAD_BUTTON_LABELS these are hardware names, not t() keys.
+// unchanged; only the shown text differs. Like GAMEPAD_BUTTON_LABELS these are
+// hardware names, not t() keys.
 export type GamepadKind = 'xbox' | 'playstation' | 'nintendo' | 'generic';
+
+/** Translate the persisted Controller-panel choice into a concrete label family.
+ *  Zero is Auto and therefore leaves the detected kind in charge. */
+export function gamepadKindOverride(value: number): GamepadKind | null {
+  if (value === 1) return 'xbox';
+  if (value === 2) return 'playstation';
+  if (value === 3) return 'nintendo';
+  return null;
+}
 
 export const GAMEPAD_BUTTON_LABELS_BY_KIND: Record<GamepadKind, Record<number, string>> = {
   generic: GAMEPAD_BUTTON_LABELS,
@@ -149,11 +168,16 @@ export const GAMEPAD_BUTTON_LABELS_BY_KIND: Record<GamepadKind, Record<number, s
   },
 };
 
-// USB vendor ids for the three console brands.
+// USB vendor ids for the three console brands. Some platform controller layers
+// expose the numeric vendor in decimal rather than the usual four-digit hex, so
+// both representations are accepted.
 const VENDOR_ID: Record<string, GamepadKind> = {
   '054c': 'playstation', // Sony
   '045e': 'xbox', // Microsoft
   '057e': 'nintendo', // Nintendo
+  '1356': 'playstation', // Sony, decimal 0x054c
+  '1118': 'xbox', // Microsoft, decimal 0x045e
+  '1406': 'nintendo', // Nintendo, decimal 0x057e
 };
 
 // Classify a controller from its Gamepad.id string. Product-NAME keywords are the
@@ -167,7 +191,7 @@ const VENDOR_ID: Record<string, GamepadKind> = {
 export function detectGamepadKind(id: string): GamepadKind {
   const s = id.toLowerCase();
   if (/dualsense|dualshock|playstation/.test(s)) return 'playstation';
-  if (/xbox|x-box|xinput/.test(s)) return 'xbox';
+  if (/xbox|x-box|xinput|microsoft/.test(s)) return 'xbox';
   if (/switch|joy-?con|pro controller/.test(s)) return 'nintendo';
   const vendor =
     /vendor:\s*([0-9a-f]{4})/.exec(s)?.[1] ?? /^([0-9a-f]{4})-[0-9a-f]{4}-/.exec(s)?.[1];
@@ -185,33 +209,71 @@ export function gamepadButtonLabel(button: number, kind: GamepadKind): string {
 }
 
 // Action ids reuse the keyboard Keybinds registry ids (so the gamepad dispatches
-// through the same InputCallbacks) plus two specials Keybinds doesn't model:
-//   'escape': open/close the game menu (Escape is never a keyboard bind)
-//   'none':   explicitly unbound
+// through the same InputCallbacks) plus four specials Keybinds doesn't model:
+//   'escape':          open/close the game menu (Escape is never a keyboard bind)
+//   'zoomIn'/'zoomOut': step the camera distance, gamepad-only (camera zoom has no
+//                       keyboard bind, only mouse wheel and touch pinch); handled
+//                       in GamepadManager.dispatch() straight against Input.zoomBy,
+//                       so they never reach the host's onAction callback.
+//   'none':            explicitly unbound
 // 'jump' and 'autorun' are real Keybinds ids and handled by Input directly.
 export type GamepadActionId = string;
 export const GAMEPAD_NONE = 'none';
+// Press the focused UI control: the pad's left-mouse-button equivalent. Handled
+// in GamepadManager.dispatch() against the focus navigation, so it never reaches
+// the host's keybind path (there is no keyboard action for "click").
+export const GAMEPAD_CONFIRM = 'confirm';
+// Cancel, the way a console MMO means it: back out of the top window, and with
+// none open let the target go. Distinct from `escape`, which opens the game menu
+// once there is nothing left to close.
+export const GAMEPAD_CANCEL = 'cancel';
+// Open the target's subcommands (the context menu a mouse gets by right-clicking),
+// falling back to the map when nothing is targeted. One button, as FFXIV has it.
+export const GAMEPAD_SUBCOMMANDS = 'subcommands';
+// Step the pad's selection through the HUD's own components. This is the job the
+// bare d-pad used to do, moved to its own button so the d-pad can cycle targets.
+export const GAMEPAD_CYCLE_HUD = 'cycleHud';
+// Swap the cross hotbar between its sets without holding anything, the way a
+// console MMO spends its right bumper. The trigger-tap route stays: this is the
+// standing switch, that one is the mid-hold reach.
+export const GAMEPAD_CYCLE_SET = 'cycleHotbarSet';
+export const GAMEPAD_ZOOM_IN = 'zoomIn';
+export const GAMEPAD_ZOOM_OUT = 'zoomOut';
+// Matches the step Input's mouse-wheel handler applies per notch (input.ts), so
+// gamepad zoom feels identical in speed to wheel and touch pinch-to-zoom.
+export const GAMEPAD_ZOOM_STEP = 1.4;
 
 // Console-MMO default layout: left stick moves (camera-relative), right stick
 // looks, face/shoulder/d-pad reach the first nine action-bar slots plus the
 // staple verbs (jump, interact, target, menu). Fully remappable afterwards.
 export const DEFAULT_GAMEPAD_BINDINGS: Record<number, GamepadActionId> = {
-  [GP.A]: 'jump',
-  [GP.B]: 'interact',
-  [GP.X]: 'slot0', // Attack
-  [GP.Y]: 'target',
-  [GP.RB]: 'slot1',
-  [GP.LB]: 'slot2',
-  [GP.RT]: 'slot3',
-  [GP.LT]: 'slot4',
-  [GP.DPAD_UP]: 'slot5',
-  [GP.DPAD_RIGHT]: 'slot6',
-  [GP.DPAD_DOWN]: 'slot7',
-  [GP.DPAD_LEFT]: 'slot8',
-  [GP.BACK]: 'map',
+  // Face buttons follow the console-MMO convention as FFXIV spells it: bottom
+  // confirms AND interacts (talk, loot), right is purely cancel, left opens the
+  // target's subcommands or the map, top jumps. Interacting is deliberately NOT on
+  // the right button: cancel and interact are different verbs, and pressing "back"
+  // to talk to someone is the thing every console player gets wrong once.
+  [GP.A]: GAMEPAD_CONFIRM,
+  [GP.B]: GAMEPAD_CANCEL,
+  [GP.X]: GAMEPAD_SUBCOMMANDS,
+  [GP.Y]: 'jump',
+  // The bumpers no longer carry ability slots (the bar owns every ability now), so
+  // the right one takes the set switch it has on a console pad.
+  [GP.RB]: GAMEPAD_CYCLE_SET,
+  [GP.LB]: GAMEPAD_NONE,
+  // LT/RT are deliberately UNBOUND: they are the cross hotbar's two modifiers, and
+  // a modifier that also fires an ability reads as a random cast every time the
+  // player reaches for the bar. They stay free for a player who switches the cross
+  // hotbar off and wants them back.
+  // The d-pad carries no bare action: it is four cross-hotbar cells, and a bare
+  // press opens UI navigation instead.
+  // View/Share/Minus remains an optional inventory shortcut. Mandatory controller
+  // guidance enters HUD navigation instead because platforms may reserve this button.
+  // The right stick click takes the HUD walk, while friendly/NPC selection stays
+  // on the bare d-pad, so every interface remains reachable without a pointer.
+  [GP.BACK]: 'bags',
   [GP.START]: 'escape',
   [GP.L3]: 'autorun',
-  [GP.R3]: 'targetFriendly',
+  [GP.R3]: GAMEPAD_CYCLE_HUD,
 };
 
 /**
@@ -262,9 +324,9 @@ export function stickToLook(
   dt: number,
 ): LookDelta {
   const v = applyRadialDeadzone(x, y, dz);
-  if (v.x === 0 && v.y === 0) return { yaw: 0, pitch: 0 };
+  if (v.x === 0 && v.y === 0) return { yaw: 0, pitch: 0, active: false };
   const pitchSign = invertY ? -1 : 1;
-  return { yaw: -v.x * speed * dt, pitch: pitchSign * v.y * speed * dt };
+  return { yaw: -v.x * speed * dt, pitch: pitchSign * v.y * speed * dt, active: true };
 }
 
 /** Indices of buttons that went from up→down between the previous and current
@@ -273,6 +335,14 @@ export function risingEdges(prev: readonly boolean[], cur: readonly boolean[]): 
   const out: number[] = [];
   for (let i = 0; i < cur.length; i++) {
     if (cur[i] && !prev[i]) out.push(i);
+  }
+  return out;
+}
+
+export function fallingEdges(prev: readonly boolean[], cur: readonly boolean[]): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < prev.length; i++) {
+    if (prev[i] && !cur[i]) out.push(i);
   }
   return out;
 }

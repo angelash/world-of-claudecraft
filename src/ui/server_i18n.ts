@@ -11,18 +11,33 @@
 import { CLASSES, DUNGEONS, ZONES } from '../sim/data';
 import type { PlayerClass } from '../sim/types';
 import { tEntity } from './entity_i18n';
-import { getLanguage, type InterpolationValues, type SupportedLanguage, tPlural } from './i18n';
+import {
+  formatMoney,
+  getLanguage,
+  type InterpolationValues,
+  type SupportedLanguage,
+  t,
+  tPlural,
+} from './i18n';
 import { SERVER_NEW } from './server_i18n.newlocales';
 import { IN_GAME_MODERATION_MESSAGES } from './server_i18n_moderation';
 
 export const DICT: Record<string, Record<string, string>> = {
   en: {
+    // The gold-buy refusal while a Claudium storage purchase holds the
+    // per-character mutex (server/bank_wire.ts, Bank Storage phase 11). Moved
+    // here from sim_i18n beside its true origin: the emit is a SERVER
+    // module's, and localizeErrorText runs this matcher before the sim one.
+    'error.bankPurchaseInProgress': 'Your bank has a purchase in progress.',
     'friends.specifyName': 'Specify a character name.',
     'friends.noCharExists': "No character named '{name}' exists.",
     'friends.cannotBefriendSelf': 'You cannot befriend yourself.',
     'friends.ignoringRemoveFirst':
       'You are ignoring {name}. Remove them from your ignore list first.',
     'friends.alreadyFriend': '{name} is already your friend.',
+    // Refusal when the TARGET has blocked the actor (friendAdd's reverse-block
+    // check): deliberately generic, does not reveal the block exists.
+    'friends.cannotAdd': 'You cannot add {name} as a friend.',
     'friends.listFull': 'Your friends list is full.',
     'friends.notOnFriends': "No character named '{name}' on your friends list.",
     'friends.notYourFriend': '{name} is not on your friends list.',
@@ -50,10 +65,46 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Your ignore list is empty.',
     'ignores.list': 'Ignored ({count}): {names}',
     'ignores.usage': 'Usage: /ignore <name>, /unignore <name>, /ignorelist.',
+    'flair.shown': 'Your Discord role is shown to other players. Type /flair off to hide it.',
+    'flair.hidden': 'Your Discord role is hidden from other players. Type /flair on to show it.',
+    'flair.notLinked': 'Link your Discord account to use /flair.',
+    'flair.usage': 'Usage: /flair, /flair on, or /flair off.',
+    'presence.everyone':
+      'Friends and guildmates can see you online. Type /presence friends or /presence none to hide.',
+    'presence.friends':
+      'Only your friends can see you online. Type /presence everyone or /presence none to change it.',
+    'presence.none':
+      'You appear offline to friends and guildmates. Type /presence everyone or /presence friends to change it.',
+    'presence.usage': 'Usage: /presence, /presence everyone, /presence friends, or /presence none.',
     'guild.nameRules': 'Guild names are 3-24 letters (spaces allowed).',
+    'guild.nameNotAllowed': 'That guild name is not allowed.',
     'guild.exists': "A guild named '{name}' already exists.",
     'guild.alreadyInOne': 'You are already in a guild.',
     'guild.notInOne': 'You are not in a guild.',
+    'pledge.noGuild': 'No guild by that name.',
+    'pledge.noneToWithdraw': 'You have no pledge to withdraw.',
+    'pledge.onlyOfficers': 'Only officers and the Guild Master may manage pledges.',
+    'pledge.noteNotAllowed': 'That board note is not allowed.',
+    'pledge.made': 'You have pledged to {name}.',
+    'pledge.cooldown': 'You can pledge again in {minutes} more minutes.',
+    'pledge.cooldownOne': 'You can pledge again in {minutes} more minute.',
+    'pledge.notAccepting': '{name} is not accepting pledges.',
+    'pledge.minLevel': '{name} accepts pledges from level {level}.',
+    'pledge.declinedForNow': '{name} has declined your pledge for now.',
+    'pledge.withdrawn': 'You have withdrawn your pledge to {name}.',
+    'pledge.noneToYourGuild': '{name} has no pledge to your guild.',
+    'pledge.incoming': '{name} has pledged to your guild.',
+    'pledge.youDeclined': "You have declined {name}'s pledge.",
+    'pledge.declined': '{name} has declined your pledge.',
+    'guild.createFee': 'You need {amount} gold to found a guild.',
+    'guild.bankNotEmpty': 'The guild bank must be emptied before the guild can be disbanded.',
+    // The guild-delete window: between the empty-bank guard passing and the
+    // guilds DELETE (which cascades the book row away), every guild bank op is
+    // refused, because anything banked in that gap would be destroyed with the
+    // row. Two DB round trips wide.
+    'guild.bankClosing': 'The guild bank is closing. Try again in a moment.',
+    'guild.bankSettling': 'The guild bank is still saving a recent change. Try again in a moment.',
+    'guild.bankBusy': 'You are busy. Try again in a moment.',
     'guild.onlyOfficersInvite': 'Only officers and the Guild Master may invite.',
     'guild.alreadyInThis': 'You are already in the guild.',
     'guild.mustBeOnline': '{name} must be online to be invited.',
@@ -75,6 +126,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'You cannot remove the Guild Master.',
     'guild.onlyGmRemoveOfficer': 'Only the Guild Master may remove an officer.',
     'guild.onlyGmChangeRanks': 'Only the Guild Master may change ranks.',
+    'guild.belowRankOnly': 'You can only do that to members below your own rank.',
+    'guild.titleNotAllowed': 'That rank title is not allowed.',
+    'guild.ladderUpdated': 'The guild ranks have been updated.',
+    'guild.rankNumbered': 'Rank {n}',
     'guild.useTransfer': 'Use a guild transfer to hand over leadership.',
     'guild.alreadyRank': '{name} is already {rank}.',
     'guild.onlyOfficersChat': 'Only officers and the Guild Master can use officer chat.',
@@ -85,6 +140,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> has been disbanded.',
     'guild.removedFrom': 'You have been removed from <{name}>.',
     'guild.joined': '{name} has joined the guild.',
+    'guild.bankGoldDeposited': '{name} deposited {amount} into the guild bank.',
+    'guild.bankGoldWithdrawn': '{name} withdrew {amount} from the guild bank.',
     'guild.memberLeft': '{name} has left the guild.',
     'guild.newMaster': '{name} is now the Guild Master of <{guild}>.',
     'guild.removedBy': '{name} has been removed from the guild by {actor}.',
@@ -118,6 +175,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'chat.filterMuted': "That language isn't allowed here. You're muted for {duration}.",
     'chat.filterWarning': "Warning: that language isn't allowed here. Continued use will mute you.",
     'pet.nameNotAllowed': 'Pet name is not allowed.',
+    'legendary.nameNotAllowed': 'That name is not allowed.',
     'chat.muted': 'You are muted from chat for {minutes} more minutes.{reason}',
     'chat.mutedOne': 'You are muted from chat for {minutes} more minute.{reason}',
     'chat.muteReason': ' Reason: {reason}',
@@ -132,10 +190,12 @@ export const DICT: Record<string, Record<string, string>> = {
     'time.day': '{count} day',
   },
   en_CA: {
+    'error.bankPurchaseInProgress': 'Your bank has a purchase in progress.',
     'chat.filterMutedRemaining': "You are muted and can't chat for another {duration}.",
     'chat.filterMuted': "That language isn't allowed here. You're muted for {duration}.",
     'chat.filterWarning': "Warning: that language isn't allowed here. Continued use will mute you.",
     'pet.nameNotAllowed': 'Pet name is not allowed.',
+    'legendary.nameNotAllowed': 'That name is not allowed.',
     'chat.muted': 'You are muted from chat for {minutes} more minutes.{reason}',
     'chat.mutedOne': 'You are muted from chat for {minutes} more minute.{reason}',
     'chat.muteReason': ' Reason: {reason}',
@@ -154,6 +214,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       'You are ignoring {name}. Remove them from your ignore list first.',
     'friends.alreadyFriend': '{name} is already your friend.',
+    'friends.cannotAdd': 'You cannot add {name} as a friend.',
     'friends.listFull': 'Your friends list is full.',
     'friends.notOnFriends': "No character named '{name}' on your friends list.",
     'friends.notYourFriend': '{name} is not on your friends list.',
@@ -181,10 +242,42 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Your ignore list is empty.',
     'ignores.list': 'Ignored ({count}): {names}',
     'ignores.usage': 'Usage: /ignore <name>, /unignore <name>, /ignorelist.',
+    'flair.shown': 'Your Discord role is shown to other players. Type /flair off to hide it.',
+    'flair.hidden': 'Your Discord role is hidden from other players. Type /flair on to show it.',
+    'flair.notLinked': 'Link your Discord account to use /flair.',
+    'flair.usage': 'Usage: /flair, /flair on, or /flair off.',
+    'presence.everyone':
+      'Friends and guildmates can see you online. Type /presence friends or /presence none to hide.',
+    'presence.friends':
+      'Only your friends can see you online. Type /presence everyone or /presence none to change it.',
+    'presence.none':
+      'You appear offline to friends and guildmates. Type /presence everyone or /presence friends to change it.',
+    'presence.usage': 'Usage: /presence, /presence everyone, /presence friends, or /presence none.',
     'guild.nameRules': 'Guild names are 3-24 letters (spaces allowed).',
+    'guild.nameNotAllowed': 'That guild name is not allowed.',
     'guild.exists': "A guild named '{name}' already exists.",
     'guild.alreadyInOne': 'You are already in a guild.',
     'guild.notInOne': 'You are not in a guild.',
+    'pledge.noGuild': 'No guild by that name.',
+    'pledge.noneToWithdraw': 'You have no pledge to withdraw.',
+    'pledge.onlyOfficers': 'Only officers and the Guild Master may manage pledges.',
+    'pledge.noteNotAllowed': 'That board note is not allowed.',
+    'pledge.made': 'You have pledged to {name}.',
+    'pledge.cooldown': 'You can pledge again in {minutes} more minutes.',
+    'pledge.cooldownOne': 'You can pledge again in {minutes} more minute.',
+    'pledge.notAccepting': '{name} is not accepting pledges.',
+    'pledge.minLevel': '{name} accepts pledges from level {level}.',
+    'pledge.declinedForNow': '{name} has declined your pledge for now.',
+    'pledge.withdrawn': 'You have withdrawn your pledge to {name}.',
+    'pledge.noneToYourGuild': '{name} has no pledge to your guild.',
+    'pledge.incoming': '{name} has pledged to your guild.',
+    'pledge.youDeclined': "You have declined {name}'s pledge.",
+    'pledge.declined': '{name} has declined your pledge.',
+    'guild.createFee': 'You need {amount} gold to found a guild.',
+    'guild.bankNotEmpty': 'The guild bank must be emptied before the guild can be disbanded.',
+    'guild.bankClosing': 'The guild bank is closing. Try again in a moment.',
+    'guild.bankSettling': 'The guild bank is still saving a recent change. Try again in a moment.',
+    'guild.bankBusy': 'You are busy. Try again in a moment.',
     'guild.onlyOfficersInvite': 'Only officers and the Guild Master may invite.',
     'guild.alreadyInThis': 'You are already in the guild.',
     'guild.mustBeOnline': '{name} must be online to be invited.',
@@ -206,6 +299,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'You cannot remove the Guild Master.',
     'guild.onlyGmRemoveOfficer': 'Only the Guild Master may remove an officer.',
     'guild.onlyGmChangeRanks': 'Only the Guild Master may change ranks.',
+    'guild.belowRankOnly': 'You can only do that to members below your own rank.',
+    'guild.titleNotAllowed': 'That rank title is not allowed.',
+    'guild.ladderUpdated': 'The guild ranks have been updated.',
+    'guild.rankNumbered': 'Rank {n}',
     'guild.useTransfer': 'Use a guild transfer to hand over leadership.',
     'guild.alreadyRank': '{name} is already {rank}.',
     'guild.onlyOfficersChat': 'Only officers and the Guild Master can use officer chat.',
@@ -216,6 +313,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> has been disbanded.',
     'guild.removedFrom': 'You have been removed from <{name}>.',
     'guild.joined': '{name} has joined the guild.',
+    'guild.bankGoldDeposited': '{name} deposited {amount} into the guild bank.',
+    'guild.bankGoldWithdrawn': '{name} withdrew {amount} from the guild bank.',
     'guild.memberLeft': '{name} has left the guild.',
     'guild.newMaster': '{name} is now the Guild Master of <{guild}>.',
     'guild.removedBy': '{name} has been removed from the guild by {actor}.',
@@ -247,11 +346,13 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Unknown',
   },
   es: {
+    'error.bankPurchaseInProgress': 'Tu banco tiene una compra en curso.',
     'chat.filterMutedRemaining': 'Estás silenciado y no puedes chatear durante {duration} más.',
     'chat.filterMuted': 'Ese lenguaje no está permitido aquí. Estás silenciado durante {duration}.',
     'chat.filterWarning':
       'Advertencia: ese lenguaje no está permitido aquí. Si continúas, se te silenciará.',
     'pet.nameNotAllowed': 'Ese nombre de mascota no está permitido.',
+    'legendary.nameNotAllowed': 'Ese nombre no está permitido.',
     'chat.muted': 'Estás silenciado en el chat durante {minutes} minutos más.{reason}',
     'chat.mutedOne': 'Estás silenciado en el chat durante {minutes} minuto más.{reason}',
     'chat.muteReason': ' Motivo: {reason}',
@@ -270,6 +371,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       'Estás ignorando a {name}. Quítalo primero de tu lista de ignorados.',
     'friends.alreadyFriend': '{name} ya es tu amigo.',
+    'friends.cannotAdd': 'No puedes agregar a {name} como amigo.',
     'friends.listFull': 'Tu lista de amigos está llena.',
     'friends.notOnFriends': "No hay ningún personaje llamado '{name}' en tu lista de amigos.",
     'friends.notYourFriend': '{name} no está en tu lista de amigos.',
@@ -298,11 +400,49 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Tu lista de ignorados está vacía.',
     'ignores.list': 'Ignorados ({count}): {names}',
     'ignores.usage': 'Uso: /ignore <nombre>, /unignore <nombre>, /ignorelist.',
+    'flair.shown':
+      'Tu rol de Discord es visible para otros jugadores. Escribe /flair off para ocultarlo.',
+    'flair.hidden':
+      'Tu rol de Discord está oculto para otros jugadores. Escribe /flair on para mostrarlo.',
+    'flair.notLinked': 'Vincula tu cuenta de Discord para usar /flair.',
+    'flair.usage': 'Uso: /flair, /flair on o /flair off.',
+    'presence.everyone':
+      'Tus amigos y compañeros de hermandad pueden verte en línea. Escribe /presence friends o /presence none para ocultarte.',
+    'presence.friends':
+      'Solo tus amigos pueden verte en línea. Escribe /presence everyone o /presence none para cambiarlo.',
+    'presence.none':
+      'Apareces desconectado para tus amigos y compañeros de hermandad. Escribe /presence everyone o /presence friends para cambiarlo.',
+    'presence.usage': 'Uso: /presence, /presence everyone, /presence friends o /presence none.',
     'guild.nameRules':
       'Los nombres de hermandad tienen entre 3 y 24 letras (se permiten espacios).',
+    'guild.nameNotAllowed': 'Ese nombre de hermandad no está permitido.',
     'guild.exists': "Ya existe una hermandad llamada '{name}'.",
     'guild.alreadyInOne': 'Ya perteneces a una hermandad.',
     'guild.notInOne': 'No perteneces a ninguna hermandad.',
+    'pledge.noGuild': 'No existe una hermandad con ese nombre.',
+    'pledge.noneToWithdraw': 'No tienes ninguna promesa que retirar.',
+    'pledge.onlyOfficers':
+      'Solo los oficiales y el Maestro de Hermandad pueden gestionar las promesas.',
+    'pledge.noteNotAllowed': 'Esa nota del tablón no está permitida.',
+    'pledge.made': 'Has prometido unirte a {name}.',
+    'pledge.cooldown': 'Podrás prometerte de nuevo dentro de {minutes} minutos.',
+    'pledge.cooldownOne': 'Podrás prometerte de nuevo dentro de {minutes} minuto.',
+    'pledge.notAccepting': '{name} no acepta promesas.',
+    'pledge.minLevel': '{name} acepta promesas a partir del nivel {level}.',
+    'pledge.declinedForNow': '{name} ha rechazado tu promesa por ahora.',
+    'pledge.withdrawn': 'Has retirado tu promesa a {name}.',
+    'pledge.noneToYourGuild': '{name} no tiene ninguna promesa con tu hermandad.',
+    'pledge.incoming': '{name} ha prometido unirse a tu hermandad.',
+    'pledge.youDeclined': 'Has rechazado la promesa de {name}.',
+    'pledge.declined': '{name} ha rechazado tu promesa.',
+    'guild.createFee': 'Necesitas {amount} de oro para fundar una hermandad.',
+    'guild.bankNotEmpty':
+      'El banco de hermandad debe vaciarse antes de poder disolver la hermandad.',
+    'guild.bankClosing':
+      'El banco de hermandad se está cerrando. Inténtalo de nuevo en un momento.',
+    'guild.bankSettling':
+      'El banco de hermandad aún está guardando un cambio reciente. Inténtalo de nuevo en un momento.',
+    'guild.bankBusy': 'Estás ocupado. Inténtalo de nuevo en un momento.',
     'guild.onlyOfficersInvite': 'Solo los oficiales y el Maestro de hermandad pueden invitar.',
     'guild.alreadyInThis': 'Ya perteneces a la hermandad.',
     'guild.mustBeOnline': '{name} debe estar conectado para ser invitado.',
@@ -325,6 +465,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'No puedes expulsar al Maestro de hermandad.',
     'guild.onlyGmRemoveOfficer': 'Solo el Maestro de hermandad puede expulsar a un oficial.',
     'guild.onlyGmChangeRanks': 'Solo el Maestro de hermandad puede cambiar los rangos.',
+    'guild.belowRankOnly': 'Solo puedes hacer eso con miembros de rango inferior al tuyo.',
+    'guild.titleNotAllowed': 'Ese título de rango no está permitido.',
+    'guild.ladderUpdated': 'Se han actualizado los rangos de la hermandad.',
+    'guild.rankNumbered': 'Rango {n}',
     'guild.useTransfer': 'Usa una transferencia de hermandad para ceder el liderazgo.',
     'guild.alreadyRank': '{name} ya es {rank}.',
     'guild.onlyOfficersChat':
@@ -336,6 +480,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> ha sido disuelta.',
     'guild.removedFrom': 'Has sido expulsado de <{name}>.',
     'guild.joined': '{name} se ha unido a la hermandad.',
+    'guild.bankGoldDeposited': '{name} depositó {amount} en el banco de la hermandad.',
+    'guild.bankGoldWithdrawn': '{name} retiró {amount} del banco de la hermandad.',
     'guild.memberLeft': '{name} ha abandonado la hermandad.',
     'guild.newMaster': '{name} ahora es el Maestro de hermandad de <{guild}>.',
     'guild.removedBy': '{name} ha sido expulsado de la hermandad por {actor}.',
@@ -369,11 +515,13 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Desconocida',
   },
   es_ES: {
+    'error.bankPurchaseInProgress': 'Tu banco tiene una compra en curso.',
     'chat.filterMutedRemaining': 'Estás silenciado y no puedes chatear durante {duration} más.',
     'chat.filterMuted': 'Ese lenguaje no está permitido aquí. Estás silenciado durante {duration}.',
     'chat.filterWarning':
       'Advertencia: ese lenguaje no está permitido aquí. Si continúas, se te silenciará.',
     'pet.nameNotAllowed': 'Ese nombre de mascota no está permitido.',
+    'legendary.nameNotAllowed': 'Ese nombre no está permitido.',
     'chat.muted': 'Estás silenciado en el chat durante {minutes} minutos más.{reason}',
     'chat.mutedOne': 'Estás silenciado en el chat durante {minutes} minuto más.{reason}',
     'chat.muteReason': ' Motivo: {reason}',
@@ -392,6 +540,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       'Estás ignorando a {name}. Quítalo primero de tu lista de ignorados.',
     'friends.alreadyFriend': '{name} ya está en tu lista de amigos.',
+    'friends.cannotAdd': 'No puedes añadir a {name} como amigo.',
     'friends.listFull': 'Tu lista de amigos está llena.',
     'friends.notOnFriends': "No hay ningún personaje llamado '{name}' en tu lista de amigos.",
     'friends.notYourFriend': '{name} no está en tu lista de amigos.',
@@ -420,11 +569,49 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Tu lista de ignorados está vacía.',
     'ignores.list': 'Ignorados ({count}): {names}',
     'ignores.usage': 'Uso: /ignore <nombre>, /unignore <nombre>, /ignorelist.',
+    'flair.shown':
+      'Tu rol de Discord es visible para otros jugadores. Escribe /flair off para ocultarlo.',
+    'flair.hidden':
+      'Tu rol de Discord está oculto para otros jugadores. Escribe /flair on para mostrarlo.',
+    'flair.notLinked': 'Vincula tu cuenta de Discord para usar /flair.',
+    'flair.usage': 'Uso: /flair, /flair on o /flair off.',
+    'presence.everyone':
+      'Tus amigos y compañeros de hermandad pueden verte en línea. Escribe /presence friends o /presence none para ocultarte.',
+    'presence.friends':
+      'Solo tus amigos pueden verte en línea. Escribe /presence everyone o /presence none para cambiarlo.',
+    'presence.none':
+      'Apareces desconectado para tus amigos y compañeros de hermandad. Escribe /presence everyone o /presence friends para cambiarlo.',
+    'presence.usage': 'Uso: /presence, /presence everyone, /presence friends o /presence none.',
     'guild.nameRules':
       'Los nombres de hermandad deben tener entre 3 y 24 letras (se permiten espacios).',
+    'guild.nameNotAllowed': 'Ese nombre de hermandad no está permitido.',
     'guild.exists': "Ya existe una hermandad llamada '{name}'.",
     'guild.alreadyInOne': 'Ya perteneces a una hermandad.',
     'guild.notInOne': 'No perteneces a ninguna hermandad.',
+    'pledge.noGuild': 'No existe una hermandad con ese nombre.',
+    'pledge.noneToWithdraw': 'No tienes ninguna promesa que retirar.',
+    'pledge.onlyOfficers':
+      'Solo los oficiales y el Maestro de Hermandad pueden gestionar las promesas.',
+    'pledge.noteNotAllowed': 'Esa nota del tablón no está permitida.',
+    'pledge.made': 'Has prometido unirte a {name}.',
+    'pledge.cooldown': 'Podrás prometerte de nuevo dentro de {minutes} minutos.',
+    'pledge.cooldownOne': 'Podrás prometerte de nuevo dentro de {minutes} minuto.',
+    'pledge.notAccepting': '{name} no acepta promesas.',
+    'pledge.minLevel': '{name} acepta promesas a partir del nivel {level}.',
+    'pledge.declinedForNow': '{name} ha rechazado tu promesa por ahora.',
+    'pledge.withdrawn': 'Has retirado tu promesa a {name}.',
+    'pledge.noneToYourGuild': '{name} no tiene ninguna promesa con tu hermandad.',
+    'pledge.incoming': '{name} ha prometido unirse a tu hermandad.',
+    'pledge.youDeclined': 'Has rechazado la promesa de {name}.',
+    'pledge.declined': '{name} ha rechazado tu promesa.',
+    'guild.createFee': 'Necesitas {amount} de oro para fundar una hermandad.',
+    'guild.bankNotEmpty':
+      'El banco de hermandad debe vaciarse antes de poder disolver la hermandad.',
+    'guild.bankClosing':
+      'El banco de hermandad se está cerrando. Inténtalo de nuevo en un momento.',
+    'guild.bankSettling':
+      'El banco de hermandad aún está guardando un cambio reciente. Inténtalo de nuevo en un momento.',
+    'guild.bankBusy': 'Estás ocupado. Inténtalo de nuevo en un momento.',
     'guild.onlyOfficersInvite': 'Solo los oficiales y el Maestro de hermandad pueden invitar.',
     'guild.alreadyInThis': 'Ya perteneces a la hermandad.',
     'guild.mustBeOnline': '{name} debe estar conectado para poder ser invitado.',
@@ -447,6 +634,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'No puedes expulsar al Maestro de hermandad.',
     'guild.onlyGmRemoveOfficer': 'Solo el Maestro de hermandad puede expulsar a un oficial.',
     'guild.onlyGmChangeRanks': 'Solo el Maestro de hermandad puede cambiar los rangos.',
+    'guild.belowRankOnly': 'Solo puedes hacer eso con miembros de rango inferior al tuyo.',
+    'guild.titleNotAllowed': 'Ese título de rango no está permitido.',
+    'guild.ladderUpdated': 'Se han actualizado los rangos de la hermandad.',
+    'guild.rankNumbered': 'Rango {n}',
     'guild.useTransfer': 'Usa una transferencia de hermandad para ceder el liderazgo.',
     'guild.alreadyRank': '{name} ya es {rank}.',
     'guild.onlyOfficersChat':
@@ -458,6 +649,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> se ha disuelto.',
     'guild.removedFrom': 'Has sido expulsado de <{name}>.',
     'guild.joined': '{name} se ha unido a la hermandad.',
+    'guild.bankGoldDeposited': '{name} depositó {amount} en el banco de la hermandad.',
+    'guild.bankGoldWithdrawn': '{name} retiró {amount} del banco de la hermandad.',
     'guild.memberLeft': '{name} ha abandonado la hermandad.',
     'guild.newMaster': '{name} es ahora el Maestro de hermandad de <{guild}>.',
     'guild.removedBy': '{name} ha sido expulsado de la hermandad por {actor}.',
@@ -492,6 +685,22 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Desconocido',
   },
   fr_FR: {
+    'error.bankPurchaseInProgress': 'Votre banque a un achat en cours.',
+    'pledge.noGuild': 'Aucune guilde de ce nom.',
+    'pledge.noneToWithdraw': "Vous n'avez aucun serment à retirer.",
+    'pledge.onlyOfficers': 'Seuls les officiers et le Maître de guilde peuvent gérer les serments.',
+    'pledge.noteNotAllowed': "Cette note de recrutement n'est pas autorisée.",
+    'pledge.made': 'Vous avez fait serment de rejoindre {name}.',
+    'pledge.cooldown': 'Vous pourrez refaire serment dans {minutes} minutes.',
+    'pledge.cooldownOne': 'Vous pourrez refaire serment dans {minutes} minute.',
+    'pledge.notAccepting': "{name} n'accepte pas de serments.",
+    'pledge.minLevel': '{name} accepte les serments à partir du niveau {level}.',
+    'pledge.declinedForNow': '{name} a décliné votre serment pour le moment.',
+    'pledge.withdrawn': 'Vous avez retiré votre serment envers {name}.',
+    'pledge.noneToYourGuild': "{name} n'a fait aucun serment envers votre guilde.",
+    'pledge.incoming': '{name} a fait serment de rejoindre votre guilde.',
+    'pledge.youDeclined': 'Vous avez décliné le serment de {name}.',
+    'pledge.declined': '{name} a décliné votre serment.',
     'chat.filterMutedRemaining':
       'Votre accès au chat est coupé ; vous ne pourrez plus discuter pendant encore {duration}.',
     'chat.filterMuted':
@@ -499,6 +708,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'chat.filterWarning':
       "Avertissement : ce langage n'est pas autorisé ici. Continuer entraînera une coupure de votre accès au chat.",
     'pet.nameNotAllowed': "Ce nom de familier n'est pas autorisé.",
+    'legendary.nameNotAllowed': "Ce nom n'est pas autorisé.",
     'chat.muted': 'Votre accès au chat est coupé pour encore {minutes} minutes.{reason}',
     'chat.mutedOne': 'Votre accès au chat est coupé pour encore {minutes} minute.{reason}',
     'chat.muteReason': ' Motif : {reason}',
@@ -517,6 +727,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       "Vous ignorez {name}. Retirez-le d'abord de votre liste d'ignorés.",
     'friends.alreadyFriend': '{name} fait déjà partie de vos amis.',
+    'friends.cannotAdd': 'Vous ne pouvez pas ajouter {name} comme ami.',
     'friends.listFull': "Votre liste d'amis est pleine.",
     'friends.notOnFriends': "Aucun personnage du nom de « {name} » dans votre liste d'amis.",
     'friends.notYourFriend': "{name} ne fait pas partie de votre liste d'amis.",
@@ -545,10 +756,32 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Votre liste des joueurs ignorés est vide.',
     'ignores.list': 'Ignorés ({count}) : {names}',
     'ignores.usage': 'Utilisation : /ignore <nom>, /unignore <nom>, /ignorelist.',
+    'flair.shown':
+      'Votre rôle Discord est visible par les autres joueurs. Tapez /flair off pour le masquer.',
+    'flair.hidden':
+      'Votre rôle Discord est masqué pour les autres joueurs. Tapez /flair on pour l’afficher.',
+    'flair.notLinked': 'Liez votre compte Discord pour utiliser /flair.',
+    'flair.usage': 'Utilisation : /flair, /flair on ou /flair off.',
+    'presence.everyone':
+      'Vos amis et les membres de votre guilde peuvent vous voir en ligne. Tapez /presence friends ou /presence none pour vous masquer.',
+    'presence.friends':
+      'Seuls vos amis peuvent vous voir en ligne. Tapez /presence everyone ou /presence none pour modifier ce réglage.',
+    'presence.none':
+      'Vous apparaissez hors ligne pour vos amis et les membres de votre guilde. Tapez /presence everyone ou /presence friends pour modifier ce réglage.',
+    'presence.usage':
+      'Utilisation : /presence, /presence everyone, /presence friends ou /presence none.',
     'guild.nameRules': 'Les noms de guilde comportent 3 à 24 lettres (espaces autorisés).',
+    'guild.nameNotAllowed': "Ce nom de guilde n'est pas autorisé.",
     'guild.exists': 'Une guilde nommée « {name} » existe déjà.',
     'guild.alreadyInOne': 'Vous appartenez déjà à une guilde.',
     'guild.notInOne': "Vous n'appartenez à aucune guilde.",
+    'guild.createFee': "Il vous faut {amount} pièces d'or pour fonder une guilde.",
+    'guild.bankNotEmpty':
+      'La banque de guilde doit être vidée avant que la guilde puisse être dissoute.',
+    'guild.bankClosing': 'La banque de guilde est en cours de fermeture. Réessaie dans un instant.',
+    'guild.bankSettling':
+      'La banque de guilde enregistre encore une modification récente. Réessaie dans un instant.',
+    'guild.bankBusy': 'Tu es occupé. Réessaie dans un instant.',
     'guild.onlyOfficersInvite': 'Seuls les officiers et le maître de guilde peuvent inviter.',
     'guild.alreadyInThis': 'Vous appartenez déjà à cette guilde.',
     'guild.mustBeOnline': '{name} doit être en ligne pour être invité.',
@@ -571,6 +804,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'Vous ne pouvez pas renvoyer le maître de guilde.',
     'guild.onlyGmRemoveOfficer': 'Seul le maître de guilde peut renvoyer un officier.',
     'guild.onlyGmChangeRanks': 'Seul le maître de guilde peut modifier les rangs.',
+    'guild.belowRankOnly': "Vous ne pouvez faire cela qu'aux membres de rang inférieur au vôtre.",
+    'guild.titleNotAllowed': "Ce titre de rang n'est pas autorisé.",
+    'guild.ladderUpdated': 'Les rangs de la guilde ont été mis à jour.',
+    'guild.rankNumbered': 'Rang {n}',
     'guild.useTransfer': 'Utilisez un transfert de guilde pour céder le commandement.',
     'guild.alreadyRank': '{name} est déjà {rank}.',
     'guild.onlyOfficersChat':
@@ -582,6 +819,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> a été dissoute.',
     'guild.removedFrom': 'Vous avez été renvoyé de <{name}>.',
     'guild.joined': '{name} a rejoint la guilde.',
+    'guild.bankGoldDeposited': '{name} a déposé {amount} dans la banque de guilde.',
+    'guild.bankGoldWithdrawn': '{name} a retiré {amount} de la banque de guilde.',
     'guild.memberLeft': '{name} a quitté la guilde.',
     'guild.newMaster': '{name} est désormais le maître de guilde de <{guild}>.',
     'guild.removedBy': '{name} a été renvoyé de la guilde par {actor}.',
@@ -615,6 +854,22 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Inconnu',
   },
   fr_CA: {
+    'error.bankPurchaseInProgress': 'Votre banque a un achat en cours.',
+    'pledge.noGuild': 'Aucune guilde de ce nom.',
+    'pledge.noneToWithdraw': "Vous n'avez aucun serment à retirer.",
+    'pledge.onlyOfficers': 'Seuls les officiers et le Maître de guilde peuvent gérer les serments.',
+    'pledge.noteNotAllowed': "Cette note de recrutement n'est pas autorisée.",
+    'pledge.made': 'Vous avez fait serment de rejoindre {name}.',
+    'pledge.cooldown': 'Vous pourrez refaire serment dans {minutes} minutes.',
+    'pledge.cooldownOne': 'Vous pourrez refaire serment dans {minutes} minute.',
+    'pledge.notAccepting': "{name} n'accepte pas de serments.",
+    'pledge.minLevel': '{name} accepte les serments à partir du niveau {level}.',
+    'pledge.declinedForNow': '{name} a décliné votre serment pour le moment.',
+    'pledge.withdrawn': 'Vous avez retiré votre serment envers {name}.',
+    'pledge.noneToYourGuild': "{name} n'a fait aucun serment envers votre guilde.",
+    'pledge.incoming': '{name} a fait serment de rejoindre votre guilde.',
+    'pledge.youDeclined': 'Vous avez décliné le serment de {name}.',
+    'pledge.declined': '{name} a décliné votre serment.',
     'chat.filterMutedRemaining':
       'Votre accès au chat est coupé ; vous ne pourrez plus discuter pendant encore {duration}.',
     'chat.filterMuted':
@@ -622,6 +877,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'chat.filterWarning':
       "Avertissement : ce langage n'est pas autorisé ici. Continuer entraînera une coupure de votre accès au chat.",
     'pet.nameNotAllowed': "Ce nom de familier n'est pas autorisé.",
+    'legendary.nameNotAllowed': "Ce nom n'est pas autorisé.",
     'chat.muted': 'Votre accès au chat est coupé pour encore {minutes} minutes.{reason}',
     'chat.mutedOne': 'Votre accès au chat est coupé pour encore {minutes} minute.{reason}',
     'chat.muteReason': ' Motif : {reason}',
@@ -640,6 +896,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       "Vous ignorez {name}. Retirez d'abord ce personnage de votre liste des joueurs ignorés.",
     'friends.alreadyFriend': '{name} fait déjà partie de vos amis.',
+    'friends.cannotAdd': 'Vous ne pouvez pas ajouter {name} comme ami.',
     'friends.listFull': "Votre liste d'amis est pleine.",
     'friends.notOnFriends': "Aucun personnage nommé « {name} » dans votre liste d'amis.",
     'friends.notYourFriend': "{name} ne fait pas partie de votre liste d'amis.",
@@ -669,10 +926,32 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Votre liste des joueurs ignorés est vide.',
     'ignores.list': 'Ignorés ({count}) : {names}',
     'ignores.usage': 'Utilisation : /ignore <nom>, /unignore <nom>, /ignorelist.',
+    'flair.shown':
+      'Votre rôle Discord est visible par les autres joueurs. Tapez /flair off pour le masquer.',
+    'flair.hidden':
+      'Votre rôle Discord est masqué pour les autres joueurs. Tapez /flair on pour l’afficher.',
+    'flair.notLinked': 'Liez votre compte Discord pour utiliser /flair.',
+    'flair.usage': 'Utilisation : /flair, /flair on ou /flair off.',
+    'presence.everyone':
+      'Vos amis et les membres de votre guilde peuvent vous voir en ligne. Tapez /presence friends ou /presence none pour vous masquer.',
+    'presence.friends':
+      'Seuls vos amis peuvent vous voir en ligne. Tapez /presence everyone ou /presence none pour modifier ce réglage.',
+    'presence.none':
+      'Vous apparaissez hors ligne pour vos amis et les membres de votre guilde. Tapez /presence everyone ou /presence friends pour modifier ce réglage.',
+    'presence.usage':
+      'Utilisation : /presence, /presence everyone, /presence friends ou /presence none.',
     'guild.nameRules': 'Les noms de guilde comptent de 3 à 24 lettres (espaces autorisés).',
+    'guild.nameNotAllowed': "Ce nom de guilde n'est pas autorisé.",
     'guild.exists': 'Une guilde nommée « {name} » existe déjà.',
     'guild.alreadyInOne': "Vous faites déjà partie d'une guilde.",
     'guild.notInOne': "Vous ne faites partie d'aucune guilde.",
+    'guild.createFee': "Il vous faut {amount} pièces d'or pour fonder une guilde.",
+    'guild.bankNotEmpty':
+      'La banque de guilde doit être vidée avant que la guilde puisse être dissoute.',
+    'guild.bankClosing': 'La banque de guilde est en cours de fermeture. Réessaie dans un instant.',
+    'guild.bankSettling':
+      'La banque de guilde enregistre encore une modification récente. Réessaie dans un instant.',
+    'guild.bankBusy': 'Tu es occupé. Réessaie dans un instant.',
     'guild.onlyOfficersInvite': 'Seuls les officiers et le maître de guilde peuvent inviter.',
     'guild.alreadyInThis': 'Vous faites déjà partie de la guilde.',
     'guild.mustBeOnline': '{name} doit être en ligne pour être invité.',
@@ -695,6 +974,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'Vous ne pouvez pas retirer le maître de guilde.',
     'guild.onlyGmRemoveOfficer': 'Seul le maître de guilde peut retirer un officier.',
     'guild.onlyGmChangeRanks': 'Seul le maître de guilde peut modifier les rangs.',
+    'guild.belowRankOnly': "Vous ne pouvez faire cela qu'aux membres de rang inférieur au vôtre.",
+    'guild.titleNotAllowed': "Ce titre de rang n'est pas autorisé.",
+    'guild.ladderUpdated': 'Les rangs de la guilde ont été mis à jour.',
+    'guild.rankNumbered': 'Rang {n}',
     'guild.useTransfer': 'Utilisez un transfert de guilde pour céder le commandement.',
     'guild.alreadyRank': '{name} est déjà {rank}.',
     'guild.onlyOfficersChat':
@@ -706,6 +989,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> a été dissoute.',
     'guild.removedFrom': 'Vous avez été retiré de <{name}>.',
     'guild.joined': '{name} a rejoint la guilde.',
+    'guild.bankGoldDeposited': '{name} a déposé {amount} dans la banque de guilde.',
+    'guild.bankGoldWithdrawn': '{name} a retiré {amount} de la banque de guilde.',
     'guild.memberLeft': '{name} a quitté la guilde.',
     'guild.newMaster': '{name} est maintenant le maître de guilde de <{guild}>.',
     'guild.removedBy': '{name} a été retiré de la guilde par {actor}.',
@@ -739,11 +1024,13 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Inconnu',
   },
   it_IT: {
+    'error.bankPurchaseInProgress': 'La tua banca ha un acquisto in corso.',
     'chat.filterMutedRemaining': 'Sei silenziato e non puoi chattare per altri {duration}.',
     'chat.filterMuted': 'Quel linguaggio non è consentito qui. Sei silenziato per {duration}.',
     'chat.filterWarning':
       'Avvertimento: quel linguaggio non è consentito qui. Continuando verrai silenziato.',
     'pet.nameNotAllowed': 'Questo nome per la mascotte non è consentito.',
+    'legendary.nameNotAllowed': 'Questo nome non è consentito.',
     'chat.muted': 'Sei silenziato dalla chat per altri {minutes} minuti.{reason}',
     'chat.mutedOne': 'Sei silenziato dalla chat per ancora {minutes} minuto.{reason}',
     'chat.muteReason': ' Motivo: {reason}',
@@ -761,6 +1048,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.cannotBefriendSelf': 'Non puoi aggiungere te stesso agli amici.',
     'friends.ignoringRemoveFirst': 'Stai ignorando {name}. Rimuovilo prima dalla lista ignorati.',
     'friends.alreadyFriend': '{name} è già tra i tuoi amici.',
+    'friends.cannotAdd': 'Non puoi aggiungere {name} come amico.',
     'friends.listFull': 'La tua lista amici è piena.',
     'friends.notOnFriends': "Nessun personaggio chiamato '{name}' nella tua lista amici.",
     'friends.notYourFriend': '{name} non è nella tua lista amici.',
@@ -788,10 +1076,46 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'La tua lista degli ignorati è vuota.',
     'ignores.list': 'Ignorati ({count}): {names}',
     'ignores.usage': 'Uso: /ignore <nome>, /unignore <nome>, /ignorelist.',
+    'flair.shown':
+      'Il tuo ruolo Discord è visibile agli altri giocatori. Scrivi /flair off per nasconderlo.',
+    'flair.hidden':
+      'Il tuo ruolo Discord è nascosto agli altri giocatori. Scrivi /flair on per mostrarlo.',
+    'flair.notLinked': 'Collega il tuo account Discord per usare /flair.',
+    'flair.usage': 'Uso: /flair, /flair on o /flair off.',
+    'presence.everyone':
+      'Amici e compagni di gilda possono vederti online. Scrivi /presence friends o /presence none per nasconderti.',
+    'presence.friends':
+      'Solo i tuoi amici possono vederti online. Scrivi /presence everyone o /presence none per cambiare.',
+    'presence.none':
+      'Appari offline ad amici e compagni di gilda. Scrivi /presence everyone o /presence friends per cambiare.',
+    'presence.usage': 'Uso: /presence, /presence everyone, /presence friends o /presence none.',
     'guild.nameRules': 'I nomi delle gilde devono avere 3-24 lettere (spazi consentiti).',
+    'guild.nameNotAllowed': 'Questo nome di gilda non è consentito.',
     'guild.exists': "Esiste già una gilda chiamata '{name}'.",
     'guild.alreadyInOne': 'Fai già parte di una gilda.',
     'guild.notInOne': 'Non fai parte di nessuna gilda.',
+    'pledge.noGuild': 'Nessuna gilda con quel nome.',
+    'pledge.noneToWithdraw': 'Non hai alcun impegno da ritirare.',
+    'pledge.onlyOfficers': 'Solo gli ufficiali e il Gran Maestro possono gestire gli impegni.',
+    'pledge.noteNotAllowed': 'Questa nota della bacheca non è consentita.',
+    'pledge.made': 'Ti sei impegnato a unirti a {name}.',
+    'pledge.cooldown': 'Potrai impegnarti di nuovo tra {minutes} minuti.',
+    'pledge.cooldownOne': 'Potrai impegnarti di nuovo tra {minutes} minuto.',
+    'pledge.notAccepting': '{name} non accetta impegni.',
+    'pledge.minLevel': '{name} accetta impegni dal livello {level}.',
+    'pledge.declinedForNow': '{name} ha rifiutato il tuo impegno per ora.',
+    'pledge.withdrawn': 'Hai ritirato il tuo impegno verso {name}.',
+    'pledge.noneToYourGuild': '{name} non ha alcun impegno verso la tua gilda.',
+    'pledge.incoming': '{name} si è impegnato a unirsi alla tua gilda.',
+    'pledge.youDeclined': "Hai rifiutato l'impegno di {name}.",
+    'pledge.declined': '{name} ha rifiutato il tuo impegno.',
+    'guild.createFee': "Ti servono {amount} monete d'oro per fondare una gilda.",
+    'guild.bankNotEmpty':
+      'La banca di gilda deve essere svuotata prima di poter sciogliere la gilda.',
+    'guild.bankClosing': 'La banca di gilda si sta chiudendo. Riprova tra un momento.',
+    'guild.bankSettling':
+      'La banca di gilda sta ancora salvando una modifica recente. Riprova tra un momento.',
+    'guild.bankBusy': 'Sei occupato. Riprova tra un momento.',
     'guild.onlyOfficersInvite': 'Solo gli ufficiali e il Maestro di Gilda possono invitare.',
     'guild.alreadyInThis': 'Fai già parte della gilda.',
     'guild.mustBeOnline': '{name} deve essere connesso per essere invitato.',
@@ -814,6 +1138,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'Non puoi rimuovere il Maestro di Gilda.',
     'guild.onlyGmRemoveOfficer': 'Solo il Maestro di Gilda può rimuovere un ufficiale.',
     'guild.onlyGmChangeRanks': 'Solo il Maestro di Gilda può cambiare i gradi.',
+    'guild.belowRankOnly': 'Puoi farlo solo con i membri di grado inferiore al tuo.',
+    'guild.titleNotAllowed': 'Quel titolo di grado non è consentito.',
+    'guild.ladderUpdated': 'I gradi della gilda sono stati aggiornati.',
+    'guild.rankNumbered': 'Grado {n}',
     'guild.useTransfer': 'Usa un trasferimento di gilda per cedere il comando.',
     'guild.alreadyRank': '{name} è già {rank}.',
     'guild.onlyOfficersChat':
@@ -825,6 +1153,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> è stata sciolta.',
     'guild.removedFrom': 'Sei stato rimosso da <{name}>.',
     'guild.joined': '{name} è entrato nella gilda.',
+    'guild.bankGoldDeposited': '{name} ha depositato {amount} nella banca della gilda.',
+    'guild.bankGoldWithdrawn': '{name} ha ritirato {amount} dalla banca della gilda.',
     'guild.memberLeft': '{name} ha abbandonato la gilda.',
     'guild.newMaster': '{name} ora è il Maestro di Gilda di <{guild}>.',
     'guild.removedBy': '{name} è stato rimosso dalla gilda da {actor}.',
@@ -857,6 +1187,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Sconosciuta',
   },
   de_DE: {
+    'error.bankPurchaseInProgress': 'Eure Bank hat einen laufenden Kauf.',
     'chat.filterMutedRemaining':
       'Ihr seid stummgeschaltet und könnt noch {duration} lang nicht chatten.',
     'chat.filterMuted':
@@ -864,6 +1195,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'chat.filterWarning':
       'Warnung: Diese Sprache ist hier nicht erlaubt. Weitere Verwendung schaltet Euch stumm.',
     'pet.nameNotAllowed': 'Dieser Begleitername ist nicht erlaubt.',
+    'legendary.nameNotAllowed': 'Dieser Name ist nicht erlaubt.',
     'chat.muted': 'Ihr seid noch {minutes} Minuten lang vom Chat stummgeschaltet.{reason}',
     'chat.mutedOne': 'Ihr seid noch {minutes} Minute lang vom Chat stummgeschaltet.{reason}',
     'chat.muteReason': ' Grund: {reason}',
@@ -882,6 +1214,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       'Ihr ignoriert {name}. Entfernt sie zuerst von Eurer Ignorierliste.',
     'friends.alreadyFriend': '{name} ist bereits Euer Freund.',
+    'friends.cannotAdd': 'Ihr könnt {name} nicht als Freund hinzufügen.',
     'friends.listFull': 'Eure Freundesliste ist voll.',
     'friends.notOnFriends':
       "Es befindet sich kein Charakter mit dem Namen '{name}' auf Eurer Freundesliste.",
@@ -912,10 +1245,47 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Deine Ignorierliste ist leer.',
     'ignores.list': 'Ignoriert ({count}): {names}',
     'ignores.usage': 'Verwendung: /ignore <Name>, /unignore <Name>, /ignorelist.',
+    'flair.shown':
+      'Deine Discord-Rolle ist für andere Spieler sichtbar. Gib /flair off ein, um sie auszublenden.',
+    'flair.hidden':
+      'Deine Discord-Rolle ist für andere Spieler ausgeblendet. Gib /flair on ein, um sie anzuzeigen.',
+    'flair.notLinked': 'Verknüpfe dein Discord-Konto, um /flair zu verwenden.',
+    'flair.usage': 'Verwendung: /flair, /flair on oder /flair off.',
+    'presence.everyone':
+      'Freunde und Gildenmitglieder sehen dich online. Gib /presence friends oder /presence none ein, um dich zu verbergen.',
+    'presence.friends':
+      'Nur deine Freunde sehen dich online. Gib /presence everyone oder /presence none ein, um das zu ändern.',
+    'presence.none':
+      'Für Freunde und Gildenmitglieder erscheinst du offline. Gib /presence everyone oder /presence friends ein, um das zu ändern.',
+    'presence.usage':
+      'Verwendung: /presence, /presence everyone, /presence friends oder /presence none.',
     'guild.nameRules': 'Gildennamen bestehen aus 3-24 Buchstaben (Leerzeichen erlaubt).',
+    'guild.nameNotAllowed': 'Dieser Gildenname ist nicht erlaubt.',
     'guild.exists': "Eine Gilde mit dem Namen '{name}' existiert bereits.",
     'guild.alreadyInOne': 'Ihr seid bereits in einer Gilde.',
     'guild.notInOne': 'Ihr seid in keiner Gilde.',
+    'pledge.noGuild': 'Keine Gilde mit diesem Namen.',
+    'pledge.noneToWithdraw': 'Du hast kein Gelöbnis zurückzuziehen.',
+    'pledge.onlyOfficers': 'Nur Offiziere und der Gildenmeister können Gelöbnisse verwalten.',
+    'pledge.noteNotAllowed': 'Diese Aushangnotiz ist nicht erlaubt.',
+    'pledge.made': 'Du hast {name} dein Gelöbnis gegeben.',
+    'pledge.cooldown': 'Du kannst in {minutes} Minuten erneut ein Gelöbnis ablegen.',
+    'pledge.cooldownOne': 'Du kannst in {minutes} Minute erneut ein Gelöbnis ablegen.',
+    'pledge.notAccepting': '{name} nimmt keine Gelöbnisse an.',
+    'pledge.minLevel': '{name} nimmt Gelöbnisse ab Stufe {level} an.',
+    'pledge.declinedForNow': '{name} hat dein Gelöbnis vorerst abgelehnt.',
+    'pledge.withdrawn': 'Du hast dein Gelöbnis an {name} zurückgezogen.',
+    'pledge.noneToYourGuild': '{name} hat deiner Gilde kein Gelöbnis gegeben.',
+    'pledge.incoming': '{name} hat deiner Gilde ein Gelöbnis gegeben.',
+    'pledge.youDeclined': 'Du hast das Gelöbnis von {name} abgelehnt.',
+    'pledge.declined': '{name} hat dein Gelöbnis abgelehnt.',
+    'guild.createFee': 'Ihr benötigt {amount} Gold, um eine Gilde zu gründen.',
+    'guild.bankNotEmpty':
+      'Die Gildenbank muss geleert werden, bevor die Gilde aufgelöst werden kann.',
+    'guild.bankClosing': 'Die Gildenbank wird geschlossen. Versuche es gleich noch einmal.',
+    'guild.bankSettling':
+      'Die Gildenbank speichert noch eine kürzliche Änderung. Versuche es gleich noch einmal.',
+    'guild.bankBusy': 'Du bist beschäftigt. Versuche es gleich noch einmal.',
     'guild.onlyOfficersInvite': 'Nur Offiziere und der Gildenmeister können einladen.',
     'guild.alreadyInThis': 'Ihr seid bereits in der Gilde.',
     'guild.mustBeOnline': '{name} muss online sein, um eingeladen zu werden.',
@@ -937,6 +1307,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'Ihr könnt den Gildenmeister nicht entfernen.',
     'guild.onlyGmRemoveOfficer': 'Nur der Gildenmeister kann einen Offizier entfernen.',
     'guild.onlyGmChangeRanks': 'Nur der Gildenmeister kann Ränge ändern.',
+    'guild.belowRankOnly': 'Ihr könnt das nur bei Mitgliedern unter Eurem eigenen Rang tun.',
+    'guild.titleNotAllowed': 'Dieser Rangtitel ist nicht erlaubt.',
+    'guild.ladderUpdated': 'Die Gildenränge wurden aktualisiert.',
+    'guild.rankNumbered': 'Rang {n}',
     'guild.useTransfer': 'Benutzt eine Gildenübertragung, um die Führung abzugeben.',
     'guild.alreadyRank': '{name} ist bereits {rank}.',
     'guild.onlyOfficersChat':
@@ -948,6 +1322,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> wurde aufgelöst.',
     'guild.removedFrom': 'Ihr wurdet aus <{name}> entfernt.',
     'guild.joined': '{name} ist der Gilde beigetreten.',
+    'guild.bankGoldDeposited': '{name} hat {amount} in die Gildenbank eingezahlt.',
+    'guild.bankGoldWithdrawn': '{name} hat {amount} aus der Gildenbank abgehoben.',
     'guild.memberLeft': '{name} hat die Gilde verlassen.',
     'guild.newMaster': '{name} ist jetzt der Gildenmeister von <{guild}>.',
     'guild.removedBy': '{name} wurde von {actor} aus der Gilde entfernt.',
@@ -981,10 +1357,12 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Unbekannt',
   },
   zh_CN: {
+    'error.bankPurchaseInProgress': '你的银行有一笔购买正在处理中。',
     'chat.filterMutedRemaining': '你已被禁言，还需 {duration} 才能聊天。',
     'chat.filterMuted': '此处不允许这种言论。你已被禁言 {duration}。',
     'chat.filterWarning': '警告：此处不允许这种言论。继续使用将会被禁言。',
     'pet.nameNotAllowed': '该宠物名称不可使用。',
+    'legendary.nameNotAllowed': '该名称不可使用。',
     'chat.muted': '你已被禁言，还需 {minutes} 分钟才能聊天。{reason}',
     'chat.mutedOne': '你已被禁言，还需 {minutes} 分钟才能聊天。{reason}',
     'chat.muteReason': ' 原因：{reason}',
@@ -1002,6 +1380,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.cannotBefriendSelf': '你无法将自己加为好友。',
     'friends.ignoringRemoveFirst': '你正在屏蔽{name}。请先将其从屏蔽列表中移除。',
     'friends.alreadyFriend': '{name}已经是你的好友了。',
+    'friends.cannotAdd': '你不能把{name}加为好友。',
     'friends.listFull': '你的好友列表已满。',
     'friends.notOnFriends': '你的好友列表中没有名为“{name}”的角色。',
     'friends.notYourFriend': '{name}不在你的好友列表中。',
@@ -1029,10 +1408,42 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': '你的忽略列表为空。',
     'ignores.list': '已忽略（{count}）：{names}',
     'ignores.usage': '用法：/ignore <名称>、/unignore <名称>、/ignorelist。',
+    'flair.shown': '你的 Discord 身份组对其他玩家可见。输入 /flair off 可隐藏。',
+    'flair.hidden': '你的 Discord 身份组已对其他玩家隐藏。输入 /flair on 可显示。',
+    'flair.notLinked': '请先关联你的 Discord 账号才能使用 /flair。',
+    'flair.usage': '用法：/flair、/flair on 或 /flair off。',
+    'presence.everyone':
+      '好友和公会成员可以看到你在线。输入 /presence friends 或 /presence none 即可隐藏。',
+    'presence.friends':
+      '只有你的好友可以看到你在线。输入 /presence everyone 或 /presence none 即可更改。',
+    'presence.none':
+      '你对好友和公会成员显示为离线。输入 /presence everyone 或 /presence friends 即可更改。',
+    'presence.usage': '用法：/presence、/presence everyone、/presence friends 或 /presence none。',
     'guild.nameRules': '公会名称需为3-24个字母（允许空格）。',
+    'guild.nameNotAllowed': '该公会名称不可使用。',
     'guild.exists': '已存在名为“{name}”的公会。',
     'guild.alreadyInOne': '你已经加入了一个公会。',
     'guild.notInOne': '你没有加入任何公会。',
+    'pledge.noGuild': '没有这个名字的公会。',
+    'pledge.noneToWithdraw': '你没有可撤回的誓约。',
+    'pledge.onlyOfficers': '只有官员和会长可以管理誓约。',
+    'pledge.noteNotAllowed': '该招募留言不可使用。',
+    'pledge.made': '你已立誓加入{name}。',
+    'pledge.cooldown': '你可以在{minutes}分钟后再次立誓。',
+    'pledge.cooldownOne': '你可以在{minutes}分钟后再次立誓。',
+    'pledge.notAccepting': '{name}不接受誓约。',
+    'pledge.minLevel': '{name}接受{level}级及以上的誓约。',
+    'pledge.declinedForNow': '{name}暂时婉拒了你的誓约。',
+    'pledge.withdrawn': '你已撤回对{name}的誓约。',
+    'pledge.noneToYourGuild': '{name}没有对你的公会立誓。',
+    'pledge.incoming': '{name}立誓加入你的公会。',
+    'pledge.youDeclined': '你已婉拒{name}的誓约。',
+    'pledge.declined': '{name}婉拒了你的誓约。',
+    'guild.createFee': '创建公会需要{amount}金币。',
+    'guild.bankNotEmpty': '必须先清空公会银行才能解散公会。',
+    'guild.bankClosing': '公会银行正在关闭。请稍后再试。',
+    'guild.bankSettling': '公会银行仍在保存最近的一次变动。请稍后再试。',
+    'guild.bankBusy': '你正忙着。请稍后再试。',
     'guild.onlyOfficersInvite': '只有官员和会长才能邀请成员。',
     'guild.alreadyInThis': '你已经在该公会中了。',
     'guild.mustBeOnline': '{name}必须在线才能被邀请。',
@@ -1053,6 +1464,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': '你无法移除会长。',
     'guild.onlyGmRemoveOfficer': '只有会长才能移除官员。',
     'guild.onlyGmChangeRanks': '只有会长才能更改职位。',
+    'guild.belowRankOnly': '你只能对职位低于你的成员这样做。',
+    'guild.titleNotAllowed': '该职位名称不被允许。',
+    'guild.ladderUpdated': '公会职位已更新。',
+    'guild.rankNumbered': '职位 {n}',
     'guild.useTransfer': '请使用公会转让来移交会长职位。',
     'guild.alreadyRank': '{name}已经是{rank}。',
     'guild.onlyOfficersChat': '只有官员和会长才能使用官员频道。',
@@ -1063,6 +1478,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}>已被解散。',
     'guild.removedFrom': '你已被移出<{name}>。',
     'guild.joined': '{name}加入了公会。',
+    'guild.bankGoldDeposited': '{name}向公会银行存入了{amount}。',
+    'guild.bankGoldWithdrawn': '{name}从公会银行取出了{amount}。',
     'guild.memberLeft': '{name}离开了公会。',
     'guild.newMaster': '{name}现在是<{guild}>的会长。',
     'guild.removedBy': '{name}被{actor}移出了公会。',
@@ -1094,10 +1511,12 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': '未知',
   },
   zh_TW: {
+    'error.bankPurchaseInProgress': '你的銀行有一筆購買正在處理中。',
     'chat.filterMutedRemaining': '你已被禁言，還需 {duration} 才能再次發言。',
     'chat.filterMuted': '此處不允許這種言語。你已被禁言 {duration}。',
     'chat.filterWarning': '警告：此處不允許這種言語。繼續使用將會被禁言。',
     'pet.nameNotAllowed': '此寵物名稱不可使用。',
+    'legendary.nameNotAllowed': '該名稱不可使用。',
     'chat.muted': '你已被禁言，還有 {minutes} 分鐘無法聊天。{reason}',
     'chat.mutedOne': '你已被禁言，還有 {minutes} 分鐘無法聊天。{reason}',
     'chat.muteReason': ' 原因：{reason}',
@@ -1115,6 +1534,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.cannotBefriendSelf': '你無法將自己加為好友。',
     'friends.ignoringRemoveFirst': '你正在忽略 {name}。請先將其從你的忽略名單中移除。',
     'friends.alreadyFriend': '{name} 已經是你的好友。',
+    'friends.cannotAdd': '你不能將 {name} 加為好友。',
     'friends.listFull': '你的好友名單已滿。',
     'friends.notOnFriends': '你的好友名單中沒有名為「{name}」的角色。',
     'friends.notYourFriend': '{name} 不在你的好友名單中。',
@@ -1142,10 +1562,42 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': '你的忽略清單是空的。',
     'ignores.list': '已忽略（{count}）：{names}',
     'ignores.usage': '用法：/ignore <名稱>、/unignore <名稱>、/ignorelist。',
+    'flair.shown': '你的 Discord 身分組對其他玩家可見。輸入 /flair off 即可隱藏。',
+    'flair.hidden': '你的 Discord 身分組已對其他玩家隱藏。輸入 /flair on 即可顯示。',
+    'flair.notLinked': '請先連結你的 Discord 帳號才能使用 /flair。',
+    'flair.usage': '用法：/flair、/flair on 或 /flair off。',
+    'presence.everyone':
+      '好友和公會成員可以看到你在線。輸入 /presence friends 或 /presence none 即可隱藏。',
+    'presence.friends':
+      '只有你的好友可以看到你在線。輸入 /presence everyone 或 /presence none 即可更改。',
+    'presence.none':
+      '你對好友和公會成員顯示為離線。輸入 /presence everyone 或 /presence friends 即可更改。',
+    'presence.usage': '用法：/presence、/presence everyone、/presence friends 或 /presence none。',
     'guild.nameRules': '公會名稱須為 3-24 個字母（可使用空格）。',
+    'guild.nameNotAllowed': '此公會名稱不可使用。',
     'guild.exists': '已經有一個名為「{name}」的公會存在。',
     'guild.alreadyInOne': '你已經加入了一個公會。',
     'guild.notInOne': '你並未加入任何公會。',
+    'pledge.noGuild': '沒有這個名字的公會。',
+    'pledge.noneToWithdraw': '你沒有可撤回的誓約。',
+    'pledge.onlyOfficers': '只有幹部和會長可以管理誓約。',
+    'pledge.noteNotAllowed': '此招募留言不可使用。',
+    'pledge.made': '你已立誓加入{name}。',
+    'pledge.cooldown': '你可以在{minutes}分鐘後再次立誓。',
+    'pledge.cooldownOne': '你可以在{minutes}分鐘後再次立誓。',
+    'pledge.notAccepting': '{name}不接受誓約。',
+    'pledge.minLevel': '{name}接受{level}級及以上的誓約。',
+    'pledge.declinedForNow': '{name}暫時婉拒了你的誓約。',
+    'pledge.withdrawn': '你已撤回對{name}的誓約。',
+    'pledge.noneToYourGuild': '{name}沒有對你的公會立誓。',
+    'pledge.incoming': '{name}立誓加入你的公會。',
+    'pledge.youDeclined': '你已婉拒{name}的誓約。',
+    'pledge.declined': '{name}婉拒了你的誓約。',
+    'guild.createFee': '建立公會需要 {amount} 金幣。',
+    'guild.bankNotEmpty': '必須先清空公會銀行才能解散公會。',
+    'guild.bankClosing': '公會銀行正在關閉。請稍後再試。',
+    'guild.bankSettling': '公會銀行仍在儲存最近的一次變動。請稍後再試。',
+    'guild.bankBusy': '你正在忙。請稍後再試。',
     'guild.onlyOfficersInvite': '只有幹部和會長才能邀請成員。',
     'guild.alreadyInThis': '你已經是這個公會的成員。',
     'guild.mustBeOnline': '{name} 必須在線上才能被邀請。',
@@ -1166,6 +1618,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': '你無法移除會長。',
     'guild.onlyGmRemoveOfficer': '只有會長才能移除幹部。',
     'guild.onlyGmChangeRanks': '只有會長才能變更階級。',
+    'guild.belowRankOnly': '你只能對階級低於你的成員這麼做。',
+    'guild.titleNotAllowed': '該階級名稱不被允許。',
+    'guild.ladderUpdated': '公會階級已更新。',
+    'guild.rankNumbered': '階級 {n}',
     'guild.useTransfer': '請使用公會轉讓來移交領導權。',
     'guild.alreadyRank': '{name} 已經是{rank}。',
     'guild.onlyOfficersChat': '只有幹部和會長才能使用幹部頻道。',
@@ -1176,6 +1632,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> 已被解散。',
     'guild.removedFrom': '你已被移出 <{name}>。',
     'guild.joined': '{name} 已加入公會。',
+    'guild.bankGoldDeposited': '{name} 已將 {amount} 存入公會銀行。',
+    'guild.bankGoldWithdrawn': '{name} 已從公會銀行提取 {amount}。',
     'guild.memberLeft': '{name} 已離開公會。',
     'guild.newMaster': '{name} 現在是 <{guild}> 的會長。',
     'guild.removedBy': '{name} 已被 {actor} 移出公會。',
@@ -1207,11 +1665,13 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': '未知',
   },
   ko_KR: {
+    'error.bankPurchaseInProgress': '은행에 처리 중인 구매가 있습니다.',
     'chat.filterMutedRemaining': '채팅이 금지되어 {duration} 동안 더 채팅할 수 없습니다.',
     'chat.filterMuted': '여기서는 허용되지 않는 표현입니다. {duration} 동안 채팅이 금지되었습니다.',
     'chat.filterWarning':
       '경고: 여기서는 허용되지 않는 표현입니다. 계속 사용하면 채팅이 금지됩니다.',
     'pet.nameNotAllowed': '사용할 수 없는 소환수 이름입니다.',
+    'legendary.nameNotAllowed': '사용할 수 없는 이름입니다.',
     'chat.muted': '채팅이 금지되어 {minutes}분 더 채팅할 수 없습니다.{reason}',
     'chat.mutedOne': '채팅이 금지되어 {minutes}분 더 채팅할 수 없습니다.{reason}',
     'chat.muteReason': ' 사유: {reason}',
@@ -1229,6 +1689,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.cannotBefriendSelf': '자신을 친구로 추가할 수 없습니다.',
     'friends.ignoringRemoveFirst': '{name}님을 무시하고 있습니다. 먼저 무시 목록에서 제거하십시오.',
     'friends.alreadyFriend': '{name}님은 이미 친구입니다.',
+    'friends.cannotAdd': '{name}님을 친구로 추가할 수 없습니다.',
     'friends.listFull': '친구 목록이 가득 찼습니다.',
     'friends.notOnFriends': "친구 목록에 '{name}'(이)라는 이름의 캐릭터가 없습니다.",
     'friends.notYourFriend': '{name}님은 친구 목록에 없습니다.',
@@ -1256,10 +1717,44 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': '무시 목록이 비어 있습니다.',
     'ignores.list': '무시됨 ({count}): {names}',
     'ignores.usage': '사용법: /ignore <이름>, /unignore <이름>, /ignorelist.',
+    'flair.shown': 'Discord 역할이 다른 플레이어에게 표시됩니다. 숨기려면 /flair off를 입력하세요.',
+    'flair.hidden':
+      'Discord 역할이 다른 플레이어에게 숨겨져 있습니다. 표시하려면 /flair on을 입력하세요.',
+    'flair.notLinked': '/flair를 사용하려면 Discord 계정을 연동하세요.',
+    'flair.usage': '사용법: /flair, /flair on, /flair off.',
+    'presence.everyone':
+      '친구와 길드원이 당신의 접속 상태를 볼 수 있습니다. 숨기려면 /presence friends 또는 /presence none을 입력하세요.',
+    'presence.friends':
+      '친구만 당신의 접속 상태를 볼 수 있습니다. 변경하려면 /presence everyone 또는 /presence none을 입력하세요.',
+    'presence.none':
+      '친구와 길드원에게 오프라인으로 표시됩니다. 변경하려면 /presence everyone 또는 /presence friends를 입력하세요.',
+    'presence.usage': '사용법: /presence, /presence everyone, /presence friends, /presence none',
     'guild.nameRules': '길드 이름은 3~24자여야 합니다(공백 허용).',
+    'guild.nameNotAllowed': '사용할 수 없는 길드 이름입니다.',
     'guild.exists': "'{name}'(이)라는 이름의 길드가 이미 존재합니다.",
     'guild.alreadyInOne': '이미 길드에 가입되어 있습니다.',
     'guild.notInOne': '길드에 가입되어 있지 않습니다.',
+    'pledge.noGuild': '그런 이름의 길드가 없습니다.',
+    'pledge.noneToWithdraw': '철회할 서약이 없습니다.',
+    'pledge.onlyOfficers': '간부와 길드 마스터만 서약을 관리할 수 있습니다.',
+    'pledge.noteNotAllowed': '사용할 수 없는 게시판 문구입니다.',
+    'pledge.made': '{name}에 가입 서약을 했습니다.',
+    'pledge.cooldown': '{minutes}분 후에 다시 서약할 수 있습니다.',
+    'pledge.cooldownOne': '{minutes}분 후에 다시 서약할 수 있습니다.',
+    'pledge.notAccepting': '{name}은(는) 서약을 받지 않습니다.',
+    'pledge.minLevel': '{name}은(는) {level}레벨부터 서약을 받습니다.',
+    'pledge.declinedForNow': '{name}이(가) 당분간 서약을 거절했습니다.',
+    'pledge.withdrawn': '{name}에 대한 서약을 철회했습니다.',
+    'pledge.noneToYourGuild': '{name}은(는) 당신의 길드에 서약하지 않았습니다.',
+    'pledge.incoming': '{name}이(가) 당신의 길드에 서약했습니다.',
+    'pledge.youDeclined': '{name}의 서약을 거절했습니다.',
+    'pledge.declined': '{name}이(가) 당신의 서약을 거절했습니다.',
+    'guild.createFee': '길드를 창설하려면 {amount} 골드가 필요합니다.',
+    'guild.bankNotEmpty': '길드를 해산하려면 먼저 길드 은행을 비워야 합니다.',
+    'guild.bankClosing': '길드 은행이 닫히는 중입니다. 잠시 후 다시 시도하세요.',
+    'guild.bankSettling':
+      '길드 은행이 아직 최근 변경 사항을 저장하는 중입니다. 잠시 후 다시 시도하세요.',
+    'guild.bankBusy': '지금은 바쁩니다. 잠시 후 다시 시도하세요.',
     'guild.onlyOfficersInvite': '장교와 길드장만 초대할 수 있습니다.',
     'guild.alreadyInThis': '이미 해당 길드에 가입되어 있습니다.',
     'guild.mustBeOnline': '{name}님을 초대하려면 접속 중이어야 합니다.',
@@ -1281,6 +1776,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': '길드장은 추방할 수 없습니다.',
     'guild.onlyGmRemoveOfficer': '길드장만 장교를 추방할 수 있습니다.',
     'guild.onlyGmChangeRanks': '길드장만 등급을 변경할 수 있습니다.',
+    'guild.belowRankOnly': '자신보다 낮은 등급의 길드원에게만 할 수 있습니다.',
+    'guild.titleNotAllowed': '허용되지 않는 등급 이름입니다.',
+    'guild.ladderUpdated': '길드 등급이 변경되었습니다.',
+    'guild.rankNumbered': '{n}등급',
     'guild.useTransfer': '길드 양도를 사용하여 길드장을 넘기십시오.',
     'guild.alreadyRank': '{name}님은 이미 {rank}입니다.',
     'guild.onlyOfficersChat': '장교와 길드장만 장교 대화를 사용할 수 있습니다.',
@@ -1291,6 +1790,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}>이(가) 해체되었습니다.',
     'guild.removedFrom': '<{name}>에서 추방되었습니다.',
     'guild.joined': '{name}님이 길드에 가입했습니다.',
+    'guild.bankGoldDeposited': '{name}님이 길드 은행에 {amount}을(를) 입금했습니다.',
+    'guild.bankGoldWithdrawn': '{name}님이 길드 은행에서 {amount}을(를) 인출했습니다.',
     'guild.memberLeft': '{name}님이 길드를 떠났습니다.',
     'guild.newMaster': '{name}님이 이제 <{guild}>의 길드장입니다.',
     'guild.removedBy': '{name}님이 {actor}님에 의해 길드에서 추방되었습니다.',
@@ -1322,11 +1823,13 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': '알 수 없음',
   },
   ja_JP: {
+    'error.bankPurchaseInProgress': '銀行で処理中の購入があります。',
     'chat.filterMutedRemaining': '発言禁止中です。あと{duration}発言できません。',
     'chat.filterMuted': 'その言葉はここでは使用できません。{duration}の間、発言禁止となります。',
     'chat.filterWarning':
       '警告：その言葉はここでは使用できません。使い続けると発言禁止になります。',
     'pet.nameNotAllowed': 'そのペット名は使用できません。',
+    'legendary.nameNotAllowed': 'その名前は使用できません。',
     'chat.muted': '発言禁止中です。あと{minutes}分間チャットできません。{reason}',
     'chat.mutedOne': '発言禁止中です。あと{minutes}分間チャットできません。{reason}',
     'chat.muteReason': ' 理由：{reason}',
@@ -1344,6 +1847,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.cannotBefriendSelf': '自分自身をフレンドに追加することはできません。',
     'friends.ignoringRemoveFirst': '{name}を無視しています。先に無視リストから削除してください。',
     'friends.alreadyFriend': '{name}はすでにフレンドです。',
+    'friends.cannotAdd': '{name}をフレンドに追加することはできません。',
     'friends.listFull': 'フレンドリストがいっぱいです。',
     'friends.notOnFriends': '「{name}」という名前のキャラクターはフレンドリストにいません。',
     'friends.notYourFriend': '{name}はフレンドリストにいません。',
@@ -1371,10 +1875,45 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': '無視リストは空です。',
     'ignores.list': '無視中（{count}）：{names}',
     'ignores.usage': '使い方: /ignore <名前>、/unignore <名前>、/ignorelist。',
+    'flair.shown':
+      'あなたの Discord ロールは他のプレイヤーに表示されています。非表示にするには /flair off と入力してください。',
+    'flair.hidden':
+      'あなたの Discord ロールは他のプレイヤーに非表示になっています。表示するには /flair on と入力してください。',
+    'flair.notLinked': '/flair を使うには Discord アカウントを連携してください。',
+    'flair.usage': '使い方: /flair、/flair on、/flair off。',
+    'presence.everyone':
+      'フレンドとギルドメンバーにオンライン状態が表示されています。隠すには /presence friends または /presence none と入力してください。',
+    'presence.friends':
+      'フレンドだけにオンライン状態が表示されます。変更するには /presence everyone または /presence none と入力してください。',
+    'presence.none':
+      'フレンドとギルドメンバーにはオフラインと表示されます。変更するには /presence everyone または /presence friends と入力してください。',
+    'presence.usage': '使い方：/presence、/presence everyone、/presence friends、/presence none',
     'guild.nameRules': 'ギルド名は3～24文字です（スペース可）。',
+    'guild.nameNotAllowed': 'そのギルド名は使用できません。',
     'guild.exists': '「{name}」という名前のギルドはすでに存在します。',
     'guild.alreadyInOne': 'あなたはすでにギルドに所属しています。',
     'guild.notInOne': 'あなたはギルドに所属していません。',
+    'pledge.noGuild': 'その名前のギルドはありません。',
+    'pledge.noneToWithdraw': '取り下げる誓約はありません。',
+    'pledge.onlyOfficers': '誓約を管理できるのは幹部とギルドマスターだけです。',
+    'pledge.noteNotAllowed': 'その掲示メモは使用できません。',
+    'pledge.made': '{name}への加入を誓約しました。',
+    'pledge.cooldown': 'あと{minutes}分で再び誓約できます。',
+    'pledge.cooldownOne': 'あと{minutes}分で再び誓約できます。',
+    'pledge.notAccepting': '{name}は誓約を受け付けていません。',
+    'pledge.minLevel': '{name}はレベル{level}以上の誓約を受け付けています。',
+    'pledge.declinedForNow': '{name}は当面あなたの誓約を断りました。',
+    'pledge.withdrawn': '{name}への誓約を取り下げました。',
+    'pledge.noneToYourGuild': '{name}はあなたのギルドに誓約していません。',
+    'pledge.incoming': '{name}があなたのギルドに誓約しました。',
+    'pledge.youDeclined': '{name}の誓約を断りました。',
+    'pledge.declined': '{name}があなたの誓約を断りました。',
+    'guild.createFee': 'ギルドを設立するには{amount}ゴールドが必要です。',
+    'guild.bankNotEmpty': 'ギルドを解散するには、先にギルド銀行を空にする必要があります。',
+    'guild.bankClosing': 'ギルド銀行は閉鎖中です。しばらくしてからもう一度お試しください。',
+    'guild.bankSettling':
+      'ギルド銀行は最近の変更をまだ保存中です。しばらくしてからもう一度お試しください。',
+    'guild.bankBusy': '現在は操作中です。しばらくしてからもう一度お試しください。',
     'guild.onlyOfficersInvite': '招待できるのはオフィサーとギルドマスターのみです。',
     'guild.alreadyInThis': 'あなたはすでにこのギルドに所属しています。',
     'guild.mustBeOnline': '{name}を招待するには、相手がオンラインである必要があります。',
@@ -1396,6 +1935,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'ギルドマスターを除名することはできません。',
     'guild.onlyGmRemoveOfficer': 'オフィサーを除名できるのはギルドマスターのみです。',
     'guild.onlyGmChangeRanks': 'ランクを変更できるのはギルドマスターのみです。',
+    'guild.belowRankOnly': 'それができるのは自分より下のランクのメンバーだけです。',
+    'guild.titleNotAllowed': 'そのランク名は使用できません。',
+    'guild.ladderUpdated': 'ギルドのランクが更新されました。',
+    'guild.rankNumbered': 'ランク{n}',
     'guild.useTransfer': 'リーダーシップを引き継ぐにはギルド移譲を使用してください。',
     'guild.alreadyRank': '{name}はすでに{rank}です。',
     'guild.onlyOfficersChat':
@@ -1407,6 +1950,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}>は解散しました。',
     'guild.removedFrom': 'あなたは<{name}>から除名されました。',
     'guild.joined': '{name}がギルドに加入しました。',
+    'guild.bankGoldDeposited': '{name}がギルド銀行に{amount}を預けました。',
+    'guild.bankGoldWithdrawn': '{name}がギルド銀行から{amount}を引き出しました。',
     'guild.memberLeft': '{name}がギルドを脱退しました。',
     'guild.newMaster': '{name}が<{guild}>の新しいギルドマスターになりました。',
     'guild.removedBy': '{name}が{actor}によってギルドから除名されました。',
@@ -1440,12 +1985,14 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': '不明',
   },
   pt_BR: {
+    'error.bankPurchaseInProgress': 'Seu banco tem uma compra em andamento.',
     'chat.filterMutedRemaining': 'Você está silenciado e não pode usar o chat por mais {duration}.',
     'chat.filterMuted':
       'Esse tipo de linguagem não é permitido aqui. Você foi silenciado por {duration}.',
     'chat.filterWarning':
       'Aviso: esse tipo de linguagem não é permitido aqui. Continuar fará com que você seja silenciado.',
     'pet.nameNotAllowed': 'Esse nome de mascote não é permitido.',
+    'legendary.nameNotAllowed': 'Esse nome não é permitido.',
     'chat.muted': 'Você está silenciado no chat por mais {minutes} minutos.{reason}',
     'chat.mutedOne': 'Você está silenciado no chat por mais {minutes} minuto.{reason}',
     'chat.muteReason': ' Motivo: {reason}',
@@ -1464,6 +2011,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       'Você está ignorando {name}. Remova-o da sua lista de ignorados primeiro.',
     'friends.alreadyFriend': '{name} já é seu amigo.',
+    'friends.cannotAdd': 'Você não pode adicionar {name} como amigo.',
     'friends.listFull': 'Sua lista de amigos está cheia.',
     'friends.notOnFriends': "Nenhum personagem chamado '{name}' na sua lista de amigos.",
     'friends.notYourFriend': '{name} não está na sua lista de amigos.',
@@ -1493,10 +2041,46 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Sua lista de ignorados está vazia.',
     'ignores.list': 'Ignorados ({count}): {names}',
     'ignores.usage': 'Uso: /ignore <nome>, /unignore <nome>, /ignorelist.',
+    'flair.shown':
+      'Seu cargo do Discord está visível para outros jogadores. Digite /flair off para ocultá-lo.',
+    'flair.hidden':
+      'Seu cargo do Discord está oculto para outros jogadores. Digite /flair on para exibi-lo.',
+    'flair.notLinked': 'Vincule sua conta do Discord para usar /flair.',
+    'flair.usage': 'Uso: /flair, /flair on ou /flair off.',
+    'presence.everyone':
+      'Amigos e membros da guilda podem ver você online. Digite /presence friends ou /presence none para se ocultar.',
+    'presence.friends':
+      'Só seus amigos podem ver você online. Digite /presence everyone ou /presence none para mudar.',
+    'presence.none':
+      'Você aparece offline para amigos e membros da guilda. Digite /presence everyone ou /presence friends para mudar.',
+    'presence.usage': 'Uso: /presence, /presence everyone, /presence friends ou /presence none.',
     'guild.nameRules': 'Os nomes de guilda têm de 3 a 24 letras (espaços permitidos).',
+    'guild.nameNotAllowed': 'Esse nome de guilda não é permitido.',
     'guild.exists': "Já existe uma guilda chamada '{name}'.",
     'guild.alreadyInOne': 'Você já está em uma guilda.',
     'guild.notInOne': 'Você não está em uma guilda.',
+    'pledge.noGuild': 'Nenhuma guilda com esse nome.',
+    'pledge.noneToWithdraw': 'Você não tem nenhum juramento para retirar.',
+    'pledge.onlyOfficers': 'Apenas oficiais e o Mestre da Guilda podem gerenciar juramentos.',
+    'pledge.noteNotAllowed': 'Essa nota do quadro não é permitida.',
+    'pledge.made': 'Você jurou se unir a {name}.',
+    'pledge.cooldown': 'Você poderá jurar novamente em {minutes} minutos.',
+    'pledge.cooldownOne': 'Você poderá jurar novamente em {minutes} minuto.',
+    'pledge.notAccepting': '{name} não aceita juramentos.',
+    'pledge.minLevel': '{name} aceita juramentos a partir do nível {level}.',
+    'pledge.declinedForNow': '{name} recusou seu juramento por enquanto.',
+    'pledge.withdrawn': 'Você retirou seu juramento a {name}.',
+    'pledge.noneToYourGuild': '{name} não tem juramento com a sua guilda.',
+    'pledge.incoming': '{name} jurou se unir à sua guilda.',
+    'pledge.youDeclined': 'Você recusou o juramento de {name}.',
+    'pledge.declined': '{name} recusou seu juramento.',
+    'guild.createFee': 'Você precisa de {amount} de ouro para fundar uma guilda.',
+    'guild.bankNotEmpty':
+      'O banco da guilda deve ser esvaziado antes que a guilda possa ser dissolvida.',
+    'guild.bankClosing': 'O banco da guilda está fechando. Tente novamente em um momento.',
+    'guild.bankSettling':
+      'O banco da guilda ainda está salvando uma alteração recente. Tente novamente em um momento.',
+    'guild.bankBusy': 'Você está ocupado. Tente novamente em um momento.',
     'guild.onlyOfficersInvite': 'Apenas oficiais e o Mestre da Guilda podem convidar.',
     'guild.alreadyInThis': 'Você já está na guilda.',
     'guild.mustBeOnline': '{name} precisa estar online para ser convidado.',
@@ -1518,6 +2102,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'Você não pode remover o Mestre da Guilda.',
     'guild.onlyGmRemoveOfficer': 'Apenas o Mestre da Guilda pode remover um oficial.',
     'guild.onlyGmChangeRanks': 'Apenas o Mestre da Guilda pode alterar os cargos.',
+    'guild.belowRankOnly': 'Você só pode fazer isso com membros de cargo inferior ao seu.',
+    'guild.titleNotAllowed': 'Esse título de cargo não é permitido.',
+    'guild.ladderUpdated': 'Os cargos da guilda foram atualizados.',
+    'guild.rankNumbered': 'Cargo {n}',
     'guild.useTransfer': 'Use uma transferência de guilda para passar a liderança.',
     'guild.alreadyRank': '{name} já é {rank}.',
     'guild.onlyOfficersChat': 'Apenas oficiais e o Mestre da Guilda podem usar o chat de oficiais.',
@@ -1528,6 +2116,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': '<{name}> foi desfeita.',
     'guild.removedFrom': 'Você foi removido de <{name}>.',
     'guild.joined': '{name} entrou na guilda.',
+    'guild.bankGoldDeposited': '{name} depositou {amount} no banco da guilda.',
+    'guild.bankGoldWithdrawn': '{name} retirou {amount} do banco da guilda.',
     'guild.memberLeft': '{name} saiu da guilda.',
     'guild.newMaster': '{name} agora é o Mestre da Guilda de <{guild}>.',
     'guild.removedBy': '{name} foi removido da guilda por {actor}.',
@@ -1561,11 +2151,13 @@ export const DICT: Record<string, Record<string, string>> = {
     'who.zoneUnknown': 'Desconhecida',
   },
   ru_RU: {
+    'error.bankPurchaseInProgress': 'В вашем банке уже выполняется покупка.',
     'chat.filterMutedRemaining': 'Вам выдан мьют, и вы не сможете писать в чат ещё {duration}.',
     'chat.filterMuted': 'Такие выражения здесь запрещены. Вам выдан мьют на {duration}.',
     'chat.filterWarning':
       'Предупреждение: такие выражения здесь запрещены. Продолжение приведёт к мьюту.',
     'pet.nameNotAllowed': 'Такое имя питомца недопустимо.',
+    'legendary.nameNotAllowed': 'Такое имя недопустимо.',
     'chat.muted': 'Вам выдан мьют в чате ещё на {minutes} мин.{reason}',
     'chat.mutedOne': 'Вам выдан мьют в чате ещё на {minutes} мин.{reason}',
     'chat.muteReason': ' Причина: {reason}',
@@ -1584,6 +2176,7 @@ export const DICT: Record<string, Record<string, string>> = {
     'friends.ignoringRemoveFirst':
       'Вы игнорируете {name}. Сначала удалите этого персонажа из списка игнорируемых.',
     'friends.alreadyFriend': '{name} уже у вас в друзьях.',
+    'friends.cannotAdd': 'Вы не можете добавить {name} в друзья.',
     'friends.listFull': 'Ваш список друзей заполнен.',
     'friends.notOnFriends': 'В вашем списке друзей нет персонажа с именем «{name}».',
     'friends.notYourFriend': '{name} отсутствует в вашем списке друзей.',
@@ -1612,10 +2205,45 @@ export const DICT: Record<string, Record<string, string>> = {
     'ignores.empty': 'Ваш список игнорируемых пуст.',
     'ignores.list': 'Игнорируются ({count}): {names}',
     'ignores.usage': 'Использование: /ignore <имя>, /unignore <имя>, /ignorelist.',
+    'flair.shown': 'Ваша роль в Discord видна другим игрокам. Введите /flair off, чтобы скрыть её.',
+    'flair.hidden':
+      'Ваша роль в Discord скрыта от других игроков. Введите /flair on, чтобы показать её.',
+    'flair.notLinked': 'Привяжите аккаунт Discord, чтобы использовать /flair.',
+    'flair.usage': 'Использование: /flair, /flair on или /flair off.',
+    'presence.everyone':
+      'Друзья и члены гильдии видят, что вы в сети. Введите /presence friends или /presence none, чтобы скрыться.',
+    'presence.friends':
+      'Только друзья видят, что вы в сети. Введите /presence everyone или /presence none, чтобы изменить это.',
+    'presence.none':
+      'Для друзей и членов гильдии вы не в сети. Введите /presence everyone или /presence friends, чтобы изменить это.',
+    'presence.usage':
+      'Использование: /presence, /presence everyone, /presence friends или /presence none.',
     'guild.nameRules': 'Названия гильдий должны содержать от 3 до 24 букв (пробелы допускаются).',
+    'guild.nameNotAllowed': 'Такое название гильдии недопустимо.',
     'guild.exists': 'Гильдия с названием «{name}» уже существует.',
     'guild.alreadyInOne': 'Вы уже состоите в гильдии.',
     'guild.notInOne': 'Вы не состоите в гильдии.',
+    'pledge.noGuild': 'Гильдии с таким названием нет.',
+    'pledge.noneToWithdraw': 'Вам нечего отзывать: клятвы нет.',
+    'pledge.onlyOfficers': 'Только офицеры и глава гильдии могут распоряжаться клятвами.',
+    'pledge.noteNotAllowed': 'Такая заметка на доске недопустима.',
+    'pledge.made': 'Вы дали клятву вступить в {name}.',
+    'pledge.cooldown': 'Вы сможете снова дать клятву через {minutes} мин.',
+    'pledge.cooldownOne': 'Вы сможете снова дать клятву через {minutes} мин.',
+    'pledge.notAccepting': '{name} не принимает клятвы.',
+    'pledge.minLevel': '{name} принимает клятвы с {level} уровня.',
+    'pledge.declinedForNow': '{name} пока отклонила вашу клятву.',
+    'pledge.withdrawn': 'Вы отозвали свою клятву гильдии {name}.',
+    'pledge.noneToYourGuild': '{name} не давал клятву вашей гильдии.',
+    'pledge.incoming': '{name} дал клятву вашей гильдии.',
+    'pledge.youDeclined': 'Вы отклонили клятву {name}.',
+    'pledge.declined': '{name} отклонила вашу клятву.',
+    'guild.createFee': 'Чтобы основать гильдию, вам нужно {amount} золота.',
+    'guild.bankNotEmpty': 'Прежде чем распустить гильдию, необходимо опустошить гильдейский банк.',
+    'guild.bankClosing': 'Гильдейский банк закрывается. Попробуйте ещё раз через мгновение.',
+    'guild.bankSettling':
+      'Гильдейский банк ещё сохраняет недавнее изменение. Попробуйте ещё раз через мгновение.',
+    'guild.bankBusy': 'Вы заняты. Попробуйте ещё раз через мгновение.',
     'guild.onlyOfficersInvite': 'Приглашать могут только офицеры и глава гильдии.',
     'guild.alreadyInThis': 'Вы уже состоите в этой гильдии.',
     'guild.mustBeOnline': '{name} должен(на) быть в сети, чтобы получить приглашение.',
@@ -1637,6 +2265,10 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.cannotRemoveGm': 'Вы не можете исключить главу гильдии.',
     'guild.onlyGmRemoveOfficer': 'Только глава гильдии может исключить офицера.',
     'guild.onlyGmChangeRanks': 'Только глава гильдии может изменять звания.',
+    'guild.belowRankOnly': 'Это можно сделать только с участниками ниже вашего звания.',
+    'guild.titleNotAllowed': 'Такое название звания недопустимо.',
+    'guild.ladderUpdated': 'Звания гильдии обновлены.',
+    'guild.rankNumbered': 'Звание {n}',
     'guild.useTransfer': 'Чтобы передать лидерство, воспользуйтесь передачей гильдии.',
     'guild.alreadyRank': '{name} уже {rank}.',
     'guild.onlyOfficersChat': 'Использовать чат офицеров могут только офицеры и глава гильдии.',
@@ -1647,6 +2279,8 @@ export const DICT: Record<string, Record<string, string>> = {
     'guild.disbanded': 'Гильдия <{name}> распущена.',
     'guild.removedFrom': 'Вы были исключены из <{name}>.',
     'guild.joined': '{name} присоединяется к гильдии.',
+    'guild.bankGoldDeposited': '{name} внёс(ла) {amount} в банк гильдии.',
+    'guild.bankGoldWithdrawn': '{name} снял(а) {amount} из банка гильдии.',
     'guild.memberLeft': '{name} покидает гильдию.',
     'guild.newMaster': '{name} становится главой гильдии <{guild}>.',
     'guild.removedBy': '{name} исключен(а) из гильдии игроком {actor}.',
@@ -1702,6 +2336,17 @@ export function tServer(
   return interpolate(tmpl, params);
 }
 
+/** Parse the server's English compact money ("5g 20s 3c", any subset of the
+ *  three units) back to copper so formatMoney can re-render it for the viewer's
+ *  locale. A unit that is absent counts as zero. */
+export function parseEnglishCompactMoney(text: string): number {
+  const unit = (suffix: string): number => {
+    const m = new RegExp(`(\\d+)${suffix}(?:\\b|$)`).exec(text);
+    return m ? Number(m[1]) : 0;
+  };
+  return unit('g') * 10000 + unit('s') * 100 + unit('c');
+}
+
 // English-content sub-values the server interpolates, mapped back to dictionary keys.
 const RANK_KEY: Record<string, string> = {
   'Guild Master': 'guild.rankLeader',
@@ -1719,6 +2364,13 @@ const LEAVE_REASON_KEY: Record<string, string> = {
 function localizeRank(r: string): string {
   const k = RANK_KEY[r];
   return k ? tServer(k) : r;
+}
+// A bracketed custom rank from a rank-change line (server/social.ts rankLabel):
+// an untitled custom rank's 'Rank N' re-localizes; a guild's own title is
+// player text and splices through verbatim, like a name.
+function localizeRankTitle(title: string): string {
+  const numbered = /^Rank (\d+)$/.exec(title);
+  return numbered ? tServer('guild.rankNumbered', { n: numbered[1] }) : title;
 }
 function localizeReason(r: string): string {
   const k = LEAVE_REASON_KEY[r];
@@ -1749,11 +2401,6 @@ const dungeonNameToId = new Map<string, string>();
 for (const [id, d] of Object.entries(DUNGEONS)) dungeonNameToId.set(d.name, id);
 export function localizeZone(name: string): string {
   if (name === 'Unknown') return tServer('who.zoneUnknown');
-  // The Sowfield: a presence zone name with no ZoneDef/DungeonDef record
-  // (server presenceOf reports the stadium footprint); localized via the
-  // zone 1 poi label it shares (index pinned by tests/vale_cup_layout.test.ts).
-  if (name === 'The Sowfield')
-    return tEntity({ kind: 'zonePoi', zoneId: 'eastbrook_vale', poiIndex: 10, field: 'label' });
   const zid = zoneNameToId.get(name);
   if (zid) return tEntity({ kind: 'zone', id: zid, field: 'name' });
   const did = dungeonNameToId.get(name);
@@ -1962,9 +2609,103 @@ for (const key of Object.keys(DICT.en)) {
 
 type Rule = { re: RegExp; build: (m: RegExpExecArray) => string };
 const RULES: Rule[] = [
+  // ---- GM tools (server/moderation_service.ts) ----
+  // FIRST on purpose: the announcement and watch lines carry staff-authored free
+  // text, which a later, broader rule (e.g. "(.+) is not jailed.") could
+  // otherwise claim and mistranslate. The text itself passes through verbatim.
+  {
+    re: /^\[Announcement\] ([^:]+): (.+)$/,
+    build: (m) => tServer('moderation.announcement', { name: m[1], text: m[2] }),
+  },
+  {
+    re: /^Watchlist: (.+) just logged in \(watched as (.+)\)\.$/,
+    build: (m) => tServer('moderation.watchLoginAs', { name: m[1], watched: m[2] }),
+  },
+  {
+    re: /^Watchlist: (.+) just logged in\.$/,
+    build: (m) => tServer('moderation.watchLogin', { name: m[1] }),
+  },
+  { re: /^Watch note: (.+)$/, build: (m) => tServer('moderation.watchNote', { note: m[1] }) },
+  {
+    re: /^Watched: ([^()]+) \((.+)\)$/,
+    build: (m) => tServer('moderation.watchlistEntryNote', { name: m[1], note: m[2] }),
+  },
+  { re: /^Watched: (.+)$/, build: (m) => tServer('moderation.watchlistEntry', { name: m[1] }) },
+  {
+    re: /^Watchlist \((\d+)\):$/,
+    build: (m) => tServer('moderation.watchlistHeader', { count: m[1] }),
+  },
+  {
+    re: /^Added (.+) to the watchlist\.$/,
+    build: (m) => tServer('moderation.watchAdded', { name: m[1] }),
+  },
+  {
+    re: /^Removed (.+) from the watchlist\.$/,
+    build: (m) => tServer('moderation.watchRemoved', { name: m[1] }),
+  },
+  {
+    re: /^(.+) is not on the watchlist\.$/,
+    build: (m) => tServer('moderation.notWatched', { name: m[1] }),
+  },
+  { re: /^Usage: \/visible on\|off$/, build: () => tServer('moderation.visibleUsage') },
+  {
+    re: /^Usage: \/watch \["<name>" \[note\]\]$/,
+    build: () => tServer('moderation.watchUsage'),
+  },
+  { re: /^Usage: \/unwatch "<name>"$/, build: () => tServer('moderation.unwatchUsage') },
+  { re: /^Usage: \/announce <message>$/, build: () => tServer('moderation.announceUsage') },
+  // ---- guild pledges (docs/prd/guild-pledge-board.md) ----
+  {
+    re: /^You have pledged to (.+)\.$/,
+    build: (m) => tServer('pledge.made', { name: m[1] }),
+  },
+  {
+    re: /^You can pledge again in (\d+) more minutes?\.$/,
+    build: (m) =>
+      tServer(m[1] === '1' ? 'pledge.cooldownOne' : 'pledge.cooldown', { minutes: m[1] }),
+  },
+  {
+    re: /^(.+) is not accepting pledges\.$/,
+    build: (m) => tServer('pledge.notAccepting', { name: m[1] }),
+  },
+  {
+    re: /^(.+) accepts pledges from level (\d+)\.$/,
+    build: (m) => tServer('pledge.minLevel', { name: m[1], level: m[2] }),
+  },
+  {
+    re: /^(.+) has declined your pledge for now\.$/,
+    build: (m) => tServer('pledge.declinedForNow', { name: m[1] }),
+  },
+  {
+    re: /^You have withdrawn your pledge to (.+)\.$/,
+    build: (m) => tServer('pledge.withdrawn', { name: m[1] }),
+  },
+  {
+    re: /^(.+) has no pledge to your guild\.$/,
+    build: (m) => tServer('pledge.noneToYourGuild', { name: m[1] }),
+  },
+  {
+    re: /^(.+) has pledged to your guild\.$/,
+    build: (m) => tServer('pledge.incoming', { name: m[1] }),
+  },
+  {
+    re: /^You have declined (.+)'s pledge\.$/,
+    build: (m) => tServer('pledge.youDeclined', { name: m[1] }),
+  },
+  {
+    re: /^(.+) has declined your pledge\.$/,
+    build: (m) => tServer('pledge.declined', { name: m[1] }),
+  },
   {
     re: /^You found the guild <([^>]+)>! You are its Guild Master\.$/,
     build: (m) => tServer('guild.founded', { name: m[1] }),
+  },
+  {
+    // The guild creation-fee refusal (server/game.ts guild_create dispatch).
+    // The amount is derived from GUILD_CREATION_FEE_COPPER and spliced through
+    // verbatim, like every other count.
+    re: /^You need (\d+) gold to found a guild\.$/,
+    build: (m) => tServer('guild.createFee', { amount: m[1] }),
   },
   {
     re: /^You have left <([^>]+)>\. The guild has disbanded\.$/,
@@ -1992,6 +2733,25 @@ const RULES: Rule[] = [
     build: (m) => tServer('guild.invited', { name: m[1] }),
   },
   { re: /^(.+) has joined the guild\.$/, build: (m) => tServer('guild.joined', { name: m[1] }) },
+  {
+    // Guild bank gold movement notices (server/guild_bank_gold_notice.ts). The
+    // amount arrives as English compact money ("5g 20s 3c"); it is parsed back
+    // to copper and re-rendered by formatMoney for the viewer's locale.
+    re: /^(.+) deposited ((?:\d+g)?(?: ?\d+s)?(?: ?\d+c)?) into the guild bank\.$/,
+    build: (m) =>
+      tServer('guild.bankGoldDeposited', {
+        name: m[1],
+        amount: formatMoney(parseEnglishCompactMoney(m[2])),
+      }),
+  },
+  {
+    re: /^(.+) withdrew ((?:\d+g)?(?: ?\d+s)?(?: ?\d+c)?) from the guild bank\.$/,
+    build: (m) =>
+      tServer('guild.bankGoldWithdrawn', {
+        name: m[1],
+        amount: formatMoney(parseEnglishCompactMoney(m[2])),
+      }),
+  },
   { re: /^(.+) has left the guild\.$/, build: (m) => tServer('guild.memberLeft', { name: m[1] }) },
   {
     re: /^A guild named '(.+)' already exists\.$/,
@@ -2025,6 +2785,16 @@ const RULES: Rule[] = [
     re: /^(.+) is now (Guild Master|Officer|Member)\.$/,
     build: (m) => tServer('guild.nowRank', { name: m[1], rank: localizeRank(m[2]) }),
   },
+  // Guild custom ranks (docs/prd/guild-custom-ranks.md): the same two lines
+  // naming a guild-titled or untitled custom rank, which the server brackets.
+  {
+    re: /^(.+) is already \[([^\]]+)\]\.$/,
+    build: (m) => tServer('guild.alreadyRank', { name: m[1], rank: localizeRankTitle(m[2]) }),
+  },
+  {
+    re: /^(.+) is now \[([^\]]+)\]\.$/,
+    build: (m) => tServer('guild.nowRank', { name: m[1], rank: localizeRankTitle(m[2]) }),
+  },
   {
     re: /^No character named '(.+)' exists\.$/,
     build: (m) => tServer('friends.noCharExists', { name: m[1] }),
@@ -2048,6 +2818,10 @@ const RULES: Rule[] = [
   {
     re: /^(.+) is already your friend\.$/,
     build: (m) => tServer('friends.alreadyFriend', { name: m[1] }),
+  },
+  {
+    re: /^You cannot add (.+) as a friend\.$/,
+    build: (m) => tServer('friends.cannotAdd', { name: m[1] }),
   },
   {
     re: /^(.+) is not on your friends list\.$/,
@@ -2274,6 +3048,8 @@ const RULES: Rule[] = [
 
 // Returns the localized form of a server message, or null if it is not one of ours.
 export function localizeServerText(text: string): string | null {
+  if (text === 'Bound friends are linked by their referral invitation.')
+    return t('hud.social.boundFriendLink');
   const restart = RESTART_MESSAGES[text]?.[getLanguage()];
   if (restart) return restart;
   const exactKey = EXACT[text];

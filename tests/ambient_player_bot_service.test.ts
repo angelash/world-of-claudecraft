@@ -85,10 +85,7 @@ describe('AmbientPlayerBotService', () => {
   it('shares one ambient cluster for nearby humans instead of doubling the target', () => {
     const service = new AmbientPlayerBotService({ config: cfg({ maxProvisionPerTick: 10 }) });
     const actions = service.plan({
-      humans: [
-        human(1, 'eastbrook_vale', 2, 0, 0),
-        human(2, 'eastbrook_vale', 3, 10, 8),
-      ],
+      humans: [human(1, 'eastbrook_vale', 2, 0, 0), human(2, 'eastbrook_vale', 3, 10, 8)],
       nowMs: 1_000,
     });
 
@@ -106,12 +103,14 @@ describe('AmbientPlayerBotService', () => {
       nowMs: 1_000,
     });
 
-    expect(actions).toContainEqual(expect.objectContaining({
-      type: 'loginBot',
-      botId: 'bot-1',
-      clusterId: 'eastbrook_vale:1',
-      targetCharacterName: 'P1',
-    }));
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'loginBot',
+        botId: 'bot-1',
+        clusterId: 'eastbrook_vale:1',
+        targetCharacterName: 'P1',
+      }),
+    );
     expect(actions.filter((action) => action.type === 'provisionBot')).toHaveLength(10);
   });
 
@@ -132,10 +131,12 @@ describe('AmbientPlayerBotService', () => {
       nowMs: 1_000,
     });
 
-    expect(actions).toContainEqual(expect.objectContaining({
-      type: 'logoutBot',
-      botId: 'bot-1',
-    }));
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'logoutBot',
+        botId: 'bot-1',
+      }),
+    );
     expect(service.directoryRecords()[0]?.lifecycleStatus).toBe('cooldown');
   });
 
@@ -170,10 +171,7 @@ describe('AmbientPlayerBotService', () => {
       }),
     });
     const first = service.plan({
-      humans: [
-        human(1, 'eastbrook_vale', 2, 0, 0),
-        human(2, 'eastbrook_vale', 3, 10, 8),
-      ],
+      humans: [human(1, 'eastbrook_vale', 2, 0, 0), human(2, 'eastbrook_vale', 3, 10, 8)],
       nowMs: 1_000,
     });
     const second = service.plan({
@@ -212,26 +210,29 @@ describe('AmbientPlayerBotService', () => {
     ]);
 
     const actions = service.plan({
-      humans: [
-        human(1, 'eastbrook_vale', 2, 0, 0),
-        human(2, 'eastbrook_vale', 2, 500, 500),
-      ],
+      humans: [human(1, 'eastbrook_vale', 2, 0, 0), human(2, 'eastbrook_vale', 2, 500, 500)],
       nowMs: 1_000,
     });
 
-    expect(actions).not.toContainEqual(expect.objectContaining({
-      type: 'logoutBot',
-      botId: 'bot-1',
-    }));
-    expect(actions).not.toContainEqual(expect.objectContaining({
-      type: 'loginBot',
-      botId: 'bot-1',
-    }));
-    expect(service.recordById('bot-1')).toEqual(expect.objectContaining({
-      lifecycleStatus: 'online',
-      assignedClusterId: 'eastbrook_vale:2',
-      assignedPlayerCharacterId: 2,
-    }));
+    expect(actions).not.toContainEqual(
+      expect.objectContaining({
+        type: 'logoutBot',
+        botId: 'bot-1',
+      }),
+    );
+    expect(actions).not.toContainEqual(
+      expect.objectContaining({
+        type: 'loginBot',
+        botId: 'bot-1',
+      }),
+    );
+    expect(service.recordById('bot-1')).toEqual(
+      expect.objectContaining({
+        lifecycleStatus: 'online',
+        assignedClusterId: 'eastbrook_vale:2',
+        assignedPlayerCharacterId: 2,
+      }),
+    );
     expect(actions.filter((action) => action.type === 'provisionBot')).toHaveLength(9);
   });
 
@@ -252,19 +253,25 @@ describe('AmbientPlayerBotService', () => {
       nowMs: 1_000,
     });
 
-    expect(actions).toContainEqual(expect.objectContaining({
-      type: 'logoutBot',
-      botId: 'bot-1',
-      reason: 'assigned bot drifted beyond release radius',
-    }));
-    expect(actions).not.toContainEqual(expect.objectContaining({
-      type: 'loginBot',
-      botId: 'bot-1',
-    }));
-    expect(service.recordById('bot-1')).toEqual(expect.objectContaining({
-      assignedClusterId: null,
-      lifecycleStatus: 'cooldown',
-    }));
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'logoutBot',
+        botId: 'bot-1',
+        reason: 'assigned bot drifted beyond release radius',
+      }),
+    );
+    expect(actions).not.toContainEqual(
+      expect.objectContaining({
+        type: 'loginBot',
+        botId: 'bot-1',
+      }),
+    );
+    expect(service.recordById('bot-1')).toEqual(
+      expect.objectContaining({
+        assignedClusterId: null,
+        lifecycleStatus: 'cooldown',
+      }),
+    );
   });
 
   it('sheds overflow bots when a cluster is above its target population', () => {
@@ -303,19 +310,25 @@ describe('AmbientPlayerBotService', () => {
       nowMs: 1_000,
     });
 
-    expect(actions).toContainEqual(expect.objectContaining({
-      type: 'logoutBot',
-      botId: 'bot-2',
-      reason: 'cluster is above target population',
-    }));
-    expect(service.recordById('bot-1')).toEqual(expect.objectContaining({
-      assignedClusterId: 'eastbrook_vale:1',
-      lifecycleStatus: 'online',
-    }));
-    expect(service.recordById('bot-2')).toEqual(expect.objectContaining({
-      assignedClusterId: null,
-      lifecycleStatus: 'cooldown',
-    }));
+    expect(actions).toContainEqual(
+      expect.objectContaining({
+        type: 'logoutBot',
+        botId: 'bot-2',
+        reason: 'cluster is above target population',
+      }),
+    );
+    expect(service.recordById('bot-1')).toEqual(
+      expect.objectContaining({
+        assignedClusterId: 'eastbrook_vale:1',
+        lifecycleStatus: 'online',
+      }),
+    );
+    expect(service.recordById('bot-2')).toEqual(
+      expect.objectContaining({
+        assignedClusterId: null,
+        lifecycleStatus: 'cooldown',
+      }),
+    );
   });
 
   it('applies live rollout config patches for planner diagnostics and behavior', () => {
@@ -332,29 +345,35 @@ describe('AmbientPlayerBotService', () => {
       nowMs: 1_000,
     });
 
-    expect(updated).toEqual(expect.objectContaining({
-      soloTargetBots: 1,
-      maxBotsPerCluster: 1,
-      maxProvisionPerTick: 1,
-      recentActionLimit: 5,
-    }));
-    expect(actions).toHaveLength(1);
-    expect(service.diagnosticsSnapshot()).toEqual(expect.objectContaining({
-      config: expect.objectContaining({
+    expect(updated).toEqual(
+      expect.objectContaining({
         soloTargetBots: 1,
         maxBotsPerCluster: 1,
         maxProvisionPerTick: 1,
+        recentActionLimit: 5,
       }),
-      clusters: [expect.objectContaining({ desiredBots: 1 })],
-    }));
+    );
+    expect(actions).toHaveLength(1);
+    expect(service.diagnosticsSnapshot()).toEqual(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          soloTargetBots: 1,
+          maxBotsPerCluster: 1,
+          maxProvisionPerTick: 1,
+        }),
+        clusters: [expect.objectContaining({ desiredBots: 1 })],
+      }),
+    );
   });
 
   it('rejects live config patches that would invert cluster hysteresis', () => {
     const service = new AmbientPlayerBotService({ config: cfg() });
 
-    expect(() => service.updateConfig({
-      clusterRadius: 200,
-      releaseRadius: 150,
-    })).toThrow(/releaseRadius must be greater than clusterRadius/i);
+    expect(() =>
+      service.updateConfig({
+        clusterRadius: 200,
+        releaseRadius: 150,
+      }),
+    ).toThrow(/releaseRadius must be greater than clusterRadius/i);
   });
 });

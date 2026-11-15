@@ -11,6 +11,7 @@
 // idiom in server/social.ts + server/social_db.ts.
 import type * as Db from '../../../server/db';
 import type * as DeedsDb from '../../../server/deeds_db';
+import type * as GuildBoardDb from '../../../server/guild_board_db';
 import type * as ModDb from '../../../server/moderation_db';
 import type { CharacterState, MailSave, MarketSave } from '../../../src/sim/sim';
 import type { ArenaFormat, PlayerClass } from '../../../src/sim/types';
@@ -52,7 +53,7 @@ export interface CharactersDb {
     level: number,
     state: CharacterState,
     market: MarketSave,
-    mail: MailSave,
+    mailPartitions: readonly { recipientKey: string; letters: MailSave['mail'] }[],
     leaseNonce?: string,
   ): Promise<boolean>;
   lifetimeXpStanding(
@@ -69,7 +70,7 @@ export interface CharactersDb {
 export interface LeaderboardDb {
   topLifetimeXp(limit?: number, opts?: { global?: boolean }): Promise<Db.LifetimeXpLeaderRow[]>;
   topArenaRatings(limit?: number, format?: ArenaFormat): Promise<Db.ArenaLeaderRow[]>;
-  topGuilds(limit?: number, opts?: { global?: boolean }): Promise<Db.GuildLeaderRow[]>;
+  topGuilds(limit?: number, opts?: { global?: boolean }): Promise<GuildBoardDb.GuildLeaderRow[]>;
 }
 
 export interface ReportsDb {
@@ -104,9 +105,10 @@ export class FakeCharactersDb implements CharactersDb {
   private readonly standings = new Map<number, { rank: number; total: number }>();
   private readonly guildNames = new Map<number, string>();
   private readonly recentDeeds = new Map<number, DeedsDb.RecentDeedRow[]>();
-  // The last market and mail blobs saved alongside a character, for assertions.
+  // The last market blob and dirty mail partitions saved alongside a
+  // character, for assertions.
   lastMarket: MarketSave | null = null;
-  lastMail: MailSave | null = null;
+  lastMailPartitions: { recipientKey: string; letters: MailSave['mail'] }[] | null = null;
 
   // Test seam: insert a fully-formed row and keep nextId ahead of it.
   seed(row: Db.CharacterRow): Db.CharacterRow {
@@ -222,12 +224,12 @@ export class FakeCharactersDb implements CharactersDb {
     level: number,
     state: CharacterState,
     market: MarketSave,
-    mail: MailSave,
+    mailPartitions: readonly { recipientKey: string; letters: MailSave['mail'] }[],
     _leaseNonce?: string,
   ): Promise<boolean> {
     await this.saveCharacterState(characterId, level, state);
     this.lastMarket = market;
-    this.lastMail = mail;
+    this.lastMailPartitions = [...mailPartitions];
     return true;
   }
 
@@ -273,7 +275,7 @@ export class FakeCharactersDb implements CharactersDb {
 export class FakeLeaderboardDb implements LeaderboardDb {
   private lifetimeXp: Db.LifetimeXpLeaderRow[] = [];
   private arena: Db.ArenaLeaderRow[] = [];
-  private guilds: Db.GuildLeaderRow[] = [];
+  private guilds: GuildBoardDb.GuildLeaderRow[] = [];
 
   // Tests seed pre-sorted rows; the fake returns them in order, honouring limit.
   seedLifetimeXp(rows: Db.LifetimeXpLeaderRow[]): void {
@@ -284,7 +286,7 @@ export class FakeLeaderboardDb implements LeaderboardDb {
     this.arena = [...rows];
   }
 
-  seedGuilds(rows: Db.GuildLeaderRow[]): void {
+  seedGuilds(rows: GuildBoardDb.GuildLeaderRow[]): void {
     this.guilds = [...rows];
   }
 
@@ -305,7 +307,7 @@ export class FakeLeaderboardDb implements LeaderboardDb {
   async topGuilds(
     limit = DEFAULT_TOP_LIMIT,
     _opts: { global?: boolean } = {},
-  ): Promise<Db.GuildLeaderRow[]> {
+  ): Promise<GuildBoardDb.GuildLeaderRow[]> {
     return this.guilds.slice(0, limit);
   }
 }
@@ -367,7 +369,7 @@ type _LeaderboardConforms = _AssertAssignable<
   {
     topLifetimeXp: typeof Db.topLifetimeXp;
     topArenaRatings: typeof Db.topArenaRatings;
-    topGuilds: typeof Db.topGuilds;
+    topGuilds: typeof GuildBoardDb.topGuilds;
   },
   LeaderboardDb
 >;

@@ -2,15 +2,15 @@ import { createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { NPCS, QUESTS } from '../../src/sim/data';
 import type { Sim } from '../../src/sim/sim';
-import type { AiNpcInteractionTopic } from '../../src/world_api';
-import { INTERACT_RANGE, dist2d } from '../../src/sim/types';
 import type { Entity, PetMode, SimEvent } from '../../src/sim/types';
+import { dist2d, INTERACT_RANGE } from '../../src/sim/types';
+import type { AiNpcInteractionTopic } from '../../src/world_api';
 import {
-  createLocalAuditRecord,
-  createProviderAuditRecord,
   type AiAuditEntityKind,
   type AiAuditProviderSource,
   type AiAuditSink,
+  createLocalAuditRecord,
+  createProviderAuditRecord,
 } from '../ai_audit';
 import { REALM } from '../realm';
 import type {
@@ -26,6 +26,7 @@ import type {
   AiSpeechPolishSnapshot,
 } from './ai_types';
 import { aiEntityKind } from './ai_types';
+import type { AiBossEncounterMemory, AiBossEncounterPhaseCue } from './boss_memory';
 import {
   AiBossEncounterMemoryStore,
   AiBossEncounterPhaseCueStore,
@@ -33,21 +34,28 @@ import {
   bossEncounterPhaseEvent,
   bossEncounterScale,
 } from './boss_memory';
-import type { AiBossEncounterMemory, AiBossEncounterPhaseCue } from './boss_memory';
 import { classifyCanonSubject } from './canon_guard';
 import { CodexAppServerProvider } from './codex_app_server_provider';
 import { CodexCliProvider } from './codex_worker';
 import { companionReactionEvents, companionReactionEventsForScene } from './companion_reactions';
-import { AiCreatureMemoryStore, creaturePlanReactionMetadata, singularityCreatureMemoryEvent, singularityCreatureSceneMemoryEvent } from './creature_memory';
 import type { AiCreatureMemory, AiCreaturePlan } from './creature_memory';
-import { AiDecisionJournal } from './decision_journal';
+import {
+  AiCreatureMemoryStore,
+  creaturePlanReactionMetadata,
+  singularityCreatureMemoryEvent,
+  singularityCreatureSceneMemoryEvent,
+} from './creature_memory';
 import type { AiDecisionJournalEntry } from './decision_journal';
-import { familySceneReactionEvent, nearbyFamilySceneCandidates, rankFamilySceneReactions } from './family_scene_reactions';
+import { AiDecisionJournal } from './decision_journal';
+import {
+  familySceneReactionEvent,
+  nearbyFamilySceneCandidates,
+  rankFamilySceneReactions,
+} from './family_scene_reactions';
 import { compactFamilySemanticsForEntity } from './family_semantics';
-import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
-import type { ItemInterestReaction } from './item_interest';
 import { validateAiDecision } from './intent_validator';
-import { memoryReactionEvent } from './memory_reactions';
+import type { ItemInterestReaction } from './item_interest';
+import { nearbyReactionCandidates, rankItemReactions } from './item_interest';
 import {
   bossMemoryAudit,
   cloneMemoryAudit,
@@ -57,22 +65,32 @@ import {
   worldDirectorMemoryAudit,
   worldTraceMemoryAudit,
 } from './memory_audit';
+import { memoryReactionEvent } from './memory_reactions';
 import { objectInspectionEvent, objectInspectionLineIds } from './object_reactions';
 import { compactProfileSnapshot, profileFor } from './profiles';
 import { buildCodexDecisionPrompt } from './prompt_builder';
 import { topicReactionEvent } from './question_reactions';
-import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
+import { droppedItemSemantic, sceneFrameFor } from './scene_frame';
 import { sceneInspectionEvent } from './scene_inspection';
 import { sceneAwarenessEvent } from './scene_reactions';
 import { individualProfileFor, individualSpeechValues } from './singularity';
-import { AiSocialMemoryStore } from './social_memory';
 import type { AiNpcMemory, AiRumorMemory } from './social_memory';
-import { AiWorldDirectorStore, worldDirectorEvent, worldDirectorEventFromMemoryAudit, worldDirectorProposalFromMemoryAudit } from './world_director';
-import type { AiWorldDirectorProposal, AiWorldDirectorProposalAuditEntry, AiWorldDirectorState } from './world_director';
-import { AiWorldTraceStore } from './world_traces';
-import type { AiWorldTrace } from './world_traces';
+import { AiSocialMemoryStore } from './social_memory';
+import type {
+  AiWorldDirectorProposal,
+  AiWorldDirectorProposalAuditEntry,
+  AiWorldDirectorState,
+} from './world_director';
+import {
+  AiWorldDirectorStore,
+  worldDirectorEvent,
+  worldDirectorEventFromMemoryAudit,
+  worldDirectorProposalFromMemoryAudit,
+} from './world_director';
 import { worldTraceReactionEvent } from './world_trace_reactions';
+import type { AiWorldTrace } from './world_traces';
+import { AiWorldTraceStore } from './world_traces';
 
 export interface AiLifeLayerOptions {
   enabled?: boolean;
@@ -228,22 +246,22 @@ interface AiProviderDecisionCacheEntry {
 
 type AiProviderDecisionAttempt =
   | {
-    ok: true;
-    fromCache: boolean;
-    cacheKey: string | null;
-    decision: AiDecisionV1;
-    latencyMs: number;
-    promptText?: string;
-    rawOutput?: string;
-    providerTimings?: AiProviderTimingSnapshot;
-  }
+      ok: true;
+      fromCache: boolean;
+      cacheKey: string | null;
+      decision: AiDecisionV1;
+      latencyMs: number;
+      promptText?: string;
+      rawOutput?: string;
+      providerTimings?: AiProviderTimingSnapshot;
+    }
   | {
-    ok: false;
-    fromCache: false;
-    cacheKey: string | null;
-    reason: string;
-    latencyMs: number;
-  };
+      ok: false;
+      fromCache: false;
+      cacheKey: string | null;
+      reason: string;
+      latencyMs: number;
+    };
 
 interface AiLocalReactionAuditInput {
   jobId: string;
@@ -316,10 +334,31 @@ export interface PetCommandAiRequest {
 }
 
 export type AiPetCommandAction =
-  | { type: 'none'; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string }
-  | { type: 'setMode'; mode: PetMode; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string }
-  | { type: 'attack'; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string }
-  | { type: 'taunt'; intent: AiPetCommandIntent; source: Extract<SimEvent, { type: 'aiSpeech' }>['source']; reason: string };
+  | {
+      type: 'none';
+      intent: AiPetCommandIntent;
+      source: Extract<SimEvent, { type: 'aiSpeech' }>['source'];
+      reason: string;
+    }
+  | {
+      type: 'setMode';
+      mode: PetMode;
+      intent: AiPetCommandIntent;
+      source: Extract<SimEvent, { type: 'aiSpeech' }>['source'];
+      reason: string;
+    }
+  | {
+      type: 'attack';
+      intent: AiPetCommandIntent;
+      source: Extract<SimEvent, { type: 'aiSpeech' }>['source'];
+      reason: string;
+    }
+  | {
+      type: 'taunt';
+      intent: AiPetCommandIntent;
+      source: Extract<SimEvent, { type: 'aiSpeech' }>['source'];
+      reason: string;
+    };
 
 export type AiPetCommandIntent =
   | 'commandPetPassive'
@@ -349,7 +388,7 @@ const MEMORY_BUDGET_KIND_RATIOS: Record<AiMemoryAuditKind, number> = {
   rumor: 0.22,
   worldTrace: 0.18,
   creatureMemory: 0.18,
-  bossMemory: 0.10,
+  bossMemory: 0.1,
   worldDirectorState: 0.18,
 };
 
@@ -416,14 +455,30 @@ export class AiLifeLayer {
     this.provider = options.provider ?? defaultAiProvider();
     this.journal = new AiDecisionJournal(options.journalSize);
     this.memoryDb = options.memoryDb ?? null;
-    this.memoryPersistBatchSize = Math.max(1, Math.min(200, Math.floor(options.memoryPersistBatchSize ?? 32)));
+    this.memoryPersistBatchSize = Math.max(
+      1,
+      Math.min(200, Math.floor(options.memoryPersistBatchSize ?? 32)),
+    );
     this.memoryBudget = normalizeMemoryBudgetPolicy(options.memoryBudget);
     this.auditSink = options.auditSink ?? null;
-    this.auditProviderSource = options.auditProviderSource
-      ?? (options.provider ? 'provider' : 'codex');
-    this.providerCacheEnabled = options.providerCacheEnabled ?? process.env.AI_PROVIDER_DECISION_CACHE !== '0';
-    this.providerCacheMaxEntries = Math.max(1, Math.floor(options.providerCacheMaxEntries ?? envPositiveIntLocal('AI_PROVIDER_CACHE_MAX_ENTRIES', DEFAULT_PROVIDER_CACHE_MAX_ENTRIES)));
-    this.providerCacheMaxTtlMs = Math.max(250, Math.floor(options.providerCacheMaxTtlMs ?? envPositiveIntLocal('AI_PROVIDER_CACHE_MAX_TTL_MS', DEFAULT_PROVIDER_CACHE_MAX_TTL_MS)));
+    this.auditProviderSource =
+      options.auditProviderSource ?? (options.provider ? 'provider' : 'codex');
+    this.providerCacheEnabled =
+      options.providerCacheEnabled ?? process.env.AI_PROVIDER_DECISION_CACHE !== '0';
+    this.providerCacheMaxEntries = Math.max(
+      1,
+      Math.floor(
+        options.providerCacheMaxEntries ??
+          envPositiveIntLocal('AI_PROVIDER_CACHE_MAX_ENTRIES', DEFAULT_PROVIDER_CACHE_MAX_ENTRIES),
+      ),
+    );
+    this.providerCacheMaxTtlMs = Math.max(
+      250,
+      Math.floor(
+        options.providerCacheMaxTtlMs ??
+          envPositiveIntLocal('AI_PROVIDER_CACHE_MAX_TTL_MS', DEFAULT_PROVIDER_CACHE_MAX_TTL_MS),
+      ),
+    );
     if (this.enabled && !options.provider) this.provider.warmup?.();
   }
 
@@ -533,9 +588,10 @@ export class AiLifeLayer {
       ...this.metrics,
       providerCacheEntries: this.providerDecisionCache.size,
       speechPolish: cloneSpeechPolishSnapshot(this.metrics.speechPolish),
-      averageProviderLatencyMs: this.metrics.providerCalls > 0
-        ? this.metrics.totalProviderLatencyMs / this.metrics.providerCalls
-        : 0,
+      averageProviderLatencyMs:
+        this.metrics.providerCalls > 0
+          ? this.metrics.totalProviderLatencyMs / this.metrics.providerCalls
+          : 0,
       providerLatencySampleCount: this.providerLatencySamplesMs.length,
       providerLatencyP50Ms: percentiles.p50,
       providerLatencyP90Ms: percentiles.p90,
@@ -572,15 +628,17 @@ export class AiLifeLayer {
       if (event.type !== 'aiSpeech') continue;
       const speaker = input.sim.entities.get(event.speakerId);
       if (!speaker || (speaker.kind !== 'npc' && speaker.kind !== 'mob')) continue;
-      records.push(activeSpeechMemoryAudit({
-        event,
-        speaker,
-        pid: input.pid,
-        sceneId,
-        zoneId: scene.zoneId,
-        nowSeconds: input.sim.time,
-        source: input.source,
-      }));
+      records.push(
+        activeSpeechMemoryAudit({
+          event,
+          speaker,
+          pid: input.pid,
+          sceneId,
+          zoneId: scene.zoneId,
+          nowSeconds: input.sim.time,
+          source: input.source,
+        }),
+      );
     }
     this.enqueueMemoryWrites(records);
   }
@@ -589,10 +647,9 @@ export class AiLifeLayer {
     if (!this.memoryDb) return;
     if (this.memoryFlushPromise) return this.memoryFlushPromise;
     if (this.pendingMemoryWrites.length === 0) return;
-    this.memoryFlushPromise = this.flushMemoryWritesNow()
-      .finally(() => {
-        this.memoryFlushPromise = null;
-      });
+    this.memoryFlushPromise = this.flushMemoryWritesNow().finally(() => {
+      this.memoryFlushPromise = null;
+    });
     return this.memoryFlushPromise;
   }
 
@@ -601,7 +658,8 @@ export class AiLifeLayer {
     if (this.memoryPrunePromise) return this.memoryPrunePromise;
     const safeNowSeconds = Number.isFinite(nowSeconds) && nowSeconds >= 0 ? nowSeconds : 0;
     const safeBatchSize = Math.max(1, Math.min(5000, Math.floor(batchSize)));
-    this.memoryPrunePromise = this.memoryDb.pruneExpired(safeNowSeconds, safeBatchSize)
+    this.memoryPrunePromise = this.memoryDb
+      .pruneExpired(safeNowSeconds, safeBatchSize)
       .then((deleted) => {
         const deletedCount = Number.isFinite(deleted) && deleted > 0 ? Math.floor(deleted) : 0;
         this.metrics.memoryPruneRuns++;
@@ -623,7 +681,8 @@ export class AiLifeLayer {
     if (!this.memoryDb?.enforceBudget) return zeroMemoryBudgetResult(this.memoryBudget);
     if (this.memoryBudgetPromise) return this.memoryBudgetPromise;
     const policy = cloneMemoryBudgetPolicy(this.memoryBudget);
-    this.memoryBudgetPromise = this.memoryDb.enforceBudget(policy)
+    this.memoryBudgetPromise = this.memoryDb
+      .enforceBudget(policy)
       .then((result) => {
         const normalized = normalizeMemoryBudgetResult(result, policy);
         this.metrics.memoryBudgetRuns++;
@@ -694,7 +753,9 @@ export class AiLifeLayer {
         const scale = bossEncounterScale(target);
         if (!scale) continue;
         const source = request.sim.entities.get(event.sourceId);
-        const sourcePlayer = this.playerForEncounterSource(request.sim, source) ?? this.playerForPid(request.sim, target.tappedById);
+        const sourcePlayer =
+          this.playerForEncounterSource(request.sim, source) ??
+          this.playerForPid(request.sim, target.tappedById);
         if (!sourcePlayer) continue;
         const scene = sceneFrameFor(request.sim, target.pos);
         const sceneId = scene.subsceneId ?? scene.zoneId;
@@ -704,7 +765,11 @@ export class AiLifeLayer {
           scale,
           sourcePlayerEntityId: sourcePlayer.id,
           nowSeconds: request.sim.time,
-          evidence: [`simEvent:damage`, `source:${source?.templateId ?? 'unknown'}`, `amount:${event.amount}`],
+          evidence: [
+            `simEvent:damage`,
+            `source:${source?.templateId ?? 'unknown'}`,
+            `amount:${event.amount}`,
+          ],
         });
         if (!cue) continue;
         this.recordLocalReaction({
@@ -728,8 +793,11 @@ export class AiLifeLayer {
       if (!dead) continue;
 
       if (dead.kind === 'mob') {
-        const sourcePlayer = this.playerForEncounterSource(request.sim, killer) ?? this.playerForPid(request.sim, dead.tappedById);
-        if (sourcePlayer) this.recordSingularityCreatureTrace(request.sim, dead, sourcePlayer, 'singularityDeath');
+        const sourcePlayer =
+          this.playerForEncounterSource(request.sim, killer) ??
+          this.playerForPid(request.sim, dead.tappedById);
+        if (sourcePlayer)
+          this.recordSingularityCreatureTrace(request.sim, dead, sourcePlayer, 'singularityDeath');
         const scale = bossEncounterScale(dead);
         if (!scale) continue;
         if (!sourcePlayer) continue;
@@ -744,7 +812,10 @@ export class AiLifeLayer {
           nowSeconds: request.sim.time,
           evidence: [`simEvent:death`, `killer:${killer?.templateId ?? 'unknown'}`],
         });
-        const directorState = this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        const directorState = this.worldDirector.noteBossMemory({
+          memory,
+          nowSeconds: request.sim.time,
+        });
         const memoryWrites = [
           bossMemoryAudit(memory, `boss:${memory.outcome}:${dead.templateId}`),
           worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${dead.templateId}`),
@@ -779,7 +850,10 @@ export class AiLifeLayer {
           nowSeconds: request.sim.time,
           evidence: [`simEvent:playerDeath`, `killer:${killer.templateId}`],
         });
-        const directorState = this.worldDirector.noteBossMemory({ memory, nowSeconds: request.sim.time });
+        const directorState = this.worldDirector.noteBossMemory({
+          memory,
+          nowSeconds: request.sim.time,
+        });
         const memoryWrites = [
           bossMemoryAudit(memory, `boss:${memory.outcome}:${killer.templateId}`),
           worldDirectorMemoryAudit(directorState, `boss:${memory.outcome}:${killer.templateId}`),
@@ -805,7 +879,12 @@ export class AiLifeLayer {
     return out;
   }
 
-  private recordSingularityCreatureTrace(sim: Sim, creature: Entity, sourcePlayer: Entity, reason: 'singularityDeath' | 'singularityPlayerDefeat'): void {
+  private recordSingularityCreatureTrace(
+    sim: Sim,
+    creature: Entity,
+    sourcePlayer: Entity,
+    reason: 'singularityDeath' | 'singularityPlayerDefeat',
+  ): void {
     const individual = individualProfileFor(creature, sim.cfg.seed);
     if (individual.tier !== 'singularity') return;
     const scene = sceneFrameFor(sim, creature.pos);
@@ -835,7 +914,9 @@ export class AiLifeLayer {
       intents: [
         'leaveWorldTrace',
         'writeWorldDirectorState',
-        reason === 'singularityDeath' ? 'rememberSingularityDeath' : 'rememberSingularityPlayerDefeat',
+        reason === 'singularityDeath'
+          ? 'rememberSingularityDeath'
+          : 'rememberSingularityPlayerDefeat',
       ],
       sceneId,
       memoryWrites,
@@ -860,29 +941,55 @@ export class AiLifeLayer {
       templateId: context.entity.templateId,
       interactionCount: memory.interactionCount,
       sceneId,
-      lineIds: context.profile?.socialMemory?.recognitionLineId ? [context.profile.socialMemory.recognitionLineId] : [],
+      lineIds: context.profile?.socialMemory?.recognitionLineId
+        ? [context.profile.socialMemory.recognitionLineId]
+        : [],
       reason: context.trigger,
       nowSeconds: request.sim.time,
     });
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
-    if (trace) context.recentObservations.push(`worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`);
-    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
-      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time, includeAdjacentZones: true });
-    if (directorState) context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
+    if (trace)
+      context.recentObservations.push(
+        `worldTrace:${trace.kind}:${trace.itemId}:${trace.strength.toFixed(2)}`,
+      );
+    const directorState =
+      this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time) ??
+      this.worldDirector.stateForRegion({
+        zoneId,
+        sceneId,
+        playerEntityId: request.pid,
+        nowSeconds: request.sim.time,
+        includeAdjacentZones: true,
+      });
+    if (directorState)
+      context.recentObservations.push(
+        `worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`,
+      );
     const directorProposals = cloneDirectorProposals([directorState?.proposal]);
     if (directorProposals.length > 0) context.directorProposals = directorProposals;
     const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
-    if (encounterMemory) context.recentObservations.push(`bossMemory:${encounterMemory.outcome}:${encounterMemory.templateId}:${encounterMemory.heat.toFixed(2)}`);
+    if (encounterMemory)
+      context.recentObservations.push(
+        `bossMemory:${encounterMemory.outcome}:${encounterMemory.templateId}:${encounterMemory.heat.toFixed(2)}`,
+      );
     const sceneRumor = this.socialMemory.rumorForScene(sceneId, request.pid, request.sim.time);
-    const regionRumor = sceneRumor ? null : this.socialMemory.rumorForRegion({
-      zoneId,
-      sceneId,
-      playerEntityId: request.pid,
-      nowSeconds: request.sim.time,
-    });
+    const regionRumor = sceneRumor
+      ? null
+      : this.socialMemory.rumorForRegion({
+          zoneId,
+          sceneId,
+          playerEntityId: request.pid,
+          nowSeconds: request.sim.time,
+        });
     const rumor = sceneRumor ?? regionRumor;
-    if (sceneRumor) context.recentObservations.push(`${sceneRumor.subjectKind}SceneRumor:${sceneRumor.itemId}:${sceneRumor.strength.toFixed(2)}`);
-    if (regionRumor) context.recentObservations.push(`${regionRumor.subjectKind}RegionRumor:${regionRumor.originSceneId}:${regionRumor.itemId}:${regionRumor.strength.toFixed(2)}`);
+    if (sceneRumor)
+      context.recentObservations.push(
+        `${sceneRumor.subjectKind}SceneRumor:${sceneRumor.itemId}:${sceneRumor.strength.toFixed(2)}`,
+      );
+    if (regionRumor)
+      context.recentObservations.push(
+        `${regionRumor.subjectKind}RegionRumor:${regionRumor.originSceneId}:${regionRumor.itemId}:${regionRumor.strength.toFixed(2)}`,
+      );
     const persistedSignals = await this.loadPersistedMemorySignals({
       sourcePlayerEntityId: request.pid,
       nowSeconds: request.sim.time,
@@ -894,9 +1001,13 @@ export class AiLifeLayer {
     context.memorySignals = [
       npcMemoryWrite,
       ...(trace ? [worldTraceMemoryAudit(trace, 'readActiveWorldTrace')] : []),
-      ...(directorState ? [worldDirectorMemoryAudit(directorState, 'readActiveWorldDirectorState')] : []),
+      ...(directorState
+        ? [worldDirectorMemoryAudit(directorState, 'readActiveWorldDirectorState')]
+        : []),
       ...(encounterMemory ? [bossMemoryAudit(encounterMemory, 'readActiveBossMemory')] : []),
-      ...(rumor ? [rumorMemoryAudit(rumor, rumor.scope === 'region' ? 'readRegionRumor' : 'readSceneRumor')] : []),
+      ...(rumor
+        ? [rumorMemoryAudit(rumor, rumor.scope === 'region' ? 'readRegionRumor' : 'readSceneRumor')]
+        : []),
       ...persistedSignals,
     ];
     const replyCandidates = {
@@ -920,11 +1031,12 @@ export class AiLifeLayer {
       this.journal.recordProviderError(context, reason, memoryWrites);
       const fallbackEvents = directNpcReplyEvents(context, npc, [], replyCandidates);
       const fallbackEvent = fallbackEvents[0] ?? npcLocalFallbackEvent(context, npc);
-      const deliveredEvents = fallbackEvents.length > 0
-        ? fallbackEvents
-        : fallbackEvent
-          ? [fallbackEvent]
-          : [providerFailureErrorEvent(context, reason)];
+      const deliveredEvents =
+        fallbackEvents.length > 0
+          ? fallbackEvents
+          : fallbackEvent
+            ? [fallbackEvent]
+            : [providerFailureErrorEvent(context, reason)];
       if (fallbackEvents.length > 0 || fallbackEvent) this.metrics.providerFallbacks++;
       this.recordProviderAudit({
         context,
@@ -940,7 +1052,13 @@ export class AiLifeLayer {
       request.deliver(deliveredEvents);
       return;
     }
-    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
+    ({
+      decision,
+      promptText,
+      rawOutput,
+      providerTimings,
+      latencyMs: providerLatencyMs,
+    } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity: npc, subject, source: 'codex' });
     this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
@@ -954,11 +1072,17 @@ export class AiLifeLayer {
     if (!result.ok) {
       const fallbackEvents = directNpcReplyEvents(context, npc, [], replyCandidates);
       const fallbackEvent = fallbackEvents[0] ?? npcLocalFallbackEvent(context, npc);
-      const deliveredEvents = fallbackEvents.length > 0
-        ? fallbackEvents
-        : fallbackEvent
-          ? [fallbackEvent]
-          : [providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator')];
+      const deliveredEvents =
+        fallbackEvents.length > 0
+          ? fallbackEvents
+          : fallbackEvent
+            ? [fallbackEvent]
+            : [
+                providerRejectedErrorEvent(
+                  context,
+                  result.reason ?? 'provider output rejected by validator',
+                ),
+              ];
       if (fallbackEvents.length > 0 || fallbackEvent) this.metrics.providerFallbacks++;
       this.recordProviderAudit({
         context,
@@ -1013,7 +1137,9 @@ export class AiLifeLayer {
     });
     const itemTargetPos = { x: player.pos.x, z: player.pos.z };
     const candidates = nearbyReactionCandidates(scene, request.sim.entities.values(), player);
-    const reactions = rankItemReactions(scene, dropped, candidates, { worldSeed: request.sim.cfg.seed }).slice(0, 2);
+    const reactions = rankItemReactions(scene, dropped, candidates, {
+      worldSeed: request.sim.cfg.seed,
+    }).slice(0, 2);
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const reactionLineIds = reactions.map((reaction) => reaction.lineId);
     const memoryWrites: AiMemoryAuditRecord[] = [];
@@ -1045,7 +1171,13 @@ export class AiLifeLayer {
     }
     const events: SimEvent[] = [];
     for (const reaction of reactions) {
-      let localEvent = itemInterestReactionEvent(reaction, dropped, scene, request.pid, itemTargetPos);
+      let localEvent = itemInterestReactionEvent(
+        reaction,
+        dropped,
+        scene,
+        request.pid,
+        itemTargetPos,
+      );
       let reactionEvents: SimEvent[] = [localEvent];
       if (reaction.individual?.tier === 'singularity') {
         const memory = this.creatureMemory.noteSingularityReaction({
@@ -1068,12 +1200,20 @@ export class AiLifeLayer {
           localEvent = withReactionMetadata(localEvent, creaturePlanReactionMetadata(plan));
           reactionEvents = [localEvent];
         }
-        const memoryEvent = singularityCreatureMemoryEvent(player, reaction.entity, dropped, memory, plan);
+        const memoryEvent = singularityCreatureMemoryEvent(
+          player,
+          reaction.entity,
+          dropped,
+          memory,
+          plan,
+        );
         const creatureWrite = creatureMemoryAudit({
           memory,
           sceneId,
           itemId: dropped.itemId,
-          reason: plan ? `singularityReaction:${dropped.itemId}:plan:${plan.kind}` : `singularityReaction:${dropped.itemId}`,
+          reason: plan
+            ? `singularityReaction:${dropped.itemId}:plan:${plan.kind}`
+            : `singularityReaction:${dropped.itemId}`,
         });
         memoryWrites.push(creatureWrite);
         const directorState = this.worldDirector.noteCreatureMemory({
@@ -1084,7 +1224,10 @@ export class AiLifeLayer {
           sourcePlayerEntityId: request.pid,
           nowSeconds: request.sim.time,
         });
-        if (directorState) memoryWrites.push(worldDirectorMemoryAudit(directorState, `creatureMemory:${dropped.itemId}`));
+        if (directorState)
+          memoryWrites.push(
+            worldDirectorMemoryAudit(directorState, `creatureMemory:${dropped.itemId}`),
+          );
         const context = this.buildSingularityContext({
           sim: request.sim,
           pid: request.pid,
@@ -1105,8 +1248,15 @@ export class AiLifeLayer {
           memorySignals: memoryWrites,
           directorProposals: [directorState?.proposal],
         });
-        if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
-        if (memoryEvent && !hasAiProviderErrorEvent(reactionEvents)) reactionEvents.push(memoryEvent);
+        if (context)
+          reactionEvents = await this.decideSingularityReactionEvents(
+            context,
+            reaction.entity,
+            localEvent,
+            memoryWrites,
+          );
+        if (memoryEvent && !hasAiProviderErrorEvent(reactionEvents))
+          reactionEvents.push(memoryEvent);
       }
       events.push(...reactionEvents);
     }
@@ -1119,7 +1269,9 @@ export class AiLifeLayer {
         playerEntityId: request.pid,
         reason: `discarded:${request.itemId}`,
         lineIds: trace ? [...reactionLineIds, trace.lineId] : reactionLineIds,
-        intents: trace ? [...reactions.map((reaction) => reaction.reaction), 'leaveWorldTrace'] : reactions.map((reaction) => reaction.reaction),
+        intents: trace
+          ? [...reactions.map((reaction) => reaction.reaction), 'leaveWorldTrace']
+          : reactions.map((reaction) => reaction.reaction),
         sceneId,
         memoryWrites,
       });
@@ -1144,10 +1296,19 @@ export class AiLifeLayer {
     if (localLineIds[0]) context.recentObservations.push(`suggestedLineId:${localLineIds[0]}`);
     const sceneId = context.scene?.subsceneId ?? context.scene?.zoneId;
     const zoneId = context.scene?.zoneId ?? sceneId;
-    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
-      ?? this.worldDirector.stateForRegion({ zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time, includeAdjacentZones: true });
+    const directorState =
+      this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time) ??
+      this.worldDirector.stateForRegion({
+        zoneId,
+        sceneId,
+        playerEntityId: request.pid,
+        nowSeconds: request.sim.time,
+        includeAdjacentZones: true,
+      });
     if (directorState) {
-      context.recentObservations.push(`worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`);
+      context.recentObservations.push(
+        `worldDirector:${directorState.mood}:${directorState.itemId}:${directorState.heat.toFixed(2)}`,
+      );
       context.directorProposals = cloneDirectorProposals([directorState.proposal]);
       context.memorySignals = [
         ...(context.memorySignals ?? []),
@@ -1163,14 +1324,19 @@ export class AiLifeLayer {
     });
     appendMemorySignals(context, persistedSignals);
     if (!directorState) {
-      const persistedProposal = worldDirectorProposalFromMemoryAudit(firstPersistedWorldDirectorSignal(persistedSignals));
-      if (persistedProposal) context.directorProposals = cloneDirectorProposals([persistedProposal]);
+      const persistedProposal = worldDirectorProposalFromMemoryAudit(
+        firstPersistedWorldDirectorSignal(persistedSignals),
+      );
+      if (persistedProposal)
+        context.directorProposals = cloneDirectorProposals([persistedProposal]);
     }
     const memoryWrites: AiMemoryAuditRecord[] = [];
     const sideEvents: SimEvent[] = [];
     sideEvents.push(...companionReactionEvents(context));
     const sideLineIds = aiSpeechLineIds(sideEvents);
-    const inspectedItem = object.objectItemId ? droppedItemSemantic(object.objectItemId, 0, request.pid) : null;
+    const inspectedItem = object.objectItemId
+      ? droppedItemSemantic(object.objectItemId, 0, request.pid)
+      : null;
     if (inspectedItem && context.scene) {
       const reactions = rankItemReactions(
         context.scene,
@@ -1187,37 +1353,52 @@ export class AiLifeLayer {
         lineIds: [...localLineIds, ...sideLineIds],
         nowSeconds: request.sim.time,
       });
-      memoryWrites.push(rumorMemoryAudit(rumor, `inspect:${object.objectItemId ?? object.templateId}`));
-      sideEvents.push(...reactions.map((reaction) => ({
-        type: 'aiSpeech' as const,
-        speakerId: reaction.entity.id,
-        speakerName: reaction.entity.name,
-        speech: {
-          mode: 'lineId' as const,
-          lineId: reaction.lineId,
-          values: {
-            speakerName: reaction.entity.name,
-            speakerTemplateId: reaction.entity.templateId,
-            itemId: inspectedItem.itemId,
-            reaction: reaction.reaction,
-            score: Math.round(reaction.score * 100),
-            ...individualSpeechValues(reaction.individual),
+      memoryWrites.push(
+        rumorMemoryAudit(rumor, `inspect:${object.objectItemId ?? object.templateId}`),
+      );
+      sideEvents.push(
+        ...reactions.map((reaction) => ({
+          type: 'aiSpeech' as const,
+          speakerId: reaction.entity.id,
+          speakerName: reaction.entity.name,
+          speech: {
+            mode: 'lineId' as const,
+            lineId: reaction.lineId,
+            values: {
+              speakerName: reaction.entity.name,
+              speakerTemplateId: reaction.entity.templateId,
+              itemId: inspectedItem.itemId,
+              reaction: reaction.reaction,
+              score: Math.round(reaction.score * 100),
+              ...individualSpeechValues(reaction.individual),
+            },
           },
-        },
-        source: 'local' as const,
-        reaction: {
-          kind: reaction.reaction,
-          targetItemId: inspectedItem.itemId,
-          targetObjectId: object.id,
-          score: Math.round(reaction.score * 100) / 100,
-          sceneTags: [...new Set([...context.scene!.locationTags, ...context.scene!.structureTags, ...context.scene!.environmentalTags])].slice(0, 8),
-          individualTier: reaction.individual?.tier,
-          individualTraits: reaction.individual?.traits,
-        },
-        pid: request.pid,
-      })));
+          source: 'local' as const,
+          reaction: {
+            kind: reaction.reaction,
+            targetItemId: inspectedItem.itemId,
+            targetObjectId: object.id,
+            score: Math.round(reaction.score * 100) / 100,
+            sceneTags: [
+              ...new Set([
+                ...context.scene!.locationTags,
+                ...context.scene!.structureTags,
+                ...context.scene!.environmentalTags,
+              ]),
+            ].slice(0, 8),
+            individualTier: reaction.individual?.tier,
+            individualTraits: reaction.individual?.traits,
+          },
+          pid: request.pid,
+        })),
+      );
     }
-    const objectEvents = await this.decideObjectInspectionEvents(context, object, localEvent, memoryWrites);
+    const objectEvents = await this.decideObjectInspectionEvents(
+      context,
+      object,
+      localEvent,
+      memoryWrites,
+    );
     const events: SimEvent[] = [...objectEvents, ...sideEvents];
     this.metrics.localReactions++;
     this.enqueueMemoryWrites(memoryWrites);
@@ -1254,8 +1435,20 @@ export class AiLifeLayer {
       request.deliver?.([event]);
       return null;
     }
-    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
-    const result = validateAiDecision({ decision, context, entity: pet, subject: 'ordinary', source: 'codex' });
+    ({
+      decision,
+      promptText,
+      rawOutput,
+      providerTimings,
+      latencyMs: providerLatencyMs,
+    } = providerAttempt);
+    const result = validateAiDecision({
+      decision,
+      context,
+      entity: pet,
+      subject: 'ordinary',
+      source: 'codex',
+    });
     this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
       this.metrics.acceptedDecisions++;
@@ -1265,7 +1458,10 @@ export class AiLifeLayer {
     }
     this.journal.recordDecision(context, decision, result);
     if (!result.ok) {
-      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      const event = providerRejectedErrorEvent(
+        context,
+        result.reason ?? 'provider output rejected by validator',
+      );
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -1291,7 +1487,12 @@ export class AiLifeLayer {
       providerTimings,
       deliveredEvents: [],
     });
-    if (!intent) return petCommandActionFromIntent('commandPetIgnore', 'codex', `${decision.audit.shortReason}: no bounded pet intent`);
+    if (!intent)
+      return petCommandActionFromIntent(
+        'commandPetIgnore',
+        'codex',
+        `${decision.audit.shortReason}: no bounded pet intent`,
+      );
     return petCommandActionFromIntent(intent, 'codex', decision.audit.shortReason);
   }
 
@@ -1324,8 +1525,20 @@ export class AiLifeLayer {
       });
       return [event];
     }
-    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
-    const result = validateAiDecision({ decision, context, entity: object, subject, source: 'codex' });
+    ({
+      decision,
+      promptText,
+      rawOutput,
+      providerTimings,
+      latencyMs: providerLatencyMs,
+    } = providerAttempt);
+    const result = validateAiDecision({
+      decision,
+      context,
+      entity: object,
+      subject,
+      source: 'codex',
+    });
     this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
       this.metrics.acceptedDecisions++;
@@ -1335,7 +1548,10 @@ export class AiLifeLayer {
     }
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
-      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      const event = providerRejectedErrorEvent(
+        context,
+        result.reason ?? 'provider output rejected by validator',
+      );
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -1427,19 +1643,23 @@ export class AiLifeLayer {
         `curiosity:${input.curiosity.toFixed(2)}`,
         `individualTier:singularity`,
         `individualTraits:${input.individualTraits.join('|') || 'none'}`,
-        ...(input.plan ? [
-          `creaturePlan:${input.plan.kind}`,
-          `planIntensity:${input.plan.intensity.toFixed(2)}`,
-          ...input.plan.evidence.slice(0, 5).map((evidence) => `planEvidence:${evidence}`),
-        ] : []),
+        ...(input.plan
+          ? [
+              `creaturePlan:${input.plan.kind}`,
+              `planIntensity:${input.plan.intensity.toFixed(2)}`,
+              ...input.plan.evidence.slice(0, 5).map((evidence) => `planEvidence:${evidence}`),
+            ]
+          : []),
         `suggestedLineId:${input.suggestedLineId}`,
         ...input.reasonTags.slice(0, 5).map((tag) => `reasonTag:${tag}`),
-        ...(item ? [
-          `item:${item.itemId}`,
-          ...item.itemTags.slice(0, 4).map((tag) => `itemTag:${tag}`),
-          ...item.dangerTags.slice(0, 3).map((tag) => `dangerTag:${tag}`),
-          ...item.valueSignals.slice(0, 3).map((tag) => `valueSignal:${tag}`),
-        ] : []),
+        ...(item
+          ? [
+              `item:${item.itemId}`,
+              ...item.itemTags.slice(0, 4).map((tag) => `itemTag:${tag}`),
+              ...item.dangerTags.slice(0, 3).map((tag) => `dangerTag:${tag}`),
+              ...item.valueSignals.slice(0, 3).map((tag) => `valueSignal:${tag}`),
+            ]
+          : []),
         ...input.scene.environmentalTags.slice(0, 4).map((tag) => `sceneTag:${tag}`),
         `time:${input.scene.time.phase}`,
         `weather:${input.scene.weather.kind}`,
@@ -1483,7 +1703,13 @@ export class AiLifeLayer {
       });
       return [event];
     }
-    ({ decision, promptText, rawOutput, providerTimings, latencyMs: providerLatencyMs } = providerAttempt);
+    ({
+      decision,
+      promptText,
+      rawOutput,
+      providerTimings,
+      latencyMs: providerLatencyMs,
+    } = providerAttempt);
     const result = validateAiDecision({ decision, context, entity, subject, source: 'codex' });
     this.recordSpeechPolish(result.speechPolish);
     if (result.ok) {
@@ -1494,7 +1720,10 @@ export class AiLifeLayer {
     }
     this.journal.recordDecision(context, decision, result, memoryWrites);
     if (!result.ok) {
-      const event = providerRejectedErrorEvent(context, result.reason ?? 'provider output rejected by validator');
+      const event = providerRejectedErrorEvent(
+        context,
+        result.reason ?? 'provider output rejected by validator',
+      );
       this.recordProviderAudit({
         context,
         latencyMs: providerLatencyMs,
@@ -1530,8 +1759,15 @@ export class AiLifeLayer {
     const scene = sceneFrameFor(request.sim, player.pos);
     const sceneId = scene.subsceneId ?? scene.zoneId;
     const trace = this.worldTraces.traceForScene(sceneId, request.pid, request.sim.time);
-    const directorState = this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time)
-      ?? this.worldDirector.stateForRegion({ zoneId: scene.zoneId, sceneId, playerEntityId: request.pid, nowSeconds: request.sim.time, includeAdjacentZones: true });
+    const directorState =
+      this.worldDirector.stateForScene(sceneId, request.pid, request.sim.time) ??
+      this.worldDirector.stateForRegion({
+        zoneId: scene.zoneId,
+        sceneId,
+        playerEntityId: request.pid,
+        nowSeconds: request.sim.time,
+        includeAdjacentZones: true,
+      });
     const encounterMemory = this.bossMemory.memoryForScene(sceneId, request.pid, request.sim.time);
     const persistedSignals = await this.loadPersistedMemorySignals({
       sourcePlayerEntityId: request.pid,
@@ -1549,7 +1785,8 @@ export class AiLifeLayer {
     ]);
     const event = sceneInspectionEvent(scene, player, trace);
     const events: SimEvent[] = [event];
-    const lineIds = event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
+    const lineIds =
+      event.type === 'aiSpeech' && event.speech.mode === 'lineId' ? [event.speech.lineId] : [];
     const companionEvents = companionReactionEventsForScene(scene, request.pid, {
       directorProposals: sceneDirectorProposals,
     });
@@ -1557,7 +1794,11 @@ export class AiLifeLayer {
     lineIds.push(...aiSpeechLineIds(companionEvents));
     const memoryWrites: AiMemoryAuditRecord[] = [];
     if (trace) {
-      const tracedItem = droppedItemSemantic(trace.itemId, Math.max(0, request.sim.time - trace.createdAt), trace.sourcePlayerEntityId);
+      const tracedItem = droppedItemSemantic(
+        trace.itemId,
+        Math.max(0, request.sim.time - trace.createdAt),
+        trace.sourcePlayerEntityId,
+      );
       if (tracedItem) {
         const reactions = rankItemReactions(
           scene,
@@ -1566,34 +1807,43 @@ export class AiLifeLayer {
           { worldSeed: request.sim.cfg.seed },
         ).slice(0, 2);
         lineIds.push(...reactions.map((reaction) => reaction.lineId));
-        events.push(...reactions.map((reaction) => ({
-          type: 'aiSpeech' as const,
-          speakerId: reaction.entity.id,
-          speakerName: reaction.entity.name,
-          speech: {
-            mode: 'lineId' as const,
-            lineId: reaction.lineId,
-            values: {
-              speakerName: reaction.entity.name,
-              speakerTemplateId: reaction.entity.templateId,
-              itemId: tracedItem.itemId,
-              traceKind: trace.kind,
-              reaction: reaction.reaction,
-              score: Math.round(reaction.score * 100),
-              ...individualSpeechValues(reaction.individual),
+        events.push(
+          ...reactions.map((reaction) => ({
+            type: 'aiSpeech' as const,
+            speakerId: reaction.entity.id,
+            speakerName: reaction.entity.name,
+            speech: {
+              mode: 'lineId' as const,
+              lineId: reaction.lineId,
+              values: {
+                speakerName: reaction.entity.name,
+                speakerTemplateId: reaction.entity.templateId,
+                itemId: tracedItem.itemId,
+                traceKind: trace.kind,
+                reaction: reaction.reaction,
+                score: Math.round(reaction.score * 100),
+                ...individualSpeechValues(reaction.individual),
+              },
             },
-          },
-          source: 'local' as const,
-          reaction: {
-            kind: reaction.reaction,
-            targetItemId: tracedItem.itemId,
-            score: Math.round(reaction.score * 100) / 100,
-            sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags, `trace:${trace.kind}`])].slice(0, 8),
-            individualTier: reaction.individual?.tier,
-            individualTraits: reaction.individual?.traits,
-          },
-          pid: request.pid,
-        })));
+            source: 'local' as const,
+            reaction: {
+              kind: reaction.reaction,
+              targetItemId: tracedItem.itemId,
+              score: Math.round(reaction.score * 100) / 100,
+              sceneTags: [
+                ...new Set([
+                  ...scene.locationTags,
+                  ...scene.structureTags,
+                  ...scene.environmentalTags,
+                  `trace:${trace.kind}`,
+                ]),
+              ].slice(0, 8),
+              individualTier: reaction.individual?.tier,
+              individualTraits: reaction.individual?.traits,
+            },
+            pid: request.pid,
+          })),
+        );
       }
     }
     if (!trace) {
@@ -1605,7 +1855,8 @@ export class AiLifeLayer {
       const directorEvent = worldDirectorEvent(scene, player, directorState, request.pid);
       if (directorEvent) {
         events.push(directorEvent);
-        if (directorEvent.type === 'aiSpeech' && directorEvent.speech.mode === 'lineId') lineIds.push(directorEvent.speech.lineId);
+        if (directorEvent.type === 'aiSpeech' && directorEvent.speech.mode === 'lineId')
+          lineIds.push(directorEvent.speech.lineId);
       }
       if (!directorState) {
         const persistedDirectorEvent = worldDirectorEventFromMemoryAudit(
@@ -1616,7 +1867,10 @@ export class AiLifeLayer {
         );
         if (persistedDirectorEvent) {
           events.push(persistedDirectorEvent);
-          if (persistedDirectorEvent.type === 'aiSpeech' && persistedDirectorEvent.speech.mode === 'lineId') {
+          if (
+            persistedDirectorEvent.type === 'aiSpeech' &&
+            persistedDirectorEvent.speech.mode === 'lineId'
+          ) {
             lineIds.push(persistedDirectorEvent.speech.lineId);
           }
         }
@@ -1627,7 +1881,10 @@ export class AiLifeLayer {
         { worldSeed: request.sim.cfg.seed, directorProposals: sceneDirectorProposals },
       ).slice(0, 2);
       for (const reaction of familyReactions) {
-        let localEvent = familySceneReactionEvent(reaction, scene, request.pid) as Extract<SimEvent, { type: 'aiSpeech' }>;
+        let localEvent = familySceneReactionEvent(reaction, scene, request.pid) as Extract<
+          SimEvent,
+          { type: 'aiSpeech' }
+        >;
         lineIds.push(reaction.lineId);
         let reactionEvents: SimEvent[] = [localEvent];
         if (reaction.individual.tier === 'singularity') {
@@ -1650,11 +1907,19 @@ export class AiLifeLayer {
             localEvent = withReactionMetadata(localEvent, creaturePlanReactionMetadata(plan));
             reactionEvents = [localEvent];
           }
-          const memoryEvent = singularityCreatureSceneMemoryEvent(player, reaction.entity, scene, memory, plan);
+          const memoryEvent = singularityCreatureSceneMemoryEvent(
+            player,
+            reaction.entity,
+            scene,
+            memory,
+            plan,
+          );
           const creatureWrite = creatureMemoryAudit({
             memory,
             sceneId,
-            reason: plan ? `singularityScene:${sceneId}:plan:${plan.kind}` : `singularityScene:${sceneId}`,
+            reason: plan
+              ? `singularityScene:${sceneId}:plan:${plan.kind}`
+              : `singularityScene:${sceneId}`,
           });
           memoryWrites.push(creatureWrite);
           const directorMemory = this.worldDirector.noteCreatureSceneMemory({
@@ -1665,7 +1930,10 @@ export class AiLifeLayer {
             sourcePlayerEntityId: request.pid,
             nowSeconds: request.sim.time,
           });
-          if (directorMemory) memoryWrites.push(worldDirectorMemoryAudit(directorMemory, `creatureSceneMemory:${sceneId}`));
+          if (directorMemory)
+            memoryWrites.push(
+              worldDirectorMemoryAudit(directorMemory, `creatureSceneMemory:${sceneId}`),
+            );
           const context = this.buildSingularityContext({
             sim: request.sim,
             pid: request.pid,
@@ -1689,10 +1957,17 @@ export class AiLifeLayer {
               directorMemory?.proposal,
             ],
           });
-          if (context) reactionEvents = await this.decideSingularityReactionEvents(context, reaction.entity, localEvent, memoryWrites);
+          if (context)
+            reactionEvents = await this.decideSingularityReactionEvents(
+              context,
+              reaction.entity,
+              localEvent,
+              memoryWrites,
+            );
           if (memoryEvent && !hasAiProviderErrorEvent(reactionEvents)) {
             reactionEvents.push(memoryEvent);
-            if (memoryEvent.type === 'aiSpeech' && memoryEvent.speech.mode === 'lineId') lineIds.push(memoryEvent.speech.lineId);
+            if (memoryEvent.type === 'aiSpeech' && memoryEvent.speech.mode === 'lineId')
+              lineIds.push(memoryEvent.speech.lineId);
           }
         }
         events.push(...reactionEvents);
@@ -1713,10 +1988,20 @@ export class AiLifeLayer {
         ...(trace ? ['reactToWorldTrace'] : []),
         ...(encounterMemory ? ['readEncounterMemory'] : []),
         ...(!trace && directorState ? ['readWorldDirectorState'] : []),
-        ...(!trace && !directorState && persistedSignals.some((record) => record.kind === 'worldDirectorState') ? ['readPersistedWorldDirectorState'] : []),
-        ...(!trace && lineIds.some((lineId) => lineId.startsWith('hudChrome.aiSpeech.familyScene')) ? ['reactToFamilyScene'] : []),
-        ...(memoryWrites.some((record) => record.kind === 'creatureMemory') ? ['rememberSingularityScene'] : []),
-        ...(memoryWrites.some((record) => record.kind === 'worldDirectorState') ? ['writeWorldDirectorState'] : []),
+        ...(!trace &&
+        !directorState &&
+        persistedSignals.some((record) => record.kind === 'worldDirectorState')
+          ? ['readPersistedWorldDirectorState']
+          : []),
+        ...(!trace && lineIds.some((lineId) => lineId.startsWith('hudChrome.aiSpeech.familyScene'))
+          ? ['reactToFamilyScene']
+          : []),
+        ...(memoryWrites.some((record) => record.kind === 'creatureMemory')
+          ? ['rememberSingularityScene']
+          : []),
+        ...(memoryWrites.some((record) => record.kind === 'worldDirectorState')
+          ? ['writeWorldDirectorState']
+          : []),
       ],
       sceneId,
       memoryWrites,
@@ -1734,7 +2019,9 @@ export class AiLifeLayer {
     void this.flushMemoryWrites();
   }
 
-  private async decideWithProviderCache(context: AiJobContextV1): Promise<AiProviderDecisionAttempt> {
+  private async decideWithProviderCache(
+    context: AiJobContextV1,
+  ): Promise<AiProviderDecisionAttempt> {
     const cacheKey = this.providerCacheEnabled ? providerDecisionCacheKey(context) : null;
     if (cacheKey) {
       const lookupStartedAt = performance.now();
@@ -1768,7 +2055,12 @@ export class AiLifeLayer {
     try {
       const providerOutput = normalizeProviderOutput(await this.provider.decide(context));
       const providerLatencyMs = performance.now() - providerStartedAt;
-      this.recordProviderLatency(providerLatencyMs, providerOutput.providerTimings, providerOutput.promptText, providerOutput.rawOutput);
+      this.recordProviderLatency(
+        providerLatencyMs,
+        providerOutput.providerTimings,
+        providerOutput.promptText,
+        providerOutput.rawOutput,
+      );
       this.metrics.providerSuccesses++;
       return {
         ok: true,
@@ -1802,7 +2094,10 @@ export class AiLifeLayer {
     result: ReturnType<typeof validateAiDecision>,
   ): void {
     if (!this.providerCacheEnabled || attempt.fromCache || !attempt.cacheKey || !result.ok) return;
-    const ttlMs = Math.min(this.providerCacheMaxTtlMs, Math.max(0, Math.floor(attempt.decision.ttlMs)));
+    const ttlMs = Math.min(
+      this.providerCacheMaxTtlMs,
+      Math.max(0, Math.floor(attempt.decision.ttlMs)),
+    );
     if (ttlMs < 250) return;
     const nowMs = performance.now();
     this.pruneProviderDecisionCache(nowMs);
@@ -1842,44 +2137,49 @@ export class AiLifeLayer {
     providerTimings?: AiProviderTimingSnapshot;
     deliveredEvents?: readonly SimEvent[];
   }): void {
-    const promptText = input.promptText
-      ?? (this.auditProviderSource === 'codex' ? buildCodexDecisionPrompt(input.context) : undefined);
-    this.recordAudit(createProviderAuditRecord({
-      auditId: `${input.context.jobId}-${input.providerError ? 'provider-error' : input.result?.ok ? 'accepted' : 'rejected'}-${++this.auditSequence}`,
-      realm: REALM,
-      context: input.context,
-      providerSource: this.auditProviderSource,
-      latencyMs: input.latencyMs,
-      decision: input.decision,
-      result: input.result,
-      memoryWrites: input.memoryWrites,
-      providerError: input.providerError,
-      promptText,
-      rawOutput: input.rawOutput,
-      providerTimings: input.providerTimings,
-      deliveredEvents: input.deliveredEvents,
-    }));
+    const promptText =
+      input.promptText ??
+      (this.auditProviderSource === 'codex' ? buildCodexDecisionPrompt(input.context) : undefined);
+    this.recordAudit(
+      createProviderAuditRecord({
+        auditId: `${input.context.jobId}-${input.providerError ? 'provider-error' : input.result?.ok ? 'accepted' : 'rejected'}-${++this.auditSequence}`,
+        realm: REALM,
+        context: input.context,
+        providerSource: this.auditProviderSource,
+        latencyMs: input.latencyMs,
+        decision: input.decision,
+        result: input.result,
+        memoryWrites: input.memoryWrites,
+        providerError: input.providerError,
+        promptText,
+        rawOutput: input.rawOutput,
+        providerTimings: input.providerTimings,
+        deliveredEvents: input.deliveredEvents,
+      }),
+    );
   }
 
   private recordLocalReaction(entry: AiLocalReactionAuditInput): void {
     const { entityKind, zoneId, ...journalEntry } = entry;
     this.journal.recordLocalReaction(journalEntry);
-    this.recordAudit(createLocalAuditRecord({
-      auditId: `${entry.jobId}-local-${++this.auditSequence}`,
-      realm: REALM,
-      jobId: entry.jobId,
-      trigger: entry.trigger,
-      entityKind,
-      entityId: entry.entityId,
-      templateId: entry.templateId,
-      playerEntityId: entry.playerEntityId,
-      sceneId: entry.sceneId,
-      zoneId,
-      lineIds: entry.lineIds,
-      intents: entry.intents,
-      memoryWrites: entry.memoryWrites,
-      reason: entry.reason,
-    }));
+    this.recordAudit(
+      createLocalAuditRecord({
+        auditId: `${entry.jobId}-local-${++this.auditSequence}`,
+        realm: REALM,
+        jobId: entry.jobId,
+        trigger: entry.trigger,
+        entityKind,
+        entityId: entry.entityId,
+        templateId: entry.templateId,
+        playerEntityId: entry.playerEntityId,
+        sceneId: entry.sceneId,
+        zoneId,
+        lineIds: entry.lineIds,
+        intents: entry.intents,
+        memoryWrites: entry.memoryWrites,
+        reason: entry.reason,
+      }),
+    );
   }
 
   private recordAudit(record: Parameters<AiAuditSink['record']>[0]): void {
@@ -1910,7 +2210,9 @@ export class AiLifeLayer {
     }
   }
 
-  private async loadPersistedMemorySignals(input: AiMemoryPersistenceQuery): Promise<AiMemoryAuditRecord[]> {
+  private async loadPersistedMemorySignals(
+    input: AiMemoryPersistenceQuery,
+  ): Promise<AiMemoryAuditRecord[]> {
     if (!this.memoryDb?.loadRecords) return [];
     try {
       return (await this.memoryDb.loadRecords(input)).map(cloneMemoryAudit);
@@ -1920,7 +2222,10 @@ export class AiLifeLayer {
     }
   }
 
-  private recordMemoryPersistenceError(err: unknown, source: 'flush' | 'prune' | 'budget' | 'clear'): void {
+  private recordMemoryPersistenceError(
+    err: unknown,
+    source: 'flush' | 'prune' | 'budget' | 'clear',
+  ): void {
     const message = err instanceof Error ? err.message : String(err);
     this.memoryPersistenceErrors.unshift(message);
     this.memoryPersistenceErrors.splice(5);
@@ -1948,14 +2253,20 @@ export class AiLifeLayer {
     this.metrics.maxProviderLatencyMs = Math.max(this.metrics.maxProviderLatencyMs, safeDuration);
     this.providerLatencySamplesMs.push(safeDuration);
     if (this.providerLatencySamplesMs.length > PROVIDER_LATENCY_SAMPLE_LIMIT) {
-      this.providerLatencySamplesMs.splice(0, this.providerLatencySamplesMs.length - PROVIDER_LATENCY_SAMPLE_LIMIT);
+      this.providerLatencySamplesMs.splice(
+        0,
+        this.providerLatencySamplesMs.length - PROVIDER_LATENCY_SAMPLE_LIMIT,
+      );
     }
     if (promptText !== undefined) this.metrics.lastPromptChars = promptText.length;
     if (rawOutput !== undefined) this.metrics.lastRawOutputChars = rawOutput.length;
     if (providerTimings) this.metrics.lastProviderTimings = providerTimings;
   }
 
-  private recordProviderCacheHitLatency(durationMs: number, providerTimings: AiProviderTimingSnapshot): void {
+  private recordProviderCacheHitLatency(
+    durationMs: number,
+    providerTimings: AiProviderTimingSnapshot,
+  ): void {
     const safeDuration = Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0;
     this.metrics.lastProviderLatencyMs = safeDuration;
     this.metrics.lastProviderTimings = providerTimings;
@@ -1978,7 +2289,8 @@ export class AiLifeLayer {
   private playerForEncounterSource(sim: Sim, source: Entity | undefined): Entity | null {
     if (!source) return null;
     if (source.kind === 'player') return this.playerForPid(sim, source.id);
-    if (source.kind === 'mob' && source.ownerId !== null) return this.playerForPid(sim, source.ownerId);
+    if (source.kind === 'mob' && source.ownerId !== null)
+      return this.playerForPid(sim, source.ownerId);
     return null;
   }
 
@@ -2054,7 +2366,8 @@ export class AiLifeLayer {
         if (state === 'unavailable') return null;
         return {
           questId,
-          visibility: state === 'active' ? 'currentObjective' as const : 'knownToPlayer' as const,
+          visibility:
+            state === 'active' ? ('currentObjective' as const) : ('knownToPlayer' as const),
           summary: quest.name,
           source: 'quest-log',
         };
@@ -2111,22 +2424,25 @@ export class AiLifeLayer {
     const scene = sceneFrameFor(request.sim, object.pos);
     const questFacts = object.objectItemId
       ? Object.values(QUESTS)
-        .map((quest) => {
-          const relevant = quest.objectives.some((objective) =>
-            (objective.type === 'collect' && objective.itemId === object.objectItemId)
-            || (objective.type === 'interact' && objective.targetObjectItemId === object.objectItemId),
-          );
-          if (!relevant) return null;
-          const state = request.sim.questState(quest.id, request.pid);
-          if (state !== 'active' && state !== 'ready') return null;
-          return {
-            questId: quest.id,
-            visibility: state === 'active' ? 'currentObjective' as const : 'knownToPlayer' as const,
-            summary: quest.name,
-            source: 'quest-log',
-          };
-        })
-        .filter((fact): fact is NonNullable<typeof fact> => fact !== null)
+          .map((quest) => {
+            const relevant = quest.objectives.some(
+              (objective) =>
+                (objective.type === 'collect' && objective.itemId === object.objectItemId) ||
+                (objective.type === 'interact' &&
+                  objective.targetObjectItemId === object.objectItemId),
+            );
+            if (!relevant) return null;
+            const state = request.sim.questState(quest.id, request.pid);
+            if (state !== 'active' && state !== 'ready') return null;
+            return {
+              questId: quest.id,
+              visibility:
+                state === 'active' ? ('currentObjective' as const) : ('knownToPlayer' as const),
+              summary: quest.name,
+              source: 'quest-log',
+            };
+          })
+          .filter((fact): fact is NonNullable<typeof fact> => fact !== null)
       : [];
     return {
       schemaVersion: 1,
@@ -2196,7 +2512,10 @@ function cloneDirectorProposals(
   return cloned;
 }
 
-function appendMemorySignals(context: AiJobContextV1, signals: readonly AiMemoryAuditRecord[]): void {
+function appendMemorySignals(
+  context: AiJobContextV1,
+  signals: readonly AiMemoryAuditRecord[],
+): void {
   if (signals.length === 0) return;
   const existing = context.memorySignals ?? [];
   const seen = new Set(existing.map(memorySignalKey));
@@ -2209,11 +2528,15 @@ function appendMemorySignals(context: AiJobContextV1, signals: readonly AiMemory
   }
   context.memorySignals = merged;
   for (const signal of signals.slice(0, 4)) {
-    context.recentObservations.push(`persistedMemory:${signal.kind}:${signal.scope}:${signal.itemId || signal.questId || signal.templateId || signal.sceneId || 'none'}`);
+    context.recentObservations.push(
+      `persistedMemory:${signal.kind}:${signal.scope}:${signal.itemId || signal.questId || signal.templateId || signal.sceneId || 'none'}`,
+    );
   }
 }
 
-function firstPersistedWorldDirectorSignal(signals: readonly AiMemoryAuditRecord[]): AiMemoryAuditRecord | null {
+function firstPersistedWorldDirectorSignal(
+  signals: readonly AiMemoryAuditRecord[],
+): AiMemoryAuditRecord | null {
   return signals.find((signal) => signal.kind === 'worldDirectorState') ?? null;
 }
 
@@ -2248,20 +2571,40 @@ function activeSpeechMemoryAudit(input: {
   };
 }
 
-function activeSpeechMemorySalience(event: Extract<SimEvent, { type: 'aiSpeech' }>, speaker: Entity): number {
+function activeSpeechMemorySalience(
+  event: Extract<SimEvent, { type: 'aiSpeech' }>,
+  speaker: Entity,
+): number {
   const reactionScore = event.reaction?.score ?? 0;
   const planIntensity = event.reaction?.planIntensity ?? 0;
   const singularityBoost = event.reaction?.individualTier === 'singularity' ? 0.24 : 0;
-  const directorBoost = event.speech.mode === 'lineId' && event.speech.lineId.includes('worldDirector') ? 0.16 : 0;
-  const sequenceBoost = event.reaction?.planKind?.includes('Sequence') || event.reaction?.planKind?.includes('conversation') ? 0.08 : 0;
+  const directorBoost =
+    event.speech.mode === 'lineId' && event.speech.lineId.includes('worldDirector') ? 0.16 : 0;
+  const sequenceBoost =
+    event.reaction?.planKind?.includes('Sequence') ||
+    event.reaction?.planKind?.includes('conversation')
+      ? 0.08
+      : 0;
   const creatureBoost = speaker.kind === 'mob' ? 0.04 : 0;
-  return clamp01Local(0.24 + reactionScore * 0.24 + planIntensity * 0.22 + singularityBoost + directorBoost + sequenceBoost + creatureBoost);
+  return clamp01Local(
+    0.24 +
+      reactionScore * 0.24 +
+      planIntensity * 0.22 +
+      singularityBoost +
+      directorBoost +
+      sequenceBoost +
+      creatureBoost,
+  );
 }
 
-function activeSpeechMemoryTtlSeconds(event: Extract<SimEvent, { type: 'aiSpeech' }>, speaker: Entity): number {
+function activeSpeechMemoryTtlSeconds(
+  event: Extract<SimEvent, { type: 'aiSpeech' }>,
+  speaker: Entity,
+): number {
   const day = 24 * 60 * 60;
   if (event.reaction?.individualTier === 'singularity') return 21 * day;
-  if (event.speech.mode === 'lineId' && event.speech.lineId.includes('worldDirector')) return 14 * day;
+  if (event.speech.mode === 'lineId' && event.speech.lineId.includes('worldDirector'))
+    return 14 * day;
   if (speaker.kind === 'mob') return 10 * day;
   return 7 * day;
 }
@@ -2277,7 +2620,9 @@ function shouldShareWorldDirector(
 ): boolean {
   if (!state) return false;
   if (!topic || topic === 'greeting') {
-    return state.proposal.intent === 'nudgeNpcRumor' || state.proposal.intent === 'raiseCampCaution';
+    return (
+      state.proposal.intent === 'nudgeNpcRumor' || state.proposal.intent === 'raiseCampCaution'
+    );
   }
   if (topic === 'place' || topic === 'recent') return true;
   if (topic === 'rumor') return rumor === null;
@@ -2301,18 +2646,36 @@ function directNpcReplyEvents(
   const directSpeech = directProviderSpeech(context, npc, providerEvents);
   const directDynamicSpeech = directSpeech?.speech.mode === 'dynamicText' ? directSpeech : null;
   if (topic === 'rumor') {
-    const event = directDynamicSpeech ?? memoryEvent ?? directorEvent ?? traceEvent ?? topicEvent ?? directSpeech;
+    const event =
+      directDynamicSpeech ??
+      memoryEvent ??
+      directorEvent ??
+      traceEvent ??
+      topicEvent ??
+      directSpeech;
     return event ? [event] : [];
   }
   if (topic === 'place' || topic === 'recent') {
-    const event = directDynamicSpeech ?? directorEvent ?? traceEvent ?? topicEvent ?? highPrioritySceneEvent(sceneEvent) ?? directSpeech;
+    const event =
+      directDynamicSpeech ??
+      directorEvent ??
+      traceEvent ??
+      topicEvent ??
+      highPrioritySceneEvent(sceneEvent) ??
+      directSpeech;
     return event ? [event] : [];
   }
   if (topic === 'quest_hint') {
     const event = topicEvent ?? memoryEvent ?? directorEvent ?? traceEvent ?? sceneEvent;
     return event ? [event] : [];
   }
-  const contextualEvent = directDynamicSpeech ?? memoryEvent ?? traceEvent ?? directorEvent ?? highPrioritySceneEvent(sceneEvent) ?? directSpeech;
+  const contextualEvent =
+    directDynamicSpeech ??
+    memoryEvent ??
+    traceEvent ??
+    directorEvent ??
+    highPrioritySceneEvent(sceneEvent) ??
+    directSpeech;
   if (contextualEvent) return [contextualEvent];
   return [];
 }
@@ -2322,10 +2685,12 @@ function directProviderSpeech(
   npc: Entity,
   providerEvents: readonly SimEvent[],
 ): Extract<SimEvent, { type: 'aiSpeech' }> | null {
-  const directSpeech = providerEvents.find((event): event is Extract<SimEvent, { type: 'aiSpeech' }> =>
-    event.type === 'aiSpeech'
-    && event.speakerId === npc.id
-    && event.pid === context.player.entityId);
+  const directSpeech = providerEvents.find(
+    (event): event is Extract<SimEvent, { type: 'aiSpeech' }> =>
+      event.type === 'aiSpeech' &&
+      event.speakerId === npc.id &&
+      event.pid === context.player.entityId,
+  );
   return directSpeech ?? null;
 }
 
@@ -2353,11 +2718,13 @@ function npcLocalFallbackEvent(
       kind: 'inspect',
       score: 0.25,
       sceneTags: context.scene
-        ? [...new Set([
-          ...context.scene.locationTags,
-          ...context.scene.structureTags,
-          ...context.scene.environmentalTags,
-        ])].slice(0, 8)
+        ? [
+            ...new Set([
+              ...context.scene.locationTags,
+              ...context.scene.structureTags,
+              ...context.scene.environmentalTags,
+            ]),
+          ].slice(0, 8)
         : [],
     },
     pid: context.player.entityId,
@@ -2417,25 +2784,29 @@ function providerDecisionCachePayload(context: AiJobContextV1): Record<string, u
       activeQuestIds: sortedStrings(context.player.activeQuestIds),
       completedQuestIds: sortedStrings(context.player.completedQuestIds),
     },
-    profile: context.profile ? {
-      profileId: context.profile.profileId,
-      persona: context.profile.persona,
-      knowledgeScope: sortedStrings(context.profile.knowledgeScope),
-      tabooTopics: sortedStrings(context.profile.tabooTopics),
-      socialMemoryStyle: context.profile.socialMemory?.style,
-      speechFingerprint: cacheSpeechFingerprint(context.profile.speechFingerprint),
-    } : undefined,
+    profile: context.profile
+      ? {
+          profileId: context.profile.profileId,
+          persona: context.profile.persona,
+          knowledgeScope: sortedStrings(context.profile.knowledgeScope),
+          tabooTopics: sortedStrings(context.profile.tabooTopics),
+          socialMemoryStyle: context.profile.socialMemory?.style,
+          speechFingerprint: cacheSpeechFingerprint(context.profile.speechFingerprint),
+        }
+      : undefined,
     scene: context.scene ? providerCacheScenePayload(context.scene) : undefined,
-    familySemantics: context.familySemantics ? {
-      family: context.familySemantics.family,
-      familyName: context.familySemantics.familyName,
-      instincts: sortedStrings(context.familySemantics.baseInstincts),
-      attractedItemTags: sortedStrings(context.familySemantics.attractedItemTags),
-      avoidedItemTags: sortedStrings(context.familySemantics.avoidedItemTags),
-      likelyIntents: sortedStrings(context.familySemantics.likelyIntents),
-      speechStyle: context.familySemantics.speechStyle,
-      speechFingerprint: cacheSpeechFingerprint(context.familySemantics.speechFingerprint),
-    } : undefined,
+    familySemantics: context.familySemantics
+      ? {
+          family: context.familySemantics.family,
+          familyName: context.familySemantics.familyName,
+          instincts: sortedStrings(context.familySemantics.baseInstincts),
+          attractedItemTags: sortedStrings(context.familySemantics.attractedItemTags),
+          avoidedItemTags: sortedStrings(context.familySemantics.avoidedItemTags),
+          likelyIntents: sortedStrings(context.familySemantics.likelyIntents),
+          speechStyle: context.familySemantics.speechStyle,
+          speechFingerprint: cacheSpeechFingerprint(context.familySemantics.speechFingerprint),
+        }
+      : undefined,
     questFacts: context.questFacts.map((fact) => ({
       questId: fact.questId,
       visibility: fact.visibility,
@@ -2601,7 +2972,9 @@ function sortedStrings(values: readonly string[]): string[] {
   return [...values].sort((a, b) => a.localeCompare(b));
 }
 
-function cacheSpeechFingerprint(fingerprint: AiSpeechFingerprint | undefined): Record<string, unknown> | undefined {
+function cacheSpeechFingerprint(
+  fingerprint: AiSpeechFingerprint | undefined,
+): Record<string, unknown> | undefined {
   if (!fingerprint) return undefined;
   return {
     sentenceRhythm: fingerprint.sentenceRhythm,
@@ -2639,7 +3012,9 @@ function cloneSpeechPolishSnapshot(snapshot: AiSpeechPolishSnapshot): AiSpeechPo
   };
 }
 
-function cacheRelevantMemorySignals(signals: readonly AiMemoryAuditRecord[] | undefined): AiMemoryAuditRecord[] {
+function cacheRelevantMemorySignals(
+  signals: readonly AiMemoryAuditRecord[] | undefined,
+): AiMemoryAuditRecord[] {
   return (signals ?? []).filter((signal) => signal.kind !== 'npcInteraction');
 }
 
@@ -2648,7 +3023,11 @@ function roundCacheNumber(value: number, step: number): number {
   return Math.round(value / step) * step;
 }
 
-function providerLatencyPercentiles(samples: readonly number[]): { p50: number; p90: number; p95: number } {
+function providerLatencyPercentiles(samples: readonly number[]): {
+  p50: number;
+  p90: number;
+  p95: number;
+} {
   if (samples.length === 0) return { p50: 0, p90: 0, p95: 0 };
   const sorted = [...samples].sort((a, b) => a - b);
   return {
@@ -2669,27 +3048,50 @@ function envPositiveIntLocal(name: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
 }
 
-function normalizeMemoryBudgetPolicy(overrides: Partial<AiMemoryBudgetPolicy> | undefined): AiMemoryBudgetPolicy {
+function normalizeMemoryBudgetPolicy(
+  overrides: Partial<AiMemoryBudgetPolicy> | undefined,
+): AiMemoryBudgetPolicy {
   const maxTotalRecords = Math.max(
     1_000,
-    Math.min(5_000_000, Math.floor(overrides?.maxTotalRecords
-      ?? envPositiveIntLocal('AI_MEMORY_MAX_RECORDS', DEFAULT_MEMORY_BUDGET_TOTAL_RECORDS))),
+    Math.min(
+      5_000_000,
+      Math.floor(
+        overrides?.maxTotalRecords ??
+          envPositiveIntLocal('AI_MEMORY_MAX_RECORDS', DEFAULT_MEMORY_BUDGET_TOTAL_RECORDS),
+      ),
+    ),
   );
   const maxRecordsPerPlayer = Math.max(
     500,
-    Math.min(maxTotalRecords, Math.floor(overrides?.maxRecordsPerPlayer
-      ?? envPositiveIntLocal('AI_MEMORY_MAX_RECORDS_PER_PLAYER', DEFAULT_MEMORY_BUDGET_PER_PLAYER_RECORDS))),
+    Math.min(
+      maxTotalRecords,
+      Math.floor(
+        overrides?.maxRecordsPerPlayer ??
+          envPositiveIntLocal(
+            'AI_MEMORY_MAX_RECORDS_PER_PLAYER',
+            DEFAULT_MEMORY_BUDGET_PER_PLAYER_RECORDS,
+          ),
+      ),
+    ),
   );
   const batchSize = Math.max(
     100,
-    Math.min(20_000, Math.floor(overrides?.batchSize
-      ?? envPositiveIntLocal('AI_MEMORY_BUDGET_BATCH_SIZE', DEFAULT_MEMORY_BUDGET_BATCH_SIZE))),
+    Math.min(
+      20_000,
+      Math.floor(
+        overrides?.batchSize ??
+          envPositiveIntLocal('AI_MEMORY_BUDGET_BATCH_SIZE', DEFAULT_MEMORY_BUDGET_BATCH_SIZE),
+      ),
+    ),
   );
   const maxRecordsPerKind: Partial<Record<AiMemoryAuditKind, number>> = {};
   for (const kind of memoryAuditKinds()) {
     const override = overrides?.maxRecordsPerKind?.[kind];
     const derived = Math.floor(maxTotalRecords * MEMORY_BUDGET_KIND_RATIOS[kind]);
-    maxRecordsPerKind[kind] = Math.max(100, Math.min(maxTotalRecords, Math.floor(override ?? derived)));
+    maxRecordsPerKind[kind] = Math.max(
+      100,
+      Math.min(maxTotalRecords, Math.floor(override ?? derived)),
+    );
   }
   return { maxTotalRecords, maxRecordsPerPlayer, maxRecordsPerKind, batchSize };
 }
@@ -2714,8 +3116,11 @@ function normalizeMemoryBudgetResult(
   }
   const deletedByTotal = safeDeletedCount(result.deletedByTotal);
   const deletedByPlayer = safeDeletedCount(result.deletedByPlayer);
-  const totalDeleted = safeDeletedCount(result.totalDeleted)
-    || deletedByTotal + deletedByPlayer + Object.values(deletedByKind).reduce((sum, count) => sum + (count ?? 0), 0);
+  const totalDeleted =
+    safeDeletedCount(result.totalDeleted) ||
+    deletedByTotal +
+      deletedByPlayer +
+      Object.values(deletedByKind).reduce((sum, count) => sum + (count ?? 0), 0);
   return {
     totalDeleted,
     deletedByTotal,
@@ -2740,7 +3145,14 @@ function safeDeletedCount(value: number): number {
 }
 
 function memoryAuditKinds(): readonly AiMemoryAuditKind[] {
-  return ['npcInteraction', 'rumor', 'worldTrace', 'creatureMemory', 'bossMemory', 'worldDirectorState'];
+  return [
+    'npcInteraction',
+    'rumor',
+    'worldTrace',
+    'creatureMemory',
+    'bossMemory',
+    'worldDirectorState',
+  ];
 }
 
 function defaultAiProvider(): AiProvider {
@@ -2764,7 +3176,10 @@ function highPrioritySceneEvent(event: SimEvent | null): SimEvent | null {
   }
 }
 
-function providerFailureErrorEvent(context: AiJobContextV1, reason: string): Extract<SimEvent, { type: 'error' }> {
+function providerFailureErrorEvent(
+  context: AiJobContextV1,
+  reason: string,
+): Extract<SimEvent, { type: 'error' }> {
   return {
     type: 'error',
     text: `AI response failed: ${publicAiReason(reason)}`,
@@ -2772,7 +3187,10 @@ function providerFailureErrorEvent(context: AiJobContextV1, reason: string): Ext
   };
 }
 
-function providerRejectedErrorEvent(context: AiJobContextV1, reason: string): Extract<SimEvent, { type: 'error' }> {
+function providerRejectedErrorEvent(
+  context: AiJobContextV1,
+  reason: string,
+): Extract<SimEvent, { type: 'error' }> {
   return {
     type: 'error',
     text: `AI response rejected: ${publicAiReason(reason)}`,
@@ -2781,9 +3199,11 @@ function providerRejectedErrorEvent(context: AiJobContextV1, reason: string): Ex
 }
 
 function hasAiProviderErrorEvent(events: readonly SimEvent[]): boolean {
-  return events.some((event) =>
-    event.type === 'error'
-    && (/^AI response failed: /.test(event.text) || /^AI response rejected: /.test(event.text)));
+  return events.some(
+    (event) =>
+      event.type === 'error' &&
+      (/^AI response failed: /.test(event.text) || /^AI response rejected: /.test(event.text)),
+  );
 }
 
 function publicAiReason(reason: string): string {
@@ -2799,8 +3219,9 @@ export function normalizePetCommandText(text: string): string {
 }
 
 function firstPetCommandIntent(decision: AiDecisionV1): AiPetCommandIntent | null {
-  const intent = decision.intents.find((entry): entry is { type: AiPetCommandIntent; lineId?: string } =>
-    PET_COMMAND_INTENTS.includes(entry.type as AiPetCommandIntent),
+  const intent = decision.intents.find(
+    (entry): entry is { type: AiPetCommandIntent; lineId?: string } =>
+      PET_COMMAND_INTENTS.includes(entry.type as AiPetCommandIntent),
   );
   return intent?.type ?? null;
 }
@@ -2811,12 +3232,18 @@ function petCommandActionFromIntent(
   reason: string,
 ): AiPetCommandAction {
   switch (intent) {
-    case 'commandPetPassive': return { type: 'setMode', mode: 'passive', intent, source, reason };
-    case 'commandPetDefensive': return { type: 'setMode', mode: 'defensive', intent, source, reason };
-    case 'commandPetAggressive': return { type: 'setMode', mode: 'aggressive', intent, source, reason };
-    case 'commandPetAttack': return { type: 'attack', intent, source, reason };
-    case 'commandPetTaunt': return { type: 'taunt', intent, source, reason };
-    case 'commandPetIgnore': return { type: 'none', intent, source, reason };
+    case 'commandPetPassive':
+      return { type: 'setMode', mode: 'passive', intent, source, reason };
+    case 'commandPetDefensive':
+      return { type: 'setMode', mode: 'defensive', intent, source, reason };
+    case 'commandPetAggressive':
+      return { type: 'setMode', mode: 'aggressive', intent, source, reason };
+    case 'commandPetAttack':
+      return { type: 'attack', intent, source, reason };
+    case 'commandPetTaunt':
+      return { type: 'taunt', intent, source, reason };
+    case 'commandPetIgnore':
+      return { type: 'none', intent, source, reason };
   }
 }
 
@@ -2824,12 +3251,13 @@ function mergeObjectInspectionShell(
   events: SimEvent[],
   localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
 ): SimEvent[] {
-  const localValues = localEvent.speech.mode === 'lineId' ? localEvent.speech.values ?? {} : {};
+  const localValues = localEvent.speech.mode === 'lineId' ? (localEvent.speech.values ?? {}) : {};
   return events.map((event) => {
     if (event.type !== 'aiSpeech') return event;
-    const speech = event.speech.mode === 'lineId'
-      ? { ...event.speech, values: { ...localValues, ...(event.speech.values ?? {}) } }
-      : event.speech;
+    const speech =
+      event.speech.mode === 'lineId'
+        ? { ...event.speech, values: { ...localValues, ...(event.speech.values ?? {}) } }
+        : event.speech;
     return {
       ...event,
       speech,
@@ -2882,12 +3310,13 @@ function mergeSingularityReactionShell(
   events: SimEvent[],
   localEvent: Extract<SimEvent, { type: 'aiSpeech' }>,
 ): SimEvent[] {
-  const localValues = localEvent.speech.mode === 'lineId' ? localEvent.speech.values ?? {} : {};
+  const localValues = localEvent.speech.mode === 'lineId' ? (localEvent.speech.values ?? {}) : {};
   return events.map((event) => {
     if (event.type !== 'aiSpeech') return event;
-    const speech = event.speech.mode === 'lineId'
-      ? { ...event.speech, values: { ...localValues, ...(event.speech.values ?? {}) } }
-      : event.speech;
+    const speech =
+      event.speech.mode === 'lineId'
+        ? { ...event.speech, values: { ...localValues, ...(event.speech.values ?? {}) } }
+        : event.speech;
     return {
       ...event,
       speech,
@@ -2925,9 +3354,12 @@ function itemInterestReactionEvent(
       targetItemId: dropped.itemId,
       ...(targetPos ? { targetPos } : {}),
       actionDurationMs: reaction.reaction === 'inspect' ? 1800 : 2600,
-      actionOffset: reaction.reaction === 'inspect' ? 0.18 : reaction.reaction === 'avoid' ? 0.62 : 0.58,
+      actionOffset:
+        reaction.reaction === 'inspect' ? 0.18 : reaction.reaction === 'avoid' ? 0.62 : 0.58,
       score: Math.round(reaction.score * 100) / 100,
-      sceneTags: [...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags])].slice(0, 8),
+      sceneTags: [
+        ...new Set([...scene.locationTags, ...scene.structureTags, ...scene.environmentalTags]),
+      ].slice(0, 8),
       individualTier: reaction.individual?.tier,
       individualTraits: reaction.individual?.traits,
     },
@@ -2938,7 +3370,8 @@ function itemInterestReactionEvent(
 function aiSpeechLineIds(events: readonly SimEvent[]): string[] {
   const lineIds: string[] = [];
   for (const event of events) {
-    if (event.type === 'aiSpeech' && event.speech.mode === 'lineId') lineIds.push(event.speech.lineId);
+    if (event.type === 'aiSpeech' && event.speech.mode === 'lineId')
+      lineIds.push(event.speech.lineId);
   }
   return lineIds;
 }

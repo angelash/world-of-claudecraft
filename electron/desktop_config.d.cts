@@ -4,7 +4,7 @@
 
 import type { UpdateChannel } from './update_guard.cjs';
 
-export type Distribution = 'website' | 'steam';
+export type Distribution = 'website' | 'steam' | 'epic';
 
 export interface DesktopConfigInput {
   packagedMetadata?: {
@@ -13,6 +13,9 @@ export interface DesktopConfigInput {
       crashSubmitUrl?: unknown;
       apiOrigin?: unknown;
       loginOrigin?: unknown;
+      epicProductId?: unknown;
+      epicDeploymentId?: unknown;
+      epicClientId?: unknown;
     };
   } | null;
   env?: Record<string, string | undefined>;
@@ -22,6 +25,7 @@ export interface DesktopConfigInput {
 export interface DesktopConfig {
   distribution: Distribution;
   updaterEnabled: boolean;
+  wocExchangeEnabled: boolean;
   crashSubmitUrl: string;
   updateChannel: UpdateChannel;
   apiOrigin: string;
@@ -39,4 +43,5 @@ export function updaterAllowed(input: {
   isPackaged: boolean | undefined;
 }): boolean;
 export function walletConnectionSupported(input: { distribution: string }): boolean;
+export function wocExchangeSupported(input?: DesktopConfigInput): boolean;
 export function resolveDesktopConfig(input?: DesktopConfigInput): DesktopConfig;

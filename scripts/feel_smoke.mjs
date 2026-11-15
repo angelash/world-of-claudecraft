@@ -7,7 +7,9 @@ import puppeteer from 'puppeteer-core';
 import { BROWSER_PATH } from './browser_path.mjs';
 
 const BASE_URL = process.env.GAME_URL ?? 'http://localhost:5173';
-const OUTPUT = process.env.FEEL_OUT ?? path.join('tmp', `feel-smoke-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+const OUTPUT =
+  process.env.FEEL_OUT ??
+  path.join('tmp', `feel-smoke-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
 const STEP_MS = Number(process.env.FEEL_STEP_MS ?? 180);
 const SETTLE_MS = Number(process.env.FEEL_SETTLE_MS ?? 120);
 const BOOT_TIMEOUT_MS = Number(process.env.FEEL_BOOT_TIMEOUT_MS ?? 120000);
@@ -57,10 +59,10 @@ async function bootOffline(page) {
     () => Boolean(window.__game?.sim?.player && window.__game?.perf?.report),
     { timeout: BOOT_TIMEOUT_MS },
   );
-  await page.waitForFunction(
-    () => window.__game?.input?.suspendMovement === false,
-    { timeout: 15000, polling: 100 },
-  );
+  await page.waitForFunction(() => window.__game?.input?.suspendMovement === false, {
+    timeout: 15000,
+    polling: 100,
+  });
   await page.evaluate(() => {
     const start = window.__game?.perf?.report?.().frames ?? 0;
     window.__feelStartFrames = start;
@@ -80,7 +82,9 @@ async function bootOffline(page) {
       modal: window.__game?.hud?.isModalOpen?.() ?? null,
       visibility: document.visibilityState,
     }));
-    throw new Error(`Timed out waiting for active frame loop: ${JSON.stringify(debug)}`, { cause: err });
+    throw new Error(`Timed out waiting for active frame loop: ${JSON.stringify(debug)}`, {
+      cause: err,
+    });
   }
   await sleep(SETTLE_MS);
   await waitForFrames(page, 1, 5000).catch(() => undefined);
@@ -282,11 +286,7 @@ fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
 const browser = await puppeteer.launch({
   executablePath: BROWSER_PATH,
   headless: 'new',
-  args: [
-    '--window-size=1280,720',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader',
-  ],
+  args: ['--window-size=1280,720', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
 
 const page = await browser.newPage();
@@ -295,7 +295,8 @@ page.on('pageerror', (e) => errors.push(`PAGEERROR: ${e.message}`));
 page.on('console', (msg) => {
   if (msg.type() !== 'error') return;
   const text = msg.text();
-  if (text.includes('/api/project-stats') || text.includes('project stats') || text.includes('502')) return;
+  if (text.includes('/api/project-stats') || text.includes('project stats') || text.includes('502'))
+    return;
   errors.push(`CONSOLE: ${text}`);
 });
 
@@ -303,104 +304,158 @@ const checks = [];
 try {
   await bootOffline(page);
 
-  checks.push(await runCheck('forward input moves on the next short window', async () => {
-    await resetRig(page);
-    const before = await state(page);
-    await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
-    await waitForTicks(page);
-    const after = await state(page);
-    await clearMove(page);
-    return { before, after, dz: after.z - before.z, elapsedMs: after.t - before.t };
-  }, ({ dz, elapsedMs }) => [
-    dz <= 0.25 ? `forward dz ${dz.toFixed(3)} <= 0.25 after ${finite(elapsedMs).toFixed(1)}ms` : '',
-  ]));
+  checks.push(
+    await runCheck(
+      'forward input moves on the next short window',
+      async () => {
+        await resetRig(page);
+        const before = await state(page);
+        await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
+        await waitForTicks(page);
+        const after = await state(page);
+        await clearMove(page);
+        return { before, after, dz: after.z - before.z, elapsedMs: after.t - before.t };
+      },
+      ({ dz, elapsedMs }) => [
+        dz <= 0.25
+          ? `forward dz ${dz.toFixed(3)} <= 0.25 after ${finite(elapsedMs).toFixed(1)}ms`
+          : '',
+      ],
+    ),
+  );
 
-  checks.push(await runCheck('reverse input changes direction without glide', async () => {
-    await resetRig(page);
-    await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
-    await waitForTicks(page);
-    const switchAt = await state(page);
-    await setMove(page, { forward: false, back: true, strafeLeft: false, strafeRight: false });
-    await waitForTicks(page);
-    const after = await state(page);
-    await clearMove(page);
-    return { switchAt, after, dz: after.z - switchAt.z, elapsedMs: after.t - switchAt.t };
-  }, ({ dz, elapsedMs }) => [
-    dz >= -0.12 ? `reverse dz ${dz.toFixed(3)} >= -0.12 after ${finite(elapsedMs).toFixed(1)}ms` : '',
-  ]));
+  checks.push(
+    await runCheck(
+      'reverse input changes direction without glide',
+      async () => {
+        await resetRig(page);
+        await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
+        await waitForTicks(page);
+        const switchAt = await state(page);
+        await setMove(page, { forward: false, back: true, strafeLeft: false, strafeRight: false });
+        await waitForTicks(page);
+        const after = await state(page);
+        await clearMove(page);
+        return { switchAt, after, dz: after.z - switchAt.z, elapsedMs: after.t - switchAt.t };
+      },
+      ({ dz, elapsedMs }) => [
+        dz >= -0.12
+          ? `reverse dz ${dz.toFixed(3)} >= -0.12 after ${finite(elapsedMs).toFixed(1)}ms`
+          : '',
+      ],
+    ),
+  );
 
-  checks.push(await runCheck('mouselook 180 turns forward movement promptly', async () => {
-    await resetRig(page);
-    await setMouselookYaw(page, 0);
-    await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
-    await waitForTicks(page);
-    const switchAt = await state(page);
-    await setMouselookYaw(page, Math.PI);
-    await waitForTicks(page);
-    const after = await state(page);
-    await clearMove(page);
-    await page.evaluate(() => window.__game.input.setTouchLook(false));
-    return {
-      switchAt,
-      after,
-      dz: after.z - switchAt.z,
-      facingDelta: Math.abs(Math.atan2(Math.sin(after.facing - Math.PI), Math.cos(after.facing - Math.PI))),
-      elapsedMs: after.t - switchAt.t,
-    };
-  }, ({ dz, facingDelta, elapsedMs }) => [
-    dz >= -0.2 ? `180 turn dz ${dz.toFixed(3)} >= -0.2 after ${finite(elapsedMs).toFixed(1)}ms` : '',
-    facingDelta > 0.25 ? `facing stayed ${facingDelta.toFixed(3)}rad away from camera yaw` : '',
-  ]));
+  checks.push(
+    await runCheck(
+      'mouselook 180 turns forward movement promptly',
+      async () => {
+        await resetRig(page);
+        await setMouselookYaw(page, 0);
+        await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
+        await waitForTicks(page);
+        const switchAt = await state(page);
+        await setMouselookYaw(page, Math.PI);
+        await waitForTicks(page);
+        const after = await state(page);
+        await clearMove(page);
+        await page.evaluate(() => window.__game.input.setTouchLook(false));
+        return {
+          switchAt,
+          after,
+          dz: after.z - switchAt.z,
+          facingDelta: Math.abs(
+            Math.atan2(Math.sin(after.facing - Math.PI), Math.cos(after.facing - Math.PI)),
+          ),
+          elapsedMs: after.t - switchAt.t,
+        };
+      },
+      ({ dz, facingDelta, elapsedMs }) => [
+        dz >= -0.2
+          ? `180 turn dz ${dz.toFixed(3)} >= -0.2 after ${finite(elapsedMs).toFixed(1)}ms`
+          : '',
+        facingDelta > 0.25 ? `facing stayed ${facingDelta.toFixed(3)}rad away from camera yaw` : '',
+      ],
+    ),
+  );
 
-  checks.push(await runCheck('airborne mouselook turns facing but preserves launch momentum', async () => {
-    await resetRig(page);
-    await setMouselookYaw(page, 0);
-    await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
-    await waitForTicks(page);
-    await page.evaluate(() => window.__game.input.keys.add('Space'));
-    await waitForTicks(page);
-    await page.evaluate(() => window.__game.input.keys.delete('Space'));
-    const airborne = await state(page);
-    await setMouselookYaw(page, Math.PI);
-    await waitForFrames(page, 1);
-    const after = await state(page);
-    await clearMove(page);
-    await page.evaluate(() => window.__game.input.setTouchLook(false));
-    return {
-      airborne,
-      after,
-      dz: after.z - airborne.z,
-      launchVz: airborne.vz,
-      facingDelta: Math.abs(Math.atan2(Math.sin(after.facing - Math.PI), Math.cos(after.facing - Math.PI))),
-      elapsedMs: after.t - airborne.t,
-    };
-  }, ({ airborne, after, dz, launchVz, facingDelta, elapsedMs }) => [
-    airborne.onGround ? 'player was not airborne at launch sample' : '',
-    launchVz <= 4 ? `launch vz ${launchVz.toFixed(3)} <= 4` : '',
-    dz <= 0.25 ? `airborne dz ${dz.toFixed(3)} <= 0.25 after ${finite(elapsedMs).toFixed(1)}ms` : '',
-    facingDelta > 0.35 ? `airborne facing stayed ${facingDelta.toFixed(3)}rad away from camera yaw` : '',
-  ]));
+  checks.push(
+    await runCheck(
+      'airborne mouselook turns facing but preserves launch momentum',
+      async () => {
+        await resetRig(page);
+        await setMouselookYaw(page, 0);
+        await setMove(page, { forward: true, back: false, strafeLeft: false, strafeRight: false });
+        await waitForTicks(page);
+        await page.evaluate(() => window.__game.input.keys.add('Space'));
+        await waitForTicks(page);
+        await page.evaluate(() => window.__game.input.keys.delete('Space'));
+        const airborne = await state(page);
+        await setMouselookYaw(page, Math.PI);
+        await waitForFrames(page, 1);
+        const after = await state(page);
+        await clearMove(page);
+        await page.evaluate(() => window.__game.input.setTouchLook(false));
+        return {
+          airborne,
+          after,
+          dz: after.z - airborne.z,
+          launchVz: airborne.vz,
+          facingDelta: Math.abs(
+            Math.atan2(Math.sin(after.facing - Math.PI), Math.cos(after.facing - Math.PI)),
+          ),
+          elapsedMs: after.t - airborne.t,
+        };
+      },
+      ({ airborne, after, dz, launchVz, facingDelta, elapsedMs }) => [
+        airborne.onGround ? 'player was not airborne at launch sample' : '',
+        launchVz <= 4 ? `launch vz ${launchVz.toFixed(3)} <= 4` : '',
+        dz <= 0.25
+          ? `airborne dz ${dz.toFixed(3)} <= 0.25 after ${finite(elapsedMs).toFixed(1)}ms`
+          : '',
+        facingDelta > 0.35
+          ? `airborne facing stayed ${facingDelta.toFixed(3)}rad away from camera yaw`
+          : '',
+      ],
+    ),
+  );
 
-  checks.push(await runCheck('mouselook A/D maps to strafe instead of keyboard turn', async () => {
-    await resetRig(page);
-    await setMouselookYaw(page, 0);
-    await page.evaluate(() => {
-      const g = window.__game;
-      g.input.keys.add('KeyD');
-    });
-    const before = await state(page);
-    await waitForTicks(page);
-    const after = await state(page);
-    await page.evaluate(() => {
-      const g = window.__game;
-      g.input.keys.delete('KeyD');
-      g.input.setTouchLook(false);
-    });
-    return { before, after, dx: after.x - before.x, facingDelta: Math.abs(after.facing - before.facing), elapsedMs: after.t - before.t };
-  }, ({ dx, facingDelta, elapsedMs }) => [
-    dx >= -0.25 ? `mouselook D dx ${dx.toFixed(3)} >= -0.25; expected screen-right/world -X` : '',
-    facingDelta > 0.08 ? `mouselook D changed facing by ${facingDelta.toFixed(3)}rad over ${finite(elapsedMs).toFixed(1)}ms` : '',
-  ]));
+  checks.push(
+    await runCheck(
+      'mouselook A/D maps to strafe instead of keyboard turn',
+      async () => {
+        await resetRig(page);
+        await setMouselookYaw(page, 0);
+        await page.evaluate(() => {
+          const g = window.__game;
+          g.input.keys.add('KeyD');
+        });
+        const before = await state(page);
+        await waitForTicks(page);
+        const after = await state(page);
+        await page.evaluate(() => {
+          const g = window.__game;
+          g.input.keys.delete('KeyD');
+          g.input.setTouchLook(false);
+        });
+        return {
+          before,
+          after,
+          dx: after.x - before.x,
+          facingDelta: Math.abs(after.facing - before.facing),
+          elapsedMs: after.t - before.t,
+        };
+      },
+      ({ dx, facingDelta, elapsedMs }) => [
+        dx >= -0.25
+          ? `mouselook D dx ${dx.toFixed(3)} >= -0.25; expected screen-right/world -X`
+          : '',
+        facingDelta > 0.08
+          ? `mouselook D changed facing by ${facingDelta.toFixed(3)}rad over ${finite(elapsedMs).toFixed(1)}ms`
+          : '',
+      ],
+    ),
+  );
 } finally {
   await browser.close();
 }

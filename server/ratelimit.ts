@@ -284,11 +284,20 @@ export function resetRateLimits(): void {
 
 export const CARD_UPLOAD_MAX_PER_MINUTE = 10;
 export const WALLET_LINK_MAX_PER_MINUTE = 10;
+// The desktop handoff result poll runs at 1 Hz per signing attempt (60/min),
+// woken early by the deep-link return; this cap admits two concurrent
+// handoffs plus headroom while ending an unmetered poll loop.
+export const WALLET_HANDOFF_RESULT_MAX_PER_MINUTE = 150;
+export const SEEKER_SPIN_VERIFY_MAX_PER_MINUTE = 5;
 
 const cardUploadIpAttempts = new Map<string, number[]>();
 const cardUploadAccountAttempts = new Map<number, number[]>();
 const walletLinkIpAttempts = new Map<string, number[]>();
 const walletLinkAccountAttempts = new Map<number, number[]>();
+const walletHandoffResultIpAttempts = new Map<string, number[]>();
+const walletHandoffResultAccountAttempts = new Map<number, number[]>();
+const seekerSpinVerifyIpAttempts = new Map<string, number[]>();
+const seekerSpinVerifyAccountAttempts = new Map<number, number[]>();
 
 function recordSlidingWindowAttempt<K>(
   attemptsByKey: Map<K, number[]>,
@@ -350,11 +359,12 @@ export function resetCardUploadRateLimits(): void {
   cardUploadAccountAttempts.clear();
 }
 
-// GLB asset uploads (POST /api/assets) get their own per-IP AND per-account
-// bucket, mirroring the player-card upload throttle above: an upload flood can
-// never burn a player's login budget (these maps are separate from the shared
-// `attempts` map, so STRICTEST_RATE_LIMIT is unaffected), and a single account
-// spraying uploads through many IPs is still capped by the account key.
+// GLB asset mutations (POST /api/assets upload, DELETE /api/assets/:id) share
+// one per-IP AND per-account bucket, mirroring the player-card upload throttle
+// above: a flood of either can never burn a player's login budget (these maps
+// are separate from the shared `attempts` map, so STRICTEST_RATE_LIMIT is
+// unaffected), and a single account spraying requests through many IPs is
+// still capped by the account key.
 export const ASSET_UPLOAD_MAX_PER_MINUTE = 10;
 // Map saves are bigger writes (up to 2 MiB JSONB) but honest editors autosave;
 // 30/min leaves headroom for rapid save-as/fork flows while bounding floods.
@@ -444,6 +454,37 @@ export function resetSteamLinkRateLimits(): void {
   steamLinkAccountAttempts.clear();
 }
 
+// Epic link attempts get their own per-IP AND per-account bucket, twin of the
+// Steam link throttle: every allowed attempt will cost an upstream verify call
+// (Phase 5), so the budget is deliberately tight, and a link flood can never
+// burn a player's login budget.
+export const EPIC_LINK_MAX_PER_MINUTE = 5;
+const epicLinkIpAttempts = new Map<string, number[]>();
+const epicLinkAccountAttempts = new Map<number, number[]>();
+
+export function epicLinkRateLimited(
+  req: http.IncomingMessage,
+  accountId: number,
+): RateLimitOutcome {
+  const ip = recordSlidingWindowAttempt(
+    epicLinkIpAttempts,
+    requestIp(req),
+    EPIC_LINK_MAX_PER_MINUTE,
+  );
+  const account = recordSlidingWindowAttempt(
+    epicLinkAccountAttempts,
+    accountId,
+    EPIC_LINK_MAX_PER_MINUTE,
+  );
+  return mergeFusedOutcomes(ip, account);
+}
+
+/** Reset Epic link throttles. Test-only: keeps scoped buckets isolated. */
+export function resetEpicLinkRateLimits(): void {
+  epicLinkIpAttempts.clear();
+  epicLinkAccountAttempts.clear();
+}
+
 export function walletLinkRateLimited(
   req: http.IncomingMessage,
   accountId: number,
@@ -461,10 +502,57 @@ export function walletLinkRateLimited(
   return mergeFusedOutcomes(ip, account);
 }
 
+export function walletHandoffResultRateLimited(
+  req: http.IncomingMessage,
+  accountId: number,
+): RateLimitOutcome {
+  const ip = recordSlidingWindowAttempt(
+    walletHandoffResultIpAttempts,
+    requestIp(req),
+    WALLET_HANDOFF_RESULT_MAX_PER_MINUTE,
+  );
+  const account = recordSlidingWindowAttempt(
+    walletHandoffResultAccountAttempts,
+    accountId,
+    WALLET_HANDOFF_RESULT_MAX_PER_MINUTE,
+  );
+  return mergeFusedOutcomes(ip, account);
+}
+
+/** Reset the desktop handoff result-poll throttle. Test-only. */
+export function resetWalletHandoffResultRateLimits(): void {
+  walletHandoffResultIpAttempts.clear();
+  walletHandoffResultAccountAttempts.clear();
+}
+
 /** Reset wallet-link verification throttles. Test-only: keeps scoped buckets isolated. */
 export function resetWalletLinkRateLimits(): void {
   walletLinkIpAttempts.clear();
   walletLinkAccountAttempts.clear();
+}
+
+/** Bound native SGT ownership RPC work independently from wallet-link attempts. */
+export function seekerSpinVerifyRateLimited(
+  req: http.IncomingMessage,
+  accountId: number,
+): RateLimitOutcome {
+  const ip = recordSlidingWindowAttempt(
+    seekerSpinVerifyIpAttempts,
+    requestIp(req),
+    SEEKER_SPIN_VERIFY_MAX_PER_MINUTE,
+  );
+  const account = recordSlidingWindowAttempt(
+    seekerSpinVerifyAccountAttempts,
+    accountId,
+    SEEKER_SPIN_VERIFY_MAX_PER_MINUTE,
+  );
+  return mergeFusedOutcomes(ip, account);
+}
+
+/** Reset Seeker spin verification throttles. Test-only. */
+export function resetSeekerSpinVerifyRateLimits(): void {
+  seekerSpinVerifyIpAttempts.clear();
+  seekerSpinVerifyAccountAttempts.clear();
 }
 
 // Discord link/status/reward endpoints share one dedicated bucket (per IP AND
@@ -543,6 +631,33 @@ export function resetWocBalanceRateLimits(): void {
   wocBalanceIpAttempts.clear();
 }
 
+export const GUILD_BOARD_PRESENCE_MAX_PER_MINUTE = 60;
+const guildBoardPresenceIpAttempts = new Map<string, number[]>();
+
+/**
+ * Throttle the guild board's "officers online" presence per IP on its OWN
+ * bucket. The board read itself is never refused: past the ceiling the page is
+ * served without the live officer names (server/leaderboard.ts
+ * buildGuildBoardResponse), so a scraper cannot poll officer activity at request
+ * rate. Its own map, NOT the shared public-read bucket: the board never 429s
+ * itself, so charging the shared budget would let signpost browsing 429 the
+ * sibling public reads (the roster drill-in is the next click in the same
+ * window) while the board only lost its dot, the wocBalanceRateLimited reasoning
+ * above.
+ */
+export function guildBoardPresenceRateLimited(req: http.IncomingMessage): RateLimitOutcome {
+  return recordSlidingWindowAttempt(
+    guildBoardPresenceIpAttempts,
+    requestIp(req),
+    GUILD_BOARD_PRESENCE_MAX_PER_MINUTE,
+  );
+}
+
+/** Reset the presence throttle. Test-only: keeps scoped buckets isolated. */
+export function resetGuildBoardPresenceRateLimits(): void {
+  guildBoardPresenceIpAttempts.clear();
+}
+
 // Public, unauthenticated read endpoints (the public character sheet, the /c/
 // profile page) get a generous per-IP bucket on their OWN map, decoupled from
 // login/register, to deter scraping without ever spilling into the auth
@@ -575,7 +690,7 @@ export function resetPublicReadRateLimits(): void {
 export const CHARACTER_MUTATION_MAX_PER_MINUTE = 20;
 
 /** The character mutations that each carry a dedicated per-account limiter bucket. */
-export type CharacterMutationAction = 'create' | 'rename' | 'delete' | 'takeover';
+export type CharacterMutationAction = 'create' | 'rename' | 'delete' | 'takeover' | 'reroll';
 
 const characterMutationIpAttempts = new Map<string, number[]>();
 const characterMutationAccountAttempts = new Map<string, number[]>();
@@ -710,6 +825,90 @@ export function resetClaudiumMutationRateLimits(): void {
   claudiumPreAuthIpAttempts.clear();
 }
 
+// $WOC Exchange writes create listings (a custody escrow), place bids, request
+// on-chain quotes, or poll a settlement verifier. The Claudium model applies
+// verbatim: each action gets its own fused per-IP AND per-account bucket so
+// no marketplace action can starve another, and confirm is the roomiest
+// because the client retries pending chain finality. Quotes are capped well
+// under the economy-service call budget (the proxy also caches estimates).
+export const WOC_MARKET_LIST_MAX_PER_MINUTE = 10;
+export const WOC_MARKET_BID_MAX_PER_MINUTE = 20;
+export const WOC_MARKET_QUOTE_MAX_PER_MINUTE = 30;
+export const WOC_MARKET_CONFIRM_MAX_PER_MINUTE = 60;
+
+// The one shared read bucket covers SEVEN marketplace GETs (offers, status,
+// browse, detail, activity, history, seller-history; trade-partner
+// deliberately rides the smaller quote bucket, an enumeration-shaped read),
+// sized against the real client cadences, not per route: the Exchange's
+// awaiting-chain poll is two reads every 3 seconds (40/min), the trade
+// window's directed-offer poll is one every 2 seconds (30/min), and a player
+// actively browsing adds a detail+history pair per row tap plus a
+// seller-history read per seller click (click-driven only, never polled, and
+// the client no-ops a repeat click while one is outstanding). One worst-case
+// player sits near 90/min; 240 keeps TWO players behind one NAT (the fused
+// per-IP bucket is shared) under the window with margin. Three or more
+// worst-case players behind one NAT exceed the shared IP arm and 429 each
+// other's polls (silent staleness, retried next beat); accepted at this
+// scale, re-judged pre-enable. The caches behind six of the seven routes
+// bound what an allowed flood buys to in-memory work; the offers poll stays
+// an uncached, index-tuned per-account read whose cost control is the
+// retention window.
+export const WOC_MARKET_READ_MAX_PER_MINUTE = 240;
+
+// Step-up challenge issuance (B6/R1): its OWN bucket, sized at double the
+// list bucket, so the challenge-then-create pair never halves the effective
+// listing throughput (both custody routes ride the shared 'list' bucket) and
+// a declined wallet popup leaves room to retry.
+export const WOC_MARKET_STEPUP_MAX_PER_MINUTE = 20;
+
+export type WocMarketMutationAction = 'list' | 'bid' | 'quote' | 'confirm' | 'read' | 'stepup';
+
+const wocMarketMutationIpAttempts = new Map<string, number[]>();
+const wocMarketMutationAccountAttempts = new Map<string, number[]>();
+
+export function wocMarketMutationLimit(action: WocMarketMutationAction): number {
+  switch (action) {
+    case 'list':
+      return WOC_MARKET_LIST_MAX_PER_MINUTE;
+    case 'bid':
+      return WOC_MARKET_BID_MAX_PER_MINUTE;
+    case 'quote':
+      return WOC_MARKET_QUOTE_MAX_PER_MINUTE;
+    case 'confirm':
+      return WOC_MARKET_CONFIRM_MAX_PER_MINUTE;
+    case 'read':
+      return WOC_MARKET_READ_MAX_PER_MINUTE;
+    case 'stepup':
+      return WOC_MARKET_STEPUP_MAX_PER_MINUTE;
+  }
+}
+
+/** Fused per-IP and per-account throttle for one marketplace mutation action. */
+export function wocMarketMutationRateLimited(
+  req: http.IncomingMessage,
+  accountId: number,
+  action: WocMarketMutationAction,
+): RateLimitOutcome {
+  const limit = wocMarketMutationLimit(action);
+  const ip = recordSlidingWindowAttempt(
+    wocMarketMutationIpAttempts,
+    `${action}:${requestIp(req)}`,
+    limit,
+  );
+  const account = recordSlidingWindowAttempt(
+    wocMarketMutationAccountAttempts,
+    `${action}:${accountId}`,
+    limit,
+  );
+  return mergeFusedOutcomes(ip, account);
+}
+
+/** Reset $WOC Exchange mutation throttles. Test-only. */
+export function resetWocMarketMutationRateLimits(): void {
+  wocMarketMutationIpAttempts.clear();
+  wocMarketMutationAccountAttempts.clear();
+}
+
 // Player-report creation had no dedicated limiter (it was gated only by the full
 // session plus the per-target 12h duplicate-report window in moderation_db). This
 // adds a coarse per-account create limiter so a single account cannot flood the
@@ -743,6 +942,145 @@ export function reportsCreateRateLimited(
 export function resetReportsCreateRateLimits(): void {
   reportsCreateIpAttempts.clear();
   reportsCreateAccountAttempts.clear();
+}
+
+// ---------------------------------------------------------------------------
+// Admin economy-oversight endpoints (player search / wealth / flagged
+// workflow). Dedicated buckets, NOT the shared `attempts` map, so dashboard
+// polling can never burn anyone's login budget (the cardUpload precedent).
+// Reads get headroom for several admins polling with the dashboard's 5 s
+// refresh plus debounced search keystrokes; flag-workflow writes are
+// deliberate clicks and get a tighter cap.
+// ---------------------------------------------------------------------------
+export const ADMIN_OVERSIGHT_READ_MAX_PER_MINUTE = 120;
+export const ADMIN_FLAG_WRITE_MAX_PER_MINUTE = 30;
+
+const adminOversightReadIpAttempts = new Map<string, number[]>();
+const adminOversightReadAccountAttempts = new Map<number, number[]>();
+const adminFlagWriteIpAttempts = new Map<string, number[]>();
+const adminFlagWriteAccountAttempts = new Map<number, number[]>();
+
+export function adminOversightReadRateLimited(
+  req: http.IncomingMessage,
+  accountId: number,
+): RateLimitOutcome {
+  const ip = recordSlidingWindowAttempt(
+    adminOversightReadIpAttempts,
+    requestIp(req),
+    ADMIN_OVERSIGHT_READ_MAX_PER_MINUTE,
+  );
+  const account = recordSlidingWindowAttempt(
+    adminOversightReadAccountAttempts,
+    accountId,
+    ADMIN_OVERSIGHT_READ_MAX_PER_MINUTE,
+  );
+  return mergeFusedOutcomes(ip, account);
+}
+
+export function adminFlagWriteRateLimited(
+  req: http.IncomingMessage,
+  accountId: number,
+): RateLimitOutcome {
+  const ip = recordSlidingWindowAttempt(
+    adminFlagWriteIpAttempts,
+    requestIp(req),
+    ADMIN_FLAG_WRITE_MAX_PER_MINUTE,
+  );
+  const account = recordSlidingWindowAttempt(
+    adminFlagWriteAccountAttempts,
+    accountId,
+    ADMIN_FLAG_WRITE_MAX_PER_MINUTE,
+  );
+  return mergeFusedOutcomes(ip, account);
+}
+
+/** Reset admin economy-oversight throttles. Test-only. */
+export function resetAdminOversightRateLimits(): void {
+  adminOversightReadIpAttempts.clear();
+  adminOversightReadAccountAttempts.clear();
+  adminFlagWriteIpAttempts.clear();
+  adminFlagWriteAccountAttempts.clear();
+}
+
+// ---------------------------------------------------------------------------
+// Admin analytics dashboard reads (overview / activity / market metrics, the
+// analytics.read family). These are warm in-memory cached reads with zero
+// per-request DB cost, so the meter is about uniform admin-surface metering
+// (no read route is the unthrottled odd one out), not query protection. The
+// path's real per-request DB cost is upstream of the handler and upstream of
+// this meter: require_admin (server/http/middleware/require_admin.ts) awaits
+// accountAndScopeForToken then adminRolesForAccount on every admin request
+// before any handler runs, so a polled dashboard tab costs two reads per poll
+// whatever the handler caches. That pair is deliberately unmetered here
+// because the admin gate stays on the DIRECT db reads (never the marketplace
+// auth-guard cache), so the sizing below prices tab-equivalents, not queries.
+// Own
+// bucket pair, NOT the oversight maps above: the Overview landing page polls
+// at the dashboard's 5 s tick for every operator by default, and that routine
+// traffic must never burn the economy-oversight budget (whose exhaustion
+// would 429 the moderation Flagged workflow), nor vice versa.
+//
+// SIZED IN TAB-EQUIVALENTS, because the fused shape has two arms with very
+// different fan-in (the hot-path review of the first cut: an IP arm equal to
+// the account arm 429'd three operators with three tabs each behind one NAT,
+// and a 429 collapses the Overview live cards to "load failed"). One open
+// dashboard tab polls at most:
+//   overview        every LIVE_REFRESH_MS = 5 s      -> 12 / min
+//   activity        every ACTIVITY_REFRESH_MS = 60 s ->  1 / min
+//   online history  every ACTIVITY_REFRESH_MS = 60 s ->  1 / min
+//   market metrics  every AUTO_REFRESH_MS = 30 s     ->  2 / min
+//   (src/admin/state/poll.ts, src/admin/pages/MarketMetrics.svelte)
+// so ADMIN_ANALYTICS_READS_PER_TAB_PER_MINUTE is 16. ONLINE HISTORY is the
+// fourth term and it is easy to miss: Overview's refreshActivity fetches
+// /admin/api/online-history in the SAME Promise.all as /admin/api/activity
+// (src/admin/pages/Overview.svelte), so it rides the activity cadence rather
+// than a poll constant of its own. It was omitted when the bucket was first
+// sized, which left the documented 8-tab account headroom at 8 x 16 = 128
+// against a 120 ceiling: 429s at exactly the headroom the comment promises,
+// and a 429 here collapses the Overview live cards to "load failed". Note a
+// range-button click costs 2 more, because selectOnlineHistoryRange re-runs
+// refreshActivity. The ACCOUNT arm meters one
+// operator's own tabs: 8 tabs of headroom (nobody runs eight dashboards, and a
+// looping tab still trips it) = 120 / min. The IP arm meters a whole office
+// behind one NAT: 40 tab-equivalents (say, a dozen operators with three tabs
+// each, plus reloads) = 600 / min. Both derived, never re-typed as literals;
+// the relation is pinned in tests/admin_rate_limit_buckets.test.ts against
+// the SPA's own poll constants.
+// ---------------------------------------------------------------------------
+export const ADMIN_ANALYTICS_READS_PER_TAB_PER_MINUTE = 12 + 1 + 1 + 2;
+export const ADMIN_ANALYTICS_ACCOUNT_TAB_BUDGET = 8;
+export const ADMIN_ANALYTICS_IP_TAB_BUDGET = 40;
+/** The per-OPERATOR (account arm) budget: one operator's own open tabs. */
+export const ADMIN_ANALYTICS_READ_MAX_PER_MINUTE =
+  ADMIN_ANALYTICS_ACCOUNT_TAB_BUDGET * ADMIN_ANALYTICS_READS_PER_TAB_PER_MINUTE;
+/** The per-IP arm: every operator behind one NAT, in tab-equivalents. */
+export const ADMIN_ANALYTICS_READ_IP_MAX_PER_MINUTE =
+  ADMIN_ANALYTICS_IP_TAB_BUDGET * ADMIN_ANALYTICS_READS_PER_TAB_PER_MINUTE;
+
+const adminAnalyticsReadIpAttempts = new Map<string, number[]>();
+const adminAnalyticsReadAccountAttempts = new Map<number, number[]>();
+
+export function adminAnalyticsReadRateLimited(
+  req: http.IncomingMessage,
+  accountId: number,
+): RateLimitOutcome {
+  const ip = recordSlidingWindowAttempt(
+    adminAnalyticsReadIpAttempts,
+    requestIp(req),
+    ADMIN_ANALYTICS_READ_IP_MAX_PER_MINUTE,
+  );
+  const account = recordSlidingWindowAttempt(
+    adminAnalyticsReadAccountAttempts,
+    accountId,
+    ADMIN_ANALYTICS_READ_MAX_PER_MINUTE,
+  );
+  return mergeFusedOutcomes(ip, account);
+}
+
+/** Reset admin analytics-read throttles. Test-only. */
+export function resetAdminAnalyticsRateLimits(): void {
+  adminAnalyticsReadIpAttempts.clear();
+  adminAnalyticsReadAccountAttempts.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -784,9 +1122,10 @@ function isThrottled(times: number[], windowStart: number): boolean {
  * stale failures but records NONE (only recordAuthFailure does). It DOES emit the
  * auth_failures_total{kind="throttled"} observability signal when the outcome is a
  * lockout rejection (allowed false), so /metrics can count throttled attempts.
- * That count is exact only under an assumption every current caller honors: the
- * three callers (server/auth_routes.ts, server/discord.ts, server/main.ts) all
- * gate on the result and reject the request when allowed is false, so one
+ * That count is exact only under an assumption every caller honors (today:
+ * server/auth_routes.ts, server/discord.ts, server/main.ts, server/apple_auth.ts,
+ * and the wallet re-auth pre-check in server/wallet.ts): every caller gates on
+ * the result and rejects the request when allowed is false, so one
  * lockout-outcome check equals one rejected attempt. A future caller that only
  * inspects the status without rejecting must split this predicate instead of
  * reusing it, or the metric would over-count. allowed is false once the account

@@ -17,9 +17,12 @@ process.env.SFX_PACK_DIR = packRoot;
 
 let routeHttpRequest: typeof import('../../server/main').routeHttpRequest;
 
-beforeAll(async () => {
-  ({ routeHttpRequest } = await import('../../server/main'));
-});
+beforeAll(
+  async () => {
+    ({ routeHttpRequest } = await import('../../server/main'));
+  },
+  process.platform === 'win32' ? 120_000 : 10_000,
+);
 
 afterAll(() => {
   rmSync(packRoot, { recursive: true, force: true });

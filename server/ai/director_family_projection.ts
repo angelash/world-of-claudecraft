@@ -71,8 +71,18 @@ export function familyDirectorProjectionFor(
       add('directorProjection:mortalFear', 0.02, 0.3 + intensity * 0.18);
     }
   } else if (isFoodTrace(proposal, tags, mood)) {
-    if (family === 'beast' || family === 'mudfin' || family === 'reptile' || family === 'troll' || family === 'ogre') {
-      add('directorProjection:scavengerScent', 0.32 + intensity * 0.16, family === 'beast' ? 0.04 : 0.01);
+    if (
+      family === 'beast' ||
+      family === 'mudfin' ||
+      family === 'reptile' ||
+      family === 'troll' ||
+      family === 'ogre'
+    ) {
+      add(
+        'directorProjection:scavengerScent',
+        0.32 + intensity * 0.16,
+        family === 'beast' ? 0.04 : 0.01,
+      );
     } else if (family === 'spider') {
       add('directorProjection:preyPattern', 0.2 + intensity * 0.1, 0.02);
     } else if (family === 'humanoid' || family === 'burrower') {
@@ -116,20 +126,24 @@ export function familyDirectorProjectionFor(
     }
   }
 
-  const traitBoost = input.individualTier === 'singularity' ? 0.08 : input.individualTier === 'quirk' ? 0.04 : 0;
+  const traitBoost =
+    input.individualTier === 'singularity' ? 0.08 : input.individualTier === 'quirk' ? 0.04 : 0;
   if (traitBoost > 0) {
     const traits = input.individualTraits ?? [];
     if (traits.includes('omenSensitive') || traits.includes('stargazer')) {
       curiosity += traitBoost;
-      if (!projectionTags.includes('directorProjection:individualOmen')) projectionTags.push('directorProjection:individualOmen');
+      if (!projectionTags.includes('directorProjection:individualOmen'))
+        projectionTags.push('directorProjection:individualOmen');
     }
     if (traits.includes('cowardly')) {
       fear += traitBoost;
-      if (!projectionTags.includes('directorProjection:individualFear')) projectionTags.push('directorProjection:individualFear');
+      if (!projectionTags.includes('directorProjection:individualFear'))
+        projectionTags.push('directorProjection:individualFear');
     }
     if (traits.includes('collector')) {
       curiosity += traitBoost * 0.8;
-      if (!projectionTags.includes('directorProjection:individualCollector')) projectionTags.push('directorProjection:individualCollector');
+      if (!projectionTags.includes('directorProjection:individualCollector'))
+        projectionTags.push('directorProjection:individualCollector');
     }
   }
 
@@ -149,13 +163,15 @@ function projectionReasonTags(
   family: MobFamily,
   projectionTags: readonly string[],
 ): string[] {
-  return [...new Set([
-    ...projectionTags,
-    `director:${proposal.intent}`,
-    `family:${family}`,
-    `directorRisk:${proposal.risk}`,
-    ...proposal.reasonTags,
-  ])].slice(0, 8);
+  return [
+    ...new Set([
+      ...projectionTags,
+      `director:${proposal.intent}`,
+      `family:${family}`,
+      `directorRisk:${proposal.risk}`,
+      ...proposal.reasonTags,
+    ]),
+  ].slice(0, 8);
 }
 
 function taggedMood(tags: ReadonlySet<string>): string | null {
@@ -170,22 +186,30 @@ function isDeathPressure(
   tags: ReadonlySet<string>,
   mood: string | null,
 ): boolean {
-  return proposal.intent === 'raiseCampCaution'
-    || mood === 'haunted'
-    || mood === 'dread'
-    || tags.has('trace:cursed')
-    || tags.has('trace:singularity')
-    || tags.has('bossMemory:wipe');
+  return (
+    proposal.intent === 'raiseCampCaution' ||
+    mood === 'haunted' ||
+    mood === 'dread' ||
+    tags.has('trace:cursed') ||
+    tags.has('trace:singularity') ||
+    tags.has('bossMemory:wipe')
+  );
 }
 
-function isFoodTrace(proposal: AiWorldDirectorProposal, tags: ReadonlySet<string>, mood: string | null): boolean {
+function isFoodTrace(
+  proposal: AiWorldDirectorProposal,
+  tags: ReadonlySet<string>,
+  mood: string | null,
+): boolean {
   return proposal.intent === 'echoTrace' && (mood === 'hungry' || tags.has('trace:food'));
 }
 
-function isValueRumor(proposal: AiWorldDirectorProposal, tags: ReadonlySet<string>, mood: string | null): boolean {
-  return proposal.intent === 'nudgeNpcRumor'
-    || mood === 'covetous'
-    || tags.has('trace:valuable');
+function isValueRumor(
+  proposal: AiWorldDirectorProposal,
+  tags: ReadonlySet<string>,
+  mood: string | null,
+): boolean {
+  return proposal.intent === 'nudgeNpcRumor' || mood === 'covetous' || tags.has('trace:valuable');
 }
 
 function isMortalSocial(family: MobFamily): boolean {

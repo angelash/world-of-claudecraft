@@ -3,16 +3,16 @@ import type { ItemDef, MobFamily } from '../../src/sim/types';
 import { FAMILY_SEMANTICS, MOB_FAMILIES } from './family_semantics';
 import { itemSemanticFor } from './item_interest';
 import { objectInspectionLineIds } from './object_reactions';
+import type { AiAgentProfile } from './profiles';
 import {
   AI_AGENT_PROFILES,
   GENERIC_NPC_AI_PROFILE,
   GENERIC_OBJECT_AI_PROFILE,
   profileFor,
 } from './profiles';
-import type { AiAgentProfile } from './profiles';
 import { SCENE_ANCHORS } from './scene_semantics';
-import { worldTraceLineId } from './world_traces';
 import type { AiWorldTraceKind } from './world_traces';
+import { worldTraceLineId } from './world_traces';
 
 export const REQUIRED_ITEM_SEMANTIC_IDS = [
   'roasted_boar',
@@ -23,7 +23,13 @@ export const REQUIRED_ITEM_SEMANTIC_IDS = [
   'gravecaller_sigil',
 ] as const;
 
-const TRACE_KINDS: readonly AiWorldTraceKind[] = ['singularity', 'cursed', 'food', 'valuable', 'generic'];
+const TRACE_KINDS: readonly AiWorldTraceKind[] = [
+  'singularity',
+  'cursed',
+  'food',
+  'valuable',
+  'generic',
+];
 
 export interface AiContentCoverageReport {
   families: {
@@ -158,25 +164,36 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
   const semanticsWithoutContent = expected.filter((family) => !inContent.includes(family));
   const familiesMissingDepth = expected.filter((family) => !familyHasDepth(family));
   const familiesWithInvalidMoodBias = expected.filter((family) => !familyMoodBiasIsValid(family));
-  const templateCountByFamily = Object.fromEntries(expected.map((family) => [family, 0])) as Record<MobFamily, number>;
+  const templateCountByFamily = Object.fromEntries(expected.map((family) => [family, 0])) as Record<
+    MobFamily,
+    number
+  >;
   for (const mob of Object.values(MOBS)) templateCountByFamily[mob.family] += 1;
 
   const interactiveNpcIds = interactiveAiNpcIds();
-  const missingInteractiveProfiles = interactiveNpcIds
-    .filter((npcId) => profileFor('npc', npcId).id === GENERIC_NPC_AI_PROFILE.id);
-  const authoredNpcProfiles = AI_AGENT_PROFILES
-    .filter((profile) => profile.appliesTo.some((target) => target.kind === 'npc'));
+  const missingInteractiveProfiles = interactiveNpcIds.filter(
+    (npcId) => profileFor('npc', npcId).id === GENERIC_NPC_AI_PROFILE.id,
+  );
+  const authoredNpcProfiles = AI_AGENT_PROFILES.filter((profile) =>
+    profile.appliesTo.some((target) => target.kind === 'npc'),
+  );
   const authoredNpcProfilesMissingSceneAffinities = authoredNpcProfiles
-    .filter((profile) => !profile.sceneAffinities
-      || profile.sceneAffinities.likesTags.length < 3
-      || profile.sceneAffinities.avoidsTags.length < 2
-      || profile.sceneAffinities.commentsOnTags.length < 3)
+    .filter(
+      (profile) =>
+        !profile.sceneAffinities ||
+        profile.sceneAffinities.likesTags.length < 3 ||
+        profile.sceneAffinities.avoidsTags.length < 2 ||
+        profile.sceneAffinities.commentsOnTags.length < 3,
+    )
     .map((profile) => profile.id)
     .sort();
   const authoredNpcProfilesMissingItemInterest = authoredNpcProfiles
-    .filter((profile) => !profile.itemInterest
-      || profile.itemInterest.attractedToTags.length < 4
-      || profile.itemInterest.avoidsTags.length < 2)
+    .filter(
+      (profile) =>
+        !profile.itemInterest ||
+        profile.itemInterest.attractedToTags.length < 4 ||
+        profile.itemInterest.avoidsTags.length < 2,
+    )
     .map((profile) => profile.id)
     .sort();
   const authoredNpcProfilesMissingTimeWeatherSensitivity = authoredNpcProfiles
@@ -184,76 +201,108 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
     .map((profile) => profile.id)
     .sort();
   const authoredNpcProfilesWithThinMemory = authoredNpcProfiles
-    .filter((profile) => profile.socialMemory.style.trim().length === 0
-      || profile.socialMemory.recognitionLineId.trim().length === 0
-      || profile.socialMemory.rumorLineId.trim().length === 0
-      || (profile.socialMemory.questRumorLineId?.trim().length ?? 0) === 0)
+    .filter(
+      (profile) =>
+        profile.socialMemory.style.trim().length === 0 ||
+        profile.socialMemory.recognitionLineId.trim().length === 0 ||
+        profile.socialMemory.rumorLineId.trim().length === 0 ||
+        (profile.socialMemory.questRumorLineId?.trim().length ?? 0) === 0,
+    )
     .map((profile) => profile.id)
     .sort();
 
-  const anchorsMissingSemanticObjects = SCENE_ANCHORS
-    .filter((anchor) => anchor.semanticObjects.length === 0)
-    .map((anchor) => anchor.id);
-  const anchorsMissingTags = SCENE_ANCHORS
-    .filter((anchor) =>
-      anchor.biomeTags.length === 0
-      || anchor.locationTags.length === 0
-      || anchor.structureTags.length === 0
-      || anchor.environmentalTags.length === 0)
-    .map((anchor) => anchor.id);
-  const anchorsMissingTagDepth = SCENE_ANCHORS
-    .filter((anchor) =>
-      anchor.biomeTags.length < 2
-      || anchor.locationTags.length < 2
-      || anchor.structureTags.length < 2
-      || anchor.environmentalTags.length < 3)
-    .map((anchor) => anchor.id);
-  const semanticObjectsMissingTags = SCENE_ANCHORS
-    .flatMap((anchor) => anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, tags: object.tags })))
+  const anchorsMissingSemanticObjects = SCENE_ANCHORS.filter(
+    (anchor) => anchor.semanticObjects.length === 0,
+  ).map((anchor) => anchor.id);
+  const anchorsMissingTags = SCENE_ANCHORS.filter(
+    (anchor) =>
+      anchor.biomeTags.length === 0 ||
+      anchor.locationTags.length === 0 ||
+      anchor.structureTags.length === 0 ||
+      anchor.environmentalTags.length === 0,
+  ).map((anchor) => anchor.id);
+  const anchorsMissingTagDepth = SCENE_ANCHORS.filter(
+    (anchor) =>
+      anchor.biomeTags.length < 2 ||
+      anchor.locationTags.length < 2 ||
+      anchor.structureTags.length < 2 ||
+      anchor.environmentalTags.length < 3,
+  ).map((anchor) => anchor.id);
+  const semanticObjectsMissingTags = SCENE_ANCHORS.flatMap((anchor) =>
+    anchor.semanticObjects.map((object) => ({
+      anchorId: anchor.id,
+      objectId: object.id,
+      tags: object.tags,
+    })),
+  )
     .filter((object) => object.tags.length === 0)
     .map((object) => `${object.anchorId}:${object.objectId}`);
-  const semanticObjectsMissingTagDepth = SCENE_ANCHORS
-    .flatMap((anchor) => anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, tags: object.tags })))
+  const semanticObjectsMissingTagDepth = SCENE_ANCHORS.flatMap((anchor) =>
+    anchor.semanticObjects.map((object) => ({
+      anchorId: anchor.id,
+      objectId: object.id,
+      tags: object.tags,
+    })),
+  )
     .filter((object) => object.tags.length < 3)
     .map((object) => `${object.anchorId}:${object.objectId}`);
-  const semanticObjectsMissingFeatureTags = SCENE_ANCHORS
-    .flatMap((anchor) => anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, featureTags: object.featureTags })))
+  const semanticObjectsMissingFeatureTags = SCENE_ANCHORS.flatMap((anchor) =>
+    anchor.semanticObjects.map((object) => ({
+      anchorId: anchor.id,
+      objectId: object.id,
+      featureTags: object.featureTags,
+    })),
+  )
     .filter((object) => object.featureTags.length < 2)
     .map((object) => `${object.anchorId}:${object.objectId}`);
-  const semanticObjectsMissingAffordanceTags = SCENE_ANCHORS
-    .flatMap((anchor) => anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, affordanceTags: object.affordanceTags })))
+  const semanticObjectsMissingAffordanceTags = SCENE_ANCHORS.flatMap((anchor) =>
+    anchor.semanticObjects.map((object) => ({
+      anchorId: anchor.id,
+      objectId: object.id,
+      affordanceTags: object.affordanceTags,
+    })),
+  )
     .filter((object) => object.affordanceTags.length < 2)
     .map((object) => `${object.anchorId}:${object.objectId}`);
-  const semanticObjectsMissingAnchorOverlap = SCENE_ANCHORS
-    .flatMap((anchor) => {
-      const anchorTags = new Set([
-        ...anchor.biomeTags,
-        ...anchor.locationTags,
-        ...anchor.structureTags,
-        ...anchor.environmentalTags,
-      ]);
-      return anchor.semanticObjects.map((object) => ({ anchorId: anchor.id, objectId: object.id, tags: object.tags, anchorTags }));
-    })
+  const semanticObjectsMissingAnchorOverlap = SCENE_ANCHORS.flatMap((anchor) => {
+    const anchorTags = new Set([
+      ...anchor.biomeTags,
+      ...anchor.locationTags,
+      ...anchor.structureTags,
+      ...anchor.environmentalTags,
+    ]);
+    return anchor.semanticObjects.map((object) => ({
+      anchorId: anchor.id,
+      objectId: object.id,
+      tags: object.tags,
+      anchorTags,
+    }));
+  })
     .filter((object) => !object.tags.some((tag) => object.anchorTags.has(tag)))
     .map((object) => `${object.anchorId}:${object.objectId}`);
 
   const missingRequiredItems = REQUIRED_ITEM_SEMANTIC_IDS.filter((itemId) => !ITEMS[itemId]);
-  const requiredItemsMissingSignals = REQUIRED_ITEM_SEMANTIC_IDS
-    .filter((itemId) => ITEMS[itemId])
-    .filter((itemId) => semanticSignalCount(itemId) < 2);
+  const requiredItemsMissingSignals = REQUIRED_ITEM_SEMANTIC_IDS.filter(
+    (itemId) => ITEMS[itemId],
+  ).filter((itemId) => semanticSignalCount(itemId) < 2);
   const discardableItemIds = Object.values(ITEMS)
     .filter(isDiscardableForAi)
     .map((item) => item.id)
     .sort();
-  const discardableItemsMissingSignals = discardableItemIds
-    .filter((itemId) => semanticSignalCount(itemId) < 2);
+  const discardableItemsMissingSignals = discardableItemIds.filter(
+    (itemId) => semanticSignalCount(itemId) < 2,
+  );
   const importantItemsMissingSignals = Object.values(ITEMS)
     .filter((item) => isDiscardableForAi(item) && isImportantForAi(item))
     .map((item) => item.id)
     .sort()
     .filter((itemId) => semanticSignalCount(itemId) < 2);
 
-  const authoredProfiles = [...AI_AGENT_PROFILES, GENERIC_NPC_AI_PROFILE, GENERIC_OBJECT_AI_PROFILE];
+  const authoredProfiles = [
+    ...AI_AGENT_PROFILES,
+    GENERIC_NPC_AI_PROFILE,
+    GENERIC_OBJECT_AI_PROFILE,
+  ];
   const lineIds = unique([
     ...authoredProfiles.flatMap(profileLineIds),
     ...objectInspectionLineIds(),
@@ -281,7 +330,10 @@ export function aiContentCoverageReport(): AiContentCoverageReport {
     },
     scenes: {
       anchorTotal: SCENE_ANCHORS.length,
-      semanticObjectTotal: SCENE_ANCHORS.reduce((sum, anchor) => sum + anchor.semanticObjects.length, 0),
+      semanticObjectTotal: SCENE_ANCHORS.reduce(
+        (sum, anchor) => sum + anchor.semanticObjects.length,
+        0,
+      ),
       anchorsMissingSemanticObjects,
       anchorsMissingTags,
       anchorsMissingTagDepth,
@@ -315,27 +367,38 @@ export function aiContentReviewChecklist(
       label: 'Mob family semantics',
       issues: [
         ...report.families.missingSemantics.map((family) => `missingSemantics:${family}`),
-        ...report.families.semanticsWithoutContent.map((family) => `semanticsWithoutContent:${family}`),
+        ...report.families.semanticsWithoutContent.map(
+          (family) => `semanticsWithoutContent:${family}`,
+        ),
         ...report.families.familiesMissingDepth.map((family) => `missingDepth:${family}`),
         ...report.families.familiesWithInvalidMoodBias.map((family) => `invalidMoodBias:${family}`),
         ...report.families.expected
           .filter((family) => report.families.templateCountByFamily[family] <= 0)
           .map((family) => `noTemplate:${family}`),
       ],
-      reviewPrompt: 'When adding a mob family or template, verify family instincts, scene amplifiers, suppressors, item tags, visible behaviors, mood bias, and at least one content template.',
+      reviewPrompt:
+        'When adding a mob family or template, verify family instincts, scene amplifiers, suppressors, item tags, visible behaviors, mood bias, and at least one content template.',
     }),
     reviewItem({
       id: 'interactive-npc-profiles',
       label: 'Interactive NPC profiles',
       issues: [
         ...report.npcs.missingInteractiveProfiles.map((id) => `missingProfile:${id}`),
-        ...report.npcs.authoredNpcProfilesMissingSceneAffinities.map((id) => `thinSceneAffinities:${id}`),
+        ...report.npcs.authoredNpcProfilesMissingSceneAffinities.map(
+          (id) => `thinSceneAffinities:${id}`,
+        ),
         ...report.npcs.authoredNpcProfilesMissingItemInterest.map((id) => `thinItemInterest:${id}`),
-        ...report.npcs.authoredNpcProfilesMissingTimeWeatherSensitivity.map((id) => `missingTimeWeather:${id}`),
+        ...report.npcs.authoredNpcProfilesMissingTimeWeatherSensitivity.map(
+          (id) => `missingTimeWeather:${id}`,
+        ),
         ...report.npcs.authoredNpcProfilesWithThinMemory.map((id) => `thinMemory:${id}`),
-        ...validation.issues.map((issue) => `${issue.code}:${issue.profileId}${issue.targetTemplateId ? `:${issue.targetTemplateId}` : ''}`),
+        ...validation.issues.map(
+          (issue) =>
+            `${issue.code}:${issue.profileId}${issue.targetTemplateId ? `:${issue.targetTemplateId}` : ''}`,
+        ),
       ],
-      reviewPrompt: 'When adding a quest, vendor, market, or named NPC, verify a non-generic living-world profile, scene and item interests, time and weather sensitivity, memory lineIds, and canon taboos.',
+      reviewPrompt:
+        'When adding a quest, vendor, market, or named NPC, verify a non-generic living-world profile, scene and item interests, time and weather sensitivity, memory lineIds, and canon taboos.',
     }),
     reviewItem({
       id: 'scene-semantic-anchors',
@@ -347,10 +410,15 @@ export function aiContentReviewChecklist(
         ...report.scenes.semanticObjectsMissingTags.map((id) => `missingObjectTags:${id}`),
         ...report.scenes.semanticObjectsMissingTagDepth.map((id) => `thinObjectTags:${id}`),
         ...report.scenes.semanticObjectsMissingFeatureTags.map((id) => `thinFeatureTags:${id}`),
-        ...report.scenes.semanticObjectsMissingAffordanceTags.map((id) => `thinAffordanceTags:${id}`),
-        ...report.scenes.semanticObjectsMissingAnchorOverlap.map((id) => `missingAnchorOverlap:${id}`),
+        ...report.scenes.semanticObjectsMissingAffordanceTags.map(
+          (id) => `thinAffordanceTags:${id}`,
+        ),
+        ...report.scenes.semanticObjectsMissingAnchorOverlap.map(
+          (id) => `missingAnchorOverlap:${id}`,
+        ),
       ],
-      reviewPrompt: 'When adding a zone, subscene, house, camp, gate, dungeon door, or semantic object, verify tags, featureTags, affordanceTags, anchor overlap, danger cues, and time or weather readability.',
+      reviewPrompt:
+        'When adding a zone, subscene, house, camp, gate, dungeon door, or semantic object, verify tags, featureTags, affordanceTags, anchor overlap, danger cues, and time or weather readability.',
     }),
     reviewItem({
       id: 'discardable-item-semantics',
@@ -361,13 +429,15 @@ export function aiContentReviewChecklist(
         ...report.items.discardableItemsMissingSignals.map((id) => `thinDiscardSignals:${id}`),
         ...report.items.importantItemsMissingSignals.map((id) => `thinImportantSignals:${id}`),
       ],
-      reviewPrompt: 'When adding a discardable, quest, rare, tool, valuable, food, weapon, relic, or odd object, verify item tags, smell tags, danger tags, and value signals.',
+      reviewPrompt:
+        'When adding a discardable, quest, rare, tool, valuable, food, weapon, relic, or odd object, verify item tags, smell tags, danger tags, and value signals.',
     }),
     reviewItem({
       id: 'ai-lineid-registration',
       label: 'AI lineId registration',
       issues: report.lineIds.referenced.length === 0 ? ['noReferencedAiLineIds'] : [],
-      reviewPrompt: 'When adding AI speech or fallback lines, verify every hudChrome.aiSpeech.* id is registered and covered by localization drift tests.',
+      reviewPrompt:
+        'When adding AI speech or fallback lines, verify every hudChrome.aiSpeech.* id is registered and covered by localization drift tests.',
     }),
   ];
   return {
@@ -433,7 +503,10 @@ function profilePreviewRow(profile: AiAgentProfile): AiProfilePreviewRow {
   ]);
   return {
     id: profile.id,
-    appliesTo: profile.appliesTo.map((target) => ({ kind: target.kind, templateId: target.templateId })),
+    appliesTo: profile.appliesTo.map((target) => ({
+      kind: target.kind,
+      templateId: target.templateId,
+    })),
     personaExcerpt: excerpt(profile.persona, PERSONA_EXCERPT_MAX),
     canonSensitive: profile.canonSensitive,
     fallbackLineId: profile.fallbackLineId,
@@ -467,13 +540,17 @@ function profileMissingAuthoringFields(profile: AiAgentProfile): string[] {
   if (profile.knowledgeScope.length < 4) missing.push('knowledgeScope');
   if (profile.tabooTopics.length < 2) missing.push('tabooTopics');
   if (profile.socialMemory.style.trim().length === 0) missing.push('socialMemory.style');
-  if (profile.socialMemory.recognitionLineId.trim().length === 0) missing.push('socialMemory.recognitionLineId');
-  if (profile.socialMemory.rumorLineId.trim().length === 0) missing.push('socialMemory.rumorLineId');
-  if ((profile.socialMemory.questRumorLineId?.trim().length ?? 0) === 0) missing.push('socialMemory.questRumorLineId');
+  if (profile.socialMemory.recognitionLineId.trim().length === 0)
+    missing.push('socialMemory.recognitionLineId');
+  if (profile.socialMemory.rumorLineId.trim().length === 0)
+    missing.push('socialMemory.rumorLineId');
+  if ((profile.socialMemory.questRumorLineId?.trim().length ?? 0) === 0)
+    missing.push('socialMemory.questRumorLineId');
   if (!profile.sceneAffinities) missing.push('sceneAffinities');
   if (!profile.itemInterest) missing.push('itemInterest');
   if (!profile.timeWeatherSensitivity) missing.push('timeWeatherSensitivity');
-  if (profile.timeWeatherSensitivity && !profileTimeWeatherIsValid(profile)) missing.push('timeWeatherSensitivity.range');
+  if (profile.timeWeatherSensitivity && !profileTimeWeatherIsValid(profile))
+    missing.push('timeWeatherSensitivity.range');
   return missing;
 }
 
@@ -489,16 +566,37 @@ function profileAuthoringIssues(): AiProfileAuthoringIssue[] {
     profileIds.add(profile.id);
 
     for (const field of profileMissingAuthoringFields(profile)) {
-      issues.push(issue('error', 'missingAuthoringField', profile.id, `Missing or thin authoring field: ${field}.`));
+      issues.push(
+        issue(
+          'error',
+          'missingAuthoringField',
+          profile.id,
+          `Missing or thin authoring field: ${field}.`,
+        ),
+      );
     }
 
     if (!profile.allowedLineIds.includes(profile.fallbackLineId)) {
-      issues.push(issue('error', 'fallbackNotAllowed', profile.id, 'Fallback lineId is not present in allowedLineIds.'));
+      issues.push(
+        issue(
+          'error',
+          'fallbackNotAllowed',
+          profile.id,
+          'Fallback lineId is not present in allowedLineIds.',
+        ),
+      );
     }
 
     for (const lineId of profileLineIds(profile)) {
       if (!lineId.startsWith('hudChrome.aiSpeech.')) {
-        issues.push(issue('error', 'invalidLineIdShape', profile.id, `LineId must use hudChrome.aiSpeech.*: ${lineId}.`));
+        issues.push(
+          issue(
+            'error',
+            'invalidLineIdShape',
+            profile.id,
+            `LineId must use hudChrome.aiSpeech.*: ${lineId}.`,
+          ),
+        );
       }
     }
 
@@ -506,31 +604,57 @@ function profileAuthoringIssues(): AiProfileAuthoringIssue[] {
       const targetKey = `${target.kind}:${target.templateId}`;
       const previousOwner = targetOwners.get(targetKey);
       if (previousOwner && previousOwner !== profile.id) {
-        issues.push(issue(
-          'error',
-          'duplicateProfileTarget',
-          profile.id,
-          `Target is already owned by profile ${previousOwner}.`,
-          target,
-        ));
+        issues.push(
+          issue(
+            'error',
+            'duplicateProfileTarget',
+            profile.id,
+            `Target is already owned by profile ${previousOwner}.`,
+            target,
+          ),
+        );
       }
       targetOwners.set(targetKey, profile.id);
 
       if (target.kind === 'npc' && !NPCS[target.templateId]) {
-        issues.push(issue('error', 'unknownNpcTarget', profile.id, 'NPC target does not exist in content data.', target));
+        issues.push(
+          issue(
+            'error',
+            'unknownNpcTarget',
+            profile.id,
+            'NPC target does not exist in content data.',
+            target,
+          ),
+        );
       }
       if (target.kind === 'mob' && !MOBS[target.templateId]) {
-        issues.push(issue('error', 'unknownMobTarget', profile.id, 'Mob target does not exist in content data.', target));
+        issues.push(
+          issue(
+            'error',
+            'unknownMobTarget',
+            profile.id,
+            'Mob target does not exist in content data.',
+            target,
+          ),
+        );
       }
     }
   }
 
   for (const npcId of interactiveAiNpcIds()) {
     if (profileFor('npc', npcId).id === GENERIC_NPC_AI_PROFILE.id) {
-      issues.push(issue('error', 'missingInteractiveProfile', GENERIC_NPC_AI_PROFILE.id, 'Interactive NPC resolves to the generic profile.', {
-        kind: 'npc',
-        templateId: npcId,
-      }));
+      issues.push(
+        issue(
+          'error',
+          'missingInteractiveProfile',
+          GENERIC_NPC_AI_PROFILE.id,
+          'Interactive NPC resolves to the generic profile.',
+          {
+            kind: 'npc',
+            templateId: npcId,
+          },
+        ),
+      );
     }
   }
 
@@ -553,11 +677,15 @@ function issue(
   };
 }
 
-function compareProfileAuthoringIssues(a: AiProfileAuthoringIssue, b: AiProfileAuthoringIssue): number {
+function compareProfileAuthoringIssues(
+  a: AiProfileAuthoringIssue,
+  b: AiProfileAuthoringIssue,
+): number {
   const severityOrder = severityRank(a.severity) - severityRank(b.severity);
   if (severityOrder !== 0) return severityOrder;
-  return `${a.code}:${a.profileId}:${a.targetTemplateId ?? ''}`
-    .localeCompare(`${b.code}:${b.profileId}:${b.targetTemplateId ?? ''}`);
+  return `${a.code}:${a.profileId}:${a.targetTemplateId ?? ''}`.localeCompare(
+    `${b.code}:${b.profileId}:${b.targetTemplateId ?? ''}`,
+  );
 }
 
 function severityRank(severity: AiProfileAuthoringIssueSeverity): number {
@@ -576,19 +704,26 @@ function profileLineIds(profile: AiAgentProfile): string[] {
 
 function semanticSignalCount(itemId: string): number {
   const semantic = itemSemanticFor(itemId);
-  return semantic.itemTags.length + semantic.smellTags.length + semantic.dangerTags.length + semantic.valueSignals.length;
+  return (
+    semantic.itemTags.length +
+    semantic.smellTags.length +
+    semantic.dangerTags.length +
+    semantic.valueSignals.length
+  );
 }
 
 function familyHasDepth(family: MobFamily): boolean {
   const semantics = FAMILY_SEMANTICS[family];
-  return semantics.baseInstincts.length >= 4
-    && semantics.sceneAmplifiers.length >= 4
-    && semantics.sceneSuppressors.length >= 3
-    && semantics.attractedItemTags.length >= 4
-    && semantics.avoidedItemTags.length >= 3
-    && semantics.likelyIntents.length >= 4
-    && semantics.visibleBehaviors.length >= 4
-    && semantics.speechStyle.trim().length > 0;
+  return (
+    semantics.baseInstincts.length >= 4 &&
+    semantics.sceneAmplifiers.length >= 4 &&
+    semantics.sceneSuppressors.length >= 3 &&
+    semantics.attractedItemTags.length >= 4 &&
+    semantics.avoidedItemTags.length >= 3 &&
+    semantics.likelyIntents.length >= 4 &&
+    semantics.visibleBehaviors.length >= 4 &&
+    semantics.speechStyle.trim().length > 0
+  );
 }
 
 function familyMoodBiasIsValid(family: MobFamily): boolean {
@@ -597,13 +732,19 @@ function familyMoodBiasIsValid(family: MobFamily): boolean {
 }
 
 function profileTimeWeatherIsValid(profile: AiAgentProfile): boolean {
-  const values = profile.timeWeatherSensitivity ? Object.values(profile.timeWeatherSensitivity) : [];
-  return values.length > 0 && values.every((value) => Number.isFinite(value) && value >= 0 && value <= 1);
+  const values = profile.timeWeatherSensitivity
+    ? Object.values(profile.timeWeatherSensitivity)
+    : [];
+  return (
+    values.length > 0 && values.every((value) => Number.isFinite(value) && value >= 0 && value <= 1)
+  );
 }
 
 function interactiveAiNpcIds(): string[] {
   return Object.values(NPCS)
-    .filter((npc) => npc.questIds.length > 0 || (npc.vendorItems?.length ?? 0) > 0 || npc.market === true)
+    .filter(
+      (npc) => npc.questIds.length > 0 || (npc.vendorItems?.length ?? 0) > 0 || npc.market === true,
+    )
     .map((npc) => npc.id)
     .sort();
 }
@@ -613,12 +754,14 @@ function isDiscardableForAi(item: ItemDef): boolean {
 }
 
 function isImportantForAi(item: ItemDef): boolean {
-  return item.kind === 'quest'
-    || item.kind === 'tool'
-    || item.quality === 'uncommon'
-    || item.quality === 'rare'
-    || item.quality === 'epic'
-    || item.sellValue >= 500;
+  return (
+    item.kind === 'quest' ||
+    item.kind === 'tool' ||
+    item.quality === 'uncommon' ||
+    item.quality === 'rare' ||
+    item.quality === 'epic' ||
+    item.sellValue >= 500
+  );
 }
 
 function excerpt(value: string, maxLength: number): string {

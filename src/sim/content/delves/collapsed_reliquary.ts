@@ -42,7 +42,7 @@ const SAINTLESS_HALL_SPAWNS = {
 const FINALE_SPAWNS = {
   id: 'boss',
   weight: 1,
-  // Dais face is at ~z=68 (dais z=80, r=12); spawn just south so Varric strides
+  // Dais face is at ~z=68 (dais z=80, r=12); spawn just south so Vandric strides
   // onto the platform as the encounter opens.
   spawns: [{ mobId: 'deacon_varric', x: 0, z: 72 }],
 };
@@ -104,7 +104,9 @@ export const COLLAPSED_RELIQUARY_DELVE: DelveDef = {
   minLevel: 7,
   suggestedPlayers: 2,
   maxPlayers: 2,
-  doorPos: { x: -5, z: -52 },
+  // Round 6e: matches the zone1 delveMarker moved to Mirror Lake in round 6b
+  // (the eject seat and shop range follow the visible mouth; was (-5,-52)).
+  doorPos: { x: -136, z: 112 },
   modules: ['reliquary_sunken_ossuary', 'reliquary_bell_niche', 'reliquary_saintless_hall'],
   moduleCount: [3, 3],
   finaleModuleId: 'reliquary_finale',

@@ -1,25 +1,50 @@
+import { GURGLEGREEN_CAULDRON_ID } from '../sim/content/gourdlight_eve';
+import { MUSTER_RACK_TEMPLATE_ID } from '../sim/content/mirefen_muster';
+import { FORGE_INTERACT_RANGE, FORGE_STATIONS } from '../sim/content/world_quest_forging';
+import { isInvestigationNpc } from '../sim/content/world_quest_investigation';
+import { isShadowNpc, SHADOW_NPC_ID } from '../sim/content/world_quest_shadow';
+import { isLootableBody } from '../sim/corpse_loot_state';
+import { ESCORTS } from '../sim/data';
+import { kitUsableNow } from '../sim/mob/trash_kit/encounter_use';
+import { isQuestGatedEntityHidden } from '../sim/quest_gated_entity';
 import {
   dist2d,
   EASTBROOK_NOTICEBOARD_INTERACTION_RADIUS,
   EASTBROOK_NOTICEBOARD_TEMPLATE_ID,
   type Entity,
   INTERACT_RANGE,
+  type InvSlot,
+  REALM_BUILDER_MONUMENT_INTERACT_RADIUS,
+  REALM_BUILDER_MONUMENT_TEMPLATE_ID,
 } from '../sim/types';
+import { investigationDisguiseHidden } from '../sim/world_quest_investigation_visibility';
+import { shadowGuardHidden } from '../sim/world_quest_shadow_visibility';
 import { t } from '../ui/i18n';
 import { tSim } from '../ui/sim_i18n';
 import type { IWorld } from '../world_api';
 import { corpseLootAvailability, localPartyMemberIds } from './corpse_loot_availability';
 import type { HoverCursorKind } from './cursors';
+import { decideEscortPress, handleEscortPress, isEscorteeEntity } from './escort_interact';
+import { carriesFirebottle, isTorchableHut } from './hut_torch';
 import type { InteractionOutcome } from './interaction_autorun';
 
 export interface PickInteractionWorld {
   player: IWorld['player'];
   playerId?: IWorld['playerId'];
-  partyInfo?: IWorld['partyInfo'];
   entities: IWorld['entities'];
   duelInfo?: IWorld['duelInfo'];
   arenaInfo?: IWorld['arenaInfo'];
+  bgInfo?: IWorld['bgInfo'];
+  // Local party roster for the corpse rights check; optional so party-less
+  // fixtures stay valid.
+  partyInfo?: IWorld['partyInfo'];
+  // Required for the escort arm below (see escort_interact.ts): a right-click is
+  // the other half of an escort run's only client entry point.
+  questLog: IWorld['questLog'];
+  worldQuestLog?: IWorld['worldQuestLog'];
+  worldQuestCycle?: IWorld['worldQuestCycle'];
   targetEntity(id: number | null): void;
+  interact(): void;
   enterDungeon(dungeonId: string): InteractionOutcome;
   leaveDungeon(): InteractionOutcome;
   pickUpObject(id: number): InteractionOutcome;
@@ -40,10 +65,28 @@ export function isAttackHoverTarget(e: Entity | undefined): boolean {
   return hoverCursorKind(e, -1, new Set()) === 'attack';
 }
 
+/**
+ * The entity ids the local player may attack in PvP right now: an active duel
+ * opponent, every active-arena enemy (plus the enemy Yumi cat), every
+ * opposing-team fighter of a live Thornhollow Fields match, and the PETS those
+ * enemies own. The one client mirror of the sim's `isHostileTo` PvP arms, so
+ * every attack affordance reading it (hover cursor, click marker, attack-move,
+ * attack-nearest, pad auto-target) agrees with what the server will accept.
+ *
+ * Enemy pets ride the set by ENTITY id because `isAttackableEntity` reads a mob
+ * as attackable only when wild-hostile or listed here, and an owned pet carries
+ * `hostile:false` for life (it is the sim that resolves a pet to its owner's
+ * hostility). Without this arm an enemy warlock's demon showed the friendly
+ * cursor, a gold click marker and the friendly-pet tooltip, and no mouse or pad
+ * affordance would engage it, in every PvP mode. `entities` is optional only so
+ * the lighter fixtures stay valid; every live caller hands the world's map.
+ */
 export function activePvpOpponentIds(
-  world: Pick<PickInteractionWorld, 'player' | 'playerId' | 'duelInfo' | 'arenaInfo'>,
+  world: Pick<PickInteractionWorld, 'player' | 'playerId' | 'duelInfo' | 'arenaInfo' | 'bgInfo'> &
+    Partial<Pick<PickInteractionWorld, 'entities'>>,
+  ids = new Set<number>(),
 ): Set<number> {
-  const ids = new Set<number>();
+  ids.clear();
   const selfId = world.playerId ?? world.player.id;
   if (world.duelInfo?.state === 'active' && world.duelInfo.otherPid !== selfId)
     ids.add(world.duelInfo.otherPid);
@@ -57,6 +100,22 @@ export function activePvpOpponentIds(
     // own cat stays out of the set, matching the sim hostility rule).
     const yumi = match.yumi;
     if (yumi) ids.add(yumi.team === 'A' ? yumi.yumiB.entityId : yumi.yumiA.entityId);
+  }
+  // Thornhollow Fields: the opposing TEAM is hostile for the whole live match
+  // (the countdown and the ended hold are combat-off, so neither lists anyone).
+  const bg = world.bgInfo?.match;
+  if (bg?.state === 'active') {
+    for (const row of bg.players) {
+      if (row.team !== bg.myTeam && row.pid !== selfId) ids.add(row.pid);
+    }
+  }
+  // Enemy-owned pets, resolved AFTER every player arm above so the owner set is
+  // complete. Iterating the map allocates nothing, which the per-frame hover
+  // caller relies on.
+  if (ids.size > 0 && world.entities) {
+    for (const e of world.entities.values()) {
+      if (e.kind === 'mob' && e.ownerId !== null && ids.has(e.ownerId)) ids.add(e.id);
+    }
   }
   return ids;
 }
@@ -98,33 +157,57 @@ export function isAttackableEntity(
   return e.kind === 'player' && activePvpOpponentSet.has(e.id);
 }
 
-/** Which game cursor to show when hovering an entity. */
+/** Which game cursor to show when hovering an entity. `carried` is the viewer's
+ *  bags, read only by the quest-item arm (a torchable mudfin hut). */
 export function hoverCursorKind(
   e: Entity | undefined,
   playerId: number,
   partyMemberIds: ReadonlySet<number>,
   activePvpOpponentSet: ReadonlySet<number> = new Set(),
+  carried?: readonly Pick<InvSlot, 'itemId' | 'count'>[],
 ): HoverCursorKind {
   if (!e) return 'default';
+  // A mudfin hut on "Back to the Shallows" wears the gear while the firebottle is in
+  // the bags: a click or the interact key throws it for you (hut_torch.ts), and the
+  // gear is the cue that says so before anyone reads the quest text.
+  if (isTorchableHut(e)) return carriesFirebottle(carried) ? 'gear' : 'default';
   if (isAttackableEntity(e, playerId, activePvpOpponentSet)) return 'attack';
   if (e.kind === 'npc') return 'friendly';
+  // An escortee is a quest NPC that happens to be mob-kind; hovering it must
+  // read as interactive, or the only cue that it can be talked to is gone.
+  if (isEscorteeEntity(e)) return 'friendly';
+  // A usable encounter body the player cannot attack (a Remembrance Candle in
+  // Morthen's Rite) is something to USE: the gauntlet says so where the plain
+  // arrow said nothing. An attackable one (a Soul Brazier) already returned
+  // the attack cursor above.
+  if (kitUsableNow(e)) return 'friendly';
+  // The muster's weapon rack is scenery that DOES something (a click lends a pike), and
+  // the gauntlet is the one cue that says so before anyone reads the prompt.
+  if (e.kind === 'object' && e.templateId === MUSTER_RACK_TEMPLATE_ID && e.lootable) {
+    return 'friendly';
+  }
+  // A standing Gurglegreen Cauldron is there to be drunk from (seasonal/toy_cauldron.ts).
+  if (e.kind === 'object' && e.objectItemId === GURGLEGREEN_CAULDRON_ID) return 'friendly';
   if (e.kind === 'player' && e.id !== playerId) return 'friendly';
   void partyMemberIds;
   return 'default';
 }
 
-export function isActivePvpOpponent(world: PickInteractionWorld, e: Entity): boolean {
-  return (
-    e.kind === 'player' &&
-    isAttackableEntity(e, world.playerId ?? world.player.id, activePvpOpponentIds(world))
-  );
-}
-
 /** Resolve the client-side range for a lootable object before dispatch or approach. */
 export function objectInteractionRange(entity: Pick<Entity, 'templateId'>): number {
-  return entity.templateId === EASTBROOK_NOTICEBOARD_TEMPLATE_ID
-    ? EASTBROOK_NOTICEBOARD_INTERACTION_RADIUS
-    : INTERACT_RANGE;
+  if (FORGE_STATIONS.some((station) => `ground_${station.objectItemId}` === entity.templateId))
+    return FORGE_INTERACT_RANGE;
+  if (entity.templateId === EASTBROOK_NOTICEBOARD_TEMPLATE_ID) {
+    return EASTBROOK_NOTICEBOARD_INTERACTION_RADIUS;
+  }
+  // Mirrors the sim's catchment (interaction.ts): a click from 4 to 5 yd walks
+  // the player closer instead of drawing the server's refusal, and the
+  // nearby-prompt slot cannot hand the monument the interact key in the band
+  // where the sim would give it to the mailbox.
+  if (entity.templateId === REALM_BUILDER_MONUMENT_TEMPLATE_ID) {
+    return REALM_BUILDER_MONUMENT_INTERACT_RADIUS;
+  }
+  return INTERACT_RANGE;
 }
 
 /** Whether an otherwise incomplete entity click represents a useful movement intent. */
@@ -139,8 +222,7 @@ export function shouldApproachPickedEntity(
   const d = dist2d(player.pos, entity.pos);
   if (entity.dead) {
     return (
-      entity.kind === 'mob' &&
-      entity.lootable &&
+      isLootableBody(entity) &&
       d > INTERACT_RANGE + 1 &&
       corpseLootAvailability(entity, player.id, harvestStateReliable, partyMemberIds).canOpen
     );
@@ -178,7 +260,17 @@ export function handlePickedEntity(
   const e = world.entities.get(id);
   if (!e) return false;
 
+  // Quest-gated mobs (Broodmother eggs) are inert scenery to a player not on the
+  // gating quest: not targetable or interactable until they take the quest.
+  if (
+    isQuestGatedEntityHidden(e, world.questLog) ||
+    investigationDisguiseHidden(e, world) ||
+    shadowGuardHidden(e, world)
+  )
+    return false;
+
   if (e.kind !== 'object') world.targetEntity(id);
+  if (e.kind === 'npc' && isShadowNpc(e.templateId) && e.id !== SHADOW_NPC_ID) return true;
 
   if (button === 2) {
     const d = dist2d(world.player.pos, e.pos);
@@ -200,7 +292,7 @@ export function handlePickedEntity(
         return true;
       }
       return world.pickUpObject(id);
-    } else if (e.kind === 'mob' && e.dead && e.lootable) {
+    } else if (isLootableBody(e)) {
       if (world.player.dead) {
         hud.showError(tSim('error.cantWhileDead'));
         return false;
@@ -239,13 +331,46 @@ export function handlePickedEntity(
           // command too); do not open the quest dialog client-side.
           hud.showError(tSim('error.cantWhileDead'));
           return false;
-        } else if (e.templateId === 'brother_halven' || e.templateId === 'brother_halven_marsh')
+        } else if (isInvestigationNpc(e.templateId)) {
+          world.interact();
+        } else if (e.templateId === 'brother_halven' || e.templateId === 'brother_halven_marsh') {
           hud.openDelveBoard(id);
-        else hud.openQuestDialog(id);
+        } else {
+          hud.openQuestDialog(id);
+        }
         return true;
       }
       hud.showError(t('questUi.errors.tooFar'));
       return false;
+    } else if (isEscorteeEntity(e)) {
+      // Escortees are mob-kind (the escort driver walks them), so they fall
+      // past the npc arm above and would otherwise land in the attackable
+      // branch below, which refuses them for being non-hostile: a right-click
+      // that only ever targeted. The verdict core decides start vs away.
+      // Range first, like the npc branch above: the player clicked HER, so an
+      // out-of-range click earns the too-far line (and the caller's
+      // shouldApproachPickedEntity then walks them over).
+      if (d > INTERACT_RANGE + 2) {
+        hud.showError(t('questUi.errors.tooFar'));
+        return false;
+      }
+      const verdict = decideEscortPress(
+        world.player.pos,
+        world.entities,
+        world.questLog,
+        world.worldQuestLog,
+      );
+      if (verdict.kind === 'none') return false;
+      if (verdict.kind === 'start') {
+        const escortDef = Object.values(ESCORTS).find(
+          (entry) => entry.npcMobId === e.templateId && entry.worldQuestId !== undefined,
+        );
+        if (escortDef) {
+          hud.openQuestDialog(verdict.entityId);
+          return true;
+        }
+      }
+      return handleEscortPress(world, hud, verdict, t('questUi.errors.escortAway'));
     } else if (
       isAttackableEntity(e, world.playerId ?? world.player.id, activePvpOpponentIds(world))
     ) {
@@ -273,7 +398,7 @@ export function handlePickedEntity(
         return true;
       }
       return world.pickUpObject(id);
-    } else if (e.kind === 'mob' && e.dead && e.lootable) {
+    } else if (isLootableBody(e)) {
       if (world.player.dead) {
         hud.showError(tSim('error.cantWhileDead'));
         return false;
@@ -296,12 +421,23 @@ export function handlePickedEntity(
       // left-click talks too — Mac trackpads make right-click a chore;
       // out of range it just targets (no error spam while exploring)
       const d = dist2d(world.player.pos, e.pos);
-      // No quest dialog while dead (the server refuses quest talk too); a ghost
-      // takes the Spirit Healer res via right-click or the death panel button.
+      // A ghost's left-click on the Pale Keeper talks to it as well: the raise is
+      // a conversation now (the ghost hint says "talk to the Pale Keeper"), so it
+      // routes through the same confirm gate as the right-click arm above.
+      if (d <= INTERACT_RANGE + 2 && e.templateId === 'spirit_healer' && world.player.ghost) {
+        hud.requestSpiritHealerResurrect();
+        return true;
+      }
+      // No quest dialog while dead (the server refuses quest talk too); the
+      // Keeper above is the one conversation a ghost has.
       if (d <= INTERACT_RANGE + 2 && !world.player.dead) {
-        if (e.templateId === 'brother_halven' || e.templateId === 'brother_halven_marsh')
+        if (isInvestigationNpc(e.templateId)) {
+          world.interact();
+        } else if (e.templateId === 'brother_halven' || e.templateId === 'brother_halven_marsh') {
           hud.openDelveBoard(id);
-        else hud.openQuestDialog(id);
+        } else {
+          hud.openQuestDialog(id);
+        }
         return true;
       }
     }

@@ -7,6 +7,163 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  exp_arcane_calligraphy: {
+    name: '흔들림 없는 손길',
+    desc: '이스트브룩 골짜기에서 비전 서예를 완료하세요.',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: '별빛에 쓰인 글',
+    desc: '이스트브룩 계곡의 비전 서예에서 골드 등급을 획득하세요.',
+    title: '룬소환사',
+  },
+  exp_dawnhold_castle: {
+    name: '정원의 열린 문',
+    desc: '던홀드 성을 찾아 햇살 가득한 정원 회랑을 거닐어 보세요.',
+  },
+  exp_the_last_keep: {
+    name: '고요한 회랑',
+    desc: '마지막 요새의 문을 지나 고요한 회랑을 걸어 보세요.',
+  },
+  pvp_bg_first_capture: {
+    name: '손에 쥔 깃발',
+    desc: '쏜할로우 평원에서 깃발을 탈취하십시오.',
+  },
+  pvp_bg_first_win: {
+    name: '쏜할로우 사수',
+    desc: '쏜할로우 평원 전장에서 승리하십시오.',
+  },
+  pvp_bg_wins_25: {
+    name: '쏜할로우의 수호자',
+    desc: '쏜할로우 평원 전장에서 25회 승리하십시오.',
+    title: '기수',
+  },
+  pvp_bg_captures_100: {
+    name: '백 개의 깃발',
+    desc: '쏜할로우 평원에서 평생 깃발 100개를 탈취하십시오.',
+  },
+  dgn_rift: {
+    name: '균열 방랑자',
+    desc: '층 우두머리를 처치해 균열을 정복하십시오.',
+  },
+  dgn_rift_s_rank: {
+    name: '균열 군주',
+    desc: '균열이 생성될 수 있는 가장 어려운 등급인 S등급 균열을 정복하십시오.',
+  },
+  col_reliquary_rank_2: {
+    name: '전리품 수호자',
+    desc: '성물고에서 큐레이터 등급 2를 달성하십시오 (고유 성물 10종 수록).',
+    title: '전리품 수호자',
+  },
+  col_reliquary_rank_3: {
+    name: '목록 편찬가',
+    desc: '성물고에서 큐레이터 등급 3을 달성하십시오 (고유 성물 25종 수록).',
+    title: '목록 편찬가',
+  },
+  col_reliquary_rank_4: {
+    name: '수석 큐레이터',
+    desc: '성물고에서 큐레이터 등급 4를 달성하십시오 (고유 성물 50종 수록).',
+    title: '수석 큐레이터',
+  },
+  col_reliquary_rank_5: {
+    name: '영원한 전리품',
+    desc: '성물고에서 큐레이터 등급 5를 달성하십시오 (고유 성물 100종 수록).',
+  },
+  pvp_honor_sergeant: {
+    name: '전열파쇄자',
+    desc: '평생 명예 10,000을 획득하십시오. 명예를 소비해도 계급은 사라지지 않습니다.',
+    title: '전열파쇄자',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: '전장약탈자',
+    desc: '평생 명예 40,000을 획득하십시오. 진짜 전쟁을 한 계절 치른 셈입니다.',
+    title: '전장약탈자',
+  },
+  pvp_honor_field_marshal: {
+    name: '전쟁왕관',
+    desc: '평생 명예 150,000을 획득하십시오. 어느 서버에서든 드물며, 마땅히 그래야 합니다.',
+    title: '전쟁왕관',
+  },
+  col_reliquary_complete: {
+    name: '위대한 성물고',
+    desc: '캐릭터가 간직할 수 있는 성물고의 모든 성물을 수록하십시오. 이후 목록이 늘어나도 이 기록은 사라지지 않습니다.',
+    title: '보물고의 큐레이터',
+  },
+  col_reliquary_conquerors: {
+    name: '정복자의 서가',
+    desc: '성물고의 정복자 서가에 있는 모든 성물을 수록하십시오. 이후 목록이 늘어나도 이 기록은 사라지지 않습니다.',
+    title: '보물고를 부순 자',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: '조명된 니트락시스',
+    desc: '영웅: 니트락시스 공격대 페이지를 성물고에서 조명하십시오.',
+    title: '니트락시스의 빛',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: '조명된 천자르',
+    desc: '천자르, 깨어나는 봉우리 페이지를 성물고에서 조명하십시오.',
+    title: '천자르의 빛',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: '조명된 성소',
+    desc: '영웅: 무덤고룡 성소 페이지를 성물고에서 조명하십시오.',
+    title: '성소의 빛',
+  },
+  chr_drakemaw_broodlord: {
+    name: '둥지 파괴자',
+    desc: '화산구의 둥지군주를 알 무더기 한복판에서, 포효와 가르기와 불길을 뚫고 처치하십시오.',
+  },
+  chr_maw_matriarch: {
+    name: '하늘의 침묵',
+    desc: '화산구의 어미 신드랄레스를 드레이크모 위 분화구 둥지에서 처치하십시오.',
+  },
+  chr_frostveil_gatherer: {
+    name: '계단식 수확',
+    desc: 'Frostveil에서 광맥, 나무 군락, 약초밭을 수확합니다.',
+  },
+  chr_frostveil_first_cast: {
+    name: '산중 호수의 첫 얼음',
+    desc: 'Frostveil의 물가에서 물고기를 낚습니다.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Amberfall의 수확',
+    desc: 'Amberfall에서 광맥, 나무 군락, 약초밭을 수확합니다.',
+  },
+  chr_amberfall_first_cast: {
+    name: '큰 늪의 한 마리',
+    desc: 'Amberfall의 물가에서 물고기를 낚습니다.',
+  },
+  chr_nightbloom_gatherer: {
+    name: '꿈꾸는 수확',
+    desc: 'Nightbloom에서 광맥, 나무 군락, 약초밭을 수확합니다.',
+  },
+  chr_nightbloom_first_cast: {
+    name: '달샘의 잔물결',
+    desc: 'Nightbloom의 물가에서 물고기를 낚습니다.',
+  },
+  chr_wraithwood_gatherer: {
+    name: '나무 지붕 아래 수확',
+    desc: 'Wraithwood에서 광맥, 나무 군락, 약초밭을 수확합니다.',
+  },
+  chr_wraithwood_first_cast: {
+    name: '거울 만의 한 투척',
+    desc: 'Wraithwood의 물가에서 물고기를 낚습니다.',
+  },
+  chr_palmreach_gatherer: {
+    name: '야자 해변의 수확',
+    desc: 'Palmreach에서 광맥, 나무 군락, 약초밭을 수확합니다.',
+  },
+  chr_palmreach_first_cast: {
+    name: '사파이어 석호에 던진 낚싯줄',
+    desc: 'Palmreach의 물가에서 물고기를 낚습니다.',
+  },
+  chr_evergarden_gatherer: {
+    name: '정원의 화단이 준 선물',
+    desc: 'Evergarden에서 광맥, 나무 군락, 약초밭을 수확합니다.',
+  },
+  chr_evergarden_first_cast: {
+    name: '꽃잎 연못의 한 투척',
+    desc: 'Evergarden의 물가에서 물고기를 낚습니다.',
+  },
   pvp_card_duel_first_win: {
     name: '패를 보여줘',
     desc: '카드 마스터에게서 카드 대결에 승리하십시오.',
@@ -47,7 +204,7 @@ export const table: DeedLocaleTable = {
   prog_herbalism_100: { name: '초원의 달인', desc: '약초 채집 숙련도 100을 달성하십시오.' },
   prog_master_gatherer: {
     name: '채집의 대가',
-    desc: '채광, 벌목, 약초 채집, 낚시 중 세 가지 이상에서 숙련도 100을 달성하십시오.',
+    desc: '채집 직업 세 가지의 숙련도를 100까지 올리십시오.',
   },
   prog_first_craft: { name: '손수 만든 물건', desc: '첫 제작을 성공적으로 완료하십시오.' },
   prog_craft_specialist: {
@@ -158,7 +315,7 @@ export const table: DeedLocaleTable = {
     title: '고룡을 쓰러뜨린 자',
   },
   dgn_sanctum_speed: {
-    name: '성소 질주',
+    name: '성소 경주',
     desc: '파티가 무덤고룡 성소를 차지한 뒤 15분 안에 무덤고룡 코르줄을 처치하십시오.',
   },
   dgn_nythraxis_gravebreaker: {
@@ -221,7 +378,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: '종은 침묵한다',
-    desc: '부제 바릭이 일으킨 장례 종지기를 모두 처치한 상태로 그를 물리치십시오.',
+    desc: '부제 반드릭이 일으킨 장례 종지기를 모두 처치한 상태로 그를 물리치십시오.',
   },
   dlv_nhalia_bells: {
     name: '종을 재우는 자',
@@ -234,7 +391,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: '골짜기 연대기, 제2장',
-    desc: '사울의 연대기 제2장을 끝마치십시오: 도적과 멀록과 광산의 해로운 짐승들을 처치하고, 소우필드에서 경기를 뛰고, 성물실에 도전하십시오.',
+    desc: '산적과 멀록, 광산의 해충을 처치하고 성물고에 도전하여 사울의 연대기 두 번째 장을 완료하세요.',
   },
   chr_vale_chapter_iii: {
     name: '골짜기의 연대기',
@@ -251,8 +408,8 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_packbreaker: { name: '무리를 흩는 자', desc: '10초 안에 숲늑대 3마리를 처치하십시오.' },
   chr_vale_cup_debut: {
+    desc: '소필드에서 열리는 베일 컵 경기에 출전해 공을 터치하십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '구리 양동이 도전자',
-    desc: '소우필드에서 열리는 골짜기 컵 경기에 나서서 공을 만져 보십시오.',
   },
   chr_vale_rares: {
     name: '골짜기의 공포',
@@ -297,12 +454,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: '쏜피크의 연대기',
-    desc: '산의 이야기를 끝까지 지켜보십시오: 고룡교단을 무너뜨리고, 성소를 침묵시키고, 깨어나는 봉우리를 쓰러뜨리고, 바위산의 이름난 공포를 모두 처치하십시오.',
+    desc: '산의 이야기를 끝까지 지켜보십시오: 용서약단을 무너뜨리고, 성소를 침묵시키고, 깨어나는 봉우리를 쓰러뜨리고, 바위산의 이름난 공포를 모두 처치하십시오.',
     title: '쏜피크의 증인',
   },
   chr_peaks_sparring: {
     name: '성벽 훈련',
-    desc: '하이워치 위쪽의 훈련용 허수아비에게 총 1,000의 피해를 입히십시오.',
+    desc: '훈련용 허수아비에게 총 1,000의 피해를 입히십시오.',
   },
   chr_peaks_glimmer_cast: {
     name: '찬 물, 더 찬 빛',
@@ -386,7 +543,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: '단골 손님',
-    desc: '병참장교 벡스의 취급 물품 열 가지를 모두 발견하십시오.',
+    desc: '병참장교 벡스의 취급 장비 열 가지를 모두 발견하십시오.',
   },
   col_glimmerfin: {
     name: '희망의 반짝임',
@@ -436,64 +593,73 @@ export const table: DeedLocaleTable = {
   pvp_duel_first_win: { name: '결판은 밖에서', desc: '결투에서 승리하십시오.' },
   pvp_duel_grace: { name: '겸손의 가르침', desc: '결투에서 지되, 체면은 그럭저럭 지켜 내십시오.' },
   pvp_vcup_first_match: {
+    desc: '소필드에서 베일 컵 경기를 승패와 관계없이 끝까지 마치십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '그라운드에 선 첫발',
-    desc: '소우필드에서 골짜기 컵 경기 한 판을 승패에 관계없이 끝까지 치르십시오.',
   },
-  pvp_vcup_first_win: { name: '첫 우승컵', desc: '등급전 골짜기 컵 경기에서 승리하십시오.' },
+  pvp_vcup_first_win: {
+    name: '첫 우승컵',
+    desc: '평점제 베일 컵 경기에서 승리하십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
+  },
   pvp_vcup_wins_10: {
+    desc: '평점제 베일 컵 경기에서 10회 승리하십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '노련한 멧돼지공 선수',
-    desc: '등급전 골짜기 컵 경기에서 10회 승리하십시오.',
   },
   pvp_vcup_wins_25: {
+    desc: '평점제 베일 컵 경기에서 25회 승리하십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '멧돼지공의 전설',
-    desc: '등급전 골짜기 컵 경기에서 25회 승리하십시오.',
     title: '멧돼지공의 전설',
   },
-  pvp_vcup_first_goal: { name: '마수걸이 골', desc: '등급전 골짜기 컵 경기에서 골을 넣으십시오.' },
+  pvp_vcup_first_goal: {
+    name: '마수걸이 골',
+    desc: '평점제 베일 컵 경기에서 골을 넣으십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
+  },
   pvp_vcup_hat_trick: {
+    desc: '3대3 이상 부문의 평점제 베일 컵 경기에서 한 경기 세 골을 넣으십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '해트트릭의 주인공',
-    desc: '3대3 이상 부문의 등급전 골짜기 컵 경기 한 판에서 세 골을 넣으십시오.',
   },
   pvp_vcup_golden_goal: {
+    desc: '평점제 베일 컵 경기의 승패를 가르는 골든 골을 넣으십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '황금의 순간',
-    desc: '등급전 골짜기 컵 경기의 승부를 가르는 골든골을 넣으십시오.',
   },
   pvp_vcup_first_save: {
+    desc: '3대3 이상 부문의 평점제 베일 컵 경기에서 골키퍼로 선방하십시오. 손아귀를 시험할 만큼 빠른 슛만 인정되며, 살짝 잡은 공은 인정되지 않습니다. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '든든한 두 손',
-    desc: '등급전 골짜기 컵 경기에서 골키퍼로 선방에 성공하십시오.',
   },
   pvp_vcup_clean_sheet: {
+    desc: '3대3 이상 부문의 평점제 베일 컵 경기에서 골키퍼로 무실점 승리하십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '철벽 수문장',
-    desc: '골키퍼로 한 골도 내주지 않고 등급전 골짜기 컵 경기에서 승리하십시오.',
   },
   pvp_vcup_guild_win: {
+    desc: '길드의 깃발을 걸고 참가한 평점제 베일 컵 경기에서 승리하십시오. 베일 컵 경기는 더 이상 플레이할 수 없으므로 새로 획득할 수 없습니다.',
     name: '깃발을 위하여',
-    desc: '길드의 깃발 아래 출전한 등급전 골짜기 컵 경기에서 승리하십시오.',
   },
   pvp_fiesta_first_bout: {
+    desc: '승패와 관계없이 Fiesta 2대2 경기를 끝까지 치르십시오. Fiesta 경기는 더 이상 투기장 대기열에 나오지 않으므로 새로 획득할 수 없습니다.',
     name: '잔치의 불청객',
-    desc: '2대2 피에스타 한 판을 승패에 관계없이 끝까지 싸우십시오.',
   },
   pvp_fiesta_first_win: {
+    desc: 'Fiesta 2대2 경기에서 승리하십시오. Fiesta 경기는 더 이상 투기장 대기열에 나오지 않으므로 새로 획득할 수 없습니다.',
     name: '피에스타의 주인공',
-    desc: '2대2 피에스타 한 판에서 승리하십시오.',
   },
-  pvp_fiesta_double: { name: '연달아 둘', desc: '4초 안에 피에스타 처치 2회를 기록하십시오.' },
+  pvp_fiesta_double: {
+    name: '연달아 둘',
+    desc: '4초 안에 Fiesta 적을 두 번 쓰러뜨리십시오. Fiesta 경기는 더 이상 투기장 대기열에 나오지 않으므로 새로 획득할 수 없습니다.',
+  },
   pvp_fiesta_shutdown: {
+    desc: '3연승 이상의 기록을 가진 Fiesta 적을 쓰러뜨리십시오. Fiesta 경기는 더 이상 투기장 대기열에 나오지 않으므로 새로 획득할 수 없습니다.',
     name: '흥을 깨는 자',
-    desc: '연속 처치 3회 이상을 이어 가던 피에스타 상대를 쓰러뜨리십시오.',
   },
   pvp_fiesta_full_build: {
+    desc: '세 웨이브 모두에서 강화 하나를 고정한 채 Fiesta 경기에서 승리하십시오. Fiesta 경기는 더 이상 투기장 대기열에 나오지 않으므로 새로 획득할 수 없습니다.',
     name: '완벽한 채비',
-    desc: '세 웨이브 모두에서 증강을 확정한 채 피에스타 한 판에서 승리하십시오.',
   },
   pvp_fiesta_powerups: {
+    desc: '네 가지 링 강화, 속도의 악마, 거상, 달빛 장화, 광전사를 각각 한 번 이상 획득하십시오. Fiesta 경기는 더 이상 투기장 대기열에 나오지 않으므로 새로 획득할 수 없습니다.',
     name: '하나씩 전부',
-    desc: '링의 파워업 네 가지를 각각 한 번 이상 획득하십시오: 질주광, 거상, 달 장화, 광전사.',
   },
   pvp_fiesta_five_kills: {
+    desc: '한 번의 Fiesta 경기에서 적을 다섯 번 쓰러뜨리십시오. Fiesta 경기는 더 이상 투기장 대기열에 나오지 않으므로 새로 획득할 수 없습니다.',
     name: '잔치를 짊어지다',
-    desc: '피에스타 한 판에서 처치 5회를 기록하십시오.',
   },
   soc_first_party: { name: '함께라면 더 멀리', desc: '다른 플레이어와 함께 파티에 들어가십시오.' },
   soc_full_house: { name: '풀 하우스', desc: '다섯 명이 꽉 찬 파티로 던전을 끝까지 공략하십시오.' },
@@ -727,5 +893,482 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: '해체의 마당',
     desc: '장비 50점을 분해하여 원재료로 되돌리십시오.',
+  },
+  dgn_wildheart_basin: {
+    name: '분지의 반격',
+    desc: '야생심장 분지에서 분지의 목소리 줄가르를 처치하십시오.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: '영웅: 야생심장 분지',
+    desc: '영웅 난이도의 야생심장 분지에서 분지의 목소리 줄가르를 처치하십시오.',
+  },
+  chr_peaks_gatherer: {
+    name: '고지의 수확',
+    desc: '쏜피크 고지에서 광맥, 나무 군락, 약초밭을 하나씩 채집하십시오.',
+  },
+  chr_marsh_rares_ii: {
+    name: '폭식가, 셈에 오르다',
+    desc: '첫 셈에서 빠졌던 마이어펜 습지의 네 번째 이름난 공포, 폭식가 그럽조를 처치하십시오.',
+  },
+  chr_peaks_rares_ii: {
+    name: '바위에 새로 새겨진 이름들',
+    desc: '첫 셈에서 빠졌던 쏜피크 고지의 이름난 공포 둘, 늙은 크래그모와 파편군주 카직스를 처치하십시오.',
+  },
+  chr_gleamstag: {
+    name: '먼저 치지 않는 전설',
+    desc: '궁지에 몰리지 않는 한 공격하지 않는 희귀하고 은둔하는 정예, 빛나는 수사슴을 처치하십시오.',
+  },
+  chr_hollow_rares: {
+    name: '무리는 기억한다',
+    desc: '장막의 골짜기를 떠도는 희귀 우두머리 둘, 늙은 매로우셸과 무리의 첫째 아우렐혼을 처치하십시오.',
+  },
+  chr_willowfen_gatherer: {
+    name: '버들늪의 결실',
+    desc: '버들늪에서 광맥, 나무 군락, 약초밭을 하나씩 채집하십시오.',
+  },
+  chr_willowfen_first_cast: {
+    name: '수련 습지에 이는 물결',
+    desc: '버들늪의 물에서 물고기 한 마리를 낚으십시오.',
+  },
+  chr_galecrest_gatherer: {
+    name: '곶에서 거둔 것',
+    desc: '게일크레스트에서 광맥, 나무 군락, 약초밭을 하나씩 채집하십시오.',
+  },
+  chr_galecrest_first_cast: {
+    name: '거울 호수에 드리운 낚싯줄',
+    desc: '게일크레스트의 물에서 물고기 한 마리를 낚으십시오.',
+  },
+  chr_farshore_gatherer: {
+    name: '섬살이 채비',
+    desc: '먼바다 해안에서 광맥, 나무 군락, 약초밭을 하나씩 채집하십시오.',
+  },
+  chr_farshore_first_cast: {
+    name: '갈매기는 알고 있다',
+    desc: '먼바다 해안의 물에서 물고기 한 마리를 낚으십시오.',
+  },
+  prog_engineering_rare: {
+    name: '정밀 기계공학',
+    desc: '기계공학에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_alchemy_rare: {
+    name: '희귀한 빈티지',
+    desc: '연금술에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_cooking_rare: {
+    name: '잊지 못할 요리',
+    desc: '요리에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_leatherworking_rare: {
+    name: '정교한 무두질',
+    desc: '가죽세공에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_tailoring_rare: {
+    name: '명장의 바느질',
+    desc: '재봉에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_weaponcrafting_rare: {
+    name: '광택이 날 때까지 담금질',
+    desc: '무기 제작에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_armorcrafting_rare: {
+    name: '완벽을 향한 판금',
+    desc: '방어구 제작에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_jewelcrafting_rare: {
+    name: '광채를 향한 연마',
+    desc: '보석세공에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_jewelcrafting_50: {
+    name: '깎은 면과 세공',
+    desc: '보석세공 기술 50을 달성하십시오.',
+  },
+  prog_grandmaster_jewelcrafting: {
+    name: '보석세공 대가',
+    desc: '보석세공 기술 125를 달성하여 그 기예의 정점에 오르십시오.',
+    title: '보석세공 대가',
+  },
+  prog_inscription_rare: {
+    name: '고운 먹으로 쓰다',
+    desc: '각인에서 처음으로 희귀 등급 아이템을 제작하십시오.',
+  },
+  prog_inscription_50: {
+    name: '깃펜과 안료',
+    desc: '각인 기술 50을 달성하십시오.',
+  },
+  prog_grandmaster_inscription: {
+    name: '각인 대가',
+    desc: '각인 기술 125를 달성하여 그 기예의 정점에 오르십시오.',
+    title: '각인 대가',
+  },
+  prog_ready_for_an_adventure: {
+    name: '모험을 떠날 준비',
+    desc: '수련의 해안을 졸업하십시오. 섬의 모든 수업을 마친 뒤, 나룻배 종을 울려 이스트브룩으로 돌아가십시오.',
+  },
+  soc_strongbox_outfitter: {
+    name: '첫 번째 칸',
+    desc: '첫 은행 가방 칸을 해금하십시오.',
+  },
+  soc_four_bags_deep: {
+    name: '네 개의 칸',
+    desc: '네 개의 은행 가방 칸을 모두 해금하십시오.',
+  },
+  dgn_ignivar: {
+    name: '전령의 추락',
+    desc: '마지막 샘의 도가니에서 이그니바르, 마지막 불꽃의 전령을 처치하십시오.',
+  },
+  dgn_ignivar_heroic: {
+    name: '영웅: 전령의 추락',
+    desc: '영웅 난이도에서 이그니바르, 마지막 불꽃의 전령을 처치하십시오.',
+  },
+  dgn_varkhul: {
+    name: '대장간이 식다',
+    desc: '내부 용광로에서 마지막 불꽃의 대장장이 발쿨을 처치하십시오.',
+  },
+  dgn_varkhul_heroic: {
+    name: '영웅: 대장간이 식다',
+    desc: '영웅 난이도에서 마지막 불꽃의 대장장이 발쿨을 처치하십시오.',
+  },
+  dgn_varkhul_flawless: {
+    name: '꺼지지 않은 불씨',
+    desc: '공격대원이 단 한 명도 죽지 않고 영웅 난이도에서 마지막 불꽃의 대장장이 발쿨을 처치하십시오.',
+    title: '그을리지 않은 자',
+  },
+  hid_forgebreaker: {
+    name: '풀려난 샘',
+    desc: '화로파괴자를 직접 벼리고 완성된 망치를 가지고 메일린에게 돌아가세요.',
+  },
+  col_set_bramblehide: {
+    name: '루츠의 가시덤불가죽',
+    desc: '루츠의 가시덤불가죽의 모든 부위를 발견하십시오.',
+  },
+  col_deepest_cast: {
+    desc: 'Clockreel 낚싯대를 획득하십시오. 가장 깊은 어획물까지 닿는 유일한 낚싯대입니다.',
+
+    name: '가장 깊은 투척',
+  },
+  prog_first_planting: { desc: '텃밭에 첫 작물을 심으십시오.', name: '씨앗으로 시작하다' },
+  chr_vale_first_harvest: {
+    desc: '이스트브룩 골짜기의 밭에서 처음으로 잘 자란 작물을 수확하십시오.',
+
+    name: '골짜기의 첫 열매',
+  },
+  chr_marsh_first_harvest: {
+    desc: '마이어펜 습지의 밭에서 처음으로 잘 자란 작물을 수확하십시오.',
+    name: '이탄 속 새싹',
+  },
+  chr_peaks_first_harvest: {
+    desc: '쏜피크 고지의 밭에서 처음으로 잘 자란 작물을 수확하십시오.',
+    name: '바위산의 수확',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Evergarden의 밭에서 처음으로 잘 자란 작물을 수확하십시오.',
+
+    name: '낙원의 텃밭',
+  },
+  col_golden_harvest: {
+    desc: '황금 수확을 거두고 그 소식이 온 구역에 퍼지게 하십시오.',
+    name: '황금빛 수확',
+  },
+  prog_farming_100: {
+    desc: '농사 숙련도 100을 달성하십시오.',
+    name: '수확의 달인',
+    title: '수확의 달인',
+  },
+  col_farm_roster: {
+    desc: '네 정원에서 자라는 모든 작물을 수확하십시오.',
+    name: '모든 고랑을 채우다',
+  },
+  prog_field_to_feast: {
+    desc: '정점의 잔치를 요리하여 공격대 전체가 함께 먹을 수 있는 상을 차리십시오.',
+
+    name: '밭에서 잔치까지',
+  },
+  prog_legendmaker: {
+    desc: '창조의 증서로 완전해진 작품을 전설로 승격시키고, 그 작품만의 이름을 지어 주십시오.',
+
+    name: '전설을 빚는 자',
+  },
+  exp_harbor_to_harbor: {
+    name: '항구에서 항구로',
+    desc: '이스트브룩과 문레스트, 윅하버와 와이름 감시탑을 잇는 두 여객선을 각각 왕복하십시오.',
+  },
+  exp_forge_helper: {
+    name: '도움의 망치',
+    desc: '웜워치에서 대장장이 마라가 방패를 완성하도록 도우십시오.',
+  },
+  exp_last_barricade: {
+    name: '최후의 방벽',
+    desc: '언데드 무리에 맞서 숲길목을 지키십시오.',
+  },
+  exp_borrowed_face: {
+    name: '빌린 얼굴',
+    desc: '펜브리지 경비대에 숨은 침입자의 정체를 밝히고 처치하십시오.',
+  },
+  exp_windrider_slalom: {
+    name: '바람기수 슬라럼',
+    desc: '게일크레스트 협곡을 가로지르는 기계 활공기 활강을 완료하십시오.',
+  },
+  exp_duskweave_dispatches: {
+    name: '황혼결 명령서',
+    desc: '발레리의 마법 망토를 걸친 채 도적의 명령서를 되찾으십시오.',
+  },
+  exp_wisp_maze: {
+    name: '미로 속의 빛',
+    desc: '훔쳐 간 동전 주머니를 되찾고 상록 정원의 미로를 탈출하십시오.',
+  },
+  prog_rift_watch_trusted: {
+    name: '균열 감시단의 신뢰',
+    desc: '균열 감시단과 신뢰 단계에 도달하십시오.',
+  },
+  prog_church_order_trusted: {
+    name: '교단의 신뢰',
+    desc: '교단과 신뢰 단계에 도달하십시오.',
+  },
+  prog_automatons_trusted: {
+    name: '오토마톤의 신뢰',
+    desc: '오토마톤과 신뢰 단계에 도달하십시오.',
+  },
+  prog_rift_watch_champion: {
+    name: '균열 감시단의 챔피언',
+    desc: '균열 감시단과 챔피언 단계에 도달하십시오.',
+    title: '균열 파수꾼',
+  },
+  prog_church_order_champion: {
+    name: '교단의 챔피언',
+    desc: '교단과 챔피언 단계에 도달하십시오.',
+    title: '여명지기',
+  },
+  prog_automatons_champion: {
+    name: '오토마톤의 챔피언',
+    desc: '오토마톤과 챔피언 단계에 도달하십시오.',
+    title: '대장 명인',
+  },
+  prog_faction_champion_all: {
+    name: '모든 깃발의 챔피언',
+    desc: '균열 감시단, 교단, 오토마톤 모두와 챔피언 단계에 도달하십시오.',
+  },
+  exp_clue_first_casket: {
+    name: '보물 발견',
+    desc: '단서 두루마리 보물찾기 끝에서 파낸 보물 상자를 여십시오.',
+  },
+  exp_clue_ten_caskets: {
+    name: '보물 사냥꾼',
+    desc: '단서 두루마리 보물찾기 끝에서 파낸 보물 상자 10개를 여십시오.',
+    title: '보물 사냥꾼',
+  },
+  cmb_coinsack_caught: {
+    name: '현행범',
+    desc: '묻힌 보물에서 동전자루 좀도둑이 금화를 들고 도망치기 전에 처치하세요.',
+  },
+  exp_wisp_maze_hard: {
+    name: '그림자보다 밝게',
+    desc: '어려움 난이도에서 훔쳐 간 동전 주머니를 되찾고 상록 정원의 미로를 탈출하십시오.',
+  },
+  prog_titan: { name: '거인', desc: '평생 경험치를 총 10,000,000 획득하세요.', title: '거인' },
+  pvp_flag_1h: {
+    name: '대담한 자',
+    desc: '열린 세계나 PvP 경기에서 살아 있는 동안 세계 PvP를 켠 채 총 1시간 플레이하세요. 성역, PvE 인스턴스, 사망, 로그아웃은 진행을 일시 정지하며, PvP를 끄면 초기화됩니다. 획득한 칭호는 영구적으로 유지됩니다.',
+    title: '대담한 자',
+  },
+  pvp_flag_3h: {
+    name: '저항하는 자',
+    desc: '열린 세계나 PvP 경기에서 살아 있는 동안 세계 PvP를 켠 채 총 3시간 플레이하세요. 성역, PvE 인스턴스, 사망, 로그아웃은 진행을 일시 정지하며, PvP를 끄면 초기화됩니다. 획득한 칭호는 영구적으로 유지됩니다.',
+    title: '저항하는 자',
+  },
+  pvp_flag_6h: {
+    name: '겁 없는 자',
+    desc: '열린 세계나 PvP 경기에서 살아 있는 동안 세계 PvP를 켠 채 총 6시간 플레이하세요. 성역, PvE 인스턴스, 사망, 로그아웃은 진행을 일시 정지하며, PvP를 끄면 초기화됩니다. 획득한 칭호는 영구적으로 유지됩니다.',
+    title: '겁 없는 자',
+  },
+  pvp_flag_24h: {
+    name: '불굴의 자',
+    desc: '열린 세계나 PvP 경기에서 살아 있는 동안 세계 PvP를 켠 채 총 24시간 플레이하세요. 성역, PvE 인스턴스, 사망, 로그아웃은 진행을 일시 정지하며, PvP를 끄면 초기화됩니다. 획득한 칭호는 영구적으로 유지됩니다.',
+    title: '불굴의 자',
+  },
+  pvp_flag_168h: {
+    name: '불패의 자',
+    desc: '열린 세계나 PvP 경기에서 살아 있는 동안 세계 PvP를 켠 채 총 7일 플레이하세요. 성역, PvE 인스턴스, 사망, 로그아웃은 진행을 일시 정지하며, PvP를 끄면 초기화됩니다. 획득한 칭호는 영구적으로 유지됩니다.',
+    title: '불패의 자',
+  },
+  dgn_guild_first_contract: {
+    name: '계약 체결',
+    desc: '등불 회관의 주간 던전 계약을 하나 완수합니다.',
+  },
+  dgn_guild_ten_contracts: {
+    name: '게시판 단골',
+    desc: '등불 회관의 주간 던전 계약을 10개 완수합니다.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: '계약 베테랑',
+    desc: '등불 회관의 주간 던전 계약을 50개 완수합니다.',
+  },
+  feat_guild_writ_runner: {
+    name: '영장 전령',
+    desc: '등불 회관의 병참관 개릭 홀트에게서 등불 인장 6개로 구입했습니다.',
+    title: '영장 전령',
+  },
+  feat_guild_hallsworn: {
+    name: '회관의 맹세자',
+    desc: '등불 회관의 병참관 개릭 홀트에게서 등불 인장 14개로 구입했습니다.',
+    title: '회관의 맹세자',
+  },
+  feat_guild_of_lantern_hall: {
+    name: '등불 회관의 일원',
+    desc: '등불 회관의 병참관 개릭 홀트에게서 등불 인장 24개로 구입했습니다.',
+    title: '등불 회관의 일원',
+  },
+  cmb_balgath: {
+    name: '감독관의 종말',
+    desc: '묻힌 감독관을 고분으로 돌려보내세요.',
+  },
+  cmb_balgath_ten: {
+    name: '봉분은 아무것도 지키지 못한다',
+    desc: '묻힌 감독관을 10번 처치하세요.',
+  },
+  cmb_point_taken: {
+    name: '알아들은 창끝',
+    desc: '집결지 훈련장에서 짚 감독관의 등불을 끄고 판자에 온전한 타격을 가하세요.',
+  },
+  dgn_olen_buttress: {
+    name: '성벽을 지켜라',
+    desc: '튕겨 나오는 방벽이 두 번째 플레이어를 한 번도 맞히지 않게 하면서 기사대장 올렌을 처치하세요.',
+  },
+  dgn_ossick_moored: {
+    name: '안전한 항구',
+    desc: '아무도 익사의 구덩이로 끌려가지 않게 하면서 간수 오시크를 처치하세요.',
+  },
+  dgn_vael_beacon: {
+    name: '봉화의 빛으로',
+    desc: '안개 그림자를 하나도 터뜨리지 않고 안개엮는자 바엘을 처치하세요.',
+  },
+  dgn_turretback: {
+    name: '퇴거 통지',
+    desc: '아무도 유령의 측면 포격에 맞지 않게 하면서 난파선 선장을 처치하세요.',
+  },
+  dgn_selthe_pitch: {
+    name: '모든 목소리가 조화롭게',
+    desc: '모든 합창을 2명 이상이 나눠 맞고 독창이 다른 누구에게도 닿지 않게 하면서 성가대모 셀세를 처치하세요.',
+  },
+  dgn_colossus_mirror: {
+    name: '유리를 깨라',
+    desc: '모든 반영을 나타난 후 15초 안에 파괴하고 조수유리 거상을 처치하세요.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: '물 한 방울 없이',
+    desc: '아무도 조수 충돌에 맞지 않게 하면서 익사한 달의 화신 이솔레이를 처치하세요.',
+  },
+  dgn_mere_hydra: {
+    name: '모든 머리를 쓰러뜨려라',
+    desc: '호수 히드라의 머리 셋을 서로 10초 이내의 간격으로 처치하세요.',
+  },
+  dgn_crypt_knellwyrm: {
+    name: '머리카락 하나 그슬리지 않고',
+    desc: '아무도 장작더미 화염 비행에 타지 않게 하면서 조종룡을 처치하세요.',
+  },
+  dgn_turnkey_cage: {
+    name: '어떤 우리도 우릴 가두지 못한다',
+    desc: '아무도 철창에 짓눌리지 않게 하면서 감옥 열쇠지기를 처치하세요.',
+  },
+  dgn_beastmaster_apart: {
+    name: '접근 금지',
+    desc: '무리의 유대가 활성화된 시간을 합계 10초 미만으로 유지하며 송곳니 군주 야수조련사와 그의 거대 재규어를 처치하세요.',
+  },
+  dgn_gorgebloom_clean: {
+    name: '잡초 제거',
+    desc: '가시 싹이 하나도 자라지 않게 하면서 탐식화를 처치하세요.',
+  },
+  dgn_zulgar_uncaught: {
+    name: '한 번도 잡히지 않고',
+    desc: '아무도 짓이겨지지 않게 하면서 분지의 목소리 줄가르를 처치하세요.',
+  },
+  dgn_great_saurian: {
+    name: '쓰러진 거수',
+    desc: '거대 용각수와 가마 주술사를 서로 20초 이내의 간격으로 처치하세요.',
+  },
+  dgn_korgath_all_chains: {
+    name: '더 자비로운 최후',
+    desc: '사슬 넷을 모두 끊은 상태로 속박된 코르가스를 처치하세요.',
+  },
+  dgn_korgath_still_bound: {
+    name: '자물쇠는 버틴다',
+    desc: '사슬을 최소 2개 이상 한 번도 끊지 않고 영웅 난이도에서 속박된 코르가스를 처치하세요.',
+  },
+  dgn_velkhar_cold: {
+    name: '차가운 위안',
+    desc: '되살아난 뼈보행자가 하나도 두 번째로 일어나지 않게 하면서 대강령술사 벨카르를 처치하세요.',
+  },
+  dgn_korzul_thin_ice: {
+    name: '얇은 얼음',
+    desc: '호수의 얼음판 19개 중 최소 12개를 부수지 않고 무덤고룡 코르줄을 처치하세요.',
+  },
+  dgn_sledge_tusker: {
+    name: '차가운 화물',
+    desc: '아무도 짓밟기에 맞지 않게 하면서 썰매 끄는 거대엄니를 처치하세요.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: '마지막 구절',
+    desc: '창백한 성가대의 마지막 성가대장과 함께 익사한 달의 화신 이솔레이를 처치하세요.',
+    title: '성가대의 증인',
+  },
+  dgn_marrow_tidy: {
+    name: '단정한 교회 묘지',
+    desc: '모든 열린 무덤을 종 마당 가장자리에 배치한 상태로 성구지기 매로우를 처치하세요.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: '아무도 매달린 채 남지 않게',
+    desc: '얼어붙은 포옹에서 아무도 떨어뜨리지 않게 하면서 뼈서리의 귀부인을 처치하세요.',
+  },
+  dgn_ilvane_hush: {
+    name: '이제 조용히',
+    desc: '공허의 진혼곡이 아무도 맞히지 않게 하면서 성가대장 일베인을 처치하세요.',
+  },
+  dgn_morthen_candlelight: {
+    name: '모든 촛불에 불을',
+    desc: '잠들지 못한 결계가 나타난 후 20초 안에 추모의 초 넷을 모두 다시 밝힌 뒤 무덤부름 모르덴을 처치하세요.',
+  },
+  feat_gourdlight_doorsteps: {
+    name: '모든 문간',
+    desc: '고드라이트 축제의 밤 동안 세 마을에서 노크에 응답하는 모든 주민에게 사탕 안 주면 장난칠 거야를 외친다.',
+  },
+  feat_gourdlight_errands: {
+    name: '헤스터의 심부름꾼',
+    desc: '헤스터 고드윅이 매일 바꿔 주는 고드라이트 축제의 밤 심부름을 각각 한 번 이상 끝낸다.',
+  },
+  feat_gourdlight_frights: {
+    name: '세 마을을 놀래키다',
+    desc: '헤스터의 워! 심부름에서 세 마을 각각의 주민 한 명을 놀래킨다.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: '고드라이트, 처음부터 끝까지',
+    desc: '고드라이트 축제의 밤을 모두 해낸다: 올드 대치그린을 쓰러뜨리고, 유령 호박을 모두 찾고, 헤스터의 심부름을 모두 끝내고, 모든 문을 두드리고, 세 마을 각각에서 주민을 놀래킨다.',
+    title: '호박에 맹세한 자',
+  },
+  feat_gourdlight_guise: {
+    name: '고드라이트 변장',
+    desc: '고드라이트 축제의 밤 동안 멧돼지 초원 너머 밭에 있는 올드 대치그린에게서 조각한 호박 머리를 얻어 소유하세요.',
+  },
+  feat_old_thatchgrin: {
+    name: '그루터기와 재',
+    desc: '고드라이트 축제의 밤 동안 멧돼지 초원 너머 호박밭에서 올드 대치그린을 쓰러뜨리는 데 기여하세요.',
+  },
+  feat_title_gourdlit: {
+    name: '고드릿',
+    desc: '고드라이트 축제의 밤 동안 헤스터 고드윅에게 고드라이트 사탕으로 교환한 고드릿의 증서를 읽으세요.',
+    title: '고드릿',
+  },
+  feat_title_trickster: {
+    name: '장난꾼',
+    desc: '고드라이트 축제의 밤 동안 헤스터 고드윅에게 고드라이트 사탕으로 교환한 장난꾼의 증서를 읽으세요.',
+    title: '장난꾼',
+  },
+  feat_title_hollow_grinned: {
+    name: '텅 빈 미소를 지닌 자',
+    desc: '고드라이트 축제의 밤 동안 헤스터 고드윅에게 고드라이트 사탕으로 교환한 텅 빈 미소의 증서를 읽으세요.',
+    title: '텅 빈 미소를 지닌 자',
+  },
+  feat_pumpkin_hunter: {
+    name: '호박 사냥꾼',
+    desc: '고드라이트 축제의 밤 동안 세계 곳곳에 숨겨진 유령 호박을 모두 찾으세요.',
+    title: '공허한 자',
   },
 };

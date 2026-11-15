@@ -25,7 +25,7 @@
 // server, and in the headless RL env unchanged.
 
 import { adjacentCrafts, CRAFT_RING, oppositeCraft } from '../content/professions';
-import { COMBO_RECIPES } from '../content/recipes';
+import { ALL_RECIPES, COMBO_RECIPES } from '../content/recipes';
 import type { SimContext } from '../sim_context';
 import {
   type CraftSkills,
@@ -58,6 +58,13 @@ export interface ArchetypeState {
   // Progress toward the CURRENT switch's amends requirement (see
   // requiredAmendsProgress). Reset to 0 on every successful switch.
   amendsProgress: number;
+  // Jack of All Trades (issue #1296, the breadth attunement): true only when
+  // the character has attuned as Jack instead of an adjacent-pair archetype.
+  // Mutually exclusive with activeArchetype: a Jack's activeArchetype/
+  // pairedMajor/hobbyCraft stay null (see attuneJackOfAllTrades), and
+  // normalizeArchetypeState forces this false whenever activeArchetype is
+  // set, so the two identities can never both be live on the same save.
+  isJackOfAllTrades?: boolean;
 }
 
 /** A fresh character: no archetype chosen yet, never switched. */
@@ -69,6 +76,7 @@ export function emptyArchetypeState(): ArchetypeState {
     attunedPairs: [],
     switchCount: 0,
     amendsProgress: 0,
+    isJackOfAllTrades: false,
   };
 }
 
@@ -89,12 +97,16 @@ export function normalizeArchetypeState(
   if (state.activeArchetype !== null) {
     // The isAdjacent-or-redefault repair below CAN change pairedMajor when the
     // ring order changes between releases (v0.26.0 shipped this field, and the
-    // Professions 2.0 reorder breaks 3 of the 10 old default pairs). That never
-    // fires on a real save today for one reason only: every shipped build kept
-    // the acceptance quests retired, so no production save holds a non-null
-    // activeArchetype. THE INVARIANT THAT KEEPS THIS SAFE: the ring order and
-    // the live quest wiring ship together (both land in PR 2039); never wire
-    // the quests live in a release whose ring a later change intends to reorder.
+    // Professions 2.0 reorder broke 3 of the 10 old default pairs). The
+    // attunement quests are LIVE content now (zone1.ts), so attuned saves are
+    // producible the moment they ship: this repair arm is for corrupt or
+    // hand-edited rows ONLY, never a migration tool. THE INVARIANT THAT KEEPS
+    // IT SAFE: the ring order is FROZEN from the release that wired the
+    // quests live. A future reorder is a real save migration, not a content
+    // edit: it would flip pairedMajor on load, drop attunedPairs history
+    // below, and (via the tier-mail prune that runs right after this on the
+    // load path) silently reset acknowledged tiers for every attuned
+    // character.
     state.pairedMajor =
       typeof saved.pairedMajor === 'string' &&
       isCraftId(saved.pairedMajor) &&
@@ -105,10 +117,10 @@ export function normalizeArchetypeState(
     const savedHistory = Array.isArray(saved.attunedPairs) ? saved.attunedPairs : [];
     // Drop-by-design: any saved pair id not in the CURRENT ARCHETYPE_PAIR_TARGETS
     // is silently discarded here. Safe for the same reason as pairedMajor above:
-    // attunedPairs first ships WITH the reordered ring (and retired quests mean
-    // no shipped save carries profession state at all), so a pre-reorder
-    // canonical id cannot exist in production saves; anything unrecognized is a
-    // hand-edited or corrupt value, and losing it is the intended behavior.
+    // the ring is frozen from the release that wired the quests live, and
+    // attunedPairs first shipped WITH that ring, so a canonical id from some
+    // other ring order cannot exist in production saves; anything unrecognized
+    // is a hand-edited or corrupt value, and losing it is the intended behavior.
     // The current pair is re-derived and re-appended below, so an ACTIVE
     // attunement is never lost, only unrecognized history entries.
     state.attunedPairs = [...new Set(savedHistory.filter(isAdjacentPairTarget))];
@@ -121,6 +133,12 @@ export function normalizeArchetypeState(
         ? saved.hobbyCraft
         : defaultHobbyForPair(state.activeArchetype, state.pairedMajor, skills);
   }
+  // Mutually exclusive with activeArchetype by construction: a save can never
+  // load as both an archetype AND Jack, whatever hand-edited/corrupt value it
+  // carries (a real save can only ever set one, since attuneJackOfAllTrades
+  // and acceptArchetypeQuest/attuneArchetypePair each refuse while the other
+  // identity is already live).
+  state.isJackOfAllTrades = state.activeArchetype === null && saved.isJackOfAllTrades === true;
   if (
     typeof saved.switchCount === 'number' &&
     Number.isFinite(saved.switchCount) &&
@@ -136,6 +154,22 @@ export function normalizeArchetypeState(
     state.amendsProgress = saved.amendsProgress;
   }
   return state;
+}
+
+export type PersistedArchetypeState = Omit<ArchetypeState, 'isJackOfAllTrades'> & {
+  isJackOfAllTrades?: true;
+};
+
+export function serializeArchetypeState(state: ArchetypeState): PersistedArchetypeState {
+  return {
+    activeArchetype: state.activeArchetype,
+    pairedMajor: state.pairedMajor,
+    hobbyCraft: state.hobbyCraft,
+    attunedPairs: [...state.attunedPairs],
+    switchCount: state.switchCount,
+    amendsProgress: state.amendsProgress,
+    ...(state.isJackOfAllTrades ? { isJackOfAllTrades: true } : {}),
+  };
 }
 
 function isCraftId(id: string): boolean {
@@ -213,23 +247,106 @@ export function hobbyCandidatesForPair(activeArchetype: string, pairedMajor: str
   return [oppositeCraft(activeArchetype).id, oppositeCraft(pairedMajor).id];
 }
 
-/** Choose the higher retained-skill hobby, with ring order as the stable tie
- * break. This is used for first attunement and old-save backfill. */
-export function defaultHobbyForPair(
+// Craft ids with real, reachable content: at least one recipe in
+// content/recipes.ts (ALL_RECIPES) targets it, or it has an enchanting-style
+// action outside the recipe table (only enchanting itself, via disenchanting;
+// see professions/enchanting.ts). Enchanting now also ships recipes in
+// ALL_RECIPES, so its explicit entry is a redundancy that keeps the
+// disenchanting path counted even if those recipes move. Jewelcrafting counts
+// through the recipe arm too since its forge-bound base catalog landed
+// (JEWELCRAFTING_RECIPES, content/recipes.ts), and inscription followed with
+// its apothecary-bound catalog (INSCRIPTION_RECIPES, Masterwrought phase 06),
+// so every ring craft now has content and the soft-lock case this set guards
+// against is empty today; the guard stays because a future craft seat would
+// reopen it. Read once at module load: ALL_RECIPES is a static content
+// table, never mutated at runtime.
+const CRAFTS_WITH_CONTENT: ReadonlySet<string> = new Set([
+  ...ALL_RECIPES.map((recipe) => recipe.professionId),
+  'enchanting',
+]);
+
+/**
+ * The content-set injection seam for the hobby default, and the ONLY way to
+ * reach `chooseDefaultHobby`'s content arm with a set other than the live
+ * derived one.
+ *
+ * WHY IT IS A BRANDED TYPE rather than a defaulted parameter. Since the phase
+ * 06 inscription catalog every ring craft has content, so no live pair can
+ * exercise the content arm; it stays because a future craft seat with no
+ * recipes reopens the soft-lock it guards against, and without an injection
+ * seam it would be untestable dead-looking code. The seam used to be a
+ * defaulted fourth parameter on `defaultHobbyForPair` kept off production call
+ * sites by PROSE alone. It is type-enforced now, two ways at once:
+ * `defaultHobbyForPair` takes exactly three parameters (a production caller
+ * that passes a content set is a compile error, not a review finding), and the
+ * injecting entry point below demands a value only `hobbyContentProbe` can
+ * mint (a bare `Set<string>` is a compile error too, so the entry point cannot
+ * be mistaken for an ordinary overload).
+ */
+declare const hobbyContentProbeBrand: unique symbol;
+export type HobbyContentProbe = {
+  readonly crafts: ReadonlySet<string>;
+} & { readonly [hobbyContentProbeBrand]: true };
+
+/** Mint a content-set probe for the hobby default's content arm. TEST-ONLY by
+ *  contract: no `src/` or `server/` module may import it, which
+ *  `tests/professions_archetype.test.ts` pins by scanning the tree. */
+export function hobbyContentProbe(crafts: Iterable<string>): HobbyContentProbe {
+  // The brand is a declared-only symbol with no runtime value, so the cast is
+  // how a probe is minted; nothing ever reads the brand.
+  return { crafts: new Set(crafts) } as unknown as HobbyContentProbe;
+}
+
+/** Choose the higher retained-skill hobby; among an equal-skill (typically
+ * zero-skill) tie, prefer a candidate with real content (`contentSet`) over
+ * one with none, and only then fall back to ring order as the final stable tie
+ * break. Shared body behind the two entry points below; the ONLY difference
+ * between them is which content set they hand it. */
+function chooseDefaultHobby(
   activeArchetype: string,
   pairedMajor: string,
-  skills: CraftSkills = {},
+  skills: CraftSkills,
+  contentSet: ReadonlySet<string>,
 ): string | null {
   const candidates = hobbyCandidatesForPair(activeArchetype, pairedMajor);
   if (candidates.length === 0) return null;
   return [...candidates].sort((a, b) => {
     const skillDelta = (skills[b] ?? 0) - (skills[a] ?? 0);
     if (skillDelta !== 0) return skillDelta;
+    const contentDelta = Number(contentSet.has(b)) - Number(contentSet.has(a));
+    if (contentDelta !== 0) return contentDelta;
     return (
       CRAFT_RING.findIndex((craft) => craft.id === a) -
       CRAFT_RING.findIndex((craft) => craft.id === b)
     );
   })[0];
+}
+
+/** The production entry point: the hobby default over the LIVE derived content
+ * set. Used for first attunement and old-save backfill.
+ * Deliberately NOT applied in hobbyCandidatesForPair: the explicit
+ * hobby-switch quest still needs every ring-opposite candidate reachable by
+ * player choice, content or not.
+ *
+ * Three parameters, and that arity is the seam (see HobbyContentProbe above):
+ * a caller here can never choose the content set. */
+export function defaultHobbyForPair(
+  activeArchetype: string,
+  pairedMajor: string,
+  skills: CraftSkills = {},
+): string | null {
+  return chooseDefaultHobby(activeArchetype, pairedMajor, skills, CRAFTS_WITH_CONTENT);
+}
+
+/** The same decision over an INJECTED content set, for the arm live content
+ *  cannot reach. TEST-ONLY by contract, like the probe it demands. */
+export function defaultHobbyForPairWithContentProbe(
+  activeArchetype: string,
+  pairedMajor: string,
+  skills: CraftSkills,
+  content: HobbyContentProbe,
+): string | null {
+  return chooseDefaultHobby(activeArchetype, pairedMajor, skills, content.crafts);
 }
 
 // Escalation formula for the repeatable "make amends" quest: a modest linear
@@ -333,6 +450,28 @@ export function hobbyCraftFor(ctx: SimContext, pid: number): string | null {
 const COMMON_CEILING_TIER = 0;
 const RARE_CEILING_TIER = 2;
 
+// Jack of All Trades breadth ceiling (issue #1296): every one of the ten
+// crafts empowers up to this tier and no further, so a Jack reaches a
+// working, decent version of every craft but a legendary-tier masterwork
+// bump on none (tier 4 on the masterwork quality ladder, masterwork.ts,
+// sits two rungs above this). Deliberately the SAME value as
+// RARE_CEILING_TIER, the pre-attunement default every craft already carries
+// before an archetype is ever chosen: per the maintainer's own framing when
+// this issue was parked ("the ceiling machinery supports a uniform mid-tier
+// cap"), Jack formalizes that existing rare-across-all-crafts default into a
+// real, permanent, chosen identity (see attuneJackOfAllTrades) rather than
+// introducing a second number. The design doc's own Open Questions section
+// leaves the exact magnitude genuinely open ("the Jack of All Trades ceiling
+// (uncommon vs rare across all ten)", docs/design/professions-system section
+// 21-tbd.html); this is the working value pending a resolved number, the
+// same posture wheel.ts's TIER_SKILL_STEP takes on its own open tuning
+// question. Because a real Jack's activeArchetype/pairedMajor/hobbyCraft are
+// always null (see ArchetypeState.isJackOfAllTrades), archetypeCeilingFor's
+// existing `activeArchetype === null` branch already returns this exact
+// value for every craft with zero further change: this constant exists so
+// the connection is named and testable, not implicit.
+export const JACK_CEILING_TIER = RARE_CEILING_TIER;
+
 /** The archetype-derived half of the empowerment ceiling for one craft: no
  *  cap (Infinity) for either of the player's two majors (`activeArchetype` or
  *  `pairedMajor`), capped at "rare" for the hobby (the opposite craft on
@@ -342,7 +481,12 @@ const RARE_CEILING_TIER = 2;
  *  `activeArchetype` is (see ArchetypeState); passing a non-null
  *  `activeArchetype` with a null `pairedMajor` (a malformed/pre-pair state
  *  that skipped `normalizeArchetypeState`) degrades to the single-craft
- *  reading rather than throwing. */
+ *  reading rather than throwing. Doubles as the Jack of All Trades breadth
+ *  ceiling (see JACK_CEILING_TIER above) once a player has attuned Jack: a
+ *  real Jack's activeArchetype is always null, and the `activeArchetype ===
+ *  null` branch below already returns JACK_CEILING_TIER (the same value),
+ *  so every existing caller (crafting.ts, enchanting.ts, combo_eligibility.ts)
+ *  handles a Jack crafter correctly with no isJackOfAllTrades parameter. */
 export function archetypeCeilingFor(
   activeArchetype: string | null,
   pairedMajor: string | null,
@@ -449,7 +593,11 @@ export function craftCeiling(
 export function acceptArchetypeQuest(ctx: SimContext, pid: number, craftId: string): boolean {
   const meta = ctx.players.get(pid);
   if (!meta || !isCraftId(craftId)) return false;
-  if (meta.archetype.activeArchetype !== null) return false;
+  // A Jack of All Trades is refused here too (#1296): switching FROM Jack TO
+  // an archetype is a real identity change the design doc leaves genuinely
+  // open (mechanics/costs TBD), so this legacy one-time hook must not let it
+  // happen for free just because activeArchetype also reads null for a Jack.
+  if (meta.archetype.activeArchetype !== null || meta.archetype.isJackOfAllTrades) return false;
   meta.archetype.activeArchetype = craftId;
   meta.archetype.pairedMajor = defaultPairedMajor(craftId);
   meta.archetype.hobbyCraft = defaultHobbyForPair(
@@ -477,6 +625,13 @@ export function attuneArchetypePair(
   if (!meta || !pair) return false;
   const [activeArchetype, pairedMajor] = pair;
   const state = meta.archetype;
+  // #1296: a Jack's activeArchetype/pairedMajor are null, the same shape as a
+  // never-attuned character, so without this guard a Jack could attune an
+  // archetype pair through the ordinary "first attunement" path for free.
+  // Switching FROM Jack is a real identity change the design doc leaves
+  // genuinely open (mechanics/costs TBD), so it is refused here, not silently
+  // allowed.
+  if (state.isJackOfAllTrades) return false;
   const current = archetypePairId(state.activeArchetype ?? '', state.pairedMajor);
   if (current === target) return false;
   const seen = state.attunedPairs.includes(target);
@@ -497,6 +652,9 @@ export function canAttuneArchetypePair(
   mode: AttunementMode,
 ): boolean {
   if (!isAdjacentPairTarget(target)) return false;
+  // Mirrors the guard in attuneArchetypePair above (#1296): a Jack must not
+  // read as eligible to attune an archetype pair through the ordinary path.
+  if (state.isJackOfAllTrades) return false;
   if (archetypePairId(state.activeArchetype ?? '', state.pairedMajor) === target) return false;
   const seen = state.attunedPairs.includes(target);
   return mode === 'new' ? !seen : seen;
@@ -543,5 +701,50 @@ export function switchArchetype(ctx: SimContext, pid: number, craftId: string): 
   if (pairId && !state.attunedPairs.includes(pairId)) state.attunedPairs.push(pairId);
   state.switchCount += 1;
   state.amendsProgress = 0;
+  return true;
+}
+
+// Jack of All Trades (issue #1296, the breadth attunement): a player's two
+// highest-capability crafts decide what the rare-tier "you have arrived"
+// offer looks like. Adjacent, and the pair forms an archetype (the
+// acceptance/pair-attunement quests above). NOT adjacent, and the offer is
+// Jack instead: the one sanctioned exception to the at-most-two-majors cap.
+// This module only implements the mechanical eligibility check and the
+// state transition itself (mirroring acceptArchetypeQuest's one-time-only
+// shape); the actual attunement QUEST content, and any switching flow either
+// direction between Jack and an archetype, are explicitly out of scope here
+// (the design doc's own Open Questions section leaves both TBD).
+
+/** Whether `skills` currently qualifies for the Jack of All Trades offer: the
+ *  two highest-capability crafts (wheel.ts tierCapability, ties broken by
+ *  CRAFT_RING order for a stable read) are both at least at the rare tier
+ *  AND are NOT ring-adjacent. Pure read over flat skill state; does not
+ *  consult ArchetypeState, so it stays meaningful even for a character who
+ *  has never attuned anything yet (the same "reach rare in two crafts"
+ *  moment that offers an archetype when the top two happen to be adjacent). */
+export function isEligibleForJackOfAllTrades(skills: CraftSkills): boolean {
+  const ranked = [...CRAFT_RING]
+    .map((craft) => ({ id: craft.id, tier: tierCapability(skills, craft.id) }))
+    .sort((a, b) => b.tier - a.tier);
+  const [first, second] = ranked;
+  if (!first || !second) return false;
+  if (first.tier < RARE_CEILING_TIER || second.tier < RARE_CEILING_TIER) return false;
+  return !isAdjacent(first.id, second.id);
+}
+
+/** Quest-validated first attunement into Jack of All Trades (mirrors
+ *  acceptArchetypeQuest's one-time shape): sets isJackOfAllTrades and clears
+ *  every archetype field, refusing (no side effect) unless the character has
+ *  never chosen ANY identity yet (activeArchetype null AND not already
+ *  Jack). Does not itself re-check isEligibleForJackOfAllTrades: like
+ *  acceptArchetypeQuest/attuneArchetypePair, eligibility is the calling quest
+ *  content's job to validate at accept and turn-in (see the module comment
+ *  on ArchetypeState). Returns whether the attunement happened. */
+export function attuneJackOfAllTrades(ctx: SimContext, pid: number): boolean {
+  const meta = ctx.players.get(pid);
+  if (!meta) return false;
+  const state = meta.archetype;
+  if (state.activeArchetype !== null || state.isJackOfAllTrades) return false;
+  state.isJackOfAllTrades = true;
   return true;
 }

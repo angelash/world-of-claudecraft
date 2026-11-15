@@ -14,11 +14,7 @@ import type {
   AiProviderTimingStep,
   AiSpeech,
 } from './ai_types';
-import {
-  codexLockdownArgs,
-  createCodexIsolation,
-  removeCodexIsolation,
-} from './codex_isolation';
+import { codexLockdownArgs, createCodexIsolation, removeCodexIsolation } from './codex_isolation';
 import { buildCodexDecisionPrompt } from './prompt_builder';
 
 export interface CodexCliProviderOptions {
@@ -127,7 +123,16 @@ export const AI_DECISION_OUTPUT_SCHEMA: Record<string, unknown> = {
       required: ['shortReason', 'usedPlayerInput', 'safetyNotes'],
     },
   },
-  required: ['schemaVersion', 'jobId', 'entityRef', 'ttlMs', 'confidence', 'speech', 'intents', 'audit'],
+  required: [
+    'schemaVersion',
+    'jobId',
+    'entityRef',
+    'ttlMs',
+    'confidence',
+    'speech',
+    'intents',
+    'audit',
+  ],
 };
 
 const ENTITY_KINDS = new Set<AiEntityKind>(['npc', 'mob', 'object']);
@@ -164,7 +169,10 @@ export class CodexCliProvider implements AiProvider {
   constructor(options: CodexCliProviderOptions = {}) {
     this.codexBin = options.codexBin ?? process.env.CODEX_BIN ?? resolveCodexBinary();
     this.timeoutMs = options.timeoutMs ?? envPositiveInt('AI_CODEX_TIMEOUT_MS', DEFAULT_TIMEOUT_MS);
-    this.maxStderrBytes = Math.max(0, Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES));
+    this.maxStderrBytes = Math.max(
+      0,
+      Math.floor(options.maxStderrBytes ?? DEFAULT_MAX_STDERR_BYTES),
+    );
     this.codexArgsPrefix = options.codexArgsPrefix ?? [];
     this.sourceEnv = options.sourceEnv ?? process.env;
   }
@@ -205,7 +213,10 @@ export class CodexCliProvider implements AiProvider {
         recordStep('readOutputMs', 'read structured output', stepStartedAt);
       } catch (err) {
         if (result.lastAgentMessage) raw = result.lastAgentMessage;
-        else throw new Error(`Codex CLI completed but did not write a structured decision: ${errorMessage(err)}`);
+        else
+          throw new Error(
+            `Codex CLI completed but did not write a structured decision: ${errorMessage(err)}`,
+          );
       }
       stepStartedAt = performance.now();
       const decision = parseCodexDecisionOutput(raw);
@@ -295,17 +306,26 @@ export class CodexCliProvider implements AiProvider {
         if (text.length > remaining) stderrTruncated = true;
       });
       child.on('error', (err) => {
-        finish(new Error(`Codex CLI could not start (${this.codexBin}): ${errorMessage(err)}. Set CODEX_BIN to a working Codex executable.`));
+        finish(
+          new Error(
+            `Codex CLI could not start (${this.codexBin}): ${errorMessage(err)}. Set CODEX_BIN to a working Codex executable.`,
+          ),
+        );
       });
       child.on('close', (code, signal) => {
         if (code === 0) finish();
-        else finish(new Error(codexWorkerExitMessage({
-          stderr,
-          stderrTruncated,
-          code,
-          signal,
-          structuredErrorSummary: state.structuredErrorSummary,
-        })));
+        else
+          finish(
+            new Error(
+              codexWorkerExitMessage({
+                stderr,
+                stderrTruncated,
+                code,
+                signal,
+                structuredErrorSummary: state.structuredErrorSummary,
+              }),
+            ),
+          );
       });
     });
   }
@@ -329,14 +349,18 @@ function parseCodexJsonEvent(line: string, state: CodexJsonEventState): void {
   const record = payload as Record<string, unknown>;
   const type = typeof record.type === 'string' ? record.type : '';
   if (type === 'item.completed') {
-    const item = record.item && typeof record.item === 'object' ? record.item as Record<string, unknown> : null;
+    const item =
+      record.item && typeof record.item === 'object'
+        ? (record.item as Record<string, unknown>)
+        : null;
     if (item?.type === 'agent_message' && typeof item.text === 'string' && item.text.trim()) {
       state.lastAgentMessage = item.text.trim();
     }
     return;
   }
   if (type === 'error' || type === 'turn.failed') {
-    state.structuredErrorSummary = summarizeCodexStructuredError(record) ?? state.structuredErrorSummary;
+    state.structuredErrorSummary =
+      summarizeCodexStructuredError(record) ?? state.structuredErrorSummary;
   }
 }
 
@@ -399,9 +423,7 @@ function codexWorkerExitMessage(input: {
   signal: NodeJS.Signals | null;
   structuredErrorSummary: string | null;
 }): string {
-  const status = input.code === null
-    ? `signal ${input.signal ?? 'unknown'}`
-    : `code ${input.code}`;
+  const status = input.code === null ? `signal ${input.signal ?? 'unknown'}` : `code ${input.code}`;
   const details = [
     input.structuredErrorSummary,
     input.stderr.trim(),
@@ -442,14 +464,19 @@ export function parseCodexDecisionOutput(raw: string): AiDecisionV1 {
 
 function parseDecision(value: unknown): AiDecisionV1 {
   const record = requireRecord(value, 'decision');
-  rejectUnexpectedKeys(record, ['schemaVersion', 'jobId', 'entityRef', 'ttlMs', 'confidence', 'speech', 'intents', 'audit'], 'decision');
+  rejectUnexpectedKeys(
+    record,
+    ['schemaVersion', 'jobId', 'entityRef', 'ttlMs', 'confidence', 'speech', 'intents', 'audit'],
+    'decision',
+  );
   const schemaVersion = requireLiteral(record.schemaVersion, 1, 'schemaVersion');
   const jobId = requireString(record.jobId, 'jobId');
   const entityRef = parseEntityRef(record.entityRef);
   const ttlMs = requireNumberInRange(record.ttlMs, 'ttlMs', 1, 60_000);
   const confidence = requireNumberInRange(record.confidence, 'confidence', 0, 1);
   const speechItems = requireArray(record.speech, 'speech');
-  if (speechItems.length > MAX_SPEECH_ENTRIES) throw new Error('codex worker output speech has too many entries');
+  if (speechItems.length > MAX_SPEECH_ENTRIES)
+    throw new Error('codex worker output speech has too many entries');
   const speech = speechItems.map(parseSpeech);
   const intents = requireArray(record.intents, 'intents').map(parseIntent);
   const audit = parseAudit(record.audit);
@@ -470,14 +497,18 @@ function parseSpeech(value: unknown): AiSpeech {
   if (record.mode === 'lineId') {
     rejectUnexpectedKeys(record, ['mode', 'lineId', 'values'], 'speech');
     const lineId = requireString(record.lineId, 'speech.lineId');
-    const values = record.values === undefined || record.values === null ? undefined : parseSpeechValues(record.values);
+    const values =
+      record.values === undefined || record.values === null
+        ? undefined
+        : parseSpeechValues(record.values);
     return values ? { mode: 'lineId', lineId, values } : { mode: 'lineId', lineId };
   }
   if (record.mode === 'dynamicText') {
     rejectUnexpectedKeys(record, ['mode', 'language', 'text'], 'speech');
     const language = requireString(record.language, 'speech.language');
     const text = requireString(record.text, 'speech.text');
-    if (text.length === 0 || text.length > 180) throw new Error('codex worker output speech.text is out of range');
+    if (text.length === 0 || text.length > 180)
+      throw new Error('codex worker output speech.text is out of range');
     return { mode: 'dynamicText', language, text };
   }
   throw new Error('codex worker output speech.mode is invalid');
@@ -497,13 +528,32 @@ function parseSpeechValues(value: unknown): Record<string, string | number> {
 
 function parseIntent(value: unknown): AiDecisionV1['intents'][number] {
   const record = requireRecord(value, 'intent');
-  rejectUnexpectedKeys(record, ['type', 'lineId', 'targetEntityId', 'targetObjectId', 'targetItemId', 'seconds'], 'intent');
+  rejectUnexpectedKeys(
+    record,
+    ['type', 'lineId', 'targetEntityId', 'targetObjectId', 'targetItemId', 'seconds'],
+    'intent',
+  );
   const type = requireIntentType(record.type, 'intent.type');
-  const lineId = record.lineId === undefined || record.lineId === null ? undefined : requireString(record.lineId, 'intent.lineId');
-  const targetEntityId = record.targetEntityId === undefined || record.targetEntityId === null ? undefined : requireNumber(record.targetEntityId, 'intent.targetEntityId');
-  const targetObjectId = record.targetObjectId === undefined || record.targetObjectId === null ? undefined : requireNumber(record.targetObjectId, 'intent.targetObjectId');
-  const targetItemId = record.targetItemId === undefined || record.targetItemId === null ? undefined : requireString(record.targetItemId, 'intent.targetItemId');
-  const seconds = record.seconds === undefined || record.seconds === null ? undefined : requireNumberInRange(record.seconds, 'intent.seconds', 0.1, 10);
+  const lineId =
+    record.lineId === undefined || record.lineId === null
+      ? undefined
+      : requireString(record.lineId, 'intent.lineId');
+  const targetEntityId =
+    record.targetEntityId === undefined || record.targetEntityId === null
+      ? undefined
+      : requireNumber(record.targetEntityId, 'intent.targetEntityId');
+  const targetObjectId =
+    record.targetObjectId === undefined || record.targetObjectId === null
+      ? undefined
+      : requireNumber(record.targetObjectId, 'intent.targetObjectId');
+  const targetItemId =
+    record.targetItemId === undefined || record.targetItemId === null
+      ? undefined
+      : requireString(record.targetItemId, 'intent.targetItemId');
+  const seconds =
+    record.seconds === undefined || record.seconds === null
+      ? undefined
+      : requireNumberInRange(record.seconds, 'intent.seconds', 0.1, 10);
   return {
     type,
     ...(lineId ? { lineId } : {}),
@@ -519,7 +569,9 @@ function parseAudit(value: unknown): AiDecisionV1['audit'] {
   rejectUnexpectedKeys(record, ['shortReason', 'usedPlayerInput', 'safetyNotes'], 'audit');
   const shortReason = requireString(record.shortReason, 'audit.shortReason');
   const usedPlayerInput = requireBoolean(record.usedPlayerInput, 'audit.usedPlayerInput');
-  const safetyNotes = requireArray(record.safetyNotes, 'audit.safetyNotes').map((entry, index) => requireString(entry, `audit.safetyNotes[${index}]`));
+  const safetyNotes = requireArray(record.safetyNotes, 'audit.safetyNotes').map((entry, index) =>
+    requireString(entry, `audit.safetyNotes[${index}]`),
+  );
   return { shortReason, usedPlayerInput, safetyNotes };
 }
 
@@ -530,7 +582,11 @@ function requireRecord(value: unknown, path: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function rejectUnexpectedKeys(record: Record<string, unknown>, allowedKeys: string[], path: string): void {
+function rejectUnexpectedKeys(
+  record: Record<string, unknown>,
+  allowedKeys: string[],
+  path: string,
+): void {
   const allowed = new Set(allowedKeys);
   for (const key of Object.keys(record)) {
     if (!allowed.has(key)) throw new Error(`codex worker output ${path}.${key} is not allowed`);
@@ -553,18 +609,21 @@ function requireBoolean(value: unknown, path: string): boolean {
 }
 
 function requireNumber(value: unknown, path: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`codex worker output ${path} must be a finite number`);
+  if (typeof value !== 'number' || !Number.isFinite(value))
+    throw new Error(`codex worker output ${path} must be a finite number`);
   return value;
 }
 
 function requireNumberInRange(value: unknown, path: string, min: number, max: number): number {
   const numberValue = requireNumber(value, path);
-  if (numberValue < min || numberValue > max) throw new Error(`codex worker output ${path} is out of range`);
+  if (numberValue < min || numberValue > max)
+    throw new Error(`codex worker output ${path} is out of range`);
   return numberValue;
 }
 
 function requireLiteral<T extends string | number>(value: unknown, expected: T, path: string): T {
-  if (value !== expected) throw new Error(`codex worker output ${path} must be ${String(expected)}`);
+  if (value !== expected)
+    throw new Error(`codex worker output ${path} must be ${String(expected)}`);
   return expected;
 }
 

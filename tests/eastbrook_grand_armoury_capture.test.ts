@@ -165,7 +165,7 @@ function townPerfRaw({ rootVisible = true, shadowEnabled = true } = {}) {
     drawStats: {
       colorDraws: 18,
       shadowDraws: 9,
-      triangles: 29_644,
+      triangles: 29_436,
       buildingCount: 6,
       roofHideTargetCount: 6,
       microBatchCount: 2,
@@ -359,7 +359,7 @@ function validTownMetadata({
           ? {
               colorDraws: 18,
               shadowDraws: 9,
-              triangles: townContract?.townTriangles ?? 29_644,
+              triangles: townContract?.townTriangles ?? 29_436,
               buildingCount: 6,
               roofHideTargetCount: 6,
               microBatchCount: 2,
@@ -635,6 +635,9 @@ describe('Eastbrook Grand Armoury capture contract', () => {
       },
       {
         name: 'armoury-relation',
+        // HISTORICAL: frozen at the capture-time aim (the committed evidence
+        // records it); the round-4 barracks re-aim lives in the matched
+        // override table.
         camera: { x: 34, y: 15, z: 25 },
         target: { x: 10, y: 4, z: -2 },
       },
@@ -764,7 +767,6 @@ describe('Eastbrook Grand Armoury capture contract', () => {
         'eastbrook_fence_smithy_west',
         'eastbrook_fence_smithy_outer',
         'eastbrook_fence_smithy_east',
-        'eastbrook_fence_market_outer',
       ],
       artisanRow: [],
       benches: [

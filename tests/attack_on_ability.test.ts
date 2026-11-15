@@ -1,11 +1,17 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/sim/data';
 import type { AbilityEffect, Entity } from '../src/sim/types';
 import {
   abilityStartsAutoAttack,
+  confirmPendingAutoAttackEngage,
   deferAutoAttackUntilCastEnd,
   hasAutoAttackTarget,
+  isPvpHostileTarget,
+  pressStartsAutoAttack,
 } from '../src/ui/hud/action_bar/attack_on_ability';
+import type { BgInfo, BgMatchInfo } from '../src/world_api/battleground';
+import type { ArenaInfo, DuelInfo } from '../src/world_api/duel_arena';
 
 // Resolve a real ability's rank-1 effects by id, so the test pins behavior against
 // the actual content tables (not hand-mocked shapes that could drift).
@@ -14,6 +20,30 @@ const effectsOf = (id: string): AbilityEffect[] => {
   if (!def) throw new Error(`unknown ability for test: ${id}`);
   return def.effects;
 };
+
+describe('pressStartsAutoAttack', () => {
+  it('never engages the current target on a press redirected onto a party frame', () => {
+    // A dual-purpose heal carries directDamage for its enemy arm, so the bare
+    // effect test reads it as an attack. Redirected onto a hovered ally it is a
+    // heal, and engaging would start swinging at the selected enemy.
+    for (const id of ['solar_invocation', 'scouring_mercy']) {
+      expect(abilityStartsAutoAttack(effectsOf(id)), id).toBe(true);
+      expect(pressStartsAutoAttack(effectsOf(id), false), id).toBe(true);
+      expect(pressStartsAutoAttack(effectsOf(id), true), id).toBe(false);
+    }
+    // An unredirected press is exactly the effect test.
+    expect(pressStartsAutoAttack(effectsOf('sinister_strike'), false)).toBe(true);
+    expect(pressStartsAutoAttack(effectsOf('battle_shout'), false)).toBe(false);
+  });
+
+  it('is the predicate the HUD press path engages through, fed the redirect', () => {
+    // castSlot has no unit seam: pin the call site so the redirect flag cannot be
+    // dropped while the predicate above stays green.
+    const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+    expect(hud).toContain('pressStartsAutoAttack(resolved.effects, mouseoverPid !== null)');
+    expect(hud).not.toContain('abilityStartsAutoAttack(resolved.effects)');
+  });
+});
 
 describe('abilityStartsAutoAttack', () => {
   it('engages on damaging attacks', () => {
@@ -27,6 +57,19 @@ describe('abilityStartsAutoAttack', () => {
   it('does not engage on heals or self/ally buffs', () => {
     expect(abilityStartsAutoAttack(effectsOf('battle_shout'))).toBe(false); // selfBuff
     expect(abilityStartsAutoAttack(effectsOf('mark_of_the_wild'))).toBe(false); // buffTarget (friendly)
+    expect(abilityStartsAutoAttack(effectsOf('hour_of_judgment'))).toBe(false);
+  });
+
+  it('does not engage on a friendly groundAoE ally buff (Rune of Power)', () => {
+    // Rune of Power's groundAoE carries allyBuffPct with min/max both 0 (no damage,
+    // "min/max are ignored" per its AbilityEffect comment): it must not be classified
+    // as an attack, or the "Attack on Ability Use" QoL engages a white swing (and can
+    // pull a hostile mob) on a purely defensive/support cast that has no target.
+    expect(abilityStartsAutoAttack(effectsOf('rune_of_power'))).toBe(false);
+  });
+
+  it('still engages on a damaging groundAoE with no allyBuffPct rider (Blizzard)', () => {
+    expect(abilityStartsAutoAttack(effectsOf('blizzard'))).toBe(true);
   });
 
   it('does not engage on pure crowd control', () => {
@@ -119,7 +162,207 @@ describe('hasAutoAttackTarget', () => {
   it('is false for a non-hostile target (friendly NPC / player)', () => {
     expect(hasAutoAttackTarget(target({ hostile: false }))).toBe(false);
   });
+
+  // #2451: casting a damaging ability on a duel/arena opponent never engaged
+  // auto-attack, because the player target's `hostile` flag is always false (this
+  // game has no open-world FFA PvP). hasAutoAttackTarget must also honor an
+  // explicit pvpHostile verdict (computed by the caller via isPvpHostileTarget),
+  // while staying additive: an omitted/false pvpHostile keeps the original
+  // PvE-only behavior for a non-hostile target.
+  it('is true for a live, non-hostile player target when pvpHostile is true (#2451)', () => {
+    expect(hasAutoAttackTarget(target({ hostile: false }), true)).toBe(true);
+  });
+
+  it('stays false for the same target when pvpHostile is false', () => {
+    expect(hasAutoAttackTarget(target({ hostile: false }), false)).toBe(false);
+    expect(hasAutoAttackTarget(target({ hostile: false }))).toBe(false);
+  });
+
+  it('is still false for a dead target even when pvpHostile is true', () => {
+    expect(hasAutoAttackTarget(target({ dead: true, hostile: false }), true)).toBe(false);
+  });
+
+  it('is still false with no target even when pvpHostile is true', () => {
+    expect(hasAutoAttackTarget(null, true)).toBe(false);
+    expect(hasAutoAttackTarget(undefined, true)).toBe(false);
+  });
 });
+
+describe('isPvpHostileTarget (the duel/arena PvP gate, #2451)', () => {
+  const OTHER_PID = 42;
+
+  it('is false with no target id', () => {
+    expect(isPvpHostileTarget(null, null, null)).toBe(false);
+    expect(isPvpHostileTarget(undefined, null, null)).toBe(false);
+  });
+
+  it('is true when an active duel targets this exact pid', () => {
+    const duel: DuelInfo = { otherPid: OTHER_PID, otherName: 'Rival', state: 'active' };
+    expect(isPvpHostileTarget(OTHER_PID, duel, null)).toBe(true);
+  });
+
+  it('is false while the duel is still counting down', () => {
+    const duel: DuelInfo = { otherPid: OTHER_PID, otherName: 'Rival', state: 'countdown' };
+    expect(isPvpHostileTarget(OTHER_PID, duel, null)).toBe(false);
+  });
+
+  it('is false when the active duel targets a different pid', () => {
+    const duel: DuelInfo = { otherPid: OTHER_PID, otherName: 'Rival', state: 'active' };
+    expect(isPvpHostileTarget(999, duel, null)).toBe(false);
+  });
+
+  const baseMatch: NonNullable<ArenaInfo['match']> = {
+    format: '2v2',
+    state: 'active',
+    oppName: 'Opp',
+    oppClass: 'warrior',
+    oppLevel: 20,
+    oppPid: OTHER_PID,
+    allies: [],
+    enemies: [],
+  };
+
+  it('is true when the active arena match opponent is this exact pid', () => {
+    const arena: ArenaInfo = arenaInfoWith(baseMatch);
+    expect(isPvpHostileTarget(OTHER_PID, null, arena)).toBe(true);
+  });
+
+  it('is true when the pid appears in the arena enemies list (a teammate target)', () => {
+    const enemyPid = 7;
+    const arena: ArenaInfo = arenaInfoWith({
+      ...baseMatch,
+      oppPid: OTHER_PID,
+      enemies: [{ pid: enemyPid, name: 'Foe', cls: 'mage', level: 20 }],
+    });
+    expect(isPvpHostileTarget(enemyPid, null, arena)).toBe(true);
+  });
+
+  it('is false when the arena match is not active (countdown/over)', () => {
+    const arena: ArenaInfo = arenaInfoWith({ ...baseMatch, state: 'countdown' });
+    expect(isPvpHostileTarget(OTHER_PID, null, arena)).toBe(false);
+  });
+
+  it('is false when there is no arena match at all', () => {
+    const arena: ArenaInfo = arenaInfoWith(null);
+    expect(isPvpHostileTarget(OTHER_PID, null, arena)).toBe(false);
+  });
+
+  // Thornhollow Fields (5v5 CTF). The renderer's nameplate predicate
+  // (`isHostilePlayer`, src/render/renderer.ts) already paints the opposing
+  // TEAM hostile for the whole live match; this gate must agree, or the
+  // "Auto-Attack on Ability Use" QoL never engages a white swing on a
+  // battleground cast while the same cast in a duel/arena does.
+  const bgMatch: BgMatchInfo = {
+    state: 'active',
+    myTeam: 0,
+    capsToWin: 3,
+    scores: [0, 0],
+    flags: [
+      { state: 'home', carrierPid: null, carrierName: null, carrierTeam: null },
+      { state: 'home', carrierPid: null, carrierName: null, carrierTeam: null },
+    ],
+    players: [bgRow(1, 0), bgRow(OTHER_PID, 1), bgRow(7, 1)],
+    countdown: 0,
+    timeLeft: 600,
+    waveIn: [10, 10],
+    respawnIn: 0,
+    winner: null,
+  };
+
+  it('is true for an opposing-team fighter in an active battleground match', () => {
+    expect(isPvpHostileTarget(OTHER_PID, null, null, bgInfoWith(bgMatch))).toBe(true);
+    expect(isPvpHostileTarget(7, null, null, bgInfoWith(bgMatch))).toBe(true);
+  });
+
+  it('is false for a teammate in an active battleground match', () => {
+    expect(isPvpHostileTarget(1, null, null, bgInfoWith(bgMatch))).toBe(false);
+  });
+
+  it('is false for a pid not on the battleground roster', () => {
+    expect(isPvpHostileTarget(999, null, null, bgInfoWith(bgMatch))).toBe(false);
+  });
+
+  it('is false while the battleground match is not active (countdown/ended)', () => {
+    expect(
+      isPvpHostileTarget(OTHER_PID, null, null, bgInfoWith({ ...bgMatch, state: 'countdown' })),
+    ).toBe(false);
+    expect(
+      isPvpHostileTarget(OTHER_PID, null, null, bgInfoWith({ ...bgMatch, state: 'ended' })),
+    ).toBe(false);
+  });
+
+  it('is false with no battleground match (queued only) or no bgInfo at all', () => {
+    expect(isPvpHostileTarget(OTHER_PID, null, null, bgInfoWith(null))).toBe(false);
+    expect(isPvpHostileTarget(OTHER_PID, null, null, null)).toBe(false);
+    expect(isPvpHostileTarget(OTHER_PID, null, null, undefined)).toBe(false);
+  });
+
+  it('engages a white swing on a hostile cast at a battleground enemy exactly as in a duel', () => {
+    // Both HUD engage sites (the instant press and the deferred castStop)
+    // compute hasAutoAttackTarget(target, isPvpHostileTarget(...)). A player
+    // target never carries the mob-only `hostile` flag, so the PvP verdict is
+    // the whole gate: the duel arm already passed, the battleground arm did not.
+    const enemy = { id: OTHER_PID, kind: 'player', dead: false, hostile: false } as Entity;
+    const duel = { state: 'active', otherPid: OTHER_PID } as DuelInfo;
+    const inDuel = hasAutoAttackTarget(enemy, isPvpHostileTarget(OTHER_PID, duel, null, null));
+    const inBg = hasAutoAttackTarget(
+      enemy,
+      isPvpHostileTarget(OTHER_PID, null, null, bgInfoWith(bgMatch)),
+    );
+    expect(inDuel).toBe(true);
+    expect(inBg).toBe(true);
+  });
+});
+
+function bgRow(pid: number, team: number): BgMatchInfo['players'][number] {
+  return {
+    pid,
+    name: `P${pid}`,
+    cls: 'warrior',
+    team,
+    carrying: false,
+    dead: false,
+    kills: 0,
+    deaths: 0,
+    captures: 0,
+    assists: 0,
+  };
+}
+
+function bgInfoWith(match: BgMatchInfo | null): BgInfo {
+  return {
+    rating: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    captures: 0,
+    queued: false,
+    queueSize: 0,
+    queuedParty: 0,
+    firstWinBonusReady: false,
+    doubleHonorActive: false,
+    proposal: null,
+    requeueIn: 0,
+    match,
+    ladder: [],
+  };
+}
+
+function arenaInfoWith(match: ArenaInfo['match']): ArenaInfo {
+  return {
+    rating: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    standings: {} as ArenaInfo['standings'],
+    format: null,
+    queued: false,
+    queueSize: 0,
+    match,
+    ladder: [],
+    ladders: {} as ArenaInfo['ladders'],
+  };
+}
 
 describe('deferAutoAttackUntilCastEnd (the aggro-before-damage bug)', () => {
   it('defers for a timed cast so starting a Smite cannot pull the mob early', () => {
@@ -133,5 +376,34 @@ describe('deferAutoAttackUntilCastEnd (the aggro-before-damage bug)', () => {
 
   it('engages immediately for instants (their damage lands the same tick)', () => {
     expect(deferAutoAttackUntilCastEnd(0)).toBe(false);
+  });
+});
+
+describe('confirmPendingAutoAttackEngage (the Soulwell aggro-pull bug)', () => {
+  it('keeps the request when castStart confirms the same ability', () => {
+    expect(confirmPendingAutoAttackEngage('shadow_bolt', 'shadow_bolt')).toBe('shadow_bolt');
+  });
+
+  it('drops the request when a DIFFERENT ability is the one that actually started', () => {
+    // The reported repro: a damaging cast (shadow_bolt) gets refused server-side
+    // (range/cost/cooldown/out-of-combat all skip castStart entirely), leaving the
+    // request armed with no matching castStop to consume it. The player then
+    // casts Soulwell, requiresOutOfCombat and never itself gated by
+    // abilityStartsAutoAttack (summonSoulwell classifies 'other'); its OWN
+    // castStart must drop the stale shadow_bolt request rather than let it
+    // survive to Soulwell's castStop and pull whatever the player has targeted.
+    expect(confirmPendingAutoAttackEngage('shadow_bolt', 'soulwell')).toBeNull();
+  });
+
+  it('stays null with no outstanding request', () => {
+    expect(confirmPendingAutoAttackEngage(null, 'soulwell')).toBeNull();
+  });
+
+  it('Soulwell itself never arms the deferred engage', () => {
+    // Belt-and-suspenders: the effect-table classification this bug also depends
+    // on. If summonSoulwell were ever reclassified 'damage', the button-press
+    // gate (abilityStartsAutoAttack) would arm a request for Soulwell itself,
+    // reopening the same pull on ITS OWN successful cast.
+    expect(abilityStartsAutoAttack(effectsOf('soulwell'))).toBe(false);
   });
 });

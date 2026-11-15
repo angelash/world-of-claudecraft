@@ -12,8 +12,20 @@ import { groundHeight } from '../sim/world';
 import { YUMI_MAZE_WALL_HEIGHT, yumiMazeLayout } from '../sim/yumi_maze_layout';
 import type { IWorld } from '../world_api';
 import { loadGltf } from './assets/loader';
-import { registerPreload } from './assets/preload';
-import { surfaceMat } from './gfx';
+import { registerDeferredPreload } from './assets/preload';
+import { EMISSIVE_LIGHT, surfaceMat } from './gfx';
+import { disposeGhostHideGeometry, ghostHideGeometry } from './instanced_dither_fade';
+import {
+  ghostFadeBatchMaterial,
+  type InstancedGhostHide,
+  InstancedOccluderGhosts,
+} from './instanced_occluder_ghosts';
+import {
+  occluderFadeSettled,
+  occluderKeepsInstances,
+  occluderSegmentHitsBox,
+} from './occluder_fade_core';
+import type { FireLightSink } from './point_light_budget';
 import { stoneTexture } from './textures';
 
 // GLB-backed static bodies (Tripo-generated, see public/models/props), with a
@@ -30,7 +42,7 @@ const loadedYumiMazeGltf = new Map<YumiMazeAssetKind, THREE.Group>();
 
 if (typeof window !== 'undefined') {
   for (const [kind, url] of Object.entries(YUMI_MAZE_ASSET_URL) as [YumiMazeAssetKind, string][]) {
-    registerPreload(
+    registerDeferredPreload(() =>
       loadGltf(url).then((gltf) => {
         loadedYumiMazeGltf.set(kind, gltf.scene);
       }),
@@ -71,20 +83,49 @@ const BRAZIER_LIGHT_INTENSITY = 46;
 const BRAZIER_LIGHT_DISTANCE = 36;
 const BRAZIER_LIGHT_Y = 5.4;
 const BRAZIER_FLAME_Y = 1.9;
-const BRAZIER_FLAME_EMISSIVE = 2.2;
+const BRAZIER_FLAME_EMISSIVE = EMISSIVE_LIGHT;
 const WARM_FLAME = 0xffb054;
 
 /** The renderer-owned pools the maze's braziers plug into. */
 export interface YumiMazeLightHooks {
   flames: THREE.Mesh[];
-  fireLights: THREE.PointLight[];
+  fireLights: FireLightSink;
   lowGfx: boolean;
+}
+
+/** One maze wall stub the camera fade can ghost through. */
+interface MazeWallHideable {
+  x: number; // stub centre, maze-local XZ
+  z: number;
+  hw: number;
+  hd: number;
+  index: number;
+  visibleMatrix: THREE.Matrix4;
+  /** Ghosted (the fade applied), NOT "occluding": a wall that occludes the
+   *  camera while its fade program is still gate-held reads false. */
+  hidden: boolean;
+  alpha: number;
+  ghost: InstancedGhostHide | null;
 }
 
 export interface YumiMazeView {
   group: THREE.Group;
-  /** Per-frame: anchors the two team beacons to the live cat positions. */
-  update(world: IWorld): void;
+  /**
+   * Per-frame: anchors the two team beacons to the live cat positions and
+   * fades any wall stub crossing the eye-to-camera segment to 20% opacity
+   * (the global occluder-fade behavior; the chase cam never zooms in).
+   */
+  update(
+    world: IWorld,
+    camX: number,
+    camY: number,
+    camZ: number,
+    eyeX: number,
+    eyeY: number,
+    eyeZ: number,
+    dt: number,
+    reducedMotion?: boolean,
+  ): void;
   /**
    * Fold a yumiTeleport event's landing spot into the beacon immediately.
    * Online, arenaInfo rides the 10s arena wire cadence, so without this the
@@ -109,23 +150,80 @@ export function buildYumiMaze(
   // Walls: every stub (interior + shell) is one instance of a unit box,
   // scaled to its rect, so the whole maze is a single draw call.
   const stubs = [...layout.shell, ...layout.walls];
-  const wallMat = surfaceMat({ color: WALL_COLOR, map: stoneTexture(), roughness: 0.9 });
-  const walls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), wallMat, stubs.length);
+  const wallMat = ghostFadeBatchMaterial(
+    surfaceMat({ color: WALL_COLOR, map: stoneTexture(), roughness: 0.9 }),
+  );
+  const wallGeo = ghostHideGeometry(new THREE.BoxGeometry(1, 1, 1), stubs.length);
+  const walls = new THREE.InstancedMesh(wallGeo, wallMat, stubs.length);
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const pos = new THREE.Vector3();
   const scl = new THREE.Vector3();
+  const wallHideables: MazeWallHideable[] = [];
   for (let i = 0; i < stubs.length; i++) {
     const s = stubs[i];
     pos.set(s.x, YUMI_MAZE_WALL_HEIGHT / 2, s.z);
     scl.set(s.hw * 2, YUMI_MAZE_WALL_HEIGHT, s.hd * 2);
     m.compose(pos, q, scl);
     walls.setMatrixAt(i, m);
+    wallHideables.push({
+      x: s.x,
+      z: s.z,
+      hw: s.hw,
+      hd: s.hd,
+      index: i,
+      visibleMatrix: m.clone(),
+      hidden: false,
+      alpha: 1,
+      ghost: null,
+    });
   }
   walls.instanceMatrix.needsUpdate = true;
   walls.castShadow = false;
   walls.receiveShadow = true;
   group.add(walls);
+  const wallGhosts = new InstancedOccluderGhosts();
+  // The one source every stub ghosts from, in the pool's parts shape, built
+  // once so the per-frame consult allocates nothing.
+  const wallParts = [{ mesh: walls }];
+
+  // Occluder fade over the shared wall batch: an occluding stub ghosts through
+  // the pool at the fade alpha (the tree pattern).
+  // Stub footprints are maze-local, so world XZ shifts by the group origin;
+  // heights compare in world space against the walls' world top.
+  const updateWallFades = (
+    camX: number,
+    camY: number,
+    camZ: number,
+    eyeX: number,
+    eyeY: number,
+    eyeZ: number,
+    dt: number,
+    reducedMotion: boolean,
+  ): void => {
+    const topY = floorY + YUMI_MAZE_WALL_HEIGHT;
+    const ex = eyeX - origin.x;
+    const ez = eyeZ - origin.z;
+    const cx = camX - origin.x;
+    const cz = camZ - origin.z;
+    for (let i = 0; i < wallHideables.length; i++) {
+      const h = wallHideables[i];
+      const hide = occluderSegmentHitsBox(h.x, h.z, h.hw, h.hd, topY, ex, eyeY, ez, cx, camY, cz);
+      if (occluderKeepsInstances(hide, h.ghost !== null, wallGhosts, wallParts)) {
+        h.hidden = false;
+        h.alpha = 1;
+        continue;
+      }
+      h.hidden = hide;
+      h.ghost ??= wallGhosts.hide(walls, h.index, h.visibleMatrix);
+      h.alpha = wallGhosts.step(h.alpha, hide, dt, reducedMotion);
+      wallGhosts.fade(h.ghost, h.alpha);
+      if (!hide && occluderFadeSettled(h.alpha, false)) {
+        wallGhosts.show(h.ghost);
+        h.ghost = null;
+      }
+    }
+  };
 
   // Floor: one plane over the whole footprint.
   const floorTex = stoneTexture().clone();
@@ -330,11 +428,22 @@ export function buildYumiMaze(
 
   return {
     group,
-    update(world: IWorld): void {
+    update(
+      world: IWorld,
+      camX: number,
+      camY: number,
+      camZ: number,
+      eyeX: number,
+      eyeY: number,
+      eyeZ: number,
+      dt: number,
+      reducedMotion = false,
+    ): void {
       const yumi = world.arenaInfo?.match?.yumi;
       if (!yumi && teleported.size > 0) teleported.clear();
       place(beaconA, lastA, yumi?.yumiA);
       place(beaconB, lastB, yumi?.yumiB);
+      updateWallFades(camX, camY, camZ, eyeX, eyeY, eyeZ, dt, reducedMotion);
     },
     noteTeleport(catId: number, x: number, z: number): void {
       teleported.set(catId, { x, z });
@@ -342,6 +451,7 @@ export function buildYumiMaze(
     dispose(): void {
       group.removeFromParent();
       walls.dispose();
+      disposeGhostHideGeometry(wallGeo);
     },
   };
 }

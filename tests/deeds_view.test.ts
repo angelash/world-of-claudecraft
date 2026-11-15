@@ -19,6 +19,7 @@ import {
   type DeedsViewInput,
   deedCrestId,
   deedDisplayCategory,
+  deedJumpCategory,
   deedProgress,
   deedRarityFraction,
   deedStatsDigest,
@@ -134,6 +135,7 @@ function makeInput(over: Partial<DeedsViewInput> = {}): DeedsViewInput {
     deedStats: freshDeedStats(),
     renown: 0,
     activeTitle: null,
+    activeBorder: null,
     deeds: TEST_DEEDS,
     order: TEST_ORDER,
     category: 'combat',
@@ -150,6 +152,15 @@ function makeInput(over: Partial<DeedsViewInput> = {}): DeedsViewInput {
 // ---------------------------------------------------------------------------
 
 describe('deedProgress', () => {
+  it('lists the referral title only for its current character owner without changing deed totals', () => {
+    const base = buildDeedsView(makeInput());
+    const owned = buildDeedsView(
+      makeInput({ referralTitleOwned: true, activeTitle: 'referral_trailmate' }),
+    );
+    expect(base.titles.some((row) => row.id === 'referral_trailmate')).toBe(false);
+    expect(owned.titles).toContainEqual({ id: 'referral_trailmate', active: true });
+    expect(owned.summary).toEqual(base.summary);
+  });
   it('reads stat counters and clamps at the target, never over', () => {
     const s = stats((x) => {
       x.counters.kills = 7;
@@ -376,6 +387,8 @@ describe('buildDeedsView', () => {
       id: 'cmb_title',
       earned: true,
       earnedDay: '2026-07-08',
+      earnedByMe: true,
+      earners: [],
       renown: 25,
       progress: null,
       watchable: false,
@@ -383,13 +396,17 @@ describe('buildDeedsView', () => {
       feat: false,
       hiddenBadge: false,
       titleReward: true,
+      borderReward: false,
       crestId: 'deed_cat_combat',
+      missingPoiMarkIds: [],
     });
     // Unearned watched counter deed: watchable AND watched, no ribbons.
     expect(view.entries.find((e) => e.id === 'cmb_counter')).toEqual({
       id: 'cmb_counter',
       earned: false,
       earnedDay: null,
+      earnedByMe: false,
+      earners: [],
       renown: 10,
       progress: { current: 0, target: 10 },
       watchable: true,
@@ -397,7 +414,9 @@ describe('buildDeedsView', () => {
       feat: false,
       hiddenBadge: false,
       titleReward: false,
+      borderReward: false,
       crestId: 'deed_cat_combat',
+      missingPoiMarkIds: [],
     });
   });
 
@@ -437,6 +456,109 @@ describe('buildDeedsView', () => {
     expect(view.summary.recent[0].crestId).toBe('deed_cat_combat');
   });
 
+  it('lets the fetched recentOrder outrank the day sort, skipping drifted and unearned ids', () => {
+    const view = buildDeedsView(
+      makeInput({
+        deedsEarned: new Map([
+          ['prog_a', '2026-07-01'],
+          ['cmb_counter', '2026-07-03'],
+          ['cmb_title', '2026-07-03'],
+          ['dgn_clears', '2026-07-02'],
+        ]),
+        recentOrder: ['cmb_counter', 'removed_deed', 'exp_visits', 'cmb_title', 'prog_a'],
+      }),
+    );
+    // The fetched order wins over the day sort (which would put cmb_title
+    // first); the drifted id and the unearned id are skipped; the deed the
+    // fetch missed (dgn_clears) still follows from the day fallback.
+    expect(view.summary.recent.map((r) => r.id)).toEqual([
+      'cmb_counter',
+      'cmb_title',
+      'prog_a',
+      'dgn_clears',
+    ]);
+  });
+
+  it('puts session unlocks first, newest first, deduped against the fetched order', () => {
+    const view = buildDeedsView(
+      makeInput({
+        deedsEarned: new Map([
+          ['prog_a', '2026-07-01'],
+          ['cmb_counter', '2026-07-03'],
+          ['cmb_title', '2026-07-03'],
+        ]),
+        // Drain order (oldest first): prog_a is the newest session unlock.
+        sessionUnlocks: ['cmb_counter', 'prog_a'],
+        recentOrder: ['cmb_title', 'cmb_counter'],
+      }),
+    );
+    expect(view.summary.recent.map((r) => r.id)).toEqual(['prog_a', 'cmb_counter', 'cmb_title']);
+    // The display day still resolves from the earned map for a merged source.
+    expect(view.summary.recent[0].earnedDay).toBe('2026-07-01');
+  });
+
+  it('an earned id the catalog no longer knows cannot enter recent through the fetched order', () => {
+    // Both drift ids sit in the EARNED map, so the earned check alone cannot
+    // reject them: the catalog own-property check is the only thing between
+    // the wire-sourced order and deedCrestId throwing on a missing def (and
+    // 'constructor' is the prototype-key arm of the same guard).
+    const view = buildDeedsView(
+      makeInput({
+        deedsEarned: new Map([
+          ['removed_deed', '2026-07-01'],
+          ['constructor', '2026-07-01'],
+          ['cmb_counter', '2026-07-02'],
+        ]),
+        recentOrder: ['removed_deed', 'constructor', 'cmb_counter'],
+      }),
+    );
+    expect(view.summary.recent.map((r) => r.id)).toEqual(['cmb_counter']);
+  });
+
+  it('echoes focusDeedId only when the deed rendered an entry this paint', () => {
+    const earned = new Map([['cmb_counter', '2026-07-01']]);
+    expect(
+      buildDeedsView(makeInput({ deedsEarned: earned, focusDeedId: 'cmb_counter' })).focusDeedId,
+    ).toBe('cmb_counter');
+    // Another category selected: the card is not in the DOM, so null.
+    expect(
+      buildDeedsView(
+        makeInput({ deedsEarned: earned, category: 'progression', focusDeedId: 'cmb_counter' }),
+      ).focusDeedId,
+    ).toBe(null);
+    // Hidden and unearned: masked entirely, never echoed even on its shelf.
+    expect(buildDeedsView(makeInput({ category: 'feat', focusDeedId: 'hid_x' })).focusDeedId).toBe(
+      null,
+    );
+    // A filter that hides the card also clears the echo.
+    expect(
+      buildDeedsView(
+        makeInput({ deedsEarned: earned, filter: 'unearned', focusDeedId: 'cmb_counter' }),
+      ).focusDeedId,
+    ).toBe(null);
+    // A search that hides the card clears it too (the reason openWithDeed
+    // resets the search before it paints).
+    expect(
+      buildDeedsView(
+        makeInput({ deedsEarned: earned, search: 'zzz-no-match', focusDeedId: 'cmb_counter' }),
+      ).focusDeedId,
+    ).toBe(null);
+    // Absent input: null.
+    expect(buildDeedsView(makeInput()).focusDeedId).toBe(null);
+  });
+
+  it('deedJumpCategory: display bucket for a landable deed, null when the jump must not move', () => {
+    const earnedHidden = new Map([['hid_x', '2026-07-01']]);
+    expect(deedJumpCategory(TEST_DEEDS, new Map(), 'cmb_counter')).toBe('combat');
+    // An EARNED hidden deed is revealed on the Feats shelf and jumpable.
+    expect(deedJumpCategory(TEST_DEEDS, earnedHidden, 'hid_x')).toBe('feat');
+    // Hidden and unearned: even the destination shelf would leak, so null.
+    expect(deedJumpCategory(TEST_DEEDS, new Map(), 'hid_x')).toBe(null);
+    // Drift and prototype ids: null, never a throw.
+    expect(deedJumpCategory(TEST_DEEDS, earnedHidden, 'removed_deed')).toBe(null);
+    expect(deedJumpCategory(TEST_DEEDS, earnedHidden, 'constructor')).toBe(null);
+  });
+
   it('ranks nearest by progress fraction, excluding zero progress', () => {
     const s = stats((x) => {
       x.counters.kills = 3; // cmb_counter 0.3
@@ -472,6 +594,135 @@ describe('buildDeedsView', () => {
     // Unearned title deeds never enter the picker.
     const fresh = buildDeedsView(makeInput());
     expect(fresh.titles).toEqual([{ id: null, active: true }]);
+  });
+
+  // -------------------------------------------------------------------------
+  // The border picker (the titles picker's sibling). Its own catalog so the
+  // counts, category and entry pins above stay pinned to what they were
+  // written against; only the reward mix differs from TEST_DEEDS.
+  // -------------------------------------------------------------------------
+  const PICKER_DEEDS: Record<string, DeedDef> = {
+    b_first: {
+      id: 'b_first',
+      name: 'Warded Deep',
+      desc: 'A border-bearing triumph.',
+      category: 'dungeon',
+      renown: 25,
+      trigger: { kind: 'manual' },
+      reward: { kind: 'border', slug: 'test_deepward' },
+    },
+    t_only: {
+      id: 't_only',
+      name: 'Titled Task',
+      desc: 'A title-bearing triumph.',
+      category: 'combat',
+      renown: 25,
+      trigger: { kind: 'manual' },
+      reward: { kind: 'title', text: 'the Titled' },
+    },
+    b_second: {
+      id: 'b_second',
+      name: 'Gilded Shelf',
+      desc: 'A second border-bearing triumph.',
+      category: 'collection',
+      renown: 50,
+      trigger: { kind: 'manual' },
+      reward: { kind: 'border', slug: 'test_gilt' },
+    },
+    b_unearned: {
+      id: 'b_unearned',
+      name: 'Distant Frame',
+      desc: 'A border nobody here has earned.',
+      category: 'collection',
+      renown: 50,
+      trigger: { kind: 'manual' },
+      reward: { kind: 'border', slug: 'test_far' },
+    },
+  };
+  const PICKER_ORDER = Object.keys(PICKER_DEEDS);
+  const pickerInput = (over: Partial<DeedsViewInput> = {}): DeedsViewInput =>
+    makeInput({
+      deeds: PICKER_DEEDS,
+      order: PICKER_ORDER,
+      deedsEarned: new Map([
+        ['b_first', '2026-08-01'],
+        ['t_only', '2026-08-01'],
+        ['b_second', '2026-08-02'],
+      ]),
+      ...over,
+    });
+
+  it('lists earned border deeds in the picker with the active one marked', () => {
+    const view = buildDeedsView(pickerInput({ activeBorder: 'b_second' }));
+    // Catalog order behind the None head, and the ACTIVE flag tracks the input:
+    // b_second is worn, so None is not.
+    expect(view.borders).toEqual([
+      { id: null, active: false },
+      { id: 'b_first', active: false },
+      { id: 'b_second', active: true },
+    ]);
+  });
+
+  it('heads the border picker with None and marks it when nothing is worn', () => {
+    const view = buildDeedsView(pickerInput());
+    expect(view.borders[0]).toEqual({ id: null, active: true });
+    // Unearned border deeds never enter the picker, so the one nobody earned
+    // is absent even though the catalog holds it.
+    expect(view.borders.some((o) => o.id === 'b_unearned')).toBe(false);
+    // Nothing earned at all leaves only the None head.
+    const fresh = buildDeedsView(
+      makeInput({ deeds: PICKER_DEEDS, order: PICKER_ORDER, activeBorder: null }),
+    );
+    expect(fresh.borders).toEqual([{ id: null, active: true }]);
+  });
+
+  it('keeps the two reward pickers disjoint and leaves titles untouched', () => {
+    const view = buildDeedsView(pickerInput({ activeTitle: 't_only' }));
+    // A title deed never enters borders, and a border deed never enters titles.
+    expect(view.borders.map((o) => o.id)).not.toContain('t_only');
+    expect(view.titles).toEqual([
+      { id: null, active: false },
+      { id: 't_only', active: true },
+    ]);
+    // An active BORDER moves nothing on the titles list (and vice versa).
+    const borderWorn = buildDeedsView(
+      pickerInput({ activeTitle: 't_only', activeBorder: 'b_first' }),
+    );
+    expect(borderWorn.titles).toEqual(view.titles);
+  });
+
+  it('flags the reward chip on a border deed card and only there', () => {
+    const view = buildDeedsView(pickerInput({ category: 'dungeon' }));
+    const card = view.entries.find((e) => e.id === 'b_first');
+    expect(card?.borderReward).toBe(true);
+    expect(card?.titleReward).toBe(false);
+    const titled = buildDeedsView(pickerInput({ category: 'combat' })).entries.find(
+      (e) => e.id === 't_only',
+    );
+    expect(titled?.borderReward).toBe(false);
+    expect(titled?.titleReward).toBe(true);
+  });
+
+  it('builds the same border picker from a Sim-shaped and a mirror-shaped input', () => {
+    // The mirror decodes the self keys from wire-shaped plain JSON, so the
+    // border id round-trips through that shape before it is read back.
+    const wire = JSON.parse(JSON.stringify({ aborder: 'b_first' }));
+    const sim = buildDeedsView(pickerInput({ activeBorder: 'b_first' }));
+    const mirror = buildDeedsView(pickerInput({ activeBorder: wire.aborder }));
+    expect(mirror.borders).toEqual(sim.borders);
+    expect(sim.borders).toEqual([
+      { id: null, active: false },
+      { id: 'b_first', active: true },
+      { id: 'b_second', active: false },
+    ]);
+  });
+
+  it('marks a drifted active border inactive rather than inventing an option', () => {
+    // An id the catalog no longer knows: the sim will never echo it, so no
+    // option is active and None must not be marked either (nothing is worn
+    // that this client can name).
+    const view = buildDeedsView(pickerInput({ activeBorder: 'removed_deed' }));
+    expect(view.borders.every((o) => !o.active)).toBe(true);
   });
 
   it('skips earned ids the catalog no longer knows (content drift), everywhere', () => {
@@ -555,6 +806,46 @@ describe('buildDeedsView', () => {
 });
 
 // ---------------------------------------------------------------------------
+// missingPoiMarkIds (exploration wayfarer deeds)
+// ---------------------------------------------------------------------------
+
+describe('missing poi marks (exploration wayfarer deeds)', () => {
+  it('lists every unvisited poi mark, in trigger order, while unearned', () => {
+    const view = buildDeedsView(makeInput({ category: 'exploration' }));
+    const entry = view.entries.find((e) => e.id === 'exp_visits');
+    expect(entry?.missingPoiMarkIds).toEqual(['poi:a', 'poi:b']);
+  });
+
+  it('drops a mark from the list the moment it is visited', () => {
+    const s = stats((st) => st.visited.add('poi:a'));
+    const view = buildDeedsView(makeInput({ category: 'exploration', deedStats: s }));
+    const entry = view.entries.find((e) => e.id === 'exp_visits');
+    expect(entry?.missingPoiMarkIds).toEqual(['poi:b']);
+  });
+
+  it('is empty once every mark is visited', () => {
+    const s = stats((st) => {
+      st.visited.add('poi:a');
+      st.visited.add('poi:b');
+    });
+    const view = buildDeedsView(makeInput({ category: 'exploration', deedStats: s }));
+    const entry = view.entries.find((e) => e.id === 'exp_visits');
+    expect(entry?.missingPoiMarkIds).toEqual([]);
+  });
+
+  it('is empty once the deed is earned, even with marks never visited', () => {
+    const view = buildDeedsView(
+      makeInput({
+        category: 'exploration',
+        deedsEarned: new Map([['exp_visits', '2026-08-01']]),
+      }),
+    );
+    const entry = view.entries.find((e) => e.id === 'exp_visits');
+    expect(entry?.missingPoiMarkIds).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The real catalog (drift pins)
 // ---------------------------------------------------------------------------
 
@@ -563,16 +854,146 @@ describe('real catalog integration', () => {
     const view = buildDeedsView(
       makeInput({ deeds: DEEDS, order: DEED_ORDER, category: 'progression' }),
     );
-    // 219 deeds - 3 feats - 9 hidden = 207 visible to a fresh character.
-    expect(view.summary.visibleTotal).toBe(207);
-    // The bucket sum adds the Feats shelf's own 3 rows back on top.
-    expect(view.categories.reduce((n, c) => n + c.visible, 0)).toBe(210);
+    // 287 deeds - 4 feats - 9 hidden = 274 visible to a fresh character. The
+    // farming absorb (masterwrought Phase 11d) carried this branch's 279 to 286
+    // with its seven deeds, none of them feat-flagged or hidden, so both
+    // subtrahends are unchanged and the identity moves with the total alone.
+    // The chain below is the 279 history it extends (the
+    // Drakelands brood pair, the four battleground deeds, the Rift coverage
+    // pair, the per-craft rare-tier profession deeds, the twelve remaining
+    // starter-zone chronicle pairs, the four Reliquary Curator rank bridges,
+    // the three WARFARE honor ranks, four of the five Phase 18 Reliquary
+    // completion-ladder deeds, the walk-in castle visit pair, the Proving
+    // Shore graduation deed, the five Crucible raid deeds, the Roots'
+    // Bramblehide set collection deed, this branch's own Crucible
+    // professions additions (col_farm_roster, col_deepest_cast,
+    // prog_field_to_feast, prog_legendmaker) and hid_forgebreaker (the
+    // Forgebreaker quest's hidden deed), PLUS OSSBrain PR3781's own feat-flag
+    // changes, which land on existing deed ids rather than adding new ones
+    // (the total stays 300; only the feat/hidden split moves).
+    // col_reliquary_complete is the catalog's off-prefix feat, so it sits
+    // outside the completion denominator with every other feat, and
+    // hid_forgebreaker sits outside it unearned like every other hidden deed.
+    // Recomputed directly against the merged live catalog
+    // (src/sim/content/deeds.ts) with a standalone probe calling
+    // buildDeedsView + countsTowardCompletion directly (tsx, no full
+    // compile), since the tree does not compile yet:
+    // 300 deeds - 22 feats - 10 hidden = 268 visible to a fresh character.
+    // 276 with the eight world-quest deeds, 283 with the seven faction
+    // standing deeds, 285 with the two Clue Scroll casket deeds (all visible,
+    // none feat or hidden).
+    // 286 with the release's ferry round trip (exp_harbor_to_harbor).
+    // 287 with the Buried Hoards Coinsack catch (cmb_coinsack_caught, visible),
+    // 290 with the Mirefen world-boss branch's three combat deeds (none feat or hidden).
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 314.
+    // 317 with Lantern Hall's three contract milestones (visible; its three bought
+    // titles are feats).
+    expect(view.summary.visibleTotal).toBe(324);
+    // The bucket sum adds the feat-flagged rows back on top (hidden-unearned
+    // deeds never enter a bucket at all, so only the 22 feats separate this
+    // from visibleTotal): 268 + 22 = 290, then 298, 305, 307 and 308 by the same
+    // four appends, then 309 with the Buried Hoards Coinsack catch, and 312 with
+    // the world-boss branch's three.
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 336.
+    // 342 with Lantern Hall's six (three milestones plus the three title feats).
+    expect(view.categories.reduce((n, c) => n + c.visible, 0)).toBe(359);
+  });
+
+  it('offers exactly the live catalog border deeds once they are earned', () => {
+    // The four shipped border rewards, pinned as literals in DEED_ORDER order:
+    // a fifth border deed (or one re-homed in the order) has to move this pin,
+    // which is the moment to check it has an accent palette and picker copy.
+    const borderIds = [
+      'prog_prestige_10',
+      'dgn_deepward',
+      'col_discovery_250',
+      'col_reliquary_rank_5',
+    ];
+    const view = buildDeedsView(
+      makeInput({
+        deeds: DEEDS,
+        order: DEED_ORDER,
+        deedsEarned: new Map(borderIds.map((id) => [id, '2026-08-01'] as const)),
+        activeBorder: 'dgn_deepward',
+      }),
+    );
+    expect(view.borders).toEqual([
+      { id: null, active: false },
+      { id: 'prog_prestige_10', active: false },
+      { id: 'dgn_deepward', active: true },
+      { id: 'col_discovery_250', active: false },
+      { id: 'col_reliquary_rank_5', active: false },
+    ]);
+    // Every id the picker offers really carries a border reward (never a title
+    // deed leaking across).
+    for (const option of view.borders) {
+      if (option.id !== null) expect(DEEDS[option.id].reward?.kind).toBe('border');
+    }
   });
 
   it('maps every live catalog category onto a display bucket', () => {
     for (const def of Object.values(DEEDS)) {
       expect(DEED_DISPLAY_CATEGORIES).toContain(deedDisplayCategory(def.category));
     }
+  });
+
+  it('lists the real Thornpeak wayfarer marks still outstanding at 9 of 10', () => {
+    const wayfarer = DEEDS.exp_peaks_wayfarer;
+    if (wayfarer.trigger.kind !== 'visits') throw new Error('fixture drift');
+    const markIds = wayfarer.trigger.markIds;
+    const s = stats((st) => {
+      for (const mark of markIds) {
+        if (mark !== 'poi:thornpeak_heights:gravewyrm_sanctum') st.visited.add(mark);
+      }
+    });
+    const view = buildDeedsView(
+      makeInput({ deeds: DEEDS, order: DEED_ORDER, deedStats: s, category: 'exploration' }),
+    );
+    const entry = view.entries.find((e) => e.id === 'exp_peaks_wayfarer');
+    expect(entry?.missingPoiMarkIds).toEqual(['poi:thornpeak_heights:gravewyrm_sanctum']);
+  });
+
+  it('never surfaces a missing-places list for a visits deed outside the poi: namespace', () => {
+    const view = buildDeedsView(
+      makeInput({ deeds: DEEDS, order: DEED_ORDER, category: 'chronicle' }),
+    );
+    const gatherer = view.entries.find((e) => e.id === 'chr_vale_gatherer');
+    expect(gatherer?.missingPoiMarkIds).toEqual([]);
+  });
+
+  it('pins the exact set of live deeds an all-poi visits trigger admits', () => {
+    // A literal, not a computed re-check: a content change that adds a new
+    // poi:-only visits deed (or retires one of these) should have to move
+    // this pin deliberately, so the missing-places line's real coverage is a
+    // visible decision rather than a silent side effect of a catalog edit.
+    const admitted = Object.values(DEEDS)
+      .filter((def) => {
+        if (def.trigger.kind !== 'visits') return false;
+        const marks = def.trigger.markIds;
+        return marks.length > 0 && marks.every((m) => m.startsWith('poi:'));
+      })
+      .map((def) => def.id)
+      .sort();
+    expect(admitted).toEqual([
+      'exp_long_road_north',
+      'exp_marsh_wayfarer',
+      'exp_peaks_wayfarer',
+      'exp_vale_wayfarer',
+    ]);
+  });
+
+  it('lists the missing hub settlements for the cross-zone Long Road North deed', () => {
+    const longRoad = DEEDS.exp_long_road_north;
+    if (longRoad.trigger.kind !== 'visits') throw new Error('fixture drift');
+    const s = stats((st) => st.visited.add('poi:eastbrook_vale:eastbrook'));
+    const view = buildDeedsView(
+      makeInput({ deeds: DEEDS, order: DEED_ORDER, deedStats: s, category: 'exploration' }),
+    );
+    const entry = view.entries.find((e) => e.id === 'exp_long_road_north');
+    expect(entry?.missingPoiMarkIds).toEqual([
+      'poi:mirefen_marsh:fenbridge',
+      'poi:thornpeak_heights:highwatch',
+    ]);
   });
 });
 
@@ -652,6 +1073,7 @@ describe('deedsRefreshSig', () => {
     renown: 15,
     earnedCount: 3,
     activeTitle: 'cmb_title',
+    activeBorder: 'dgn_border',
     filter: 'all',
     search: '',
     category: 'combat',
@@ -673,6 +1095,9 @@ describe('deedsRefreshSig', () => {
       },
       (p) => {
         p.activeTitle = null;
+      },
+      (p) => {
+        p.activeBorder = null;
       },
       (p) => {
         p.filter = 'earned';
@@ -852,9 +1277,71 @@ describe('buildDeedUnlockPlan', () => {
       logIds: [],
       bannerId: null,
       titleHintIds: [],
+      borderHintIds: [],
       playSound: false,
       retroCount: 0,
     });
+  });
+
+  // The border hint is the title hint's sibling: three of the four live border
+  // deeds unlock with nothing pointing at the picker that wears them, so the
+  // plan has to carry them the same way. Extended locally rather than in the
+  // shared fixture, so the category/count arms elsewhere in this file are
+  // untouched.
+  const BORDER_DEEDS: Record<string, DeedDef> = {
+    ...TEST_DEEDS,
+    cmb_border: {
+      id: 'cmb_border',
+      name: 'Laurelled',
+      desc: 'A border deed.',
+      category: 'combat',
+      renown: 25,
+      trigger: { kind: 'manual' },
+      reward: { kind: 'border', slug: 'prestige_laurels' },
+    },
+  };
+
+  it('hints a border unlock, and never confuses it with a title unlock', () => {
+    const plan = buildDeedUnlockPlan([{ deedId: 'cmb_border' }], BORDER_DEEDS);
+    expect(plan.borderHintIds).toEqual(['cmb_border']);
+    // The two rewards share one field, so a kind-blind check would hint both.
+    expect(plan.titleHintIds).toEqual([]);
+    expect(plan.logIds).toEqual(['cmb_border']);
+  });
+
+  it('leaves the border hints empty for a title unlock', () => {
+    const plan = buildDeedUnlockPlan([{ deedId: 'cmb_title' }], BORDER_DEEDS);
+    expect(plan.titleHintIds).toEqual(['cmb_title']);
+    expect(plan.borderHintIds).toEqual([]);
+  });
+
+  it('carries both hint lists when one drain unlocks a title and a border', () => {
+    const plan = buildDeedUnlockPlan(
+      [{ deedId: 'cmb_title' }, { deedId: 'cmb_counter' }, { deedId: 'cmb_border' }],
+      BORDER_DEEDS,
+    );
+    expect(plan.titleHintIds).toEqual(['cmb_title']);
+    expect(plan.borderHintIds).toEqual(['cmb_border']);
+    expect(plan.logIds).toEqual(['cmb_title', 'cmb_counter', 'cmb_border']);
+    expect(plan.bannerId).toBe('cmb_border'); // still one banner, the last unlock
+  });
+
+  it('skips a prototype-key id instead of resolving it through the catalog', () => {
+    // The catalog is a plain object, so a bare index answers Object.prototype
+    // for '__proto__' and the id would be logged as a real unlock with no
+    // reward. Same hasOwn guard as the rest of the deed resolver family.
+    const plan = buildDeedUnlockPlan(
+      [{ deedId: '__proto__' }, { deedId: 'constructor' }, { deedId: 'cmb_counter' }],
+      TEST_DEEDS,
+    );
+    expect(plan.logIds).toEqual(['cmb_counter']);
+    expect(plan.bannerId).toBe('cmb_counter');
+  });
+
+  it('never hints a RETRO border (the on-join catch-up stays silent)', () => {
+    const plan = buildDeedUnlockPlan([{ deedId: 'cmb_border', retro: true }], BORDER_DEEDS);
+    expect(plan.borderHintIds).toEqual([]);
+    expect(plan.retroCount).toBe(1);
   });
 });
 

@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-
+import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import {
   createHostedPlayPartyState,
   tickHostedPlayPartyCoordinator,
 } from '../server/hosted_play/party';
 import { findPartyCombatTarget } from '../server/party_coordination';
-import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import { DUNGEONS } from '../src/sim/data';
 import type { PartyInfo } from '../src/world_api';
 
@@ -5410,9 +5409,9 @@ describe('hosted-play party coordinator', () => {
     expect(result).toMatchObject({
       pauseBrainDrive: true,
       travelGoal: {
-        target: { x: 0, z: 0 },
+        target: { x: -14, z: -100 },
         arrivalRange: 2.5,
-        goalKey: 'hosted-party-safe-retreat:eastbrook_vale:0:0',
+        goalKey: 'hosted-party-safe-retreat:eastbrook_vale:-14:-100',
       },
       groupMode: 'assist_party',
       groupLeaderName: 'Aldenpplbms',
@@ -7184,7 +7183,7 @@ describe('hosted-play party coordinator', () => {
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 105 },
-      { cmd: 'cast', ability: 'flash_of_light' },
+      { cmd: 'cast', ability: 'holy_light' },
     ]);
     expect(result.pauseBrainDrive).toBe(true);
     expect(result.travelGoal).toBeUndefined();
@@ -8448,7 +8447,7 @@ describe('hosted-play party coordinator', () => {
     );
 
     expect(result).toEqual({
-      commands: [{ cmd: 'cast', ability: 'summon_succubus' }],
+      commands: [{ cmd: 'cast', ability: 'summon_voidwalker' }],
       pauseBrainDrive: true,
       groupMode: 'prepare_party',
       groupLeaderName: 'Hero',

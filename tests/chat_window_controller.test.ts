@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   type ChatContextMenuPort,
@@ -33,6 +34,17 @@ const ITEM_NAMES: Record<string, string> = {
   [ODD_ITEM_ID]: 'Odd Relic',
 };
 
+function keydown(key: string, altKey = false): Event {
+  const event = new Event('keydown', { cancelable: true });
+  Object.defineProperty(event, 'key', { value: key });
+  Object.defineProperty(event, 'altKey', { value: altKey });
+  return event;
+}
+
+function dragEvent(type: string): Event {
+  return new Event(type, { cancelable: true });
+}
+
 interface Harness {
   controller: ChatWindowController;
   document: FakeDocument;
@@ -42,11 +54,14 @@ interface Harness {
   storage: MemoryStorage;
   sent: string[];
   errors: string[];
+  activateContextAction(action: string): void;
+  shownPanes: HTMLElement[];
 }
 
 function makeHarness(
   initialStorage: Record<string, string> = {},
   selectedQuest: string | null = null,
+  isMobileLayout = false,
 ): Harness {
   const document = new FakeDocument();
   const tabs = document.element('chatlog-tabs');
@@ -58,7 +73,9 @@ function makeHarness(
   const storage = new MemoryStorage(initialStorage);
   const sent: string[] = [];
   const errors: string[] = [];
+  const shownPanes: HTMLElement[] = [];
   let opener: HTMLElement | null = null;
+  let handleContextAction: (action: string) => void = () => {};
   const contextMenu: ChatContextMenuPort = {
     element: menu as unknown as HTMLElement,
     opener: () => opener,
@@ -70,7 +87,9 @@ function makeHarness(
       opener = null;
     },
     place: () => {},
-    bind: () => {},
+    bind: (onActivate) => {
+      handleContextAction = onActivate;
+    },
   };
   const controller = new ChatWindowController({
     document: document as unknown as Document,
@@ -79,7 +98,7 @@ function makeHarness(
     combatLog: combatLog as unknown as HTMLElement,
     contextMenu,
     sendChat: (line) => sent.push(line),
-    isMobileLayout: () => false,
+    isMobileLayout: () => isMobileLayout,
     // ODD_ITEM_ID / ODD_QUEST_ID resolve like any other content record: they are
     // in the tables and they have names. The ONLY thing wrong with them is the
     // charset, which is exactly the case #2459 is about.
@@ -88,8 +107,42 @@ function makeHarness(
     selectedQuestId: () => selectedQuest,
     hasQuest: (questId) => questId === 'q_wolves' || questId === ODD_QUEST_ID,
     showError: (text) => errors.push(text),
+    openWhoTab: () => false,
+    openGroupFinder: () => {},
+    afterTabShown: (pane) => shownPanes.push(pane),
   });
-  return { controller, document, input, chatLog, combatLog, storage, sent, errors };
+  return {
+    controller,
+    document,
+    input,
+    chatLog,
+    combatLog,
+    storage,
+    sent,
+    errors,
+    shownPanes,
+    activateContextAction: (action) => handleContextAction(action),
+  };
+}
+
+function tabsBar(harness: Harness): FakeElement {
+  const bar = harness.document.getElementById('chatlog-tabs');
+  if (!bar) throw new Error('missing #chatlog-tabs');
+  return bar;
+}
+
+function tabButton(harness: Harness, id: string): FakeElement {
+  const button = tabsBar(harness).children.find((child) => child.dataset.tab === id);
+  if (!button) throw new Error(`no tab button for ${id}`);
+  return button;
+}
+
+function addButton(harness: Harness): FakeElement {
+  const button = tabsBar(harness).children.find((child) =>
+    child.classList.contains('chat-tab-add'),
+  );
+  if (!button) throw new Error('no "+" add button');
+  return button;
 }
 
 describe('ChatWindowController', () => {
@@ -112,8 +165,75 @@ describe('ChatWindowController', () => {
     expect(partyLine.classList.contains('chat-hidden')).toBe(true);
     expect(harness.chatLog.classList.contains('active')).toBe(true);
     expect(harness.combatLog.classList.contains('active')).toBe(false);
+    expect(harness.shownPanes.at(-1)).toBe(harness.chatLog);
     expect(harness.controller.composeSend('need one tank')).toBe('/world need one tank');
     expect(harness.input.style.color).toBe('#ff9d5c');
+  });
+
+  it('uses tab primitives and clears an inactive channel unread badge when selected', () => {
+    const harness = makeHarness({ woc_chat_tabs: '["party"]' });
+    harness.controller.init();
+
+    const party = tabButton(harness, 'party');
+    expect(tabButton(harness, 'all').classList.contains('ui-tab')).toBe(true);
+    expect(party.classList.contains('ui-tab')).toBe(true);
+    expect(addButton(harness).classList.contains('ui-tab--add')).toBe(true);
+
+    const first = harness.document.createElement('div');
+    const second = harness.document.createElement('div');
+    harness.controller.hideIfFiltered(first as unknown as HTMLElement, 'party');
+    harness.controller.hideIfFiltered(second as unknown as HTMLElement, 'party');
+
+    const badge = party.children.find((child) => child.classList.contains('ui-badge'));
+    expect(badge?.textContent).toBe('2');
+    expect(badge?.getAttribute('aria-hidden')).toBe('true');
+
+    party.dispatchEvent(new Event('click'));
+
+    expect(party.children.some((child) => child.classList.contains('ui-badge'))).toBe(false);
+
+    const activeLine = harness.document.createElement('div');
+    harness.controller.hideIfFiltered(activeLine as unknown as HTMLElement, 'party');
+    expect(party.children.some((child) => child.classList.contains('ui-badge'))).toBe(false);
+  });
+
+  it('preserves unread counts across reorder and discards them when a channel closes', () => {
+    const harness = makeHarness({ woc_chat_tabs: '["party","world"]' });
+    harness.controller.init();
+
+    for (let i = 0; i < 2; i += 1) {
+      const line = harness.document.createElement('div');
+      harness.controller.hideIfFiltered(line as unknown as HTMLElement, 'party');
+    }
+
+    tabButton(harness, 'party').dispatchEvent(keydown('ArrowRight', true));
+
+    const reorderedParty = tabButton(harness, 'party');
+    expect(
+      reorderedParty.children.find((child) => child.classList.contains('ui-badge'))?.textContent,
+    ).toBe('2');
+
+    reorderedParty.dispatchEvent(new Event('contextmenu', { cancelable: true }));
+    const closedLine = harness.document.createElement('div');
+    harness.controller.hideIfFiltered(closedLine as unknown as HTMLElement, 'party');
+
+    addButton(harness).dispatchEvent(new Event('click'));
+    harness.activateContextAction('party');
+
+    expect(
+      tabButton(harness, 'party').children.some((child) => child.classList.contains('ui-badge')),
+    ).toBe(false);
+  });
+
+  it('reports the visible pane after activating a tab', () => {
+    const harness = makeHarness();
+    harness.controller.init();
+
+    tabButton(harness, 'combat').dispatchEvent(new Event('click'));
+
+    expect(harness.chatLog.classList.contains('active')).toBe(false);
+    expect(harness.combatLog.classList.contains('active')).toBe(true);
+    expect(harness.shownPanes.at(-1)).toBe(harness.combatLog);
   });
 
   it('mirrors typed joins without sending a duplicate command or changing the send tab', () => {
@@ -142,18 +262,57 @@ describe('ChatWindowController', () => {
     expect(harness.controller.composeSend('[Thin the Pack]')).toBe('/say [Thin the Pack]');
   });
 
+  it('routes /who to the Social window Who tab online, and falls through offline', () => {
+    const harness = makeHarness();
+    harness.controller.init();
+    // offline: openWhoTab declines (the harness default), so the line is NOT
+    // consumed and reaches the world, where the Sim prints its classic line
+    expect(harness.controller.maybeHandleLocalChatCommand('/who Thornpeak')).toBe(false);
+    expect(harness.sent).toEqual([]);
+    // online: the tab takes the trimmed filter and the line never reaches chat
+    const online = makeHarness();
+    const opened: string[] = [];
+    (online.controller as unknown as { deps: { openWhoTab(f: string): boolean } }).deps.openWhoTab =
+      (f) => {
+        opened.push(f);
+        return true;
+      };
+    online.controller.init();
+    expect(online.controller.maybeHandleLocalChatCommand('/who  Thornpeak ')).toBe(true);
+    expect(online.controller.maybeHandleLocalChatCommand('/WHO')).toBe(true);
+    expect(online.controller.maybeHandleLocalChatCommand('/whoa')).toBe(false);
+    expect(opened).toEqual(['Thornpeak', '']);
+    expect(online.sent).toEqual([]);
+  });
+
+  it('opens the Groups window on a bare /lfg (any case) but leaves /lfg <message> to the channel', () => {
+    const harness = makeHarness();
+    let opened = 0;
+    (harness.controller as unknown as { deps: { openGroupFinder(): void } }).deps.openGroupFinder =
+      () => {
+        opened++;
+      };
+    harness.controller.init();
+    expect(harness.controller.maybeHandleLocalChatCommand('/LFG')).toBe(true);
+    expect(harness.controller.maybeHandleLocalChatCommand(' /lfg  ')).toBe(true);
+    expect(harness.controller.maybeHandleLocalChatCommand('/lfg need a healer')).toBe(false);
+    expect(harness.controller.maybeHandleLocalChatCommand('/lfgx')).toBe(false);
+    expect(opened).toBe(2);
+    expect(harness.sent).toEqual([]);
+  });
+
   it('handles quest sharing through the injected authoritative quest state', () => {
     const missing = makeHarness();
     missing.controller.init();
-    expect(missing.controller.maybeHandleQuestShareCommand('/share')).toBe(true);
+    expect(missing.controller.maybeHandleLocalChatCommand('/share')).toBe(true);
     expect(missing.sent).toEqual([]);
     expect(missing.errors).toHaveLength(1);
 
     const selected = makeHarness({}, 'q_wolves');
     selected.controller.init();
-    expect(selected.controller.maybeHandleQuestShareCommand('/share now')).toBe(true);
+    expect(selected.controller.maybeHandleLocalChatCommand('/share now')).toBe(true);
     expect(selected.sent).toEqual(['/p [[q:q_wolves]]']);
-    expect(selected.controller.maybeHandleQuestShareCommand('/party hello')).toBe(false);
+    expect(selected.controller.maybeHandleLocalChatCommand('/party hello')).toBe(false);
   });
 
   // #2459: three encode sites used to mint a token from an id the chat parser
@@ -206,7 +365,7 @@ describe('ChatWindowController', () => {
     harness.controller.init();
 
     // The command is still consumed (it is a /share), but nothing goes out.
-    expect(harness.controller.maybeHandleQuestShareCommand('/share')).toBe(true);
+    expect(harness.controller.maybeHandleLocalChatCommand('/share')).toBe(true);
     expect(harness.sent).toEqual([]);
     // Which string, spelled out: "can't be shared" is the truthful outcome, and
     // the sibling "select a quest" copy would be a lie here (one IS selected and
@@ -224,5 +383,308 @@ describe('ChatWindowController', () => {
 
     expect(harness.controller.composeSend('ready')).toBe('/r ready');
     expect(harness.input.style.color).toBe('#ff80ff');
+  });
+
+  // Issue #1365: chat tabs can be dragged to reorder, and the order persists.
+  it('drops the /bg send-stickiness when the match ends, so plain text goes to say', () => {
+    // Review catch: the server clears its own remembered channel on bgEnd, but
+    // the HUD composes a plain line through ITS sticky before anything is sent.
+    // Without the client half, the first plain line after every match is still
+    // composed as "/bg ..." and comes back refused.
+    const harness = makeHarness();
+    harness.controller.init();
+
+    harness.controller.noteSentChannel('/bg incoming mid', false);
+    expect(harness.controller.composeSend('on my way'), 'the sticky is live').toBe('/bg on my way');
+
+    harness.controller.clearBattlegroundSticky();
+
+    // Composed for SAY (the explicit prefix is how this controller spells the
+    // default), which is the point: it reaches say instead of being refused by a
+    // battleground the player already left.
+    expect(harness.controller.composeSend('on my way'), 'plain text falls back to say').toBe(
+      '/say on my way',
+    );
+  });
+
+  it('is actually WIRED to the bgEnd arm, not just callable', () => {
+    // The two cases above drive the method directly, so they would both stay
+    // green if the hud stopped calling it: they pin the behavior, not the hookup.
+    // This reads the source instead, which is the same shape the repo already
+    // uses for hud wiring it cannot reach from a unit test. It proves the call
+    // EXISTS inside the bgEnd arm; it cannot prove the arm runs, which the sim
+    // suite covers by asserting bgEnd is emitted.
+    const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+    const arm = hud.slice(hud.indexOf("case 'bgEnd': {"));
+    const armEnd = arm.indexOf("case '");
+    expect(
+      arm.slice(0, armEnd > 0 ? armEnd : 4000),
+      'the bgEnd arm must clear the battleground send-stickiness',
+    ).toContain('clearBattlegroundSticky()');
+  });
+
+  it('leaves a NON-battleground sticky alone when a match ends', () => {
+    // The reset is scoped: a player who was last talking in party or guild keeps
+    // that sticky across a battleground ending they were not chatting in.
+    const harness = makeHarness();
+    harness.controller.init();
+    harness.controller.noteSentChannel('/p pulling now', false);
+    harness.controller.clearBattlegroundSticky();
+    expect(harness.controller.composeSend('pulling now')).toBe('/p pulling now');
+  });
+
+  describe('tab reordering (issue #1365)', () => {
+    it('drags a channel tab onto a sibling to reorder it, and persists the new order', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild","party"]' });
+      harness.controller.init();
+
+      tabButton(harness, 'world').dispatchEvent(dragEvent('dragstart'));
+      tabButton(harness, 'party').dispatchEvent(dragEvent('dragover'));
+      tabButton(harness, 'party').dispatchEvent(dragEvent('drop'));
+      tabButton(harness, 'world').dispatchEvent(dragEvent('dragend'));
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["guild","world","party"]');
+      const order = tabsBar(harness)
+        .children.filter((child) => child.dataset.tab)
+        .map((child) => child.dataset.tab);
+      expect(order).toEqual(['all', 'combat', 'guild', 'world', 'party']);
+      // The dragged tab keeps keyboard focus after the strip rebuilds.
+      expect(tabButton(harness, 'world').focused).toBe(true);
+    });
+
+    it('drags a channel tab onto the "+" add button to move it to the end', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild","party"]' });
+      harness.controller.init();
+
+      tabButton(harness, 'world').dispatchEvent(dragEvent('dragstart'));
+      addButton(harness).dispatchEvent(dragEvent('dragover'));
+      addButton(harness).dispatchEvent(dragEvent('drop'));
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["guild","party","world"]');
+    });
+
+    it('a stray drop on "+" with no drag in progress leaves the tab order untouched', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      addButton(harness).dispatchEvent(dragEvent('drop'));
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["world","guild"]');
+    });
+
+    it('reorders a channel tab with Alt+ArrowRight, the non-drag accessible path, and persists it', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      tabButton(harness, 'world').dispatchEvent(keydown('ArrowRight', true));
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["guild","world"]');
+      expect(tabButton(harness, 'world').focused).toBe(true);
+    });
+
+    it('Alt+ArrowLeft at the leftmost channel tab is a no-op that leaves the keystroke unconsumed', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      const event = keydown('ArrowLeft', true);
+      tabButton(harness, 'world').dispatchEvent(event);
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["world","guild"]');
+      // Not consumed: the browser's own Alt+Left back-navigation is left alone.
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('Alt+Arrow on All/Combat never reorders (they are not channel tabs)', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      const event = keydown('ArrowRight', true);
+      tabButton(harness, 'all').dispatchEvent(event);
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["world","guild"]');
+      expect(event.defaultPrevented).toBe(false);
+    });
+
+    it('plain ArrowRight roves keyboard focus across the tablist without activating a tab', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world"]' });
+      harness.controller.init();
+
+      tabButton(harness, 'all').dispatchEvent(keydown('ArrowRight'));
+
+      expect(tabButton(harness, 'combat').focused).toBe(true);
+      expect(tabButton(harness, 'combat').tabIndex).toBe(0);
+      expect(tabButton(harness, 'all').tabIndex).toBe(-1);
+      // Roving focus never activates a tab: still showing the All view.
+      expect(harness.chatLog.classList.contains('active')).toBe(true);
+      expect(harness.combatLog.classList.contains('active')).toBe(false);
+    });
+
+    it('Home and End jump roving focus to the first and last tab (WAI-ARIA tablist keys)', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      const end = keydown('End');
+      tabButton(harness, 'all').dispatchEvent(end);
+      expect(tabButton(harness, 'guild').focused).toBe(true);
+      expect(end.defaultPrevented).toBe(true);
+
+      const home = keydown('Home');
+      tabButton(harness, 'guild').dispatchEvent(home);
+      expect(tabButton(harness, 'all').focused).toBe(true);
+      expect(home.defaultPrevented).toBe(true);
+
+      // Alt+Home is not a reorder gesture: no move, no reorder, keystroke left alone.
+      const altHome = keydown('Home', true);
+      tabButton(harness, 'world').dispatchEvent(altHome);
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["world","guild"]');
+      expect(tabButton(harness, 'all').focused).toBe(true);
+      expect(altHome.defaultPrevented).toBe(false);
+    });
+
+    it('wraps roving focus from the last tab back to the first (and vice versa)', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world"]' });
+      harness.controller.init();
+
+      tabButton(harness, 'world').dispatchEvent(keydown('ArrowRight'));
+      expect(tabButton(harness, 'all').focused).toBe(true);
+
+      tabButton(harness, 'all').dispatchEvent(keydown('ArrowLeft'));
+      expect(tabButton(harness, 'world').focused).toBe(true);
+    });
+
+    it('roving ArrowRight then Alt+ArrowLeft reorders an inactive channel tab reached only by keyboard', () => {
+      // This is the exact accessibility gap a plain "only the active tab is
+      // reachable" implementation would have: without roving nav, a keyboard
+      // user starting on All could never Tab onto an inactive channel tab to
+      // reorder it with Alt+Arrow.
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      tabButton(harness, 'all').dispatchEvent(keydown('ArrowRight'));
+      tabButton(harness, 'combat').dispatchEvent(keydown('ArrowRight'));
+      expect(tabButton(harness, 'world').tabIndex).toBe(0);
+
+      // "world" sits first in chatTabs; Alt+ArrowRight swaps it past "guild".
+      tabButton(harness, 'world').dispatchEvent(keydown('ArrowRight', true));
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["guild","world"]');
+      // Reordering via keyboard never changes which view is active.
+      expect(harness.chatLog.classList.contains('active')).toBe(true);
+    });
+
+    it('clears the roving focus target when its tab closes, falling back to the active tab', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      tabButton(harness, 'all').dispatchEvent(keydown('ArrowRight'));
+      tabButton(harness, 'combat').dispatchEvent(keydown('ArrowRight'));
+      expect(tabButton(harness, 'world').tabIndex).toBe(0);
+
+      tabButton(harness, 'world').dispatchEvent(new Event('contextmenu', { cancelable: true }));
+
+      expect(harness.storage.getItem('woc_chat_tabs')).toBe('["guild"]');
+      expect(tabButton(harness, 'all').tabIndex).toBe(0);
+    });
+
+    it('clicking a tab re-latches the roving tabindex to it, even after roving elsewhere', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      // Rove onto "world" without activating it (the roving target and the
+      // active tab now disagree).
+      tabButton(harness, 'all').dispatchEvent(keydown('ArrowRight'));
+      tabButton(harness, 'combat').dispatchEvent(keydown('ArrowRight'));
+      expect(tabButton(harness, 'world').tabIndex).toBe(0);
+
+      tabButton(harness, 'guild').dispatchEvent(new Event('click'));
+
+      expect(tabButton(harness, 'guild').tabIndex).toBe(0);
+      expect(tabButton(harness, 'world').tabIndex).toBe(-1);
+    });
+
+    it('shows drag-visual classes during a drag and clears them on drop and on dragend', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+      harness.controller.init();
+
+      const source = tabButton(harness, 'world');
+      source.dispatchEvent(dragEvent('dragstart'));
+      expect(source.classList.contains('chat-tab-dragging')).toBe(true);
+
+      const target = tabButton(harness, 'guild');
+      target.dispatchEvent(dragEvent('dragover'));
+      expect(target.classList.contains('drop-target')).toBe(true);
+
+      target.dispatchEvent(dragEvent('dragleave'));
+      expect(target.classList.contains('drop-target')).toBe(false);
+
+      // Dropping "world" back onto itself is a no-op reorder (reorderChatTabs
+      // returns the same array), so dropDraggingTab returns before renderTabs()
+      // would otherwise wipe the drag-visual classes via its rebuild; dragend's
+      // explicit cleanup is what clears them here.
+      source.dispatchEvent(dragEvent('dragover'));
+      expect(source.classList.contains('drop-target')).toBe(true);
+      source.dispatchEvent(dragEvent('drop'));
+      source.dispatchEvent(dragEvent('dragend'));
+
+      expect(tabButton(harness, 'world').classList.contains('chat-tab-dragging')).toBe(false);
+      expect(tabButton(harness, 'world').classList.contains('drop-target')).toBe(false);
+    });
+
+    it('channel tabs are not draggable on mobile layout, where drag would fight swipe-to-scroll', () => {
+      const harness = makeHarness({ woc_chat_tabs: '["world"]' }, null, true);
+      harness.controller.init();
+
+      expect(tabButton(harness, 'world').draggable).toBe(false);
+    });
+  });
+});
+
+describe('ChatWindowController pointer-only blur (Space must not re-click the last-used tab)', () => {
+  // The discriminator is UIEvent.detail (src/ui/pointer_blur.ts): a pointer click
+  // carries detail > 0, keyboard and programmatic activation carry 0.
+  function click(detail: number): Event {
+    const event = new Event('click', { cancelable: true });
+    Object.defineProperty(event, 'detail', { value: detail });
+    return event;
+  }
+
+  it('a mouse click selects the tab and drops its focus; a keyboard click keeps it', () => {
+    const harness = makeHarness({ woc_chat_tabs: '["world","guild"]' });
+    harness.controller.init();
+
+    const world = tabButton(harness, 'world');
+    world.focus();
+    world.dispatchEvent(click(1));
+    expect(harness.storage.getItem('woc_chat_active_tab')).toBe('world');
+    expect(world.focused).toBe(false);
+
+    const guild = tabButton(harness, 'guild');
+    guild.focus();
+    guild.dispatchEvent(click(0));
+    expect(harness.storage.getItem('woc_chat_active_tab')).toBe('guild');
+    expect(guild.focused).toBe(true);
+  });
+
+  it('the "+" channel-menu trigger drops focus after a mouse click, on open and on toggle-close', () => {
+    const harness = makeHarness({ woc_chat_tabs: '["world"]' });
+    harness.controller.init();
+
+    const add = addButton(harness);
+    const menu = harness.document.getElementById('ctx-menu');
+    if (!menu) throw new Error('missing #ctx-menu');
+    add.focus();
+    add.dispatchEvent(click(1));
+    expect(menu.style.display).toBe('block');
+    expect(add.focused).toBe(false);
+    // Second pointer click on the still-open menu's own trigger: the toggle-close arm.
+    add.focus();
+    add.dispatchEvent(click(1));
+    expect(menu.style.display).toBe('none');
+    expect(add.focused).toBe(false);
+    // Keyboard activation (detail 0) keeps its focus on either arm.
+    add.focus();
+    add.dispatchEvent(click(0));
+    expect(menu.style.display).toBe('block');
+    expect(add.focused).toBe(true);
   });
 });

@@ -1,0 +1,405 @@
+import { describe, expect, it } from 'vitest';
+import {
+  activeCharacterFormVisual,
+  CHARACTER_FORM_READY,
+  characterFormAssetKey,
+  characterFormMaskForAura,
+  characterFormReadyMask,
+  characterFormShadowPlan,
+  characterFormVisibility,
+  requestedCharacterForm,
+  resolvedCharacterForm,
+} from '../src/render/characters/form_visual_selection_core';
+import { VISUALS } from '../src/render/characters/manifest';
+
+function maskFor(auras: ReadonlyArray<{ kind: string; id?: string }>): number {
+  return auras.reduce((mask, aura) => mask | characterFormMaskForAura(aura), 0);
+}
+
+describe('character form visual selection', () => {
+  it('keeps the shaman wolf asset independent of the druid cat in the shared form slot', () => {
+    expect(characterFormAssetKey('form_cat', [{ kind: 'form_cat' }])).toBe('form_cat');
+    expect(characterFormAssetKey('form_cat', [{ kind: 'buff_speed', id: 'ghost_wolf' }])).toBe(
+      'form_ghost_wolf',
+    );
+    expect(characterFormAssetKey('form_sheep', [{ kind: 'buff_speed', id: 'ghost_wolf' }])).toBe(
+      'form_sheep',
+    );
+    expect(characterFormAssetKey('form_cat', [])).toBe('form_cat');
+  });
+
+  it('keeps every asset readiness bit independent', () => {
+    expect(CHARACTER_FORM_READY).toEqual({
+      sheep: 1,
+      bear: 2,
+      cat: 4,
+      travel: 8,
+      metamorph: 16,
+      sporemender: 32,
+    });
+    expect(resolvedCharacterForm('metamorph', CHARACTER_FORM_READY.travel)).toBe('base');
+    expect(resolvedCharacterForm('travel', CHARACTER_FORM_READY.metamorph)).toBe('base');
+    expect(resolvedCharacterForm('sporemender', CHARACTER_FORM_READY.metamorph)).toBe('base');
+  });
+
+  it('maps both replicated Warlock form markers to the dedicated Metamorphosis visual', () => {
+    for (const kind of ['form_metamorph', 'form_lich']) {
+      const requested = requestedCharacterForm(maskFor([{ kind }]));
+      expect(requested).toBe('metamorph');
+      expect(resolvedCharacterForm(requested, CHARACTER_FORM_READY.metamorph)).toBe('metamorph');
+    }
+  });
+
+  it('keeps the base visual visible while a requested form build is unavailable', () => {
+    const requested = requestedCharacterForm(maskFor([{ kind: 'form_metamorph' }]));
+    expect(resolvedCharacterForm(requested, 0)).toBe('base');
+  });
+
+  it('gives polymorph precedence and never falls through to a lower form', () => {
+    const requested = requestedCharacterForm(
+      maskFor([{ kind: 'form_metamorph' }, { kind: 'form_bear' }, { kind: 'polymorph' }]),
+    );
+    expect(requested).toBe('sheep');
+    expect(resolvedCharacterForm(requested, CHARACTER_FORM_READY.metamorph)).toBe('base');
+    expect(
+      resolvedCharacterForm(requested, CHARACTER_FORM_READY.sheep | CHARACTER_FORM_READY.metamorph),
+    ).toBe('sheep');
+  });
+
+  it('preserves the established form ordering', () => {
+    expect(
+      requestedCharacterForm(
+        maskFor([
+          { kind: 'form_metamorph' },
+          { kind: 'form_travel' },
+          { kind: 'form_cat' },
+          { kind: 'form_bear' },
+        ]),
+      ),
+    ).toBe('bear');
+    expect(
+      requestedCharacterForm(
+        maskFor([
+          { kind: 'form_metamorph' },
+          { kind: 'form_travel' },
+          { id: 'ghost_wolf', kind: 'buff_speed' },
+        ]),
+      ),
+    ).toBe('cat');
+    expect(
+      requestedCharacterForm(maskFor([{ kind: 'form_metamorph' }, { kind: 'form_fireball' }])),
+    ).toBe('fireball');
+    expect(
+      requestedCharacterForm(
+        maskFor([{ kind: 'form_travel' }, { kind: 'form_fireball' }, { kind: 'form_metamorph' }]),
+      ),
+    ).toBe('travel');
+  });
+
+  it.each([
+    ['sheep', { kind: 'polymorph' }, CHARACTER_FORM_READY.sheep],
+    ['bear', { kind: 'form_bear' }, CHARACTER_FORM_READY.bear],
+    ['cat', { kind: 'form_cat' }, CHARACTER_FORM_READY.cat],
+    ['travel', { kind: 'form_travel' }, CHARACTER_FORM_READY.travel],
+    ['metamorph', { kind: 'form_lich' }, CHARACTER_FORM_READY.metamorph],
+    ['sporemender', { kind: 'form_sporemender' }, CHARACTER_FORM_READY.sporemender],
+  ] as const)('resolves the %s branch only when its visual is ready', (form, aura, ready) => {
+    const requested = requestedCharacterForm(maskFor([aura]));
+    expect(requested).toBe(form);
+    expect(resolvedCharacterForm(requested, 0)).toBe('base');
+    expect(resolvedCharacterForm(requested, ready)).toBe(form);
+  });
+
+  it('selects fireball independently because its procedural visual has no asset retry', () => {
+    const requested = requestedCharacterForm(maskFor([{ kind: 'form_fireball' }]));
+    expect(requested).toBe('fireball');
+    expect(resolvedCharacterForm(requested, 0)).toBe('fireball');
+    expect(characterFormVisibility('fireball')).toEqual({
+      base: false,
+      sheep: false,
+      bear: false,
+      cat: false,
+      travel: false,
+      metamorph: false,
+      sporemender: false,
+    });
+  });
+
+  it('swaps a druid to the Sporemender rig only once that rig is built and linked', () => {
+    const base = { root: { id: 'base-root' } };
+    const spore = { root: { id: 'spore-root' } };
+    const requested = requestedCharacterForm(maskFor([{ kind: 'form_sporemender' }]));
+    expect(requested).toBe('sporemender');
+    // Built but still behind its compile gate: the base body stands in.
+    let ready = characterFormReadyMask(null, null, null, null, null, spore, spore.root);
+    let resolved = resolvedCharacterForm(requested, ready);
+    expect(activeCharacterFormVisual(resolved, base, null, null, null, null, null, spore)).toBe(
+      base,
+    );
+    ready = characterFormReadyMask(null, null, null, null, null, spore, null);
+    resolved = resolvedCharacterForm(requested, ready);
+    expect(resolved).toBe('sporemender');
+    expect(activeCharacterFormVisual(resolved, base, null, null, null, null, null, spore)).toBe(
+      spore,
+    );
+  });
+
+  it('keeps the base visual through a failed Lich build, then swaps after a later retry', () => {
+    const base = { id: 'base' };
+    const lich = { id: 'lich' };
+    const requested = requestedCharacterForm(maskFor([{ kind: 'form_lich' }]));
+    let metamorph: typeof lich | null = null;
+
+    let ready = characterFormReadyMask(null, null, null, null, metamorph, null, null);
+    let resolved = resolvedCharacterForm(requested, ready);
+    expect(activeCharacterFormVisual(resolved, base, null, null, null, null, metamorph, null)).toBe(
+      base,
+    );
+
+    metamorph = lich;
+    ready = characterFormReadyMask(null, null, null, null, metamorph, null, null);
+    resolved = resolvedCharacterForm(requested, ready);
+    expect(resolved).toBe('metamorph');
+    expect(activeCharacterFormVisual(resolved, base, null, null, null, null, metamorph, null)).toBe(
+      lich,
+    );
+
+    resolved = resolvedCharacterForm(requestedCharacterForm(0), ready);
+    expect(activeCharacterFormVisual(resolved, base, null, null, null, null, metamorph, null)).toBe(
+      base,
+    );
+  });
+
+  it.each([
+    ['base', 'base'],
+    ['sheep', 'sheep'],
+    ['bear', 'bear'],
+    ['cat', 'cat'],
+    ['travel', 'travel'],
+    ['metamorph', 'metamorph'],
+    ['sporemender', 'sporemender'],
+  ] as const)('makes only the %s root visible', (form, visibleKey) => {
+    const visibility = characterFormVisibility(form);
+    expect(visibility).toEqual({
+      base: visibleKey === 'base',
+      sheep: visibleKey === 'sheep',
+      bear: visibleKey === 'bear',
+      cat: visibleKey === 'cat',
+      travel: visibleKey === 'travel',
+      metamorph: visibleKey === 'metamorph',
+      sporemender: visibleKey === 'sporemender',
+    });
+    expect(Object.values(visibility).filter(Boolean)).toHaveLength(1);
+  });
+
+  it('plans near, far-proxy, and out-of-band Metamorphosis shadows', () => {
+    expect(
+      characterFormShadowPlan('metamorph', {
+        isSelf: false,
+        nearShadow: true,
+        inProxyBand: true,
+        staticFar: false,
+      }),
+    ).toEqual({ activeArticulated: true, baseProxy: false, formProxy: false });
+    expect(
+      characterFormShadowPlan('metamorph', {
+        isSelf: false,
+        nearShadow: false,
+        inProxyBand: true,
+        staticFar: false,
+      }),
+    ).toEqual({ activeArticulated: true, baseProxy: false, formProxy: false });
+    expect(
+      characterFormShadowPlan('metamorph', {
+        isSelf: false,
+        nearShadow: false,
+        inProxyBand: true,
+        staticFar: true,
+      }),
+    ).toEqual({ activeArticulated: true, baseProxy: false, formProxy: true });
+    expect(
+      characterFormShadowPlan('metamorph', {
+        isSelf: false,
+        nearShadow: false,
+        inProxyBand: false,
+        staticFar: true,
+      }),
+    ).toEqual({ activeArticulated: false, baseProxy: false, formProxy: false });
+    expect(
+      characterFormShadowPlan('base', {
+        isSelf: false,
+        nearShadow: false,
+        inProxyBand: true,
+        staticFar: true,
+      }),
+    ).toEqual({ activeArticulated: false, baseProxy: true, formProxy: false });
+    expect(
+      characterFormShadowPlan('metamorph', {
+        isSelf: true,
+        nearShadow: false,
+        inProxyBand: false,
+        staticFar: false,
+      }),
+    ).toEqual({ activeArticulated: true, baseProxy: false, formProxy: false });
+    expect(
+      characterFormShadowPlan('fireball', {
+        isSelf: true,
+        nearShadow: true,
+        inProxyBand: true,
+        staticFar: false,
+      }),
+    ).toEqual({ activeArticulated: false, baseProxy: false, formProxy: false });
+  });
+
+  it('returns cleanly to the base visual across rapid toggles without mutating aura input', () => {
+    const metamorphAura = Object.freeze({ kind: 'form_metamorph' });
+    const activeMask = maskFor([metamorphAura]);
+    const ready = CHARACTER_FORM_READY.metamorph;
+
+    const sequence = [activeMask, 0, activeMask].map((mask) => {
+      const resolved = resolvedCharacterForm(requestedCharacterForm(mask), ready);
+      return { resolved, visibility: characterFormVisibility(resolved) };
+    });
+    expect(sequence).toEqual([
+      {
+        resolved: 'metamorph',
+        visibility: {
+          base: false,
+          sheep: false,
+          bear: false,
+          cat: false,
+          travel: false,
+          metamorph: true,
+          sporemender: false,
+        },
+      },
+      {
+        resolved: 'base',
+        visibility: {
+          base: true,
+          sheep: false,
+          bear: false,
+          cat: false,
+          travel: false,
+          metamorph: false,
+          sporemender: false,
+        },
+      },
+      {
+        resolved: 'metamorph',
+        visibility: {
+          base: false,
+          sheep: false,
+          bear: false,
+          cat: false,
+          travel: false,
+          metamorph: true,
+          sporemender: false,
+        },
+      },
+    ]);
+    for (const step of sequence) {
+      expect(Object.values(step.visibility).filter(Boolean)).toHaveLength(1);
+    }
+    expect(metamorphAura).toEqual({ kind: 'form_metamorph' });
+  });
+});
+
+describe('character form readiness vs the compile gate (the stand-in invariant)', () => {
+  // A form rig is READY only once it can draw. Before this, the mask flipped
+  // ready the instant the rig OBJECT existed, so the resolved form left 'base',
+  // the base body went dark, and the still-linking form was hidden by its own
+  // gate: a polymorphed target with no silhouette at all for the gate window.
+  const sheep = { root: { id: 'sheep-root' } };
+  const bear = { root: { id: 'bear-root' } };
+  const requested = (kind: string) => requestedCharacterForm(maskFor([{ kind }]));
+
+  it('holds a built-but-pending form at base, so the body stands in', () => {
+    const ready = characterFormReadyMask(sheep, null, null, null, null, null, sheep.root);
+    expect(ready & CHARACTER_FORM_READY.sheep).toBe(0);
+    expect(resolvedCharacterForm(requested('polymorph'), ready)).toBe('base');
+    expect(characterFormVisibility('base').base).toBe(true);
+  });
+
+  it('swaps to the form once its gate settles', () => {
+    const ready = characterFormReadyMask(sheep, null, null, null, null, null, null);
+    expect(ready & CHARACTER_FORM_READY.sheep).toBe(CHARACTER_FORM_READY.sheep);
+    expect(resolvedCharacterForm(requested('polymorph'), ready)).toBe('sheep');
+  });
+
+  it('keys the pending token per root: another form linking never un-readies a settled one', () => {
+    const ready = characterFormReadyMask(sheep, bear, null, null, null, null, bear.root);
+    expect(ready & CHARACTER_FORM_READY.sheep).toBe(CHARACTER_FORM_READY.sheep);
+    expect(ready & CHARACTER_FORM_READY.bear).toBe(0);
+    expect(resolvedCharacterForm(requested('polymorph'), ready)).toBe('sheep');
+    expect(resolvedCharacterForm(requested('form_bear'), ready)).toBe('base');
+  });
+
+  it('leaves the ungated Metamorphosis rig ready (it is built without a gate)', () => {
+    const metamorph = { root: { id: 'metamorph-root' } };
+    const ready = characterFormReadyMask(null, null, null, null, metamorph, null, null);
+    expect(resolvedCharacterForm(requested('form_metamorph'), ready)).toBe('metamorph');
+    // ...and a sibling form's pending token cannot reach it either.
+    const withSibling = characterFormReadyMask(
+      sheep,
+      null,
+      null,
+      null,
+      metamorph,
+      null,
+      sheep.root,
+    );
+    expect(resolvedCharacterForm(requested('form_metamorph'), withSibling)).toBe('metamorph');
+  });
+
+  it('reports an unbuilt form as not ready whatever the pending token is', () => {
+    expect(characterFormReadyMask(null, null, null, null, null, null, null)).toBe(0);
+    expect(characterFormReadyMask(null, null, null, null, null, null, sheep.root)).toBe(0);
+  });
+});
+
+describe("Thatchbound's puppet bodies", () => {
+  const strawling = { kind: 'incapacitate', id: 'thatchbound_strawling' };
+  const crow = { kind: 'incapacitate', id: 'thatchbound_crow' };
+  it('ride the polymorph slot with their own rigs', () => {
+    expect(requestedCharacterForm(maskFor([strawling]))).toBe('sheep');
+    expect(requestedCharacterForm(maskFor([crow]))).toBe('sheep');
+    expect(characterFormAssetKey('form_sheep', [strawling])).toBe('form_puppet_strawling');
+    expect(characterFormAssetKey('form_sheep', [crow])).toBe('form_puppet_crow');
+  });
+  it('outrank a trick look, and a real polymorph outranks them', () => {
+    const trick = { kind: 'seasonal_cosmetic', id: 'gourdlight_costume_bat' };
+    expect(characterFormAssetKey('form_sheep', [trick, crow])).toBe('form_puppet_crow');
+    expect(
+      characterFormAssetKey('form_sheep', [crow, { kind: 'polymorph', id: 'polymorph' }]),
+    ).toBe('form_sheep');
+  });
+  it('an ordinary incapacitate (a gouge, a fear) wears no body', () => {
+    expect(maskFor([{ kind: 'incapacitate', id: 'fear_incap' }])).toBe(0);
+  });
+});
+
+describe('the Gurglegreen Cauldron goblin (round 11)', () => {
+  const goblin = { kind: 'seasonal_cosmetic', id: 'gourdlight_toy_gurglegreen' };
+  it("rides the polymorph slot as the treasure goblin's body, the costumes' seam", () => {
+    expect(requestedCharacterForm(maskFor([goblin]))).toBe('sheep');
+    expect(characterFormAssetKey('form_sheep', [goblin])).toBe('form_costume_goblin');
+    // a real polymorph and a puppet still outrank a cosmetic body
+    expect(
+      characterFormAssetKey('form_sheep', [goblin, { kind: 'polymorph', id: 'polymorph' }]),
+    ).toBe('form_sheep');
+    expect(
+      characterFormAssetKey('form_sheep', [
+        goblin,
+        { kind: 'incapacitate', id: 'thatchbound_crow' },
+      ]),
+    ).toBe('form_puppet_crow');
+  });
+  it("is the Coinsack Scurrier's own rig and clips, a head shorter than a player", () => {
+    const def = VISUALS.form_costume_goblin;
+    const scurrier = VISUALS.mob_hoard_coinsack_scurrier;
+    expect(def?.url).toBe(scurrier?.url);
+    expect(def?.clips).toBe(scurrier?.clips);
+    expect(def?.height).toBeLessThan(VISUALS.form_trick_skeleton?.height ?? 0);
+  });
+});

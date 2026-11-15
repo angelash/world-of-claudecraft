@@ -70,7 +70,7 @@ describe('World Market integration: profession items (#1146)', () => {
     expect(listing.count).toBe(5);
     sim.events.length = 0;
 
-    sim.marketBuy(listing.id, buyer);
+    sim.marketBuy(listing.id, undefined, buyer);
 
     expect(errorsSince(sim)).toEqual([]);
     expect(copperOf(sim, buyer)).toBe(800);
@@ -82,31 +82,36 @@ describe('World Market integration: profession items (#1146)', () => {
     expect(info.collectionCopper).toBe(190);
   });
 
+  // The tool used here is TIER 2 deliberately. The three tier-1 tools carry
+  // noMarketList (they are quest-granted on a repeatable quest, so their supply
+  // is unbounded), and this test is about market round-trip integrity for a
+  // profession item, not about which tier is listable. The tier-1 refusal has
+  // its own pin below.
   it('lists a crafted/vendor gathering tool and buys it: no dupe, no loss', () => {
     const sim = makeWorld();
     const seller = sim.addPlayer('warrior', 'Toolsmith');
     const buyer = sim.addPlayer('rogue', 'Buyer');
     standAtMerchant(sim, seller);
     standAtMerchant(sim, buyer);
-    sim.addItem('copper_mining_pick', 1, seller);
+    sim.addItem('iron_mining_pick', 1, seller);
     sim.players.get(buyer)!.copper = 500;
     sim.events.length = 0;
 
-    sim.marketList('copper_mining_pick', 1, 90, seller);
+    sim.marketList('iron_mining_pick', 1, 90, seller);
     expect(errorsSince(sim)).toEqual([]);
-    expect(sim.countItem('copper_mining_pick', seller)).toBe(0);
+    expect(sim.countItem('iron_mining_pick', seller)).toBe(0);
 
     const listing = sim.marketListings.find(
-      (l) => l.sellerKey === marketSellerKey(seller) && l.itemId === 'copper_mining_pick',
+      (l) => l.sellerKey === marketSellerKey(seller) && l.itemId === 'iron_mining_pick',
     )!;
     sim.events.length = 0;
 
-    sim.marketBuy(listing.id, buyer);
+    sim.marketBuy(listing.id, undefined, buyer);
 
     expect(errorsSince(sim)).toEqual([]);
     expect(copperOf(sim, buyer)).toBe(410);
-    expect(sim.countItem('copper_mining_pick', buyer)).toBe(1);
-    expect(sim.countItem('copper_mining_pick', seller)).toBe(0);
+    expect(sim.countItem('iron_mining_pick', buyer)).toBe(1);
+    expect(sim.countItem('iron_mining_pick', seller)).toBe(0);
     expect(sim.marketListings.some((l) => l.id === listing.id)).toBe(false);
   });
 
@@ -138,17 +143,18 @@ describe('World Market integration: profession items (#1146)', () => {
     standAtMerchant(sim, seller);
     standAtMerchant(sim, buyer);
     sim.addItem('bone_fragments', 4, seller);
-    sim.addItem('copper_mining_pick', 1, seller);
+    sim.addItem('iron_mining_pick', 1, seller);
     sim.addItem('eastbrook_wool_trousers', 1, seller);
     sim.players.get(buyer)!.copper = 2000;
 
     sim.marketList('bone_fragments', 2, 100, seller); // sells -> collection gold
-    sim.marketList('copper_mining_pick', 1, 90, seller); // stays listed
+    sim.marketList('iron_mining_pick', 1, 90, seller); // stays listed
     sim.marketList('eastbrook_wool_trousers', 1, 400, seller); // stays listed
     sim.marketBuy(
       sim.marketListings.find(
         (l) => l.sellerKey === marketSellerKey(seller) && l.itemId === 'bone_fragments',
       )!.id,
+      undefined,
       buyer,
     );
 
@@ -160,7 +166,7 @@ describe('World Market integration: profession items (#1146)', () => {
     const houseBefore = sim2.marketListings.length;
     sim2.loadMarket(save);
 
-    const loadedTool = sim2.marketListings.find((l) => l.itemId === 'copper_mining_pick');
+    const loadedTool = sim2.marketListings.find((l) => l.itemId === 'iron_mining_pick');
     const loadedGear = sim2.marketListings.find((l) => l.itemId === 'eastbrook_wool_trousers');
     expect(loadedTool).toMatchObject({ sellerKey: marketSellerKey(seller), count: 1, price: 90 });
     expect(loadedGear).toMatchObject({ sellerKey: marketSellerKey(seller), count: 1, price: 400 });
@@ -202,13 +208,20 @@ describe('save-on-leave atomicity for a profession-item listing (#1146)', () => 
   });
 
   it('writes the escrowed character bags and the market listing in one transaction', async () => {
-    const { saveCharacterAndMarketState, openMarketWriteGate, closeMarketWriteGateForTests } =
-      await import('../server/db');
+    const {
+      saveCharacterAndMarketState,
+      openMarketWriteGate,
+      closeMarketWriteGateForTests,
+      openMailPartitionWriteGate,
+    } = await import('../server/db');
     openMarketWriteGate();
+    openMailPartitionWriteGate(); // addPlayer's welcome letter dirties a mail partition too
     try {
       const client = {
         query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
         release: vi.fn(),
+        on: vi.fn(),
+        removeListener: vi.fn(),
       };
       dbMock.connect.mockResolvedValueOnce(client as any);
 
@@ -222,8 +235,14 @@ describe('save-on-leave atomicity for a profession-item listing (#1146)', () => 
       expect(state).not.toBeNull();
       const market = sim.serializeMarket();
 
-      const mail = sim.serializeMail();
-      await saveCharacterAndMarketState(1, sim.entities.get(seller)!.level, state!, market, mail);
+      const mailPartitions = sim.takeDirtyMailPartitions(); // no mail action here: empty
+      await saveCharacterAndMarketState(
+        1,
+        sim.entities.get(seller)!.level,
+        state!,
+        market,
+        mailPartitions,
+      );
 
       const sqls = client.query.mock.calls.map((c: unknown[]) => String(c[0]));
       expect(sqls[0]).toMatch(/^BEGIN/);
@@ -243,5 +262,37 @@ describe('save-on-leave atomicity for a profession-item listing (#1146)', () => 
     } finally {
       closeMarketWriteGateForTests();
     }
+  });
+});
+
+describe('the quest-granted tier-1 tools are not brokerable', () => {
+  it('refuses to list a tier-1 gathering tool, and still lists the tier-2 one', () => {
+    const sim = makeWorld();
+    const seller = sim.addPlayer('warrior', 'Toolsmith');
+    standAtMerchant(sim, seller);
+    sim.addItem('copper_mining_pick', 1, seller);
+    sim.addItem('iron_mining_pick', 1, seller);
+    sim.events.length = 0;
+
+    // The re-grant supply for a tier-1 tool is unbounded (questFallbackGrants
+    // re-grants whatever is not in the bags, and the hobby-switch quest is
+    // repeatable), so a free listing would be an indefinite drain on other
+    // players' copper. noVendorSell alone does not close that; noMarketList does.
+    sim.marketList('copper_mining_pick', 1, 90, seller);
+    expect(errorsSince(sim).length).toBeGreaterThan(0);
+    expect(sim.countItem('copper_mining_pick', seller)).toBe(1);
+    expect(
+      sim.marketListings.some(
+        (l) => l.sellerKey === marketSellerKey(seller) && l.itemId === 'copper_mining_pick',
+      ),
+    ).toBe(false);
+
+    // The discriminating control: tier 2 is bought, never granted, and stays
+    // brokerable, so this is the flag doing its job rather than the market
+    // refusing gathering tools wholesale.
+    sim.events.length = 0;
+    sim.marketList('iron_mining_pick', 1, 90, seller);
+    expect(errorsSince(sim)).toEqual([]);
+    expect(sim.countItem('iron_mining_pick', seller)).toBe(0);
   });
 });

@@ -5,6 +5,7 @@
 // is the same pure/IO split the server uses (wallet_link.ts vs wallet.ts).
 import { specialRoleByKey, specialRoleByName } from '../src/sim/discord_roles';
 import { DISCORD_STATUS_DEFS, discordStatusByIndex } from '../src/sim/discord_tier';
+import { formatMoney } from '../src/sim/format_money';
 
 // ── Gateway ──────────────────────────────────────────────────────────────────
 // Intents we need: guild metadata, members (privileged), voice states (who is in
@@ -79,6 +80,20 @@ export function requestGuildMembersPayload(guildId: string): Record<string, unkn
     op: GATEWAY_OP.REQUEST_GUILD_MEMBERS,
     d: { guild_id: guildId, query: '', limit: 0, presences: true },
   };
+}
+
+// Close codes we cannot resume from / must not auto-reconnect (bad token, bad
+// intents, etc.), see Discord gateway close-code docs.
+const FATAL_CLOSE_CODES = new Set([4004, 4010, 4011, 4012, 4013, 4014]);
+
+/**
+ * True when a gateway close code means reconnecting can never work. The decision
+ * lives here rather than in the IO shell so the set is unit-testable on its own:
+ * every code in it describes something only a config or a token change fixes, and
+ * retrying one is a doomed handshake repeated forever.
+ */
+export function isFatalCloseCode(code: number): boolean {
+  return FATAL_CLOSE_CODES.has(code);
 }
 
 // ── Slash commands ───────────────────────────────────────────────────────────
@@ -248,12 +263,7 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
  * setMember(id, false) so a member who leaves loses their in-game verified /
  * staff flair promptly instead of keeping it until some later relink.
  */
-export function clearedMemberMeta(discordUserId: string): {
-  discord_user_id: string;
-  name: string | null;
-  joinedAtMs: number | null;
-  role: string | null;
-} {
+export function clearedMemberMeta(discordUserId: string): MemberMetaRecord {
   return { discord_user_id: discordUserId, name: null, joinedAtMs: null, role: null };
 }
 
@@ -403,12 +413,37 @@ export function buildWhoamiContent(roles: {
     return 'Your Discord is not linked to a World of ClaudeCraft account yet. Use /link to connect it and start earning rewards.';
   }
   const rank = tierRoleName(roles.statusTier)?.replace('WoC ', '') ?? 'Unranked';
-  return `Linked. Rank: **${rank}** · ${roles.points} reward points (lifetime ${roles.lifetimePoints}). Use /flex to show off your top character.`;
+  return `Linked. Rank: **${rank}** · ${roles.points} reward points (lifetime ${roles.lifetimePoints}).`;
 }
 
 /** /link reply pointing at the in-game link flow. */
 export function buildLinkContent(gameUrl: string): string {
   return `Connect your Discord to World of ClaudeCraft to earn rewards and flex your characters: open ${gameUrl}, log in, and press the Discord button in the game HUD (or "Continue with Discord" on the login screen).`;
+}
+
+/** Shown when a slash-command reply itself fails (a Discord/network error). */
+export const INTERACTION_FAILURE_CONTENT =
+  'Something went wrong handling that command. Please try again in a moment.';
+
+/**
+ * What the interaction handler should do when it catches an error midway
+ * through a slash command, so the caller can best-effort tell the player
+ * instead of leaving Discord's "Bot is thinking..." placeholder (or a bare
+ * "did not respond") up until Discord's own ~15 minute webhook-token expiry.
+ *
+ * `acknowledged` is whether the interaction already got its ONE allowed
+ * initial response (a `respondInteraction`/`deferInteraction` call that
+ * actually succeeded): an interaction can only be acknowledged once, so once
+ * that has happened the sole remaining way to reach the player is editing
+ * that response (`via: 'edit'`); otherwise the initial-response slot is still
+ * open, so the fallback itself becomes that response (`via: 'respond'`).
+ */
+export function interactionFailureFallback(
+  acknowledged: boolean,
+): { via: 'edit'; content: string } | { via: 'respond'; content: string } {
+  return acknowledged
+    ? { via: 'edit', content: INTERACTION_FAILURE_CONTENT }
+    : { via: 'respond', content: INTERACTION_FAILURE_CONTENT };
 }
 
 /** Welcome message for a new guild member. */
@@ -443,6 +478,79 @@ export function voiceMembersForChannel(
   return states
     .filter((s) => s.channelId === featuredChannelId)
     .map((s) => ({ id: s.userId, name: nameOf(s.userId), speaking: false, selfMute: s.selfMute }));
+}
+
+// ── Queue-pop DMs (battleground offer opened / arena seated) ──────────────────
+// The server enqueues one item per opted-in, linked player whose queue popped;
+// the bot drains them through the outbox and DIRECT-MESSAGES the player, so a
+// player who alt-tabbed while waiting sees the pop before the Accept window
+// lapses. The item shape is the outbox's `queuePops` stream (server/internal.ts).
+export interface QueuePopItem {
+  accountId: number;
+  discordUserId: string;
+  characterName: string;
+  /** 'bg': an Accept/Decline offer with a window. 'arena': seated, no answer. */
+  kind: 'bg' | 'arena';
+  /** Arena format id ('1v1', '2v2', 'fiesta', 'yumi3', 'yumi5'), null for a bg pop. */
+  format: string | null;
+  /** The battleground Accept window in seconds (0 for arena). */
+  seconds: number;
+  /** Server wall-clock ms after which the pop is moot; rendered as a live countdown. */
+  expiresAtMs: number;
+  realm: string;
+}
+
+/** Player-facing names for the arena brackets; an unknown id falls back to itself. */
+const ARENA_FORMAT_LABELS: Record<string, string> = {
+  '1v1': '1v1',
+  '2v2': '2v2',
+  fiesta: 'Fiesta',
+  yumi3: 'Protect Yumi (3)',
+  yumi5: 'Protect Yumi (5)',
+};
+
+/**
+ * Full createMessage payload for a queue-pop DM: a short embed naming the
+ * queue, the character, and (for a battleground offer) a live Discord relative
+ * timestamp of the deadline, plus a link button back into the game. No mention
+ * (a DM already notifies its recipient) and no mention parsing. Pure data; the
+ * REST layer sends it. Unit-tested in tests/discord_bot.test.ts.
+ */
+export function buildQueuePopMessage(item: QueuePopItem, gameUrl: string): Record<string, unknown> {
+  // Discord renders <t:unix:R> as a live "in 25 seconds" in the reader's own
+  // clock, which is the one number a player alt-tabbed out of the game needs.
+  const deadline = `<t:${Math.floor(item.expiresAtMs / 1000)}:R>`;
+  const bg = item.kind === 'bg';
+  const formatLabel = item.format ? (ARENA_FORMAT_LABELS[item.format] ?? item.format) : '';
+  const embed: Record<string, unknown> = {
+    color: bg ? 0xe67e22 : 0x9b59b6,
+    title: bg ? 'Your battleground queue popped!' : 'Arena match found!',
+    description: bg
+      ? `A Thornhollow Fields match is ready for ${item.characterName}. Accept it in game ${deadline}, or the offer lapses and you are locked out of the queue for a while.`
+      : `${item.characterName} is being seated for a ${formatLabel} bout in the Ashen Coliseum. Get back in game: the gates open shortly.`,
+    fields: [
+      { name: 'Character', value: item.characterName, inline: true },
+      { name: 'Realm', value: item.realm, inline: true },
+    ],
+    footer: { text: 'World of ClaudeCraft' },
+  };
+  return {
+    embeds: [embed],
+    components: [
+      {
+        type: 1, // action row
+        components: [
+          {
+            type: 2, // button
+            style: 5, // link: opens the game (no interaction round-trip)
+            label: 'Open the game',
+            url: gameUrl.replace(/\/+$/, '') || gameUrl,
+          },
+        ],
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
 }
 
 // ── In-game "!" community relay (LFG / trade / recruit / event / help) ─────────
@@ -533,7 +641,8 @@ export function buildRelayMessage(item: RelayItem, gameUrl: string): Record<stri
   return payload;
 }
 
-// ── Significant-activity feed (level 20 / rare drop / duel / arena) ───────────
+// ── Significant-activity feed (level 20 / rare drop / duel / arena /
+// masterwork / legendary / deed / golden harvest) ─────────────────────────────
 export interface ActivityParticipant {
   name: string;
   discordUserId: string | null;
@@ -541,21 +650,79 @@ export interface ActivityParticipant {
 }
 
 export interface ActivityItem {
-  kind: 'levelup' | 'rareloot' | 'duel' | 'arena';
+  kind:
+    | 'levelup'
+    | 'rareloot'
+    | 'duel'
+    | 'arena'
+    | 'masterwork'
+    | 'legendary'
+    | 'deed'
+    | 'golden_harvest';
   realm: string;
   profileUrl: string | null;
   level?: number;
+  // rareloot; masterwork; the first-koi deed's catch; for 'golden_harvest'
+  // the crop's item name from the server's ITEMS table. For 'legendary' this
+  // is the PLAYER-CHOSEN legendary name: render it as plain embed text (data,
+  // never our own markdown), exactly the way the masterwork card treats it.
   itemName?: string;
   quality?: string;
   winnerName?: string;
   loserName?: string;
   ratingDelta?: number;
+  deedId?: string; // deed
+  deedName?: string; // deed (English deed name; Discord posts are English)
+  deedTitle?: string; // deed, when the deed rewards a title
   participants: ActivityParticipant[];
 }
+
+// The first-koi deed (col_glimmerfin, "Glimmer of Hope"; the deed NAME is
+// what arrives as deedName): the one feed-visible deed whose card reads as a
+// catch rather than a deed record.
+export const FIRST_KOI_DEED_ID = 'col_glimmerfin';
+
+// The Harvestmaster deed (prog_farming_100, the farming capstone title): the
+// one deed whose card reads as a farming triumph rather than a deed record
+// (the FIRST_KOI shape; the id is a copy, pinned against the DEEDS catalog in
+// tests/discord_activity_professions.test.ts, never an import).
+export const HARVESTMASTER_DEED_ID = 'prog_farming_100';
 
 // Per-quality embed accent for a rare drop (epic purple, legendary orange).
 function qualityColor(quality: string | undefined): number {
   return quality === 'legendary' ? 0xff8000 : 0xa335ee;
+}
+
+/** Character cap on a legendary card's item name, mirroring the game's mint
+ *  shape (src/sim/professions/legendary_name.ts MAX_LEGENDARY_NAME_LENGTH; a
+ *  copy pinned in tests/discord_bot.test.ts, not an import, so logic.ts stays
+ *  free of src/ imports). */
+export const LEGENDARY_CARD_NAME_MAX = 32;
+
+/**
+ * Bot-side defense for the one PLAYER-AUTHORED string this feed interpolates:
+ * the legendary card's item name crosses two processes as unchecked JSON, and
+ * the game's persisted-load shape for it is deliberately wider than the mint
+ * alphabet (the signer doctrine), so nothing upstream structurally guarantees
+ * what arrives here. Hold it to the full MINT shape before it touches an
+ * embed (legendary_name.ts: starts with a letter, then [A-Za-z' -], at least
+ * 2 characters): strip everything outside the alphabet, collapse whitespace
+ * runs, trim, drop any leading non-letters (a surviving "- " head would
+ * render as a Discord bullet), require length >= 2, and bound at
+ * LEGENDARY_CARD_NAME_MAX. A name emptied or left under the floor degrades
+ * to the generic title through the caller's `||` fallback.
+ */
+export function sanitizeLegendaryItemName(raw: string | undefined): string {
+  if (!raw) return '';
+  const cleaned = raw
+    .replace(/[^A-Za-z' -]/g, '')
+    .replace(/^[^A-Za-z]+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (cleaned.length < 2) return '';
+  return cleaned.length > LEGENDARY_CARD_NAME_MAX
+    ? cleaned.slice(0, LEGENDARY_CARD_NAME_MAX).trimEnd()
+    : cleaned;
 }
 
 // Resolve a character name to its Discord mention (when linked) or plain name.
@@ -566,10 +733,12 @@ function mentionFor(name: string, parts: readonly ActivityParticipant[]): string
 
 /**
  * Full createMessage payload for one activity card: a content line that pings the
- * linked participant(s) and a rich, per-kind embed. Pure data; the REST layer
- * sends it. Unit-tested in tests/discord_bot.test.ts.
+ * linked participant(s) and a rich, per-kind embed, or null for a kind this bot
+ * build does not know (a newer server mid-deploy enqueues it; posting would
+ * render an empty embed, the pre-fix vale_cup failure). Pure data; the REST
+ * layer sends it. Unit-tested in tests/discord_bot.test.ts.
  */
-export function buildActivityMessage(item: ActivityItem): Record<string, unknown> {
+export function buildActivityMessage(item: ActivityItem): Record<string, unknown> | null {
   const subject = item.participants[0];
   const subjectName = subject?.name ?? item.winnerName ?? '';
   const subjectAvatar = subject
@@ -593,16 +762,19 @@ export function buildActivityMessage(item: ActivityItem): Record<string, unknown
       break;
     case 'rareloot':
       author = ':gem: Rare Drop';
-      title = item.itemName ?? 'A rare item';
+      // Every title fallback below is `||`, never `??`: an EMPTY name from the
+      // server must degrade to the generic title, and `??` would keep the empty
+      // string, which Discord rejects (an embed title cannot be blank).
+      title = item.itemName || 'A rare item';
       description =
-        `A **${item.quality ?? 'rare'}** drop` +
+        `A **${item.quality || 'rare'}** drop` +
         (subject ? ` for ${mentionFor(subjectName, item.participants)}` : '') +
         ` on ${item.realm}!`;
       color = qualityColor(item.quality);
       break;
     case 'duel':
       author = ':crossed_swords: Duel';
-      title = `${item.winnerName ?? subjectName} wins!`;
+      title = `${item.winnerName || subjectName} wins!`;
       description =
         `${mentionFor(item.winnerName ?? '', item.participants)} defeated ` +
         `${mentionFor(item.loserName ?? '', item.participants)} in a duel on ${item.realm}.`;
@@ -619,6 +791,71 @@ export function buildActivityMessage(item: ActivityItem): Record<string, unknown
         ` on ${item.realm}.`;
       color = 0x9b59b6;
       break;
+    case 'masterwork':
+      author = ':hammer: Masterwork';
+      title = item.itemName || 'A masterwork piece';
+      description =
+        `A **masterwork** ${item.itemName || 'piece'} from the hands of ` +
+        `${mentionFor(subjectName, item.participants)} on ${item.realm}!`;
+      color = 0xd9a334;
+      break;
+    case 'legendary': {
+      // The orange promotion (Masterwrought phase 13). itemName is the
+      // PLAYER-CHOSEN legendary name: held to the mint alphabet by
+      // sanitizeLegendaryItemName above, then interpolated as plain text at
+      // masterwork parity (no markdown of our own around it), with the ||
+      // fallback so an empty or emptied name degrades to the generic title.
+      const legendName = sanitizeLegendaryItemName(item.itemName);
+      author = ':fire: Legend Forged';
+      title = legendName || 'A legend';
+      description =
+        `${legendName || 'A legend'} was forged by ` +
+        `${mentionFor(subjectName, item.participants)} on ${item.realm}!`;
+      color = 0xff8000;
+      break;
+    }
+    case 'golden_harvest':
+      // The farming zone celebration: a five-fold crop windfall. itemName is
+      // the crop's item name from the server's ITEMS table; || so an empty
+      // name degrades to the generic title (never ??, Discord rejects a blank
+      // title).
+      author = ':ear_of_rice: Golden Harvest';
+      title = item.itemName || 'A golden harvest';
+      description =
+        `${mentionFor(subjectName, item.participants)} reaped a golden harvest ` +
+        `of ${item.itemName || 'crops'} on ${item.realm}!`;
+      color = 0xf5c242;
+      break;
+    case 'deed':
+      if (item.deedId === FIRST_KOI_DEED_ID) {
+        // The first-koi moment reads as a catch, not a deed record.
+        author = ':fish: Rare Catch';
+        title = item.deedName || 'A rare catch';
+        description =
+          `${mentionFor(subjectName, item.participants)} landed their ` +
+          `first ${item.itemName || 'rare catch'} on ${item.realm}!`;
+        color = 0x3fa7d6;
+      } else if (item.deedId === HARVESTMASTER_DEED_ID) {
+        // The farming capstone reads as a harvest triumph, not a deed record.
+        author = ':ear_of_rice: Harvestmaster';
+        title = item.deedName || 'Harvestmaster';
+        description =
+          `${mentionFor(subjectName, item.participants)} reached 100 Farming and ` +
+          `earned the title "${item.deedTitle || 'Harvestmaster'}" on ${item.realm}!`;
+        color = 0xf5c242;
+      } else {
+        author = ':scroll: Deed Complete';
+        title = item.deedName || 'A deed of renown';
+        description =
+          `${mentionFor(subjectName, item.participants)} completed ` +
+          `"${item.deedName || 'a deed'}"` +
+          (item.deedTitle !== undefined ? ` and earned the title "${item.deedTitle}"` : '') +
+          ` on ${item.realm}.`;
+        color = 0xf0b743;
+      }
+      break;
+    default:
+      return null;
   }
 
   const embed: Record<string, unknown> = {
@@ -641,16 +878,175 @@ export function buildActivityMessage(item: ActivityItem): Record<string, unknown
   return payload;
 }
 
+// ── World PvP kill feed ───────────────────────────────────────────────────────
+// One kill as the outbox's `pvpKills` stream ships it (server/discord_pvp_feed.ts
+// QueuedPvpKill). Names only, no Discord ids: the feed never pings anyone.
+export interface PvpKillItem {
+  killerName: string;
+  victimName: string;
+  killerLevel: number;
+  victimLevel: number;
+  zoneName: string | null;
+  assists: number;
+  copper: number;
+  realm: string;
+}
+
+/**
+ * Lines per digest post. One drain becomes ceil(n / this) posts, so a burst of
+ * kills costs a handful of createMessage calls rather than one each, and the
+ * server's queue cap (PVP_KILL_FEED_MAX_QUEUE) bounds how many posts a drain
+ * can take. Sized against the WORST line, not a typical one: all three escaped
+ * fields (killer, victim, zone) at PVP_FEED_NAME_MAX of pure markdown
+ * metacharacters escape to double length, and every number sits at
+ * PVP_FEED_NUMBER_MAX. A full batch of that line must stay inside the
+ * 4096-character embed description limit; tests/discord_bot.test.ts pins it.
+ */
+export const PVP_FEED_LINES_PER_POST = 13;
+/** Character names are short in game; this only bounds a malformed wire value. */
+export const PVP_FEED_NAME_MAX = 32;
+
+/**
+ * A character name as plain embed text. The wire is unchecked JSON across two
+ * processes, so Discord markdown metacharacters are escaped (a name can never
+ * bold, strike or spoiler the rest of the line) and the length is bounded.
+ */
+export function pvpFeedName(raw: string): string {
+  const bounded = (raw || '').replace(/\s+/g, ' ').trim().slice(0, PVP_FEED_NAME_MAX);
+  return bounded.replace(/[\\*_~`|>[\]()#-]/g, (ch) => `\\${ch}`) || 'Someone';
+}
+
+/**
+ * Ceiling for every number a kill line renders. Far above any real level,
+ * assist count or stake (the stake is capped in copper well below it), it only
+ * bounds a malformed wire value so a line can never render `1e+300`.
+ */
+export const PVP_FEED_NUMBER_MAX = 999_999_999;
+
+/** Whole integer in [0, PVP_FEED_NUMBER_MAX] from an unchecked wire number, else 0. */
+function wireCount(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.min(PVP_FEED_NUMBER_MAX, Math.max(0, Math.floor(value)));
+}
+
+/** Split one drain into digest-sized batches, FIFO order kept. */
+export function chunkPvpKills(items: readonly PvpKillItem[]): PvpKillItem[][] {
+  const batches: PvpKillItem[][] = [];
+  for (let i = 0; i < items.length; i += PVP_FEED_LINES_PER_POST) {
+    batches.push(items.slice(i, i + PVP_FEED_LINES_PER_POST));
+  }
+  return batches;
+}
+
+/**
+ * One kill line, e.g. "**Annthar** (60) slew **Borin** (58) in Drakelands,
+ * with 2 assists, taking 1g 20s". Assists and the stake are omitted at zero.
+ */
+export function pvpKillLine(item: PvpKillItem): string {
+  const assists = wireCount(item.assists);
+  const copper = wireCount(item.copper);
+  let line =
+    `:crossed_swords: **${pvpFeedName(item.killerName)}** (${wireCount(item.killerLevel)}) slew ` +
+    `**${pvpFeedName(item.victimName)}** (${wireCount(item.victimLevel)})`;
+  if (item.zoneName) line += ` in ${pvpFeedName(item.zoneName)}`;
+  if (assists > 0) line += `, with ${assists} ${assists === 1 ? 'assist' : 'assists'}`;
+  if (copper > 0) line += `, taking ${formatMoney(copper)}`;
+  return line;
+}
+
+/**
+ * One digest post for a batch from chunkPvpKills. `allowed_mentions` is empty
+ * on purpose: nothing in a kill line may ping, even if a name happens to look
+ * like a mention.
+ */
+export function buildPvpKillFeedMessage(items: readonly PvpKillItem[]): Record<string, unknown> {
+  const realm = items[0]?.realm || 'the realm';
+  return {
+    embeds: [
+      {
+        color: 0xb22222,
+        author: { name: 'World PvP' },
+        description: items.map(pvpKillLine).join('\n'),
+        footer: { text: `World of ClaudeCraft (${realm})` },
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
+}
+
+// ── King of the Hill spawn announcements (same channel as the kill feed) ─────
+// One announcement as the outbox's `hillAnnouncements` stream ships it
+// (server/discord_hill_feed.ts QueuedHillAnnouncement). Times are wall-clock
+// ms on the SERVER's clock, rendered as Discord timestamps so every reader
+// sees their own local time and a live countdown.
+export interface HillAnnouncementItem {
+  phase: 'warning' | 'risen';
+  zoneName: string;
+  risesAtMs: number;
+  fallsAtMs: number;
+  realm: string;
+}
+
+/**
+ * Whether the moment an announcement calls players to has already passed, so
+ * posting it now would mislead: a warning once the hill has risen, a rise once
+ * it has fallen. The consumer skips these (a stalled bot's backlog), the
+ * queue-pop deadline rule. A malformed time (either one) counts as stale.
+ */
+export function hillAnnouncementIsStale(item: HillAnnouncementItem, nowMs: number): boolean {
+  const finite = (ms: unknown) => typeof ms === 'number' && Number.isFinite(ms);
+  // Both times render on the card, so both must be real; the deadline is the
+  // rise for a warning and the fall for a rise.
+  if (!finite(item.risesAtMs) || !finite(item.fallsAtMs)) return true;
+  const deadline = item.phase === 'warning' ? item.risesAtMs : item.fallsAtMs;
+  return !(deadline > nowMs);
+}
+
+/** `<t:unix:style>`: Discord renders it in each reader's own time zone. */
+function discordTime(ms: number, style: 'R' | 't'): string {
+  return `<t:${Math.floor(ms / 1000)}:${style}>`;
+}
+
+/** One card per announcement. Nobody is pinged. */
+export function buildHillAnnouncementMessage(item: HillAnnouncementItem): Record<string, unknown> {
+  const zone = pvpFeedName(item.zoneName);
+  const warning = item.phase === 'warning';
+  const title = warning ? `A hill will rise in ${zone}` : `A hill has risen in ${zone}`;
+  const description = warning
+    ? `It rises ${discordTime(item.risesAtMs, 'R')} and stands until ` +
+      `${discordTime(item.fallsAtMs, 't')}. The party with the most players ` +
+      'standing inside takes it and earns Honor for every minute they hold it.'
+    : `It stands until ${discordTime(item.fallsAtMs, 't')} ` +
+      `(${discordTime(item.fallsAtMs, 'R')}). The party with the most players ` +
+      'standing inside takes it and earns Honor for every minute they hold it.';
+  return {
+    embeds: [
+      {
+        color: 0xf0c060,
+        author: { name: 'King of the Hill' },
+        title,
+        description,
+        footer: { text: `World of ClaudeCraft (${item.realm || 'the realm'})` },
+      },
+    ],
+    allowed_mentions: { parse: [] },
+  };
+}
+
 // ── Daily rewards winners feed ────────────────────────────────────────────────
+// One winner row as the server's outbox actually ships it since the #2791
+// narrowing: exactly what the message builder renders plus the payout status.
+// The old wide row (day, txSignature, and more) is gone from the wire; do not
+// re-add fields here without the server serving them again. The server-side
+// shape is pinned by key equality in tests/daily_rewards_winner_days_db.test.ts,
+// so a drift starts there, not here.
 export interface DailyRewardWinner {
-  day: string;
   rank: number;
   username: string;
   points: number;
   prizePercent: number;
   prizeUsd: number;
   status: string;
-  txSignature: string | null;
 }
 
 export interface DailyRewardWinnersDay {
@@ -704,4 +1100,144 @@ export function buildDailyRewardWinnersMessage(
     ],
     allowed_mentions: { parse: [] },
   };
+}
+
+// ── Diff before write (the self-inflicted-load guards) ───────────────────────
+// Every write the bot makes to Discord comes back as an event: a nickname PATCH
+// makes Discord emit GUILD_MEMBER_UPDATE, whose handler pushes that member's
+// meta straight back into the game. Re-writing state that already matches
+// therefore costs a Discord PATCH, a gateway event, AND a game-server POST, per
+// member, every 5 minute sweep, for nothing. So the rule here is universal:
+// nothing is written unless it actually differs, and an update carrying only
+// the value we just wrote is recognized as our own echo and dropped. All three
+// predicates are pure and cache-free (the caller owns the caches) so the
+// decision is unit-tested without a network, a clock, or a Discord token.
+
+/** The caller-owned dedupe state behind `claimDailyActive`. */
+export interface DailyActiveState {
+  /** `${userId}:${day}` for everyone already granted today. */
+  seen: Set<string>;
+  /** The UTC day those keys belong to, empty before the first grant. */
+  day: string;
+}
+
+/**
+ * Whether this is a member's FIRST engagement of the given day, claiming it if so.
+ *
+ * The set is emptied when the day rolls over rather than accumulating an entry per
+ * member per day for the life of the process: a year on a 500 member guild is
+ * roughly 180k dead strings, and GUILD_MEMBER_REMOVE prunes the other caches but
+ * deliberately not this one, so departed members' keys persisted too. Clearing is
+ * safe precisely because a key carries its day, so nothing still live is ever
+ * dropped.
+ *
+ * Bot-side dedupe only. The server's grant dedupe key is what makes the reward
+ * exactly-once, so even a clock stepping backwards over UTC midnight cannot
+ * double-grant; this only decides whether the request is worth sending.
+ */
+export function claimDailyActive(state: DailyActiveState, day: string, userId: string): boolean {
+  if (day !== state.day) {
+    state.day = day;
+    state.seen.clear();
+  }
+  const key = `${userId}:${day}`;
+  if (state.seen.has(key)) return false;
+  state.seen.add(key);
+  return true;
+}
+
+/** One members-meta push record: the shape `clearedMemberMeta` returns and the
+ * roster sweep builds. Named so the diff predicates below can share it. */
+export interface MemberMetaRecord {
+  discord_user_id: string;
+  name: string | null;
+  joinedAtMs: number | null;
+  role: string | null;
+}
+
+/**
+ * Whether a member's nickname PATCH must actually be sent. `cachedNick` is what
+ * we last OBSERVED for this member: `undefined` means we have never seen one, so
+ * we cannot prove the write is redundant and must send it; `null` means the
+ * member has no nickname at all, which a computed nick always differs from.
+ * Otherwise it is exact string equality, deliberately with no trimming or
+ * normalization: Discord stores the nick verbatim, so treating " Aldric" as
+ * equal to "Aldric" would make every sweep re-PATCH the same member forever,
+ * which is exactly the load this guard exists to stop. An empty computed nick is
+ * compared verbatim too, never read as "no opinion".
+ */
+export function nicknameNeedsWrite(
+  computedNick: string,
+  cachedNick: string | null | undefined,
+): boolean {
+  if (cachedNick === undefined || cachedNick === null) return true;
+  return computedNick !== cachedNick;
+}
+
+/**
+ * Whether this member's meta must be pushed to the game. `last` is the record we
+ * last pushed SUCCESSFULLY; `undefined` means we never did, so push. Otherwise
+ * all four fields are compared with strict equality and any difference pushes:
+ * a partial compare would strand whichever field it skipped (a rename, a rejoin,
+ * or a staff-role change) until some unrelated field happened to move. null and
+ * undefined are never conflated, and a cleared record (all-null, from
+ * `clearedMemberMeta`) is a real change against a populated one, so a departing
+ * member's flair still gets cleared.
+ */
+export function memberMetaChanged(
+  next: MemberMetaRecord,
+  last: MemberMetaRecord | undefined,
+): boolean {
+  if (last === undefined) return true;
+  return (
+    next.discord_user_id !== last.discord_user_id ||
+    next.name !== last.name ||
+    next.joinedAtMs !== last.joinedAtMs ||
+    next.role !== last.role
+  );
+}
+
+/**
+ * The subset of a sweep's records that actually need pushing, in INPUT ORDER
+ * (the caller batches them, and a reordered batch would make the pushes hard to
+ * read against the roster). Pure: `lastPushed` is read only, so the caller
+ * updates it after a push SUCCEEDS and a failed push is retried next sweep
+ * instead of being silently marked clean.
+ */
+export function changedMemberMeta(
+  records: readonly MemberMetaRecord[],
+  lastPushed: ReadonlyMap<string, MemberMetaRecord>,
+): MemberMetaRecord[] {
+  return records.filter((record) =>
+    memberMetaChanged(record, lastPushed.get(record.discord_user_id)),
+  );
+}
+
+/**
+ * Whether an incoming GUILD_MEMBER_UPDATE is nothing but the echo of the
+ * nickname the bot itself just wrote, in which case re-pushing that member's
+ * meta is pure self-inflicted load. It is an echo only when we actually wrote a
+ * nick for them (`lastWrittenNick` present), the incoming nick is exactly that
+ * value, AND the role set is unchanged. Roles are compared as SETS, not as
+ * ordered arrays: Discord does not promise role order, so an order-sensitive
+ * compare would read a genuine no-op update as a change every single time.
+ * Building the Sets is also what makes a duplicate id on one side harmless, so
+ * equal size plus containment in ONE direction already proves the sets equal: a
+ * second scan back the other way is unreachable, and used to sit here reading as
+ * though it were load bearing. Anything else (a role grant, or a moderator
+ * renaming the member to something we did not write) is a third-party update and
+ * returns false so it still pushes.
+ */
+export function isSelfNickEcho(
+  incoming: { nick: string | null | undefined; roleIds: readonly string[] },
+  lastWrittenNick: string | undefined,
+  cachedRoleIds: readonly string[],
+): boolean {
+  if (lastWrittenNick === undefined) return false;
+  if (incoming.nick !== lastWrittenNick) return false;
+  const incomingSet = new Set(incoming.roleIds);
+  const cachedSet = new Set(cachedRoleIds);
+  if (incomingSet.size !== cachedSet.size) return false;
+  for (const id of incomingSet) if (!cachedSet.has(id)) return false;
+  return true;
 }

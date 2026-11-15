@@ -10,10 +10,16 @@
 // `ALLOW_DEV_COMMANDS=1` is required for dev_level and dev_teleport.
 // `MAX_WS_PER_IP_HARD` must be higher than BOT_COUNT plus any browser sessions
 // opened from the same machine.
+//
+// SERVER_URL / GAME_URL and DATABASE_URL must all be loopback: the script
+// mints accounts, cheats, and deletes rows, so it refuses any remote target
+// (scripts/lib/loopback_guard.mjs).
 
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import WebSocket from 'ws';
+import { assertLoopbackDatabaseUrl, assertLoopbackUrl } from './lib/loopback_guard.mjs';
+import { sanitizeBaseUrl } from './lib/prof_load_util.mjs';
 import { worldAuthMessage } from './lib/world_auth.mjs';
 
 try {
@@ -22,30 +28,39 @@ try {
 
 const { Pool } = pg;
 
-const SERVER_URL = (
-  process.env.SERVER_URL ??
-  process.env.GAME_URL ??
-  'http://localhost:8787'
-).replace(/\/+$/, '');
+const SERVER_URL =
+  // biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
+  (process.env.SERVER_URL ?? process.env.GAME_URL ?? 'http://localhost:8787').replace(/\/+$/, '');
 const WS_URL = `${SERVER_URL.replace(/^http/, 'ws')}/ws`;
 const DATABASE_URL = process.env.DATABASE_URL;
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const REALM = process.env.REALM_NAME ?? 'Claudemoon';
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const BOT_COUNT = boundedInt(process.env.BOT_COUNT, 25, 1, 100);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const BOT_LEVEL = boundedInt(process.env.BOT_LEVEL, 18, 1, 60);
 const DURATION_MS = boundedInt(
+  // biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
   process.env.DURATION_MS ?? secondsToMs(process.env.DURATION_SECONDS),
   120_000,
   1_000,
   24 * 60 * 60 * 1000,
 );
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const CONNECT_CONCURRENCY = boundedInt(process.env.CONNECT_CONCURRENCY, 10, 1, 50);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const TICK_MS = boundedInt(process.env.TICK_MS, 250, 50, 5_000);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const REPORT_MS = boundedInt(process.env.REPORT_MS, 5_000, 1_000, 60_000);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const SPREAD_RADIUS = boundedInt(process.env.SPREAD_RADIUS, 8, 0, 30);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const MOB_SEARCH_RANGE = boundedInt(process.env.MOB_SEARCH_RANGE, 55, 5, 150);
 const RUN_ID =
+  // biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
   (process.env.LOAD_RUN_ID ?? randomLetters(5)).replace(/[^A-Za-z]/g, '').slice(0, 8) ||
   randomLetters(5);
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: Load-test CLI input is not a Turbo task dependency.
 const CLEANUP = process.env.CLEANUP === '1';
 
 const CLASSES = [
@@ -61,16 +76,16 @@ const CLASSES = [
 ];
 
 const SPOTS = [
-  { name: 'wolves west', x: -15, z: 55, radius: 22 },
-  { name: 'wolves east', x: 20, z: 70, radius: 20 },
-  { name: 'boars south', x: 55, z: 12, radius: 22 },
-  { name: 'boars ridge', x: 80, z: -15, radius: 18 },
-  { name: 'spiders', x: -60, z: 5, radius: 22 },
-  { name: 'murlocs', x: -75, z: 57, radius: 14 },
-  { name: 'rats', x: -82, z: -62, radius: 20 },
-  { name: 'bandits west', x: 65, z: -65, radius: 24 },
+  { name: 'wolves west', x: -27, z: 71, radius: 28.5 },
+  { name: 'wolves east', x: 24, z: 70, radius: 26 },
+  { name: 'boars south', x: 63, z: 16, radius: 26 },
+  { name: 'boars ridge', x: 84, z: -27, radius: 23.5 },
+  { name: 'spiders', x: -68, z: 2, radius: 28.5 },
+  { name: 'murlocs', x: -75, z: 57, radius: 15 },
+  { name: 'rats', x: -142, z: -86, radius: 33 },
+  { name: 'bandits west', x: 50, z: -72, radius: 28.5 },
   { name: 'bandits east', x: 90, z: -90, radius: 16 },
-  { name: 'bones', x: 80, z: 78, radius: 18 },
+  { name: 'bones', x: 82, z: 78, radius: 28.5 },
   { name: 'prowlers west', x: -40, z: 230, radius: 22 },
   { name: 'prowlers east', x: 35, z: 225, radius: 20 },
   { name: 'deepfen west', x: -82, z: 273, radius: 15 },
@@ -211,7 +226,7 @@ function castForClass(bot) {
     case 'paladin':
       if (!(bot.self?.auras ?? []).some((a) => a.kind === 'imbue'))
         return shouldCast(bot, 'seal_of_righteousness', 0, 2_000);
-      return shouldCast(bot, 'judgement', 30, 1_000);
+      return shouldCast(bot, 'hammer_of_grace', 0, 1_000);
     case 'hunter':
       return shouldCast(bot, 'arcane_shot', 25, 1_200);
     case 'rogue':
@@ -523,11 +538,19 @@ function report(bots, startedAt) {
 }
 
 async function main() {
+  // Safety FIRST: this script mints accounts straight into Postgres, drives
+  // /dev cheats, and can delete accounts on the way out, so every target has
+  // to be local before anything is touched. The shared control lives in
+  // scripts/lib/loopback_guard.mjs (the DATABASE arm validates the host
+  // node-postgres actually resolves, ?host= override and hostaddr included,
+  // and never echoes the credential-bearing value).
+  assertLoopbackUrl(SERVER_URL, 'SERVER_URL (or GAME_URL)');
   if (!DATABASE_URL) {
     throw new Error(
       'DATABASE_URL is required so the script can create disposable load-test accounts.',
     );
   }
+  assertLoopbackDatabaseUrl(DATABASE_URL);
   if (BOT_COUNT > 20) {
     console.log(
       `[load-players] start the server with MAX_WS_PER_IP_HARD=${BOT_COUNT + 5} or higher for ${BOT_COUNT} local clients`,
@@ -537,7 +560,10 @@ async function main() {
     '[load-players] server must have ALLOW_DEV_COMMANDS=1 for dev_level and dev_teleport',
   );
   console.log(
-    `[load-players] run=${RUN_ID} count=${BOT_COUNT} level=${BOT_LEVEL} durationMs=${DURATION_MS} realm=${REALM} url=${SERVER_URL}`,
+    // Echoed through sanitizeBaseUrl like the professions rig does: a
+    // basic-auth (or ?token=) SERVER_URL must not reach the console, and this
+    // line is the one place the raw value was still printed.
+    `[load-players] run=${RUN_ID} count=${BOT_COUNT} level=${BOT_LEVEL} durationMs=${DURATION_MS} realm=${REALM} url=${sanitizeBaseUrl(SERVER_URL)}`,
   );
 
   const pool = new Pool({ connectionString: DATABASE_URL, max: 5 });

@@ -56,14 +56,39 @@ function appNavigationOrigins(appOrigin, devServerUrl) {
 }
 
 // Third-party origins the app legitimately embeds in a SUBFRAME only (never the main
-// frame): the Cloudflare Turnstile bot-gate renders in its own cross-origin iframe.
+// frame): the Cloudflare Turnstile bot-gate renders in its own cross-origin iframe, the
+// WalletConnect modal verifies in its own, and the Claudium store's Stripe Embedded
+// Checkout (src/net/stripe_checkout.ts) mounts Stripe's iframes on the page.
 const EMBEDDED_SUBFRAME_ORIGINS = new Set([
   'https://challenges.cloudflare.com',
   'https://secure.walletconnect.com',
   'https://secure.walletconnect.org',
   'https://verify.walletconnect.com',
   'https://verify.walletconnect.org',
+  'https://js.stripe.com',
+  'https://checkout.stripe.com',
+  'https://hooks.stripe.com',
+  'https://link.com',
 ]);
+
+// Stripe starts some of its frames on per-session subdomains (Stripe's CSP guidance lists
+// https://*.js.stripe.com and https://*.link.com for exactly that), which an exact-origin
+// set cannot name. A subframe whose HTTPS host ends with one of these suffixes is allowed;
+// the leading dot means the bare parent host is matched by the exact set above, never a
+// look-alike such as evil-js.stripe.com or js.stripe.com.evil.com.
+const EMBEDDED_SUBFRAME_HOST_SUFFIXES = Object.freeze(['.js.stripe.com', '.link.com']);
+
+function subframeHostSuffixAllowed(urlString, suffixes) {
+  let parsed;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname;
+  return suffixes.some((suffix) => host.length > suffix.length && host.endsWith(suffix));
+}
 
 // Decide whether a navigation to `url` is permitted. Main-frame navigations may only
 // target the app or dev origin (the top-level hijack surface that setWindowOpenHandler
@@ -74,12 +99,155 @@ function navigationAllowed(
   isMainFrame,
   mainFrameOrigins,
   subframeOrigins = EMBEDDED_SUBFRAME_ORIGINS,
+  subframeHostSuffixes = EMBEDDED_SUBFRAME_HOST_SUFFIXES,
 ) {
   const origin = deriveOrigin(url);
   if (!origin) return false;
   if (toOriginSet(mainFrameOrigins).has(origin)) return true;
-  if (!isMainFrame && toOriginSet(subframeOrigins).has(origin)) return true;
-  return false;
+  if (isMainFrame) return false;
+  if (toOriginSet(subframeOrigins).has(origin)) return true;
+  return subframeHostSuffixAllowed(url, subframeHostSuffixes);
+}
+
+// Embed roots whose OWN nested frames are not knowable in advance: Stripe Checkout. A
+// 3D Secure challenge renders the card issuer's ACS page (any bank's origin) inside
+// hooks.stripe.com and then returns inside Stripe's own frames. Only these roots relax
+// their subtree; Turnstile, WalletConnect and Link roots keep the strict list throughout.
+const NESTED_FRAME_ROOT_ORIGINS = Object.freeze(
+  new Set(['https://js.stripe.com', 'https://checkout.stripe.com', 'https://hooks.stripe.com']),
+);
+const NESTED_FRAME_ROOT_HOST_SUFFIXES = Object.freeze(['.js.stripe.com']);
+
+// Schemes a frame nested below a NESTED_FRAME_ROOT may load. Plaintext http: and local
+// schemes (file:, app:) are denied, and so is any URL (or blob: URL) in an app or dev
+// origin: a document there would be same-origin with the main frame.
+const NESTED_FRAME_SCHEMES = Object.freeze(new Set(['https:', 'about:', 'blob:', 'data:']));
+
+// The parent-frame URLs of a WebFrameMain-like frame, nearest first, ending at the main
+// frame. Returns null when the frame is gone or a disposed frame's getter throws, which
+// callers treat as "ancestry unknown" (the strict rule).
+function frameAncestorUrls(frame) {
+  try {
+    if (!frame) return null;
+    const urls = [];
+    for (let parent = frame.parent; parent; parent = parent.parent) urls.push(parent.url);
+    return urls;
+  } catch {
+    return null;
+  }
+}
+
+function nestedFrameUrlAllowed(url, mainOrigins) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (!NESTED_FRAME_SCHEMES.has(parsed.protocol)) return false;
+  if (mainOrigins.has(deriveOrigin(url))) return false;
+  if (parsed.protocol === 'blob:') {
+    // blob:<origin>/<uuid>: the document runs in the inner origin.
+    const inner = deriveOrigin(parsed.pathname);
+    if (!inner || mainOrigins.has(inner) || !inner.startsWith('https:')) return false;
+  }
+  return true;
+}
+
+// The guard for will-frame-navigate / will-redirect. Electron emits these for EVERY frame
+// in the tree, so frames Stripe Checkout nests inside its own iframe were gated against
+// the app's embed list too, which blanked a 3D Secure challenge and left the desktop
+// checkout greyed out on its processing state. The main frame and every frame not below
+// a NESTED_FRAME_ROOT keep the strict navigationAllowed rule. A frame at depth two or more
+// whose ancestry provably ends at the main frame and whose embed root (the main frame's
+// direct child) is a NESTED_FRAME_ROOT may load any nestedFrameUrlAllowed URL.
+// `ancestorUrls` is nearest first, ending at the main frame (frameAncestorUrls); null or
+// a short list means the strict rule.
+function frameNavigationAllowed(
+  url,
+  isMainFrame,
+  ancestorUrls,
+  mainFrameOrigins,
+  subframeOrigins = EMBEDDED_SUBFRAME_ORIGINS,
+  subframeHostSuffixes = EMBEDDED_SUBFRAME_HOST_SUFFIXES,
+) {
+  const strict = () =>
+    navigationAllowed(url, isMainFrame, mainFrameOrigins, subframeOrigins, subframeHostSuffixes);
+  if (isMainFrame || !Array.isArray(ancestorUrls) || ancestorUrls.length < 2) return strict();
+  const mainOrigins = toOriginSet(mainFrameOrigins);
+  if (!mainOrigins.has(deriveOrigin(ancestorUrls[ancestorUrls.length - 1]))) return strict();
+  const embedRoot = ancestorUrls[ancestorUrls.length - 2];
+  const rootIsNestedFrameRoot =
+    NESTED_FRAME_ROOT_ORIGINS.has(deriveOrigin(embedRoot)) ||
+    subframeHostSuffixAllowed(embedRoot, NESTED_FRAME_ROOT_HOST_SUFFIXES);
+  if (!rootIsNestedFrameRoot) return strict();
+  return nestedFrameUrlAllowed(url, mainOrigins);
+}
+
+// The full guardNavigation decision for an Electron navigation `details` object, pure so a
+// Vitest can drive it. A missing isMainFrame is the main frame (the safe default), and any
+// throw while reading the frame tree blocks rather than escaping the listener (an uncaught
+// exception in the main process exits the app via the crash guard).
+function navigationDecision(details, mainFrameOrigins) {
+  try {
+    const isMainFrame = details.isMainFrame !== false;
+    const ancestors = isMainFrame ? [] : frameAncestorUrls(details.frame);
+    return {
+      allowed: frameNavigationAllowed(details.url, isMainFrame, ancestors, mainFrameOrigins),
+      isMainFrame,
+    };
+  } catch {
+    return { allowed: false, isMainFrame: details?.isMainFrame !== false };
+  }
+}
+
+// External document paths that belong in the system browser rather than navigating
+// the desktop game shell.
+const EXTERNAL_DOCUMENT_PATHS = new Set([
+  '/terms',
+  '/terms.html',
+  '/privacy',
+  '/privacy.html',
+  '/support',
+  '/support.html',
+  '/data-deletion',
+  '/data-deletion.html',
+  '/wiki',
+  '/wiki/',
+]);
+
+// Determine whether a URL represents an external document (PDF or standalone legal/help page)
+// that should be opened in the system browser rather than navigating the desktop game shell.
+function isExternalDocumentUrl(urlString) {
+  let parsed;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    return false;
+  }
+  if (parsed.pathname.toLowerCase().endsWith('.pdf')) return true;
+  const path = parsed.pathname.replace(/\/+$/, '') || '/';
+  return EXTERNAL_DOCUMENT_PATHS.has(path) || EXTERNAL_DOCUMENT_PATHS.has(parsed.pathname);
+}
+
+// Convert an app:// or relative document URL into a canonical public web URL
+// suitable for passing to the OS shell (shell.openExternal).
+function toCanonicalExternalUrl(
+  urlString,
+  _appOrigin = 'app://worldofclaudecraft',
+  apiOrigin = 'https://worldofclaudecraft.com',
+) {
+  let parsed;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    return urlString;
+  }
+  const base = apiOrigin || 'https://worldofclaudecraft.com';
+  if (parsed.protocol === 'app:' || parsed.protocol === 'file:') {
+    return new URL(`${parsed.pathname}${parsed.search}${parsed.hash}`, base).toString();
+  }
+  return urlString;
 }
 
 // Third-party origins the shipped index.html actually uses. The desktop shell keeps
@@ -102,16 +270,49 @@ const CSP_ORIGINS = {
     'https://api.web3modal.org',
     'https://pulse.walletconnect.org',
   ],
-  // tracking-pixel image beacons.
+  // Image origins the web client loads: tracking-pixel beacons, WalletConnect
+  // modal art, and Discord linked profile pictures (nameplates, HUD widget,
+  // target frame, inspect). Discord PFPs use DISCORD_CDN_BASE in
+  // server/discord_oauth.ts (`cdn.discordapp.com`); without that origin here the
+  // desktop CSP blocks every avatar while the browser build (no CSP) still
+  // paints them, which is exactly the desktop-only regression we hit on
+  // release/v0.34.0.
   img: [
     'https://www.google-analytics.com',
     'https://www.facebook.com',
     'https://secure.walletconnect.com',
     'https://secure.walletconnect.org',
     'https://api.web3modal.org',
+    'https://cdn.discordapp.com',
   ],
   // Cloudflare Turnstile: api.js (script) plus the challenge iframe (frame).
   turnstile: 'https://challenges.cloudflare.com',
+  // Stripe Embedded Checkout for the Claudium store (src/net/stripe_checkout.ts loads
+  // https://js.stripe.com/v3/ and mounts the checkout iframe). Without these the desktop
+  // shell alone fails every card purchase with "Checkout could not be loaded" while the
+  // browser build (no CSP) works: the v0.42.0 desktop-only report. The lists follow
+  // Stripe's CSP guidance for Stripe.js, Checkout, and Link (the wallet inside Checkout):
+  // script and frame for js.stripe.com and its per-session subdomains, hooks.stripe.com
+  // for 3D Secure redirects, checkout.stripe.com for Checkout, api.stripe.com for
+  // Stripe.js calls, and the link.com family for Link's authentication frames.
+  stripe: {
+    script: ['https://js.stripe.com', 'https://*.js.stripe.com', 'https://checkout.stripe.com'],
+    connect: [
+      'https://api.stripe.com',
+      'https://checkout.stripe.com',
+      'https://link.com',
+      'https://*.link.com',
+    ],
+    frame: [
+      'https://js.stripe.com',
+      'https://*.js.stripe.com',
+      'https://hooks.stripe.com',
+      'https://checkout.stripe.com',
+      'https://link.com',
+      'https://*.link.com',
+    ],
+    img: ['https://*.stripe.com', 'https://*.link.com'],
+  },
   // Google Fonts: the stylesheet origin (style-src) and the font-file origin (font-src).
   fontsStyle: 'https://fonts.googleapis.com',
   fontsFile: 'https://fonts.gstatic.com',
@@ -127,10 +328,11 @@ const CSP_ORIGINS = {
 // Extract a CSP source-hash (`sha256-<base64>`) for every INLINE <script> in html
 // (one with no `src` attribute and a non-empty body), matching what a browser hashes:
 // the exact text between the tags. External <script src> tags need no hash. index.html
-// ships three executable inline scripts (the i18n stored-locale bootstrap, whose body
-// varies per build, plus the analytics snippets), so the hashes are read from the built
-// file at runtime rather than hard-coded. Inline scripts never contain a literal
-// </script> (the i18n injector escapes '<'), so the non-greedy match is safe here.
+// ships several executable inline scripts (the i18n stored-locale bootstrap, whose body
+// varies per build, the analytics snippets and the boot splash fail-safe), so the
+// hashes are read from the built file at runtime rather than hard-coded. Inline
+// scripts never contain a literal </script> (the i18n injector escapes '<'), so the
+// non-greedy match is safe here.
 function extractInlineScriptHashes(html) {
   const hashes = [];
   const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
@@ -170,6 +372,7 @@ function buildContentSecurityPolicy({ apiOrigin, scriptHashes = [] } = {}) {
     hashPart,
     CSP_ORIGINS.turnstile,
     ...CSP_ORIGINS.script,
+    ...CSP_ORIGINS.stripe.script,
   ]
     .filter(Boolean)
     .join(' ');
@@ -177,16 +380,29 @@ function buildContentSecurityPolicy({ apiOrigin, scriptHashes = [] } = {}) {
   // by turning them into blob: object URLs and then fetch()ing those URLs (a connect-src
   // request, not img-src). Without blob: here every model renders untextured. img-src and
   // worker-src already list blob: for the same reason (texture <img> decode, decoder workers).
+  // data: is here for the same class of reason: three's ZSTDDecoder (KTX2Loader's Zstandard
+  // path, taken by every UASTC normal/occlusion map) instantiates its WASM with
+  // fetch("data:application/wasm;base64,...").then(r => r.arrayBuffer()), a connect-src request
+  // to a data: URI. Without data: here every Zstandard-supercompressed KTX2 GLB throws
+  // "Refused to connect" and world entry dies on the desktop shell (the only host that ships a
+  // CSP). data: is a self-contained inline scheme, not a network origin, so unlike a remote
+  // host it opens no exfiltration path; img-src already lists it for the same texture reason.
   const connectSrc = [
-    "connect-src 'self' blob:",
+    "connect-src 'self' blob: data:",
     apiOrigin,
     deriveWebSocketOrigin(apiOrigin),
     'wss:',
     ...CSP_ORIGINS.connect,
+    ...CSP_ORIGINS.stripe.connect,
   ]
     .filter(Boolean)
     .join(' ');
-  const imgSrc = ["img-src 'self' data: blob:", apiOrigin, ...CSP_ORIGINS.img]
+  const imgSrc = [
+    "img-src 'self' data: blob:",
+    apiOrigin,
+    ...CSP_ORIGINS.img,
+    ...CSP_ORIGINS.stripe.img,
+  ]
     .filter(Boolean)
     .join(' ');
   return [
@@ -197,7 +413,7 @@ function buildContentSecurityPolicy({ apiOrigin, scriptHashes = [] } = {}) {
     `style-src 'self' 'unsafe-inline' ${CSP_ORIGINS.fontsStyle}`,
     `font-src 'self' ${CSP_ORIGINS.fontsFile} ${CSP_ORIGINS.reownFonts}`,
     "worker-src 'self' blob:",
-    `frame-src ${CSP_ORIGINS.turnstile} ${CSP_ORIGINS.walletFrames.join(' ')}`,
+    `frame-src ${CSP_ORIGINS.turnstile} ${CSP_ORIGINS.walletFrames.join(' ')} ${CSP_ORIGINS.stripe.frame.join(' ')}`,
     "object-src 'none'",
     "base-uri 'none'",
     "frame-ancestors 'none'",
@@ -236,7 +452,8 @@ function isTrustedSender(frame, allowedOrigins) {
 }
 
 // Decide whether a renderer key event (Electron's before-input-event `input` object)
-// is the DevTools toggle chord. The packaged build runs with setMenu(null) and no
+// is the DevTools toggle chord. The packaged build nulls the application menu on
+// win32/linux (main.cjs, before app ready) and never auto-opens
 // DevTools, so there is otherwise no way to open the inspector to check CSP violations,
 // GPU state, or runtime errors in a shipped app; main.cjs binds this to before-input-event
 // to restore a safe, read-only debug affordance. Only a keyDown counts. The accepted
@@ -272,13 +489,21 @@ module.exports = {
   originAllowed,
   appNavigationOrigins,
   navigationAllowed,
+  frameAncestorUrls,
+  frameNavigationAllowed,
+  navigationDecision,
+  NESTED_FRAME_ROOT_ORIGINS,
   isTrustedSender,
   isDevToolsToggleShortcut,
   isSoftwareRenderer,
   ALLOWED_PERMISSIONS,
   EMBEDDED_SUBFRAME_ORIGINS,
+  EMBEDDED_SUBFRAME_HOST_SUFFIXES,
   CSP_ORIGINS,
   extractInlineScriptHashes,
   buildContentSecurityPolicy,
   withCspHeader,
+  EXTERNAL_DOCUMENT_PATHS,
+  isExternalDocumentUrl,
+  toCanonicalExternalUrl,
 };

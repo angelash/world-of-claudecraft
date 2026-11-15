@@ -8,7 +8,12 @@ const outDir = resolve('mediawiki/seed');
 const tmpDir = resolve('tmp/mediawiki-seed');
 const sourcePath = resolve(tmpDir, 'seed-source.ts');
 const bundlePath = resolve(tmpDir, 'seed-source.mjs');
-const outputPath = resolve(outDir, 'pages.xml');
+// MEDIAWIKI_SEED_OUT lets a caller build the seed somewhere else (the visibility
+// test rebuilds into a temp dir so it can check the GENERATOR without requiring
+// the committed deploy artifact to be regenerated in every content PR).
+const outputPath = process.env.MEDIAWIKI_SEED_OUT
+  ? resolve(process.env.MEDIAWIKI_SEED_OUT)
+  : resolve(outDir, 'pages.xml');
 const execFileAsync = promisify(execFile);
 
 await mkdir(tmpDir, { recursive: true });
@@ -20,6 +25,7 @@ await writeFile(
   sourcePath,
   `
 import { ABILITIES, CLASSES, DUNGEON_LIST, ITEMS, MOBS, NPCS, QUEST_ORDER, QUESTS, ZONES } from '../../src/sim/data';
+import { mediawikiAbilityDescription } from '../../scripts/mediawiki/ability_description';
 
 const css = ${JSON.stringify(css)};
 const pages = [];
@@ -54,6 +60,13 @@ function link(title, label = title) {
   return title === label ? '[[' + title + ']]' : '[[' + title + '|' + label + ']]';
 }
 
+function kindWording(kind) {
+  // kind 'recipe' is the physical PATTERN item (it teaches a recipe when
+  // used), so prose, facts, and categories say 'pattern': an item page must
+  // never read as the recipe it teaches. Every other kind is its own word.
+  return kind === 'recipe' ? 'pattern' : kind;
+}
+
 function section(title, body) {
   return '== ' + title + ' ==\\n' + body.trim() + '\\n\\n';
 }
@@ -84,9 +97,10 @@ function unique(base, used) {
 }
 
 const usedTitles = new Set();
+const visibleAbilities = Object.entries(ABILITIES).filter(([, ability]) => ability.hiddenFromPlayer !== true);
 
 for (const [id, cls] of Object.entries(CLASSES)) titleBy.class.set(id, unique(cls.name, usedTitles));
-for (const [id, ability] of Object.entries(ABILITIES)) titleBy.ability.set(id, unique(ability.name + ' (Ability)', usedTitles));
+for (const [id, ability] of visibleAbilities) titleBy.ability.set(id, unique(ability.name + ' (Ability)', usedTitles));
 for (const zone of ZONES) titleBy.zone.set(zone.id, unique(zone.name, usedTitles));
 for (const dungeon of DUNGEON_LIST) titleBy.dungeon.set(dungeon.id, unique(dungeon.name, usedTitles));
 for (const [id, npc] of Object.entries(NPCS)) titleBy.npc.set(id, unique(npc.name + ' (NPC)', usedTitles));
@@ -118,12 +132,12 @@ World of Claudecraft is a browser-playable, classic-style micro-MMO with online 
 </div>
 </div>
 \` + section('Featured portals', bullets([
-  link('Zones') + ' — Eastbrook Vale, Mirefen Marsh, Thornpeak Heights.',
-  link('Classes') + ' — all nine playable class kits.',
-  link('Quests') + ' — the full source-defined quest chain.',
-  link('Dungeons') + ' — Hollow Crypt, Sunken Bastion, and Gravewyrm Sanctum.',
-  link('Community Lore') + ' — launch-week player culture from Discord, Reddit, and X.',
-  link('Development Timeline') + ' — issue, PR, and release themes.',
+  link('Zones') + ': Eastbrook Vale, Mirefen Marsh, Thornpeak Heights.',
+  link('Classes') + ': all nine playable class kits.',
+  link('Quests') + ': the full source-defined quest chain.',
+  link('Dungeons') + ': Hollow Crypt, Sunken Bastion, and Gravewyrm Sanctum.',
+  link('Community Lore') + ': launch-week player culture from Discord, Reddit, and X.',
+  link('Development Timeline') + ': issue, PR, and release themes.',
 ])), ['Wiki']);
 
 add('Quick Start', section('First hour route', bullets([
@@ -138,9 +152,9 @@ add('Quick Start', section('First hour route', bullets([
 ])), ['Guides']);
 
 add('The Gravecaller Saga', section('Overview', 'The main story follows Brother Aldric from restless bones outside Eastbrook to Korzul the Gravewyrm beneath Thornpeak.') + section('Acts', bullets([
-  link(titleBy.zone.get('eastbrook_vale'), 'Eastbrook Vale') + ' — Morthen the Gravecaller and ' + link(titleBy.dungeon.get('hollow_crypt'), 'The Hollow Crypt') + '.',
-  link(titleBy.zone.get('mirefen_marsh'), 'Mirefen Marsh') + ' — Vael the Fogbinder and ' + link(titleBy.dungeon.get('sunken_bastion'), 'The Sunken Bastion') + '.',
-  link(titleBy.zone.get('thornpeak_heights'), 'Thornpeak Heights') + ' — Wyrmcult zealots, Highwatch, and ' + link(titleBy.dungeon.get('gravewyrm_sanctum'), 'Gravewyrm Sanctum') + '.',
+  link(titleBy.zone.get('eastbrook_vale'), 'Eastbrook Vale') + ': Morthen the Gravecaller and ' + link(titleBy.dungeon.get('hollow_crypt'), 'The Hollow Crypt') + '.',
+  link(titleBy.zone.get('mirefen_marsh'), 'Mirefen Marsh') + ': Vael the Fogbinder and ' + link(titleBy.dungeon.get('sunken_bastion'), 'The Sunken Bastion') + '.',
+  link(titleBy.zone.get('thornpeak_heights'), 'Thornpeak Heights') + ': Broodsworn zealots, Highwatch, and ' + link(titleBy.dungeon.get('gravewyrm_sanctum'), 'Gravewyrm Sanctum') + '.',
 ])), ['Lore', 'Quests']);
 
 add('Community Lore', section('Launch-week myths', bullets([
@@ -193,7 +207,7 @@ const systemRows = [
   ['Mobile Play', 'Touch controls, joystick fixes, quest-log access, fullscreen polish, and launch-week mobile testing.'],
   ['Agents and Bots', 'Headless training environment, Codex/Claude agent culture, and anti-bot roadmap.'],
 ];
-add('Gameplay Systems', section('Systems index', bullets(systemRows.map(([name, desc]) => link(name) + ' — ' + desc))), ['Systems']);
+add('Gameplay Systems', section('Systems index', bullets(systemRows.map(([name, desc]) => link(name) + ': ' + desc))), ['Systems']);
 for (const [name, desc] of systemRows) {
   add(name, section('Overview', desc), ['Systems']);
 }
@@ -206,7 +220,7 @@ const portals = [
   ['Quests', QUEST_ORDER.map((id) => titleBy.quest.get(id)).filter(Boolean)],
   ['Mobs', Object.keys(MOBS).map((id) => titleBy.mob.get(id))],
   ['Items', Object.keys(ITEMS).map((id) => titleBy.item.get(id))],
-  ['Abilities', Object.keys(ABILITIES).map((id) => titleBy.ability.get(id))],
+  ['Abilities', visibleAbilities.map(([id]) => titleBy.ability.get(id))],
 ];
 
 for (const [portal, titles] of portals) {
@@ -222,7 +236,10 @@ for (const zone of ZONES) {
 }
 
 for (const [id, cls] of Object.entries(CLASSES)) {
-  add(titleBy.class.get(id), section('Overview', cls.name + ' starts with ' + (ITEMS[cls.startWeapon]?.name ?? cls.startWeapon) + ' and uses ' + cls.resourceType + '.') + section('Stats', table(Object.entries(cls.baseStats).map(([k, v]) => [k.toUpperCase(), String(v)]))) + section('Abilities', bullets(cls.abilities.map((abilityId) => link(titleBy.ability.get(abilityId), ABILITIES[abilityId]?.name ?? abilityId)))), ['Classes']);
+  const abilities = cls.abilities
+    .filter((abilityId) => titleBy.ability.has(abilityId))
+    .map((abilityId) => link(titleBy.ability.get(abilityId), ABILITIES[abilityId]?.name ?? abilityId));
+  add(titleBy.class.get(id), section('Overview', cls.name + ' starts with ' + (ITEMS[cls.startWeapon]?.name ?? cls.startWeapon) + ' and uses ' + cls.resourceType + '.') + section('Stats', table(Object.entries(cls.baseStats).map(([k, v]) => [k.toUpperCase(), String(v)]))) + section('Abilities', bullets(abilities)), ['Classes']);
 }
 
 for (const dungeon of DUNGEON_LIST) {
@@ -255,13 +272,13 @@ for (const [id, mob] of Object.entries(MOBS)) {
 }
 
 for (const [id, item] of Object.entries(ITEMS)) {
-  add(titleBy.item.get(id), section('Overview', item.name + ' is a ' + (item.quality ?? 'common') + ' ' + item.kind + (item.slot ? ' for ' + item.slot : '') + '.') + section('Facts', table([
-    ['Kind', item.kind], ['Quality', item.quality ?? 'common'], ['Slot', item.slot ?? 'None'], ['Sell value', money(item.sellValue)], ['Buy value', money(item.buyValue)], ['Required class', item.requiredClass?.join(', ') ?? 'Any'],
-  ])) + (item.weapon ? section('Weapon', table([['Damage', item.weapon.min + '-' + item.weapon.max], ['Speed', String(item.weapon.speed)], ['Dagger', item.weapon.dagger ? 'Yes' : 'No']])) : '') + (item.stats ? section('Stats', table(Object.entries(item.stats).map(([k, v]) => [k.toUpperCase(), String(v)]))) : '') + (item.foodHp || item.drinkMana ? section('Consumable', table([['Health restored', String(item.foodHp ?? 0)], ['Mana restored', String(item.drinkMana ?? 0)]])) : ''), ['Items', item.kind, item.quality ?? 'common']);
+  add(titleBy.item.get(id), section('Overview', item.name + ' is a ' + (item.quality ?? 'common') + ' ' + kindWording(item.kind) + (item.slot ? ' for ' + item.slot : '') + '.') + section('Facts', table([
+    ['Kind', kindWording(item.kind)], ['Quality', item.quality ?? 'common'], ['Slot', item.slot ?? 'None'], ['Sell value', money(item.sellValue)], ['Buy value', money(item.buyValue)], ['Required class', item.requiredClass?.join(', ') ?? 'Any'],
+  ])) + (item.weapon ? section('Weapon', table([['Damage', item.weapon.min + '-' + item.weapon.max], ['Speed', String(item.weapon.speed)], ['Dagger', item.weapon.dagger ? 'Yes' : 'No']])) : '') + (item.stats ? section('Stats', table(Object.entries(item.stats).map(([k, v]) => [k.toUpperCase(), String(v)]))) : '') + (item.foodHp || item.drinkMana ? section('Consumable', table([['Health restored', String(item.foodHp ?? 0)], ['Mana restored', String(item.drinkMana ?? 0)]])) : ''), ['Items', kindWording(item.kind), item.quality ?? 'common']);
 }
 
-for (const [id, ability] of Object.entries(ABILITIES)) {
-  add(titleBy.ability.get(id), section('Description', ability.description) + section('Facts', table([
+for (const [id, ability] of visibleAbilities) {
+  add(titleBy.ability.get(id), section('Description', mediawikiAbilityDescription(ability)) + section('Facts', table([
     ['Class', link(titleBy.class.get(ability.class), CLASSES[ability.class]?.name ?? ability.class)], ['Learn level', String(ability.learnLevel)], ['Cost', String(ability.cost)], ['Cooldown', ability.cooldown + 's'], ['Range', ability.range ? ability.range + ' yd' : 'Melee/self'], ['School', ability.school],
   ])) + section('Base effects', bullets(ability.effects.map((effect) => effect.type))) + (ability.ranks?.length ? section('Ranks', table(ability.ranks.map((rank) => ['Rank ' + rank.rank, 'Level ' + rank.level + ', cost ' + rank.cost]))) : ''), ['Abilities', CLASSES[ability.class]?.name ?? ability.class]);
 }

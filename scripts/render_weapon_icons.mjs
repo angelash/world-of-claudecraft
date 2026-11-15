@@ -1,17 +1,23 @@
-// Render small weapon-thumbnail JPGs from staged weapon GLBs, for use as 2D
-// item icons in the HUD. Drives a headless browser (puppeteer-core + system
+// Render small weapon-preview JPGs from staged weapon GLBs for Armory and asset-pipeline
+// inspection. Inventory UI uses bespoke /ui/items/<item-id>.webp paintings instead. Drives a
+// headless browser (puppeteer-core + system
 // Chrome via browser_path.mjs) running the esbuild bundle of
 // scripts/weapon_render_entry.js. Each GLB is passed as base64 and parsed in
 // the page (no network), rendered, and the canvas saved as a downscaled JPG.
 //
 // Prereq: bundle the entry first —
-//   npx esbuild scripts/weapon_render_entry.js --bundle --format=iife --outfile=tmp/weapon_render_bundle.js
+//   npx esbuild scripts/weapon_render_entry.js --bundle --format=iife \
+//     --define:import.meta.url='"http://127.0.0.1/"' --outfile=tmp/weapon_render_bundle.js
+// (the define matters: three's KTX2Loader builds URLs from import.meta.url at module
+// load, and the bare iife stub leaves it undefined, which throws before __ready)
 // Run:
 //   node scripts/render_weapon_icons.mjs [srcDir=tmp/weapon_src] [outDir] [px=128]
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 import { BROWSER_PATH } from './browser_path.mjs';
+import { ktx2TranscoderScriptTag } from './lib/ktx2_assets.mjs';
 
 const SRC = process.argv[2] || 'tmp/weapon_src';
 const OUT = process.argv[3] || 'tmp/weapon_thumbs';
@@ -24,7 +30,10 @@ if (!existsSync(BUNDLE)) {
   process.exit(1);
 }
 const bundle = readFileSync(BUNDLE, 'utf8');
-const html = `<!doctype html><html><head><meta charset="utf8"><style>html,body{margin:0;background:#000}</style></head><body><script>${bundle}</script></body></html>`;
+const ktx2Tag = ktx2TranscoderScriptTag(
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
+);
+const html = `<!doctype html><html><head><meta charset="utf8"><style>html,body{margin:0;background:#000}</style></head><body>${ktx2Tag}<script>${bundle}</script></body></html>`;
 
 const browser = await puppeteer.launch({
   executablePath: BROWSER_PATH,

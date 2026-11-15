@@ -40,12 +40,14 @@ function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotR
   };
 }
 
-function liveState(input: {
-  selfX?: number;
-  selfZ?: number;
-  entities?: Array<Record<string, unknown>>;
-  social?: AmbientPlayerBotLiveState['social'];
-} = {}): AmbientPlayerBotLiveState {
+function liveState(
+  input: {
+    selfX?: number;
+    selfZ?: number;
+    entities?: Array<Record<string, unknown>>;
+    social?: AmbientPlayerBotLiveState['social'];
+  } = {},
+): AmbientPlayerBotLiveState {
   const self = {
     id: 101,
     x: input.selfX ?? 0,
@@ -54,7 +56,7 @@ function liveState(input: {
   };
   const entities = new Map<number, Record<string, unknown>>([
     [101, self],
-    ...((input.entities ?? []).map((entity) => [Number(entity.id), entity] as const)),
+    ...(input.entities ?? []).map((entity) => [Number(entity.id), entity] as const),
   ]);
   return {
     pid: 101,
@@ -68,27 +70,33 @@ function liveState(input: {
 describe('ambient player bot social shell', () => {
   it('greets nearby humans with a presence emote on cooldown', () => {
     const state = createAmbientPlayerBotSocialRuntimeState();
-    const first = tickAmbientPlayerBotSocialShell({
-      bot: bot(),
-      liveState: liveState({
-        entities: [{ id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa']),
-      nowMs: 1_000,
-    }, state);
+    const first = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          entities: [{ id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa']),
+        nowMs: 1_000,
+      },
+      state,
+    );
 
     expect(first.commands).toEqual([{ type: 'chat', text: '/cheer Aleph' }]);
 
-    const second = tickAmbientPlayerBotSocialShell({
-      bot: bot({ socialState: first.socialState }),
-      liveState: liveState({
-        entities: [{ id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa']),
-      nowMs: 20_000,
-    }, state);
+    const second = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot({ socialState: first.socialState }),
+        liveState: liveState({
+          entities: [{ id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa']),
+        nowMs: 20_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([]);
   });
@@ -104,32 +112,40 @@ describe('ambient player bot social shell', () => {
       pid: 101,
     };
 
-    const first = tickAmbientPlayerBotSocialShell({
-      bot: bot(),
-      liveState: liveState(),
-      recentEvents: [incoming],
-      ambientBotNames: new Set(['Branoraaa']),
-      nowMs: 5_000,
-    }, state);
+    const first = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot(),
+        liveState: liveState(),
+        recentEvents: [incoming],
+        ambientBotNames: new Set(['Branoraaa']),
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(first.commands).toContainEqual({ type: 'friendAdd', name: 'Aleph' });
     expect(state.pendingReplies).toHaveLength(1);
-    expect(first.socialState).toEqual(expect.objectContaining({
-      contacts: expect.objectContaining({
-        Aleph: expect.objectContaining({
-          whispersReceived: 1,
-          outgoingFriendAtMs: 5_000,
+    expect(first.socialState).toEqual(
+      expect.objectContaining({
+        contacts: expect.objectContaining({
+          Aleph: expect.objectContaining({
+            whispersReceived: 1,
+            outgoingFriendAtMs: 5_000,
+          }),
         }),
       }),
-    }));
+    );
 
-    const second = tickAmbientPlayerBotSocialShell({
-      bot: bot({ socialState: first.socialState }),
-      liveState: liveState(),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa']),
-      nowMs: 12_000,
-    }, state);
+    const second = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot({ socialState: first.socialState }),
+        liveState: liveState(),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa']),
+        nowMs: 12_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({
@@ -138,155 +154,179 @@ describe('ambient player bot social shell', () => {
       }),
     ]);
     expect(state.pendingReplies).toHaveLength(0);
-    expect(second.socialState).toEqual(expect.objectContaining({
-      contacts: expect.objectContaining({
-        Aleph: expect.objectContaining({
-          whispersReceived: 1,
-          whispersSent: 1,
-          lastReplyAtMs: 12_000,
+    expect(second.socialState).toEqual(
+      expect.objectContaining({
+        contacts: expect.objectContaining({
+          Aleph: expect.objectContaining({
+            whispersReceived: 1,
+            whispersSent: 1,
+            lastReplyAtMs: 12_000,
+          }),
         }),
       }),
-    }));
+    );
   });
 
   it('reciprocates when a player adds the bot as a friend', () => {
     const state = createAmbientPlayerBotSocialRuntimeState();
-    const result = tickAmbientPlayerBotSocialShell({
-      bot: bot(),
-      liveState: liveState({
-        social: {
-          friends: [],
-          blocks: [],
-          guild: null,
-        },
-      }),
-      recentEvents: [{
-        type: 'friendAddedBy',
-        fromName: 'Aleph',
-      } as unknown as SimEvent],
-      ambientBotNames: new Set(['Branoraaa']),
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          social: {
+            friends: [],
+            blocks: [],
+            guild: null,
+          },
+        }),
+        recentEvents: [
+          {
+            type: 'friendAddedBy',
+            fromName: 'Aleph',
+          } as unknown as SimEvent,
+        ],
+        ambientBotNames: new Set(['Branoraaa']),
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toContainEqual({ type: 'friendAdd', name: 'Aleph' });
-    expect(result.socialState).toEqual(expect.objectContaining({
-      contacts: expect.objectContaining({
-        Aleph: expect.objectContaining({
-          outgoingFriendAtMs: 5_000,
+    expect(result.socialState).toEqual(
+      expect.objectContaining({
+        contacts: expect.objectContaining({
+          Aleph: expect.objectContaining({
+            outgoingFriendAtMs: 5_000,
+          }),
         }),
       }),
-    }));
+    );
   });
 
   it('does not respond to blocked whisper senders', () => {
     const state = createAmbientPlayerBotSocialRuntimeState();
-    const result = tickAmbientPlayerBotSocialShell({
-      bot: bot(),
-      liveState: liveState({
-        social: {
-          friends: [],
-          blocks: [{ id: 201, name: 'Aleph' }],
-          guild: null,
-        },
-      }),
-      recentEvents: [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'hey there',
-        channel: 'whisper',
-        pid: 101,
-      }],
-      ambientBotNames: new Set(['Branoraaa']),
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          social: {
+            friends: [],
+            blocks: [{ id: 201, name: 'Aleph' }],
+            guild: null,
+          },
+        }),
+        recentEvents: [
+          {
+            type: 'chat',
+            fromPid: 201,
+            from: 'Aleph',
+            text: 'hey there',
+            channel: 'whisper',
+            pid: 101,
+          },
+        ],
+        ambientBotNames: new Set(['Branoraaa']),
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(state.pendingReplies).toHaveLength(0);
-    expect(result.socialState).toEqual(expect.objectContaining({
-      blockNames: ['Aleph'],
-      contacts: expect.objectContaining({
-        Aleph: expect.objectContaining({
-          whispersReceived: 1,
-          whispersSent: 0,
+    expect(result.socialState).toEqual(
+      expect.objectContaining({
+        blockNames: ['Aleph'],
+        contacts: expect.objectContaining({
+          Aleph: expect.objectContaining({
+            whispersReceived: 1,
+            whispersSent: 0,
+          }),
         }),
       }),
-    }));
+    );
   });
 
   it('lets an llm plan suppress friend adds and presence emotes while keeping fallback replies', () => {
     const state = createAmbientPlayerBotSocialRuntimeState();
-    const first = tickAmbientPlayerBotSocialShell({
-      bot: bot(),
-      liveState: liveState({
-        entities: [{ id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 }],
-      }),
-      recentEvents: [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'hey there',
-        channel: 'whisper',
-        pid: 101,
-      }],
-      ambientBotNames: new Set(['Branoraaa']),
-      llmPlan: {
-        schemaVersion: 1,
-        jobId: 'ambient-plan:bot-1:1000',
-        botRef: {
-          botId: 'bot-1',
-          characterName: 'Branoraaa',
-          profileId: 'eastbrook_vale_warrior_newcomer',
-          classId: 'warrior',
-          archetype: 'newcomer',
+    const first = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          entities: [{ id: 201, k: 'player', nm: 'Aleph', x: 8, z: 6 }],
+        }),
+        recentEvents: [
+          {
+            type: 'chat',
+            fromPid: 201,
+            from: 'Aleph',
+            text: 'hey there',
+            channel: 'whisper',
+            pid: 101,
+          },
+        ],
+        ambientBotNames: new Set(['Branoraaa']),
+        llmPlan: {
+          schemaVersion: 1,
+          jobId: 'ambient-plan:bot-1:1000',
+          botRef: {
+            botId: 'bot-1',
+            characterName: 'Branoraaa',
+            profileId: 'eastbrook_vale_warrior_newcomer',
+            classId: 'warrior',
+            archetype: 'newcomer',
+          },
+          ttlMs: 120_000,
+          confidence: 0.9,
+          socialMode: 'quiet',
+          focusLabel: 'Wolves at the Door',
+          selfSummary: 'keeping to myself for now',
+          friendPolicy: 'never',
+          allowPresenceEmote: false,
+          audit: {
+            shortReason: 'keep the bot reserved',
+            safetyNotes: ['boundedPlan'],
+          },
         },
-        ttlMs: 120_000,
-        confidence: 0.9,
-        socialMode: 'quiet',
-        focusLabel: 'Wolves at the Door',
-        selfSummary: 'keeping to myself for now',
-        friendPolicy: 'never',
-        allowPresenceEmote: false,
-        audit: {
-          shortReason: 'keep the bot reserved',
-          safetyNotes: ['boundedPlan'],
-        },
+        nowMs: 5_000,
       },
-      nowMs: 5_000,
-    }, state);
+      state,
+    );
 
     expect(first.commands).toEqual([]);
     expect(state.pendingReplies).toHaveLength(1);
 
-    const second = tickAmbientPlayerBotSocialShell({
-      bot: bot(),
-      liveState: liveState(),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa']),
-      llmPlan: {
-        schemaVersion: 1,
-        jobId: 'ambient-plan:bot-1:1000',
-        botRef: {
-          botId: 'bot-1',
-          characterName: 'Branoraaa',
-          profileId: 'eastbrook_vale_warrior_newcomer',
-          classId: 'warrior',
-          archetype: 'newcomer',
+    const second = tickAmbientPlayerBotSocialShell(
+      {
+        bot: bot(),
+        liveState: liveState(),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa']),
+        llmPlan: {
+          schemaVersion: 1,
+          jobId: 'ambient-plan:bot-1:1000',
+          botRef: {
+            botId: 'bot-1',
+            characterName: 'Branoraaa',
+            profileId: 'eastbrook_vale_warrior_newcomer',
+            classId: 'warrior',
+            archetype: 'newcomer',
+          },
+          ttlMs: 120_000,
+          confidence: 0.9,
+          socialMode: 'quiet',
+          focusLabel: 'Wolves at the Door',
+          selfSummary: 'keeping to myself for now',
+          friendPolicy: 'never',
+          allowPresenceEmote: false,
+          audit: {
+            shortReason: 'keep the bot reserved',
+            safetyNotes: ['boundedPlan'],
+          },
         },
-        ttlMs: 120_000,
-        confidence: 0.9,
-        socialMode: 'quiet',
-        focusLabel: 'Wolves at the Door',
-        selfSummary: 'keeping to myself for now',
-        friendPolicy: 'never',
-        allowPresenceEmote: false,
-        audit: {
-          shortReason: 'keep the bot reserved',
-          safetyNotes: ['boundedPlan'],
-        },
+        nowMs: 12_000,
       },
-      nowMs: 12_000,
-    }, state);
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({

@@ -1,13 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BossLoopTrack } from '../src/game/boss_music_loop';
 import {
   buildMusicThemes,
   dungeonMusicZoneForDungeon,
   MusicDirector,
   musicZoneForLocation,
+  riftMusicZoneForTheme,
   shouldResetMusicForDungeonEntry,
   THEME_TRIM,
 } from '../src/game/music';
 import { COMBAT_STREAM_URLS, ZONE_STREAM_URLS } from '../src/game/music_tracks';
+import { CAVE_THEMES } from '../src/sim/content/rift/cave_themes';
+import { RIFT_THEMES } from '../src/sim/content/rift/themes';
+
+/** The cave theme names the crawl table maps on purpose (a name missing from
+ *  it would fall back to rift_void without a word). */
+const RIFT_MUSIC_FALLBACK_CHECK = new Set([
+  'Spore Hollow',
+  'Deep Burrow',
+  'Bat Roost',
+  'False Vault',
+]);
+
+import type { BiomeId } from '../src/sim/types';
 
 class FakeParam {
   value = 0;
@@ -77,6 +92,7 @@ class FakeAudioContext {
 }
 
 interface FakeStream {
+  url: string;
   el: FakeAudio | null;
   gain: FakeGain;
   target: number;
@@ -88,6 +104,7 @@ interface DirectorInternals {
   timer: number;
   zoneStreams: Partial<Record<string, FakeStream>>;
   combatStreams: FakeStream[];
+  master: FakeGain;
   streamKeeper(): void;
 }
 
@@ -127,6 +144,56 @@ describe('MusicDirector streamed combat / background mix', () => {
     expect(vale?.el?.preload).toBe('auto');
     expect(vale?.el?.play).toHaveBeenCalled();
     for (const combat of internals(director).combatStreams) expect(combat.target).toBe(0);
+  });
+
+  // Goldcrest Harbor is the one zone shipping a PAIR of remasters: it rolls one
+  // per arrival, so the capital does not wear a single loop out over a session.
+  it('opens the capital on the rolled harbor cue', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.9); // second of the two
+    director.update('town_goldcrest', false);
+    const stream = internals(director).zoneStreams.town_goldcrest;
+    expect(stream?.el?.src).toBe('/audio/music/town_goldcrest_2.mp3?v=c616612609d6');
+    expect(stream?.target).toBe(1);
+  });
+
+  it('rolls a different harbor cue on the next visit and drops the old download', () => {
+    const rand = vi.spyOn(Math, 'random').mockReturnValue(0);
+    director.update('town_goldcrest', false);
+    const first = internals(director).zoneStreams.town_goldcrest;
+    // Held separately: releasing the stream nulls its own `el` reference.
+    const firstEl = first?.el;
+    expect(firstEl?.src).toBe('/audio/music/town_goldcrest_1.mp3?v=0cf44456d0f5');
+
+    director.update('vale', false);
+    rand.mockReturnValue(0.9);
+    director.update('town_goldcrest', false);
+
+    const second = internals(director).zoneStreams.town_goldcrest;
+    expect(second).not.toBe(first);
+    expect(second?.el?.src).toBe('/audio/music/town_goldcrest_2.mp3?v=c616612609d6');
+    // The swapped-out cue must stop buffering behind the one now playing.
+    expect(firstEl?.pause).toHaveBeenCalled();
+    expect(first?.el).toBeNull();
+  });
+
+  it('hands the capital back its own cue after a fight instead of re-rolling', () => {
+    const rand = vi.spyOn(Math, 'random').mockReturnValue(0);
+    director.update('town_goldcrest', false);
+    const before = internals(director).zoneStreams.town_goldcrest;
+    director.update('town_goldcrest', true);
+    rand.mockReturnValue(0.9); // would pick the other cue if this re-rolled
+    director.update('town_goldcrest', false);
+
+    expect(internals(director).zoneStreams.town_goldcrest).toBe(before);
+    expect(before?.target).toBe(1);
+  });
+
+  it('keeps a single-track zone on one stream across revisits', () => {
+    director.update('vale', false);
+    const first = internals(director).zoneStreams.vale;
+    director.update('peaks', false);
+    director.update('vale', false);
+    expect(internals(director).zoneStreams.vale).toBe(first);
   });
 
   it('silences the zone stream so ONLY combat music plays in combat (no layering)', () => {
@@ -185,13 +252,32 @@ describe('MusicDirector streamed combat / background mix', () => {
     expect(el.currentTime).toBe(55);
     expect(el.play).toHaveBeenCalledTimes(2);
   });
+});
 
-  it('plays the vale_cup zone as silence on the zone bus (the Sowfield mp3s own it)', () => {
+describe('MusicDirector close', () => {
+  beforeEach(() => {
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.stubGlobal('Audio', FakeAudio);
+    vi.stubGlobal('window', { setInterval: vi.fn(() => 1) });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    FakeAudio.instances = [];
+  });
+
+  it('releases the zone streams and the context, so a later init() rebuilds', () => {
+    const director = makeDirector();
     director.update('vale', false);
-    director.update('vale_cup', false);
-    expect(internals(director).zoneStreams.vale?.target).toBe(0);
-    expect(internals(director).zoneStreams.vale_cup).toBeUndefined();
-    expect(FakeAudio.instances.map((el) => el.src)).not.toContain('/audio/music/vale_cup.mp3');
+    const el = internals(director).zoneStreams.vale?.el;
+    expect(el).toBeDefined();
+    (FakeAudioContext.prototype as unknown as { close: () => Promise<void> }).close =
+      async () => {};
+    director.close();
+    expect(el?.pause).toHaveBeenCalled();
+    expect(internals(director).zoneStreams).toEqual({});
+    expect((director as unknown as { ctx: unknown }).ctx).toBeNull();
   });
 });
 
@@ -337,6 +423,22 @@ describe('MusicDirector stream keeper', () => {
     expect(el.play).toHaveBeenCalledTimes(1);
   });
 
+  it('stops the default combat track immediately when a boss cue takes over', () => {
+    director.update('dungeon_hollow_crypt', true);
+    const inner = internals(director);
+    const combat = inner.combatStreams.find((stream) => stream.target === 1);
+    if (!combat?.el) throw new Error('combat stream element missing');
+    expect(combat.el.paused).toBe(false);
+
+    director.setBossCombat(true, '/audio/music/boss_sexton_marrow.mp3');
+
+    expect(combat.el.paused).toBe(true);
+    expect(FakeAudio.instances.at(-1)?.src).toBe('/audio/music/boss_sexton_marrow.mp3');
+    expect(FakeAudio.instances.at(-1)?.paused).toBe(false);
+    inner.streamKeeper();
+    expect(combat.el.paused).toBe(true);
+  });
+
   it('pauses streams at volume zero and revives when the slider comes back', () => {
     director.update('vale', false);
     const inner = internals(director);
@@ -427,8 +529,10 @@ describe('dungeon music entry reset', () => {
     const el = internals(director).zoneStreams.dungeon_hollow_crypt?.el;
     if (!el) throw new Error('dungeon stream element missing');
     el.currentTime = 19;
-    const bossElement = { currentTime: 19 };
-    (director as unknown as { bossElement: typeof bossElement }).bossElement = bossElement;
+    const bossLoop = (director as unknown as { bossLoop: BossLoopTrack }).bossLoop;
+    const bossElement = bossLoop.element();
+    if (!bossElement) throw new Error('boss loop element missing');
+    bossElement.currentTime = 19;
 
     director.resetForDungeonEntry('nythraxis_boss_arena');
 
@@ -553,5 +657,188 @@ describe('world music zone selection', () => {
 
   it('keeps the Thornpeak hub on the Highwatch town theme', () => {
     expect(musicZoneForLocation('thornpeak_heights', 'peaks', true, false)).toBe('town_highwatch');
+  });
+
+  it('gives every new-world biome its own bespoke theme', () => {
+    // Each shipped zone biome resolves to its own registered cue, hub or not
+    // (none of the new zones are TOWN_MUSIC hubs, so both paths agree).
+    const zoneByBiome: [string, BiomeId][] = [
+      ['veiled_hollow', 'dusk'],
+      ['drakelands', 'ember'],
+      ['frostveil', 'frost'],
+      ['amberfall', 'amber'],
+      ['willowfen', 'fen'],
+      ['nightbloom', 'night'],
+      ['wraithwood', 'haunt'],
+      ['palmreach', 'jungle'],
+      ['evergarden', 'garden'],
+      ['galecrest', 'gale'],
+    ];
+    const themes = buildMusicThemes();
+    for (const [zoneId, biome] of zoneByBiome) {
+      expect(musicZoneForLocation(zoneId, biome, false, false), zoneId).toBe(biome);
+      expect(themes[biome], `no composed theme for biome '${biome}'`).toBeDefined();
+    }
+  });
+
+  it('gives Farshore Isle its own vigil theme instead of the vale loop', () => {
+    expect(musicZoneForLocation('farshore_isle', 'vale', false, false)).toBe('farshore');
+    expect(buildMusicThemes().farshore).toBeDefined();
+  });
+
+  it('keeps Gullhaven (the Farshore hub, no town theme) on the vigil too', () => {
+    expect(musicZoneForLocation('farshore_isle', 'vale', true, false)).toBe('farshore');
+  });
+
+  it('gives the Proving Shore its own cue, camp included, not the vale loop', () => {
+    // The island paints as vale, so without its own ZONE_MUSIC row the first
+    // music a new player ever hears would be the mainland's. Dawnrest Camp is
+    // a hub with no town theme, which is the path that falls through to
+    // ZONE_MUSIC, so one row has to cover both the strand and the camp.
+    expect(musicZoneForLocation('proving_shore', 'vale', false, false)).toBe('proving_shore');
+    expect(musicZoneForLocation('proving_shore', 'vale', true, false)).toBe('proving_shore');
+    // ...and a dungeon still outranks it, exactly as everywhere else.
+    expect(musicZoneForLocation('proving_shore', 'vale', false, true, 'hollow_crypt')).toBe(
+      'dungeon_hollow_crypt',
+    );
+  });
+
+  it('streams the island cue rather than composing it', () => {
+    // The one supplied track with no composed counterpart: it was written for
+    // the island, not remastered from the procedural score. Pinned so the
+    // absence reads as deliberate and nobody "fixes" it by inventing a theme.
+    expect(ZONE_STREAM_URLS.proving_shore).toBe('/audio/music/proving_shore.mp3?v=51e9b5a6c01f');
+    expect(buildMusicThemes().proving_shore).toBeUndefined();
+  });
+
+  it('borrows the nearest-mood cue for paint-only biomes', () => {
+    expect(musicZoneForLocation('custom', 'beach', false, false)).toBe('jungle');
+    expect(musicZoneForLocation('custom', 'desert', false, false)).toBe('ember');
+    expect(musicZoneForLocation('custom', 'volcano', false, false)).toBe('ember');
+    expect(musicZoneForLocation('custom', 'cave', false, false)).toBe('dusk');
+  });
+
+  it('still routes dungeons ahead of any biome theme', () => {
+    expect(musicZoneForLocation('frostveil', 'frost', false, true, 'hollow_crypt')).toBe(
+      'dungeon_hollow_crypt',
+    );
+  });
+
+  it('maps every Ignivar raid room to its authored ambient composition', () => {
+    const rooms = [
+      { id: 'ignivar_forge_approach', zone: 'ignivar_forge_approach' },
+      { id: 'ignivar_raid_arena', zone: 'ignivar_raid_arena' },
+      { id: 'ignivar_molten_assembly', zone: 'ignivar_forge_approach' },
+      { id: 'ignivar_inner_crucible', zone: 'ignivar_inner_crucible' },
+    ] as const;
+    const themes = buildMusicThemes();
+
+    for (const room of rooms) {
+      expect(dungeonMusicZoneForDungeon(room.id)).toBe(room.zone);
+      expect(musicZoneForLocation('custom', 'ember', false, true, room.id)).toBe(room.zone);
+      expect(themes[room.zone]).toBeDefined();
+    }
+  });
+});
+
+describe('rift crawl selection', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    FakeAudio.instances = [];
+  });
+
+  it('maps every rift archetype to its own registered crawl theme', () => {
+    const themes = buildMusicThemes();
+    const seen = new Set<string>();
+    for (const theme of RIFT_THEMES) {
+      const zone = riftMusicZoneForTheme(theme.name);
+      expect(zone.startsWith('rift_'), `theme '${theme.name}' fell back to '${zone}'`).toBe(true);
+      expect(themes[zone], `no composed theme for rift zone '${zone}'`).toBeDefined();
+      expect(seen.has(zone), `rift zone '${zone}' reused across archetypes`).toBe(false);
+      seen.add(zone);
+    }
+    expect(seen.size).toBe(RIFT_THEMES.length);
+  });
+
+  it('gives every cave boss theme a composed crawl, never the silent fallback', () => {
+    const themes = buildMusicThemes();
+    for (const theme of CAVE_THEMES) {
+      const zone = riftMusicZoneForTheme(theme.name);
+      expect(RIFT_MUSIC_FALLBACK_CHECK.has(theme.name), `cave theme '${theme.name}' unmapped`).toBe(
+        true,
+      );
+      expect(themes[zone], `no composed theme for rift zone '${zone}'`).toBeDefined();
+    }
+  });
+
+  it('pins the archetype names so a rename cannot silently fall back', () => {
+    expect(riftMusicZoneForTheme('Frostbound')).toBe('rift_frost');
+    expect(riftMusicZoneForTheme('Emberforge')).toBe('rift_ember');
+    expect(riftMusicZoneForTheme('Venomweald')).toBe('rift_venom');
+    expect(riftMusicZoneForTheme('Boneyard')).toBe('rift_bone');
+    expect(riftMusicZoneForTheme('Warcamp')).toBe('rift_brute');
+    expect(riftMusicZoneForTheme('Voidscar')).toBe('rift_void');
+    expect(riftMusicZoneForTheme('Stormspire')).toBe('rift_storm');
+    expect(riftMusicZoneForTheme('Sunken')).toBe('rift_tide');
+  });
+
+  it('falls back to the Voidscar crawl for an unknown archetype name', () => {
+    expect(riftMusicZoneForTheme('Some Future Theme')).toBe('rift_void');
+  });
+
+  it('rewinds an explicit rift cue on floor entry (no DUNGEON_MUSIC row)', () => {
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.stubGlobal('Audio', FakeAudio);
+    vi.stubGlobal('window', { setInterval: vi.fn(() => 1) });
+    const director = makeDirector();
+    director.update('rift_ember', false);
+    const el = internals(director).zoneStreams.rift_ember?.el;
+    if (!el) throw new Error('rift stream element missing');
+    el.currentTime = 21;
+    director.resetForDungeonEntry('rift:12:3', 'rift_ember');
+    expect(el.currentTime).toBe(0);
+    clearInterval(internals(director).timer);
+  });
+});
+
+describe('composed theme integrity', () => {
+  const UNPITCHED = new Set(['frameDrum', 'warDrum', 'woodBlock', 'shaker', 'timpani', 'cymSwell']);
+
+  // The three hash-frozen Eastbrook themes predate this guard and let phrase
+  // tails cross the loop seam by a beat or two; they are pinned byte-identical
+  // by the checksum test above, so the structural guard covers the rest.
+  const FROZEN = new Set(['town_eastbrook', 'vale', 'vale_legacy']);
+
+  it('keeps every note of every theme inside its loop and sane ranges', () => {
+    for (const [name, theme] of Object.entries(buildMusicThemes())) {
+      const loopBeats = theme.bars * 4;
+      expect(theme.bpm, name).toBeGreaterThan(0);
+      expect(theme.events.length, name).toBeGreaterThan(0);
+      for (const e of theme.events) {
+        expect(e.beat, `${name}: beat out of loop`).toBeGreaterThanOrEqual(0);
+        if (!FROZEN.has(name)) {
+          expect(e.beat, `${name}: beat out of loop`).toBeLessThan(loopBeats);
+        }
+        expect(e.dur, `${name}: non-positive duration`).toBeGreaterThan(0);
+        expect(e.vel, `${name}: velocity out of range`).toBeGreaterThan(0);
+        expect(e.vel, `${name}: velocity out of range`).toBeLessThanOrEqual(0.7);
+        if (!UNPITCHED.has(e.inst)) {
+          expect(e.midi, `${name}: midi out of range`).toBeGreaterThanOrEqual(24);
+          expect(e.midi, `${name}: midi out of range`).toBeLessThanOrEqual(96);
+        }
+      }
+    }
+  });
+
+  it('sorts every theme by beat so the lookahead scheduler never skips notes', () => {
+    for (const [name, theme] of Object.entries(buildMusicThemes())) {
+      for (let i = 1; i < theme.events.length; i++) {
+        expect(
+          theme.events[i].beat,
+          `${name}: events not sorted at index ${i}`,
+        ).toBeGreaterThanOrEqual(theme.events[i - 1].beat);
+      }
+    }
   });
 });

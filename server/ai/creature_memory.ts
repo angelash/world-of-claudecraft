@@ -1,7 +1,7 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { DroppedItemSemantic, SceneFrameV1 } from './scene_frame';
-import { individualSpeechValuesFromTraits } from './singularity';
 import type { IndividualAiProfile } from './singularity';
+import { individualSpeechValuesFromTraits } from './singularity';
 
 type AiSpeechReaction = NonNullable<Extract<SimEvent, { type: 'aiSpeech' }>['reaction']>;
 
@@ -106,10 +106,18 @@ export class AiCreatureMemoryStore {
     if (input.individual.tier !== 'singularity' || input.memory.interactionCount < 2) return null;
     this.prunePlans(input.nowSeconds);
     const sceneId = input.scene.subsceneId ?? input.scene.zoneId;
-    const planId = creaturePlanKey(input.memory.memoryId, sceneId, input.item?.itemId ?? input.trigger);
+    const planId = creaturePlanKey(
+      input.memory.memoryId,
+      sceneId,
+      input.item?.itemId ?? input.trigger,
+    );
     const previous = this.plans.get(planId);
     const kind = planKindFor(input.individual, input.scene, input.item);
-    const evidence = mergeRecent(previous?.evidence ?? [], planEvidence(input.individual, input.scene, input.item, input.trigger), 8);
+    const evidence = mergeRecent(
+      previous?.evidence ?? [],
+      planEvidence(input.individual, input.scene, input.item, input.trigger),
+      8,
+    );
     const plan: AiCreaturePlan = {
       planId,
       entityId: input.entity.id,
@@ -118,7 +126,12 @@ export class AiCreatureMemoryStore {
       kind,
       sceneId,
       ...(input.item ? { itemId: input.item.itemId } : {}),
-      intensity: clamp01(Math.max(previous?.intensity ?? 0, 0.35 + input.memory.interactionCount * 0.14 + input.individual.intensity * 0.25)),
+      intensity: clamp01(
+        Math.max(
+          previous?.intensity ?? 0,
+          0.35 + input.memory.interactionCount * 0.14 + input.individual.intensity * 0.25,
+        ),
+      ),
       traits: mergeRecent(previous?.traits ?? [], input.individual.traits, 4),
       evidence,
       createdAt: previous?.createdAt ?? input.nowSeconds,
@@ -250,7 +263,9 @@ export function singularityCreatureSceneMemoryEvent(
   };
 }
 
-export function creaturePlanReactionMetadata(plan: AiCreaturePlan | null): Partial<AiSpeechReaction> {
+export function creaturePlanReactionMetadata(
+  plan: AiCreaturePlan | null,
+): Partial<AiSpeechReaction> {
   if (!plan) return {};
   const targetEntityId = creaturePlanAttentionTargetEntityId(plan);
   return {
@@ -270,7 +285,11 @@ export function creaturePlanKey(memoryId: string, sceneId: string, subjectId: st
   return `${memoryId}:${sceneId}:${subjectId}`;
 }
 
-function mergeRecent(previous: readonly string[], next: readonly string[], limit: number): string[] {
+function mergeRecent(
+  previous: readonly string[],
+  next: readonly string[],
+  limit: number,
+): string[] {
   return [...next, ...previous.filter((value) => !next.includes(value))].slice(0, limit);
 }
 
@@ -283,14 +302,16 @@ function copyPlan(plan: AiCreaturePlan): AiCreaturePlan {
 }
 
 function sceneMemoryTags(scene: SceneFrameV1): string[] {
-  return [...new Set([
-    ...scene.structureTags.slice(0, 2),
-    ...scene.environmentalTags,
-    ...scene.locationTags,
-    ...scene.time.tags,
-    ...scene.weather.tags,
-    ...scene.light.tags,
-  ])].slice(0, 8);
+  return [
+    ...new Set([
+      ...scene.structureTags.slice(0, 2),
+      ...scene.environmentalTags,
+      ...scene.locationTags,
+      ...scene.time.tags,
+      ...scene.weather.tags,
+      ...scene.light.tags,
+    ]),
+  ].slice(0, 8);
 }
 
 function planKindFor(
@@ -298,11 +319,30 @@ function planKindFor(
   scene: SceneFrameV1,
   item: DroppedItemSemantic | undefined,
 ): AiCreaturePlanKind {
-  const itemTags = new Set(item ? [...item.itemTags, ...item.smellTags, ...item.dangerTags, ...item.valueSignals] : []);
-  if (individual.traits.includes('foodFixated') && (itemTags.has('food') || itemTags.has('meat') || itemTags.has('fish'))) return 'followScent';
-  if (individual.traits.includes('collector') && item && (itemTags.has('valuable') || itemTags.has('coin') || itemTags.has('gear') || itemTags.has('shiny'))) return 'collectObject';
-  if (individual.traits.includes('cowardly') && (scene.danger.hostileDensity >= 0.25 || scene.danger.undeadPressure >= 0.25)) return 'avoidPlayer';
-  if (individual.traits.includes('stargazer') && scene.light.tags.includes('starrySky')) return 'watchSky';
+  const itemTags = new Set(
+    item ? [...item.itemTags, ...item.smellTags, ...item.dangerTags, ...item.valueSignals] : [],
+  );
+  if (
+    individual.traits.includes('foodFixated') &&
+    (itemTags.has('food') || itemTags.has('meat') || itemTags.has('fish'))
+  )
+    return 'followScent';
+  if (
+    individual.traits.includes('collector') &&
+    item &&
+    (itemTags.has('valuable') ||
+      itemTags.has('coin') ||
+      itemTags.has('gear') ||
+      itemTags.has('shiny'))
+  )
+    return 'collectObject';
+  if (
+    individual.traits.includes('cowardly') &&
+    (scene.danger.hostileDensity >= 0.25 || scene.danger.undeadPressure >= 0.25)
+  )
+    return 'avoidPlayer';
+  if (individual.traits.includes('stargazer') && scene.light.tags.includes('starrySky'))
+    return 'watchSky';
   if (individual.traits.includes('omenSensitive')) return 'omenWatch';
   if (individual.traits.includes('foodFixated') && !item) return 'seekFood';
   if (individual.traits.includes('territorial') && !item) return 'protectNest';
@@ -319,8 +359,12 @@ function planEvidence(
   return [
     `trigger:${trigger}`,
     ...individual.traits.map((trait) => `trait:${trait}`),
-    ...(item ? [`item:${item.itemId}`, ...item.itemTags.slice(0, 3).map((tag) => `itemTag:${tag}`)] : []),
-    ...sceneMemoryTags(scene).slice(0, 4).map((tag) => `scene:${tag}`),
+    ...(item
+      ? [`item:${item.itemId}`, ...item.itemTags.slice(0, 3).map((tag) => `itemTag:${tag}`)]
+      : []),
+    ...sceneMemoryTags(scene)
+      .slice(0, 4)
+      .map((tag) => `scene:${tag}`),
   ];
 }
 

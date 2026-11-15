@@ -20,6 +20,7 @@
 // the stable code + params structurally off the thrown value, never importing the
 // `net/` ApiError class (the src/ui -> net dependency ban).
 
+import { durationText } from './duration_text';
 import { formatDateTime, formatDuration, type TranslationKey, t } from './i18n';
 import { tServer } from './server_i18n';
 
@@ -30,6 +31,14 @@ import { tServer } from './server_i18n';
 // catalog so a new server code without a client key (or vice versa) fails the gate.
 // `satisfies Record<string, TranslationKey>` keeps every value a real, typed
 // translation key (a typo or a key missing from the catalog is a tsc error).
+/**
+ * The admin-panel kick's disconnect prefix, a byte-exact copy of
+ * server/admin_kick_api.ts ADMIN_KICK_MESSAGE_PREFIX (the client never imports
+ * server code; tests/main_api_error.test.ts pins the two equal). The reason the
+ * operator typed follows it on the wire.
+ */
+export const ADMIN_KICK_MESSAGE_PREFIX = 'A moderator has disconnected you: ';
+
 export const API_ERROR_KEYS = {
   // Structural pipeline primitives.
   'validation.failed': 'apiError.validation.failed',
@@ -62,6 +71,7 @@ export const API_ERROR_KEYS = {
   'account.characters_online': 'apiError.account.characters_online',
   'account.deactivated': 'apiError.account.deactivated',
   'account.not_found': 'apiError.account.not_found',
+  'account.password_already_set': 'apiError.account.password_already_set',
 
   // character: creation, selection, and world-entry failures.
   'character.name_invalid': 'apiError.character.name_invalid',
@@ -73,9 +83,15 @@ export const API_ERROR_KEYS = {
   'character.online': 'apiError.character.online',
   'character.rename_not_permitted': 'apiError.character.rename_not_permitted',
   'character.delete_confirm': 'apiError.character.delete_confirm',
+  'character.storage_purchase_open': 'apiError.character.storage_purchase_open',
+  'character.delete_busy': 'apiError.character.delete_busy',
+  'character.referral_transfer_pending': 'apiError.character.referral_transfer_pending',
+  'character.referral_bond_pending': 'apiError.character.referral_bond_pending',
   'character.already_in_world': 'apiError.character.already_in_world',
   'character.taken_over': 'apiError.character.taken_over',
   'character.rename_required': 'apiError.character.rename_required',
+  'character.invalid_appearance': 'apiError.character.invalid_appearance',
+  'character.reroll_unavailable': 'apiError.character.reroll_unavailable',
 
   // moderation: enforcement states set by a moderator.
   'moderation.suspended_until': 'apiError.moderation.suspended_until',
@@ -107,7 +123,11 @@ export const API_ERROR_KEYS = {
   'discord.swag_claimed': 'apiError.discord.swag_claimed',
   'discord.swag_tier': 'apiError.discord.swag_tier',
   'discord.swag_points': 'apiError.discord.swag_points',
+  'discord.invalid_input': 'apiError.discord.invalid_input',
   'deeds.invalid_input': 'apiError.deeds.invalid_input',
+  'guilds.invalid_roster_name': 'apiError.guilds.invalid_roster_name',
+  'guilds.unknown': 'apiError.guilds.unknown',
+  'world_quests.unknown_board': 'apiError.world_quests.unknown_board',
 
   // steam: the env-gated Steam link family (server/steam/).
   'steam.disabled': 'apiError.steam.disabled',
@@ -116,7 +136,94 @@ export const API_ERROR_KEYS = {
   'steam.already_linked': 'apiError.steam.already_linked',
   'steam.account_taken': 'apiError.steam.account_taken',
   'steam.upstream': 'apiError.steam.upstream',
+  // epic: the env-gated Epic link family (server/epic/).
+  'epic.disabled': 'apiError.epic.disabled',
+  'epic.invalid_token': 'apiError.epic.invalid_token',
+  'epic.banned': 'apiError.epic.banned',
+  'epic.already_linked': 'apiError.epic.already_linked',
+  'epic.account_taken': 'apiError.epic.account_taken',
+  'epic.upstream': 'apiError.epic.upstream',
   'wallet.handoff_invalid': 'apiError.wallet.handoff_invalid',
+  'wallet.reauth_required': 'apiError.wallet.reauth_required',
+  'wallet.reauth_two_factor': 'apiError.wallet.reauth_two_factor',
+  'wallet.reauth_no_password': 'apiError.wallet.reauth_no_password',
+  'wallet.reauth_bad_signature': 'apiError.wallet.reauth_bad_signature',
+  'wallet.reauth_bad_password': 'apiError.wallet.reauth_bad_password',
+  'wallet.reauth_bad_two_factor': 'apiError.wallet.reauth_bad_two_factor',
+  'ota_updates.invalid_input': 'apiError.ota_updates.invalid_input',
+  'seeker.native_only': 'apiError.seeker.native_only',
+  'seeker.attestation_failed': 'apiError.seeker.attestation_failed',
+  'seeker.solana_artifact_required': 'apiError.seeker.solana_artifact_required',
+  'seeker.wallet_required': 'apiError.seeker.wallet_required',
+  'seeker.genesis_token_required': 'apiError.seeker.genesis_token_required',
+  'seeker.genesis_token_claimed': 'apiError.seeker.genesis_token_claimed',
+  'seeker.entitlement_required': 'apiError.seeker.entitlement_required',
+  'seeker.current_ownership_required': 'apiError.seeker.current_ownership_required',
+
+  // cheater_mark: the operator-applied public Cheater tag (server/cheater_mark_api.ts).
+  'cheater_mark.admin_target': 'apiError.cheater_mark.admin_target',
+  'cheater_mark.reason_required': 'apiError.cheater_mark.reason_required',
+  'cheater_mark.invalid_duration': 'apiError.cheater_mark.invalid_duration',
+  'cheater_mark.not_marked': 'apiError.cheater_mark.not_marked',
+  // kick: the admin-panel kick of a live player (server/admin_kick_api.ts).
+  'kick.reason_required': 'apiError.kick.reason_required',
+  'kick.admin_target': 'apiError.kick.admin_target',
+  'kick.target_offline': 'apiError.kick.target_offline',
+  // world_quest_block: the operator world quest block (server/world_quest_block_api.ts).
+  'world_quest_block.admin_target': 'apiError.world_quest_block.admin_target',
+  'world_quest_block.reason_required': 'apiError.world_quest_block.reason_required',
+  'world_quest_block.already_blocked': 'apiError.world_quest_block.already_blocked',
+  'world_quest_block.not_blocked': 'apiError.world_quest_block.not_blocked',
+
+  // woc_market: the config-gated $WOC Exchange family (server/woc_market_routes.ts).
+  'woc_market.invalid_input': 'apiError.woc_market.invalid_input',
+  'woc_market.disabled': 'apiError.woc_market.disabled',
+  'woc_market.paused': 'apiError.woc_market.paused',
+  'woc_market.wallet_required': 'apiError.woc_market.wallet_required',
+  'woc_market.recipient_wallet_required': 'apiError.woc_market.recipient_wallet_required',
+  'woc_market.self_offer': 'apiError.woc_market.self_offer',
+  'woc_market.offer_expired': 'apiError.woc_market.offer_expired',
+  'woc_market.terms_required': 'apiError.woc_market.terms_required',
+  // RETIRED, never raised (B6/R1); kept with their append-only codes.
+  'woc_market.totp_required': 'apiError.woc_market.totp_required',
+  'woc_market.totp_invalid': 'apiError.woc_market.totp_invalid',
+  'woc_market.suspended': 'apiError.woc_market.suspended',
+  'woc_market.character_invalid': 'apiError.woc_market.character_invalid',
+  'woc_market.not_found': 'apiError.woc_market.not_found',
+  'woc_market.not_yours': 'apiError.woc_market.not_yours',
+  'woc_market.not_active': 'apiError.woc_market.not_active',
+  'woc_market.own_listing': 'apiError.woc_market.own_listing',
+  'woc_market.has_bids': 'apiError.woc_market.has_bids',
+  'woc_market.bid_too_low': 'apiError.woc_market.bid_too_low',
+  'woc_market.already_pending': 'apiError.woc_market.already_pending',
+  'woc_market.insufficient_balance': 'apiError.woc_market.insufficient_balance',
+  'woc_market.quote_unavailable': 'apiError.woc_market.quote_unavailable',
+  'woc_market.quote_expired': 'apiError.woc_market.quote_expired',
+  'woc_market.not_pending': 'apiError.woc_market.not_pending',
+  'woc_market.confirm_failed': 'apiError.woc_market.confirm_failed',
+  'woc_market.confirm_in_flight': 'apiError.woc_market.confirm_in_flight',
+  'woc_market.buy_now_locked': 'apiError.woc_market.buy_now_locked',
+  'woc_market.cancel_pending': 'apiError.woc_market.cancel_pending',
+  'woc_market.claim_cooldown': 'apiError.woc_market.claim_cooldown',
+  'woc_market.bond_window_closed': 'apiError.woc_market.bond_window_closed',
+  'woc_market.settlement_in_flight': 'apiError.woc_market.settlement_in_flight',
+  'woc_market.contended': 'apiError.woc_market.contended',
+  'woc_market.sale_conflict': 'apiError.woc_market.sale_conflict',
+  'woc_market.no_buy_now': 'apiError.woc_market.no_buy_now',
+  'woc_market.cap_reached': 'apiError.woc_market.cap_reached',
+  'woc_market.stale_item': 'apiError.woc_market.stale_item',
+  'woc_market.item_mismatch': 'apiError.woc_market.item_mismatch',
+  'woc_market.offer_pending': 'apiError.woc_market.offer_pending',
+  'woc_market.not_eligible': 'apiError.woc_market.not_eligible',
+  'woc_market.invalid_params': 'apiError.woc_market.invalid_params',
+  'woc_market.signature_reused': 'apiError.woc_market.signature_reused',
+  'woc_market.item_locked': 'apiError.woc_market.item_locked',
+  'woc_market.stepup_required': 'apiError.woc_market.stepup_required',
+  'woc_market.stepup_challenge_invalid': 'apiError.woc_market.stepup_challenge_invalid',
+  'woc_market.stepup_challenge_expired': 'apiError.woc_market.stepup_challenge_expired',
+  'woc_market.stepup_wallet_mismatch': 'apiError.woc_market.stepup_wallet_mismatch',
+  'woc_market.stepup_binding_mismatch': 'apiError.woc_market.stepup_binding_mismatch',
+  'woc_market.stepup_signature_invalid': 'apiError.woc_market.stepup_signature_invalid',
 } satisfies Record<string, TranslationKey>;
 
 /** The message of an Error, or the string form of any other thrown value. */
@@ -171,6 +278,25 @@ function resolveByCode(code: string, params: Record<string, unknown> | undefined
     const seconds = params?.retryAfterSeconds;
     if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return null;
     return t(key, { seconds: formatDuration(seconds) });
+  }
+
+  if (code === 'woc_market.claim_cooldown') {
+    // With the server-computed remaining time, say WHEN a retry can succeed.
+    // The retry sentence lives under hudChrome (the apiError catalog is a
+    // strict bijection with the server code set, so a client-side variant
+    // leaf cannot live there); an older server sends no params and the plain
+    // apiError sentence still renders (never null: "later" is honest, just
+    // less useful).
+    // Through the shared multi-unit phrase, never a raw seconds count: the
+    // common answer is the half-hour per-listing cooldown, and formatDuration
+    // alone rendered "1,800 seconds".
+    const seconds = params?.retryAfterSeconds;
+    if (typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0) {
+      return t('hudChrome.wocMarket.claimCooldownRetry', {
+        duration: durationText(seconds),
+      });
+    }
+    return t(key);
   }
 
   return t(key);
@@ -231,6 +357,7 @@ export function userFacingApiError(err: unknown): string {
   if (suspended) return t('errors.api.accountSuspended', { date: suspended[1] });
 
   const normalized = text.toLowerCase();
+  if (normalized === 'the realm is temporarily unavailable.') return t('serverUnavailable.heading');
   if (normalized.startsWith('too many attempts')) return t('errors.api.tooManyAttempts');
   // The Discord rate-limit bucket (server/discord.ts) answers a bare { error: 'rate
   // limited' } 429; resolve it to the same "slow down" message rather than leaking the
@@ -247,6 +374,8 @@ export function userFacingApiError(err: unknown): string {
   if (normalized === 'character name is not allowed')
     return t('errors.api.characterNameNotAllowed');
   if (normalized === 'invalid class') return t('errors.api.invalidClass');
+  if (normalized === 'membership required for this character')
+    return t('character.membershipRequired');
   if (normalized === 'character limit reached') return t('errors.api.characterLimit');
   if (normalized === 'that name is taken') return t('errors.api.nameTaken');
   if (
@@ -263,8 +392,12 @@ export function userFacingApiError(err: unknown): string {
     return t('errors.api.notAuthenticated');
   if (normalized === 'this account has been banned.') return t('errors.api.accountBanned');
   if (normalized === 'character already in world') return t('errors.api.alreadyInWorld');
+  if (normalized === 'vault reward mail is still recovering. please retry shortly.')
+    return t('errors.api.vaultMailRecovering');
   if (normalized === 'too many characters on this account are already in the world')
     return t('errors.api.accountSessionLimit');
+  if (normalized === 'another character on this account is still in the world after a fight')
+    return t('errors.api.worldFightHold');
   if (normalized === 'character taken over') return t('errors.api.takenOver');
   if (normalized === 'this character must be renamed before entering the world.')
     return t('errors.api.renameBeforeEntering');
@@ -341,6 +474,15 @@ export function userFacingApiError(err: unknown): string {
   if (normalized === 'this account is suspended.') return tServer('moderation.suspended');
   if (normalized === 'a moderator requires one of your characters to be renamed.')
     return tServer('moderation.forceRename');
+  // The admin-panel kick (server/admin_kick_api.ts adminKickMessage). The prefix
+  // is the byte-exact wire contract; the operator's free-text reason rides after
+  // it and is interpolated into the localized line, never translated. Matched on
+  // the ORIGINAL text so the reason keeps its case.
+  if (text.startsWith(ADMIN_KICK_MESSAGE_PREFIX)) {
+    return t('loading.kickedByModerator', {
+      reason: text.slice(ADMIN_KICK_MESSAGE_PREFIX.length),
+    });
+  }
   if (normalized.startsWith('too many failed attempts')) return tServer('moderation.tooManyFailed');
   // Transport/runtime failures are diagnostic code errors. Preserve their
   // English source text so browser logs and support reports match exactly.

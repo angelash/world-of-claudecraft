@@ -1,8 +1,31 @@
+import { ABILITIES } from '../../../sim/data';
+import type { ResolvedAbility } from '../../../sim/sim';
 import type { AbilityEffect, Entity } from '../../../sim/types';
 
 export interface AimPoint {
   x: number;
   z: number;
+}
+
+/** A living, non-self selected target seeds precise aim only if attackable.
+ * Quick targeting intentionally accepts friendly targets too, as before. */
+export function selectedGroundAimPoint(
+  player: Pick<Entity, 'id' | 'targetId' | 'pos'>,
+  entities: ReadonlyMap<number, Entity>,
+  attackable?: (id: number) => boolean,
+): AimPoint | null {
+  const target = player.targetId !== null ? entities.get(player.targetId) : null;
+  if (!target || target.dead || target.id === player.id || (attackable && !attackable(target.id)))
+    return null;
+  return { x: target.pos.x, z: target.pos.z };
+}
+
+// Where a ground-targeted ability should land: the current target's position if
+// one is selected (the usual "cast on that pack" intent), else the caster's own
+// spot for an open-ground cast. The sim clamps this to the ability's range.
+/** Without a valid selected target, instant desktop casts use the player's feet. */
+export function quickGroundTarget(player: Entity, entities: ReadonlyMap<number, Entity>): AimPoint {
+  return selectedGroundAimPoint(player, entities) ?? { x: player.pos.x, z: player.pos.z };
 }
 
 export interface GroundAimState {
@@ -12,15 +35,18 @@ export interface GroundAimState {
 
 export const DEFAULT_GROUND_AOE_RADIUS = 6;
 
-/** Touch normally keeps instant target-feet casting, but Meteor needs an
- * explicit terrain tap so it never falls on the caster merely for lacking a
- * selected target. Desktop remains governed by the player's reticle setting. */
+/** Aim-slot sentinel for an ability arranged only on the cross hotbar: no bar
+ *  slot can equal it, so re-press commit resolves by ability id instead. */
+export const XHB_ONLY_AIM_SLOT = -1;
+
+/** Touch uses the dedicated precise-targeting preference. Desktop remains
+ * governed by the player's ground-reticle preference. */
 export function shouldUseGroundAim(
-  abilityId: string,
   mobileTouch: boolean,
   desktopPreference: boolean,
+  touchPrecise: boolean,
 ): boolean {
-  return mobileTouch ? abilityId === 'meteor' : desktopPreference;
+  return mobileTouch ? touchPrecise : desktopPreference;
 }
 
 export function createGroundAimState(): GroundAimState {
@@ -70,11 +96,74 @@ export function clampAimToRange(
   };
 }
 
+export function smartSeedPoint(
+  caster: Pick<Entity, 'pos' | 'facing'>,
+  targetPoint: AimPoint | null,
+  range: number,
+): AimPoint {
+  if (targetPoint) return clampAimToRange(caster, targetPoint, range).point;
+  const effectiveRange = range > 0 ? range : 5;
+  const distance = effectiveRange / 2;
+  return {
+    x: caster.pos.x + Math.sin(caster.facing) * distance,
+    z: caster.pos.z + Math.cos(caster.facing) * distance,
+  };
+}
+
+/** The point a QUICK (no-reticle) cast submits. The device's classic point
+ *  (the smart seed on touch, target-or-feet elsewhere) wins unless it violates
+ *  the ability's minimum range; then the seed, then a facing push landing half
+ *  a yard past the minimum, so the sim's proposed-point refusal can never trip
+ *  on a float round-trip. */
+export function quickAimPoint(
+  caster: Pick<Entity, 'pos' | 'facing'>,
+  targetPoint: AimPoint | null,
+  classicPoint: AimPoint,
+  range: number,
+  minRange: number | undefined,
+  preferSeed = false,
+): AimPoint {
+  const preferred = preferSeed ? smartSeedPoint(caster, targetPoint, range) : classicPoint;
+  if (!withinMinRange(caster, preferred, minRange)) return preferred;
+  const seed = smartSeedPoint(caster, targetPoint, range);
+  if (!withinMinRange(caster, seed, minRange)) return seed;
+  const effectiveRange = range > 0 ? range : 5;
+  const distance = Math.min(Math.max(effectiveRange / 2, (minRange ?? 0) + 0.5), effectiveRange);
+  return {
+    x: caster.pos.x + Math.sin(caster.facing) * distance,
+    z: caster.pos.z + Math.cos(caster.facing) * distance,
+  };
+}
+
+export function withinMinRange(
+  caster: Pick<Entity, 'pos'>,
+  point: AimPoint,
+  minRange: number | undefined,
+): boolean {
+  return !!minRange && Math.hypot(point.x - caster.pos.x, point.z - caster.pos.z) < minRange;
+}
+
 export function abilityAoeRadius(res: { effects: readonly AbilityEffect[] }): number {
   const effect = res.effects.find(
     (eff) =>
-      eff.type === 'aoeDamage' || eff.type === 'groundAoE' || eff.type === 'temporalHourglass',
+      eff.type === 'aoeDamage' ||
+      eff.type === 'groundAoE' ||
+      eff.type === 'temporalHourglass' ||
+      eff.type === 'sporeBurst',
   );
   if (effect?.type === 'temporalHourglass') return effect.captureRadius;
   return effect && 'radius' in effect ? effect.radius : DEFAULT_GROUND_AOE_RADIUS;
+}
+
+export function resolveGroundAimAbility(
+  known: ReadonlyArray<ResolvedAbility>,
+  id: string,
+): ResolvedAbility | null {
+  const match = known.find((k) => k.def.id === id);
+  if (match) return match;
+  if (id === 'clockwork_shock_bomb' && ABILITIES.clockwork_shock_bomb) {
+    const def = ABILITIES.clockwork_shock_bomb;
+    return { def, effects: def.effects ?? [] } as ResolvedAbility;
+  }
+  return null;
 }

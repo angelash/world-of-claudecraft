@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { successfulAudioProbe } from './helpers/audio_probe_fixture';
 
 describe('SFX gate toolchain preflight', () => {
   it('fails fast with a clear message when the resolved ffmpeg and ffprobe are broken', () => {
@@ -10,12 +11,17 @@ describe('SFX gate toolchain preflight', () => {
     // ffmpeg_paths.mjs) onto nonexistent binaries and the empty PATH removes the
     // fallback, simulating a scripts-skipped install on a machine without system
     // FFmpeg; the execution probe must fail before any gate step runs.
+    // WOC_SKIP_DEP_SYNC isolates this from the separate dependency-sync preflight
+    // (tests/dependency_sync_gate_preflight.test.ts owns that one): without it,
+    // this checkout's own node_modules sync state would decide which preflight
+    // fires first, not the FFmpeg simulation this test is actually exercising.
     const result = spawnSync(process.execPath, ['scripts/gate.mjs'], {
       cwd: process.cwd(),
       encoding: 'utf8',
       env: {
         ...process.env,
         PATH: '',
+        WOC_SKIP_DEP_SYNC: '1',
         WOC_FFMPEG_PATH: '/nonexistent/woc-preflight/ffmpeg',
         WOC_FFPROBE_PATH: '/nonexistent/woc-preflight/ffprobe',
       },
@@ -23,31 +29,39 @@ describe('SFX gate toolchain preflight', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('missing required SFX audio tooling: ffmpeg, ffprobe');
-    expect(result.stderr).toContain('reinstall with npm ci');
-    expect(result.stderr).toContain('install FFmpeg (including ffprobe) on PATH');
+    expect(result.stderr).toContain('reinstall with');
+    expect(result.stderr).toContain('pnpm install --frozen-lockfile');
+    expect(result.stderr).toMatch(/install FFmpeg \(including ffprobe\) on\s*PATH/);
     expect(result.stdout).not.toContain('[gate] i18n artifacts');
   });
 
   it('names only the broken tool when the other one resolves and runs', () => {
     // Per-dimension red path: only ffmpeg is forced onto a nonexistent override
-    // while ffprobe resolves normally (the static package binary, PATH-independent),
-    // so the failure message's per-tool selection is exercised, not just the
-    // both-tools arm above.
+    // while ffprobe is forced onto a runnable fixture. POSIX uses a tiny script
+    // even when ffprobe-static publishes no binary for the architecture; Windows
+    // uses the bundled native FFmpeg, which accepts the same version probe.
+    const dir = mkdtempSync(join(tmpdir(), 'woc-preflight-'));
+    const okTool = successfulAudioProbe(dir, 'ok-ffprobe');
     const result = spawnSync(process.execPath, ['scripts/gate.mjs'], {
       cwd: process.cwd(),
       encoding: 'utf8',
       env: {
         ...process.env,
         PATH: '',
+        WOC_SKIP_DEP_SYNC: '1',
         WOC_FFMPEG_PATH: '/nonexistent/woc-preflight/ffmpeg',
-        WOC_FFPROBE_PATH: undefined,
+        WOC_FFPROBE_PATH: okTool,
       },
     });
 
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('missing required SFX audio tooling: ffmpeg');
-    expect(result.stderr).not.toMatch(/missing required SFX audio tooling: [^\n]*ffprobe/);
-    expect(result.stdout).not.toContain('[gate] i18n artifacts');
+    try {
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('missing required SFX audio tooling: ffmpeg');
+      expect(result.stderr).not.toMatch(/missing required SFX audio tooling: [^\n]*ffprobe/);
+      expect(result.stdout).not.toContain('[gate] i18n artifacts');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('probes by execution, not existence: a present but broken binary still fails', () => {
@@ -63,6 +77,7 @@ describe('SFX gate toolchain preflight', () => {
         env: {
           ...process.env,
           PATH: '',
+          WOC_SKIP_DEP_SYNC: '1',
           WOC_FFMPEG_PATH: brokenTool,
           WOC_FFPROBE_PATH: brokenTool,
         },

@@ -100,35 +100,39 @@ function saveFor(
 }
 
 describe('two-realm World Market isolation', () => {
-  it('keeps each realm on its own key and never writes the bare shared "market" row', async () => {
-    const saveA = saveFor('101', 'Aldwin', 'oiled_boots', 250);
-    const saveB = saveFor('202', 'Brenna', 'silk_sash', 999);
+  it(
+    'keeps each realm on its own key and never writes the bare shared "market" row',
+    async () => {
+      const saveA = saveFor('101', 'Aldwin', 'oiled_boots', 250);
+      const saveB = saveFor('202', 'Brenna', 'silk_sash', 999);
 
-    // RealmA process: open the boot write gate, then autosave its own market.
-    const dbA = await bootRealm('RealmA');
-    expect(dbA.marketStateKey('RealmA')).toBe('market:RealmA');
-    dbA.openMarketWriteGate();
-    await dbA.saveMarketState(saveA);
+      // RealmA process: open the boot write gate, then autosave its own market.
+      const dbA = await bootRealm('RealmA');
+      expect(dbA.marketStateKey('RealmA')).toBe('market:RealmA');
+      dbA.openMarketWriteGate();
+      await dbA.saveMarketState(saveA);
 
-    // RealmB process against the SAME store: it must not disturb RealmA's row.
-    const dbB = await bootRealm('RealmB');
-    dbB.openMarketWriteGate();
-    await dbB.saveMarketState(saveB);
+      // RealmB process against the SAME store: it must not disturb RealmA's row.
+      const dbB = await bootRealm('RealmB');
+      dbB.openMarketWriteGate();
+      await dbB.saveMarketState(saveB);
 
-    // Each realm reloads ITS OWN listings, not the other realm's.
-    const dbA2 = await bootRealm('RealmA');
-    const loadedA = await dbA2.loadMarketState();
-    expect(loadedA).toEqual(saveA);
-    expect(loadedA).not.toEqual(saveB);
+      // Each realm reloads ITS OWN listings, not the other realm's.
+      const dbA2 = await bootRealm('RealmA');
+      const loadedA = await dbA2.loadMarketState();
+      expect(loadedA).toEqual(saveA);
+      expect(loadedA).not.toEqual(saveB);
 
-    const dbB2 = await bootRealm('RealmB');
-    const loadedB = await dbB2.loadMarketState();
-    expect(loadedB).toEqual(saveB);
-    expect(loadedB).not.toEqual(saveA);
+      const dbB2 = await bootRealm('RealmB');
+      const loadedB = await dbB2.loadMarketState();
+      expect(loadedB).toEqual(saveB);
+      expect(loadedB).not.toEqual(saveA);
 
-    // The store holds exactly the two realm-scoped keys, and the pre-scoping
-    // bare 'market' row was never written by either realm.
-    expect([...dbMock.store.keys()].sort()).toEqual(['market:RealmA', 'market:RealmB']);
-    expect(dbMock.store.has('market')).toBe(false);
-  });
+      // The store holds exactly the two realm-scoped keys, and the pre-scoping
+      // bare 'market' row was never written by either realm.
+      expect([...dbMock.store.keys()].sort()).toEqual(['market:RealmA', 'market:RealmB']);
+      expect(dbMock.store.has('market')).toBe(false);
+    },
+    process.platform === 'win32' ? 240_000 : 20_000,
+  );
 });

@@ -72,7 +72,7 @@ Quests are one-time; dungeons are 25–45 minute social commitments. Players lev
 - Replayable 10–20 min modular instances with seeded module order and spawn variants.
 - Normal + Heroic tiers with thematic affixes (Crypt slice: 1 affix on Heroic).
 - Delve Marks meta currency + companion upgrade ranks (Acolyte Tessa).
-- Solo companion support (healer); pet stow/restore for hunter/warlock.
+- Solo companion support (healer); hunter and warlock pets fight inside the delve, the mage's Water Elemental stows/restores.
 - Definitive death/wipe rules, daily XP/Mark efficiency caps.
 - Online/offline identical behavior; full i18n in Phase 4.
 
@@ -117,9 +117,9 @@ Quests are one-time; dungeons are 25–45 minute social commitments. Players lev
 
 ### 6.4 Pet stow & restore (definitive)
 
-- **FR-4.1** On `enterDelve`: **Hunter** — serialize live pet to `PetState` on `PlayerMeta` / run stash, despawn pet entity. **Warlock** — despawn demon pet entity. Stowed state survives module transitions.
-- **FR-4.2** On `leaveDelve` and `completeDelve`: restore hunter pet from stashed `PetState` via existing `restorePet()` (~L2675). Warlock demon respawns per normal class rules on exit.
-- **FR-4.3** Delve companion (`companion_tessa`) uses separate spawn path; does not conflict with stowed hunter pet.
+- **FR-4.1** On `enterDelve`: **Hunter / warlock**: the live pet comes along (`delveKeepsPet`, `src/sim/delves/delve_pet.ts`) and is set down beside its owner on every delve teleport (entry, module advance, exit, eject); it walks its owner's run for room collision and heels in a straight line there (the path planner does not know the run's seeded rooms), and the in-delve respawn or a dead member's eject hands back the pet the death took. A pet any class summons inside a delve is carried the same way. **Frost mage**: serialize the live pet into `delvePetStash` and despawn it. Stowed state survives module transitions.
+- **FR-4.2** On `leaveDelve` and `completeDelve`: restore a stowed pet from `delvePetStash` via `restorePet()`.
+- **FR-4.3** Delve companion (`companion_tessa`) uses a separate spawn path and fights alongside a hunter's or warlock's pet; pet lookups (`petOf`) exclude the companion.
 - **FR-4.4** Block `enterDelve` if pet state cannot be stowed (document edge case: pet in unrecoverable state — treat as despawn + restore attempt on exit).
 
 ### 6.5 Daily limits (definitive)
@@ -134,39 +134,43 @@ delveDaily: {
 }
 ```
 
-- **FR-5.1** On UTC date change, reset `delveDaily` to `{ date: today, firstClearXp: empty, markClears: 0 }`.
+- **FR-5.1** On reset-day change (the realm daily boundary supplied by the host as `resetDay`, not a UTC calendar date; see `refreshDelveDaily`), reset `delveDaily` to `{ date: today, firstClearXp: empty, markClears: 0 }`.
 - **FR-5.2** **First-clear XP bonus** (Normal 700 / Heroic 1050 solo): granted only if `${delveId}:${tierId}` not in `firstClearXp` for today; else repeat XP (420 / 650).
-- **FR-5.3** **Mark payout:** full Marks for first **3** completions per UTC day (`markClears < 3`). After 3: Normal 50% chance for 1 Mark; Heroic 1 Mark guaranteed.
+- **FR-5.3** **Mark payout:** full Marks for first **3** completions per reset day (`markClears < 3`). After 3: Normal 50% chance for 1 Mark; Heroic 1 Mark guaranteed. The chest/rite loot-tier **bonus Marks** ride the same window: they pay only on a clear that was one of the day's first 3 (`delveBonusMarksFor`); the copper half of the bonus and the loot tier itself are not windowed.
 - **FR-5.4** Copper and basic loot always available regardless of daily caps.
 
-> **Implementation note (v0.10.0).** This formula is implemented in
-> `delveMarkPayout` (full = 1 base Mark × tier `rewardMult`; after 3/day the
-> diminished rule applies; the lockpick ante adds a separate tier bonus). The
-> §6.7 Heroic "+30% Marks" rides `rewardMult` (1.3) but rounds to no per-clear
-> change at the base of 1 Mark, so the Heroic mark advantage is realised through
-> the post-3 guaranteed-vs-50% rule (and the ante bonus). The §6.6 per-tier XP
-> table (Heroic 1050/650, copper 16–24) is **not** yet wired — XP/copper are the
-> same both tiers today; a per-tier XP pass is tracked roadmap.
+> **Implementation note (v0.38.0).** This formula is implemented in
+> `delveMarkPayout`: an in-window clear pays 1 Mark on Normal and 2 on Heroic
+> (the Drowned Litany doubles both), after 3/day the diminished rule applies,
+> and the lockpick ante adds a separate tier bonus, which since v0.38.0 pays
+> only inside the 3-clear window per FR-5.3. The §6.7 Heroic "+30% Marks"
+> rides `rewardMult` (1.3) but rounds to no per-clear change at the base of
+> 1 Mark; the realised Heroic mark advantage is the in-window 2-vs-1, the
+> post-3 guaranteed-vs-50% rule, and the ante bonus. The §6.6 per-tier XP and
+> copper premiums ARE wired: each tier's `firstClearXp` / `repeatClearXp` /
+> copper band is authored on the tier record and read by `grantDelveClearTo`.
 
 ### 6.6 Rewards & economy
 
 - **FR-6.1** `delveMarks: number` on `PlayerMeta` (meta counter, not inventory item).
-- **FR-6.2** XP/copper per tier (solo); duo ~80% per member via `eligible.length` party split.
+- **FR-6.2** XP/copper per tier (solo); duo ~80% per member via `eligible.length` party split. Each delve authors its own bands (tier records in `src/sim/content/delves/`):
 
-| Tier | First clear XP | Repeat clear XP | Copper |
-|------|---------------:|----------------:|-------:|
-| Normal | 700 | 420 | 8–14 |
-| Heroic | 1,050 | 650 | 16–24 |
+| Delve | Tier | First clear XP | Repeat clear XP | Copper |
+|-------|------|---------------:|----------------:|-------:|
+| Collapsed Reliquary | Normal | 700 | 420 | 8-14 |
+| Collapsed Reliquary | Heroic | 1,050 | 650 | 16-24 |
+| Drowned Litany | Normal | 1,250 | 760 | 18-30 |
+| Drowned Litany | Heroic | 1,850 | 1,140 | 32-48 |
 
-- **FR-6.3** Companion upgrade costs (Acolyte Tessa):
+- **FR-6.3** Companion upgrade costs (shared by every companion via
+  `COMPANION_UPGRADE_COSTS`; max rank `DELVE_COMPANION_MAX_RANK` = 3, no
+  copper component):
 
 | Rank | Cost | Cumulative marks |
 |------|------|------------------|
 | 1 | Free (intro) | 0 |
-| 2 | 4 Marks + 20 copper | 4 |
-| 3 | 9 Marks + 60 copper | 13 |
-| 4 | 16 Marks + 1s 20c | 29 |
-| 5 | 28 Marks + 2 silver | **57** |
+| 2 | 3 Marks | 3 |
+| 3 | 5 Marks | **8** |
 
 - **FR-6.4** Lore journal: `delveLoreUnlocked: Set<string>` — five entries unlock across repeat clears.
 - **FR-6.5** Completion chest uses `rollGroup` loot tables per tier (see §9).
@@ -180,7 +184,7 @@ delveDaily: {
 
 | id | name | themes | sim hook |
 |----|------|--------|----------|
-| `restless_graves` | Restless Graves | crypt | Trash may spawn weak undead add after 3s |
+| `restless_graves` | Restless Graves | crypt | Trash spawns a weak undead add 3s after death; pending and risen adds gate the room's exit portal like living trash |
 | `bad_air` | Bad Air | crypt, mine, sewer | Periodic poison aura in marked rooms |
 | `candleblind` | Candleblind | crypt, mine | Reduced `detectRange` in flagged zones |
 | `old_mechanisms` | Old Mechanisms | vault, sewer | Timed door/barrier objects |
@@ -425,14 +429,14 @@ All strings via `t('delveUi.*')` + `entity_i18n` manifest entries for NPCs/mobs/
 
 ### 12.1 Unit (`tests/`)
 - `tests/delves.test.ts`: `delveOrigin` band ≥ 3600; same seed → same modules; enter/leave; completion grants marks; death respawn 50% HP; second death ejects; daily reset.
-- `tests/delve_companion.test.ts`: solo spawn, healer tick, pet stow/restore.
+- `tests/delve_companion.test.ts`: solo spawn, healer tick; `tests/delve_pet.test.ts`: hunter and warlock pets kept across delve teleports, the mage elemental stowed.
 - Extend `tests/snapshots.test.ts` for new `self` fields when wired.
 
 ### 12.2 E2E
 - `scripts/delve_crypt.mjs` (Phase 4): enter from Halven, complete Normal, verify boss telegraphs.
 
 ### 12.3 Manual
-1. Enter delve solo — Tessa spawns; hunter pet stowed.
+1. Enter delve solo: Tessa spawns; hunter and warlock pets come along, mage elemental stowed.
 2. Die once — module entry respawn 50% HP.
 3. Die twice — eject to Halven, no chest.
 4. Complete Heroic with affix — blue candle intro, marks per daily rules.
@@ -449,7 +453,7 @@ All strings via `t('delveUi.*')` + `entity_i18n` manifest entries for NPCs/mobs/
 | hud.ts merge conflicts | Defer full UI to PR 4; tracker-only in PR 1–2 |
 | RNG pollution | Run-local `Rng(seed)` for picks |
 | Quest cross-credit | Separate band + boss ids; test `q_sexton` isolation |
-| Pet + companion overlap | Stow on enter, restore on leave/complete |
+| Pet + companion overlap | Hunter and warlock pets coexist with the companion (petOf excludes the companion); other pets stow on enter, restore on leave/complete |
 
 ---
 
@@ -460,9 +464,9 @@ All strings via `t('delveUi.*')` + `entity_i18n` manifest entries for NPCs/mobs/
 - Recover `chapel_coffer_relic` + kill boss; **no** Hollow Crypt quest cross-credit.
 - Second run (new seed): different spawn set / side room.
 - Heroic: 1 affix + improved chest; intro candle burns blue.
-- Solo: **Acolyte Tessa** auto-spawns; rank 2 unlockable with 4 Marks after first clear.
+- Solo: **Acolyte Tessa** auto-spawns; rank 2 unlockable with 3 Marks after first clear.
 - Boss telegraphs match approved copy (Bell Toll + Raise Dead interrupt).
-- Rewards: Normal 700/420 XP first/repeat per daily rules; 57 Marks to max Tessa.
+- Rewards: Normal 700/420 XP first/repeat per daily rules; 8 Marks to max Tessa.
 - Five lore journal entries unlock across repeat clears.
 - Death: first = module entry 50% HP; second = fail + eject, no completion rewards.
 - Progress persists; online/offline identical; `npm test` green; full i18n all locales.

@@ -1,0 +1,616 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+import {
+  PALADIN_SYNTHESIZED_CLIP_SOURCES,
+  synthesizesPaladinClips,
+} from '../src/render/characters/assets';
+import { clipNamesOf } from '../src/render/characters/clip_names';
+import { clipSplitNames } from '../src/render/characters/clip_split';
+import {
+  type ClipMap,
+  VISUALS,
+  type VisualDef,
+  visualAssetUrlForGraphics,
+} from '../src/render/characters/manifest';
+
+// A clip name the shipped GLB does not carry fails SILENTLY at every layer:
+// baseAction() falls back, fadeTo()/playOneShot() return early, and the
+// prepareVisual far-LOD bake falls back to BIND POSE (the T-pose) when the idle
+// clip is the one missing. Nothing else in CI compares the ClipMaps against the
+// GLBs actually served out of public/, so a rename in an asset update ships a
+// rig that quietly stops animating. This is that gate.
+
+const GLB_MAGIC = 0x46546c67; // 'glTF'
+const CHUNK_JSON = 0x4e4f534a; // 'JSON'
+
+interface GlbJson {
+  animations?: { name?: string; channels?: { target?: { node?: number } }[] }[];
+  nodes?: { name?: string }[];
+}
+
+/** Minimal glTF-binary reader: 12-byte header, then chunks; the JSON chunk
+ *  carries the animation and node lists. Deliberately dependency-free, so the
+ *  gate cannot be fooled by (or fail with) whatever the runtime loader stack
+ *  does. */
+function glbJsonChunk(publicPath: string): GlbJson {
+  const buf = readFileSync(publicPath);
+  expect(buf.length, `${publicPath} is not a GLB`).toBeGreaterThan(12);
+  expect(buf.readUInt32LE(0), `${publicPath} magic`).toBe(GLB_MAGIC);
+  let offset = 12;
+  while (offset + 8 <= buf.length) {
+    const length = buf.readUInt32LE(offset);
+    const type = buf.readUInt32LE(offset + 4);
+    if (type === CHUNK_JSON) {
+      return JSON.parse(buf.toString('utf8', offset + 8, offset + 8 + length)) as GlbJson;
+    }
+    offset += 8 + length + ((4 - (length % 4)) % 4); // chunks are 4-byte aligned
+  }
+  throw new Error(`${publicPath} has no JSON chunk`);
+}
+
+function glbAnimationNames(publicPath: string): string[] {
+  return (glbJsonChunk(publicPath).animations ?? []).map((a) => a.name ?? '');
+}
+
+/** three's GLTFLoader runs PropertyBinding.sanitizeNodeName over node names
+ *  and track paths alike (spaces to underscores, then the reserved characters
+ *  stripped), so the gate compares sanitized-to-sanitized exactly as the
+ *  runtime resolver does: a raw mismatch that sanitizes equal still binds. */
+function sanitizeNodeName(name: string): string {
+  return name.replace(/\s/g, '_').replace(/[[\].:/]/g, '');
+}
+
+/** Node names in the GLB scene graph: the name pool three's PropertyBinding
+ *  resolves animation tracks against after a donor clip is merged onto a body
+ *  rig (assets.ts optimizedScene pushes donor clips by NAME, not by node). */
+function glbNodeNames(publicPath: string): Set<string> {
+  return new Set(
+    (glbJsonChunk(publicPath).nodes ?? [])
+      .map((n) => n.name)
+      .filter((name): name is string => !!name)
+      .map(sanitizeNodeName),
+  );
+}
+
+/** clip name -> the node names its channels target. A clip merged onto a rig
+ *  that has NONE of these nodes binds nothing: the action still plays and
+ *  finishes, but drives no bone, freezing the rig at its last sampled pose for
+ *  the clip's whole duration (the Grix the Tunnelking mid-swing statue). */
+function glbClipTargets(publicPath: string): Map<string, Set<string>> {
+  const json = glbJsonChunk(publicPath);
+  const nodeName = (index: number | undefined): string | null =>
+    index === undefined ? null : (json.nodes?.[index]?.name ?? null);
+  const targets = new Map<string, Set<string>>();
+  for (const anim of json.animations ?? []) {
+    const names = new Set<string>();
+    for (const channel of anim.channels ?? []) {
+      const name = nodeName(channel.target?.node);
+      if (name) names.add(sanitizeNodeName(name));
+    }
+    targets.set(anim.name ?? '', names);
+  }
+  return targets;
+}
+
+function publicPath(url: string): string {
+  return fileURLToPath(new URL(`../public/${url}`, import.meta.url));
+}
+
+const namesByUrl = new Map<string, string[]>();
+function animationNamesOf(url: string): string[] {
+  const hit = namesByUrl.get(url);
+  if (hit) return hit;
+  const names = glbAnimationNames(publicPath(url));
+  namesByUrl.set(url, names);
+  return names;
+}
+
+const nodeNamesByUrl = new Map<string, Set<string>>();
+function nodeNamesOf(url: string): Set<string> {
+  const hit = nodeNamesByUrl.get(url);
+  if (hit) return hit;
+  const names = glbNodeNames(publicPath(url));
+  nodeNamesByUrl.set(url, names);
+  return names;
+}
+
+const clipTargetsByUrl = new Map<string, Map<string, Set<string>>>();
+function clipTargetsOf(url: string): Map<string, Set<string>> {
+  const hit = clipTargetsByUrl.get(url);
+  if (hit) return hit;
+  const targets = glbClipTargets(publicPath(url));
+  clipTargetsByUrl.set(url, targets);
+  return targets;
+}
+
+/**
+ * Every clip name the rig can resolve, both graphics tiers: placement swaps the
+ * body GLB through visualAssetUrlForGraphics (LOW_URL_ALIAS), so a clip present
+ * only on the standard-materials body would T-pose the low tier alone.
+ */
+function loadedClipNames(def: VisualDef, standardMaterials: boolean, key?: string): Set<string> {
+  const urls = [
+    visualAssetUrlForGraphics(def.url, standardMaterials),
+    ...(def.animUrls ?? []).map((url) => visualAssetUrlForGraphics(url, standardMaterials)),
+  ];
+  const names = new Set<string>();
+  for (const url of urls) for (const name of animationNamesOf(url)) names.add(name);
+  // Hold-and-release halves minted at load from a GLB clip (ClipMap.clipSplits,
+  // clip_split.ts): resolvable exactly when their source clip is.
+  for (const cut of def.clips.clipSplits ?? []) {
+    if (names.has(cut.clip)) for (const name of clipSplitNames(def.clips)) names.add(name);
+  }
+  // The two paladin attack clips are synthesized at prepare time from a GLB
+  // source clip (assets.ts's PALADIN_SYNTHESIZED_CLIP_SOURCES), for every key
+  // assets.ts synthesizes them on (classic, modular, the temple Reflection): a
+  // synthesized name resolves exactly when its source does, so a trimmed-away
+  // source still fails this gate.
+  // The WOC paladin body ships its own vocabulary: no synthesis there.
+  if (key !== undefined && synthesizesPaladinClips(key) && !def.wocCharacter) {
+    for (const [synthesized, source] of Object.entries(PALADIN_SYNTHESIZED_CLIP_SOURCES)) {
+      if (names.has(source)) names.add(synthesized);
+    }
+  }
+  return names;
+}
+
+/** Names visual.ts binds one-for-one; a missing one silently does nothing. */
+function requiredClipNames(clips: ClipMap): string[] {
+  return [
+    clips.idle,
+    clips.combatIdle,
+    clips.stunned,
+    ...Object.values(clips.heldByAura ?? {}),
+    clips.turn,
+    clips.entrance,
+    clips.prowlIdle,
+    clips.prowlWalk,
+    clips.walk,
+    clips.run,
+    clips.rush,
+    clips.rushArrival,
+    clips.death,
+    clips.cast,
+    clips.sitDown,
+    clips.sitIdle,
+    clips.swim,
+    clips.swimSurface,
+    clips.swimIdle,
+    clips.wade,
+    clips.jump,
+    clips.fall,
+    clips.land,
+    clips.walkBack,
+    clips.strafeLeft,
+    clips.strafeRight,
+    clips.flourish,
+    clips.stow,
+    clips.climb,
+    clips.sleep,
+    clips.wake,
+    ...Object.values(clips.idleByAura ?? {}),
+    ...clips.attack,
+    ...(clips.meleeAttack ?? []),
+    clips.wandAttack,
+    // The Shape of the Foreman's ability swings (round-robin in CharacterVisual.playAttack).
+    ...(clips.abilityAttack ?? []),
+    ...(clips.idleVariants ?? []),
+    // every loadout variant the rig swaps to must ship ('' = suppressed, not a clip)
+    ...Object.values(clips.loadoutSwaps ?? {}).flatMap((m) => Object.values(m ?? {})),
+    clips.idleBeat?.clip,
+    ...(clips.hit ?? []),
+    ...Object.values(clips.attackByAbility ?? {}),
+    ...Object.values(clips.castByAbility ?? {}),
+    ...Object.values(clips.attackByHand ?? {}),
+    // cast-exit play-out entries name clips: a typo would silently disable
+    // the recovery and bring the snap-to-idle back
+    ...(clips.castPlayOut ?? []),
+    // both-hands dual-wield swings, and every clip a blade contact is timed on (the split
+    // halves ride `<clip>#main`/`#off`, minted from their clip at load, never shipped)
+    ...(clips.dualWieldPair ?? []),
+    ...Object.keys(clips.contacts ?? {}).filter((name) => !name.includes('#')),
+    // snap-in entries name clips too: a typo would bring the crossfaded,
+    // looping rise back (a figure popping in upright, then dropping)
+    ...(clips.castSnapIn ?? []),
+    // the chair clips (seat_clips.ts): every name must bind on the sitting rig
+    ...(clips.seat ? Object.values(clips.seat) : []),
+  ].filter((name): name is string => !!name);
+}
+
+/** The ClipMap fields that name no clip; every other leaf string IS a clip name.
+ *  The two timescale maps and the cast hold point carry NUMBERS, and a charge-glow
+ *  row carries a spec object, so the generic walk below would otherwise read their
+ *  values as clip names that nothing binds. */
+const NON_CLIP_FIELDS = new Set<keyof ClipMap>([
+  'attackTimeScaleByAbility',
+  'castTimeScaleByAbility',
+  'castHoldPointSeconds',
+  'combatIdleHold',
+  'chargeGlowByAbility',
+  // The character branch's non-clip fields: per-clip contact times (numbers keyed by
+  // clip), the idle-variant cadence (seconds), and the shout's overhead emote id
+  // (null = no gesture).
+  'contacts',
+  'idleVariantCadence',
+  // The sprite buddy's idle-pool scheduling flags (booleans).
+  'idleVariantsOnLoopSeam',
+  'idleVariantsShuffled',
+  'idleVariantsIncludeIdle',
+  'shoutEmote',
+]);
+
+/** Every clip name a ClipMap carries, walked generically off the data. */
+function clipNamesInMap(clips: ClipMap): string[] {
+  const out: string[] = [];
+  for (const [field, value] of Object.entries(clips)) {
+    if (NON_CLIP_FIELDS.has(field as keyof ClipMap) || value === undefined) continue;
+    if (typeof value === 'string') out.push(value);
+    else if (Array.isArray(value))
+      out.push(...value.filter((v): v is string => typeof v === 'string'));
+    else if (field === 'emote')
+      for (const spec of Object.values(value as ClipMap['emote'] & object)) out.push(...spec.clips);
+    // idleBeat is a record of ONE clip plus its cadence numbers; only the clip is a name.
+    else if (field === 'idleBeat') out.push((value as ClipMap['idleBeat'] & object).clip);
+    // loadoutSwaps nests one clip remap per weapon loadout.
+    else if (field === 'loadoutSwaps')
+      for (const swap of Object.values(value as ClipMap['loadoutSwaps'] & object))
+        out.push(...Object.values(swap ?? {}));
+    else out.push(...Object.values(value as Record<string, string>));
+  }
+  return out;
+}
+
+/** Every clip a rig can name: its own ClipMap plus each boss stance it can
+ *  swap to (VisualDef.phaseClips) and that stance's entry one-shot. */
+function allRequiredClipNames(def: VisualDef): string[] {
+  const phases = Object.values(def.phaseClips ?? {}).flatMap((p) => [
+    ...requiredClipNames(p.clips),
+    ...(p.enter ? [p.enter] : []),
+  ]);
+  return [...requiredClipNames(def.clips), ...phases];
+}
+
+/** Emote specs are a fallback CHAIN (firstLoadedEmoteClip), so one is enough. */
+function emoteChains(clips: ClipMap): [string, readonly string[]][] {
+  return Object.entries(clips.emote ?? {}).map(([id, spec]) => [id, spec.clips]);
+}
+
+// Every field the gate knows how to check. A new ClipMap field must be added to
+// requiredClipNames (or to this list, if it names no clip), or the gate would
+// silently stop covering it.
+const COVERED_CLIP_FIELDS = new Set<keyof ClipMap>([
+  'idle',
+  'combatIdle',
+  'stunned',
+  'heldByAura',
+  'turn',
+  'entrance',
+  'prowlIdle',
+  'prowlWalk',
+  'walk',
+  'run',
+  'rush',
+  'rushArrival',
+  'death',
+  'cast',
+  'sitDown',
+  'sitIdle',
+  'swim',
+  'swimSurface',
+  'swimIdle',
+  'wade',
+  'jump',
+  'jumpMoving',
+  'fall',
+  'land',
+  'walkBack',
+  'strafeLeft',
+  'strafeRight',
+  'flourish',
+  'stow',
+  'sleep',
+  'wake',
+  'idleByAura',
+  'attack',
+  'meleeAttack',
+  'wandAttack',
+  'abilityAttack',
+  'hit',
+  'attackByAbility',
+  'attackTimeScaleByAbility',
+  'castByAbility',
+  'castTimeScaleByAbility',
+  'castHoldPointSeconds',
+  'combatIdleHold',
+  'castPlayOut',
+  'chargeGlowByAbility',
+  'castSnapIn',
+  'attackByHand',
+  'emote',
+  'shoutEmote',
+  'climb',
+  'stowSwapFraction',
+  'dualWieldSplit',
+  'clipSplits',
+  'idleVariants',
+  'idleVariantCadence',
+  'idleVariantsOnLoopSeam',
+  'idleVariantsShuffled',
+  'idleVariantsIncludeIdle',
+  'idleBeat',
+  'loadoutSwaps',
+  'stowPlaysWhole',
+  'dualWieldPair',
+  'contacts',
+  'seat',
+]);
+
+/**
+ * Rigs whose GLB deliberately ships NO animation clips: the prop-lane mounts
+ * that bob procedurally instead (src/render/mount_visuals.ts) and static set
+ * dressing. They borrow an animated sibling's ClipMap purely to satisfy the
+ * type and resolve no action at all at runtime, so there is no pose to lose.
+ * The gate still pins that each one is genuinely clip-LESS, so a rig that
+ * silently loses its clips in an asset update is not waved through here.
+ */
+const CLIPLESS_RIGS = new Set([
+  'mount_stalkglider_snail',
+  'mount_aether_hover_cycle',
+  // the Goblin Rocket Sled: a static prop whose exhaust, jump attitude and
+  // rider pivot are all driven procedurally (goblin_rocket_sled_fx.ts,
+  // mount_visuals.ts), so its GLB carries no clips to lose.
+  'mount_goblin_rocket_sled',
+  'mount_rickshaw_mount',
+  'mob_glimmerwisp',
+  'mob_duskwisp',
+  'mob_spider_egg_sac',
+  'mob_healing_tide_totem',
+  // The Gravewyrm Sanctum's Soul Brazier: the shipped infernal brazier as a
+  // stationary prop mob (sanctum_creature_looks.ts), its fire drawn by the fx.
+  'sanctum_soul_brazier',
+  // Nyxaris's Bound Pulsar: the nucleus as a static prop; every motion it has is
+  // drawn round it procedurally (src/render/hoard_pulsars.ts)
+  'mob_bound_pulsar',
+  'mob_abyssal_tentacle',
+  'mob_silk_cocoon',
+  'mob_brood_cocoon',
+  // the dragonkin clutch shell: a two-state prop whose GLB ships no clips
+  // (alive/dead is a mesh-visibility swap, VisualDef.corpseMeshSwap)
+  'mob_dragon_egg',
+  // the Nythraxis Bone Spike: a stationary Tripo prop mob, no rig, no clips
+  'mob_nythraxis_bone_spike',
+  // the Mother of Mushrooms' Bloated Cap: a stationary Tripo prop mob, no rig,
+  // no clips; it swells through its entity scale (src/sim/rift/hoard_mushroom.ts)
+  'mob_hoard_bloat_cap',
+  // the Straw Foreman, the muster's training effigy: a clipless prop whose plank hide and
+  // lantern are driven by the effigy rig (characters/effigy_rig.ts)
+  'mob_muster_effigy',
+]);
+
+/** mob_yumi_cat is a single-clip objective prop: its ClipMap names the one real
+ *  clip for `hit` and parks every other required field on this sentinel. */
+const SENTINEL_CLIP_NAME = 'None';
+
+const rigs = Object.entries(VISUALS).filter(([key]) => !CLIPLESS_RIGS.has(key));
+const tiers: [string, boolean][] = [
+  ['standard materials', true],
+  ['low graphics', false],
+];
+
+describe('character ClipMaps match the shipped GLBs', () => {
+  it('binds the priest Void Rupture release to an animated stock rig clip', () => {
+    const priest = VISUALS.player_priest;
+    const clip = priest.clips.attackByAbility?.void_rupture;
+    expect(clip).toBe('Woc_Cast_Shoot');
+    expect(loadedClipNames(priest, true, 'player_priest').has(clip!)).toBe(true);
+    const targets = priest.animUrls
+      ?.map((url) => clipTargetsOf(url).get(clip!))
+      .find((names) => names?.size);
+    expect(targets?.size).toBeGreaterThan(0);
+    expect([...targets!].some((name) => nodeNamesOf(priest.url).has(name))).toBe(true);
+  });
+  it('covers every visual key in the manifest', () => {
+    expect(rigs.length).toBeGreaterThan(50);
+    expect(rigs.length).toBe(Object.keys(VISUALS).length - CLIPLESS_RIGS.size);
+    for (const [key, def] of rigs) {
+      expect(existsSync(publicPath(def.url)), `${key}: ${def.url} is missing`).toBe(true);
+      for (const url of def.animUrls ?? []) {
+        expect(existsSync(publicPath(url)), `${key}: ${url} is missing`).toBe(true);
+      }
+    }
+  });
+
+  it('binds every gate-required clip as a mixer action (visual.ts clipNamesOf)', () => {
+    // visual.ts creates an AnimationAction ONLY for the names clipNamesOf enumerates, so a
+    // ClipMap slot this gate requires the GLB to carry but that list forgets is a clip that
+    // ships, passes the gate, and never plays: the state machine refuses a state it has no
+    // action for (desiredBaseState's hasSleepClip/hasWadeClip gates) and the one-shots
+    // resolve to null. Balgath's sleep loop shipped exactly that way once. The two
+    // enumerations agree by construction here, per rig, name for name.
+    for (const [key, def] of rigs) {
+      const bound = new Set(clipNamesOf(def));
+      // Every clip NAME the map carries, derived from the data rather than from this
+      // file's own hand list (requiredClipNames), so a slot registered only in
+      // COVERED_CLIP_FIELDS (the escape hatch for non-clip fields) cannot slip past.
+      const named = clipNamesInMap(def.clips);
+      // Distinct names on both sides: a clip a map names twice (an attack that is also a
+      // `contacts` key) is still one clip to bind.
+      expect(new Set(named).size, key).toBeGreaterThanOrEqual(
+        new Set(requiredClipNames(def.clips)).size,
+      );
+      const unbound = named.filter((name) => !bound.has(name));
+      expect(unbound, `${key}: clips the map names that visual.ts never binds`).toEqual([]);
+    }
+    // The gate is only as wide as its own list: the slots that motivated it are on it.
+    const balgath = VISUALS.mob_balgath_cyclops.clips;
+    expect(balgath.sleep).toBe('Balgath_Sleep');
+    expect(balgath.wake).toBe('Balgath_Wake');
+    expect(requiredClipNames(balgath)).toEqual(
+      expect.arrayContaining(['Balgath_Sleep', 'Balgath_Wake']),
+    );
+  });
+
+  it('ships every ambient clip, keyed only on bones no state clip keys (VisualDef.ambientClips)', () => {
+    // An ambient clip loops beside the state clips at full weight (visual.ts), so a missing
+    // one fails as silently as any ClipMap name, and one that shares a bone with a state
+    // clip blends against the gait every frame.
+    const ambient = rigs.filter(([, def]) => (def.ambientClips ?? []).length > 0);
+    expect(ambient.map(([key]) => key)).toContain('mount_wobbles_slime');
+    for (const [key, def] of ambient) {
+      for (const standardMaterials of [true, false]) {
+        const loaded = loadedClipNames(def, standardMaterials, key);
+        for (const name of def.ambientClips ?? []) {
+          expect(loaded.has(name), `${key}: ambient clip ${name} is not in the GLB`).toBe(true);
+        }
+      }
+      const urls = [def.url, ...(def.animUrls ?? [])];
+      const targetsOf = (name: string): Set<string> => {
+        const out = new Set<string>();
+        for (const url of urls)
+          for (const node of clipTargetsOf(url).get(name) ?? []) out.add(node);
+        return out;
+      };
+      const stateBones = new Set(clipNamesOf(def).flatMap((name) => [...targetsOf(name)]));
+      expect(stateBones.size, `${key}: state clips key no bones`).toBeGreaterThan(0);
+      for (const name of def.ambientClips ?? []) {
+        expect(targetsOf(name).size, `${key}: ambient clip ${name} keys no bones`).toBeGreaterThan(
+          0,
+        );
+        const shared = [...targetsOf(name)].filter((node) => stateBones.has(node));
+        expect(shared, `${key}: ambient clip ${name} keys bones a state clip keys`).toEqual([]);
+      }
+    }
+  });
+
+  it('checks every ClipMap field (a new field must join the gate)', () => {
+    for (const [key, def] of rigs) {
+      const unknown = Object.keys(def.clips).filter(
+        (field) => !COVERED_CLIP_FIELDS.has(field as keyof ClipMap),
+      );
+      expect(unknown, `${key} has ClipMap fields the gate does not check`).toEqual([]);
+    }
+  });
+
+  it('keeps every charge-glow spec inside its own mechanic', () => {
+    // `chargeGlowByAbility` names no clip, so it rides the covered-fields list rather than
+    // requiredClipNames; this is the check that replaces the one it skips. A glow that
+    // outlives its windup is still burning when the blow lands, which reads as a mechanic
+    // that never resolved, and a rise longer than the whole life never reaches full at all.
+    for (const [key, def] of rigs) {
+      for (const [ability, spec] of Object.entries(def.clips.chargeGlowByAbility ?? {})) {
+        expect(spec.seconds, `${key}/${ability} glow has no life`).toBeGreaterThan(0);
+        expect(spec.rise, `${key}/${ability} glow never reaches full`).toBeLessThanOrEqual(
+          spec.seconds,
+        );
+        expect(spec.radius, `${key}/${ability} glow has no size`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('keeps the clip-less exemptions honest (those GLBs really carry no clips)', () => {
+    for (const key of CLIPLESS_RIGS) {
+      const def = VISUALS[key];
+      expect(def, `${key} is exempted but no longer in the manifest`).toBeDefined();
+      expect(animationNamesOf(def.url), `${key} now ships clips: drop the exemption`).toEqual([]);
+    }
+    // the sentinel really is a name no rig ships
+    const yumi = VISUALS.mob_yumi_cat;
+    expect(yumi.clips.idle).toBe(SENTINEL_CLIP_NAME);
+    expect(animationNamesOf(yumi.url)).not.toContain(SENTINEL_CLIP_NAME);
+  });
+
+  for (const [tierName, standardMaterials] of tiers) {
+    it(`resolves every named clip out of the GLB on ${tierName}`, () => {
+      const missing: string[] = [];
+      for (const [key, def] of rigs) {
+        const loaded = loadedClipNames(def, standardMaterials, key);
+        for (const name of new Set(allRequiredClipNames(def))) {
+          if (name === SENTINEL_CLIP_NAME) continue;
+          if (!loaded.has(name)) missing.push(`${key}: ${name}`);
+        }
+      }
+      expect(missing).toEqual([]);
+    });
+
+    it(`binds every resolved clip to nodes the rig actually has on ${tierName}`, () => {
+      // Name resolution (above) is only half the contract. Donor clips merge
+      // onto the body rig and rebind BY NODE NAME (assets.ts optimizedScene),
+      // so a donor authored for another skeleton resolves fine and then binds
+      // nothing at runtime: the one-shot plays silently, drives no bone, and
+      // the rig freezes at its last sampled pose for the clip's duration. The
+      // zero-weight watchdog cannot see it (the action's weight is 1), which
+      // is how Grix the Tunnelking shipped as a mid-swing statue: his
+      // mixamorig drop wired goblin_hit_variety_anims.glb, whose tracks
+      // target the goblin rig (Head/Arm.L/Arm.R/Body).
+      const unbindable: string[] = [];
+      for (const [key, def] of rigs) {
+        const bodyUrl = visualAssetUrlForGraphics(def.url, standardMaterials);
+        const rigNodes = nodeNamesOf(bodyUrl);
+        const referenced = new Set([
+          ...allRequiredClipNames(def),
+          ...emoteChains(def.clips).flatMap(([, chain]) => chain),
+        ]);
+        const sources = [
+          bodyUrl,
+          ...(def.animUrls ?? []).map((url) => visualAssetUrlForGraphics(url, standardMaterials)),
+        ];
+        for (const url of new Set(sources)) {
+          for (const [clipName, targets] of clipTargetsOf(url)) {
+            if (!referenced.has(clipName)) continue;
+            // No node-targeted channels (pure morph/extension tracks): nothing
+            // to rebind by name, so nothing this gate can lose.
+            if (targets.size === 0) continue;
+            // EVERY targeted node must exist: a clip binding 1 of 20 bones is
+            // still a near-statue, the partial cousin of the zero-overlap bug.
+            // Measured at adoption: every referenced clip on every rig binds
+            // 100% of its targets, so this costs nothing today; a future
+            // deliberately-partial donor loosens this with a written reason.
+            const missing = [...targets].filter((name) => !rigNodes.has(name));
+            if (missing.length > 0) {
+              unbindable.push(
+                `${key}: ${clipName} (from ${url}) targets nodes ${bodyUrl} lacks: ${missing.join(', ')}`,
+              );
+            }
+          }
+        }
+      }
+      expect(unbindable).toEqual([]);
+    });
+
+    it(`leaves every overhead emote at least one clip on ${tierName}`, () => {
+      const empty: string[] = [];
+      for (const [key, def] of rigs) {
+        const loaded = loadedClipNames(def, standardMaterials);
+        for (const [id, chain] of emoteChains(def.clips)) {
+          if (!chain.some((name) => loaded.has(name))) empty.push(`${key}: ${id}`);
+        }
+      }
+      expect(empty).toEqual([]);
+    });
+  }
+
+  it('cuts wheeled vehicles straight to idle instead of crossfading', () => {
+    // A crossfade keeps the outgoing clip PLAYING while it fades, so a vehicle
+    // whose locomotion clip drives its wheels keeps turning them for the length
+    // of the fade after the throttle is released. Any mount rig that animates
+    // per-wheel nodes wants the cut.
+    expect(VISUALS.mount_rallycart_rxt.cutToIdle).toBe(true);
+    // Opt-in only: a creature's legs blending down to a stand needs the fade.
+    expect(VISUALS.mount_valorsteed.cutToIdle).toBeUndefined();
+  });
+
+  it('bakes the far-LOD proxy from a real idle pose, never bind pose', () => {
+    // prepareVisual poses a throwaway clone on clips.idle before baking the
+    // static far mesh; with no idle clip resolved it bakes the BIND pose, and
+    // every rig that crosses the far band flashes a T-pose.
+    const bindPosed: string[] = [];
+    for (const [key, def] of rigs) {
+      if (def.clips.idle === SENTINEL_CLIP_NAME) continue; // a clip-less prop either way
+      for (const [, standardMaterials] of tiers) {
+        if (!loadedClipNames(def, standardMaterials).has(def.clips.idle)) bindPosed.push(key);
+      }
+    }
+    expect([...new Set(bindPosed)]).toEqual([]);
+  });
+});

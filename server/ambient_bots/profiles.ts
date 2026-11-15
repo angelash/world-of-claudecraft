@@ -18,15 +18,24 @@ const ARCHETYPES: readonly AmbientBotArchetype[] = [
 
 function tagsForClass(cls: PlayerClass): readonly string[] {
   switch (cls) {
-    case 'warrior': return ['frontline', 'melee'];
-    case 'paladin': return ['frontline', 'support'];
-    case 'hunter': return ['ranged', 'solo'];
-    case 'rogue': return ['melee', 'fast'];
-    case 'priest': return ['support', 'caster'];
-    case 'shaman': return ['support', 'hybrid'];
-    case 'mage': return ['caster', 'burst'];
-    case 'warlock': return ['caster', 'pet'];
-    case 'druid': return ['hybrid', 'travel'];
+    case 'warrior':
+      return ['frontline', 'melee'];
+    case 'paladin':
+      return ['frontline', 'support'];
+    case 'hunter':
+      return ['ranged', 'solo'];
+    case 'rogue':
+      return ['melee', 'fast'];
+    case 'priest':
+      return ['support', 'caster'];
+    case 'shaman':
+      return ['support', 'hybrid'];
+    case 'mage':
+      return ['caster', 'burst'];
+    case 'warlock':
+      return ['caster', 'pet'];
+    case 'druid':
+      return ['hybrid', 'travel'];
   }
 }
 
@@ -44,7 +53,9 @@ export const DEFAULT_AMBIENT_BOT_PROFILES: readonly AmbientBotProfile[] = Object
   }),
 );
 
-const PROFILE_BY_ID = new Map(DEFAULT_AMBIENT_BOT_PROFILES.map((profile) => [profile.profileId, profile]));
+const PROFILE_BY_ID = new Map(
+  DEFAULT_AMBIENT_BOT_PROFILES.map((profile) => [profile.profileId, profile]),
+);
 
 export function ambientBotProfileById(profileId: string): AmbientBotProfile | null {
   return PROFILE_BY_ID.get(profileId) ?? null;

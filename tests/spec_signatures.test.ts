@@ -1,6 +1,6 @@
 // Phase 1: every spec grants a REAL signature ability on selection. Ports the 22 built
-// signature spells from the flip branch onto the current spec defs, plus Chain Heal (new,
-// resto-exclusive) and the Stormstrike exclusivity fix. Proves each of the 27 signatures
+// signature spells from the flip branch onto the current spec defs, plus Cascading Mend
+// (new, resto-exclusive) and the Ancestral Strike exclusivity fix. Proves each of the 27 signatures
 // resolves and, when cast, produces an observable effect.
 import { describe, expect, it } from 'vitest';
 import { TALENTS } from '../src/sim/content/talents';
@@ -14,12 +14,33 @@ function producesEffect(cls: PlayerClass, specId: string, sig: string): string {
   sim.setPlayerLevel(20);
   const ok = sim.setSpec(specId);
   if (!ok) return 'setSpec failed';
+  if (ABILITIES[sig]?.requiresShield) {
+    sim.addItem('eastbrook_buckler', 1);
+    sim.equipItem('eastbrook_buckler');
+  }
   const pid = sim.playerId;
   const p = sim.entities.get(pid) as any;
   if (!sim.resolvedAbility(sig)) return `signature ${sig} not granted by spec`;
   p.maxHp = p.hp = 1_000_000;
   p.resource = p.maxResource;
   p.comboPoints = 5;
+  const signature = ABILITIES[sig];
+  // Some signatures are finishers that consume a resource aura. This smoke test
+  // exercises the cast while its declared prerequisite is armed; the dedicated
+  // class tests own how that aura is earned and how an unarmed cast is rejected.
+  if (signature?.requiresAuraKind) {
+    p.auras.push({
+      id: `spec_signature_${signature.requiresAuraKind}`,
+      name: 'Signature prerequisite',
+      kind: signature.requiresAuraKind,
+      remaining: 30,
+      duration: 30,
+      value: 0,
+      stacks: signature.requiresAuraStacks ?? 1,
+      sourceId: pid,
+      school: signature.school,
+    });
+  }
   // a friendly ally (for heals/buffs) and a hostile dummy (for damage/CC), both pinned
   const ally = createMob((sim as any).nextId++, MOBS.ridge_stalker, 20, {
     x: p.pos.x + 3,
@@ -43,8 +64,36 @@ function producesEffect(cls: PlayerClass, specId: string, sig: string): string {
     sim.entities.set(e.id, e);
     (sim as any).rebucket(e);
   }
+  if (sig === 'summon_tithefiend') {
+    mob.auras.push({
+      id: 'shadow_word_pain',
+      name: 'Dirge of Decay',
+      kind: 'dot',
+      remaining: 18,
+      duration: 18,
+      value: 1,
+      sourceId: pid,
+      school: 'shadow',
+    });
+  }
   p.facing = 0;
   sim.targetEntity(mob.id, pid);
+  // Destruction's signature is now a real rotational button: Conflagrate
+  // requires the caster's Burning Pact instead of working on a bare target.
+  if (sig === 'conflagrate') {
+    mob.auras.push({
+      id: 'immolate',
+      name: 'Burning Pact',
+      kind: 'dot',
+      value: 12,
+      remaining: 15,
+      duration: 15,
+      tickInterval: 3,
+      tickTimer: 3,
+      sourceId: pid,
+      school: 'fire',
+    });
+  }
   const before = {
     pA: p.auras.length,
     mA: mob.auras.length,
@@ -92,7 +141,9 @@ describe('Phase 1: spec signatures', () => {
     expect(duds, `signatures that failed:\n${duds.join('\n')}`).toEqual([]);
   });
 
-  it('Stormstrike is Enhancement-only and Chain Heal is Restoration-only', () => {
+  // The display names are the shipped ones (src/ui/i18n.catalog/abilities.ts):
+  // the ability IDS stay stormstrike / chain_heal, which is what the sim reads.
+  it('Ancestral Strike is Enhancement-only and Cascading Mend is Restoration-only', () => {
     const shaman = TALENTS.shaman!;
     for (const s of shaman.specs) {
       const sim = new Sim({ seed: 1, playerClass: 'shaman', autoEquip: true });

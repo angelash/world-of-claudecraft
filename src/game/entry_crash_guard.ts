@@ -52,11 +52,13 @@ export const ENTRY_PRESET_MIN = 1;
 export const ENTRY_PRESET_MAX = 5;
 
 export const ENTRY_CHECKPOINTS = [
+  'assets-await',
   'scene-build-start',
   'renderer-built',
   'hud-built',
   'prewarm-start',
   'prewarm-complete',
+  'far-vista-ready',
   'first-frame',
   'first-paint',
   'rendering',
@@ -71,6 +73,7 @@ export const ENTRY_CHECKPOINTS = [
   'quest-dialog-closed',
   'webgl-context-lost',
   'webgl-context-restored',
+  'webgl-context-stuck',
   'connection-lost',
   'connection-restored',
   'window-error',

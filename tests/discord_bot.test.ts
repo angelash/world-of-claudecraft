@@ -4,38 +4,55 @@ import {
   allTierRoleNames,
   buildActivityMessage,
   buildDailyRewardWinnersMessage,
+  buildHillAnnouncementMessage,
   buildLevelNick,
   buildLinkContent,
+  buildPvpKillFeedMessage,
+  buildQueuePopMessage,
   buildRelayMessage,
   buildWelcomeMessage,
   buildWhoamiContent,
   chunk,
+  chunkPvpKills,
   clearDepartedFlair,
   clearedMemberMeta,
   computeRoleSync,
   GATEWAY_INTENTS,
   GATEWAY_OP,
   GUILD_LARGE_THRESHOLD,
+  type HillAnnouncementItem,
   heartbeatIntervalMs,
+  hillAnnouncementIsStale,
   identifyPayload,
   indexSpecialRoleIds,
+  interactionFailureFallback,
   isSlashCommand,
+  LEGENDARY_CARD_NAME_MAX,
   levelNickSuffix,
   MEMBERS_META_BATCH,
   memberRolesFromPayload,
   NICK_MAX,
+  PVP_FEED_LINES_PER_POST,
+  PVP_FEED_NAME_MAX,
+  PVP_FEED_NUMBER_MAX,
+  type PvpKillItem,
+  pvpFeedName,
+  pvpKillLine,
+  type QueuePopItem,
   type RelayItem,
   reconcileMemberRolesFromUpdate,
   relayAvatarUrl,
   relayRespondUrl,
   requestGuildMembersPayload,
   rosterComplete,
+  sanitizeLegendaryItemName,
   staleFlairedIds,
   stripLevelSuffix,
   tierRoleName,
   topSpecialRoleKeyFor,
   voiceMembersForChannel,
 } from '../bot/logic';
+import type { ActivityKind } from '../server/discord_activity';
 import { DEFAULT_JSON_BODY_MAX_BYTES } from '../server/http_util';
 
 describe('gateway protocol helpers', () => {
@@ -78,18 +95,30 @@ describe('special-role resolution (staff flair)', () => {
   it('indexes ALL ids that map to a key so either "Admin" or "Admins" resolves', () => {
     const index = indexSpecialRoleIds(guildRoles);
     // Both admin-aliased role ids are kept (the old first-wins map dropped one).
-    expect(index.get('r-admin')).toBe('admin');
-    expect(index.get('r-admins')).toBe('admin');
+    // Admin has no tag of its own: both ids surface as the Sentinel flair.
+    expect(index.get('r-admin')).toBe('seniormods');
+    expect(index.get('r-admins')).toBe('seniormods');
     expect(index.get('r-member')).toBeUndefined(); // not a special role
-    // A holder of EITHER admin role id resolves to the 'admin' flair.
-    expect(topSpecialRoleKeyFor(['r-admin'], index)).toBe('admin');
-    expect(topSpecialRoleKeyFor(['r-admins'], index)).toBe('admin');
+    // A holder of EITHER admin role id resolves to the Sentinel flair.
+    expect(topSpecialRoleKeyFor(['r-admin'], index)).toBe('seniormods');
+    expect(topSpecialRoleKeyFor(['r-admins'], index)).toBe('seniormods');
     expect(topSpecialRoleKeyFor(['r-member'], index)).toBeNull();
+  });
+
+  it('keeps resolving the mod-tier roles after the guild renamed them', () => {
+    // The bug: renaming Junior Mods to Observer and Senior Mods to Sentinel kept
+    // the role ids but changed the names, so the name match dropped every holder.
+    const renamed = indexSpecialRoleIds([
+      { id: 'r-junior', name: 'Observer' },
+      { id: 'r-senior', name: 'Sentinel' },
+    ]);
+    expect(topSpecialRoleKeyFor(['r-junior'], renamed)).toBe('juniormods');
+    expect(topSpecialRoleKeyFor(['r-senior'], renamed)).toBe('seniormods');
   });
 
   it('picks the highest-priority special role a member holds', () => {
     const index = indexSpecialRoleIds(guildRoles);
-    // Levy St (priority 11) outranks Admin (10) per the shared catalog.
+    // Levy St outranks the Admin (Sentinel) flair per the shared catalog.
     expect(topSpecialRoleKeyFor(['r-admins', 'r-levy'], index)).toBe('levyst');
   });
 
@@ -102,8 +131,8 @@ describe('special-role resolution (staff flair)', () => {
     // member's COMPLETE role list, so the reconciled state replaces the cache.
     const after = reconcileMemberRolesFromUpdate({ roles: ['r-member', 'r-admins'] });
     expect(after).toEqual(['r-member', 'r-admins']);
-    // After: 'admin' now resolves where it did not before (the core bug fix).
-    expect(topSpecialRoleKeyFor(after ?? [], index)).toBe('admin');
+    // After: the Admins holder now resolves where it did not before (the core bug fix).
+    expect(topSpecialRoleKeyFor(after ?? [], index)).toBe('seniormods');
   });
 
   it('leaves the cache untouched when an update carries no roles array', () => {
@@ -346,11 +375,35 @@ describe('slash commands + messages', () => {
     expect(
       buildWhoamiContent({ linked: false, statusTier: 0, points: 0, lifetimePoints: 0 }),
     ).toContain('/link');
-    expect(
-      buildWhoamiContent({ linked: true, statusTier: 5, points: 100, lifetimePoints: 5000 }),
-    ).toContain('Champion');
+    const linked = buildWhoamiContent({
+      linked: true,
+      statusTier: 5,
+      points: 100,
+      lifetimePoints: 5000,
+    });
+    expect(linked).toContain('Champion');
+    expect(linked).not.toContain('/flex'); // removed command, must not be referenced in the reply
     expect(buildLinkContent('https://woc')).toContain('https://woc');
     expect(buildWelcomeMessage({ userMention: '<@1>', gameUrl: 'https://woc' })).toContain('<@1>');
+  });
+
+  it('falls back to editing the deferred reply once the interaction is acknowledged', () => {
+    // A failure AFTER a successful defer (e.g. the game-server call or the
+    // final edit itself throws) has already spent the interaction's one
+    // initial-response slot, so the only way left to reach the player is
+    // editing that response.
+    const fallback = interactionFailureFallback(true);
+    expect(fallback.via).toBe('edit');
+    expect(fallback.content.length).toBeGreaterThan(0);
+  });
+
+  it('falls back to a fresh response when the interaction was never acknowledged', () => {
+    // A failure BEFORE any ack lands (e.g. respondInteraction/deferInteraction
+    // itself throws) leaves the initial-response slot open, so the fallback
+    // becomes that response instead of an edit with nothing to edit.
+    const fallback = interactionFailureFallback(false);
+    expect(fallback.via).toBe('respond');
+    expect(fallback.content.length).toBeGreaterThan(0);
   });
 });
 
@@ -496,6 +549,73 @@ describe('relay (in-game "!" community posts)', () => {
   });
 });
 
+describe('queue-pop DMs (battleground offer / arena seated)', () => {
+  const bgPop: QueuePopItem = {
+    accountId: 9,
+    discordUserId: '123',
+    characterName: 'Aldric',
+    kind: 'bg',
+    format: null,
+    seconds: 30,
+    expiresAtMs: 1_700_000_030_000,
+    realm: 'Claudemoon',
+  };
+
+  it('tells a battleground pop apart: title, live deadline, character and realm, game button', () => {
+    const msg = buildQueuePopMessage(bgPop, 'https://woc.test/') as {
+      content?: string;
+      allowed_mentions: unknown;
+      embeds: Array<Record<string, any>>;
+      components: Array<Record<string, any>>;
+    };
+    const embed = msg.embeds[0];
+    expect(embed.title).toBe('Your battleground queue popped!');
+    // Discord renders <t:unix:R> as a live countdown; the unix stamp is the
+    // server deadline in SECONDS, floored.
+    expect(embed.description).toContain('<t:1700000030:R>');
+    expect(embed.description).toContain('Aldric');
+    expect(embed.description).toContain('Thornhollow Fields');
+    expect(embed.fields).toEqual([
+      { name: 'Character', value: 'Aldric', inline: true },
+      { name: 'Realm', value: 'Claudemoon', inline: true },
+    ]);
+    const button = msg.components[0].components[0];
+    expect(button.style).toBe(5); // link button
+    expect(button.url).toBe('https://woc.test');
+    expect(button.label).toBe('Open the game');
+    // A DM already notifies its recipient: no mention, and no mention parsing.
+    expect(msg.content).toBeUndefined();
+    expect(msg.allowed_mentions).toEqual({ parse: [] });
+  });
+
+  it('names the arena bracket for an arena pop, with the coliseum and no Accept wording', () => {
+    const msg = buildQueuePopMessage(
+      { ...bgPop, kind: 'arena', format: 'yumi3', seconds: 0 },
+      'https://woc.test',
+    ) as { embeds: Array<Record<string, any>> };
+    const embed = msg.embeds[0];
+    expect(embed.title).toBe('Arena match found!');
+    expect(embed.description).toContain('Protect Yumi (3)');
+    expect(embed.description).toContain('Ashen Coliseum');
+    expect(embed.description).not.toContain('Accept');
+    // An unknown bracket id falls back to itself rather than to blank copy.
+    const unknown = buildQueuePopMessage({ ...bgPop, kind: 'arena', format: 'zz9' }, 'u') as {
+      embeds: Array<Record<string, any>>;
+    };
+    expect(unknown.embeds[0].description).toContain('a zz9 bout');
+  });
+
+  it('never renders a blank embed for either kind', () => {
+    for (const kind of ['bg', 'arena'] as const) {
+      const msg = buildQueuePopMessage({ ...bgPop, kind }, 'https://woc.test') as {
+        embeds: Array<Record<string, any>>;
+      };
+      expect(msg.embeds[0].title.trim()).not.toBe('');
+      expect(msg.embeds[0].description.trim()).not.toBe('');
+    }
+  });
+});
+
 describe('significant-activity cards', () => {
   const linked = (name: string, id: string): ActivityItem['participants'][number] => ({
     name,
@@ -578,6 +698,303 @@ describe('significant-activity cards', () => {
     expect(msg.embeds[0].description).toContain('Ghost'); // plain, no mention
     expect(msg.allowed_mentions.users).toEqual(['111']);
   });
+
+  it('masterwork card names the crafted item and pings the crafter', () => {
+    const msg = buildActivityMessage({
+      kind: 'masterwork',
+      realm: 'Claudemoon',
+      profileUrl: 'https://woc.test/c/Aldric',
+      itemName: 'Osmium Breastplate',
+      participants: [linked('Aldric', '111')],
+    }) as {
+      content: string;
+      allowed_mentions: { users: string[] };
+      embeds: Array<Record<string, any>>;
+    };
+    expect(msg.embeds[0].title).toBe('Osmium Breastplate');
+    expect(msg.embeds[0].description).toContain('masterwork');
+    expect(msg.embeds[0].description).toContain('<@111>');
+    expect(msg.allowed_mentions.users).toEqual(['111']);
+  });
+
+  it('legendary card renders the player-chosen name as plain data at masterwork parity', () => {
+    // The name is PLAYER-AUTHORED text (Masterwrought phase 13): it must land
+    // in the embed verbatim as data, with no markdown of our own wrapped
+    // around it, exactly the way the masterwork card treats itemName.
+    const msg = buildActivityMessage({
+      kind: 'legendary',
+      realm: 'Claudemoon',
+      profileUrl: 'https://woc.test/c/Aldric',
+      itemName: "Vel'tara's Oath",
+      participants: [linked('Aldric', '111')],
+    }) as {
+      content: string;
+      allowed_mentions: { users: string[] };
+      embeds: Array<Record<string, any>>;
+    };
+    expect(msg.embeds[0].title).toBe("Vel'tara's Oath");
+    expect(msg.embeds[0].description).toContain("Vel'tara's Oath was forged by");
+    expect(msg.embeds[0].description).toContain('<@111>');
+    // Legendary orange, the qualityColor legendary accent.
+    expect(msg.embeds[0].color).toBe(0xff8000);
+    expect(msg.allowed_mentions.users).toEqual(['111']);
+  });
+
+  // The legendary card's itemName is the ONE player-authored string this feed
+  // interpolates, it crosses two processes as unchecked JSON, and the game's
+  // persisted-load shape for it is wider than the mint alphabet, so the card
+  // carries its own conservative filter (sanitizeLegendaryItemName) rather
+  // than resting on the sim emitting only freshly normalized names.
+  describe('legendary card item-name filter', () => {
+    it('mirrors the mint length cap (src/sim/professions/legendary_name.ts, copy not import)', () => {
+      expect(LEGENDARY_CARD_NAME_MAX).toBe(32);
+    });
+
+    it('passes a mint-shaped name through unchanged', () => {
+      expect(sanitizeLegendaryItemName("Vel'tara's Oath")).toBe("Vel'tara's Oath");
+      expect(sanitizeLegendaryItemName('Dawn-breaker of Eastbrook')).toBe(
+        'Dawn-breaker of Eastbrook',
+      );
+    });
+
+    it('strips everything outside the mint alphabet, collapses, and bounds at the cap', () => {
+      expect(sanitizeLegendaryItemName('@everyone **Doom** `rm -rf`')).toBe('everyone Doom rm -rf');
+      expect(sanitizeLegendaryItemName('<@&123> [link](https://x.test)')).toBe('linkhttpsxtest');
+      expect(sanitizeLegendaryItemName('  Dawn \n\t breaker  ')).toBe('Dawn breaker');
+      const bounded = sanitizeLegendaryItemName(`${'A'.repeat(31)} ${'B'.repeat(40)}`);
+      expect(bounded.length).toBeLessThanOrEqual(LEGENDARY_CARD_NAME_MAX);
+      expect(bounded).toBe('A'.repeat(31));
+      // The cap boundary itself (a golden cannot pin a boundary): exactly the
+      // cap survives whole, one past it loses exactly one character.
+      expect(sanitizeLegendaryItemName('A'.repeat(32))).toBe('A'.repeat(32));
+      expect(sanitizeLegendaryItemName('A'.repeat(33))).toBe('A'.repeat(32));
+      expect(sanitizeLegendaryItemName(undefined)).toBe('');
+    });
+
+    it('enforces the full mint shape: leading non-letters drop, under 2 letters empties', () => {
+      // The mint shape starts with a LETTER (legendary_name.ts); a surviving
+      // "- " head would render as a Discord bullet in the description, so the
+      // filter drops leading hyphens, apostrophes, and spaces outright.
+      expect(sanitizeLegendaryItemName('- Doom')).toBe('Doom');
+      expect(sanitizeLegendaryItemName("'-'Doom")).toBe('Doom');
+      // A result under the mint's 2-character floor degrades to '' (the
+      // caller's || fallback takes over), never a one-letter title.
+      expect(sanitizeLegendaryItemName('X')).toBe('');
+      expect(sanitizeLegendaryItemName("--''  ")).toBe('');
+    });
+
+    it('the legendary CARD routes itemName through the filter, and an emptied name degrades', () => {
+      const cardOf = (itemName: string) =>
+        buildActivityMessage({
+          kind: 'legendary',
+          realm: 'Claudemoon',
+          profileUrl: null,
+          itemName,
+          participants: [linked('Aldric', '111')],
+        }) as { embeds: Array<Record<string, any>> };
+      const hostile = cardOf('**@everyone** _Doom_');
+      expect(hostile.embeds[0].title).toBe('everyone Doom');
+      expect(hostile.embeds[0].description).toContain('everyone Doom was forged by');
+      expect(hostile.embeds[0].description).not.toContain('*');
+      expect(hostile.embeds[0].description).not.toContain('@everyone');
+      // A name the filter empties (nothing in the mint alphabet) falls to the
+      // generic title through the || fallback, never a blank embed.
+      const emptied = cardOf('本物の伝説 123');
+      expect(emptied.embeds[0].title).toBe('A legend');
+    });
+  });
+
+  it('deed-title card names the deed and the earned title', () => {
+    const msg = buildActivityMessage({
+      kind: 'deed',
+      realm: 'Claudemoon',
+      profileUrl: null,
+      deedId: 'prog_masterwright',
+      deedName: 'Masterwright',
+      deedTitle: 'Masterwright',
+      participants: [linked('Aldric', '111')],
+    }) as { embeds: Array<Record<string, any>> };
+    expect(msg.embeds[0].title).toBe('Masterwright');
+    expect(msg.embeds[0].description).toContain('"Masterwright"');
+    expect(msg.embeds[0].description).toContain('title');
+    expect(msg.embeds[0].description).toContain('<@111>');
+  });
+
+  it('first-koi card reads as a catch, not a generic deed', () => {
+    const msg = buildActivityMessage({
+      kind: 'deed',
+      realm: 'Claudemoon',
+      profileUrl: null,
+      deedId: 'col_glimmerfin',
+      deedName: 'Glimmer of Hope',
+      itemName: 'Sunglint Koi',
+      participants: [linked('Aldric', '111')],
+    }) as { embeds: Array<Record<string, any>> };
+    expect(msg.embeds[0].title).toBe('Glimmer of Hope');
+    expect(msg.embeds[0].description).toContain('first Sunglint Koi');
+    expect(msg.embeds[0].description).toContain('<@111>');
+  });
+
+  it('harvestmaster card reads as a farming capstone, not a generic deed', () => {
+    const msg = buildActivityMessage({
+      kind: 'deed',
+      realm: 'Claudemoon',
+      profileUrl: null,
+      deedId: 'prog_farming_100',
+      deedName: 'Harvestmaster',
+      deedTitle: 'Harvestmaster',
+      participants: [linked('Aldric', '111')],
+    }) as { embeds: Array<Record<string, any>> };
+    expect(msg.embeds[0].author.name).toBe(':ear_of_rice: Harvestmaster');
+    expect(msg.embeds[0].title).toBe('Harvestmaster');
+    expect(msg.embeds[0].description).toContain('100 Farming');
+    expect(msg.embeds[0].description).toContain('"Harvestmaster"');
+    expect(msg.embeds[0].description).toContain('<@111>');
+    expect(msg.embeds[0].color).toBe(0xf5c242);
+  });
+
+  it('golden harvest card names the crop and pings the finder', () => {
+    // 'Vale Wheat' is the real produce name (src/sim/content/items.ts, farm
+    // crop vale_wheat); the shared harvest gold 0xf5c242 pairs it with the
+    // Harvestmaster card as one farming family.
+    const msg = buildActivityMessage({
+      kind: 'golden_harvest',
+      realm: 'Claudemoon',
+      profileUrl: null,
+      itemName: 'Vale Wheat',
+      participants: [linked('Aldric', '111')],
+    }) as { embeds: Array<Record<string, any>> };
+    expect(msg.embeds[0].title).toBe('Vale Wheat');
+    expect(msg.embeds[0].description).toContain('golden harvest of Vale Wheat');
+    expect(msg.embeds[0].description).toContain('<@111>');
+    expect(msg.embeds[0].color).toBe(0xf5c242);
+    // The kind-to-author mapping, fully asserted (the Phase 16 QA): a reworded
+    // author line would otherwise pass with only title/description sampled.
+    expect(msg.embeds[0].author?.name).toBe(':ear_of_rice: Golden Harvest');
+  });
+
+  // Same empty-embed class, one layer in: an item name the server sends as an
+  // EMPTY string (not absent) must fall back to the generic title. `??` keeps
+  // the empty string and Discord rejects a blank embed title, so every title
+  // fallback in buildActivityMessage is `||`.
+  it('degrades an empty item or deed name to the generic title', () => {
+    const titleOf = (item: ActivityItem): string =>
+      (buildActivityMessage(item) as { embeds: Array<{ title: string }> }).embeds[0].title;
+    const base = { realm: 'Claudemoon', profileUrl: null, participants: [linked('Aldric', '111')] };
+    expect(titleOf({ ...base, kind: 'rareloot', itemName: '' })).toBe('A rare item');
+    expect(titleOf({ ...base, kind: 'masterwork', itemName: '' })).toBe('A masterwork piece');
+    expect(titleOf({ ...base, kind: 'legendary', itemName: '' })).toBe('A legend');
+    expect(titleOf({ ...base, kind: 'deed', deedId: 'col_glimmerfin', deedName: '' })).toBe(
+      'A rare catch',
+    );
+    expect(titleOf({ ...base, kind: 'deed', deedId: 'prog_masterwright', deedName: '' })).toBe(
+      'A deed of renown',
+    );
+    expect(titleOf({ ...base, kind: 'golden_harvest', itemName: '' })).toBe('A golden harvest');
+    // The golden-harvest DESCRIPTION carries its own fallback (|| 'crops').
+    expect(
+      (
+        buildActivityMessage({ ...base, kind: 'golden_harvest', itemName: '' }) as {
+          embeds: Array<{ description: string }>;
+        }
+      ).embeds[0].description,
+    ).toContain('golden harvest of crops');
+    expect(titleOf({ ...base, kind: 'deed', deedId: 'prog_farming_100', deedName: '' })).toBe(
+      'Harvestmaster',
+    );
+  });
+
+  // The empty-embed class guard: a kind this bot build does not know (a newer
+  // server mid-deploy) must skip the post entirely, never render a blank card.
+  it('returns null for an unknown activity kind', () => {
+    const msg = buildActivityMessage({
+      kind: 'parade' as never,
+      realm: 'Claudemoon',
+      profileUrl: null,
+      participants: [linked('Aldric', '111')],
+    });
+    expect(msg).toBeNull();
+  });
+
+  // Server-to-bot kind parity, the drift class that broke vale_cup (the server
+  // enqueued the kind for months while the bot union lacked it, so every card
+  // rendered an author-less empty embed Discord rejects). The wire crosses
+  // processes as unchecked JSON, so tsc alone never sees the drift; this list
+  // is pinned to the server union in BOTH directions at tsc time (a server
+  // kind missing from the list reddens the conditional-type line; a listed
+  // kind the bot cannot take reddens the buildActivityMessage call) and every
+  // kind must render a real card at runtime.
+  const SERVER_KINDS = [
+    'levelup',
+    'rareloot',
+    'duel',
+    'arena',
+    'masterwork',
+    'legendary',
+    'deed',
+    'golden_harvest',
+  ] as const satisfies readonly ActivityKind[];
+  type MissingServerKind = Exclude<ActivityKind, (typeof SERVER_KINDS)[number]>;
+  // Deliberately a TYPE-level pin: the initializer is literally null, so the
+  // runtime expect below is a tautology; the teeth are that this line fails
+  // `tsc --noEmit` (which the gate and the pre-push floor run) the moment the
+  // server union gains a kind the list lacks.
+  const noMissingServerKinds: MissingServerKind extends never ? null : MissingServerKind = null;
+
+  it('renders a fully populated card for every kind the server can enqueue', () => {
+    expect(noMissingServerKinds).toBeNull();
+    for (const kind of SERVER_KINDS) {
+      const msg = buildActivityMessage({
+        kind,
+        realm: 'Claudemoon',
+        profileUrl: null,
+        level: 20,
+        participants: [linked('Aldric', '111')],
+      }) as { embeds: Array<Record<string, any>> } | null;
+      expect(msg, `kind ${kind} must render a card`).not.toBeNull();
+      // Non-null is not enough: the production failure was a card that rendered
+      // with an EMPTY author ({}) and an undefined title/description, which
+      // Discord 400s. author.name is the field that 400s first, so every kind
+      // is pinned on all three universal embed fields being real, non-blank
+      // text (the item here carries only the fields the server always sends,
+      // so any kind leaning on an optional field must still fill them).
+      const embed = (msg as { embeds: Array<Record<string, any>> }).embeds[0];
+      expect(embed, `kind ${kind} must render one embed`).toBeDefined();
+      for (const [field, value] of [
+        ['author.name', embed.author?.name],
+        ['title', embed.title],
+        ['description', embed.description],
+      ] as const) {
+        expect(typeof value, `kind ${kind} ${field} must be a string`).toBe('string');
+        expect(
+          String(value).trim().length,
+          `kind ${kind} ${field} must not be blank`,
+        ).toBeGreaterThan(0);
+      }
+      expect(typeof embed.color, `kind ${kind} must set an accent color`).toBe('number');
+    }
+  });
+
+  it('buildActivityMessage answers null for an unknown kind, never an empty embed', () => {
+    // The never-post-an-empty-embed rule (the vale_cup failure): a kind this
+    // build does not know maps to null, and the outbox io seam drops the null
+    // instead of posting (tests/discord_bot_outbox.test.ts pins the drop).
+    // Known kinds keep building full payloads.
+    const known = (kind: ActivityItem['kind']): ActivityItem => ({
+      kind,
+      realm: 'Claudemoon',
+      profileUrl: null,
+      level: 20,
+      participants: [linked('Aldric', '111')],
+    });
+    expect(buildActivityMessage({ ...known('rareloot'), kind: 'parade' as never })).toBeNull();
+    const levelup = buildActivityMessage(known('levelup'));
+    if (!levelup) throw new Error('the levelup payload must build');
+    expect((levelup.embeds as Array<{ title: string }>)[0].title).toContain('level 20');
+    const masterwork = buildActivityMessage(known('masterwork'));
+    if (!masterwork) throw new Error('the masterwork payload must build');
+    expect((masterwork.embeds as Array<{ title: string }>)[0].title).toBe('A masterwork piece');
+  });
 });
 
 describe('daily rewards winner cards', () => {
@@ -591,24 +1008,20 @@ describe('daily rewards winner cards', () => {
       finalizedAt: '2026-07-01T00:00:00.000Z',
       payouts: [
         {
-          day: '2026-06-30',
           rank: 1,
           username: 'titoisking',
           points: 12345,
           prizePercent: 0.2,
           prizeUsd: 30,
           status: 'pending',
-          txSignature: null,
         },
         {
-          day: '2026-06-30',
           rank: 2,
           username: 'alice',
           points: 1000,
           prizePercent: 0.15,
           prizeUsd: 22.5,
           status: 'pending',
-          txSignature: null,
         },
       ],
     }) as {
@@ -631,5 +1044,177 @@ describe('daily rewards winner cards', () => {
       { name: 'Prize Pool', value: '$150.00', inline: true },
       { name: 'Next task', value: 'Win an arena match', inline: false },
     ]);
+  });
+});
+
+// ── World PvP kill feed (digest posts, names only) ───────────────────────────
+describe('PvP kill feed builders', () => {
+  const kill = (over: Partial<PvpKillItem> = {}): PvpKillItem => ({
+    killerName: 'Kargath',
+    victimName: 'Annthar',
+    killerLevel: 60,
+    victimLevel: 58,
+    zoneName: 'Drakelands',
+    assists: 0,
+    copper: 0,
+    realm: 'Claudemoon',
+    ...over,
+  });
+
+  it('writes the bare line with no assists and no stake', () => {
+    expect(pvpKillLine(kill())).toBe(
+      ':crossed_swords: **Kargath** (60) slew **Annthar** (58) in Drakelands',
+    );
+  });
+
+  it('adds singular and plural assists and the stake taken, through formatMoney', () => {
+    expect(pvpKillLine(kill({ assists: 1, copper: 12_005 }))).toBe(
+      ':crossed_swords: **Kargath** (60) slew **Annthar** (58) in Drakelands, with 1 assist, taking 1g 20s 5c',
+    );
+    expect(pvpKillLine(kill({ assists: 3 }))).toBe(
+      ':crossed_swords: **Kargath** (60) slew **Annthar** (58) in Drakelands, with 3 assists',
+    );
+  });
+
+  it('omits the zone clause off the zone table', () => {
+    expect(pvpKillLine(kill({ zoneName: null }))).toBe(
+      ':crossed_swords: **Kargath** (60) slew **Annthar** (58)',
+    );
+  });
+
+  it('treats malformed wire numbers as zero rather than rendering NaN or negatives', () => {
+    const line = pvpKillLine(
+      kill({ assists: -2, copper: Number.NaN, killerLevel: Number.POSITIVE_INFINITY }),
+    );
+    expect(line).toBe(':crossed_swords: **Kargath** (0) slew **Annthar** (58) in Drakelands');
+  });
+
+  it('escapes Discord markdown in names and bounds their length', () => {
+    expect(pvpFeedName('*bold*_under_~x~`c`|s|')).toBe(
+      String.raw`\*bold\*\_under\_\~x\~` + '\\`c\\`' + String.raw`\|s\|`,
+    );
+    expect(pvpFeedName('A'.repeat(PVP_FEED_NAME_MAX + 10))).toBe('A'.repeat(PVP_FEED_NAME_MAX));
+    expect(pvpFeedName('')).toBe('Someone');
+  });
+
+  it('chunks a drain into PVP_FEED_LINES_PER_POST batches, FIFO, remainder kept', () => {
+    const items = Array.from({ length: PVP_FEED_LINES_PER_POST * 2 + 3 }, (_, i) =>
+      kill({ killerName: `K${i}` }),
+    );
+    const batches = chunkPvpKills(items);
+    expect(batches.map((b) => b.length)).toEqual([
+      PVP_FEED_LINES_PER_POST,
+      PVP_FEED_LINES_PER_POST,
+      3,
+    ]);
+    expect(batches.flat().map((k) => k.killerName)).toEqual(items.map((_, i) => `K${i}`));
+    expect(chunkPvpKills([])).toEqual([]);
+  });
+
+  it('builds ONE embed per batch, one line per kill, and pings nobody', () => {
+    const payload = buildPvpKillFeedMessage([
+      kill(),
+      kill({ killerName: 'Borin', victimName: 'Kargath', assists: 2 }),
+    ]);
+    expect(payload).toEqual({
+      embeds: [
+        {
+          color: 0xb22222,
+          author: { name: 'World PvP' },
+          description:
+            ':crossed_swords: **Kargath** (60) slew **Annthar** (58) in Drakelands\n' +
+            ':crossed_swords: **Borin** (60) slew **Kargath** (58) in Drakelands, with 2 assists',
+          footer: { text: 'World of ClaudeCraft (Claudemoon)' },
+        },
+      ],
+      allowed_mentions: { parse: [] },
+    });
+  });
+
+  it('keeps a full batch of worst-case lines inside the 4096-character description limit', () => {
+    // Every escaped field full of metacharacters (each escapes to double
+    // length) and every number past the clamp, so this is the true worst line.
+    const meta = '*'.repeat(PVP_FEED_NAME_MAX);
+    const worst = kill({
+      killerName: meta,
+      victimName: meta,
+      zoneName: meta,
+      killerLevel: 1e300,
+      victimLevel: 1e300,
+      assists: 1e300,
+      copper: 1e300,
+    });
+    const line = pvpKillLine(worst);
+    expect(line).not.toContain('e+');
+    expect(line).toContain(`(${PVP_FEED_NUMBER_MAX})`);
+    const payload = buildPvpKillFeedMessage(Array(PVP_FEED_LINES_PER_POST).fill(worst));
+    const description = (payload.embeds as { description: string }[])[0].description;
+    expect(description).toBe(Array(PVP_FEED_LINES_PER_POST).fill(line).join('\n'));
+    expect(description.length).toBeLessThanOrEqual(4096);
+  });
+});
+
+// ── King of the Hill spawn calls (the PvP channel) ───────────────────────────
+describe('King of the Hill announcement builder', () => {
+  const RISES = 1_790_000_000_000;
+  const FALLS = RISES + 45 * 60_000;
+  const call = (over: Partial<HillAnnouncementItem> = {}): HillAnnouncementItem => ({
+    phase: 'warning',
+    zoneName: 'Drakelands',
+    risesAtMs: RISES,
+    fallsAtMs: FALLS,
+    realm: 'Claudemoon',
+    ...over,
+  });
+
+  it('writes the warning with a live countdown to the rise and the fall time, pinging nobody', () => {
+    expect(buildHillAnnouncementMessage(call())).toEqual({
+      embeds: [
+        {
+          color: 0xf0c060,
+          author: { name: 'King of the Hill' },
+          title: 'A hill will rise in Drakelands',
+          description:
+            `It rises <t:${RISES / 1000}:R> and stands until <t:${FALLS / 1000}:t>. ` +
+            'The party with the most players standing inside takes it and earns Honor for every minute they hold it.',
+          footer: { text: 'World of ClaudeCraft (Claudemoon)' },
+        },
+      ],
+      allowed_mentions: { parse: [] },
+    });
+  });
+
+  it('writes the rise with the fall time and its countdown', () => {
+    const embed = (
+      buildHillAnnouncementMessage(call({ phase: 'risen' })).embeds as {
+        title: string;
+        description: string;
+      }[]
+    )[0];
+    expect(embed.title).toBe('A hill has risen in Drakelands');
+    expect(
+      embed.description.startsWith(
+        `It stands until <t:${FALLS / 1000}:t> (<t:${FALLS / 1000}:R>). `,
+      ),
+    ).toBe(true);
+  });
+
+  it('escapes markdown in the zone name', () => {
+    const embed = (
+      buildHillAnnouncementMessage(call({ zoneName: '*Z*' })).embeds as {
+        title: string;
+      }[]
+    )[0];
+    expect(embed.title).toBe(String.raw`A hill will rise in \*Z\*`);
+  });
+
+  it('is stale once its moment passed: a warning at the rise, a rise at the fall', () => {
+    expect(hillAnnouncementIsStale(call(), RISES - 1)).toBe(false);
+    expect(hillAnnouncementIsStale(call(), RISES)).toBe(true);
+    expect(hillAnnouncementIsStale(call({ phase: 'risen' }), RISES + 1)).toBe(false);
+    expect(hillAnnouncementIsStale(call({ phase: 'risen' }), FALLS)).toBe(true);
+    // A malformed time is never posted.
+    expect(hillAnnouncementIsStale(call({ risesAtMs: Number.NaN }), 0)).toBe(true);
+    expect(hillAnnouncementIsStale(call({ fallsAtMs: Number.NaN }), 0)).toBe(true);
   });
 });

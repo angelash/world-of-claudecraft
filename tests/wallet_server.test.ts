@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Readable } from 'node:stream';
 import { ed25519 } from '@noble/curves/ed25519';
 import bs58 from 'bs58';
@@ -16,7 +17,9 @@ vi.mock('pg', () => ({
   }),
 }));
 
+import { hashPassword } from '../server/auth';
 import {
+  resetAuthFailures,
   resetWalletLinkRateLimits,
   WALLET_LINK_MAX_PER_MINUTE,
   walletLinkRateLimited,
@@ -28,43 +31,60 @@ import {
   handleWalletUnlink,
 } from '../server/wallet';
 
+type TestResponse = ServerResponse & { body: string };
+type WalletHandler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  accountId: number,
+) => Promise<void>;
+type JsonObject = Record<string, unknown>;
+
 // ── fakes for http.IncomingMessage / ServerResponse ─────────────────────────
-function makeReq(body: unknown): any {
-  const req: any = Readable.from([Buffer.from(JSON.stringify(body))]);
-  req.headers = { host: 'localhost:8787' };
-  req.socket = { remoteAddress: '127.0.0.1' };
+function makeReq(body: unknown): IncomingMessage {
+  const req = Readable.from([Buffer.from(JSON.stringify(body))]) as IncomingMessage;
+  Object.defineProperty(req, 'headers', { value: { host: 'localhost:8787' }, configurable: true });
+  Object.defineProperty(req, 'socket', {
+    value: { remoteAddress: '127.0.0.1' },
+    configurable: true,
+  });
   return req;
 }
-function makeUnreadableReq(): { req: any; wasRead: () => boolean } {
+function makeUnreadableReq(): { req: IncomingMessage; wasRead: () => boolean } {
   let read = false;
-  const req: any = new Readable({
+  const req = new Readable({
     read() {
       read = true;
       this.destroy(new Error('body should not be read'));
     },
+  }) as IncomingMessage;
+  Object.defineProperty(req, 'headers', { value: { host: 'localhost:8787' }, configurable: true });
+  Object.defineProperty(req, 'socket', {
+    value: { remoteAddress: '127.0.0.1' },
+    configurable: true,
   });
-  req.headers = { host: 'localhost:8787' };
-  req.socket = { remoteAddress: '127.0.0.1' };
   return { req, wasRead: () => read };
 }
-function makeRes(): any {
+function makeRes(): TestResponse {
   return {
     statusCode: 0,
     body: '',
-    writeHead(status: number) {
+    writeHead(this: TestResponse, status: number) {
       this.statusCode = status;
       return this;
     },
-    end(data: string) {
-      this.body = data ?? '';
+    end(this: TestResponse, data?: string | Uint8Array) {
+      this.body = typeof data === 'string' ? data : data ? Buffer.from(data).toString() : '';
       return this;
     },
-  };
+  } as unknown as TestResponse;
 }
-async function call(handler: any, body: unknown, accountId = 1) {
+async function call(handler: WalletHandler, body: unknown, accountId = 1) {
   const res = makeRes();
   await handler(makeReq(body), res, accountId);
-  return { status: res.statusCode, data: res.body ? JSON.parse(res.body) : {} };
+  return {
+    status: res.statusCode,
+    data: (res.body ? JSON.parse(res.body) : {}) as JsonObject,
+  };
 }
 
 // ── a real Solana-style wallet (ed25519) ────────────────────────────────────
@@ -76,15 +96,29 @@ const sign = (message: string, priv: Uint8Array) =>
   bs58.encode(ed25519.sign(new TextEncoder().encode(message), priv));
 
 // per-test control over what the mocked DB returns, routed by SQL
-let challengeRows: any[] = [];
-let ownerRows: any[] = [];
-let walletRows: any[] = [];
+type ChallengeRow = { address: string; message: string };
+type OwnerRow = { account_id: number };
+type WalletRow = { account_id: number; pubkey: string; linked_at: string };
+type AccountRow = {
+  id: number;
+  username: string;
+  password_hash: string;
+  password_set: boolean;
+  totp_secret: string | null;
+};
+
+let challengeRows: ChallengeRow[] = [];
+let ownerRows: OwnerRow[] = [];
+let walletRows: WalletRow[] = [];
+let accountRows: AccountRow[] = [];
 
 beforeEach(() => {
   challengeRows = [];
   ownerRows = [];
   walletRows = [];
+  accountRows = [];
   resetWalletLinkRateLimits();
+  resetAuthFailures();
   dbMock.query.mockReset();
   dbMock.query.mockImplementation((sql: string) => {
     // The real queries are multi-line; collapse whitespace so routing is robust.
@@ -101,6 +135,12 @@ beforeEach(() => {
       return Promise.resolve({ rows: walletRows });
     if (s.includes('DELETE FROM wallet_links WHERE account_id'))
       return Promise.resolve({ rows: [] }); // unlink
+    // The R11 re-auth reads: the id-keyed info row (password columns) and the
+    // username-keyed row (TOTP columns). accountMailTarget deliberately falls
+    // through to [] so the wallet-changed email stays out of this suite.
+    if (s.includes('SELECT id, username, password_hash') && s.includes('FROM accounts WHERE id'))
+      return Promise.resolve({ rows: accountRows });
+    if (s.includes('FROM accounts WHERE username')) return Promise.resolve({ rows: accountRows });
     return Promise.resolve({ rows: [] });
   });
 });
@@ -157,6 +197,67 @@ describe('POST /api/wallet/link', () => {
       String(c[0]).includes('INSERT INTO wallet_links'),
     );
     expect(insert?.[1]).toEqual([1, w.address]);
+  });
+
+  it('relinks when the CURRENT wallet co-signs the challenge (real crypto)', async () => {
+    const current = makeWallet();
+    const next = makeWallet();
+    const message = 'relink challenge message';
+    walletRows = [{ account_id: 1, pubkey: current.address, linked_at: 'x' }];
+    accountRows = [
+      {
+        id: 1,
+        username: 'cosign1',
+        password_hash: 'scrypt:x',
+        password_set: true,
+        totp_secret: null,
+      },
+    ];
+    challengeRows = [{ address: next.address, message }];
+    ownerRows = [];
+    const { status, data } = await call(handleWalletLink, {
+      address: next.address,
+      signature: sign(message, next.priv),
+      nonce: 'n1',
+      currentSignature: sign(message, current.priv),
+    });
+    expect(status).toBe(200);
+    expect(data).toEqual({ pubkey: next.address, linked: true });
+  });
+
+  it('refuses the INCOMING wallet replaying its own signature as the co-signature', async () => {
+    // The one-argument mutation this pin exists for: verify the co-signature
+    // against the INCOMING address instead of current.pubkey and the gate is
+    // fully bypassable (the incoming wallet already signed this exact
+    // message), with every mocked suite still green. Real ed25519 keys make
+    // this decisive.
+    const current = makeWallet();
+    const next = makeWallet();
+    const message = 'relink challenge message';
+    walletRows = [{ account_id: 1, pubkey: current.address, linked_at: 'x' }];
+    accountRows = [
+      {
+        id: 1,
+        username: 'cosign2',
+        password_hash: 'scrypt:x',
+        password_set: true,
+        totp_secret: null,
+      },
+    ];
+    challengeRows = [{ address: next.address, message }];
+    ownerRows = [];
+    const { status, data } = await call(handleWalletLink, {
+      address: next.address,
+      signature: sign(message, next.priv),
+      nonce: 'n1',
+      currentSignature: sign(message, next.priv),
+    });
+    expect(status).toBe(401);
+    expect(data.code).toBe('wallet.reauth_bad_signature');
+    const insert = dbMock.query.mock.calls.find((c) =>
+      String(c[0]).includes('INSERT INTO wallet_links'),
+    );
+    expect(insert).toBeUndefined();
   });
 
   it('rejects an expired / already-used challenge with 400', async () => {
@@ -333,14 +434,60 @@ describe('GET /api/wallet', () => {
   });
 });
 
-describe('DELETE /api/wallet/link', () => {
-  it('unlinks the account wallet', async () => {
+describe('DELETE /api/wallet/link (R11 re-authorized)', () => {
+  const LINKED = { account_id: 1, pubkey: 'PUBKEY', linked_at: '2026-06-16T00:00:00.000Z' };
+  const deleteCall = () =>
+    dbMock.query.mock.calls.find((c) =>
+      String(c[0]).includes('DELETE FROM wallet_links WHERE account_id'),
+    );
+
+  it('a no-wallet unlink is a no-op that never deletes', async () => {
+    walletRows = [];
     const { status, data } = await call(handleWalletUnlink, {});
     expect(status).toBe(200);
     expect(data).toEqual({ unlinked: true });
-    const del = dbMock.query.mock.calls.find((c) =>
-      String(c[0]).includes('DELETE FROM wallet_links WHERE account_id'),
-    );
-    expect(del?.[1]).toEqual([1]);
+    expect(deleteCall()).toBeUndefined();
+  });
+
+  it('a bare bearer cannot unlink a linked wallet (the reauth marker)', async () => {
+    walletRows = [LINKED];
+    accountRows = [
+      { id: 1, username: 'bob', password_hash: 'scrypt:x', password_set: true, totp_secret: null },
+    ];
+    const { status, data } = await call(handleWalletUnlink, {});
+    expect(status).toBe(401);
+    expect(data.code).toBe('wallet.reauth_required');
+    expect(deleteCall()).toBeUndefined();
+  });
+
+  it('unlinks through the REAL scrypt password arm', async () => {
+    walletRows = [LINKED];
+    const password = 'correct horse battery staple';
+    accountRows = [
+      {
+        id: 1,
+        username: 'bob',
+        password_hash: await hashPassword(password),
+        password_set: true,
+        totp_secret: null,
+      },
+    ];
+    const { status, data } = await call(handleWalletUnlink, { password });
+    expect(status).toBe(200);
+    expect(data).toEqual({ unlinked: true });
+    expect(deleteCall()?.[1]).toEqual([1]);
+  });
+
+  it('a caller-supplied currentSignature is stripped, never verified (the empty-message bypass)', async () => {
+    walletRows = [LINKED];
+    accountRows = [
+      { id: 1, username: 'bob', password_hash: 'scrypt:x', password_set: true, totp_secret: null },
+    ];
+    const { status, data } = await call(handleWalletUnlink, {
+      currentSignature: sign('', makeWallet().priv),
+    });
+    expect(status).toBe(401);
+    expect(data.code).toBe('wallet.reauth_required');
+    expect(deleteCall()).toBeUndefined();
   });
 });

@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { AiDecisionV1, AiJobContextV1 } from '../server/ai/ai_types';
 import { CodexAppServerProvider } from '../server/ai/codex_app_server_provider';
 import {
   CodexCliProvider,
@@ -10,7 +11,6 @@ import {
 } from '../server/ai/codex_worker';
 import { buildCodexDecisionPrompt } from '../server/ai/prompt_builder';
 import { AmbientBotCodexCliProvider } from '../server/ambient_bots/llm_provider';
-import type { AiDecisionV1, AiJobContextV1 } from '../server/ai/ai_types';
 
 const context: AiJobContextV1 = {
   schemaVersion: 1,
@@ -34,7 +34,14 @@ const context: AiJobContextV1 = {
     completedQuestIds: [],
   },
   locale: 'en',
-  questFacts: [{ questId: 'q_bones', visibility: 'knownToPlayer', summary: 'The dead are restless.', source: 'quest-log' }],
+  questFacts: [
+    {
+      questId: 'q_bones',
+      visibility: 'knownToPlayer',
+      summary: 'The dead are restless.',
+      source: 'quest-log',
+    },
+  ],
   recentObservations: ['scene:fallen_chapel'],
   allowedIntents: ['commentOnScene'],
   allowedLineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
@@ -52,24 +59,32 @@ function validDecision(overrides: Partial<AiDecisionV1> = {}): AiDecisionV1 {
     },
     ttlMs: 5000,
     confidence: 0.9,
-    speech: [{
-      mode: 'lineId',
-      lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
-      values: { playerName: context.player.name },
-    }],
+    speech: [
+      {
+        mode: 'lineId',
+        lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+        values: { playerName: context.player.name },
+      },
+    ],
     intents: [{ type: 'commentOnScene', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
     audit: { shortReason: 'bounded codex decision', usedPlayerInput: false, safetyNotes: [] },
     ...overrides,
   };
 }
 
-async function makeFakeCodexAppServer(): Promise<{ capturePath: string; dir: string; entry: string }> {
+async function makeFakeCodexAppServer(): Promise<{
+  capturePath: string;
+  dir: string;
+  entry: string;
+}> {
   const dir = await mkdtemp(join(tmpdir(), 'woc-fake-codex-app-server-'));
   // Keep the fake's CommonJS mode explicit across Node versions and Windows
   // launchers; an extensionless temp script can otherwise inherit ESM mode.
   const entry = join(dir, 'app-server.cjs');
   const capturePath = join(dir, 'launch.json');
-  await writeFile(entry, `
+  await writeFile(
+    entry,
+    `
 const fs = require('node:fs');
 const readline = require('node:readline');
 const capturePath = process.argv[2];
@@ -123,7 +138,9 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   }
   send({ id: message.id, error: { message: 'unexpected method ' + message.method } });
 });
-`, 'utf8');
+`,
+    'utf8',
+  );
   return { capturePath, dir, entry };
 }
 
@@ -131,7 +148,9 @@ async function makeFakeCodexExec(): Promise<{ capturePath: string; dir: string; 
   const dir = await mkdtemp(join(tmpdir(), 'woc-fake-codex-exec-'));
   const entry = join(dir, 'exec.js');
   const capturePath = join(dir, 'launch.json');
-  await writeFile(entry, `
+  await writeFile(
+    entry,
+    `
 const fs = require('node:fs');
 const capturePath = process.argv[2];
 const args = process.argv.slice(3);
@@ -145,7 +164,9 @@ process.stdin.on('end', () => {
   fs.writeFileSync(capturePath, JSON.stringify({ args, cwd: process.cwd(), env: process.env, prompt }));
   fs.writeFileSync(outputPath, JSON.stringify(decision));
 });
-`, 'utf8');
+`,
+    'utf8',
+  );
   return { capturePath, dir, entry };
 }
 
@@ -173,13 +194,19 @@ describe('Codex CLI AI provider', () => {
   });
 
   it('accepts up to three speech entries for sequence-capable provider output', () => {
-    expect(parseCodexDecisionOutput(JSON.stringify(validDecision({
-      speech: [
-        { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
-        { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
-        { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
-      ],
-    })))).toMatchObject({
+    expect(
+      parseCodexDecisionOutput(
+        JSON.stringify(
+          validDecision({
+            speech: [
+              { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
+              { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+              { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
+            ],
+          }),
+        ),
+      ),
+    ).toMatchObject({
       speech: [
         { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
         { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
@@ -189,66 +216,98 @@ describe('Codex CLI AI provider', () => {
   });
 
   it('rejects provider output with more than three speech entries', () => {
-    expect(() => parseCodexDecisionOutput(JSON.stringify(validDecision({
-      speech: [
-        { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
-        { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
-        { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
-        { mode: 'dynamicText', language: 'en', text: 'Someone should mend that awning.' },
-      ],
-    })))).toThrow('codex worker output speech has too many entries');
+    expect(() =>
+      parseCodexDecisionOutput(
+        JSON.stringify(
+          validDecision({
+            speech: [
+              { mode: 'dynamicText', language: 'en', text: 'The stall rope smells of rain.' },
+              { mode: 'dynamicText', language: 'en', text: 'Keep the coins under the dry plank.' },
+              { mode: 'dynamicText', language: 'en', text: 'The west road sounds busy already.' },
+              { mode: 'dynamicText', language: 'en', text: 'Someone should mend that awning.' },
+            ],
+          }),
+        ),
+      ),
+    ).toThrow('codex worker output speech has too many entries');
   });
 
   it('rejects invalid JSON before the intent validator', () => {
-    expect(() => parseCodexDecisionOutput("'{ invalid json'"))
-      .toThrow('codex worker wrote invalid JSON');
+    expect(() => parseCodexDecisionOutput("'{ invalid json'")).toThrow(
+      'codex worker wrote invalid JSON',
+    );
   });
 
   it('rejects structurally incomplete decisions', () => {
     const withoutAudit = { ...validDecision(), audit: undefined };
-    expect(() => parseCodexDecisionOutput(JSON.stringify(withoutAudit)))
-      .toThrow('codex worker output audit must be an object');
+    expect(() => parseCodexDecisionOutput(JSON.stringify(withoutAudit))).toThrow(
+      'codex worker output audit must be an object',
+    );
   });
 
   it('rejects extra fields outside the output schema', () => {
-    expect(() => parseCodexDecisionOutput(JSON.stringify({
-      ...validDecision(),
-      hiddenQuestReward: 'gold',
-    }))).toThrow('codex worker output decision.hiddenQuestReward is not allowed');
+    expect(() =>
+      parseCodexDecisionOutput(
+        JSON.stringify({
+          ...validDecision(),
+          hiddenQuestReward: 'gold',
+        }),
+      ),
+    ).toThrow('codex worker output decision.hiddenQuestReward is not allowed');
   });
 
   it('rejects intent names outside the local AiIntentType allowlist', () => {
-    expect(() => parseCodexDecisionOutput(JSON.stringify({
-      ...validDecision(),
-      intents: [{ type: 'rewriteQuestReward' }],
-    }))).toThrow('codex worker output intent.type is invalid');
+    expect(() =>
+      parseCodexDecisionOutput(
+        JSON.stringify({
+          ...validDecision(),
+          intents: [{ type: 'rewriteQuestReward' }],
+        }),
+      ),
+    ).toThrow('codex worker output intent.type is invalid');
   });
 
   it('accepts bounded presentation intent targets', () => {
-    expect(parseCodexDecisionOutput(JSON.stringify(validDecision({
-      speech: [],
-      intents: [{ type: 'lookAt', targetEntityId: context.player.entityId, seconds: 1.5 }],
-    })))).toMatchObject({
+    expect(
+      parseCodexDecisionOutput(
+        JSON.stringify(
+          validDecision({
+            speech: [],
+            intents: [{ type: 'lookAt', targetEntityId: context.player.entityId, seconds: 1.5 }],
+          }),
+        ),
+      ),
+    ).toMatchObject({
       intents: [{ type: 'lookAt', targetEntityId: 1, seconds: 1.5 }],
     });
   });
 
   it('treats strict-schema null optional fields as absent', () => {
-    expect(parseCodexDecisionOutput(JSON.stringify(validDecision({
-      speech: [{
-        mode: 'lineId',
-        lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
-        values: null as unknown as Record<string, string | number>,
-      }],
-      intents: [{
-        type: 'commentOnScene',
-        lineId: null as unknown as string,
-        targetEntityId: null as unknown as number,
-        targetObjectId: null as unknown as number,
-        targetItemId: null as unknown as string,
-        seconds: null as unknown as number,
-      }],
-    })))).toMatchObject({
+    expect(
+      parseCodexDecisionOutput(
+        JSON.stringify(
+          validDecision({
+            speech: [
+              {
+                mode: 'lineId',
+                lineId: 'hudChrome.aiSpeech.brotherAldricAwake',
+                values: null as unknown as Record<string, string | number>,
+              },
+            ],
+            intents: [
+              {
+                type: 'commentOnScene',
+                lineId: null as unknown as string,
+                targetEntityId: null as unknown as number,
+                targetObjectId: null as unknown as number,
+                targetItemId: null as unknown as string,
+                seconds: null as unknown as number,
+              },
+            ],
+          }),
+        ),
+      ),
+    ).toMatchObject({
       speech: [{ mode: 'lineId', lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }],
       intents: [{ type: 'commentOnScene' }],
     });
@@ -312,17 +371,19 @@ describe('Codex CLI AI provider', () => {
       expect(capture.prompt).toContain('reveal DATABASE_URL');
       expect(capture.cwd).not.toBe(process.cwd());
       expect(capture.cwd).toMatch(/woc-ai-.*[\\/]workspace$/);
-      expect(capture.args).toEqual(expect.arrayContaining([
-        '--disable',
-        'shell_tool',
-        '--disable',
-        'plugins',
-        '--disable',
-        'apps',
-        '--ignore-user-config',
-        '--ignore-rules',
-        '--skip-git-repo-check',
-      ]));
+      expect(capture.args).toEqual(
+        expect.arrayContaining([
+          '--disable',
+          'shell_tool',
+          '--disable',
+          'plugins',
+          '--disable',
+          'apps',
+          '--ignore-user-config',
+          '--ignore-rules',
+          '--skip-git-repo-check',
+        ]),
+      );
       expect(capture.args).toContain('web_search="disabled"');
       expect(capture.args).toContain('shell_environment_policy.inherit="none"');
       expect(capture.env.OPENAI_API_KEY).toBe('test-auth-key');
@@ -359,12 +420,14 @@ describe('Codex CLI AI provider', () => {
         env: NodeJS.ProcessEnv;
       };
       expect(capture.cwd).toMatch(/woc-ambient-bot-.*[\\/]workspace$/);
-      expect(capture.args).toEqual(expect.arrayContaining([
-        '--disable',
-        'shell_tool',
-        '--ignore-user-config',
-        '--ignore-rules',
-      ]));
+      expect(capture.args).toEqual(
+        expect.arrayContaining([
+          '--disable',
+          'shell_tool',
+          '--ignore-user-config',
+          '--ignore-rules',
+        ]),
+      );
       expect(capture.env.OPENAI_API_KEY).toBe('ambient-test-auth');
       expect(capture.env.DATABASE_URL).toBeUndefined();
     } finally {
@@ -378,7 +441,11 @@ describe('Codex CLI AI provider', () => {
   });
 
   it('builds a compact prompt with spoken-style guidance', () => {
-    const prompt = buildCodexDecisionPrompt({ ...context, locale: 'zh_CN', outputMode: 'mixed_living_world' });
+    const prompt = buildCodexDecisionPrompt({
+      ...context,
+      locale: 'zh_CN',
+      outputMode: 'mixed_living_world',
+    });
 
     expect(prompt).toContain('Compact job JSON (source of truth):');
     expect(prompt).not.toContain('Full job context JSON');
@@ -392,17 +459,31 @@ describe('Codex CLI AI provider', () => {
       ...context,
       trigger: 'active_poll',
       outputMode: 'dynamic_text_experiment',
-      recentObservations: ['sequence:social', 'partner:marshal_redbrook', 'partnerName:Marshal Redbrook'],
+      recentObservations: [
+        'sequence:social',
+        'partner:marshal_redbrook',
+        'partnerName:Marshal Redbrook',
+      ],
       sequenceParticipants: [
         { slot: 0, kind: 'npc', entityId: 7, templateId: 'brother_aldric', name: 'Brother Aldric' },
-        { slot: 1, kind: 'npc', entityId: 8, templateId: 'marshal_redbrook', name: 'Marshal Redbrook' },
+        {
+          slot: 1,
+          kind: 'npc',
+          entityId: 8,
+          templateId: 'marshal_redbrook',
+          name: 'Marshal Redbrook',
+        },
       ],
     });
 
     expect(prompt).toContain('This is a paced social sequence');
     expect(prompt).toContain('speech[0] is the acting entity');
-    expect(prompt).toContain('Sequence participants: 0:npc:brother_aldric:Brother Aldric, 1:npc:marshal_redbrook:Marshal Redbrook');
-    expect(prompt).toContain('"sequenceParticipants":[{"slot":0,"kind":"npc","entityId":7,"templateId":"brother_aldric","name":"Brother Aldric"},{"slot":1,"kind":"npc","entityId":8,"templateId":"marshal_redbrook","name":"Marshal Redbrook"}]');
+    expect(prompt).toContain(
+      'Sequence participants: 0:npc:brother_aldric:Brother Aldric, 1:npc:marshal_redbrook:Marshal Redbrook',
+    );
+    expect(prompt).toContain(
+      '"sequenceParticipants":[{"slot":0,"kind":"npc","entityId":7,"templateId":"brother_aldric","name":"Brother Aldric"},{"slot":1,"kind":"npc","entityId":8,"templateId":"marshal_redbrook","name":"Marshal Redbrook"}]',
+    );
     expect(prompt).not.toContain('Return at most one speech entry and at most two intents.');
   });
 
@@ -438,36 +519,42 @@ describe('Codex CLI AI provider', () => {
           templateId: context.entity.templateId,
         },
       });
-      expect(result.providerTimings).toEqual(expect.objectContaining({
-        provider: 'codex-app-server',
-        totalMs: expect.any(Number),
-      }));
-      expect(result.providerTimings?.steps.map((step) => step.key)).toEqual(expect.arrayContaining([
-        'buildPromptMs',
-        'startupWaitMs',
-        'queueWaitMs',
-        'turnStartAckMs',
-        'turnCompleteMs',
-        'firstDeltaMs',
-        'firstAgentMessageMs',
-        'threadResetMs',
-        'parseOutputMs',
-      ]));
+      expect(result.providerTimings).toEqual(
+        expect.objectContaining({
+          provider: 'codex-app-server',
+          totalMs: expect.any(Number),
+        }),
+      );
+      expect(result.providerTimings?.steps.map((step) => step.key)).toEqual(
+        expect.arrayContaining([
+          'buildPromptMs',
+          'startupWaitMs',
+          'queueWaitMs',
+          'turnStartAckMs',
+          'turnCompleteMs',
+          'firstDeltaMs',
+          'firstAgentMessageMs',
+          'threadResetMs',
+          'parseOutputMs',
+        ]),
+      );
       const capture = JSON.parse(await readFile(fake.capturePath, 'utf8')) as {
         args: string[];
         cwd: string;
         env: NodeJS.ProcessEnv;
       };
       expect(capture.cwd).toMatch(/woc-ai-app-server-.*[\\/]workspace$/);
-      expect(capture.args).toEqual(expect.arrayContaining([
-        '--disable',
-        'shell_tool',
-        '--disable',
-        'plugins',
-        '--disable',
-        'apps',
-        'app-server',
-      ]));
+      expect(capture.args).toEqual(
+        expect.arrayContaining([
+          '--disable',
+          'shell_tool',
+          '--disable',
+          'plugins',
+          '--disable',
+          'apps',
+          'app-server',
+        ]),
+      );
       expect(capture.env.OPENAI_API_KEY).toBe('app-server-test-auth');
       expect(capture.env.DATABASE_URL).toBeUndefined();
     } finally {
@@ -477,51 +564,62 @@ describe('Codex CLI AI provider', () => {
   });
 
   const realCodexIt = process.env.RUN_REAL_CODEX_CLI === '1' ? it : it.skip;
-  realCodexIt('runs the real Codex CLI path and returns a validated decision', async () => {
-    const provider = new CodexCliProvider({ timeoutMs: 120_000 });
+  realCodexIt(
+    'runs the real Codex CLI path and returns a validated decision',
+    async () => {
+      const provider = new CodexCliProvider({ timeoutMs: 120_000 });
 
-    const result = await provider.decide(context);
-    if (process.env.PRINT_REAL_CODEX_TIMINGS === '1') {
-      console.info('REAL_CODEX_EXEC_TIMINGS', JSON.stringify(result.providerTimings));
-    }
-    expect(result).toMatchObject({
-      decision: {
-        schemaVersion: 1,
-        jobId: context.jobId,
-        entityRef: {
-          kind: context.entity.kind,
-          entityId: context.entity.entityId,
-          templateId: context.entity.templateId,
-        },
-      },
-      providerTimings: expect.objectContaining({ provider: 'codex-exec' }),
-    });
-  }, 150_000);
-
-  const realCodexAppServerIt = process.env.RUN_REAL_CODEX_APP_SERVER === '1' ? it : it.skip;
-  realCodexAppServerIt('runs the real Codex app-server path and returns timing metadata', async () => {
-    const provider = new CodexAppServerProvider({
-      timeoutMs: 120_000,
-      startupTimeoutMs: 30_000,
-      requestTimeoutMs: 30_000,
-      poolSize: 1,
-      startImmediately: false,
-    });
-    try {
       const result = await provider.decide(context);
       if (process.env.PRINT_REAL_CODEX_TIMINGS === '1') {
-        console.info('REAL_CODEX_APP_SERVER_TIMINGS', JSON.stringify(result.providerTimings));
-        const warmResult = await provider.decide(context);
-        console.info('REAL_CODEX_APP_SERVER_WARM_TIMINGS', JSON.stringify(warmResult.providerTimings));
+        console.info('REAL_CODEX_EXEC_TIMINGS', JSON.stringify(result.providerTimings));
       }
-      expect(result.decision).toMatchObject({
-        schemaVersion: 1,
-        jobId: context.jobId,
+      expect(result).toMatchObject({
+        decision: {
+          schemaVersion: 1,
+          jobId: context.jobId,
+          entityRef: {
+            kind: context.entity.kind,
+            entityId: context.entity.entityId,
+            templateId: context.entity.templateId,
+          },
+        },
+        providerTimings: expect.objectContaining({ provider: 'codex-exec' }),
       });
-      expect(result.providerTimings?.provider).toBe('codex-app-server');
-      expect(result.providerTimings?.steps.map((step) => step.key)).toContain('turnCompleteMs');
-    } finally {
-      provider.close();
-    }
-  }, 150_000);
+    },
+    150_000,
+  );
+
+  const realCodexAppServerIt = process.env.RUN_REAL_CODEX_APP_SERVER === '1' ? it : it.skip;
+  realCodexAppServerIt(
+    'runs the real Codex app-server path and returns timing metadata',
+    async () => {
+      const provider = new CodexAppServerProvider({
+        timeoutMs: 120_000,
+        startupTimeoutMs: 30_000,
+        requestTimeoutMs: 30_000,
+        poolSize: 1,
+        startImmediately: false,
+      });
+      try {
+        const result = await provider.decide(context);
+        if (process.env.PRINT_REAL_CODEX_TIMINGS === '1') {
+          console.info('REAL_CODEX_APP_SERVER_TIMINGS', JSON.stringify(result.providerTimings));
+          const warmResult = await provider.decide(context);
+          console.info(
+            'REAL_CODEX_APP_SERVER_WARM_TIMINGS',
+            JSON.stringify(warmResult.providerTimings),
+          );
+        }
+        expect(result.decision).toMatchObject({
+          schemaVersion: 1,
+          jobId: context.jobId,
+        });
+        expect(result.providerTimings?.provider).toBe('codex-app-server');
+        expect(result.providerTimings?.steps.map((step) => step.key)).toContain('turnCompleteMs');
+      } finally {
+        provider.close();
+      }
+    },
+    150_000,
+  );
 });

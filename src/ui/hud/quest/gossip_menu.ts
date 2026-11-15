@@ -15,10 +15,38 @@ export interface GossipMenuContent {
   hasVendor: boolean;
   hasMarket: boolean;
   hasHeroicVendor: boolean;
+  /** The WARFARE quartermaster's sectioned honor shop (#warfare-window). It sits
+   *  BESIDE the generic goods row rather than replacing it (a flagged NPC still
+   *  sells and buys back through the ordinary vendor window), so it needs its
+   *  own field here: a flagged NPC with an empty `vendorItems` list would
+   *  otherwise read as an empty menu and close itself the moment it opened. */
+  hasWarfareVendor: boolean;
+  /** The Crucible Quartermaster's sigil-redemption shop (a #vendor-window
+   *  tenant). A flagged NPC sells nothing through the ordinary grid, so it
+   *  needs its own field for the same reason as hasWarfareVendor above. */
+  hasCrucibleVendor: boolean;
   hasDelveBoard: boolean;
-  hasVcup: boolean;
   hasCardMaster: boolean;
   hasTraining: boolean;
+  /** A farmer NPC's husk-to-compost trade row (the farming go-live, gated on
+   *  the NpcDef farmer flag). Its own field so a farmer with no quest and no
+   *  stock still keeps the dialog open for the trade. */
+  hasFarmer: boolean;
+  /** The World Quest taskmaster's board row (NpcDef worldQuestBoard): the
+   *  route to the map's world-quest rail. Its own field so the taskmaster,
+   *  who has no quest and no stock, keeps the dialog open for it. */
+  hasWorldQuestBoard: boolean;
+  /** The Clue Scroll talk or hand-over row (clue_step_row_view.ts): the active
+   *  hunt's current step targets this NPC. Its own field so a plain quest
+   *  giver with nothing else to offer still keeps the dialog open for it. */
+  hasClueStep: boolean;
+  /** A dungeon lore guide (dungeon_guide_dialog_core.ts): his greeting and,
+   *  while his offer stands, the answer rows. Its own field so a guide, who
+   *  has no quest and no stock, keeps the dialog open. */
+  hasDungeonGuide: boolean;
+  /** The seasonal trick-or-treat row (trick_or_treat_row_view.ts): its own field
+   *  so a townsperson with nothing else to offer keeps the dialog open for it. */
+  hasTrickOrTreat?: boolean;
 }
 
 export function gossipMenuIsEmpty(content: GossipMenuContent): boolean {
@@ -28,9 +56,15 @@ export function gossipMenuIsEmpty(content: GossipMenuContent): boolean {
     !content.hasVendor &&
     !content.hasMarket &&
     !content.hasHeroicVendor &&
+    !content.hasWarfareVendor &&
+    !content.hasCrucibleVendor &&
     !content.hasDelveBoard &&
-    !content.hasVcup &&
     !content.hasCardMaster &&
-    !content.hasTraining
+    !content.hasTraining &&
+    !content.hasFarmer &&
+    !content.hasWorldQuestBoard &&
+    !content.hasClueStep &&
+    !content.hasDungeonGuide &&
+    content.hasTrickOrTreat !== true
   );
 }

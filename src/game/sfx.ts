@@ -4,28 +4,94 @@
 // attenuate with distance and pan with direction relative to the camera.
 //
 // Decoupled, like audio/music/voice: its own AudioContext + AudioListener,
-// driven by the `sfxVolume` setting. Efficient by construction: one decoded
+// driven by the `sfxVolume` (effects) and `ambientVolume` (environment beds)
+// settings, one gain bus each (see sfx_mix_bus.ts). Efficient by construction: one decoded
 // AudioBuffer per clip shared across every source, startup-only preloading with
 // lazy context loads, a hard concurrency cap, a per-key cooldown, and a tiny
 // pool of persistent looping sources for ambience and sustained spell casts.
 
 import { apiUrl } from '../client_origin';
+import type { PointSoundSource } from '../render/audio_sink';
+import { GFX } from '../render/gfx';
+import { ABILITIES } from '../sim/data';
 import type { BiomeId } from '../sim/types';
+import { isAbilityMomentRecorded } from './ability_sfx_coverage';
+import { resumeWhenAllowed } from './audio_unlock';
+import { isMeleeAudioId, meleeAudioSample } from './fury_audio_core';
+import { mountAudioKey } from './mount_audio_key';
+import {
+  advanceInterruptibleMountEngine,
+  advanceMountEngine,
+  type MountEngineEntry,
+  type MountEngineState,
+  mountEngineBendRate,
+  mountEngineIdleAudible,
+  mountEngineLoopActive,
+} from './mount_engine_state';
 import {
   SFX_CATALOG_HASH,
   SFX_CLIPS,
   SFX_RUNTIME_PACK_URL,
   type SfxEntry,
 } from './sfx_manifest.generated';
+import { sfxMixBus } from './sfx_mix_bus';
+import {
+  audioBufferBytes,
+  isSfxClipEvictable,
+  type SfxResidencyLedger,
+  sfxResidencyFor,
+} from './sfx_residency_core';
 import { loadRuntimeSfxPack } from './sfx_runtime_pack';
+import {
+  newTavernAmbienceMix,
+  TAVERN_AMBIENCE_SILENT,
+  tavernAmbienceMix,
+} from './tavern_ambience_core';
 import { type WaterElementalCue, waterElementalSamples } from './water_elemental_audio';
 
-const SAMPLE_GAIN = 0.85; // base level for sampled clips; sfxVolume multiplies this
+const SAMPLE_GAIN = 0.85; // base level for sampled clips; each bus volume multiplies this
+/** Per-call level for the movement one-shots (jump / land / splash / swim). */
+const MOVE_GAIN = 0.7;
+const SWIM_GAIN = 0.5;
+/** A mount's own landing over the rider's. See `movement`.
+ *
+ *  Was 1.5, taken down 25% on a listening pass: the takeoff sat right but the
+ *  landing still read hot. Only the mount's LANDING is scaled, so the jump and
+ *  the rider's own landing are untouched. */
+const MOUNT_LAND_BOOST = 1.125;
 const MAX_VOICES = 24; // concurrent one-shot sources (frame-budget guard)
-const REF_DISTANCE = 5; // world units at which a sound is at full volume
-const MAX_DISTANCE = 46; // hard cutoff: beyond this, sources are silent/skipped
-const MAX_DISTANCE_SQ = MAX_DISTANCE * MAX_DISTANCE;
+// Per-ability synth layer (abilityAudio): its own small voice pool, separate
+// from MAX_VOICES so ability spam can never starve footsteps/UI one-shots,
+// and a conservative layer gain that keeps every recipe under the sampled
+// combat one-shots (the gallery tuned these against a 0.4 master + limiter;
+// here they sit inside the 0.85 sample master, hence the extra headroom).
+const ABILITY_VOICES = 8;
+const ABILITY_GAIN = 0.34;
+export const REF_DISTANCE = 5; // world units at which a sound is at full volume
+export const MAX_DISTANCE = 46; // hard cutoff: beyond this, sources are silent/skipped
+// Hysteresis past a map point sound's authored radius before its loop is
+// released, so walking the edge does not restart the source every step.
+const POINT_SOUND_CULL = 6;
 const POINT_AMBIENCE_GAIN = 0.18;
+const COOLDOWN_ENTRY_TTL = 60;
+const COOLDOWN_PRUNE_INTERVAL = 30;
+// The target loop() multiplies by the clip's own manifest gain (1 for this
+// key, i.e. 0dB) to get the loop's actual gain. This is a tuning CHOICE, not a
+// ceiling-derived maximum: SFX_GAIN_LIMITS['mount_loop_rickshaw_mount'] is
+// 1.778279 (sfx_manifest.generated.ts, from this key's 5dB ceilingDb), and
+// nothing clamps the target a caller passes to loop() against that limit (it
+// only gates the runtime pack's own clip-gain override, sfx_runtime_pack.ts).
+// The conform pass put the file at -6dBFS, so 0dB of gain leaves 6dB of
+// headroom before clipping, well inside SFX_GAIN_LIMITS's own 5dB further on
+// top of that. If this ends up too loud against footsteps and ambience, this
+// comes DOWN; there is real ceiling left above it if it ever needs to come up.
+const MOUNT_LOOP_GAIN = 1;
+// Governs ONLY the dismount/view-removal fade (stopMountLoop -> unloop()).
+// The moving-to-stopped transition (the far more common case, letting go of
+// the movement key mid-ride) never touches this constant: loop() ramps that
+// gain with its own fixed setTargetAtTime(..., 0.25), so "letting go of the
+// key reads as the cart stopping" is governed by that 0.25, not by this value.
+const MOUNT_LOOP_FADE = 0.18;
 // amb_forge's custom recording still reads quiet in-game even with the
 // catalog's keyTrimDb ceiling (scripts/sfx/sfx_gain_map.json) applied at its
 // full sanctioned +5dB, the maximum true-peak headroom under the shared
@@ -37,6 +103,54 @@ const POINT_AMBIENCE_GAIN = 0.18;
 // SFX_GAIN_LIMITS.amb_forge) = ~1.11, tuned by ear against the +5dB trim
 // alone (~0.32 effective, still too quiet).
 const FORGE_AMBIENCE_GAIN = 0.625;
+// The forge is a small localized point source (a single station), not a
+// zone-wide bed: it should NOT carry as far as the shared MAX_DISTANCE (46,
+// tuned for things like footsteps/combat that want zone-scale audibility).
+// refDistance stays at the shared default (full volume up close is fine
+// unchanged); only the falloff cutoff narrows.
+//
+// Tuned in-game, live, against Eastbrook Vale's own Smith Haldren stall
+// (9.5, 17.5): the audio listener is the CAMERA position (renderer.ts's
+// sink.setListener call), not the player's own position, and the default
+// camera trails 3 to 22 world units (camDist, input.ts) behind/above the
+// player, so a narrow value (tried 6/7/8/10/20) went silent even standing
+// right next to the forge once the camera's own offset was added in, a real
+// gotcha worth remembering before retuning this. 38 lands it: silent at the
+// PLAYER_START spawn point (2, -2), where the camera listener sits ~31.8
+// units from the forge, audible by the time you reach Marshal Redbrook (4,
+// 6) heading into town, and still 8 units narrower than the shared 46
+// default.
+export const FORGE_MAX_DISTANCE = 38;
+// Fallback windup duration for mountEngine's very first call on a cold cache
+// (the real decoded AudioBuffer.duration takes over once the clip loads);
+// close to the tank mount's actual ~0.9s windup take so the first play still
+// splices to the loop at roughly the right instant.
+const MOUNT_ENGINE_START_FALLBACK_SEC = 0.9;
+
+// How long to hold a mount's parked idle after a summon when the summon take's
+// own duration is not known yet (a cold cache the channel's 1.5s preload did
+// not finish covering). Deliberately LONGER than any current summon take: too
+// long costs a beat of silence before the engine settles, too short lets the
+// idle cut into the summon, which is the artefact this gate exists to stop.
+const MOUNT_SUMMON_FALLBACK_SEC = 2.5;
+/** The summon-to-idle crossfade, used for BOTH halves so they cannot drift:
+ *  the summon take fades out over its last `SUMMON_CROSSFADE_SEC`, and the
+ *  parked idle starts rising exactly that far before the take ends.
+ *
+ *  It has to be one constant. When these were two numbers the summon's fade was
+ *  not happening at all on the self path (see mountSummon), so the "overlap"
+ *  was the idle rising underneath a take still at full level, which is two
+ *  engines rather than a handoff, and shortening the lead only made the pile-up
+ *  briefer instead of removing it. Sized against the idle's own 0.25s ramp time
+ *  constant: at 0.45s the idle is ~84% up as the summon reaches ~5%, so the two
+ *  curves cross once, in the middle, with no dip and no doubling. */
+const SUMMON_CROSSFADE_SEC = 0.45;
+
+// Rift roller/portal loops (src/render/rift_ambience.ts): a moving hazard or
+// an open portal should read as a clear nearby presence, not a wallpaper bed
+// like campfire/forge, but must still sit under foreground one-shots.
+const RIFT_AMBIENCE_GAIN = 0.4;
+const HOARD_AMBIENCE_GAIN = 0.12;
 const FOOTSTEP_CUES: Partial<Record<string, string>> = {
   grass: 'foot_grass',
   dirt: 'foot_dirt',
@@ -68,8 +182,9 @@ function retainDecodedBuffer(
 
 export interface PlayOpts {
   gain?: number; // 0..1 multiplier (default 1)
-  rate?: number; // playback-rate multiplier (default 1); ±6% jitter added
+  rate?: number; // playback-rate multiplier (default 1); Â±6% jitter added
   cooldown?: number; // min seconds between plays of this key (default 0.03)
+  cooldownKey?: string; // optional namespace when one asset serves unrelated cues
   jitter?: boolean; // randomize rate/gain slightly (default true)
   // Percussive amplitude envelope. `release` truncates the clip to a crisp
   // transient that fully decays within `attack + release` seconds, used by fast
@@ -77,17 +192,32 @@ export interface PlayOpts {
   // pile up and comb-filter into a metallic ring. 0 (default) plays the clip flat.
   attack?: number; // fade-in seconds (default 0 = instant)
   release?: number; // fade-out seconds; the clip is stopped once it ends
+  /** Fade the clip's OWN TAIL, keeping its full length. The opposite of
+   *  `release` above, which truncates: `release: 0.2` on a 2.3s take stops it
+   *  0.2s in, correct for a footstep and wrong for anything meant to play out.
+   *  Use this when a long take simply must not end on a step, and when it has
+   *  to hand over to a loop: the fade is the crossfade's outgoing half, so
+   *  whatever rises underneath should be given the same number of seconds. */
+  tailRelease?: number;
+  /** One live authored transition voice per key. */
+  voiceKey?: string;
+  /** Seconds to crossfade when replacing an existing `voiceKey` voice. */
+  voiceCrossfade?: number;
 }
 
 interface LoopSlot {
   key: string;
+  cacheKey: string;
   src: AudioBufferSourceNode;
   gain: GainNode;
   panner: PannerNode | null;
+  /** An optional lowpass between the source and the gain (setLoopLowpass: the tavern bed). */
+  filter?: BiquadFilterNode;
   target: number; // last commanded gain; skip re-arming the ramp when unchanged
   x?: number;
   y?: number;
   z?: number;
+  playbackTarget: number;
 }
 
 interface PendingLoop {
@@ -96,11 +226,42 @@ interface PendingLoop {
   x?: number;
   y?: number;
   z?: number;
+  maxDistance?: number;
+  refDistance?: number;
+  // Carries the caller's `immediate` request through the cold-buffer wait so
+  // a resumed loop() call (once the buffer finishes loading) still snaps
+  // straight to target gain instead of silently falling back to a fade-in.
+  // See loop()'s doc comment: this matters for mountEngine's windup-to-loop
+  // splice, which must never read as an audible swell.
+  immediate?: boolean;
+}
+
+// 'kind' is the closed set of point-ambience station sources today (campfire,
+// forge). makePanner/loop/tooFar all accept an optional refDistance/
+// maxDistance override (see FORGE_MAX_DISTANCE, pointAmbient's 'forge'
+// branch), so a future station ambience with its own audible-radius need
+// (e.g. a Professions 2.0 station bed: kitchens/apothecary/tannery/loom/
+// toolworks, see issue #2208) is a new 'kind' plus its own named constant,
+// same pattern, no changes needed to the override mechanism itself.
+/** The avatar's eye (where the player stands), which a room bed is decided from: the camera
+ *  trails the player and can sit in the doorway (or over the roof) while the player is in the
+ *  hall. Mirrors src/render/audio_sink.ts. */
+interface AmbienceEye {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
 }
 
 interface AmbientPointSource {
   readonly id: string;
-  readonly kind: 'campfire' | 'forge';
+  readonly kind:
+    | 'campfire'
+    | 'forge'
+    | 'tavern'
+    | 'rift_portal'
+    | 'rift_roller'
+    | 'rift_ice_glide'
+    | 'hoard_entrance';
   readonly x: number;
   readonly y: number;
   readonly z: number;
@@ -109,9 +270,16 @@ interface AmbientPointSource {
 class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  // The environment bus (ambientVolume): biome/weather beds and stationary world
+  // emitters, routed by sfxMixBus. Everything else plays through `master`.
+  private ambientBus: GainNode | null = null;
   private clips: Record<string, SfxEntry> = SFX_CLIPS;
   private clipsReady: Promise<void> | null = null;
   private buffers = new Map<string, AudioBuffer>();
+  // A byte budget over decoded cosmetic clips (pinned clips never count), LRU
+  // eviction of idle ones; null (unbounded) off the iOS memory profile. See
+  // sfx_residency_core.ts.
+  private residency: SfxResidencyLedger | null = null;
   private loading = new Map<string, Promise<AudioBuffer | null>>();
   private failedLoads = new Set<string>();
   private pendingOneShots = new Set<string>();
@@ -120,17 +288,66 @@ class Sfx {
   private pendingLoopLoads = new Map<string, string>();
   private pendingLoopVariants = new Map<string, number>();
   private vol = 0.8;
+  private ambientVol = 0.8;
   private active = 0;
   private lastPlay = new Map<string, number>();
+  private lastPlayPruneAt = 0;
   private loops = new Map<string, LoopSlot>();
+  // The panner is retained alongside the voice so a MOVING emitter can carry
+  // its one-shots with it (see moveKeyedVoice). Without it a windup fires at
+  // the position the throttle was pressed and stays there while the vehicle
+  // drives away from its own engine note.
+  private keyedOneShots = new Map<
+    string,
+    { src: AudioBufferSourceNode; gain: GainNode; panner: PannerNode | null }
+  >();
+  // Pending auto-stop timers for timedGroundLoop, keyed the same as `loops`.
+  private groundLoopTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  // Per-entity windup/loop/winddown state for an engine mount (see mountEngine).
+  private mountEngines = new Map<number, MountEngineEntry>();
+  // Interruptible bidirectional mounts must remember which authored take set
+  // owns the stop edge: once velocity reaches zero the renderer no longer has
+  // a meaningful backwards flag.
+  private mountEngineDirections = new Map<number, 'forward' | 'reverse'>();
+  // Memoized per-mountKey engine clip key triple, or null once a mountKey is
+  // known to have no engine take set. mountEngine() is called every frame for
+  // every mounted entity in earshot, so this turns the per-frame cost for an
+  // ordinary (non-engine) mount into a plain map lookup instead of 3 fresh
+  // template-literal string allocations that are immediately thrown away.
+  private engineIdleKeysCache = new Map<string, string | null>();
+  // Consecutive frames of confirmed forward input per entity, for the
+  // standstill-to-forward commit below.
+  private mountEngineForwardHold = new Map<number, number>();
+  // Audio-clock time before which an entity's parked idle stays silent, so a
+  // summon take can finish first.
+  private mountEngineIdleGate = new Map<number, number>();
+  private engineClipKeysCache = new Map<
+    string,
+    { startKey: string; loopKey: string; stopKey: string } | null
+  >();
+  private mountMovementKeyCache = new Map<string, string | null>();
   private footstepsOn = false; // off by default; driven by the footstepSfx setting
   private lx = 0;
+  private ly = 0;
   private lz = 0; // cached listener position
+  /** The tavern bed's mix, refilled each frame (allocation-free). */
+  private readonly tavernMix = newTavernAmbienceMix();
+  // per-ability synth layer state (see the abilityAudio section)
+  private synthNoise: AudioBuffer | null = null;
+  private abilityVoiceEnds = new Float64Array(ABILITY_VOICES);
+  private abilityEnd = 0; // max scheduled end of the recipe being built
 
   /** Set SFX volume (0..1). Shares the `sfxVolume` slider with `audio`. */
   setVolume(v: number): void {
     this.vol = Math.min(1, Math.max(0, v));
     if (this.master) this.master.gain.value = SAMPLE_GAIN * this.vol;
+  }
+
+  /** Set the ambience volume (0..1): the `ambientVolume` slider, independent of
+   *  the effects volume above. */
+  setAmbientVolume(v: number): void {
+    this.ambientVol = Math.min(1, Math.max(0, v));
+    if (this.ambientBus) this.ambientBus.gain.value = SAMPLE_GAIN * this.ambientVol;
   }
 
   /** Enable/disable per-footfall step clips. Off by default (the `footstepSfx`
@@ -150,9 +367,11 @@ class Sfx {
       this.master = this.ctx.createGain();
       this.master.gain.value = SAMPLE_GAIN * this.vol;
       this.master.connect(this.ctx.destination);
-      void this.ctx.resume?.().catch(() => {
-        /* resumes on the next gesture */
-      });
+      this.residency = sfxResidencyFor(GFX);
+      this.ambientBus = this.ctx.createGain();
+      this.ambientBus.gain.value = SAMPLE_GAIN * this.ambientVol;
+      this.ambientBus.connect(this.ctx.destination);
+      resumeWhenAllowed(this.ctx);
       const l = this.ctx.listener;
       if (l.upX) {
         l.upX.value = 0;
@@ -170,13 +389,33 @@ class Sfx {
         });
       }
       void this.preloadStartup();
+      // Warrior contacts use conformed catalog recordings on the retained
+      // presentation clock. Other ability moments keep their recorded-cue
+      // suppression and procedural fallback through ability_sfx_coverage.ts.
     } catch {
       this.ctx = null;
     }
   }
 
+  /** Release the AudioContext for a page that is going away (the editor's
+   *  pagehide teardown). Nulls the context so a later init() rebuilds it. */
+  close(): void {
+    const ctx = this.ctx;
+    this.ctx = null;
+    this.master = null;
+    this.clips = SFX_CLIPS;
+    this.clipsReady = null;
+    if (ctx) void ctx.close().catch(() => {});
+  }
+
   private entry(key: string): SfxEntry | undefined {
     return this.clips[key];
+  }
+
+  /** The output bus `key` connects to: the ambience bus for environment clips,
+   *  the effects master for everything else. Null before init. */
+  private busFor(key: string): GainNode | null {
+    return sfxMixBus(key, this.entry(key)?.category) === 'ambient' ? this.ambientBus : this.master;
   }
 
   private authoredPlaybackRate(key: string): number {
@@ -247,6 +486,7 @@ class Sfx {
         // without another lossy asset transcode.
         const buf = retainDecodedBuffer(ctx, decoded, entry.spatial);
         this.buffers.set(cacheKey, buf);
+        this.trackResidency(key, cacheKey, buf);
         return buf;
       } catch {
         this.failedLoads.add(cacheKey);
@@ -257,6 +497,25 @@ class Sfx {
     })();
     this.loading.set(cacheKey, request);
     return request;
+  }
+
+  private trackResidency(key: string, cacheKey: string, buf: AudioBuffer): void {
+    const residency = this.residency;
+    if (!residency) return;
+    residency.record(cacheKey, audioBufferBytes(buf), isSfxClipEvictable(key, this.entry(key)));
+    for (const dropped of residency.evict((held) => this.residencyHeld(held))) {
+      this.buffers.delete(dropped);
+    }
+  }
+
+  /** A clip a pending one-shot or loop is about to start, or still loading. */
+  private residencyHeld(cacheKey: string): boolean {
+    if (this.pendingOneShots.has(cacheKey) || this.loading.has(cacheKey)) return true;
+    for (const [id, pending] of this.pendingLoops) {
+      const variant = this.pendingLoopVariants.get(id) ?? 0;
+      if (assetCacheKey(pending.key, variant) === cacheKey) return true;
+    }
+    return false;
   }
 
   private async preloadStartup(): Promise<void> {
@@ -274,8 +533,13 @@ class Sfx {
     const ctx = this.ctx;
     if (!ctx) return;
     try {
-      this.buffers.set('amb_crowd', this.makeCrowdBuffer(ctx, 6, false));
-      this.buffers.set('vcup_crowd_roar', this.makeCrowdBuffer(ctx, 2.6, true));
+      // shared white-noise bed for the per-ability synth recipes (abilityAudio)
+      const noiseLen = Math.floor(ctx.sampleRate * 2);
+      const noise = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+      const nd = noise.getChannelData(0);
+      for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
+      this.synthNoise = noise;
+      this.buffers.set('amb_crowd', this.makeCrowdBuffer(ctx, 6));
       for (const cue of [
         'aggro',
         'attack',
@@ -291,10 +555,12 @@ class Sfx {
     }
   }
 
-  /** Procedural crowd noise. Bed mode is a seamless 6s murmur loop (filtered
-   *  noise under slow integer-cycle swells, so the wrap point is silent-clean);
-   *  roar mode bakes a crescendo-decay envelope for a goal-roar one-shot. */
-  private makeCrowdBuffer(ctx: AudioContext, seconds: number, roar: boolean): AudioBuffer {
+  /** Procedural crowd noise: a seamless murmur bed (filtered noise under slow
+   *  integer-cycle swells, so the wrap point is silent-clean). The one-shot
+   *  roar mode left with the Vale Cup: its buffer had no player and its
+   *  crowdRoar() entry point had no caller, so the envelope branch went with
+   *  them rather than staying as an unreachable parameter. */
+  private makeCrowdBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
     const sr = ctx.sampleRate;
     const len = Math.floor(seconds * sr);
     const buf = ctx.createBuffer(2, len, sr);
@@ -313,20 +579,14 @@ class Sfx {
           0.22 * Math.sin(2 * Math.PI * 3 * t + phase) +
           0.16 * Math.sin(2 * Math.PI * 7 * t + phase * 1.31);
         const voiceBand = (lpMid - lpDeep) * 0.9;
-        let sample = (lpDeep * 2.2 + voiceBand) * swell;
-        if (roar) {
-          const envelope = t < 0.18 ? t / 0.18 : t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45;
-          sample = (lpDeep * 1.6 + voiceBand * 2.4 + w * 0.06) * envelope * 1.5;
-        }
+        const sample = (lpDeep * 2.2 + voiceBand) * swell;
         data[i] = Math.max(-1, Math.min(1, sample));
       }
-      if (!roar) {
-        const fade = Math.floor(0.25 * sr);
-        for (let i = 0; i < fade; i++) {
-          const amount = i / fade;
-          data[len - fade + i] =
-            data[len - fade + i] * Math.sqrt(1 - amount) + data[i] * Math.sqrt(amount);
-        }
+      const fade = Math.floor(0.25 * sr);
+      for (let i = 0; i < fade; i++) {
+        const amount = i / fade;
+        data[len - fade + i] =
+          data[len - fade + i] * Math.sqrt(1 - amount) + data[i] * Math.sqrt(amount);
       }
     }
     return buf;
@@ -337,6 +597,7 @@ class Sfx {
     const ctx = this.ctx;
     if (!ctx) return;
     this.lx = x;
+    this.ly = y;
     this.lz = z;
     const l = ctx.listener;
     if (l.positionX) {
@@ -352,6 +613,22 @@ class Sfx {
     }
   }
 
+  /**
+   * Move an in-flight keyed one-shot to a new world position.
+   *
+   * Loops already track their emitter because `loop()` is re-called every frame
+   * with fresh coordinates. One-shots are fired once, so a transition take on a
+   * MOVING source (a vehicle's engine windup and winddown) stays pinned where
+   * it started and audibly falls behind the vehicle. Call this every frame for
+   * the voice key those one-shots share.
+   *
+   * A no-op when the voice has already ended or was never positional.
+   */
+  moveKeyedVoice(voiceKey: string, x: number, y: number, z: number): void {
+    const voice = this.keyedOneShots.get(voiceKey);
+    if (voice?.panner) this.setPannerPos(voice.panner, x, y, z);
+  }
+
   private setPannerPos(p: PannerNode, x: number, y: number, z: number): void {
     if (p.positionX) {
       p.positionX.value = x;
@@ -360,14 +637,24 @@ class Sfx {
     } else if (p.setPosition) p.setPosition(x, y, z);
   }
 
-  private makePanner(x: number, y: number, z: number): PannerNode {
+  // refDistance/maxDistance default to the shared constants so every existing
+  // caller (footsteps, combat, mob voices, ambience loops) keeps its current
+  // audible range unchanged. A caller with its own falloff (see pointAmbient's
+  // 'forge' branch) passes an override; nothing else needs to.
+  private makePanner(
+    x: number,
+    y: number,
+    z: number,
+    refDistance: number = REF_DISTANCE,
+    maxDistance: number = MAX_DISTANCE,
+  ): PannerNode {
     const ctx = this.ctx;
     if (!ctx) throw new Error('audio context is unavailable');
     const p = ctx.createPanner();
     p.panningModel = 'equalpower'; // cheap; HRTF is overkill for an MMO crowd
     p.distanceModel = 'linear';
-    p.refDistance = REF_DISTANCE;
-    p.maxDistance = MAX_DISTANCE;
+    p.refDistance = refDistance;
+    p.maxDistance = maxDistance;
     p.rolloffFactor = 1;
     this.setPannerPos(p, x, y, z);
     return p;
@@ -407,11 +694,14 @@ class Sfx {
   }
 
   /** Squared distance from the listener. Callers can pre-cull, but playAt also
-   *  guards internally so a far event is a cheap no-op. */
-  private tooFar(x: number, z: number): boolean {
+   *  guards internally so a far event is a cheap no-op. maxDistance defaults to
+   *  the shared MAX_DISTANCE; a caller with its own panner override (see
+   *  makePanner/loop) passes the matching value so this cull threshold lines
+   *  up with where that source actually falls silent. */
+  private tooFar(x: number, z: number, maxDistance: number = MAX_DISTANCE): boolean {
     const dx = x - this.lx,
       dz = z - this.lz;
-    return dx * dx + dz * dz > MAX_DISTANCE_SQ;
+    return dx * dx + dz * dz > maxDistance * maxDistance;
   }
 
   /** Positional one-shot at world (x,y,z). Returns whether this call actually
@@ -423,7 +713,7 @@ class Sfx {
    *  see src/ui/mob_idle_sfx.ts) needs this instead of firing blind. */
   playAt(key: string, x: number, y: number, z: number, opts?: PlayOpts): boolean {
     const ctx = this.ctx,
-      master = this.master;
+      master = this.busFor(key);
     if (!ctx || !master) return false;
     if (this.tooFar(x, z)) return false;
     const variantIndex = this.nextVariantIndex(key);
@@ -442,17 +732,19 @@ class Sfx {
       }
       return false;
     }
-    if (this.active >= MAX_VOICES) return false;
     const now = ctx.currentTime;
+    this.pruneLastPlay(now);
+    if (this.active >= MAX_VOICES) return false;
     const cd = opts?.cooldown ?? 0.03;
+    const cooldownKey = opts?.cooldownKey ?? key;
     // -Infinity, not -1: a fresh key (never played) must never be blocked, at
     // any cooldown length. A -1 sentinel worked by accident while every
     // cooldown here stayed under 1s (now - -1 was always >= cooldown); a
     // longer cooldown (e.g. audio.error()'s 1.5s) can make now - -1 itself
     // read as "still on cooldown" moments after AudioContext starts, wrongly
     // swallowing the very first play of that key.
-    if (now - (this.lastPlay.get(key) ?? Number.NEGATIVE_INFINITY) < cd) return false;
-    this.lastPlay.set(key, now);
+    if (now - (this.lastPlay.get(cooldownKey) ?? Number.NEGATIVE_INFINITY) < cd) return false;
+    this.lastPlay.set(cooldownKey, now);
     this.commitVariant(key, variantIndex);
 
     const jitter = opts?.jitter !== false;
@@ -468,15 +760,84 @@ class Sfx {
       (this.entry(key)?.gain ?? 1) *
       (jitter ? 1 + (Math.random() * 2 - 1) * 0.1 : 1);
     const panner = this.makePanner(x, y, z);
+    const priorVoice = opts?.voiceKey ? this.keyedOneShots.get(opts.voiceKey) : undefined;
+    const voiceCrossfade = Math.max(0, opts?.voiceCrossfade ?? 0);
+    if (priorVoice) {
+      if (voiceCrossfade > 0) {
+        priorVoice.gain.gain.setValueAtTime(priorVoice.gain.gain.value, now);
+        priorVoice.gain.gain.linearRampToValueAtTime(0.0001, now + voiceCrossfade);
+        try {
+          priorVoice.src.stop(now + voiceCrossfade);
+        } catch {
+          /* already stopped */
+        }
+      } else {
+        try {
+          priorVoice.src.stop();
+        } catch {
+          /* already stopped */
+        }
+      }
+    }
+    if (opts?.voiceKey) {
+      this.keyedOneShots.set(opts.voiceKey, { src, gain: g, panner });
+    }
     src.connect(g).connect(panner).connect(master);
     this.active++;
+    this.residency?.acquire(cacheKey);
     src.onended = () => {
       this.active--;
+      this.residency?.release(cacheKey);
+      if (opts?.voiceKey && this.keyedOneShots.get(opts.voiceKey)?.src === src) {
+        this.keyedOneShots.delete(opts.voiceKey);
+      }
       src.disconnect();
       g.disconnect();
       panner.disconnect();
     };
-    this.applyEnvelope(src, g, peak, now, opts);
+    this.applyEnvelope(
+      src,
+      g,
+      peak,
+      now,
+      priorVoice && voiceCrossfade > 0 ? { ...opts, attack: voiceCrossfade } : opts,
+    );
+    return true;
+  }
+
+  /** Fade a one-shot's own tail without shortening it: hold `peak` until
+   *  `tail` seconds before the buffer runs out, then decay to silence across
+   *  exactly that window. Returns false when the clip is too short to carry the
+   *  fade (nothing is scheduled, the caller's flat gain stands).
+   *
+   *  Separate from applyEnvelope on purpose. That one shapes a clip INTO a
+   *  short transient and stops it early, which is what a retriggered footstep
+   *  wants; this one leaves the take's length alone and only softens its last
+   *  moments, which is what a long authored take handing over to a loop wants.
+   *  Both paths call this, so a cue asking for a tail fade gets the same curve
+   *  whether it is the local player's (playUi) or another player's (playAt). */
+  private scheduleTailFade(
+    src: AudioBufferSourceNode,
+    g: GainNode,
+    peak: number,
+    now: number,
+    tail: number,
+    /** Earliest the fade may begin, absolute. Used by the attack path: a clip
+     *  short enough that its tail window overlaps its own fade-IN would have
+     *  the two ramps fighting over the same gain param, so the fade is dropped
+     *  rather than allowed to cut the attack short. */
+    notBefore = now,
+  ): boolean {
+    if (!(tail > 0) || !src.buffer) return false;
+    const clip = src.buffer.duration / (src.playbackRate.value || 1);
+    if (clip <= tail) return false;
+    const from = now + clip - tail;
+    if (from < notBefore) return false;
+    g.gain.setValueAtTime(peak, from);
+    // Same curve shape the percussive release uses (time constant = span/3, so
+    // it is ~5% of peak by the end of the window), for one consistent house
+    // fade rather than a second one that sounds subtly different.
+    g.gain.setTargetAtTime(0.0001, from, tail / 3);
     return true;
   }
 
@@ -493,15 +854,29 @@ class Sfx {
   ): void {
     const attack = Math.max(0, opts?.attack ?? 0);
     const release = Math.max(0, opts?.release ?? 0);
+    const tailRelease = Math.max(0, opts?.tailRelease ?? 0);
     if (attack === 0 && release === 0) {
       g.gain.value = peak;
       src.start();
+      // Scheduled AFTER start so the buffer's duration is the one actually
+      // playing; a tail fade never truncates, so there is no stop() to arrange.
+      this.scheduleTailFade(src, g, peak, now, tailRelease);
       return;
     }
     const a = Math.max(0.001, attack);
     g.gain.setValueAtTime(0.0001, now);
     g.gain.linearRampToValueAtTime(peak, now + a);
     src.start();
+    // A tail fade survives an ATTACK. Only `release` is incompatible with it,
+    // because that truncates the clip and there is then no tail left to fade.
+    //
+    // This branch is reachable without the caller ever asking for an attack:
+    // playAt injects `attack: voiceCrossfade` when a cue replaces a live
+    // `voiceKey` voice. Handling tailRelease only in the no-envelope branch
+    // above would therefore drop it for such a cue exactly when a prior voice
+    // happened to be playing, and keep it otherwise, which is the same class of
+    // silently-dropped option this whole option was added to fix.
+    if (release === 0) this.scheduleTailFade(src, g, peak, now, tailRelease, now + a);
     if (release > 0) {
       // Effective clip length at this playback rate; never schedule past it.
       const clip = src.buffer ? src.buffer.duration / (src.playbackRate.value || 1) : a + release;
@@ -536,8 +911,9 @@ class Sfx {
       }
       return;
     }
-    if (this.active >= MAX_VOICES) return;
     const now = ctx.currentTime;
+    this.pruneLastPlay(now);
+    if (this.active >= MAX_VOICES) return;
     const cd = opts?.cooldown ?? 0;
     // -Infinity sentinel: see the matching comment on playAt's cooldown check.
     if (cd > 0 && now - (this.lastPlay.get(key) ?? Number.NEGATIVE_INFINITY) < cd) return;
@@ -557,15 +933,26 @@ class Sfx {
       this.authoredPlaybackRate(key) *
       (jitter ? 1 + (Math.random() * 2 - 1) * 0.05 : 1);
     const g = ctx.createGain();
-    g.gain.value = (opts?.gain ?? 1) * (this.entry(key)?.gain ?? 1);
+    const peak = (opts?.gain ?? 1) * (this.entry(key)?.gain ?? 1);
+    g.gain.value = peak;
     src.connect(g).connect(master);
     this.active++;
+    this.residency?.acquire(cacheKey);
     src.onended = () => {
       this.active--;
+      this.residency?.release(cacheKey);
       src.disconnect();
       g.disconnect();
     };
     src.start();
+    // playUi used to play every take at a flat gain and drop `attack`/`release`
+    // on the floor, so a long cue asking not to end on a step got no fade at
+    // all on the local player's own path (mountSummon's, and the reason its
+    // handoff to the parked idle sounded like two engines rather than one
+    // crossfade). Only the non-truncating tail fade is honored here: `release`
+    // shortens a clip, which is a percussive-retrigger behavior that the
+    // positional path owns and no UI cue has ever asked for.
+    this.scheduleTailFade(src, g, peak, now, Math.max(0, opts?.tailRelease ?? 0));
   }
 
   // --- Looping sources (ambience + sustained casts) ------------------------
@@ -573,10 +960,32 @@ class Sfx {
   // one caster's channel) is reused and cross-faded rather than restarted.
 
   /** Ensure a loop `id` is playing `key` at `target` gain; (x,y,z) makes it
-   *  positional. Ramps gain smoothly; creating from scratch fades in from 0. */
-  loop(id: string, key: string, target: number, x?: number, y?: number, z?: number): void {
+   *  positional. Ramps gain smoothly; creating from scratch fades in from 0,
+   *  UNLESS `immediate` is set, which snaps straight to full target gain on
+   *  creation instead (a hard splice from a preceding one-shot that was
+   *  authored to already end at the loop's own level, e.g. mountEngine's
+   *  windup-to-loop handoff: a fade-in there would read as an audible swell
+   *  right where the two takes are meant to read as one continuous sound). */
+  // maxDistance defaults to makePanner's own default (the shared MAX_DISTANCE),
+  // so every existing caller keeps its current audible range; only a caller
+  // that needs its own falloff (pointAmbient's 'forge' branch) passes an
+  // override. refDistance is likewise optional, and is passed by the
+  // map-authored point sounds: a maker's radius IS the whole falloff circle,
+  // so the near field has to scale with it rather than sit at the shared
+  // constant (see pointSounds).
+  loop(
+    id: string,
+    key: string,
+    target: number,
+    x?: number,
+    y?: number,
+    z?: number,
+    maxDistance?: number,
+    immediate = false,
+    refDistance?: number,
+  ): void {
     const ctx = this.ctx,
-      master = this.master;
+      master = this.busFor(key);
     if (!ctx || !master) return;
     const positional = x !== undefined && y !== undefined && z !== undefined;
     let slot = this.loops.get(id);
@@ -584,6 +993,7 @@ class Sfx {
       this.unloop(id, 0);
       slot = undefined;
     }
+    let justCreated = false;
     if (!slot) {
       const pending = this.pendingLoops.get(id);
       const pendingVariant = pending?.key === key ? this.pendingLoopVariants.get(id) : undefined;
@@ -597,7 +1007,7 @@ class Sfx {
           this.pendingLoopVariants.delete(id);
           return;
         }
-        this.pendingLoops.set(id, { key, target, x, y, z });
+        this.pendingLoops.set(id, { key, target, x, y, z, maxDistance, refDistance, immediate });
         this.pendingLoopVariants.set(id, variantIndex);
         if (this.pendingLoopLoads.get(id) !== key) {
           this.pendingLoopLoads.set(id, key);
@@ -614,7 +1024,17 @@ class Sfx {
             }
             if (!pending || pending.key !== key) return;
             this.pendingLoops.delete(id);
-            this.loop(id, key, pending.target, pending.x, pending.y, pending.z);
+            this.loop(
+              id,
+              key,
+              pending.target,
+              pending.x,
+              pending.y,
+              pending.z,
+              pending.maxDistance,
+              pending.immediate,
+              pending.refDistance,
+            );
           });
         }
         return;
@@ -625,26 +1045,51 @@ class Sfx {
       src.playbackRate.value = this.authoredPlaybackRate(key);
       const g = ctx.createGain();
       g.gain.value = 0;
-      const panner = positional ? this.makePanner(x, y, z) : null;
+      const panner = positional ? this.makePanner(x, y, z, refDistance, maxDistance) : null;
       if (panner) src.connect(g).connect(panner).connect(master);
       else src.connect(g).connect(master);
       src.start();
+      this.residency?.acquire(cacheKey);
       this.commitVariant(key, variantIndex);
       this.pendingLoopVariants.delete(id);
-      slot = { key, src, gain: g, panner, target: -1, x, y, z };
+      slot = {
+        key,
+        cacheKey,
+        src,
+        gain: g,
+        panner,
+        target: -1,
+        x,
+        y,
+        z,
+        playbackTarget: this.authoredPlaybackRate(key),
+      };
       this.loops.set(id, slot);
-    } else if (positional && slot.panner && (slot.x !== x || slot.y !== y || slot.z !== z)) {
-      this.setPannerPos(slot.panner, x, y, z);
-      slot.x = x;
-      slot.y = y;
-      slot.z = z;
+      justCreated = true;
+    } else if (positional && slot.panner) {
+      if (slot.x !== x || slot.y !== y || slot.z !== z) {
+        this.setPannerPos(slot.panner, x, y, z);
+        slot.x = x;
+        slot.y = y;
+        slot.z = z;
+      }
+      // Keep an already-live loop's falloff current too, not just position:
+      // ambience() calls loop() every frame for a nearby point source, so a
+      // tuning change to a maxDistance override (e.g. FORGE_MAX_DISTANCE)
+      // takes effect on the NEXT frame rather than only for a loop that
+      // hasn't started yet.
+      const resolvedMax = maxDistance ?? MAX_DISTANCE;
+      const resolvedRef = refDistance ?? REF_DISTANCE;
+      if (slot.panner.refDistance !== resolvedRef) slot.panner.refDistance = resolvedRef;
+      if (slot.panner.maxDistance !== resolvedMax) slot.panner.maxDistance = resolvedMax;
     }
     // Only (re)arm the ramp when the target actually changes. loop() is called
     // every frame for active ambience, so this keeps the hot path allocation-free.
     const mixedTarget = target * (this.entry(key)?.gain ?? 1);
     if (slot.target !== mixedTarget) {
       slot.target = mixedTarget;
-      slot.gain.gain.setTargetAtTime(mixedTarget, ctx.currentTime, 0.25);
+      if (justCreated && immediate) slot.gain.gain.setValueAtTime(mixedTarget, ctx.currentTime);
+      else slot.gain.gain.setTargetAtTime(mixedTarget, ctx.currentTime, 0.25);
     }
   }
 
@@ -663,7 +1108,9 @@ class Sfx {
       } catch {
         /* already stopped */
       }
+      this.residency?.release(slot.cacheKey);
       slot.src.disconnect();
+      slot.filter?.disconnect();
       slot.gain.disconnect();
       slot.panner?.disconnect();
       return;
@@ -677,7 +1124,9 @@ class Sfx {
         } catch {
           /* already stopped */
         }
+        this.residency?.release(slot.cacheKey);
         src.disconnect();
+        slot.filter?.disconnect();
         slot.gain.disconnect();
         slot.panner?.disconnect();
       },
@@ -685,15 +1134,63 @@ class Sfx {
     );
   }
 
+  /** Run a live loop through a lowpass at `hz` (inserted between its source and its gain on
+   *  first use, then ramped). A loop still loading is a no-op; the next call catches it. */
+  setLoopLowpass(id: string, hz: number): void {
+    const ctx = this.ctx;
+    const slot = this.loops.get(id);
+    if (!ctx || !slot) return;
+    if (!slot.filter) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.Q.value = 0.5;
+      filter.frequency.value = hz;
+      slot.src.disconnect();
+      slot.src.connect(filter).connect(slot.gain);
+      slot.filter = filter;
+      return;
+    }
+    if (Math.abs(slot.filter.frequency.value - hz) > hz * 0.02) {
+      slot.filter.frequency.setTargetAtTime(hz, ctx.currentTime, 0.25);
+    }
+  }
+
   hasLoop(id: string): boolean {
     return this.loops.has(id);
   }
 
+  /** A fixed-duration ground zone loop (Blizzard's storm): starts `key`
+   *  looping at (x,y,z) and schedules its own unloop after `duration`
+   *  seconds. A fresh call with the same id (a new zone landing while the
+   *  previous one's fade is still pending, or simply repositioning) cancels
+   *  any pending stop and reschedules from the new call, matching a real
+   *  zone's actual lifetime rather than the first one that ever fired. */
+  timedGroundLoop(
+    id: string,
+    key: string,
+    x: number,
+    y: number,
+    z: number,
+    duration: number,
+  ): void {
+    if (!(key in SFX_CLIPS)) return;
+    this.loop(id, key, 0.85, x, y, z);
+    const pending = this.groundLoopTimers.get(id);
+    if (pending) clearTimeout(pending);
+    this.groundLoopTimers.set(
+      id,
+      setTimeout(() => {
+        this.groundLoopTimers.delete(id);
+        this.unloop(id);
+      }, duration * 1000),
+    );
+  }
+
   // --- SpatialAudioSink surface (driven by the renderer) -------------------
-  // Implemented here so the surface→clip and ambience→loop mappings live in one
+  // Implemented here so the surfaceâ†’clip and ambienceâ†’loop mappings live in one
   // place; the renderer depends only on the SpatialAudioSink interface.
 
-  /** One footfall. `surface` ∈ grass|dirt|stone|wood|snow|water → foot_<surface>.
+  /** One footfall. `surface` âˆˆ grass|dirt|stone|wood|snow|water â†’ foot_<surface>.
    *  Footsteps fire every ~0.22s at a run but the clips are ~0.48s, so a flat
    *  retrigger would overlap two pitch-jittered copies of one sample and
    *  comb-filter into a metallic "jingle". Two fixes: a short `release` shapes
@@ -721,23 +1218,632 @@ class Sfx {
   }
   private footTick = 0;
 
-  /** Jump / land / water-entry / swim-stroke. */
+  /** The one-shot that fires when a mount actually APPEARS: the completion
+   *  edge of the summon channel, never on dismount, and never for a rider who
+   *  was already mounted when they came into view.
+   *
+   *  Gain 1, not the ~0.85 the per-stride gait cues use: this is a
+   *  once-per-summon hero cue, and the level it actually plays at comes from
+   *  the key's authored trim in sfx_gain_map.json (bounded by its measured
+   *  peak headroom), which is the right place to shape it.
+   *
+   *  YOUR OWN summon is personal feedback and plays flat, like the UI cues it
+   *  sits next to in the mix. The positional path would dock it twice over for
+   *  something happening directly under you: the audio listener is the CAMERA,
+   *  which trails the player, so a source at the player is already past
+   *  refDistance and attenuating before the panner also spreads it off centre.
+   *  Somebody ELSE's mount is a world event and stays spatial, so it arrives
+   *  from where they are and falls off with distance.
+   *
+   *  A mount with no authored take is silent, so this is safe for every mount. */
+  /** One stride for a running mount. This is part of the world SFX mix,
+   *  independent of the optional on-foot footstep toggle, for both branches
+   *  below: a mount is world audio whether or not it borrows a footfall clip,
+   *  and the footstep setting silences the player's own steps by default.
+   *
+   *  A mount with no `mount_run_<key>` clip of its own falls back to the plain
+   *  surface footfall (foot_<surface>) at the running-step gain and pitch,
+   *  alternating left/right the way footstep() does so consecutive strides are
+   *  not one sample retriggered. The release stays the mount's, though:
+   *  footstep()'s tighter 0.17s exists to keep two copies from overlapping at
+   *  the player's ~0.22s stride gap, and a mount's ~0.46s gap has no such
+   *  overlap to avoid, so cutting there would just throw the sample away. */
+  mountRun(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    surface: string,
+    _self: boolean,
+  ): void {
+    // A mount with a continuous loop does not also get per-stride one-shots.
+    // The rickshaw shipped both for a while and they stacked: a 0.6s stride cue
+    // retriggering every 5.8 units of travel is one hit every ~0.46s at mounted
+    // run speed, which layered over the rolling bed and read as the loop itself
+    // stuttering. Gated on the loop clip EXISTING rather than on a mount-key
+    // allowlist, so any mount that later gains a loop drops its strides for
+    // free, and every mount without one is untouched.
+    if (`mount_loop_${mountAudioKey(mountKey)}` in SFX_CLIPS) return;
+    const custom = `mount_run_${mountAudioKey(mountKey)}`;
+    if (custom in SFX_CLIPS) {
+      this.playAt(custom, x, y, z, {
+        gain: 0.85,
+        rate: 1,
+        cooldown: 0.05,
+        release: 0.44,
+      });
+      return;
+    }
+    const key = FOOTSTEP_CUES[surface];
+    if (!key) return;
+    this.footTick = (this.footTick + 1) & 1;
+    const foot = this.footTick === 0 ? 0.97 : 1.04; // left/right
+    this.playAt(key, x, y, z, {
+      gain: 0.5,
+      rate: 1.06 * foot,
+      cooldown: 0.05,
+      release: 0.44,
+    });
+  }
+
+  /** The one-shot that fires when a mount actually APPEARS: the completion edge
+   *  of the 1.5s summon channel, never on dismount and never for a rider who was
+   *  already mounted when they came into view (renderer.ts seeds lastMountKey at
+   *  view creation, so that first observation is not an edge).
+   *
+   *  The local player's own summon is deliberately NON-spatial: the audio
+   *  listener is the camera, which trails the player, so a positional source at
+   *  your own feet is already attenuating by the time you hear it. Other
+   *  players' summons stay positional. A mount with no summon take is silent. */
+  /** The whinny a mount gives as it rears up on a standing jump (render/mount_rear_core.ts).
+   *  Keyed by the mount's own look, not its audio donor: the Lantern Hall Destrier gallops on
+   *  the Valorsteed's take but rears with its own voice. Same self/positional split as the
+   *  summon; silent for a mount with no take. */
+  mountNeigh(x: number, y: number, z: number, look: string, self: boolean): void {
+    const key = `mount_neigh_${look}`;
+    if (!(key in SFX_CLIPS)) return;
+    const opts = { cooldown: 0.5, jitter: false };
+    if (self) this.playUi(key, { ...opts, gain: 0.85 });
+    else this.playAt(key, x, y, z, { ...opts, gain: 0.85 });
+  }
+
+  mountSummon(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    self: boolean,
+    entityId: number,
+  ): void {
+    const key = `mount_summon_${mountAudioKey(mountKey)}`;
+    if (!(key in SFX_CLIPS)) return;
+    // A TAIL fade, because the take does NOT decay to silence: its last 120ms
+    // still peaks at about -15 dBFS, so simply reaching the end of the buffer
+    // is a discontinuity, and that is an audible click. It must be
+    // `tailRelease` and not `release`: the latter truncates, and on a 2.3s
+    // summon it stopped the take 0.2s in, which is what the positional path
+    // was doing to every other player's summon.
+    // `jitter: false` matters for more than pitch. playUi's default +/-5% rate
+    // jitter changes the take's REAL length by up to 0.12s either way, and the
+    // idle's handoff is scheduled off that length, so a jittered summon moved
+    // the crossfade point randomly on every cast: on a slow roll the idle began
+    // rising before the summon had started fading at all, which is the "idle
+    // comes in too early" this cue kept being reported for. Jitter exists to
+    // stop rapid retriggers of one sample comb-filtering (footsteps); a summon
+    // fires once, so it buys nothing here and costs the handoff its timing.
+    const opts = { cooldown: 0.1, jitter: false, tailRelease: SUMMON_CROSSFADE_SEC };
+    if (self) this.playUi(key, { ...opts, gain: 0.9 });
+    else this.playAt(key, x, y, z, { ...opts, gain: 0.85 });
+    // Hold the parked idle until the summon take has finished: the engine
+    // catching and settling IS the summon sound, so an idle loop underneath it
+    // reads as two engines. Preloaded on the channel's start edge, so the
+    // buffer is normally decoded by now and the fallback rarely applies.
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const buf = this.buffers.get(assetCacheKey(key, 0));
+    this.mountEngineIdleGate.set(
+      entityId,
+      // Start the idle rising exactly as the summon begins its tail fade, so
+      // the two are the halves of one crossfade. Overlapping them without that
+      // fade is what made this read as two engines: the idle climbed while the
+      // summon was still at full level, and the summon then stopped on a step.
+      //
+      // Measured the way the FADE measures it: a buffer's duration is its
+      // length at rate 1, and what matters is how long the take will actually
+      // be audible, so both sides divide by the same playback rate. They used
+      // to disagree (the fade divided, this did not), which put the handoff in
+      // a different place than intended on any key with an authored rate.
+      // Floored at zero so a very short take cannot gate into the past.
+      ctx.currentTime +
+        Math.max(
+          0,
+          (buf ? buf.duration / this.authoredPlaybackRate(key) : MOUNT_SUMMON_FALLBACK_SEC) -
+            SUMMON_CROSSFADE_SEC,
+        ),
+    );
+  }
+
+  /** Warm a mount's summon take, called on the summon channel's START edge so
+   *  the 1.5s channel covers the fetch and decode. */
+  preloadMountSummon(mountKey: string): void {
+    const key = `mount_summon_${mountAudioKey(mountKey)}`;
+    if (key in SFX_CLIPS) this.preload(key);
+  }
+
+  /** Windup/loop/winddown engine audio for mounts with dedicated take sets:
+   *  call every frame a rider is mounted, keyed per entity so multiple riders
+   *  never share state. A mount with no
+   *  `_start` take falls through silently, so ordinary mounts keep using
+   *  mountRun's per-stride gait beat instead. See mount_engine_state.ts for
+   *  the transition rules. The tank retains its trailing transition policy;
+   *  the rocket sled hard-splices its tightly authored forward takes and
+   *  interrupts start/stop when input changes. Returns whether this call
+   *  drives an engine mount at all, so the
+   *  caller (renderer.ts) knows whether to also skip the generic gait beat. */
+  /** Resolve (and cache) the engine clip key triple for a mountKey, or null if
+   *  this mount has no dedicated windup/loop/winddown take set. Memoized so
+   *  the common case (an ordinary mount, checked every frame it is ridden)
+   *  costs one map lookup instead of building and discarding 3 strings. */
+  private engineClipKeys(
+    mountKey: string,
+    direction: 'forward' | 'reverse' = 'forward',
+  ): { startKey: string; loopKey: string; stopKey: string } | null {
+    const cacheId = direction === 'forward' ? mountKey : `${mountKey}:reverse`;
+    const cached = this.engineClipKeysCache.get(cacheId);
+    if (cached !== undefined) return cached;
+    const stem =
+      direction === 'forward'
+        ? `mount_run_${mountAudioKey(mountKey)}`
+        : `mount_run_${mountAudioKey(mountKey)}_reverse`;
+    const startKey = `${stem}_start`;
+    const resolved =
+      startKey in SFX_CLIPS ? { startKey, loopKey: stem, stopKey: `${stem}_stop` } : null;
+    this.engineClipKeysCache.set(cacheId, resolved);
+    return resolved;
+  }
+
+  /** Whether this mount's engine keeps running while it is off the ground.
+   *
+   *  True exactly when it has a parked idle take, because such a mount is never
+   *  silent while summoned: polling it mid-jump cannot be mistaken for a stop,
+   *  so its airborne pitch bend can actually be applied. A mount without one
+   *  has to hold its phase instead, or every little hop runs a full winddown
+   *  and windup. */
+  mountEngineIdles(mountKey: string): boolean {
+    return this.engineIdleKey(mountKey) !== null;
+  }
+
+  /** Where this entity's engine audio is, and how far into that phase, on the
+   *  AUDIO clock.
+   *
+   *  Exposed so a visual can be pinned to a known moment inside an authored
+   *  take rather than to a render frame. `phaseStartedAt` is `ctx.currentTime`,
+   *  so a caller comparing against `elapsed` stays locked to the sound through
+   *  a frame hitch instead of drifting away from the thing it punctuates. */
+  mountEnginePhase(entityId: number): { state: MountEngineState; elapsed: number } | null {
+    const entry = this.mountEngines.get(entityId);
+    if (!entry || !this.ctx) return null;
+    return { state: entry.state, elapsed: this.ctx.currentTime - entry.phaseStartedAt };
+  }
+
+  /** The parked engine-idle loop, for a mount authored with one. Its presence
+   *  changes the shape of the whole state machine: the mount is never silent
+   *  while summoned, and reverse becomes this same loop pitched up rather than
+   *  a separate take (see mountEngine). */
+  private engineIdleKey(mountKey: string): string | null {
+    const key = `mount_run_${mountAudioKey(mountKey)}_idle`;
+    const cached = this.engineIdleKeysCache.get(mountKey);
+    if (cached !== undefined) return cached;
+    const resolved = key in SFX_CLIPS ? key : null;
+    this.engineIdleKeysCache.set(mountKey, resolved);
+    return resolved;
+  }
+
+  mountEngine(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    moving: boolean,
+    entityId: number,
+    backwards = false,
+    airborne = false,
+    pivoting = false,
+  ): boolean {
+    // Mounts whose engine take set has a reverse variant and bends with jump
+    // load. Was a single hardcoded key; the rallycart wants the same behaviour.
+    const interruptible = mountKey === 'goblin_rocket_sled' || mountKey === 'rallycart_rxt';
+    const idleKey = this.engineIdleKey(mountKey);
+    // With a parked-idle take, REVERSE is that loop pitched up, not a separate
+    // clip set, so the windup/loop/winddown machine only ever drives forward
+    // travel and the reverse takes are never resolved.
+    const reversing = interruptible && moving && backwards;
+    // locomotion.ts only flips `backwards` after 3 consecutive confirming
+    // frames, so pressing reverse from a standstill reads as FORWARD for about
+    // 50 ms. Committing to the windup on that reading fires a windup and then a
+    // winddown for every standstill-to-reverse. Require the same confirmation
+    // before starting from parked; once the drive loop is running, react
+    // immediately so a forward-to-reverse flip still winds down on the spot.
+    const wantForward = moving && !backwards;
+    const hold = wantForward ? (this.mountEngineForwardHold.get(entityId) ?? 0) + 1 : 0;
+    this.mountEngineForwardHold.set(entityId, hold);
+    const priorState = this.mountEngines.get(entityId)?.state ?? 'idle';
+    const parked = priorState === 'idle' || priorState === 'stopping';
+    const driveForward = idleKey ? (parked ? hold >= 3 : wantForward) : moving;
+    const priorDirection = this.mountEngineDirections.get(entityId);
+    const direction: 'forward' | 'reverse' = idleKey
+      ? 'forward'
+      : interruptible
+        ? moving
+          ? backwards
+            ? 'reverse'
+            : 'forward'
+          : (priorDirection ?? 'forward')
+        : 'forward';
+    const directionChanged =
+      interruptible && moving && priorDirection !== undefined && priorDirection !== direction;
+    if (interruptible && moving) this.mountEngineDirections.set(entityId, direction);
+    const keys = this.engineClipKeys(mountKey, direction);
+    if (!keys) return false;
+    const { startKey, loopKey, stopKey } = keys;
+    const ctx = this.ctx;
+    if (!ctx) return true;
+    const now = ctx.currentTime;
+    const prior = directionChanged ? undefined : this.mountEngines.get(entityId);
+    if (directionChanged) this.unloop(`mountEngine:${entityId}`, 0);
+    // variant 0: the only take today (see mountRun/playAt's variant pool for
+    // other cues). If a second windup variant ever lands, this needs to
+    // resolve whichever variant playAt's round-robin actually picked for
+    // THIS play, not always the first.
+    const startBuf = this.buffers.get(assetCacheKey(startKey, 0));
+    const startDuration = startBuf?.duration ?? MOUNT_ENGINE_START_FALLBACK_SEC;
+    const driven = driveForward;
+    const { next, action } = interruptible
+      ? advanceInterruptibleMountEngine(prior, driven, now, startDuration)
+      : advanceMountEngine(prior, driven, now, startDuration);
+    this.mountEngines.set(entityId, next);
+    // jitter: false on both transitions: the state machine schedules the loop
+    // splice off this clip's nominal buffer duration (startDuration above),
+    // so the actual playback must match that duration exactly. playAt's
+    // default rate jitter (+/-6%) would otherwise let the loop enter up to
+    // ~54ms early or late, and cut the windup off before (or past) the
+    // level it was authored to hand off to the loop at.
+    const transitionVoice = interruptible ? `mountEngineTransition:${entityId}` : undefined;
+    if (action === 'playStart') {
+      this.playAt(startKey, x, y, z, {
+        gain: 0.85,
+        cooldown: 0,
+        jitter: false,
+        voiceKey: transitionVoice,
+        voiceCrossfade: interruptible ? 0.04 : undefined,
+      });
+    } else if (action === 'playStop') {
+      this.playAt(stopKey, x, y, z, {
+        gain: 0.85,
+        cooldown: 0,
+        jitter: false,
+        voiceKey: transitionVoice,
+        voiceCrossfade: interruptible ? 0.04 : undefined,
+      });
+    }
+    // Carry any in-flight windup/winddown with the vehicle. These are one-shots,
+    // so unlike the loops below they are not re-positioned by being called
+    // again each frame, and a vehicle drives away from its own transition take.
+    if (transitionVoice) this.moveKeyedVoice(transitionVoice, x, y, z);
+    const loopActive = mountEngineLoopActive(next.state);
+    const loopId = `mountEngine:${entityId}`;
+    // immediate: true, the windup take is authored to already end at the
+    // loop's own level, so a fade-in here would read as a swell right where
+    // the two takes are meant to splice as one continuous sound.
+    if (loopActive) this.loop(loopId, loopKey, 0.85, x, y, z, undefined, true);
+    else if (prior && mountEngineLoopActive(prior.state)) {
+      this.unloop(loopId, interruptible ? 0 : 0.15);
+    }
+    // The parked idle: audible from summon onward, and ducked out only while the
+    // forward loop owns the engine. Not `immediate`, so the handoff out of the
+    // winddown eases in rather than butting against it.
+    const idleLoopId = `mountEngineIdle:${entityId}`;
+    const idleGateUntil = this.mountEngineIdleGate.get(entityId) ?? 0;
+    if (idleGateUntil && now >= idleGateUntil) this.mountEngineIdleGate.delete(entityId);
+    const idleAudible = !!idleKey && mountEngineIdleAudible(next.state) && now >= idleGateUntil;
+    if (idleKey) {
+      if (idleAudible) this.loop(idleLoopId, idleKey, 0.85, x, y, z);
+      // Quick out under the windup, slower out under nothing: a direction flip
+      // has to clear the idle fast enough that the new take owns the moment.
+      else this.unloop(idleLoopId, next.state === 'starting' ? 0.06 : 0.12);
+    }
+    // Only the rocket sled's sustained turbine take bends with jump load. The
+    // authored start/stop voices remain at their exact recorded pitch, and an
+    // in-progress start simply receives this target once its loop begins.
+    if (interruptible) {
+      const activeLoopId = loopActive || !idleAudible ? loopId : idleLoopId;
+      const loop = this.loops.get(activeLoopId);
+      if (loop) {
+        const authored = this.authoredPlaybackRate(loop.key);
+        const pitchTarget =
+          authored * mountEngineBendRate(reversing, airborne, !!idleKey, pivoting);
+        if (loop.playbackTarget !== pitchTarget) {
+          const rising = pitchTarget > loop.playbackTarget;
+          loop.playbackTarget = pitchTarget;
+          loop.src.playbackRate.setTargetAtTime(pitchTarget, now, rising ? 0.07 : 0.055);
+        }
+      }
+    }
+    return true;
+  }
+
+  /** The standstill powered-on hum for a mount with a dedicated idle take
+   *  (mount_idle_<mountKey>, e.g. the Mech Bird): the renderer calls this with
+   *  active=true every grounded stopped frame and active=false from the moving
+   *  branch, keyed per entity like mountEngine. Detection is the key existing
+   *  in SFX_CLIPS, so it is data-driven the same way the engine take set is:
+   *  a mount with no idle take no-ops here. */
+  mountIdle(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    active: boolean,
+    entityId: number,
+  ): void {
+    const key = this.idleClipKey(mountKey);
+    if (key === null) return;
+    // The loop id is built only on the arm that spends it: the moving branch
+    // polls this every frame, and for a rider already off the hum that must
+    // stay a Set miss with no string allocation.
+    if (active) {
+      this.mountIdles.add(entityId);
+      this.loop(`mountIdle:${entityId}`, key, 0.55, x, y, z);
+    } else if (this.mountIdles.delete(entityId)) {
+      this.unloop(`mountIdle:${entityId}`, 0.25);
+    }
+  }
+  private mountIdles = new Set<number>();
+
+  /** Resolve (and cache) the idle-hum clip key for a mountKey, or null when
+   *  this mount ships no standstill take. Memoized like engineClipKeys: the
+   *  common case is polled every stopped frame. */
+  private idleClipKey(mountKey: string): string | null {
+    const cached = this.idleClipKeyCache.get(mountKey);
+    if (cached !== undefined) return cached;
+    const key = `mount_idle_${mountAudioKey(mountKey)}`;
+    const resolved = key in SFX_CLIPS ? key : null;
+    this.idleClipKeyCache.set(mountKey, resolved);
+    return resolved;
+  }
+  private idleClipKeyCache = new Map<string, string | null>();
+
+  /** Drop an entity's per-mount loops (engine phase + idle hum) and state,
+   *  e.g. on dismount, death while mounted, the 42yd audio-gate exit, or when
+   *  its view is removed (interest culled, disconnect). */
+  mountEngineReset(entityId: number): void {
+    if (this.mountIdles.delete(entityId)) this.unloop(`mountIdle:${entityId}`, 0.1);
+    this.mountEngines.delete(entityId);
+    this.mountEngineDirections.delete(entityId);
+    this.mountEngineForwardHold.delete(entityId);
+    this.mountEngineIdleGate.delete(entityId);
+    this.unloop(`mountEngine:${entityId}`, 0.1);
+    this.unloop(`mountEngineIdle:${entityId}`, 0.1);
+    const transitionKey = `mountEngineTransition:${entityId}`;
+    const transition = this.keyedOneShots.get(transitionKey);
+    if (!transition) return;
+    this.keyedOneShots.delete(transitionKey);
+    try {
+      transition.src.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+
+  /** Warm a mount's authored movement clips ahead of first use. Called from
+   *  the summon-cast and mountKey transition edges in renderer.ts, so a fresh
+   *  mount or a swap has its buffers decoded, or at least in flight, before
+   *  movement dispatch. Without this, a cold first ride can still hit
+   *  playAt's/loop()'s cold paths (dropped one-shot, or a fallback fade-in)
+   *  while fetch+decode runs. A no-op for an ordinary mount with no custom
+   *  movement takes. */
+  preloadMountEngine(mountKey: string): void {
+    // The per-stride gait beat, idle hum, and mount-aware jump/land takes ride
+    // the same warm-up edge: a mount can ship them without an engine take set
+    // (the Mech Bird), so they preload before the engine-set early return.
+    const runKey = `mount_run_${mountAudioKey(mountKey)}`;
+    if (runKey in SFX_CLIPS) this.preload(runKey);
+    const idleKey = this.idleClipKey(mountKey);
+    if (idleKey) this.preload(idleKey);
+    for (const kind of ['jump', 'land'] as const) {
+      const key = this.mountMovementKey(kind, mountKey, '');
+      if (key) this.preload(key);
+    }
+    for (const kind of ['squawk', 'flap'] as const) {
+      const key = `mount_${kind}_${mountAudioKey(mountKey)}`;
+      if (key in SFX_CLIPS) this.preload(key);
+    }
+    const keys = this.engineClipKeys(mountKey);
+    if (!keys) return;
+    this.preload(keys.startKey);
+    this.preload(keys.loopKey);
+    this.preload(keys.stopKey);
+    if (mountKey === 'goblin_rocket_sled') {
+      const reverse = this.engineClipKeys(mountKey, 'reverse');
+      if (reverse) {
+        this.preload(reverse.startKey);
+        this.preload(reverse.loopKey);
+        this.preload(reverse.stopKey);
+      }
+    }
+  }
+
+  /** A mount's call at the top of its jump. Silent for a mount that ships no
+   *  squawk/flap takes, so this is opt-in per mount with nothing to wire.
+   *
+   *  MOVE_GAIN, the same level as the takeoff it answers: the apex is the
+   *  quiet top of the arc, and the two takes stack, so anything hotter reads
+   *  as the bird shouting over its own landing a moment later. Each key's
+   *  authored trim in sfx_gain_map.json does the per-take shaping.
+   *
+   *  A cooldown matches the takeoff's: the caller fires this once per jump,
+   *  and the guard only catches a mount bouncing on a ledge seam. */
+  mountApex(x: number, y: number, z: number, mountKey: string): void {
+    for (const kind of ['squawk', 'flap'] as const) {
+      const key = `mount_${kind}_${mountAudioKey(mountKey)}`;
+      if (key in SFX_CLIPS) this.playAt(key, x, y, z, { gain: MOVE_GAIN, cooldown: 0.08 });
+    }
+  }
+
+  /** Continuous rolling loop for a mount that ships one. Every other mount has
+   *  only a stride one-shot and no `mount_loop_*` clip, so this is a no-op for
+   *  them and needs no per-mount allowlist.
+   *
+   *  Runs through the same loop()/unloop() path as the campfire and forge point
+   *  ambiences rather than mountRun()'s distance-accumulator strides, because a
+   *  cart wheel makes a CONTINUOUS sound: faking that with repeated one-shots
+   *  beats against its own tail at every speed except the one the stride
+   *  interval was tuned for. The id is per ENTITY, not per mount key, so two
+   *  players on carts get two independently positioned voices rather than
+   *  fighting over one slot. */
+  mountLoop(id: number, x: number, y: number, z: number, mountKey: string, moving: boolean): void {
+    const key = `mount_loop_${mountAudioKey(mountKey)}`;
+    if (!(key in SFX_CLIPS)) {
+      // The renderer calls this every frame for every mounted entity in view,
+      // and most mounts have no mount_loop_* clip at all: skip the three
+      // unloop() Map ops (the key template string above is unavoidable, it is
+      // what the `in` check just used) unless a slot could actually be held
+      // (e.g. a mid-ride mount swap from a rolling mount to a walking one).
+      if (this.loops.has(`mountloop_${id}`) || this.pendingLoops.has(`mountloop_${id}`)) {
+        this.stopMountLoop(id);
+      }
+      return;
+    }
+    // GAIN-only, never stop/start on movement. Stopping the loop when `moving`
+    // goes false and restarting it when it comes back means any single-frame
+    // flicker in that flag re-creates the BufferSource, which restarts a 7.8s
+    // recording from zero -- audibly a fast stutter rather than a loop. Holding
+    // one source for as long as the rider is mounted and ramping its gain makes
+    // that failure impossible instead of merely unlikely, and it is the only
+    // way the recording is guaranteed to play through and loop at its own seam.
+    // Cost is one voice per mounted rider, alive only while actually mounted.
+    this.loop(`mountloop_${id}`, key, moving ? MOUNT_LOOP_GAIN : 0, x, y, z);
+  }
+
+  stopMountLoop(id: number): void {
+    this.unloop(`mountloop_${id}`, MOUNT_LOOP_FADE);
+  }
+
+  /** Jump / land / water-entry / swim-stroke.
+   *
+   *  `mountKey` swaps the rider's own takeoff and landing for the mount's, when
+   *  the mount ships a set. A vehicle leaving the ground should not sound like
+   *  boots and leather. Splash and swim stay the rider's either way: those are
+   *  a body meeting water, and no mount has takes for them. */
   movement(
     kind: 'jump' | 'land' | 'splash' | 'swim',
     x: number,
     y: number,
     z: number,
     _self: boolean,
+    mountKey?: string,
   ): void {
+    if (mountKey && (kind === 'jump' || kind === 'land')) {
+      const mkey = `mount_${kind}_${mountAudioKey(mountKey)}`;
+      if (mkey in SFX_CLIPS) {
+        const gain = kind === 'land' ? MOVE_GAIN * MOUNT_LAND_BOOST : MOVE_GAIN;
+        this.playAt(mkey, x, y, z, { gain, cooldown: 0.08 });
+        return;
+      }
+    }
     const key =
       kind === 'jump'
-        ? 'move_jump'
+        ? this.mountMovementKey('jump', mountKey ?? '', 'move_jump')
         : kind === 'land'
-          ? 'move_land'
+          ? this.mountMovementKey('land', mountKey ?? '', 'move_land')
           : kind === 'splash'
             ? 'move_splash'
             : 'move_swim';
-    this.playAt(key, x, y, z, { gain: kind === 'swim' ? 0.5 : 0.7, cooldown: 0.08 });
+    // A vehicle coming down is a heavier event than boots hitting dirt, so a
+    // mount's own landing takes play louder than the rider's.
+    //
+    // Applied HERE rather than in the gain map for a concrete reason: the gain
+    // map is per key and already sits at this key's measured ceiling, which is
+    // set by the loudest of its four takes. Pushing that number further fails
+    // the playback-profile validator. The per-call gain is a separate multiply
+    // downstream of it, and the output bus has room (SAMPLE_GAIN is 0.85), so
+    // this lifts the cue without touching how the four takes sit against each
+    // other, and without touching the rider's own landing or the takeoff.
+    const mountLanding = kind === 'land' && key !== 'move_land';
+    const gain =
+      kind === 'swim' ? SWIM_GAIN : mountLanding ? MOVE_GAIN * MOUNT_LAND_BOOST : MOVE_GAIN;
+    this.playAt(key, x, y, z, { gain, cooldown: 0.08 });
+  }
+
+  /** `mount_<kind>_<mountKey>` when that key exists, else the rider's own.
+   *
+   *  Resolved by key existence and cached, the same way `engineClipKeys` picks
+   *  up an engine take set: adding takes for another mount is a matter of
+   *  dropping in the files and registering the key, with nothing to wire here,
+   *  and every mount without them keeps the sound it has today. */
+  private mountMovementKey(kind: 'jump' | 'land', mountKey: string, fallback: string): string {
+    if (!mountKey) return fallback;
+    const cacheId = `${kind}:${mountAudioKey(mountKey)}`;
+    const cached = this.mountMovementKeyCache.get(cacheId);
+    if (cached !== undefined) return cached ?? fallback;
+    const candidate = `mount_${kind}_${mountAudioKey(mountKey)}`;
+    const resolved = candidate in SFX_CLIPS ? candidate : null;
+    this.mountMovementKeyCache.set(cacheId, resolved);
+    return resolved ?? fallback;
+  }
+
+  necromancy(
+    kind: 'lichTransform' | 'lichHeartbeat' | 'soulConsume',
+    x: number,
+    y: number,
+    z: number,
+    _self: boolean,
+    sourceId?: number,
+  ): void {
+    const sourceKey =
+      sourceId === undefined ? `${Math.round(x * 4)}:${Math.round(z * 4)}` : `${sourceId}`;
+    if (kind === 'lichTransform') {
+      this.playAt('impact_shadow', x, y, z, {
+        gain: 0.95,
+        rate: 0.68,
+        cooldown: 0.5,
+        cooldownKey: `necromancy:transform:${sourceKey}`,
+        jitter: false,
+        attack: 0.02,
+        release: 0.65,
+      });
+      return;
+    }
+    if (kind === 'lichHeartbeat') {
+      this.playAt('impact_bone', x, y, z, {
+        gain: 0.2,
+        rate: 0.55,
+        cooldown: 2.8,
+        cooldownKey: `necromancy:heartbeat:${sourceKey}`,
+        jitter: false,
+        attack: 0.025,
+        release: 0.22,
+      });
+      return;
+    }
+    this.playAt('proj_shadow', x, y, z, {
+      gain: 0.62,
+      rate: 0.74,
+      cooldown: 0.12,
+      cooldownKey: `necromancy:soul:${sourceKey}`,
+      jitter: false,
+      attack: 0.015,
+      release: 0.48,
+    });
+  }
+
+  private pruneLastPlay(now: number): void {
+    if (now < this.lastPlayPruneAt) return;
+    const cutoff = now - COOLDOWN_ENTRY_TTL;
+    for (const [key, playedAt] of this.lastPlay) {
+      if (playedAt < cutoff) this.lastPlay.delete(key);
+    }
+    this.lastPlayPruneAt = now + COOLDOWN_PRUNE_INTERVAL;
   }
 
   private ambient(key: string, target: number): void {
@@ -745,21 +1851,72 @@ class Sfx {
     else this.unloop(key, 0.7);
   }
 
-  private pointAmbient(source: AmbientPointSource): void {
-    if (this.tooFar(source.x, source.z)) {
+  private pointAmbient(source: AmbientPointSource, eye: AmbienceEye | undefined): void {
+    // The forge's own, narrower cull distance so it stops (unloops) exactly
+    // where its own falloff (below) would already have gone silent, instead
+    // of lingering as a silent loop out to the shared MAX_DISTANCE.
+    if (source.kind === 'tavern') {
+      if (eye) this.tavernAmbient(source.id, eye.x, eye.y, eye.z);
+      else this.tavernAmbient(source.id, this.lx, this.ly, this.lz);
+      return;
+    }
+    const maxDistance = source.kind === 'forge' ? FORGE_MAX_DISTANCE : undefined;
+    if (this.tooFar(source.x, source.z, maxDistance)) {
       if (this.loops.has(source.id) || this.pendingLoops.has(source.id)) {
         this.unloop(source.id, 0.7);
       }
       return;
     }
-    const key = source.kind === 'campfire' ? 'amb_campfire' : 'amb_forge';
-    const gain = source.kind === 'forge' ? FORGE_AMBIENCE_GAIN : POINT_AMBIENCE_GAIN;
-    this.loop(source.id, key, gain, source.x, source.y, source.z);
+    let key: string;
+    let gain: number;
+    switch (source.kind) {
+      case 'campfire':
+        key = 'amb_campfire';
+        gain = POINT_AMBIENCE_GAIN;
+        break;
+      case 'forge':
+        key = 'amb_forge';
+        gain = FORGE_AMBIENCE_GAIN;
+        break;
+      case 'hoard_entrance':
+        key = 'hoard_entrance_hum';
+        gain = HOARD_AMBIENCE_GAIN;
+        break;
+      case 'rift_portal':
+        key = 'rift_portal_drone';
+        gain = RIFT_AMBIENCE_GAIN;
+        break;
+      case 'rift_roller':
+        key = 'rift_boulder_roll';
+        gain = RIFT_AMBIENCE_GAIN;
+        break;
+      case 'rift_ice_glide':
+        key = 'rift_ice_glide';
+        gain = RIFT_AMBIENCE_GAIN;
+        break;
+    }
+    this.loop(source.id, key, gain, source.x, source.y, source.z, maxDistance);
+  }
+
+  /** The Mirefen tavern's room bed: a non-positional stereo loop whose level and lowpass
+   *  follow where the player stands (src/game/tavern_ambience_core.ts): muffled through the
+   *  walls, clear inside, silent beyond its radius from the door. */
+  private tavernAmbient(id: string, x: number, y: number, z: number): void {
+    const mix = tavernAmbienceMix(x, y, z, this.tavernMix);
+    if (mix.gain <= TAVERN_AMBIENCE_SILENT) {
+      if (this.loops.has(id) || this.pendingLoops.has(id)) this.unloop(id, 0.7);
+      return;
+    }
+    // quantized so a step or two does not re-arm the ramps every frame
+    this.loop(id, 'amb_tavern', Math.round(mix.gain * 400) / 400);
+    this.setLoopLowpass(id, mix.cutoffHz);
   }
 
   /** Cross-fade the global ambience loops to match the player's surroundings.
    *  These are continuous background beds, kept well under the foreground
-   *  footstep/jump/combat one-shots so movement always reads clearly over them. */
+   *  footstep/jump/combat one-shots so movement always reads clearly over them.
+   *  `eye` is the avatar's eye, which the room beds follow (the camera listener when
+   *  omitted). */
   ambience(
     biome: BiomeId,
     inDungeon: boolean,
@@ -767,31 +1924,86 @@ class Sfx {
     nearWater: boolean,
     crowd = 0,
     points: readonly AmbientPointSource[] = [],
+    eye?: AmbienceEye,
   ): void {
     this.ambient('amb_dungeon', inDungeon ? 0.3 : 0);
     // Sowfield crowd murmur (procedural bed): quiet chatter on the grounds,
     // swelling while a match is live (the renderer passes 0 / ~0.4 / 1).
     this.ambient('amb_crowd', crowd > 0 ? 0.08 + 0.18 * Math.min(1, crowd) : 0);
     this.ambient('amb_wind_vale', !inDungeon && (biome === 'vale' || biome === 'beach') ? 0.12 : 0);
-    this.ambient('amb_birds', !inDungeon && biome === 'vale' ? 0.1 : 0);
     this.ambient(
-      'amb_wind_marsh',
-      !inDungeon && (biome === 'marsh' || biome === 'cave') ? 0.13 : 0,
+      'amb_birds',
+      !inDungeon &&
+        (biome === 'vale' || biome === 'jungle' || biome === 'garden' || biome === 'gale')
+        ? 0.12
+        : 0,
     );
-    this.ambient(
-      'amb_wind_peaks',
-      // 0.12 matches amb_wind_vale's mix target; amb_wind_peaks/vale/marsh are
-      // all generated to the same -14ish LUFS target with no custom mastering
-      // (confirmed by measurement), so there is no asset-level reason for
-      // peaks to sit louder than its siblings. The old 0.18 was a player-
-      // reported "too loud" complaint at Thornpeak Heights (this biome also
-      // covers desert/volcano) traced to this constant alone, not the file.
-      !inDungeon && (biome === 'peaks' || biome === 'desert' || biome === 'volcano') ? 0.12 : 0,
-    );
+    // The dusk realm shares the marsh's low still-air bed, kept quieter: a
+    // sheltered valley, no open-ridge wind. ...and the ember wastes a faint
+    // dry-air version of the same bed. Cave (paint-only) borrows the marsh bed.
+    const marshBed =
+      biome === 'marsh' || biome === 'cave'
+        ? 0.13
+        : biome === 'dusk'
+          ? 0.07
+          : biome === 'ember'
+            ? 0.05
+            : biome === 'amber'
+              ? 0.09
+              : biome === 'fen'
+                ? 0.11
+                : biome === 'night'
+                  ? 0.06 // hushed still night air
+                  : biome === 'haunt'
+                    ? 0.14 // the wood breathes: thick still air
+                    : biome === 'jungle'
+                      ? 0.1 // humid insect drone
+                      : biome === 'garden'
+                        ? 0.07 // bees in the beds
+                        : 0;
+    this.ambient('amb_wind_marsh', !inDungeon ? marshBed : 0);
+    // the Frostveil shares the peaks' ridge wind, a touch stronger in the mist;
+    // desert/volcano (paint-only) borrow the peaks ridge bed too. 0.12 matches
+    // amb_wind_vale's mix target: peaks/vale/marsh are generated to the same
+    // -14ish LUFS target, and the old 0.18 was a player-reported "too loud"
+    // complaint at Thornpeak Heights traced to this constant alone.
+    const peaksBed =
+      biome === 'peaks' || biome === 'desert' || biome === 'volcano'
+        ? 0.12
+        : biome === 'frost'
+          ? 0.2
+          : biome === 'gale'
+            ? 0.24
+            : 0;
+    this.ambient('amb_wind_peaks', !inDungeon ? peaksBed : 0);
     this.ambient('amb_rain', precip === 'rain' ? 0.11 : 0); // sharp clip, kept very low
     this.ambient('amb_snow', precip === 'snow' ? 0.13 : 0);
     this.ambient('amb_water', nearWater ? 0.18 : 0);
-    for (let i = 0; i < points.length; i++) this.pointAmbient(points[i]);
+    const activeIds = new Set<string>();
+    for (let i = 0; i < points.length; i++) {
+      activeIds.add(points[i].id);
+      this.pointAmbient(points[i], eye);
+    }
+    // Unlike the static campfire/forge set (the same fixed sources every frame,
+    // culled only by distance), a rift or buried-hoard source can
+    // disappear entirely between frames (instance ends, portal expires, the
+    // glide stops) without ever crossing the tooFar threshold: sweep any such
+    // loop no longer present.
+    const isDynamicEntityId = (id: string): boolean =>
+      id.startsWith('rift_portal:') ||
+      id.startsWith('rift_roller:') ||
+      id.startsWith('rift_ice_glide:') ||
+      id.startsWith('hoard_entrance:');
+    for (const id of this.loops.keys()) {
+      if (isDynamicEntityId(id) && !activeIds.has(id)) this.unloop(id, 0.7);
+    }
+    for (const id of this.pendingLoops.keys()) {
+      // unloop drops all three pending maps together, and delegating keeps
+      // that contract in ONE place: hand-deleting only pendingLoops here is
+      // the exact drift that once stranded a load/variant pair for every rift
+      // source that vanished mid-load, for the rest of the session.
+      if (isDynamicEntityId(id) && !activeIds.has(id)) this.unloop(id, 0.7);
+    }
   }
 
   // --- Vale Cup one-shots (HUD-armed on vcupGoal/vcupEnd events) -----------
@@ -827,9 +2039,660 @@ class Sfx {
     blast(261.6, 0.42, 0.9);
   }
 
-  /** The stands erupt: the baked crescendo-decay crowd roar (procedural). */
-  crowdRoar(gain = 0.9): void {
-    this.playUi('vcup_crowd_roar', { gain, cooldown: 0.4 });
+  /** Per-frame update of the map-authored point sounds (the editor's Sound
+   *  tool). Each node is one positional loop whose panner falls off over the
+   *  authored radius, so it rides the same pool as world ambience: lazy clip
+   *  loading, the manifest's gain trim, and allocation-free repeat calls all
+   *  come along. Out-of-range nodes release their source rather than sitting
+   *  silent, with a little hysteresis past the radius so a player walking the
+   *  edge does not restart the loop every step. */
+  pointSounds(sources: readonly PointSoundSource[]): void {
+    if (!this.ctx) return;
+    for (let i = 0; i < sources.length; i++) {
+      const s = sources[i];
+      const dx = s.x - this.lx,
+        dz = s.z - this.lz;
+      const cull = s.radius + POINT_SOUND_CULL;
+      if (dx * dx + dz * dz > cull * cull) {
+        if (this.loops.has(s.id) || this.pendingLoops.has(s.id)) this.unloop(s.id, 0.7);
+        continue;
+      }
+      // The authored radius IS the whole falloff circle, so it drives both ends
+      // of the linear distance model: full gain out to a small core, silent at
+      // the edge. Without the matching near field a small emitter would sit at
+      // full volume across most of its own circle.
+      this.loop(
+        s.id,
+        s.key,
+        s.volume,
+        s.x,
+        s.y,
+        s.z,
+        Math.max(1, s.radius),
+        false,
+        Math.max(0.5, s.radius * 0.12),
+      );
+    }
+  }
+
+  // --- Per-ability procedural combat audio (src/render/ability_vfx) --------
+  // Ported from the approved gallery's synth engine (arc_bolt_preview.js Sfx
+  // class): the 12 palette impact identities, the release whoosh, a sub-weight
+  // layer scaled by ability power, the crit sting, soft zone-pulse thuds, and
+  // gentle heal/buff chimes. Synthesis recipes only, the gallery's recorded
+  // sample pack is a separate licensing decision and is deliberately NOT here.
+  // Each event is one voice: a gain -> panner chain into the master with every
+  // oscillator/noise primitive scheduled inside it, drawn from its own small
+  // ABILITY_VOICES pool so ability spam can never exhaust MAX_VOICES.
+  // Windup beds and travel loops are a follow-up (they need loop lifecycle
+  // tied to cast state); this layer is one-shots only.
+
+  /** One per-ability audio moment at a world position. `kind`:
+   *  release = the cast lets go (at the caster); impact = the hit lands (at
+   *  the impact point, a ground zone booms AT the zone); pulse = one soft
+   *  zone re-hit; crit = the sting layered over a critical impact; spirit =
+   *  a creature apparition calls at spawn; motif = set-piece foley.
+   *  Gentle archetypes (heal/buff/cc) chime instead of booming and skip the
+   *  release whoosh entirely; opts.lite (spec liteAudio or a degraded visual
+   *  tier) plays a quieter, sub-less version of the same identity.
+   *  THIS LAYER DEFERS TO THE RECORDINGS: a moment already sounded by a
+   *  hand-recorded cue from src/ui/combat_sfx.ts is skipped outright rather
+   *  than doubled (ability_sfx_coverage.ts), so what remains here is only what
+   *  no recording covers. */
+  abilityAudio(
+    kind: 'windup' | 'release' | 'impact' | 'pulse' | 'crit' | 'spirit' | 'motif',
+    palette: string,
+    power: number,
+    x: number,
+    y: number,
+    z: number,
+    opts?: {
+      lite?: boolean;
+      finisher?: boolean;
+      archetype?: string;
+      buffStyle?: string;
+      sample?: string;
+      name?: string;
+      abilityId?: string;
+    },
+  ): void {
+    const ctx = this.ctx,
+      master = this.master;
+    if (!ctx || !master) return;
+    if (this.tooFar(x, z)) return;
+    if (isMeleeAudioId(opts?.abilityId)) {
+      // Retained presentation-clock events own these recordings. Ordinary
+      // sequencer accents carry no sample and must not double the same cut.
+      if (opts.sample && meleeAudioSample(opts.abilityId, opts.sample))
+        this.playAt(opts.sample, x, y, z, {
+          gain: opts.lite ? 0.3 : opts.finisher ? 0.95 : kind === 'impact' ? 0.78 : 0.6,
+          cooldown: 0,
+          rate: 1,
+          jitter: false,
+        });
+      return;
+    }
+    const arch = opts?.archetype ?? '';
+    // A hand-recorded studio cue already sounds several of these moments from
+    // src/ui/combat_sfx.ts: proj_<school> at the launch, impact_<school> or a
+    // material impact where it lands, combat_crit on a crit, heal_impact,
+    // buff_apply. Those fire at the same instant and position as this layer, so
+    // playing here too masked the recordings under a synthetic double rather
+    // than replacing them. Stay silent and let the recording be the read; the
+    // moments no recording covers keep their procedural voice below.
+    const def = opts?.abilityId ? ABILITIES[opts.abilityId] : undefined;
+    if (
+      isAbilityMomentRecorded(kind, {
+        school: def?.school,
+        archetype: arch,
+        isProjectile: def?.projectile,
+        abilityId: opts?.abilityId,
+      })
+    ) {
+      return;
+    }
+    const gentle = arch === 'heal' || arch === 'buff' || arch === 'cc';
+    if (kind === 'release' && gentle) return; // their impact chime is the read
+    const now = ctx.currentTime;
+    // per-(kind, palette) cooldown, spirit calls and motif foley key on
+    // their own name instead: a volley or AoE multi-hit plays once, not
+    // as a machine-gun of identical transients
+    const cdKey =
+      kind === 'spirit' || kind === 'motif'
+        ? `abl:${kind}:${opts?.name ?? ''}`
+        : `abl:${kind}:${palette}`;
+    const cd =
+      kind === 'crit'
+        ? 0.25
+        : kind === 'pulse'
+          ? 0.12
+          : kind === 'spirit'
+            ? 0.5
+            : kind === 'motif'
+              ? 0.2
+              : kind === 'windup'
+                ? 0.4
+                : 0.07;
+    if (now - (this.lastPlay.get(cdKey) ?? Number.NEGATIVE_INFINITY) < cd) return;
+    let slot = -1;
+    for (let i = 0; i < ABILITY_VOICES; i++) {
+      if (this.abilityVoiceEnds[i] <= now) {
+        slot = i;
+        break;
+      }
+    }
+    if (slot < 0) return; // saturated: drop rather than crowd the mix
+    const lite = opts?.lite === true;
+    try {
+      const out = ctx.createGain();
+      out.gain.value = ABILITY_GAIN * (lite ? 0.6 : 1);
+      const panner = this.makePanner(x, y, z);
+      out.connect(panner);
+      panner.connect(master);
+      this.abilityEnd = now;
+      switch (kind) {
+        case 'windup':
+          this.windupMoment(out, now, palette, power);
+          break;
+        case 'release':
+          this.releaseMoment(out, now, power);
+          break;
+        case 'impact':
+          this.impactMoment(out, now, palette, power, lite, arch, opts);
+          break;
+        case 'pulse':
+          this.abilityPulse(out, now, palette, power);
+          break;
+        case 'crit':
+          this.abilityCrit(out, now, lite);
+          break;
+        case 'spirit':
+          this.spiritMoment(out, now, opts?.name ?? '');
+          break;
+      }
+      if (this.abilityEnd <= now) {
+        // recipe scheduled nothing (e.g. stubbed context): free the chain now
+        out.disconnect();
+        panner.disconnect();
+        return;
+      }
+      this.lastPlay.set(cdKey, now);
+      this.abilityVoiceEnds[slot] = this.abilityEnd;
+      const src = out,
+        pan = panner;
+      setTimeout(
+        () => {
+          src.disconnect();
+          pan.disconnect();
+        },
+        (this.abilityEnd - now + 0.2) * 1000,
+      );
+    } catch {
+      /* minimal AudioContext stubs may lack synthesis nodes */
+    }
+  }
+
+  /** The pre-release charge bed: a soft rising swell while a cast winds up, so
+   *  a nature/moon cast leads with its OWN character instead of leaving the
+   *  first thing the ear catches to be the palette impact (which read as a
+   *  fire-spell charge to the owner). Gentle and non-percussive - it is the
+   *  "spell is charging" tell, not a hit. Only the palettes that were flagged
+   *  synthesize here; every other palette stays silent (no regression to the
+   *  classes whose windups already read right). */
+  private windupMoment(out: GainNode, t: number, palette: string, power: number): void {
+    const I = 0.6 + 0.4 * Math.min(1.5, power);
+    if (palette === 'nature') {
+      // leaves gathering: a breathy band-passed wind rising under a soft green
+      // triad that blooms in - airy and growing, never a crackle
+      this.aNoise(out, t, {
+        dur: 1.1,
+        freq: 900,
+        sweep: 700,
+        gain: 0.14 * I,
+        type: 'bandpass',
+        q: 0.9,
+        attack: 0.55,
+      });
+      this.aPartials(out, t, {
+        freqs: [392, 588, 784],
+        dur: 1.2,
+        gain: 0.07 * I,
+        stagger: 0.14,
+      });
+      return;
+    }
+    if (palette === 'moon') {
+      // cold starlight winding up: a high airy shimmer swelling in, a soft
+      // rising bell underneath - the stellar charge Starfire was missing
+      this.aNoise(out, t, {
+        dur: 1.2,
+        freq: 5200,
+        gain: 0.07 * I,
+        type: 'highpass',
+        attack: 0.7,
+      });
+      this.aTone(out, t, {
+        freq: 660,
+        slide: 990,
+        dur: 1.1,
+        gain: 0.08 * I,
+        attack: 0.5,
+      });
+      return;
+    }
+    // any other palette: no windup bed (leave those casts exactly as reviewed)
+  }
+
+  /** Cast release at the caster. Only reaches abilities with no recorded
+   *  launch: a physical strike or dash, or a spell that opts out of the
+   *  projectile convention. Every magic-school projectile is carried by its
+   *  proj_<school> recording instead (ability_sfx_coverage.ts). */
+  private releaseMoment(out: GainNode, t: number, power: number): void {
+    this.abilityRelease(out, t, power);
+  }
+
+  /** The impact moment. Only reaches the archetypes no recording covers:
+   *  cc, shout, summon and dash. Every damage landing plays its recorded
+   *  impact_<school> or material impact, and heal/buff land heal_impact /
+   *  buff_apply, all from combat_sfx.ts (see ability_sfx_coverage.ts). */
+  private impactMoment(
+    out: GainNode,
+    t: number,
+    palette: string,
+    power: number,
+    lite: boolean,
+    arch: string,
+    opts?: { finisher?: boolean },
+  ): void {
+    // a crowd-control landing poofs; a shout, summon or dash lands on the
+    // palette impact recipe (its sub weight and finisher toll included)
+    if (arch === 'cc') {
+      this.abilityPoof(out, t);
+      return;
+    }
+    this.abilityImpact(out, t, palette, power, lite, opts?.finisher === true);
+  }
+
+  /** A creature apparition calls at spawn. The recorded spirit voices were an
+   *  ElevenLabs pack take and went with it, so only the stag keeps a voice:
+   *  its take read as a farm-animal moo, wrong for the ghostly deer of Mark of
+   *  the Wild and the nature forms, and was already rerouted to a synthesized
+   *  nature blessing in the owner druid review. The rest stay silent until
+   *  real recordings land through scripts/sfx/. */
+  private spiritMoment(out: GainNode, t: number, model: string): void {
+    if (model === 'stag') this.abilityHeal(out, t, 'nature');
+  }
+
+  // ---- synth primitives (gallery tone2/noise2/partials/ticks/sub) ---------
+
+  private aTone(
+    out: GainNode,
+    t: number,
+    o: {
+      freq: number;
+      dur: number;
+      gain: number;
+      type?: OscillatorType;
+      slide?: number;
+      delay?: number;
+      attack?: number;
+      fmRatio?: number;
+      fmDepth?: number;
+    },
+  ): void {
+    const ctx = this.ctx;
+    if (!ctx || o.gain <= 0.001) return;
+    const at = t + (o.delay ?? 0);
+    const osc = ctx.createOscillator();
+    osc.type = o.type ?? 'sine';
+    osc.frequency.setValueAtTime(o.freq, at);
+    if (o.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(18, o.slide), at + o.dur);
+    if (o.fmRatio && o.fmDepth) {
+      const mod = ctx.createOscillator();
+      mod.frequency.value = o.freq * o.fmRatio;
+      const mg = ctx.createGain();
+      mg.gain.value = o.fmDepth;
+      mod.connect(mg);
+      mg.connect(osc.frequency);
+      mod.start(at);
+      mod.stop(at + o.dur + 0.1);
+    }
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(o.gain, at + Math.max(0.003, o.attack ?? 0.01));
+    g.gain.exponentialRampToValueAtTime(0.0001, at + o.dur);
+    osc.connect(g);
+    g.connect(out);
+    osc.start(at);
+    osc.stop(at + o.dur + 0.1);
+    this.abilityEnd = Math.max(this.abilityEnd, at + o.dur + 0.1);
+  }
+
+  private aNoise(
+    out: GainNode,
+    t: number,
+    o: {
+      dur: number;
+      freq: number;
+      gain: number;
+      type?: BiquadFilterType;
+      q?: number;
+      sweep?: number;
+      delay?: number;
+      attack?: number;
+    },
+  ): void {
+    const ctx = this.ctx,
+      buf = this.synthNoise;
+    if (!ctx || !buf || o.gain <= 0.001) return;
+    const at = t + (o.delay ?? 0);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.playbackRate.value = 0.8 + Math.random() * 0.4;
+    const f = ctx.createBiquadFilter();
+    f.type = o.type ?? 'lowpass';
+    f.frequency.setValueAtTime(o.freq, at);
+    f.Q.value = o.q ?? 1;
+    if (o.sweep) f.frequency.exponentialRampToValueAtTime(Math.max(30, o.sweep), at + o.dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(o.gain, at + Math.max(0.002, o.attack ?? 0.002));
+    g.gain.exponentialRampToValueAtTime(0.0001, at + o.dur);
+    src.connect(f);
+    f.connect(g);
+    g.connect(out);
+    src.start(at, Math.random() * 1.5);
+    src.stop(at + o.dur + 0.1);
+    this.abilityEnd = Math.max(this.abilityEnd, at + o.dur + 0.1);
+  }
+
+  private aPartials(
+    out: GainNode,
+    t: number,
+    o: {
+      freqs: readonly number[];
+      dur: number;
+      gain: number;
+      type?: OscillatorType;
+      stagger?: number;
+      delay?: number;
+    },
+  ): void {
+    for (let i = 0; i < o.freqs.length; i++) {
+      this.aTone(out, t, {
+        freq: o.freqs[i],
+        dur: o.dur * (1 - i * 0.08),
+        gain: o.gain / (1 + i * 0.7),
+        type: o.type,
+        delay: (o.delay ?? 0) + i * (o.stagger ?? 0),
+      });
+    }
+  }
+
+  private aTicks(
+    out: GainNode,
+    t: number,
+    o: { n: number; over: number; fLo?: number; fHi?: number; gain: number; tone?: boolean },
+  ): void {
+    const fLo = o.fLo ?? 3000,
+      fHi = o.fHi ?? 6500;
+    for (let i = 0; i < o.n; i++) {
+      const delay = Math.random() * o.over;
+      const freq = fLo + Math.random() * (fHi - fLo);
+      if (o.tone) this.aTone(out, t, { freq, dur: 0.09, gain: o.gain, delay });
+      else this.aNoise(out, t, { dur: 0.04, freq, gain: o.gain, type: 'highpass', delay });
+    }
+  }
+
+  private aSub(
+    out: GainNode,
+    t: number,
+    o: { from: number; to: number; dur: number; gain: number; delay?: number },
+  ): void {
+    this.aTone(out, t, {
+      freq: o.from,
+      slide: o.to,
+      dur: o.dur,
+      gain: o.gain,
+      delay: o.delay,
+      attack: 0.006,
+    });
+  }
+
+  // ---- recipes -------------------------------------------------------------
+
+  /** Cast lets go: whoosh + spectral snap (the gallery release, synth path). */
+  private abilityRelease(out: GainNode, t: number, power: number): void {
+    const s = 0.8 + 0.2 * Math.min(1.5, power);
+    this.aNoise(out, t, {
+      dur: 0.3,
+      freq: 1400,
+      sweep: 420,
+      gain: 0.28 * s,
+      type: 'bandpass',
+      q: 1.2,
+    });
+    this.aNoise(out, t, { dur: 0.07, freq: 6800, gain: 0.3 * s, type: 'highpass' });
+  }
+
+  /** The 12 palette impact identities (gallery Sfx.impact, synth path). */
+  private abilityImpact(
+    out: GainNode,
+    t: number,
+    palette: string,
+    power: number,
+    lite: boolean,
+    finisher: boolean,
+  ): void {
+    const I = Math.min(1.5, power) * (lite ? 0.6 : 1);
+    const d = finisher ? 0.035 : 0; // pre-gap: silence, then the hit
+    // lite drops the whole sub layer; a finisher's toll partly replaces it
+    const sub = lite ? 0 : finisher ? 0.45 : 1;
+    switch (palette) {
+      case 'storm':
+        this.aNoise(out, t, { dur: 0.1, freq: 7500, gain: 0.5 * I, type: 'highpass', delay: d });
+        this.aNoise(out, t, { dur: 0.9, freq: 420, gain: 0.42 * I, delay: d });
+        this.aSub(out, t, {
+          from: 130,
+          to: I >= 1.2 ? 26 : 32,
+          dur: 0.55 * (0.7 + 0.3 * I),
+          gain: 0.55 * I * sub,
+          delay: d,
+        });
+        this.aTicks(out, t, { n: Math.round(6 * (0.6 + 0.5 * I)), over: 0.4, gain: 0.07 * I });
+        break;
+      case 'fire':
+        this.aNoise(out, t, { dur: 0.5, freq: 520, sweep: 90, gain: 0.55 * I, delay: d });
+        this.aSub(out, t, {
+          from: 100,
+          to: I >= 1.2 ? 32 : 40,
+          dur: 0.45 * (0.7 + 0.3 * I),
+          gain: 0.5 * I * sub,
+          delay: d,
+        });
+        this.aTicks(out, t, {
+          n: Math.round(9 * (0.6 + 0.5 * I)),
+          over: 0.55,
+          fLo: 2800,
+          fHi: 6000,
+          gain: 0.09 * I,
+        });
+        break;
+      case 'blood': // wet squelch signature
+        this.aNoise(out, t, {
+          dur: 0.28,
+          freq: 1200,
+          sweep: 300,
+          gain: 0.32 * I,
+          type: 'bandpass',
+          q: 3,
+          delay: d,
+        });
+        this.aNoise(out, t, { dur: 0.22, freq: 180, sweep: 90, gain: 0.45 * I, delay: d });
+        this.aSub(out, t, { from: 85, to: 45, dur: 0.3, gain: 0.5 * I * sub, delay: d });
+        this.aSub(out, t, { from: 70, to: 40, dur: 0.26, gain: 0.4 * I * sub, delay: d + 0.26 });
+        break;
+      case 'frost':
+        this.aTicks(out, t, {
+          n: 11,
+          over: 0.28,
+          fLo: 1900,
+          fHi: 5400,
+          gain: 0.1 * I,
+          tone: true,
+        });
+        this.aPartials(out, t, {
+          freqs: [1780, 2350, 3160],
+          dur: 0.85,
+          gain: 0.16 * I,
+          stagger: 0.015,
+        });
+        this.aNoise(out, t, { dur: 0.3, freq: 7000, gain: 0.28 * I, type: 'highpass', delay: d });
+        break;
+      case 'moon': // lunar glass: airy + falling cold partials, no FM zip
+        this.aTone(out, t, { freq: 1320, dur: 0.6, gain: 0.2 * I, delay: d });
+        this.aNoise(out, t, {
+          dur: 0.7,
+          freq: 4200,
+          gain: 0.1 * I,
+          type: 'highpass',
+          attack: 0.15,
+          delay: d,
+        });
+        this.aPartials(out, t, {
+          freqs: [1174, 880, 587],
+          dur: 1.3,
+          gain: 0.12 * I,
+          stagger: 0.06,
+        });
+        break;
+      case 'arcane':
+        this.aTone(out, t, {
+          freq: 700,
+          slide: 1500,
+          dur: 0.28,
+          gain: 0.28 * I,
+          fmRatio: 1.6,
+          fmDepth: 380,
+          delay: d,
+        });
+        this.aPartials(out, t, { freqs: [1320, 1980], dur: 0.6, gain: 0.13 * I, stagger: 0.03 });
+        break;
+      case 'shadow':
+        this.aSub(out, t, { from: 160, to: 26, dur: 0.7, gain: 0.55 * I * sub, delay: d });
+        this.aNoise(out, t, { dur: 0.7, freq: 380, gain: 0.35 * I, attack: 0.1, delay: d });
+        this.aNoise(out, t, {
+          dur: 0.5,
+          freq: 5200,
+          gain: 0.1 * I,
+          type: 'highpass',
+          delay: d + 0.08,
+        });
+        break;
+      case 'venom':
+        for (let i = 0; i < 4; i++) {
+          this.aTone(out, t, {
+            freq: 300 - i * 40,
+            slide: 140,
+            dur: 0.12,
+            gain: 0.16 * I,
+            delay: d + i * 0.06,
+          });
+        }
+        this.aNoise(out, t, { dur: 0.6, freq: 5200, gain: 0.14 * I, type: 'highpass', delay: d });
+        break;
+      case 'holy':
+        this.aPartials(out, t, {
+          freqs: [523, 785, 1046, 1568],
+          dur: 1.2,
+          gain: 0.26 * I,
+          stagger: 0.025,
+        });
+        this.aNoise(out, t, { dur: 0.25, freq: 3000, gain: 0.12 * I, type: 'highpass', delay: d });
+        break;
+      case 'gold': // struck treasure, not a second choir
+        this.aPartials(out, t, {
+          freqs: [2140, 3420, 5580],
+          dur: 0.42,
+          gain: 0.2 * I,
+          stagger: 0.02,
+        });
+        this.aPartials(out, t, { freqs: [523, 784], dur: 0.9, gain: 0.16 * I, stagger: 0.04 });
+        this.aSub(out, t, { from: 110, to: 60, dur: 0.35, gain: 0.3 * I * sub, delay: d });
+        break;
+      case 'nature':
+        this.aTone(out, t, { freq: 175, dur: 0.12, gain: 0.35 * I, type: 'triangle', delay: d });
+        this.aNoise(out, t, {
+          dur: 0.45,
+          freq: 1150,
+          gain: 0.24 * I,
+          type: 'bandpass',
+          q: 2,
+          delay: d,
+        });
+        break;
+      default: // physical: woody body knock leads
+        this.aTone(out, t, {
+          freq: 420,
+          slide: 300,
+          dur: 0.14,
+          gain: 0.3 * I,
+          type: 'triangle',
+          delay: d,
+        });
+        this.aNoise(out, t, { dur: 0.16, freq: 260, gain: 0.5 * I, delay: d });
+        this.aSub(out, t, { from: 82, to: 50, dur: 0.24, gain: 0.42 * I * sub, delay: d });
+        this.aPartials(out, t, { freqs: [2870, 3350], dur: 0.15, gain: 0.13 * I });
+        break;
+    }
+    // weight arrives with power, not loudness alone: big hits in sub-less
+    // palettes earn a body thump
+    if (
+      I >= 1.15 &&
+      !lite &&
+      !['storm', 'fire', 'blood', 'shadow', 'physical', 'gold'].includes(palette)
+    ) {
+      this.aSub(out, t, { from: 92, to: 44, dur: 0.28 + 0.1 * I, gain: 0.22 * I, delay: d });
+    }
+    // finisher toll: the low bell under the verdict
+    if (finisher) {
+      this.aPartials(out, t, { freqs: [65, 98], dur: 1.2, gain: 0.3, type: 'triangle' });
+    }
+  }
+
+  /** Heals chime, never boom (gallery heal, synth path). */
+  private abilityHeal(out: GainNode, t: number, palette: string): void {
+    const base =
+      palette === 'nature' || palette === 'venom' ? [392, 494, 587, 784] : [523, 659, 784, 1046];
+    this.aPartials(out, t, { freqs: base, dur: 1.4, gain: 0.2, stagger: 0.09 });
+    this.aNoise(out, t, { dur: 0.8, freq: 2600, gain: 0.06, type: 'highpass', attack: 0.25 });
+  }
+
+  /** CC lands as a soft poof, not a hit (gallery poof, synth path). */
+  private abilityPoof(out: GainNode, t: number): void {
+    this.aNoise(out, t, { dur: 0.2, freq: 2600, gain: 0.24, type: 'highpass' });
+    this.aTone(out, t, { freq: 880, slide: 1500, dur: 0.18, gain: 0.12, type: 'triangle' });
+  }
+
+  /** One soft zone re-hit at the zone (earthquake rumble beats, rain ticks). */
+  private abilityPulse(out: GainNode, t: number, palette: string, power: number): void {
+    const I = Math.min(1.2, power);
+    this.aNoise(out, t, { dur: 0.22, freq: 320, sweep: 120, gain: 0.18 * I });
+    const chime =
+      palette === 'frost' ||
+      palette === 'moon' ||
+      palette === 'holy' ||
+      palette === 'gold' ||
+      palette === 'arcane';
+    if (chime) this.aTone(out, t, { freq: 1180, dur: 0.14, gain: 0.05 * I });
+    else this.aNoise(out, t, { dur: 0.08, freq: 3800, gain: 0.05 * I, type: 'highpass' });
+  }
+
+  /** Crit sting layered over the impact (gallery crit extras, synth path). */
+  private abilityCrit(out: GainNode, t: number, lite: boolean): void {
+    this.aNoise(out, t, { dur: 0.08, freq: 8200, gain: 0.3, type: 'highpass' });
+    if (!lite) this.aSub(out, t, { from: 60, to: 24, dur: 0.7, gain: 0.42, delay: 0.02 });
   }
 }
 

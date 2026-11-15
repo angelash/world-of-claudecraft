@@ -1,41 +1,46 @@
 import { performance } from 'node:perf_hooks';
 import { zoneAt } from '../../src/sim/data';
 import { accountAndScopeForToken } from '../db';
+import type { AmbientCreateCharacterResult, AmbientPlayerBotApi } from './api_client';
 import { writeAssignedPlayerName } from './assignment';
 import {
+  type AmbientPlayerBotBrainState,
+  type AmbientPlayerBotBrainTickResult,
   ambientBrainSelfMaintenanceAllowedWhilePartyPaused,
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
   markAmbientPlayerBotBrainExternalProgress,
   tickAmbientPlayerBotBrain,
-  type AmbientPlayerBotBrainState,
-  type AmbientPlayerBotBrainTickResult,
 } from './brain';
 import {
+  type AmbientPlayerBotGroupRuntimeState,
   createAmbientPlayerBotGroupRuntimeState,
   tickAmbientPlayerBotGroupCoordinator,
-  type AmbientPlayerBotGroupRuntimeState,
 } from './group';
 import {
-  createAmbientPlayerBotPartyChatRuntimeState,
-  tickAmbientPlayerBotPartyChatShell,
-  type AmbientPlayerBotPartyChatRuntimeState,
-  type AmbientPlayerBotPendingPartyUtterance,
-} from './party_chat';
-import { ambientBotProfileById } from './profiles';
-import {
-  createAmbientPlayerBotSocialRuntimeState,
-  tickAmbientPlayerBotSocialShell,
-  type AmbientPlayerBotPendingReply,
-  type AmbientPlayerBotSocialRuntimeState,
-} from './social';
-import type { AmbientCreateCharacterResult, AmbientPlayerBotApi } from './api_client';
-import {
-  AmbientPlayerBotLlmCoordinator,
+  type AmbientPlayerBotLlmCoordinator,
   ambientPlayerBotLlmConfigFromEnv,
 } from './llm_coordinator';
 import type { AmbientBotPlanDecisionV1 } from './llm_types';
-import { ambientBotAccountPassword, ambientBotAccountUsername, ambientBotCharacterName, ambientBotId } from './naming';
+import {
+  ambientBotAccountPassword,
+  ambientBotAccountUsername,
+  ambientBotCharacterName,
+  ambientBotId,
+} from './naming';
+import {
+  type AmbientPlayerBotPartyChatRuntimeState,
+  type AmbientPlayerBotPendingPartyUtterance,
+  createAmbientPlayerBotPartyChatRuntimeState,
+  tickAmbientPlayerBotPartyChatShell,
+} from './party_chat';
+import { ambientBotProfileById } from './profiles';
+import {
+  type AmbientPlayerBotPendingReply,
+  type AmbientPlayerBotSocialRuntimeState,
+  createAmbientPlayerBotSocialRuntimeState,
+  tickAmbientPlayerBotSocialShell,
+} from './social';
 import type {
   AmbientBotPlanAction,
   AmbientPlayerBotLlmConfig,
@@ -46,7 +51,11 @@ import type {
   AmbientPlayerBotRuntimeMetricsSnapshot,
   AmbientPlayerBotRuntimeSessionSnapshot,
 } from './types';
-import { AmbientPlayerBotWsClient, type AmbientPlayerBotLiveState, type AmbientPlayerBotSocket } from './ws_client';
+import {
+  type AmbientPlayerBotLiveState,
+  type AmbientPlayerBotSocket,
+  AmbientPlayerBotWsClient,
+} from './ws_client';
 
 const AMBIENT_BOT_DECISION_INTERVAL_MS = 250;
 const AMBIENT_BOT_DRIVE_INTERVAL_MS = 50;
@@ -57,7 +66,9 @@ export interface AmbientPlayerBotRuntimeGame {
   ambientPlayerBotRecord(botId: string): AmbientPlayerBotRecord | null;
   upsertAmbientPlayerBotRecord(record: AmbientPlayerBotRecord): void;
   fulfillAmbientPlayerBotProvision(requestId: string, record: AmbientPlayerBotRecord): void;
-  setAmbientPlayerBotActionHandler(handler: ((actions: readonly AmbientBotPlanAction[]) => void) | null): void;
+  setAmbientPlayerBotActionHandler(
+    handler: ((actions: readonly AmbientBotPlanAction[]) => void) | null,
+  ): void;
 }
 
 export interface AmbientPlayerBotRuntimeDb {
@@ -206,7 +217,10 @@ export class AmbientPlayerBotRuntime {
     this.llmCoordinator = options.llmCoordinator ?? null;
     this.llmConfig = options.llmConfig ?? ambientPlayerBotLlmConfigFromEnv();
     this.brainDecisionIntervalMs = options.brainIntervalMs ?? AMBIENT_BOT_DECISION_INTERVAL_MS;
-    this.brainLoopIntervalMs = Math.min(this.brainDecisionIntervalMs, AMBIENT_BOT_DRIVE_INTERVAL_MS);
+    this.brainLoopIntervalMs = Math.min(
+      this.brainDecisionIntervalMs,
+      AMBIENT_BOT_DRIVE_INTERVAL_MS,
+    );
     this.webSocketFactory = options.webSocketFactory;
     this.nowMs = options.nowMs ?? (() => Date.now());
     this.resolveAccountIdForToken =
@@ -238,8 +252,10 @@ export class AmbientPlayerBotRuntime {
         socialPendingReplies: entry.socialState.pendingReplies.length,
         partyChatPending: entry.partyChatState.pendingUtterances.length,
         llmPlanPending: entry.llmPlanPending,
-        llmPlanMode: entry.llmPlan?.socialMode ?? readRunnerString(record?.runnerState, 'llmPlanMode'),
-        llmPlanFocus: entry.llmPlan?.focusLabel ?? readRunnerString(record?.runnerState, 'llmPlanFocus'),
+        llmPlanMode:
+          entry.llmPlan?.socialMode ?? readRunnerString(record?.runnerState, 'llmPlanMode'),
+        llmPlanFocus:
+          entry.llmPlan?.focusLabel ?? readRunnerString(record?.runnerState, 'llmPlanFocus'),
         lastRunnerAtMs: record?.lastRunnerAtMs ?? null,
         lastRunnerError: record?.lastRunnerError ?? '',
       });
@@ -294,7 +310,9 @@ export class AmbientPlayerBotRuntime {
     return { ...this.controls };
   }
 
-  async logoutAll(reason = 'ambient bot admin logout all'): Promise<AmbientPlayerBotLogoutAllResult> {
+  async logoutAll(
+    reason = 'ambient bot admin logout all',
+  ): Promise<AmbientPlayerBotLogoutAllResult> {
     this.metrics.logoutAllRequests++;
     const nowMs = this.nowMs();
     let disconnectedRunners = 0;
@@ -308,13 +326,15 @@ export class AmbientPlayerBotRuntime {
     for (const record of this.game.ambientPlayerBotDirectory()) {
       if (!shouldResetForAdminLogout(record)) continue;
       const next = resetRecordForAdminLogout(record, nowMs, reason);
-      if (!sameRunnerState(record.runnerState, next.runnerState)
-        || record.lifecycleStatus !== next.lifecycleStatus
-        || record.assignedClusterId !== next.assignedClusterId
-        || record.assignedPlayerCharacterId !== next.assignedPlayerCharacterId
-        || record.reservationUntilMs !== next.reservationUntilMs
-        || record.lastRunnerError !== next.lastRunnerError
-        || record.lastRunnerAtMs !== next.lastRunnerAtMs) {
+      if (
+        !sameRunnerState(record.runnerState, next.runnerState) ||
+        record.lifecycleStatus !== next.lifecycleStatus ||
+        record.assignedClusterId !== next.assignedClusterId ||
+        record.assignedPlayerCharacterId !== next.assignedPlayerCharacterId ||
+        record.reservationUntilMs !== next.reservationUntilMs ||
+        record.lastRunnerError !== next.lastRunnerError ||
+        record.lastRunnerAtMs !== next.lastRunnerAtMs
+      ) {
         resetRecords++;
       }
       this.game.upsertAmbientPlayerBotRecord(next);
@@ -414,7 +434,9 @@ export class AmbientPlayerBotRuntime {
     }
   }
 
-  private async handleProvisionAction(action: Extract<AmbientBotPlanAction, { type: 'provisionBot' }>): Promise<void> {
+  private async handleProvisionAction(
+    action: Extract<AmbientBotPlanAction, { type: 'provisionBot' }>,
+  ): Promise<void> {
     const profile = ambientBotProfileById(action.profileId);
     if (!profile) throw new Error(`unknown ambient bot profile: ${action.profileId}`);
     const botId = ambientBotId();
@@ -422,7 +444,8 @@ export class AmbientPlayerBotRuntime {
     const password = ambientBotAccountPassword();
     const register = await this.apiClient.register(username, password);
     const accountId = await this.resolveAccountIdForToken(register.token);
-    if (accountId === null) throw new Error('ambient bot register did not yield a valid account id');
+    if (accountId === null)
+      throw new Error('ambient bot register did not yield a valid account id');
     const character = await this.createCharacterWithRetry(register.token, action.class);
     const record: AmbientPlayerBotRecord = {
       botId,
@@ -458,12 +481,17 @@ export class AmbientPlayerBotRuntime {
     await this.connectBot(botId, false);
   }
 
-  private async handleLoginAction(action: Extract<AmbientBotPlanAction, { type: 'loginBot' }>): Promise<void> {
+  private async handleLoginAction(
+    action: Extract<AmbientBotPlanAction, { type: 'loginBot' }>,
+  ): Promise<void> {
     const record = this.game.ambientPlayerBotRecord(action.botId);
     if (record) {
       record.assignedClusterId = action.clusterId;
       record.assignedPlayerCharacterId = action.targetCharacterId;
-      record.plannerState = writeAssignedPlayerName(record.plannerState, action.targetCharacterName ?? '');
+      record.plannerState = writeAssignedPlayerName(
+        record.plannerState,
+        action.targetCharacterName ?? '',
+      );
       record.lastKnownZoneId = action.zoneId;
       this.game.upsertAmbientPlayerBotRecord(record);
       await this.db.saveBot(record);
@@ -499,8 +527,13 @@ export class AmbientPlayerBotRuntime {
         if (!live || !state.self) return;
         live.lastKnownX = typeof state.self.x === 'number' ? state.self.x : live.lastKnownX;
         live.lastKnownZ = typeof state.self.z === 'number' ? state.self.z : live.lastKnownZ;
-        live.lastKnownLevel = typeof state.self.lv === 'number' ? state.self.lv : live.lastKnownLevel;
-        if (typeof state.self.z === 'number') live.lastKnownZoneId = zoneAt(state.self.z).id;
+        live.lastKnownLevel =
+          typeof state.self.lv === 'number' ? state.self.lv : live.lastKnownLevel;
+        if (typeof state.self.z === 'number')
+          live.lastKnownZoneId = zoneAt(
+            typeof state.self.x === 'number' ? state.self.x : 0,
+            state.self.z,
+          ).id;
         live.lastRunnerAtMs = this.nowMs();
         live.runnerState = {
           ...live.runnerState,
@@ -556,7 +589,7 @@ export class AmbientPlayerBotRuntime {
       if (typeof self?.x === 'number') connected.lastKnownX = self.x;
       if (typeof self?.z === 'number') {
         connected.lastKnownZ = self.z;
-        connected.lastKnownZoneId = zoneAt(self.z).id;
+        connected.lastKnownZoneId = zoneAt(self.x, self.z).id;
       }
       if (typeof self?.lv === 'number') connected.lastKnownLevel = self.lv;
       this.game.upsertAmbientPlayerBotRecord(connected);
@@ -565,7 +598,8 @@ export class AmbientPlayerBotRuntime {
       this.runners.delete(botId);
       const failed = this.game.ambientPlayerBotRecord(botId);
       if (failed) {
-        failed.lastRunnerError = error instanceof Error ? error.message : 'ambient bot connect failed';
+        failed.lastRunnerError =
+          error instanceof Error ? error.message : 'ambient bot connect failed';
         failed.lastRunnerAtMs = this.nowMs();
         failed.runnerState = {};
         this.game.upsertAmbientPlayerBotRecord(failed);
@@ -594,7 +628,10 @@ export class AmbientPlayerBotRuntime {
       : new Error('ambient bot character creation failed');
   }
 
-  private async ensureAuthToken(record: AmbientPlayerBotRecord, allowLoginRetry: boolean): Promise<string> {
+  private async ensureAuthToken(
+    record: AmbientPlayerBotRecord,
+    allowLoginRetry: boolean,
+  ): Promise<string> {
     if (record.authToken && (record.authTokenExpiresAtMs ?? 0) > this.nowMs() + 60_000) {
       return record.authToken;
     }
@@ -643,9 +680,10 @@ export class AmbientPlayerBotRuntime {
       try {
         const liveState = entry.client.state();
         if (!liveState.self) continue;
-        const decisionDue = entry.lastBrainResult === null
-          || entry.lastBrainAtMs === null
-          || runtimeAtMs - entry.lastBrainAtMs >= this.brainDecisionIntervalMs;
+        const decisionDue =
+          entry.lastBrainResult === null ||
+          entry.lastBrainAtMs === null ||
+          runtimeAtMs - entry.lastBrainAtMs >= this.brainDecisionIntervalMs;
         if (!decisionDue) {
           this.driveAmbientBotEntry(entry, liveState, entry.lastBrainResult, nowMs);
           continue;
@@ -653,29 +691,36 @@ export class AmbientPlayerBotRuntime {
         const recentEvents = entry.client.drainEvents();
         const brainDriveProgressBeforeBrain = ambientBrainDriveProgressSnapshot(entry.brainState);
         const stuckResetsBeforeBrain = entry.brainState.stuckResets;
-        const result = tickAmbientPlayerBotBrain({
-          bot: record,
-          liveState,
-          nowMs,
-        }, entry.brainState);
+        const result = tickAmbientPlayerBotBrain(
+          {
+            bot: record,
+            liveState,
+            nowMs,
+          },
+          entry.brainState,
+        );
         entry.lastBrainAtMs = runtimeAtMs;
         entry.lastBrainResult = result;
         const latest = this.game.ambientPlayerBotRecord(botId);
         if (!latest) continue;
-        const groupResult = tickAmbientPlayerBotGroupCoordinator({
-          bot: latest,
-          liveState,
-          recentEvents,
-          objectiveId: result.objectiveId,
-          objectiveQuestId: result.objectiveQuestId,
-          objectiveDungeonId: result.objectiveDungeonId,
-          objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 1,
-          directory: this.game.ambientPlayerBotDirectory(),
-          nowMs,
-        }, entry.groupState);
+        const groupResult = tickAmbientPlayerBotGroupCoordinator(
+          {
+            bot: latest,
+            liveState,
+            recentEvents,
+            objectiveId: result.objectiveId,
+            objectiveQuestId: result.objectiveQuestId,
+            objectiveDungeonId: result.objectiveDungeonId,
+            objectiveSuggestedPartySize: result.objectiveSuggestedPartySize ?? 1,
+            directory: this.game.ambientPlayerBotDirectory(),
+            nowMs,
+          },
+          entry.groupState,
+        );
         const groupMode = readRunnerString(groupResult.runnerStatePatch, 'groupMode');
-        const allowSelfMaintenanceBrain = groupResult.pauseBrainDrive
-          && ambientBrainSelfMaintenanceAllowedWhilePartyPaused({
+        const allowSelfMaintenanceBrain =
+          groupResult.pauseBrainDrive &&
+          ambientBrainSelfMaintenanceAllowedWhilePartyPaused({
             result,
             groupMode,
             liveState,
@@ -694,16 +739,20 @@ export class AmbientPlayerBotRuntime {
           });
         }
         for (const command of groupResult.commands) entry.client.command(command);
-        const allowPausedBrainTransitionCommands = groupMode !== 'hold_regroup' && groupMode !== 'wait_party';
-        const brainCommands = groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain
-          ? allowPausedBrainTransitionCommands
-            ? result.commands.filter((command) =>
-                isDungeonTransitionCommand(command)
-                && !groupResult.commands.some((groupCommand) =>
-                  sameDungeonTransitionCommand(groupCommand, command),
-                ))
-            : []
-          : result.commands;
+        const allowPausedBrainTransitionCommands =
+          groupMode !== 'hold_regroup' && groupMode !== 'wait_party';
+        const brainCommands =
+          groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain
+            ? allowPausedBrainTransitionCommands
+              ? result.commands.filter(
+                  (command) =>
+                    isDungeonTransitionCommand(command) &&
+                    !groupResult.commands.some((groupCommand) =>
+                      sameDungeonTransitionCommand(groupCommand, command),
+                    ),
+                )
+              : []
+            : result.commands;
         if (!groupResult.pauseBrainDrive || allowSelfMaintenanceBrain) {
           for (const command of brainCommands) entry.client.command(command);
           this.driveAmbientBotEntry(entry, liveState, result, nowMs);
@@ -719,7 +768,10 @@ export class AmbientPlayerBotRuntime {
             groupResult.travelGoal,
             nowMs,
           );
-          if (groupDrive && (Object.keys(groupDrive.moveInput).length > 0 || groupDrive.facing !== undefined)) {
+          if (
+            groupDrive &&
+            (Object.keys(groupDrive.moveInput).length > 0 || groupDrive.facing !== undefined)
+          ) {
             entry.client.input(groupDrive.moveInput, groupDrive.facing);
           } else {
             entry.client.input({});
@@ -727,16 +779,22 @@ export class AmbientPlayerBotRuntime {
         } else if (groupResult.pauseBrainDrive && !allowSelfMaintenanceBrain) {
           entry.client.input({});
         }
-        const socialResult = tickAmbientPlayerBotSocialShell({
-          bot: latest,
-          liveState,
-          recentEvents,
-          ambientBotNames: new Set(
-            this.game.ambientPlayerBotDirectory().map((candidate) => candidate.characterName).filter(Boolean),
-          ),
-          llmPlan: entry.llmPlan,
-          nowMs,
-        }, entry.socialState);
+        const socialResult = tickAmbientPlayerBotSocialShell(
+          {
+            bot: latest,
+            liveState,
+            recentEvents,
+            ambientBotNames: new Set(
+              this.game
+                .ambientPlayerBotDirectory()
+                .map((candidate) => candidate.characterName)
+                .filter(Boolean),
+            ),
+            llmPlan: entry.llmPlan,
+            nowMs,
+          },
+          entry.socialState,
+        );
         for (const command of socialResult.commands) {
           switch (command.type) {
             case 'chat':
@@ -747,21 +805,27 @@ export class AmbientPlayerBotRuntime {
               break;
           }
         }
-        const partyChatResult = tickAmbientPlayerBotPartyChatShell({
-          bot: latest,
-          liveState,
-          recentEvents,
-          ambientBotNames: new Set(
-            this.game.ambientPlayerBotDirectory().map((candidate) => candidate.characterName).filter(Boolean),
-          ),
-          llmPlan: entry.llmPlan,
-          objectiveId: result.objectiveId,
-          objectiveLabel: result.objectiveLabel,
-          objectiveQuestId: result.objectiveQuestId,
-          objectiveDungeonId: result.objectiveDungeonId,
-          groupMode,
-          nowMs,
-        }, entry.partyChatState);
+        const partyChatResult = tickAmbientPlayerBotPartyChatShell(
+          {
+            bot: latest,
+            liveState,
+            recentEvents,
+            ambientBotNames: new Set(
+              this.game
+                .ambientPlayerBotDirectory()
+                .map((candidate) => candidate.characterName)
+                .filter(Boolean),
+            ),
+            llmPlan: entry.llmPlan,
+            objectiveId: result.objectiveId,
+            objectiveLabel: result.objectiveLabel,
+            objectiveQuestId: result.objectiveQuestId,
+            objectiveDungeonId: result.objectiveDungeonId,
+            groupMode,
+            nowMs,
+          },
+          entry.partyChatState,
+        );
         for (const command of partyChatResult.commands) {
           if (command.type === 'chat') {
             entry.client.command({ cmd: 'chat', text: command.text });
@@ -780,9 +844,9 @@ export class AmbientPlayerBotRuntime {
           stuckResets: entry.brainState.stuckResets,
           ...(entry.llmPlan
             ? {
-              llmPlanMode: entry.llmPlan.socialMode,
-              llmPlanFocus: entry.llmPlan.focusLabel,
-            }
+                llmPlanMode: entry.llmPlan.socialMode,
+                llmPlanFocus: entry.llmPlan.focusLabel,
+              }
             : {}),
           ...groupResult.runnerStatePatch,
           ...partyChatResult.runnerStatePatch,
@@ -796,14 +860,24 @@ export class AmbientPlayerBotRuntime {
         if (!sameRunnerState(latest.runnerState, nextRunnerState)) {
           latest.runnerState = nextRunnerState;
         }
-        if (!sameRunnerState(record.runnerState, latest.runnerState) || !sameJsonRecord(record.socialState, latest.socialState)) {
+        if (
+          !sameRunnerState(record.runnerState, latest.runnerState) ||
+          !sameJsonRecord(record.socialState, latest.socialState)
+        ) {
           this.game.upsertAmbientPlayerBotRecord(latest);
         }
         if (shouldPersist) {
           await this.db.saveBot(latest);
         }
         if (this.controls.allowLlmDecisions) {
-          this.maybeQueuePlanDecision(botId, entry, latest, liveState, result.objectiveId, result.objectiveLabel);
+          this.maybeQueuePlanDecision(
+            botId,
+            entry,
+            latest,
+            liveState,
+            result.objectiveId,
+            result.objectiveLabel,
+          );
           this.maybeQueueSocialDecisions(botId, entry, latest, liveState);
           this.maybeQueuePartyChatDecisions(botId, entry, latest, liveState);
         } else {
@@ -811,7 +885,8 @@ export class AmbientPlayerBotRuntime {
             if (!reply.llmStatus || reply.llmStatus === 'idle') reply.llmStatus = 'disabled';
           }
           for (const utterance of entry.partyChatState.pendingUtterances) {
-            if (!utterance.llmStatus || utterance.llmStatus === 'idle') utterance.llmStatus = 'disabled';
+            if (!utterance.llmStatus || utterance.llmStatus === 'idle')
+              utterance.llmStatus = 'disabled';
           }
         }
       } catch (error) {
@@ -834,14 +909,14 @@ export class AmbientPlayerBotRuntime {
       return;
     }
     const driveResult = result.travelGoal
-      ? continueAmbientPlayerBotTravel(
+      ? (continueAmbientPlayerBotTravel(
           liveState,
           entry.brainState,
           result.objectiveId,
           result.objectiveLabel,
           result.travelGoal,
           nowMs,
-        ) ?? result
+        ) ?? result)
       : result;
     if (hasAmbientDrive(driveResult.moveInput, driveResult.facing)) {
       entry.client.input(driveResult.moveInput, driveResult.facing);
@@ -862,59 +937,64 @@ export class AmbientPlayerBotRuntime {
     if (entry.llmPlanPending) return;
     const nowMs = this.nowMs();
     const objectiveKey = `${objectiveId}|${objectiveLabel}`;
-    const planExpired = !entry.llmPlanRequestedAtMs
-      || entry.llmPlanRequestedAtMs <= nowMs - this.llmConfig.planCooldownMs;
-    const planTtlExpired = entry.llmPlanRequestedAtMs !== null
-      && entry.llmPlan !== null
-      && entry.llmPlanRequestedAtMs + entry.llmPlan.ttlMs <= nowMs;
+    const planExpired =
+      !entry.llmPlanRequestedAtMs ||
+      entry.llmPlanRequestedAtMs <= nowMs - this.llmConfig.planCooldownMs;
+    const planTtlExpired =
+      entry.llmPlanRequestedAtMs !== null &&
+      entry.llmPlan !== null &&
+      entry.llmPlanRequestedAtMs + entry.llmPlan.ttlMs <= nowMs;
     if (
-      entry.llmPlan
-      && !planExpired
-      && !planTtlExpired
-      && entry.llmLastPlanObjectiveKey === objectiveKey
+      entry.llmPlan &&
+      !planExpired &&
+      !planTtlExpired &&
+      entry.llmLastPlanObjectiveKey === objectiveKey
     ) {
       return;
     }
     entry.llmPlanPending = true;
     entry.llmPlanRequestedAtMs = nowMs;
     const priorPlan = entry.llmPlan ? clonePlan(entry.llmPlan) : null;
-    void this.llmCoordinator.decidePlan({
-      bot,
-      liveState,
-      objectiveId,
-      objectiveLabel,
-      priorPlan,
-      nowMs,
-    }).then(async (result) => {
-      const liveEntry = this.runners.get(botId);
-      if (!liveEntry) return;
-      liveEntry.llmPlanPending = false;
-      liveEntry.llmLastPlanObjectiveKey = objectiveKey;
-      if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
-        liveEntry.llmPlan = result.decision;
-      }
-      await this.persistLlmAudit(botId, {
-        llmPlanStatus: result.status,
-        llmPlanReason: result.audit.reason,
-        llmPlanProvider: result.audit.provider,
-        llmPlanLatencyMs: result.audit.latencyMs,
-        llmPlanPrompt: result.audit.promptText,
-        llmPlanRawOutput: result.audit.rawOutput,
-        ...(liveEntry.llmPlan
-          ? {
-            llmPlanMode: liveEntry.llmPlan.socialMode,
-            llmPlanFocus: liveEntry.llmPlan.focusLabel,
-          }
-          : {}),
+    void this.llmCoordinator
+      .decidePlan({
+        bot,
+        liveState,
+        objectiveId,
+        objectiveLabel,
+        priorPlan,
+        nowMs,
+      })
+      .then(async (result) => {
+        const liveEntry = this.runners.get(botId);
+        if (!liveEntry) return;
+        liveEntry.llmPlanPending = false;
+        liveEntry.llmLastPlanObjectiveKey = objectiveKey;
+        if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
+          liveEntry.llmPlan = result.decision;
+        }
+        await this.persistLlmAudit(botId, {
+          llmPlanStatus: result.status,
+          llmPlanReason: result.audit.reason,
+          llmPlanProvider: result.audit.provider,
+          llmPlanLatencyMs: result.audit.latencyMs,
+          llmPlanPrompt: result.audit.promptText,
+          llmPlanRawOutput: result.audit.rawOutput,
+          ...(liveEntry.llmPlan
+            ? {
+                llmPlanMode: liveEntry.llmPlan.socialMode,
+                llmPlanFocus: liveEntry.llmPlan.focusLabel,
+              }
+            : {}),
+        });
+      })
+      .catch(async (error) => {
+        const liveEntry = this.runners.get(botId);
+        if (liveEntry) liveEntry.llmPlanPending = false;
+        await this.persistLlmAudit(botId, {
+          llmPlanStatus: 'error',
+          llmPlanReason: error instanceof Error ? error.message : String(error),
+        });
       });
-    }).catch(async (error) => {
-      const liveEntry = this.runners.get(botId);
-      if (liveEntry) liveEntry.llmPlanPending = false;
-      await this.persistLlmAudit(botId, {
-        llmPlanStatus: 'error',
-        llmPlanReason: error instanceof Error ? error.message : String(error),
-      });
-    });
   }
 
   private maybeQueueSocialDecisions(
@@ -936,50 +1016,59 @@ export class AmbientPlayerBotRuntime {
       reply.llmRequestedAtMs = nowMs;
       entry.llmLastSocialAtByName[reply.toName] = nowMs;
       const snapshot = clonePendingReply(reply);
-      void this.llmCoordinator.decideSocial({
-        bot,
-        liveState,
-        pendingReply: snapshot,
-        plan: entry.llmPlan ? clonePlan(entry.llmPlan) : null,
-        nowMs,
-      }).then(async (result) => {
-        const liveEntry = this.runners.get(botId);
-        if (!liveEntry) return;
-        const pending = liveEntry.socialState.pendingReplies.find(
-          (candidate) => candidate.toName === snapshot.toName && candidate.revision === snapshot.revision,
-        );
-        if (pending) {
-          pending.llmStatus = result.status === 'accepted' || result.status === 'cache_hit'
-            ? 'ready'
-            : result.status;
-          if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
-            pending.llmReplyText = result.decision.replyText;
-            pending.llmFriendAction = result.decision.friendAction;
-            pending.llmPresenceEmote = result.decision.presenceEmote;
-            pending.llmMemoryTags = [...result.decision.memoryTags];
+      void this.llmCoordinator
+        .decideSocial({
+          bot,
+          liveState,
+          pendingReply: snapshot,
+          plan: entry.llmPlan ? clonePlan(entry.llmPlan) : null,
+          nowMs,
+        })
+        .then(async (result) => {
+          const liveEntry = this.runners.get(botId);
+          if (!liveEntry) return;
+          const pending = liveEntry.socialState.pendingReplies.find(
+            (candidate) =>
+              candidate.toName === snapshot.toName && candidate.revision === snapshot.revision,
+          );
+          if (pending) {
+            pending.llmStatus =
+              result.status === 'accepted' || result.status === 'cache_hit'
+                ? 'ready'
+                : result.status;
+            if (
+              (result.status === 'accepted' || result.status === 'cache_hit') &&
+              result.decision
+            ) {
+              pending.llmReplyText = result.decision.replyText;
+              pending.llmFriendAction = result.decision.friendAction;
+              pending.llmPresenceEmote = result.decision.presenceEmote;
+              pending.llmMemoryTags = [...result.decision.memoryTags];
+            }
           }
-        }
-        await this.persistLlmAudit(botId, {
-          llmSocialStatus: result.status,
-          llmSocialReason: result.audit.reason,
-          llmSocialProvider: result.audit.provider,
-          llmSocialLatencyMs: result.audit.latencyMs,
-          llmSocialTarget: snapshot.toName,
-          llmSocialPrompt: result.audit.promptText,
-          llmSocialRawOutput: result.audit.rawOutput,
+          await this.persistLlmAudit(botId, {
+            llmSocialStatus: result.status,
+            llmSocialReason: result.audit.reason,
+            llmSocialProvider: result.audit.provider,
+            llmSocialLatencyMs: result.audit.latencyMs,
+            llmSocialTarget: snapshot.toName,
+            llmSocialPrompt: result.audit.promptText,
+            llmSocialRawOutput: result.audit.rawOutput,
+          });
+        })
+        .catch(async (error) => {
+          const liveEntry = this.runners.get(botId);
+          const pending = liveEntry?.socialState.pendingReplies.find(
+            (candidate) =>
+              candidate.toName === snapshot.toName && candidate.revision === snapshot.revision,
+          );
+          if (pending) pending.llmStatus = 'error';
+          await this.persistLlmAudit(botId, {
+            llmSocialStatus: 'error',
+            llmSocialReason: error instanceof Error ? error.message : String(error),
+            llmSocialTarget: snapshot.toName,
+          });
         });
-      }).catch(async (error) => {
-        const liveEntry = this.runners.get(botId);
-        const pending = liveEntry?.socialState.pendingReplies.find(
-          (candidate) => candidate.toName === snapshot.toName && candidate.revision === snapshot.revision,
-        );
-        if (pending) pending.llmStatus = 'error';
-        await this.persistLlmAudit(botId, {
-          llmSocialStatus: 'error',
-          llmSocialReason: error instanceof Error ? error.message : String(error),
-          llmSocialTarget: snapshot.toName,
-        });
-      });
     }
   }
 
@@ -994,8 +1083,8 @@ export class AmbientPlayerBotRuntime {
     for (const utterance of entry.partyChatState.pendingUtterances) {
       if (utterance.llmStatus && utterance.llmStatus !== 'idle') continue;
       if (
-        entry.llmLastPartyAtMs !== null
-        && entry.llmLastPartyAtMs > nowMs - this.llmConfig.socialCooldownMs
+        entry.llmLastPartyAtMs !== null &&
+        entry.llmLastPartyAtMs > nowMs - this.llmConfig.socialCooldownMs
       ) {
         utterance.llmStatus = 'disabled';
         continue;
@@ -1004,53 +1093,59 @@ export class AmbientPlayerBotRuntime {
       utterance.llmRequestedAtMs = nowMs;
       entry.llmLastPartyAtMs = nowMs;
       const snapshot = clonePendingPartyUtterance(utterance);
-      void this.llmCoordinator.decidePartyChat({
-        bot,
-        liveState,
-        pendingUtterance: snapshot,
-        nowMs,
-      }).then(async (result) => {
-        const liveEntry = this.runners.get(botId);
-        if (!liveEntry) return;
-        const pending = liveEntry.partyChatState.pendingUtterances.find(
-          (candidate) => candidate.mode === snapshot.mode && candidate.revision === snapshot.revision,
-        );
-        if (pending) {
-          pending.llmStatus = result.status === 'accepted' || result.status === 'cache_hit'
-            ? 'ready'
-            : result.status;
-          if ((result.status === 'accepted' || result.status === 'cache_hit') && result.decision) {
-            pending.llmLineText = result.decision.lineText;
+      void this.llmCoordinator
+        .decidePartyChat({
+          bot,
+          liveState,
+          pendingUtterance: snapshot,
+          nowMs,
+        })
+        .then(async (result) => {
+          const liveEntry = this.runners.get(botId);
+          if (!liveEntry) return;
+          const pending = liveEntry.partyChatState.pendingUtterances.find(
+            (candidate) =>
+              candidate.mode === snapshot.mode && candidate.revision === snapshot.revision,
+          );
+          if (pending) {
+            pending.llmStatus =
+              result.status === 'accepted' || result.status === 'cache_hit'
+                ? 'ready'
+                : result.status;
+            if (
+              (result.status === 'accepted' || result.status === 'cache_hit') &&
+              result.decision
+            ) {
+              pending.llmLineText = result.decision.lineText;
+            }
           }
-        }
-        await this.persistLlmAudit(botId, {
-          llmPartyStatus: result.status,
-          llmPartyReason: result.audit.reason,
-          llmPartyProvider: result.audit.provider,
-          llmPartyLatencyMs: result.audit.latencyMs,
-          llmPartyMode: snapshot.mode,
-          llmPartyPrompt: result.audit.promptText,
-          llmPartyRawOutput: result.audit.rawOutput,
+          await this.persistLlmAudit(botId, {
+            llmPartyStatus: result.status,
+            llmPartyReason: result.audit.reason,
+            llmPartyProvider: result.audit.provider,
+            llmPartyLatencyMs: result.audit.latencyMs,
+            llmPartyMode: snapshot.mode,
+            llmPartyPrompt: result.audit.promptText,
+            llmPartyRawOutput: result.audit.rawOutput,
+          });
+        })
+        .catch(async (error) => {
+          const liveEntry = this.runners.get(botId);
+          const pending = liveEntry?.partyChatState.pendingUtterances.find(
+            (candidate) =>
+              candidate.mode === snapshot.mode && candidate.revision === snapshot.revision,
+          );
+          if (pending) pending.llmStatus = 'error';
+          await this.persistLlmAudit(botId, {
+            llmPartyStatus: 'error',
+            llmPartyReason: error instanceof Error ? error.message : String(error),
+            llmPartyMode: snapshot.mode,
+          });
         });
-      }).catch(async (error) => {
-        const liveEntry = this.runners.get(botId);
-        const pending = liveEntry?.partyChatState.pendingUtterances.find(
-          (candidate) => candidate.mode === snapshot.mode && candidate.revision === snapshot.revision,
-        );
-        if (pending) pending.llmStatus = 'error';
-        await this.persistLlmAudit(botId, {
-          llmPartyStatus: 'error',
-          llmPartyReason: error instanceof Error ? error.message : String(error),
-          llmPartyMode: snapshot.mode,
-        });
-      });
     }
   }
 
-  private async persistLlmAudit(
-    botId: string,
-    patch: Record<string, unknown>,
-  ): Promise<void> {
+  private async persistLlmAudit(botId: string, patch: Record<string, unknown>): Promise<void> {
     const record = this.game.ambientPlayerBotRecord(botId);
     if (!record) return;
     record.runnerState = {
@@ -1108,15 +1203,10 @@ function sameDungeonTransitionCommand(
 ): boolean {
   if (!isDungeonTransitionCommand(current) || !isDungeonTransitionCommand(next)) return false;
   if (current.cmd !== next.cmd) return false;
-  return current.cmd === 'enter_dungeon'
-    ? current.dungeon === next.dungeon
-    : true;
+  return current.cmd === 'enter_dungeon' ? current.dungeon === next.dungeon : true;
 }
 
-function sameRunnerState(
-  current: Record<string, unknown>,
-  next: Record<string, unknown>,
-): boolean {
+function sameRunnerState(current: Record<string, unknown>, next: Record<string, unknown>): boolean {
   const currentKeys = Object.keys(current);
   const nextKeys = Object.keys(next);
   if (currentKeys.length !== nextKeys.length) return false;
@@ -1126,10 +1216,7 @@ function sameRunnerState(
   return true;
 }
 
-function sameJsonRecord(
-  current: Record<string, unknown>,
-  next: Record<string, unknown>,
-): boolean {
+function sameJsonRecord(current: Record<string, unknown>, next: Record<string, unknown>): boolean {
   return JSON.stringify(current) === JSON.stringify(next);
 }
 
@@ -1159,10 +1246,7 @@ function clonePendingPartyUtterance(
   };
 }
 
-function readRunnerString(
-  value: Record<string, unknown> | undefined,
-  key: string,
-): string {
+function readRunnerString(value: Record<string, unknown> | undefined, key: string): string {
   const field = value?.[key];
   return typeof field === 'string' ? field : '';
 }
@@ -1186,9 +1270,11 @@ function resetRecordForAdminLogout(
 }
 
 function shouldResetForAdminLogout(record: AmbientPlayerBotRecord): boolean {
-  return record.lifecycleStatus === 'online'
-    || record.lifecycleStatus === 'reserved'
-    || record.assignedClusterId !== null
-    || record.assignedPlayerCharacterId !== null
-    || Object.keys(record.runnerState).length > 0;
+  return (
+    record.lifecycleStatus === 'online' ||
+    record.lifecycleStatus === 'reserved' ||
+    record.assignedClusterId !== null ||
+    record.assignedPlayerCharacterId !== null ||
+    Object.keys(record.runnerState).length > 0
+  );
 }

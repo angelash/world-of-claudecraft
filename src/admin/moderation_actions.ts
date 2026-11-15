@@ -139,6 +139,25 @@ export function liftChatMute(accountId: number, note: string): Built {
   };
 }
 
+// Reset an account's chat strikes to zero. Audited server-side (an account moderation
+// action row records who and why), so it requires a reason like every other audited
+// action rather than firing on a bare click.
+export function resetChatStrikes(accountId: number, note: string): Built {
+  if (!note) return { errorKey: 'alert.noteRequired' };
+  return {
+    pending: {
+      title: t('dialog.confirmResetChatStrikes'),
+      rows: [
+        accountRow(accountId),
+        { label: t('dialog.action'), value: t('dialog.actionResetChatStrikes') },
+        reasonRow(note),
+      ],
+      endpoint: `/admin/api/moderation/accounts/${accountId}/reset-strikes`,
+      body: { reason: note },
+    },
+  };
+}
+
 // A free-form moderator note. Non-punitive and additive only: it posts to the note
 // endpoint, which appends to the audit log without changing account state. The note
 // text rides in `reason` for parity with the other actions; the inline form submits
@@ -208,6 +227,26 @@ export function unbanAccount(accountId: number, note: string): Built {
         reasonRow(note),
       ],
       endpoint: `/admin/api/moderation/accounts/${accountId}/unban`,
+      body: { reason: note },
+    },
+  };
+}
+
+// Reverse a player's own self-deactivation (POST .../accounts/:id/reactivate). Audited
+// server-side under the 'reactivate' action, so it requires a reason like the other
+// account actions. It only clears the deactivation lock; a ban or suspension on the
+// same account stays in force.
+export function reactivateAccount(accountId: number, note: string): Built {
+  if (!note) return { errorKey: 'alert.noteRequired' };
+  return {
+    pending: {
+      title: t('dialog.confirmReactivation'),
+      rows: [
+        accountRow(accountId),
+        { label: t('dialog.action'), value: t('dialog.actionReactivate') },
+        reasonRow(note),
+      ],
+      endpoint: `/admin/api/moderation/accounts/${accountId}/reactivate`,
       body: { reason: note },
     },
   };
@@ -307,6 +346,30 @@ export function banIp(
     endpoint: '/admin/api/blocked-ips',
     body: { ip, reason: note, expiresAt: blockExpiryIso(duration) },
     danger: true,
+  };
+}
+
+// Kick a live player from the Online players page (POST .../accounts/:id/kick,
+// server/admin_kick_api.ts). The dashboard twin of the in-game /kick: audited
+// under the same 'kick' action, so it requires a reason like every other audited
+// action, and danger because it drops the player's session on the spot. The
+// target is the ACCOUNT (a kick tears down every session on it); the character
+// name is what the operator clicked, carried as a confirm row only.
+export function kickPlayer(accountId: number, characterName: string, note: string): Built {
+  if (!note) return { errorKey: 'alert.noteRequired' };
+  return {
+    pending: {
+      title: t('dialog.confirmKick'),
+      rows: [
+        { label: t('dialog.character'), value: characterName },
+        accountRow(accountId),
+        { label: t('dialog.action'), value: t('dialog.actionKick') },
+        reasonRow(note),
+      ],
+      endpoint: `/admin/api/moderation/accounts/${accountId}/kick`,
+      body: { reason: note },
+      danger: true,
+    },
   };
 }
 

@@ -6,15 +6,24 @@
 // party instances reuse the seam with NO core change. It also pins the
 // resourceKind -> resClass discriminator
 // (the old inline `rage : energy : mana` ternary + the `none` case), the
-// present/hidden gate, the absorbBarView resolution, same-input-same-output
-// determinism, the ClientWorld-vs-Sim parity assertion, and that the
-// core carries NO hardcoded element id / single-instance assumption and is
-// DOM-free + i18n-free (the painter owns the DOM and t()).
+// present/hidden gate, the absorbBarView resolution + its formatNumber-routed
+// absorb-total suffix, same-input-same-output determinism, the ClientWorld-vs-Sim
+// parity assertion, and that the core carries NO hardcoded element id /
+// single-instance assumption, is DOM-free, and stays translation-free (no
+// t()/tEntity; the painter owns the DOM and player-facing strings).
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Aura } from '../src/sim/types';
-import { type UnitFrameDescriptor, unitFrameView, unitResourceClass } from '../src/ui/unit_frame';
+import {
+  absorbSegmentTransform,
+  newUnitFrameBuffer,
+  type UnitFrameDescriptor,
+  unitFrameView,
+  unitFrameViewInto,
+  unitResourceClass,
+} from '../src/ui/unit_frame';
+import { assertAllocationStable } from './util/alloc_probe';
 
 function shield(value: number): Aura {
   return {
@@ -49,6 +58,17 @@ function playerDescriptor(over: Partial<UnitFrameDescriptor> = {}): UnitFrameDes
   };
 }
 
+describe('unitFrameView: allocation budget', () => {
+  it('fills one caller-owned buffer across hot-frame updates', () => {
+    const descriptor = playerDescriptor();
+    const buffer = newUnitFrameBuffer();
+
+    expect(() =>
+      assertAllocationStable(() => unitFrameViewInto(buffer, descriptor), 64, 'unit frame view'),
+    ).not.toThrow();
+  });
+});
+
 describe('unitResourceClass: the power-type discriminator (folds the inline ternary)', () => {
   it('maps each power type to its class', () => {
     expect(unitResourceClass('rage')).toBe('rage');
@@ -75,8 +95,11 @@ describe('unitFrameView: the present / hidden gate', () => {
       resText: '',
       levelText: null,
       name: '',
+      pvpRisk: false,
       titlePre: '',
       titlePost: '',
+      cheaterTag: '',
+      borderSlug: '',
       portraitKey: '',
       absorbFrac: 0,
       absorbStartFrac: 0,
@@ -84,7 +107,26 @@ describe('unitFrameView: the present / hidden gate', () => {
       absorbOvershield: false,
       dead: false,
       outOfRange: false,
+      raidMarker: null,
     });
+  });
+});
+
+describe('unitFrameView: the raid marker (target frame)', () => {
+  it('passes the party mark index through, null for an unmarked unit', () => {
+    expect(unitFrameView(playerDescriptor({ raidMarker: 0 })).raidMarker).toBe(0);
+    expect(unitFrameView(playerDescriptor({ raidMarker: 7 })).raidMarker).toBe(7);
+    expect(unitFrameView(playerDescriptor({ raidMarker: null })).raidMarker).toBeNull();
+  });
+
+  it('an instance without a marker surface (descriptor field absent) reads unmarked', () => {
+    expect(unitFrameView(playerDescriptor()).raidMarker).toBeNull();
+  });
+
+  it('the buffered path fills the same value and blanks it when the unit is absent', () => {
+    const buffer = newUnitFrameBuffer();
+    expect(unitFrameViewInto(buffer, playerDescriptor({ raidMarker: 3 })).raidMarker).toBe(3);
+    expect(unitFrameViewInto(buffer, playerDescriptor({ present: false })).raidMarker).toBeNull();
   });
 });
 
@@ -216,21 +258,120 @@ describe('unitFrameView: determinism + ClientWorld-vs-Sim parity', () => {
   });
 });
 
-describe('unit_frame core stays DOM-free, i18n-free, and id-free (no single-instance assumption)', () => {
+describe('unit_frame core stays DOM-free, translation-free, and id-free (no single-instance assumption)', () => {
   const src = readFileSync(new URL('../src/ui/unit_frame.ts', import.meta.url), 'utf8');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-  it('imports no i18n runtime and calls no t()/tEntity/formatNumber', () => {
-    expect(code).not.toContain("from './i18n'");
+  // The core imports ONLY formatNumber from the i18n runtime, to route the
+  // absorb-shield total it derives internally through locale-correct digits
+  // (see the file header + unitFrameView "absorb-total text" tests below); it
+  // must never call t()/tEntity, which would mean the core is picking
+  // translated STRINGS rather than pass-through/derived numbers.
+  it('imports only formatNumber from i18n and calls no t()/tEntity', () => {
+    expect(code).toContain("from './i18n'");
+    expect(code).toMatch(/\bformatNumber\(/);
     expect(code).not.toMatch(/\bt\(/);
     expect(code).not.toMatch(/\btEntity\(/);
-    expect(code).not.toMatch(/\bformatNumber\(/);
   });
 
   it('references no element id selector or #player-frame (no hardcoded instance)', () => {
     expect(code).not.toMatch(/#pf-/);
     expect(code).not.toMatch(/player-frame/);
     expect(code).not.toMatch(/querySelector|getElementById/);
+  });
+});
+
+describe('unitFrameView / unitFrameViewInto: absorb-total text runs through formatNumber', () => {
+  it('appends the shield total to hpText with useGrouping:false digits', () => {
+    const v = unitFrameView(
+      playerDescriptor({
+        hpText: '300 / 600',
+        showAbsorbText: true,
+        absorb: { hp: 300, maxHp: 600, auras: [shield(60)] },
+      }),
+    );
+    expect(v.hpText).toBe('300 / 600 (60)');
+  });
+
+  it('keeps a four-digit shield total ungrouped (no thousands separator)', () => {
+    const v = unitFrameView(
+      playerDescriptor({
+        hpText: '300 / 6000',
+        showAbsorbText: true,
+        absorb: { hp: 300, maxHp: 6000, auras: [shield(1234)] },
+      }),
+    );
+    expect(v.hpText).toBe('300 / 6000 (1234)');
+  });
+
+  it('omits the suffix when showAbsorbText is off even with an active shield', () => {
+    const v = unitFrameView(
+      playerDescriptor({
+        hpText: '300 / 600',
+        showAbsorbText: false,
+        absorb: { hp: 300, maxHp: 600, auras: [shield(60)] },
+      }),
+    );
+    expect(v.hpText).toBe('300 / 600');
+  });
+
+  it('omits the suffix entirely when there is no active shield', () => {
+    const v = unitFrameView(
+      playerDescriptor({ hpText: '300 / 600', showAbsorbText: true, absorb: null }),
+    );
+    expect(v.hpText).toBe('300 / 600');
+  });
+
+  it('matches between the allocating unitFrameView and the buffer-filling unitFrameViewInto', () => {
+    const descriptor = playerDescriptor({
+      hpText: '300 / 6000',
+      showAbsorbText: true,
+      absorb: { hp: 300, maxHp: 6000, auras: [shield(1234)] },
+    });
+    const buffer = newUnitFrameBuffer();
+    const fromAllocating = unitFrameView(descriptor);
+    const fromBuffer = unitFrameViewInto(buffer, descriptor);
+    expect(fromBuffer.hpText).toBe(fromAllocating.hpText);
+    expect(fromBuffer.hpText).toBe('300 / 6000 (1234)');
+  });
+});
+
+describe('unitFrameView: the border slug pass-through (Book of Deeds)', () => {
+  it('passes the call-site-resolved slug through verbatim', () => {
+    // The core never touches the deed catalog: the call site resolves the id to a
+    // slug (deedBorderSlug) exactly as it pre-localizes the title decoration.
+    expect(unitFrameView(playerDescriptor({ borderSlug: 'reliquary_gilt' })).borderSlug).toBe(
+      'reliquary_gilt',
+    );
+    expect(unitFrameView(playerDescriptor({ borderSlug: '' })).borderSlug).toBe('');
+  });
+
+  it('defaults to empty when the instance passes no border field (party, tot)', () => {
+    expect(unitFrameView(playerDescriptor()).borderSlug).toBe('');
+  });
+
+  it('carries the slug through BOTH unitFrameViewInto branches (no stale value)', () => {
+    // The live-fill branch and the !present reset are separate assignment blocks:
+    // a field added to only one of them leaves the buffer holding the last unit's
+    // slug, which is how a hidden-then-reshown frame would inherit a stranger's ring.
+    const buffer = newUnitFrameBuffer();
+    expect(buffer.view.borderSlug).toBe('');
+    expect(unitFrameViewInto(buffer, playerDescriptor({ borderSlug: 'deepward' })).borderSlug).toBe(
+      'deepward',
+    );
+    expect(unitFrameViewInto(buffer, playerDescriptor({ present: false })).borderSlug).toBe('');
+    expect(
+      unitFrameViewInto(buffer, playerDescriptor({ borderSlug: 'curators_gilt' })).borderSlug,
+    ).toBe('curators_gilt');
+    expect(unitFrameViewInto(buffer, playerDescriptor()).borderSlug).toBe('');
+  });
+
+  it('stays allocation-stable with a slug on the hot path (a plain string assign)', () => {
+    const descriptor = playerDescriptor({ borderSlug: 'prestige_laurels' });
+    const buffer = newUnitFrameBuffer();
+    expect(() =>
+      assertAllocationStable(() => unitFrameViewInto(buffer, descriptor), 64, 'unit frame border'),
+    ).not.toThrow();
   });
 });
 
@@ -249,5 +390,36 @@ describe('unitFrameView: the title decoration pass-through (Book of Deeds)', () 
     const v = unitFrameView(playerDescriptor());
     expect(v.titlePre).toBe('');
     expect(v.titlePost).toBe('');
+  });
+});
+
+describe('absorbSegmentTransform: the shield hatch covers the shield, never the health', () => {
+  it('collapses to zero width with no shield', () => {
+    // The review finding: a healthy unit painted the hatch across the whole health
+    // bar, so the fill read as striped instead of the library health gradient.
+    const v = unitFrameView(playerDescriptor({ absorb: { hp: 600, maxHp: 600, auras: [] } }));
+    expect(v.absorbSizeFrac).toBe(0);
+    expect(
+      absorbSegmentTransform(v.absorbStartFrac, v.absorbSizeFrac, `scaleX(${v.absorbSizeFrac})`),
+    ).toBe('scaleX(0)');
+  });
+
+  it('seats a partial shield at the health edge and sizes it to the shield alone', () => {
+    const v = unitFrameView(
+      playerDescriptor({ absorb: { hp: 300, maxHp: 600, auras: [shield(60)] } }),
+    );
+    expect(
+      absorbSegmentTransform(v.absorbStartFrac, v.absorbSizeFrac, `scaleX(${v.absorbSizeFrac})`),
+    ).toBe('translateX(50%) scaleX(0.1)');
+  });
+
+  it('pins an overshield against the bar right edge', () => {
+    const v = unitFrameView(
+      playerDescriptor({ absorb: { hp: 590, maxHp: 600, auras: [shield(50)] } }),
+    );
+    expect(v.absorbOvershield).toBe(true);
+    expect(
+      absorbSegmentTransform(v.absorbStartFrac, v.absorbSizeFrac, `scaleX(${v.absorbSizeFrac})`),
+    ).toBe('translateX(91.66666666666666%) scaleX(0.08333333333333333)');
   });
 });

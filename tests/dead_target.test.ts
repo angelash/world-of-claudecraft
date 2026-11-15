@@ -9,6 +9,11 @@ import { deadTargetSelectable } from '../src/sim/dead_target';
 import type { SimContext } from '../src/sim/sim_context';
 import { Targeting } from '../src/sim/targeting';
 import type { Entity } from '../src/sim/types';
+import {
+  UNMAPPED_FAMILY,
+  UNMAPPED_FAMILY_2,
+  withRetaggedTemplates,
+} from './helpers/unmapped_family';
 
 function ent(partial: Partial<Entity> & { id: number }): Entity {
   return {
@@ -28,8 +33,16 @@ function ent(partial: Partial<Entity> & { id: number }): Entity {
 }
 
 describe('deadTargetSelectable', () => {
-  it('allows a lootable corpse regardless of owner', () => {
-    expect(deadTargetSelectable(ent({ id: 10, dead: true, lootable: true }), 1)).toBe(true);
+  it('allows a lootable corpse inside an active corpse window', () => {
+    expect(
+      deadTargetSelectable(ent({ id: 10, dead: true, corpseTimer: 12, lootable: true }), 1),
+    ).toBe(true);
+  });
+
+  it('rejects a decayed corpse even if stale lootability is still set', () => {
+    expect(
+      deadTargetSelectable(ent({ id: 10, dead: true, corpseTimer: 0, lootable: true }), 1),
+    ).toBe(false);
   });
 
   it("allows the viewer's own pet", () => {
@@ -104,6 +117,7 @@ describe('Targeting.targetEntity with a dead pet', () => {
       kind: 'mob',
       templateId: 'kobold_miner',
       dead: true,
+      corpseTimer: 12,
       lootable: true,
       tappedById: 2,
       lootFfaTimer: 30,
@@ -122,40 +136,62 @@ describe('Targeting.targetEntity with a dead pet', () => {
   it('stops selecting a stranger-tapped corpse whose every family is unmapped (#2513)', () => {
     // The one derived behavior change #2513 has outside the harvest itself:
     // Targeting gates a lootable corpse on corpseInteractionAvailability, whose
-    // `harvestable` term now reads mapped families. A fen_troll corpse tapped by
-    // someone else was selectable purely because the harvest half said yes, and
-    // that harvest can no longer happen, so there is nothing left to select it
-    // for. The claim is deliberately UNSPENT here, which is what made it
-    // selectable before.
-    const { ctx, entities } = makeCtx();
-    const player = ent({ id: 1, kind: 'player', dead: false, hostile: false });
-    // A FACTORY, not one spread object: sharing it would alias `loot` (and its
-    // slot array) across both corpses, so a future assertion that touched loot
-    // would silently be reading the other fixture.
-    const stranger = () => ({
-      kind: 'mob' as const,
-      dead: true,
-      lootable: true,
-      tappedById: 2,
-      lootFfaTimer: 30,
-      loot: { copper: 0, items: [{ itemId: 'worn_sword', count: 1 }] },
-      harvestClaimedBy: null,
+    // `harvestable` term now reads mapped families. A corpse tapped by someone
+    // else and carrying only unmapped families is selectable purely because
+    // the harvest half said yes, and that harvest can no longer happen, so
+    // there is nothing left to select it for. The claim is deliberately
+    // UNSPENT here, which is what made it selectable before. fen_troll (claw,
+    // tusk) was the shipped fixture; both are mapped now (#2905), and Phase
+    // 11m mapped gills and horn after them, so this retags two real,
+    // otherwise-untagged templates with the synthetic never-mapped families
+    // (tests/helpers/unmapped_family.ts) for the duration of the case,
+    // restored in a finally: warlock_imp all-unmapped, warlock_voidwalker
+    // mixed.
+    const retags = {
+      warlock_imp: [UNMAPPED_FAMILY, UNMAPPED_FAMILY_2],
+      warlock_voidwalker: ['hide', UNMAPPED_FAMILY],
+    };
+    withRetaggedTemplates(retags, () => {
+      const { ctx, entities } = makeCtx();
+      const player = ent({ id: 1, kind: 'player', dead: false, hostile: false });
+      // A FACTORY, not one spread object: sharing it would alias `loot` (and its
+      // slot array) across both corpses, so a future assertion that touched loot
+      // would silently be reading the other fixture.
+      const stranger = () => ({
+        kind: 'mob' as const,
+        dead: true,
+        corpseTimer: 12,
+        lootable: true,
+        tappedById: 2,
+        lootFfaTimer: 30,
+        loot: { copper: 0, items: [{ itemId: 'worn_sword', count: 1 }] },
+        harvestClaimedBy: null,
+      });
+      const troll = ent({ id: 32, templateId: 'warlock_imp', ...stranger() });
+      // The discriminator: the mixed fixture carries an unmapped family beside
+      // a mapped one, so its harvest half still says yes and its corpse is
+      // still selectable. It is the yield table talking, not the tag count:
+      // both fixtures carry exactly two tags.
+      const boar = ent({ id: 33, templateId: 'warlock_voidwalker', ...stranger() });
+      // ...and on real content, where every shipped tag maps since Phase 11m,
+      // sethrael_palecoil (the old mixed exemplar) is selectable for the same
+      // reason.
+      const palecoil = ent({ id: 34, templateId: 'sethrael_palecoil', ...stranger() });
+      entities.set(1, player);
+      entities.set(32, troll);
+      entities.set(33, boar);
+      entities.set(34, palecoil);
+      const targeting = new Targeting(ctx);
+
+      targeting.targetEntity(32, 1);
+      expect(player.targetId).toBeNull();
+
+      targeting.targetEntity(33, 1);
+      expect(player.targetId).toBe(33);
+
+      targeting.targetEntity(34, 1);
+      expect(player.targetId).toBe(34);
     });
-    const troll = ent({ id: 32, templateId: 'fen_troll', ...stranger() });
-    // The discriminator on the identical fixture: wild_boar carries the same
-    // unmapped `tusk` beside two mapped families, so its harvest half still
-    // says yes and its corpse is still selectable.
-    const boar = ent({ id: 33, templateId: 'wild_boar', ...stranger() });
-    entities.set(1, player);
-    entities.set(32, troll);
-    entities.set(33, boar);
-    const targeting = new Targeting(ctx);
-
-    targeting.targetEntity(32, 1);
-    expect(player.targetId).toBeNull();
-
-    targeting.targetEntity(33, 1);
-    expect(player.targetId).toBe(33);
   });
 
   it('selects a lootable corpse when the viewer owns the shared loot rights', () => {
@@ -166,6 +202,7 @@ describe('Targeting.targetEntity with a dead pet', () => {
       kind: 'mob',
       templateId: 'kobold_miner',
       dead: true,
+      corpseTimer: 12,
       lootable: true,
       tappedById: 1,
       lootFfaTimer: 30,
@@ -186,6 +223,9 @@ describe('ClientWorld.targetEntity with a dead player', () => {
   it('mirrors the dead-player selection optimistically before the server reply', () => {
     const viewer = ent({ id: 1, kind: 'player', dead: false, hostile: false });
     const fallen = ent({ id: 5, kind: 'player', dead: true, hostile: false });
+    // Kept bespoke on purpose (issue #2088): a hand-picked field subset plus a
+    // `cmd` spy. tests/helpers/bare_client.ts bareClient() is the default for
+    // a new suite that just needs a bare ClientWorld.
     const client = Object.create(ClientWorld.prototype) as {
       playerId: number;
       entities: Map<number, Entity>;
@@ -198,12 +238,15 @@ describe('ClientWorld.targetEntity with a dead player', () => {
         [viewer.id, viewer],
         [fallen.id, fallen],
       ]),
+      // The 'target' command draws its seq from the input seq counter
+      // (src/net/target_echo.ts), so the fixture carries the counter's default.
+      inputSeq: 0,
       cmd: vi.fn(),
     });
 
     client.targetEntity(fallen.id);
 
     expect(viewer.targetId).toBe(fallen.id);
-    expect(client.cmd).toHaveBeenCalledWith({ cmd: 'target', id: fallen.id });
+    expect(client.cmd).toHaveBeenCalledWith({ cmd: 'target', id: fallen.id, seq: 1 });
   });
 });

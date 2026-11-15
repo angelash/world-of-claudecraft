@@ -15,6 +15,7 @@ import {
 } from '../src/sim/combat/auras';
 import { MOBS } from '../src/sim/data';
 import { createMob } from '../src/sim/entity';
+import { manaRegenPer2s } from '../src/sim/mana_regen';
 import type { PlayerMeta } from '../src/sim/sim';
 import { Sim } from '../src/sim/sim';
 import type { Aura, Entity } from '../src/sim/types';
@@ -118,6 +119,26 @@ describe('auras: updateAuras DoT tick', () => {
     expect(mob.hp).toBeLessThan(hp0);
   });
 
+  it('ramps an authored periodic DoT after each resolved tick and respects its stack cap', () => {
+    const sim = makeSim();
+    const mob = spawnMob(sim, 1000);
+    const dot = aura('dot', 10, {
+      tickInterval: DT,
+      stacks: 1,
+      maxTickStacks: 3,
+      school: 'fire',
+      finalDamage: true,
+    });
+    mob.auras.push(dot);
+
+    updateAuras(sim.ctx, mob);
+    expect(dot).toMatchObject({ stacks: 2, value: 20 });
+    updateAuras(sim.ctx, mob);
+    expect(dot).toMatchObject({ stacks: 3, value: 30 });
+    updateAuras(sim.ctx, mob);
+    expect(dot).toMatchObject({ stacks: 3, value: 30 });
+  });
+
   it('the post-DoT e.dead guard fires once a DoT tick kills the carrier', () => {
     const sim = makeSim();
     const mob = spawnMob(sim, 50);
@@ -189,10 +210,86 @@ describe('auras: updateAuras expiry / HoT / top guard', () => {
     expect(heals[0]).toMatchObject({ hot: true, abilityId: 'rejuvenation', amount: 100 });
   });
 
+  // A tick on a full-health target heals nothing, but its overheal still has to
+  // reach the meters and the combat parse, so it emits amount 0 with the whole
+  // tick as overheal, flagged hot so every client surface treats it as passive.
+  it('a HoT tick on a full-health target emits heal2 with amount 0 and the tick as overheal', () => {
+    const sim = makeSim();
+    const mob = spawnMob(sim, 1000);
+    mob.auras.push(aura('hot', 100, { id: 'rejuvenation', tickInterval: DT }));
+    sim.drainEvents();
+    updateAuras(sim.ctx, mob);
+    expect(mob.hp).toBe(1000);
+    const heals = (sim.drainEvents() as any[]).filter((e) => e.type === 'heal2');
+    expect(heals).toHaveLength(1);
+    expect(heals[0]).toMatchObject({
+      hot: true,
+      abilityId: 'rejuvenation',
+      amount: 0,
+      overheal: 100,
+      crit: false,
+    });
+    expect(heals[0].absorbed).toBeUndefined();
+  });
+
+  it('a DoT leech tick on a full-health caster emits a passive amount-0 heal2 with the overheal', () => {
+    const sim = makeSim();
+    const p = sim.player;
+    p.hp = p.maxHp;
+    const mob = spawnMob(sim, 100000);
+    mob.auras.push(
+      aura('dot', 100, {
+        id: 'leech_dot_test',
+        name: 'Siphon',
+        leechPct: 0.5,
+        tickInterval: DT,
+        sourceId: p.id,
+        school: 'shadow',
+      }),
+    );
+    sim.drainEvents();
+    updateAuras(sim.ctx, mob);
+    expect(p.hp).toBe(p.maxHp);
+    const heals = (sim.drainEvents() as any[]).filter((e) => e.type === 'heal2');
+    expect(heals).toHaveLength(1);
+    expect(heals[0]).toMatchObject({
+      sourceId: p.id,
+      targetId: p.id,
+      ability: 'Siphon',
+      amount: 0,
+      hot: true,
+    });
+    expect(heals[0].overheal).toBeGreaterThan(0);
+  });
+
+  it('a DoT leech tick that lands keeps its established shape (no hot flag)', () => {
+    const sim = makeSim();
+    const p = sim.player;
+    p.hp = p.maxHp - 10;
+    const mob = spawnMob(sim, 100000);
+    mob.auras.push(
+      aura('dot', 100, {
+        id: 'leech_dot_test',
+        name: 'Siphon',
+        leechPct: 0.5,
+        tickInterval: DT,
+        sourceId: p.id,
+        school: 'shadow',
+      }),
+    );
+    sim.drainEvents();
+    updateAuras(sim.ctx, mob);
+    const heals = (sim.drainEvents() as any[]).filter((e) => e.type === 'heal2');
+    expect(heals).toHaveLength(1);
+    expect(heals[0]).toMatchObject({ amount: 10 });
+    expect(heals[0].overheal).toBeGreaterThan(0);
+    expect(heals[0].hot).toBeUndefined();
+  });
+
   it('applying a hot-kind aura emits one sound-only heal2 (amount:0) at the same moment, distinct from a later tick', () => {
     const sim = makeSim();
     const mob = spawnMob(sim, 1000);
-    mob.hp = 500; // below max, or the tick heals for 0 and never emits
+    mob.hp = 500; // below max, so the tick lands a real heal
     sim.drainEvents();
     sim.ctx.applyAura(mob, aura('hot', 40, { id: 'renew', tickInterval: DT }));
     const onApply = (sim.drainEvents() as any[]).filter((e) => e.type === 'heal2');
@@ -266,7 +363,12 @@ describe('auras: updateRegen', () => {
     const p = sim.player;
     const meta = sim.players.get(p.id) as PlayerMeta;
     p.inCombat = false;
-    p.hp = Math.max(1, p.maxHp - 500);
+    // A big synthetic pool: eating now stacks with natural regen (#1608), so a
+    // realistic deficit would cap out (and stop emitting a food-sourced heal)
+    // partway through 9 ticks. Inflate maxHp so the deficit stays open for the
+    // whole window regardless of the stamina-scaled natural tick's own rate.
+    p.maxHp = 10_000;
+    p.hp = p.maxHp - 5000;
     p.eating = {
       itemId: 'food',
       kind: 'food',
@@ -319,6 +421,47 @@ describe('auras: updateRegen', () => {
     const heals = (sim.drainEvents() as any[]).filter((e) => e.type === 'heal');
     expect(heals).toHaveLength(1);
     expect(heals[0]).toMatchObject({ source: 'food', sfxTick: true, amount: 0 });
+  });
+});
+
+describe('auras: updateRegen mana (Spirit in and out of combat)', () => {
+  const makeMage = (seed = 99): Sim => new Sim({ seed, playerClass: 'mage', autoEquip: true });
+
+  // Regenerate one 40-tick boundary tick from an empty mana bar at a given
+  // five-second-rule state and return how much mana came back.
+  const regenOnce = (
+    fiveSecondRule: number,
+  ): { gained: number; spi: number; level: number; pct: number } => {
+    const sim = makeMage();
+    const p = sim.player;
+    const meta = sim.players.get(p.id) as PlayerMeta;
+    p.resource = 0;
+    p.fiveSecondRule = fiveSecondRule;
+    sim.tickCount = 40; // a multiple of 40 so the regen body runs
+    updateRegen(sim.ctx, p, meta);
+    return {
+      gained: p.resource,
+      spi: p.stats.spi,
+      level: p.level,
+      pct: sim.ctx.playerMods(meta).global.manaRegenPct,
+    };
+  };
+
+  it('restores the full Spirit amount once past the five-second rule', () => {
+    const { gained, spi, level, pct } = regenOnce(6);
+    expect(gained).toBe(manaRegenPer2s(spi, level, pct, 6));
+    expect(gained).toBeGreaterThan(0);
+  });
+
+  it('still restores a reduced share while the five-second rule is active (in combat)', () => {
+    const { gained, spi, level, pct } = regenOnce(0);
+    // Spirit now matters in combat: the old behavior regenerated nothing here.
+    expect(gained).toBeGreaterThan(0);
+    expect(gained).toBe(manaRegenPer2s(spi, level, pct, 0));
+  });
+
+  it('regenerates strictly less in combat than out of combat', () => {
+    expect(regenOnce(0).gained).toBeLessThan(regenOnce(6).gained);
   });
 });
 

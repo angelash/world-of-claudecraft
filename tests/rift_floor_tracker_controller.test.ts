@@ -1,0 +1,174 @@
+import { describe, expect, it } from 'vitest';
+import { RiftFloorTrackerController } from '../src/ui/hud/rift/rift_floor_tracker_controller';
+import type { IWorld } from '../src/world_api';
+import type { RiftFloorView } from '../src/world_api/dungeons';
+
+function trackerElement() {
+  let html = '';
+  let writes = 0;
+  const element = {
+    style: { display: '' },
+    get innerHTML() {
+      return html;
+    },
+    set innerHTML(value: string) {
+      html = value;
+      writes++;
+    },
+  } as unknown as HTMLElement;
+  return { element, writes: () => writes };
+}
+
+function floor(overrides: Partial<RiftFloorView> = {}): RiftFloorView {
+  return {
+    eventId: 'evt1',
+    instanceId: 1,
+    seed: 42,
+    baseLevel: 20,
+    floorIndex: 1,
+    floorCount: 5,
+    origin: { x: 0, z: 0 },
+    contentId: 'procedural-v1:42:20',
+    contentHash: 'procedural-v1:42:20',
+    upgrade: null,
+    name: 'Sunken Hall',
+    themeName: 'flooded',
+    tier: 'B',
+    ...overrides,
+  };
+}
+
+type World = Pick<IWorld, 'riftFloor' | 'riftEventMsRemaining'>;
+
+describe('RiftFloorTrackerController', () => {
+  it('hides and clears stale content outside a rift', () => {
+    const tracker = trackerElement();
+    tracker.element.innerHTML = 'stale';
+    const world: World = { riftFloor: null, riftEventMsRemaining: () => null };
+    const controller = new RiftFloorTrackerController({
+      element: tracker.element,
+      world: () => world,
+    });
+
+    controller.update();
+
+    expect(tracker.element.style.display).toBe('none');
+    expect(tracker.element.innerHTML).toBe('');
+  });
+
+  it('shows the floor line and elides identical repaints', () => {
+    const tracker = trackerElement();
+    const world: World = { riftFloor: floor(), riftEventMsRemaining: () => null };
+    const controller = new RiftFloorTrackerController({
+      element: tracker.element,
+      world: () => world,
+    });
+
+    controller.update();
+    controller.update();
+
+    expect(tracker.writes()).toBe(1);
+    expect(tracker.element.style.display).toBe('block');
+    expect(tracker.element.innerHTML).toContain('2');
+    expect(tracker.element.innerHTML).toContain('5');
+    expect(tracker.element.innerHTML).toContain('class="rt-header ui-cin"');
+    expect(tracker.element.innerHTML).toContain('class="rt-obj ui-meta ui-num"');
+  });
+
+  it('degrades to floor-progress-only for a dev-spawned rift (no timer line)', () => {
+    const tracker = trackerElement();
+    const world: World = { riftFloor: floor(), riftEventMsRemaining: () => null };
+    const controller = new RiftFloorTrackerController({
+      element: tracker.element,
+      world: () => world,
+    });
+
+    controller.update();
+
+    expect(tracker.element.innerHTML).not.toContain('rt-obj rt-obj');
+    // No second "rt-obj" div for the timer line: only the header + the floor line.
+    expect(tracker.element.innerHTML.match(/rt-obj/g)?.length).toBe(1);
+  });
+
+  it('repaints once per changed whole second, not more often', () => {
+    const tracker = trackerElement();
+    let ms = 65_000;
+    const world: World = { riftFloor: floor(), riftEventMsRemaining: () => ms };
+    const controller = new RiftFloorTrackerController({
+      element: tracker.element,
+      world: () => world,
+    });
+
+    controller.update();
+    expect(tracker.writes()).toBe(1);
+
+    // Same whole second (e.g. a sub-second re-poll): no repaint.
+    ms = 65_010;
+    controller.update();
+    expect(tracker.writes()).toBe(1);
+
+    // A new whole second: repaints.
+    ms = 64_500;
+    controller.update();
+    expect(tracker.writes()).toBe(2);
+    expect(tracker.element.innerHTML.match(/rt-obj/g)?.length).toBe(2); // floor line + timer line
+  });
+
+  it('relocalize forces exactly one rebuild even with an unchanged model', () => {
+    const tracker = trackerElement();
+    const world: World = { riftFloor: floor(), riftEventMsRemaining: () => null };
+    const controller = new RiftFloorTrackerController({
+      element: tracker.element,
+      world: () => world,
+    });
+
+    controller.update();
+    expect(tracker.writes()).toBe(1);
+    controller.relocalize();
+    expect(tracker.writes()).toBe(2);
+  });
+});
+
+describe('RiftFloorTrackerController hoard goal', () => {
+  it('moves from the keeper to the chest to claimed, walking the roster only when it changes', () => {
+    const { element } = trackerElement();
+    // A vault seed: flag 0xC0000000 plus a tier.
+    const hoardFloor = floor({ seed: (0xc0000000 | (2 << 28) | 77) >>> 0 });
+    const entities = new Map<number, { id: number; kind: string; templateId: string }>();
+    let walks = 0;
+    const world = {
+      riftFloor: hoardFloor,
+      riftEventMsRemaining: () => null,
+      entityRosterVersion: 1,
+      entities: {
+        get: (id: number) => entities.get(id),
+        values: () => {
+          walks++;
+          return entities.values();
+        },
+      },
+    };
+    const controller = new RiftFloorTrackerController({
+      element,
+      world: () => world as unknown as IWorld,
+    });
+    controller.update();
+    expect(element.innerHTML).toContain('Defeat the hoard keeper');
+    controller.update();
+    controller.update();
+    expect(walks).toBe(1);
+
+    // The keeper falls: the chest arrives, which IS a roster change.
+    entities.set(9, { id: 9, kind: 'object', templateId: 'hoard_reward_chest' });
+    world.entityRosterVersion = 2;
+    controller.update();
+    expect(element.innerHTML).toContain('Open the hoard chest');
+    expect(walks).toBe(2);
+
+    // Opening it swaps the template on the SAME entity: no roster change, no walk.
+    entities.set(9, { id: 9, kind: 'object', templateId: 'hoard_reward_chest_open' });
+    controller.update();
+    expect(element.innerHTML).toContain('The hoard is yours');
+    expect(walks).toBe(2);
+  });
+});

@@ -1,4 +1,9 @@
-import type { AiDecisionV1, AiJobContextV1, AiMemoryAuditRecord, AiValidationResult } from './ai_types';
+import type {
+  AiDecisionV1,
+  AiJobContextV1,
+  AiMemoryAuditRecord,
+  AiValidationResult,
+} from './ai_types';
 import { cloneMemoryAudit } from './memory_audit';
 
 export type AiDecisionJournalStatus = 'accepted' | 'rejected' | 'provider_error' | 'local_reaction';
@@ -6,7 +11,12 @@ export type AiDecisionJournalStatus = 'accepted' | 'rejected' | 'provider_error'
 export interface AiDecisionJournalEntry {
   sequence: number;
   jobId: string;
-  trigger: AiJobContextV1['trigger'] | 'item_discarded' | 'scene_inspected' | 'encounter_memory' | 'quest_completed';
+  trigger:
+    | AiJobContextV1['trigger']
+    | 'item_discarded'
+    | 'scene_inspected'
+    | 'encounter_memory'
+    | 'quest_completed';
   entityId: number;
   templateId: string;
   playerEntityId: number;
@@ -18,9 +28,10 @@ export interface AiDecisionJournalEntry {
   memoryWrites: AiMemoryAuditRecord[];
 }
 
-type AiDecisionJournalLocalInput =
-  Omit<AiDecisionJournalEntry, 'sequence' | 'status' | 'memoryWrites'>
-  & { memoryWrites?: readonly AiMemoryAuditRecord[] };
+type AiDecisionJournalLocalInput = Omit<
+  AiDecisionJournalEntry,
+  'sequence' | 'status' | 'memoryWrites'
+> & { memoryWrites?: readonly AiMemoryAuditRecord[] };
 
 export class AiDecisionJournal {
   private readonly limit: number;
@@ -46,14 +57,20 @@ export class AiDecisionJournal {
       playerEntityId: context.player.entityId,
       status: result.ok ? 'accepted' : 'rejected',
       reason: result.reason,
-      lineIds: decision.speech.filter((speech) => speech.mode === 'lineId').map((speech) => speech.lineId),
+      lineIds: decision.speech
+        .filter((speech) => speech.mode === 'lineId')
+        .map((speech) => speech.lineId),
       intents: decision.intents.map((intent) => intent.type),
       sceneId: context.scene?.subsceneId ?? context.scene?.zoneId ?? null,
       memoryWrites: memoryWrites.map(cloneMemoryAudit),
     });
   }
 
-  recordProviderError(context: AiJobContextV1, reason: string, memoryWrites: readonly AiMemoryAuditRecord[] = []): void {
+  recordProviderError(
+    context: AiJobContextV1,
+    reason: string,
+    memoryWrites: readonly AiMemoryAuditRecord[] = [],
+  ): void {
     this.push({
       sequence: ++this.sequence,
       jobId: context.jobId,

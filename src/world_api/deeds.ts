@@ -1,18 +1,21 @@
+import type { AccountEarner } from '../sim/account_ledger';
 import type { DeedsLeaderboardPage } from '../sim/leaderboard_page';
 import type { DeedStats, PlayerClass } from '../sim/types';
 
 // ---------------------------------------------------------------------------
 // The Book of Deeds (the deeds system): the SELF player's earned deeds,
-// persisted lifetime stat block, Renown total, and displayed title, plus the
-// global rarity read. The four data reads mirror sim state the evaluator
-// (src/sim/deeds.ts) maintains; the one command requests a title change,
-// which the sim validates (the deed must be earned and carry a title reward;
-// null clears; invalid input is a silent no-op). Offline the Sim exposes its
-// live per-player state (the questLog precedent); online the ClientWorld
-// mirrors the snapshot self keys (`deeds`/`dstats` heavy-gated,
-// `renown`/`atitle` per-tick diffed) and the `deedUnlocked` event stays
-// presentation-only. Other players' titles are not here: they ride the entity
-// wire (`title`, a deed id) for nameplates/inspect.
+// persisted lifetime stat block, Renown total, and the two displayed
+// cosmetics (title and nameplate border), plus the global rarity read. The
+// five data reads mirror sim state the evaluator (src/sim/deeds.ts)
+// maintains; the two commands request a title or border change, each
+// validated by the sim (the deed must be earned and carry a reward of the
+// MATCHING kind; null clears; invalid input is a silent no-op). Offline the
+// Sim exposes its live per-player state (the questLog precedent); online the
+// ClientWorld mirrors the snapshot self keys (`deeds`/`dstats` heavy-gated,
+// `renown`/`atitle`/`aborder` per-tick diffed) and the `deedUnlocked` event
+// stays presentation-only. Other players' titles and borders are not here:
+// they ride the entity wire (`title` and `border`, each a deed id) for
+// nameplates/inspect.
 // ---------------------------------------------------------------------------
 
 /**
@@ -62,24 +65,54 @@ export interface IWorldDeeds {
   // no calendar), for the SELF player. Readonly across the seam: consumers
   // never mutate deed state.
   deedsEarned: ReadonlyMap<string, string>;
+  // The ACCOUNT ledger's deed half (src/sim/account_ledger.ts): deed id ->
+  // every character on the account that earned it, first earner first, each
+  // with its utcDay. The Book of Deeds is account-wide: a deed is earned when
+  // it is in deedsEarned OR here, and the entry names its earners. Offline the
+  // Sim's one player appends itself as it earns; online the ClientWorld
+  // mirrors the heavy-gated `acct` self key. Readonly across the seam.
+  accountDeeds: ReadonlyMap<string, readonly AccountEarner[]>;
   // The persisted lifetime counter block (counters, discovery + visit sets,
   // per-dungeon clears) backing progress readouts.
   deedStats: Readonly<DeedStats>;
   // The self player's current Renown total, exactly the denormalized sum the
   // evaluator maintains.
   renown: number;
-  // The selected display title: a deed id (never display text), null when
-  // untitled.
+  // The selected display title: a title-deed id or a developer-badge rung
+  // title id ('dev:<rung>', src/sim/dev_badge_titles.ts; never display text),
+  // null when untitled.
   activeTitle: string | null;
   // Request a title change (null clears). No optimistic local write online:
   // the mirror updates from the snapshot echo once the sim accepts.
   setActiveTitle(deedId: string | null): void;
+  // The selected nameplate border: a deed id (never the reward slug, never
+  // display text), null when borderless. Consumers derive the slug through
+  // DEEDS[id].reward.slug.
+  activeBorder: string | null;
+  // Request a border change (null clears). No optimistic local write online:
+  // the mirror updates from the snapshot echo once the sim accepts.
+  setActiveBorder(deedId: string | null): void;
   // The global rarity aggregate, or null where the host has none: the offline
   // Sim always resolves null (a sandbox has no population), the online
   // ClientWorld fetches GET /api/deeds/rarity and resolves null on any fetch
   // failure. The payload is the endpoint body verbatim (DeedsRarity above);
   // consumers cache per window-open, so this may re-fetch on each call.
   deedsRarity(): Promise<DeedsRarity | null>;
+  // The SELF player's newest-first unlock ids, capped at DEEDS_RECENT_CAP
+  // (src/sim/deeds.ts), or null where the host has no recency record. The
+  // earned map above only keeps the utcDay, so this read is the one source of
+  // sub-day earn ORDER: the offline Sim serves its live grant order (Map
+  // insertion order, chronological within a session and preserved by the
+  // offline JSON round-trip), the online ClientWorld fetches the owner-scoped
+  // GET /api/characters/:id/deeds-recent (the character_deeds observer table,
+  // exact server timestamps) and resolves null on any fetch failure so the
+  // Book's recent strip falls back to the day-granular order.
+  // Order means RECORD order, not play chronology, for back-credits: a
+  // join-time retro or legacy-milestone grant is recorded when it lands (the
+  // login), so it can head this list on both hosts equally. Accepted: the
+  // record has no per-deed retro marker to filter on, and the strip
+  // self-corrects as live unlocks accrue.
+  deedsRecent(): Promise<readonly string[] | null>;
   // The Renown board (the account-level deeds leaderboard), paged server-side
   // like the other high-score boards; page is 0-based. GLOBAL-ONLY (see
   // DeedsLeaderboardEntry). The offline Sim resolves an empty page; the online

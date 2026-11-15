@@ -7,9 +7,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const readSource = (path: string): string =>
-  readFileSync(resolve(process.cwd(), path), 'utf8').replace(/\r\n/g, '\n');
-const src = readSource('src/ui/dungeon_finder_window.ts');
+const src = readFileSync(resolve(process.cwd(), 'src/ui/dungeon_finder_window.ts'), 'utf8');
+const board = readFileSync(resolve(process.cwd(), 'src/ui/dungeon_board_chrome.ts'), 'utf8');
+const activities = readFileSync(
+  resolve(process.cwd(), 'src/ui/dungeon_activity_chrome.ts'),
+  'utf8',
+);
 
 describe('dungeon finder window painter (source contract)', () => {
   it('renders from the pure core, never from raw world state', () => {
@@ -47,18 +50,20 @@ describe('dungeon finder window painter (source contract)', () => {
 
   it('escapes every interpolated name and uses t() for every label', () => {
     // Player/leader names and localized entity names always pass through esc().
-    expect(src).toContain('esc(a.name)');
-    expect(src).toContain("t('hudChrome.finder.leader', { name: l.leaderName })");
+    expect(board).toContain('esc(applicant.name)');
+    expect(board).toContain("esc(t('hudChrome.finder.leader', { name: listing.leaderName }))");
     // No raw innerHTML of unescaped world text: interpolations inside template
     // literals must call esc(, tEntity via esc(, or a builder.
-    expect(src).not.toMatch(/\$\{a\.name\}/);
-    expect(src).not.toMatch(/\$\{l\.leaderName\}/);
+    expect(board).not.toMatch(/\$\{applicant\.name\}/);
+    expect(board).not.toMatch(/\$\{listing\.leaderName\}/);
   });
 
   it('keeps tab and role toggles stateful with aria-pressed / role=checkbox semantics', () => {
-    expect(src).toMatch(/data-tab="\$\{tab\}" aria-pressed=/);
-    expect(src).toMatch(/data-role="\$\{r\.role\}" aria-pressed=/);
-    expect(src).toMatch(/role="checkbox" aria-checked=/);
+    expect(src).toContain('finderNavigationHtml(');
+    expect(activities).toMatch(/data-role="\$\{r\.role\}" aria-pressed=/);
+    expect(readFileSync(resolve(process.cwd(), 'src/ui/dungeon_create_form.ts'), 'utf8')).toMatch(
+      /role="checkbox" aria-checked=/,
+    );
   });
 
   it('never half-applies a tablist / listbox contract over plain toggle buttons', () => {
@@ -66,8 +71,9 @@ describe('dungeon finder window painter (source contract)', () => {
     // screen reader under role=tablist / role=listbox than under a labelled group.
     expect(src).not.toContain('role="tablist"');
     expect(src).not.toContain('role="listbox"');
-    expect(src).toContain('class="df-tabs" role="group"');
-    expect(src).toContain('class="df-rail" role="group"');
+    // W12: shared visual primitives sit beside legacy group hooks without changing roles.
+    expect(src).not.toContain('class="df-tabs ui-seg"');
+    expect(src).toContain('class="df-rail ui-panel-soft" role="group"');
   });
 
   it('composes every localizable sentence from tokens, never from a concat', () => {
@@ -76,7 +82,12 @@ describe('dungeon finder window painter (source contract)', () => {
     expect(src).toContain(
       "t('hudChrome.finder.roleCount', { count: num(n), role: this.roleLabel(role) })",
     );
-    expect(src).toContain("htmlTemplate('hudChrome.finder.needs', { roles: neededRoles })");
+    expect(board).toContain(
+      "esc(t('hudChrome.finder.needs', { roles: t('hudChrome.finder.roleCount'",
+    );
+    expect(board).toContain(
+      "esc(t('hudChrome.finder.slots', { size: num(listing.size), capacity: num(listing.capacity) }))",
+    );
     expect(src).toContain("t('hudChrome.finder.clock', {");
     expect(src).toContain("tPlural('hudChrome.plurals.finderPartySize'");
     // No hand-rolled ':' clock and no `${count} ${label}` role concat.
@@ -90,12 +101,16 @@ describe('dungeon finder window painter (source contract)', () => {
     expect(src).not.toMatch(/from 'three'|from "three"|\.\.\/render\//);
   });
 
-  it('carries no literal hex/rgb colors in TS beyond the shared quality map', () => {
-    // Colors live in the stylesheet; the one sanctioned inline color is the
-    // shared QUALITY_COLOR lookup every item window uses.
-    expect(src).toContain('QUALITY_COLOR[i.quality]');
-    expect(src).not.toMatch(/#([0-9a-f]{3}|[0-9a-f]{6})\b/i);
-    expect(src).not.toMatch(/rgb\(/);
+  it('keeps item quality colors in token-driven stylesheet classes', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/components.css'), 'utf8');
+    expect(src).toMatch(/df-quality-\$\{i\.quality\}/);
+    for (const quality of ['poor', 'common', 'uncommon', 'rare', 'epic', 'legendary']) {
+      expect(css).toMatch(new RegExp(`\\.df-quality-${quality} \\{\\s*color: var\\(--`));
+    }
+    for (const code of [src, board]) {
+      expect(code).not.toMatch(/#([0-9a-f]{3}|[0-9a-f]{6})\b/i);
+      expect(code).not.toMatch(/rgb\(/);
+    }
   });
 
   it('names its cadence constants instead of inlining thresholds', () => {
@@ -118,6 +133,41 @@ describe('dungeon finder window painter (source contract)', () => {
     expect(src).toContain("el.style.display = 'none';");
     expect(src).toContain("return this.deps.root().style.display === 'flex';");
     expect(src).not.toContain("style.display = 'block'");
+  });
+
+  // Regression: the heroic-only loot rows (a bespoke heroic equipment slot, plus the
+  // ungrouped heroic-only rolls like mount reins) were BOTH always labelled with the
+  // "always drops" lootHeroic string, even when the underlying entries are a partial
+  // roll group (heroicGroups whose chances sum below 1, e.g. the farm-pattern bonus)
+  // or an independent low-chance single (a heroic mount, 0.1% to 0.5% per clear). A
+  // Heroic Nythraxis raider reading "Heroic bonus, one of these always drops:" directly
+  // over the mount reins row read that mount as guaranteed, which it never was: only
+  // the label was wrong, never the roll. Mirror the non-heroic groups/singles split
+  // (lootGuaranteed/lootMaybe, lootChance) so a non-guaranteed heroic group or an
+  // ungrouped heroic single is never claimed as an always-drops slot.
+  it('never claims a non-guaranteed heroic loot row always drops', () => {
+    expect(src).toContain(
+      "g.guaranteed ? 'hudChrome.finder.lootHeroic' : 'hudChrome.finder.lootHeroicMaybe'",
+    );
+    expect(src).toContain("t('hudChrome.finder.lootHeroicChance')");
+    // The old unconditional heroic-singles header must be gone: heroicSingles are
+    // ungrouped independent-chance rolls (mounts), never a guaranteed slot.
+    expect(src).not.toMatch(
+      /heroicSingles\.length > 0[\s\S]{0,80}t\('hudChrome\.finder\.lootHeroic'\)/,
+    );
+  });
+
+  it('supports the vault tab to preview the Great Vault in read-only mode', () => {
+    const navigation = readFileSync(
+      resolve(process.cwd(), 'src/ui/dungeon_finder_navigation.ts'),
+      'utf8',
+    );
+    expect(navigation).toContain('data-tab="vault"');
+    expect(navigation).toContain("t('hudChrome.weeklyRewards.title')");
+    expect(src).toContain('createWeeklyRewardsTab(');
+    expect(src).toContain('readOnly: true');
+    expect(src).toContain("el.classList.toggle('df-vault-mode', view.tab === 'vault')");
+    expect(src).toContain('this.vaultPane.close()');
   });
 });
 
@@ -144,8 +194,8 @@ describe('dungeon finder group-found popup (source contract)', () => {
 });
 
 describe('dungeon finder window stylesheet contract', () => {
-  const components = readSource('src/styles/components.css');
-  const mobile = readSource('src/styles/hud.mobile.css');
+  const components = readFileSync(resolve(process.cwd(), 'src/styles/components.css'), 'utf8');
+  const mobile = readFileSync(resolve(process.cwd(), 'src/styles/hud.mobile.css'), 'utf8');
 
   it('defaults the window to display: none in its own components rule', () => {
     const rule = /#dungeon-finder-window \{([^}]*)\}/.exec(components);
@@ -165,7 +215,23 @@ describe('dungeon finder window stylesheet contract', () => {
   });
 
   it('gives the HUD render gate the same flex open-state check the painter writes', () => {
-    const hud = readSource('src/ui/hud.ts');
+    const hud = readFileSync(resolve(process.cwd(), 'src/ui/hud.ts'), 'utf8');
     expect(hud).toContain("$('#dungeon-finder-window').style.display === 'flex'");
+  });
+
+  it('defines .df-vault-mode and preview notice styling with token variables', () => {
+    expect(components).toContain('#dungeon-finder-window.df-vault-mode');
+    expect(components).toContain('.df-body-vault');
+    expect(components).toContain('.df-vault-container');
+    expect(components).toContain('.weekly-preview-notice');
+  });
+});
+
+describe('dungeon finder boss guide button (source contract)', () => {
+  it('offers the boss guide only through the injected hooks, labelled and escaped', () => {
+    expect(src).toContain('this.deps.hasBossGuide?.(dungeonId, e.mobId)');
+    expect(src).toContain("t('hudChrome.raidBossGuide.finderOpenLabel', { boss: name })");
+    expect(src).toContain('data-bossguide="${esc(e.mobId)}"');
+    expect(src).toContain('this.deps.openBossGuide(detail.dungeonId, mobId, detail.difficulty);');
   });
 });

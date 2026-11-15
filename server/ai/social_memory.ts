@@ -121,10 +121,17 @@ export class AiSocialMemoryStore {
     return rumor;
   }
 
-  rumorForScene(sceneId: string | null | undefined, playerEntityId: number, nowSeconds: number): AiRumorMemory | null {
+  rumorForScene(
+    sceneId: string | null | undefined,
+    playerEntityId: number,
+    nowSeconds: number,
+  ): AiRumorMemory | null {
     if (!sceneId) return null;
     this.pruneRumors(nowSeconds);
-    const rumor = this.rumors.find((candidate) => candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId);
+    const rumor = this.rumors.find(
+      (candidate) =>
+        candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId,
+    );
     if (!rumor) return null;
     return this.activeRumorSnapshot(rumor, nowSeconds, 'scene', 1);
   }
@@ -137,10 +144,11 @@ export class AiSocialMemoryStore {
   }): AiRumorMemory | null {
     if (!input.zoneId) return null;
     this.pruneRumors(input.nowSeconds);
-    const rumor = this.rumors.find((candidate) =>
-      candidate.zoneId === input.zoneId
-      && candidate.sourcePlayerEntityId === input.playerEntityId
-      && candidate.sceneId !== input.sceneId
+    const rumor = this.rumors.find(
+      (candidate) =>
+        candidate.zoneId === input.zoneId &&
+        candidate.sourcePlayerEntityId === input.playerEntityId &&
+        candidate.sceneId !== input.sceneId,
     );
     if (!rumor) return null;
     return this.activeRumorSnapshot(rumor, input.nowSeconds, 'region', 0.65);
@@ -148,7 +156,10 @@ export class AiSocialMemoryStore {
 
   snapshot(): { npcMemories: AiNpcMemory[]; rumors: AiRumorMemory[] } {
     return {
-      npcMemories: [...this.npcMemories.values()].map((memory) => ({ ...memory, sceneIds: [...memory.sceneIds] })),
+      npcMemories: [...this.npcMemories.values()].map((memory) => ({
+        ...memory,
+        sceneIds: [...memory.sceneIds],
+      })),
       rumors: this.rumors.map((rumor) => ({ ...rumor, lineIds: [...rumor.lineIds] })),
     };
   }

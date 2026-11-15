@@ -23,11 +23,12 @@ import {
   SIM_MOB_ZONE_PHASES,
 } from '../../server/game';
 import type { PerfCaptureResult as AdminPerfCaptureResult } from '../../src/admin/types';
-import { MOBS, ZONES } from '../../src/sim/data';
+import { DUNGEON_X_THRESHOLD, MOBS, ZONES } from '../../src/sim/data';
 import { createMob } from '../../src/sim/entity';
 import { Sim } from '../../src/sim/sim';
 import type { Entity, MobFamily } from '../../src/sim/types';
 import { terrainHeight } from '../../src/sim/world';
+import { fakeWs, joinServer } from '../helpers/bare_client';
 
 // Compile-time assertion that T is exactly `never` (same idiom as the IWorld facet
 // pins in tests/world_api_parity.test.ts). A MobFamily value with no matching
@@ -48,6 +49,17 @@ type MobScanCaptureFields =
   | 'aggroVisitsMaxPerTick'
   | 'threatVisitsTotal'
   | 'threatVisitsMaxPerTick';
+type MovementTimelineCaptureFields =
+  | 'movementConsumedTotal'
+  | 'movementStarvedTotal'
+  | 'movementExtrapolatedTotal'
+  | 'movementDiscardedLateTotal'
+  | 'movementDroppedOldestTotal'
+  | 'movementRejectedAnchoredWindowTotal'
+  | 'movementRejectedSanityBoundTotal'
+  | 'movementResyncsTotal'
+  | 'movementPlayoutGrowthsTotal'
+  | 'movementPlayoutShrinksTotal';
 type _AdminMirrorCarriesMobScanFields = AssertTrue<
   Pick<ServerPerfCaptureResult, MobScanCaptureFields> extends Pick<
     AdminPerfCaptureResult,
@@ -56,6 +68,19 @@ type _AdminMirrorCarriesMobScanFields = AssertTrue<
     ? Pick<AdminPerfCaptureResult, MobScanCaptureFields> extends Pick<
         ServerPerfCaptureResult,
         MobScanCaptureFields
+      >
+      ? true
+      : false
+    : false
+>;
+type _AdminMirrorCarriesMovementTimelineFields = AssertTrue<
+  Pick<ServerPerfCaptureResult, MovementTimelineCaptureFields> extends Pick<
+    AdminPerfCaptureResult,
+    MovementTimelineCaptureFields
+  >
+    ? Pick<AdminPerfCaptureResult, MovementTimelineCaptureFields> extends Pick<
+        ServerPerfCaptureResult,
+        MovementTimelineCaptureFields
       >
       ? true
       : false
@@ -132,6 +157,18 @@ describe('tick perf capture lifecycle', () => {
     expect(status.last!.aggroVisitsMaxPerTick).toBe(0);
     expect(status.last!.threatVisitsTotal).toBe(0);
     expect(status.last!.threatVisitsMaxPerTick).toBe(0);
+    expect(status.last).toMatchObject({
+      movementConsumedTotal: 0,
+      movementStarvedTotal: 0,
+      movementExtrapolatedTotal: 0,
+      movementDiscardedLateTotal: 0,
+      movementDroppedOldestTotal: 0,
+      movementRejectedAnchoredWindowTotal: 0,
+      movementRejectedSanityBoundTotal: 0,
+      movementResyncsTotal: 0,
+      movementPlayoutGrowthsTotal: 0,
+      movementPlayoutShrinksTotal: 0,
+    });
     // The frozen profile reflects the window's samples (7 ms every tick -> mean 7).
     expect(status.last!.profile.phases.total.mean).toBe(7);
     // A 3s window at 20 Hz is 60 committed ticks.
@@ -262,10 +299,11 @@ describe('tick perf capture lifecycle', () => {
     }
   });
 
-  it('registers the 30 base lap names first, then the 13 mob-family buckets', () => {
+  it('registers the 36 base lap names first, then the 13 mob-family buckets', () => {
     // Literal pins: the registry is built by mapping the base names plus the buckets
     // through `sim.${n}`, so comparing these literals against the derived array proves
-    // the mapping, not a constant against itself.
+    // the mapping, not a constant against itself. 35 -> 36: the membership bank
+    // courier (5769f2a2596, PR 4281) laps its per-player step as p.courier.
     const base = [
       'sim.respawns',
       'sim.worldBosses',
@@ -279,9 +317,11 @@ describe('tick perf capture lifecycle', () => {
       'sim.p.autoAtk',
       'sim.p.regen',
       'sim.p.auras',
+      'sim.p.courier',
       'sim.mob.update',
       'sim.mob.auras',
       'sim.ent.misc',
+      'sim.dragonkinBrood',
       'sim.engaged',
       'sim.duels',
       'sim.cardDuel',
@@ -291,10 +331,14 @@ describe('tick perf capture lifecycle', () => {
       'sim.instances',
       'sim.delves',
       'sim.valecup',
+      'sim.battleground',
+      'sim.worldPvp',
+      'sim.hill',
       'sim.dfinder',
       'sim.market',
       'sim.postOffice',
       'sim.delayedEv',
+      'sim.farming',
       'sim.deeds',
       'sim.gridRefresh',
     ];
@@ -313,12 +357,12 @@ describe('tick perf capture lifecycle', () => {
       'sim.mob.update|reptile',
       'sim.mob.update|other',
     ];
-    expect(base).toHaveLength(30);
+    expect(base).toHaveLength(36);
     expect(buckets).toHaveLength(13);
     // Base names are byte-identical and first; the buckets are appended after and
     // nothing else, so every registered name still reaches the TickProfiler ctor.
-    expect(SIM_LAP_PHASES.slice(0, 30)).toEqual(base);
-    expect(SIM_LAP_PHASES.slice(30)).toEqual(buckets);
+    expect(SIM_LAP_PHASES.slice(0, 36)).toEqual(base);
+    expect(SIM_LAP_PHASES.slice(36)).toEqual(buckets);
     // Each bucket is registered (present in the set the ctor pre-registers).
     const registered = new Set(SIM_LAP_PHASES);
     for (const name of buckets) {
@@ -357,16 +401,44 @@ describe('tick perf capture lifecycle', () => {
     // 'beast', so every one of its per-entity mob.update laps must be attributed to
     // BOTH the aggregate 'sim.mob.update' and the 'sim.mob.update|beast' family bucket.
     const server = new GameServer();
-    const sim = (server as unknown as { sim: { addEntity: (e: Entity) => void } }).sim;
+    const sim = (
+      server as unknown as {
+        sim: {
+          addEntity: (e: Entity) => void;
+          addPlayer: (c: string, n: string) => number;
+          entities: Map<number, Entity>;
+        };
+      }
+    ).sim;
     // Placed far outside the [-180, 180] world so it just idles alone for the window;
-    // it still runs one updateMob (one mob.update lap) every tick it is alive.
+    // it still runs one updateMob (one mob.update lap) every tick it is alive. GameServer
+    // opts every Sim it builds into idleMobTickRadius (#2703: distance-cull idle-mob AI so
+    // an idle server does not pay full AI cost for a mob no one is near), and a fresh
+    // GameServer's Sim starts with zero players, so an idle mob would otherwise be culled
+    // outright: stand a player at the wolf's own spot so it stays inside the radius and the
+    // lap still fires, which is what this test is actually pinning.
     const wolf = createMob(900401, MOBS.forest_wolf, 5, { x: 500, y: 0, z: 500 });
     wolf.aiState = 'idle';
     sim.addEntity(wolf);
+    // Stand the watcher 40 yd off (inside idleMobTickRadius so the mob is not culled,
+    // outside MAX_AGGRO_RADIUS so the idle-scan's aggro-detection callback never visits
+    // it and never resolves this deliberately-templateless mob through isTrivialTo).
+    const watcherId = sim.addPlayer('warrior', 'Watcher');
+    const watcher = sim.entities.get(watcherId);
+    // Decisive, not a soft skip: if addPlayer ever stops resolving the id it just
+    // returned, the watcher would silently stay at spawn (outside the wolf's cull
+    // radius) and this test would go on to fail later on a missing family lap, with a
+    // message that points nowhere near the real cause. Fail here, at the placement.
+    expect(watcher).toBeDefined();
+    watcher!.pos = { x: 500, y: 0, z: 540 };
+    watcher!.prevPos = { ...watcher!.pos };
 
-    // Record which lap names the profiler's add() is called with. The spy is
-    // timing-independent: it proves the probe routed a beast mob's mob.update time to
-    // the family bucket regardless of how small the measured ms rounds to.
+    // Record which lap names the profiler's add() is called with, AND how many of the
+    // wolf's OWN mob.update laps land in the beast bucket specifically (via the same
+    // real cfg.perfLap probe GameServer wires, wrapped so both the wolf-specific count
+    // and the aggregate spy below observe every call). The spy is timing-independent: it
+    // proves the probe routed a beast mob's mob.update time to the family bucket
+    // regardless of how small the measured ms rounds to.
     const profiler = (
       server as unknown as { tickProfiler: { add: (p: string, ms: number) => void } }
     ).tickProfiler;
@@ -376,10 +448,24 @@ describe('tick perf capture lifecycle', () => {
       addCalls.set(phase, (addCalls.get(phase) ?? 0) + 1);
       origAdd(phase, ms);
     };
+    let wolfBeastLaps = 0;
+    const simCfg = (
+      server as unknown as { sim: { cfg: { perfLap?: (p: string, e?: Entity) => void } } }
+    ).sim.cfg;
+    const origPerfLap = simCfg.perfLap;
+    simCfg.perfLap = (phase: string, entity?: Entity) => {
+      if (entity === wolf && phase === 'mob.update') wolfBeastLaps++;
+      origPerfLap?.(phase, entity);
+    };
 
     server.startPerfCapture(3000);
     runCaptureWindow(server, 7);
 
+    // Pin the WOLF's own lap count, not just "some beast fired": the world may hold
+    // other real beasts, so a family-wide floor alone would stay green even if the
+    // watcher placement (and therefore the wolf's own culling exemption) silently broke,
+    // as long as some other beast happened to still be in range of a player.
+    expect(wolfBeastLaps).toBeGreaterThanOrEqual(60);
     // The placed wolf runs mob.update once per tick for all 60 committed ticks, so the
     // beast bucket is add()-ed at least 60 times (the world may hold other beasts too).
     expect(addCalls.get('sim.mob.update|beast') ?? 0).toBeGreaterThanOrEqual(60);
@@ -406,11 +492,30 @@ describe('tick perf capture lifecycle', () => {
     // then resolves undefined -> 'other', and the lap must land in 'sim.mob.update|other'
     // (registered, so TickProfiler.add never silently drops it).
     const server = new GameServer();
-    const sim = (server as unknown as { sim: { addEntity: (e: Entity) => void } }).sim;
+    const sim = (
+      server as unknown as {
+        sim: {
+          addEntity: (e: Entity) => void;
+          addPlayer: (c: string, n: string) => number;
+          entities: Map<number, Entity>;
+        };
+      }
+    ).sim;
     const orphan = createMob(900402, MOBS.forest_wolf, 5, { x: 500, y: 0, z: 500 });
     orphan.templateId = 'not_a_real_mob_family_zzz'; // absent from MOBS -> family fallback
     orphan.aiState = 'idle';
     sim.addEntity(orphan);
+    // See the sibling test above: a fresh GameServer's Sim opts into idleMobTickRadius
+    // (#2703) and starts with zero players, so an idle mob with nobody near it is culled
+    // outright. Stand the watcher 40 yd off (inside idleMobTickRadius so the mob is not
+    // culled, outside MAX_AGGRO_RADIUS so the idle-scan's aggro-detection callback never
+    // visits it and never resolves this deliberately-templateless mob through isTrivialTo).
+    const watcherId = sim.addPlayer('warrior', 'Watcher');
+    const watcher = sim.entities.get(watcherId);
+    if (watcher) {
+      watcher.pos = { x: 500, y: 0, z: 540 };
+      watcher.prevPos = { ...watcher.pos };
+    }
 
     const profiler = (
       server as unknown as { tickProfiler: { add: (p: string, ms: number) => void } }
@@ -446,6 +551,18 @@ describe('tick perf capture lifecycle', () => {
     // call, swapping its aggro/threat arguments, or inverting its capturing gate
     // reddens this test.
     const server = new GameServer();
+    const movementSession = joinServer(
+      server,
+      fakeWs(),
+      990_403,
+      'MovementStatsTarget',
+      'warrior',
+      { movementWireVersion: 2 },
+    );
+    server.handleMessage(
+      movementSession,
+      JSON.stringify({ t: 'input', seq: 1, ct: 0, mi: { f: 1 } }),
+    );
     const sim = (server as unknown as { sim: Sim }).sim;
     const seed = (sim as unknown as { cfg: { seed: number } }).cfg.seed;
     // One DEAD player 10 units from an idle wolf, far outside the world's camps
@@ -502,6 +619,9 @@ describe('tick perf capture lifecycle', () => {
     // Nothing entered combat, so the threat side stays exactly zero.
     expect(first!.threatVisitsTotal).toBe(0);
     expect(first!.threatVisitsMaxPerTick).toBe(0);
+    expect(first!.movementConsumedTotal).toBeGreaterThanOrEqual(1);
+    expect(first!.movementStarvedTotal).toBeGreaterThanOrEqual(1);
+    expect(first!.movementExtrapolatedTotal).toBeGreaterThanOrEqual(1);
 
     // A fresh capture must start from zeroed accumulators (startPerfCapture calls
     // resetMobScanCaptureAccumulators): finalize it with the loop stopped and the
@@ -515,6 +635,18 @@ describe('tick perf capture lifecycle', () => {
     expect(second!.aggroVisitsMaxPerTick).toBe(0);
     expect(second!.threatVisitsTotal).toBe(0);
     expect(second!.threatVisitsMaxPerTick).toBe(0);
+    expect(second).toMatchObject({
+      movementConsumedTotal: 0,
+      movementStarvedTotal: 0,
+      movementExtrapolatedTotal: 0,
+      movementDiscardedLateTotal: 0,
+      movementDroppedOldestTotal: 0,
+      movementRejectedAnchoredWindowTotal: 0,
+      movementRejectedSanityBoundTotal: 0,
+      movementResyncsTotal: 0,
+      movementPlayoutGrowthsTotal: 0,
+      movementPlayoutShrinksTotal: 0,
+    });
   });
 
   it('prints the two visit tokens on the [perf] heartbeat line', () => {
@@ -532,6 +664,32 @@ describe('tick perf capture lifecycle', () => {
       ).mobScanTickStats;
       stats.lastAggroScanVisits = 12;
       stats.lastThreatEntryVisits = 7;
+      const movementStats = (
+        server as unknown as {
+          movementTimelineTickStats: {
+            lastConsumed: number;
+            lastStarved: number;
+            lastExtrapolated: number;
+            lastDiscardedLate: number;
+            lastDroppedOldest: number;
+            lastRejectedAnchoredWindow: number;
+            lastRejectedSanityBound: number;
+            lastResyncs: number;
+            lastPlayoutGrowths: number;
+            lastPlayoutShrinks: number;
+          };
+        }
+      ).movementTimelineTickStats;
+      movementStats.lastConsumed = 1;
+      movementStats.lastStarved = 2;
+      movementStats.lastExtrapolated = 3;
+      movementStats.lastDiscardedLate = 4;
+      movementStats.lastDroppedOldest = 5;
+      movementStats.lastRejectedAnchoredWindow = 6;
+      movementStats.lastRejectedSanityBound = 7;
+      movementStats.lastResyncs = 8;
+      movementStats.lastPlayoutGrowths = 9;
+      movementStats.lastPlayoutShrinks = 10;
       // Force the heartbeat branch (tickCount 0 minus -100 clears the 100-tick gap).
       (server as unknown as { lastPerfLogTick: number }).lastPerfLogTick = -100;
       (server as unknown as { maybeLogTickPerf: (ms: number) => void }).maybeLogTickPerf(5);
@@ -539,6 +697,16 @@ describe('tick perf capture lifecycle', () => {
       expect(perfLine).toBeDefined();
       expect(perfLine).toContain('aggroVisits=12');
       expect(perfLine).toContain('threatVisits=7');
+      expect(perfLine).toContain('moveConsumed=1');
+      expect(perfLine).toContain('moveStarved=2');
+      expect(perfLine).toContain('moveExtrapolated=3');
+      expect(perfLine).toContain('moveLate=4');
+      expect(perfLine).toContain('moveDropOldest=5');
+      expect(perfLine).toContain('moveRejectWindow=6');
+      expect(perfLine).toContain('moveRejectSanity=7');
+      expect(perfLine).toContain('moveResyncs=8');
+      expect(perfLine).toContain('moveGrow=9');
+      expect(perfLine).toContain('moveShrink=10');
     } finally {
       log.mockRestore();
       vi.unstubAllEnvs();
@@ -564,13 +732,15 @@ describe('tick perf capture lifecycle', () => {
     const at = (x: number, z: number): string => mobZonePhase({ pos: { x, z } } as Entity);
     // Each overworld zone resolves to its own registered bucket.
     for (const zone of ZONES) {
-      const mid = (zone.zMin + zone.zMax) / 2;
-      const bucket = at(0, mid);
+      const x =
+        zone.xMin !== undefined && zone.xMax !== undefined ? (zone.xMin + zone.xMax) / 2 : 0;
+      const z = (zone.zMin + zone.zMax) / 2;
+      const bucket = at(x, z);
       expect(bucket).toBe(`sim.mob.z:${zone.id}`);
       expect(SIM_MOB_ZONE_PHASES).toContain(bucket);
     }
     // Instance/delve mobs (x beyond the dungeon threshold) share the 'instance' bucket.
-    expect(at(10_000, 0)).toBe('sim.mob.z:instance');
+    expect(at(DUNGEON_X_THRESHOLD + 1, 0)).toBe('sim.mob.z:instance');
     // Distinct overworld zones do not collapse into one bucket.
     expect(at(0, (ZONES[0].zMin + ZONES[0].zMax) / 2)).not.toBe(
       at(0, (ZONES[1].zMin + ZONES[1].zMax) / 2),

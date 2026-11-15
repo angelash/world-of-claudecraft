@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../server/ambient_bots/ws_client';
 import { HostedPlayRuntime, type HostedPlayRuntimeGame } from '../server/hosted_play/runtime';
+import { NPCS } from '../src/sim/data';
 import type { SimEvent } from '../src/sim/types';
 
 function liveState(
@@ -3779,6 +3780,9 @@ describe('HostedPlayRuntime', () => {
   });
 
   it('lets the hosted leader travel for distant restock when recovery is only healer mana', () => {
+    expect(
+      Math.hypot(NPCS.provisioner_hale.pos.x - 40, NPCS.provisioner_hale.pos.z - 298),
+    ).toBeGreaterThan(24);
     const game = fakeGame(
       liveState({
         id: 101,
@@ -3912,7 +3916,7 @@ describe('HostedPlayRuntime', () => {
       debug: {
         brainDrivePaused: false,
         travelGoal: {
-          target: { x: -4, z: 308 },
+          target: NPCS.provisioner_hale.pos,
         },
       },
     });

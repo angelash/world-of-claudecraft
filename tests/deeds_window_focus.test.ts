@@ -16,7 +16,12 @@ import { DeedsWindow, type DeedsWindowDeps, refocusSelector } from '../src/ui/de
 
 // jsdom ships no 2D canvas, so the procedural crest compositor cannot run
 // here; the painter only ever uses the returned string as an <img src>.
-vi.mock('../src/ui/icons', () => ({
+vi.mock('../src/ui/icons', async (importOriginal) => ({
+  // Additive, never bare: a bare factory lists exactly the exports the file
+  // uses today, so the icons module gaining a consumer of another export
+  // silently invalidates this mock from a file the change never touches
+  // (the reliquary_window_behavior lesson).
+  ...(await importOriginal<typeof import('../src/ui/icons')>()),
   iconDataUrl: () => 'data:,',
 }));
 
@@ -24,10 +29,11 @@ interface WorldState {
   deedsEarned: Map<string, string>;
   renown: number;
   activeTitle: string | null;
+  activeBorder: string | null;
 }
 
 function baseState(): WorldState {
-  return { deedsEarned: new Map(), renown: 0, activeTitle: null };
+  return { deedsEarned: new Map(), renown: 0, activeTitle: null, activeBorder: null };
 }
 
 function makeWindow(state: WorldState): { w: DeedsWindow; el: HTMLElement } {
@@ -40,12 +46,20 @@ function makeWindow(state: WorldState): { w: DeedsWindow; el: HTMLElement } {
     world: () =>
       ({
         deedsEarned: state.deedsEarned,
+        accountDeeds: new Map(),
         deedStats: stats,
         renown: state.renown,
         activeTitle: state.activeTitle,
         deedsRarity: async () => null,
+        deedsRecent: async () => null,
+        entities: new Map(),
+        playerId: 1,
         setActiveTitle: (id: string | null) => {
           state.activeTitle = id;
+        },
+        activeBorder: state.activeBorder,
+        setActiveBorder: (id: string | null) => {
+          state.activeBorder = id;
         },
         cfg: { playerClass: 'warrior' },
         player: { name: 'Hero' },
@@ -108,6 +122,21 @@ describe('DeedsWindow: focus survives rebuilds', () => {
     expect(document.activeElement).toBe(fresh);
   });
 
+  it('keeps focus on a recent-strip jump button across an unrelated rebuild', () => {
+    const state = baseState();
+    state.deedsEarned.set('prog_first_steps', '2026-07-01');
+    const { w, el } = makeWindow(state);
+    const before = el.querySelector<HTMLElement>('[data-recent="prog_first_steps"]');
+    expect(before).not.toBeNull();
+    before?.focus();
+    // A rebuild NOT driven by the button itself (a data refresh): focus must
+    // land on the role-equivalent fresh button, not fall back to Close.
+    w.render();
+    const fresh = el.querySelector<HTMLElement>('[data-recent="prog_first_steps"]');
+    expect(fresh).not.toBe(before);
+    expect(document.activeElement).toBe(fresh);
+  });
+
   it('keeps focus on a watch toggle whose button survives the rebuild', () => {
     const { el } = makeWindow(baseState());
     focusClick(el, '[data-watch="prog_first_steps"]');
@@ -125,6 +154,22 @@ describe('DeedsWindow: focus survives rebuilds', () => {
     const fresh = el.querySelector<HTMLElement>('[data-title="prog_veteran"]');
     expect(fresh?.getAttribute('aria-pressed')).toBe('true');
     expect(document.activeElement).toBe(fresh);
+  });
+
+  it('moves focus NOWHERE on a rebuild while pointer focus is parked on the root (never to Close)', () => {
+    // The pointer-only focus drop (src/ui/pointer_blur.ts) parks a mouse click's
+    // focus on the window root; the root is not a control to restore, so the
+    // rebuild must leave it alone rather than fall through to Close.
+    const state = baseState();
+    const { w, el } = makeWindow(state);
+    const closeBefore = el.querySelector('[data-close]');
+    expect(closeBefore).not.toBeNull();
+    el.focus();
+    expect(document.activeElement).toBe(el);
+    state.deedsEarned.set('prog_first_steps', '2026-07-12');
+    w.refreshIfChanged();
+    expect(el.querySelector('[data-close]')).not.toBe(closeBefore); // really rebuilt
+    expect(document.activeElement).toBe(el);
   });
 
   it('falls back to Close when the focused watch card leaves the current filter', () => {
@@ -190,6 +235,10 @@ describe('refocusSelector', () => {
     const sel = refocusSelector(weird);
     expect(sel).toBe('[data-title="a\\"b\\\\c"]:not([disabled])');
     expect(host.querySelector(sel as string)).toBe(weird);
+
+    const recent = document.createElement('button');
+    recent.setAttribute('data-recent', 'prog_first_steps');
+    expect(refocusSelector(recent)).toBe('[data-recent="prog_first_steps"]:not([disabled])');
 
     expect(refocusSelector(null)).toBeNull();
     expect(refocusSelector(document.createElement('button'))).toBeNull();

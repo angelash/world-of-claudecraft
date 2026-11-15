@@ -6,13 +6,16 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { FINDER_ACTIVITIES } from '../src/sim/content/dungeon_finder';
+import { HEROIC_BOSS_LOOT } from '../src/sim/content/heroic_loot';
+import { ITEMS, MOBS, zoneAt } from '../src/sim/data';
 import {
   buildDungeonFinderView,
   buildFinderProposalPopupView,
   type DungeonFinderViewInput,
   FINDER_PORTRAIT_DIR,
+  finderLootItemIds,
 } from '../src/ui/dungeon_finder_view';
-import type { DungeonFinderInfo } from '../src/world_api';
+import type { DungeonFinderInfo, DungeonFinderListingView } from '../src/world_api';
 
 function makeInfo(
   shape: 'sim' | 'client',
@@ -45,6 +48,7 @@ function input(over: Partial<DungeonFinderViewInput> = {}): DungeonFinderViewInp
     playerId: 1,
     specRole: null,
     party: null,
+    partyLeaderName: null,
     lockouts: [],
     tab: 'catalogue',
     selectedActivityId: null,
@@ -59,6 +63,14 @@ function live(view: ReturnType<typeof buildDungeonFinderView>) {
 }
 
 describe('dungeon finder view core', () => {
+  it('enumerates every catalogue loot icon once for loading-screen prewarm', () => {
+    const ids = finderLootItemIds();
+    expect(ids.length).toBeGreaterThan(90);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toContain('gravewoven_bag');
+    expect(ids).toContain('scepter_of_the_deathless_court');
+  });
+
   it('renders the loading state only when the online mirror has not synced', () => {
     expect(buildDungeonFinderView(input({ info: null })).kind).toBe('loading');
     expect(buildDungeonFinderView(input()).kind).toBe('live');
@@ -77,6 +89,30 @@ describe('dungeon finder view core', () => {
     expect(b.sig).toBe(a.sig);
   });
 
+  it('invalidates listing chrome for updated raid notes and expedition progress', () => {
+    const board: DungeonFinderListingView[] = [
+      {
+        id: 20,
+        activityId: 'nythraxis_boss_arena_normal',
+        leaderName: 'Leader',
+        tags: [],
+        size: 1,
+        capacity: 10,
+        members: [],
+        needed: null,
+        details: { purpose: 'clear', note: 'First note' },
+      },
+    ];
+    const snapshot = input({ board, playerLevel: 20, tab: 'board' });
+    const first = live(buildDungeonFinderView(snapshot));
+    expect(first.board.listings).toHaveLength(1);
+    board[0].details = { purpose: 'clear', note: 'Changed note' };
+    const note = live(buildDungeonFinderView(snapshot)).sig;
+    expect(note).not.toBe(first.sig);
+    board[0].expedition = { bossesDefeated: 1, bossesTotal: 3 };
+    expect(live(buildDungeonFinderView(snapshot)).sig).not.toBe(note);
+  });
+
   it('lists every catalogued activity with strict level eligibility', () => {
     const view = live(buildDungeonFinderView(input({ playerLevel: 8, specRole: 'tank' })));
     expect(view.rows.map((r) => r.id)).toEqual(FINDER_ACTIVITIES.map((a) => a.id));
@@ -86,15 +122,32 @@ describe('dungeon finder view core', () => {
     expect(byId.get('nythraxis_boss_arena_normal')?.blocked).toBe('level');
   });
 
-  it('flags the missing-spec gate at level 5+ and closes Quick Match', () => {
-    const view = live(buildDungeonFinderView(input({ playerLevel: 20, specRole: null })));
-    expect(view.queue.needsSpec).toBe(true);
-    expect(view.rows.find((r) => r.id === 'hollow_crypt_heroic')?.blocked).toBe('spec');
-    // The gate starts exactly at the spec unlock (level 5); level 4 is free of it.
-    const atFive = live(buildDungeonFinderView(input({ playerLevel: 5, specRole: null })));
-    expect(atFive.queue.needsSpec).toBe(true);
-    const atFour = live(buildDungeonFinderView(input({ playerLevel: 4, specRole: null })));
-    expect(atFour.queue.needsSpec).toBe(false);
+  it('offers class-capable roles without requiring or changing specialization', () => {
+    for (const specRole of [null, 'dps', 'tank'] as const) {
+      const view = live(
+        buildDungeonFinderView(
+          input({
+            playerLevel: 20,
+            specRole,
+            stagedActivityIds: ['hollow_crypt_heroic'],
+            info: makeInfo('sim', { roles: ['tank'] }),
+          }),
+        ),
+      );
+      expect(view.rows.find((r) => r.id === 'hollow_crypt_heroic')?.blocked).toBeNull();
+      expect(view.queue.roles.filter((role) => role.eligible).map((role) => role.role)).toEqual([
+        'tank',
+        'dps',
+      ]);
+      expect(view.queue.roles.find((role) => role.role === 'healer')?.eligible).toBe(false);
+      expect(view.queue.canQueue).toBe(true);
+    }
+    const lowLevel = live(buildDungeonFinderView(input({ playerLevel: 4, specRole: null })));
+    expect(lowLevel.queue.roles.filter((role) => role.eligible).map((role) => role.role)).toEqual([
+      'tank',
+      'dps',
+    ]);
+    expect(lowLevel.rows.find((row) => row.id === 'hollow_crypt_normal')?.blocked).toBe('level');
   });
 
   it('selects the first activity by default and honors an explicit selection', () => {
@@ -114,13 +167,19 @@ describe('dungeon finder view core', () => {
     const boss = view.detail?.encounters.find((e) => e.final);
     expect(boss?.mobId).toBe('morthen');
     expect(boss?.portraitUrl).toBe('/ui/dungeons/morthen.webp');
-    expect(boss?.mechanics).toEqual(['shadow_pulse']);
+    expect(boss?.mechanics).toEqual([
+      'crypt_morthen_shadow_pulse',
+      'crypt_gravecall',
+      'crypt_rite_of_the_unquiet',
+      'crypt_reap_the_unquiet',
+    ]);
     expect(boss?.groups.length).toBeGreaterThan(0);
     // morthen_guaranteed_uncommon partitions a full draw; morthen_bonus sums
     // below 1 and must NOT claim a guaranteed drop.
     expect(boss?.groups[0].guaranteed).toBe(true);
     expect(boss?.groups[1].guaranteed).toBe(false);
-    expect(boss?.copper).toBeGreaterThan(0);
+    // Normal difficulty previews the normal money base, never the heroic one.
+    expect(boss?.copper).toBe(2500);
     expect(boss?.heroicGroups).toEqual([]);
     // Attunement quest drops never appear in the preview.
     const crypt = live(
@@ -142,6 +201,69 @@ describe('dungeon finder view core', () => {
     }
   });
 
+  it('previews the Mere Hydra as one encounter that pays all three of its heads', () => {
+    const normal = live(
+      buildDungeonFinderView(
+        input({ playerLevel: 17, selectedActivityId: 'drowned_temple_normal' }),
+      ),
+    );
+    expect(normal.detail?.encounters.map((e) => e.mobId)).toEqual([
+      'choirmother_selthe',
+      'mere_hydra_head_center',
+      'tideglass_colossus',
+      'ysolei',
+    ]);
+    const hydra = normal.detail?.encounters[1];
+    expect(hydra?.final).toBe(false);
+    expect(hydra?.summoned).toBe(false);
+    expect(hydra?.portraitUrl).toBe('/ui/dungeons/mere_hydra_head_center.webp');
+    expect(hydra?.mechanics).toEqual([
+      'hydra_three_elements',
+      'hydra_tsunami',
+      'hydra_combined_breath',
+      'hydra_regrowth',
+    ]);
+    // Each head pays its own copper once per kill, and all three die for one:
+    // the preview is the sum, not the centre head's share alone.
+    const headCopper = (id: string) =>
+      (MOBS[id].loot ?? []).reduce((sum, e) => sum + (e.copper ?? 0), 0);
+    expect(headCopper('mere_hydra_head_left')).toBe(400);
+    expect(hydra?.copper).toBe(
+      headCopper('mere_hydra_head_left') +
+        headCopper('mere_hydra_head_center') +
+        headCopper('mere_hydra_head_right'),
+    );
+    expect(hydra?.copper).toBe(1200);
+    // The fight's one normal blue roll rides the centre head: four pieces, a
+    // chance and never a guarantee.
+    expect(hydra?.groups).toHaveLength(1);
+    expect(hydra?.groups[0].guaranteed).toBe(false);
+    expect(hydra?.groups[0].items.map((i) => i.itemId)).toEqual([
+      'mere_crested_helm',
+      'mereskin_hood',
+      'merewater_cowl',
+      'merecleaver',
+    ]);
+    expect(hydra?.singles).toEqual([]);
+    expect(hydra?.heroicGroups).toEqual([]);
+
+    const heroic = live(
+      buildDungeonFinderView(
+        input({ playerLevel: 20, specRole: 'tank', selectedActivityId: 'drowned_temple_heroic' }),
+      ),
+    ).detail?.encounters[1];
+    expect(heroic?.mobId).toBe('mere_hydra_head_center');
+    // Heroic never rolls the Normal-only blues; it pays the centre head's own
+    // heroic table, one piece a kill.
+    expect(heroic?.groups).toEqual([]);
+    expect(heroic?.heroicGroups).toHaveLength(1);
+    expect(heroic?.heroicGroups[0].guaranteed).toBe(true);
+    expect(heroic?.heroicGroups[0].items.map((i) => i.itemId)).toEqual(
+      (HEROIC_BOSS_LOOT.mere_hydra_head_center ?? []).map((e) => e.itemId),
+    );
+    expect(heroic?.copper).toBe(1200);
+  });
+
   it('appends heroic-only loot groups on heroic difficulty', () => {
     const view = live(
       buildDungeonFinderView(
@@ -153,9 +275,75 @@ describe('dungeon finder view core', () => {
       ),
     );
     const boss = view.detail?.encounters.find((e) => e.final);
+    // One guaranteed equipment group, plus the unchanged bonus farming group.
     expect(boss?.heroicGroups.length).toBe(2);
-    expect(boss?.heroicGroups.every((g) => g.guaranteed)).toBe(true);
+    expect(boss?.heroicGroups.filter((g) => g.guaranteed).length).toBe(1);
+    expect(boss?.heroicGroups.filter((g) => !g.guaranteed).length).toBe(1);
+    expect(boss?.groups).toEqual([]);
     expect(view.detail?.heroicMarks).toBe(1);
+    // The heroic finale preview advertises the raised heroicCopper base the
+    // kill actually pays; a non-finale encounter keeps its normal copper.
+    expect(boss?.copper).toBe(100000);
+    const sexton = view.detail?.encounters.find((e) => e.mobId === 'sexton_marrow');
+    // The rework raised Marrow's purse with his level (hollow_crypt.md 8.1).
+    expect(sexton?.copper).toBe(800);
+    expect(sexton?.heroicGroups).toHaveLength(1);
+    expect(sexton?.heroicGroups[0].guaranteed).toBe(true);
+
+    const wildheart = live(
+      buildDungeonFinderView(
+        input({
+          playerLevel: 20,
+          specRole: 'tank',
+          selectedActivityId: 'wildheart_basin_heroic',
+        }),
+      ),
+    );
+    const beastmaster = wildheart.detail?.encounters.find(
+      (e) => e.mobId === 'wildheart_beastmaster',
+    );
+    expect(beastmaster?.final).toBe(false);
+    // The promoted Beastmaster pays one equipment item per heroic kill: Heroic
+    // Duskwhisper rides his weighted heroic partition (design section 8.2).
+    expect(beastmaster?.heroicGroups.flatMap((g) => g.items.map((i) => i.itemId))).toContain(
+      'heroic_duskwhisper',
+    );
+  });
+
+  it('previews the live non-finale equipment budget on Heroic only', () => {
+    const sextonOn = (activityId: string) =>
+      live(
+        buildDungeonFinderView(
+          input({
+            playerLevel: 20,
+            specRole: 'tank',
+            selectedActivityId: activityId,
+          }),
+        ),
+      ).detail?.encounters.find((e) => e.mobId === 'sexton_marrow');
+    const heroic = sextonOn('hollow_crypt_heroic');
+    expect(heroic?.final).toBe(false);
+    expect(heroic?.heroicGroups).toMatchObject([
+      {
+        guaranteed: true,
+        // The relocated Nythraxis piece (0.1) and the blue roll's three rare
+        // copies (0.04 each, 2026-10-08) come first; the shipped rows keep their
+        // ratios in the remaining 0.78. The two uncommon rows left on 2026-10-09
+        // (Heroic pays no uncommon gear), so 0.7 of weight shares the 0.78.
+        items: [
+          { itemId: 'heroic_bonewrought_greatsword', chance: expect.closeTo(0.1, 9) },
+          { itemId: 'heroic_spadeworn_gauntlets', chance: expect.closeTo(0.04, 9) },
+          { itemId: 'heroic_gravedirt_grips', chance: expect.closeTo(0.04, 9) },
+          { itemId: 'heroic_bellrope_mitts', chance: expect.closeTo(0.04, 9) },
+          { itemId: 'sextons_burial_spade', chance: expect.closeTo((0.3 / 0.7) * 0.78, 9) },
+          { itemId: 'cryptplate_helm', chance: expect.closeTo((0.3 / 0.7) * 0.78, 9) },
+          { itemId: 'heroic_sextons_spadehaft', chance: expect.closeTo((0.1 / 0.7) * 0.78, 9) },
+        ],
+      },
+    ]);
+    expect(heroic?.groups).toEqual([]);
+    expect(heroic?.singles).toEqual([]);
+    expect(sextonOn('hollow_crypt_normal')?.heroicGroups).toEqual([]);
   });
 
   it('maps raid entrances to the Abandoned Crypt door with its zone', () => {
@@ -171,6 +359,51 @@ describe('dungeon finder view core', () => {
     expect(view.detail?.entrance.x).toBe(-152);
     expect(view.detail?.entrance.z).toBe(610);
     expect(view.detail?.entrance.zoneId.length).toBeGreaterThan(0);
+  });
+
+  it('surfaces the Ignivar raid weekly lockout under the arena id per difficulty', () => {
+    const normal = live(
+      buildDungeonFinderView(
+        input({
+          playerLevel: 20,
+          specRole: 'tank',
+          selectedActivityId: 'ignivar_raid_arena_normal',
+          lockouts: [{ id: 'ignivar_raid_arena', msRemaining: 3 * 86_400_000 }],
+        }),
+      ),
+    );
+    expect(normal.detail?.lockout).toBe('weekly');
+    expect(normal.detail?.lockedMinutes).toBe(3 * 24 * 60);
+    expect(normal.detail?.entrance.zoneId).toBe(zoneAt(503.05, 2243.7).id);
+    const heroic = live(
+      buildDungeonFinderView(
+        input({
+          playerLevel: 20,
+          specRole: 'tank',
+          selectedActivityId: 'ignivar_raid_arena_heroic',
+          lockouts: [{ id: 'ignivar_raid_arena', msRemaining: 3 * 86_400_000 }],
+        }),
+      ),
+    );
+    expect(heroic.detail?.lockout).toBe('weekly');
+    expect(heroic.detail?.lockedMinutes).toBe(0);
+    // The family locks per boss room: a Varkhul-only lock (the Inner Crucible)
+    // still surfaces on the one catalogue row, and the longest lock wins.
+    const varkhulOnly = live(
+      buildDungeonFinderView(
+        input({
+          playerLevel: 20,
+          specRole: 'tank',
+          selectedActivityId: 'ignivar_raid_arena_heroic',
+          lockouts: [
+            { id: 'ignivar_raid_arena:heroic', msRemaining: 60_000 },
+            { id: 'ignivar_inner_crucible:heroic', msRemaining: 2 * 86_400_000 },
+            { id: 'ignivar_inner_crucible', msRemaining: 5 * 86_400_000 },
+          ],
+        }),
+      ),
+    );
+    expect(varkhulOnly.detail?.lockedMinutes).toBe(2 * 24 * 60);
   });
 
   it('surfaces my lockout on the matching difficulty only (minute granularity)', () => {
@@ -265,6 +498,18 @@ describe('dungeon finder view core', () => {
       buildDungeonFinderView(input({ tab: 'board', specRole: 'tank', board: [listing] })),
     );
     expect(tankView.board.listings[0].canApply).toBe(false);
+    const armsTank = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          playerClass: 'warrior',
+          specRole: 'dps',
+          info: makeInfo('sim', { roles: ['tank'], eligibleRoles: ['tank', 'dps'] }),
+          board: [{ ...listing, needed: { tank: 1, healer: 0, dps: 0 } }],
+        }),
+      ),
+    );
+    expect(armsTank.board.listings[0].canApply).toBe(true);
     // A dps-capable viewer can.
     const dpsView = live(
       buildDungeonFinderView(
@@ -291,6 +536,279 @@ describe('dungeon finder view core', () => {
       ),
     );
     expect(applied.board.listings[0].canApply).toBe(false);
+  });
+
+  it('hides premade groups the player is already part of (issue 2031)', () => {
+    const ownListing = {
+      id: 7,
+      activityId: 'hollow_crypt_normal',
+      leaderName: 'Lead',
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [{ cls: 'warrior' as const, level: 8, role: 'tank' as const }],
+    };
+    const otherListing = {
+      id: 8,
+      activityId: 'hollow_crypt_normal',
+      leaderName: 'Someone Else',
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [{ cls: 'priest' as const, level: 8, role: 'healer' as const }],
+    };
+
+    // I lead a listing: it never shows up in my own browse results.
+    const leaderView = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          board: [ownListing, otherListing],
+          info: makeInfo('sim', {
+            myListing: { id: 7, activityId: 'hollow_crypt_normal', tags: [], applicants: [] },
+          }),
+        }),
+      ),
+    );
+    expect(leaderView.board.listings.map((l) => l.id)).toEqual([8]);
+    // The browse-list filter is separate from the leader's own-listing panel: hiding id
+    // 7 from `listings` must not also drop it from `myListing`.
+    expect(leaderView.board.myListing).toEqual({
+      id: 7,
+      activityId: 'hollow_crypt_normal',
+      tags: [],
+      applicants: [],
+    });
+
+    // I am a party MEMBER (not the leader) of the listed group: still hidden.
+    const memberView = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          board: [ownListing, otherListing],
+          party: { leader: 99, size: 2 },
+          partyLeaderName: 'Lead',
+        }),
+      ),
+    );
+    expect(memberView.board.listings.map((l) => l.id)).toEqual([8]);
+
+    // Solo, no party, no listing of my own: everything stays visible.
+    const soloView = live(
+      buildDungeonFinderView(input({ tab: 'board', board: [ownListing, otherListing] })),
+    );
+    expect(soloView.board.listings.map((l) => l.id)).toEqual([7, 8]);
+  });
+
+  it('hides premade listings for a dungeon the viewer is locked out of (#2030)', () => {
+    const heroicListing = {
+      id: 8,
+      activityId: 'hollow_crypt_heroic',
+      leaderName: 'Lead',
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [{ cls: 'warrior' as const, level: 20, role: 'tank' as const }],
+    };
+    const unlocked = live(
+      buildDungeonFinderView(
+        input({ tab: 'board', playerLevel: 20, board: [heroicListing], lockouts: [] }),
+      ),
+    );
+    expect(unlocked.board.listings.map((l) => l.id)).toEqual([8]);
+    const locked = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          playerLevel: 20,
+          board: [heroicListing],
+          lockouts: [{ id: 'hollow_crypt:heroic', msRemaining: 3_600_000 }],
+        }),
+      ),
+    );
+    expect(locked.board.listings).toEqual([]);
+  });
+
+  it('keeps a listing visible for withdraw when the viewer applied before going locked (#2030)', () => {
+    const heroicListing = {
+      id: 8,
+      activityId: 'hollow_crypt_heroic',
+      leaderName: 'Lead',
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [{ cls: 'warrior' as const, level: 20, role: 'tank' as const }],
+    };
+    const view = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          playerLevel: 20,
+          board: [heroicListing],
+          info: makeInfo('sim', { myApplication: { listingId: 8 } }),
+          lockouts: [{ id: 'hollow_crypt:heroic', msRemaining: 3_600_000 }],
+        }),
+      ),
+    );
+    expect(view.board.listings.map((l) => l.id)).toEqual([8]);
+    expect(view.board.listings[0].applied).toBe(true);
+    expect(view.board.listings[0].canApply).toBe(false);
+  });
+
+  it('hides the leader OWN listing from Open listings, lockout or not; the myListing panel keeps it (issue 2031, superseding the #2030 followup)', () => {
+    // History: the #2030 followup pinned the leader's own row VISIBLE in Open
+    // listings under a lockout, so the leader would not lose their row. Issue
+    // 2031 then hid every already-in-group listing from the browse list (the
+    // row's home is the myListing panel), which deliberately supersedes that
+    // expectation; the release landed the filter without updating this test,
+    // reddening its own tip. The lockout stays in the input so the #2030
+    // path is still exercised: it must neither resurrect the row nor lose
+    // the myListing panel. The release later landed its own reconciliation
+    // of the same red (33729a9716); this merge unions the two, keeping the
+    // positive-control and unlocked arms and adopting the release's full
+    // myListing object assertion.
+    const heroicListing = {
+      id: 8,
+      activityId: 'hollow_crypt_heroic',
+      leaderName: 'Lead',
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [{ cls: 'warrior' as const, level: 20, role: 'tank' as const }],
+    };
+    const myListing = { id: 8, activityId: 'hollow_crypt_heroic', tags: [], applicants: [] };
+    // The positive control: an unrelated leader's unlocked listing must
+    // SURVIVE both arms, so an empty result can only mean the own row was
+    // hidden, never that the loop produced nothing (a content-id rename
+    // would otherwise green this test forever).
+    const otherListing = {
+      id: 9,
+      activityId: 'hollow_crypt_normal',
+      leaderName: 'Other',
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [{ cls: 'warrior' as const, level: 20, role: 'tank' as const }],
+    };
+    const locked = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          playerLevel: 20,
+          board: [heroicListing, otherListing],
+          info: makeInfo('sim', { myListing }),
+          lockouts: [{ id: 'hollow_crypt:heroic', msRemaining: 3_600_000 }],
+        }),
+      ),
+    );
+    expect(locked.board.listings.map((l) => l.id)).toEqual([9]);
+    // The lockout must not filter the leader's own management panel (the
+    // release's full-object assertion, adopted at the merge).
+    expect(locked.board.myListing).toEqual({
+      id: 8,
+      activityId: 'hollow_crypt_heroic',
+      tags: [],
+      applicants: [],
+    });
+    // Same shape without the lockout: the hide comes from the
+    // already-in-group rule, not the lockout path.
+    const unlocked = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          playerLevel: 20,
+          board: [heroicListing, otherListing],
+          info: makeInfo('sim', { myListing }),
+          lockouts: [],
+        }),
+      ),
+    );
+    expect(unlocked.board.listings.map((l) => l.id)).toEqual([9]);
+    expect(unlocked.board.myListing).toEqual({
+      id: 8,
+      activityId: 'hollow_crypt_heroic',
+      tags: [],
+      applicants: [],
+    });
+  });
+
+  it('does not hide a listing over a lockout on a DIFFERENT dungeon or a lockout-free difficulty (#2030 followup)', () => {
+    const heroicListing = {
+      id: 8,
+      activityId: 'hollow_crypt_heroic',
+      leaderName: 'Lead',
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [{ cls: 'warrior' as const, level: 20, role: 'tank' as const }],
+    };
+    // A lockout on an unrelated dungeon must not hide this listing.
+    const otherDungeonLocked = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          playerLevel: 20,
+          board: [heroicListing],
+          lockouts: [{ id: 'sunken_temple:heroic', msRemaining: 3_600_000 }],
+        }),
+      ),
+    );
+    expect(otherDungeonLocked.board.listings.map((l) => l.id)).toEqual([8]);
+
+    // hollow_crypt normal has lockout:'none', so a listing for it must stay
+    // visible even if the (unrelated) heroic difficulty is locked.
+    const normalListing = { ...heroicListing, id: 9, activityId: 'hollow_crypt_normal' };
+    const normalDifficultyUnaffected = live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          playerLevel: 20,
+          board: [normalListing],
+          lockouts: [{ id: 'hollow_crypt:heroic', msRemaining: 3_600_000 }],
+        }),
+      ),
+    );
+    expect(normalDifficultyUnaffected.board.listings.map((l) => l.id)).toEqual([9]);
+  });
+
+  it('redraws applicant specializations while keeping expiry ticks out of the signature', () => {
+    const view = (spec: string | null | undefined, remaining: number) =>
+      live(
+        buildDungeonFinderView(
+          input({
+            tab: 'board',
+            info: makeInfo('sim', {
+              myListing: {
+                id: 7,
+                activityId: 'hollow_crypt_normal',
+                tags: [],
+                applicants: [
+                  {
+                    pid: 2,
+                    name: 'Priest',
+                    cls: 'priest',
+                    level: 8,
+                    roles: ['dps'],
+                    spec,
+                    remaining,
+                  },
+                ],
+              },
+            }),
+          }),
+        ),
+      );
+    expect(view('shadow', 59).sig).toBe(view('shadow', 60).sig);
+    expect(view('discipline', 60).sig).not.toBe(view('shadow', 60).sig);
+    expect(view(null, 60).sig).not.toBe(view('shadow', 60).sig);
+    expect(view(undefined, 60).board.myListing?.applicants[0].spec).toBeUndefined();
   });
 
   it('keeps the 1 Hz clock numbers OUT of the render-skip signature', () => {
@@ -392,6 +910,94 @@ describe('proposal popup view', () => {
 // A catalogued encounter with no committed portrait ships a silent 404 in the rail and
 // the detail header (the view builds the URL blindly from the mob id), so pin every
 // encounter, on both difficulties, against the real files under public/.
+describe('group board expedition applications', () => {
+  function listing(id: number, expedition = true): DungeonFinderListingView {
+    return {
+      id,
+      activityId: 'hollow_crypt_normal',
+      leaderName: `Leader${id}`,
+      tags: [],
+      size: 1,
+      capacity: 5,
+      needed: { tank: 0, healer: 1, dps: 3 },
+      members: [],
+      ...(expedition ? { expedition: { bossesDefeated: 1, bossesTotal: 2 } } : {}),
+    };
+  }
+  function boardView(
+    info: Partial<DungeonFinderInfo>,
+    specRole: DungeonFinderViewInput['specRole'] = 'tank',
+  ) {
+    return live(
+      buildDungeonFinderView(
+        input({
+          tab: 'board',
+          specRole,
+          board: [listing(1), listing(2), listing(3), listing(4, false)],
+          info: makeInfo('sim', info),
+        }),
+      ),
+    );
+  }
+  it('marks both pending expeditions and leaves a third available without allowing a manual request', () => {
+    const applications = [
+      { listingId: 1, remaining: 60 },
+      { listingId: 2, remaining: 50 },
+    ];
+    const result = boardView({
+      myApplication: applications[0],
+      myApplications: applications,
+      roles: [],
+    });
+    expect(result.board.listings.map((row) => [row.applied, row.canApply])).toEqual([
+      [true, false],
+      [true, false],
+      [false, true],
+      [false, false],
+    ]);
+    // Open expeditions use compatible roles, not the manual board's remaining composition slots.
+    expect(result.board.listings[2].applicationRole).toBe('tank');
+    const ticking = boardView({
+      myApplication: { ...applications[0], remaining: 59 },
+      myApplications: applications.map((app) => ({ ...app, remaining: app.remaining - 1 })),
+      roles: [],
+    });
+    expect(ticking.sig).toBe(result.sig);
+  });
+  it('enforces the five-request cap and the manual one-request compatibility rule', () => {
+    const capped = boardView({
+      myApplications: Array.from({ length: 5 }, (_, i) => ({ listingId: i + 10, remaining: 60 })),
+    });
+    expect(capped.board.listings.every((row) => !row.canApply)).toBe(true);
+    const legacy = boardView({ myApplication: { listingId: 1 } });
+    expect(legacy.board.listings[0].applied).toBe(true);
+    expect(legacy.board.listings.every((row) => !row.canApply)).toBe(true);
+    const pluralManual = boardView({ myApplications: [{ listingId: 4 }] });
+    expect(pluralManual.board.listings[3].applied).toBe(true);
+    expect(pluralManual.board.listings.every((row) => !row.canApply)).toBe(true);
+    const clear = boardView(
+      {
+        roles: ['dps'],
+        myApplications: [],
+        myApplication: { listingId: 99 },
+      },
+      'dps',
+    );
+    expect(clear.board.listings.every((row) => row.canApply)).toBe(true);
+  });
+  it('refuses expedition admission while queued but allows class roles without specialization', () => {
+    const queued = boardView({ queue: { activities: ['hollow_crypt_normal'], waited: 5 } });
+    expect(
+      queued.board.listings.filter((row) => row.expedition).every((row) => !row.canApply),
+    ).toBe(true);
+    const uncommitted = boardView({}, null);
+    expect(
+      uncommitted.board.listings.filter((row) => row.expedition).every((row) => row.canApply),
+    ).toBe(true);
+    expect(uncommitted.board.listings.every((row) => row.blocked === null)).toBe(true);
+  });
+});
+
 describe('every catalogued encounter has a committed portrait', () => {
   it('resolves a webp under public/ui/dungeons for every encounter mob id', () => {
     const missing: string[] = [];
@@ -404,5 +1010,44 @@ describe('every catalogued encounter has a committed portrait', () => {
     expect(missing, `catalogued encounters with no portrait webp:\n${missing.join('\n')}`).toEqual(
       [],
     );
+  });
+});
+
+describe('dungeon finder view: Normal-only loot rows', () => {
+  // The preview mirrors the roller's difficulty gate (loot_difficulty_gate.ts):
+  // a normalOnly row is listed on the Normal activity and NEVER on the Heroic
+  // one, because the heroic kill never rolls it. Substitutes one extra row on
+  // a real boss table, restored after, so the real activity catalogue drives
+  // the view.
+  it('previews a normalOnly group on Normal and hides it from the Heroic preview', () => {
+    expect(ITEMS.mistveil_cord).toBeTruthy();
+    const original = MOBS.morthen.loot;
+    MOBS.morthen.loot = [
+      ...original,
+      {
+        itemId: 'mistveil_cord',
+        chance: 1,
+        rollGroup: 'finder_test_normal_only',
+        normalOnly: true,
+      },
+    ];
+    try {
+      const listsCord = (view: ReturnType<typeof buildDungeonFinderView>) =>
+        live(view)
+          .detail?.encounters.find((e) => e.final)
+          ?.groups.some((g) => g.items.some((i) => i.itemId === 'mistveil_cord'));
+      expect(
+        listsCord(buildDungeonFinderView(input({ selectedActivityId: 'hollow_crypt_normal' }))),
+      ).toBe(true);
+      expect(
+        listsCord(
+          buildDungeonFinderView(
+            input({ playerLevel: 20, specRole: 'tank', selectedActivityId: 'hollow_crypt_heroic' }),
+          ),
+        ),
+      ).toBe(false);
+    } finally {
+      MOBS.morthen.loot = original;
+    }
   });
 });

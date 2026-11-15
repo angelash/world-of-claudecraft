@@ -1,18 +1,26 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 // Masterwork zone broadcast (Professions 2.0): a masterwork proc in
 // the overworld emits one pid-scoped `masterworkZone` copy per player in the
 // crafter's zone, the crafter included, next to (never instead of) the
 // personal `masterwork` event. Instanced players never receive the copy, and
 // an instanced CRAFTER emits no zone copies at all (personal toast only,
-// deliberately). The broadcast draws NO rng: the craft path's single-draw
-// contract (tests/professions_masterwork.test.ts) stays intact, re-asserted
+// deliberately). The broadcast draws NO rng: the craft path's draw contract
+// (one proc draw, then one loot-quality draw for this equipment output;
+// tests/professions_masterwork.test.ts) stays intact, re-asserted
 // here with the same observer idiom. Client side, the zone copy must reach
 // the HUD eventQueue and must NOT touch lastMasterwork (that mirror rebuilds
 // from ANY 'masterwork' event, which is exactly why this is a separate type).
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { inertCharacters } from './helpers/inert_characters';
+
+// Hud reaches the character model preload; keep it inert
+// (tests/helpers/inert_characters.ts has the why).
+vi.mock('../src/render/characters', () => inertCharacters.barrel());
+vi.mock('../src/render/characters/assets', () => inertCharacters.assets());
+vi.mock('../src/render/characters/portrait', () => inertCharacters.portrait());
 
 // Mock the db layer so the live GameServer routing suite below needs no
 // Postgres; only the sim fanout and the tick -> routeEvents wire pump are
@@ -26,9 +34,19 @@ vi.mock('../server/db', () => ({
   closePlaySession: vi.fn(async () => {}),
   insertChatLogs: vi.fn(async () => {}),
   walletForAccount: vi.fn(async () => null),
-  loadAccountFlair: vi.fn(async () => ({ ai: false, streamer: false, links: {} })),
-  markAccountQuestComplete: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
-  grantAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
+  loadAccountFlair: vi.fn(async () => ({
+    ai: false,
+    streamer: false,
+    links: {},
+  })),
+  markAccountQuestComplete: vi.fn(async () => ({
+    completedQuestIds: [],
+    mechChromaIds: [],
+  })),
+  grantAccountMechChroma: vi.fn(async () => ({
+    completedQuestIds: [],
+    mechChromaIds: [],
+  })),
   setAccountWeaponSkinLoadout: vi.fn(async () => ({
     completedQuestIds: [],
     mechChromaIds: [],
@@ -46,27 +64,36 @@ import { Sim } from '../src/sim/sim';
 import type { Entity, SimEvent } from '../src/sim/types';
 import { itemDisplayName } from '../src/ui/entity_i18n';
 import { Hud } from '../src/ui/hud';
+import { MASTERWORK_SEAL_IMAGE_URL } from '../src/ui/hud/professions/profession_art';
 import { t } from '../src/ui/i18n';
 import { QUALITY_COLOR } from '../src/ui/icons';
-import { MASTERWORK_SEAL_IMAGE_URL } from '../src/ui/profession_art';
+import { runCraft } from './helpers/enchant_family_cast';
+import { contactAtOnce } from './helpers/renderer_contact';
 
 const RECIPE_ID = 'recipe_eastbrook_ritual_vestments';
 const ITEM_ID = 'eastbrook_ritual_vestments';
 
 // Hunted proc seed, pinned (the professions_masterwork suite idiom: only the
-// pinned literal is committed). With tailoring as the active archetype and
-// skill 200 the single output-side draw procs at 0.14; at this seed, with this
-// exact setup order (three extra players added, then the archetype accept, the
-// skill poke, 3x linen_scrap, 1x spider_leg, then the craft), the first craft
-// procs. Position pokes after setup draw nothing, so both placements below
-// share the identical stream. Spare hunted seeds on record: 4, 18, 26, 29.
+// pinned literal is committed), re-recorded after the Eastbrook camp respacing
+// thinned the zone-1 camp counts and shifted the camp-driven world-gen draw
+// sequence. With tailoring as the active archetype and skill 200 the proc
+// draw procs at 0.14 (the loot-quality draw follows it, so it never moved
+// this seed); at this seed, with this exact setup order
+// (three extra players added, then the archetype accept, the skill poke, 3x
+// linen_scrap, 1x spider_leg, then the craft), the first craft procs. Position
+// pokes after setup draw nothing, so both placements below share the identical
+// stream. Spare hunted seeds on record: 21, 23, 27, 28.
 const PROC_SEED = 2;
 
 // One procced craft with an audience: a bystander in the crafter's zone, a
 // player parked in instance space, and a player moved to a different overworld
 // zone. Position pokes happen after all rng-relevant setup and draw nothing.
 function runScenario(opts?: { crafterInInstanceSpace?: boolean }) {
-  const sim = new Sim({ seed: PROC_SEED, playerClass: 'warrior', autoEquip: false });
+  const sim = new Sim({
+    seed: PROC_SEED,
+    playerClass: 'warrior',
+    autoEquip: false,
+  });
   const crafter = sim.playerId;
   const nearby = sim.addPlayer('mage', 'Bystander');
   const delver = sim.addPlayer('rogue', 'Delver');
@@ -80,7 +107,7 @@ function runScenario(opts?: { crafterInInstanceSpace?: boolean }) {
   sim.addItem('spool_of_thread', 5, crafter);
 
   const crafterE = sim.entities.get(crafter)!;
-  const zoneId = zoneAt(crafterE.pos.z).id;
+  const zoneId = zoneAt(crafterE.pos.x, crafterE.pos.z).id;
   // Instance space: far-off x band, z untouched (the exclusion is x-driven).
   sim.entities.get(delver)!.pos.x = DUNGEON_X_THRESHOLD + 100;
   // A different overworld zone: scan the z strips outward from the spawn until
@@ -88,12 +115,18 @@ function runScenario(opts?: { crafterInInstanceSpace?: boolean }) {
   // turn this player into an in-zone recipient).
   const farE = sim.entities.get(farhand)!;
   let z = farE.pos.z;
-  for (let i = 0; i < 400 && zoneAt(z).id === zoneId; i++) z += 50;
-  if (zoneAt(z).id === zoneId) {
+  for (let i = 0; i < 400 && zoneAt(0, z).id === zoneId; i++) z += 50;
+  if (zoneAt(0, z).id === zoneId) {
     z = farE.pos.z;
-    for (let i = 0; i < 400 && zoneAt(z).id === zoneId; i++) z -= 50;
+    for (let i = 0; i < 400 && zoneAt(0, z).id === zoneId; i++) z -= 50;
   }
-  expect(zoneAt(z).id).not.toBe(zoneId);
+  expect(zoneAt(0, z).id).not.toBe(zoneId);
+  for (let i = 0; i < 400 && zoneAt(farE.pos.x, z).id === zoneId; i++) z += 50;
+  if (zoneAt(farE.pos.x, z).id === zoneId) {
+    z = farE.pos.z;
+    for (let i = 0; i < 400 && zoneAt(farE.pos.x, z).id === zoneId; i++) z -= 50;
+  }
+  expect(zoneAt(farE.pos.x, z).id).not.toBe(zoneId);
   farE.pos.z = z;
   if (opts?.crafterInInstanceSpace) crafterE.pos.x = DUNGEON_X_THRESHOLD + 100;
 
@@ -103,7 +136,7 @@ function runScenario(opts?: { crafterInInstanceSpace?: boolean }) {
   rng.setObserver(() => {
     draws++;
   });
-  sim.craftItem(RECIPE_ID, false, crafter);
+  runCraft(sim, RECIPE_ID, false, crafter);
   rng.setObserver(null);
   const events = sim.drainEvents();
   return {
@@ -156,8 +189,9 @@ describe('emit side (Sim.craftItem)', () => {
         zoneId: r.zoneId,
       },
     ]);
-    // Single-draw contract intact: the whole craft, fanout included, drew once.
-    expect(r.draws).toBe(1);
+    // Draw contract intact: the whole craft, fanout included, drew the proc once
+    // plus the output's one loot-quality draw (unenhanced at this seed).
+    expect(r.draws).toBe(2);
   });
 
   it('an instanced crafter procs the personal event only: no zone copies at all', () => {
@@ -165,14 +199,16 @@ describe('emit side (Sim.craftItem)', () => {
     // Same seed, same stream position: the proc still lands.
     expect(r.personal).toHaveLength(1);
     expect(r.zone).toEqual([]);
-    expect(r.draws).toBe(1);
+    expect(r.draws).toBe(2);
   });
 });
 
 // A ClientWorld with no constructor run (the bareClient idiom from
 // tests/masterwork_event_mirror.test.ts): lastMasterwork only exists once the
 // real event-apply path assigns it, so an accidental assignment from the zone
-// copy cannot hide behind an initializer default.
+// copy cannot hide behind an initializer default. Kept bespoke on purpose
+// (issue #2088): the shared tests/helpers/bare_client.ts bareClient() always
+// sets lastMasterwork, which would defeat this liveness point.
 function bareClient(): ClientWorld {
   const c = Object.create(ClientWorld.prototype) as ClientWorld;
   (c as unknown as { eventQueue: SimEvent[] }).eventQueue = [];
@@ -213,8 +249,18 @@ describe('online ClientWorld host', () => {
       },
     ]);
     // A personal masterwork event afterwards assigns the mirror as before.
-    feed(client, { type: 'masterwork', recipeId: RECIPE_ID, itemId: ITEM_ID, crafter: 9, pid: 9 });
-    expect(client.lastMasterwork).toEqual({ recipeId: RECIPE_ID, itemId: ITEM_ID, crafter: 9 });
+    feed(client, {
+      type: 'masterwork',
+      recipeId: RECIPE_ID,
+      itemId: ITEM_ID,
+      crafter: 9,
+      pid: 9,
+    });
+    expect(client.lastMasterwork).toEqual({
+      recipeId: RECIPE_ID,
+      itemId: ITEM_ID,
+      crafter: 9,
+    });
   });
 });
 
@@ -232,7 +278,10 @@ function fakeWs(): { sent: { t: string; list?: SimEvent[] }[]; ws: unknown } {
   const sent: { t: string; list?: SimEvent[] }[] = [];
   return {
     sent,
-    ws: { readyState: 1, send: (payload: string) => sent.push(JSON.parse(payload)) },
+    ws: {
+      readyState: 1,
+      send: (payload: string) => sent.push(JSON.parse(payload)),
+    },
   };
 }
 
@@ -261,18 +310,24 @@ describe('masterworkZone over the live GameServer wire (session routing)', () =>
     const sd = joinServer(server, fcDelver, 94, 'Delver');
     const entities = (server.sim as unknown as { entities: Map<number, Entity> }).entities;
     const crafterE = entities.get(sc.pid)!;
-    const zoneId = zoneAt(crafterE.pos.z).id;
+    const zoneId = zoneAt(crafterE.pos.x, crafterE.pos.z).id;
     // Park the far player in a different overworld zone (the z-scan idiom from
     // the emit suite above: layout-agnostic, so a zone reshuffle cannot
     // silently turn them into an in-zone recipient).
     const farE = entities.get(sf.pid)!;
     let z = farE.pos.z;
-    for (let i = 0; i < 400 && zoneAt(z).id === zoneId; i++) z += 50;
-    if (zoneAt(z).id === zoneId) {
+    for (let i = 0; i < 400 && zoneAt(0, z).id === zoneId; i++) z += 50;
+    if (zoneAt(0, z).id === zoneId) {
       z = farE.pos.z;
-      for (let i = 0; i < 400 && zoneAt(z).id === zoneId; i++) z -= 50;
+      for (let i = 0; i < 400 && zoneAt(0, z).id === zoneId; i++) z -= 50;
     }
-    expect(zoneAt(z).id).not.toBe(zoneId);
+    expect(zoneAt(0, z).id).not.toBe(zoneId);
+    for (let i = 0; i < 400 && zoneAt(farE.pos.x, z).id === zoneId; i++) z += 50;
+    if (zoneAt(farE.pos.x, z).id === zoneId) {
+      z = farE.pos.z;
+      for (let i = 0; i < 400 && zoneAt(farE.pos.x, z).id === zoneId; i++) z -= 50;
+    }
+    expect(zoneAt(farE.pos.x, z).id).not.toBe(zoneId);
     farE.pos.z = z;
     farE.prevPos = { ...farE.prevPos, z };
     // Park the delver in instance space (same overworld z as the crafter, so
@@ -282,12 +337,16 @@ describe('masterworkZone over the live GameServer wire (session routing)', () =>
     const delverE = entities.get(sd.pid)!;
     delverE.pos.x = DUNGEON_X_THRESHOLD + 100;
     delverE.prevPos = { ...delverE.prevPos, x: delverE.pos.x };
-    expect(zoneAt(delverE.pos.z).id).toBe(zoneId);
+    expect(zoneAt(delverE.pos.x, delverE.pos.z).id).toBe(zoneId);
 
     // Fan out on the LIVE server sim (the craft trigger itself is pinned by the
     // emit suite; this suite owns the wire routing), then run the real pump.
     announceMasterworkZone(
-      (server.sim as unknown as { ctx: Parameters<typeof announceMasterworkZone>[0] }).ctx,
+      (
+        server.sim as unknown as {
+          ctx: Parameters<typeof announceMasterworkZone>[0];
+        }
+      ).ctx,
       sc.pid,
       'Crafter',
       { recipeId: RECIPE_ID, itemId: ITEM_ID, crafter: sc.pid },
@@ -324,8 +383,13 @@ interface MasterworkZoneHudHarness {
     playerId: number;
     craftingIdentity: { synced: boolean };
     craftSkills: Record<string, number>;
+    gatheringProficiency: Record<string, number>;
   };
-  renderer: { handleEvent: ReturnType<typeof vi.fn> };
+  renderer: {
+    handleEvent: ReturnType<typeof vi.fn>;
+    // the event sound waits for a swing's blade contact (contact_queue.ts); none here
+    atContact: typeof contactAtOnce;
+  };
   playEventSfx: ReturnType<typeof vi.fn>;
   meters: { onEvent: ReturnType<typeof vi.fn> };
   isNythraxisEvent: ReturnType<typeof vi.fn>;
@@ -344,8 +408,9 @@ function masterworkZoneHud(): MasterworkZoneHudHarness {
     playerId: 9,
     craftingIdentity: { synced: false },
     craftSkills: {},
+    gatheringProficiency: {},
   };
-  hud.renderer = { handleEvent: vi.fn() };
+  hud.renderer = { handleEvent: vi.fn(), atContact: contactAtOnce };
   hud.playEventSfx = vi.fn();
   hud.meters = { onEvent: vi.fn() };
   hud.isNythraxisEvent = vi.fn(() => false);

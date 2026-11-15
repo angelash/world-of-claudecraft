@@ -9,14 +9,7 @@ const RECOVERY_HEALER_MANA_RATIO = 0.35;
 const RECOVERY_FRAGILE_THREAT_HEALTH_RATIO = 0.9;
 const RECOVERY_FRAGILE_THREAT_MAX_LEVEL = 4;
 
-const INTENT_KINDS = [
-  'route_plan',
-  'buffs',
-  'focus',
-  'praise',
-  'correction',
-  'recovery',
-] as const;
+const INTENT_KINDS = ['route_plan', 'buffs', 'focus', 'praise', 'correction', 'recovery'] as const;
 
 const INTENT_BEHAVIORS = [
   'advance',
@@ -74,25 +67,27 @@ export function buildAmbientPartyCoordinationIntent(
   let holdAdvance = false;
   let preferAssist = false;
 
-  if (
-    facts.deadCount > 0
-    || facts.criticalHealthCount > 0
-    || facts.criticalResourceCount > 0
-  ) {
+  if (facts.deadCount > 0 || facts.criticalHealthCount > 0 || facts.criticalResourceCount > 0) {
     kind = 'recovery';
     behavior = 'recover';
-    summary = facts.deadCount > 0
-      ? 'Recover the party before moving'
-      : facts.criticalResourceCount > 0
-        ? 'Recover health and mana before moving'
-        : 'Stabilize health before the next pull';
+    summary =
+      facts.deadCount > 0
+        ? 'Recover the party before moving'
+        : facts.criticalResourceCount > 0
+          ? 'Recover health and mana before moving'
+          : 'Stabilize health before the next pull';
     holdAdvance = true;
-  } else if (input.groupMode === 'hold_regroup' || input.groupMode === 'wait_party' || facts.laggingCount > 0) {
+  } else if (
+    input.groupMode === 'hold_regroup' ||
+    input.groupMode === 'wait_party' ||
+    facts.laggingCount > 0
+  ) {
     kind = 'correction';
     behavior = 'regroup';
-    summary = facts.laggingCount > 0
-      ? 'Tighten formation before moving'
-      : 'Hold the group together before moving';
+    summary =
+      facts.laggingCount > 0
+        ? 'Tighten formation before moving'
+        : 'Hold the group together before moving';
     holdAdvance = true;
   } else if (isPreparationGroupMode(input.groupMode)) {
     kind = 'buffs';
@@ -216,12 +211,17 @@ function partyIntentFacts(
       criticalHealthCount++;
     }
     if (memberNeedsResourceRecoveryIntent(member)) criticalResourceCount++;
-    if (leader && member.pid !== leader.pid && distanceBetweenMembers(member, leader) > PARTY_REGROUP_RANGE) {
+    if (
+      leader &&
+      member.pid !== leader.pid &&
+      distanceBetweenMembers(member, leader) > PARTY_REGROUP_RANGE
+    ) {
       laggingCount++;
     }
   }
   return {
-    partyInCombat: party.members.some((member) => member.inCombat === 1) || hasPartyThreat(liveState, partyIds),
+    partyInCombat:
+      party.members.some((member) => member.inCombat === 1) || hasPartyThreat(liveState, partyIds),
     deadCount,
     criticalHealthCount,
     criticalResourceCount,
@@ -236,9 +236,11 @@ function memberNeedsRecoveryIntent(
   if (member.mhp <= 0) return false;
   const ratio = member.hp / member.mhp;
   if (ratio <= RECOVERY_HEALTH_RATIO) return true;
-  return threatenedPids.has(member.pid)
-    && isFragileLowLevelMember(member)
-    && ratio <= RECOVERY_FRAGILE_THREAT_HEALTH_RATIO;
+  return (
+    threatenedPids.has(member.pid) &&
+    isFragileLowLevelMember(member) &&
+    ratio <= RECOVERY_FRAGILE_THREAT_HEALTH_RATIO
+  );
 }
 
 function isFragileLowLevelMember(member: PartyMemberInfo): boolean {
@@ -247,21 +249,20 @@ function isFragileLowLevelMember(member: PartyMemberInfo): boolean {
 }
 
 function memberNeedsResourceRecoveryIntent(member: PartyMemberInfo): boolean {
-  return !member.dead
-    && member.rtype === 'mana'
-    && member.mres > 0
-    && canClassHeal(member.cls)
-    && member.res / member.mres <= RECOVERY_HEALER_MANA_RATIO;
+  return (
+    !member.dead &&
+    member.rtype === 'mana' &&
+    member.mres > 0 &&
+    canClassHeal(member.cls) &&
+    member.res / member.mres <= RECOVERY_HEALER_MANA_RATIO
+  );
 }
 
 function canClassHeal(cls: PartyMemberInfo['cls']): boolean {
   return cls === 'priest' || cls === 'paladin' || cls === 'shaman' || cls === 'druid';
 }
 
-function latestPartyMilestone(
-  events: readonly SimEvent[],
-  party: PartyInfo,
-): string | null {
+function latestPartyMilestone(events: readonly SimEvent[], party: PartyInfo): string | null {
   const partyIds = new Set(party.members.map((member) => member.pid));
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];
@@ -284,15 +285,16 @@ function latestPartyMilestone(
 }
 
 function isPreparationGroupMode(groupMode: string): boolean {
-  return groupMode === 'buff_party'
-    || groupMode === 'prepare_party';
+  return groupMode === 'buff_party' || groupMode === 'prepare_party';
 }
 
 function isFocusGroupMode(groupMode: string): boolean {
-  return groupMode === 'assist_party'
-    || groupMode === 'focus_fire'
-    || groupMode === 'tank_party'
-    || groupMode === 'taunt_party';
+  return (
+    groupMode === 'assist_party' ||
+    groupMode === 'focus_fire' ||
+    groupMode === 'tank_party' ||
+    groupMode === 'taunt_party'
+  );
 }
 
 function hasPartyThreat(
@@ -309,7 +311,8 @@ function threatenedPartyPids(
   const threatened = new Set<number>();
   for (const entity of liveState.entities.values()) {
     if (entity.k !== 'mob' || entity.dead === 1 || entity.dead === true) continue;
-    if (typeof entity.aggro === 'number' && partyIds.has(entity.aggro)) threatened.add(entity.aggro);
+    if (typeof entity.aggro === 'number' && partyIds.has(entity.aggro))
+      threatened.add(entity.aggro);
   }
   return threatened;
 }
@@ -329,16 +332,19 @@ function intentKey(input: {
   targetName: string;
   summary: string;
 }): string {
-  return compactText([
-    'party-intent',
-    input.kind,
-    input.behavior,
-    input.objectiveId,
-    input.objectiveLabel,
-    input.groupMode,
-    input.targetName,
-    input.summary,
-  ].join('|'), 180);
+  return compactText(
+    [
+      'party-intent',
+      input.kind,
+      input.behavior,
+      input.objectiveId,
+      input.objectiveLabel,
+      input.groupMode,
+      input.targetName,
+      input.summary,
+    ].join('|'),
+    180,
+  );
 }
 
 function compactText(value: string, maxLength: number): string {

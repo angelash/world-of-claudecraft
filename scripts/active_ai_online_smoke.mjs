@@ -39,7 +39,18 @@ async function api(path, opts = {}, token = null) {
   return { status: res.status, body };
 }
 
-const DELTA_SELF_KEYS = ['inv', 'equip', 'qlog', 'qdone', 'cds', 'stats', 'weapon', 'party', 'trade', 'duel'];
+const DELTA_SELF_KEYS = [
+  'inv',
+  'equip',
+  'qlog',
+  'qdone',
+  'cds',
+  'stats',
+  'weapon',
+  'party',
+  'trade',
+  'duel',
+];
 function mergeSelf(prev, next) {
   if (prev) {
     for (const key of DELTA_SELF_KEYS) {
@@ -193,7 +204,10 @@ class Client {
 async function main() {
   const status = await api('/api/status');
   if (status.status === 200 && status.body.ok) {
-    ok('server status', `realm=${status.body.realm ?? 'unknown'} online=${status.body.players_online ?? 'n/a'}`);
+    ok(
+      'server status',
+      `realm=${status.body.realm ?? 'unknown'} online=${status.body.players_online ?? 'n/a'}`,
+    );
   } else {
     no('server status', `status=${status.status}`);
   }
@@ -210,15 +224,24 @@ async function main() {
     body: JSON.stringify({ username, password, email }),
   });
   if (registered.status === 200 && registered.body.token) ok('register account');
-  else no('register account', `status=${registered.status} error=${registered.body.error ?? 'unknown'}`);
+  else
+    no(
+      'register account',
+      `status=${registered.status} error=${registered.body.error ?? 'unknown'}`,
+    );
   const token = registered.body.token;
   if (!token) throw new Error('registration did not return a token');
 
-  const created = await api('/api/characters', {
-    method: 'POST',
-    body: JSON.stringify({ name: charName, class: 'warrior' }),
-  }, token);
-  if (created.status === 200 && created.body.id > 0) ok('create character', `id=${created.body.id}`);
+  const created = await api(
+    '/api/characters',
+    {
+      method: 'POST',
+      body: JSON.stringify({ name: charName, class: 'warrior' }),
+    },
+    token,
+  );
+  if (created.status === 200 && created.body.id > 0)
+    ok('create character', `id=${created.body.id}`);
   else no('create character', `status=${created.status} error=${created.body.error ?? 'unknown'}`);
   const characterId = created.body.id;
   if (!characterId) throw new Error('character creation did not return an id');
@@ -239,7 +262,8 @@ async function main() {
     if (!npc) throw new Error('no nearby npc visible from the spawn area');
 
     const proactive = await client.waitForEvent(
-      (event) => (event.type === 'aiThinking' || event.type === 'aiSpeech') && event.pid === client.pid,
+      (event) =>
+        (event.type === 'aiThinking' || event.type === 'aiSpeech') && event.pid === client.pid,
       40_000,
     );
     if (proactive) ok('observe proactive active AI', `type=${proactive.type}`);
@@ -248,27 +272,31 @@ async function main() {
     client.clearEvents();
     client.cmd({ cmd: 'ai_interact_npc', npc: npc.id, locale: 'en', topic: 'recent' });
     const thinking = await client.waitForEvent(
-      (event) => event.type === 'aiThinking' && event.speakerId === npc.id && event.pid === client.pid,
+      (event) =>
+        event.type === 'aiThinking' && event.speakerId === npc.id && event.pid === client.pid,
       20_000,
     );
-    if (thinking) ok('manual aiThinking', `${thinking.speakerName ?? npc.name} ${thinking.durationMs}ms`);
+    if (thinking)
+      ok('manual aiThinking', `${thinking.speakerName ?? npc.name} ${thinking.durationMs}ms`);
     else no('manual aiThinking', `npc=${npc.id}`);
 
     const speech = await client.waitForEvent(
       (event) =>
-        event.type === 'aiSpeech'
-        && event.speakerId === npc.id
-        && event.pid === client.pid
-        && event.interactionId === thinking?.interactionId,
+        event.type === 'aiSpeech' &&
+        event.speakerId === npc.id &&
+        event.pid === client.pid &&
+        event.interactionId === thinking?.interactionId,
       60_000,
     );
     if (speech && speech.speech) {
-      const summary = speech.speech.mode === 'dynamicText'
-        ? speech.speech.text
-        : speech.speech.lineId;
+      const summary =
+        speech.speech.mode === 'dynamicText' ? speech.speech.text : speech.speech.lineId;
       ok('manual aiSpeech', `${speech.source ?? 'unknown'} ${summary}`);
     } else {
-      const recent = client.events.slice(-6).map((event) => event.type).join(', ');
+      const recent = client.events
+        .slice(-6)
+        .map((event) => event.type)
+        .join(', ');
       no('manual aiSpeech', `npc=${npc.id} recent=${recent || 'none'}`);
     }
   } finally {

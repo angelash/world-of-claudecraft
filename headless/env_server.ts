@@ -7,7 +7,25 @@
 //   <- {"obs":[...],"info":{...}}
 //   -> {"cmd":"step","action":4}
 //   <- {"obs":[...],"reward":0.01,"terminated":false,"truncated":false,"info":{...}}
+//   -> {"cmd":"gathering","verb":"inspect"}
+//   <- {"ok":true,"verb":"inspect","state":{...},"corpses":[...],"vendors":[...]}
+//   -> {"cmd":"gathering_goal","verb":"inspect"}
+//   <- {"ok":true,"verb":"inspect","goal":null}
 //   -> {"cmd":"close"}
+//
+// The optional `gathering` command is a closed request union (inspect,
+// buy_field_kit, set_preference, harvest) that never advances sim time or the
+// episode step: no tick runs and no `step`-mutation happens on that path, only
+// the existing `step`/noop advances casts. Exact request/result shapes and
+// discovery are documented in `gathering_protocol.ts` and
+// `docs/prd/intentional-gathering/headless-gathering-contract.md`; this header
+// only names the wire shape, not the contract.
+//
+// The optional `gathering_goal` command (Intentional Gathering PR4) is a
+// SEPARATE closed request union (inspect, track_recipe, track_commission,
+// clear) for the one-goal tracking surface; same never-advances-time rule.
+// Exact shapes: `gathering_goal_protocol.ts` and
+// `docs/protocols/gathering-goal.md`.
 //
 // Run `node dist-env/env_server.cjs --bench` for a throughput benchmark.
 
@@ -16,12 +34,18 @@ import type { TalentAllocation } from '../src/sim/content/talents';
 import { ACTIONS, applyAction, encodeObs, NUM_ACTIONS, obsSize } from '../src/sim/obs';
 import { type RewardCounters, Sim } from '../src/sim/sim';
 import { ALL_CLASSES, MAX_LEVEL, type PlayerClass } from '../src/sim/types';
+import { allocateHeadlessGathererIdentity } from './gatherer_identity';
+import { executeGatheringCommand } from './gathering_commands';
+import { executeGatheringGoalCommand } from './gathering_goal_commands';
+import { GATHERING_GOAL_CAPABILITY } from './gathering_goal_protocol';
+import { GATHERING_CAPABILITY } from './gathering_protocol';
 import {
   MAX_INPUT_LINE_LENGTH,
   parseTalentResetRequest,
   validateAction,
   validatePlayerClass,
 } from './protocol';
+import { ownedPetDamageForReward } from './reward_credit';
 
 interface EnvConfig {
   frameSkip: number; // sim ticks per env step (20 ticks = 1 second)
@@ -93,7 +117,16 @@ class Env {
       playerClass,
       respawnSeconds: this.config.respawnSeconds,
       autoEquip: true,
+      idleMobTickRadius: 80,
+      // Allocated by the HOST, once per episode, before the world exists. The
+      // sim receives a finished value and derives nothing, so this episode
+      // replays identically while two episodes (even at one seed) never share a
+      // gatherer record.
+      gathererIdentity: allocateHeadlessGathererIdentity(),
     });
+    // RL episodes deliberately have no wall calendar: resetDay stays empty, so
+    // calendar-window systems (including rotating World Quests) remain dormant
+    // instead of making a seeded episode depend on the machine's date or zone.
     if (playerLevel !== 1) this.sim.setPlayerLevel(playerLevel);
     if (talents && !this.sim.applyTalents(talents)) throw new Error('invalid talents');
     this.stepCount = 0;
@@ -105,14 +138,17 @@ class Env {
     if (!this.sim || !this.prev) throw new Error('call reset first');
     const sim = this.sim;
     applyAction(sim, action);
-    for (let i = 0; i < this.config.frameSkip; i++) sim.tick();
+    let ownedPetDamage = 0;
+    for (let i = 0; i < this.config.frameSkip; i++) {
+      ownedPetDamage += ownedPetDamageForReward(sim.tick(), sim.entities, sim.playerId);
+    }
     this.stepCount++;
 
     const c = sim.counters;
     const r = this.config.rewards;
     const reward =
       (c.xpGained - this.prev.xpGained) * r.xp +
-      (c.damageDealt - this.prev.damageDealt) * r.damageDealt +
+      (c.damageDealt - this.prev.damageDealt + ownedPetDamage) * r.damageDealt +
       (c.damageTaken - this.prev.damageTaken) * r.damageTaken +
       (c.kills - this.prev.kills) * r.kill +
       (c.deaths - this.prev.deaths) * r.death +
@@ -199,6 +235,8 @@ function serve(): void {
             num_actions: NUM_ACTIONS,
             actions: ACTIONS,
             max_level: MAX_LEVEL,
+            gathering: GATHERING_CAPABILITY,
+            gathering_goal: GATHERING_GOAL_CAPABILITY,
           });
           break;
         case 'reset':
@@ -233,6 +271,12 @@ function serve(): void {
             }
             send(env.step(action));
           }
+          break;
+        case 'gathering':
+          send(executeGatheringCommand(env.sim, msg));
+          break;
+        case 'gathering_goal':
+          send(executeGatheringGoalCommand(env.sim, msg));
           break;
         case 'close':
           send({ ok: true });

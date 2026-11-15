@@ -15,6 +15,7 @@ import { MOBS } from '../src/sim/data';
 import { createMob, recalcPlayerStats } from '../src/sim/entity';
 import { type PlayerMeta, Sim } from '../src/sim/sim';
 import type { Entity, SetProc } from '../src/sim/types';
+import { EMPTY_TEST_WORLD } from './sim_shared';
 
 type ProcInternals = {
   players: Map<number, PlayerMeta>;
@@ -24,15 +25,25 @@ type ProcInternals = {
 type AnySim = Sim & Record<string, any>;
 type AnyEntity = Entity & Record<string, any>;
 
-// The seven epic families and the proc each 4-piece tier must resolve to.
+// The seven epic families and the proc their LINEAGE 4-piece tier resolves to
+// (the retune: each family climbs its archetype's 2/4/6 ladder, so four pieces
+// of any member family pay the lineage's tier-1 proc, and the tier-2 procs
+// moved to the 6-piece capstone).
 const EPIC_4PC: Array<{ setId: string; procId: string; trigger: SetProc['trigger'] }> = [
   { setId: SET_DEATHLORD, procId: 'set_gravemight', trigger: 'weaponCrit' },
   { setId: SET_WYRMSHADOW, procId: 'set_fangrush', trigger: 'weaponCrit' },
   { setId: SET_NECROMANCERS, procId: 'set_clearcasting', trigger: 'spellCast' },
-  { setId: SET_CROWNFORGED, procId: 'set_bonesplinter', trigger: 'weaponCrit' },
-  { setId: SET_NIGHTTALON, procId: 'set_ragged_gash', trigger: 'weaponCrit' },
-  { setId: SET_SOULFLAME, procId: 'set_soulblaze', trigger: 'spellCast' },
-  { setId: SET_STORMCALLERS, procId: 'set_soulblaze', trigger: 'spellCast' },
+  { setId: SET_CROWNFORGED, procId: 'set_gravemight', trigger: 'weaponCrit' },
+  { setId: SET_NIGHTTALON, procId: 'set_fangrush', trigger: 'weaponCrit' },
+  { setId: SET_SOULFLAME, procId: 'set_clearcasting', trigger: 'spellCast' },
+  { setId: SET_STORMCALLERS, procId: 'set_clearcasting', trigger: 'spellCast' },
+];
+
+// Cross-family six-piece stacks and the capstone proc each adds.
+const LINEAGE_6PC: Array<{ stack: Record<string, number>; procId: string }> = [
+  { stack: { [SET_DEATHLORD]: 3, [SET_CROWNFORGED]: 3 }, procId: 'set_bonesplinter' },
+  { stack: { [SET_WYRMSHADOW]: 2, [SET_NIGHTTALON]: 4 }, procId: 'set_ragged_gash' },
+  { stack: { [SET_NECROMANCERS]: 2, [SET_SOULFLAME]: 4 }, procId: 'set_soulblaze' },
 ];
 
 const barrowlordEquipment = {
@@ -75,7 +86,7 @@ function spawnTarget(sim: AnySim, p: AnyEntity): AnyEntity {
 }
 
 describe('every epic family has a reachable 4-piece proc', () => {
-  it('4 pieces of each family resolves its proc; 3 pieces does not', () => {
+  it('4 pieces of each family resolves its lineage proc; 3 pieces does not', () => {
     for (const { setId, procId, trigger } of EPIC_4PC) {
       const four = aggregateSetBonuses(new Map([[setId, 4]]));
       expect(
@@ -85,6 +96,17 @@ describe('every epic family has a reachable 4-piece proc', () => {
       expect(four.procs[0].trigger, setId).toBe(trigger);
       const three = aggregateSetBonuses(new Map([[setId, 3]]));
       expect(three.procs, setId).toEqual([]);
+    }
+  });
+
+  it('six pieces across a lineage add the capstone proc beside the 4-piece one', () => {
+    for (const { stack, procId } of LINEAGE_6PC) {
+      const six = aggregateSetBonuses(new Map(Object.entries(stack)));
+      expect(
+        six.procs.map((p) => p.id),
+        procId,
+      ).toContain(procId);
+      expect(six.procs, procId).toHaveLength(2);
     }
   });
 
@@ -108,7 +130,12 @@ describe('every epic family has a reachable 4-piece proc', () => {
 
 describe('weaponCrit set procs from real swings', () => {
   it('a melee crit in 4-piece Barrowlord grants Gravemight and raises attack power', () => {
-    const sim = new Sim({ seed: 31, playerClass: 'warrior', autoEquip: false }) as AnySim;
+    const sim = new Sim({
+      seed: 31,
+      playerClass: 'warrior',
+      autoEquip: false,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     const p = equipSet(sim, barrowlordEquipment);
     const mob = spawnTarget(sim, p);
     const apBefore = p.attackPower;
@@ -118,13 +145,24 @@ describe('weaponCrit set procs from real swings', () => {
     }
     const aura = p.auras.find((a) => a.id === 'set_gravemight');
     expect(aura?.kind).toBe('buff_ap');
-    expect(aura?.value).toBe(60);
-    expect(p.attackPower).toBe(apBefore + 60); // applyAura re-ran recalcPlayerStats
+    expect(aura?.value).toBe(40);
+    expect(p.attackPower).toBe(apBefore + 40); // applyAura re-ran recalcPlayerStats
   });
 
-  it('a ranged (Auto Shot) crit in 4-piece Direfang bleeds the target with Ragged Gash', () => {
-    const sim = new Sim({ seed: 32, playerClass: 'hunter', autoEquip: false }) as AnySim;
-    const p = equipSet(sim, direfangEquipment);
+  it('a ranged (Auto Shot) crit in the six-piece agility lineage bleeds Ragged Gash', () => {
+    const sim = new Sim({
+      seed: 32,
+      playerClass: 'hunter',
+      autoEquip: false,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
+    // The bleed is the lineage CAPSTONE now: four Direfang pieces plus the two
+    // Nightfang slots the other family does not occupy.
+    const p = equipSet(sim, {
+      ...direfangEquipment,
+      chest: 'wyrmshadow_harness',
+      feet: 'wyrmshadow_treads',
+    });
     const mob = spawnTarget(sim, p);
     p.gm = true; // the shot aggroes the wolf; keep the harness alive
     p.critChance = 1;
@@ -137,18 +175,27 @@ describe('weaponCrit set procs from real swings', () => {
     }
     const aura = mob.auras.find((a) => a.id === 'set_ragged_gash');
     expect(aura?.kind).toBe('dot');
-    expect(aura?.value).toBe(6);
+    expect(aura?.value).toBe(4);
     expect(aura?.school).toBe('physical');
     expect(aura?.sourceId).toBe(p.id);
   });
 
   it('the Bonesplinter bleed stacks to its cap, scales, refreshes, and ticks', () => {
-    const sim = new Sim({ seed: 35, playerClass: 'warrior', autoEquip: false }) as AnySim;
+    const sim = new Sim({
+      seed: 35,
+      playerClass: 'warrior',
+      autoEquip: false,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
+    // The bleed is the strength lineage CAPSTONE: four Bonewrought pieces plus
+    // the two Barrowlord slots the other family does not occupy.
     const p = equipSet(sim, {
       gloves: 'crownforged_gauntlets',
       waist: 'crownforged_girdle',
       helmet: 'crownforged_dreadhelm',
       shoulder: 'crownforged_warspaulders',
+      chest: 'deathlord_warplate',
+      legs: 'deathlord_legguards',
     });
     const mob = spawnTarget(sim, p);
     p.gm = true;
@@ -160,7 +207,7 @@ describe('weaponCrit set procs from real swings', () => {
     }
     let aura = bleed();
     expect(aura?.stacks).toBe(3);
-    expect(aura?.value).toBe(24); // 8 per tick per stack
+    expect(aura?.value).toBe(15); // 5 per tick per stack
     // a further application holds the cap and refreshes the duration
     aura!.remaining = 1;
     while ((bleed()?.remaining ?? 0) <= 1 && guard++ < 120) {
@@ -172,11 +219,16 @@ describe('weaponCrit set procs from real swings', () => {
     // and the dot actually ticks the mob for the stacked amount
     const hpBefore = mob.hp;
     for (let t = 0; t < 20 * 3; t++) sim.tick(); // 3 seconds >= one 2s tick
-    expect(mob.hp).toBeLessThanOrEqual(hpBefore - 24);
+    expect(mob.hp).toBeLessThanOrEqual(hpBefore - 15);
   });
 
   it('a non-crit swing never rolls the weaponCrit proc (no rng draw past the swing)', () => {
-    const sim = new Sim({ seed: 33, playerClass: 'warrior', autoEquip: false }) as AnySim;
+    const sim = new Sim({
+      seed: 33,
+      playerClass: 'warrior',
+      autoEquip: false,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     const internals = sim as unknown as ProcInternals;
     const p = equipSet(sim, barrowlordEquipment);
     // engine-level check: the trigger gate itself draws nothing without procs
@@ -191,9 +243,14 @@ describe('weaponCrit set procs from real swings', () => {
   });
 });
 
-describe('spellCast set procs (Soulblaze, tier-2 casters)', () => {
-  it('spell casts in 4-piece Wraithfire eventually grant Soulblaze and raise spell power', () => {
-    const sim = new Sim({ seed: 34, playerClass: 'mage', autoEquip: false }) as AnySim;
+describe('spellCast set procs (Soulblaze, the caster capstone)', () => {
+  it('spell casts in the six-piece caster lineage eventually grant Soulblaze', () => {
+    const sim = new Sim({
+      seed: 34,
+      playerClass: 'mage',
+      autoEquip: false,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     const internals = sim as unknown as ProcInternals;
     const p = sim.player as AnyEntity;
     const meta = internals.players.get(p.id)!;
@@ -201,14 +258,22 @@ describe('spellCast set procs (Soulblaze, tier-2 casters)', () => {
     recalcPlayerStats(p, meta.cls, meta.equipment, meta.talentMods, meta.equipmentInstance);
     // Wire the resolved 4-piece proc directly (soulflame pieces mirror the
     // necromancers slot layout; the resolver mapping is pinned above).
-    p.setProcs = aggregateSetBonuses(new Map([[SET_SOULFLAME, 4]])).procs;
+    // Isolate the capstone proc: Clearcasting shares the spellCast trigger and
+    // its (frozen-clock) icd would otherwise stop the roll from ever reaching
+    // Soulblaze in this harness.
+    p.setProcs = aggregateSetBonuses(
+      new Map([
+        [SET_NECROMANCERS, 2],
+        [SET_SOULFLAME, 4],
+      ]),
+    ).procs.filter((proc) => proc.id === 'set_soulblaze');
     const spBefore = p.spellPower;
     for (let i = 0; i < 500 && !p.auras.some((a) => a.id === 'set_soulblaze'); i++) {
       internals.applySetProcs(p, null, 'spellCast');
     }
     const aura = p.auras.find((a) => a.id === 'set_soulblaze');
     expect(aura?.kind).toBe('buff_spellpower');
-    expect(aura?.value).toBe(40);
-    expect(p.spellPower).toBe(spBefore + 40);
+    expect(aura?.value).toBe(25);
+    expect(p.spellPower).toBe(spBefore + 25);
   });
 });

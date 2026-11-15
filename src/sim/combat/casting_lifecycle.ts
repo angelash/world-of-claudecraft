@@ -1,3 +1,12 @@
+import { BENISON_4PC_WHISPER_HEAL_BONUS } from '../content/ignivar_set_bonuses';
+import { courierSummon } from '../courier';
+import { gliderActionsLocked } from '../glider_action_lock';
+import { shadowActionsLocked } from '../shadow_action_lock';
+import { BENISON_WHISPER_AURA_ID } from './priest/benison_dawnweave';
+import { shadowPeriodicHit } from './priest/periodic_crit';
+import { spiritBombCastError } from './priest/spirit_bomb_cast';
+import { completeSpiritBomb } from './priest/spirit_bomb_completion';
+import { consumeRequiredAura, hasRequiredAura } from './required_aura';
 // Player cast lifecycle, extracted from the Sim monolith (C4a).
 //
 // This module owns how a cast STARTS (castAbility/castAbilityBySlot: the
@@ -28,64 +37,145 @@
 // tests/architecture.test.ts.
 
 import { isDispellableAura } from '../aura_classify';
-import { ITEMS, isDelvePos, MOBS } from '../data';
+import { nearestAttackerId } from '../auto_acquire_target';
+import { completeAlliedHearthstoneCast } from '../content/faction_rewards';
+import { ITEMS, isDelvePos, MOBS, zoneAt } from '../data';
 import { recalcPlayerStats } from '../entity';
-import { isShieldItem } from '../equipment_rules';
 import { instanceInfoAt } from '../instances/dungeons';
-import { FISH_REEL_WINDOW_ROD_BONUS_SEC, FISH_REEL_WINDOW_SEC } from '../professions/fishing';
-import { bestOwnedGatherToolTier } from '../professions/tools';
+import { completeKitUse, validateKitUse } from '../mob/trash_kit/encounter_use';
+import { forceDismount } from '../mounts';
+import { canActivateDivineAscension, hasDevotion, spendDevotion } from '../paladin_devotion';
+import { notePetAssistCast } from '../pet/pet_assist';
+import { scalePrimaryHealing } from '../primary_healing';
+import {
+  completeCorpseHarvestCast,
+  releaseCorpseHarvest,
+  validateCorpseHarvestCast,
+} from '../professions/corpse_harvest_session';
+import { effectiveFishingBand, fishReelWindowSecFor } from '../professions/fishing';
+import { bestOwnedGatherToolFor } from '../professions/tools';
 import { scheduleProjectile } from '../projectile_travel';
+import { isWorldPvpHostile, WORLD_PVP_AID_REFUSED_LINE } from '../pvp/world_pvp';
 import type { PlayerMeta, ResolvedAbility } from '../sim';
 import type { SimContext } from '../sim_context';
+import { primaryHealingMultiplier } from '../spec_output_tuning';
 import { abilityScalingPower, channelTickBonus } from '../spell_scaling';
-import type { AbilityDef, Entity, Vec3 } from '../types';
+import { resolveTalentHitMult } from '../talent_hit_mult';
+import { hasEscapeStealth } from '../threat';
+import type { AbilityDef, AbilityEffect, Aura, Entity, Vec3 } from '../types';
 import {
+  ALLIED_HEARTHSTONE_CAST_ID,
   angleTo,
   armorReduction,
   CAST_COMPLETE_EPS,
   CAST_PUSHBACK_SEC,
   CAST_QUEUE_WINDOW_SEC,
   CHANNEL_PUSHBACK_FRACTION,
+  CORPSE_HARVEST_CAST_ID,
+  CRAFT_CAST_ID,
   DEMON_HEAL_CAST_ID,
+  DISENCHANT_CAST_ID,
   DT,
   dist2d,
+  ENCHANT_CAST_ID,
   FACING_HOLD_DIST,
   FISHING_CAST_ID,
   GATHER_CAST_ID,
   isFormAuraKind,
+  isKitUseCast,
   isNonSpellCast,
   MELEE_ARC,
   MELEE_RANGE,
   MIN_GCD,
   normAngle,
+  SALVAGE_CAST_ID,
+  SUNDER_CAST_ID,
+  TOOL_RECHARGE_CAST_ID,
 } from '../types';
 import { drawWeapon } from '../weapon_stow';
+import { wispMazeActionsLocked } from '../wisp_maze_action_lock';
+import { sharedCooldownIds } from './ability_cooldown_groups';
+import {
+  afflictionAdjustedCastTime,
+  afflictionCastError,
+  afflictionConsumeHealMult,
+  afflictionConsumeThreadDoomBonus,
+  afflictionDrainCompletionDoom,
+  afflictionDrainTickDoom,
+  afflictionTargetCastError,
+  clearAfflictionConsumeThreads,
+  completeAfflictionDrain,
+  completeNeedleOfFateCast,
+  consumeFateThreadsForDrain,
+  gainDoom,
+  hasAfflictionConsumePushbackImmunity,
+} from './affliction';
+import { shouldPreserveQueuedSentence } from './affliction_sentence_queue';
+import { abilityCastSurvivesMovement, heldMovementInputWouldMove } from './cast_move_gate';
 import {
   hasUnbreakableMovementLock,
   isInStasis,
   isLockedOut,
+  isRooted,
   isSilenced,
   isStunned,
   isUnbreakableControlAura,
   tonguesMult,
 } from './cc';
+import { startChannelVisual, stopChannelVisual } from './channel_visuals';
 import {
   ARCANE_SURGE_ID,
   aetherDartsBoltBonus,
   aetherDartsChannelStart,
   aetherSurgeCastMult,
+  PERFECT_MOMENT_DARTS_DAMAGE_MULT,
+  perfectMomentActive,
 } from './chronomancy';
+import { onCraftedCollectionHeal } from './crafted_collection_effects';
+import {
+  consumeDesolationForCast,
+  destructionCastTimeMult,
+  hasBurningPact,
+  reserveRuinousBrandCopy,
+  ruinAmount,
+  spendRuin,
+} from './destruction';
 import { extendOwnedDot } from './dot_mutation';
+import {
+  applyDruidFormEntry,
+  druidFormEntryOwed,
+  druidFormEntryPool,
+  druidFormEntryTarget,
+} from './druid_form_entry';
+import { naturesBoonArmedFor, naturesBoonPowerFor } from './druid_natures_boon';
+import { resolveDualPurposeTarget } from './dual_purpose_target';
 import {
   consumeFreeCostFor,
   consumeNextAttackCrit,
   consumeNextCastCheap,
-  consumeNextCastInstant,
+  consumeNextCastCheapAura,
+  consumeNextCastInstantAura,
+  consumeRadiantResonanceForDawn,
   hasFreeCostFor,
   hasScopedNextCastInstant,
+  iceFloesAuraForAbility,
   nextCastCheapMultiplier,
 } from './empower_next';
-import { isActionLockingFormAuraKind, isResourceShiftFormAuraKind } from './forms';
+import { shieldEquipped } from './equipment_requirement';
+import { executeWindowBlocksCast, executeWindowThreshold } from './execute_threshold';
+import { autoPicksFallenAlly, isFallenGroupMember, pickFallenAlly } from './fallen_ally_target';
+import { meleeReachActor } from './feral_reach';
+import {
+  applyAutoUnshift,
+  isFormToggleAbility as isFormToggle,
+  willAutoUnshift,
+} from './form_auto_unshift';
+import { formRequirementMet, hasFormRequirement, requiredForms } from './form_requirement';
+import {
+  isActionLockingFormAuraKind,
+  isMountSafeFormToggle,
+  isResourceShiftFormAuraKind,
+} from './forms';
 import {
   applyBrainFreezeOverride,
   brainFreezeBypassesCooldown,
@@ -93,19 +183,99 @@ import {
   frostMageChannelStart,
 } from './frost_mage';
 import { empoweredCastProgress, empoweredStageForProgress } from './glacial_front';
-import { hasDeadGroupMember, isMassResurrectionAbility } from './mass_resurrection';
+import {
+  coldsightFeveredDrawChannelStart,
+  coldsightFeveredDrawCompleted,
+  coldsightFeveredDrawPulse,
+  coldsightReserveRead,
+  coldsightVoidReservationOnCancel,
+  consumeColdsightReadReservation,
+} from './hunter_coldsight_read';
+import { bloodhookStartError } from './hunter_fieldcraft';
+import { packCommandError } from './hunter_packlord';
+import { applyPatchUp } from './hunter_patch_up';
+import { playDeadOnCastAttempt } from './hunter_play_dead';
+import { cancelRecedingShell, noteHunterFocusSpend } from './hunter_shared';
+import {
+  hasDeadGroupMember,
+  hasDeadGroupMemberInReach,
+  isMassResurrectionAbility,
+} from './mass_resurrection';
+import {
+  hasActiveOssuaryMark,
+  necromancyCastError,
+  OSSUARY_MARK_ABILITY_ID,
+  soulFragmentCount,
+  spendSoulFragments,
+} from './necromancy';
+import {
+  cleanupPaladinAegis,
+  completePaladinAegis,
+  startPaladinAegis,
+  syncPaladinAegisProtection,
+  tickPaladinAegis,
+} from './paladin_aegis';
+import { applyDawnsWrathOverride, dawnsWrathHammerActive } from './paladin_dawns_wrath';
+import {
+  clearRadiantResonanceReservation,
+  reserveRadiantResonance,
+} from './paladin_radiant_resonance';
+import {
+  applySolarReprisalOverride,
+  solarReprisalBypassesCooldown,
+  solarReprisalMakesAbilityFree,
+} from './paladin_solar_reprisal';
+import { paladinManaCostMultiplier } from './paladin_support';
+import { isValkyrsCallingAirborne } from './paladin_valkyrs_calling_state';
+import { effectivePlayerAttackRange } from './player_attack_reach';
+import { reserveShadowStilledMind } from './priest/stilled_mind';
+import {
+  duskhymnChannelStart,
+  duskhymnChannelStopped,
+  hasTithefiendTarget,
+} from './priest/vespers';
+import { swingReadyForQueuedCast } from './queued_cast_swing_yield';
+import { resurrectionCastRange, resurrectionReachError } from './resurrection_reach';
+import {
+  detonatorFreeMultiplier,
+  gloamBankArmed,
+  veilAllowsStealthAbilities,
+} from './rogue_engines';
+import { combineCostMultipliers, duskCostMultiplier } from './rogue_talents';
+import { brinewardMendingCastTime } from './shaman_spiritmend';
+import {
+  stonehearthStormcastMendingActive,
+  stonehearthStormcastMendingHealMult,
+} from './shaman_stonehearth';
+import { onShamanManaSpent, shamanCastTimeMultiplier, shamanManaCost } from './shaman_talents';
+import { resolveUnleashWeaponTarget, unleashWeaponCastError } from './shaman_unleash_weapon';
+import {
+  onStormcastConsumed,
+  STORMCAST_CHEAP_ID,
+  STORMCAST_ID,
+  warspiritPosture,
+} from './shaman_warspirit';
 import {
   hasCastShield,
   noteSpellHit,
   spellDamageMultFromAuras,
   spellHasteMult,
 } from './spell_combat';
-import { isSpellResisted } from './spell_resist';
+import { resolveHostileSpellResist } from './spell_resist';
 import { onCastCompleted } from './talent_procs';
+import { isToggleBuff, leavingRestrictedToggle } from './toggle_buff';
+import { emitRainOfFireStop } from './warlock_meteor_events';
+import {
+  armForbiddenReflection,
+  ashenFocusCastTimeMult,
+  canUseForbiddenReflection,
+  consumeForbiddenReflection,
+  grantShadowCredit,
+  tickUnbrokenRitual,
+} from './warlock_talents';
+import { hasUmbralAnchor, UMBRAL_ANCHOR_ID, umbralAnchorCastError } from './warlock_utility';
+import { castRedHarvest } from './warrior_harvest';
 
-// Shaman shocks (earth/flame/frost) share one cooldown; lightning_shock joins them
-// for the shared-cooldown predicate. Moved with the casting slice (only callers).
-const SHAMAN_SHOCK_COOLDOWN_IDS = ['earth_shock', 'flame_shock', 'frost_shock'] as const;
 export const COLOSSAL_MIGHT_COOLDOWNS = new Set([
   'recklessness',
   'avatar',
@@ -117,26 +287,41 @@ export const COLOSSAL_MIGHT_COOLDOWNS = new Set([
   'shield_slam',
 ]);
 
-function isFormToggle(ability: AbilityDef): boolean {
-  return ability.effects.some((e) => e.type === 'selfBuff' && isFormAuraKind(e.kind));
-}
-
-// Forms, stances and stealth are toggles: re-casting cancels the aura, and
-// cancelling is never gated by cost or cooldown (the cooldown gates re-entry).
-function isToggleBuff(ability: AbilityDef): boolean {
-  if (ability.id === 'ghost_wolf') return true;
-  return ability.effects.some(
-    (e) =>
-      e.type === 'selfBuff' &&
-      (isFormAuraKind(e.kind) ||
-        e.kind === 'defensive_stance' ||
-        e.kind === 'stealth' ||
-        e.kind === 'stasis'),
-  );
-}
+// Position spells whose no-aim press (a bare keybind, the RL env) lands on the
+// selected hostile instead of the caster's feet.
+const SELECTED_HOSTILE_AIM_FALLBACK = new Set([
+  'earthquake',
+  'earthbind',
+  'frostjaw_trap',
+  'bear_trap',
+]);
 
 function isStasisToggle(ability: AbilityDef): boolean {
   return ability.effects.some((effect) => effect.type === 'selfBuff' && effect.kind === 'stasis');
+}
+
+function shellskinBlocksAbility(entity: Entity, meta: PlayerMeta, ability: AbilityDef): boolean {
+  if (!entity.auras.some((aura) => aura.id === 'shellskin')) return false;
+  if (meta.talents.rows[17] === 'hun_r17_shell_and_fang') return false;
+  if (ability.id === 'shellskin') return false;
+  if (ability.requiresTarget && ability.targetType !== 'friendly') return true;
+  return ability.effects.some((effect) =>
+    [
+      'directDamage',
+      'weaponDamage',
+      'weaponStrike',
+      'aoeDamage',
+      'packCommand',
+      'unleashBeast',
+      'hunterBloodhook',
+      'hunterShrapnel',
+      'frostjawTrap',
+      // Volley and Phosphor Flask are instant ground zones since PR 4488.
+      'groundAoE',
+      'hunterBearTrap',
+      'hunterScatterbolt',
+    ].includes(effect.type),
+  );
 }
 
 function cancelStasisToggle(ctx: SimContext, entity: Entity, ability: AbilityDef): boolean {
@@ -163,13 +348,6 @@ function cancelStasisToggle(ctx: SimContext, entity: Entity, ability: AbilityDef
   return true;
 }
 
-function isShamanShock(abilityId: string): boolean {
-  return (
-    (SHAMAN_SHOCK_COOLDOWN_IDS as readonly string[]).includes(abilityId) ||
-    abilityId === 'lightning_shock'
-  );
-}
-
 function chargeState(p: Entity, abilityId: string, bonusCharges: number, cooldown: number) {
   if (bonusCharges <= 0 || cooldown <= 0) return null;
   p.abilityCharges ??= {};
@@ -189,6 +367,18 @@ function chargeState(p: Entity, abilityId: string, bonusCharges: number, cooldow
   state.maxCharges = maxCharges;
   state.rechargeLength = cooldown;
   state.charges = Math.min(Math.max(state.charges, 0), maxCharges);
+  // Keep exactly one running timer per missing use: a grown cap (a pool saved
+  // under a lower cap) would otherwise strand its new slot, because updateTimers
+  // drops the recharge once the timer list empties. A shrunk cap sheds the
+  // longest timers. A legacy pool without timers converts in updateTimers.
+  if (state.recharges) {
+    const missing = maxCharges - state.charges;
+    state.recharges.sort((a, b) => a - b);
+    state.recharges.length = Math.min(state.recharges.length, missing);
+    while (state.recharges.length < missing) state.recharges.push(cooldown);
+    state.recharge = state.recharges[0] ?? 0;
+    if (state.charges <= 0) p.cooldowns.set(abilityId, state.recharge);
+  }
   p.abilityCharges[abilityId] = state;
   return state;
 }
@@ -263,7 +453,45 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
       ctx.error(p.id, 'There are no dead group members to resurrect.');
       return;
     }
+    // Cancel as soon as no reachable body remains (the caster was displaced, or
+    // the members in reach were raised by another source), instead of letting the
+    // cast run on to a completion that must refuse anyway.
+    if (!hasDeadGroupMemberInReach(ctx, p, resurrectionCastRange(activeCast.def.range))) {
+      cancelCast(ctx, p);
+      ctx.error(p.id, 'Out of range.');
+      return;
+    }
   }
+  // The single-target twin of the mass-rez gate above: a combat res whose target
+  // was raised by another source, or whose caster was displaced out of reach
+  // (range + line of sight to the body), cancels now instead of channeling the
+  // rest of an up-to-8-second cast into a certain finish-side refusal.
+  if (activeCast?.def.requiresTarget && activeCast.def.targetsDead) {
+    const dead = resolveDeadAllyTarget(ctx, p, p.castTargetId);
+    if (!dead) {
+      cancelCast(ctx, p);
+      ctx.error(p.id, 'You must target a dead ally in your group.');
+      return;
+    }
+    const reach = resurrectionReachError(
+      ctx,
+      p,
+      dead,
+      resurrectionCastRange(activeCast.def.range),
+      2,
+    );
+    if (reach === 'range') {
+      cancelCast(ctx, p);
+      ctx.error(p.id, 'Out of range.');
+      return;
+    }
+    if (reach === 'los') {
+      cancelCast(ctx, p);
+      ctx.error(p.id, 'Line of sight.');
+      return;
+    }
+  }
+  tickUnbrokenRitual(ctx, p, meta);
   // a silence breaks an in-progress spell, but never a non-spell cast (the
   // fishing/gather sentinels) or a physical channel (e.g. an aimed-shot
   // kind): those aren't spells. Demon Heal folds into the same short-circuit
@@ -289,6 +517,32 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
       return;
     }
   }
+  // The offensive twin of the mass-rez/combat-res gates above: a hostile (or
+  // any-type) TIMED (non-channel) cast whose locked target dies mid-cast, from
+  // ANY source (another player's finishing blow, a DoT tick, an AoE), cancels
+  // now instead of running the rest of a multi-second cast into a certain
+  // finish-side "You have no target." refusal at applyAbility. Channels are
+  // exempt: applyChannelTick already re-checks the same locked target on every
+  // pulse (a coarser but pre-existing cadence), and folding them in here would
+  // pre-empt that path's own completion-time side effects (e.g. Affliction's
+  // Consume completion Doom) and turn its silent cancel into a player-visible
+  // error. A friendly cast is exempt too: its target resolution already falls
+  // back to the caster on a dead ally (see resolveFriendlyTarget), unaffected
+  // by this gate. Placed after silence/lockout so those keep priority (their
+  // silent cancel) on the rare tick where both conditions are true at once.
+  if (
+    !p.channeling &&
+    activeCast?.def.requiresTarget &&
+    !activeCast.def.targetsDead &&
+    activeCast.def.targetType !== 'friendly'
+  ) {
+    const liveTarget = p.castTargetId !== null ? (ctx.entities.get(p.castTargetId) ?? null) : null;
+    if (!liveTarget || liveTarget.dead) {
+      cancelCast(ctx, p);
+      ctx.error(p.id, 'You have no target.', liveTarget?.dead ? 'target_dead' : undefined);
+      return;
+    }
+  }
   // Fishing bite minigame: the hidden seeded bite and the
   // server-authoritative reel deadline, resolved in sim ticks (the lockpick
   // stepDeadlineTick precedent; the client never reports a timeout). The
@@ -296,28 +550,66 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
   // direct-assigned fishing cast (the parity cancel drives, hidden state
   // inert) decays exactly as before. Draws no rng on any path.
   if (p.castingAbility === FISHING_CAST_ID) {
+    // The swim deny holds for the WHOLE session, not just the cast press: a
+    // cast pressed mid-leap over deep water passes the press-time deny (the
+    // airborne y-term sits above the surface) and used to splash down into a
+    // live session the deny could never have granted, because the vertical
+    // splash is not the move input the ordinary cancel watches (the round 7
+    // finder). Enforcement of the existing R25-family deny, not a new rule;
+    // draw-free (the bite delay was drawn at the press, cancel spends none).
+    if (ctx.isSwimming(p)) {
+      cancelCast(ctx, p);
+      return;
+    }
     if (p.fishBiteAtTick > 0 && ctx.tickCount >= p.fishBiteAtTick) {
       // The bite: text-free personal event (bobber bite state plus the
       // always-audible cue). The reel window re-scans the rod at bite time,
       // so the widened window follows the rod actually held at the bite.
       ctx.emit({ type: 'fishingBite', pid: p.id });
       p.fishBiteAtTick = 0;
-      const rodTier = bestOwnedGatherToolTier(meta.inventory, 'fishing', ITEMS);
-      const windowSec = FISH_REEL_WINDOW_SEC + FISH_REEL_WINDOW_ROD_BONUS_SEC * (rodTier - 1);
-      p.fishReelDeadlineTick = ctx.tickCount + Math.ceil(windowSec / DT);
+      // Both axes of the rod held at the BITE: its tier and its own rarity.
+      // Draw-free, same as the tier-only scan it replaces, so the bite arm
+      // still moves no rng and the two-draws-per-landed-session contract is
+      // untouched.
+      const rod = bestOwnedGatherToolFor(meta.inventory, 'fishing', ITEMS);
+      p.fishReelDeadlineTick =
+        ctx.tickCount + Math.ceil(fishReelWindowSecFor(rod.tier, rod.rarity) / DT);
     } else if (p.fishReelDeadlineTick > 0 && ctx.tickCount > p.fishReelDeadlineTick) {
       // The miss ("it got away"), firing at deadline + 1: the reel re-press
       // stays valid while tickCount <= deadline (startFishing's reel arm).
       // Ends the cast with zero draws and no loss; recast immediately.
-      ctx.emit({ type: 'fishingGotAway', pid: p.id });
+      // zoneId/band resolve BEFORE the fields clear, both draw-free.
+      ctx.emit({
+        type: 'fishingGotAway',
+        pid: p.id,
+        zoneId: p.fishCastZoneId || zoneAt(p.pos.x, p.pos.z).id,
+        band: effectiveFishingBand(meta),
+      });
       p.castingAbility = null;
       p.castRemaining = 0;
       p.fishBiteAtTick = 0;
       p.fishReelDeadlineTick = 0;
+      p.fishCastZoneId = '';
       ctx.emit({ type: 'castStop', entityId: p.id, success: false });
       return;
     }
   }
+  // Corpse-harvest cast (Intentional Gathering, PR3): a full per-tick recheck
+  // BEFORE the decrement, the same shape as the mass-rez/single-target
+  // rechecks above, because this session is deliberately stricter than the
+  // generic non-spell cancel plumbing (any movement at all invalidates it,
+  // not just leaving interact range; see corpse_harvest_session.ts).
+  if (p.castingAbility === CORPSE_HARVEST_CAST_ID && !validateCorpseHarvestCast(ctx, p, meta)) {
+    cancelCast(ctx, p);
+    return;
+  }
+  // A trash-engine use (mob/trash_kit/encounter_use.ts, G3): the same full
+  // per-tick recheck (the body still standing, still in reach).
+  if (isKitUseCast(p.castingAbility) && !validateKitUse(ctx, p)) {
+    cancelCast(ctx, p);
+    return;
+  }
+  if (activeCast && p.channeling) syncPaladinAegisProtection(ctx, p, activeCast);
   p.castRemaining -= DT;
 
   if (p.channeling) {
@@ -330,8 +622,11 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
         ctx.applyDemonHealTick(p);
       } else {
         const res = ctx.resolvedAbility(abilityId, p.id);
-        if (res) applyChannelTick(ctx, p, res);
+        if (res) applyChannelTick(ctx, p, meta, res);
       }
+      // Only a pulse that didn't cancel the channel counts (applyChannelTick's
+      // dead-target/range/LoS guards call cancelCast and null castingAbility).
+      if (p.castingAbility === abilityId) coldsightFeveredDrawPulse(ctx, p, abilityId);
     };
     p.channelTickTimer -= DT;
     if (p.channelTickTimer <= 0) {
@@ -343,16 +638,32 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
       fireChannelTick();
     }
     if (p.castRemaining <= CAST_COMPLETE_EPS) {
-      // Flush any fixed-count tick the timer has not reached yet: the tick
-      // accumulator and the channel's end advance separately, so floating-point
-      // drift can leave the final tick a hair short exactly when they coincide,
-      // silently dropping the last missile (the Arcane Missiles 5-barrage bug). A
-      // fixed-count channel must always land exactly channelTicks ticks. Inert for
-      // duration-based channels, whose channelTicksLeft is 0.
-      while (p.channelTicksLeft > 0) {
+      // Flush a fixed-count tick only when its OWN schedule has also reached
+      // (or is a hair past) zero here: the tick accumulator and the channel's
+      // end advance separately, so floating-point drift can leave the final
+      // tick a hair short exactly when they coincide, silently dropping the
+      // last missile (the Arcane Missiles 5-barrage bug). A tick still
+      // meaningfully in the future was not lost to drift: a pushback-shortened
+      // channel already gave up the boundaries it no longer reaches (see
+      // pushbackCast), and anything still orphaned here is dropped rather than
+      // forced out as a same-instant completion burst. Inert for duration-based
+      // channels, whose channelTicksLeft is 0.
+      while (p.channelTicksLeft > 0 && p.channelTickTimer <= CAST_COMPLETE_EPS) {
         p.channelTicksLeft -= 1;
+        p.channelTickTimer += p.channelTickEvery;
         fireChannelTick();
       }
+      p.channelTicksLeft = 0; // any tick pushback orphaned here owes nothing
+      const completed = p.castingAbility ? ctx.resolvedAbility(p.castingAbility, p.id) : null;
+      if (completed) completePaladinAegis(ctx, p, completed);
+      stopChannelVisual(ctx, p);
+      emitRainOfFireStop(ctx, p);
+      const channelTarget =
+        p.castTargetId !== null ? (ctx.entities.get(p.castTargetId) ?? null) : null;
+      completeAfflictionDrain(ctx, p, channelTarget, p.castingAbility ?? '');
+      clearAfflictionConsumeThreads(ctx, p);
+      coldsightFeveredDrawCompleted(ctx, p, p.castingAbility, channelTarget);
+      duskhymnChannelStopped(ctx, p);
       p.castingAbility = null;
       p.channeling = false;
       // completed ground-targeted channels drop their aim like every other
@@ -360,7 +671,7 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
       p.castAim = null;
       p.castTargetId = null;
       ctx.emit({ type: 'castStop', entityId: p.id, success: true });
-      fireQueuedCast(ctx, p);
+      fireQueuedCast(ctx, p, true);
     }
     return;
   }
@@ -375,9 +686,15 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
     // ticks a fishing cast out simply gets away, same shape as the miss arm
     // above. The catch table is never rolled here anymore.
     if (castId === FISHING_CAST_ID) {
-      ctx.emit({ type: 'fishingGotAway', pid: p.id });
+      ctx.emit({
+        type: 'fishingGotAway',
+        pid: p.id,
+        zoneId: p.fishCastZoneId || zoneAt(p.pos.x, p.pos.z).id,
+        band: effectiveFishingBand(meta),
+      });
       p.fishBiteAtTick = 0;
       p.fishReelDeadlineTick = 0;
+      p.fishCastZoneId = '';
       ctx.emit({ type: 'castStop', entityId: p.id, success: false });
       return;
     }
@@ -392,10 +709,59 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
       ctx.completeGatherCast(p, meta);
       return;
     }
+    // Corpse-harvest cast completion (Intentional Gathering, PR3): same
+    // route-then-return shape, castId dispatched directly to the domain
+    // module (no new SimContext callback, matching the existing sibling
+    // arms' own comment on the pattern).
+    if (castId === CORPSE_HARVEST_CAST_ID) {
+      completeCorpseHarvestCast(ctx, p, meta);
+      return;
+    }
+    // A trash-engine use (G3): same route-then-return shape.
+    if (isKitUseCast(castId)) {
+      completeKitUse(ctx, p, castId ?? '', p.castTargetId);
+      return;
+    }
+    // Craft cast completion: same non-spell route as gather. castStop success
+    // means the cast finished, not that the craft grant succeeded; a complete
+    // denial re-emits via craftResult with its own reason.
+    if (castId === CRAFT_CAST_ID) {
+      ctx.completeCraftCast(p, meta);
+      return;
+    }
+    // Enchant-family cast completion (Craft Cast System Phase 4): same
+    // non-spell route; result events own the outcome surface.
+    if (castId === DISENCHANT_CAST_ID) {
+      ctx.completeDisenchantCast(p, meta);
+      return;
+    }
+    if (castId === ENCHANT_CAST_ID) {
+      ctx.completeApplyEnchantCast(p, meta);
+      return;
+    }
+    if (castId === SALVAGE_CAST_ID) {
+      ctx.completeSalvageCast(p, meta);
+      return;
+    }
+    // Sunder cast completion (Masterwrought phase 04): rides the enchant-family
+    // session, so the same route-then-return shape; refusals re-emit through
+    // their own error lines.
+    if (castId === SUNDER_CAST_ID) {
+      ctx.completeSunderCast(p, meta);
+      return;
+    }
+    if (castId === TOOL_RECHARGE_CAST_ID) {
+      ctx.completeRechargeCast(p, meta);
+      return;
+    }
+    if (castId === ALLIED_HEARTHSTONE_CAST_ID) {
+      completeAlliedHearthstoneCast(ctx, p, meta);
+      return;
+    }
     // Ice Floes (mage choice row): a COMPLETED hard cast spends one protected
     // use whether or not the caster actually moved (the buff is a banked
     // window, not a refund). Fishing above never spends one. Draws no rng.
-    const floes = p.auras.find((a) => a.kind === 'ice_floes');
+    const floes = iceFloesAuraForAbility(p, castId);
     if (floes) {
       floes.value -= 1;
       if (floes.value <= 0) {
@@ -410,11 +776,12 @@ export function updateCasting(ctx: SimContext, p: Entity, meta: PlayerMeta): voi
         : res;
       applyAbility(ctx, p, meta, resolved);
     }
+    clearRadiantResonanceReservation(p);
     // the aim point is consumed by the resolved area effects; drop it so a later
     // non-aimed cast can't inherit a stale target point.
     p.castAim = null;
     p.castTargetId = null;
-    fireQueuedCast(ctx, p);
+    fireQueuedCast(ctx, p, true);
   }
 }
 
@@ -444,7 +811,7 @@ export function releaseEmpoweredAbility(ctx: SimContext, abilityId: string, pid?
   p.castRemaining = 0;
   ctx.emit({ type: 'castStop', entityId: p.id, success: true });
 
-  const floes = p.auras.find((a) => a.kind === 'ice_floes');
+  const floes = iceFloesAuraForAbility(p, abilityId);
   if (floes) {
     floes.value -= 1;
     if (floes.value <= 0) {
@@ -456,7 +823,29 @@ export function releaseEmpoweredAbility(ctx: SimContext, abilityId: string, pid?
   applyAbility(ctx, p, meta, { ...res, empowerLevel: level });
   p.castAim = null;
   p.castTargetId = null;
-  fireQueuedCast(ctx, p);
+  fireQueuedCast(ctx, p, true);
+}
+
+// An accepted on-GCD press is the player's latest intent: it discards any
+// stale GCD-held queued press still in the slot. Reachable only via the
+// one-tick gap after the GCD expires (gcdRemaining zeroes in updateTimers,
+// AFTER the updateCasting retry arm ran), where a fresh press passes the GCD
+// gate before the retry can fire the slot; without this clear the stale press
+// fires when the fresh cast completes. Off-GCD weaves never touch the slot,
+// and neither does a blink-through commit (excluded at its call site: the
+// escape weave leaves the cast in progress, and therefore the follow-up
+// queued behind it, untouched). Only the instant commit site carries that
+// exclusion: blinkThrough requires castTime 0, so the timed-cast and channel
+// commit sites are unreachable by a blink-through press today; a future
+// usableWhileCasting ability WITH a cast time or channel must extend the
+// guard to its commit site or it will eat the queued follow-up. The normal
+// queued fire is unaffected (fireQueuedCast empties the slot before calling
+// back in).
+function dropStaleHeldPressOnCommit(p: Entity, ability: AbilityDef): void {
+  if (ability.offGcd) return;
+  p.queuedCastAbility = null;
+  p.queuedCastAim = null;
+  p.queuedCastTargetId = null;
 }
 
 // Consumes the single-slot spell queue (see CAST_QUEUE_WINDOW_SEC), firing the
@@ -464,39 +853,94 @@ export function releaseEmpoweredAbility(ctx: SimContext, abilityId: string, pid?
 // flat GCD (the common hasted case) can complete before the GCD armed at its
 // start clears: hold the slot in that case and let updateCasting retry every
 // tick until the GCD is gone, instead of dropping the press.
-function fireQueuedCast(ctx: SimContext, p: Entity): void {
+//
+// `onComplete` marks the call made from a cast-completion path. The tick runs
+// updateCasting before updatePlayerAutoAttack, and that driver bails while
+// castingAbility is set, so a queued cast that starts here in the same tick
+// the previous one completed never shows the driver a gap: the swing timer
+// decays to zero and the ready wand bolt (or melee swing) starves for as long
+// as the spam lasts. When swingReadyForQueuedCast says a swing is ready, fire
+// it through the driver's own attempt (ctx.tryPlayerSwing, every gate intact)
+// while castingAbility is still null, then start the queued cast as before.
+// The retry arm (onComplete false) runs only when no cast is in progress, so
+// the driver already swings on those ticks.
+function fireQueuedCast(ctx: SimContext, p: Entity, onComplete = false): void {
   const queued = p.queuedCastAbility;
   if (!queued) return;
   const res = ctx.resolvedAbility(queued, p.id);
   if (res && !res.def.offGcd && p.gcdRemaining > 0) return;
+  const queuedStartsCast = !!res && res.castTime > 0;
+  if (onComplete && queuedStartsCast && swingReadyForQueuedCast(p)) {
+    const r = ctx.resolve(p.id);
+    if (r) {
+      // Run the driver's tick early, exactly: its decay first, so the timer
+      // gate inside the attempt sees the same post-decay value the driver
+      // would see this tick, then the attempt. Then hand the decay back, so
+      // the driver's own pass later this tick lands both timers where a
+      // driver-fired swing leaves them (a fresh weapon speed, or an untouched
+      // timer one DT lower), and the cadence stays the weapon's to the tick.
+      p.swingTimer = Math.max(0, p.swingTimer - DT);
+      p.offhandSwingTimer = Math.max(0, p.offhandSwingTimer - DT);
+      ctx.tryPlayerSwing(p, r.meta);
+      p.swingTimer += DT;
+      p.offhandSwingTimer += DT;
+    }
+  }
   const aim = p.queuedCastAim;
+  const targetOverride = p.queuedCastTargetId;
   p.queuedCastAbility = null;
   p.queuedCastAim = null;
-  castAbility(ctx, queued, p.id, aim ?? undefined);
+  p.queuedCastTargetId = null;
+  castAbility(ctx, queued, p.id, aim ?? undefined, targetOverride);
 }
 
 export function cancelCast(ctx: SimContext, p: Entity): void {
+  if (p.castingAbility) cleanupPaladinAegis(ctx, p.id);
+  if (p.castingAbility === CORPSE_HARVEST_CAST_ID) releaseCorpseHarvest(ctx, p.id);
+  if (p.castingAbility) coldsightVoidReservationOnCancel(ctx, p, p.castingAbility);
+  duskhymnChannelStopped(ctx, p);
+  stopChannelVisual(ctx, p);
+  clearAfflictionConsumeThreads(ctx, p);
+  emitRainOfFireStop(ctx, p);
   p.castingAbility = null;
   p.castRemaining = 0;
   p.channeling = false;
   p.channelTicksLeft = 0; // an interrupted channel owes no more ticks
   p.castAim = null;
   p.castTargetId = null;
+  clearRadiantResonanceReservation(p);
   // an interrupted cast never completed, so its queued follow-up is dropped too
   p.queuedCastAbility = null;
   p.queuedCastAim = null;
-  // Hidden per-cast fishing/gather state: unconditional inert writes (all three
-  // are already '' / 0 on every non-fishing/gather cancel path), so every
-  // existing cancel stays byte-identical while a cancelled gather or fishing
-  // cast can never leak a stale node id or bite deadline into a later cast.
+  p.queuedCastTargetId = null;
+  // Hidden per-cast fishing/gather/craft state: unconditional inert writes
+  // (already '' / 0 / false on every non-profession cancel path), so every
+  // existing cancel stays byte-identical while a cancelled profession cast
+  // can never leak a stale node id, recipe id, start-time tool rarity, bite
+  // deadline, or pinned zone into a later cast.
   p.gatherCastNodeId = '';
+  p.gatherCastToolRarity = '';
+  p.gatherCastEffectConfirmed = false;
+  p.craftCastRecipeId = '';
+  p.craftCastCommission = false;
+  p.craftCastBatchRemaining = 0;
+  p.craftCastBatchTotal = 0;
+  p.enchantCastItemId = '';
+  p.enchantCastBagSlot = 0;
+  p.enchantCastEnchantId = '';
+  p.enchantCastEquipSlot = '';
+  p.enchantCastConfirmReplace = false;
+  p.enchantCastTargetPin = '';
+  p.toolRechargeCastProfessionId = '';
   p.fishBiteAtTick = 0;
   p.fishReelDeadlineTick = 0;
+  p.fishCastZoneId = '';
   ctx.emit({ type: 'castStop', entityId: p.id, success: false });
 }
 
 export function pushbackCast(p: Entity): void {
   if (hasCastShield(p)) return;
+  if (p.castingAbility === 'drain_life' && hasAfflictionConsumePushbackImmunity(p)) return;
   // Item-set caster bonus scales damage-driven pushback (1 = fully immune).
   const factor = 1 - p.castPushbackReduction;
   if (factor <= 0) return;
@@ -505,6 +949,14 @@ export function pushbackCast(p: Entity): void {
       0,
       p.castRemaining - p.castTotal * CHANNEL_PUSHBACK_FRACTION * factor,
     );
+    // The shortened channel keeps only the ticks whose boundaries still fit: the
+    // next lands in channelTickTimer, the rest one channelTickEvery apart.
+    if (p.channelTicksLeft > 0 && p.channelTickEvery > 0) {
+      const roomAfterNextTick = p.castRemaining - p.channelTickTimer + CAST_COMPLETE_EPS;
+      const stillFit =
+        roomAfterNextTick < 0 ? 0 : Math.floor(roomAfterNextTick / p.channelTickEvery) + 1;
+      p.channelTicksLeft = Math.min(p.channelTicksLeft, stillFit);
+    }
   } else {
     p.castRemaining += CAST_PUSHBACK_SEC * factor;
     p.castTotal += CAST_PUSHBACK_SEC * factor;
@@ -528,13 +980,29 @@ export function castAbilityBySlot(
 // entity's stored castTargetId at a timed cast's finish) wins while valid;
 // a stale/invalid override falls back to the classic current-friendly-target-
 // else-self rule, byte-identical to the pre-override behavior when null.
-function resolveFriendlyTarget(ctx: SimContext, p: Entity, overrideId: number | null): Entity {
+//
+// One refusal, returned as null for the caller to voice (WORLD_PVP_AID_REFUSED_LINE):
+// an explicitly NAMED unit (the hover override at the press, or the locked cast
+// target at a timed cast's finish) that is a live PLAYER the open world has made
+// an enemy (src/sim/pvp/world_pvp.ts isWorldPvpHostile). Naming one is a
+// deliberate attempt to aid them, so it is said out loud; a target that turns
+// into an enemy mid-cast fails the finish rather than landing on the caster.
+// An enemy merely SELECTED is the classic self-cast: a healer fighting a flagged
+// player presses a heal with that player still targeted to heal themselves,
+// exactly as a duel, arena or battleground healer does.
+function resolveFriendlyTarget(
+  ctx: SimContext,
+  p: Entity,
+  overrideId: number | null,
+): Entity | null {
   if (overrideId !== null) {
     const o = ctx.entities.get(overrideId);
     if (o && !o.dead && ctx.isFriendlyTo(p, o)) return o;
+    if (o && !o.dead && o.kind === 'player' && isWorldPvpHostile(ctx, p, o)) return null;
   }
   const cur = p.targetId !== null ? (ctx.entities.get(p.targetId) ?? null) : null;
-  return cur && !cur.dead && ctx.isFriendlyTo(p, cur) ? cur : p;
+  if (cur && !cur.dead && ctx.isFriendlyTo(p, cur)) return cur;
+  return p;
 }
 
 // Combat-resurrection target (Temporal Reversal): the mouseover override or current
@@ -548,9 +1016,7 @@ function resolveDeadAllyTarget(
   const id = overrideId ?? p.targetId;
   if (id === null) return null;
   const t = ctx.entities.get(id);
-  if (!t || !t.dead || t.kind !== 'player') return null;
-  const party = ctx.partyOf(p.id);
-  return party && party.members.includes(t.id) ? t : null;
+  return t && isFallenGroupMember(ctx, p, t) ? t : null;
 }
 
 function vanishedLowBlowFallbackTarget(
@@ -574,6 +1040,27 @@ function vanishedLowBlowFallbackTarget(
   return nearest;
 }
 
+// Auto-acquire on cast with no target (issue #2787): the nearest live,
+// hostile mob currently attacking (Entity.aggroTargetId) the caster. Called
+// only from castAbility's target-resolution branches below, and only when
+// the caster has no current target at all (p.targetId === null); it never
+// overrides an existing (even stale) selection.
+function nearestAttackingMob(ctx: SimContext, p: Entity): Entity | null {
+  const candidates: { id: number; d: number; facingDiff: number }[] = [];
+  for (const entity of ctx.entities.values()) {
+    if (entity.kind !== 'mob' || entity.dead) continue;
+    if (entity.aggroTargetId !== p.id) continue;
+    if (!ctx.isHostileTo(p, entity)) continue;
+    candidates.push({
+      id: entity.id,
+      d: dist2d(p.pos, entity.pos),
+      facingDiff: Math.abs(normAngle(angleTo(p.pos, entity.pos) - p.facing)),
+    });
+  }
+  const id = nearestAttackerId(candidates);
+  return id !== null ? (ctx.entities.get(id) ?? null) : null;
+}
+
 export function castAbility(
   ctx: SimContext,
   abilityId: string,
@@ -584,13 +1071,42 @@ export function castAbility(
   const r = ctx.resolve(pid);
   if (!r) return;
   const { meta, e: p } = r;
+  if (
+    meta.vehicle ||
+    wispMazeActionsLocked(meta.worldQuestLog) ||
+    shadowActionsLocked(meta.worldQuestLog) ||
+    gliderActionsLocked(meta.worldQuestLog)
+  )
+    return;
   let res = ctx.resolvedAbility(abilityId, p.id);
-  if (!res || p.dead) return;
+  if (!res) {
+    ctx.error(p.id, 'You do not know that ability.');
+    return;
+  }
+  if (p.dead) return;
+  if (isValkyrsCallingAirborne(p)) {
+    ctx.error(p.id, 'You are busy.');
+    return;
+  }
   // Passive traits are spellbook information and mechanics hooks, never actions.
   if (res.def.passive) return;
+  if (abilityId === 'divine_ascension' && !canActivateDivineAscension(p)) {
+    ctx.error(p.id, 'That ability is not ready yet.');
+    return;
+  }
   meta.lastActiveTick = ctx.tickCount; // a cast attempt is a deliberate action
   const ability = res.def;
+  if (cancelRecedingShell(ctx, p, meta, ability.id)) return;
+  if (ability.devotionCost && !hasDevotion(p, ability.devotionCost)) {
+    ctx.error(p.id, 'Not enough Devotion!');
+    return;
+  }
   if (cancelStasisToggle(ctx, p, ability)) return;
+  if (playDeadOnCastAttempt(ctx, p, ability.id)) return;
+  if (shellskinBlocksAbility(p, meta, ability)) {
+    ctx.error(p.id, 'Shellskin prevents attacks.');
+    return;
+  }
   // Ice Block (usableWhileControlled) may be pressed through ordinary control;
   // cleanseSelf removes the player-breakable debuffs while encounter-authored
   // unbreakable control remains. Its own stasis is handled by the recast toggle above.
@@ -615,13 +1131,22 @@ export function castAbility(
       (effect) =>
         effect.type === 'blinkForward' ||
         effect.type === 'repositionToAim' ||
-        effect.type === 'charge',
+        effect.type === 'charge' ||
+        effect.type === 'hunterBloodhook' ||
+        effect.type === 'hunterTrailbreak',
     )
   ) {
     ctx.error(p.id, 'You are stunned!');
     return;
   }
-  // Blink While Casting (mage choice row): Flickerstep slips through the busy
+  // Sentence is Affliction's decisive release: pressing it during Consume
+  // deliberately cuts the drain instead of being rejected by the generic busy
+  // guard. The normal Sentence gates below still own target, resource, GCD, and
+  // cost validation.
+  if (abilityId === 'sentence' && p.castingAbility === 'drain_life' && p.channeling) {
+    cancelCast(ctx, p);
+  }
+  // Blink While Casting (mage choice row): Flitstep slips through the busy
   // guard AND the GCD, an escape button that never touches the cast in
   // progress (the cast survives the relocation: player_motion only breaks
   // casts on MOVE INPUT). Everything else keeps the classic rules. No rng.
@@ -633,6 +1158,11 @@ export function castAbility(
     ability.castTime === 0 &&
     (ability.usableWhileCasting === true ||
       (abilityId === 'blink' && ctx.playerMods(meta).global.blinkCast > 0));
+  // Sentence is Hexcraft's release and may already be waiting for the cast or
+  // GCD that produced its final Thread. Repeated generator or release presses
+  // must not jump ahead during either guard, including the one-tick gap after
+  // the GCD timer reaches zero but before updateCasting retries the queue.
+  if (shouldPreserveQueuedSentence(p.queuedCastAbility, abilityId)) return;
   if (p.castingAbility) {
     if (!blinkThrough) {
       // classic-era spell queue: a press during the tail of the current cast
@@ -640,11 +1170,15 @@ export function castAbility(
       // Non-spell casts (fishing/gather) are exempt (like the silence/lockout
       // guards above): their completion paths never call fireQueuedCast, so a
       // press queued against one would strand and misfire on a later, unrelated
-      // cast. Demon Heal is deliberately NOT folded: its channel completion
-      // fires the queue, so queuing against it works today.
+      // cast. The session starts also clear any GCD-held slot loaded just
+      // before them (harvestNode/startFishing), closing the one load path
+      // that could survive into a session. Demon Heal is deliberately NOT
+      // folded: its channel completion fires the queue, so queuing against
+      // it works today.
       if (p.castRemaining <= CAST_QUEUE_WINDOW_SEC && !isNonSpellCast(p.castingAbility)) {
         p.queuedCastAbility = abilityId;
         p.queuedCastAim = aim ?? null;
+        p.queuedCastTargetId = castTargetId;
         return;
       }
       ctx.error(p.id, 'You are busy.');
@@ -655,49 +1189,188 @@ export function castAbility(
   // (including this GCD check). fireQueuedCast holds the slot instead of calling
   // in when the GCD is still running, so this early return only fires for a
   // same-tick player press racing the GCD, not for a queued follow-up.
-  if (!ability.offGcd && p.gcdRemaining > 0 && !blinkThrough) return; // silent, classic spams this
+  if (!ability.offGcd && p.gcdRemaining > 0 && !blinkThrough) {
+    // WotLK-style GCD-tail queue: a press inside the final CAST_QUEUE_WINDOW_SEC
+    // of a bare GCD loads the same single slot the cast-tail queue uses
+    // (last-press-wins), and the updateCasting retry arm fires it the tick the
+    // GCD clears. This generalizes the Sentence-only buffer that previously
+    // lived here; the Sentence preserve guard above still keeps a queued
+    // release from being overwritten by generator spam.
+    if (p.gcdRemaining <= CAST_QUEUE_WINDOW_SEC) {
+      p.queuedCastAbility = abilityId;
+      p.queuedCastAim = aim ?? null;
+      p.queuedCastTargetId = castTargetId;
+    }
+    return; // an earlier press stays silent, classic spams this
+  }
+  if (abilityId === 'courier') {
+    courierSummon(ctx, p.id);
+    return;
+  }
   const togglingOff = isToggleBuff(ability) && p.auras.some((a) => a.id === ability.id);
-  const sharedCooldown = isShamanShock(ability.id)
-    ? SHAMAN_SHOCK_COOLDOWN_IDS.find((id) => p.cooldowns.has(id))
-    : undefined;
-  const leavingRestrictedToggle = togglingOff && ability.requiresOutsideInstance;
+  // sharedCooldownIds generalizes the release's shaman-shock special case (it
+  // returns the same SHAMAN_SHOCK_COOLDOWN_IDS for those ids), so the shock
+  // behavior is unchanged and other shared-cooldown groups ride the same path.
+  const sharedCooldown = sharedCooldownIds(ability.id)?.find((id) => p.cooldowns.has(id));
+  // Same predicate the action bar asks, so the exit press never paints greyed.
+  const leavingRestricted = leavingRestrictedToggle(ability, p.auras);
   // Charge-limited abilities (the abilityCharges recharge model, driven by
   // bonusCharges: Double Charge, extra Blink/Frost Nova/Ice Block): a running
   // cooldown is only the RECHARGE timer; the cast is blocked only once every
   // stored use is spent.
+  // A cooldown-carrying transform shares the base button's clock (one slot,
+  // one clock; res.cooldownId from action_replacement); everything else keys
+  // its own id.
+  const cooldownKey = res.cooldownId ?? ability.id;
   if (
-    (p.cooldowns.has(ability.id) || sharedCooldown) &&
+    (p.cooldowns.has(cooldownKey) || sharedCooldown) &&
     !togglingOff &&
-    !hasAbilityCharge(p, ability.id, res.bonusCharges ?? 0, res.cooldown) &&
+    !hasAbilityCharge(p, cooldownKey, res.bonusCharges ?? 0, res.cooldown) &&
     // An armed Brain Freeze lets Flurry cast through its running cooldown
     // (combat/frost_mage.ts; the override below consumes the proc).
-    !brainFreezeBypassesCooldown(p, ability.id)
+    !brainFreezeBypassesCooldown(p, ability.id) &&
+    !canUseForbiddenReflection(p, ability.id) &&
+    !(ability.id === OSSUARY_MARK_ABILITY_ID && hasActiveOssuaryMark(ctx, p.id)) &&
+    !dawnsWrathHammerActive(p, ability.id) &&
+    !solarReprisalBypassesCooldown(p, ability.id)
   ) {
     ctx.error(p.id, 'That ability is not ready yet.');
     return;
   }
+  if (ability.soulFragmentCost !== undefined && soulFragmentCount(p) < ability.soulFragmentCost) {
+    ctx.error(p.id, 'Not enough Soul Fragments!');
+    return;
+  }
+  const necromancyError = necromancyCastError(ctx, p, ability, aim);
+  if (necromancyError) {
+    ctx.error(p.id, necromancyError);
+    return;
+  }
+  if (ability.id === OSSUARY_MARK_ABILITY_ID && hasActiveOssuaryMark(ctx, p.id)) {
+    res = { ...res, cost: 0 };
+  }
+  const afflictionError = afflictionCastError(p, ability);
+  if (afflictionError) {
+    ctx.error(p.id, afflictionError);
+    return;
+  }
+  // Auto-unshift (see combat/form_auto_unshift.ts): a healing or damaging spell
+  // pressed in Bruin/Cat/Fleet Form drops the form and casts. Decided HERE and
+  // applied at the form gate below, because the two questions this answers sit
+  // on either side of it: the cast is billed against the PARKED mana (the live
+  // bar is rage or energy while shifted), and refusing it for cost must leave
+  // the druid still wearing the form rather than stripping it for nothing.
+  const autoUnshift = willAutoUnshift(p.auras, ability);
+  // Fleet Form never swapped the bar, so its pool is already the live one; only
+  // the bar-swapping forms (bear rage, cat energy) park mana in savedMana.
+  const castingPool = autoUnshift && p.resourceType !== 'mana' ? p.savedMana : p.resource;
   // shifting out of a form is free; shifting across forms bills the parked
   // mana (the live bar is rage/energy in a form) — see spendAbilityCost
   const canCastFree = res.cost > 0 && hasFreeCostFor(p, ability.id);
-  const cheapMultiplier = nextCastCheapMultiplier(p, ability.id);
-  const payableCost = cheapMultiplier === null ? res.cost : Math.ceil(res.cost * cheapMultiplier);
-  if (p.resource < payableCost && !canCastFree && !togglingOff && !formShiftKind(p, ability)) {
+  const stormcastArmedForAbility = p.auras.some(
+    (aura) =>
+      aura.id === STORMCAST_ID &&
+      (aura.empowerAbilities === undefined || aura.empowerAbilities.includes(ability.id)),
+  );
+  const freeBySolarReprisal = solarReprisalMakesAbilityFree(p, ability.id);
+  // The rogue discounts (Dusk Economy, the free Gloam detonator) fold beside the
+  // empower-cheap multiplier first; the shaman and paladin mana shaping then applies
+  // to the result below. All three are the identity for the other classes, so the
+  // order only matters for a caster that somehow held more than one.
+  const cheapMultiplier = combineCostMultipliers(
+    combineCostMultipliers(nextCastCheapMultiplier(p, ability.id), duskCostMultiplier(ctx, p)),
+    detonatorFreeMultiplier(ctx, p, ability.id),
+  );
+  const discountedCost =
+    cheapMultiplier === null ? res.cost : Math.ceil(res.cost * cheapMultiplier);
+  const shamanAdjustedCost = shamanManaCost(ctx, p, discountedCost);
+  // Stonehearth 2pc (combat/shaman_stonehearth.ts): a Stormcast Mending
+  // Waters pressed while Stonebound bills no mana, so the affordability gate
+  // must admit it at ANY mana level. The bill itself is zeroed at the
+  // Stormcast consume site below, AFTER the cheap charge is spent (the set
+  // doc's consume-order note). The ability.id short-circuit keeps the
+  // posture scan off every other cast.
+  const stonehearthFree =
+    ability.id === 'healing_wave' &&
+    stonehearthStormcastMendingActive(
+      ctx,
+      p,
+      ability.id,
+      warspiritPosture(p),
+      stormcastArmedForAbility,
+    );
+  const payableCost = stonehearthFree
+    ? 0
+    : p.resourceType === 'mana'
+      ? Math.ceil(shamanAdjustedCost * paladinManaCostMultiplier(p))
+      : shamanAdjustedCost;
+  // A form-entry press (Lunge from Bruin Form) is billed AFTER its shift, so
+  // the live bar here is not the one that pays: it is weighed against the pool
+  // the shift hands over (a full Cat bar out of combat, the parked energy
+  // mid-fight), never the rage or mana it happens to be standing in. Only when
+  // a shift is actually owed, so a Lunge pressed already in Cat Form keeps the
+  // ordinary energy check.
+  const entryPool = druidFormEntryOwed(meta, p.auras, ability.id)
+    ? druidFormEntryPool(p, ability.id)
+    : null;
+  if (
+    (entryPool ?? castingPool) < payableCost &&
+    (!canCastFree || stormcastArmedForAbility) &&
+    !freeBySolarReprisal &&
+    !togglingOff &&
+    !formShiftKind(p, ability)
+  ) {
     ctx.error(
       p.id,
-      p.resourceType === 'rage'
-        ? 'Not enough rage!'
-        : p.resourceType === 'energy'
+      // An auto-unshifting cast was weighed against the parked mana, so it is
+      // mana it is short of, never the rage or energy bar it never touches; a
+      // form-entry press was weighed against the bar its shift hands over.
+      // Every other arm is the ladder this always had.
+      entryPool !== null
+        ? druidFormEntryTarget(ability.id) === 'cat'
           ? 'Not enough energy!'
-          : 'Not enough mana!',
+          : 'Not enough rage!'
+        : autoUnshift
+          ? 'Not enough mana!'
+          : p.resourceType === 'rage'
+            ? 'Not enough rage!'
+            : p.resourceType === 'energy'
+              ? 'Not enough energy!'
+              : p.resourceType === 'focus'
+                ? 'Not enough Focus!'
+                : 'Not enough mana!',
     );
     return;
   }
   if (ability.requiresShield) {
-    const offhand = p.equippedItems.offhand;
-    if (!offhand || !isShieldItem(ITEMS[offhand])) {
+    if (!shieldEquipped(p.equippedItems)) {
       ctx.error(p.id, 'You must have a shield equipped.');
       return;
     }
+  }
+  // A charge is a RUN, so refuse it while the caster cannot run, and refuse it
+  // HERE, above the cost and cooldown billing further down.
+  //
+  // Reported in play (a druid roots a warrior, Onrush is consumed and moves
+  // nobody). The effect already had a guard, but the two sides disagreed about
+  // what "cannot move" means: `runEffects` asked hasUnbreakableMovementLock,
+  // which only matches an aura flagged `unbreakableControl`, while the mover
+  // `updateChargeMovement` asks isRooted. An ordinary breakable root answers no
+  // to the first and yes to the second, so the charge was set up, billed, and
+  // then killed on the next tick. Asking the MOVER's question is the fix; the
+  // effect-side guard stays as the belt to this pair of braces.
+  //
+  // Gated on the effect, never on an ability id, so every charge in the game is
+  // covered (warrior Onrush, the druid Bruin-Form charge, Intervene) and a
+  // fourth added later inherits it. isRooted folds in stun, which the ladder
+  // above has already refused, so what reaches here is a genuine root.
+  //
+  // Reads the RANK-RESOLVED effects, not the base def's: those are what actually
+  // run, and an ability that only gains the charge at a later rank would slip a
+  // base-def check. Same list the two friendly-branch gates below read.
+  if (res.effects.some((effect) => effect.type === 'charge') && isRooted(p)) {
+    ctx.error(p.id, "Can't move!");
+    return;
   }
   // casting is deliberate action — drop any active follow so you don't drift
   ctx.stopFollow(p);
@@ -705,72 +1378,171 @@ export function castAbility(
     ctx.error(p.id, 'Your target must dodge first.');
     return;
   }
-  // Kill-window abilities (Victory Rush): usable only while the enabling aura
-  // is worn; runEffects consumes it on a successful cast. Reuses the existing
-  // not-ready error literal so no new client matcher is needed. requiresAuraStacks
-  // (Glacial Spike's full 5-stack Icicles) additionally gates on the stack count.
-  if (
-    ability.requiresAuraKind &&
-    !p.auras.some(
-      (a) =>
-        a.kind === ability.requiresAuraKind && (a.stacks ?? 1) >= (ability.requiresAuraStacks ?? 1),
-    )
-  ) {
+  // Kill-window abilities (Victor's Surge): usable only while the enabling aura
+  // is worn; applyAbility consumes it atomically at cast commit, right before the
+  // cost/cooldown billing, so no early-return path can eat the aura without also
+  // committing the cast. Reuses the existing not-ready error literal so no new
+  // client matcher is needed. requiresAuraStacks (Rimeneedle's full 5-stack
+  // Icicles) additionally gates on the stack count.
+  if (!hasRequiredAura(p, ability)) {
     ctx.error(p.id, 'That ability is not ready yet.');
     return;
   }
+  if (ability.id === 'summon_tithefiend' && !hasTithefiendTarget(ctx, p.id)) {
+    ctx.error(p.id, 'Your Tithefiend needs an enemy affected by Dirge of Decay.');
+    return;
+  }
   // combo points are character-bound: any built points finish on the current target
-  if (ability.spendsCombo && p.comboPoints <= 0) {
+  if (ability.spendsCombo && !ability.comboOptional && p.comboPoints <= 0) {
     ctx.error(p.id, 'That ability requires combo points.');
     return;
   }
   // Action-locking forms gate their kit both ways: Druid form abilities need
   // their form, while travel forms lock the normal kit until toggled off.
   const form = p.auras.find((a) => isActionLockingFormAuraKind(a.kind));
-  if (ability.requiresForm) {
-    const need = ability.requiresForm === 'bear' ? 'form_bear' : 'form_cat';
-    if (!form || form.kind !== need) {
-      ctx.error(p.id, `You must be in ${ability.requiresForm === 'bear' ? 'Bruin' : 'Wolf'} Form.`);
+  if (hasFormRequirement(ability)) {
+    if (!formRequirementMet(p.auras, ability)) {
+      // The three refusals are spelled out rather than interpolated so the S3
+      // i18n drift guard (tests/localization_fixes.test.ts) can read each one
+      // as a literal, and so ui/error_text_i18n_core.ts has a fixed vocabulary
+      // to parse back into a key. Keep the three byte-identical to that matcher.
+      const forms = requiredForms(ability);
+      if (forms.length > 1) ctx.error(p.id, 'You must be in Bruin or Cat Form.');
+      else if (forms[0] === 'bear') ctx.error(p.id, 'You must be in Bruin Form.');
+      else ctx.error(p.id, 'You must be in Cat Form.');
       return;
     }
-  } else if (form && !isFormToggle(ability) && !ability.usableInForm) {
-    ctx.error(p.id, "You can't do that while shapeshifted.");
-    return;
+  } else if (
+    form &&
+    !isFormToggle(ability) &&
+    !ability.usableInForm &&
+    // An armed Nature's Boon window is a form exemption for exactly the two
+    // spells it names (combat/druid_natures_boon.ts). Checked here rather than
+    // folded into usableInForm because it is aura state, not a property of the
+    // button: with no window armed, Sporemending refuses and auto-unshifts exactly
+    // as it always has (Oakhide is usableInForm and never reaches this arm).
+    !naturesBoonArmedFor(p.auras, ability.id)
+  ) {
+    // Only the DECISION is made here, so the ladder below continues for a cast
+    // that will auto-unshift. The form itself is not touched until the cast
+    // commits (see applyAutoUnshift further down): every refusal between here
+    // and there would otherwise strip the form for a cast that never happened.
+    if (!autoUnshift) {
+      ctx.error(p.id, "You can't do that while shapeshifted.");
+      return;
+    }
   }
-  if (ability.requiresStealth && !p.auras.some((a) => a.kind === 'stealth')) {
+  if (
+    ability.requiresStealth &&
+    !res.ignoreStealthRequirement &&
+    !veilAllowsStealthAbilities(p) &&
+    // A full Gloam bank unlocks the openers in the open: the cast that goes
+    // through is the detonation (rogueGloamDetonation at runEffects).
+    !gloamBankArmed(p) &&
+    !p.auras.some((a) => a.kind === 'stealth')
+  ) {
     ctx.error(p.id, 'You must be stealthed.');
     return;
   }
-  const restriction = leavingRestrictedToggle ? null : activeCastRestriction(ctx, p, ability);
+  const restriction = leavingRestricted ? null : activeCastRestriction(ctx, p, ability);
   if (restriction) {
     emitActiveCastRestrictionError(ctx, p.id, restriction);
     return;
   }
-  if (isMassResurrectionAbility(ability) && !hasDeadGroupMember(ctx, p)) {
-    ctx.error(p.id, 'There are no dead group members to resurrect.');
-    return;
+  if (isMassResurrectionAbility(ability)) {
+    if (!hasDeadGroupMember(ctx, p)) {
+      ctx.error(p.id, 'There are no dead group members to resurrect.');
+      return;
+    }
+    // Dead members exist but every body is beyond resurrection reach (range +
+    // line of sight): refuse up front rather than burn the mana and cooldown on
+    // a cast that can raise nobody. Reach itself is re-applied per member at
+    // completion (resurrectDeadGroupMembers).
+    if (!hasDeadGroupMemberInReach(ctx, p, resurrectionCastRange(ability.range))) {
+      ctx.error(p.id, 'Out of range.');
+      return;
+    }
   }
 
   let target: Entity | null = null;
-  if (ability.requiresTarget && ability.targetsDead) {
-    // Combat res: the target must be a DEAD group/raid member (no self-cast fallback).
-    const dead = resolveDeadAllyTarget(ctx, p, castTargetId);
-    if (!dead) {
-      ctx.error(p.id, 'You must target a dead ally in your group.');
+  if (ability.id === 'unleash_weapon') {
+    target = resolveUnleashWeaponTarget(ctx, p, castTargetId);
+    const error = unleashWeaponCastError(p, target);
+    if (error) {
+      ctx.error(p.id, error);
       return;
     }
-    if (dist2d(p.pos, dead.corpsePos ?? dead.pos) > ability.range) {
+    if (!target) return;
+    if (dist2d(p.pos, target.pos) > ability.range) {
       ctx.error(p.id, 'Out of range.');
+      return;
+    }
+    if (ctx.lineOfSightBlocked(p, target, ability)) {
+      ctx.error(p.id, 'Line of sight.');
+      return;
+    }
+  } else if (ability.requiresTarget && ability.targetsDead) {
+    // Combat res: the target must be a DEAD group/raid member (no self-cast fallback),
+    // and their body must be within resurrection reach (range + line of sight). An
+    // out-of-combat rez whose press names no fallen ally picks one itself
+    // (fallen_ally_target.ts); the pick is locked in as the cast target below, so
+    // the mid-cast and finish gates re-check the same body.
+    const autoPick = autoPicksFallenAlly(ability);
+    const dead =
+      resolveDeadAllyTarget(ctx, p, castTargetId) ??
+      (autoPick ? pickFallenAlly(ctx, p, resurrectionCastRange(ability.range)) : null);
+    if (!dead) {
+      if (!autoPick) ctx.error(p.id, 'You must target a dead ally in your group.');
+      // The group-rez wording: nothing to raise at all, or nothing within reach.
+      else if (hasDeadGroupMember(ctx, p)) ctx.error(p.id, 'Out of range.');
+      else ctx.error(p.id, 'There are no dead group members to resurrect.');
+      return;
+    }
+    const reach = resurrectionReachError(ctx, p, dead, resurrectionCastRange(ability.range));
+    if (reach === 'range') {
+      ctx.error(p.id, 'Out of range.');
+      return;
+    }
+    if (reach === 'los') {
+      ctx.error(p.id, 'Line of sight.');
       return;
     }
     target = dead;
   } else if (ability.requiresTarget && ability.targetType === 'friendly') {
     // heals/buffs: the mouseover override when given, else the current
-    // friendly target, else yourself
-    target = resolveFriendlyTarget(ctx, p, castTargetId);
+    // friendly target, else yourself; a hovered World PvP enemy refuses
+    const friendly = resolveFriendlyTarget(ctx, p, castTargetId);
+    if (!friendly) {
+      ctx.error(p.id, WORLD_PVP_AID_REFUSED_LINE);
+      return;
+    }
+    target = friendly;
+    // A RUSH has no meaning against yourself, and the self fallback above is
+    // reached by an ordinary miss: no target at all, or an ENEMY targeted. Without
+    // this gate Intervene resolved onto the caster and became an off-GCD personal
+    // absorb on its own cooldown, which is the opposite of what a friendly-only
+    // reposition is for. Refuse HERE, above the billing, the same shape as the
+    // partyOnlyTarget gate below.
+    //
+    // Gated on the effect and never on an ability id, so a future friendly rush
+    // inherits it; every other friendly ability keeps its self-cast, which is the
+    // whole point of the fallback for a heal or a buff.
+    if (target.id === p.id && res.effects.some((effect) => effect.type === 'charge')) {
+      ctx.error(p.id, 'You must target an ally.');
+      return;
+    }
     const d = dist2d(p.pos, target.pos);
     if (d > Math.max(ability.range, 5)) {
       ctx.error(p.id, 'Out of range.');
+      return;
+    }
+    // An authored minRange means the same thing on a friendly target as on a hostile
+    // one, and only the hostile branch was enforcing it: an ally standing on top of
+    // the warrior took the cast while the tooltip advertised an 8 yd floor. Intervene
+    // is the only friendly ability that authors minRange today, so this changes
+    // nothing else, and a second one gets the floor it declares for free.
+    if (ability.minRange && d < ability.minRange) {
+      ctx.error(p.id, 'Too close!');
       return;
     }
     if (ctx.lineOfSightBlocked(p, target, ability)) {
@@ -783,19 +1555,35 @@ export function castAbility(
     // silently burns the cast on an empty selection.
     if (ability.partyOnlyTarget && target.id !== p.id) {
       const party = ctx.partyOf(p.id);
-      if (!party || !party.members.includes(target.id)) {
+      if (!party?.members.includes(target.id)) {
         ctx.error(p.id, 'That ally is not in your group.');
         return;
       }
     }
   } else if (ability.requiresTarget && ability.targetType === 'any') {
-    target = p.targetId !== null ? (ctx.entities.get(p.targetId) ?? null) : null;
-    if (!target || target.dead || (!ctx.isHostileTo(p, target) && !ctx.isFriendlyTo(p, target))) {
+    // A heal's live friendly party-frame override first, then the current target,
+    // then the auto-acquire below, then self for a heal (dual_purpose_target.ts).
+    target = resolveDualPurposeTarget(ctx, p, castTargetId, ability, () => {
+      // Auto-acquire (issue #2787): only when nothing is targeted at all, never
+      // overriding an existing (even stale/invalid) selection.
+      const attacker = nearestAttackingMob(ctx, p);
+      if (attacker) p.targetId = attacker.id;
+      return attacker;
+    });
+    if (
+      !target ||
+      target.dead ||
+      (!ctx.isHostileTo(p, target) && !ctx.isFriendlyTo(p, target)) ||
+      // Vanish (hasEscapeStealth) makes a HOSTILE target fully undetectable
+      // (issue #2426); a friendly cast (self/party heal) is unaffected, since
+      // allies can always perceive a stealthed party member.
+      (ctx.isHostileTo(p, target) && hasEscapeStealth(target))
+    ) {
       ctx.error(p.id, 'You have no target.', target?.dead ? 'target_dead' : undefined);
       return;
     }
     const d = dist2d(p.pos, target.pos);
-    const maxRange = ability.range > 0 ? ability.range : MELEE_RANGE;
+    const maxRange = effectivePlayerAttackRange(target, ability.range, meleeReachActor(ctx, p));
     if (d > maxRange) {
       ctx.error(p.id, 'Out of range.');
       return;
@@ -805,16 +1593,27 @@ export function castAbility(
       return;
     }
   } else if (ability.requiresTarget) {
-    target =
-      p.targetId !== null
-        ? (ctx.entities.get(p.targetId) ?? null)
-        : vanishedLowBlowFallbackTarget(ctx, p, ability);
-    if (!target || target.dead || !ctx.isHostileTo(p, target)) {
+    if (p.targetId !== null) {
+      target = ctx.entities.get(p.targetId) ?? null;
+    } else {
+      // The stealth ambush fallback (Kidney Shot) takes priority when it
+      // applies; it deliberately never becomes the current target. Auto-
+      // acquire (issue #2787) only kicks in when that yields nothing either.
+      target = vanishedLowBlowFallbackTarget(ctx, p, ability);
+      if (!target) {
+        target = nearestAttackingMob(ctx, p);
+        if (target) p.targetId = target.id;
+      }
+    }
+    // Vanish (hasEscapeStealth) makes the target fully undetectable, same gate
+    // the mob AI already applies (mob/targeting.ts): a hostile cast against it
+    // is refused exactly like an out-of-range or dead target (issue #2426).
+    if (!target || target.dead || !ctx.isHostileTo(p, target) || hasEscapeStealth(target)) {
       ctx.error(p.id, 'You have no target.', target?.dead ? 'target_dead' : undefined);
       return;
     }
     const d = dist2d(p.pos, target.pos);
-    const maxRange = ability.range > 0 ? ability.range : MELEE_RANGE;
+    const maxRange = effectivePlayerAttackRange(target, ability.range, meleeReachActor(ctx, p));
     if (d > maxRange) {
       ctx.error(p.id, 'Out of range.');
       return;
@@ -832,15 +1631,16 @@ export function castAbility(
       ctx.error(p.id, 'You must be facing your target.');
       return;
     }
-    // execute-style gate: only usable while the target is nearly dead
+    // execute-style gate: only usable while the target is nearly dead. The predicate is
+    // shared with the action bar so the slot greys out exactly when this refuses.
+    const targetHpThreshold = executeWindowThreshold(ability);
     if (
-      ability.requiresTargetHpBelow !== undefined &&
-      target.hp > target.maxHp * ability.requiresTargetHpBelow &&
-      !(ability.id === 'execute' && p.auras.some((aura) => aura.kind === 'sudden_death'))
+      targetHpThreshold !== undefined &&
+      executeWindowBlocksCast(ability, p, target.hp, target.maxHp)
     ) {
       ctx.error(
         p.id,
-        `That ability requires the target below ${Math.round(ability.requiresTargetHpBelow * 100)}% health.`,
+        `That ability requires the target below ${Math.round(targetHpThreshold * 100)}% health.`,
       );
       return;
     }
@@ -850,6 +1650,17 @@ export function castAbility(
           ctx.error(p.id, 'You must wield a dagger.');
           return;
         }
+        // Shadow-wreathed (or about to detonate a full Gloam bank), the
+        // strike comes from nowhere: the veil waives the behind requirement
+        // like it waives stealth. Without it, a solo mob faces its attacker
+        // constantly and the veiled Lurker's Strike could never land (owner
+        // playtest). The armed-bank case covers the detonator itself, whose
+        // veil rises at runEffects, after this gate.
+        if (
+          !p.auras.some((aura) => aura.kind === 'stealth') &&
+          (veilAllowsStealthAbilities(p) || gloamBankArmed(p))
+        )
+          continue;
         // Inside FACING_HOLD_DIST the target's facing is held steady (see
         // steadyAngleTo) and "behind" is undefined anyway, so overlapping the
         // target always reads as in front: no point-blank Backstab through a
@@ -879,13 +1690,6 @@ export function castAbility(
           return;
         }
       }
-      if (
-        eff.type === 'judgement' &&
-        !p.auras.some((a) => a.kind === 'imbue' && a.value2 !== undefined)
-      ) {
-        ctx.error(p.id, 'You have no active Seal.');
-        return;
-      }
       if (eff.type === 'taunt' && target.kind !== 'mob') {
         ctx.error(p.id, 'You cannot taunt that.');
         return;
@@ -897,6 +1701,20 @@ export function castAbility(
           return;
         }
       }
+    }
+  }
+  if (ability.id === 'pack_command' || ability.id === 'unleash_beast') {
+    const error = packCommandError(ctx, p, target);
+    if (error) {
+      ctx.error(p.id, error);
+      return;
+    }
+  }
+  if (ability.id === 'bloodhook') {
+    const error = bloodhookStartError(ctx, p, target);
+    if (error) {
+      ctx.error(p.id, error);
+      return;
     }
   }
   // Hard Bargain cannot spend the caster's last health. Reject it before GCD,
@@ -924,6 +1742,36 @@ export function castAbility(
       }
     }
   }
+  const afflictionTargetError = afflictionTargetCastError(p, target, ability);
+  if (afflictionTargetError) {
+    ctx.error(p.id, afflictionTargetError);
+    return;
+  }
+  if (ability.id === UMBRAL_ANCHOR_ID) {
+    const anchorEffect = res.effects.find((effect) => effect.type === 'warlockUmbralAnchor');
+    const anchorError =
+      anchorEffect?.type === 'warlockUmbralAnchor'
+        ? umbralAnchorCastError(p, anchorEffect.maxRange)
+        : null;
+    if (anchorError) {
+      ctx.error(p.id, anchorError);
+      return;
+    }
+  }
+  if (ability.id === 'conflagrate' && !hasBurningPact(p, target)) {
+    ctx.error(p.id, 'Conflagrate requires Burning Pact on the target.');
+    return;
+  }
+  if ((ability.ruinCost ?? 0) > ruinAmount(p)) {
+    ctx.error(p.id, 'Not enough Wrack!');
+    return;
+  }
+
+  const bombError = spiritBombCastError(ctx, p, target, ability);
+  if (bombError) {
+    ctx.error(p.id, bombError);
+    return;
+  }
 
   // Ground-targeted abilities aim at a world point instead of an entity. The
   // client proposes the point; the server clamps it to the ability's range from
@@ -939,12 +1787,100 @@ export function castAbility(
         d > maxRange
           ? { x: p.pos.x + (dx / d) * maxRange, y: p.pos.y, z: p.pos.z + (dz / d) * maxRange }
           : { x: aim.x, y: p.pos.y, z: aim.z };
+      // Only a PROPOSED point can be too close; the no-aim arm below fixes its
+      // own point up to the minimum, so re-measuring it there would invite a
+      // refusal whenever the sin/cos round trip lands one ulp short.
+      if (ability.minRange && dist2d(p.pos, aimPoint) < ability.minRange) {
+        ctx.error(p.id, 'Too close!');
+        return;
+      }
     } else {
-      // No point chosen (e.g. a keybind cast with nothing under the cursor): fall
-      // back to the caster's own position so the spell still resolves at the feet,
-      // exactly as a caster-centered cast would.
-      aimPoint = { x: p.pos.x, y: p.pos.y, z: p.pos.z };
+      // Faultwake's (and the hunter traps') keybind default is the selected
+      // hostile; other position spells retain the canonical at-feet fallback.
+      // Clamp the selected point through the same authoritative range rule as
+      // explicit ground input.
+      const selected =
+        SELECTED_HOSTILE_AIM_FALLBACK.has(ability.id) && p.targetId !== null
+          ? (ctx.entities.get(p.targetId) ?? null)
+          : null;
+      const fallback =
+        selected && !selected.dead && ctx.isHostileTo(p, selected) ? selected.pos : p.pos;
+      const maxRange = ability.range > 0 ? ability.range : MELEE_RANGE;
+      const dx = fallback.x - p.pos.x;
+      const dz = fallback.z - p.pos.z;
+      const d = Math.hypot(dx, dz);
+      aimPoint =
+        d > maxRange
+          ? { x: p.pos.x + (dx / d) * maxRange, y: p.pos.y, z: p.pos.z + (dz / d) * maxRange }
+          : { x: fallback.x, y: p.pos.y, z: fallback.z };
+      // A minRange ability with no aim would refuse forever at the at-feet
+      // fallback (distance 0), so a caller that cannot aim (a bare keybind
+      // cast, the RL env) lands at the minimum along facing instead. This arm
+      // never refuses: the push is the compliance move.
+      if (ability.minRange && dist2d(p.pos, aimPoint) < ability.minRange) {
+        aimPoint = {
+          x: p.pos.x + Math.sin(p.facing) * ability.minRange,
+          y: p.pos.y,
+          z: p.pos.z + Math.cos(p.facing) * ability.minRange,
+        };
+      }
     }
+  }
+
+  // Brain Freeze (combat/frost_mage.ts): consumed HERE, after every gate
+  // above (so a blocked cast never eats the proc) and before the cast-time /
+  // cost / cooldown reads below: the armed Flurry goes instant, skips its
+  // cooldown and carries its 30% baked into the resolved effects.
+  res = applyBrainFreezeOverride(ctx, p, res);
+  // Solar Reprisal shares one choice across the Protection Paladin's ranged
+  // strike, self-sustain strike, and ally-capable filler heal. Consume only
+  // after all cast gates succeed, then bake the chosen override into this cast.
+  res = applySolarReprisalOverride(ctx, p, res);
+  // Dawn's Wrath is a stored extra Tolling Hammer cast, not a cooldown reset:
+  // consume it only after every cast gate succeeds, then leave any existing
+  // cooldown untouched by resolving this one cast with a zero-second cooldown.
+  res = applyDawnsWrathOverride(ctx, p, res);
+
+  // Owner 2026-07-13: spell haste shortens the global cooldown (floored at MIN_GCD),
+  // so gear/Bloodlust/Temporal Acceleration haste speeds the whole rotation, not just
+  // cast bars. spellHasteMult is 1 for anyone without spell haste, so their GCD is
+  // unchanged.
+  const gcd = Math.max(MIN_GCD, ctx.playerGcdFor(meta.cls) / spellHasteMult(p));
+  // A channel keeps its duration, so it must not eat a next_cast_instant charge.
+  let consumedInstantAura: Aura | null = null;
+  if (
+    !ability.channel &&
+    res.castTime > 0 &&
+    (ability.school !== 'physical' || hasScopedNextCastInstant(p, ability.id))
+  ) {
+    consumedInstantAura = consumeNextCastInstantAura(ctx, p, ability.id);
+  }
+  const instantBaseCastTime =
+    consumedInstantAura !== null ? 0 : res.castTime * shamanCastTimeMultiplier(p, ability.id);
+  // Brineward 2pc (Warfare Season 2) reads the resolved friendly target's
+  // health; a pass-through for every other ability and caster.
+  const castTime = brinewardMendingCastTime(
+    ctx,
+    p,
+    ability.id,
+    target,
+    afflictionAdjustedCastTime(p, ability.id, instantBaseCastTime) *
+      destructionCastTimeMult(p, ability.id) *
+      ashenFocusCastTimeMult(ctx, p, meta, ability.id),
+  );
+  // A press that cannot survive movement (abilityCastSurvivesMovement) is denied
+  // OUTRIGHT here, before the GCD arms or any cast-commit body state is changed,
+  // when the player's held movement input would actually move this tick. A root,
+  // steep-ground control strip, or dismount lock matches player_motion's own
+  // cancellation gate: those states mean the input is held but the body is not
+  // moving, so the cast may start normally.
+  if (
+    (ability.channel || (castTime > 0 && !togglingOff)) &&
+    heldMovementInputWouldMove(p, meta.moveInput, ctx.cfg.seed) &&
+    !abilityCastSurvivesMovement(p, ability.id, res)
+  ) {
+    ctx.error(p.id, "You can't cast while moving.");
+    return;
   }
 
   if (p.sitting) ctx.standUp(p);
@@ -952,8 +1888,47 @@ export function castAbility(
   if (ability.id !== 'ghost_wolf' && p.auras.some((a) => a.id === 'ghost_wolf')) {
     ctx.breakGhostWolf(p);
   }
+  // Auto-unshift (combat/form_auto_unshift.ts), applied HERE rather than at the
+  // form gate above, and for the same reason the affordability check was hoisted
+  // ABOVE that gate: a druid must never lose a form to a press that goes on to be
+  // refused. Everything that can still say no (target, range, line of sight,
+  // min-range, party membership) has now cleared, so this is the first point at
+  // which the cast is certain. It sits with its siblings deliberately: standing
+  // up, sheathing, breaking Ghost Wolf and dismounting are the same kind of "the
+  // cast is happening, so this state goes" change, and Ghost Wolf is the shaman's
+  // travel form, the exact analogue one line up.
+  //
+  // Still free and still off the GCD (leaving a form has always been free here),
+  // and it precedes all three commit branches below (channel, cast-time, instant)
+  // as well as every billing site, so an instant such as Lunar Tempest fires on
+  // the same press and pays from the restored mana pool. Shifting back IN stays a
+  // normal ability and bills both.
+  if (autoUnshift) applyAutoUnshift(ctx, p, meta, ability);
+  // The form-entry buttons (Stalk, Lunge, Bruin Rush) put the druid in their
+  // form on the way in (v0.43, combat/druid_form_entry.ts). Placed HERE for the
+  // same reason as the auto-unshift above: every refusal has cleared, so the
+  // form change can no longer be spent on a press that never happens. It runs
+  // BEFORE this cast's own effects resolve, so the stealth lands on a cat and
+  // the rush leaves as a bear.
+  applyDruidFormEntry(ctx, p, meta, ability.id);
+  // An Assist-stance pet attacks the enemy this cast is aimed at (pet/pet_assist.ts).
+  // Recorded here, where the cast is certain and before every commit branch,
+  // including the on-swing one below.
+  notePetAssistCast(ctx, p, meta, target);
+  // Auto-dismount when the player is mounted or mid-summon-channel and casts any
+  // ability. The one exception is a mount-safe form toggle (combat/forms.ts:
+  // Moonwing, Gloamveil): it only adorns the rider, so it neither dismounts nor
+  // cancels a summon in flight. Judged on the RESOLVED effects, so a press that
+  // also strikes or heals is a real cast and still dismounts.
+  if (!isMountSafeFormToggle(res)) {
+    if (p.mountKey !== '') forceDismount(ctx, p);
+    if (p.mountCastKey !== '') {
+      p.mountCastRemaining = 0;
+      p.mountCastKey = '';
+    }
+  }
   // An instant slipping through a RUNNING cast (usableWhileCasting /
-  // Flickerstep) must not disturb that cast's aim: castTargetId/castAim belong
+  // Flitstep) must not disturb that cast's aim: castTargetId/castAim belong
   // to the spell in progress (its finish path re-validates them), so they are
   // stashed here and restored after the interleaved resolution below. Without
   // this the running Fireball lost its target (fizzling at completion, the
@@ -987,43 +1962,57 @@ export function castAbility(
     return;
   }
   p.castTargetId = target?.id ?? null;
-
-  // Brain Freeze (combat/frost_mage.ts): consumed HERE, after every gate
-  // above (so a blocked cast never eats the proc) and before the cast-time /
-  // cost / cooldown reads below: the armed Flurry goes instant, skips its
-  // cooldown and carries its 30% baked into the resolved effects.
-  res = applyBrainFreezeOverride(ctx, p, res);
-
-  // Owner 2026-07-13: spell haste shortens the global cooldown (floored at MIN_GCD),
-  // so gear/Bloodlust/Temporal Acceleration haste speeds the whole rotation, not just
-  // cast bars. spellHasteMult is 1 for anyone without spell haste, so their GCD is
-  // unchanged.
-  const gcd = Math.max(MIN_GCD, ctx.playerGcdFor(meta.cls) / spellHasteMult(p));
-  // A channel keeps its duration, so it must not eat a next_cast_instant charge.
-  const castTime =
-    !ability.channel &&
-    res.castTime > 0 &&
-    (ability.school !== 'physical' || hasScopedNextCastInstant(p, ability.id)) &&
-    consumeNextCastInstant(ctx, p, ability.id)
-      ? 0
-      : res.castTime;
+  // Nature's Boon makes its spell stronger (Sporemending 25%, Oakhide 25%). Scaled on a COPY here, BEFORE
+  // the block below spends the window: the instant arm consumes the aura and
+  // only then calls applyAbility, so a multiplier read any later is always 1.
+  res = scaleNaturesBoonPower(p, res);
   // A free cast is consumed where the cost is actually billed: here for channels
   // and instants (this tick resolves them via the local `res`), but for cast-time
   // spells the bill lands in applyAbility at completion, which RE-RESOLVES the
   // ability, so the charge must survive until then and be consumed there.
+  let consumedCheapAura: Aura | null = null;
   if ((castTime === 0 || ability.channel) && !togglingOff) {
-    if (canCastFree && consumeFreeCostFor(ctx, p, ability.id)) {
-      res = { ...res, cost: 0 };
+    if (consumedInstantAura?.id === STORMCAST_ID && res.cost > 0) {
+      consumedCheapAura = consumeNextCastCheapAura(ctx, p, ability.id);
+      if (consumedCheapAura !== null) {
+        res = { ...res, cost: Math.ceil(res.cost * consumedCheapAura.value) };
+      }
+      // Stonehearth 2pc: zero the bill only AFTER the Stormcast cheap charge
+      // was consumed above. Zeroing earlier would skip that consume (this
+      // branch gates on `res.cost > 0`) and leave the half-cost aura alive
+      // for a later cast, the consume-order trap the set doc discloses.
+      if (stonehearthStormcastMendingActive(ctx, p, ability.id, warspiritPosture(p), true)) {
+        res = { ...res, cost: 0 };
+      }
+    } else if (canCastFree && consumeFreeCostFor(ctx, p, ability.id)) {
+      res = { ...res, cost: 0, freeCast: true };
+      consumeRadiantResonanceForDawn(ctx, p, ability.id);
     } else if (res.cost > 0) {
-      const cheap = consumeNextCastCheap(ctx, p, ability.id);
-      if (cheap !== null) res = { ...res, cost: Math.ceil(res.cost * cheap) };
+      consumedCheapAura = consumeNextCastCheapAura(ctx, p, ability.id);
+      if (consumedCheapAura !== null) {
+        res = { ...res, cost: Math.ceil(res.cost * consumedCheapAura.value) };
+      }
+      // Dusk Economy and the free Gloam detonator apply here, at the ONE spot
+      // that mutates the billed cost for instants and channels. The
+      // empower-cheap charge is consumed above; these stateless discounts
+      // must not compound the same way, so they live only in this branch
+      // (and the affordability gate above).
+      const duskCheap = combineCostMultipliers(
+        duskCostMultiplier(ctx, p),
+        detonatorFreeMultiplier(ctx, p, ability.id),
+      );
+      if (duskCheap !== null) res = { ...res, cost: Math.ceil(res.cost * duskCheap) };
     }
+  }
+
+  if (ability.channel && res.cost > 0 && p.resourceType === 'mana' && !ability.spendsAllResource) {
+    res = { ...res, cost: Math.ceil(res.cost * paladinManaCostMultiplier(p)) };
   }
 
   if (ability.channel) {
     spendAbilityCost(ctx, p, meta, res);
-    armAbilityCooldown(p, ability.id, res.cooldown, false, res.bonusCharges ?? 0);
-    // Blizzard's Frozen Orb refund budget resets per cast (combat/frost_mage.ts).
+    armAbilityCooldownWithReflection(ctx, p, meta, res);
+    // Blizzard's Frostglobe refund budget resets per cast (combat/frost_mage.ts).
     frostMageChannelStart(p, ability.id);
     // Aether Darts arms its one-time Arcane Charge consume for THIS channel
     // (combat/chronomancy.ts); inert for every other channel.
@@ -1042,15 +2031,43 @@ export function castAbility(
         ? p.aetherDartsTicks
         : ability.channel.ticks;
     p.channelTickEvery = channelDuration / channelTicks;
-    p.channelTickTimer = p.channelTickEvery;
+    // Consume is a sustained drain, so its first pulse starts on the first sim
+    // update instead of leaving a full one-second dead period at channel start.
+    // Starting at one DT preserves the authored three-tick budget: a zero timer
+    // would also fire once more exactly as the three-second channel completes.
+    p.channelTickTimer = ability.id === 'drain_life' ? DT : p.channelTickEvery;
     p.channelTicksLeft = channelTicks;
+    coldsightFeveredDrawChannelStart(ctx, p, ability.id);
+    // Duskhymn Regalia 2pc: the Litany of Woe channel slow (priest/vespers.ts).
+    duskhymnChannelStart(ctx, p, ability.id, target, channelDuration);
+    if (ability.id === 'drain_life') {
+      consumeFateThreadsForDrain(ctx, p, target, channelDuration);
+    }
     p.gcdRemaining = Math.max(p.gcdRemaining, gcd);
+    dropStaleHeldPressOnCommit(p, ability);
+    if (ability.id === 'rain_of_fire') {
+      const center = ability.selfCentered ? p.pos : (p.castAim ?? p.pos);
+      const radius = res.effects.find((effect) => effect.type === 'aoeDamage')?.radius;
+      ctx.emit({
+        type: 'spellfxAt',
+        x: center.x,
+        z: center.z,
+        school: ability.school,
+        fx: 'felMeteorRain',
+        radius,
+        duration: channelDuration,
+        sourceId: p.id,
+        ability: ability.id,
+      });
+    }
     ctx.emit({
       type: 'castStart',
       entityId: p.id,
       ability: ability.id,
       time: channelDuration,
     });
+    startPaladinAegis(ctx, p, res);
+    startChannelVisual(ctx, p, target, ability.id, channelDuration);
     // A channel never reaches applyAbility (its ticks resolve in updateCasting),
     // so 'spellCast' set procs (Clearcasting) roll HERE, once per channel start.
     // Gated on setProcs inside applySetProcs, so proc-less players draw no rng.
@@ -1070,19 +2087,49 @@ export function castAbility(
     // (combat/chronomancy.ts); 1x for every other cast, so nothing else is touched.
     const surgeCastMult = ability.id === ARCANE_SURGE_ID ? aetherSurgeCastMult(p) : 1;
     const stretchedCastTime = (castTime * tonguesMult(p) * surgeCastMult) / spellHasteMult(p);
+    reserveRadiantResonance(p, ability.id);
     p.castingAbility = ability.id;
     p.castTotal = stretchedCastTime;
     p.castRemaining = stretchedCastTime;
     p.gcdRemaining = Math.max(p.gcdRemaining, gcd);
+    dropStaleHeldPressOnCommit(p, ability);
     ctx.emit({ type: 'castStart', entityId: p.id, ability: ability.id, time: stretchedCastTime });
+    coldsightReserveRead(ctx, p, ability.id);
     return;
   }
 
   if (!ability.offGcd) p.gcdRemaining = Math.max(p.gcdRemaining, gcd);
+  // A blink-through press is an escape weave DURING the cast in progress
+  // (Flickerstep is on-GCD but slips past the busy guard); it must not eat
+  // the follow-up queued behind that cast.
+  if (!blinkThrough) dropStaleHeldPressOnCommit(p, ability);
   const instantResolved = ability.empowerStages
     ? { ...res, empowerLevel: ability.empowerStages }
     : res;
-  applyAbility(ctx, p, meta, instantResolved, castTargetId);
+  const stormcastReservation =
+    consumedInstantAura?.id === STORMCAST_ID
+      ? {
+          instant: consumedInstantAura,
+          cheap: consumedCheapAura?.id === STORMCAST_CHEAP_ID ? consumedCheapAura : null,
+        }
+      : null;
+  coldsightReserveRead(ctx, p, ability.id);
+  const benisonHealMult =
+    consumedInstantAura?.id === BENISON_WHISPER_AURA_ID ? 1 + BENISON_4PC_WHISPER_HEAL_BONUS : 1;
+  // Hand the finish the unit this press resolved, never the raw override: a timed
+  // cast already finishes on the stored p.castTargetId, and the friendly arm
+  // re-resolves an override to the same unit, but the dual-purpose arm reads its
+  // id verbatim, so a stale party-frame override that fell back to the current
+  // target above would otherwise refuse there with "You have no target.".
+  applyAbility(
+    ctx,
+    p,
+    meta,
+    instantResolved,
+    target?.id ?? null,
+    stormcastReservation,
+    benisonHealMult,
+  );
   // instant ground-targeted cast: its effects have consumed the aim point. An
   // interleaved instant instead hands the aim back to the cast still running.
   p.castAim = blinkThrough ? heldCastAim : null;
@@ -1151,8 +2198,10 @@ function spendAbilityCost(
   p: Entity,
   meta: PlayerMeta,
   res: ResolvedAbility,
+  _target: Entity | null = null,
 ): void {
   if (isToggleBuff(res.def) && p.auras.some((a) => a.id === res.def.id)) return;
+  if (res.def.devotionCost) spendDevotion(p, res.def.devotionCost);
   const spentRage = p.resourceType === 'rage' ? res.cost : 0;
   const shift = formShiftKind(p, res.def);
   if (shift === 'off') return;
@@ -1169,12 +2218,16 @@ function spendAbilityCost(
     }
     return;
   }
-  spendResource(p, res.cost);
+  spendRuin(ctx, p, res.def.ruinCost ?? 0);
+  const paidCost = shamanManaCost(ctx, p, res.cost);
+  spendResource(p, paidCost);
+  onShamanManaSpent(ctx, p, paidCost, res.cost > 0);
+  noteHunterFocusSpend(ctx, p, meta, res);
   // Overflowing Power (mage choice row): every 10% of maximum mana actually
   // spent shaves manaDefCdrPer10 seconds off the mage defensive cooldowns,
   // capped per rolling window (the 'internal_cd' aura carries the window's
   // running total, so no new entity field enters the parity state hash).
-  overflowingPowerCdr(ctx, p, meta, res.cost);
+  overflowingPowerCdr(ctx, p, meta, paidCost);
   // Colossal Might: each point of rage actually spent shaves cdrPerRage seconds
   // off the tracked offensive cooldowns. 0 for everyone without the capstone.
   applyRageSpendCooldownRefund(ctx, p, meta, spentRage);
@@ -1229,6 +2282,32 @@ function overflowingPowerCdr(ctx: SimContext, p: Entity, meta: PlayerMeta, cost:
 // is never mutated. Draws no rng.
 const OVERLOAD_COST_MULT = 1.5;
 
+/** Scale a Nature's Boon cast's magnitudes by its power multiplier, returning a
+ *  NEW resolved ability: the base content arrays are shared module data and must
+ *  never be mutated (the consumeOverload rule, right below). Returns `res`
+ *  untouched when no window covers this cast, so nothing else moves. */
+function scaleNaturesBoonPower(p: Entity, res: ResolvedAbility): ResolvedAbility {
+  const amp = naturesBoonPowerFor(p.auras, res.def.id);
+  if (amp === 1) return res;
+  const effects = res.effects.map((eff) => {
+    // A heal or a HoT is NOT scaled here: those sites add a Spell Power rider
+    // on top of the authored base, so scaling the base alone would deliver
+    // less than the printed bonus at any real heal power. They take the whole
+    // multiplier in runEffects instead, through the cast-scoped heal multiplier
+    // that `naturesBoonPower` below feeds (the Stonehearth 2pc shape).
+    // Spore Burst takes it the same way: its rider applies the multiplier to
+    // the whole heal, HoT and damage (combat/druid_spore_burst.ts).
+    if (eff.type === 'heal' || eff.type === 'hot' || eff.type === 'sporeBurst') return eff;
+    const scaled: Record<string, unknown> = { ...eff };
+    for (const key of ['min', 'max', 'amount', 'total', 'value'] as const) {
+      const v = scaled[key];
+      if (typeof v === 'number' && v > 0) scaled[key] = Math.round(v * amp);
+    }
+    return scaled as AbilityEffect;
+  });
+  return { ...res, effects, naturesBoonPower: amp };
+}
+
 function consumeOverload(ctx: SimContext, p: Entity, res: ResolvedAbility): ResolvedAbility {
   if (res.def.school === 'physical' || res.cost <= 0) return res;
   const idx = p.auras.findIndex((a) => a.kind === 'overload');
@@ -1268,6 +2347,13 @@ function armAbilityCooldown(
   // ResolvedAbility. A running cooldown is the recharge timer once uses are spent.
   bonusCharges = 0,
 ): void {
+  // Placing the contextual anchor is setup, not its mobility use. The second
+  // cast sees the live aura here, arms the authored cooldown, then the effect
+  // consumes the anchor.
+  if (abilityId === UMBRAL_ANCHOR_ID && !hasUmbralAnchor(p)) return;
+  // The first application starts this cooldown inside the effect, while an
+  // active mark may be recast once to detonate without restarting the timer.
+  if (abilityId === OSSUARY_MARK_ABILITY_ID) return;
   if (cooldown <= 0 || togglingOff) return;
   const state = chargeState(p, abilityId, bonusCharges, cooldown);
   if (state) {
@@ -1281,14 +2367,51 @@ function armAbilityCooldown(
     else p.cooldowns.delete(abilityId);
     return;
   }
-  if (isShamanShock(abilityId)) {
-    for (const id of SHAMAN_SHOCK_COOLDOWN_IDS) p.cooldowns.set(id, cooldown);
+  const sharedIds = sharedCooldownIds(abilityId);
+  if (sharedIds) {
+    for (const id of sharedIds) p.cooldowns.set(id, cooldown);
     return;
   }
   p.cooldowns.set(abilityId, cooldown);
 }
 
-function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): void {
+function armAbilityCooldownWithReflection(
+  ctx: SimContext,
+  player: Entity,
+  meta: PlayerMeta,
+  resolved: ResolvedAbility,
+  togglingOff = false,
+): void {
+  if (consumeForbiddenReflection(ctx, player, resolved.def.id)) return;
+  armAbilityCooldown(
+    player,
+    // cooldownId keeps transformed abilities (the rogue/druid engine swaps)
+    // sharing ONE cooldown; falling back to def.id would give each form its own.
+    resolved.cooldownId ?? resolved.def.id,
+    resolved.cooldown,
+    togglingOff,
+    resolved.bonusCharges ?? 0,
+  );
+  if (resolved.def.id === OSSUARY_MARK_ABILITY_ID) return;
+  if (!togglingOff && player.cooldowns.has(resolved.def.id)) {
+    armForbiddenReflection(ctx, player, meta, resolved.def, resolved.cooldown);
+  }
+}
+
+function applyChannelTick(
+  ctx: SimContext,
+  p: Entity,
+  meta: PlayerMeta,
+  res: ResolvedAbility,
+): void {
+  if (tickPaladinAegis(ctx, p, res)) return;
+  // The resolved talent/mastery multiplier for this channel (talent_hit_mult.ts):
+  // reused across every branch below so a per-tick SP/AP rider scales with the
+  // same percentage already baked into the tick's base min/max (issue #1803).
+  const { dmgMult: talentDmgMult, healMult: talentHealMult } = resolveTalentHitMult(
+    res.def,
+    ctx.playerMods(meta),
+  );
   // Ground-targeted channels (Rain of Fire / Volley / Hurricane): each tick pulses
   // the ability's aoeDamage at the aimed point (clamped at cast start, held in
   // castAim for the channel's life), independent of any entity target.
@@ -1296,16 +2419,19 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
     const center = res.def.selfCentered ? p.pos : (p.castAim ?? p.pos);
     const isSpell = res.def.school !== 'physical';
     const radius = res.effects.find((eff) => eff.type === 'aoeDamage')?.radius;
-    ctx.emit({
-      type: 'spellfxAt',
-      x: center.x,
-      z: center.z,
-      school: res.def.school,
-      fx: 'nova',
-      radius,
-    });
-    const channelSp = channelTickBonus(abilityScalingPower(p, res.def), res.def);
-    // How many enemies this pulse actually struck: Blizzard's Frozen Orb
+    if (res.def.id !== 'rain_of_fire') {
+      ctx.emit({
+        type: 'spellfxAt',
+        x: center.x,
+        z: center.z,
+        school: res.def.school,
+        fx: 'nova',
+        radius,
+        ability: res.def.id,
+      });
+    }
+    const channelSp = channelTickBonus(abilityScalingPower(p, res.def), res.def, talentDmgMult);
+    // How many enemies this pulse actually struck: Blizzard's Frostglobe
     // refund (frostMageChannelPulse below) scales with it.
     let struck = 0;
     for (const eff of res.effects) {
@@ -1351,7 +2477,7 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
   // ground point) and from the single-target channel below.
   if (!res.def.requiresTarget && res.effects.some((eff) => eff.type === 'aoeDamage')) {
     const isSpell = res.def.school !== 'physical';
-    const channelSp = channelTickBonus(abilityScalingPower(p, res.def), res.def);
+    const channelSp = channelTickBonus(abilityScalingPower(p, res.def), res.def, talentDmgMult);
     for (const eff of res.effects) {
       if (eff.type !== 'aoeDamage') continue;
       ctx.emit({
@@ -1361,6 +2487,7 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
         school: res.def.school,
         fx: 'nova',
         radius: eff.radius,
+        ability: res.def.id,
       });
       for (const m of ctx.hostilesInRadius(p, p.pos, eff.radius)) {
         if (!ctx.hasLineOfSight(p, m)) continue;
@@ -1419,7 +2546,11 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
   // Self-centered healing channels pulse around the caster's live position on
   // every tick. Instant aoeHeal effects still resolve once through effect_dispatch.
   if (!res.def.requiresTarget && res.effects.some((eff) => eff.type === 'aoeHeal')) {
-    const channelSp = channelTickBonus(abilityScalingPower(p, res.def), res.def);
+    // Heal riders read the derived healPower (spellPower plus flat Healing
+    // Power), never abilityScalingPower's raw spellPower: the Healing Power
+    // directionality contract (types.ts BaseItemDef.healPower), and the same
+    // reader the Paladin Aegis channel tick uses.
+    const channelSp = channelTickBonus(p.healPower, res.def, talentHealMult);
     for (const eff of res.effects) {
       if (eff.type !== 'aoeHeal') continue;
       ctx.emit({
@@ -1429,6 +2560,7 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
         school: res.def.school,
         fx: 'nova',
         radius: eff.radius,
+        ability: res.def.id,
       });
       const radiusSq = eff.radius * eff.radius;
       for (const ally of ctx.entities.values()) {
@@ -1436,7 +2568,10 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
         const dx = ally.pos.x - p.pos.x;
         const dz = ally.pos.z - p.pos.z;
         if (dx * dx + dz * dz > radiusSq || !ctx.hasLineOfSight(p, ally)) continue;
-        const amount = ctx.rng.range(eff.min, eff.max) + channelSp;
+        const amount = scalePrimaryHealing(
+          ctx.rng.range(eff.min, eff.max) + channelSp,
+          primaryHealingMultiplier(meta.cls, ctx.playerMods(meta).spec),
+        );
         ctx.applyHeal(p, ally, amount, res.def.name, res.def.id);
       }
     }
@@ -1444,11 +2579,13 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
   }
 
   const target = p.castTargetId !== null ? ctx.entities.get(p.castTargetId) : null;
-  if (!target || target.dead || !ctx.isHostileTo(p, target)) {
+  // A channel whose target vanishes mid-cast (Vanish, hasEscapeStealth) stops
+  // ticking on it, same as an out-of-range or dead target (issue #2426).
+  if (!target || target.dead || !ctx.isHostileTo(p, target) || hasEscapeStealth(target)) {
     cancelCast(ctx, p);
     return;
   }
-  const maxRange = res.def.range > 0 ? res.def.range : MELEE_RANGE;
+  const maxRange = effectivePlayerAttackRange(target, res.def.range, meleeReachActor(ctx, p));
   if (dist2d(p.pos, target.pos) > maxRange) {
     ctx.error(p.id, 'Out of range.');
     cancelCast(ctx, p);
@@ -1459,22 +2596,28 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
     cancelCast(ctx, p);
     return;
   }
-  ctx.emit({
-    type: 'spellfx',
-    sourceId: p.id,
-    targetId: target.id,
-    school: res.def.school,
-    fx: 'projectile',
-  });
+  if (res.def.id !== 'drain_life') {
+    ctx.emit({
+      type: 'spellfx',
+      sourceId: p.id,
+      targetId: target.id,
+      school: res.def.school,
+      fx: 'projectile',
+      ability: res.def.id,
+    });
+  }
+  const isFinalConsumePulse = res.def.id === 'drain_life' && p.channelTicksLeft === 0;
+  const consumeThreadDoomBonus =
+    res.def.id === 'drain_life' ? afflictionConsumeThreadDoomBonus(p) : 0;
   // Each channel bolt (e.g. Arcane Missiles) deals its damage on arrival, not on the
   // tick it is fired; a target that dies mid-flight fizzles it (the drain's guard).
   scheduleProjectile(ctx, p, target, (src, tgt) => {
-    const channelSp = channelTickBonus(abilityScalingPower(src, res.def), res.def);
+    const channelSp = channelTickBonus(abilityScalingPower(src, res.def), res.def, talentDmgMult);
     // Aether Darts: the FIRST landed missile consumes the caster's Arcane Charges
     // and locks a flat per-missile Arcane bonus (combat/chronomancy.ts); later
     // missiles reuse it. It is plain Arcane damage, so Temporal Echo heals from it
-    // at the normal rate. Draws no rng; a no-op (0) for any other channel and with
-    // no charges held.
+    // through the individual-mark rotation weight. Draws no rng; a no-op (0) for
+    // any other channel and with no charges held.
     const surgeBonus =
       res.def.id === 'arcane_missiles'
         ? aetherDartsBoltBonus(ctx, src, res.def.channel?.ticks ?? 1)
@@ -1484,19 +2627,52 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
         const crit = ctx.rng.chance(consumeNextAttackCrit(ctx, src) ? 1 : ctx.spellCrit(src));
         let dmg = ctx.rng.range(eff.min, eff.max) + channelSp + surgeBonus;
         dmg *= spellDamageMultFromAuras(src);
+        if (res.def.id === 'arcane_missiles' && perfectMomentActive(src)) {
+          dmg *= PERFECT_MOMENT_DARTS_DAMAGE_MULT;
+        }
         // A channeled spell tick (Arcane Missiles) is a spell crit, so it takes the
         // spell crit-damage channel of the mastery (plus the generic bonus) like
         // every other spell crit.
         if (crit) dmg *= 1.5 + src.critDmgSpellBonus;
-        ctx.dealDamage(src, tgt, Math.round(dmg), crit, res.def.school, res.def.name, 'hit');
+        ctx.dealDamage(
+          src,
+          tgt,
+          Math.round(dmg),
+          crit,
+          res.def.school,
+          res.def.name,
+          'hit',
+          false,
+          undefined,
+          true,
+          false,
+          false,
+          res.def.id === 'arcane_missiles' ? res.def.id : null,
+        );
         noteSpellHit(ctx, src, crit, res.def.id);
       } else if (eff.type === 'drainTick') {
-        const dmg = Math.round(ctx.rng.range(eff.min, eff.max) + channelSp);
-        ctx.dealDamage(src, tgt, dmg, false, res.def.school, res.def.name, 'hit');
+        const doom = afflictionDrainTickDoom(ctx, src, tgt, consumeThreadDoomBonus);
+        const completionDoom = isFinalConsumePulse
+          ? afflictionDrainCompletionDoom(ctx, src, tgt)
+          : 0;
+        const periodicHit = shadowPeriodicHit(
+          ctx,
+          src,
+          res.def.id,
+          Math.round(ctx.rng.range(eff.min, eff.max) + channelSp),
+        );
+        const dmg = periodicHit.amount;
+        ctx.dealDamage(src, tgt, dmg, periodicHit.crit, res.def.school, res.def.name, 'hit');
+        if (doom > 0) gainDoom(ctx, src, doom);
         if (!src.dead) {
-          const healed = Math.min(Math.round(dmg * eff.healFrac), src.maxHp - src.hp);
+          const intended = Math.round(
+            dmg * eff.healFrac * afflictionConsumeHealMult(ctx, src, res.def.id),
+          );
+          const healed = Math.min(intended, src.maxHp - src.hp);
+          onCraftedCollectionHeal(ctx, src, src, intended - healed);
           if (healed > 0) {
             src.hp += healed;
+            const overheal = intended - healed;
             ctx.emit({
               type: 'heal2',
               sourceId: src.id,
@@ -1504,9 +2680,17 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
               amount: healed,
               crit: false,
               ability: res.def.name,
+              ...(overheal > 0 ? { overheal } : {}),
             });
             ctx.healingThreat(src, src, healed);
           }
+        }
+        if (res.def.id === 'drain_life' && tgt.dead && src.castingAbility === res.def.id) {
+          // The first pulse is front-loaded, so the third can land just before
+          // the channel's visual tail ends. All authored pulses were completed:
+          // preserve Consume's completion gain before stopping the dead-target beam.
+          if (completionDoom > 0) gainDoom(ctx, src, completionDoom);
+          cancelCast(ctx, src);
         }
       } else if (eff.type === 'extendDot') {
         extendOwnedDot(tgt, src.id, eff.dot, eff.seconds, eff.maxBonus);
@@ -1515,12 +2699,68 @@ function applyChannelTick(ctx: SimContext, p: Entity, res: ResolvedAbility): voi
   });
 }
 
+interface StormcastReservation {
+  instant: Aura;
+  cheap: Aura | null;
+}
+
+function restoreStormcastReservation(
+  ctx: SimContext,
+  player: Entity,
+  reservation: StormcastReservation | null,
+): void {
+  if (!reservation || player.dead) return;
+  if (!player.auras.some((aura) => aura.id === reservation.instant.id)) {
+    ctx.applyAura(player, { ...reservation.instant });
+  }
+  if (reservation.cheap && !player.auras.some((aura) => aura.id === reservation.cheap?.id)) {
+    ctx.applyAura(player, { ...reservation.cheap });
+  }
+}
+
+function completeStormcastReservation(
+  ctx: SimContext,
+  player: Entity,
+  reservation: StormcastReservation | null,
+): void {
+  if (reservation) onStormcastConsumed(ctx, player);
+}
+
+// Effect types whose resolution already reaches the renderer on its own:
+// immediate damage lands as damage events (the per-ability VFX layer's strike
+// read), and the movement/sport kinds drive their own visible motion (charge
+// run, blink snap, leap arc, Vale Cup ball handling). A hostile-targeted
+// completion built ONLY of other effects (sunder, interrupt, taunt, stun,
+// incapacitate, a finisher's haste buff...) emits nothing at all, so
+// applyAbility gives those the same renderer-only 'selfCast' cue untargeted
+// completions get. Damaging casts stay excluded - their read arrives via the
+// damage event, and a second cue would double-stage the visuals.
+const SELF_ANNOUNCING_EFFECTS: ReadonlySet<AbilityEffect['type']> = new Set([
+  'weaponDamage',
+  'weaponStrike',
+  'directDamage',
+  'chainDamage',
+  'finisherDamage',
+  'aoeDamage',
+  'empoweredCone',
+  'drainTick',
+  'consumeAura',
+  'groundAoE',
+  'frozenOrb',
+  'charge',
+  'feralCharge',
+  'blinkForward',
+  'repositionToAim',
+]);
+
 function applyAbility(
   ctx: SimContext,
   p: Entity,
   meta: PlayerMeta,
   res: ResolvedAbility,
   castTargetId: number | null = null,
+  stormcastReservation: StormcastReservation | null = null,
+  benisonHealMult = 1,
 ): void {
   // Consume the mouseover override: an instant cast passes it directly; a
   // timed cast stored it on the entity at start (updateCasting's finish call
@@ -1536,13 +2776,26 @@ function applyAbility(
       ctx.error(p.id, 'There are no dead group members to resurrect.');
       return;
     }
+    // The finish-side backstop of the per-tick updateCasting reach gate, which
+    // cancels first for any timed cast: this arm arbitrates only a same-tick
+    // displacement or a future instant-cast mass rez, and keeps the completion
+    // unable to spend mana and cooldown on a sweep that can raise nobody.
+    if (!hasDeadGroupMemberInReach(ctx, p, resurrectionCastRange(res.def.range))) {
+      ctx.error(p.id, 'Out of range.');
+      return;
+    }
   }
   // Overload (mage choice row): the armed amplifier bakes the next MANA spell
   // 40% stronger and 50% costlier into a scaled COPY of the resolved ability
   // before cost and effects resolve (channels are exempt: they bill in the
   // castAbility channel branch and resolve per tick). Draws no rng.
   res = consumeOverload(ctx, p, res);
+  res = consumeColdsightReadReservation(ctx, p, res);
   const ability = res.def;
+  if (ability.devotionCost && !hasDevotion(p, ability.devotionCost)) {
+    ctx.error(p.id, 'Not enough Devotion!');
+    return;
+  }
   const togglingOff = isToggleBuff(ability) && p.auras.some((a) => a.id === ability.id);
   // The free charge is consumed exactly where a cost is actually billed; the
   // early-return utility branches below bill directly, so they must go through
@@ -1584,51 +2837,85 @@ function applyAbility(
     if (!pet) {
       ctx.error(
         p.id,
-        isDelvePos(p.pos.x) ? 'Pets are not allowed inside the delves.' : 'You have no pet.',
+        isDelvePos(p.pos.x) && ctx.delvePetStash.has(p.id)
+          ? 'Pets are not allowed inside the delves.'
+          : 'You have no pet.',
       );
       return;
     }
     spendResource(p, billableCost());
-    armAbilityCooldown(p, ability.id, res.cooldown, false, res.bonusCharges ?? 0);
-    if (pet.dead) {
-      ctx.revivePet(p.id);
-    } else {
-      const hot = res.effects.find((effect) => effect.type === 'hot');
-      if (hot) {
-        ctx.applyAura(pet, {
-          id: ability.id,
-          name: ability.name,
-          kind: 'hot',
-          remaining: hot.duration,
-          duration: hot.duration,
-          value: Math.max(1, Math.round(hot.total / (hot.duration / hot.interval))),
-          tickInterval: hot.interval,
-          tickTimer: hot.interval,
-          sourceId: p.id,
-          school: ability.school,
-        });
-      }
-    }
+    armAbilityCooldownWithReflection(ctx, p, meta, res);
+    applyPatchUp(ctx, p, pet, ability);
     if (p.kind === 'player') onCastCompleted(ctx, p, ability.id, pet);
     return;
   }
 
   let target: Entity | null = null;
-  if (ability.requiresTarget && ability.targetsDead) {
+  if (ability.id === 'unleash_weapon') {
+    target = resolveUnleashWeaponTarget(ctx, p, castTarget);
+    const error = unleashWeaponCastError(p, target);
+    if (error) {
+      ctx.error(p.id, error);
+      return;
+    }
+    if (!target) return;
+    if (dist2d(p.pos, target.pos) > ability.range + 2) {
+      ctx.error(p.id, 'Out of range.');
+      return;
+    }
+    if (ctx.lineOfSightBlocked(p, target, ability)) {
+      ctx.error(p.id, 'Line of sight.');
+      return;
+    }
+  } else if (ability.requiresTarget && ability.targetsDead) {
     // Combat res finish: the dead ally's id was stored in castTarget at cast start
     // (it is auto-deselected from p.targetId once dead, so we cannot re-derive it).
+    // Reach is re-checked with the same +2 drift slack the other finish arms grant:
+    // the body cannot move, but the caster can be displaced during the cast, and a
+    // finish that skipped the gate would hand out a cross-map resurrection offer.
     const dead = resolveDeadAllyTarget(ctx, p, castTarget);
     if (!dead) {
       ctx.error(p.id, 'You must target a dead ally in your group.');
       return;
     }
+    const reach = resurrectionReachError(ctx, p, dead, resurrectionCastRange(ability.range), 2);
+    if (reach === 'range') {
+      ctx.error(p.id, 'Out of range.');
+      return;
+    }
+    if (reach === 'los') {
+      ctx.error(p.id, 'Line of sight.');
+      return;
+    }
     target = dead;
   } else if (ability.requiresTarget && ability.targetType === 'friendly') {
     // Keep the branch's mouseover-cast resolution (Clique-style): the explicit
-    // override wins while valid, else current-friendly-target-else-self.
-    target = resolveFriendlyTarget(ctx, p, castTarget);
-    if (dist2d(p.pos, target.pos) > Math.max(ability.range, 5) + 2) {
+    // override wins while valid, else current-friendly-target-else-self; a
+    // locked target the open world made an enemy during the cast refuses the finish.
+    const friendly = resolveFriendlyTarget(ctx, p, castTarget);
+    if (!friendly) {
+      ctx.error(p.id, WORLD_PVP_AID_REFUSED_LINE);
+      return;
+    }
+    target = friendly;
+    const d = dist2d(p.pos, target.pos);
+    if (d > Math.max(ability.range, 5) + 2) {
       ctx.error(p.id, 'Out of range.');
+      return;
+    }
+    // The finish-side twins of the two gates in castAbility's friendly branch. No
+    // shipped ability reaches them (Intervene is the only friendly rush and the only
+    // friendly minRange, and it is instant), but the two branches resolve through the
+    // same resolveFriendlyTarget fallback and check the same authored fields, so
+    // leaving one arm short is how the next timed friendly ability inherits the bug
+    // rather than the fix. The +2 slack matches the range check just above: a target
+    // may drift during a cast.
+    if (target.id === p.id && res.effects.some((effect) => effect.type === 'charge')) {
+      ctx.error(p.id, 'You must target an ally.');
+      return;
+    }
+    if (ability.minRange && d < ability.minRange - 2) {
+      ctx.error(p.id, 'Too close!');
       return;
     }
     if (ctx.lineOfSightBlocked(p, target, ability)) {
@@ -1637,12 +2924,17 @@ function applyAbility(
     }
   } else if (ability.requiresTarget && ability.targetType === 'any') {
     target = castTarget !== null ? (ctx.entities.get(castTarget) ?? null) : null;
-    if (!target || target.dead || (!ctx.isHostileTo(p, target) && !ctx.isFriendlyTo(p, target))) {
+    if (
+      !target ||
+      target.dead ||
+      (!ctx.isHostileTo(p, target) && !ctx.isFriendlyTo(p, target)) ||
+      (ctx.isHostileTo(p, target) && hasEscapeStealth(target))
+    ) {
       ctx.error(p.id, 'You have no target.');
       return;
     }
     const d = dist2d(p.pos, target.pos);
-    const maxRange = ability.range > 0 ? ability.range : MELEE_RANGE;
+    const maxRange = effectivePlayerAttackRange(target, ability.range, meleeReachActor(ctx, p));
     if (d > maxRange + 2) {
       ctx.error(p.id, 'Out of range.');
       return;
@@ -1653,12 +2945,12 @@ function applyAbility(
     }
   } else if (ability.requiresTarget) {
     target = castTarget !== null ? (ctx.entities.get(castTarget) ?? null) : null;
-    if (!target || target.dead || !ctx.isHostileTo(p, target)) {
+    if (!target || target.dead || !ctx.isHostileTo(p, target) || hasEscapeStealth(target)) {
       ctx.error(p.id, 'You have no target.');
       return;
     }
     const d = dist2d(p.pos, target.pos);
-    const maxRange = ability.range > 0 ? ability.range : MELEE_RANGE;
+    const maxRange = effectivePlayerAttackRange(target, ability.range, meleeReachActor(ctx, p));
     if (d > maxRange + 2) {
       ctx.error(p.id, 'Out of range.');
       return;
@@ -1668,18 +2960,54 @@ function applyAbility(
       return;
     }
   }
-  const canCastFree = res.cost > 0 && hasFreeCostFor(p, ability.id);
+  if (ability.id === 'conflagrate' && !hasBurningPact(p, target)) {
+    ctx.error(p.id, 'Conflagrate requires Burning Pact on the target.');
+    return;
+  }
+  if ((ability.ruinCost ?? 0) > ruinAmount(p)) {
+    ctx.error(p.id, 'Not enough Wrack!');
+    return;
+  }
+  if (ability.soulFragmentCost !== undefined && soulFragmentCount(p) < ability.soulFragmentCost) {
+    ctx.error(p.id, 'Not enough Soul Fragments!');
+    return;
+  }
+  const bombError = spiritBombCastError(ctx, p, target, ability);
+  if (bombError) {
+    ctx.error(p.id, bombError);
+    return;
+  }
+  const necromancyError = necromancyCastError(ctx, p, ability);
+  if (necromancyError) {
+    ctx.error(p.id, necromancyError);
+    return;
+  }
+  if (ability.id === OSSUARY_MARK_ABILITY_ID && hasActiveOssuaryMark(ctx, p.id)) {
+    res = { ...res, cost: 0 };
+  }
+  const canCastFree =
+    stormcastReservation === null && res.cost > 0 && hasFreeCostFor(p, ability.id);
   const cheapMultiplier = nextCastCheapMultiplier(p, ability.id);
-  const payableCost = cheapMultiplier === null ? res.cost : Math.ceil(res.cost * cheapMultiplier);
+  const discountedCost =
+    cheapMultiplier === null ? res.cost : Math.ceil(res.cost * cheapMultiplier);
+  const shamanAdjustedCost = shamanManaCost(ctx, p, discountedCost);
+  const payableCost =
+    p.resourceType === 'mana'
+      ? Math.ceil(shamanAdjustedCost * paladinManaCostMultiplier(p))
+      : shamanAdjustedCost;
   if (p.resource < payableCost && !canCastFree && !togglingOff && !formShiftKind(p, ability)) {
     ctx.error(p.id, `Not enough ${p.resourceType ?? 'resource'}!`);
     return;
   }
   if (canCastFree && !togglingOff && consumeFreeCostFor(ctx, p, ability.id)) {
-    res = { ...res, cost: 0 };
-  } else if (res.cost > 0 && !togglingOff) {
+    res = { ...res, cost: 0, freeCast: true };
+    consumeRadiantResonanceForDawn(ctx, p, ability.id);
+  } else if (stormcastReservation === null && res.cost > 0 && !togglingOff) {
     const cheap = consumeNextCastCheap(ctx, p, ability.id);
     if (cheap !== null) res = { ...res, cost: Math.ceil(res.cost * cheap) };
+  }
+  if (res.cost > 0 && p.resourceType === 'mana' && !ability.spendsAllResource) {
+    res = { ...res, cost: Math.ceil(res.cost * paladinManaCostMultiplier(p)) };
   }
   if (ability.spendsAllResource && !togglingOff) {
     const spend =
@@ -1688,15 +3016,78 @@ function applyAbility(
         : Math.min(p.resource, ability.spendResourceCap);
     res = { ...res, cost: spend };
   }
+  res = consumeDesolationForCast(ctx, p, res);
+  if (ability.soulFragmentCost !== undefined && !spendSoulFragments(p, ability.soulFragmentCost)) {
+    ctx.error(p.id, 'Not enough Soul Fragments!');
+    return;
+  }
+  if (ability.soulFragmentCost !== undefined) {
+    grantShadowCredit(ctx, p, ability.soulFragmentCost, 5);
+  }
+
+  // The cast is committed from this point on (target resolved, cost payable):
+  // consume the gating aura (Rimeneedle's full Icicles stack, Victor's Surge's
+  // kill window) HERE, atomically with the cost/cooldown billing below, rather
+  // than inside runEffects. A ranged ability's runEffects can run ticks later,
+  // once its projectile lands (projectile_travel.ts); leaving the consume there
+  // left the Icicles aura alive for a second castAbility press made in that
+  // window, wrongly accepting a duplicate cast off the same stack (issue #2632).
+  // The class wave's `consumesRequiredAura: false` opt-out (Moonseed/Moonsurge,
+  // Sunwake) and the Warlock's afflictionSentence exception both ride this
+  // relocated cast-commit site: each REQUIRES the aura but must not strip it.
+  if (
+    ability.requiresAuraKind &&
+    ability.consumesRequiredAura !== false &&
+    !res.effects.some((effect) => effect.type === 'afflictionSentence')
+  ) {
+    if (!consumeRequiredAura(ctx, p, ability)) {
+      ctx.error(p.id, 'That ability is not ready yet.');
+      return;
+    }
+  }
 
   // helpful spells never miss
   if (
     ability.targetType === 'friendly' ||
     (ability.targetType === 'any' && target && ctx.isFriendlyTo(p, target))
   ) {
-    spendAbilityCost(ctx, p, meta, res);
-    armAbilityCooldown(p, ability.id, res.cooldown, togglingOff, res.bonusCharges ?? 0);
-    ctx.runEffects(p, meta, target, res);
+    spendAbilityCost(ctx, p, meta, res, target);
+    armAbilityCooldownWithReflection(ctx, p, meta, res, togglingOff);
+    // A friendly-target completion (heals, ally blessings, dispels) resolves
+    // right here: no damage event, no projectile, no castFx - the heal2/aura
+    // events that follow only feed numbers and the small legacy glow, so
+    // without a cue the per-ability VFX layer is blind to the cast that just
+    // happened (Last Rite healed with no ceremony at all). Emit the same
+    // renderer-only 'selfCast' cue the other silent completions get, carrying
+    // the ALLY so the painter can anchor the ceremony's landing on them.
+    if (!ability.castFx && !togglingOff) {
+      ctx.emit({
+        type: 'spellfx',
+        sourceId: p.id,
+        targetId: (target ?? p).id,
+        school: ability.school,
+        fx: 'selfCast',
+        ability: ability.id,
+      });
+    }
+    // Stonehearth 2pc: the Stormcast-while-Stonebound Mending Waters heals 25
+    // percent more, scoped to THIS cast (the non-null reservation marks it).
+    // The multiplier reaches the WHOLE resolved heal (authored roll plus the
+    // Spell Power rider) through runEffects' cast-scoped heal multiplier; it
+    // is 1 for every other friendly cast, so nothing else moves (the
+    // ability.id short-circuit keeps the posture scan off every other cast).
+    const castHealMult =
+      ability.id === 'healing_wave'
+        ? stonehearthStormcastMendingHealMult(
+            ctx,
+            p,
+            ability.id,
+            warspiritPosture(p),
+            stormcastReservation !== null,
+          )
+        : 1;
+    ctx.runEffects(p, meta, target, res, false, castHealMult * benisonHealMult);
+    completeStormcastReservation(ctx, p, stormcastReservation);
     // 'spellCast' means SPELLS: a physical friendly ability never rolls.
     if (p.kind === 'player' && ability.school !== 'physical')
       ctx.applySetProcs(p, target, 'spellCast');
@@ -1714,8 +3105,13 @@ function applyAbility(
   const firesProjectile = ability.projectile ?? ability.school !== 'physical';
   if (target && firesProjectile) {
     const isSpell = ability.school !== 'physical';
-    spendAbilityCost(ctx, p, meta, res);
-    armAbilityCooldown(p, ability.id, res.cooldown, togglingOff, res.bonusCharges ?? 0);
+    spendAbilityCost(ctx, p, meta, res, target);
+    armAbilityCooldownWithReflection(ctx, p, meta, res, togglingOff);
+    res = reserveRuinousBrandCopy(ctx, p, meta, target, res);
+    res = reserveShadowStilledMind(ctx, p, res);
+    if (res.effects.some((effect) => effect.type === 'afflictionNeedle')) {
+      completeNeedleOfFateCast(ctx, p, target);
+    }
     ctx.emit({
       type: 'spellfx',
       sourceId: p.id,
@@ -1724,6 +3120,19 @@ function applyAbility(
       // A spell may override the flying-bolt visual (e.g. Lightning Bolt draws a
       // jagged electric strike); the projectile MECHANIC below is unchanged.
       fx: ability.projectileFx ?? 'projectile',
+      ...(ability.id === 'sunward_disc'
+        ? {
+            ability: ability.id,
+            level: 0,
+            count:
+              1 +
+              res.effects.reduce(
+                (jumps, effect) => (effect.type === 'chainDamage' ? effect.jumps : jumps),
+                0,
+              ),
+          }
+        : {}),
+      ability: ability.id,
       ...(isSpell ? {} : { attackAnimation: 'ranged-shot' as const }),
     });
     // The bolt is now in flight: its hit roll and effects resolve when it reaches the
@@ -1736,23 +3145,38 @@ function applyAbility(
     // tanking, so a taunt ability skips the resist roll entirely (physical taunts like
     // Goad / Menace already never roll, since they resolve instantly below).
     const isTaunt = res.effects.some((eff) => eff.type === 'taunt');
-    scheduleProjectile(ctx, p, target, (src, tgt) => {
-      if (isSpell && !isTaunt && isSpellResisted(ctx.rng, src.level, tgt.level, src.hitBonus)) {
-        ctx.emit({
-          type: 'damage',
-          sourceId: src.id,
-          targetId: tgt.id,
-          amount: 0,
-          crit: false,
-          school: ability.school,
-          ability: ability.name,
-          kind: 'resist',
-        });
-        ctx.enterCombat(src, tgt);
-        return;
-      }
-      ctx.runEffects(src, meta, tgt, res, !isSpell);
-    });
+    scheduleProjectile(
+      ctx,
+      p,
+      target,
+      (src, tgt) => {
+        if (ability.id === 'sunward_disc') {
+          ctx.emit({
+            type: 'spellfx',
+            sourceId: src.id,
+            targetId: tgt.id,
+            school: ability.school,
+            fx: 'paladinSunwardDiscImpact',
+            ability: ability.id,
+            level: 0,
+            count:
+              1 +
+              res.effects.reduce(
+                (jumps, effect) => (effect.type === 'chainDamage' ? effect.jumps : jumps),
+                0,
+              ),
+          });
+        }
+        if (isSpell && !isTaunt && resolveHostileSpellResist(ctx, src, tgt, ability)) {
+          restoreStormcastReservation(ctx, src, stormcastReservation);
+          return;
+        }
+        ctx.runEffects(src, meta, tgt, res, !isSpell);
+        completeStormcastReservation(ctx, src, stormcastReservation);
+      },
+      p.pos,
+      () => restoreStormcastReservation(ctx, p, stormcastReservation),
+    );
     // 'spellCast' set procs (Clearcasting) roll at CAST COMPLETION, matching the
     // trigger name: the cast is done even though the bolt is still in flight (a
     // resisted or fizzled bolt was still a cast). Physical projectile shots
@@ -1762,8 +3186,10 @@ function applyAbility(
     return;
   }
 
-  spendAbilityCost(ctx, p, meta, res);
-  armAbilityCooldown(p, ability.id, res.cooldown, togglingOff, res.bonusCharges ?? 0);
+  spendAbilityCost(ctx, p, meta, res, target);
+  armAbilityCooldownWithReflection(ctx, p, meta, res, togglingOff);
+  res = reserveRuinousBrandCopy(ctx, p, meta, target, res);
+  res = reserveShadowStilledMind(ctx, p, res);
   // A shout announces itself: world-visible cue so the caster roars and the
   // shockwave ring reads for everyone nearby (renderer-only; no mechanic).
   if (ability.castFx && !togglingOff) {
@@ -1775,8 +3201,43 @@ function applyAbility(
       fx: ability.castFx,
       ability: ability.id,
     });
+  } else if (
+    !togglingOff &&
+    (!target || target === p || !res.effects.some((eff) => SELF_ANNOUNCING_EFFECTS.has(eff.type)))
+  ) {
+    // An untargeted/self completion (Shadewolf, summon rites, forms, aspects)
+    // otherwise emits nothing at all, leaving the per-ability VFX layer blind
+    // to the cast that just happened. The same blindness hits hostile-targeted
+    // pure-utility completions (Armor Shear's sunder, Jawcrack's interrupt,
+    // Goad's taunt, stuns/saps/finisher buffs): no damage event, no castFx,
+    // nothing. Emit the cue for both, carrying the victim so the painter can
+    // anchor the utility read at the target. Renderer-only; no mechanic.
+    ctx.emit({
+      type: 'spellfx',
+      sourceId: p.id,
+      targetId: (target ?? p).id,
+      school: ability.school,
+      fx: 'selfCast',
+      ability: ability.id,
+    });
   }
-  ctx.runEffects(p, meta, target, res);
+  // An instant hostile spell (`projectile: false`) rolls the SAME resist a bolt
+  // rolls on impact; only the delivery differs. Taunts are exempt here for the
+  // reason they are exempt there: a resisted taunt silently breaks tanking.
+  completeSpiritBomb(ctx, p, meta, target, res);
+  const instantResisted =
+    target !== null &&
+    ability.school !== 'physical' &&
+    ctx.isHostileTo(p, target) &&
+    !res.effects.some((eff) => eff.type === 'taunt') &&
+    resolveHostileSpellResist(ctx, p, target, ability);
+  if (instantResisted) {
+    restoreStormcastReservation(ctx, p, stormcastReservation);
+  } else {
+    if (ability.id === 'red_harvest') castRedHarvest(ctx, p, meta, target, res);
+    else ctx.runEffects(p, meta, target, res);
+    completeStormcastReservation(ctx, p, stormcastReservation);
+  }
   // 'spellCast' means SPELLS: physical specials (a cat/bear weapon strike from a
   // cloth-capable druid) and toggle-offs fall through here and must not roll.
   if (p.kind === 'player' && ability.school !== 'physical' && !togglingOff)

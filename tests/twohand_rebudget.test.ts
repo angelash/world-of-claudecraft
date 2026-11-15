@@ -5,6 +5,7 @@
 // assumed the offhand slot was sacrificed, and Titan's Grip filled BOTH slots with
 // double-budget two-handers (86 weapon stat points vs 38 for a dual-1H pair).
 import { describe, expect, it } from 'vitest';
+import { SEASON2_WEAPON_IDS } from '../src/sim/content/pvp_honor_season2';
 import { ITEMS } from '../src/sim/data';
 import {
   SLOT_STAT_MULT,
@@ -36,6 +37,9 @@ describe('v0.27.1 two-hand re-budget', () => {
     let checked = 0;
     for (const item of twoHanders()) {
       if (itemLevel(item) === undefined) continue;
+      // Warfare Season 2 weapons carry the honor discount instead (0.9 of the
+      // line plus the stamina floor), pinned in tests/warfare_season2.test.ts.
+      if ((SEASON2_WEAPON_IDS as readonly string[]).includes(item.id)) continue;
       expect(primaryStatSum(item), item.id).toBe(expectedStatBudget(item));
       checked++;
     }
@@ -55,5 +59,32 @@ describe('v0.27.1 two-hand re-budget', () => {
         `${item.id} dps ${dps.toFixed(2)} vs target ${target.toFixed(2)}`,
       ).toBeLessThan(0.35);
     }
+  });
+
+  // The 2026-08-30 ilvl-honesty round: the pre-budget Thronebane line ran 29
+  // percent above its curve and the heroic mint's above-curve retention
+  // carried it to ilvl 37, quietly making a legacy weapon the white-damage
+  // king of every later tier. Both legendaries were re-lined to their real
+  // ilvl curves, and this sweep now covers ONE-handers too so the next hot
+  // hand-authored line fails here instead of surfacing in a balance study.
+  // The two grandfathered leveling-era blips are pinned so they cannot grow.
+  it('every leveled one-hander sits at or under its ilvl dps ceiling', () => {
+    let checked = 0;
+    for (const item of Object.values(ITEMS)) {
+      if (item.kind !== 'weapon' || !item.weapon || item.hand === 'twohand') continue;
+      const level = itemLevel(item);
+      if (level === undefined) continue;
+      const dps = (item.weapon.min + item.weapon.max) / 2 / item.weapon.speed;
+      // One-sided on purpose: leveling greens sit under budget by design;
+      // the guard only stops a line sneaking ABOVE its ilvl (the Thronebane
+      // failure mode).
+      const target = weaponDpsBudget(level);
+      expect(
+        dps - target,
+        `${item.id} dps ${dps.toFixed(2)} vs ceiling ${target.toFixed(2)}`,
+      ).toBeLessThan(0.35);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(20);
   });
 });

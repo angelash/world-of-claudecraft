@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/sim/content/classes';
+import { BUILTIN_WORLD } from '../src/sim/data';
 import { Sim } from '../src/sim/sim';
-import type { AbilityDef, AbilityEffect, Aura, Entity } from '../src/sim/types';
+import type { AbilityDef, AbilityEffect, Aura, Entity, WorldContent } from '../src/sim/types';
 
 const TICKS_PER_SECOND = 20;
+
+// Every test builds its own source/target players and never touches ambient
+// world content, so strip camps/npcs/ground objects to keep sim.tick() cheap
+// (same subsystem-world pattern as tests/fiesta.test.ts).
+const DOT_TEST_WORLD: WorldContent = {
+  ...BUILTIN_WORLD,
+  camps: [],
+  npcs: {},
+  groundObjects: [],
+};
 
 type DotCase = {
   ability: AbilityDef;
@@ -14,10 +25,13 @@ type DotCase = {
 function dotCases(): DotCase[] {
   const cases: DotCase[] = [];
   for (const ability of Object.values(ABILITIES)) {
-    const ranks = [{ rankLabel: 'rank 1', effects: ability.effects }, ...((ability.ranks ?? []).map((rank, index) => ({
-      rankLabel: `rank ${index + 2}`,
-      effects: rank.effects ?? ability.effects,
-    })))];
+    const ranks = [
+      { rankLabel: 'rank 1', effects: ability.effects },
+      ...(ability.ranks ?? []).map((rank, index) => ({
+        rankLabel: `rank ${index + 2}`,
+        effects: rank.effects ?? ability.effects,
+      })),
+    ];
     for (const rank of ranks) {
       for (const effect of rank.effects) {
         if (effect.type === 'dot') cases.push({ ability, rankLabel: rank.rankLabel, effect });
@@ -27,7 +41,12 @@ function dotCases(): DotCase[] {
   return cases;
 }
 
-function addDot(target: Entity, source: Entity, ability: AbilityDef, effect: Extract<AbilityEffect, { type: 'dot' }>): Aura {
+function addDot(
+  target: Entity,
+  source: Entity,
+  ability: AbilityDef,
+  effect: Extract<AbilityEffect, { type: 'dot' }>,
+): Aura {
   const aura: Aura = {
     id: `${ability.id}_${effect.duration}_${effect.interval}`,
     name: ability.name,
@@ -45,15 +64,35 @@ function addDot(target: Entity, source: Entity, ability: AbilityDef, effect: Ext
 }
 
 describe('damage-over-time final ticks', () => {
-  it.each(dotCases().map((entry) => [
-    `${entry.ability.class}.${entry.ability.id} ${entry.rankLabel} (${entry.effect.duration}s/${entry.effect.interval}s)`,
-    entry,
-  ] as const))('%s ticks for every interval implied by its duration', (_name, entry) => {
-    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+  it.each(
+    dotCases().map(
+      (entry) =>
+        [
+          `${entry.ability.class}.${entry.ability.id} ${entry.rankLabel} (${entry.effect.duration}s/${entry.effect.interval}s)`,
+          entry,
+        ] as const,
+    ),
+  )('%s ticks for every interval implied by its duration', (_name, entry) => {
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: DOT_TEST_WORLD,
+    });
     const sourceId = sim.addPlayer(entry.ability.class, 'Dotter');
     const targetId = sim.addPlayer('warrior', 'Target');
     const source = sim.entities.get(sourceId)!;
     const target = sim.entities.get(targetId)!;
+    // A player's periodic harm on another player re-asks isHostileTo before every
+    // tick (src/sim/combat/periodic_harm.ts) and a refused tick expires the aura,
+    // so the pair has to be hostile for the aura's whole life: a live duel, the
+    // tests/duel.test.ts recipe (the 3 s countdown runs out before the aura lands).
+    sim.duelRequest(targetId, sourceId);
+    sim.duelAccept(targetId);
+    for (let i = 0; i < TICKS_PER_SECOND * 4 && sim.duelFor(sourceId)?.state !== 'active'; i++) {
+      sim.tick();
+    }
+    expect(sim.duelFor(sourceId)?.state).toBe('active');
     target.maxHp = 100000;
     target.hp = target.maxHp;
 
@@ -61,12 +100,15 @@ describe('damage-over-time final ticks', () => {
 
     let damageTicks = 0;
     for (let i = 0; i < entry.effect.duration * TICKS_PER_SECOND; i++) {
-      damageTicks += sim.tick().filter((event) =>
-        event.type === 'damage'
-        && event.sourceId === source.id
-        && event.targetId === target.id
-        && event.ability === entry.ability.name
-      ).length;
+      damageTicks += sim
+        .tick()
+        .filter(
+          (event) =>
+            event.type === 'damage' &&
+            event.sourceId === source.id &&
+            event.targetId === target.id &&
+            event.ability === entry.ability.name,
+        ).length;
     }
 
     expect(damageTicks).toBe(entry.effect.duration / entry.effect.interval);

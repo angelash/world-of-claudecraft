@@ -1,7 +1,7 @@
 // The ledge climb: the scripted pull-up that ends a jump on top of something
 // the body could not simply vault.
 //
-// It is a MOVEMENT MODE, in the same family as Heroic Leap's flight and the
+// It is a MOVEMENT MODE, in the same family as Vaulting Charge's flight and the
 // warrior's charge: while it runs it owns the body's position outright, so the
 // path cannot be fought by input, gravity, or collision (the destination was
 // validated before the climb started). It is short, it always completes on a
@@ -17,10 +17,11 @@
 // Pure sim: no rng, no wall clock. `Sim.updatePlayerMovement` runs the driver
 // in its short-circuit chain and the renderer reads the same state to pose it.
 
-import { supportHeightAt } from './colliders';
+import { MANTLE_REACH, supportHeightAt } from './colliders';
 import { isRooted, isStunned } from './combat/cc';
 import { PLAYER_BODY_RADIUS } from './pathfind';
 import { findLedgeGrab, LEDGE_GRAB_MAX, LEDGE_GRAB_MIN } from './physics/ledge';
+import { FALL_SAFE_DISTANCE, GRAVITY, JUMP_VELOCITY } from './player_motion';
 import { DT, type Entity, type LedgeClimb } from './types';
 import { groundHeight } from './world';
 
@@ -43,15 +44,39 @@ const CLIMB_SETTLE_EPS = 1e-3;
 const CLIMB_MAX_RISE_SPEED = 2.5;
 
 /**
+ * The other end of the same gate: a grab zeroes the body's velocity and
+ * `advanceClimb` rebases `fallStartY` on completion, so catching a plunge
+ * erases its fall damage outright. This is the descent speed the sim's 20 Hz
+ * integrator reaches after exactly FALL_SAFE_DISTANCE of free fall, so a fall
+ * that already hurts can never be caught by a ledge on the way past.
+ *
+ * Derived, not hand-tuned: the discrete step (`vy -= GRAVITY * DT`, then
+ * `pos.y += vy * DT`) covers `(v^2 / GRAVITY + v * DT) / 2` yards by the time
+ * it reaches speed `v`, so the safe speed is the positive root of that at
+ * FALL_SAFE_DISTANCE.
+ */
+const CLIMB_FALL_STEP = GRAVITY * DT;
+export const CLIMB_MAX_FALL_SPEED =
+  (Math.sqrt(CLIMB_FALL_STEP * CLIMB_FALL_STEP + 8 * GRAVITY * FALL_SAFE_DISTANCE) -
+    CLIMB_FALL_STEP) /
+  2;
+
+/**
  * The pull-up is for lips ABOVE YOUR HEAD: a ledge lower than this over the
  * floor the body is jumping from is silent-vault territory (the mantle
- * covers rises up to jump apex + MANTLE_REACH, about 1.83 from flat ground),
- * so a hop onto a crate or a bench never plays the full-body climb. Measured
- * against the floor DIRECTLY BENEATH the body at grab time, so chained
- * parkour (crate to canopy) also stays a quick vault while a ground-level
- * jump at the same canopy is a real climb.
+ * covers rises up to jump apex + MANTLE_REACH from flat ground), so a hop
+ * onto a crate or a bench never plays the full-body climb. Measured against
+ * the floor DIRECTLY BENEATH the body at grab time, so chained parkour
+ * (crate to canopy) also stays a quick vault while a ground-level jump at
+ * the same canopy is a real climb.
+ *
+ * Derived, not hand-tuned: it must always equal the true vault ceiling, or a
+ * band of lips the mantle can already reach gets forced into the scripted
+ * climb instead (this drifted once already, when MANTLE_REACH moved and this
+ * literal did not).
  */
-export const CLIMB_MIN_OVERHEAD = 1.8;
+const CLIMB_JUMP_APEX = (JUMP_VELOCITY * JUMP_VELOCITY) / (2 * GRAVITY);
+export const CLIMB_MIN_OVERHEAD = CLIMB_JUMP_APEX + MANTLE_REACH;
 
 const smooth = (t: number): number => {
   const c = Math.min(1, Math.max(0, t));
@@ -69,6 +94,9 @@ export function tryStartClimb(p: Entity, seed: number): boolean {
   // arc short and rob the player of the height they just bought. Wait for the
   // apex, which is also when a real climber's hands reach the lip.
   if (p.vy > CLIMB_MAX_RISE_SPEED) return false;
+  // Falling this fast means the fall is already a damaging one; a grab would
+  // zero the velocity and rebase the fall, refunding the damage for free.
+  if (p.vy < -CLIMB_MAX_FALL_SPEED) return false;
   if (isStunned(p) || isRooted(p)) return false;
   const grab = findLedgeGrab(
     { seed, radius: PLAYER_BODY_RADIUS, facing: p.facing, vx: p.vx, vz: p.vz },
@@ -143,11 +171,6 @@ export function advanceClimb(p: Entity): boolean {
     p.fallStartY = p.pos.y;
   }
   return true;
-}
-
-/** How high above its start a climb is reaching, for tests and telemetry. */
-export function climbRise(c: LedgeClimb): number {
-  return c.to.y - c.from.y;
 }
 
 export { LEDGE_GRAB_MAX, LEDGE_GRAB_MIN };

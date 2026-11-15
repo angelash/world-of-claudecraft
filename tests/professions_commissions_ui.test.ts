@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 // Professions 2.0 UI: the commission opt-in control in the crafting
 // window (pure-core eligibility flag + the painter's pill toggle-chip + the
@@ -8,13 +8,13 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ALL_RECIPES } from '../src/sim/content/recipes';
 import { ITEMS } from '../src/sim/data';
 import type { InvSlot } from '../src/sim/types';
-import { buildCraftingView } from '../src/ui/crafting_view';
-import { renderCraftingWindow } from '../src/ui/crafting_window';
-import { buildUnbindView } from '../src/ui/hud/vendor/unbind_view';
+import { buildCraftingView } from '../src/ui/hud/professions/crafting_view';
+import { renderCraftingWindow } from '../src/ui/hud/professions/crafting_window';
+import { buildUnbindView, UNBIND_DENY_KEY, unbindDenyKey } from '../src/ui/hud/vendor/unbind_view';
 import { renderUnbindWindow } from '../src/ui/hud/vendor/unbind_window';
 
 const SWORD_RECIPE = 'recipe_eastbrook_arming_sword';
@@ -31,13 +31,23 @@ function craftingDeps() {
     hideTooltip: vi.fn(),
     onCraft: vi.fn(),
     onClose: vi.fn(),
+    onOpenOrders: vi.fn(),
     itemIcon: vi.fn(() => ''),
     moneyHtml: vi.fn(() => ''),
     itemTooltip: vi.fn(() => ''),
     attachTooltip: vi.fn(),
     commissionChecked: vi.fn((_recipeId: string) => false),
     onToggleCommission: vi.fn(),
+    craftQty: () => 1,
+    onCraftQty: vi.fn(),
+    announce: vi.fn(),
     selectedCraft: () => null as string | null,
+    recipePinned: () => false,
+    onToggleRecipePin: (recipeId: string) => ({
+      pinned: new Set([recipeId]),
+      full: false,
+      changed: true,
+    }),
     onSelectCraft: vi.fn(),
   };
 }
@@ -127,16 +137,13 @@ describe('renderCraftingWindow commission toggle-chip', () => {
     expect(rule).toContain('flex-shrink: 0');
   });
 
-  it('hovering the recipe card keeps its inset fill (the vendor-family wash cannot blank it)', () => {
-    // jsdom applies no CSS, so the cascade fix is pinned at the source: the
-    // family's .vendor-item:hover wash outranks the single-class card fill,
-    // and the card restates its fill at matching specificity (the card is not
-    // interactive, so it takes no wash; its chips carry the affordances).
+  it('leaves recipe card hover styling to the shared card primitive', () => {
+    // jsdom applies no CSS, so pin the exclusion that prevents the legacy
+    // vendor hover wash from overriding the shared card state.
     const css = readFileSync(join(__dirname, '../src/styles/components.css'), 'utf8');
-    const start = css.indexOf('.vendor-item.crafting-recipe-item:hover {');
+    const start = css.indexOf('.vendor-item:not(.ui-card):hover {');
     expect(start).toBeGreaterThanOrEqual(0);
-    const rule = css.slice(start, css.indexOf('}', start));
-    expect(rule).toContain('background: rgba(0, 0, 0, 0.24)');
+    expect(css).not.toContain('.vendor-item.crafting-recipe-item:hover {');
   });
 
   it('docks the chip in the card footer after the craft button, hint tooltip on the chip', () => {
@@ -147,7 +154,11 @@ describe('renderCraftingWindow commission toggle-chip', () => {
     const card = el.querySelector('.crafting-recipe-item') as HTMLElement;
     const classes = [...card.children].map((child) => child.className);
     expect(classes[0]).toContain('crafting-recipe-btn');
-    expect(classes[1]).toBe('crafting-commission-row');
+    // Phase 3 batch row sits after the craft controls; commission chip follows.
+    expect(classes).toContain('crafting-commission-row');
+    expect(classes.indexOf('crafting-batch-row')).toBeLessThan(
+      classes.indexOf('crafting-commission-row'),
+    );
     const chip = card.querySelector('.crafting-commission-chip');
     expect(deps.attachTooltip.mock.calls.some((call) => call[0] === chip)).toBe(true);
   });
@@ -180,6 +191,42 @@ describe('buildUnbindView (the service rows mirror the resolver)', () => {
     });
   });
 
+  it('omits Perfecting-bound copies (mid-track and Perfected), the resolver refuses them', () => {
+    // Masterwrought phase 12: a bound apex copy on the Perfecting track is
+    // not a Maker's Bond row; listing it would offer an unbind the sim denies
+    // unbind_perfecting. The ordinary bound copy beside it still lists, and
+    // its count excludes the Perfecting-bound ones.
+    const inventory: InvSlot[] = [
+      { itemId: SWORD, count: 1, instance: { boundTo: 5, perfecting: 1 } },
+      { itemId: SWORD, count: 1, instance: { boundTo: 5, perfected: true } },
+      boundSword,
+    ];
+    const view = buildUnbindView({ inventory, copper: 50000, items: ITEMS });
+    expect(view.rows).toHaveLength(1);
+    expect(view.rows[0]).toMatchObject({ itemId: SWORD, boundCount: 1 });
+    expect(view.rows[0].instance).toEqual({ bindOnTrade: true, boundTo: 5 });
+    // Perfecting-bound copies ALONE list nothing.
+    expect(
+      buildUnbindView({ inventory: inventory.slice(0, 2), copper: 50000, items: ITEMS }).rows,
+    ).toEqual([]);
+  });
+
+  it('pairs every deny reason with ITS OWN key, the perfecting refusal included', () => {
+    // The total Record is what the hud's unbindResult arm renders through; a
+    // reason the sim can emit with no row here is a type error, and a key swap
+    // fails on the literal pairing.
+    expect(UNBIND_DENY_KEY).toEqual({
+      unbind_not_eligible: 'hudChrome.unbind.notEligible',
+      unbind_not_bound: 'hudChrome.unbind.notBound',
+      unbind_perfecting: 'hudChrome.unbind.perfecting',
+      unbind_out_of_range: 'hudChrome.unbind.outOfRange',
+      unbind_no_space: 'hudChrome.unbind.noSpace',
+      unbind_cannot_afford: 'hudChrome.unbind.cannotAfford',
+    });
+    expect(unbindDenyKey('unbind_perfecting')).toBe('hudChrome.unbind.perfecting');
+    expect(new Set(Object.values(UNBIND_DENY_KEY)).size, 'no two reasons share a key').toBe(6);
+  });
+
   it('aggregates bound copies across slots per item id and prices affordability off copper', () => {
     const inventory: InvSlot[] = [
       boundSword,
@@ -196,6 +243,12 @@ describe('buildUnbindView (the service rows mirror the resolver)', () => {
 });
 
 describe('renderUnbindWindow painter', () => {
+  // The focus test attaches to document.body; a mid-test failure must not
+  // leak a focused node into the shared document for later tests.
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
   it('paints an affordable row with the fee and reports the unbind click', () => {
     const el = document.createElement('div');
     const deps = unbindDeps();
@@ -241,5 +294,41 @@ describe('renderUnbindWindow painter', () => {
     );
     (el2.querySelector('[data-close]') as HTMLButtonElement).click();
     expect(deps.onClose).toHaveBeenCalled();
+  });
+
+  it('carries keyboard focus across a repaint (uninitiated rebuilds)', () => {
+    // Inventory and purse deltas repaint an open window uninitiated (#2931):
+    // the focus-across-a-REBUILD contract, train_window idiom. Attached to
+    // document.body because focus() is inert on a detached tree.
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const deps = unbindDeps();
+    const twoBound: InvSlot[] = [
+      { itemId: SWORD, count: 1, instance: { bindOnTrade: true, boundTo: 5 } },
+      { itemId: VESTMENTS, count: 1, instance: { bindOnTrade: true, boundTo: 5 } },
+    ];
+    const view = buildUnbindView({ inventory: twoBound, copper: 50000, items: ITEMS });
+    renderUnbindWindow(el, 'Darva', view, deps);
+    el.querySelector<HTMLButtonElement>(`[data-focus-key="unbind:${SWORD}"]`)?.focus();
+    renderUnbindWindow(el, 'Darva', view, deps);
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toBe(`unbind:${SWORD}`);
+    // ONLY the focused row coming back disabled (its fee now short) falls to
+    // the row neighbor, never to <body> and never straight to close: this is
+    // the rung the uninitiated purse repaint actually exercises.
+    const focusedShort = view.rows.map((row) =>
+      row.itemId === SWORD ? { ...row, affordable: false } : row,
+    );
+    renderUnbindWindow(el, 'Darva', { rows: focusedShort }, deps);
+    expect((document.activeElement as HTMLElement).dataset.focusKey).not.toBe(`unbind:${SWORD}`);
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toMatch(/^unbind:/);
+    // Every row coming back disabled falls to the close button.
+    renderUnbindWindow(
+      el,
+      'Darva',
+      { rows: view.rows.map((row) => ({ ...row, affordable: false })) },
+      deps,
+    );
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toBe('close');
+    el.remove();
   });
 });

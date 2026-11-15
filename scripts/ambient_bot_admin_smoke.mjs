@@ -47,7 +47,8 @@ async function main() {
   }
 
   const status = await api('/api/status');
-  if (status.status === 200 && status.body.ok) ok('server status', `realm=${status.body.realm ?? 'unknown'}`);
+  if (status.status === 200 && status.body.ok)
+    ok('server status', `realm=${status.body.realm ?? 'unknown'}`);
   else no('server status', `status=${status.status}`);
 
   const login = await api('/admin/api/login', {
@@ -78,14 +79,21 @@ async function main() {
     maxBotsPerCluster: planner.config.maxBotsPerCluster,
     recentActionLimit: planner.config.recentActionLimit,
   };
-  const configResponse = await api('/admin/api/ambient-bots/config', {
-    method: 'POST',
-    body: JSON.stringify(configPatch),
-  }, token);
+  const configResponse = await api(
+    '/admin/api/ambient-bots/config',
+    {
+      method: 'POST',
+      body: JSON.stringify(configPatch),
+    },
+    token,
+  );
   if (configResponse.status === 200 && configResponse.body.success) {
     ok('planner config route');
   } else {
-    no('planner config route', `status=${configResponse.status} error=${configResponse.body.error ?? 'unknown'}`);
+    no(
+      'planner config route',
+      `status=${configResponse.status} error=${configResponse.body.error ?? 'unknown'}`,
+    );
   }
 
   if (!originalControls) {
@@ -97,39 +105,66 @@ async function main() {
       allowLlmDecisions: false,
     };
     try {
-      const pauseResponse = await api('/admin/api/ambient-bots/control', {
-        method: 'POST',
-        body: JSON.stringify(pausePatch),
-      }, token);
+      const pauseResponse = await api(
+        '/admin/api/ambient-bots/control',
+        {
+          method: 'POST',
+          body: JSON.stringify(pausePatch),
+        },
+        token,
+      );
       if (pauseResponse.status === 200 && pauseResponse.body.success) {
         ok('runtime control route');
       } else {
-        no('runtime control route', `status=${pauseResponse.status} error=${pauseResponse.body.error ?? 'unknown'}`);
+        no(
+          'runtime control route',
+          `status=${pauseResponse.status} error=${pauseResponse.body.error ?? 'unknown'}`,
+        );
       }
 
       if (ALLOW_LOGOUT) {
-        const logoutResponse = await api('/admin/api/ambient-bots/logout-all', {
-          method: 'POST',
-          body: JSON.stringify({ reason: 'ambient bot smoke drill' }),
-        }, token);
+        const logoutResponse = await api(
+          '/admin/api/ambient-bots/logout-all',
+          {
+            method: 'POST',
+            body: JSON.stringify({ reason: 'ambient bot smoke drill' }),
+          },
+          token,
+        );
         if (logoutResponse.status === 200 && logoutResponse.body.success) {
           const result = logoutResponse.body.data?.result ?? {};
-          ok('logout-all route', `runners=${result.disconnectedRunners ?? 0} resets=${result.resetRecords ?? 0}`);
+          ok(
+            'logout-all route',
+            `runners=${result.disconnectedRunners ?? 0} resets=${result.resetRecords ?? 0}`,
+          );
         } else {
-          no('logout-all route', `status=${logoutResponse.status} error=${logoutResponse.body.error ?? 'unknown'}`);
+          no(
+            'logout-all route',
+            `status=${logoutResponse.status} error=${logoutResponse.body.error ?? 'unknown'}`,
+          );
         }
       } else {
-        caution('logout-all route', 'set AMBIENT_SMOKE_ALLOW_LOGOUT=1 to exercise incident control');
+        caution(
+          'logout-all route',
+          'set AMBIENT_SMOKE_ALLOW_LOGOUT=1 to exercise incident control',
+        );
       }
     } finally {
-      const restoreResponse = await api('/admin/api/ambient-bots/control', {
-        method: 'POST',
-        body: JSON.stringify(originalControls),
-      }, token);
+      const restoreResponse = await api(
+        '/admin/api/ambient-bots/control',
+        {
+          method: 'POST',
+          body: JSON.stringify(originalControls),
+        },
+        token,
+      );
       if (restoreResponse.status === 200 && restoreResponse.body.success) {
         ok('restore runtime controls');
       } else {
-        no('restore runtime controls', `status=${restoreResponse.status} error=${restoreResponse.body.error ?? 'unknown'}`);
+        no(
+          'restore runtime controls',
+          `status=${restoreResponse.status} error=${restoreResponse.body.error ?? 'unknown'}`,
+        );
       }
     }
   }

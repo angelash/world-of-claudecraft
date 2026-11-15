@@ -13,6 +13,7 @@
 import { describe, expect, it } from 'vitest';
 import { bagCapacity } from '../src/sim/bags';
 import { ITEMS, MOBS } from '../src/sim/data';
+import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
 import { createGroundObject, createMob } from '../src/sim/entity';
 import * as interaction from '../src/sim/interaction';
 import { CORPSE_INTERACT_GRACE_SECONDS } from '../src/sim/loot/loot_roll';
@@ -23,6 +24,7 @@ import { terrainHeight } from '../src/sim/world';
 type AnySim = Sim & Record<string, any>;
 type AnyEntity = Entity & Record<string, any>;
 type LootSlotLike = { itemId: string; count: number; openToAll?: boolean; personalFor?: number[] };
+const FRESH_CORPSE_TIMER = 60;
 
 function ctxOf(sim: Sim) {
   return (sim as AnySim).ctx;
@@ -57,6 +59,7 @@ function corpse(
     z,
   }) as AnyEntity;
   mob.dead = true;
+  mob.corpseTimer = FRESH_CORPSE_TIMER;
   mob.lootable = true;
   mob.tappedById = tappedById;
   mob.loot = { copper: 0, items };
@@ -159,6 +162,27 @@ describe('interaction.lootCorpse', () => {
     expect(mob.loot).toBeNull(); // pruneCorpseLoot cleared the emptied corpse
     expect(player.targetId).toBeNull();
   });
+
+  it('keeps a fresh hand-built lootable corpse eligible before explicit corpse decay', () => {
+    const { sim, a } = twoPlayers();
+    const mob = corpse(sim, 20, 22, a, [{ itemId: 'worn_sword', count: 1 }]);
+    expect(mob.corpseTimer).toBe(FRESH_CORPSE_TIMER);
+
+    expect(interaction.lootCorpse(ctxOf(sim), mob.id, a)).toBe(true);
+
+    expect(sim.countItem('worn_sword', a)).toBe(1);
+  });
+
+  it('refuses an explicitly decayed lootable corpse', () => {
+    const { sim, a } = twoPlayers();
+    const mob = corpse(sim, 20, 22, a, [{ itemId: 'worn_sword', count: 1 }]);
+    mob.corpseTimer = 0;
+
+    expect(interaction.lootCorpse(ctxOf(sim), mob.id, a)).toBe(false);
+
+    expect(sim.countItem('worn_sword', a)).toBe(0);
+    expect(mob.loot?.items[0].count).toBe(1);
+  });
 });
 
 describe('interaction.pickUpObject', () => {
@@ -242,6 +266,39 @@ describe('interaction.interact dispatch', () => {
     expect(errors(sim)).not.toContain("You don't have permission to loot that.");
   });
 
+  it('target-path: skips a decayed corpse and falls through to a nearby object', () => {
+    const { sim, a } = twoPlayers();
+    const mob = corpse(sim, 20, 21, a, [{ itemId: 'worn_sword', count: 1 }]);
+    mob.corpseTimer = 0;
+    const obj = groundObj(sim, 'wolf_fang', 20, 21.5);
+    const player = sim.entities.get(a) as AnyEntity;
+    player.targetId = mob.id;
+
+    interaction.interact(ctxOf(sim), a);
+
+    expect(sim.countItem('worn_sword', a)).toBe(0);
+    expect(sim.countItem('wolf_fang', a)).toBe(1);
+    expect(obj.lootable).toBe(false);
+  });
+
+  it('target-path: skips an owned tagged corpse and falls through to a nearby object', () => {
+    const { sim, a } = twoPlayers();
+    const mob = corpse(sim, 20, 21, a, []);
+    mob.ownerId = a;
+    mob.lootable = false;
+    mob.loot = null;
+    const obj = groundObj(sim, 'wolf_fang', 20, 21.5);
+    const player = sim.entities.get(a) as AnyEntity;
+    player.targetId = mob.id;
+
+    interaction.interact(ctxOf(sim), a);
+
+    expect(mob.harvestClaimedBy).toBeNull();
+    expect(sim.countItem('rough_hide', a)).toBe(0);
+    expect(sim.countItem('wolf_fang', a)).toBe(1);
+    expect(obj.lootable).toBe(false);
+  });
+
   it('nearest-scan: with no target, picks up the nearest lootable object', () => {
     const { sim, a } = twoPlayers();
     const obj = groundObj(sim, 'wolf_fang', 20, 21);
@@ -251,6 +308,40 @@ describe('interaction.interact dispatch', () => {
     expect(obj.lootable).toBe(false);
   });
 
+  // The interact key must agree with what the player can see. A quest collectable
+  // they are not on the quest for is withheld from their client entirely, so the
+  // scan must not select it: pickUpObject would refuse it anyway, and an object
+  // nobody can see must never outrank a visible one standing further away.
+  it('nearest-scan: skips an off-quest collectable and takes the farther visible object', () => {
+    const { sim, a } = twoPlayers();
+    const crate = groundObj(sim, 'supply_crate', 20, 20.5); // nearer, but off-quest
+    groundObj(sim, 'wolf_fang', 20, 21.5); // farther, plainly visible
+    (sim.entities.get(a) as AnyEntity).targetId = null;
+    sim.events = [];
+
+    interaction.interact(ctxOf(sim), a);
+
+    expect(sim.countItem('supply_crate', a)).toBe(0);
+    expect(crate.lootable).toBe(true);
+    expect(sim.countItem('wolf_fang', a)).toBe(1);
+    // No denial either: the press never reached the hidden crate at all.
+    expect(errors(sim)).toEqual([]);
+  });
+
+  it('nearest-scan: takes that same collectable once its quest is active', () => {
+    const { sim, a } = twoPlayers();
+    const crate = groundObj(sim, 'supply_crate', 20, 20.5);
+    const questId = ITEMS.supply_crate?.questId;
+    if (!questId) throw new Error('expected supply_crate to name its quest');
+    sim.players.get(a)?.questLog.set(questId, { questId, counts: [0], state: 'active' });
+    (sim.entities.get(a) as AnyEntity).targetId = null;
+
+    interaction.interact(ctxOf(sim), a);
+
+    expect(sim.countItem('supply_crate', a)).toBe(1);
+    expect(crate.lootable).toBe(false);
+  });
+
   it('nearest-scan: a nearer corpse wins over a farther object', () => {
     const { sim, a } = twoPlayers();
     const obj = groundObj(sim, 'wolf_fang', 20, 23); // farther
@@ -258,47 +349,43 @@ describe('interaction.interact dispatch', () => {
     (sim.entities.get(a) as AnyEntity).targetId = null;
     interaction.interact(ctxOf(sim), a);
     expect(sim.countItem('worn_sword', a)).toBe(1); // looted the nearer corpse
-    // The object was not picked up (its own lootable flag is the proof: the
-    // unified press's harvest half now also grants wolf_fang from the wolf
-    // corpse, so an item count can no longer discriminate).
+    // The farther object stays untouched and no harvested fangs are added.
+    expect(sim.countItem('wolf_fang', a)).toBe(0);
     expect(obj.lootable).toBe(true);
     expect(mob.loot).toBeNull();
   });
 
-  it('nearest-scan: one press both harvests and loots an eligible corpse', () => {
+  it('nearest-scan: one press loots and preserves the eligible harvest', () => {
     const { sim, a } = twoPlayers();
     const mob = corpse(sim, 20, 21, a, [{ itemId: 'worn_sword', count: 1 }]);
     mob.corpseTimer = 60;
     (sim.entities.get(a) as AnyEntity).targetId = null;
     interaction.interact(ctxOf(sim), a);
-    expect(mob.harvestClaimedBy).toBe(a); // the harvest half claimed
+    expect(mob.harvestClaimedBy).toBeNull();
     expect(sim.countItem('worn_sword', a)).toBe(1); // the loot half delivered
-    expect(sim.countItem('rough_hide', a)).toBeGreaterThanOrEqual(1); // hide yield landed
-    // Both halves consumed in one press: the prune sees the spent claim and
-    // collapses the corpse on the fast arm.
+    expect(sim.countItem('rough_hide', a)).toBe(0);
+    // Ordinary loot is gone; the separate harvest stays available during grace.
     expect(mob.loot).toBeNull();
-    expect(mob.lootable).toBe(false);
-    expect(mob.corpseTimer).toBe(4);
+    expect(mob.lootable).toBe(true);
+    expect(mob.corpseTimer).toBe(CORPSE_INTERACT_GRACE_SECONDS);
   });
 
-  it('target-path: one press both harvests and loots a targeted eligible corpse', () => {
-    // The targeted arm must compose exactly like the proximity-scan arm above:
-    // a player who TARGETS the corpse before pressing interact gets the same
-    // unified press, not the pre-12d loot-only routing.
+  it('target-path: one press loots and preserves the targeted harvest', () => {
+    // Selecting a body never turns the ordinary interaction into a harvest.
     const { sim, a } = twoPlayers();
     const mob = corpse(sim, 20, 21, a, [{ itemId: 'worn_sword', count: 1 }]);
     mob.corpseTimer = 60;
     (sim.entities.get(a) as AnyEntity).targetId = mob.id;
     interaction.interact(ctxOf(sim), a);
-    expect(mob.harvestClaimedBy).toBe(a); // the harvest half claimed
+    expect(mob.harvestClaimedBy).toBeNull();
     expect(sim.countItem('worn_sword', a)).toBe(1); // the loot half delivered
-    expect(sim.countItem('rough_hide', a)).toBeGreaterThanOrEqual(1); // hide yield landed
+    expect(sim.countItem('rough_hide', a)).toBe(0);
     expect(mob.loot).toBeNull();
-    expect(mob.lootable).toBe(false);
-    expect(mob.corpseTimer).toBe(4);
+    expect(mob.lootable).toBe(true);
+    expect(mob.corpseTimer).toBe(CORPSE_INTERACT_GRACE_SECONDS);
   });
 
-  it('nearest-scan: a capacity-denied harvest still delivers the loot half', () => {
+  it('nearest-scan: full bags still allow coin loot without a harvest denial', () => {
     const { sim, a } = twoPlayers();
     fillBags(sim, a);
     const mob = corpse(sim, 20, 21, a, []);
@@ -310,16 +397,16 @@ describe('interaction.interact dispatch', () => {
     interaction.interact(ctxOf(sim), a);
     const events = sim.drainEvents();
     expect(events.some((e: any) => e.type === 'error' && e.text === 'Your bags are full.')).toBe(
-      true,
+      false,
     );
-    expect(mob.harvestClaimedBy).toBeNull(); // the denial left the claim unconsumed
-    expect(sim.meta(a)!.copper).toBe(copperBefore + 25); // the loot half still delivered
+    expect(mob.harvestClaimedBy).toBeNull(); // no harvest was attempted
+    expect(sim.meta(a)!.copper).toBe(copperBefore + 25); // ordinary coins still delivered
     expect(mob.loot).toBeNull();
     expect(mob.lootable).toBe(true); // the grace arm holds the harvest open
     expect(mob.corpseTimer).toBe(CORPSE_INTERACT_GRACE_SECONDS);
   });
 
-  it('target-path: a capacity-denied harvest still delivers the loot half', () => {
+  it('target-path: full bags still allow coin loot without a harvest denial', () => {
     const { sim, a } = twoPlayers();
     fillBags(sim, a);
     const mob = corpse(sim, 20, 21, a, []);
@@ -331,7 +418,7 @@ describe('interaction.interact dispatch', () => {
     interaction.interact(ctxOf(sim), a);
     const events = sim.drainEvents();
     expect(events.some((e: any) => e.type === 'error' && e.text === 'Your bags are full.')).toBe(
-      true,
+      false,
     );
     expect(mob.harvestClaimedBy).toBeNull();
     expect(sim.meta(a)!.copper).toBe(copperBefore + 25);
@@ -343,9 +430,23 @@ describe('interaction.interact dispatch', () => {
   it('routes a nearby quest NPC to talkToNpc via the ctx callbacks (quest accepted)', () => {
     // Single-player world at the q_wolves giver: interact's quest-entity arm fans
     // into ctx.isQuestInteractionEntity + ctx.talkToNpc, both bound to Sim.
+    // Re-pinned 2026-08 for the harbor move, then for owner refinement round
+    // 4: marshal_redbrook keeps watch at (3.6, -95.6) beside his notice
+    // board; the same 2yd offset south keeps him the nearest NPC (2.0yd, vs
+    // bursar_fernando 4.9) with no lootable in scan range (the board sits
+    // 8.7yd off).
+    // Re-pinned again for owner refinement round 6b, which redistributed the
+    // town's NPCs by role along the dock road: the q_wolves giver moved out to
+    // the harbour market at (-58, -102), so the probe follows him.
+    // Re-pinned for the first-quest handoff: the marshal stands beside the
+    // noticeboard on the civic square, so the probe reads his stand from the
+    // layout and keeps the same 2yd offset south. The premises hold there: he
+    // is the nearest NPC (2yd, apothecary_lin 10yd off), and the lootable
+    // board sits outside interact's scan range (6yd, its own radius is 4).
     const sim = new Sim({ seed: 42, playerClass: 'warrior', autoEquip: true }) as AnySim;
     const p = sim.player;
-    place(sim, p, 4, 4);
+    const marshal = EASTBROOK_NPC_PLACEMENTS_BY_ID.marshal_redbrook.position;
+    place(sim, p, marshal.x, marshal.z + 2);
     expect(sim.questState('q_wolves')).toBe('available');
     interaction.interact(ctxOf(sim), p.id);
     expect(sim.questState('q_wolves')).toBe('active');

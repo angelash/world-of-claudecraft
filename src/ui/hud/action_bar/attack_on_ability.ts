@@ -5,6 +5,8 @@
 // sim import), so a Vitest drives them directly; the HUD gates on the player's setting.
 
 import type { AbilityEffect, Entity } from '../../../sim/types';
+import type { BgInfo } from '../../../world_api/battleground';
+import type { ArenaInfo, DuelInfo } from '../../../world_api/duel_arena';
 
 // Auto-attack classification of EVERY AbilityEffect type. Because this is a Record over
 // the discriminant union, adding a new effect to `AbilityEffect` (src/sim/types.ts) is a
@@ -36,6 +38,11 @@ const EFFECT_CLASS: Record<AbilityEffect['type'], AutoAttackClass> = {
   breakRoots: 'other',
   breakControl: 'other',
   cleanseSelf: 'other',
+  cleanseMovement: 'other',
+  divineAscension: 'other',
+  grantDevotion: 'other',
+  veilboundMarch: 'damage',
+  valkyrsCalling: 'damage',
   repositionToAim: 'other',
   blinkForward: 'other',
   finisherDamage: 'damage',
@@ -43,23 +50,30 @@ const EFFECT_CLASS: Record<AbilityEffect['type'], AutoAttackClass> = {
   extendDot: 'other',
   // Detonate-style: the consumed DoT's remaining damage lands immediately.
   consumeDot: 'damage',
+  druidMarrowbreakGuard: 'other',
+  druidOverbloom: 'other',
   aoeDamage: 'damage',
   chainDamage: 'damage',
   aoeHeal: 'other',
   chainHeal: 'other',
   groundAoE: 'damage',
+  // Spore Burst also damages every enemy in its splash.
+  sporeBurst: 'damage',
   frozenOrb: 'damage',
   aoeRoot: 'damage',
   empoweredCone: 'damage',
   consumeAura: 'other',
   drainTick: 'damage',
-  judgement: 'damage',
   incapacitate: 'breakCC',
   polymorph: 'breakCC',
   heal: 'other',
   // Chronomancy Temporal Echo: places a friendly mark (its Arcane-damage-to-heal
   // conversion is separate); the ability itself deals no damage and breaks no CC.
   temporalEcho: 'other',
+  beaconOfLight: 'other',
+  paladinAegis: 'other',
+  // Applies a hostile mark; its later detonation is triggered by other attacks.
+  sunGodVerdict: 'other',
   massTemporalEcho: 'other',
   resurrectAlly: 'other',
   massResurrectGroup: 'other',
@@ -74,6 +88,8 @@ const EFFECT_CLASS: Record<AbilityEffect['type'], AutoAttackClass> = {
   buffTarget: 'other',
   debuffTargetSource: 'other',
   slow: 'other',
+  pullTarget: 'other',
+  threatPulse: 'other',
   root: 'other',
   stun: 'other',
   aoeAttackSpeed: 'other',
@@ -92,8 +108,31 @@ const EFFECT_CLASS: Record<AbilityEffect['type'], AutoAttackClass> = {
   enrageChance: 'other',
   finisherStun: 'other',
   gainResource: 'other',
+  hunterStampede: 'damage',
   selfDamagePctMax: 'other',
+  selfDamagePctCurrent: 'other',
   selfHealPctMax: 'other',
+  selfAbsorbPctMax: 'other',
+  gainSoulFragments: 'other',
+  summonUndead: 'other',
+  commandUndead: 'other',
+  sacrificeUndead: 'other',
+  reapingCommand: 'damage',
+  armyOfDead: 'other',
+  empowerUndeadArmy: 'other',
+  necromancyOssuaryMark: 'other',
+  afflictionEvilEye: 'other',
+  afflictionNeedle: 'other',
+  afflictionLitany: 'damage',
+  afflictionSentence: 'damage',
+  afflictionAccomplice: 'other',
+  afflictionViolence: 'damage',
+  afflictionCruelPact: 'other',
+  afflictionVicarious: 'other',
+  warlockUmbralAnchor: 'other',
+  afflictionCoven: 'other',
+  afflictionPossession: 'other',
+  afflictionJudgment: 'other',
   selfHotPctMax: 'other',
   aoeAllyMaxHp: 'other',
   partyMeleeBuff: 'other',
@@ -107,14 +146,22 @@ const EFFECT_CLASS: Record<AbilityEffect['type'], AutoAttackClass> = {
   dismissPet: 'other',
   summonPet: 'other',
   summonDemon: 'other',
-  // Vale Cup sport moves (docs/prd/vale-cup.md): no-damage, harvest-truce
-  // utility. None of them should engage auto-attack on use (the paired stun on
-  // Shoulder is non-breaking CC, and nothing on the pitch deals damage).
-  ballKick: 'other',
-  ballPass: 'other',
-  ballShoot: 'other',
-  sportDash: 'other',
-  sportShove: 'other',
+  summonSoulwell: 'other',
+  destructionConflagrate: 'damage',
+  ruinousBrand: 'other',
+  duskfireClaim: 'other',
+  summonPyreColossus: 'other',
+  packCommand: 'damage',
+  unleashBeast: 'damage',
+  howlingRage: 'other',
+  hunterBloodhook: 'damage',
+  hunterShrapnel: 'damage',
+  hunterTrailbreak: 'other',
+  hunterPlayDead: 'other',
+  hunterPackRally: 'other',
+  frostjawTrap: 'other',
+  hunterBearTrap: 'other',
+  hunterScatterbolt: 'other',
 };
 
 /**
@@ -128,6 +175,10 @@ export function abilityStartsAutoAttack(effects: AbilityEffect[]): boolean {
   let damaging = false;
   for (const e of effects) {
     if (e.type === 'aoeRoot' && e.breakOnDamage !== undefined) return false;
+    // A groundAoE with allyBuffPct is a FRIENDLY zone (Rune of Power): its min/max
+    // are ignored by the sim (see the AbilityEffect comment), so it deals no damage
+    // and must not be classified as an attack.
+    if (e.type === 'groundAoE' && e.allyBuffPct !== undefined) continue;
     const cls = EFFECT_CLASS[e.type];
     if (cls === 'breakCC') return false;
     if (
@@ -142,20 +193,80 @@ export function abilityStartsAutoAttack(effects: AbilityEffect[]): boolean {
 }
 
 /**
- * Whether the player's current target is a live, hostile MOB, i.e. one a white swing
- * would actually engage. Gating the auto-attack convenience on this keeps a targetless
- * AOE (Arcane Explosion, Frost Nova, Thunder Clap, ...) from flashing a spurious
- * "Invalid attack target." toast on every cast. Only mobs carry `hostile:true`
- * (players/NPCs default false) and the server mirrors the flag onto the wire, so the
- * same read holds for the offline Sim and the online ClientWorld.
- *
- * Deliberately narrower than the sim's `isHostileTo`, which also treats an enemy player
- * in an active duel/arena as hostile (players are `hostile:false`): replicating that PvP
- * state on the client is not worth it, so the convenience is PvE-mob scope. That is safe,
- * no error, just no auto-engage in PvP, where the explicit Attack button still works.
+ * The press-level engage decision. A press the mouseover core redirected onto a
+ * hovered party frame (src/ui/mouseover_cast_core.ts) lands on an ALLY, so it never
+ * engages the current target, even for an ability that could strike one: a
+ * dual-purpose heal (Solar Invocation, Scouring Mercy) carries directDamage for its
+ * enemy arm, and engaging would start swinging at the selected enemy while the heal
+ * went to the party frame.
  */
-export function hasAutoAttackTarget(target: Entity | null | undefined): boolean {
-  return !!target && !target.dead && target.hostile;
+export function pressStartsAutoAttack(
+  effects: AbilityEffect[],
+  redirectedToAlly: boolean,
+): boolean {
+  return !redirectedToAlly && abilityStartsAutoAttack(effects);
+}
+
+/**
+ * Whether the player's current target is a live target a white swing would actually
+ * engage: either a hostile MOB (`hostile:true`; players/NPCs default false, and the
+ * server mirrors the flag onto the wire, so the same read holds for the offline Sim and
+ * the online ClientWorld), or a player who is PvP-hostile right now per
+ * `isPvpHostileTarget` (an active duel/arena opponent). Gating the auto-attack
+ * convenience on this keeps a targetless AOE (Arcane Explosion, Frost Nova, Thunder
+ * Clap, ...) from flashing a spurious "Invalid attack target." toast on every cast.
+ *
+ * `pvpHostile` mirrors the sim's `isHostileTo`, which also treats an enemy player in an
+ * active duel/arena as hostile (players are otherwise always `hostile:false`, since this
+ * game has no open-world FFA PvP): the caller computes it via `isPvpHostileTarget` from
+ * the already-mirrored `IWorld.duelInfo`/`IWorld.arenaInfo`, so no new wire state is
+ * needed. Defaults to false so an omitted argument keeps the original PvE-only behavior.
+ */
+export function hasAutoAttackTarget(
+  target: Entity | null | undefined,
+  pvpHostile = false,
+): boolean {
+  return !!target && !target.dead && (target.hostile || pvpHostile);
+}
+
+/**
+ * Whether a player target is PvP-hostile right now: an active duel opponent, an
+ * active-arena opponent/enemy, or an opposing-team fighter in a live Thornhollow
+ * Fields battleground match. Mirrors the private `isHostilePlayer` the renderer
+ * already computes for nameplate coloring (`src/render/renderer.ts`), so the "Auto-Attack
+ * on Ability Use" QoL setting recognizes the same PvP-hostile state instead of gating on
+ * the mob-only `hostile` flag, which a player target never carries. The battleground
+ * arm is the one the renderer grew and this gate did not: a hostile cast at a
+ * battleground enemy then never engaged the white swing, while the identical cast in a
+ * duel or arena did.
+ *
+ * Deliberately narrower than the sim's `isHostileTo`: it does not cover the jail brawl,
+ * the warden arm, an enemy player's PET (resolved through `pvpController`), or the Vale
+ * Cup cross-team arm. That matches the renderer's own nameplate predicate (a parity
+ * choice, not a defect); if a third copy of this verdict shows up, extract one shared
+ * pure module both the renderer and this file consume.
+ */
+export function isPvpHostileTarget(
+  targetId: number | null | undefined,
+  duelInfo: DuelInfo | null | undefined,
+  arenaInfo: ArenaInfo | null | undefined,
+  bgInfo?: BgInfo | null,
+): boolean {
+  if (targetId === null || targetId === undefined) return false;
+  if (duelInfo?.state === 'active' && duelInfo.otherPid === targetId) return true;
+  // Thornhollow Fields: the opposing TEAM is hostile for the whole live match
+  // (the countdown and the ended hold are combat-off, so neither engages).
+  const bg = bgInfo?.match;
+  if (bg?.state === 'active') {
+    const row = bg.players.find((p) => p.pid === targetId);
+    if (row && row.team !== bg.myTeam) return true;
+  }
+  const match = arenaInfo?.match;
+  return (
+    !!match &&
+    match.state === 'active' &&
+    (match.oppPid === targetId || match.enemies.some((e) => e.pid === targetId))
+  );
 }
 
 /**
@@ -170,4 +281,26 @@ export function hasAutoAttackTarget(target: Entity | null | undefined): boolean 
  */
 export function deferAutoAttackUntilCastEnd(castTime: number): boolean {
   return castTime > 0;
+}
+
+/**
+ * A deferred engage is RECORDED (by ability id) at button-press time, before the
+ * sim has validated anything: range, cost, cooldown, and gates such as Soulwell's
+ * `requiresOutOfCombat` can all still refuse the cast, and a refused cast never
+ * reaches `castStart` at all. Recording it unconditionally and clearing it only at
+ * a matching castStop would leave it armed forever after a refusal, so it fires on
+ * whatever unrelated cast completes next: an earlier damaging cast getting refused
+ * left this armed, and casting Soulwell (which never engages auto-attack on its
+ * own; see `summonSoulwell: 'other'` above) right after pulled the player's current
+ * target when Soulwell's own castStop found the stale request still set.
+ *
+ * Call this on EVERY castStart for the player: it keeps the request only while it
+ * is still confirmed to be the SAME cast, dropping it the moment a different
+ * ability (or none) is the one that actually started.
+ */
+export function confirmPendingAutoAttackEngage(
+  pendingAbilityId: string | null,
+  startedAbilityId: string,
+): string | null {
+  return pendingAbilityId === startedAbilityId ? pendingAbilityId : null;
 }

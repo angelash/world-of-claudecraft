@@ -3,16 +3,16 @@ import type { SimEvent } from '../../src/sim/types';
 import type { PartyInfo, PartyMemberInfo } from '../../src/world_api';
 import {
   distanceBetweenPartyMembers,
-  type PartyTravelGoal,
   findPartyCombatTarget,
+  type PartyTravelGoal,
   partyAssistArrivalRange,
   travelGoalToPartyMember,
   travelGoalToPartyTarget,
 } from '../party_coordination';
 import { readAssignedPlayerName } from './assignment';
 import {
-  maybeCoordinateAmbientPartySupport,
   type AmbientGroupCommandReservation,
+  maybeCoordinateAmbientPartySupport,
 } from './group_support';
 import { inspectAmbientPartyPreparation } from './party_preparation';
 import type { AmbientPlayerBotRecord } from './types';
@@ -131,7 +131,7 @@ export function tickAmbientPlayerBotGroupCoordinator(
   const commands: GroupCommand[] = [];
   let pauseBrainDrive = false;
   let groupMode = '';
-  let groupLeaderName =
+  const groupLeaderName =
     leaderMember?.name ?? leaderRecord?.characterName ?? fallbackBotLeader.characterName;
   const botIsGroupLeader = party
     ? selfPid !== null && party.leader === selfPid

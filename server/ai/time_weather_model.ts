@@ -31,8 +31,9 @@ const GAME_DAY_SECONDS = 24 * 60;
 const WEATHER_BLOCK_SECONDS = 5 * 60;
 
 export function timeSemanticAt(simTimeSeconds: number): TimeSemantic {
-  const hour = ((simTimeSeconds % GAME_DAY_SECONDS) + GAME_DAY_SECONDS) % GAME_DAY_SECONDS / 60;
-  const phase: TimePhase = hour < 5 ? 'night' : hour < 7 ? 'dawn' : hour < 19 ? 'day' : hour < 21 ? 'dusk' : 'night';
+  const hour = (((simTimeSeconds % GAME_DAY_SECONDS) + GAME_DAY_SECONDS) % GAME_DAY_SECONDS) / 60;
+  const phase: TimePhase =
+    hour < 5 ? 'night' : hour < 7 ? 'dawn' : hour < 19 ? 'day' : hour < 21 ? 'dusk' : 'night';
   const tags: string[] = [phase];
   if (phase === 'night') tags.push('starsPossible', 'tiredMortals');
   if (phase === 'dawn') tags.push('coolAir', 'wakingWorld');
@@ -44,9 +45,16 @@ export function timeSemanticAt(simTimeSeconds: number): TimeSemantic {
 export function weatherSemanticAt(zoneId: string, simTimeSeconds: number): WeatherSemantic {
   const block = Math.floor(simTimeSeconds / WEATHER_BLOCK_SECONDS);
   const roll = positiveHash(`${zoneId}:${block}`) % 100;
-  if (zoneId === 'thornpeak_heights' && roll >= 70) return { kind: 'snow', intensity: 0.65, tags: ['snow', 'coldWind', 'poorFooting'] };
-  if (zoneId === 'mirefen_marsh' && roll >= 60) return { kind: 'fog', intensity: 0.75, tags: ['fog', 'wetWood', 'insectNoise', 'lowVisibility'] };
-  if (roll >= 76) return { kind: 'rain', intensity: 0.7, tags: ['rain', 'wetMud', 'shelterWanted'] };
+  if (zoneId === 'thornpeak_heights' && roll >= 70)
+    return { kind: 'snow', intensity: 0.65, tags: ['snow', 'coldWind', 'poorFooting'] };
+  if (zoneId === 'mirefen_marsh' && roll >= 60)
+    return {
+      kind: 'fog',
+      intensity: 0.75,
+      tags: ['fog', 'wetWood', 'insectNoise', 'lowVisibility'],
+    };
+  if (roll >= 76)
+    return { kind: 'rain', intensity: 0.7, tags: ['rain', 'wetMud', 'shelterWanted'] };
   if (roll >= 63) return { kind: 'wind', intensity: 0.55, tags: ['wind', 'movingBranches'] };
   return { kind: 'clear', intensity: 0.2, tags: ['clearSky'] };
 }
@@ -57,13 +65,22 @@ export function lightSemanticFor(time: TimeSemantic, weather: WeatherSemantic): 
       ? { level: 'dark', tags: ['moonlight', 'starrySky'] }
       : { level: 'dark', tags: ['lowLight', 'hiddenSky'] };
   }
-  if (time.phase === 'dawn' || time.phase === 'dusk' || weather.kind === 'fog' || weather.kind === 'rain') {
+  if (
+    time.phase === 'dawn' ||
+    time.phase === 'dusk' ||
+    weather.kind === 'fog' ||
+    weather.kind === 'rain'
+  ) {
     return { level: 'dim', tags: ['softLight'] };
   }
   return { level: 'bright', tags: ['sunlit'] };
 }
 
-export function timeWeatherMood(time: TimeSemantic, weather: WeatherSemantic, light: LightSemantic): TimeWeatherMood {
+export function timeWeatherMood(
+  time: TimeSemantic,
+  weather: WeatherSemantic,
+  light: LightSemantic,
+): TimeWeatherMood {
   return {
     dayEnergy: time.phase === 'day' ? 0.7 : time.phase === 'dawn' ? 0.45 : 0.2,
     nightFatigue: time.isNight ? 0.65 : time.phase === 'dusk' ? 0.35 : 0.1,

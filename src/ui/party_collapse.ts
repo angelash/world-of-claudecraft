@@ -1,4 +1,4 @@
-// The collapse-state pure core for the mobile party-frames chip.
+// The collapse-state pure core shared by the party header and mobile chip.
 //
 // On a touch HUD the always-expanded party stack (#party-frames: the member unit
 // frames) eats a large top-left area, so mobile replaces
@@ -6,15 +6,17 @@
 // to reveal the full stack (expanded), with the chip staying as a header above it.
 //
 // This module owns the STATE half only (DOM-free, deterministic, Node-tested): the
-// persistence key + load/save, the default-collapsed choice, the toggle, and the
-// pure resolver that maps (in-party, mobile, collapsed) to what the painter should
-// show. The DOM side (building the chip, toggling the container class) is thin and
+// persistence key + load/save, the default-collapsed choice, and the mobile-chip
+// resolver that maps (in-party, mobile, collapsed) to what the painter should show.
+// The DOM side (building either control, toggling the container class) is thin and
 // lives in party_chip.ts + party_frames_painter.ts.
 //
 // Fairness: party HP is actionable info, so the collapse is a pure USER toggle. It
 // is NOT influenced by data-fx-level, reduce-motion, or the FPS governor; the only
 // input is the player's own persisted choice (default collapsed, the product
 // decision) plus whether they are in a party on mobile.
+
+import { safeLocalStorage } from './safe_local_storage';
 
 // The persisted collapse flag's localStorage key. Its own key, like the haptics
 // toggle's woc_haptics_on: '1' means collapsed, '0' means expanded. Collapsed is
@@ -97,12 +99,4 @@ export function partyChipState(inputs: PartyChipInputs): PartyChipState {
   const chipVisible = inputs.inParty && inputs.mobile;
   const framesExpanded = chipVisible ? !inputs.collapsed : inputs.inParty;
   return { chipVisible, framesExpanded };
-}
-
-function safeLocalStorage(): Pick<Storage, 'getItem' | 'setItem'> | null {
-  try {
-    return typeof localStorage !== 'undefined' ? localStorage : null;
-  } catch {
-    return null;
-  }
 }

@@ -6,6 +6,12 @@
    rides the inline var(--range-fill, 0%) fallback, set per element by the HUD; it
    stays here and is never promoted to a :root token. */
 @layer base {
+  img.crest-image-fallback {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
   * {
     box-sizing: border-box;
     margin: 0;
@@ -56,24 +62,6 @@
     background: transparent;
   }
 
-  /* Software pointer driven by the gamepad's stick while a HUD window is open
-     (gamepad.ts). Hidden until cursor mode activates; sits above the HUD. */
-  .gamepad-cursor {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 22px;
-    height: 22px;
-    margin: -11px 0 0 -11px;
-    border: 2px solid #d4af37;
-    border-radius: 50%;
-    background: rgba(212, 175, 55, 0.25);
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
-    pointer-events: none;
-    z-index: 100000;
-    display: none;
-  }
-
   /* ---------- MMO-themed native form controls ----------
      Global element-level theming so every slider/spinner/checkbox/textarea
      inherits the dark-fantasy look (matches the scrollbar palette above),
@@ -96,25 +84,25 @@
     border: 1px solid var(--scrollbar-border);
     /* gold fill up to --range-fill (set per-slider in JS), dark groove beneath */
     background:
-      linear-gradient(180deg, #ffef9e 0%, var(--gold) 100%) no-repeat,
-      linear-gradient(180deg, #15110a 0%, #0b0b10 100%);
+      linear-gradient(180deg, var(--color-glint) 0%, var(--gold) 100%) no-repeat,
+      linear-gradient(180deg, var(--color-ink) 0%, var(--color-ink-deep) 100%);
     background-size:
       var(--range-fill, 0%) 100%,
       100% 100%;
-    box-shadow: inset 0 1px 2px #000a;
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-keyline) 67%, transparent);
   }
   input[type="range"]::-moz-range-track {
     height: 6px;
     border-radius: 3px;
     border: 1px solid var(--scrollbar-border);
-    background: linear-gradient(180deg, #15110a 0%, #0b0b10 100%);
-    box-shadow: inset 0 1px 2px #000a;
+    background: linear-gradient(180deg, var(--color-ink) 0%, var(--color-ink-deep) 100%);
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--color-keyline) 67%, transparent);
   }
   input[type="range"]::-moz-range-progress {
     height: 6px;
     border-radius: 3px;
     /* gold to match the webkit fill (was the brown scrollbar palette) */
-    background: linear-gradient(180deg, #ffef9e 0%, var(--gold) 100%);
+    background: linear-gradient(180deg, var(--color-glint) 0%, var(--gold) 100%);
   }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -123,40 +111,51 @@
     height: 16px;
     margin-top: -6px; /* center the 16px thumb on the 6px track */
     border-radius: 50%;
-    border: 1px solid #2a2008;
-    background: radial-gradient(circle at 35% 30%, #ffef9e 0%, var(--gold) 45%, #b8860b 100%);
+    border: 1px solid var(--color-keyline);
+    background: radial-gradient(
+      circle at 35% 30%,
+      var(--color-glint) 0%,
+      var(--gold) 45%,
+      var(--color-gold-700) 100%
+    );
     box-shadow:
-      0 1px 3px #000b,
+      0 1px 3px color-mix(in srgb, var(--color-keyline) 73%, transparent),
       0 0 5px var(--color-primary-glow);
   }
   input[type="range"]::-moz-range-thumb {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    border: 1px solid #2a2008;
-    background: radial-gradient(circle at 35% 30%, #ffef9e 0%, var(--gold) 45%, #b8860b 100%);
+    border: 1px solid var(--color-keyline);
+    background: radial-gradient(
+      circle at 35% 30%,
+      var(--color-glint) 0%,
+      var(--gold) 45%,
+      var(--color-gold-700) 100%
+    );
     box-shadow:
-      0 1px 3px #000b,
+      0 1px 3px color-mix(in srgb, var(--color-keyline) 73%, transparent),
       0 0 5px var(--color-primary-glow);
   }
   input[type="range"]:hover::-webkit-slider-thumb {
-    background: radial-gradient(circle at 35% 30%, #fff7c8 0%, #ffe14d 45%, #c79410 100%);
+    background: radial-gradient(
+      circle at 35% 30%,
+      var(--color-white) 0%,
+      var(--color-gold-300) 45%,
+      var(--color-gold-600) 100%
+    );
   }
   input[type="range"]:hover::-moz-range-thumb {
-    background: radial-gradient(circle at 35% 30%, #fff7c8 0%, #ffe14d 45%, #c79410 100%);
+    background: radial-gradient(
+      circle at 35% 30%,
+      var(--color-white) 0%,
+      var(--color-gold-300) 45%,
+      var(--color-gold-600) 100%
+    );
   }
   input[type="range"]:focus-visible {
-    outline: none;
-  }
-  input[type="range"]:focus-visible::-webkit-slider-thumb {
-    box-shadow:
-      0 0 0 3px var(--color-border-focus),
-      0 1px 3px #000b;
-  }
-  input[type="range"]:focus-visible::-moz-range-thumb {
-    box-shadow:
-      0 0 0 3px var(--color-border-focus),
-      0 1px 3px #000b;
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
   }
 
   /* Number inputs, drop the cramped native spinner arrows (all such inputs
@@ -233,16 +232,28 @@
     height: var(--app-vh);
     display: block;
     z-index: 0;
-    transition: filter 0.6s ease;
   }
   /* Ghost (spirit) mode: drain the world to greyscale, the classic WoW death look.
      Applied to the 3D canvas only so the HUD / resurrect prompt stay legible. Toggled
-     by the HUD (body.spirit-mode) whenever the local player is a released spirit. */
-  body.spirit-mode #game-canvas {
+     by the HUD (body.spirit-mode) whenever the local player is a released spirit.
+
+     The rule below is the LOW-TIER FALLBACK ONLY. A CSS filter on the world canvas
+     promotes it into its own render surface and adds a full-screen filter pass for
+     the whole corpse run, so every tier that HAS a post chain (composer and the
+     grade-only medium chain) folds the same drain into the output grade pass
+     instead, on the same 0.6s ease (src/render/post_output_grade.ts and
+     src/render/spirit_grade.ts). Low has no post chain, so it keeps this. The
+     renderer stamps data-spirit-grade on the canvas ("shader" or "css"), which is
+     what arms exactly one of the two arms; before the world boots the canvas
+     carries no stamp and neither arm is live. */
+  #game-canvas[data-spirit-grade="css"] {
+    transition: filter 0.6s ease;
+  }
+  body.spirit-mode #game-canvas[data-spirit-grade="css"] {
     filter: grayscale(1) brightness(0.88);
   }
   @media (prefers-reduced-motion: reduce) {
-    #game-canvas {
+    #game-canvas[data-spirit-grade="css"] {
       transition: none;
     }
   }
@@ -446,13 +457,26 @@
      body.mobile-touch class (gated to <=940px) would miss. !important guarantees the
      floor wins over the small classic-font rules regardless of selector specificity
      (e.g. .prompt .prompt-number, which out-specifies a plain catch-all); pointer:coarse
-     leaves desktop (fine pointer) untouched. New inputs are covered automatically. */
+     leaves desktop (fine pointer) untouched. The native app also enables touch UI
+     explicitly, so its runtime class gets the same floor. Inside #ui the floor
+     compensates for a sub-1 UI Scale: WebKit sees the rendered font, not just
+     getComputedStyle().fontSize. New inputs are covered automatically. */
   @media (pointer: coarse) {
     input,
     textarea,
     select {
-      font-size: 16px !important;
+      font-size: var(--touch-input-font-size, 16px) !important;
     }
+    /* #ui carries zoom: var(--ui-scale), and the iOS threshold is RENDERED
+       size, so an author 16px under a UI Scale below 1 renders small enough to
+       trigger the zoom (the Book of Deeds search trap, mobile_zoom_guard.ts).
+       Divide the floor back out so the rendered size never drops under 16px. */
+    #ui :is(input, textarea, select) {
+      font-size: max(16px, calc(16px / var(--ui-scale, 1))) !important;
+    }
+  }
+  body.mobile-touch :is(input, textarea, select) {
+    font-size: var(--touch-input-font-size, 16px) !important;
   }
 
   #nameplates {
@@ -475,6 +499,7 @@
     overflow: hidden;
     pointer-events: none;
     z-index: 10;
+    --touch-input-font-size: max(16px, calc(16px / var(--ui-scale, 1)));
   }
   #ui > * {
     pointer-events: auto;
@@ -496,11 +521,11 @@
     color: var(--color-text-light);
   }
   .panel-title {
-    font-family: var(--title-font);
-    color: var(--gold);
+    font-family: var(--font-display);
+    color: var(--color-accent);
     font-size: 15px;
     letter-spacing: 0.5px;
-    text-shadow: 1px 1px 2px #000;
+    text-shadow: var(--title-shadow);
     border-bottom: 1px solid var(--color-border-showcase);
     padding-bottom: 6px;
     margin-bottom: 8px;
@@ -509,29 +534,29 @@
     align-items: center;
   }
   .window .panel-title {
-    cursor: move;
+    cursor: var(--cursor-move, move);
     touch-action: none;
   }
   .window .panel-title .x-btn {
     cursor: var(--cursor-point);
   }
   .window.window-dragging {
-    cursor: move;
+    cursor: var(--cursor-move, move);
     user-select: none;
     will-change: transform;
   }
   .x-btn {
-    color: #c9b27a;
+    color: var(--color-chrome-glyph);
     cursor: var(--cursor-point);
     font-size: 14px;
     padding: 0 4px;
     border: 1px solid var(--color-border-showcase);
     border-radius: 3px;
-    background: #1a1410;
-    font-family: var(--ui-font);
+    background: var(--socket-fill);
+    font-family: var(--font-ui);
   }
   .x-btn:hover {
-    color: #fff;
+    color: var(--color-white);
     border-color: var(--gold-dim);
   }
   .x-btn:focus-visible,
@@ -541,13 +566,22 @@
   .mobile-btn:focus-visible,
   .crafting-commission-chip:focus-visible,
   .vendor-item:focus-visible,
+  .vendor-qty-btn:focus-visible,
   .vendor-sell-junk:focus-visible,
   .bag-item:focus-visible,
   .bank-item:focus-visible,
   .bank-buy-btn:focus-visible,
   .mkt-tab:focus-visible,
   .mkt-btn:focus-visible,
-  .mkt-list-btn:focus-visible {
+  .mkt-list-btn:focus-visible,
+  .profession-skill-list:focus-visible,
+  .prof-effect:focus-visible,
+  .crafting-perfecting-link:focus-visible,
+  .pf-cand:focus-visible,
+  .pf-action:focus-visible,
+  .ps-seed:focus-visible,
+  .ps-knob:focus-visible,
+  .ps-plant:focus-visible {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
   }
@@ -567,7 +601,7 @@
   /* UI chrome icons: shared glyph-sizing primitives (siblings of the .x-btn /
      .panel chrome above). Relocated from index.html's inline <style>: these are
      base-tier glyph styling, and keeping them in
-     @layer base lets component overrides (e.g. #mm-music .ui-icon) win as intended.
+     @layer base lets component overrides (e.g. #expedition-bell .ui-icon) win as intended.
      They had been left inline-unlayered, which would have inverted those overrides. */
   /* ---------- UI chrome icons (inline SVG from ui_icons.ts, tinted via currentColor) ---------- */
   .ui-icon {
@@ -609,8 +643,13 @@
     margin-right: 3px;
     border-radius: 3px;
   }
-  /* Hide all other UI components while the start screen is visible to prevent keyboard focus leakage */
-  body:has(#start-screen:not([style*="display: none"])) #ui {
+  /* Hide all other UI components while the start screen is visible to prevent
+     keyboard focus leakage. The class ships in the HTML and the world entry
+     drops it as it hides #start-screen (src/main.ts enterLoadingState); never
+     key this on #start-screen's inline style through a body :has(), which made
+     every inline-style write in the HUD re-style the whole HUD
+     (src/ui/root_state_classes.ts). */
+  body.start-screen-open #ui {
     display: none !important;
   }
 
@@ -654,7 +693,7 @@
   }
   /* The skip links target the in-game HUD, so hide them while the pre-game start
      screen is up (they would otherwise sit ahead of the login / char-select flow). */
-  body:has(#start-screen:not([style*="display: none"])) .hud-skip {
+  body.start-screen-open .hud-skip {
     display: none;
   }
 
@@ -694,6 +733,19 @@
        this forced-colors block, so normal mode is unchanged. */
     #tf-name.hostile {
       text-decoration: underline;
+    }
+    /* The nameplate quest marks carry first-offer-vs-repeatable by color alone
+       (gold '!' vs blue '!'), which the forced palette strips to one
+       CanvasText, so both offers would read identically (the #tf-name.hostile
+       class of failure). Underline the repeat mark as the redundant non-color
+       cue, dotted for the cooldown mark so the dimmed not-yet state stays
+       distinguishable too; the canvas surfaces keep their pixels under
+       forced-colors and need no equivalent. Normal mode is unchanged. */
+    .np-marker.repeat {
+      text-decoration: underline;
+    }
+    .np-marker.cooldown {
+      text-decoration: underline dotted;
     }
     /* Cast progress is shown by the .fill gradient, which forced-colors strips, so the filled
        width that conveys cast / channel PROGRESS would vanish against the bar background. Pin

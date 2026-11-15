@@ -1,16 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  adminKickMessage,
+  ADMIN_KICK_MESSAGE_PREFIX as SERVER_ADMIN_KICK_MESSAGE_PREFIX,
+} from '../server/admin_kick_api';
 import { Api, ApiError } from '../src/net/online';
 import {
   isTransientReconnectRejection,
   isTransientTimeoutRejection,
 } from '../src/net/reconnect_policy';
 import {
+  ADMIN_KICK_MESSAGE_PREFIX,
   API_ERROR_KEYS,
   technicalErrorMessage,
   userFacingApiError,
 } from '../src/ui/api_error_i18n';
-import { formatDateTime, formatDuration, setLanguage, t } from '../src/ui/i18n';
+import { durationText } from '../src/ui/duration_text';
+import { formatDateTime, formatDuration, formatNumber, setLanguage, t } from '../src/ui/i18n';
 import { tServer } from '../src/ui/server_i18n';
 
 // The matcher and the formatters both default to the active language; pin English so
@@ -21,6 +27,12 @@ beforeEach(() => {
 });
 
 describe('userFacingApiError code-first resolution', () => {
+  it('localizes shutdown admission refusal through the existing unavailable copy', () => {
+    expect(userFacingApiError(new Error('The realm is temporarily unavailable.'))).toBe(
+      t('serverUnavailable.heading'),
+    );
+  });
+
   it('resolves a stable code to its apiError key, beating the prose message', () => {
     // The message would prose-resolve to errors.api.notAuthenticated ('Not
     // authenticated.'); the code is a structural one with a different English value,
@@ -36,6 +48,24 @@ describe('userFacingApiError code-first resolution', () => {
     const err = new ApiError('db write failed 0x9', 409, 'account.username_taken');
     expect(userFacingApiError(err)).toBe(t('apiError.account.username_taken'));
     expect(userFacingApiError(err)).not.toBe('db write failed 0x9');
+  });
+
+  it('localizes Seeker entitlement failures by stable code', () => {
+    const cases = [
+      ['seeker.native_only', 'apiError.seeker.native_only'],
+      ['seeker.attestation_failed', 'apiError.seeker.attestation_failed'],
+      ['seeker.wallet_required', 'apiError.seeker.wallet_required'],
+      ['seeker.genesis_token_required', 'apiError.seeker.genesis_token_required'],
+      ['seeker.genesis_token_claimed', 'apiError.seeker.genesis_token_claimed'],
+      ['seeker.entitlement_required', 'apiError.seeker.entitlement_required'],
+      ['seeker.current_ownership_required', 'apiError.seeker.current_ownership_required'],
+    ] as const;
+
+    for (const [code, key] of cases) {
+      const raw = `raw server detail for ${code}`;
+      expect(userFacingApiError(new ApiError(raw, 403, code))).toBe(t(key));
+      expect(userFacingApiError(new ApiError(raw, 403, code))).not.toBe(raw);
+    }
   });
 
   it('falls back to the prose arm for an un-migrated raw-English error (no code)', () => {
@@ -98,6 +128,35 @@ describe('userFacingApiError parametric codes', () => {
     // The prose arm for the Discord bare "rate limited" maps to tooManyAttempts.
     expect(userFacingApiError(err)).toBe(t('errors.api.tooManyAttempts'));
   });
+
+  it('names the buy-now cooldown remaining time as a multi-unit duration, never raw seconds', () => {
+    // The common answer is the half-hour per-listing cooldown: "30 minutes",
+    // not "1,800 seconds" (the old pin compared formatDuration against itself
+    // and could not see the raw count).
+    const err = userFacingApiError({
+      code: 'woc_market.claim_cooldown',
+      params: { retryAfterSeconds: 1800 },
+    });
+    expect(err).toBe(t('hudChrome.wocMarket.claimCooldownRetry', { duration: durationText(1800) }));
+    expect(err).toContain(formatNumber(30, { style: 'unit', unit: 'minute', unitDisplay: 'long' }));
+    expect(err).not.toContain('1,800');
+    // Sub-minute answers keep the seconds phrase (the 1s floor case).
+    expect(
+      userFacingApiError({ code: 'woc_market.claim_cooldown', params: { retryAfterSeconds: 1 } }),
+    ).toContain(formatDuration(1));
+  });
+
+  it('renders the plain cooldown sentence when no remaining time rides (older server)', () => {
+    // NEVER the prose fallback here: the plain apiError copy is real text, so
+    // a param-less refusal still explains itself instead of leaking the code.
+    expect(userFacingApiError({ code: 'woc_market.claim_cooldown' })).toBe(
+      t('apiError.woc_market.claim_cooldown'),
+    );
+    // A junk param value takes the plain arm too, not a NaN duration.
+    expect(
+      userFacingApiError({ code: 'woc_market.claim_cooldown', params: { retryAfterSeconds: 'x' } }),
+    ).toBe(t('apiError.woc_market.claim_cooldown'));
+  });
 });
 
 describe('userFacingApiError transport / server-unreachable failures', () => {
@@ -153,6 +212,9 @@ describe('userFacingApiError prose fallback (un-migrated routes, until Phase 25)
   });
 
   it('re-localizes the WebSocket disconnect reasons', () => {
+    expect(userFacingApiError('Vault reward mail is still recovering. Please retry shortly.')).toBe(
+      t('errors.api.vaultMailRecovering'),
+    );
     expect(userFacingApiError('Connection to the server was lost.')).toBe(
       t('loading.connectionLost'),
     );
@@ -182,10 +244,10 @@ describe('userFacingApiError prose fallback (un-migrated routes, until Phase 25)
     expect(userFacingApiError('message rate exceeded')).toBe(t('loading.messageRateExceeded'));
     expect(userFacingApiError('message rate exceeded')).not.toBe(t('loading.connectionRejected'));
     // Session-fatal by design: an immediately reconnecting flooder re-floods,
-    // so neither transient-rejection helper may match it even mid-reconnect
-    // with a fresh counter.
-    expect(isTransientReconnectRejection('message rate exceeded', 1, 0)).toBe(false);
-    expect(isTransientTimeoutRejection('message rate exceeded', 1, 0)).toBe(false);
+    // so neither transient-rejection helper may match it even with a fresh
+    // rejection counter.
+    expect(isTransientReconnectRejection('message rate exceeded', 0)).toBe(false);
+    expect(isTransientTimeoutRejection('message rate exceeded', 0)).toBe(false);
   });
 
   it('re-localizes a moderation kick through tServer', () => {
@@ -193,6 +255,23 @@ describe('userFacingApiError prose fallback (un-migrated routes, until Phase 25)
     expect(userFacingApiError('A moderator requires one of your characters to be renamed.')).toBe(
       tServer('moderation.forceRename'),
     );
+  });
+
+  it('re-localizes the admin-panel kick line with the operator reason interpolated', () => {
+    // The prefix is a byte-exact wire contract with server/admin_kick_api.ts; the
+    // client restates it (it never imports server code), so pin the two equal.
+    expect(ADMIN_KICK_MESSAGE_PREFIX).toBe(SERVER_ADMIN_KICK_MESSAGE_PREFIX);
+    const reason = 'AFK in the Eastbrook square for two hours';
+    expect(userFacingApiError(adminKickMessage(reason))).toBe(
+      t('loading.kickedByModerator', { reason }),
+    );
+    // The reason rides verbatim, case included (matched on the original text, not
+    // the lower-cased prose), and never falls through to the generic rejection.
+    expect(userFacingApiError(adminKickMessage(reason))).toContain(reason);
+    expect(userFacingApiError(adminKickMessage(reason))).not.toBe(t('loading.connectionRejected'));
+    // Session-fatal like every other moderation kick: no transient arm may match.
+    expect(isTransientReconnectRejection(adminKickMessage(reason), 0)).toBe(false);
+    expect(isTransientTimeoutRejection(adminKickMessage(reason), 0)).toBe(false);
   });
 
   it('returns transport/protocol diagnostics verbatim in English', () => {

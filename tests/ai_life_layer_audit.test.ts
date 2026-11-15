@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+import type {
+  AiDecisionV1,
+  AiJobContextV1,
+  AiProvider,
+  AiProviderOutput,
+  AiProviderTimingSnapshot,
+} from '../server/ai/ai_types';
 import { AiLifeLayer } from '../server/ai/life_layer';
 import type { AiAuditRecord, AiAuditSink } from '../server/ai_audit';
-import type { AiDecisionV1, AiJobContextV1, AiProvider, AiProviderOutput, AiProviderTimingSnapshot } from '../server/ai/ai_types';
 import { Sim } from '../src/sim/sim';
 import { groundHeight } from '../src/sim/world';
 
@@ -35,11 +41,18 @@ function makeSim(): { sim: Sim; pid: number; npcId: number; wolfId: number } {
   return { sim, pid, npcId: npc.id, wolfId: wolf.id };
 }
 
-function acceptedDecision(context: AiJobContextV1, lineId = 'hudChrome.aiSpeech.brotherAldricAwake'): AiDecisionV1 {
+function acceptedDecision(
+  context: AiJobContextV1,
+  lineId = 'hudChrome.aiSpeech.brotherAldricAwake',
+): AiDecisionV1 {
   return {
     schemaVersion: 1,
     jobId: context.jobId,
-    entityRef: { kind: context.entity.kind, entityId: context.entity.entityId, templateId: context.entity.templateId },
+    entityRef: {
+      kind: context.entity.kind,
+      entityId: context.entity.entityId,
+      templateId: context.entity.templateId,
+    },
     ttlMs: 5000,
     confidence: 1,
     speech: [{ mode: 'lineId', lineId }],
@@ -48,7 +61,10 @@ function acceptedDecision(context: AiJobContextV1, lineId = 'hudChrome.aiSpeech.
   };
 }
 
-function acceptedProvider(lineId = 'hudChrome.aiSpeech.brotherAldricAwake', wrap = false): AiProvider {
+function acceptedProvider(
+  lineId = 'hudChrome.aiSpeech.brotherAldricAwake',
+  wrap = false,
+): AiProvider {
   const providerTimings: AiProviderTimingSnapshot = {
     provider: 'codex-app-server',
     totalMs: 1234,
@@ -72,77 +88,111 @@ describe('AI life layer audit recording', () => {
   it('records provider successes with token estimates and context counts', async () => {
     const { sim, pid, npcId } = makeSim();
     const sink = new CaptureAuditSink();
-    const layer = new AiLifeLayer({ enabled: true, provider: acceptedProvider(), auditSink: sink, auditProviderSource: 'codex' });
+    const layer = new AiLifeLayer({
+      enabled: true,
+      provider: acceptedProvider(),
+      auditSink: sink,
+      auditProviderSource: 'codex',
+    });
     const delivered: unknown[] = [];
 
-    await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) });
+    await layer.handleNpcInteraction({
+      sim,
+      pid,
+      npcId,
+      locale: 'en',
+      deliver: (events) => delivered.push(...events),
+    });
 
-    expect(delivered).toContainEqual(expect.objectContaining({ type: 'aiSpeech', source: 'codex' }));
-    expect(sink.records).toEqual([expect.objectContaining({
-      trigger: 'npc_gossip_opened',
-      entityKind: 'npc',
-      templateId: 'brother_aldric',
-      playerEntityId: pid,
-      providerSource: 'codex',
-      status: 'accepted',
-      tokenEstimate: true,
-      outputMode: 'mixed_living_world',
-      lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
-      intents: ['commentOnScene'],
-      memoryWriteRefs: [expect.stringMatching(/^npcInteraction:npc:\d+:brother_aldric$/)],
-      error: '',
-    })]);
+    expect(delivered).toContainEqual(
+      expect.objectContaining({ type: 'aiSpeech', source: 'codex' }),
+    );
+    expect(sink.records).toEqual([
+      expect.objectContaining({
+        trigger: 'npc_gossip_opened',
+        entityKind: 'npc',
+        templateId: 'brother_aldric',
+        playerEntityId: pid,
+        providerSource: 'codex',
+        status: 'accepted',
+        tokenEstimate: true,
+        outputMode: 'mixed_living_world',
+        lineIds: ['hudChrome.aiSpeech.brotherAldricAwake'],
+        intents: ['commentOnScene'],
+        memoryWriteRefs: [expect.stringMatching(/^npcInteraction:npc:\d+:brother_aldric$/)],
+        error: '',
+      }),
+    ]);
     expect(sink.records[0].inputTokens).toBeGreaterThan(0);
     expect(sink.records[0].outputTokens).toBeGreaterThan(0);
-    expect(sink.records[0].totalTokens).toBe(sink.records[0].inputTokens + sink.records[0].outputTokens);
+    expect(sink.records[0].totalTokens).toBe(
+      sink.records[0].inputTokens + sink.records[0].outputTokens,
+    );
     expect(sink.records[0].allowedIntentCount).toBeGreaterThan(0);
     expect(sink.records[0].allowedLineIdCount).toBeGreaterThan(0);
     expect(sink.records[0].sceneObjectCount).toBeGreaterThanOrEqual(0);
     expect(sink.records[0].hasChain).toBe(true);
-    expect(sink.records[0].playerAction).toEqual(expect.objectContaining({
-      labelKey: 'usage.aiActionNpcGreeting',
-      locale: 'en',
-    }));
-    expect(sink.records[0].chain).toEqual(expect.objectContaining({
-      requestContext: expect.objectContaining({
-        promptText: expect.stringContaining('Compact job JSON'),
+    expect(sink.records[0].playerAction).toEqual(
+      expect.objectContaining({
+        labelKey: 'usage.aiActionNpcGreeting',
+        locale: 'en',
       }),
-      provider: expect.objectContaining({
-        source: 'codex',
-        parsedDecision: expect.objectContaining({ jobId: sink.records[0].jobId }),
+    );
+    expect(sink.records[0].chain).toEqual(
+      expect.objectContaining({
+        requestContext: expect.objectContaining({
+          promptText: expect.stringContaining('Compact job JSON'),
+        }),
+        provider: expect.objectContaining({
+          source: 'codex',
+          parsedDecision: expect.objectContaining({ jobId: sink.records[0].jobId }),
+        }),
+        validation: expect.objectContaining({
+          ok: true,
+          events: expect.arrayContaining([expect.objectContaining({ type: 'aiSpeech' })]),
+        }),
+        delivered: expect.objectContaining({
+          textSummary: expect.arrayContaining(['hudChrome.aiSpeech.brotherAldricAwake']),
+          events: expect.arrayContaining([
+            expect.objectContaining({ type: 'aiSpeech', source: 'codex' }),
+          ]),
+        }),
       }),
-      validation: expect.objectContaining({
-        ok: true,
-        events: expect.arrayContaining([expect.objectContaining({ type: 'aiSpeech' })]),
-      }),
-      delivered: expect.objectContaining({
-        textSummary: expect.arrayContaining(['hudChrome.aiSpeech.brotherAldricAwake']),
-        events: expect.arrayContaining([expect.objectContaining({ type: 'aiSpeech', source: 'codex' })]),
-      }),
-    }));
+    );
   });
 
   it('records Codex CLI prompt and raw output metadata from wrapped provider results', async () => {
     const { sim, pid, npcId } = makeSim();
     const sink = new CaptureAuditSink();
-    const layer = new AiLifeLayer({ enabled: true, provider: acceptedProvider('hudChrome.aiSpeech.brotherAldricAwake', true), auditSink: sink, auditProviderSource: 'codex' });
+    const layer = new AiLifeLayer({
+      enabled: true,
+      provider: acceptedProvider('hudChrome.aiSpeech.brotherAldricAwake', true),
+      auditSink: sink,
+      auditProviderSource: 'codex',
+    });
 
     await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: () => {} });
 
     expect(sink.records[0].chain?.requestContext.promptText).toBe('prompt for audit');
     expect(sink.records[0].chain?.provider.rawOutput).toBe('{"speech":[]}');
-    expect(layer.runtimeMetrics().lastProviderTimings).toEqual(expect.objectContaining({
-      provider: 'codex-app-server',
-      totalMs: 1234,
-    }));
-    expect(sink.records[0].providerTimings).toEqual(expect.objectContaining({
-      provider: 'codex-app-server',
-      totalMs: 1234,
-    }));
-    expect(sink.records[0].chain?.provider.timings).toEqual(expect.objectContaining({
-      provider: 'codex-app-server',
-      totalMs: 1234,
-    }));
+    expect(layer.runtimeMetrics().lastProviderTimings).toEqual(
+      expect.objectContaining({
+        provider: 'codex-app-server',
+        totalMs: 1234,
+      }),
+    );
+    expect(sink.records[0].providerTimings).toEqual(
+      expect.objectContaining({
+        provider: 'codex-app-server',
+        totalMs: 1234,
+      }),
+    );
+    expect(sink.records[0].chain?.provider.timings).toEqual(
+      expect.objectContaining({
+        provider: 'codex-app-server',
+        totalMs: 1234,
+      }),
+    );
   });
 
   it('records provider errors while delivering the local NPC fallback', async () => {
@@ -153,29 +203,48 @@ describe('AI life layer audit recording', () => {
     };
     const { sim, pid, npcId } = makeSim();
     const sink = new CaptureAuditSink();
-    const layer = new AiLifeLayer({ enabled: true, provider, auditSink: sink, auditProviderSource: 'codex' });
+    const layer = new AiLifeLayer({
+      enabled: true,
+      provider,
+      auditSink: sink,
+      auditProviderSource: 'codex',
+    });
     const delivered: unknown[] = [];
 
-    await expect(layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) })).resolves.toBeUndefined();
+    await expect(
+      layer.handleNpcInteraction({
+        sim,
+        pid,
+        npcId,
+        locale: 'en',
+        deliver: (events) => delivered.push(...events),
+      }),
+    ).resolves.toBeUndefined();
 
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      source: 'local',
-      pid,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-    }));
-    expect(sink.records).toEqual([expect.objectContaining({
-      status: 'provider_error',
-      providerSource: 'codex',
-      outputTokens: 0,
-      error: 'codex worker timed out',
-      reason: 'providerError:codex worker timed out',
-      lineIds: [],
-    })]);
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        source: 'local',
+        pid,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      }),
+    );
+    expect(sink.records).toEqual([
+      expect.objectContaining({
+        status: 'provider_error',
+        providerSource: 'codex',
+        outputTokens: 0,
+        error: 'codex worker timed out',
+        reason: 'providerError:codex worker timed out',
+        lineIds: [],
+      }),
+    ]);
     expect(sink.records[0].inputTokens).toBeGreaterThan(0);
     expect(sink.records[0].totalTokens).toBe(sink.records[0].inputTokens);
     expect(sink.records[0].chain?.provider.error).toBe('codex worker timed out');
-    expect(sink.records[0].chain?.delivered.textSummary).toEqual(['hudChrome.aiSpeech.brotherAldricAwake']);
+    expect(sink.records[0].chain?.delivered.textSummary).toEqual([
+      'hudChrome.aiSpeech.brotherAldricAwake',
+    ]);
   });
 
   it('records rejected provider decisions while preserving the local NPC fallback', async () => {
@@ -185,21 +254,33 @@ describe('AI life layer audit recording', () => {
     const layer = new AiLifeLayer({ enabled: true, provider, auditSink: sink });
     const delivered: unknown[] = [];
 
-    await layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) });
-
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      source: 'local',
+    await layer.handleNpcInteraction({
+      sim,
       pid,
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-    }));
-    expect(sink.records).toEqual([expect.objectContaining({
-      status: 'rejected',
-      providerSource: 'provider',
-      reason: expect.stringContaining('line id hudChrome.aiSpeech.merchantMarketPulse not allowed'),
-      lineIds: ['hudChrome.aiSpeech.merchantMarketPulse'],
-      intents: ['commentOnScene'],
-    })]);
+      npcId,
+      locale: 'en',
+      deliver: (events) => delivered.push(...events),
+    });
+
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        source: 'local',
+        pid,
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      }),
+    );
+    expect(sink.records).toEqual([
+      expect.objectContaining({
+        status: 'rejected',
+        providerSource: 'provider',
+        reason: expect.stringContaining(
+          'line id hudChrome.aiSpeech.merchantMarketPulse not allowed',
+        ),
+        lineIds: ['hudChrome.aiSpeech.merchantMarketPulse'],
+        intents: ['commentOnScene'],
+      }),
+    ]);
   });
 
   it('records local item-discard reactions with zero provider tokens', async () => {
@@ -209,22 +290,30 @@ describe('AI life layer audit recording', () => {
     const layer = new AiLifeLayer({ enabled: true, auditSink: sink });
     const delivered: unknown[] = [];
 
-    await layer.handleItemDiscarded({ sim, pid, itemId: 'roasted_boar', count: 1, deliver: (events) => delivered.push(...events) });
+    await layer.handleItemDiscarded({
+      sim,
+      pid,
+      itemId: 'roasted_boar',
+      count: 1,
+      deliver: (events) => delivered.push(...events),
+    });
 
     expect(delivered).toContainEqual(expect.objectContaining({ type: 'aiSpeech' }));
-    expect(sink.records).toContainEqual(expect.objectContaining({
-      trigger: 'item_discarded',
-      providerSource: 'local',
-      status: 'local_reaction',
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      memoryWriteRefs: expect.arrayContaining([
-        expect.stringContaining('worldTrace:'),
-        expect.stringContaining('worldDirectorState:'),
-        expect.stringContaining('rumor:'),
-      ]),
-    }));
+    expect(sink.records).toContainEqual(
+      expect.objectContaining({
+        trigger: 'item_discarded',
+        providerSource: 'local',
+        status: 'local_reaction',
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        memoryWriteRefs: expect.arrayContaining([
+          expect.stringContaining('worldTrace:'),
+          expect.stringContaining('worldDirectorState:'),
+          expect.stringContaining('rumor:'),
+        ]),
+      }),
+    );
   });
 
   it('does not block player-facing AI speech when audit writing fails', async () => {
@@ -235,12 +324,22 @@ describe('AI life layer audit recording', () => {
     const delivered: unknown[] = [];
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await expect(layer.handleNpcInteraction({ sim, pid, npcId, locale: 'en', deliver: (events) => delivered.push(...events) })).resolves.toBeUndefined();
+    await expect(
+      layer.handleNpcInteraction({
+        sim,
+        pid,
+        npcId,
+        locale: 'en',
+        deliver: (events) => delivered.push(...events),
+      }),
+    ).resolves.toBeUndefined();
 
-    expect(delivered).toContainEqual(expect.objectContaining({
-      type: 'aiSpeech',
-      speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
-    }));
+    expect(delivered).toContainEqual(
+      expect.objectContaining({
+        type: 'aiSpeech',
+        speech: expect.objectContaining({ lineId: 'hudChrome.aiSpeech.brotherAldricAwake' }),
+      }),
+    );
     expect(layer.runtimeMetrics()).toMatchObject({
       providerCalls: 1,
       providerSuccesses: 1,

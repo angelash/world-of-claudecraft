@@ -8,14 +8,14 @@
     "meleeSwing weaponStrike (sinister_strike via castAbility ~3736)",
     "combo points"
   ],
-  "draws": 151,
-  "drawDigest": "358c9fed",
+  "draws": 249,
+  "drawDigest": "1567f635",
   "frames": [
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "99088268",
+      "nextId": 1012,
+      "state": "c1c475ce",
       "events": "741638a5",
       "rng": {
         "draws": 0,
@@ -35,12 +35,23 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "rogue",
           "companionUpgrades": {},
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -52,14 +63,20 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1004,
           "equipment": {
             "chest": "footpad_jerkin",
             "mainhand": "rusty_dagger",
             "offhand": "rusty_dagger"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
@@ -70,10 +87,20 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -86,10 +113,11 @@
           "detonateTimer": "Infinity",
           "dodgeChance": 0.0625,
           "dualWielding": true,
-          "fallStartY": 1.5,
+          "fallStartY": -2,
           "fiveSecondRule": 99,
+          "healPower": 6,
           "hp": 62,
-          "id": 415,
+          "id": 1004,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -107,17 +135,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "potionCooldownUntil": -1,
           "resource": 100,
           "resourceType": "energy",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 6,
           "stats": {
@@ -141,45 +169,45 @@
     {
       "tick": 20,
       "time": 1,
-      "nextId": 417,
-      "state": "217557a4",
-      "events": "68a6cefc",
+      "nextId": 1013,
+      "state": "2c2fbf30",
+      "events": "039bdf96",
       "rng": {
         "draws": 12,
-        "digest": "69c49488"
+        "digest": "f30c489f"
       }
     },
     {
       "tick": 40,
       "time": 2,
-      "nextId": 417,
-      "state": "2d43e296",
-      "events": "ccf5de8e",
+      "nextId": 1013,
+      "state": "aa51bc95",
+      "events": "78b1cd2d",
       "rng": {
-        "draws": 21,
-        "digest": "6b9fce63"
+        "draws": 19,
+        "digest": "d68c35cb"
       }
     },
     {
       "tick": 60,
       "time": 3,
-      "nextId": 417,
-      "state": "078e7871",
-      "events": "09043b1b",
+      "nextId": 1013,
+      "state": "2738f03e",
+      "events": "a7d0e1d7",
       "rng": {
-        "draws": 98,
-        "digest": "dcfe7e75"
+        "draws": 162,
+        "digest": "fe151d49"
       }
     },
     {
       "tick": 72,
       "time": 3.6,
-      "nextId": 417,
-      "state": "adc82a29",
+      "nextId": 1013,
+      "state": "9e03e4f2",
       "events": "741638a5",
       "rng": {
-        "draws": 151,
-        "digest": "358c9fed"
+        "draws": 249,
+        "digest": "1567f635"
       },
       "label": "final",
       "players": [
@@ -195,19 +223,30 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "rogue",
           "companionUpgrades": {},
           "counters": {
-            "damageDealt": 111,
-            "damageTaken": 26
+            "damageDealt": 104,
+            "damageTaken": 8
           },
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {
               "crits": 1,
-              "damageDealt": 111
+              "damageDealt": 104
             },
             "dungeonClears": {},
             "itemsDiscovered": [
@@ -216,7 +255,7 @@
               "rusty_dagger"
             ],
             "visited": [
-              "poi:eastbrook_vale:eastbrook"
+              "poi:eastbrook_vale:eastbrook_docks"
             ]
           },
           "deedsEarned": [
@@ -235,14 +274,20 @@
           ],
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1004,
           "equipment": {
             "chest": "footpad_jerkin",
             "mainhand": "rusty_dagger",
             "offhand": "rusty_dagger"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
@@ -254,11 +299,21 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "renown": 20,
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -274,10 +329,11 @@
           "dodgeChance": 0.076,
           "dualWielding": true,
           "facing": 1.570796,
-          "fallStartY": 1.5,
+          "fallStartY": -2,
           "fiveSecondRule": 102.6,
-          "hp": 49974,
-          "id": 415,
+          "healPower": 6,
+          "hp": 49992,
+          "id": 1004,
           "inCombat": true,
           "kind": "player",
           "level": 10,
@@ -294,20 +350,20 @@
             "speed": 1.8
           },
           "onGround": true,
-          "overpowerUntil": -1,
+          "overpowerUntil": 6.85,
           "petMode": "defensive",
           "pos": {
-            "x": 2.5,
-            "y": 1.5,
-            "z": -2
+            "x": -93.5,
+            "y": -2,
+            "z": -58
           },
           "potionCooldownUntil": -1,
           "resource": 100,
           "resourceType": "energy",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 6,
           "stats": {
@@ -315,11 +371,11 @@
             "armor": 230,
             "int": 11,
             "spi": 12,
-            "sta": 26,
+            "sta": 35,
             "str": 26
           },
           "swingTimer": 0.05,
-          "targetId": 416,
+          "targetId": 1012,
           "templateId": "rogue",
           "weapon": {
             "dagger": true,
@@ -329,25 +385,26 @@
           }
         },
         {
-          "aggroTargetId": 415,
+          "aggroTargetId": 1004,
           "aiState": "attack",
+          "autoAttack": true,
           "combatTimer": 1.2,
           "comboUntil": -1,
           "critChance": 0.05,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.05,
           "facing": -1.570796,
-          "fallStartY": 1.5,
+          "fallStartY": -2,
           "fiveSecondRule": 99,
           "hostile": true,
-          "hp": 8889,
-          "id": 416,
+          "hp": 8896,
+          "id": 1012,
           "inCombat": true,
           "kind": "mob",
           "leashAnchor": {
-            "x": 4,
-            "y": 1.5,
-            "z": -2
+            "x": -92,
+            "y": -2,
+            "z": -58
           },
           "level": 5,
           "lootFfaTimer": "Infinity",
@@ -357,27 +414,27 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": 4,
-            "y": 1.5,
-            "z": -2
+            "x": -92,
+            "y": -2,
+            "z": -58
           },
           "potionCooldownUntil": -1,
           "spawnPos": {
-            "x": 4,
-            "y": 1.5,
-            "z": -2
+            "x": -92,
+            "y": -2,
+            "z": -58
           },
           "stats": {
             "armor": 40
           },
           "swingTimer": 0.45,
-          "tappedById": 415,
-          "targetId": 415,
+          "tappedById": 1004,
+          "targetId": 1004,
           "templateId": "forest_wolf",
           "threat": [
             [
-              415,
-              112
+              1004,
+              105
             ]
           ],
           "weapon": {

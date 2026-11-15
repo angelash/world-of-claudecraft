@@ -151,7 +151,17 @@
     <priority>0.55</priority>
   </url>
   <url>
+    <loc>https://worldofclaudecraft.com/wiki/professions/inscription</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
+  <url>
     <loc>https://worldofclaudecraft.com/wiki/professions/enchanting</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
+  <url>
+    <loc>https://worldofclaudecraft.com/wiki/professions/jewelcrafting</loc>
     <changefreq>monthly</changefreq>
     <priority>0.55</priority>
   </url>
@@ -186,12 +196,22 @@
     <priority>0.55</priority>
   </url>
   <url>
+    <loc>https://worldofclaudecraft.com/wiki/professions/farming</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
+  <url>
     <loc>https://worldofclaudecraft.com/wiki/professions/economy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.55</priority>
   </url>
   <url>
     <loc>https://worldofclaudecraft.com/wiki/professions/faq</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
+  <url>
+    <loc>https://worldofclaudecraft.com/wiki/professions/provisioning</loc>
     <changefreq>monthly</changefreq>
     <priority>0.55</priority>
   </url>
@@ -206,6 +226,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://worldofclaudecraft.com/wiki/factions</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://worldofclaudecraft.com/wiki/dungeons</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -216,12 +241,27 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://worldofclaudecraft.com/wiki/rifts</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worldofclaudecraft.com/wiki/mounts</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://worldofclaudecraft.com/wiki/arena</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://worldofclaudecraft.com/wiki/vale-cup</loc>
+    <loc>https://worldofclaudecraft.com/wiki/thornhollow-fields</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worldofclaudecraft.com/wiki/world-pvp</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -231,7 +271,17 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://worldofclaudecraft.com/wiki/reliquary</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://worldofclaudecraft.com/wiki/reference/controls</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worldofclaudecraft.com/wiki/reference/interface</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -261,7 +311,17 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://worldofclaudecraft.com/wiki/reference/commands</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://worldofclaudecraft.com/wiki/reference/glossary</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://worldofclaudecraft.com/wiki/reference/editor</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

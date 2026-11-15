@@ -1,15 +1,17 @@
+import { createHash } from 'node:crypto';
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { DEED_ORDER, DEEDS } from '../src/sim/content/deeds';
 import { DEED_IMAGE_IDS } from '../src/ui/deed_image_ids';
 import { DEED_BESPOKE_CRESTS, deedCrestId } from '../src/ui/deeds_view';
-import { deedImageUrl, iconDataUrl } from '../src/ui/icons';
+import { DEED_ART_PENDING, deedImageUrl, hasCrestRecipe, iconDataUrl } from '../src/ui/icons';
 
 // Gate for the committed Book of Deeds WebP icons (mirror of tests/skill_icons.test.ts and
 // tests/item_icons.test.ts). Art under public/ui/deeds/<deed_id>.webp is the source of truth
-// (128px WebP, downscaled from the maintainer's 512px source by scripts/convert_deed_icons_webp.mjs),
+// (128px WebP, downscaled from a reviewed 512px source by scripts/convert_deed_icons_webp.mjs),
 // served through iconDataUrl for kind 'crest' when the crest id shaped `deed_<deed_id>` is
 // art-backed. The guard is a bijection plus a scope + fallback check:
 //   A) DEED_IMAGE_IDS is an exact set-equality with the committed .webp files, BOTH directions
@@ -118,6 +120,30 @@ const ORPHAN_IDS = [
   'pvp_vcup_bet_flex',
 ];
 
+// All five deed records added on this branch. Only the first is owned by the
+// professions packet directly; the other four arrived with its release-base
+// integration, and are pinned here so this branch cannot ship new fallback art.
+const BRANCH_DEED_ART_IDS = [
+  'chr_peaks_gatherer',
+  'chr_marsh_rares_ii',
+  'chr_peaks_rares_ii',
+  'chr_gleamstag',
+  'chr_hollow_rares',
+] as const;
+
+// The final painted-icon replacement wave. These are separate freshly composed
+// generated crests, not recolours of one another or additions to the commissioned
+// deed batch. Their exact accepted identities are pinned by the wave manifest.
+const MISSING_PAINTED_DEED_IDS = [
+  'dgn_wildheart_basin',
+  'dgn_wildheart_basin_heroic',
+  'pvp_card_duel_first_win',
+] as const;
+
+// The exhaustive art-debt ledger. It stays empty while every live deed has painted art, and a
+// future artless deed must enter this set explicitly rather than hiding behind a category crest.
+const DEED_ART_PENDING_IDS = [...DEED_ART_PENDING];
+
 describe('Book of Deeds webp icons', () => {
   it('has art-backed deed ids wired (guards the fixture)', () => {
     expect(DEED_IMAGE_IDS.size).toBeGreaterThan(0);
@@ -125,7 +151,11 @@ describe('Book of Deeds webp icons', () => {
 
   it('ships painted crests for every profession deed declared by the feature manifest', () => {
     const ids = professionManifestDeedIds();
-    expect(ids).toHaveLength(29);
+    expect(ids).toHaveLength(30);
+    expect(
+      ids,
+      'the tuning packet manifest must retain its new Thornpeak gathering deed',
+    ).toContain('chr_peaks_gatherer');
     for (const id of ids) {
       expect(DEED_IMAGE_IDS.has(id), `${id} must be present in the generated deed registry`).toBe(
         true,
@@ -138,6 +168,27 @@ describe('Book of Deeds webp icons', () => {
         height: 128,
       });
     }
+  });
+
+  it('records the five generated crests and their licensed reference lineage', () => {
+    const credits = readFileSync(path.join(repoRoot, 'CREDITS.md'), 'utf8');
+    const provenancePath = path.join(
+      repoRoot,
+      'docs/achievements/professions-tuning-art-provenance.md',
+    );
+    expect(existsSync(provenancePath), 'generated deed art needs a committed lineage record').toBe(
+      true,
+    );
+    const provenance = readFileSync(provenancePath, 'utf8');
+    for (const id of BRANCH_DEED_ART_IDS) {
+      expect(credits, `${id} must remain in the operative media credits`).toContain(id);
+      expect(provenance, `${id} must retain its prompt/lineage record`).toContain(id);
+    }
+    expect(credits).toContain('OpenAI built-in image generation');
+    expect(credits).toContain('grubjaw_tusk');
+    expect(credits).toContain('old_cragmaws_pelt');
+    expect(provenance).toContain('CraftPix Premium');
+    expect(provenance).toContain('simple_fishing_pole');
   });
 
   it('A) DEED_IMAGE_IDS is an exact bijection with the committed .webp files', () => {
@@ -156,17 +207,127 @@ describe('Book of Deeds webp icons', () => {
     expect(files.size).toBe(wired.size);
   });
 
-  it('A2) every committed webp is a valid RIFF/WEBP file', () => {
-    const broken: string[] = [];
-    for (const id of DEED_IMAGE_IDS) {
-      const file = path.join(deedsDir, `${id}.webp`);
-      if (!existsSync(file)) {
-        broken.push(`${id} (missing file)`);
-        continue;
+  it(
+    'A2) every committed webp decodes as a transparent 128px crest',
+    async () => {
+      const broken: string[] = [];
+      const byHash = new Map<string, string[]>();
+      for (const id of DEED_IMAGE_IDS) {
+        const file = path.join(deedsDir, `${id}.webp`);
+        if (!existsSync(file)) {
+          broken.push(`${id} (missing file)`);
+          continue;
+        }
+        if (!isValidWebp(file)) {
+          broken.push(`${id} (not a valid webp: bad RIFF/WEBP header)`);
+          continue;
+        }
+        const bytes = readFileSync(file);
+        if (bytes.length > 15 * 1024) broken.push(`${id} (${bytes.length} bytes exceeds 15 KiB)`);
+        const hash = createHash('sha256').update(bytes).digest('hex');
+        byHash.set(hash, [...(byHash.get(hash) ?? []), id]);
+        try {
+          const metadata = await sharp(file).metadata();
+          if (metadata.width !== 128 || metadata.height !== 128)
+            broken.push(`${id} (${metadata.width}x${metadata.height}, expected 128x128)`);
+          if (!metadata.hasAlpha) broken.push(`${id} (missing alpha channel)`);
+          const decoded = await sharp(file)
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+          let transparent = false;
+          let opaque = false;
+          for (let i = 3; i < decoded.data.length; i += decoded.info.channels) {
+            if (decoded.data[i] === 0) transparent = true;
+            if (decoded.data[i] === 255) opaque = true;
+          }
+          if (!transparent || !opaque)
+            broken.push(`${id} (must contain both transparent and opaque pixels)`);
+        } catch {
+          broken.push(`${id} (webp payload cannot be decoded)`);
+        }
       }
-      if (!isValidWebp(file)) broken.push(`${id} (not a valid webp: bad RIFF/WEBP header)`);
+      for (const ids of byHash.values()) {
+        if (ids.length > 1) broken.push(`${ids.join(', ')} (byte-identical deed art)`);
+      }
+      expect(broken).toEqual([]);
+    },
+    process.platform === 'win32' ? 240_000 : 20_000,
+  );
+
+  it('A3) the five branch-added crests keep the deed frame geometry', async () => {
+    expect(BRANCH_DEED_ART_IDS).toHaveLength(5);
+    for (const id of BRANCH_DEED_ART_IDS) {
+      expect(DEED_IMAGE_IDS.has(id), `${id} must be wired`).toBe(true);
+      const decoded = await sharp(path.join(deedsDir, `${id}.webp`))
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      let minX = decoded.info.width;
+      let minY = decoded.info.height;
+      let maxX = -1;
+      let maxY = -1;
+      let visible = 0;
+      for (let y = 0; y < decoded.info.height; y++) {
+        for (let x = 0; x < decoded.info.width; x++) {
+          const alpha = decoded.data[(y * decoded.info.width + x) * decoded.info.channels + 3];
+          if (alpha < 8) continue;
+          visible++;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      expect(minX, `${id} left padding`).toBeGreaterThanOrEqual(7);
+      expect(minY, `${id} top padding`).toBeGreaterThanOrEqual(7);
+      expect(maxX, `${id} right padding`).toBeLessThanOrEqual(120);
+      expect(maxY, `${id} bottom padding`).toBeLessThanOrEqual(120);
+      expect(Math.abs((minX + maxX) / 2 - 63.5), `${id} horizontal center`).toBeLessThanOrEqual(2);
+      expect(Math.abs((minY + maxY) / 2 - 63.5), `${id} vertical center`).toBeLessThanOrEqual(2);
+      const coverage = visible / (decoded.info.width * decoded.info.height);
+      expect(coverage, `${id} visible coverage`).toBeGreaterThanOrEqual(0.35);
+      expect(coverage, `${id} visible coverage`).toBeLessThanOrEqual(0.6);
     }
-    expect(broken).toEqual([]);
+  });
+
+  it('A4) the three final generated crests keep their tighter reviewed frame geometry', async () => {
+    expect(MISSING_PAINTED_DEED_IDS).toHaveLength(3);
+    for (const id of MISSING_PAINTED_DEED_IDS) {
+      expect(DEED_IMAGE_IDS.has(id), `${id} must be wired`).toBe(true);
+      const decoded = await sharp(path.join(deedsDir, `${id}.webp`))
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      let minX = decoded.info.width;
+      let minY = decoded.info.height;
+      let maxX = -1;
+      let maxY = -1;
+      let visible = 0;
+      for (let y = 0; y < decoded.info.height; y++) {
+        for (let x = 0; x < decoded.info.width; x++) {
+          const alpha = decoded.data[(y * decoded.info.width + x) * decoded.info.channels + 3];
+          if (alpha < 8) continue;
+          visible++;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      expect(minX, `${id} left alpha bound`).toBeGreaterThanOrEqual(14);
+      expect(minX, `${id} left alpha bound`).toBeLessThanOrEqual(15);
+      expect(minY, `${id} top alpha bound`).toBe(14);
+      expect(maxX, `${id} right alpha bound`).toBe(113);
+      expect(maxY, `${id} bottom alpha bound`).toBe(113);
+      expect(Math.abs((minX + maxX) / 2 - 63.5), `${id} horizontal center`).toBeLessThanOrEqual(
+        0.5,
+      );
+      expect(Math.abs((minY + maxY) / 2 - 63.5), `${id} vertical center`).toBe(0);
+      const coverage = visible / (decoded.info.width * decoded.info.height);
+      expect(coverage, `${id} visible coverage`).toBeGreaterThanOrEqual(0.41);
+      expect(coverage, `${id} visible coverage`).toBeLessThanOrEqual(0.45);
+    }
   });
 
   it('B) commits only .webp art under public/ui/deeds (no png/stray files)', () => {
@@ -205,15 +366,63 @@ describe('Book of Deeds webp icons', () => {
     }
   });
 
-  it('an artless deed card resolves to a procedural crest (no committed image)', () => {
-    // Any live deeds awaiting art must land on their category base crest, which carries no
-    // image URL and falls through to the procedural canvas path. A fully commissioned live
-    // catalog makes this loop empty, so the synthetic id below keeps the branch pinned.
+  it('resolves every painted deed to its WebP; artless deeds sit in the pinned pending set', () => {
     const artless = DEED_ORDER.filter((id) => !DEED_IMAGE_IDS.has(id));
+    expect(artless, 'only the pinned art-pending deeds may lack painted art').toEqual([
+      ...DEED_ART_PENDING_IDS,
+    ]);
+    // The Masterwrought completion wave paints its ten formerly pending deed
+    // identities (and replaces prog_farming_100), leaving only the ten
+    // release-owned castle, bank, tutorial, and Crucible rows on fallback art
+    // (which also carry the release-side additions, including the Roots'
+    // Bramblehide collection crest from roots-bramblehide-icons-2026-09-07).
+    // The self-crafted hammer's hidden celebration adds one explicit pending crest.
+    // The world-quest branch's eight exploration deeds join the pending set on
+    // category crests at the release/v0.43.0 merge: 308 live, 289 painted.
+    // The seven faction standing progression deeds join the pending set on
+    // the progression crest: 315 live, still 289 painted.
+    // The two Clue Scroll casket exploration deeds join the pending set on the
+    // exploration crest: 317 live, still 289 painted.
+    // The release's Eastbrook ferry round trip (exp_harbor_to_harbor) joins the
+    // pending set on the exploration crest: 318 live, still 289 painted.
+    // The Buried Hoards Coinsack catch (cmb_coinsack_caught) joins on the combat
+    // crest beside the ferry round trip: 319 live, still 289 painted. The Mirefen
+    // world-boss branch's three combat deeds append behind it: 322 live, still 289
+    // painted, 33 pending, cmb_point_taken last.
+    // + the five-dungeon rework (PR 4359) on the v0.45.0 integration: 346.
+    // Integration 45's art completion paints all 346 of its deeds; Lantern Hall's six (its three
+    // contract milestones and three quartermaster titles) join after it, on the pending ledger.
+    expect(DEED_ORDER, 'the merged live deed catalog').toHaveLength(369);
+    expect(DEED_IMAGE_IDS.size, 'every live deed but the pending set is painted').toBe(356);
+    expect(DEED_ART_PENDING_IDS).toHaveLength(13);
+    expect(DEED_ART_PENDING_IDS.at(-1)).toBe('feat_guild_of_lantern_hall');
+    expect(DEED_ART_PENDING_IDS.slice(0, 7)).toEqual([
+      'prog_titan',
+      'pvp_flag_1h',
+      'pvp_flag_3h',
+      'pvp_flag_6h',
+      'pvp_flag_24h',
+      'pvp_flag_168h',
+      'exp_wisp_maze_hard',
+    ]);
+    expect(DEED_ORDER.length - DEED_IMAGE_IDS.size).toBe(DEED_ART_PENDING_IDS.length);
     for (const id of artless) {
-      const crestId = deedCrestId(id, DEEDS[id].category);
-      expect(deedImageUrl(crestId), `${id} -> ${crestId} must have no committed image`).toBeNull();
+      const catCrestId = deedCrestId(id, DEEDS[id].category);
+      expect(catCrestId, `${id} must fall back to a category base crest`).toMatch(/^deed_cat_/);
+      expect(
+        hasCrestRecipe(catCrestId),
+        `${id} -> ${catCrestId} must be a real procedural recipe, not the generic fallback`,
+      ).toBe(true);
+      expect(
+        deedImageUrl(catCrestId),
+        `${id} -> ${catCrestId} must have no committed image`,
+      ).toBeNull();
       expect(deedImageUrl(`deed_${id}`), `${id} itself must have no committed image`).toBeNull();
+    }
+    for (const id of DEED_ORDER.filter((liveId) => DEED_IMAGE_IDS.has(liveId))) {
+      const crestId = deedCrestId(id, DEEDS[id].category);
+      expect(crestId, `${id} must keep its bespoke crest identity`).toBe(`deed_${id}`);
+      expect(deedImageUrl(crestId), id).toBe(`/ui/deeds/${id}.webp`);
     }
     expect(DEED_IMAGE_IDS.has('synthetic_artless')).toBe(false);
     expect(deedImageUrl('deed_synthetic_artless')).toBeNull();
@@ -221,8 +430,7 @@ describe('Book of Deeds webp icons', () => {
     expect(deedImageUrl('deed_cat_progression')).toBeNull();
     expect(deedImageUrl('deed_cat_dungeon')).toBeNull();
     expect(deedImageUrl('deed_cat_chronicle')).toBeNull();
-    // A non-deed_ crest id (a class or family unit-portrait crest) misses the prefix guard and
-    // returns null, so those crests keep their procedural canvas path untouched.
+    // A non-deed_ crest id misses this helper's prefix guard; crestIconUrl owns those paintings.
     expect(deedImageUrl('status_npc')).toBeNull();
     expect(deedImageUrl('family_wolf')).toBeNull();
   });
@@ -236,5 +444,66 @@ describe('Book of Deeds webp icons', () => {
         `${id}.webp must not be committed`,
       ).toBe(false);
     }
+  });
+
+  it('the Masterwrought crest provenance record matches the committed bytes', () => {
+    // The contract pinned beside the blob (the PR #3295 authored-art lesson):
+    // docs/achievements/masterwrought-phase05-art/README.md records accepted
+    // sha256 hashes for the three hand-authored jewelcrafting crests, and a
+    // bulk art-normalization pass preferentially hits hand-authored files.
+    // These literals are the same hashes the README records; a re-encode
+    // that moves the bytes reds HERE naming the crest, and the fix is to
+    // re-review and move BOTH the pin and the provenance record, never to
+    // bump the pin alone. CREDITS.md must keep naming both crest rows.
+    const ACCEPTED_CREST_SHA256: Record<string, string> = {
+      prog_jewelcrafting_rare: '057a867ec786493771e9bdd9a1100f38694bb6c7aeffca4de78fb9fd6896f5dd',
+      prog_jewelcrafting_50: '5edc61e01ce5f20dbf525c1430dc1709a1bc58ff550e0f49bb0a5ca7a4f68d8a',
+      prog_grandmaster_jewelcrafting:
+        'f3ff906d390920499779101c7d361be8b81d07398ab9c0133778ed5daed8ee49',
+    };
+    // The phase 06 inscription trio, same contract, recorded in the phase 06
+    // provenance README; its superseded crest SVG sources remain in git history.
+    const ACCEPTED_PHASE06_CREST_SHA256: Record<string, string> = {
+      prog_inscription_rare: 'a165b790da1fb23e97bf4824df7595383ea14550a4f566e583054d113abe9368',
+      prog_inscription_50: 'a9dc7528e104550baf7bed4f864fee96cb68d90e60fe6a9385bae65f18de9ab4',
+      prog_grandmaster_inscription:
+        'cee13b0815db111d330e11cc29773f6ab6d9c793ba1e5b47b04d56d74057498e',
+    };
+    for (const [id, sha] of Object.entries({
+      ...ACCEPTED_CREST_SHA256,
+      ...ACCEPTED_PHASE06_CREST_SHA256,
+    })) {
+      const bytes = readFileSync(path.join(deedsDir, `${id}.webp`));
+      expect(
+        createHash('sha256').update(bytes).digest('hex'),
+        `${id}.webp drifted from its accepted provenance hash`,
+      ).toBe(sha);
+    }
+    // The provenance READMEs record the same hashes (the pin and the
+    // record cannot drift apart silently), and CREDITS carries the rows.
+    const readme = readFileSync(
+      path.join(repoRoot, 'docs/achievements/masterwrought-phase05-art/README.md'),
+      'utf8',
+    );
+    for (const sha of Object.values(ACCEPTED_CREST_SHA256)) {
+      expect(readme, 'provenance README must record the accepted hash').toContain(sha);
+    }
+    const readme06 = readFileSync(
+      path.join(repoRoot, 'docs/achievements/masterwrought-phase06-art/README.md'),
+      'utf8',
+    );
+    for (const sha of Object.values(ACCEPTED_PHASE06_CREST_SHA256)) {
+      expect(readme06, 'phase 06 provenance README must record the accepted hash').toContain(sha);
+    }
+    const credits = readFileSync(path.join(repoRoot, 'CREDITS.md'), 'utf8');
+    expect(credits).toContain('prog_jewelcrafting_rare');
+    expect(credits).toContain('prog_jewelcrafting_50');
+    expect(credits).toContain('prog_grandmaster_jewelcrafting');
+    // The phase 06 crests are excluded from the blanket deed-art row (it
+    // carves out "the project-generated additions credited below"), so each
+    // id must appear in its own CREDITS row or it is credited nowhere.
+    expect(credits).toContain('prog_inscription_rare');
+    expect(credits).toContain('prog_inscription_50');
+    expect(credits).toContain('prog_grandmaster_inscription');
   });
 });

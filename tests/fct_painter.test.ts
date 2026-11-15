@@ -8,6 +8,7 @@
 
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { FURY_AUDIO } from '../src/game/fury_audio_core';
 import type { UiEffectsTier } from '../src/game/ui_effects_profile';
 import { FCT_MAX_CONCURRENT_LOW, FCT_TTL_SCALE_LOW } from '../src/game/ui_tier_knobs';
 import {
@@ -18,7 +19,9 @@ import {
   type FctEvent,
   type FctKind,
 } from '../src/ui/fct_core';
+import type { FctSpawnSource } from '../src/ui/fct_event';
 import { FCT_POOL_CAP, FctPainter, type FctProject } from '../src/ui/fct_painter';
+import { classicCombatTextOn } from '../src/ui/fct_style_mode';
 import type { PainterHostWriters } from '../src/ui/painter_host';
 
 // ---------------------------------------------------------------------------
@@ -137,6 +140,9 @@ function evt(over: Partial<FctEvent> & { kind: FctKind }): FctEvent {
     target: over.target ?? { pos: { x: 0, y: 0, z: 0 }, scale: 1 },
     crit: over.crit ?? false,
     isSelf: over.isSelf ?? false,
+    // Absent on almost every floater; set only by a beat-staged strike (see the
+    // staging block below), where it holds the number until its blade lands.
+    delaySec: over.delaySec,
   };
 }
 
@@ -452,6 +458,504 @@ describe('FctPainter: the exported cap', () => {
 });
 
 // ---------------------------------------------------------------------------
+// BEAT STAGING: a floater carrying a delaySec is HELD and released on its authored
+// contact beat, off the same step() the TTL recycle runs on (no timer). Red Harvest is
+// the live case: the sim resolves its three weapon strikes on one tick, so all three
+// numbers used to pop at once, ahead of all three blades.
+// ---------------------------------------------------------------------------
+
+describe('FctPainter: beat-staged floaters', () => {
+  let mount: FakeEl;
+  let calls: Call[];
+
+  beforeEach(() => {
+    mount = fakeEl('div');
+    calls = recordingFacet().calls;
+  });
+
+  function stagePainter(
+    opts: { cap?: number; pendingCap?: number; project?: FctProject } = {},
+  ): FctPainter {
+    const facet = recordingFacet();
+    calls = facet.calls;
+    return new FctPainter(
+      facet.writers,
+      mount as unknown as HTMLElement,
+      opts.project ?? (() => ({ x: 0, y: 0, behind: false })),
+      () => 1,
+      { cap: opts.cap ?? 8, pendingCap: opts.pendingCap, doc: fakeDoc, random: () => 0.5 },
+    );
+  }
+
+  const liveNodes = () => mount.childNodes;
+  const liveTexts = () => liveNodes().map((n) => lastText(calls, n));
+
+  const strike = (delaySec: number, text: string): FctEvent =>
+    evt({ kind: 'damage-done-ability', text, delaySec });
+
+  it('claims no node until the beat arrives, then spawns exactly one', () => {
+    const painter = stagePainter();
+    painter.spawn(strike(0.15, '120'), 0);
+    expect(painter.liveCount()).toBe(0);
+    expect(painter.heldCount()).toBe(1);
+    expect(liveNodes()).toHaveLength(0);
+    painter.step(149); // one frame short of the blade
+    expect(painter.liveCount()).toBe(0);
+    painter.step(150); // the blade lands
+    expect(painter.heldCount()).toBe(0);
+    expect(painter.liveCount()).toBe(1);
+    expect(liveTexts()).toEqual(['120']);
+  });
+
+  it('lands the three strikes of a cast on their three beats, in order', () => {
+    const painter = stagePainter();
+    // One cast: all three damage events arrive on the same frame with their beats.
+    painter.spawn(strike(0.15, 'first'), 0);
+    painter.spawn(strike(0.32, 'second'), 0);
+    painter.spawn(strike(0.49, 'finish'), 0);
+    expect(painter.liveCount()).toBe(0);
+    painter.step(100);
+    expect(liveTexts()).toEqual([]);
+    painter.step(160);
+    expect(liveTexts()).toEqual(['first']);
+    painter.step(330);
+    expect(liveTexts()).toEqual(['first', 'second']);
+    painter.step(500);
+    expect(liveTexts()).toEqual(['first', 'second', 'finish']);
+    expect(painter.heldCount()).toBe(0);
+  });
+
+  it('end to end: a Red Harvest cast staged through the shape seam lands on its blades', () => {
+    // The whole path the hud.ts damage site walks: one shape call per strike (which
+    // stamps the beat), then the spawn with the text spread onto it. Before staging all
+    // three of these numbers appeared on the cast frame, ahead of every blade.
+    const painter = stagePainter();
+    const harvest = { sourceId: 4, abilityId: 'red_harvest' };
+    const damage = {
+      type: 'damage',
+      damageKind: 'hit',
+      ability: true,
+      crit: false,
+      isPlayerSource: true,
+      isPlayerTarget: false,
+    } as FctSpawnSource;
+    for (const amount of ['101', '102', '103']) {
+      const shape = painter.stagedShape(harvest, 0, damage);
+      expect(shape).not.toBeNull();
+      painter.spawn(
+        {
+          ...(shape as NonNullable<typeof shape>),
+          text: amount,
+          target: { pos: { x: 0, y: 0, z: 0 }, scale: 1 },
+        },
+        0,
+      );
+    }
+    expect(liveTexts()).toEqual([]);
+    const [first, second, finish] = FURY_AUDIO.red_harvest.times;
+    painter.step(first * 1000);
+    expect(liveTexts()).toEqual(['101']);
+    painter.step(second * 1000);
+    expect(liveTexts()).toEqual(['101', '102']);
+    painter.step(finish * 1000);
+    expect(liveTexts()).toEqual(['101', '102', '103']);
+  });
+
+  it('releases in BEAT order when two casts overlap, not in the order they were held', () => {
+    const painter = stagePainter();
+    painter.spawn(strike(0.49, 'late-blade'), 0); // due at 490
+    painter.spawn(strike(0.15, 'next-cast'), 200); // held later, due at 350
+    // One frame past both: the earlier BEAT must spawn first even though it was held second.
+    painter.step(500);
+    expect(liveTexts()).toEqual(['next-cast', 'late-blade']);
+  });
+
+  it('spawns the OLDEST held entry immediately at the cap rather than dropping it', () => {
+    const painter = stagePainter({ pendingCap: 2 });
+    painter.spawn(strike(0.49, 'a'), 0);
+    painter.spawn(strike(0.49, 'b'), 0);
+    expect(painter.heldCount()).toBe(2);
+    painter.spawn(strike(0.49, 'c'), 0); // over the cap
+    // 'a' arrived early instead of being lost; the queue is still bounded.
+    expect(painter.heldCount()).toBe(2);
+    expect(liveTexts()).toEqual(['a']);
+    painter.step(490);
+    expect(liveTexts()).toEqual(['a', 'b', 'c']);
+  });
+
+  it('projects at RELEASE time, so the number appears where the unit is at contact', () => {
+    const moving = mutableProject();
+    const painter = stagePainter({ project: moving.project });
+    moving.set({ x: 10, y: 10, behind: false });
+    painter.spawn(strike(0.15, '99'), 0);
+    // The unit moved during the blade's wind-up; the floater must follow it.
+    moving.set({ x: 400, y: 200, behind: false });
+    painter.step(150);
+    const node = liveNodes()[0];
+    const styles = calls.filter((c) => c.m === 'setStyleProp' && c.el === node);
+    expect(styles.map((c) => c.args)).toContainEqual(['left', '400px']);
+    expect(styles.map((c) => c.args)).toContainEqual(['top', '200px']);
+  });
+
+  it('behind-culls at release, wasting no slot for a blade that lands off-camera', () => {
+    const moving = mutableProject();
+    const painter = stagePainter({ project: moving.project });
+    painter.spawn(strike(0.15, '99'), 0);
+    moving.set({ x: 0, y: 0, behind: true });
+    painter.step(150);
+    expect(painter.liveCount()).toBe(0);
+    expect(painter.heldCount()).toBe(0);
+  });
+
+  it('leaves every unstaged floater on the immediate path', () => {
+    const painter = stagePainter();
+    painter.spawn(evt({ kind: 'heal', text: '+5' }), 0); // no delaySec at all
+    painter.spawn(strike(0, 'now'), 0); // an explicit zero delay
+    expect(painter.heldCount()).toBe(0);
+    expect(liveTexts()).toEqual(['+5', 'now']);
+  });
+
+  it('dispose() drops held floaters and detaches live ones', () => {
+    const painter = stagePainter();
+    painter.spawn(evt({ kind: 'heal', text: '+5' }), 0);
+    painter.spawn(strike(0.49, 'pending'), 0);
+    expect(painter.liveCount()).toBe(1);
+    expect(painter.heldCount()).toBe(1);
+    painter.dispose();
+    expect(painter.liveCount()).toBe(0);
+    expect(painter.heldCount()).toBe(0);
+    expect(liveNodes()).toHaveLength(0);
+    // A delayed number never arrives over a torn-down HUD.
+    painter.step(1000);
+    expect(painter.liveCount()).toBe(0);
+  });
+
+  it('holds nothing when the TTL walk runs on an empty pool (no per-frame work)', () => {
+    const painter = stagePainter();
+    const before = calls.length;
+    painter.step(1);
+    painter.step(2);
+    expect(calls.length).toBe(before);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// stagedShape: the seam hud.ts's damage spawn sites call. It resolves the spawn shape
+// (fct_event) and stamps the authored contact beat on it (fct_stage_core), so the FOUR
+// landed-hit spawn sites inherit the delay through the shape spread.
+// ---------------------------------------------------------------------------
+
+describe('FctPainter.stagedShape: the damage spawn seam', () => {
+  function shapePainter(): FctPainter {
+    const facet = recordingFacet();
+    return new FctPainter(
+      facet.writers,
+      fakeEl('div') as unknown as HTMLElement,
+      () => ({ x: 0, y: 0, behind: false }),
+      () => 1,
+      { cap: 8, doc: fakeDoc, random: () => 0.5 },
+    );
+  }
+
+  const hit = (over: Partial<FctSpawnSource> = {}): FctSpawnSource =>
+    ({
+      type: 'damage',
+      damageKind: 'hit',
+      ability: true,
+      crit: false,
+      isPlayerSource: true,
+      isPlayerTarget: false,
+      ...over,
+    }) as FctSpawnSource;
+
+  const harvest = { sourceId: 4, abilityId: 'red_harvest' };
+
+  it('stamps the three Red Harvest strikes with the three authored beats', () => {
+    const painter = shapePainter();
+    const delays = [0, 1, 2].map(() => painter.stagedShape(harvest, 10, hit())?.delaySec);
+    expect(delays).toEqual([...FURY_AUDIO.red_harvest.times]);
+  });
+
+  it('stamps nothing on any other damage, so the shape is returned unchanged', () => {
+    const painter = shapePainter();
+    const shape = painter.stagedShape({ sourceId: 4, abilityId: 'mortal_strike' }, 10, hit());
+    expect(shape).toEqual({ kind: 'damage-done-ability', isSelf: false, crit: false });
+    expect(shape?.delaySec).toBeUndefined();
+  });
+
+  it('gives a pet / guardian hit no amount (it never feeds the big-hit baseline)', () => {
+    const painter = shapePainter();
+    const strike = { sourceId: 9, abilityId: null, school: 'fire', amount: 30 };
+    const petHit = hit({ isPlayerSource: false, isPlayerOwnedSource: true, ability: false });
+    expect(painter.stagedShape(strike, 10, petHit)).toEqual({
+      kind: 'damage-done-auto',
+      isSelf: false,
+      crit: false,
+    });
+  });
+
+  it("carries the strike amount onto the player's OWN outgoing hit only, and never a school", () => {
+    const painter = shapePainter();
+    const strike = { sourceId: 4, abilityId: 'fireball', school: 'fire', amount: 412 };
+    const own = painter.stagedShape(strike, 10, hit());
+    expect(own).toEqual({ kind: 'damage-done-ability', isSelf: false, crit: false, amount: 412 });
+    const blocked = painter.stagedShape(strike, 10, hit({ damageKind: 'block' }));
+    expect(blocked).toEqual({ kind: 'damage-done-block', isSelf: false, crit: false, amount: 412 });
+    expect(own && 'school' in own).toBe(false);
+    // Incoming damage and an avoidance word carry no amount.
+    const taken = painter.stagedShape(
+      strike,
+      10,
+      hit({ isPlayerSource: false, isPlayerTarget: true }),
+    );
+    expect(taken).toEqual({ kind: 'damage-taken', isSelf: true, crit: false });
+    const missed = painter.stagedShape(strike, 10, hit({ damageKind: 'miss' }));
+    expect(missed && 'amount' in missed).toBe(false);
+  });
+
+  it('consumes the beat even when nothing floats, so the next blade keeps its slot', () => {
+    const painter = shapePainter();
+    // A Red Harvest between two OTHER entities floats nothing (fctSpawnShape returns null)
+    // but still burns its beat; the local player's own next strike must not inherit it.
+    const other = hit({ isPlayerSource: false, isPlayerTarget: false });
+    expect(painter.stagedShape(harvest, 10, other)).toBeNull();
+    expect(painter.stagedShape(harvest, 10, hit())?.delaySec).toBe(FURY_AUDIO.red_harvest.times[1]);
+  });
+
+  it("holds a melee swing's number for the blade contact the renderer recorded (contact staging)", () => {
+    const facet = recordingFacet();
+    const swing = { sourceId: 7, abilityId: null };
+    const other = { sourceId: 8, abilityId: null };
+    const painter = new FctPainter(
+      facet.writers,
+      fakeEl('div') as unknown as HTMLElement,
+      () => ({ x: 0, y: 0, behind: false }),
+      () => 1,
+      {
+        cap: 8,
+        doc: fakeDoc,
+        random: () => 0.5,
+        contactDelaySec: (s) => (s === swing ? 0.125 : 0),
+      },
+    );
+    expect(painter.stagedShape(swing, 10, hit())?.delaySec).toBe(0.125);
+    // an event with no recorded contact floats at once, exactly as before
+    expect(painter.stagedShape(other, 10, hit())?.delaySec).toBeUndefined();
+    // an authored beat and a contact: the later one wins (Red Harvest's first beat, 0.15)
+    const both = new FctPainter(
+      facet.writers,
+      fakeEl('div') as unknown as HTMLElement,
+      () => ({ x: 0, y: 0, behind: false }),
+      () => 1,
+      { cap: 8, doc: fakeDoc, random: () => 0.5, contactDelaySec: () => 0.1 },
+    );
+    expect(both.stagedShape(harvest, 10, hit())?.delaySec).toBe(FURY_AUDIO.red_harvest.times[0]);
+  });
+
+  it('keeps the avoidance words on the same beats as the blades that whiffed', () => {
+    const painter = shapePainter();
+    const miss = hit({ damageKind: 'dodge', isPlayerSource: false, isPlayerTarget: true });
+    expect(painter.stagedShape(harvest, 10, hit())?.delaySec).toBe(0.15);
+    expect(painter.stagedShape(harvest, 10, miss)?.delaySec).toBe(0.32);
+    expect(painter.stagedShape(harvest, 10, hit())?.delaySec).toBe(0.49);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// One beat per strike: a floater that reports a strike beside that strike's own number (its
+// "Absorbed N") is spawned WITH the strike and held to the same beat, so the two land together
+// with the blade instead of the text popping the moment the swing starts. Before this the
+// absorbed text carried no delay at all (fctSpawnShape stamps none), ahead of a held number.
+// ---------------------------------------------------------------------------
+
+describe('FctPainter.spawn: a floater spawned with its strike', () => {
+  let mount: FakeEl;
+  let calls: Call[];
+
+  beforeEach(() => {
+    mount = fakeEl('div');
+  });
+
+  function pairPainter(contactDelaySec: (s: object) => number = () => 0): FctPainter {
+    const facet = recordingFacet();
+    calls = facet.calls;
+    return new FctPainter(
+      facet.writers,
+      mount as unknown as HTMLElement,
+      () => ({ x: 0, y: 0, behind: false }),
+      () => 1,
+      { cap: 8, doc: fakeDoc, random: () => 0.5, contactDelaySec },
+    );
+  }
+
+  const liveTexts = () => mount.childNodes.map((n) => lastText(calls, n));
+  const absorbed = (text = 'Absorbed 40'): FctEvent => evt({ kind: 'absorb', text });
+  const hit = (over: Partial<FctSpawnSource> = {}): FctSpawnSource =>
+    ({
+      type: 'damage',
+      damageKind: 'hit',
+      ability: false,
+      crit: false,
+      isPlayerSource: true,
+      isPlayerTarget: false,
+      ...over,
+    }) as FctSpawnSource;
+  /** The hud's damage arm for one strike: the absorbed text first, then the number. */
+  function strikeFloaters(painter: FctPainter, strike: object, now: number, amount: string) {
+    const blow = strike as { sourceId: number; abilityId?: string | null };
+    painter.spawn(absorbed(), now, blow);
+    const shape = painter.stagedShape(blow, now, hit());
+    if (shape) painter.spawn({ ...shape, text: amount, target: absorbed().target }, now);
+    return shape;
+  }
+
+  it("holds the absorbed text for the swing's blade contact, with the number it belongs to", () => {
+    const swing = { sourceId: 7, abilityId: null };
+    const painter = pairPainter((s) => (s === swing ? 0.45 : 0));
+    const shape = strikeFloaters(painter, swing, 1000, '12');
+    expect(shape?.delaySec).toBe(0.45);
+    // nothing floats on the frame the swing starts: both wait for the blade
+    expect(painter.liveCount()).toBe(0);
+    expect(painter.heldCount()).toBe(2);
+    painter.step(1449);
+    expect(liveTexts()).toEqual([]);
+    // the blade lands: the absorbed text and the number, on the same frame, in spawn order
+    painter.step(1450);
+    expect(liveTexts()).toEqual(['Absorbed 40', '12']);
+    expect(painter.heldCount()).toBe(0);
+  });
+
+  it('floats a fully absorbed strike (no number at all) at the contact too', () => {
+    const swing = { sourceId: 7, abilityId: null };
+    const painter = pairPainter(() => 0.3);
+    painter.spawn(absorbed('Absorbed 90'), 1000, swing);
+    // the number is suppressed (fct_event: a soaked hit floats no bare 0), and takes no beat
+    expect(painter.stagedShape(swing, 1000, hit({ fullyAbsorbed: true }))).toBeNull();
+    expect(painter.liveCount()).toBe(0);
+    painter.step(1299);
+    expect(liveTexts()).toEqual([]);
+    painter.step(1300);
+    expect(liveTexts()).toEqual(['Absorbed 90']);
+  });
+
+  it('spawns at once for a strike with no contact and no beat, exactly as before', () => {
+    const painter = pairPainter();
+    const bite = { sourceId: 3, abilityId: null }; // a mob's swing: nothing is recorded for it
+    const shape = strikeFloaters(painter, bite, 1000, '-8');
+    expect(shape?.delaySec).toBeUndefined();
+    expect(painter.heldCount()).toBe(0);
+    expect(liveTexts()).toEqual(['Absorbed 40', '-8']);
+    // and with no strike handed in, a floater is what it always was
+    painter.spawn(absorbed('Absorbed 5'), 1000);
+    expect(liveTexts()).toEqual(['Absorbed 40', '-8', 'Absorbed 5']);
+  });
+
+  it('takes ONE beat for the pair: the next strike of the cast still lands on the next beat', () => {
+    const painter = pairPainter();
+    const [first, second, third] = FURY_AUDIO.red_harvest.times;
+    // three strikes of one Red Harvest, each its own event, the middle one absorbed in part
+    const strikes = [0, 1, 2].map(() => ({ sourceId: 4, abilityId: 'red_harvest' }));
+    expect(painter.stagedShape(strikes[0], 10, hit({ ability: true }))?.delaySec).toBe(first);
+    painter.spawn(absorbed(), 10, strikes[1]);
+    // the absorbed text consumed the second beat; its number shares it, never the third
+    expect(painter.stagedShape(strikes[1], 10, hit({ ability: true }))?.delaySec).toBe(second);
+    expect(painter.stagedShape(strikes[2], 10, hit({ ability: true }))?.delaySec).toBe(third);
+    // the held absorbed text is due on the second beat
+    painter.step(10 + second * 1000 - 1);
+    expect(liveTexts()).toEqual([]);
+    painter.step(10 + second * 1000);
+    expect(liveTexts()).toEqual(['Absorbed 40']);
+  });
+
+  it('shares the beat once: a strike staged again on its own takes the next ordinal', () => {
+    // The stager counts strikes, so the hand-off is consumed by the number it was for. One
+    // strike object asked three times stays three beats (the seam's own contract above).
+    const painter = pairPainter();
+    const harvest = { sourceId: 4, abilityId: 'red_harvest' };
+    const [first, second, third] = FURY_AUDIO.red_harvest.times;
+    painter.spawn(absorbed(), 10, harvest);
+    expect(painter.stagedShape(harvest, 10, hit({ ability: true }))?.delaySec).toBe(first);
+    expect(painter.stagedShape(harvest, 10, hit({ ability: true }))?.delaySec).toBe(second);
+    expect(painter.stagedShape(harvest, 10, hit({ ability: true }))?.delaySec).toBe(third);
+  });
+
+  it('never hands one strike beat to another strike', () => {
+    const swing = { sourceId: 7, abilityId: null };
+    const other = { sourceId: 8, abilityId: null };
+    const painter = pairPainter((s) => (s === swing ? 0.45 : 0));
+    painter.spawn(absorbed(), 1000, swing);
+    // another event staged next is not the paired strike: it resolves its own (no) delay
+    expect(painter.stagedShape(other, 1000, hit())?.delaySec).toBeUndefined();
+    expect(painter.stagedShape(swing, 1000, hit())?.delaySec).toBe(0.45);
+  });
+
+  it('keeps a pairing for the very next shape only: one nothing claimed is dropped', () => {
+    // The hud stages a strike's number right after its paired floater. A pairing that the
+    // next staged shape was not for is stale, and is let go rather than kept for an event
+    // object that will never ask: asked later, that strike resolves its own beat afresh.
+    const painter = pairPainter();
+    const [first, second] = FURY_AUDIO.red_harvest.times;
+    const harvest = { sourceId: 4, abilityId: 'red_harvest' };
+    const bystander = { sourceId: 9, abilityId: null };
+    painter.spawn(absorbed(), 10, harvest); // resolves the cast's first beat
+    expect(painter.stagedShape(bystander, 10, hit())?.delaySec).toBeUndefined();
+    // no longer paired: this ask is a strike of its own and takes the SECOND beat
+    expect(painter.stagedShape(harvest, 10, hit({ ability: true }))?.delaySec).toBe(second);
+    expect(first).toBeLessThan(second);
+  });
+
+  it('keeps the later of its own delay and the strike beat', () => {
+    const swing = { sourceId: 7, abilityId: null };
+    const painter = pairPainter(() => 0.2);
+    // the floater's own delay is the later one: it wins
+    painter.spawn({ ...absorbed('late'), delaySec: 0.5 }, 0, swing);
+    painter.step(499);
+    expect(liveTexts()).toEqual([]);
+    painter.step(500);
+    expect(liveTexts()).toEqual(['late']);
+    // the strike's beat is the later one: it wins
+    painter.spawn({ ...absorbed('early'), delaySec: 0.05 }, 1000, swing);
+    painter.step(1199);
+    expect(liveTexts()).toEqual(['late']);
+    painter.step(1200);
+    expect(liveTexts()).toEqual(['late', 'early']);
+  });
+
+  it('drops the pairing on dispose: a torn-down painter hands no stale beat on', () => {
+    const swing = { sourceId: 7, abilityId: null };
+    let contact = 0.2;
+    const painter = pairPainter(() => contact);
+    painter.spawn(absorbed('gone'), 1000, swing); // paired at 0.2
+    painter.dispose();
+    expect(painter.heldCount()).toBe(0);
+    // what the same strike resolves NOW differs from what was paired: a pairing that
+    // survived the teardown would hand back the old 0.2
+    contact = 0.35;
+    expect(painter.stagedShape(swing, 2000, hit())?.delaySec).toBe(0.35);
+  });
+});
+
+// The hud.ts damage spawn sites must route through the stage: a plain fctSpawnShape call
+// there would spawn all three Red Harvest numbers on the cast tick again. A source pin,
+// in the existing style, because the FCT spawn path has no integration harness.
+describe('hud.ts damage spawn sites pass through the beat stage', () => {
+  const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+
+  it('stages both damage shape sites (the avoidance words and the landed hit)', () => {
+    expect(hud).toContain('const shape = this.fctPainter.stagedShape(ev, now, {');
+    expect(hud).toContain('const hitShape = this.fctPainter.stagedShape(ev, now, {');
+  });
+
+  it('leaves the non-damage floaters (heal / xp / honor / self-note) unstaged', () => {
+    // Only a weapon strike has an authored contact; staging anything else would delay a
+    // floater with nothing to wait for.
+    expect(hud).toContain("const xpShape = fctSpawnShape({ type: 'xp' });");
+    expect(hud).toContain("const honorShape = fctSpawnShape({ type: 'honor' });");
+    expect(hud).toContain("const shape = fctSpawnShape({ type: 'self-note' });");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The pool cap / TTL knobs are a pure function of the STATIC ui effects tier
 // (data-fx-level), NEVER the governor. These drive the painter through the injected
 // getFxTier accessor and assert: ultra is byte-equivalent to the untiered painter (full
@@ -578,36 +1082,326 @@ describe('FctPainter: static-preset tiering', () => {
   });
 });
 
-// The per-kind colours moved out of TS into hud.css's .fct-<token> rules, so the
-// faithfulness guard for them must live where the colours now are: this asserts each token rule
-// still carries the EXACT hex the live fct() passed. A drift (a heal that is no longer #3ce63c,
-// say) fails here. It reads CSS, never TS, so it reintroduces no hex into the painter.
-describe('FCT colour tokens: the .fct-<token> hex stays byte-faithful to the old fct()', () => {
+// The vivid combat-text look (the default) versus Classic Combat Text: which classes a
+// spawn toggles, the alternating fan-out lane, the big-hit flag, and that a held
+// (beat-staged) floater keeps its amount through release.
+describe('FctPainter: vivid look and the Classic Combat Text opt-out', () => {
+  function vividPainter(classic = false) {
+    const facet = recordingFacet();
+    const mount = fakeEl('div');
+    const painter = new FctPainter(
+      facet.writers,
+      mount as unknown as HTMLElement,
+      () => ({ x: 0, y: 0, behind: false }),
+      () => 1,
+      { cap: 16, doc: fakeDoc, random: () => 0.5, isClassic: () => classic },
+    );
+    // The final on/off state of each class on a node (the last toggle wins).
+    const classesOf = (node: unknown): Map<string, boolean> => {
+      const state = new Map<string, boolean>();
+      for (const c of facet.calls)
+        if (c.m === 'toggleClass' && c.el === node)
+          state.set(c.args[0] as string, c.args[1] as boolean);
+      return state;
+    };
+    const on = (node: unknown) =>
+      [...classesOf(node)]
+        .filter(([, v]) => v)
+        .map(([k]) => k)
+        .sort();
+    return { painter, mount, on };
+  }
+
+  const out = (over: Partial<FctEvent> = {}): FctEvent => ({
+    ...evt({ kind: 'damage-done-ability', text: '100' }),
+    amount: 100,
+    ...over,
+  });
+
+  it('deals consecutive outgoing hits into the four lanes, exactly one lane each', () => {
+    const { painter, mount, on } = vividPainter();
+    for (let i = 0; i < 5; i++) painter.spawn(out(), 0);
+    const lanes = mount.childNodes.map((n) => on(n).filter((c) => c.startsWith('fct-out-')));
+    expect(lanes).toEqual([
+      ['fct-out-l'],
+      ['fct-out-r'],
+      ['fct-out-ll'],
+      ['fct-out-rr'],
+      ['fct-out-l'],
+    ]);
+    expect(on(mount.childNodes[0])).toEqual(['fct-damage-done-ability', 'fct-out-l', 'fct-vivid']);
+  });
+
+  it('keeps incoming damage in the straight rise (vivid outline, no fan-out lane)', () => {
+    const { painter, mount, on } = vividPainter();
+    painter.spawn(evt({ kind: 'damage-taken', text: '-40', isSelf: true }), 0);
+    expect(on(mount.childNodes[0])).toEqual(['fct-damage-taken', 'fct-vivid']);
+  });
+
+  it('keeps a spell hit on the shipped ability token (no elemental colour), through the real stage', () => {
+    const { painter, mount, on } = vividPainter();
+    // The damage SimEvent hud.ts hands in still carries its school; it must not colour.
+    const frostbolt = { sourceId: 1, abilityId: 'frostbolt', school: 'frost', amount: 120 };
+    const shape = painter.stagedShape(frostbolt, 0, {
+      type: 'damage',
+      damageKind: 'hit',
+      ability: true,
+      crit: false,
+      isPlayerSource: true,
+      isPlayerTarget: false,
+    });
+    expect(shape).not.toBeNull();
+    painter.spawn(
+      { ...(shape as NonNullable<typeof shape>), text: '120', target: out().target },
+      0,
+    );
+    const classes = on(mount.childNodes[0]);
+    expect(classes).toContain('fct-damage-done-ability');
+    expect(classes.filter((c) => /^fct-damage-done-(?!ability$)/.test(c))).toEqual([]);
+  });
+
+  it('flags a hit well above the running average as big, and not the routine ones', () => {
+    const { painter, mount, on } = vividPainter();
+    for (let i = 0; i < 6; i++) painter.spawn(out({ amount: 100 }), 0);
+    painter.spawn(out({ amount: 400, text: '400' }), 0);
+    const nodes = mount.childNodes;
+    for (const n of nodes.slice(0, 6)) expect(on(n)).not.toContain('fct-big');
+    expect(on(nodes[6])).toContain('fct-big');
+  });
+
+  it('never weighs a non-outgoing number into the baseline or flags it big', () => {
+    const { painter, mount, on } = vividPainter();
+    for (let i = 0; i < 6; i++) painter.spawn(out({ amount: 100 }), 0);
+    // A huge incoming number and heal carry an amount but are not outgoing hits.
+    painter.spawn({ ...evt({ kind: 'damage-taken', text: '-900' }), amount: 900 }, 0);
+    painter.spawn({ ...evt({ kind: 'heal', text: '+900' }), amount: 900 }, 0);
+    expect(on(mount.childNodes[6])).not.toContain('fct-big');
+    expect(on(mount.childNodes[7])).not.toContain('fct-big');
+    // The baseline stayed at 100, so a 200 outgoing hit is still big.
+    painter.spawn(out({ amount: 200 }), 0);
+    expect(on(mount.childNodes[8])).toContain('fct-big');
+  });
+
+  it('Classic Combat Text: no vivid class, no lane, no big flag, and the shipped colour token', () => {
+    const { painter, mount, on } = vividPainter(true);
+    for (let i = 0; i < 6; i++) painter.spawn(out({ amount: 100 }), 0);
+    painter.spawn(out({ amount: 900, crit: true }), 0);
+    for (const n of mount.childNodes) {
+      const classes = on(n);
+      expect(classes).not.toContain('fct-vivid');
+      expect(classes.filter((c) => c.startsWith('fct-out-'))).toEqual([]);
+      expect(classes).not.toContain('fct-big');
+      expect(classes).toContain('fct-damage-done-ability');
+    }
+  });
+
+  it('a recycled node drops the vivid classes when the player switches to classic', () => {
+    let classic = false;
+    const facet = recordingFacet();
+    const mount = fakeEl('div');
+    const painter = new FctPainter(
+      facet.writers,
+      mount as unknown as HTMLElement,
+      () => ({ x: 0, y: 0, behind: false }),
+      () => 1,
+      { cap: 1, doc: fakeDoc, random: () => 0.5, isClassic: () => classic },
+    );
+    painter.spawn(out(), 0);
+    const node = mount.childNodes[0];
+    painter.step(FCT_TTL_MS);
+    classic = true;
+    painter.spawn(out(), FCT_TTL_MS);
+    const last = (cls: string) =>
+      facet.calls.filter((c) => c.m === 'toggleClass' && c.el === node && c.args[0] === cls).at(-1)
+        ?.args[1];
+    expect(last('fct-vivid')).toBe(false);
+    for (const lane of ['l', 'r', 'll', 'rr']) expect(last(`fct-out-${lane}`)).toBe(false);
+  });
+
+  it('a beat-staged (held) outgoing hit keeps its amount through release', () => {
+    const { painter, mount, on } = vividPainter();
+    for (let i = 0; i < 6; i++) painter.spawn(out({ amount: 100 }), 0);
+    painter.spawn(out({ amount: 500, delaySec: 0.2 }), 0);
+    expect(painter.heldCount()).toBe(1);
+    painter.step(200);
+    const released = mount.childNodes[6];
+    expect(on(released)).toContain('fct-damage-done-ability');
+    expect(on(released)).toContain('fct-big');
+  });
+
+  it('defaults to the vivid look when the document has no body (a Node host)', () => {
+    const facet = recordingFacet();
+    const mount = fakeEl('div');
+    const painter = new FctPainter(
+      facet.writers,
+      mount as unknown as HTMLElement,
+      () => ({ x: 0, y: 0, behind: false }),
+      () => 1,
+      { cap: 2, doc: fakeDoc, random: () => 0.5 },
+    );
+    painter.spawn(out(), 0);
+    expect(
+      facet.calls.some((c) => c.m === 'toggleClass' && c.args[0] === 'fct-vivid' && c.args[1]),
+    ).toBe(true);
+  });
+});
+
+describe('classicCombatTextOn: reads the Classic Combat Text body class', () => {
+  const docWith = (classes: string[]) => ({
+    body: { classList: { contains: (c: string) => classes.includes(c) } },
+  });
+
+  it('is on only when the body carries classic-combat-text', () => {
+    expect(classicCombatTextOn(docWith(['classic-combat-text']))).toBe(true);
+    expect(classicCombatTextOn(docWith(['compact-chat']))).toBe(false);
+    expect(classicCombatTextOn({})).toBe(false);
+    expect(classicCombatTextOn({ body: null })).toBe(false);
+  });
+});
+
+describe('vivid combat text CSS contract', () => {
   const css = readFileSync(new URL('../src/styles/hud.css', import.meta.url), 'utf8');
-  // token -> the exact hex the live per-event fct() passed for that spawn kind.
-  const PINNED: Record<string, string> = {
-    'fct-miss-self': '#bbb',
-    'fct-dodge-self': '#bbb',
-    'fct-miss-other': '#fff',
-    'fct-dodge-other': '#fff',
-    'fct-damage-done-auto': '#fff',
-    'fct-damage-done-ability': '#ffe97a',
-    'fct-damage-taken': '#ff5544',
-    'fct-absorb': '#9fd7ff',
-    'fct-heal': '#3ce63c',
-    'fct-xp': '#d9a3ff',
-    'fct-rested-xp': '#6db8ff',
-    'fct-honor': '#ffd100',
-    'fct-self-note': '#ff8c66',
+  const mobileCss = readFileSync(new URL('../src/styles/hud.mobile.css', import.meta.url), 'utf8');
+  const tokensCss = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
+  // One @keyframes block, up to the next @keyframes / @media / top-level rule.
+  const keyframes = (sheet: string, name: string): string => {
+    const start = sheet.indexOf(`@keyframes ${name} {`);
+    expect(start, `@keyframes ${name}`).toBeGreaterThanOrEqual(0);
+    const rest = sheet.slice(start + 1);
+    const next = rest.search(/@keyframes|@media|\n {2}[.:a-z]/);
+    return next >= 0 ? rest.slice(0, next) : rest;
   };
 
-  it('declares every descriptor colour token with its pinned hex', () => {
-    for (const [token, hex] of Object.entries(PINNED)) {
-      // Find the selector (it may be grouped with siblings), then assert the colour in its block.
-      const at = css.indexOf(`.${token}`);
-      expect(at, `.${token} selector present in hud.css`).toBeGreaterThanOrEqual(0);
+  it('colours only by hit kind: the vivid ability gold, and no per-school damage colour', () => {
+    expect(css).toMatch(
+      /\.fct\.fct-vivid\.fct-damage-done-ability \{\s*color: var\(--color-fct-vivid-ability\);/,
+    );
+    expect(tokensCss).toMatch(/--color-fct-vivid-ability:\s*#[0-9a-f]{6};/);
+    for (const school of ['fire', 'frost', 'nature', 'shadow', 'arcane', 'holy']) {
+      expect(css).not.toContain(`.fct-damage-done-${school}`);
+      expect(tokensCss).not.toContain(`--color-fct-damage-done-${school}`);
+    }
+  });
+
+  const LANES = ['l', 'r', 'll', 'rr'];
+
+  it('drives each fan-out lane from its own STATIC keyframes (no var() inside, compositor-safe)', () => {
+    for (const lane of LANES) {
+      expect(keyframes(css, `fct-out-${lane}`)).not.toContain('var(');
+      expect(keyframes(mobileCss, `fct-out-${lane}-mobile`)).not.toContain('var(');
+      expect(css).toMatch(
+        new RegExp(`\\.fct\\.fct-out-${lane} \\{\\s*animation-name: fct-out-${lane};`),
+      );
+    }
+    expect(keyframes(css, 'fct-vivid-crit')).not.toContain('var(');
+  });
+
+  it('holds full opacity past the midpoint before fading (the grey wash fix)', () => {
+    for (const lane of LANES)
+      expect(keyframes(css, `fct-out-${lane}`)).toMatch(/60% \{\s*opacity: 1;/);
+    expect(keyframes(css, 'fct-vivid-rise')).toMatch(/60% \{\s*opacity: 1;/);
+    expect(keyframes(css, 'fct-vivid-crit')).toMatch(/65% \{\s*opacity: 1;/);
+    expect(keyframes(mobileCss, 'fct-vivid-rise-mobile')).toMatch(/60% \{\s*opacity: 1;/);
+    expect(keyframes(mobileCss, 'fct-vivid-crit-mobile')).toMatch(/65% \{\s*opacity: 1;/);
+  });
+
+  it('keeps every new vivid keyframe static (no var() inside, compositor-safe)', () => {
+    expect(keyframes(css, 'fct-vivid-rise')).not.toContain('var(');
+    expect(keyframes(mobileCss, 'fct-vivid-rise-mobile')).not.toContain('var(');
+    expect(keyframes(mobileCss, 'fct-vivid-crit-mobile')).not.toContain('var(');
+  });
+
+  it('fits the low-tier vivid animations to the low floater life, so the fade is seen', () => {
+    // The painter recycles a low-tier floater at FCT_TTL_MS * FCT_TTL_SCALE_LOW; the vivid
+    // animations hold full opacity to 60%, so at full length they would be removed opaque.
+    const at = css.indexOf(':root[data-fx-level="low"]\n    .fct.fct-vivid:is(');
+    expect(at).toBeGreaterThan(0);
+    const block = css.slice(at, css.indexOf('}', at));
+    for (const cls of [
+      'fct-out-l',
+      'fct-out-r',
+      'fct-out-ll',
+      'fct-out-rr',
+      'crit',
+      'fct-damage-taken',
+      'fct-damage-taken-block',
+    ])
+      expect(block).toContain(`.${cls}`);
+    const seconds = Number(/animation-duration: ([\d.]+)s;/.exec(block)?.[1]);
+    expect(seconds * 1000).toBe(FCT_TTL_MS * FCT_TTL_SCALE_LOW);
+  });
+
+  it('never lets a vivid crit or incoming hit fall back to the fade-from-frame-one rise', () => {
+    // Low tier sheds only the pop: the vivid crit rides the hold-then-fade rise, and this
+    // rule must outrank the shipped `:root[data-fx-level="low"] .fct.crit` shed.
+    expect(css).toMatch(
+      /:root\[data-fx-level="low"\] \.fct\.fct-vivid\.crit \{\s*animation-name: fct-vivid-rise;/,
+    );
+    expect(mobileCss).toMatch(
+      /:root\[data-fx-level="low"\] body\.mobile-touch \.fct\.fct-vivid\.crit \{\s*animation-name: fct-vivid-rise-mobile;/,
+    );
+    expect(mobileCss).toMatch(
+      /body\.mobile-touch \.fct\.fct-vivid\.crit \{\s*animation-name: fct-vivid-crit-mobile;/,
+    );
+    // Incoming non-crit damage holds too; the :not(.crit) keeps an incoming crit's pop.
+    expect(css).toMatch(
+      /\.fct\.fct-vivid\.fct-damage-taken:not\(\.crit\),\s*\.fct\.fct-vivid\.fct-damage-taken-block:not\(\.crit\) \{\s*animation-name: fct-vivid-rise;/,
+    );
+  });
+
+  it('pops a crit in the centre: the crit rule is declared AFTER every lane rule it ties with', () => {
+    const critAt = css.indexOf('.fct.fct-vivid.crit {');
+    expect(critAt).toBeGreaterThan(0);
+    expect(css.slice(critAt, css.indexOf('}', critAt))).toContain(
+      'animation-name: fct-vivid-crit;',
+    );
+    for (const lane of LANES) expect(css.indexOf(`.fct.fct-out-${lane} {`)).toBeLessThan(critAt);
+    // The shipped low-tier shed (plain rise, no pop) still outranks the vivid crit.
+    expect(css).toMatch(/:root\[data-fx-level="low"\] \.fct\.crit \{\s*animation-name: fct-rise;/);
+  });
+
+  it('restates the fan-out on touch, where the mobile layer outranks hud.css', () => {
+    for (const lane of LANES)
+      expect(mobileCss).toMatch(
+        new RegExp(
+          `body\\.mobile-touch \\.fct\\.fct-out-${lane}:not\\(\\.crit\\) \\{[^}]*animation-name: fct-out-${lane}-mobile;`,
+        ),
+      );
+  });
+});
+
+// The per-kind colours now read semantic tokens from tokens.css. Pin both ends of that
+// indirection so the component sheet stays literal-free without changing a shipped hue.
+describe('FCT colour tokens: each kind reads its byte-faithful semantic token', () => {
+  const css = readFileSync(new URL('../src/styles/hud.css', import.meta.url), 'utf8');
+  const tokensCss = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
+  const PINNED: Record<string, readonly [string, string]> = {
+    'fct-miss-self': ['color-fct-miss-self', '#bbb'],
+    'fct-dodge-self': ['color-fct-dodge-self', '#bbb'],
+    'fct-miss-other': ['color-fct-miss-other', '#fff'],
+    'fct-dodge-other': ['color-fct-dodge-other', '#fff'],
+    'fct-damage-done-auto': ['color-fct-damage-done-auto', '#fff'],
+    'fct-damage-done-ability': ['color-fct-damage-done-ability', '#ffe97a'],
+    'fct-damage-taken': ['color-fct-damage-taken', '#ff5544'],
+    'fct-damage-done-block': ['color-fct-damage-done-block', '#b8c4d9'],
+    'fct-damage-taken-block': ['color-fct-damage-taken-block', '#7ec8e3'],
+    'fct-absorb': ['color-fct-absorb', '#9fd7ff'],
+    'fct-heal': ['color-fct-heal', '#3ce63c'],
+    'fct-xp': ['color-fct-xp', '#d9a3ff'],
+    'fct-rested-xp': ['color-fct-rested-xp', '#6db8ff'],
+    'fct-honor': ['color-fct-honor', '#ffd100'],
+    'fct-self-note': ['color-fct-self-note', '#ff8c66'],
+  };
+
+  it('declares every descriptor token read and preserves its pinned value', () => {
+    for (const [className, [token, value]] of Object.entries(PINNED)) {
+      const at = css.indexOf(`.${className}`);
+      expect(at, `.${className} selector present in hud.css`).toBeGreaterThanOrEqual(0);
       const block = css.slice(at, css.indexOf('}', at)).toLowerCase();
-      expect(block, `.${token} -> color: ${hex}`).toContain(`color: ${hex}`);
+      expect(block, `.${className} -> color: var(--${token})`).toContain(`color: var(--${token})`);
+      expect(tokensCss.toLowerCase()).toMatch(
+        new RegExp(`--${token}:\\s*${value.replace('#', '\\#')}\\s*;`),
+      );
     }
   });
 });

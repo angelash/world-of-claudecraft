@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FocusTrapHandle } from '../src/ui/focus_manager';
@@ -68,10 +68,10 @@ function deferred<T>() {
 
 function harness() {
   const ensurePreview = vi.fn();
-  const captureCloseup = vi.fn(() => 'data:image/png;base64,preview');
+  const captureCloseup = vi.fn(async () => document.createElement('canvas'));
   const focusFirst = vi.fn();
   const release = vi.fn();
-  const trap: FocusTrapHandle = { focusFirst, release };
+  const trap: FocusTrapHandle = { focusFirst, release, opener: vi.fn(() => null) };
   const options = {
     refreshBalance: vi.fn(),
     showWallet: vi.fn(() => true),
@@ -147,5 +147,20 @@ describe('PlayerCardController', () => {
     expect(anchorClick).toHaveBeenCalledTimes(1);
     expect(document.querySelector('.pc-status')?.textContent).not.toBe('');
     anchorClick.mockRestore();
+  });
+
+  it('mirrors the selected pose into the shared button state', async () => {
+    const test = harness();
+    await test.controller.open();
+    const poses = Array.from(document.querySelectorAll<HTMLButtonElement>('.pc-pose'));
+
+    poses[1]?.click();
+
+    await vi.waitFor(() => expect(cardMocks.render).toHaveBeenCalledTimes(2));
+    // W12: pose selection keeps legacy and shared-library state in lockstep.
+    expect(poses[0]?.classList.contains('ui-btn--on')).toBe(false);
+    expect(poses[0]?.getAttribute('aria-pressed')).toBe('false');
+    expect(poses[1]?.classList.contains('ui-btn--on')).toBe(true);
+    expect(poses[1]?.getAttribute('aria-pressed')).toBe('true');
   });
 });

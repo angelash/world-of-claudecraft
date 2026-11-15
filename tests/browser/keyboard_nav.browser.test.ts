@@ -289,6 +289,7 @@ describe('keyboard-nav: the market filter listbox (dropdownKeyNav wiring)', () =
             marketInfo: null,
             copper: 0,
             marketSearch: (query: MarketQuery) => queries.push(query),
+            marketSellPriceCheck: () => undefined,
             inventory: [],
           }) as never,
         closeOthers: () => undefined,
@@ -348,6 +349,50 @@ describe('keyboard-nav: the market filter listbox (dropdownKeyNav wiring)', () =
       reSelect.querySelector('[aria-selected="true"]')?.getAttribute('data-market-filter-option'),
     ).toBe(committed);
     expect(document.activeElement).toBe(reSelect.querySelector('.mkt-select-btn'));
+  });
+
+  // Issue #3102: the sort control (unlike subtype/armorClass/primaryStat) is always
+  // present regardless of item type, and picking it reorders rather than narrows, so
+  // it is exercised on its own here rather than folded into the item-type-gated cases.
+  it('renders the sort control and commits price-ascending into the pushed query', () => {
+    const queries: MarketQuery[] = [];
+    const root = openMarket(queries);
+    const sortMenu = req(
+      root.querySelector<HTMLElement>('[data-market-filter-menu="sort"]'),
+      'sort filter menu',
+    );
+    expect(
+      Array.from(sortMenu.querySelectorAll<HTMLElement>('[data-market-filter-option]')).map(
+        (option) => option.dataset.marketFilterOption,
+      ),
+    ).toEqual(['name', 'price']);
+    expect(optionLabels(sortMenu)).toEqual(['Name (A-Z)', 'Price: Low to High']);
+    expect(filterLabel(root, 'sort')).toBe('Sort');
+
+    req(
+      sortMenu.querySelector<HTMLButtonElement>('[data-market-filter-option="price"]'),
+      'price sort option',
+    ).click();
+
+    // toEqual, not toMatchObject: a dropped or stray sibling field must redden here too.
+    expect(queries.at(-1)).toEqual({
+      search: '',
+      itemType: 'all',
+      subtype: 'all',
+      armorClass: 'all',
+      primaryStat: 'all',
+      rarity: 'all',
+      sort: 'price',
+      page: 0,
+      collapseLowest: false,
+    });
+    const reSelect = req(
+      root.querySelector<HTMLElement>('[data-market-filter-menu="sort"]'),
+      'sort filter menu after commit',
+    );
+    expect(
+      reSelect.querySelector('[aria-selected="true"]')?.getAttribute('data-market-filter-option'),
+    ).toBe('price');
   });
 
   it('reveals armor class and primary-stat menus for armor and commits their options', () => {
@@ -424,7 +469,9 @@ describe('keyboard-nav: the market filter listbox (dropdownKeyNav wiring)', () =
       armorClass: 'mail',
       primaryStat: 'int',
       rarity: 'all',
+      sort: 'name',
       page: 0,
+      collapseLowest: false,
     });
 
     pickItemType(root, 'weapon');
@@ -437,13 +484,53 @@ describe('keyboard-nav: the market filter listbox (dropdownKeyNav wiring)', () =
       armorClass: 'all',
       primaryStat: 'all',
       rarity: 'all',
+      sort: 'name',
       page: 0,
+      collapseLowest: false,
     });
 
     // ...and both advanced menus disappear again for a type that has neither.
     pickItemType(root, 'consumable');
     expect(root.querySelector('[data-market-filter-menu="armorClass"]')).toBeNull();
     expect(root.querySelector('[data-market-filter-menu="primaryStat"]')).toBeNull();
+  });
+
+  it('stacks search and every armor filter in the browse sidebar at any window width', () => {
+    // The redesign moved the controls into a persistent flex-column sidebar beside the
+    // listing body, so the search box and the six filters share ONE column at every width
+    // instead of reflowing across a responsive grid.
+    const root = openMarket();
+    pickItemType(root, 'armor');
+    const controls = req(root.querySelector<HTMLElement>('.mkt-controls'), 'market controls');
+    const search = req(root.querySelector<HTMLElement>('.mkt-search'), 'market search');
+    const fields = Array.from(root.querySelectorAll<HTMLElement>('.mkt-filter'));
+    // itemType, subtype (armorSlot), armorClass, primaryStat, rarity, sort (issue #3102).
+    expect(fields).toHaveLength(6);
+    expect(getComputedStyle(controls).flexDirection).toBe('column');
+
+    const layout = (width: number) => {
+      root.style.width = `${width}px`;
+      const searchRect = search.getBoundingClientRect();
+      const fieldRects = fields.map((field) => field.getBoundingClientRect());
+      return {
+        widths: new Set([
+          Math.round(searchRect.width),
+          ...fieldRects.map((r) => Math.round(r.width)),
+        ]),
+        searchBottom: Math.round(searchRect.bottom),
+        firstFieldTop: Math.round(fieldRects[0].top),
+        lastFieldTop: Math.round(fieldRects[fieldRects.length - 1].top),
+      };
+    };
+
+    for (const width of [860, 596]) {
+      const at = layout(width);
+      // One shared column: every control is exactly as wide as the search box.
+      expect(at.widths.size).toBe(1);
+      // Search sits above the first filter, and the filters run downward in order.
+      expect(at.searchBottom).toBeLessThanOrEqual(at.firstFieldTop);
+      expect(at.lastFieldTop).toBeGreaterThan(at.firstFieldTop);
+    }
   });
 
   // Issue #2189: bags matched no item-type option at all, so this asserts the whole
@@ -508,7 +595,9 @@ describe('keyboard-nav: the market filter listbox (dropdownKeyNav wiring)', () =
       armorClass: 'all',
       primaryStat: 'all',
       rarity: 'all',
+      sort: 'name',
       page: 0,
+      collapseLowest: false,
     });
 
     // Leaving the bag category clears the capacity back to 'all' rather than sending a

@@ -17,7 +17,13 @@ export type { ProcDef, ProcResponse, ProcTrigger } from '../content/talents';
 import type { SimContext } from '../sim_context';
 import type { Entity } from '../types';
 import { convergenceOnCast } from './convergence';
+import { druidEngineOnCast } from './druid_engines';
+import { naturesBoonOnCast } from './druid_natures_boon';
 import { combustionRestokesCinderfall, PERSONAL_BARRIER_IDS } from './fire_mage';
+import { priestOnCastCompleted } from './priest/talents';
+import { rogueEngineOnCast } from './rogue_engines';
+import { onShamanCastCompleted } from './shaman_talents';
+import { applyLeadenHex } from './warlock_talents';
 
 function state(player: Entity): NonNullable<Entity['procState']> {
   if (!player.procState) player.procState = { counters: {}, icds: {} };
@@ -141,8 +147,8 @@ function fireOne(
       break;
     }
     case 'aura':
-      ctx.applyAura(player, {
-        id: def.id,
+      ctx.applyAura(response.target === 'subject' ? subject : player, {
+        id: response.auraId ?? def.id,
         name: response.name,
         kind: response.auraKind,
         remaining: response.duration,
@@ -177,6 +183,7 @@ export function onCastCompleted(
   abilityId: string,
   target?: Entity | null,
 ): void {
+  priestOnCastCompleted(ctx, player);
   // G1 guard: a cast that consumed an empower aura (flag set at the consume
   // funnel in empower_next.ts) never advances a castNth counter, so free-cast
   // relay procs cannot feed cast-counter procs. The flag covers exactly one
@@ -186,13 +193,28 @@ export function onCastCompleted(
   // Elemental Convergence (mage choice row): school-alternation memory, kept
   // here because every completed cast funnels through this hook. Draws no rng.
   convergenceOnCast(ctx, player, abilityId);
+  onShamanCastCompleted(ctx, player, abilityId);
   // Phoenix Trance restokes one Cinderfall charge (designer rule 2026-07-25);
   // same reasoning: the one seam every completed cast passes. Draws no rng.
   combustionRestokesCinderfall(ctx, player, abilityId);
+  // Rogue spec engines (combat/rogue_engines.ts): Skulduggery banks Gloam
+  // from Duskveil openers and the Red Ribbon rhythm. Same funnel, no rng.
+  rogueEngineOnCast(ctx, player, abilityId, target);
+  druidEngineOnCast(ctx, player, abilityId, target);
+  // Moongrove Nature's Boon (combat/druid_natures_boon.ts): Wildbolt and
+  // Skyfall roll the free Spore Burst window. Balance-gated and
+  // cooldown-gated inside, before any rng draw.
+  naturesBoonOnCast(ctx, player, abilityId);
+  applyLeadenHex(ctx, player, abilityId, target);
   if (wasEmpowered) return;
+  const meta = ctx.players.get(player.id);
+  const spec = meta ? ctx.playerMods(meta).spec : null;
   for (const def of procsFor(ctx, player)) {
     const trigger = def.trigger;
     if (trigger.on !== 'castNth' || !trigger.abilities.includes(abilityId)) continue;
+    // Spec-inert procs never fire and never bank toward n (they draw no rng, so
+    // skipping here leaves every other proc's draw order untouched).
+    if (spec && def.excludeSpecs?.includes(spec)) continue;
     const procState = state(player);
     // G2 guard: while a castNth internal cooldown runs, matching casts are
     // ignored entirely: nothing fires and nothing is banked toward n.
@@ -259,6 +281,12 @@ export function onShieldConsumed(
         ? PERSONAL_BARRIER_IDS.includes(shieldAbilityId)
         : trigger.ability === shieldAbilityId;
     if (!matches) continue;
+    // G2 guard (the Emberscreed 4pc extension): while a shieldConsumed
+    // internal cooldown runs, matching consumes are ignored entirely; the
+    // icd arms only when the proc fires (the castNth/spellCrit idiom on the
+    // same procState icds map). Draws no rng either way.
+    if (trigger.icd !== undefined && state(player).icds[def.id] !== undefined) continue;
+    if (trigger.icd !== undefined) state(player).icds[def.id] = trigger.icd;
     fire(ctx, player, def, owner);
   }
 }

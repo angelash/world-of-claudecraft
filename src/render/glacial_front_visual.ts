@@ -6,6 +6,8 @@ import {
   glacialFrontPresentationRange,
 } from '../sim/combat/glacial_front';
 import type { Entity } from '../sim/types';
+import { floorVfxRenderOrder } from './floor_vfx_layer';
+import { spellEffectsMuted } from './spell_effects_switch';
 
 const BURST_LIFETIME = 0.68;
 const BURST_POOL_SIZE = 5;
@@ -124,7 +126,7 @@ export class GlacialFrontVisual {
       sectorGeometry(0, 1, GLACIAL_FRONT_ANGLE_DEG, PREVIEW_RADIAL_SEGMENTS),
       fillMat,
     );
-    this.previewFill.renderOrder = 12;
+    this.previewFill.renderOrder = floorVfxRenderOrder('player', 0);
     this.preview.add(this.previewFill);
 
     const rayMat = new THREE.LineBasicMaterial({
@@ -138,7 +140,7 @@ export class GlacialFrontVisual {
     this.previewRays = [-half, half].map((angle) => {
       const line = new THREE.Line(rayGeometry(), rayMat);
       line.rotation.y = angle;
-      line.renderOrder = 13;
+      line.renderOrder = floorVfxRenderOrder('player', 1);
       this.preview.add(line);
       return line;
     });
@@ -150,7 +152,7 @@ export class GlacialFrontVisual {
         new THREE.EdgesGeometry(sectorGeometry(radius - 0.035, radius, GLACIAL_FRONT_ANGLE_DEG)),
         material,
       );
-      arc.renderOrder = 13;
+      arc.renderOrder = floorVfxRenderOrder('player', 1);
       this.stageArcs.push(arc);
       this.preview.add(arc);
     }
@@ -173,7 +175,7 @@ export class GlacialFrontVisual {
         });
         const sheet = new THREE.Mesh(waveGeometry.clone(), material);
         sheet.position.y = 0.05 + layer * 0.11;
-        sheet.renderOrder = 14 + layer;
+        sheet.renderOrder = floorVfxRenderOrder('player', 2 + layer);
         group.add(sheet);
         sheets.push(sheet);
       }
@@ -277,6 +279,10 @@ export class GlacialFrontVisual {
     angle = GLACIAL_FRONT_ANGLE_DEG,
     fx: 'frostCone' | 'fireCone' = 'frostCone',
   ): void {
+    // The released cone is spell garnish, judged by the spellfx event's
+    // caster; the charge preview above is the caster's aiming read and never
+    // consults the Spell Effects option.
+    if (spellEffectsMuted()) return;
     const slot = this.bursts[this.nextBurst];
     this.nextBurst = (this.nextBurst + 1) % this.bursts.length;
     slot.elapsed = 0;

@@ -24,11 +24,12 @@ export function inspectAmbientPartyPreparation(input: {
   const activePreparation = detectActivePreparation(input.coordinatorBots, input.botId);
   if (lowHealthMembers <= 0 && lowManaMembers <= 0 && !activePreparation) return null;
   return {
-    mode: lowHealthMembers > 0
-      ? 'heal_party'
-      : lowManaMembers > 0
-        ? 'prepare_party'
-        : activePreparation?.mode ?? 'prepare_party',
+    mode:
+      lowHealthMembers > 0
+        ? 'heal_party'
+        : lowManaMembers > 0
+          ? 'prepare_party'
+          : (activePreparation?.mode ?? 'prepare_party'),
     lowHealthMembers,
     lowManaMembers,
     preparingBots: activePreparation?.count ?? 0,
@@ -41,7 +42,8 @@ function memberNeedsHealing(member: PartyMemberInfo): boolean {
 }
 
 function memberNeedsManaRecovery(member: PartyMemberInfo): boolean {
-  if (member.dead || member.inCombat === 1 || member.rtype !== 'mana' || member.mres <= 0) return false;
+  if (member.dead || member.inCombat === 1 || member.rtype !== 'mana' || member.mres <= 0)
+    return false;
   return member.res / member.mres < PARTY_MANA_HOLD_RATIO;
 }
 
@@ -86,10 +88,7 @@ function isPreparationMode(value: string): value is AmbientPartyPreparationMode 
   return ACTIVE_PREPARATION_MODES.includes(value as AmbientPartyPreparationMode);
 }
 
-function readRunnerString(
-  value: Record<string, unknown>,
-  key: string,
-): string {
+function readRunnerString(value: Record<string, unknown>, key: string): string {
   const field = value[key];
   return typeof field === 'string' ? field : '';
 }

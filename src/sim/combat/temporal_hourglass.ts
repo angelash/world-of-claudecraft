@@ -2,6 +2,8 @@ import { zoneAt } from '../data';
 import type { GroundAoE } from '../entity_roster';
 import type { SimContext } from '../sim_context';
 import { type AbilityEffect, DT, type Entity, type Vec3 } from '../types';
+import { onCraftedCollectionHeal } from './crafted_collection_effects';
+import { consumeHealAbsorb, healingTakenMult } from './heal';
 
 export const TEMPORAL_HOURGLASS_ID = 'temporal_hourglass';
 
@@ -40,12 +42,21 @@ export function tickTemporalHourglassHealing(
   if (ticks <= 0 || remaining <= 0) return;
 
   const planned = Math.ceil(remaining / ticks);
+  // The stored budget spends the PLANNED share: what the target actually keeps is
+  // then mitigated like any other incoming heal (applyHeal's order, mult then
+  // absorb then the missing-hp clamp).
   aura.temporalHealRemaining = Math.max(0, remaining - planned);
   aura.temporalHealTicksRemaining = ticks - 1;
-  const healed = Math.min(planned, target.maxHp - target.hp);
-  if (healed <= 0) return;
+  const intended = Math.round(planned * healingTakenMult(ctx, target));
+  const landing = consumeHealAbsorb(ctx, target, intended);
+  const absorbed = intended - landing;
+  const healed = Math.min(landing, target.maxHp - target.hp);
+  const source = ctx.entities.get(aura.sourceId);
+  if (source) onCraftedCollectionHeal(ctx, source, target, landing - healed);
+  if (healed <= 0 && absorbed <= 0) return;
 
-  target.hp += healed;
+  if (healed > 0) target.hp += healed;
+  const overheal = landing - healed;
   ctx.emit({
     type: 'heal2',
     sourceId: aura.sourceId,
@@ -53,9 +64,10 @@ export function tickTemporalHourglassHealing(
     amount: healed,
     crit: false,
     ability: aura.name,
+    ...(absorbed > 0 ? { absorbed } : {}),
+    ...(overheal > 0 ? { overheal } : {}),
   });
-  const source = ctx.entities.get(aura.sourceId);
-  if (source) ctx.healingThreat(source, target, healed);
+  if (source && healed > 0) ctx.healingThreat(source, target, healed);
 }
 
 function applyProtectiveStasis(
@@ -145,6 +157,7 @@ function spawnGroundHourglass(
     tickTimer: effect.groundDuration,
     school: 'arcane',
     ability: abilityName,
+    abilityId: TEMPORAL_HOURGLASS_ID,
     temporalHourglass: {
       id: `${caster.id}:${Math.round(ctx.time / DT)}`,
       abilityId: TEMPORAL_HOURGLASS_ID,
@@ -157,7 +170,7 @@ function spawnGroundHourglass(
       allyCooldownRate: effect.allyCooldownRate,
       createdTick: ctx.tickCount,
       sourceOrigin: { ...caster.pos },
-      sourceZoneId: zoneAt(caster.pos.z).id,
+      sourceZoneId: zoneAt(caster.pos.x, caster.pos.z).id,
     },
   });
 }

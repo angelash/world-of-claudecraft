@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { summonPyreColossus } from '../src/sim/combat/destruction';
+import { MOBS } from '../src/sim/data';
 import { Sim } from '../src/sim/sim';
 import { dist2d } from '../src/sim/types';
 
@@ -11,13 +13,13 @@ import { dist2d } from '../src/sim/types';
 
 function makeWarlock(seed = 7) {
   const sim = new Sim({ seed, playerClass: 'warlock' as any, autoEquip: true });
+  sim.setPlayerLevel(20);
   const p: any = sim.player;
-  p.level = 20;
   return { sim, p };
 }
 
 function summonInfernal(sim: Sim, p: any) {
-  (sim as any).createDemonPet(p, 'pyre_colossus', false);
+  summonPyreColossus(sim.ctx, p, 1_000);
   for (const e of sim.entities.values()) if ((e as any).ownerId === p.id) return e as any;
   throw new Error('pet not created');
 }
@@ -26,7 +28,10 @@ function firstWildMob(sim: Sim) {
   let best: any = null,
     bd = Infinity;
   for (const e of sim.entities.values()) {
-    if (e.kind !== 'mob' || e.dead || (e as any).ownerId !== null) continue;
+    if (e.kind !== 'mob' || e.dead || (e as any).ownerId !== null || !e.hostile) continue;
+    // it must also fight back: a passive-aggro template never targets the
+    // pet, and the owner-combat link keys off the mob's target
+    if ((MOBS[e.templateId]?.aggroRadius ?? 0) <= 0) continue;
     const d = dist2d(sim.player.pos, e.pos);
     if (d < bd) {
       bd = d;
@@ -83,9 +88,16 @@ describe('pet-held combat does not block owner health regen', () => {
       mob.pos = { x: p.pos.x + 2, y: p.pos.y, z: p.pos.z };
     };
 
-    p.hp = Math.floor(p.maxHp * 0.4);
     p.inCombat = false;
     p.combatTimer = 99;
+    // let the aggressive pet actually acquire the target and start trading
+    // blows before sampling the baseline (the warm-up takes a few seconds,
+    // and the owner legitimately regens until the first blows land)
+    for (let i = 0; i < 20 * 8 && pet.combatTimer >= 5; i++) {
+      place();
+      sim.tick();
+    }
+    p.hp = Math.floor(p.maxHp * 0.4);
     const hpStart = p.hp;
 
     for (let i = 0; i < 200; i++) {

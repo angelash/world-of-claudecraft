@@ -1,0 +1,418 @@
+// The localized ability DESCRIPTION prose every tooltip surface shows, plus the
+// placeholder values spliced into it.
+//
+// Extracted from hud.ts (the monolith ratchet): the description is resolved from
+// the RESOLVED ability and the caller's scaling alone, never from the Hud's
+// private mutable state, so it is a sibling module the coordinator consumes.
+// Both callers (the ability tooltip and the aura tooltip's ability-description
+// injector) go through abilityDisplayDescription, and the field CHOICE is a pure
+// core (abilityDescriptionField) a vitest drives directly.
+
+import {
+  TEMPORAL_ECHO_AREA_CONVERSION,
+  TEMPORAL_ECHO_ROTATION_CONVERSION_MULTIPLIER,
+  TEMPORAL_ECHO_SINGLE_CONVERSION,
+} from '../sim/content/chronomancy_tuning';
+import type { ResolvedAbility } from '../sim/sim';
+import {
+  type AbilityEffect,
+  FAERIE_FIRE_ARMOR_PCT,
+  SUNDER_ARMOR_PCT_PER_STACK,
+} from '../sim/types';
+import {
+  type AbilityScaling,
+  abilityBearTrapBleedTotal,
+  abilityBuffValue,
+  abilityDamageBonus,
+  abilityDurationValue,
+  abilityOverTimeEffect,
+  abilityPrimaryEffect,
+  abilityPrimaryHealingTotal,
+  abilitySecondaryEffect,
+  abilityTemporalHourglassValues,
+  auraBuffDisplayValue,
+} from './ability_damage';
+import { formatAbilityImbueDamage } from './ability_imbue_text';
+import type { AuraEffectInput } from './aura_effect';
+import {
+  dawnreaverTooltipValues,
+  primaryDamageTooltipRange,
+} from './dawnreaver_damage_tooltip_core';
+import { type AbilitySpecNoteField, tEntity, tEntityOptional } from './entity_i18n';
+import { formatNumber, type InterpolationValues, t } from './i18n';
+
+/** The tooltip's number format for every ability figure (damage, seconds, costs). */
+export function formatAbilityNumber(value: number): string {
+  return formatNumber(value, { maximumFractionDigits: 1 });
+}
+
+// Builds the {damage} value for an ability tooltip. The selected effect is
+// rank- and talent-resolved before this formatter sees it, so custom flat
+// effects such as Litany display Hexcraft's modifier without inventing a
+// second damage path in the HUD coordinator.
+export function abilityEffectText(res: ResolvedAbility, scaling?: AbilityScaling): string {
+  const suffix = (eff: AbilityEffect) => {
+    const bonus = scaling ? abilityDamageBonus(res, eff, scaling) : 0;
+    return bonus > 0
+      ? ` ${t('hudChrome.abilityScaling.bonus', { value: formatAbilityNumber(bonus) })}`
+      : '';
+  };
+  const primary = abilityPrimaryEffect(res);
+  if (primary) {
+    if ((res.outputScaling?.primaryDamage ?? 1) !== 1) {
+      const combined = primaryDamageTooltipRange(res, primary, scaling);
+      if (combined) return abilityAmountRange(combined.min, combined.max);
+    }
+    switch (primary.type) {
+      case 'directDamage': {
+        const mult = primary.damageMult ?? 1;
+        const bonus = scaling ? abilityDamageBonus(res, primary, scaling) * mult : 0;
+        return (
+          abilityAmountRange(primary.min * mult, primary.max * mult) +
+          (bonus > 0
+            ? ` ${t('hudChrome.abilityScaling.bonus', { value: formatAbilityNumber(bonus) })}`
+            : '')
+        );
+      }
+      case 'aoeDamage':
+      case 'aoeRoot':
+      case 'chainDamage':
+      case 'groundAoE':
+      case 'sporeBurst':
+      case 'drainTick':
+      case 'valkyrsCalling':
+      case 'hunterStampede':
+        return abilityAmountRange(primary.min, primary.max) + suffix(primary);
+      case 'aoeHeal':
+      case 'chainHeal': {
+        // v0.42 (docs/design/class-balance-v042.md): a Spiritmend/Sunmender/
+        // Groveheart primary-healing factor scales the WHOLE completed
+        // packet, so it cannot be shown as a separate "(+N)" badge on top of
+        // the unscaled base range without double-counting; show the
+        // combined range instead when the factor is live.
+        const combined = scaling ? abilityPrimaryHealingTotal(res, primary, scaling) : null;
+        return combined
+          ? abilityAmountRange(combined.min, combined.max)
+          : abilityAmountRange(primary.min, primary.max) + suffix(primary);
+      }
+      case 'heal': {
+        if (primary.casterMaxHpPct !== undefined) {
+          return formatAbilityNumber(primary.casterMaxHpPct * 100);
+        }
+        const combined = scaling ? abilityPrimaryHealingTotal(res, primary, scaling) : null;
+        return combined
+          ? abilityAmountRange(combined.min, combined.max)
+          : abilityAmountRange(primary.min, primary.max) + suffix(primary);
+      }
+      case 'repositionToAim':
+        return primary.landingAoe
+          ? abilityAmountRange(primary.landingAoe.min, primary.landingAoe.max)
+          : '';
+      case 'consumeAura':
+        if (primary.deal) {
+          return abilityAmountRange(primary.deal.min, primary.deal.max) + suffix(primary);
+        }
+        if (primary.heal) {
+          const combined = scaling ? abilityPrimaryHealingTotal(res, primary, scaling) : null;
+          return combined
+            ? abilityAmountRange(combined.min, combined.max)
+            : abilityAmountRange(primary.heal.min, primary.heal.max) + suffix(primary);
+        }
+        return '';
+      case 'weaponDamage':
+      case 'weaponStrike':
+        return formatAbilityNumber(primary.bonus * (res.outputScaling?.primaryDamage ?? 1));
+      case 'sunder':
+        return formatAbilityNumber(
+          SUNDER_ARMOR_PCT_PER_STACK *
+            (primary.full || primary.perCombo ? primary.maxStacks : 1) *
+            100,
+        );
+      case 'faerieFire':
+        return formatAbilityNumber(FAERIE_FIRE_ARMOR_PCT * 100);
+      case 'lifeTap':
+        return formatAbilityNumber(primary.hp);
+      case 'finisherDamage':
+        return (
+          t('abilityUi.tooltip.finisherDamage', {
+            base: formatAbilityNumber(primary.base),
+            perCombo: formatAbilityNumber(primary.perCombo),
+          }) + suffix(primary)
+        );
+      case 'hunterBearTrap':
+        return formatAbilityNumber(abilityBearTrapBleedTotal(primary, scaling));
+      case 'hunterBloodhook':
+        return (
+          formatAbilityNumber(primary.bleedTotal * (primary.damageMult ?? 1)) + suffix(primary)
+        );
+      case 'afflictionLitany':
+        return formatAbilityNumber(primary.damage);
+    }
+  }
+
+  const secondary = abilitySecondaryEffect(res);
+  if (!secondary) return '';
+  switch (secondary.type) {
+    case 'dot':
+      if (secondary.perCombo !== undefined) {
+        return (
+          t('abilityUi.tooltip.finisherDamage', {
+            base: formatAbilityNumber(secondary.total),
+            perCombo: formatAbilityNumber(secondary.perCombo),
+          }) + suffix(secondary)
+        );
+      }
+      return formatAbilityNumber(dotDisplayTotal(secondary)) + suffix(secondary);
+    case 'hot': {
+      // v0.42 (docs/design/class-balance-v042.md): a pure-HoT $d (Sporemending
+      // has no primary hit, so its total renders here, not in the primary
+      // switch above) takes the same combined-total treatment as $o.
+      const combined = scaling ? abilityPrimaryHealingTotal(res, secondary, scaling) : null;
+      return combined
+        ? formatAbilityNumber(combined.min)
+        : formatAbilityNumber(secondary.total) + suffix(secondary);
+    }
+    case 'absorb':
+      return secondary.casterMaxHpPct === undefined
+        ? formatAbilityNumber(secondary.amount) + suffix(secondary)
+        : formatAbilityNumber(secondary.casterMaxHpPct * 100);
+    case 'aoeAllyAbsorb':
+      return formatAbilityNumber(secondary.amount) + suffix(secondary);
+    case 'imbue':
+      return formatAbilityImbueDamage(secondary);
+    default:
+      return '';
+  }
+}
+
+// A plain dot lands a whole number per tick (effect_dispatch.ts rounds
+// total / ticks), so the total it really deals is that tick times the tick
+// count, which is what the tooltip shows (Flense rank 2: 99 authored lands as
+// 6 ticks of 17). Combo-scaled and direct-fraction dots keep the authored total.
+function dotDisplayTotal(eff: Extract<AbilityEffect, { type: 'dot' }>): number {
+  if (
+    eff.perComboTotal !== undefined ||
+    eff.perComboDuration !== undefined ||
+    eff.directPct !== undefined ||
+    !(eff.interval > 0)
+  ) {
+    return eff.total;
+  }
+  const ticks = eff.duration / eff.interval;
+  return Math.max(1, Math.round(eff.total / ticks)) * ticks;
+}
+
+function abilityAmountRange(min: number, max: number): string {
+  if (min === max) return formatAbilityNumber(min);
+  return t('abilityUi.tooltip.damageRange', {
+    min: formatAbilityNumber(min),
+    max: formatAbilityNumber(max),
+  });
+}
+
+/** Maps custom ability effects onto the same localized, resolved effect lines
+ *  their active auras use. The HUD renders this beside the static ability prose,
+ *  so every locale receives the live rank and talent values without duplicating
+ *  interpolation tokens across translated ability descriptions. */
+export function abilityEffectAuraInput(effect: AbilityEffect): AuraEffectInput | null {
+  if (effect.type !== 'afflictionLitany') return null;
+  return {
+    kind: 'affliction_litany',
+    value: effect.damage,
+    value2: effect.radius,
+    value3: effect.maxTargets,
+  };
+}
+
+// Builds the `$o` over-time string (a hybrid's dot/hot TOTAL) the same way
+// abilityEffectText builds `$d`, including the "(+N)" scaling callout (which the
+// bonus helper zeroes for hybrid riders, matching combat's no-double-dip rule).
+function abilityOverTimeText(res: ResolvedAbility, scaling?: AbilityScaling): string {
+  const eff = abilityOverTimeEffect(res);
+  if (!eff) return '';
+  // v0.42 (docs/design/class-balance-v042.md): a live Groveheart/Spiritmend
+  // HoT snapshot factor scales the whole per-tick amount before it is
+  // multiplied out to the total, so it replaces the total outright rather
+  // than layering the ordinary "(+N)" bonus badge on the unscaled figure.
+  if (eff.type === 'hot' && scaling) {
+    const combined = abilityPrimaryHealingTotal(res, eff, scaling);
+    if (combined) return formatAbilityNumber(combined.min);
+  }
+  const b = scaling ? abilityDamageBonus(res, eff, scaling) : 0;
+  const bonus =
+    b > 0 ? ` ${t('hudChrome.abilityScaling.bonus', { value: formatAbilityNumber(b) })}` : '';
+  if (eff.type === 'dot' && eff.perCombo !== undefined) {
+    return (
+      t('abilityUi.tooltip.finisherDamage', {
+        base: formatAbilityNumber(eff.total),
+        perCombo: formatAbilityNumber(eff.perCombo),
+      }) + bonus
+    );
+  }
+  return formatAbilityNumber(eff.type === 'dot' ? dotDisplayTotal(eff) : eff.total) + bonus;
+}
+
+/** Which description field the RESOLVED ability should read: the stealth-free
+ *  variant once a talent has retired the stealth gate (Cheap Trick on Gut Punch),
+ *  the base description otherwise. Pure: the caller resolves the field through
+ *  i18n and falls back to 'description' when the active locale has not filled the
+ *  variant. */
+export function abilityDescriptionField(
+  res: ResolvedAbility,
+): 'description' | 'descriptionNoStealth' {
+  return res.def.requiresStealth === true && res.ignoreStealthRequirement === true
+    ? 'descriptionNoStealth'
+    : 'description';
+}
+
+// Fills every description placeholder from the RESOLVED ability: {damage} ($d)
+// the primary hit, {overTime} ($o) a hybrid's dot/hot total, {buff} ($b) the
+// first buff's value, {duration} ($t) the first timed effect's duration. All are
+// rank- and talent-resolved, so the prose can never drift from what a cast does.
+// `auraOverride`'s `$b` comes from an already-APPLIED aura's own (kind, value)
+// instead of `res`: `res` is only ever resolved from the VIEWER's known
+// abilities (talents included), so on another player's buff it must not
+// override the real applied strength (e.g. Pact Deepened doubling Fiendhide's
+// armor for its owner, which must still read doubled on every other screen).
+export function abilityDisplayDescription(
+  res: ResolvedAbility,
+  damageText: string,
+  scaling?: AbilityScaling,
+  auraOverride?: { kind: string; value: number },
+  spec?: string | null,
+): string {
+  if (
+    res.def.id === 'choir_of_deliverance' &&
+    res.def.school === 'shadow' &&
+    res.def.channel === undefined
+  ) {
+    return tEntity({ kind: 'ability', id: res.def.id, field: 'specNote_shadow' });
+  }
+  const buff = auraOverride ? auraBuffDisplayValue(auraOverride) : abilityBuffValue(res);
+  const duration = abilityDurationValue(res);
+  const hourglass = abilityTemporalHourglassValues(res);
+  const directHeal = res.effects.find((effect) => effect.type === 'heal');
+  // Spore Burst's {healing} is its heal half, shown through the aoeHeal path
+  // so the AoE Healing Power rider and the Groveheart factor read as combat
+  // resolves them (effect_dispatch.ts 'sporeBurst').
+  const sporeBurst = res.effects.find(
+    (effect): effect is Extract<AbilityEffect, { type: 'sporeBurst' }> =>
+      effect.type === 'sporeBurst',
+  );
+  const healingText = hourglass
+    ? formatAbilityNumber(hourglass.healing)
+    : directHeal
+      ? abilityEffectText({ ...res, effects: [directHeal] }, scaling)
+      : sporeBurst
+        ? abilityEffectText(
+            {
+              ...res,
+              effects: [
+                {
+                  type: 'aoeHeal',
+                  min: sporeBurst.healMin,
+                  max: sporeBurst.healMax,
+                  radius: sporeBurst.radius,
+                },
+              ],
+            },
+            scaling,
+          )
+        : '';
+  // {rage} splices the RESOLVED gainResource total, so a talent that raises the
+  // granted amount (Blood Offering on Blood Toll) shows in the tooltip.
+  const rageGained = res.effects.reduce(
+    (sum, eff) => sum + (eff.type === 'gainResource' ? eff.amount : 0),
+    0,
+  );
+  const rageText = rageGained > 0 ? formatAbilityNumber(rageGained) : '';
+  // {absorbPerRage} splices the RESOLVED absorbSpentResource rate of a
+  // spend-all shield, so a buffPct upgrade shows live the same way a
+  // talent-upgraded value would.
+  const absorbPerRage = res.effects.find(
+    (eff): eff is Extract<AbilityEffect, { type: 'absorbSpentResource' }> =>
+      eff.type === 'absorbSpentResource',
+  )?.mult;
+  // {needleDoom} splices the RESOLVED afflictionNeedle Condemnation payload
+  // (Needle of Fate), so the Hexthread 2pc's 9 shows live for wearers the
+  // same way a talent-upgraded value would.
+  const needleDoom = res.effects.find(
+    (eff): eff is Extract<AbilityEffect, { type: 'afflictionNeedle' }> =>
+      eff.type === 'afflictionNeedle',
+  )?.doom;
+  // {charges} splices the RESOLVED stored-use count (native maxCharges plus
+  // any bonusCharges rows), so Conflagrate's "Holds N charges" line reads 3
+  // for Ruincaller 2pc wearers and the base 2 for everyone else.
+  const charges = res.charges;
+  const echoSingle = res.echoConvertSingle ?? TEMPORAL_ECHO_SINGLE_CONVERSION;
+  const dawnreaver = dawnreaverTooltipValues(res, scaling);
+  const values: InterpolationValues = {
+    damage: damageText,
+    overTime: abilityOverTimeText(res, scaling),
+    buff: buff === null ? '' : formatAbilityNumber(buff),
+    duration: duration === null ? '' : formatAbilityNumber(duration),
+    healing: healingText,
+    selfCooldownRecovery:
+      hourglass === null ? '' : formatAbilityNumber(hourglass.selfCooldownRecovery),
+    allyCooldownRecovery:
+      hourglass === null ? '' : formatAbilityNumber(hourglass.allyCooldownRecovery),
+    hostilePveDuration: hourglass === null ? '' : formatAbilityNumber(hourglass.hostilePveDuration),
+    hostilePvpDuration: hourglass === null ? '' : formatAbilityNumber(hourglass.hostilePvpDuration),
+    groundDuration: hourglass === null ? '' : formatAbilityNumber(hourglass.groundDuration),
+    rage: rageText,
+    absorbPerRage: absorbPerRage === undefined ? '' : formatAbilityNumber(absorbPerRage),
+    needleDoom: needleDoom === undefined ? '' : formatAbilityNumber(needleDoom),
+    charges: charges === undefined ? '' : formatAbilityNumber(charges),
+    echoSinglePct: formatAbilityNumber(echoSingle * 100),
+    echoAreaPct: formatAbilityNumber(TEMPORAL_ECHO_AREA_CONVERSION * 100),
+    echoDriverPct: formatAbilityNumber(
+      echoSingle * TEMPORAL_ECHO_ROTATION_CONVERSION_MULTIPLIER * 100,
+    ),
+    weaponPercent:
+      dawnreaver.weaponPercent === undefined ? '' : formatAbilityNumber(dawnreaver.weaponPercent),
+    edictExplosion: dawnreaver.explosion
+      ? ` ${t('abilityUi.tooltip.edictExplosion', {
+          damage: abilityAmountRange(dawnreaver.explosion.min, dawnreaver.explosion.max),
+          radius: formatAbilityNumber(dawnreaver.explosionRadius ?? 0),
+          cap: formatAbilityNumber(dawnreaver.explosionCap ?? 0),
+        })}`
+      : '',
+    verdictSingleDamage: dawnreaver.verdict
+      ? abilityAmountRange(dawnreaver.verdict.singleMin, dawnreaver.verdict.singleMax)
+      : '',
+    verdictAreaDamage: dawnreaver.verdict
+      ? abilityAmountRange(dawnreaver.verdict.areaMin, dawnreaver.verdict.areaMax)
+      : '',
+    verdictAreaRadius: dawnreaver.verdict ? formatAbilityNumber(dawnreaver.verdict.radius) : '',
+    verdictAreaCap: dawnreaver.verdict ? formatAbilityNumber(dawnreaver.verdict.cap) : '',
+  };
+  // Cheap Trick retires Gut Punch's stealth requirement. When the RESOLVED ability
+  // has dropped it, prefer the stealth-free description variant so the prose stops
+  // contradicting the (talent-aware) requirement line, the same way the cost/cast
+  // lines already prefer resolved values. A locale that has not TRANSLATED the
+  // variant yet resolves null (tEntityOptional declines the English fill) and gets
+  // its own base description instead of one English sentence mid-tooltip.
+  const stealthFreeVariant =
+    abilityDescriptionField(res) === 'descriptionNoStealth'
+      ? tEntityOptional({ kind: 'ability', id: res.def.id, field: 'descriptionNoStealth', values })
+      : null;
+  const text =
+    stealthFreeVariant ??
+    tEntity({ kind: 'ability', id: res.def.id, field: 'description', values });
+  // Spec-aware teaching line: a shared button explains its interaction ONLY
+  // for the player's current spec, so a new player never reads another
+  // spec's rules on their own tooltip.
+  const description =
+    res.def.id === 'final_edict'
+      ? `${text} ${t('abilityUi.tooltip.edictDamage', values)}${values.edictExplosion}`
+      : dawnreaver.verdict
+        ? `${text} ${t('abilityUi.tooltip.verdictDamage', values)}`
+        : text;
+  const note = spec ? res.def.specNotes?.[spec] : undefined;
+  if (!note) return description;
+  return `${description} ${tEntity({
+    kind: 'ability',
+    id: res.def.id,
+    field: `specNote_${spec}` as AbilitySpecNoteField,
+  })}`;
+}

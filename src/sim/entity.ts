@@ -1,10 +1,28 @@
+import { parkCatEnergy, takeCatFormEntryEnergy } from './combat/cat_form_energy';
+import { resetCraftedCollectionState } from './combat/crafted_collection_effects';
+import { SPOREMENDER_ARMOR_MULT } from './combat/druid_sporemender';
+import { clearUnequippedBenisonPrayers } from './combat/priest/benison_dawnweave';
 import { BATTLE_STANCE, buildStanceAura } from './combat/warrior_stances';
+import { crucibleCollectionFamilyForSet } from './content/crucible_collections';
 import type { TalentModifiers } from './content/talents';
 import { resolveActiveWeaponSkin } from './content/weapon_skin_rules';
 import { aggregateSetBonuses, CLASSES, ITEMS, MOBS, type NpcDef } from './data';
 import { canDualWield, isShieldItem } from './equipment_rules';
+import { activeItemInstanceStats } from './item_instance_stats';
 import { meetsLevelRequirement } from './item_level_req';
-import { pvpFractionsFromRatings } from './pvp';
+import { lootQualityWeapon } from './loot_quality';
+import {
+  isMembershipArmour,
+  isReferralArmour,
+  membershipArmourItem,
+  referralArmourItem,
+} from './membership_armour';
+import {
+  isMembershipWeapon,
+  membershipWeaponDisplayId,
+  membershipWeaponItem,
+} from './membership_weapon';
+import { countsWarfareRating, pvpFractionsFromRatings, pvpVitalityFromRating } from './pvp';
 import type {
   Entity,
   EquipSlot,
@@ -27,6 +45,9 @@ import {
   SPELL_POWER_PER_INT,
 } from './types';
 
+/** The Shape of the Foreman's body scale (a little taller than a player). */
+export const FOREMAN_SHAPE_SCALE = 1.1;
+
 function baseEntity(id: number, pos: Vec3): Entity {
   return {
     id,
@@ -44,6 +65,11 @@ function baseEntity(id: number, pos: Vec3): Entity {
     onGround: true,
     jumping: false,
     fallStartY: pos.y,
+    swimStroke: 0,
+    swimDiving: false,
+    fatigueTicks: 0,
+    breathUsedTicks: 0,
+    drownTicks: 0,
     hp: 1,
     maxHp: 1,
     resource: 0,
@@ -61,12 +87,14 @@ function baseEntity(id: number, pos: Vec3): Entity {
       armor: 0,
       pvpOffense: 0,
       pvpDefense: 0,
+      pvpVitality: 0,
     },
     weapon: { min: 1, max: 2, speed: 2 },
     offhandWeapon: null,
     attackPower: 0,
     rangedPower: 0,
     spellPower: 0,
+    healPower: 0,
     meleeHaste: 0,
     rangedHaste: 0,
     spellHaste: 0,
@@ -86,6 +114,7 @@ function baseEntity(id: number, pos: Vec3): Entity {
     blockValue: 0,
     castPushbackReduction: 0,
     knockbackResistance: 0,
+    ccDurationReduction: 0,
     moveSpeed: 7,
     hostile: false,
     targetId: null,
@@ -105,8 +134,22 @@ function baseEntity(id: number, pos: Vec3): Entity {
     castTargetId: null,
     castAim: null,
     gatherCastNodeId: '',
+    gatherCastToolRarity: '',
+    gatherCastEffectConfirmed: false,
+    craftCastRecipeId: '',
+    craftCastCommission: false,
+    craftCastBatchRemaining: 0,
+    craftCastBatchTotal: 0,
+    enchantCastItemId: '',
+    enchantCastBagSlot: 0,
+    enchantCastEnchantId: '',
+    enchantCastEquipSlot: '',
+    enchantCastConfirmReplace: false,
+    enchantCastTargetPin: '',
+    toolRechargeCastProfessionId: '',
     fishBiteAtTick: 0,
     fishReelDeadlineTick: 0,
+    fishCastZoneId: '',
     channeling: false,
     channelTickTimer: 0,
     channelTickEvery: 0,
@@ -116,12 +159,14 @@ function baseEntity(id: number, pos: Vec3): Entity {
     queuedOnSwing: null,
     queuedCastAbility: null,
     queuedCastAim: null,
+    queuedCastTargetId: null,
     fiveSecondRule: 99,
     comboPoints: 0,
     comboUntil: -1,
     overpowerUntil: -1,
     potionCooldownUntil: -1,
     potionCdRemaining: 0,
+    firebottleCdRemaining: 0,
     savedMana: 0,
     chargeTargetId: null,
     chargeTimeLeft: 0,
@@ -131,12 +176,16 @@ function baseEntity(id: number, pos: Vec3): Entity {
     eating: null,
     drinking: null,
     weaponStowed: false,
+    helmHidden: false,
+    modularAppearance: null,
     afk: false,
     aiState: 'idle',
     tappedById: null,
     pulseTimer: 0,
     stompTimer: 0,
     bigCastTimer: 0,
+    deathZoneCastTimer: 0,
+    deathZoneStrikeTimer: 0,
     infernoTimer: 0,
     infernoRemaining: 0,
     infernoPulsesFired: 0,
@@ -156,6 +205,7 @@ function baseEntity(id: number, pos: Vec3): Entity {
     warcryTimer: 0,
     firedSummons: 0,
     summonedIds: [],
+    summonedAdd: false,
     enraged: false,
     healedThisPull: false,
     threat: new Map(),
@@ -168,12 +218,22 @@ function baseEntity(id: number, pos: Vec3): Entity {
     petTauntTimer: 0,
     petPath: [],
     petPathCooldown: 0,
+    petOwnerHpBonus: 0,
     spawnPos: { ...pos },
     aiActiveMoveTarget: null,
     aiActiveReturnAt: 0,
     aiActiveReturningHome: false,
     leashAnchor: null,
     evadeStall: 0,
+    chaseRoute: undefined,
+    routeDenied: undefined,
+    chaseStall: 0,
+    evadeEpoch: 0,
+    chainPullInbound: false,
+    // The instance combat hold's pin clock: present from birth (undefined) so a
+    // mob's shape never forks on its first pin or release.
+    evadeInPlace: undefined,
+    gateSealTick: undefined,
     fleeTimer: 0,
     fleeReturnTimer: 0,
     hasFled: false,
@@ -199,14 +259,25 @@ function baseEntity(id: number, pos: Vec3): Entity {
     color: 0xffffff,
     skinCatalog: 'class',
     skin: 0,
+    mountKey: '',
+    ridingTier: 0,
+    mountCastRemaining: 0,
+    mountCastKey: '',
+    buddyKey: '',
+    buddyAutoloot: false,
     mainhandItemId: null,
     offhandItemId: null,
     weaponSkinLoadout: {},
     weaponSkinId: null,
+    mountSkinId: null,
     equippedItems: {},
     equippedInstances: {},
     guild: '',
+    pledgeGuild: '',
+    guildTier: 0,
     title: null,
+    border: null,
+    specId: null,
   };
 }
 
@@ -216,6 +287,7 @@ export function createPlayer(id: number, cls: PlayerClass, pos: Vec3, name: stri
   e.kind = 'player';
   e.templateId = cls;
   e.name = name;
+  e.dungeonEntrySeq = 0;
   e.level = 1;
   e.resourceType = def.resourceType;
   e.color = def.color;
@@ -225,10 +297,21 @@ export function createPlayer(id: number, cls: PlayerClass, pos: Vec3, name: stri
     const stance = buildStanceAura(BATTLE_STANCE, id);
     if (stance) e.auras.push(stance);
   }
+  if (cls === 'paladin') {
+    e.paladinDevotion = {
+      value: 0,
+      ascensionCharges: 0,
+      ascensionRemaining: 0,
+      outOfCombatTime: 0,
+      decayProgress: 0,
+      blockIcdRemaining: 0,
+    };
+  }
   return e;
 }
 
 export type PlayerEquipment = Partial<Record<EquipSlot, string>>;
+export type PlayerEquipmentInstances = Partial<Record<EquipSlot, ItemInstancePayload>>;
 
 // Classic-era rules: first 20 stamina gives 1 hp each, the rest 10 hp each.
 // First 20 intellect gives 1 mana each, the rest 15 mana each.
@@ -257,7 +340,7 @@ export function recalcPlayerStats(
   cls: PlayerClass,
   equipment: PlayerEquipment,
   mods: TalentModifiers | undefined,
-  equipmentInstance: Partial<Record<EquipSlot, ItemInstancePayload>>,
+  equipmentInstance: PlayerEquipmentInstances,
 ): void {
   const def = CLASSES[cls];
   const lvl = e.level;
@@ -270,9 +353,11 @@ export function recalcPlayerStats(
     armor: def.baseStats.armor + def.statsPerLevel.armor * (lvl - 1),
     pvpOffense: 0,
     pvpDefense: 0,
+    pvpVitality: 0,
   };
   const setCounts = new Map<string, number>();
   let bonusSp = 0; // flat Spell Power from gear affixes + buff_spellpower auras
+  let bonusHealPower = 0; // flat Healing Power from gear affixes (heals only)
   let bonusCritRating = 0;
   let bonusHasteRating = 0;
   let bonusHitRating = 0;
@@ -281,8 +366,17 @@ export function recalcPlayerStats(
   for (const slot of ALL_EQUIP_SLOTS) {
     const itemId = equipment[slot];
     if (!itemId) continue;
-    const item = ITEMS[itemId];
-    if (!item) continue;
+    const baseItem = ITEMS[itemId];
+    if (!baseItem) continue;
+    if ((isMembershipArmour(itemId) || isMembershipWeapon(itemId)) && !e.membershipActive) continue;
+    if (isReferralArmour(itemId) && !e.referralInviterName) continue;
+    const item = referralArmourItem(
+      membershipArmourItem(baseItem, cls, mods?.spec, lvl, !!e.membershipActive),
+      cls,
+      mods?.spec,
+      lvl,
+      !!e.referralInviterName,
+    );
     // Gear above the wearer's level is inert: it stays equipped (still rendered
     // and occupying the slot, see the render mirrors below) but grants no stats,
     // armor, spell power, or set pieces until the character reaches its required
@@ -291,11 +385,15 @@ export function recalcPlayerStats(
     if (!meetsLevelRequirement(lvl, item)) continue;
     if (item.set) setCounts.set(item.set, (setCounts.get(item.set) ?? 0) + 1);
     bonusSp += item.spellPower ?? 0;
+    bonusHealPower += item.healPower ?? 0;
     bonusCritRating += item.critRating ?? 0;
     bonusHasteRating += item.hasteRating ?? 0;
     bonusHitRating += item.hitRating ?? 0;
-    bonusPvpOffenseRating += item.pvpOffenseRating ?? 0;
-    bonusPvpDefenseRating += item.pvpDefenseRating ?? 0;
+    const warfareCounts = countsWarfareRating(slot, item);
+    if (warfareCounts) {
+      bonusPvpOffenseRating += item.pvpOffenseRating ?? 0;
+      bonusPvpDefenseRating += item.pvpDefenseRating ?? 0;
+    }
     if (item.stats) {
       s.str += item.stats.str ?? 0;
       s.agi += item.stats.agi ?? 0;
@@ -304,27 +402,48 @@ export function recalcPlayerStats(
       s.spi += item.stats.spi ?? 0;
       s.armor += item.stats.armor ?? 0;
     }
-    // Instance stat bonus: additive on top of the item's own base stats, from
-    // this specific instance's rolled.stats: an enchant's bonus
-    // (src/sim/professions/enchanting.ts applyEnchant), a masterwork
-    // copy's baked tier-delta bonus (src/sim/professions/masterwork.ts), or
-    // both merged. The equip path carries the consumed inventory instance into
-    // equipmentInstance (items.ts equipItem), so either applies on equip. A
-    // plain piece has no entry here, so this is a no-op for the common case.
-    const enchantStats = equipmentInstance?.[slot]?.rolled?.stats;
-    if (enchantStats) {
-      s.str += enchantStats.str ?? 0;
-      s.agi += enchantStats.agi ?? 0;
-      s.sta += enchantStats.sta ?? 0;
-      s.int += enchantStats.int ?? 0;
-      s.spi += enchantStats.spi ?? 0;
-      s.armor += enchantStats.armor ?? 0;
+    // Instance bonus, additive on top of the item's own base stats, from this
+    // specific instance's rolled.stats: an enchant, a Phase 2 masterwork copy's
+    // baked tier-delta bonus, or a Rift-forged upgrade (the Rift payload keeps
+    // rolled.stats as its authoritative aggregate). The equip path carries the
+    // consumed inventory instance into equipmentInstance, so every source applies.
+    // A plain piece has no entry here, so this is a no-op for the common case.
+    const rolled = activeItemInstanceStats(equipmentInstance?.[slot], item);
+    if (rolled) {
+      s.str += Number.isFinite(rolled.str) ? rolled.str : 0;
+      s.agi += Number.isFinite(rolled.agi) ? rolled.agi : 0;
+      s.sta += Number.isFinite(rolled.sta) ? rolled.sta : 0;
+      s.int += Number.isFinite(rolled.int) ? rolled.int : 0;
+      s.spi += Number.isFinite(rolled.spi) ? rolled.spi : 0;
+      s.armor += Number.isFinite(rolled.armor) ? rolled.armor : 0;
+      bonusSp += Number.isFinite(rolled.spellPower) ? rolled.spellPower : 0;
+      // healingPower: the permanent loot quality bake (loot_quality/core.ts)
+      // and Dawn's Benediction (content/enchants.ts) both write this key.
+      bonusHealPower += Number.isFinite(rolled.healingPower) ? rolled.healingPower : 0;
+      if (warfareCounts) {
+        bonusPvpOffenseRating += Number.isFinite(rolled.pvpOffenseRating)
+          ? rolled.pvpOffenseRating
+          : 0;
+        bonusPvpDefenseRating += Number.isFinite(rolled.pvpDefenseRating)
+          ? rolled.pvpDefenseRating
+          : 0;
+      }
+      bonusCritRating += Number.isFinite(rolled.critRating) ? rolled.critRating : 0;
+      bonusHasteRating += Number.isFinite(rolled.hasteRating) ? rolled.hasteRating : 0;
+      // A Riftbound band's verdant gem line (rift/band_ladder.ts); no other
+      // per-copy writer authors hit, so a plain copy stays a no-op here too.
+      bonusHitRating += Number.isFinite(rolled.hitRating) ? rolled.hitRating : 0;
     }
   }
   // Item-set bonuses from equipped pieces. Flat primary stats join the gear
   // totals so they feed every derivation below; AP/crit/pushback fold in at
   // their own steps (bonusAp, critChance, castPushbackReduction, knockbackResistance).
   const setEff = aggregateSetBonuses(setCounts);
+  clearUnequippedBenisonPrayers(e, setCounts.get('benison_dawnweave') ?? 0);
+  resetCraftedCollectionState(
+    e,
+    [...setCounts].find(([id, count]) => count >= 2 && crucibleCollectionFamilyForSet(id))?.[0],
+  );
   s.str += setEff.str;
   s.agi += setEff.agi;
   s.sta += setEff.sta;
@@ -339,6 +458,7 @@ export function recalcPlayerStats(
   let bearForm = false;
   let catForm = false;
   let moonkinForm = false;
+  let sporemenderForm = false;
   let scaleMul = 1; // Fiesta buff_scale: body-size multiplier (>1 also adds hp)
   let flatAuraArmor = 0;
   // Percent raid buffs (Mark of the Wild / Arcane Intellect / Power Word: Fortitude /
@@ -358,6 +478,7 @@ export function recalcPlayerStats(
     else if (a.kind === 'debuff_ap') bonusAp -= a.value;
     else if (a.kind === 'buff_armor') flatAuraArmor += a.value;
     else if (a.kind === 'buff_int') s.int += a.value;
+    else if (a.kind === 'buff_str') s.str += a.value;
     else if (a.kind === 'buff_agi') s.agi += a.value;
     else if (a.kind === 'buff_spi') s.spi += a.value;
     else if (a.kind === 'buff_sta') s.sta += a.value;
@@ -388,6 +509,12 @@ export function recalcPlayerStats(
     else if (a.kind === 'buff_scale') scaleMul *= a.value;
     // Metamorphosis: a temporary demon transform that also makes the caster larger.
     else if (a.kind === 'form_metamorph') scaleMul *= 1.35;
+    // The Shape of the Foreman (combat/balgath_trinkets.ts): the cyclops's body, a head
+    // taller than a player rather than raid-boss sized, and value percent more armor.
+    else if (a.kind === 'form_foreman') {
+      scaleMul *= FOREMAN_SHAPE_SCALE;
+      buffArmorPct += a.value / 100;
+    }
     // Percent raid buffs store integer percent POINTS (5 = +5%) so they survive the
     // integer-rounding talent value multiplier; converted to a fraction here.
     else if (a.kind === 'buff_stats_pct') allStatsPct += a.value / 100;
@@ -409,6 +536,9 @@ export function recalcPlayerStats(
       bonusSp += a.value;
       moonkinForm = true;
     }
+    // Sporemender Form: Groveheart's caster form (+20% healing done rides
+    // combat/druid_sporemender.ts at heal resolution; the armor folds below).
+    else if (a.kind === 'form_sporemender') sporemenderForm = true;
   }
   // Talent passive stat modifiers (flat additions + a stamina percent before the
   // HP derivation below). AP/armor/maxHp percents are applied at their own steps.
@@ -445,10 +575,18 @@ export function recalcPlayerStats(
   s.agi = Math.max(0, s.agi);
   s.armor += s.agi * 2;
   if (bearForm) {
-    // 2.3x (2026-07 tank parity, was 1.9x): leather peaks ~1700-2100 armor
-    // vs the warrior's 2861, so the form multiplier fakes the missing plate
-    // tier, the Dire Bear logic.
-    s.armor = Math.round(s.armor * 2.3);
+    // 2.1x (v0.38 tank parity, was 2.3x): the armor trim funds the bigger form
+    // health pool below so total effective HP stays inside the committed-tank
+    // band while the bear owns the classic big-pool identity. Leather peaks
+    // ~1700-2100 armor vs the warrior's 2861; the form multiplier still fakes
+    // the missing plate tier, the Dire Bear logic.
+    // Provenance (qr-19-ref-armor-calibration-constant, 2026-09-01): the
+    // warrior figure quoted above is a PINNED calibration constant from the
+    // floor suites, not a live catalog read. The committed max-armour kit pins
+    // at 4085 (tests/heroic_difficulty_floors.test.ts), and whether 2861 was
+    // ever the raw kit armour or a prot-mastery-folded reading is UNSETTLED, so
+    // it is not re-based here and rides the packet's R5 re-measure.
+    s.armor = Math.round(s.armor * 2.1);
     bonusAp += 15 + Math.round(s.agi * 1.5);
   }
   if (catForm) {
@@ -458,6 +596,8 @@ export function recalcPlayerStats(
   // Moonkin Form: a hardy caster form that adds 50% armor (its +20% spell damage rides a
   // separate buff_spelldmg aura the form applies).
   if (moonkinForm) s.armor = Math.round(s.armor * 1.5);
+  // Sporemender Form: a hardy healer form that adds 40% armor.
+  if (sporemenderForm) s.armor = Math.round(s.armor * SPOREMENDER_ARMOR_MULT);
   // Protection's Vanguard: bonus armor from Strength, added (on the fully-summed
   // Strength) before the armor multiplier so armorPct amplifies it too.
   if (mods?.stats.armorFromStrPct) s.armor += Math.round(s.str * mods.stats.armorFromStrPct);
@@ -471,25 +611,47 @@ export function recalcPlayerStats(
   s.spi = Math.max(0, s.spi);
 
   e.stats = s;
-  const warfare = pvpFractionsFromRatings(bonusPvpOffenseRating, bonusPvpDefenseRating);
+  // Set-granted WARFARE ratings join the per-item totals BEFORE the single
+  // resolve below, so the cap clamps the combined value exactly once. Clamping
+  // the set contribution separately first would produce a different number and
+  // disagree with the character sheet, which reads these same two fields.
+  const warfare = pvpFractionsFromRatings(
+    bonusPvpOffenseRating + setEff.pvpOffenseRating,
+    bonusPvpDefenseRating + setEff.pvpDefenseRating,
+  );
   e.stats.pvpOffense = warfare.offense;
   e.stats.pvpDefense = warfare.defense;
+  // WARFARE Vitality rides the same combined Defense Rating (pvp/power.ts); it
+  // reaches maxHp below only while the Sim says it applies (pvp/vitality.ts).
+  e.stats.pvpVitality = pvpVitalityFromRating(bonusPvpDefenseRating + setEff.pvpDefenseRating);
   // An over-level mainhand is inert like any other gear: fall back to unarmed
   // damage (and drop the weapon-type flags, e.g. dagger, that gate abilities)
   // until the wearer is high enough level. The mainhand still stays worn (see
   // e.mainhandItemId below) so the weapon model keeps rendering.
-  const mainhand = equipment.mainhand ? ITEMS[equipment.mainhand] : undefined;
+  const baseMainhand = equipment.mainhand ? ITEMS[equipment.mainhand] : undefined;
+  const mainhand = baseMainhand
+    ? membershipWeaponItem(baseMainhand, cls, mods?.spec, lvl, !!e.membershipActive)
+    : undefined;
   const weapon =
     mainhand?.weapon && meetsLevelRequirement(lvl, mainhand)
-      ? mainhand.weapon
+      ? lootQualityWeapon(
+          mainhand,
+          isMembershipWeapon(mainhand.id) && !e.membershipActive
+            ? undefined
+            : equipmentInstance?.mainhand,
+        )!
       : { min: 1, max: 2, speed: 2 };
   e.weapon = weapon;
-  const offhand = equipment.offhand ? ITEMS[equipment.offhand] : undefined;
+  const baseOffhand = equipment.offhand ? ITEMS[equipment.offhand] : undefined;
+  const offhand = baseOffhand
+    ? membershipWeaponItem(baseOffhand, cls, mods?.spec, lvl, !!e.membershipActive)
+    : undefined;
   const offhandWeapon =
     canDualWield(cls, mods?.spec) &&
+    !(offhand && isMembershipWeapon(offhand.id) && !e.membershipActive) &&
     offhand?.kind === 'weapon' &&
     meetsLevelRequirement(lvl, offhand)
-      ? offhand.weapon
+      ? lootQualityWeapon(offhand, equipmentInstance?.offhand)!
       : null;
   e.offhandWeapon = offhandWeapon;
   e.dualWielding = offhandWeapon !== null;
@@ -506,10 +668,12 @@ export function recalcPlayerStats(
       meetsLevelRequirement(lvl, mainhand)) ||
       (offhand?.kind === 'weapon' && offhand.hand === 'twohand'));
   const activeShield =
-    cls === 'warrior' && isShieldItem(offhand) && meetsLevelRequirement(lvl, offhand);
+    (cls === 'warrior' || cls === 'paladin') &&
+    isShieldItem(offhand) &&
+    meetsLevelRequirement(lvl, offhand);
   e.blockChance = activeShield ? SHIELD_BLOCK_BASE : 0;
   e.blockValue = activeShield ? (offhand.blockValue ?? 0) : 0;
-  // The equipped mainhand item id: drives the held weapon model on the client
+  // The held weapon identity drives the model on the client
   // (mapped via ITEM_WEAPON_VARIANTS) AND legendary weapon procs in combat
   // (combat/equip_procs.ts, which re-applies the level gate above so an inert
   // over-level weapon's procs are inert too). Gated on the item actually being
@@ -524,14 +688,27 @@ export function recalcPlayerStats(
       isShieldItem(ITEMS[equipment.offhand]))
       ? equipment.offhand
       : null;
+  // Membership forms use ordinary no-proc donor identities for the model and
+  // weapon-type consumers. Persistent ownership stays in equippedItems below.
+  e.mainhandItemId = membershipWeaponDisplayId(e.mainhandItemId, cls, mods?.spec);
+  e.offhandItemId = membershipWeaponDisplayId(e.offhandItemId, cls, mods?.spec);
   // Resolve the active weapon-skin cosmetic against the (possibly changed)
   // mainhand: swapping to a different weapon type drops a non-matching skin and
   // re-shows the matching one automatically. Cosmetic only; never feeds stats.
-  e.weaponSkinId = resolveActiveWeaponSkin(cls, e.mainhandItemId, e.weaponSkinLoadout);
+  e.weaponSkinId = resolveActiveWeaponSkin(
+    cls,
+    e.mainhandItemId,
+    e.weaponSkinLoadout,
+    e.skinCatalog,
+    e.offhandItemId,
+  );
   // Render-only mirror of the full worn set, copied so a later mutation of the
   // owning PlayerMeta.equipment never aliases into the entity. Synced in the
   // identity wire (terse `eq`) for the inspect-another-player window.
   e.equippedItems = { ...equipment };
+  // Render-only mirror of the chosen spec (Entity.specId): every path that
+  // re-bakes talent mods re-runs this stats pass, so the mirror cannot go stale.
+  e.specId = mods?.spec ?? null;
   // Render-only mirror of PlayerMeta.equipmentInstance, same copy-not-alias
   // reasoning as equippedItems above. Deep-cloned via cloneItemInstancePayload
   // (not a shallow spread) since a payload's own rolled.stats map must not be
@@ -567,6 +744,9 @@ export function recalcPlayerStats(
   // Spell Power: Intellect converted via SPELL_POWER_PER_INT plus flat Spell Power
   // from gear/buffs. Floored at 0 so an Intellect-draining debuff can't go negative.
   e.spellPower = Math.max(0, Math.round(s.int * SPELL_POWER_PER_INT + bonusSp));
+  // Healing Power rides ON TOP of Spell Power (spell power adds to healing;
+  // healing power never adds to damage): heal/HoT/absorb riders read this.
+  e.healPower = Math.max(0, e.spellPower + bonusHealPower + setEff.healPower);
   e.critRating = bonusCritRating + setEff.critRating;
   e.hasteRating = bonusHasteRating + setEff.hasteRating;
   // Hit rating (gear + set bonuses) folds into a hit fraction that combat subtracts
@@ -589,7 +769,8 @@ export function recalcPlayerStats(
   // The class-agnostic crit core (rating + talent/set crit + flat crit auras).
   // Both hit tables read it: melee adds Agility on top, spells add Intellect
   // (the community-found gap: spell crit read ONLY Intellect, so crit gear and
-  // crit talents were dead weight to casters).
+  // crit talents were dead weight to casters). The active mount's bonus rides
+  // here too so it covers melee, ranged, and ability crit uniformly.
   e.sharedCritBonus =
     bonusCrit + (mods?.stats.crit ?? 0) + setEff.crit + critFractionFromRating(e.critRating);
   // Crit: ~1% per 20 agi at low level
@@ -605,30 +786,53 @@ export function recalcPlayerStats(
   e.critDmgSpellBonus = mods?.global.critDmgSpellPct ?? 0;
   e.critDmgPhysBonus = mods?.global.critDmgPhysPct ?? 0;
   e.critDmgHealBonus = mods?.global.critDmgHealPct ?? 0;
-  e.castPushbackReduction = setEff.castPushbackReduction;
+  // Stat-set and talent-seam pushback sources MAX-combine (never sum past
+  // immunity); the set aggregation already clamped its own side to 0..1 and
+  // the talent side is authored 0..1 (the Crucible caster/healer 2pc rider).
+  e.castPushbackReduction = Math.min(
+    1,
+    Math.max(setEff.castPushbackReduction, mods?.global.castPushbackReduction ?? 0),
+  );
   e.knockbackResistance = setEff.knockbackResistance;
+  e.ccDurationReduction = setEff.ccDurationReduction;
   // Floored at 0: an off-balance debuff (negative buff_dodge) can drive dodge to nothing.
   e.dodgeChance = Math.max(0, 0.05 + s.agi * 0.0005 + bonusDodge);
 
   const hpFrac = e.maxHp > 0 ? e.hp / e.maxHp : 1;
   e.maxHp = def.baseHp + def.hpPerLevel * (lvl - 1) + hpFromStamina(s.sta);
-  if (bearForm) e.maxHp = Math.round(e.maxHp * 1.15);
+  // 1.30x (v0.38 tank parity, was 1.15x): funded by the form armor trim above,
+  // restoring the classic big-pool bear identity (largest raw tank pool).
+  if (bearForm) e.maxHp = Math.round(e.maxHp * 1.3);
   if (mods?.stats.maxHpPct) e.maxHp = Math.round(e.maxHp * (1 + mods.stats.maxHpPct));
   if (maxHpPctAura !== 0) e.maxHp = Math.max(1, Math.round(e.maxHp * (1 + maxHpPctAura)));
   // Fiesta "Colossus"-style buffs: growing bigger also makes you tankier.
   if (scaleMul > 1) e.maxHp = Math.round(e.maxHp * scaleMul);
+  // WARFARE Vitality: honor gear's health bonus, off inside PvE instances (the
+  // Sim clears pvpVitalityActive there; absent means the open world, where it
+  // applies). The preserved hpFrac keeps a switch from gaining or losing health.
+  if (e.pvpVitalityActive !== false && e.stats.pvpVitality > 0) {
+    e.maxHp = Math.round(e.maxHp * (1 + e.stats.pvpVitality));
+  }
   e.hp = Math.max(1, Math.round(e.maxHp * hpFrac));
   if (e.dead) e.hp = 0;
   // Body size: players default to 1; a buff_scale aura grows/shrinks them live.
   if (e.kind === 'player') e.scale = scaleMul;
 
   // Druid forms swap the resource bar, classic-style: bear runs on rage
-  // (starts empty, fills from combat), cat on energy (starts full — friendlier
-  // than the classic-era 0). Mana is parked in savedMana and restored on shift-out.
+  // (starts empty, fills from combat), cat on energy. Mana is parked in savedMana
+  // and restored on shift-out. Cat energy is parked too, as it is left: out of
+  // combat a shift into Cat still starts full (friendlier than the classic-era
+  // 0), but mid-fight it returns the parked pool, so leaving Cat and coming back
+  // is never a refill (combat/cat_form_energy.ts).
   const formResource: 'rage' | 'energy' | null = bearForm ? 'rage' : catForm ? 'energy' : null;
+  if (e.resourceType === 'energy' && formResource !== 'energy' && def.resourceType === 'mana') {
+    parkCatEnergy(e, e.resource);
+  }
   if (formResource) {
     if (e.resourceType === 'mana') e.savedMana = e.resource;
-    if (e.resourceType !== formResource) e.resource = formResource === 'energy' ? 100 : 0;
+    if (e.resourceType !== formResource) {
+      e.resource = formResource === 'energy' ? takeCatFormEntryEnergy(e) : 0;
+    }
     e.resourceType = formResource;
     e.maxResource = 100;
   } else if (def.resourceType === 'mana') {
@@ -644,7 +848,7 @@ export function recalcPlayerStats(
       : Math.round(e.maxResource * manaFrac);
   } else {
     e.resourceType = def.resourceType;
-    e.maxResource = 100; // rage and energy both cap at 100
+    e.maxResource = 100; // rage, energy, and Focus all cap at 100
     e.resource = Math.min(e.resource, 100);
   }
 }
@@ -693,6 +897,9 @@ export function createMob(id: number, template: MobTemplate, level: number, pos:
   const dmgMult = template.elite ? 1.5 : 1;
   e.maxHp = Math.round((template.hpBase + template.hpPerLevel * (level - 1)) * hpMult);
   e.hp = e.maxHp;
+  if (template.damageFloorPct !== undefined) {
+    e.damageFloorHp = Math.ceil(e.maxHp * template.damageFloorPct);
+  }
   const dmg = (template.dmgBase + template.dmgPerLevel * (level - 1)) * dmgMult;
   e.weapon = {
     min: Math.round(dmg * 0.8),
@@ -706,8 +913,17 @@ export function createMob(id: number, template: MobTemplate, level: number, pos:
   e.scale = template.scale;
   e.color = template.color;
   e.swingTimer = 0;
+  // An authored boss that opts into telegraphed mechanics carries the same per-spawn
+  // spacing a rift stamps on its bosses, which is also what arms the ground-ring windup.
+  // Set ONLY when the template asks for it: defining the field on every mob would churn
+  // the parity golden's entity samples for mobs whose behaviour has not changed.
+  if (template.telegraphedMechanics !== undefined) {
+    e.riftMechanicSpacing = template.telegraphedMechanics;
+  }
   // Telegraph the first War Stomp: delay it one full interval after engage.
   if (template.stomp) e.stompTimer = template.stomp.every;
+  // Telegraph the first pulse blast the same way: one full interval after engage.
+  if (template.aoePulse) e.pulseTimer = template.aoePulse.every;
   // Telegraph the first Banshee's Wail the same way: one full interval after engage.
   if (template.terrify) e.terrifyTimer = template.terrify.every;
   // Telegraph the first Howling Gale the same way: one full interval after engage.
@@ -724,11 +940,28 @@ export function createMob(id: number, template: MobTemplate, level: number, pos:
   if (template.stoneskin) e.stoneskinTimer = template.stoneskin.every;
   // Telegraph the first hardcast (bigCast) the same way: one full interval after engage.
   if (template.bigCast) e.bigCastTimer = template.bigCast.every;
+  // Telegraph the lethal zone casts the same way: one full interval before first fire.
+  if (template.deathZoneCast) e.deathZoneCastTimer = template.deathZoneCast.every;
+  if (template.deathZoneStrike) e.deathZoneStrikeTimer = template.deathZoneStrike.every;
   if (template.infernoChannel) e.infernoTimer = template.infernoChannel.every;
   // Telegraph the first Rally the same way: one full interval after engage.
   if (template.rally) e.rallyTimer = template.rally.every;
   // Telegraph the first War Cadence the same way: one full interval after engage.
   if (template.warcry) e.warcryTimer = template.warcry.every;
+  // A template that takes its PASSIVE idle draws off the shared world stream
+  // (MobTemplate.offStreamIdle) carries the contract from birth, through EVERY spawn
+  // path: the camp loop, a brood egg hatching a whelp at runtime, a dev spawn. Draws
+  // no rng itself, so no spawn's draw position moves.
+  if (template.offStreamIdle) e.offStreamRng = true;
+  // A friendly practice dummy is an ALLY: it spawns non-hostile and carries the
+  // entity flag sim.isFriendlyTo reads to open it to heals. Set here rather than
+  // at one spawn site so every path (camp loop, dev spawn, editor) agrees. Its
+  // health and armor are stamped separately from the reference kit
+  // (mob/practice_dummies.ts), which cannot be reached from this module.
+  if (template.friendlyPracticeTarget) {
+    e.hostile = false;
+    e.friendlyPracticeTarget = true;
+  }
   return e;
 }
 
@@ -747,6 +980,10 @@ export function createNpc(id: number, def: NpcDef, pos: Vec3): Entity {
   e.questIds = [...def.questIds];
   e.vendorItems = [...(def.vendorItems ?? [])];
   e.devVendor = def.devVendor ?? false;
+  if (def.visualKey) e.visualKey = def.visualKey;
+  // Studio-authored ambient VFX (render-only). Conditional so a built-in NPC
+  // (which never carries one) keeps the exact release entity shape.
+  if (def.authorVfx) e.authorVfx = { ...def.authorVfx };
   return e;
 }
 

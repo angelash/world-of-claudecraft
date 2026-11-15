@@ -8,7 +8,6 @@ import {
 } from '../src/sim/data';
 import { isAtStation, stationsOfType } from '../src/sim/professions/stations';
 import { Sim } from '../src/sim/sim';
-import { VALE_CUP_BRAM_ID } from '../src/sim/social/vale_cup';
 import {
   assertCanonicalEastbrookNoticeboardDef,
   emptyZoneProps,
@@ -16,6 +15,17 @@ import {
   STATIC_WORLD_SERVICE_ENTITY_ID_MIN,
   type WorldContent,
 } from '../src/sim/types';
+import { runCraft } from './helpers/enchant_family_cast';
+
+function civicPlacements(
+  mailboxes = BUILTIN_WORLD.services?.mailboxes ?? [],
+  noticeboards = BUILTIN_WORLD.services?.noticeboards ?? [],
+) {
+  return [
+    ...mailboxes.map(({ x, z }) => ({ kind: 'mailbox' as const, x, z })),
+    ...noticeboards.map(({ x, z }) => ({ kind: 'noticeboard' as const, x, z })),
+  ];
+}
 
 function worldWithoutServices(): WorldContent {
   return {
@@ -60,15 +70,21 @@ describe('WorldContent static gameplay services', () => {
     ).not.toThrow();
   });
 
-  it('rejects a custom noticeboard id before the next player spawn can overwrite it', () => {
+  it('rejects a custom noticeboard id before the next dynamic spawn can overwrite it', () => {
     const empty = worldWithoutServices();
     setActiveWorldContent(empty);
     const probe = new Sim({ seed: 71, playerClass: 'warrior', noPlayer: true, world: empty });
     const collidingEntityId = probe.nextId;
     expect(collidingEntityId).toBeLessThan(STATIC_WORLD_SERVICE_ENTITY_ID_MIN);
     expect(probe.entities.has(collidingEntityId)).toBe(false);
+    // The rejection below is a pure range check, so it only guards something real if
+    // this id is one the sequential allocator genuinely hands out. Assert live
+    // OCCUPANCY in a player-bearing sim rather than equality with playerId: the
+    // constructor spawns entities on both sides of the player's own allocation, so
+    // the slot the serviceless probe left free is taken by an ordinary world spawn.
     const playerProbe = new Sim({ seed: 71, playerClass: 'warrior', world: empty });
-    expect(playerProbe.playerId).toBe(collidingEntityId);
+    expect(playerProbe.entities.has(collidingEntityId)).toBe(true);
+    expect(playerProbe.playerId).toBeLessThan(STATIC_WORLD_SERVICE_ENTITY_ID_MIN);
 
     const world: WorldContent = {
       ...empty,
@@ -101,8 +117,10 @@ describe('WorldContent static gameplay services', () => {
     expect(entitiesWithTemplate(sim, 'noticeboard_eastbrook')).toHaveLength(
       BUILTIN_WORLD.services?.noticeboards?.length ?? 0,
     );
+    expect(sim.civicServicePlacements).toEqual(
+      civicPlacements([], BUILTIN_WORLD.services?.noticeboards ?? []),
+    );
     expect(entitiesWithTemplate(sim, 'spirit_healer')).toEqual([]);
-    expect(entitiesWithTemplate(sim, 'groundskeeper_bram')).toEqual([]);
     expect({ x: sim.player.pos.x, z: sim.player.pos.z }).toEqual(world.playerStart);
 
     sim.player.dead = true;
@@ -111,6 +129,22 @@ describe('WorldContent static gameplay services', () => {
 
     expect(sim.player.ghost).toBe(true);
     expect({ x: sim.player.pos.x, z: sim.player.pos.z }).toEqual(world.playerStart);
+  });
+
+  it('combines cfg-world mailboxes with the active noticeboards it actually spawns', () => {
+    const world = worldWithoutServices();
+    const mailbox = { x: 111, z: 44 };
+    world.services = { mailboxes: [mailbox] };
+
+    const sim = new Sim({ seed: 71, playerClass: 'warrior', world });
+
+    expect(sim.civicServicePlacements).toEqual(
+      civicPlacements([mailbox], BUILTIN_WORLD.services?.noticeboards ?? []),
+    );
+    expect(entitiesWithTemplate(sim, 'mailbox')).toHaveLength(1);
+    expect(entitiesWithTemplate(sim, 'noticeboard_eastbrook')).toHaveLength(
+      BUILTIN_WORLD.services?.noticeboards?.length ?? 0,
+    );
   });
 
   it('honors a cfg.world-only custom graveyard for healer spawn and spirit release', () => {
@@ -152,7 +186,7 @@ describe('WorldContent static gameplay services', () => {
     if (!toolworks || !trainer) throw new Error('built-in station fixture missing');
     sim.player.pos.x = toolworks.pos.x;
     sim.player.pos.z = toolworks.pos.z;
-    sim.craftItem(TOOL_RECIPES[0].id);
+    runCraft(sim, TOOL_RECIPES[0].id);
     expect(sim.lastCraftResult).toMatchObject({ ok: false, reason: 'station_required' });
 
     sim.player.pos.x = trainer.pos.x;
@@ -196,7 +230,7 @@ describe('WorldContent static gameplay services', () => {
     expect(getActiveWorldContent()).toBe(BUILTIN_WORLD);
     expect(isAtStation(sim.stationPlacements, world.playerStart, toolworks.type)).toBe(true);
 
-    sim.craftItem(TOOL_RECIPES[0].id);
+    runCraft(sim, TOOL_RECIPES[0].id);
     expect(sim.lastCraftResult).toMatchObject({ ok: false, reason: 'insufficient_materials' });
 
     sim.trainRecipe(LADDER_RECIPES[0].id);
@@ -215,34 +249,12 @@ describe('WorldContent static gameplay services', () => {
     );
   });
 
-  it('spawns the groundskeeper definition from cfg.world rather than built-in data', () => {
-    const world = worldWithoutServices();
-    world.npcs = {
-      groundskeeper_bram: {
-        ...BUILTIN_WORLD.npcs.groundskeeper_bram,
-        name: 'Custom Groundskeeper',
-        pos: { x: 40, z: 40 },
-        facing: Math.PI / 3,
-      },
-    };
-
-    const sim = new Sim({ seed: 71, playerClass: 'warrior', world });
-    const bram = sim.entities.get(VALE_CUP_BRAM_ID);
-
-    expect(bram).toMatchObject({
-      kind: 'npc',
-      name: 'Custom Groundskeeper',
-      facing: Math.PI / 3,
-    });
-    expect({ x: bram?.pos.x, z: bram?.pos.z }).toEqual(world.npcs.groundskeeper_bram.pos);
-  });
-
   it('keeps built-in services unchanged after restoring the default world', () => {
     setActiveWorldContent(worldWithoutServices());
     setActiveWorldContent(null);
     const sim = new Sim({ seed: 71, playerClass: 'warrior' });
 
-    expect(sim.stationPlacements).toBe(STATIONS);
+    expect(sim.stationPlacements).toBe(BUILTIN_WORLD.services?.stations);
     expect(entitiesWithTemplate(sim, 'mailbox')).toHaveLength(
       BUILTIN_WORLD.services?.mailboxes?.length ?? 0,
     );
@@ -286,11 +298,15 @@ describe('WorldContent static gameplay services', () => {
       noPlayer: true,
       world: custom,
     });
+    const builtinCivic = builtin.civicServicePlacements;
+    const explicitCivic = explicit.civicServicePlacements;
 
     // The editor/render registry is mutable, but it cannot retarget gameplay
     // authorization, later joins, or release destinations in an existing Sim.
     setActiveWorldContent(custom);
-    expect(builtin.stationPlacements).toBe(STATIONS);
+    expect(builtin.stationPlacements).toBe(BUILTIN_WORLD.services?.stations);
+    expect(builtin.civicServicePlacements).toBe(builtinCivic);
+    expect(explicit.civicServicePlacements).toBe(explicitCivic);
     const builtinPid = builtin.addPlayer('warrior', 'Builtin');
     const builtinPlayer = builtin.entities.get(builtinPid);
     expect(builtinPlayer && { x: builtinPlayer.pos.x, z: builtinPlayer.pos.z }).toEqual(
@@ -305,6 +321,8 @@ describe('WorldContent static gameplay services', () => {
 
     setActiveWorldContent(null);
     expect(explicit.stationPlacements).toEqual([customStation]);
+    expect(builtin.civicServicePlacements).toBe(builtinCivic);
+    expect(explicit.civicServicePlacements).toBe(explicitCivic);
     const customPid = explicit.addPlayer('warrior', 'Custom');
     const customPlayer = explicit.entities.get(customPid);
     expect(customPlayer && { x: customPlayer.pos.x, z: customPlayer.pos.z }).toEqual(

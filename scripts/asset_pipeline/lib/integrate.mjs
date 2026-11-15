@@ -79,8 +79,23 @@ export function insertIntoBlock(source, anchor, line) {
 // Weapon registration (--apply capable; gated by tests/held_weapon_models.test.ts)
 // ---------------------------------------------------------------------------
 
-/** Copy the built GLB + icon into public/ and register the variant key in both
- *  code registries. `itemIds` map existing (or new) item ids to the key. */
+/** The surface decision every generated held model owes (a follow-up action,
+ *  never applied automatically): a Tripo atlas that should keep its shipped
+ *  response goes in manifest.ts AUTHORED_HELD_MODELS; one that reads right
+ *  under the kit polish goes in the LEGACY_POLISHED_HELD_MODELS list of
+ *  tests/authored_surfaces.test.ts. That sweep fails until one of them names
+ *  the key, so this line is the pointer the failure would otherwise lack. */
+export function authoredHeldModelFollowUp(key) {
+  return (
+    `decide the surface for ${key}: AUTHORED_HELD_MODELS (src/render/characters/manifest.ts) ` +
+    'keeps the shipped atlas, LEGACY_POLISHED_HELD_MODELS (tests/authored_surfaces.test.ts) ' +
+    'keeps the kit polish; tests/authored_surfaces.test.ts fails until one names it'
+  );
+}
+
+/** Copy the built GLB + legacy model-preview JPG into public/ and register the variant key.
+ *  `itemIds` map existing (or new) item ids to the held-model key; each authored item also needs
+ *  bespoke painted inventory art at public/ui/items/<item-id>.webp before the item gate passes. */
 export function registerWeapon({ key, gripFamily, glbPath, iconPath, itemIds = [] }) {
   if (!/^[a-z0-9_]+$/.test(key)) throw new Error(`weapon key must be snake_case: ${key}`);
   for (const itemId of itemIds) {
@@ -96,7 +111,7 @@ export function registerWeapon({ key, gripFamily, glbPath, iconPath, itemIds = [
   // and may be overwritten (that is a legitimate re-apply).
   const accessorySrc = read(FILES.accessory);
   const existing = accessorySrc.match(new RegExp(`^\\s*${key}: '([A-Za-z0-9_]+)',`, 'm'));
-  if (existsSync(glbDest) && (!existing || !existing[1].startsWith('VAR_'))) {
+  if (existsSync(glbDest) && !existing?.[1].startsWith('VAR_')) {
     throw new Error(
       `public/models/weapons/${key}.glb already exists and is not a pipeline variant; ` +
         'pick a different --name (overwriting a shipped KayKit weapon would break its grip)',
@@ -139,6 +154,7 @@ export function registerWeapon({ key, gripFamily, glbPath, iconPath, itemIds = [
     actions.push(`mapped ${itemId} -> ${key} in ITEM_WEAPON_VARIANTS`);
   }
   if (itemIds.length) write(FILES.variants, variants);
+  actions.push(authoredHeldModelFollowUp(key));
   return actions;
 }
 
@@ -400,6 +416,10 @@ export function registerClassSkin({ cls, model, texturePath, suffix }) {
 
 /** Append an attribution row (the "Project asset" style used for generated art).
  *  Idempotent on the asset cell text. */
+export function formatCreditsRow({ assets, source }) {
+  return `| ${assets} | World of ClaudeCraft | ${source} | Project asset | With the project only |\n`;
+}
+
 export function appendCreditsRow({ assets, source }) {
   let credits = read(FILES.credits);
   if (credits.includes(assets)) return [`CREDITS.md already lists "${assets}" (skipped)`];
@@ -407,7 +427,7 @@ export function appendCreditsRow({ assets, source }) {
   if (!rows.length) throw new Error('CREDITS.md table not found');
   const last = rows[rows.length - 1];
   const insertAt = last.index + last[0].length + 1;
-  const row = `| ${assets} | World of ClaudeCraft | ${source} | Project asset |\n`;
+  const row = formatCreditsRow({ assets, source });
   credits = credits.slice(0, insertAt) + row + credits.slice(insertAt);
   write(FILES.credits, credits);
   return ['appended CREDITS.md row'];
@@ -439,6 +459,9 @@ export function visualDefSnippet({ name, kind, height, clips, hasCast, hasJump }
     '    },',
     "    tint: 'entity',",
     '    tintStrength: 0.35,',
+    '    // A generated atlas carries its own baked shading: without this the low',
+    '    // tier lays a flat grey readability floor over it (tests/authored_surfaces.test.ts).',
+    '    authoredAtlas: true,',
     '  },',
     '',
     '// Then route a mob template to it in MOB_KEYS (same file):',
@@ -530,6 +553,7 @@ export function skinModelSnippet({ name, cls, theme, hasRightSlot, hasLeftSlot }
     "    clips: kaykit(['1H_Melee_Attack_Chop']),",
   ];
   if (hasRightSlot) {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: generated code snippet must contain the template placeholder.
     lines.push("    attach: [{ url: `${WEAPONS}/sword_1handed.glb`, bone: 'handslot.r' }],");
     lines.push('    weaponSlots: [0],');
   } else {

@@ -12,13 +12,20 @@ import { createMob } from '../src/sim/entity';
 import { Sim } from '../src/sim/sim';
 import type { Entity } from '../src/sim/types';
 import { auraEffectDescriptor } from '../src/ui/aura_effect';
+import { EMPTY_TEST_WORLD } from './sim_shared';
+
+// This suite never reaches into the built-in world's camps, npcs, or ground
+// objects: every combat rig hand-spawns its own training_dummy target (or
+// addPlayer ally) and every tick loop only advances a mage's own auras and
+// cooldowns. EMPTY_TEST_WORLD (no ambient mobs) keeps Sim construction and
+// per-tick AI cost proportional to what these tests actually exercise.
 
 function rig(
   rows: Record<number, string>,
   level = 20,
   spec: 'arcane' | 'fire' | 'frost' = 'frost',
 ) {
-  const sim = new Sim({ seed: 17, playerClass: 'mage', autoEquip: true });
+  const sim = new Sim({ seed: 17, playerClass: 'mage', autoEquip: true, world: EMPTY_TEST_WORLD });
   sim.setPlayerLevel(level);
   // Spec-selected rig: Chronomancy gating means these rows can no longer be
   // exercised reliably with a spec-less mage.
@@ -48,6 +55,24 @@ function tickFor(sim: Sim, seconds: number): void {
   for (let i = 0; i < Math.round(seconds * 20); i++) sim.tick();
 }
 
+function dealRawDamage(sim: Sim, source: Entity, target: Entity, amount: number): number {
+  const before = target.hp;
+  (
+    sim as unknown as {
+      dealDamage(
+        source: Entity,
+        target: Entity,
+        amount: number,
+        crit: boolean,
+        school: 'shadow',
+        ability: string,
+        kind: 'hit',
+      ): void;
+    }
+  ).dealDamage(source, target, amount, false, 'shadow', 'Test Hit', 'hit');
+  return before - target.hp;
+}
+
 function applyControl(
   sim: Sim,
   target: Entity,
@@ -67,7 +92,7 @@ function applyControl(
 }
 
 describe('mage base kit', () => {
-  it('Flickerstep (blink) is a BASE ability from level 5, matching its level-5 row modifiers', () => {
+  it('Flitstep (blink) is a BASE ability from level 5, matching its level-5 row modifiers', () => {
     // The level-5 choice row offers two blink-modifying picks (Double Blink, Blink
     // cast), so Blink must exist by level 5, not 10: they must not bank against an
     // ability the player cannot yet learn.
@@ -136,7 +161,12 @@ describe('mage choice rows (owner tree)', () => {
   });
 
   it("Warded scales an ally's Temporal Barrier heal from the mage, not the ally", () => {
-    const sim = new Sim({ seed: 17, playerClass: 'mage', autoEquip: true });
+    const sim = new Sim({
+      seed: 17,
+      playerClass: 'mage',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    });
     sim.setPlayerLevel(20);
     expect(sim.applyTalents({ spec: 'arcane', rows: { 8: 'mag_r8_warded' } } as never)).toBe(true);
     sim.tick();
@@ -186,6 +216,7 @@ describe('mage choice rows (owner tree)', () => {
     expect(option?.effect.ability).toEqual([
       { ability: 'ice_barrier', addEffects: [{ type: 'breakRoots' }] },
       { ability: 'blazing_barrier', addEffects: [{ type: 'breakRoots' }] },
+      { ability: 'temporal_barrier', addEffects: [{ type: 'breakRoots' }] },
     ]);
 
     applyControl(sim, p, mob.id, 'slow');
@@ -211,6 +242,19 @@ describe('mage choice rows (owner tree)', () => {
     expect(p.auras.some((aura) => aura.id === 'blazing_barrier')).toBe(true);
   });
 
+  it('Shifting Ward breaks roots when an Arcane mage casts Temporal Barrier on themselves', () => {
+    const { sim, p } = rig({ 8: 'mag_r8_temporal_rift' }, 20, 'arcane');
+    const mob = addTargetMob(sim);
+    applyControl(sim, p, mob.id, 'root');
+
+    // No friendly override and the current target is the hostile mob, so
+    // resolveFriendlyTarget falls back to self: this is a self-cast.
+    sim.castAbility('temporal_barrier');
+
+    expect(p.auras.some((aura) => aura.kind === 'root')).toBe(false);
+    expect(p.auras.some((aura) => aura.id === 'temporal_barrier')).toBe(true);
+  });
+
   it('Shifting Ward does not self-cleanse an Arcane mage shielding an ally', () => {
     const { sim, p } = rig({ 8: 'mag_r8_temporal_rift' }, 20, 'arcane');
     const allyId = sim.addPlayer('warrior', 'Ward Target');
@@ -227,7 +271,7 @@ describe('mage choice rows (owner tree)', () => {
     expect(ally.auras.some((aura) => aura.id === 'temporal_barrier')).toBe(true);
     expect(p.auras.some((aura) => aura.kind === 'root')).toBe(true);
   });
-  it('Greater Invisibility strips 2 DoTs, vanishes, and cuts damage 90%', () => {
+  it('Greater Invisibility has no DR while hidden, then cuts damage 90% for 2 sec', () => {
     const { sim, p } = rig({ 8: 'mag_r8_greater_invis' });
     const mob = addTargetMob(sim);
     for (const id of ['dot_a', 'dot_b', 'dot_c']) {
@@ -248,10 +292,58 @@ describe('mage choice rows (owner tree)', () => {
     // The stealth kind doubles as a movement factor (rogues sneak slower); an
     // invisible mage keeps FULL speed (owner playtest: value 0 pinned them).
     expect(p.auras.find((a) => a.kind === 'stealth')?.value).toBe(1);
+    expect(p.auras.some((a) => a.id === 'greater_invisibility_dr')).toBe(false);
+
+    // The hit that reveals the mage is unmitigated. Only after the stealth aura
+    // has gone does the short defensive aftereffect begin.
+    expect(dealRawDamage(sim, mob, p, 100)).toBe(100);
+    expect(p.stealthed).toBe(false);
     const dr = p.auras.find((a) => a.id === 'greater_invisibility_dr');
     expect(dr?.kind).toBe('buff_dr');
     expect(dr?.value).toBeCloseTo(0.9);
-    expect(dr?.duration).toBeCloseTo(23); // 20s vanish + 3s linger
+    expect(dr?.duration).toBe(2);
+    expect(dealRawDamage(sim, mob, p, 100)).toBe(10);
+    tickFor(sim, 2);
+    expect(p.auras.some((a) => a.id === 'greater_invisibility_dr')).toBe(false);
+  });
+
+  it('Greater Invisibility starts its 2 sec DR after natural expiry', () => {
+    const { sim, p } = rig({ 8: 'mag_r8_greater_invis' });
+    sim.castAbility('greater_invisibility');
+
+    tickFor(sim, 20);
+
+    expect(p.stealthed).toBe(false);
+    const dr = p.auras.find((a) => a.id === 'greater_invisibility_dr');
+    expect(dr?.kind).toBe('buff_dr');
+    expect(dr?.value).toBeCloseTo(0.9);
+    expect(dr?.remaining).toBe(2);
+    expect(dr?.duration).toBe(2);
+  });
+
+  it('Greater Invisibility starts its 2 sec DR when cancelled', () => {
+    const { sim, p } = rig({ 8: 'mag_r8_greater_invis' });
+    sim.castAbility('greater_invisibility');
+
+    sim.cancelAura('greater_invisibility');
+
+    expect(p.stealthed).toBe(false);
+    const dr = p.auras.find((a) => a.id === 'greater_invisibility_dr');
+    expect(dr?.value).toBeCloseTo(0.9);
+    expect(dr?.remaining).toBe(2);
+    expect(dr?.duration).toBe(2);
+  });
+
+  it("Winter's Recall can reset Greater Invisibility without carrying DR into the new vanish", () => {
+    const { sim, p } = rig({ 8: 'mag_r8_greater_invis', 17: 'mag_r17_cold_snap' });
+    sim.castAbility('greater_invisibility');
+    sim.castAbility('cold_snap');
+    p.gcdRemaining = 0;
+
+    sim.castAbility('greater_invisibility');
+
+    expect(p.stealthed).toBe(true);
+    expect(p.auras.some((a) => a.id === 'greater_invisibility_dr')).toBe(false);
   });
 
   it('Ring of Frost arms at the aimed point with a single charge', () => {
@@ -308,7 +400,7 @@ describe('mage choice rows (owner tree)', () => {
     expect(p.auras.some((a) => a.kind === 'next_cast_instant')).toBe(true);
   });
 
-  it('Cold Snap finishes the cooldowns of Flickerstep, Frostveil and Greater Invisibility', () => {
+  it('Cold Snap finishes the cooldowns of Flitstep, Frostveil and Greater Invisibility', () => {
     const { sim, p } = rig({ 8: 'mag_r8_greater_invis', 17: 'mag_r17_cold_snap' });
     p.cooldowns.set('blink', 12);
     p.cooldowns.set('ice_barrier', 25);
@@ -319,12 +411,14 @@ describe('mage choice rows (owner tree)', () => {
     expect(p.cooldowns.has('greater_invisibility')).toBe(false);
   });
 
-  it('Mass Barrier shields the caster (and any nearby allies) for 130', () => {
+  it('Mass Barrier shields the caster (and any nearby allies) for 250 + 25% of healPower', () => {
     const { sim, p } = rig({ 17: 'mag_r17_mass_barrier' });
+    p.healPower = 120;
     sim.castAbility('mass_barrier');
     const shield = p.auras.find((a) => a.id === 'mass_barrier');
     expect(shield?.kind).toBe('absorb');
-    expect(shield?.value).toBe(130);
+    expect(shield?.value).toBe(280); // 250 + 120 x 0.25
+    expect(shield?.duration).toBe(15);
   });
 
   it('Overflowing Power shaves defensive cooldowns as mana is spent, capped by the window', () => {
@@ -385,7 +479,7 @@ describe('mage choice rows (owner tree)', () => {
     expect(p.resource - 10).toBeGreaterThanOrEqual(6 * 40); // the flat mana floor
   });
 
-  it('Blink While Casting slips Flickerstep through the busy guard, keeping the cast', () => {
+  it('Blink While Casting slips Flitstep through the busy guard, keeping the cast', () => {
     const { sim, p } = rig({ 5: 'mag_r5_blink_cast' });
     addTargetMob(sim);
     sim.castAbility('fireball');
@@ -398,7 +492,7 @@ describe('mage choice rows (owner tree)', () => {
     expect(p.pos.z).not.toBe(z0); // and actually moved
   });
 
-  it('without the pick, a mid-cast Flickerstep press stays blocked', () => {
+  it('without the pick, a mid-cast Flitstep press stays blocked', () => {
     const { sim, p } = rig({ 5: 'mag_r5_double_blink' });
     addTargetMob(sim);
     sim.castAbility('fireball');
@@ -446,18 +540,24 @@ describe('mage choice rows (owner tree)', () => {
   it('Power Echo also repeats a direct HEAL (Temporal Mend) at 50% on the same target, once', () => {
     // Arcane rig: Temporal Mend is the arcane-spec direct heal; Power Echo is the
     // class-wide row-14 grant. The echo must fire for heals, not only damage.
-    const sim = new Sim({ seed: 17, playerClass: 'mage', autoEquip: true });
+    const sim = new Sim({
+      seed: 17,
+      playerClass: 'mage',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    });
     sim.setPlayerLevel(20);
     expect(sim.applyTalents({ spec: 'arcane', rows: { 14: 'mag_r14_power_echo' } })).toBe(true);
     const p = sim.player;
     p.resource = p.maxResource;
-    // Deep HP hole so neither the heal nor its echo overheals (which would clamp).
-    p.maxHp = 100000;
-    p.hp = 1;
     sim.castAbility('power_echo');
     (p as { gcdRemaining: number }).gcdRemaining = 0;
     sim.targetEntity(p.id); // Temporal Mend targets a friendly; heal self.
     sim.castAbility('temporal_mend');
+    // Start-cast stat refresh has now run. Open the deep HP hole afterwards so
+    // neither the stronger rank-4 heal nor its echo overheals (which would clamp).
+    p.maxHp = 100000;
+    p.hp = 1;
     // Ride the 2s hard cast to completion, collecting heal events.
     const collected: { type: string; amount?: number; targetId?: number }[] = [];
     for (let i = 0; i < 60; i++) collected.push(...(sim.tick() as never[]));
@@ -469,7 +569,12 @@ describe('mage choice rows (owner tree)', () => {
   });
 
   it('Power Echo repeats Temporal Echo healing once and still places its mark', () => {
-    const sim = new Sim({ seed: 17, playerClass: 'mage', autoEquip: true });
+    const sim = new Sim({
+      seed: 17,
+      playerClass: 'mage',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    });
     sim.setPlayerLevel(20);
     expect(sim.applyTalents({ spec: 'arcane', rows: { 14: 'mag_r14_power_echo' } })).toBe(true);
     const p = sim.player;
@@ -490,7 +595,12 @@ describe('mage choice rows (owner tree)', () => {
   });
 
   it('Power Echo heal copy does not roll a second on-heal weapon proc', () => {
-    const sim = new Sim({ seed: 17, playerClass: 'mage', autoEquip: true });
+    const sim = new Sim({
+      seed: 17,
+      playerClass: 'mage',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    });
     sim.setPlayerLevel(20);
     expect(sim.applyTalents({ spec: 'arcane', rows: { 14: 'mag_r14_power_echo' } })).toBe(true);
     const p = sim.player;
@@ -559,7 +669,7 @@ describe('mage choice rows (owner tree)', () => {
   });
 
   it('overlapping Runes of Power refresh one shared buff instead of stacking', () => {
-    const sim = new Sim({ seed: 18, playerClass: 'mage', noPlayer: true });
+    const sim = new Sim({ seed: 18, playerClass: 'mage', noPlayer: true, world: EMPTY_TEST_WORLD });
     const first = sim.addPlayer('mage', 'First');
     const second = sim.addPlayer('mage', 'Second');
     for (const pid of [first, second]) {
@@ -596,7 +706,12 @@ describe('the talents-window registry mirror', () => {
   });
 
   it('the window flow works: a mage selectTalentRow pick applies its effect live', () => {
-    const sim = new Sim({ seed: 17, playerClass: 'mage', autoEquip: true });
+    const sim = new Sim({
+      seed: 17,
+      playerClass: 'mage',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    });
     sim.setPlayerLevel(20);
     expect(sim.setSpec('frost')).toBe(true);
     const p = sim.player;

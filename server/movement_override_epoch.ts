@@ -1,0 +1,210 @@
+import type { PlayerMeta, Sim } from '../src/sim/sim';
+import { slipperyGrip } from '../src/sim/slippery_ground';
+import { DT, type Entity, RUN_SPEED, type Vec3 } from '../src/sim/types';
+import { ferryMovementFrame } from './transport_head';
+
+const OVERRIDE_CC_KINDS = new Set(['stun', 'root', 'incapacitate', 'polymorph']);
+const POSITION_EPSILON = 1e-9;
+
+export interface MovementOverrideSignature {
+  crowdControlled: boolean;
+  charging: boolean;
+  following: boolean;
+  heroicLeaping: boolean;
+  valkyrsCalling: boolean;
+  mountRaceLocked: boolean;
+  vehicleLocked?: boolean;
+  climbing: boolean;
+  braced: boolean;
+  moveSpeedMult: number;
+  /** On slippery ground (src/sim/slippery_ground.ts): an override, like a
+   *  rift ice slide. The slide's ground velocity is state the reconcile wire
+   *  does not carry, so the client stands its prediction down on the ice and
+   *  draws the authoritative slide; the edge bumps the epoch both ways. */
+  slippery?: boolean;
+}
+
+export interface MovementOverrideSessionState {
+  pid: number;
+  movementWireVersion: 1 | 2;
+  movementOverrideSignature: MovementOverrideSignature | null;
+  movementOverrideEpoch: number;
+  movementOverrideActive: boolean;
+  movementMoveSpeedMult: number;
+  movementAuthoritativePosition: Vec3 | null;
+  /** The frame movementAuthoritativePosition is in: -1 the world, else the
+   *  route index of the sailing ship the player rides (its hull frame). */
+  movementAuthoritativeFrame?: number;
+}
+
+export function createMovementOverrideSessionState(): Pick<
+  MovementOverrideSessionState,
+  | 'movementOverrideSignature'
+  | 'movementOverrideEpoch'
+  | 'movementOverrideActive'
+  | 'movementMoveSpeedMult'
+  | 'movementAuthoritativePosition'
+  | 'movementAuthoritativeFrame'
+> {
+  return {
+    movementOverrideSignature: null,
+    movementOverrideEpoch: 0,
+    movementOverrideActive: false,
+    movementMoveSpeedMult: 1,
+    movementAuthoritativePosition: null,
+    movementAuthoritativeFrame: -1,
+  };
+}
+
+export function computeOverrideSignature(
+  entity: Entity,
+  meta: Pick<PlayerMeta, 'mountRace' | 'vehicle'>,
+  moveSpeedMult: number,
+): MovementOverrideSignature {
+  return fillOverrideSignature(
+    {
+      crowdControlled: false,
+      charging: false,
+      following: false,
+      heroicLeaping: false,
+      valkyrsCalling: false,
+      mountRaceLocked: false,
+      climbing: false,
+      braced: false,
+      moveSpeedMult: 1,
+    },
+    entity,
+    meta,
+    moveSpeedMult,
+  );
+}
+
+export function fillOverrideSignature(
+  target: MovementOverrideSignature,
+  entity: Entity,
+  meta: Pick<PlayerMeta, 'mountRace' | 'vehicle'>,
+  moveSpeedMult: number,
+): MovementOverrideSignature {
+  // Fear uses kind incapacitate, so it rides the crowd-control arm.
+  target.crowdControlled = entity.auras.some((aura) => OVERRIDE_CC_KINDS.has(aura.kind));
+  target.charging = entity.chargeTargetId !== null;
+  target.following = entity.followTargetId !== null;
+  target.heroicLeaping = entity.leap != null;
+  target.valkyrsCalling = entity.valkyrsCalling != null;
+  target.mountRaceLocked = meta.mountRace?.phase === 'countdown';
+  target.vehicleLocked = !!meta.vehicle;
+  target.climbing = entity.climb != null;
+  // A couched Shardpike plants the body and turns strafe into the balance stick
+  // (src/sim/lance_trial.ts), so the client must not predict that strafe as a step.
+  target.braced = entity.bracing === true;
+  target.moveSpeedMult = moveSpeedMult;
+  target.slippery = slipperyGrip(entity) > 0;
+  return target;
+}
+
+function overrideBits(signature: MovementOverrideSignature): number {
+  return (
+    (signature.crowdControlled ? 1 : 0) |
+    (signature.charging ? 2 : 0) |
+    (signature.following ? 4 : 0) |
+    (signature.heroicLeaping ? 8 : 0) |
+    (signature.valkyrsCalling ? 16 : 0) |
+    (signature.mountRaceLocked ? 32 : 0) |
+    (signature.climbing ? 64 : 0) |
+    (signature.vehicleLocked ? 128 : 0) |
+    (signature.braced ? 256 : 0) |
+    (signature.slippery ? 512 : 0)
+  );
+}
+
+export function overrideActive(signature: MovementOverrideSignature): boolean {
+  return overrideBits(signature) !== 0;
+}
+
+function positionDiscontinuous(
+  entity: Entity,
+  position: Vec3,
+  previousPosition: Vec3,
+  active: boolean,
+  moveSpeedMult: number,
+  previousActive: boolean,
+  previousMoveSpeedMult: number,
+): boolean {
+  const dx = position.x - previousPosition.x;
+  const dy = position.y - previousPosition.y;
+  const dz = position.z - previousPosition.z;
+  const movedSq = dx * dx + dy * dy + dz * dz;
+  if (movedSq <= POSITION_EPSILON) return false;
+  if (
+    entity.pos.x === entity.prevPos.x &&
+    entity.pos.y === entity.prevPos.y &&
+    entity.pos.z === entity.prevPos.z
+  ) {
+    return true;
+  }
+  if (active || previousActive) {
+    return false;
+  }
+  const maxIntentStep = RUN_SPEED * Math.max(moveSpeedMult, previousMoveSpeedMult) * DT;
+  return Math.hypot(dx, dz) > maxIntentStep + POSITION_EPSILON;
+}
+
+// The position the step-size check compares, in the player's movement frame:
+// a ferry passenger is measured in the sailing ship's hull frame, so the
+// ship's own way (a yard a tick at cruise) never reads as a server-driven
+// move, while their own steps on its deck still do. Boarding or leaving the
+// deck changes the frame, which does bump the epoch: the client's prediction
+// restarts cleanly in the new frame (render/deck_prediction.ts).
+const framePosition: Vec3 = { x: 0, y: 0, z: 0 };
+
+export function updateMovementOverrideEpochs(
+  sim: Pick<Sim, 'entities' | 'meta' | 'moveSpeedMult'>,
+  sessions: Iterable<MovementOverrideSessionState>,
+): void {
+  for (const session of sessions) {
+    if (session.movementWireVersion !== 2) continue;
+    const entity = sim.entities.get(session.pid);
+    const meta = sim.meta(session.pid);
+    if (!entity || !meta) continue;
+    const moveSpeedMult = sim.moveSpeedMult(entity);
+    const signature = session.movementOverrideSignature;
+    const previousBits = signature ? overrideBits(signature) : 0;
+    const previousActive = previousBits !== 0;
+    const previousMoveSpeedMult = signature?.moveSpeedMult ?? 0;
+    const nextSignature = signature
+      ? fillOverrideSignature(signature, entity, meta, moveSpeedMult)
+      : computeOverrideSignature(entity, meta, moveSpeedMult);
+    const active = overrideActive(nextSignature);
+    const signatureChanged =
+      signature !== null &&
+      (previousBits !== overrideBits(nextSignature) || previousMoveSpeedMult !== moveSpeedMult);
+    const frame = ferryMovementFrame(entity, framePosition);
+    const frameChanged =
+      session.movementAuthoritativeFrame !== undefined &&
+      session.movementAuthoritativeFrame !== frame;
+    const discontinuous =
+      session.movementAuthoritativePosition !== null &&
+      (frameChanged ||
+        positionDiscontinuous(
+          entity,
+          framePosition,
+          session.movementAuthoritativePosition,
+          active,
+          moveSpeedMult,
+          previousActive,
+          previousMoveSpeedMult,
+        ));
+    if (signatureChanged || discontinuous) session.movementOverrideEpoch++;
+    session.movementOverrideSignature = nextSignature;
+    session.movementOverrideActive = active;
+    session.movementMoveSpeedMult = moveSpeedMult;
+    session.movementAuthoritativeFrame = frame;
+    if (session.movementAuthoritativePosition) {
+      session.movementAuthoritativePosition.x = framePosition.x;
+      session.movementAuthoritativePosition.y = framePosition.y;
+      session.movementAuthoritativePosition.z = framePosition.z;
+    } else {
+      session.movementAuthoritativePosition = { ...framePosition };
+    }
+  }
+}

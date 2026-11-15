@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ITEMS } from '../src/sim/data';
 import type { CoreStats, ItemDef } from '../src/sim/types';
-import { itemStatDeltas } from '../src/ui/item_compare';
+import { itemStatDeltas, sameItemCopy, shouldCompareCopies } from '../src/ui/item_compare';
 
 function armor(
   id: string,
@@ -12,6 +12,8 @@ function armor(
     hitRating: number;
     critRating: number;
     hasteRating: number;
+    spellPower: number;
+    healPower: number;
   }> = {},
 ): ItemDef {
   return {
@@ -36,6 +38,38 @@ function weapon(id: string, min: number, max: number, speed: number): ItemDef {
   };
 }
 
+describe('sameItemCopy', () => {
+  it('matches a copy against its own projection and tells two bands apart', () => {
+    const rift = {
+      sourceEventId: 'e',
+      tier: 'S' as const,
+      power: 4,
+      upgradeLevel: 2,
+      maxUpgradeLevel: 5,
+      gemSlots: 2,
+      gems: ['rift_gem_verdant'],
+    };
+    const worn = { boundTo: 7, rolled: { stats: { str: 8, sta: 6, hitRating: 12 } }, rift };
+    // A structural clone, never a shared reference: both hosts hand the
+    // paperdoll and the compare block distinct objects for the same copy.
+    const projected = structuredClone({ rolled: worn.rolled, rift: worn.rift });
+    expect(projected.rift).not.toBe(worn.rift);
+    expect(sameItemCopy(projected, worn)).toBe(true);
+    expect(sameItemCopy(worn, { ...worn, rift: { ...rift, upgradeLevel: 3 } })).toBe(false);
+    expect(sameItemCopy(worn, { ...worn, rolled: { stats: { str: 9 } } })).toBe(false);
+    expect(sameItemCopy(undefined, undefined)).toBe(true);
+    expect(sameItemCopy(worn, undefined)).toBe(false);
+    // The compare decision: a different item always; the same id only for a
+    // per-copy piece that is not the worn copy itself.
+    expect(shouldCompareCopies('a', 'b')).toBe(true);
+    expect(shouldCompareCopies('a', 'a')).toBe(false);
+    expect(shouldCompareCopies('band', 'band', projected, worn)).toBe(false);
+    expect(
+      shouldCompareCopies('band', 'band', { ...worn, rift: { ...rift, upgradeLevel: 5 } }, worn),
+    ).toBe(true);
+  });
+});
+
 describe('itemStatDeltas', () => {
   it('reports positive deltas for an upgrade and negative for a downgrade', () => {
     const candidate = armor('better', { armor: 50, str: 5, sta: 3 });
@@ -52,6 +86,68 @@ describe('itemStatDeltas', () => {
     const same = armor('a', { armor: 40, str: 2 });
     const dup = armor('b', { armor: 40, str: 2 });
     expect(itemStatDeltas(same, dup)).toEqual([]);
+  });
+
+  it('merges per-copy rolled.stats on BOTH sides (the worn-bake net-loss case)', () => {
+    // The reviewer's scenario: the worn copy's bake (def sta 6 + rolled sta 8
+    // = 14) beats the hovered def's flat 10, so the honest delta is -4, where
+    // the def-only compare claimed +4. The candidate side merges the same way.
+    const candidate = armor('cand', { sta: 10 });
+    const worn = armor('worn', { sta: 6 });
+    const wornBake = { rolled: { quality: 'legendary' as const, stats: { sta: 8 } } };
+    expect(itemStatDeltas(candidate, worn)).toEqual([{ stat: 'sta', delta: 4, decimals: 0 }]);
+    expect(itemStatDeltas(candidate, worn, undefined, wornBake)).toEqual([
+      { stat: 'sta', delta: -4, decimals: 0 },
+    ]);
+    // The hovered copy's own bake rides the candidate side: 10 + 5 vs 14 = +1.
+    expect(itemStatDeltas(candidate, worn, { rolled: { stats: { sta: 5 } } }, wornBake)).toEqual([
+      { stat: 'sta', delta: 1, decimals: 0 },
+    ]);
+    // A bake that exactly cancels the def gap yields no line at all.
+    expect(itemStatDeltas(candidate, worn, undefined, { rolled: { stats: { sta: 4 } } })).toEqual(
+      [],
+    );
+  });
+
+  it('drops a non-finite rolled value cleanly (the recalcPlayerStats guard parity)', () => {
+    // A corrupted or hostile persisted rolled value contributes ZERO, exactly
+    // as recalcPlayerStats treats the same field: the honest def-only delta
+    // (+4 sta) survives instead of the whole row vanishing behind a NaN.
+    const candidate = armor('cand', { sta: 10 });
+    const worn = armor('worn', { sta: 6 });
+    const honest = [{ stat: 'sta', delta: 4, decimals: 0 }];
+    const poisoned = { rolled: { stats: { sta: 'oops' as unknown as number } } };
+    expect(itemStatDeltas(candidate, worn, undefined, poisoned)).toEqual(honest);
+    expect(itemStatDeltas(candidate, worn, poisoned, undefined)).toEqual(honest);
+    expect(
+      itemStatDeltas(candidate, worn, undefined, { rolled: { stats: { sta: Number.NaN } } }),
+    ).toEqual(honest);
+  });
+
+  it('reads each side through its copy: a stat-free shell compares by its rolled line', () => {
+    // A Riftbound band's ItemDef carries nothing; the copy carries the whole
+    // ring (primary stats plus gem ratings). Without the instances the band
+    // would read as an empty ring against whatever is worn.
+    const shell = armor('band', {});
+    const worn = armor('worn', { str: 5, sta: 4 }, { hitRating: 25 });
+    expect(itemStatDeltas(shell, worn).map((d) => d.stat)).toEqual(['str', 'sta', 'hitRating']);
+    const copy = { rolled: { stats: { str: 8, sta: 6, hitRating: 12 } } };
+    const byStat = Object.fromEntries(
+      itemStatDeltas(shell, worn, copy).map((d) => [d.stat, d.delta]),
+    );
+    expect(byStat).toEqual({ str: 3, sta: 2, hitRating: -13 });
+    // Both sides are per-copy: the same shell against a worn band of its own.
+    const wornCopy = { rolled: { stats: { str: 8, sta: 6, critRating: 12 } } };
+    const bothSides = Object.fromEntries(
+      itemStatDeltas(shell, shell, copy, wornCopy).map((d) => [d.stat, d.delta]),
+    );
+    expect(bothSides).toEqual({ hitRating: 12, critRating: -12 });
+    // An enchanted worn piece keeps its baked bonus in the comparison.
+    const plain = armor('plain', { sta: 10 });
+    const enchantedWorn = { rolled: { stats: { sta: 4 } } };
+    expect(itemStatDeltas(plain, armor('base', { sta: 10 }), undefined, enchantedWorn)).toEqual([
+      { stat: 'sta', delta: -4, decimals: 0 },
+    ]);
   });
 
   it('computes a fractional weapon DPS delta at one decimal of precision', () => {
@@ -108,6 +204,20 @@ describe('itemStatDeltas', () => {
     ]);
   });
 
+  it('reports Spell Power and Healing Power deltas ahead of the ratings', () => {
+    // The Crucible tier authored both affixes onto items; the exact toEqual
+    // pins the tooltip's Stats | Affix | Ratings order (affixes first) and
+    // that each affix earns its own row rather than riding a rating row.
+    const candidate = armor('vestment', { int: 10 }, { spellPower: 14, critRating: 60 });
+    const equipped = armor('oldrobe', { int: 8 }, { healPower: 12, critRating: 40 });
+    expect(itemStatDeltas(candidate, equipped)).toEqual([
+      { stat: 'int', delta: 2, decimals: 0 },
+      { stat: 'spellPower', delta: 14, decimals: 0 },
+      { stat: 'healPower', delta: -12, decimals: 0 },
+      { stat: 'critRating', delta: 20, decimals: 0 },
+    ]);
+  });
+
   it('treats a missing rating as zero (full value counts as a gain)', () => {
     const candidate = armor('hasted', {}, { hasteRating: 25 });
     const equipped = armor('plain', {});
@@ -124,16 +234,19 @@ describe('itemStatDeltas', () => {
 
   it('surfaces the rating difference between two real epic helmets', () => {
     // The community report scenario: comparing gear that differs in ratings
-    // showed no rating rows at all. crownforged_dreadhelm carries hit rating,
-    // stormcallers_crown carries crit rating.
+    // showed no rating rows at all. The 2/4/6 lineage retune's Hit program
+    // flipped both original helmets to crit 20 (an identical pair surfaces
+    // nothing), so the pair is now crownforged versus soulflame:
+    // crownforged_dreadhelm carries crit rating, soulflame_cowl carries
+    // haste rating (its retuned seed).
     const dreadhelm = ITEMS.crownforged_dreadhelm;
-    const crown = ITEMS.stormcallers_crown;
-    expect(dreadhelm?.hitRating).toBe(20);
-    expect(crown?.critRating).toBe(20);
+    const cowl = ITEMS.soulflame_cowl;
+    expect(dreadhelm?.critRating).toBe(20);
+    expect(cowl?.hasteRating).toBe(20);
     const byStat = Object.fromEntries(
-      itemStatDeltas(dreadhelm, crown).map((d) => [d.stat, d.delta]),
+      itemStatDeltas(dreadhelm, cowl).map((d) => [d.stat, d.delta]),
     );
-    expect(byStat.hitRating).toBe(20);
-    expect(byStat.critRating).toBe(-20);
+    expect(byStat.critRating).toBe(20);
+    expect(byStat.hasteRating).toBe(-20);
   });
 });

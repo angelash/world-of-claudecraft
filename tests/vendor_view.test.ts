@@ -1,6 +1,35 @@
 import { describe, expect, it } from 'vitest';
+import { ITEMS } from '../src/sim/data';
 import type { InvSlot, ItemDef } from '../src/sim/types';
-import { buildVendorView } from '../src/ui/hud/vendor/vendor_view';
+import { buyPurchaseTotals } from '../src/sim/vendor_buy_stack';
+import { buildVendorView, sellJunkButtonState } from '../src/ui/hud/vendor/vendor_view';
+import { adoptedTrophyIds } from './helpers/adopted_trophy_ids';
+
+describe('riding service rank preview', () => {
+  it('offers the next rank at its actual fee and hides fully learned training', () => {
+    const balances = { copper: 10_000_000, honor: 0, gatheringProficiency: {} };
+    const basic = buildVendorView(['riding_training'], [], ITEMS, { ...balances, ridingTier: 0 });
+    expect(basic.goods[0].ridingRank).toBe(1);
+    expect(basic.goods[0].price.copper).toBe(800_000);
+    const advanced = buildVendorView(['riding_training'], [], ITEMS, {
+      ...balances,
+      ridingTier: 1,
+    });
+    expect(advanced.goods[0].ridingRank).toBe(2);
+    expect(advanced.goods[0].price.copper).toBe(10_000_000);
+    expect(advanced.goods[0].affordable).toBe(true);
+    expect(
+      buildVendorView(['riding_training'], [], ITEMS, {
+        ...balances,
+        ridingTier: 1,
+        copper: 9_999_999,
+      }).goods[0].affordable,
+    ).toBe(false);
+    expect(
+      buildVendorView(['riding_training'], [], ITEMS, { ...balances, ridingTier: 2 }).goods,
+    ).toEqual([]);
+  });
+});
 
 // Minimal ItemDef fixtures: buildVendorView only reads id / buyValue / sellValue.
 function item(
@@ -10,6 +39,7 @@ function item(
     priceHonor?: number;
     sellValue?: number;
     kind?: ItemDef['kind'];
+    stackSize?: number;
   } = {},
 ): ItemDef {
   return {
@@ -21,10 +51,18 @@ function item(
     sellValue: opts.sellValue ?? 0,
     buyValue: opts.buyValue,
     priceHonor: opts.priceHonor,
+    stackSize: opts.stackSize,
   } as unknown as ItemDef;
 }
 
-const RICH = { copper: 1_000_000, honor: 1_000_000 } as const;
+// A rich, fully skilled viewer: these cases are about pricing and buyback, so
+// the gathering counters are capped to keep every row open and out of the way.
+// The gate's own cases live in tests/professions_tool_gate.test.ts.
+const RICH = {
+  copper: 1_000_000,
+  honor: 1_000_000,
+  gatheringProficiency: { mining: 100, logging: 100, herbalism: 100 },
+} as const;
 
 function table(...items: ItemDef[]): Record<string, ItemDef> {
   return Object.fromEntries(items.map((i) => [i.id, i]));
@@ -92,16 +130,87 @@ describe('buildVendorView goods', () => {
     expect(view.honorBalance).toBe(RICH.honor);
   });
 
+  it('bulkQuantity: a plain copper-priced stacking good offers the full stack when fully affordable', () => {
+    const items = table(item('thread', { buyValue: 12, stackSize: 20 }));
+    const view = buildVendorView(['thread'], [], items, { ...RICH, copper: 1_000_000, honor: 0 });
+    expect(view.goods[0].bulkQuantity).toBe(20);
+  });
+
+  it('bulkQuantity: floors to what the buyer can currently afford', () => {
+    const items = table(item('thread', { buyValue: 12, stackSize: 20 }));
+    const view = buildVendorView(['thread'], [], items, { ...RICH, copper: 100, honor: 0 }); // floor(100/12)=8
+    expect(view.goods[0].bulkQuantity).toBe(8);
+  });
+
+  it('bulkQuantity: floors to 1 rather than 0 when even one unit is unaffordable (row stays disabled instead)', () => {
+    const items = table(item('thread', { buyValue: 12, stackSize: 20 }));
+    const view = buildVendorView(['thread'], [], items, { ...RICH, copper: 0, honor: 0 });
+    expect(view.goods[0].bulkQuantity).toBe(1);
+    expect(view.goods[0].affordable).toBe(false);
+  });
+
+  it('bulkAffordable is checked against the bulk total, not the ordinary row price (food/drink stack-of-5 case)', () => {
+    // buyValue 10, ordinary row price is 10*5=50 (unaffordable at 30 copper), but
+    // the bulk row only asks for floor(30/10)=3 units at 30 copper, which the
+    // buyer CAN afford: the ordinary and bulk affordability must be independent.
+    const items = table(item('loaf', { buyValue: 10, kind: 'food' }));
+    const view = buildVendorView(['loaf'], [], items, { ...RICH, copper: 30, honor: 0 });
+    expect(view.goods[0].price).toEqual({ copper: 50, honor: 0 });
+    expect(view.goods[0].affordable).toBe(false);
+    expect(view.goods[0].bulkQuantity).toBe(3);
+    expect(view.goods[0].bulkAffordable).toBe(true);
+  });
+
+  it('bulkAffordable is false when even the floor-affordable bulk quantity is unaffordable', () => {
+    const items = table(item('thread', { buyValue: 12, stackSize: 20 }));
+    const view = buildVendorView(['thread'], [], items, { ...RICH, copper: 0, honor: 0 });
+    expect(view.goods[0].bulkQuantity).toBe(1);
+    expect(view.goods[0].bulkAffordable).toBe(false);
+  });
+
+  it('bulkQuantity is absent for an item that does not stack', () => {
+    const items = table(item('sword', { buyValue: 50, kind: 'weapon' })); // UNSTACKED_KINDS: stackSize 1
+    const view = buildVendorView(['sword'], [], items, RICH);
+    expect(view.goods[0].bulkQuantity).toBeUndefined();
+  });
+
+  it('bulkQuantity is absent for a mount (never bulk-buy several copies of the same reins)', () => {
+    const items = table(item('reins', { buyValue: 100_000, kind: 'mount' }));
+    const view = buildVendorView(['reins'], [], items, RICH);
+    expect(view.goods[0].bulkQuantity).toBeUndefined();
+  });
+
+  it('bulkQuantity is absent for an Honor-priced good (Honor is never stack-multiplied)', () => {
+    const items = table(item('banner', { priceHonor: 250, stackSize: 20 }));
+    const view = buildVendorView(['banner'], [], items, RICH);
+    expect(view.goods[0].bulkQuantity).toBeUndefined();
+  });
+
+  it('bulkQuantity is absent for a dual-price (copper + Honor) good too', () => {
+    const items = table(item('rations', { buyValue: 4, priceHonor: 30, kind: 'food' }));
+    const view = buildVendorView(['rations'], [], items, RICH);
+    expect(view.goods[0].bulkQuantity).toBeUndefined();
+  });
+
+  it('bulkQuantity is absent for a soulbound stackable copper-priced good (buyItem collapses a bulk request on a soulbound row to one purchase, so the preview must never promise more)', () => {
+    const items = table({
+      ...item('bound_ration', { buyValue: 4, stackSize: 20, kind: 'food' }),
+      soulbound: true,
+    });
+    const view = buildVendorView(['bound_ration'], [], items, RICH);
+    expect(view.goods[0].bulkQuantity).toBeUndefined();
+  });
+
   it('requires both balances for a dual-price good', () => {
     const items = table(item('blade', { buyValue: 25, priceHonor: 80 }));
     expect(
-      buildVendorView(['blade'], [], items, { copper: 25, honor: 80 }).goods[0].affordable,
+      buildVendorView(['blade'], [], items, { ...RICH, copper: 25, honor: 80 }).goods[0].affordable,
     ).toBe(true);
     expect(
-      buildVendorView(['blade'], [], items, { copper: 24, honor: 80 }).goods[0].affordable,
+      buildVendorView(['blade'], [], items, { ...RICH, copper: 24, honor: 80 }).goods[0].affordable,
     ).toBe(false);
     expect(
-      buildVendorView(['blade'], [], items, { copper: 25, honor: 79 }).goods[0].affordable,
+      buildVendorView(['blade'], [], items, { ...RICH, copper: 25, honor: 79 }).goods[0].affordable,
     ).toBe(false);
   });
 });
@@ -162,6 +271,228 @@ describe('buildVendorView is a pure projection', () => {
     const buyback: InvSlot[] = [{ itemId: 'sword', count: 2 }];
     expect(buildVendorView(goodsIds, buyback, items, RICH)).toEqual(
       buildVendorView(goodsIds, buyback, items, RICH),
+    );
+  });
+});
+
+describe('sellJunkButtonState', () => {
+  const gray = {
+    ...item('rat_tail', { sellValue: 3 }),
+    quality: 'poor',
+  } as unknown as ItemDef;
+  const keeper = item('iron_sword', { sellValue: 50 });
+
+  it('enables on pricable junk and quotes exactly what this bundle can price', () => {
+    const inv: InvSlot[] = [
+      { itemId: 'rat_tail', count: 2 },
+      { itemId: 'iron_sword', count: 1 },
+    ];
+    expect(sellJunkButtonState(inv, table(gray, keeper))).toEqual({
+      enabled: true,
+      proceeds: 6,
+    });
+  });
+
+  it('stays live on an unknown-only bag, quoting zero (the R34 arm)', () => {
+    // The server resolves sell_all_junk against ITS OWN table, so grays this
+    // bundle cannot classify still sell: the button must not strand them,
+    // and the quote stays honest at what this bundle can price.
+    const inv: InvSlot[] = [{ itemId: 'future_gray_x', count: 4 }];
+    expect(sellJunkButtonState(inv, table(keeper))).toEqual({ enabled: true, proceeds: 0 });
+    // A prototype key is an UNKNOWN slot too, never a def (the known_item
+    // predicate), so it keeps the button live rather than throwing.
+    expect(sellJunkButtonState([{ itemId: 'constructor', count: 1 }], table(keeper))).toEqual({
+      enabled: true,
+      proceeds: 0,
+    });
+  });
+
+  it('disables with nothing to sweep and nothing unknown', () => {
+    expect(sellJunkButtonState([{ itemId: 'iron_sword', count: 1 }], table(keeper))).toEqual({
+      enabled: false,
+      proceeds: 0,
+    });
+    expect(sellJunkButtonState([], table(keeper))).toEqual({ enabled: false, proceeds: 0 });
+  });
+
+  it('an adopted 11l trophy never enables the sweep nor joins its quote (the REAL catalog)', () => {
+    // The Sell Junk button reads junkSellableSlot, the sweep's own predicate,
+    // so a promoted trophy (common now) is neither previewed nor swept; the
+    // holdout beside it proves the real-catalog arm is live. The adopted list
+    // is the shared derivation (tests/helpers/adopted_trophy_ids.ts).
+    const adopted = adoptedTrophyIds(ITEMS);
+    expect(adopted).toHaveLength(7);
+    for (const id of adopted) {
+      expect(sellJunkButtonState([{ itemId: id, count: 3 }], ITEMS), id).toEqual({
+        enabled: false,
+        proceeds: 0,
+      });
+    }
+    expect(sellJunkButtonState([{ itemId: 'soggy_moccasin', count: 3 }], ITEMS)).toEqual({
+      enabled: true,
+      proceeds: 27,
+    });
+  });
+});
+
+describe('buildVendorView count multiples (phase 21)', () => {
+  it('the default build is 1x with no count fields, exactly the pre-phase shape', () => {
+    const items = table(item('bread', { buyValue: 5, kind: 'food' }));
+    const view = buildVendorView(['bread'], [], items, RICH);
+    expect(view.multiple).toBe(1);
+    expect(view.goods[0].countBuy).toBeUndefined();
+    expect(view.goods[0].customBuy).toBeUndefined();
+  });
+
+  it('a fixed multiple carries the whole-count total and count on eligible rows', () => {
+    const items = table(item('bread', { buyValue: 5, kind: 'food' }));
+    const view = buildVendorView(['bread'], [], items, RICH, 5);
+    expect(view.multiple).toBe(5);
+    // Food row unit is 5 units at 5c each: 25c per purchase, 125c for 5.
+    expect(view.goods[0].price).toEqual({ copper: 25, honor: 0 });
+    expect(view.goods[0].countBuy).toEqual({ count: 5, copper: 125, affordable: true });
+  });
+
+  it('the count total carries its own affordability while the row keeps the honest 1x baseline', () => {
+    const items = table(item('potion', { buyValue: 40, kind: 'potion' }));
+    const poor = { copper: 100, honor: 0, gatheringProficiency: RICH.gatheringProficiency };
+    // 1x affordable (40 <= 100)...
+    const at1 = buildVendorView(['potion'], [], items, poor);
+    expect(at1.goods[0].affordable).toBe(true);
+    // ...but the 10x total is not (400 > 100): the row must disable on the
+    // count total (countBuy.affordable, the painter's disable read at a
+    // fixed multiple) while the baseline field stays the honest 1x read.
+    const at10 = buildVendorView(['potion'], [], items, poor, 10);
+    expect(at10.goods[0].affordable).toBe(true);
+    expect(at10.goods[0].countBuy).toEqual({ count: 10, copper: 400, affordable: false });
+  });
+
+  it('the previewed count total equals what the buy path itself would charge (preview/charge lockstep)', () => {
+    // The view's copper preview and the sim's charged total are computed in
+    // two files; this cross-check makes silent drift between them impossible
+    // for the same inputs. Food row: unit 5c, row unit 5, count 10.
+    const items = table(item('bread', { buyValue: 5, kind: 'food' }));
+    const view = buildVendorView(['bread'], [], items, RICH, 10);
+    const totals = buyPurchaseTotals(items.bread, 5, 0, 10);
+    expect(totals).not.toBeNull();
+    expect(view.goods[0].countBuy?.count).toBe(10);
+    expect(view.goods[0].countBuy?.copper).toBe(totals?.copper);
+    // The shared arithmetic is real on both sides (not two zeros agreeing).
+    expect(totals?.copper).toBe(250);
+  });
+
+  it('force-1 rows never grow count fields at any multiple (Q23)', () => {
+    const items = table(
+      item('marks_blade', { priceHonor: 800 }),
+      item('bound_tabard', { buyValue: 50 }),
+    );
+    (items.bound_tabard as { soulbound?: boolean }).soulbound = true;
+    const view = buildVendorView(['marks_blade', 'bound_tabard'], [], items, RICH, 10);
+    for (const row of view.goods) {
+      expect(row.countBuy, row.itemId).toBeUndefined();
+      expect(row.customBuy, row.itemId).toBeUndefined();
+    }
+  });
+
+  it("the 'custom' multiple flags eligible rows and keeps 1x affordability", () => {
+    const items = table(
+      item('bread', { buyValue: 5, kind: 'food' }),
+      item('marks_blade', { priceHonor: 800 }),
+    );
+    const view = buildVendorView(['bread', 'marks_blade'], [], items, RICH, 'custom');
+    expect(view.multiple).toBe('custom');
+    expect(view.goods[0].customBuy).toBe(true);
+    expect(view.goods[0].countBuy).toBeUndefined();
+    expect(view.goods[0].affordable).toBe(true);
+    expect(view.goods[1].customBuy).toBeUndefined();
+  });
+
+  it('lists faction vendor goods with factionMarks price and checks faction currency affordability', () => {
+    const view = buildVendorView(['rift_feather_glider'], [], ITEMS, {
+      ...RICH,
+      factions: { rift_watch: 500, church_order: 0, automatons: 0 },
+      factionCurrencies: { rift_watch: 10, church_order: 0, automatons: 0 },
+      vendorFactionId: 'rift_watch',
+    });
+    expect(view.goods).toHaveLength(1);
+    expect(view.goods[0].price.copper).toBe(0);
+    expect(view.goods[0].price.honor).toBe(0);
+    expect(view.goods[0].price.factionMarks).toEqual({
+      factionId: 'rift_watch',
+      amount: 40,
+    });
+    expect(view.goods[0].affordable).toBe(false);
+    expect(view.vendorFactionId).toBe('rift_watch');
+    expect(view.factionCurrencyBalance).toBe(10);
+
+    const affordableView = buildVendorView(['rift_feather_glider'], [], ITEMS, {
+      ...RICH,
+      factions: { rift_watch: 500, church_order: 0, automatons: 0 },
+      factionCurrencies: { rift_watch: 50, church_order: 0, automatons: 0 },
+      vendorFactionId: 'rift_watch',
+    });
+    expect(affordableView.goods[0].affordable).toBe(true);
+    expect(affordableView.factionCurrencyBalance).toBe(50);
+  });
+
+  it('lists allied faction vendor goods like cartographers_ink priced in the active vendor faction marks', () => {
+    const view = buildVendorView(['cartographers_ink'], [], ITEMS, {
+      ...RICH,
+      factions: { rift_watch: 1500, church_order: 0, automatons: 0 },
+      factionCurrencies: { rift_watch: 60, church_order: 0, automatons: 0 },
+      vendorFactionId: 'rift_watch',
+    });
+    expect(view.goods).toHaveLength(1);
+    expect(view.goods[0].itemId).toBe('cartographers_ink');
+    expect(view.goods[0].price.copper).toBe(0);
+    expect(view.goods[0].price.honor).toBe(0);
+    expect(view.goods[0].price.factionMarks).toEqual({
+      factionId: 'rift_watch',
+      amount: 60,
+    });
+    expect(view.goods[0].affordable).toBe(true);
+    expect(view.goods[0].requirementUnmet).toBe(false);
+    expect(view.goods[0].factionRequirement).toMatchObject({
+      standingTier: 'recognized',
+      currencyCost: 60,
+    });
+    expect(view.goods[0].factionRequirement?.factionId).toBeUndefined();
+
+    // Church Order quartermaster prices in church_order marks and gates on player balance
+    const churchView = buildVendorView(['cartographers_ink'], [], ITEMS, {
+      ...RICH,
+      factions: { rift_watch: 1500, church_order: 0, automatons: 0 },
+      factionCurrencies: { rift_watch: 100, church_order: 20, automatons: 0 },
+      vendorFactionId: 'church_order',
+    });
+    expect(churchView.goods).toHaveLength(1);
+    expect(churchView.goods[0].price.factionMarks).toEqual({
+      factionId: 'church_order',
+      amount: 60,
+    });
+    expect(churchView.goods[0].affordable).toBe(false);
+    // Best standing across allied factions (rift_watch 1500 >= Recognized 1000) unlocks the row
+    expect(churchView.goods[0].requirementUnmet).toBe(false);
+
+    // All three allied rows are preserved in goods across any quartermaster
+    const allAlliedView = buildVendorView(
+      ['cartographers_ink', 'allied_hearthstone', 'allied_vanguard_duffel'],
+      [],
+      ITEMS,
+      {
+        ...RICH,
+        factions: { rift_watch: 0, church_order: 0, automatons: 15_000 },
+        factionCurrencies: { rift_watch: 0, church_order: 0, automatons: 300 },
+        vendorFactionId: 'automatons',
+      },
+    );
+    expect(allAlliedView.goods.map((g) => g.itemId)).toEqual([
+      'cartographers_ink',
+      'allied_hearthstone',
+      'allied_vanguard_duffel',
+    ]);
+    expect(allAlliedView.goods.every((g) => g.price.factionMarks?.factionId === 'automatons')).toBe(
+      true,
     );
   });
 });

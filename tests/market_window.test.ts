@@ -1,5 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { ClientWorld } from '../src/net/online';
+import { ITEMS } from '../src/sim/data';
+import { itemDisplayName } from '../src/ui/entity_i18n';
+import { ensureLocaleLoaded, setLanguage } from '../src/ui/i18n';
+import { MARKET_ITEM_TYPE_FILTERS } from '../src/ui/market_filters';
+import { MarketWindow } from '../src/ui/market_window';
+import { PRESET_ORDER, resolveTheme, themeCssVars } from '../src/ui/theme';
 
 // The market window painter is a DOM module; driving the live DOM + events is the
 // opt-in browser suite. This is the no-DOM-suite equivalent: it
@@ -8,6 +15,14 @@ import { describe, expect, it } from 'vitest';
 // the pure core (no duplicated market_filters logic).
 const painter = readFileSync(new URL('../src/ui/market_window.ts', import.meta.url), 'utf8');
 const core = readFileSync(new URL('../src/ui/market_view.ts', import.meta.url), 'utf8');
+// The instance-effective cell pins match CODE only: block and line comments
+// are stripped first, so a commented-out arm cannot satisfy a pin by keeping
+// its text around (the phase 13 QA test-coverage audit; the source-text-pin
+// trap). The raw `painter` above stays for the slice-anchored method reads.
+function codeOnly(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+const painterCode = codeOnly(painter);
 const componentsCss = readFileSync(
   new URL('../src/styles/components.css', import.meta.url),
   'utf8',
@@ -17,6 +32,7 @@ const mobileCss = readFileSync(
   'utf8',
 ).replace(/\r\n?/g, '\n');
 const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+const mainSrc = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
 
 describe('market_window: no magic values', () => {
   it('carries no literal color in TS (colors live in the extracted stylesheet/tokens)', () => {
@@ -27,8 +43,43 @@ describe('market_window: no magic values', () => {
     );
   });
 
-  it('routes the unranked quality fallback through a CSS token, not a hex literal', () => {
-    expect(painter).toContain("const QUALITY_DEFAULT_COLOR = 'var(--color-quality-default)'");
+  it('routes the item-name quality color through the market_name_color resolver (CSS tokens), not a hex literal', () => {
+    // The name color (including the unranked fallback) lives in market_name_color.ts
+    // as CSS custom properties, so the painter holds no color literal. The resolver's
+    // own tests pin that every quality maps to a var(--mkt-name-*) token.
+    expect(painter).toContain("import { marketNameColor } from './market_name_color';");
+    // Instance-bearing rows resolve INSTANCE-effective quality ONCE per row
+    // (phase 13, the all-surfaces item-cell rule) and feed BOTH the name
+    // color and the icon rim from it: the browse row reads the listing's
+    // publicInstanceView payload, the staged sell pick and the returned-goods
+    // rows their own copies, so a promoted legendary reads legendary. The
+    // sale ledger's rows carry no payload in their model and stay def-only.
+    expect(painterCode).toContain('const parts = wornItemCellParts(item, l.instance);');
+    expect(painterCode).toContain('const effQuality = parts.quality;');
+    expect(painterCode).toContain('marketNameColor(effQuality)');
+    expect(painterCode).toContain('const staged = wornItemCellParts(item, view.form.instance);');
+    expect(painterCode).toContain('const stagedQuality = staged.quality;');
+    expect(painterCode).toContain('marketNameColor(stagedQuality)');
+    expect(painterCode).toContain('const returned = wornItemCellParts(item, instance);');
+    expect(painterCode).toContain('const returnedQuality = returned.quality;');
+    expect(painterCode).toContain('marketNameColor(returnedQuality)');
+    // The NAME half of each row rides the same authority read (the round-3
+    // test audit: the quality pins alone left the name half revertible), and
+    // ONE read per row (the occurrence bound: a re-introduced second read
+    // per row would pass the shape pins alone).
+    expect(painterCode).toContain('const itemName = parts.name;');
+    expect(painterCode).toContain('esc(staged.name)');
+    expect(painterCode).toContain('esc(returned.name)');
+    expect(painterCode.match(/wornItemCellParts\(/g)).toHaveLength(3);
+    expect(painterCode).toContain('const qColor = marketNameColor(item.quality);');
+    const core = readFileSync(new URL('../src/ui/market_name_color.ts', import.meta.url), 'utf8');
+    expect(core).toContain('var(--mkt-name-');
+    // The CODE must carry no color literal (tokens only); the header comment may
+    // cite the shipped hex values it lifts away from, so strip line comments first.
+    const coreCode = core.replace(/\/\/.*$/gm, '');
+    expect(coreCode, 'the resolver must not carry a raw hex in code').not.toMatch(
+      /#[0-9a-fA-F]{3,8}\b/,
+    );
   });
 
   it('names the coin-conversion constants instead of bare 10000 / 100', () => {
@@ -39,6 +90,102 @@ describe('market_window: no magic values', () => {
   it('uses no em or en dashes (ASCII separators only)', () => {
     expect(painter.includes('—'), 'em dash found').toBe(false);
     expect(painter.includes('–'), 'en dash found').toBe(false);
+  });
+});
+
+describe('market_window: instance-effective icon rims (phase 13 fix round)', () => {
+  it('all three instance-bearing rows drive the icon q-class off the copy', () => {
+    // Browse, the staged sell pick, and the returned-goods rows each hold a
+    // per-copy payload, so their icons paint through knownItemIconHtml with
+    // the SAME effective quality that colors the name: a promoted legendary
+    // shows the orange rim, never its def tier's purple.
+    // Through the injected icon dep with the cell's quality (the widened
+    // PainterHost itemIcon seam, the phase 13 QA), never a direct import that
+    // would bypass the seam.
+    expect(painterCode).toContain('this.deps.itemIcon(item, effQuality)');
+    expect(painterCode).toContain('this.deps.itemIcon(item, stagedQuality)');
+    expect(painterCode).toContain('this.deps.itemIcon(item, returnedQuality)');
+    expect(painterCode).not.toContain('knownItemIconHtml');
+  });
+
+  it('the def-only negative: the sale LEDGER row has no payload and keeps the def icon', () => {
+    // renderHistory/renderSalesList rows are historical records whose model
+    // carries no instance, so the rim is the def's, stated rather than defaulted.
+    const ledger = painterCode.slice(
+      painterCode.indexOf('private renderHistory('),
+      painterCode.indexOf('private fungibleBagCount('),
+    );
+    expect(ledger).toContain('this.deps.itemIcon(item, item.quality)');
+    expect(ledger).not.toContain('this.deps.itemIcon(item)');
+    expect(ledger).not.toContain('knownItemIconHtml(');
+  });
+});
+
+// Bug: the Sell tab's quantity cap summed a stack's raw slot.count, so a
+// gathered-material stack holding a premium/signed bucket (several
+// benefactors merged into one slot) advertised the WHOLE stack as sellable
+// even though the sim excludes a signed bucket from the plain bulk-listing
+// pool (material_exchange_transfer.ts's eligibleSource / countFungibleItem).
+// Submitting the advertised quantity always bounced off "You do not have
+// that many to sell." The fix routes the sum through materialFungibleUnitCount
+// (tests/material_sources_view.test.ts), the client-side mirror of that same
+// sim gate, so the cap can never promise more than marketList will escrow.
+describe('market_window: Sell tab quantity cap matches the sim escrow gate', () => {
+  it('imports the source-aware unit counter instead of summing raw slot.count', () => {
+    expect(painter).toContain(
+      "import { materialFungibleUnitCount, materialSourcesForDisplay } from './material_sources_view';",
+    );
+  });
+
+  it('fungibleBagCount sums materialFungibleUnitCount per slot, not the raw stack count', () => {
+    const method = painterCode.slice(
+      painterCode.indexOf('private fungibleBagCount('),
+      painterCode.indexOf('private fungibleBagCount(') + 300,
+    );
+    expect(method).toContain('materialFungibleUnitCount(s)');
+    expect(method).not.toContain('n + s.count');
+  });
+});
+
+describe('market_window: the History tab sale ledger', () => {
+  // The ledger is its own repaint axis: a sale whose proceeds floor to 0 copper
+  // moves neither collectionCopper nor collectionItems, so a signature watching
+  // only those two would leave an open Collect tab showing a stale list.
+  it('watches the ledger in the refresh signature, not just the purse and the goods', () => {
+    const sig = painter.slice(
+      painter.indexOf('const sig = JSON.stringify(['),
+      painter.indexOf('if (sig === this.lastSig) return;'),
+    );
+    expect(sig).toContain('info?.collectionSales');
+    expect(sig).toContain('info?.collectionSalesOmitted');
+  });
+
+  it('escapes the buyer name before it reaches innerHTML', () => {
+    expect(painter).toContain("esc(t('itemUi.market.saleBuyer', { buyer: buyerName }))");
+  });
+
+  it('drives the ledger rows from CSS classes the stylesheet actually defines', () => {
+    for (const cls of ['mkt-sale-list', 'mkt-sale', 'mkt-sale-name', 'mkt-sale-buyer']) {
+      expect(painter, `painter must use .${cls}`).toContain(cls);
+      expect(componentsCss, `components.css must define .${cls}`).toContain(`.${cls}`);
+    }
+  });
+
+  it('builds the rows in the pure core, leaving the painter no item resolution', () => {
+    expect(core).toContain('collectionSales');
+    // The painter consumes MarketSaleRow; it never reaches into ITEMS to
+    // resolve a LEDGER ROW.
+    expect(painter).toContain('MarketSaleRow');
+    // Scoped to the ledger's own render, not the whole file. The painter does
+    // now import ITEMS, for one unrelated seam: it hands the catalog to the
+    // localized-search resolver (effectiveSearch), which is a pure core that
+    // imports no data of its own and must be given it by its composition point.
+    // A blanket file-wide import ban would have to fail that or be deleted, and
+    // neither answers what this pin is actually for, so it reads the region.
+    const at = painterCode.indexOf('renderSalesList');
+    expect(at, 'the sales-list render must exist to be scoped').toBeGreaterThan(-1);
+    const ledger = painterCode.slice(at, painterCode.indexOf('\n  private ', at + 1));
+    expect(ledger, 'the ledger render resolves no item itself').not.toContain('ITEMS');
   });
 });
 
@@ -183,8 +330,13 @@ describe('market_window: mobile pairing (hud.mobile.css)', () => {
     // The paired-geometry rule reserves the 72px band FOR the player frame;
     // without the market-open disqualifier the docked bags flips
     // mobile-fullscreen-window-open and hides own HP/resource while the world
-    // keeps running. The core pins the flag list; this pins the hud wiring.
-    expect(hud).toMatch(
+    // keeps running. The core pins the flag list; this pins the body-class
+    // writer's wiring (window_open_state.ts since the Phase 14 extraction).
+    const windowOpenState = readFileSync(
+      new URL('../src/ui/window_open_state.ts', import.meta.url),
+      'utf8',
+    );
+    expect(windowOpenState).toMatch(
       /isMobileFullscreenWindowOpen\([\s\S]{0,400}?contains\('market-open'\),\s*document\.body\.classList\.contains\('char-bags-paired'\)/,
     );
   });
@@ -214,9 +366,13 @@ describe('market_window: mobile pairing (hud.mobile.css)', () => {
     // the pairing with nothing on the right: dropping the class lets the
     // standalone mobile sheet rule take the full width back, mirroring the
     // bank undock in onBagsClosed. toggleBags re-docks on re-open.
-    expect(hud).toMatch(
-      /private onBagsClosed\(\): void \{[\s\S]{0,1200}?contains\('mobile-touch'\) && this\.marketWindow\.isOpen[\s\S]{0,120}?classList\.remove\('market-open'\);/,
+    expect(hud).toContain('undockBagCompanions(this.bankWindow.isOpen, this.marketWindow.isOpen)');
+    const lifecycle = readFileSync(
+      new URL('../src/ui/bank_window_lifecycle.ts', import.meta.url),
+      'utf8',
     );
+    expect(lifecycle).toContain("if (!classes.contains('mobile-touch')) return;");
+    expect(lifecycle).toContain("if (marketOpen) classes.remove('market-open');");
     expect(hud).toMatch(
       /this\.bagsWindow\.noteOpener\(\);[\s\S]{0,700}?if \(this\.marketWindow\.isOpen\) document\.body\.classList\.add\('market-open'\);/,
     );
@@ -262,6 +418,19 @@ describe('market_window: behavior preserved through the core', () => {
     expect(painter).toContain('armorClass: this.armorClassFilter');
     expect(painter).toContain('primaryStat: this.primaryStatFilter');
     expect(painter).toContain("t('itemUi.market.filterValueAria', { label, value: current })");
+  });
+
+  // Issue #3102: the browse sort control (name / price ascending) rides the same
+  // shared dropdown chrome as the other filters, always shown (unlike subtype/
+  // armorClass/primaryStat it is not gated on the item type), included in every
+  // pushed query, and reset on open() alongside the rest of the browse state.
+  it('wires the price-ascending sort control through the same shared dropdown chrome (#3102)', () => {
+    expect(painter).toContain('MARKET_SORT_OPTIONS');
+    expect(painter).toMatch(/this\.renderMarketFilterMenu\(\s*'sort'/);
+    expect(painter).toContain('sort: this.sortFilter');
+    expect(painter).toContain("this.sortFilter = 'name'");
+    expect(painter).toMatch(/key === 'sort'/);
+    expect(painter).toContain("t('itemUi.market.filterSort')");
   });
 
   // Issue #2189. WHICH menus each item type shows is decided in the pure core and pinned
@@ -322,12 +491,610 @@ describe('market_window: behavior preserved through the core', () => {
     expect(rule).toContain(`max-height: ${preferred}px`);
   });
 
+  // `.mkt-controls` scrolls (overflow-y: auto), so it is a clipping ancestor in its
+  // own right and starts well below the window's top edge. Clamping to the window
+  // alone let a flipped-up menu render above the column, where its first option was
+  // invisible and hit-testing reached the window title. The geometry itself is
+  // pinned in tests/dropdown_position.test.ts.
+  it('clamps a filter menu to the scrolling controls column, not just the window', () => {
+    expect(componentsCss.match(/\.mkt-controls\s*\{[^}]*\}/)?.[0]).toContain('overflow-y: auto');
+    expect(painterCode).toContain('import { computeDropdownPlacement, dropdownClipBounds }');
+    expect(painterCode).toContain("trigger.closest<HTMLElement>('.mkt-controls')");
+    // Mobile gives that scroller up (overflow-y: visible, the whole sheet scrolls),
+    // so the column must not constrain the menu there.
+    expect(mobileCss.match(/body\.mobile-touch \.mkt-controls\s*\{[^}]*\}/)?.[0]).toContain(
+      'overflow-y: visible',
+    );
+    expect(painterCode).toContain("getComputedStyle(controls).overflowY !== 'visible'");
+    expect(painterCode).toContain('dropdownClipBounds(');
+    expect(painterCode).toContain('containerTop: clip.top,');
+    expect(painterCode).toContain('containerBottom: clip.bottom,');
+  });
+
   it('preserves the buy / list / cancel / collect dispatch and money formatting', () => {
-    expect(painter).toContain('.marketBuy(l.id)');
+    // Buy now lands behind the confirm prompt (the id it sends is the one the
+    // prompt captured and rechecked); the behavior itself is driven end to end in
+    // tests/market_buy_confirm.test.ts. Reclaim is unchanged: one click.
+    // The prompt names the row's resolved copy (quality label included), the
+    // same aria name the buy button announces.
+    expect(painter).toContain('this.promptBuy(l, parts.ariaName)');
+    // A whole-stack buy sends no count (byte-identical to the pre-partial-buy
+    // wire shape); a partial buy (tests/market_buy_confirm.test.ts) names one.
+    expect(painter).toContain('.marketBuy(');
+    expect(painter).toContain('pending.listingId,');
+    expect(painter).toContain('pending.buyCount < pending.count ? pending.buyCount : undefined');
     expect(painter).toContain('.marketCancel(l.id)');
     expect(painter).toContain('.marketList(view.form.itemId, qty, each * qty)');
     expect(painter).toContain('.marketCollect()');
     expect(painter).toContain('this.deps.moneyHtml(');
     expect(painter).toContain('formatLocalizedMoney(');
+  });
+});
+
+describe('market_window: filter menus float on a solid surface', () => {
+  // Every Browse filter menu (type, subtype, armor, stat, rarity, sort) opens OVER the
+  // filters and listing rows. They used to wear the .ui-card plate, a 28 percent keyline
+  // wash meant for in-flow rows, so the labels and tabs behind an open menu read straight
+  // through its options. A floating menu takes the library's strong panel instead: the
+  // same --panel-bg-strong fill the shared gold dropdown (.ui-dd-menu) paints.
+  const libraryCss = readFileSync(new URL('../src/styles/library.css', import.meta.url), 'utf8');
+  const tokensCss = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
+  const MIN_MENU_ALPHA = 0.95;
+  // The alpha of every colour stop in a linear-gradient. A stop that is not a plain
+  // rgba() (a hex alpha, hsla, color-mix, transparent) yields NaN, so it fails the
+  // threshold instead of being skipped.
+  const stopAlphas = (fill: string): number[] => {
+    const body = fill.trim().match(/^linear-gradient\(([\s\S]*)\)$/)?.[1];
+    if (!body) return [];
+    const args: string[] = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < body.length; i++) {
+      if (body[i] === '(') depth++;
+      else if (body[i] === ')') depth--;
+      else if (body[i] === ',' && depth === 0) {
+        args.push(body.slice(start, i).trim());
+        start = i + 1;
+      }
+    }
+    args.push(body.slice(start).trim());
+    return args
+      .filter((arg) => !/^-?[\d.]+deg$/.test(arg))
+      .map((stop) =>
+        Number(stop.match(/^rgba\(\s*\d+,\s*\d+,\s*\d+,\s*([\d.]+)\s*\)(\s+[\d.]+%)?$/)?.[1]),
+      );
+  };
+  const menuRules = (css: string) =>
+    [
+      ...css
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .matchAll(/([^{}]*\.mkt-select-menu[^{}]*)\{([^}]*)\}/g),
+    ].map((m) => ({ selector: m[1].trim(), body: m[2] }));
+
+  it('composes the strong panel primitive on the menu, never the translucent card', () => {
+    const menu = painterCode.match(/<div class="mkt-select-menu[^"]*"/)?.[0];
+    expect(menu, 'the filter menu markup must exist').toBeTruthy();
+    expect(menu).toContain('ui-panel-strong');
+    expect(menu).not.toContain('ui-card');
+  });
+
+  it('keeps the menu look on the primitive, not re-declared in any component rule', () => {
+    // Every rule naming the menu, compound selectors and the mobile sheet included.
+    const rules = [...menuRules(componentsCss), ...menuRules(mobileCss)];
+    expect(rules.length, 'the .mkt-select-menu geometry rule must exist').toBeGreaterThan(0);
+    for (const { selector, body } of rules) {
+      expect(body, `${selector} must not re-declare the fill`).not.toMatch(
+        /\bbackground(-color|-image)?\s*:/,
+      );
+    }
+    expect(libraryCss.match(/\.ui-panel-strong\s*\{[^}]*\}/)?.[0]).toContain(
+      'background: var(--panel-bg-strong);',
+    );
+  });
+
+  it('paints --panel-bg-strong near-opaque in the static default and on every preset', () => {
+    const staticFill = tokensCss.match(/--panel-bg-strong:\s*([^;]+);/)?.[1] ?? '';
+    const fills = [
+      staticFill,
+      ...PRESET_ORDER.map(
+        (preset) => themeCssVars(resolveTheme({ preset, custom: {} }))['--panel-bg-strong'],
+      ),
+    ];
+    for (const fill of fills) {
+      const stops = stopAlphas(fill);
+      expect(stops.length, `no gradient stops parsed from ${fill}`).toBeGreaterThan(0);
+      for (const a of stops) expect(a, `a stop of ${fill}`).toBeGreaterThanOrEqual(MIN_MENU_ALPHA);
+    }
+    // The parser itself fails closed: a translucent or unparseable stop cannot slip by.
+    expect(stopAlphas('linear-gradient(170deg, rgba(1, 2, 3, 0.97) 0%, #0000 100%)')[1]).toBeNaN();
+    expect(
+      stopAlphas('linear-gradient(170deg, rgba(1, 2, 3, 0.97) 0%, rgba(1, 2, 3, 0.5) 100%)'),
+    ).toEqual([0.97, 0.5]);
+  });
+});
+
+describe('market_window: the localized Browse search is resolved at the UI boundary', () => {
+  // The server filters the book on ENGLISH names and ids (src/sim/market_query.ts),
+  // so the client translates the typed text before sending it. These pin the two
+  // properties that keep that from being worse than the empty result it replaces.
+  it('verifies its candidate searches with the SERVER own matcher, not a client copy', () => {
+    // The whole soundness argument is that a substituted search is proven to
+    // select the same set the server will select. That proof is only worth
+    // anything while the predicate doing the proving is the authority's.
+    expect(painterCode).toContain('localizedMarketSearch');
+    expect(painterCode).toContain('marketItemMatches');
+    // Over the WHOLE catalog and with every facet neutral: a narrower universe
+    // would prove set-equality only on a subset, which does not carry to the
+    // book the server actually searches.
+    expect(painterCode).toContain('itemIds: Object.keys(ITEMS)');
+    expect(painterCode).toContain('...defaultMarketQuery(), search');
+  });
+
+  it('re-resolves the sent search when the LANGUAGE moves under an unchanged query', async () => {
+    // The resolution reads localized item names, so one typed string resolves
+    // differently per locale. Keyed on the text alone, the memo kept serving the
+    // PREVIOUS locale's substitution after a switch: not the empty result the
+    // untranslated path gives, a wrong one, which is the single outcome this
+    // feature exists to avoid.
+    //
+    // Driven for real (the private reach-in follows this file's own precedent
+    // two describes down): the resolver touches no DOM, only the catalog and the
+    // locale table.
+    await ensureLocaleLoaded('ja_JP');
+    setLanguage('ja_JP');
+    const jaName = itemDisplayName(ITEMS.worn_sword);
+    setLanguage('en');
+
+    const win = new MarketWindow({} as never) as any;
+    win.searchQuery = jaName;
+    // Under English the Japanese name matches no English name or id, so the
+    // typed text is handed back untouched. That is the memo this arm poisons.
+    const underEnglish = win.effectiveSearch() as string;
+    expect(underEnglish, 'the untranslated path returns the typed text').toBe(jaName);
+
+    setLanguage('ja_JP');
+    const afterSwitch = win.effectiveSearch() as string;
+    // A window that never saw English resolves the same query fresh; the one
+    // that did must agree with it.
+    const fresh = new MarketWindow({} as never) as any;
+    fresh.searchQuery = jaName;
+    const expected = fresh.effectiveSearch() as string;
+    setLanguage('en');
+
+    expect(afterSwitch, 'the switched window must not serve the English memo').toBe(expected);
+    // Non-vacuity: the two locales really do resolve this query differently, so
+    // the equality above is a claim and not a coincidence.
+    expect(expected, 'ja_JP resolves to a verified English search').toBe('worn_sword');
+    expect(expected).not.toBe(underEnglish);
+  });
+});
+
+describe('market_window: filter chip label routing', () => {
+  // marketItemTypeLabel falls through to the 'All types' label for any filter
+  // value without an arm, so deleting a chip's arm (say 'pattern') would render
+  // that chip labeled 'All' with tsc and every predicate suite still green.
+  // This drives the REAL private resolver over the live filter list (the
+  // constructor only stores its deps and the method only calls t(), so no DOM
+  // is involved; the private reach-in follows this file's `as any` precedent)
+  // and requires every member to resolve to its own distinct label: a member
+  // that falls through collides with the 'all' entry and reds this, future
+  // chips included.
+  it('maps every item-type filter to its own distinct label, never the All fall-through', () => {
+    const win = new MarketWindow({} as never);
+    const labels = MARKET_ITEM_TYPE_FILTERS.map(
+      (filter) => (win as any).marketItemTypeLabel(filter) as string,
+    );
+    for (const label of labels) expect(label.length).toBeGreaterThan(0);
+    expect(new Set(labels).size).toBe(MARKET_ITEM_TYPE_FILTERS.length);
+  });
+});
+
+describe('market_window: Browse row cloth/leather/mail cue (#3104)', () => {
+  it('resolves the badge from the shared armor-type resolver, not a second classification', () => {
+    // The claim is WHERE the badge helpers come from, not how the import happens
+    // to be formatted: the module grew a fourth member (the pattern mark) and
+    // biome wrapped the line, which a byte-exact single-line pin fails on while
+    // the property it names is untouched. Named imports plus the source module,
+    // so a second local classification still reds it.
+    const at = painterCode.indexOf("from './market_armor_badge'");
+    expect(at, 'the badge helpers must come from the shared module').toBeGreaterThan(-1);
+    const importStmt = painterCode.slice(painterCode.lastIndexOf('import', at), at);
+    for (const named of [
+      'isHeroicItem',
+      'marketArmorBadge',
+      'marketArmorPips',
+      'marketHeroicStar',
+    ]) {
+      expect(importStmt, `${named} comes from market_armor_badge`).toContain(named);
+    }
+    expect(painter).toContain('const armorBadge = marketArmorBadge(item);');
+  });
+
+  it('shows no mark on non-armor rows (weapons, bags, materials) instead of an empty badge', () => {
+    const badgeAssign = painter.slice(
+      painter.indexOf('const badge = armorBadge'),
+      painter.indexOf('row.innerHTML ='),
+    );
+    // The badge is the pips symbol when armor, and the empty string otherwise,
+    // so a weapon/bag/material row paints no armor mark at all.
+    expect(badgeAssign).toContain('marketArmorPips(armorBadge.armorType');
+    expect(badgeAssign).toMatch(/:\s*'';/);
+  });
+
+  it('passes the escaped localized armor-type label into the pip symbol', () => {
+    // The word no longer renders as visible text (the visible cue is the pip
+    // symbol), but the escaped localized label is still handed to marketArmorPips
+    // as the chip's accessible name, so the vocabulary and the escaping are intact.
+    expect(painter).toContain('marketArmorPips(armorBadge.armorType, esc(t(armorBadge.labelKey)))');
+  });
+
+  it('reuses the tooltip slot-line vocabulary (hudChrome.itemArmorType), not the filter-menu one', () => {
+    // itemUi.market.armorCloth/Leather/Mail is the filter-menu labels, a distinct string
+    // family; the row badge deliberately reuses item_armor_type.ts's key instead of adding
+    // a third rendering of the same three words (root CLAUDE.md, module-first).
+    const core = readFileSync(new URL('../src/ui/market_armor_badge.ts', import.meta.url), 'utf8');
+    expect(core).toContain("from './item_armor_type'");
+    expect(core).toContain("from '../sim/equipment_rules'");
+  });
+
+  it('keeps the pattern mark on shared theme tokens', () => {
+    const rule = componentsCss.match(/\.mkt-pattern-mark\s*\{([^}]*)\}/s)?.[1] ?? '';
+    expect(rule).toContain('var(--color-text-light)');
+    expect(rule).toContain('var(--text-outline-color)');
+    expect(rule).not.toMatch(/#[0-9a-f]{3,8}/i);
+  });
+
+  it('is not color-only: the cue is a countable pip symbol, distinguished by a per-type class, and still carries the word for assistive tech', () => {
+    // The distinction survives with color removed because the pip COUNT differs
+    // per armor type; color is only a bonus channel. The localized word rides the
+    // symbol's aria-label/title rather than rendering as visible text.
+    const core = readFileSync(new URL('../src/ui/market_armor_badge.ts', import.meta.url), 'utf8');
+    expect(core).toContain('role="img"');
+    expect(core).toContain('aria-label="${label}"');
+    expect(core).toContain('aria-hidden="true"'); // the pips themselves are decorative
+    // per-armor-type pip counts (the non-color carrier): cloth 1, leather 2, mail 3
+    expect(core).toMatch(/cloth:\s*1/);
+    expect(core).toMatch(/leather:\s*2/);
+    expect(core).toMatch(/mail:\s*3/);
+    for (const cls of [
+      'mkt-armor-pips',
+      'mkt-armor-pips--cloth',
+      'mkt-armor-pips--leather',
+      'mkt-armor-pips--mail',
+    ]) {
+      expect(componentsCss, `components.css must define .${cls}`).toContain(`.${cls}`);
+    }
+  });
+});
+
+describe('market_window: stale tooltip on re-filter (#2456)', () => {
+  // Typing in the search box, or picking a type/subtype/rarity filter that then narrows
+  // the async listings update, drives the signature-checked refresh path
+  // (refreshIfChanged -> renderContent), not the full render() rebuild. renderContent()
+  // tears down and rebuilds every `.mkt-row` node (`list.innerHTML = ''`); a row removed
+  // this way fires no mouseleave, so a tooltip left open on a row whose item no longer
+  // matches the query would otherwise linger, still describing an item the list no
+  // longer shows. render() already hides the tooltip on every full rebuild; this pins
+  // the same guard on the signature-driven refresh path.
+  it('hides the tooltip once the listings signature changes, before renderContent rebuilds the rows', () => {
+    const method = painter.slice(
+      painter.indexOf('refreshIfChanged(): void {'),
+      painter.indexOf('render(): void {'),
+    );
+    expect(method, 'refreshIfChanged must exist').toContain('if (sig === this.lastSig) return;');
+    const afterSigChange = method.slice(method.indexOf('this.lastSig = sig;'));
+    const hideIdx = afterSigChange.indexOf('this.deps.hideTooltip();');
+    const renderIdx = afterSigChange.indexOf('this.renderContent();');
+    expect(hideIdx, 'hideTooltip() must run once the signature actually changed').toBeGreaterThan(
+      -1,
+    );
+    expect(
+      hideIdx,
+      'hideTooltip() must run before renderContent() tears down the row nodes',
+    ).toBeLessThan(renderIdx);
+  });
+
+  it('still guards the full render() rebuild path (tab switch, filter-menu click) the same way', () => {
+    const render = painter.slice(painter.indexOf('render(): void {'));
+    expect(render.indexOf('this.deps.hideTooltip();')).toBeLessThan(
+      render.indexOf('this.renderContent();'),
+    );
+  });
+
+  it('also guards the Browse-tab pager click, a third `.mkt-row` teardown path', () => {
+    // The pager's Prev/Next button is built inside renderBrowse() and calls pushQuery()
+    // then renderContent() directly: neither the full render() rebuild (which hides the
+    // tooltip unconditionally at its top) nor the guarded refreshIfChanged() path covers
+    // it, so it needs its own hideTooltip() before the rebuild.
+    const pagerStart = painter.indexOf(
+      "pager.querySelectorAll<HTMLButtonElement>('[data-market-page]').forEach((button) => {",
+    );
+    expect(pagerStart, 'pager click wiring must exist').toBeGreaterThan(-1);
+    const pagerHandler = painter.slice(pagerStart, painter.indexOf('list.appendChild(pager);'));
+    const hideIdx = pagerHandler.indexOf('this.deps.hideTooltip();');
+    const renderIdx = pagerHandler.indexOf('this.renderContent();');
+    expect(hideIdx, 'hideTooltip() must run in the pager click handler').toBeGreaterThan(-1);
+    expect(
+      hideIdx,
+      'hideTooltip() must run before renderContent() tears down the row nodes',
+    ).toBeLessThan(renderIdx);
+  });
+});
+
+describe('market_window: reconnect resync (#2416)', () => {
+  // A fresh join (the server's linkdead grace expired before the socket came back)
+  // resets the session-only browse query to default; the window's own filter
+  // controls live in the client and survive the drop untouched. onReconnected must
+  // detect that drift off the echoed query, not blindly re-push on every reconnect
+  // (an ordinary resume keeps the same session, so nothing changed to re-send).
+  // onReconnected() fires synchronously inside the client's `hello` handler,
+  // before the resent world's first snapshot has decoded: at that instant
+  // marketInfo (if present at all) is still the pre-drop echo, which by
+  // construction matches currentQuery(), so comparing right there would never
+  // detect the fresh-join reset. It arms a flag instead; the drift check runs
+  // later, once refreshIfChanged() actually observes a MarketInfo.
+  it('is a no-op when closed, otherwise only arms the deferred resync flag', () => {
+    const method = painter.slice(
+      painter.indexOf('onReconnected(): void {'),
+      painter.indexOf('// Runs the deferred reconnect-drift check'),
+    );
+    expect(method, 'onReconnected must exist').toContain('onReconnected(): void {');
+    expect(method).toContain('if (!this.opened) return;');
+    expect(method).toContain('this.pendingReconnectResync = true;');
+    expect(method, 'must not compare against a possibly-stale echo inline').not.toContain(
+      'queryDiffersFromEcho',
+    );
+  });
+
+  it('resolvePendingReconnectResync compares both filter axes and the settled search box, and re-pushes only on real drift', () => {
+    const method = painter.slice(
+      painter.indexOf('private resolvePendingReconnectResync'),
+      painter.indexOf('refreshIfChanged(): void {'),
+    );
+    expect(method, 'resolvePendingReconnectResync must exist').toContain(
+      'resolvePendingReconnectResync',
+    );
+    expect(method).toContain('if (!this.pendingReconnectResync || !info) return;');
+    expect(method).toContain('this.pendingReconnectResync = false;');
+    expect(method).toContain('queryDiffersFromEcho(query, info)');
+    expect(method).toContain('searchDiffersFromEcho(query, info)');
+    expect(method).toContain('this.pushQuery();');
+    // Issue 3043: the Sell tab's price-check axis resets server-side on a fresh
+    // join too, independent of marketQuery, so the resync must re-arm it as
+    // well, not just the browse query.
+    expect(method).toContain('this.pushSellPriceCheck();');
+  });
+
+  it('refreshIfChanged resolves the pending resync even on the Sell tab, then patches only the price ref (never the browse/collect signature work)', () => {
+    const method = painter.slice(
+      painter.indexOf('refreshIfChanged(): void {'),
+      painter.indexOf('render(): void {'),
+    );
+    const resolveIdx = method.indexOf('this.resolvePendingReconnectResync(info);');
+    const sellBranchIdx = method.indexOf("if (this.tab === 'sell')");
+    expect(resolveIdx, 'must call resolvePendingReconnectResync').toBeGreaterThan(-1);
+    expect(sellBranchIdx, 'must still branch on the Sell tab').toBeGreaterThan(-1);
+    expect(resolveIdx, 'resync must resolve BEFORE the sell-tab branch').toBeLessThan(
+      sellBranchIdx,
+    );
+    // Patches the price ref (issue 3043) INSIDE the sell-tab branch, then still
+    // returns before it would fall through to the browse/collect signature work.
+    const refreshPriceRefIdx = method.indexOf('this.refreshSellPriceRef(info);', sellBranchIdx);
+    const sellReturnIdx = method.indexOf('return;', sellBranchIdx);
+    expect(refreshPriceRefIdx, 'must patch the price ref on the Sell tab').toBeGreaterThan(-1);
+    expect(
+      sellReturnIdx,
+      'must still early-return before the browse/collect signature work',
+    ).toBeGreaterThan(-1);
+    expect(refreshPriceRefIdx).toBeLessThan(sellReturnIdx);
+  });
+
+  it('imports queryDiffersFromEcho and searchDiffersFromEcho from the world_api seam (the pure drift checks, not re-derived comparisons)', () => {
+    expect(painter).toContain(
+      "import {\n  type IWorld,\n  type MarketInfo,\n  type MarketListingView,\n  queryDiffersFromEcho,\n  searchDiffersFromEcho,\n} from '../world_api';",
+    );
+  });
+
+  it('wires the window through a hud.ts method, chained onto the ClientWorld reconnect hook in main.ts', () => {
+    const method = hud.slice(
+      hud.indexOf('resyncAfterReconnect(): void {'),
+      hud.indexOf('resyncAfterReconnect(): void {') + 200,
+    );
+    expect(method, 'Hud.resyncAfterReconnect must exist').toContain(
+      'this.marketWindow.onReconnected();',
+    );
+    // hud does not exist yet when enterWorld() first arms world.onReconnected (the
+    // reconnect-overlay teardown), so startGame chains its own handler onto
+    // whatever enterWorld already set, once hud is actually constructed, instead
+    // of replacing it.
+    const chain = mainSrc.slice(
+      mainSrc.indexOf('const priorOnReconnected = online.onReconnected;'),
+      mainSrc.indexOf('const priorOnReconnected = online.onReconnected;') + 600,
+    );
+    expect(chain, 'main.ts must chain onto the prior handler, not replace it').toContain(
+      'priorOnReconnected?.();',
+    );
+    expect(chain, 'main.ts must call the hud resync hook on reconnect').toContain(
+      'hud.resyncAfterReconnect();',
+    );
+  });
+});
+
+describe('market_window: the Sell tab price-check stays in sync with the staged item (issue 3043)', () => {
+  // The server-side echo (meta.sellPriceItemId) is a live, separate piece of
+  // session state this window drives entirely by side effect: every place the
+  // window's OWN sellItemId is cleared or set must re-arm the check, or the
+  // server keeps quoting a price for an item the player is no longer staging
+  // (a stale echo the client-side priceEcho.itemId === sellItemId guard cannot
+  // catch on its own, since it only compares against the CURRENT sellItemId).
+  it('every site that clears sellItemId also re-pushes the price check', () => {
+    const clearSites = [...painter.matchAll(/this\.sellItemId = null;/g)].map((m) => m.index);
+    // open(), close(), the cannot-market branch of renderSell, and the
+    // post-list branch of the List button handler.
+    expect(clearSites.length, 'expected exactly the known clear sites').toBe(4);
+    for (const idx of clearSites) {
+      const window = painter.slice(idx, idx + 200);
+      expect(
+        window,
+        `sellItemId clear at offset ${idx} must be followed by a pushSellPriceCheck() re-arm`,
+      ).toContain('this.pushSellPriceCheck();');
+    }
+  });
+
+  it('stageSell, the only site that stages a real item, pushes the price check', () => {
+    const method = painter.slice(
+      painter.indexOf('stageSell(itemId: string'),
+      painter.indexOf('/** The current browse query'),
+    );
+    expect(method).toContain('this.sellItemId = itemId;');
+    expect(method).toContain('this.pushSellPriceCheck();');
+  });
+
+  it('the price-ref line and its off-screen status echo carry the SAME markup (no drift between what is shown and what is announced)', () => {
+    const method = painter.slice(
+      painter.indexOf('private sellPriceRefHtml('),
+      painter.indexOf('private sellPriceRefHtml(') + 400,
+    );
+    expect(method, 'sellPriceRefHtml must exist').toContain('private sellPriceRefHtml(');
+    // Both renderSell's initial build and refreshSellPriceRef's later patch
+    // call this ONE method, so the two paint paths cannot say different things.
+    const renderSellCalls = (
+      painter
+        .slice(painter.indexOf('private renderSell('), painter.indexOf('private renderCollect('))
+        .match(/this\.sellPriceRefHtml\(/g) ?? []
+    ).length;
+    const refreshCalls = (
+      painter
+        .slice(
+          painter.indexOf('private refreshSellPriceRef('),
+          painter.indexOf('private sellPriceRefHtml('),
+        )
+        .match(/this\.sellPriceRefHtml\(/g) ?? []
+    ).length;
+    expect(renderSellCalls, 'renderSell must build the line via sellPriceRefHtml').toBe(1);
+    expect(refreshCalls, 'refreshSellPriceRef must patch the line via sellPriceRefHtml').toBe(1);
+  });
+
+  it('the price ref carries an off-screen live-region status, the .mkt-status precedent for async market content', () => {
+    const method = painter.slice(
+      painter.indexOf('private renderSell('),
+      painter.indexOf('private renderCollect('),
+    );
+    expect(method).toContain("priceRefStatus.className = 'mkt-sell-price-status visually-hidden'");
+    expect(method).toContain("priceRefStatus.setAttribute('role', 'status');");
+    expect(method).toContain("priceRefStatus.setAttribute('aria-live', 'polite');");
+  });
+
+  it('the new CSS class the price ref renders into is really defined in the extracted stylesheet', () => {
+    expect(componentsCss).toContain('.mkt-sell-price-ref {');
+  });
+});
+
+// Bug found in review of #2723: onReconnected() fires from inside the client's
+// `hello` handler BEFORE `this.connected` flips true, so a command sent from an
+// onReconnected callback (main.ts used to re-push stopAutoAttackOnTargetSwitch
+// there) is silently dropped by canSendCommand(). ClientWorld now owns the
+// re-push itself: it remembers the last value passed to
+// setStopAutoAttackOnTargetSwitch and replays it once sends can genuinely reach
+// the socket again, both after a reconnect `hello` and after spectate ends
+// (cmd() drops every non-chat command while spectating too). This is a
+// BEHAVIORAL pin, not a grep over main.ts: it drives onMessage with a real
+// reconnect `hello` frame against a stub socket and asserts the command frame
+// actually lands.
+describe('ClientWorld: reconnect re-push of session preferences (#2723 review)', () => {
+  function bareClientWithSocket(): { client: any; sent: Array<Record<string, unknown>> } {
+    const client: any = Object.create(ClientWorld.prototype);
+    client.cfg = { seed: 1, playerClass: 'warrior' };
+    client.entities = new Map();
+    client.playerId = 1;
+    client.ownPlayerId = 1;
+    client.ownPlayerClass = 'warrior';
+    client.spectating = null;
+    client.spectateFacingPending = false;
+    client.pendingSpectateFacing = null;
+    client.pendingTargetEcho = null;
+    client.pendingInputSeqSentAt = new Map();
+    client.inputEchoSamples = [];
+    client.missingSince = new Map();
+    client.marketInfo = null;
+    client.profanityWords = [];
+    client.profanityDirty = false;
+    client.moveInput = {};
+    client.mouselookFacing = null;
+    client.onReconnected = null;
+    const sent: Array<Record<string, unknown>> = [];
+    client.ws = { readyState: 1, send: (payload: string) => sent.push(JSON.parse(payload)) };
+    return { client, sent };
+  }
+
+  it('re-sends the last stopAutoAttackOnTargetSwitch value once a reconnect hello lands, not before', () => {
+    const oldWebSocket = (globalThis as any).WebSocket;
+    (globalThis as any).WebSocket = { OPEN: 1 };
+    try {
+      const { client, sent } = bareClientWithSocket();
+      client.connected = true;
+      client.setStopAutoAttackOnTargetSwitch(true);
+      expect(sent, 'the initial toggle sends normally while connected').toContainEqual({
+        t: 'cmd',
+        cmd: 'stopAutoAttackOnTargetSwitch',
+        enabled: true,
+      });
+      sent.length = 0;
+
+      // The socket drops and a reconnect is under way: connected is false, so
+      // canSendCommand() would reject anything sent right now.
+      client.connected = false;
+      client.reconnectAttempts = 3;
+      client.conflictRejections = 0;
+      client.timeoutRejections = 0;
+      client.inputSeq = 0;
+      client.lastInputSig = '';
+      client.lastInputSentAt = 0;
+      client.ackedInputSeq = 0;
+      client.lastSnapAt = 0;
+
+      (client as any).onMessage(
+        JSON.stringify({ t: 'hello', pid: 1, seed: 1, realm: 'Claudemoon' }),
+      );
+
+      expect(
+        sent,
+        'the reconnect hello must re-push the preference now that sends actually reach the socket',
+      ).toContainEqual({ t: 'cmd', cmd: 'stopAutoAttackOnTargetSwitch', enabled: true });
+    } finally {
+      (globalThis as any).WebSocket = oldWebSocket;
+    }
+  });
+
+  it('does not send anything on a plain (non-reconnect) hello when the preference was never set', () => {
+    const oldWebSocket = (globalThis as any).WebSocket;
+    (globalThis as any).WebSocket = { OPEN: 1 };
+    try {
+      const { client, sent } = bareClientWithSocket();
+      client.connected = false;
+      client.reconnectAttempts = 0;
+
+      (client as any).onMessage(
+        JSON.stringify({ t: 'hello', pid: 1, seed: 1, realm: 'Claudemoon' }),
+      );
+
+      expect(sent).toEqual([]);
+    } finally {
+      (globalThis as any).WebSocket = oldWebSocket;
+    }
+  });
+});
+
+describe('market_window: live locale-aware case folding', () => {
+  it('uses the active Turkish locale tag when resolving the sent search', async () => {
+    await ensureLocaleLoaded('tr_TR');
+    setLanguage('tr_TR');
+    try {
+      const win = new MarketWindow({} as never) as any;
+      win.searchQuery = 'ilik ucu';
+      expect(win.effectiveSearch()).toBe('marrowpoint');
+    } finally {
+      setLanguage('en');
+    }
   });
 });

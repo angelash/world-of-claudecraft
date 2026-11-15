@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ABILITIES, CLASSES } from '../src/sim/content/classes';
+import { SPEC_PRIMARY_STAT } from '../src/sim/content/spec_primary_stat';
 import { TALENTS } from '../src/sim/content/talents';
 import type { PlayerClass } from '../src/sim/types';
 import { CLASS_DETAILS, SIGNATURE_ABILITIES, SPEC_CARD_INFO } from '../src/ui/class_details_data';
@@ -34,6 +35,7 @@ describe('character-select class details parity', () => {
           const ability = ABILITIES[id];
           expect(ability, `ability "${id}" does not exist`).toBeTruthy();
           expect(ability.class, `"${id}" belongs to ${ability?.class}, not ${cls}`).toBe(cls);
+          expect(ability.hiddenFromPlayer, `"${id}" is hidden from players`).not.toBe(true);
           expect(
             CLASSES[cls].abilities,
             `"${id}" is not in ${cls}'s learnable ability list`,
@@ -62,8 +64,8 @@ describe('specialization card metadata', () => {
       for (const spec of classTalents.specs) {
         const card = SPEC_CARD_INFO[cls][spec.id];
         expect(card, `missing spec card for ${cls}:${spec.id}`).toBeTruthy();
-        expect(['str', 'agi', 'int', 'spi', 'sta'], `${cls}:${spec.id}`).toContain(
-          card.primaryStat,
+        expect(['str', 'agi', 'int'], `${cls}:${spec.id}`).toContain(
+          SPEC_PRIMARY_STAT[cls][spec.id],
         );
         expect(['low', 'medium', 'high'], `${cls}:${spec.id}`).toContain(card.complexity);
         expect(card.examples.length, `${cls}:${spec.id}`).toBeGreaterThanOrEqual(3);
@@ -78,8 +80,20 @@ describe('specialization card metadata', () => {
             cls,
           );
           expect(
+            ability.hiddenFromPlayer,
+            `"${abilityId}" is hidden from players (${cls}:${spec.id})`,
+          ).not.toBe(true);
+          expect(
             ability.specs === undefined || ability.specs.includes(spec.id),
             `ability "${abilityId}" is not offered by ${cls}:${spec.id}`,
+          ).toBe(true);
+          // Mirrors the other half of abilitiesKnownAt's spec gate (classes.ts):
+          // an ability whose excludeSpecs lists this committed spec is dropped
+          // from the kit, so it cannot showcase the spec either, however it
+          // looked before the exclusion was added.
+          expect(
+            ability.excludeSpecs === undefined || !ability.excludeSpecs.includes(spec.id),
+            `ability "${abilityId}" is excluded from ${cls}:${spec.id} (excludeSpecs)`,
           ).toBe(true);
         }
       }
@@ -88,7 +102,7 @@ describe('specialization card metadata', () => {
 
   it('keeps the mage cards int-scaled', () => {
     for (const id of ['fire', 'frost', 'arcane']) {
-      expect(SPEC_CARD_INFO.mage[id].primaryStat, id).toBe('int');
+      expect(SPEC_PRIMARY_STAT.mage[id], id).toBe('int');
     }
   });
 

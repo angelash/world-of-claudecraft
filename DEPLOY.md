@@ -59,7 +59,7 @@ the Elastic IP.
 ```bash
 ssh ubuntu@<elastic-ip>
 echo 'play.example.com {
-	@ops path /livez /readyz /metrics
+	@ops path /livez /readyz /metrics /internal/*
 	respond @ops 404
 	route /wiki* {
 		reverse_proxy localhost:8080
@@ -109,24 +109,28 @@ sudo git -C private/bot_detector pull
 #    config can carry tokens; the type check needs none of them), and
 #    --ignore-scripts stops dependency install hooks from running as root with
 #    network access. The memory bound matters because this runs on the live box
-#    BEFORE the game stops: an unbounded npm ci plus tsc can spike past what the
-#    host has spare and create the exact memory pressure the game service's
-#    mem_limit exists to prevent. 2g is ample for this tree's npm ci and tsc; the
+#    BEFORE the game stops: an unbounded pnpm install plus tsc can spike past what
+#    the host has spare and create the exact memory pressure the game service's
+#    mem_limit exists to prevent. 2g is ample for this tree's install and tsc; the
 #    swap bound matches so the gate cannot push the host into swap either.
 sudo docker run --rm --memory 2g --memory-swap 2g -v /opt/eastbrook:/src:ro -w /app node:26-slim \
-  sh -c 'cp -a /src/. /app && find /app \( -name .git -o -name .env \) -prune -exec rm -rf {} + && npm ci --ignore-scripts --no-audit --no-fund && npx tsc --noEmit'
+  sh -c 'cp -a /src/. /app && find /app \( -name .git -o -name .env \) -prune -exec rm -rf {} + && npm install -g pnpm@10.34.5 && pnpm install --frozen-lockfile --ignore-scripts && npx tsc --noEmit'
 #    Red means STOP, do not deploy: the image would build fine and fail at runtime.
 #    One exception: exit code 137 means the container hit the 2g memory bound (a
 #    gate-environment failure, not a type error); raise the bound or run the gate
 #    off-box, do not skip it.
-#    (On a host that does have Node 26 on PATH, `npm ci --ignore-scripts && npx tsc
-#    --noEmit` in the checkout runs the same type check, but WITHOUT the container's
-#    memory bound; on the live box prefer the containerized form above.)
+#    (On a host that does have Node 26 on PATH with pnpm available,
+#    `pnpm install --frozen-lockfile --ignore-scripts && npx tsc --noEmit` in the
+#    checkout runs the same type check, but WITHOUT the container's memory bound;
+#    on the live box prefer the containerized form above.)
 
 # 4. Optional: warn the players. POST /internal/restart-countdown broadcasts an
-#    in-game countdown. The secret header is the ONLY gate: nothing restricts the
-#    endpoint to loopback (the edge hides /livez /readyz /metrics but not
-#    /internal/*), so treat RESTART_COUNTDOWN_SECRET as a real production secret.
+#    in-game countdown. The secret header is the gate: nothing restricts the
+#    endpoint to loopback. The public edge now answers 404 for /internal/* as well
+#    as for /livez, /readyz, and /metrics, but that is defense in depth and not the
+#    gate, so treat RESTART_COUNTDOWN_SECRET as a real production secret. The curl
+#    below targets 127.0.0.1:8787 on the host and never traverses Caddy, so the
+#    edge 404 does not affect it.
 #    With the secret unset the endpoint answers 404 and there is nothing to warn
 #    with. The countdown runs 10 minutes; wait for it to elapse before step 5.
 curl -fsS -X POST -H "x-woc-deploy-secret: <RESTART_COUNTDOWN_SECRET>" \
@@ -227,12 +231,460 @@ For off-box safety, sync the directory to S3 occasionally:
   cannot honor future expiry times. Operators must either remove still-active timed bans
   before rollback or explicitly accept that they will become permanent until manually
   unbanned. Do not alter the nullable `expires_at` column during rollback.
+- **Professions rollback caveats**: `characters.state` is written whole, so rolling
+  back to a binary that predates a professions field erases that field on the first
+  autosave. Across the professions persistence release specifically: node respawn
+  timers (`nodeHarvestCooldowns`) are erased, which reopens the node relog exploit
+  for the rollback window (accepted trade, no player value lost); slotted tool
+  effects (`toolEffectSlots`) are erased the same way, and since the
+  acquisition craft shipped that is REAL PLAYER-VALUE LOSS (a slot costs a
+  crafted charm of arcane reagents plus its recharges, and the erased
+  `craftedBy` discount provenance cannot be re-minted), so a rollback across
+  the acquisition-craft boundary needs a restore-from-backup plan and the
+  release notes must carry the caveat; the tier-mail acknowledgement
+  prune is a one-way heal that fires on the first UPGRADE load, so a rollback
+  cannot undo it and the only recovery is a database backup; and any FUTURE
+  proficiency or craft cap raise is rollback-destructive
+  (the old binary clamps raised values on load and persists the loss), so a
+  rollback across a cap change needs a restore-from-backup plan for professions
+  counters. Details: "Rollback erases newer fields" in
+  `docs/design/professions-tuning-packet.md`.
+- **Heroic Marks currency rollback (mixed fleet)**: from the release that made Heroic
+  Marks a currency, the balance rides `characters.state.heroicMarks` and a character's
+  first load folds its old `heroic_mark` bag and bank stacks into it
+  (`src/sim/heroic_marks.ts`). `characters.state` is written whole, so a binary that
+  predates the currency autosaves the blob WITHOUT `heroicMarks` and erases that
+  character's whole balance; its quartermaster also counts only bag stacks, so the
+  player sees zero first. Roll the release out to EVERY realm process in one deploy pass.
+  Before rolling back past it, stop and flush EVERY game, admin, offline and
+  background writer and take a consistent database backup. Inventory every persisted
+  character-state carrier, including any offline snapshots that can later replace
+  `characters.state`, and pending reward/mail carriers. Snapshot validated balances
+  using `bigint`, not `int` (valid balances exceed 2^31):
+  `CREATE TABLE heroic_marks_rollback AS SELECT id, (state->>'heroicMarks')::bigint AS
+  marks FROM characters WHERE state ? 'heroicMarks';`. Validate each value as an
+  integer from 0 through 9007199254740991 BEFORE casting; malformed or out-of-range
+  data must abort the conversion for investigation, never coerce or omit a balance.
+  Test the exact conversion on a disposable restored backup at that full range first.
+  A safe older-format conversion must account for existing legacy bag/bank stacks,
+  every scalar carrier and already-pending parcels without double counting. Write
+  converted carriers AND strip `heroicMarks` in the SAME atomic transaction, with
+  all writers still stopped. Verify aggregate currency conservation and per-character
+  equality before commit; any overflow, inventory/payload/slot bound, missing carrier
+  or mismatch must roll back the entire conversion. A MAX_SAFE_INTEGER balance cannot
+  be expanded into a practical number of 20-unit stacks: never run a per-mark or
+  unbounded stack-expansion loop. If a tested bounded conversion cannot represent
+  every balance losslessly, restore the consistent pre-upgrade backup instead.
+  Keep the fleet stopped until validation succeeds, then start only the chosen
+  version everywhere. Never leave both the scalar and re-injected units: the next
+  roll forward would fold them twice. Merely restarting the old binary is unsupported.
+- **Farming plot deploy order and rollback (mixed fleet)**: `farmPlots` rides
+  `characters.state`, which is written whole, so a server binary that predates the
+  farming growth-engine release autosaves the blob WITHOUT `farmPlots` and erases
+  every planted crop that process touches. Deploy order: the 11b absorb collapsed
+  the growth-engine and seed-faucet releases into ONE (Farmer Jessica vendors
+  seeds and `q_farm_intro` grants one from first boot), so the window is LIVE
+  from the first mixed-fleet minute of that release: roll it out to EVERY realm
+  process in one deploy pass, never staged across days. Rollback: rolling back
+  past the growth-engine release after plants exist destroys all plot state on
+  the next 30 s autosave sweep, AND erases each character's accumulated Farming
+  skill number (the pre-farming binary's four-trade serializer drops the
+  `farming` key from both `gatheringProficiency` and the legacy dual-written
+  `professions` record); the only recovery is restore-from-backup. The hidden
+  per-plot pre-rolls (`survivalRoll`, `yieldSeed`) live in the same blob; the load
+  side clamps them into their value domains and re-derives absent slots
+  deterministically, so RESTORED bytes always resolve to the same outcome and
+  cannot be replayed for rerolls. A writer with direct blob access can still
+  reroll by editing `plantedAtMs`; that is total compromise already and is
+  bounded by the allowlists and clamps, not by the derivation.
+- **Masterwrought daily-gate rollback (a repeatable faucet, not just lost state)**:
+  three more `characters.state` keys ride the same whole-blob write, and rolling
+  back past the masterwrought material phases erases all three on the first
+  autosave. Unlike the two caveats above, whose damage is lost player value, this
+  one REOPENS GRANTS and keeps reopening them: `wyrmfallDaily.sources` is the
+  per-day per-source Wyrmfall Core gate, `craftDaily.crafted` is the once-per-day
+  craft gate, and `emberWeekAnchor` is the Maker's Ember week anchor whose empty
+  value IS the first-grant arm (`tryGrantMakersEmber` in
+  `src/sim/professions/masterwrought_materials.ts` grants an Ember outright when
+  the anchor is `''`, which is also what `createPlayer` defaults it to). So an
+  erased anchor mints a free Maker's Ember on the next qualifying completion, and
+  an erased daily record reopens that day's core and craft gates, once per
+  affected character per rollback pass rather than once overall. Deploy the
+  masterwrought material release to EVERY realm process in one pass for the same
+  reason the farming bullet gives, and treat a rollback across it as an economy
+  event: it needs a restore-from-backup plan, not just a release note.
+- **Perfecting rollback (a pre-Perfecting binary DESTROYS Perfected bonuses through
+  normal play)**: the per-copy `perfecting`/`perfected` markers themselves survive an
+  older binary (its instance load bound is drop-only, not a whitelist), but that
+  binary's `isEnchantedInstance` reads a Perfected copy's bare `rolled.stats` record
+  as a LEGACY ENCHANT (apex defs never bake a masterwork record, so no Perfected
+  copy can carry the `rolled.masterwork` flag that would exempt it from that old
+  read). One ordinary confirmed replace-enchant on such a copy then
+  takes the legacy wipe arm and replaces `rolled.stats` wholesale with the new
+  enchant's bonus: the R5 Perfected bonus is gone, permanently, because the copy
+  still carries `perfected: true` and refuses re-earning it. The same misread also
+  re-opens the pre-fix Lucent Infusion holding-scan hole while Perfected copies now
+  exist. So a rollback across the Perfecting release is NOT merely lossy: leave it
+  running only with apply-enchant replace disabled, or accept that every Perfected
+  unenchanted copy a player confirms a replace onto loses its bonus until
+  restore-from-backup. Deploy the Perfecting release fleet-wide in one pass like the
+  two bullets above.
+- **Content-id additions are a one-way door (the itemsDiscovered/deeds class)**: any
+  release that adds a content id (an item, a deed, a visited-mark namespace) is
+  rollback-destructive and mixed-fleet-unsafe for persisted state that USES the new
+  id, even when the release's code changes look trivially revertible. The mechanism
+  is the load-side id gate: `restoreDeedStats` (src/sim/deeds.ts) drops any
+  `itemsDiscovered` id its own ITEMS table lacks, and the old binary's next autosave
+  writes the reduced set back, permanently; deed counters behave the same way (the
+  `legendariesForged` erasure in the orange-promotion bullet below is this class). A
+  mixed fleet does it without any rollback: a character landing on an old process
+  loses the new-id state on its next autosave. So treat every content-id addition as
+  a fleet-wide-in-one-pass boundary, and a rollback across one as needing
+  restore-from-backup for the state that referenced the new ids.
+- **Orange-promotion rolling window (cosmetic)**: the promotion release RETIRES the
+  sim's "That item is already Perfected." line (its client matcher row was removed
+  with it), so during a realm-by-realm roll an OLD server still emits that line to
+  a NEW client, which renders it untranslated English. Cosmetic only and confined
+  to the mixed window; fleet-wide-in-one-pass (the Perfecting bullet above) also
+  makes it a non-event. The rollback-then-roll-forward direction is likewise
+  self-healing: a pre-phase binary applies the def-only unique-equipped rule, so
+  under it a player can wear two promoted twins of one item id, and the first
+  login after the roll-forward benches one back to the bags via
+  `benchDuplicateUniqueEquipped` (src/sim/items.ts) with its Unequipped notice,
+  payload intact and nothing lost; fleet-wide-in-one-pass avoids that window
+  entirely too. The promotion's own persisted fields are SAFE across an older
+  binary, unlike the Perfecting bonus above: the stamped `name`, its
+  `rolled.quality` of legendary, and the `perfected` marker all survive a
+  pre-promotion binary's load, save, and even a confirmed replace-enchant (the
+  instance load bound is drop-only and the enchant paths clone the payload
+  through). What an older binary DOES erase is the `legendariesForged` deed
+  counter: it reads only the counter keys it knows and its next autosave writes
+  the rest away, so a roll-back-then-forward restarts every promoter's count at 0
+  (the deed itself keeps its earn row; the character reads 50 Renown lighter on
+  the old binary and recovers it on roll-forward). Under `API_DISPATCH=legacy`
+  the clear-item-name remediation endpoint is unavailable (registry-only, no
+  legacy arm; it 404s rather than serving unauthorized), so a rollback that
+  coincides with a name report waits for the roll-forward.
+- **Mail partition backfill rollback**: the Ravenpost mail persistence migration
+  (`server/mail_partition_backfill.ts`, #3561) partitions a realm's legacy
+  `mail:<realm>` blob into one row per recipient (`mail:<realm>:r:<key>`) inside
+  `ensureSchema`, and retains the legacy row as a rollback artifact, mirroring the
+  market backfill. Its rollback is WEAKER than market's: market's legacy row was
+  already dormant by the time market added realm scoping, so reverting a binary
+  never lost live writes, but mail's `mail:<realm>` row was the LIVE,
+  actively-written key right up to the instant the migration ran. Reverting to a
+  pre-#3561 binary after ANY post-migration mail activity (a send, a take, a
+  delete, a rename) is a ONE-WAY trapdoor: the old binary reads and writes only
+  the frozen legacy blob, so every mutation since the migration becomes invisible
+  to it, and a later roll-forward never re-adopts that window's mail either (the
+  migration marker makes the backfill a permanent no-op). Recovery after any such
+  activity means a database restore, not a binary revert. A rolling deploy that
+  runs an old and a new binary against the SAME realm concurrently has the same
+  blind spot in miniature, so stop the old process before starting the new one
+  per realm rather than overlapping them. Never delete the migration's marker row
+  on a realm with live mail traffic to force a re-run: a re-run blind-upserts
+  only the recipients present in the legacy blob (unchanged since the original
+  migration) while leaving every partition row written since then in place, and
+  `loadMail` does not de-duplicate by letter id, so the next load can contain the
+  same letter, and its escrow, twice.
+- **Custody-overlay rollback after recipient-scoped baking**: the fixed
+  partition writer removes a parcel's overlay row in the same transaction that
+  saves its recipient's mailbox. The immediately preceding partitioned-mail
+  binary does not do that. Do not roll back to that binary after a custody
+  parcel has been collected or deleted: it can save the changed mailbox while
+  leaving the old overlay row, and a later roll-forward can replay the parcel
+  and duplicate its contents. Restore a consistent database snapshot or
+  reconcile the affected custody refs before roll-forward instead. Do not run
+  both binaries against the same realm during a rolling deployment.
+- **Treasure Vault retry/reward rollback boundary**: a binary predating the
+  durable `vaultAttempt` character field drops that field on its next character
+  save. After a map was consumed, this erases the owner's right to retry its
+  unfinished vault. Older mail binaries also do not recognize the
+  `vault_reward` custody letter. Do not run old and new processes for the same
+  realm together, and do not binary-rollback after anyone opens a map or earns
+  a vault reward. Restore a consistent database snapshot or complete a
+  forward-only repair before serving affected characters again.
+- **Bank Storage rollback caveats**: same governing rule as the professions bullet
+  above, and here it is ITEM-DESTRUCTIVE rather than capacity-lossy, so treat a
+  rollback past this release as destructive and plan a restore from backup.
+  `characters.state` is written whole and a binary from before this release emits
+  no `vault` key and no `socketBags`, so its first autosave of a character
+  DELETES that character's entire Materials Vault stock, the vault upgrade ladder
+  it paid for, and up to four socketed BAG ITEMS, which exist only as their
+  `socketBags` id, along with the non-refundable socket unlock copper. A mixed
+  binary fleet does the same thing without any rollback: during a rolling restart
+  across this boundary, any character that lands on an old process loses that
+  state on its next autosave, so cut over cleanly rather than rolling. Claudium
+  granted slots are NOT in this class: they land in `purchasedSlots`, which an old
+  binary understands and preserves. Only `appliedStorageKeys` is stripped; the
+  immutable `storage_purchase_applied_receipts` row is the durable replay guard
+  outside the character blob. This release also installs six database triggers
+  that a binary rollback does NOT remove:
+  `storage_purchase_guard_character_delete` and
+  `storage_purchase_guard_account_delete` (on characters/accounts),
+  `storage_purchase_guard_consumed_key`, `storage_purchase_archive_applied`,
+  `bank_ledger_growth_budget_insert` and `bank_ledger_growth_budget_delete` (on
+  bank_ledger), `material_source_journal_growth_budget_insert` and
+  `material_source_journal_growth_budget_delete` (on material_source_journal), and
+  `bank_ledger_growth_budget_commit` (the DEFERRABLE constraint trigger on
+  bank_ledger_growth_pending). On a rolled-back binary a
+  character holding a pending storage purchase becomes UNDELETABLE: the 55006
+  delete guard still fires, the old deleteCharacter has no handler for it, and no
+  old-binary path can resolve the pending row. The remedy is a hand
+  `DELETE FROM storage_purchases` for that character's pending row. One more
+  wrinkle on the schema side, split by where the rollback lands. Rolling back
+  to any SHIPPED release is harmless here: no shipped binary carries the
+  receipts fragment at all (`bank_ledger_batch_receipts` is new in this
+  release), so the old binary never touches the key-shape constraint and
+  simply leaves it behind as-is; a NOT VALID survivor still enforces new
+  writes, and the next new-binary boot resumes its post-listen VALIDATE
+  (bounded, inside the concurrent-index session advisory lock, where a
+  concurrently booting realm waits holding nothing). Only a build cut from
+  THIS branch before the fix re-applies the pre-fix receipts fragment, whose
+  converge re-adds the constraint VALIDATED: that re-fires the full scan of
+  the keep-forever table inside the boot transaction, under the boot advisory
+  lock, and a shape-violating row aborts that boot outright. Any FUTURE
+  release that LENGTHENS the bank
+  expansion or vault upgrade table joins the professions cap-raise class: the old
+  binary clamps the raised value on load and persists the loss, so that release
+  owes its own caveat here.
+- **Ten-rung Materials Vault (v0.45.0)**: the vault upgrade table grew from five
+  rungs (40 to 200 per material) to ten (100 to 1000), so this release is in the
+  professions cap-raise class above. Rolling back across it is DESTRUCTIVE for any
+  character who bought rung 6 or higher: the old binary clamps `vault.upgrades` to 5
+  on load and persists that, so the paid rungs (up to 427g each character) are gone,
+  while the stock itself survives because capacity never truncates. The same loss
+  happens on a mixed fleet where an old-binary realm loads such a character. Cut over
+  every realm in one pass, and treat a rollback as a restore-from-backup decision. A
+  `STORAGE_PRICES` override that still lists five `vaultUpgrades` entries is now
+  rejected at boot and that dimension falls back to the compiled ladder (logged).
+- **Vault identity rows over the bag stack size (v0.43.0)**: the Materials Vault now
+  packs one row per material identity at the vault's own row size, so a row can hold
+  more than the 20-unit bag stack (four legacy rows of twenty fold into one row of
+  eighty on load). Rolling back to a build before this change keeps such a row intact
+  through the material exemption in `src/sim/material_slot_load.ts`, with one
+  exception: a row whose item id has since LEFT the material taxonomy, carrying a
+  mergeable payload and no source buckets, clips back to the bag stack size on the old
+  build's load (`instancedCountCap`) and persists the clipped count on its next save.
+  No shipped material id has left the taxonomy; if one does, roll back only after
+  splitting such rows, or accept that clip.
+- **Client/server deploy order for content releases**: deploy the SERVER first, then
+  let clients update. Web and desktop bundles refresh on their next load. The iOS
+  binary rides App Store review and cannot pick up a same-day bundle (LiveUpdates
+  is off), so submit it early, hold its release until it is approved, release the
+  binary, and deploy the server right behind it: the binary must be out before the
+  server moves, and the gap between the two must stay short. The two mid-window
+  mixes degrade differently, and the order above keeps both windows short:
+  - OLD client on NEW server (the guarded direction): item ids the bundle predates
+    render with the fallback icon and their raw id in the trade window, bags, and
+    bank; profession grant lines name the raw id; vendor rows show the old
+    bundle's stock and prices while the purchase path charges the server's own
+    truth (a mismatch is display-only); denial toasts fall back to their generic
+    wording. Gather-node skew depends on the node family, because each side
+    collides against its own bundle's positions: moved or added ORE and WOOD
+    collide invisibly at their server spots and stand as solid stale props at
+    their old client spots (both read as rubber-band corrections), while HERB
+    skew is walk-through phantom props only (herb clusters carry no collider).
+    All of THAT is cosmetic and self-heals when the client updates. Two
+    v0.32.0 surfaces on this leg are NOT cosmetic: the world grew far past
+    the old bundle's terrain rectangle, so a stale tab can walk east,
+    west, or north into ground its renderer has no mesh for (a void with the wrong
+    zone name and music, walkable because the server's rim moved outward);
+    and the instance plane REBASED (INSTANCE_X_BASE), so a stale tab that
+    enters any dungeon, delve, or arena after the deploy is teleported to
+    coordinates its renderer draws as a black, collider-less void, with the
+    exit object invisible, until relog (login is protected: a saved
+    inside-instance position ejects to the door). CORRECTED 2026-09-01
+    (qr-19-stale-client-deploy-window), and SCOPED, which the first
+    correction was not: the two sentences that stood here said the
+    fail-closed layout gate was still at ONLINE_WORLD_LAYOUT_VERSION 3 and
+    that stale bundles were therefore still admitted at reconnect, with a
+    bump as the pending answer. Both are false on this branch: the gate
+    reads 26 and the world socket refuses a mismatched first frame
+    outright. READ THE SCOPE, because it changes the player-comms plan
+    rather than only the prose. WHEN A DEPLOY MOVES THE EPOCH, none of the
+    symptoms above is reachable at all: every stale tab is hard
+    disconnected with an incompatible-version error and must reload, so
+    plan for that instead of for cosmetic glitches. ON AN ORDINARY
+    SAME-EPOCH CONTENT DEPLOY, which is what this section's heading is
+    about, old clients DO stay in world and every skew above is live
+    exactly as described.
+  - NEW client on OLD server (the bounded direction). SAME SCOPING as the
+    bullet above, added 2026-09-01 (qr-19-stale-client-deploy-window) because
+    the correction there left this one reading as though it were unaffected:
+    the epoch gate closes this direction SYMMETRICALLY. A server still on the
+    older layout refuses a new client's `auth-world-26` first frame the same
+    way, so when a deploy moves the epoch none of the skew below is reachable,
+    including the rate-limit tokens the mount and unstuck paths would spend.
+    On a same-epoch content deploy it is all live as written: every gather node
+    the
+    release relocated is unusable, because the client shows it where the old
+    server does not have it. Among the zones the deployed server HAS, the
+    worst cases are Eastbrook tier-1 herbalism and Mirefen's tier-2 band,
+    each a fully moved-or-new group; the eleven expansion zones are a
+    different class entirely (their ground does not exist on the old server,
+    so everything there is dead until the server deploys), and new client
+    surfaces advertise nodes, items, and minimap markers the old server
+    denies.
+    This window exists only between a client release and the server deploy, so
+    close it by deploying the server as soon as the clients are staged. (An
+    old server answers a command it does not know by logging a protocol
+    anomaly to the bot detector and spending a rate-limit token. The
+    professions tuning packet itself adds TWO commands, slot_tool_effect and
+    recharge_tool_effect, neither dev-gated, both wired to shipped
+    professions-window buttons; on the FORWARD leg those buttons stay
+    unreachable for an ordinary player because an old server never mints a
+    charm and never sends the tslot rows the buttons render from, so only a
+    hand-built frame spends tokens through them. On a ROLLBACK leg the
+    premise flips: charms already crafted survive in bags (the pre-packet
+    loader keeps unknown-id slots as dormant data), so the slot buttons
+    render from real inventory and an ordinary click spends rate-limit
+    tokens and logs anomalies against the rolled-back server until the
+    packet server returns. The v0.32.0 expansion the branch
+    merged with adds eleven more commands, none dev-gated, of which FOUR are
+    reachable from the shipped client's own surfaces: the mount key, the two
+    race controls, and the Settings unstuck action. On this leg an ordinary
+    player pressing the mount key or using unstuck spends rate-limit tokens
+    and logs anomalies until the server deploys, one more reason to keep the
+    binary-to-server gap short. One more version-skewed CONSUMER rides this
+    deploy: the discord-bot container's activity feed predates the packet's
+    masterwork and deed card kinds (and the expansion's vale_cup kind), so
+    restart the bot with the server or those cards post as empty embeds
+    Discord rejects until it picks up the new build.)
+  Release-specific caveat for the professions tuning deploy, REWRITTEN
+  2026-09-01 under ruling qr-19-stale-client-deploy-window and CORRECTED at its
+  review round. SCOPE FIRST, because the rewrite dropped this and two sentences
+  below then read as contradicting each other: the guards described in the
+  bullets above are in bundles built from this release onward. The bundle that
+  was DEPLOYED when this window was measured (9d7a1a021) predates them and
+  THROWS rather than degrading, which is what the rest of this paragraph is
+  about.
+  What this paragraph used to prescribe was a LOOT-TABLE EXCLUSION: keep new ids
+  out of mob and chest tables until clients have rolled, because a stale bundle
+  handed an id it cannot resolve freezes the panel rendering it. That window is
+  CLOSED, and by a different mechanism than the exclusion:
+  ONLINE_WORLD_LAYOUT_VERSION now reads 26 (src/world_api.ts), and the world
+  socket is FAIL-CLOSED on it. A client whose first frame does not carry
+  `auth-world-26` is refused at the handshake before any world work runs
+  (server/ws_auth.ts): a real stale bundle sends `auth-world-<older>` and is
+  refused with `incompatibleWorldLayout`, while a frame with no recognisable
+  type at all is refused with `authRequired`. Either way it never receives a
+  snapshot, an event, a loot list or a trade offer, so it cannot be handed an
+  unknown id. STATE THE RULE PRECISELY, because it is a property of the
+  surfaces and not of the process: every id-rendering surface in that bundle
+  lives behind the world socket. REST is not epoch-gated, and `/api/characters`
+  really does return item ids to a stale bundle; they are safe only because the
+  character-preview path that consumes them resolves every lookup with optional
+  chaining. A future non-game surface that renders an id from REST would fall
+  outside this rule.
+  The epoch bump arrived for wire-shape reasons, not for this, so the closure is
+  by circumstance rather than by design.
+  VERIFIED rather than asserted, against 9d7a1a021. All 22 `ITEMS[` sites in its
+  `src/ui/hud.ts` are null-safe, and one reachable throw survives there: the
+  trade panel's `itemIcon(item)`, whose `itemIcon(item: ItemDef)` dereferences
+  `item.quality` and `item.id` with no guard. THE FIRST DRAFT OF THIS PARAGRAPH
+  SAID "exactly ONE", scoping the measurement to hud.ts and then generalising it
+  to the bundle; that is corrected here. THE ENUMERATION BELOW IS SCOPED TO
+  WS-FED SURFACES, and says so, because the same generalisation is easy to make
+  twice: three more WS-fed siblings carry the same unguarded shape, and one of
+  them is the very throw the old caveat named:
+  `src/ui/hud/loot/loot_window_controller.ts` passes an unresolved item to
+  `itemIcon` and `itemDisplayName` on its row build and to `itemTooltip` on
+  hover, and `src/ui/disenchant_yield_view.ts` passes one to `itemDisplayName`.
+  All three are WS-fed, so all three are behind the handshake and the retirement
+  stands; the count was wrong, not the conclusion. The identical shape also
+  exists in the quest log, the quest dialog and the bag reagent menu at that
+  commit, and those are deliberately NOT in the count: every one of them takes
+  its id from client-local content (the quest tables, a quest reward record, a
+  recipe's reagents), never from the server, so no unknown id can reach them by
+  any vector and they were never part of this window.
+  `src/ui/market_view.ts` drops unknown listings and `src/ui/mailbox_window.ts`
+  skips them, so those two degrade on their own. So does the vendor path: the
+  junk preview filters through `junkSellableSlot`, whose first term is a
+  definition check, and vendor stock rows come from local content.
+  "Degrades" is not uniform, and the difference matters when reading a report:
+  several of those sites degrade to NOTHING RENDERED rather than to a raw id (a
+  set-piece count reads low, a gear stat source is omitted, the junk sweep skips
+  the stack, pet food is not seen), which is the same silent-omission family as
+  the invisible bag cell below.
+  WHAT STILL HOLDS at a deploy, and needs no loot rule: a tab that harvests a
+  fine grade with an outclassing tool sees it land in an INVISIBLE bag cell (and
+  bank cell after a deposit) that still consumes capacity, and the profession
+  chat line names the raw id. Cosmetic and self-healing on reload, but it reads
+  as "my ore vanished" in reports. NOTE THE COMBINATION THIS NEEDS, because the
+  measured bundle cannot produce it alone: `src/sim/professions/material_grades.ts`
+  does not exist at 9d7a1a021 and no fine-grade id appears in its `src/`, so
+  that bundle mints no fine grade offline and, with the gate, gathers none
+  online. The arm is a NEWER bundle writing an offline save that an older cached
+  bundle then loads.
+  Stale sessions are ended by the pre-deploy restart countdown, but a reconnect
+  rides the same stale page: only a page reload picks up the new bundle.
+  The measurements above were taken against 9d7a1a021, the commit deployed when
+  the window was open; the branch has since merged the true v0.32.0 tip
+  (0b427afca, 685 commits past the measured base), re-synced repeatedly through
+  release/v0.33.0 (last at 2ae71a7fbf), and then merged release/v0.34.0
+  (94f5ac63d8, at merge 706bec2d21). If the live server moves before this branch
+  deploys, re-run the compatibility diff against the commit actually deployed
+  before trusting any "N new X" claim.
+  There is no longer a guard file behind this paragraph.
+  `tests/stale_client_rollout.test.ts` and its snapshot froze the
+  HEROIC_BOSS_LOOT id set for the deploy window and were RETIRED in the same
+  change as this rewrite: a guard whose premise is closed is a guard that fails
+  for the wrong reason later. One thing goes with it and is recorded so nobody
+  looks for it: that frozen set was also the only change-detector on the heroic
+  boss loot table, and no surviving suite pins that id SET. Per-surface analysis
+  of the window as it stood: the stale-client compatibility phase of
+  `docs/design/professions-tuning-packet-review.md`.
 - **Bank ledger audit**: `node scripts/bank_audit.mjs` (reads `DATABASE_URL` from the
   environment) replays the append-only `bank_ledger` against live character bank state
   and exits non-zero on any discrepancy. Run it after an economy incident or a restore.
 - **Username bans**: set `USERNAME_BANLIST_FILE=/opt/eastbrook/username-banlist.txt`
   to load blocked username terms from a private newline- or comma-separated
-  file. `USERNAME_BANLIST` can also provide a comma-separated inline list.
+  file. `USERNAME_BANLIST` can also provide a comma-separated inline list. The same
+  screen prices every player-chosen legendary item name (the Masterwrought orange
+  promotion), a surface wider than a character name (up to 32 characters with
+  spaces, apostrophes, and hyphens), so seed the file with the slur and hate-group
+  residual the built-in word list does not carry before that feature is live. An
+  edited file takes effect without a restart, at the next name screen at least one
+  second after the edit (nothing polls between screens; the cache is keyed on the
+  file's mtime and size, checked at most once per `USERNAME_BANLIST_STAT_HOLD_MS`,
+  so a permissions-only repair, a bare `chmod`, needs a `touch` too); a missing,
+  unreadable, or over-64-KiB file (about nine thousand terms; a name screen's cost does
+  not grow with the list, only the once-per-edit parse does) warns once and keeps
+  serving the last list it read successfully (fail-open by decision: it never blocks a
+  signup), and the boot log
+  prints one `name banlist:` line saying whether the configured file loaded (the
+  `woc_username_banlist_file_loaded` gauge is its scrape-visible twin, as of the last
+  name screen). Keep the file on LOCAL disk: the server stats it once a second at most
+  and reads it on change, synchronously on the loop that runs the realm, so a hung
+  network mount stalls a name screen for the mount's timeout.
+- **Clearing a stamped legendary name** (`POST
+  /admin/api/moderation/characters/:id/clear-item-name`, permission
+  `moderation.clearItemName`, SUPERADMIN only, API-only: the dashboard has no
+  button for it): the remediation for a reported player-chosen name on a promoted
+  copy. The body names EXACTLY one target plus a required `reason`: `{"slot":
+  "neck"}` for a worn copy, `{"bag": <inventory array index>, "itemId": "<id>"}`
+  for one carried cell, or `{"all": true}` for every named copy the character
+  holds (carried bags, bank, the buyback ring, and both equipment maps). Prefer
+  `all: true` unless the index was read from the blob itself: `bag` is the
+  persisted array index, not the cell the client displays, it reaches the carried
+  bags only, and with two same-id named copies a screenshot's index can strip the
+  other one. The flow is KICK, THEN CLEAR: the endpoint refuses while the
+  character is online on this realm (disconnect them with the in-game `/kick`
+  command or a dashboard suspension first). The offline load, strip, and save
+  run in one locked transaction, so simultaneous removals preserve each other.
+  The lease fence refuses a live session; expired nonces are invalidated under
+  the lock so a stale heartbeat cannot restore the removed name. A racing login
+  either wins first and the endpoint asks for a retry, or waits and loads the
+  corrected state. A player contesting the strip by reconnect-spamming is
+  answered by suspending the account first. The audit row (`clear_item_name`, a
+  sanction badge in the moderation history) lands before the write, so a refused
+  request still records what was asked. The strip removes ONLY the name: the
+  promotion, its stats, signer, and bind stand, and the copy is a permanently
+  nameless legendary (the game offers no re-name). What the strip CANNOT reach:
+  the Discord activity card the promotion published is durable in the community
+  channel and has no in-repo takedown, so a name report also owes a manual Discord
+  message removal.
 - **Chat filter**: the word lists are now **managed live from the admin
   dashboard** (Chat Filter tab), stored in the database and seeded with sensible
   defaults on first boot. Two tiers: *soft* words are masked client-side with
@@ -300,15 +752,113 @@ For off-box safety, sync the directory to S3 occasionally:
   the host `.env` into the game container. The key is a secret: it must never
   appear in logs or client code. Linking is a cosmetic mirror for deed
   achievements only; login with Steam does not exist.
+- **Epic link + achievement mirror**: players can link an Epic account so
+  their Book of Deeds achievements mirror to Epic Online Services
+  (`server/epic/`). It is **off until configured** (merge-safe dark default):
+  with `EPIC_ENABLED` unset or not exactly `1`, every `/api/epic/*` route
+  answers `epic.disabled`, the mirror is inert, `/api/status` advertises
+  `epic: { enabled: false }`, and no client renders Epic link UI. Default CI
+  and `npm test` need no Epic secrets. To enable, set the following in the
+  server runtime env (Docker Compose passes them from the host `.env` into the
+  game container):
+
+  | Key | Required when lit | Notes |
+  |---|---|---|
+  | `EPIC_ENABLED` | yes (exactly `1`) | Any other value keeps the surface dark |
+  | `EPIC_PRODUCT_ID` | yes | EOS product id |
+  | `EPIC_DEPLOYMENT_ID` | yes | EOS deployment id |
+  | `EPIC_CLIENT_ID` | yes | EOS client id used by the server |
+  | `EPIC_CLIENT_SECRET` | yes | Server only; never logged; never stamped into desktop builds |
+  | `EPIC_SANDBOX_ID` | optional | Only if the chosen verify path needs it |
+
+  Linking is a **cosmetic** mirror for deed achievements (and optional future
+  ownership checks) only. **Login with Epic does not exist**; identity stays
+  email + Discord. Client-supplied Epic account ids are never trusted. Do not
+  confuse these server keys with BuildPatchTool upload credentials
+  (`EPIC_BPT_*` in `docs/epic-games-integration/bpt-upload.md`), which never
+  belong on the game server.
 - **Claudium economy service**: `WOC_ECONOMY_SERVICE_URL` is resolved by the
   game server. Use `http://127.0.0.1:8798/v1/claudium/` only when both services
   run directly on the host. For the Compose game container with a host-run
   economy service, use `http://host.docker.internal:8798/v1/claudium/`.
   A separately deployed economy service should use its internal or remote DNS
   URL instead.
+- **$WOC market settlement service**: `WOC_MARKET_SERVICE_URL` points at the
+  same economy service's `/v1/market/` surface and is a SEPARATE knob from the
+  claudium URL above (the market proxy refuses to fall back to it; with the
+  market knob unset the Exchange reports itself unavailable). Same host
+  guidance as above. Health: probe `GET /v1/market/price` on this base (send
+  the shared `x-woc-economy-secret` header if the service requires it; the
+  game mirrors the reading at `/api/woc-market/status`, which needs a player
+  bearer token, so the service base is the operator probe); do not key market
+  monitoring on the service's `/v1/health` rail matrix, which has no
+  market-settlement rail (its `marketplace` rail is the character-marketplace
+  rail and names keys this market never reads). Deploy coupling: the
+  bond-quote contract is service-owned (the game sends the BID, the service
+  answers the bond), so enable the market only with BOTH sides at or after
+  the contract tips: for the service, the PR #31 build whose bond-quote
+  response carries `bondCents` (the probe: quote a bond and check the field);
+  for the game, the build that sends `bidCents`. An old GAME against the new
+  service refuses bond quotes fail-safe (the service demands the bid; no
+  money moves, bids lapse on their TTL). A new game against an OLD service is
+  TOLERATED by design: a quote without `bondCents` falls back to the game's
+  ceil mirror at the same knobs, so keep the knobs in lockstep until both
+  sides are current. The contract also reserves the confirm
+  verdict word `awaiting_finality` for LEDGER-MATCHED payments (the game's
+  anti-snipe extension trusts exactly that reservation); a service build that
+  starts emitting it optimistically is a breaking change, not a copy tweak.
+  Player-visible behavior note: listing an item and the seller side of a
+  directed acceptance now require a wallet SIGNATURE (the step-up challenge;
+  no transaction, no funds), so a seller whose wallet is linked but
+  unavailable at the moment cannot list; no knob controls this and no env
+  change accompanies it (the dev economy pair alone enables the devsig arm).
+  Security framing (be precise with operators): the step-up makes a custody
+  move require a live, attributable wallet signature, and the R11 wallet-link
+  re-auth gate (server/wallet_reauth.ts) closes the relink-first hole that
+  used to sit beside it: changing an existing wallet link now demands the
+  CURRENT wallet's co-signature or the account password plus its second
+  factor, removing one demands the password arm, and every link change emails
+  the account. Client-version note: desktop/native bundles older than R11
+  ship the pre-R11 client, which never shows the password prompt, so on
+  those builds a relink/unlink answers the generic verify-failed flash
+  until the bundle updates (the web client updates with the deploy).
+  History: docs/woc-marketplace-hardening/state.md (R11).
+- **Ops dashboard market reads**: `DASHBOARD_INTERNAL_SECRET` gates the ops
+  dashboard's `/internal/woc-market/*` reads; unset leaves them 404 (names
+  only here, the values live in deployment secrets).
 - **Never** set `ALLOW_DEV_COMMANDS=1` in production: it enables the full
   `/dev` cheat set (the level/teleport cheats the test bots use, plus item
   grants, mob spawns, instance teleports, and the dev command GUI).
+- `RIFT_FORGE_ENABLED` is a kill switch, not an opt-in: the Rift forge wire
+  commands (upgrade/socket at the Riftwright) are open by default. Set it to
+  `0` (or `false`, `off`, `no`) to pause the forge on a realm
+  (`server/rift_forge_gate.ts`); leave it unset otherwise. The switch only
+  works when the server actually sees the variable: `docker-compose.yml`
+  forwards it through the per-key `environment` block, so a deploy template
+  that renders its own compose must carry the same line.
+- `WS_PERMESSAGE_DEFLATE` is a kill switch, not an opt-in: outbound game
+  WebSocket frames are compressed (permessage-deflate) by default. Set it to
+  `0` (or `false`) to send them uncompressed on a realm
+  (`server/ws_compression.ts`); any other set value fails fast at boot. Like
+  `RIFT_FORGE_ENABLED`, it reaches the server only through the compose
+  `environment` block.
+- **Community test profile**: on a disposable public test realm, set
+  `PROVISION_TEST_ACCOUNTS=1` in the host `.env`, then restart the game
+  container. The flag gives newly created accounts nine level-20 characters,
+  one per class, with complete Warfare gear and four maximum-size bags. It does
+  not backfill existing accounts. (Rift portal density no longer needs a flag:
+  every realm keeps one portal per eligible zone on an hourly rotation, so the
+  former `COMMUNITY_TEST_RIFTS` toggle is gone.) The flag is off by default and
+  does not enable dev
+  commands, so keep `ALLOW_DEV_COMMANDS=0` on a public realm.
+
+  For the initial community test, leave `RIFT_UPGRADER_URL` and
+  `RIFT_UPGRADER_MODEL` unset and keep `RIFT_RUNTIME_ASSETS=0` unless remote AI
+  and asset-job costs are explicitly part of the test. Monitor tick performance
+  before opening the realm. To roll back, set both community flags to `0` and
+  restart the game container. Disabling stops future roster seeding and dense
+  Rift refill; characters already created remain, and persisted portals close
+  through their normal clear or expiry lifecycle.
 - **Bot detector (implementation)**: the open-source tree ships with a no-op stub
   (`server/bot_detector/stub.ts`). Detection hooks are wired in, but they observe
   nothing and never act. To bundle the real behavioral detector, clone the private
@@ -329,10 +879,195 @@ For off-box safety, sync the directory to S3 occasionally:
   (anything else gets an opaque 401). Configure the token on **both** the server
   and the Prometheus scrape job in the same change or scraping goes dark, and point
   the scrape job at `127.0.0.1:8787/metrics` on the host: the public edge answers
-  404 for all three ops paths (`/livez`, `/readyz`, `/metrics`) once the Caddy
-  block below is in place. `/livez` and `/readyz` need no token, but they are for
-  the container healthcheck and the host watchdog, which read them locally and
-  never through Caddy; nothing on the public internet needs them.
+  404 for the ops paths (`/livez`, `/readyz`, `/metrics`) and for the whole
+  internal API (`/internal/*`) once the Caddy block below is in place. `/livez`
+  and `/readyz` need no token, but they are for the container healthcheck and the
+  host watchdog, which read them locally and never through Caddy; nothing on the
+  public internet needs them.
+  Series-cardinality note for the v0.32.0 deploy: the zone label vocabulary
+  behind the harvest and fishing counter families grew from 3 zones to 14,
+  so every zone-labeled counter now pre-registers 42 series (zone x tier or
+  zone x band) instead of 9, about 4.7x per family, and dashboards or alerts
+  that enumerate zone label values need re-pointing at the new ids. The
+  full cross product is still pre-registered at boot by design (a Prometheus
+  counter cannot backfill a scrape), and no per-request cardinality bound
+  changed: the vocabularies stay content-derived and bounded.
+  The `woc_client_*` family (server/http/client_perf_metrics.ts) distills the
+  public `/api/perf-report` beacons into fleet frame-health series: report and
+  heavy-jank counts, frame p95 / fps / worst-10s / long-task / render-scale
+  histograms, context losses, and perf-doctor suggestion counts, labeled only
+  by fixed vocabularies (graphics tier, device class, GPU family, OS family,
+  scene class, suggestion id, and on the reports counter and the frame p95
+  histogram the host `runtime`: `web` or `desktop-shell`, the Electron
+  client, which no other label can tell from a Chrome tab; its SQL twin is the
+  `desktop_shell` column; adding the label changed those two families'
+  series identity, so a dashboard or rule matching their exact label set
+  needs `sum without (runtime)` or a `runtime` selector from that deploy on).
+  From the same deploy, `fps_avg` from browser sessions steps UP for a
+  measurement reason: the hidden-time ledger behind it now also discounts a
+  background tab, where it used to discount only a minimized desktop window;
+  `raw_summary.visibleSeconds` beside `seconds` is the discriminator, and its
+  absence means an older client. The whole family follows the exporter's
+  zero-backfill design above: every counter cross product registers at zero and
+  every histogram series is pre-seeded at boot (roughly 600 always-present
+  samples), so the jank-share ratio reads 0% rather than "no data" for a
+  healthy cohort and first post-deploy increments are visible to rate(). The
+  values are
+  CLIENT-ATTESTED (the beacon is unauthenticated; the ingest clamps, per-IP
+  rate limit, and per-session insert throttle bound the write rate), so
+  corroborate a surprising shift against the client_perf_reports table before
+  treating it as fleet truth.
+  `woc_client_shader_warm_reports_total` (same module, same stored gameplay reports) is
+  the shader warm-up cut of that population: `shader_warm_active` says whether
+  the warm-up worker was alive on the reporting client, and
+  `shader_warm_refusal` carries the cause when it was not (`none` when there is
+  none, one `extension-drift` series for the whole family, `other` for a cause
+  this server's vocabulary does not know). One value is NOT a refusal: `ab:off`
+  marked the `off` arm of the D3D11 A/B experiment the 0.43 clients ran on the
+  `auto` setting. No client mints it from 0.44.0 on, where `auto` leaves the
+  worker off on every backend; exclude it from a refusal-share reading over a
+  window that still holds 0.43 rows. Its cardinality is the two active
+  values times that fixed vocabulary, pre-registered at zero like the rest of
+  the family. The SQL drill-down is the two client_perf_reports columns behind
+  it (`shader_warm_worker_active`, `shader_warm_refusal`, both bounded at
+  ingest), plus `raw_summary.shaderWarm` for the per-session detail (mode,
+  setting, backend, the warmed / held counts, the summed and wall hold time,
+  the cannot-serve releases, and on 0.43 rows only `abArm`, the one field that
+  names that experiment's `on` arm). The `held` and `heldReleased` counts include holds a gate asked for
+  while the worker was standing down after a release, which were refused at
+  once and hid nothing. From 0.44.0 on an `auto` session reads `mode` `off` on
+  every backend, and the options row is withdrawn (a stored On reads as `auto`), so
+  `shader_warm_active` is true only on a session that pinned `?shaderwarm=`.
+  `woc_client_cadence_reports_total` (same module, same stored gameplay reports)
+  is the frame rate ceiling cut: `frame_cap` is the ceiling the player chose
+  (`none`, `30`, `60`) and `cadence` is `reduced` when the client renders fewer
+  frames than the display offers on purpose (a cadence divisor above one, or a
+  ceiling with no display reading, which is the unpaced limiter), `full`
+  otherwise. Six series, pre-registered at zero. The fps and p95 series carry
+  no such label (their label sets are a pinned contract), so read a fleet-wide
+  rise in slow frames against this share first. The SQL drill-down is three
+  client_perf_reports columns, `frame_cap_intent` (0, 30 or 60),
+  `cadence_divisor` (1 to 16, 1 = ceiling inert) and `refresh_hz` (0 =
+  unknown, whole Hz), which survive the shed ladder where `raw_summary.cadence`
+  (mode, verdict, intent, refreshHz, divisor, targetIntervalMs, missShare,
+  rendered, skipped, and the automatic mode's readout: autoPhase,
+  autoConfirmed, autoFailStreak, autoLateShare, autoDescents, autoProbes,
+  autoProbesFailed, autoProbesInconclusive, autoFirstCeilingS) can be dropped.
+  That block adds about 340 bytes to every gameplay report BEFORE the ladder
+  runs, so expect the shed-rung distribution to sit one rung deeper from this
+  release on for a reason unrelated to client health: compare rungs within a
+  release, never across this one. The cadence label `reduced` also covers an
+  explicit ceiling with no display reading, which on a 60 Hz display with a
+  ceiling of 60 reduces nothing: read its share as an upper bound. A session
+  with `cadence_divisor > 1` or `frame_cap_intent <> 0`
+  renders slowly ON PURPOSE: split it out before reading `frame_p95_ms` or
+  `fps_avg`. From the same release on, `target_fps` is the effective target
+  (the ceiling's own rate while it is active): its meaning changes at this
+  release with no marker in the column, so split any window that straddles it
+  on `release_version`.
+  `raw_summary` itself is capped in bytes by a priority shed ladder
+  (`server/perf_report_shed.ts`): an oversized report loses its biggest,
+  least diagnostic blocks one rung at a time and records them under
+  `raw_summary.dropped`, so a key that is absent AND unlisted there was never
+  sent, and the small diagnostic keys (`windows`, `bootPhases`, `shaderWarm`,
+  `postRevealLinks`, `rendererDrawingBuffer`, `browser`) survive on every row.
+  `woc_client_raw_summary_shed_total{rung}` counts stored reports by the
+  deepest rung reached (`none` when the blob fit), the readout for "did a
+  client shape start blowing the cap" and for sizing a cap change. Size the
+  `client_perf_reports` retention on the cap times the report rate: since the
+  ladder, a stored row carries up to the whole cap where the old whole-blob
+  drop left most heavy rows at a few bytes.
+- **Multi-realm scraping**: one server process hosts exactly one realm, and no
+  exported series carries a `realm` label (pinned by the exporter tests; the
+  DB-backed business family filters on the realm in its queries instead). Give
+  each realm process its own scrape target and attach realm identity as a
+  target label in the scrape config, e.g.
+  `static_configs: [{ targets: ['127.0.0.1:8787'], labels: { realm: 'emberfall' } }]`
+  per realm port. Counters then sum cleanly across realms
+  (`sum(woc_fishing_catches_total)` is world-wide, and the database-wide
+  `woc_bank_ledger_growth_limit_refusals_total` also sums). Gauges need their
+  own aggregation. `woc_rod_fee_copper` is static content published IDENTICALLY
+  by every realm process, so aggregate it with `max()` (or `avg()`), never
+  `sum()`. Both rod series carry a `recipe` label and the two rod fees DIFFER,
+  so the aggregation must keep that label or the product multiplies every
+  training by the single highest fee: the copper the rod fees took across
+  realms is
+  `sum(sum by (recipe) (woc_rod_fee_payments_total) * max by (recipe) (woc_rod_fee_copper))`.
+  `woc_bank_ledger_growth_budget` is another database-wide gauge exported by
+  every realm. Never sum its row count, byte size or capacity: use one target, or `max`
+  without the target `realm` label for `accounted_rows`, `total_bytes` and
+  `hard_limit_rows`. Use `max` for `observation_age_seconds` so the stalest realm
+  is visible, `max` for `limit_warning` so one realm that has observed the warn
+  crossing raises it, and `min` for `initialized` (and `bytes_known`) so one realm that
+  has never observed the singleton cannot hide behind healthy peers.
+  `accounted_rows` is the aggregate audit rows the budget currently accounts for
+  across `bank_ledger` and `material_source_journal`: it rises on inserts and FALLS when
+  an owner cascade reaps audit rows, so it tracks live storage rather than history ever
+  written. `lifetime_inserted_rows` carries the same value as a deprecated alias for
+  dashboards that predate the aggregate budget; its NAME is now wrong and it is removed
+  once those panels move to `accounted_rows`. (The earlier rename of
+  `observed_committed_rows` to `lifetime_inserted_rows` still applies to anything older.) The per-process bank-ledger FIFO drop total moved the same
+  way: `woc_bank_ledger_tail{measure="dropped_rows"}` is no longer exported,
+  so an existing any-increase alert on that arm goes silently to no-data;
+  point it at the `woc_bank_ledger_tail_dropped_rows_total` counter and alert
+  on `increase()`, which also reads correctly across realm restarts (the old
+  gauge arm did not). `woc_bank_ledger_tail` keeps only the instantaneous
+  `depth` and `rows` occupancy arms.
+  Character deletes carry their own bound on top of the realm-wide background
+  gate: at most 2 concurrent (`CHARACTER_DELETE_PERMIT_SUB_CAP`), exported as
+  `woc_character_delete_gate` (a measure-labeled sibling of
+  `woc_background_db_gate`) plus the `woc_character_delete_busy_total`
+  counter. A delete stampede parks at the sub-gate BEFORE the realm gate, so
+  read it here: `waiting` above 0 with `in_flight` pinned at the cap means
+  players are queuing to delete (the realm gate's own waiting gauge
+  structurally cannot see this); sustained
+  `increase(woc_character_delete_busy_total)` means players are receiving
+  `delete_busy` 503s; `in_flight` stuck at the cap with no delete traffic is a
+  leaked sub slot. Client-gone abandonments (a player closing the tab
+  mid-wait) count in neither series.
+  `woc_offline_fence_refusals_total` (labeled by writer family over
+  `rename_sweep`, `reclaim_sweep`, `pbe_roster`) is the one to watch after an
+  operator action that writes a character while it is OFFLINE. The lease fence
+  means the write is REFUSED rather than applied when the character has come
+  back online, and a refusal is silent to the operator: the durable effect
+  simply did not land, with nothing in the tree to re-trigger it. A rename
+  sweep is the worst of the three, because the rename itself commits first, so
+  a refusal leaves the character renamed with every crafted copy still signed
+  with the old name. Any sustained `increase()` here means operator work is
+  being dropped; the remedy is to disconnect the character and retry.
+- **Discord bot series (Grafana)**: the bot reports its rate-limit governor
+  counters on the presence push it already sends, so `/metrics` carries them with
+  no extra scrape target and no bot-side endpoint. Cumulative counters
+  (`rate()` and `increase()` apply; the server accumulates across bot restarts, so
+  rendered totals never go backwards): `woc_discord_bot_requests_total`,
+  `woc_discord_bot_rate_limited_total` (labeled `scope` over `user`, `global`,
+  `shared`, `unknown`), `woc_discord_bot_global_pauses_total`,
+  `woc_discord_bot_ban_pauses_total`, `woc_discord_bot_breaker_opens_total`,
+  `woc_discord_bot_forbidden_blocks_total`, `woc_discord_bot_breaker_blocks_total`,
+  `woc_discord_bot_queue_full_blocks_total` (requests refused because a bucket
+  queue was at its cap: a saturated backlog shedding load during an incident).
+  Live gauges: `woc_discord_bot_queue_depth`, `woc_discord_bot_tracked_buckets`,
+  `woc_discord_bot_tracked_routes`, `woc_discord_bot_active_queues`,
+  `woc_discord_bot_forbidden_entries`, and `woc_discord_bot_breaker_state`
+  (labeled `state` over `closed`, `open`, `half-open`; 1 on the active state,
+  all three 0 when nothing is reporting a state: never pushed, stale, or the
+  last push carried an unrecognized state value). The two
+  signals worth alerting on at 2am: **breaker opens** (any increase of
+  `woc_discord_bot_breaker_opens_total` means the bot tripped its own circuit
+  breaker; any open at all is worth an alert) and the **429 rate**
+  (`sum(rate(woc_discord_bot_rate_limited_total[5m]))`; after the stability
+  packet, normal is near zero, so a sustained climb is the next storm forming).
+  The five live gauges and the breaker state read zero five minutes after the
+  bot stops pushing (the same staleness rule the presence snapshot uses) while
+  the cumulative counters hold their totals. `woc_discord_bot_push_age_seconds`
+  (time since the last bot push) is neither: it keeps GROWING through
+  staleness, with two caveats to read it by. It renders 0 in a server process
+  that has never received a push, so a game-server restart while the bot is
+  down reads momentarily fresh (the all-zero counters beside it are the tell),
+  and the presence push is event-driven (a debounce over presence and voice
+  events), so a growing age can be a genuinely quiet guild as well as a dead
+  bot. Liveness belongs to the bot container's own healthcheck; the push age
+  says how old the numbers are, not whether the bot is alive.
 - **Game watchdog (wedge recovery)**: `deploy/game_watchdog.sh`, installed as
   `/usr/local/bin/eastbrook-watchdog` and fired every minute from
   `/etc/cron.d/eastbrook-watchdog`. Docker's `restart: unless-stopped` only acts when
@@ -375,24 +1110,43 @@ For off-box safety, sync the directory to S3 occasionally:
   whose compose file carries the healthcheck, so install it alongside that deploy,
   not before it.
   **The Caddy ops block needs the same by-hand treatment**: `deploy/user-data.sh`
-  writes the 404 block for `/livez`, `/readyz`, and `/metrics` at first boot only, so
-  a host provisioned before it existed still proxies all three to the public
-  internet, and `/livez` can now answer 503, which tells anyone polling it exactly
-  when the world loop is down. Add the matcher pair inside EACH public site block of
-  `/etc/caddy/Caddyfile` (alongside the existing `reverse_proxy`; `respond` runs
-  before `reverse_proxy`, so nothing else in the block needs to move):
+  writes the 404 block at first boot only, so a host provisioned before it existed
+  still proxies `/livez`, `/readyz`, and `/metrics` to the public internet, and
+  `/livez` can now answer 503, which tells anyone polling it exactly when the world
+  loop is down. A host provisioned before THIS revision also still proxies the entire
+  `/internal/*` surface (the restart countdown and the whole Discord bot API) to the
+  public internet: an operator who copies the older three-path snippet leaves
+  `/internal/*` public, which is exactly what the matcher below fixes. Look at each
+  public site block of `/etc/caddy/Caddyfile` and pick the case that matches:
+
+  If the block ALREADY has an `@ops path ...` matcher (any host provisioned by
+  `deploy/user-data.sh` since the watchdog era), add ` /internal/*` to the end of that
+  existing line and leave its `handle @ops { respond 404 }` block alone.
+
+  If the block has no `@ops` matcher yet, add the pair below. The bare form works when
+  the block proxies with a bare `reverse_proxy` (the shape in section 4 above), because
+  `respond` runs before a bare `reverse_proxy` and nothing else needs to move:
 
   ```
-  @ops path /livez /readyz /metrics
+  @ops path /livez /readyz /metrics /internal/*
   respond @ops 404
   ```
 
-  Then validate and reload, and confirm from outside:
+  But if the block proxies through a `handle { reverse_proxy ... }` wrapper (the shape
+  `deploy/user-data.sh` writes), a bare `respond` never runs: `handle` precedes
+  `respond` in Caddy's directive order and the catch-all handle terminates the request
+  first. There, wrap it, `handle @ops { respond 404 }` with the same matcher line, and
+  place it ABOVE the catch-all handle (the first matching handle wins).
+
+  Then validate and reload, and confirm from outside (both an ops path and an
+  internal one; a 200 here means the matcher was added in a form the block ignores,
+  see above):
 
   ```bash
   sudo caddy validate --config /etc/caddy/Caddyfile
   sudo systemctl reload caddy
   curl -s -o /dev/null -w '%{http_code}\n' https://<your-domain>/livez  # expect 404
+  curl -s -o /dev/null -w '%{http_code}\n' https://<your-domain>/internal/discord/outbox  # expect 404
   ```
 
   The healthcheck and the watchdog are unaffected: both read the container's own
@@ -434,14 +1188,160 @@ For off-box safety, sync the directory to S3 occasionally:
     not a capacity estimate: what a realm can actually carry depends on the host, so
     measure yours and set the number you measured.
   - `DAILY_REWARD_EVENTS_RETENTION_DAYS=`, `ONLINE_SAMPLES_RETENTION_DAYS=`,
-    `SITE_PRESENCE_RETENTION_DAYS=`, `PLAY_SESSION_RETENTION_DAYS=`, and
-    `ACCOUNT_IP_ASSOCIATION_RETENTION_DAYS=` (empty) follow the
+    `SITE_PRESENCE_RETENTION_DAYS=`, `PLAY_SESSION_RETENTION_DAYS=`,
+    `ACCOUNT_IP_ASSOCIATION_RETENTION_DAYS=`, and
+    `UNSTUCK_REPORT_RETENTION_DAYS=` (empty) follow the
     `CHAT_LOG_RETENTION_DAYS` contract exactly: an empty line means the default,
-    and an explicit `0` is keep-forever.
+    and an explicit `0` is keep-forever. The unstuck table carries account and
+    character ids plus positions, so audit its window with the same care as
+    the IP tables.
   - `RETENTION_SWEEP_UTC_HOUR=` and `RETENTION_SWEEP_MAX_ROWS_PER_RUN=` are NOT
     keep-forever-shaped: their raw value is trimmed, so an empty or whitespace line
     also reads as the DEFAULT, but an explicit `0` is a live value: a 00:00 UTC
     sweep hour, or a zero-row budget that disables the nightly sweep.
+- **`DB_POOL_MAX_CLIENTS`: production deliberately stays at the default of 10.**
+  The load rig measured the wall this buys: on the 10-client default a login ramp
+  pins the pool from roughly 487 concurrent players, `woc_db_pool_clients{state="waiting"}`
+  oscillates with the 30-second autosave waves, and joins slow to a crawl, while the
+  players already in stay playable. The SYMPTOM an operator sees is players reporting
+  "Authentication timed out" while `woc_db_pool_clients{state="waiting"}` holds above
+  zero between autosave waves; that pair means pool saturation, not an auth outage.
+  The response: raise `DB_POOL_MAX_CLIENTS` a few clients at a time (it accepts 1 to 97
+  and rejects loudly outside that), never straight to the ceiling, and keep the budget
+  arithmetic in view. Every realm sharing one `DATABASE_URL` has the main pool plus a
+  two-client general-chat quota pool and one dedicated quota `LISTEN` client, so steady
+  state is `realms x (DB_POOL_MAX_CLIENTS + 2 + 1)`. Each realm also carries a max-1
+  deadline-cancel side pool (`woc_db_backend_cancel_requests_total` counts its use) that opens a
+  connection only in the seconds after a transaction wall deadline fires and releases
+  it on the driver's idle timeout; count it as one more TRANSIENT connection per realm
+  under load, alongside the boot clients below, and re-derive the peak with it: at
+  the default of 10 a realm is 13 steady and 14 at cancel peak, so SEVEN realms can
+  peak at 98 against the 97 usable connections and six is the largest count that
+  fits with full peak headroom. The cancel connection is demanded exactly when
+  Postgres is most contended; at `max_connections` the checkout is refused inside
+  its 500ms bound and the cancel is dropped (best-effort by contract, the
+  caller-installed statement timeout stays the backstop), with a rising
+  `woc_db_backend_cancel_failures_total` rate as the signal (both cancel series are
+  counters, so alert on `increase()`, which reads correctly across realm
+  restarts). That total must stay below the 97
+  usable connections on stock `postgres:16` (`max_connections` 100, 3
+  superuser-reserved) with room left for tooling. Eight realms at the default are
+  already 104 steady connections and cannot fit. Boot temporarily adds a dedicated
+  schema client and a concurrent-index client for each starting realm; rolling deploys
+  can overlap both old and new process budgets. Size for those peaks, not only steady
+  state. The boot log warns when the configured cancel-peak multiplication (realms x
+  (shared + quota + listener + deadline-cancel), the same arithmetic as above) breaks
+  the stock budget; the boot clients and rolling-restart overlap still ride on top of
+  what it counts.
+- **`BANK_LEDGER_GROWTH_HARD_LIMIT_ROWS`: database-wide AGGREGATE audit ceiling.** The
+  default is 10,000,000 rows, and it now covers `bank_ledger` PLUS
+  `material_source_journal` against ONE singleton, one env value and one ceiling (there
+  is no per-table budget and no second knob). `material_source_containers` is not
+  counted: an anchor is created with its first journal row and reaped with its last, so
+  its cardinality is already bounded by counted rows. First deployment
+  seeds an exact `COUNT(*)` of each counted table while writers are locked; PostgreSQL
+  then accounts every writer, including old binaries and raw SQL, in the writing
+  transaction and refuses the COMMIT that would cross the ceiling.
+  **The counter is now NET, not a lifetime tally.** Statement triggers count INSERTs and
+  DELETEs on both tables, so a character or account deletion that cascades audit rows
+  away gives that capacity back. Two consequences for operators: a transaction that only
+  REMOVES audit rows is admitted even while the budget sits over the ceiling (that is
+  the way back from an over-cap seed, with no counter surgery), and a removal larger
+  than the whole accounted figure is refused as SQLSTATE 55000 `audit growth budget
+  underflow` rather than clamped to zero, because it means the accumulator itself is
+  wrong. Reaching the limit is still not permission to prune the audit trail.
+  **The one-time aggregate migration.** An install seeded by an earlier release carries
+  `budget_revision = 1` (a bank_ledger-only lifetime insert count). The first boot of
+  this release converges it ONCE, inside the boot transaction that already holds the
+  canonical schema advisory lock: it adds the additive `budget_revision` and
+  `deleted_rows` columns, publishes the three new triggers, locks both counted tables in
+  SHARE ROW EXCLUSIVE and REPLACES `committed_rows` with an exact recount of both. That
+  boot costs one count pass per counted table (the journal is empty at cutover). Every
+  later boot reads the revision marker and does nothing: no ALTER, no COUNT, no
+  source-table lock. Concurrent realms park at the advisory acquire holding nothing.
+  Deploy it with every realm stopped, like any seeding boot. `bank_ledger` PREDATES this
+  budget (it has been accumulating since 2026-07-06), so the first install seeds over
+  the real production history, never an empty table. Know the real blocked window:
+  EVERY boot transaction (steady-state included) holds ACCESS EXCLUSIVE on
+  `bank_ledger` from its first schema fragment to COMMIT (the idempotent ADD COLUMN
+  converges take that lock even as no-ops), which stalls ledger reads AND writes from
+  every other process for the boot transaction's whole duration; the seeding boot
+  extends that one transaction by exactly one exact count. The count is a parallel
+  index-only scan over the primary key (roughly 43 MB of index per 2M rows): measured
+  at the 10,000,000-row ceiling on dev hardware it runs in roughly 0.1 to 0.25
+  seconds warm; budget low seconds cold on the production box. Deploy the seeding
+  boot with EVERY realm stopped (the standard stop-then-cutover below): a realm left
+  running during ANY boot stalls its in-flight ledger inserts and reads on the boot
+  transaction, and character saves then die at their 2s `lock_timeout`. Re-seeding
+  after deleting the singleton on a grown ledger pays the same shape and is a
+  maintenance-window operation.
+  Every process sharing `DATABASE_URL` must use
+  the same value or boot fails. A first bootstrap that is already over the configured
+  value deliberately boots read-capable but refuses every later ledger insert; watch
+  `woc_bank_ledger_growth_budget` and
+  `woc_bank_ledger_growth_limit_refusals_total`. The per-process realm row bucket is
+  telemetry-only: `woc_bank_vault_realm_row_breaches_total` (sum across realms, alert on
+  rate) counts admissions the old refusing guard would have dropped; sustained growth there
+  means organic bank/vault traffic is outrunning the old per-process budget, not abuse (the
+  per-account bucket still refuses abuse). The ceiling transitively bounds `bank_ledger_batch_receipts`
+  (also keep-forever; at least one ledger row per receipt batch, so it can never
+  outgrow the ledger ceiling). The receipt fingerprint gained the
+  operator-attribution field in this same release, and the receipts table ships
+  first here, so no pre-change receipt exists to collide; a hand-installed
+  pre-change receipt would surface as the deliberate receipt-verification
+  refusal (the cross-version test pins that shape). `storage_purchase_applied_receipts` is NOT under any
+  ceiling: one row per successful paid storage purchase, unbounded by design, with a
+  wide TEXT primary key, so put its size on the same dashboard rather than assuming
+  the ledger cap covers it. Each realm refreshes the singleton with one indexed,
+  fail-fast point read per minute through the shared background gate; the monitor
+  never queues when that gate or the database pool is full. Shutdown aborts and
+  drains active monitor SQL before closing the pool; `pool.end()` then remains the
+  final bounded teardown for any new socket connection attempt already inside
+  node-postgres.
+  That minute read also carries the AGGREGATE stored-byte figure
+  (`measure="total_bytes"`, with `measure="bytes_known"` saying whether a reading has
+  landed), summed over `bank_ledger`, `material_source_containers` and
+  `material_source_journal` in the SAME statement: rows bound the ceiling, bytes are what
+  you size disk against. It is not lock-free. `pg_total_relation_size` opens each
+  relation with AccessShareLock, so during a boot transaction (which holds ACCESS
+  EXCLUSIVE on `bank_ledger`) that minute read waits and then fails at its 1s statement
+  timeout. Expect one failed telemetry beat and one log line per boot; it self-heals on
+  the next minute.
+  Alert if `measure="observation_age_seconds"` exceeds 180 (the refresh path is stale),
+  and page before `accounted_rows / hard_limit_rows` reaches 0.8 so capacity
+  work happens before save refusals quarantine sessions; `measure="limit_warning"`
+  flips to 1 at exactly that 0.8 crossing (and the crossing realm logs one
+  console.warn per process), so an alert rule can key on it directly.
+  `accounted_rows` is the measure to use: it is the aggregate audit rows currently
+  accounted for. `lifetime_inserted_rows` is retained as a DEPRECATED alias carrying the
+  identical value so existing dashboards and alerts keep working across this deploy;
+  it stopped being a lifetime count when the budget became aggregate and net, and it is
+  removed once those panels move. Note that BOTH can now fall, so an alert written to
+  assume a monotonic counter (a `increase()`/`resets()` rule) must be re-expressed
+  against the gauge value. Raising the
+  ceiling requires a maintenance window, and the order matters: STOP every realm
+  process (a quiesced-but-running realm still holds the old compiled value and
+  refuses its first write after the update as `BANK_LEDGER_GROWTH_HARD_LIMIT_ROWS`
+  config drift), update the singleton `hard_limit_rows`, deploy every process with
+  the matching environment value, then start them and verify the boot readout
+  before reopening traffic. A missing,
+  disabled, or replaced enforcement trigger after initialization fails boot for manual
+  reconciliation rather than silently undercounting an unaudited write window.
+- **`STORAGE_PRICES`: the storage price override (server/storage_prices.ts).** One
+  JSON object of copper price lists on ONE line, any subset of
+  `{"bankExpansions":[12 ints],"bankSockets":[4 ints],"vaultUpgrades":[10 ints]}`
+  (vault rung 0 is the vault unlock). Boot-time only: the sim resolves it once at
+  world construction, so a change needs a process restart. Each list is accepted
+  only at its exact compiled length with entries that are safe integers of at
+  least 0 (zero is a legal price); a bad dimension falls back to the compiled
+  default BY ITSELF and is reported on the console at boot, the boot does not
+  fail, and an applied override logs which dimensions it covers, so check the
+  boot log after any change: silence means unset, and a rejection can never look
+  like unset. Clients always render the server-sent prices (the walked guard
+  test keeps them price-free), so no client release is needed for a retune.
+  Caveat before a production SOCKET retune: `scripts/bank_audit.mjs` mirrors the
+  compiled socket ladder and would flag legitimate unlocks as `bad_socket_price`
+  under an override.
 - **Nightly retention sweep.** The batched retention prunes run once per UTC day
   at `RETENTION_SWEEP_UTC_HOUR` (default 05:00 UTC) behind a database advisory
   lock, so with several processes on one database exactly one of them sweeps.
@@ -475,10 +1375,277 @@ For off-box safety, sync the directory to S3 occasionally:
   also performs the largest fold it will ever do (the whole backlog, budget-
   capped per night), so the deploy-time catch-up guidance above applies with
   extra weight.
+  Claudium storage refusals leave no retained operational row: the pending row
+  is deleted before a definitive no-debit refusal is reported. Pending rows are
+  bounded recovery work, unresolved rows remain operator cases, and successful
+  grants move to immutable `storage_purchase_applied_receipts` in the same
+  transaction as the character blob and audit row. The receipt, not the blob
+  alone, is the durable exactly-once authority after a rollback strips
+  `appliedStorageKeys`. The current cap is twelve purchased expansions (72
+  actual `purchasedSlots`), so at most twelve successful single-rung receipts
+  are needed to fill it. There
+  is no storage-purchase retention knob or old-binary sweep to disable: the
+  release base predates both the table and the abandoned refused-row sweep.
+  PostgreSQL enforces one open pending-or-unresolved row per character and one
+  leased outbound spender per key. Recovery tracks at most 200 characters per
+  realm process, runs two scans and two drives concurrently, and paces outbound
+  drives plus failed-scan retries at 10 starts/second with a burst of two. A
+  cancelled recovery query returns its pool slot promptly and carries a 2-second
+  PostgreSQL `statement_timeout`; the connection is reusable only after its
+  15-second startup default is restored. PostgreSQL can retain a socket-destroyed
+  backend until that server timer fires, so leave transient connection headroom
+  for the four scan/drive slots during shutdown. A drive inside its retry-safe
+  character-save transaction uses a 15-second statement ceiling (rather than an
+  ordinary heavy save's 60 seconds), with at most two such drives. A live
+  character beyond the 200-entry tracking bound remains blocked on both the gold
+  and Claudium storage rails and is retried incrementally from the session sweep;
+  do not treat a capacity refusal as proof that no older debit exists. Character
+  and account deletion are database-refused while a `pending` or `unresolved`
+  purchase exists, using the stable `storage_purchases_open_delete_guard` marker.
+  Finish recovery or resolve the operator case before retrying deletion.
+  Details in server/storage_purchase_db.ts. To find purchases that got stuck,
+  run `node scripts/bank_audit.mjs`, which reports unresolved and stranded
+  pending rows.
+- **`/api/discord` status cache** (game service). The account-scoped part of the
+  `GET /api/discord` payload is served from a per-account in-memory cache; every
+  in-process write (link, unlink, grants, swag claims, password set, guild-member
+  and pushed-meta updates) evicts the affected account immediately, so the TTL only
+  bounds staleness for writes a PEER realm process made. Honest cost accounting: a
+  cache hit removes the four PAYLOAD queries; the request still pays its auth reads
+  (bearer-token resolve plus moderation status) like every authenticated endpoint,
+  so the incident's per-request database cost drops by the payload share, not to
+  zero. Brownout behavior changed with the cache: a warm account now answers 200
+  with the last good payload while the PAYLOAD queries are failing but the auth
+  reads still resolve (each such read still attempts a refresh first, and
+  cached_read warns once per failure streak in the game log); a cold account
+  still errors, and a total database outage still fails every request at auth,
+  before the cache is ever consulted. Two keys, both following the "empty,
+  non-numeric, or non-positive means the DEFAULT" contract:
+  - `DISCORD_STATUS_CACHE_TTL_MS=` (empty) means the default 15000 (15 seconds).
+    Raising it saves little (a cache hit is already free of payload queries) and
+    widens the cross-process staleness window; lowering it toward 0 is not possible
+    (a non-positive value reads as the default, never as caching off).
+  - `DISCORD_STATUS_CACHE_MAX_ENTRIES=` (empty) means the default 2000 accounts
+    (double the 1,000-concurrent-player design envelope; a few hundred bytes per
+    entry, unserved columns are kept out of the cached shape). Past the cap the
+    least-recently-read account is evicted and its next status read costs one
+    extra set of payload queries, never an error.
 - Logs: `sudo docker compose -f /opt/eastbrook/docker-compose.yml logs -f game`.
 - If the instance ever feels tight, stop, change instance type,
   start. Everything lives in Docker plus one EBS volume, so nothing
   else changes.
+
+## Discord bot
+
+The Discord bot (`bot/`) is a standalone Node process that bridges the official
+Discord server and the game: status-tier roles plus a level-on-name nickname synced
+from in-game data, presence (the online count and the featured voice room) pushed
+into the HUD widget, in-game "!" community posts relayed as embeds, a
+significant-activity feed (max level, rare drops, duels, arena), daily-rewards
+winner posts, opt-in queue-pop direct messages (a player's battleground offer or
+arena seat, DMed to their linked account; no channel id to configure), and the
+consumer for the game's Discord outbox. It is a pure consumer
+of the game server: it reads and writes through the secret-gated
+`/internal/discord/*` API and holds nothing durable of its own, so stopping it never
+affects the realm.
+
+**Enabling it.** The bot is the `discord-bot` compose service (container
+`eastbrook-discord-bot`), behind the `discord` profile and sharing the game image, so
+it needs no separate build:
+
+```bash
+sudo docker compose --profile discord up -d
+```
+
+Without `--profile discord` the service simply never starts, which is the supported
+way to run a realm with no Discord integration. Set the required keys in the host
+`.env` beside `docker-compose.yml` before the first start.
+
+### Environment keys
+
+Compose passes every key below from the host `.env` into the container (the one
+exception is `GAME_SERVER_URL`, which compose pins to the in-network address, so
+repointing it is a `docker-compose.yml` edit), so changing a tunable is an edit plus
+`sudo docker compose --profile discord up -d discord-bot`, never an image rebuild. Every numeric key falls back to its built-in default on an
+empty or non-positive value, so an unset key is always safe and a blank line in
+`.env` never means zero.
+
+**Required** (the bot throws at boot without them):
+
+| Key | Default | What it does / incident guidance |
+|---|---|---|
+| `DISCORD_BOT_TOKEN` | none, required | Bot token from the Discord developer portal. A wrong or revoked token is a fatal gateway close: see the crash-loop note below. |
+| `DISCORD_CLIENT_ID` | none, required | Application (client) id, used to register the `/whoami` and `/link` slash commands. |
+| `DISCORD_GUILD_ID` | none, required | The one guild the bot operates in. |
+| `DISCORD_BOT_SECRET` | none, required | Shared secret for the game's `/internal/discord/*` API. It must match the server's `DISCORD_BOT_SECRET` exactly, or every call the bot makes is rejected and nothing syncs. |
+
+**Connection:**
+
+| Key | Default | What it does / incident guidance |
+|---|---|---|
+| `GAME_SERVER_URL` | `http://game:8787` from compose (`http://127.0.0.1:8787` in code) | Base URL for the internal API. Compose pins this one (no host `.env` interpolation), so changing it means editing `docker-compose.yml`. Leave the compose value alone unless the game runs outside this compose network, and in that case point it at a private or loopback address of the game host, never the public domain: the edge answers 404 for all of `/internal/*`, so a bot aimed through Caddy syncs nothing, and every internal call carries `DISCORD_BOT_SECRET` over plain `http`, so any hop that leaves the host or the private network exposes the shared secret in transit regardless of what the edge answers. |
+| `PUBLIC_GAME_URL` | `http://localhost:8787` from compose (`https://worldofclaudecraft.com` in code) | The public URL shown in bot replies and deep-link buttons. Set it to your real domain, or players get links they cannot use. |
+
+**Channel ids** (each feature is off when its channel is unset):
+
+| Key | Default | What it does / incident guidance |
+|---|---|---|
+| `DISCORD_VOICE_CHANNEL_ID` | unset | The featured voice room surfaced in the in-game Discord widget. |
+| `DISCORD_WELCOME_CHANNEL_ID` | unset | Read at boot but currently unwired: no welcome message is posted, deliberately. |
+| `DISCORD_TEST_CHANNEL_ID` | unset | One-time "bot online" startup announcement, and the last-resort fallback channel for relay and activity posts. |
+| `DISCORD_RELAY_CHANNEL_ID` | falls back to the test channel | Where in-game "!" community posts land. With neither this nor the test channel set, drained relay items are DROPPED after a once-per-channel notice, so set one before opening the feature to players. |
+| `DISCORD_ACTIVITY_CHANNEL_ID` | falls back to relay, then test | Where the significant-activity feed lands. Same drop rule as relay. |
+| `DISCORD_PVP_FEED_CHANNEL_ID` | unset (no fallback) | The World PvP kill feed, plus the King of the Hill spawn calls (a card when a hill is announced, with a live countdown, and another when it rises). Kills: every resolved `/pvp` kill as one line, batched into digest posts (`PVP_FEED_LINES_PER_POST` lines each, `bot/logic.ts`), names only (nobody is pinged). Deliberately has no fallback so kill volume never spills into the relay or activity channel. With it unset, drained kills are DROPPED after a once-per-channel notice, which is the off switch. |
+| `DISCORD_DAILY_REWARDS_CHANNEL_ID` | unset | Daily-rewards top-10 winner posts. Unlike relay and activity, an unset channel drops nothing: a winner day is marked on the server only after its post lands, so it is re-served until it can be announced. |
+
+**Behavior:**
+
+| Key | Default | What it does / incident guidance |
+|---|---|---|
+| `DISCORD_SYNC_NICKNAMES` | `1` from compose (on unless the value is exactly `0`) | Sync each linked member's Discord nickname to carry their in-game level. Set it to `0` to stop every nickname PATCH at once, which is the fastest way to shed Discord write volume without stopping the bot. |
+
+**Governor** (the rate-limit levers, and the first place to reach during a Discord
+incident):
+
+| Key | Default | What it does / incident guidance |
+|---|---|---|
+| `DISCORD_MAX_RPS` | `8` | Ceiling on requests per second to Discord (their own limit is 50). Lower it (2 to 4) during a 429 storm or while a Cloudflare ban keeps recurring; the sweeps just take longer. Raising it above the default is how the 2026-07-29 incident is reproduced, not how it is fixed. |
+| `DISCORD_BAN_PAUSE_MS` | `600000` (10 minutes) | Process-wide pause after a 429 whose body is not JSON, which is how Cloudflare answers once it has started banning. Raise it if bans keep recurring; lowering it retries into a live ban and extends it. |
+| `DISCORD_BREAKER_LIMIT` | `300` | Invalid responses inside one rolling 10 minute window that open the request breaker (Discord's own ban threshold is 10000). Lower it to make background traffic stop sooner during an incident: an open breaker refuses sweeps and outbox drains while essential traffic such as a slash-command reply keeps flowing. |
+| `DISCORD_FORBIDDEN_TTL_MS` | `86400000` (24 hours) | How long a member's 400, 401 or 403 is remembered before that member is retried (a 400 is a payload Discord permanently rejects, such as a nickname it will never accept). Raise it when a permissions problem is flooding the log with repeats. Lower it right after FIXING a permission (for example granting Manage Nicknames) so the affected members re-sync instead of waiting out the day. |
+
+**Cadences** (how often each loop runs; raising them all is the blunt way to cut the
+bot's share of game-server request volume):
+
+| Key | Default | What it does / incident guidance |
+|---|---|---|
+| `DISCORD_ROLE_SYNC_INTERVAL_MS` | `300000` (5 minutes) | The floor between role-sync passes, and the cadence of the special-roles refresh, the members-meta push, and the tier-role refresh. Raise it to cut Discord write volume and internal reads together. |
+| `DISCORD_PRESENCE_DEBOUNCE_MS` | `4000` | The window over which a burst of voice and presence events folds into one push. Raise it during a busy voice event to collapse more of the burst; the widget just updates a little later. |
+| `DISCORD_SWEEP_SLICE_MS` | `3000` | How long the linked-member sweep waits between slices while a pass is live. Raise it to spread the same pass over more wall-clock time. |
+| `DISCORD_SWEEP_SLICE_SIZE` | `100` | How many linked members one slice asks about, and may write to. Lower it together with the slice interval to cut the peak Discord write rate a single tick can queue. |
+| `DISCORD_OUTBOX_POLL_MS` | `3000` | The active poll cadence while the outbox keeps returning work. Raise it to cut the bot's share of game-server requests, at the cost of relay and activity latency. |
+| `DISCORD_OUTBOX_IDLE_MS` | `15000` | Where that cadence decays to once the drains come back empty. The first queued item snaps the loop straight back to the active cadence, so raising this costs no latency on a quiet realm. |
+| `DISCORD_OUTBOX_TIMEOUT_MS` | `70000` | The abort deadline for ONE outbox poll. It must stay ABOVE the game server's 65 second read deadline on the outbox long poll: set lower, every poll aborts client-side before the server can answer, and items the server already drained are lost. 70000 is an ENFORCED floor: the bot logs a warning and uses 70000 for any lower value, so the knob can only raise the deadline. |
+
+**Heartbeat** (liveness, read by the container healthcheck):
+
+| Key | Default | What it does / incident guidance |
+|---|---|---|
+| `DISCORD_HEARTBEAT_FILE` | `/tmp/discord-bot-heartbeat` | The file the bot's scheduler stamps. Both the bot and the healthcheck read this key, so change it in the host `.env` only, where both see the same value. |
+| `DISCORD_HEARTBEAT_INTERVAL_MS` | `30000` | How often the scheduler loop rewrites the stamp. Time-to-red is set by the staleness window below, not by this, so lowering this alone buys nothing: to detect a wedge sooner, lower `DISCORD_HEARTBEAT_STALE_MS` and keep it a comfortable multiple of this interval. |
+| `DISCORD_HEARTBEAT_STALE_MS` | `90000` | Healthcheck side ONLY (the bot itself never reads it): how old the stamp may be before Docker calls the container unhealthy. Keep it a comfortable multiple of the interval, so one slow write is not read as a stall. Empty, non-numeric and non-positive values all fall back to the default, same as the bot's own numeric knobs. |
+
+Not every deadline is an env key. Three request bounds are code constants in `bot/`,
+where the suite can pin them against literals: `SERVER_CALL_TIMEOUT_MS` and
+`DEFAULT_OUTBOX_TIMEOUT_MS` in `bot/server_client.ts` (an ordinary internal-API call,
+and the outbox long poll's much longer deadline) and `DISCORD_CALL_TIMEOUT_MS`
+(15000) for one call out to Discord. Changing one of those is a code change and a
+rebuild, not an `.env` edit.
+
+### Verifying health
+
+The container healthcheck probes the FRESHNESS of the heartbeat file, not the
+presence of a process, because the failure that actually happens is a live process
+whose loops have stopped turning:
+
+```bash
+# health status, and the last few probe results with their output
+sudo docker inspect --format '{{json .State.Health}}' eastbrook-discord-bot
+
+# the same thing by hand: how old the heartbeat stamp is, in milliseconds
+# (resolves DISCORD_HEARTBEAT_FILE the same way the probe does, so it follows an override)
+sudo docker exec eastbrook-discord-bot node -e "const p=(process.env.DISCORD_HEARTBEAT_FILE||'').trim()||'/tmp/discord-bot-heartbeat';const s=require('fs').statSync(p);console.log(p, Date.now()-s.mtimeMs)"
+```
+
+Healthy is an age under 90000 (`DISCORD_HEARTBEAT_STALE_MS`). A red healthcheck
+means the scheduler loop stopped turning even though the process is alive, and
+nothing restarts it for you: `restart: unless-stopped` acts on process exit only, so
+a red probe is an operator signal, not a self-healing one. Act on it with:
+
+```bash
+sudo docker compose --profile discord restart discord-bot
+```
+
+The container also runs under `mem_limit: 512m` with `memswap_limit: 512m`, so a leak
+kills the bot rather than the game or the database sharing the host, and
+`stop_grace_period: 15s`, which is ample because the bot has nothing to save: the
+outbox lives on the server and redelivers anything unacknowledged on the next poll.
+
+### Fatal gateway close: the crash loop is by design
+
+A close the bot cannot recover from (an invalid token, or the privileged
+`GUILD_MEMBERS` and `GUILD_PRESENCES` intents not enabled for the application in the
+developer portal) EXITS the process with code 1, so the restart policy acts on it.
+With the cause still unfixed the container restarts, fails the same way, and Docker's
+backoff spaces the attempts further apart: `sudo docker ps` shows it flipping between
+`Restarting` and a few seconds of uptime, and the logs repeat the same close code.
+That visible crash loop is deliberate (there is no retry limiter and no supervisor by
+design). The alternative, and what the 2026-07-29 incident actually produced, is a
+silent zombie: a process that stays up forever having quietly stopped doing anything.
+The fix is to correct the token or enable the intents and restart, never to disable
+the restart policy.
+
+### Incident runbook
+
+The four commands below are the ones used to diagnose the 2026-07-29 traffic spike
+(`docs/discord-bot-stability/incident-2026-07-29.md`), each with what a healthy
+reading looks like now.
+
+```bash
+# request rate + breakdown from game access logs
+sudo docker logs --since 60m eastbrook-game 2>&1 | grep '"msg":"access"' \
+  | grep -o '"route":"[^"]*"' | sort | uniq -c | sort -rn | head -15
+```
+
+Healthy: normal player and site routes dominate the top of the list, and the
+`/internal/discord/*` routes are a trickle near the bottom. During the incident the
+internal routes were most of the list.
+
+```bash
+# who is generating it (internal 172.18.0.x vs external)
+sudo docker logs --since 60m eastbrook-game 2>&1 | grep '"msg":"access"' \
+  | grep -o '"ip":"[^"]*"' | sort | uniq -c | sort -rn | head -10
+```
+
+Healthy: the internal docker-network addresses (`172.18.0.x`, the bot) are a small
+share of the total. During the incident they were about 45 percent of every request
+the game served.
+
+```bash
+# bot 429 timeline
+sudo docker logs -t eastbrook-discord-bot 2>&1 | grep 429 | cut -c1-13 | sort | uniq -c
+```
+
+Healthy: zero or near-zero lines per hour. Any sustained hourly count is the retry
+storm restarting; the incident peaked at 35000 to 38000 per hour.
+
+```bash
+# connections to the game's internal API
+sudo ss -tn state established '( dport = :8787 )' | wc -l
+```
+
+Healthy: low tens, against roughly 110 held continuously during the incident.
+
+**Escalation levers**, in order. Each is an `.env` edit plus
+`sudo docker compose --profile discord up -d discord-bot`:
+
+1. **Lower `DISCORD_MAX_RPS`** (8 down to 2 to 4). This is the direct brake on
+   Discord-side volume and the one that stops a ban from recurring.
+2. **Raise the sweep and outbox cadences** (`DISCORD_SWEEP_SLICE_MS`,
+   `DISCORD_ROLE_SYNC_INTERVAL_MS`, `DISCORD_OUTBOX_POLL_MS`,
+   `DISCORD_OUTBOX_IDLE_MS`) and lower `DISCORD_SWEEP_SLICE_SIZE`. This is the brake
+   on the bot's share of the GAME server's request volume. Do not lower
+   `DISCORD_OUTBOX_TIMEOUT_MS` while doing this.
+3. **Stop the bot** as the definitive lever:
+
+   ```bash
+   sudo docker compose --profile discord stop discord-bot
+   ```
+
+   The game is unaffected. The bot is a pure consumer, so stopping it costs role,
+   nickname, presence, relay, and activity sync until it is started again, and
+   nothing else. Queued outbox items stay on the server and are delivered when it
+   comes back.
 
 ## Deploying an SFX Studio export
 

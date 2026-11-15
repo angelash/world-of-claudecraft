@@ -56,7 +56,7 @@ function liveState(input: {
   };
   const entities = new Map<number, Record<string, unknown>>([
     [self.id, self],
-    ...((input.entities ?? []).map((entity) => [Number(entity.id), entity] as const)),
+    ...(input.entities ?? []).map((entity) => [Number(entity.id), entity] as const),
   ]);
   return {
     pid: self.id,
@@ -75,46 +75,84 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 1,
+          z: 1,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const first = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const first = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(first.commands).toEqual([]);
     expect(state.pendingUtterances).toHaveLength(1);
-    expect(first.runnerStatePatch).toEqual(expect.objectContaining({
-      partyRole: 'tank',
-      partyTankName: 'Branoraaa',
-      partyHealerName: 'Branorabb',
-    }));
-
-    const second = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+    expect(first.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyRole: 'tank',
+        partyTankName: 'Branoraaa',
+        partyHealerName: 'Branorabb',
       }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 7_000,
-    }, state);
+    );
+
+    const second = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 7_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({
@@ -124,19 +162,22 @@ describe('ambient player bot party chat shell', () => {
     ]);
     expect(state.pendingUtterances).toHaveLength(0);
 
-    const third = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 9_000,
-    }, state);
+    const third = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 9_000,
+      },
+      state,
+    );
 
     expect(third.commands).toEqual([]);
   });
@@ -148,45 +189,83 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 42, z: 0, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 42,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const first = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 42, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'hold_regroup',
-      nowMs: 5_000,
-    }, state);
+    const first = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 42, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'hold_regroup',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(first.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'correction',
-      partyIntentBehavior: 'regroup',
-      partyIntentHoldAdvance: true,
-    }));
+    expect(first.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'correction',
+        partyIntentBehavior: 'regroup',
+        partyIntentHoldAdvance: true,
+      }),
+    );
     expect(first.commands).toEqual([]);
 
-    const second = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 42, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'hold_regroup',
-      nowMs: 7_000,
-    }, state);
+    const second = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 42, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'hold_regroup',
+        nowMs: 7_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({
@@ -203,30 +282,65 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 22, z: 0, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 22,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const result = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 22, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 22, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'correction',
-      partyIntentBehavior: 'regroup',
-      partyIntentHoldAdvance: true,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'correction',
+        partyIntentBehavior: 'regroup',
+        partyIntentHoldAdvance: true,
+      }),
+    );
   });
 
   it('calls recovery when a low-level cloth member is threatened before critical health', () => {
@@ -236,34 +350,69 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 2, hp: 128, mhp: 128, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'mage', level: 2, hp: 60, mhp: 67, res: 100, mres: 120, rtype: 'mana', x: 4, z: 0, dead: 0, inCombat: 1, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 2,
+          hp: 128,
+          mhp: 128,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 1,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'mage',
+          level: 2,
+          hp: 60,
+          mhp: 67,
+          res: 100,
+          mres: 120,
+          rtype: 'mana',
+          x: 4,
+          z: 0,
+          dead: 0,
+          inCombat: 1,
+          group: 1,
+        },
       ],
     };
 
-    const result = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [
-          { id: 102, nm: 'Branorabb', k: 'player', x: 4, z: 0 },
-          { id: 501, k: 'mob', x: 5, z: 0, aggro: 102, dead: 0 },
-        ],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_boars',
-      objectiveLabel: 'Boar Hides',
-      groupMode: 'assist_party',
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [
+            { id: 102, nm: 'Branorabb', k: 'player', x: 4, z: 0 },
+            { id: 501, k: 'mob', x: 5, z: 0, aggro: 102, dead: 0 },
+          ],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_boars',
+        objectiveLabel: 'Boar Hides',
+        groupMode: 'assist_party',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'recovery',
-      partyIntentBehavior: 'recover',
-      partyIntentHoldAdvance: true,
-      partyIntentPreferAssist: false,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'recovery',
+        partyIntentBehavior: 'recover',
+        partyIntentHoldAdvance: true,
+        partyIntentPreferAssist: false,
+      }),
+    );
   });
 
   it('calls recovery while any party member is below the hosted recovery line', () => {
@@ -273,31 +422,66 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'rogue', level: 5, hp: 70, mhp: 100, res: 100, mres: 100, rtype: 'energy', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 5,
+          hp: 252,
+          mhp: 252,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'rogue',
+          level: 5,
+          hp: 70,
+          mhp: 100,
+          res: 100,
+          mres: 100,
+          rtype: 'energy',
+          x: 2,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const result = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'restock_minor_healing_potion',
-      objectiveLabel: 'Restocking Minor Healing Potion',
-      groupMode: 'recover_party',
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'restock_minor_healing_potion',
+        objectiveLabel: 'Restocking Minor Healing Potion',
+        groupMode: 'recover_party',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'recovery',
-      partyIntentBehavior: 'recover',
-      partyIntentHoldAdvance: true,
-      partyIntentPreferAssist: false,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'recovery',
+        partyIntentBehavior: 'recover',
+        partyIntentHoldAdvance: true,
+        partyIntentPreferAssist: false,
+      }),
+    );
   });
 
   it('does not renew recovery intent from a stale recovery group mode alone', () => {
@@ -307,31 +491,66 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 80, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 5,
+          hp: 252,
+          mhp: 252,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 5,
+          hp: 100,
+          mhp: 100,
+          res: 80,
+          mres: 100,
+          rtype: 'mana',
+          x: 2,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const result = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'loot',
-      objectiveLabel: 'Looting a nearby corpse',
-      groupMode: 'recover_party',
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'loot',
+        objectiveLabel: 'Looting a nearby corpse',
+        groupMode: 'recover_party',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'route_plan',
-      partyIntentBehavior: 'advance',
-      partyIntentHoldAdvance: false,
-      partyIntentPreferAssist: false,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'route_plan',
+        partyIntentBehavior: 'advance',
+        partyIntentHoldAdvance: false,
+        partyIntentPreferAssist: false,
+      }),
+    );
   });
 
   it('calls recovery when the healer needs mana before the next pull', () => {
@@ -341,32 +560,67 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 35, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 5,
+          hp: 252,
+          mhp: 252,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 5,
+          hp: 100,
+          mhp: 100,
+          res: 35,
+          mres: 100,
+          rtype: 'mana',
+          x: 2,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const result = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'grind',
-      objectiveLabel: 'Grinding Forest Wolf',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'grind',
+        objectiveLabel: 'Grinding Forest Wolf',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'recovery',
-      partyIntentBehavior: 'recover',
-      partyIntentSummary: 'Recover health and mana before moving',
-      partyIntentHoldAdvance: true,
-      partyIntentPreferAssist: false,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'recovery',
+        partyIntentBehavior: 'recover',
+        partyIntentSummary: 'Recover health and mana before moving',
+        partyIntentHoldAdvance: true,
+        partyIntentPreferAssist: false,
+      }),
+    );
   });
 
   it('advances when healer mana is above the pull-ready floor', () => {
@@ -376,31 +630,66 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 5, hp: 252, mhp: 252, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 5, hp: 100, mhp: 100, res: 40, mres: 100, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 5,
+          hp: 252,
+          mhp: 252,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 5,
+          hp: 100,
+          mhp: 100,
+          res: 40,
+          mres: 100,
+          rtype: 'mana',
+          x: 2,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const result = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'grind',
-      objectiveLabel: 'Grinding Forest Wolf',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 2, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'grind',
+        objectiveLabel: 'Grinding Forest Wolf',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'route_plan',
-      partyIntentBehavior: 'advance',
-      partyIntentHoldAdvance: false,
-      partyIntentPreferAssist: false,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'route_plan',
+        partyIntentBehavior: 'advance',
+        partyIntentHoldAdvance: false,
+        partyIntentPreferAssist: false,
+      }),
+    );
   });
 
   it('turns recent quest progress into praise intent and a quick morale call', () => {
@@ -410,44 +699,82 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 1,
+          z: 1,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const first = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
-      }),
-      recentEvents: [{ type: 'questReady', questId: 'q_wolves' }],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const first = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [{ type: 'questReady', questId: 'q_wolves' }],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(first.runnerStatePatch).toEqual(expect.objectContaining({
-      partyIntentKind: 'praise',
-      partyIntentBehavior: 'celebrate',
-      partyIntentPreferAssist: false,
-    }));
-
-    const second = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        party,
-        entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+    expect(first.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyIntentKind: 'praise',
+        partyIntentBehavior: 'celebrate',
+        partyIntentPreferAssist: false,
       }),
-      recentEvents: [{ type: 'questReady', questId: 'q_wolves' }],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 7_000,
-    }, state);
+    );
+
+    const second = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          party,
+          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [{ type: 'questReady', questId: 'q_wolves' }],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 7_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({
@@ -464,67 +791,107 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 1,
+          z: 1,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const first = tickAmbientPlayerBotPartyChatShell({
-      bot: bot({
-        botId: 'bot-2',
-        characterId: 102,
-        characterName: 'Branorabb',
-        profileId: 'eastbrook_vale_priest_newcomer',
-        class: 'priest',
-      }),
-      liveState: liveState({
-        selfId: 102,
-        selfName: 'Branorabb',
-        party,
-        entities: [{ id: 101, nm: 'Branoraaa', k: 'player', x: 0, z: 0 }],
-      }),
-      recentEvents: [{
-        type: 'chat',
-        fromPid: 101,
-        from: 'Branoraaa',
-        text: 'Buff up first, then collapse on one target.',
-        channel: 'party',
-      }],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const first = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot({
+          botId: 'bot-2',
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_priest_newcomer',
+          class: 'priest',
+        }),
+        liveState: liveState({
+          selfId: 102,
+          selfName: 'Branorabb',
+          party,
+          entities: [{ id: 101, nm: 'Branoraaa', k: 'player', x: 0, z: 0 }],
+        }),
+        recentEvents: [
+          {
+            type: 'chat',
+            fromPid: 101,
+            from: 'Branoraaa',
+            text: 'Buff up first, then collapse on one target.',
+            channel: 'party',
+          },
+        ],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(first.commands).toEqual([]);
     expect(state.pendingUtterances).toHaveLength(1);
-    expect(first.runnerStatePatch).toEqual(expect.objectContaining({
-      partyRole: 'healer',
-      partyHealerName: 'Branorabb',
-    }));
+    expect(first.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        partyRole: 'healer',
+        partyHealerName: 'Branorabb',
+      }),
+    );
 
-    const second = tickAmbientPlayerBotPartyChatShell({
-      bot: bot({
-        botId: 'bot-2',
-        characterId: 102,
-        characterName: 'Branorabb',
-        profileId: 'eastbrook_vale_priest_newcomer',
-        class: 'priest',
-      }),
-      liveState: liveState({
-        selfId: 102,
-        selfName: 'Branorabb',
-        party,
-        entities: [{ id: 101, nm: 'Branoraaa', k: 'player', x: 0, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 8_000,
-    }, state);
+    const second = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot({
+          botId: 'bot-2',
+          characterId: 102,
+          characterName: 'Branorabb',
+          profileId: 'eastbrook_vale_priest_newcomer',
+          class: 'priest',
+        }),
+        liveState: liveState({
+          selfId: 102,
+          selfName: 'Branorabb',
+          party,
+          entities: [{ id: 101, nm: 'Branoraaa', k: 'player', x: 0, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 8_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({
@@ -542,26 +909,59 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-        { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 1, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 1,
+          group: 1,
+        },
+        {
+          pid: 102,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 1,
+          z: 1,
+          dead: 0,
+          inCombat: 1,
+          group: 1,
+        },
       ],
     };
     const sentAtMs: number[] = [];
 
     for (let nowMs = 5_000; nowMs <= 125_000; nowMs += 2_000) {
-      const result = tickAmbientPlayerBotPartyChatShell({
-        bot: bot(),
-        liveState: liveState({
-          party,
-          entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
-        }),
-        recentEvents: [],
-        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-        objectiveId: `combat_${nowMs}`,
-        objectiveLabel: `Changing Combat Target ${nowMs}`,
-        groupMode: 'assist_party',
-        nowMs,
-      }, state);
+      const result = tickAmbientPlayerBotPartyChatShell(
+        {
+          bot: bot(),
+          liveState: liveState({
+            party,
+            entities: [{ id: 102, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+          }),
+          recentEvents: [],
+          ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+          objectiveId: `combat_${nowMs}`,
+          objectiveLabel: `Changing Combat Target ${nowMs}`,
+          groupMode: 'assist_party',
+          nowMs,
+        },
+        state,
+      );
       if (result.commands.length > 0) sentAtMs.push(nowMs);
     }
 
@@ -573,11 +973,86 @@ describe('ambient player bot party chat shell', () => {
 
   it('selects one member acknowledgement instead of making every follower repeat the call', () => {
     const members: PartyInfo['members'] = [
-      { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-      { pid: 102, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
-      { pid: 103, name: 'Branoracc', cls: 'mage', level: 3, hp: 30, mhp: 30, res: 20, mres: 20, rtype: 'mana', x: 2, z: 1, dead: 0, inCombat: 0, group: 1 },
-      { pid: 104, name: 'Branoradd', cls: 'paladin', level: 3, hp: 38, mhp: 38, res: 20, mres: 20, rtype: 'mana', x: 3, z: 1, dead: 0, inCombat: 0, group: 1 },
-      { pid: 105, name: 'Branoraee', cls: 'druid', level: 3, hp: 34, mhp: 34, res: 20, mres: 20, rtype: 'mana', x: 4, z: 1, dead: 0, inCombat: 0, group: 1 },
+      {
+        pid: 101,
+        name: 'Branoraaa',
+        cls: 'warrior',
+        level: 3,
+        hp: 40,
+        mhp: 40,
+        res: 0,
+        mres: 0,
+        rtype: 'rage',
+        x: 0,
+        z: 0,
+        dead: 0,
+        inCombat: 0,
+        group: 1,
+      },
+      {
+        pid: 102,
+        name: 'Branorabb',
+        cls: 'priest',
+        level: 3,
+        hp: 32,
+        mhp: 32,
+        res: 20,
+        mres: 20,
+        rtype: 'mana',
+        x: 1,
+        z: 1,
+        dead: 0,
+        inCombat: 0,
+        group: 1,
+      },
+      {
+        pid: 103,
+        name: 'Branoracc',
+        cls: 'mage',
+        level: 3,
+        hp: 30,
+        mhp: 30,
+        res: 20,
+        mres: 20,
+        rtype: 'mana',
+        x: 2,
+        z: 1,
+        dead: 0,
+        inCombat: 0,
+        group: 1,
+      },
+      {
+        pid: 104,
+        name: 'Branoradd',
+        cls: 'paladin',
+        level: 3,
+        hp: 38,
+        mhp: 38,
+        res: 20,
+        mres: 20,
+        rtype: 'mana',
+        x: 3,
+        z: 1,
+        dead: 0,
+        inCombat: 0,
+        group: 1,
+      },
+      {
+        pid: 105,
+        name: 'Branoraee',
+        cls: 'druid',
+        level: 3,
+        hp: 34,
+        mhp: 34,
+        res: 20,
+        mres: 20,
+        rtype: 'mana',
+        x: 4,
+        z: 1,
+        dead: 0,
+        inCombat: 0,
+        group: 1,
+      },
     ];
     const party: PartyInfo = {
       leader: 101,
@@ -601,34 +1076,48 @@ describe('ambient player bot party chat shell', () => {
         party,
         entities: members
           .filter((candidate) => candidate.pid !== member.pid)
-          .map((candidate) => ({ id: candidate.pid, nm: candidate.name, k: 'player', x: candidate.x, z: candidate.z })),
+          .map((candidate) => ({
+            id: candidate.pid,
+            nm: candidate.name,
+            k: 'player',
+            x: candidate.x,
+            z: candidate.z,
+          })),
       });
-      tickAmbientPlayerBotPartyChatShell({
-        bot: followerBot,
-        liveState: followerLiveState,
-        recentEvents: [{
-          type: 'chat',
-          fromPid: 101,
-          from: 'Branoraaa',
-          text: 'Buff up first, then collapse on one target.',
-          channel: 'party',
-        }],
-        ambientBotNames: new Set([member.name]),
-        objectiveId: 'q_wolves',
-        objectiveLabel: 'Wolves at the Door',
-        groupMode: 'brain',
-        nowMs: 5_000,
-      }, state);
-      const result = tickAmbientPlayerBotPartyChatShell({
-        bot: followerBot,
-        liveState: followerLiveState,
-        recentEvents: [],
-        ambientBotNames: new Set([member.name]),
-        objectiveId: 'q_wolves',
-        objectiveLabel: 'Wolves at the Door',
-        groupMode: 'brain',
-        nowMs: 8_000,
-      }, state);
+      tickAmbientPlayerBotPartyChatShell(
+        {
+          bot: followerBot,
+          liveState: followerLiveState,
+          recentEvents: [
+            {
+              type: 'chat',
+              fromPid: 101,
+              from: 'Branoraaa',
+              text: 'Buff up first, then collapse on one target.',
+              channel: 'party',
+            },
+          ],
+          ambientBotNames: new Set([member.name]),
+          objectiveId: 'q_wolves',
+          objectiveLabel: 'Wolves at the Door',
+          groupMode: 'brain',
+          nowMs: 5_000,
+        },
+        state,
+      );
+      const result = tickAmbientPlayerBotPartyChatShell(
+        {
+          bot: followerBot,
+          liveState: followerLiveState,
+          recentEvents: [],
+          ambientBotNames: new Set([member.name]),
+          objectiveId: 'q_wolves',
+          objectiveLabel: 'Wolves at the Door',
+          groupMode: 'brain',
+          nowMs: 8_000,
+        },
+        state,
+      );
       commands.push(...result.commands.map((command) => command.text));
     }
 
@@ -643,44 +1132,80 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 401, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 402, name: 'Branorabb', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 401,
+          name: 'Branoraaa',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 402,
+          name: 'Branorabb',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 1,
+          z: 1,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const first = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        selfId: 401,
-        party,
-        entities: [{ id: 402, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'prepare_party',
-      nowMs: 5_000,
-    }, state);
+    const first = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          selfId: 401,
+          party,
+          entities: [{ id: 402, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'prepare_party',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(first.commands).toEqual([]);
     expect(state.pendingUtterances).toHaveLength(1);
     expect(state.pendingUtterances[0]?.briefKey).toContain('|prepare_party');
 
-    const second = tickAmbientPlayerBotPartyChatShell({
-      bot: bot(),
-      liveState: liveState({
-        selfId: 401,
-        party,
-        entities: [{ id: 402, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'prepare_party',
-      nowMs: 7_000,
-    }, state);
+    const second = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot(),
+        liveState: liveState({
+          selfId: 401,
+          party,
+          entities: [{ id: 402, nm: 'Branorabb', k: 'player', x: 1, z: 1 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa', 'Branorabb']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'prepare_party',
+        nowMs: 7_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({
@@ -697,53 +1222,91 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 201, name: 'Aleph', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 101, name: 'Branoraaa', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 201,
+          name: 'Aleph',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 1,
+          z: 1,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const first = tickAmbientPlayerBotPartyChatShell({
-      bot: bot({
-        class: 'priest',
-        profileId: 'eastbrook_vale_priest_newcomer',
-      }),
-      liveState: liveState({
-        party,
-        entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
-      }),
-      recentEvents: [{
-        type: 'chat',
-        fromPid: 201,
-        from: 'Aleph',
-        text: 'Buff up, stay tight, then burn my target.',
-        channel: 'party',
-      }],
-      ambientBotNames: new Set(['Branoraaa']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const first = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot({
+          class: 'priest',
+          profileId: 'eastbrook_vale_priest_newcomer',
+        }),
+        liveState: liveState({
+          party,
+          entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
+        }),
+        recentEvents: [
+          {
+            type: 'chat',
+            fromPid: 201,
+            from: 'Aleph',
+            text: 'Buff up, stay tight, then burn my target.',
+            channel: 'party',
+          },
+        ],
+        ambientBotNames: new Set(['Branoraaa']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(first.commands).toEqual([]);
     expect(state.pendingUtterances).toHaveLength(1);
 
-    const second = tickAmbientPlayerBotPartyChatShell({
-      bot: bot({
-        class: 'priest',
-        profileId: 'eastbrook_vale_priest_newcomer',
-      }),
-      liveState: liveState({
-        party,
-        entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 8_000,
-    }, state);
+    const second = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot({
+          class: 'priest',
+          profileId: 'eastbrook_vale_priest_newcomer',
+        }),
+        liveState: liveState({
+          party,
+          entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 8_000,
+      },
+      state,
+    );
 
     expect(second.commands).toEqual([
       expect.objectContaining({
@@ -760,27 +1323,60 @@ describe('ambient player bot party chat shell', () => {
       raid: false,
       master: { enabled: false, looter: 0, threshold: 'uncommon' },
       members: [
-        { pid: 201, name: 'Aleph', cls: 'warrior', level: 3, hp: 40, mhp: 40, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-        { pid: 101, name: 'Branoraaa', cls: 'priest', level: 3, hp: 32, mhp: 32, res: 20, mres: 20, rtype: 'mana', x: 1, z: 1, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 201,
+          name: 'Aleph',
+          cls: 'warrior',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 0,
+          mres: 0,
+          rtype: 'rage',
+          x: 0,
+          z: 0,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'priest',
+          level: 3,
+          hp: 32,
+          mhp: 32,
+          res: 20,
+          mres: 20,
+          rtype: 'mana',
+          x: 1,
+          z: 1,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
 
-    const result = tickAmbientPlayerBotPartyChatShell({
-      bot: bot({
-        class: 'priest',
-        profileId: 'eastbrook_vale_priest_newcomer',
-      }),
-      liveState: liveState({
-        party,
-        entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
-      }),
-      recentEvents: [],
-      ambientBotNames: new Set(['Branoraaa']),
-      objectiveId: 'q_wolves',
-      objectiveLabel: 'Wolves at the Door',
-      groupMode: 'brain',
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotPartyChatShell(
+      {
+        bot: bot({
+          class: 'priest',
+          profileId: 'eastbrook_vale_priest_newcomer',
+        }),
+        liveState: liveState({
+          party,
+          entities: [{ id: 201, nm: 'Aleph', k: 'player', x: 0, z: 0 }],
+        }),
+        recentEvents: [],
+        ambientBotNames: new Set(['Branoraaa']),
+        objectiveId: 'q_wolves',
+        objectiveLabel: 'Wolves at the Door',
+        groupMode: 'brain',
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(state.pendingUtterances).toHaveLength(0);

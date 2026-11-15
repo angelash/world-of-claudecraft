@@ -54,6 +54,34 @@ function isInert(v: unknown): boolean {
   return false;
 }
 
+/**
+ * Object keys whose VALUE opens a zero-bearing region: inside one, a numeric
+ * 0 is INFORMATION and stays in the sample instead of being dropped as inert.
+ * The flag is inherited by everything below the key, so naming a container
+ * covers its whole subtree.
+ *
+ * Why (masterwrought Phase 12, closed at Phase 18): the Perfecting stamp
+ * merges its per-slot R5 bonus into `rolled.stats` and SKIPS a share that
+ * rounds to zero. Dropping inert keys made those two outcomes identical in
+ * the sample: "no share written" and "a share written as 0" both canonicalize
+ * to an absent key, so a change that started writing zero shares (or stopped
+ * skipping them) moved no golden at all. That is the harness being blind to a
+ * real behavior change, not a size optimization, and the fix is to stop
+ * dropping the zero exactly where a per-copy payload lives.
+ *
+ * SCOPED, not global: `0` stays inert everywhere else on purpose. Entity and
+ * PlayerMeta carry dozens of resting-zero fields per sample, and keeping all
+ * of them would balloon every golden for no gameplay reason (the same
+ * argument the inert rule was written on). A per-copy payload is small and
+ * sparse, so keeping its zeros costs almost nothing. Add a key here when a new
+ * sparse per-copy record grows a field whose zero is a real state.
+ */
+const ZERO_BEARING_CONTAINERS: ReadonlySet<string> = new Set([
+  'instance', // InvSlot.instance: the per-copy ItemInstancePayload in any container
+  'equipmentInstance', // PlayerMeta.equipmentInstance: the worn payloads, by slot
+  'rolled', // the payload's own roll record, where the Perfecting shares land
+]);
+
 // Compare two canonical keys for a stable, deterministic Map/Set ordering:
 // numbers numerically, everything else by JSON string.
 function compareKeys(a: unknown, b: unknown): number {
@@ -66,6 +94,10 @@ function compareKeys(a: unknown, b: unknown): number {
 export interface CanonicalOpts {
   // Drop inert object keys (default true). Digests pass false to stay faithful.
   omitDefaults?: boolean;
+  // Set by the walk itself once it is INSIDE a ZERO_BEARING_CONTAINERS key, so
+  // a numeric 0 there survives the inert filter. Not a caller knob: callers
+  // pass omitDefaults and let the container list decide the rest.
+  keepZeros?: boolean;
 }
 
 // Recursively convert any sim value into a stable, JSON-safe shape:
@@ -95,9 +127,15 @@ export function canonical(value: unknown, opts: CanonicalOpts = {}): unknown {
   }
   if (t === 'object') {
     const out: Record<string, unknown> = {};
+    const insideZeroBearing = opts.keepZeros === true;
     for (const k of Object.keys(value as object).sort()) {
-      const cv = canonical((value as Record<string, unknown>)[k], opts);
-      if (omit && isInert(cv)) continue;
+      // The key's own value opens a zero-bearing region for everything BELOW
+      // it; whether THIS key may be dropped is decided by the region this
+      // object already sits in, which is why the two flags are read apart.
+      const childOpts =
+        insideZeroBearing || ZERO_BEARING_CONTAINERS.has(k) ? { ...opts, keepZeros: true } : opts;
+      const cv = canonical((value as Record<string, unknown>)[k], childOpts);
+      if (omit && isInert(cv) && !(insideZeroBearing && cv === 0)) continue;
       out[k] = cv;
     }
     return out;
@@ -156,8 +194,11 @@ export function eventDigest(events: readonly unknown[]): string {
 export const ENTITY_EXCLUDE: ReadonlySet<string> = new Set([
   'name', // display/identity
   'guild', // server-set display only
+  'pledgeGuild', // server-set display only (guild pledge board)
+  'guildTier', // server-set display only (guild colour tier)
   'prevPos', // render interpolation
   'prevFacing',
+  'dungeonEntrySeq', // transient online acknowledgement generation; never read by gameplay
   'netUpdatedAt', // online wire cadence
   'netInterval',
   'vx', // air velocity (locomotion interpolation)
@@ -171,10 +212,12 @@ export const ENTITY_EXCLUDE: ReadonlySet<string> = new Set([
   'skin', // appearance
   'skinCatalog',
   'potionCdRemaining', // derived display copy of potionCooldownUntil (the pinned authority)
+  'firebottleCdRemaining', // derived display copy of PlayerMeta.firebottleReadyAt (the authority)
   'mainhandItemId', // render-only; "the sim never reads it for gameplay"
   'weaponSkinLoadout', // cosmetic weapon-skin selection; never read for gameplay
   'weaponSkinId', // render-only resolved weapon-skin mirror
   'equippedItems', // render-only mirror for inspect; sim never reads it for gameplay
+  'specId', // render-only mirror of the talents' spec (meta.talents is sampled) for the tooltip
   'equippedInstances', // render-only mirror (Enchanting); the sim reads the SOURCE (meta.equipmentInstance), never this
   'holderTier', // cosmetic wallet flair; sim never reads it
   'holderBalance',
@@ -186,6 +229,7 @@ export const ENTITY_EXCLUDE: ReadonlySet<string> = new Set([
   // gameplay coverage (like wireRev above).
   'damageHistory',
   'weaponStowed', // Z-key sheathe pose; render-only, no gameplay path reads it
+  'modularAppearance', // authored cosmetic look; the sim never reads it
   // Derived crit core (recalcPlayerStats): a pure function of sampled inputs
   // (gear ratings, talents, auras), like the derived meta fields below.
   'sharedCritBonus',
@@ -194,6 +238,9 @@ export const ENTITY_EXCLUDE: ReadonlySet<string> = new Set([
   // never serialized or wired. Its EFFECT (which procs fire) is pinned by the
   // event digest and procState counters.
   'castConsumedEmpower',
+  // In-flight Dawn's Embrace reservation for Radiant Resonance. The observable
+  // cast time, mana spend, aura removal, and heal remain in the parity digest.
+  'castRadiantResonance',
 ]);
 
 // Session-only / presentation / derived PlayerMeta fields. Derived fields
@@ -202,6 +249,13 @@ export const ENTITY_EXCLUDE: ReadonlySet<string> = new Set([
 // drift and large nested blobs while their inputs stay pinned.
 export const META_EXCLUDE: ReadonlySet<string> = new Set([
   'characterId', // DB id; not sim-deterministic offline
+  // The account ledger (src/sim/account_ledger.ts): host-loaded INPUT (the
+  // server's account tables; empty in this harness) plus the acting
+  // character's own appends, which are a pure function of sampled state
+  // (deedsEarned, itemsDiscovered, marks, owned mounts) stamped with utcDay.
+  // Sampling it would repeat those surfaces per frame with no gameplay signal;
+  // the relicRecorded events it emits ride the event digest already.
+  'accountLedger',
   'name', // identity
   'skin', // appearance
   'skinCatalog',
@@ -211,6 +265,14 @@ export const META_EXCLUDE: ReadonlySet<string> = new Set([
   'moveInput', // input, not state
   'joinedAt', // session-only clock
   'lastActiveTick', // session-only
+  'petAssistTargetId', // session-only; its effect is pinned by the sampled pet + event stream
+  'craftThrottle', // inert since the Craft Cast System retired the shared throttle; session-only
+  // Session-only sweep bookkeeping for the withered-then-ready correction
+  // (farm_ready.ts): derived from sampled inputs (farmPlots' notified flags +
+  // farming proficiency, both pinned) and reconstructed by every sweep, so
+  // sampling it would only churn goldens; the correction's OBSERVABLE, the
+  // farmReady event, rides the pinned event digest.
+  'farmWitheredAnnounced',
   'away', // session-only presence
   'lastWhisperFrom', // session-only
   'marketQuery', // session-only browse query (search + filters + page)
@@ -218,11 +280,30 @@ export const META_EXCLUDE: ReadonlySet<string> = new Set([
   // persisted, never sim-mutated. The bonus CAPACITY it explains IS pinned (the
   // sampled meta.bank.bonusSlots), so excluding the rows loses no gameplay net.
   'bankBonusSources',
+  // Server-stamped guild membership (id + rank) behind the Guild Bank's officer
+  // gate; session-only exactly like bankBonusSources (never persisted, never
+  // sim-mutated, always null offline), so sampling it would churn goldens for
+  // no gameplay reason. The book state it authorizes IS sim-owned and testable
+  // directly (Sim.guildBanks).
+  // Re-audited for Phase 2 (the officer gate now READS the stamp): the
+  // exclusion stays correct because the field remains a host-injected
+  // AUTHORIZATION INPUT, not sim-evolved state. Offline it is always null, so
+  // every guild bank op refuses and mutates nothing there (pinned in
+  // tests/guild_bank.test.ts); online only the authoritative server's sim runs
+  // the ops and the client mirrors results via the maybe('guildBank')
+  // snapshot. No cross-host divergence can hide behind the exclusion: the
+  // state the stamp gates (Sim.guildBanks, player copper/inventory) is fully
+  // sampled, so a gate misfire would surface THERE.
+  'guildMembership',
   'known', // derived from class/level/talents
   'talentMods', // derived from talents (recomputed)
   'fiestaMods', // derived from talentMods + augments
   'fiestaSpecial', // derived from augments
+  'bankWireRev', // runtime-only bank snapshot dirty counter; never serialized/persisted
+  'vaultWireRev', // runtime-only vault snapshot dirty counter; never serialized/persisted
   'wireRev', // runtime-only wire-dirty counter; never serialized/persisted
+  'worldQuestAreas', // session-only area-entry edge set; progress remains sampled
+  'openWorldQuestPuzzleId', // session-only physical-activator latch; progress remains sampled
 ]);
 
 function sampleExcluding(source: Record<string, unknown>, exclude: ReadonlySet<string>): unknown {

@@ -11,6 +11,13 @@ import { describe, expect, it } from 'vitest';
 // landscape tiers. The painter-level behaviour is covered by
 // tests/swing_timer_painter.test.ts and tests/cast_bar_painter.test.ts; this file
 // only guards the mobile CSS seat + width-match.
+//
+// The selector-group patterns below deliberately allow the group to CONTINUE past
+// #swingbar (`[^{]*` before the brace) rather than requiring the bars to be its last
+// members: the pet health strip shares this same bottom-centre column and joins each
+// nudge group. What is pinned is that the bars are grouped WITH the frame's nudge and
+// carry its exact value, which is the contract issue 1577 (6) is about; who else rides
+// along is not. tests/client_shell.test.ts pins the strip's own membership.
 
 const mobileCss = readFileSync(
   new URL('../src/styles/hud.mobile.css', import.meta.url),
@@ -32,7 +39,7 @@ function playerFrameScaleFactor(from = 0): string {
   const m = mobileCss
     .slice(from)
     .match(
-      /#player-frame \{[^}]*?transform: translateX\(-50%\) scale\(calc\(([0-9.]+) \* var\(--mobile-chrome-scale, 1\)\)\);/,
+      /#player-frame \{[^}]*?transform: translateX\(-50%\)\s*scale\(\s*calc\(\s*([0-9.]+|var\([a-z-]+\))\s*\*\s*var\(--mobile-chrome-scale, 1\)\s*\)\s*\);/,
     );
   expect(m).not.toBeNull();
   return (m as RegExpMatchArray)[1];
@@ -40,14 +47,20 @@ function playerFrameScaleFactor(from = 0): string {
 
 /** The `300px * <f>` width factor a bar block declares. */
 function barWidthFactor(block: string): string {
-  const m = block.match(/width: calc\(300px \* ([0-9.]+) \* var\(--mobile-chrome-scale, 1\)\);/);
+  const m = block.match(
+    /width: calc\(\s*300px\s*\*\s*([0-9.]+|var\([a-z-]+\))\s*\*\s*var\(--mobile-chrome-scale, 1\)\s*\);/,
+  );
   expect(m).not.toBeNull();
   return (m as RegExpMatchArray)[1];
 }
 
-/** The px value inside a `bottom: calc(<n>px + env(safe-area-inset-bottom));`. */
-function bottomPx(block: string): number {
-  const m = block.match(/bottom: calc\((\d+)px \+ env\(safe-area-inset-bottom\)\);/);
+/** The px OFFSET a bar's seat adds to the shared button-row token. The whole
+ *  bottom-centre column (frame, cast, swing, pet strip) is expressed against
+ *  --mobile-button-row-lift, the distance from the viewport bottom to the top
+ *  line of the touch button row, so the three stay stacked whatever a tier does
+ *  to the ring: only the offsets off that one line are tuned here. */
+function bottomOffsetPx(block: string): number {
+  const m = block.match(/bottom: calc\(var\(--mobile-button-row-lift\) \+ (\d+)px\);/);
   expect(m).not.toBeNull();
   return Number((m as RegExpMatchArray)[1]);
 }
@@ -76,11 +89,38 @@ describe('mobile swing/cast bar anchoring (issue 1577 (6))', () => {
   });
 
   it('stacks swing above cast, both above the frame, so the three never overlap (base tier)', () => {
-    // Player frame sits at bottom 14px; cast clears it, swing clears cast.
-    const castBottom = bottomPx(ruleBlock('body.mobile-touch #castbar {'));
-    const swingBottom = bottomPx(ruleBlock('body.mobile-touch #swingbar {'));
-    expect(castBottom).toBeGreaterThan(14);
+    // The frame's TOP sits exactly on the row line, so any positive offset off
+    // that same line clears it; cast takes the first slot, swing the next.
+    const frameBlock = ruleBlock('body.mobile-touch #player-frame {\n    position: fixed;');
+    expect(frameBlock).toContain(
+      'top: calc(var(--app-vh, 100dvh) - var(--mobile-button-row-lift));',
+    );
+    expect(frameBlock).toContain('transform-origin: center top;');
+    const castBottom = bottomOffsetPx(ruleBlock('body.mobile-touch #castbar {'));
+    const swingBottom = bottomOffsetPx(ruleBlock('body.mobile-touch #swingbar {'));
+    expect(castBottom).toBeGreaterThan(0);
     expect(swingBottom).toBeGreaterThan(castBottom);
+    // The pet frame is the one column member that hangs the OTHER way: it drops
+    // BELOW the player frame, into the band between that frame's bottom edge and
+    // the screen's, so it is top-seated off the same line with a positive drop
+    // rather than stacked above the two bars. It used to sit at row-lift + 24px,
+    // sharing the (now retired) touch stance row's slot.
+    const petBlock = ruleBlock('body.mobile-touch #pet-frame {');
+    expect(petBlock).toContain(
+      'top: calc(var(--app-vh, 100dvh) - var(--mobile-button-row-lift) + var(--mobile-pet-frame-drop));',
+    );
+    expect(petBlock).toContain('bottom: auto;');
+    expect(petBlock).toContain('transform-origin: center top;');
+    // The drop is measured from the SAME row line the player frame's top sits on,
+    // so it has to clear that frame's own rendered height or the two overlap.
+    const drop = mobileCss.match(
+      /--mobile-pet-frame-drop: calc\(\s*65px\s*\*\s*var\(--mobile-unit-frame-scale-landscape\)\s*\*\s*var\(--mobile-chrome-scale, 1\)\s*\+\s*(\d+)px\s*\)/,
+    );
+    expect(
+      drop,
+      'the landscape pet-frame drop must be derived from the frame scale',
+    ).not.toBeNull();
+    expect(Number((drop as RegExpMatchArray)[1])).toBeGreaterThan(0);
   });
 
   it('matches each bar width to the shorter player frame in landscape', () => {
@@ -99,7 +139,7 @@ describe('mobile swing/cast bar anchoring (issue 1577 (6))', () => {
     // both bars must share that same seat or they drift off the frame edge, so
     // they are grouped with the frame in one selector list (issue 1577 (6)).
     expect(
-      /hud-mobile-compact #castbar,[\s\S]{0,80}hud-mobile-compact #swingbar \{/.test(mobileCss),
+      /hud-mobile-compact #castbar,[\s\S]{0,80}hud-mobile-compact #swingbar[^{]*\{/.test(mobileCss),
     ).toBe(true);
   });
 
@@ -113,7 +153,7 @@ describe('mobile swing/cast bar anchoring (issue 1577 (6))', () => {
       ),
     ).toBe(true);
     expect(
-      /hud-mobile-compact\.mobile-left-handed #castbar,\s*body\.mobile-touch\.hud-mobile-compact\.mobile-left-handed #swingbar \{\s*left: calc\(50% \+ 15px\);/.test(
+      /hud-mobile-compact\.mobile-left-handed #castbar,\s*body\.mobile-touch\.hud-mobile-compact\.mobile-left-handed #swingbar[^{]*\{\s*left: calc\(50% \+ 15px\);/.test(
         mobileCss,
       ),
     ).toBe(true);
@@ -126,7 +166,7 @@ describe('mobile swing/cast bar anchoring (issue 1577 (6))', () => {
     expect(landscapeEnd).toBeGreaterThan(landscapeStart);
     const landscapeBlock = mobileCss.slice(landscapeStart, landscapeEnd);
     expect(
-      /hud-mobile-compact\.mobile-left-handed #player-frame,\s*body\.mobile-touch\.hud-mobile-compact\.mobile-left-handed #castbar,\s*body\.mobile-touch\.hud-mobile-compact\.mobile-left-handed #swingbar \{\s*left: calc\(50% \+ 44px\);/.test(
+      /hud-mobile-compact\.mobile-left-handed #player-frame,\s*body\.mobile-touch\.hud-mobile-compact\.mobile-left-handed #castbar,\s*body\.mobile-touch\.hud-mobile-compact\.mobile-left-handed #swingbar[^{]*\{\s*left: calc\(50% \+ 44px\);/.test(
         landscapeBlock,
       ),
     ).toBe(true);

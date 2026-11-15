@@ -4,6 +4,7 @@
 // pointer capture, and preventDefault. Keeping the state machine host-free makes
 // deadzone, pointer replacement, and tap arbitration directly testable.
 
+import type { MapLevel } from './map_surface_core';
 import { MAP_MAX_ZOOM } from './map_window_view';
 
 export const MAP_MIN_ZOOM = 1;
@@ -61,6 +62,39 @@ export function mapPinchZoomFactor(
 
 export function nextMapZoom(currentZoom: number, factor: number): number {
   return Math.max(MAP_MIN_ZOOM, Math.min(MAP_MAX_ZOOM, currentZoom * factor));
+}
+
+/**
+ * True when a zoom-out applied at the zone map's full extent should leave the
+ * zone level entirely and open the continent overview, instead of clamping at
+ * MAP_MIN_ZOOM and doing nothing visible.
+ *
+ * The zone map is already showing the whole zone at MAP_MIN_ZOOM, so every
+ * further zoom-out (the minus button, a wheel-down, a pinch-out) was a no-op: the
+ * one thing left to zoom out TO is the world. Zoom-IN is never a level change,
+ * and a factor of exactly 1 (a pinch inside its deadzone) is not a zoom-out.
+ */
+export function zoomOutExitsZoneLevel(currentZoom: number, factor: number): boolean {
+  return factor < 1 && Number.isFinite(currentZoom) && currentZoom <= MAP_MIN_ZOOM;
+}
+
+/**
+ * The level a zoom-out leaves the current one FOR, or null when the zoom stays
+ * on its level (a real zoom on the zone map, any zoom-in, a deadzone pinch).
+ *
+ * The instance plan (a rift, raid, dungeon, delve, or battleground floor plan)
+ * has no zoom of its own, so the one thing a zoom-out there can mean is "show me
+ * where this is": the zone map. The zone map keeps its existing rule: at full
+ * extent a zoom-out opens the continent overview. The overview is the top.
+ */
+export function zoomOutLevelExit(
+  level: MapLevel,
+  currentZoom: number,
+  factor: number,
+): MapLevel | null {
+  if (level === 'instance') return factor < 1 ? 'zone' : null;
+  if (level === 'zone' && zoomOutExitsZoneLevel(currentZoom, factor)) return 'continent';
+  return null;
 }
 
 export class MapPinchZoomCore {

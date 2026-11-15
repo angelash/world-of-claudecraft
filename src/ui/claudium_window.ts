@@ -12,10 +12,13 @@
 // are CSS tokens (class names), no literal hex/px in this module.
 
 import { buildClaudiumView, type ClaudiumSkuInput, type ClaudiumView } from './claudium_view';
+import { currencyImageUrl } from './currency_art';
 import { markDialogRoot } from './dialog_root';
 import { esc } from './esc';
 import { formatNumber, t } from './i18n';
 import { svgIcon } from './ui_icons';
+import { usdDollarsText } from './usd_text';
+import { walletCardKeys } from './wallet_card_keys';
 import type { WalletConnectionView } from './wallet_connection_view';
 
 export type ClaudiumRail = 'stripe' | 'sol' | 'usdc' | 'woc';
@@ -68,7 +71,7 @@ const EMPTY_SNAPSHOT: ClaudiumSnapshot = {
 
 const WOC_DECIMALS = 6;
 const USDC_DECIMALS = 6;
-const WOC_ICON_URL = '/woc_logo_square.webp';
+const WOC_ICON_URL = currencyImageUrl('woc_token') ?? '/woc_logo_square.webp';
 const SOL_ICON_URL = '/claudium/icons/solana-icon.webp';
 const USDC_ICON_URL = '/claudium/icons/usdc-icon.webp';
 type ClaudiumFocusTarget = { kind: 'rail' | 'sku'; value: string } | { kind: 'wallet' };
@@ -89,6 +92,14 @@ export class ClaudiumWindow {
   private pendingPurchase: { rail: ClaudiumRail; sku: string } | null = null;
   private purchaseError: string | null = null;
   private paintedWalletMarkup: string | null = null;
+  // The one-shot return path for a caller that HANDED OFF to this window (the
+  // WOC Store's "you need more Claudium" flow). Armed by toggle() on BOTH of its
+  // arms (an open arms it for the close that follows; a toggle that finds the
+  // window already open arms it for the close it performs), and cleared as it
+  // fires, so a handoff can never fire twice and a plain close with nothing
+  // armed fires nothing. Deliberately a per-handoff argument rather than module
+  // state or a timer: the store asks for exactly one callback and gets one.
+  private closeReturn: (() => void) | null = null;
 
   constructor(private readonly deps: ClaudiumWindowDeps) {}
 
@@ -106,11 +117,65 @@ export class ClaudiumWindow {
     void this.render(null, focused);
   }
 
-  toggle(): void {
+  /** Open for a HANDOFF, and unlike toggle() calling it while already open does
+   *  NOT close it (the Hud.openSpellbook idiom).
+   *
+   *  The distinction was believed unreachable: toggle()'s own already-open arm
+   *  says "deps.closeOthers means the store and this window are never open
+   *  together". Bank Storage phase 13's live rig MEASURED the opposite for the
+   *  bank, because Hud.closeOtherWindows ignores its argument and closes only the
+   *  context menu and the tooltip, so the top-up window opens OVER a bank that
+   *  stays open and the bank's "Buy Claudium" is reachable from there. Pressing
+   *  it then CLOSED this window and fired the return callback against an
+   *  unchanged balance, which is the opposite of what a top-up handoff is for.
+   *
+   *  The already-open arm still ARMS the return callback, so a handoff always
+   *  gets its one callback whichever state it found this window in, and close()'s
+   *  clear-before-fire keeps it single-shot. */
+  open(onClosed?: () => void): void {
     if (this.isOpen) {
+      if (onClosed) this.closeReturn = onClosed;
+      // ...and still RENDER, which is what the fresh-open path does through
+      // toggle() and what makes the handoff observable at all. Arming the
+      // callback and returning silently was the shape the review round caught: a
+      // player who has just accepted a top-up prompt would have been handed to a
+      // window still showing whatever it last painted, including a stale balance,
+      // which is the one number the handoff exists to change.
+      //
+      // Not captureFocus / closeOthers: this window is already open, so it
+      // already holds an opener to return to and has already displaced whatever
+      // it was going to.
+      //
+      // WHAT THIS DOES NOT FIX, stated because the first version of this comment
+      // claimed it did. render('open') focuses the close button synchronously,
+      // and the confirm dialog the player just accepted releases its focus trap
+      // on a deferred task (src/ui/focus_manager.ts restores the opener through a
+      // setTimeout so it wins over a close handler still settling the DOM), so
+      // that restore lands AFTER this one and focus returns to the surface the
+      // player was handed FROM. The FRESH-open path has the identical shape, so
+      // this is a pre-existing race rather than something the handoff change
+      // introduced, and closing it means changing when the trap restores, which
+      // is not this window's to decide.
+      void this.render('open');
+      return;
+    }
+    this.toggle(onClosed);
+  }
+
+  toggle(onClosed?: () => void): void {
+    if (this.isOpen) {
+      // A handoff asked for while this window is ALREADY open would otherwise be
+      // dropped silently. Today that cannot happen (deps.closeOthers means the
+      // store and this window are never open together, so the store's top-up
+      // button is unreachable in this state), but the at-most-once guarantee
+      // should not rest on the window-stacking policy staying that way. Arm it
+      // so the close below still honours it, and the clear-before-fire in
+      // close() keeps it single-shot.
+      if (onClosed) this.closeReturn = onClosed;
       this.close();
       return;
     }
+    this.closeReturn = onClosed ?? null;
     this.openerFocus = this.deps.captureFocus();
     this.deps.closeOthers();
     const root = this.deps.root();
@@ -131,6 +196,11 @@ export class ClaudiumWindow {
     this.deps.restoreFocus(this.openerFocus);
     this.openerFocus = null;
     this.deps.onVisibilityChange?.();
+    // Last, and cleared BEFORE the call: the callback reopens another window,
+    // so this window must already be fully closed and disarmed when it runs.
+    const armed = this.closeReturn;
+    this.closeReturn = null;
+    armed?.();
   }
 
   async render(
@@ -186,13 +256,13 @@ export class ClaudiumWindow {
 
   private titleHtml(): string {
     return (
-      `<div class="panel-title"><span id="claudium-title">${esc(t('hudChrome.claudium.title'))}</span>` +
+      `<div class="panel-title ui-win-head"><span id="claudium-title" class="ui-win-title">${esc(t('hudChrome.claudium.title'))}</span>` +
       `<span class="cl-refresh-status" data-refresh-status aria-hidden="true">` +
       `<span class="cl-spinner" aria-hidden="true"></span>` +
       `<span class="cl-refresh-error" aria-hidden="true">!</span>` +
       `</span>` +
       `<span class="visually-hidden" data-cl-live-status role="status" aria-live="polite" aria-atomic="true"></span>` +
-      `<button type="button" class="x-btn" data-close aria-label="${esc(t('hudChrome.claudium.close'))}">${svgIcon('close')}</button></div>`
+      `<button type="button" class="x-btn ui-x-btn" data-close aria-label="${esc(t('hudChrome.claudium.close'))}">${svgIcon('close')}</button></div>`
     );
   }
 
@@ -286,11 +356,11 @@ export class ClaudiumWindow {
         })
       : t('hudChrome.claudium.balanceUnit', { amount: '--' });
     return (
-      `<div class="cl-balance">` +
+      `<div class="cl-balance ui-card-tile">` +
       `<img class="cl-balance-art" src="/claudium/claudium_coin_hero_3q.webp" alt="">` +
       `<div class="cl-balance-main">` +
       `<span class="cl-balance-label">${esc(t('hudChrome.claudium.balanceLabel'))}</span>` +
-      `<strong class="cl-balance-value">${esc(shown)}</strong>` +
+      `<strong class="cl-balance-value ui-num">${esc(shown)}</strong>` +
       `</div>` +
       this.walletBalancesHtml(view) +
       `</div>`
@@ -314,44 +384,13 @@ export class ClaudiumWindow {
   private walletConnectionHtml(): string {
     const state = this.deps.walletState?.();
     if (!state?.enabled) return '';
-    let bodyKey:
-      | 'hudChrome.wocStore.wallet.unlinked'
-      | 'hudChrome.wocStore.wallet.connectedUnlinked'
-      | 'hudChrome.wocStore.wallet.linkedDisconnected'
-      | 'hudChrome.wocStore.wallet.linkedConnected'
-      | 'hudChrome.wocStore.wallet.mismatched';
-    let actionKey:
-      | 'hudChrome.wocStore.wallet.connect'
-      | 'hudChrome.wocStore.wallet.verify'
-      | 'hudChrome.wocStore.wallet.reconnect'
-      | 'hudChrome.wocStore.wallet.manage';
-    switch (state.kind) {
-      case 'connected_unlinked':
-        bodyKey = 'hudChrome.wocStore.wallet.connectedUnlinked';
-        actionKey = 'hudChrome.wocStore.wallet.verify';
-        break;
-      case 'linked_disconnected':
-        bodyKey = 'hudChrome.wocStore.wallet.linkedDisconnected';
-        actionKey = 'hudChrome.wocStore.wallet.reconnect';
-        break;
-      case 'linked_connected':
-        bodyKey = 'hudChrome.wocStore.wallet.linkedConnected';
-        actionKey = 'hudChrome.wocStore.wallet.manage';
-        break;
-      case 'mismatched':
-        bodyKey = 'hudChrome.wocStore.wallet.mismatched';
-        actionKey = 'hudChrome.wocStore.wallet.verify';
-        break;
-      default:
-        bodyKey = 'hudChrome.wocStore.wallet.unlinked';
-        actionKey = 'hudChrome.wocStore.wallet.connect';
-        break;
-    }
+    // The copy table is shared with the $WOC Exchange's card (wallet_card_keys).
+    const { bodyKey, actionKey } = walletCardKeys(state.kind);
     return (
-      `<div class="cl-wallet-connect">` +
+      `<div class="cl-wallet-connect ui-card">` +
       `<strong>${esc(t('hudChrome.wocStore.wallet.title'))}</strong>` +
       `<p>${esc(t(bodyKey))}</p>` +
-      `<button type="button" data-claudium-wallet>${esc(t(actionKey))}</button>` +
+      `<button type="button" class="ui-btn" data-claudium-wallet>${esc(t(actionKey))}</button>` +
       `</div>`
     );
   }
@@ -373,7 +412,7 @@ export class ClaudiumWindow {
       Number.isInteger(view.wocDiscountBps) &&
       (view.wocDiscountBps ?? -1) >= 0 &&
       (view.wocDiscountBps ?? 10_000) <= 9000
-        ? `<span class="cl-rail-discount">${esc(
+        ? `<span class="cl-rail-discount ui-chip is-on">${esc(
             t('hudChrome.claudium.railWocDiscount', {
               percent: formatNumber((view.wocDiscountBps ?? 0) / 100, {
                 maximumFractionDigits: 2,
@@ -382,21 +421,21 @@ export class ClaudiumWindow {
           )}</span>`
         : '';
     const railPicker =
-      `<div class="cl-rails" role="group" aria-label="${esc(t('hudChrome.claudium.railLabel'))}">` +
-      `<button type="button" class="cl-rail" data-rail="stripe"${stripeSel} ${view.rails.stripe && !pending ? '' : 'disabled'}>` +
+      `<div class="cl-rails ui-seg" role="group" aria-label="${esc(t('hudChrome.claudium.railLabel'))}">` +
+      `<button type="button" class="cl-rail ui-seg-tab${this.selectedRail === 'stripe' ? ' is-on' : ''}" data-rail="stripe"${stripeSel} ${view.rails.stripe && !pending ? '' : 'disabled'}>` +
       this.railIconHtml('card') +
       `<span>${esc(t('hudChrome.claudium.railStripe'))}</span>` +
       `</button>` +
-      `<button type="button" class="cl-rail cl-rail-woc" data-rail="woc"${wocSel} ${view.rails.woc && !pending ? '' : 'disabled'}>` +
+      `<button type="button" class="cl-rail cl-rail-woc ui-seg-tab${this.selectedRail === 'woc' ? ' is-on' : ''}" data-rail="woc"${wocSel} ${view.rails.woc && !pending ? '' : 'disabled'}>` +
       this.railIconHtml('woc') +
       `<span>${esc(t('hudChrome.claudium.railWoc'))}</span>` +
       wocDiscount +
       `</button>` +
-      `<button type="button" class="cl-rail" data-rail="usdc"${usdcSel} ${view.rails.usdc && !pending ? '' : 'disabled'}>` +
+      `<button type="button" class="cl-rail ui-seg-tab${this.selectedRail === 'usdc' ? ' is-on' : ''}" data-rail="usdc"${usdcSel} ${view.rails.usdc && !pending ? '' : 'disabled'}>` +
       this.railIconHtml('usdc') +
       `<span>${esc(t('hudChrome.claudium.railUsdc'))}</span>` +
       `</button>` +
-      `<button type="button" class="cl-rail" data-rail="sol"${solSel} ${view.rails.sol && !pending ? '' : 'disabled'}>` +
+      `<button type="button" class="cl-rail ui-seg-tab${this.selectedRail === 'sol' ? ' is-on' : ''}" data-rail="sol"${solSel} ${view.rails.sol && !pending ? '' : 'disabled'}>` +
       this.railIconHtml('sol') +
       `<span>${esc(t('hudChrome.claudium.railSol'))}</span>` +
       `</button>` +
@@ -413,9 +452,9 @@ export class ClaudiumWindow {
         const isPending = pending?.rail === this.selectedRail && pending.sku === row.sku;
         const disabled = this.skuDisabled(view, row);
         return (
-          `<button type="button" class="cl-sku cl-pack${isPending ? ' pending' : ''}" data-pack-tier="${index + 1}" data-sku="${esc(row.sku)}" aria-label="${esc(label)}" ${disabled ? 'disabled' : ''}>` +
+          `<button type="button" class="cl-sku cl-pack ui-card-tile${isPending ? ' pending' : ''}" data-pack-tier="${index + 1}" data-sku="${esc(row.sku)}" aria-label="${esc(label)}" ${disabled ? 'disabled' : ''}>` +
           `<span class="cl-pack-art"><img src="${esc(this.packArt(row.claudium))}" alt=""></span>` +
-          `<span class="cl-sku-claudium"><img src="/claudium/icons/claudium_coin_64.webp" alt="">${esc(t('hudChrome.claudium.storeCost', { amount: claudium }))}</span>` +
+          `<span class="cl-sku-claudium ui-money ui-money-coin ui-num"><img src="/claudium/icons/claudium_coin_64.webp" alt="">${esc(t('hudChrome.claudium.storeCost', { amount: claudium }))}</span>` +
           `<span class="cl-sku-usd">${esc(price)}</span>` +
           `<span class="cl-sku-buy">` +
           (isPending
@@ -445,7 +484,8 @@ export class ClaudiumWindow {
   }
 
   private usdLabel(usd: number): string {
-    return `$${formatNumber(usd, { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`;
+    // Intl currency, never a hardcoded "$" prefix (the shared usd_text rule).
+    return usdDollarsText(usd);
   }
 
   private packArt(claudium: number): string {
@@ -472,14 +512,22 @@ export class ClaudiumWindow {
   }
 
   private buyPriceLabel(row: ClaudiumView['buyRows'][number]): string {
+    // Ticker through the catalog, never a glued suffix: the number is
+    // locale-formatted and the unit rides its own template token.
     if (this.selectedRail === 'sol') {
-      return `${this.formatBaseUnits(row.solAmountBase, 9, 4)} SOL`;
+      return t('hudChrome.claudium.priceSol', {
+        amount: this.formatBaseUnits(row.solAmountBase, 9, 4),
+      });
     }
     if (this.selectedRail === 'usdc') {
-      return `${this.formatBaseUnits(row.usdcAmountBase, USDC_DECIMALS, 2)} USDC`;
+      return t('hudChrome.claudium.priceUsdc', {
+        amount: this.formatBaseUnits(row.usdcAmountBase, USDC_DECIMALS, 2),
+      });
     }
     if (this.selectedRail === 'woc') {
-      return `${this.formatBaseUnits(row.wocAmountBase, WOC_DECIMALS, 2)} WOC`;
+      return t('hudChrome.claudium.priceWoc', {
+        amount: this.formatBaseUnits(row.wocAmountBase, WOC_DECIMALS, 2),
+      });
     }
     return this.usdLabel(row.usd);
   }

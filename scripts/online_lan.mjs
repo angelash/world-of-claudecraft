@@ -1,14 +1,11 @@
 #!/usr/bin/env node
-import { spawn, execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import net from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import {
-  lanUrls,
-  resolveForcedLanBindHost,
-} from './lan_host.mjs';
+import { lanUrls, resolveForcedLanBindHost } from './lan_host.mjs';
 
 const require = createRequire(import.meta.url);
 const vitePackageJson = require.resolve('vite/package.json');
@@ -88,12 +85,14 @@ function trackChild(child) {
 }
 
 function spawnNode(label, args, env) {
-  const child = trackChild(spawn(process.execPath, args, {
-    cwd: repoRoot,
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,
-  }));
+  const child = trackChild(
+    spawn(process.execPath, args, {
+      cwd: repoRoot,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    }),
+  );
   prefixStream(child.stdout, `[${label}] `, process.stdout);
   prefixStream(child.stderr, `[${label}] `, process.stderr);
   return child;
@@ -170,10 +169,12 @@ function killPid(pid) {
 async function ensurePortsReady(ports) {
   for (const port of ports) {
     const pids = findListeningPids(port);
-    const free = pids.length === 0 && await portIsFree(port);
+    const free = pids.length === 0 && (await portIsFree(port));
     if (free) continue;
     if (!restart) {
-      throw new Error(`port ${port} is already in use, rerun with --restart or stop the existing service first`);
+      throw new Error(
+        `port ${port} is already in use, rerun with --restart or stop the existing service first`,
+      );
     }
     if (pids.length === 0) {
       throw new Error(`port ${port} is already in use and no owning process could be identified`);
@@ -183,7 +184,9 @@ async function ensurePortsReady(ports) {
   }
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
-    const states = await Promise.all(ports.map(async (port) => findListeningPids(port).length === 0 && await portIsFree(port)));
+    const states = await Promise.all(
+      ports.map(async (port) => findListeningPids(port).length === 0 && (await portIsFree(port))),
+    );
     if (states.every(Boolean)) return;
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
@@ -211,7 +214,9 @@ function handleServiceExit(label, modeName, result) {
   if (shuttingDown) return;
   const exitCode = result.code || (result.signal ? 1 : 0);
   if (modeName === 'stack') {
-    console.error(`[lan] ${label} exited (${result.signal || exitCode}), stopping the rest of the stack`);
+    console.error(
+      `[lan] ${label} exited (${result.signal || exitCode}), stopping the rest of the stack`,
+    );
     void shutdown(exitCode);
     return;
   }
@@ -220,7 +225,9 @@ function handleServiceExit(label, modeName, result) {
 
 async function startDev(modeName) {
   const child = spawnNode('dev', [viteBin, '--host', bindHost, '--strictPort'], serviceEnv());
-  child.on('exit', (code, signal) => handleServiceExit('dev', modeName, { code: code ?? 0, signal: signal ?? '' }));
+  child.on('exit', (code, signal) =>
+    handleServiceExit('dev', modeName, { code: code ?? 0, signal: signal ?? '' }),
+  );
   return child;
 }
 
@@ -233,7 +240,9 @@ async function startServer(modeName) {
   }
   if (shuttingDown) return null;
   const runtime = spawnNode('server', [serverBundle], serviceEnv());
-  runtime.on('exit', (code, signal) => handleServiceExit('server', modeName, { code: code ?? 0, signal: signal ?? '' }));
+  runtime.on('exit', (code, signal) =>
+    handleServiceExit('server', modeName, { code: code ?? 0, signal: signal ?? '' }),
+  );
   return runtime;
 }
 

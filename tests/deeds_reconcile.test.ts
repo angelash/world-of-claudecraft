@@ -16,6 +16,7 @@ vi.mock('../server/db', () => ({
   closePlaySession: vi.fn(async () => {}),
   insertChatLogs: vi.fn(async () => {}),
   insertBankLedgerRow: vi.fn(async () => {}),
+  insertBankLedgerRows: vi.fn(async () => {}),
   walletForAccount: vi.fn(async () => null),
   markAccountQuestComplete: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
   grantAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
@@ -32,22 +33,40 @@ vi.mock('../server/deeds_db', () => ({
   getDeedBroadcasts: vi.fn(async () => true),
 }));
 
-// The Steam mirror hook must NEVER fire from the reconcile (only from the live
-// per-unlock recorder); spy it so that boundary is pinned here.
+// Storefront mirror hooks must NEVER fire from the reconcile (only from the
+// live per-unlock recorder); spy both so that boundary is pinned here.
 vi.mock('../server/steam/mirror', () => ({
   onDeedRecorded: vi.fn(),
   reconcileOnLogin: vi.fn(),
 }));
+vi.mock('../server/epic/mirror', () => ({
+  onDeedRecorded: vi.fn(),
+  reconcileOnLogin: vi.fn(),
+}));
 
+import {
+  accountLedgerKeysFor,
+  setAccountLedgerKeysReaderForTests,
+} from '../server/account_ledger_keys_cache';
 import { insertCharacterDeeds } from '../server/deeds_db';
 import { deedRecordsIdle, reconcileCharacterDeeds } from '../server/deeds_records';
+import {
+  onDeedRecorded as onEpicDeedRecorded,
+  reconcileOnLogin as reconcileEpicOnLogin,
+} from '../server/epic/mirror';
 import { GameServer } from '../server/game';
 import { REALM } from '../server/realm';
-import { onDeedRecorded, reconcileOnLogin } from '../server/steam/mirror';
+import {
+  onDeedRecorded as onSteamDeedRecorded,
+  reconcileOnLogin as reconcileSteamOnLogin,
+} from '../server/steam/mirror';
+import { defaultGuildRankLadder } from '../src/sim/guild_ranks';
 
 const insertDeedsMock = vi.mocked(insertCharacterDeeds);
-const onDeedRecordedMock = vi.mocked(onDeedRecorded);
-const reconcileOnLoginMock = vi.mocked(reconcileOnLogin);
+const onDeedRecordedMock = vi.mocked(onSteamDeedRecorded);
+const onEpicDeedRecordedMock = vi.mocked(onEpicDeedRecorded);
+const reconcileOnLoginMock = vi.mocked(reconcileSteamOnLogin);
+const reconcileEpicOnLoginMock = vi.mocked(reconcileEpicOnLogin);
 
 // Let the fire-and-forget FIFO tail settle deterministically before asserting.
 async function settle(): Promise<void> {
@@ -63,15 +82,20 @@ beforeEach(async () => {
   insertDeedsMock.mockImplementation(async () => {});
   onDeedRecordedMock.mockClear();
   onDeedRecordedMock.mockImplementation(() => {});
-  // The Steam login reconcile is a module-factory vi.fn that vi.restoreAllMocks
-  // does not touch, so its call log and any per-test implementation must be
-  // reset here or they accumulate across the join tests below.
+  onEpicDeedRecordedMock.mockClear();
+  onEpicDeedRecordedMock.mockImplementation(() => {});
+  // Login reconcile mocks are module-factory vi.fns that vi.restoreAllMocks
+  // does not touch, so their call logs and any per-test implementation must
+  // be reset here or they accumulate across the join tests below.
   reconcileOnLoginMock.mockClear();
+  reconcileEpicOnLoginMock.mockClear();
   reconcileOnLoginMock.mockImplementation(() => {});
+  reconcileEpicOnLoginMock.mockImplementation(() => {});
 });
 
 afterEach(async () => {
   await settle();
+  setAccountLedgerKeysReaderForTests(null);
   vi.restoreAllMocks();
 });
 
@@ -90,6 +114,20 @@ describe('reconcileCharacterDeeds', () => {
     const [who, ids] = insertDeedsMock.mock.calls[0];
     expect(who).toEqual({ realm: REALM, characterId: 42, accountId: 7 });
     expect([...ids].sort()).toEqual(['prog_first_steps', 'prog_veteran']);
+  });
+
+  it("busts the account's cached public-sheet ledger keys once the batch lands", async () => {
+    let reads = 0;
+    setAccountLedgerKeysReaderForTests(async () => {
+      reads++;
+      return { deeds: new Set<string>(), relics: new Set<string>() };
+    });
+    await accountLedgerKeysFor(7);
+    expect(reads).toBe(1);
+    reconcileCharacterDeeds({ characterId: 42, accountId: 7 }, ['prog_veteran']);
+    await settle();
+    await accountLedgerKeysFor(7);
+    expect(reads).toBe(2); // the healed row shows on the /c/ page's next read
   });
 
   it('never notifies the Steam mirror (the reconcile is a DB write only)', async () => {
@@ -182,13 +220,17 @@ describe('reconcile through GameServer.join', () => {
     expect(who).toEqual({ realm: REALM, characterId: 42, accountId: 7 });
     // The reconcile replays the WHOLE loaded set, faithfully.
     expect([...ids].sort()).toEqual(earnedIds);
-    // The reconcile is a DB write only; the Steam mirror is never told
-    // per-row. The join DOES fire the account-level Steam login reconcile
-    // (the durable heal for a dropped push), exactly once, chained BEHIND this
-    // one on the records FIFO so its earnedDeedIds read sees the healed rows.
+    // The reconcile is a DB write only; storefront mirrors are never told
+    // per-row. The join DOES fire each account-level storefront login
+    // reconcile (the durable heal for a dropped push), exactly once each,
+    // chained BEHIND this one on the records FIFO so earnedDeedIds reads see
+    // the healed rows. Steam and Epic fan out independently (D21).
     expect(onDeedRecordedMock).not.toHaveBeenCalled();
+    expect(onEpicDeedRecordedMock).not.toHaveBeenCalled();
     expect(reconcileOnLoginMock).toHaveBeenCalledTimes(1);
     expect(reconcileOnLoginMock).toHaveBeenCalledWith(7);
+    expect(reconcileEpicOnLoginMock).toHaveBeenCalledTimes(1);
+    expect(reconcileEpicOnLoginMock).toHaveBeenCalledWith(7);
   });
 
   it('replays the retro/legacy grants too, not just the loaded ids, and never tells Steam', async () => {
@@ -244,16 +286,23 @@ describe('reconcile through GameServer.join', () => {
       id: 1,
       name: 'The Vanguard',
       rank: 'member' as const,
+      ranks: defaultGuildRankLadder(),
       motd: '',
       motdSetBy: '',
       members: [],
       events: [],
+      pledgeSettings: { enabled: true, minLevel: 1, note: '', newPlayerFriendly: false },
+      pledges: [],
+      tier: 0,
+      memberCap: 100,
+      nextRosterPrice: 400_000,
     };
     vi.spyOn(server.social, 'snapshot').mockResolvedValue({
       friends: [],
       blocks: [],
       ignores: [],
       guild,
+      myPledge: null,
     });
     const setPlayerGuild = vi.spyOn(server.sim, 'setPlayerGuild');
     const fc = fakeWs();
@@ -301,6 +350,9 @@ describe('reconcile through GameServer.join', () => {
     reconcileOnLoginMock.mockImplementation(() => {
       order.push('steam');
     });
+    reconcileEpicOnLoginMock.mockImplementation(() => {
+      order.push('epic');
+    });
     // A loaded earned set so the reconcile batch actually chains onto the tail.
     const state = {
       level: 1,
@@ -320,14 +372,18 @@ describe('reconcile through GameServer.join', () => {
     const fc = fakeWs();
     const session = server.join(fc.ws as never, 7, 42, 'Returning', 'warrior', state as never);
     if ('error' in session) throw new Error(session.error);
-    // The batch insert is held: Steam must wait behind it on the FIFO tail.
+    // The batch insert is held: storefront reconciles must wait behind it on
+    // the FIFO tail.
     await new Promise((resolve) => setImmediate(resolve));
     expect(order).toEqual([]);
     expect(reconcileOnLoginMock).not.toHaveBeenCalled();
+    expect(reconcileEpicOnLoginMock).not.toHaveBeenCalled();
     releaseInsert();
     await settle();
-    expect(order).toEqual(['insert', 'steam']);
+    expect(order).toEqual(['insert', 'steam', 'epic']);
     expect(reconcileOnLoginMock).toHaveBeenCalledTimes(1);
     expect(reconcileOnLoginMock).toHaveBeenCalledWith(7);
+    expect(reconcileEpicOnLoginMock).toHaveBeenCalledTimes(1);
+    expect(reconcileEpicOnLoginMock).toHaveBeenCalledWith(7);
   });
 });

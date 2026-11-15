@@ -1,20 +1,98 @@
+import { AUTHORED_TOWN_BUILDINGS } from './authored_town_registry';
+import { attachPendingBuddy, grantBuddy } from './buddies';
+import { applyCourserDaze } from './combat/hunter_shared';
+import { BUDDY_KEYS } from './content/buddies';
 import { DEV_KIT_ROLES, devKitRole } from './content/dev_kit_roles';
+import { MOUNT_SKIN_IDS } from './content/mount_skins';
+import { MOUNT_KEYS } from './content/mounts';
 import { GATHERING_PROFESSIONS } from './content/professions';
-import { DUNGEONS, ITEMS, MOBS } from './data';
+import { DUNGEONS, getActiveWorldContent, ITEMS, MOBS, NPCS, WORLD_QUESTS_BY_ID } from './data';
+import { isBalgathDevLootCommand, runBalgathDevLoot } from './dev/balgath_dev_loot';
+import {
+  BALGATH_DEV_MECHANICS,
+  balgathDevHelp,
+  balgathDevSlumber,
+  forceBalgathDevMechanic,
+  parseBalgathDevCommand,
+} from './dev/balgath_dev_mechanics';
+import { parseBalgathQuestDevCommand, runBalgathQuestDev } from './dev/balgath_dev_quests';
+import { equipBestInSlotForDev } from './dev/bis_gear';
+import {
+  parseServerTimeCommand,
+  restoreServerTime,
+  setServerTimePhase,
+} from './dev/day_night_override';
+import { displacePlayerForDev } from './dev/dev_displace';
+import { handleDrownedTempleDevChat } from './dev/drowned_temple_dev';
+import { handleFerryDevChat } from './dev/ferry_dev';
+import { handleGravewyrmSanctumDevChat } from './dev/gravewyrm_sanctum_dev';
+import { handleDevHoardTravel } from './dev/hoard_travel';
+import { handleHollowCryptDevChat } from './dev/hollow_crypt_dev';
+import { spawnDevPvpBot } from './dev/pvp_bot';
+import { handleSunkenBastionDevChat } from './dev/sunken_bastion_dev';
+import { devTownLanding, devTownList, resolveDevTown } from './dev/town_teleport';
+import { handleTrashEngineDevChat } from './dev/trash_engine_dev';
+import { prepareWeeklyVaultPlaytest } from './dev/weekly_vault_playtest';
+import { handleWildheartBasinDevChat } from './dev/wildheart_basin_dev';
+import { handleDevClueCommand } from './dev_clue_scrolls';
 import { applyDevKit } from './dev_kit';
-import { createMob } from './entity';
-import { enterDungeon } from './instances/dungeons';
+import { handleDevTreasureMapCommand } from './dev_treasure_map';
+import { armWeeklyQuestForDev } from './dev_weekly_quest';
+import { armWorldQuestForDev, listWorldQuestsForDev } from './dev_world_quest';
+import { armWorldQuestCannonForDev } from './dev_world_quest_cannon';
+import { armWorldQuestCaravanForDev } from './dev_world_quest_caravan';
+import { armDailyWorldQuestForDev } from './dev_world_quest_daily';
+import { armWorldQuestForgingForDev } from './dev_world_quest_forging';
+import { armWorldQuestGliderForDev } from './dev_world_quest_glider';
+import { armWorldQuestInvestigationForDev } from './dev_world_quest_investigation';
+import { armWorldQuestShadowForDev } from './dev_world_quest_shadow';
+import { armWorldQuestTracingForDev } from './dev_world_quest_tracing';
+import { armWorldQuestWispMazeForDev } from './dev_world_quest_wisp_maze';
+import { createGroundObject } from './entity';
+import { awardFactionReputation, FACTION_IDS } from './factions';
+import {
+  ignivarDevRaidTravelRoster,
+  setupIgnivarDevRaid,
+  stageIgnivarDevRaidAtApproach,
+} from './ignivar_dev_raid';
+import { IGNIVAR_FORGE_APPROACH_ID, IGNIVAR_RAID_ARENA_ID } from './ignivar_raid_ids';
+import { enterDungeon, instanceInfoAt } from './instances/dungeons';
+import { spawnOpenWorldMob } from './mob/open_world_tuning';
+import { mountItemId, mountOwned } from './mounts';
+import { MOUNT_TRAIN_MIN_LEVEL } from './mounts_training';
+import {
+  isNythraxisDevMechanic,
+  pokeNythraxisDevMechanic,
+  setupNythraxisDevRaid,
+} from './nythraxis_dev_raid';
 import { isGatheringProfessionId, queueGatheringGrant } from './professions/gathering';
 import { placeMobileStationForPlayer } from './professions/mobile_station';
+import { endHillNow, riseHillNow, spawnHillNow, warnNextHillNow } from './pvp/hill';
+import { HILL_DEV_USAGE, isHillDevCommand, parseHillDevCommand } from './pvp/hill_dev';
 import { completeAllQuestsForDev } from './quests/dev_quest_commands';
+import { riftFx } from './rift/fx';
+import { RIFT_RANK_BASE_LEVEL, riftRankForBaseLevel } from './rift/ranks';
+import { generateRiftFloor, generateRiftPlan, isSetPieceSeed } from './rift/rift_gen';
+import { handleScarecrowDevChat, handleSeasonalDevChat } from './seasonal';
 import type { SentChat } from './sim';
 import type { SimContext } from './sim_context';
+import { bgQueueJoin, bgQueueSize, devEndBg, devStartBg } from './social/battleground';
 import { revivePlayerAt } from './spirit';
-import { MAX_LEVEL } from './types';
+import { MAX_LEVEL, type RiftTier } from './types';
+import { setupVarkhulDevRaid } from './varkhul_dev_raid';
+import { recordWeeklyPvpWin } from './weekly_rewards';
+import {
+  worldQuestCycleOfferingQuest,
+  worldQuestPuzzleVariantForCycle,
+} from './world_quest_rotation';
+
+/** /dev healing faces the middle of the healing dummy row from its teleport spot. */
+const HEALING_TRAINING_DEV_FACING = Math.atan2(-39 - -36, -76 - -82);
 
 const MAX_DEV_SPAWNS = 20;
 const DEV_SPAWN_RADIUS = 4;
 const DEV_SPAWN_RING_SIZE = 8;
+const MAX_ORDINARY_RIFT_SEED = 1_000_000_000;
 
 function clampInteger(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.floor(value)));
@@ -45,7 +123,7 @@ export function spawnMobsForDev(
       player.pos.x + Math.sin(angle) * radius,
       player.pos.z + Math.cos(angle) * radius,
     );
-    const mob = createMob(ctx.nextId++, template, level, pos);
+    const mob = spawnOpenWorldMob(ctx.nextId++, template, level, pos);
     mob.devSpawnOwnerId = pid;
     ctx.addEntity(mob);
     ids.push(mob.id);
@@ -89,6 +167,7 @@ export function resetCombatForDev(ctx: SimContext, pid: number): void {
   player.queuedOnSwing = null;
   player.queuedCastAbility = null;
   player.queuedCastAim = null;
+  player.queuedCastTargetId = null;
 
   for (const entity of ctx.entities.values()) {
     if (entity.kind !== 'mob') continue;
@@ -122,6 +201,20 @@ export function handleDevChat(
   raw: string,
   pid: number,
 ): SentChat | null | undefined {
+  const weeklyVaultMatch = /^\/dev\s+weeklyvault(?:\s+(rollover))?\s*$/i.exec(raw);
+  if (weeklyVaultMatch) {
+    prepareWeeklyVaultPlaytest(ctx, pid, !!weeklyVaultMatch[1]);
+    return null;
+  }
+  if (handleFerryDevChat(ctx, raw, pid)) return null; // /dev ferry (dev/ferry_dev.ts)
+  if (handleSeasonalDevChat(ctx, raw, pid)) return null; // /dev season (seasonal/seasonal_dev.ts)
+  if (handleScarecrowDevChat(ctx, raw, pid)) return null; // /dev scarecrow (seasonal/scarecrow_dev.ts)
+  if (handleHollowCryptDevChat(ctx, raw, pid)) return null; // /dev crypt (dev/hollow_crypt_dev.ts)
+  if (handleSunkenBastionDevChat(ctx, raw, pid)) return null; // /dev bastion (dev/sunken_bastion_dev.ts)
+  if (handleDrownedTempleDevChat(ctx, raw, pid)) return null; // /dev temple (dev/drowned_temple_dev.ts)
+  if (handleWildheartBasinDevChat(ctx, raw, pid)) return null; // /dev wildheart (dev/wildheart_basin_dev.ts)
+  if (handleGravewyrmSanctumDevChat(ctx, raw, pid)) return null; // /dev sanctum (dev/gravewyrm_sanctum_dev.ts)
+  if (handleTrashEngineDevChat(ctx, raw, pid)) return null; // /dev trashkit (dev/trash_engine_dev.ts)
   const levelMatch = /^\/(?:dev\s+level|devlevel)\s+(\d+)\s*$/i.exec(raw);
   if (levelMatch) {
     const level = Number(levelMatch[1]);
@@ -136,12 +229,299 @@ export function handleDevChat(
   if (teleportMatch) {
     const entity = ctx.entities.get(pid);
     if (entity) {
-      const pos = ctx.groundPos(Number(teleportMatch[1]), Number(teleportMatch[2]));
-      entity.pos = pos;
-      entity.prevPos = { ...pos };
-      ctx.rebucket(entity);
+      const pos = displacePlayerForDev(
+        ctx,
+        entity,
+        Number(teleportMatch[1]),
+        Number(teleportMatch[2]),
+      );
       emitDevLog(ctx, pid, `[dev] Teleported to ${pos.x.toFixed(1)}, ${pos.z.toFixed(1)}.`);
     }
+    return null;
+  }
+
+  if (/^\/(?:dev\s+salvage|devsalvage)\s*$/i.test(raw)) {
+    const meta = ctx.players.get(pid);
+    const quest = WORLD_QUESTS_BY_ID.wq_farshore_salvage;
+    const rotation = ctx.currentWorldQuestRotation();
+    const devCycle = worldQuestCycleOfferingQuest(rotation.cycle, quest?.id ?? '');
+    if (!meta || !quest || quest.objective.type !== 'salvage' || !devCycle) {
+      ctx.error(pid, '[dev] Shipwreck salvage is unavailable in this host.');
+      return null;
+    }
+    meta.devWorldQuestCycle = devCycle;
+    if (meta.worldQuestCycle !== devCycle) {
+      meta.worldQuestCycle = devCycle;
+      meta.worldQuestLog.clear();
+      meta.worldQuestAreas.clear();
+    }
+    // Keep the calendar's current weekly layout even when the dev command must
+    // project a nearby offer cycle so the online client's active-id filter admits it.
+    const variant = worldQuestPuzzleVariantForCycle(rotation.cycle, quest.objective.layouts.length);
+    meta.worldQuestLog.set(quest.id, {
+      questId: quest.id,
+      count: 0,
+      state: 'active',
+      puzzleVariant: variant,
+    });
+    meta.worldQuestAreas.delete(quest.id);
+    meta.wireRev++;
+    ctx.setPlayerLevel(Math.max(quest.minLevel, ctx.entities.get(pid)?.level ?? 1), pid);
+    ctx.emit({ type: 'worldQuestStarted', questId: quest.id, pid });
+    emitDevLog(ctx, pid, '[dev] Shipwreck salvage armed. Use /dev tp 320 103 (beside the wreck).');
+    return null;
+  }
+
+  if (/^\/dev\s+shadow\s*$/i.test(raw)) {
+    armWorldQuestShadowForDev(ctx, pid);
+    return null;
+  }
+  const caravanMatch = /^\/(?:dev\s+caravan|devcaravan)(?:\s+(\S+))?\s*$/i.exec(raw);
+  const cannonMatch = /^\/dev\s+cannon(?:\s+(wyrmwatch|last_keep))?\s*$/i.exec(raw);
+  if (/^\/dev\s+(?:infiltrator|investigation|amongus)\s*$/i.test(raw)) {
+    armWorldQuestInvestigationForDev(ctx, pid);
+    return null;
+  }
+  const gliderMatch = /^\/dev\s+(?:glider|slalom|windrider)(?:\s+(start))?\s*$/i.exec(raw);
+  if (gliderMatch) {
+    armWorldQuestGliderForDev(ctx, pid, Boolean(gliderMatch[1]));
+    return null;
+  }
+  const weeklyMatch = /^\/dev\s+weekly(?:\s+(credit))?\s*$/i.exec(raw);
+  if (weeklyMatch) {
+    armWeeklyQuestForDev(ctx, pid, Boolean(weeklyMatch[1]));
+    return null;
+  }
+  if (/^\/dev\s+forge\s*$/i.test(raw)) {
+    armWorldQuestForgingForDev(ctx, pid);
+    return null;
+  }
+  if (cannonMatch) {
+    armWorldQuestCannonForDev(ctx, pid, cannonMatch[1]?.toLowerCase());
+    return null;
+  }
+  if (/^\/dev\s+calligraphy\s*$/i.test(raw)) {
+    armWorldQuestTracingForDev(ctx, pid);
+    return null;
+  }
+  if (caravanMatch) {
+    armWorldQuestCaravanForDev(ctx, pid, (caravanMatch[1] ?? 'eastbrook').toLowerCase());
+    return null;
+  }
+
+  // /dev rep <rift_watch|church_order|automatons|all> <amount>: award faction
+  // standing the way a world-quest turn-in does (same level cap), so the
+  // quartermasters' standing gates can be exercised without the daily grind.
+  const repMatch = /^\/dev\s+rep\s+(\S+)\s+(\d+)\s*$/i.exec(raw);
+  if (repMatch) {
+    const meta = ctx.players.get(pid);
+    const player = ctx.entities.get(pid);
+    if (!meta || !player) return null;
+    const key = repMatch[1].toLowerCase();
+    const factionIds = key === 'all' ? FACTION_IDS : FACTION_IDS.filter((id) => id === key);
+    if (factionIds.length === 0) {
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Unknown faction "${repMatch[1]}": rift_watch, church_order, automatons or all.`,
+      );
+      return null;
+    }
+    for (const factionId of factionIds) {
+      const result = awardFactionReputation(meta, factionId, Number(repMatch[2]), player.level);
+      // Same full-pass mark the world-quest turn-in requests, so the standing
+      // deeds grant on the tick the cheat crosses a tier.
+      if (result.gained > 0) ctx.markDeedsDirty(pid);
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] ${factionId}: +${result.gained} standing, now ${result.total} (${result.tier})${
+          result.capped ? ', capped by level' : ''
+        }.`,
+      );
+    }
+    return null;
+  }
+
+  // /dev clue [hunt <huntId> | solve | casket]: the Clue Scroll playtest
+  // family (src/sim/dev_clue_scrolls.ts owns every arm).
+  const clueMatch = /^\/dev\s+clue(?:\s+(\S+))?(?:\s+(\S+))?\s*$/i.exec(raw);
+  if (clueMatch) {
+    handleDevClueCommand(ctx, pid, (clueMatch[1] ?? '').toLowerCase(), clueMatch[2] ?? '');
+    return null;
+  }
+
+  const hoardMatch = /^\/dev\s+hoard(?:\s+(\S+))?(?:\s+(\S+))?(?:\s+(\S+))?\s*$/i.exec(raw);
+  if (hoardMatch) {
+    handleDevHoardTravel(
+      ctx,
+      pid,
+      hoardMatch[1] ?? 'list',
+      hoardMatch[2] ?? '',
+      hoardMatch[3] ?? '',
+    );
+    return null;
+  }
+
+  // /dev map [rarity | site | coin <n>]: the treasure map playtest family.
+  const mapMatch = /^\/dev\s+map(?:\s+(\S+))?(?:\s+(\S+))?\s*$/i.exec(raw);
+  if (mapMatch) {
+    handleDevTreasureMapCommand(ctx, pid, (mapMatch[1] ?? '').toLowerCase(), mapMatch[2] ?? '');
+    return null;
+  }
+
+  const dailyWqMatch = /^\/dev\s+wq\s+(candy|ley)(?:\s+(.*?))?\s*$/i.exec(raw);
+  if (dailyWqMatch) {
+    armDailyWorldQuestForDev(ctx, pid, dailyWqMatch[1].toLowerCase(), dailyWqMatch[2] ?? '');
+    return null;
+  }
+  const gliderLevelMatch = /^\/dev\s+wq\s+glider(?:\s+(.*?))?\s*$/i.exec(raw);
+  if (gliderLevelMatch) {
+    armWorldQuestGliderForDev(ctx, pid, true, gliderLevelMatch[1] ?? '1');
+    return null;
+  }
+
+  const wispsMatch = /^\/dev\s+(?:wq\s+)?wisps(?:\s+(easy|normal|hard))?\s*$/i.exec(raw);
+  if (wispsMatch) {
+    armWorldQuestWispMazeForDev(
+      ctx,
+      pid,
+      wispsMatch[1]?.toLowerCase() as 'easy' | 'normal' | 'hard' | undefined,
+    );
+    return null;
+  }
+  const wqMatch = /^\/dev\s+wq(?:\s+(\S+))?\s*$/i.exec(raw);
+  if (wqMatch) {
+    const questKey = wqMatch[1];
+    if (!questKey) {
+      listWorldQuestsForDev(ctx, pid);
+    } else {
+      armWorldQuestForDev(ctx, pid, questKey);
+    }
+    return null;
+  }
+
+  // King of the Hill test levers (grammar in pvp/hill_dev.ts): stage a risen
+  // hill or a countdown and stand the caller on its rim, skip a countdown, end
+  // the hill, or run the real schedule's next hill now.
+  if (isHillDevCommand(raw)) {
+    const cmd = parseHillDevCommand(raw);
+    if (!cmd) {
+      emitDevLog(ctx, pid, HILL_DEV_USAGE);
+      return null;
+    }
+    if (cmd.kind === 'rise' || cmd.kind === 'end') {
+      const hill = cmd.kind === 'rise' ? riseHillNow(ctx) : endHillNow(ctx, recordWeeklyPvpWin);
+      emitDevLog(
+        ctx,
+        pid,
+        hill
+          ? `[dev] Hill in ${hill.zoneId} ${cmd.kind === 'rise' ? 'risen' : 'ended'}.`
+          : `[dev] No ${cmd.kind === 'rise' ? 'hill is counting down' : 'hill stands'}.`,
+      );
+      return null;
+    }
+    const hill =
+      cmd.kind === 'next'
+        ? warnNextHillNow(ctx, recordWeeklyPvpWin)
+        : spawnHillNow(ctx, cmd.zoneId, {
+            warn: cmd.kind === 'warn',
+            warningSeconds: cmd.kind === 'warn' ? cmd.seconds : undefined,
+          });
+    const entity = ctx.entities.get(pid);
+    if (!hill) {
+      emitDevLog(
+        ctx,
+        pid,
+        '[dev] No hill could rise there (no free-for-all zone, or no open ground).',
+      );
+    } else if (entity) {
+      const pos = displacePlayerForDev(ctx, entity, hill.x + hill.radius - 5, hill.z);
+      const what =
+        hill.phase === 'warning'
+          ? `announced (rises in ${Math.ceil(hill.risesAt - ctx.time)} s)`
+          : 'risen';
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Hill ${what} in ${hill.zoneId} at ${hill.x.toFixed(1)}, ${hill.z.toFixed(1)}; you stand at ${pos.x.toFixed(1)}, ${pos.z.toFixed(1)}.`,
+      );
+    }
+    return null;
+  }
+
+  if (/^\/(?:dev\s+healing|devhealing|healing)\s*$/i.test(raw)) {
+    const entity = ctx.entities.get(pid);
+    if (entity) {
+      // Behind the dummy row (content/healing_training.ts), clear of the quay cottage, with
+      // sight of every healing dummy and of Drillmaster Hale's own dummies; facing the middle one.
+      displacePlayerForDev(ctx, entity, -82, -36);
+      entity.facing = HEALING_TRAINING_DEV_FACING;
+      entity.prevFacing = HEALING_TRAINING_DEV_FACING;
+      if (entity.level < 20) {
+        ctx.setPlayerLevel(20, pid);
+      }
+      emitDevLog(
+        ctx,
+        pid,
+        '[dev] Teleported to the Healing Training Ground. Level 20 set for healing practice.',
+      );
+    }
+    return null;
+  }
+
+  // /dev town [name]: jump to a settlement by name ("/dev town eastbrook",
+  // "/dev town dawnrest camp", or a zone id). "/dev tp <name>" is an alias so
+  // the coordinate form and the named form share one verb. The destination
+  // set is CLOSED (every zone's hub record, nothing else), unknown names
+  // refuse without moving anyone, and no argument prints the list. Rides the
+  // same ctx.devCommands gate as every other branch here.
+  const townVerb = /^\/(?:dev\s+town|devtown)(?:\s+(.+?))?\s*$/i.exec(raw);
+  const townMatch = townVerb ?? /^\/(?:dev\s+tp|devtp)\s+(\S.*?)\s*$/i.exec(raw);
+  if (townMatch) {
+    const zones = getActiveWorldContent().zones;
+    const query = townMatch[1] ?? '';
+    if (!query.trim()) {
+      ctx.error(pid, `[dev] Towns: ${devTownList(zones)}. Usage: /dev town <name>.`);
+      return null;
+    }
+    // On the tp alias only, a numeric-looking argument is a half-typed
+    // coordinate pair, not a town name: answer with the tp usage rather than
+    // an unknown-town refusal. The town verb never guards, so a hub whose
+    // name slugs to digits stays reachable by name through /dev town.
+    if (!townVerb && /^[-+\d.\s]+$/.test(query)) {
+      ctx.error(pid, '[dev] Usage: /dev tp <x> <z>, or /dev tp <town> (/dev town <name>).');
+      return null;
+    }
+    const town = resolveDevTown(zones, query);
+    if (!town) {
+      ctx.error(pid, `[dev] Unknown town '${query.trim()}'. Towns: ${devTownList(zones)}.`);
+      return null;
+    }
+    const entity = ctx.entities.get(pid);
+    if (entity) {
+      // only the rebuilt towns' buildings this world actually stands
+      const standing = new Set(getActiveWorldContent().props.buildings.map((b) => b.id));
+      const landing = devTownLanding(
+        town,
+        AUTHORED_TOWN_BUILDINGS.filter((building) => standing.has(building.id)),
+      );
+      const pos = displacePlayerForDev(ctx, entity, landing.x, landing.z);
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Teleported to ${town.name} (${pos.x.toFixed(1)}, ${pos.z.toFixed(1)}).`,
+      );
+    }
+    return null;
+  }
+
+  const classicWqMatch =
+    /^\/dev\s+(eastbrook_bandits|hollow_sporelings|drakelands_brood|frostveil_howlers|amberfall_lurkers|willowfen_ore|nightbloom_barrow|wraithwood_restless|evergarden_watch|proving_shore_scuttlers)\s*$/i.exec(
+      raw,
+    );
+  if (classicWqMatch) {
+    armWorldQuestForDev(ctx, pid, classicWqMatch[1]);
     return null;
   }
 
@@ -184,12 +564,141 @@ export function handleDevChat(
     return null;
   }
 
+  if (/^\/(?:dev\s+daze|devdaze)\s*$/i.test(raw)) {
+    const player = ctx.entities.get(pid);
+    if (!player) return null;
+    applyCourserDaze(ctx, player);
+    emitDevLog(ctx, pid, "[dev] Applied the Courser's Guise daze (movement speed halved for 4s).");
+    return null;
+  }
+
+  if (/^\/(?:dev\s+fear|devfear)\s*$/i.test(raw)) {
+    // A movement-only test hook for the fear wall guard: it deliberately omits the
+    // breaksOnDamage / breakThreshold / DR handling a real cast fear sets, so the
+    // flee window is stable to watch. Do not "complete" it into a real fear.
+    const player = ctx.entities.get(pid);
+    if (!player) return null;
+    ctx.applyAura(player, {
+      id: 'fear_incap',
+      name: 'Fear',
+      kind: 'incapacitate',
+      remaining: 8,
+      duration: 8,
+      value: player.facing, // flee straight along your facing: aim at a wall to test the guard
+      sourceId: player.id,
+      school: 'shadow',
+    });
+    emitDevLog(
+      ctx,
+      pid,
+      '[dev] Feared for 8s along your facing. Face a wall to watch the guard steer you around it.',
+    );
+    return null;
+  }
+
   const giveMatch = /^\/(?:dev\s+give|devgive)\s+(\S+)(?:\s+(\d+))?\s*$/i.exec(raw);
   if (giveMatch) {
     const itemId = giveMatch[1];
     const count = clampInteger(Number(giveMatch[2] ?? 1), 1, 20);
     if (!ITEMS[itemId]) ctx.error(pid, `[dev] Unknown item '${itemId}'.`);
-    else ctx.addItem(itemId, count, pid);
+    else ctx.addItem(itemId, count, pid, { source: 'dev' });
+    return null;
+  }
+
+  if (/^\/(?:dev\s+mounts?|devmounts?)\s*$/i.test(raw)) {
+    const meta = ctx.players.get(pid);
+    const entity = ctx.entities.get(pid);
+    if (meta && entity) {
+      // Mounts have no per-mount level gate any more; the only level that still
+      // matters anywhere in the mount flow is the stablemaster's level-20 buy gate.
+      const maxGate = 20;
+      const leveled = entity.level < maxGate;
+      if (leveled) ctx.setPlayerLevel(maxGate, pid);
+      meta.ridingTrained = true;
+      let granted = 0;
+      for (const key of MOUNT_KEYS) {
+        if (mountOwned(meta, key)) continue;
+        const itemId = mountItemId(key);
+        if (!itemId) continue;
+        ctx.addItem(itemId, 1, pid);
+        granted += 1;
+      }
+      const levelNote = leveled ? `, level raised to ${maxGate} for the riding gate` : '';
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Granted ${granted} mount reins (${MOUNT_KEYS.length} owned)${levelNote}. Use a reins item from your bags to ride.`,
+      );
+    }
+    return null;
+  }
+
+  // /dev buddies: collect every companion outright.
+  if (/^\/(?:dev\s+buddi?es?|devbuddi?es?)\s*$/i.test(raw)) {
+    let granted = 0;
+    for (const key of BUDDY_KEYS) if (grantBuddy(ctx, pid, key)) granted += 1;
+    emitDevLog(
+      ctx,
+      pid,
+      `[dev] Collected ${granted} buddies (${BUDDY_KEYS.length} in the catalog). Summon one from the Buddies tab in Cosmetics.`,
+    );
+    return null;
+  }
+  // /dev buddy <key>: stage ONE companion as a boss-roll win at your feet, so
+  // the presence line and the walk-away reveal can be watched end to end.
+  const buddyMatch = /^\/dev\s+buddy\s+([a-z_]+)\s*$/i.exec(raw);
+  if (buddyMatch) {
+    const e = ctx.entities.get(pid);
+    const key = buddyMatch[1].toLowerCase();
+    if (!e || !(BUDDY_KEYS as readonly string[]).includes(key)) {
+      emitDevLog(ctx, pid, `[dev] Unknown buddy key: ${key}`);
+      return null;
+    }
+    const staged = attachPendingBuddy(ctx, pid, key, 'world', { x: e.pos.x, z: e.pos.z });
+    emitDevLog(
+      ctx,
+      pid,
+      staged
+        ? `[dev] ${key} is watching you. Walk 80 yards away and it will reveal itself.`
+        : `[dev] ${key} is already collected or already pending.`,
+    );
+    return null;
+  }
+  // Grant every catalog mount skin to the (offline, session-local) account
+  // cosmetics so the Cosmetics window can be exercised without the store.
+  // Server-side the session cosmetics are the authority, so this only ever
+  // affects the offline Sim's own mirror.
+  if (/^\/(?:dev\s+mountskins?|devmountskins?)\s*$/i.test(raw)) {
+    const owned = new Set(ctx.accountCosmetics.mountSkinIds);
+    for (const id of MOUNT_SKIN_IDS) owned.add(id);
+    ctx.accountCosmetics = { ...ctx.accountCosmetics, mountSkinIds: [...owned] };
+    emitDevLog(
+      ctx,
+      pid,
+      `[dev] Granted ${MOUNT_SKIN_IDS.length} mount skins to the account. Wear one from the Cosmetics screen.`,
+    );
+    return null;
+  }
+
+  if (/^\/(?:dev\s+(?:mountquest|startmount)|devmountquest)\s*$/i.test(raw)) {
+    const meta = ctx.players.get(pid);
+    const entity = ctx.entities.get(pid);
+    const marla = NPCS.stablemaster_marla;
+    if (meta && entity && marla) {
+      const gate = MOUNT_TRAIN_MIN_LEVEL;
+      const leveled = entity.level < gate;
+      if (leveled) ctx.setPlayerLevel(gate, pid);
+      meta.copper += 100 * 10000;
+      // Every dev teleport runs the one displacement (the same call /dev tp
+      // and /dev town make above), session teardown included.
+      displacePlayerForDev(ctx, entity, marla.pos.x + 2, marla.pos.z + 1);
+      const levelNote = leveled ? `level ${gate}, ` : '';
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] ${levelNote}100g added, teleported to the Highwatch Stables. Talk to Stablemaster Marla to begin the riding lesson.`,
+      );
+    }
     return null;
   }
 
@@ -261,6 +770,83 @@ export function handleDevChat(
     return null;
   }
 
+  // Farming grow-now: bring a growing plot's deadline forward to right now, so
+  // a whole plant-grow-harvest cycle is walkable (and testable) without waiting
+  // out a real crop duration. WRITES STATE AND DRAWS NOTHING: it moves
+  // readyAtMs only, leaving plantedAtMs and the hidden pre-rolled outcome slots
+  // (survivalRoll, yieldSeed) exactly as plant time left them. That is the
+  // whole point, and it is load-bearing beyond convenience: the growth script
+  // is rolled ONCE at plant time, so "grow now" and "wait it out" must resolve
+  // to the identical harvest. The parity scenario states that equivalence, and
+  // the ready-notice and journal phases lean on this cheat to reach a ready
+  // plot in one step.
+  //
+  // A plot already at or past its deadline is left ALONE rather than restamped:
+  // it is already ready, and rewriting a settled timestamp would be a state
+  // change that buys nothing. With a bed argument the lookup is against the
+  // CALLER'S OWN plots, not FARM_BED_IDS: a perfectly real bed with nothing
+  // planted in it is the interesting refusal, and a bed allowlist would answer
+  // "fine" to it.
+  const farmGrowMatch = /^\/(?:dev\s+farmgrow|devfarmgrow)(?:\s+(\S+))?\s*$/i.exec(raw);
+  if (farmGrowMatch) {
+    const meta = ctx.players.get(pid);
+    if (!meta) return null;
+    const bedId = farmGrowMatch[1];
+    // The write-side anchor rule's third statement (plantCrop floors its
+    // plant time and the loader floors its re-anchor the same way): an
+    // unfloored 0 from a fresh never-ticked offline Sim would write a
+    // readyAtMs the loader's positivity arm destroys as tampered.
+    const nowMs = Math.max(ctx.lockoutNowMs(), 1);
+    if (bedId !== undefined) {
+      const plot = meta.farmPlots.get(bedId);
+      if (!plot) {
+        ctx.error(pid, `[dev] No plot on bed '${bedId}'.`);
+        return null;
+      }
+      if (plot.readyAtMs > nowMs) {
+        plot.readyAtMs = nowMs;
+        emitDevLog(ctx, pid, `[dev] Bed ${bedId} is ready.`);
+      } else {
+        // Honest no-work reply, matching the all-plots arm's advanced count: a
+        // settled plot is left alone, and its pre-rolled outcome may well be
+        // withered, so claiming "is ready" here could mislead a dev testing
+        // wither flows.
+        emitDevLog(ctx, pid, `[dev] Bed ${bedId} was already settled; nothing to advance.`);
+      }
+      return null;
+    }
+    if (meta.farmPlots.size === 0) {
+      ctx.error(pid, '[dev] You have no planted beds.');
+      return null;
+    }
+    let advanced = 0;
+    for (const plot of meta.farmPlots.values()) {
+      if (plot.readyAtMs <= nowMs) continue;
+      plot.readyAtMs = nowMs;
+      advanced++;
+    }
+    emitDevLog(
+      ctx,
+      pid,
+      `[dev] Advanced ${advanced} farm plot${advanced === 1 ? '' : 's'} to ready (${meta.farmPlots.size} planted).`,
+    );
+    return null;
+  }
+
+  const pvpBotMatch = /^\/(?:dev\s+pvpbot|devpvpbot)(?:\s+(\S+))?\s*$/i.exec(raw);
+  if (pvpBotMatch) {
+    const botName = pvpBotMatch[1] ?? 'Sparring';
+    const spawned = spawnDevPvpBot(ctx, pid, botName);
+    if ('error' in spawned) ctx.error(pid, spawned.error);
+    else
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Spawned ${botName}: flagged for World PvP, your level, 10g in its purse. Raise your own flag with /pvp on contested ground, then kill it and loot the body.`,
+      );
+    return null;
+  }
+
   const botMatch = /^\/(?:dev\s+bot|devbot)\s+(\S+)\s*$/i.exec(raw);
   if (botMatch) {
     const botName = botMatch[1];
@@ -270,12 +856,88 @@ export function handleDevChat(
     return null;
   }
 
+  if (/^\/(?:dev\s+bg|devbg)\s+end\s*$/i.test(raw)) {
+    // End the caller's live match early, resolving on the current score (ties
+    // draw) through the normal result screen + release flow.
+    if (devEndBg(ctx, pid))
+      emitDevLog(ctx, pid, '[dev] Thornhollow Fields resolved early on score.');
+    else ctx.error(pid, '[dev] You are not in an unresolved battleground.');
+    return null;
+  }
+
+  if (/^\/(?:dev\s+bg|devbg)\s*$/i.test(raw)) {
+    if (ctx.bgMatches.has(pid)) {
+      ctx.error(pid, '[dev] You are already in a battleground.');
+      return null;
+    }
+    bgQueueJoin(ctx, pid, { bypassLevel: true });
+    // The join can still refuse (an arena match, an oversize party, queueing a
+    // party you do not lead); it already told the caller why, so bail before
+    // padding leaks a bot. Dying and standing inside a dungeon are no longer
+    // among them: a queue now survives both.
+    if (!ctx.bgQueue.some((g) => g.pids.includes(pid))) return null;
+    if (bgQueueSize(ctx) < 2) {
+      // Solo walk-around: pad the queue with one stationary dev bot (reusing an
+      // idle one if a previous /dev bg left it behind) so the force-start below
+      // has an opposing side. Partied bots stay untouched: queueing one would
+      // drag its whole party in.
+      let botPid = -1;
+      for (const meta of ctx.players.values()) {
+        const id = meta.entityId;
+        const e = ctx.entities.get(id);
+        if (meta.isDevBot && e && !e.dead && !ctx.bgMatches.has(id) && !ctx.partyOf(id)) {
+          botPid = id;
+          break;
+        }
+      }
+      // The suffix loop only exists to step past name collisions with
+      // player-spawned "/dev bot" dummies; nine tries is plenty.
+      for (let i = 1; i <= 9 && botPid < 0; i++)
+        botPid = ctx.spawnDevBot(i === 1 ? 'Riftbot' : `Riftbot${i}`);
+      if (botPid >= 0) bgQueueJoin(ctx, botPid, { bypassLevel: true });
+    }
+    devStartBg(ctx);
+    const match = ctx.bgMatches.get(pid);
+    if (match) {
+      const count = match.teams[0].length + match.teams[1].length;
+      emitDevLog(ctx, pid, `[dev] Thornhollow Fields force-started with ${count} champions.`);
+    } else {
+      ctx.error(
+        pid,
+        '[dev] Could not force-start Thornhollow Fields (needs 2 queued players and a free slot).',
+      );
+    }
+    return null;
+  }
+
   if (/^\/(?:dev\s+vendor|devvendor)\s*$/i.test(raw)) {
     const vendorId = ctx.spawnDevVendor(pid);
     if (vendorId < 0) ctx.error(pid, '[dev] Could not spawn the test vendor.');
     else {
       emitDevLog(ctx, pid, '[dev] Spawned the Test Quartermaster (free epic gear) next to you.');
     }
+    return null;
+  }
+
+  const bisMatch = /^\/(?:dev\s+bis|devbis)(?:\s+(\S+))?\s*$/i.exec(raw);
+  if (bisMatch) {
+    const meta = ctx.players.get(pid);
+    if (!meta) return null;
+    const spec = bisMatch[1] ?? meta.talents.spec ?? null;
+    if (spec && !devKitRole(meta.cls, spec)) {
+      const known = (DEV_KIT_ROLES[meta.cls] ?? []).map((role) => role.spec).join(', ');
+      ctx.error(pid, `[dev] '${spec}' is not a ${meta.cls} spec. Try: ${known}.`);
+      return null;
+    }
+    const equipped = equipBestInSlotForDev(ctx, pid, spec ?? undefined);
+    if (equipped === 0) ctx.error(pid, '[dev] Could not outfit best-in-slot gear.');
+    else if (spec) {
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Equipped the top-parse ${meta.cls} ${spec} loadout: ${equipped} pieces.`,
+      );
+    } else emitDevLog(ctx, pid, `[dev] Equipped ${equipped} best-in-slot epic pieces.`);
     return null;
   }
 
@@ -310,10 +972,14 @@ export function handleDevChat(
     const craftId = mobileStationMatch[1].toLowerCase();
     const station = placeMobileStationForPlayer(ctx, craftId, pid);
     if (!station) {
-      ctx.error(
-        pid,
-        `[dev] Could not place a mobile ${craftId} station (specialization required).`,
-      );
+      // The module's dead gate already printed the real reason for a dead
+      // caller; the specialization line would state the wrong one on top.
+      if (!ctx.resolve(pid)?.e.dead) {
+        ctx.error(
+          pid,
+          `[dev] Could not place a mobile ${craftId} station (specialization required).`,
+        );
+      }
     } else {
       const minutes = Math.round((station.expiresAtTick - station.placedAtTick) / (20 * 60));
       emitDevLog(ctx, pid, `[dev] Mobile ${craftId} station placed here for ${minutes} minutes.`);
@@ -355,8 +1021,9 @@ export function handleDevChat(
     }
     const difficulty = dungeonMatch[2]?.toLowerCase() === 'heroic' ? 'heroic' : 'normal';
     ctx.setDungeonDifficulty(difficulty, pid);
-    enterDungeon(ctx, dungeonId, pid, true);
-    emitDevLog(ctx, pid, `[dev] Entering ${dungeonId} (${difficulty}).`);
+    if (enterDungeon(ctx, dungeonId, pid, true)) {
+      emitDevLog(ctx, pid, `[dev] Entering ${dungeonId} (${difficulty}).`);
+    }
     return null;
   }
 
@@ -376,11 +1043,177 @@ export function handleDevChat(
     return null;
   }
 
+  // [dev] Spawn a procedural rift portal in front of the player. Each invocation
+  // rolls a fresh seed (so every portal opens a different, infinite dungeon) unless
+  // one is supplied for reproducibility. An optional rank letter selects the
+  // DIFFICULTY: it maps to that rank's canonical baseLevel (RIFT_RANK_BASE_LEVEL),
+  // overriding an explicit level, so what spawns inside always matches the badge.
+  // Without a letter, the badge derives from the (explicit or player) level via
+  // the same inversion every difficulty consumer uses; the badge can never lie.
+  // A trailing kind token forces the DUNGEON TYPE:
+  // /dev portal [seed] [level] [C|B|A|S] [infernal|random].
+  //
+  // The kind is not a wire field: it SEARCHES for a seed of the requested kind
+  // (isSetPieceSeed is a pure function of the seed), so the descriptor stays
+  // {seed, baseLevel, floorIndex, origin} and every client regenerates the same
+  // dungeon from it. A supplied seed of the wrong kind is advanced, with a notice.
+  const portalMatch =
+    /^\/(?:dev\s+portal|devportal)(?:\s+(\d+))?(?:\s+(\d+))?(?:\s+([CBAScbas]))?(?:\s+(infernal|citadel|random|procedural))?\s*$/i.exec(
+      raw,
+    );
+  if (portalMatch) {
+    const e = ctx.entities.get(pid);
+    if (!e) return null;
+    const suppliedSeed = portalMatch[1] ? Number(portalMatch[1]) : null;
+    if (
+      suppliedSeed !== null &&
+      (!Number.isSafeInteger(suppliedSeed) ||
+        suppliedSeed < 1 ||
+        suppliedSeed > MAX_ORDINARY_RIFT_SEED)
+    ) {
+      ctx.error(pid, `[dev] Portal seed must be between 1 and ${MAX_ORDINARY_RIFT_SEED}.`);
+      return null;
+    }
+    let seed = suppliedSeed ?? ctx.rng.int(1, MAX_ORDINARY_RIFT_SEED);
+    const kind = portalMatch[4]?.toLowerCase();
+    if (kind) {
+      const wantSetPiece = kind === 'infernal' || kind === 'citadel';
+      const start = seed;
+      for (let i = 0; i < 10_000 && isSetPieceSeed(seed) !== wantSetPiece; i++) {
+        seed = (seed + 1) >>> 0;
+      }
+      if (isSetPieceSeed(seed) !== wantSetPiece) {
+        ctx.error(pid, '[dev] Found no seed of that kind. Try again.');
+        return null;
+      }
+      if (seed !== start) {
+        ctx.emit({
+          type: 'log',
+          text: `[dev] Seed ${start} is not ${wantSetPiece ? 'infernal' : 'procedural'}; using ${seed}.`,
+          color: '#b9f',
+          pid,
+        });
+      }
+    }
+    const forcedTier = portalMatch[3] ? (portalMatch[3].toUpperCase() as RiftTier) : null;
+    const baseLevel = forcedTier
+      ? RIFT_RANK_BASE_LEVEL[forcedTier]
+      : Math.max(1, Math.min(60, portalMatch[2] ? Number(portalMatch[2]) : e.level));
+    const tier: RiftTier = forcedTier ?? riftRankForBaseLevel(Math.round(baseLevel));
+    const d = 5;
+    const px = e.pos.x + Math.sin(e.facing) * d;
+    const pz = e.pos.z + Math.cos(e.facing) * d;
+    const plan = generateRiftPlan(seed, baseLevel);
+    const portal = createGroundObject(ctx.nextId++, '', plan.name, ctx.groundPos(px, pz));
+    portal.templateId = 'rift_portal';
+    portal.objectItemId = null;
+    portal.lootable = true;
+    portal.riftSeed = seed;
+    portal.riftBaseLevel = baseLevel;
+    portal.riftTier = tier;
+    portal.facing = e.facing + Math.PI; // face back toward the player
+    portal.prevFacing = portal.facing;
+    ctx.addEntity(portal);
+    riftFx(ctx, portal.pos.x, portal.pos.z, 'arcane', 'burst', 'rift_portal_spawn');
+    ctx.emit({
+      type: 'log',
+      text: `[dev] Opened a ${tier}-rank portal to ${plan.name} (${plan.floorCount} floors, L${baseLevel}). Walk through it.`,
+      color: '#b9f',
+      pid,
+    });
+    return null;
+  }
+
+  // [dev] Spawn a portal whose FIRST floor is guaranteed to roll a specific
+  // headline mechanic, for testing the rift SFX pass without hunting seeds by
+  // hand: /dev riftmech <ice|roller|lava|gate> [level]. Iterates seeds (same
+  // approach as the /dev portal kind search above) checking generateRiftFloor's
+  // floor-0 plan until one matches, since exactly one headline mechanic rolls
+  // per floor (rift_gen.ts). Bails with an error after a bounded search rather
+  // than spinning forever on a level/mechanic combination that cannot roll.
+  const riftMechMatch =
+    /^\/(?:dev\s+riftmech|devriftmech)\s+(ice|roller|lava|gate)(?:\s+(\d+))?\s*$/i.exec(raw);
+  if (riftMechMatch) {
+    const e = ctx.entities.get(pid);
+    if (!e) return null;
+    const wantMech = riftMechMatch[1].toLowerCase();
+    const baseLevel = Math.max(
+      1,
+      Math.min(60, riftMechMatch[2] ? Number(riftMechMatch[2]) : e.level),
+    );
+    let seed = ctx.rng.int(1, 1_000_000_000) >>> 0;
+    let found = false;
+    for (let i = 0; i < 5000; i++) {
+      if (isSetPieceSeed(seed)) {
+        seed = (seed + 1) >>> 0;
+        continue;
+      }
+      const floor = generateRiftFloor(seed, baseLevel, 0);
+      const matches =
+        wantMech === 'ice'
+          ? floor.iceZone !== null
+          : wantMech === 'roller'
+            ? floor.rollers.length > 0
+            : wantMech === 'lava'
+              ? floor.hazards.length > 0
+              : floor.gate !== null;
+      if (matches) {
+        found = true;
+        break;
+      }
+      seed = (seed + 1) >>> 0;
+    }
+    if (!found) {
+      ctx.error(pid, `[dev] Found no ${wantMech} floor at L${baseLevel}. Try again.`);
+      return null;
+    }
+    const tier = riftRankForBaseLevel(Math.round(baseLevel));
+    const d = 5;
+    const px = e.pos.x + Math.sin(e.facing) * d;
+    const pz = e.pos.z + Math.cos(e.facing) * d;
+    const plan = generateRiftPlan(seed, baseLevel);
+    const portal = createGroundObject(ctx.nextId++, '', plan.name, ctx.groundPos(px, pz));
+    portal.templateId = 'rift_portal';
+    portal.objectItemId = null;
+    portal.lootable = true;
+    portal.riftSeed = seed;
+    portal.riftBaseLevel = baseLevel;
+    portal.riftTier = tier;
+    portal.facing = e.facing + Math.PI;
+    portal.prevFacing = portal.facing;
+    ctx.addEntity(portal);
+    riftFx(ctx, portal.pos.x, portal.pos.z, 'arcane', 'burst', 'rift_portal_spawn');
+    ctx.emit({
+      type: 'log',
+      text: `[dev] Opened a portal to ${plan.name} (L${baseLevel}); floor 1 has the ${wantMech} mechanic. Walk through it.`,
+      color: '#b9f',
+      pid,
+    });
+    return null;
+  }
+
+  // [dev] Toggle one-shot ("smite") mode: this player's every hit deletes any mob
+  // it lands on (see dealDamage). Handy for blasting through the giga-boss rifts.
+  if (/^\/(?:dev\s+(?:smite|oneshot|nuke)|devsmite)\s*$/i.test(raw)) {
+    const e = ctx.entities.get(pid);
+    if (e) {
+      e.oneShot = !e.oneShot;
+      ctx.emit({
+        type: 'log',
+        text: e.oneShot ? '[dev] Smite mode ON (one-shot everything).' : '[dev] Smite mode OFF.',
+        color: '#b9f',
+        pid,
+      });
+    }
+    return null;
+  }
+
   if (/^\/(?:dev\s+god|devgod)\s*$/i.test(raw)) {
     const entity = ctx.entities.get(pid);
     if (entity) {
       entity.devGod = !entity.devGod;
       if (entity.devGod) {
+        entity.profilerInvulnerable = false;
         entity.hp = entity.maxHp;
         entity.resource = entity.maxResource;
       }
@@ -389,10 +1222,287 @@ export function handleDevChat(
     return null;
   }
 
+  const freezeMatch = /^\/(?:dev\s+freezemobs|devfreezemobs)(?:\s+(on|off))?\s*$/i.exec(raw);
+  if (freezeMatch) {
+    // Sim-wide, unlike noaggro's per-player flag: the placer wants the whole
+    // pack statue-still, not just blind to one designer. Bare form toggles;
+    // an explicit on/off is idempotent so the placer can assert a state on
+    // open and close without tracking what the user toggled by hand.
+    const wanted = freezeMatch[1] ? freezeMatch[1].toLowerCase() === 'on' : undefined;
+    const frozen = ctx.setDevMobsFrozen(wanted);
+    emitDevLog(
+      ctx,
+      pid,
+      frozen
+        ? '[dev] Mobs FROZEN in place: no wander, no aggro, no swings (place freely).'
+        : '[dev] Mobs unfrozen: the world moves again.',
+    );
+    return null;
+  }
+
+  if (/^\/(?:dev\s+noaggro|devnoaggro)\s*$/i.test(raw)) {
+    const entity = ctx.entities.get(pid);
+    if (entity) {
+      entity.devNoAggro = !entity.devNoAggro;
+      emitDevLog(
+        ctx,
+        pid,
+        entity.devNoAggro
+          ? '[dev] No-aggro ON: mobs will not pull you (position them freely).'
+          : '[dev] No-aggro OFF.',
+      );
+    }
+    return null;
+  }
+
+  if (/^\/(?:dev\s+immortal|devimmortal)\s*$/i.test(raw)) {
+    const entity = ctx.entities.get(pid);
+    if (entity) {
+      entity.profilerInvulnerable = !entity.profilerInvulnerable;
+      if (entity.profilerInvulnerable) {
+        entity.devGod = false;
+        entity.hp = entity.maxHp;
+        entity.resource = entity.maxResource;
+      }
+      emitDevLog(
+        ctx,
+        pid,
+        entity.profilerInvulnerable
+          ? '[dev] Immortal mode ON (normal outgoing damage).'
+          : '[dev] Immortal mode OFF.',
+      );
+    }
+    return null;
+  }
+
+  const ignivarRaidMatch = raw.match(/^\/(?:dev\s+ignivarraid|devignivarraid)(?:\s+(boss))?\s*$/i);
+  if (ignivarRaidMatch) {
+    const player = ctx.entities.get(pid);
+    const currentRoom = player ? instanceInfoAt(ctx, player.pos)?.dungeonId : null;
+    const skipToBoss = ignivarRaidMatch[1]?.toLowerCase() === 'boss';
+    if (currentRoom === IGNIVAR_FORGE_APPROACH_ID && !skipToBoss) {
+      const result = stageIgnivarDevRaidAtApproach(ctx, pid);
+      if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+      else
+        emitDevLog(
+          ctx,
+          pid,
+          '[dev] Ignivar approach formation reset. Use /dev ignivarraid boss to move the practice raid directly to Ignivar.',
+        );
+      return null;
+    }
+    if (currentRoom !== IGNIVAR_RAID_ARENA_ID && !skipToBoss) {
+      ctx.setDungeonDifficulty('normal', pid);
+      if (!enterDungeon(ctx, IGNIVAR_RAID_ARENA_ID, pid, true)) return null;
+      const result = setupIgnivarDevRaid(ctx, pid);
+      if (!result.ok) {
+        ctx.error(pid, `[dev] ${result.message}`);
+        return null;
+      }
+      const raid = ctx.partyOf(pid);
+      if (!raid) {
+        ctx.error(pid, '[dev] The Ignivar test raid did not form.');
+        return null;
+      }
+      for (const memberId of raid.members) {
+        enterDungeon(ctx, IGNIVAR_FORGE_APPROACH_ID, memberId, true);
+      }
+      const staged = stageIgnivarDevRaidAtApproach(ctx, pid);
+      if (!staged.ok) {
+        ctx.error(pid, `[dev] ${staged.message}`);
+        return null;
+      }
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Ignivar raid ready: ${result.allies} stationary, invulnerable allies entered the Halls of the First Tempering in a spread formation. Defeat all five automaton packs to open the Herald gate, then use /dev ignivarraid again in Ignivar's room to place the soak pods. Use /dev ignivarraid boss to skip there now.`,
+      );
+      return null;
+    }
+    if (currentRoom !== IGNIVAR_RAID_ARENA_ID) {
+      if (currentRoom === null) ctx.setDungeonDifficulty('normal', pid);
+      const travelRoster = ignivarDevRaidTravelRoster(ctx, pid);
+      if (!travelRoster.ok) {
+        ctx.error(pid, `[dev] ${travelRoster.message}`);
+        return null;
+      }
+      for (const memberId of travelRoster.memberIds) {
+        if (!enterDungeon(ctx, IGNIVAR_RAID_ARENA_ID, memberId, true)) return null;
+      }
+    }
+    const result = setupIgnivarDevRaid(ctx, pid);
+    if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+    else {
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Ignivar raid ${result.reused ? 'reset' : 'ready'}: ${result.allies} stationary, invulnerable allies in spread soak pods. They stay outside Brand range; join the marked pod as the fourth Shared Pyre soaker. On Heroic, Chains of the Forge links all 10 players into five proximity pairs; stay within 10 yards of your partner, and never cross another pair's chain because it severs and kills the intruder.`,
+      );
+    }
+    return null;
+  }
+
+  // [dev] The solo Nythraxis practice raid: nine anchored, invulnerable bots
+  // spread across the hall so every mechanic has targets, then the mechanic
+  // pokes (src/sim/nythraxis_dev_raid.ts).
+  const nythraxisRaidMatch = raw.match(
+    /^\/(?:dev\s+nythraxisraid|devnythraxisraid)(?:\s+(normal|heroic))?\s*$/i,
+  );
+  if (nythraxisRaidMatch) {
+    const difficulty = nythraxisRaidMatch[1]?.toLowerCase() as 'normal' | 'heroic' | undefined;
+    const result = setupNythraxisDevRaid(ctx, pid, difficulty);
+    if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+    else {
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Nythraxis raid ${result.reused ? 'reset' : 'ready'} (${result.difficulty === 'heroic' ? 'Heroic' : 'Normal'}): ${result.allies} stationary, invulnerable allies spread across the hall. Pull him, then /dev nyx <curse|spike|eruption|sigil|rend|rage|storm|wards|phase2|phase3|enrage [sec]> forces a mechanic.`,
+      );
+    }
+    return null;
+  }
+  const nyxMatch = raw.match(/^\/(?:dev\s+nyx|devnyx)\s+([a-z0-9]+)(?:\s+(\d+))?\s*$/i);
+  if (nyxMatch) {
+    const verb = nyxMatch[1].toLowerCase();
+    if (!isNythraxisDevMechanic(verb)) {
+      ctx.error(
+        pid,
+        '[dev] Usage: /dev nyx <curse|spike|eruption|sigil|rend|rage|storm|wards|phase2|phase3|enrage [sec]>.',
+      );
+      return null;
+    }
+    const result = pokeNythraxisDevMechanic(
+      ctx,
+      pid,
+      verb,
+      nyxMatch[2] === undefined ? undefined : Number(nyxMatch[2]),
+    );
+    if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+    else emitDevLog(ctx, pid, `[dev] ${result.message}`);
+    return null;
+  }
+
+  // [dev] Balgath's spoils in your bags (src/sim/dev/balgath_dev_loot.ts).
+  if (isBalgathDevLootCommand(raw)) {
+    const result = runBalgathDevLoot(ctx, pid);
+    if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+    else emitDevLog(ctx, pid, `[dev] ${result.message}`);
+    return null;
+  }
+
+  // [dev] The muster's quest chain, solo (src/sim/dev/balgath_dev_quests.ts).
+  const balgathQuests = parseBalgathQuestDevCommand(raw);
+  if (balgathQuests) {
+    const result = runBalgathQuestDev(ctx, pid, balgathQuests);
+    if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+    else emitDevLog(ctx, pid, `[dev] ${result.message}`);
+    return null;
+  }
+
+  // [dev] Force one of Balgath's mechanics on the nearest live Balgath, aimed at the
+  // caller (src/sim/dev/balgath_dev_mechanics.ts).
+  const balgath = parseBalgathDevCommand(raw);
+  if (balgath) {
+    if (balgath.kind === 'help') emitDevLog(ctx, pid, balgathDevHelp());
+    else if (balgath.kind === 'unknown') {
+      ctx.error(
+        pid,
+        `[dev] Unknown Balgath mechanic '${balgath.verb}'. Usage: /dev balgath <${BALGATH_DEV_MECHANICS.join('|')}|wake|sleep|quests|trophy|weekly|drill|pound|loot|help>.`,
+      );
+    } else {
+      const result =
+        balgath.kind === 'slumber'
+          ? balgathDevSlumber(ctx, pid, balgath.action)
+          : forceBalgathDevMechanic(ctx, pid, balgath.mechanic);
+      if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+      else emitDevLog(ctx, pid, `[dev] ${result.message}`);
+    }
+    return null;
+  }
+
+  // [dev] Move the SERVER's day/night clock (src/sim/dev/day_night_override.ts).
+  const serverTime = parseServerTimeCommand(raw);
+  if (serverTime) {
+    if (serverTime === 'usage') {
+      ctx.error(pid, '[dev] Usage: /dev servertime day|night|dawn|dusk|<0..1>|auto.');
+    } else if (serverTime.kind === 'auto') {
+      const restored = restoreServerTime(ctx);
+      emitDevLog(
+        ctx,
+        pid,
+        restored
+          ? '[dev] Server day/night clock back on real time.'
+          : '[dev] The server day/night clock was already on real time.',
+      );
+    } else {
+      const mode = setServerTimePhase(ctx, serverTime.phase);
+      const flow =
+        mode === 'running'
+          ? 'it keeps running from there'
+          : 'this world had no clock, so it stays frozen there until the next /dev servertime';
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Server day/night clock set to ${serverTime.label} (phase ${serverTime.phase.toFixed(2)}); ${flow}. Your sky is drawn from your own clock: type /daynight ${serverTime.label} to match it. /dev servertime auto restores real time.`,
+      );
+    }
+    return null;
+  }
+
+  const varkhulRaidMatch = raw.match(
+    /^\/(?:dev\s+varkhulraid|devvarkhulraid)(?:\s+(normal|heroic))?\s*$/i,
+  );
+  if (varkhulRaidMatch) {
+    const difficulty = varkhulRaidMatch[1]?.toLowerCase() as 'normal' | 'heroic' | undefined;
+    const result = setupVarkhulDevRaid(ctx, pid, difficulty);
+    if (!result.ok) ctx.error(pid, `[dev] ${result.message}`);
+    else {
+      emitDevLog(
+        ctx,
+        pid,
+        `[dev] Varkhul raid ${result.reused ? 'reset' : 'ready'} (${result.difficulty === 'heroic' ? 'Heroic' : 'Normal'}): ${result.allies} stationary, invulnerable allies spread around the Inner Crucible. Use /dev varkhulraid normal or /dev varkhulraid heroic to rebuild the room at that difficulty.`,
+      );
+    }
+    return null;
+  }
+
   if (/^\/(?:dev\s+heal|devheal)\s*$/i.test(raw)) {
     const entity = ctx.entities.get(pid);
     if (entity && !entity.dead) entity.hp = entity.maxHp;
     emitDevLog(ctx, pid, '[dev] Health restored.');
+    return null;
+  }
+  const hpMatch = /^\/(?:dev\s+hp|devhp)\s+(\d+)\s*$/i.exec(raw);
+  if (hpMatch) {
+    const percent = clampInteger(Number(hpMatch[1]), 1, 100);
+    const player = ctx.entities.get(pid);
+    if (!player) return null;
+    const targeted = player.targetId === null ? null : ctx.entities.get(player.targetId);
+    // Never another tester's BODY: on a shared realm with dev commands enabled,
+    // this would be one tester rewriting another tester's fight. That covers
+    // their controlled pet too, which is a mob carrying their id as ownerId, not
+    // a player entity. Yourself, your own pet, or an unowned non-player body
+    // only, and a named-but-unusable target refuses rather than silently falling
+    // back to self (an automation caller whose target did not land would
+    // otherwise measure its own hp and never know).
+    const someoneElses =
+      !!targeted &&
+      ((targeted.kind === 'player' && targeted.id !== pid) ||
+        (targeted.ownerId !== null && targeted.ownerId !== pid));
+    if (targeted && (targeted.dead || someoneElses)) {
+      ctx.error(pid, '[dev] Target yourself, your own pet, or a living unowned body.');
+      return null;
+    }
+    const entity = targeted ?? (player.dead ? null : player);
+    if (!entity) {
+      ctx.error(pid, '[dev] No living target.');
+      return null;
+    }
+    // Sets hp directly: no threat, no damage event, no death check, and raising
+    // it does not rewind an encounter script that already advanced on the way
+    // down. A playtest cheat, not a combat path.
+    entity.hp = Math.max(1, Math.floor((entity.maxHp * percent) / 100));
+    emitDevLog(ctx, pid, `[dev] Set ${entity.name} to ${percent}% health.`);
     return null;
   }
   if (/^\/(?:dev\s+resource|devresource)\s*$/i.test(raw)) {
@@ -432,7 +1542,7 @@ export function handleDevChat(
   if (/^\/dev(?:\s|$)/i.test(raw)) {
     ctx.error(
       pid,
-      'Dev commands: /dev gui, /dev level, /dev tp, /dev spawn, /dev despawn, /dev killtarget, /dev give, /dev kit, /dev gold, /dev quest, /dev quests, /dev attune, /dev mobilestation, /dev gather, /dev bot, /dev vendor, /dev lfg, /dev cascade, /dev sandbox, /dev god, /dev heal, /dev resource, /dev cooldowns, /dev revive, /dev combatreset, /dev dungeon, /dev raid, /dev kill',
+      'Dev commands: /dev gui, /dev level, /dev tp, /dev town, /dev wq [name], /dev salvage, /dev clue [hunt <huntId>|solve|casket], /dev map [rarity|site|coin], /dev caravan, /dev calligraphy, /dev spawn, /dev despawn, /dev killtarget, /dev give, /dev kit, /dev mounts, /dev buddies, /dev buddy <key>, /dev mountquest, /dev gold, /dev quest, /dev quests, /dev attune, /dev mobilestation, /dev gather, /dev bot, /dev pvpbot [name], /dev vendor, /dev bg, /dev bis, /dev lfg, /dev portal [seed] [level] [C|B|A|S] [infernal|random], /dev cascade, /dev sandbox, /dev smite, /dev god, /dev noaggro, /dev freezemobs, /dev immortal, /dev ignivarraid [boss], /dev varkhulraid [normal|heroic], /dev nythraxisraid [normal|heroic], /dev nyx <mechanic> [sec], /dev balgath <mechanic|wake|sleep|quests|trophy|weekly|drill|pound|loot|help>, /dev scarecrow [rain|call|swell|burst|break|puppet|reset|lockout|wake|sleep], /dev servertime <day|night|dawn|dusk|0..1|auto>, /dev heal, /dev hp <1-100>, /dev resource, /dev cooldowns, /dev revive, /dev combatreset, /dev daze, /dev fear, /dev dungeon, /dev crypt [enter|tp|gates|kill|pack|spawn|reset], /dev bastion [enter|tp|gates|kill|pack|spawn|trigger|reset], /dev temple [enter|tp|gates|kill|pack|spawn|trigger|reset], /dev wildheart [enter|tp|gates|kill|pack|spawn|trigger|reset], /dev sanctum [enter|tp|gates|kill|pack|spawn|trigger|face|reset], /dev trashkit [demo|cast|wall|pool|split|freeze|brand|quench|clear], /dev raid, /dev kill, /dev hill [zone] | warn [zone] [seconds] | rise | end | next',
     );
     return null;
   }

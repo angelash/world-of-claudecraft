@@ -17,8 +17,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 const WINDOWS_POSTGRES_VERSION = '16.14';
-const WINDOWS_POSTGRES_BIN_URL =
-  'https://sbp.enterprisedb.com/getfile.jsp?fileid=1260308';
+const WINDOWS_POSTGRES_BIN_URL = 'https://sbp.enterprisedb.com/getfile.jsp?fileid=1260308';
 const SUPERUSER = 'postgres';
 const LOOPBACK_HOST = '127.0.0.1';
 
@@ -52,9 +51,7 @@ function parseDatabaseUrl(raw) {
   try {
     url = new URL(raw);
   } catch (error) {
-    throw new Error(
-      `DATABASE_URL must be a valid postgres:// URL, received: ${String(error)}`,
-    );
+    throw new Error(`DATABASE_URL must be a valid postgres:// URL, received: ${String(error)}`);
   }
   if (url.protocol !== 'postgres:' && url.protocol !== 'postgresql:') {
     throw new Error(`DATABASE_URL must use postgres:// or postgresql://, received ${url.protocol}`);
@@ -111,12 +108,8 @@ function runCommand(command, args, options = {}) {
   });
   if (result.error) throw result.error;
   if (!options.allowFailure && result.status !== 0) {
-    const detail = capture
-      ? `\n${(result.stderr || result.stdout || '').trim()}`
-      : '';
-    throw new Error(
-      `${path.basename(command)} exited with code ${result.status ?? 1}.${detail}`,
-    );
+    const detail = capture ? `\n${(result.stderr || result.stdout || '').trim()}` : '';
+    throw new Error(`${path.basename(command)} exited with code ${result.status ?? 1}.${detail}`);
   }
   return result;
 }
@@ -182,7 +175,9 @@ async function ensureWindowsBinaries(config) {
   const existing = findPostgresBinDir(config.installDir);
   if (existing) return existing;
   if (!config.windowsArchiveUrl) {
-    throw new Error('POSTGRES_WINDOWS_BIN_URL is required on Windows when PostgreSQL binaries are missing.');
+    throw new Error(
+      'POSTGRES_WINDOWS_BIN_URL is required on Windows when PostgreSQL binaries are missing.',
+    );
   }
   mkdirSync(config.rootDir, { recursive: true });
   mkdirSync(path.dirname(config.archivePath), { recursive: true });
@@ -394,15 +389,12 @@ export function getNativePostgresConfig() {
     installDir:
       process.env.POSTGRES_INSTALL_DIR?.trim() ||
       path.join(rootDir, 'install', `postgresql-${windowsVersion}`),
-    dataDir:
-      process.env.POSTGRES_DATA_DIR?.trim() || path.join(rootDir, 'data'),
-    logDir:
-      process.env.POSTGRES_LOG_DIR?.trim() || path.join(rootDir, 'log'),
+    dataDir: process.env.POSTGRES_DATA_DIR?.trim() || path.join(rootDir, 'data'),
+    logDir: process.env.POSTGRES_LOG_DIR?.trim() || path.join(rootDir, 'log'),
     archivePath:
       process.env.POSTGRES_WINDOWS_ARCHIVE?.trim() ||
       path.join(rootDir, 'downloads', `postgresql-${windowsVersion}-windows-x64-binaries.zip`),
-    windowsArchiveUrl:
-      process.env.POSTGRES_WINDOWS_BIN_URL?.trim() || WINDOWS_POSTGRES_BIN_URL,
+    windowsArchiveUrl: process.env.POSTGRES_WINDOWS_BIN_URL?.trim() || WINDOWS_POSTGRES_BIN_URL,
     windowsVersion,
     database: {
       username: parsed.username,
@@ -412,9 +404,7 @@ export function getNativePostgresConfig() {
       databaseName: parsed.databaseName,
     },
     passwordMismatch:
-      Boolean(parsed.password) &&
-      Boolean(envPassword) &&
-      parsed.password !== envPassword,
+      Boolean(parsed.password) && Boolean(envPassword) && parsed.password !== envPassword,
   };
 }
 
@@ -474,16 +464,7 @@ export async function stopNativePostgres(config = getNativePostgresConfig()) {
     console.log('[db] native PostgreSQL is already stopped');
     return false;
   }
-  runTool(binDir, 'pg_ctl', [
-    'stop',
-    '-D',
-    config.dataDir,
-    '-m',
-    'fast',
-    '-w',
-    '-t',
-    '60',
-  ]);
+  runTool(binDir, 'pg_ctl', ['stop', '-D', config.dataDir, '-m', 'fast', '-w', '-t', '60']);
   console.log('[db] native PostgreSQL stopped');
   return true;
 }

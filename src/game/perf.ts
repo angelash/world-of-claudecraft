@@ -1,12 +1,54 @@
 import type { NetPipelineSummary } from '../net/net_pipeline_stats';
 import { type AssetTimingSnapshot, assetTimingSnapshot } from '../render/assets/stats';
+import { frameLoadMs } from '../render/chosen_cadence';
+import { gpuTimerOverlayLines } from '../render/gpu_timer_probe_core';
+import { postRevealLinksSnapshot } from '../render/live_program_watch';
+import type { PostRevealLinksSnapshot } from '../render/post_reveal_links_core';
 import type { Renderer } from '../render/renderer';
-import { createHeapSawtooth, type HeapSawtoothSummary } from './heap_sawtooth';
+import {
+  censusTableLines,
+  type HitchSummary,
+  type SceneCensusReport,
+} from '../render/scene_census_core';
+import { type ShaderWarmAuditSnapshot, shaderWarmAuditSnapshot } from '../render/shader_warm_audit';
+import {
+  noteShaderWarmFrameMs,
+  type ShaderWarmSnapshot,
+  shaderWarmSnapshot,
+} from '../render/shader_warm_client';
+import { frameCadenceHealth, frameCadenceOverlayLine } from './frame_cadence_wiring';
+import {
+  createHeapSawtooth,
+  type HeapFloorTrend,
+  type HeapFloorValley,
+  type HeapSawtoothSummary,
+} from './heap_sawtooth';
+import {
+  createHitchForensics,
+  type HitchForensicsRecord,
+  type HitchForensicsState,
+} from './hitch_forensics';
+import type { PerfDiagnosticsPanel } from './perf_diagnostics_panel';
+import type { FrameHealthCadence } from './perf_frame_health_core';
+import { bindPerfPageVisibility } from './perf_page_visibility';
+import { NumberSampleRing, TimedNumberSampleRing } from './sample_ring';
 import { createWorstWindow, type WorstWindowSummary } from './worst_window';
 
 export interface PerfSnapshot {
   seconds: number;
+  // Wall seconds minus the hidden-time ledger (desktop window minimized, or a
+  // browser tab in the background): the fps denominator, shipped so a reader
+  // can tell a discounted session from a diluted one.
+  visibleSeconds: number;
   frames: number;
+  // Frames the desktop shell skipped because the window was hidden. These are
+  // deliberately NOT counted in `frames` or sampled into frameMs (a renderless
+  // frame would fake a healthy fps and p95), so this counter is the only
+  // evidence the skip is working.
+  hiddenPresentSkips: number;
+  // The chosen frame rate ceiling (frame_cadence_wiring.ts), or null when the
+  // display paces the frames: what the frame-health readers judge against.
+  cadence: FrameHealthCadence | null;
   fps: number;
   frameMs: { avg: number; p50: number; p95: number; p99: number; max: number; long50: number };
   windows: {
@@ -28,6 +70,28 @@ export interface PerfSnapshot {
   netPipeline: NetPipelineSummary | null;
   // Always-on 1 Hz heap sawtooth (ruling R10); null off Chromium.
   heapSawtooth: HeapSawtoothSummary | null;
+  // Always-on hitch forensics (same ruling family as R10): every ~5 s the
+  // monitor snapshots a compact state vector, and an interval whose worst
+  // frame crossed the hitch threshold stores the DIFF between its two
+  // bracketing snapshots, so a production hitch carries its own diagnosis.
+  hitchForensics: HitchForensicsRecord[];
+  // Always-on post-curtain program window (src/render/post_reveal_links_core.ts):
+  // how much three's program list grew in the first seconds after the reveal,
+  // the live-frame half of the prewarm's programsDelta. Null before the reveal.
+  postRevealLinks: PostRevealLinksSnapshot | null;
+  // The shader warm audit (src/render/shader_warm_audit.ts, `?perf` only): do
+  // the sources a gate dry-assembles at creation match what three links later.
+  // Local-only, never in the beacon payload (perf_reporter.ts builds it field
+  // by field). Under the flags the audit adds its own work to the frames and
+  // to the compile units the budget learns from; its `selfCostMs` says how
+  // much, so a capture taken with it on is read net of it, never compared
+  // raw to one taken without.
+  shaderWarmAudit: ShaderWarmAuditSnapshot;
+  // The shader warm worker's readout (src/render/shader_warm_client.ts):
+  // what the gates asked, held, bypassed and got. Local, except the eight
+  // fields the beacon projects out of it (src/game/perf_shader_warm_core.ts):
+  // the adapter, the bypass counts and the timings stay on the machine.
+  shaderWarm: ShaderWarmSnapshot;
   input: {
     intents: number;
     lastKind: string;
@@ -66,6 +130,16 @@ export interface PerfSnapshot {
     maxTouchPoints: number;
   };
   devTrace?: DevPerfTrace;
+  /** Last on-demand scene census (the overlay's census button); absent until run. */
+  census?: SceneCensusReport;
+  /** Overlay-gated hitch correlation from the renderer; absent when the overlay is off. */
+  hitches?: HitchSummary;
+}
+
+export interface HitchPerfReport {
+  heapSawtooth: HeapSawtoothSummary | null;
+  heapFloor: HeapFloorTrend | null;
+  heapFloorSeries: readonly HeapFloorValley[];
 }
 
 export type PerfInputDebugState = Record<string, unknown>;
@@ -162,6 +236,9 @@ interface DevPerfTraceFrame {
     memoryUsedMb: number | null;
   };
   stallAttribution?: DevRenderStallAttribution;
+  /** Materials and objects the local render diagnostics saw for the first
+   *  time in this frame's sample: names for a program a long frame minted. */
+  firstSeen?: { materials: string[]; objects: string[] };
 }
 
 interface DevPerfTraceSpan {
@@ -207,11 +284,6 @@ export interface DevPerfTrace {
   longTasks: DevLongTaskRecord[];
 }
 
-interface FrameSample {
-  at: number;
-  ms: number;
-}
-
 function percentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0;
   const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1));
@@ -245,11 +317,6 @@ function summarizeFrames(values: number[]): PerfSnapshot['frameMs'] {
     max: round(sorted[sorted.length - 1] ?? 0),
     long50: values.filter((v) => v >= 50).length,
   };
-}
-
-function pushSample(values: number[], sample: number): void {
-  values.push(sample);
-  if (values.length > MAX_SAMPLES) values.splice(0, values.length - MAX_SAMPLES);
 }
 
 function renderStallCategories(
@@ -358,20 +425,35 @@ export function localDevPerfTraceEnabled(): boolean {
 export class PerfMonitor {
   readonly enabled: boolean;
   private overlay: HTMLDivElement | null = null;
+  private overlayText: HTMLDivElement | null = null;
+  private lastCensus: SceneCensusReport | null = null;
+  // Rendered once per census run, not on every 1 Hz overlay repaint.
+  private lastCensusLines: string[] = [];
+  // The census burst runs inside one task, so the following rAF gap is a
+  // self-inflicted long frame; drop that one sample from the statistics.
+  private skipNextFrameSample = false;
   private startedAt = performance.now();
   private lastOverlayAt = 0;
   private frames = 0;
-  private frameMs: number[] = [];
+  private frameMs = new NumberSampleRing(MAX_SAMPLES);
   private lastFrameMs = 0;
-  private frameWindow: FrameSample[] = [];
-  private buckets: Record<TimedBucket, number[]> = { renderer: [], hud: [], events: [], sim: [] };
+  private frameWindow = new TimedNumberSampleRing(MAX_SAMPLES);
+  private buckets: Record<TimedBucket, NumberSampleRing> = {
+    renderer: new NumberSampleRing(MAX_SAMPLES),
+    hud: new NumberSampleRing(MAX_SAMPLES),
+    events: new NumberSampleRing(MAX_SAMPLES),
+    sim: new NumberSampleRing(MAX_SAMPLES),
+  };
   private lastBucketMs: Record<TimedBucket, number> = { renderer: 0, hud: 0, events: 0, sim: 0 };
   private lastSnapshot: PerfSnapshot | null = null;
   private network: PerfSnapshot['network'] = null;
   private netPipelineSource: { summary(): NetPipelineSummary } | null = null;
   private heapSawtooth = createHeapSawtooth({
     readUsedHeapBytes: () => this.memorySnapshot()?.usedJSHeapSize ?? null,
+    recordFloorSeries: () => this.enabled,
   });
+  private hitchForensics = createHitchForensics();
+  private lastForensicsAt = 0;
   private worstWindow = createWorstWindow();
   private inputIntents = 0;
   private lastInputAt = 0;
@@ -379,36 +461,64 @@ export class PerfMonitor {
   private pendingFrameAt = 0;
   private pendingSendAt = 0;
   private pendingVisibleAt = 0;
-  private inputToFrameMs: number[] = [];
-  private inputToSendMs: number[] = [];
-  private inputToEchoMs: number[] = [];
-  private inputToVisibleMs: number[] = [];
-  private longTaskMs: number[] = [];
+  private inputToFrameMs = new NumberSampleRing(MAX_SAMPLES);
+  private inputToSendMs = new NumberSampleRing(MAX_SAMPLES);
+  private inputToEchoMs = new NumberSampleRing(MAX_SAMPLES);
+  private inputToVisibleMs = new NumberSampleRing(MAX_SAMPLES);
+  private longTaskMs = new NumberSampleRing(MAX_SAMPLES);
   private longTaskTotalMs = 0;
   private lastLongTaskAt = 0;
   private longTaskObserver: PerformanceObserver | null = null;
   private readonly traceEnabled: boolean;
+  private readonly diagnosticsEnabled: boolean;
+  private diagnosticsPlayable = false;
   private inputDebugProvider: (() => PerfInputDebugState | null) | null = null;
   private devTraceFrames: DevPerfTraceFrame[] = [];
   private devTraceSpans: DevPerfTraceSpan[] = [];
   private devLongTasks: DevLongTaskRecord[] = [];
+  private diagnosticsPanel: PerfDiagnosticsPanel | null = null;
 
   constructor(
     private renderer: Renderer | null,
     private hud: { perfStats(): PerfSnapshot['hud'] } | null = null,
+    private readonly desktopShell = false,
   ) {
     const params = new URLSearchParams(location.search);
     this.traceEnabled = localDevPerfTraceEnabled();
+    this.diagnosticsEnabled = params.has('diagnostics');
     this.enabled =
-      this.traceEnabled || params.has('perf') || localStorage.getItem('woc_perf') === '1';
+      this.traceEnabled ||
+      this.diagnosticsEnabled ||
+      params.has('perf') ||
+      localStorage.getItem('woc_perf') === '1';
     if (this.enabled) {
       this.mountOverlay();
     }
+    if (this.diagnosticsEnabled) {
+      void import('./perf_diagnostics_panel')
+        .then(({ PerfDiagnosticsPanel }) => {
+          const panel = new PerfDiagnosticsPanel({
+            startMeasurement: () => this.reset(),
+            snapshot: () => this.report(),
+            runSceneCensus: () => this.runSceneCensus(),
+            desktopShell: this.desktopShell,
+          });
+          this.diagnosticsPanel = panel;
+          panel.setReady(Boolean(this.renderer));
+          if (this.diagnosticsPlayable) panel.onMonitorReset();
+        })
+        .catch((err: unknown) => {
+          console.warn('Performance diagnostics panel failed to load', err);
+        });
+    }
+    this.renderer?.setHitchLogEnabled(this.enabled);
     this.observeLongTasks();
   }
 
-  setRenderer(renderer: Renderer): void {
+  setRenderer(renderer: Renderer | null): void {
     this.renderer = renderer;
+    renderer?.setHitchLogEnabled(this.enabled);
+    this.diagnosticsPanel?.setReady(Boolean(renderer));
   }
 
   setHud(hud: { perfStats(): PerfSnapshot['hud'] }): void {
@@ -419,14 +529,35 @@ export class PerfMonitor {
     this.inputDebugProvider = provider;
   }
 
+  private hiddenPresentSkips = 0;
+
+  /** A frame the presentation gate skipped: counted, never sampled. */
+  noteHiddenPresentSkip(): void {
+    this.hiddenPresentSkips++;
+  }
+
   frame(dt: number, now = performance.now()): void {
+    if (this.skipNextFrameSample) {
+      this.skipNextFrameSample = false;
+      return;
+    }
+    // A frame that arrives while the ledger has the page hidden (a captured
+    // or screen-shared background tab keeps its rAF alive) must not count:
+    // the denominator is frozen for that span, so counting the numerator
+    // would inflate the session fps. Same shape as the desktop shell's
+    // presentation skip, which main.ts routes here instead of frame().
+    if (!this.frameSampling) {
+      this.hiddenPresentSkips++;
+      return;
+    }
     this.frames++;
     const ms = Math.min(250, Math.max(0, dt * 1000));
     this.lastFrameMs = ms;
-    pushSample(this.frameMs, ms);
-    this.frameWindow.push({ at: now, ms });
-    while (this.frameWindow.length && now - this.frameWindow[0].at > MAX_WINDOW_MS)
-      this.frameWindow.shift();
+    this.frameMs.push(ms);
+    // The warm worker's pause signal rides the same reading.
+    noteShaderWarmFrameMs(frameLoadMs(ms));
+    this.frameWindow.push(now, ms);
+    this.frameWindow.pruneBefore(now - MAX_WINDOW_MS);
   }
 
   markInputIntent(kind: 'move' | 'look' | 'zoom', now = performance.now()): void {
@@ -441,24 +572,24 @@ export class PerfMonitor {
 
   markInputFrame(now = performance.now()): void {
     if (!this.enabled || this.pendingFrameAt <= 0) return;
-    pushSample(this.inputToFrameMs, now - this.pendingFrameAt);
+    this.inputToFrameMs.push(now - this.pendingFrameAt);
     this.pendingFrameAt = 0;
   }
 
   markInputSent(now = performance.now()): void {
     if (!this.enabled || this.pendingSendAt <= 0) return;
-    pushSample(this.inputToSendMs, now - this.pendingSendAt);
+    this.inputToSendMs.push(now - this.pendingSendAt);
     this.pendingSendAt = 0;
   }
 
   markInputEcho(ms: number): void {
     if (!this.enabled || !Number.isFinite(ms) || ms < 0) return;
-    pushSample(this.inputToEchoMs, ms);
+    this.inputToEchoMs.push(ms);
   }
 
   markInputVisible(now = performance.now()): void {
     if (!this.enabled || this.pendingVisibleAt <= 0) return;
-    pushSample(this.inputToVisibleMs, now - this.pendingVisibleAt);
+    this.inputToVisibleMs.push(now - this.pendingVisibleAt);
     this.pendingVisibleAt = 0;
   }
 
@@ -467,15 +598,76 @@ export class PerfMonitor {
     // four mainMs buckets ride in every fleet report, overlay on or off. The
     // overlay mount, the markInput* chain, and the dev-trace spans (gated
     // inside recordDevTraceSpan) stay behind their flags.
-    const start = performance.now();
+    const start = this.startTime();
     try {
       return fn();
     } finally {
-      const ms = performance.now() - start;
-      this.lastBucketMs[bucket] = round(ms);
-      pushSample(this.buckets[bucket], ms);
-      this.recordDevTraceSpan(bucket, start, ms, 'bucket');
+      this.finishTime(bucket, start);
     }
+  }
+
+  startTime(): number {
+    return performance.now();
+  }
+
+  // Whether per-frame bucket and trace samples record this frame. The desktop
+  // shell drops it on hidden frames (main.ts sets it from the presentation
+  // gate every frame): a web hidden tab records nothing because rAF pauses
+  // outright, and the hidden desktop frame must reproduce that shape, or the
+  // sim/events rings would grow a hidden-only population no web session has
+  // and the first post-refocus report window would carry it. Counters that
+  // are not per-frame samples (hiddenPresentSkips, the frame counter) are
+  // unaffected.
+  private frameSampling = true;
+
+  // Hidden-time ledger for the cumulative fps denominator: a hidden desktop
+  // span stops frames while wall seconds keep counting, so without it the
+  // session fps average is permanently diluted after a restore. Accumulated on
+  // the sampling-flag transitions main.ts drives from the presentation gate
+  // every frame; snapshot() subtracts it from the fps denominator only (wall
+  // `seconds` keeps its meaning for every other reader).
+  private hiddenAccumMs = 0;
+  private hiddenSince: number | null = null;
+
+  // The two hidden sources, composed: the presentation gate (the desktop
+  // shell's push, written every frame by main.ts) and the page's own
+  // visibility (a browser tab in the background, bound by
+  // perf_page_visibility.ts). Web rAF pauses in a hidden tab, so frames stop
+  // while wall seconds keep counting; without the page arm the session fps
+  // was permanently diluted after every background stint. The page flag MASKS
+  // the gate's per-frame true, so a stray frame cannot close the span early.
+  private gateSampling = true;
+  private pageHidden = false;
+
+  setFrameSampling(on: boolean, now = performance.now()): void {
+    this.gateSampling = on;
+    this.applySampling(on && !this.pageHidden, now);
+  }
+
+  setPageHidden(hidden: boolean, now = performance.now()): void {
+    this.pageHidden = hidden;
+    this.applySampling(this.gateSampling && !hidden, now);
+  }
+
+  private applySampling(on: boolean, now: number): void {
+    if (on === this.frameSampling) return;
+    this.frameSampling = on;
+    if (!on) {
+      this.hiddenSince = now;
+      return;
+    }
+    if (this.hiddenSince !== null) {
+      this.hiddenAccumMs += Math.max(0, now - this.hiddenSince);
+      this.hiddenSince = null;
+    }
+  }
+
+  finishTime(bucket: TimedBucket, start: number): void {
+    if (!this.frameSampling) return;
+    const ms = performance.now() - start;
+    this.lastBucketMs[bucket] = round(ms);
+    this.buckets[bucket].push(ms);
+    this.recordDevTraceSpan(bucket, start, ms, 'bucket');
   }
 
   trace<T>(name: string, fn: () => T, detail?: Record<string, unknown>): T {
@@ -486,6 +678,35 @@ export class PerfMonitor {
     } finally {
       this.recordDevTraceSpan(name, start, performance.now() - start, 'scope', detail);
     }
+  }
+
+  startTrace(): number {
+    return this.traceEnabled ? performance.now() : 0;
+  }
+
+  finishTrace(
+    name: string,
+    start: number,
+    detailKey1?: string,
+    detailValue1?: unknown,
+    detailKey2?: string,
+    detailValue2?: unknown,
+    detailKey3?: string,
+    detailValue3?: unknown,
+    detailKey4?: string,
+    detailValue4?: unknown,
+  ): void {
+    // Callers pass interned keys and primitive values, so the default disabled
+    // path reaches this return without allocating a detail object or callback.
+    if (!this.traceEnabled || !this.frameSampling) return;
+    let detail: Record<string, unknown> | undefined;
+    if (detailKey1 !== undefined) {
+      detail = { [detailKey1]: detailValue1 };
+      if (detailKey2 !== undefined) detail[detailKey2] = detailValue2;
+      if (detailKey3 !== undefined) detail[detailKey3] = detailValue3;
+      if (detailKey4 !== undefined) detail[detailKey4] = detailValue4;
+    }
+    this.recordDevTraceSpan(name, start, performance.now() - start, 'scope', detail);
   }
 
   setNetwork(stats: PerfSnapshot['network']): void {
@@ -562,7 +783,7 @@ export class PerfMonitor {
       this.longTaskObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           const duration = Math.max(0, entry.duration || 0);
-          pushSample(this.longTaskMs, duration);
+          this.longTaskMs.push(duration);
           this.longTaskTotalMs += duration;
           this.lastLongTaskAt = entry.startTime + duration;
           if (this.traceEnabled) this.recordDevLongTask(entry);
@@ -572,6 +793,61 @@ export class PerfMonitor {
     } catch {
       this.longTaskObserver = null;
     }
+  }
+
+  /**
+   * The compact state vector the hitch forensics diffs. Scalars only; every
+   * field here is a candidate diagnosis dimension (a views/programs jump reads
+   * as a crowd arrival compiling gear, textures/geometries without programs as
+   * an asset parse/upload, an empty diff as GC/driver/tab contention).
+   */
+  private forensicsState(): HitchForensicsState {
+    const memory = this.memorySnapshot();
+    const state: HitchForensicsState = {
+      heapUsedMb: memory ? Math.round(memory.usedMB) : -1,
+      longTasks: this.longTaskMs.length,
+      longTaskTotalMs: Math.round(this.longTaskTotalMs),
+    };
+    const r = this.renderer?.perfStats() ?? null;
+    if (r) {
+      state.programs = r.programs;
+      state.textures = r.textures;
+      state.geometries = r.geometries;
+      state.calls = r.calls;
+      state.triangles = r.triangles;
+      state.views = r.views;
+      state.gpuQueueUnits = r.gpuQueue.units;
+      state.gpuQueueSyncMs = Math.round(r.gpuQueue.totalSyncMs);
+      // Monotonic on purpose: a unit that never settles moves neither of the
+      // two above, so a hitch bracketing a new stall reads as the queue
+      // wedging rather than as an empty diff.
+      state.gpuQueueStalls = r.gpuQueue.stallCount;
+      // The arm that answers "was a background unit in flight while this frame
+      // was lost": totalSyncMs barely moves for a unit that blocks after its
+      // first await, so without this a hitch bracketing one reads as an empty
+      // diff (which is how 786 hitches came to be filed as unexplained on
+      // 13 August 2026). CUMULATIVE, not the worst-gap max: `diffStates` emits a
+      // key only when the value CHANGES, and a max stops changing after the
+      // first record, so the max would answer once and then go quiet for every
+      // later occurrence. `?? 0` because a stub or an older renderer may not
+      // carry the field, and a NaN here would diff against itself every record.
+      state.gpuQueueFrameGapMs = Math.round(r.gpuQueue.totalFrameGapMs ?? 0);
+      state.effectiveRenderScale = r.effectiveRenderScale;
+      state.budgetMode = r.renderBudget.mode;
+      // Day/night dimension: a hitch cluster that only appears with
+      // nightAmount high (streetlamps lit, more active point lights) reads
+      // differently from the same cluster at noon.
+      state.nightAmount = r.nightAmount;
+      state.activePointLights = r.qualityBuckets.features.activePointLights;
+      const frame = r.lastFrame;
+      if (frame) {
+        state.biome = frame.biome;
+        state.px = Math.round(frame.playerPosition.x);
+        state.pz = Math.round(frame.playerPosition.z);
+        state.activeViews = frame.activeViews;
+      }
+    }
+    return state;
   }
 
   private memorySnapshot(): PerfSnapshot['browser']['memory'] {
@@ -701,6 +977,12 @@ export class PerfMonitor {
           return frame;
         })()
       : null;
+    const diagnostics = rendererFrame?.renderDiagnostics;
+    const firstSeen =
+      diagnostics &&
+      (diagnostics.newMaterials.length > 0 || diagnostics.firstVisibleObjects.length > 0)
+        ? { materials: diagnostics.newMaterials, objects: diagnostics.firstVisibleObjects }
+        : undefined;
     const stallAttribution =
       renderer && rendererFrame ? renderStallAttribution(renderer, rendererFrame) : undefined;
     const frame: DevPerfTraceFrame = {
@@ -734,6 +1016,7 @@ export class PerfMonitor {
         memoryUsedMb: memory?.usedMB ?? null,
       },
       ...(stallAttribution ? { stallAttribution } : {}),
+      ...(firstSeen ? { firstSeen } : {}),
     };
     this.devTraceFrames.push(frame);
     this.devTraceFrames.sort(
@@ -753,39 +1036,68 @@ export class PerfMonitor {
     this.heapSawtooth.sample(now);
     // 1 Hz worst-10s evaluation, also ungated (ruling R5): snapshot() stays a
     // pure read of the retained window; only the reporter drains it.
-    this.worstWindow.observe(this.frameWindow, now);
-    this.lastSnapshot = this.snapshot(now);
+    this.worstWindow.observe(
+      this.frameWindow.entries().map((entry) => ({ at: entry.at, ms: entry.value })),
+      now,
+    );
+    // Hitch forensics: one compact state snapshot every ~5 s, ungated like the
+    // two trackers above. The state vector is assembled at 0.2 Hz only, so the
+    // no-overlay tick stays as cheap as ruling R9 asked.
+    if (now - this.lastForensicsAt >= 5000) {
+      const sinceBaseline = this.frameWindow.snapshotSince(this.lastForensicsAt);
+      const worstFrameMs = sinceBaseline.values.length ? Math.max(...sinceBaseline.values) : 0;
+      this.hitchForensics.sample(now, worstFrameMs, this.forensicsState());
+      this.lastForensicsAt = now;
+    }
+    // Production telemetry reports on its own 75 s / 5 min cadence. Without a
+    // visible diagnostic overlay there is nothing to ASSEMBLE every second:
+    // doing so sorted every history and copied renderer stats for no consumer.
+    // The two trackers above stay ungated: the fleet report reads them whether
+    // or not the overlay is up.
     if (!this.enabled) return;
+    this.lastSnapshot = this.snapshot(now);
     this.renderOverlay(this.lastSnapshot);
+    this.diagnosticsPanel?.update(this.lastSnapshot);
   }
 
   snapshot(now = performance.now()): PerfSnapshot {
     const seconds = Math.max(0.001, (now - this.startedAt) / 1000);
+    // The fps denominator discounts hidden desktop spans, including one still
+    // open at snapshot time: hidden frames are skipped, never sampled, so
+    // counting their wall time would dilute the session average forever after
+    // a restore (the hiddenPresentSkips counter is the matching numerator-side
+    // evidence in the fleet report).
+    const hiddenMs =
+      this.hiddenAccumMs + (this.hiddenSince !== null ? Math.max(0, now - this.hiddenSince) : 0);
+    const visibleSeconds = Math.max(0.001, seconds - hiddenMs / 1000);
     const mainMs = Object.fromEntries(
       (Object.keys(this.buckets) as TimedBucket[]).map((key) => [
         key,
-        summarize(this.buckets[key]),
+        summarize(this.buckets[key].toArray()),
       ]),
     );
     const windowSummary = (windowMs: number): PerfSnapshot['windows']['last10s'] => {
-      const samples = this.frameWindow.filter((s) => now - s.at <= windowMs);
+      const samples = this.frameWindow.snapshotSince(now - windowMs);
       const span =
-        samples.length > 1
-          ? Math.max(0.001, (samples[samples.length - 1].at - samples[0].at) / 1000)
+        samples.values.length > 1 && samples.firstAt !== null && samples.lastAt !== null
+          ? Math.max(0.001, (samples.lastAt - samples.firstAt) / 1000)
           : Math.min(seconds, windowMs / 1000);
       return {
         seconds: round(Math.min(seconds, windowMs / 1000)),
-        frames: samples.length,
-        fps: round(samples.length / Math.max(0.001, span)),
-        frameMs: summarizeFrames(samples.map((s) => s.ms)),
+        frames: samples.values.length,
+        fps: round(samples.values.length / Math.max(0.001, span)),
+        frameMs: summarizeFrames(samples.values),
       };
     };
     const inputDebug = this.readInputDebug();
     const snapshot: PerfSnapshot = {
       seconds: round(seconds),
+      visibleSeconds: round(visibleSeconds),
       frames: this.frames,
-      fps: round(this.frames / seconds),
-      frameMs: summarizeFrames(this.frameMs),
+      hiddenPresentSkips: this.hiddenPresentSkips,
+      cadence: frameCadenceHealth(),
+      fps: round(this.frames / visibleSeconds),
+      frameMs: summarizeFrames(this.frameMs.toArray()),
       windows: {
         last10s: windowSummary(10_000),
         last30s: windowSummary(30_000),
@@ -798,19 +1110,23 @@ export class PerfMonitor {
       network: this.network,
       netPipeline: this.netPipelineSource?.summary() ?? null,
       heapSawtooth: this.heapSawtooth.summary(),
+      hitchForensics: this.hitchForensics.records(),
+      postRevealLinks: postRevealLinksSnapshot(),
+      shaderWarmAudit: shaderWarmAuditSnapshot(),
+      shaderWarm: shaderWarmSnapshot(),
       input: {
         intents: this.inputIntents,
         lastKind: this.lastInputKind,
         lastIntentAge: this.lastInputAt > 0 ? round(now - this.lastInputAt) : -1,
-        intentToFrame: summarize(this.inputToFrameMs),
-        intentToSend: summarize(this.inputToSendMs),
-        sendToEcho: summarize(this.inputToEchoMs),
-        intentToVisible: summarize(this.inputToVisibleMs),
+        intentToFrame: summarize(this.inputToFrameMs.toArray()),
+        intentToSend: summarize(this.inputToSendMs.toArray()),
+        sendToEcho: summarize(this.inputToEchoMs.toArray()),
+        intentToVisible: summarize(this.inputToVisibleMs.toArray()),
         ...(inputDebug ? { debug: inputDebug } : {}),
       },
       browser: {
         longTasks: {
-          ...summarize(this.longTaskMs),
+          ...summarize(this.longTaskMs.toArray()),
           totalMs: round(this.longTaskTotalMs),
           lastAge: this.lastLongTaskAt > 0 ? round(now - this.lastLongTaskAt) : -1,
         },
@@ -837,7 +1153,27 @@ export class PerfMonitor {
         longTasks: this.devTraceLongTasks(),
       };
     }
+    if (this.lastCensus) snapshot.census = this.lastCensus;
+    const hitches = this.renderer?.hitchStats() ?? null;
+    if (hitches) snapshot.hitches = hitches;
     return snapshot;
+  }
+
+  /**
+   * Run the one-shot scene census through the renderer, remember it for the
+   * overlay table and the JSON report, and log it as copyable JSON. On demand
+   * only (the overlay's census button and the capture harness); returns null
+   * before the renderer exists.
+   */
+  runSceneCensus(): SceneCensusReport | null {
+    if (!this.renderer) return null;
+    const report = this.renderer.captureSceneCensus();
+    this.lastCensus = report;
+    this.lastCensusLines = censusTableLines(report);
+    this.skipNextFrameSample = true;
+    console.info('World of Claudecraft scene census:', JSON.stringify(report, null, 2));
+    if (this.enabled) this.renderOverlay(this.lastSnapshot ?? this.snapshot());
+    return report;
   }
 
   private readInputDebug(): PerfInputDebugState | null {
@@ -854,6 +1190,16 @@ export class PerfMonitor {
     return this.lastSnapshot;
   }
 
+  /** Read-only heap evidence for local `?perf` hitch runs, never fleet telemetry. */
+  hitchReport(): HitchPerfReport | null {
+    if (!this.enabled) return null;
+    return {
+      heapSawtooth: this.heapSawtooth.summary(),
+      heapFloor: this.heapSawtooth.floorTrend(),
+      heapFloorSeries: this.heapSawtooth.floorSeries(),
+    };
+  }
+
   copyReport(): void {
     const text = JSON.stringify(this.report(), null, 2);
     void navigator.clipboard?.writeText(text).catch(() => {
@@ -864,12 +1210,22 @@ export class PerfMonitor {
   reset(): void {
     this.startedAt = performance.now();
     this.frames = 0;
-    this.frameMs = [];
-    this.frameWindow = [];
-    this.buckets = { renderer: [], hud: [], events: [], sim: [] };
+    this.hiddenPresentSkips = 0;
+    this.hiddenAccumMs = 0;
+    // A reset mid-hidden re-opens the span from the new epoch, so the fps
+    // discount stays truthful without waiting for the next visibility flip.
+    this.hiddenSince = this.frameSampling ? null : this.startedAt;
+    this.frameMs.clear();
+    this.frameWindow.clear();
+    this.lastCensus = null;
+    this.lastCensusLines = [];
+    this.skipNextFrameSample = false;
+    for (const samples of Object.values(this.buckets)) samples.clear();
     this.lastSnapshot = null;
     this.netPipelineSource = null;
     this.heapSawtooth.reset();
+    this.hitchForensics.reset();
+    this.lastForensicsAt = 0;
     this.worstWindow.drain();
     this.inputIntents = 0;
     this.lastInputAt = 0;
@@ -877,11 +1233,11 @@ export class PerfMonitor {
     this.pendingFrameAt = 0;
     this.pendingSendAt = 0;
     this.pendingVisibleAt = 0;
-    this.inputToFrameMs = [];
-    this.inputToSendMs = [];
-    this.inputToEchoMs = [];
-    this.inputToVisibleMs = [];
-    this.longTaskMs = [];
+    this.inputToFrameMs.clear();
+    this.inputToSendMs.clear();
+    this.inputToEchoMs.clear();
+    this.inputToVisibleMs.clear();
+    this.longTaskMs.clear();
     this.longTaskTotalMs = 0;
     this.lastLongTaskAt = 0;
     this.lastFrameMs = 0;
@@ -889,6 +1245,11 @@ export class PerfMonitor {
     this.devTraceFrames = [];
     this.devTraceSpans = [];
     this.devLongTasks = [];
+    if (this.diagnosticsEnabled) {
+      this.diagnosticsPlayable = true;
+      this.renderer?.resetDiagnosticSamples();
+      this.diagnosticsPanel?.onMonitorReset();
+    }
   }
 
   private mountOverlay(): void {
@@ -910,13 +1271,26 @@ export class PerfMonitor {
       'box-shadow:0 8px 28px rgba(0,0,0,0.35)',
     ].join(';');
     this.overlay.title = 'Click to copy a JSON perf report';
-    this.overlay.textContent = 'perf: collecting...';
     this.overlay.addEventListener('click', () => this.copyReport());
+    this.overlayText = document.createElement('div');
+    this.overlayText.textContent = 'perf: collecting...';
+    this.overlay.appendChild(this.overlayText);
+    const censusBtn = document.createElement('div');
+    censusBtn.textContent = '[run scene census]';
+    censusBtn.title =
+      'One-shot per-system draw breakdown (a short burst of extra renders, results in the overlay + console JSON)';
+    censusBtn.style.cssText =
+      'margin-top:6px;cursor:pointer;color:#93c5fd;text-decoration:underline';
+    censusBtn.addEventListener('click', (e: Event) => {
+      e.stopPropagation();
+      this.runSceneCensus();
+    });
+    this.overlay.appendChild(censusBtn);
     document.body.appendChild(this.overlay);
   }
 
   private renderOverlay(s: PerfSnapshot): void {
-    if (!this.overlay) return;
+    if (!this.overlay || !this.overlayText) return;
     const r = s.renderer;
     const hud = s.hud;
     const net = s.network;
@@ -926,26 +1300,53 @@ export class PerfMonitor {
     const rp = r?.phaseMs;
     const lt = s.browser.longTasks;
     const mem = s.browser.memory;
-    this.overlay.textContent = [
+    const h = s.hitches;
+    const hitchLine = h
+      ? `hitch ${h.hitches} (compile ${h.byCause['shader-compile']} tex ${h.byCause['texture-upload']} zone ${h.byCause['zone-build']} view ${h.byCause['view-create']} gc ${h.byCause.gc} off ${h.byCause['off-frame']} other ${h.byCause.other})  prog +${h.programsAdded}`
+      : null;
+    const censusLines = this.lastCensusLines;
+    // The hidden-skip counter's one live sink (phase 4 QA F11): sampled frames
+    // exclude skipped desktop-hidden frames, so a session that spent time
+    // minimized shows its denominator here instead of leaving a diluted fps
+    // unexplained. Zero on web builds and never-hidden sessions.
+    const hiddenLine = s.hiddenPresentSkips > 0 ? `hidden skips ${s.hiddenPresentSkips}` : null;
+    this.overlayText.textContent = [
       `fps ${s.fps}  p95 ${s.frameMs.p95}ms  >50 ${s.frameMs.long50}`,
+      ...(hiddenLine ? [hiddenLine] : []),
       `10s fps ${s.windows.last10s.fps}  p95 ${s.windows.last10s.frameMs.p95}ms  >50 ${s.windows.last10s.frameMs.long50}`,
       `longtask ${lt.count}  p95 ${lt.p95}ms  max ${lt.max}ms  heap ${mem ? `${mem.usedMB}/${mem.limitMB}MB` : '-'}`,
       `render ${s.mainMs.renderer.avg}/${s.mainMs.renderer.p95}ms  hud ${s.mainMs.hud.avg}/${s.mainMs.hud.p95}ms`,
       `hud writes ${hud?.hotDomWrites ?? 0}  skip ${Math.round((hud?.hotDomSkipRate ?? 0) * 100)}%`,
       `rph e ${rp?.entities.p95 ?? 0} w ${rp?.world.p95 ?? 0} np ${rp?.nameplates.p95 ?? 0} sub ${rp?.submit.p95 ?? 0}ms`,
       `calls ${r?.calls ?? 0}  tris ${r?.triangles ?? 0}  tex ${r?.textures ?? 0}`,
-      `scale ${r?.effectiveRenderScale ?? 0}/${r?.renderScale ?? 0}  tier ${r?.tier ?? '-'}`,
+      `scale ${r?.effectiveRenderScale ?? 0}/${r?.renderScale ?? 0}  tier ${r?.tier ?? '-'}  post ${r?.postShedRung ?? '-'}`,
       `assets wait ${s.assets.preload.waitMs}ms  gltf ${gltf?.count ?? 0}/${gltf?.p95Ms ?? 0}ms  hdr ${hdr?.count ?? 0}/${hdr?.p95Ms ?? 0}ms  tex ${tex?.count ?? 0}/${tex?.p95Ms ?? 0}ms`,
       `input f ${s.input.intentToFrame.p95}ms  send ${s.input.intentToSend.p95}ms  echo ${s.input.sendToEcho.p95}ms  vis ${s.input.intentToVisible.p95}ms`,
       `gl ${r?.glRenderer ? r.glRenderer.slice(0, 34) : '-'}  lost ${r?.contextLost ?? 0}`,
       net
         ? `net ${net.connected ? 'up' : 'down'} snap ${net.snapInterval}ms age ${net.lastSnapAge}ms a ${net.alpha}`
         : 'net offline',
+      ...(hitchLine ? [hitchLine] : []),
+      frameCadenceOverlayLine(),
+      ...gpuTimerOverlayLines(r?.gpuTimer),
+      ...censusLines,
       'click: copy json',
     ].join('\n');
   }
 }
 
-export function createPerfMonitor(renderer: Renderer | null): PerfMonitor {
-  return new PerfMonitor(renderer);
+export function createPerfMonitor(renderer: Renderer | null, desktopShell = false): PerfMonitor {
+  const perf = new PerfMonitor(renderer, null, desktopShell);
+  // The browser arm of the hidden-time ledger. Inert in the desktop shell,
+  // whose document stays 'visible' while minimized (the shell push drives the
+  // gate arm instead), and absent under plain Node.
+  if (typeof document !== 'undefined') {
+    try {
+      bindPerfPageVisibility(perf, document);
+    } catch {
+      // A document without event listeners (a stub): the ledger keeps its
+      // gate arm only.
+    }
+  }
+  return perf;
 }

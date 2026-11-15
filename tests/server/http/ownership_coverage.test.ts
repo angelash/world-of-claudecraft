@@ -42,6 +42,8 @@ import { ADMIN_AUTH_REQUIRED } from '../../../server/http/middleware/require_adm
 import {
   DAILY_REWARD_SECRET_ENV,
   DAILY_REWARD_SECRET_HEADER,
+  DASHBOARD_SECRET_ENV,
+  DASHBOARD_SECRET_HEADER,
   DEPLOY_SECRET_ENV,
   DEPLOY_SECRET_HEADER,
   DISCORD_SECRET_ENV,
@@ -69,6 +71,13 @@ import {
   setUserAssetsGuardDbForTests,
   setUserAssetsServiceForTests,
 } from '../../../server/user_assets_routes';
+import type { WocMarketService } from '../../../server/woc_market';
+import {
+  configureWocMarketRuntime,
+  resetWocMarketGuardDbForTests,
+  resetWocMarketRuntimeForTests,
+  setWocMarketGuardDbForTests,
+} from '../../../server/woc_market_routes';
 import { fakeCtx } from '../helpers/fake_ctx';
 import type { FakeRes } from '../helpers/fake_http';
 
@@ -103,13 +112,16 @@ const accountOwnedRoutes: RouteDef[] = apiRoutes.filter(
 // Substitute each :param segment with a concrete sample so ctx.path/url read as a
 // real request path. Load-bearing for the admin sweep: requireAdmin's central
 // permission gate resolves the route permission from the CONCRETE url pathname
-// (admin_routes.ts patterns), so :id must be numeric and :action a real enum
-// member, or the gate fail-closed-404s before the middleware under test runs.
+// (admin_routes.ts patterns), so :id must be numeric, :action a real enum
+// member and :guid a canonical UUID (the item ledger lookup), or the gate
+// fail-closed-404s before the middleware under test runs.
+const SAMPLE_GUID = '0f8fad5b-d9cb-469f-a165-70867728950e';
 function concretePath(path: string): string {
   return path
     .split('/')
     .map((segment) => {
       if (!segment.startsWith(':')) return segment;
+      if (segment === ':guid') return SAMPLE_GUID;
       return segment === ':action' ? 'suspend' : REQUESTED_ID;
     })
     .join('/');
@@ -157,9 +169,13 @@ function installFakeRuntime(): void {
     isCharacterOnline: vi.fn(() => false),
     takeOverCharacter: vi.fn(async () => 'not-online' as const),
     rekeyMarketSeller: vi.fn(() => false),
+    setHelmHiddenForCharacter: vi.fn(() => false),
+    applyAppearanceForCharacter: vi.fn(() => false),
     saveMarket: vi.fn(async () => {}),
+    purgeMarketSeller: vi.fn(() => false),
     rekeyMailOwner: vi.fn(() => false),
     saveMail: vi.fn(async () => {}),
+    purgeMailOwner: vi.fn(() => false),
     // The fresh-character state is never serialized on the deny path; a bare object
     // is enough to satisfy the type for any handler that does run (negative control).
     initialCharacterState: vi.fn(
@@ -211,6 +227,20 @@ describe('ownership coverage: registry-wide deny-by-default sweep', () => {
     installDenyingCharacterDb();
     installFakeRuntime();
     installDenyingMapsAndAssets();
+    // The woc_market owned loaders deny through the service seam: absent and
+    // non-owned both read as null (the same anti-enumeration 404). The bearer
+    // guard reads through the same fake bundle the character sweep installs.
+    setWocMarketGuardDbForTests({
+      accountAndScopeForToken: async () => ({ accountId: 7, scope: 'full' as const }),
+      moderationStatusForAccount: async () => NOT_LOCKED,
+    });
+    configureWocMarketRuntime({
+      service: {
+        ownedListing: async () => null,
+        ownedBid: async () => null,
+        ownedSettlement: async () => null,
+      } as unknown as WocMarketService,
+    });
   });
 
   afterEach(() => {
@@ -220,6 +250,8 @@ describe('ownership coverage: registry-wide deny-by-default sweep', () => {
     resetMapsServiceForTests();
     resetUserAssetsGuardDbForTests();
     resetUserAssetsServiceForTests();
+    resetWocMarketRuntimeForTests();
+    resetWocMarketGuardDbForTests();
     vi.restoreAllMocks();
   });
 
@@ -424,14 +456,13 @@ describe('ownership coverage: operator-scope deny-by-default sweep', () => {
     it(`rejects an invalid :id on ${route.method} ${route.path} before the handler runs`, async () => {
       installAdminDb();
       const opaqueAuditId = route.meta?.requireOwned?.kind === 'aiAudit';
-      const invalidId = opaqueAuditId
-        ? '%E0%A4%A'
-        : 'not-a-number';
+      const invalidId = opaqueAuditId ? '%E0%A4%A' : 'not-a-number';
       const ctx = fakeCtx({
         method: route.method,
         url: concretePath(route.path),
         headers: { authorization: `Bearer ${VALID_TOKEN}` },
-        params: { id: invalidId },
+        // :guid rides the same malformed sample (requireAdminGuidTarget).
+        params: { id: invalidId, guid: 'not-a-number' },
       });
       const { res, handler } = await runRouteWithErrors(route, ctx);
 
@@ -440,9 +471,11 @@ describe('ownership coverage: operator-scope deny-by-default sweep', () => {
       // opaque audit-id loader preserves its legacy 400 admin error for parity.
       expect(res.statusCode).toBe(opaqueAuditId ? 400 : 422);
       expect(handler).not.toHaveBeenCalled();
-      expect(JSON.parse(res.body)).toEqual(opaqueAuditId
-        ? { success: false, data: null, error: 'invalid AI audit id' }
-        : ADMIN_VALIDATION_FAILED);
+      expect(JSON.parse(res.body)).toEqual(
+        opaqueAuditId
+          ? { success: false, data: null, error: 'invalid AI audit id' }
+          : ADMIN_VALIDATION_FAILED,
+      );
     });
   }
 
@@ -633,8 +666,8 @@ describe('admin scope sweep: every non-login admin route rejects a read token', 
 // A negative control proves the sweep detects a route that forgot the gate.
 // -------------------------------------------------------------------------
 
-// Every registered internal-surface route (all 14 are secret-gated; there is no
-// anonymous internal route).
+// Every registered internal-surface route (every one is secret-gated; there is
+// no anonymous internal route).
 const internalSurfaceRoutes: RouteDef[] = apiRoutes.filter((route) => route.surface === 'internal');
 
 // The legacy fail() bodies the gates write (byte-parity with server/internal.ts
@@ -664,6 +697,16 @@ function gatePairFor(route: RouteDef): {
       unsetBody: INTERNAL_FEATURE_OFF,
     };
   }
+  if (route.path.startsWith('/internal/woc-market/')) {
+    // Its own pair, not the Discord bot's: two different callers, two different
+    // blast radii. Feature-off is a 404, the same shape the other read gates use.
+    return {
+      header: DASHBOARD_SECRET_HEADER,
+      envVar: DASHBOARD_SECRET_ENV,
+      unsetStatus: 404,
+      unsetBody: INTERNAL_FEATURE_OFF,
+    };
+  }
   if (route.path.startsWith('/internal/daily-rewards/')) {
     return {
       header: DAILY_REWARD_SECRET_HEADER,
@@ -680,7 +723,12 @@ function gatePairFor(route: RouteDef): {
   };
 }
 
-const SWEPT_SECRET_ENVS = [DEPLOY_SECRET_ENV, DISCORD_SECRET_ENV, DAILY_REWARD_SECRET_ENV] as const;
+const SWEPT_SECRET_ENVS = [
+  DEPLOY_SECRET_ENV,
+  DISCORD_SECRET_ENV,
+  DAILY_REWARD_SECRET_ENV,
+  DASHBOARD_SECRET_ENV,
+] as const;
 
 describe('internal secret-gate mounting sweep: every /internal route is gated', () => {
   const savedSecrets = new Map<string, string | undefined>();
@@ -709,9 +757,13 @@ describe('internal secret-gate mounting sweep: every /internal route is gated', 
     vi.restoreAllMocks();
   });
 
-  it('selects the full 19-route internal surface (the handleInternalApi 12 + the 7 ops routes)', () => {
+  it('selects the full 22-route internal surface (handleInternalApi 9 + 7 ops + flex-batch + outbox + 3 dashboard reads + the resolve write)', () => {
     // The ops family includes finalization, four payout-service routes, and two moderation mutations.
-    expect(internalSurfaceRoutes.length).toBe(19);
+    // flex-batch and outbox are registry-only (no legacy arm) but still ride the same Discord secret
+    // gate, so the sweep below generates their unset-env and wrong-secret cases like every other route.
+    // The dashboard reads are the two Exchange views plus the stuck-custody readout, all on the
+    // dashboard secret. The retired relay/activity/winners GETs (#2791) are absent from the registry.
+    expect(internalSurfaceRoutes.length).toBe(22);
   });
 
   for (const route of internalSurfaceRoutes) {

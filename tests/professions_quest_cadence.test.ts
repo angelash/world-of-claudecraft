@@ -7,6 +7,7 @@ import {
   isCadenceBlocked,
   isCadenceElapsed,
   NUDGE_CADENCE_TICKS,
+  questCadenceSaveFragment,
   serializeCadence,
   WORK_ORDER_CADENCE_TICKS,
 } from '../src/sim/professions/cadence';
@@ -46,6 +47,19 @@ function turnInWorkOrder(sim: Sim): void {
   moveToNpc(sim, FORGE_MASTER);
   sim.turnInQuest(WORK_ORDER);
 }
+
+// Gourdlight Eve's rounds and its six rotating dailies, blocked while the event is closed
+// (src/sim/seasonal/seasonal_quests.ts): they ride the cprof blocked list beside any work
+// order, in id order.
+const SEASONAL_CLOSED = [
+  'q_gourdlight_daily_baskets',
+  'q_gourdlight_daily_boo',
+  'q_gourdlight_daily_feathers',
+  'q_gourdlight_daily_patch',
+  'q_gourdlight_daily_towns',
+  'q_gourdlight_daily_wicks',
+  'q_gourdlight_rounds',
+];
 
 describe('cadence.ts pure helpers', () => {
   it('the two window constants are the documented tick counts', () => {
@@ -132,6 +146,12 @@ describe('cadence.ts pure helpers', () => {
     // Nothing live left -> null, so the save field omits (zero-default omission).
     expect(serializeCadence(map, 500)).toBe(null);
     expect(serializeCadence(new Map(), 0)).toBe(null);
+  });
+
+  it('questCadenceSaveFragment wraps serializeCadence into the sim.ts save shape', () => {
+    expect(questCadenceSaveFragment(new Map(), 0)).toEqual({});
+    const map = new Map<string, number>([['live', 500]]);
+    expect(questCadenceSaveFragment(map, 200)).toEqual({ questCadence: { live: 500 } });
   });
 
   it('armCadence clamps a negative window to immediately elapsed and floors a fraction', () => {
@@ -268,7 +288,11 @@ describe('work-order turn-in arms the cooldown (Sim)', () => {
     // untouched by the prune: the stale key stays in the map, and only the
     // genuinely blocked quest rides the wire, exactly as before.
     expect(meta.questCadence.get('q_prof_workorder_stale')).toBe(sim.tickCount);
-    expect(sim.craftingIdentityFor(sim.playerId).cadenceBlockedQuests).toEqual([WORK_ORDER]);
+    // (a closed seasonal event's quests ride the same blocked list: SEASONAL_CLOSED)
+    expect(sim.craftingIdentityFor(sim.playerId).cadenceBlockedQuests).toEqual([
+      ...SEASONAL_CLOSED,
+      WORK_ORDER,
+    ]);
   });
 
   it('a map holding only elapsed keys serializes no questCadence field at all', () => {
@@ -304,7 +328,7 @@ describe('work-order turn-in arms the cooldown (Sim)', () => {
     // The online client feeds craftingIdentity.cadenceBlockedQuests into its own
     // computeQuestState; this is the server-side computation that rides cprof.
     const sim = makeSim();
-    expect(sim.craftingIdentity.cadenceBlockedQuests).toEqual([]);
+    expect(sim.craftingIdentity.cadenceBlockedQuests).toEqual(SEASONAL_CLOSED);
     turnInWorkOrder(sim);
     expect(sim.craftingIdentityFor(sim.playerId).cadenceBlockedQuests).toContain(WORK_ORDER);
   });

@@ -63,7 +63,18 @@ describe('targetRankView', () => {
     expect(transparentPixels / sampledPixels).toBeGreaterThan(0.98);
     expect(css).toContain('url("/ui/ranks/elite-dragon-frame.webp")');
     expect(ruleBody('#target-frame.boss .portrait canvas')).not.toContain('display: none;');
-    expect(hud).toContain('const faceUrl = targetPortraitUrl(');
+    // The mob-art rule moved out of the coordinator with the rest of the
+    // non-player portrait decision; the pins follow the code to its core.
+    const portraitCore = readFileSync(
+      new URL('../src/ui/nonplayer_portrait_core.ts', import.meta.url),
+      'utf8',
+    );
+    expect(portraitCore).toContain('const url = targetPortraitUrl(unit.templateId, isMobEntity);');
+    expect(portraitCore).toContain("const isMobEntity = unit.kind === 'mob';");
+    expect(hud).toContain('nonPlayerPortraitSubject(entity, npcPortraitSourceFor)');
+    expect(hud).toContain('this.drawNonPlayerPortrait(this.targetPortraitEl, target);');
+    expect(hud).toContain('this.drawNonPlayerPortrait(this.totPortraitEl, tot);');
+    expect(hud).toContain('this.drawNonPlayerPortrait(this.petPortraitEl, pet);');
     const levelChip = ruleBody('#target-frame.boss .level-chip');
     expect(levelChip).toContain('transform: translateX(-50%);');
     expect(levelChip).not.toContain('display: none;');

@@ -217,6 +217,7 @@ export interface AiValidationResult {
 }
 
 export function aiEntityKind(entity: Entity): AiEntityKind | null {
-  if (entity.kind === 'npc' || entity.kind === 'mob' || entity.kind === 'object') return entity.kind;
+  if (entity.kind === 'npc' || entity.kind === 'mob' || entity.kind === 'object')
+    return entity.kind;
   return null;
 }

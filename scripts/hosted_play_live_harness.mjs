@@ -54,7 +54,9 @@ function usage(exitCode = 0) {
   out('Usage: node scripts/hosted_play_live_harness.mjs [options]');
   out('');
   out('Options:');
-  out('  --duration-ms=N        Max run time. Defaults to 120000, or 90 minutes with --target-level.');
+  out(
+    '  --duration-ms=N        Max run time. Defaults to 120000, or 90 minutes with --target-level.',
+  );
   out('  --sample-ms=N          Hosted status sample interval. Defaults to 2000.');
   out('  --checkpoint-ms=N      Progress report write interval. Defaults to 30000.');
   out('  --target-level=N       Run until the hosted leader reaches this level.');
@@ -126,10 +128,13 @@ function parseArgs(argv) {
     throw new Error('--party-size must be between 2 and 5');
   }
   if (args.sampleMs < 500) throw new Error('--sample-ms must be at least 500');
-  if (args.checkpointMs < args.sampleMs) throw new Error('--checkpoint-ms must be at least --sample-ms');
+  if (args.checkpointMs < args.sampleMs)
+    throw new Error('--checkpoint-ms must be at least --sample-ms');
   return {
     ...args,
-    durationMs: args.durationMs ?? (args.targetLevel > 0 ? DEFAULT_LONG_DURATION_MS : DEFAULT_SHORT_DURATION_MS),
+    durationMs:
+      args.durationMs ??
+      (args.targetLevel > 0 ? DEFAULT_LONG_DURATION_MS : DEFAULT_SHORT_DURATION_MS),
   };
 }
 
@@ -226,19 +231,27 @@ class Client {
       }),
     });
     if (registered.status !== 200 || !registered.body.token) {
-      throw new Error(`register failed for ${this.label}: ${registered.status} ${registered.body.error ?? ''}`);
+      throw new Error(
+        `register failed for ${this.label}: ${registered.status} ${registered.body.error ?? ''}`,
+      );
     }
     this.token = registered.body.token;
 
-    const created = await api('/api/characters', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: `${this.label}${suffix}`.slice(0, 16),
-        class: this.characterClass,
-      }),
-    }, this.token);
+    const created = await api(
+      '/api/characters',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          name: `${this.label}${suffix}`.slice(0, 16),
+          class: this.characterClass,
+        }),
+      },
+      this.token,
+    );
     if (created.status !== 200 || !created.body.id) {
-      throw new Error(`character create failed for ${this.label}: ${created.status} ${created.body.error ?? ''}`);
+      throw new Error(
+        `character create failed for ${this.label}: ${created.status} ${created.body.error ?? ''}`,
+      );
     }
     this.name = created.body.name ?? `${this.label}${suffix}`.slice(0, 16);
     this.characterId = created.body.id;
@@ -253,7 +266,9 @@ class Client {
       body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
     });
     if (loggedIn.status !== 200 || !loggedIn.body.token) {
-      throw new Error(`login failed for ${this.label}: ${loggedIn.status} ${loggedIn.body.error ?? ''}`);
+      throw new Error(
+        `login failed for ${this.label}: ${loggedIn.status} ${loggedIn.body.error ?? ''}`,
+      );
     }
     this.token = loggedIn.body.token;
   }
@@ -262,7 +277,10 @@ class Client {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`${WS_BASE}/ws`);
       this.ws = ws;
-      const timeout = setTimeout(() => reject(new Error(`connect timeout for ${this.label}`)), 8_000);
+      const timeout = setTimeout(
+        () => reject(new Error(`connect timeout for ${this.label}`)),
+        8_000,
+      );
       ws.on('open', () => {
         this.send(worldAuthMessage(this.token, this.characterId));
       });
@@ -344,7 +362,9 @@ async function configureAndEnableHosted(client, targetPartySize, autoInviteNearb
     client.token,
   );
   if (settings.status !== 200) {
-    throw new Error(`hosted settings failed for ${client.name}: ${settings.status} ${settings.body.error ?? ''}`);
+    throw new Error(
+      `hosted settings failed for ${client.name}: ${settings.status} ${settings.body.error ?? ''}`,
+    );
   }
   const enabled = await api(
     `/api/characters/${client.characterId}/hosted-play`,
@@ -352,7 +372,9 @@ async function configureAndEnableHosted(client, targetPartySize, autoInviteNearb
     client.token,
   );
   if (enabled.status !== 200 || enabled.body.enabled !== true) {
-    throw new Error(`hosted enable failed for ${client.name}: ${enabled.status} ${enabled.body.error ?? ''}`);
+    throw new Error(
+      `hosted enable failed for ${client.name}: ${enabled.status} ${enabled.body.error ?? ''}`,
+    );
   }
   client.hostedEnabled = true;
   return enabled.body;
@@ -364,7 +386,9 @@ async function hostedStatus(client) {
     try {
       const res = await api(`/api/characters/${client.characterId}/hosted-play`, {}, client.token);
       if (res.status !== 200) {
-        throw new Error(`hosted status failed for ${client.name}: ${res.status} ${res.body.error ?? ''}`);
+        throw new Error(
+          `hosted status failed for ${client.name}: ${res.status} ${res.body.error ?? ''}`,
+        );
       }
       return res.body;
     } catch (err) {
@@ -372,7 +396,9 @@ async function hostedStatus(client) {
       if (attempt < STATUS_FETCH_RETRIES) await sleep(STATUS_FETCH_RETRY_DELAY_MS * attempt);
     }
   }
-  throw lastError instanceof Error ? lastError : new Error(`hosted status failed for ${client.name}`);
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`hosted status failed for ${client.name}`);
 }
 
 function partyMembers(client) {
@@ -448,8 +474,8 @@ async function enableHostedForJoinedMembers(leader, members, targetPartySize, re
     if (member.hostedEnabled) continue;
     const joinedByLeaderView = samePartyAsLeader(leader, member);
     const joinedByMemberView = samePartyAsClient(member, leader);
-    const nearFullLeader = partySize(leader) >= targetPartySize
-      && distance(member.self, leader.self) <= 8;
+    const nearFullLeader =
+      partySize(leader) >= targetPartySize && distance(member.self, leader.self) <= 8;
     if (!joinedByLeaderView && !joinedByMemberView && !nearFullLeader) continue;
     const joined = joinedByLeaderView || joinedByMemberView;
     const status = await configureAndEnableHosted(member, targetPartySize, joined);
@@ -465,15 +491,17 @@ async function enableHostedForJoinedMembers(leader, members, targetPartySize, re
 
 function repairRosterPartySlots(leader, clients, targetPartySize, nowMs, report) {
   const targetClients = clients.slice(0, targetPartySize);
-  const missingRosterMember = targetClients.some((client) =>
-    client !== leader && !samePartyAsLeader(leader, client));
+  const missingRosterMember = targetClients.some(
+    (client) => client !== leader && !samePartyAsLeader(leader, client),
+  );
   if (!missingRosterMember) return;
   const members = partyMembers(leader);
   if (members.length < targetPartySize) return;
   if (nowMs - leader.lastRosterKickAtMs < ROSTER_SLOT_REPAIR_COOLDOWN_MS) return;
   const rosterNames = new Set(targetClients.map((client) => client.name));
-  const replacement = members.find((member) =>
-    !rosterNames.has(String(member.name ?? '')) && Number.isFinite(Number(member.pid)));
+  const replacement = members.find(
+    (member) => !rosterNames.has(String(member.name ?? '')) && Number.isFinite(Number(member.pid)),
+  );
   if (!replacement) return;
   const replacementPid = Number(replacement.pid);
   leader.cmd({ cmd: 'pkick', id: replacementPid });
@@ -488,8 +516,10 @@ function repairRosterPartySlots(leader, clients, targetPartySize, nowMs, report)
 
 function targetRosterPartyReady(leader, clients, targetPartySize) {
   const targetClients = clients.slice(0, targetPartySize);
-  return partySize(leader) >= targetPartySize
-    && targetClients.every((client) => client === leader || samePartyAsLeader(leader, client));
+  return (
+    partySize(leader) >= targetPartySize &&
+    targetClients.every((client) => client === leader || samePartyAsLeader(leader, client))
+  );
 }
 
 function inviteMissingRosterMembers(leader, clients, targetPartySize, nowMs, report) {
@@ -526,7 +556,9 @@ async function waitForTargetRosterParty(leader, clients, targetPartySize, report
     }
     await sleep(500);
   }
-  throw new Error(`target roster party did not reach ${targetPartySize} members before hosted enable`);
+  throw new Error(
+    `target roster party did not reach ${targetPartySize} members before hosted enable`,
+  );
 }
 
 function collectEvents(clients, report, eventCursorByPid) {
@@ -540,7 +572,12 @@ function collectEvents(clients, report, eventCursorByPid) {
         report.metrics.chatMessages++;
         if (event.channel === 'party') report.metrics.partyChatMessages++;
       }
-      if (event.type === 'questAccepted' || event.type === 'questProgress' || event.type === 'questReady' || event.type === 'questDone') {
+      if (
+        event.type === 'questAccepted' ||
+        event.type === 'questProgress' ||
+        event.type === 'questReady' ||
+        event.type === 'questDone'
+      ) {
         report.metrics.questEvents++;
       }
       if (event.type === 'aura' && event.gained) report.metrics.auraGainedEvents++;
@@ -632,7 +669,9 @@ function summarizeStatus(client, status) {
   const debug = status.debug ?? {};
   const party = debug.party ?? {};
   const brainState = debug.brainState ?? {};
-  const commands = Array.isArray(debug.commands) ? debug.commands.map((command) => command.summary) : [];
+  const commands = Array.isArray(debug.commands)
+    ? debug.commands.map((command) => command.summary)
+    : [];
   const supplies = summarizeSupplies(client.self?.inv);
   const partyThreats = countPartyThreats(client);
   return {
@@ -655,7 +694,9 @@ function summarizeStatus(client, status) {
     x: round(client.self?.x ?? 0),
     z: round(client.self?.z ?? 0),
     partySize: partySize(client),
-    partyMembers: partyMembers(client).map((member) => member.name ?? String(member.pid ?? 'unknown')),
+    partyMembers: partyMembers(client).map(
+      (member) => member.name ?? String(member.pid ?? 'unknown'),
+    ),
     qlog: client.self?.qlog?.length ?? 0,
     qlogDetails: summarizeQuestLog(client.self?.qlog),
     qdone: client.self?.qdone?.length ?? 0,
@@ -698,14 +739,16 @@ function summarizeQuestLog(questLog) {
     questId: typeof quest?.questId === 'string' ? quest.questId : '',
     state: typeof quest?.state === 'string' ? quest.state : '',
     counts: Array.isArray(quest?.counts)
-      ? quest.counts.map((count) => Number.isFinite(count) ? count : 0)
+      ? quest.counts.map((count) => (Number.isFinite(count) ? count : 0))
       : [],
   }));
 }
 
 function countPartyThreats(client) {
   const members = partyMembers(client);
-  const partyIds = new Set(members.map((member) => Number(member.pid)).filter((pid) => Number.isFinite(pid)));
+  const partyIds = new Set(
+    members.map((member) => Number(member.pid)).filter((pid) => Number.isFinite(pid)),
+  );
   if (typeof client.self?.id === 'number') partyIds.add(client.self.id);
   let threats = 0;
   let nearbyHostiles = 0;
@@ -730,18 +773,31 @@ function updateMetricsFromStatus(report, statusRows) {
   report.metrics.maxQuestDone = Math.max(report.metrics.maxQuestDone, leaderRow?.qdone ?? 0);
   for (const row of statusRows) {
     const hosted = row.hosted;
-    if (hosted.groupMode) report.metrics.groupModes[hosted.groupMode] = (report.metrics.groupModes[hosted.groupMode] ?? 0) + 1;
-    if (hosted.partyRole) report.metrics.partyRoles[hosted.partyRole] = (report.metrics.partyRoles[hosted.partyRole] ?? 0) + 1;
-    if (hosted.intentKind) report.metrics.intentKinds[hosted.intentKind] = (report.metrics.intentKinds[hosted.intentKind] ?? 0) + 1;
-    if (hosted.lastPartyChatAction) report.metrics.partyChatActions[hosted.lastPartyChatAction] =
-      (report.metrics.partyChatActions[hosted.lastPartyChatAction] ?? 0) + 1;
+    if (hosted.groupMode)
+      report.metrics.groupModes[hosted.groupMode] =
+        (report.metrics.groupModes[hosted.groupMode] ?? 0) + 1;
+    if (hosted.partyRole)
+      report.metrics.partyRoles[hosted.partyRole] =
+        (report.metrics.partyRoles[hosted.partyRole] ?? 0) + 1;
+    if (hosted.intentKind)
+      report.metrics.intentKinds[hosted.intentKind] =
+        (report.metrics.intentKinds[hosted.intentKind] ?? 0) + 1;
+    if (hosted.lastPartyChatAction)
+      report.metrics.partyChatActions[hosted.lastPartyChatAction] =
+        (report.metrics.partyChatActions[hosted.lastPartyChatAction] ?? 0) + 1;
     if (hosted.commands.includes('pinvite')) report.metrics.pinviteCommandSamples++;
     if (hosted.commands.includes('paccept')) report.metrics.pacceptCommandSamples++;
-    if (hosted.commands.some((command) => command === 'cast' || command === 'target' || command === 'attack')) {
+    if (
+      hosted.commands.some(
+        (command) => command === 'cast' || command === 'target' || command === 'attack',
+      )
+    ) {
       report.metrics.combatCommandSamples++;
     }
-    if (hosted.lastError) report.metrics.hostedErrors.push({ character: row.character, error: hosted.lastError });
-    if (hosted.stuckResets > 0) report.metrics.maxStuckResets = Math.max(report.metrics.maxStuckResets, hosted.stuckResets);
+    if (hosted.lastError)
+      report.metrics.hostedErrors.push({ character: row.character, error: hosted.lastError });
+    if (hosted.stuckResets > 0)
+      report.metrics.maxStuckResets = Math.max(report.metrics.maxStuckResets, hosted.stuckResets);
     const questState = row.qlog + row.qdone;
     report.metrics.questStateByCharacter[row.character] = Math.max(
       report.metrics.questStateByCharacter[row.character] ?? 0,
@@ -814,34 +870,49 @@ function createReport(options, clients, statusBody) {
 
 function buildChecks(report, options) {
   const metrics = report.metrics;
-  const targetLevelReached = options.targetLevel <= 0 || metrics.maxLeaderLevel >= options.targetLevel;
+  const targetLevelReached =
+    options.targetLevel <= 0 || metrics.maxLeaderLevel >= options.targetLevel;
   const supportIntentObserved =
-    Object.keys(metrics.partyRoles).length > 0
-    && Object.keys(metrics.intentKinds).length > 0;
-  const cooperationObserved =
-    ['follow_leader', 'assist_party', 'prepare_party', 'recover_party', 'hold_regroup', 'brain']
-      .some((mode) => metrics.groupModes[mode] > 0);
-  const questSignalObserved = metrics.questEvents > 0 || metrics.maxQuestLog > 0 || metrics.maxQuestDone > 0;
-  const allMembersTouchedQuestState = report.roster.every((entry) => (metrics.questStateByCharacter[entry.name] ?? 0) > 0);
+    Object.keys(metrics.partyRoles).length > 0 && Object.keys(metrics.intentKinds).length > 0;
+  const cooperationObserved = [
+    'follow_leader',
+    'assist_party',
+    'prepare_party',
+    'recover_party',
+    'hold_regroup',
+    'brain',
+  ].some((mode) => metrics.groupModes[mode] > 0);
+  const questSignalObserved =
+    metrics.questEvents > 0 || metrics.maxQuestLog > 0 || metrics.maxQuestDone > 0;
+  const allMembersTouchedQuestState = report.roster.every(
+    (entry) => (metrics.questStateByCharacter[entry.name] ?? 0) > 0,
+  );
   const latestRows = report.statusSamples.at(-1)?.rows ?? [];
-  const allClientsCurrentlyInTargetParty = latestRows.length >= options.partySize
-    && latestRows.every((row) => row.partySize >= options.partySize);
+  const allClientsCurrentlyInTargetParty =
+    latestRows.length >= options.partySize &&
+    latestRows.every((row) => row.partySize >= options.partySize);
   const supportEventObserved =
-    metrics.auraGainedEvents > 0
-    || metrics.healEvents > 0
-    || metrics.castEvents > 0
-    || metrics.combatCommandSamples > 0;
-  const followStartStopNoise = countErrorTexts(metrics, (text) =>
-    text.startsWith('Now following ') || text === 'You stop following.');
-  const programRuntimeClean =
-    metrics.hostedErrors.length === 0
-    && metrics.wsErrors.length === 0;
+    metrics.auraGainedEvents > 0 ||
+    metrics.healEvents > 0 ||
+    metrics.castEvents > 0 ||
+    metrics.combatCommandSamples > 0;
+  const followStartStopNoise = countErrorTexts(
+    metrics,
+    (text) => text.startsWith('Now following ') || text === 'You stop following.',
+  );
+  const programRuntimeClean = metrics.hostedErrors.length === 0 && metrics.wsErrors.length === 0;
   const stuckWithinLimit = metrics.maxStuckResets <= options.maxStuckResets;
 
   return [
     check('server status ok', report.serverStatus?.ok === true),
-    check('all clients connected', report.roster.every((entry) => entry.pid > 0)),
-    check('hosted invite observed', metrics.invitesReceived > 0 || metrics.pinviteCommandSamples > 0),
+    check(
+      'all clients connected',
+      report.roster.every((entry) => entry.pid > 0),
+    ),
+    check(
+      'hosted invite observed',
+      metrics.invitesReceived > 0 || metrics.pinviteCommandSamples > 0,
+    ),
     check('party reached target size', metrics.maxPartySize >= options.partySize),
     check('all clients currently see target party', allClientsCurrentlyInTargetParty),
     check('party chat observed', metrics.partyChatMessages > 0),
@@ -854,7 +925,9 @@ function buildChecks(report, options) {
     check('program runtime stayed clean', programRuntimeClean),
     check(`stuck resets at or below ${options.maxStuckResets}`, stuckWithinLimit),
     check(
-      options.targetLevel > 0 ? `leader reached level ${options.targetLevel}` : 'target level not requested',
+      options.targetLevel > 0
+        ? `leader reached level ${options.targetLevel}`
+        : 'target level not requested',
       targetLevelReached,
     ),
   ];
@@ -1020,8 +1093,11 @@ async function main() {
         nextSampleAtMs = nowMs + options.sampleMs;
 
         const checks = buildChecks(report, options);
-        const allRequiredPassed = checks.every((entry) => entry.pass || entry.name === 'target level not requested');
-        const targetLevelReached = options.targetLevel <= 0 || report.metrics.maxLeaderLevel >= options.targetLevel;
+        const allRequiredPassed = checks.every(
+          (entry) => entry.pass || entry.name === 'target level not requested',
+        );
+        const targetLevelReached =
+          options.targetLevel <= 0 || report.metrics.maxLeaderLevel >= options.targetLevel;
         const minRunElapsed = nowMs - startedAtMs >= DEFAULT_MIN_RUN_MS;
         if (options.earlyExit && minRunElapsed && allRequiredPassed && targetLevelReached) {
           finalReason = options.targetLevel > 0 ? 'target-level' : 'checks-passed';
@@ -1038,11 +1114,11 @@ async function main() {
       report.checks = buildChecks(report, options);
       writeReport(report, outPath);
       console.log(
-        `progress ${Math.round((nowMs - startedAtMs) / 1000)}s `
-        + `level=${report.metrics.maxLeaderLevel} `
-        + `party=${report.metrics.maxPartySize} `
-        + `quests=${Object.values(report.metrics.questStateByCharacter).join(',')} `
-        + `stuck=${report.metrics.maxStuckResets}`,
+        `progress ${Math.round((nowMs - startedAtMs) / 1000)}s ` +
+          `level=${report.metrics.maxLeaderLevel} ` +
+          `party=${report.metrics.maxPartySize} ` +
+          `quests=${Object.values(report.metrics.questStateByCharacter).join(',')} ` +
+          `stuck=${report.metrics.maxStuckResets}`,
       );
       nextCheckpointAtMs = nowMs + options.checkpointMs;
     }
@@ -1095,6 +1171,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err instanceof Error ? err.stack ?? err.message : String(err));
+  console.error(err instanceof Error ? (err.stack ?? err.message) : String(err));
   process.exit(1);
 });

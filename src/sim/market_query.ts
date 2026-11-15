@@ -17,6 +17,7 @@ export const MARKET_ITEM_TYPE_FILTERS = [
   'consumable',
   'material',
   'cosmetic',
+  'pattern',
   'other',
 ] as const;
 export const MARKET_ARMOR_TYPE_FILTERS = [
@@ -47,19 +48,23 @@ export type MarketBagSizeFilter = 'all' | `${number}`;
 // capacity no other bag has adds its browse option automatically, in ascending order,
 // with no code and no locale change: the option label reuses the already-translated
 // `itemUi.tooltip.bagSlots` template, which takes the number as a value.
-export const MARKET_BAG_SIZE_FILTERS: readonly MarketBagSizeFilter[] = [
-  'all',
-  ...[
-    ...new Set(
-      Object.values(ITEMS)
-        .filter((item) => item.kind === 'bag')
-        .map((item) => item.bagSlots ?? 0)
-        .filter((slots) => slots > 0),
-    ),
-  ]
-    .sort((a, b) => a - b)
-    .map((slots) => `${slots}` as const),
-];
+//
+// A bag with bagSlots 0, or with bagSlots omitted entirely (defaulted to 0 below), is a
+// legitimate distinct capacity, not noise to drop: excluding it here would still let the
+// bag match under itemType 'bag' + subtype 'all' (itemMatchesSubtype short-circuits on
+// 'all'), but no specific-capacity button could ever reach it. So every distinct value,
+// including 0, gets its own option.
+export function deriveBagSizeFilters(items: readonly ItemDef[]): readonly MarketBagSizeFilter[] {
+  return [
+    'all',
+    ...[...new Set(items.filter((item) => item.kind === 'bag').map((item) => item.bagSlots ?? 0))]
+      .sort((a, b) => a - b)
+      .map((slots) => `${slots}` as const),
+  ];
+}
+export const MARKET_BAG_SIZE_FILTERS: readonly MarketBagSizeFilter[] = deriveBagSizeFilters(
+  Object.values(ITEMS),
+);
 // Bound to the content union both ways on purpose: `satisfies` rejects an option that is not
 // a real ArmorType, and the Exclude assertion below reddens tsc if ArmorType ever gains a class
 // with no option here (which would silently make that whole armor class unbrowsable).
@@ -83,9 +88,14 @@ export const MARKET_RARITY_FILTERS = [
   'epic',
   'legendary',
 ] as const;
+// Browse sort order (issue 3102). 'name' is the classic default (name-then-price,
+// what the memoized sortedBook() has always produced); 'price' surfaces the whole
+// matched book cheapest-first. Kept as its own axis rather than folded into the
+// dropdown filters: it reorders the result set, it never narrows it.
+export const MARKET_SORT_OPTIONS = ['name', 'price'] as const;
 
 // Listings per browse page (the count of OTHER sellers' listings shown at a time;
-// the player's own listings are always wired on top for quick reclaim).
+// the player's own visible listings are wired on top for quick reclaim).
 export const MARKET_PAGE_SIZE = 50;
 
 export type MarketItemTypeFilter = (typeof MARKET_ITEM_TYPE_FILTERS)[number];
@@ -98,8 +108,9 @@ export type MarketSubtypeFilter =
 export type MarketArmorClassFilter = (typeof MARKET_ARMOR_CLASS_FILTERS)[number];
 export type MarketPrimaryStatFilter = (typeof MARKET_PRIMARY_STAT_FILTERS)[number];
 export type MarketRarityFilter = (typeof MARKET_RARITY_FILTERS)[number];
+export type MarketSort = (typeof MARKET_SORT_OPTIONS)[number];
 
-/** The full browse state: search text, filters, and the page index. */
+/** The full browse state: search text, filters, sort, and the page index. */
 export interface MarketQuery {
   search: string;
   itemType: MarketItemTypeFilter;
@@ -107,7 +118,12 @@ export interface MarketQuery {
   armorClass: MarketArmorClassFilter;
   primaryStat: MarketPrimaryStatFilter;
   rarity: MarketRarityFilter;
+  sort: MarketSort;
   page: number;
+  // When true, Browse collapses all matching plain listings to the lowest-priced row per
+  // item id (see market_collapse.ts). Instanced copies remain distinct, and the viewer's
+  // own rows participate in the same selection (issue #3103).
+  collapseLowest: boolean;
 }
 
 export function defaultMarketQuery(): MarketQuery {
@@ -118,7 +134,9 @@ export function defaultMarketQuery(): MarketQuery {
     armorClass: 'all',
     primaryStat: 'all',
     rarity: 'all',
+    sort: 'name',
     page: 0,
+    collapseLowest: false,
   };
 }
 
@@ -133,7 +151,9 @@ export function sanitizeMarketQuery(
         armorClass?: unknown;
         primaryStat?: unknown;
         rarity?: unknown;
+        sort?: unknown;
         page?: unknown;
+        collapseLowest?: unknown;
       }
     | null
     | undefined,
@@ -159,7 +179,9 @@ export function sanitizeMarketQuery(
     armorClass: oneOf(MARKET_ARMOR_CLASS_FILTERS, raw?.armorClass, 'all'),
     primaryStat: oneOf(MARKET_PRIMARY_STAT_FILTERS, raw?.primaryStat, 'all'),
     rarity: oneOf(MARKET_RARITY_FILTERS, raw?.rarity, 'all'),
+    sort: oneOf(MARKET_SORT_OPTIONS, raw?.sort, 'name'),
     page,
+    collapseLowest: raw?.collapseLowest === true,
   };
 }
 
@@ -177,13 +199,30 @@ function itemMatchesType(item: ItemDef, filter: MarketItemTypeFilter): boolean {
       item.kind === 'food' ||
       item.kind === 'drink' ||
       item.kind === 'potion' ||
-      item.kind === 'elixir'
+      item.kind === 'elixir' ||
+      item.kind === 'flask' ||
+      item.kind === 'scroll'
     );
   if (filter === 'bag') return item.kind === 'bag';
   if (filter === 'material')
     return !isCosmeticItem(item) && (item.kind === 'junk' || item.kind === 'tool');
   if (filter === 'cosmetic') return isCosmeticItem(item);
-  if (filter === 'other') return item.kind === 'quest';
+  if (filter === 'pattern') return item.kind === 'recipe';
+  // The catch-all for catalog kinds with no browse category of their own. Mount
+  // reins join quest items here: quest items are never listable, and reins
+  // (listable now that they are unbound) are too few to earn a filter chip.
+  // Recipe patterns parked here through phase 02 for the same fewness reason;
+  // phase 11 shipped the apex pattern content and gave the kind its own chip
+  // (the 'pattern' arm above), so quest and mount are the whole bucket again.
+  // Neither may be left reachable through 'All' alone (pinned by the sweep in
+  // tests/market_filters.test.ts, which sees only the live catalog).
+  if (filter === 'other')
+    return (
+      item.kind === 'quest' ||
+      item.kind === 'mount' ||
+      item.kind === 'buddy' ||
+      item.kind === 'buddy_cosmetic'
+    );
   // Exhaustive on purpose: a future MARKET_ITEM_TYPE_FILTERS entry with no arm above
   // reddens tsc here instead of silently inheriting the 'other' predicate, which is
   // how `bag` browsed as nothing at all for its whole life before this arm existed.

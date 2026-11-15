@@ -9,7 +9,7 @@
 //                      -> the in-world desktop HUD, plus the mobile HUD when the change
 //                      touches the mobile/responsive surface.
 //   nothing           a backend/data/i18n-only diff is not visual, so it captures no frames
-//                      at all (the comment step then posts no screenshots).
+//                      at all, and the PR needs no screenshot section.
 // There is no fixed tour: it never shoots unrelated parts of the game just to have something.
 //
 // Run locally:  npm run dev   (in another terminal, serves :5173)
@@ -19,13 +19,27 @@
 //   SHOTS_DIR   output directory for PNGs (default pr-shots)
 //   DIFF_FILE   unified diff; required for capture (no diff -> nothing is visual -> skip)
 //   BROWSER_PATH  Chrome/Edge/Chromium binary (see browser_path.mjs)
+//   NAV_TIMEOUT_MS / ENTRY_SELECTOR_TIMEOUT_MS  raise the page-load and
+//     class-card waits on a contended host (see the constants below)
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { enterOfflineGame } from './enter_offline_game.mjs';
 import { suppressGpuNotice } from './lib/gpu_notice_suppress.mjs';
-import { classifyDiff, diffChangedPaths } from './pr_shot_targets.mjs';
+import { resolveEntryTimeouts } from './lib/pr_shot_entry_opts.mjs';
+import { classifyDiff, diffChangedPaths, resolveMobileViewport } from './pr_shot_targets.mjs';
 
 const URL = process.env.GAME_URL ?? 'http://localhost:5173';
+// Dev-entry load can outlast 60s on a contended machine (SwiftShader plus a
+// cold Vite module graph), and the class cards only get their box once the
+// procedural icons have rendered, which outlasts enterOfflineGame's 15s
+// default and fails every target at once with "Waiting for selector ...
+// mini-class". The two escape hatches, their raise-only interaction, and the
+// fixed 60s selector floor (a LOW NAV_TIMEOUT_MS shortens page loads, never
+// the selector wait) live in lib/pr_shot_entry_opts.mjs (unit-pinned);
+// defaults leave CI untouched.
+const { navTimeoutMs: NAV_TIMEOUT, selectorTimeoutMs: ENTRY_SELECTOR_TIMEOUT } =
+  resolveEntryTimeouts(process.env);
+const ENTRY_PROBE_KEY = 'woc_entry_probe';
 const OUT = process.env.SHOTS_DIR ?? 'pr-shots';
 const DIFF_FILE = process.env.DIFF_FILE;
 fs.mkdirSync(OUT, { recursive: true });
@@ -69,21 +83,51 @@ const { BROWSER_PATH } = await import('./browser_path.mjs');
 
 const browser = await puppeteer.launch({
   executablePath: BROWSER_PATH,
-  // Software GL so it runs on a headless CI box with no GPU, matching the other tours.
+  // Software GL so it runs on a headless box with no GPU, matching the other tours.
   headless: 'new',
   args: ['--window-size=1600,900', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
   defaultViewport: { width: 1600, height: 900 },
 });
 
+// Under swiftshader the class cards get their box only after the procedural
+// icons software-render, and the world boot takes correspondingly longer; the
+// entry helper's defaults are tuned for a GPU host and time out here (its own
+// header says so). One shared override for every entry below; the resolved
+// selector deadline already honors both escape hatches (see
+// lib/pr_shot_entry_opts.mjs).
+const ENTRY_OPTS = {
+  settleMs: 3000,
+  selectorTimeoutMs: ENTRY_SELECTOR_TIMEOUT,
+  gameBootTimeoutMs: 60000,
+};
+
+// Standalone screenshot variants intentionally close a live world page and open
+// another in the same browser profile. v0.40's crash guard correctly treats an
+// uncleared probe as a killed world, but a harness-owned page.close is not a crash
+// and must not step the next variant's seeded graphics preset down a tier.
+async function clearIntentionalPageCloseProbe(page) {
+  await page.evaluateOnNewDocument((key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Storage unavailable: the entry guard is fail-soft too.
+    }
+  }, ENTRY_PROBE_KEY);
+}
+
 // One guarded shot: a failure in one frame must not lose the others, so the run always
 // keeps whatever it managed to capture. `clip` is an optional CSS selector; when given
 // and found, the shot is cropped to that element (plus a small margin) instead of full frame.
+// A capture whose subject spans several elements (the unit frames plus the player menu)
+// hands back a viewport-space `{ x, y, width, height }` region instead of a selector.
 async function shoot(page, name, clip) {
   try {
     await new Promise((r) => setTimeout(r, 300));
     const file = `${OUT}/${name}.png`;
     let region;
-    if (clip) {
+    if (clip && typeof clip === 'object') {
+      region = clip;
+    } else if (clip) {
       region = await page.evaluate((sel) => {
         const el = document.querySelector(sel);
         if (!el) return null;
@@ -137,39 +181,71 @@ async function shootSpecific(targets) {
       try {
         if (standalone) {
           page = await browser.newPage();
+          await clearIntentionalPageCloseProbe(page);
           watch(page, `${t.key}-${variant.key}`);
           await suppressGpuNotice(page);
           if (variant.mobile) {
+            const { width, height } = resolveMobileViewport(variant);
             await page.emulate({
               viewport: {
-                width: 844,
-                height: 390,
+                width,
+                height,
                 isMobile: true,
                 hasTouch: true,
                 deviceScaleFactor: 2,
               },
+              // A variant may override the emulated phone UA. The default
+              // iPhone UA lands gfx.ts's iOS memory profile, whose Lambert
+              // material tier never applies the day/night grade outdoors, so
+              // a target whose subject needs the graded look emulates an
+              // Android phone instead (the p16 regalia target).
               userAgent:
+                variant.userAgent ??
                 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             });
           }
-          await page.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 });
+          // Anything that has to be in place BEFORE the document loads (a request
+          // stub via evaluateOnNewDocument, a storage seed).
+          await variant.beforeLoad?.(page);
+          await page.goto(URL, {
+            // Landing-shell captures need the deferred module graph complete,
+            // which DOMContentLoaded guarantees. They intentionally do not
+            // wait for network idleness: the marketing shell polls presence
+            // and project-stat endpoints, so an absent local API otherwise
+            // burns the full navigation timeout before every static UI frame.
+            waitUntil:
+              variant.navigationWaitUntil ??
+              (variant.landing ? 'domcontentloaded' : 'networkidle0'),
+            timeout: NAV_TIMEOUT,
+          });
+          await page
+            .waitForFunction(() => !document.getElementById('boot-splash'), {
+              timeout: NAV_TIMEOUT,
+            })
+            .catch(() => errors.push(`BOOT SPLASH(${t.key}-${variant.key}): never lifted`));
           if (variant.mobile)
             await page.evaluate(() => document.body.classList.add('mobile-touch'));
-          await enterOfflineGame(page, {
-            charClass: variant.charClass,
-            charName: variant.charName,
-            settleMs: 3000,
-          });
+          // A `landing: true` variant shoots the pre-game marketing shell (the home
+          // page's own views: High Scores, News, Download), so it must NOT enter the
+          // world: entry replaces that shell with the HUD. Its capture recipe drives
+          // the shell directly instead of window.__game.
+          if (!variant.landing)
+            await enterOfflineGame(page, {
+              charClass: variant.charClass,
+              charName: variant.charName,
+              ...ENTRY_OPTS,
+            });
         } else if (!page) {
           page = await browser.newPage();
+          await clearIntentionalPageCloseProbe(page);
           sharedPage = page;
           watch(page, 'desktop');
           await suppressGpuNotice(page);
-          await page.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 });
+          await page.goto(URL, { waitUntil: 'networkidle0', timeout: NAV_TIMEOUT });
           await enterOfflineGame(page, {
             charClass: 'warrior',
             charName: 'Thorgar',
-            settleMs: 3000,
+            ...ENTRY_OPTS,
           });
         }
         const region = await t.capture(page, variant);
@@ -195,10 +271,11 @@ async function shootGenericHud(frames) {
 
   if (frames.includes('hud-desktop')) {
     const page = await browser.newPage();
+    await clearIntentionalPageCloseProbe(page);
     watch(page, 'desktop');
     await suppressGpuNotice(page);
-    await page.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 });
-    await enterOfflineGame(page, { charClass: 'warrior', charName: 'Thorgar', settleMs: 3000 });
+    await page.goto(URL, { waitUntil: 'networkidle0', timeout: NAV_TIMEOUT });
+    await enterOfflineGame(page, { charClass: 'warrior', charName: 'Thorgar', ...ENTRY_OPTS });
     await shoot(page, `${next()}-hud-desktop`);
     await page.close();
   }
@@ -206,6 +283,7 @@ async function shootGenericHud(frames) {
   if (frames.includes('hud-mobile')) {
     try {
       const mobile = await browser.newPage();
+      await clearIntentionalPageCloseProbe(mobile);
       watch(mobile, 'mobile');
       await suppressGpuNotice(mobile);
       await mobile.emulate({
@@ -215,9 +293,9 @@ async function shootGenericHud(frames) {
         userAgent:
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
       });
-      await mobile.goto(URL, { waitUntil: 'networkidle0', timeout: 60000 });
+      await mobile.goto(URL, { waitUntil: 'networkidle0', timeout: NAV_TIMEOUT });
       await mobile.evaluate(() => document.body.classList.add('mobile-touch'));
-      await enterOfflineGame(mobile, { charClass: 'mage', charName: 'Aldwin', settleMs: 3000 });
+      await enterOfflineGame(mobile, { charClass: 'mage', charName: 'Aldwin', ...ENTRY_OPTS });
       await shoot(mobile, `${next()}-hud-mobile`);
       await mobile.close();
     } catch (e) {
@@ -233,12 +311,13 @@ try {
   await browser.close();
 }
 
-// Record the manifest so the comment step can list what was captured without re-reading.
+// Record the manifest as a local index of the run: what mode it chose and which frames it
+// produced, so the PR write-up can list them without re-reading every PNG.
 const mode = plan.specific.length ? 'change-aware' : 'generic-hud';
 fs.writeFileSync(`${OUT}/manifest.json`, JSON.stringify({ mode, captured, errors }, null, 2));
 
 if (errors.length) console.log(`notes during capture:\n${errors.join('\n')}`);
 console.log(`captured ${captured.length} screenshot(s) into ${OUT}/`);
 // Non-zero only if a visual change captured nothing at all, so a partial run still keeps
-// its frames while a total capture failure surfaces in the job log.
+// its frames while a total capture failure fails the invoking command.
 process.exit(captured.length > 0 && failedTargets === 0 ? 0 : 1);

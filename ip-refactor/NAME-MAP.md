@@ -280,7 +280,7 @@ zero extra rows were needed (verified by G0, recorded in 02-WORKING-MEMORY.md).
 | `healing_touch` | Healing Touch | Wildmend | ability | rename |
 | `mark_of_the_wild` | Mark of the Wild | Wildward | ability | rename |
 | `moonfire` | Moonfire | Lunar Tempest | ability | rename |
-| `rejuvenation` | Rejuvenation | Wildbloom | ability | rename |
+| `rejuvenation` | Rejuvenation | Sporemending | ability | rename |
 | `thorns` | Thorns | Briarguard | ability | rename |
 | `entangling_roots` | Entangling Roots | Gripping Roots | ability | rename |
 | `bear_form` | Bear Form | Bruin Form | ability | rename |
@@ -1157,3 +1157,182 @@ coverage with zero residual:
 - **Three WoW-adjacent mob names KEPT** by operator (generic/original, whole-value clears them):
   Static Charge, Blood Frenzy, Deathstalker Cleave (mob `deathstalker_voss`).
 The scanner is GREEN after this change - the whole IP scrub is verified complete.
+
+## Rogue v0.29 row redesign coinages (2026-07-22, append-only)
+
+Fresh names for the rogue v0.29 choice rows and their two granted abilities
+(docs/design/rogue-v029-class-design.md). All are original coinages in the map
+voice; none shadow a Blizzard spell or talent name. Two candidates were
+REJECTED for verbatim WoW collisions before ship: "Deathmark" (Dragonflight
+Assassination talent) recoined as Grave Brand, and "Slipstream" (Evoker talent)
+recoined as Quickstep.
+
+| id | old | new | kind | flag |
+|---|---|---|---|---|
+| `rog_r5_killers_pace` | (new) | Killer's Pace | row-option | new-coinage |
+| `rog_r5_slipstream` | (new) | Quickstep | row-option | new-coinage |
+| `rog_r8_ghostfoot_ward` | (new) | Ghostfoot Ward | row-option | new-coinage |
+| `rog_r11_marked_prey` | (new) | Marked Prey | row-option | new-coinage |
+| `rog_r11_cheap_trick` | (new) | Cheap Trick | row-option | new-coinage |
+| `rog_r14_dusk_economy` | (new) | Dusk Economy | row-option | new-coinage |
+| `rog_r20_second_shadow` | (new) | Second Shadow | row-option | new-coinage |
+| `rog_r20_deathmark` | (new) | Grave Brand | row-option | new-coinage |
+| `rog_r20_kill_chain` | (new) | Kill Chain | row-option | new-coinage |
+| `flurry_of_knives` | (new) | Flurry of Knives | ability | new-coinage |
+| `thieves_chorus` | (new) | Thieves' Chorus | ability | new-coinage |
+
+## Rogue v0.29 spec-engine coinages (2026-07-22, append-only)
+
+The spec-engine abilities and states (docs/design/rogue-v029-spec-engines.md),
+all original coinages in the map voice; none shadow a Blizzard spell, talent,
+or hero-tree name.
+
+| id | old | new | kind | flag |
+|---|---|---|---|---|
+| `venomrend` | (new) | Venomrend | ability | new-coinage |
+| `veilstrike` | (new) | Veilstrike | ability | new-coinage |
+| `venom_ritual` | (new) | Venom Ritual | engine-state | new-coinage |
+| `redline` | (new) | Redline | engine-state | new-coinage |
+| `gloam` | (new) | Gloam | engine-state | new-coinage |
+
+## Druid v0.29 row redesign coinages (2026-07-27, append-only)
+
+Fresh names for the druid v0.29 choice rows
+(docs/design/druid-v029-class-design.md). All are original coinages in the map
+voice; none shadow a Blizzard spell or talent name. The r17 options keep the
+existing Red Haze / Gladesong / Lifesap coinages (the granted cooldowns moved
+rows, no new names), and r11 Typhoon grants the pre-existing Typhoon ability.
+
+| id | old | new | kind | flag |
+|---|---|---|---|---|
+| `dru_r5_improved_wrath` | (new) | Wildshift | row-option | new-coinage |
+| `dru_r5_ferocity` | (new) | Loping Stride | row-option | new-coinage |
+| `dru_r5_natures_bounty` | (new) | Skylark | row-option | new-coinage |
+| `dru_r8_typhoon` | (new) | Oakhide Reflex | row-option | new-coinage |
+| `dru_r8_improved_roots` | (new) | Ironhide Reflex | row-option | new-coinage |
+| `dru_r8_brutal_bash` | (new) | Bear-Blood Mending | row-option | new-coinage |
+| `dru_r11_furor` | (new) | Gripping Ambush | row-option | new-coinage |
+| `dru_r11_improved_mark` | (new) | Concussive Economy | row-option | new-coinage |
+| `dru_r14_savage_fury` | (new) | Blooddrunk | row-option | new-coinage |
+| `dru_r14_moonfury` | (new) | Highmoon Tithe | row-option | new-coinage |
+| `dru_r14_empowered_touch` | (new) | Seedspread | row-option | new-coinage |
+| `dru_r20_improved_hurricane` | (new) | Nature's Echo | row-option | new-coinage |
+| `dru_r20_berserk` | (new) | Wild Apex | row-option | new-coinage |
+| `dru_r20_tranquility` | (new) | Quickening | row-option | new-coinage |
+
+## Druid v0.29 spec-engine coinages (2026-07-27, append-only)
+
+The spec-engine abilities, states, and the two strike renames
+(docs/design/druid-v029-class-design.md), all original coinages in the map
+voice; none shadow a Blizzard spell, talent, or hero-tree name. In-map note:
+druid Redharvest (one word) sits near the pre-existing warrior "Red Harvest"
+(two words); distinct abilities, both kept by decision.
+
+| id | old | new | kind | flag |
+|---|---|---|---|---|
+| `moonlash` | (new) | Moonlash | ability | new-coinage |
+| `sunlance` | (new) | Sunlance | ability | new-coinage |
+| `moonseed` | (new) | Moonseed | ability | new-coinage |
+| `redharvest` | (new) | Redharvest | ability | new-coinage |
+| `marrowbreak` | (new) | Marrowbreak | ability | new-coinage |
+| `overbloom` | (new) | Overbloom | ability | new-coinage |
+| `moontide` | (new) | Moontide | engine-state | new-coinage |
+| `sunwake` | (new) | Sunwake | engine-state | new-coinage |
+| `skyborne` | (new) | Skyborne | engine-state | new-coinage |
+| `old_blood` | (new) | Old Blood | engine-state | new-coinage |
+| `verdance` | (new) | Verdance | engine-state | new-coinage |
+| `claw` | Claw | Rendclaw | ability-rename | renamed |
+| `rip` | Rip | Bloodrift | ability-rename | renamed |
+
+## Druid v0.29 Moongrove v2 revision (2026-07-27, append-only)
+
+Owner playtest simplified the Moongrove engine to one bank and one alternating
+payoff button. One coinage is added and one is retired before ever shipping:
+Skyborne (the instant-cast window) was cut in the same session it was built,
+replaced by Moonsurge, an original coinage in the map voice; no Blizzard
+spell, talent, or hero-tree name collision.
+
+| id | old | new | kind | flag |
+|---|---|---|---|---|
+| `moonsurge` | (new) | Moonsurge | engine-state | new-coinage |
+| `skyborne` | Skyborne | (retired pre-ship) | engine-state | retired |
+
+## Druid v0.29 Moongrove v3 revision (2026-07-28, append-only)
+
+Owner playtest turned the alternating payoff into a player CHOICE: at full
+Moontide, Moonseed becomes the damage payoff and Skyfall becomes the economy
+payoff, and either press spends the bank. The payoff ABILITY names now reuse
+the session's own coinages (both already recorded above): def id `moonlash`
+displays as Moonsurge, def id `sunlance` displays as Sunwake. The Sunwake sky
+marker and the Moonsurge next-bolt empowerment are retired pre-ship; the
+names live on as the two payoff abilities. Moonlash and Sunlance are retired
+pre-ship as display names.
+
+## MASTERWROUGHT PHASE 03 AMENDMENT (2026-08-07, the R15 naming audit)
+
+Authorized by the R15 maintainer directive in `docs/design/naming-audit.md`:
+pre-existing shipped collisions get display-name-only renames. A
+web-verified audit of all 2605 shipped player-visible proper nouns (workflow: 20 sweep
+agents, adversarial verify, 4 hunters) confirmed the collisions below; every replacement
+name was itself web-verified before adoption. Per-name verdicts and evidence:
+docs/design/naming-audit.md. Two of these (Gloomshade, Winterbite) were
+SEO-pass adoptions at the 2026-07-02 lock whose screening missed the collision; the
+"Factions: ... Wyrmcult" context note above predates this amendment (that faction is now
+the Broodsworn). Ids stay frozen as always; new literals pin in
+tests/originality_renames.test.ts and the old names arm the scanner via the rows here
+plus the hardcoded list.
+
+| id | old | new | kind | flag |
+|----|-----|-----|------|------|
+| crusader_strike | Crusader Strike | Oathstrike | ability | rename |
+| heroic_leap | Heroic Leap | Vaulting Charge | ability | rename |
+| holy_nova | Holy Nova | Hallowburst | ability | rename |
+| icy_veins | Icy Veins | Coldsurge | ability | rename |
+| victory_rush | Victory Rush | Victor's Surge | ability | rename |
+| wyvern_sting | Wyvern Sting | Drakesting | ability | rename |
+| glacial_spike | Glacial Spike | Rimeneedle | ability | rename |
+| frozen_orb | Frozen Orb | Frostglobe | ability | rename |
+| holy_shock | Holy Shock | Lightjolt | ability | rename |
+| storm_bolt | Storm Bolt | Thunderhurl | ability | rename |
+| vanish | Smokestep | Smokefade | ability | rename |
+| counterspell | Spellbreak | Spellsever | ability | rename |
+| spellsteal | Spellsteal | Spellplunder | ability | rename |
+| swiftmend | Swiftmend | Fleetmend | ability | rename |
+| summon_voidwalker | Summon Gloomshade | Summon Duskmurk | ability | rename |
+| gloomshade | Gloomshade | Duskmurk | mob | rename |
+| avenging_wrath | Wrathwing | Zealwing | ability | rename |
+| blink | Flickerstep | Flitstep | ability | rename |
+| restoration_shaman_spec | Spiritmend | Spiritcall | spec-name | rename |
+| wyrmcult_family | Wyrmcult | Broodsworn | faction | rename |
+| frostmane_family | Frostmane | Rimemane | mob-family | rename |
+| nightkin_stargazer | Nightkin Stargazer | Gloamkin Stargazer | mob | rename |
+| harvest_sprite | Harvest Sprite | Gleaning Sprite | mob | rename |
+| deacon_varric | Varric | Vandric | npc-name | rename |
+| hermit_okku | Okku | Okrim | npc-name | rename |
+| gallowmere_town | Gallowmere | Gibbetmere | hub-town | rename |
+| eldergleam_town | Eldergleam | Eldershine | hub-town | rename |
+| nightbloom_poi | Moonwell | Moonspring | poi | rename |
+| cryptbloom_shoulderguards | Cryptbloom Shoulderguards | Tombpetal Shoulderguards | item | rename |
+| mistforged_pauldrons | Mistforged Pauldrons | Fogforged Pauldrons | item | rename |
+| terrorspark_groundshaker | Terrorspark | Dreadspark | mount | rename |
+| winterbite_skin | Winterbite | Wintergnaw | skin | rename |
+| rift_hellguard_cleave | Hellsteel Sweep | Pitsteel Sweep | mechanic | rename |
+| rift_pitlord_pulse | Hellfire Ring | Pitfire Ring | mechanic | rename |
+| dgn_sanctum_speed | Sanctum Sprint | Sanctum Footrace | deed | rename |
+| pvp_honor_knight_lieutenant | Knight-Lieutenant | Banneret | deed-title | rename |
+| pvp_honor_knight_lieutenant | Banneret | Fieldreaver | deed-title | rename |
+| holy_nova | Hallowburst | Sunburst Canticle | ability | rename |
+| infernal_nouns (INFERNAL_NOUNS pool) | Hellfire Citadel | Pitfire Citadel | rift-name | rename |
+| detonate_hellfire_brand | Hellfire Brand | (key stripped, dead) | catalog | rename |
+
+QA-round row notes (the flag cell stays bare so the ip_scrub parse arms each
+old name; annotations live here instead): the Banneret row records the
+release supersede at the v0.36.0 merge (PR #3133, which also re-cut Sergeant
+to Linebreaker and Field Marshal to Warcrowned); the Hellfire Citadel row is
+the composed set-piece rift name (a pool value, display-only, seed math
+unchanged); the Hellfire Brand row records a stripped DEAD catalog key (no
+emit existed), armed so a reintroduction of the phrase fires; the second
+holy_nova row records the release's own priest-rework re-cut (Sunburst
+Canticle) superseding the phase's Hallowburst at the phase 04 QA release
+sync, the Fieldreaver rule again, with Hallowburst armed the same way.
+| shardlord_kazzix_frostbite | Winterbite | Wintergnaw | mechanic | rename |

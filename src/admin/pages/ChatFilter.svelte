@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import type { ChatFilterData, ChatModeratedAccount } from '../types';
   import { apiGet, apiPost } from '../api';
+  import { type AdminLoadFailure, classifyAdminLoadFailure } from '../load_failure';
+  import PermissionDenied from '../components/PermissionDenied.svelte';
   import { auth } from '../state/auth.svelte';
   import { localizeAdminError, t } from '../i18n';
   import { fmtDate, fmtDuration } from '../format';
@@ -9,15 +11,16 @@
   import Badge from '../components/Badge.svelte';
   import WordList from '../components/WordList.svelte';
   import ModerationActionPrompt from '../components/ModerationActionPrompt.svelte';
-  import { liftChatMute } from '../moderation_actions';
+  import { liftChatMute, resetChatStrikes } from '../moderation_actions';
 
   // Chat filter tab: escalation config, the soft/hard word tiers, and the list of
   // chat-moderated accounts. Ported from renderChatFilter + wireChatFilterEvents.
   let data = $state<ChatFilterData | null>(null);
-  let failed = $state(false);
+  let failed = $state<AdminLoadFailure>('none');
   let warnings = $state(0);
   let ladder = $state('');
   let selectedLift = $state<ChatModeratedAccount | null>(null);
+  let selectedReset = $state<ChatModeratedAccount | null>(null);
 
   let ladderHuman = $derived((data?.config.muteLadderSeconds ?? []).map((s) => fmtDuration(s)).join(' → '));
 
@@ -26,9 +29,9 @@
       data = await apiGet<ChatFilterData>('/admin/api/chat-filter');
       warnings = data.config.warningsBeforeMute;
       ladder = data.config.muteLadderSeconds.join(', ');
-      failed = false;
+      failed = 'none';
     } catch (err) {
-      if (!auth.handleAuthFailure(err)) failed = true;
+      if (!auth.handleAuthFailure(err)) failed = classifyAdminLoadFailure(err);
     }
   }
 
@@ -50,10 +53,6 @@
     apiPost('/admin/api/chat-filter/config', { warningsBeforeMute, muteLadderSeconds }).then(() => refresh()).catch((err: unknown) => fail(err, 'alert.saveConfigFailed'));
   }
 
-  function resetStrikes(accountId: number): void {
-    apiPost(`/admin/api/moderation/accounts/${accountId}/reset-strikes`, {}).then(() => refresh()).catch((err: unknown) => fail(err, 'alert.actionFailed'));
-  }
-
   async function confirmLift(values: { reason: string; expiry: string }): Promise<void> {
     const account = selectedLift;
     if (!account) return;
@@ -71,6 +70,23 @@
     }
   }
 
+  async function confirmReset(values: { reason: string; expiry: string }): Promise<void> {
+    const account = selectedReset;
+    if (!account) return;
+    const built = resetChatStrikes(account.id, values.reason);
+    if ('errorKey' in built) {
+      window.alert(t(built.errorKey));
+      return;
+    }
+    try {
+      await apiPost(built.pending.endpoint, built.pending.body);
+      selectedReset = null;
+      await refresh();
+    } catch (err) {
+      fail(err, 'alert.actionFailed');
+    }
+  }
+
   const muted = (until: string | null) => until !== null && new Date(until).getTime() > Date.now();
 
   // Presentation only; the server gates the word/config writes on
@@ -81,7 +97,9 @@
   onMount(() => { void refresh(); });
 </script>
 
-{#if failed}
+{#if failed === 'forbidden'}
+  <Panel title={t('nav.chatFilter')}><PermissionDenied /></Panel>
+{:else if failed === 'error'}
   <Panel title={t('nav.chatFilter')}><div class="empty">{t('chatFilter.loadFailed')}</div></Panel>
 {:else if data}
   <Panel title={t('chatFilter.escalationTitle')}>
@@ -140,7 +158,7 @@
               <td>
                 {#if canModerate}
                   {#if muted(a.chatMutedUntil)}<button onclick={() => (selectedLift = a)}>{t('chatMod.liftMute')}</button>{/if}
-                  {#if a.chatStrikes > 0}<button onclick={() => resetStrikes(a.id)}>{t('chatMod.resetStrikes')}</button>{/if}
+                  {#if a.chatStrikes > 0}<button onclick={() => (selectedReset = a)}>{t('chatMod.resetStrikes')}</button>{/if}
                 {/if}
               </td>
             </tr>
@@ -156,6 +174,23 @@
                       ]}
                       onConfirm={confirmLift}
                       onCancel={() => (selectedLift = null)}
+                    />
+                  {/key}
+                </td>
+              </tr>
+            {/if}
+            {#if selectedReset?.id === a.id}
+              <tr>
+                <td colspan="4">
+                  {#key a.id}
+                    <ModerationActionPrompt
+                      title={t('dialog.confirmResetChatStrikes')}
+                      rows={[
+                        { label: t('dialog.account'), value: a.username },
+                        { label: t('dialog.action'), value: t('dialog.actionResetChatStrikes') },
+                      ]}
+                      onConfirm={confirmReset}
+                      onCancel={() => (selectedReset = null)}
                     />
                   {/key}
                 </td>

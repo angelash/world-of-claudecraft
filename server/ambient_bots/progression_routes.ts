@@ -30,9 +30,7 @@ interface AmbientBotQuestRouteBase {
   deferActiveWhilePartyMemberBelowLevel?: number;
 }
 
-export const EASTBROOK_SAFE_BOAR_CAMPS: readonly AmbientBotPoint2d[] = [
-  { x: 55, z: 12 },
-];
+export const EASTBROOK_SAFE_BOAR_CAMPS: readonly AmbientBotPoint2d[] = [{ x: 55, z: 12 }];
 
 export const EASTBROOK_SAFE_BOAR_TARGET_RADIUS = 28;
 
@@ -58,9 +56,7 @@ const FENBRIDGE_SAFE_CARAVAN_GOODS_CAMPS: readonly AmbientBotPoint2d[] = [
 
 const FENBRIDGE_SAFE_CARAVAN_GOODS_TARGET_RADIUS = 8;
 
-export const FENBRIDGE_SAFE_DEEPFEN_CAMPS: readonly AmbientBotPoint2d[] = [
-  { x: -58, z: 286 },
-];
+export const FENBRIDGE_SAFE_DEEPFEN_CAMPS: readonly AmbientBotPoint2d[] = [{ x: -58, z: 286 }];
 
 export const FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS = 36;
 
@@ -97,21 +93,19 @@ interface AmbientBotQuestRouteConfig {
 }
 
 function campsForMobIds(mobIds: readonly string[]): AmbientBotPoint2d[] {
-  return CAMPS
-    .filter((camp) => mobIds.includes(camp.mobId))
-    .map((camp) => ({ x: camp.center.x, z: camp.center.z }));
+  return CAMPS.filter((camp) => mobIds.includes(camp.mobId)).map((camp) => ({
+    x: camp.center.x,
+    z: camp.center.z,
+  }));
 }
 
 function objectPointsFor(itemId: string): AmbientBotPoint2d[] {
-  return GROUND_OBJECTS
-    .filter((object) => object.itemId === itemId)
-    .flatMap((object) => object.positions.map((point) => ({ x: point.x, z: point.z })));
+  return GROUND_OBJECTS.filter((object) => object.itemId === itemId).flatMap((object) =>
+    object.positions.map((point) => ({ x: point.x, z: point.z })),
+  );
 }
 
-function dungeonPointsFor(
-  dungeonId: string,
-  mobIds: readonly string[],
-): AmbientBotPoint2d[] {
+function dungeonPointsFor(dungeonId: string, mobIds: readonly string[]): AmbientBotPoint2d[] {
   return (DUNGEONS[dungeonId]?.spawns ?? [])
     .filter((spawn) => mobIds.includes(spawn.mobId))
     .map((spawn) => ({ x: spawn.x, z: spawn.z }));
@@ -139,11 +133,14 @@ function killRoute(
 ): AmbientBotKillQuestRoute {
   const quest = questLabel(questId);
   const dungeonId = config.dungeonId;
-  const suggestedPartySize = config.suggestedPartySize
-    ?? (dungeonId ? DUNGEONS[dungeonId]?.suggestedPlayers ?? 1 : undefined);
-  const camps = config.camps ?? (dungeonId
-    ? dungeonPointsFor(dungeonId, [mobId, ...(config.alternateMobIds ?? [])])
-    : campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]));
+  const suggestedPartySize =
+    config.suggestedPartySize ??
+    (dungeonId ? (DUNGEONS[dungeonId]?.suggestedPlayers ?? 1) : undefined);
+  const camps =
+    config.camps ??
+    (dungeonId
+      ? dungeonPointsFor(dungeonId, [mobId, ...(config.alternateMobIds ?? [])])
+      : campsForMobIds([mobId, ...(config.alternateMobIds ?? [])]));
   return {
     kind: 'kill',
     questId,
@@ -192,8 +189,9 @@ function collectRoute(
   config: AmbientBotQuestRouteConfig = {},
 ): AmbientBotCollectQuestRoute {
   const quest = questLabel(questId);
-  const suggestedPartySize = config.suggestedPartySize
-    ?? (config.dungeonId ? DUNGEONS[config.dungeonId]?.suggestedPlayers ?? 1 : undefined);
+  const suggestedPartySize =
+    config.suggestedPartySize ??
+    (config.dungeonId ? (DUNGEONS[config.dungeonId]?.suggestedPlayers ?? 1) : undefined);
   return {
     kind: 'collect',
     questId,
@@ -246,30 +244,55 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     camps: EASTBROOK_SAFE_SUPPLY_CRATE_CAMPS,
     targetCampRadius: EASTBROOK_SAFE_SUPPLY_CRATE_TARGET_RADIUS,
   }),
-  killRoute('q_mine', 'foreman_odell', 'tunnel_rat', 6, 'Clearing Tunnel Rats', { allowPartyLevelBonus: false }),
-  killRoute('q_greyjaw', 'marshal_redbrook', 'old_greyjaw', 5, 'Hunting Old Greyjaw', { allowPartyLevelBonus: false }),
-  killRoute('q_bandits', 'marshal_redbrook', 'vale_bandit', 6, 'Breaking the Vale Bandits', { allowPartyLevelBonus: false }),
-  killRoute('q_ringleader', 'marshal_redbrook', 'gorrak', 7, 'Hunting Gorrak the Ruthless', { allowPartyLevelBonus: false }),
-  killRoute('q_bones', 'brother_aldric', 'restless_bones', 6, 'Laying Restless Bones to Rest', { allowPartyLevelBonus: false }),
-  collectRoute('q_whispers', 'brother_aldric', 'gravecaller_sigil', 10, "Searching for the Gravecaller's Sigil", { allowPartyLevelBonus: false }),
-  collectRoute('q_names_of_the_dead', 'brother_aldric', 'weathered_ledger_page', 10, 'Gathering Weathered Ledger Pages', { allowPartyLevelBonus: false }),
-  killRoute('q_silence_the_call', 'brother_aldric', 'restless_bones', 10, 'Silencing the Chapel Dead', { allowPartyLevelBonus: false }),
-  killRoute(
-    'q_rite',
+  killRoute('q_mine', 'foreman_odell', 'tunnel_rat', 6, 'Clearing Tunnel Rats', {
+    allowPartyLevelBonus: false,
+  }),
+  killRoute('q_greyjaw', 'marshal_redbrook', 'old_greyjaw', 5, 'Hunting Old Greyjaw', {
+    allowPartyLevelBonus: false,
+  }),
+  killRoute('q_bandits', 'marshal_redbrook', 'vale_bandit', 6, 'Breaking the Vale Bandits', {
+    allowPartyLevelBonus: false,
+  }),
+  killRoute('q_ringleader', 'marshal_redbrook', 'gorrak', 7, 'Hunting Gorrak the Ruthless', {
+    allowPartyLevelBonus: false,
+  }),
+  killRoute('q_bones', 'brother_aldric', 'restless_bones', 6, 'Laying Restless Bones to Rest', {
+    allowPartyLevelBonus: false,
+  }),
+  collectRoute(
+    'q_whispers',
     'brother_aldric',
-    'tunnel_rat',
+    'gravecaller_sigil',
     10,
-    'Collecting Blessed Tallow',
-    { activeObjectiveId: 'hunt_rite_blessed_wax', questObjectiveIndex: 0, allowPartyLevelBonus: false },
+    "Searching for the Gravecaller's Sigil",
+    { allowPartyLevelBonus: false },
+  ),
+  collectRoute(
+    'q_names_of_the_dead',
+    'brother_aldric',
+    'weathered_ledger_page',
+    10,
+    'Gathering Weathered Ledger Pages',
+    { allowPartyLevelBonus: false },
   ),
   killRoute(
-    'q_rite',
+    'q_silence_the_call',
     'brother_aldric',
     'restless_bones',
     10,
-    'Collecting Ghostly Essence',
-    { activeObjectiveId: 'hunt_rite_ghostly_essence', questObjectiveIndex: 1, allowPartyLevelBonus: false },
+    'Silencing the Chapel Dead',
+    { allowPartyLevelBonus: false },
   ),
+  killRoute('q_rite', 'brother_aldric', 'tunnel_rat', 10, 'Collecting Blessed Tallow', {
+    activeObjectiveId: 'hunt_rite_blessed_wax',
+    questObjectiveIndex: 0,
+    allowPartyLevelBonus: false,
+  }),
+  killRoute('q_rite', 'brother_aldric', 'restless_bones', 10, 'Collecting Ghostly Essence', {
+    activeObjectiveId: 'hunt_rite_ghostly_essence',
+    questObjectiveIndex: 1,
+    allowPartyLevelBonus: false,
+  }),
   collectRoute(
     'q_fenbridge_muster',
     'brother_aldric',
@@ -316,20 +339,13 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
       targetCampRadius: FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS,
     },
   ),
-  killRoute(
-    'q_idols',
-    'brother_aldric_fen',
-    'deepfen_murloc',
-    9,
-    'Recovering Waterlogged Idols',
-    {
-      activeObjectiveId: 'hunt_idols',
-      questObjectiveIndex: 0,
-      allowPartyLevelBonus: false,
-      camps: FENBRIDGE_SAFE_DEEPFEN_CAMPS,
-      targetCampRadius: FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS,
-    },
-  ),
+  killRoute('q_idols', 'brother_aldric_fen', 'deepfen_murloc', 9, 'Recovering Waterlogged Idols', {
+    activeObjectiveId: 'hunt_idols',
+    questObjectiveIndex: 0,
+    allowPartyLevelBonus: false,
+    camps: FENBRIDGE_SAFE_DEEPFEN_CAMPS,
+    targetCampRadius: FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS,
+  }),
   killRoute(
     'q_deepfen_purge',
     'warden_fenwick',
@@ -342,14 +358,9 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
       targetCampRadius: FENBRIDGE_SAFE_DEEPFEN_TARGET_RADIUS,
     },
   ),
-  killRoute(
-    'q_widows',
-    'herbalist_yara',
-    'mire_widow',
-    9,
-    'Clearing the Widow Thicket',
-    { allowPartyLevelBonus: false },
-  ),
+  killRoute('q_widows', 'herbalist_yara', 'mire_widow', 9, 'Clearing the Widow Thicket', {
+    allowPartyLevelBonus: false,
+  }),
   killRoute(
     'q_broodmother',
     'herbalist_yara',
@@ -397,20 +408,8 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     10,
     'Driving the Mirefen trolls off the barrows',
   ),
-  killRoute(
-    'q_troll_fetishes',
-    'scout_maren',
-    'fen_troll',
-    10,
-    'Gathering Mirefen Troll Fetishes',
-  ),
-  killRoute(
-    'q_grubjaw',
-    'provisioner_hale',
-    'grubjaw',
-    11,
-    'Hunting Grubjaw the Glutton',
-  ),
+  killRoute('q_troll_fetishes', 'scout_maren', 'fen_troll', 10, 'Gathering Mirefen Troll Fetishes'),
+  killRoute('q_grubjaw', 'provisioner_hale', 'grubjaw', 11, 'Hunting Grubjaw the Glutton'),
   killRoute(
     'q_cult_camp',
     'scout_maren',
@@ -440,13 +439,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
       allowPartyLevelBonus: false,
     },
   ),
-  killRoute(
-    'q_deacon',
-    'warden_fenwick',
-    'deacon_voss',
-    12,
-    'Hunting Deacon Voss',
-  ),
+  killRoute('q_deacon', 'warden_fenwick', 'deacon_voss', 12, 'Hunting Deacon Voss'),
   collectRoute(
     'q_bastion_door',
     'brother_aldric_fen',
@@ -489,7 +482,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'brother_aldric_fen',
     'highwatch_summons',
     13,
-    'Carrying Aldric\'s summons to Highwatch',
+    "Carrying Aldric's summons to Highwatch",
     { turnInNpcTemplateId: 'captain_thessaly', fullPartyLevelBonusOnly: true },
   ),
   killRoute(
@@ -547,7 +540,7 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'captain_thessaly',
     'thornpeak_ogre',
     15,
-    'Collecting the captain\'s ogre bounty',
+    "Collecting the captain's ogre bounty",
   ),
   killRoute(
     'q_elementals',
@@ -568,14 +561,10 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
       deferReadyWhileQuestIdsActive: ['q_kazzix'],
     },
   ),
-  killRoute(
-    'q_kazzix',
-    'loremaster_caddis',
-    'shardlord_kazzix',
-    17,
-    'Hunting Shardlord Kazzix',
-    { questObjectiveIndex: 0, deferActiveWhilePartyMemberBelowLevel: 18 },
-  ),
+  killRoute('q_kazzix', 'loremaster_caddis', 'shardlord_kazzix', 17, 'Hunting Shardlord Kazzix', {
+    questObjectiveIndex: 0,
+    deferActiveWhilePartyMemberBelowLevel: 18,
+  }),
   killRoute(
     'q_zealots',
     'brother_aldric_highwatch',
@@ -662,14 +651,9 @@ export const AMBIENT_BOT_SOLO_QUEST_ROUTES: readonly AmbientBotQuestRoute[] = [
     'Breaking the Thornpeak ogre war-camp crushers',
     { suggestedPartySize: 3 },
   ),
-  killRoute(
-    'q_drogmar',
-    'captain_thessaly',
-    'warlord_drogmar',
-    18,
-    'Hunting Warlord Drogmar',
-    { suggestedPartySize: 3 },
-  ),
+  killRoute('q_drogmar', 'captain_thessaly', 'warlord_drogmar', 18, 'Hunting Warlord Drogmar', {
+    suggestedPartySize: 3,
+  }),
   killRoute(
     'q_korgath',
     'scout_maren_highwatch',

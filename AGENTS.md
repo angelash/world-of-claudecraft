@@ -47,6 +47,8 @@ Repository skills live in `.agents/skills/` and are invoked as `$skill-name`:
 - `$woc-feature-plan`: produce an implementation-ready plan for cross-cutting work.
 - `$woc-review-pr`: verify a pull request without posting unless explicitly requested.
 - `$woc-file-issue`: draft an issue, and file it only with explicit authorization.
+- `$woc-write-game-tooltips`: write or audit plain English tooltips against live combat values and
+  scaling.
 - `$woc-image-to-glb`: build a shipping GLB asset from a reference image through the
   repo pipeline.
 - `$woc-release-merge-audit`: find semantic damage after release integration.
@@ -56,8 +58,8 @@ Repository skills live in `.agents/skills/` and are invoked as `$skill-name`:
 
 Read-only specialist agents live in `.codex/agents/`. Use only the roles matching the
 changed surface: sim architecture, cross-platform parity, persistence, database
-performance, security, test coverage, frontend, release malware, and official
-documentation research. The parent runs deterministic commands once; reviewers inspect
+performance, server hot-path performance, security, test coverage, frontend, release
+malware, and official documentation research. The parent runs deterministic commands once; reviewers inspect
 evidence instead of duplicating the full gate.
 
 For SQL, database call sites, schema or indexes, query cadence/cardinality, pool or lock
@@ -65,6 +67,12 @@ behavior, timeout policy, background work, database driver/dependency versions, 
 or resource/configuration/topology changes, or stored-data growth, invoke
 `woc_database_performance` before implementation decisions and again on the finished diff.
 Pair it with persistence or security review when those concerns also apply.
+
+For server work that runs per tick, per request, per broadcast, per session, or on a
+recurring main-thread job (a shared read or cache, a growing collection, a snapshot or event
+payload, a `selfWireJson` key or the `src/sim/` read it calls, an autosave or sweep job, a
+`world_state` blob write), invoke `woc_server_hot_path`; it owns the non-SQL server budget
+and the grown-collection rules in `server/CLAUDE.md` "Hot paths".
 
 ## Fork operating overrides
 
@@ -86,7 +94,8 @@ localhost-only ad hoc server, and do not use an in-memory database for live veri
 ## Completion contract
 
 Run checks proportional to the change while iterating. Before calling an implementation
-complete, use `$woc-qa` or follow `docs/qa-gate.md`, including `npm run gate` when the
-canonical gate requires it. Report the exact commands and outcomes, remaining risks, and
+complete, use `$woc-qa` or follow `docs/qa-gate.md`, including the pre-merge bar
+`node scripts/gate_select.mjs` (or the deeper `npm run gate`) when the canonical gate
+requires it. Report the exact commands and outcomes, remaining risks, and
 any checks you could not run. A hook or subagent report never substitutes for the shared
 test, typecheck, build, i18n, and security gates.

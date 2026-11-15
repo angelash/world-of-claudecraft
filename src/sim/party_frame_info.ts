@@ -1,7 +1,13 @@
+import type { PartyInfo } from '../world_api';
 import { isPartyFrameRelevantAura } from './aura_classify';
 import { echoVisibleTo, partyAuraPriority } from './combat/chronomancy';
+import { damageTakenWithin } from './combat/damage_history';
+import { isPlayingDead } from './combat/hunter_play_dead';
+import { rewindHealAmount } from './combat/rewind';
+import { MENDING_CURRENT_ID } from './combat/shaman_spiritmend';
 import type { Role } from './content/talents';
-import type { AbilityEffect, Aura, Entity } from './types';
+import type { SimContext } from './sim_context';
+import type { AbilityEffect, Aura, Entity, PlayerClass } from './types';
 import { PARTY_MEMBER_AURA_CAP } from './types';
 
 export interface PartyFrameAuraSummary {
@@ -9,6 +15,7 @@ export interface PartyFrameAuraSummary {
   kind: Aura['kind'];
   neg?: 1;
   remaining: number;
+  poolPct?: number;
 }
 
 export interface PartyFrameResolvedAbility {
@@ -22,17 +29,31 @@ export interface PreparedPartyFrameAura {
 
 /** Perform the relevance, priority, and summary work once before applying a
  * viewer-specific Temporal Echo visibility filter. */
-export function preparePartyFrameAuras(auras: readonly Aura[]): PreparedPartyFrameAura[] {
+function mendingPoolPct(aura: Aura, maxHp: number | undefined): number | undefined {
+  if (aura.id !== MENDING_CURRENT_ID || aura.value <= 0 || !maxHp || maxHp <= 0) return undefined;
+  return Math.max(1, Math.min(100, Math.round((aura.value / maxHp) * 100)));
+}
+
+function partyFrameAuraSummary(aura: Aura, maxHp: number | undefined): PartyFrameAuraSummary {
+  const poolPct = mendingPoolPct(aura, maxHp);
+  return {
+    id: aura.id,
+    kind: aura.kind,
+    ...(aura.value < 0 ? { neg: 1 as const } : {}),
+    remaining: Math.max(0, Math.ceil(aura.remaining)),
+    ...(poolPct !== undefined ? { poolPct } : {}),
+  };
+}
+
+export function preparePartyFrameAuras(
+  auras: readonly Aura[],
+  maxHp?: number,
+): PreparedPartyFrameAura[] {
   const relevant = auras.filter((aura) => isPartyFrameRelevantAura(aura));
   relevant.sort((a, b) => partyAuraPriority(a) - partyAuraPriority(b));
   return relevant.map((aura) => ({
     sourceId: aura.sourceId,
-    summary: {
-      id: aura.id,
-      kind: aura.kind,
-      ...(aura.value < 0 ? { neg: 1 as const } : {}),
-      remaining: Math.max(0, Math.ceil(aura.remaining)),
-    },
+    summary: partyFrameAuraSummary(aura, maxHp),
   }));
 }
 
@@ -66,18 +87,22 @@ export function partyFrameAurasForViewer(
 export function partyFrameAuras(
   auras: readonly Aura[],
   cap = PARTY_MEMBER_AURA_CAP,
+  maxHp?: number,
 ): PartyFrameAuraSummary[] {
   // Keep the offline path single-pass. Routing it through the prepared server
   // representation would allocate both an intermediate wrapper list and the
   // final summaries for every offline tick.
   const relevant = auras.filter((aura) => isPartyFrameRelevantAura(aura));
   relevant.sort((a, b) => partyAuraPriority(a) - partyAuraPriority(b));
-  return relevant.slice(0, cap).map((aura) => ({
-    id: aura.id,
-    kind: aura.kind,
-    ...(aura.value < 0 ? { neg: 1 as const } : {}),
-    remaining: Math.max(0, Math.ceil(aura.remaining)),
-  }));
+  return relevant.slice(0, cap).map((aura) => partyFrameAuraSummary(aura, maxHp));
+}
+
+/** A member's health, resource and dead flag as party frames show them. A
+ *  hunter playing dead (feign death) reads as a corpse with empty bars, the same
+ *  on both hosts (collectPartyInfo here, the server party projection). */
+export function partyFrameVitals(e: Entity): { hp: number; res: number; dead: 0 | 1 } {
+  if (isPlayingDead(e)) return { hp: 0, res: 0, dead: 1 };
+  return { hp: e.hp, res: Math.round(e.resource), dead: e.dead ? 1 : 0 };
 }
 
 /** Remaining damage absorption, matching the player and target frame total. */
@@ -135,6 +160,73 @@ export function partyFrameIncomingHeals(
   return incoming;
 }
 
-export function partyFrameRole(role: Role | null): Role {
+/** The role a party/raid frame shows for a member. The spec role is the
+ * baseline, with one form-aware exception: a tank-spec druid (Wildfang) in
+ * Wolf Form (the `form_cat` shapeshift aura) is a melee damage dealer, so the
+ * role-sorted raid strip groups it with the damage dealers and keeps the real
+ * tanks adjacent. Bruin Form and caster form keep the spec role. Both hosts
+ * (offline collectPartyInfo and the server party wire) resolve through here. */
+export function partyFrameRole(role: Role | null, cls: PlayerClass, auras: readonly Aura[]): Role {
+  if (role === 'tank' && cls === 'druid' && auras.some((a) => a.kind === 'form_cat')) return 'dps';
   return role ?? 'dps';
+}
+
+/** The primary-viewer party frame projection (IWorld partyInfo): one PartyInfo
+ * snapshot of the viewer's party built from the live SimContext views. Pure
+ * read; Sim keeps a thin getter that delegates here. */
+export function collectPartyInfo(ctx: SimContext): PartyInfo | null {
+  const party = ctx.partyOf(ctx.primaryId);
+  if (!party) return null;
+  const aggroTargets = partyFrameAggroTargets(ctx.entities.values());
+  const incomingHeals = partyFrameIncomingHeals(ctx.entities.values(), (abilityId, casterId) =>
+    ctx.resolvedAbility(abilityId, casterId),
+  );
+  return {
+    leader: party.leader,
+    raid: party.raid,
+    master: { ...party.lootStrategies.master },
+    members: party.members.flatMap((mPid) => {
+      const meta = ctx.players.get(mPid);
+      const e = ctx.entities.get(mPid);
+      return meta && e
+        ? [
+            {
+              pid: mPid,
+              name: meta.name,
+              cls: meta.cls,
+              level: e.level,
+              ...partyFrameVitals(e),
+              mhp: e.maxHp,
+              mres: e.maxResource,
+              rtype: e.resourceType,
+              x: e.pos.x,
+              z: e.pos.z,
+              inCombat: e.inCombat ? 1 : 0,
+              targetId: e.targetId,
+              group: party.raidGroups.get(mPid) ?? 1,
+              absorb: partyFrameAbsorb(e.auras),
+              role: partyFrameRole(meta.talentMods.role, meta.cls, e.auras),
+              spec: meta.talentMods.spec ?? meta.talents.spec ?? null,
+              // Effective health Rewind could currently restore to this member
+              // (combat/rewind.ts); 0 for members with no recent recorded loss.
+              rewind: rewindHealAmount(damageTakenWithin(e, ctx.tickCount), e.hp, e.maxHp),
+              connected: 1,
+              hasAggro: aggroTargets.has(mPid) ? 1 : 0,
+              incomingHeal: incomingHeals.get(mPid) ?? 0,
+              // Temporal Echo marks are filtered to the LOCAL player's own (owner
+              // 2026-07-12): other chronomancers' echoes still heal in the sim but
+              // never show in this viewer's group/raid strip. echoVisibleTo reads
+              // the real aura sourceId, so no wire field is added.
+              auras: partyFrameAuras(
+                e.auras.filter((a) => echoVisibleTo(a, ctx.primaryId)),
+                undefined,
+                e.maxHp,
+              ),
+              qlog: [...meta.questLog.values()],
+              qdone: [...meta.questsDone],
+            },
+          ]
+        : [];
+    }),
+  };
 }

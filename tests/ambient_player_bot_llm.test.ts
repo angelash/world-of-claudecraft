@@ -76,7 +76,9 @@ function liveState(): AmbientPlayerBotLiveState {
   };
 }
 
-function pendingReply(overrides: Partial<AmbientPlayerBotPendingReply> = {}): AmbientPlayerBotPendingReply {
+function pendingReply(
+  overrides: Partial<AmbientPlayerBotPendingReply> = {},
+): AmbientPlayerBotPendingReply {
   return {
     toName: 'Aleph',
     incomingText: 'hey, what are you doing?',
@@ -111,13 +113,13 @@ describe('ambient player bot llm coordinator', () => {
         value: {
           schemaVersion: 1,
           jobId: 'ambient-plan:bot-1:1000',
-            botRef: {
-              botId: 'bot-1',
-              characterName: 'Branoraaa',
-              profileId: 'eastbrook_vale_paladin_quester',
-              classId: 'paladin',
-              archetype: 'quester',
-            },
+          botRef: {
+            botId: 'bot-1',
+            characterName: 'Branoraaa',
+            profileId: 'eastbrook_vale_paladin_quester',
+            classId: 'paladin',
+            archetype: 'quester',
+          },
           ttlMs: 120_000,
           confidence: 0.88,
           socialMode: 'friendly',
@@ -166,11 +168,13 @@ describe('ambient player bot llm coordinator', () => {
     });
 
     expect(first.status).toBe('accepted');
-    expect(first.decision).toEqual(expect.objectContaining({
-      socialMode: 'friendly',
-      focusLabel: 'Wolves at the Door',
-      friendPolicy: 'ifAsked',
-    }));
+    expect(first.decision).toEqual(
+      expect.objectContaining({
+        socialMode: 'friendly',
+        focusLabel: 'Wolves at the Door',
+        friendPolicy: 'ifAsked',
+      }),
+    );
     expect(second.status).toBe('cache_hit');
     expect(second.decision?.jobId).toBe('ambient-plan:bot-1:5000');
     expect(second.audit.cacheHit).toBe(true);
@@ -355,29 +359,31 @@ describe('ambient player bot llm coordinator', () => {
       nowMs: 2_000,
     });
 
-    expect(coordinator.diagnosticsSnapshot(2_000)).toEqual(expect.objectContaining({
-      enabled: true,
-      providerAvailable: true,
-      budget: expect.objectContaining({
-        usedCalls5h: 1,
-        remainingCalls5h: 9,
-      }),
-      cache: expect.objectContaining({
-        planEntries: 1,
-        socialEntries: 0,
-        partyEntries: 0,
-      }),
-      metrics: expect.objectContaining({
-        plan: expect.objectContaining({
-          requests: 2,
-          accepted: 1,
-          cacheHit: 1,
+    expect(coordinator.diagnosticsSnapshot(2_000)).toEqual(
+      expect.objectContaining({
+        enabled: true,
+        providerAvailable: true,
+        budget: expect.objectContaining({
+          usedCalls5h: 1,
+          remainingCalls5h: 9,
         }),
-        lastDecisionKind: 'plan',
-        lastDecisionStatus: 'cache_hit',
-        lastDecisionProvider: 'cache',
+        cache: expect.objectContaining({
+          planEntries: 1,
+          socialEntries: 0,
+          partyEntries: 0,
+        }),
+        metrics: expect.objectContaining({
+          plan: expect.objectContaining({
+            requests: 2,
+            accepted: 1,
+            cacheHit: 1,
+          }),
+          lastDecisionKind: 'plan',
+          lastDecisionStatus: 'cache_hit',
+          lastDecisionProvider: 'cache',
+        }),
       }),
-    }));
+    );
   });
 
   it('accepts and caches bounded party chat decisions', async () => {
@@ -424,8 +430,38 @@ describe('ambient player bot llm coordinator', () => {
       leader: 101,
       raid: false,
       members: [
-        { pid: 101, name: 'Branoraaa', cls: 'paladin', level: 3, hp: 40, mhp: 40, res: 30, mres: 30, rtype: 'mana', x: 4, z: 6, dead: 0, inCombat: 0, group: 1 },
-        { pid: 201, name: 'Aleph', cls: 'priest', level: 3, hp: 30, mhp: 30, res: 30, mres: 30, rtype: 'mana', x: 6, z: 6, dead: 0, inCombat: 0, group: 1 },
+        {
+          pid: 101,
+          name: 'Branoraaa',
+          cls: 'paladin',
+          level: 3,
+          hp: 40,
+          mhp: 40,
+          res: 30,
+          mres: 30,
+          rtype: 'mana',
+          x: 4,
+          z: 6,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
+        {
+          pid: 201,
+          name: 'Aleph',
+          cls: 'priest',
+          level: 3,
+          hp: 30,
+          mhp: 30,
+          res: 30,
+          mres: 30,
+          rtype: 'mana',
+          x: 6,
+          z: 6,
+          dead: 0,
+          inCombat: 0,
+          group: 1,
+        },
       ],
     };
     const baseLiveState = liveState();

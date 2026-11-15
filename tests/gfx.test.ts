@@ -1,9 +1,12 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import * as THREE from 'three';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DEVICE_MEMORY_GB_KEY, ENTRY_TIGHT_MODE_KEY } from '../src/device_memory_hint';
 import { NAMEPLATE_INTERVAL_LOW_SEC, nameplateIntervalSec } from '../src/game/ui_tier_knobs';
 import { FAR_ANIM_RANGE_SCALE_MAX } from '../src/render/crowd_lod';
 import {
+  activeGpuParallelCompile,
   classifyGpuRenderer,
   configureMaskedDoubleSidedVegetationMaterial,
   firstRunGraphicsPreset,
@@ -18,8 +21,10 @@ import {
   isWeakIntegratedGpu,
   resolveDefaultGraphicsPreset,
   shouldUseAutoGovernor,
+  surfaceMat,
   tierFromHints,
 } from '../src/render/gfx';
+import { tsFilesUnder } from './helpers/ts_files_under';
 
 const desktop: GfxRuntimeHints = {
   search: '',
@@ -29,6 +34,45 @@ const desktop: GfxRuntimeHints = {
 };
 
 describe('graphics tier resolution', () => {
+  it('never renders shadows on a direct (no composer, no gradePass) profile', () => {
+    // r185 moved info.reset() ahead of the shadow pass, so a DIRECT profile's
+    // live info.render reads would include shadow draws in the governor and
+    // opaque-sort signals. That shift is empty today because every shipped
+    // direct profile also disables dynamic shadows; this pin makes that
+    // invariant explicit so a new tier below medium or a gradePass re-gating
+    // cannot silently move the low-end draw-pressure signal.
+    // Every settingsFor tier ('advanced' is not one: it resolves through the
+    // override path over a base tier's bands, so it cannot mint a direct
+    // profile of its own).
+    const tiers = ['low', 'medium', 'high', 'ultra', 'insane'] as const;
+    // The full hint grid the resolver differentiates on: every platform value
+    // plus the ios tightMemory arm (QA hardening: the original two-hint sample
+    // could not red on an android- or tightMemory-only rewiring).
+    const hintGrid = [
+      undefined,
+      { platform: 'android' as const },
+      { platform: 'other' as const },
+      { platform: 'ios' as const },
+      { platform: 'ios' as const, tightMemory: true },
+    ];
+    let directProfilesSeen = 0;
+    for (const tier of tiers) {
+      for (const hints of hintGrid) {
+        const settings = gfxInternalsForTest.settingsFor(tier, hints);
+        if (!settings.composer && !settings.gradePass) {
+          directProfilesSeen++;
+          expect(settings.dynamicShadows, `${tier} hints:${JSON.stringify(hints ?? null)}`).toBe(
+            false,
+          );
+        }
+      }
+    }
+    // Vacuity floor: plain low is direct on every one of the five hint arms,
+    // and the iOS arms add direct profiles on the higher tiers; the widened
+    // grid sees 13 today and must never quietly drop below that.
+    expect(directProfilesSeen).toBeGreaterThanOrEqual(13);
+  });
+
   it('resolves an unset preset device-aware, matching the medium data-fx-level fallback', () => {
     // The 3D tier (tierFromHints) and the HUD data-fx-level (graphicsPresetLabel(settings def))
     // must agree on the unset/first-run default so they never diverge. An unrecognized device
@@ -78,9 +122,10 @@ describe('graphics tier resolution', () => {
     expect(tierFromHints(desktop, false)).toBe('medium'); // unknown device -> medium fallback
     expect(tierFromHints({ ...desktop, graphicsPreset: 0 }, false)).toBe('low'); // legacy explicit 0
     expect(tierFromHints(desktop, true)).toBe('low'); // software GL with no preset -> low floor
-    // unset + unknown mobile -> medium (not the old unset -> ultra default)
+    // unset + any touch device -> low (the mobile entry-memory floor; never the old unset ->
+    // ultra default, and no longer the medium an unknown phone used to land on)
     expect(tierFromHints({ ...desktop, maxTouchPoints: 1, coarsePointer: true }, false)).toBe(
-      'medium',
+      'low',
     );
     // a URL-forced tier always wins, even on a touch device or software GL
     expect(
@@ -103,10 +148,13 @@ describe('graphics tier resolution', () => {
     expect(tierFromHints({ ...desktop, graphicsPreset: 3 }, false)).toBe('high');
     expect(tierFromHints({ ...desktop, graphicsPreset: 4 }, false)).toBe('ultra');
     expect(tierFromHints({ ...desktop, graphicsPreset: 5 }, false)).toBe('high');
+    expect(tierFromHints({ ...desktop, graphicsPreset: 6 }, false)).toBe('insane');
     expect(tierFromHints({ ...desktop, search: '?gfx=low', graphicsPreset: 3 }, false)).toBe('low');
+    expect(tierFromHints({ ...desktop, search: '?gfx=insane' }, false)).toBe('insane');
+    expect(forcedTierFromSearch('?gfx=insane')).toBe('insane');
   });
 
-  it('labels presets and runs the budget governor on every tier except ultra', () => {
+  it('labels presets and runs the budget governor on every tier by default', () => {
     expect(graphicsPresetLabel(undefined)).toBe('ultra');
     expect(graphicsPresetLabel(0)).toBe('low');
     expect(graphicsPresetLabel(1)).toBe('low');
@@ -114,17 +162,19 @@ describe('graphics tier resolution', () => {
     expect(graphicsPresetLabel(3)).toBe('high');
     expect(graphicsPresetLabel(4)).toBe('ultra');
     expect(graphicsPresetLabel(5)).toBe('advanced');
-    // The governor follows the RESOLVED tier: ON for low/medium/high, OFF only at ultra. A
-    // first-run inconclusive device (the medium fallback) now keeps the governor ON to adapt; the
-    // old unset-preset -> ultra label used to opt it out (no runtime adaptation on weak devices).
+    expect(graphicsPresetLabel(6)).toBe('insane');
+    // The governor follows the RESOLVED tier and stays armed on every tier. Ultra and insane use
+    // loose budgets so a transient dip cannot fight the selected preset.
     expect(shouldUseAutoGovernor('low', '')).toBe(true);
     expect(shouldUseAutoGovernor('medium', '')).toBe(true);
     expect(shouldUseAutoGovernor('high', '')).toBe(true);
-    expect(shouldUseAutoGovernor('ultra', '')).toBe(false);
-    // The URL governor override beats the tier (force on even at ultra, off below it).
+    expect(shouldUseAutoGovernor('ultra', '')).toBe(true);
+    expect(shouldUseAutoGovernor('insane', '')).toBe(true);
+    // The URL governor override beats the tier.
     expect(shouldUseAutoGovernor('ultra', '?gfx=ultra&governor=1')).toBe(true);
     expect(shouldUseAutoGovernor('low', '?governor=0')).toBe(false);
-    expect(shouldUseAutoGovernor('ultra', '?gfx=ultra')).toBe(false);
+    expect(shouldUseAutoGovernor('ultra', '?gfx=ultra')).toBe(true);
+    expect(shouldUseAutoGovernor('ultra', '?gfx=ultra&governor=0')).toBe(false);
   });
 
   it('keeps every quality tier bounded by explicit runtime budgets', () => {
@@ -135,8 +185,16 @@ describe('graphics tier resolution', () => {
       expect(budget.minRenderScaleMobile).toBeGreaterThanOrEqual(0.5);
       expect(budget.dropFrameMs).toBeLessThan(budget.urgentFrameMs);
       expect(budget.recoverFrameMs).toBeLessThan(budget.dropFrameMs);
-      expect(tier).toMatch(/^(low|medium|high|ultra)$/);
+      expect(tier).toMatch(/^(low|medium|high|ultra|insane)$/);
     }
+    // Premium tiers use literal-pinned disaster thresholds. High reacts at 22/32ms, while
+    // ultra and insane wait for sustained 30ms pressure or a 44ms urgent frame.
+    expect(GFX_BUDGETS.high.dropFrameMs).toBe(22);
+    expect(GFX_BUDGETS.high.urgentFrameMs).toBe(32);
+    expect(GFX_BUDGETS.ultra.dropFrameMs).toBe(30);
+    expect(GFX_BUDGETS.ultra.urgentFrameMs).toBe(44);
+    expect(GFX_BUDGETS.insane.dropFrameMs).toBe(30);
+    expect(GFX_BUDGETS.insane.urgentFrameMs).toBe(44);
   });
 
   it('defines tunable bucket bands for every quality tier', () => {
@@ -144,10 +202,12 @@ describe('graphics tier resolution', () => {
       expect(Object.keys(bands).sort()).toEqual(
         [
           'characters',
+          'detail',
           'foliage',
           'grass',
           'lighting',
           'materials',
+          'post',
           'props',
           'resolution',
           'ui',
@@ -163,16 +223,77 @@ describe('graphics tier resolution', () => {
         expect(band.min).toBeLessThanOrEqual(band.baseline);
         expect(band.baseline).toBeLessThanOrEqual(band.max);
       }
-      expect(tier).toMatch(/^(low|medium|high|ultra)$/);
+      expect(tier).toMatch(/^(low|medium|high|ultra|insane)$/);
     }
     expect(GFX_BUCKET_BANDS.low.grass.baseline).toBeGreaterThan(GFX_BUCKET_BANDS.low.grass.min);
     expect(GFX_BUCKET_BANDS.low.foliage.baseline).toBeGreaterThan(GFX_BUCKET_BANDS.low.foliage.min);
     expect(GFX_BUCKET_BANDS.low.characters.baseline).toBe(1);
     expect(GFX_BUCKET_BANDS.low.weapons.baseline).toBe(1);
+    // Terrain-detail shed (terrain_detail_shed_core.ts): the tier's own
+    // terrainRelief/surfaceDetailTaps/surfaceDetailClampK request is always
+    // the baseline (the static preset itself never changes). Only ultra and
+    // insane, whose own request sits ABOVE high's floor profile on every
+    // knob, are governable with real room to shed (min 0); every tier at or
+    // under high already ships the floor, so its band is pinned non-
+    // governable with no shed range at all, a high session provably
+    // untouched by the live level regardless of pressure.
+    for (const tier of ['low', 'medium', 'high'] as const) {
+      expect(GFX_BUCKET_BANDS[tier].detail).toEqual({
+        min: 1,
+        baseline: 1,
+        max: 1,
+        roi: 0,
+        cost: 'gpu',
+        governable: false,
+      });
+    }
+    for (const tier of ['ultra', 'insane'] as const) {
+      const band = GFX_BUCKET_BANDS[tier].detail;
+      expect(band.governable).toBe(true);
+      expect(band.min).toBe(0);
+      expect(band.baseline).toBe(1);
+      expect(band.max).toBe(1);
+      expect(band.cost).toBe('gpu');
+      expect(band.roi).toBe(0.92);
+    }
+
+    // Post shed (post_shed_core.ts): the full chain is always the baseline
+    // (the static preset itself never changes). The composer tiers, which
+    // build the sheddable passes (SMAA, bloom, N8AO), are governable down to
+    // the last rung (min 0); the grade-only and direct tiers build none, so
+    // their band is pinned non-governable with no range at all.
+    for (const tier of ['low', 'medium'] as const) {
+      expect(GFX_BUCKET_BANDS[tier].post).toEqual({
+        min: 1,
+        baseline: 1,
+        max: 1,
+        roi: 0,
+        cost: 'gpu',
+        governable: false,
+      });
+    }
+    for (const tier of ['high', 'ultra', 'insane'] as const) {
+      expect(GFX_BUCKET_BANDS[tier].post).toEqual({
+        min: 0,
+        baseline: 1,
+        max: 1,
+        roi: 0.9,
+        cost: 'gpu',
+        governable: true,
+      });
+    }
   });
 
   it('keeps medium as a middle tier while high and ultra retain the premium pipeline', () => {
     const low = gfxInternalsForTest.settingsFor('low');
+    // A session that reports hints but whose adapter string is masked or unavailable.
+    const lowNoAdapter = gfxInternalsForTest.settingsFor('low', { search: '?gfx=low' });
+    const lowWeakIntel = gfxInternalsForTest.settingsFor('low', {
+      gpuRenderer: 'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0)',
+    });
+    const lowSoftware = gfxInternalsForTest.settingsFor('low', {
+      gpuRenderer: 'Google SwiftShader',
+    });
     const medium = gfxInternalsForTest.settingsFor('medium');
     const mediumIris = gfxInternalsForTest.settingsFor('medium', {
       search: '?gfx=medium',
@@ -184,7 +305,13 @@ describe('graphics tier resolution', () => {
     expect(low.standardMaterials).toBe(false);
     expect(low.dynamicShadows).toBe(false);
     expect(low.leanFoliage).toBe(true);
-    expect(low.lowPlus).toBe(true);
+    // lowPlus is the weak-GPU art treatment, not a property of the low tier: a plain
+    // low session (no adapter string, so classifyGpuRenderer is 'unknown') must not
+    // take it, or low draws richer grass cards than medium.
+    expect(low.lowPlus).toBe(false);
+    expect(lowNoAdapter.lowPlus).toBe(false);
+    expect(lowWeakIntel.lowPlus).toBe(true);
+    expect(lowSoftware.lowPlus).toBe(true);
     expect(low.composer).toBe(false);
     expect(low.ao).toBe(false);
 
@@ -195,32 +322,284 @@ describe('graphics tier resolution', () => {
     expect(mediumIris.standardMaterials).toBe(true);
     expect(mediumIris.leanFoliage).toBe(true);
     expect(mediumIris.lowPlus).toBe(false);
+    // denseDressing is lowPlus plus the leanFoliage MEDIUM session: the
+    // dressing compensation follows the lean model set (foliage.ts), so the
+    // medium weak-iGPU cohort keeps it while plain low and plain medium take
+    // medium-parity dressing (the low-monotonicity rationale above).
+    expect(low.denseDressing).toBe(false);
+    expect(lowNoAdapter.denseDressing).toBe(false);
+    expect(lowWeakIntel.denseDressing).toBe(true);
+    expect(lowSoftware.denseDressing).toBe(true);
+    expect(medium.denseDressing).toBe(false);
+    expect(mediumIris.denseDressing).toBe(true);
     expect(medium.terrainSplat).toBe(true);
     expect(medium.composer).toBe(false);
     expect(medium.ao).toBe(false);
     expect(medium.shadowMap).toBeGreaterThan(low.shadowMap);
-    expect(medium.shadowMap).toBeLessThan(high.shadowMap);
+    // Medium and High share the 2560 working map: the ladder's next step up
+    // is the ultra tiers' 4096 showcase allocation, not a High-only rung.
+    expect(medium.shadowMap).toBe(high.shadowMap);
     expect(medium.pixelRatioCap).toBeLessThan(high.pixelRatioCap);
+    expect(medium.msaaSamples).toBe(0);
+    expect(medium.smaa).toBe(false);
 
     expect(high.standardMaterials).toBe(true);
     expect(high.dynamicShadows).toBe(true);
     expect(high.composer).toBe(true);
     expect(high.ao).toBe(true);
-    expect(high.msaaSamples).toBe(4);
-    expect(high.shadowMap).toBe(4096);
+    expect(high.msaaSamples).toBe(0);
+    expect(high.smaa).toBe(true);
+    expect(high.shadowMap).toBe(2560);
 
     expect(ultra.standardMaterials).toBe(true);
     expect(ultra.composer).toBe(true);
     expect(ultra.ao).toBe(true);
-    expect(ultra.msaaSamples).toBe(4);
-    expect(ultra.shadowMap).toBe(high.shadowMap);
-    expect(ultra.pixelRatioCap).toBeGreaterThan(high.pixelRatioCap);
+    expect(ultra.msaaSamples).toBe(0);
+    expect(ultra.smaa).toBe(true);
+    // The one knob where ultra outruns high: 4096 against high's 2560.
+    expect(ultra.shadowMap).toBe(4096);
+    expect(ultra.shadowMap).toBeGreaterThan(high.shadowMap);
+    expect(ultra.pixelRatioCap).toBe(high.pixelRatioCap);
     expect(GFX_BUCKET_BANDS.ultra.grass.baseline).toBeGreaterThan(
       GFX_BUCKET_BANDS.high.grass.baseline,
     );
     expect(GFX_BUCKET_BANDS.ultra.foliage.baseline).toBeGreaterThan(
       GFX_BUCKET_BANDS.high.foliage.baseline,
     );
+  });
+
+  it('insane is the everything-on tier above ultra, and only ever a manual opt-in', () => {
+    const high = gfxInternalsForTest.settingsFor('high');
+    const ultra = gfxInternalsForTest.settingsFor('ultra');
+    const insane = gfxInternalsForTest.settingsFor('insane');
+    // Full premium pipeline, matching ultra's knobs (the tiers differ inside
+    // the render layers: worn-stone taps, terrain micro-shadow).
+    expect(insane.standardMaterials).toBe(true);
+    expect(insane.composer).toBe(true);
+    expect(insane.ao).toBe(true);
+    expect(insane.gradePass).toBe(true);
+    expect(insane.msaaSamples).toBe(0);
+    expect(insane.smaa).toBe(true);
+    expect(insane.shadowMap).toBe(ultra.shadowMap);
+    expect(insane.pixelRatioCap).toBe(ultra.pixelRatioCap);
+    expect(insane.grassRadius).toBe(ultra.grassRadius);
+    expect(insane.grassStep).toBe(ultra.grassStep);
+    expect(
+      ['low', 'medium', 'high', 'ultra', 'insane'].map(
+        (tier) =>
+          gfxInternalsForTest.settingsFor(tier as 'low' | 'medium' | 'high' | 'ultra' | 'insane')
+            .farGrassDensityFloor,
+      ),
+    ).toEqual([0.55, 0.62, 0.7, 0.75, 0.8]);
+    expect(insane.terrainSplat).toBe(true);
+    expect(insane.leanFoliage).toBe(false);
+    // The round-10 detail-layer ladder: High takes the coherent Advanced-Medium
+    // profile to recover its steady frame cost, while Ultra and Insane keep the
+    // full fixed detail layers. Advanced can still opt into every level.
+    const medium = gfxInternalsForTest.settingsFor('medium');
+    for (const below of [gfxInternalsForTest.settingsFor('low'), medium]) {
+      expect(below.surfaceDetail).toBe(false);
+      expect(below.surfaceDetailTaps).toBe(0);
+      expect(below.bladeCarpetRadius).toBe(0);
+      expect(below.cliffScree).toBe(false);
+      expect(below.canopyDetail).toBe(false);
+      expect(below.terrainRelief).toBe(0);
+    }
+    // The grass-card ladder: lean tiers keep the legacy pair, medium and high
+    // take the two uprights plus the 45-degree breaker, and the sky-facing cap
+    // card is what ultra and insane buy (grass_tuft_cards_core.ts).
+    expect(
+      ['low', 'medium', 'high', 'ultra', 'insane'].map(
+        (tier) =>
+          gfxInternalsForTest.settingsFor(tier as 'low' | 'medium' | 'high' | 'ultra' | 'insane')
+            .grassCardsPerTuft,
+      ),
+    ).toEqual([2, 3, 3, 4, 4]);
+    expect(high.surfaceDetail).toBe(true);
+    expect(high.surfaceDetailTaps).toBe(0);
+    expect(high.surfaceDetailClampK).toBe(0);
+    expect(high.bladeCarpetRadius).toBe(24);
+    expect(high.cliffScree).toBe(false);
+    expect(high.canopyDetail).toBe(false);
+    expect(high.terrainRelief).toBe(1);
+    for (const tier of [ultra, insane]) {
+      expect(tier.surfaceDetail).toBe(true);
+      expect(tier.bladeCarpetRadius).toBe(34);
+      expect(tier.cliffScree).toBe(true);
+      expect(tier.canopyDetail).toBe(true);
+      expect(tier.bloom).toBe(true);
+    }
+    // Canopy clump detail splits by half, not by on/off: ultra runs the AO
+    // taps alone, insane keeps the NormalGL half too (canopy_detail_tier_core).
+    expect(
+      ['low', 'medium', 'high', 'ultra', 'insane'].map(
+        (tier) =>
+          gfxInternalsForTest.settingsFor(tier as 'low' | 'medium' | 'high' | 'ultra' | 'insane')
+            .canopyDetailTaps,
+      ),
+    ).toEqual([0, 0, 0, 3, 6]);
+    expect(ultra.surfaceDetailTaps).toBe(3);
+    expect(ultra.surfaceDetailClampK).toBe(0.85);
+    expect(insane.surfaceDetailTaps).toBe(4);
+    expect(insane.surfaceDetailClampK).toBe(1);
+    expect(ultra.terrainRelief).toBe(3);
+    expect(insane.terrainRelief).toBe(3);
+    expect(high.aoFullRes).toBe(false);
+    expect(ultra.aoFullRes).toBe(true);
+    expect(insane.aoFullRes).toBe(true);
+    expect(high.smaa).toBe(true);
+    // Hardware detection can never land on insane: the strongest recognized
+    // desktop resolves to ultra (4); insane is a manual choice only.
+    expect(
+      resolveDefaultGraphicsPreset({
+        ...desktop,
+        deviceMemory: 8,
+        hardwareConcurrency: 16,
+        gpuRenderer: 'NVIDIA GeForce RTX 4090',
+      }),
+    ).toBe(4);
+  });
+
+  it('the advanced sub-setting ladders map onto the same tier knobs, back-compatibly', () => {
+    const adv = (overrides: Partial<GfxRuntimeHints>) =>
+      gfxInternalsForTest.settingsFor('high', { graphicsPreset: 5, ...overrides });
+    // Historical binary values keep their meaning: 0 is Low, 1 is High.
+    const legacyLowTerrain = adv({ terrainDetail: 0 });
+    expect(legacyLowTerrain.terrainSplat).toBe(false);
+    expect(legacyLowTerrain.terrainRelief).toBe(0);
+    expect(adv({ terrainDetail: 1 }).terrainRelief).toBe(2);
+    // The new levels: Medium (0.5) buys cavity-only relief, Insane (2) the
+    // ultra micro-shadow execution.
+    expect(adv({ terrainDetail: 0.5 }).terrainRelief).toBe(1);
+    expect(adv({ terrainDetail: 2 }).terrainRelief).toBe(3);
+    // Foliage: Low keeps the historical sparse tufts and sheds the overhaul
+    // layers; Medium buys the reduced carpet; Insane extends the ring.
+    const foliageLow = adv({ foliageDensity: 0 });
+    expect(foliageLow.grassStep).toBe(3.8);
+    expect(foliageLow.farGrassDensityFloor).toBe(0.5);
+    expect(foliageLow.bladeCarpetRadius).toBe(0);
+    expect(foliageLow.cliffScree).toBe(false);
+    expect(foliageLow.canopyDetail).toBe(false);
+    const foliageMedium = adv({ foliageDensity: 0.5 });
+    expect(foliageMedium.farGrassDensityFloor).toBe(0.62);
+    expect(foliageMedium.bladeCarpetRadius).toBe(24);
+    expect(foliageMedium.cliffScree).toBe(false);
+    const foliageHigh = adv({ foliageDensity: 1 });
+    expect(foliageHigh.bladeCarpetRadius).toBe(34);
+    expect(foliageHigh.cliffScree).toBe(true);
+    expect(foliageHigh.canopyDetail).toBe(true);
+    expect(foliageHigh.canopyDetailTaps).toBe(3);
+    expect(adv({ foliageDensity: 2 }).canopyDetailTaps).toBe(6);
+    expect(adv({ foliageDensity: 2 }).bladeCarpetRadius).toBe(40);
+    expect(adv({ foliageDensity: 2 }).farGrassDensityFloor).toBe(0.85);
+    // The Foliage Density dial owns the grass-card ladder too, level by level.
+    expect(foliageLow.grassCardsPerTuft).toBe(2);
+    expect(foliageMedium.grassCardsPerTuft).toBe(3);
+    expect(foliageHigh.grassCardsPerTuft).toBe(4);
+    expect(adv({ foliageDensity: 2 }).grassCardsPerTuft).toBe(4);
+    // Surface Detail (the town-cost dial): Off / Basic / Full / Insane.
+    const surfaceOff = adv({ surfaceDetail: 0 });
+    expect(surfaceOff.surfaceDetail).toBe(false);
+    expect(surfaceOff.surfaceDetailTaps).toBe(0);
+    const surfaceBasic = adv({ surfaceDetail: 0.5 });
+    expect(surfaceBasic.surfaceDetail).toBe(true);
+    expect(surfaceBasic.surfaceDetailTaps).toBe(0);
+    expect(adv({ surfaceDetail: 1 }).surfaceDetailTaps).toBe(3);
+    expect(adv({ surfaceDetail: 1 }).surfaceDetailClampK).toBe(0.85);
+    expect(adv({ surfaceDetail: 2 }).surfaceDetailTaps).toBe(4);
+    expect(adv({ surfaceDetail: 2 }).surfaceDetailClampK).toBe(1);
+    // Effects & Lighting: Low is the grade-only mini composer; Medium adds
+    // N8AO without bloom/SMAA; High keeps the full high-tier stack.
+    const effectsLow = adv({ effectsQuality: 0 });
+    expect(effectsLow.composer).toBe(false);
+    expect(effectsLow.gradePass).toBe(true);
+    expect(effectsLow.ao).toBe(false);
+    expect(effectsLow.msaaSamples).toBe(0);
+    expect(effectsLow.smaa).toBe(false);
+    // Losing the composer loses the SMAA tail, so the grade-fused arm is what
+    // keeps this mix anti-aliased, and the AA dial still turns it off.
+    expect(effectsLow.fxaa).toBe(true);
+    expect(adv({ effectsQuality: 0, antiAliasing: 0 }).fxaa).toBe(false);
+    expect(adv({ effectsQuality: 1 }).fxaa).toBe(false);
+    const effectsMedium = adv({ effectsQuality: 0.5 });
+    expect(effectsMedium.ao).toBe(true);
+    expect(effectsMedium.bloom).toBe(false);
+    expect(effectsMedium.smaa).toBe(false);
+    const effectsHigh = adv({ effectsQuality: 1 });
+    expect(effectsHigh.ao).toBe(true);
+    expect(effectsHigh.bloom).toBe(true);
+    expect(effectsHigh.smaa).toBe(true);
+    // Shadows: pure map-size steps; terrain-cast joins at High. The ladder
+    // caps at 4096: a historical stored Insane (2) lands on that top rung
+    // instead of the retired ~256 MB-class 8192 map. The top rung is an
+    // explicit write, not a fall-through, because the High TIER base is 2560
+    // now and a stored dial value keeps the map size the player chose.
+    expect(adv({ shadowQuality: 0 }).shadowMap).toBe(1024);
+    expect(adv({ shadowQuality: 0 }).terrainCastShadows).toBe(false);
+    expect(adv({ shadowQuality: 0.5 }).shadowMap).toBe(2560);
+    expect(adv({ shadowQuality: 1 }).shadowMap).toBe(4096);
+    expect(adv({ shadowQuality: 1 }).terrainCastShadows).toBe(true);
+    expect(adv({ shadowQuality: 2 }).shadowMap).toBe(4096);
+    expect(adv({ shadowQuality: 2 }).terrainCastShadows).toBe(true);
+    // The load-bearing constrained arm: the retired explicit 8192 write used
+    // to OVERRIDE the phone-class 2048 cap, and the top rung's 4096 write
+    // must not reintroduce that. The rung stays inside the device policy
+    // (dynamicShadows stays off there regardless, so this pins the
+    // allocation, not a visible shadow).
+    const constrainedInsane = gfxInternalsForTest.settingsFor('high', {
+      graphicsPreset: 5,
+      shadowQuality: 2,
+      maxTouchPoints: 5,
+      coarsePointer: true,
+      narrowViewport: true,
+    });
+    expect(constrainedInsane.shadowMap).toBe(2048);
+  });
+
+  it('ladders texture anisotropy per tier, with normals at half the colour budget', () => {
+    const rungs = {
+      low: gfxInternalsForTest.settingsFor('low'),
+      medium: gfxInternalsForTest.settingsFor('medium'),
+      high: gfxInternalsForTest.settingsFor('high'),
+      ultra: gfxInternalsForTest.settingsFor('ultra'),
+      insane: gfxInternalsForTest.settingsFor('insane'),
+    };
+
+    expect(
+      Object.fromEntries(
+        Object.entries(rungs).map(([tier, s]) => [tier, [s.anisotropy, s.normalAnisotropy]]),
+      ),
+    ).toEqual({
+      low: [1, 1],
+      medium: [2, 1],
+      high: [4, 2],
+      ultra: [8, 4],
+      insane: [8, 4],
+    });
+
+    // The two memory profiles take the low budget whatever tier the player
+    // picked: a phone-class browser and every iOS WebKit host are the most
+    // bandwidth-bound devices in the fleet.
+    const phone = { maxTouchPoints: 5, coarsePointer: true, narrowViewport: true };
+    for (const tier of ['medium', 'high', 'ultra', 'insane'] as const) {
+      const constrained = gfxInternalsForTest.settingsFor(tier, phone);
+      const ios = gfxInternalsForTest.settingsFor(tier, { platform: 'ios' });
+      expect([constrained.anisotropy, constrained.normalAnisotropy], tier).toEqual([1, 1]);
+      expect([ios.anisotropy, ios.normalAnisotropy], tier).toEqual([1, 1]);
+    }
+
+    // Monotone with the tier ladder, and never below the 1 tap that means
+    // "isotropic": a future top tier keeps the ceiling rather than falling
+    // through to a lower rung.
+    const ladder = [rungs.low, rungs.medium, rungs.high, rungs.ultra, rungs.insane];
+    for (let i = 1; i < ladder.length; i++) {
+      expect(ladder[i].anisotropy).toBeGreaterThanOrEqual(ladder[i - 1].anisotropy);
+      expect(ladder[i].normalAnisotropy).toBeGreaterThanOrEqual(ladder[i - 1].normalAnisotropy);
+    }
+    for (const s of ladder) {
+      expect(s.normalAnisotropy).toBe(Math.max(1, s.anisotropy / 2));
+      expect(s.normalAnisotropy).toBeGreaterThanOrEqual(1);
+    }
   });
 
   it('sheds the memory-spike knobs on constrained (phone-class) browsers, cosmetics only', () => {
@@ -261,6 +640,7 @@ describe('graphics tier resolution', () => {
     expect(medium.leanFoliage).toBe(false);
     expect(medium.grassRadius).toBe(62);
     expect(medium.grassStep).toBe(2.35);
+    expect(medium.farGrassDensityFloor).toBe(0.55);
     expect(medium.maxPointLights).toBe(3);
     expect(high.composer).toBe(desktopHigh.composer);
     expect(high.ao).toBe(desktopHigh.ao);
@@ -281,7 +661,7 @@ describe('graphics tier resolution', () => {
     expect(lowMem.maxPointLights).toBe(3);
   });
 
-  it('uses the bounded-residency renderer profile for the packaged native iOS app', () => {
+  it('uses the bounded-residency renderer profile on EVERY iOS WebKit host, not just the packaged native app', () => {
     const nativeIos = {
       maxTouchPoints: 5,
       coarsePointer: true,
@@ -291,6 +671,15 @@ describe('graphics tier resolution', () => {
     };
     const medium = gfxInternalsForTest.settingsFor('medium', nativeIos);
     const high = gfxInternalsForTest.settingsFor('high', nativeIos);
+    // iOS Safari (or any other iOS browser): platform 'ios', but NOT the packaged
+    // native shell. Regression coverage for the bug this file used to pin as correct:
+    // Mobile Safari and the native WKWebView shell run the same WebKit engine under
+    // the same per-process WebContent memory ceiling (see safeStartupGraphicsPreset's
+    // isIosWebkit and the sibling tightMemoryProfile rung below, both of which already
+    // treated Safari and native identically), so gating this profile on `nativeApp`
+    // left every plain-browser iOS session - i.e. most iOS players - eagerly loading
+    // full-residency assets under the exact same ceiling the native app was bounded
+    // against, and crashing under ordinary play.
     const mobileWeb = gfxInternalsForTest.settingsFor('medium', {
       ...nativeIos,
       nativeApp: false,
@@ -301,9 +690,10 @@ describe('graphics tier resolution', () => {
     });
 
     expect(medium.tier).toBe('medium');
-    expect(medium.nativeIosMemoryProfile).toBe(true);
+    expect(medium.iosMemoryProfile).toBe(true);
     expect(medium.standardMaterials).toBe(false);
     expect(medium.lowPlus).toBe(true);
+    expect(medium.denseDressing).toBe(true); // rides the lowPlus art cohort
     // Collision-bearing tree/rock placement stays identical to other Medium clients.
     expect(medium.leanFoliage).toBe(false);
     expect(medium.terrainSplat).toBe(false);
@@ -315,22 +705,139 @@ describe('graphics tier resolution', () => {
     expect(medium.pixelRatioCap).toBeLessThanOrEqual(1.25);
     expect(medium.grassRadius).toBeLessThan(62);
     expect(medium.grassStep).toBeGreaterThan(2.35);
+    expect(medium.farGrassDensityFloor).toBe(0.5);
     expect(medium.maxPointLights).toBe(2);
     expect(medium.maxPooledCharacterVisuals).toBe(6);
 
     // Higher labels can retain their density/bucket progression, but they must not
     // re-enable WKWebView's unbounded GPU-residency features.
-    expect(high.nativeIosMemoryProfile).toBe(true);
+    expect(high.iosMemoryProfile).toBe(true);
     expect(high.standardMaterials).toBe(false);
     expect(high.terrainSplat).toBe(false);
     expect(high.composer).toBe(false);
     expect(high.dynamicShadows).toBe(false);
 
-    expect(mobileWeb.nativeIosMemoryProfile).toBe(false);
-    expect(mobileWeb.standardMaterials).toBe(true);
-    expect(nativeAndroid.nativeIosMemoryProfile).toBe(false);
+    // iOS Safari now gets EXACTLY the native app's bounded-residency profile: same flag,
+    // same knobs, byte for byte. Only the platform check (`platform === 'ios'`) decides
+    // this, never `nativeApp`.
+    expect(mobileWeb.iosMemoryProfile).toBe(true);
+    expect(mobileWeb).toEqual(medium);
+    // Android stays on the generic cross-platform constrainedMemory tier: this profile
+    // (and its extra streamed-asset/quality knobs) is iOS WebKit specific.
+    expect(nativeAndroid.iosMemoryProfile).toBe(false);
     expect(nativeAndroid.standardMaterials).toBe(true);
-    expect(nativeAndroid.maxPooledCharacterVisuals).toBe(Number.POSITIVE_INFINITY);
+    // A touch/coarse-pointer device is `constrainedMemory` regardless of platform (see
+    // isConstrainedBrowser), so Android still falls onto the SAME bounded reuse-pool tier
+    // every other mobile budget in this function already uses (maxPointLights above), not
+    // the desktop-only POSITIVE_INFINITY.
+    expect(nativeAndroid.maxPooledCharacterVisuals).toBe(24);
+    expect(nativeAndroid.maxPooledObjects).toBe(24);
+    // mobileWeb gets the TIGHTER iosMemoryProfile pool cap (6), not the generic
+    // constrainedMemory cap (24) Android and pre-fix Safari used to share.
+    expect(mobileWeb.maxPooledCharacterVisuals).toBe(6);
+    expect(mobileWeb.maxPooledObjects).toBe(6);
+  });
+
+  it('bounds the pooled-visual and pooled-object reuse caps on every constrained-memory device, never just the two narrow iOS profiles', () => {
+    const desktop = gfxInternalsForTest.settingsFor('high');
+    const androidBrowser = gfxInternalsForTest.settingsFor('high', {
+      maxTouchPoints: 5,
+      coarsePointer: true,
+      narrowViewport: true,
+      nativeApp: false,
+      platform: 'android' as const,
+    });
+    const androidNative = gfxInternalsForTest.settingsFor('high', {
+      maxTouchPoints: 5,
+      coarsePointer: true,
+      narrowViewport: true,
+      nativeApp: true,
+      platform: 'android' as const,
+    });
+
+    expect(desktop.constrainedMemory).toBe(false);
+    // The character pool is bounded on EVERY profile since the C1 memory-ratchet
+    // fix (128 on desktop, LRU-evicted; see tests/character_visual_pool.test.ts);
+    // only the ground-object pool keeps the historical desktop Infinity.
+    expect(desktop.maxPooledCharacterVisuals).toBe(128);
+    expect(desktop.maxPooledObjects).toBe(Number.POSITIVE_INFINITY);
+
+    for (const constrained of [androidBrowser, androidNative]) {
+      expect(constrained.constrainedMemory).toBe(true);
+      expect(constrained.maxPooledCharacterVisuals).toBe(24);
+      expect(Number.isFinite(constrained.maxPooledCharacterVisuals)).toBe(true);
+      expect(constrained.maxPooledObjects).toBe(24);
+      expect(Number.isFinite(constrained.maxPooledObjects)).toBe(true);
+    }
+  });
+
+  it('applies the 4 GB-class tight-memory rung to native iOS and recovered iOS web', () => {
+    const nativeIos = {
+      maxTouchPoints: 5,
+      coarsePointer: true,
+      narrowViewport: true,
+      nativeApp: true,
+      platform: 'ios' as const,
+    };
+    const tight = gfxInternalsForTest.settingsFor('medium', { ...nativeIos, tightMemory: true });
+    const standard = gfxInternalsForTest.settingsFor('medium', nativeIos);
+    const tightWeb = gfxInternalsForTest.settingsFor('medium', {
+      ...nativeIos,
+      nativeApp: false,
+      tightMemory: true,
+    });
+    const tightAndroid = gfxInternalsForTest.settingsFor('medium', {
+      ...nativeIos,
+      platform: 'android',
+      tightMemory: true,
+    });
+
+    expect(tight.tightMemory).toBe(true);
+    expect(tight.pixelRatioCap).toBe(1.0);
+    // Reuses the Advanced sub-knob's lean grass values (34 / 3.8): the leanest
+    // grass the game already ships, so the rung adds no new visual floor.
+    expect(tight.grassRadius).toBe(34);
+    expect(tight.grassStep).toBe(3.8);
+    expect(tight.maxPooledCharacterVisuals).toBe(4);
+    // Collision-bearing tree/rock placement fairness holds on the tight rung too.
+    expect(tight.leanFoliage).toBe(false);
+    expect(tight.iosMemoryProfile).toBe(true);
+
+    // Without the hint the standard native profile is exactly what it was: a
+    // device the shell cannot measure keeps today's behaviour, byte for byte.
+    expect(standard.tightMemory).toBe(false);
+    expect(standard.pixelRatioCap).toBe(1.25);
+    expect(standard.grassRadius).toBe(52);
+    expect(standard.grassStep).toBe(2.75);
+    expect(standard.maxPooledCharacterVisuals).toBe(6);
+
+    // A foreground entry crash also stamps the marker for iOS Safari, which
+    // shares WKWebView's WebContent memory ceiling and needs the same lower rung.
+    expect(tightWeb.tightMemory).toBe(true);
+    expect(tightWeb.pixelRatioCap).toBe(1.0);
+    expect(tightAndroid.tightMemory).toBe(false);
+  });
+
+  it('carries cached memory and recovery markers into the synchronous runtime hints', () => {
+    const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    const values = new Map<string, string>([
+      [DEVICE_MEMORY_GB_KEY, '4'],
+      [ENTRY_TIGHT_MODE_KEY, JSON.stringify({ at: Date.now() })],
+    ]);
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => void values.set(key, value),
+        removeItem: (key: string) => void values.delete(key),
+      },
+    });
+    try {
+      expect(gfxInternalsForTest.runtimeHints().tightMemory).toBe(true);
+    } finally {
+      if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage);
+      else delete (globalThis as { localStorage?: Storage }).localStorage;
+    }
   });
 
   it('never raises the native iOS light bound from an Advanced low-effects override', () => {
@@ -344,6 +851,50 @@ describe('graphics tier resolution', () => {
       effectsQuality: 0,
     });
     expect(advanced.maxPointLights).toBe(2);
+  });
+
+  it('gives the grade-only tier its fused edge AA and nothing else a second AA arm', () => {
+    // Medium is the tier the fused arm exists for: it keeps the region-safe
+    // grade-only chain, which a full-frame SMAA tail cannot ride.
+    expect(gfxInternalsForTest.settingsFor('medium').fxaa).toBe(true);
+    expect(gfxInternalsForTest.settingsFor('medium').smaa).toBe(false);
+    // Low has no grade pass to fuse into, and the composer tiers already have
+    // SMAA. Never both arms on one profile.
+    expect(gfxInternalsForTest.settingsFor('low').fxaa).toBe(false);
+    for (const tier of ['high', 'ultra', 'insane'] as const) {
+      const settings = gfxInternalsForTest.settingsFor(tier);
+      expect(settings.smaa, tier).toBe(true);
+      expect(settings.fxaa, tier).toBe(false);
+    }
+    // The iOS WebKit profile drops the grade pass with the composer, so it
+    // stays on no post AA at all rather than gaining an arm with no host.
+    const webkit = gfxInternalsForTest.settingsFor('medium', {
+      maxTouchPoints: 5,
+      coarsePointer: true,
+      narrowViewport: true,
+      platform: 'ios',
+    });
+    expect(webkit.gradePass).toBe(false);
+    expect(webkit.fxaa).toBe(false);
+  });
+
+  it('routes Advanced low effects through the low static effects tier', () => {
+    const low = gfxInternalsForTest.settingsFor('low', {
+      graphicsPreset: 1,
+      effectsQuality: 1,
+    });
+    const advancedLow = gfxInternalsForTest.settingsFor('high', {
+      graphicsPreset: 5,
+      effectsQuality: 0.49,
+    });
+    const advancedFull = gfxInternalsForTest.settingsFor('high', {
+      graphicsPreset: 5,
+      effectsQuality: 0.5,
+    });
+
+    expect(low.effectsTier).toBe('low');
+    expect(advancedLow.effectsTier).toBe('low');
+    expect(advancedFull.effectsTier).toBe('high');
   });
 
   it('detects the packaged runtime platform from shipping navigator values', () => {
@@ -551,24 +1102,127 @@ describe('graphics tier resolution', () => {
       ).toBe(2);
     });
 
-    it('caps mobile at HIGH: flagship / strong-on-touch -> HIGH, weak phone -> LOW, else MEDIUM', () => {
+    it('floors EVERY touch device at LOW, whatever its GPU class reports', () => {
+      // The world-entry scene build's peak memory footprint, not the frame rate, is what the
+      // mobile default protects: phone-class WebKit kills the WebContent process when the tab
+      // crosses its per-process ceiling, and the tier the build runs at is what decides that
+      // footprint. So detection may never hand a touch device anything above the floor.
       expect(
         resolveDefaultGraphicsPreset({
           ...phone,
           gpuRenderer: 'Adreno (TM) 740',
           deviceMemory: 8,
         }),
-      ).toBe(3); // flagship phone
-      // an M-series iPad (Apple Silicon on a touch device) is capped at HIGH (ultra is desktop-only);
-      // the touch cap is unchanged by the MacBook thermal default (issue 1676).
-      expect(resolveDefaultGraphicsPreset({ ...phone, gpuRenderer: 'Apple M2' })).toBe(3);
+      ).toBe(1); // flagship phone, previously HIGH
+      // an M-series iPad (Apple Silicon on a touch device), previously HIGH
+      expect(resolveDefaultGraphicsPreset({ ...phone, gpuRenderer: 'Apple M2' })).toBe(1);
+      // a desktop-class discrete GPU string on a touch device, previously HIGH
+      expect(
+        resolveDefaultGraphicsPreset({
+          ...phone,
+          gpuRenderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 4080)',
+          deviceMemory: 8,
+          hardwareConcurrency: 16,
+        }),
+      ).toBe(1);
       expect(
         resolveDefaultGraphicsPreset({
           ...phone,
           gpuRenderer: 'Adreno (TM) 330',
         }),
       ).toBe(1); // old phone
-      expect(resolveDefaultGraphicsPreset(phone)).toBe(2); // typical/unknown phone -> medium
+      expect(resolveDefaultGraphicsPreset(phone)).toBe(1); // typical/masked phone, previously MEDIUM
+      // narrowViewport is the other half of the touch check: a coarse-pointer-less touch device
+      // on a narrow viewport is still mobile, so it floors too.
+      expect(
+        resolveDefaultGraphicsPreset({
+          ...desktop,
+          maxTouchPoints: 5,
+          narrowViewport: true,
+          gpuRenderer: 'Apple M2',
+        }),
+      ).toBe(1);
+    });
+
+    it('leaves the DESKTOP ladder untouched: no-touch devices keep their historical tiers', () => {
+      // The mobile floor keys off the touch check ALONE, so a device reporting no touch points
+      // must be unaffected, including a mobile-flagship GPU string (Android TV box, emulation).
+      expect(resolveDefaultGraphicsPreset({ ...desktop, gpuRenderer: 'Adreno (TM) 740' })).toBe(3);
+      expect(resolveDefaultGraphicsPreset({ ...desktop, gpuRenderer: 'Apple M2' })).toBe(2);
+      expect(resolveDefaultGraphicsPreset(desktop)).toBe(2);
+      // a touchscreen laptop (touch points, but a fine pointer on a wide viewport) is NOT mobile
+      expect(
+        resolveDefaultGraphicsPreset({
+          ...desktop,
+          maxTouchPoints: 10,
+          gpuRenderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 4080)',
+          deviceMemory: 8,
+          hardwareConcurrency: 16,
+        }),
+      ).toBe(4);
+    });
+
+    it('makes every mobile result CONCLUSIVE, so first run persists it instead of re-detecting', () => {
+      // firstRunGraphicsPreset persists what resolveDefaultGraphicsPreset returns unless it is
+      // MEDIUM, the inconclusive fallback it deliberately leaves unpinned to re-detect on later
+      // boots. The mobile floor must therefore never resolve to MEDIUM, or a phone would be
+      // re-detected every boot and never carry a persisted preset at all.
+      for (const gpuRenderer of [undefined, 'Apple M2', 'Adreno (TM) 740', 'Mali-G52']) {
+        expect(resolveDefaultGraphicsPreset({ ...phone, gpuRenderer })).not.toBe(2);
+      }
+      // and the marker still short-circuits ahead of any detection, so a later explicit player
+      // choice is never re-detected over.
+      expect(firstRunGraphicsPreset(true)).toBeNull();
+    });
+
+    it('lands the unset-preset mobile RENDER tier on low too, matching the persisted preset', () => {
+      // tierFromHints shares resolveDefaultGraphicsPreset, so the 3D tier and the data-fx-level
+      // stamp agree on a first boot before main.ts has persisted anything.
+      expect(tierFromHints({ ...phone, gpuRenderer: 'Apple M2' }, false)).toBe('low');
+      expect(tierFromHints(phone, false)).toBe('low');
+      // an EXPLICIT stored preset still wins on mobile: the floor is a default, not a cap.
+      expect(tierFromHints({ ...phone, gpuRenderer: 'Apple M2', graphicsPreset: 3 }, false)).toBe(
+        'high',
+      );
+    });
+
+    it('floors a REPORTED tight-memory mobile device at LOW, and every other phone with it', () => {
+      // #2955 added this as a memory-gated floor: a flagship-class mobile GPU paired with a
+      // genuine 3-4 GB total RAM budget is a common real Android configuration, and the world's
+      // baseline texture/geometry residency alone on HIGH is large enough to cross the OS's
+      // per-tab memory ceiling during ordinary play, reported upstream as "randomly disconnects
+      // no matter the network." Those cases still floor; the blanket mobile floor now subsumes
+      // them, which is why the cases that used to sit just OUTSIDE the memory gate floor too.
+      expect(
+        resolveDefaultGraphicsPreset({
+          ...phone,
+          gpuRenderer: 'Adreno (TM) 740', // flagship: HIGH before either floor
+          deviceMemory: 3,
+        }),
+      ).toBe(1);
+      expect(
+        resolveDefaultGraphicsPreset({
+          ...phone,
+          gpuRenderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 4080)', // strongDesktop-on-touch
+          deviceMemory: 4,
+        }),
+      ).toBe(1);
+      // At the old TIGHT_MEMORY_MAX_GB threshold and one above it: both floor now. The threshold
+      // is no longer load-bearing for the preset, since ample RAM does not buy a phone a tier.
+      expect(
+        resolveDefaultGraphicsPreset({ ...phone, gpuRenderer: 'Adreno (TM) 740', deviceMemory: 4 }),
+      ).toBe(1);
+      // One above the tight-memory threshold is still LOW because the mobile
+      // first-run floor is broader than the RAM-only emergency cap.
+      expect(
+        resolveDefaultGraphicsPreset({ ...phone, gpuRenderer: 'Adreno (TM) 740', deviceMemory: 5 }),
+      ).toBe(1);
+      // Never fires on desktop (not mobile) even at the same low deviceMemory: PITFALL 1's
+      // "thin RAM never pulls a tier down" rule still holds for the GPU-capability ladder.
+      expect(resolveDefaultGraphicsPreset({ ...desktop, deviceMemory: 3 })).toBe(2);
+      // Unreported memory (Safari/Firefox) must not fabricate a tight-memory reason, but the
+      // broader mobile first-run floor still covers iOS/WebKit, whose process kill is most brutal.
+      expect(resolveDefaultGraphicsPreset({ ...phone, gpuRenderer: 'Apple A17 Pro GPU' })).toBe(1);
     });
 
     it('defaults Apple Silicon Macs to MEDIUM, not ultra (thermally constrained laptops, issue 1676)', () => {
@@ -722,6 +1376,34 @@ describe('graphics tier resolution', () => {
       // The throwaway probe context is released instead of left to leak (PR901).
       expect(loseContext).toHaveBeenCalledTimes(1);
     });
+
+    it('reads KHR_parallel_shader_compile off the same probe, unknown when the list is unavailable', () => {
+      const getParameter = vi.fn(() => 'ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA GeForce RTX 3090))');
+      const getExtension = vi.fn((name: string) =>
+        name === 'WEBGL_lose_context'
+          ? { loseContext: vi.fn() }
+          : { UNMASKED_RENDERER_WEBGL: 0x9246 },
+      );
+      const probeWith = (getSupportedExtensions?: () => string[] | null) => {
+        gfxInternalsForTest.resetGpuRendererProbe();
+        const context = getSupportedExtensions
+          ? { getExtension, getParameter, getSupportedExtensions }
+          : { getExtension, getParameter };
+        vi.stubGlobal('document', {
+          createElement: vi.fn(() => ({ getContext: vi.fn(() => context) })),
+        });
+        return activeGpuParallelCompile();
+      };
+      expect(probeWith(() => ['OES_texture_float', 'KHR_parallel_shader_compile'])).toBe(true);
+      expect(probeWith(() => ['OES_texture_float'])).toBe(false);
+      expect(probeWith(() => null)).toBeUndefined();
+      // A context without the list method (a stub, an exotic host) leaves the
+      // answer unknown and, above all, still yields the renderer string.
+      expect(probeWith(undefined)).toBeUndefined();
+      expect(gfxInternalsForTest.probeGpuRenderer()).toBe(
+        'ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA GeForce RTX 3090))',
+      );
+    });
   });
 
   it('keeps masked double-sided vegetation off the transparent blended path', () => {
@@ -771,6 +1453,56 @@ describe('animated far character band: per-tier ceiling', () => {
     for (const tier of ['medium', 'high', 'ultra'] as const) {
       expect(gfxInternalsForTest.settingsFor(tier, nativeIos).farCharacterAnimScale).toBe(1);
       expect(gfxInternalsForTest.settingsFor(tier, constrained).farCharacterAnimScale).toBe(1);
+    }
+  });
+});
+
+describe('surfaceMat dedupe key', () => {
+  it('splits two option sets that differ only in metalnessMap', () => {
+    // The key folded map / normalMap / roughnessMap / aoMap but not
+    // metalnessMap, so a caller that wanted the metallic arm got the SAME
+    // cached material as one that did not, and wrote the slot on afterwards.
+    // Slot presence is a program-cache-key input, so that write relinked every
+    // material already drawing with the shared entry, live.
+    const response = new THREE.Texture();
+    const base = { color: 0x808080, roughnessMap: response };
+    const plain = surfaceMat(base);
+    expect(surfaceMat({ ...base })).toBe(plain);
+
+    const metallic = surfaceMat({ ...base, metalnessMap: response });
+
+    expect(metallic).not.toBe(plain);
+    if (metallic instanceof THREE.MeshStandardMaterial) {
+      expect(metallic.metalnessMap).toBe(response);
+      expect((plain as THREE.MeshStandardMaterial).metalnessMap).toBeNull();
+    }
+  });
+
+  it('splits two option sets whose metalnessMap is a DIFFERENT texture', () => {
+    const base = { color: 0x707070, roughnessMap: new THREE.Texture() };
+    const first = surfaceMat({ ...base, metalnessMap: new THREE.Texture() });
+    const second = surfaceMat({ ...base, metalnessMap: new THREE.Texture() });
+
+    // The uuid is what the key folds, so two metallic callers with their own
+    // texture must not share the entry either.
+    expect(second).not.toBe(first);
+    if (first instanceof THREE.MeshStandardMaterial && second instanceof THREE.MeshStandardMaterial)
+      expect(second.metalnessMap).not.toBe(first.metalnessMap);
+  });
+
+  it('leaves no surfaceMat consumer writing the slot onto a shared material', () => {
+    // Every caller in the tree, not the two that once did it: the write is
+    // legal on a material a caller owns and a live relink on a shared one, and
+    // nothing tells the two apart at the call site.
+    const callers = tsFilesUnder(fileURLToPath(new URL('../src/render/', import.meta.url)))
+      .map(({ file, full }) => ({ file, source: readFileSync(full, 'utf8') }))
+      .filter(({ source }) => source.includes('surfaceMat('));
+
+    expect(callers.length).toBeGreaterThanOrEqual(24);
+    for (const { file, source } of callers) {
+      expect(source, `${file} writes metalnessMap after surfaceMat`).not.toMatch(
+        /\.metalnessMap = /,
+      );
     }
   });
 });

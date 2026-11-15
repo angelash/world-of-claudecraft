@@ -7,6 +7,114 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: "Prêt pour l'aventure",
+    desc: "Diplômez-vous du Rivage de l'Épreuve : terminez chaque leçon de l'île, puis sonnez la cloche du bac pour rentrer à Eastbrook.",
+  },
+  exp_dawnhold_castle: {
+    name: 'Une porte ouverte sur le jardin',
+    desc: 'Rendez visite au Château Dawnhold et flânez dans ses salles baignées de soleil.',
+  },
+  exp_the_last_keep: {
+    name: 'Les salles silencieuses',
+    desc: 'Franchissez les portes du Dernier Donjon et parcourez ses salles silencieuses.',
+  },
+  pvp_bg_first_capture: {
+    name: 'Bannière en main',
+    desc: 'Capturez un drapeau dans les Champs de Thornhollow.',
+  },
+  pvp_bg_first_win: {
+    name: 'Thornhollow tient bon',
+    desc: 'Remportez une bataille aux Champs de Thornhollow.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Gardien de Thornhollow',
+    desc: 'Remportez 25 batailles aux Champs de Thornhollow.',
+    title: 'Porte-étendard',
+  },
+  pvp_bg_captures_100: {
+    name: 'Cent bannières',
+    desc: 'Capturez 100 drapeaux dans les Champs de Thornhollow au cours de votre carrière.',
+  },
+  dgn_rift: {
+    name: 'Marcheur des failles',
+    desc: "Nettoyez une faille en vainquant son boss d'étage.",
+  },
+  dgn_rift_s_rank: {
+    name: 'Souverain des failles',
+    desc: "Nettoyez une faille de rang S, le palier le plus difficile qu'un portail de faille puisse faire apparaître.",
+  },
+  pvp_honor_sergeant: {
+    name: 'Brise-lignes',
+    desc: "Gagnez 10 000 points d'honneur au cours de votre vie de personnage. Les dépenser ne vous fait jamais perdre ce rang.",
+    title: 'Brise-lignes',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Ravageur des champs',
+    desc: "Gagnez 40 000 points d'honneur au cours de votre vie de personnage, une vraie saison de guerre derrière vous.",
+    title: 'Ravageur des champs',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Couronné par la guerre',
+    desc: "Gagnez 150 000 points d'honneur au cours de votre vie de personnage. Rare sur n'importe quel royaume, et c'est voulu ainsi.",
+    title: 'Couronné par la guerre',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Brise-Couvée',
+    desc: 'Terrassez un Seigneur de couvée du Drakemaw au milieu de ses œufs, à travers le cri, le fauchage et le feu.',
+  },
+  chr_maw_matriarch: {
+    name: 'Le ciel se tait',
+    desc: 'Terrassez Cindraleth, Matriarche de la Gueule, dans son perchoir de cratère au-dessus du Drakemaw.',
+  },
+  chr_frostveil_gatherer: {
+    name: 'Recolte en terrasses',
+    desc: 'Recoltez un filon de minerai, un bosquet de bois et un carre d herbes a Frostveil.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Premiere glace sur le lac',
+    desc: 'Pechez un poisson dans les eaux de Frostveil.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'La recolte d Amberfall',
+    desc: 'Recoltez un filon de minerai, un bosquet de bois et un carre d herbes a Amberfall.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'Une prise du grand marais',
+    desc: 'Pechez un poisson dans les eaux d Amberfall.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'La recolte reveuse',
+    desc: 'Recoltez un filon de minerai, un bosquet de bois et un carre d herbes a Nightbloom.',
+  },
+  chr_nightbloom_first_cast: {
+    name: 'Une ondulation sur la Source lunaire',
+    desc: 'Pechez un poisson dans les eaux de Nightbloom.',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Recolte sous la canopee',
+    desc: 'Recoltez un filon de minerai, un bosquet de bois et un carre d herbes a Wraithwood.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Un lancer dans la baie miroir',
+    desc: 'Pechez un poisson dans les eaux de Wraithwood.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Recolte sur la greve aux palmes',
+    desc: 'Recoltez un filon de minerai, un bosquet de bois et un carre d herbes a Palmreach.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Lancer dans le lagon saphir',
+    desc: 'Pechez un poisson dans les eaux de Palmreach.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'La generosite du parterre',
+    desc: 'Recoltez un filon de minerai, un bosquet de bois et un carre d herbes a Evergarden.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Un lancer sur l etang aux petales',
+    desc: 'Pechez un poisson dans les eaux d Evergarden.',
+  },
   pvp_card_duel_first_win: {
     name: 'Faire la loi',
     desc: 'Remportez un Duel de cartes auprès du Maître des cartes.',
@@ -94,7 +202,7 @@ export const table: DeedLocaleTable = {
   },
   prog_master_gatherer: {
     name: 'Maître récolteur',
-    desc: 'Atteignez 100 points de maîtrise dans trois quelconques des métiers Minage, Bûcheronnage, Herboristerie et Pêche.',
+    desc: 'Atteignez 100 points de maîtrise dans trois métiers de récolte différents.',
   },
   prog_first_craft: { name: 'Fait main', desc: 'Réussissez votre première fabrication.' },
   prog_craft_specialist: {
@@ -208,7 +316,7 @@ export const table: DeedLocaleTable = {
     title: 'Terrasse-wyrm',
   },
   dgn_sanctum_speed: {
-    name: 'Sprint du Sanctuaire',
+    name: 'Course du Sanctum',
     desc: 'Vainquez Korzul le Gravewyrm dans les 15 minutes suivant la prise du Sanctuaire du Gravewyrm par votre groupe.',
   },
   dgn_nythraxis_gravebreaker: {
@@ -248,7 +356,7 @@ export const table: DeedLocaleTable = {
     desc: 'Nettoyer la Litanie noyée au palier héroïque.',
   },
   dlv_lore_journal: {
-    name: 'Marginalia',
+    name: 'Notes marginales',
     desc: 'Débloquer les cinq entrées du journal de plongée.',
   },
   dlv_companion_max: {
@@ -274,7 +382,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'Les cloches se taisent',
-    desc: "Vaincre le Diacre Varric alors que chaque Sonneur funéraire qu'il relève a déjà été abattu.",
+    desc: "Vaincre le Diacre Vandric alors que chaque Sonneur funéraire qu'il relève a déjà été abattu.",
   },
   dlv_nhalia_bells: {
     name: 'Étouffe-cloches',
@@ -287,7 +395,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Chronique du Val, chapitre II',
-    desc: 'Terminer le deuxième chapitre de la chronique de Saul : bandits, murlocs et vermine de la mine abattus, un match disputé au Pré de la Truie et le Reliquaire bravé.',
+    desc: 'Terminez le deuxième chapitre de la chronique de Saul : éliminez bandits, murlocs et vermine des mines, et affrontez le Reliquaire.',
   },
   chr_vale_chapter_iii: {
     name: 'Chronique du Val',
@@ -308,7 +416,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_cup_debut: {
     name: 'Prétendant au Seau de cuivre',
-    desc: "Entrer sur le terrain et toucher le ballon lors d'un match de Coupe du Val au Pré de la Truie.",
+    desc: 'Entrez sur le terrain et touchez le ballon dans un match de la Coupe du Val au Pré de la Truie. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   chr_vale_rares: {
     name: 'Les terreurs du Val',
@@ -353,12 +461,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'Chronique de Thornpeak',
-    desc: "Mener l'histoire de la montagne à son terme : le Culte du Wyrm brisé, le Sanctuaire réduit au silence, le Pic Éveillé abattu et toutes les terreurs nommées des falaises terrassées.",
+    desc: 'Découvrez toute l’histoire de la montagne : les Broodsworn brisés, le Sanctum réduit au silence, le Pic éveillé abattu et chaque terreur nommée des crêtes vaincue.',
     title: 'de Thornpeak',
   },
   chr_peaks_sparring: {
     name: 'Exercices de rempart',
-    desc: "Infliger 1 000 points de dégâts au total au Mannequin d'entraînement qui surplombe Highwatch.",
+    desc: "Infliger 1 000 points de dégâts au total à un mannequin d'entraînement.",
   },
   chr_peaks_glimmer_cast: {
     name: 'Eau froide, lumière plus froide encore',
@@ -454,7 +562,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Client privilégié',
-    desc: "Découvrir les dix pièces du stock de l'Intendant Vex.",
+    desc: "Découvrir les dix pièces d'équipement du stock de l'Intendant Vex.",
   },
   col_glimmerfin: {
     name: "Une lueur d'espoir",
@@ -508,69 +616,72 @@ export const table: DeedLocaleTable = {
   },
   pvp_vcup_first_match: {
     name: 'Crampons sur le pré',
-    desc: "Disputez un match de la Coupe du Val jusqu'à son terme au Pré de la Truie, victoire ou défaite.",
+    desc: 'Terminez un match complet de la Coupe du Val au Pré de la Truie, victoire ou défaite. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_first_win: {
     name: 'Premier trophée',
-    desc: 'Remportez un match classé de la Coupe du Val.',
+    desc: 'Remportez un match coté de la Coupe du Val. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_wins_10: {
     name: 'Briscard de la balle au sanglier',
-    desc: 'Remportez 10 matchs classés de la Coupe du Val.',
+    desc: 'Remportez 10 matchs cotés de la Coupe du Val. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_wins_25: {
     name: 'Légende de la balle au sanglier',
-    desc: 'Remportez 25 matchs classés de la Coupe du Val.',
     title: 'Légende de la balle au sanglier',
+    desc: 'Remportez 25 matchs cotés de la Coupe du Val. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_first_goal: {
     name: 'Compteur débloqué',
-    desc: "Marquez un but lors d'un match classé de la Coupe du Val.",
+    desc: 'Marquez un but dans un match coté de la Coupe du Val. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_hat_trick: {
     name: 'Coup du chapeau',
-    desc: 'Marquez trois buts dans un même match classé de la Coupe du Val, en catégorie 3v3 ou plus.',
+    desc: 'Marquez trois buts dans un seul match coté de la Coupe du Val, dans la catégorie 3c3 ou supérieure. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_golden_goal: {
     name: 'Instant en or',
-    desc: "Marquez le but en or qui décide d'un match classé de la Coupe du Val.",
+    desc: "Marquez le but en or qui décide d'un match coté de la Coupe du Val. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.",
   },
   pvp_vcup_first_save: {
     name: 'Des mains sûres',
-    desc: "Réalisez un arrêt en tant que gardien lors d'un match classé de la Coupe du Val.",
+    desc: 'Effectuez un arrêt comme gardien dans un match coté de la Coupe du Val, dans la catégorie 3c3 ou supérieure. Seul un tir assez rapide pour éprouver votre prise compte : une réception facile ne compte pas. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_clean_sheet: {
     name: 'Rien ne passe',
-    desc: 'Remportez un match classé de la Coupe du Val en tant que gardien sans encaisser de but.',
+    desc: 'Remportez un match coté de la Coupe du Val comme gardien sans encaisser de but, dans la catégorie 3c3 ou supérieure. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_vcup_guild_win: {
     name: 'Pour la bannière',
-    desc: 'Remportez un match classé de la Coupe du Val disputé sous la bannière de votre guilde.',
+    desc: 'Remportez un match coté de la Coupe du Val sous la bannière de votre guilde. Les matchs de la Coupe du Val ne sont plus jouables ; ce haut fait ne peut donc plus être obtenu.',
   },
   pvp_fiesta_first_bout: {
     name: "Taper l'incruste",
-    desc: "Disputez un combat de Fiesta 2v2 jusqu'au bout, victoire ou défaite.",
+    desc: "Disputez un combat Fiesta complet en 2c2, victoire ou défaite. Les combats Fiesta ne sont plus proposés dans la file d'arène ; ce haut fait ne peut plus être obtenu.",
   },
-  pvp_fiesta_first_win: { name: "L'âme de la Fiesta", desc: 'Remportez un combat de Fiesta 2v2.' },
+  pvp_fiesta_first_win: {
+    name: "L'âme de la Fiesta",
+    desc: "Remportez un combat Fiesta en 2c2. Les combats Fiesta ne sont plus proposés dans la file d'arène ; ce haut fait ne peut plus être obtenu.",
+  },
   pvp_fiesta_double: {
     name: 'Coup double',
-    desc: "Réussissez deux mises au tapis en Fiesta en l'espace de quatre secondes.",
+    desc: "Réussissez deux éliminations Fiesta en quatre secondes. Les combats Fiesta ne sont plus proposés dans la file d'arène ; ce haut fait ne peut plus être obtenu.",
   },
   pvp_fiesta_shutdown: {
     name: 'Trouble-fête',
-    desc: 'Mettez au tapis un adversaire de Fiesta en pleine série de trois ou plus.',
+    desc: "Éliminez un adversaire Fiesta ayant une série d'au moins trois éliminations. Les combats Fiesta ne sont plus proposés dans la file d'arène ; ce haut fait ne peut plus être obtenu.",
   },
   pvp_fiesta_full_build: {
     name: 'Sur son trente-et-un',
-    desc: 'Remportez un combat de Fiesta avec une amélioration verrouillée à chacune des trois vagues.',
+    desc: "Remportez un combat Fiesta avec une augmentation verrouillée pour chacune des trois vagues. Les combats Fiesta ne sont plus proposés dans la file d'arène ; ce haut fait ne peut plus être obtenu.",
   },
   pvp_fiesta_powerups: {
     name: 'Un de chaque',
-    desc: 'Ramassez au moins une fois chacun des quatre bonus du ring : Démon de vitesse, Colosse, Bottes lunaires et Berserker.',
+    desc: "Ramassez au moins une fois chacun des quatre bonus de l'arène : Démon de vitesse, Colosse, Bottes lunaires et Berserker. Les combats Fiesta ne sont plus proposés dans la file d'arène ; ce haut fait ne peut plus être obtenu.",
   },
   pvp_fiesta_five_kills: {
     name: 'Toute la fête sur le dos',
-    desc: 'Réussissez cinq mises au tapis en un seul combat de Fiesta.',
+    desc: "Réussissez cinq éliminations dans un seul combat Fiesta. Les combats Fiesta ne sont plus proposés dans la file d'arène ; ce haut fait ne peut plus être obtenu.",
   },
   soc_first_party: {
     name: "L'union fait la force",
@@ -846,6 +957,534 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'La Casse du démolisseur',
     desc: "Récupérez 50 pièces d'équipement pour en extraire les matériaux bruts.",
+  },
+  dgn_wildheart_basin: {
+    name: 'Le bassin riposte',
+    desc: 'Vainquez Zulgar, Voix du Bassin, dans le Bassin du Cœur Sauvage.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Héroïque : le Bassin du Cœur Sauvage',
+    desc: 'Vainquez Zulgar, Voix du Bassin, dans le Bassin du Cœur Sauvage en difficulté héroïque.',
+  },
+  chr_peaks_gatherer: {
+    name: 'Moisson des Hauteurs',
+    desc: "Récolter un filon de minerai, un bosquet de bois et un carré d'herbes dans les Hauteurs de Thornpeak.",
+  },
+  chr_marsh_rares_ii: {
+    name: 'Le Glouton, porté au compte',
+    desc: 'Tuer Grubjaw le Glouton, une quatrième terreur nommée du Marais de Mirefen oubliée du premier décompte.',
+  },
+  chr_peaks_rares_ii: {
+    name: 'D’autres noms gravés dans le roc',
+    desc: 'Tuer le Vieux Cragmaw et le Seigneur des éclats Kazzix, deux terreurs nommées de plus des Hauteurs de Thornpeak oubliées du premier décompte.',
+  },
+  chr_gleamstag: {
+    name: 'La légende qui ne frappait jamais la première',
+    desc: 'Tuer le Cerf-Miroitant, un élite rare et farouche qui n’attaque que si on l’accule.',
+  },
+  chr_hollow_rares: {
+    name: 'Le troupeau se souvient',
+    desc: 'Tuer le Vieux Marrowshell et Aurelhorn, Premier du Troupeau, les deux boss rares errants du Vallon.',
+  },
+  chr_willowfen_gatherer: {
+    name: 'Les largesses des Saules',
+    desc: "Récolter un filon de minerai, un bosquet de bois et un carré d'herbes dans le Marais des Saules.",
+  },
+  chr_willowfen_first_cast: {
+    name: 'Des rides sur les Lilymoors',
+    desc: 'Pêcher un poisson dans les eaux du Marais des Saules.',
+  },
+  chr_galecrest_gatherer: {
+    name: 'Moisson du promontoire',
+    desc: "Récolter un filon de minerai, un bosquet de bois et un carré d'herbes sur la Crête du Vent.",
+  },
+  chr_galecrest_first_cast: {
+    name: 'Une ligne dans le Lac Miroir',
+    desc: 'Pêcher un poisson dans les eaux de la Crête du Vent.',
+  },
+  chr_farshore_gatherer: {
+    name: "Les vivres de l'île",
+    desc: "Récolter un filon de minerai, un bosquet de bois et un carré d'herbes sur le Rivage Lointain.",
+  },
+  chr_farshore_first_cast: {
+    name: 'Ce que savent les mouettes',
+    desc: 'Pêcher un poisson dans les eaux du Rivage Lointain.',
+  },
+  prog_engineering_rare: {
+    name: 'Ingénierie de précision',
+    desc: 'Fabriquez votre premier objet de qualité rare en Ingénierie.',
+  },
+  prog_alchemy_rare: {
+    name: 'Un millésime rare',
+    desc: 'Fabriquez votre premier objet de qualité rare en Alchimie.',
+  },
+  prog_cooking_rare: {
+    name: 'Un plat inoubliable',
+    desc: 'Fabriquez votre premier objet de qualité rare en Cuisine.',
+  },
+  prog_leatherworking_rare: {
+    name: 'Tannage fin',
+    desc: 'Fabriquez votre premier objet de qualité rare en Travail du cuir.',
+  },
+  prog_tailoring_rare: {
+    name: 'Un point de maître',
+    desc: 'Fabriquez votre premier objet de qualité rare en Couture.',
+  },
+  prog_weaponcrafting_rare: {
+    name: "Trempé jusqu'à l'éclat",
+    desc: "Fabriquez votre premier objet de qualité rare en Fabrication d'armes.",
+  },
+  prog_armorcrafting_rare: {
+    name: 'Blindé à la perfection',
+    desc: "Fabriquez votre premier objet de qualité rare en Fabrication d'armures.",
+  },
+  col_reliquary_rank_2: {
+    name: 'Gardien des butins',
+    desc: 'Atteindre le rang de Conservateur 2 dans Le Reliquaire (10 reliques uniques cataloguées).',
+    title: 'Gardien des butins',
+  },
+  col_reliquary_rank_3: {
+    name: 'Le Catalogueur',
+    desc: 'Atteindre le rang de Conservateur 3 dans Le Reliquaire (25 reliques uniques cataloguées).',
+    title: 'le Catalogueur',
+  },
+  col_reliquary_rank_4: {
+    name: 'Archiconservateur',
+    desc: 'Atteindre le rang de Conservateur 4 dans Le Reliquaire (50 reliques uniques cataloguées).',
+    title: 'Archiconservateur',
+  },
+  col_reliquary_rank_5: {
+    name: 'Butins éternels',
+    desc: 'Atteindre le rang de Conservateur 5 dans Le Reliquaire (100 reliques uniques cataloguées).',
+  },
+  col_reliquary_complete: {
+    name: 'Le Grand Reliquaire',
+    desc: "Cataloguer chaque relique du Reliquaire qu'un personnage peut conserver. L'agrandissement ultérieur du catalogue ne vous la reprend jamais.",
+    title: 'Conservateur de la Chambre forte',
+  },
+  col_reliquary_conquerors: {
+    name: 'Étagère des Conquérants',
+    desc: "Cataloguer chaque relique de l'étagère Conquérants du Reliquaire. L'agrandissement ultérieur du catalogue ne vous la reprend jamais.",
+    title: 'Brise-chambre',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis enluminée',
+    desc: 'Enluminer la page Héroïque : Raid de Nythraxis du Reliquaire.',
+    title: 'Lumière de Nythraxis',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr enluminée',
+    desc: 'Enluminer la page Thunzharr, le Pic Éveillé du Reliquaire.',
+    title: 'Lumière de Thunzharr',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Sanctuaire enluminé',
+    desc: 'Enluminer la page Héroïque : Sanctuaire du Gravewyrm du Reliquaire.',
+    title: 'Lumière du Sanctuaire',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Le Pourvoyeur du coffre',
+    desc: 'Déverrouiller votre premier emplacement de sac de banque.',
+  },
+  soc_four_bags_deep: {
+    name: 'Les quatre sacs',
+    desc: 'Déverrouiller les quatre emplacements de sac de banque.',
+  },
+  dgn_ignivar: {
+    name: 'Le Héraut tombe',
+    desc: 'Vainquez Ignivar, Héraut de la Dernière Flamme, dans le Creuset de la Dernière Source.',
+  },
+  dgn_ignivar_heroic: {
+    name: 'Héroïque : Le Héraut tombe',
+    desc: 'Vainquez Ignivar, Héraut de la Dernière Flamme, en difficulté héroïque.',
+  },
+  dgn_varkhul: {
+    name: 'La Forge se refroidit',
+    desc: 'Vainquez Varkhul, Père de la Forge de la Dernière Flamme, dans le Creuset intérieur.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Héroïque : La Forge se refroidit',
+    desc: 'Vainquez Varkhul, Père de la Forge de la Dernière Flamme, en difficulté héroïque.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Pas une braise perdue',
+    desc: "Vainquez Varkhul, Père de la Forge de la Dernière Flamme, en difficulté héroïque sans qu'un seul membre du raid ne meure.",
+    title: "l'Indemne",
+  },
+  col_set_bramblehide: {
+    name: 'Peau de Ronces de Roots',
+    desc: 'Découvrir chaque pièce de la Peau de Ronces de Roots.',
+  },
+  prog_jewelcrafting_rare: {
+    name: 'Poli jusqu’à l’éclat',
+    desc: 'Fabriquez votre premier objet de palier rare en Joaillerie.',
+  },
+  prog_jewelcrafting_50: {
+    name: 'Facette et filigrane',
+    desc: 'Atteignez 50 points de compétence en Joaillerie.',
+  },
+  prog_grandmaster_jewelcrafting: {
+    name: 'Grand maître de la joaillerie',
+    desc: 'Atteignez 125 points de compétence en Joaillerie, le sommet de ce métier.',
+    title: 'Grand maître de la joaillerie',
+  },
+  prog_inscription_rare: {
+    name: 'Écrit à l’encre fine',
+    desc: 'Fabriquez votre premier objet de palier rare en Calligraphie.',
+  },
+  prog_inscription_50: {
+    name: 'Plume et pigment',
+    desc: 'Atteignez 50 points de compétence en Calligraphie.',
+  },
+  prog_grandmaster_inscription: {
+    name: 'Grand maître de l’inscription',
+    desc: 'Atteignez 125 points de compétence en Calligraphie, le sommet de ce métier.',
+    title: 'Grand maître de l’inscription',
+  },
+  col_deepest_cast: {
+    name: 'Le lancer le plus profond',
+    desc: 'Obtenez une canne à pêche Rouage-horloge, la seule canne qui atteigne les prises les plus profondes.',
+  },
+  prog_first_planting: {
+    name: 'Tout commence par semer',
+    desc: 'Plantez votre première culture dans un carré de culture.',
+  },
+  chr_vale_first_harvest: {
+    name: 'Premiers fruits du val',
+    desc: 'Récoltez votre première culture florissante dans un carré de culture de la vallée d’Eastbrook.',
+  },
+  chr_marsh_first_harvest: {
+    name: 'Pousses dans la tourbe',
+    desc: 'Récoltez votre première culture florissante dans un carré de culture du marais de Mirefen.',
+  },
+  chr_peaks_first_harvest: {
+    name: 'Une récolte entre les crêtes',
+    desc: 'Récoltez votre première culture florissante dans un carré de culture des hauteurs de Thornpeak.',
+  },
+  chr_evergarden_first_harvest: {
+    name: 'Une parcelle au paradis',
+    desc: 'Récoltez votre première culture florissante dans un carré de culture de l’Evergarden.',
+  },
+  col_golden_harvest: {
+    name: 'Récolte dorée',
+    desc: 'Récoltez une récolte dorée et faites-en profiter toute la zone.',
+  },
+  prog_farming_100: {
+    name: 'Maître des récoltes',
+    desc: 'Atteignez 100 points de maîtrise en Culture.',
+    title: 'Maître des récoltes',
+  },
+  col_farm_roster: {
+    name: 'Chaque sillon rempli',
+    desc: 'Récoltez toutes les cultures produites par les quatre jardins.',
+  },
+  prog_field_to_feast: {
+    name: 'Du champ au festin',
+    desc: 'Cuisinez un festin d’apogée, le repas dont tout un raid peut manger.',
+  },
+  prog_legendmaker: {
+    name: 'Faiseur de légendes',
+    desc: 'Élevez une œuvre perfectionnée au rang de légende avec un acte de création, puis donnez-lui un nom unique.',
+  },
+  hid_forgebreaker: {
+    name: 'Une source déchaînée',
+    desc: 'Façonnez vous-même Brise-forge et rapportez le marteau terminé à Maelin.',
+  },
+  exp_arcane_calligraphy: {
+    name: 'Une main sûre',
+    desc: "Terminez la Calligraphie arcanique dans le Val d'Eastbrook.",
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'Écrit dans la lumière des étoiles',
+    desc: 'Obtenez une note Or en Calligraphie arcanique.',
+    title: 'Appelle-rune',
+  },
+  exp_forge_helper: {
+    name: 'Un coup de main à la forge',
+    desc: 'Aidez la forgeronne Mara à terminer un bouclier à Wyrmwatch.',
+  },
+  exp_last_barricade: {
+    name: 'La dernière barricade',
+    desc: 'Tenez le col forestier contre la horde de morts-vivants.',
+  },
+  exp_borrowed_face: {
+    name: 'Un visage emprunté',
+    desc: "Démasquez et vainquez l'infiltré parmi la garde de Fenbridge.",
+  },
+  exp_windrider_slalom: {
+    name: 'Le slalom du vent',
+    desc: 'Terminez la descente en planeur mécanique à travers le canyon de la Crête du Vent.',
+  },
+  exp_duskweave_dispatches: {
+    name: 'Les dépêches de tissenuit',
+    desc: 'Récupérez les dépêches des bandits en portant la cape enchantée de Valerie.',
+  },
+  exp_wisp_maze: {
+    name: 'Une lumière dans le labyrinthe',
+    desc: 'Récupérez les bourses volées et échappez-vous du labyrinthe du Jardin Éternel.',
+  },
+  prog_rift_watch_trusted: {
+    name: 'Digne de confiance auprès de la Vigie des Failles',
+    desc: 'Atteignez le rang Digne de confiance auprès de la Vigie des Failles.',
+  },
+  prog_church_order_trusted: {
+    name: "Digne de confiance auprès de l'Ordre de l'Église",
+    desc: "Atteignez le rang Digne de confiance auprès de l'Ordre de l'Église.",
+  },
+  prog_automatons_trusted: {
+    name: 'Digne de confiance auprès des Automates',
+    desc: 'Atteignez le rang Digne de confiance auprès des Automates.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Champion de la Vigie des Failles',
+    desc: 'Atteignez le rang Champion auprès de la Vigie des Failles.',
+    title: 'Gardien des Failles',
+  },
+  prog_church_order_champion: {
+    name: "Champion de l'Ordre de l'Église",
+    desc: "Atteignez le rang Champion auprès de l'Ordre de l'Église.",
+    title: "Gardien de l'Aube",
+  },
+  prog_automatons_champion: {
+    name: 'Champion des Automates',
+    desc: 'Atteignez le rang Champion auprès des Automates.',
+    title: 'Maître de forge',
+  },
+  prog_faction_champion_all: {
+    name: 'Champion de chaque bannière',
+    desc: "Atteignez le rang Champion auprès de la Vigie des Failles, de l'Ordre de l'Église et des Automates.",
+  },
+  exp_clue_first_casket: {
+    name: 'Trésor trouvé',
+    desc: "Ouvrez un Coffret au trésor déterré à la fin d'une chasse au parchemin d'indice.",
+  },
+  exp_clue_ten_caskets: {
+    name: 'Chasseur de trésor',
+    desc: "Ouvrez 10 Coffrets au trésor déterrés à la fin de chasses au parchemin d'indice.",
+    title: 'Chasseur de trésor',
+  },
+  exp_harbor_to_harbor: {
+    name: 'De port en port',
+    desc: "Naviguez sur les deux bacs aller-retour : d'Eastbrook à Moonrest, et de Wickharbor à Wyrmwatch.",
+  },
+  cmb_coinsack_caught: {
+    name: 'Pris en flagrant délit',
+    desc: "Capturez un Escroc Sacpiéces dans un Trésor enterré avant qu'il ne s'échappe avec l'or.",
+  },
+  exp_wisp_maze_hard: {
+    name: 'Plus brillante que les ombres',
+    desc: "Recupere les bourses de pieces volees et echappe-toi du labyrinthe d'Evergarden en difficulte Hard.",
+  },
+  prog_titan: {
+    name: 'Colosse',
+    desc: "Gagner 10 000 000 de points d'expérience au cours de votre vie.",
+    title: 'Colosse',
+  },
+  pvp_flag_1h: {
+    name: 'Audacieux',
+    desc: 'Gardez le JcJ mondial activé pendant 1 heure de jeu en étant vivant dans le monde ouvert ou en match JcJ. Les sanctuaires, les instances JcE, la mort et la déconnexion suspendent la progression ; le désactiver la réinitialise. Les titres gagnés sont permanents.',
+    title: 'Audacieux',
+  },
+  pvp_flag_3h: {
+    name: 'Insoumis',
+    desc: 'Gardez le JcJ mondial activé pendant 3 heures de jeu en étant vivant dans le monde ouvert ou en match JcJ. Les sanctuaires, les instances JcE, la mort et la déconnexion suspendent la progression ; le désactiver la réinitialise. Les titres gagnés sont permanents.',
+    title: 'Insoumis',
+  },
+  pvp_flag_6h: {
+    name: 'Intrépide',
+    desc: 'Gardez le JcJ mondial activé pendant 6 heures de jeu en étant vivant dans le monde ouvert ou en match JcJ. Les sanctuaires, les instances JcE, la mort et la déconnexion suspendent la progression ; le désactiver la réinitialise. Les titres gagnés sont permanents.',
+    title: 'Intrépide',
+  },
+  pvp_flag_24h: {
+    name: 'Inébranlable',
+    desc: 'Gardez le JcJ mondial activé pendant 24 heures de jeu en étant vivant dans le monde ouvert ou en match JcJ. Les sanctuaires, les instances JcE, la mort et la déconnexion suspendent la progression ; le désactiver la réinitialise. Les titres gagnés sont permanents.',
+    title: 'Inébranlable',
+  },
+  pvp_flag_168h: {
+    name: 'Indomptable',
+    desc: 'Gardez le JcJ mondial activé pendant 7 jours de jeu en étant vivant dans le monde ouvert ou en match JcJ. Les sanctuaires, les instances JcE, la mort et la déconnexion suspendent la progression ; le désactiver la réinitialise. Les titres gagnés sont permanents.',
+    title: 'Indomptable',
+  },
+  cmb_balgath: {
+    name: 'Fin du contremaître',
+    desc: 'Renvoyez le Contremaître enseveli dans son tertre.',
+  },
+  cmb_balgath_ten: {
+    name: 'Le tertre ne garde rien',
+    desc: 'Terrassez le Contremaître enseveli dix fois.',
+  },
+  cmb_point_taken: {
+    name: 'Message bien pointé',
+    desc: "Éteignez la lanterne du Contremaître de paille sur le terrain d'exercice du rassemblement et faites compter ses planches.",
+  },
+  dgn_olen_buttress: {
+    name: 'Tenir le rempart',
+    desc: 'Vainquez le Chevalier-commandant Olen sans que son Rempart rebondissant touche un deuxième joueur.',
+  },
+  dgn_ossick_moored: {
+    name: 'Port sûr',
+    desc: 'Vainquez le Geôlier Ossick sans que personne soit entraîné dans la Fosse de noyade.',
+  },
+  dgn_vael_beacon: {
+    name: 'À la lumière de la balise',
+    desc: 'Vainquez Vael le Lie-brume sans faire exploser une seule Ombre de brume.',
+  },
+  dgn_turretback: {
+    name: "Avis d'expulsion",
+    desc: 'Vainquez le Capitaine naufragé sans que personne soit touché par Bordée spectrale.',
+  },
+  dgn_selthe_pitch: {
+    name: "Toutes les voix à l'unisson",
+    desc: "Vainquez la Mère du chœur Selthe en partageant chaque Chœur entre au moins deux personnes et sans qu'aucun Solo touche une autre personne.",
+  },
+  dgn_colossus_mirror: {
+    name: 'Briser le verre',
+    desc: 'Vainquez le Colosse du verre de marée en brisant chaque Reflet dans les 15 secondes suivant son apparition.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: 'Bien au sec',
+    desc: 'Vainquez Ysolei, Avatar de la Lune noyée, sans que personne soit touché par son Fracas de marée.',
+  },
+  dgn_mere_hydra: {
+    name: 'Toutes les têtes à terre',
+    desc: "Tuez les trois têtes de l'Hydre du lac à moins de 10 secondes d'intervalle.",
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Pas un cheveu roussi',
+    desc: 'Vainquez le Knellwyrm sans que personne soit brûlé par son Mitraillage du bûcher.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Aucune cage ne nous retient',
+    desc: 'Vainquez le Porte-clefs de la prison sans que personne soit écrasé dans une Cage de fer.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Tenus à distance',
+    desc: 'Vainquez le Maître des bêtes seigneur des crocs et son Grand jaguar avec Lien de meute actif pendant moins de 10 secondes au total.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Désherbage',
+    desc: "Vainquez la Florengloutissante sans qu'une seule Pousse épineuse grandisse.",
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Jamais rattrapé',
+    desc: 'Vainquez Zulgar, Voix du Bassin, sans que personne soit Lacéré.',
+  },
+  dgn_great_saurian: {
+    name: 'Titan renversé',
+    desc: "Vainquez le Grand Saurien et son Lanceur de maléfices du howdah à moins de 20 secondes d'intervalle.",
+  },
+  dgn_korgath_all_chains: {
+    name: 'Une fin plus douce',
+    desc: "Vainquez Korgath l'Enchaîné avec ses quatre chaînes brisées.",
+  },
+  dgn_korgath_still_bound: {
+    name: 'Le verrou tient',
+    desc: "Vainquez Korgath l'Enchaîné en difficulté héroïque sans qu'au moins deux de ses chaînes soient jamais brisées.",
+  },
+  dgn_velkhar_cold: {
+    name: 'Maigre réconfort',
+    desc: "Vainquez le Grand Nécromancien Velkhar sans qu'un seul Marche-os ressuscité se relève une deuxième fois.",
+  },
+  dgn_korzul_thin_ice: {
+    name: 'Sur une glace fragile',
+    desc: 'Vainquez Korzul le Gravewyrm en gardant au moins douze des dix-neuf plaques du lac intactes.',
+  },
+  dgn_sledge_tusker: {
+    name: 'Cargaison froide',
+    desc: 'Vainquez le Mastodonte au traîneau sans que personne soit touché par son Piétinement.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: 'Le dernier couplet',
+    desc: 'Vainquez Ysolei, Avatar de la Lune noyée, avec le Dernier chantre du Chœur pâle à vos côtés.',
+    title: 'Témoin du Chœur',
+  },
+  dgn_marrow_tidy: {
+    name: 'Un cimetière bien rangé',
+    desc: 'Vainquez le Sacristain Marrow en plaçant chaque Tombe ouverte au bord de la Cour de la cloche.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Personne ne reste suspendu',
+    desc: "Vainquez la Dame du Froid d'Os sans qu'elle lâche personne de son Étreinte glacée.",
+  },
+  dgn_ilvane_hush: {
+    name: 'Silence, maintenant',
+    desc: 'Vainquez le Chantre Ilvane sans que sa Complainte du creux touche qui que ce soit.',
+  },
+  dgn_morthen_candlelight: {
+    name: 'Toutes les bougies allumées',
+    desc: "Vainquez Morthen le Gravecaller après avoir rallumé les quatre Bougies du souvenir dans les 20 secondes suivant l'apparition de sa Protection des tourmentés.",
+  },
+  dgn_guild_first_contract: {
+    name: 'Contrat signé',
+    desc: "Terminez l'un des contrats de donjon hebdomadaires du Hall de la Lanterne.",
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Habitué du tableau',
+    desc: 'Terminez 10 contrats de donjon hebdomadaires du Hall de la Lanterne.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Vétéran des contrats',
+    desc: 'Terminez 50 contrats de donjon hebdomadaires du Hall de la Lanterne.',
+  },
+  feat_guild_writ_runner: {
+    name: 'Porte-contrat',
+    desc: "Acheté auprès de Garrick Holt, l'intendant du Hall de la Lanterne, pour 6 Sceaux de lanterne.",
+    title: 'Porte-contrat',
+  },
+  feat_guild_hallsworn: {
+    name: 'Assermenté du Hall',
+    desc: "Acheté auprès de Garrick Holt, l'intendant du Hall de la Lanterne, pour 14 Sceaux de lanterne.",
+    title: 'Assermenté du Hall',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Du Hall de la Lanterne',
+    desc: "Acheté auprès de Garrick Holt, l'intendant du Hall de la Lanterne, pour 24 Sceaux de lanterne.",
+    title: 'du Hall de la Lanterne',
+  },
+  feat_gourdlight_guise: {
+    name: 'Déguisement de la Veillée des courges',
+    desc: 'Possédez une Tête de citrouille sculptée, prise au Vieux Thatchgrin dans son champ au-delà du Pré aux sangliers pendant la Veillée des courges.',
+  },
+  feat_old_thatchgrin: {
+    name: 'Chaume et cendres',
+    desc: 'Aidez à vaincre le Vieux Thatchgrin dans son potager de citrouilles au-delà du Pré aux sangliers pendant la Veillée des courges.',
+  },
+  feat_title_gourdlit: {
+    name: 'L’Illuminé des courges',
+    desc: 'Lisez un Brevet de l’Illuminé des courges, échangé auprès de Hester Gourdwick contre des Friandises de la Veillée des courges pendant l’événement.',
+    title: 'l’Illuminé des courges',
+  },
+  feat_title_trickster: {
+    name: 'Farceur',
+    desc: 'Lisez un Brevet du Farceur, échangé auprès de Hester Gourdwick contre des Friandises de la Veillée des courges pendant l’événement.',
+    title: 'Farceur',
+  },
+  feat_title_hollow_grinned: {
+    name: 'Le Sourire creux',
+    desc: 'Lisez un Brevet du Sourire creux, échangé auprès de Hester Gourdwick contre des Friandises de la Veillée des courges pendant l’événement.',
+    title: 'au Sourire creux',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Chasseur de citrouilles',
+    desc: 'Trouvez toutes les Citrouilles hantées cachées dans le monde pendant la Veillée des courges.',
+    title: 'le Creux',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Tous les seuils',
+    desc: 'Demandez des bonbons ou un sort à chaque habitant qui répond à la porte à Eastbrook, Fenbridge et Highwatch pendant la Veillée des courges.',
+  },
+  feat_gourdlight_errands: {
+    name: 'Aux petits soins de Hester',
+    desc: 'Terminez au moins une fois chacune des courses tournantes de Hester Gourdwick pour la Veillée des courges.',
+  },
+  feat_gourdlight_frights: {
+    name: 'Trois villes effrayées',
+    desc: 'Pendant la course Bouh ! de Hester, effrayez un habitant dans chacune des villes d’Eastbrook, de Fenbridge et de Highwatch.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'La Veillée des courges de bout en bout',
+    desc: 'Accomplissez toute la Veillée des courges : vainquez le Vieux Thatchgrin, trouvez toutes les Citrouilles hantées, terminez chaque course de Hester, frappez à toutes les portes et effrayez un habitant dans chacune des trois villes.',
+    title: 'le Fidèle des courges',
   },
 };
 

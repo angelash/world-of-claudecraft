@@ -1,7 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { resolveMovement } from '../src/sim/colliders';
-import { DUNGEONS, NPCS } from '../src/sim/data';
-import { DT, INTERACT_RANGE, RUN_SPEED } from '../src/sim/types';
 import {
   continueAmbientPlayerBotTravel,
   createAmbientPlayerBotBrainState,
@@ -10,6 +7,10 @@ import {
 } from '../server/ambient_bots/brain';
 import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../server/ambient_bots/ws_client';
+import { isBlocked, pathCrossesFence, resolveMovement } from '../src/sim/colliders';
+import { DUNGEONS, instanceOrigin, NPCS } from '../src/sim/data';
+import { EASTBROOK_LAYOUT } from '../src/sim/eastbrook_layout';
+import { DT, INTERACT_RANGE, RUN_SPEED } from '../src/sim/types';
 
 function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotRecord {
   return {
@@ -166,9 +167,17 @@ const thornpeakThroughWarCampGroups = [
 ] as const;
 const thornpeakThroughKorgath = [...thornpeakThroughWarCampGroups, 'q_korgath'] as const;
 const thornpeakThroughVelkhar = [...thornpeakThroughKorgath, 'q_velkhar'] as const;
-const bastionSlot0Origin = { x: 1500, z: -1250 } as const;
+const bastionSlot0Origin = instanceOrigin(DUNGEONS.sunken_bastion.index, 0);
+const bastionSlot0Exit = {
+  x: bastionSlot0Origin.x + DUNGEONS.sunken_bastion.exitOffset!.x,
+  z: bastionSlot0Origin.z + DUNGEONS.sunken_bastion.exitOffset!.z,
+};
 const sunkenBastionDoor = DUNGEONS.sunken_bastion.doorPos;
-const sanctumSlot0Origin = { x: 2100, z: -1250 } as const;
+const sanctumSlot0Origin = instanceOrigin(DUNGEONS.gravewyrm_sanctum.index, 0);
+const sanctumSlot0Exit = {
+  x: sanctumSlot0Origin.x + DUNGEONS.gravewyrm_sanctum.exitOffset!.x,
+  z: sanctumSlot0Origin.z + DUNGEONS.gravewyrm_sanctum.exitOffset!.z,
+};
 const hollowCryptDoor = { x: 80, z: 90 } as const;
 
 function pointToSegmentDistance(
@@ -230,38 +239,40 @@ describe('ambient player bot brain', () => {
   it('does not skip a fence-corner waypoint before the bot has cleared it', () => {
     const state = createAmbientPlayerBotBrainState();
     const seed = 20_061;
-    let pos = { x: -19.91, z: 4.95 };
+    const fence = EASTBROOK_LAYOUT.fences.find(
+      (entry) => entry.id === 'eastbrook_fence_smithy_outer',
+    )!;
+    const dx = fence.end.x - fence.start.x;
+    const dz = fence.end.z - fence.start.z;
+    const length = Math.hypot(dx, dz);
+    const midpoint = {
+      x: (fence.start.x + fence.end.x) / 2,
+      z: (fence.start.z + fence.end.z) / 2,
+    };
+    const normal = { x: -dz / length, z: dx / length };
+    let pos = { x: midpoint.x + normal.x * 1.3, z: midpoint.z + normal.z * 1.3 };
+    const goal = {
+      target: { x: midpoint.x - normal.x * 1.3, z: midpoint.z - normal.z * 1.3 },
+      arrivalRange: 0.5,
+      goalKey: 'smithy-fence-corner-regression',
+    };
+    expect(isBlocked(seed, pos.x, pos.z, 0.5)).toBe(false);
+    expect(isBlocked(seed, goal.target.x, goal.target.z, 0.5)).toBe(false);
+    expect(pathCrossesFence(pos.x, pos.z, goal.target.x, goal.target.z)).toBe(true);
     const baseSelf = {
       lv: 4,
       qdone: ['q_wolves'],
     };
-    const initial = tickAmbientPlayerBotBrain(
-      {
-        bot: bot({
-          lastKnownLevel: 4,
-        }),
-        liveState: liveState({
-          seed,
-          self: {
-            ...baseSelf,
-            x: pos.x,
-            z: pos.z,
-          },
-        }),
-        nowMs: 1_000,
-      },
+    const initial = continueAmbientPlayerBotTravel(
+      liveState({ seed, self: { ...baseSelf, x: pos.x, z: pos.z } }),
       state,
+      'fence_corner',
+      'Walking around the smithy fence',
+      goal,
+      1_000,
     );
-
-    expect(initial.objectiveId).toBe('accept_boars');
-    expect(initial.travelGoal).toMatchObject({
-      target: {
-        x: NPCS.trader_wilkes.pos.x,
-        z: NPCS.trader_wilkes.pos.z,
-      },
-    });
-
-    const goal = initial.travelGoal!;
+    if (!initial) throw new Error('Missing fence travel drive');
+    expect(state.path.length).toBeGreaterThan(1);
     let reached = false;
     let zeroMoveTicks = 0;
     for (let i = 0; i < 90; i++) {
@@ -970,7 +981,7 @@ describe('ambient player bot brain', () => {
             lv: 2,
             x: -7,
             z: 3,
-            inv: [{ itemId: 'bandit_bandana', count: 3 }],
+            inv: [{ itemId: 'soft_down', count: 5 }],
             qdone: ['q_wolves'],
             qlog: [{ questId: 'q_boars', counts: [0], state: 'active' }],
           },
@@ -6648,8 +6659,8 @@ describe('ambient player bot brain', () => {
         liveState: liveState({
           self: {
             lv: 15,
-            x: bastionSlot0Origin.x,
-            z: bastionSlot0Origin.z - 6,
+            x: bastionSlot0Exit.x,
+            z: bastionSlot0Exit.z,
             dgn: 'sunken_bastion',
             qdone: [...mirefenThroughBastionDoor],
             qlog: [
@@ -6836,8 +6847,8 @@ describe('ambient player bot brain', () => {
         liveState: liveState({
           self: {
             lv: 16,
-            x: bastionSlot0Origin.x,
-            z: bastionSlot0Origin.z - 6,
+            x: bastionSlot0Exit.x,
+            z: bastionSlot0Exit.z,
             dgn: 'sunken_bastion',
             qdone: [...mirefenThroughBastionDoor],
             qlog: [
@@ -9373,8 +9384,8 @@ describe('ambient player bot brain', () => {
         liveState: liveState({
           self: {
             lv: 18,
-            x: sanctumSlot0Origin.x,
-            z: sanctumSlot0Origin.z - 6,
+            x: sanctumSlot0Exit.x,
+            z: sanctumSlot0Exit.z,
             dgn: 'gravewyrm_sanctum',
             qdone: [...thornpeakThroughWarCampGroups],
             qlog: [{ questId: 'q_korgath', counts: [1], state: 'ready' }],
@@ -9473,8 +9484,8 @@ describe('ambient player bot brain', () => {
         liveState: liveState({
           self: {
             lv: 18,
-            x: sanctumSlot0Origin.x,
-            z: sanctumSlot0Origin.z - 6,
+            x: sanctumSlot0Exit.x,
+            z: sanctumSlot0Exit.z,
             dgn: 'gravewyrm_sanctum',
             qdone: [...thornpeakThroughKorgath],
             qlog: [{ questId: 'q_velkhar', counts: [1], state: 'ready' }],
@@ -9573,8 +9584,8 @@ describe('ambient player bot brain', () => {
         liveState: liveState({
           self: {
             lv: 18,
-            x: sanctumSlot0Origin.x,
-            z: sanctumSlot0Origin.z - 6,
+            x: sanctumSlot0Exit.x,
+            z: sanctumSlot0Exit.z,
             dgn: 'gravewyrm_sanctum',
             qdone: [...thornpeakThroughVelkhar],
             qlog: [{ questId: 'q_gravewyrm', counts: [1], state: 'ready' }],

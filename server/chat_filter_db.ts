@@ -9,6 +9,7 @@ import {
   parseWordList,
 } from './chat_filter';
 import { pool } from './db';
+import { bustWocAuthGuardAccount } from './woc_auth_guard_cache';
 
 // SQL for the chat filter: admin-managed word lists, escalation config,
 // per-account mute/strike state, and the hard-word incident log. Logic +
@@ -203,6 +204,8 @@ export async function applyChatStrike(
      RETURNING chat_strikes, chat_muted_until`,
     [accountId, Math.max(0, Math.floor(muteSeconds))],
   );
+  // The strike/mute columns ride the cached guard read's projection.
+  bustWocAuthGuardAccount(accountId);
   const row = res.rows[0];
   return {
     strikes: Number(row?.chat_strikes ?? 0),
@@ -235,6 +238,30 @@ export async function recordChatViolation(input: {
       Math.max(0, Math.floor(input.muteSeconds)),
     ],
   );
+}
+
+// Batched retention prune for chat_violations (the retention-sweep primitive,
+// mirrors pruneUnstuckReportsBatch in unstuck_db.ts). The hard-word incident
+// log's only reader is chatModerationForAccount below, already LIMIT-bounded
+// (defaults to 25, capped at 100 rows) per account, so pruning the oldest
+// rows never invalidates a page it can still return. retentionDays <= 0 keeps
+// rows forever (the safe default); the interval floors to one whole day.
+export async function pruneChatViolationsBatch(
+  retentionDays: number,
+  batchSize: number,
+): Promise<number> {
+  if (!Number.isFinite(retentionDays) || retentionDays <= 0) return 0;
+  const days = Math.max(1, Math.floor(retentionDays));
+  const res = await pool.query(
+    `DELETE FROM chat_violations
+      WHERE id IN (
+        SELECT id FROM chat_violations
+         WHERE created_at < now() - ($1::int * INTERVAL '1 day')
+         ORDER BY created_at ASC, id ASC
+         LIMIT $2)`,
+    [days, Math.max(1, Math.floor(batchSize))],
+  );
+  return res.rowCount ?? 0;
 }
 
 // ---- Admin: per-account chat moderation view + manual actions ---------------
@@ -316,5 +343,6 @@ export async function chatModeratedAccounts(limit = 200): Promise<ChatModeratedA
 
 export async function resetChatStrikes(accountId: number): Promise<boolean> {
   const res = await pool.query(`UPDATE accounts SET chat_strikes = 0 WHERE id = $1`, [accountId]);
+  bustWocAuthGuardAccount(accountId);
   return (res.rowCount ?? 0) > 0;
 }

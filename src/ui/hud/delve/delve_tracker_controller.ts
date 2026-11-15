@@ -1,18 +1,23 @@
 import { DELVE_AFFIXES, DELVES } from '../../../sim/data';
 import type { IWorld } from '../../../world_api';
+import { currencyIconHtml } from '../../currency_art';
 import { esc } from '../../esc';
 import { formatNumber, type TranslationKey, t } from '../../i18n';
+import { delveAffixImageUrl } from './delve_affix_art';
 
 const DELVE_AFFIX_COLORS: Record<string, string> = {
-  restless_graves: '#8b7355',
-  bad_air: '#6a8a6a',
-  candleblind: '#c9a227',
-  old_mechanisms: '#7a8a9a',
-  flooded_paths: '#4a7a9a',
-  grave_tax: '#9a6a4a',
-  unstable_roof: '#8a6a5a',
-  cult_remnants: '#7a4a8a',
-  chapel_candle: '#ffd100',
+  restless_graves: 'var(--color-delve-affix-restless-graves)',
+  bad_air: 'var(--color-delve-affix-bad-air)',
+  candleblind: 'var(--color-delve-affix-candleblind)',
+  old_mechanisms: 'var(--color-delve-affix-old-mechanisms)',
+  flooded_paths: 'var(--color-delve-affix-flooded-paths)',
+  grave_tax: 'var(--color-delve-affix-grave-tax)',
+  unstable_roof: 'var(--color-delve-affix-unstable-roof)',
+  cult_remnants: 'var(--color-delve-affix-cult-remnants)',
+  chapel_candle: 'var(--color-delve-affix-chapel-candle)',
+  high_water: 'var(--color-delve-affix-high-water)',
+  lively_choir: 'var(--color-delve-affix-lively-choir)',
+  belligerent_dead: 'var(--color-delve-affix-belligerent-dead)',
 };
 
 export interface DelveTrackerControllerDeps {
@@ -30,8 +35,19 @@ export class DelveTrackerController {
 
   constructor(private readonly deps: DelveTrackerControllerDeps) {}
 
-  invalidate(): void {
+  /**
+   * Re-localize after an in-game language switch (the Hud's woc:languagechange
+   * fan-out). Every member of the signature below is an id, a number or a
+   * boolean, so setLanguage alone never moves it and a plain update() from the
+   * fan-out early-returns with the old locale still on screen. Clearing forces
+   * exactly one rebuild, which re-latches the signature in the same call.
+   *
+   * Needs no open check: update() paints only while a delve run exists and
+   * clears the strip when it does not.
+   */
+  relocalize(): void {
     this.lastSignature = '';
+    this.update();
   }
 
   update(): void {
@@ -92,29 +108,25 @@ export class DelveTrackerController {
                   total: formatNumber(run.rite.total, { maximumFractionDigits: 0 }),
                 })
               : t('delveUi.tracker.riteOpen');
-      riteHint = `<div class="dt-obj dt-hint">-> ${esc(riteText)}</div>`;
+      riteHint = `<div class="dt-obj dt-hint ui-meta">-> ${esc(riteText)}</div>`;
     }
     let exitHint = '';
     if (run.moduleIndex < run.moduleCount - 1) {
       exitHint = run.exitPortalOpen
-        ? `<div class="dt-obj dt-hint">-> ${esc(t('delveUi.tracker.exitHintOpen'))}</div>`
-        : `<div class="dt-obj dt-hint">${esc(t('delveUi.tracker.exitHintLocked'))}</div>`;
+        ? `<div class="dt-obj dt-hint ui-meta">-> ${esc(t('delveUi.tracker.exitHintOpen'))}</div>`
+        : `<div class="dt-obj dt-hint ui-meta">${esc(t('delveUi.tracker.exitHintLocked'))}</div>`;
     }
     element.innerHTML =
-      `<div class="dt-header">${esc(t('delveUi.tracker.title'))}</div>` +
-      `<div class="dt-title">${esc(delveName)} <span class="dt-tier">${esc(tierLabel)}</span>${complete}</div>` +
-      `<div class="dt-obj">- ${esc(moduleLine)}${moduleName ? `: ${esc(moduleName)}` : ''}</div>` +
-      `<div class="dt-obj${run.objective.complete ? ' done' : ''}">- ${esc(t('delveUi.tracker.objective'))}: ${esc(objectiveLine)}</div>` +
+      `<div class="dt-header ui-cin">${esc(t('delveUi.tracker.title'))}</div>` +
+      `<div class="dt-title ui-cin">${esc(delveName)} <span class="dt-tier ui-chip">${esc(tierLabel)}</span>${complete}</div>` +
+      `<div class="dt-obj ui-meta">- ${esc(moduleLine)}${moduleName ? `: ${esc(moduleName)}` : ''}</div>` +
+      `<div class="dt-obj ui-meta${run.objective.complete ? ' done' : ''}">- ${esc(t('delveUi.tracker.objective'))}: ${esc(objectiveLine)}</div>` +
       riteHint +
       exitHint +
-      `<div class="dt-obj">- ${esc(t('delveUi.tracker.marks', { count: marks }))}</div>` +
+      `<div class="dt-obj ui-meta ui-num">- ${currencyIconHtml('delve_mark')}${esc(t('delveUi.tracker.marks', { count: marks }))}</div>` +
       affixHtml;
     element.querySelectorAll<HTMLElement>('.dt-affix-icon').forEach((icon) => {
-      const affixId = icon.dataset.affix ?? '';
-      this.deps.attachTooltip(
-        icon,
-        () => `<div class="tt-title">${esc(this.affixLabel(affixId))}</div>`,
-      );
+      this.attachAffixIcon(icon);
     });
   }
 
@@ -135,12 +147,42 @@ export class DelveTrackerController {
     return t(`delveUi.affix.${affixId}` as TranslationKey);
   }
 
+  private attachAffixIcon(icon: HTMLElement): void {
+    const affixId = icon.dataset.affix ?? '';
+    this.deps.attachTooltip(
+      icon,
+      () => `<div class="tt-title">${esc(this.affixLabel(affixId))}</div>`,
+    );
+    if (icon.tagName !== 'IMG') return;
+    icon.addEventListener(
+      'error',
+      () => {
+        const fallback = icon.ownerDocument.createElement('span');
+        fallback.className = icon.className;
+        fallback.dataset.affix = affixId;
+        fallback.style.background =
+          DELVE_AFFIX_COLORS[affixId] ?? 'var(--color-delve-affix-unknown)';
+        fallback.setAttribute('role', 'img');
+        fallback.tabIndex = 0;
+        fallback.setAttribute('aria-label', this.affixLabel(affixId));
+        icon.replaceWith(fallback);
+        this.attachAffixIcon(fallback);
+      },
+      { once: true },
+    );
+  }
+
   private affixHtml(affixes: readonly string[]): string {
     if (affixes.length === 0) return '';
-    let html = `<div class="dt-affix-row"><span class="dt-affix-label">${esc(t('delveUi.tracker.affix'))}</span>`;
+    let html = `<div class="dt-affix-row"><span class="dt-affix-label ui-meta">${esc(t('delveUi.tracker.affix'))}</span>`;
     for (const affixId of affixes) {
-      const color = DELVE_AFFIX_COLORS[affixId] ?? '#888';
-      html += `<span class="dt-affix-icon" data-affix="${esc(affixId)}" style="background:${color}" role="img" tabindex="0" aria-label="${esc(this.affixLabel(affixId))}"></span>`;
+      const imageUrl = delveAffixImageUrl(affixId);
+      if (imageUrl) {
+        html += `<img class="dt-affix-icon" data-affix="${esc(affixId)}" src="${imageUrl}" alt="" draggable="false" role="img" tabindex="0" aria-label="${esc(this.affixLabel(affixId))}">`;
+      } else {
+        const color = DELVE_AFFIX_COLORS[affixId] ?? 'var(--color-delve-affix-unknown)';
+        html += `<span class="dt-affix-icon" data-affix="${esc(affixId)}" style="background:${color}" role="img" tabindex="0" aria-label="${esc(this.affixLabel(affixId))}"></span>`;
+      }
     }
     return `${html}</div>`;
   }

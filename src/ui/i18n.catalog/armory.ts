@@ -6,9 +6,35 @@ export const armoryCollectionStrings = {
   emberwrought: 'Emberwrought',
   hoarfrost: 'Hoarfrost',
   fallen_star: 'Fallen Star',
+  lantern_hall: 'Lantern Hall',
 };
 
 export const armorySkinStrings = {
+  lantern_hall_sword: {
+    name: 'Blade of Lantern Hall',
+    look: 'Broad steel blade with a fuller of banked lantern-fire, gilt cheeks, a caged lantern burning in the crossguard, blue leather grip.',
+    lore: "Garrick Holt will not sell this blade to a stranger. It goes to members who have kept Lantern Hall's contracts week after week, and he hands it over with the same words every time: the lantern in the guard is lit from the hall's own hearth, so wherever you carry it, the hall goes with you. The fire in the fuller is only a look. The promise is the point.",
+  },
+  hearthbrand_sword: {
+    name: 'Hearthbrand',
+    look: 'Flame-waved blade of blackened steel with forge-hot edges, a molten seam branching up both faces, a guard of bronze flames around a burning stone, oxblood grip.',
+    lore: 'Lantern Hall keeps a hearth that has not gone out since the hall was raised, and Garrick Holt swears this blade was quenched in its coals. Members who carry it say the grip stays warm on the coldest watch. The fire along its edges is only a look.',
+  },
+  squallcrest_sword: {
+    name: 'Squallcrest',
+    look: 'Long sea-blue blade with edges bright as breaking surf, a storm channel holding a forked bolt, a gilt wave over the ricasso, a fin down one edge and a guard of gilt breakers around a storm pearl.',
+    lore: 'A captain who sailed for the guild brought this blade home from a squall that took her mast and left her ship ringing like a bell. Garrick sells it only for seals, and warns every buyer that it hums before a storm. The lightning and the sea light are only a look.',
+  },
+  rimelight_staff: {
+    name: 'Rimelight Staff',
+    look: 'Pale shaft bound in silver and wound with glowing rime, crowned by a silver claw holding a great crystal of cold light inside a crown of splintered ice, icicles hanging from its collar.',
+    lore: "Lantern Hall's winter watch carried staves like this along the high road, their crowns lit for travellers lost in the snow. Garrick keeps one on the rack for members with seals to spare. The frost and its cold light are only a look.",
+  },
+  duskwick_staff: {
+    name: 'Duskwick Staff',
+    look: 'Two twisted strands of black wood bound in iron, crowned by an open iron lantern burning a violet dusk-flame between two curling horns, chains swinging from its floor.',
+    lore: 'Every lantern in the hall burns bright save one. The dusk-flame was lit to keep the hall by night, and it gives off shadow where the others give light; Garrick trims its wick himself. The smoke and the violet glow are only a look.',
+  },
   guildmark_arming_sword: {
     name: 'Guildmark Arming Sword',
     look: 'Blued steel blade, bronze fishtail crossguard, teal-dyed leather grip, small stamped guild sigil.',
@@ -82,7 +108,7 @@ export const armorySkinStrings = {
   ice_fang_sword: {
     name: 'Ice Fang',
     look: 'Curved blade of pale glacial ice, jagged rime crystals along the spine, a glowing cyan frozen core in the fuller, icicle crossguard.',
-    lore: "The flagship of the frozen grade, and the piece every collector reaches for first. Ice Fang was carved, not forged, from a fang of the glacier that caps Thornpeak above Highwatch, its cyan core burning cold as the light off the Glimmermere. It rimes the very air it cuts. The wall-guard swear one soldier carried it the night the high snows held the Wyrmcult back, and 'bought the wall a winter.'",
+    lore: "The flagship of the frozen grade, and the piece every collector reaches for first. Ice Fang was carved, not forged, from a fang of the glacier that caps Thornpeak above Highwatch, its cyan core burning cold as the light off the Glimmermere. It rimes the very air it cuts. The wall-guard swear one soldier carried it the night the high snows held the Broodsworn back, and 'bought the wall a winter.'",
   },
   glaciersplit_axe: {
     name: 'Glaciersplit',
@@ -110,7 +136,7 @@ export const armorySkinStrings = {
     lore: "A spike of glowing glacier-ice, said to be broken from the deep tarn below the Sanctum, where the mountain's cold has teeth. Hoarfrost blooms endlessly from its silver collar and never melts, not by fire nor by summer. Mages keep it close for the cold it lends their work, and keep it far on the nights it seems to lean toward Nythraxis's crypt, and listen.",
   },
   winterbite: {
-    name: 'Winterbite',
+    name: 'Wintergnaw',
     look: 'Silvered steel and blue-ice bow, a glowing cyan frozen core in the riser, a nocked arrow of solid ice, cold vapor.',
     lore: "A bow of silvered steel and Thornpeak ice, its riser lit by a cold cyan core that freezes the arrow to the string. It nocks a shaft of solid glacier-ice that reforms each draw; the archer carries no quiver on the wall, only the cold. Highwatch held Stalker Ridge through a siege with one like it: a single bowman, they say, and a winter's worth of arrows that were always already there.",
   },

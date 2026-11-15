@@ -1,7 +1,7 @@
 import type { Entity, SimEvent } from '../../src/sim/types';
 import type { AiJobContextV1 } from './ai_types';
-import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 import { isSingularityLineId } from './singularity';
+import type { AiNpcMemory, AiRumorMemory } from './social_memory';
 
 export function memoryReactionEvent(
   context: AiJobContextV1,
@@ -10,11 +10,13 @@ export function memoryReactionEvent(
   rumor: AiRumorMemory | null,
 ): SimEvent | null {
   if (rumor) {
-    const lineId = rumor.subjectKind === 'quest'
-      ? context.profile?.socialMemory?.questRumorLineId ?? 'hudChrome.aiSpeech.memoryQuestRumorEcho'
-      : rumor.lineIds.some(isSingularityLineId)
-      ? 'hudChrome.aiSpeech.memorySingularityRumorEcho'
-      : context.profile?.socialMemory?.rumorLineId ?? 'hudChrome.aiSpeech.memoryRumorEcho';
+    const lineId =
+      rumor.subjectKind === 'quest'
+        ? (context.profile?.socialMemory?.questRumorLineId ??
+          'hudChrome.aiSpeech.memoryQuestRumorEcho')
+        : rumor.lineIds.some(isSingularityLineId)
+          ? 'hudChrome.aiSpeech.memorySingularityRumorEcho'
+          : (context.profile?.socialMemory?.rumorLineId ?? 'hudChrome.aiSpeech.memoryRumorEcho');
     return line(context, speaker, lineId, {
       speakerName: speaker.name,
       playerName: context.player.name,
@@ -23,16 +25,27 @@ export function memoryReactionEvent(
     });
   }
   if (memory.interactionCount >= 2) {
-    return line(context, speaker, context.profile?.socialMemory?.recognitionLineId ?? 'hudChrome.aiSpeech.memoryRecognizesPlayer', {
-      speakerName: speaker.name,
-      playerName: context.player.name,
-      count: memory.interactionCount,
-    });
+    return line(
+      context,
+      speaker,
+      context.profile?.socialMemory?.recognitionLineId ??
+        'hudChrome.aiSpeech.memoryRecognizesPlayer',
+      {
+        speakerName: speaker.name,
+        playerName: context.player.name,
+        count: memory.interactionCount,
+      },
+    );
   }
   return null;
 }
 
-function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: Record<string, string | number>): SimEvent {
+function line(
+  context: AiJobContextV1,
+  speaker: Entity,
+  lineId: string,
+  values: Record<string, string | number>,
+): SimEvent {
   return {
     type: 'aiSpeech',
     speakerId: speaker.id,
@@ -41,7 +54,15 @@ function line(context: AiJobContextV1, speaker: Entity, lineId: string, values: 
     source: 'local',
     reaction: {
       kind: 'inspect',
-      sceneTags: context.scene ? [...new Set([...context.scene.locationTags, ...context.scene.structureTags, ...context.scene.environmentalTags])].slice(0, 8) : [],
+      sceneTags: context.scene
+        ? [
+            ...new Set([
+              ...context.scene.locationTags,
+              ...context.scene.structureTags,
+              ...context.scene.environmentalTags,
+            ]),
+          ].slice(0, 8)
+        : [],
     },
     pid: context.player.entityId,
   };

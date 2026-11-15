@@ -100,10 +100,17 @@ export class AiWorldTraceStore {
     return copyTrace(trace);
   }
 
-  traceForScene(sceneId: string | null | undefined, playerEntityId: number, nowSeconds: number): AiWorldTrace | null {
+  traceForScene(
+    sceneId: string | null | undefined,
+    playerEntityId: number,
+    nowSeconds: number,
+  ): AiWorldTrace | null {
     if (!sceneId) return null;
     this.prune(nowSeconds);
-    const trace = this.traces.find((candidate) => candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId);
+    const trace = this.traces.find(
+      (candidate) =>
+        candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId,
+    );
     if (!trace) return null;
     const age = Math.max(0, nowSeconds - trace.createdAt);
     return {
@@ -129,27 +136,43 @@ export class AiWorldTraceStore {
   }
 }
 
-export function worldTraceKindForItem(item: DroppedItemSemantic, reasonLineIds: readonly string[]): AiWorldTraceKind | null {
-  const tags = new Set([...item.itemTags, ...item.smellTags, ...item.dangerTags, ...item.valueSignals]);
+export function worldTraceKindForItem(
+  item: DroppedItemSemantic,
+  reasonLineIds: readonly string[],
+): AiWorldTraceKind | null {
+  const tags = new Set([
+    ...item.itemTags,
+    ...item.smellTags,
+    ...item.dangerTags,
+    ...item.valueSignals,
+  ]);
   if (
-    reasonLineIds.some(isSingularityLineId)
-    || tags.has('singularity')
-    || tags.has('unknownPower')
-    || tags.has('rareCuriosity')
-  ) return 'singularity';
+    reasonLineIds.some(isSingularityLineId) ||
+    tags.has('singularity') ||
+    tags.has('unknownPower') ||
+    tags.has('rareCuriosity')
+  )
+    return 'singularity';
   if (tags.has('cursed') || tags.has('undead') || tags.has('grave')) return 'cursed';
-  if (tags.has('food') || tags.has('meat') || tags.has('fish') || tags.has('freshBread')) return 'food';
-  if (tags.has('valuable') || tags.has('coin') || tags.has('gear') || tags.has('metal')) return 'valuable';
+  if (tags.has('food') || tags.has('meat') || tags.has('fish') || tags.has('freshBread'))
+    return 'food';
+  if (tags.has('valuable') || tags.has('coin') || tags.has('gear') || tags.has('metal'))
+    return 'valuable';
   return reasonLineIds.length > 0 ? 'generic' : null;
 }
 
 export function worldTraceLineId(kind: AiWorldTraceKind): AiWorldTraceLineId {
   switch (kind) {
-    case 'singularity': return 'hudChrome.aiSpeech.sceneTraceSingularity';
-    case 'cursed': return 'hudChrome.aiSpeech.sceneTraceCursed';
-    case 'food': return 'hudChrome.aiSpeech.sceneTraceFood';
-    case 'valuable': return 'hudChrome.aiSpeech.sceneTraceValuable';
-    case 'generic': return 'hudChrome.aiSpeech.sceneTraceGeneric';
+    case 'singularity':
+      return 'hudChrome.aiSpeech.sceneTraceSingularity';
+    case 'cursed':
+      return 'hudChrome.aiSpeech.sceneTraceCursed';
+    case 'food':
+      return 'hudChrome.aiSpeech.sceneTraceFood';
+    case 'valuable':
+      return 'hudChrome.aiSpeech.sceneTraceValuable';
+    case 'generic':
+      return 'hudChrome.aiSpeech.sceneTraceGeneric';
   }
 }
 

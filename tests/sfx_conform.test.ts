@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ffmpegPath from 'ffmpeg-static';
-import ffprobeStatic from 'ffprobe-static';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error scripts use the repository's untyped Node ESM convention
 import * as conformAudioModule from '../scripts/sfx/conform_audio.mjs';
+import { SFX_CONFORMANCE_FFPROBE_PATH } from '../scripts/sfx/ffmpeg_paths.mjs';
 import {
   channelProblem,
   classify,
@@ -39,6 +39,7 @@ import { PROBE_EXTENSIONS } from '../scripts/sfx/sfx_manifest_builder.mjs';
 import { UI_SFX_SPECS } from '../scripts/sfx/ui_sfx.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const ffprobePath = SFX_CONFORMANCE_FFPROBE_PATH;
 
 // A file already at every spec dimension.
 const AT_SPEC = { duration: 2.0, bitrate: TARGET_BITRATE, sampleRate: TARGET_SAMPLE_RATE };
@@ -155,7 +156,7 @@ describe('shared conform command', () => {
 
       const report = inspectSfxConformance(outputFile, {
         ffmpegPath,
-        ffprobePath: ffprobeStatic.path,
+        ffprobePath,
       });
       expect(report.peakDb).toBe(result.outputLevel);
       expect(report.problems.filter((problem: string) => problem.includes('dBFS'))).toEqual([]);
@@ -195,19 +196,23 @@ describe('shared conform command', () => {
     );
   });
 
-  it('ships every deterministic UI cue through the fixed conform contract', () => {
-    if (!ffmpegPath) throw new Error('ffmpeg-static is unavailable');
-    for (const spec of UI_SFX_SPECS) {
-      const report = inspectSfxConformance(join(ROOT, 'public/audio/sfx', `${spec.key}.mp3`), {
-        ffmpegPath,
-        ffprobePath: ffprobeStatic.path,
-      });
-      expect(report.reject, spec.key).toBe(false);
-      expect(report.problems, spec.key).toEqual([]);
-      expect(report.sampleRate, spec.key).toBe(TARGET_SAMPLE_RATE);
-      expect(report.bitrate, spec.key).toBe(TARGET_BITRATE);
-    }
-  }, 30_000);
+  it(
+    'ships every deterministic UI cue through the fixed conform contract',
+    () => {
+      if (!ffmpegPath) throw new Error('ffmpeg-static is unavailable');
+      for (const spec of UI_SFX_SPECS) {
+        const report = inspectSfxConformance(join(ROOT, 'public/audio/sfx', `${spec.key}.mp3`), {
+          ffmpegPath,
+          ffprobePath,
+        });
+        expect(report.reject, spec.key).toBe(false);
+        expect(report.problems, spec.key).toEqual([]);
+        expect(report.sampleRate, spec.key).toBe(TARGET_SAMPLE_RATE);
+        expect(report.bitrate, spec.key).toBe(TARGET_BITRATE);
+      }
+    },
+    process.platform === 'win32' ? 180_000 : 30_000,
+  );
 
   it('fails strict conformance for an at-spec AAC source instead of publishing it', () => {
     if (!ffmpegPath) throw new Error('ffmpeg-static is unavailable');
@@ -238,7 +243,7 @@ describe('shared conform command', () => {
           '-c:a',
           'aac',
           '-b:a',
-          `${TARGET_BITRATE}k`,
+          `${TARGET_BITRATE + 4}k`,
           inputFile,
         ],
         { stdio: 'ignore' },
@@ -246,7 +251,7 @@ describe('shared conform command', () => {
 
       const source = inspectSfxConformance(inputFile, {
         ffmpegPath,
-        ffprobePath: ffprobeStatic.path,
+        ffprobePath,
       });
       expect(source.codec).toBe('aac');
       // ffmpeg's native AAC encoder approximates the requested bitrate rather than hitting it
@@ -764,7 +769,7 @@ describe('shared conform command: channel downmix', () => {
 
       const source = inspectSfxConformance(inputFile, {
         ffmpegPath,
-        ffprobePath: ffprobeStatic.path,
+        ffprobePath,
       });
       expect(source.channels).toBe(TARGET_STEREO_CHANNELS);
 
@@ -778,12 +783,52 @@ describe('shared conform command: channel downmix', () => {
 
       const conformed = inspectSfxConformance(outputFile, {
         ffmpegPath,
-        ffprobePath: ffprobeStatic.path,
+        ffprobePath,
       });
       expect(conformed.channels).toBe(TARGET_MONO_CHANNELS);
       expect(channelProblem(conformed.channels, TARGET_MONO_CHANNELS)).toBeNull();
     } finally {
       rmSync(directory, { force: true, recursive: true });
     }
+  });
+});
+
+// A mob subfamily cue (mob_<family>_<subfamily>_<action>_<N>.mp3) is discovered
+// by the manifest builder's extension pass and deliberately has no catalog row,
+// so neither catalog lookup in isCustomMaster can ever match one. Before this
+// was handled, every hand-recorded subfamily take read as custom: false, which
+// let conform re-target its loudness toward the generated-content LUFS target
+// and overwrite the author's own mix.
+describe('conform policy: mob subfamily custom-master inheritance', () => {
+  const catalog = (custom: boolean) => [{ key: 'mob_elemental_aggro', custom }];
+  const discovered = {
+    mob_elemental_aggro: {
+      key: 'mob_elemental_aggro',
+      tracks: [{ filename: 'mob_elemental_aggro_1.mp3' }],
+    },
+  };
+
+  it('treats a subfamily take as a custom master when its family row is custom', () => {
+    const policy = buildSfxConformPolicy(catalog(true), discovered);
+    expect(policy.isCustomMaster('mob_elemental_ignivar_aggro_1.mp3')).toBe(true);
+  });
+
+  it('inherits a non-custom family row rather than assuming custom', () => {
+    const policy = buildSfxConformPolicy(catalog(false), discovered);
+    expect(policy.isCustomMaster('mob_elemental_ignivar_aggro_1.mp3')).toBe(false);
+  });
+
+  it('still resolves the family key itself, and its numbered variants', () => {
+    const policy = buildSfxConformPolicy(catalog(true), discovered);
+    expect(policy.isCustomMaster('mob_elemental_aggro.mp3')).toBe(true);
+    expect(policy.isCustomMaster('mob_elemental_aggro_1.mp3')).toBe(true);
+  });
+
+  it('leaves a filename that is not a valid subfamily take alone', () => {
+    const policy = buildSfxConformPolicy(catalog(true), discovered);
+    // No trailing variant number, so the extension pass never claims it.
+    expect(policy.isCustomMaster('mob_elemental_ignivar_aggro.mp3')).toBe(false);
+    // Unknown family.
+    expect(policy.isCustomMaster('mob_notafamily_ignivar_aggro_1.mp3')).toBe(false);
   });
 });

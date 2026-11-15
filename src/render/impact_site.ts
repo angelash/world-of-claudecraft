@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { DUNGEON_X_THRESHOLD } from '../sim/data';
 import { hash2 } from '../sim/rng';
 import { MIREFEN_IMPACT_CRATER, terrainHeight } from '../sim/world';
+import { floorVfxRenderOrder } from './floor_vfx_layer';
 import { GFX } from './gfx';
+import { applySurfaceDetail } from './worn_stone';
 
 // Render-only story dressing for Brother Aldric's fallen-star hook. The sim
 // heightfield remains authoritative; every decal and prop here samples
@@ -162,14 +164,15 @@ function buildScorchGeometry(seed: number): THREE.BufferGeometry {
 }
 
 function rimMaterial(): THREE.Material {
-  return GFX.standardMaterials
-    ? new THREE.MeshStandardMaterial({
-        vertexColors: true,
-        roughness: 0.96,
-        metalness: 0,
-        flatShading: true,
-      })
-    : new THREE.MeshLambertMaterial({ vertexColors: true });
+  if (!GFX.standardMaterials) return new THREE.MeshLambertMaterial({ vertexColors: true });
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.96,
+    metalness: 0,
+    flatShading: true,
+  });
+  applySurfaceDetail(mat, 'rock', { strength: 0.5 });
+  return mat;
 }
 
 function buildRimGeometry(seed: number): THREE.BufferGeometry {
@@ -216,16 +219,20 @@ function buildRimGeometry(seed: number): THREE.BufferGeometry {
 }
 
 function meteorMaterial(): THREE.Material {
-  return GFX.standardMaterials
-    ? new THREE.MeshStandardMaterial({
-        color: 0x171716,
-        roughness: 0.98,
-        metalness: 0.02,
-        emissive: 0x060302,
-        emissiveIntensity: 0.04,
-        flatShading: false,
-      })
-    : new THREE.MeshLambertMaterial({ color: 0x181716, emissive: 0x050201 });
+  if (!GFX.standardMaterials)
+    return new THREE.MeshLambertMaterial({ color: 0x181716, emissive: 0x050201 });
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x171716,
+    roughness: 0.98,
+    metalness: 0.02,
+    emissive: 0x060302,
+    emissiveIntensity: 0.04,
+    flatShading: false,
+  });
+  // The 0.04 ember tint is a surface grade, not a light source, so the stone
+  // layer still reads (the emissive-skip policy is for actually glowing mats).
+  applySurfaceDetail(mat, 'rock', { strength: 0.5 });
+  return mat;
 }
 
 function buildMeteorGeometry(seed: number): THREE.BufferGeometry {
@@ -278,19 +285,20 @@ function buildCrack(seed: number, crackIndex: number, angle: number, length: num
   }
   const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 8, 0.024, 6, false);
   const mesh = new THREE.Mesh(geo, glowMaterial(0.42));
-  mesh.renderOrder = 3;
+  mesh.renderOrder = floorVfxRenderOrder('ground', 2);
   return mesh;
 }
 
 function pebbleMaterial(): THREE.Material {
-  return GFX.standardMaterials
-    ? new THREE.MeshStandardMaterial({
-        color: 0x2b2924,
-        roughness: 0.95,
-        metalness: 0.05,
-        flatShading: true,
-      })
-    : new THREE.MeshLambertMaterial({ color: 0x2b2924 });
+  if (!GFX.standardMaterials) return new THREE.MeshLambertMaterial({ color: 0x2b2924 });
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x2b2924,
+    roughness: 0.95,
+    metalness: 0.05,
+    flatShading: true,
+  });
+  applySurfaceDetail(mat, 'rock', { strength: 0.5 });
+  return mat;
 }
 
 function addRimPebbles(group: THREE.Group, seed: number): void {
@@ -365,7 +373,7 @@ function buildEmbers(seed: number): { points: THREE.Points; material: THREE.Poin
     vertexColors: true,
   });
   const points = new THREE.Points(geo, material);
-  points.renderOrder = 4;
+  points.renderOrder = floorVfxRenderOrder('ground', 3);
   return { points, material };
 }
 
@@ -375,7 +383,7 @@ export function buildImpactSite(seed: number): ImpactSiteView {
 
   const scorch = new THREE.Mesh(buildScorchGeometry(seed), craterDecalMaterial());
   scorch.name = 'mirefen-impact-scorch';
-  scorch.renderOrder = 2;
+  scorch.renderOrder = floorVfxRenderOrder('ground', 1);
   group.add(scorch);
 
   const rim = new THREE.Mesh(buildRimGeometry(seed), rimMaterial());
@@ -409,7 +417,7 @@ export function buildImpactSite(seed: number): ImpactSiteView {
     impactSiteVisualY(MIREFEN_IMPACT_SITE.meteor.x, MIREFEN_IMPACT_SITE.meteor.z, seed) + 0.04,
     MIREFEN_IMPACT_SITE.meteor.z,
   );
-  glow.renderOrder = 5;
+  glow.renderOrder = floorVfxRenderOrder('ground', 4);
   group.add(glow);
 
   // NOT added to `group`: the group cull-toggles its visibility by distance, which
@@ -484,4 +492,24 @@ export function buildImpactSite(seed: number): ImpactSiteView {
       }
     },
   };
+}
+
+/**
+ * A boot-prewarm twin of the live impact site. The real site exists from boot
+ * but sits hundreds of yards outside the spawn frustum, so its custom scorch
+ * and ember programs would link on the first live draw that reaches it. The
+ * clone shares the real geometry and materials and is translated in front of
+ * the player, whose position it takes as a plain reading (the caller owns the
+ * vector). Visible on purpose: the boot pass draws it behind the loading
+ * screen. The prewarm slot hides it before world entry and before any resume.
+ */
+export function buildImpactSitePrewarmGroup(
+  source: THREE.Group,
+  at: { x: number; y: number; z: number },
+): THREE.Group {
+  const group = source.clone(true);
+  group.name = 'prewarm-mirefen-impact-site';
+  group.visible = true;
+  group.position.set(at.x - MIREFEN_IMPACT_SITE.x, at.y, at.z - 18 - MIREFEN_IMPACT_SITE.z);
+  return group;
 }

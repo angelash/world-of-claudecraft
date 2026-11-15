@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 // Pure-core pins for the crafting celebration plan (Professions 2.0):
 // tier-crossing detection over craft-skill snapshots and the coalesced
@@ -8,16 +8,24 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { inertCharacters } from './helpers/inert_characters';
+
+// Hud reaches the character model preload; keep it inert
+// (tests/helpers/inert_characters.ts has the why).
+vi.mock('../src/render/characters', () => inertCharacters.barrel());
+vi.mock('../src/render/characters/assets', () => inertCharacters.assets());
+vi.mock('../src/render/characters/portrait', () => inertCharacters.portrait());
+
 import { audio } from '../src/game/audio';
 import { TIER_SKILL_STEP } from '../src/sim/professions/wheel';
+import { type BannerVariant, Hud } from '../src/ui/hud';
 import {
   buildCraftCelebrationPlan,
   CRAFT_TIER_UP_DRAIN_WINDOW,
   computeCraftTierUps,
   observeCraftSkillsForTierUps,
-} from '../src/ui/craft_celebration_view';
-import { Hud } from '../src/ui/hud';
-import { MASTERWORK_SEAL_IMAGE_URL } from '../src/ui/profession_art';
+} from '../src/ui/hud/professions/craft_celebration_view';
+import { MASTERWORK_SEAL_IMAGE_URL } from '../src/ui/hud/professions/profession_art';
 
 describe('computeCraftTierUps', () => {
   it('reports no tier-ups on first observation (null prev), the silent init', () => {
@@ -159,7 +167,12 @@ interface CraftCelebrationHudHarness {
     masterworkItemId: string | null,
     tierUps: { craftId: string; toTier: number }[],
   ): void;
-  showBanner(text: string, motion?: boolean, decorativeIconUrl?: string): void;
+  showBanner(
+    text: string,
+    motion?: boolean,
+    decorativeIconUrl?: string,
+    variant?: BannerVariant,
+  ): void;
 }
 
 function celebrationHud(): CraftCelebrationHudHarness {
@@ -214,6 +227,19 @@ describe('craft celebration HUD behavior', () => {
     expect(hud.bannerEl.querySelector('.banner-copy')?.textContent).toBe('Ordinary banner');
     expect(hud.bannerEl.classList.contains('banner-with-art')).toBe(false);
     expect(hud.bannerEl.classList.contains('banner-no-motion')).toBe(false);
+  });
+
+  it('clears a previous variant class so the shared slot never inherits it', () => {
+    // #banner is ONE reused element: a deed plate followed by an ordinary
+    // celebration must not leave the next banner wearing the deed language.
+    const hud = celebrationHud();
+
+    hud.showBanner('Deed accomplished: Old Salt', true, undefined, 'deed');
+    expect(hud.bannerEl.classList.contains('banner-deed')).toBe(true);
+
+    hud.showBanner('Level 12!');
+    expect(hud.bannerEl.classList.contains('banner-deed')).toBe(false);
+    expect(hud.bannerEl.querySelector('.banner-copy')?.textContent).toBe('Level 12!');
   });
 
   it('keeps the banner art sizing and no-motion presentation contracts in CSS', () => {

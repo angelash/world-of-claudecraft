@@ -16,7 +16,7 @@
 //
 // WRITE ROUTING: every per-frame DOM write goes through
 // the writer facet (setStyleProp for the icon, toggleClass for the debuff class,
-// setText for the duration + stacks, setDisplay for the stacks badge visibility); no
+// setText for the duration + stacks, setStyleProp for both badges' visibility); no
 // raw style / textContent / className / setAttribute. The only DOM construction (the
 // node + its children) happens once per pooled node in createNode(); the icon data-URL
 // is resolved only when an aura's icon key changes (the expensive part).
@@ -24,16 +24,25 @@
 // ORDER: the active records are reconciled into the container with the minimum number
 // of node moves (the reconcileOrder discipline), so a steady-state frame moves no
 // nodes. The buff bar is `flex-wrap` row-reverse, so DOM order is the aura order.
+//
+// OVERFLOW BADGE: a painter built with showOverflowBadge=true (today only the player buff
+// bar) mints a static "+N" sibling element ONCE at construction, ahead of the pooled aura
+// nodes and never through the pool itself, then reveals it when the low-tier cap
+// (auraVisibleCap) actually sheds N buffs this frame, so the shed stays HONEST instead of
+// silent (see paint()'s closing block).
 
 import type { UiEffectsTier } from '../game/ui_effects_profile';
 import { auraVisibleCap } from '../game/ui_tier_knobs';
+import { AURA_OVERFLOW_TEXT, type AuraOverflowTextDeps } from './aura_overflow_badge';
+import { selectShedSlots } from './aura_overflow_priority';
 import type { AurasState } from './auras_view';
 import type { PainterHostWriters } from './painter_host';
 
 // Class / property names the painter drives. Named, not inlined, so the painter
 // references no bare DOM string literal.
-const BUFF_CLASS = 'buff';
+const BUFF_CLASS = 'buff ui-aura';
 const DEBUFF_CLASS = 'debuff';
+const UI_DEBUFF_CLASS = 'ui-aura--debuff';
 // Marks a node the local player may right-click to cancel (a helpful own buff). The
 // stylesheet draws the affordance (context-menu cursor + hover border); the class is
 // toggled per frame so a recycled node never keeps a stale affordance.
@@ -42,6 +51,7 @@ const CANCELABLE_CLASS = 'cancelable';
 // stylesheet renders it larger so your dots/hots read at a glance among other
 // casters'. Toggled per frame so a recycled node never keeps stale prominence.
 const OWN_CLASS = 'own';
+const UI_OWN_CLASS = 'ui-aura--own';
 // Marks an aura in its final seconds (auras_view isAuraExpiring): the stylesheet
 // blinks the icon so an expiring DoT/buff reads at a glance, with a steady
 // brightness fallback under prefers-reduced-motion. Toggled per frame so a
@@ -50,8 +60,9 @@ const EXPIRING_CLASS = 'expiring';
 // Carries the debuff's magic school so the stylesheet tints the border per school
 // (WoW-style poison/magic/curse reads); '' on a buff, so no school selector matches.
 const SCHOOL_ATTR = 'data-school';
-const DUR_CLASS = 'dur';
-const STACKS_CLASS = 'stacks';
+const DUR_CLASS = 'dur ui-aura-time';
+const DUR_DEBUFF_CLASS = 'ui-aura-time--debuff';
+const STACKS_CLASS = 'stacks ui-badge ui-badge--corner';
 const BACKGROUND_IMAGE_PROP = 'background-image';
 // Pool-key separator for same-id auras. The core keys a slot by the aura id, but one
 // entity can legitimately carry several auras with the SAME id from different sources
@@ -66,18 +77,48 @@ const DUP_KEY_SEP = '#';
 // appended the badge only when stacks > 1).
 const STACKS_SHOWN = '';
 const STACKS_HIDDEN = 'none';
+// Visibility for BOTH badges below rides setStyleProp rather than setDisplay, because
+// each of those nodes also carries its own text: two single-slot writers on one element
+// share a cache entry and defeat elision for both (painter_host.ts, and the scan in
+// tests/painter_single_slot_collision_guard.test.ts). See the writes at the paint sites.
+const DISPLAY_PROP = 'display';
+// The overflow badge class + display pair. Unlike the stacks badge (default shown,
+// `''` reverts to it), the overflow badge's CSS default is display:none (it is absent far
+// more often than present), so revealing it needs an explicit value, not a revert.
+const OVERFLOW_CLASS = 'buff-overflow';
+const OVERFLOW_SHOWN = 'flex';
+const OVERFLOW_HIDDEN = 'none';
+// The overflow badge's native tooltip attribute (a plain `title`, not the custom
+// attachTooltip system the pooled aura nodes use: the badge is a single static element,
+// not a per-aura pool entry, so it needs no lazy-build-once closure).
+const TITLE_ATTR = 'title';
 
 /** What the pool needs from the Hud: the icon-URL resolver, the tooltip renderer, and
  *  the tooltip-attach helper. All injected so a Node test drives the pool without the
  *  icon/i18n runtime. */
 export interface AurasPainterDeps {
-  /** Resolve an icon key to a CSS background-image value (host: `url(${iconDataUrl(
-   *  'aura', iconKey)})`). Called only when an aura's icon key changes. */
+  /** Resolve an icon key to a CSS background-image value. The HUD layers a
+   *  worker-cached procedural or painted safety fallback beneath static ability
+   *  art without composing on this frame path. Called only when an aura's icon
+   *  key changes. */
   resolveIconUrl(iconKey: string): string;
   /** Render the tooltip HTML from the LIVE aura name + remaining (host: the
    *  tt-title/tt-sub markup with esc + tPlural). Called lazily on hover, reading the
-   *  pooled record's current fields. */
-  renderTooltip(name: string, remaining: number, effectHtml: string): string;
+   *  pooled record's current fields. `toggle` marks a MODE aura (a form, a stance,
+   *  stealth, Ghost Wolf, the carried flag): the host omits the seconds-remaining
+   *  line for it, because the long finite duration the sim backs those with is
+   *  scaffolding, not information, and printing it is the same lie the suppressed
+   *  countdown label avoids. `sourceId` is the caster's entity id (0/undefined when
+   *  unknown); the host resolves it to a name and, gated on the player's own
+   *  "show aura caster" preference, appends a caster line so multiple casters of
+   *  the same buff (e.g. several paladins' blessings) are told apart. */
+  renderTooltip(
+    name: string,
+    remaining: number,
+    effectHtml: string,
+    toggle: boolean,
+    sourceId: number | undefined,
+  ): string;
   /** Attach a lazily-built tooltip to a node (host: Hud.attachTooltip). Called ONCE per
    *  pooled node; the closure reads the live record. */
   attachTooltip(el: HTMLElement, html: () => string): void;
@@ -108,6 +149,13 @@ interface PooledAura {
   /** The one-line effect summary HTML (or '' when the aura has no descriptor), read live
    *  by the tooltip closure alongside name/remaining. */
   effectHtml: string;
+  /** Whether the aura this node currently shows is a MODE (no countdown anywhere),
+   *  read live by the tooltip closure so a recycled node never keeps the previous
+   *  aura's answer. */
+  toggle: boolean;
+  /** The caster's entity id (undefined when the aura carries none), read live by
+   *  the tooltip closure so a recycled node never keeps the previous aura's caster. */
+  sourceId: number | undefined;
   /** The last icon key written, so the expensive data-URL resolve + write fire only on
    *  change. null until the first paint (never equals a real key). */
   lastIconKey: string | null;
@@ -130,6 +178,11 @@ export class AurasPainter {
   // Monotonic frame stamp for the detach sweep (cheaper than building a key Set each
   // frame). Wraps harmlessly: a record's stamp is rewritten every frame it is active.
   private frame = 0;
+  // The overflow badge element, minted ONCE below (never through the pool) only for a
+  // painter built with showOverflowBadge=true. null for every other instance (the debuff
+  // bar, the target strip, the party mini-strip): their shed is always 0, so building one
+  // would be dead weight.
+  private readonly overflowEl: HTMLElement | null;
 
   constructor(
     private readonly writers: PainterHostWriters,
@@ -141,7 +194,26 @@ export class AurasPainter {
     // governor). Read per paint to cap the visible aura count on low. Defaults to the
     // full tier so a painter built without it is untiered (uncapped, byte-faithful).
     private readonly getFxTier: () => UiEffectsTier = () => 'ultra',
-  ) {}
+    showOverflowBadge = false,
+    // The overflow badge's i18n text, real by default; a test overrides it with a fake
+    // (matching renderTooltip/attachTooltip) instead of loading the real i18n runtime.
+    private readonly overflowText: AuraOverflowTextDeps = AURA_OVERFLOW_TEXT,
+  ) {
+    if (showOverflowBadge) {
+      const el = doc.createElement('span');
+      el.className = `${BUFF_CLASS} ${OVERFLOW_CLASS}`;
+      container.appendChild(el);
+      this.overflowEl = el;
+    } else {
+      this.overflowEl = null;
+    }
+  }
+
+  // Reused scratch: shedScratch[i] says whether slots[i] is shed THIS frame,
+  // filled by selectShedSlots ahead of the render loop below (grown, never
+  // shrunk, so a steady-state frame allocates no new array; only indices
+  // `< count` are ever read back).
+  private readonly shedScratch: boolean[] = [];
 
   /** Reconcile the pool to this frame's active auras and repaint each in place. Runs
    *  every frame; the elided writers make an unchanged frame cost no DOM mutation. */
@@ -150,32 +222,34 @@ export class AurasPainter {
     const { slots, count } = state;
     // On low, cap the number of rendered auras; auras beyond the cap are
     // simply not touched this frame, so the recycle sweep below detaches them. The full
-    // tiers return an infinite cap, so every active aura renders (the unchanged path).
+    // tiers return an infinite cap, so every active aura renders (the unchanged path,
+    // and selectShedSlots is skipped entirely since count <= cap is always true there).
     //
-    // FAIRNESS: the cap sheds BUFF overflow only, never a DEBUFF. The
-    // player buff bar is mode 'all' (buffs + debuffs interleaved in sim-application
-    // order), and persistent raid buffs fill the front slots, so a flat first-N cap would
-    // push a mid-combat boss/mob debuff (DoT / stun / curse) off-screen on low while every
-    // other tier still shows it. With no self-dispel, that icon is the player's only read
-    // of the debuff, so hiding it makes the game worse to play on low. A debuff is the
-    // actionable half of the bar; a buff is cosmetic, so the budget is spent on buffs and a
-    // debuff always renders: slot i is shown when it is a debuff OR fewer than `cap` auras
-    // have rendered so far. When count <= cap (ALWAYS true on the full tiers, where cap is
-    // +Infinity) every aura renders in order, byte-identical to the untiered painter.
-    // Capping the render (not the view) keeps the parity-identical core untouched, so the
-    // same selection applies under a Sim-shaped and a ClientWorld-mirror state. (Scope: a
-    // debuff is anything the core flags isDebuff -- every allowlisted KIND in both worlds,
-    // AND a negative-value buff_* stat-sap. The sap now classifies as a debuff online too
-    // because the wire carries its negative value (server/game.ts sends it sparsely,
-    // src/net/online.ts decodes it), so no sap can ride the low buff budget on either host.
-    // See auras_view.isAuraDebuff.)
+    // FAIRNESS: the cap sheds BUFF overflow only, never a DEBUFF, never an ACTIONABLE
+    // buff (`alwaysRender` / an ALWAYS_VISIBLE_AURA_IDS id, e.g. Divine Ascension), and
+    // -- since the 2026-08-27 priority pass -- a long-lived stat buff sheds before a
+    // short-timed one (`shortDuration`), so a tank's Raised Guard icon never loses its
+    // slot to a raid buff that merely applied earlier in the fight. See
+    // aura_overflow_priority.ts selectShedSlots for the exact exempt/short/long
+    // selection; this is the single per-slot DOM-writing pass over its answer. A debuff
+    // is the actionable half of the bar and a short buff the actively-timed half; a
+    // long buff is the one truly cosmetic case, so the budget is spent there first.
+    // (Scope: a debuff is anything the core flags isDebuff -- every allowlisted KIND in
+    // both worlds, AND a negative-value buff_* stat-sap, AND a display override like
+    // Stormsurge's proc-lockout marker. The
+    // sap classifies as a debuff online too because the wire carries its negative value
+    // (server/game.ts sends it sparsely, src/net/online.ts decodes it), so no sap can
+    // ride the low buff budget on either host. See auras_view.isAuraDebuff.)
     const cap = auraVisibleCap(this.getFxTier());
     this.ordered.length = 0;
-    let rendered = 0;
+    let shed = 0;
+    if (count > cap) {
+      while (this.shedScratch.length < count) this.shedScratch.push(false);
+      shed = selectShedSlots(slots, count, cap, this.shedScratch);
+    }
     for (let i = 0; i < count; i++) {
       const s = slots[i];
-      if (!s.isDebuff && rendered >= cap) continue; // shed buff overflow; never a debuff
-      rendered++;
+      if (count > cap && this.shedScratch[i]) continue;
       // Resolve the pool key. The common case (a unique aura id this frame) takes the
       // base key directly. If the base key is already claimed THIS frame, this is a
       // second (or later) aura sharing the ability id from a different source; probe
@@ -200,6 +274,8 @@ export class AurasPainter {
       rec.auraId = s.key;
       rec.cancelable = s.cancelable;
       rec.effectHtml = s.effectHtml;
+      rec.toggle = s.toggle;
+      rec.sourceId = s.sourceId;
       rec.seen = this.frame;
       // Cancel affordance: only when this painter has an attachCancel dep (the player buff bar)
       // and the view marked the aura as cancelable. Read live by the contextmenu closure.
@@ -216,13 +292,24 @@ export class AurasPainter {
       // The buff/debuff distinction is a structural class (not an inline color); the
       // stylesheet renders it as a border the icon meaning does not depend on.
       this.writers.toggleClass(rec.el, DEBUFF_CLASS, s.isDebuff);
+      this.writers.toggleClass(rec.el, UI_DEBUFF_CLASS, s.isDebuff);
+      this.writers.toggleClass(rec.dur, DUR_DEBUFF_CLASS, s.isDebuff);
       this.writers.setAttr(rec.el, SCHOOL_ATTR, s.school);
       this.writers.toggleClass(rec.el, CANCELABLE_CLASS, rec.cancelable);
       this.writers.toggleClass(rec.el, OWN_CLASS, s.own);
+      this.writers.toggleClass(rec.el, UI_OWN_CLASS, s.own);
       this.writers.toggleClass(rec.el, EXPIRING_CLASS, s.expiring);
       this.writers.setText(rec.dur, s.durationText);
       const hasStacks = s.stacksText !== '';
-      this.writers.setDisplay(rec.stacks, hasStacks ? STACKS_SHOWN : STACKS_HIDDEN);
+      // The badge node needs TWO INDEPENDENT FACETS, its text and its visibility, and
+      // the single-slot cache holds ONE (kind, value) entry per element. Routing both
+      // through single-slot writers flips that entry on every call, so BOTH bypass
+      // elision forever: every frame, for every stacking aura, which in combat is most
+      // of them. Visibility therefore takes a slot of its own, keyed (element,
+      // 'display'); the DOM write is the same inline display it always was. TWO
+      // SEPARATE NODES would have worked equally well, and a second cache slot is
+      // simply cheaper than a second node.
+      this.writers.setStyleProp(rec.stacks, DISPLAY_PROP, hasStacks ? STACKS_SHOWN : STACKS_HIDDEN);
       if (hasStacks) this.writers.setText(rec.stacks, s.stacksText);
       this.ordered.push(rec);
     }
@@ -239,6 +326,29 @@ export class AurasPainter {
       }
     }
     this.reconcileOrder();
+    // The overflow badge: makes the cap's shed count HONEST rather than silent, so a
+    // player on low reads "N more buffs are active but hidden" instead of wondering
+    // whether a buff dropped or the game glitched. `shed` restores no actionable
+    // information (a debuff is never shed, so this is always 0 unless this instance is
+    // the player buff bar; see the FAIRNESS comment above), it only says so. A painter
+    // with no overflowEl (the debuff bar, the target strip) skips this entirely.
+    if (this.overflowEl) {
+      const show = shed > 0;
+      // Display through setStyleProp, not setDisplay: this node also takes setText just
+      // below, and two single-slot writers on one element flip the shared cache entry so
+      // BOTH stop eliding (the stacks badge above, same fix, same reason).
+      this.writers.setStyleProp(
+        this.overflowEl,
+        DISPLAY_PROP,
+        show ? OVERFLOW_SHOWN : OVERFLOW_HIDDEN,
+      );
+      this.writers.setText(this.overflowEl, show ? this.overflowText.label(shed) : '');
+      this.writers.setAttr(
+        this.overflowEl,
+        TITLE_ATTR,
+        show ? this.overflowText.tooltip(shed) : '',
+      );
+    }
   }
 
   /** Build one aura node (.buff > .dur + .stacks) and attach its tooltip ONCE. The
@@ -263,11 +373,13 @@ export class AurasPainter {
       name: '',
       remaining: 0,
       effectHtml: '',
+      toggle: false,
+      sourceId: undefined,
       lastIconKey: null,
       seen: 0,
     };
     this.deps.attachTooltip(el, () =>
-      this.deps.renderTooltip(rec.name, rec.remaining, rec.effectHtml),
+      this.deps.renderTooltip(rec.name, rec.remaining, rec.effectHtml, rec.toggle, rec.sourceId),
     );
     // Right-click-cancel: attached ONCE per pooled node via the injected helper (the
     // buff-bar painter only). The closure reads the live record so a recycled node cancels

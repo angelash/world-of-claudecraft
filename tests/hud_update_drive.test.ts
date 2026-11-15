@@ -6,7 +6,7 @@
 // see a driver that lives in the coordinator (#2497 recorded that gap and filed this issue as
 // the close). The premise a reader would assume is false in this tree: a `*_window.ts` is NOT
 // cold. `Hud.update()` polls about half of them. `spellbookWindow.tickOpen()` runs EVERY
-// FRAME while the window is open; arena / dungeon_finder / vale_cup / card_duel `render()` on
+// FRAME while the window is open; arena / dungeon_finder / card_duel `render()` on
 // the 250 ms band behind only a display check; social / market / mailbox / bank / bags /
 // deeds / professions / calendar get `refreshIfChanged()` on the 500 ms band.
 //
@@ -102,7 +102,8 @@ function splitTopLevelAnd(cond: string): string[] {
  * The band token can share its condition with a real gate (`slowHud && this.bankWindow
  * .isOpen`), so the token is removed from the condition that carries it and whatever remains
  * joins the gate. A part holding a top-level `||` is parenthesized on the way in, because
- * joining `!npc || dist2d(...) > 8` onto a preceding condition with a bare ` && ` would print
+ * joining `!npc || dist2d(...) > NPC_WINDOW_CLOSE_RANGE` onto a preceding condition with a bare
+ * ` && ` would print
  * a gate that reads as a different expression than the source it came from.
  */
 function splitBand(conditions: readonly string[]): { band: Band; gate: string } {
@@ -172,7 +173,10 @@ interface DriveRow {
 }
 
 const SIG_RETURN = 'if (sig === this.lastSig) return;';
-const VIEW_SIG_RETURN = 'if (view.sig === this.lastSig) return;';
+const _VIEW_SIG_RETURN = 'if (view.sig === this.lastSig) return;';
+// The merged PvP window guards its two tab arms with the same shape against the same
+// field, so the Thornhollow Fields arm names its signature apart to stay pinnable.
+const RAVENRIFT_SIG_RETURN = 'if (ravenriftSig === this.lastSig) return;';
 const VIEW_SIG_BLOCK = 'if (view.sig !== this.lastSig) {';
 
 /**
@@ -182,11 +186,25 @@ const VIEW_SIG_BLOCK = 'if (view.sig !== this.lastSig) {';
  */
 const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
   {
+    call: 'this.focusTargets.update',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'three reusable unit frames: chrome signature, non-self tier cadence and shared writer elision',
+  },
+  {
     call: 'this.fxTier',
     band: 'frame',
     gate: '',
     surface: 'none',
     why: 'reads the STATIC graphics-preset stamp that tiers several cadences below it; no DOM write',
+  },
+  {
+    call: 'this.resolvePendingLoadoutBar',
+    band: 'frame',
+    gate: '',
+    surface: 'none',
+    why: 'applies a server-acked loadout bar swap the moment activeLoadout confirms (v0.29 class stack); early-returns to bookkeeping only on ordinary frames, no DOM write',
   },
   {
     call: 'this.reconcileSfx',
@@ -255,6 +273,13 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the tutorial hint overlay',
   },
   {
+    call: 'this.bootcamp.update',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'the island movement-bootcamp overlay; a cheap latch check off-island',
+  },
+  {
     call: 'this.lootRolls.update',
     band: 'frame',
     gate: '',
@@ -273,11 +298,18 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the minimap raid-lockout badge class, value-diffed',
   },
   {
-    call: 'this.refreshDailyRewardsLauncher',
+    call: 'this.updateInstanceDifficultyBadge',
     band: 'slow',
     gate: '',
     surface: 'chrome',
-    why: 'the daily-rewards launcher button state (not the window)',
+    why: 'the minimap instance difficulty badge and tooltip, value-diffed',
+  },
+  {
+    call: 'this.dailyRewardsLauncher.refresh',
+    band: 'slow',
+    gate: '',
+    surface: 'chrome',
+    why: 'the daily-rewards launcher button state (not the window). Bank Storage phase 15 moved the poll state machine out of hud.ts into daily_rewards_launcher_core.ts, where its throttle is executed-tested; a chrome row carries no guard field, so the pin lives there rather than here',
   },
   {
     call: 'this.maybeRestoreActionBarLayout',
@@ -285,6 +317,20 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     gate: '',
     surface: 'none',
     why: 'one-shot latch that reloads the saved action-bar layout once',
+  },
+  {
+    call: 'this.paladinDevotionPainter.paint',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'write-elided paladin Devotion/Ascension resource widget driven by the paladinDevotionView core',
+  },
+  {
+    call: 'this.doomMeter.paintShadow',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'write-elided Shadow Gloomtithe and Tithe Bomb meters read replicated aura banks',
   },
   {
     call: 'this.syncActiveHotbarForm',
@@ -309,6 +355,13 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the unspent-talent-points glow on the desktop and mobile talent buttons',
   },
   {
+    call: 'this.microMenuStatePainter.paint',
+    band: 'medium',
+    gate: '',
+    surface: 'chrome',
+    why: "the micro-menu rail's open-window ring and unspent-point badge; every write goes through the elided facet, so a steady rail costs no DOM mutation",
+  },
+  {
     call: 'this.isInTown',
     band: 'slow',
     gate: '',
@@ -326,7 +379,7 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
   {
     call: 'this.renderCrafting',
     band: 'slow',
-    gate: "$('#crafting-window').style.display === 'flex' && stationTypesSignature(inRangeStationTypes(sim.stationPlacements, sim.player.pos, sim.activeMobileStationCraft)) !== this.lastCraftingStationSig",
+    gate: "$('#crafting-window').style.display === 'flex' && stationTypesSignature(inRangeStationTypes(sim.stationPlacements, sim.player.pos, sim.activeMobileStationCrafts)) !== this.lastCraftingStationSig",
     surface: 'window',
     guard: { kind: 'callsite' },
     why: 'rebuilds the crafting window when the in-range station-type set changes',
@@ -339,9 +392,23 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     guard: {
       kind: 'hud',
       proof:
-        'if (craftingReagentSig(this.sim.inventory, this.sim.player.name) === this.lastCraftingReagentSig) return;',
+        // Phase 04 (craft-from-vault) moved this pin: the guard gained the
+        // craftVaultStock term so a vault-only stock change repaints an open
+        // window (the signature's V-prefixed vault rows).
+        'if (craftingReagentSig(this.sim.inventory, this.sim.player.name, this.sim.craftVaultStock) === this.lastCraftingReagentSig) return;',
     },
     why: 'the other half of the Craft gate: rebuilds the crafting window when the bags move',
+  },
+  {
+    call: 'this.paintOpenCraftingCastProgress',
+    band: 'frame',
+    gate: '',
+    surface: 'window',
+    guard: {
+      kind: 'hud',
+      proof: 'if (craftCastActivitySig(session) !== this.lastCraftingCastSig) {',
+    },
+    why: 'in-window craft-cast progress strip: full rebuild only when the activity signature moves, fill-only ticks while casting',
   },
   {
     call: 'this.playerFramePainter.paint',
@@ -372,6 +439,73 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'shows the combo-point row for energy users, through the elided writer',
   },
   {
+    call: 'this.writerFacet.setAttr',
+    band: 'frame',
+    gate: "p.resourceType === 'energy'",
+    sites: 4,
+    surface: 'chrome',
+    why: 'combo-row a11y state (aria hidden/valuenow/valuetext/label), elided writer',
+  },
+  {
+    call: 'this.writerFacet.setAttr',
+    band: 'frame',
+    gate: "!(p.resourceType === 'energy')",
+    surface: 'chrome',
+    why: 'hides the combo row for non-energy classes, through the elided writer',
+  },
+  {
+    call: 'this.updateWarlockDoomMeter',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'write-elided Warlock Doom meter driven from the player-owned Fate Thread aura',
+  },
+  {
+    call: 'this.interfaceUnlock.relocalize',
+    band: 'frame',
+    gate: 'this.procChipSpec !== this.sim.talentSpec && this.interfaceUnlock.isUnlocked',
+    surface: 'chrome',
+    why:
+      'The proc frame chip names the ACTIVE spec mechanic; a respec while the ' +
+      'interface is unlocked re-resolves the frame labels in step with the art ' +
+      'swap below (change-gated: it fires once per spec change, never per frame)',
+  },
+  {
+    call: 'this.procOverlayPainter.paintNecromancyCharges',
+    band: 'frame',
+    gate: "this.sim.talentSpec === 'demonology'",
+    surface: 'chrome',
+    why: 'Demonology necromancy charge pips on the proc overlay',
+  },
+  {
+    call: 'this.procOverlayPainter.paintDestructionMarks',
+    band: 'frame',
+    gate: "!(this.sim.talentSpec === 'demonology') && this.sim.talentSpec === 'destruction'",
+    surface: 'chrome',
+    why: 'Destruction burn marks on the proc overlay',
+  },
+  {
+    call: 'this.procOverlayPainter.paintChronoCharges',
+    band: 'frame',
+    gate: "!(this.sim.talentSpec === 'demonology') && !(this.sim.talentSpec === 'destruction') && this.sim.talentSpec === 'arcane'",
+    surface: 'chrome',
+    why: 'Chronomancy charge pips on the proc overlay',
+  },
+  {
+    call: 'this.procOverlayPainter.paintFrostCharges',
+    band: 'frame',
+    gate: "!(this.sim.talentSpec === 'demonology') && !(this.sim.talentSpec === 'destruction') && !(this.sim.talentSpec === 'arcane') && this.sim.talentSpec === 'frost'",
+    surface: 'chrome',
+    why: 'Frost icicle pips on the proc overlay',
+  },
+  {
+    call: 'this.procOverlayPainter.paint',
+    band: 'frame',
+    gate: "!(this.sim.talentSpec === 'demonology') && !(this.sim.talentSpec === 'destruction') && !(this.sim.talentSpec === 'arcane') && !(this.sim.talentSpec === 'frost')",
+    surface: 'chrome',
+    why: 'the generic proc overlay for every spec without its own charge readout',
+  },
+  {
     call: 'this.comboRowEl.appendChild',
     band: 'frame',
     gate: "p.resourceType === 'energy' && this.comboRowEl.children.length !== COMBO_PIP_COUNT",
@@ -395,16 +529,37 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
   {
     call: 'this.buffBarPainter.paint',
     band: 'frame',
-    gate: 'cadenceDue(this.lastBuffBarPaintAt, now, auraRefreshIntervalMs(fxTier))',
+    gate: '',
     surface: 'chrome',
-    why: 'the buff row, tier-coarsened (full tiers every frame, low ~4 Hz)',
+    why: 'the SELF buff row: never tier-gated, every frame on every graphics preset (the debuff row below and the target debuffs strip further down share this rule)',
   },
   {
     call: 'this.debuffBarPainter.paint',
     band: 'frame',
-    gate: 'cadenceDue(this.lastBuffBarPaintAt, now, auraRefreshIntervalMs(fxTier))',
+    gate: '',
     surface: 'chrome',
-    why: 'the debuff row, on the same latch as the buff row',
+    why: 'the SELF debuff row: never tier-gated (your own debuffs are the ACTIONABLE read, docs/design/graphics-settings-fairness.md), so it paints every frame on every graphics preset, same as the target debuffs strip',
+  },
+  {
+    call: 'this.dungeonPrompts.paint',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'the dungeon encounter prompts (the Iron Cage escape, Gaoler Ossick chain alert, the Wildheart Basin and Gravewyrm Sanctum alerts): ungated per frame because the escape press feedback, the chain reach and the hazard readouts are what the player reacts to; each painter hides itself when its view is not visible and every value rides the elided writers, so an idle frame writes nothing',
+  },
+  {
+    call: 'this.targetDotsPainter.update',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'the Target dots tracker: its countdowns are what a dot refresh is timed against, so it rides the same band as the aura strips above and is never tier-gated either. Deliberately UNGATED at the call site: the showTargetDots setting rides into the core as input.enabled and the core answers with an empty state, which the painter renders as a hidden frame, so the one place that decides whether the frame exists stays the core rather than a branch here',
+  },
+  {
+    call: 'this.auraTracks.tick',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'the six aura tracks (src/ui/hud/aura_tracks/), ONE call, because AuraTrackFamily owns the loop over the descriptor table and the reused per-frame input, which is why a seventh track adds no row here. Same band and same rule as the two aura rows above: these are countdowns a refresh is timed against, so they are never tier-gated. Deliberately UNGATED at the call site: the family resolves the six switches itself, skips the roster copy and every painter when none is on (the default for every player), and lets each core answer with an empty state when its own switch is off, which keeps the enabled check in one place instead of six gates on this path',
   },
   {
     call: 'this.targetReannounce.mark',
@@ -412,6 +567,13 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     gate: "target && target.kind !== 'object' && target.id !== this.lastAnnouncedTargetId",
     surface: 'chrome',
     why: 'marks the target-name announcement so a same-named re-target still re-reads; its result is written straight to the target live region, deliberately NOT through the elided writer, and the id gate makes that an event write rather than a per-frame one',
+  },
+  {
+    call: 'fillTargetHealthText',
+    band: 'frame',
+    gate: "target && target.kind !== 'object' && nonSelfRepaintDue(targetChanged, this.lastTargetFramePaintAt, now, targetFrameNonSelfIntervalMs(fxTier))",
+    surface: 'none',
+    why: 'fills the target descriptor health text under the Health Text option (dead or playing dead reads Dead); a pure descriptor write the painter call below paints, no DOM touch of its own',
   },
   {
     call: 'this.targetFramePainter.paint',
@@ -443,7 +605,7 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the target name color (staff role, else hostile/friendly)',
   },
   {
-    call: 'this.updateTargetDiscordLine',
+    call: 'this.targetDiscord.update',
     band: 'frame',
     gate: "target && target.kind !== 'object'",
     surface: 'chrome',
@@ -452,9 +614,24 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
   {
     call: 'this.targetDebuffsPainter.paint',
     band: 'frame',
-    gate: "target && target.kind !== 'object' && nonSelfRepaintDue(targetChanged, this.lastTargetDebuffsPaintAt, now, auraRefreshIntervalMs(fxTier))",
+    gate: "target && target.kind !== 'object'",
     surface: 'chrome',
-    why: 'the target debuff strip, tier-coarsened, swap-bypassed',
+    why: 'the complete target aura strip, full-rate and tier-neutral because every aura is actionable',
+  },
+  {
+    call: 'this.targetAurasView.tick',
+    band: 'frame',
+    gate: "target && target.kind !== 'object'",
+    surface: 'none',
+    why: 'derives the complete own-first model shared by the classic strip and optional detail window',
+  },
+  {
+    call: 'this.targetAurasWindow.paint',
+    band: 'frame',
+    gate: "target && target.kind !== 'object' && this.targetAurasWindow.isVisible",
+    surface: 'window',
+    guard: { kind: 'callsite' },
+    why: 'updates the pooled detailed target-aura panel, with a target swap bypassing the cadence',
   },
   {
     call: 'this.targetCastBarPainter.paint',
@@ -462,6 +639,13 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     gate: "target && target.kind !== 'object'",
     surface: 'chrome',
     why: 'the target/boss cast bar (a raid mechanic indicator, deliberately untiered)',
+  },
+  {
+    call: 'fillTargetOfTargetDescriptor',
+    band: 'frame',
+    gate: "target && target.kind !== 'object' && tot && tot.kind !== 'object' && nonSelfRepaintDue(totChanged, this.lastTotFramePaintAt, now, targetFrameNonSelfIntervalMs(fxTier))",
+    surface: 'chrome',
+    why: 'fills target-of-target health and resource',
   },
   {
     call: 'this.totFramePainter.paint',
@@ -492,6 +676,32 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'hides the target frame when there is no target',
   },
   {
+    call: 'this.ownPet',
+    band: 'frame',
+    gate: '',
+    surface: 'none',
+    why: 'resolves the player-owned pet out of the entity roster ONCE per frame (findOwnPet, pet_frame_view.ts, early-returning), shared by the pet frame here and renderPetBar below, which takes it as a parameter; ungated on purpose because the pet BAR needs it whatever showPetFrame says, and it replaces the scan renderPetBar previously did itself, so the frame costs no extra walk',
+  },
+  {
+    call: 'this.petFramePainter.paint',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'the pet health frame under the player frame, deliberately UNTIERED and on the frame band (pet health is information the owner acts on, so a tier knob may not delay it); every write is elided, so a pet at steady health costs nothing, and a null pet paints it hidden',
+  },
+  {
+    call: 'this.targetAurasWindow.clear',
+    band: 'frame',
+    gate: "!(target && target.kind !== 'object')",
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'target_auras_window.ts',
+      proof: 'if (this.cleared) return;',
+    },
+    why: 'clears the target aura rows while preserving the always-visible transparent handle',
+  },
+  {
     call: 'this.totFramePainter.paint',
     band: 'frame',
     gate: "!(target && target.kind !== 'object')",
@@ -506,11 +716,18 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the player cast bar plus the eat/drink overlay',
   },
   {
-    call: 'this.swingTimerPainter.paint',
+    call: 'this.swingTimerBars.update',
     band: 'frame',
     gate: '',
     surface: 'chrome',
-    why: 'the auto-attack swing timer',
+    why: 'the main-hand and off-hand (dual-wield melee weaving) swing timers',
+  },
+  {
+    call: 'this.targetSwingTimerBars.update',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'the target and target-of-target swing timers, gated internally by showTargetSwingTimer',
   },
   {
     call: 'this.procOverlayEl.classList.add',
@@ -527,25 +744,18 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'clears that preview after 8 s; a one-shot behind the same latch, not a repeating driver',
   },
   {
-    call: 'this.procOverlayPainter.paintChronoCharges',
+    call: 'this.auraOverlayController.paint',
     band: 'frame',
-    gate: "this.sim.talentSpec === 'arcane'",
+    gate: '',
     surface: 'chrome',
-    why: 'the proc overlay driven by Aether Surge charges',
+    why: 'the configured Warrior proc frames; writer-facet toggles elide unchanged states',
   },
   {
-    call: 'this.procOverlayPainter.paintFrostCharges',
+    call: 'this.cooldownManager.paint',
     band: 'frame',
-    gate: "!(this.sim.talentSpec === 'arcane') && this.sim.talentSpec === 'frost'",
+    gate: '',
     surface: 'chrome',
-    why: 'the frost arm of the same overlay',
-  },
-  {
-    call: 'this.procOverlayPainter.paint',
-    band: 'frame',
-    gate: "!(this.sim.talentSpec === 'arcane') && !(this.sim.talentSpec === 'frost')",
-    surface: 'chrome',
-    why: 'the Heating Up / Hot Streak arm, the default for every other spec',
+    why: 'the Cooldown Manager groups, facet-routed: its pure core ticks the action bar view over the tracked spells (reusing the same world snapshot), then the painter writes through the elided writers, so a steady frame writes nothing; must run every frame for the ready-cue edges even when the groups are hidden',
   },
   {
     call: 'this.renderPetBar',
@@ -555,11 +765,18 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the pet bar; rebuilds its buttons behind a signature latch',
   },
   {
+    call: 'this.shardpikeBar.paint',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: "the world-boss trial's whole input surface: the three pike verbs, the balance beam, and the loud centre-screen instruction. Ungated and per-frame on purpose, because the beam moves every sim tick and the thrust window drains in real time; BOTH halves build once on the first visible paint and then only re-state, and the prompt additionally holds a signature latch so its text and classes are written only when the line actually changes rather than sixty times a second for a once-a-second countdown'",
+  },
+  {
     call: 'this.renderStanceBar',
     band: 'frame',
     gate: '',
     surface: 'chrome',
-    why: 'the stance/form bar; rebuilds its buttons behind a signature latch',
+    why: 'the stance/form bar, behind the hud/stance seam: the desktop row rebuilds its buttons behind a signature latch, and the touch shape paints the ring anchor through the shared write-elision facet with the icon RESOLVE key-diffed inside the painter',
   },
   {
     call: 'this.flushPendingProcAuraNotes',
@@ -576,16 +793,23 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     guard: {
       kind: 'module',
       module: 'spellbook_window.ts',
-      proof: 'if (SpellbookWindow.knownSig(this.deps.world().known) !== this.lastKnownSig) {',
+      proof: 'if (this.knownChanged(this.deps.world().known)) {',
     },
-    why: 'the ONLY window on the per-frame band; the sig gates the rebuild, the fall-through hotbar-control refresh runs every frame',
+    why: 'the ONLY window on the per-frame band, and since #2519 BOTH of its halves are gated: the guard proved below (knownChanged, an in-place walk of the resolved-ability numbers, no signature string built per frame) gates the rebuild, and the fall-through hotbar-control refresh takes its own change check (takeControlChange) over the three bar inputs its toggles render, so an unchanged frame makes no lookup, no allocation and no DOM write',
   },
   {
     call: 'this.actionBarPainter.paint',
     band: 'frame',
+    gate: '!this.isMobileLayout()',
+    surface: 'chrome',
+    why: 'the desktop action bar, facet-routed; skipped on touch where hud.mobile.css sets #actionbar/#actionbar2/#actionbar3 to display:none the whole time (the mobile action ring below supersedes it), so ticking + painting it was pure waste every frame',
+  },
+  {
+    call: 'this.crossHotbar.paint',
+    band: 'frame',
     gate: '',
     surface: 'chrome',
-    why: 'the desktop action bar, facet-routed',
+    why: 'the controller cross hotbar, facet-routed; it owns its OWN actions and ticks its own view (a pad layout is decoupled from the keyboard hotbar), and a frame with no pad connected stops after one elided display write',
   },
   {
     call: 'this.currentMobileActionPage',
@@ -595,11 +819,11 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'selects the active source page for the touch action ring; no DOM write',
   },
   {
-    call: 'this.mobileActionSourceSlotCount',
+    call: 'this.groundAim.activeSlot',
     band: 'frame',
-    gate: 'this.isMobileLayout() && this.mobileActionRingView && this.mobileActionRingPainter',
+    gate: 'actionBarWorld',
     surface: 'none',
-    why: 'counts the source slots that determine the touch action ring pagination; no DOM write',
+    why: 'stamps the armed ground-aim slot into the bar world snapshot so the owning button paints its aiming accent; no DOM write of its own',
   },
   {
     call: 'this.mobileActionRingPainter.paint',
@@ -609,11 +833,11 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the touch action ring; desktop skips the tick and the paint entirely',
   },
   {
-    call: 'this.consumableBarPainter.paint',
+    call: 'this.mobileConsumableSeat.paint',
     band: 'frame',
-    gate: 'this.isMobileLayout() && this.consumablesOpen && this.consumableBarView && this.consumableBarPainter',
+    gate: 'this.isMobileLayout()',
     surface: 'chrome',
-    why: 'the touch consumables quick bar, only while the row is expanded',
+    why: 'the touch consumables seat (the ring arc position showing the first carried consumable) plus the row it opens; desktop skips both',
   },
   {
     call: 'this.xpBarPainter.paint',
@@ -637,6 +861,17 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'removes the resurrection prompt node once the player is alive',
   },
   {
+    call: 'this.deathRecapDialog.close',
+    band: 'frame',
+    gate: '!p.dead && this.deathRecapDialog.isOpen()',
+    surface: 'window',
+    guard: {
+      kind: 'none',
+      why: 'one-way close row; the call is itself gated on the window being open and performs no steady repaint',
+    },
+    why: 'closes the death recap modal once the player is alive again',
+  },
+  {
     call: 'document.body.classList.toggle',
     band: 'frame',
     gate: '',
@@ -644,68 +879,121 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the spirit-mode body class that drains the world to greyscale',
   },
   {
+    call: 'noteReleaseOverlayShown',
+    band: 'frame',
+    gate: '',
+    surface: 'none',
+    why: 'records the Release overlay opening so its button ignores presses for a short hold; state only, no DOM write',
+  },
+  {
     call: 'this.setDisplay',
     band: 'frame',
     gate: '',
-    surface: 'chrome',
-    why: 'the full-screen death overlay, through the elided writer',
-  },
-  {
-    call: 'this.setDisplay',
-    band: 'frame',
-    gate: 'ghost',
     sites: 3,
     surface: 'chrome',
-    why: 'the ghost prompt and its two resurrect buttons',
+    why: 'the death screens through the elided writer: the full-screen death overlay, the standing ghost hint line and the ghost prompt (its one corpse button), each shown or hidden by the pure death view core (src/ui/hud/death; a battleground spirit gets neither ghost surface because the respawn wave is its only way back)',
   },
   {
-    call: 'this.setDisplay',
+    call: 'this.pvpRez.paint',
     band: 'frame',
-    gate: '!(ghost)',
+    gate: '',
     surface: 'chrome',
-    why: 'hides the ghost prompt while not a ghost',
+    why: 'the PvP Resurrect button and its note line (src/ui/hud/death/pvp_resurrect_painter.ts): shown with the offer, disabled and counting down while the PVP_RESURRECT_WAIT_SECONDS wait runs, all through the elided writers',
+  },
+  {
+    call: 'syncDeathControllerHints',
+    band: 'frame',
+    gate: 'p.dead',
+    surface: 'chrome',
+    why: 'keeps the release-spirit and corpse-resurrection controller hints synchronized while dead',
   },
   {
     call: 'this.showBanner',
     band: 'medium',
-    gate: "!inDungeon && currentZone.id !== this.lastZoneId && pastDeadBand && this.lastZoneId !== ''",
+    gate: '!inDungeon && this.zoneAnnouncements.update(currentZone.id, this.lastZoneId, p)',
     surface: 'chrome',
-    why: 'the zone banner on a real zone crossing; the dead-band stops border straddling from re-firing it',
+    why: 'the zone banner on a real zone crossing, committed the moment zoneAt flips (the old z-only dead band never fired on an east-west realm crossing)',
   },
   {
     call: 'this.log',
     band: 'medium',
-    gate: "!inDungeon && currentZone.id !== this.lastZoneId && pastDeadBand && this.lastZoneId !== ''",
+    gate: '!inDungeon && this.zoneAnnouncements.update(currentZone.id, this.lastZoneId, p)',
     surface: 'chrome',
     why: 'the zone-entry chat line',
   },
   {
     call: 'this.logZoneWelcome',
     band: 'medium',
-    gate: "!inDungeon && currentZone.id !== this.lastZoneId && pastDeadBand && this.lastZoneId !== ''",
+    gate: '!inDungeon && this.zoneAnnouncements.update(currentZone.id, this.lastZoneId, p)',
     surface: 'chrome',
     why: 'the zone welcome blurb in chat',
   },
   {
     call: 'this.renderer.vistaPan',
     band: 'medium',
-    gate: "!inDungeon && currentZone.id !== this.lastZoneId && pastDeadBand && this.lastZoneId !== '' && !p.dead && !p.inCombat && !recentCombat",
+    gate: '!inDungeon && this.zoneAnnouncements.update(currentZone.id, this.lastZoneId, p) && !p.dead && !p.inCombat && !recentlyInCombat',
     surface: 'none',
     why: 'the zone-entry camera sweep; a renderer call, not a HUD write',
   },
   {
     call: 'this.prewarmMapBg',
     band: 'medium',
-    gate: '!inDungeon && currentZone.id !== this.lastZoneId && pastDeadBand',
+    gate: '!inDungeon && currentZone.id !== this.lastZoneId',
     surface: 'none',
     why: 'idle-schedules the new zone map background into an offscreen canvas',
   },
   {
+    call: 'this.mountRaceStrip.repaintIfChanged',
+    band: 'frame',
+    gate: '',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'mount_race_strip.ts',
+      proof:
+        'if (view.raceId !== this.lastRaceId || view.phase !== this.lastPhase || second !== this.lastSecond) {',
+    },
+    why: 'the show-jumping race timer strip; the same per-frame safety net as lockpick, behind a display check and a sig diff bucketed to whole seconds',
+  },
+  {
+    call: 'this.mountRaceControls.update',
+    band: 'frame',
+    gate: '',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'mount_race_controls.ts',
+      proof: 'if (!button || mode === this.buttonMode) return;',
+    },
+    why: 'the Start/Cancel Race button and the 3..2..1..GO countdown; each painter returns early on an unchanged mode',
+  },
+  {
+    call: 'this.vehicleControls.update',
+    band: 'frame',
+    gate: '',
+    surface: 'chrome',
+    why: 'vehicle integrity, aiming and cooldowns use the shared eliding writer facet',
+  },
+  {
+    call: 'this.zoneAnnouncements.subzoneHit',
+    band: 'medium',
+    gate: '',
+    surface: 'none',
+    why: 'resolves landmark announcements with ferry and dungeon suppression',
+  },
+  {
     call: 'this.showSubzone',
     band: 'medium',
-    gate: 'subzone !== this.lastSubzone && subzone',
+    gate: 'subzone !== this.lastSubzone && hit',
     surface: 'chrome',
-    why: 'the subzone banner on a landmark crossing',
+    why: 'the subzone banner on a landmark crossing (a zone POI point or an authored `locations` rect)',
+  },
+  {
+    call: 'syncMinigameMusic',
+    band: 'medium',
+    gate: '',
+    surface: 'none',
+    why: 'the world-quest minigame track override (minigame_music_sync.ts) the music machine reads next; audio only, so it rides above the hidden-frame cut',
   },
   {
     call: 'this.instanceMusic.update',
@@ -722,11 +1010,18 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the combat swords/ring on the player portrait, through the elided writer',
   },
   {
-    call: 'restEl.classList.toggle',
+    call: 'paintRestIndicator',
     band: 'medium',
-    gate: 'rest.resting !== this.lastResting',
+    gate: 'rest.labelKey !== this.lastResting',
     surface: 'chrome',
-    why: 'the resting zZz on the player portrait, behind an edge latch',
+    why: 'the resting zZz on the player portrait, behind an edge latch. Was an inline restEl.classList.toggle until masterwrought D129s review round moved the badges whole DOM half (the on/off class plus BOTH text sinks) into rest_indicator_painter.ts: the title was being corrected on a locale switch while the aria-label was left saying Resting through a whole meal, and one function writing both from one resolved string is what stops them drifting again',
+  },
+  {
+    call: 'this.dungeonTracker.update',
+    band: 'medium',
+    gate: '',
+    surface: 'chrome',
+    why: 'the dungeon objectives tracker (the plate and boss rows at the top of the right stack). A facet-routed painter over a skeleton built once: every write is elided, so an unchanged run, or no run at all, costs a model rebuild in place and zero DOM writes (tests/dungeon_tracker_painter.test.ts drives the identical-frame loop)',
   },
   {
     call: 'this.updateQuestTracker',
@@ -743,6 +1038,13 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the delve tracker',
   },
   {
+    call: 'this.updateRiftTracker',
+    band: 'medium',
+    gate: '',
+    surface: 'chrome',
+    why: 'the rift floor + closing-timer tracker (#2655), signature-gated on floor/timer numbers',
+  },
+  {
     call: 'this.updatePartyFrames',
     band: 'medium',
     gate: '',
@@ -751,11 +1053,15 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the party frames (a pooled painter) AND, via paintLootSettings, the loot-settings window',
   },
   {
-    call: 'this.updateTradeWindow',
+    call: 'this.wocTrade.updateTradeWindow',
     band: 'medium',
     gate: '',
     surface: 'window',
-    guard: { kind: 'hud', proof: 'if (sig === this.lastTradeSig) return;' },
+    guard: {
+      kind: 'module',
+      module: 'hud/woc_trade/woc_trade_controller.ts',
+      proof: 'if (sig === this.lastTradeSig) return;',
+    },
     why: 'the trade window, rebuilt on a signature change; also auto-opens it on a trade start',
   },
   {
@@ -773,6 +1079,27 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the fiesta score, respawn, offer and augment overlays',
   },
   {
+    call: 'this.bgScoreboard.update',
+    band: 'medium',
+    gate: '',
+    surface: 'chrome',
+    why: 'the Thornhollow Fields in-match strip, the wave-respawn overlay and the spawn-protection line; the view core short-circuits an inactive match',
+  },
+  {
+    call: 'this.hillBar.update',
+    band: 'medium',
+    gate: '',
+    surface: 'chrome',
+    why: 'the King of the Hill strip while the player stands in the hill zone; the view core short-circuits to hidden with no hill or out of the zone, and the painter elides every repeat',
+  },
+  {
+    call: 'this.bgKillFeed.update',
+    band: 'medium',
+    gate: '',
+    surface: 'chrome',
+    why: 'ages out the Thornhollow Fields banner kill feed on its own clock, so an entry expires with no new event to drive it',
+  },
+  {
     call: 'this.yumiPainter.update',
     band: 'medium',
     gate: '',
@@ -780,41 +1107,11 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the arena match strip, facet-routed',
   },
   {
-    call: 'this.vcupIndicator.update',
+    call: 'this.ferryHud.update',
     band: 'medium',
     gate: '',
     surface: 'chrome',
-    why: 'the Vale Cup minimap indicator button',
-  },
-  {
-    call: 'this.vcupMatchHud.update',
-    band: 'medium',
-    gate: '',
-    surface: 'chrome',
-    why: 'the Vale Cup in-match strip',
-  },
-  {
-    call: 'this.vcupBriefing.update',
-    band: 'medium',
-    gate: '',
-    surface: 'window',
-    guard: { kind: 'module', module: 'vale_cup_briefing.ts', proof: VIEW_SIG_BLOCK },
-    why: 'the Vale Cup briefing card, a self-mounting full-screen panel',
-  },
-  {
-    call: 'this.vcupBetting.update',
-    band: 'medium',
-    gate: '',
-    surface: 'window',
-    guard: { kind: 'module', module: 'vale_cup_betting.ts', proof: VIEW_SIG_BLOCK },
-    why: 'the Vale Cup betting banner and card',
-  },
-  {
-    call: 'this.updateShootCharge',
-    band: 'medium',
-    gate: '',
-    surface: 'chrome',
-    why: 'the Vale Cup shot-charge meter',
+    why: 'the scheduled ferry countdown panel and the sailing line, facet-routed',
   },
   {
     call: 'this.updateMapWindow',
@@ -832,8 +1129,8 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     band: 'medium',
     gate: "$('#arena-window').style.display === 'block'",
     surface: 'window',
-    guard: { kind: 'module', module: 'arena_window.ts', proof: VIEW_SIG_RETURN },
-    why: 'the arena queue window',
+    guard: { kind: 'module', module: 'arena_window.ts', proof: RAVENRIFT_SIG_RETURN },
+    why: 'the merged PvP window (Thornhollow Fields and arena tabs); each tab arm builds its\n      own signature and returns on an unchanged one',
   },
   {
     call: 'this.dungeonFinderWindow.render',
@@ -848,6 +1145,18 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the dungeon finder window; an unchanged sig still ticks its 1 Hz clock text',
   },
   {
+    call: 'this.finderSurfaces.expeditions.render',
+    band: 'medium',
+    gate: '',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'hud/expeditions/expedition_controller.ts',
+      proof: 'if (sig === this.lastSig) {',
+    },
+    why: 'signature-gated bell, entry choice and open expedition cards; no work on identical polls',
+  },
+  {
     call: 'this.dungeonFinderProposalPopup.render',
     band: 'medium',
     gate: 'this.dungeonFinderProposalPopup.isOpen',
@@ -860,12 +1169,16 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the ready-check popup; a bare-named module the painter gate does not sweep',
   },
   {
-    call: 'this.valeCupWindow.render',
+    call: 'this.bgProposalPopup.render',
     band: 'medium',
-    gate: "$('#valecup-window').style.display === 'block'",
+    gate: 'this.bgProposalPopup.isOpen',
     surface: 'window',
-    guard: { kind: 'module', module: 'vale_cup_window.ts', proof: VIEW_SIG_RETURN },
-    why: 'the Vale Cup queue window',
+    guard: {
+      kind: 'module',
+      module: 'hud/battleground/battleground_proposal_popup.ts',
+      proof: VIEW_SIG_BLOCK,
+    },
+    why: 'the battleground queue-pop prompt; a *_popup name the painter gate does not sweep either',
   },
   {
     call: 'this.cardDuelWindow.toggle',
@@ -888,16 +1201,27 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     band: 'medium',
     gate: '',
     surface: 'window',
+    // It stopped being close-only when the corpse popup gained a live refresh
+    // (intentional gathering PR1): the chest arm is still a range test that
+    // only closes, but the corpse arm re-reads availability every medium tick
+    // and REPAINTS the body when the advertised set moved, so it now polls
+    // behind a real latch and the row has to name it. The old sentence here
+    // read "no latch field: it is close-only", which stayed green because
+    // guardProblems skips `kind: 'none'` outright: a row can go quietly stale
+    // in exactly this direction, so the fix is a named module guard, never a
+    // reworded exception.
     guard: {
-      kind: 'none',
-      why: 'no latch field: it is close-only, gated on a non-null corpse/chest id plus a range test, and nulling the id disarms it',
+      kind: 'module',
+      module: 'hud/loot/loot_window_controller.ts',
+      proof:
+        'const unchanged = sig === this.corpseSig && harvestSig === this.harvestStatusSig; if (!force && unchanged) return availability;',
     },
-    why: 'closes the loot window when the player walks away from the corpse or chest',
+    why: 'closes the loot window when the player walks away, and repaints the open corpse body when its advertised loot/harvest set changes',
   },
   {
     call: 'this.closeVendor',
     band: 'medium',
-    gate: 'this.openVendorNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > 8)',
+    gate: 'this.openVendorNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > NPC_WINDOW_CLOSE_RANGE)',
     surface: 'window',
     guard: { kind: 'callsite' },
     why: 'closes the vendor window out of range',
@@ -905,15 +1229,31 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
   {
     call: 'this.closeHeroicVendor',
     band: 'medium',
-    gate: 'this.openHeroicVendorNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > 8)',
+    gate: 'this.openHeroicVendorNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > NPC_WINDOW_CLOSE_RANGE)',
     surface: 'window',
     guard: { kind: 'callsite' },
     why: 'closes the heroic vendor window out of range',
   },
   {
+    call: 'this.closeCrucibleVendor',
+    band: 'medium',
+    gate: 'this.openCrucibleVendorNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > NPC_WINDOW_CLOSE_RANGE)',
+    surface: 'window',
+    guard: { kind: 'callsite' },
+    why: 'closes the crucible vendor window out of range',
+  },
+  {
+    call: 'this.closeWarfareVendor',
+    band: 'medium',
+    gate: 'this.openWarfareVendorNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > NPC_WINDOW_CLOSE_RANGE)',
+    surface: 'window',
+    guard: { kind: 'callsite' },
+    why: 'closes the WARFARE quartermaster shop out of range',
+  },
+  {
     call: 'this.closeTrain',
     band: 'medium',
-    gate: 'this.openTrainNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > 8)',
+    gate: 'this.openTrainNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > NPC_WINDOW_CLOSE_RANGE)',
     surface: 'window',
     guard: { kind: 'callsite' },
     why: 'closes the trainer window out of range',
@@ -921,7 +1261,7 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
   {
     call: 'this.closeUnbind',
     band: 'medium',
-    gate: 'this.openUnbindNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > 8)',
+    gate: 'this.openUnbindNpcId !== null && (!npc || dist2d(p.pos, npc.pos) > NPC_WINDOW_CLOSE_RANGE)',
     surface: 'window',
     guard: { kind: 'callsite' },
     why: 'closes the unbind window out of range',
@@ -938,6 +1278,13 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'closes the gossip dialog when the player walks away from the NPC',
   },
   {
+    call: 'this.farmPressAffordance.paint',
+    band: 'medium',
+    gate: '',
+    surface: 'chrome',
+    why: 'the interact affordance for the ambiguous farming press (a placed feast over a garden bed); the resolver checks the short static bed list first, so the entity walk happens only while standing in a garden, and both writes elide through the shared facet',
+  },
+  {
     call: 'this.arenaWindow.close',
     band: 'frame',
     gate: "inArenaMatch && !this.arenaMatchSeen && $('#arena-window').style.display === 'block'",
@@ -946,19 +1293,19 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'gets the arena queue window out of the way when a bout starts; the seen latch makes it an edge',
   },
   {
-    call: 'this.valeCupWindow.close',
+    call: 'this.arenaWindow.close',
     band: 'frame',
-    gate: "inVcupMatch && !this.vcupMatchSeen && $('#valecup-window').style.display === 'block'",
+    gate: "inBgMatch && !this.bgMatchSeen && $('#arena-window').style.display === 'block'",
     surface: 'window',
     guard: { kind: 'callsite' },
-    why: 'the same edge close for the Vale Cup queue window',
+    why: "the same edge close when a Thornhollow Fields match seats: the queue lives on that window's Thornhollow Fields tab",
   },
   {
     call: 'this.updateMinimap',
     band: 'fast',
-    gate: 'cadenceDue(this.lastMinimapDrawAt, now, minimapRedrawIntervalMs(fxTier))',
+    gate: "cadenceDue(this.lastMinimapDrawAt, now, minimapRedrawIntervalMs(fxTier, minimapMode(this.sim) === 'rift'))",
     surface: 'chrome',
-    why: 'the minimap canvas redraw, the heaviest fast-band item, tier-coarsened',
+    why: 'the minimap canvas redraw, tier-coarsened only outside a Rift so lethal mechanics stay on the graphics-neutral fast cadence',
   },
   {
     call: 'this.updateClock',
@@ -966,6 +1313,13 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     gate: '',
     surface: 'chrome',
     why: 'the minimap clock text, value-diffed',
+  },
+  {
+    call: 'this.dayNightDial.paint',
+    band: 'fast',
+    gate: '',
+    surface: 'chrome',
+    why: 'the decorative day/night ring beside the minimap; the canvas painter self-throttles to ~1Hz off the passed clock',
   },
   {
     call: 'this.updateMinimapCoords',
@@ -994,20 +1348,78 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the social window; a struct change rebuilds, a content change refreshes the list only',
   },
   {
+    call: 'this.referralCards.update',
+    band: 'slow',
+    gate: '',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'hud/referral_cards/referral_cards_controller.ts',
+      proof:
+        'if (this.lastRevision === revision && this.lastFriendshipInviter === inviter) return;',
+    },
+    // The friendship armour claim (0c118462629) widened the guard to the
+    // inviter name as well; the early return still skips identical passes.
+    why: 'launcher and open card rebuild only after the authoritative revision or the friendship inviter changes',
+  },
+  {
+    call: 'this.updateGuildBillboardEcho',
+    band: 'slow',
+    gate: '',
+    surface: 'chrome',
+    why: 'appends one guild-billboard line to the chat log, latched on the MOTD value in guild_motd_login.ts (login and mid-session changes only, never on unrelated social re-pushes)',
+  },
+  {
     call: 'this.marketWindow.close',
     band: 'slow',
-    gate: 'this.marketWindow.isOpen && !this.nearbyMarketNpc()',
+    gate: "this.marketWindow.isOpen && !nearbyServiceNpc(this.sim, 'market')",
     surface: 'window',
     guard: { kind: 'callsite' },
     why: 'closes the market window when the player leaves the auctioneer',
   },
   {
+    call: 'this.riftForgeWindow.close',
+    band: 'slow',
+    gate: 'this.riftForgeWindow.isOpen && !riftForgeInReach(p, this.sim.entities.values(), NPC_WINDOW_CLOSE_RANGE)',
+    surface: 'window',
+    guard: { kind: 'callsite' },
+    why: 'closes the Rift Forge window when the player leaves the Riftwright (the market rule; the sim place gate refuses the commands regardless)',
+  },
+  {
     call: 'this.marketWindow.refreshIfChanged',
     band: 'slow',
-    gate: 'this.marketWindow.isOpen && !(!this.nearbyMarketNpc())',
+    gate: "this.marketWindow.isOpen && !(!nearbyServiceNpc(this.sim, 'market'))",
     surface: 'window',
     guard: { kind: 'module', module: 'market_window.ts', proof: SIG_RETURN },
     why: 'the market window',
+  },
+  {
+    call: 'this.weeklyQuestsWindow.refreshIfChanged',
+    band: 'slow',
+    gate: 'this.weeklyQuestsWindow.isOpen',
+    surface: 'window',
+    guard: { kind: 'module', module: 'weekly_quests_window.ts', proof: SIG_RETURN },
+    why: 'the weekly emissary window (charge progress and the reset clock, minute-granular)',
+  },
+  {
+    call: 'this.guildHallWindow.refreshIfChanged',
+    band: 'slow',
+    gate: 'this.guildHallWindow.isOpen',
+    surface: 'window',
+    guard: { kind: 'module', module: 'hud/guild_hall/guild_hall_window.ts', proof: SIG_RETURN },
+    why: "Lantern Hall's guild window (the week's contracts, the seals, the titles owned and the reset clock, minute-granular)",
+  },
+  {
+    call: 'this.wocMarketWindow.refreshIfChanged',
+    band: 'slow',
+    gate: 'this.wocMarketWindow.isOpen',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'woc_market_window.ts',
+      proof: 'if (sig === this.lastSig && !this.walletRepaintDue) return;',
+    },
+    why: 'the $WOC Exchange window; its wocMarketViewSig digest folds second-resolution countdowns in, so open auctions tick on the poll without a self-armed driver (walletRepaintDue is the one digest override: a wallet beat skipped under the native-dropdown hold). This call ALSO carries the window’s background re-ask (pollFromServer, self-throttled to its own much slower cadence by woc_market_poll_core): a rebuild alone can only repaint data already in hand, and could never show a bond the chain has since confirmed',
   },
   {
     call: 'this.mailboxWindow.refreshIfChanged',
@@ -1024,6 +1436,34 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     surface: 'window',
     guard: { kind: 'module', module: 'bank_window.ts', proof: SIG_RETURN },
     why: 'the bank window; it also closes itself when the bank mirror goes null',
+  },
+  {
+    call: 'this.courierWindow.refreshIfChanged',
+    band: 'slow',
+    gate: 'this.courierWindow.isOpen()',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'hud/courier/courier_window.ts',
+      proof: 'if (!force && signature === this.lastSignature) return;',
+    },
+    why: 'the owner courier window; custody, phase, membership and draft changes rebuild it, while pose-only movement never does',
+  },
+  {
+    call: 'this.dailyRewardsWindow.refreshIfChanged',
+    band: 'slow',
+    gate: 'this.dailyRewardsWindow.isOpen',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'daily_rewards_window.ts',
+      // Phase 15 QA moved the signature into src/ui/charter_fit_memory.ts, beside
+      // the refusals it invalidates. The guard the row names is still the ONE
+      // line that decides whether the poll paints, which is what this registry
+      // is checking; the memory's own suite pins the comparison itself.
+      proof: 'if (!this.charterFit.changedFrom(this.deps.world().bankPurchasedSlots)) return;',
+    },
+    why: "the WOC Store's charter fit gate, which reads live ladder state no store event observes (Bank Storage phase 15, ruling 21): the reachable case is the store and the bank open together at a bursar while a copper rung is bought in the bank",
   },
   {
     call: 'this.bagsWindow.refreshIfChanged',
@@ -1047,6 +1487,31 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'the Book of Deeds window',
   },
   {
+    call: 'this.cosmeticsWindow.refreshIfChanged',
+    band: 'slow',
+    gate: 'this.cosmeticsWindow.isOpen',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'hud/cosmetics/cosmetics_window.ts',
+      proof: 'const sig = cosmeticsSig(this.snapshot()); if (sig === this.lastSig) return;',
+    },
+    why: 'the Cosmetics window',
+  },
+  {
+    call: 'this.reliquaryWindow.refreshIfChanged',
+    band: 'slow',
+    gate: 'this.reliquaryWindow.isOpen',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'reliquary_window.ts',
+      proof:
+        'const input = this.buildInput(); const sig = this.sigFromInput(input); if (sig === this.lastSig) return;',
+    },
+    why: 'The Reliquary window',
+  },
+  {
     call: 'this.refreshOpenProfessionSurfacesIfChanged',
     band: 'slow',
     gate: '',
@@ -1055,12 +1520,42 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     why: 'repaints the character window and the crafting window when a profession number moves',
   },
   {
+    call: 'this.refreshCharSheetIfChanged',
+    band: 'slow',
+    gate: '',
+    surface: 'window',
+    guard: { kind: 'hud', proof: 'if (sig === this.lastCharSheetSig) return;' },
+    why: 'converges the open character sheet on its whole progression block: the WORN title / border (the deeds picker repaints only itself), the earned border badges, and the Reliquary pair plus Curator rank',
+  },
+  {
     call: 'this.professionsWindow.refreshIfChanged',
     band: 'slow',
     gate: 'this.professionsWindow.isOpen',
     surface: 'window',
-    guard: { kind: 'module', module: 'professions_window.ts', proof: SIG_RETURN },
+    guard: {
+      kind: 'module',
+      // Re-pointed at the ip-14-UI professions migration: the window moved
+      // behind the hud/professions barrel with the rest of the family.
+      module: 'hud/professions/professions_window.ts',
+      // The guard compares the freshly built input's signature directly (no
+      // local sig binding): render() re-latches lastSig from the one input it
+      // painted, so this band never re-acts on a stale one.
+      proof:
+        'const input = this.buildInput(); const sig = professionsRefreshSig(input, harvestPreferenceLocalSig(this.deps.world().harvestPreference)); if (sig === this.lastSig) return;',
+    },
     why: 'the professions window',
+  },
+  {
+    call: 'this.plantSheetWindow.refreshIfChanged',
+    band: 'slow',
+    gate: '',
+    surface: 'window',
+    guard: {
+      kind: 'module',
+      module: 'hud/professions/farming_plant_sheet_window.ts',
+      proof: 'if (view.status !== this.paintedStatus) this.paint();',
+    },
+    why: 'refreshes the open harvest choice after an event precedes its plot snapshot',
   },
   {
     call: 'this.questDialog.refreshIfChanged',
@@ -1070,9 +1565,10 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     guard: {
       kind: 'module',
       module: 'hud/quest/quest_dialog_controller.ts',
-      proof: 'if (this.introHintVisibleFor(npc) !== this.lastIntroHintVisible) this.refresh();',
+      proof:
+        'if (this.introHintVisibleFor(npc) !== this.lastIntroHintVisible || gossipRowSig(this.offerableRows(npc)) !== this.lastGossipRowSig || clueStepRowSig(clueStepRowFor(this.deps.world().clueHunt, npc.templateId)) !== this.lastClueRowSig || seasonalTownsfolkRowsSig(this.seasonalRows(npc)) !== this.lastTrickOrTreatSig || (guideDialogView(npc)?.state ?? null) !== this.lastGuideState || this.hearthRowFactionFor(npc) !== this.lastHearthRowFaction) { this.refresh(); }',
     },
-    why: "the gossip dialog's intro hint row, which watches an online edge no quest event fires for",
+    why: "the gossip dialog's intro hint row plus the offerable-row set (phase 23: a cadence lapse re-offers a work order) plus the Clue Scroll step row (world quests round 2: the hunt step advances on a sim log line) plus a dungeon guide's offer state (another member's answer flips it while the dialog is open), and the Allied Hearthstone attune row, five edges no quest event fires for",
   },
   {
     call: 'this.updateDeedTracker',
@@ -1080,6 +1576,34 @@ const HUD_UPDATE_DRIVES: readonly DriveRow[] = [
     gate: '',
     surface: 'chrome',
     why: 'the always-on deed tracker (not gated on a window)',
+  },
+  {
+    call: 'this.updateReliquaryTracker',
+    band: 'slow',
+    gate: '',
+    surface: 'chrome',
+    why: 'the always-on Reliquary tracker (not gated on a window): pinned pages fill from normal play and an illuminated page drops off',
+  },
+  {
+    call: 'this.gatheringGoalController.update',
+    band: 'slow',
+    gate: '',
+    surface: 'chrome',
+    why: 'the always-on gathering goal tracker (Intentional Gathering PR4, not gated on a window): a projection change has no dedicated event, so it rides the same slow poll; the module itself signature-gates the rebuild so an unchanged goal touches no DOM (a chrome row carries no guard field, same as updateDeedTracker/updateReliquaryTracker beside it)',
+  },
+  {
+    call: 'this.updateRecipeTracker',
+    band: 'slow',
+    gate: '',
+    surface: 'chrome',
+    why: 'the always-on pinned-recipe tracker (not gated on a window): reagents arrive from gathering and loot with no craft event to repaint on',
+  },
+  {
+    call: 'this.trackerStackAnchor.apply',
+    band: 'slow',
+    gate: '',
+    surface: 'chrome',
+    why: 'seats #right-tracker-stack below the minimap column, whose rendered height moves with the zone label and mobile chrome scale; a bounded layout read, elided write (tracker_stack_anchor.ts owns the cadence contract)',
   },
   {
     call: 'this.calendarWindow.refreshIfChanged',
@@ -1224,13 +1748,117 @@ function guardProblems(
 const UI_DIR = fileURLToPath(new URL('../src/ui/', import.meta.url));
 const readUi = (module: string): string => readFileSync(`${UI_DIR}${module}`, 'utf8');
 const HUD_PATH = `${UI_DIR}hud.ts`;
-const scan = readMethodCallSites(HUD_PATH, readFileSync(HUD_PATH, 'utf8'), 'Hud', 'update');
+const HUD_SOURCE = readFileSync(HUD_PATH, 'utf8');
+const scan = readMethodCallSites(HUD_PATH, HUD_SOURCE, 'Hud', 'update');
+
+// THE PAINT CUT. A hidden desktop window calls `update(false)`, which runs the
+// head of the method and returns before anything paints. What makes that safe
+// is WHICH calls sit above the cut: the fast-tier `reconcileSfx` sweep is what
+// unloops a `cast:<id>` loop after its caster leaves interest, so parking it
+// would leave a minimized player listening to a cast that ended. The live-region
+// flushes and the loot timers are the same kind of claim.
+//
+// Constructing a real `Hud` in a unit test is not viable here (nothing in the
+// suite does; it needs the full document, a Sim and a Renderer), so this pins
+// the contract with the same AST scan the registry above already trusts: the
+// cut's position in the body relative to every call site.
+describe('the hidden-frame paint cut', () => {
+  const cutLines = HUD_SOURCE.split('\n')
+    .map((text, index) => ({ text: text.trim(), line: index + 1 }))
+    .filter((row) => row.text === 'if (!paint) return;');
+  const cut = (): number => {
+    expect(cutLines).toHaveLength(1);
+    return cutLines[0].line;
+  };
+
+  it('cuts the body exactly once, behind a parameter that defaults to painting', () => {
+    expect(cutLines).toHaveLength(1);
+    // The default is what keeps every other caller (and the web build) painting.
+    expect(HUD_SOURCE.match(/^ {2}update\(paint = true\): void \{$/gm)).toHaveLength(1);
+  });
+
+  it('keeps exactly the audio, live-region and timer work above the cut', () => {
+    const above = scan.sites.filter((site) => site.line < cut()).map((site) => site.call);
+    // An exact list, not a subset: a new paint call added to the head would
+    // start running on hidden frames, and that is the regression to catch.
+    expect(above).toEqual([
+      'this.fxTier',
+      'this.reconcileSfx',
+      'this.sweepMobIdleBarks',
+      'this.combatAnnouncer.flush',
+      'this.chatAnnouncer.flush',
+      'this.questDialog.updateVoice',
+      'this.lootRolls.update',
+      'syncMinigameMusic',
+      // Music keeps playing on hidden frames, so its state machine must keep
+      // transitioning there too (phase 4 QA F1: a minimized player heard the
+      // stale track until restore while this sat below the cut).
+      'this.instanceMusic.update',
+    ]);
+  });
+
+  it('leaves the paint sinks below the cut', () => {
+    const cutLine = cut();
+    for (const call of [
+      'this.meters.update',
+      'this.mountRaceStrip.repaintIfChanged',
+      'this.mountRaceControls.update',
+      'this.lockpickController.repaintIfChanged',
+      'this.tutorial.update',
+      // The timed proposal popups stay below the cut DELIBERATELY (phase 4 QA
+      // F3 adjudication): their show() and cue ride the ungated event drain,
+      // proposal expiry is server-authoritative, and the first painted frame
+      // after restore rebuilds them from the live snapshot, so nothing a
+      // hidden window does with their DOM matters. Hoisting them would put
+      // DOM writes above the cut.
+      'this.dungeonFinderProposalPopup.render',
+      'this.bgProposalPopup.render',
+    ]) {
+      const site = scan.sites.find((entry) => entry.call === call);
+      expect(site, `${call} is no longer driven by update()`).toBeDefined();
+      expect(site?.line).toBeGreaterThan(cutLine);
+    }
+  });
+});
 const observedKeys = scan.sites.map((s) => {
   const { band, gate } = splitBand(s.conditions);
   return keyOf(s.call, band, gate);
 });
 
 describe('Hud.update() drives exactly the registered set, on the registered bands', () => {
+  it('keeps the classic target strip complete and reuses that model for the detail window', () => {
+    const source = readFileSync(HUD_PATH, 'utf8');
+    expect(source).toMatch(
+      /targetAurasView = createAurasView\('all', this\.aurasViewDeps, \{\s*ownFirst: true,\s*effectHtmlCacheVersion: getLanguage,\s*\}\);/,
+    );
+    expect(source).toMatch(
+      /const targetAuraState = this\.targetAurasView\.tick\(target\);\s*this\.targetDebuffsPainter\.paint\(targetAuraState\);\s*if \(this\.targetAurasWindow\.isVisible\) \{\s*this\.targetAurasWindow\.paint\([^,]+, targetAuraState,/,
+    );
+    expect(source).not.toContain('targetSummaryAurasView');
+  });
+
+  it('keeps target aura visibility and refresh tier-neutral', () => {
+    const source = readFileSync(HUD_PATH, 'utf8');
+    const painterStart = source.indexOf('private readonly targetDebuffsPainter');
+    const painterEnd = source.indexOf('private readonly minimapPainter', painterStart);
+    const painterDefinition = source.slice(painterStart, painterEnd);
+
+    expect(painterStart).toBeGreaterThanOrEqual(0);
+    expect(painterDefinition).toMatch(
+      /private readonly targetDebuffsPainter = new AurasPainter\(\s*this\.writerFacet,\s*this\.targetDebuffsEl,\s*this\.aurasPainterDeps,\s*document,\s*\);/,
+    );
+    expect(source).not.toContain('lastTargetDebuffsPaintAt');
+    expect(source).toMatch(
+      /toggleTargetAuras\(\): void \{\s*this\.targetAurasWindow\.toggle\(\);\s*\}/,
+    );
+  });
+
+  it('feeds the server-authoritative Hunter reactive window into the aura overlay', () => {
+    expect(HUD_SOURCE).toMatch(
+      /this\.auraOverlayController\.paint\(\s*p\.auras,\s*this\.sim\.reactiveAbilityWindowRemaining\('mongoose_bite'\),?\s*\)/,
+    );
+  });
+
   // ANTI-VACUITY FIRST, because every assertion after it is an empty-collection check and an
   // empty collection is what a narrowed walk produces. `readMethodCallSites` THROWS on a
   // missing class or method rather than returning nothing, which is the load-bearing half:
@@ -1298,7 +1926,55 @@ describe('Hud.update() drives exactly the registered set, on the registered band
     expect(
       bySurface,
       "the surface split moved. A new call needs its surface decided; a CHANGED one means a repaint was reclassified, which is the one edit that can quietly drop a window row's invalidation guard.",
-    ).toEqual({ window: 37, chrome: 68, none: 14 });
+      // Both sides of every v0.36.0 sync move this bucket split independently
+      // (each side's window and chrome churn lands against the other's), so it
+      // cannot be reconciled by arithmetic across a merge. The numbers below
+      // were set from a suite run on the merged tree, not from either side's
+      // narrative.
+      // chrome 83 -> 84: the tracker-stack anchor apply (seats the stack below
+      // the minimap column; tracker_stack_anchor.ts).
+      // window 47 -> 43, chrome 84 -> 81: the Vale Cup retirement (the New
+      // Eastbrook program) removed the cup rows on this branch.
+      // chrome 81 -> 82: the Proving Shore tutorial's coach strip apply.
+      // window 43 -> 44: the release arm's woc_market window row rides the
+      // v0.40.0 sync merge back in.
+      // chrome 82 -> 83: the controller-tutorial merge's gamepad control
+      // hint apply.
+      // chrome 83 -> 84: the target / target-of-target swing-timer bars call
+      // (target_swing_timer_bars.ts), thin-consumer wiring beside the
+      // existing swingTimerBars.update row.
+      // window 44 -> 46: the crucible vendor's out-of-range close (the third
+      // #vendor-window tenant, on the heroic vendor's exact row shape).
+      // chrome 84 -> 85: the farming press affordance (a placed feast in reach
+      // over a garden bed). Chrome, not a window: it paints one #interact-
+      // affordance notice through the shared writer facet, with no window root,
+      // no open check and therefore no invalidation guard to name.
+      // chrome 85 -> 86: the gathering goal tracker's own signature-gated
+      // repaint (Intentional Gathering PR4, gatheringGoalController.update).
+      // chrome 87 -> 88 on this merged branch: the release arm's proc frame
+      // chip relocalizes on a spec change (interfaceUnlock.relocalize), in
+      // step with the art swap. The branch's window and chrome churn lands
+      // independently, so this exact split was counted from the merged table.
+      // chrome 88 -> 89 at the aura-tracks sync (PR #3925): this branch adds
+      // the aura tracks' one chrome call on top of the release's 88; the
+      // release's window 48 carries over untouched.
+      // chrome 90 -> 91: the always-on pinned-recipe tracker
+      // (recipe_tracker_view.ts + recipe_tracker_painter.ts), the Reliquary
+      // tracker's exact slow-band row shape.
+      // chrome 91 -> 92 and none 17 -> 18 on the World Quests branch: its
+      // vehicle bar chrome row and its minigame music override. Then the
+      // release's Cooldown Manager per-frame paint and King of the Hill's hill
+      // bar strip (chrome 92 -> 96), and the release batch's one more window
+      // surface (51 / 96 measured on the merged tree). The release's Eastbrook
+      // ferry countdown panel (hud ferryHud) is one more chrome surface at the
+      // fourth release/v0.44.0 base merge (97 measured on the merged tree).
+      // The courier window adds one slow-band, open-only window surface.
+      // The Mirefen world-boss branch's Shardpike bar paint: chrome 98.
+      // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 52, 99.
+      // chrome 99 -> 100: the dungeon objectives tracker's medium-band paint
+      // (hud/dungeon/dungeon_tracker_painter.ts), facet-routed like the deed strip.
+      // window 53 -> 54: Lantern Hall's guild window (hud/guild_hall/guild_hall_window.ts).
+    ).toEqual({ window: 55, chrome: 101, none: 21 });
     const windows = HUD_UPDATE_DRIVES.filter((r) => r.surface === 'window');
     expect(windows.map((r) => r.call)).toContain('this.spellbookWindow.tickOpen');
     expect(windows.map((r) => r.call)).toContain('this.refreshOpenTownFocusIfChanged');
@@ -1310,9 +1986,32 @@ describe('Hud.update() drives exactly the registered set, on the registered band
     for (const row of HUD_UPDATE_DRIVES)
       if (row.guard) byKind[row.guard.kind] = (byKind[row.guard.kind] ?? 0) + 1;
     expect(byKind, 'a guard kind changed: say why in the PR, not only in the table').toEqual({
-      module: 19,
-      hud: 5,
-      callsite: 9,
+      // Reliquary cold window (module) + craft-cast single-surface strip (hud)
+      // both land on this pin; keep both counts, do not drop either side.
+      // Both arms grow this bucket independently, so it is set from a suite run
+      // on the MERGED tree: the branch's reliquary module guard and its WOC
+      // Store ladder-signature row (phase 15) land beside the release's
+      // woc_market_window and trade-window rows, less the Vale Cup window,
+      // briefing and betting module guards the retirement takes with it.
+      // Plant-sheet harvest mode now polls its own status signature, and the
+      // loot window's corpse arm moved OUT of the `none` bucket below into
+      // this one: it gained a corpseSig latch when the popup started
+      // refreshing instead of only closing.
+      // The courier window owns both revision and content signature guards.
+      // Lantern Hall's guild window owns its signature guard (hud/guild_hall/).
+      module: 32,
+      // Phase 20's refreshCharSheetIfChanged and its siblings. Their latches are
+      // HUD fields (lastCharSheetSig et al) because the cold char_window painter
+      // holds no signature of its own to diff. The release's trade row left this
+      // bucket when its lastTradeSig latch moved into the woc_trade module.
+      hud: 6,
+      // Up to 12 with the crucible vendor's out-of-range close: the same
+      // callsite-guarded shape as the copper and heroic vendor closes.
+      // Up one more on the release arm's own callsite-guarded row, beside the
+      // crucible vendor close counted above; counted off the merged table.
+      callsite: 13,
+      // Death recap close joins this bucket as a one-way dismissal: it has no
+      // invalidation latch because there is no steady repaint path to guard.
       none: 4,
     });
     // ...and the honest-exception list by NAME, because that is the one that should never
@@ -1322,8 +2021,8 @@ describe('Hud.update() drives exactly the registered set, on the registered band
         .map((r) => r.call)
         .sort(),
     ).toEqual([
+      'this.deathRecapDialog.close',
       'this.lootRolls.update',
-      'this.lootWindow.updateProximity',
       'this.questDialog.updateProximity',
       'this.updateMapWindow',
     ]);
@@ -1343,30 +2042,54 @@ describe('Hud.update() drives exactly the registered set, on the registered band
       'the resolved guard list moved. A row changed which module it points at, which line it looks for, or dropped to a guard kind that names no source at all.',
     ).toEqual(
       [
-        'arena_window.ts: if (view.sig === this.lastSig) return;',
+        'arena_window.ts: if (ravenriftSig === this.lastSig) return;',
+        'hud/referral_cards/referral_cards_controller.ts: if (this.lastRevision === revision && this.lastFriendshipInviter === inviter) return;',
         'bags_window.ts: if (!bagsMoneyRowStale(el.style.display, this.deps.world().copper, this.lastMoneyCopper)) return;',
         'bank_window.ts: if (sig === this.lastSig) return;',
         'calendar_window.ts: if (sig === this.lastSig) return;',
         'card_duel_window.ts: if (sig === this.lastSig) return;',
+        'daily_rewards_window.ts: if (!this.charterFit.changedFrom(this.deps.world().bankPurchasedSlots)) return;',
         'deeds_window.ts: if (sig === this.lastSig) return;',
         'dungeon_finder_proposal_popup.ts: if (view.sig !== this.lastSig) {',
         'dungeon_finder_window.ts: if (sig === this.lastSig) {',
-        'hud.ts: if (craftingReagentSig(this.sim.inventory, this.sim.player.name) === this.lastCraftingReagentSig) return;',
+        'hud/battleground/battleground_proposal_popup.ts: if (view.sig !== this.lastSig) {',
+        'hud/cosmetics/cosmetics_window.ts: const sig = cosmeticsSig(this.snapshot()); if (sig === this.lastSig) return;',
+        'hud/courier/courier_window.ts: if (!force && signature === this.lastSignature) return;',
+        'hud.ts: if (craftCastActivitySig(session) !== this.lastCraftingCastSig) {',
+        'hud.ts: if (craftingReagentSig(this.sim.inventory, this.sim.player.name, this.sim.craftVaultStock) === this.lastCraftingReagentSig) return;',
         'hud.ts: if (sig !== this.lastLootSettingsSig) {',
+        // Phase 20: the progression-block latch for the open character sheet.
+        'hud.ts: if (sig === this.lastCharSheetSig) return;',
         'hud.ts: if (sig === this.lastProfessionSurfaceSig) return;',
         'hud.ts: if (sig === this.lastTownFocusSig) return;',
-        'hud.ts: if (sig === this.lastTradeSig) return;',
+        'hud/woc_trade/woc_trade_controller.ts: if (sig === this.lastTradeSig) return;',
         'hud/delve/lockpick_window.ts: if (lockpickRenderSig(view) !== this.lastSig) this.renderBoard();',
-        'hud/quest/quest_dialog_controller.ts: if (this.introHintVisibleFor(npc) !== this.lastIntroHintVisible) this.refresh();',
+        'hud/expeditions/expedition_controller.ts: if (sig === this.lastSig) {',
+        // The corpse popup's own latch. `force` is the relocalize arm, which
+        // rebuilds through the same guard past a signature a locale switch
+        // cannot move, so the flag is part of the line the pin looks for.
+        'hud/loot/loot_window_controller.ts: const unchanged = sig === this.corpseSig && harvestSig === this.harvestStatusSig; if (!force && unchanged) return availability;',
+        'hud/professions/farming_plant_sheet_window.ts: if (view.status !== this.paintedStatus) this.paint();',
+        'hud/quest/quest_dialog_controller.ts: if (this.introHintVisibleFor(npc) !== this.lastIntroHintVisible || gossipRowSig(this.offerableRows(npc)) !== this.lastGossipRowSig || clueStepRowSig(clueStepRowFor(this.deps.world().clueHunt, npc.templateId)) !== this.lastClueRowSig || seasonalTownsfolkRowsSig(this.seasonalRows(npc)) !== this.lastTrickOrTreatSig || (guideDialogView(npc)?.state ?? null) !== this.lastGuideState || this.hearthRowFactionFor(npc) !== this.lastHearthRowFaction) { this.refresh(); }',
         'mailbox_window.ts: if (sig === this.lastSig) return;',
         'market_window.ts: if (sig === this.lastSig) return;',
         'meters.ts: if (!this.isOpen || now - this.lastRender < 250) return;',
-        'professions_window.ts: if (sig === this.lastSig) return;',
+        'mount_race_controls.ts: if (!button || mode === this.buttonMode) return;',
+        'mount_race_strip.ts: if (view.raceId !== this.lastRaceId || view.phase !== this.lastPhase || second !== this.lastSecond) {',
+        // The professions guard hashes the freshly built input inline (no local
+        // sig binding): render() re-latches lastSig from the one input it
+        // painted, so the band never re-acts on a stale signature.
+        'hud/professions/professions_window.ts: const input = this.buildInput(); const sig = professionsRefreshSig(input, harvestPreferenceLocalSig(this.deps.world().harvestPreference)); if (sig === this.lastSig) return;',
+        'reliquary_window.ts: const input = this.buildInput(); const sig = this.sigFromInput(input); if (sig === this.lastSig) return;',
         'social_window.ts: if (struct !== this.lastStruct) {',
-        'spellbook_window.ts: if (SpellbookWindow.knownSig(this.deps.world().known) !== this.lastKnownSig) {',
-        'vale_cup_betting.ts: if (view.sig !== this.lastSig) {',
-        'vale_cup_briefing.ts: if (view.sig !== this.lastSig) {',
-        'vale_cup_window.ts: if (view.sig === this.lastSig) return;',
+        // #2519 replaced the joined signature string this used to build every frame with
+        // an in-place comparison against the retained numbers; same guard, same place, no
+        // per-frame allocation.
+        'spellbook_window.ts: if (this.knownChanged(this.deps.world().known)) {',
+        'target_auras_window.ts: if (this.cleared) return;',
+        'weekly_quests_window.ts: if (sig === this.lastSig) return;',
+        'hud/guild_hall/guild_hall_window.ts: if (sig === this.lastSig) return;',
+        'woc_market_window.ts: if (sig === this.lastSig && !this.walletRepaintDue) return;',
       ].sort(),
     );
     expect(
@@ -1391,9 +2114,10 @@ describe('Hud.update() drives exactly the registered set, on the registered band
     ).toBeGreaterThan(15);
     expect(modules.filter((m) => !adapterName.test(m)).sort()).toEqual([
       'dungeon_finder_proposal_popup.ts',
+      'hud/battleground/battleground_proposal_popup.ts',
       'meters.ts',
-      'vale_cup_betting.ts',
-      'vale_cup_briefing.ts',
+      'mount_race_controls.ts',
+      'mount_race_strip.ts',
     ]);
   });
 });

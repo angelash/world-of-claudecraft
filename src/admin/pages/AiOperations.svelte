@@ -3,7 +3,9 @@
   import { apiGet, apiPost } from '../api';
   import AmbientBots from '../components/AmbientBots.svelte';
   import Panel from '../components/Panel.svelte';
+  import PermissionDenied from '../components/PermissionDenied.svelte';
   import { localizeAdminError, t } from '../i18n';
+  import { type AdminLoadFailure, classifyAdminLoadFailure } from '../load_failure';
   import { auth } from '../state/auth.svelte';
   import { LIVE_REFRESH_MS, poll } from '../state/poll';
   import {
@@ -40,8 +42,8 @@
   let root = $state<HTMLElement>();
   let diagnostics = $state<AiDiagnosticsResponse | null>(null);
   let ambientBots = $state<AmbientBotDiagnostics | null>(null);
-  let aiLoadFailed = $state(false);
-  let ambientLoadFailed = $state(false);
+  let aiLoadFailed = $state<AdminLoadFailure>('none');
+  let ambientLoadFailed = $state<AdminLoadFailure>('none');
   let activeTab = $state<AiLifeLayerTab>('audit');
   let selectedAuditId = $state<string | null>(null);
   let loadedAuditId = $state<string | null>(null);
@@ -107,18 +109,18 @@
   async function refreshAi(): Promise<void> {
     try {
       diagnostics = await apiGet<AiDiagnosticsResponse>('/admin/api/ai/diagnostics');
-      aiLoadFailed = false;
+      aiLoadFailed = 'none';
     } catch (err) {
-      if (!auth.handleAuthFailure(err)) aiLoadFailed = true;
+      if (!auth.handleAuthFailure(err)) aiLoadFailed = classifyAdminLoadFailure(err);
     }
   }
 
   async function refreshAmbientBots(): Promise<void> {
     try {
       ambientBots = await apiGet<AmbientBotDiagnostics>('/admin/api/ambient-bots');
-      ambientLoadFailed = false;
+      ambientLoadFailed = 'none';
     } catch (err) {
-      if (!auth.handleAuthFailure(err)) ambientLoadFailed = true;
+      if (!auth.handleAuthFailure(err)) ambientLoadFailed = classifyAdminLoadFailure(err);
     }
   }
 
@@ -350,7 +352,9 @@
 {/if}
 
 <Panel title={t('aiOps.title')} hint={t('aiOps.refreshHint')}>
-  {#if aiLoadFailed}
+  {#if aiLoadFailed === 'forbidden'}
+    <PermissionDenied />
+  {:else if aiLoadFailed === 'error'}
     <p class="load-error" role="alert">{t('aiOps.loadFailed')}</p>
   {:else if !diagnostics}
     <p class="empty" role="status">{t('aiOps.loading')}</p>
@@ -368,7 +372,11 @@
   {/if}
 </Panel>
 
-{#if ambientLoadFailed}
+{#if ambientLoadFailed === 'forbidden'}
+  <Panel title={t('ambient.title')} hint={t('ambient.refreshHint')}>
+    <PermissionDenied />
+  </Panel>
+{:else if ambientLoadFailed === 'error'}
   <p class="load-error" role="alert">{t('ambient.loadFailed')}</p>
 {:else if ambientBots}
   <AmbientBots

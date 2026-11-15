@@ -1,6 +1,10 @@
 import * as THREE from 'three';
+import { floorVfxRenderOrder } from './floor_vfx_layer';
+import { type GroundAimGeometryState, sameGroundAimGeometry } from './ground_aim_reticle_core';
 
 const SEGMENTS = 96;
+// Refusal red, deliberately outside the school palette.
+const BLOCKED_RETICLE_COLOR = 0xd94040;
 const INNER_GUIDE_RATIO = 0.62;
 const BAND_INNER_RATIO = 0.82;
 const OUTER_LIFT = 0.08;
@@ -15,6 +19,7 @@ export interface GroundAimVisualState {
   radius: number;
   color: number;
   dimmed: boolean;
+  blocked?: boolean;
 }
 
 /** Terrain-draped ground targeting guide. Its outer edge is the gameplay radius. */
@@ -42,6 +47,11 @@ export class GroundAimReticleVisual {
   private elapsed = 0;
   private dimmed = false;
   private disposed = false;
+  private readonly geometryState: GroundAimGeometryState = {
+    x: Number.NaN,
+    z: Number.NaN,
+    radius: Number.NaN,
+  };
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -62,7 +72,7 @@ export class GroundAimReticleVisual {
 
     for (const object of [this.band, this.outer, this.inner, this.ticks]) {
       object.frustumCulled = false;
-      object.renderOrder = 3;
+      object.renderOrder = floorVfxRenderOrder('reticle', 0);
       this.group.add(object);
     }
     this.scene.add(this.group);
@@ -72,18 +82,31 @@ export class GroundAimReticleVisual {
     if (this.disposed) return;
     if (!aim) {
       this.group.visible = false;
+      this.geometryState.x = Number.NaN;
+      this.geometryState.z = Number.NaN;
+      this.geometryState.radius = Number.NaN;
       return;
     }
 
-    this.rebuild(aim.x, aim.z, Math.max(0, aim.radius));
-    this.dimmed = aim.dimmed;
+    const radius = Math.max(0, aim.radius);
+    if (!sameGroundAimGeometry(this.geometryState, aim.x, aim.z, radius)) {
+      this.rebuild(aim.x, aim.z, radius);
+      this.geometryState.x = aim.x;
+      this.geometryState.z = aim.z;
+      this.geometryState.radius = radius;
+    }
+    this.dimmed = aim.dimmed || aim.blocked === true;
+    // A blocked aim (inside the ability's minimum range) will be REFUSED at
+    // commit, so it drops the school identity for a refusal red; a merely
+    // dimmed aim still casts and keeps its school color.
+    const color = aim.blocked ? BLOCKED_RETICLE_COLOR : aim.color;
     for (const material of [
       this.outerMaterial,
       this.innerMaterial,
       this.bandMaterial,
       this.tickMaterial,
     ]) {
-      material.color.setHex(aim.color);
+      material.color.setHex(color);
       material.color.multiplyScalar(this.colorBoost);
     }
     this.group.visible = true;

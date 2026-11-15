@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml/badge.svg)](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-r165-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-RL%20env-0C7BDC)](https://gymnasium.farama.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-[![Version](https://img.shields.io/badge/version-0.31.0-blue)](../../package.json)
+[![Version](https://img.shields.io/badge/version-0.45.8-blue)](../../package.json)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.vi_VN.md)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/worldofclaudecraft)
 
@@ -92,7 +92,7 @@ npm install
 npm run dev        # then open http://localhost:5173 and choose Play Offline
 ```
 
-Đặt tên cho nhân vật, chọn bất kỳ class nào trong chín class, và bạn bắt đầu ở **Eastbrook Vale** (cấp 1-7), một thị trấn chợ được bao quanh bởi các trung tâm: bãi sói ở phía bắc, đồng cỏ lợn rừng ở phía đông, rừng Sableweb ở phía tây, Mirror Lake ở phía tây bắc, một hầm khai thác đồng đầy burrower ở phía tây nam, và một nhà nguyện đổ nát đầy kẻ chết không yên ở phía đông bắc, cùng trại cướp của Gorrak ở phía đông nam. Con đường phía bắc leo qua một đèo núi vào **Mirefen Marsh** (6-13, trung tâm Fenbridge) và lên tiếp tới **Thornpeak Heights** (13-20, trung tâm Highwatch). Seed của thế giới được cố định trong `src/main.ts`, nên đây là cùng một nơi mỗi lần ghé thăm.
+Đặt tên cho nhân vật, chọn bất kỳ class nào trong chín class, và bạn bắt đầu ở **Eastbrook Vale** (cấp 1-7), một thị trấn chợ được bao quanh bởi các trung tâm: bãi sói ở phía bắc, đồng cỏ lợn rừng ở phía đông, rừng Sableweb ở phía tây, Mirror Lake ở phía tây bắc, một hầm khai thác đồng đầy burrower ở phía tây nam, và một nhà nguyện đổ nát đầy kẻ chết không yên ở phía đông bắc, cùng trại cướp của Gorrak ở phía đông nam. Con đường phía bắc leo qua một đèo núi vào **Mirefen Marsh** (6-13, trung tâm Fenbridge) và lên tiếp tới **Thornpeak Heights** (13-20, trung tâm Highwatch). Seed của thế giới được cố định trong `src/sim/world_seed.ts`, nên đây là cùng một nơi mỗi lần ghé thăm.
 
 ### Ứng dụng desktop cho Windows, Linux, và macOS
 
@@ -234,7 +234,7 @@ Mọi instance cũng chạy được ở **Heroic**: kẻ thù cấp cao hơn, c
 
 ### Delve
 
-Delve là một chế độ nhóm nhỏ có thể scale riêng biệt cho một hoặc hai người chơi, được dựng lại từ các phòng ngẫu nhiên ở mỗi lượt chơi và kết thúc tại một rương thánh tích bị khóa, mở ra qua một minigame cạy khóa chứ không phải một lượt roll loot. **The Collapsed Reliquary** (cấp 7 trở lên) kết thúc tại Deacon Varric, với một bạn đồng hành AI, Tessa, chiến đấu bên cạnh bạn nếu bạn đi một mình. **The Drowned Litany** (cấp 12 trở lên) lần theo dấu vết vào một ngôi đền ngập nước ở rìa Mirefen Marsh. Một bảng delve đặt bậc chơi: Heroic nâng cấp độ kẻ thù và thêm một affix ngẫu nhiên để có phần thưởng hậu hĩnh hơn.
+Delve là một chế độ nhóm nhỏ có thể scale riêng biệt cho một hoặc hai người chơi, được dựng lại từ các phòng ngẫu nhiên ở mỗi lượt chơi và kết thúc tại một rương thánh tích bị khóa, mở ra qua một minigame cạy khóa chứ không phải một lượt roll loot. **The Collapsed Reliquary** (cấp 7 trở lên) kết thúc tại Deacon Vandric, với một bạn đồng hành AI, Tessa, chiến đấu bên cạnh bạn nếu bạn đi một mình. **The Drowned Litany** (cấp 12 trở lên) lần theo dấu vết vào một ngôi đền ngập nước ở rìa Mirefen Marsh. Một bảng delve đặt bậc chơi: Heroic nâng cấp độ kẻ thù và thêm một affix ngẫu nhiên để có phần thưởng hậu hĩnh hơn.
 
 ### PvP xếp hạng (the Ashen Coliseum)
 

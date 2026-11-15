@@ -31,11 +31,43 @@ export interface CachedReadOptions {
   now?: () => number;
 }
 
+/**
+ * Freeze a cache snapshot WHOLE (every nested object and array) and return
+ * it. Object.freeze alone is shallow, so a tenant that froze only its top
+ * level left the rows the serialize-once memo (server/ok_response_memo.ts)
+ * depends on mutable; a consumer poisoning a shared row would then desync the
+ * memoized bytes from the object.
+ *
+ * The recursion terminates on a VISITED set, never on Object.isFrozen: a
+ * frozen-check short-circuit refuses exactly the input this helper exists to
+ * repair (a shallow-frozen wrapper around mutable rows) and returns having
+ * frozen nothing. The visited set also makes a shared child cheap on its second
+ * sighting and tolerates a cycle, which a frozen check only did by accident.
+ */
+export function deepFreezeSnapshot<T>(value: T): T {
+  freezeInto(value, new WeakSet<object>());
+  return value;
+}
+
+function freezeInto(value: unknown, seen: WeakSet<object>): void {
+  if (typeof value !== 'object' || value === null) return;
+  if (seen.has(value)) return;
+  seen.add(value);
+  Object.freeze(value);
+  for (const child of Object.values(value as Record<string, unknown>)) freezeInto(child, seen);
+}
+
 export interface CachedRead<T> {
   /** Serve fresh-within-TTL from cache; otherwise refresh (single-flight). */
   read(): Promise<T>;
   /** Last installed value regardless of freshness, null when cold or busted. */
   peek(): T | null;
+  /** Refresh NOW regardless of freshness (the warm loops, which run on the
+   *  same cadence as the TTL and would find the value still fresh on every
+   *  other tick through read()): single-flight with any in-flight refresh
+   *  and under the same epoch guard. Rejects when the refresh fails; never
+   *  stale-serves (a warm loop logs and moves on). */
+  refresh(): Promise<T>;
   /** Drop the cached value and bump the epoch so an in-flight refresh declines to install. */
   bust(): void;
 }
@@ -118,9 +150,168 @@ export function createCachedRead<T>(
     peek(): T | null {
       return installed === null ? null : installed.value;
     },
+    refresh(): Promise<T> {
+      return refreshShared();
+    },
     bust(): void {
       epoch++;
       installed = null;
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// The KEYED sibling: a bounded map of per-key CachedRead instances. It lives
+// here, beside the single-value factory it composes, because it is generic:
+// it grew for the Discord status core (server/discord_status_cache.ts, which
+// re-exports it for its own callers and tests) and the guild bank activity log
+// (server/guild_bank_log.ts) is the second domain to need exactly it. A domain
+// module importing another domain module for a generic would be the wrong
+// seam; the cache seam is this file.
+// ---------------------------------------------------------------------------
+
+export interface KeyedCachedReadOptions {
+  ttlMs: number;
+  /** Hard entry bound; the least-recently-read key is evicted at the cap. */
+  maxEntries: number;
+  /** Injected clock for tests; production callers omit it (Date.now). */
+  now?: () => number;
+}
+
+/**
+ * A bounded map of per-key CachedRead instances: TTL, single-flight, and
+ * stale-on-error per key via createCachedRead; bust-by-key, bust-all, and the
+ * entry bound owned here. A key is whatever the owning domain keys by (account
+ * ids for the Discord status core, guild ids for the guild bank activity log,
+ * canonical query strings for the marketplace browse cache; the K parameter
+ * defaults to number so the original consumers read unchanged);
+ * each domain holds its OWN instance, so the key domains never meet and an
+ * entry can never be served for any key other than the one it is stored under.
+ */
+export interface KeyedCachedReadStats {
+  /** read() calls since construction. */
+  reads: number;
+  /** Refresh flights started (cold misses + TTL expiries + post-bust reads). */
+  refreshes: number;
+  /** Entries dropped by the cap, never by bust. */
+  evictions: number;
+  /** Entries dropped by bust()/bustAll(). */
+  busts: number;
+  /** Live entry count (same value size() returns). */
+  entries: number;
+}
+
+export class KeyedCachedRead<T, K = number> {
+  private readonly entries = new Map<K, CachedRead<T>>();
+  // Refresh telemetry, the DailyRewardBoardCache.stats() shape: this cache
+  // refreshes on demand after busts, so its query rate is bust rate times
+  // status arrival rate, and these counters are what make eviction thrash, a
+  // bust storm, or a brownout's refresh churn observable at all (a metrics
+  // export can wire them up later).
+  private readCount = 0;
+  private refreshCount = 0;
+  private evictionCount = 0;
+  private bustCount = 0;
+
+  constructor(
+    private readonly refresh: (key: K) => Promise<T>,
+    private readonly opts: KeyedCachedReadOptions,
+  ) {
+    // Loud at wiring time: a non-positive TTL would serve every read stale or
+    // never, and a non-positive cap would refuse every entry. Callers that read
+    // their bounds from the environment sanitize them first (see
+    // positiveIntFromEnv in discord_status_cache.ts); this guards every direct
+    // construction, including the ones that pass literals.
+    if (!Number.isFinite(opts.ttlMs) || opts.ttlMs <= 0)
+      throw new Error(`KeyedCachedRead ttlMs must be positive, got ${opts.ttlMs}`);
+    if (!Number.isInteger(opts.maxEntries) || opts.maxEntries <= 0)
+      throw new Error(
+        `KeyedCachedRead maxEntries must be a positive integer, got ${opts.maxEntries}`,
+      );
+  }
+
+  read(key: K): Promise<T> {
+    this.readCount += 1;
+    let entry = this.entries.get(key);
+    if (entry !== undefined) {
+      // LRU touch: a Map iterates in insertion order, so re-inserting on every
+      // sighting keeps the first key the coldest.
+      this.entries.delete(key);
+      this.entries.set(key, entry);
+      return entry.read();
+    }
+    if (this.entries.size >= this.opts.maxEntries) {
+      const coldest = this.entries.keys().next();
+      if (!coldest.done) {
+        this.entries.delete(coldest.value);
+        this.evictionCount += 1;
+      }
+    }
+    entry = createCachedRead(
+      () => {
+        // Counted where the flight STARTS, so TTL expiries and post-bust
+        // refreshes are visible, not just cold mints.
+        this.refreshCount += 1;
+        return this.refresh(key);
+      },
+      {
+        ttlMs: this.opts.ttlMs,
+        now: this.opts.now,
+      },
+    );
+    this.entries.set(key, entry);
+    const flight = entry.read();
+    flight.catch(() => {
+      // A rejected read means nothing was ever installed (a warm entry
+      // stale-serves instead of rejecting), so this entry is value-less: drop
+      // it at settle so failed mints never accumulate as dead weight (the
+      // header states the honest scope: the insert above already ran the
+      // at-cap eviction, so this prevents retention, not the transient
+      // displacement). Deleting at settle loses no single-flight sharing (the
+      // insert is synchronous, so concurrent readers joined this flight), and
+      // the next reader re-mints, cached_read's own retry shape.
+      // Identity-guarded: a bust may already have replaced us. Side effect of
+      // any settle-cleanup handler: the returned promise counts as handled,
+      // so a caller that forgets to await no longer trips unhandledRejection;
+      // awaiting callers still see the rejection.
+      if (this.entries.get(key) === entry) this.entries.delete(key);
+    });
+    return flight;
+  }
+
+  /**
+   * Whether a key currently holds an entry at all: an installed value OR an
+   * in-flight first read. Deliberately not `peek`-shaped, because the caller
+   * that needs this (the guild bank log's coalescing floor) must treat a cold
+   * MINT and an in-flight flight the same way: in both cases there is a
+   * refresh already coming, and in neither is there a stale value to coalesce
+   * against. Does not touch the LRU order: this is an observation, not a read.
+   */
+  has(key: K): boolean {
+    return this.entries.has(key);
+  }
+
+  /** Drop one key's entry; its next read refreshes (see the header on why drop). */
+  bust(key: K): void {
+    if (this.entries.delete(key)) this.bustCount += 1;
+  }
+
+  bustAll(): void {
+    this.bustCount += this.entries.size;
+    this.entries.clear();
+  }
+
+  size(): number {
+    return this.entries.size;
+  }
+
+  stats(): KeyedCachedReadStats {
+    return {
+      reads: this.readCount,
+      refreshes: this.refreshCount,
+      evictions: this.evictionCount,
+      busts: this.bustCount,
+      entries: this.entries.size,
+    };
+  }
 }

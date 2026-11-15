@@ -6,21 +6,11 @@ import type {
 } from './party_intent';
 import type { AmbientBotArchetype } from './types';
 
-export type AmbientBotLlmSocialMode =
-  | 'quiet'
-  | 'brief'
-  | 'friendly'
-  | 'helpful';
+export type AmbientBotLlmSocialMode = 'quiet' | 'brief' | 'friendly' | 'helpful';
 
-export type AmbientBotLlmFriendPolicy =
-  | 'never'
-  | 'ifAsked'
-  | 'afterWhisper';
+export type AmbientBotLlmFriendPolicy = 'never' | 'ifAsked' | 'afterWhisper';
 
-export type AmbientBotLlmPresenceEmote =
-  | 'none'
-  | 'wave'
-  | 'cheer';
+export type AmbientBotLlmPresenceEmote = 'none' | 'wave' | 'cheer';
 
 export type AmbientBotLlmMemoryTag =
   | 'greeting'
@@ -30,9 +20,7 @@ export type AmbientBotLlmMemoryTag =
   | 'solo'
   | 'helpful';
 
-export type AmbientBotPartyChatMode =
-  | 'leader_brief'
-  | 'member_ack';
+export type AmbientBotPartyChatMode = 'leader_brief' | 'member_ack';
 
 export interface AmbientBotLlmBotRef {
   botId: string;

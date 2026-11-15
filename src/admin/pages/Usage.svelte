@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import type { ProviderUsageResponse, ProviderUsageSnapshot } from '../types';
   import { apiGet } from '../api';
+  import { type AdminLoadFailure, classifyAdminLoadFailure } from '../load_failure';
+  import PermissionDenied from '../components/PermissionDenied.svelte';
   import { auth } from '../state/auth.svelte';
   import { LIVE_REFRESH_MS, poll } from '../state/poll';
   import { t } from '../i18n';
@@ -11,13 +13,15 @@
   // Usage tab: provider request counts + cache stats, refreshed every 5s. Served
   // on its own ops_usage.read-gated route (admin/superadmin only), not overview.
   let usage = $state<ProviderUsageSnapshot | null>(null);
+  let failed = $state<AdminLoadFailure>('none');
 
   async function refresh(): Promise<void> {
     try {
       const res = await apiGet<ProviderUsageResponse>('/admin/api/provider-usage');
       usage = res.usage;
+      failed = 'none';
     } catch (err) {
-      if (!auth.handleAuthFailure(err)) console.error('usage refresh failed:', err);
+      if (!auth.handleAuthFailure(err)) failed = classifyAdminLoadFailure(err);
     }
   }
 
@@ -25,7 +29,11 @@
 </script>
 
 <Panel title={t('usage.title')} hint={t('usage.refreshHint')}>
-  {#if usage}
+  {#if failed === 'forbidden'}
+    <PermissionDenied />
+  {:else if failed === 'error'}
+    <div class="empty">{t('usage.loadFailed')}</div>
+  {:else if usage}
     <ProviderUsage {usage} />
   {/if}
 </Panel>

@@ -6,9 +6,7 @@ import {
   hostedPlayStatusView,
 } from '../src/ui/hosted_play_status_view';
 
-function hostedPlayStatus(
-  overrides: Partial<HostedPlayStatus> = {},
-): HostedPlayStatus {
+function hostedPlayStatus(overrides: Partial<HostedPlayStatus> = {}): HostedPlayStatus {
   return {
     characterId: 7,
     characterName: 'Hero',
@@ -122,10 +120,14 @@ function hostedPlayStatus(
 
 describe('hostedPlayStatusView', () => {
   it('maps the auto-invite setting from hosted-play responses', () => {
-    expect(hostedPlayStatusView(hostedPlayStatus({
-      autoInviteNearbyPlayers: true,
-      autoInviteNearbyTargetPartySize: 4,
-    }))).toMatchObject({
+    expect(
+      hostedPlayStatusView(
+        hostedPlayStatus({
+          autoInviteNearbyPlayers: true,
+          autoInviteNearbyTargetPartySize: 4,
+        }),
+      ),
+    ).toMatchObject({
       autoInviteNearbyPlayers: true,
       autoInviteNearbyTargetPartySize: 4,
       actionLogEnabled: true,

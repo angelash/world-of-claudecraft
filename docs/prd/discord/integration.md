@@ -128,7 +128,60 @@ also pushes voice-room membership so the widget shows it even without the iframe
 - Schema is additive idempotent DDL applied at boot (no migrations); see
   `server/discord_db.ts` `DISCORD_SCHEMA`.
 
+## Queue-pop direct messages (game -> bot -> player)
+- Opt-in per account: the Options window row "Send me a Discord direct message when my
+  battleground or arena queue pops" writes `accounts.discord_queue_pings` through
+  `GET`/`POST /api/discord/queue-pings` (`server/discord_queue_pings.ts`). Off by default:
+  a DM is asked for, never assumed, and it needs a linked Discord account.
+- The game loop observes `bgProposed` (the Thornhollow Fields Accept/Decline offer, 30 s)
+  and `arenaFound` (the Ashen Coliseum seats the player) each tick and enqueues one item
+  per opted-in linked player into `server/discord_queue_pops.ts`; the bot drains it as the
+  outbox's fifth stream (`queuePops`) and DMs the player (`bot/logic.ts`
+  `buildQueuePopMessage`: the queue, the character, a live Discord countdown to the
+  deadline, and a button back into the game).
+- Latency: the outbox also reports whether an opted-in linked player is waiting in a queue,
+  and the bot counts that as work, so the poll holds its active cadence for the whole wait
+  instead of decaying to idle and finding the pop half a window late. Items carry their
+  deadline; the drain and the bot both drop a pop that already lapsed.
+- Refusals are cheap: a user whose privacy settings block DMs from server members costs one
+  403 and is then refused locally by the governor's forbidden cache (`dm:<user>` subject)
+  for its TTL.
+
+## World PvP kill feed (game -> bot -> channel)
+- Every resolved World PvP (`/pvp` flag) kill, and nothing else: duels, battlegrounds and
+  arenas never feed it (duel results already card on the activity feed).
+- The sim fires the server-only `worldPvpKill` event exactly once per death from
+  `worldPvpOnPlayerDeath` (`src/sim/pvp/world_pvp.ts`, behind its paid-death guard):
+  killer, victim, both levels, the victim's zone, the credited assists, and the stake
+  actually taken. `server/event_frame.ts` strips it from every client frame.
+- The activity-detect chain shapes it (`server/discord_pvp_feed.ts` `pvpKillFeedItem`,
+  zone id to its English name) into a bounded queue (`PVP_KILL_FEED_MAX_QUEUE`,
+  oldest dropped first) that the bot drains as the outbox's sixth stream (`pvpKills`).
+- Names only: no account ids, so the stream costs the outbox's identity read nothing and
+  every kill posts whether or not anyone is linked. Nobody is pinged
+  (`allowed_mentions: { parse: [] }`).
+- The bot batches each drain into digest posts (`bot/logic.ts` `chunkPvpKills` +
+  `buildPvpKillFeedMessage`, `PVP_FEED_LINES_PER_POST` lines each), so a brawl costs a
+  handful of messages rather than one per kill.
+- `DISCORD_PVP_FEED_CHANNEL_ID` has no fallback: unset is off (drained kills are dropped
+  after a once-per-channel notice), so kill volume never lands in the relay or activity
+  channel.
+
+## King of the Hill spawn calls (game -> bot -> the PvP channel)
+- The same `DISCORD_PVP_FEED_CHANNEL_ID` channel gets a card when a hill is announced
+  (the zone, a live Discord countdown to the rise, the time it falls) and another when it
+  rises. The fall is not posted.
+- `announcePhase` in `src/sim/pvp/hill.ts` fires the server-only `hillAnnounced` event
+  beside the realm's chat line, with times RELATIVE to the announcement.
+  `server/discord_hill_feed.ts` maps them onto the server's wall clock and queues the item
+  (`HILL_ANNOUNCEMENT_MAX_QUEUE`); the outbox serves it as the `hillAnnouncements` stream.
+- The bot posts calls ahead of the kill digests and skips one whose moment passed while it
+  was queued (`hillAnnouncementIsStale`), so a stalled bot never calls players to a hill
+  that is not there.
+
 ## Out of scope / follow-ups
+- Dungeon Finder proposals (`dfProposal`) as a third queue-pop kind; the observer's
+  event arm is the only place that changes.
 - Live "speaking" indicators (needs a voice-gateway connection).
 - Equippable account-wide titles in-world (titles are recorded claims today; the
   in-world flex is the nameplate/inspect status badge + the cosmetic chroma).

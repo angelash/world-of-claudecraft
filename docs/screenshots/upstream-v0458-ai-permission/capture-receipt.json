@@ -1,0 +1,164 @@
+{
+  "compilerDocumentation": "https://svelte.dev/docs/svelte/svelte-compiler",
+  "compilerVersion": "5.56.5",
+  "browserPath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "component": "src/admin/pages/AiOperations.svelte",
+  "baseline": "merge index",
+  "baselineSha256": "13d76178f1a67c17279ec23e754ea8cb795c1a796f406bce1b6ee9aab732c36b",
+  "currentSha256": "fb77e3bc7946139d0d9de63a1a659cf2190eddc68a19e900d4e4037b1eeb3e36",
+  "verification": "Isolated actual component and styles with synthetic responses. No live backend.",
+  "captures": [
+    {
+      "filename": "ai-desktop-before.png",
+      "denied": "ai",
+      "device": "desktop",
+      "phase": "before",
+      "width": 1280,
+      "height": 900,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\n\nCould not load AI diagnostics.\n\nAmbient player bots\nplanner, runtime, and model diagnostics\ndisabled\nPLANNER\n0\nDIRECTORY TOTAL\n0\nREADY\n0\nONLINE\n0\nDESIRED BOTS\n0\nASSIGNED BOTS\nnot available\nRUNTIME\n0\nACTIVE RUNNERS\n0\nCONNECTED RUNNERS\nnot available\nMODEL DECISIONS\n0\n5H CALLS REMAINING\n0\nWEEKLY CALLS REMAINING",
+      "forbiddenPanels": 0,
+      "genericErrors": 1,
+      "viewport": 1280,
+      "contentWidth": 1280,
+      "pngSha256": "a46ce50ad8ccee4c0b0de0d40a84b122488dacc3e95dce15de44c5646e5d25e2",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    },
+    {
+      "filename": "ai-mobile-before.png",
+      "denied": "ai",
+      "device": "mobile",
+      "phase": "before",
+      "width": 390,
+      "height": 844,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\n\nCould not load AI diagnostics.\n\nAmbient player bots\nplanner, runtime, and model diagnostics\ndisabled\nPLANNER\n0\nDIRECTORY TOTAL\n0\nREADY\n0\nONLINE\n0\nDESIRED BOTS\n0\nASSIGNED BOTS\nnot available\nRUNTIME\n0\nACTIVE RUNNERS\n0\nCONNECTED RUNNERS\nnot available\nMODEL DECISIONS\n0\n5H CALLS REMAINING\n0\nWEEKLY CALLS REMAINING",
+      "forbiddenPanels": 0,
+      "genericErrors": 1,
+      "viewport": 390,
+      "contentWidth": 390,
+      "pngSha256": "9f4d45a1ed5abd904ca1af0356b5984705b90b6d659aaecd3a012536fd3f9dbf",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    },
+    {
+      "filename": "ambient-desktop-before.png",
+      "denied": "ambient",
+      "device": "desktop",
+      "phase": "before",
+      "width": 1280,
+      "height": 900,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\nhealthy\nSTATUS\n0\nPROVIDER CALLS\n0 ms\nAVERAGE PROVIDER LATENCY\n0 ms\nPROVIDER LATENCY P95\n0\nMEMORY WRITES QUEUED\n0 / 0\nSPEECH POLISH CHANGED / CHECKED\nRecent AI audit records\nActive AI\nAI usage and tokens\nAI content coverage\nAI profile preview\nAI decision diagnostics\nDecision and memory health\nNo recent AI audit records.\n\nCould not load ambient bot diagnostics.",
+      "forbiddenPanels": 0,
+      "genericErrors": 1,
+      "viewport": 1280,
+      "contentWidth": 1280,
+      "pngSha256": "8338efc6c6d930665d9a04b48723fe229ac8b253bbea9c36e0ce6866fa574bea",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    },
+    {
+      "filename": "ambient-mobile-before.png",
+      "denied": "ambient",
+      "device": "mobile",
+      "phase": "before",
+      "width": 390,
+      "height": 844,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\nhealthy\nSTATUS\n0\nPROVIDER CALLS\n0 ms\nAVERAGE PROVIDER LATENCY\n0 ms\nPROVIDER LATENCY P95\n0\nMEMORY WRITES QUEUED\n0 / 0\nSPEECH POLISH CHANGED / CHECKED\nRecent AI audit records\nActive AI\nAI usage and tokens\nAI content coverage\nAI profile preview\nAI decision diagnostics\nDecision and memory health\nNo recent AI audit records.\n\nCould not load ambient bot diagnostics.",
+      "forbiddenPanels": 0,
+      "genericErrors": 1,
+      "viewport": 390,
+      "contentWidth": 390,
+      "pngSha256": "1be51d8b003236962606af506bfefa9def530ca16f61bd47e0fe624af31c9c27",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    },
+    {
+      "filename": "ai-desktop-after.png",
+      "denied": "ai",
+      "device": "desktop",
+      "phase": "after",
+      "width": 1280,
+      "height": 900,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\nPermission denied\nYour staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.\n\nPermission denied Your staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.\n\nAmbient player bots\nplanner, runtime, and model diagnostics\ndisabled\nPLANNER\n0\nDIRECTORY TOTAL\n0\nREADY\n0\nONLINE\n0\nDESIRED BOTS\n0\nASSIGNED BOTS\nnot available\nRUNTIME\n0\nACTIVE RUNNERS\n0\nCONNECTED RUNNERS\nnot available\nMODEL DECISIONS\n0\n5H CALLS REMAINING\n0\nWEEKLY CALLS REMAINING",
+      "forbiddenPanels": 1,
+      "genericErrors": 0,
+      "viewport": 1280,
+      "contentWidth": 1280,
+      "pngSha256": "78b44eac1e2a65823ca52b6414c30972b8a83567144faa8bff1380e4b8c6e6e1",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    },
+    {
+      "filename": "ai-mobile-after.png",
+      "denied": "ai",
+      "device": "mobile",
+      "phase": "after",
+      "width": 390,
+      "height": 844,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\nPermission denied\nYour staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.\n\nPermission denied Your staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.\n\nAmbient player bots\nplanner, runtime, and model diagnostics\ndisabled\nPLANNER\n0\nDIRECTORY TOTAL\n0\nREADY\n0\nONLINE\n0\nDESIRED BOTS\n0\nASSIGNED BOTS\nnot available\nRUNTIME\n0\nACTIVE RUNNERS\n0\nCONNECTED RUNNERS\nnot available\nMODEL DECISIONS\n0\n5H CALLS REMAINING\n0\nWEEKLY CALLS REMAINING",
+      "forbiddenPanels": 1,
+      "genericErrors": 0,
+      "viewport": 390,
+      "contentWidth": 390,
+      "pngSha256": "7361db1464e1f16d23a34bc425d922b5b704acd38ddc48b50a6f633350ad1cac",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    },
+    {
+      "filename": "ambient-desktop-after.png",
+      "denied": "ambient",
+      "device": "desktop",
+      "phase": "after",
+      "width": 1280,
+      "height": 900,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\nhealthy\nSTATUS\n0\nPROVIDER CALLS\n0 ms\nAVERAGE PROVIDER LATENCY\n0 ms\nPROVIDER LATENCY P95\n0\nMEMORY WRITES QUEUED\n0 / 0\nSPEECH POLISH CHANGED / CHECKED\nRecent AI audit records\nActive AI\nAI usage and tokens\nAI content coverage\nAI profile preview\nAI decision diagnostics\nDecision and memory health\nNo recent AI audit records.\nAmbient player bots\nplanner, runtime, and model diagnostics\nPermission denied\nYour staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.\n\nPermission denied Your staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.",
+      "forbiddenPanels": 1,
+      "genericErrors": 0,
+      "viewport": 1280,
+      "contentWidth": 1280,
+      "pngSha256": "0c429bc6fe0528b5219ed64003adc20cbdf18c8014ca13f82b15afd32abeb573",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    },
+    {
+      "filename": "ambient-mobile-after.png",
+      "denied": "ambient",
+      "device": "mobile",
+      "phase": "after",
+      "width": 390,
+      "height": 844,
+      "text": "You have read-only access to these diagnostics.\n\nAI life layer\nrefreshes every 5s\nhealthy\nSTATUS\n0\nPROVIDER CALLS\n0 ms\nAVERAGE PROVIDER LATENCY\n0 ms\nPROVIDER LATENCY P95\n0\nMEMORY WRITES QUEUED\n0 / 0\nSPEECH POLISH CHANGED / CHECKED\nRecent AI audit records\nActive AI\nAI usage and tokens\nAI content coverage\nAI profile preview\nAI decision diagnostics\nDecision and memory health\nNo recent AI audit records.\nAmbient player bots\nplanner, runtime, and model diagnostics\nPermission denied\nYour staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.\n\nPermission denied Your staff roles do not carry the permission this view reads. Ask a superadmin to grant it, then reload.",
+      "forbiddenPanels": 1,
+      "genericErrors": 0,
+      "viewport": 390,
+      "contentWidth": 390,
+      "pngSha256": "aec47a638323e705d2a08aba92771a6954f3e7a68d329a23044c0f3caebfbcb0",
+      "requests": [
+        "/admin/api/ai/diagnostics",
+        "/admin/api/ambient-bots"
+      ],
+      "errors": []
+    }
+  ]
+}

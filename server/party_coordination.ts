@@ -14,10 +14,7 @@ export interface PartyCombatTarget {
   distance: number;
 }
 
-export function distanceBetweenPartyMembers(
-  a: PartyMemberInfo,
-  b: PartyMemberInfo,
-): number {
+export function distanceBetweenPartyMembers(a: PartyMemberInfo, b: PartyMemberInfo): number {
   return distanceToPoint(a.x, a.z, b.x, b.z);
 }
 
@@ -48,18 +45,19 @@ export function findPartyCombatTarget(input: {
   if (mobs.size === 0) return null;
 
   const memberByPid = new Map(input.party.members.map((member) => [member.pid, member]));
-  const threatTarget = [...mobs.values()]
-    .filter((mob) => mob.aggroTargetId !== null && partyMemberIds.has(mob.aggroTargetId))
-    .sort((a, b) => {
-      const aMember = memberByPid.get(a.aggroTargetId ?? -1);
-      const bMember = memberByPid.get(b.aggroTargetId ?? -1);
-      const healthDelta = partyMemberHealthRatio(aMember) - partyMemberHealthRatio(bMember);
-      if (Math.abs(healthDelta) > 0.001) return healthDelta;
-      const aLeader = a.aggroTargetId === input.party.leader ? 1 : 0;
-      const bLeader = b.aggroTargetId === input.party.leader ? 1 : 0;
-      if (aLeader !== bLeader) return bLeader - aLeader;
-      return a.distance - b.distance || a.id - b.id;
-    })[0] ?? null;
+  const threatTarget =
+    [...mobs.values()]
+      .filter((mob) => mob.aggroTargetId !== null && partyMemberIds.has(mob.aggroTargetId))
+      .sort((a, b) => {
+        const aMember = memberByPid.get(a.aggroTargetId ?? -1);
+        const bMember = memberByPid.get(b.aggroTargetId ?? -1);
+        const healthDelta = partyMemberHealthRatio(aMember) - partyMemberHealthRatio(bMember);
+        if (Math.abs(healthDelta) > 0.001) return healthDelta;
+        const aLeader = a.aggroTargetId === input.party.leader ? 1 : 0;
+        const bLeader = b.aggroTargetId === input.party.leader ? 1 : 0;
+        if (aLeader !== bLeader) return bLeader - aLeader;
+        return a.distance - b.distance || a.id - b.id;
+      })[0] ?? null;
   if (threatTarget) return combatTarget(threatTarget);
 
   const explicitTarget = explicitPartyTarget(input.party, mobs);
@@ -109,12 +107,7 @@ export function travelGoalToPartyTarget(
   };
 }
 
-function distanceToPoint(
-  x1: number,
-  z1: number,
-  x2: number,
-  z2: number,
-): number {
+function distanceToPoint(x1: number, z1: number, x2: number, z2: number): number {
   const dx = x1 - x2;
   const dz = z1 - z2;
   return Math.sqrt(dx * dx + dz * dz);
@@ -147,7 +140,10 @@ function explicitPartyTarget(
     const target = mobs.get(leaderTargetId);
     if (target) return target;
   }
-  const votedTargets = new Map<number, { target: PartyCombatTarget & { aggroTargetId: number | null }; votes: number }>();
+  const votedTargets = new Map<
+    number,
+    { target: PartyCombatTarget & { aggroTargetId: number | null }; votes: number }
+  >();
   for (const member of party.members) {
     if (member.dead) continue;
     const targetId = member.targetId ?? null;
@@ -158,9 +154,12 @@ function explicitPartyTarget(
     current.votes++;
     votedTargets.set(targetId, current);
   }
-  return [...votedTargets.values()]
-    .sort((a, b) => b.votes - a.votes || a.target.distance - b.target.distance || a.target.id - b.target.id)[0]
-    ?.target ?? null;
+  return (
+    [...votedTargets.values()].sort(
+      (a, b) =>
+        b.votes - a.votes || a.target.distance - b.target.distance || a.target.id - b.target.id,
+    )[0]?.target ?? null
+  );
 }
 
 function combatTarget(

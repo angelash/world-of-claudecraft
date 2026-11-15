@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AmbientPlayerBotLlmCoordinator } from '../server/ambient_bots/llm_coordinator';
-import { AmbientPlayerBotRuntime } from '../server/ambient_bots/runtime';
 import type { AmbientBotLlmProvider } from '../server/ambient_bots/llm_types';
+import { AmbientPlayerBotRuntime } from '../server/ambient_bots/runtime';
 import type { AmbientBotPlanAction, AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotSocket } from '../server/ambient_bots/ws_client';
+import { DUNGEONS, instanceOrigin } from '../src/sim/data';
 
 function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotRecord {
   return {
@@ -2100,6 +2101,10 @@ describe('AmbientPlayerBotRuntime', () => {
 
   it('holds the Bastion leader for regroup and has the trailing follower use /follow inside the dungeon', async () => {
     const game = new FakeGame();
+    const origin = instanceOrigin(DUNGEONS.sunken_bastion.index, 0);
+    // Both players stand on the authored rampart walk, 26 yards apart.
+    const leader = { x: origin.x + 57, z: origin.z + 46 };
+    const follower = { x: origin.x + 57, z: origin.z + 20 };
     const sockets: FakeSocket[] = [];
     let socketIndex = 0;
     const db = {
@@ -2148,8 +2153,8 @@ describe('AmbientPlayerBotRuntime', () => {
           res: 0,
           mres: 0,
           rtype: 'rage',
-          x: 1532,
-          z: -1200,
+          x: leader.x,
+          z: leader.z,
           dead: 0,
           inCombat: 0,
           group: 1,
@@ -2164,8 +2169,8 @@ describe('AmbientPlayerBotRuntime', () => {
           res: 120,
           mres: 120,
           rtype: 'mana',
-          x: 1506,
-          z: -1200,
+          x: follower.x,
+          z: follower.z,
           dead: 0,
           inCombat: 0,
           group: 1,
@@ -2187,8 +2192,8 @@ describe('AmbientPlayerBotRuntime', () => {
         const socket = new FakeSocket(isLeader ? 101 : 102, {
           self: {
             id: isLeader ? 101 : 102,
-            x: isLeader ? 1532 : 1506,
-            z: -1200,
+            x: isLeader ? leader.x : follower.x,
+            z: isLeader ? leader.z : follower.z,
             dgn: 'sunken_bastion',
             lv: 16,
             hp: 120,
@@ -2211,8 +2216,8 @@ describe('AmbientPlayerBotRuntime', () => {
               id: isLeader ? 102 : 101,
               k: 'player',
               nm: isLeader ? 'Branorabb' : 'Branoraaa',
-              x: isLeader ? 1506 : 1532,
-              z: -1200,
+              x: isLeader ? follower.x : leader.x,
+              z: isLeader ? follower.z : leader.z,
               lv: 16,
               dgn: 'sunken_bastion',
             },

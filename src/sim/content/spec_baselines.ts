@@ -3,51 +3,26 @@
 // effects are intentionally separate from mastery and choice rows so class
 // owners can rebalance and redesign each spec without deleting the hotfix floor.
 //
-// Warrior and Mage are deliberately excluded. The floor exists to close the gap
-// for the classes weakened by the Talents 2.0 transition; warrior and mage are
-// already the two strongest classes, so restoring their pre-v0.27 passives would
-// widen the gap this hotfix is meant to close. Their masteries, signatures, and
-// ability kits are untouched, only the restored baseline is withheld. Mage also
-// has no Chronomancy baseline (new healer kit, no former baseline to restore).
+// Paladin, Warrior, and Mage are deliberately excluded. Paladin now owns a
+// complete class-specific kit and mastery layer, so retaining its legacy floor
+// would double-apply specialization power. Warrior and Mage remain excluded for
+// the original hotfix balance reasons. Mage also has no Chronomancy baseline
+// (new healer kit, no former baseline to restore).
 
 import type { PlayerClass } from '../types';
 import type { TalentEffect } from './talents';
 
+// Classic Lightning Mastery at 5/5: 1.0 sec off a 3.0 sec cast.
+export const LIGHTNING_MASTERY_CAST_PCT = -1 / 3;
+
 export type SpecBaselineTable = Partial<Record<PlayerClass, Record<string, TalentEffect>>>;
 
 export const SPEC_BASELINES: SpecBaselineTable = {
-  paladin: {
-    holy: {
-      // v0.28.x stat-identity pass: healer scales on Int, not Str.
-      stats: { int: 6 },
-      global: { healPct: 0.06 },
-      ability: [
-        { ability: 'seal_of_righteousness', costPct: -0.16 },
-        { ability: 'judgement', costPct: -0.16 },
-        { ability: 'holy_light', dmgPct: 0.24 },
-        { ability: 'flash_of_light', costPct: -0.16, castPct: -0.2 },
-      ],
-    },
-    protection: {
-      // staPct 0.35 (2026-07 tank parity): armor was already best-in-class,
-      // but with no stamina multiplier the paladin sat at 76% of the prot
-      // warrior's effective HP. This lands him at rough parity while the
-      // warrior keeps parry/block/stance as the pure-tank identity.
-      stats: { str: 6, dodge: 0.02, armorPct: 0.29, staPct: 0.35 },
-      global: { threatPct: 0.2 },
-      ability: [
-        { ability: 'devotion_aura', buffPct: 0.4 },
-        { ability: 'righteous_fury', costPct: -0.5 },
-      ],
-    },
-    retribution: {
-      stats: { str: 6 },
-      ability: [
-        { ability: 'seal_of_righteousness', dmgPct: 0.2, costPct: -0.4 },
-        { ability: 'judgement', dmgPct: 0.2, costPct: -0.4, cooldownPct: -0.3 },
-      ],
-    },
-  },
+  // Paladin is absent by design, alongside Warrior and Mage: an overhauled class
+  // carries its passive floor on its spec mastery, not here. Faithwarden's
+  // Oathward owns the 2026-07 tank-parity stamina multiplier (see
+  // talents_classic.ts); the threat and armor the old baseline granted are
+  // already covered, and larger, by that mastery plus Burning Oath.
   hunter: {
     beast_mastery: {
       // v0.28.x stat-identity pass: de-overloaded. Was Sta +9, AP +32, Armor
@@ -61,36 +36,69 @@ export const SPEC_BASELINES: SpecBaselineTable = {
       ability: [
         { ability: 'arcane_shot', dmgPct: 0.24, costPct: -0.16, cooldownPct: -0.1 },
         { ability: 'serpent_sting', costPct: -0.16 },
-        { ability: 'aimed_shot', dmgPct: 0.16, castPct: -0.2 },
+        { ability: 'aimed_shot', dmgPct: 0.5, castPct: -0.2 },
         { ability: 'concussive_shot', cooldownPct: -0.1 },
       ],
     },
     survival: {
-      stats: { agi: 3, crit: 0.03, dodge: 0.12 },
-      global: { meleeDmgPct: 0.06 },
+      // 2026-08 120s band round: the raise rides apPct, not agiPct, on
+      // purpose. apPct feeds only the two Attack Power lines (melee and
+      // hunter ranged); agiPct would also lift the Agility-derived armor,
+      // dodge, and crit on the spec that already dodges the most. The
+      // deep-equal pin in spec_baselines.test.ts guards the damage-only
+      // shape. Both arms are relatively level-invariant, an accepted
+      // remainder for the hunter kit-item pass alongside Marksmanship.
+      // v0.42.0 Fieldcraft +10% (docs/design/class-balance-v042.md): apPct
+      // 0.15 -> 0.22 lifts the AP feed (autos + pet inheritance); the offense
+      // physical ability bonus 0.30 -> 0.45 delta lives ONLY in
+      // spec_output_tuning.ts (never grown here), so the legacy meleeDmgPct
+      // stays untouched and no buff/utility collateral grows with it.
+      stats: { agi: 3, crit: 0.03, dodge: 0.12, apPct: 0.22 },
+      global: { meleeDmgPct: 0.3 },
     },
   },
+  // v0.34 rogue base re-band: with the Thronebane hand fix removing the legendary
+  // the rogue kit was tuned around, all three specs collapsed to the bottom of the
+  // zero-legendary balance table (Combat 132, Assassination 139, Subtlety 147 at
+  // 60s, the class 45 DPS below the median: nythraxis-class-balance-monte-carlo.md).
+  // This lifts the BiS-epic (no-legendary) floor of each spec to ~200 DPS. The kit
+  // is auto-attack heavy (54 to 73% of damage on the competent rotation), so the
+  // lift leans on Attack Power (apPct) and crit, which scale the white swings the
+  // per-ability and meleeDmgPct rows never touch; meleeDmgPct tops up the builder
+  // and finisher share. The legendary itself is not touched here (separate PR).
   rogue: {
+    // v0.42.0 Knifework +10% (docs/design/class-balance-v042.md): apPct
+    // 0.36 -> 0.57 lifts the auto-heavy AP feed; the offense melee ability
+    // bonus 0.22 -> 0.32 delta lives ONLY in spec_output_tuning.ts (never
+    // grown here), so meleeDmgPct stays at its legacy 0.22.
     assassination: {
-      stats: { crit: 0.03 },
-      global: { meleeDmgPct: 0.08 },
+      stats: { crit: 0.12, apPct: 0.57 },
+      global: { meleeDmgPct: 0.22 },
       ability: [
         { ability: 'sinister_strike', costPct: -0.16 },
         { ability: 'eviscerate', dmgPct: 0.32 },
       ],
     },
     combat: {
-      stats: { ap: 24, crit: 0.03 },
-      global: { meleeDmgPct: 0.08 },
+      stats: { ap: 24, crit: 0.14, apPct: 0.2 },
+      global: { meleeDmgPct: 0.16 },
       ability: [{ ability: 'sinister_strike', dmgPct: 0.2, costPct: -0.16 }],
     },
+    // v0.42.0 Skulduggery numeric budget: a straight reduction of the
+    // existing legacy fields (no offense-only component involved, since none
+    // of these are collateral-bearing buffs). Trial sustained target: about
+    // -10%. apPct 0.12 -> 0 (no AP floor left), meleeDmgPct 0.08 -> 0.04,
+    // ambush's own dmgPct 0.16 -> 0 (its true-stealth opener reward is a
+    // separate gameplay-slice mechanic, out of this numeric package).
+    // Rogue tweak pass: Skulduggery +25% sustained. It had the lowest AP of the
+    // three specs (278 vs 377/424 on raid BiS) and is the most auto-attack
+    // heavy (54% of its damage), so the lift leans on apPct 0 -> 0.45 (autos
+    // and abilities) plus a 0.10 offensive physical bonus in
+    // spec_output_tuning.ts. Raid-BiS Monte Carlo: 137.3 -> 171.5 DPS.
     subtlety: {
-      stats: { agi: 7, crit: 0.03, dodge: 0.05 },
-      ability: [
-        { ability: 'stealth', cooldownPct: -0.7 },
-        { ability: 'backstab', dmgPct: 0.16 },
-        { ability: 'ambush', dmgPct: 0.16 },
-      ],
+      stats: { agi: 7, crit: 0.1, dodge: 0.05, apPct: 0.45 },
+      global: { meleeDmgPct: 0.04 },
+      ability: [{ ability: 'backstab', dmgPct: 0.16 }],
     },
   },
   priest: {
@@ -108,18 +116,24 @@ export const SPEC_BASELINES: SpecBaselineTable = {
       global: { healPct: 0.08 },
       ability: [
         { ability: 'lesser_heal', dmgPct: 0.18, costPct: -0.16 },
-        { ability: 'heal', dmgPct: 0.18, costPct: -0.16, castPct: -0.2 },
+        { ability: 'heal', dmgPct: 0.18, costPct: -0.3, castPct: -0.2 },
         { ability: 'flash_heal', costPct: -0.16 },
+        { ability: 'prayer_of_healing', costPct: -0.15 },
         { ability: 'smite', castPct: -0.1 },
       ],
     },
     shadow: {
       // v0.28.x stat-identity pass: shadow is a DPS caster, so its flat stat is
       // Int (spell power), not the combat-dead Spirit it inherited.
+      // 2026-08-09 120s band round: the three ability rows step down again
+      // (0.3/0.34/0.4 to 0.2/0.2/0.15, with the vespers.ts multipliers) so the
+      // 120s BiS Monte Carlo lands inside the 150-200 band instead of 215.
       stats: { int: 6 },
+      global: { spellDmgPct: 0.15 },
       ability: [
-        { ability: 'shadow_word_pain', dmgPct: 0.24, costPct: -0.1 },
-        { ability: 'mind_blast', dmgPct: 0.18, costPct: -0.1 },
+        { ability: 'shadow_word_pain', dmgPct: 0.2, costPct: -0.1 },
+        { ability: 'mind_blast', dmgPct: 0.2, costPct: -0.1 },
+        { ability: 'mind_flay', dmgPct: 0.15 },
       ],
     },
   },
@@ -129,20 +143,40 @@ export const SPEC_BASELINES: SpecBaselineTable = {
       // the melee (Enhancement) and healer (Restoration) shaman specs.
       stats: { int: 8 },
       ability: [
-        { ability: 'lightning_bolt', dmgPct: 0.18, costPct: -0.35, castPct: -0.2 },
+        // v0.44 rework: classic 5/5 Lightning Mastery, 1.0 sec off the rank-4
+        // 3.0 sec Arc Bolt (castPct -1/3) and the same share off Skybranch.
+        {
+          ability: 'lightning_bolt',
+          dmgPct: 0.18,
+          costPct: -0.35,
+          castPct: LIGHTNING_MASTERY_CAST_PCT,
+        },
+        { ability: 'chain_lightning', castPct: LIGHTNING_MASTERY_CAST_PCT },
         { ability: 'earth_shock', dmgPct: 0.18, costPct: -0.15 },
         { ability: 'flame_shock', costPct: -0.2 },
+        // v0.45 rotation fix: Magma Burst takes Arc Bolt's discount. At full
+        // price the Cinder Jolt and Magma Burst loop ran out of Mana inside a
+        // 3 min fight and lost to Arc Bolt plus Earthen Jolt.
+        { ability: 'lava_burst', costPct: -0.35 },
       ],
     },
     enhancement: {
       // v0.28.x stat-identity pass: Enhancement primary is Strength, so its Int
       // stays below Elemental's; melee AP is retained.
-      stats: { int: 2, ap: 24 },
+      // v0.40 210 softening round: the 200 convergence landed Warspirit below
+      // combat rogue and fire mage on live heroic parses, so part of the
+      // baseline revert is given back on the damage-only axes (apPct feeds
+      // only the two Attack Power lines; agiPct would also buy avoidance).
+      // Measured at 24 seeds on the 120 s Nythraxis-armor boss: epic-only
+      // best kit 209.8 to 221.1 at level 20, contract fixture 188.5 to 199.2.
+      // Echo (0.25) and the tooltip-literal knobs stay put on purpose.
+      stats: { int: 2, ap: 24, apPct: 0.15 },
       ability: [
-        { ability: 'lightning_bolt', costPct: -0.1 },
-        { ability: 'earth_shock', costPct: -0.1 },
+        { ability: 'lightning_bolt', costPct: -0.2 },
+        { ability: 'earth_shock', costPct: -0.2 },
+        { ability: 'flame_shock', costPct: -0.2 },
         { ability: 'rockbiter_weapon', dmgPct: 0.4 },
-        { ability: 'stormstrike', dmgPct: 0.25 },
+        { ability: 'stormstrike', dmgPct: 0.6 },
       ],
     },
     restoration: {
@@ -151,30 +185,59 @@ export const SPEC_BASELINES: SpecBaselineTable = {
     },
   },
   warlock: {
+    // 2026-08-23 PVE viability round: all three specs benched 21 to 33% under
+    // the re-anchored best real kit at the heroic Nythraxis profile (level-22
+    // target, real armor curve), against live heroic parse tops of 169/133/131
+    // versus combat/fire at 217 to 222. The spellDmgPct floors (plus the
+    // demonology pet top-up, since pets scale with neither spell knob) size
+    // each spec to the 200 DPS heroic anchor in
+    // tests/warlock_anchor_*: measured slopes, not invented numbers.
+    // Stated collateral, accepted with the round: dmgMult also reaches the
+    // flat-magnitude buff kinds (SCALABLE_BUFF_KINDS in content/classes.ts),
+    // so Fiendhide armor resolves 88/176 instead of 80/160 (pinned in
+    // tests/warlock_class_talents.test.ts); Hard Bargain's mana yield is
+    // deliberately excluded (the lifeTap arm of scaleEffect). Rounding on
+    // small authored magnitudes makes the delivered percent wobble around the
+    // knob (Litany 9 to 11 is +10% under the 0.07 floor). The floors apply in
+    // PvP too (no PvE/PvP scaling split); flagged for the PvP review.
     affliction: {
-      // v0.28.x stat-identity pass: +2% was the lowest baseline on the table and
-      // it carried no flat stat. Lift to peer level and add the primary (Int).
       stats: { int: 6 },
-      global: { spellDmgPct: 0.06 },
+      global: { spellDmgPct: 0.07 },
       ability: [
-        { ability: 'corruption', dmgPct: 0.16, costPct: -0.15, castPct: -0.7 },
-        { ability: 'curse_of_agony', dmgPct: 0.09, costPct: -0.15 },
+        { ability: 'needle_of_fate', dmgPct: 0.08, costPct: -0.08 },
+        { ability: 'drain_life', costPct: -0.08 },
       ],
     },
+    // v0.42.0 Necromancy +20% (docs/design/class-balance-v042.md): the owner
+    // spell offensive delta (0.10 -> 0.32 total) lives ONLY in
+    // spec_output_tuning.ts (never grown here, so Fiendhide's existing
+    // spellDmgPct-fed armor collateral does not grow with it). petDmgPct
+    // 0.15 -> 0.42 is the paired baseline pet scaling (read directly by
+    // hunterPetDamageMultiplier for every owned undead). soul_harvest's own
+    // dmgPct 0.08 -> 0.096 is the exact damage-only refinement the design doc
+    // works through: (1 + 0.32 + 0.096) / (1 + 0.10 + 0.08) = 1.416 / 1.18,
+    // exactly +20%.
     demonology: {
       // v0.28.x stat-identity pass: trimmed the oversized self-stamina (was Sta
       // +15, Sta +8%, Armor +6%). Demonology stays bulky but gains its damage
       // stat. Pet armour/health is not a modifier the engine exposes (only pet
       // damage), so that direction would be a separate feature, not this pass.
       stats: { sta: 8, armorPct: 0.06, int: 6 },
+      global: { spellDmgPct: 0.1, petDmgPct: 0.42 },
       ability: [
-        { ability: 'shadow_bolt', costPct: -0.08 },
-        { ability: 'immolate', costPct: -0.08 },
-        { ability: 'demon_skin', dmgPct: 0.3 },
+        { ability: 'soul_harvest', costPct: -0.08, dmgPct: 0.096 },
+        { ability: 'bone_armor', costPct: -0.08 },
       ],
     },
+    // v0.42.0 Ruination +10%: the owner spell offensive delta (+0.11) lives
+    // ONLY in spec_output_tuning.ts. petDmgPct 0 -> 0.10 is the paired
+    // ordinary-pet bonus (imp/felhunter/succubus/voidwalker, plus the Pyre
+    // Colossus's normal melee swings, which already route through
+    // hunterPetDamageMultiplier); the Colossus's periodic Pyre Aura nova
+    // bypasses that path and takes the explicit combat/destruction.ts fix.
     destruction: {
       stats: { sta: 6 },
+      global: { spellDmgPct: 0.1, petDmgPct: 0.1 },
       ability: [
         { ability: 'shadow_bolt', costPct: -0.23, castPct: -0.03 },
         { ability: 'immolate', costPct: -0.23, castPct: -0.03 },
@@ -198,11 +261,18 @@ export const SPEC_BASELINES: SpecBaselineTable = {
       // staPct 0.25 (2026-07 tank parity, with Sloth Form armor 1.9 -> 2.3):
       // leather has no plate tier to grow into, so the form multiplier and
       // the baseline carry the difference (the Dire Bear logic).
-      stats: { armorPct: 0.23, staPct: 0.25 },
+      // v0.42.0 Wildfang +10% (docs/design/class-balance-v042.md): apPct 0.10
+      // feeds the autos in both forms; the paired offensive physical ability
+      // bonus (+0.15, form attacks and bleeds) lives ONLY in
+      // spec_output_tuning.ts, never CAT_FORM_DAMAGE_MULT/Wild Apex/armor/
+      // Marrowbreak's heal.
+      stats: { armorPct: 0.23, staPct: 0.25, apPct: 0.1 },
       global: { threatPct: 0.2 },
       ability: [
         { ability: 'maul', dmgPct: 0.35 },
         { ability: 'claw', dmgPct: 0.15 },
+        // Scratch copies Rendclaw's damage profile, baseline row included.
+        { ability: 'scratch', dmgPct: 0.15 },
         { ability: 'swipe', dmgPct: 0.2 },
       ],
     },

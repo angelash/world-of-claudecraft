@@ -11,6 +11,7 @@ const ABILITY_SLOTS = ACTIONS.length - 13;
 const INTERACTABLE_START = 16 + ABILITY_SLOTS * 2 + 9 + 5 * 6;
 const EMPTY_INTERACTABLE = [0, 1.5, 0, 0, 0];
 const FRIENDLY_QUEST_ID = 'q_nythraxis_scourges_end';
+const FRESH_CORPSE_TIMER = 60;
 
 function entityByTemplate(sim: Sim, templateId: string): Entity {
   const entity = [...sim.entities.values()].find(
@@ -77,6 +78,7 @@ function expectAdvertises(sim: Sim, entity: Entity, type: number): void {
 
 function makeLootableCorpse(sim: Sim, corpse: Entity, point: { x: number; z: number }): void {
   corpse.dead = true;
+  corpse.corpseTimer = FRESH_CORPSE_TIMER;
   corpse.hp = 0;
   corpse.hostile = true;
   corpse.lootable = true;
@@ -123,6 +125,34 @@ describe('RL interactable observation parity', () => {
     expect(sim.copper).toBe(copperBefore + 17);
     expect(corpse.loot).toBeNull();
     expect(corpse.lootable).toBe(false);
+  });
+
+  it('skips a harvest-only corpse and advertises the object the interact action uses', () => {
+    const sim = new Sim({ seed: SEED, playerClass: 'warrior' });
+    const [corpse] = mobFixtures(sim, 'forest_wolf', 1);
+    makeLootableCorpse(sim, corpse, { x: 33, z: 0 });
+    corpse.loot = null;
+    corpse.harvestClaimedBy = null;
+    const object = createGroundObject(
+      sim.nextId++,
+      'wolf_fang',
+      'Fallback Wolf Fang',
+      sim.groundPos(34, 0),
+    );
+    sim.addEntity(object);
+    parkOtherInteractables(sim, corpse, object);
+    standAt(sim, { x: 32, z: 0 });
+    const draws = vi.fn();
+    sim.rng.setObserver(draws);
+
+    expectAdvertises(sim, object, 0.66);
+    applyAction(sim, ACTIONS.indexOf('interact'));
+
+    expect(object.lootable).toBe(false);
+    expect(sim.countItem('wolf_fang')).toBe(1);
+    expect(corpse.lootable).toBe(true);
+    expect(corpse.harvestClaimedBy).toBeNull();
+    expect(draws).not.toHaveBeenCalled();
   });
 
   it('advertises and talks to a friendly quest mob through applyAction', () => {
@@ -220,6 +250,7 @@ describe('RL interactable observation parity', () => {
       {
         type: 'noticeboard',
         noticeboardId: 'noticeboard_eastbrook',
+        boardId: 'eastbrook_noticeboard',
         state: 'empty',
         pid: sim.player.id,
       },
@@ -232,24 +263,34 @@ describe('RL interactable observation parity', () => {
     expect(sim.drainEvents()).toEqual([]);
   });
 
-  it('advertises Tinker when the shipped board is 4.5 yards away and Tinker is 4.8', () => {
+  it('advertises the Chronicler when the shipped board is 4.5 yards away and the Chronicler is 4.8', () => {
+    // Re-pinned 2026-08 for the harbor move (d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md): the board and the toolworks
+    // are no longer neighbors, so the shipped-placement pairing swaps to
+    // chronicler_saul, the NPC the plan seats at the noticeboard. The standAt
+    // literal is the circle intersection of r=4.5 around the board (5, -89)
+    // and r=4.8 around Saul (10.2, -87.5); only those two sit in scan range.
     const sim = new Sim({ seed: SEED, playerClass: 'warrior' });
     const board = entityByTemplate(sim, 'noticeboard_eastbrook');
-    const tinker = entityByTemplate(sim, 'tinker_gizzel');
+    const saul = entityByTemplate(sim, 'chronicler_saul');
+    // Park everything else, the file-wide fixture idiom: the tutorial island
+    // adds interactables of its own, and the claim under test is
+    // board-vs-Saul priority, not who is nearest overall.
+    parkOtherInteractables(sim, board, saul);
     const player = standAt(sim, {
-      x: 5.667054662450036,
-      z: -9.214736474221478,
+      x: 6.305857720281236,
+      z: -84.69364009697496,
     });
 
     expect(board.pos.x).toBe(EASTBROOK_LAYOUT.services.noticeboard.position.x);
     expect(board.pos.z).toBe(EASTBROOK_LAYOUT.services.noticeboard.position.z);
     expect(dist2d(player.pos, board.pos)).toBeCloseTo(4.5, 12);
-    expect(dist2d(player.pos, tinker.pos)).toBeCloseTo(4.8, 12);
-    expectAdvertises(sim, tinker, 1);
+    expect(dist2d(player.pos, saul.pos)).toBeCloseTo(4.8, 12);
+    expectAdvertises(sim, saul, 1);
 
     const talkToNpc = vi.spyOn(sim, 'talkToNpc');
     sim.interact();
-    expect(talkToNpc).toHaveBeenCalledWith(tinker.id, player.id);
+    expect(talkToNpc).toHaveBeenCalledWith(saul.id, player.id);
   });
 
   it.each([

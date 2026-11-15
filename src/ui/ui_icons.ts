@@ -22,12 +22,14 @@
 import { chromeIconUrl } from './chrome_icon_art';
 
 export type UiIconName =
+  | 'bell'
   // game-icons.net
   | 'arena'
   | 'dfinder'
   | 'tank'
   | 'healer'
   | 'check'
+  | 'sprout'
   | 'questlog'
   | 'crown'
   | 'target'
@@ -49,6 +51,7 @@ export type UiIconName =
   | 'x'
   | 'kick'
   | 'youtube'
+  | 'steam'
   | 'donate'
   | 'chest'
   // hand-authored geometrics
@@ -57,6 +60,8 @@ export type UiIconName =
   | 'next'
   | 'more'
   | 'meters'
+  | 'gear'
+  | 'battleground'
   | 'whisper'
   | 'music'
   | 'talents'
@@ -64,24 +69,46 @@ export type UiIconName =
   | 'jump'
   | 'autorun'
   | 'swap'
+  | 'sort'
   | 'nameplates'
   | 'vibrate'
   | 'lock'
   | 'mail'
-  | 'ball'
   | 'book'
   | 'cards'
   | 'trash'
+  | 'mount'
   | 'crafting'
   | 'professions'
   | 'makers-mark'
   | 'enchant-rune'
-  | 'bond-link';
+  | 'bond-link'
+  | 'download'
+  | 'eye'
+  | 'eye-off'
+  | 'promote'
+  | 'demote'
+  | 'out-of-range'
+  | 'wiki'
+  | 'alert'
+  | 'perfecting'
+  | 'harvest-journal';
 
 // Inner SVG markup per icon (one or more <path>). Default fill rule is nonzero
 // (correct for game-icons.net art incl. overlaps); the two hand-authored cut-out
 // glyphs set fill-rule="evenodd" locally.
 const ICONS: Record<UiIconName, string> = {
+  bell: '<path d="M224 48a32 32 0 0 1 64 0v24c70 14 112 72 112 144v88l40 56v24H72v-24l40-56v-88c0-72 42-130 112-144V48Zm-64 168v104l-16 16h224l-16-16V216a96 96 0 0 0-192 0Zm48 192h96a48 48 0 0 1-96 0Z"/>',
+  // hand-authored capture-the-flag banner on a pole (Thornhollow Fields battleground)
+  battleground: '<path d="M150 56h26v400h-26z"/><path d="M176 78h236l-52 66 52 66H176z"/>',
+  // hand-authored rank arrows: broad chevrons plus a baseline, designed for
+  // the guild roster's 15px controls rather than depending on OS font glyphs
+  promote:
+    '<path d="M88 300 256 132l168 168-46 46-122-122-122 122z"/><path d="M96 404h320v48H96z"/>',
+  demote: '<path d="m88 212 46-46 122 122 122-122 46 46-168 168z"/><path d="M96 60h320v48H96z"/>',
+  // hand-authored four-corner separation mark for an out-of-range unit frame
+  'out-of-range':
+    '<path d="M54 54h154v44h-79l92 92-31 31-92-92v79H54zM458 54v154h-44v-79l-92 92-31-31 92-92h-79V54zM54 458V304h44v79l92-92 31 31-92 92h79v44zM458 458H304v-44h79l-92-92 31-31 92 92v-79h44z"/>',
   // ── game-icons.net (CC BY 3.0) ───────────────────────────────────────────
   arena:
     '<path d="M19.75 14.438c59.538 112.29 142.51 202.35 232.28 292.718l3.626 3.75.063-.062c21.827 21.93 44.04 43.923 66.405 66.25-18.856 14.813-38.974 28.2-59.938 40.312l28.532 28.53 68.717-68.717c42.337 27.636 76.286 63.646 104.094 105.81l28.064-28.06c-42.47-27.493-79.74-60.206-106.03-103.876l68.936-68.938-28.53-28.53c-11.115 21.853-24.413 42.015-39.47 60.593-43.852-43.8-86.462-85.842-130.125-125.47-.224-.203-.432-.422-.656-.625C183.624 122.75 108.515 63.91 19.75 14.437zm471.875 0c-83.038 46.28-154.122 100.78-221.97 161.156l22.814 21.562 56.81-56.812 13.22 13.187-56.438 56.44 24.594 23.186c61.802-66.92 117.6-136.92 160.97-218.72zm-329.53 125.906l200.56 200.53c-4.36 4.443-8.84 8.793-13.405 13.032L148.875 153.53l13.22-13.186zm-76.69 113.28l-28.5 28.532 68.907 68.906c-26.29 43.673-63.53 76.414-106 103.907l28.063 28.06c27.807-42.164 61.758-78.174 104.094-105.81l68.718 68.717 28.53-28.53c-20.962-12.113-41.08-25.5-59.937-40.313 17.865-17.83 35.61-35.433 53.157-52.97l-24.843-25.655-55.47 55.467c-4.565-4.238-9.014-8.62-13.374-13.062l55.844-55.844-24.53-25.374c-18.28 17.856-36.602 36.06-55.158 54.594-15.068-18.587-28.38-38.758-39.5-60.625z"/>',
@@ -90,6 +117,11 @@ const ICONS: Record<UiIconName, string> = {
   tank: '<path d="M256 32l192 64v128c0 132-82 227-192 256C146 451 64 356 64 224V96zm0 68l-128 43v81c0 100 57 172 128 197 71-25 128-97 128-197v-81z"/>',
   healer: '<path d="M198 64h116v134h134v116H314v134H198V314H64V198h134z"/>',
   check: '<path d="M202 378L74 250l46-46 82 82 190-190 46 46z"/>',
+  // hand-authored seedling (the guild board's new-player-friendly mark): a
+  // stem rising from a mound with one leaf each side, built from the same
+  // even-odd-safe solid shapes as the other geometrics.
+  sprout:
+    '<path d="M240 468V292c-52 4-100-22-124-70-16-32-20-72-14-108 60 2 112 38 134 96 4 10 6 20 8 30 2-10 4-20 8-30 22-58 74-94 134-96 6 36 2 76-14 108-24 48-72 74-124 70v176z"/><path d="M96 468c0-30 72-52 160-52s160 22 160 52z"/>',
   questlog:
     '<path d="M103.432 17.844c-1.118.005-2.234.032-3.348.08-2.547.11-5.083.334-7.604.678-20.167 2.747-39.158 13.667-52.324 33.67-24.613 37.4 2.194 98.025 56.625 98.025.536 0 1.058-.012 1.583-.022v.704h60.565c-10.758 31.994-30.298 66.596-52.448 101.43-2.162 3.4-4.254 6.878-6.29 10.406l34.878 35.733-56.263 9.423c-32.728 85.966-27.42 182.074 48.277 182.074v-.002l9.31.066c23.83-.57 46.732-4.298 61.325-12.887 4.174-2.458 7.63-5.237 10.467-8.42h-32.446c-20.33 5.95-40.8-6.94-47.396-25.922-8.956-25.77 7.52-52.36 31.867-60.452 5.803-1.93 11.723-2.834 17.565-2.834v-.406h178.33c-.57-44.403 16.35-90.125 49.184-126 23.955-26.176 42.03-60.624 51.3-94.846l-41.225-24.932 38.272-6.906-43.37-25.807h-.005l.002-.002.002.002 52.127-8.85c-5.232-39.134-28.84-68.113-77.37-68.113C341.14 32.26 222.11 35.29 149.34 28.496c-14.888-6.763-30.547-10.723-45.908-10.652zm.464 18.703c13.137.043 27.407 3.804 41.247 10.63l.033-.07c4.667 4.735 8.542 9.737 11.68 14.985H82.92l10.574 14.78c10.608 14.83 19.803 31.99 21.09 42.024.643 5.017-.11 7.167-1.814 8.836-1.705 1.67-6.228 3.875-15.99 3.875-40.587 0-56.878-44.952-41.012-69.06C66.238 46.64 79.582 39.22 95.002 37.12c2.89-.395 5.863-.583 8.894-.573zM118.5 80.78h46.28c4.275 15.734 3.656 33.07-.544 51.51H131.52c1.9-5.027 2.268-10.574 1.6-15.77-1.527-11.913-7.405-24.065-14.62-35.74zm101.553 317.095c6.44 6.84 11.192 15.31 13.37 24.914 3.797 16.736 3.092 31.208-1.767 43.204-4.526 11.175-12.576 19.79-22.29 26h237.19c14.448 0 24.887-5.678 32.2-14.318 7.312-8.64 11.2-20.514 10.705-32.352-.186-4.473-.978-8.913-2.407-13.18l-69.91-8.205 42.017-20.528c-8.32-3.442-18.64-5.537-31.375-5.537H220.053zm-42.668.506c-1.152-.003-2.306.048-3.457.153-2.633.242-5.256.775-7.824 1.63-15.11 5.02-25.338 21.54-20.11 36.583 3.673 10.57 15.347 17.71 25.654 13.938l1.555-.57h43.354c.946-6.36.754-13.882-1.358-23.192-3.71-16.358-20.543-28.483-37.815-28.54z"/>',
   crown:
@@ -136,6 +168,11 @@ const ICONS: Record<UiIconName, string> = {
   // The same YouTube mark public/links.html draws inline for the project's channel.
   youtube:
     '<g transform="translate(16 16) scale(20)"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></g>',
+  // The Steam mark, reproduced monochrome for identification only (see CREDITS.md)
+  // on the same 24 x 24 artboard as the marks above for the wishlist reminder
+  // surfaces owned by steam_wishlist.ts.
+  steam:
+    '<g transform="translate(16 16) scale(20)"><path d="M11.979 0C5.678 0 .511 4.86 0 11.032l6.447 2.665c.545-.373 1.203-.59 1.91-.59.063 0 .125.002.188.005l2.866-4.154V8.9c0-2.501 2.034-4.534 4.534-4.534 2.5 0 4.533 2.034 4.533 4.534s-2.034 4.535-4.533 4.535h-.104l-4.089 2.92c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></g>',
   // The same filled heart the pre-game shell's Donate community link draws inline
   // (a 24 x 24 artboard), scaled and centered to fit the shared 0 0 512 512 viewBox.
   donate:
@@ -154,6 +191,8 @@ const ICONS: Record<UiIconName, string> = {
   next: '<path d="M176 96 376 256 176 416Z"/>',
   more: '<path d="M94 256a34 34 0 1 0 68 0 34 34 0 1 0-68 0M222 256a34 34 0 1 0 68 0 34 34 0 1 0-68 0M350 256a34 34 0 1 0 68 0 34 34 0 1 0-68 0Z"/>',
   meters: '<path d="M84 288h72v152H84zM220 184h72v256h-72zM356 96h72v344h-72z"/>',
+  // hand-authored gear / cogwheel: 8-tooth mechanical gear with center cut-out
+  gear: '<path fill-rule="evenodd" d="M411 216l59 10v60l-59 10-17 41 34 49-42 42-49-34-41 17-10 59h-60l-10-59-41-17-49 34-42-42 34-49-17-41-59-10v-60l59-10 17-41-34-49 42-42 49 34 41-17 10-59h60l10 59 41 17 49-34 42 42-34 49 17 41zM256 184a72 72 0 1 0 0 144 72 72 0 1 0 0-144z"/>',
   // hand-authored: a unit nameplate — name bar over a health bar, with a
   // downward pointer aimed at the unit it floats above.
   nameplates: '<path d="M88 132h336v68H88zM88 220h336v56H88zM236 296h40l-20 34z"/>',
@@ -171,6 +210,19 @@ const ICONS: Record<UiIconName, string> = {
   // hand-authored swap: two opposing horizontal arrows (the mobile action-ring
   // page-cycle badge), matching the jump/autorun glyph weight
   swap: '<path d="M96 150 340 150 340 118 436 174 340 230 340 198 96 198ZM416 314 172 314 172 282 76 338 172 394 172 362 416 362Z"/>',
+  // hand-authored sort: three shrinking bars plus a down arrow (the bag
+  // clean-up button; matches the swap/meters geometric weight)
+  sort: '<path d="M64 104h288v48H64zM64 232h208v48H64zM64 360h128v48H64zM402 104h48v224h-48z"/><path d="M362 328h128l-64 88z"/>',
+  // hand-authored download: arrow into a base line (the desktop update card),
+  // matching the jump glyph weight
+  download:
+    '<path d="M236 72h40v196h84L256 372 156 268h80z"/><rect x="116" y="408" width="280" height="40" rx="14"/>',
+  // hand-authored eye (the paperdoll helmet-visibility toggle): almond outline
+  // cut open around a solid pupil (evenodd ring, like the vibrate case)
+  eye: '<path fill-rule="evenodd" d="M256 112c-104 0-193 62-236 144 43 82 132 144 236 144s193-62 236-144c-43-82-132-144-236-144zm0 240a96 96 0 1 1 0-192 96 96 0 0 1 0 192z"/><circle cx="256" cy="256" r="56"/>',
+  // the eye behind a diagonal slash bar (helm hidden state)
+  'eye-off':
+    '<path fill-rule="evenodd" d="M256 112c-104 0-193 62-236 144 43 82 132 144 236 144s193-62 236-144c-43-82-132-144-236-144zm0 240a96 96 0 1 1 0-192 96 96 0 0 1 0 192z"/><circle cx="256" cy="256" r="56"/><path d="M106 42 470 406l-40 40L66 82z" stroke="rgba(40,26,20,0.85)" stroke-width="26"/>',
   // phone handset flanked by vibration waves (hand-authored to match the bar glyphs)
   vibrate:
     '<path fill-rule="evenodd" d="M196 80h120a24 24 0 0 1 24 24v304a24 24 0 0 1-24 24H196a24 24 0 0 1-24-24V104a24 24 0 0 1 24-24zm4 40v272h112V120H200z"/><path d="M96 176v160h28V176zM388 176v160h28V176zM40 216v80h26v-80zM446 216v80h26v-80z"/>',
@@ -179,12 +231,14 @@ const ICONS: Record<UiIconName, string> = {
   // hand-authored sealed envelope (frame + flap V), distinct from the solid
   // `whisper` glyph so mail chrome and whisper actions stay tellable apart
   mail: '<path d="M48 128a32 32 0 0 1 32-32h352a32 32 0 0 1 32 32v256a32 32 0 0 1-32 32H80a32 32 0 0 1-32-32V128zm52 8 156 122 156-122H100zm312 50L288 296a52 52 0 0 1-64 0L100 186v190h312V186z"/>',
-  // hand-authored boarball (the Vale Cup): a stitched ball, ring + two seams
   // with cross-stitch ticks so it reads at micro-button size
-  ball: '<path fill-rule="evenodd" d="M256 64a192 192 0 1 0 0 384 192 192 0 0 0 0-384zm0 40a152 152 0 1 1 0 304 152 152 0 0 1 0-304z"/><path d="M148 148c60 52 60 164 0 216l24 24c72-64 72-200 0-264zM364 148c-60 52-60 164 0 216l-24 24c-72-64-72-200 0-264z"/><path d="M238 160h36v28h-36zM238 324h36v28h-36zM220 238h72v36h-72z"/>',
   // hand-authored open book (the Book of Deeds): two page leaves meeting at a
   // spine dip, each page hollowed so the glyph reads at micro-button size
   book: '<path fill-rule="evenodd" d="M256 118c-44-26-104-38-172-38v312c68 0 128 12 172 38 44-26 104-38 172-38V80c-68 0-128 12-172 38zM124 122c40 4 76 13 104 28v246c-30-13-66-21-104-24V122zm264 0v250c-38 3-74 11-104 24V150c28-15 64-24 104-28z"/>',
+  // hand-authored horseshoe (the Mounts window / mount keybind), opening up,
+  // matching the bar glyph weight
+  mount:
+    '<path d="M120 140 A176 176 0 1 0 392 140 L340 188 A104 104 0 1 1 172 188 Z"/><path d="M96 108h84v36H96zM332 108h84v36h-84z"/>',
   // hand-authored playing card (the Card Duel minigame): a solid card body
   // with a hollowed diamond pip so the glyph reads as "a card" at
   // micro-button size (evenodd punches the pip through the body)
@@ -197,6 +251,16 @@ const ICONS: Record<UiIconName, string> = {
   // crosshair this button used to borrow (the same glyph the mobile target-cycle uses).
   professions:
     '<path d="M104 268h304v36h-30l-22 92a44 44 0 0 1-43 34h-114a44 44 0 0 1-43-34l-22-92h-30z"/><path d="M318 104 246 236" stroke="currentColor" stroke-width="34" fill="none" stroke-linecap="round"/><circle cx="238" cy="250" r="30"/>',
+  // hand-authored question mark (the Wiki launcher): a stroked hook over a dot,
+  // the universal "look it up" affordance, drawn bold so it reads at
+  // micro-button size and stays tellable apart from the emote speech bubble
+  // (a filled balloon) and the deeds book (a solid tome)
+  wiki: '<path d="M168 180c0-72 176-80 176 6 0 62-88 64-88 132" stroke="currentColor" stroke-width="46" fill="none" stroke-linecap="round"/><circle cx="256" cy="412" r="36"/>',
+  // The state glyph beside an error line (DESIGN.md 12: errors are icon plus
+  // text): an outlined triangle with a bang, currentColor like every other
+  // chrome glyph so it tints with the error text token.
+  alert:
+    '<path d="M256 62 L472 438 H40 Z" fill="none" stroke="currentColor" stroke-width="40" stroke-linejoin="round"/><path d="M256 186v118" stroke="currentColor" stroke-width="44" stroke-linecap="round"/><circle cx="256" cy="374" r="28"/>',
   // World of ClaudeCraft maker's mark: the exact project-owned calligraphic
   // stroke used beside a crafted copy's provenance line. Unlike the filled
   // chrome glyphs above, this mark is intentionally an open currentColor line.
@@ -213,6 +277,21 @@ const ICONS: Record<UiIconName, string> = {
   // hollowed with evenodd so the links stay legible at corner size.
   'bond-link':
     '<path fill-rule="evenodd" d="M186 148a108 108 0 1 0 0 216 108 108 0 0 0 0-216zm0 56a52 52 0 1 1 0 104 52 52 0 0 1 0-104zM326 148a108 108 0 1 0 0 216 108 108 0 0 0 0-216zm0 56a52 52 0 1 1 0 104 52 52 0 0 1 0-104z"/>',
+  // hand-authored faceted gem with a rising spark (the Perfecting launcher): a
+  // cut stone hollowed with evenodd so the facet reads at micro-button size,
+  // and a four-point spark above its shoulder for the rank climb. Distinct from
+  // the `crafting` anvil it sits under and from the `enchant-rune` spark alone.
+  // This glyph remains the inline and load-failure fallback for the painted
+  // side-rail launcher registered in CHROME_ART_IDS.
+  perfecting:
+    '<path fill-rule="evenodd" d="M256 128 L388 240 L256 448 L124 240 Z M256 192 L336 244 L256 376 L176 244 Z"/><path d="M400 56 L416 108 L468 124 L416 140 L400 192 L384 140 L332 124 L384 108 Z"/>',
+  // hand-authored sprout over a soil line (the Harvest Journal launcher): a
+  // stem with two leaves, the growing-crop read the journal tracks. Distinct
+  // from the `professions` mortar it sits beside and from the deeds `book`.
+  // This glyph remains the inline and load-failure fallback for the painted
+  // side-rail launcher registered in CHROME_ART_IDS.
+  'harvest-journal':
+    '<path d="M256 464V236" stroke="currentColor" stroke-width="36" fill="none" stroke-linecap="round"/><path d="M252 300C150 300 100 240 90 150C190 150 250 200 252 300Z"/><path d="M260 240C262 140 320 90 420 90C410 190 360 240 260 240Z"/><path d="M128 464H384" stroke="currentColor" stroke-width="28" fill="none" stroke-linecap="round"/>',
 };
 
 export function hasUiIcon(name: string): name is UiIconName {
@@ -254,15 +333,28 @@ function chromeArtIcon(url: string): string {
  *
  * A name with committed painted art (CHROME_ART_IDS) hydrates as that `<img>` instead of
  * the inline SVG: these placeholders ARE the primary destinations (the side rail, the
- * mobile bar, the More tray), which DESIGN.md section 6 gives painted art. The SVG stays
- * the source everywhere else, including every direct `svgIcon()` call, so the small inline
- * uses beside text keep tinting with `currentColor`.
+ * mobile bar, the More tray), which DESIGN.md section 6 gives painted art. A failed image
+ * load swaps that one icon slot to the existing SVG glyph. The SVG stays the source
+ * everywhere else, including every direct `svgIcon()` call, so the small inline uses beside
+ * text keep tinting with `currentColor`.
  */
 export function hydrateIcons(root: ParentNode = document): void {
   root.querySelectorAll<HTMLElement>('[data-icon]').forEach((el) => {
     const name = el.dataset.icon;
     if (!name || !hasUiIcon(name) || el.querySelector(':scope > .ui-icon')) return;
     const art = chromeIconUrl(name);
-    el.insertAdjacentHTML('afterbegin', art ? chromeArtIcon(art) : svgIcon(name));
+    if (!art) {
+      el.insertAdjacentHTML('afterbegin', svgIcon(name));
+      return;
+    }
+    el.insertAdjacentHTML('afterbegin', chromeArtIcon(art));
+    const image = el.querySelector<HTMLImageElement>(':scope > img.ui-icon-art');
+    image?.addEventListener(
+      'error',
+      () => {
+        image.outerHTML = svgIcon(name);
+      },
+      { once: true },
+    );
   });
 }

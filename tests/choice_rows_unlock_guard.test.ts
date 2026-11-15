@@ -7,9 +7,17 @@ import type { PlayerClass } from '../src/sim/types';
 // when those rows land so this guard covers every class.
 const ROW_REDESIGN_SKIP: ReadonlySet<PlayerClass> = new Set([]);
 // Abilities whose row-modifier is intentionally offered before the ability is
-// learnable (the pick banks and takes effect later). Empty: Flickerstep now
+// learnable (the pick banks and takes effect later). Empty: Flitstep now
 // joins the base kit at level 5, matching its level-5 choice-row modifiers.
-const FUTURE_ABILITY_EXCEPTIONS = new Set<string>([]);
+const FUTURE_ABILITY_EXCEPTIONS = new Set<string>([
+  'dru_r5_natures_bounty:starfire',
+  'dru_r5_natures_bounty:regrowth',
+  'dru_r8_typhoon:barkskin',
+  // Binding Payload and Trapcraft cover "your traps": the level 16 Bear Trap
+  // joins them once learned, while Frostjaw carries the row from its unlock.
+  'hun_r11_binding_payload:bear_trap',
+  'hun_r14_trapcraft:bear_trap',
+]);
 
 describe('choice row unlock ability guards', () => {
   it('does not modify abilities learned after the row unlocks', () => {
@@ -30,6 +38,7 @@ describe('choice row unlock ability guards', () => {
             }
             if (
               ability.learnLevel > row.level &&
+              option.effect.grant?.ability !== mod.ability &&
               !FUTURE_ABILITY_EXCEPTIONS.has(`${option.id}:${mod.ability}`)
             ) {
               failures.push(

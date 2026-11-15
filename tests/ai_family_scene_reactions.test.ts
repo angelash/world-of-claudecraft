@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import type { Entity, MobFamily } from '../src/sim/types';
 import { familyDirectorProjectionFor } from '../server/ai/director_family_projection';
-import { familyRoutinePlanKind, familySceneReactionEvent, rankFamilySceneReactions, scoreFamilySceneReaction } from '../server/ai/family_scene_reactions';
+import {
+  familyRoutinePlanKind,
+  familySceneReactionEvent,
+  rankFamilySceneReactions,
+  scoreFamilySceneReaction,
+} from '../server/ai/family_scene_reactions';
 import type { SceneFrameV1, SceneObjectSemantic } from '../server/ai/scene_frame';
 import { sceneSemanticsAt } from '../server/ai/scene_semantics';
 import { timeWeatherMood } from '../server/ai/time_weather_model';
 import type { AiWorldDirectorProposal } from '../server/ai/world_director';
+import { EASTBROOK_LAYOUT } from '../src/sim/eastbrook_layout';
+import type { Entity, MobFamily } from '../src/sim/types';
+
+const FORGE_POINT = EASTBROOK_LAYOUT.buildings
+  .find((building) => building.id === 'eastbrook_smithy')!
+  .annexes.find((annex) => annex.id === 'eastbrook_smithy:forge_shelter')!.center;
 
 function mob(id: number, templateId: string, x = 0, z = 0): Entity {
   return {
@@ -20,7 +30,12 @@ function mob(id: number, templateId: string, x = 0, z = 0): Entity {
   } as Entity;
 }
 
-function frame(x: number, z: number, timeSeconds = 8 * 60, overrides: Partial<SceneFrameV1> = {}): SceneFrameV1 {
+function frame(
+  x: number,
+  z: number,
+  timeSeconds = 8 * 60,
+  overrides: Partial<SceneFrameV1> = {},
+): SceneFrameV1 {
   const scene = sceneSemanticsAt({ x, y: 0, z }, timeSeconds);
   return {
     ...scene,
@@ -29,12 +44,20 @@ function frame(x: number, z: number, timeSeconds = 8 * 60, overrides: Partial<Sc
     companions: [],
     mood: timeWeatherMood(scene.time, scene.weather, scene.light),
     recentSceneEvents: [],
-    danger: { undeadPressure: 0, hostileDensity: 0, corpseDensity: 0, recentDeaths: 0, safeHavenScore: 0.1 },
+    danger: {
+      undeadPressure: 0,
+      hostileDensity: 0,
+      corpseDensity: 0,
+      recentDeaths: 0,
+      safeHavenScore: 0.1,
+    },
     ...overrides,
   };
 }
 
-function sceneObject(overrides: Partial<SceneObjectSemantic> & Pick<SceneObjectSemantic, 'objectId'>): SceneObjectSemantic {
+function sceneObject(
+  overrides: Partial<SceneObjectSemantic> & Pick<SceneObjectSemantic, 'objectId'>,
+): SceneObjectSemantic {
   return {
     source: 'sceneAnchor',
     entityId: null,
@@ -48,7 +71,9 @@ function sceneObject(overrides: Partial<SceneObjectSemantic> & Pick<SceneObjectS
   };
 }
 
-function directorProposal(overrides: Partial<AiWorldDirectorProposal> = {}): AiWorldDirectorProposal {
+function directorProposal(
+  overrides: Partial<AiWorldDirectorProposal> = {},
+): AiWorldDirectorProposal {
   return {
     proposalId: 'director-1:proposal',
     intent: 'echoTrace',
@@ -61,14 +86,26 @@ function directorProposal(overrides: Partial<AiWorldDirectorProposal> = {}): AiW
     suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHungry',
     expiresAt: 180,
     reasonTags: ['mood:hungry', 'subject:item', 'proposal:traceEcho', 'trace:food'],
-    safetyNotes: ['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation'],
+    safetyNotes: [
+      'presentationOnly',
+      'noQuestMutation',
+      'noCombatMutation',
+      'noLootOrEconomyMutation',
+    ],
     ...overrides,
   };
 }
 
 describe('AI family scene reactions', () => {
   it('defines a concrete living routine plan for every mob family', () => {
-    const cases: Array<[MobFamily, ReturnType<typeof familyRoutinePlanKind>, ReturnType<typeof familyRoutinePlanKind>, ReturnType<typeof familyRoutinePlanKind>]> = [
+    const cases: Array<
+      [
+        MobFamily,
+        ReturnType<typeof familyRoutinePlanKind>,
+        ReturnType<typeof familyRoutinePlanKind>,
+        ReturnType<typeof familyRoutinePlanKind>,
+      ]
+    > = [
       ['beast', 'forageScent', 'keepDistanceFromFire', 'guardScent'],
       ['humanoid', 'campClaim', 'fallBackFromThreat', 'campMutter'],
       ['mudfin', 'shoalForage', 'splashBack', 'shoalAlarm'],
@@ -91,7 +128,10 @@ describe('AI family scene reactions', () => {
   });
 
   it('lets beasts treat forge scenes as something to avoid by scent and sound', () => {
-    const reaction = scoreFamilySceneReaction(frame(8, 17), mob(10, 'forest_wolf'));
+    const reaction = scoreFamilySceneReaction(
+      frame(FORGE_POINT.x, FORGE_POINT.z),
+      mob(10, 'forest_wolf'),
+    );
     expect(reaction).toMatchObject({
       family: 'beast',
       reaction: 'avoid',
@@ -117,10 +157,16 @@ describe('AI family scene reactions', () => {
   });
 
   it('threads time and weather mood into ordinary creature scene evidence', () => {
-    const rainyForge = frame(8, 17, 12 * 60, {
+    const rainyForge = frame(FORGE_POINT.x, FORGE_POINT.z, 12 * 60, {
       weather: { kind: 'rain', intensity: 0.7, tags: ['rain', 'shelterWanted'] },
       light: { level: 'dim', tags: ['softLight'] },
-      mood: { dayEnergy: 0.3, nightFatigue: 0.1, clearNightAwe: 0, rainIrritation: 0.7, fogFear: 0 },
+      mood: {
+        dayEnergy: 0.3,
+        nightFatigue: 0.1,
+        clearNightAwe: 0,
+        rainIrritation: 0.7,
+        fogFear: 0,
+      },
       environmentalTags: ['hotIron', 'sparks', 'workNoise', 'rain', 'shelterWanted'],
     });
     const beast = scoreFamilySceneReaction(rainyForge, mob(14, 'forest_wolf'));
@@ -133,7 +179,13 @@ describe('AI family scene reactions', () => {
     const rainyLake = frame(-64, 60, 12 * 60, {
       weather: { kind: 'rain', intensity: 0.7, tags: ['rain', 'shelterWanted'] },
       light: { level: 'dim', tags: ['softLight'] },
-      mood: { dayEnergy: 0.3, nightFatigue: 0.1, clearNightAwe: 0, rainIrritation: 0.7, fogFear: 0 },
+      mood: {
+        dayEnergy: 0.3,
+        nightFatigue: 0.1,
+        clearNightAwe: 0,
+        rainIrritation: 0.7,
+        fogFear: 0,
+      },
     });
     const murloc = scoreFamilySceneReaction(rainyLake, mob(15, 'mudfin_murloc'));
     expect(murloc).toMatchObject({
@@ -217,7 +269,11 @@ describe('AI family scene reactions', () => {
         kind: 'avoid',
         planKind: 'keepDistanceFromFire',
         targetItemId: 'threshold_with_cold_draft',
-        sceneTags: expect.arrayContaining(['family:beast', 'routine:keepDistanceFromFire', 'fleeFromDark']),
+        sceneTags: expect.arrayContaining([
+          'family:beast',
+          'routine:keepDistanceFromFire',
+          'fleeFromDark',
+        ]),
       }),
     });
     expect(event.type === 'aiSpeech' ? event.reaction : null).not.toHaveProperty('targetObjectId');
@@ -272,7 +328,10 @@ describe('AI family scene reactions', () => {
     });
     expect(familyDirectorProjectionFor(haunted, { family: 'elemental' })).toMatchObject({
       reaction: 'approach',
-      reasonTags: expect.arrayContaining(['directorProjection:elementalDisturbance', 'family:elemental']),
+      reasonTags: expect.arrayContaining([
+        'directorProjection:elementalDisturbance',
+        'family:elemental',
+      ]),
     });
   });
 
@@ -365,13 +424,20 @@ describe('AI family scene reactions', () => {
   it('ranks star-aware singularity creatures above ordinary scene readers', () => {
     const scene = frame(0, 660, 23 * 60, {
       light: { level: 'dark', tags: ['starrySky'] },
-      mood: { dayEnergy: 0.2, nightFatigue: 0.65, clearNightAwe: 0.8, rainIrritation: 0, fogFear: 0 },
+      mood: {
+        dayEnergy: 0.2,
+        nightFatigue: 0.65,
+        clearNightAwe: 0.8,
+        rainIrritation: 0,
+        fogFear: 0,
+      },
       environmentalTags: ['coldWind', 'highView', 'militaryOrder', 'thinAir', 'starrySky'],
     });
-    const reactions = rankFamilySceneReactions(scene, [
-      mob(12, 'stormcrag_elemental'),
-      mob(13, 'forest_wolf'),
-    ], { worldSeed: 1, quirkThreshold: 0, singularityThreshold: 0 });
+    const reactions = rankFamilySceneReactions(
+      scene,
+      [mob(12, 'stormcrag_elemental'), mob(13, 'forest_wolf')],
+      { worldSeed: 1, quirkThreshold: 0, singularityThreshold: 0 },
+    );
 
     expect(reactions[0]).toMatchObject({
       family: 'elemental',

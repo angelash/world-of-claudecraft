@@ -1,8 +1,28 @@
+import { apiUrl } from '../client_origin';
 import { graphicsPresetLabel } from '../render/gfx';
 import { isSoftwareRendererName } from '../render/software_renderer';
 import { crowdBucketLabel } from './crowd_bucket';
+import {
+  createHostEssentialsProbe,
+  type HostEssentials,
+  type HostEssentialsProbe,
+  hostEssentialsPayloadFields,
+} from './desktop_host_essentials';
+import { frameCadenceBeaconBlock, frameCadenceBeaconFields } from './frame_cadence_wiring';
+import { createGpuAdapterProbe } from './gpu_adapter_probe';
+import { collectLoadSpans } from './load_profiler';
 import { localDevPerfTraceEnabled, type PerfMonitor, type PerfSnapshot } from './perf';
+import { type BootPhaseDurations, bootPhaseDurations } from './perf_boot_phases_core';
 import { analyzePerfSuggestions } from './perf_doctor';
+import { entryRevealSummary } from './perf_entry_reveal_core';
+import {
+  createPrewarmHeavyListGate,
+  PREWARM_REPORT_BUDGET_VARIANTS,
+  sampleCompileUnits,
+  sampleTransitions,
+} from './perf_prewarm_lists_core';
+import { jitteredPerfReportDelay } from './perf_report_schedule';
+import { shaderWarmBeaconSummary } from './perf_shader_warm_core';
 import type { Settings } from './settings';
 import type { WorldTelemetry } from './world_telemetry';
 
@@ -36,6 +56,18 @@ export interface PerfReporterOptions {
   // (PR #1991), so the perf-doctor 'integrated-gpu' suggestion never fires
   // there (ruling R15). Absent (benchmark harness callers) means false.
   desktopShell?: boolean;
+  // The desktop shell keeps document.visibilityState pinned at 'visible' even
+  // while the window is minimized (backgroundThrottling is off), so the hidden
+  // check in send() needs the shell's own signal: without it a minimized
+  // session keeps beaconing reports whose frames were never rendered, diluting
+  // the fleet fps average with zeros. Absent means never shell-hidden.
+  shellHidden?: () => boolean;
+  // The host-essentials probe constructor, for tests. It exists so the three
+  // claims about this probe (never constructed for a non-desktop session,
+  // stopped in teardown, read from the CACHE on the unload path) can be
+  // asserted from BEHAVIOR rather than from a grep of this file's source.
+  // Absent means the real one; production never passes it.
+  hostEssentialsProbeFactory?: () => HostEssentialsProbe;
 }
 
 export type PerfReporterSkipReason = 'disabled' | 'hidden' | 'not-ready' | 'no-renderer';
@@ -119,6 +151,24 @@ function devTraceLog(status: PerfReporterStatus, level: 'debug' | 'warn', messag
   console[level](`[perf-report] ${message}`);
 }
 
+/**
+ * The perf-report session id this session is already tagging its reports with,
+ * or null when none has been minted (the reporter is disabled, or has not
+ * started yet). READ-ONLY on purpose: it never mints one, so asking cannot
+ * create an id that no report will ever carry.
+ *
+ * The smallest seam the System Report panel needed: that panel copies the id
+ * into the saved diagnostic file, which is what lets a support engineer join
+ * one player's file to the automatic performance reports from the same session.
+ */
+export function perfReportSessionId(): string | null {
+  try {
+    return sessionStorage.getItem(SESSION_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
 function storedSessionId(): string {
   try {
     const existing = sessionStorage.getItem(SESSION_KEY);
@@ -195,11 +245,152 @@ function scenarioFromUrl(): { source: 'gameplay' | 'benchmark'; zoneOrScenario: 
 }
 
 type RendererPrewarmSnapshot = NonNullable<NonNullable<PerfSnapshot['renderer']>['prewarm']>;
+type RendererPrewarmCompileUnit = NonNullable<RendererPrewarmSnapshot['compileUnits']>[number];
+type RendererPrewarmBudgetVariant = NonNullable<
+  RendererPrewarmSnapshot['manifestEntries'][number]['budgetVariants']
+>[number];
+
+function rendererPrewarmCompileUnitSummary(
+  units: RendererPrewarmSnapshot['compileUnits'],
+): Record<string, unknown>[] | undefined {
+  // Absent stays absent: an empty array and a client that sent no list at all
+  // are different signals to a reader.
+  if (!units) return undefined;
+  return sampleCompileUnits(units).map((unit: RendererPrewarmCompileUnit) => ({
+    id: unit.id,
+    lane: unit.lane,
+    submittedAtMs: unit.submittedAtMs,
+    syncEndAtMs: unit.syncEndAtMs,
+    settledAtMs: unit.settledAtMs,
+    failedAtMs: unit.failedAtMs,
+    programsBefore: unit.programsBefore,
+    programsAfter: unit.programsAfter,
+    programDelta: unit.programDelta,
+    chargedLinks: unit.chargedLinks,
+    syncMs: unit.syncMs,
+    settledDurationMs: unit.settledDurationMs,
+    statusAtReveal: unit.statusAtReveal,
+  }));
+}
+
+function rendererPrewarmBudgetVariantSummary(
+  variants: RendererPrewarmSnapshot['manifestEntries'][number]['budgetVariants'],
+): Record<string, unknown>[] | undefined {
+  return variants
+    ?.slice(0, PREWARM_REPORT_BUDGET_VARIANTS)
+    .map((variant: RendererPrewarmBudgetVariant) => ({
+      index: variant.index,
+      levels: {
+        grass: variant.levels.grass,
+        foliage: variant.levels.foliage,
+        vfx: variant.levels.vfx,
+        lighting: variant.levels.lighting,
+        resolution: variant.levels.resolution,
+        detail: variant.levels.detail,
+        post: variant.levels.post,
+      },
+      elapsedMs: variant.elapsedMs,
+      syncMs: variant.syncMs,
+      programsBefore: variant.programsBefore,
+      programsAfter: variant.programsAfter,
+      programDelta: variant.programDelta,
+      passes: variant.passes,
+    }));
+}
+
+function rendererPrewarmPacingSummary(
+  pacing: RendererPrewarmSnapshot['prewarmPacing'],
+  heavyLists: boolean,
+): Record<string, unknown> | null {
+  if (!pacing) return null;
+  const adaptive = pacing.adaptive;
+  return {
+    available: pacing.available,
+    source: pacing.source,
+    mode: pacing.mode,
+    linksPerSecond: pacing.linksPerSecond,
+    burst: pacing.burst,
+    compileBatchRoots: pacing.compileBatchRoots,
+    hardMaxMs: pacing.hardMaxMs,
+    chargedLinks: pacing.chargedLinks,
+    scope: pacing.scope,
+    submitStop: pacing.submitStop,
+    adaptive: adaptive
+      ? {
+          state: adaptive.state,
+          windowLinks: adaptive.windowLinks,
+          minWindowLinks: adaptive.minWindowLinks,
+          maxWindowLinks: adaptive.maxWindowLinks,
+          maxWindowObserved: adaptive.maxWindowObserved,
+          estimatedLinksPerUnit: adaptive.estimatedLinksPerUnit,
+          inFlightLinks: adaptive.inFlightLinks,
+          inFlightUnits: adaptive.inFlightUnits,
+          peakInFlightLinks: adaptive.peakInFlightLinks,
+          submittedUnits: adaptive.submittedUnits,
+          settledUnits: adaptive.settledUnits,
+          failedUnits: adaptive.failedUnits,
+          backoffCount: adaptive.backoffCount,
+          noProgressCount: adaptive.noProgressCount,
+          lastSettlementMs: adaptive.lastSettlementMs,
+          transitions: heavyLists
+            ? sampleTransitions(adaptive.transitions).map((transition) => ({
+                atMs: transition.atMs,
+                from: transition.from,
+                to: transition.to,
+                reason: transition.reason,
+                windowLinks: transition.windowLinks,
+                inFlightLinks: transition.inFlightLinks,
+              }))
+            : undefined,
+        }
+      : null,
+  };
+}
+
+/** Emit-on-change gate for the heavy streamed-prewarm lists (see the core). */
+const prewarmHeavyListGate = createPrewarmHeavyListGate();
+
+/**
+ * The boot phases, read off the performance timeline ONCE: every measure they
+ * come from landed before the reporter starts (loadPhaseEnd('entry') precedes
+ * startPerfReporter in main.ts), so the first non-null read is final and the
+ * later beacons reuse it instead of re-walking the entry list each send.
+ */
+let bootPhasesMemo: BootPhaseDurations | null = null;
+
+function currentBootPhases(): BootPhaseDurations | null {
+  if (!bootPhasesMemo) bootPhasesMemo = bootPhaseDurations(collectLoadSpans());
+  return bootPhasesMemo;
+}
+
+/**
+ * The fingerprint the payload built last is CARRYING, awaiting delivery, or
+ * null when it carries no lists. Set once per build (payloadFromSnapshot calls
+ * the summary exactly once) and committed by `send` only on a successful post.
+ */
+let pendingPrewarmListFingerprint: string | null = null;
 
 function rendererPrewarmSummary(
   prewarm: RendererPrewarmSnapshot | null,
 ): Record<string, unknown> | null {
+  pendingPrewarmListFingerprint = null;
   if (!prewarm) return null;
+  // Fingerprinted on the SAMPLED content, so a report carries the lists only
+  // when they actually differ from the last one this session sent. The
+  // renderer retains its boot snapshot, so without this every 5-minute beacon
+  // re-sends a few KB describing the same one-time work, which measured as
+  // most of the headroom under the server's 16 KB raw-summary cap.
+  const fingerprint = JSON.stringify([
+    rendererPrewarmCompileUnitSummary(prewarm.compileUnits),
+    prewarm.manifestEntries.map((entry) =>
+      rendererPrewarmBudgetVariantSummary(entry.budgetVariants),
+    ),
+    prewarm.prewarmPacing?.adaptive
+      ? sampleTransitions(prewarm.prewarmPacing.adaptive.transitions)
+      : null,
+  ]);
+  const heavyLists = prewarmHeavyListGate.peek(fingerprint);
+  if (heavyLists) pendingPrewarmListFingerprint = fingerprint;
   return {
     elapsedMs: prewarm.elapsedMs,
     maxMs: prewarm.maxMs,
@@ -216,10 +407,33 @@ function rendererPrewarmSummary(
     compileTimedOut: prewarm.compileTimedOut,
     manifestPlanned: prewarm.manifestPlanned,
     manifestCompleted: prewarm.manifestCompleted,
+    manifestPartial: prewarm.manifestPartial,
+    manifestSkipped: prewarm.manifestSkipped,
     manifestTimedOut: prewarm.manifestTimedOut,
     manifestFailed: prewarm.manifestFailed,
+    partialEntryIds: prewarm.partialEntryIds,
     timedOutEntryIds: prewarm.timedOutEntryIds,
     failedEntryIds: prewarm.failedEntryIds,
+    // The other half of "did this entry run": a timed-out entry hands its units
+    // to the resume lane, and until this block existed nothing outside a console
+    // line said whether they ever ran. An entry reported timed-out with
+    // resume.status 'done' and no failures is protected a moment later; the same
+    // entry with 'scheduled' forever, or with failures, is not protected at all.
+    resume: {
+      status: prewarm.resume.status,
+      plannedEntries: prewarm.resume.plannedEntries,
+      plannedUnits: prewarm.resume.plannedUnits,
+      startedUnits: prewarm.resume.startedUnits,
+      failedUnits: prewarm.resume.failedUnits,
+      failedUnitIds: prewarm.resume.failedUnitIds,
+      entries: prewarm.resume.entries,
+    },
+    prewarmPacing: rendererPrewarmPacingSummary(prewarm.prewarmPacing, heavyLists),
+    compileUnits: heavyLists ? rendererPrewarmCompileUnitSummary(prewarm.compileUnits) : undefined,
+    // Absent because unchanged since the last beacon, not absent because there
+    // was nothing: a reader that sees this flag knows to look at an earlier row
+    // for the same session rather than concluding the lane did no work.
+    prewarmListsUnchanged: heavyLists ? undefined : true,
     entries: prewarm.manifestEntries.map((entry) => ({
       id: entry.id,
       category: entry.category,
@@ -229,8 +443,130 @@ function rendererPrewarmSummary(
       remainingMsAfter: entry.remainingMsAfter,
       programDelta: entry.programDelta,
       textureDelta: entry.textureDelta,
+      workDone: entry.workDone,
+      workPlanned: entry.workPlanned,
       detail: entry.detail,
+      ...(heavyLists
+        ? { budgetVariants: rendererPrewarmBudgetVariantSummary(entry.budgetVariants) }
+        : {}),
     })),
+  };
+}
+
+type RendererGpuQueueSnapshot = NonNullable<PerfSnapshot['renderer']>['gpuQueue'];
+
+// The GPU queue is serial, so one unit that never settles blocks every later
+// unit in every lane while contributing nothing to the completed-unit ring.
+// The running unit and the recorded stalls ride the beacon beside the slowest
+// completed units, so a wedge is a fleet signal instead of local console noise
+// (issue #3167). Bounded like every other raw-summary block; atMs is dropped
+// because a page-relative timestamp carries no fleet meaning.
+const GPU_QUEUE_REPORT_STALLS = 6;
+const GPU_QUEUE_REPORT_SLOWEST = 5;
+// The queue's own tail cap keeps this list tiny; the slice only pins the
+// beacon size against a future cap raise, mirroring the two lists above.
+const GPU_QUEUE_REPORT_TAILS = 4;
+// One row per priority lane. GPU_WORK_PRIORITY has six, and callers pass the
+// constants rather than free numbers, so this only bounds the beacon against a
+// caller inventing its own.
+const GPU_QUEUE_REPORT_LANES = 8;
+// Grant waits, worst first. Same size as the two cost rankings: a starvation
+// report needs a few examples, not the whole leaderboard.
+const GPU_QUEUE_REPORT_WAITS = 5;
+
+function rendererGpuQueueSummary(gpuQueue: RendererGpuQueueSnapshot): Record<string, unknown> {
+  return {
+    units: gpuQueue.units,
+    totalSyncMs: gpuQueue.totalSyncMs,
+    worstSyncMs: gpuQueue.worstSyncMs,
+    // The frame-cost half. syncMs stops at a unit's first await, so a lane that
+    // blocks after one reads as free on the sync numbers alone; these carry what
+    // the live frame actually paid. The cumulative one rides beside the maxima
+    // because a max says nothing about how OFTEN the lane cost a frame.
+    totalFrameGapMs: gpuQueue.totalFrameGapMs,
+    worstFrameGapMs: gpuQueue.worstFrameGapMs,
+    worstUnsharedFrameGapMs: gpuQueue.worstUnsharedFrameGapMs,
+    pending: gpuQueue.pending,
+    stallCount: gpuQueue.stallCount,
+    active: gpuQueue.active
+      ? {
+          label: gpuQueue.active.label,
+          priority: gpuQueue.active.priority,
+          ageMs: gpuQueue.active.ageMs,
+        }
+      : null,
+    // Released compile-gate tails settling off-thread.
+    waitingTails: gpuQueue.waitingTails.slice(0, GPU_QUEUE_REPORT_TAILS).map((tail) => ({
+      label: tail.label,
+      priority: tail.priority,
+      ageMs: tail.ageMs,
+    })),
+    stalls: gpuQueue.stalls.slice(-GPU_QUEUE_REPORT_STALLS).map((stall) => ({
+      label: stall.label,
+      priority: stall.priority,
+      ageMs: stall.ageMs,
+      settled: stall.settled,
+    })),
+    slowest: gpuQueue.slowest.slice(0, GPU_QUEUE_REPORT_SLOWEST).map(reportGpuQueueUnit),
+    // Ranked by frame cost rather than sync slice, so the unit that hurt is in
+    // the beacon even when its sync slice is single-digit milliseconds.
+    blockiest: gpuQueue.blockiest.slice(0, GPU_QUEUE_REPORT_SLOWEST).map(reportGpuQueueUnit),
+    // Worst grant latency session-wide, and the interval arm beside it. Every
+    // other field here is cumulative or a lifetime maximum, so two reports from
+    // one session cannot be differenced into what a pacing change did; `recent`
+    // is the only one that can. Its lane rows are what says whether a cosmetic
+    // lane made an actionable one wait.
+    worstWaitMs: gpuQueue.worstWaitMs,
+    // The waits, each naming what it was behind. `worstWaitMs` alone says a lane
+    // was delayed; only these say by what, and `waitedOnTailCap` is what
+    // separates "waited behind an ordinary holder" from "waited on a released
+    // tail still occupying the cap", which is the mechanism a mis-declared
+    // releaseTail delays a live gate with.
+    longestWaits: gpuQueue.longestWaits.slice(0, GPU_QUEUE_REPORT_WAITS).map((wait) => ({
+      label: wait.label,
+      priority: wait.priority,
+      waitMs: wait.waitMs,
+      blockedBy: wait.blockedBy,
+      blockedByPriority: wait.blockedByPriority,
+      waitedOnTailCap: wait.waitedOnTailCap,
+      tails: wait.tails,
+    })),
+    recent: {
+      windowMs: gpuQueue.recent.windowMs,
+      units: gpuQueue.recent.units,
+      totalSyncMs: gpuQueue.recent.totalSyncMs,
+      totalFrameGapMs: gpuQueue.recent.totalFrameGapMs,
+      worstSyncMs: gpuQueue.recent.worstSyncMs,
+      worstFrameGapMs: gpuQueue.recent.worstFrameGapMs,
+      worstWaitMs: gpuQueue.recent.worstWaitMs,
+      lanes: gpuQueue.recent.lanes.slice(0, GPU_QUEUE_REPORT_LANES),
+    },
+  };
+}
+
+function reportGpuQueueUnit(unit: RendererGpuQueueSnapshot['slowest'][number]): {
+  label: string;
+  priority: number;
+  syncMs: number;
+  wallMs: number;
+  waitMs: number;
+  frameGapMs: number;
+  sharedFrameGap: number;
+} {
+  return {
+    label: unit.label,
+    priority: unit.priority,
+    syncMs: unit.syncMs,
+    wallMs: unit.wallMs,
+    // A ranked unit that also waited a long time for its grant is the shape a
+    // starvation report is made of; without this the two halves live in
+    // different blocks and cannot be read together.
+    waitMs: unit.waitMs,
+    frameGapMs: unit.frameGapMs,
+    // Without this a beacon reader repeats the mistake the metric already made
+    // once: a long released tail shares a gap it did not cause and tops the
+    // ranking on someone else's block.
+    sharedFrameGap: unit.sharedFrameGap,
   };
 }
 
@@ -241,6 +577,13 @@ function payloadFromSnapshot(
   characterId: number | null,
   worldTelemetry: WorldTelemetry | null = null,
   desktopShell = false,
+  // The WebGPU high-performance adapter description, or null while the probe
+  // is still in flight or on any browser that has no WebGPU to ask.
+  gpuHpAdapter: string | null = null,
+  bootPhases: BootPhaseDurations | null = null,
+  // The desktop shell's host facts, or null on web/mobile and until the
+  // shell probe first settles (src/game/desktop_host_essentials.ts).
+  hostEssentials: HostEssentials | null = null,
 ): Record<string, unknown> | null {
   const renderer = snapshot.renderer;
   if (!renderer) return null;
@@ -267,6 +610,12 @@ function payloadFromSnapshot(
   const suggestionIds = analyzePerfSuggestions(snapshot, location.search, { desktopShell }).map(
     (suggestion) => suggestion.id,
   );
+  // The shader warm worker, projected and bounded (perf_shader_warm_core.ts).
+  // The rest of that snapshot (the adapter, the per-gate counts, the audit
+  // beside it) stays local: this is the fleet's answer to "did the worker run
+  // on this backend, and what retired it when it did not".
+  const shaderWarm = shaderWarmBeaconSummary(snapshot.shaderWarm);
+  const cadence = frameCadenceBeaconFields(renderer.budget.targetFps);
   return {
     schemaVersion: PERF_REPORT_SCHEMA_VERSION,
     releaseVersion: __APP_VERSION__,
@@ -277,7 +626,17 @@ function payloadFromSnapshot(
     graphicsConfigVersion: renderer.graphicsConfigVersion,
     gfxTier: renderer.tier,
     autoGovernor: renderer.autoGovernor,
-    targetFps: renderer.budget.targetFps,
+    // Two typed fields beside the block below, because the server stores them
+    // as columns a fleet query groups by; the empty string is "nothing
+    // refused it", which a NOT NULL column can hold and a null cannot.
+    shaderWarmWorkerActive: shaderWarm.active,
+    shaderWarmRefusal: shaderWarm.refusal ?? '',
+    // Typed for the same reason: a session that renders slowly on purpose has
+    // to stay separable from a struggling one after raw_summary is shed.
+    targetFps: cadence.targetFps,
+    frameCapIntent: cadence.frameCapIntent,
+    cadenceDivisor: cadence.cadenceDivisor,
+    refreshHz: cadence.refreshHz,
     renderScale: renderer.renderScale,
     effectiveRenderScale: renderer.effectiveRenderScale,
     fpsAvg: snapshot.fps,
@@ -300,11 +659,20 @@ function payloadFromSnapshot(
     deviceMemory: device.deviceMemory,
     hardwareConcurrency: device.hardwareConcurrency,
     mobileTouch: device.mobileTouch,
+    // The Electron shell is Chromium loading the same web bundle, so neither
+    // browserFamily nor buildId can tell it apart; this flag is the only
+    // fleet-visible desktop-versus-browser marker (the server also falls back
+    // on the Electron user-agent token).
+    desktopShell,
     browserFamily: browserFamily(device.userAgent),
     osFamily: osFamily(device.userAgent),
     glVendor: renderer.glVendor,
     glRenderer: renderer.glRenderer,
     glRendererBucket: gpuBucket(renderer.glRenderer),
+    // What the browser hands a page that ASKS for the discrete GPU. Sent raw;
+    // the server buckets it with the same parser it uses on glRenderer, and a
+    // disagreement between the two is a hybrid laptop rendering on its iGPU.
+    gpuHpAdapter,
     source: scenario.source,
     zoneOrScenario,
     simEntities: worldTelemetry?.simEntities ?? null,
@@ -313,19 +681,67 @@ function payloadFromSnapshot(
     crowdBucket: crowdBucketLabel(activeViews),
     worst10sFrameP95Ms: snapshot.windows.worst10s?.frameMs.p95 ?? null,
     suggestionIds,
+    // The desktop shell's host essentials, as TOP-LEVEL scalars and never
+    // inside rawSummary: that block is already over its byte budget and its
+    // lower rungs get shed server-side, and these are stored as columns. Each
+    // absent field is OMITTED rather than sent as null, so a web payload is
+    // byte-identical to what it was before this dimension existed.
+    ...hostEssentialsPayloadFields(hostEssentials),
     rawSummary: {
       graphicsConfigVersion: renderer.graphicsConfigVersion,
       seconds: snapshot.seconds,
       frames: snapshot.frames,
+      // Frames the desktop presentation gate skipped while hidden (never
+      // counted in `frames`, see PerfSnapshot). Sends are already skipped
+      // while hidden, so this is the AFTER-RESTORE evidence: the counter is
+      // what says a session's cumulative numbers spanned minimized time, and
+      // the only fleet-visible proof the skip is working. Rides in rawSummary
+      // (the no-DDL home, like the longtask block below), not as a column.
+      hiddenPresentSkips: snapshot.hiddenPresentSkips,
+      // The fps denominator itself (wall seconds minus hidden time, both
+      // arms): beside `seconds` it says how much of the session the
+      // cumulative fps actually covers.
+      visibleSeconds: snapshot.visibleSeconds,
       windows: snapshot.windows,
       mainMs: snapshot.mainMs,
       rendererPhaseMs: renderer.phaseMs,
       rendererFoliage: renderer.foliage,
       rendererBudget: renderer.renderBudget,
+      cadence: frameCadenceBeaconBlock(),
       rendererQualityBuckets: renderer.qualityBuckets,
+      // The resolution the 3D scene is drawn at. The columns above cannot say
+      // it: `dpr` is the raw window.devicePixelRatio, never the renderer's
+      // capped ratio, and the viewport columns are window.innerWidth/Height,
+      // never the canvas rect. `dynamicResolution` rides along because a
+      // governor-backed-off session allocates at the manual ceiling and
+      // rasterizes a sub-rect, so without the flag it would read as full size
+      // (the reconstruction rule is on DrawingBufferStats). Five bounded
+      // scalars in rawSummary, the no-DDL home: no column, no metric.
+      rendererDrawingBuffer: {
+        width: renderer.drawingBuffer.width,
+        height: renderer.drawingBuffer.height,
+        cssWidth: renderer.drawingBuffer.cssWidth,
+        cssHeight: renderer.drawingBuffer.cssHeight,
+        dynamicResolution: renderer.drawingBuffer.dynamicResolution,
+      },
       rendererDiagnostics: renderer.renderDiagnostics,
+      // The summary above is the whole prewarm payload. The live stats object
+      // used to ride along beside it as `rendererPrewarm`, from before the
+      // summary existed; nothing reads it back out of storage, and once its
+      // resume getter started serializing, the report carried two copies of one
+      // block under a 16 KB cap, only one of which the ingest rebuilds from a
+      // fixed key set. Add a field to the summary rather than sending the twin.
       rendererPrewarmSummary: rendererPrewarmSummary(renderer.prewarm),
-      rendererPrewarm: renderer.prewarm,
+      rendererGpuQueue: rendererGpuQueueSummary(renderer.gpuQueue),
+      entryReveal: entryRevealSummary(renderer.gpuPrep),
+      // The live-frame half of the prewarm's programsDelta: how much the
+      // program list grew in the 20 s after the curtain
+      // (src/render/post_reveal_links_core.ts).
+      postRevealLinks: snapshot.postRevealLinks,
+      // The boot phases behind the curtain, from the load profile that only
+      // window.__loadProfile and a console line carried until now.
+      bootPhases,
+      shaderWarm,
       assets: {
         preload: snapshot.assets.preload,
         byType: snapshot.assets.byType,
@@ -334,6 +750,19 @@ function payloadFromSnapshot(
       hud: snapshot.hud,
       netPipeline: snapshot.netPipeline,
       heapSawtooth: snapshot.heapSawtooth,
+      // The two top-level longtask fields (longTaskCount, longTaskP95Ms) cannot
+      // corroborate a rare multi-second stall: a single event never moves a
+      // p95. These four ride here (issue #2479) rather than as new top-level
+      // columns, so storing them needs no DDL; the server bounds them on
+      // ingest (server/perf_report.ts).
+      browser: {
+        longTasks: {
+          totalMs: longTasks.totalMs,
+          avg: longTasks.avg,
+          max: longTasks.max,
+          lastAge: longTasks.lastAge,
+        },
+      },
       ...(snapshot.devTrace ? { devTrace: snapshot.devTrace } : {}),
     },
   };
@@ -355,10 +784,30 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
 
   const sessionId = storedSessionId();
   const status = makeStatus(true, devTrace, sessionId);
+  // Started here rather than in main.ts on purpose: startPerfReporter already
+  // runs after world entry, and start() is fire-and-forget, so the probe can
+  // never delay a frame or the entry chain. The first beacon is 75s out; a
+  // report built before it settles just carries null.
+  const gpuAdapterProbe = createGpuAdapterProbe();
+  gpuAdapterProbe.start();
+  // Owned HERE rather than in main.ts (which is a firewall pinned at its exact
+  // line count): the probe only exists to feed this payload. It is a no-op
+  // without the shell bridge, its first fetch is seconds out, and its refresh
+  // cadence is shorter than the report cadence so every beacon sees a reading
+  // from its own interval. The final keepalive flush reads the cache only.
+  const hostEssentialsProbe =
+    options.desktopShell === true
+      ? (options.hostEssentialsProbeFactory ?? createHostEssentialsProbe)()
+      : null;
+  hostEssentialsProbe?.start();
   let stopped = false;
   let timer: number | null = null;
   let lastFinalFlushAt = 0;
+  let reportSequence = 0;
   let cleanupDebug = (): void => {};
+
+  const cadenceDelay = (baseMs: number): number =>
+    devTrace ? baseMs : jitteredPerfReportDelay(baseMs, sessionId, reportSequence++);
 
   const schedule = (delay: number): void => {
     if (stopped) return;
@@ -376,8 +825,11 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
   function send(sendOptions: { allowHidden?: boolean; final?: boolean } = {}): void {
     timer = null;
     if (stopped) return;
-    if (!sendOptions.allowHidden && document.visibilityState !== 'visible') {
-      skip('hidden', REPEAT_REPORT_MS);
+    if (
+      !sendOptions.allowHidden &&
+      (document.visibilityState !== 'visible' || options.shellHidden?.() === true)
+    ) {
+      skip('hidden', cadenceDelay(REPEAT_REPORT_MS));
       return;
     }
     const snapshot = options.perf.report();
@@ -395,12 +847,16 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
       options.characterIdProvider(),
       options.worldTelemetryProvider?.() ?? null,
       options.desktopShell ?? false,
+      gpuAdapterProbe.value(),
+      currentBootPhases(),
+      hostEssentialsProbe?.value() ?? null,
     );
     if (!body) {
-      skip('no-renderer', sendOptions.final ? null : REPEAT_REPORT_MS);
+      skip('no-renderer', sendOptions.final ? null : cadenceDelay(REPEAT_REPORT_MS));
       return;
     }
     const token = options.tokenProvider();
+    const carriedPrewarmLists = pendingPrewarmListFingerprint;
     const bodyText = JSON.stringify(body);
     status.lastAttemptAt = Date.now();
     status.lastSkipReason = null;
@@ -418,7 +874,7 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
         `final post too large for keepalive: ${status.lastBodyBytes} bytes`,
       );
     }
-    void fetch('/api/perf-report', {
+    void fetch(apiUrl('/api/perf-report'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -445,6 +901,10 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
         // 10 s window resets only once its report is stored, so a failed post
         // carries the storm into the retry instead of losing it.
         options.perf.drainWorstWindow();
+        // Same rule for the heavy prewarm lists: they count as sent only once
+        // the row carrying them landed, so a failed post re-sends them instead
+        // of stamping `prewarmListsUnchanged` over a row that never existed.
+        if (carriedPrewarmLists !== null) prewarmHeavyListGate.commit(carriedPrewarmLists);
         devTraceLog(status, 'debug', `posted ${status.lastBodyBytes} bytes`);
       })
       .catch((err: unknown) => {
@@ -452,7 +912,9 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
         status.lastError = errorText(err);
         devTraceLog(status, 'warn', `post failed: ${status.lastError}`);
       });
-    if (!sendOptions.final) schedule(devTrace ? DEV_TRACE_REPEAT_REPORT_MS : REPEAT_REPORT_MS);
+    if (!sendOptions.final) {
+      schedule(devTrace ? DEV_TRACE_REPEAT_REPORT_MS : cadenceDelay(REPEAT_REPORT_MS));
+    }
   }
 
   function sendNow(): void {
@@ -479,6 +941,7 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
     status.enabled = false;
     status.nextSendAt = null;
     if (timer !== null) window.clearTimeout(timer);
+    hostEssentialsProbe?.stop();
     window.removeEventListener('pagehide', flushFinal);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     cleanupDebug();
@@ -487,7 +950,7 @@ export function startPerfReporter(options: PerfReporterOptions): () => void {
   cleanupDebug = exposeDebug(status, sendNow, stop);
   window.addEventListener('pagehide', flushFinal);
   document.addEventListener('visibilitychange', handleVisibilityChange);
-  schedule(devTrace ? DEV_TRACE_FIRST_REPORT_MS : FIRST_REPORT_MS);
+  schedule(devTrace ? DEV_TRACE_FIRST_REPORT_MS : cadenceDelay(FIRST_REPORT_MS));
   return stop;
 }
 
@@ -498,4 +961,9 @@ export const perfReporterInternalsForTest = {
   viewportBucket,
   payloadFromSnapshot,
   PERF_REPORT_SCHEMA_VERSION,
+  prewarmHeavyListGate,
+  pendingPrewarmListFingerprint: () => pendingPrewarmListFingerprint,
+  resetBootPhasesForTest: () => {
+    bootPhasesMemo = null;
+  },
 };

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 // The crafting window's craft tab strip: the pure tab model (craftingTabs and
 // resolveSelectedCraft in crafting_view.ts) plus the painter DOM contract in
@@ -6,7 +6,7 @@
 // craft at a time: tab order follows first appearance in the recipe list, a
 // stale pick falls back to the first tab, only the selected craft's rows
 // paint, tab clicks route through the HUD-held selection, the learn hint is
-// scoped to the selected craft, and an empty book keeps the vendor-empty
+// scoped to the selected craft, and an empty book keeps the family empty
 // state with no strip at all.
 
 import { readFileSync } from 'node:fs';
@@ -20,9 +20,11 @@ import {
   type CraftingRecipeRow,
   type CraftingView,
   craftingTabs,
+  craftOwnsTab,
   resolveSelectedCraft,
-} from '../src/ui/crafting_view';
-import { renderCraftingWindow } from '../src/ui/crafting_window';
+} from '../src/ui/hud/professions/crafting_view';
+import { renderCraftingWindow } from '../src/ui/hud/professions/crafting_window';
+import { isRecipeKnownForViewer } from '../src/ui/hud/vendor/train_view';
 
 // Two weaponcrafting recipes that STRADDLE an alchemy recipe in ALL_RECIPES
 // order (recipes.ts is not contiguous per craft), so the grouping rule is
@@ -44,13 +46,23 @@ function craftingDeps() {
     hideTooltip: vi.fn(),
     onCraft: vi.fn(),
     onClose: vi.fn(),
+    onOpenOrders: vi.fn(),
     itemIcon: vi.fn(() => ''),
     moneyHtml: vi.fn(() => ''),
     itemTooltip: vi.fn(() => ''),
     attachTooltip: vi.fn(),
     commissionChecked: vi.fn((_recipeId: string) => false),
     onToggleCommission: vi.fn(),
+    craftQty: () => 1,
+    onCraftQty: vi.fn(),
+    announce: vi.fn(),
     selectedCraft: () => null as string | null,
+    recipePinned: () => false,
+    onToggleRecipePin: (recipeId: string) => ({
+      pinned: new Set([recipeId]),
+      full: false,
+      changed: true,
+    }),
     onSelectCraft: vi.fn(),
   };
 }
@@ -68,6 +80,8 @@ function rowFor(professionId: string, recipeId: string): CraftingRecipeRow {
     difficulty: 'full',
     station: null,
     commissionEligible: false,
+    durationSec: 1.75,
+    craftFeeCopper: 0,
     craftable: false,
   };
 }
@@ -75,6 +89,7 @@ function rowFor(professionId: string, recipeId: string): CraftingRecipeRow {
 describe('craftingTabs (the pure tab model)', () => {
   it('orders tabs by first appearance and sums an interleaved craft into ONE tab', () => {
     const view: CraftingView = {
+      vaultNote: false,
       recipes: [
         rowFor('craft_a', 'r1'),
         rowFor('craft_a', 'r2'),
@@ -90,7 +105,7 @@ describe('craftingTabs (the pure tab model)', () => {
   });
 
   it('an empty view yields no tabs', () => {
-    expect(craftingTabs({ recipes: [] })).toEqual([]);
+    expect(craftingTabs({ recipes: [], vaultNote: false })).toEqual([]);
   });
 });
 
@@ -112,6 +127,58 @@ describe('resolveSelectedCraft (the selection fallback)', () => {
   it('resolves null for an empty book, whatever was requested', () => {
     expect(resolveSelectedCraft([], 'craft_a')).toBeNull();
     expect(resolveSelectedCraft([], null)).toBeNull();
+  });
+});
+
+describe('craftOwnsTab (the gossip shortcut persist gate)', () => {
+  // Real content rows: the arming sword has no acquisition list (grandfathered
+  // known to everyone), the gauntlets are trainer-taught (known only once the
+  // id is in the viewer's mirrored set). Both are weaponcrafting.
+  const sword = recipeRows([SWORD_RECIPE]);
+  const gauntlets = recipeRows([GAUNTLET_RECIPE]);
+
+  it('the fixture premise really holds (content precondition)', () => {
+    // Content drift that flips either acquisition list should fail HERE with
+    // a named precondition, not as a confusing assertion in the arms below
+    // (the interleaved-fixture precondition pattern above).
+    expect(sword[0]?.acquisition ?? []).toEqual([]);
+    expect(gauntlets[0]?.acquisition).toContain('trainer');
+  });
+
+  it('a grandfathered field recipe gives the craft a tab for every viewer', () => {
+    expect(craftOwnsTab(sword, [], 'weaponcrafting')).toBe(true);
+  });
+
+  it('an unlearned trainer-only recipe gives no tab, and learning it flips the gate', () => {
+    expect(craftOwnsTab(gauntlets, [], 'weaponcrafting')).toBe(false);
+    expect(craftOwnsTab(gauntlets, [GAUNTLET_RECIPE], 'weaponcrafting')).toBe(true);
+  });
+
+  it('a craft with no recipes in the book never owns a tab', () => {
+    expect(craftOwnsTab(sword, [], 'craft_without_recipes')).toBe(false);
+    expect(craftOwnsTab([], [], 'weaponcrafting')).toBe(false);
+  });
+
+  it('agrees with craftingTabs tab-existence for every craft (differential)', () => {
+    // craftOwnsTab's doc comment claims it restates craftingTabs' membership
+    // rule; this arm pins the two rules together so a change to either (for
+    // example folding confirmedRecipes into the window's known filter) goes
+    // red instead of silently desynchronizing the persist gate from the strip.
+    const knownSets: string[][] = [[], [GAUNTLET_RECIPE], ALL_RECIPES.map((r) => r.id)];
+    const crafts = [...new Set(ALL_RECIPES.map((r) => r.professionId))];
+    for (const known of knownSets) {
+      const view = buildCraftingView(
+        ALL_RECIPES.filter((r) => isRecipeKnownForViewer(r, new Set(known))),
+        [],
+        ITEMS,
+      );
+      const tabs = craftingTabs(view);
+      for (const craft of crafts) {
+        expect(craftOwnsTab(ALL_RECIPES, known, craft), `${craft} @ ${known.length} known`).toBe(
+          tabs.some((tab) => tab.professionId === craft),
+        );
+      }
+    }
   });
 });
 
@@ -242,12 +309,12 @@ describe('renderCraftingWindow tab strip', () => {
     expect(closure).toContain('?.focus();');
   });
 
-  it('an empty book paints no tab strip and keeps the vendor-empty state', () => {
+  it('an empty book paints no tab strip and keeps the family empty state', () => {
     const el = document.createElement('div');
     renderCraftingWindow(el, buildCraftingView([], [], ITEMS), craftingDeps());
     expect(el.querySelector('.crafting-tabs')).toBeNull();
     expect(el.querySelectorAll('.crafting-tab')).toHaveLength(0);
     expect(el.querySelector('.crafting-section-title')).toBeNull();
-    expect(el.querySelector('.vendor-empty')?.textContent).toBe('No recipes known yet.');
+    expect(el.querySelector('.prof-empty')?.textContent).toBe('No recipes known yet.');
   });
 });

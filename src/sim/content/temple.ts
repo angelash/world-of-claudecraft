@@ -8,10 +8,22 @@
 // way the per-zone modules and content/dungeons.ts are. Levels ~15-18: a step
 // up from the Sunken Bastion (13) for players climbing toward the Sanctum (20).
 
+import {
+  TEMPLE_GLIMMER_VENOM,
+  TEMPLE_HEARTPEARL,
+  TEMPLE_HEARTPEARL_ORB,
+  TEMPLE_HEARTPEARL_WARD,
+  TEMPLE_LULLABY,
+  TEMPLE_NACRE_MANTLE,
+  TEMPLE_PALE_MENDING,
+  TEMPLE_PEARL_SLAM,
+  TEMPLE_PRISM_GLARE,
+  TEMPLE_SKEWERING_TRIDENT,
+  TEMPLE_TRIDENT_SWEEP,
+} from '../mob/trash_kit/temple_cast_ids';
 import type {
   CampDef,
   DungeonDef,
-  DungeonSpawn,
   GroundObjectDef,
   ItemDef,
   MobTemplate,
@@ -20,6 +32,14 @@ import type {
   QuestDef,
   ZonePropsDef,
 } from '../types';
+import {
+  DROWNED_TEMPLE_GATE_OBJECTS,
+  DROWNED_TEMPLE_GATES,
+  DROWNED_TEMPLE_SPAWNS,
+} from './drowned_temple';
+import { CANTOR_NPC_ID, CANTOR_SPAWN } from './drowned_temple_cantor';
+import { DROWNED_TEMPLE_ANCHORS } from './drowned_temple_layout';
+import { HEROIC_FINALE_COPPER } from './dungeon_difficulty';
 
 // Archetype class-locks (match content/items.ts so REWARD_ARCHETYPE hand-offs
 // land on an item the whole group can equip).
@@ -77,7 +97,7 @@ export const TEMPLE_MOBS: Record<string, MobTemplate> = {
       { copper: 80, chance: 1 },
       { itemId: 'drowned_offering', chance: 0.6, questId: 'q_drowned_choir' },
       { itemId: 'briny_idol', chance: 0.3 },
-      { itemId: 'tidehymn_slippers', chance: 0.1 },
+      { itemId: 'tidehymn_slippers', chance: 0.02 },
     ],
     scale: 1.0,
     color: 0x6c8f8a,
@@ -106,7 +126,11 @@ export const TEMPLE_MOBS: Record<string, MobTemplate> = {
     ],
     scale: 1.2,
     color: 0xbcd2e6,
-    componentTags: ['hide', 'claw', 'horn'],
+    // A serpent: the Palecoil carries a venom gland, the same family the
+    // spiders and the bogtoad yield. Phase 11m added venomSac as the band-3
+    // open-world source that completes the family's floor. A count-1 rare, so
+    // a hollow venomSac floor member: the ledger records its density.
+    componentTags: ['hide', 'claw', 'horn', 'venomSac'],
   },
 };
 
@@ -138,6 +162,46 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
       name: 'Onrush',
       school: 'physical',
     },
+    // The rework (drowned_temple.md 4.1): a telegraphed trident sweep across
+    // its front. Only the tank belongs in it.
+    breathCone: {
+      castId: TEMPLE_TRIDENT_SWEEP,
+      name: 'Trident Sweep',
+      castTime: 1.5,
+      every: 12,
+      range: 7,
+      arcDeg: 100,
+      min: 70,
+      max: 85,
+      school: 'physical',
+    },
+    // The sixth pass: the trident hurled down a lane at someone past the tank.
+    // Physical: step out sideways, never kick it.
+    trashKit: {
+      line: {
+        castId: TEMPLE_SKEWERING_TRIDENT,
+        name: 'Skewering Trident',
+        castTime: 1.8,
+        every: 14,
+        first: 7,
+        school: 'physical',
+        length: 22,
+        halfWidth: 1.3,
+        min: 60,
+        max: 70,
+      },
+      // The trash mechanics pass, heroic only: the stair guard's Moonset Oath.
+      // While a singer of its pack within 8 yd is casting, it takes half of
+      // every hit she takes. Stun it, sleep it, or pull it off her.
+      temple: {
+        guard: {
+          singers: ['pale_choir_acolyte', 'moonlit_siren'],
+          range: 8,
+          share: 0.5,
+          name: 'Moonset Oath',
+        },
+      },
+    },
     loot: [
       { copper: 200, chance: 1 },
       { itemId: 'bone_fragments', chance: 0.6 },
@@ -161,6 +225,59 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 16,
     moveSpeed: 7,
     aggroRadius: 12,
+    // The rework (drowned_temple.md 4.1): a pale hymn between Lullabies, an
+    // interruptible sleep on one player that a hit breaks. Kick it.
+    petSpell: {
+      name: 'Pale Hymn',
+      school: 'frost',
+      min: 22,
+      max: 30,
+      range: 28,
+      every: 3.2,
+      windup: 0.6,
+    },
+    trashKit: {
+      lullaby: {
+        castId: TEMPLE_LULLABY,
+        name: 'Lullaby',
+        castTime: 2,
+        every: 14,
+        first: 5,
+        school: 'arcane',
+        range: 30,
+        seconds: 4,
+      },
+      // The sixth pass: a hymn that knits a hurt packmate back together. Kick
+      // it (frost: a kick on the Lullaby's arcane never locks it).
+      mend: {
+        castId: TEMPLE_PALE_MENDING,
+        name: 'Pale Mending',
+        castTime: 2.5,
+        every: 14,
+        first: 5,
+        school: 'frost',
+        range: 25,
+        healPct: 0.25,
+        below: 0.6,
+      },
+      // The trash mechanics pass: while two or more Drowned Pilgrims of the
+      // fight kneel within 15 yd, their Shrine Vigil turns 75 percent of all
+      // damage she takes (85 on heroic). Kill the pilgrims first.
+      temple: {
+        vigil: {
+          guardian: 'drowned_pilgrim',
+          range: 15,
+          min: 2,
+          reduction: 0.75,
+          heroicReduction: 0.85,
+          name: 'Shrine Vigil',
+        },
+        // Heroic only: an unkicked Lullaby echoes off its sleeper. A beat
+        // after it lands, then every second while they sleep, everyone awake
+        // within 5 yd of them falls asleep for 3 s (once each). Spread out.
+        lullabyEcho: { radius: 5, delay: 1, every: 1, seconds: 3, name: 'Lullaby Echo' },
+      },
+    },
     loot: [
       { copper: 220, chance: 1 },
       { itemId: 'linen_scrap', chance: 0.4 },
@@ -184,6 +301,59 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 16,
     moveSpeed: 8,
     aggroRadius: 13,
+    untameable: true,
+    // The rework (drowned_temple.md 4.1): Pounce onto the farthest caster in
+    // reach, opening a bleed and fixating on them a moment.
+    trashKit: {
+      leap: {
+        name: 'Pounce',
+        every: 14,
+        first: 3,
+        minRange: 8,
+        maxRange: 25,
+        seconds: 0.6,
+        fixate: 3,
+        bleed: { perTick: 12, interval: 2, duration: 8 },
+      },
+      // The sixth pass: a spat bolt of glimmering venom at someone in reach. Kick it.
+      bolt: {
+        castId: TEMPLE_GLIMMER_VENOM,
+        name: 'Glimmer Venom',
+        castTime: 2,
+        every: 12,
+        first: 6,
+        school: 'nature',
+        range: 25,
+        min: 45,
+        max: 55,
+      },
+      // The trash mechanics pass: its stalked eyes kindle in rainbow light
+      // for 2 s, then everyone within 25 yd who FACES it is dazzled for 3 s
+      // (4 on heroic): half their swings whiff and they stumble at half
+      // speed. Turn your back before the bar ends. No kick; a stun breaks it.
+      // Math, landed raw on each player facing it: normal 25 to 35, 4 to 6
+      // percent of a level 17 cloth wearer's ~600 (the cost is the dazzle);
+      // heroic x5.5 (the lurker's mechanic factor) 138 to 193, 11 to 15
+      // percent of ~1,250.
+      temple: {
+        gaze: {
+          castId: TEMPLE_PRISM_GLARE,
+          name: 'Prism Glare',
+          castTime: 2,
+          every: 16,
+          first: 9,
+          school: 'arcane',
+          range: 25,
+          halfArcDeg: 60,
+          seconds: 3,
+          heroicSeconds: 4,
+          miss: 0.5,
+          slow: 0.5,
+          min: 25,
+          max: 35,
+        },
+      },
+    },
     loot: [
       { copper: 200, chance: 1 },
       { itemId: 'spider_leg', chance: 0.5 },
@@ -192,9 +362,16 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
     scale: 1.2,
     color: 0xbfe1ec,
   },
+  // The Moonmantle Ray (the id is frozen: it was the Pearlguard Sentinel, a
+  // clam golem, until the Temple encounter pass made it a sacred manta that
+  // glides a yard above the floor; to the sim it still stands on the floor).
+  // Its three moves are unchanged inside, renamed to fit: Onrush became the
+  // Lunar Glide, Pearl Slam the Tidal Wingbeat (already a wing gust that
+  // throws back), Pearl Carapace the Nacre Cocoon (it wraps itself in its
+  // wings).
   pearlguard_sentinel: {
     id: 'pearlguard_sentinel',
-    name: 'Pearlguard Sentinel',
+    name: 'Moonmantle Ray',
     minLevel: 17,
     maxLevel: 18,
     family: 'elemental',
@@ -212,8 +389,71 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
       maxRange: 30,
       cooldown: 12,
       stunDuration: 0.5,
-      name: 'Onrush',
+      name: 'Lunar Glide',
       school: 'physical',
+    },
+    // The rework (drowned_temple.md 4.1): once, under 30 percent, it wraps
+    // itself in its wings for 8 s (a shield of a quarter of its health).
+    trashKit: {
+      carapace: { belowHpPct: 0.3, shieldPct: 0.25, seconds: 8, name: 'Nacre Cocoon' },
+      // The sixth pass: it rears on its tail and brings both wings down round
+      // it, throwing everyone near it back. Physical: only the tank belongs
+      // beside it.
+      wingGust: {
+        castId: TEMPLE_PEARL_SLAM,
+        name: 'Tidal Wingbeat',
+        castTime: 1.5,
+        every: 15,
+        first: 7,
+        school: 'physical',
+        radius: 7,
+        knockback: 6,
+        min: 50,
+        max: 60,
+      },
+      // Heroic only (the trash pass's second wave, temple_pearl.ts): when the
+      // Nacre Cocoon BREAKS (burst before its 8 s run out), the Heartpearl
+      // drops out of its chest 4 yd behind it and rolls at 2 yd a second
+      // toward another ray or a Templeguard of the fight, warding it for 15
+      // percent of its health for 10 s (about 450 on a heroic ray's ~2,960).
+      // Step on it first and every player within 40 yd of the taker gains a
+      // Nacre Mantle, an absorb of 10 percent of their own health for 10 s
+      // (about 125 on a heroic cloth wearer's ~1,250). No damage either way:
+      // a race that rewards the group that broke the cocoon. Alone in its
+      // pack it lies 6 s for the taking, then fades.
+      temple: { pearl: { heroicOnly: true } },
+      walker: {
+        castId: TEMPLE_HEARTPEARL,
+        name: 'Heartpearl',
+        objectTemplate: TEMPLE_HEARTPEARL_ORB,
+        launch: 'event',
+        school: 'arcane',
+        speed: 2,
+        interceptRadius: 1.6,
+        reachRadius: 1.6,
+        maxSeconds: 6,
+        allies: ['pearlguard_sentinel', 'drowned_templeguard'],
+        lingers: true,
+        eject: 4,
+        empower: {
+          auraId: TEMPLE_HEARTPEARL_WARD,
+          name: 'Heartpearl Ward',
+          damagePct: 0,
+          seconds: 10,
+          shieldPct: 0.15,
+        },
+        intercept: {
+          min: 0,
+          max: 0,
+          groupShield: {
+            auraId: TEMPLE_NACRE_MANTLE,
+            name: 'Nacre Mantle',
+            pctMaxHp: 0.1,
+            seconds: 10,
+            radius: 40,
+          },
+        },
+      },
     },
     loot: [
       { copper: 260, chance: 1 },
@@ -226,8 +466,10 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
   choirmother_selthe: {
     id: 'choirmother_selthe',
     name: 'Choirmother Selthe',
-    minLevel: 18,
-    maxLevel: 18,
+    // The rework (drowned_temple.md 5.1): the first of three bosses, so the
+    // dungeon ramps 16, 17, 18. Her fight is encounters/drowned_temple/selthe.ts.
+    minLevel: 16,
+    maxLevel: 16,
     family: 'humanoid',
     elite: true,
     // Named mid-boss: CC- and snare-immune on both difficulties (see morthen,
@@ -240,12 +482,57 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
     dmgPerLevel: 2.7,
     attackSpeed: 2.2,
     armorPerLevel: 22,
-    moveSpeed: 7,
+    // The caster pass: she never leaves her pool and never swings her hands
+    // (her melee is held off by encounters/drowned_temple/selthe.ts; her
+    // Moonwater Bolt carries the tank's pressure from this weapon roll).
+    moveSpeed: 0,
     aggroRadius: 14,
+    // The rework (drowned_temple.md 8.1): one guaranteed piece per archetype
+    // group and the Chorus Conch chase row beside her shipped drops. Heroic
+    // rides HEROIC_BOSS_LOOT.choirmother_selthe.
     loot: [
       { copper: 700, chance: 1 },
-      { itemId: 'selthes_seastriders', chance: 0.4 },
       { itemId: 'briny_idol', chance: 0.5 },
+      {
+        itemId: 'conchplate_girdle',
+        chance: 0.34,
+        rollGroup: 'selthe_guaranteed',
+        normalOnly: true,
+      },
+      {
+        itemId: 'pale_chorus_leggings',
+        chance: 0.33,
+        rollGroup: 'selthe_guaranteed',
+        normalOnly: true,
+      },
+      {
+        itemId: 'refrain_silk_gloves',
+        chance: 0.33,
+        rollGroup: 'selthe_guaranteed',
+        normalOnly: true,
+      },
+      // The normal blue (drowned_temple_items.ts): one draw, 35 percent in
+      // equal shares, the feet trio around her Sea-Striders (once their own
+      // 0.40 row) and the Chorus Conch (once its own 0.10 row).
+      {
+        itemId: 'conchplate_sabatons',
+        chance: 0.0875,
+        rollGroup: 'selthe_blue',
+        normalOnly: true,
+      },
+      {
+        itemId: 'selthes_seastriders',
+        chance: 0.0875,
+        rollGroup: 'selthe_blue',
+        normalOnly: true,
+      },
+      {
+        itemId: 'pale_chorus_slippers',
+        chance: 0.0875,
+        rollGroup: 'selthe_blue',
+        normalOnly: true,
+      },
+      { itemId: 'chorus_conch', chance: 0.0875, rollGroup: 'selthe_blue', normalOnly: true },
     ],
     scale: 1.15,
     color: 0x6f8fae,
@@ -286,20 +573,39 @@ export const TEMPLE_DUNGEON_MOBS: Record<string, MobTemplate> = {
     dmgPerLevel: 2.9,
     attackSpeed: 2.5,
     armorPerLevel: 28,
-    moveSpeed: 7,
+    // The sixth pass: a colossal serpent coiled on the Moon Altar (the Blender
+    // body built for her), so she never leaves it and her reach is a giant's.
+    // Her coil spreads 10 yd round her pivot: melee reaches her from its edge
+    // (13 yd) and her own swing reaches 14, on her dais
+    // (drowned_temple_layout.ts YSOLEI_DAIS). Widened from 8 after playtest
+    // (her body read as hard to hit); the Crash and the Lunar Tide moved out
+    // with it (encounters/drowned_temple/ids.ts), so every margin is unchanged.
+    bodyRadius: 10,
+    moveSpeed: 0,
+    idleStationary: true,
     aggroRadius: 18,
-    aoePulse: { min: 22, max: 32, radius: 13, every: 9, name: 'Lunar Tide' },
+    // Lunar Tide, the Undertow, the Tidal Crash and the Rising Tide are the
+    // rework's encounter (encounters/drowned_temple/ysolei.ts).
     summonAdds: { mobId: 'moonspawn', count: 2, atHpPct: [0.6, 0.3] },
     enrage: { belowHpPct: 0.3, dmgMult: 1.4, hasteMult: 1.3 },
     loot: [
-      { copper: 6000, chance: 1 },
-      { itemId: 'ysols_pearl_greaves', chance: 0.5 },
-      // exclusive "one of three" blue chests (weights sum to 1.0)
-      { itemId: 'moonshroud_breastplate', chance: 0.34, rollGroup: 'ysolei_blue' },
-      { itemId: 'moonshroud_robe', chance: 0.33, rollGroup: 'ysolei_blue' },
-      { itemId: 'moonshroud_tunic', chance: 0.33, rollGroup: 'ysolei_blue' },
+      { copper: 6000, heroicCopper: HEROIC_FINALE_COPPER, chance: 1 },
+      // Her own Pearl Greaves keep their independent row: a mail legs piece
+      // named for her completes no other boss's trio.
+      { itemId: 'ysols_pearl_greaves', chance: 0.5, normalOnly: true },
+      // The normal blue (drowned_temple_items.ts): guaranteed on the final
+      // boss, her Moonwrack chests and the Moonwrack Stave in equal shares.
+      {
+        itemId: 'moonshroud_breastplate',
+        chance: 0.25,
+        rollGroup: 'ysolei_blue',
+        normalOnly: true,
+      },
+      { itemId: 'moonshroud_tunic', chance: 0.25, rollGroup: 'ysolei_blue', normalOnly: true },
+      { itemId: 'moonshroud_robe', chance: 0.25, rollGroup: 'ysolei_blue', normalOnly: true },
+      { itemId: 'moonwrack_stave', chance: 0.25, rollGroup: 'ysolei_blue', normalOnly: true },
     ],
-    scale: 1.65,
+    scale: 2.5,
     color: 0xbcd2ec,
   },
 };
@@ -325,7 +631,7 @@ export const TEMPLE_NPCS: Record<string, NpcDef> = {
       'q_drowned_moon',
     ],
     greeting:
-      'The mere drinks the moonlight, $C, and gives back the drowned. I have watched that gate for thirty nights — and tonight it is open.',
+      'The mere drinks the moonlight, $C, and gives back the drowned. I have watched that gate for thirty nights, and tonight it is open.',
   },
 };
 
@@ -339,7 +645,7 @@ export const TEMPLE_QUESTS: Record<string, QuestDef> = {
     name: 'Light on the Water',
     giverNpcId: 'tidewatcher_ondrel',
     turnInNpcId: 'tidewatcher_ondrel',
-    text: 'Look there, $N — under the surface, a stair of pale stone running down into the dark, and a gate of cold light at the head of it. The old wardens scratched warnings into the shore-rocks before the water took them. Take a rubbing of one for me; I would read what they feared before we go any closer.',
+    text: 'Look there, $N, under the surface, a stair of pale stone running down into the dark, and a gate of cold light at the head of it. The old wardens scratched warnings into the shore-rocks before the water took them. Take a rubbing of one for me; I would read what they feared before we go any closer.',
     completionText:
       'A waking-prayer... to something they called the Drowned Moon. And below it, in a steadier hand: "It only sleeps." The water has been listening a long time, $N.',
     objectives: [
@@ -355,9 +661,9 @@ export const TEMPLE_QUESTS: Record<string, QuestDef> = {
     name: 'What the Tarn Gives Up',
     giverNpcId: 'tidewatcher_ondrel',
     turnInNpcId: 'tidewatcher_ondrel',
-    text: 'Since the gate opened, things climb out of the mere at dusk — bloated, pale, finned where hands ought to be. Glimmermere Waders, the old rubbings name them. They drag anything living back down with them. Cull ten before they thin my watch to nothing.',
+    text: 'Since the gate opened, things climb out of the mere at dusk: bloated, pale, finned where hands ought to be. Glimmermere Waders, the old rubbings name them. They drag anything living back down with them. Cull ten before they thin my watch to nothing.',
     completionText:
-      'Ten back in the water. They feel no cold, $N, and no fear — only the pull of that gate. Whatever sings to them, it sings loud.',
+      'Ten back in the water. They feel no cold, $N, and no fear, only the pull of that gate. Whatever sings to them, it sings loud.',
     objectives: [
       {
         type: 'kill',
@@ -376,7 +682,7 @@ export const TEMPLE_QUESTS: Record<string, QuestDef> = {
     name: 'The Drowned Choir',
     giverNpcId: 'tidewatcher_ondrel',
     turnInNpcId: 'tidewatcher_ondrel',
-    text: 'The waders do not act alone. Among them walk the Drowned Votaries — the cult that sank with the temple, still in their rotted vestments, still singing the prayer from the shore-rocks. Silence eight of them, and bring me six of the offerings they carry. I would know what they mean to give their goddess.',
+    text: 'The waders do not act alone. Among them walk the Drowned Votaries, the cult that sank with the temple, still in their rotted vestments, still singing the prayer from the shore-rocks. Silence eight of them, and bring me six of the offerings they carry. I would know what they mean to give their goddess.',
     completionText:
       "Pearls, knuckle-bones, a child's carved fish... grave-gifts, $N. They are not raising the dead. They are dressing them, the way you dress a body for burial. The temple is a tomb that refuses to close.",
     objectives: [
@@ -397,9 +703,9 @@ export const TEMPLE_QUESTS: Record<string, QuestDef> = {
     name: 'Sethrael the Palecoil',
     giverNpcId: 'tidewatcher_ondrel',
     turnInNpcId: 'tidewatcher_ondrel',
-    text: "One shape in the mere is no drowned man. A serpent the colour of bone glides the deep shelf where the stair begins — Sethrael, the rubbings call it, the Palecoil, the moon's own watch-beast. While it guards that water, no one reaches the gate alive. Go down to the shelf and kill it, $N. Take its heartscale so I know the deed is done.",
+    text: "One shape in the mere is no drowned man. A serpent the colour of bone glides the deep shelf where the stair begins: Sethrael, the rubbings call it, the Palecoil, the moon's own watch-beast. While it guards that water, no one reaches the gate alive. Go down to the shelf and kill it, $N. Take its heartscale so I know the deed is done.",
     completionText:
-      'Cold as the bottom of the world, and still it twitches. The shelf is clear, $N — the stair to the gate stands open. I almost wish it did not.',
+      'Cold as the bottom of the world, and still it twitches. The shelf is clear, $N. The stair to the gate stands open. I almost wish it did not.',
     objectives: [
       { type: 'collect', itemId: 'palecoil_heartscale', count: 1, label: "Sethrael's Heartscale" },
     ],
@@ -414,7 +720,7 @@ export const TEMPLE_QUESTS: Record<string, QuestDef> = {
     name: 'Silence the Choir',
     giverNpcId: 'tidewatcher_ondrel',
     turnInNpcId: 'tidewatcher_ondrel',
-    text: 'The singing comes from below the gate now, and one voice leads it: Choirmother Selthe, who first taught the cult to drown without dying. While she keeps the prayer, the temple will never sleep — and the mere will never stop giving up its dead. Take companions through the gate and end her. This is no errand for a lone blade, $N.',
+    text: 'The singing comes from below the gate now, and one voice leads it: Choirmother Selthe, who first taught the cult to drown without dying. While she keeps the prayer, the temple will never sleep, and the mere will never stop giving up its dead. Take companions through the gate and end her. This is no errand for a lone blade, $N.',
     completionText:
       'The prayer falters... and for the first time in thirty nights, the mere is quiet. But quiet is not the same as ended. Selthe was only the choir. Something below it still listens.',
     objectives: [
@@ -441,9 +747,9 @@ export const TEMPLE_QUESTS: Record<string, QuestDef> = {
     name: 'The Drowned Moon',
     giverNpcId: 'tidewatcher_ondrel',
     turnInNpcId: 'tidewatcher_ondrel',
-    text: "I have read the last of the rubbings, $N, and I understand now what the cult drowned themselves to keep asleep. Ysolei — the Drowned Moon made flesh — coils on the altar at the temple's heart, and the stolen warmth of every life the mere took is pouring into her waking. When the moon stands full she rises, and the water rises with her — the tarn, the wall, the whole mountain under it. Gather the strongest you can find and put her back to sleep. For good, this time.",
+    text: "I have read the last of the rubbings, $N, and I understand now what the cult drowned themselves to keep asleep. Ysolei, the Drowned Moon made flesh, coils on the altar at the temple's heart, and the stolen warmth of every life the mere took is pouring into her waking. When the moon stands full she rises, and the water rises with her: the tarn, the wall, the whole mountain under it. Gather the strongest you can find and put her back to sleep. For good, this time.",
     completionText:
-      'The altar is dark, the water is still, and the moon over the tarn is only the moon. You drowned a goddess tonight, $N — and the mountain will never know how close it came. Let the wardens of the shore-rocks rest easy at last.',
+      'The altar is dark, the water is still, and the moon over the tarn is only the moon. You drowned a goddess tonight, $N, and the mountain will never know how close it came. Let the wardens of the shore-rocks rest easy at last.',
     objectives: [
       {
         type: 'kill',
@@ -478,6 +784,30 @@ export const TEMPLE_QUEST_ORDER = [
 // World layout — the Glimmermere shore (south of the tarn at -70,760)
 // ---------------------------------------------------------------------------
 
+// Camp ORDER is world-gen rng draw order: never reorder or insert here, only
+// retune a center in place.
+//
+// THESE CAMPS DELIBERATELY STAY ON THE WATERLINE. They sit in the gap between
+// Thornpeak's ogre camps (x -60..-132, z 700..768) and its revenant camps
+// (x -34..-40, z 830..842), so all three groups fall into one contiguous farm
+// cluster. That was investigated as a placement defect and it is not one: the
+// Glimmermere itself lies inside that corridor, and the binding neighbours are
+// the WESTERN packs, not the revenants. Brutok (-45, 768) is 34yd from the
+// first wader camp and the ogre camp at (-60, 730) is 51yd from it, so no
+// arrangement that keeps these mobs at the water clears the 60yd cluster link:
+// measured, the best separation reachable within 20yd of the shore is 54yd.
+//
+// Moving them out to where the packs separate means marching them 50 to 70yd
+// uphill, which contradicts their own quest text: waders "climb out of the mere"
+// (q_tarn_waders) and Sethrael "glides the deep shelf where the stair begins...
+// go down to the shelf" (q_palecoil). It also un-flattens the lakeshore, since
+// camps stamp terrain (src/sim/world.ts reads CAMPS), which reshapes the tarn's
+// water dressing.
+//
+// The farm problem these camps were suspected of is fixed at the source instead:
+// the zone respawn tier (src/sim/respawn_policy.ts) takes this corridor from
+// about 189 gold and 1.29M XP per hour down to about 25 gold and 179k XP,
+// bounded by tests/economy_yield.test.ts. Do not "fix" the spacing here.
 export const TEMPLE_CAMPS: CampDef[] = [
   { mobId: 'glimmermere_wader', center: { x: -78, z: 778 }, radius: 16, count: 7 },
   { mobId: 'glimmermere_wader', center: { x: -56, z: 800 }, radius: 14, count: 5 },
@@ -499,9 +829,13 @@ export const TEMPLE_OBJECTS: GroundObjectDef[] = [
   },
 ];
 
-// Static props for the surface site: a ring of drowned columns around the gate
-// and Ondrel's lonely little camp just south of it (rendering + collision share
-// this, like every other ZonePropsDef).
+// Static props for the surface site: Ondrel's lonely little camp just south of
+// the gate (rendering + collision share this, like every other ZonePropsDef).
+// The old ring of drowned columns round the gate gave way to the Moon Stair
+// (src/sim/drowned_temple_entrance.ts). Its row stays with ZERO columns: a
+// ring is also one of the terrain's calm anchors (terrain_calm_anchors.ts), so
+// the ground the set piece was modelled on is unchanged, and a ring with no
+// columns draws and collides nothing (colliders.ts, render/props.ts).
 export const TEMPLE_PROPS: ZonePropsDef = {
   buildings: [],
   wells: [],
@@ -516,7 +850,7 @@ export const TEMPLE_PROPS: ZonePropsDef = {
   campfires: [[-63, 788]],
   mudHuts: [],
   marshReeds: [],
-  ruinRings: [{ x: -70, z: 792, ringR: 7, columns: 6 }],
+  ruinRings: [{ x: -70, z: 792, ringR: 7, columns: 0 }],
   fences: [],
   graveyards: [],
 };
@@ -578,7 +912,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     slot: 'mainhand',
     quality: 'uncommon',
     weapon: { min: 18, max: 31, speed: 3.0 },
-    stats: { int: 6, spi: 2 },
+    stats: { int: 6, spi: 2, sta: 2 },
     sellValue: 700,
     requiredClass: MAG,
   },
@@ -589,7 +923,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     slot: 'mainhand',
     quality: 'uncommon',
     weapon: { min: 11, max: 18, speed: 1.7, dagger: true },
-    stats: { agi: 6 },
+    stats: { agi: 6, sta: 2 },
     sellValue: 700,
     requiredClass: ROG,
   },
@@ -613,7 +947,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     armorType: 'cloth',
     slot: 'feet',
     quality: 'rare',
-    stats: { armor: 35, int: 5, spi: 3 },
+    stats: { armor: 35, int: 5, spi: 3, sta: 3 },
     sellValue: 1400,
     requiredClass: MAG,
   },
@@ -624,7 +958,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     armorType: 'leather',
     slot: 'feet',
     quality: 'rare',
-    stats: { armor: 60, agi: 6, sta: 2 },
+    stats: { armor: 60, agi: 5, sta: 3 },
     sellValue: 1400,
     requiredClass: ROG,
   },
@@ -646,7 +980,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     slot: 'mainhand',
     quality: 'rare',
     weapon: { min: 26, max: 42, speed: 3.0 },
-    stats: { int: 10, spi: 4 },
+    stats: { int: 10, spi: 4, sta: 4 },
     sellValue: 2200,
     requiredClass: MAG,
   },
@@ -657,7 +991,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     slot: 'mainhand',
     quality: 'rare',
     weapon: { min: 16, max: 25, speed: 1.7, dagger: true },
-    stats: { agi: 9, sta: 3 },
+    stats: { agi: 8, sta: 4 },
     sellValue: 2200,
     requiredClass: ROG,
   },
@@ -672,6 +1006,19 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     sellValue: 2400,
     requiredClass: WAR,
   },
+  // Collectible mount (Ysolei, Avatar of the Drowned Moon). Not soulbound;
+  // owning the ignition key item is owning the mount (src/sim/mounts.ts
+  // mountOwned), and the item transfers like any other.
+  reins_aether_hover_cycle: {
+    id: 'reins_aether_hover_cycle',
+    name: 'Ignition Key: Aether-Jouster Hover-Cycle',
+    kind: 'mount',
+    mount: 'aether_hover_cycle',
+    quality: 'epic',
+    noVendorSell: true,
+    noDiscard: true,
+    sellValue: 0,
+  },
   moonshroud_robe: {
     id: 'moonshroud_robe',
     name: 'Moonwrack Robe',
@@ -679,7 +1026,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     armorType: 'cloth',
     slot: 'chest',
     quality: 'rare',
-    stats: { armor: 70, int: 10, spi: 5 },
+    stats: { armor: 70, int: 10, spi: 5, sta: 4 },
     sellValue: 2400,
     requiredClass: MAG,
   },
@@ -723,7 +1070,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     slot: 'feet',
     quality: 'uncommon',
     // Drowned Votaries (level 16) -> item level 17, feet budget 4.
-    stats: { armor: 40, int: 2, spi: 2 },
+    stats: { armor: 40, int: 2, spi: 2, sta: 1 },
     sellValue: 430,
   },
   pearlward_aegis: {
@@ -741,7 +1088,7 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
     // holy paladins and restoration shamans; shields equip by the literal
     // requiredClass list.
     blockValue: 12,
-    stats: { armor: 240, int: 5, spi: 3 },
+    stats: { armor: 240, int: 5, spi: 3, sta: 3 },
     sellValue: 1700,
     requiredClass: ['paladin', 'shaman'],
   },
@@ -771,33 +1118,10 @@ export const TEMPLE_ITEMS: Record<string, ItemDef> = {
 };
 
 // ---------------------------------------------------------------------------
-// The Drowned Temple instance — paired elite packs through a flooded
-// antechamber, Choirmother Selthe holding the threshold of the moon-sanctum,
-// then Ysolei coiled on the great altar with two templeguards.
+// The Drowned Temple instance: the open-air lagoon temple rework
+// (docs/design/dungeon-rework/drowned_temple.md). Its spawns, packs, patrols
+// and gates live in drowned_temple.ts; the field in drowned_temple_layout.ts.
 // ---------------------------------------------------------------------------
-
-const TEMPLE_SPAWN_LIST: DungeonSpawn[] = [
-  // antechamber (front pair pushed to z 20+ so they sit outside aggro range of the entry)
-  { mobId: 'drowned_templeguard', x: -3, z: 20 },
-  { mobId: 'drowned_templeguard', x: 3, z: 21 },
-  { mobId: 'drowned_templeguard', x: -9, z: 30 },
-  { mobId: 'pale_choir_acolyte', x: -5, z: 31 },
-  { mobId: 'glimmerscale_lurker', x: 9, z: 44 },
-  { mobId: 'drowned_templeguard', x: 5, z: 45 },
-  { mobId: 'pearlguard_sentinel', x: -5, z: 56 },
-  { mobId: 'pale_choir_acolyte', x: -1, z: 57 },
-  // moon-sanctum (past the waist arch at z 66)
-  { mobId: 'choirmother_selthe', x: -4, z: 80 },
-  { mobId: 'pale_choir_acolyte', x: 2, z: 81 },
-  { mobId: 'glimmerscale_lurker', x: 9, z: 92 },
-  { mobId: 'drowned_templeguard', x: -7, z: 93 },
-  { mobId: 'pearlguard_sentinel', x: -5, z: 104 },
-  { mobId: 'drowned_templeguard', x: 3, z: 105 },
-  // the altar
-  { mobId: 'ysolei', x: 0, z: 116 },
-  { mobId: 'drowned_templeguard', x: -4, z: 114 },
-  { mobId: 'drowned_templeguard', x: 4, z: 114 },
-];
 
 export const TEMPLE_DUNGEON_DEFS: Record<string, DungeonDef> = {
   drowned_temple: {
@@ -805,13 +1129,29 @@ export const TEMPLE_DUNGEON_DEFS: Record<string, DungeonDef> = {
     name: 'The Drowned Temple',
     index: 3, // instance origin x = 900 + 3*600 = 2700 (clear of the arena band)
     doorPos: { ...MOONGATE_POS }, // the moongate on the Glimmermere shore
-    entry: { x: 0, z: -2 }, // clear-of-aggro arrival (see dungeon_entry_clearance test)
-    exitOffset: { x: 0, z: -6 },
-    spawns: TEMPLE_SPAWN_LIST,
-    interior: 'temple',
+    // The open-air lagoon rework: arrival on the Moongate Landing on the crater
+    // rim, 13 yd above and 50 yd behind the first pack, so no mob can pull the
+    // moment you zone in. See dungeon_entry_clearance test.
+    entry: { x: DROWNED_TEMPLE_ANCHORS.entry.x, z: DROWNED_TEMPLE_ANCHORS.entry.z },
+    exitOffset: { x: DROWNED_TEMPLE_ANCHORS.exit.x, z: DROWNED_TEMPLE_ANCHORS.exit.z },
+    // Ysolei's island sits 440 yd across the lagoon from the gate: a second
+    // exit opens beside the Moon Altar on her death.
+    bossExitPortal: { x: -12, z: 196 },
+    spawns: DROWNED_TEMPLE_SPAWNS,
+    objects: [...DROWNED_TEMPLE_GATE_OBJECTS],
+    // Laverock, the optional lore guide, waits on the Moongate Landing.
+    npcs: [
+      { npcId: CANTOR_NPC_ID, x: CANTOR_SPAWN.x, z: CANTOR_SPAWN.z, facing: CANTOR_SPAWN.facing },
+    ],
+    gates: DROWNED_TEMPLE_GATES,
+    // No skipping: every pack is gated, and pulling Ysolei early still wakes
+    // anything left alive (instances/boss_chain_pull.ts).
+    bossChainPull: true,
+    areaCastsPlant: true,
+    interior: 'drowned_temple',
     suggestedPlayers: 5,
     enterText:
-      'You step through the moongate — the air turns to cold water and pale light, and the singing closes over your head.',
+      'You step through the moongate: the air turns to cold water and pale light, and the singing closes over your head.',
     leaveText: 'You surface through the moongate into the mountain night.',
   },
 };

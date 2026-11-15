@@ -8,12 +8,14 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { createDeedRuntime } from '../src/sim/deeds';
+import { freshMusterArmy } from '../src/sim/mirefen_muster';
 import { createMobScanCounters } from '../src/sim/mob/scan_counters';
 import { Rng } from '../src/sim/rng';
+import { freshSeasonalWorldState } from '../src/sim/seasonal';
 import { Sim } from '../src/sim/sim';
 import { createSimContext, type SimContextHost } from '../src/sim/sim_context';
-import { createVcState } from '../src/sim/social/vale_cup';
 import { SpatialGrid } from '../src/sim/spatial';
+import { DEFAULT_STORAGE_PRICES } from '../src/sim/storage_prices';
 import type { Entity, SimEvent } from '../src/sim/types';
 
 // Every cross-system callback on the seam. The list IS the contract: each must be a
@@ -22,6 +24,7 @@ import type { Entity, SimEvent } from '../src/sim/types';
 const CALLBACK_KEYS = [
   'emit',
   'error',
+  'reserveVaultConsumption',
   'dealDamage',
   'handleDeath',
   'cancelCast',
@@ -57,6 +60,7 @@ const CALLBACK_KEYS = [
   'applyAura',
   'applyRootAura',
   'applyKnockback',
+  'isIceBlocked',
   'diminishedCrowdControlDuration',
   'hostilesInRadius',
   'friendliesInRadius',
@@ -79,6 +83,7 @@ const CALLBACK_KEYS = [
   'onMobKilledForQuests',
   'onRecipeCraftedForQuests',
   'onNodeGatheredForQuests',
+  'onCropFarmedForQuests',
   'onInventoryChangedForQuests',
   'checkQuestReady',
   'countItem',
@@ -128,6 +133,7 @@ const CALLBACK_KEYS = [
   'swingIntervalMult',
   'mobCanSwim',
   'resolveMovePoint',
+  'resolvePlayerMove',
   'resolveMove',
   'updatePet',
   'isDelveCompanionMob',
@@ -145,6 +151,8 @@ const CALLBACK_KEYS = [
   // I1 dungeon instancing + the shared raid-lockout clock + the host reset boundary.
   'lockoutNowMs',
   'raidResetMs',
+  'weeklyRaidResetMs',
+  'dayNightPhase',
   'instanceKeyFor',
   'instanceOriginOf',
   'instanceClaimIdAt',
@@ -152,9 +160,12 @@ const CALLBACK_KEYS = [
   'leaveDungeon',
   'resetDungeonInstances',
   'inheritDungeonResetLocks',
+  'onDungeonFinderPartyJoined',
   'dungeonDifficulty',
   'setDungeonDifficulty',
   'awardHeroicMarks',
+  // Masterwrought phase 04 materials surface (professions/masterwrought_materials).
+  'awardWyrmfallCores',
   // M3 mob-swing affix cascade surface.
   'effectiveArmor',
   'recalcPlayer',
@@ -178,6 +189,9 @@ const CALLBACK_KEYS = [
   'abandonLockpick',
   'tickLockpickTimeout',
   'startDelveRaiseDeadChannel',
+  'tickMountTraining',
+  'abandonMountTraining',
+  'tickMountRace',
   // C4a casting-lifecycle surface.
   'resolvedAbility',
   'playerGcdFor',
@@ -185,13 +199,25 @@ const CALLBACK_KEYS = [
   'isHostileTo',
   'lineOfSightBlocked',
   'stopFollow',
+  'partyInvite',
+  'readyCheckStart',
+  'pullTimerStart',
+  'pullTimerCancel',
   'tameError',
   'standUp',
   'breakGhostWolf',
+  'forceDismount',
   'startAutoAttack',
+  'tryPlayerSwing',
   'revivePet',
   'completeFishing',
   'completeGatherCast',
+  'completeCraftCast',
+  'completeDisenchantCast',
+  'completeApplyEnchantCast',
+  'completeSalvageCast',
+  'completeSunderCast',
+  'completeRechargeCast',
   'applyDemonHealTick',
   'awardCombo',
   'meleeSwing',
@@ -209,6 +235,7 @@ const CALLBACK_KEYS = [
   'spawnDevVendor',
   'startCascadePlaytest',
   'startDevSandbox',
+  'setDevMobsFrozen',
   'seedDungeonFinderDev',
   // L2 inventory/vendor (W2): the four still-on-Sim helpers the moved useItem dispatches to.
   'startFishing',
@@ -225,15 +252,28 @@ const CALLBACK_KEYS = [
   // Ravenpost mail: the quest turn-in letter hook.
   'queueQuestLetter',
   'mailHeroicMarks',
+  'mailWyrmfallCores',
   'mailAuthoredLetter',
+  'mailboxHoldsItem',
+  // Commission order board change signal (professions/commission_order.ts
+  // writes it at every board mutation; the server's corder gate reads it).
+  'bumpCommissionOrderBoardRev',
   // Set proc firing.
   'applySetProcs',
-  // The Vale Cup sport-move arms (social/vale_cup.ts).
-  'vcupBallKick',
-  'vcupBallPass',
-  'vcupShoot',
-  'vcupSportDash',
-  'vcupSportShove',
+  // Book of Deeds lifetime-counter bump (deeds.ts owns the body).
+  'bumpDeedStat',
+  // The six vcup* callbacks were removed here with the Vale Cup retirement
+  // (docs/design/eastbrook-revamp/master-plan.md), the sanctioned exception to
+  // this list's append-only rule.
+  // Thornhollow Fields battleground hooks (social/battleground.ts).
+  'bgOnPlayerDeath',
+  // World-quest callbacks are append-only at the end of the established seam.
+  'onMobKilledForWorldQuests',
+  'onNodeGatheredForWorldQuests',
+  'onObjectInteractedForWorldQuests',
+  'currentWorldQuestRotation',
+  'hasActiveWorldQuest',
+  'completeWorldQuestEscort',
 ] as const;
 
 // A fully-spied fake host. `clock` is mutable so a test can prove the context reads
@@ -243,6 +283,21 @@ function makeFakeHost() {
   const entities = new Map<number, Entity>();
   const clock = { time: 0, tick: 0 };
   const host: SimContextHost = {
+    riftCollisionToken: 1,
+    accountCosmetics: {
+      completedQuestIds: [],
+      mechChromaIds: [],
+      weaponSkinIds: [],
+      weaponSkinLoadout: {},
+      mountSkinIds: [],
+    },
+    storagePrices: DEFAULT_STORAGE_PRICES,
+    naturalRiftPortals: [],
+    riftEvents: [],
+    nextRiftInstanceId: 1,
+    riftPortalNextAt: 120,
+    transportClockOffset: 0,
+    riftPortalSpawnCount: 0,
     get rng() {
       return rng;
     },
@@ -255,11 +310,16 @@ function makeFakeHost() {
     get entities() {
       return entities;
     },
+    entityRosterVersion: 0,
     players: new Map(),
+    masteryResetNoticeCounter: { pending: 0 },
     stationPlacements: [],
+    graveyards: [],
+    playerStart: { x: 0, z: 0 },
     primaryId: -1,
     tradeInvites: new Map(),
     duelInvites: new Map(),
+    feasts: new Map(),
     nextId: 1,
     grid: new SpatialGrid(),
     playerGrid: new SpatialGrid(),
@@ -269,6 +329,9 @@ function makeFakeHost() {
     frozenOrbs: [],
     dungeonDoorIds: null,
     instances: [],
+    riftInstances: [],
+    riftPortalIds: null,
+    pendingDifficultyChanges: new Map(),
     dungeonResetLocks: new Map(),
     arenaMatches: new Map(),
     duels: new Map(),
@@ -284,40 +347,81 @@ function makeFakeHost() {
     arenaQueueYumi5: [],
     yumiBusySlots: new Set(),
     yumiCatMatches: new Map(),
+    escortRuns: new Map(),
     matchmakeYumi: vi.fn(),
     updateYumiActive: vi.fn(),
     yumiPlayerDown: vi.fn(),
     yumiCatDamaged: vi.fn(),
     cleanupYumiMatch: vi.fn(),
     nextArenaMatchId: 1,
+    bgQueue: [],
+    bgMatches: new Map(),
+    worldPvpDisabled: false,
+    hillState: { active: null, window: 0, plan: null, attempts: 0, retryAt: 0, passTick: 0 },
+    seasonal: freshSeasonalWorldState(),
+    hillProbe: { wet: () => false, steep: () => false, blocked: () => false, zoneIdAt: () => null },
+    worldPvpBooks: {
+      recentDamage: new Map(),
+      recentSupport: new Map(),
+      lastFightAt: new Map(),
+      paidDeaths: new Set(),
+      spoils: new Map(),
+      killsByPair: new Map(),
+      zoneOf: new Map(),
+      nextDisarmAt: Number.POSITIVE_INFINITY,
+      zonePassTick: Number.NEGATIVE_INFINITY,
+      sweptAtTick: 0,
+      nextPayoutAt: Number.POSITIVE_INFINITY,
+      forfeitVictim: null,
+    },
+    bgBusySlots: new Set(),
+    bgOutcomes: [],
+    bgProposals: [],
+    bgProposalLockouts: new Map(),
+    nextBgProposalId: 1,
+    nextBgMatchId: 1,
     delveRuns: [],
     delvePetStash: new Map(),
     utcDay: '',
+    resetDay: '',
+    eventLeadDay: '',
+    dailyResetRemainingSec: 0,
     pendingMobRespawns: [],
     partyInvites: new Map(),
     readyChecks: new Map(),
+    pullTimers: new Map(),
     pendingResurrections: new Map(),
     chatTokens: new Map(),
     channelSubs: new Map(),
     pendingLootRolls: new Map(),
     nextLootRollId: 1,
     devCommands: false,
+    compulsoryTutorial: false,
     marketListings: [],
+    commissionOrderBoard: [],
+    nextCommissionOrderId: 1,
     bankerIds: [],
-    vcup: createVcState(),
+    guildBanks: new Map(),
     deedDirtyPids: new Set<number>(),
     deedDirtyKeys: new Map<number, Set<string>>(),
     worldBossEntityIds: [],
+    musterArmy: freshMusterArmy(),
     deedRuntime: createDeedRuntime(),
     fiestaBotPids: [],
     mobScanCounters: createMobScanCounters(),
+    engagedPids: new Set<number>(),
     bumpDeedStat: vi.fn(),
+    bumpCommissionOrderBoardRev: vi.fn(),
     markItemDiscovered: vi.fn(),
     markVisited: vi.fn(),
     markDeedsDirty: vi.fn(),
     grantDeed: vi.fn(() => true),
     emit: vi.fn(),
     error: vi.fn(),
+    reserveVaultConsumption: vi.fn(() => ({
+      commit: vi.fn(),
+      cancel: vi.fn(),
+    })),
     dealDamage: vi.fn(),
     handleDeath: vi.fn(),
     cancelCast: vi.fn(),
@@ -353,6 +457,7 @@ function makeFakeHost() {
     isControlAura: vi.fn(() => false),
     applyRootAura: vi.fn(),
     applyKnockback: vi.fn(() => 0),
+    isIceBlocked: vi.fn(() => false),
     diminishedCrowdControlDuration: vi.fn(() => null),
     hostilesInRadius: vi.fn(() => []),
     friendliesInRadius: vi.fn(() => []),
@@ -370,11 +475,20 @@ function makeFakeHost() {
     clearEntityMarker: vi.fn(),
     partyOf: vi.fn(() => null),
     removeFromParty: vi.fn(),
+    hillPartyDisband: vi.fn(),
+    hillPartyJoin: vi.fn(),
     dropPartyMarkers: vi.fn(),
     formDungeonFinderGroup: vi.fn(() => null),
     onMobKilledForQuests: vi.fn(),
+    onMobKilledForWorldQuests: vi.fn(),
     onRecipeCraftedForQuests: vi.fn(),
     onNodeGatheredForQuests: vi.fn(),
+    onCropFarmedForQuests: vi.fn(),
+    onNodeGatheredForWorldQuests: vi.fn(),
+    onObjectInteractedForWorldQuests: vi.fn(() => false),
+    currentWorldQuestRotation: vi.fn(() => ({ cycle: '', quests: [] })),
+    hasActiveWorldQuest: vi.fn(() => false),
+    completeWorldQuestEscort: vi.fn(),
     onInventoryChangedForQuests: vi.fn(),
     checkQuestReady: vi.fn(),
     countItem: vi.fn(() => 0),
@@ -385,16 +499,24 @@ function makeFakeHost() {
     completeCurrentQuestsForDev: vi.fn(() => 0),
     lockoutNowMs: vi.fn(() => 0),
     raidResetMs: vi.fn((nowMs: number) => nowMs),
+    weeklyRaidResetMs: vi.fn((nowMs: number) => nowMs),
+    dayNightPhase: vi.fn(() => null),
     instanceKeyFor: vi.fn(() => 'solo:0'),
     instanceOriginOf: vi.fn(() => ({ x: 0, z: 0 })),
     instanceClaimIdAt: vi.fn(() => null),
     enterDungeon: vi.fn(),
     leaveDungeon: vi.fn(),
+    enterRift: vi.fn(),
+    leaveRift: vi.fn(),
+    emitRiftDeparture: vi.fn(),
+    riftOpenTreasure: vi.fn(),
     resetDungeonInstances: vi.fn(),
     inheritDungeonResetLocks: vi.fn(),
+    onDungeonFinderPartyJoined: vi.fn(),
     dungeonDifficulty: vi.fn(() => 'normal' as const),
     setDungeonDifficulty: vi.fn(),
     awardHeroicMarks: vi.fn(),
+    awardWyrmfallCores: vi.fn(),
     addEntity: vi.fn(),
     dropEntity: vi.fn(),
     rebucket: vi.fn(),
@@ -435,6 +557,7 @@ function makeFakeHost() {
     swingIntervalMult: vi.fn(() => 1),
     mobCanSwim: vi.fn(() => false),
     resolveMovePoint: vi.fn(() => ({ x: 0, z: 0 })),
+    resolvePlayerMove: vi.fn(() => ({ x: 0, z: 0 })),
     resolveMove: vi.fn(() => ({ x: 0, z: 0 })),
     updatePet: vi.fn(),
     isDelveCompanionMob: vi.fn(() => false),
@@ -474,6 +597,9 @@ function makeFakeHost() {
     abandonLockpick: vi.fn(),
     tickLockpickTimeout: vi.fn(),
     startDelveRaiseDeadChannel: vi.fn(() => false),
+    tickMountTraining: vi.fn(),
+    tickMountRace: vi.fn(),
+    abandonMountTraining: vi.fn(),
     resolvedAbility: vi.fn(() => null),
     playerGcdFor: vi.fn(() => 1.5),
     isFriendlyTo: vi.fn(() => false),
@@ -482,13 +608,23 @@ function makeFakeHost() {
     stopFollow: vi.fn(),
     partyInvite: vi.fn(),
     readyCheckStart: vi.fn(),
+    pullTimerStart: vi.fn(),
+    pullTimerCancel: vi.fn(),
     tameError: vi.fn(() => null),
     standUp: vi.fn(),
     breakGhostWolf: vi.fn(),
+    forceDismount: vi.fn(),
     startAutoAttack: vi.fn(),
+    tryPlayerSwing: vi.fn(),
     revivePet: vi.fn(),
     completeFishing: vi.fn(),
     completeGatherCast: vi.fn(),
+    completeCraftCast: vi.fn(),
+    completeDisenchantCast: vi.fn(),
+    completeApplyEnchantCast: vi.fn(),
+    completeSalvageCast: vi.fn(),
+    completeSunderCast: vi.fn(),
+    completeRechargeCast: vi.fn(),
     applyDemonHealTick: vi.fn(),
     awardCombo: vi.fn(),
     meleeSwing: vi.fn(() => false),
@@ -506,6 +642,7 @@ function makeFakeHost() {
     spawnDevVendor: vi.fn(),
     startCascadePlaytest: vi.fn(),
     startDevSandbox: vi.fn(),
+    setDevMobsFrozen: vi.fn(() => false),
     seedDungeonFinderDev: vi.fn(() => ({ spawned: 0, note: 'ok' as const })),
     // L2 inventory/vendor (W2): the four still-on-Sim helpers the moved useItem dispatches to.
     startFishing: vi.fn(),
@@ -522,14 +659,15 @@ function makeFakeHost() {
     // Ravenpost mail: the quest turn-in letter hook.
     queueQuestLetter: vi.fn(),
     mailHeroicMarks: vi.fn(),
+    mailWyrmfallCores: vi.fn(),
     mailAuthoredLetter: vi.fn(),
+    mailboxHoldsItem: vi.fn(() => false),
     applySetProcs: vi.fn(),
-    // The Vale Cup sport-move arms.
-    vcupBallKick: vi.fn(),
-    vcupBallPass: vi.fn(),
-    vcupShoot: vi.fn(),
-    vcupSportDash: vi.fn(),
-    vcupSportShove: vi.fn(),
+    // Thornhollow Fields battleground hooks.
+    bgOnPlayerDeath: vi.fn(),
+    bgOnPlayerDamaged: vi.fn(),
+    bgOnPlayerHealed: vi.fn(),
+    bgCancelFlagAura: vi.fn(() => false),
   };
   return { host, rng, entities, clock };
 }
@@ -559,6 +697,18 @@ describe('createSimContext (isolated, fake host)', () => {
     expect(ctx.bankerIds).toBe(host.bankerIds);
     host.bankerIds.push(4242); // the Sim ctor pushes ids after the ctx is built
     expect(ctx.bankerIds).toEqual([4242]);
+  });
+
+  it('exposes guildBanks as a live shared view (the bankerIds idiom)', () => {
+    const { host } = makeFakeHost();
+    const ctx = createSimContext(host);
+    expect(ctx.guildBanks).toBe(host.guildBanks);
+    host.guildBanks.set(3, { treasury: 0, inventory: [], purchasedSlots: 0 });
+    expect(ctx.guildBanks.get(3)).toEqual({
+      treasury: 0,
+      inventory: [],
+      purchasedSlots: 0,
+    });
   });
 
   it('passes every callback through to the host by identity (no rewrapping)', () => {
@@ -656,7 +806,12 @@ describe('Sim.ctx (real seam delegation)', () => {
       const sim = makeSim(7);
       for (let i = 0; i < 40; i++) sim.tick();
       const p = sim.entities.get(sim.primaryId) as Entity;
-      return { time: sim.ctx.time, tick: sim.ctx.tickCount, hp: p.hp, pos: { ...p.pos } };
+      return {
+        time: sim.ctx.time,
+        tick: sim.ctx.tickCount,
+        hp: p.hp,
+        pos: { ...p.pos },
+      };
     };
     expect(run()).toEqual(run());
   });

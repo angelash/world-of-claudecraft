@@ -1,12 +1,29 @@
 import { describe, expect, it } from 'vitest';
+import { CRUCIBLE_COLLECTION_RECIPES } from '../src/sim/content/crucible_collections';
+import { FORGEBREAKER_RECIPES } from '../src/sim/content/forgebreaker_recipe';
 import { STATION_TYPE_BY_CRAFT } from '../src/sim/content/professions';
 import {
+  APEX_ARMOR_RECIPES,
+  APEX_CONSUMABLE_RECIPES,
+  APEX_GEAR_RECIPES,
+  BAG_RECIPES,
+  BUDDY_CHARM_RECIPES,
   CASTER_HUB_RECIPES,
   COMBO_RECIPES,
   COMMON_RECIPES,
+  ENGINEERING_ONRAMP_RECIPES,
+  FACTION_REWARD_RECIPES,
+  FARM_RECIPES,
+  HOE_RECIPES,
+  INSCRIPTION_RECIPES,
+  INTERMEDIATE_RECIPES,
+  JEWELCRAFTING_RECIPES,
   LADDER_RECIPES,
+  ROD_RECIPES,
   recipeById,
+  TOOL_EFFECT_RECIPES,
   TOOL_RECIPES,
+  TROPHY_RECIPES,
 } from '../src/sim/content/recipes';
 import { STATIONS } from '../src/sim/data';
 import {
@@ -27,6 +44,23 @@ function makeSim(seed = 42) {
 
 function grantItem(sim: Sim, itemId: string, count: number, pid: number) {
   for (let i = 0; i < count; i++) sim.addItem(itemId, 1, pid);
+}
+
+/** Finish a started craft cast (updateCasting shape: clear cast, then complete). */
+function completeCraftCastNow(sim: Sim, pid = sim.playerId) {
+  const p = (sim as any).entities.get(pid);
+  const meta = (sim as any).players.get(pid);
+  if (!p || !meta) throw new Error('player missing');
+  p.castingAbility = null;
+  p.castRemaining = 0;
+  sim.ctx.completeCraftCast(p, meta);
+}
+
+/** Start via Sim.craftItem and complete in-harness (Phase 1 cast path). */
+function craftItemComplete(sim: Sim, recipeId: string, commission = false, pid?: number) {
+  const id = pid ?? sim.playerId;
+  sim.craftItem(recipeId, commission, id, 1);
+  completeCraftCastNow(sim, id);
 }
 
 // Station-bound recipes gate on POSITION only (the old level-20 hub
@@ -83,13 +117,16 @@ describe('TOOL_RECIPES (#1135 de-stub): tier 4/5 tool recipes', () => {
     // requires standing at that station; there is NO level arm anymore (see
     // professions_crafting_hub.test.ts for the gate's dedicated coverage).
     placeAtStationFor(sim, pid, recipe.id);
-    grantItem(sim, 'thorium_ore', 4, pid);
+    // The FINE mirefen ore, not plain osmium (D8): the tier-4 pick's reagent
+    // moved onto the grade that only a tier-3 pick can gather, which is the
+    // same pick this recipe consumes.
+    grantItem(sim, 'fine_iron_ore', 4, pid);
     grantItem(sim, 'mithril_mining_pick', 1, pid);
 
     const result = resolveCraft((sim as any).ctx, pid, recipe.id);
 
     expect(result.ok).toBe(true);
-    expect(sim.countItem('thorium_ore', pid)).toBe(0);
+    expect(sim.countItem('fine_iron_ore', pid)).toBe(0);
     expect(sim.countItem('mithril_mining_pick', pid)).toBe(0);
     expect(sim.countItem('thorium_mining_pick', pid)).toBe(1);
   });
@@ -390,7 +427,7 @@ describe('craftItem command (#1127)', () => {
     const sim = makeSim();
     const pid = sim.playerId;
     grantItem(sim, 'spider_leg', 1, pid);
-    sim.craftItem('recipe_tough_jerky', false, pid);
+    craftItemComplete(sim, 'recipe_tough_jerky', false, pid);
     expect(sim.lastCraftResult?.ok).toBe(true);
     expect(sim.lastCraftResult?.itemId).toBe('tough_jerky');
     // Quality is the OUTPUT DEF quality (tough_jerky: common), and a
@@ -402,29 +439,79 @@ describe('craftItem command (#1127)', () => {
 
   it('the IWorld recipeList read surface exposes every recipe, common, tool, and combo alike (#1132 review)', () => {
     const sim = makeSim();
+    // Every authored recipe list, spelled out: a new list that joins
+    // ALL_RECIPES but not this enumeration would be unreachable through
+    // recipeList, which is the exact defect #1132 found. FARM_RECIPES (the
+    // Phase 6 farm-economy hook set) joined here with the dishes;
+    // TROPHY_RECIPES (Masterwrought phase 11l) with the trophy consumers.
     const allIds = [
       ...COMMON_RECIPES,
       ...TOOL_RECIPES,
+      ...ROD_RECIPES,
+      ...HOE_RECIPES,
+      ...TOOL_EFFECT_RECIPES,
       ...CASTER_HUB_RECIPES,
       ...COMBO_RECIPES,
       ...LADDER_RECIPES,
+      ...JEWELCRAFTING_RECIPES,
+      ...INSCRIPTION_RECIPES,
+      ...INTERMEDIATE_RECIPES,
+      ...APEX_ARMOR_RECIPES,
+      ...APEX_GEAR_RECIPES,
+      ...APEX_CONSUMABLE_RECIPES,
+      ...FARM_RECIPES,
+      ...TROPHY_RECIPES,
+      ...ENGINEERING_ONRAMP_RECIPES,
+      ...BAG_RECIPES,
+      ...CRUCIBLE_COLLECTION_RECIPES,
+      ...FORGEBREAKER_RECIPES,
+      // The five quartermaster rows (the 2026-09-28 release/v0.44.0 merge
+      // into feature/buried-hoards): 204 to 209.
+      ...FACTION_REWARD_RECIPES,
+      ...BUDDY_CHARM_RECIPES,
     ]
       .map((r) => r.id)
       .sort();
     expect(sim.recipeList.length).toBe(
       COMMON_RECIPES.length +
         TOOL_RECIPES.length +
+        ROD_RECIPES.length +
+        HOE_RECIPES.length +
+        TOOL_EFFECT_RECIPES.length +
         CASTER_HUB_RECIPES.length +
         COMBO_RECIPES.length +
-        LADDER_RECIPES.length,
+        LADDER_RECIPES.length +
+        JEWELCRAFTING_RECIPES.length +
+        INSCRIPTION_RECIPES.length +
+        INTERMEDIATE_RECIPES.length +
+        APEX_ARMOR_RECIPES.length +
+        APEX_GEAR_RECIPES.length +
+        APEX_CONSUMABLE_RECIPES.length +
+        FARM_RECIPES.length +
+        // Sibling literal: expect(TROPHY_RECIPES).toHaveLength(7) in
+        // tests/recipe_economy.test.ts.
+        TROPHY_RECIPES.length +
+        // Sibling literal: the two-row on-ramp pin in
+        // tests/recipe_economy.test.ts (masterwrought Phase 11o).
+        ENGINEERING_ONRAMP_RECIPES.length +
+        BAG_RECIPES.length +
+        CRUCIBLE_COLLECTION_RECIPES.length +
+        FORGEBREAKER_RECIPES.length +
+        FACTION_REWARD_RECIPES.length +
+        BUDDY_CHARM_RECIPES.length,
     );
+    expect(FACTION_REWARD_RECIPES).toHaveLength(5);
+    expect(CRUCIBLE_COLLECTION_RECIPES).toHaveLength(33);
+    expect(FORGEBREAKER_RECIPES.map((recipe) => recipe.id)).toEqual([
+      'recipe_varkhul_forgebreaker',
+    ]);
     expect(sim.recipeList.map((r) => r.id).sort()).toEqual(allIds);
   });
 
   it('denies a craft with an error event and leaves lastCraftResult reflecting the denial', () => {
     const sim = makeSim();
     const pid = sim.playerId;
-    sim.craftItem('recipe_tough_jerky', false, pid);
+    sim.craftItem('recipe_tough_jerky', false, pid, 1);
     expect(sim.lastCraftResult?.ok).toBe(false);
     expect(sim.lastCraftResult?.reason).toBe('insufficient_materials');
   });
@@ -712,7 +799,7 @@ describe('combo recipes requiring an adjacent craft pair (#1132)', () => {
     grantItem(sim, 'wolf_fang', 4, pid);
     grantItem(sim, 'smithing_flux', 2, pid);
 
-    sim.craftItem(comboRecipe.id, false, pid);
+    sim.craftItem(comboRecipe.id, false, pid, 1);
 
     expect(sim.lastCraftResult?.ok).toBe(false);
     expect(sim.lastCraftResult?.reason).toBe('combo_requirement_unmet');
@@ -809,9 +896,9 @@ describe('craft-completion event carries audio-relevant data (#1729)', () => {
     grantItem(sim, 'spider_leg', 1, pid);
 
     sim.drainEvents();
-    // The coordinator command (not the pure resolveCraft) is what emits the
+    // The coordinator command starts a cast; completeCraftCast emits the
     // craftResult event the client hooks audio onto.
-    sim.craftItem('recipe_tough_jerky', false, pid);
+    craftItemComplete(sim, 'recipe_tough_jerky', false, pid);
     const craft = sim.drainEvents().find((e) => e.type === 'craftResult');
     if (craft?.type !== 'craftResult') throw new Error('expected a craftResult event');
     expect(craft.ok).toBe(true);
@@ -832,7 +919,7 @@ describe('craft-completion event carries audio-relevant data (#1729)', () => {
     const pid = sim.playerId;
     // No materials granted: the insufficient_materials denial path.
     sim.drainEvents();
-    sim.craftItem('recipe_tough_jerky', false, pid);
+    sim.craftItem('recipe_tough_jerky', false, pid, 1);
     const craft = sim.drainEvents().find((e) => e.type === 'craftResult');
     if (craft?.type !== 'craftResult') throw new Error('expected a craftResult event');
     expect(craft.ok).toBe(false);
@@ -875,9 +962,13 @@ describe('masterwork proc (Professions 2.0)', () => {
   }
 
   it('a proc mints a signed masterwork instance and surfaces it on every seam (hunted seed)', () => {
-    // Seed 2 was hunted (bounded scan from seed 1 upward) so the single proc
-    // draw lands under the capped 15 percent chance; only the pinned literal
-    // is committed, per the suite's seed-pinning idiom.
+    // Seed 2 was hunted (bounded scan from seed 1 upward, re-recorded after
+    // the Eastbrook camp respacing thinned the zone-1 camp counts and shifted
+    // the camp-driven world-gen draw sequence) so the proc draw lands
+    // under the capped 15 percent chance (the loot-quality draw follows the
+    // proc, so it never moved this seed); only the pinned literal is
+    // committed, per the suite's seed-pinning idiom. Spares on record: 21, 23,
+    // 27, and 28.
     const { sim, pid, meta } = vestmentsScenario(2);
     sim.drainEvents();
     let draws = 0;
@@ -885,11 +976,13 @@ describe('masterwork proc (Professions 2.0)', () => {
     rng.setObserver(() => {
       draws++;
     });
-    sim.craftItem('recipe_eastbrook_ritual_vestments', false, pid);
+    craftItemComplete(sim, 'recipe_eastbrook_ritual_vestments', false, pid);
     rng.setObserver(null);
 
-    // Still exactly one draw across the whole command path: the proc roll.
-    expect(draws).toBe(1);
+    // Exactly two draws across the whole command path: the proc roll, then
+    // the equipment output's one permanent loot-quality draw at grant (an
+    // unenhanced roll at this seed, so no weight draws follow).
+    expect(draws).toBe(2);
 
     // CraftResult (via the lastCraftResult stash) carries the flag; quality
     // stays the OUTPUT DEF quality (uncommon), never the bumped tier.
@@ -915,14 +1008,20 @@ describe('masterwork proc (Professions 2.0)', () => {
     // The minted copy: ONE signed instance whose rolled payload is the
     // masterwork marker plus the baked TIER-DELTA stats (the uncommon-to-rare
     // primary budget delta at the recipe's level 9, redistributed over the
-    // def's int/spi profile). New crafts never write rolled.quality.
+    // def's int/spi profile). Since the stamina baseline model
+    // (item_budget.ts's tierDeltaStats, used by masterworkBonusStats), a
+    // caster identity's bake also carries the growth of its free stamina
+    // baseline between the two tiers, one point here. New crafts never write
+    // rolled.quality.
     const slots = meta.inventory.filter((s: any) => s.itemId === 'eastbrook_ritual_vestments');
     expect(slots.length).toBe(1);
     const instance = slots[0].instance;
     expect(instance?.signer).toBe(meta.name);
     expect(instance?.rolled?.masterwork).toBe(true);
     expect(instance?.rolled?.quality).toBeUndefined();
-    expect(instance?.rolled?.stats).toEqual({ int: 1, spi: 1 });
+    expect(instance?.rolled?.stats).toEqual({ int: 1, spi: 1, sta: 1 });
+    // The unenhanced quality draw leaves the copy at the base loot quality.
+    expect(instance?.lootQuality).toBeUndefined();
 
     // The IWorld read surface reflects the proc.
     expect(sim.lastMasterwork).toEqual({
@@ -959,7 +1058,7 @@ describe('masterwork proc (Professions 2.0)', () => {
       draws++;
       roll = value;
     });
-    sim.craftItem('recipe_eastbrook_chain_vest', false, pid);
+    craftItemComplete(sim, 'recipe_eastbrook_chain_vest', false, pid);
     rng.setObserver(null);
 
     // The proc draw is unconditional on the success path: exactly one draw
@@ -984,5 +1083,81 @@ describe('masterwork proc (Professions 2.0)', () => {
 
     // The per-player masterwork read surface never moved.
     expect(sim.lastMasterwork).toBeNull();
+  });
+});
+
+// Regression: the #1149 signing rule was gated on `recipe.resultCount === 1`,
+// so a rare-quality output with resultCount > 1 fell through to the plain
+// fungible grant and was never signed at all. Two shipped recipes hit this:
+// recipe_anglers_feast_platter (resultCount 3) and recipe_elixir_of_the_serpent
+// (resultCount 2), both resolving to a rare-def item. Every granted copy of a
+// signable-rarity output must carry the crafter's signature, matching the
+// masterwork/commission precedent that a multi-copy grant arms every copy
+// (they merge into one byte-equal stack since every copy carries the SAME
+// {signer} payload).
+describe('rare-quality signing composes with multi-copy outputs (#1149 regression)', () => {
+  it('signs every copy of a rare-quality resultCount>1 recipe (anglers_feast_platter)', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = (sim as any).players.get(pid);
+    const recipe = recipeById('recipe_anglers_feast_platter');
+    if (!recipe) throw new Error('expected recipe_anglers_feast_platter to exist');
+    expect(recipe.resultCount).toBe(3);
+    meta.knownRecipes.add(recipe.id);
+    placeAtStationFor(sim, pid, recipe.id);
+    grantItem(sim, 'raw_frostgill_trout', 2, pid);
+    grantItem(sim, 'raw_bog_eel', 2, pid);
+    grantItem(sim, 'sunpetal_herb', 1, pid);
+    grantItem(sim, 'cooking_salt', 2, pid);
+
+    const result = resolveCraft((sim as any).ctx, pid, recipe.id);
+
+    expect(result.ok).toBe(true);
+    expect(result.count).toBe(3);
+    expect(result.quality).toBe('rare');
+    const slots = meta.inventory.filter((s: any) => s.itemId === 'anglers_feast_platter');
+    const totalGranted = slots.reduce((sum: number, s: any) => sum + s.count, 0);
+    expect(totalGranted).toBe(3);
+    // All 3 copies carry the same signer source, so the single
+    // addItemInstance call must merge them into one source-backed stack. Pinning
+    // the stack count (not just "at least one") is what fails a regression to
+    // a per-copy grant loop, which would fragment the output into 3 slots.
+    expect(slots.length).toBe(1);
+    for (const slot of slots) {
+      expect(slot.materialSources).toEqual([{ source: { signer: meta.name }, count: 3 }]);
+    }
+  });
+
+  it('signs every copy of a rare-quality resultCount>1 recipe (elixir_of_the_serpent)', () => {
+    const sim = makeSim();
+    const pid = sim.playerId;
+    const meta = (sim as any).players.get(pid);
+    const recipe = recipeById('recipe_elixir_of_the_serpent');
+    if (!recipe) throw new Error('expected recipe_elixir_of_the_serpent to exist');
+    expect(recipe.resultCount).toBe(2);
+    meta.knownRecipes.add(recipe.id);
+    placeAtStationFor(sim, pid, recipe.id);
+    grantItem(sim, 'pristine_venom_gland', 1, pid);
+    grantItem(sim, 'venom_gland', 2, pid);
+    // The provisioning supply line (Phase 11g) put a tier-3 farm base on this
+    // bill. A hand-granted reagent list does not self-heal, so the grant moves
+    // with the recipe or the craft refuses on a missing reagent.
+    grantItem(sim, 'frost_gourd', 1, pid);
+    grantItem(sim, 'sunpetal_herb', 1, pid);
+    grantItem(sim, 'glass_vial', 1, pid);
+
+    const result = resolveCraft((sim as any).ctx, pid, recipe.id);
+
+    expect(result.ok).toBe(true);
+    expect(result.count).toBe(2);
+    expect(result.quality).toBe('rare');
+    const slots = meta.inventory.filter((s: any) => s.itemId === 'elixir_of_the_serpent');
+    const totalGranted = slots.reduce((sum: number, s: any) => sum + s.count, 0);
+    expect(totalGranted).toBe(2);
+    // Same single-stack merge pin as the platter case above.
+    expect(slots.length).toBe(1);
+    for (const slot of slots) {
+      expect(slot.materialSources).toEqual([{ source: { signer: meta.name }, count: 2 }]);
+    }
   });
 });

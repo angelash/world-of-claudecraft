@@ -1,29 +1,66 @@
-import { DELVES, ITEMS, NPCS, QUESTS, questRewardItem } from '../../../sim/data';
+import { isGuildServiceNpc } from '../../../sim/content/highwatch_guild';
+import { isOnProvingShore } from '../../../sim/content/proving_shore';
+import { DELVES, ITEMS, NPCS, QUESTS } from '../../../sim/data';
 import { CHRONICLER_TEMPLATE_IDS } from '../../../sim/deeds';
+import type { FactionId } from '../../../sim/factions';
 import { craftsForPairTarget } from '../../../sim/professions/archetype';
 import { professionQuestSelectionTargets } from '../../../sim/quests/profession_quest_effects';
-import {
-  dist2d,
-  type Entity,
-  type ItemDef,
-  isQuestTurnInNpc,
-  questObjectiveRequired,
-} from '../../../sim/types';
+import { npcQuestMarkerKind, type QuestMarkerKind } from '../../../sim/quests/quest_marker_kind';
+import { questFixedReward } from '../../../sim/quests/quest_reward_choice';
+import { dist2d, type Entity, type ItemDef, questObjectiveRequired } from '../../../sim/types';
+import { WEEKLY_KEEPER_ID } from '../../../sim/weekly_rewards';
 import type { AiNpcInteractionTopic, IWorld } from '../../../world_api';
 import { archetypeTitleText, craftNameText } from '../../char_window';
+import { currencyIconHtml, heroicMarkIconHtml } from '../../currency_art';
 import { decorativeArtImg } from '../../decorative_art';
 import { markDialogRoot } from '../../dialog_root';
 import { itemDisplayName } from '../../entity_i18n';
 import { esc } from '../../esc';
 import type { FocusTrapHandle } from '../../focus_manager';
-import { t } from '../../i18n';
+import { captureFocusKey, findFocusKey } from '../../focus_restore';
+import { type TranslationKey, t } from '../../i18n';
 import { QUALITY_COLOR } from '../../icons';
-import { archetypeImageUrl } from '../../profession_art';
-import { buildAttunementPreview } from '../../profession_identity_view';
+import { NPC_WINDOW_CLOSE_RANGE } from '../../npc_service_range';
+import type { PainterHostPresentation } from '../../painter_host';
+import { clueHuntTitle } from '../../quest_event_view';
+import { rovingTarget } from '../../roving_index';
 import { svgIcon } from '../../ui_icons';
+import {
+  isWorldQuestInstructorOrEscort,
+  worldQuestInstructorDialog,
+} from '../../world_quest_instructor_view';
+import {
+  investigationDialogue,
+  investigationSignature,
+  isInvestigationTarget,
+} from '../../world_quest_investigation_view';
+import { archetypeImageUrl } from '../professions/profession_art';
+import { buildAttunementPreview } from '../professions/profession_identity_view';
+import { referralQuestAdvances } from '../referral_cards/referral_cards_view';
+import { referralText } from '../referral_cards/referral_cards_window';
 import { isStationMasterNpc } from '../vendor/train_view';
+import { isWarfareVendorNpc } from '../vendor/warfare_vendor_view';
+import { clueStepRowFor, clueStepRowSig } from './clue_step_row_view';
+import { clueReplyKey, clueTalkFor } from './clue_talk_row_core';
+import { guideDialogView } from './dungeon_guide_dialog_core';
 import { gossipMenuIsEmpty } from './gossip_menu';
+import { hearthstoneAttuneRowFaction } from './hearthstone_attune_row_core';
+import { masterCraftTarget } from './master_craft_core';
 import { PROF_INTRO_QUEST_ID, professionIntroHintVisible } from './prof_intro_hint_core';
+import { questRewardChoiceHtml, questRewardChoiceModel } from './quest_reward_choice_view';
+import { seasonalTownsfolkRows, seasonalTownsfolkRowsSig } from './trick_or_treat_row_view';
+
+/** One string per offerable-row set, for cheap open-dialog change detection
+ *  (the refreshIfChanged staleness signature). */
+const gossipRowSig = (rows: { questId: string; kind: QuestMarkerKind }[]): string =>
+  rows.map((r) => `${r.questId}:${r.kind}`).join('|');
+
+/** The Allied Hearthstone attune row's localized hub label, per faction. */
+const HEARTH_HUB_KEYS: Readonly<Record<FactionId, TranslationKey>> = {
+  rift_watch: 'hudChrome.factionRewards.hub_rift_watch',
+  church_order: 'hudChrome.factionRewards.hub_church_order',
+  automatons: 'hudChrome.factionRewards.hub_automatons',
+};
 
 export interface QuestDialogTextPort {
   npcName(templateId: string): string;
@@ -49,17 +86,35 @@ export interface QuestDialogControllerDeps {
   openFocusTrap(root: () => HTMLElement | null): FocusTrapHandle;
   closeTransient(): void;
   hideTooltip(): void;
-  itemIcon(item: ItemDef): string;
+  /** The PainterHostPresentation.itemIcon signature, named from the seam
+   *  rather than re-typed; the quality parameter is shape uniformity only
+   *  here, since no copy payload reaches this surface, and is never passed. */
+  itemIcon: PainterHostPresentation['itemIcon'];
   itemTooltip(item: ItemDef): string;
   attachTooltip(element: HTMLElement, html: () => string): void;
   openChronicles(): void;
-  openVendor(npcId: number): void;
-  openHeroicVendor(npcId: number): void;
+  // opener: this dialog's own trap opener (the element that opened the quest
+  // dialog, e.g. the world interact prompt), handed in because bindRoute hides
+  // #quest-dialog (display:none) before calling this; the in-dialog button that
+  // was clicked would itself be inside the now-hidden subtree by close time,
+  // and an activeFocusable() read taken afterward would find nothing focusable
+  // either way, so the WCAG 2.4.3 return-to-opener chain would silently drop
+  // to <body> without an explicit, still-live element handed in.
+  openVendor(npcId: number, opener?: HTMLElement | null): void;
+  openHeroicVendor(npcId: number, opener?: HTMLElement | null): void;
+  openCrucibleVendor(npcId: number, opener?: HTMLElement | null): void;
+  /** The WARFARE quartermaster's sectioned honor shop. Same opener handoff as
+   *  openVendor above: the dialog is hidden before the route fires. */
+  openWarfareVendor(npcId: number, opener?: HTMLElement | null): void;
   openTrain(npcId: number): void;
   openUnbind(npcId: number): void;
+  /** Open the crafting window straight to `craftId`'s tab (the station
+   *  master's Crafting shortcut; master_craft_core.ts resolves the craft). */
+  openCrafting(craftId: string): void;
   openMarket(): void;
+  /** The World Quest taskmaster's board: the map window with its rail unfolded. */
+  openWorldQuestBoard(): void;
   openDelveBoard(npcId: number): void;
-  openValeCup(): void;
   openCardDuel(): void;
   /** Optional fork extension. When present, gossip keeps the four AI question routes across redraws. */
   askAiNpcTopic?(npcId: number, topic: AiNpcInteractionTopic): void;
@@ -79,13 +134,34 @@ interface ProfessionPreviewContent {
 /** Owns gossip, quest details, shared quest links, focus, and dialogue voice state. */
 export class QuestDialogController {
   private npcId: number | null = null;
+  private investigationSig: string | null = null;
   private detailQuestId: string | null = null;
-  // The profession-intro hint visibility as of the last gossip render (null =
-  // no gossip list currently painted): the one identity-driven row in this
-  // dialog, so it is the whole staleness signature refreshIfChanged watches.
+  // The staleness signature refreshIfChanged watches, as of the last gossip
+  // render (null = no gossip list currently painted): the profession-intro
+  // hint visibility (the one identity-driven row), plus the offerable-row
+  // signature (a cadence lapse re-offers a work order by a pure
+  // tick-threshold crossing, with NO quest event to repaint through).
   private lastIntroHintVisible: boolean | null = null;
+  private clueReplyOpen = false;
+  private lastGossipRowSig: string | null = null;
+  // The Clue Scroll row's staleness signature (clue_step_row_view.ts): the row reads
+  // LIVE hunt state, so it joins the refreshIfChanged watch (a step can advance
+  // or the hunt end while the dialog is open).
+  private lastClueRowSig = '';
+  // The trick-or-treat row's staleness signature (trick_or_treat_row_view.ts):
+  // the event can open or close and a knock lands while the dialog is open.
+  private lastTrickOrTreatSig = '';
+  // A dungeon guide's offer state as of the last gossip render (null = not a
+  // guide): another member's answer flips it while this dialog is open.
+  private lastGuideState: string | null = null;
+  // The Allied Hearthstone attune row reads LIVE attunement and bags, so it
+  // joins the watch too (hearthstone_attune_row_core.ts).
+  private lastHearthRowFaction: string | null = null;
   private trap: FocusTrapHandle | null = null;
   private openedAt = 0;
+  // The choose-one reward the player checked in the open quest's dialog, kept
+  // across re-renders so a refresh never snaps the check back to the default.
+  private rewardPick: { questId: string; itemId: string } | null = null;
   private voiceNpcId: number | null = null;
   private openState = false;
 
@@ -98,8 +174,20 @@ export class QuestDialogController {
   open(npcId: number): void {
     const world = this.deps.world();
     const npc = world.entities.get(npcId);
-    if (npc?.kind !== 'npc') return;
-    if (NPCS[npc.templateId]?.banker) {
+    if (
+      !npc ||
+      (npc.kind !== 'npc' && !isInvestigationTarget(npcId) && !isWorldQuestInstructorOrEscort(npc))
+    )
+      return;
+    // Service NPCs short-circuit the gossip menu:
+    // sim's interact emits the window-opening event, identical on every host.
+    if (
+      NPCS[npc.templateId]?.banker ||
+      NPCS[npc.templateId]?.riftForge ||
+      NPCS[npc.templateId]?.weeklyEmissary ||
+      npc.templateId === WEEKLY_KEEPER_ID ||
+      isGuildServiceNpc(npc.templateId)
+    ) {
       world.targetEntity(npc.id);
       world.interact();
       return;
@@ -132,9 +220,9 @@ export class QuestDialogController {
       fromPid !== undefined &&
       (world.partyInfo?.members.some((member) => member.pid === fromPid) ?? false);
     markDialogRoot(this.deps.element, { labelledBy: 'quest-dialog-title' });
-    let html = `<div class="panel-title"><span id="quest-dialog-title">${esc(this.deps.text.questTitle(questId))}${this.deps.text.suggestedPlayers(quest.suggestedPlayers)} <span class="quest-muted">&lt;${esc(t('hudChrome.questShare.dialogTitle'))}&gt;</span></span><button type="button" class="x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
+    let html = `<div class="panel-title ui-win-head"><span class="ui-win-title" id="quest-dialog-title">${esc(this.deps.text.questTitle(questId))}${this.deps.text.suggestedPlayers(quest.suggestedPlayers)} <span class="quest-muted ui-win-sub">&lt;${esc(t('hudChrome.questShare.dialogTitle'))}&gt;</span></span><button type="button" class="x-btn ui-x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
     if (quest.minLevel) {
-      html += `<div class="qd-req">${esc(t('questUi.detail.requiresLevel', { level: this.deps.text.number(quest.minLevel) }))}</div>`;
+      html += `<div class="qd-req ui-chip">${esc(t('questUi.detail.requiresLevel', { level: this.deps.text.number(quest.minLevel) }))}</div>`;
     }
     html += `<div class="qd-text">${esc(this.deps.text.questNarrative(questId, 'text', world.player.name))}</div>`;
     html += `<div class="qd-sub">${esc(t('questUi.detail.objectives'))}</div>`;
@@ -149,6 +237,7 @@ export class QuestDialogController {
     this.attachRewardTooltip(questId);
     if (inSharerParty && state === 'available') {
       const button = this.makeButton(t('questUi.dialog.accept'));
+      button.classList.add('ui-btn--red');
       button.addEventListener('click', () => {
         if (fromPid === undefined) return;
         this.deps.world().acceptLinkedQuest(questId, fromPid);
@@ -157,7 +246,7 @@ export class QuestDialogController {
       this.deps.element.appendChild(button);
     } else {
       const hint = this.deps.document.createElement('div');
-      hint.className = 'qd-req';
+      hint.className = 'qd-req ui-chip';
       hint.textContent = !inSharerParty
         ? t('hudChrome.questShare.viewOnlyHint')
         : state === 'done'
@@ -174,8 +263,15 @@ export class QuestDialogController {
   close(restoreFocus = true): void {
     this.deps.element.style.display = 'none';
     this.npcId = null;
+    this.clueReplyOpen = false;
     this.detailQuestId = null;
+    this.investigationSig = null;
     this.lastIntroHintVisible = null;
+    this.lastGossipRowSig = null;
+    this.lastClueRowSig = '';
+    this.lastTrickOrTreatSig = '';
+    this.lastGuideState = null;
+    this.lastHearthRowFaction = null;
     this.deps.hideTooltip();
     this.trap?.release(restoreFocus);
     this.trap = null;
@@ -187,24 +283,45 @@ export class QuestDialogController {
 
   refresh(): void {
     if (this.npcId === null || this.deps.element.style.display !== 'block') return;
+    // The clue reply stays up until the player moves on (the step advance that
+    // follows it would otherwise repaint the gossip list over it).
+    if (this.clueReplyOpen) return;
     const npc = this.deps.world().entities.get(this.npcId);
     if (npc) this.renderGossip(npc);
     else this.close();
   }
 
-  /** Repaint the open gossip list only when the profession-intro hint's
-   *  visibility flipped under it: online, the cprof identity mirror can land
-   *  AFTER the dialog opened (attunement retires the hint), and no quest
-   *  event fires for that edge. The quest-detail view never shows the hint
+  /** Repaint the open gossip list only when its staleness signature flipped
+   *  under it. Two watches, both edges no quest event covers: the
+   *  profession-intro hint (online, the cprof identity mirror can land AFTER
+   *  the dialog opened; attunement retires the hint), and the offerable-row
+   *  set (a cadence lapse re-offers a work order by a pure tick-threshold
+   *  crossing while the dimmed map marker's "Available again soon" tag walks
+   *  the player to this very dialog). The quest-detail view shows neither
    *  and is left alone; everything else in the gossip list repaints through
    *  the quest event arms, so an unchanged signature never rebuilds the DOM
    *  (the dialog holds focus-trapped buttons). */
   refreshIfChanged(): void {
     if (this.npcId === null || this.deps.element.style.display !== 'block') return;
+    if (this.clueReplyOpen) return;
+    if (this.investigationSig !== null) {
+      if (investigationSignature(this.deps.world()) !== this.investigationSig) this.refresh();
+      return;
+    }
     if (this.detailQuestId !== null || this.lastIntroHintVisible === null) return;
     const npc = this.deps.world().entities.get(this.npcId);
     if (!npc) return;
-    if (this.introHintVisibleFor(npc) !== this.lastIntroHintVisible) this.refresh();
+    if (
+      this.introHintVisibleFor(npc) !== this.lastIntroHintVisible ||
+      gossipRowSig(this.offerableRows(npc)) !== this.lastGossipRowSig ||
+      clueStepRowSig(clueStepRowFor(this.deps.world().clueHunt, npc.templateId)) !==
+        this.lastClueRowSig ||
+      seasonalTownsfolkRowsSig(this.seasonalRows(npc)) !== this.lastTrickOrTreatSig ||
+      (guideDialogView(npc)?.state ?? null) !== this.lastGuideState ||
+      this.hearthRowFactionFor(npc) !== this.lastHearthRowFaction
+    ) {
+      this.refresh();
+    }
   }
 
   relocalize(): void {
@@ -215,7 +332,10 @@ export class QuestDialogController {
       return;
     }
     if (this.detailQuestId && QUESTS[this.detailQuestId]) {
+      // A focused reward card keeps focus across the rebuild (its focus key).
+      const focusKey = captureFocusKey(this.deps.element);
       this.renderQuestDetail(npc, this.detailQuestId);
+      if (focusKey) findFocusKey(this.deps.element, focusKey)?.focus();
     } else {
       this.renderGossip(npc);
     }
@@ -236,7 +356,7 @@ export class QuestDialogController {
     if (this.npcId === null) return;
     const world = this.deps.world();
     const npc = world.entities.get(this.npcId);
-    if (!npc || dist2d(world.player.pos, npc.pos) > 8) this.close();
+    if (!npc || dist2d(world.player.pos, npc.pos) > NPC_WINDOW_CLOSE_RANGE) this.close();
   }
 
   clearVoiceSource(): void {
@@ -255,6 +375,17 @@ export class QuestDialogController {
     this.deps.onOpenChange(true);
   }
 
+  /** The Allied Hearthstone attune row's hub (or null), shared by the gossip
+   *  render and the staleness probe so the two can never drift. */
+  private hearthRowFactionFor(npc: Entity): FactionId | null {
+    const world = this.deps.world();
+    return hearthstoneAttuneRowFaction(
+      npc.templateId,
+      world.alliedHearthstoneAttunement,
+      world.inventory ?? [],
+    );
+  }
+
   /** The one rule for the intro hint row, shared by the gossip render and the
    *  staleness probe so the two can never drift. */
   private introHintVisibleFor(npc: Entity): boolean {
@@ -267,16 +398,43 @@ export class QuestDialogController {
     );
   }
 
+  /** The gossip's offerable rows for one NPC, per the shared
+   *  quest_marker_kind rule: the gold '?'/'!' rows as before, plus the blue
+   *  '!' for a repeatable already completed at least once. The 'active' and
+   *  'cooldown' kinds stay out of the list (in-progress quests have their
+   *  own discuss rows, and a work order inside its window is not offerable),
+   *  matching the pre-phase dialog exactly for every non-repeat state. The
+   *  cadence-blocked set is deliberately NOT resolved here: with it a
+   *  window's quest classifies 'cooldown' and without it 'none', both
+   *  filtered, so this one surface needs no mirror read. */
+  private offerableRows(npc: Entity): { questId: string; kind: QuestMarkerKind }[] {
+    const world = this.deps.world();
+    const rows: { questId: string; kind: QuestMarkerKind }[] = [];
+    for (const questId of npc.questIds) {
+      const quest = QUESTS[questId];
+      if (!quest) continue;
+      const kind = npcQuestMarkerKind(
+        quest,
+        npc.templateId,
+        world.questState(questId),
+        world.questsDone,
+      );
+      if (kind === 'ready' || kind === 'available' || kind === 'repeat') {
+        rows.push({ questId, kind });
+      }
+    }
+    return rows;
+  }
+
   private renderGossip(npc: Entity, closeIfEmpty = false): void {
     const world = this.deps.world();
+    if (this.renderInvestigation(npc)) return;
+    this.investigationSig = null;
+    if (this.renderWorldQuestInstructor(npc)) return;
+    this.clueReplyOpen = false;
     const definition = NPCS[npc.templateId];
-    const interesting = npc.questIds.filter((questId) => {
-      const state = world.questState(questId);
-      return (
-        (state === 'available' && QUESTS[questId].giverNpcId === npc.templateId) ||
-        (state === 'ready' && isQuestTurnInNpc(QUESTS[questId], npc.templateId))
-      );
-    });
+    const interesting = this.offerableRows(npc);
+    this.lastGossipRowSig = gossipRowSig(interesting);
     const discussionQuests = [...world.questLog.values()]
       .filter((progress) => progress.state === 'active' && npc.questIds.includes(progress.questId))
       .filter((progress) =>
@@ -289,17 +447,74 @@ export class QuestDialogController {
         ),
       )
       .map((progress) => progress.questId);
-    const hasVendor = npc.vendorItems.length > 0;
+    // The Clue Scroll talk or hand-over row: the active hunt's current step
+    // targets this NPC (clue_step_row_view.ts). The sim resolves it first inside
+    // talkToNpc on every host; this row is what makes the client SEND that
+    // interact for an ordinary quest giver, which the gossip menu never did.
+    const clueRowRaw = clueStepRowFor(world.clueHunt, npc.templateId);
+    this.lastClueRowSig = clueStepRowSig(clueRowRaw);
+    // A hand-over of an item the catalog does not know draws no row: its id is
+    // never player-visible text, and the row could not be acted on anyway.
+    const clueRow = clueRowRaw?.kind === 'deliver' && !ITEMS[clueRowRaw.itemId] ? null : clueRowRaw;
+    // The seasonal knock (trick_or_treat_row_view.ts): offered at an answering
+    // townsperson while an event runs, or a hint that today's knock is spent.
+    // ...and the Boo! daily's costumed fright, at the same townsfolk.
+    const seasonalRows = this.seasonalRows(npc);
+    const trickRow = seasonalRows.knock;
+    const booRow = seasonalRows.boo;
+    this.lastTrickOrTreatSig = seasonalTownsfolkRowsSig(seasonalRows);
+    // The WARFARE quartermaster REPLACES the generic goods row with its sectioned
+    // window (gated on the NpcDef flag, never a hard-coded id).
+    //
+    // This reverses an earlier decision, deliberately (owner 2026-08-07). Both rows
+    // used to show, on the reasoning that distinct labels made them tellable apart
+    // and that suppressing the generic row cost selling and buyback at an NPC that
+    // had them. In play the two still read as the same option, because they open
+    // the SAME stock: a quartermaster's vendorItems IS the whole WARFARE catalog,
+    // so the generic grid is a flat copy of what the sectioned window lays out
+    // properly. One row, the good one.
+    //
+    // The stock itself must stay non-empty: the honor purchase path is generic
+    // over vendorItems (items.ts buyItem refuses an empty list and requires the id
+    // to be in it), and the warfareVendor flag is a WINDOW routing hint the buy
+    // path never reads. Emptying the stock to hide the row would turn the shop
+    // off. Suppressing the ROW is the only lever that does not.
+    //
+    // It is also the safer row. The ordinary vendor window renders an honor price
+    // for its rows (vendor_view.ts) and its onBuy calls sim.buyItem straight
+    // through with NO confirm, so the generic row was an unconfirmed one-click
+    // path to the same tens-of-thousands-of-honor set pieces the sectioned window
+    // puts behind a confirm dialog (Hud.requestWarfarePurchase). Dropping it
+    // closes that bypass; tests/warfare_purchase_confirm.test.ts pins both halves.
+    //
+    // Accepted cost: selling is no longer reachable at FURY or Warmarshal Draven
+    // Kole, both dedicated honor quartermasters. Nothing is stranded by it: the
+    // buyback list is per PLAYER (PlayerMeta.vendorBuyback), not per NPC, so
+    // anything sold earlier is still bought back at any other vendor in the world.
+    const hasWarfareVendor = isWarfareVendorNpc(definition);
+    const hasVendor = npc.vendorItems.length > 0 && !hasWarfareVendor;
     // Station master (Professions 2.0): the resident master of a
     // crafting station (stations content masterNpcId) offers recipe training.
     const hasTraining = isStationMasterNpc(npc.templateId, world.stationPlacements);
     const hasMarket = !!definition?.market;
+    const hasWorldQuestBoard = !!definition?.worldQuestBoard;
     const hasHeroicVendor = !!definition?.heroicVendor;
+    const hasCrucibleVendor = !!definition?.crucibleVendor;
     const hasDelveBoard = Object.values(DELVES).some(
       (delve) => delve.boardNpcId === npc.templateId,
     );
-    const hasValeCup = npc.templateId === 'groundskeeper_bram';
     const hasCardMaster = !!definition?.cardMaster;
+    // A farmer NPC (the farming go-live) offers the husk-to-compost trade,
+    // the one UI affordance that sends convert_husks; gated on the NpcDef
+    // flag like the card master, never on an id. STATIC BY CONTRACT: the row
+    // sits outside the gossip-row write-elision signature (gossipRowSig reads
+    // the quest rows only), which is sound only while its predicate is this
+    // content flag. Gate it on live state (a husk count, the farmer range)
+    // and it must join the signature or the row goes stale between refreshes.
+    const hasFarmer = definition?.farmer === true;
+    // A dungeon lore guide: his greeting and his offer's answer rows.
+    const guideView = guideDialogView(npc);
+    this.lastGuideState = guideView?.state ?? null;
     if (
       closeIfEmpty &&
       !this.deps.askAiNpcTopic &&
@@ -309,10 +524,16 @@ export class QuestDialogController {
         hasVendor,
         hasMarket,
         hasHeroicVendor,
+        hasCrucibleVendor,
+        hasWarfareVendor,
         hasDelveBoard,
-        hasVcup: hasValeCup,
         hasCardMaster,
         hasTraining,
+        hasFarmer,
+        hasWorldQuestBoard,
+        hasClueStep: clueRow !== null,
+        hasDungeonGuide: guideView !== null,
+        hasTrickOrTreat: trickRow !== null || booRow !== null,
       })
     ) {
       this.close();
@@ -325,8 +546,22 @@ export class QuestDialogController {
       ? this.deps.text.npcName(npc.templateId)
       : this.deps.text.mobName(npc.templateId);
     const npcTitle = definition ? this.deps.text.npcTitle(definition.id) : '';
-    let html = `<div class="panel-title"><span id="quest-dialog-title">${esc(npcName)}<span class="quest-muted"> &lt;${esc(npcTitle)}&gt;</span></span><button type="button" class="x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
-    html += `<div class="qd-text">"${esc(definition ? this.deps.text.npcGreeting(definition.id, world.cfg.playerClass, world.player.name) : t('questUi.dialog.greetingFallback'))}"</div>`;
+    let html = `<div class="panel-title ui-win-head"><span class="ui-win-title" id="quest-dialog-title">${esc(npcName)}<span class="quest-muted ui-win-sub"> &lt;${esc(npcTitle)}&gt;</span></span><button type="button" class="x-btn ui-x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
+    const greeting = guideView
+      ? t(guideView.textKey as TranslationKey)
+      : definition
+        ? this.deps.text.npcGreeting(definition.id, world.cfg.playerClass, world.player.name)
+        : t('questUi.dialog.greetingFallback');
+    html += `<div class="qd-text">"${esc(greeting)}"</div>`;
+    if (guideView?.rows) {
+      for (const [answer, key] of [
+        ['join', guideView.rows.joinKey],
+        ['decline', guideView.rows.declineKey],
+      ] as const) {
+        const label = t(key as TranslationKey);
+        html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-guide-answer="${answer}" aria-label="${esc(label)}"><span class="gold">${svgIcon('questlog')}</span> ${esc(label)}</button>`;
+      }
+    }
     if (this.deps.askAiNpcTopic) {
       const topics: readonly [AiNpcInteractionTopic, string][] = [
         ['recent', t('hudChrome.aiQuestion.recent')],
@@ -348,59 +583,146 @@ export class QuestDialogController {
     const introHintVisible = this.introHintVisibleFor(npc);
     this.lastIntroHintVisible = introHintVisible;
     if (introHintVisible) {
-      html += `<div class="qd-req" data-prof-intro-hint="1">${esc(
+      html += `<div class="qd-req ui-chip" data-prof-intro-hint="1">${esc(
         t('questUi.dialog.profIntroHint', {
           name: this.deps.text.npcName(QUESTS[PROF_INTRO_QUEST_ID].giverNpcId),
           quest: this.deps.text.questTitle(PROF_INTRO_QUEST_ID),
         }),
       )}</div>`;
     }
-    for (const questId of interesting) {
-      const state = world.questState(questId);
+    // The Proving Shore's press-this-next glow: on the island every quest row
+    // pulses gold so a brand-new player never hunts for the next click
+    // (styles/components.css .qd-coach; the coach card family's island gate).
+    const coachClass = this.coachGlow() ? ' qd-coach' : '';
+    for (const { questId, kind } of interesting) {
       const icon =
-        state === 'ready' ? '<span class="gold">?</span> ' : '<span class="gold">!</span> ';
+        kind === 'ready'
+          ? '<span class="gold">?</span> '
+          : kind === 'repeat'
+            ? '<span class="quest-repeat">!</span> '
+            : '<span class="gold">!</span> ';
       const title = this.deps.text.questTitle(questId);
       const aria =
-        state === 'ready'
+        kind === 'ready'
           ? t('questUi.dialog.readyQuestAria', { name: title })
-          : t('questUi.dialog.availableQuestAria', { name: title });
-      html += `<button type="button" class="qd-list-item" data-quest="${esc(questId)}" aria-label="${esc(aria)}">${icon}${esc(title)}</button>`;
+          : kind === 'repeat'
+            ? t('questUi.dialog.repeatableQuestAria', { name: title })
+            : t('questUi.dialog.availableQuestAria', { name: title });
+      const stamp = referralQuestAdvances(world.referralCardsSnapshot?.() ?? null, questId)
+        ? `<span class="ui-chip referral-quest-indicator" title="${esc(referralText('questIndicator'))}">${esc(referralText('questGroup'))}</span>`
+        : '';
+      const stampAria = stamp ? `${aria}. ${referralText('questIndicator')}` : aria;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate${coachClass}" data-quest="${esc(questId)}" aria-label="${esc(stampAria)}">${icon}${esc(title)}${stamp}</button>`;
     }
     for (const questId of discussionQuests) {
       const title = this.deps.text.questTitle(questId);
-      html += `<button type="button" class="qd-list-item" data-discuss="${esc(questId)}" aria-label="${esc(t('questUi.dialog.discussQuestAria', { name: title }))}"><span class="gold">?</span> ${esc(t('questUi.dialog.discussQuest', { name: title }))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-discuss="${esc(questId)}" aria-label="${esc(t('questUi.dialog.discussQuestAria', { name: title }))}"><span class="gold">?</span> ${esc(t('questUi.dialog.discussQuest', { name: title }))}</button>`;
+    }
+    if (clueRow) {
+      const clueLabel =
+        clueRow.kind === 'talk'
+          ? t('questUi.dialog.clueTalk')
+          : t('questUi.dialog.clueDeliver', {
+              count: this.deps.text.number(clueRow.count),
+              item: itemDisplayName(ITEMS[clueRow.itemId]),
+            });
+      const clueAria =
+        clueRow.kind === 'talk'
+          ? t('questUi.dialog.clueTalkAria', { name: npcName })
+          : t('questUi.dialog.clueDeliverAria', {
+              count: this.deps.text.number(clueRow.count),
+              item: itemDisplayName(ITEMS[clueRow.itemId]),
+              name: npcName,
+            });
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-clue-step="1" aria-label="${esc(clueAria)}"><span class="gold">${svgIcon('questlog')}</span> ${esc(clueLabel)}</button>`;
+    }
+    if (trickRow === 'offer') {
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-trick-or-treat="1" aria-label="${esc(t('seasonal.trickOrTreat.rowAria', { name: npcName }))}"><span class="gold">${svgIcon('questlog')}</span> ${esc(t('seasonal.trickOrTreat.row'))}</button>`;
+    } else if (trickRow === 'knocked') {
+      html += `<div class="qd-req ui-chip" data-trick-or-treat-done="1">${esc(t('seasonal.trickOrTreat.knockedHint'))}</div>`;
+    }
+    if (booRow === 'offer') {
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-boo="1" aria-label="${esc(t('seasonal.boo.rowAria', { name: npcName }))}"><span class="gold">${svgIcon('questlog')}</span> ${esc(t('seasonal.boo.row'))}</button>`;
+    } else if (booRow === 'needsCostume') {
+      html += `<div class="qd-req ui-chip" data-boo-hint="1">${esc(t('seasonal.boo.needsCostume'))}</div>`;
+    } else if (booRow === 'frightened') {
+      html += `<div class="qd-req ui-chip" data-boo-done="1">${esc(t('seasonal.boo.frightenedHint', { name: npcName }))}</div>`;
     }
     if (hasVendor) {
-      html += `<button type="button" class="qd-list-item" data-vendor="1" aria-label="${esc(t('questUi.dialog.browseGoodsAria', { name: npcName }))}"><span class="quest-complete">$</span> ${esc(t('questUi.dialog.browseGoods'))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-vendor="1" aria-label="${esc(t('questUi.dialog.browseGoodsAria', { name: npcName }))}">${currencyIconHtml('coin_gold')} ${esc(t('questUi.dialog.browseGoods'))}</button>`;
     }
+    // "Speak with an allied quartermaster": the faction quartermaster binds the
+    // Allied Hearthstone to its hub (the sim re-validates range and the stone).
+    const hearthFaction = this.hearthRowFactionFor(npc);
+    this.lastHearthRowFaction = hearthFaction;
+    if (hearthFaction) {
+      const hub = t(HEARTH_HUB_KEYS[hearthFaction]);
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-hearth-attune="1" aria-label="${esc(t('questUi.dialog.attuneHearthstoneAria', { hub, name: npcName }))}"><span class="gold">${svgIcon('map')}</span> ${esc(t('questUi.dialog.attuneHearthstone'))}</button>`;
+    }
+    // Crafting shortcut: the master's Crafting option opens the crafting
+    // window straight to their own craft's tab (the viewer's stronger craft
+    // when the station serves two), skipping the keybind-then-find-the-tab
+    // hop. Same isStationMasterNpc gate as Train/Unbind, so the empty-menu
+    // check needs no new arm. The pick binds at render and is deliberately
+    // NOT in the staleness signature: online, a dialog opened before the
+    // first cprof mirror lands defaults to declaration order, which is
+    // cosmetic (the row label never changes, and resolveSelectedCraft plus
+    // the craftOwnsTab persist gate still guard the open).
+    const masterCraft = hasTraining
+      ? masterCraftTarget(
+          npc.templateId,
+          world.stationPlacements,
+          world.craftingIdentity.craftSkills,
+        )
+      : null;
     if (hasTraining) {
-      html += `<button type="button" class="qd-list-item" data-train="1" aria-label="${esc(t('hudChrome.training.dialogOptionAria', { name: npcName }))}"><span class="gold">${svgIcon('crafting')}</span> ${esc(t('hudChrome.training.dialogOption'))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-train="1" aria-label="${esc(t('hudChrome.training.dialogOptionAria', { name: npcName }))}"><span class="gold">${svgIcon('crafting')}</span> ${esc(t('hudChrome.training.dialogOption'))}</button>`;
+      if (masterCraft !== null) {
+        html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-crafting="1" aria-label="${esc(t('hudChrome.crafting.dialogOptionAria', { craft: craftNameText(masterCraft) }))}"><span class="gold">${svgIcon('crafting')}</span> ${esc(t('hudChrome.crafting.dialogOption'))}</button>`;
+      }
       // Maker's Bond unbind service (Professions 2.0): every
       // station master offers it beside training (the same isStationMasterNpc
       // gate, so the empty-menu check needs no new arm).
-      html += `<button type="button" class="qd-list-item" data-unbind="1" aria-label="${esc(t('hudChrome.unbind.dialogOptionAria', { name: npcName }))}"><span class="gold">${svgIcon('crafting')}</span> ${esc(t('hudChrome.unbind.dialogOption'))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-unbind="1" aria-label="${esc(t('hudChrome.unbind.dialogOptionAria', { name: npcName }))}"><span class="gold">${svgIcon('crafting')}</span> ${esc(t('hudChrome.unbind.dialogOption'))}</button>`;
     }
     if (hasMarket) {
-      html += `<button type="button" class="qd-list-item" data-market="1" aria-label="${esc(t('questUi.dialog.worldMarketAria'))}"><span class="gold">${svgIcon('market')}</span> ${esc(t('questUi.dialog.worldMarket'))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-market="1" aria-label="${esc(t('questUi.dialog.worldMarketAria'))}"><span class="gold">${svgIcon('market')}</span> ${esc(t('questUi.dialog.worldMarket'))}</button>`;
+    }
+    if (hasWorldQuestBoard) {
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-world-quest-board="1" aria-label="${esc(t('questUi.dialog.worldQuestBoardAria'))}"><span class="gold">${svgIcon('map')}</span> ${esc(t('questUi.dialog.worldQuestBoard'))}</button>`;
     }
     if (hasHeroicVendor) {
-      html += `<button type="button" class="qd-list-item" data-heroic-shop="1" aria-label="${esc(t('questUi.dialog.browseGoodsAria', { name: npcName }))}"><span class="quest-complete">$</span> ${esc(t('questUi.dialog.browseGoods'))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-heroic-shop="1" aria-label="${esc(t('questUi.dialog.browseGoodsAria', { name: npcName }))}">${heroicMarkIconHtml()} ${esc(t('questUi.dialog.browseGoods'))}</button>`;
+    }
+    if (hasCrucibleVendor) {
+      // Its OWN label and accessible name (the hasWarfareVendor rule): a sigil
+      // redemption counter never reads as generic "Browse Goods".
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-crucible-shop="1" aria-label="${esc(t('crucibleShop.browseAria', { name: npcName }))}"><span class="gold">${svgIcon('crafting')}</span> ${esc(t('crucibleShop.browse'))}</button>`;
+    }
+    if (hasWarfareVendor) {
+      // Its OWN label and accessible name: this row sits beside the generic
+      // goods row above at a flagged NPC, so it can never reuse "Browse Goods".
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-warfare-shop="1" aria-label="${esc(t('hudChrome.warfareShop.gossipOptionAria', { name: npcName }))}">${currencyIconHtml('honor')} ${esc(t('hudChrome.warfareShop.gossipOption'))}</button>`;
     }
     if (hasDelveBoard) {
       const delve = Object.values(DELVES).find((entry) => entry.boardNpcId === npc.templateId);
       const label = delve ? this.deps.text.delveName(delve.id) : t('delveUi.board.openDelve');
-      html += `<button type="button" class="qd-list-item" data-delve-board="1" aria-label="${esc(t('delveUi.board.openDelveAria', { name: npcName }))}"><span class="gold">${svgIcon('skull')}</span> ${esc(label)}</button>`;
-    }
-    if (hasValeCup) {
-      html += `<button type="button" class="qd-list-item" data-vcup="1" aria-label="${esc(t('hudChrome.vcup.gossipOpenAria'))}"><span class="gold">${svgIcon('ball')}</span> ${esc(t('hudChrome.vcup.gossipOpen'))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-delve-board="1" aria-label="${esc(t('delveUi.board.openDelveAria', { name: npcName }))}"><span class="gold">${svgIcon('skull')}</span> ${esc(label)}</button>`;
     }
     if (hasCardMaster) {
-      html += `<button type="button" class="qd-list-item" data-card-duel="1" aria-label="${esc(t('cardDuel.title'))}"><span class="gold">&#9824;</span> ${esc(t('cardDuel.title'))}</button>`;
+      html += `<button type="button" class="qd-list-item ui-btn ui-btn--plate" data-card-duel="1" aria-label="${esc(t('cardDuel.title'))}"><span class="gold">&#9824;</span> ${esc(t('cardDuel.title'))}</button>`;
+    }
+    if (hasFarmer) {
+      // The trade's feedback is the sim's own: the farmHusksConverted line
+      // and the farmDenied toasts (farm_event_feedback.ts), so the row sends
+      // and closes like the market row rather than opening a window.
+      html += `<button type="button" class="qd-list-item" data-husk-trade="1" aria-label="${esc(t('hudChrome.farming.huskTradeAria', { name: npcName }))}"><span class="gold">${svgIcon('crafting')}</span> ${esc(t('hudChrome.farming.huskTrade'))}</button>`;
     }
     this.deps.element.innerHTML = html;
     this.deps.element.querySelectorAll<HTMLElement>('[data-quest]').forEach((item) => {
       item.addEventListener('click', () => this.renderQuestDetail(npc, item.dataset.quest ?? ''));
     });
+    // The clue talk and the quest discussion send the same sim talk.
     this.deps.element.querySelectorAll<HTMLButtonElement>('[data-discuss]').forEach((item) => {
       item.addEventListener('click', () => {
         const liveWorld = this.deps.world();
@@ -419,16 +741,80 @@ export class QuestDialogController {
         }, 2_100);
       });
     });
-    this.bindRoute('[data-vendor]', () => this.deps.openVendor(npc.id));
-    this.bindRoute('[data-heroic-shop]', () => this.deps.openHeroicVendor(npc.id));
+    this.bindRoute('[data-vendor]', (opener) => this.deps.openVendor(npc.id, opener));
+    this.bindRoute('[data-heroic-shop]', (opener) => this.deps.openHeroicVendor(npc.id, opener));
+    this.bindRoute('[data-crucible-shop]', (opener) =>
+      this.deps.openCrucibleVendor(npc.id, opener),
+    );
+    this.bindRoute('[data-warfare-shop]', (opener) => this.deps.openWarfareVendor(npc.id, opener));
     this.bindRoute('[data-train]', () => this.deps.openTrain(npc.id));
+    if (masterCraft !== null) {
+      this.bindRoute('[data-crafting]', () => this.deps.openCrafting(masterCraft));
+    }
     this.bindRoute('[data-unbind]', () => this.deps.openUnbind(npc.id));
     this.bindRoute('[data-market]', this.deps.openMarket);
+    this.bindRoute('[data-world-quest-board]', this.deps.openWorldQuestBoard);
     this.bindRoute('[data-delve-board]', () => this.deps.openDelveBoard(npc.id));
-    this.bindRoute('[data-vcup]', this.deps.openValeCup);
+    // A dungeon guide's answer goes straight to the world (the sim validates
+    // it; his reply arrives as his own line), then the dialog closes with the
+    // trap's own focus restore, like the husk trade.
+    this.deps.element.querySelectorAll<HTMLElement>('[data-guide-answer]').forEach((row) => {
+      row.addEventListener('click', () => {
+        this.deps.world().answerDungeonGuide(npc.id, row.dataset.guideAnswer === 'join');
+        this.close(true);
+      });
+    });
     this.bindRoute('[data-card-duel]', this.deps.openCardDuel);
+    // The husk trade goes straight to the world (IWorldFarming.convertHusks,
+    // both worlds; online it is the convert_husks command): no new dep, no
+    // window. The live world is read at click time, never captured at render.
+    // The husk trade opens NO successor window (the sim's own event lines are
+    // the feedback), so it is deliberately NOT a bindRoute consumer: that
+    // family closes with release(false) because it hands the trap opener to a
+    // successor window that restores focus when IT closes; with no successor
+    // that chain would drop keyboard focus to <body>. Send, then close WITH
+    // the trap's own focus restore.
+    // The attune row sends and closes (the sim's bind line is the feedback).
+    this.deps.element.querySelector('[data-hearth-attune]')?.addEventListener('click', () => {
+      this.deps.world().attuneAlliedHearthstone(npc.id);
+      this.close(true);
+    });
+    this.deps.element.querySelector('[data-husk-trade]')?.addEventListener('click', () => {
+      this.deps.world().convertHusks();
+      this.close(true);
+    });
+    // The Clue Scroll row sends the SAME authoritative interact the discuss
+    // row does (sim talkToNpc runs onNpcTalkedForClueHunt first on every
+    // host; online it is the interact command). A talk step the sim will
+    // accept is answered in the NPC's own voice (clue_talk_row_core.ts);
+    // anything else opens no successor window (the sim's clue log line or
+    // refusal is the feedback), so it closes WITH the trap's focus restore.
+    // The knock goes straight to the world (IWorldSeasonal.trickOrTreat); the sim's
+    // `seasonal` event is the feedback, so it closes WITH the trap's focus restore.
+    this.deps.element.querySelector('[data-trick-or-treat]')?.addEventListener('click', () => {
+      this.deps.world().trickOrTreat(npc.id);
+      this.close(true);
+    });
+    // The fright rides the same verb with its `boo` flag (the sim re-checks the errand,
+    // the costume, the reach and today's ledger); its `seasonal` event is the feedback.
+    this.deps.element.querySelector('[data-boo]')?.addEventListener('click', () => {
+      this.deps.world().trickOrTreat(npc.id, true);
+      this.close(true);
+    });
+    this.deps.element.querySelector('[data-clue-step]')?.addEventListener('click', () => {
+      const liveWorld = this.deps.world();
+      const talk = clueTalkFor(liveWorld.clueHunt, npc.templateId, liveWorld.inventory ?? []);
+      liveWorld.targetEntity(npc.id);
+      liveWorld.interact();
+      if (talk?.ready) this.renderClueReply(npc, talk.huntId, talk.step);
+      else this.close(true);
+    });
     this.bindClose();
     this.showAndFocus();
+  }
+
+  private seasonalRows(npc: Entity) {
+    return seasonalTownsfolkRows(this.deps.world(), npc.templateId);
   }
 
   private renderQuestDetail(npc: Entity, questId: string): void {
@@ -446,9 +832,12 @@ export class QuestDialogController {
     );
     this.voiceNpcId = npc.id;
     markDialogRoot(this.deps.element, { labelledBy: 'quest-dialog-title' });
-    let html = `<div class="panel-title"><span id="quest-dialog-title">${esc(this.deps.text.questTitle(questId))}${this.deps.text.suggestedPlayers(quest.suggestedPlayers)}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
+    let html = `<div class="panel-title ui-win-head"><span class="ui-win-title" id="quest-dialog-title">${esc(this.deps.text.questTitle(questId))}${this.deps.text.suggestedPlayers(quest.suggestedPlayers)}</span><button type="button" class="x-btn ui-x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
     if (state === 'available' && quest.minLevel) {
-      html += `<div class="qd-req">${esc(t('questUi.detail.requiresLevel', { level: this.deps.text.number(quest.minLevel) }))}</div>`;
+      html += `<div class="qd-req ui-chip">${esc(t('questUi.detail.requiresLevel', { level: this.deps.text.number(quest.minLevel) }))}</div>`;
+    }
+    if (referralQuestAdvances(world.referralCardsSnapshot?.() ?? null, questId)) {
+      html += `<div class="qd-req ui-chip referral-quest-indicator">${esc(referralText('questIndicator'))}</div>`;
     }
     html += `<div class="qd-text">${esc(narrative)}</div>`;
     if (state !== 'ready') {
@@ -477,6 +866,9 @@ export class QuestDialogController {
         attunedPairs: [...identity.attunedPairs],
         switchCount: identity.switchCount,
         amendsProgress: identity.amendsProgress,
+        // Jack of All Trades (#1296) does not ride CraftingIdentityView yet:
+        // there is no live quest path to become Jack, so this is always false.
+        isJackOfAllTrades: false,
       });
       const options = professionTargets
         .map((target) => {
@@ -502,7 +894,12 @@ export class QuestDialogController {
             crestUrl: null,
           };
         }
-        const preview = buildAttunementPreview(target, identity.craftSkills, identity.switchCount);
+        const preview = buildAttunementPreview(
+          target,
+          identity.craftSkills,
+          identity.switchCount,
+          identity.questedHobbies,
+        );
         if (!preview) return { text: '', crestUrl: null };
         // The pre-commit picture: majors, hobby, and retained-but-dormant
         // knowledge, PLUS the escalating make-amends return cost (closing the
@@ -525,9 +922,9 @@ export class QuestDialogController {
       initialProfessionPreview = professionTargets[0]
         ? professionPreviewContent(professionTargets[0])
         : { text: t('hudChrome.crafting.noProfessionChoice'), crestUrl: null };
-      html += `<label class="qd-profession-choice">${esc(t('hudChrome.crafting.professionChoice'))}<select data-profession-selection aria-label="${esc(t('hudChrome.crafting.professionChoice'))}">${options}</select></label><div class="qd-profession-preview" data-profession-preview></div>`;
+      html += `<label class="qd-profession-choice">${esc(t('hudChrome.crafting.professionChoice'))}<select class="ui-input" data-profession-selection aria-label="${esc(t('hudChrome.crafting.professionChoice'))}">${options}</select></label><div class="qd-profession-preview ui-card" data-profession-preview></div>`;
     }
-    html += this.rewardsHtml(questId);
+    html += this.rewardsHtml(questId, state === 'ready');
     this.deps.element.innerHTML = html;
     const professionSelect = this.deps.element.querySelector<HTMLSelectElement>(
       '[data-profession-selection]',
@@ -552,6 +949,10 @@ export class QuestDialogController {
     this.attachRewardTooltip(questId);
     if (state === 'available') {
       const button = this.makeButton(t('questUi.dialog.accept'));
+      button.classList.add('ui-btn--red');
+      // Island Accept glows gold: the same press-this-next treatment as the
+      // gossip rows, so the accept step reads as the obvious next click.
+      if (this.coachGlow()) button.classList.add('qd-coach');
       if (quest.completionEffect && professionTargets.length === 0) button.disabled = true;
       button.addEventListener('click', () => {
         const liveWorld = this.deps.world();
@@ -568,9 +969,11 @@ export class QuestDialogController {
       this.deps.element.appendChild(button);
     } else if (state === 'ready') {
       const button = this.makeButton(t('questUi.dialog.completeQuest'));
+      button.classList.add('ui-btn--red');
+      if (this.coachGlow()) button.classList.add('qd-coach');
       button.addEventListener('click', () => {
         const liveWorld = this.deps.world();
-        liveWorld.turnInQuest(questId);
+        liveWorld.turnInQuest(questId, this.rewardChoices(questId)?.selected ?? undefined);
         liveWorld.reportTelemetry('quest_turnin', {
           timeMs: this.deps.now() - this.openedAt,
         });
@@ -585,33 +988,201 @@ export class QuestDialogController {
     this.showAndFocus();
   }
 
-  private rewardsHtml(questId: string): string {
+  private rewardChoices(questId: string) {
+    const world = this.deps.world();
+    const picked = this.rewardPick?.questId === questId ? this.rewardPick.itemId : null;
+    return questRewardChoiceModel(questId, world.cfg.playerClass, world.talents.spec, picked);
+  }
+
+  private rewardsHtml(questId: string, chooseNow = false): string {
     const world = this.deps.world();
     const quest = QUESTS[questId];
     let html = `<div class="qd-sub">${esc(t('questUi.detail.rewards'))}</div>`;
     html += `<div class="qd-obj">${esc(t('questUi.detail.xpReward', { xp: this.deps.text.number(quest.xpReward) }))} &nbsp; ${this.deps.text.money(quest.copperReward)}</div>`;
-    const rewardItemId = questRewardItem(quest, world.cfg.playerClass);
+    // Authored gear joins the choice list below; only a non-gear authored reward
+    // (or any authored reward on a quest without choices) is a fixed row.
+    const rewardItemId = questFixedReward(quest, world.cfg.playerClass);
     if (rewardItemId) {
       const item = ITEMS[rewardItemId];
-      html += `<div class="qd-reward-row" data-reward><span class="qd-reward-label">${esc(t('questUi.detail.itemReward'))}</span>${this.deps.itemIcon(item)}<span class="qd-reward-name" style="color:${QUALITY_COLOR[item.quality ?? 'common'] ?? '#fff'}">${esc(itemDisplayName(item))}</span></div>`;
+      html += `<div class="qd-reward-row" data-reward><span class="qd-reward-label">${esc(t('questUi.detail.itemReward'))}</span><span class="ui-socket ui-socket--bag">${this.deps.itemIcon(item)}</span><span class="qd-reward-name" style="color:${QUALITY_COLOR[item.quality ?? 'common'] ?? 'var(--color-quality-default)'}">${esc(itemDisplayName(item))}</span></div>`;
+    }
+    const choices = this.rewardChoices(questId);
+    if (choices) {
+      html += questRewardChoiceHtml(
+        choices,
+        { itemIcon: (it) => this.deps.itemIcon(it) },
+        chooseNow,
+      );
     }
     return html;
   }
 
   private attachRewardTooltip(questId: string): void {
-    const rewardItemId = questRewardItem(QUESTS[questId], this.deps.world().cfg.playerClass);
+    const rewardItemId = questFixedReward(QUESTS[questId], this.deps.world().cfg.playerClass);
     const row = this.deps.element.querySelector<HTMLElement>('[data-reward]');
     if (row && rewardItemId) {
       this.deps.attachTooltip(row, () => this.deps.itemTooltip(ITEMS[rewardItemId]));
     }
+    const choiceRows = this.deps.element.querySelectorAll<HTMLElement>('[data-reward-choice]');
+    for (const choiceRow of choiceRows) {
+      const itemId = choiceRow.dataset.rewardChoice ?? '';
+      if (!ITEMS[itemId]) continue;
+      this.deps.attachTooltip(choiceRow, () => this.deps.itemTooltip(ITEMS[itemId]));
+      if (choiceRow.getAttribute('role') !== 'radio') continue;
+      choiceRow.addEventListener('click', () =>
+        this.checkRewardCard(questId, choiceRows, choiceRow),
+      );
+      // Roving radio group: arrows on both axes plus Home/End move the check and
+      // the focus together (the house pattern, src/ui/roving_index.ts).
+      choiceRow.addEventListener('keydown', (e) => {
+        const cards = [...choiceRows];
+        const next = rovingTarget(e.key, cards.indexOf(choiceRow), cards.length, 'both');
+        if (next === null) return;
+        e.preventDefault();
+        cards[next].focus();
+        this.checkRewardCard(questId, choiceRows, cards[next]);
+      });
+    }
+  }
+
+  private checkRewardCard(
+    questId: string,
+    cards: NodeListOf<HTMLElement>,
+    picked: HTMLElement,
+  ): void {
+    const itemId = picked.dataset.rewardChoice ?? '';
+    if (!ITEMS[itemId]) return;
+    this.rewardPick = { questId, itemId };
+    for (const card of cards) {
+      const checked = card === picked;
+      card.classList.toggle('is-selected', checked);
+      card.setAttribute('aria-checked', String(checked));
+      card.tabIndex = checked ? 0 : -1;
+    }
+  }
+
+  private renderInvestigation(target: Entity): boolean {
+    const world = this.deps.world();
+    const view = investigationDialogue(world, target.id);
+    if (!view) return false;
+    if (view.finished) {
+      this.close();
+      return true;
+    }
+    this.npcId = target.id;
+    this.detailQuestId = null;
+    this.investigationSig = investigationSignature(world);
+    markDialogRoot(this.deps.element, { labelledBy: 'quest-dialog-title' });
+    const title = target.kind === 'npc' ? this.deps.text.npcName(target.templateId) : view.title;
+    this.deps.element.innerHTML = `<div class="panel-title"><span id="quest-dialog-title">${esc(title)}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div><div class="qd-sub">${esc(view.title)}</div><div class="qd-text">${esc(view.text)}</div><div class="qd-req">${esc(view.hint)}</div>`;
+    // The sergeant's dialog: one option per guard still under suspicion. A
+    // wrong name clears that guard server-side and reopens this dialog with
+    // the shorter list; the right one closes it as the creature sheds its face.
+    for (const suspect of view.suspects) {
+      const name = this.deps.text.npcName(suspect.templateId);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'qd-list-item';
+      button.dataset.accuse = String(suspect.npcId);
+      button.textContent = t('questUi.worldQuest.investigation.accuseOption', { name });
+      button.addEventListener('click', () => {
+        this.close();
+        this.deps.world().accuseWorldQuestSuspect(suspect.npcId);
+      });
+      this.deps.element.appendChild(button);
+    }
+    this.bindClose();
+    this.showAndFocus();
+    return true;
+  }
+
+  private renderWorldQuestInstructor(npc: Entity): boolean {
+    const world = this.deps.world();
+    const view = worldQuestInstructorDialog(world, npc);
+    if (!view) return false;
+    this.npcId = npc.id;
+    this.detailQuestId = null;
+    markDialogRoot(this.deps.element, { labelledBy: 'quest-dialog-title' });
+    const subtitle = view.speakerTitle
+      ? `<span class="quest-muted"> &lt;${esc(view.speakerTitle)}&gt;</span>`
+      : '';
+    let html = `<div class="panel-title"><span id="quest-dialog-title">${esc(view.speakerName)}${subtitle}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
+    if (view.greeting) {
+      html += `<div class="qd-text">"${esc(view.greeting)}"</div>`;
+    }
+    if (view.questTitle) {
+      html += `<div class="qd-sub">${esc(view.questTitle)}</div>`;
+    }
+    if (view.objectiveText) {
+      html += `<div class="qd-obj">${esc(view.objectiveText)}</div>`;
+    }
+    if (view.hint) {
+      html += `<div class="qd-req">${esc(view.hint)}</div>`;
+    }
+    this.deps.element.innerHTML = html;
+    if (view.canStart && view.difficulties && view.questId) {
+      // One button per profile; the pick travels as its own command so the
+      // server starts the kernel with that profile after its own revalidation.
+      const questId = view.questId;
+      for (const choice of view.difficulties) {
+        const button = this.makeButton(choice.label);
+        button.dataset.startWq = String(npc.id);
+        button.dataset.difficulty = choice.difficulty;
+        button.addEventListener('click', () => {
+          this.close();
+          this.deps.world().targetEntity(npc.id);
+          this.deps.world().startWorldQuestActivity(questId, choice.difficulty);
+        });
+        this.deps.element.appendChild(button);
+      }
+    } else if (view.canStart) {
+      const button = this.makeButton(view.buttonLabel);
+      button.dataset.startWq = String(npc.id);
+      button.addEventListener('click', () => {
+        this.close();
+        this.deps.world().targetEntity(npc.id);
+        this.deps.world().interact();
+      });
+      this.deps.element.appendChild(button);
+    }
+    this.bindClose();
+    this.showAndFocus();
+    return true;
+  }
+
+  /** The NPC's answer to a solved clue talk or delivery, then back to the gossip
+   *  list (or closed, if nothing else is left to say). */
+  private renderClueReply(npc: Entity, huntId: string, step: number): void {
+    this.clueReplyOpen = true;
+    const definition = NPCS[npc.templateId];
+    const npcName = definition
+      ? this.deps.text.npcName(npc.templateId)
+      : this.deps.text.mobName(npc.templateId);
+    const npcTitle = definition ? this.deps.text.npcTitle(definition.id) : '';
+    let html = `<div class="panel-title ui-win-head"><span class="ui-win-title" id="quest-dialog-title">${esc(npcName)}<span class="quest-muted ui-win-sub"> &lt;${esc(npcTitle)}&gt;</span></span><button type="button" class="x-btn ui-x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>`;
+    html += `<div class="qd-sub">${esc(clueHuntTitle(huntId))}</div>`;
+    html += `<div class="qd-text" data-clue-reply="1">"${esc(t(clueReplyKey(huntId, step) as TranslationKey))}"</div>`;
+    this.deps.element.innerHTML = html;
+    const button = this.makeButton(t('questUi.dialog.continue'));
+    button.addEventListener('click', () => this.renderGossip(npc, true));
+    this.deps.element.appendChild(button);
+    this.bindClose();
+    this.showAndFocus();
   }
 
   private makeButton(label: string): HTMLButtonElement {
     const button = this.deps.document.createElement('button');
-    button.className = 'btn';
+    button.className = 'btn ui-btn';
     button.type = 'button';
     button.textContent = label;
     return button;
+  }
+
+  /** The Proving Shore's press-this-next gate: island dialogs pulse their
+   *  quest rows and accept step gold (styles/components.css .qd-coach). */
+  private coachGlow(): boolean {
+    const player = this.deps.world().player;
+    return !!player && isOnProvingShore(player.pos.x, player.pos.z);
   }
 
   private paintProfessionPreview(element: HTMLElement, content: ProfessionPreviewContent): void {
@@ -628,10 +1199,21 @@ export class QuestDialogController {
     );
   }
 
-  private bindRoute(selector: string, open: () => void): void {
+  private bindRoute(selector: string, open: (opener: HTMLElement | null) => void): void {
     this.deps.element.querySelector(selector)?.addEventListener('click', () => {
+      // Hand the successor window this dialog's OWN trap opener, not the active
+      // element inside #quest-dialog: close(false) hides the dialog, and by the
+      // time the successor closes, an in-dialog button lives inside a
+      // display:none subtree and fails FocusManager.canFocus (getClientRects()
+      // is empty), so the return-to-opener chain would silently drop to <body>.
+      // The trap's own opener (what focused the dialog before it opened) is a
+      // sibling element outside the dialog, so it stays live and visible after
+      // close(false), the same way openBank()'s live side-rail button does. See
+      // openVendor's deps comment for why the successor window needs this
+      // handed in explicitly rather than reading activeFocusable() itself.
+      const opener = this.trap?.opener() ?? null;
       this.close(false);
-      open();
+      open(opener);
     });
   }
 

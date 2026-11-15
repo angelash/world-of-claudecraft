@@ -7,19 +7,21 @@
 // a typed keyed per-aura node pool (Top risk 3: the pool's tooltip closure reads a
 // LIVE mutable slot, never a captured aura).
 //
-// Component contract: the core is INSTANCE-PARAMETERIZED by the aura
-// MODE ('all' for the buff bar, 'debuffs' for the target frame). createAurasView(mode,
-// deps) preallocates a per-aura slot pool ONCE and returns a tick(entity) that mutates
-// it IN PLACE and returns the SAME { slots, count } container every call, so a correct
-// frame allocates no new array/object garbage (the reused-reference allocation proxy,
-// tests/util/alloc_probe.ts). Two modes yield two independent views (the buff bar and
-// the target debuffs are two instances, not a code fork).
+// Component contract: the core is INSTANCE-PARAMETERIZED by the aura MODE ('buffs'
+// and 'debuffs' for the player's own two rows, 'all' for the target strip and the
+// party mini-strips; the mode semantics comment on createAurasView is the one the
+// ordering design leans on). createAurasView(mode, deps) preallocates a per-aura slot
+// pool ONCE and returns a tick(entity) that mutates it IN PLACE and returns the SAME
+// { slots, count } container every call, so a correct frame allocates no new
+// array/object garbage (the reused-reference allocation proxy,
+// tests/util/alloc_probe.ts). Each mode yields an independent view (the player rows
+// and the target strip are separate instances, not a code fork).
 //
-// The DEBUFF allowlist lives in the host-agnostic sim/aura_classify leaf shared by
-// the view, chat readouts, and player cancellation. This core stays DOM-free and
-// i18n-MECHANISM-free (no i18n runtime import): the localized aura name + the
-// formatted stack count are produced by INJECTED deps each frame (so the i18n keys
-// keep firing and the painter never concats), while icon identity and duration are pure.
+// The DEBUFF display allowlist lives in the host-agnostic sim/aura_classify leaf.
+// This core stays DOM-free and i18n-MECHANISM-free (no i18n runtime import): the
+// localized aura name + the formatted stack count are produced by INJECTED deps
+// each frame (so the i18n keys keep firing and the painter never concats), while
+// icon identity and duration are pure.
 //
 // Parity: the input is a structural subset of IWorld's Entity.auras that
 // BOTH the offline Sim and the online ClientWorld mirror expose. Aura.stacks is
@@ -27,40 +29,87 @@
 // same as 1 (no stacks badge), and a Sim-shaped aura {stacks:1} and a ClientWorld
 // mirror aura {stacks:undefined} derive identical output.
 
-import { isDebuffAura as classifyDebuffAura, DEBUFF_AURA_KINDS } from '../sim/aura_classify';
+import {
+  isDebuffDisplayAura as classifyDebuffDisplayAura,
+  DEBUFF_AURA_KINDS,
+  isToggleAura as isToggleAuraShared,
+} from '../sim/aura_classify';
+import { isCancelableAura } from '../sim/combat/aura_cancel';
+import { isColdsightInternalMarkerAuraId } from '../sim/combat/hunter_coldsight_read';
+import { isPersistentEngineAura } from '../sim/persistent_aura';
 import type { AuraKind } from '../sim/types';
 import type { AuraSchool } from './aura_effect';
+import { AURA_URGENCY_BUCKET_COUNT, auraUrgencyBucket } from './aura_strip_order_core';
 
 // Re-export the shared set for the view contract and its exact-set regression test.
-// Classification itself stays in the sim leaf so the HUD, chat readouts, and aura
-// cancellation cannot drift apart.
+// Classification itself stays in the sim leaf so HUD display surfaces cannot drift.
 export { DEBUFF_AURA_KINDS };
 
 // Toggle auras (cast again to cancel: stealth, the druid forms, stances, Ghost
 // Wolf) read as MODES, not timed effects: WoW shows no countdown under them, so
 // neither do we, even though the sim backs each with a long finite duration
 // (3600s). Every other aura shows a compact WoW-style remaining label (20s /
-// 5m / 1h / 2d) via compactAuraDuration below.
-const TOGGLE_KINDS: ReadonlySet<AuraKind> = new Set([
-  'stealth',
-  'form_bear',
-  'form_cat',
-  'form_moonkin',
-  'form_shadow',
-  'form_travel',
-  'form_fireball',
-  'battle_stance',
-  'berserker_stance',
-  'defensive_stance',
-]);
-// Ghost Wolf toggles too, but its aura rides the generic buff_speed kind (which
-// Sprint also uses, 15s and very much worth a countdown), so it hides by id.
-const TOGGLE_IDS: ReadonlySet<string> = new Set(['ghost_wolf']);
-// The inverse override: an aura that rides a TOGGLE_KIND but is a genuine timed
-// buff worth a countdown. Greater Invisibility reuses the rogue-stealth machinery
-// for its vanish (kind 'stealth' with full move speed), but it is a fixed 20s
-// buff, not a toggle, so it must show its remaining time like any other buff.
-const TIMED_IDS: ReadonlySet<string> = new Set(['greater_invisibility']);
+// 5m / 1h / 2d) via compactAuraDuration below. The MEMBERSHIP itself lives in
+// the host-agnostic sim leaf (src/sim/aura_classify.ts) so every surface that
+// asks the question reads one rule.
+/** Thornhollow Fields' carried-flag buff (src/sim/social/battleground.ts
+ *  `CARRIED_FLAG_AURA_ID`, named here as a literal the same way icons.ts names
+ *  the rune ids). Exported because the buff bar's cancel affordance has to
+ *  recognize it: cancelling THIS buff is a gameplay action (it drops the flag),
+ *  not a cosmetic un-buff. */
+export const CARRIED_FLAG_AURA_ID = 'bg_carried_flag';
+// Auras the low graphics tier's buff cap may NEVER shed (auras_painter.ts).
+// The cap's fairness rule is "spend the budget on buffs, a debuff always
+// renders", which rests on buffs being cosmetic. That is false for an aura whose
+// icon IS an affordance: the carried-flag buff is the only way to drop the flag
+// on purpose, it is applied at the pickup so it sits LAST in application order,
+// and a flat first-N cap would therefore shed it first, on the one tier, from
+// the one player who needs it. Hiding it is hiding an action, which the
+// gameplay-neutral-graphics invariant forbids (docs/design/graphics-settings-fairness.md).
+const NEVER_SHED_IDS: ReadonlySet<string> = new Set([CARRIED_FLAG_AURA_ID]);
+
+/**
+ * Whether an aura reads as a MODE rather than a timed effect (a stance, a druid
+ * form, stealth, Ghost Wolf, the carried flag), by the only two facts the rule
+ * needs.
+ *
+ * Split out of `isToggleAura` below when the aura TRACKS
+ * (src/ui/hud/aura_tracks/) became a third caller. They hold the id and kind but
+ * NOT a whole `AuraInput`, and building one per aura per frame would allocate on
+ * the per-frame path; a second copy of the rule would drift from this one, which
+ * is the outcome the shared classifier exists to prevent.
+ *
+ * The membership moved down to the sim leaf when the Auras watchlist became a
+ * caller from OUTSIDE the view (src/ui/aura_watchlist_core.ts, which must not
+ * offer a mode as a watchable proc). This stays the UI-side name every HUD
+ * surface already imports, so hud.ts and the aura tracks are unaffected.
+ */
+export function isToggleAuraKind(id: string, kind: AuraKind): boolean {
+  return isToggleAuraShared(kind, id);
+}
+
+/** The `AuraInput` form, for the two callers inside this module that hold one:
+ *  the slot's suppressed countdown (`toggle`) and the urgency band an ordered
+ *  strip sorts by (`auraUrgencyBucket`). Keeping it one rule is what stops the
+ *  strip from banding an aura as a mode while still printing a countdown. */
+function isToggleAura(a: AuraInput): boolean {
+  // A PERMANENT aura (a world boss's ward, his slumber) is a state, not a countdown: it
+  // has no duration to show, so it must band and render as a mode. The shared classifier
+  // sees only kind and id, so it cannot know that; this is the one caller that holds the
+  // aura itself and can.
+  if (a.permanent === true) return true;
+  return isToggleAuraKind(a.id, a.kind);
+}
+
+/** Whether cancelling this aura performs a GAMEPLAY action rather than merely
+ *  dropping a buff, so a touch host must confirm it before it fires. Today that
+ *  is exactly the carried-flag buff: on a touch device the cancel gesture is a
+ *  long press, which is also the tooltip-peek gesture, so an unconfirmed cancel
+ *  would drop the flag mid-run by accident. Desktop right-click is deliberate
+ *  and stays instant. */
+export function auraCancelNeedsConfirm(auraId: string): boolean {
+  return auraId === CARRIED_FLAG_AURA_ID;
+}
 
 /** The localized single-letter unit suffixes the compact duration label uses. */
 export interface DurationUnits {
@@ -99,17 +148,24 @@ export interface AuraInput {
   value: number;
   // Optional effect-descriptor inputs (DoT/HoT tick interval, secondary values, magic
   // school). Present on the offline Sim aura; the online ClientWorld mirror may omit
-  // them, in which case auraEffectDescriptor falls back to its defaults.
+  // them, in which case auraEffectDescriptor falls back to its defaults. A newer
+  // server's unknown AuraKind safely omits the effect line until this client knows it.
   value2?: number;
   value3?: number;
   tickInterval?: number;
   school?: AuraSchool;
   stacks?: number;
+  /** Party-frame-only relative pool badge for Mending Current. */
+  poolPct?: number;
   // Remaining charges on a charge-limited aura (e.g. Lightning Shield's 3 reflects). Present
   // on the offline Sim aura and mirrored over the wire; undefined for ordinary auras. When
   // present it drives the badge overlay INSTEAD of stacks (a charge count, not a stack count),
   // and unlike stacks it shows even at 1 so the player sees the shield about to drop.
   charges?: number;
+  // A permanent aura (a boss's standing ward, the slumber a sleeping boss wears): a STATE,
+  // not a timer. The sim backs it with a long finite duration purely so nothing expires
+  // it, and the wire mirrors the bit (`perm`), so both worlds can hide the countdown.
+  permanent?: boolean;
   // Full authored duration in seconds, for the expiring-blink threshold. Present on the
   // offline Sim aura and mirrored over the wire (terse `dur`); an old server omitting it
   // degrades to never-blink rather than misfiring.
@@ -122,6 +178,10 @@ export interface AuraInput {
   // Encounter-owned control cannot be canceled by the player. Mirrored over the
   // online aura wire so the cancel affordance matches the authoritative sim.
   unbreakableControl?: true;
+  // The other arm of the same rule: a penalty no player counter may shed (the recovery
+  // sicknesses). Also mirrored over the wire (terse `und`), so the cancel affordance
+  // cannot offer what the sim's cancel path would refuse.
+  undispellable?: true;
 }
 
 /** The entity fields the core reads: just its aura list. */
@@ -130,20 +190,20 @@ export interface AurasEntityInput {
 }
 
 /** Injected host helpers. The core produces localized text without importing the i18n
- *  runtime (testable with spies); each fires its key/lookup every frame so an in-game
- *  language switch lands on the next tick. */
+ *  runtime (testable with spies). Localized lookups normally run every frame; a view
+ *  with effectHtmlCacheVersion reuses effect HTML until that locale version changes. */
 export interface AurasDeps {
   /** The icon identity the painter resolves to a background-image URL (host:
-   *  `ABILITIES[id] ? id : 'aura_' + kind`). */
+   *  the cached generated-aura resolver in hud.ts). */
   iconId(aura: AuraInput): string;
   /** The localized aura display name, for the tooltip (host: `ABILITIES[id] ?
    *  abilityDisplayName(...) : auraDisplayNameFromSource(name)`). */
   auraName(aura: AuraInput): string;
   /** The formatted stack count (host: `formatNumber(stacks, {maximumFractionDigits:0})`). */
   formatStacks(stacks: number): string;
-  /** The one-line aura effect-summary HTML the tooltip prepends (or '' when the aura has
-   *  no descriptor). Injected so the i18n-free core never calls t(): the host builds the
-   *  localized, esc'd HTML from the pure aura_effect descriptor. */
+  /** The localized, escaped tooltip body the tooltip prepends (or '' when unavailable).
+   *  The host may include the source ability description plus the one-line runtime
+   *  aura-effect summary; the i18n-free core never calls t(). */
   auraEffectHtml(aura: AuraInput): string;
   /** The localized single-letter duration unit suffixes the compact label appends
    *  (host: `t('hudChrome.unitFrame.durationUnitSeconds'/'...Minutes'/'...Hours'/
@@ -187,6 +247,10 @@ export interface AuraSlotState {
   name: string;
   /** Raw seconds remaining, for the tooltip (read live by the pooled closure). */
   remaining: number;
+  /** Full authored duration, used by the detailed target-aura window's progress bar. */
+  duration?: number;
+  /** Caster entity id, used by the detailed target-aura window's source label. */
+  sourceId?: number;
   /** Whether this aura is the player's own cancelable buff (mode 'buffs', not a debuff):
    *  the buff bar offers right-click-cancel, a target's debuff strip is read-only. */
   cancelable: boolean;
@@ -199,6 +263,22 @@ export interface AuraSlotState {
   /** Whether the aura is about to run out (drives the `expiring` blink class). Always
    *  false for toggles/permanents, which show no countdown either. */
   expiring: boolean;
+  /** Whether this aura reads as a MODE rather than a timed effect (a form, a
+   *  stance, stealth, Ghost Wolf, the carried flag). It already suppresses the
+   *  countdown label; the painter also suppresses the tooltip's
+   *  seconds-remaining line for it, because the sim backs every one of these
+   *  with a long finite duration (3600s, or a whole match) that is scaffolding,
+   *  not information. Printing it is the same lie `durationText` avoids. */
+  toggle: boolean;
+  /** Whether the low graphics tier's buff cap may never shed this aura, because
+   *  its icon is an ACTIONABLE affordance rather than cosmetic upkeep
+   *  (`NEVER_SHED_IDS`). Debuffs already have this property via `isDebuff`. */
+  alwaysRender: boolean;
+  /** Whether this aura's authored duration reads as short enough to prioritize
+   *  when the low graphics tier's buff cap must shed something
+   *  (`isShortDurationBuff`, `aura_overflow_priority.ts`): a long-lived stat buff
+   *  sheds before a short, actively-timed one. */
+  shortDuration: boolean;
 }
 
 /** The whole strip's derived state: the reused slot pool plus the active count. Both
@@ -210,17 +290,36 @@ export interface AurasState {
   count: number;
 }
 
+interface AuraEffectHtmlCache {
+  version: unknown;
+  id: string;
+  kind: AuraKind;
+  value: number;
+  value2: number | undefined;
+  value3: number | undefined;
+  tickInterval: number | undefined;
+  school: AuraSchool | undefined;
+  stacks: number | undefined;
+  html: string;
+}
+
 export interface AurasView {
   /** Derive this frame's state, mutating the reused pool in place. */
   tick(entity: AurasEntityInput): AurasState;
 }
 
-/** Whether an aura reads as a debuff: an allowlisted kind, or a negative-value stat
+/** Whether an aura reads as a debuff: an allowlisted kind, a negative-value stat
  *  buff (a buff_* kind whose value saps rather than grants, e.g. a mob stat-sap riding
- *  buff_int/buff_ap with a negative value). Byte-faithful to the old inline
- *  classification, lifted into the core.
+ *  buff_int/buff_ap with a negative value), or an id-allowlisted proc/cooldown
+ *  marker riding a shared buff-coded kind (aura_classify.ts display override,
+ *  e.g. Stormsurge's "cannot proc again until Ancestral Strike is back on
+ *  cooldown" marker). Byte-faithful to the old inline classification, lifted into
+ *  the core.
  *
- *  PARITY: the `value < 0` branch fires identically in both worlds. The wire carries the
+ *  PARITY: `aura.id` rides the wire unconditionally already (every AuraInput
+ *  consumer, online and offline, has it), so the id-styled override answers
+ *  identically in both worlds with no new wire field. The `value < 0` branch fires
+ *  identically in both worlds too. The wire carries the
  *  aura value SPARSELY (server/game.ts WireAura sends it only when negative, the sole case
  *  that flips this classification; src/net/online.ts decodes `a.value ?? 0`), so a
  *  negative-value buff_* stat-sap shows the debuff border online and offline, and the
@@ -229,7 +328,7 @@ export interface AurasView {
  *  in both worlds (the kind is on the wire). The end-to-end encode/decode round trip is
  *  pinned in tests/snapshots.test.ts. */
 export function isAuraDebuff(aura: AuraInput): boolean {
-  return classifyDebuffAura(aura.kind, aura.value);
+  return classifyDebuffDisplayAura(aura.kind, aura.value, aura.id);
 }
 
 // Expiring-blink threshold (QoL: a DoT/buff about to run out flashes its icon).
@@ -245,6 +344,27 @@ export function isAuraExpiring(remaining: number, duration: number | undefined):
   return remaining <= Math.min(EXPIRING_BLINK_SEC, duration * EXPIRING_BLINK_FRAC);
 }
 
+// Threshold for the buff bar's low-tier overflow cap (auras_painter.ts /
+// aura_overflow_priority.ts): a buff authored at or under this lifetime reads as
+// something the player is actively TIMING (an active-mitigation cooldown like
+// Raised Guard's 6 sec block, an on-use trinket proc, a short elemental_trance-
+// style cooldown) rather than a raid/world buff they will still be wearing in
+// twenty minutes. The content catalog's selfBuff durations cluster from 3 sec up
+// through 60 sec, then jump straight to 1800/3600 sec with nothing in between, so
+// 60 sec sits in that natural gap rather than inventing a balance number. Player
+// feedback on PR #3668: the cap's shed order used to be pure application order,
+// so a short defensive cooldown applied AFTER several long-lived stat buffs could
+// lose its icon to them, hiding exactly the information a tank needed to time
+// their next charge.
+export const SHORT_BUFF_PRIORITY_SEC = 60;
+/** Whether `duration` reads as "short enough to prioritize" (see
+ *  SHORT_BUFF_PRIORITY_SEC above). A missing/zero duration (a toggle/permanent
+ *  aura, or an old server's mirror omitting it) is never short: it degrades to
+ *  the ordinary application-order shed, never to a false priority claim. */
+export function isShortDurationBuff(duration: number | undefined): boolean {
+  return duration !== undefined && duration > 0 && duration <= SHORT_BUFF_PRIORITY_SEC;
+}
+
 function makeSlotState(): AuraSlotState {
   return {
     key: '',
@@ -255,10 +375,15 @@ function makeSlotState(): AuraSlotState {
     stacksText: '',
     name: '',
     remaining: 0,
+    duration: undefined,
+    sourceId: undefined,
     cancelable: false,
     effectHtml: '',
     own: false,
     expiring: false,
+    toggle: false,
+    alwaysRender: false,
+    shortDuration: false,
   };
 }
 
@@ -274,15 +399,32 @@ function makeSlotState(): AuraSlotState {
  * the painter renders yours first and bigger. Implemented as two passes over the
  * SAME aura list (own, then the rest): no sort, no per-frame allocation, and the
  * relative order within each group stays the sim-application order.
+ *
+ * opts.effectHtmlCacheVersion enables per-slot tooltip HTML caching. The version
+ * must change whenever localized output can change; descriptor inputs are compared
+ * directly, so countdown-only ticks keep the cached HTML allocation-free.
  */
 export function createAurasView(
   mode: AuraMode,
   deps: AurasDeps,
-  opts?: { ownFirst?: boolean },
+  opts?: { ownFirst?: boolean; orderByUrgency?: boolean; effectHtmlCacheVersion?: () => unknown },
 ): AurasView {
   const slots: AuraSlotState[] = [];
+  const effectHtmlCache: Array<AuraEffectHtmlCache | undefined> = [];
   const state: AurasState = { slots, count: 0 };
   const ownFirst = opts?.ownFirst === true;
+  // Urgency ordering is a property of the PLAYER-STRIP modes, not an option the caller
+  // has to remember. 'buffs' and 'debuffs' exist for exactly one thing, the player's own
+  // two rows in hud.ts, and those are the rows a player scans for what is about to run
+  // out. 'all' is the SHARED mode (the target strip and the party mini-strips in
+  // party_frame_row.ts), which reads as a roster of what is on somebody else and keeps
+  // sim application order. An explicit opts.orderByUrgency still overrides either way.
+  //
+  // ownFirst wins where both apply: on the target strip "these are MY dots" is the
+  // stronger read than "this one expires soonest", and the two orderings would otherwise
+  // fight over the same leading slots.
+  const orderByUrgency = (opts?.orderByUrgency ?? mode !== 'all') && !ownFirst;
+  const effectHtmlCacheVersion = opts?.effectHtmlCacheVersion;
 
   return {
     tick(entity: AurasEntityInput): AurasState {
@@ -290,6 +432,7 @@ export function createAurasView(
       // Frame-constant, so read once per tick instead of per aura (it still re-reads each frame,
       // so an in-game language switch lands on the next tick).
       const units = deps.durationUnits();
+      const effectVersion = effectHtmlCacheVersion?.();
       const fill = (a: AuraInput, own: boolean): void => {
         // Temporal Echo marks are shown only to the chronomancer who placed them
         // (owner 2026-07-12): another caster's echo still heals in the sim but never
@@ -301,41 +444,122 @@ export function createAurasView(
         // via echoVisibleTo, so re-filtering here would wrongly hide the viewer's OWN
         // marks too.
         if (ownFirst && a.kind === 'temporal_echo' && !deps.isOwn(a)) return;
+        // Play Dead (hunter feign death) must not give itself away: only the
+        // hunter sees the aura on their own target/focus strip.
+        if (ownFirst && a.kind === 'feign_death' && !deps.isOwn(a)) return;
+        // Coldsight Read's internal bookkeeping markers (the Fevered Draw progress
+        // counter, the two per-ability reserved-cast markers): kind 'internal_cd'
+        // with an 86400s reservation-timeout duration purely so nothing but their
+        // own consumer clears them, never a real day-long buff. Exact-id, so every
+        // OTHER internal_cd marker (Heating Up, Stormsurge Ready, ...) and the
+        // real armed Coldsight Read opportunity (10s) still render normally.
+        if (a.kind === 'internal_cd' && isColdsightInternalMarkerAuraId(a.id)) return;
         const debuff = isAuraDebuff(a);
         if (mode === 'debuffs' && !debuff) return;
         if (mode === 'buffs' && debuff) return;
         // Grow the pool only when this frame needs a slot it has never held before.
-        if (count >= slots.length) slots.push(makeSlotState());
+        if (count >= slots.length) {
+          slots.push(makeSlotState());
+          effectHtmlCache.push(undefined);
+        }
         const slot = slots[count];
         slot.key = a.id;
         slot.iconKey = deps.iconId(a);
         slot.isDebuff = debuff;
         slot.school = debuff ? (a.school ?? 'physical') : '';
-        const toggle = (TOGGLE_KINDS.has(a.kind) || TOGGLE_IDS.has(a.id)) && !TIMED_IDS.has(a.id);
+        const toggle = isToggleAura(a);
         slot.durationText = toggle ? '' : compactAuraDuration(a.remaining, units);
         // Toggles show no countdown, so they never blink either.
         slot.expiring = !toggle && isAuraExpiring(a.remaining, a.duration);
+        slot.toggle = toggle;
+        slot.alwaysRender = NEVER_SHED_IDS.has(a.id);
         // A charge-limited aura badges its remaining charges (shown even at 1); otherwise the
         // badge shows a stack count, and only when it stacks past 1.
         slot.stacksText =
-          a.charges !== undefined
-            ? deps.formatStacks(a.charges)
-            : a.stacks && a.stacks > 1
-              ? deps.formatStacks(a.stacks)
-              : '';
+          a.poolPct !== undefined
+            ? deps.formatStacks(a.poolPct)
+            : a.charges !== undefined
+              ? deps.formatStacks(a.charges)
+              : a.stacks !== undefined && (a.stacks > 1 || isPersistentEngineAura(a.id))
+                ? deps.formatStacks(a.stacks)
+                : '';
         slot.name = deps.auraName(a);
         slot.remaining = a.remaining;
+        slot.duration = a.duration;
+        slot.shortDuration = isShortDurationBuff(a.duration);
+        slot.sourceId = a.sourceId;
         // The buff bar (mode 'buffs', the player's own auras) offers right-click-cancel;
         // a helpful buff is cancelable, a debuff never. The target debuff strip
-        // (mode 'debuffs') is read-only, so nothing there is cancelable.
-        slot.cancelable = mode === 'buffs' && !debuff && a.unbreakableControl !== true;
-        slot.effectHtml = deps.auraEffectHtml(a);
+        // (mode 'debuffs') is read-only, so nothing there is cancelable. The
+        // removability term routes through isCancelableAura, the same predicate the
+        // sim's cancel path answers to (combat/aura_cancel.ts, which folds in
+        // isPlayerRemovableAura), so the affordance can never offer a cancel the
+        // server would refuse: the encounter-control and undispellable arms ride
+        // the wire (ub / und) for exactly this reader.
+        slot.cancelable = mode === 'buffs' && isCancelableAura(a);
+        const cachedEffect = effectHtmlCache[count];
+        if (
+          !effectHtmlCacheVersion ||
+          !cachedEffect ||
+          cachedEffect.version !== effectVersion ||
+          cachedEffect.id !== a.id ||
+          cachedEffect.kind !== a.kind ||
+          cachedEffect.value !== a.value ||
+          cachedEffect.value2 !== a.value2 ||
+          cachedEffect.value3 !== a.value3 ||
+          cachedEffect.tickInterval !== a.tickInterval ||
+          cachedEffect.school !== a.school ||
+          cachedEffect.stacks !== a.stacks
+        ) {
+          const html = deps.auraEffectHtml(a);
+          slot.effectHtml = html;
+          if (effectHtmlCacheVersion) {
+            if (cachedEffect) {
+              cachedEffect.version = effectVersion;
+              cachedEffect.id = a.id;
+              cachedEffect.kind = a.kind;
+              cachedEffect.value = a.value;
+              cachedEffect.value2 = a.value2;
+              cachedEffect.value3 = a.value3;
+              cachedEffect.tickInterval = a.tickInterval;
+              cachedEffect.school = a.school;
+              cachedEffect.stacks = a.stacks;
+              cachedEffect.html = html;
+            } else {
+              effectHtmlCache[count] = {
+                version: effectVersion,
+                id: a.id,
+                kind: a.kind,
+                value: a.value,
+                value2: a.value2,
+                value3: a.value3,
+                tickInterval: a.tickInterval,
+                school: a.school,
+                stacks: a.stacks,
+                html,
+              };
+            }
+          }
+        } else {
+          slot.effectHtml = cachedEffect.html;
+        }
         slot.own = own;
         count++;
       };
       if (ownFirst) {
         for (const a of entity.auras) if (deps.isOwn(a)) fill(a, true);
         for (const a of entity.auras) if (!deps.isOwn(a)) fill(a, false);
+      } else if (orderByUrgency) {
+        // One pass per urgency band (aura_strip_order_core.ts), most urgent first, so the
+        // slots nearest the strip's anchor hold what is about to expire. Same shape as
+        // the ownFirst two-pass above: no sort, no comparator, no per-frame allocation,
+        // and the sim's application order survives INSIDE each band, so an icon only
+        // ever moves when its aura crosses a band boundary.
+        for (let b = 0; b < AURA_URGENCY_BUCKET_COUNT; b++) {
+          for (const a of entity.auras) {
+            if (auraUrgencyBucket(a.remaining, isToggleAura(a)) === b) fill(a, false);
+          }
+        }
       } else {
         for (const a of entity.auras) fill(a, false);
       }

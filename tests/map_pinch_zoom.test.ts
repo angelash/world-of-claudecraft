@@ -26,7 +26,7 @@ const mapGestureSource = sourceSection(
 const zoomMapSource = sourceSection(
   hudSource,
   'private zoomMap(factor: number): void {',
-  '// The map window shows the zone band',
+  'private clearMapHitState(canvas: HTMLCanvasElement): void {',
 );
 
 function pointerHarness() {
@@ -80,7 +80,9 @@ describe('map pinch zoom', () => {
     expect(mapGestureSource).toContain(
       'mapTapReleaseFromPointer(ev, mapTapStart, MAP_TAP_MOVE_TOLERANCE_PX)',
     );
-    expect(mapGestureSource).toContain('showMapTipAt,');
+    expect(mapGestureSource).toMatch(
+      /if \(this\.mapMarkerInteraction\.selectWorldQuestAt\(mapCanvas, clientX, clientY, true\)\) \{\s*this\.updateMapWindow\(\);\s*\}\s*return showMapTipAt\(clientX, clientY, true\);/,
+    );
     expect(zoomMapSource).toContain('this.mapZoom = nextMapZoom(this.mapZoom, factor)');
     expect(zoomMapSource).not.toMatch(/\b(?:camera|renderer|input|zoomBy)\b/i);
     expect(pinchSource).toContain("canvas.addEventListener('pointercancel', endPinchPointer)");

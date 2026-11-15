@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ERROR_CODES, type ErrorCode } from '../../../server/http/error_codes';
 
@@ -8,6 +10,7 @@ const EXPECTED_CODES = [
   'account.characters_online',
   'account.deactivated',
   'account.not_found',
+  'account.password_already_set',
   'account.password_too_long',
   'account.password_too_short',
   'account.username_invalid',
@@ -28,7 +31,11 @@ const EXPECTED_CODES = [
   'body.too_large',
   'body.unsupported_media_type',
   'character.already_in_world',
+  'character.delete_busy',
+  'character.referral_transfer_pending',
+  'character.referral_bond_pending',
   'character.delete_confirm',
+  'character.storage_purchase_open',
   'character.invalid_class',
   'character.limit_reached',
   'character.name_invalid',
@@ -38,6 +45,8 @@ const EXPECTED_CODES = [
   'character.online',
   'character.rename_not_permitted',
   'character.rename_required',
+  'character.invalid_appearance',
+  'character.reroll_unavailable',
   'character.taken_over',
   'db.conflict',
   'discord.already_linked',
@@ -59,19 +68,102 @@ const EXPECTED_CODES = [
   'moderation.suspended_until',
   'origin.cross_site',
   'rate_limit.exceeded',
+  'seeker.attestation_failed',
+  'seeker.current_ownership_required',
+  'seeker.entitlement_required',
+  'seeker.genesis_token_claimed',
+  'seeker.genesis_token_required',
+  'seeker.native_only',
+  'seeker.solana_artifact_required',
+  'seeker.wallet_required',
   'two_factor.already_enabled',
   'two_factor.code_invalid',
   'two_factor.not_enabled',
   'two_factor.setup_required',
   'validation.failed',
   'wallet.handoff_invalid',
+  'wallet.reauth_required',
+  'wallet.reauth_two_factor',
+  'wallet.reauth_no_password',
+  'wallet.reauth_bad_signature',
+  'wallet.reauth_bad_password',
+  'wallet.reauth_bad_two_factor',
+  'woc_market.invalid_input',
+  'woc_market.disabled',
+  'woc_market.paused',
+  'woc_market.wallet_required',
+  'woc_market.recipient_wallet_required',
+  'woc_market.self_offer',
+  'woc_market.offer_expired',
+  'woc_market.terms_required',
+  'woc_market.totp_required',
+  'woc_market.totp_invalid',
+  'woc_market.suspended',
+  'woc_market.character_invalid',
+  'woc_market.not_found',
+  'woc_market.not_yours',
+  'woc_market.not_active',
+  'woc_market.own_listing',
+  'woc_market.has_bids',
+  'woc_market.bid_too_low',
+  'woc_market.already_pending',
+  'woc_market.insufficient_balance',
+  'woc_market.quote_unavailable',
+  'woc_market.quote_expired',
+  'woc_market.not_pending',
+  'woc_market.claim_cooldown',
+  'woc_market.bond_window_closed',
+  'woc_market.confirm_failed',
+  'woc_market.confirm_in_flight',
+  'woc_market.buy_now_locked',
+  'woc_market.cancel_pending',
+  'woc_market.settlement_in_flight',
+  'woc_market.contended',
+  'woc_market.sale_conflict',
+  'woc_market.no_buy_now',
+  'woc_market.cap_reached',
+  'woc_market.stale_item',
+  'woc_market.not_eligible',
+  'woc_market.invalid_params',
+  'woc_market.signature_reused',
+  'woc_market.item_mismatch',
+  'woc_market.offer_pending',
+  'woc_market.item_locked',
+  'woc_market.stepup_required',
+  'woc_market.stepup_challenge_invalid',
+  'woc_market.stepup_challenge_expired',
+  'woc_market.stepup_wallet_mismatch',
+  'woc_market.stepup_binding_mismatch',
+  'woc_market.stepup_signature_invalid',
+  'discord.invalid_input',
   'deeds.invalid_input',
+  'guilds.invalid_roster_name',
+  'guilds.unknown',
+  'world_quests.unknown_board',
   'steam.disabled',
   'steam.invalid_ticket',
   'steam.banned',
   'steam.already_linked',
   'steam.account_taken',
   'steam.upstream',
+  'epic.disabled',
+  'epic.invalid_token',
+  'epic.banned',
+  'epic.already_linked',
+  'epic.account_taken',
+  'epic.upstream',
+  'ota_updates.invalid_input',
+  'cheater_mark.admin_target',
+  'cheater_mark.reason_required',
+  'cheater_mark.invalid_duration',
+  'cheater_mark.not_marked',
+  'kick.reason_required',
+  'kick.admin_target',
+  'kick.target_offline',
+  'world_quest_block.admin_target',
+  'world_quest_block.reason_required',
+  'world_quest_block.already_blocked',
+  'world_quest_block.not_blocked',
 ];
 
 describe('ERROR_CODES catalog', () => {
@@ -80,8 +172,29 @@ describe('ERROR_CODES catalog', () => {
   });
 
   it('has no duplicate codes', () => {
-    const keys = Object.keys(ERROR_CODES);
-    expect(new Set(keys).size).toBe(keys.length);
+    // Over the SOURCE TEXT, not Object.keys: a duplicated literal key (the
+    // union-merge hazard this guard exists for) has already collapsed by the
+    // time the object is constructed, so a runtime key-set comparison can
+    // never fail. tsc flags the duplicate too; this keeps the guard local
+    // and named.
+    const source = readFileSync(
+      fileURLToPath(new URL('../../../server/http/error_codes.ts', import.meta.url)),
+      'utf8',
+    );
+    const start = source.indexOf('export const ERROR_CODES');
+    const literal = source.slice(start, source.indexOf('as const', start));
+    const keys = [...literal.matchAll(/^\s{2}'([a-z0-9_.]+)': \{/gm)].map((m) => m[1]);
+    expect(keys.length).toBe(Object.keys(ERROR_CODES).length);
+    const seen = new Set<string>();
+    const dupes: string[] = [];
+    for (const k of keys) {
+      if (seen.has(k)) {
+        dupes.push(k);
+      } else {
+        seen.add(k);
+      }
+    }
+    expect(dupes).toEqual([]);
   });
 
   it('carries the 9 structural codes with their exact param keys', () => {
@@ -98,6 +211,10 @@ describe('ERROR_CODES catalog', () => {
 
   it('seeds the one parametric harvested code with its date param', () => {
     expect(ERROR_CODES['moderation.suspended_until'].params).toEqual(['date']);
+  });
+
+  it('declares the buy-now cooldown remaining time (the client renders it as a duration)', () => {
+    expect(ERROR_CODES['woc_market.claim_cooldown'].params).toEqual(['retryAfterSeconds']);
   });
 
   it('gives every code a params array of non-empty strings', () => {

@@ -1,16 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { droppedItemSemantic } from '../server/ai/scene_frame';
-import { AiWorldTraceStore, worldTraceKindForItem, worldTraceLineId } from '../server/ai/world_traces';
+import {
+  AiWorldTraceStore,
+  worldTraceKindForItem,
+  worldTraceLineId,
+} from '../server/ai/world_traces';
 
 describe('AI world traces', () => {
   it('classifies discarded item traces by strongest semantic signal', () => {
     expect(worldTraceKindForItem(droppedItemSemantic('roasted_boar', 0, 1)!, [])).toBe('food');
-    expect(worldTraceKindForItem(droppedItemSemantic('gravecaller_sigil', 0, 1)!, [])).toBe('cursed');
-    expect(worldTraceKindForItem(droppedItemSemantic('redbrook_blade', 0, 1)!, [])).toBe('valuable');
-    expect(worldTraceKindForItem(
-      droppedItemSemantic('roasted_boar', 0, 1)!,
-      ['hudChrome.aiSpeech.singularityFoodFixated'],
-    )).toBe('singularity');
+    expect(worldTraceKindForItem(droppedItemSemantic('gravecaller_sigil', 0, 1)!, [])).toBe(
+      'cursed',
+    );
+    expect(worldTraceKindForItem(droppedItemSemantic('redbrook_blade', 0, 1)!, [])).toBe(
+      'valuable',
+    );
+    expect(
+      worldTraceKindForItem(droppedItemSemantic('roasted_boar', 0, 1)!, [
+        'hudChrome.aiSpeech.singularityFoodFixated',
+      ]),
+    ).toBe('singularity');
   });
 
   it('maps trace kinds to scene inspection lineIds', () => {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { MOBS } from '../src/sim/data';
+import { BUILTIN_WORLD, MOBS } from '../src/sim/data';
 import { EASTBROOK_BUILDINGS_BY_ID, localToWorld } from '../src/sim/eastbrook_layout';
 import { respawnMob } from '../src/sim/mob/lifecycle';
 import { resetEvadingMob } from '../src/sim/mob/locomotion';
 import { combatProfileForMob, scaledDefaultMobMeleeRange } from '../src/sim/mob_combat';
 import { Sim } from '../src/sim/sim';
-import type { Entity, SimEvent } from '../src/sim/types';
+import type { Entity, SimEvent, WorldContent } from '../src/sim/types';
 import {
   isWorldBossLootEligible,
   markWorldBossLooted,
@@ -18,6 +18,16 @@ import {
 const BOSS_ID = 'thunzharr_waking_peak';
 const DAY = '2026-06-28';
 
+// World bosses are scheduler-spawned and do not depend on ambient camps/NPCs.
+// Keeping those entities out makes the 40-seed personal-loot property measure
+// loot behavior rather than repeatedly constructing the whole continent.
+const WORLD_BOSS_TEST_WORLD: WorldContent = {
+  ...BUILTIN_WORLD,
+  camps: [],
+  npcs: {},
+  groundObjects: [],
+};
+
 // Minimal PlayerMeta stand-in for the pure lockout-gate helpers (they touch only
 // .raidLockouts). Cast through unknown to satisfy the full PlayerMeta type.
 function fakeMeta() {
@@ -27,7 +37,13 @@ function fakeMeta() {
 }
 
 function makeSim(seed = 7) {
-  return new Sim({ seed, playerClass: 'warrior', autoEquip: true, noPlayer: true });
+  return new Sim({
+    seed,
+    playerClass: 'warrior',
+    autoEquip: true,
+    noPlayer: true,
+    world: WORLD_BOSS_TEST_WORLD,
+  });
 }
 
 function findBoss(sim: Sim): Entity | undefined {
@@ -74,6 +90,34 @@ describe('world boss loot lockout gate (pure helpers)', () => {
 });
 
 describe('world boss scheduler', () => {
+  it('reports the fixed boss active only while its scheduled entity is alive', () => {
+    const sim = makeSim();
+    expect(sim.worldBossActive(BOSS_ID)).toBe(false);
+    expect(sim.worldBossActive('missing_world_boss')).toBe(false);
+
+    const { boss } = spawnBossNow(sim);
+    expect(sim.worldBossActive(BOSS_ID)).toBe(true);
+
+    boss.dead = true;
+    expect(sim.worldBossActive(BOSS_ID)).toBe(false);
+  });
+
+  it('reports the boss active again when the scheduler replaces its expired corpse', () => {
+    const sim = makeSim();
+    const { boss } = spawnBossNow(sim);
+    const slainId = boss.id;
+    boss.dead = true;
+    boss.corpseTimer = 0;
+    (sim as any).worldBossNextAt[0] = sim.time;
+
+    sim.tick();
+
+    const replacement = findBoss(sim);
+    expect(replacement?.id).not.toBe(slainId);
+    expect(replacement?.dead).toBe(false);
+    expect(sim.worldBossActive(BOSS_ID)).toBe(true);
+  });
+
   it('spawns on the interval and announces server-wide', () => {
     const sim = makeSim();
     expect(findBoss(sim)).toBeUndefined();
@@ -369,16 +413,18 @@ describe('world boss personal loot', () => {
 
   it('caps gear at one Tier-2 piece per contributor (never a glove AND a belt in one kill)', () => {
     let anyGearDropped = false;
-    // Sweep many seeds/contributors: the invariant (<= 1 gear each) must hold on every
-    // roll, and across the sweep gear must actually drop (so the cap is not vacuous).
-    for (let seed = 1; seed <= 40; seed++) {
-      const sim = makeSim(seed);
-      sim.utcDay = DAY;
-      const pids = [
-        sim.addPlayer('warrior', 'Ada'),
-        sim.addPlayer('mage', 'Bru'),
-        sim.addPlayer('rogue', 'Cyd'),
-      ];
+    const sim = makeSim(1);
+    sim.utcDay = DAY;
+    const pids = [
+      sim.addPlayer('warrior', 'Ada'),
+      sim.addPlayer('mage', 'Bru'),
+      sim.addPlayer('rogue', 'Cyd'),
+    ];
+    // Forty consecutive bosses exercise 120 deterministic personal loot rolls.
+    // A fresh continent per roll does not affect loot and used to dominate the
+    // property runtime, so reuse the same authoritative Sim and advance its RNG.
+    for (let roll = 1; roll <= 40; roll++) {
+      (sim as any).worldBossEntityIds[0] = null;
       const { boss } = spawnBossNow(sim);
       killWith(sim, boss, pids);
       const items = boss.loot?.items ?? [];
@@ -391,6 +437,7 @@ describe('world boss personal loot', () => {
         expect(gear.length).toBeLessThanOrEqual(1);
         if (gear.length === 1) anyGearDropped = true;
       }
+      (sim as any).dropEntity(boss.id);
     }
     expect(anyGearDropped).toBe(true);
   });
@@ -847,14 +894,17 @@ describe('world boss pathing (phases through obstacles)', () => {
     const { boss } = spawnBossNow(sim);
     // Reuse the boss entity but masquerade as an unflagged template: the gate
     // reads MOBS[templateId], so a plain wolf template must NOT phase.
+    // Run front to back: the painted bank's strongroom stands out from the
+    // middle of its back wall, so a start a step behind that wall would be
+    // inside the strongroom, not beside the bank.
     const bank = EASTBROOK_BUILDINGS_BY_ID.eastbrook_bank;
     const start = localToWorld(
       bank.position,
       bank.rotation,
       0,
-      bank.nativeDimensions.depth / 2 + 0.7,
+      -bank.nativeDimensions.depth / 2 - 0.7,
     );
-    const end = localToWorld(bank.position, bank.rotation, 0, -bank.nativeDimensions.depth / 2 - 5);
+    const end = localToWorld(bank.position, bank.rotation, 0, bank.nativeDimensions.depth / 2 + 5);
     boss.templateId = 'forest_wolf';
     boss.pos = { ...start, y: 0 };
     (sim as any).moveToward(boss, { ...end, y: 0 }, 7);

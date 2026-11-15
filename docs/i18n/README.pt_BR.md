@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml/badge.svg)](https://github.com/levy-street/world-of-claudecraft/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-r165-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
+[![Three.js](https://img.shields.io/badge/Three.js-r185-000000?logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 [![Vitest](https://img.shields.io/badge/Vitest-4.1-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Gymnasium](https://img.shields.io/badge/Gymnasium-RL%20env-0C7BDC)](https://gymnasium.farama.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-[![Version](https://img.shields.io/badge/version-0.31.0-blue)](../../package.json)
+[![Version](https://img.shields.io/badge/version-0.45.8-blue)](../../package.json)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.pt_BR.md)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/worldofclaudecraft)
 
@@ -92,7 +92,7 @@ npm install
 npm run dev        # then open http://localhost:5173 and choose Play Offline
 ```
 
-Dê um nome ao seu personagem, escolha qualquer uma das nove classes e comece em **Eastbrook Vale** (níveis 1-7), uma cidade comercial cercada por polos: tocaias de lobos ao norte, prados de javalis a leste, os bosques Sableweb a oeste, Mirror Lake a noroeste, uma escavação de cobre infestada de burrowers a sudoeste e uma capela em ruínas dos mortos inquietos a nordeste, com o acampamento de bandidos de Gorrak a sudeste. A estrada do norte sobe um passo na montanha até **Mirefen Marsh** (6-13, polo Fenbridge) e continua subindo até **Thornpeak Heights** (13-20, polo Highwatch). A semente do mundo é fixa em `src/main.ts`, então é o mesmo lugar a cada visita.
+Dê um nome ao seu personagem, escolha qualquer uma das nove classes e comece em **Eastbrook Vale** (níveis 1-7), uma cidade comercial cercada por polos: tocaias de lobos ao norte, prados de javalis a leste, os bosques Sableweb a oeste, Mirror Lake a noroeste, uma escavação de cobre infestada de burrowers a sudoeste e uma capela em ruínas dos mortos inquietos a nordeste, com o acampamento de bandidos de Gorrak a sudeste. A estrada do norte sobe um passo na montanha até **Mirefen Marsh** (6-13, polo Fenbridge) e continua subindo até **Thornpeak Heights** (13-20, polo Highwatch). A semente do mundo é fixa em `src/sim/world_seed.ts`, então é o mesmo lugar a cada visita.
 
 ### Apps de desktop para Windows, Linux e macOS
 
@@ -234,7 +234,7 @@ Toda instância também roda no **Heroico**: inimigos de nível mais alto, mecâ
 
 ### Delves
 
-Delves são um modo separado e escalável para grupos pequenos, de um ou dois jogadores, reconstruído a partir de câmaras aleatórias a cada incursão e terminando em um baú de relicário trancado que abre por um minigame de arrombamento, e não por uma rolagem de loot. **The Collapsed Reliquary** (nível 7 em diante) termina em Deacon Varric, com uma companheira de IA, Tessa, lutando ao seu lado se você for sozinho. **The Drowned Litany** (nível 12 em diante) segue a trilha até um santuário inundado na borda de Mirefen Marsh. Um quadro de delves define o tier: o Heroico eleva os níveis dos inimigos e adiciona um afixo aleatório para recompensas mais ricas.
+Delves são um modo separado e escalável para grupos pequenos, de um ou dois jogadores, reconstruído a partir de câmaras aleatórias a cada incursão e terminando em um baú de relicário trancado que abre por um minigame de arrombamento, e não por uma rolagem de loot. **The Collapsed Reliquary** (nível 7 em diante) termina em Deacon Vandric, com uma companheira de IA, Tessa, lutando ao seu lado se você for sozinho. **The Drowned Litany** (nível 12 em diante) segue a trilha até um santuário inundado na borda de Mirefen Marsh. Um quadro de delves define o tier: o Heroico eleva os níveis dos inimigos e adiciona um afixo aleatório para recompensas mais ricas.
 
 ### PvP ranqueado (o Ashen Coliseum)
 

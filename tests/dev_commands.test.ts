@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import { BUDDY_KEYS } from '../src/sim/content/buddies';
+import { FARM_CROP_IDS } from '../src/sim/content/farm_crops';
+import { FARM_BED_IDS, farmBedById } from '../src/sim/content/farm_patches';
+import { WORLD_QUEST_MIN_LEVEL } from '../src/sim/content/world_quests';
+import { parseBisGearFor } from '../src/sim/dev/parse_bis_loadouts';
+import { normalizeFarmPlots, serializeFarmPlots } from '../src/sim/professions/farm_persist';
 import { Sim } from '../src/sim/sim';
 import { MAX_LEVEL } from '../src/sim/types';
+import { EMPTY_TEST_WORLD } from './sim_shared';
 
 function devSim(seed = 42): Sim {
-  return new Sim({ seed, playerClass: 'warrior', autoEquip: true, devCommands: true });
+  return new Sim({
+    seed,
+    playerClass: 'warrior',
+    autoEquip: true,
+    devCommands: true,
+    world: EMPTY_TEST_WORLD,
+  });
 }
 
 function devSpawns(sim: Sim, ownerId = sim.playerId) {
@@ -13,6 +26,103 @@ function devSpawns(sim: Sim, ownerId = sim.playerId) {
 }
 
 describe('dev commands', () => {
+  // Daily offer cycles retain the approved layout; the arm lifts the tester
+  // to the world-quest floor level. Farshore's pool is four deep since the
+  // round-2 zone hunts, so the shipwreck is the day's offer on cycles 0, 4, 8:
+  // these dates sit on it, and the arm keeps the day's own cycle.
+  it.each([
+    ['2026-08-31', 'wq1_0', 0],
+    ['2026-09-12', 'wq1_12', 0],
+    ['2026-09-16', 'wq1_16', 0],
+  ] as const)(
+    '/dev salvage arms the approved layout online on %s',
+    (resetDay, expectedCycle, expectedVariant) => {
+      const sim = devSim();
+      sim.resetDay = resetDay;
+
+      sim.chat('/dev salvage');
+
+      expect(sim.player.level).toBe(WORLD_QUEST_MIN_LEVEL);
+      expect(sim.worldQuestCycle).toBe(expectedCycle);
+      expect(sim.meta(sim.playerId)?.devWorldQuestCycle).toBe(expectedCycle);
+      expect(sim.worldQuestLog.get('wq_farshore_salvage')).toEqual({
+        questId: 'wq_farshore_salvage',
+        count: 0,
+        state: 'active',
+        puzzleVariant: expectedVariant,
+      });
+      expect(sim.drainEvents()).toContainEqual(
+        expect.objectContaining({
+          type: 'log',
+          text: '[dev] Shipwreck salvage armed. Use /dev tp 320 103 (beside the wreck).',
+        }),
+      );
+    },
+  );
+
+  it('/dev bis uses the selected spec parse loadout without changing the live spec', () => {
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'mage',
+      autoEquip: true,
+      devCommands: true,
+      world: EMPTY_TEST_WORLD,
+    });
+    sim.setPlayerLevel(20);
+    expect(sim.setSpec('frost')).toBe(true);
+
+    sim.chat('/dev bis fire');
+
+    expect(sim.meta(sim.playerId)?.talents.spec).toBe('frost');
+    expect(sim.meta(sim.playerId)?.equipment).toEqual(parseBisGearFor('mage', 'fire'));
+    expect(
+      sim
+        .drainEvents()
+        .some(
+          (event) => event.type === 'log' && event.text.includes('top-parse mage fire loadout'),
+        ),
+    ).toBe(true);
+  });
+
+  it('/dev bis rejects a spec owned by another class without changing gear', () => {
+    const sim = devSim();
+    const before = { ...sim.meta(sim.playerId)?.equipment };
+
+    sim.chat('/dev bis fire');
+
+    expect(sim.meta(sim.playerId)?.equipment).toEqual(before);
+    expect(
+      sim
+        .drainEvents()
+        .some(
+          (event) =>
+            event.type === 'error' &&
+            event.text === "[dev] 'fire' is not a warrior spec. Try: arms, fury, prot.",
+        ),
+    ).toBe(true);
+  });
+
+  it('/dev bis removes stale pieces that are not part of the selected parse loadout', () => {
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'paladin',
+      autoEquip: true,
+      devCommands: true,
+      world: EMPTY_TEST_WORLD,
+    });
+    const meta = sim.meta(sim.playerId);
+    expect(meta).toBeDefined();
+    if (!meta) throw new Error('missing player metadata');
+    meta.equipment.offhand = 'highwatch_wallshield';
+    meta.equipmentInstance.offhand = { rolled: { quality: 'fine' } };
+
+    sim.chat('/dev bis retribution');
+
+    expect(meta.equipment).toEqual(parseBisGearFor('paladin', 'retribution'));
+    expect(meta.equipment.offhand).toBeUndefined();
+    expect(meta.equipmentInstance.offhand).toBeUndefined();
+  });
+
   it('spawns concrete mob templates without drawing RNG', () => {
     const sim = devSim();
     let draws = 0;
@@ -46,7 +156,13 @@ describe('dev commands', () => {
   });
 
   it('despawns only mobs created by the requesting developer', () => {
-    const sim = new Sim({ seed: 9, playerClass: 'warrior', noPlayer: true, devCommands: true });
+    const sim = new Sim({
+      seed: 9,
+      playerClass: 'warrior',
+      noPlayer: true,
+      devCommands: true,
+      world: EMPTY_TEST_WORLD,
+    });
     const alpha = sim.addPlayer('warrior', 'Alpha');
     const beta = sim.addPlayer('mage', 'Beta');
     sim.chat('/dev spawn forest_wolf 2', alpha);
@@ -67,7 +183,13 @@ describe('dev commands', () => {
   });
 
   it('clears every player target and owned spawn when its developer leaves', () => {
-    const sim = new Sim({ seed: 15, playerClass: 'warrior', noPlayer: true, devCommands: true });
+    const sim = new Sim({
+      seed: 15,
+      playerClass: 'warrior',
+      noPlayer: true,
+      devCommands: true,
+      world: EMPTY_TEST_WORLD,
+    });
     const alpha = sim.addPlayer('warrior', 'Alpha');
     const beta = sim.addPlayer('mage', 'Beta');
     sim.chat('/dev spawn forest_wolf 2', alpha);
@@ -150,12 +272,17 @@ describe('dev commands', () => {
     meta.craftSkills.engineering = 75; // the specialization threshold (#1134)
     sim.chat('/dev mobilestation ENGINEERING'); // the arm lowercases the craft id
     expect(meta.mobileStation?.craftId).toBe('engineering');
-    // The IWorld read agrees while the station is active.
-    expect(sim.activeMobileStationCraft).toBe('engineering');
+    // The IWorld read agrees while the station is active (the set member).
+    expect(sim.activeMobileStationCrafts).toEqual(['engineering']);
   });
 
   it('is inert when dev commands are disabled', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'warrior', devCommands: false });
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      devCommands: false,
+      world: EMPTY_TEST_WORLD,
+    });
     const beforeIds = [...sim.entities.keys()];
 
     sim.chat('/dev spawn forest_wolf 4');
@@ -164,5 +291,536 @@ describe('dev commands', () => {
     expect([...sim.entities.keys()]).toEqual(beforeIds);
     expect(sim.player.level).toBe(1);
     expect(devSpawns(sim)).toEqual([]);
+  });
+
+  it('sets the current target to a percent of max health, else self', () => {
+    const sim = devSim();
+    const player = sim.player;
+    player.maxHp = 200;
+    player.hp = 1;
+    sim.chat('/dev hp 50');
+    expect(player.hp).toBe(100);
+
+    sim.chat('/dev spawn forest_wolf');
+    const mob = devSpawns(sim)[0];
+    mob.maxHp = 1000;
+    mob.hp = 1000;
+    player.targetId = mob.id;
+    sim.chat('/dev hp 40');
+    expect(mob.hp).toBe(400);
+    expect(player.hp).toBe(100);
+
+    sim.chat('/dev hp 0');
+    expect(mob.hp).toBe(10);
+    sim.chat('/dev hp 999');
+    expect(mob.hp).toBe(1000);
+  });
+
+  it('never leaves a body at zero, however small its pool', () => {
+    const sim = devSim();
+    const sub = sim.player;
+    sub.maxHp = 50;
+    sub.hp = 50;
+    // 1% of 50 floors to 0, and a body at 0 hp that no death path produced is
+    // a state nothing else in the sim can reach.
+    sim.chat('/dev hp 1');
+    expect(sub.hp).toBe(1);
+  });
+
+  it('refuses a dead or non-self player target instead of silently hitting self', () => {
+    const sim = devSim();
+    const player = sim.player;
+    player.maxHp = 200;
+    player.hp = 200;
+    sim.chat('/dev spawn forest_wolf');
+    const mob = devSpawns(sim)[0];
+    mob.maxHp = 1000;
+    mob.hp = 1000;
+    mob.dead = true;
+    player.targetId = mob.id;
+    const dead = sim.chat('/dev hp 10');
+    expect(dead).toBeNull();
+    expect(mob.hp).toBe(1000);
+    // The caller's own hp must NOT have moved: an automation caller whose
+    // target did not land would otherwise measure itself and never know.
+    expect(player.hp).toBe(200);
+
+    const other = sim.addPlayer('mage', 'Otherling');
+    const otherEntity = sim.entities.get(other);
+    if (!otherEntity) throw new Error('second player missing');
+    otherEntity.maxHp = 300;
+    otherEntity.hp = 300;
+    player.targetId = other;
+    sim.chat('/dev hp 10');
+    expect(otherEntity.hp).toBe(300);
+    expect(player.hp).toBe(200);
+
+    // ...and targeting YOURSELF still works.
+    player.targetId = player.id;
+    sim.chat('/dev hp 25');
+    expect(player.hp).toBe(50);
+  });
+
+  it("refuses another tester's pet, which is an owned mob and not a player", () => {
+    const sim = devSim();
+    const player = sim.player;
+    player.maxHp = 200;
+    player.hp = 200;
+    sim.chat('/dev spawn forest_wolf');
+    const pet = devSpawns(sim)[0];
+    pet.maxHp = 1000;
+    pet.hp = 1000;
+
+    const other = sim.addPlayer('mage', 'Otherling');
+    pet.ownerId = other;
+    player.targetId = pet.id;
+    sim.chat('/dev hp 10');
+    expect(pet.hp).toBe(1000);
+    expect(player.hp).toBe(200);
+
+    // ...while the caller's OWN pet stays theirs to drive.
+    pet.ownerId = player.id;
+    sim.chat('/dev hp 10');
+    expect(pet.hp).toBe(100);
+  });
+
+  it('errors, and changes nothing, when the caller is dead with no target', () => {
+    const sim = devSim();
+    const player = sim.player;
+    player.maxHp = 200;
+    player.hp = 0;
+    player.dead = true;
+    player.targetId = null;
+    sim.chat('/dev hp 90');
+    expect(player.hp).toBe(0);
+  });
+
+  it('draws no rng, like every dev command', () => {
+    const sim = devSim();
+    const player = sim.player;
+    player.maxHp = 200;
+    let draws = 0;
+    sim.rng.setObserver(() => {
+      draws++;
+    });
+    sim.chat('/dev hp 50');
+    sim.chat('/dev hp 100');
+    sim.rng.setObserver(null);
+    expect(draws).toBe(0);
+  });
+});
+
+describe('/dev bg (Thornhollow Fields force-start)', () => {
+  it('force-starts a short-handed match from whoever is queued, no bots', () => {
+    const sim = new Sim({
+      seed: 9,
+      playerClass: 'warrior',
+      noPlayer: true,
+      devCommands: true,
+      world: EMPTY_TEST_WORLD,
+    });
+    const a = sim.addPlayer('warrior', 'Alpha');
+    const b = sim.addPlayer('mage', 'Beta');
+    const c = sim.addPlayer('priest', 'Gamma');
+    for (const p of [a, b, c]) {
+      sim.entities.get(p)!.level = 20; // the queue floor; /dev bg itself bypasses it
+      sim.bgQueueJoin(p);
+    }
+
+    sim.chat('/dev bg', a);
+
+    const match = sim.bgMatchFor(a);
+    expect(match).toBeTruthy();
+    if (!match) throw new Error('missing match');
+    expect(match.teams[0].length + match.teams[1].length).toBe(3);
+    expect(match.teams[0].length).toBeGreaterThan(0);
+    expect(match.teams[1].length).toBeGreaterThan(0);
+    expect([...sim.players.values()].filter((m) => m.isDevBot)).toHaveLength(0);
+  });
+
+  it('queues the caller and pads with one dev bot for a solo walk-around, drawing zero rng', () => {
+    const sim = devSim();
+    let draws = 0;
+    sim.rng.setObserver(() => draws++);
+
+    sim.chat('/dev bg');
+
+    const match = sim.bgMatchFor(sim.playerId);
+    expect(match).toBeTruthy();
+    if (!match) throw new Error('missing match');
+    const pids = [...match.teams[0], ...match.teams[1]];
+    expect(pids).toHaveLength(2);
+    const botPid = pids.find((p) => p !== sim.playerId);
+    expect(botPid).toBeDefined();
+    expect(sim.players.get(botPid ?? -1)?.isDevBot).toBe(true);
+    // exactly ONE draw: the power-rune opening face rolled at match start
+    // (startBgMatch); queueing, padding, and team-splitting draw nothing.
+    expect(draws).toBe(1);
+  });
+
+  it('errors on a repeat call from inside the match', () => {
+    const sim = devSim();
+    sim.chat('/dev bg');
+    expect(sim.bgMatchFor(sim.playerId)).toBeTruthy();
+    sim.tick();
+
+    sim.chat('/dev bg');
+
+    const errors = sim
+      .tick()
+      .filter((e) => e.type === 'error' && e.pid === sim.playerId)
+      .map((e) => (e.type === 'error' ? e.text : ''));
+    expect(errors).toContain('[dev] You are already in a battleground.');
+  });
+
+  it('a refused queue join (not the party leader) starts nothing and leaks no bot', () => {
+    const sim = devSim();
+    // A dead caller used to be the refusal this pinned. Dying no longer cancels
+    // a queue, so the bail-before-padding path is exercised through a refusal
+    // that survives: only a party's leader may commit it to the queue.
+    const leader = sim.addPlayer('priest', 'Leader');
+    sim.partyInvite(sim.playerId, leader);
+    sim.partyAccept(sim.playerId);
+    expect(sim.partyOf(sim.playerId)!.leader).not.toBe(sim.playerId);
+
+    sim.chat('/dev bg');
+
+    expect(sim.bgMatchFor(sim.playerId)).toBeNull();
+    expect([...sim.players.values()].filter((m) => m.isDevBot)).toHaveLength(0);
+  });
+
+  it('force-starts for a dead caller, who is seated alive', () => {
+    const sim = devSim();
+    sim.player.hp = 0;
+    sim.player.dead = true;
+
+    sim.chat('/dev bg');
+
+    expect(sim.bgMatchFor(sim.playerId), 'dying must not cancel the queue').toBeTruthy();
+    expect(sim.player.dead).toBe(false);
+    expect(sim.player.ghost).toBe(false);
+    expect(sim.player.hp).toBe(sim.player.maxHp);
+  });
+
+  it('reuses an idle leftover dev bot instead of spawning another', () => {
+    const sim = devSim();
+    sim.chat('/dev bot Riftbot');
+    const botCountBefore = [...sim.players.values()].filter((m) => m.isDevBot).length;
+    expect(botCountBefore).toBe(1);
+
+    sim.chat('/dev bg');
+
+    expect(sim.bgMatchFor(sim.playerId)).toBeTruthy();
+    expect([...sim.players.values()].filter((m) => m.isDevBot)).toHaveLength(1);
+  });
+
+  it('is inert without devCommands', () => {
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      devCommands: false,
+      world: EMPTY_TEST_WORLD,
+    });
+    sim.chat('/dev bg');
+    expect(sim.bgMatchFor(sim.playerId)).toBeNull();
+  });
+
+  it('/dev buddies collects every catalog companion outright, no items involved', () => {
+    const sim = devSim();
+    const meta = sim.players.get(sim.playerId);
+    if (!meta) throw new Error('missing player meta');
+
+    sim.chat('/dev buddies');
+
+    expect(sim.ownedBuddies().length).toBe(BUDDY_KEYS.length);
+    expect(sim.ownedBuddies()).toEqual(['horse', 'crystal_lich', 'forgemaw', 'sprites']);
+    expect(meta.buddies).not.toHaveProperty('cosmetics');
+    expect(meta.inventory.some((s) => s.itemId.startsWith('whistle_'))).toBe(false);
+  });
+
+  it('/dev buddy <key> stages one companion as a boss-roll win that reveals on the walk away', () => {
+    const sim = devSim();
+    const meta = sim.players.get(sim.playerId);
+    if (!meta) throw new Error('missing player meta');
+    sim.chat('/dev buddy crystal_lich');
+    expect(meta.buddies.pending.map((p) => p.key)).toEqual(['crystal_lich']);
+    expect(sim.ownedBuddies()).toEqual([]);
+    sim.player.pos.x += 100;
+    for (let i = 0; i < 25 && !sim.ownedBuddies().includes('crystal_lich'); i++) sim.tick();
+    expect(sim.ownedBuddies()).toEqual(['crystal_lich']);
+  });
+
+  it('freezes every mob in place with no aggro, and releases on off', () => {
+    const sim = devSim();
+    // an aggressive mob right beside the player: without the freeze this
+    // pulls within a tick (aggroRadius far exceeds the spawn offset)
+    sim.chat('/dev freezemobs on');
+    expect(sim.devMobsFrozen).toBe(true);
+    sim.chat('/dev spawn forest_wolf 1 17');
+    const wolf = devSpawns(sim)[0];
+    expect(wolf).toBeTruthy();
+    const frozenAt = { ...wolf.pos };
+    for (let i = 0; i < 100; i++) sim.tick();
+    expect(wolf.aiState, 'a frozen mob never acquires aggro').toBe('idle');
+    expect(wolf.inCombat).toBe(false);
+    expect(wolf.pos, 'a frozen mob never moves').toEqual(frozenAt);
+
+    // explicit on is idempotent (the placer asserts state, never toggles)
+    sim.chat('/dev freezemobs on');
+    expect(sim.devMobsFrozen).toBe(true);
+
+    sim.chat('/dev freezemobs off');
+    expect(sim.devMobsFrozen).toBe(false);
+    let pulled = false;
+    for (let i = 0; i < 40 && !pulled; i++) {
+      sim.tick();
+      pulled = wolf.inCombat;
+    }
+    expect(pulled, 'an unfrozen mob pulls again').toBe(true);
+
+    // the bare form toggles
+    sim.chat('/dev freezemobs');
+    expect(sim.devMobsFrozen).toBe(true);
+    sim.chat('/dev freezemobs');
+    expect(sim.devMobsFrozen).toBe(false);
+  });
+});
+
+// The farming grow-now cheat. Its whole value rests on being a pure TIME
+// shortcut: the growth script is pre-rolled once at plant time, so "grow now"
+// and "wait it out" must reach the SAME harvest. These pin that literally, by
+// asserting the hidden pre-rolled slots and plantedAtMs survive untouched and
+// that not one rng draw happens. The parity scenario states the same
+// equivalence at the session level; the ready-notice and journal phases reach a
+// ready plot through this command, so a regression here is a regression there.
+describe('/dev farmgrow (farming grow-now)', () => {
+  // A plot fixture written straight onto PlayerMeta, so these tests exercise the
+  // cheat and nothing else: they neither need nor assume the plant command.
+  function plant(sim: Sim, bedId: string, readyAtMs: number, pid = sim.playerId): void {
+    const meta = sim.meta(pid);
+    if (!meta) throw new Error(`no meta for ${pid}`);
+    meta.farmPlots.set(bedId, {
+      cropId: 'vale_wheat',
+      plantedAtMs: 1_700_000_000_000,
+      readyAtMs,
+      survivalRoll: 0.4242,
+      yieldSeed: 987_654,
+      compost: false,
+      watch: false,
+      tonic: false,
+      notified: false,
+    });
+  }
+
+  const plotOf = (sim: Sim, bedId: string) => sim.meta(sim.playerId)?.farmPlots.get(bedId);
+  const FAR = 4_102_444_800_000; // year 2100, comfortably still growing
+
+  it('brings every growing plot ready, drawing zero rng and disturbing nothing else', () => {
+    const sim = devSim();
+    sim.tick(); // a real positive clock, so the floored grow-now instant IS now
+    plant(sim, 'bed_eastbrook_1', FAR);
+    plant(sim, 'bed_eastbrook_2', FAR + 90_000);
+    let draws = 0;
+    sim.rng.setObserver(() => draws++);
+
+    sim.chat('/dev farmgrow');
+
+    const first = plotOf(sim, 'bed_eastbrook_1');
+    const second = plotOf(sim, 'bed_eastbrook_2');
+    // Both deadlines collapse onto the SAME instant (the authority's now), which
+    // is what "set readyAtMs to now" means without reaching for the private clock.
+    expect(first?.readyAtMs).toBe(second?.readyAtMs);
+    expect(first?.readyAtMs).toBeLessThan(FAR);
+    // Neither plot is growing any more, read back through the real projection.
+    for (const row of sim.myFarmPlots) expect(row.status).not.toBe('growing');
+    // The pre-roll is the thing that must NOT move: plant time and both hidden
+    // outcome slots are byte-identical to what was sown.
+    for (const plot of [first, second]) {
+      expect(plot?.plantedAtMs).toBe(1_700_000_000_000);
+      expect(plot?.survivalRoll).toBe(0.4242);
+      expect(plot?.yieldSeed).toBe(987_654);
+    }
+    expect(draws).toBe(0);
+  });
+
+  it('accepts the no-space spelling and reports how many plots it advanced', () => {
+    const sim = devSim();
+    plant(sim, 'bed_eastbrook_1', FAR);
+
+    sim.chat('/devfarmgrow');
+
+    const logs = sim
+      .tick()
+      .filter((e) => e.type === 'log' && e.pid === sim.playerId)
+      .map((e) => (e.type === 'log' ? e.text : ''));
+    expect(logs).toContain('[dev] Advanced 1 farm plot to ready (1 planted).');
+    expect(plotOf(sim, 'bed_eastbrook_1')?.readyAtMs).toBeLessThan(FAR);
+  });
+
+  it('leaves an already-ready plot alone rather than restamping a settled deadline', () => {
+    const sim = devSim();
+    plant(sim, 'bed_eastbrook_1', 0); // already past its deadline
+    plant(sim, 'bed_eastbrook_2', FAR);
+
+    sim.chat('/dev farmgrow');
+
+    expect(plotOf(sim, 'bed_eastbrook_1')?.readyAtMs).toBe(0);
+    expect(plotOf(sim, 'bed_eastbrook_2')?.readyAtMs).toBeLessThan(FAR);
+    const logs = sim
+      .tick()
+      .filter((e) => e.type === 'log' && e.pid === sim.playerId)
+      .map((e) => (e.type === 'log' ? e.text : ''));
+    // One advanced, two planted: the count reports work done, not rows seen.
+    expect(logs).toContain('[dev] Advanced 1 farm plot to ready (2 planted).');
+  });
+
+  it('a plot grown in the SAME tick it was planted survives a save round trip', () => {
+    // The zero-duration mint (QA round): plantCrop stamps plantedAtMs from the
+    // tick-quantized clock, and grow-now in the same tick writes readyAtMs to
+    // that same instant, so the row's duration is exactly zero. The loader
+    // used to refuse duration <= 0, silently destroying such a plot at the
+    // next load; a grow-now must stay a pure time shortcut whose result is a
+    // loadable, permanently-ready row. On the server the same window is a
+    // plant and a farmgrow inside one millisecond.
+    const sim = devSim();
+    sim.tick(); // a real, positive clock: the never-ticked zero-clock is not this arm
+    const bed = farmBedById('bed_eastbrook_1');
+    if (!bed) throw new Error('no such bed');
+    sim.player.pos.x = bed.x;
+    sim.player.pos.z = bed.z;
+    sim.player.prevPos = { ...sim.player.pos };
+    sim.addItem('vale_wheat_seed', 1, sim.playerId);
+    sim.addItem('garden_hoe', 1, sim.playerId); // the step-12 hoe gate
+    sim.plantCrop('bed_eastbrook_1', 'vale_wheat');
+    const meta = sim.meta(sim.playerId);
+    expect(meta?.farmPlots.has('bed_eastbrook_1')).toBe(true);
+
+    sim.chat('/dev farmgrow'); // the clock has not moved since the plant
+
+    const plot = plotOf(sim, 'bed_eastbrook_1');
+    // Instantly harvestable, exactly what grow-now means...
+    for (const row of sim.myFarmPlots) expect(row.status).not.toBe('growing');
+    // ...and STILL loadable: the round trip keeps the row instead of dropping
+    // it as tampered, and it comes back permanently ready.
+    const loaded = normalizeFarmPlots(serializeFarmPlots(meta?.farmPlots ?? new Map()), {
+      validBedIds: FARM_BED_IDS,
+      validCropIds: FARM_CROP_IDS,
+      nowMs: plot?.readyAtMs ?? 1,
+    });
+    expect(loaded.has('bed_eastbrook_1')).toBe(true);
+    const back = loaded.get('bed_eastbrook_1');
+    expect(back?.plantedAtMs).toBe(plot?.plantedAtMs);
+    expect(back?.readyAtMs).toBe(plot?.readyAtMs);
+  });
+
+  it('with a bed argument advances only that bed', () => {
+    const sim = devSim();
+    plant(sim, 'bed_eastbrook_1', FAR);
+    plant(sim, 'bed_eastbrook_2', FAR);
+
+    sim.chat('/dev farmgrow bed_eastbrook_2');
+
+    expect(plotOf(sim, 'bed_eastbrook_1')?.readyAtMs).toBe(FAR);
+    expect(plotOf(sim, 'bed_eastbrook_2')?.readyAtMs).toBeLessThan(FAR);
+  });
+
+  it('with a bed argument reports honestly when the plot is already settled', () => {
+    // The settled plot is left alone AND said to be left alone: its pre-rolled
+    // outcome may be withered, so the old unconditional "is ready" reply could
+    // mislead a dev testing wither flows (QA-round finding).
+    const sim = devSim();
+    plant(sim, 'bed_eastbrook_1', 0); // already past its deadline
+    sim.chat('/dev farmgrow bed_eastbrook_1');
+    expect(plotOf(sim, 'bed_eastbrook_1')?.readyAtMs).toBe(0);
+    const logs = sim
+      .tick()
+      .filter((e) => e.type === 'log' && e.pid === sim.playerId)
+      .map((e) => (e.type === 'log' ? e.text : ''));
+    expect(logs).toContain('[dev] Bed bed_eastbrook_1 was already settled; nothing to advance.');
+    expect(logs).not.toContain('[dev] Bed bed_eastbrook_1 is ready.');
+  });
+
+  it('refuses a REAL bed the caller has nothing planted in, and plants nothing', () => {
+    // The interesting refusal: bed_eastbrook_2 is a perfectly valid bed id, so a
+    // FARM_BED_IDS check would wave it through. The lookup is against the
+    // caller's OWN plots, which is the only thing that can be advanced.
+    const sim = devSim();
+    plant(sim, 'bed_eastbrook_1', FAR);
+
+    sim.chat('/dev farmgrow bed_eastbrook_2');
+
+    expect(plotOf(sim, 'bed_eastbrook_2')).toBeUndefined();
+    expect(plotOf(sim, 'bed_eastbrook_1')?.readyAtMs).toBe(FAR);
+    const errors = sim
+      .tick()
+      .filter((e) => e.type === 'error' && e.pid === sim.playerId)
+      .map((e) => (e.type === 'error' ? e.text : ''));
+    expect(errors).toContain("[dev] No plot on bed 'bed_eastbrook_2'.");
+  });
+
+  it('refuses a caller with no planted beds at all', () => {
+    const sim = devSim();
+
+    sim.chat('/dev farmgrow');
+
+    const errors = sim
+      .tick()
+      .filter((e) => e.type === 'error' && e.pid === sim.playerId)
+      .map((e) => (e.type === 'error' ? e.text : ''));
+    expect(errors).toContain('[dev] You have no planted beds.');
+  });
+
+  it('advances plots belonging to the CALLER only, never another player', () => {
+    const sim = new Sim({ seed: 9, playerClass: 'warrior', noPlayer: true, devCommands: true });
+    const alpha = sim.addPlayer('warrior', 'Alpha');
+    const beta = sim.addPlayer('mage', 'Beta');
+    plant(sim, 'bed_eastbrook_1', FAR, alpha);
+    plant(sim, 'bed_eastbrook_1', FAR, beta);
+
+    sim.chat('/dev farmgrow', alpha);
+
+    expect(sim.meta(alpha)?.farmPlots.get('bed_eastbrook_1')?.readyAtMs).toBeLessThan(FAR);
+    expect(sim.meta(beta)?.farmPlots.get('bed_eastbrook_1')?.readyAtMs).toBe(FAR);
+  });
+
+  it('is inert without devCommands', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', devCommands: false });
+    plant(sim, 'bed_eastbrook_1', FAR);
+
+    sim.chat('/dev farmgrow');
+
+    expect(plotOf(sim, 'bed_eastbrook_1')?.readyAtMs).toBe(FAR);
+  });
+});
+
+describe('/dev rep', () => {
+  it('awards faction standing under the world-quest level cap, per faction or all', () => {
+    const sim = devSim();
+    sim.chat('/dev rep rift_watch 1500');
+    // Level 1 sits under the low-level cap (3,000), so the award lands whole.
+    expect(sim.meta(sim.player.id)?.factions?.rift_watch).toBe(1500);
+    sim.chat('/dev rep rift_watch 5000');
+    expect(sim.meta(sim.player.id)?.factions?.rift_watch).toBe(3000);
+    sim.chat('/dev level 20');
+    sim.chat('/dev rep all 20000');
+    expect(sim.meta(sim.player.id)?.factions).toEqual({
+      rift_watch: 20000,
+      church_order: 20000,
+      automatons: 20000,
+    });
+  });
+
+  it('rejects an unknown faction and is inert without devCommands', () => {
+    const sim = devSim();
+    sim.chat('/dev rep nobody 100');
+    expect(sim.meta(sim.player.id)?.factions?.rift_watch ?? 0).toBe(0);
+    const plain = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      devCommands: false,
+      world: EMPTY_TEST_WORLD,
+    });
+    plain.chat('/dev rep rift_watch 1500');
+    expect(plain.meta(plain.player.id)?.factions?.rift_watch ?? 0).toBe(0);
   });
 });

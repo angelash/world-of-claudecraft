@@ -137,19 +137,40 @@ export async function recentDeedsForCharacter(
   }));
 }
 
+// In-flight collapse for the earned-deeds roll-up: the Steam and Epic mirrors
+// each call this read independently (D21 keeps the observers independent), and
+// on the login reconcile both fire within the same continuation, so without
+// the collapse one join issues the identical SELECT twice. Concurrent callers
+// share one promise; the entry is dropped on settle, so nothing is ever served
+// stale and a rejection is never memoized.
+const earnedDeedIdsInFlight = new Map<number, Promise<string[]>>();
+
 /** Every deed id the account has earned on any character, deduped. Feeds the
- *  Steam reconcile-on-link push (server/steam/mirror.ts): the server store is
- *  canonical and Steam mirrors a subset, so this read is the whole sync. */
-export async function earnedDeedIdsForAccount(accountId: number): Promise<string[]> {
-  const res = await pool.query(
-    'SELECT DISTINCT deed_id FROM character_deeds WHERE account_id = $1',
-    [accountId],
-  );
-  return res.rows.map((row) => String(row.deed_id));
+ *  storefront reconcile pushes (server/steam/mirror.ts, server/epic/mirror.ts):
+ *  the server store is canonical and each storefront mirrors a subset, so this
+ *  read is the whole sync. Concurrent identical reads collapse to one query. */
+export function earnedDeedIdsForAccount(accountId: number): Promise<string[]> {
+  const inFlight = earnedDeedIdsInFlight.get(accountId);
+  if (inFlight !== undefined) return inFlight;
+  const read = pool
+    .query('SELECT DISTINCT deed_id FROM character_deeds WHERE account_id = $1', [accountId])
+    .then((res) => res.rows.map((row: { deed_id: unknown }) => String(row.deed_id)))
+    .finally(() => {
+      earnedDeedIdsInFlight.delete(accountId);
+    });
+  earnedDeedIdsInFlight.set(accountId, read);
+  return read;
 }
 
-/** The broadcast opt-out flag. Missing account reads as TRUE (the column
- *  default): the caller's audience resolution degrades to a no-op anyway. */
+/** The broadcast opt-out flag. A missing account row reads as TRUE (the column
+ *  is NOT NULL DEFAULT TRUE, so a row that EXISTS can never read null). Both
+ *  gated callers publish on a true read: Game.fanOutDeedUnlock (the guild and
+ *  follower marquee plus the Discord feed card) and the masterwork arm of the
+ *  event loop (a Discord card only), so the fail-open is no longer a no-op the
+ *  way it was before the feed existed. It stays acceptable because the arm is
+ *  practically unreachable: every caller holds a live session, whose account
+ *  row exists by construction. server/deeds.ts reads the same flag for the
+ *  settings toggle. */
 export async function getDeedBroadcasts(accountId: number): Promise<boolean> {
   const res = await pool.query('SELECT deed_broadcasts FROM accounts WHERE id = $1', [accountId]);
   return res.rows[0]?.deed_broadcasts ?? true;
@@ -158,3 +179,46 @@ export async function getDeedBroadcasts(accountId: number): Promise<boolean> {
 export async function setDeedBroadcasts(accountId: number, enabled: boolean): Promise<void> {
   await pool.query('UPDATE accounts SET deed_broadcasts = $2 WHERE id = $1', [accountId, enabled]);
 }
+
+// The character_deeds DDL, the deeds domain's own *_SCHEMA (moved whole out of
+// the core SCHEMA string at the monolith ratchet). FK-references characters(id)
+// and accounts(id), so ensureSchema (server/db.ts) applies it after SCHEMA, in
+// the same advisory-locked boot transaction, unconditionally (idempotent).
+export const DEEDS_SCHEMA = `
+-- Earned-deed records: one row per (character, deed), written fire-and-forget
+-- off the game loop by server/deeds_records.ts, an OBSERVER of the sim's
+-- deedUnlocked events. The characters.state blob stays the gameplay source of
+-- truth; this table only indexes it for rarity aggregates, account roll-ups,
+-- and sheet reads, and no server path grants or revokes a deed. realm carries
+-- no DEFAULT deliberately: the interpolated-default pattern is last-boot-wins
+-- across realm processes, so every insert passes realm explicitly. account_id
+-- is a snapshot of the owner at unlock time (a future character-transfer
+-- feature must update or re-derive it). earned_at is the server clock (the
+-- sim's utcDay stamp lives in the state blob and is not duplicated here).
+-- UNIQUE (character_id, deed_id) is the idempotence backbone: retro re-emits
+-- and crash-replays collapse into no-ops.
+CREATE TABLE IF NOT EXISTS character_deeds (
+  id BIGSERIAL PRIMARY KEY,
+  realm TEXT NOT NULL,
+  character_id INT NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+  account_id INT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  deed_id TEXT NOT NULL,
+  earned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (character_id, deed_id)
+);
+-- character_deeds_deed (a lone index on deed_id) was retired: no query seeks
+-- by deed_id. insertCharacterDeed's ON CONFLICT rides the UNIQUE (character_id,
+-- deed_id) index, deedRarityCounts groups by deed_id but cannot seek on it,
+-- and the board and account reads use their own indexes below, so the index
+-- was pure write amplification. The statement below removes it idempotently to
+-- converge databases that booted the earlier schema; a no-op where it never
+-- existed.
+DROP INDEX IF EXISTS character_deeds_deed;
+-- Per-account roll-up reads: earnedDeedIdsForAccount (server/deeds_db.ts,
+-- the Steam reconcile-on-link push) filters on account_id through this
+-- index. The Renown board's deedsBoardRanked read stays a full-table hash
+-- aggregation (cached in main.ts) and does not use it.
+CREATE INDEX IF NOT EXISTS character_deeds_account ON character_deeds(account_id);
+CREATE INDEX IF NOT EXISTS character_deeds_character_earned
+  ON character_deeds(character_id, earned_at DESC);
+`;

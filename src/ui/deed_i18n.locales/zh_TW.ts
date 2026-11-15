@@ -7,6 +7,272 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  cmb_balgath: {
+    name: '工頭不再',
+    desc: '將埋葬工頭送回他的墳塚。',
+  },
+  cmb_balgath_ten: {
+    name: '墳塚留不住',
+    desc: '擊敗埋葬工頭十次。',
+  },
+  cmb_point_taken: {
+    name: '一矛中的',
+    desc: '在徵召營訓練場熄滅稻草工頭的燈籠，讓它的木板承受實打實的攻擊。',
+  },
+  dgn_olen_buttress: {
+    name: '守住城牆',
+    desc: '擊敗騎士指揮官奧倫，且其回彈壁盾從未擊中第二名玩家。',
+  },
+  dgn_ossick_moored: {
+    name: '安全港灣',
+    desc: '擊敗獄卒奧西克，且無人被拖入溺亡之坑。',
+  },
+  dgn_vael_beacon: {
+    name: '燈塔之光',
+    desc: '擊敗縛霧者維爾，且未引爆任何霧影。',
+  },
+  dgn_turretback: {
+    name: '驅逐令',
+    desc: '擊敗海難船長，且無人被幽靈舷炮齊射擊中。',
+  },
+  dgn_selthe_pitch: {
+    name: '聲聲和諧',
+    desc: '擊敗唱詩母塞爾瑟，每次合唱均由兩人或以上分擔，且獨唱從未觸及其他人。',
+  },
+  dgn_colossus_mirror: {
+    name: '擊碎鏡面',
+    desc: '擊敗潮鏡巨像，且每個倒影均在出現後 15 秒內被擊碎。',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: '滴水不沾',
+    desc: '擊敗伊索蕾，溺月化身，且無人被她的潮汐衝擊擊中。',
+  },
+  dgn_mere_hydra: {
+    name: '三首俱滅',
+    desc: '在 10 秒的時間差內殺死湖泊九頭蛇的全部三個頭顱。',
+  },
+  dgn_crypt_knellwyrm: {
+    name: '毫髮未焦',
+    desc: '擊敗喪鐘巨龍，且無人被它的火葬掃射燒傷。',
+  },
+  dgn_turnkey_cage: {
+    name: '牢籠困不住我們',
+    desc: '擊敗牢獄鑰匙官，且無人被鐵籠碾壓。',
+  },
+  dgn_beastmaster_apart: {
+    name: '保持距離',
+    desc: '擊敗獠牙領主馴獸師及其巨型美洲豹，且獸群羈絆生效的總時間少於 10 秒。',
+  },
+  dgn_gorgebloom_clean: {
+    name: '除草能手',
+    desc: '擊敗噬花，且沒有任何荊棘幼芽長出。',
+  },
+  dgn_zulgar_uncaught: {
+    name: '從未被捕',
+    desc: '擊敗盆地之聲祖爾加，且無人受到撕咬重傷。',
+  },
+  dgn_great_saurian: {
+    name: '巨獸傾覆',
+    desc: '在 20 秒的時間差內擊敗巨型蜥腳獸及其馱轎巫咒師。',
+  },
+  dgn_korgath_all_chains: {
+    name: '仁慈的終結',
+    desc: '擊敗被縛者科加斯，並打斷他的全部四條鎖鏈。',
+  },
+  dgn_korgath_still_bound: {
+    name: '鎖鏈仍固',
+    desc: '在英雄難度擊敗被縛者科加斯，且至少兩條鎖鏈始終未被打斷。',
+  },
+  dgn_velkhar_cold: {
+    name: '冰冷慰藉',
+    desc: '擊敗大死靈法師維爾卡，且沒有任何復生骨行者第二次站起。',
+  },
+  dgn_korzul_thin_ice: {
+    name: '如履薄冰',
+    desc: '擊敗墓龍科祖爾，且湖面的十九塊冰板中至少十二塊未破碎。',
+  },
+  dgn_sledge_tusker: {
+    name: '冰冷貨物',
+    desc: '擊敗拖橇巨牙獸，且無人被它的踐踏擊中。',
+  },
+  dgn_drowned_temple_cantor: {
+    name: '最後的詩節',
+    desc: '在蒼白唱詩班最後的領唱陪伴下，擊敗伊索蕾，溺月化身。',
+    title: '唱詩班的見證者',
+  },
+  dgn_marrow_tidy: {
+    name: '整潔的教堂墓園',
+    desc: '擊敗司事馬羅，且每個敞開之墓均放置在鐘庭邊緣。',
+  },
+  dgn_lady_nobody_hanging: {
+    name: '無人懸而未決',
+    desc: '擊敗寒骨夫人，且她從未從冰封之擁中摔落任何人。',
+  },
+  dgn_ilvane_hush: {
+    name: '歸於寂靜',
+    desc: '擊敗領唱者伊爾凡，且她的空洞輓歌從未擊中任何人。',
+  },
+  dgn_morthen_candlelight: {
+    name: '燭火長明',
+    desc: '擊敗喚墓者莫森，並在其不息護盾出現後 20 秒內重新點燃全部四支追思蠟燭。',
+  },
+  exp_arcane_calligraphy: {
+    name: '穩健的筆觸',
+    desc: '在東溪谷完成奧術書法。',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: '星光寫就',
+    desc: '在「祕法書法」中獲得黃金評級。',
+    title: '符文召喚者',
+  },
+  exp_dawnhold_castle: {
+    name: '花園中敞開的門',
+    desc: '造訪晨曦堡，漫步於它灑滿陽光的花園廳堂。',
+  },
+  exp_the_last_keep: {
+    name: '寂靜廳堂',
+    desc: '步入最後的堡壘，走過它寂靜的廳堂。',
+  },
+  pvp_bg_first_capture: {
+    name: '旗幟在手',
+    desc: '在荊谷原野奪取一面旗幟。',
+  },
+  pvp_bg_first_win: {
+    name: '荊谷凱旋',
+    desc: '贏得一場荊谷原野戰場。',
+  },
+  pvp_bg_wins_25: {
+    name: '荊谷原野守護者',
+    desc: '贏得25場荊谷原野戰場。',
+    title: '旗手',
+  },
+  pvp_bg_captures_100: {
+    name: '百面旗幟',
+    desc: '在荊谷原野生涯累計奪旗100次。',
+  },
+  dgn_rift: {
+    name: '裂隙行者',
+    desc: '擊敗裂隙的樓層首領，清除該裂隙。',
+  },
+  dgn_rift_s_rank: {
+    name: '裂隙至尊',
+    desc: '清除一個S級裂隙，裂隙傳送門所能生成的最高分級。',
+  },
+  col_reliquary_rank_2: {
+    name: '戰利品保管者',
+    desc: '在聖物庫達到策展人等級 2（收錄 10 種不同聖物）。',
+    title: '戰利品保管者',
+  },
+  col_reliquary_rank_3: {
+    name: '編目師',
+    desc: '在聖物庫達到策展人等級 3（收錄 25 種不同聖物）。',
+    title: '編目師',
+  },
+  col_reliquary_rank_4: {
+    name: '首席策展人',
+    desc: '在聖物庫達到策展人等級 4（收錄 50 種不同聖物）。',
+    title: '首席策展人',
+  },
+  col_reliquary_rank_5: {
+    name: '永恆的戰利品',
+    desc: '在聖物庫達到策展人等級 5（收錄 100 種不同聖物）。',
+  },
+  pvp_honor_sergeant: {
+    name: '破陣者',
+    desc: '生涯累計獲得10,000點榮譽。花費榮譽不會讓你失去此階級。',
+    title: '破陣者',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: '掠野者',
+    desc: '生涯累計獲得40,000點榮譽，象徵你已歷經一季真正的戰爭。',
+    title: '掠野者',
+  },
+  pvp_honor_field_marshal: {
+    name: '戰冠者',
+    desc: '生涯累計獲得150,000點榮譽。在任何王國都極為罕見，而它本該如此。',
+    title: '戰冠者',
+  },
+  col_reliquary_complete: {
+    name: '聖物庫大全',
+    desc: '將角色能夠保有的聖物庫中每一件聖物收錄在冊。此後目錄再增添，也不會收回這份紀錄。',
+    title: '寶庫策展人',
+  },
+  col_reliquary_conquerors: {
+    name: '征服者書架',
+    desc: '將聖物庫征服者書架上的每一件聖物收錄在冊。此後目錄再增添，也不會收回這份紀錄。',
+    title: '破庫者',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: '點亮尼思拉克西斯',
+    desc: '點亮聖物庫的「英雄：尼思拉克西斯團隊副本」頁面。',
+    title: '尼思拉克西斯之光',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: '點亮桑扎爾',
+    desc: '點亮聖物庫的「桑扎爾，覺醒之峰」頁面。',
+    title: '桑扎爾之光',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: '點亮聖所',
+    desc: '點亮聖物庫的「英雄：墓龍聖所」頁面。',
+    title: '聖所之光',
+  },
+  chr_drakemaw_broodlord: {
+    name: '碎巢者',
+    desc: '在龍喉巢主的卵群之間將牠擊殺，撐過牠的怒吼、順劈斬與烈焰。',
+  },
+  chr_maw_matriarch: {
+    name: '長空歸寂',
+    desc: '在龍喉上方的火山口棲地中，擊殺辛卓蕾絲，龍喉之母。',
+  },
+  chr_frostveil_gatherer: {
+    name: '梯田收穫',
+    desc: '在Frostveil採集一處礦脈、一片木料和一塊草藥地。',
+  },
+  chr_frostveil_first_cast: {
+    name: '山湖初冰',
+    desc: '在Frostveil水域釣上一條魚。',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Amberfall的收穫',
+    desc: '在Amberfall採集一處礦脈、一片木料和一塊草藥地。',
+  },
+  chr_amberfall_first_cast: {
+    name: '大沼澤之獲',
+    desc: '在Amberfall水域釣上一條魚。',
+  },
+  chr_nightbloom_gatherer: {
+    name: '夢中收穫',
+    desc: '在Nightbloom採集一處礦脈、一片木料和一塊草藥地。',
+  },
+  chr_nightbloom_first_cast: {
+    name: '月泉漣漪',
+    desc: '在Nightbloom水域釣上一條魚。',
+  },
+  chr_wraithwood_gatherer: {
+    name: '樹冠下的收穫',
+    desc: '在Wraithwood採集一處礦脈、一片木料和一塊草藥地。',
+  },
+  chr_wraithwood_first_cast: {
+    name: '鏡灣一投',
+    desc: '在Wraithwood水域釣上一條魚。',
+  },
+  chr_palmreach_gatherer: {
+    name: '棕櫚灘收穫',
+    desc: '在Palmreach採集一處礦脈、一片木料和一塊草藥地。',
+  },
+  chr_palmreach_first_cast: {
+    name: '藍寶石潟湖垂釣',
+    desc: '在Palmreach水域釣上一條魚。',
+  },
+  chr_evergarden_gatherer: {
+    name: '花壇饋贈',
+    desc: '在Evergarden採集一處礦脈、一片木料和一塊草藥地。',
+  },
+  chr_evergarden_first_cast: {
+    name: '花瓣池一投',
+    desc: '在Evergarden水域釣上一條魚。',
+  },
   pvp_card_duel_first_win: {
     name: '我的地盤我的規矩',
     desc: '在牌局大師處贏得一場紙牌對決。',
@@ -38,7 +304,7 @@ export const table: DeedLocaleTable = {
   prog_herbalism_100: { name: '百草宗師', desc: '草藥學熟練度達到100。' },
   prog_master_gatherer: {
     name: '採集大師',
-    desc: '採礦、伐木、草藥學與釣魚中，任意三項熟練度達到100。',
+    desc: '任意三種採集行當的熟練度達到100。',
   },
   prog_first_craft: { name: '親手打造', desc: '完成你的第一次成功製作。' },
   prog_craft_specialist: { name: '不傳之秘', desc: '任一工藝技能達到75，並解鎖其專精特長。' },
@@ -110,7 +376,7 @@ export const table: DeedLocaleTable = {
     title: '屠龍者',
   },
   dgn_sanctum_speed: {
-    name: '聖所衝刺',
+    name: '聖所競走',
     desc: '在你的隊伍進駐墓龍聖所後的15分鐘內擊敗墓龍科祖爾。',
   },
   dgn_nythraxis_gravebreaker: {
@@ -155,7 +421,7 @@ export const table: DeedLocaleTable = {
   dlv_rite_flawless: { name: '一字不差', desc: '完成溺亡聖物庫儀式，全程沒有一次失誤。' },
   dlv_varric_ringers: {
     name: '鐘聲止息',
-    desc: '擊敗執事瓦瑞克時，他喚起的每一名喪儀鳴鐘者都已被斬殺。',
+    desc: '擊敗執事凡德里克時，他喚起的每一名喪儀鳴鐘者都已被斬殺。',
   },
   dlv_nhalia_bells: {
     name: '止鐘者',
@@ -167,8 +433,8 @@ export const table: DeedLocaleTable = {
     desc: '完成紹爾編年史的第一章：辦妥東溪最初的差事、認識溪谷的地勢，並初嘗當地的百工。',
   },
   chr_vale_chapter_ii: {
+    desc: '完成紹爾編年史的第二章：剿滅強盜、魚人和礦洞害獸，並勇闖聖物庫。',
     name: '溪谷編年史，第二章',
-    desc: '完成紹爾編年史的第二章：剿平強盜、魚人與礦坑害獸，在母豬場出賽，並闖過聖物庫。',
   },
   chr_vale_chapter_iii: {
     name: '溪谷編年史全卷',
@@ -178,7 +444,10 @@ export const table: DeedLocaleTable = {
   chr_vale_gatherer: { name: '靠山吃山', desc: '在東溪谷採集一處礦脈、一處林木與一叢草藥。' },
   chr_vale_first_cast: { name: '鏡湖有物', desc: '在東溪谷的水域釣起一條魚。' },
   chr_vale_packbreaker: { name: '狼群剋星', desc: '在 10 秒內斬殺 3 隻森林狼。' },
-  chr_vale_cup_debut: { name: '銅桶新秀', desc: '在母豬場的溪谷盃比賽中上場並觸球。' },
+  chr_vale_cup_debut: {
+    name: '銅桶新秀',
+    desc: '在母豬場參加一場野豬球比賽並觸球。野豬球比賽已不再開放，因此無法再新取得此成就。',
+  },
   chr_vale_rares: {
     name: '溪谷惡煞',
     desc: '斬殺東溪谷五個有名有姓的惡煞：老灰顎、莫格、隧道之王葛瑞克斯、維爾蘭隊長與縛魂者瑪爾德雷克。',
@@ -219,10 +488,10 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: '荊峰編年史全卷',
-    desc: '見證山嶽故事的始末：擊潰龍教、讓聖所歸於沉寂、擊倒覺醒之峰，並剷除峭壁間每一個有名有姓的惡煞。',
+    desc: '見證山嶽故事的始末：擊潰龍誓、讓聖所歸於沉寂、擊倒覺醒之峰，並剷除峭壁間每一個有名有姓的惡煞。',
     title: '荊峰之譽',
   },
-  chr_peaks_sparring: { name: '城牆操練', desc: '對高望上方的訓練假人造成總計 1,000 點傷害。' },
+  chr_peaks_sparring: { name: '城牆操練', desc: '對訓練假人造成總計 1,000 點傷害。' },
   chr_peaks_glimmer_cast: { name: '水寒，光更寒', desc: '在微光湖釣起一條魚。' },
   chr_peaks_moongate: { name: '穿過寒門', desc: '穿過微光湖畔的月門。' },
   chr_peaks_waking_witness: {
@@ -260,7 +529,7 @@ export const table: DeedLocaleTable = {
   },
   col_true_colors: { name: '本色登場', desc: '穿上職業預設以外的任一外觀上場。' },
   col_all_slots: { name: '十一分體面', desc: '同時在全部十一個裝備欄位裝上物品。' },
-  col_quartermaster_buyout: { name: '老主顧', desc: '發現軍需官維克斯所販售的全部十件貨品。' },
+  col_quartermaster_buyout: { name: '老主顧', desc: '發現軍需官維克斯所販售的全部十件裝備。' },
   col_glimmerfin: {
     name: '一線微光',
     desc: '釣起一條日輝錦鯉。',
@@ -281,38 +550,75 @@ export const table: DeedLocaleTable = {
   pvp_arena_2v2_1900: { name: '天作之合', desc: '在 2v2 競技場組別達到 1900 積分。' },
   pvp_duel_first_win: { name: '到外頭解決', desc: '贏得一場決鬥。' },
   pvp_duel_grace: { name: '謙遜的一課', desc: '輸掉一場決鬥，尊嚴大致無損。' },
-  pvp_vcup_first_match: { name: '踏上球場', desc: '在母豬場完整打完一場溪谷盃比賽，無論勝負。' },
-  pvp_vcup_first_win: { name: '首座獎盃', desc: '贏得一場溪谷盃積分賽。' },
-  pvp_vcup_wins_10: { name: '野豬球老手', desc: '贏得 10 場溪谷盃積分賽。' },
-  pvp_vcup_wins_25: { name: '野豬球傳奇', desc: '贏得 25 場溪谷盃積分賽。', title: '野豬球傳奇' },
-  pvp_vcup_first_goal: { name: '首開紀錄', desc: '在溪谷盃積分賽中射進一球。' },
-  pvp_vcup_hat_trick: {
-    name: '帽子戲法英雄',
-    desc: '在單場溪谷盃積分賽中射進三球（限 3v3 或更大的組別）。',
+  pvp_vcup_first_match: {
+    name: '踏上球場',
+    desc: '在母豬場打完一場野豬球比賽，不論勝負。野豬球比賽已不再開放，因此無法再新取得此成就。',
   },
-  pvp_vcup_golden_goal: { name: '黃金時刻', desc: '射進決定一場溪谷盃積分賽勝負的黃金一球。' },
-  pvp_vcup_first_save: { name: '穩健雙手', desc: '在溪谷盃積分賽中以守門員身分完成一次撲救。' },
+  pvp_vcup_first_win: {
+    name: '首座獎盃',
+    desc: '贏得一場評級野豬球比賽。野豬球比賽已不再開放，因此無法再新取得此成就。',
+  },
+  pvp_vcup_wins_10: {
+    name: '野豬球老手',
+    desc: '贏得 10 場評級野豬球比賽。野豬球比賽已不再開放，因此無法再新取得此成就。',
+  },
+  pvp_vcup_wins_25: {
+    name: '野豬球傳奇',
+    title: '野豬球傳奇',
+    desc: '贏得 25 場評級野豬球比賽。野豬球比賽已不再開放，因此無法再新取得此成就。',
+  },
+  pvp_vcup_first_goal: {
+    name: '首開紀錄',
+    desc: '在評級野豬球比賽中射入一球。野豬球比賽已不再開放，因此無法再新取得此成就。',
+  },
+  pvp_vcup_hat_trick: {
+    desc: '在一場 3v3 或更高組別的評級野豬球比賽中射入三球。野豬球比賽已不再開放，因此無法再新取得此成就。',
+    name: '帽子戲法英雄',
+  },
+  pvp_vcup_golden_goal: {
+    name: '黃金時刻',
+    desc: '射入決定評級野豬球比賽勝負的金球。野豬球比賽已不再開放，因此無法再新取得此成就。',
+  },
+  pvp_vcup_first_save: {
+    name: '穩健雙手',
+    desc: '在一場 3v3 或更高組別的評級野豬球比賽中擔任守門員並完成一次撲救。只有足以考驗接球手感的快速射門才計入，輕柔接球不計入。野豬球比賽已不再開放，因此無法再新取得此成就。',
+  },
   pvp_vcup_clean_sheet: {
+    desc: '在一場 3v3 或更高組別的評級野豬球比賽中擔任守門員，零封對手並獲勝。野豬球比賽已不再開放，因此無法再新取得此成就。',
     name: '一夫當關',
-    desc: '以守門員身分贏得一場溪谷盃積分賽，且未失一球。',
   },
   pvp_vcup_guild_win: {
+    desc: '在公會旗幟下參加並贏得一場評級野豬球比賽。野豬球比賽已不再開放，因此無法再新取得此成就。',
     name: '為了旗幟',
-    desc: '以你公會的旗幟名義出賽，並贏得一場溪谷盃積分賽。',
   },
-  pvp_fiesta_first_bout: { name: '不請自來', desc: '完整打完一場 2v2 嘉年華對決，無論勝負。' },
-  pvp_fiesta_first_win: { name: '嘉年華的靈魂人物', desc: '贏得一場 2v2 嘉年華對決。' },
-  pvp_fiesta_double: { name: '雙重打擊', desc: '在四秒內完成兩次嘉年華擊倒。' },
-  pvp_fiesta_shutdown: { name: '掃興鬼', desc: '擊倒一名連續擊倒數達三次或以上的嘉年華對手。' },
+  pvp_fiesta_first_bout: {
+    name: '不請自來',
+    desc: '完成一場 Fiesta 2v2 對局，不論勝負。Fiesta 對局已不再出現在競技場佇列中，因此無法再新取得此成就。',
+  },
+  pvp_fiesta_first_win: {
+    name: '嘉年華的靈魂人物',
+    desc: '贏得一場 Fiesta 2v2 對局。Fiesta 對局已不再出現在競技場佇列中，因此無法再新取得此成就。',
+  },
+  pvp_fiesta_double: {
+    name: '雙重打擊',
+    desc: '在四秒內完成兩次 Fiesta 擊倒。Fiesta 對局已不再出現在競技場佇列中，因此無法再新取得此成就。',
+  },
+  pvp_fiesta_shutdown: {
+    name: '掃興鬼',
+    desc: '擊倒一名連勝三場或以上的 Fiesta 對手。Fiesta 對局已不再出現在競技場佇列中，因此無法再新取得此成就。',
+  },
   pvp_fiesta_full_build: {
+    desc: '在三波中都鎖定一項強化，並贏得一場 Fiesta 對局。Fiesta 對局已不再出現在競技場佇列中，因此無法再新取得此成就。',
     name: '盛裝赴會',
-    desc: '在三波強化各鎖定一項的情況下，贏得一場嘉年華對決。',
   },
   pvp_fiesta_powerups: {
+    desc: '至少各拾取一次四種圓環強化：速度惡魔、巨像、月靴和狂戰士。Fiesta 對局已不再出現在競技場佇列中，因此無法再新取得此成就。',
     name: '樣樣來一份',
-    desc: '把四種擂台強化道具各拾取至少一次：速度惡魔、巨像、月亮靴與狂戰士。',
   },
-  pvp_fiesta_five_kills: { name: '全場我來扛', desc: '在單場嘉年華對決中完成五次擊倒。' },
+  pvp_fiesta_five_kills: {
+    name: '全場我來扛',
+    desc: '在一場 Fiesta 對局中完成五次擊倒。Fiesta 對局已不再出現在競技場佇列中，因此無法再新取得此成就。',
+  },
   soc_first_party: { name: '結伴同行', desc: '與另一名玩家組成隊伍。' },
   soc_full_house: { name: '五人滿座', desc: '以五人滿編隊伍通關一座地城。' },
   soc_guild_joined: { name: '同旗之下', desc: '成為公會的一員。' },
@@ -502,5 +808,356 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: '廢料場行家',
     desc: '將50件裝備拆解還原為製作原料。',
+  },
+  dgn_wildheart_basin: { name: '盆地反擊', desc: '在荒野之心盆地擊敗盆地之聲祖爾加。' },
+  dgn_wildheart_basin_heroic: {
+    name: '英雄：荒野之心盆地',
+    desc: '以英雄難度在荒野之心盆地擊敗盆地之聲祖爾加。',
+  },
+  chr_peaks_gatherer: {
+    name: '高地的收成',
+    desc: '在荊峰高地採集一處礦脈、一處林木與一叢草藥。',
+  },
+  chr_marsh_rares_ii: {
+    name: '暴食者，終得清算',
+    desc: '斬殺暴食者蛆顎，泥沼濕地第四個有名有姓的惡煞，首次清算時被漏記在冊。',
+  },
+  chr_peaks_rares_ii: {
+    name: '峭壁上新刻的名字',
+    desc: '斬殺老岩顎與碎片領主卡茲克斯，荊峰高地又兩個有名有姓的惡煞，首次清算時被漏記在冊。',
+  },
+  chr_gleamstag: {
+    name: '從不先出手的傳說',
+    desc: '斬殺微光雄鹿，一頭稀有而避世的精英，只有被逼入絕境才會出手。',
+  },
+  chr_hollow_rares: {
+    name: '鹿群不忘',
+    desc: '斬殺老髓殼與鹿群之首金輝角，帷幕幽谷的兩個遊蕩稀有首領。',
+  },
+  chr_willowfen_gatherer: {
+    name: '沼地的餽贈',
+    desc: '在柳澤沼地採集一處礦脈、一處林木與一叢草藥。',
+  },
+  chr_willowfen_first_cast: {
+    name: '睡蓮澤的漣漪',
+    desc: '在柳澤沼地的水域釣起一條魚。',
+  },
+  chr_galecrest_gatherer: {
+    name: '海岬上的收穫',
+    desc: '在疾風崖採集一處礦脈、一處林木與一叢草藥。',
+  },
+  chr_galecrest_first_cast: {
+    name: '鏡湖垂綸',
+    desc: '在疾風崖的水域釣起一條魚。',
+  },
+  chr_farshore_gatherer: {
+    name: '島上的補給',
+    desc: '在遠岸採集一處礦脈、一處林木與一叢草藥。',
+  },
+  chr_farshore_first_cast: {
+    name: '鷗鳥所知',
+    desc: '在遠岸的水域釣起一條魚。',
+  },
+  prog_engineering_rare: {
+    name: '精密工程',
+    desc: '在工程學中製作你的第一件稀有品質物品。',
+  },
+  prog_alchemy_rare: {
+    name: '稀世佳釀',
+    desc: '在鍊金術中製作你的第一件稀有品質物品。',
+  },
+  prog_cooking_rare: {
+    name: '令人難忘的佳餚',
+    desc: '在烹飪中製作你的第一件稀有品質物品。',
+  },
+  prog_leatherworking_rare: {
+    name: '精細鞣製',
+    desc: '在製皮中製作你的第一件稀有品質物品。',
+  },
+  prog_tailoring_rare: {
+    name: '大師的針腳',
+    desc: '在裁縫中製作你的第一件稀有品質物品。',
+  },
+  prog_weaponcrafting_rare: {
+    name: '淬鍊至光亮',
+    desc: '在武器鍛造中製作你的第一件稀有品質物品。',
+  },
+  prog_armorcrafting_rare: {
+    name: '鍛造至完美',
+    desc: '在護甲鍛造中製作你的第一件稀有品質物品。',
+  },
+  prog_jewelcrafting_rare: {
+    name: '打磨至璀璨',
+    desc: '在珠寶設計中製作你的第一件稀有品質物品。',
+  },
+  prog_jewelcrafting_50: {
+    name: '琢面與花絲',
+    desc: '珠寶設計技能達到50。',
+  },
+  prog_grandmaster_jewelcrafting: {
+    name: '珠寶設計大宗師',
+    desc: '珠寶設計技能達到125，此技藝的頂點。',
+    title: '珠寶設計大宗師',
+  },
+  prog_inscription_rare: {
+    name: '以佳墨寫就',
+    desc: '在銘文學中製作你的第一件稀有品質物品。',
+  },
+  prog_inscription_50: {
+    name: '羽筆與顏料',
+    desc: '銘文學技能達到50。',
+  },
+  prog_grandmaster_inscription: {
+    name: '銘文學大宗師',
+    desc: '銘文學技能達到125，此技藝的頂點。',
+    title: '銘文學大宗師',
+  },
+  prog_ready_for_an_adventure: {
+    name: '整裝待發',
+    desc: '從試煉之濱畢業：完成島上的每一堂課，然後敲響渡船鈴回到東溪鎮。',
+  },
+  soc_strongbox_outfitter: {
+    name: '保險箱裝備師',
+    desc: '解鎖你的第一個銀行背包欄位。',
+  },
+  soc_four_bags_deep: {
+    name: '四袋俱全',
+    desc: '解鎖銀行的全部四個背包欄位。',
+  },
+  dgn_ignivar: {
+    name: '使者殞落',
+    desc: '在最後泉源熔爐擊敗「伊格尼瓦，末焰使者」。',
+  },
+  dgn_ignivar_heroic: {
+    name: '英雄：使者殞落',
+    desc: '以英雄難度擊敗「伊格尼瓦，末焰使者」。',
+  },
+  dgn_varkhul: {
+    name: '熔爐漸冷',
+    desc: '在內環熔爐擊敗「末焰鍛父瓦爾庫爾」。',
+  },
+  dgn_varkhul_heroic: {
+    name: '英雄：熔爐漸冷',
+    desc: '以英雄難度擊敗「末焰鍛父瓦爾庫爾」。',
+  },
+  dgn_varkhul_flawless: {
+    name: '餘燼不滅',
+    desc: '以英雄難度擊敗「末焰鍛父瓦爾庫爾」，且沒有任何團隊成員死亡。',
+    title: '未焚者',
+  },
+  hid_forgebreaker: {
+    name: '解放之泉',
+    desc: '親手鍛造碎爐者，攜帶完成的戰鎚回到梅琳身邊。',
+  },
+  col_set_bramblehide: {
+    name: '魯茨的荊棘皮甲',
+    desc: '發現魯茨的荊棘皮甲的每一個部件。',
+  },
+  col_deepest_cast: {
+    desc: '取得Clockreel魚竿，這是唯一能釣到最深處魚獲的魚竿。',
+    name: '最深一擲',
+  },
+  prog_first_planting: { desc: '在一塊田畦裡種下你的第一株作物。', name: '播種伊始' },
+  chr_vale_first_harvest: {
+    desc: '在東溪谷的一塊田畦裡採收你的第一株茁壯作物。',
+    name: '谷地初果',
+  },
+  chr_marsh_first_harvest: {
+    desc: '在泥沼濕地的一塊田畦裡採收你的第一株茁壯作物。',
+    name: '泥炭新芽',
+  },
+  chr_peaks_first_harvest: {
+    desc: '在荊峰高地的一塊田畦裡採收你的第一株茁壯作物。',
+    name: '峭壁間的收成',
+  },
+  chr_evergarden_first_harvest: {
+    desc: '在Evergarden的一塊田畦裡採收你的第一株茁壯作物。',
+    name: '樂土方寸田',
+  },
+  col_golden_harvest: { desc: '收穫一次黃金豐收，讓整個區域都聽見這場消息。', name: '金色豐收' },
+  prog_farming_100: { desc: '耕作熟練度達到100。', name: '豐收大師', title: '豐收大師' },
+  col_farm_roster: { desc: '採收四座花園所種出的每一種作物。', name: '田壟無遺' },
+  prog_field_to_feast: {
+    desc: '烹調一桌頂級盛宴，讓整個團隊都能在桌前用餐。',
+    name: '從田間到盛宴',
+  },
+  prog_legendmaker: {
+    desc: '用造物契據將一件臻至完美的作品提升為傳說，並為它取一個獨一無二的名字。',
+
+    name: '傳奇締造者',
+  },
+  exp_harbor_to_harbor: {
+    name: '港口到港口',
+    desc: '搭乘兩條渡船各往返一次：東溪至月棲鎮，燭港至望龍哨。',
+  },
+  exp_forge_helper: {
+    name: '助鎚之手',
+    desc: '在望龍哨幫助鐵匠瑪拉完成一面盾牌。',
+  },
+  exp_last_barricade: {
+    name: '最後的路障',
+    desc: '守住森林隘口的路障，擋下不死敵群。',
+  },
+  exp_borrowed_face: {
+    name: '借來的臉',
+    desc: '找出並擊敗混入芬橋守備隊中的借臉者。',
+  },
+  exp_windrider_slalom: {
+    name: '御風者迴旋賽',
+    desc: '在疾風崖峽谷完成機械滑翔翼滑降。',
+  },
+  exp_duskweave_dispatches: {
+    name: '暮織急件',
+    desc: '穿上薇拉莉的暮織斗篷，奪回強盜的急件。',
+  },
+  exp_wisp_maze: {
+    name: '迷宮之光',
+    desc: '尋回被偷走的錢袋，逃出常青園的迷宮。',
+  },
+  prog_rift_watch_trusted: {
+    name: '裂隙守望的信任',
+    desc: '在裂隙守望陣營中達到信任聲望。',
+  },
+  prog_church_order_trusted: {
+    name: '教會修會的信任',
+    desc: '在教會修會陣營中達到信任聲望。',
+  },
+  prog_automatons_trusted: {
+    name: '機械造物的信任',
+    desc: '在機械造物陣營中達到信任聲望。',
+  },
+  prog_rift_watch_champion: {
+    name: '裂隙守望的冠軍',
+    desc: '在裂隙守望陣營中達到冠軍聲望。',
+    title: '裂隙守衛',
+  },
+  prog_church_order_champion: {
+    name: '教會修會的冠軍',
+    desc: '在教會修會陣營中達到冠軍聲望。',
+    title: '晨曦守護者',
+  },
+  prog_automatons_champion: {
+    name: '機械造物的冠軍',
+    desc: '在機械造物陣營中達到冠軍聲望。',
+    title: '鍛造大師',
+  },
+  prog_faction_champion_all: {
+    name: '眾旗冠軍',
+    desc: '在裂隙守望、教會修會與機械造物三大陣營中都達到冠軍聲望。',
+  },
+  exp_clue_first_casket: {
+    name: '尋得寶藏',
+    desc: '打開一次線索卷軸尋寶挖出的寶藏匣。',
+  },
+  exp_clue_ten_caskets: {
+    name: '尋寶獵人',
+    desc: '打開10個線索卷軸尋寶挖出的寶藏匣。',
+    title: '尋寶獵人',
+  },
+  cmb_coinsack_caught: {
+    name: '人贓俱獲',
+    desc: '在埋藏的寶藏中擊殺錢袋竄賊，在牠帶著金幣逃脫前。',
+  },
+  exp_wisp_maze_hard: {
+    name: '比暗影更明亮',
+    desc: '在困難難度下尋回被偷走的錢袋，逃出常青園的迷宮。',
+  },
+  prog_titan: { name: '泰坦', desc: '累計獲得10,000,000點終身經驗。', title: '泰坦' },
+  pvp_flag_1h: {
+    name: '勇毅者',
+    desc: '在存活且位於開放世界或PvP比賽時，保持世界PvP開啟，累計遊玩1小時。庇護所、PvE副本、死亡和下線都會暫停進度；關閉世界PvP會重設進度。獲得的頭銜永久保留。',
+    title: '勇毅者',
+  },
+  pvp_flag_3h: {
+    name: '抗爭者',
+    desc: '在存活且位於開放世界或PvP比賽時，保持世界PvP開啟，累計遊玩3小時。庇護所、PvE副本、死亡和下線都會暫停進度；關閉世界PvP會重設進度。獲得的頭銜永久保留。',
+    title: '抗爭者',
+  },
+  pvp_flag_6h: {
+    name: '無畏者',
+    desc: '在存活且位於開放世界或PvP比賽時，保持世界PvP開啟，累計遊玩6小時。庇護所、PvE副本、死亡和下線都會暫停進度；關閉世界PvP會重設進度。獲得的頭銜永久保留。',
+    title: '無畏者',
+  },
+  pvp_flag_24h: {
+    name: '不屈者',
+    desc: '在存活且位於開放世界或PvP比賽時，保持世界PvP開啟，累計遊玩24小時。庇護所、PvE副本、死亡和下線都會暫停進度；關閉世界PvP會重設進度。獲得的頭銜永久保留。',
+    title: '不屈者',
+  },
+  pvp_flag_168h: {
+    name: '不敗者',
+    desc: '在存活且位於開放世界或PvP比賽時，保持世界PvP開啟，累計遊玩7天。庇護所、PvE副本、死亡和下線都會暫停進度；關閉世界PvP會重設進度。獲得的頭銜永久保留。',
+    title: '不敗者',
+  },
+  dgn_guild_first_contract: {
+    name: '契約已簽',
+    desc: '完成一份燈火大廳的每週地下城契約。',
+  },
+  dgn_guild_ten_contracts: {
+    name: '告示板常客',
+    desc: '完成10份燈火大廳的每週地下城契約。',
+  },
+  dgn_guild_fifty_contracts: {
+    name: '契約老手',
+    desc: '完成50份燈火大廳的每週地下城契約。',
+  },
+  feat_guild_writ_runner: {
+    name: '令狀信使',
+    desc: '以6枚燈火印章從燈火大廳軍需官加里克·霍爾特處購得。',
+    title: '令狀信使',
+  },
+  feat_guild_hallsworn: {
+    name: '大廳誓約者',
+    desc: '以14枚燈火印章從燈火大廳軍需官加里克·霍爾特處購得。',
+    title: '大廳誓約者',
+  },
+  feat_guild_of_lantern_hall: {
+    name: '燈火大廳之人',
+    desc: '以24枚燈火印章從燈火大廳軍需官加里克·霍爾特處購得。',
+    title: '燈火大廳之人',
+  },
+  feat_gourdlight_doorsteps: {
+    name: '家家門前',
+    desc: '在南瓜燈之夜期間，向三座城鎮中每一位會應門的居民說「不給糖就搗蛋」。',
+  },
+  feat_gourdlight_errands: {
+    name: '赫絲特的跑腿',
+    desc: '赫絲特·葫蘆芯每日輪換的南瓜燈之夜差事，每一項至少完成一次。',
+  },
+  feat_gourdlight_frights: {
+    name: '三鎮驚魂',
+    desc: '在赫絲特的「哇！」差事中，分別嚇唬三座城鎮裡的一位居民。',
+  },
+  feat_gourdlight_eve_complete: {
+    name: '南瓜燈之夜，從頭到尾',
+    desc: '完整經歷南瓜燈之夜：擊敗老稻草獰笑，找到所有鬧鬼南瓜，完成赫絲特的每一項差事，敲遍每一扇門，並在三座城鎮各嚇唬一位居民。',
+    title: '南瓜誓約者',
+  },
+  feat_gourdlight_guise: {
+    name: '南瓜燈偽裝',
+    desc: '在南瓜燈之夜期間，從野豬草地外田地裡的老稻草獰笑身上取得並擁有一頂雕刻南瓜頭。',
+  },
+  feat_old_thatchgrin: {
+    name: '殘茬與灰燼',
+    desc: '在南瓜燈之夜期間，協助擊敗野豬草地外南瓜田裡的老稻草獰笑。',
+  },
+  feat_title_gourdlit: {
+    name: '南瓜燈輝者',
+    desc: '在南瓜燈之夜期間，用南瓜燈糖向赫絲特·葫蘆芯換取南瓜燈輝令狀並閱讀。',
+    title: '南瓜燈輝者',
+  },
+  feat_title_trickster: {
+    name: '搗蛋鬼',
+    desc: '在南瓜燈之夜期間，用南瓜燈糖向赫絲特·葫蘆芯換取搗蛋鬼令狀並閱讀。',
+    title: '搗蛋鬼',
+  },
+  feat_title_hollow_grinned: {
+    name: '空洞笑臉者',
+    desc: '在南瓜燈之夜期間，用南瓜燈糖向赫絲特·葫蘆芯換取空洞笑臉令狀並閱讀。',
+    title: '空洞笑臉者',
+  },
+  feat_pumpkin_hunter: {
+    name: '南瓜獵人',
+    desc: '在南瓜燈之夜期間，找到藏在世界各處的所有鬧鬼南瓜。',
+    title: '空心者',
   },
 };

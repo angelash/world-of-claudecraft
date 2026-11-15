@@ -8,6 +8,13 @@ export interface AccountCosmetics {
   // loadout. Both are account state: every character on the account shares them.
   weaponSkinIds: string[];
   weaponSkinLoadout: Record<string, string>;
+  // Mount skins (src/sim/content/mount_skins.ts): account-wide ownership,
+  // mirrored from the economy service's grant ledger. The WORN skin is per
+  // character (Entity.mountSkinId), not account state, so it is not here.
+  mountSkinIds: string[];
+  // Revocable looks backed by reins held in any character's bags or personal bank.
+  // This is a host projection, never a permanent purchase or character-save field.
+  collectibleMountSkinIds?: string[];
 }
 
 export interface IWorldCosmetics {
@@ -22,7 +29,16 @@ export interface IWorldCosmetics {
   // server enforces account ownership and the equipped-weapon-type match; the
   // offline Sim enforces the type match only (the paid store is online-only).
   changeWeaponSkin(skinId: string | null, weaponType?: WeaponSkinType): void;
+  // Wear (skinId) or take off (null) a mount skin on THIS character. The server
+  // enforces account ownership (accountCosmetics.mountSkinIds); the offline Sim
+  // gates on its own mirror. Cosmetic only: the ridden mount keeps its stats.
+  changeMountSkin(skinId: string | null): void;
   // Z-key sheathe toggle: held weapons render stowed on the back (cosmetic; the
   // sim clears it on any deliberate combat action, WoW-style).
   toggleWeaponStow(): void;
+  // Paperdoll eye toggle: render the composed body without its kit's head piece.
+  // A standing wardrobe preference that rides the entity wire (`hh`) so peers
+  // and portraits present the chosen look, and persists per character through
+  // the sim's own save. Explicit boolean, not a toggle, so it is idempotent.
+  setHelmHidden(hidden: boolean): void;
 }

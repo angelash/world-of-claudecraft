@@ -11,7 +11,7 @@
     "useItem food/drink (sit + eating/drinking slot), potion (heal + cooldown), elixir (applyAura)",
     "discardItem: removeItem the discarded count",
     "sellItem: vendorInRange gate + recordVendorBuyback + meta.copper payout",
-    "sellAllJunk: bulk gray sweep, per-stack buyback record, one summary line",
+    "sellAllJunk: bulk gray sweep, plain grays skip buyback, one summary line",
     "buyBackItem: meta.copper spend + addItemSilent + onInventoryChangedForQuests"
   ],
   "draws": 0,
@@ -20,7 +20,7 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 415,
+      "nextId": 1011,
       "state": "5bc471b0",
       "events": "741638a5",
       "rng": {
@@ -34,8 +34,8 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "722832d7",
+      "nextId": 1012,
+      "state": "79c0034c",
       "events": "741638a5",
       "rng": {
         "draws": 0,
@@ -54,13 +54,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 1000,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -73,14 +84,20 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
@@ -91,10 +108,20 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -109,7 +136,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             }
           ],
           "blockChance": 0.05,
@@ -119,10 +146,11 @@
           "critChance": 0.06,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.06,
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 100,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -134,16 +162,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -166,9 +194,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "3231f7f8",
-      "events": "7db794b1",
+      "nextId": 1012,
+      "state": "e1a20831",
+      "events": "7b079d2f",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -186,13 +214,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -207,36 +246,70 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 10,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 10,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 5,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 5,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
-              "itemId": "minor_healing_potion"
+              "itemId": "minor_healing_potion",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             }
           ],
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -251,7 +324,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             }
           ],
           "blockChance": 0.05,
@@ -261,10 +334,11 @@
           "critChance": 0.06,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.06,
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 100,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -276,16 +350,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -308,9 +382,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "c8d7ae67",
-      "events": "aced36d1",
+      "nextId": 1012,
+      "state": "5b4624b7",
+      "events": "9b90e82d",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -328,13 +402,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -351,7 +436,7 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "helmet": "cryptbone_helm",
@@ -359,20 +444,44 @@
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 10,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 10,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 5,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 5,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
-              "itemId": "minor_healing_potion"
+              "itemId": "minor_healing_potion",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -382,10 +491,27 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -400,7 +526,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             }
           ],
           "blockChance": 0.05,
@@ -410,10 +536,11 @@
           "critChance": 0.06,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.06,
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 130,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -425,16 +552,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -457,9 +584,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "bdc5d86c",
-      "events": "7b632ab5",
+      "nextId": 1012,
+      "state": "07f17e02",
+      "events": "7bb2d484",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -477,13 +604,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -500,7 +638,7 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "helmet": "roadwardens_helm",
@@ -508,20 +646,44 @@
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 10,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 10,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 5,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 5,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
-              "itemId": "minor_healing_potion"
+              "itemId": "minor_healing_potion",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -531,10 +693,27 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -549,7 +728,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             }
           ],
           "blockChance": 0.05,
@@ -559,10 +738,11 @@
           "critChance": 0.06,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.06,
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 120,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -574,16 +754,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -606,9 +786,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "de9536fe",
-      "events": "d7e42320",
+      "nextId": 1012,
+      "state": "0e86f6f2",
+      "events": "bf50d54d",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -626,13 +806,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -649,27 +840,51 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 10,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 10,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 5,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 5,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
-              "itemId": "minor_healing_potion"
+              "itemId": "minor_healing_potion",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -683,10 +898,27 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -701,7 +933,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             }
           ],
           "blockChance": 0.05,
@@ -711,10 +943,11 @@
           "critChance": 0.06,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.06,
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 100,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -726,16 +959,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -758,9 +991,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "42c902e8",
-      "events": "d37a7dbf",
+      "nextId": 1012,
+      "state": "e258c033",
+      "events": "2d30819f",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -778,13 +1011,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -801,27 +1045,51 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
-              "itemId": "minor_healing_potion"
+              "itemId": "minor_healing_potion",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -835,10 +1103,27 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -853,7 +1138,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             }
           ],
           "blockChance": 0.05,
@@ -875,10 +1160,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 100,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -890,17 +1176,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -923,9 +1209,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "dea86bd5",
-      "events": "7787b44e",
+      "nextId": 1012,
+      "state": "aa05a73a",
+      "events": "ec778e24",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -943,13 +1229,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -966,23 +1263,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -996,10 +1311,27 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -1014,7 +1346,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             }
           ],
           "blockChance": 0.05,
@@ -1036,10 +1368,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 100,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -1051,17 +1384,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -1084,9 +1417,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "47b62c32",
-      "events": "700fff02",
+      "nextId": 1012,
+      "state": "99564366",
+      "events": "1a16079d",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -1104,13 +1437,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -1128,23 +1472,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -1158,10 +1520,27 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -1176,7 +1555,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             },
             {
               "duration": 900,
@@ -1185,7 +1564,7 @@
               "name": "Might of the Bear",
               "remaining": 900,
               "school": "nature",
-              "sourceId": 415,
+              "sourceId": 1011,
               "value": 12
             }
           ],
@@ -1208,10 +1587,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 220,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -1223,17 +1603,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -1256,9 +1636,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "5e8369a7",
-      "events": "0d8a0109",
+      "nextId": 1012,
+      "state": "84a81cd5",
+      "events": "f769fd0b",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -1276,13 +1656,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -1304,23 +1695,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -1334,10 +1743,27 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -1352,7 +1778,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             },
             {
               "duration": 900,
@@ -1361,7 +1787,7 @@
               "name": "Might of the Serpent",
               "remaining": 900,
               "school": "nature",
-              "sourceId": 415,
+              "sourceId": 1011,
               "value": 12
             }
           ],
@@ -1384,10 +1810,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 220,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -1399,17 +1826,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -1432,9 +1859,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "4db9ec82",
-      "events": "5917907c",
+      "nextId": 1012,
+      "state": "8f3b83c3",
+      "events": "b5f7ad8a",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -1452,13 +1879,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 710,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -1481,23 +1919,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -1509,16 +1965,39 @@
             },
             {
               "count": 2,
-              "itemId": "wolf_fang"
+              "itemId": "wolf_fang",
+              "materialSources": [
+                {
+                  "count": 2,
+                  "source": {}
+                }
+              ]
             }
           ],
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -1533,7 +2012,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             },
             {
               "duration": 900,
@@ -1542,7 +2021,7 @@
               "name": "Might of the Serpent",
               "remaining": 900,
               "school": "nature",
-              "sourceId": 415,
+              "sourceId": 1011,
               "value": 12
             }
           ],
@@ -1565,10 +2044,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 220,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -1580,17 +2060,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -1613,9 +2093,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "6666c937",
-      "events": "43fbfed4",
+      "nextId": 1012,
+      "state": "9df7ddc9",
+      "events": "86f491d4",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -1633,13 +2113,24 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 714,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -1662,23 +2153,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -1690,22 +2199,51 @@
             },
             {
               "count": 1,
-              "itemId": "wolf_fang"
+              "itemId": "wolf_fang",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             }
           ],
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
           "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
           "vendorBuyback": [
             {
               "count": 1,
-              "itemId": "wolf_fang"
+              "itemId": "wolf_fang",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             }
-          ]
+          ],
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -1720,7 +2258,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             },
             {
               "duration": 900,
@@ -1729,7 +2267,7 @@
               "name": "Might of the Serpent",
               "remaining": 900,
               "school": "nature",
-              "sourceId": 415,
+              "sourceId": 1011,
               "value": 12
             }
           ],
@@ -1752,10 +2290,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 220,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -1767,17 +2306,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -1800,9 +2339,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "561f2654",
-      "events": "a5ebc92c",
+      "nextId": 1012,
+      "state": "a41039b8",
+      "events": "b5a00f90",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -1820,19 +2359,29 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
-          "copper": 720,
+          "copper": 723,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
             "itemsDiscovered": [
               "baked_bread",
-              "bandit_bandana",
               "cryptbone_helm",
               "eastbrook_buckler",
               "elixir_of_the_bear",
@@ -1840,6 +2389,7 @@
               "minor_healing_potion",
               "recruit_tunic",
               "roadwardens_helm",
+              "soggy_moccasin",
               "spring_water",
               "wolf_fang",
               "worn_sword"
@@ -1850,23 +2400,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -1878,26 +2446,51 @@
             },
             {
               "count": 1,
-              "itemId": "wolf_fang"
+              "itemId": "wolf_fang",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             }
           ],
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
           "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
           "vendorBuyback": [
             {
               "count": 1,
-              "itemId": "bandit_bandana"
-            },
-            {
-              "count": 1,
-              "itemId": "wolf_fang"
+              "itemId": "wolf_fang",
+              "materialSources": [
+                {
+                  "count": 1,
+                  "source": {}
+                }
+              ]
             }
-          ]
+          ],
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -1912,7 +2505,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             },
             {
               "duration": 900,
@@ -1921,7 +2514,7 @@
               "name": "Might of the Serpent",
               "remaining": 900,
               "school": "nature",
-              "sourceId": 415,
+              "sourceId": 1011,
               "value": 12
             }
           ],
@@ -1944,10 +2537,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 220,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -1959,17 +2553,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -1992,9 +2586,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "9fb63795",
-      "events": "6787cd59",
+      "nextId": 1012,
+      "state": "b38fa9cf",
+      "events": "d30c5a4d",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -2012,19 +2606,29 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
-          "copper": 716,
+          "copper": 719,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
             "itemsDiscovered": [
               "baked_bread",
-              "bandit_bandana",
               "cryptbone_helm",
               "eastbrook_buckler",
               "elixir_of_the_bear",
@@ -2032,6 +2636,7 @@
               "minor_healing_potion",
               "recruit_tunic",
               "roadwardens_helm",
+              "soggy_moccasin",
               "spring_water",
               "wolf_fang",
               "worn_sword"
@@ -2042,23 +2647,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -2070,22 +2693,39 @@
             },
             {
               "count": 2,
-              "itemId": "wolf_fang"
+              "itemId": "wolf_fang",
+              "materialSources": [
+                {
+                  "count": 2,
+                  "source": {}
+                }
+              ]
             }
           ],
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
           "townFocus": {},
-          "vendorBuyback": [
-            {
-              "count": 1,
-              "itemId": "bandit_bandana"
-            }
-          ]
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -2100,7 +2740,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             },
             {
               "duration": 900,
@@ -2109,7 +2749,7 @@
               "name": "Might of the Serpent",
               "remaining": 900,
               "school": "nature",
-              "sourceId": 415,
+              "sourceId": 1011,
               "value": 12
             }
           ],
@@ -2132,10 +2772,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 220,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -2147,17 +2788,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -2180,8 +2821,8 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "9fb63795",
+      "nextId": 1012,
+      "state": "b38fa9cf",
       "events": "741638a5",
       "rng": {
         "draws": 0,
@@ -2200,19 +2841,29 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
-          "copper": 716,
+          "copper": 719,
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
             "itemsDiscovered": [
               "baked_bread",
-              "bandit_bandana",
               "cryptbone_helm",
               "eastbrook_buckler",
               "elixir_of_the_bear",
@@ -2220,6 +2871,7 @@
               "minor_healing_potion",
               "recruit_tunic",
               "roadwardens_helm",
+              "soggy_moccasin",
               "spring_water",
               "wolf_fang",
               "worn_sword"
@@ -2230,23 +2882,41 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1011,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 9,
-              "itemId": "baked_bread"
+              "itemId": "baked_bread",
+              "materialSources": [
+                {
+                  "count": 9,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 4,
-              "itemId": "spring_water"
+              "itemId": "spring_water",
+              "materialSources": [
+                {
+                  "count": 4,
+                  "source": {}
+                }
+              ]
             },
             {
               "count": 1,
@@ -2258,22 +2928,39 @@
             },
             {
               "count": 2,
-              "itemId": "wolf_fang"
+              "itemId": "wolf_fang",
+              "materialSources": [
+                {
+                  "count": 2,
+                  "source": {}
+                }
+              ]
             }
           ],
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {
+              "cryptbone_helm": 1
+            },
+            "firstFind": {
+              "cryptbone_helm": {}
+            },
+            "recent": [
+              "cryptbone_helm"
+            ]
+          },
           "talents": {
             "rows": {}
           },
           "townFocus": {},
-          "vendorBuyback": [
-            {
-              "count": 1,
-              "itemId": "bandit_bandana"
-            }
-          ]
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -2288,7 +2975,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1011
             },
             {
               "duration": 900,
@@ -2297,7 +2984,7 @@
               "name": "Might of the Serpent",
               "remaining": 900,
               "school": "nature",
-              "sourceId": 415,
+              "sourceId": 1011,
               "value": 12
             }
           ],
@@ -2320,10 +3007,11 @@
             "kind": "food",
             "remaining": 18
           },
-          "fallStartY": 1.5,
+          "fallStartY": -0.612396,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 220,
-          "id": 415,
+          "id": 1011,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -2335,17 +3023,17 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": -5.125851,
-            "y": 1.5,
-            "z": 0.812357
+            "x": -23,
+            "y": -0.612396,
+            "z": -94
           },
           "potionCooldownUntil": 120,
           "resourceType": "rage",
           "sitting": true,
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {

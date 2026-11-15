@@ -14,6 +14,7 @@
 // exercised here touch only the injected runtime, never the real db reads.
 process.env.DATABASE_URL ||= 'postgres://test:test@127.0.0.1:5433/wocc_phase10_units';
 
+import { readFileSync } from 'node:fs';
 import type * as http from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SHEET_RECENT_DEEDS, type SheetRank } from '../../server/character_sheet';
@@ -27,6 +28,7 @@ import {
   buildStandardBoard,
   configureLeaderboardRuntime,
   decodeArenaFormat,
+  decodedRouteName,
   decodeLegacyLimit,
   decodePage,
   decodePageSize,
@@ -41,15 +43,19 @@ import {
   readPublicSheet,
   readRealms,
   readSearch,
+  resetGuildBoardPresenceForTests,
   resetLeaderboardDbForTests,
   resetLeaderboardRuntimeForTests,
   routes,
   SEARCH_RESULT_LIMIT,
+  setGuildBoardPresenceForTests,
   setLeaderboardDbForTests,
 } from '../../server/leaderboard';
 import {
+  GUILD_BOARD_PRESENCE_MAX_PER_MINUTE,
   PUBLIC_READ_MAX_PER_MINUTE,
   publicReadRateLimited,
+  resetGuildBoardPresenceRateLimits,
   resetPublicReadRateLimits,
 } from '../../server/ratelimit';
 import { DEEDS } from '../../src/sim/content/deeds';
@@ -105,7 +111,7 @@ function deedsRow(rank: number): DeedsLeaderboardEntry {
 }
 
 function arenaRow(name: string): ArenaLeaderRow {
-  return { name, class: 'mage', level: 60, rating: 1800, wins: 20, losses: 5 };
+  return { name, class: 'mage', level: 60, rating: 1800, wins: 20, losses: 5, draws: 0 };
 }
 
 function characterRow(id: number, name: string): CharacterRow {
@@ -130,6 +136,7 @@ function fakeRuntime(overrides: Partial<LeaderboardRuntime> = {}): LeaderboardRu
     perfProfile: () => ({ ticks: 0 }),
     getLeaderboard: async () => [],
     getGuildLeaderboard: async () => [],
+    isCharacterOnline: () => false,
     getDevLeaderboard: async () => [],
     getDeedsLeaderboard: async () => [],
     deedsSelfRank: async () => null,
@@ -255,7 +262,7 @@ describe('response builders (convention B deferred: leaders key preserved)', () 
   });
 
   it('buildGuildBoard tags board=guilds and the guild metric', () => {
-    const body = buildGuildBoard(REALM_NAME, 'realm', [guildRow(1)], 0, 50) as Record<
+    const body = buildGuildBoard(REALM_NAME, 'realm', [guildRow(1)], 0, 50) as unknown as Record<
       string,
       unknown
     >;
@@ -412,6 +419,32 @@ describe('readPublicSheet (FakeCharactersDb, resolved by name)', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it('a malformed percent-escape in the name 404s instead of throwing a 500', async () => {
+    // decodedRouteName is the handler's decode arm: a good escape decodes, a
+    // malformed one falls back to the raw segment (which then misses the name
+    // lookup), mirroring the /c/ page's arm for the identical lookup. The
+    // URIError path used to escape the handler and turn the route into a 500.
+    expect(decodedRouteName('Mira%20Vale')).toBe('Mira Vale');
+    expect(decodedRouteName('%E0%A4%A')).toBe('%E0%A4%A');
+    const db = new FakeCharactersDb();
+    const out = await readPublicSheet(db, decodedRouteName('%E0%A4%A'), sheetDeps);
+    expect(out).toEqual({ status: 404, body: { error: 'character not found' } });
+  });
+
+  it('BOTH sheet arms route the name through decodedRouteName (wiring pin)', () => {
+    // The helper tests above prove decodedRouteName's behavior; this pins the
+    // WIRING, without which reverting either call site to a bare
+    // decodeURIComponent would leave every test green while the route 500s
+    // again. Two arms serve the same path: the RouteDef handler here, and the
+    // retained legacy ladder in main.ts that API_DISPATCH=legacy (the
+    // documented one-flag production rollback) switches back to.
+    const here = readFileSync(new URL('../../server/leaderboard.ts', import.meta.url), 'utf8');
+    expect(here).toMatch(/readPublicSheet\(dbReads, decodedRouteName\(ctx\.params\.name\)/);
+    expect(here.match(/decodeURIComponent\(/g) ?? []).toHaveLength(1); // only inside the helper
+    const legacy = readFileSync(new URL('../../server/main.ts', import.meta.url), 'utf8');
+    expect(legacy).toMatch(/const rawName = decodedRouteName\(publicSheetMatch\[1\]\);/);
+  });
+
   it('resolves by name (case-insensitively) and returns a 200 public sheet with guild + rank', async () => {
     const db = new FakeCharactersDb();
     db.seed(characterRow(11, 'Zealot'));
@@ -543,7 +576,7 @@ describe('readPublicSheet (FakeCharactersDb, resolved by name)', () => {
 // ---------------------------------------------------------------------------
 
 describe('status handler (name-list trim deviation)', () => {
-  it('returns counts only: { ok, realm, players_online, players_cap, steam, dev_commands } with NO names list', async () => {
+  it('returns counts and capability adverts with NO names list', async () => {
     configureLeaderboardRuntime(fakeRuntime({ playersOnline: () => 4, playersCap: () => 250 }));
     const ctx = fakeCtx({ method: 'GET', url: '/api/status' });
     await handlerFor('/api/status')(ctx);
@@ -556,9 +589,11 @@ describe('status handler (name-list trim deviation)', () => {
       // The configured realm cap, advertised so the client realm list can show Full.
       players_cap: 250,
       steam: { enabled: false },
+      epic: { enabled: false },
       // The /dev GUI capability advert. False here because the suite runs without
       // ALLOW_DEV_COMMANDS, which is also the production posture.
       dev_commands: false,
+      profiler_invulnerability: false,
     });
     expect('names' in (body as object)).toBe(false);
   });
@@ -574,19 +609,34 @@ describe('status handler (name-list trim deviation)', () => {
       process.env.ALLOW_DEV_COMMANDS = '1';
       const on = fakeCtx({ method: 'GET', url: '/api/status' });
       await handlerFor('/api/status')(on);
-      expect((captured(on.res).body as { dev_commands: boolean }).dev_commands).toBe(true);
+      expect(
+        captured(on.res).body as {
+          dev_commands: boolean;
+          profiler_invulnerability: boolean;
+        },
+      ).toMatchObject({ dev_commands: true, profiler_invulnerability: true });
 
       // Same process, no re-boot: flipping the env must flip the next answer.
       process.env.ALLOW_DEV_COMMANDS = '0';
       const off = fakeCtx({ method: 'GET', url: '/api/status' });
       await handlerFor('/api/status')(off);
-      expect((captured(off.res).body as { dev_commands: boolean }).dev_commands).toBe(false);
+      expect(
+        captured(off.res).body as {
+          dev_commands: boolean;
+          profiler_invulnerability: boolean;
+        },
+      ).toMatchObject({ dev_commands: false, profiler_invulnerability: false });
 
       // Only the exact string '1' arms it, matching every other ALLOW_DEV_COMMANDS gate.
       process.env.ALLOW_DEV_COMMANDS = 'true';
       const truthy = fakeCtx({ method: 'GET', url: '/api/status' });
       await handlerFor('/api/status')(truthy);
-      expect((captured(truthy.res).body as { dev_commands: boolean }).dev_commands).toBe(false);
+      expect(
+        captured(truthy.res).body as {
+          dev_commands: boolean;
+          profiler_invulnerability: boolean;
+        },
+      ).toMatchObject({ dev_commands: false, profiler_invulnerability: false });
     } finally {
       if (previous === undefined) delete process.env.ALLOW_DEV_COMMANDS;
       else process.env.ALLOW_DEV_COMMANDS = previous;
@@ -617,6 +667,22 @@ describe('status handler (name-list trim deviation)', () => {
     } finally {
       if (saved === undefined) delete process.env.STEAM_ENABLED;
       else process.env.STEAM_ENABLED = saved;
+    }
+  });
+
+  it('adverts epic.enabled true when EPIC_ENABLED=1 (the capability advert)', async () => {
+    const saved = process.env.EPIC_ENABLED;
+    process.env.EPIC_ENABLED = '1';
+    try {
+      configureLeaderboardRuntime(fakeRuntime({ playersOnline: () => 4 }));
+      const ctx = fakeCtx({ method: 'GET', url: '/api/status' });
+      await handlerFor('/api/status')(ctx);
+      const { status, body } = captured(ctx.res);
+      expect(status).toBe(200);
+      expect((body as { epic: { enabled: boolean } }).epic).toEqual({ enabled: true });
+    } finally {
+      if (saved === undefined) delete process.env.EPIC_ENABLED;
+      else process.env.EPIC_ENABLED = saved;
     }
   });
 });
@@ -1070,5 +1136,198 @@ describe('routes table', () => {
     }
     // A plain public read carries no auth middleware.
     expect(routes.find((r) => r.path === '/api/leaderboard')?.middleware).toBeUndefined();
+  });
+});
+
+// Guild board categories + officer presence (docs/prd/guild-pledge-board.md,
+// "New player friendly" and "Officers online"): the ?category filter narrows
+// the cached ranking BEFORE paging, and the realm-scoped body carries the
+// live presence the injected layer attaches; the global board never does.
+describe('GET /api/leaderboard?board=guilds categories and presence', () => {
+  afterEach(() => {
+    resetGuildBoardPresenceForTests();
+    resetLeaderboardRuntimeForTests();
+  });
+
+  function friendlyRow(rank: number): GuildLeaderboardEntry {
+    return { ...guildRow(rank), newPlayerFriendly: true };
+  }
+
+  it('filters to the guilds wearing the category, keeping realm ranks and recounting the total', async () => {
+    configureLeaderboardRuntime(
+      fakeRuntime({
+        getGuildLeaderboard: async () => [guildRow(1), friendlyRow(2), guildRow(3), friendlyRow(4)],
+      }),
+    );
+    const ctx = fakeCtx({
+      method: 'GET',
+      url: '/api/leaderboard',
+      query: { board: 'guilds', category: 'newPlayerFriendly' },
+    });
+    await handlerFor('/api/leaderboard')(ctx);
+    const b = captured(ctx.res).body as Record<string, unknown>;
+    expect(b.total).toBe(2);
+    expect((b.leaders as GuildLeaderboardEntry[]).map((r) => r.rank)).toEqual([2, 4]);
+    // The applied category is echoed, so the client renders the filter it got.
+    expect(b.category).toBe('newPlayerFriendly');
+  });
+
+  it('echoes no category on the whole board (the golden body stays byte-identical)', async () => {
+    configureLeaderboardRuntime(fakeRuntime({ getGuildLeaderboard: async () => [guildRow(1)] }));
+    const ctx = fakeCtx({ method: 'GET', url: '/api/leaderboard', query: { board: 'guilds' } });
+    await handlerFor('/api/leaderboard')(ctx);
+    expect('category' in (captured(ctx.res).body as Record<string, unknown>)).toBe(false);
+  });
+
+  it('filters BEFORE paging, so a filtered page is full and pageCount counts matches', async () => {
+    // Five guilds, three opted in, interleaved with two that are not: with
+    // pageSize 2 the first filtered page holds two matches (never a matching
+    // row and a hole) and the pager promises exactly two pages.
+    configureLeaderboardRuntime(
+      fakeRuntime({
+        getGuildLeaderboard: async () => [
+          friendlyRow(1),
+          guildRow(2),
+          friendlyRow(3),
+          guildRow(4),
+          friendlyRow(5),
+        ],
+      }),
+    );
+    const ctx = fakeCtx({
+      method: 'GET',
+      url: '/api/leaderboard',
+      query: { board: 'guilds', category: 'newPlayerFriendly', pageSize: '2' },
+    });
+    await handlerFor('/api/leaderboard')(ctx);
+    const b = captured(ctx.res).body as { leaders: GuildLeaderboardEntry[]; pageCount: number };
+    expect(b.leaders.map((r) => r.rank)).toEqual([1, 3]);
+    expect(b.pageCount).toBe(2);
+  });
+
+  it('memoizes the category slice per cached ranking, and drops it with the ranking', () => {
+    const ranking = [guildRow(1), friendlyRow(2), guildRow(3)];
+    const first = buildGuildBoard(REALM_NAME, 'realm', ranking, 0, 50, 'newPlayerFriendly');
+    const again = buildGuildBoard(REALM_NAME, 'realm', ranking, 0, 50, 'newPlayerFriendly');
+    // The same cached array yields the same slice object (paid once), and the
+    // whole-board read is the input itself (no allocation).
+    expect(first.leaders[0]).toBe(again.leaders[0]);
+    expect(first.total).toBe(1);
+    expect(buildGuildBoard(REALM_NAME, 'realm', ranking, 0, 50, null).leaders[0]).toBe(ranking[0]);
+    // The decisive pin: filter() and slice() both preserve element identity,
+    // so only the memo makes a later read of the SAME array ignore a row
+    // pushed onto it after the slice was paid (main.ts never mutates a
+    // cached array; a refresh installs a new one, the case below).
+    ranking.push(friendlyRow(4));
+    expect(buildGuildBoard(REALM_NAME, 'realm', ranking, 0, 50, 'newPlayerFriendly').total).toBe(1);
+    // A refreshed ranking (a new array, the way main.ts installs one) is a fresh slice.
+    const refreshed = [guildRow(1), friendlyRow(2), friendlyRow(3)];
+    expect(buildGuildBoard(REALM_NAME, 'realm', refreshed, 0, 50, 'newPlayerFriendly').total).toBe(
+      2,
+    );
+  });
+
+  it('ignores an unknown category (the whole board), never a 400', async () => {
+    configureLeaderboardRuntime(
+      fakeRuntime({ getGuildLeaderboard: async () => [guildRow(1), friendlyRow(2)] }),
+    );
+    const ctx = fakeCtx({
+      method: 'GET',
+      url: '/api/leaderboard',
+      query: { board: 'guilds', category: 'pvp' },
+    });
+    await handlerFor('/api/leaderboard')(ctx);
+    const b = captured(ctx.res).body as Record<string, unknown>;
+    expect(captured(ctx.res).status).toBe(200);
+    expect(b.total).toBe(2);
+    expect('category' in b).toBe(false);
+  });
+
+  it('attaches the officer presence to the realm board page only', async () => {
+    const seen: number[][] = [];
+    setGuildBoardPresenceForTests({
+      attach: async (leaders, isOnline) => {
+        seen.push(leaders.map((l) => l.rank));
+        return leaders.map((l) =>
+          isOnline(7) ? { ...l, onlineOfficers: [{ name: 'Boss', rank: 'leader' }] } : l,
+        );
+      },
+      warm: async () => {},
+      bust: () => {},
+    });
+    configureLeaderboardRuntime(
+      fakeRuntime({
+        getGuildLeaderboard: async () => [guildRow(1), guildRow(2), guildRow(3)],
+        isCharacterOnline: (id) => id === 7,
+      }),
+    );
+    const realm = fakeCtx({
+      method: 'GET',
+      url: '/api/leaderboard',
+      query: { board: 'guilds', pageSize: '2' },
+    });
+    await handlerFor('/api/leaderboard')(realm);
+    const rb = captured(realm.res).body as { leaders: GuildLeaderboardEntry[] };
+    // Only the served PAGE reaches the presence layer, never the whole ranking.
+    expect(seen).toEqual([[1, 2]]);
+    expect(rb.leaders.map((l) => l.onlineOfficers)).toEqual([
+      [{ name: 'Boss', rank: 'leader' }],
+      [{ name: 'Boss', rank: 'leader' }],
+    ]);
+
+    const global = fakeCtx({
+      method: 'GET',
+      url: '/api/leaderboard',
+      query: { board: 'guilds', scope: 'global' },
+    });
+    await handlerFor('/api/leaderboard')(global);
+    const gb = captured(global.res).body as { leaders: GuildLeaderboardEntry[] };
+    expect(seen).toHaveLength(1);
+    expect(gb.leaders).toHaveLength(3);
+    expect(gb.leaders.every((l) => l.onlineOfficers === undefined)).toBe(true);
+  });
+
+  it('withholds presence (never the board) from a caller past the presence budget, on its OWN bucket', async () => {
+    resetGuildBoardPresenceRateLimits();
+    resetPublicReadRateLimits();
+    let attaches = 0;
+    setGuildBoardPresenceForTests({
+      attach: async (leaders) => {
+        attaches++;
+        return leaders.map((l) => ({ ...l, onlineOfficers: [{ name: 'Boss', rank: 'leader' }] }));
+      },
+      warm: async () => {},
+      bust: () => {},
+    });
+    configureLeaderboardRuntime(
+      fakeRuntime({
+        getGuildLeaderboard: async () => [guildRow(1)],
+        isCharacterOnline: () => true,
+      }),
+    );
+    const read = async () => {
+      const ctx = fakeCtx({ method: 'GET', url: '/api/leaderboard', query: { board: 'guilds' } });
+      await handlerFor('/api/leaderboard')(ctx);
+      return captured(ctx.res);
+    };
+    // Inside the budget: presence rides. Spend the whole per-IP window, then
+    // the board still answers 200 with a bare page.
+    expect(
+      ((await read()).body as { leaders: GuildLeaderboardEntry[] }).leaders[0].onlineOfficers,
+    ).toEqual([{ name: 'Boss', rank: 'leader' }]);
+    for (let i = 0; i < GUILD_BOARD_PRESENCE_MAX_PER_MINUTE; i++) await read();
+    const throttled = await read();
+    expect(throttled.status).toBe(200);
+    expect(
+      (throttled.body as { leaders: GuildLeaderboardEntry[] }).leaders[0].onlineOfficers,
+    ).toBeUndefined();
+    expect(attaches).toBeLessThanOrEqual(GUILD_BOARD_PRESENCE_MAX_PER_MINUTE);
+    // The board never 429s itself, so its budget must be its own: after a
+    // whole presence window is spent from this IP, a sibling public read on
+    // the SHARED bucket (the search handler) still answers 200.
+    const sibling = fakeCtx({ method: 'GET', url: '/api/search' });
+    await handlerFor('/api/search')(sibling);
+    expect(captured(sibling.res).status).toBe(200);
+    resetGuildBoardPresenceRateLimits();
   });
 });

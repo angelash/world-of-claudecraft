@@ -5,13 +5,30 @@ import {
   animatesEveryFrame,
   animCadenceFrames,
   characterLodBands,
+  characterLodBandsInto,
   crowdLodScaleSq,
   FAR_ANIM_RANGE_SCALE_MAX,
   farAnimCadence,
   farAnimRangeScale,
   midAnimCadence,
+  movingHoldoutActive,
+  positionAdvancedThisTick,
   showsStaticFarMesh,
 } from '../src/render/crowd_lod';
+import { assertAllocationStable } from './util/alloc_probe';
+
+describe('character LOD allocation budget', () => {
+  it('fills one caller-owned band plan', () => {
+    const out = characterLodBands(0, 625, 3600, 1, 0);
+    expect(() =>
+      assertAllocationStable(
+        () => characterLodBandsInto(out, 20, 625, 3600, 1, 0),
+        64,
+        'character LOD plan',
+      ),
+    ).not.toThrow();
+  });
+});
 
 describe('crowdLodScaleSq', () => {
   it('leaves ordinary scenes at full range', () => {
@@ -83,41 +100,47 @@ describe('animatesEveryFrame', () => {
   const STRANGER = 3;
 
   it('exempts the local player', () => {
-    expect(animatesEveryFrame(SELF, SELF, TARGET, null)).toBe(true);
+    expect(animatesEveryFrame(SELF, SELF, TARGET, false)).toBe(true);
   });
 
   it('exempts the current target', () => {
-    expect(animatesEveryFrame(TARGET, SELF, TARGET, null)).toBe(true);
+    expect(animatesEveryFrame(TARGET, SELF, TARGET, false)).toBe(true);
   });
 
   it('exempts anything mid-cast, even an untargeted stranger', () => {
-    expect(animatesEveryFrame(STRANGER, SELF, TARGET, 'fireball')).toBe(true);
+    expect(animatesEveryFrame(STRANGER, SELF, TARGET, true)).toBe(true);
   });
 
   it("exempts the local player's pet while it is fighting", () => {
-    expect(animatesEveryFrame(STRANGER, SELF, TARGET, null, true, SELF, TARGET, null)).toBe(true);
+    expect(animatesEveryFrame(STRANGER, SELF, TARGET, false, true, SELF, TARGET, null)).toBe(true);
+  });
+
+  it('exempts a monster directly fighting the local player', () => {
+    expect(animatesEveryFrame(STRANGER, SELF, TARGET, false, true, null, SELF, null)).toBe(true);
   });
 
   it("exempts a monster fighting the local player's pet", () => {
     const PET = 4;
-    expect(animatesEveryFrame(STRANGER, SELF, TARGET, null, true, null, PET, SELF)).toBe(true);
+    expect(animatesEveryFrame(STRANGER, SELF, TARGET, false, true, null, PET, SELF)).toBe(true);
   });
 
   it('exempts an ally fighting the current target', () => {
-    expect(animatesEveryFrame(STRANGER, SELF, TARGET, null, true, null, TARGET, null)).toBe(true);
+    expect(animatesEveryFrame(STRANGER, SELF, TARGET, false, true, null, TARGET, null)).toBe(true);
   });
 
   it('does not exempt idle pets outside combat', () => {
-    expect(animatesEveryFrame(STRANGER, SELF, TARGET, null, false, SELF, TARGET, null)).toBe(false);
+    expect(animatesEveryFrame(STRANGER, SELF, TARGET, false, false, SELF, TARGET, null)).toBe(
+      false,
+    );
   });
 
   it('does not exempt an idle, untargeted stranger', () => {
     // the only case the crowd cadence is allowed to throttle
-    expect(animatesEveryFrame(STRANGER, SELF, TARGET, null)).toBe(false);
+    expect(animatesEveryFrame(STRANGER, SELF, TARGET, false)).toBe(false);
   });
 
   it('does not exempt a stranger just because the player has no target', () => {
-    expect(animatesEveryFrame(STRANGER, SELF, null, null)).toBe(false);
+    expect(animatesEveryFrame(STRANGER, SELF, null, false)).toBe(false);
   });
 });
 
@@ -299,5 +322,69 @@ describe('showsStaticFarMesh', () => {
     const pressured = characterLodBands(48, SHADOW_BASE_SQ, LOD_BASE_SQ, 1, 4);
     expect(showsStaticFarMesh(yd(50), pressured, true)).toBe(false);
     expect(showsStaticFarMesh(yd(50), pressured, false)).toBe(true);
+  });
+});
+
+// The sliding-statue bug: the renderer passes a gated movement signal into
+// `showsStaticFarMesh`, so a walking mob the crowd pulled into the frozen band
+// gets the SAME uncrowded floor a caster's fairness carve-out does. A parked
+// mob is untouched: it looks identical whether its mixer runs or not, so
+// ordinary crowd-driven freezing still applies to it.
+describe('positionAdvancedThisTick', () => {
+  it('is false for a position unchanged since last tick', () => {
+    expect(positionAdvancedThisTick({ x: 12, z: -4 }, { x: 12, z: -4 })).toBe(false);
+  });
+
+  it('is true for any horizontal delta, however small', () => {
+    expect(positionAdvancedThisTick({ x: 12.001, z: -4 }, { x: 12, z: -4 })).toBe(true);
+    expect(positionAdvancedThisTick({ x: 12, z: -3.5 }, { x: 12, z: -4 })).toBe(true);
+  });
+
+  it('ignores a vertical-only change (falling or jumping in place)', () => {
+    // showsStaticFarMesh never sees y, but the predicate itself must agree:
+    // a body dropping straight down is not the ground-sliding artifact.
+    expect(positionAdvancedThisTick({ x: 5, z: 5 }, { x: 5, z: 5 })).toBe(false);
+  });
+
+  it('flags a large jump the same as a small step (a teleport still deserves its rig)', () => {
+    expect(positionAdvancedThisTick({ x: 500, z: 500 }, { x: 5, z: 5 })).toBe(true);
+  });
+});
+
+describe('movingHoldoutActive', () => {
+  it('holds while position interpolation is active', () => {
+    expect(movingHoldoutActive({ x: 40, z: 0 }, { x: 39.9, z: 0 }, 0.5, 1)).toBe(true);
+  });
+
+  it('releases a stale online remote position delta after interpolation saturates', () => {
+    expect(movingHoldoutActive({ x: 40, z: 0 }, { x: 39.9, z: 0 }, 1.25, 1.25)).toBe(false);
+  });
+
+  it('keeps an explicit velocity signal held out even after interpolation saturates', () => {
+    expect(movingHoldoutActive({ x: 40, z: 0 }, { x: 39.9, z: 0 }, 1.25, 1.25, true)).toBe(true);
+  });
+});
+
+describe('the frozen-mesh swap exempts a moving mob the crowd pulled in', () => {
+  const dense = characterLodBands(48, SHADOW_BASE_SQ, LOD_BASE_SQ, FAR_ANIM_RANGE_SCALE_MAX);
+
+  it('reproduces the bug report: a walking bandit at 40yd in a packed camp used to freeze', () => {
+    const prevPos = { x: 39.9, z: 0 };
+    const pos = { x: 40, z: 0 };
+    const moving = movingHoldoutActive(pos, prevPos, 0.5, 1);
+    // no movement signal: unchanged legacy behaviour
+    expect(showsStaticFarMesh(yd(40), dense, false)).toBe(true);
+    // the same distance, but the renderer now also passes this tick's active movement signal
+    expect(showsStaticFarMesh(yd(40), dense, false, moving)).toBe(false);
+  });
+
+  it('still freezes the same mob the instant it stops (no residual unfreeze)', () => {
+    const moving = movingHoldoutActive({ x: 40, z: 0 }, { x: 40, z: 0 }, 0.5, 1);
+    expect(showsStaticFarMesh(yd(40), dense, false, moving)).toBe(true);
+  });
+
+  it('lets a parked stale online remote actor become static far LOD again', () => {
+    const moving = movingHoldoutActive({ x: 40, z: 0 }, { x: 39.9, z: 0 }, 1.25, 1.25);
+    expect(showsStaticFarMesh(yd(40), dense, false, moving)).toBe(true);
   });
 });

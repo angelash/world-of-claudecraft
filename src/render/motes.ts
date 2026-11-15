@@ -1,9 +1,16 @@
 import * as THREE from 'three';
-import { DUNGEON_X_THRESHOLD, WORLD_MAX_X, WORLD_MAX_Z, WORLD_MIN_Z } from '../sim/data';
+import {
+  DUNGEON_X_THRESHOLD,
+  getActiveWorldContent,
+  isBuiltinWorldActive,
+  WORLD_MAX_X,
+  WORLD_MAX_Z,
+  WORLD_MIN_Z,
+} from '../sim/data';
 import type { BiomeId } from '../sim/types';
-import { isInSowfieldShell } from '../sim/vale_cup_layout';
-import { terrainHeight, waterLevelAt, zoneBiomeAt } from '../sim/world';
+import { terrainHeight, WATER_LEVEL, zoneBiomeAt } from '../sim/world';
 import { GFX } from './gfx';
+import { moteKeepOutFade } from './motes_keepout_core';
 
 // ---------------------------------------------------------------------------
 // Ambient motes — a render-only field of drifting airborne specks (pollen in
@@ -29,7 +36,31 @@ const MOTE_TINT: Record<BiomeId, number> = {
   desert: 0xecd9a0,
   volcano: 0xe8a070,
   cave: 0xa8c4b8,
+  dusk: 0xf2b8e0,
+  ember: 0xffa868,
+  frost: 0xcfe8ff,
+  amber: 0xffd98a, // drifting golden leaves
+  fen: 0xeaffd0, // drifting pollen and midge-glow
+  night: 0xf2dcff, // dream sparkles: pale rose-white drift
+  haunt: 0xc2d4b4, // drifting grave-pale spores
+  jungle: 0xfff2b0, // sun-caught pollen and midges
+  garden: 0xffccd8, // drifting rose petals
+  gale: 0xeef6ff, // wind-torn sea spray
 };
+
+// Realms that drift NO motes: the northern columns and headlands read cleaner
+// without the airborne glints (Palmreach, Willowfen, Galecrest, Evergarden,
+// Drakelands, Nightbloom, Wraithwood). A mote landing on one of these biomes
+// simply parks until the player carries the ring somewhere that drifts.
+const MOTELESS_BIOMES: ReadonlySet<BiomeId> = new Set([
+  'jungle',
+  'fen',
+  'gale',
+  'garden',
+  'ember',
+  'night',
+  'haunt',
+]);
 
 const RADIUS = 26; // motes live within this ring of the player
 const FLOOR = 0.6; // min height above the sampled ground
@@ -52,13 +83,15 @@ function moteSprite(): THREE.Texture {
   const s = 32;
   const cv = document.createElement('canvas');
   cv.width = cv.height = s;
-  const g = cv.getContext('2d')!;
-  const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-  grad.addColorStop(0, 'rgba(255,255,255,1)');
-  grad.addColorStop(0.4, 'rgba(255,255,255,0.5)');
-  grad.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, s, s);
+  const g = cv.getContext('2d');
+  if (g) {
+    const grad = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.4, 'rgba(255,255,255,0.5)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, s, s);
+  }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
@@ -75,6 +108,13 @@ export function buildMotes(seed: number): MotesView {
 
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
+  // each mote's biome tint at full strength; `colors` is this scaled by the
+  // keep-out fade (motes_keepout_core.ts), so a mote drifting through the
+  // player's own column fades out instead of sitting on them as a light ball.
+  // Additive blending, so a black vertex colour draws nothing: no program change.
+  const baseColors = new Float32Array(count * 3);
+  // the fade last written per mote (-1 forces the next write)
+  const fadeNow = new Float32Array(count).fill(-1);
   // per-mote animation state: drift phase, bob amplitude, base ground height
   const phase = new Float32Array(count);
   const bobAmp = new Float32Array(count);
@@ -84,6 +124,19 @@ export function buildMotes(seed: number): MotesView {
   const homeZ = new Float32Array(count);
 
   const tmpColor = new THREE.Color();
+  let colorsDirty = false;
+
+  // Park an unusable mote: it keeps its last position, so its colour goes to black
+  // (draws nothing under additive blending) or a leftover speck could sit in the
+  // player's column unfaded. place() resets fadeNow, so a later re-home restores it.
+  function park(i: number): void {
+    baseY[i] = -1e6;
+    colors[i * 3] = 0;
+    colors[i * 3 + 1] = 0;
+    colors[i * 3 + 2] = 0;
+    fadeNow[i] = 0;
+    colorsDirty = true;
+  }
 
   // (re)home a single mote to a random spot inside the ring around the player,
   // re-sampling terrain + biome tint. Returns false when the spot is unusable
@@ -94,9 +147,10 @@ export function buildMotes(seed: number): MotesView {
     const x = px + Math.cos(ang) * r;
     const z = pz + Math.sin(ang) * r;
     if (Math.abs(x) > WORLD_MAX_X - 8 || z < WORLD_MIN_Z + 8 || z > WORLD_MAX_Z - 8) return false;
-    if (isInSowfieldShell(x, z)) return false; // no pollen drifting over the mown pitch
+    const biome = zoneBiomeAt(x, z);
+    if (MOTELESS_BIOMES.has(biome)) return false; // these realms drift no motes
     const h = terrainHeight(x, z, seed);
-    if (h < waterLevelAt(x, z) + 0.5) return false; // no motes hovering over open water
+    if (h < WATER_LEVEL + 0.5) return false; // no motes hovering over open water
     homeX[i] = x;
     homeZ[i] = z;
     baseY[i] = h;
@@ -105,26 +159,34 @@ export function buildMotes(seed: number): MotesView {
     positions[i * 3] = x;
     positions[i * 3 + 1] = h + bobAmp[i];
     positions[i * 3 + 2] = z;
-    tmpColor.setHex(MOTE_TINT[zoneBiomeAt(z)]);
-    colors[i * 3] = tmpColor.r;
-    colors[i * 3 + 1] = tmpColor.g;
-    colors[i * 3 + 2] = tmpColor.b;
+    tmpColor.setHex(MOTE_TINT[biome]);
+    baseColors[i * 3] = tmpColor.r;
+    baseColors[i * 3 + 1] = tmpColor.g;
+    baseColors[i * 3 + 2] = tmpColor.b;
+    fadeNow[i] = -1; // the update below writes the faded colour this frame
     return true;
   }
 
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const positionAttribute = new THREE.BufferAttribute(positions, 3).setUsage(
+    THREE.DynamicDrawUsage,
+  );
+  // re-uploaded whenever a mote's keep-out fade moves (motes_keepout_core.ts)
+  const colorAttribute = new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('position', positionAttribute);
+  geo.setAttribute('color', colorAttribute);
 
   const mat = new THREE.PointsMaterial({
-    size: GFX.standardMaterials ? 0.5 : 0.7,
+    size: GFX.standardMaterials ? 0.3 : 0.46,
     map: moteSprite(),
     vertexColors: true,
     transparent: true,
     depthWrite: false, // glows shouldn't punch holes in what's behind them
     blending: THREE.AdditiveBlending,
     sizeAttenuation: true,
-    opacity: 0.85,
+    // 0.62 x 0.38u additive white-core dots read as bright noise speckling
+    // every daylight shot; drifting dust should be felt, not counted
+    opacity: 0.45,
   });
 
   const points = new THREE.Points(geo, mat);
@@ -137,6 +199,12 @@ export function buildMotes(seed: number): MotesView {
   return {
     group,
     update(px: number, pz: number, dt: number): void {
+      // The shipped world's ambience only: an authored map opts in
+      // (TerrainStyle.motes), so a maker's city carries no stray gold specks.
+      if (!isBuiltinWorldActive() && getActiveWorldContent().terrainStyle?.motes !== true) {
+        group.visible = false;
+        return;
+      }
       if (px > DUNGEON_X_THRESHOLD) {
         group.visible = false; // dungeons live outside the strip — no motes indoors
         seeded = false;
@@ -145,7 +213,7 @@ export function buildMotes(seed: number): MotesView {
       group.visible = true;
       if (!seeded) {
         for (let i = 0; i < count; i++) {
-          if (!place(i, px, pz)) baseY[i] = -1e6; // park unusable motes far below
+          if (!place(i, px, pz)) park(i); // park unusable motes far below
         }
         seeded = true;
       }
@@ -156,7 +224,7 @@ export function buildMotes(seed: number): MotesView {
         const dz = homeZ[i] - pz;
         if (dx * dx + dz * dz > RADIUS * RADIUS) {
           if (!place(i, px, pz)) {
-            baseY[i] = -1e6;
+            park(i);
             continue;
           }
         }
@@ -165,9 +233,24 @@ export function buildMotes(seed: number): MotesView {
         positions[i * 3] = homeX[i] + Math.sin(ph) * 0.5;
         positions[i * 3 + 1] = baseY[i] + bobAmp[i] + Math.sin(ph * 1.3) * 0.35;
         positions[i * 3 + 2] = homeZ[i] + Math.cos(ph * 0.8) * 0.5;
+        // Write-elided: only a mote whose keep-out fade moved rewrites its colour,
+        // so only the few motes drifting inside the ramp band ever re-upload.
+        const fade = moteKeepOutFade(positions[i * 3] - px, positions[i * 3 + 2] - pz);
+        // (the ends always land exactly, so a mote never parks at a near-zero glow)
+        const prev = fadeNow[i];
+        if (fade !== prev && (Math.abs(fade - prev) > 0.01 || fade === 0 || fade === 1)) {
+          fadeNow[i] = fade;
+          colors[i * 3] = baseColors[i * 3] * fade;
+          colors[i * 3 + 1] = baseColors[i * 3 + 1] * fade;
+          colors[i * 3 + 2] = baseColors[i * 3 + 2] * fade;
+          colorsDirty = true;
+        }
       }
-      geo.attributes.position.needsUpdate = true;
-      geo.attributes.color.needsUpdate = true;
+      positionAttribute.needsUpdate = true;
+      if (colorsDirty) {
+        colorAttribute.needsUpdate = true;
+        colorsDirty = false;
+      }
     },
   };
 }

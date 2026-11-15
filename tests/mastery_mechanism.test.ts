@@ -12,14 +12,14 @@ import { computeTalentModifiers } from '../src/sim/content/talents';
 import { MOBS } from '../src/sim/data';
 import { createMob, recalcPlayerStats } from '../src/sim/entity';
 import { Sim } from '../src/sim/sim';
-import type { Aura, Entity } from '../src/sim/types';
+import type { Entity } from '../src/sim/types';
 
 describe('mastery does not corrupt utility rate buffs (F1)', () => {
-  it("an Elemental shaman's spell-damage mastery leaves Ghost Wolf's 1.4x speed intact", () => {
+  it("an Elemental shaman's spell-damage mastery leaves Shadewolf's 1.4x speed intact", () => {
     const sim = new Sim({ seed: 1, playerClass: 'shaman', autoEquip: true });
     sim.setPlayerLevel(20);
     expect(sim.setSpec('elemental')).toBe(true); // mastery = +15% spell damage
-    // Ghost Wolf is a nature-school selfBuff whose value (1.4) is a movement-speed
+    // Shadewolf (ability id ghost_wolf) is a nature-school selfBuff whose value (1.4) is a movement-speed
     // MULTIPLIER, not a magnitude. The old `value < 1` guard scaled it by the spell
     // mastery mult and rounded 1.4 -> 2; it must now pass through untouched.
     const gw = sim.resolvedAbility('ghost_wolf', sim.playerId);
@@ -33,8 +33,9 @@ describe('mastery does not corrupt utility rate buffs (F1)', () => {
     const base = abilitiesKnownAt('paladin', 20, undefined).find(
       (a) => a.def.id === 'retribution_aura',
     );
-    const baseThorns = base?.effects.find((e) => e.type === 'selfBuff' && e.kind === 'thorns');
-    expect(baseThorns && 'value' in baseThorns ? baseThorns.value : null).toBe(5);
+    const baseThorns = base?.effects.find((e) => e.type === 'buffTarget' && e.kind === 'thorns');
+    // Rank 3 at level 20 (the aura ranks 5 -> 12 -> 22 at levels 7, 13 and 18).
+    expect(baseThorns && 'value' in baseThorns ? baseThorns.value : null).toBe(22);
 
     const retMods = computeTalentModifiers(
       'paladin',
@@ -44,27 +45,48 @@ describe('mastery does not corrupt utility rate buffs (F1)', () => {
     const ret = abilitiesKnownAt('paladin', 20, retMods).find(
       (a) => a.def.id === 'retribution_aura',
     );
-    const retThorns = ret?.effects.find((e) => e.type === 'selfBuff' && e.kind === 'thorns');
-    // 5 * 1.2 (ret meleeDmgPct 0.2) = 6, not 5 (the pre-fix regression left it at 5).
-    expect(retThorns && 'value' in retThorns ? retThorns.value : null).toBe(6);
+    const retThorns = ret?.effects.find((e) => e.type === 'buffTarget' && e.kind === 'thorns');
+    // 22 * 1.2 (ret meleeDmgPct 0.2) = 26, not 22 (the pre-fix regression left it unscaled).
+    expect(retThorns && 'value' in retThorns ? retThorns.value : null).toBe(26);
   });
 
-  it('Resolve Unbroken strengthens its stat buff via buffPct, not the buff-exempt dmgPct', () => {
-    // The active Talents V2 row buffs a percent stat buff; with damage mods no longer
-    // scaling percent buffs, it must ride buffPct. The row's 50% modifier scales the
-    // +5% base buff to the authored +7.5%, without rounding the percentage to 8%.
-    const mods = computeTalentModifiers(
-      'priest',
-      { spec: null, rows: { 17: 'pri_r17_improved_fortitude' } },
+  it('a mastery strengthens a fractional rate buff (Subtlety on Stealth) without rounding it', () => {
+    // The buffPct counterpart to the thorns case above: a mastery that STRENGTHENS a
+    // buff must scale a rate-shaped value as a fraction, not round it like a flat
+    // magnitude (stealth is deliberately absent from INTEGRAL_BUFF_KINDS).
+    // Subtlety is the live buffPct-on-a-rate pair in the content, so it pins the
+    // shipped tuning: Duskveil runs at full speed (1.0) and the mastery adds 15%,
+    // a fractional 1.15 that Math.round would flatten back to 1. The second
+    // assertion drives the same applyTalentMods path with a larger fractional
+    // product as a second witness.
+    const stealthValue = (mods: ReturnType<typeof computeTalentModifiers> | undefined): number => {
+      const ability = abilitiesKnownAt('rogue', 20, mods).find((a) => a.def.id === 'stealth');
+      const buff = ability?.effects.find((e) => e.type === 'selfBuff' && e.kind === 'stealth');
+      if (!buff || !('value' in buff)) throw new Error('missing stealth selfBuff');
+      return buff.value;
+    };
+
+    expect(stealthValue(undefined)).toBeCloseTo(1, 6);
+
+    const subtlety = computeTalentModifiers(
+      'rogue',
+      { spec: 'subtlety', ranks: {}, choices: {} },
       20,
     );
-    const fortitude = abilitiesKnownAt('priest', 20, mods).find(
-      (a) => a.def.id === 'power_word_fortitude',
-    );
-    const buff = fortitude?.effects.find(
-      (e) => e.type === 'buffTarget' && e.kind === 'buff_sta_pct',
-    );
-    expect(buff && 'value' in buff ? buff.value : null).toBe(7.5);
+    // 1.0 * 1.15 (subtlety buffPct 0.15): Skulduggery moves 15% faster in Duskveil.
+    expect(stealthValue(subtlety)).toBeCloseTo(1.15, 6);
+
+    // The rounding half of the claim, driven through the same resolver: a
+    // fractional buffPct must land on a fractional value. Math.round would give
+    // 1 here and silently double the buff, the F1 regression.
+    const fractional = {
+      ...subtlety,
+      abilities: {
+        ...subtlety.abilities,
+        stealth: { ...subtlety.abilities.stealth, buffPct: 0.5 },
+      },
+    } as typeof subtlety;
+    expect(stealthValue(fractional)).toBeCloseTo(1.5, 6);
   });
 });
 
@@ -77,6 +99,7 @@ describe('Gloamveil Form amplifies Shadow damage by 15%', () => {
     const p = sim.entities.get(sim.playerId) as Entity;
     if (inForm) {
       p.auras.push({
+        id: 'test_shadow_form',
         kind: 'form_shadow',
         name: 'Gloamveil Form',
         value: 15,
@@ -84,7 +107,7 @@ describe('Gloamveil Form amplifies Shadow damage by 15%', () => {
         duration: 3600,
         sourceId: p.id,
         school: 'shadow',
-      } as Aura);
+      });
     }
     const dummy = createMob(
       (sim as unknown as { nextId: number }).nextId++,
@@ -130,6 +153,7 @@ describe('Gloamveil Form amplifies Shadow damage by 15%', () => {
       p.resource = p.maxResource;
       if (inForm) {
         p.auras.push({
+          id: 'test_shadow_form',
           kind: 'form_shadow',
           name: 'Gloamveil Form',
           value: 15,
@@ -137,7 +161,7 @@ describe('Gloamveil Form amplifies Shadow damage by 15%', () => {
           duration: 3600,
           sourceId: p.id,
           school: 'shadow',
-        } as Aura);
+        });
       }
       const dummy = createMob(
         (sim as unknown as { nextId: number }).nextId++,
@@ -172,6 +196,7 @@ describe('Gloamveil Form amplifies Shadow damage by 15%', () => {
     p.facing = 0;
     p.resource = p.maxResource;
     p.auras.push({
+      id: 'test_shadow_form',
       kind: 'form_shadow',
       name: 'Gloamveil Form',
       value: 15,
@@ -179,7 +204,7 @@ describe('Gloamveil Form amplifies Shadow damage by 15%', () => {
       duration: 3600,
       sourceId: p.id,
       school: 'shadow',
-    } as Aura);
+    });
     // Cast a heal (Lesser Heal, a ~2 s cast). When it resolves, the form must drop.
     sim.castAbility('lesser_heal', sim.playerId);
     for (let i = 0; i < 60 && p.auras.some((a) => a.kind === 'form_shadow'); i++) sim.tick();
@@ -217,6 +242,7 @@ describe('channeled spell crits take the spell crit-damage mastery', () => {
       // Force every tick to crit via an aura (survives the recalc-on-cast that would
       // reset a raw stat override). spellCrit reads this bonus live, so >1 = always crit.
       p.auras.push({
+        id: 'test_forced_crit',
         kind: 'buff_spellcrit',
         name: 'test-forced-crit',
         value: 5,
@@ -224,7 +250,7 @@ describe('channeled spell crits take the spell crit-damage mastery', () => {
         duration: 60,
         sourceId: p.id,
         school: 'arcane',
-      } as Aura);
+      });
       const dummy = createMob(
         (sim as unknown as { nextId: number }).nextId++,
         MOBS.ridge_stalker,
@@ -260,14 +286,14 @@ describe('crit-damage masteries are scoped to their channel (F4)', () => {
     expect(sim.setSpec('holy')).toBe(true);
     const p = sim.entities.get(sim.playerId) as Entity;
     // Holy mastery boosts HEAL crits only; the spell and physical crit channels stay 0,
-    // so the paladin's Holy Shock / Crusader Strike crits are not amplified.
+    // so the paladin's Lightjolt / Oathstrike crits are not amplified.
     expect(p.critDmgHealBonus).toBeCloseTo(0.5);
     expect(p.critDmgSpellBonus).toBe(0);
     expect(p.critDmgPhysBonus).toBe(0);
   });
 });
 
-describe('Demonology damage redirect is not double-modified (F7)', () => {
+describe('Necromancy Graveguard redirect is not double-modified (F7)', () => {
   it("a source's Defensive Stance cut is applied once, not again on the pet's share", () => {
     const sim = new Sim({ seed: 1, playerClass: 'warlock', autoEquip: true });
     sim.setPlayerLevel(20);
@@ -275,8 +301,8 @@ describe('Demonology damage redirect is not double-modified (F7)', () => {
     const wl = sim.entities.get(sim.playerId) as Entity;
     wl.maxHp = wl.hp = 1_000_000;
     wl.resource = wl.maxResource;
-    // Bring up the demon: the summon is a multi-second cast, so tick past it.
-    sim.castAbility('summon_voidwalker', sim.playerId);
+    // Bring up the Graveguard: the summon is a multi-second cast, so tick past it.
+    sim.castAbility('raise_graveguard', sim.playerId);
     for (let i = 0; i < 20 * 12 && sim.player.castingAbility; i++) sim.tick();
     const pet = sim.petOf(sim.playerId) as Entity;
     expect(pet).toBeTruthy();
@@ -293,7 +319,16 @@ describe('Demonology damage redirect is not double-modified (F7)', () => {
         z: wl.pos.z + 3,
       },
     );
-    source.auras.push({ kind: 'defensive_stance', value: 0, remaining: 60, duration: 60 } as Aura);
+    source.auras.push({
+      id: 'test_defensive_stance',
+      name: 'Defensive Stance',
+      kind: 'defensive_stance',
+      value: 0,
+      remaining: 60,
+      duration: 60,
+      sourceId: source.id,
+      school: 'physical',
+    });
     (sim as unknown as { addEntity(e: Entity): void }).addEntity(source);
 
     const wl0 = wl.hp;
@@ -312,7 +347,7 @@ describe('Demonology damage redirect is not double-modified (F7)', () => {
     const wl = sim.player;
     wl.maxHp = wl.hp = 1_000_000;
     wl.resource = wl.maxResource;
-    sim.castAbility('summon_voidwalker');
+    sim.castAbility('raise_graveguard');
     for (let i = 0; i < 20 * 12 && wl.castingAbility; i++) sim.tick();
     const pet = sim.petOf(sim.playerId) as Entity;
     expect(pet).toBeTruthy();

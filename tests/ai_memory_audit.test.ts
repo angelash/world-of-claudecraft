@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { cloneMemoryAudit, rumorMemoryAudit, worldTraceMemoryAudit } from '../server/ai/memory_audit';
+import {
+  cloneMemoryAudit,
+  rumorMemoryAudit,
+  worldTraceMemoryAudit,
+} from '../server/ai/memory_audit';
 import type { AiRumorMemory } from '../server/ai/social_memory';
 import type { AiWorldTrace } from '../server/ai/world_traces';
 
@@ -52,21 +56,24 @@ describe('AI memory audit records', () => {
   });
 
   it('clones line id arrays for journal snapshots', () => {
-    const record = rumorMemoryAudit({
-      rumorId: 'rumor-2',
-      sceneId: 'fallen_chapel',
-      originSceneId: 'fallen_chapel',
-      zoneId: 'eastbrook_vale',
-      itemId: 'q_wolves',
-      subjectKind: 'quest',
-      questId: 'q_wolves',
-      sourcePlayerEntityId: 1,
-      lineIds: ['hudChrome.aiSpeech.memoryQuestRumorEcho'],
-      strength: 0.5,
-      scope: 'scene',
-      createdAt: 2,
-      expiresAt: 60,
-    }, 'questDone:q_wolves');
+    const record = rumorMemoryAudit(
+      {
+        rumorId: 'rumor-2',
+        sceneId: 'fallen_chapel',
+        originSceneId: 'fallen_chapel',
+        zoneId: 'eastbrook_vale',
+        itemId: 'q_wolves',
+        subjectKind: 'quest',
+        questId: 'q_wolves',
+        sourcePlayerEntityId: 1,
+        lineIds: ['hudChrome.aiSpeech.memoryQuestRumorEcho'],
+        strength: 0.5,
+        scope: 'scene',
+        createdAt: 2,
+        expiresAt: 60,
+      },
+      'questDone:q_wolves',
+    );
 
     const cloned = cloneMemoryAudit(record);
     cloned.lineIds.push('hudChrome.aiSpeech.topicQuestNoHint');

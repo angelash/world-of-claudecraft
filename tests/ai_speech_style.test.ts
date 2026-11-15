@@ -8,7 +8,9 @@ describe('AI speech style', () => {
     expect(rules).toContain('one breath, one image, one reaction');
     expect(rules).toContain('Do not start with 首先, 其次, 最后, 不过');
     expect(rules).toContain('Do not use 你问的是, 如果你要问, 真要说, 先说一句, 我建议你');
-    expect(rules).toContain('Assistant-like habits to avoid: connector-first openings, question restatement scaffolding');
+    expect(rules).toContain(
+      'Assistant-like habits to avoid: connector-first openings, question restatement scaffolding',
+    );
     expect(rules).toContain('不要只写“闻到了吗？”');
     expect(rules).toContain('某某开口前');
   });
@@ -26,7 +28,7 @@ describe('AI speech style', () => {
 
   it('polishes assistant-like English phrasing into a shorter spoken line', () => {
     const text = polishDynamicSpeechText(
-      "However, to answer your question: I am keeping an eye on the road; it is too quiet tonight.",
+      'However, to answer your question: I am keeping an eye on the road; it is too quiet tonight.',
       'en',
     );
 
@@ -48,48 +50,35 @@ describe('AI speech style', () => {
       'en',
     );
 
-    expect(text).toBe("Stay close to the torchlight.");
+    expect(text).toBe('Stay close to the torchlight.');
   });
 
   it('drops fingerprint-specific avoided phrases from English speech', () => {
-    const text = polishDynamicSpeechText(
-      'This means the graves are listening tonight.',
-      'en',
-      {
-        sentenceRhythm: 'soft',
-        addressStyle: 'sparing',
-        favoriteStarts: ['Keep your voice low'],
-        sensoryBias: ['cold air'],
-        avoidedPhrases: ['this means'],
-      },
-    );
+    const text = polishDynamicSpeechText('This means the graves are listening tonight.', 'en', {
+      sentenceRhythm: 'soft',
+      addressStyle: 'sparing',
+      favoriteStarts: ['Keep your voice low'],
+      sensoryBias: ['cold air'],
+      avoidedPhrases: ['this means'],
+    });
 
     expect(text).toBe('The graves are listening tonight.');
   });
 
   it('strips extra Chinese scaffolding before keeping the spoken image', () => {
-    const text = polishDynamicSpeechText(
-      '其实，重点是，风里有铁锈味，像有人刚动过锁。',
-      'zh_CN',
-    );
+    const text = polishDynamicSpeechText('其实，重点是，风里有铁锈味，像有人刚动过锁。', 'zh_CN');
 
     expect(text).toBe('风里有铁锈味，像有人刚动过锁。');
   });
 
   it('strips layered Chinese answer scaffolding and essay-like openers', () => {
-    const text = polishDynamicSpeechText(
-      '首先，真要说，先说一句，风把灰吹进门缝了。',
-      'zh_CN',
-    );
+    const text = polishDynamicSpeechText('首先，真要说，先说一句，风把灰吹进门缝了。', 'zh_CN');
 
     expect(text).toBe('风把灰吹进门缝了。');
   });
 
   it('strips third-person Chinese action narration down to the bare emote fragment', () => {
-    const text = polishDynamicSpeechText(
-      'Brother Aldric开口前偷偷瞥了一眼星空。',
-      'zh_CN',
-    );
+    const text = polishDynamicSpeechText('Brother Aldric开口前偷偷瞥了一眼星空。', 'zh_CN');
 
     expect(text).toBe('偷偷瞥了一眼星空。');
   });

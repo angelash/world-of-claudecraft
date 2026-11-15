@@ -1,22 +1,51 @@
 // Ground quest sparkle objects — Meshy-generated GLBs matching Kenney/Quaternius props.
 
 import * as THREE from 'three';
-import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import { loadGltf } from './assets/loader';
-import { registerPreload } from './assets/preload';
+import { type LoadedGltf, loadGltf } from './assets/loader';
+import { registerDeferredPreload } from './assets/preload';
+import {
+  buildFarshoreSalvageObject,
+  FARSHORE_SALVAGE_URLS,
+  groundQuestObjectYaw,
+  salvageVisualItemId,
+} from './farshore_salvage_assets';
+import {
+  FENBRIDGE_SURFACE_NORMAL_SCALE,
+  fenbridgeSemanticForColor,
+  fenbridgeSurfaceAtlasTexture,
+  fenbridgeSurfaceGeometry,
+  fenbridgeSurfaceNormalTexture,
+  fenbridgeSurfaceRoughnessTexture,
+} from './fenbridge_surface_atlas';
+
+export {
+  farshoreSalvagePrewarmPlan,
+  prepareFarshoreSalvageObjects,
+  prewarmFarshoreSalvageObjects,
+} from './farshore_salvage_assets';
+
+import { buildForgeAnvilTarget, buildForgeWellTarget } from './forge_anvil_target';
 import { GFX, surfaceMat } from './gfx';
+import { markSharedGeometry, markSharedMaterial } from './shared_resource';
+import { buildWorldQuestFreightWagon } from './world_quest_freight_visual';
+import { applySurfaceDetail, wornFamilyFor } from './worn_stone';
 
 /** Target max height after normalization (~sparkle anchor at 1.35). */
 const TARGET_HEIGHT = 1.35;
 
 const QUEST_OBJECT_URLS: Record<string, string> = {
+  forge_fuel: '/models/resources/wood_log_stack.glb',
+  forge_metal: '/models/quest/supply_crate.glb',
+  north_watch_cannon: '/models/biome/hex_cannon.glb',
+  last_keep_cannon: '/models/biome/hex_cannon.glb',
+  eastbrook_freight_crate: '/models/quest/supply_crate.glb',
   crypt_ritual_circle: '/models/quest/crypt_ritual_circle.glb',
   supply_crate: '/models/quest/supply_crate.glb',
   lost_caravan_goods: '/models/quest/lost_caravan_goods.glb',
   gravecaller_sigil: '/models/quest/gravecaller_sigil.glb',
   gravewyrm_sigil: '/models/quest/gravewyrm_sigil.glb',
   weathered_ledger_page: '/models/quest/weathered_ledger_page.glb',
-  fen_muster_order: '/models/quest/weathered_ledger_page.glb',
+  fen_muster_order: '/models/quest/fenbridge_muster_order.glb',
   highwatch_summons: '/models/quest/weathered_ledger_page.glb',
   morthen_grimoire: '/models/quest/morthen_grimoire.glb',
   rusted_censer: '/models/quest/rusted_censer.glb',
@@ -27,9 +56,24 @@ const QUEST_OBJECT_URLS: Record<string, string> = {
   grave_sir_aldren: '/models/dungeon/gravestone.glb',
   grave_high_priest_malric: '/models/dungeon/gravestone.glb',
   grave_captain_voss: '/models/dungeon/gravestone.glb',
+  // The Proving Shore ferry bells (a clicked travel object, not a pickup):
+  // the standing bell-on-frame prop the marsh dressing already ships.
+  ps_ferry_bell: '/models/props/marsh_bell_gallows.glb',
+  leyline_cache: '/models/dungeon/chest.glb',
+  confection_game_box: '/models/dungeon/chest.glb',
+  // Gourdlight Eve's dailies (content/gourdlight_eve_dailies.ts): a stray pumpkin from
+  // Old Thatchgrin's patch, and a green-flamed cursed candle at a town lamp's foot
+  thatchgrin_patch_pumpkin: '/models/dungeon/pumpkin_orange.glb',
+  cursed_candle_stub: '/models/dungeon/skull_candle.glb',
 };
 
 const QUEST_OBJECT_HEIGHTS: Record<string, number> = {
+  forge_fuel: 1.5,
+  forge_metal: 1.6,
+  forge_water: 2.8,
+  forge_tools: 1.7,
+  north_watch_cannon: 2.4,
+  last_keep_cannon: 2.4,
   // The Nythraxis soul wardstones are an active raid mechanic — make them a tall,
   // obvious glowing pillar rather than a small sigil so all three read at range.
   bastion_ward_stone: 3.4,
@@ -38,9 +82,23 @@ const QUEST_OBJECT_HEIGHTS: Record<string, number> = {
   grave_sir_aldren: 1.6,
   grave_high_priest_malric: 1.6,
   grave_captain_voss: 1.6,
+  // A closed tome resting on the ground: shorter than the scroll/sigil
+  // pickups, since it lies flat rather than standing upright.
+  royal_seal: 1.5,
+  // A standing bell frame players travel by: tall enough to read at range,
+  // shy of the 3.4 the raid wardstones claim.
+  ps_ferry_bell: 2.6,
+  leyline_cache: 0.85,
+  confection_game_box: 0.85,
+  thatchgrin_patch_pumpkin: 0.75,
+  cursed_candle_stub: 0.7,
 };
 
 const SCROLL_ITEM_IDS = new Set(['weathered_ledger_page', 'fen_muster_order', 'highwatch_summons']);
+// Fenbridge's dedicated replacement GLB already contains its teal binding,
+// wax seal, and three ink/metal lines. Legacy scroll garnish would duplicate
+// that geometry and incorrectly turn the reference-accurate binding gold.
+const AUTHORED_SCROLL_CUE_IDS = new Set(['fen_muster_order']);
 
 interface ScrollStyle {
   parchmentTint?: number;
@@ -78,19 +136,50 @@ const ITEM_MAT_OVERRIDES: Record<
   soulshard_pillar: { color: 0x6f1b2c, emissive: 0x8f1232, emissiveIntensity: 0.42 },
   sanctum_key_shard: { emissive: 0x1a4060, emissiveIntensity: 0.5 },
   morthen_grimoire: { emissive: 0x3a1850, emissiveIntensity: 0.12 },
+  leyline_cache: { color: 0x4f8edc, emissive: 0x245fb0, emissiveIntensity: 0.18 },
+  confection_game_box: { color: 0xc45a88, emissive: 0x8e2f63, emissiveIntensity: 0.12 },
+  // the cursed wick burns green, never warm: it reads apart from the event's own candles
+  cursed_candle_stub: { emissive: 0x3cff6e, emissiveIntensity: 0.45 },
 };
 
-const gltfByUrl = new Map<string, GLTF>();
+const gltfByUrl = new Map<string, LoadedGltf>();
 const preparedByItem = new Map<string, THREE.Group>();
 const proceduralByItem = new Map<string, THREE.Group>();
 
+function castsDynamicShadow(itemId: string): boolean {
+  return !AUTHORED_SCROLL_CUE_IDS.has(itemId);
+}
+
+function visualItemIdForEntity(itemId: string, entityId: number): string {
+  if (itemId === 'wq_infiltrator_orders') return 'fen_muster_order';
+  if (itemId === 'wq_infiltrator_ledger') return 'morthen_grimoire';
+  return salvageVisualItemId(itemId, entityId) ?? itemId;
+}
+
 /** Test-only window into the preload asset set (mirrors delve_props.ts). */
-export const questObjectPreloadInternalsForTest = { questObjectUrl: QUEST_OBJECT_URLS };
+export const questObjectPreloadInternalsForTest = {
+  questObjectUrl: { ...QUEST_OBJECT_URLS, ...FARSHORE_SALVAGE_URLS },
+  usesLegacyScrollDecoration: (itemId: string) =>
+    SCROLL_ITEM_IDS.has(itemId) && !AUTHORED_SCROLL_CUE_IDS.has(itemId),
+  usesSharedSurfaceDetail: (itemId: string) => !AUTHORED_SCROLL_CUE_IDS.has(itemId),
+  castsDynamicShadow,
+  convertMaterial,
+  visualItemIdForEntity,
+};
+
+/** Test-only cache reset, so a determinism test can force two independent builds. */
+export const questObjectCacheInternalsForTest = {
+  resetProceduralCaches: () => {
+    preparedByItem.clear();
+    proceduralByItem.clear();
+    measuredHeightByItem.clear();
+  },
+};
 
 if (typeof window !== 'undefined') {
   const urls = [...new Set(Object.values(QUEST_OBJECT_URLS))];
   for (const url of urls) {
-    registerPreload(
+    registerDeferredPreload(() =>
       loadGltf(url)
         .then((g) => {
           gltfByUrl.set(url, g);
@@ -158,26 +247,87 @@ function decorateScroll(root: THREE.Object3D, itemId: string): void {
   }
 }
 
+// Quest materials take the shared triplanar surface-detail layer via the same
+// family table as the props kits ('qprops' routing in worn_stone.ts
+// wornFamilyFor, matched on the SOURCE material name). Metal-named materials
+// now route through the metal family, whose envMapMin supersedes the old
+// METAL_MAT_NAME 1.3 boost. surfaceMat's cache is shared app-wide, so the
+// detailed variant is a one-time CLONE cached here by source material, never
+// a mutation of the shared instance. prepareItem caches the built group per
+// itemId, so this stays a handful of materials for the whole session.
+const surfaceDetailCache = new Map<string, THREE.Material>();
+
+export function resetQuestObjectProfileCaches(): void {
+  preparedByItem.clear();
+  proceduralByItem.clear();
+  surfaceDetailCache.clear();
+}
+
 function convertMaterial(src: THREE.Material, itemId: string): THREE.Material {
   const s = src as THREE.MeshStandardMaterial;
   const ov = ITEM_MAT_OVERRIDES[itemId];
-  const scrollTint = SCROLL_STYLES[itemId]?.parchmentTint;
+  const scrollTint = AUTHORED_SCROLL_CUE_IDS.has(itemId)
+    ? undefined
+    : SCROLL_STYLES[itemId]?.parchmentTint;
   const baseColor = ov?.color ?? scrollTint ?? s.color?.getHex() ?? 0xffffff;
   const color = new THREE.Color(baseColor);
   if (scrollTint !== undefined && s.map) {
     color.lerp(new THREE.Color(scrollTint), 0.35);
   }
-  return surfaceMat({
+  const fenbridgeAtlas = itemId === 'fen_muster_order' ? fenbridgeSurfaceAtlasTexture() : undefined;
+  const fenbridgePbr =
+    itemId === 'fen_muster_order' && GFX.standardMaterials
+      ? {
+          normalMap: fenbridgeSurfaceNormalTexture(),
+          roughnessMap: fenbridgeSurfaceRoughnessTexture(),
+        }
+      : { normalMap: undefined, roughnessMap: undefined };
+  // The muster order's aged-iron arm packs metalness in the response map's
+  // blue channel. It rides in the OPTIONS, never as a write on the returned
+  // material: surfaceMat dedupes by key and metalnessMap is a program-cache-key
+  // input, so a post-hoc write relinked every other prop sharing that entry.
+  const musterIron = fenbridgePbr.normalMap !== undefined;
+  const mat = surfaceMat({
     color: color.getHex(),
-    map: s.map ?? undefined,
-    normalMap: s.normalMap ?? undefined,
-    roughnessMap: s.roughnessMap ?? undefined,
+    map: fenbridgeAtlas ?? s.map ?? undefined,
+    vertexColors: fenbridgeAtlas ? false : s.vertexColors,
+    normalMap: fenbridgePbr.normalMap ?? s.normalMap ?? undefined,
+    roughnessMap: fenbridgePbr.roughnessMap ?? s.roughnessMap ?? undefined,
+    metalnessMap: musterIron ? fenbridgePbr.roughnessMap : (s.metalnessMap ?? undefined),
     roughness: s.roughness ?? 0.88,
-    metalness: Math.min(s.metalness ?? 0, 0.75),
+    metalness: musterIron ? 1 : (s.metalness ?? 0),
     emissive: ov?.emissive,
     emissiveIntensity: ov?.emissiveIntensity,
     flatShading: !GFX.standardMaterials,
+    side: s.side,
   });
+  if (musterIron && mat instanceof THREE.MeshStandardMaterial) {
+    mat.normalScale.setScalar(FENBRIDGE_SURFACE_NORMAL_SCALE);
+  }
+  if (
+    !AUTHORED_SCROLL_CUE_IDS.has(itemId) &&
+    GFX.standardMaterials &&
+    (mat as THREE.MeshStandardMaterial).isMeshStandardMaterial
+  ) {
+    const worn = wornFamilyFor('qprops', s.name, {
+      emissive: (ov?.emissive ?? 0) !== 0,
+      transparent: s.transparent === true,
+      hasOwnMaps: !!(s.normalMap || s.roughnessMap),
+    });
+    if (worn) {
+      const cacheKey = `${itemId}|${mat.uuid}|${worn.family}`;
+      let detailed = surfaceDetailCache.get(cacheKey);
+      if (!detailed) {
+        detailed = mat.clone();
+        applySurfaceDetail(detailed as THREE.MeshStandardMaterial, worn.family, {
+          strength: worn.strength,
+        });
+        surfaceDetailCache.set(cacheKey, detailed);
+      }
+      return detailed;
+    }
+  }
+  return mat;
 }
 
 // The ritual circle's procedural template is a flat, wide set piece (altar +
@@ -310,7 +460,176 @@ function buildRitualCircleTemplate(): THREE.Group {
   light.position.set(0, 1.2, 0);
   root.add(light);
 
-  proceduralByItem.set('crypt_ritual_circle', root);
+  proceduralByItem.set('crypt_ritual_circle', markTemplateShared(root));
+  return root;
+}
+
+// The royal_seal ("Ancient Diary") ground item has no GLB and never will
+// (see docs comment at the top of this file): it is reconstructed procedurally
+// from the reference icon at public/ui/items/royal_seal.webp, a closed
+// orange-gold leather tome with a sword-through-shield emblem plate stamped
+// on the front cover and gilt corner trim. This is a STYLIZED, APPROXIMATE
+// reconstruction: a single 2D icon shot from the front shows neither the
+// spine nor the back cover, so both are inferred as plain leather rather than
+// measured. Deterministic: every dimension is a fixed literal, no Rng/Math.random.
+function buildRoyalSealTemplate(): THREE.Group {
+  const cached = proceduralByItem.get('royal_seal');
+  if (cached) return cached;
+
+  const root = new THREE.Group();
+  const coverMat = surfaceMat(matProps(0xc9701f));
+  const pageMat = surfaceMat({ ...matProps(0xe8dcb8), roughness: 0.95 });
+  const goldMat = surfaceMat({
+    color: 0xd9a636,
+    roughness: 0.4,
+    metalness: 0.65,
+    flatShading: !GFX.standardMaterials,
+  });
+  const darkGoldMat = surfaceMat({
+    color: 0x8a5a1c,
+    roughness: 0.5,
+    metalness: 0.55,
+    flatShading: !GFX.standardMaterials,
+  });
+
+  const bookWidth = 0.92;
+  const bookDepth = 0.68;
+  const bookHeight = 0.32;
+  const coverThickness = 0.05;
+
+  // Page block between the top and bottom covers, inset on width/depth so the
+  // gilt cover edge reads at the fore-edge and sides.
+  const pages = new THREE.Mesh(
+    new THREE.BoxGeometry(bookWidth * 0.94, bookHeight - coverThickness * 2, bookDepth * 0.94),
+    pageMat,
+  );
+  pages.position.y = bookHeight * 0.5;
+  pages.castShadow = true;
+  pages.receiveShadow = true;
+  root.add(pages);
+
+  // Top and bottom covers: thin horizontal slabs spanning the full footprint,
+  // closing the book so it reads as a closed tome rather than an open tray.
+  for (const dy of [coverThickness * 0.5, bookHeight - coverThickness * 0.5]) {
+    const cover = new THREE.Mesh(
+      new THREE.BoxGeometry(bookWidth, coverThickness, bookDepth),
+      coverMat,
+    );
+    cover.position.set(0, dy, 0);
+    cover.castShadow = true;
+    cover.receiveShadow = true;
+    root.add(cover);
+  }
+
+  // Spine, running along the -X edge, connecting the top and bottom covers.
+  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.06, bookHeight, bookDepth), coverMat);
+  spine.position.set(-bookWidth * 0.5 + 0.03, bookHeight * 0.5, 0);
+  spine.castShadow = true;
+  spine.receiveShadow = true;
+  root.add(spine);
+
+  // Gilt corner trim, four L-shaped corner caps on the top cover only (the
+  // icon shows the front face; the back is inferred plain per the note above).
+  const cornerInset = 0.1;
+  for (const cx of [-1, 1]) {
+    for (const cz of [-1, 1]) {
+      const corner = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 8), goldMat);
+      corner.rotation.x = Math.PI / 2;
+      corner.position.set(
+        cx * (bookWidth * 0.5 - cornerInset),
+        bookHeight + 0.005,
+        cz * (bookDepth * 0.5 - cornerInset),
+      );
+      corner.castShadow = true;
+      root.add(corner);
+    }
+  }
+
+  // Gilt frame border stamped into the top cover.
+  const frameThickness = 0.03;
+  const frameY = bookHeight + 0.006;
+  const frameLenX = bookWidth * 0.72;
+  const frameLenZ = bookDepth * 0.72;
+  for (const dz of [-1, 1]) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(frameLenX, 0.012, frameThickness), goldMat);
+    bar.position.set(0, frameY, dz * frameLenZ * 0.5);
+    root.add(bar);
+  }
+  for (const dx of [-1, 1]) {
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(frameThickness, 0.012, frameLenZ), goldMat);
+    bar.position.set(dx * frameLenX * 0.5, frameY, 0);
+    root.add(bar);
+  }
+
+  // Emblem plate: a shield with a sword laid across it, matching the icon's
+  // stamped centerpiece.
+  const plateY = bookHeight + 0.01;
+  const shield = new THREE.Mesh(new THREE.CircleGeometry(0.15, 6), darkGoldMat);
+  shield.rotation.x = -Math.PI / 2;
+  shield.rotation.z = Math.PI / 6;
+  shield.position.set(0, plateY, 0);
+  root.add(shield);
+
+  const swordBlade = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.014, 0.34), goldMat);
+  swordBlade.position.set(0, plateY + 0.008, 0);
+  swordBlade.rotation.y = Math.PI / 4;
+  root.add(swordBlade);
+
+  const swordGuard = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.016, 0.028), goldMat);
+  swordGuard.position.set(0, plateY + 0.009, 0);
+  swordGuard.rotation.y = Math.PI / 4;
+  root.add(swordGuard);
+
+  // Clasp/strap holding the covers shut, on the +X edge opposite the spine.
+  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.05, bookHeight * 1.1, 0.14), darkGoldMat);
+  strap.position.set(bookWidth * 0.5 - 0.02, bookHeight * 0.5, 0);
+  strap.castShadow = true;
+  root.add(strap);
+
+  const claspStud = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 8), goldMat);
+  claspStud.rotation.z = Math.PI / 2;
+  claspStud.position.set(bookWidth * 0.5 + 0.01, bookHeight * 0.5, 0);
+  root.add(claspStud);
+
+  proceduralByItem.set('royal_seal', markTemplateShared(root));
+  return root;
+}
+
+// Procedural builders for items that have no GLB and never will. Keyed the
+// same way `prepareItem` looks them up, so adding a third no-GLB id here
+// automatically routes past the `supply_crate` fallback instead of silently
+// resolving to an invisible `null` template.
+const PROCEDURAL_NO_URL_BUILDERS: Record<string, () => THREE.Group> = {
+  royal_seal: buildRoyalSealTemplate,
+};
+
+const PROCEDURAL_ITEM_IDS = new Set([
+  'crypt_ritual_circle',
+  ...Object.keys(PROCEDURAL_NO_URL_BUILDERS),
+]);
+
+/**
+ * Measured post-normalization height (`Box3.max.y`) for items whose model is
+ * wider/deeper than it is tall, since `normalizeRoot` scales by the largest
+ * dimension: for those the nameplate/VFX anchor must come from the actual
+ * geometry, not the `QUEST_OBJECT_HEIGHTS` scale target (see the
+ * `RITUAL_CIRCLE_FOOTPRINT` comment above for the same trap on a flat prop).
+ */
+const measuredHeightByItem = new Map<string, number>();
+
+/** Tag a forever-cached template's geometry + materials shared BEFORE the
+ * first clone ships. Ground-object clones share both by reference, and the
+ * renderer's terminal teardown traverses views disposing unshared resources;
+ * untagged, the first teardown poisons the template for every renderer built
+ * after it (the WebGL context-recycle path). */
+function markTemplateShared<T extends THREE.Object3D>(root: T): T {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    markSharedGeometry(mesh.geometry);
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const m of mats) markSharedMaterial(m);
+  });
   return root;
 }
 
@@ -318,7 +637,15 @@ function prepareItem(itemId: string): THREE.Group | null {
   const cached = preparedByItem.get(itemId);
   if (cached) return cached;
   const url = QUEST_OBJECT_URLS[itemId];
-  if (!url) return null;
+  if (!url) {
+    const build = PROCEDURAL_NO_URL_BUILDERS[itemId];
+    if (!build) return null;
+    const template = build();
+    const measuredHeight = normalizeRoot(template, QUEST_OBJECT_HEIGHTS[itemId] ?? TARGET_HEIGHT);
+    measuredHeightByItem.set(itemId, measuredHeight);
+    preparedByItem.set(itemId, markTemplateShared(template));
+    return template;
+  }
   const gltf = gltfByUrl.get(url);
   if (!gltf) return itemId === 'crypt_ritual_circle' ? buildRitualCircleTemplate() : null;
 
@@ -326,34 +653,124 @@ function prepareItem(itemId: string): THREE.Group | null {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
+    if (itemId === 'fen_muster_order') {
+      const sourceColor = mesh.geometry.getAttribute('color');
+      const materialColor = (mesh.material as THREE.MeshStandardMaterial).color;
+      mesh.geometry = fenbridgeSurfaceGeometry(mesh.geometry, (index) => {
+        const red = sourceColor?.getX(index) ?? materialColor?.r ?? 1;
+        const green = sourceColor?.getY(index) ?? materialColor?.g ?? 1;
+        const blue = sourceColor?.getZ(index) ?? materialColor?.b ?? 1;
+        return fenbridgeSemanticForColor(red, green, blue);
+      });
+    }
     mesh.material = convertMaterial(mesh.material as THREE.Material, itemId);
-    mesh.castShadow = true;
+    // The two authored muster packets are tiny ground pickups in an already
+    // shadowed gate composition. Keeping them receive-only preserves contact
+    // while avoiding two extra town shadow draws beyond the 10-caster cap.
+    mesh.castShadow = castsDynamicShadow(itemId);
     mesh.receiveShadow = true;
   });
   if (itemId === 'crypt_ritual_circle') {
     normalizeRootByFootprint(root, RITUAL_CIRCLE_FOOTPRINT);
   } else {
-    normalizeRoot(root, QUEST_OBJECT_HEIGHTS[itemId] ?? TARGET_HEIGHT);
+    const measuredHeight = normalizeRoot(root, QUEST_OBJECT_HEIGHTS[itemId] ?? TARGET_HEIGHT);
+    measuredHeightByItem.set(itemId, measuredHeight);
   }
-  if (SCROLL_ITEM_IDS.has(itemId)) decorateScroll(root, itemId);
-  preparedByItem.set(itemId, root);
+  if (SCROLL_ITEM_IDS.has(itemId) && !AUTHORED_SCROLL_CUE_IDS.has(itemId)) {
+    decorateScroll(root, itemId);
+  }
+  preparedByItem.set(itemId, markTemplateShared(root));
   return root;
+}
+
+/** The feast contract bounds (scripts/assets/farm_props/model.js), which size
+ *  the no-item pick proxy below. BOTH feast GLBs, the party trestle table and
+ *  the apex pedestal banquet, are authored to this one envelope precisely so
+ *  the single proxy fits either table. Exported ONLY for the drift pin in
+ *  tests/farm_props_asset.test.ts: an authored prop resize on EITHER must move
+ *  this pair or the click box silently desyncs from the visible table. */
+export const NO_ITEM_PICK_HEIGHT = 0.9;
+export const NO_ITEM_PICK_FOOTPRINT = 1.6;
+
+/**
+ * The ONE material every no-item pick proxy wears (the sparkleMat precedent):
+ * renderer-owned and dispose-exempt (markSharedMaterial), so removeView's
+ * per-view teardown skips it and the program it holds stays resident. A fresh
+ * MeshBasicMaterial per view was one compile-gate unit per feast that LINKED
+ * (the view's gate enumerates the proxy as its own material group, and each
+ * despawn disposed the only material holding that program, so the next feast's
+ * gate linked it cold again); shared, the unit remains (one piece per gated
+ * root) but is a program-cache hit after the first feast of a session. Never
+ * clone this: Material.copy carries the shared tag into the clone
+ * (shared_resource.ts markOwnedMaterial), so a tinted or per-view variant
+ * would be one more never-disposed material. The proxy is invisible, so the
+ * material's look is irrelevant; the program key is a plain MeshBasicMaterial.
+ */
+const NO_ITEM_PICK_MATERIAL = markSharedMaterial(new THREE.MeshBasicMaterial());
+
+/** Test-only: the shared proxy material, so a suite can pin identity. */
+export function noItemPickMaterialForTest(): THREE.Material {
+  return NO_ITEM_PICK_MATERIAL;
 }
 
 export function buildGroundQuestObject(
   itemId: string,
   entityId: number,
 ): { group: THREE.Group; height: number } {
+  const salvage = buildFarshoreSalvageObject(itemId, entityId);
+  if (salvage) return salvage;
+  if (itemId === 'forge_tools') return buildForgeAnvilTarget();
+  if (itemId === 'forge_water') return buildForgeWellTarget();
+  if (itemId === 'eastbrook_freight_wagon') {
+    const freightWagon = buildWorldQuestFreightWagon();
+    if (freightWagon) return freightWagon;
+  }
   const group = new THREE.Group();
+  // A ground object that grants NO item (renderer passes objectItemId ?? '';
+  // today only a placed feast, kind 'object', objectItemId null, carrying one
+  // of the templateIds `isFeastTemplateId` in src/sim/professions/feast.ts
+  // admits: the party feast's 'farm_feast' plus the three apex role feasts
+  // masterwrought Phase 11k added. Never key on the bare string here or
+  // anywhere; the family is derived from the catalog. Its world prop is drawn by
+  // farm_patches.ts, which since Phase 18 picks BETWEEN TWO TABLES off that
+  // same templateId (the party trestle table and the apex pedestal banquet;
+  // farmFeastModelUrl in farm_patches_core.ts), so this generic view must not
+  // stack a supply-crate body on top of either. What the view still owes the
+  // renderer is a raycastable click body and an honest anchor height, so the
+  // proxy is an INVISIBLE box at the feast contract's bounds, the ONE envelope
+  // both tables are authored to (the character clickProxy precedent:
+  // three's raycaster ignores `visible`). Fresh geometry per view on purpose
+  // (removeView's non-pooled path disposes it); the material is the shared
+  // dispose-exempt NO_ITEM_PICK_MATERIAL above, so the teardown that frees the
+  // box leaves the material, and its program, resident for the next feast.
+  if (!itemId) {
+    const proxy = new THREE.Mesh(
+      new THREE.BoxGeometry(NO_ITEM_PICK_FOOTPRINT, NO_ITEM_PICK_HEIGHT, NO_ITEM_PICK_FOOTPRINT),
+      NO_ITEM_PICK_MATERIAL,
+    );
+    proxy.position.y = NO_ITEM_PICK_HEIGHT / 2;
+    proxy.visible = false;
+    proxy.castShadow = false;
+    proxy.receiveShadow = false;
+    group.add(proxy);
+    return { group, height: NO_ITEM_PICK_HEIGHT };
+  }
+  const visualItemId = visualItemIdForEntity(itemId, entityId);
   const key =
-    itemId === 'crypt_ritual_circle' || QUEST_OBJECT_URLS[itemId] ? itemId : 'supply_crate';
+    PROCEDURAL_ITEM_IDS.has(visualItemId) || QUEST_OBJECT_URLS[visualItemId]
+      ? visualItemId
+      : 'supply_crate';
+  group.userData.questObjectVisualItemId = key;
   const template = prepareItem(key);
   if (template) {
     const model = template.clone(true);
     group.add(model);
-    group.rotation.y = (entityId % 7) * 0.45;
-    return { group, height: QUEST_OBJECT_HEIGHTS[key] ?? TARGET_HEIGHT };
+    group.rotation.y = groundQuestObjectYaw(itemId, entityId);
+    return {
+      group,
+      height: measuredHeightByItem.get(key) ?? QUEST_OBJECT_HEIGHTS[key] ?? TARGET_HEIGHT,
+    };
   }
-  group.rotation.y = (entityId % 7) * 0.45;
+  group.rotation.y = groundQuestObjectYaw(itemId, entityId);
   return { group, height: TARGET_HEIGHT };
 }

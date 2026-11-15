@@ -3,34 +3,51 @@ import {
   FURY_ENTITY_ID,
   FURY_NPC,
   FURY_STOCK,
+  HONOR_QUARTERMASTER_STOCK,
+  HONOR_VENDOR_STOCK,
   WARFARE_ITEMS,
+  WARFARE_JEWELRY_STAT_FRACTION,
+  WARFARE_RATING_FRACTION,
   WARFARE_SOURCE_LEVEL,
+  WARFARE_STAT_FRACTION,
+  WARFARE_TRINKET_STOCK,
 } from '../src/sim/content/pvp_honor';
 import { ITEMS, NPCS } from '../src/sim/data';
 import { createPlayer, recalcPlayerStats } from '../src/sim/entity';
 import { canEquipItem } from '../src/sim/equipment_rules';
 import { weaponDpsBudget } from '../src/sim/item_budget';
 import {
-  expectedStatBudget,
+  expectedLineBudget,
   itemLevel,
   itemScore,
   itemSourceLevel,
+  itemStaminaModel,
   primaryStatSum,
 } from '../src/sim/item_level';
+import * as items from '../src/sim/items';
+import { LAUNCH_PAPERDOLL_SLOTS } from '../src/sim/launch_paperdoll_slots';
 import { pvpFractionsFromRatings } from '../src/sim/pvp';
-import { EQUIP_SLOTS, type EquipSlot, type PlayerClass } from '../src/sim/types';
+import { Sim } from '../src/sim/sim';
+import type { SimContext } from '../src/sim/sim_context';
+import type { Entity, EquipSlot, PlayerClass } from '../src/sim/types';
+import { expectedWarfareStamina } from './helpers/warfare_stamina';
 
+/** The item level the whole WARFARE catalog sits at after the retune. */
+const WARFARE_ILVL = 31;
+
+// Season 1 sells for gold (copper), owner rule 2026-10-02: the seven armor
+// pieces of a family come to 100 gold; jewelry and weapons at the same rate.
 const SLOT_PRICES: Record<string, number> = {
-  mainhand: 800,
-  helmet: 500,
-  neck: 225,
-  shoulder: 400,
-  chest: 700,
-  waist: 250,
-  legs: 600,
-  gloves: 300,
-  feet: 300,
-  ring: 150,
+  mainhand: 220_000,
+  helmet: 170_000,
+  neck: 70_000,
+  shoulder: 130_000,
+  chest: 220_000,
+  waist: 90_000,
+  legs: 190_000,
+  gloves: 100_000,
+  feet: 100_000,
+  ring: 50_000,
 };
 
 const SUPPORTED_ITEM_SLOTS = [
@@ -86,6 +103,16 @@ const CINDERWEAVE = [
   'cinderweave_slippers',
 ] as const;
 
+const THORNHIDE = [
+  'thornhide_headdress',
+  'thornhide_mantle',
+  'thornhide_vestment',
+  'thornhide_cinch',
+  'thornhide_leggings',
+  'thornhide_gloves',
+  'thornhide_boots',
+] as const;
+
 interface Profile {
   name: string;
   classes: readonly PlayerClass[];
@@ -128,6 +155,19 @@ const PROFILES: readonly Profile[] = [
     rings: ['ashen_focus_ring', 'spellbreakers_seal'],
     weapon: 'emberglass_warstaff',
   },
+  // The leather caster family, and the reason this list is worth keeping
+  // complete: it was added after the other four and inherited none of their
+  // coverage, so the sweeps below said "every family" while measuring four of
+  // five. Druid only, because it is the one class whose armor rank is leather
+  // and whose stat identity is int/spi.
+  {
+    name: 'caster leather',
+    classes: ['druid'],
+    armor: THORNHIDE,
+    neck: 'cinder_sigil_pendant',
+    rings: ['ashen_focus_ring', 'spellbreakers_seal'],
+    weapon: 'emberglass_warstaff',
+  },
 ];
 
 function profileItemIds(profile: Profile): string[] {
@@ -151,9 +191,9 @@ function equipmentForProfile(profile: Profile): Partial<Record<EquipSlot, string
 }
 
 describe('FURY WARFARE stock', () => {
-  it('merges forty unique offers and places FURY in Eastbrook with that exact stock', () => {
-    expect(FURY_STOCK).toHaveLength(40);
-    expect(new Set(FURY_STOCK).size).toBe(40);
+  it('merges forty seven unique offers and places FURY in Eastbrook with that exact stock', () => {
+    expect(FURY_STOCK).toHaveLength(47);
+    expect(new Set(FURY_STOCK).size).toBe(47);
     expect(Object.keys(WARFARE_ITEMS)).toEqual(FURY_STOCK);
     for (const id of FURY_STOCK) expect(ITEMS[id], id).toBe(WARFARE_ITEMS[id]);
 
@@ -161,10 +201,32 @@ describe('FURY WARFARE stock', () => {
     expect(FURY_ENTITY_ID).toBe(1_000_000_001);
     expect(NPCS.fury.name).toBe('FURY');
     expect(NPCS.fury.title).toBe('Honor Quartermaster');
-    expect(NPCS.fury.pos).toEqual({ x: -22.5, z: -7.5 });
-    expect(NPCS.fury.facing).toBe(1.171280832795522);
+    // Re-pinned 2026-08: FURY moved with the town in the harbor move
+    // (d19aa33f76, docs/design/eastbrook-revamp/site-plan.md); the placement
+    // derives from EASTBROOK_NPC_PLACEMENTS_BY_ID.fury, now by the chapel
+    // green facing the civic square.
+    // Re-pinned for owner round 6b: FURY is a service NPC, so he left the
+    // chapel step (7 yd from Brother Aldric) for the town's eastern edge. The
+    // placement still derives from EASTBROOK_NPC_PLACEMENTS_BY_ID.fury, so his
+    // facing moved with him.
+    // Re-pinned for the World of ClaudeCraft Studio map's arrangement: the
+    // smithy's forge shelter took the north road's old line, so the road swings
+    // west round it over his stand and he keeps the town's edge a few strides
+    // on, between that road and the coast track.
+    expect(NPCS.fury.pos).toEqual({ x: 21, z: -83.5 });
+    expect(NPCS.fury.facing).toBe(-2.0570389598824015);
     expect(NPCS.fury.dynamic).toBe(true);
-    expect(NPCS.fury.vendorItems).toEqual(FURY_STOCK);
+    // The entry tier first, then the two honor trinkets, then Warfare Season 2
+    // (pinned as the gear tail in warfare_season2.test.ts), then the buddy.
+    expect(NPCS.fury.vendorItems).toEqual(HONOR_VENDOR_STOCK);
+    expect(HONOR_VENDOR_STOCK).toEqual([...HONOR_QUARTERMASTER_STOCK]);
+    expect(HONOR_QUARTERMASTER_STOCK.slice(0, FURY_STOCK.length)).toEqual(FURY_STOCK);
+    expect(
+      HONOR_QUARTERMASTER_STOCK.slice(
+        FURY_STOCK.length,
+        FURY_STOCK.length + WARFARE_TRINKET_STOCK.length,
+      ),
+    ).toEqual([...WARFARE_TRINKET_STOCK]);
   });
 
   it('covers every supported item slot with two distinct rings per role profile', () => {
@@ -181,52 +243,180 @@ describe('FURY WARFARE stock', () => {
   });
 });
 
+// The WARFARE line as literals, id to [offense line, stamina], read from the
+// catalog on 2026-09-11. The fraction and floor checks below cannot see a line
+// that moves while the floor binds (the stamina floor top-up covers the gap),
+// so every piece is pinned outright; a retune changes this table on purpose.
+const WARFARE_LINES: Record<string, [number, number]> = {
+  furyforged_warhelm: [6, 10],
+  furyforged_warspaulders: [6, 8],
+  furyforged_warplate: [8, 12],
+  furyforged_girdle: [5, 9],
+  furyforged_legguards: [8, 10],
+  furyforged_gauntlets: [5, 9],
+  furyforged_sabatons: [7, 6],
+  stormbound_crown: [11, 8],
+  stormbound_spaulders: [9, 7],
+  stormbound_hauberk: [13, 10],
+  stormbound_waistguard: [9, 7],
+  stormbound_legmail: [11, 9],
+  stormbound_handguards: [9, 7],
+  stormbound_greaves: [10, 6],
+  ashstalker_cowl: [8, 8],
+  ashstalker_shoulderguards: [6, 8],
+  ashstalker_harness: [8, 12],
+  ashstalker_waistband: [5, 9],
+  ashstalker_legguards: [8, 10],
+  ashstalker_grips: [5, 9],
+  ashstalker_treads: [7, 6],
+  cinderweave_cowl: [11, 8],
+  cinderweave_mantle: [9, 7],
+  cinderweave_raiment: [13, 10],
+  cinderweave_cord: [9, 7],
+  cinderweave_legwraps: [11, 9],
+  cinderweave_handwraps: [9, 7],
+  cinderweave_slippers: [10, 6],
+  thornhide_headdress: [11, 8],
+  thornhide_mantle: [9, 7],
+  thornhide_vestment: [13, 10],
+  thornhide_cinch: [9, 7],
+  thornhide_leggings: [11, 9],
+  thornhide_gloves: [9, 7],
+  thornhide_boots: [10, 6],
+  final_oath_medallion: [6, 5],
+  razorwind_torque: [6, 5],
+  cinder_sigil_pendant: [7, 5],
+  iron_vow_band: [4, 6],
+  unbroken_circle: [6, 4],
+  fleetblood_band: [6, 4],
+  last_step_signet: [4, 6],
+  ashen_focus_ring: [7, 4],
+  spellbreakers_seal: [7, 4],
+  final_argument_greatblade: [8, 12],
+  first_blood_razor: [8, 12],
+  emberglass_warstaff: [13, 10],
+};
+
 describe('FURY WARFARE item budgets', () => {
-  it('makes every offer a soulbound, honor-priced item-level-28 epic with full WARFARE', () => {
+  it('makes every offer a soulbound, gold-priced item-level-31 epic with full WARFARE', () => {
     for (const id of FURY_STOCK) {
       const item = ITEMS[id];
-      const budget = expectedStatBudget(item) ?? 0;
+      // Ratings and the fraction discount below both key off the FULL,
+      // undiscounted slot budget (item_level.ts's expectedLineBudget), never
+      // the stamina-baseline model's identity-aware total: the model's floor
+      // is judged against this same full budget too (item_stamina_baseline.
+      // test.ts), which is exactly why every WARFARE piece sits on that
+      // guard's FRACTIONAL_BY_DESIGN exemption (built from FURY_STOCK itself,
+      // disjoint from the drift allowlist), permanently, by design.
+      const model = itemStaminaModel(item);
+      expect(model, id).toBeDefined();
+      const budget = model?.budget ?? 0;
       expect(budget, id).toBeGreaterThan(0);
       expect(item.quality, id).toBe('epic');
       expect(item.requiredLevel, id).toBe(20);
       expect(item.soulbound, id).toBe(true);
       expect(item.sellValue, id).toBe(0);
-      expect(item.buyValue, id).toBeUndefined();
+      // The gold price itself is pinned per slot below (SLOT_PRICES).
+      expect(item.buyValue, id).toBeGreaterThan(0);
       expect(itemSourceLevel(id), id).toBe(WARFARE_SOURCE_LEVEL);
-      expect(itemLevel(item), id).toBe(28);
-      // WARFARE gear weights its stat budget toward warfare: primary stats are 60%
-      // of the slot budget (the rest is expressed as the full WARFARE rating), so a
-      // PvP piece is a PvP-first, stat-light kit that never out-stats same-tier PvE
-      // gear. Armor mitigation and weapon DPS (the slot's inherent baseline) are kept.
-      expect(primaryStatSum(item), id).toBe(Math.round(budget * 0.6));
-      // Every piece's WARFARE ratings still mirror its FULL slot budget (drives 16.8%).
+      expect(itemLevel(item), id).toBe(31);
+      // WARFARE gear carries a deliberate primary-stat DISCOUNT against a same-slot
+      // PvE epic: 90% of the slot budget on armor and weapons, 75% on jewelry. The
+      // jewelry fraction is lower on purpose, to keep the badge-jewelry guard below
+      // green (a ring at 0.90 would reach 12 points against the badge ring's 11).
+      // Armor mitigation and weapon DPS (the slot's inherent baseline) are kept.
+      const statFraction =
+        item.slot === 'neck' || item.slot === 'ring'
+          ? WARFARE_JEWELRY_STAT_FRACTION
+          : WARFARE_STAT_FRACTION;
+      // The offense line (Strength/Agility or Intellect/Spirit) was authored at
+      // the fraction target and never touched by the stamina baseline model;
+      // only stamina was topped up where the fraction-scaled total fell short
+      // of the model's floor. Reconstruct both halves to confirm the current
+      // total is exactly that: the untouched line plus whichever is larger of
+      // the fraction target's implied stamina or the floor.
+      const line = model?.line ?? 0;
+      const floor = model?.baseline ?? 0;
+      const fractionTotal = Math.round(budget * statFraction);
+      const impliedSta = fractionTotal - line;
+      // The line itself is bounded by the fraction target: when the floor binds,
+      // the sum check below no longer sees the line, so this is what keeps the
+      // discount real (a line raised to the full budget would otherwise pass).
+      expect(line, `${id} line within the WARFARE fraction`).toBeLessThanOrEqual(fractionTotal);
+      expect(line, `${id} carries an offense line`).toBeGreaterThan(0);
+      expect([line, model?.sta ?? 0], `${id} line and stamina`).toEqual(WARFARE_LINES[id]);
+      expect(primaryStatSum(item), id).toBe(line + expectedWarfareStamina(item, impliedSta, floor));
+      // Every piece's WARFARE ratings still mirror its FULL slot budget (drives 18.2%).
+      // This pair is deliberately NOT rewritten as a fraction multiplication: the
+      // rating fraction is 1.0 and unchanged, so a diff here means it drifted.
       expect(item.pvpOffenseRating, id).toBe(budget);
       expect(item.pvpDefenseRating, id).toBe(budget);
-      expect(item.priceHonor, id).toBe(SLOT_PRICES[item.slot ?? '']);
+      expect(item.buyValue, id).toBe(SLOT_PRICES[item.slot ?? '']);
+      expect(item.priceHonor, `${id} is no longer an honor purchase`).toBeUndefined();
     }
   });
 
-  it('never lets PvP jewelry out-stat the PvE badge (heroic marks) jewelry in PvE', async () => {
+  it('never lets PvP jewelry out-stat ANY other jewelry source in PvE', async () => {
     // Jewelry itemScore excludes WARFARE (and combat ratings), so it measures the
     // PvE-relevant power. Every PvP ring/amulet must score strictly BELOW the
-    // weakest PvE badge piece of the same slot: a PvP jewelry piece is never a PvE
-    // upgrade over the badge vendor's gear.
+    // weakest competing piece of the same slot: a PvP jewelry piece is never a PvE
+    // upgrade.
+    //
+    // Scope corrected after review. This compared only against HEROIC_VENDOR_ITEMS,
+    // the badge vendor, which sits at item level 26. That made the guard read as
+    // "never beats the only other jewelry source" when it is not the only one:
+    // rift epics such as abysswrought_band are item-level-31 rings carrying more
+    // primary stats AND a combat rating. The 0.75 jewelry fraction is calibrated
+    // against the badge pieces, so the badge comparison stays the binding one, but
+    // a guard that never looked above item level 26 could not see a regression
+    // arriving from the tier the WARFARE gear now actually sits in.
     const { HEROIC_VENDOR_ITEMS } = await import('../src/sim/content/heroic_vendor');
+    const warfareIds = new Set<string>(FURY_STOCK);
     for (const slot of ['ring', 'neck'] as const) {
       const pvp = FURY_STOCK.map((id) => ITEMS[id]).filter((i) => i.slot === slot);
       const badge = Object.values(HEROIC_VENDOR_ITEMS).filter((i) => i.slot === slot);
+      // Every other jewelry piece of this slot AT OR ABOVE the WARFARE tier, not
+      // just the badge vendor's. Scoped by item level on purpose: a level-31 epic
+      // outscoring some low-level ring is correct and expected, so comparing
+      // against the whole catalog would assert something false (abyssal_loop
+      // scores 9 against the WARFARE ring's 10). The claim worth guarding is that
+      // honor jewelry is never a PvE upgrade over PvE jewelry of its own tier or
+      // better, which is where a real regression would come from.
+      const rivals = Object.values(ITEMS).filter(
+        (i) =>
+          i.slot === slot &&
+          !warfareIds.has(i.id) &&
+          !i.heroicOf &&
+          (itemLevel(i) ?? 0) >= WARFARE_ILVL,
+      );
       expect(pvp.length, slot).toBeGreaterThan(0);
       expect(badge.length, slot).toBeGreaterThan(0);
+      expect(rivals.length, `${slot}: same-or-higher-tier rivals must exist`).toBeGreaterThan(0);
       const bestPvp = Math.max(...pvp.map(itemScore));
       const worstBadge = Math.min(...badge.map(itemScore));
-      expect(bestPvp, `${slot}: best PvP ${bestPvp} vs worst badge ${worstBadge}`).toBeLessThan(
-        worstBadge,
-      );
+      // Out-stating means exceeding, not matching: the stamina baseline
+      // model's floor top-up (item_budget.ts) now brings the best WARFARE
+      // ring and neck exactly level with the worst badge piece (11 and 12),
+      // never past it, so a tie is not a PvE upgrade and the guard is <=.
+      // Strictly below still holds against every same-or-higher-tier rival
+      // below, which is the claim that matters.
+      expect(
+        bestPvp,
+        `${slot}: best PvP ${bestPvp} vs worst badge ${worstBadge}`,
+      ).toBeLessThanOrEqual(worstBadge);
+      // The tie is the whole design margin, so pin the pair as literals: any
+      // further compression in either slot reds here rather than sliding past.
+      expect([bestPvp, worstBadge], `${slot} pair`).toEqual(slot === 'ring' ? [11, 11] : [12, 12]);
+      // And below every same-or-higher-tier rival, which is the claim that matters.
+      for (const rival of rivals) {
+        const score = itemScore(rival);
+        expect(bestPvp, `${slot}: best PvP ${bestPvp} vs ${rival.id} ${score}`).toBeLessThan(score);
+      }
     }
   });
 
-  it('puts all three weapons on the item-level-28 DPS curve', () => {
-    const target = weaponDpsBudget(28);
+  it('puts all three weapons on the item-level-31 DPS curve', () => {
+    const target = weaponDpsBudget(31);
     for (const id of ['final_argument_greatblade', 'first_blood_razor', 'emberglass_warstaff']) {
       const weapon = ITEMS[id].weapon;
       expect(weapon, id).toBeDefined();
@@ -236,18 +426,23 @@ describe('FURY WARFARE item budgets', () => {
     }
   });
 
-  it('derives 16.8 percent offense and defense by equipping a complete profile', () => {
+  it('reaches the 30 percent capstone for EVERY complete family profile', () => {
+    // This file owns the five role profiles, so it is the only place the claim is
+    // made across all of them: mail Strength, mail caster, leather Agility, cloth
+    // caster and leather caster. tests/warfare_gear_tier.test.ts pins the rating arithmetic itself
+    // (182 base, 222 at four pieces, 302 clamped to 0.30) against one kit; this
+    // asserts no family was left short a piece, a wrong set tag, or a slot gap.
     for (const profile of PROFILES) {
       const player = createPlayer(1, profile.classes[0], { x: 0, y: 0, z: 0 }, profile.name);
       player.level = 20;
       recalcPlayerStats(player, profile.classes[0], equipmentForProfile(profile), undefined, {});
-      expect(player.stats.pvpOffense, `${profile.name} offense`).toBeCloseTo(0.168, 10);
-      expect(player.stats.pvpDefense, `${profile.name} defense`).toBeCloseTo(0.168, 10);
+      expect(player.stats.pvpOffense, `${profile.name} offense`).toBeCloseTo(0.3, 10);
+      expect(player.stats.pvpDefense, `${profile.name} defense`).toBeCloseTo(0.3, 10);
     }
   });
 
   it('clamps independently tunable offense and defense rating curves', () => {
-    expect(pvpFractionsFromRatings(10_000, 10_000)).toEqual({ offense: 0.2, defense: 0.2 });
+    expect(pvpFractionsFromRatings(10_000, 10_000)).toEqual({ offense: 0.3, defense: 0.3 });
     expect(pvpFractionsFromRatings(10_000, 10_000, { offense: 0.07, defense: 0.13 })).toEqual({
       offense: 0.07,
       defense: 0.13,
@@ -259,7 +454,7 @@ describe('FURY WARFARE class and role coverage', () => {
   it('provides every supported equipment slot to every intended class profile', () => {
     for (const profile of PROFILES) {
       const ids = profileItemIds(profile);
-      expect(ids).toHaveLength(EQUIP_SLOTS.length);
+      expect(ids).toHaveLength(LAUNCH_PAPERDOLL_SLOTS.length);
 
       const concreteSlots = new Set<EquipSlot>();
       for (const id of ids) {
@@ -270,7 +465,7 @@ describe('FURY WARFARE class and role coverage', () => {
           concreteSlots.add(slot);
         }
       }
-      expect([...concreteSlots].sort(), profile.name).toEqual([...EQUIP_SLOTS].sort());
+      expect([...concreteSlots].sort(), profile.name).toEqual([...LAUNCH_PAPERDOLL_SLOTS].sort());
 
       for (const cls of profile.classes) {
         for (const id of ids) {
@@ -279,6 +474,92 @@ describe('FURY WARFARE class and role coverage', () => {
           );
         }
       }
+    }
+  });
+});
+
+describe('honor trinkets sold beside the WARFARE kit', () => {
+  it('sells exactly the two PvP trinkets, outside the WARFARE kit', () => {
+    expect([...WARFARE_TRINKET_STOCK]).toEqual(['medallion_of_defiance', 'duelists_brand']);
+    for (const id of WARFARE_TRINKET_STOCK) {
+      expect(FURY_STOCK, id).not.toContain(id);
+      expect(WARFARE_ITEMS[id], id).toBeUndefined();
+    }
+  });
+
+  it('prices each at 800 honor, soulbound, no gold value, on the WARFARE jewelry rule', () => {
+    for (const id of WARFARE_TRINKET_STOCK) {
+      const item = ITEMS[id];
+      expect(item.slot, id).toBe('trinket');
+      expect(item.quality, id).toBe('epic');
+      // The crowd-control break is the key PvP purchase: priced like a helmet
+      // band, not like jewelry (owner call).
+      expect(item.priceHonor, id).toBe(800);
+      expect(item.soulbound, id).toBe(true);
+      expect(item.sellValue, id).toBe(0);
+      expect(item.buyValue, id).toBeUndefined();
+      expect(itemSourceLevel(id), id).toBe(WARFARE_SOURCE_LEVEL);
+      expect(itemLevel(item), id).toBe(WARFARE_ILVL);
+      // WARFARE like the rest of the honor gear, on the jewelry rule: exactly
+      // ONE attribute at the jewelry fraction of the trinket line (no stamina
+      // top-up: the trinket slot is exempt from the stamina model), and the
+      // full line as WARFARE Offense and Defense Rating. No set tag.
+      const line = expectedLineBudget(item) ?? 0;
+      expect(line, id).toBe(13);
+      const attrs = Object.entries(item.stats ?? {}).filter(([, v]) => (v ?? 0) > 0);
+      expect(attrs, `${id} one attribute`).toHaveLength(1);
+      expect(primaryStatSum(item), id).toBe(Math.round(line * WARFARE_JEWELRY_STAT_FRACTION));
+      expect(primaryStatSum(item), id).toBe(10);
+      expect(item.pvpOffenseRating, id).toBe(Math.round(line * WARFARE_RATING_FRACTION));
+      expect(item.pvpDefenseRating, id).toBe(Math.round(line * WARFARE_RATING_FRACTION));
+      expect(item.pvpOffenseRating, id).toBe(13);
+      expect(item.set, id).toBeUndefined();
+    }
+  });
+});
+
+describe('Season 1 sells for gold at the quartermaster', () => {
+  it('costs exactly 100 gold for each seven-piece family', () => {
+    const families = new Set(FURY_STOCK.map((id) => ITEMS[id].set).filter((set) => set));
+    expect(families.size).toBe(5);
+    for (const set of families) {
+      const ids = FURY_STOCK.filter((id) => ITEMS[id].set === set);
+      expect(ids, `${set}`).toHaveLength(7);
+      const total = ids.reduce((sum, id) => sum + (ITEMS[id].buyValue ?? 0), 0);
+      expect(total, `${set}`).toBe(1_000_000);
+    }
+  });
+
+  it('debits gold, never Honor, and needs no Honor at all', () => {
+    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const ctx = (sim as unknown as { ctx: SimContext }).ctx;
+    const pid = sim.addPlayer('warrior', 'Buyer');
+    sim.setPlayerLevel(20, pid);
+    const vendor = sim.entities.get(FURY_ENTITY_ID) as Entity;
+    const player = sim.entities.get(pid) as Entity;
+    player.pos.x = vendor.pos.x;
+    player.pos.z = vendor.pos.z;
+    const meta = ctx.players.get(pid) as { honor: number; copper: number; inventory: unknown[] };
+    meta.inventory.length = 0;
+    meta.honor = 0;
+    meta.copper = 200_000;
+    items.buyItem(ctx, vendor.id, 'furyforged_warhelm', pid);
+    expect(sim.countItem('furyforged_warhelm', pid)).toBe(1);
+    expect(meta.copper).toBe(200_000 - SLOT_PRICES.helmet);
+    expect(meta.honor).toBe(0);
+    // Short of the gold, the purchase is refused whatever Honor is banked.
+    meta.honor = 100_000;
+    meta.copper = SLOT_PRICES.chest - 1;
+    items.buyItem(ctx, vendor.id, 'furyforged_warplate', pid);
+    expect(sim.countItem('furyforged_warplate', pid)).toBe(0);
+    expect(meta.honor).toBe(100_000);
+  });
+
+  it('keeps the two Warfare trinkets on Honor', () => {
+    for (const id of WARFARE_TRINKET_STOCK) {
+      expect(HONOR_QUARTERMASTER_STOCK, id).toContain(id);
+      expect(ITEMS[id].priceHonor, id).toBe(800);
+      expect(ITEMS[id].buyValue, id).toBeUndefined();
     }
   });
 });

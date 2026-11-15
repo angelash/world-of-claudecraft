@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import type { AiMemoryAuditRecord } from '../server/ai/ai_types';
 import { AiBossEncounterMemoryStore } from '../server/ai/boss_memory';
 import type { AiCreatureMemory, AiCreaturePlan } from '../server/ai/creature_memory';
-import { AiWorldDirectorStore, moodForTraceKind, worldDirectorEvent, worldDirectorProposalFromMemoryAudit } from '../server/ai/world_director';
-import type { AiMemoryAuditRecord } from '../server/ai/ai_types';
+import {
+  AiWorldDirectorStore,
+  moodForTraceKind,
+  worldDirectorEvent,
+  worldDirectorProposalFromMemoryAudit,
+} from '../server/ai/world_director';
 import type { AiWorldTrace } from '../server/ai/world_traces';
 import type { Entity } from '../src/sim/types';
 
@@ -37,7 +42,9 @@ const creaturePlan: AiCreaturePlan = {
   expiresAt: 100,
 };
 
-const persistedDirectorAudit = (overrides: Partial<AiMemoryAuditRecord> = {}): AiMemoryAuditRecord => ({
+const persistedDirectorAudit = (
+  overrides: Partial<AiMemoryAuditRecord> = {},
+): AiMemoryAuditRecord => ({
   kind: 'worldDirectorState',
   refId: 'persisted-director-covetous',
   scope: 'region',
@@ -99,8 +106,18 @@ describe('AI world director', () => {
         sceneId: 'eastbrook_forge',
         zoneId: 'eastbrook_vale',
         suggestedLineId: 'hudChrome.aiSpeech.worldDirectorHungry',
-        safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation']),
-        reasonTags: expect.arrayContaining(['mood:hungry', 'subject:item', 'proposal:traceEcho', 'trace:food']),
+        safetyNotes: expect.arrayContaining([
+          'presentationOnly',
+          'noQuestMutation',
+          'noCombatMutation',
+          'noLootOrEconomyMutation',
+        ]),
+        reasonTags: expect.arrayContaining([
+          'mood:hungry',
+          'subject:item',
+          'proposal:traceEcho',
+          'trace:food',
+        ]),
       },
     });
     expect(store.stateForScene('eastbrook_forge', 1, 15)).toMatchObject({
@@ -108,12 +125,14 @@ describe('AI world director', () => {
       heat: expect.any(Number),
       proposal: expect.objectContaining({ intent: 'echoTrace', intensity: expect.any(Number) }),
     });
-    expect(store.stateForRegion({
-      zoneId: 'eastbrook_vale',
-      sceneId: 'mirror_lake_dock',
-      playerEntityId: 1,
-      nowSeconds: 15,
-    })).toMatchObject({ mood: 'hungry', heat: expect.any(Number) });
+    expect(
+      store.stateForRegion({
+        zoneId: 'eastbrook_vale',
+        sceneId: 'mirror_lake_dock',
+        playerEntityId: 1,
+        nowSeconds: 15,
+      }),
+    ).toMatchObject({ mood: 'hungry', heat: expect.any(Number) });
     expect(store.stateForScene('eastbrook_forge', 2, 15)).toBeNull();
     expect(store.stateForScene('mirror_lake_dock', 1, 15)).toBeNull();
     expect(store.stateForScene('eastbrook_forge', 1, 20)).toBeNull();
@@ -123,12 +142,14 @@ describe('AI world director', () => {
     const store = new AiWorldDirectorStore({ stateTtlSeconds: 30 });
     const state = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 10 });
 
-    expect(store.stateForRegion({
-      zoneId: 'mirefen_marsh',
-      sceneId: 'fenbridge_bridge',
-      playerEntityId: 1,
-      nowSeconds: 14,
-    })).toBeNull();
+    expect(
+      store.stateForRegion({
+        zoneId: 'mirefen_marsh',
+        sceneId: 'fenbridge_bridge',
+        playerEntityId: 1,
+        nowSeconds: 14,
+      }),
+    ).toBeNull();
 
     const adjacent = store.stateForRegion({
       zoneId: 'mirefen_marsh',
@@ -151,20 +172,24 @@ describe('AI world director', () => {
     });
     expect(adjacent!.heat).toBeLessThan(state.heat);
     expect(adjacent!.proposal.intensity).toBeLessThan(state.proposal.intensity);
-    expect(store.stateForRegion({
-      zoneId: 'thornpeak_heights',
-      sceneId: 'highwatch_tower',
-      playerEntityId: 1,
-      nowSeconds: 14,
-      includeAdjacentZones: true,
-    })).toBeNull();
-    expect(store.stateForRegion({
-      zoneId: 'mirefen_marsh',
-      sceneId: 'fenbridge_bridge',
-      playerEntityId: 2,
-      nowSeconds: 14,
-      includeAdjacentZones: true,
-    })).toBeNull();
+    expect(
+      store.stateForRegion({
+        zoneId: 'thornpeak_heights',
+        sceneId: 'highwatch_tower',
+        playerEntityId: 1,
+        nowSeconds: 14,
+        includeAdjacentZones: true,
+      }),
+    ).toBeNull();
+    expect(
+      store.stateForRegion({
+        zoneId: 'mirefen_marsh',
+        sceneId: 'fenbridge_bridge',
+        playerEntityId: 2,
+        nowSeconds: 14,
+        includeAdjacentZones: true,
+      }),
+    ).toBeNull();
   });
 
   it('keeps long-running area state streams bounded by the configured budget', () => {
@@ -183,12 +208,21 @@ describe('AI world director', () => {
 
     const states = store.snapshot();
     expect(states).toHaveLength(5);
-    expect(states.map((state) => state.itemId)).toEqual(['item_39', 'item_38', 'item_37', 'item_36', 'item_35']);
+    expect(states.map((state) => state.itemId)).toEqual([
+      'item_39',
+      'item_38',
+      'item_37',
+      'item_36',
+      'item_35',
+    ]);
   });
 
   it('decays long-running rumor heat and expires it on sim time instead of wall time', () => {
     const store = new AiWorldDirectorStore({ stateTtlSeconds: 120 });
-    const state = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 1_000 });
+    const state = store.noteTrace({
+      trace: trace('valuable', 'redbrook_blade'),
+      nowSeconds: 1_000,
+    });
     const early = store.stateForRegion({
       zoneId: 'eastbrook_vale',
       sceneId: 'fallen_chapel',
@@ -213,12 +247,14 @@ describe('AI world director', () => {
     });
     expect(late!.heat).toBeLessThan(early!.heat);
     expect(late!.proposal.intensity).toBeLessThan(early!.proposal.intensity);
-    expect(store.stateForRegion({
-      zoneId: 'eastbrook_vale',
-      sceneId: 'fallen_chapel',
-      playerEntityId: 1,
-      nowSeconds: 1_121,
-    })).toBeNull();
+    expect(
+      store.stateForRegion({
+        zoneId: 'eastbrook_vale',
+        sceneId: 'fallen_chapel',
+        playerEntityId: 1,
+        nowSeconds: 1_121,
+      }),
+    ).toBeNull();
   });
 
   it('turns active director states into personal aiSpeech events', () => {
@@ -254,26 +290,43 @@ describe('AI world director', () => {
         'proposal:npcTopicShift',
         'persistedMemory',
       ]),
-      safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation', 'noCombatMutation', 'noLootOrEconomyMutation']),
+      safetyNotes: expect.arrayContaining([
+        'presentationOnly',
+        'noQuestMutation',
+        'noCombatMutation',
+        'noLootOrEconomyMutation',
+      ]),
     });
-    expect(worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({
-      lineIds: ['hudChrome.aiSpeech.worldDirectorHungry'],
-      itemId: 'roasted_boar',
-      reason: 'persistedRestart:hungry:traceEcho',
-    }))).toMatchObject({
+    expect(
+      worldDirectorProposalFromMemoryAudit(
+        persistedDirectorAudit({
+          lineIds: ['hudChrome.aiSpeech.worldDirectorHungry'],
+          itemId: 'roasted_boar',
+          reason: 'persistedRestart:hungry:traceEcho',
+        }),
+      ),
+    ).toMatchObject({
       intent: 'echoTrace',
       targetRef: 'roasted_boar',
       reasonTags: expect.arrayContaining(['mood:hungry', 'proposal:traceEcho']),
     });
-    expect(worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({ kind: 'rumor' }))).toBeNull();
-    expect(worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({ lineIds: [] }))).toBeNull();
+    expect(
+      worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({ kind: 'rumor' })),
+    ).toBeNull();
+    expect(
+      worldDirectorProposalFromMemoryAudit(persistedDirectorAudit({ lineIds: [] })),
+    ).toBeNull();
   });
 
   it('keeps director proposals refreshed and cloned with their state', () => {
     const store = new AiWorldDirectorStore();
     const first = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 10 });
     const second = store.noteTrace({
-      trace: { ...trace('valuable', 'redbrook_blade'), traceId: 'trace-valuable-2', reasonLineIds: ['reason:glint', 'reason:market'] },
+      trace: {
+        ...trace('valuable', 'redbrook_blade'),
+        traceId: 'trace-valuable-2',
+        reasonLineIds: ['reason:glint', 'reason:market'],
+      },
       nowSeconds: 20,
     });
 
@@ -285,7 +338,11 @@ describe('AI world director', () => {
       targetRef: 'redbrook_blade',
       suggestedLineId: 'hudChrome.aiSpeech.worldDirectorCovetous',
       intensity: Math.round(second.heat * 100) / 100,
-      reasonTags: expect.arrayContaining(['mood:covetous', 'proposal:npcTopicShift', 'reason:market']),
+      reasonTags: expect.arrayContaining([
+        'mood:covetous',
+        'proposal:npcTopicShift',
+        'reason:market',
+      ]),
     });
 
     const [snapshot] = store.snapshot();
@@ -296,7 +353,11 @@ describe('AI world director', () => {
   });
 
   it('keeps a bounded read-only proposal lifecycle journal', () => {
-    const store = new AiWorldDirectorStore({ maxStates: 2, stateTtlSeconds: 5, maxProposalAuditEntries: 8 });
+    const store = new AiWorldDirectorStore({
+      maxStates: 2,
+      stateTtlSeconds: 5,
+      maxProposalAuditEntries: 8,
+    });
     const first = store.noteTrace({ trace: trace('valuable', 'redbrook_blade'), nowSeconds: 10 });
     store.noteTrace({
       trace: { ...trace('valuable', 'redbrook_blade'), traceId: 'trace-valuable-2' },
@@ -307,29 +368,31 @@ describe('AI world director', () => {
     store.stateForScene('eastbrook_forge', 1, 20);
 
     const journal = store.proposalAuditSnapshot();
-    expect(journal).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        lifecycle: 'created',
-        stateId: first.stateId,
-        proposalId: `${first.stateId}:proposal`,
-        targetRef: 'redbrook_blade',
-        intent: 'nudgeNpcRumor',
-        safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
-      }),
-      expect.objectContaining({
-        lifecycle: 'refreshed',
-        stateId: first.stateId,
-        targetRef: 'redbrook_blade',
-      }),
-      expect.objectContaining({
-        lifecycle: 'evicted',
-        targetRef: 'redbrook_blade',
-      }),
-      expect.objectContaining({
-        lifecycle: 'expired',
-        targetRef: 'gravecaller_sigil',
-      }),
-    ]));
+    expect(journal).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          lifecycle: 'created',
+          stateId: first.stateId,
+          proposalId: `${first.stateId}:proposal`,
+          targetRef: 'redbrook_blade',
+          intent: 'nudgeNpcRumor',
+          safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
+        }),
+        expect.objectContaining({
+          lifecycle: 'refreshed',
+          stateId: first.stateId,
+          targetRef: 'redbrook_blade',
+        }),
+        expect.objectContaining({
+          lifecycle: 'evicted',
+          targetRef: 'redbrook_blade',
+        }),
+        expect.objectContaining({
+          lifecycle: 'expired',
+          targetRef: 'gravecaller_sigil',
+        }),
+      ]),
+    );
 
     journal[0].reasonTags.push('mutated-outside');
     journal[0].safetyNotes.length = 0;
@@ -340,13 +403,15 @@ describe('AI world director', () => {
 
   it('lets repeated singularity scene memories wake a scene director state without item targeting', () => {
     const store = new AiWorldDirectorStore();
-    expect(store.noteCreatureSceneMemory({
-      sceneId: 'eastbrook_forge',
-      zoneId: 'eastbrook_vale',
-      memory: creatureMemory(1),
-      sourcePlayerEntityId: 1,
-      nowSeconds: 10,
-    })).toBeNull();
+    expect(
+      store.noteCreatureSceneMemory({
+        sceneId: 'eastbrook_forge',
+        zoneId: 'eastbrook_vale',
+        memory: creatureMemory(1),
+        sourcePlayerEntityId: 1,
+        nowSeconds: 10,
+      }),
+    ).toBeNull();
 
     const state = store.noteCreatureSceneMemory({
       sceneId: 'eastbrook_forge',
@@ -364,7 +429,11 @@ describe('AI world director', () => {
       itemId: 'eastbrook_forge',
       subjectKind: 'scene',
       lineId: 'hudChrome.aiSpeech.worldDirectorSceneUncanny',
-      evidence: expect.arrayContaining(['creatureSceneMemory:forest_wolf', 'territorial', 'creaturePlan:followScent']),
+      evidence: expect.arrayContaining([
+        'creatureSceneMemory:forest_wolf',
+        'territorial',
+        'creaturePlan:followScent',
+      ]),
     });
     const event = worldDirectorEvent(null, speaker, state, 1);
     expect(event?.type).toBe('aiSpeech');
@@ -441,30 +510,38 @@ describe('AI world director', () => {
         safetyNotes: expect.arrayContaining(['presentationOnly', 'noQuestMutation']),
       }),
     });
-    expect(store.stateForRegion({
-      zoneId: 'eastbrook_vale',
-      sceneId: 'fallen_chapel',
-      playerEntityId: 1,
-      nowSeconds: 14,
-    })).toMatchObject({ mood: 'relieved', heat: expect.any(Number) });
-    expect(store.stateForRegion({
-      zoneId: 'mirefen_marsh',
-      sceneId: 'fenbridge_bridge',
-      playerEntityId: 1,
-      nowSeconds: 14,
-    })).toBeNull();
-    expect(store.stateForRegion({
-      zoneId: 'eastbrook_vale',
-      sceneId: 'fallen_chapel',
-      playerEntityId: 2,
-      nowSeconds: 14,
-    })).toBeNull();
-    expect(store.stateForRegion({
-      zoneId: 'eastbrook_vale',
-      sceneId: 'fallen_chapel',
-      playerEntityId: 1,
-      nowSeconds: 22,
-    })).toBeNull();
+    expect(
+      store.stateForRegion({
+        zoneId: 'eastbrook_vale',
+        sceneId: 'fallen_chapel',
+        playerEntityId: 1,
+        nowSeconds: 14,
+      }),
+    ).toMatchObject({ mood: 'relieved', heat: expect.any(Number) });
+    expect(
+      store.stateForRegion({
+        zoneId: 'mirefen_marsh',
+        sceneId: 'fenbridge_bridge',
+        playerEntityId: 1,
+        nowSeconds: 14,
+      }),
+    ).toBeNull();
+    expect(
+      store.stateForRegion({
+        zoneId: 'eastbrook_vale',
+        sceneId: 'fallen_chapel',
+        playerEntityId: 2,
+        nowSeconds: 14,
+      }),
+    ).toBeNull();
+    expect(
+      store.stateForRegion({
+        zoneId: 'eastbrook_vale',
+        sceneId: 'fallen_chapel',
+        playerEntityId: 1,
+        nowSeconds: 22,
+      }),
+    ).toBeNull();
     expect(worldDirectorEvent(null, speaker, state, 1)).toMatchObject({
       type: 'aiSpeech',
       speech: {

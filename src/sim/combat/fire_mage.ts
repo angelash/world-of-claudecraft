@@ -26,9 +26,13 @@
 //
 // `src/sim`-pure: sibling sim modules + the SimContext seam only.
 
-import { ABILITIES } from '../data';
+import {
+  PYROCLAST_2PC_SCALD_EXECUTE_HP,
+  PYROCLAST_4PC_COMBUSTION_CDR_PER_CRIT,
+} from '../content/ignivar_set_bonuses';
 import type { SimContext } from '../sim_context';
 import type { Entity } from '../types';
+import { wearsSetBonus } from './set_bonus_wearer';
 
 export const IGNITE_DURATION = 6;
 export const IGNITE_INTERVAL = 2;
@@ -107,8 +111,13 @@ export function fireGuaranteedCrit(
   if (!fireSpecMods(ctx, p)) return false;
   if (p.auras.some((a) => a.kind === 'combustion')) return true;
   if (abilityId === 'fire_blast') return true;
-  if (abilityId === 'scorch' && target && target.hp <= target.maxHp * SCORCH_EXECUTE_HP)
-    return true;
+  // Pyroclast 2pc: the Scald execute threshold rises 0.3 -> 0.5 at this SOLE
+  // functional reader. Only the OUTCOME override moves; the crit roll is
+  // still drawn exactly as before, so nobody's rng stream shifts.
+  const executeHp = wearsSetBonus(ctx, p, 'pyroclast', 2)
+    ? PYROCLAST_2PC_SCALD_EXECUTE_HP
+    : SCORCH_EXECUTE_HP;
+  if (abilityId === 'scorch' && target && target.hp <= target.maxHp * executeHp) return true;
   return false;
 }
 
@@ -164,9 +173,17 @@ export function fireMageOnSpellHit(
   // Owner 2026-07-13: a builder crit OUTSIDE Combustion shaves its cooldown, so a run
   // of Fireball / Scald crits brings the next Combustion up sooner. During Combustion
   // its guaranteed crits do not (it is already active). Draws no rng.
+  // Pyroclast 4pc: wearers shave 2 sec per builder crit instead of 1, at this
+  // one shave site (Meteor's ground impact and Ignite ticks never reach the
+  // noteSpellHit seam, the set doc's disclosed scope).
   if (!p.auras.some((a) => a.kind === 'combustion')) {
     const cd = p.cooldowns.get('combustion');
-    if (cd && cd > 0) p.cooldowns.set('combustion', Math.max(0, cd - COMBUSTION_CDR_PER_CRIT));
+    if (cd && cd > 0) {
+      const shave = wearsSetBonus(ctx, p, 'pyroclast', 4)
+        ? PYROCLAST_4PC_COMBUSTION_CDR_PER_CRIT
+        : COMBUSTION_CDR_PER_CRIT;
+      p.cooldowns.set('combustion', Math.max(0, cd - shave));
+    }
   }
   if (heatingIdx < 0) {
     ctx.applyAura(p, {
@@ -335,9 +352,4 @@ export function igniteOnCrit(
   const mods = fireSpecMods(ctx, source);
   if (!mods || mods.global.ignitionPct <= 0) return;
   applyIgnite(ctx, source, target, Math.round(amount * mods.global.ignitionPct));
-}
-
-/** Does this ability id name a mage ability (used by tests and tooling). */
-export function isFireSpender(abilityId: string): boolean {
-  return HOT_STREAK_SPENDERS.includes(abilityId) && ABILITIES[abilityId] !== undefined;
 }

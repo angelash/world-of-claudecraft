@@ -4,19 +4,15 @@ import {
   HOSTED_PLAY_AUTO_INVITE_MIN_PARTY_SIZE,
   HOSTED_PLAY_AUTO_INVITE_TARGET_PARTY_SIZES,
 } from '../hosted_play_settings';
-import { esc } from './esc';
 import { markDialogRoot } from './dialog_root';
+import { esc } from './esc';
 import { HostedPlayCompatibilityError } from './hosted_play_status_view';
 import { formatDateTime, formatNumber, t } from './i18n';
 import { svgIcon } from './ui_icons';
 
-export type HostedPlayPartyModeView =
-  | 'solo'
-  | 'follow_leader';
+export type HostedPlayPartyModeView = 'solo' | 'follow_leader';
 
-type HostedPlayPartyPresetView =
-  | HostedPlayPartyModeView
-  | 'prefer_group';
+type HostedPlayPartyPresetView = HostedPlayPartyModeView | 'prefer_group';
 
 export type HostedPlayGroupModeView =
   | ''
@@ -385,7 +381,9 @@ export function renderHostedPlayPanel(
 
     const autoInviteNearbyPlayers = currentStatus?.autoInviteNearbyPlayers ?? false;
     autoInviteBtn.disabled = pending || !currentStatus;
-    autoInviteBtn.textContent = autoInviteNearbyPlayers ? t('hud.options.on') : t('hud.options.off');
+    autoInviteBtn.textContent = autoInviteNearbyPlayers
+      ? t('hud.options.on')
+      : t('hud.options.off');
     autoInviteBtn.classList.toggle('off', !autoInviteNearbyPlayers);
     autoInviteBtn.setAttribute('aria-pressed', String(autoInviteNearbyPlayers));
     autoInviteBtn.setAttribute('aria-label', t('hudChrome.hostedPlay.autoInviteNearbyLabel'));
@@ -423,8 +421,14 @@ export function renderHostedPlayPanel(
     }
 
     appendDebugGroup(detailsBox, t('hudChrome.hostedPlay.details.sectionBrain'), [
-      [t('hudChrome.hostedPlay.details.lastBrain'), formatTimeWithAge(debug.lastBrainAtMs, debug.lastBrainAgeMs)],
-      [t('hudChrome.hostedPlay.details.lastAutomation'), formatTimeWithAge(debug.lastAutomationAtMs, debug.lastAutomationAgeMs)],
+      [
+        t('hudChrome.hostedPlay.details.lastBrain'),
+        formatTimeWithAge(debug.lastBrainAtMs, debug.lastBrainAgeMs),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.lastAutomation'),
+        formatTimeWithAge(debug.lastAutomationAtMs, debug.lastAutomationAgeMs),
+      ],
       [t('hudChrome.hostedPlay.details.objectiveId'), valueOrNone(debug.objectiveId)],
       [t('hudChrome.hostedPlay.details.objectiveLabel'), valueOrNone(debug.objectiveLabel)],
       [t('hudChrome.hostedPlay.details.objectiveQuest'), valueOrNone(debug.objectiveQuestId)],
@@ -435,8 +439,14 @@ export function renderHostedPlayPanel(
           ? formatNumber(debug.objectiveSuggestedPartySize, { maximumFractionDigits: 0 })
           : t('hudChrome.hostedPlay.details.none'),
       ],
-      [t('hudChrome.hostedPlay.details.objectiveSince'), formatTimeWithAge(debug.brainState.objectiveSinceMs)],
-      [t('hudChrome.hostedPlay.details.lastProgress'), formatTimeWithAge(debug.brainState.lastProgressAtMs)],
+      [
+        t('hudChrome.hostedPlay.details.objectiveSince'),
+        formatTimeWithAge(debug.brainState.objectiveSinceMs),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.lastProgress'),
+        formatTimeWithAge(debug.brainState.lastProgressAtMs),
+      ],
       [t('hudChrome.hostedPlay.details.lastError'), valueOrNone(debug.lastError)],
     ]);
 
@@ -444,11 +454,26 @@ export function renderHostedPlayPanel(
       [t('hudChrome.hostedPlay.details.brainDrivePaused'), onOffText(debug.brainDrivePaused)],
       [t('hudChrome.hostedPlay.details.facing'), formatNullableNumber(debug.facing, 2)],
       [t('hudChrome.hostedPlay.details.pathGoal'), valueOrNone(debug.brainState.pathGoalKey)],
-      [t('hudChrome.hostedPlay.details.pathLength'), formatNumber(debug.brainState.pathLength, { maximumFractionDigits: 0 })],
-      [t('hudChrome.hostedPlay.details.nextPathPoint'), formatPoint(debug.brainState.nextPathPoint)],
-      [t('hudChrome.hostedPlay.details.campIndex'), formatNumber(debug.brainState.campIndex, { maximumFractionDigits: 0 })],
-      [t('hudChrome.hostedPlay.details.noTargetSince'), formatTimeWithAge(debug.brainState.noTargetSinceMs)],
-      [t('hudChrome.hostedPlay.details.stuckResets'), formatNumber(debug.brainState.stuckResets, { maximumFractionDigits: 0 })],
+      [
+        t('hudChrome.hostedPlay.details.pathLength'),
+        formatNumber(debug.brainState.pathLength, { maximumFractionDigits: 0 }),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.nextPathPoint'),
+        formatPoint(debug.brainState.nextPathPoint),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.campIndex'),
+        formatNumber(debug.brainState.campIndex, { maximumFractionDigits: 0 }),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.noTargetSince'),
+        formatTimeWithAge(debug.brainState.noTargetSinceMs),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.stuckResets'),
+        formatNumber(debug.brainState.stuckResets, { maximumFractionDigits: 0 }),
+      ],
       [t('hudChrome.hostedPlay.details.travelGoal'), formatTravelGoal(debug.travelGoal)],
     ]);
     appendDebugBlock(
@@ -470,12 +495,24 @@ export function renderHostedPlayPanel(
     appendDebugGroup(detailsBox, t('hudChrome.hostedPlay.details.sectionParty'), [
       [t('hudChrome.hostedPlay.details.groupMode'), groupModeText(status)],
       [t('hudChrome.hostedPlay.details.groupLeader'), valueOrNone(debug.party.groupLeaderName)],
-      [t('hudChrome.hostedPlay.details.groupDistance'), formatNullableNumber(debug.party.groupLeaderDistance, 0)],
+      [
+        t('hudChrome.hostedPlay.details.groupDistance'),
+        formatNullableNumber(debug.party.groupLeaderDistance, 0),
+      ],
       [t('hudChrome.hostedPlay.details.partyPaused'), onOffText(debug.party.brainDrivePaused)],
       [t('hudChrome.hostedPlay.details.partyRole'), partyRoleText(debug.party.partyRole)],
-      [t('hudChrome.hostedPlay.details.partyIntent'), partyIntentText(debug.party.intentKind, debug.party.intentBehavior)],
-      [t('hudChrome.hostedPlay.details.partyIntentTarget'), valueOrNone(debug.party.intentTargetName)],
-      [t('hudChrome.hostedPlay.details.lastPartyChat'), valueOrNone(debug.party.lastPartyChatAction)],
+      [
+        t('hudChrome.hostedPlay.details.partyIntent'),
+        partyIntentText(debug.party.intentKind, debug.party.intentBehavior),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.partyIntentTarget'),
+        valueOrNone(debug.party.intentTargetName),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.lastPartyChat'),
+        valueOrNone(debug.party.lastPartyChatAction),
+      ],
     ]);
 
     appendDebugBlock(
@@ -487,31 +524,68 @@ export function renderHostedPlayPanel(
     appendDebugGroup(detailsBox, t('hudChrome.hostedPlay.details.sectionLlmPlan'), [
       [t('hudChrome.hostedPlay.details.llmEnabled'), onOffText(debug.llm.enabled)],
       [t('hudChrome.hostedPlay.details.llmPending'), onOffText(debug.llm.planPending)],
-      [t('hudChrome.hostedPlay.details.llmStatus'), llmDecisionStatusText(debug.llm.planStatus) || t('hudChrome.hostedPlay.details.none')],
+      [
+        t('hudChrome.hostedPlay.details.llmStatus'),
+        llmDecisionStatusText(debug.llm.planStatus) || t('hudChrome.hostedPlay.details.none'),
+      ],
       [t('hudChrome.hostedPlay.details.llmProvider'), valueOrNone(debug.llm.planProvider)],
       [t('hudChrome.hostedPlay.details.llmLatency'), formatMilliseconds(debug.llm.planLatencyMs)],
       [t('hudChrome.hostedPlay.details.llmCacheHit'), onOffText(debug.llm.planCacheHit)],
       [t('hudChrome.hostedPlay.details.llmReason'), valueOrNone(debug.llm.planReason)],
-      [t('hudChrome.hostedPlay.details.llmMode'), llmModeText(debug.llm.planMode) || valueOrNone(debug.llm.planMode)],
+      [
+        t('hudChrome.hostedPlay.details.llmMode'),
+        llmModeText(debug.llm.planMode) || valueOrNone(debug.llm.planMode),
+      ],
       [t('hudChrome.hostedPlay.details.llmFocus'), valueOrNone(debug.llm.planFocus)],
-      [t('hudChrome.hostedPlay.details.promptChars'), formatNumber(debug.llm.planPromptChars, { maximumFractionDigits: 0 })],
-      [t('hudChrome.hostedPlay.details.rawOutputChars'), formatNumber(debug.llm.planRawOutputChars, { maximumFractionDigits: 0 })],
+      [
+        t('hudChrome.hostedPlay.details.promptChars'),
+        formatNumber(debug.llm.planPromptChars, { maximumFractionDigits: 0 }),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.rawOutputChars'),
+        formatNumber(debug.llm.planRawOutputChars, { maximumFractionDigits: 0 }),
+      ],
     ]);
-    appendDebugBlock(detailsBox, t('hudChrome.hostedPlay.details.planPrompt'), debug.llm.planPrompt);
-    appendDebugBlock(detailsBox, t('hudChrome.hostedPlay.details.planRawOutput'), debug.llm.planRawOutput);
+    appendDebugBlock(
+      detailsBox,
+      t('hudChrome.hostedPlay.details.planPrompt'),
+      debug.llm.planPrompt,
+    );
+    appendDebugBlock(
+      detailsBox,
+      t('hudChrome.hostedPlay.details.planRawOutput'),
+      debug.llm.planRawOutput,
+    );
 
     appendDebugGroup(detailsBox, t('hudChrome.hostedPlay.details.sectionLlmSocial'), [
-      [t('hudChrome.hostedPlay.details.llmStatus'), llmDecisionStatusText(debug.llm.socialStatus) || t('hudChrome.hostedPlay.details.none')],
+      [
+        t('hudChrome.hostedPlay.details.llmStatus'),
+        llmDecisionStatusText(debug.llm.socialStatus) || t('hudChrome.hostedPlay.details.none'),
+      ],
       [t('hudChrome.hostedPlay.details.llmTarget'), valueOrNone(debug.llm.socialTarget)],
       [t('hudChrome.hostedPlay.details.llmProvider'), valueOrNone(debug.llm.socialProvider)],
       [t('hudChrome.hostedPlay.details.llmLatency'), formatMilliseconds(debug.llm.socialLatencyMs)],
       [t('hudChrome.hostedPlay.details.llmCacheHit'), onOffText(debug.llm.socialCacheHit)],
       [t('hudChrome.hostedPlay.details.llmReason'), valueOrNone(debug.llm.socialReason)],
-      [t('hudChrome.hostedPlay.details.promptChars'), formatNumber(debug.llm.socialPromptChars, { maximumFractionDigits: 0 })],
-      [t('hudChrome.hostedPlay.details.rawOutputChars'), formatNumber(debug.llm.socialRawOutputChars, { maximumFractionDigits: 0 })],
+      [
+        t('hudChrome.hostedPlay.details.promptChars'),
+        formatNumber(debug.llm.socialPromptChars, { maximumFractionDigits: 0 }),
+      ],
+      [
+        t('hudChrome.hostedPlay.details.rawOutputChars'),
+        formatNumber(debug.llm.socialRawOutputChars, { maximumFractionDigits: 0 }),
+      ],
     ]);
-    appendDebugBlock(detailsBox, t('hudChrome.hostedPlay.details.socialPrompt'), debug.llm.socialPrompt);
-    appendDebugBlock(detailsBox, t('hudChrome.hostedPlay.details.socialRawOutput'), debug.llm.socialRawOutput);
+    appendDebugBlock(
+      detailsBox,
+      t('hudChrome.hostedPlay.details.socialPrompt'),
+      debug.llm.socialPrompt,
+    );
+    appendDebugBlock(
+      detailsBox,
+      t('hudChrome.hostedPlay.details.socialRawOutput'),
+      debug.llm.socialRawOutput,
+    );
   }
 
   const renderStatus = (status: HostedPlayStatusView) => {
@@ -584,7 +658,8 @@ export function renderHostedPlayPanel(
     }
     const pauseReason = pauseReasonText(status);
     if (pauseReason) appendRow(t('hudChrome.hostedPlay.pauseLabel'), pauseReason);
-    if (status.lastError) appendRow(t('hudChrome.hostedPlay.errorLabel'), t('hudChrome.hostedPlay.runtimeIssue'));
+    if (status.lastError)
+      appendRow(t('hudChrome.hostedPlay.errorLabel'), t('hudChrome.hostedPlay.runtimeIssue'));
     renderDebugDetails(status);
     syncControls();
   };
@@ -600,9 +675,10 @@ export function renderHostedPlayPanel(
       renderStatus(await action());
     } catch (err) {
       console.error('hosted play panel request failed:', err);
-      message.textContent = err instanceof HostedPlayCompatibilityError
-        ? t('hudChrome.hostedPlay.serverRestartRequired')
-        : t(failureKey);
+      message.textContent =
+        err instanceof HostedPlayCompatibilityError
+          ? t('hudChrome.hostedPlay.serverRestartRequired')
+          : t(failureKey);
     } finally {
       pending = false;
       syncControls();
@@ -618,8 +694,7 @@ export function renderHostedPlayPanel(
           resumeOnLogin: patch.resumeOnLogin ?? status.resumeOnLogin,
           partyMode: patch.partyMode ?? status.partyMode,
           actionLogEnabled: patch.actionLogEnabled ?? status.actionLogEnabled,
-          autoInviteNearbyPlayers:
-            patch.autoInviteNearbyPlayers ?? status.autoInviteNearbyPlayers,
+          autoInviteNearbyPlayers: patch.autoInviteNearbyPlayers ?? status.autoInviteNearbyPlayers,
           autoInviteNearbyTargetPartySize:
             patch.autoInviteNearbyTargetPartySize ?? status.autoInviteNearbyTargetPartySize,
         }),
@@ -702,7 +777,11 @@ function appendDebugNote(parent: HTMLElement, text: string): void {
   parent.appendChild(note);
 }
 
-function appendDebugGroup(parent: HTMLElement, title: string, rows: Array<readonly [string, string]>): void {
+function appendDebugGroup(
+  parent: HTMLElement,
+  title: string,
+  rows: Array<readonly [string, string]>,
+): void {
   const section = document.createElement('section');
   section.className = 'hosted-play-debug-group';
   const heading = document.createElement('div');
@@ -803,44 +882,50 @@ function formatDebugJson(value: Record<string, unknown>): string {
 function formatDebugCommands(commands: HostedPlayDebugCommandView[]): string {
   if (commands.length === 0) return t('hudChrome.hostedPlay.details.none');
   return commands
-    .map((command, index) => [
-      t('hudChrome.hostedPlay.details.commandHeader', {
-        index: formatNumber(index + 1, { maximumFractionDigits: 0 }),
-        summary: command.summary,
-      }),
-      command.payloadJson,
-    ].join('\n'))
+    .map((command, index) =>
+      [
+        t('hudChrome.hostedPlay.details.commandHeader', {
+          index: formatNumber(index + 1, { maximumFractionDigits: 0 }),
+          summary: command.summary,
+        }),
+        command.payloadJson,
+      ].join('\n'),
+    )
     .join('\n\n');
 }
 
 function formatCommandAges(commands: HostedPlayDebugCommandAgeView[]): string {
   if (commands.length === 0) return t('hudChrome.hostedPlay.details.none');
   return commands
-    .map((command) => t('hudChrome.hostedPlay.details.commandAgeValue', {
-      key: command.key,
-      age: formatMilliseconds(command.ageMs),
-    }))
+    .map((command) =>
+      t('hudChrome.hostedPlay.details.commandAgeValue', {
+        key: command.key,
+        age: formatMilliseconds(command.ageMs),
+      }),
+    )
     .join('\n');
 }
 
 function formatPendingReplies(replies: HostedPlayDebugPendingReplyView[]): string {
   if (replies.length === 0) return t('hudChrome.hostedPlay.details.none');
   return replies
-    .map((reply) => [
-      t('hudChrome.hostedPlay.details.pendingReplyHeader', {
-        name: reply.toName,
-        revision: formatNumber(reply.revision, { maximumFractionDigits: 0 }),
-      }),
-      `${t('hudChrome.hostedPlay.details.pendingReplyIncoming')}: ${valueOrNone(reply.incomingText)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyFallback')}: ${valueOrNone(reply.fallbackText)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyDue')}: ${formatMilliseconds(reply.dueInMs)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyAskedFriend')}: ${onOffText(reply.askedForFriend)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyLlmStatus')}: ${valueOrNone(reply.llmStatus)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyLlmReply')}: ${valueOrNone(reply.llmReplyText)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyLlmFriend')}: ${valueOrNone(reply.llmFriendAction)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyPresence')}: ${valueOrNone(reply.llmPresenceEmote)}`,
-      `${t('hudChrome.hostedPlay.details.pendingReplyRequested')}: ${formatMilliseconds(reply.llmRequestedAgoMs)}`,
-    ].join('\n'))
+    .map((reply) =>
+      [
+        t('hudChrome.hostedPlay.details.pendingReplyHeader', {
+          name: reply.toName,
+          revision: formatNumber(reply.revision, { maximumFractionDigits: 0 }),
+        }),
+        `${t('hudChrome.hostedPlay.details.pendingReplyIncoming')}: ${valueOrNone(reply.incomingText)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyFallback')}: ${valueOrNone(reply.fallbackText)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyDue')}: ${formatMilliseconds(reply.dueInMs)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyAskedFriend')}: ${onOffText(reply.askedForFriend)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyLlmStatus')}: ${valueOrNone(reply.llmStatus)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyLlmReply')}: ${valueOrNone(reply.llmReplyText)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyLlmFriend')}: ${valueOrNone(reply.llmFriendAction)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyPresence')}: ${valueOrNone(reply.llmPresenceEmote)}`,
+        `${t('hudChrome.hostedPlay.details.pendingReplyRequested')}: ${formatMilliseconds(reply.llmRequestedAgoMs)}`,
+      ].join('\n'),
+    )
     .join('\n\n');
 }
 
@@ -1014,7 +1099,9 @@ function llmModeText(value: string): string {
 function lastSocialActionText(value: string): string {
   if (!value) return '';
   if (value.startsWith('friend_add:')) {
-    return t('hudChrome.hostedPlay.socialAction.friendAdd', { name: value.slice('friend_add:'.length) });
+    return t('hudChrome.hostedPlay.socialAction.friendAdd', {
+      name: value.slice('friend_add:'.length),
+    });
   }
   if (value.startsWith('reply:')) {
     return t('hudChrome.hostedPlay.socialAction.reply', { name: value.slice('reply:'.length) });

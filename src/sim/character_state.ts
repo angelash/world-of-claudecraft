@@ -1,0 +1,441 @@
+import type { ReferralRewardState } from './referral_reward_state';
+// Persisted character and pet save shapes. This is a type-only leaf: hosts may
+// describe JSONB state without evaluating the simulation coordinator or any
+// gameplay module. New fields remain optional unless every historical save can
+// supply them.
+
+import type { SavedAura } from './aura_persist';
+import type { SavedBankState } from './bank';
+import type { SavedBuddyCollection } from './buddies';
+import type { SavedLoadout, TalentAllocation } from './content/talents';
+import type { SavedCooldowns } from './cooldown_persist';
+import type { CourierState } from './courier';
+import type { SavedDeedStats } from './deeds';
+import type { PlayerEquipment } from './entity';
+import type { JailState } from './jail';
+import type { LocalGathererIdentity } from './material_gatherer';
+import type { MaterialComposition } from './material_sources';
+import type { SavedMaterialsVaultState } from './materials_vault';
+import type { ArchetypeState } from './professions/archetype';
+import type { PersistedFarmPlot } from './professions/farm_persist';
+import type { SavedGatheringGoal } from './professions/gathering_goal_persist';
+import type { ToolEffectSlot } from './professions/tools';
+import type { SavedPendingTownFocus } from './professions/town_focus_pending';
+import type { WorldPvpSavedState } from './pvp/world_pvp';
+import type { SavedReliquaryState } from './reliquary';
+import type {
+  EquipSlot,
+  HonorArenaDailyState,
+  InvSlot,
+  ItemInstancePayload,
+  PetMode,
+  QuestProgress,
+  SkinCatalog,
+  SkinRank,
+  WeeklyQuestProgress,
+  WorldQuestProgress,
+} from './types';
+import type { WeeklyRewardState } from './weekly_rewards';
+
+// Persistable character state (stored as JSONB server-side). The arena fields
+// are optional so characters saved before the Ashen Coliseum existed load
+// cleanly (addPlayer falls back to the unranked defaults).
+export interface CharacterState extends ReferralRewardState {
+  queueRewards?: import('./social/queue_rewards').QueueRewardsState;
+  // Production content migration revision. Revision 1 is the v0.26 all-class
+  // Talents V2 migration; revision 2 is the v0.29 Hunter redesign repick.
+  // Absent means a pre-v0.26 character JSONB save.
+  contentRevision?: number;
+  level: number;
+  xp: number;
+  // Post-cap progression. All optional so characters saved before the Max-Level
+  // XP Overflow system load cleanly (addPlayer backfills lifetimeXp from level).
+  lifetimeXp?: number;
+  // Soulbound PvP progression. Optional so pre-honor saves load at zero.
+  honor?: number;
+  lifetimeHonor?: number;
+  honorArenaDaily?: HonorArenaDailyState;
+  // World PvP (/pvp flag, src/sim/pvp/world_pvp.ts): the flag, a disarm
+  // countdown stored as remaining seconds, and the career kill/death tally.
+  // Absent for every character who never raised the flag.
+  worldPvp?: WorldPvpSavedState;
+  // The Skull Bag's stored trophy skulls (src/sim/pvp/skull_bag.ts): one
+  // material-source bucket per victim. Absent when the bag holds nothing.
+  skullBag?: MaterialComposition;
+  prestigeRank?: number;
+  unlockedMilestones?: string[];
+  // Rested XP pool. Optional so pre-rested-XP saves load cleanly (defaults to 0).
+  restedXp?: number;
+  // Lifetime played time in seconds (unfloored, for drift-free accumulation; only
+  // the display floors), accumulated across every prior session (this session's
+  // elapsed time is folded in at save; see PlayerMeta.totalPlayedSeconds and
+  // /playtime in social/chat.ts). Optional so pre-/playtime saves load cleanly
+  // (defaults to 0).
+  totalPlayedSeconds?: number;
+  // Gathering profession proficiency (JSONB; optional so pre-professions saves
+  // load cleanly, defaulting every profession to 0). `professions` is the legacy
+  // pre-rename key, still WRITTEN on every save alongside the current
+  // `gatheringProficiency` key (dual-write for downgrade back-compat); reads
+  // prefer `gatheringProficiency` and fall back to `professions`.
+  professions?: Partial<Record<string, number>>;
+  gatheringProficiency?: Partial<Record<string, number>>;
+  // Slotted tool effects, keyed by gathering profession id (JSONB). OPTIONAL,
+  // and written only when the player actually has one: a slot is rare, so an
+  // always-present `{}` would add a key to every character row in the realm to
+  // say nothing. Absent loads to an absent PlayerMeta field, which is the
+  // default the parity digest depends on, so a save written before this field
+  // existed loads byte-identically.
+  toolEffectSlots?: Partial<Record<string, ToolEffectSlot>>;
+  copper: number;
+  hp: number;
+  resource: number;
+  pos: { x: number; z: number };
+  facing: number;
+  equipment: PlayerEquipment;
+  // Per-slot ItemInstancePayload for whichever equipped piece carries one (an
+  // enchanted item's rolled.stats or a rift-forged upgrade's payload).
+  // Optional so pre-Enchanting saves load cleanly (defaults to no instances).
+  equipmentInstance?: Partial<Record<EquipSlot, ItemInstancePayload>>;
+  /** Legacy plural key written by this branch's earlier rift-gear saves. */
+  equipmentInstances?: Partial<Record<EquipSlot, ItemInstancePayload>>;
+  inventory: InvSlot[];
+  // Equipped bag sockets. Optional so pre-bag saves load cleanly (defaults to
+  // 4 empty sockets; an over-capacity legacy inventory is tolerated).
+  bags?: (string | null)[];
+  /** Equipped member bag, retained without capacity while membership is inactive. */
+  membershipBag?: string;
+  // Per-character bank (JSONB; optional so pre-bank saves load cleanly, defaulting
+  // to an empty bank with no purchased/bonus slots). sanitizeBankState is the one
+  // load path (never destroys items; tolerates an over-capacity inventory). The
+  // SavedBankState socket fields are optional and written only once a socket is
+  // unlocked, so pre-socket and zero-socket saves stay byte-equal.
+  bank?: SavedBankState;
+  /** Forward-only cargo custody. Do not roll back to a binary that drops it. */
+  courier?: CourierState;
+  // Per-character Materials Vault (JSONB; optional so pre-vault saves load cleanly,
+  // defaulting to the empty locked vault). sanitizeVaultState is the one load path
+  // (never destroys stock; tolerates an over-capacity count).
+  vault?: SavedMaterialsVaultState;
+  // Forward-only persistence: pre-feature binaries drop this field on save.
+  weeklyRewards?: WeeklyRewardState;
+  vendorBuyback?: InvSlot[];
+  questLog: QuestProgress[];
+  questsDone: string[];
+  // Daily world-quest state. Optional so every pre-feature save loads as an
+  // untouched empty cycle; available quests are implicit and are not stored.
+  worldQuests?: {
+    gliderRecords?: import('./glider_personal_records').PersonalGliderRecords;
+    cycle: string;
+    progress: WorldQuestProgress[];
+    factions?: Partial<Record<string, number>>;
+    factionCurrencies?: Partial<Record<string, number>>;
+    rerollCycle?: string;
+    replacements?: Record<string, string>;
+    // Clue Scrolls (src/sim/clue_scrolls.ts). Each is optional and written
+    // only when set (a hunt in progress, a cycle that paid, a count above
+    // zero), so a character the feature never touched serializes
+    // byte-identically to a pre-feature save.
+    clueHunt?: { huntId: string; step: number };
+    clueScrollCycle?: string;
+    clueCasketsOpened?: number;
+    // Treasure maps (src/sim/treasure_vault.ts), written only when set.
+    treasureMap?: { rarity: string; siteId: string; seed: number };
+    vaultAttempt?: {
+      id: string;
+      rarity: string;
+      siteId: string;
+      seed: number;
+      expiresAtMs?: number;
+      bossKilledAtMs?: number;
+    };
+    vaultAttemptSeq?: number;
+    vaultGuestCycle?: string;
+    vaultGuestPayouts?: number;
+    // Lantern Hall's weekly contracts (src/sim/guild_contracts.ts), written only once the
+    // character has done one: the week last read, its done list, and the lifetime count.
+    guildContracts?: { week: string; done: string[]; lifetime: number };
+    // The Allied Hearthstone's bound hub (a FactionId), written only when bound.
+    alliedHearthstone?: string;
+  };
+  // Faction standing (JSONB; optional so pre-reputation saves load cleanly).
+  factions?: Partial<Record<string, number>>;
+  // Spendable faction currencies (JSONB; optional so pre-feature saves load cleanly).
+  factionCurrencies?: Partial<Record<string, number>>;
+  // The weekly emissary's pick. Optional and omitted while there is none, so
+  // every pre-feature save loads with no charge taken.
+  weeklyQuest?: WeeklyQuestProgress;
+  // Seasonal events (src/sim/seasonal/): today's trick-or-treat knocks and the
+  // worn pumpkin head. Written only when non-empty, so untouched saves stay byte-equal.
+  seasonal?: import('./seasonal/seasonal_state').SavedSeasonalState;
+  // Legacy arenaRating/Wins/Losses are treated as 1v1 data. The explicit
+  // 1v1 fields are written by new saves, while old saves fall back cleanly.
+  arenaRating?: number;
+  arenaWins?: number;
+  arenaLosses?: number;
+  arena1v1Rating?: number;
+  arena1v1Wins?: number;
+  arena1v1Losses?: number;
+  arena1v1Draws?: number;
+  arena2v2Rating?: number;
+  arena2v2Wins?: number;
+  arena2v2Losses?: number;
+  arena2v2Draws?: number;
+  // Thornhollow Fields battleground standing (JSONB; optional and written only once a
+  // result or capture exists, so pre-Thornhollow Fields saves load cleanly and
+  // unchanged saves stay byte-equal).
+  bgRating?: number;
+  bgWins?: number;
+  bgLosses?: number;
+  bgDraws?: number;
+  bgCaptures?: number;
+  // The Vale Cup standing (JSONB; optional and written only once a result
+  // exists, so pre-cup saves load cleanly and unchanged saves stay byte-equal).
+  vcupWins?: number;
+  vcupLosses?: number;
+  vcupDraws?: number;
+  // Guild-banner cup record (JSONB; written only once a guild result exists, so
+  // pre-guild-entry saves stay byte-equal).
+  vcupGuildWins?: number;
+  vcupGuildLosses?: number;
+  // The Vale Cup spectator betting record (JSONB; written only once a bet has
+  // settled, so pre-betting saves stay byte-equal).
+  vcupBetWins?: number;
+  vcupBetLosses?: number;
+  vcupBetNet?: number;
+  // Talents & Specializations (JSONB). All optional so characters saved before
+  // talents existed load cleanly; contentRevision owns point-tree -> row migration.
+  talents?: TalentAllocation;
+  loadouts?: SavedLoadout[];
+  activeLoadout?: number;
+  raidLockouts?: Record<string, number>;
+  // Ability/potion cooldowns as remaining-time deltas (JSONB; optional so pre-fix
+  // saves load cleanly with no cooldowns). Persisted so logging out and back in no
+  // longer wipes cooldowns and lets a player bypass them by relogging.
+  cooldowns?: SavedCooldowns;
+  // Buffs (food, elixirs, flasks, and the class maintenance buffs) as
+  // remaining-time records (JSONB; optional so pre-fix saves load with no buffs,
+  // and absent while none is worn). Persisted so a logout no longer strips them;
+  // timers freeze while offline, the classic behavior. The allowlist, caster
+  // re-anchoring, and load re-validation live in aura_persist.ts.
+  auras?: SavedAura[];
+  // Per-player gather-node respawn timers as remaining-time deltas (D6; JSONB,
+  // nodeId -> remaining seconds, the cooldowns scheme above applied to node
+  // readiness). Optional with zero-default omission: absent for pre-D6 saves
+  // and whenever every node is ready, so unchanged characters stay byte-equal.
+  // Loaded through applyNodeReadiness (professions/node_persist.ts): re-anchored
+  // to the loading sim's clock, filtered to live node ids, clamped to one
+  // respawn. Closes the relog exploit that used to reset every node timer.
+  nodeHarvestCooldowns?: Record<string, number>;
+  // The remembered corpse-harvest material preference (Intentional Gathering
+  // PR3; see professions/harvest_preference.ts). Absent is the legacy
+  // default, All (loadHarvestPreference(undefined)); a stored material item
+  // id is kept verbatim even after content retires it (resolution then
+  // refuses on every body rather than reviving All); explicit JSON `null` is
+  // a MALFORMED live preference the character load refused, persisted so the
+  // refusal survives a save/reload instead of silently becoming All again
+  // (savedHarvestPreference/loadHarvestPreference own the encoding; never
+  // hand-roll a second parser).
+  harvestPreference?: string | null;
+  // The one explicit tracked gathering goal (Intentional Gathering PR4; JSONB,
+  // optional with zero-default omission: absent for a pre-feature save and
+  // whenever no goal is tracked). Compact kind/recipeId/count or
+  // kind/recipeId/orderId/count only: never the derived projection, cache, or
+  // the live commission-order binding, which is session state and is never
+  // restored from a saved orderId (see PlayerMeta.gatheringGoalOrder).
+  // Loaded/saved through professions/gathering_goal_persist.ts
+  // (loadGatheringGoal/saveGatheringGoal), the one encoding/decoding path.
+  gatheringGoal?: SavedGatheringGoal;
+  pet?: PetState | null;
+  // WoW-style ghost state (JSONB; optional so pre-ghost saves load alive). A player who
+  // logs out as a released spirit resumes as a ghost at the graveyard with the corpse
+  // still marked, rather than free-resurrecting on relog. See src/sim/spirit.ts.
+  ghost?: boolean;
+  corpsePos?: { x: number; z: number } | null;
+  // True when the character was saved dead (JSONB; optional so older saves load
+  // alive exactly as before). A dead-but-UNRELEASED logout resumes as a released
+  // ghost on relog (auto-release-on-logout), so logging out cannot bypass the
+  // death loop. See the addPlayer ghost block + src/sim/spirit.ts.
+  dead?: boolean;
+  // The Keeper's Toll (Resurrection Sickness) remaining seconds (JSONB; optional/null when
+  // none). Persisted so the penalty cannot be shed by logging out and back in.
+  resSickness?: number | null;
+  // Unstuck Sickness remaining seconds, same contract as resSickness above (JSONB;
+  // optional/null when none, so pre-feature saves stay byte-equal and load clean).
+  unstuckSickness?: number | null;
+  jail?: JailState;
+  // Z-key sheathed-weapon toggle (JSONB; written only while sheathed, so pre-feature
+  // saves and unsheathed characters stay byte-equal and load with the weapon drawn).
+  weaponStowed?: boolean;
+  // Paperdoll helmet-visibility preference (JSONB; written only while hidden, same
+  // pre-feature byte-equality contract as weaponStowed).
+  helmHidden?: boolean;
+  skin?: number; // appearance index (JSONB; optional so pre-skin saves load as 0)
+  skinCatalog?: SkinCatalog;
+  // The mount skin THIS character wears over any ridden mount (JSONB; written
+  // only while one is worn, so pre-feature saves stay byte-equal). Ownership is
+  // account state (AccountCosmetics.mountSkinIds), never persisted here; the
+  // server clears an unowned worn id at join (content/mount_skins.ts).
+  mountSkinId?: string;
+  // Pending skin-select event rank (JSONB; optional so older saves load as null).
+  pendingSkinRank?: SkinRank | null;
+  pendingSkinCatalog?: SkinCatalog | null;
+  pendingSkinItemId?: string | null;
+  // LEGACY. The old "selected mount" pick, written by builds before reins became
+  // usable items. Still declared so an existing save deserializes without a type
+  // error, but nothing reads it and nothing writes it any more: the field simply
+  // ages out of saves as characters are re-saved. Do NOT reintroduce a reader.
+  selectedMount?: string;
+  // One-time riding-lesson training fee (100g), charged when the first lesson
+  // race starts (or through legacy mount_train_begin). Optional and absent until
+  // paid, so pre-mount-training saves (and every save before the fee is ever
+  // charged) stay byte-equal.
+  mountTrainingFeePaid?: boolean;
+  // Riding skill purchased from Marla (80g). Optional and absent until bought.
+  ridingTrained?: boolean;
+  ridingTier?: 1 | 2;
+  // PBE boost kit version applied (server/pbe_boost.ts); absent outside PBE.
+  pbeBoostKit?: number;
+  delveMarks?: number;
+  delveClears?: Record<string, number>;
+  companionUpgrades?: Record<string, number>;
+  delveLoreUnlocked?: string[];
+  delveDaily?: { date: string; firstClearXp: string[]; markClears: number };
+  heroicDaily?: { date: string; marked: string[] };
+  // The Heroic Marks currency balance (src/sim/heroic_marks.ts). Optional and
+  // absent at zero; a pre-currency save loads its `heroic_mark` bag and bank
+  // stacks into it instead.
+  heroicMarks?: number;
+  // Masterwrought materials (phase 04): both optional so pre-materials saves
+  // load with the fields at their fresh defaults, and both omitted from
+  // serialization while at those defaults so untouched rows stay byte-equal.
+  wyrmfallDaily?: { date: string; sources: string[] };
+  emberWeekAnchor?: string;
+  // Masterwrought phase 07: the oncePerDay craft stamp. Optional and
+  // zero-default-omitted like wyrmfallDaily above, so saves that never
+  // crafted a daily-gated recipe stay byte-equal.
+  craftDaily?: { date: string; crafted: string[] };
+  // Ravenpost welcome letter already sent (optional so pre-mail saves load
+  // cleanly and receive the announcement letter once on their next login).
+  mailWelcomed?: boolean;
+  // Guild trend letter already sent (optional so older saves load
+  // cleanly and receive at most one letter when their crafts qualify).
+  guildLetterSent?: boolean;
+  // Repeatable work-order cooldowns (Professions 2.0; JSONB, quest id ->
+  // availableAt tick). Written only when non-empty (zero-default omission), so
+  // older and no-work-order saves stay byte-equal; loaded through
+  // clampCadenceOnLoad (tick-reset safe).
+  questCadence?: Record<string, number>;
+  // Per-major acknowledged craft tier (Professions 2.0; JSONB, craft id
+  // -> tier). Written only when non-empty (zero-default omission), so
+  // older and unattuned saves stay byte-equal.
+  tierMailSent?: Record<string, number>;
+  // Per-pair quested hobby (Professions 2.0; JSONB, canonical pair id ->
+  // craft id). Written only when non-empty (zero-default omission), so older
+  // saves and characters that never quested a hobby stay byte-equal.
+  questedHobbies?: Record<string, string>;
+  // First-tier tutorial already sent (Professions 2.0; JSONB, optional
+  // so older saves load cleanly and fire it once when they first qualify).
+  // Written only when true (zero-default omission).
+  profTierTutorialSent?: boolean;
+  // Per-player farm plots (Farming; JSONB, bed id -> the persisted row shape
+  // in professions/farm_persist.ts). Optional with zero-default omission:
+  // absent for every pre-farming save and whenever no bed is planted, so
+  // unchanged characters stay byte-equal. Loaded through normalizeFarmPlots,
+  // which drops unknown bed/crop ids and clamps deadlines (growth deadlines
+  // are absolute epoch ms, the raidLockouts idiom, not remaining deltas: a
+  // crop keeps growing while its owner is logged out).
+  farmPlots?: Record<string, PersistedFarmPlot>;
+  // Spawn greeting already sent (tutorial island; JSONB, optional so older
+  // saves load cleanly and latch silently on their next swept tick).
+  // Written only when true (zero-default omission).
+  tutorialGreetingSent?: boolean;
+  // World-boss loot lockouts now ride `raidLockouts` (keyed worldboss:<mobId>). The
+  // legacy per-day `worldBossDaily` field is intentionally dropped: pre-migration saves
+  // that still carry it just ignore it (a player locked at deploy may loot once more, a
+  // one-time, player-friendly transition), and their lockouts persist via raidLockouts
+  // from then on.
+  // World-boss daily loot record. Optional so saves from before world bosses load
+  // cleanly (addPlayer falls back to an empty record).
+  worldBossDaily?: { date: string; looted: string[] };
+  // Flat per-craft skill tracking (#1126; JSONB, additive back-compat: absent or
+  // partial on older saves loads the missing crafts as 0, see normalizeCraftSkills).
+  craftSkills?: Record<string, number>;
+  // Recipe acquisition (#1299; JSONB, additive back-compat: absent on older
+  // saves loads as an empty set, i.e. no learned non-grandfathered recipes).
+  knownRecipes?: string[];
+  // Grandfather normalize already applied (JSONB, additive
+  // back-compat, the mailWelcomed idiom): absent/false on an older save
+  // triggers the one-time PRE_TRAINING_RECIPE_IDS union on load, then true
+  // is persisted so it never re-runs (it is idempotent anyway).
+  recipesGrandfathered?: boolean;
+  // Mastery reset already applied (JSONB, the recipesGrandfathered
+  // idiom): absent/false on a pre-curve save triggers the one-time
+  // applyMasteryReset on load (professions/mastery_reset.ts), then LITERAL
+  // true is serialized unconditionally (any blob written by curve-era code
+  // has the reset applied), so it can never re-fire.
+  masteryResetApplied?: boolean;
+  // Proficiency display heal already applied (issue 2339; JSONB, the
+  // masteryResetApplied idiom): absent/false on a save written while the
+  // character sheet still ROUNDED its Gathering rows triggers the one-time
+  // healDisplayRoundedProficiency on load (a value the old sheet displayed
+  // as a crossed band threshold, 99.5 to 99.99 reading "100", bumps to that
+  // threshold so the join retro pass grants the stranded 100/200 gathering
+  // deeds), then LITERAL true is serialized unconditionally so it can never
+  // re-fire on the floored post-fix display.
+  proficiencyDisplayHealApplied?: boolean;
+  townFocus?: Record<string, number>;
+  // #1144: a queued 'time'/'timeAndPartial' re-spec (JSONB, sparse: absent
+  // while nothing is waiting). Remaining seconds, never an absolute sim time;
+  // encoding and the strict load live in professions/town_focus_pending.ts.
+  pendingTownFocus?: SavedPendingTownFocus;
+  // Active-archetype state (#1129, superseded scope; JSONB, back-compat: absent on
+  // older saves loads as emptyArchetypeState, see normalizeArchetypeState).
+  archetype?: Partial<ArchetypeState>;
+  // The Book of Deeds (JSONB; ALL optional and written only once non-empty, so
+  // pre-deed saves load cleanly and stay byte-equal until the system engages).
+  // `deeds` maps deed id to the utcDay earned ('' when unknown); `renown` is
+  // denormalized for a later SQL sort index and RECOMPUTED from `deeds` on
+  // load (the sim is authoritative). Loading also unions the legacy
+  // `unlockedMilestones` ids into `deeds` (milestone unification), while new
+  // grants keep dual-writing `unlockedMilestones` for one release as
+  // forward-only rollback insurance.
+  deeds?: Record<string, string>;
+  deedStats?: SavedDeedStats;
+  activeTitle?: string | null;
+  activeBorder?: string | null;
+  renown?: number;
+  // The Reliquary (JSONB; optional, written only when non-empty so pre-system
+  // saves load cleanly and stay byte-equal until the system engages).
+  reliquary?: SavedReliquaryState;
+  // The buddy collection (src/sim/buddies.ts): owned companions, unlocked
+  // cosmetics, the worn look per buddy, pending boss-roll wins, and the last
+  // summoned key. Optional, written only when non-empty so pre-buddy saves
+  // load cleanly and stay byte-equal. Ids are re-validated against the
+  // catalog on load (a removed companion loads as absent).
+  buddies?: SavedBuddyCollection;
+  // The durable OFFLINE/HEADLESS material-gatherer identity (src/sim/material_gatherer.ts).
+  // Optional and written ONLY by a host that has one, so an online character's
+  // blob and every pre-feature save stay byte-equal: the server re-supplies an
+  // online identity from the character row at every join, and a save can never
+  // carry an identity claim back in.
+  //
+  // On load it SUPERSEDES the fresh host default, which is what makes a reloaded
+  // local character keep the identity its already-gathered stock is attributed
+  // to. A present-but-malformed value refuses the load rather than regenerating
+  // a different id (readPersistedLocalIdentity).
+  materialGathererIdentity?: LocalGathererIdentity;
+}
+
+export interface PetState {
+  templateId: string;
+  name: string;
+  /** Non-template cosmetic size of a tamed beast. Older saves omit it. */
+  scale?: number;
+  level: number;
+  hp: number;
+  dead: boolean;
+  mode?: PetMode;
+  autoTaunt?: boolean;
+  autoWaterJet?: boolean;
+  autoSkill?: boolean;
+}

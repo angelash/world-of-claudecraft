@@ -18,7 +18,11 @@
 // single-event, "no music, no speech" where it matters. Footsteps/impacts are ONE
 // hit (the engine pitch-randomizes and alternates to avoid repetition).
 
+import { FURY_SFX } from './fury_sfx.mjs';
 import { UI_SFX_CATALOG } from './ui_sfx.mjs';
+import { WARRIOR_CONTACT_SFX } from './warrior_contact_sfx.mjs';
+import { WARRIOR_FALLBACK_SFX } from './warrior_fallback_sfx.mjs';
+import { WARRIOR_VOICE_SFX } from './warrior_voice_sfx.mjs';
 
 // UI cues in the baked-tone generator's list that already have a real
 // recording dropped in over the synth placeholder (see gen_ui_sfx.mjs's
@@ -84,6 +88,10 @@ const mob = (family, who, aggro, attack, death, hurt, idle) => {
 };
 
 export const SFX = [
+  ...FURY_SFX,
+  ...WARRIOR_CONTACT_SFX,
+  ...WARRIOR_VOICE_SFX,
+  ...WARRIOR_FALLBACK_SFX,
   // --- Movement & footsteps -------------------------------------------------
   FOOT('foot_grass', 'on soft grass and dry leaves, light leather boot'),
   FOOT('foot_dirt', 'in wet mud and soft dirt, faint squelch'),
@@ -91,6 +99,240 @@ export const SFX = [
   FOOT('foot_wood', 'on hollow wooden planks, dull creak'),
   FOOT('foot_snow', 'crunching into fresh deep snow, soft compression'),
   FOOT('foot_water', 'splashing through shallow water, wet splash'),
+  {
+    key: 'mount_run_valorsteed',
+    custom: true,
+  },
+  {
+    key: 'mount_run_grag_bear',
+    custom: true,
+  },
+  {
+    key: 'mount_run_stalkglider_snail',
+    custom: true,
+  },
+  {
+    key: 'mount_run_aether_hover_cycle',
+    custom: true,
+  },
+  {
+    key: 'mount_run_shadowjump_toad',
+    custom: true,
+  },
+  {
+    key: 'mount_run_stormfeather_griffin',
+    custom: true,
+  },
+  {
+    key: 'mount_run_thunderstrut_gobbler',
+    custom: true,
+  },
+  // The Lanternback Troll and the Chimeglass Tortoise deliberately have NO
+  // mount_run_ entry. Both shipped synthesised cues and both read as cheap and
+  // nagging at the mounted gallop's ~0.46s stride beat; rather than keep
+  // tuning a synth, they now borrow the player's own surface footfall
+  // (foot_<surface>) through Sfx.mountRun's fallback branch. A mount is opted
+  // into that fallback purely by the ABSENCE of its key here, so adding one
+  // back is all it takes to give either of them a bespoke stride again.
+  // Wobbles the Slime (developer mount) borrows the footfall the same way
+  // until a bespoke squelch is generated for it.
+  {
+    key: 'mount_run_goblin_rocket_sled_start',
+    custom: true,
+  },
+  {
+    key: 'mount_run_goblin_rocket_sled',
+    custom: true,
+    loop: true,
+  },
+  {
+    // The sled's summon call, fired once when the summon channel completes and
+    // the mount appears. Never on dismount, never for a rider already mounted
+    // when they come into view.
+    key: 'mount_summon_goblin_rocket_sled',
+    custom: true,
+  },
+  {
+    key: 'mount_run_goblin_rocket_sled_stop',
+    custom: true,
+  },
+  {
+    key: 'mount_run_goblin_rocket_sled_reverse_start',
+    custom: true,
+  },
+  {
+    key: 'mount_run_goblin_rocket_sled_reverse',
+    custom: true,
+    loop: true,
+  },
+  {
+    key: 'mount_run_goblin_rocket_sled_reverse_stop',
+    custom: true,
+  },
+  {
+    key: 'mount_summon_rallycart_rxt',
+    custom: true,
+  },
+  {
+    key: 'mount_run_rallycart_rxt_idle',
+    custom: true,
+    loop: true,
+  },
+  {
+    key: 'mount_run_rallycart_rxt_start',
+    custom: true,
+  },
+  {
+    key: 'mount_run_rallycart_rxt',
+    custom: true,
+    loop: true,
+  },
+  {
+    key: 'mount_run_rallycart_rxt_stop',
+    custom: true,
+  },
+  // Reverse, the same three-part shape the sled uses. The engine builds these
+  // key names generically (`mount_run_<mountKey>_reverse*`), so the takes were
+  // on disk and reachable by code but absent from this catalog, which meant
+  // they were never in SFX_CLIPS and reversing the cart was silent.
+  {
+    key: 'mount_run_rallycart_rxt_reverse_start',
+    custom: true,
+  },
+  {
+    key: 'mount_run_rallycart_rxt_reverse',
+    custom: true,
+    loop: true,
+  },
+  {
+    key: 'mount_run_rallycart_rxt_reverse_stop',
+    custom: true,
+  },
+  {
+    // Takeoff and touchdown for the cart, five and four takes respectively.
+    // A mount that carries no jump/land set falls back to the rider's own
+    // move_jump/move_land, so these two keys are the whole opt-in: no shipped
+    // mount changes behavior by their existing.
+    key: 'mount_jump_rallycart_rxt',
+    custom: true,
+  },
+  {
+    key: 'mount_land_rallycart_rxt',
+    custom: true,
+  },
+  {
+    key: 'mount_run_terrorspark_groundshaker_start',
+    custom: true,
+  },
+  {
+    // The sustain take of the windup/loop/winddown set: driven through
+    // Sfx.loop() at runtime (see mountEngine in src/game/sfx.ts), not
+    // playAt, so the manifest's own `loop` flag must say so too, even
+    // though nothing reads it at runtime today.
+    key: 'mount_run_terrorspark_groundshaker',
+    custom: true,
+    loop: true,
+  },
+  {
+    // The Drakemaw Raptor's sprint: the gobbler's two-legged gallop donor,
+    // pitched down in sfx_speed_map.json so the heavier raptor reads deeper.
+    key: 'mount_run_drakemaw_raptor',
+    custom: true,
+  },
+  {
+    key: 'mount_run_terrorspark_groundshaker_stop',
+    custom: true,
+  },
+  {
+    // The Lantern Hall Destrier's whinny as it rears on its hind legs (a standing jump while
+    // mounted, src/render/mount_rear_core.ts): two takes generated with the ElevenLabs Sound
+    // Effects API (eleven_text_to_sound_v2, 2026-10-16) and picked by the maintainer, prompt
+    // "A powerful heavy war horse rearing up and letting out a loud, proud whinny neigh, with a
+    // short snort at the end, realistic recording, close, no music, no voices, about 2 seconds".
+    // Stored as custom masters so a paid regeneration never replaces the picked takes; the
+    // variant pool rotates them with a no-repeat bias.
+    key: 'mount_neigh_lantern_hall_destrier',
+    custom: true,
+  },
+  {
+    // The Viridian Valestrider's summon call: an authored bird cry played once
+    // when the 1.5s summon channel completes and the mount appears.
+    // Sfx.mountSummon resolves `mount_summon_<key>` per mount and stays silent
+    // for a mount with no authored take, so the other mounts are unaffected.
+    key: 'mount_summon_avian_strider',
+    custom: true,
+  },
+  {
+    // The Valestrider's gait beat, six variants. Rotated per stride by playAt's
+    // variant pool, which is what stops a bird jogging past sounding like a
+    // metronome. This REPLACES the rider's own footsteps while mounted: it is
+    // part of the world mix and does not answer to the on-foot footstep toggle.
+    key: 'mount_run_avian_strider',
+    custom: true,
+  },
+  {
+    // Takeoff and touchdown, on the airborne edges.
+    key: 'mount_jump_avian_strider',
+    custom: true,
+  },
+  {
+    key: 'mount_land_avian_strider',
+    custom: true,
+  },
+  {
+    // Fired together at the APEX of a jump, not at takeoff: the bird calls out
+    // and beats its wings at the top of the arc. Two keys rather than one baked
+    // pair so the variants rotate independently and the mix can be tuned apart.
+    key: 'mount_squawk_avian_strider',
+    custom: true,
+  },
+  {
+    key: 'mount_flap_avian_strider',
+    custom: true,
+  },
+  {
+    // The Mech Bird's gait beat: the recorded servo footsteps assembled 1-2-1
+    // (step one, step two, step one) per stride by scripts/gen_mech_bird_sfx.mjs.
+    key: 'mount_run_mech_bird',
+    custom: true,
+  },
+  {
+    // The Mech Bird's standstill powered-on hum: driven through Sfx.loop()
+    // while mounted and stationary (see mountIdle in src/game/sfx.ts), so the
+    // manifest loop flag must say so, like the tank engine sustain above.
+    key: 'mount_idle_mech_bird',
+    custom: true,
+    loop: true,
+  },
+  {
+    // Launch servo one-shot: replaces the generic move_jump while riding the
+    // Mech Bird (the mount-aware arm of Sfx.movement).
+    key: 'mount_jump_mech_bird',
+    custom: true,
+  },
+  {
+    // Landing clank one-shot: replaces the generic move_land while riding.
+    key: 'mount_land_mech_bird',
+    custom: true,
+  },
+  {
+    // Real recording (not ElevenLabs): the cart's rolling/creaking bed, held
+    // as a continuous loop while the mount moves rather than a per-stride
+    // one-shot like mount_run_* above. A wheeled cart has no stride to hang
+    // a one-shot on -- the sound is continuous by nature, so it runs through
+    // sfx.ts's loop()/unloop() the way the campfire and forge ambiences do.
+    key: 'mount_loop_rickshaw_mount',
+    custom: true,
+    loop: true,
+  },
+  {
+    // The Bonebound Rickshaw's summon call, fired once when the summon channel
+    // completes and the mount appears. Never on dismount, and never for a rider
+    // already mounted when they come into view. Silent for any mount without an
+    // authored take, so this key is the whole opt-in.
+    key: 'mount_summon_rickshaw_mount',
+    custom: true,
+  },
   {
     key: 'move_jump',
     custom: true,
@@ -219,6 +461,20 @@ export const SFX = [
     duration: 1.3,
     prompt:
       "A human warrior's final pained death cry as he collapses to the ground. Single death cry fading out.",
+  },
+  {
+    key: 'player_hurt_female',
+    custom: true,
+    duration: 0.6,
+    prompt:
+      'A human warrior grunting in sudden sharp pain from taking a hit. Single short grunt. Female voice.',
+  },
+  {
+    key: 'player_death_female',
+    custom: true,
+    duration: 1.3,
+    prompt:
+      "A human warrior's final pained death cry as she collapses to the ground. Single death cry fading out. Female voice.",
   },
   {
     key: 'player_eat_food',
@@ -379,6 +635,139 @@ export const SFX = [
     duration: 0.9,
     prompt:
       'An expanding magical nova shockwave bursting outward in all directions. Single burst, no music.',
+  },
+  {
+    key: 'fear_shout',
+    custom: true,
+  },
+  {
+    key: 'fear',
+    custom: true,
+  },
+  {
+    key: 'intimidating_shout',
+    custom: true,
+  },
+  {
+    key: 'battle_shout',
+    custom: true,
+  },
+  {
+    key: 'demoralizing_shout',
+    custom: true,
+  },
+  {
+    key: 'emboldening_roar',
+    custom: true,
+  },
+  {
+    key: 'defiant_bellow',
+    custom: true,
+  },
+  {
+    key: 'rallying_cry',
+    custom: true,
+  },
+  {
+    key: 'ice_block',
+    custom: true,
+  },
+  {
+    key: 'frost_nova',
+    custom: true,
+  },
+  {
+    key: 'hammer_of_justice',
+    custom: true,
+  },
+  {
+    key: 'entangling_roots',
+    custom: true,
+  },
+  {
+    key: 'blind',
+    custom: true,
+  },
+  {
+    key: 'cloak_of_shadows',
+    custom: true,
+  },
+  {
+    key: 'scorch',
+    custom: true,
+  },
+  {
+    key: 'pyroblast',
+    custom: true,
+  },
+  {
+    key: 'meteor',
+    custom: true,
+  },
+  {
+    key: 'flamestrike',
+    custom: true,
+  },
+  {
+    key: 'frozen_orb',
+    custom: true,
+  },
+  {
+    key: 'glacial_spike',
+    custom: true,
+  },
+  {
+    key: 'blizzard',
+    custom: true,
+    loop: true,
+  },
+  {
+    key: 'blink',
+    custom: true,
+  },
+  {
+    key: 'arcane_blast',
+    custom: true,
+  },
+  {
+    key: 'shadowstep',
+    custom: true,
+  },
+  {
+    key: 'cheap_shot',
+    custom: true,
+  },
+  {
+    key: 'ambush',
+    custom: true,
+  },
+  {
+    key: 'backstab',
+    custom: true,
+  },
+  {
+    key: 'garrote',
+    custom: true,
+  },
+  {
+    key: 'sap',
+    custom: true,
+  },
+  {
+    key: 'sinister_strike',
+    custom: true,
+  },
+  {
+    key: 'eviscerate',
+    custom: true,
+  },
+  {
+    key: 'stealth',
+    custom: true,
+  },
+  {
+    key: 'vanish',
+    custom: true,
   },
 
   // --- Heals & auras --------------------------------------------------------
@@ -611,6 +1000,22 @@ export const SFX = [
     stereo: true,
     prompt: 'A soft muffled snowy wind, quiet and cold. Seamless loop, no music.',
   },
+  {
+    // Project-generated (not ElevenLabs): scripts/gen_tavern_ambience_sfx.mjs synthesizes
+    // the Mirefen tavern's room of talk, mugs and hearth crackle from fixed seeds and mixes
+    // in the Fenbridge town theme rendered from the procedural score, baking a crossfaded
+    // wrap so the runtime's plain loop=true playback has no seam. custom is load-bearing: the
+    // generator masters the bed itself (about -17 LUFS, peaks near -8 dBFS), so conform only
+    // enforces the true-peak ceiling and never retargets it. stereo: a non-positional bed
+    // (src/game/sfx.ts plays it through the tavern ambience's lowpass, never a panner).
+    key: 'amb_tavern',
+    duration: 44,
+    loop: true,
+    stereo: true,
+    custom: true,
+    prompt:
+      'A lively medieval tavern room: overlapping talk and laughter, mugs clinking, a hearth crackling and a little lute music from the corner. Seamless loop.',
+  },
 
   // --- Custom recordings (not ElevenLabs) ----------------------------------
   { key: 'quest_accept', custom: true },
@@ -691,8 +1096,6 @@ export const SFX = [
   { key: 'ui_cosmetic_unlock', custom: true },
 
   // Duel/arena start gong (custom recording, not ElevenLabs/generated).
-  // Vale Cup kickoff was split off to its own key (ui_vcup_kickoff) so this
-  // one stays real-duel/arena only; see the 'vcupKickoff' case in hud.ts.
   { key: 'ui_duel_start', custom: true },
 
   // Arena rating-loss defeat chime (custom recording, not ElevenLabs/generated).
@@ -808,6 +1211,49 @@ export const SFX = [
   // break-any-item-for-generic-materials action (src/sim/professions/
   // salvage.ts), separate from disenchant's rare+ arcane-materials path.
   { key: 'ui_craft_salvage', custom: true },
+
+  // Buried Hoard: locally authored earth/wood reveal and a warm resonant bed.
+  { key: 'hoard_entrance_open', custom: true },
+  { key: 'hoard_entrance_hum', custom: true, loop: true },
+  { key: 'hoard_tide_build', custom: true },
+  { key: 'hoard_tide_rush', custom: true, loop: true },
+  { key: 'hoard_tide_crash', custom: true },
+  { key: 'hoard_tide_hit', custom: true },
+
+  // --- Rift mechanics (custom recordings, src/sim/rift/) --------------------
+  // World-anchored one-shots and point-source loops for the procedural Rift
+  // dungeon's headline floor mechanics (src/sim/rift/runs.ts, portals.ts),
+  // played via the spellfxAt world event's optional sfxKey override.
+  { key: 'rift_portal_spawn', custom: true }, // a natural rift portal opening in the world
+  { key: 'rift_portal_enter', custom: true }, // stepping through into the instance
+  { key: 'rift_portal_drone', custom: true, loop: true }, // point-source loop near an open, unentered portal
+  { key: 'rift_gate_grind', custom: true }, // the rift gate mechanic's portcullis grinding open
+  { key: 'rift_boulder_impact', custom: true }, // the rolling-lane hazard bowling over a player
+  { key: 'rift_boulder_roll', custom: true, loop: true }, // point-source loop near an active rolling-lane hazard
+  { key: 'rift_ice_start', custom: true }, // launching onto the ice-slide zone
+  { key: 'rift_ice_glide', custom: true, loop: true }, // point-source loop for a player currently gliding
+  { key: 'rift_ice_stop', custom: true }, // skidding to a halt off the ice
+  { key: 'rift_lava_tick', custom: true }, // the 1 Hz lava/blackwater hazard burn tick
+  // Gourdlight Eve: synthesized from scratch by scripts/sfx/gourdlight_sfx.mjs (original,
+  // no samples; CREDITS.md). Old Thatchgrin's Gourdfall and Swelling Gourd ride the
+  // spellfxAt sfxKey (the impacts) and the renderer's scarecrow layer (the whistle, the
+  // ripening pulse); the Emberbristle Broom's own stride and hover hum.
+  { key: 'proj_gourdfall_whistle', custom: true },
+  { key: 'impact_gourdfall', custom: true },
+  { key: 'spell_swelling_gourd_pulse', custom: true },
+  { key: 'impact_swelling_gourd_burst', custom: true },
+  { key: 'mount_run_emberbristle_broom', custom: true },
+  { key: 'mount_idle_emberbristle_broom', custom: true, loop: true },
+  // Hester's toys (src/sim/seasonal/seasonal_toys.ts, toy_cauldron.ts): the spellfxAt
+  // sfxKey (the lantern, the bats, the candle, the cauldron set down and drunk from) and the
+  // render toy layer (the prank's splat on landing, the cauldron's bubbling at its spot).
+  { key: 'impact_prank_pumpkin_splat', custom: true },
+  { key: 'spell_wanderwisp_lantern', custom: true },
+  { key: 'spell_startled_bats', custom: true },
+  { key: 'spell_murmurwick_candle', custom: true },
+  { key: 'spell_gurglegreen_cauldron', custom: true },
+  { key: 'gurglegreen_bubble_loop', custom: true, loop: true },
+  { key: 'spell_gurglegreen_quaff', custom: true },
 ];
 
 // Family ids that have creature vocalizations (used by the integration layer to

@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
 import type { AiAuditRecord } from '../server/ai_audit';
 import {
   AI_AUDIT_RETENTION_INDEX_SQL,
   AI_AUDIT_SCHEMA,
-  PgAiAuditDb,
   normalizeAiAuditRecord,
+  PgAiAuditDb,
   pruneAiAuditRecordsBatch,
 } from '../server/ai_audit_db';
 import { REALM } from '../server/realm';
@@ -14,7 +14,10 @@ class FakePool {
   calls: Array<{ sql: string; values?: readonly unknown[] }> = [];
   payloadRows: Array<Record<string, unknown>> = [];
 
-  async query(sql: string, values?: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>>; rowCount: number }> {
+  async query(
+    sql: string,
+    values?: readonly unknown[],
+  ): Promise<{ rows: Array<Record<string, unknown>>; rowCount: number }> {
     this.calls.push({ sql, values });
     if (sql.includes('INSERT INTO ai_audit_records') && values) {
       const payload = JSON.parse(String(values[29])) as Record<string, unknown>;
@@ -72,8 +75,12 @@ const record: AiAuditRecord = {
 describe('AI audit DB', () => {
   it('defines additive schema and query indexes for persistent AI audit records', () => {
     expect(AI_AUDIT_SCHEMA).toContain('CREATE TABLE IF NOT EXISTS ai_audit_records');
-    expect(AI_AUDIT_SCHEMA).toContain('ALTER TABLE ai_audit_records ADD COLUMN IF NOT EXISTS realm');
-    expect(AI_AUDIT_SCHEMA).toContain('CREATE UNIQUE INDEX IF NOT EXISTS ai_audit_records_audit_id');
+    expect(AI_AUDIT_SCHEMA).toContain(
+      'ALTER TABLE ai_audit_records ADD COLUMN IF NOT EXISTS realm',
+    );
+    expect(AI_AUDIT_SCHEMA).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS ai_audit_records_audit_id',
+    );
     expect(AI_AUDIT_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_audit_records_created');
     expect(AI_AUDIT_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_audit_records_status_created');
     expect(AI_AUDIT_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_audit_records_player_created');
@@ -90,7 +97,7 @@ describe('AI audit DB', () => {
     await expect(pruneAiAuditRecordsBatch(pool, 90, 500)).resolves.toBe(1);
     const call = pool.calls[0];
     expect(call.sql).toContain('DELETE FROM ai_audit_records');
-    expect(call.sql).toContain("created_at < now() - make_interval(days => $1::int)");
+    expect(call.sql).toContain('created_at < now() - make_interval(days => $1::int)');
     expect(call.sql).toContain('ORDER BY created_at, id');
     expect(call.sql).toContain('LIMIT $2');
     expect(call.values).toEqual([90, 500]);
@@ -113,39 +120,41 @@ describe('AI audit DB', () => {
     await db.saveRecord(record);
     const insert = pool.calls[0];
     expect(insert.sql).toContain('ON CONFLICT (realm, audit_id) DO UPDATE SET');
-    expect(insert.values).toEqual(expect.arrayContaining([
-      REALM,
-      'audit-1',
-      'ai-1-2-3',
-      'npc_question',
-      'npc',
-      22,
-      'brother_aldric',
-      1,
-      'fallen_chapel',
-      'eastbrook_vale',
-      'codex',
-      'accepted',
-      42.5,
-      100,
-      25,
-      125,
-      true,
-      'line_id_only',
-      3,
-      8,
-      2,
-      1,
-      4,
-      1,
-      ['hudChrome.aiSpeech.brotherAldricAwake'],
-      ['commentOnScene'],
-      ['npcInteraction:npc:1:brother_aldric'],
-      'uses profile line',
-      '',
-      JSON.stringify(record),
-      '2026-06-22T00:00:00.000Z',
-    ]));
+    expect(insert.values).toEqual(
+      expect.arrayContaining([
+        REALM,
+        'audit-1',
+        'ai-1-2-3',
+        'npc_question',
+        'npc',
+        22,
+        'brother_aldric',
+        1,
+        'fallen_chapel',
+        'eastbrook_vale',
+        'codex',
+        'accepted',
+        42.5,
+        100,
+        25,
+        125,
+        true,
+        'line_id_only',
+        3,
+        8,
+        2,
+        1,
+        4,
+        1,
+        ['hudChrome.aiSpeech.brotherAldricAwake'],
+        ['commentOnScene'],
+        ['npcInteraction:npc:1:brother_aldric'],
+        'uses profile line',
+        '',
+        JSON.stringify(record),
+        '2026-06-22T00:00:00.000Z',
+      ]),
+    );
 
     const loaded = await db.recentRecords(20);
     expect(loaded).toEqual([record]);
@@ -308,31 +317,41 @@ describe('AI audit DB', () => {
 
     const compactRows = await db.recentRecords(20);
     expect(compactRows[0]?.chain).toBeUndefined();
-    expect(compactRows).toEqual([expect.objectContaining({
-      auditId: 'audit-chain',
-      hasChain: true,
-      deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
-      promptChars: 20,
-      rawOutputChars: 11,
-      providerTimings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
-    })]);
-    await expect(db.recordByAuditId('audit-chain')).resolves.toEqual(expect.objectContaining({
-      auditId: 'audit-chain',
-      chain: expect.objectContaining({
-        requestContext: expect.objectContaining({ promptText: 'prompt sent to model', promptChars: 20 }),
-        provider: expect.objectContaining({
-          rawOutput: '{"ok":true}',
-          rawOutputChars: 11,
-          timings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
+    expect(compactRows).toEqual([
+      expect.objectContaining({
+        auditId: 'audit-chain',
+        hasChain: true,
+        deliveredSummary: ['hudChrome.aiSpeech.brotherAldricAwake'],
+        promptChars: 20,
+        rawOutputChars: 11,
+        providerTimings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
+      }),
+    ]);
+    await expect(db.recordByAuditId('audit-chain')).resolves.toEqual(
+      expect.objectContaining({
+        auditId: 'audit-chain',
+        chain: expect.objectContaining({
+          requestContext: expect.objectContaining({
+            promptText: 'prompt sent to model',
+            promptChars: 20,
+          }),
+          provider: expect.objectContaining({
+            rawOutput: '{"ok":true}',
+            rawOutputChars: 11,
+            timings: expect.objectContaining({ provider: 'codex-app-server', totalMs: 1234 }),
+          }),
         }),
       }),
-    }));
+    );
   });
 
   it('deletes non-real audit rows by realm for admin cleanup', async () => {
     const pool = new FakePool();
     const db = new PgAiAuditDb(pool);
-    pool.payloadRows.push({ payload: record }, { payload: { ...record, auditId: 'audit-2', status: 'provider_error' } });
+    pool.payloadRows.push(
+      { payload: record },
+      { payload: { ...record, auditId: 'audit-2', status: 'provider_error' } },
+    );
 
     await expect(db.deleteNonRealRecords()).resolves.toBe(2);
 
@@ -352,12 +371,14 @@ describe('AI audit DB', () => {
       createdAt: 'not-a-date',
     });
 
-    expect(normalized).toEqual(expect.objectContaining({
-      entityKind: 'system',
-      providerSource: 'provider',
-      totalTokens: 125,
-      createdAt: '1970-01-01T00:00:00.000Z',
-    }));
+    expect(normalized).toEqual(
+      expect.objectContaining({
+        entityKind: 'system',
+        providerSource: 'provider',
+        totalTokens: 125,
+        createdAt: '1970-01-01T00:00:00.000Z',
+      }),
+    );
     expect(normalized?.lineIds).toHaveLength(24);
   });
 });

@@ -1,19 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildAuthMemoryState,
-  readAuthMemory,
-  writeAuthMemory,
-  togglePasswordVisibility,
-  syncInputAriaState,
-  validateForm,
   handleKeyboardActivation,
+  readAuthMemory,
+  syncInputAriaState,
+  togglePasswordVisibility,
   validateCharacterName,
+  validateForm,
+  writeAuthMemory,
 } from '../src/ui/auth_utils';
 
 function fakeStorage(initial = new Map<string, string>()): Pick<Storage, 'getItem' | 'setItem'> {
   return {
     getItem: (key: string) => initial.get(key) ?? null,
-    setItem: (key: string, value: string) => { initial.set(key, value); },
+    setItem: (key: string, value: string) => {
+      initial.set(key, value);
+    },
   };
 }
 
@@ -30,12 +32,15 @@ describe('Auth Utilities', () => {
 
     it('stores the latest successful username and password when both options are on', () => {
       const storage = fakeStorage();
-      const state = writeAuthMemory({
-        rememberUsername: true,
-        rememberPassword: true,
-        username: '  alice  ',
-        password: 'swordfish',
-      }, storage);
+      const state = writeAuthMemory(
+        {
+          rememberUsername: true,
+          rememberPassword: true,
+          username: '  alice  ',
+          password: 'swordfish',
+        },
+        storage,
+      );
       expect(state).toEqual({
         rememberUsername: true,
         rememberPassword: true,
@@ -46,12 +51,14 @@ describe('Auth Utilities', () => {
     });
 
     it('does not keep a password when account memory is off', () => {
-      expect(buildAuthMemoryState({
-        rememberUsername: false,
-        rememberPassword: true,
-        username: 'alice',
-        password: 'swordfish',
-      })).toEqual({
+      expect(
+        buildAuthMemoryState({
+          rememberUsername: false,
+          rememberPassword: true,
+          username: 'alice',
+          password: 'swordfish',
+        }),
+      ).toEqual({
         rememberUsername: false,
         rememberPassword: false,
         username: '',
@@ -60,12 +67,14 @@ describe('Auth Utilities', () => {
     });
 
     it('keeps only the username when password memory is off', () => {
-      expect(buildAuthMemoryState({
-        rememberUsername: true,
-        rememberPassword: false,
-        username: 'alice',
-        password: 'swordfish',
-      })).toEqual({
+      expect(
+        buildAuthMemoryState({
+          rememberUsername: true,
+          rememberPassword: false,
+          username: 'alice',
+          password: 'swordfish',
+        }),
+      ).toEqual({
         rememberUsername: true,
         rememberPassword: false,
         username: 'alice',
@@ -90,15 +99,15 @@ describe('Auth Utilities', () => {
     const button = {
       setAttribute: (name: string, value: string) => {
         buttonAttrs.set(name, value);
-      }
+      },
     } as unknown as HTMLButtonElement;
-    
+
     // Toggle password -> text
     togglePasswordVisibility(input, button);
     expect(input.type).toBe('text');
     expect(buttonAttrs.get('aria-pressed')).toBe('true');
     expect(buttonAttrs.get('aria-label')).toBe('Hide password');
-    
+
     // Toggle text -> password
     togglePasswordVisibility(input, button);
     expect(input.type).toBe('password');
@@ -109,7 +118,7 @@ describe('Auth Utilities', () => {
   it('synchronizes input ARIA state based on validity check', () => {
     const inputAttrs = new Map<string, string>();
     let checkValidityValue = true;
-    
+
     const input = {
       checkValidity: () => checkValidityValue,
       setAttribute: (name: string, value: string) => {
@@ -117,15 +126,15 @@ describe('Auth Utilities', () => {
       },
       removeAttribute: (name: string) => {
         inputAttrs.delete(name);
-      }
+      },
     } as unknown as HTMLInputElement;
-    
+
     // Test valid state
     checkValidityValue = true;
     const res1 = syncInputAriaState(input);
     expect(res1).toBe(true);
     expect(inputAttrs.has('aria-invalid')).toBe(false);
-    
+
     // Test invalid state
     checkValidityValue = false;
     const res2 = syncInputAriaState(input);
@@ -140,10 +149,10 @@ describe('Auth Utilities', () => {
     let passValid = true;
     const classListToggle = vi.fn();
     const classList = {
-      toggle: classListToggle
+      toggle: classListToggle,
     } as unknown as DOMTokenList;
     const focusedElements: string[] = [];
-    
+
     const userInput = {
       id: 'login-user',
       checkValidity: () => userValid,
@@ -156,9 +165,9 @@ describe('Auth Utilities', () => {
       classList,
       focus: () => {
         focusedElements.push('userInput');
-      }
+      },
     } as unknown as HTMLInputElement;
-    
+
     const passInput = {
       id: 'login-pass',
       checkValidity: () => passValid,
@@ -171,21 +180,21 @@ describe('Auth Utilities', () => {
       classList,
       focus: () => {
         focusedElements.push('passInput');
-      }
+      },
     } as unknown as HTMLInputElement;
-    
+
     const userErrorEl = { style: { display: 'none' } } as unknown as HTMLElement;
     const passErrorEl = { style: { display: 'none' } } as unknown as HTMLElement;
-    
+
     const form = {
       querySelectorAll: () => [userInput, passInput],
       querySelector: (selector: string) => {
         if (selector === '#login-user-error') return userErrorEl;
         if (selector === '#login-pass-error') return passErrorEl;
         return null;
-      }
+      },
     } as unknown as HTMLFormElement;
-    
+
     // 1. Both fields valid
     userValid = true;
     passValid = true;
@@ -197,7 +206,7 @@ describe('Auth Utilities', () => {
     expect(userErrorEl.style.display).toBe('none');
     expect(passErrorEl.style.display).toBe('none');
     expect(classListToggle).toHaveBeenCalledWith('user-invalid-fallback', false);
-    
+
     // 2. User field invalid
     userValid = false;
     passValid = true;
@@ -210,10 +219,10 @@ describe('Auth Utilities', () => {
     expect(userErrorEl.style.display).toBe('block');
     expect(passErrorEl.style.display).toBe('none');
     expect(classListToggle).toHaveBeenCalledWith('user-invalid-fallback', true);
-    
+
     // Reset focus tracking
     focusedElements.length = 0;
-    
+
     // 3. Both fields invalid (focuses first invalid: userInput)
     userValid = false;
     passValid = false;
@@ -232,12 +241,12 @@ describe('Auth Utilities', () => {
     it('executes callback and returns true when Enter or Space is pressed', () => {
       const cb = vi.fn();
       const preventDefault = vi.fn();
-      
+
       const enterEvent = { key: 'Enter', preventDefault } as unknown as KeyboardEvent;
       const res1 = handleKeyboardActivation(enterEvent, cb);
       expect(res1).toBe(true);
       expect(cb).toHaveBeenCalledTimes(1);
-      
+
       const spaceEvent = { key: ' ', preventDefault } as unknown as KeyboardEvent;
       const res2 = handleKeyboardActivation(spaceEvent, cb);
       expect(res2).toBe(true);
@@ -248,7 +257,7 @@ describe('Auth Utilities', () => {
     it('does not execute callback and returns false for other keys', () => {
       const cb = vi.fn();
       const preventDefault = vi.fn();
-      
+
       const escapeEvent = { key: 'Escape', preventDefault } as unknown as KeyboardEvent;
       const res = handleKeyboardActivation(escapeEvent, cb);
       expect(res).toBe(false);

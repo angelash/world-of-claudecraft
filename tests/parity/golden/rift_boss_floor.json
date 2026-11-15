@@ -1,0 +1,1858 @@
+{
+  "scenario": "rift_boss_floor",
+  "seed": 1021,
+  "sampleEvery": 5,
+  "ticks": 166,
+  "coverage": [
+    "runDeathZoneDriver: anchor draw, S tempo, impairment-stretched fuse (~locomotion 1044/1062)",
+    "tickRiftBossDeathZones: fuse tick to detonation",
+    "riftControlSuppressed: guard rolls drawn, effects skipped inside the window",
+    "clearRiftBossDeathZones on boss death (riftDeathZoneClear emit + floor claim)"
+  ],
+  "draws": 1377,
+  "drawDigest": "e83d02e4",
+  "frames": [
+    {
+      "tick": 0,
+      "time": 0,
+      "nextId": 1012,
+      "state": "caf53a89",
+      "events": "741638a5",
+      "rng": {
+        "draws": 0,
+        "digest": "811c9dc5"
+      },
+      "label": "init",
+      "players": [
+        {
+          "activeLoadout": -1,
+          "archetype": {},
+          "arena2v2Rating": 1500,
+          "arenaRating": 1500,
+          "autoEquip": true,
+          "bags": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
+          "cls": "warrior",
+          "companionUpgrades": {},
+          "counters": {},
+          "craftDaily": {},
+          "craftSkills": {},
+          "deedStats": {
+            "counters": {},
+            "dungeonClears": {},
+            "itemsDiscovered": [
+              "baked_bread",
+              "eastbrook_buckler",
+              "recruit_tunic",
+              "worn_sword"
+            ]
+          },
+          "delveClears": {},
+          "delveDaily": {},
+          "entityId": 1004,
+          "equipment": {
+            "chest": "recruit_tunic",
+            "mainhand": "worn_sword",
+            "offhand": "eastbrook_buckler"
+          },
+          "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
+          "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
+          "heroicDaily": {},
+          "inventory": [
+            {
+              "count": 5,
+              "itemId": "baked_bread"
+            }
+          ],
+          "mailWelcomed": true,
+          "nodeHarvestReadyAt": {},
+          "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
+          "talents": {
+            "rows": {}
+          },
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
+        }
+      ],
+      "entities": [
+        {
+          "aiState": "idle",
+          "attackPower": 46,
+          "auras": [
+            {
+              "duration": 3600,
+              "id": "battle_stance",
+              "kind": "battle_stance",
+              "name": "Battle Stance",
+              "remaining": 3600,
+              "school": "physical",
+              "sourceId": 1004
+            }
+          ],
+          "blockChance": 0.05,
+          "blockValue": 6,
+          "combatTimer": 99,
+          "comboUntil": -1,
+          "critChance": 0.06,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.06,
+          "fallStartY": -2,
+          "fiveSecondRule": 99,
+          "healPower": 5,
+          "hp": 100,
+          "id": 1004,
+          "kind": "player",
+          "level": 1,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 100,
+          "maxResource": 100,
+          "moveSpeed": 7,
+          "offhandItemId": "eastbrook_buckler",
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": -94,
+            "y": -2,
+            "z": -58
+          },
+          "potionCooldownUntil": -1,
+          "resourceType": "rage",
+          "spawnPos": {
+            "x": -94,
+            "y": -2,
+            "z": -58
+          },
+          "spellPower": 5,
+          "stats": {
+            "agi": 20,
+            "armor": 144,
+            "int": 10,
+            "spi": 11,
+            "sta": 23,
+            "str": 23
+          },
+          "templateId": "warrior",
+          "weapon": {
+            "max": 5,
+            "min": 2,
+            "speed": 2
+          }
+        }
+      ]
+    },
+    {
+      "tick": 5,
+      "time": 0.25,
+      "nextId": 1029,
+      "state": "c82a122e",
+      "events": "e410a261",
+      "rng": {
+        "draws": 58,
+        "digest": "d526240a"
+      }
+    },
+    {
+      "tick": 10,
+      "time": 0.5,
+      "nextId": 1029,
+      "state": "21bb2504",
+      "events": "741638a5",
+      "rng": {
+        "draws": 58,
+        "digest": "d526240a"
+      }
+    },
+    {
+      "tick": 15,
+      "time": 0.75,
+      "nextId": 1029,
+      "state": "970d203c",
+      "events": "741638a5",
+      "rng": {
+        "draws": 58,
+        "digest": "d526240a"
+      }
+    },
+    {
+      "tick": 20,
+      "time": 1,
+      "nextId": 1029,
+      "state": "dd440f2a",
+      "events": "309eb1ee",
+      "rng": {
+        "draws": 59,
+        "digest": "3933f18d"
+      }
+    },
+    {
+      "tick": 25,
+      "time": 1.25,
+      "nextId": 1029,
+      "state": "8bd21ed8",
+      "events": "106cfe87",
+      "rng": {
+        "draws": 59,
+        "digest": "3933f18d"
+      }
+    },
+    {
+      "tick": 25,
+      "time": 1.25,
+      "nextId": 1029,
+      "state": "8bd21ed8",
+      "events": "741638a5",
+      "rng": {
+        "draws": 59,
+        "digest": "3933f18d"
+      },
+      "label": "cast-armed",
+      "players": [
+        {
+          "activeLoadout": -1,
+          "archetype": {},
+          "arena2v2Rating": 1500,
+          "arenaRating": 1500,
+          "autoEquip": true,
+          "bags": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
+          "cls": "warrior",
+          "companionUpgrades": {},
+          "counters": {},
+          "craftDaily": {},
+          "craftSkills": {},
+          "deedStats": {
+            "counters": {},
+            "dungeonClears": {},
+            "itemsDiscovered": [
+              "baked_bread",
+              "eastbrook_buckler",
+              "recruit_tunic",
+              "worn_sword"
+            ]
+          },
+          "deedsEarned": [
+            [
+              "feat_era_cap",
+              ""
+            ],
+            [
+              "prog_double_digits",
+              ""
+            ],
+            [
+              "prog_finding_your_feet",
+              ""
+            ],
+            [
+              "prog_first_steps",
+              ""
+            ],
+            [
+              "prog_level_cap",
+              ""
+            ],
+            [
+              "prog_the_long_middle",
+              ""
+            ]
+          ],
+          "delveClears": {},
+          "delveDaily": {},
+          "entityId": 1004,
+          "equipment": {
+            "chest": "recruit_tunic",
+            "mainhand": "worn_sword",
+            "offhand": "eastbrook_buckler"
+          },
+          "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
+          "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
+          "heroicDaily": {},
+          "inventory": [
+            {
+              "count": 5,
+              "itemId": "baked_bread"
+            }
+          ],
+          "lifetimeXp": 167200,
+          "mailWelcomed": true,
+          "nodeHarvestReadyAt": {},
+          "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
+          "renown": 55,
+          "talents": {
+            "rows": {}
+          },
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
+        }
+      ],
+      "entities": [
+        {
+          "aiState": "idle",
+          "attackPower": 122,
+          "auras": [
+            {
+              "duration": 3600,
+              "id": "battle_stance",
+              "kind": "battle_stance",
+              "name": "Battle Stance",
+              "remaining": 3598.75,
+              "school": "physical",
+              "sourceId": 1004
+            },
+            {
+              "duration": 30,
+              "id": "test_slow",
+              "kind": "slow",
+              "name": "Test Slow",
+              "remaining": 28.75,
+              "school": "nature",
+              "sourceId": 1027,
+              "value": 0.5
+            }
+          ],
+          "blockChance": 0.05,
+          "blockValue": 6,
+          "combatTimer": 100.25,
+          "comboUntil": -1,
+          "critChance": 0.0695,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.0695,
+          "fiveSecondRule": 100.25,
+          "gm": true,
+          "healPower": 5,
+          "hp": 822,
+          "id": 1004,
+          "inCombat": true,
+          "kind": "player",
+          "level": 20,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 822,
+          "maxResource": 100,
+          "moveSpeed": 7,
+          "offhandItemId": "eastbrook_buckler",
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "resourceType": "rage",
+          "spawnPos": {
+            "x": -94,
+            "y": -2,
+            "z": -58
+          },
+          "spellPower": 5,
+          "stats": {
+            "agi": 39,
+            "armor": 410,
+            "int": 10,
+            "spi": 11,
+            "sta": 61,
+            "str": 61
+          },
+          "templateId": "warrior",
+          "weapon": {
+            "max": 5,
+            "min": 2,
+            "speed": 2
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "aoeSlowTimer": 997.75,
+          "autoAttack": true,
+          "bigCastTimer": 997.75,
+          "castRemaining": 6.05,
+          "castTargetId": 1004,
+          "castTotal": 6.3,
+          "castingAbility": "rift_venom_execution",
+          "combatTimer": 100.25,
+          "comboUntil": -1,
+          "critChance": 0.05,
+          "deathZoneCastTimer": 18.55,
+          "deathZoneStrikeTimer": 997.75,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "escapeWindowUntil": 7.3,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "hp": 4365,
+          "id": 1027,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 4365,
+          "mechanicLockTimer": 11.05,
+          "moveSpeed": 7.5,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "pulseTimer": 997.75,
+          "riftMechanicSpacing": 5,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 504
+          },
+          "stompTimer": 999,
+          "swingTimer": 0.7,
+          "targetId": 1004,
+          "templateId": "rift_boss_venom",
+          "terrifyTimer": 999,
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 156,
+            "min": 100,
+            "speed": 1.9
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "autoAttack": true,
+          "combatTimer": 100.25,
+          "comboUntil": -1,
+          "critChance": 0.05,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "facing": 1.811159,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "hp": 975,
+          "id": 1028,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 975,
+          "moveSpeed": 8,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108398.251747,
+            "z": -1260.571501
+          },
+          "potionCooldownUntil": -1,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 252
+          },
+          "swingTimer": 0.6,
+          "targetId": 1004,
+          "templateId": "rift_venom_weaver",
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 106,
+            "min": 68,
+            "speed": 1.8
+          }
+        }
+      ]
+    },
+    {
+      "tick": 30,
+      "time": 1.5,
+      "nextId": 1029,
+      "state": "6d619a59",
+      "events": "741638a5",
+      "rng": {
+        "draws": 59,
+        "digest": "3933f18d"
+      }
+    },
+    {
+      "tick": 35,
+      "time": 1.75,
+      "nextId": 1029,
+      "state": "79d3021d",
+      "events": "741638a5",
+      "rng": {
+        "draws": 59,
+        "digest": "3933f18d"
+      }
+    },
+    {
+      "tick": 40,
+      "time": 2,
+      "nextId": 1029,
+      "state": "d5c0cebf",
+      "events": "4547b205",
+      "rng": {
+        "draws": 69,
+        "digest": "9fd56823"
+      }
+    },
+    {
+      "tick": 45,
+      "time": 2.25,
+      "nextId": 1029,
+      "state": "44289157",
+      "events": "741638a5",
+      "rng": {
+        "draws": 95,
+        "digest": "1231f33e"
+      }
+    },
+    {
+      "tick": 50,
+      "time": 2.5,
+      "nextId": 1029,
+      "state": "2457409c",
+      "events": "741638a5",
+      "rng": {
+        "draws": 135,
+        "digest": "4ae2b792"
+      }
+    },
+    {
+      "tick": 55,
+      "time": 2.75,
+      "nextId": 1029,
+      "state": "a4f36fa5",
+      "events": "741638a5",
+      "rng": {
+        "draws": 174,
+        "digest": "26a6c674"
+      }
+    },
+    {
+      "tick": 60,
+      "time": 3,
+      "nextId": 1029,
+      "state": "f53f0bde",
+      "events": "741638a5",
+      "rng": {
+        "draws": 222,
+        "digest": "93cd6aa3"
+      }
+    },
+    {
+      "tick": 65,
+      "time": 3.25,
+      "nextId": 1029,
+      "state": "7578ef9c",
+      "events": "741638a5",
+      "rng": {
+        "draws": 261,
+        "digest": "acbdaa11"
+      }
+    },
+    {
+      "tick": 70,
+      "time": 3.5,
+      "nextId": 1029,
+      "state": "ce54515e",
+      "events": "741638a5",
+      "rng": {
+        "draws": 308,
+        "digest": "48bd95f1"
+      }
+    },
+    {
+      "tick": 75,
+      "time": 3.75,
+      "nextId": 1029,
+      "state": "dda69269",
+      "events": "741638a5",
+      "rng": {
+        "draws": 356,
+        "digest": "32eed25b"
+      }
+    },
+    {
+      "tick": 80,
+      "time": 4,
+      "nextId": 1029,
+      "state": "10760c07",
+      "events": "b6490ce5",
+      "rng": {
+        "draws": 405,
+        "digest": "86f8bcd2"
+      }
+    },
+    {
+      "tick": 85,
+      "time": 4.25,
+      "nextId": 1029,
+      "state": "0186e557",
+      "events": "741638a5",
+      "rng": {
+        "draws": 467,
+        "digest": "141ce285"
+      }
+    },
+    {
+      "tick": 90,
+      "time": 4.5,
+      "nextId": 1029,
+      "state": "d71e5940",
+      "events": "741638a5",
+      "rng": {
+        "draws": 514,
+        "digest": "64d004ea"
+      }
+    },
+    {
+      "tick": 95,
+      "time": 4.75,
+      "nextId": 1029,
+      "state": "e1a693cc",
+      "events": "741638a5",
+      "rng": {
+        "draws": 564,
+        "digest": "095d10f5"
+      }
+    },
+    {
+      "tick": 100,
+      "time": 5,
+      "nextId": 1029,
+      "state": "29493441",
+      "events": "741638a5",
+      "rng": {
+        "draws": 621,
+        "digest": "f8c13fee"
+      }
+    },
+    {
+      "tick": 105,
+      "time": 5.25,
+      "nextId": 1029,
+      "state": "ca01c471",
+      "events": "741638a5",
+      "rng": {
+        "draws": 669,
+        "digest": "084e6f7e"
+      }
+    },
+    {
+      "tick": 110,
+      "time": 5.5,
+      "nextId": 1029,
+      "state": "fa9127d1",
+      "events": "f77cfd01",
+      "rng": {
+        "draws": 737,
+        "digest": "9a39de9a"
+      }
+    },
+    {
+      "tick": 115,
+      "time": 5.75,
+      "nextId": 1029,
+      "state": "e4d74577",
+      "events": "741638a5",
+      "rng": {
+        "draws": 789,
+        "digest": "485053ed"
+      }
+    },
+    {
+      "tick": 120,
+      "time": 6,
+      "nextId": 1029,
+      "state": "f31c7873",
+      "events": "d4d8e4ae",
+      "rng": {
+        "draws": 838,
+        "digest": "beebc0b7"
+      }
+    },
+    {
+      "tick": 125,
+      "time": 6.25,
+      "nextId": 1029,
+      "state": "eb58ce7d",
+      "events": "741638a5",
+      "rng": {
+        "draws": 895,
+        "digest": "241a9977"
+      }
+    },
+    {
+      "tick": 130,
+      "time": 6.5,
+      "nextId": 1029,
+      "state": "35cb432a",
+      "events": "741638a5",
+      "rng": {
+        "draws": 947,
+        "digest": "83920ba3"
+      }
+    },
+    {
+      "tick": 135,
+      "time": 6.75,
+      "nextId": 1029,
+      "state": "da718155",
+      "events": "741638a5",
+      "rng": {
+        "draws": 1013,
+        "digest": "5a35c0d8"
+      }
+    },
+    {
+      "tick": 140,
+      "time": 7,
+      "nextId": 1029,
+      "state": "54ac1775",
+      "events": "741638a5",
+      "rng": {
+        "draws": 1054,
+        "digest": "257626d9"
+      }
+    },
+    {
+      "tick": 145,
+      "time": 7.25,
+      "nextId": 1029,
+      "state": "3ba88376",
+      "events": "ea19f5fd",
+      "rng": {
+        "draws": 1108,
+        "digest": "7e5e4015"
+      }
+    },
+    {
+      "tick": 150,
+      "time": 7.5,
+      "nextId": 1029,
+      "state": "f874b6f3",
+      "events": "5892e82e",
+      "rng": {
+        "draws": 1161,
+        "digest": "96aa8619"
+      }
+    },
+    {
+      "tick": 150,
+      "time": 7.5,
+      "nextId": 1029,
+      "state": "f874b6f3",
+      "events": "741638a5",
+      "rng": {
+        "draws": 1161,
+        "digest": "96aa8619"
+      },
+      "label": "detonated",
+      "players": [
+        {
+          "activeLoadout": -1,
+          "archetype": {},
+          "arena2v2Rating": 1500,
+          "arenaRating": 1500,
+          "autoEquip": true,
+          "bags": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
+          "cls": "warrior",
+          "companionUpgrades": {},
+          "counters": {},
+          "craftDaily": {},
+          "craftSkills": {},
+          "deedStats": {
+            "counters": {},
+            "dungeonClears": {},
+            "itemsDiscovered": [
+              "baked_bread",
+              "eastbrook_buckler",
+              "recruit_tunic",
+              "worn_sword"
+            ]
+          },
+          "deedsEarned": [
+            [
+              "feat_era_cap",
+              ""
+            ],
+            [
+              "prog_double_digits",
+              ""
+            ],
+            [
+              "prog_finding_your_feet",
+              ""
+            ],
+            [
+              "prog_first_steps",
+              ""
+            ],
+            [
+              "prog_level_cap",
+              ""
+            ],
+            [
+              "prog_the_long_middle",
+              ""
+            ]
+          ],
+          "delveClears": {},
+          "delveDaily": {},
+          "entityId": 1004,
+          "equipment": {
+            "chest": "recruit_tunic",
+            "mainhand": "worn_sword",
+            "offhand": "eastbrook_buckler"
+          },
+          "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
+          "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
+          "heroicDaily": {},
+          "inventory": [
+            {
+              "count": 5,
+              "itemId": "baked_bread"
+            }
+          ],
+          "lifetimeXp": 167200,
+          "mailWelcomed": true,
+          "nodeHarvestReadyAt": {},
+          "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
+          "renown": 55,
+          "talents": {
+            "rows": {}
+          },
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
+        }
+      ],
+      "entities": [
+        {
+          "aiState": "idle",
+          "attackPower": 122,
+          "auras": [
+            {
+              "duration": 3600,
+              "id": "battle_stance",
+              "kind": "battle_stance",
+              "name": "Battle Stance",
+              "remaining": 3592.5,
+              "school": "physical",
+              "sourceId": 1004
+            },
+            {
+              "duration": 30,
+              "id": "test_slow",
+              "kind": "slow",
+              "name": "Test Slow",
+              "remaining": 22.5,
+              "school": "nature",
+              "sourceId": 1027,
+              "value": 0.5
+            },
+            {
+              "duration": 10,
+              "id": "stackpoison_rift_boss_venom",
+              "kind": "dot",
+              "name": "Deadly Venom",
+              "remaining": 4.45,
+              "school": "nature",
+              "sourceId": 1027,
+              "stacks": 1,
+              "tickInterval": 2,
+              "tickTimer": 0.45,
+              "value": 7
+            },
+            {
+              "duration": 8,
+              "id": "venom_rift_venom_weaver",
+              "kind": "dot",
+              "name": "Venom",
+              "remaining": 5.95,
+              "school": "nature",
+              "sourceId": 1028,
+              "tickInterval": 2,
+              "tickTimer": 1.95,
+              "value": 8
+            }
+          ],
+          "blockChance": 0.05,
+          "blockValue": 6,
+          "combatTimer": 106.5,
+          "comboUntil": -1,
+          "critChance": 0.0695,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.0695,
+          "fiveSecondRule": 106.5,
+          "gm": true,
+          "healPower": 5,
+          "hp": 822,
+          "id": 1004,
+          "inCombat": true,
+          "kind": "player",
+          "level": 20,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 822,
+          "maxResource": 100,
+          "moveSpeed": 7,
+          "offhandItemId": "eastbrook_buckler",
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "resourceType": "rage",
+          "spawnPos": {
+            "x": -94,
+            "y": -2,
+            "z": -58
+          },
+          "spellPower": 5,
+          "stats": {
+            "agi": 39,
+            "armor": 410,
+            "int": 10,
+            "spi": 11,
+            "sta": 61,
+            "str": 61
+          },
+          "templateId": "warrior",
+          "weapon": {
+            "max": 5,
+            "min": 2,
+            "speed": 2
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "aoeSlowTimer": 991.5,
+          "autoAttack": true,
+          "bigCastTimer": 991.5,
+          "combatTimer": 106.5,
+          "comboUntil": -1,
+          "critChance": 0.05,
+          "deathZoneCastTimer": 18.4,
+          "deathZoneStrikeTimer": 991.5,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "escapeWindowUntil": 7.3,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "hp": 4365,
+          "id": 1027,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 4365,
+          "mechanicLockTimer": 4.8,
+          "moveSpeed": 7.5,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "pulseTimer": 991.5,
+          "riftMechanicSpacing": 5,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 504
+          },
+          "stompTimer": 999,
+          "swingTimer": 0.15,
+          "targetId": 1004,
+          "templateId": "rift_boss_venom",
+          "terrifyTimer": 999,
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 156,
+            "min": 100,
+            "speed": 1.9
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "autoAttack": true,
+          "combatTimer": 106.5,
+          "comboUntil": -1,
+          "critChance": 0.05,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "facing": 1.811159,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "hp": 975,
+          "id": 1028,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 975,
+          "moveSpeed": 8,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108397.882671,
+            "z": -1260.48104
+          },
+          "potionCooldownUntil": -1,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 252
+          },
+          "swingTimer": 1.55,
+          "targetId": 1004,
+          "templateId": "rift_venom_weaver",
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 106,
+            "min": 68,
+            "speed": 1.8
+          }
+        }
+      ]
+    },
+    {
+      "tick": 155,
+      "time": 7.75,
+      "nextId": 1029,
+      "state": "f3e877d2",
+      "events": "fb526faf",
+      "rng": {
+        "draws": 1226,
+        "digest": "0530985d"
+      }
+    },
+    {
+      "tick": 160,
+      "time": 8,
+      "nextId": 1029,
+      "state": "8eb16521",
+      "events": "af39ce1a",
+      "rng": {
+        "draws": 1295,
+        "digest": "f2a765d4"
+      }
+    },
+    {
+      "tick": 165,
+      "time": 8.25,
+      "nextId": 1029,
+      "state": "4af7d018",
+      "events": "741638a5",
+      "rng": {
+        "draws": 1359,
+        "digest": "ec813109"
+      }
+    },
+    {
+      "tick": 166,
+      "time": 8.3,
+      "nextId": 1029,
+      "state": "0ff8fc76",
+      "events": "741638a5",
+      "rng": {
+        "draws": 1377,
+        "digest": "e83d02e4"
+      },
+      "label": "boss-dead-clear",
+      "players": [
+        {
+          "activeLoadout": -1,
+          "archetype": {},
+          "arena2v2Rating": 1500,
+          "arenaRating": 1500,
+          "autoEquip": true,
+          "bags": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
+          "cls": "warrior",
+          "companionUpgrades": {},
+          "counters": {},
+          "craftDaily": {},
+          "craftSkills": {},
+          "deedStats": {
+            "counters": {},
+            "dungeonClears": {},
+            "itemsDiscovered": [
+              "baked_bread",
+              "eastbrook_buckler",
+              "recruit_tunic",
+              "worn_sword"
+            ]
+          },
+          "deedsEarned": [
+            [
+              "feat_era_cap",
+              ""
+            ],
+            [
+              "prog_double_digits",
+              ""
+            ],
+            [
+              "prog_finding_your_feet",
+              ""
+            ],
+            [
+              "prog_first_steps",
+              ""
+            ],
+            [
+              "prog_level_cap",
+              ""
+            ],
+            [
+              "prog_the_long_middle",
+              ""
+            ]
+          ],
+          "delveClears": {},
+          "delveDaily": {},
+          "entityId": 1004,
+          "equipment": {
+            "chest": "recruit_tunic",
+            "mainhand": "worn_sword",
+            "offhand": "eastbrook_buckler"
+          },
+          "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
+          "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
+          "heroicDaily": {},
+          "inventory": [
+            {
+              "count": 5,
+              "itemId": "baked_bread"
+            }
+          ],
+          "lifetimeXp": 167200,
+          "mailWelcomed": true,
+          "nodeHarvestReadyAt": {},
+          "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
+          "renown": 55,
+          "talents": {
+            "rows": {}
+          },
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
+        }
+      ],
+      "entities": [
+        {
+          "aiState": "idle",
+          "attackPower": 122,
+          "auras": [
+            {
+              "duration": 3600,
+              "id": "battle_stance",
+              "kind": "battle_stance",
+              "name": "Battle Stance",
+              "remaining": 3591.7,
+              "school": "physical",
+              "sourceId": 1004
+            },
+            {
+              "duration": 30,
+              "id": "test_slow",
+              "kind": "slow",
+              "name": "Test Slow",
+              "remaining": 21.7,
+              "school": "nature",
+              "sourceId": 1027,
+              "value": 0.5
+            },
+            {
+              "duration": 10,
+              "id": "stackpoison_rift_boss_venom",
+              "kind": "dot",
+              "name": "Deadly Venom",
+              "remaining": 3.65,
+              "school": "nature",
+              "sourceId": 1027,
+              "stacks": 1,
+              "tickInterval": 2,
+              "tickTimer": 1.65,
+              "value": 7
+            },
+            {
+              "duration": 8,
+              "id": "venom_rift_venom_weaver",
+              "kind": "dot",
+              "name": "Venom",
+              "remaining": 5.15,
+              "school": "nature",
+              "sourceId": 1028,
+              "tickInterval": 2,
+              "tickTimer": 1.15,
+              "value": 8
+            }
+          ],
+          "blockChance": 0.05,
+          "blockValue": 6,
+          "combatTimer": 107.3,
+          "comboUntil": -1,
+          "critChance": 0.0695,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.0695,
+          "fiveSecondRule": 107.3,
+          "gm": true,
+          "healPower": 5,
+          "hp": 822,
+          "id": 1004,
+          "inCombat": true,
+          "kind": "player",
+          "level": 20,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 822,
+          "maxResource": 100,
+          "moveSpeed": 7,
+          "offhandItemId": "eastbrook_buckler",
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "resourceType": "rage",
+          "spawnPos": {
+            "x": -94,
+            "y": -2,
+            "z": -58
+          },
+          "spellPower": 5,
+          "stats": {
+            "agi": 39,
+            "armor": 410,
+            "int": 10,
+            "spi": 11,
+            "sta": 61,
+            "str": 61
+          },
+          "templateId": "warrior",
+          "weapon": {
+            "max": 5,
+            "min": 2,
+            "speed": 2
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "aoeSlowTimer": 991.1,
+          "autoAttack": true,
+          "bigCastTimer": 991.1,
+          "castRemaining": 5.95,
+          "castTargetId": 1004,
+          "castTotal": 6.3,
+          "castingAbility": "rift_venom_execution",
+          "combatTimer": 106.9,
+          "comboUntil": -1,
+          "corpseTimer": -0.4,
+          "critChance": 0.05,
+          "dead": true,
+          "deathZoneCastTimer": 18.55,
+          "deathZoneStrikeTimer": 991.1,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "escapeWindowUntil": 13.85,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "id": 1027,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 4365,
+          "mechanicLockTimer": 10.95,
+          "moveSpeed": 7.5,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "pulseTimer": 991.1,
+          "respawnTimer": -0.4,
+          "riftMechanicSpacing": 5,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 504
+          },
+          "stompTimer": 999,
+          "swingTimer": 1.65,
+          "targetId": 1004,
+          "templateId": "rift_boss_venom",
+          "terrifyTimer": 999,
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 156,
+            "min": 100,
+            "speed": 1.9
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "autoAttack": true,
+          "combatTimer": 107.3,
+          "comboUntil": -1,
+          "critChance": 0.05,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "facing": 1.811159,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "hp": 975,
+          "id": 1028,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 975,
+          "moveSpeed": 8,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108397.882671,
+            "z": -1260.48104
+          },
+          "potionCooldownUntil": -1,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 252
+          },
+          "swingTimer": 0.75,
+          "targetId": 1004,
+          "templateId": "rift_venom_weaver",
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 106,
+            "min": 68,
+            "speed": 1.8
+          }
+        }
+      ]
+    },
+    {
+      "tick": 166,
+      "time": 8.3,
+      "nextId": 1029,
+      "state": "0ff8fc76",
+      "events": "741638a5",
+      "rng": {
+        "draws": 1377,
+        "digest": "e83d02e4"
+      },
+      "label": "final",
+      "players": [
+        {
+          "activeLoadout": -1,
+          "archetype": {},
+          "arena2v2Rating": 1500,
+          "arenaRating": 1500,
+          "autoEquip": true,
+          "bags": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
+          "cls": "warrior",
+          "companionUpgrades": {},
+          "counters": {},
+          "craftDaily": {},
+          "craftSkills": {},
+          "deedStats": {
+            "counters": {},
+            "dungeonClears": {},
+            "itemsDiscovered": [
+              "baked_bread",
+              "eastbrook_buckler",
+              "recruit_tunic",
+              "worn_sword"
+            ]
+          },
+          "deedsEarned": [
+            [
+              "feat_era_cap",
+              ""
+            ],
+            [
+              "prog_double_digits",
+              ""
+            ],
+            [
+              "prog_finding_your_feet",
+              ""
+            ],
+            [
+              "prog_first_steps",
+              ""
+            ],
+            [
+              "prog_level_cap",
+              ""
+            ],
+            [
+              "prog_the_long_middle",
+              ""
+            ]
+          ],
+          "delveClears": {},
+          "delveDaily": {},
+          "entityId": 1004,
+          "equipment": {
+            "chest": "recruit_tunic",
+            "mainhand": "worn_sword",
+            "offhand": "eastbrook_buckler"
+          },
+          "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
+          "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
+          "heroicDaily": {},
+          "inventory": [
+            {
+              "count": 5,
+              "itemId": "baked_bread"
+            }
+          ],
+          "lifetimeXp": 167200,
+          "mailWelcomed": true,
+          "nodeHarvestReadyAt": {},
+          "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
+          "renown": 55,
+          "talents": {
+            "rows": {}
+          },
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
+        }
+      ],
+      "entities": [
+        {
+          "aiState": "idle",
+          "attackPower": 122,
+          "auras": [
+            {
+              "duration": 3600,
+              "id": "battle_stance",
+              "kind": "battle_stance",
+              "name": "Battle Stance",
+              "remaining": 3591.7,
+              "school": "physical",
+              "sourceId": 1004
+            },
+            {
+              "duration": 30,
+              "id": "test_slow",
+              "kind": "slow",
+              "name": "Test Slow",
+              "remaining": 21.7,
+              "school": "nature",
+              "sourceId": 1027,
+              "value": 0.5
+            },
+            {
+              "duration": 10,
+              "id": "stackpoison_rift_boss_venom",
+              "kind": "dot",
+              "name": "Deadly Venom",
+              "remaining": 3.65,
+              "school": "nature",
+              "sourceId": 1027,
+              "stacks": 1,
+              "tickInterval": 2,
+              "tickTimer": 1.65,
+              "value": 7
+            },
+            {
+              "duration": 8,
+              "id": "venom_rift_venom_weaver",
+              "kind": "dot",
+              "name": "Venom",
+              "remaining": 5.15,
+              "school": "nature",
+              "sourceId": 1028,
+              "tickInterval": 2,
+              "tickTimer": 1.15,
+              "value": 8
+            }
+          ],
+          "blockChance": 0.05,
+          "blockValue": 6,
+          "combatTimer": 107.3,
+          "comboUntil": -1,
+          "critChance": 0.0695,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.0695,
+          "fiveSecondRule": 107.3,
+          "gm": true,
+          "healPower": 5,
+          "hp": 822,
+          "id": 1004,
+          "inCombat": true,
+          "kind": "player",
+          "level": 20,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 822,
+          "maxResource": 100,
+          "moveSpeed": 7,
+          "offhandItemId": "eastbrook_buckler",
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "resourceType": "rage",
+          "spawnPos": {
+            "x": -94,
+            "y": -2,
+            "z": -58
+          },
+          "spellPower": 5,
+          "stats": {
+            "agi": 39,
+            "armor": 410,
+            "int": 10,
+            "spi": 11,
+            "sta": 61,
+            "str": 61
+          },
+          "templateId": "warrior",
+          "weapon": {
+            "max": 5,
+            "min": 2,
+            "speed": 2
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "aoeSlowTimer": 991.1,
+          "autoAttack": true,
+          "bigCastTimer": 991.1,
+          "castRemaining": 5.95,
+          "castTargetId": 1004,
+          "castTotal": 6.3,
+          "castingAbility": "rift_venom_execution",
+          "combatTimer": 106.9,
+          "comboUntil": -1,
+          "corpseTimer": -0.4,
+          "critChance": 0.05,
+          "dead": true,
+          "deathZoneCastTimer": 18.55,
+          "deathZoneStrikeTimer": 991.1,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "escapeWindowUntil": 13.85,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "id": 1027,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 4365,
+          "mechanicLockTimer": 10.95,
+          "moveSpeed": 7.5,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "potionCooldownUntil": -1,
+          "pulseTimer": 991.1,
+          "respawnTimer": -0.4,
+          "riftMechanicSpacing": 5,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 504
+          },
+          "stompTimer": 999,
+          "swingTimer": 1.65,
+          "targetId": 1004,
+          "templateId": "rift_boss_venom",
+          "terrifyTimer": 999,
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 156,
+            "min": 100,
+            "speed": 1.9
+          }
+        },
+        {
+          "aggroTargetId": 1004,
+          "aiState": "attack",
+          "autoAttack": true,
+          "combatTimer": 107.3,
+          "comboUntil": -1,
+          "critChance": 0.05,
+          "detonateTimer": "Infinity",
+          "dodgeChance": 0.05,
+          "facing": 1.811159,
+          "fiveSecondRule": 99,
+          "hostile": true,
+          "hp": 975,
+          "id": 1028,
+          "inCombat": true,
+          "kind": "mob",
+          "level": 22,
+          "lootFfaTimer": "Infinity",
+          "maxHp": 975,
+          "moveSpeed": 8,
+          "onGround": true,
+          "overpowerUntil": -1,
+          "petMode": "defensive",
+          "pos": {
+            "x": 108397.882671,
+            "z": -1260.48104
+          },
+          "potionCooldownUntil": -1,
+          "spawnPos": {
+            "x": 108400,
+            "z": -1261
+          },
+          "stats": {
+            "armor": 252
+          },
+          "swingTimer": 0.75,
+          "targetId": 1004,
+          "templateId": "rift_venom_weaver",
+          "threat": [
+            [
+              1004,
+              1000
+            ]
+          ],
+          "weapon": {
+            "max": 106,
+            "min": 68,
+            "speed": 1.8
+          }
+        }
+      ]
+    }
+  ]
+}

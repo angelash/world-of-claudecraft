@@ -41,12 +41,8 @@ describe('player metric lifecycle facts', () => {
     expect(PLAYER_ACTIVITY_RETENTION_INDEX_SQL).toContain(
       'ON player_activity_daily(day, realm, account_id)',
     );
-    expect(PLAYER_ACCOUNT_FACTS_ACCOUNT_INDEX_SQL).toContain(
-      'ON player_account_facts(account_id)',
-    );
-    expect(PLAYER_ACTIVITY_ACCOUNT_INDEX_SQL).toContain(
-      'ON player_activity_daily(account_id)',
-    );
+    expect(PLAYER_ACCOUNT_FACTS_ACCOUNT_INDEX_SQL).toContain('ON player_account_facts(account_id)');
+    expect(PLAYER_ACTIVITY_ACCOUNT_INDEX_SQL).toContain('ON player_activity_daily(account_id)');
     expect(PLAYER_METRICS_SCHEMA).not.toMatch(/INSERT INTO|UPDATE |DELETE FROM/);
   });
 

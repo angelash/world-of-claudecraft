@@ -116,14 +116,37 @@ describe('Ice Block: immunity + cleanse + control', () => {
     }
   });
 
-  it('cannot cleanse unbreakable encounter control but still cleanses ordinary debuffs', () => {
+  it('does not strip Stormsurge Ready just because it uses the debuff display surface', () => {
+    const { sim, p } = rigMage();
+    p.auras.push(debuff('test_dot', 'dot', 50));
+    p.auras.push({
+      id: 'shaman_stormsurge_ready',
+      name: 'Stormsurge Ready',
+      kind: 'internal_cd',
+      value: 1,
+      remaining: 6,
+      duration: 6,
+      sourceId: p.id,
+      school: 'nature',
+    });
+
+    sim.castAbility('ice_block');
+
+    expect(p.auras.some((a) => a.id === 'test_dot')).toBe(false);
+    expect(p.auras.some((a) => a.id === 'shaman_stormsurge_ready')).toBe(true);
+    expect(p.auras.some((a) => a.id === 'ice_block' && a.kind === 'stasis')).toBe(true);
+  });
+
+  it('cannot cleanse encounter-owned mechanics but still cleanses ordinary debuffs', () => {
     const { sim, p } = rigMage();
     p.auras.push(unbreakableControl('scripted_stun', 'stun'));
+    p.auras.push({ ...debuff('encounter_dot', 'dot', 50), encounterOwned: true });
     p.auras.push(debuff('ordinary_dot', 'dot', 50));
 
     sim.castAbility('ice_block');
 
     expect(p.auras.some((a) => a.id === 'scripted_stun')).toBe(true);
+    expect(p.auras.some((a) => a.id === 'encounter_dot')).toBe(true);
     expect(p.auras.some((a) => a.id === 'ordinary_dot')).toBe(false);
     expect(p.auras.some((a) => a.id === 'ice_block' && a.kind === 'stasis')).toBe(true);
   });
@@ -239,6 +262,85 @@ describe('Ice Block: immunity + cleanse + control', () => {
     expect(plainRes?.bonusCharges ?? 0).toBe(0); // one charge
     const plainKnown = plain.sim.known.find((k) => k.def.id === 'ice_block');
     expect(plainKnown?.bonusCharges ?? 0).toBe(0);
+  });
+
+  it('the Frost second charge is a resolved cap, not just a bonus (charges = 2)', () => {
+    // normalizeAbilityCharges and the legacy-save caps in addPlayer read
+    // `charges`, not `bonusCharges`: a bonus-only stamp reads as a 1-cap there.
+    const frost = rigMage('frost');
+    expect(frost.sim.known.find((k) => k.def.id === 'ice_block')?.charges).toBe(2);
+    expect(frost.sim.resolvedAbility('ice_block', frost.p.id)?.charges).toBe(2);
+    const plain = rigMage(null);
+    expect(plain.sim.known.find((k) => k.def.id === 'ice_block')?.charges ?? 1).toBe(1);
+  });
+
+  it('a respec into Frost turns a running Ice Block cooldown into a spent pool (no refund)', () => {
+    const { sim, p } = rigMage('fire');
+    sim.castAbility('ice_block');
+    expect(p.abilityCharges?.ice_block).toBeUndefined(); // one charge: a plain cooldown
+    tickSeconds(sim, 9);
+    const running = p.cooldowns.get('ice_block') ?? 0;
+    expect(running).toBeGreaterThan(0);
+
+    expect(sim.setSpec('frost')).toBe(true);
+    expect(p.abilityCharges?.ice_block).toEqual({
+      charges: 1,
+      maxCharges: 2,
+      recharge: running,
+      rechargeLength: 240,
+    });
+    expect(p.cooldowns.has('ice_block')).toBe(false); // one use stored: pool open
+  });
+
+  it('a respec out of Frost keeps the spent recharge as a plain cooldown', () => {
+    const { sim, p } = rigMage('frost');
+    sim.castAbility('ice_block');
+    tickSeconds(sim, 9);
+    const recharge = p.abilityCharges?.ice_block?.recharge ?? 0;
+    expect(recharge).toBeGreaterThan(0);
+
+    expect(sim.setSpec('fire')).toBe(true);
+    expect(p.abilityCharges?.ice_block).toBeUndefined();
+    expect(p.cooldowns.get('ice_block')).toBe(recharge);
+  });
+
+  it('an equipment change keeps a partly spent Frost Ice Block pool (no refund)', () => {
+    const { sim, p } = rigMage('frost');
+    sim.castAbility('ice_block');
+    expect(p.abilityCharges?.ice_block?.charges).toBe(1);
+    // Let the encasement lapse so the next cast is a real use, not the recast toggle.
+    tickSeconds(sim, 9);
+    expect(p.auras.some((a) => a.kind === 'stasis')).toBe(false);
+    const spentRecharge = p.abilityCharges?.ice_block?.recharge ?? 0;
+    expect(spentRecharge).toBeGreaterThan(0);
+
+    const slot = (Object.keys(sim.equipment) as (keyof typeof sim.equipment)[]).find(
+      (s) => sim.equipment[s],
+    );
+    expect(slot).toBeDefined();
+    expect(sim.unequipItem(slot!)).toBe(true);
+
+    const pool = p.abilityCharges?.ice_block;
+    expect(pool).toBeDefined();
+    expect(pool?.charges).toBe(1);
+    expect(pool?.maxCharges).toBe(2);
+    expect(pool?.recharge).toBe(spentRecharge);
+    expect(p.cooldowns.has('ice_block')).toBe(false); // one use stored: pool open
+
+    // The stored use spends; the pool is then empty and the next cast is refused.
+    p.gcdRemaining = 0;
+    p.resource = p.maxResource;
+    sim.castAbility('ice_block');
+    expect(p.auras.some((a) => a.id === 'ice_block' && a.kind === 'stasis')).toBe(true);
+    expect(p.abilityCharges?.ice_block?.charges).toBe(0);
+    tickSeconds(sim, 9);
+    expect(p.auras.some((a) => a.kind === 'stasis')).toBe(false);
+    p.gcdRemaining = 0;
+    p.resource = p.maxResource;
+    sim.castAbility('ice_block');
+    expect(p.auras.some((a) => a.id === 'ice_block' && a.kind === 'stasis')).toBe(false);
+    expect(p.abilityCharges?.ice_block?.charges).toBe(0);
+    expect(p.cooldowns.has('ice_block')).toBe(true);
   });
 
   it('replays deterministically', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { abilitiesKnownAt } from '../src/sim/content/classes';
 import { emptyModifiers } from '../src/sim/content/talents';
-import { abilityEffectText } from '../src/ui/hud';
+import { abilityEffectText } from '../src/ui/ability_description';
 
 describe('mage personal barrier tooltip', () => {
   it('shows the rank base and the live Spell Power contribution', () => {
@@ -12,9 +12,9 @@ describe('mage personal barrier tooltip', () => {
     );
     if (!barrier) throw new Error('missing ice_barrier');
 
-    expect(abilityEffectText(barrier, { spellPower: 80, rangedPower: 0, attackPower: 0 })).toBe(
-      '130 (+40)',
-    );
+    expect(
+      abilityEffectText(barrier, { spellPower: 80, healPower: 80, rangedPower: 0, attackPower: 0 }),
+    ).toBe('130 (+40)');
   });
 
   it('shows Temporal Barrier at its lower ally-shield coefficient', () => {
@@ -25,8 +25,8 @@ describe('mage personal barrier tooltip', () => {
     );
     if (!barrier) throw new Error('missing temporal_barrier');
 
-    expect(abilityEffectText(barrier, { spellPower: 80, rangedPower: 0, attackPower: 0 })).toBe(
-      '160 (+20)',
-    );
+    expect(
+      abilityEffectText(barrier, { spellPower: 80, healPower: 80, rangedPower: 0, attackPower: 0 }),
+    ).toBe('232 (+20)');
   });
 });

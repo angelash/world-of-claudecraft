@@ -4,7 +4,13 @@
 // playback, loading, voice limits, and volume control to the sampled SFX engine.
 
 import type { GatherNodeType } from '../sim/types';
+import { isAuraCueId } from './aura_cue_catalog';
 import { sfx } from './sfx';
+
+// One proc cannot restate itself faster than its own cue is long. The longest cue
+// in the palette runs ~2s; half of that keeps a fast re-proc audible as a repeat
+// without letting it stutter over its own tail.
+const AURA_CUE_COOLDOWN = 1;
 
 // Minimum seconds between repeats of the SAME error cue: spamming an ability
 // on cooldown, or holding a cast with no mana, would otherwise refire the
@@ -31,6 +37,11 @@ export const UI_CUES = {
   death: 'ui_death',
   arenaLoss: 'ui_arena_loss',
   playerDeath: 'player_death',
+  // The female take of the same cue. Registered here (rather than reached as
+  // a bare SfxId) so it lands in the UiCue union and play() keeps refusing
+  // anything that is not a real cue; hud.ts picks between the two via
+  // playerVoiceCue.
+  playerDeathFemale: 'player_death_female',
   readyCheck: 'ui_ready_check',
   weaponSheathe: 'ui_weapon_sheathe',
   weaponUnsheathe: 'ui_weapon_unsheathe',
@@ -38,7 +49,6 @@ export const UI_CUES = {
   duelChallenge: 'ui_duel_challenge',
   duelCountdown: 'ui_duel_countdown',
   duelStart: 'ui_duel_start',
-  vcupKickoff: 'ui_vcup_kickoff',
   duelEnd: 'ui_duel_end',
   fiestaWords: ['ui_fiesta_word_0', 'ui_fiesta_word_1', 'ui_fiesta_word_2', 'ui_fiesta_word_3'],
   fiestaScoreMine: 'ui_fiesta_score_mine',
@@ -90,6 +100,12 @@ export const UI_CUES = {
     epic: 'ui_gather_epic',
     legendary: 'ui_gather_legendary',
   },
+  // Craft-family cast start (Craft Cast System Phase 6): one shared wind-up
+  // for craft, disenchant, apply-enchant, salvage, and tool recharge. Mirrors
+  // gatherCast / fishCast: personal feedback at castStart, distinct from the
+  // completion cues below. Procedural placeholder in scripts/sfx/ui_sfx.mjs
+  // until a custom recording lands.
+  craftCast: 'ui_craft_cast',
   // Crafting completion: one cue per CRAFT_RING craft family, keyed by the
   // recipe's professionId (src/sim/content/professions.ts).
   craftByFamily: {
@@ -115,6 +131,43 @@ export const UI_CUES = {
   // no conflict sharing the file with the real applyEnchant/enchantResult
   // action here.
   enchant: 'ui_craft_enchanting',
+  // Masterwrought crafting UX (phase 14): perfectingAttempt is the Perfecting
+  // attempt resolve strike and perfectingSuccess the rank landing (both
+  // consumed by the Perfecting window); legendaryForged is the orange
+  // promotion's own capstone cue, replacing the reused achievement chime at
+  // the hud's legendaryForged arm so the rarest crafting moment stops
+  // sounding like any deed unlock; sunderComplete closes the one silent
+  // craft-family completion (the sunder grant is silent + callerLogs, so no
+  // generic ding ever covered it).
+  perfectingAttempt: 'ui_perfecting_attempt',
+  perfectingSuccess: 'ui_perfecting_success',
+  legendaryForged: 'ui_legendary_forged',
+  sunderComplete: 'ui_sunder_complete',
+  // Farming (the render / juice phase): the plant ACTION and the harvest
+  // RESULT, the same cast/result split the gathering family uses. Both are
+  // procedural placeholders in scripts/sfx/ui_sfx.mjs until real recordings
+  // land.
+  farmPlant: 'ui_farm_plant',
+  farmHarvest: 'ui_farm_harvest',
+  // The withered outcome's own sting (the deferred Phase 8/10 cue, landed at
+  // the Phase 18 sweep). It shared farmHarvest through the interim, which
+  // sounded like the crop came in; it is the same action resolving, so the
+  // cue keeps the harvest's vocabulary and inverts its tail rather than
+  // reaching for an unrelated failure sound.
+  farmWithered: 'ui_farm_withered',
+  // The ready notice (the ready-notice phase): its own cue rather than a
+  // borrowed one, because it is the only farming sound the player did not
+  // just ask for by pressing something, and it must not read as a harvest
+  // that happened without them.
+  farmReady: 'ui_farm_ready',
+  // The golden-harvest sting (the celebrations phase): layers alongside the
+  // shared rare-event achievement cue, never a replacement for it, the same
+  // additive design masterwork and gatherRareTier follow.
+  farmGolden: 'ui_farm_golden',
+  // Setting out the shared feast (Phase 12): the placement's own cue, a
+  // procedural placeholder like its farming siblings until a real recording
+  // lands.
+  farmFeast: 'ui_farm_feast',
 } as const;
 
 type UiCue =
@@ -162,8 +215,13 @@ export class GameAudio {
     sfx.init();
   }
 
-  private play(key: UiCue, opts?: { cooldown?: number }): void {
-    sfx.playUi(key, { jitter: false, cooldown: opts?.cooldown });
+  private play(key: UiCue, opts?: { cooldown?: number; rate?: number; gain?: number }): void {
+    sfx.playUi(key, {
+      jitter: false,
+      cooldown: opts?.cooldown,
+      rate: opts?.rate,
+      gain: opts?.gain,
+    });
   }
 
   /** Play a cue only when interface/feedback sounds are enabled. The notification
@@ -171,6 +229,25 @@ export class GameAudio {
    *  the gameplay-timing cues (ready check, duel countdown) call `play` directly. */
   private playFeedback(key: UiCue, opts?: { cooldown?: number }): void {
     if (this.feedbackOn) this.play(key, opts);
+  }
+
+  /**
+   * An aura proc alert (src/game/aura_cue_catalog.ts). Unlike every other method
+   * here the key is chosen by the PLAYER at runtime rather than fixed at the call
+   * site, so it is validated against the catalog before reaching the engine and an
+   * unknown id is a silent no-op rather than a missing-clip fetch.
+   *
+   * Routed through `play`, not `playFeedback`: this cue is opt-in per proc and the
+   * player asked for it specifically, so the general interface-feedback toggle does
+   * not silence it. The per-proc volume multiplies the master SFX volume like any
+   * other gain. The cooldown is per key, so one spell re-proccing faster than its
+   * own cue is long cannot stutter.
+   */
+  auraCue(cueId: string, volume: number): void {
+    if (!isAuraCueId(cueId)) return;
+    const gain = Math.min(1, Math.max(0, volume));
+    if (gain <= 0) return;
+    this.play(cueId as UiCue, { cooldown: AURA_CUE_COOLDOWN, gain });
   }
 
   bagOpen(): void {
@@ -205,8 +282,15 @@ export class GameAudio {
   // minigame/PvP loss chime (fiesta, Yumi, arena rating, Vale Cup all still
   // use death() below): plays the real custom death vocalization instead of
   // the generic UI stinger.
-  playerDeath(): void {
-    this.play(UI_CUES.playerDeath);
+  //
+  // The gendered cue is RESOLVED BY THE CALLER (hud.ts, via playerVoiceCue)
+  // rather than here: picking it needs the player's authored appearance, and
+  // this module is a host-agnostic cue facade with no entity access. Defaults
+  // to the male take so every existing caller keeps its current behavior.
+  playerDeath(
+    cue: typeof UI_CUES.playerDeath | typeof UI_CUES.playerDeathFemale = UI_CUES.playerDeath,
+  ): void {
+    this.play(cue);
   }
 
   lootItem(): void {
@@ -219,6 +303,10 @@ export class GameAudio {
 
   readyCheck(): void {
     this.play(UI_CUES.readyCheck);
+  }
+
+  raidWarning(): void {
+    this.play(UI_CUES.readyCheck, { rate: 1.25, gain: 1.3 });
   }
 
   weaponSheathe(): void {
@@ -279,10 +367,6 @@ export class GameAudio {
     this.play(UI_CUES.duelStart);
   }
 
-  vcupKickoff(): void {
-    this.play(UI_CUES.vcupKickoff);
-  }
-
   duelEnd(): void {
     this.play(UI_CUES.duelEnd);
   }
@@ -310,6 +394,23 @@ export class GameAudio {
 
   fiestaRevive(): void {
     this.play(UI_CUES.fiestaRevive);
+  }
+
+  // Thornhollow Fields flag moments want WEIGHT. No dedicated recordings yet (the SFX
+  // asset flow is a follow-up), so each layers two existing cues into one
+  // bigger hit: a WAR-HORN stack for a take (the challenge horn doubled with
+  // a deep detuned layer carrying the weight and the fight-starts hit on the
+  // front edge; the old down-sting layer read as a boop, owner note), and the
+  // fanfare over the fight-starts hit for a capture.
+  bgFlagTaken(): void {
+    this.play(UI_CUES.duelChallenge, { rate: 0.58 });
+    this.play(UI_CUES.duelChallenge, { rate: 0.87, gain: 0.7 });
+    this.play(UI_CUES.duelStart, { gain: 0.85 });
+  }
+
+  bgCapture(): void {
+    this.play(UI_CUES.achievement);
+    this.play(UI_CUES.duelStart);
   }
 
   // Card Duel: live in-match feedback, same ungated category as the Fiesta
@@ -351,6 +452,12 @@ export class GameAudio {
     this.playFeedback(UI_CUES.fishReel);
   }
 
+  /** Release the audio engine for a page that is going away (the editor's
+   *  pagehide teardown), so a reload/navigation loop cannot leak a context. */
+  close(): void {
+    sfx.close();
+  }
+
   gather(nodeType: GatherNodeType): void {
     this.playFeedback(UI_CUES.gatherByNodeType[nodeType]);
   }
@@ -360,6 +467,13 @@ export class GameAudio {
   // additional tiered stinger on top of the plain impact.
   gatherRareTier(tier: 'rare' | 'epic' | 'legendary'): void {
     this.playFeedback(UI_CUES.gatherRareTier[tier]);
+  }
+
+  // Craft-family cast start (craft / disenchant / apply-enchant / salvage /
+  // tool recharge). Feedback-gated like gatherCast; completion uses the
+  // family-specific cues below.
+  craftCast(): void {
+    this.playFeedback(UI_CUES.craftCast);
   }
 
   // recipeFamily is the recipe's professionId (a CRAFT_RING id); an unknown
@@ -385,6 +499,71 @@ export class GameAudio {
 
   enchant(): void {
     this.playFeedback(UI_CUES.enchant);
+  }
+
+  // Masterwrought Perfecting (phase 14): the attempt resolve strike and the
+  // rank landing. Result feedback like craftSuccess/masterwork, so both ride
+  // the feedback gate.
+  perfectingAttempt(): void {
+    this.playFeedback(UI_CUES.perfectingAttempt);
+  }
+
+  perfectingSuccess(): void {
+    this.playFeedback(UI_CUES.perfectingSuccess);
+  }
+
+  // The orange moment (Masterwrought phase 13's promotion, cued in phase 14):
+  // the legendary promotion's own capstone cue. Feedback-gated like the other
+  // crafting result celebrations (craftSuccess, masterwork).
+  legendaryForged(): void {
+    this.playFeedback(UI_CUES.legendaryForged);
+  }
+
+  // The sundering completion: the grant is silent + callerLogs, so this cue
+  // is the action's only sound beyond the shared cast wind-up. Feedback-gated
+  // like disenchant/salvage, its enchant-family siblings.
+  sunderComplete(): void {
+    this.playFeedback(UI_CUES.sunderComplete);
+  }
+
+  // Farming plant: the direct-affordance half (you pressed plant and the soil
+  // answers), so it rides the ungated arm like click/bagOpen.
+  farmPlant(): void {
+    this.play(UI_CUES.farmPlant);
+  }
+
+  // Farming harvest: the reward half, feedback-gated like the other result
+  // notifications (loot, gather, craftSuccess).
+  farmHarvest(): void {
+    this.playFeedback(UI_CUES.farmHarvest);
+  }
+
+  // Farming withered outcome: the harvest's unlucky twin, so it takes the
+  // same feedback gate as farmHarvest rather than the ungated affordance arm
+  // the plant press rides.
+  farmWithered(): void {
+    this.playFeedback(UI_CUES.farmWithered);
+  }
+
+  // Farming ready notice: a NOTIFICATION, not an affordance (nothing was
+  // pressed), so it rides the feedback gate like mail and quest chimes and
+  // goes silent for a player who turned interface sounds off.
+  farmReady(): void {
+    this.playFeedback(UI_CUES.farmReady);
+  }
+
+  // Golden-harvest sting: the finder's reward notification, feedback-gated
+  // like the other result cues (masterwork, gatherRareTier) and layered on
+  // top of the shared achievement cue, never a replacement for it.
+  farmGolden(): void {
+    this.playFeedback(UI_CUES.farmGolden);
+  }
+
+  // Setting out the shared feast: the direct-affordance half (you pressed
+  // the verb and the table answers), so it rides the ungated arm exactly
+  // like its farmPlant sibling.
+  farmFeast(): void {
+    this.play(UI_CUES.farmFeast);
   }
 }
 

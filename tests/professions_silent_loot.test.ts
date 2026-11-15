@@ -9,6 +9,12 @@ import { stationsOfType } from '../src/sim/professions/stations';
 import { Sim } from '../src/sim/sim';
 import type { Entity, SimEvent, StationType } from '../src/sim/types';
 import { terrainHeight } from '../src/sim/world';
+import {
+  runApplyEnchant,
+  runCraft,
+  runDisenchant,
+  runSalvage,
+} from './helpers/enchant_family_cast';
 import { tsFilesUnder } from './helpers/ts_files_under';
 
 // Every grant in the game flows through the one shared inventory hub
@@ -108,7 +114,7 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     // the actual grant lands later via completeGatherCast once the cast
     // timer runs out. GATHER_CAST_BASE_SEC (2.5s) is the longest possible
     // cast, so 3 seconds of ticks always clears it.
-    expect(sim.harvestNode(NODE_ID, pid)).toBe(true);
+    expect(sim.harvestNode(NODE_ID, undefined, pid)).toBe(true);
     const events: SimEvent[] = [];
     for (let i = 0; i < 20 * 3; i++) events.push(...sim.tick());
     const loot = lootEvents(events);
@@ -183,7 +189,7 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     const sim = new Sim({ seed: 42, playerClass: 'warrior', autoEquip: false });
     const pid = sim.playerId;
     sim.addItem('spider_leg', 1, pid); // the reagent grant itself stays loud
-    sim.craftItem('recipe_tough_jerky', false, pid);
+    runCraft(sim, 'recipe_tough_jerky', false, pid);
     expect(sim.lastCraftResult?.ok).toBe(true);
     const events = lootEvents(sim.tick());
     // The reagent grant (loud + logged) plus the crafted-output grant (silent
@@ -212,7 +218,7 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
       for (const reagent of recipe.reagents) sim.addItem(reagent.itemId, reagent.count * 4, pid);
       if (recipe.stationType) placeAtStationFor(sim, pid, recipe.stationType);
       sim.tick(); // drain the (loud) reagent grants before isolating the craft
-      sim.craftItem(recipe.id, false, pid);
+      runCraft(sim, recipe.id, false, pid);
       expect(sim.lastCraftResult?.ok, `${recipe.id}: ${sim.lastCraftResult?.reason}`).toBe(true);
       expect(sim.lastCraftResult?.count, recipe.id).toBeGreaterThan(1);
       const events = lootEvents(sim.tick());
@@ -229,7 +235,7 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     const pid = sim.playerId;
     sim.addItem('eastbrook_arming_sword', 1, pid);
     sim.tick(); // drain the (loud) sword grant before isolating the disenchant
-    sim.disenchantItem('eastbrook_arming_sword', pid);
+    runDisenchant(sim, 'eastbrook_arming_sword', pid);
     expect(sim.lastDisenchantResult?.ok).toBe(true);
     const events = lootEvents(sim.tick());
     expect(events.length).toBe(1);
@@ -243,7 +249,7 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     sim.addItem('eastbrook_arming_sword', 1, pid);
     sim.addItem('arcane_dust', 5, pid);
     sim.tick(); // drain the (loud) sword + reagent grants before isolating the enchant
-    sim.applyEnchant('eastbrook_arming_sword', 'enchant_weapon_might');
+    runApplyEnchant(sim, 'eastbrook_arming_sword', 'enchant_weapon_might');
     expect(sim.lastEnchantResult?.ok).toBe(true);
     const events = lootEvents(sim.tick());
     expect(events.length).toBe(1);
@@ -262,10 +268,10 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     sim.addItem('eastbrook_arming_sword', 1, pid);
     sim.addItem('arcane_dust', 20, pid);
     sim.tick();
-    sim.applyEnchant('eastbrook_arming_sword', 'enchant_weapon_might');
+    runApplyEnchant(sim, 'eastbrook_arming_sword', 'enchant_weapon_might');
     expect(sim.lastEnchantResult?.ok).toBe(true);
     sim.tick(); // drain the first (already silent) apply before isolating the replace
-    sim.applyEnchant('eastbrook_arming_sword', 'enchant_weapon_intellect', undefined, true);
+    runApplyEnchant(sim, 'eastbrook_arming_sword', 'enchant_weapon_intellect', undefined, true);
     expect(sim.lastEnchantResult?.ok).toBe(true);
     const events = lootEvents(sim.tick());
     expect(events.length).toBe(1);
@@ -283,12 +289,12 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     sim.addItem('eastbrook_arming_sword', 1, pid);
     sim.addItem('arcane_dust', 20, pid);
     sim.tick();
-    sim.applyEnchant('eastbrook_arming_sword', 'enchant_weapon_might');
+    runApplyEnchant(sim, 'eastbrook_arming_sword', 'enchant_weapon_might');
     expect(sim.lastEnchantResult?.ok).toBe(true);
     sim.tick();
     sim.equipItem('eastbrook_arming_sword', pid);
     sim.tick();
-    sim.applyEnchant('eastbrook_arming_sword', 'enchant_weapon_intellect', 'mainhand', true);
+    runApplyEnchant(sim, 'eastbrook_arming_sword', 'enchant_weapon_intellect', 'mainhand', true);
     expect(sim.lastEnchantResult?.ok).toBe(true);
     expect(lootEvents(sim.tick()).length).toBe(0);
   });
@@ -298,7 +304,7 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     const pid = sim.playerId;
     sim.addItem('eastbrook_arming_sword', 1, pid);
     sim.tick(); // drain the (loud) sword grant before isolating the salvage
-    sim.salvageItem('eastbrook_arming_sword', pid);
+    runSalvage(sim, 'eastbrook_arming_sword', pid);
     expect(sim.lastSalvageResult?.ok).toBe(true);
     const events = lootEvents(sim.tick());
     expect(events.length).toBe(1);
@@ -318,7 +324,7 @@ describe('professions grants suppress BOTH generic hub feedbacks', () => {
     // yield is a primary PLUS at least one secondary.
     sim.addItem('moggers_copper_cudgel', 1, pid);
     sim.tick(); // drain the (loud) weapon grant before isolating the disenchant
-    sim.disenchantItem('moggers_copper_cudgel', pid);
+    runDisenchant(sim, 'moggers_copper_cudgel', pid);
     const result = sim.lastDisenchantResult;
     expect(result?.ok).toBe(true);
     expect(result?.secondaryItemId).toBeTruthy();
@@ -356,11 +362,11 @@ describe('the craft output arms each stand their hub line down', () => {
     if (!meta) throw new Error('missing player meta');
     meta.knownRecipes.add('recipe_thorium_mining_pick');
     meta.craftSkills.toolworks = 75;
-    sim.addItem('thorium_ore', 4, pid);
+    sim.addItem('fine_iron_ore', 4, pid);
     sim.addItem('mithril_mining_pick', 1, pid);
     placeAtStationFor(sim, pid, 'toolworks');
     sim.tick(); // drain the (loud) reagent grants
-    sim.craftItem('recipe_thorium_mining_pick', false, pid);
+    runCraft(sim, 'recipe_thorium_mining_pick', false, pid);
     expect(sim.lastCraftResult?.ok, sim.lastCraftResult?.reason).toBe(true);
     // The arm identity: a rare def at resultCount 1 mints ONE signed instance,
     // and not via the masterwork branch.
@@ -382,7 +388,7 @@ describe('the craft output arms each stand their hub line down', () => {
     sim.addItem('bone_fragments', 4, pid);
     sim.addItem('smithing_flux', 6, pid);
     sim.tick();
-    sim.craftItem('recipe_eastbrook_arming_sword', true, pid);
+    runCraft(sim, 'recipe_eastbrook_arming_sword', true, pid);
     expect(sim.lastCraftResult?.ok, sim.lastCraftResult?.reason).toBe(true);
     // The arm identity: commission forces the instance path even for a
     // sub-rare output a plain grant would leave fungible.
@@ -396,11 +402,17 @@ describe('the craft output arms each stand their hub line down', () => {
   });
 
   it('a MASTERWORK proc stands both down on the baked instance', () => {
-    // Seed 20 with tailoring at skill 200 is the hunted proc window
+    // Seed 3 with tailoring at skill 200 is the hunted proc window
     // tests/professions_masterwork.test.ts uses: the second successful
     // vestments craft procs. Reused rather than re-hunted so the two files
-    // cannot disagree about which craft is the masterwork one.
-    const sim = new Sim({ seed: 20, playerClass: 'warrior', autoEquip: false });
+    // cannot disagree about which craft is the masterwork one, and the seed is
+    // re-verified against THIS scenario (which ticks the world between the two
+    // crafts) on every hop. (That suite re-hunted 20 -> 90 when the
+    // procedural-dungeons content shifted the world-gen draw sequence, then
+    // 90 -> 53 after the Eastbrook camp respacing thinned the zone-1 camp
+    // counts, then 53 -> 3 after the v0.35.0 release content commits added the
+    // enchant and hunter offhands and the deeds catalog.)
+    const sim = new Sim({ seed: 74, playerClass: 'warrior', autoEquip: false });
     const pid = sim.playerId;
     sim.acceptArchetypeQuest('tailoring');
     const meta = sim.players.get(pid);
@@ -411,9 +423,9 @@ describe('the craft output arms each stand their hub line down', () => {
     for (let i = 0; i < 9; i++) sim.addItem('homespun_cloth', 1, pid);
     for (let i = 0; i < 15; i++) sim.addItem('spool_of_thread', 1, pid);
     sim.tick();
-    sim.craftItem('recipe_eastbrook_ritual_vestments', false, pid);
+    runCraft(sim, 'recipe_eastbrook_ritual_vestments', false, pid);
     sim.tick();
-    sim.craftItem('recipe_eastbrook_ritual_vestments', false, pid);
+    runCraft(sim, 'recipe_eastbrook_ritual_vestments', false, pid);
     expect(sim.lastCraftResult?.ok, sim.lastCraftResult?.reason).toBe(true);
     // The arm identity, and the whole point of the case.
     expect(sim.lastCraftResult?.masterwork).toBe(true);
@@ -449,18 +461,79 @@ describe('every professions grant site is accounted for (#2430)', () => {
   // already (it has to set its flags); bump its number here in the same change.
   //
   // What this map does NOT claim: the scan matches `ctx.addItem`/
-  // `ctx.addItemInstance` call TEXT, so a grant routed through a destructured
-  // `const { addItem } = ctx` or a module-local helper contributes no row and
-  // no count drift. Nothing in src/sim/professions does that today. Recursion
-  // widens which FILES are read, not which call shapes are recognized.
+  // `ctx.addItemInstance`/`grantFreshLoot` call TEXT, so a grant routed
+  // through a destructured `const { addItem } = ctx` or some other
+  // module-local helper contributes no row and no count drift. Nothing in
+  // src/sim/professions does that today. grantFreshLoot
+  // (src/sim/loot/fresh_quality_grant.ts) is recognized because it is the
+  // shared fresh-loot grant seam: it forwards its opts unchanged to
+  // ctx.addItem / ctx.addItemInstance, so the flags on its call ARE the flags
+  // on the grant. Recursion widens which FILES are read, not which call
+  // shapes are recognized.
   const EXPECTED_GRANT_SITES: Record<string, number> = {
     'commission.ts': 1,
-    'crafting.ts': 6,
+    'commission_order.ts': 1,
+    // 6 -> 9 at Masterwrought phase 12: the perfecting head-start mint arm
+    // (resolveCraftForRecipe) grants through the same silent + callerLogs
+    // discipline as the masterwork arm it sits beside: the head-started
+    // instance, its commissioned remainder copies, and the plain remainder.
+    // All nine are grantFreshLoot calls since every earned reward source
+    // rolls permanent loot quality; the count is unchanged because the
+    // scanner recognizes that call shape too (pinned below).
+    'crafting.ts': 9,
     'enchanting.ts': 4,
+    // Farming's eight grants: base produce, its fine twin, the withered-husk
+    // payout on each of the two failure arms (a lost survival roll and the
+    // defensive retired-crop fallback), the knobs phase's compost grant in
+    // convertHusks, the crop-ladder phase's tier 3/4 seed-back grant (ONE
+    // call site above the survived/withered branch, deliberately shared by
+    // both outcomes, so it counts once), the celebrations phase's golden
+    // BONUS grant (one extra item on a golden win: a next-tier seed or a
+    // farming pattern), and harvestCrop's grantGolden closure, which used to
+    // be TWO call sites per grade (a signed addItemInstance mint for what
+    // fit, plus a plain addItem overflow remainder for what did not) and is
+    // now ONE: the signature no longer lives on the granted payload, it rides
+    // the granted units' own SOURCE bucket (material_gatherer.ts's
+    // gatheredMaterialSources), so a full bag can no longer separate the
+    // units from their mark and the truncating overflow arm it existed for is
+    // gone (farming.ts's own banner on grantGolden). 9 -> 8 on that
+    // consolidation alone; nothing left the sweep uncovered. All eight carry
+    // both flags, because farmHarvested / farmWithered / farmHusksConverted
+    // own the whole player feedback; the bonus is named on farmHarvested as
+    // goldenBonusItemId, the seedBackCount idiom, so it has a line of its own
+    // in the client without a second hub grant line.
+    'farming.ts': 8,
     'fishing.ts': 2,
-    'gathering.ts': 2,
-    'salvage.ts': 1,
-    'interaction.ts:harvestCorpse': 6,
+    // gathering.ts's harvest grant was the same shape as farming's golden
+    // closure: a signed addItemInstance arm for what fit, plus a plain addItem
+    // fungible top-up for what did not. `resolveHarvest`'s `grantFungibleFit`
+    // now grants once, signed or not, via the same source-bucket provenance
+    // (gatheredMaterialSources with an optional signer); the truncating
+    // second arm is gone with it. 2 -> 1 on that consolidation; no addItem
+    // call left this file, so nothing is missing from the sweep.
+    'gathering.ts': 1,
+    // Masterwrought phase 04: the two core delivery arms (heroic/raid kill
+    // and rift first clear) and the two ember accrual arms, all documented
+    // NO_RESULT_EVENT_GRANTS; plus the sundering essence grant, whose sunder
+    // line owns the feedback (silent + callerLogs).
+    'masterwrought_materials.ts': 4,
+    'sundering.ts': 1,
+    'salvage.ts': 2,
+    // Intentional Gathering PR3 extracted the corpse-harvest completion body
+    // (interaction.ts's old `harvestCorpse`, 6 grant sites) into its own
+    // module BEHIND src/sim/professions, `corpse_harvest_grant.ts`'s
+    // `grantCorpseHarvest`: it is no longer a command body living outside this
+    // directory, so the directory walk below finds it on its own and the old
+    // interaction.ts-specific slice (see the boundary test below) is retired.
+    // The count also drops one, 6 -> 5, on the exact same consolidation as
+    // farming/gathering above: the signed-component grant used to be a
+    // separate addItemInstance mint (with a plain top-up for what a full bag
+    // refused), and now rides the plain grant's own source-bucket provenance
+    // in one call (`grantCorpseHarvest`'s "SIGNED-COMPONENT loop" comment);
+    // zero addItemInstance calls remain in the file. Both drops are
+    // consolidation, never missing scan coverage: every remaining call still
+    // carries silent + callerLogs, pinned below.
+    'corpse_harvest_grant.ts': 5,
   };
 
   // Sites that deliberately carry NEITHER flag, keyed by a stable substring of
@@ -470,6 +543,27 @@ describe('every professions grant site is accounted for (#2430)', () => {
     // fishing.ts: the once-ever Codfather quest catch returns before the
     // fishingResult emit, so the hub line and ding are its only feedback.
     'THE_CODFATHER_ITEM_ID',
+    // commission_order.ts deliverCommissionOrder: the recipient of this grant
+    // is the ORDER'S REQUESTER, a different player from the crafter who fired
+    // the command. The action's own commissionOrderResult event is personal to
+    // the ACTOR (pid: the crafter), never to the requester, so eliding the hub
+    // line here would leave the requester with no feedback at all when the
+    // commissioned piece lands in their bags: the ordinary "You receive:" loot
+    // line and cue are the requester's ONLY notification, exactly like a
+    // completed trade (trade.ts's grantOffer, outside this directory, stays
+    // loud for the identical reason).
+    'order.requesterId',
+    // masterwrought_materials.ts (phase 04): the Wyrmfall Core and Maker's
+    // Ember participation awards follow the heroic-marks precedent (which
+    // lives in instances/dungeons.ts, outside this sweep): no result event
+    // exists, so the hub's "You receive:" line and the loot ding ARE the
+    // player's whole notification that a kill or completion paid out. One
+    // marker per delivery arm (boss kill, rift first clear, ember first
+    // grant, ember accrual), each pinned to its own call.
+    'WYRMFALL_CORE_ITEM_ID, count',
+    'WYRMFALL_CORE_ITEM_ID, riftCount',
+    'MAKERS_EMBER_ITEM_ID, 1',
+    'MAKERS_EMBER_ITEM_ID, granted',
   ];
 
   // Source with comments removed (`://` protocol slashes preserved), the repo's
@@ -481,11 +575,12 @@ describe('every professions grant site is accounted for (#2430)', () => {
   const codeOnly = (source: string): string =>
     source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-  /** Every ctx.addItem / ctx.addItemInstance call in `source`, each as the full
-   *  call text (paren-balanced, so a multi-line opts object is included). */
+  /** Every ctx.addItem / ctx.addItemInstance / grantFreshLoot call in `source`,
+   *  each as the full call text (paren-balanced, so a multi-line opts object is
+   *  included). A `function grantFreshLoot(` declaration is not a call. */
   const grantCalls = (source: string): string[] => {
     const calls: string[] = [];
-    const re = /\bctx\.addItem(?:Instance)?\(/g;
+    const re = /(?<!function\s+)\b(?:ctx\.addItem(?:Instance)?|grantFreshLoot)\(/g;
     let m = re.exec(source);
     while (m) {
       let depth = 0;
@@ -533,26 +628,33 @@ describe('every professions grant site is accounted for (#2430)', () => {
     return source.slice(open, end + 1);
   };
 
-  // #2457: corpse harvest is a professions grant flow that does NOT live in
-  // src/sim/professions (it is a command body in interaction.ts), so the
-  // directory walk above could never see it, and its six grants sat unflagged
-  // through the whole of #2430. Only harvestCorpse's own body joins the sweep:
-  // the other grants in that file (lootCorpse's distribution, pickUpObject)
-  // are ordinary loot and must keep printing the hub line.
-  const harvestBody = functionBody(
-    codeOnly(readFileSync(path.resolve(process.cwd(), 'src/sim/interaction.ts'), 'utf8')),
-    'export function harvestCorpse(',
+  // #2457 opened with corpse harvest as a professions grant flow that did NOT
+  // live in src/sim/professions (it was a command body in interaction.ts), so
+  // the directory walk above could never see it, and its six grants sat
+  // unflagged through the whole of #2430; a bespoke slice of interaction.ts's
+  // `harvestCorpse` body joined the sweep by hand. Intentional Gathering PR3
+  // moved the whole completion body into this directory as
+  // `corpse_harvest_grant.ts`'s `grantCorpseHarvest` (interaction.ts's
+  // `harvestCorpse` is now a one-line delegate to the timed-cast starter,
+  // with zero grant calls of its own), so `grantSitesUnder(dir)` now finds it
+  // like any other file and the hand-spliced join below is retired. Only the
+  // FUNCTION-BOUNDARY guard survives, retargeted at the real grant function:
+  // this module's other exports (`snapshotCorpseHarvestGrantInputs`,
+  // `corpseHarvestOrdinaryYields`) grant nothing, so a slice that ran short or
+  // long would show up as a wrong site count against the same file.
+  const grantCorpseHarvestBody = functionBody(
+    codeOnly(
+      readFileSync(
+        path.resolve(process.cwd(), 'src/sim/professions/corpse_harvest_grant.ts'),
+        'utf8',
+      ),
+    ),
+    'export function grantCorpseHarvest(',
   );
 
   type GrantSite = { file: string; call: string };
 
-  const sites: GrantSite[] = [
-    ...grantSitesUnder(dir),
-    ...grantCalls(harvestBody).map((call) => ({
-      file: 'interaction.ts:harvestCorpse',
-      call: flatten(call),
-    })),
-  ];
+  const sites: GrantSite[] = grantSitesUnder(dir);
 
   // The two rules the sweeps below enforce, as functions of a site list, so the
   // recursion case can put a nested grant to the REAL predicates rather than to
@@ -602,22 +704,31 @@ describe('every professions grant site is accounted for (#2430)', () => {
     // or every site would read as unflagged and the exclusion list would have
     // to grow to hide it.
     expect(sites.find((s) => s.file === 'salvage.ts')?.call).toContain('callerLogs: true');
+    // Crafting outputs grant through grantFreshLoot (the loot-quality roll), so
+    // its nine sites are only in the sweep because the scanner recognizes that
+    // call shape. Bound to the call text, so a regex that dropped the
+    // grantFreshLoot arm reads as a missing crafting.ts row, not a quiet pass.
+    const craftSites = sites.filter((s) => s.file === 'crafting.ts');
+    expect(craftSites).toHaveLength(9);
+    for (const site of craftSites) {
+      expect(site.call, site.call).toMatch(/^grantFreshLoot\( ?ctx, recipe\.resultItemId,/);
+    }
   });
 
-  it('the harvestCorpse slice is the whole function and nothing but the function', () => {
+  it('the grantCorpseHarvest slice is the whole function and nothing but the function', () => {
     // Two ways the slice could go wrong and leave the sweep green while
-    // checking the wrong thing: stopping early (the six grants shrink to
+    // checking the wrong thing: stopping early (the five grants shrink to
     // fewer, so a real unflagged one hides outside the window) or running past
-    // the function's closing brace into the ordinary loot grants below, which
-    // legitimately carry neither flag and would turn the sweep permanently
-    // red. Bind both ends.
-    const harvestSites = sites.filter((s) => s.file === 'interaction.ts:harvestCorpse');
-    expect(harvestSites).toHaveLength(6);
+    // the function's closing brace, which cannot happen here (grantCorpseHarvest
+    // is the last export in the file) but is still worth binding so a future
+    // sibling appended after it cannot silently join the count. Bind both ends.
+    const harvestSites = sites.filter((s) => s.file === 'corpse_harvest_grant.ts');
+    expect(harvestSites).toHaveLength(5);
     // BOTH flags. The shared cue sweep below now asks for `silent` everywhere
     // too (#2458 retired the one site that owned the line without the cue), and
-    // EXPECTED_GRANT_SITES now carries the count of six as well, so neither is
+    // EXPECTED_GRANT_SITES now carries the count of five as well, so neither is
     // this pin's alone any more. It stays because the count belongs HERE, next
-    // to the boundary checks it interprets: six is what says the slice found
+    // to the boundary checks it interprets: five is what says the slice found
     // the whole function. One harvest command grants several DISTINCT items, so
     // a site that kept `callerLogs` but lost `silent` would give one harvest
     // several cues rather than one stray ding (#2457 acceptance criterion 3).
@@ -625,11 +736,14 @@ describe('every professions grant site is accounted for (#2430)', () => {
       expect(site.call, site.call).toContain('silent: true');
       expect(site.call, site.call).toContain('callerLogs: true');
     }
-    // pickUpObject's grant is the nearest one outside the function.
-    expect(harvestBody).not.toContain('objectItemId');
-    // ... and the sliced window really is harvestCorpse: its last statement,
-    // the corpse-timer clamp, is inside it.
-    expect(harvestBody).toContain('CORPSE_INTERACT_GRACE_SECONDS');
+    // corpseHarvestOrdinaryYields (the sibling just above grantCorpseHarvest
+    // in the same file) grants nothing itself; its own return-value builder is
+    // the nearest grant-shaped text outside the function, so its presence here
+    // would mean the slice opened too early.
+    expect(grantCorpseHarvestBody).not.toContain('wanted.push');
+    // ... and the sliced window really is grantCorpseHarvest: its last
+    // statement, the corpse-timer clamp, is inside it.
+    expect(grantCorpseHarvestBody).toContain('CORPSE_INTERACT_GRACE_SECONDS');
   });
 
   it('every grant either stands its hub line down or is a named no-result-event grant', () => {
@@ -684,6 +798,14 @@ describe('every professions grant site is accounted for (#2430)', () => {
         path.join(fixture, 'nested', 'bare.ts'),
         'ctx.addItemInstance(itemId, payload, pid);\n',
       );
+      // The fresh-loot grant seam faces the same two sweeps: a bare call keeps
+      // the hub LINE, and its declaration (and an import of it) is not a site.
+      writeFileSync(
+        path.join(fixture, 'nested', 'fresh_bare.ts'),
+        "import { grantFreshLoot } from '../loot/fresh_quality_grant';\n" +
+          'export function grantFreshLoot(ctx, itemId) {}\n' +
+          'grantFreshLoot(ctx, itemId, 1, pid);\n',
+      );
       // Split between the key and its value, which is what makes `flatten`
       // load-bearing: on raw text this call does not contain the literal
       // `callerLogs: true`, so a regression that stopped normalizing would
@@ -730,6 +852,7 @@ describe('every professions grant site is accounted for (#2430)', () => {
         'nested/commented_out.ts',
         'nested/deeper/deepest/line_only.ts',
         'nested/documented.ts',
+        'nested/fresh_bare.ts',
         'top.ts',
       ]);
       // ... and both sweeps really do fire on them. documented.ts is absent
@@ -739,7 +862,11 @@ describe('every professions grant site is accounted for (#2430)', () => {
       expect(unaccountedLineGrants(found).map((s) => s.file)).toEqual([
         'nested/bare.ts',
         'nested/commented_out.ts',
+        'nested/fresh_bare.ts',
       ]);
+      expect(found.find((s) => s.file === 'nested/fresh_bare.ts')?.call).toBe(
+        'grantFreshLoot(ctx, itemId, 1, pid)',
+      );
       expect(unaccountedCueGrants(found).map((s) => s.file)).toEqual([
         'nested/deeper/deepest/line_only.ts',
       ]);

@@ -1,0 +1,111 @@
+/** Entity-state overrides on a derived AnimState.
+ *
+ * The renderer's per-entity sync loop fills an AnimState from DISPLAYED motion
+ * (speed, gait, airborne, water depth). A few facts about the entity itself then
+ * override what that motion implies, and they are collected here rather than
+ * inline in the coordinator: it is one nameable job, it is pure, and buried in
+ * the sync loop none of it could be tested directly.
+ *
+ * Node-only (RENDER_PURE_CORES): no three.js, no DOM.
+ */
+import {
+  CHARACTER_EFFECT_FEIGN_DEATH,
+  CHARACTER_EFFECT_IMPALED,
+  hasCharacterEffect,
+} from '../character_effects_core';
+import { type LocoState, MOVE_ENTER_SPEED } from '../locomotion';
+import type { AnimState } from './anim_state';
+
+/** Fill the reused scratch for EACH entity; zero-time syncs never retain
+ * another entity's motion. The arrival controller preserves its clock at dt=0. */
+export function applyDisplayedAnimMotion(
+  state: AnimState,
+  loco: LocoState,
+  vx: number,
+  vz: number,
+  dt: number,
+): void {
+  state.speed = loco.speed;
+  state.moving = loco.moving;
+  state.running = loco.running;
+  state.rawMoving = dt > 0 ? Math.hypot(vx, vz) / dt > MOVE_ENTER_SPEED : undefined;
+}
+
+/** The entity facts the overrides read. A structural subset of sim `Entity`, so
+ *  the live entity satisfies it directly and a test can pass a literal. */
+export interface AnimOverrideFacts {
+  /** The mob's live aggro target, or null. Present on both hosts: the sim sets
+   *  it, the server wires it as `aggro`, and ClientWorld mirrors it. */
+  aggroTargetId: number | null;
+  /** Rift ice-slide in progress (the sim glides the body at speed). Optional to
+   *  match `Entity`, where it is only set on a sliding player. */
+  riftSliding?: boolean;
+  /** The live aura list, handed to the rig by reference: ids for its `idleByAura`
+   *  poses, kinds for its `stunned` loop. */
+  auras?: readonly { id: string; kind?: string; remaining?: number }[];
+  /** The cast bar (for a bar-locked cast clip, VisualDef.castClipSync). */
+  castingAbility?: string | null;
+  castRemaining?: number;
+  castTotal?: number;
+}
+
+/** Mutates `st` in place. Called once per entity per frame, so it allocates
+ *  nothing and takes the facts by reference rather than cloning the state.
+ *  `characterEffects` is the entity's character_effects_core flag word, which
+ *  the renderer already folds once per frame from the aura list. */
+export function applyEntityAnimOverrides(
+  st: AnimState,
+  e: AnimOverrideFacts,
+  visuallyDead: boolean,
+  characterEffects = 0,
+  stealthed = false,
+): void {
+  // Engaged with someone: a rig that ships a battle stance holds it between
+  // swings instead of relaxing into its idle. Reading the aggro target (rather
+  // than `inCombat`, which is server-only: net/online.ts stubs it false) keeps
+  // this identical on both hosts with no new wire traffic, so peers brace the
+  // same way. Players have no stance clip today, and they carry their selection
+  // in targetId rather than aggroTargetId, so they are unaffected either way.
+  st.combat = e.aggroTargetId !== null && !visuallyDead;
+  // A held aura pose (Balgath blinded) or a dazed loop (the Great Jaguar stunned) reads
+  // the list by reference: no copy per frame.
+  st.auras = e.auras;
+  // How far its bar has run: a bar-locked cast clip follows it.
+  st.castElapsed =
+    e.castingAbility && (e.castTotal ?? 0) > 0
+      ? (e.castTotal ?? 0) - (e.castRemaining ?? 0)
+      : undefined;
+  st.stealthed = stealthed && !visuallyDead;
+  // Ice slide: the sim glides the player at speed but they should read as FROZEN
+  // (gliding stiff on the ice), not sprinting. Suppress locomotion + airborne so
+  // the state machine holds a static pose while they slide. Last, so it also
+  // wins over the engagement flag above: a warlord shoved onto the ice slides
+  // stiff rather than sliding in his fighting stance.
+  if (e.riftSliding && !visuallyDead) {
+    st.moving = false;
+    st.running = false;
+    st.airborne = false;
+    st.combat = false;
+    st.stealthed = false;
+  }
+  // Impaled on a Nythraxis Bone Spike: the body lies pinned to the floor, so
+  // the rig takes the DEATH pose while alive. `dead` is a level the visual
+  // edge-triggers (CharacterVisual.enterDeath plays the death clip and clamps
+  // its last frame under deadLock; the aura clearing flips it back through
+  // revive, which stands the body up). Presentation only: the sim's `dead`
+  // stays false, so nameplate, health bar and targeting keep the live read.
+  // Last, so nothing above can undo it, and pinned over the other overrides:
+  // a pinned body neither braces nor slides.
+  // Play Dead (hunter feign death) lies down the same way.
+  if (
+    hasCharacterEffect(characterEffects, CHARACTER_EFFECT_IMPALED) ||
+    hasCharacterEffect(characterEffects, CHARACTER_EFFECT_FEIGN_DEATH)
+  ) {
+    st.dead = true;
+    st.moving = false;
+    st.running = false;
+    st.airborne = false;
+    st.combat = false;
+    st.stealthed = false;
+  }
+}

@@ -21,15 +21,49 @@ defined by `headless/env_server.ts`; these are two halves of one wire format, so
   queried spaces over any prose or docstring):
   - `observation_space = Box(-2.0, 2.0, shape=(obs_size,), float32)`
   - `action_space = Discrete(num_actions)`; `action_names` = the `ACTIONS` list.
-- `reset(seed=...)`/`step(action)` return the Gymnasium 5-tuple
-  (`obs, reward, terminated, truncated, info`); `obs` is `np.float32`.
-  `close()` sends `{"cmd":"close"}` then waits/kills the proc.
+- Gymnasium API shapes: `reset(seed=...)` returns the 2-tuple (`obs, info`);
+  `step(action)` returns the 5-tuple (`obs, reward, terminated, truncated, info`);
+  `obs` is `np.float32`. `close()` sends `{"cmd":"close"}` then waits/kills the proc.
 
 ## New behavior lands TS-side
 A new action, obs field, or command is a `src/sim/obs.ts` / `headless/` change
 first (see `headless/CLAUDE.md`), pinned by `tests/env_protocol.test.ts`; this
 client only mirrors the wire fields, keep it thin. End-to-end smoke after any
 protocol change: `python example_random_agent.py` (random policy + IPC throughput).
+
+## Optional gathering commands (PR3, Intentional Gathering)
+`WoWClassicEnv` also exposes four thin methods mirroring the optional
+`{"cmd":"gathering","verb":...}` family: `inspect_gathering()`,
+`buy_field_kit(npc_id)`, `set_harvest_preference(preference)`,
+`harvest_corpse(corpse_id)`. Each sends the exact camelCase request the TS side
+expects and returns the full parsed reply untouched, refusal reason included;
+none of them advance sim time or the episode step, unlike `step`. They never
+coerce an argument (no `int()`/`str()` cast): the TS validator
+(`gathering_protocol.ts`) is the sole authority on what is a valid id or
+preference token, so an invalid value is forwarded as given and refused over
+the wire, not silently fixed up here. `env.gathering_capability` (from the
+`info` reply, `None` on an older server bundle) is the discovery point for
+whether the connected server build supports the family at all. This covers
+only the explicit corpse-gathering verbs above (harvest inspection/purchase/
+preference/execution); it is not a general professions surface and adds no
+new action index. `tests/headless_gathering_transport.test.ts` (TS side) and
+`test_gathering_protocol.py` (this side, subprocess mocked) pin the wire
+contract; see `headless/CLAUDE.md` for the full protocol. With Gymnasium and NumPy
+installed, run `python3 -m unittest discover -s python -p test_gathering_protocol.py`.
+Missing dependencies or binding import errors fail this check; they never skip it.
+
+## Optional gathering-goal commands (PR4, Intentional Gathering)
+`WoWClassicEnv` also exposes four thin methods mirroring the SEPARATE optional
+`{"cmd":"gathering_goal","verb":...}` family (the one-goal tracking surface,
+never merged with the PR3 family above): `inspect_gathering_goal()`,
+`track_gathering_recipe(recipe_id, count)`, `track_gathering_commission(order_id)`,
+`clear_gathering_goal()`. Same rules as the PR3 methods: no sim-time advance, no
+argument coercion, full reply returned verbatim including a refusal reason.
+`env.gathering_goal_capability` (from the `info` reply, `None` on an older server
+bundle) is the discovery point. Contract: `docs/protocols/gathering-goal.md`.
+Wire pin: `tests/headless_gathering_goal_transport.test.ts` (TS side) and
+`test_gathering_goal_protocol.py` (this side, subprocess mocked); run with
+`python3 -m unittest discover -s python -p test_gathering_goal_protocol.py`.
 
 ## Gotchas
 - **The Node bundle must be rebuilt** after any change to `src/sim/` or

@@ -34,6 +34,7 @@ import {
   RECONNECT_CONFLICT_ERROR,
   RECONNECT_TIMEOUT_ERROR,
 } from '../src/net/reconnect_policy';
+import { VARKHUL_FORGE_PORTAL_ABILITY_ID } from '../src/sim/varkhul_forge_intermission';
 
 function fakeWs() {
   const ws: any = {
@@ -65,7 +66,10 @@ describe('planJoin (pure decision core)', () => {
 
   it('resumes the same character when its held session is linkdead and same-account', () => {
     expect(
-      planJoin({ ...base, sameCharacter: { accountId: 7, linkdead: true, left: false } }),
+      planJoin({
+        ...base,
+        sameCharacter: { accountId: 7, linkdead: true, left: false, escrowQuarantined: false },
+      }),
     ).toEqual({
       action: 'resume',
     });
@@ -73,7 +77,10 @@ describe('planJoin (pure decision core)', () => {
 
   it('rejects the same character while its session socket is still live', () => {
     expect(
-      planJoin({ ...base, sameCharacter: { accountId: 7, linkdead: false, left: false } }),
+      planJoin({
+        ...base,
+        sameCharacter: { accountId: 7, linkdead: false, left: false, escrowQuarantined: false },
+      }),
     ).toEqual({
       action: 'reject',
       error: 'character already in world',
@@ -88,7 +95,10 @@ describe('planJoin (pure decision core)', () => {
     // Reject with the transient conflict error instead; the client's reconnect
     // policy retries it, and the retry lands on the fresh-acquire arm.
     expect(
-      planJoin({ ...base, sameCharacter: { accountId: 7, linkdead: true, left: true } }),
+      planJoin({
+        ...base,
+        sameCharacter: { accountId: 7, linkdead: true, left: true, escrowQuarantined: false },
+      }),
     ).toEqual({
       action: 'reject',
       error: 'character already in world',
@@ -97,7 +107,10 @@ describe('planJoin (pure decision core)', () => {
 
   it('rejects a linkdead session owned by a different account (takeover stays explicit)', () => {
     expect(
-      planJoin({ ...base, sameCharacter: { accountId: 8, linkdead: true, left: false } }),
+      planJoin({
+        ...base,
+        sameCharacter: { accountId: 8, linkdead: true, left: false, escrowQuarantined: false },
+      }),
     ).toEqual({
       action: 'reject',
       error: 'character already in world',
@@ -176,6 +189,14 @@ describe('linkdead grace lifecycle', () => {
     expect(setTrackingConnection).toHaveBeenCalledTimes(1);
     expect(setTrackingConnection).toHaveBeenCalledWith(session.botTrackingContext, false);
 
+    const referralPage = vi.spyOn(
+      (
+        server as unknown as {
+          referral: { command: (session: ClientSession, action: { type: 'page' }) => void };
+        }
+      ).referral,
+      'command',
+    );
     const ws2 = fakeWs();
     const resumeMeta = {
       ip: '203.0.113.45',
@@ -186,6 +207,7 @@ describe('linkdead grace lifecycle', () => {
       server.join(ws2, 11, 101, 'Comeback', 'warrior', null, false, resumeMeta),
     );
 
+    expect(referralPage).toHaveBeenCalledWith(session, { type: 'page' });
     expect(resumed).toBe(session);
     expect(resumed.linkdead).toBe(false);
     expect(resumed.graceUntil).toBe(0);
@@ -209,6 +231,180 @@ describe('linkdead grace lifecycle', () => {
     expect(hello).toMatchObject({ pid: session.pid, name: 'Comeback', cls: 'warrior' });
     // one session, one character: no duplicates were created
     expect(server.clients.size).toBe(1);
+  });
+
+  it('adopts an explicit mutedUntil/reason/strikes supplied on resume', () => {
+    // resumeSession trusts meta.mutedUntil/reason/chatStrikes as-is: the race
+    // that could make that snapshot stale (an admin /mute or the chat
+    // filter's own optimistic mute landing on this exact still-linkdead
+    // session while ws_auth.ts's account read is in flight) is fenced
+    // upstream, before this value is ever computed (server/chat_mod_live.ts,
+    // exercised end to end in tests/server/ws_auth.test.ts). This pins the
+    // wiring half: an explicit fresh mute must actually reach the session.
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 11, 101, 'Muted', 'warrior', null));
+    dropSocket(server, session, ws);
+    expect(session.chatMutedUntil).toBeNull();
+
+    const ws2 = fakeWs();
+    const mutedUntil = new Date(Date.now() + 5 * 60_000).toISOString();
+    const resumed = expectJoined(
+      server.join(ws2, 11, 101, 'Muted', 'warrior', null, false, {
+        mutedUntil,
+        reason: 'spam',
+        chatStrikes: 2,
+      }),
+    );
+
+    expect(resumed.chatMutedUntil).toBe(new Date(mutedUntil).getTime());
+    expect(resumed.chatMuteReason).toBe('spam');
+    expect(resumed.chatStrikes).toBe(2);
+  });
+
+  it('resumes unmuted when nothing was ever muted and the resume meta carries no mute', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 11, 101, 'NeverMuted', 'warrior', null));
+    dropSocket(server, session, ws);
+    expect(session.chatMutedUntil).toBeNull();
+
+    const ws2 = fakeWs();
+    const resumed = expectJoined(server.join(ws2, 11, 101, 'NeverMuted', 'warrior', null));
+
+    expect(resumed.chatMutedUntil).toBeNull();
+  });
+
+  it('replays current forge portals once after the resumed socket receives its full snapshot', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 11, 101, 'Forgebck', 'warrior', null));
+    const player = server.sim.entities.get(session.pid);
+    if (!player) throw new Error('Player missing');
+    const nearPortal = {
+      type: 'spellfxAt' as const,
+      x: player.pos.x + 2,
+      z: player.pos.z,
+      school: 'fire' as const,
+      fx: 'burst' as const,
+      sourceId: 9001,
+      radius: 4,
+      duration: 1.35,
+      ability: VARKHUL_FORGE_PORTAL_ABILITY_ID,
+    };
+    vi.spyOn(server.sim, 'activeVarkhulForgePortalTelegraphs', 'get').mockReturnValue([
+      nearPortal,
+      { ...nearPortal, x: player.pos.x + 10_000 },
+    ]);
+    dropSocket(server, session, ws);
+    const ws2 = fakeWs();
+    expectJoined(server.join(ws2, 11, 101, 'Forgebck', 'warrior', null));
+
+    (server as any).broadcastSnapshots();
+    const firstFrames = ws2.send.mock.calls.map((call: any[]) => JSON.parse(call[0]));
+    const snapIndex = firstFrames.findIndex((frame: any) => frame.t === 'snap');
+    const portalIndex = firstFrames.findIndex(
+      (frame: any) =>
+        frame.t === 'events' &&
+        frame.list?.some((event: any) => event.ability === VARKHUL_FORGE_PORTAL_ABILITY_ID),
+    );
+    expect(snapIndex).toBeGreaterThanOrEqual(0);
+    expect(portalIndex).toBeGreaterThan(snapIndex);
+    expect(firstFrames[portalIndex].list).toEqual([nearPortal]);
+
+    (server as any).broadcastSnapshots();
+    const allFrames = ws2.send.mock.calls.map((call: any[]) => JSON.parse(call[0]));
+    expect(
+      allFrames.filter(
+        (frame: any) =>
+          frame.t === 'events' &&
+          frame.list?.some((event: any) => event.ability === VARKHUL_FORGE_PORTAL_ABILITY_ID),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('does not duplicate a forge portal event already delivered after resume', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 11, 101, 'Forgeevt', 'warrior', null));
+    const player = server.sim.entities.get(session.pid);
+    if (!player) throw new Error('Player missing');
+    const portal = {
+      type: 'spellfxAt' as const,
+      x: player.pos.x + 2,
+      z: player.pos.z,
+      school: 'fire' as const,
+      fx: 'burst' as const,
+      sourceId: 9002,
+      radius: 4,
+      duration: 1.2,
+      ability: VARKHUL_FORGE_PORTAL_ABILITY_ID,
+    };
+    vi.spyOn(server.sim, 'activeVarkhulForgePortalTelegraphs', 'get').mockReturnValue([portal]);
+    dropSocket(server, session, ws);
+    const ws2 = fakeWs();
+    expectJoined(server.join(ws2, 11, 101, 'Forgeevt', 'warrior', null));
+    ws2.send.mockClear();
+
+    (server as any).routeEvents([portal]);
+    (server as any).broadcastSnapshots();
+
+    const frames = ws2.send.mock.calls.map((call: any[]) => JSON.parse(call[0]));
+    expect(frames[0]).toMatchObject({ t: 'events', list: [portal] });
+    expect(frames.some((frame: any) => frame.t === 'snap')).toBe(true);
+    expect(
+      frames.filter(
+        (frame: any) =>
+          frame.t === 'events' &&
+          frame.list?.some((event: any) => event.ability === VARKHUL_FORGE_PORTAL_ABILITY_ID),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('keeps the replay armed for an out-of-range portal or an unrelated world effect', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 11, 101, 'Forgefar', 'warrior', null));
+    const player = server.sim.entities.get(session.pid);
+    if (!player) throw new Error('Player missing');
+    const portal = {
+      type: 'spellfxAt' as const,
+      x: player.pos.x + 2,
+      z: player.pos.z,
+      school: 'fire' as const,
+      fx: 'burst' as const,
+      sourceId: 9003,
+      radius: 4,
+      duration: 1.1,
+      ability: VARKHUL_FORGE_PORTAL_ABILITY_ID,
+    };
+    vi.spyOn(server.sim, 'activeVarkhulForgePortalTelegraphs', 'get').mockReturnValue([portal]);
+    dropSocket(server, session, ws);
+    const ws2 = fakeWs();
+    expectJoined(server.join(ws2, 11, 101, 'Forgefar', 'warrior', null));
+    ws2.send.mockClear();
+
+    (server as any).routeEvents([
+      { ...portal, x: player.pos.x + 10_000 },
+      { ...portal, ability: 'Unrelated World Effect' },
+    ]);
+    expect(session.needsVarkhulPortalReplay).toBe(true);
+    (server as any).broadcastSnapshots();
+
+    const frames = ws2.send.mock.calls.map((call: any[]) => JSON.parse(call[0]));
+    const snapIndex = frames.findIndex((frame: any) => frame.t === 'snap');
+    const replayIndex = frames.findIndex(
+      (frame: any) =>
+        frame.t === 'events' &&
+        frame.list?.some((event: any) => event.ability === VARKHUL_FORGE_PORTAL_ABILITY_ID),
+    );
+    expect(frames[0]).toMatchObject({
+      t: 'events',
+      list: [expect.objectContaining({ ability: 'Unrelated World Effect' })],
+    });
+    expect(snapIndex).toBeGreaterThan(0);
+    expect(replayIndex).toBeGreaterThan(snapIndex);
+    expect(frames[replayIndex].list).toEqual([portal]);
   });
 
   it('ignores a late close event from the pre-resume socket', () => {
@@ -238,6 +434,35 @@ describe('linkdead grace lifecycle', () => {
     expect(server.socketClosed(session, ws)).toBe(false);
     expect(session.linkdead).toBe(false);
     expect(server.clients.size).toBe(0);
+  });
+
+  it('disconnectAccount kicks every live session for the account unconditionally, even one authenticated with the same stolen bearer token', async () => {
+    const server = new GameServer();
+    const wsVictim = fakeWs();
+    const wsAttacker = fakeWs();
+    // Both sessions join as GM (isGm=true): MAX_ACTIVE_SESSIONS_PER_ACCOUNT caps an
+    // account at one LIVE session, and GMs are the one exemption, which is the
+    // simplest way to get two simultaneous live sessions for one account in this
+    // test. A bearer token is a reusable wire credential, not a per-socket identity,
+    // so an attacker holding a stolen/shared token can authenticate their own live
+    // session with it; disconnectAccount must not spare either session by token
+    // equality (a prior revision did exactly that, and it could just as easily have
+    // spared the attacker's session instead of the victim's own).
+    const victimSession = expectJoined(
+      server.join(wsVictim, 11, 101, 'Victim', 'warrior', null, true),
+    );
+    const attackerSession = expectJoined(
+      server.join(wsAttacker, 11, 102, 'Attacker', 'warrior', null, true),
+    );
+
+    server.disconnectAccount(11, 'credential change');
+    await vi.waitFor(() => {
+      expect(victimSession.left).toBe(true);
+      expect(attackerSession.left).toBe(true);
+    });
+
+    expect(server.clients.has(victimSession.pid)).toBe(false);
+    expect(server.clients.has(attackerSession.pid)).toBe(false);
   });
 
   it('fully logs the character out when the grace window expires', async () => {
@@ -406,50 +631,106 @@ describe('linkdead grace lifecycle', () => {
   });
 });
 
+describe('chat-moderation live-state pushes (server/chat_mod_live.ts wiring)', () => {
+  // Each of these opens a hydration BEFORE calling the live-push method, the
+  // same order a real reconnect race has it in (server/ws_auth.ts captures
+  // the hydration before its DB reads; the push lands during those reads).
+  // Proves the wiring, not just the pure fence (already covered directly in
+  // tests/chat_mod_live.test.ts): deleting any pushMuteChange/pushStrikesChange
+  // call in server/game.ts must fail one of these.
+  const UNMUTED = { mutedUntil: null, reason: '', strikes: 0 };
+
+  it('muteAccountChat pushes the mute into an in-flight hydration', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    expectJoined(server.join(ws, 11, 101, 'Muted', 'warrior', null));
+    const hydration = server.beginChatModerationHydration(11);
+
+    const expiresAt = new Date(Date.now() + 5 * 60_000).toISOString();
+    server.muteAccountChat(11, expiresAt, 'spam');
+
+    expect(hydration.resolve(UNMUTED)).toEqual({
+      mutedUntil: expiresAt,
+      reason: 'spam',
+      strikes: 0,
+    });
+    hydration.release();
+  });
+
+  it('liftChatMuteLive pushes the unmute into an in-flight hydration', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    expectJoined(server.join(ws, 11, 101, 'WasMuted', 'warrior', null));
+    server.muteAccountChat(11, new Date(Date.now() + 60_000).toISOString(), 'spam');
+
+    const hydration = server.beginChatModerationHydration(11);
+    server.liftChatMuteLive(11);
+
+    const dbMuted = { ...UNMUTED, mutedUntil: '2099-01-01T00:00:00.000Z' };
+    expect(hydration.resolve(dbMuted)).toEqual(UNMUTED);
+    hydration.release();
+  });
+
+  it('resetChatStrikesLive pushes the reset into an in-flight hydration', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 11, 101, 'Strikeout', 'warrior', null));
+    session.chatStrikes = 2;
+
+    const hydration = server.beginChatModerationHydration(11);
+    server.resetChatStrikesLive(11);
+
+    expect(hydration.resolve({ ...UNMUTED, strikes: 2 })).toEqual(UNMUTED);
+    hydration.release();
+  });
+});
+
 describe('reconnect policy (client-side conflict tolerance)', () => {
-  it('tolerates the in-world conflict only while a reconnect is in flight', () => {
-    expect(isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, 1, 0)).toBe(true);
-    // not reconnecting (a fresh char-select join): the takeover prompt path
-    expect(isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, 0, 0)).toBe(false);
+  it('tolerates the in-world conflict on the FIRST join attempt exactly like mid-reconnect', () => {
+    // A roster row's online flag can lag a drop that happened seconds ago, so a
+    // plain "Enter World" click (attempt zero, never a prior drop-and-retry in
+    // this tab) can land in the same "server has not yet noticed the old socket
+    // died" window a mid-session auto-reconnect does. A genuinely live conflict
+    // (the character actively played elsewhere) has its own explicit UI, the
+    // char-select Take Over button + confirm, which never reaches this path.
+    expect(isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, 0)).toBe(true);
   });
 
   it('never tolerates any other server rejection', () => {
-    expect(isTransientReconnectRejection('character taken over', 3, 0)).toBe(false);
-    expect(isTransientReconnectRejection('not authenticated', 3, 0)).toBe(false);
-    expect(isTransientReconnectRejection(undefined, 3, 0)).toBe(false);
+    expect(isTransientReconnectRejection('character taken over', 0)).toBe(false);
+    expect(isTransientReconnectRejection('not authenticated', 0)).toBe(false);
+    expect(isTransientReconnectRejection(undefined, 0)).toBe(false);
   });
 
   it('gives up after the bounded number of conflict rejections (a real takeover stays fatal)', () => {
     expect(
-      isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, 5, MAX_CONFLICT_REJECTIONS - 1),
+      isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, MAX_CONFLICT_REJECTIONS - 1),
     ).toBe(true);
-    expect(
-      isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, 5, MAX_CONFLICT_REJECTIONS),
-    ).toBe(false);
+    expect(isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, MAX_CONFLICT_REJECTIONS)).toBe(
+      false,
+    );
   });
 
   it('matches the exact wire string planJoin sends', () => {
     const plan = planJoin({
       accountId: 7,
       isGm: false,
-      sameCharacter: { accountId: 7, linkdead: false, left: false },
+      sameCharacter: { accountId: 7, linkdead: false, left: false, escrowQuarantined: false },
       liveOtherSessions: 0,
       maxPerAccount: 1,
     });
     expect(plan).toEqual({ action: 'reject', error: RECONNECT_CONFLICT_ERROR });
   });
 
-  it('tolerates the auth-timeout rejection only while a reconnect is in flight', () => {
-    expect(isTransientTimeoutRejection('authentication timed out', 1, 0)).toBe(true);
-    // a fresh character-select join (not reconnecting) must stay fatal
-    expect(isTransientTimeoutRejection('authentication timed out', 0, 0)).toBe(false);
+  it('tolerates the auth-timeout rejection on the FIRST join attempt exactly like mid-reconnect', () => {
+    expect(isTransientTimeoutRejection('authentication timed out', 0)).toBe(true);
   });
 
   it('gives up after its own bounded run of timeout rejections, and pins both bounds', () => {
     expect(
-      isTransientTimeoutRejection('authentication timed out', 5, MAX_TIMEOUT_REJECTIONS - 1),
+      isTransientTimeoutRejection('authentication timed out', MAX_TIMEOUT_REJECTIONS - 1),
     ).toBe(true);
-    expect(isTransientTimeoutRejection('authentication timed out', 5, MAX_TIMEOUT_REJECTIONS)).toBe(
+    expect(isTransientTimeoutRejection('authentication timed out', MAX_TIMEOUT_REJECTIONS)).toBe(
       false,
     );
     // the two transient windows carry different, literally-pinned bounds, so a
@@ -460,18 +741,18 @@ describe('reconnect policy (client-side conflict tolerance)', () => {
 
   it('keeps the timeout and conflict predicates independent by string and by counter', () => {
     // cross-string: neither predicate fires on the other's wire string
-    expect(isTransientTimeoutRejection(RECONNECT_CONFLICT_ERROR, 3, 0)).toBe(false);
-    expect(isTransientReconnectRejection(RECONNECT_TIMEOUT_ERROR, 3, 0)).toBe(false);
+    expect(isTransientTimeoutRejection(RECONNECT_CONFLICT_ERROR, 0)).toBe(false);
+    expect(isTransientReconnectRejection(RECONNECT_TIMEOUT_ERROR, 0)).toBe(false);
     // cross-counter: each predicate bounds on its OWN counter. At a rejection count
     // of 8 (the conflict bound) the timeout predicate is still transient (its bound
     // is 20), while the conflict predicate has already given up. A shared counter
     // or a swapped bound would flip one of these.
-    expect(isTransientTimeoutRejection(RECONNECT_TIMEOUT_ERROR, 3, MAX_CONFLICT_REJECTIONS)).toBe(
+    expect(isTransientTimeoutRejection(RECONNECT_TIMEOUT_ERROR, MAX_CONFLICT_REJECTIONS)).toBe(
       true,
     );
-    expect(
-      isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, 3, MAX_CONFLICT_REJECTIONS),
-    ).toBe(false);
+    expect(isTransientReconnectRejection(RECONNECT_CONFLICT_ERROR, MAX_CONFLICT_REJECTIONS)).toBe(
+      false,
+    );
   });
 
   it('pins the auth-timeout wire string byte-identical to the server literal', () => {
@@ -492,31 +773,29 @@ describe('reconnect policy (client-side conflict tolerance)', () => {
   });
 
   it('never tolerates any other server rejection under the timeout predicate', () => {
-    expect(isTransientTimeoutRejection('character taken over', 3, 0)).toBe(false);
-    expect(isTransientTimeoutRejection('not authenticated', 3, 0)).toBe(false);
-    expect(isTransientTimeoutRejection(undefined, 3, 0)).toBe(false);
+    expect(isTransientTimeoutRejection('character taken over', 0)).toBe(false);
+    expect(isTransientTimeoutRejection('not authenticated', 0)).toBe(false);
+    expect(isTransientTimeoutRejection(undefined, 0)).toBe(false);
   });
 
-  it('treats the realm-full rejection as FATAL under both predicates (a fresh join is not retried)', () => {
+  it('treats the realm-full rejection as FATAL under both predicates (never retried, first attempt or later)', () => {
     // The realm admission cap refusal (server/ws_auth.ts WS_AUTH_ERROR.realmFull,
     // the exact literal 'realm is full') matches NEITHER transient predicate, so a
-    // reconnect gives up rather than hammering a realm that is at capacity. Pinned
-    // mid-retry (attempts 3) with fresh rejection counters (0) so the false result
-    // comes from the string not matching, not from a spent bound.
-    expect(isTransientReconnectRejection('realm is full', 3, 0)).toBe(false);
-    expect(isTransientTimeoutRejection('realm is full', 3, 0)).toBe(false);
+    // join gives up rather than hammering a realm that is at capacity. Pinned with
+    // a fresh rejection counter (0) so the false result comes from the string not
+    // matching, not from a spent bound.
+    expect(isTransientReconnectRejection('realm is full', 0)).toBe(false);
+    expect(isTransientTimeoutRejection('realm is full', 0)).toBe(false);
   });
 
   it('treats the too-many-connections refusal as FATAL under both predicates (the refusal is not retried)', () => {
     // The per-IP hard-limit refusal (server/ws_auth.ts WS_AUTH_ERROR.tooManyConnections,
     // the exact literal 'too many connections from your network') matches NEITHER transient
-    // predicate, so a reconnect surfaces it to the player instead of silently hammering the
-    // same network cap. Pinned mid-retry (attempts 3) with fresh rejection counters (0) so
-    // the false result comes from the string not matching, not from a spent bound.
-    expect(isTransientReconnectRejection('too many connections from your network', 3, 0)).toBe(
-      false,
-    );
-    expect(isTransientTimeoutRejection('too many connections from your network', 3, 0)).toBe(false);
+    // predicate, so a join surfaces it to the player instead of silently hammering the
+    // same network cap. Pinned with a fresh rejection counter (0) so the false result
+    // comes from the string not matching, not from a spent bound.
+    expect(isTransientReconnectRejection('too many connections from your network', 0)).toBe(false);
+    expect(isTransientTimeoutRejection('too many connections from your network', 0)).toBe(false);
   });
 });
 
@@ -572,5 +851,52 @@ describe('deliberate logout skips linkdead grace', () => {
     const fresh = expectJoined(server.join(fakeWs(), 11, 101, 'Loggedout', 'warrior', null));
     expect(fresh.characterId).toBe(101);
     expect(fresh.left).toBe(false);
+  });
+});
+
+describe('planJoin: an escrow-quarantined session is never resumed', () => {
+  // A quarantined session's live state was abandoned: saveCharacter returns
+  // early for it, forever. Resuming it inside the linkdead grace would hand
+  // the player a session that plays normally and persists NOTHING, with no
+  // error and no signal, which is silent unbounded data loss. The refusal is
+  // transient by contract: the client's reconnect policy retries and lands on
+  // a fresh join that loads the durable row, which is what the rollback wants.
+  const base = { accountId: 7, isGm: false, liveOtherSessions: 0, maxPerAccount: 2 };
+  it('refuses the resume it would otherwise allow', () => {
+    const view = { accountId: 7, linkdead: true, left: false };
+    expect(planJoin({ ...base, sameCharacter: { ...view, escrowQuarantined: false } })).toEqual({
+      action: 'resume',
+    });
+    expect(planJoin({ ...base, sameCharacter: { ...view, escrowQuarantined: true } })).toEqual({
+      action: 'reject',
+      error: 'character already in world',
+    });
+  });
+});
+
+describe('World PvP rewards during disconnect grace', () => {
+  it('pauses without losing progress and resumes only after a new socket joins', () => {
+    const server = new GameServer();
+    const ws = fakeWs();
+    const session = expectJoined(server.join(ws, 11, 101, 'Flagbearer', 'warrior', null));
+    server.sim.setPlayerLevel(20, session.pid);
+    const player = server.sim.entities.get(session.pid)!;
+    player.pos = { x: 60, y: 0, z: 700 };
+    player.prevPos = { ...player.pos };
+    server.sim.setWorldPvpFlag(true, session.pid);
+    const meta = server.sim.meta(session.pid)!;
+    meta.worldPvp!.rewardTicks = 72_000 - 1;
+    dropSocket(server, session, ws);
+    server.sim.tick();
+    expect(meta.worldPvp!.rewardTicks).toBe(71_999);
+    expect(meta.deedsEarned.has('pvp_flag_1h')).toBe(false);
+    const saved = server.sim.serializeCharacter(session.pid)!;
+    expect(saved.worldPvp!.rewardTicks).toBe(71_999);
+    expect(saved.worldPvp).not.toHaveProperty('pvpRewardsPaused');
+    const resumed = expectJoined(server.join(fakeWs(), 11, 101, 'Flagbearer', 'warrior', null));
+    expect(resumed.pid).toBe(session.pid);
+    server.sim.tick();
+    expect(meta.worldPvp!.rewardTicks).toBe(72_000);
+    expect(meta.deedsEarned.has('pvp_flag_1h')).toBe(true);
   });
 });

@@ -1,0 +1,204 @@
+import { describe, expect, it } from 'vitest';
+import { MOBS } from '../src/sim/data';
+import { createMob } from '../src/sim/entity';
+import { Sim } from '../src/sim/sim';
+import type { Entity } from '../src/sim/types';
+import { WORLD_WITHOUT_HUB_YARD } from './helpers/hub_yard';
+
+type PaladinSpec = 'holy' | 'protection' | 'retribution';
+
+const PRIORITY: Readonly<Record<PaladinSpec, readonly string[]>> = {
+  holy: ['radiant_chorus', 'hammer_of_grace', 'dawns_embrace', 'mercy_lance', 'holy_light'],
+  protection: ['sunward_disc', 'consecration', 'vowkeeper_strike', 'hammer_of_grace'],
+  retribution: ['hammer_of_wrath', 'final_edict', 'dawnfall', 'hammer_of_grace'],
+};
+
+// Re-pinned for the v0.32.1 catch-up (both stay inside the 35-65 contract):
+// holy 42.3 to 41.25; retribution 46.85 to 54.35. The retribution slowdown is
+// main's hammer_of_wrath execute gate thinning the rotation's Devotion grants
+// above 20% target health; flagged for the owner's review, band intact.
+// Re-pinned for the v0.36 composition: holy 41.25 to 42.45, protection 38.65
+// to 38.1, retribution 54.35 to 48.35. Re-pinned again on the v0.37.0 castle
+// base, whose world content forks the shared stream: holy 42.45 to 41.25,
+// protection 38.1 to 38.65, retribution 48.35 to 55.75. Re-pinned 2026-08 on
+// the v0.39 Eastbrook harbor move (d19aa33f76,
+// docs/design/eastbrook-revamp/site-plan.md), whose world content forks the
+// shared stream again: holy 41.25 to 42.45; protection and retribution
+// unmoved. Re-pinned for owner refinement round 3 (the coastline pulled to
+// the town, re-threaded streets, three promoted home lots), which forks the
+// shared stream once more: retribution 55.75 to 52.45; holy and protection
+// unmoved. Re-pinned for owner refinement rounds 6 and 6b (the camps traded
+// ground, the harbour quarter and churchyard landed, the delve and its POI
+// moved to the Mirror Lake shore, three town NPCs were redistributed), which
+// forks the shared stream again: protection 38.65 to 42.7; holy and
+// retribution unmoved. Re-pinned on the eastbrook-plus-tutorial integration
+// merge (the harbor town and the Proving Shore island land in one world),
+// which forks the shared stream again: holy 42.45 to 41.25, protection 42.7
+// to 41.7; retribution unmoved. Re-pinned for the Drakelands site swap
+// (docs/design/drakelands-improvements/plan.md: the keep castle removed to
+// flat land, the troll sites traded, Wyrmwatch stripped), which forks the
+// shared stream again: protection 41.7 to 40.15, retribution 52.45 to
+// 55.75; holy unmoved. The keep-side graveyard's move to the owner's
+// churchyard (the rebuild epic's Pale Keeper seat) forks it once more:
+// retribution 55.75 to 59.2; holy and protection unmoved. The
+// release/v0.43.0 merge into feature/world-quests forks it once more, through
+// the branch's hedge_knight camp move in src/sim/content/evergarden.ts
+// (c43178a68c): retribution 59.2 back to 55.75; holy and protection unmoved.
+// The four built dungeon entrances (src/sim/*_entrance.ts) fork it once more:
+// their colliders push the spawn point of three neighbouring world mobs, the
+// Wildheart Basin door moved and the Idol Guardian's camp with it, and every
+// world mob's idle wander draws from the shared stream. Retribution 55.75 to
+// 53.9; holy and protection unmoved. The Fenbridge rebuild forks it once more
+// (the painted buildings, the open ring, the walk-in floors, re-threaded
+// streets and lamps: world-gen inputs): protection 40.15 to 41.7, retribution
+// 53.9 to 48.35; holy unmoved. The Mirefen mudfin huts becoming solid walls
+// fork it once more (the camp murlocs' idle wander now settles on other ticks):
+// protection 41.7 to 39.3, retribution 48.35 to 53.9; holy unmoved. The wander
+// fix around those huts (an idle pick inside a hut wall is skipped for one more
+// pause, mob/locomotion.ts) forks it again: holy 41.25 to 43, protection 39.3 to
+// 41.7, retribution 53.9 to 52.45.
+// Dropping the Evergarden's undrawn scatter (the generator now skips the
+// pines and bed-side decorations the renderer never drew, so their trunk
+// colliders are gone) forks it once more: protection 40.15 to 38.65; holy
+// and retribution unmoved.
+// The wide 35-65s design band still holds.
+const EXPECTED_SECONDS: Readonly<Record<PaladinSpec, number>> = {
+  holy: 43,
+  protection: 41.7,
+  retribution: 52.45,
+};
+
+function addDummy(sim: Sim): Entity {
+  const player = sim.player;
+  const dummy = createMob(9700, MOBS.training_dummy, 20, {
+    x: player.pos.x,
+    y: player.pos.y,
+    z: player.pos.z + 2,
+  });
+  dummy.maxHp = dummy.hp = 1_000_000_000;
+  (sim as unknown as { addEntity(entity: Entity): void }).addEntity(dummy);
+  return dummy;
+}
+
+function isFree(player: Entity): boolean {
+  return player.castingAbility === null && player.gcdRemaining <= 1e-6;
+}
+
+function castFirstReady(
+  sim: Sim,
+  ids: readonly string[],
+  target: Entity,
+  hostileTarget = target,
+): void {
+  const player = sim.player;
+  for (const id of ids) {
+    const beforeGcd = player.gcdRemaining;
+    const targetsEnemy = id === 'mercy_lance' || id === 'hammer_of_grace';
+    sim.targetEntity(targetsEnemy ? hostileTarget.id : target.id);
+    sim.castAbility(id);
+    if (player.castingAbility === id || player.gcdRemaining > beforeGcd) return;
+  }
+}
+
+function secondsToTwenty(spec: PaladinSpec): number {
+  const sim = new Sim({
+    seed: 53,
+    playerClass: 'paladin',
+    autoEquip: true,
+    world: WORLD_WITHOUT_HUB_YARD,
+  });
+  sim.setPlayerLevel(20);
+  sim.setSpec(spec);
+  if (spec === 'protection') {
+    sim.addItem('eastbrook_buckler', 1);
+    sim.equipItem('eastbrook_buckler');
+  }
+  sim.tick();
+  const player = sim.player;
+  let target: Entity;
+  let hostileTarget: Entity;
+  if (spec === 'holy') {
+    const allyId = sim.addPlayer('warrior', 'Test Ally');
+    const ally = sim.entities.get(allyId);
+    if (!ally) throw new Error('missing Holy rotation test ally');
+    sim.partyInvite(allyId, sim.player.id);
+    sim.partyAccept(allyId);
+    target = ally;
+    hostileTarget = addDummy(sim);
+  } else {
+    target = addDummy(sim);
+    hostileTarget = target;
+  }
+
+  for (let tick = 0; tick < 90 * 20; tick++) {
+    if (spec === 'holy') target.hp = 1;
+    if (isFree(player)) castFirstReady(sim, PRIORITY[spec], target, hostileTarget);
+    sim.tick();
+    if ((player.paladinDevotion?.value ?? 0) >= 20) return (tick + 1) / 20;
+  }
+  return Infinity;
+}
+
+function protectionSecondsToTwentyWhileBlocking(): { seconds: number; devotionFromBlocks: number } {
+  const sim = new Sim({
+    seed: 61,
+    playerClass: 'paladin',
+    autoEquip: true,
+    world: WORLD_WITHOUT_HUB_YARD,
+  });
+  sim.setPlayerLevel(20);
+  sim.setSpec('protection');
+  sim.addItem('eastbrook_buckler', 1);
+  sim.equipItem('eastbrook_buckler');
+  sim.tick();
+
+  const player = sim.player;
+  const attacker = addDummy(sim);
+  attacker.weapon = { min: 1, max: 1, speed: 2 };
+  attacker.attackPower = 0;
+  player.facing = 0;
+  player.dodgeChance = 0;
+  player.blockChance = 1;
+  player.stats.armor = 0;
+  sim.rng.next = () => 0.9;
+
+  const mobSwing = (sim as unknown as { mobSwing(attacker: Entity, target: Entity): void })
+    .mobSwing;
+  let devotionFromBlocks = 0;
+  for (let tick = 0; tick < 90 * 20; tick++) {
+    player.hp = player.maxHp;
+    if (tick % 40 === 0) {
+      const before = player.paladinDevotion?.value ?? 0;
+      mobSwing.call(sim, attacker, player);
+      if ((player.paladinDevotion?.value ?? 0) > before) devotionFromBlocks++;
+    }
+    if (isFree(player)) castFirstReady(sim, PRIORITY.protection, attacker);
+    sim.tick();
+    if ((player.paladinDevotion?.value ?? 0) >= 20) {
+      return { seconds: (tick + 1) / 20, devotionFromBlocks };
+    }
+  }
+  return { seconds: Infinity, devotionFromBlocks };
+}
+
+describe('Paladin Devotion rotation pacing', () => {
+  it.each(['holy', 'protection', 'retribution'] as const)(
+    '%s reaches Ascension readiness in 35 to 65 seconds when each effective cast grants one',
+    (spec) => {
+      const seconds = secondsToTwenty(spec);
+      expect(seconds).toBeGreaterThanOrEqual(35);
+      expect(seconds).toBeLessThanOrEqual(65);
+      expect(seconds).toBeCloseTo(EXPECTED_SECONDS[spec], 5);
+    },
+    process.platform === 'win32' ? 120_000 : 20_000,
+  );
+
+  it('keeps Protection in the target cadence while earning Devotion from real blocks', () => {
+    const result = protectionSecondsToTwentyWhileBlocking();
+    expect(result.devotionFromBlocks).toBeGreaterThan(0);
+    expect(result.seconds).toBeGreaterThanOrEqual(29);
+    expect(result.seconds).toBeLessThanOrEqual(65);
+    expect(result.seconds).toBeCloseTo(29.65, 5);
+    expect(result.seconds).toBeLessThan(EXPECTED_SECONDS.protection);
+  });
+});

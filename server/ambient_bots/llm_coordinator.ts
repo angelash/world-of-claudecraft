@@ -1,5 +1,4 @@
 import { performance } from 'node:perf_hooks';
-import { ambientBotProfileById } from './profiles';
 import {
   AMBIENT_BOT_PARTY_CHAT_OUTPUT_SCHEMA,
   AMBIENT_BOT_PLAN_OUTPUT_SCHEMA,
@@ -24,6 +23,10 @@ import {
   validateAmbientBotPlanDecision,
   validateAmbientBotSocialDecision,
 } from './llm_validate';
+import type { AmbientPlayerBotPendingPartyUtterance } from './party_chat';
+import { ambientPartyCoordinationIntentFromRunnerState } from './party_intent';
+import { ambientBotProfileById } from './profiles';
+import type { AmbientPlayerBotPendingReply } from './social';
 import type {
   AmbientPlayerBotLlmConfig,
   AmbientPlayerBotLlmDecisionCountSnapshot,
@@ -32,9 +35,6 @@ import type {
   AmbientPlayerBotLlmMetricsSnapshot,
   AmbientPlayerBotRecord,
 } from './types';
-import type { AmbientPlayerBotPendingPartyUtterance } from './party_chat';
-import { ambientPartyCoordinationIntentFromRunnerState } from './party_intent';
-import type { AmbientPlayerBotPendingReply } from './social';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
 const PLAN_PROMPT_MAX_CHARS = 1_200;
@@ -548,11 +548,12 @@ export class AmbientPlayerBotLlmCoordinator {
     status: AmbientPlayerBotLlmDecisionStatus,
     audit: AmbientBotLlmAuditSnapshot,
   ): void {
-    const bucket = kind === 'plan'
-      ? this.metrics.plan
-      : kind === 'social'
-        ? this.metrics.social
-        : this.metrics.party;
+    const bucket =
+      kind === 'plan'
+        ? this.metrics.plan
+        : kind === 'social'
+          ? this.metrics.social
+          : this.metrics.party;
     bucket.requests++;
     switch (status) {
       case 'accepted':
@@ -592,11 +593,7 @@ export class AmbientPlayerBotLlmCoordinator {
     return true;
   }
 
-  private lookupCache<T>(
-    cache: Map<string, CacheEntry<T>>,
-    key: string,
-    nowMs: number,
-  ): T | null {
+  private lookupCache<T>(cache: Map<string, CacheEntry<T>>, key: string, nowMs: number): T | null {
     this.pruneCache(cache, nowMs);
     const entry = cache.get(key);
     if (!entry || entry.expiresAtMs <= nowMs) return null;
@@ -673,14 +670,14 @@ function buildPlanContext(input: {
     nearbyPlayers: nearbyPlayers(input.liveState),
     ...(input.priorPlan
       ? {
-        priorPlan: {
-          socialMode: input.priorPlan.socialMode,
-          focusLabel: input.priorPlan.focusLabel,
-          selfSummary: input.priorPlan.selfSummary,
-          friendPolicy: input.priorPlan.friendPolicy,
-          allowPresenceEmote: input.priorPlan.allowPresenceEmote,
-        },
-      }
+          priorPlan: {
+            socialMode: input.priorPlan.socialMode,
+            focusLabel: input.priorPlan.focusLabel,
+            selfSummary: input.priorPlan.selfSummary,
+            friendPolicy: input.priorPlan.friendPolicy,
+            allowPresenceEmote: input.priorPlan.allowPresenceEmote,
+          },
+        }
       : {}),
   };
 }
@@ -697,9 +694,10 @@ function buildSocialContext(input: {
   const blockNames = new Set(input.liveState.social?.blocks.map((block) => block.name) ?? []);
   const contact = contactSummaryByName(input.bot.socialState, input.pendingReply.toName);
   const plan = input.plan;
-  const allowFriendAdd = !friendNames.has(input.pendingReply.toName)
-    && !blockNames.has(input.pendingReply.toName)
-    && (plan?.friendPolicy ?? 'afterWhisper') !== 'never';
+  const allowFriendAdd =
+    !friendNames.has(input.pendingReply.toName) &&
+    !blockNames.has(input.pendingReply.toName) &&
+    (plan?.friendPolicy ?? 'afterWhisper') !== 'never';
   const allowPresenceEmote = plan?.allowPresenceEmote ?? true;
 
   return {
@@ -715,18 +713,19 @@ function buildSocialContext(input: {
     progression: {
       level: input.bot.lastKnownLevel,
       zoneId: input.bot.lastKnownZoneId,
-      objectiveLabel: typeof input.bot.runnerState.objectiveLabel === 'string'
-        ? input.bot.runnerState.objectiveLabel
-        : '',
+      objectiveLabel:
+        typeof input.bot.runnerState.objectiveLabel === 'string'
+          ? input.bot.runnerState.objectiveLabel
+          : '',
     },
     plan: plan
       ? {
-        socialMode: plan.socialMode,
-        focusLabel: plan.focusLabel,
-        selfSummary: plan.selfSummary,
-        friendPolicy: plan.friendPolicy,
-        allowPresenceEmote: plan.allowPresenceEmote,
-      }
+          socialMode: plan.socialMode,
+          focusLabel: plan.focusLabel,
+          selfSummary: plan.selfSummary,
+          friendPolicy: plan.friendPolicy,
+          allowPresenceEmote: plan.allowPresenceEmote,
+        }
       : null,
     whisper: {
       fromName: input.pendingReply.toName,
@@ -777,21 +776,21 @@ function buildPartyChatContext(input: {
     },
     intent: intent
       ? {
-        kind: intent.kind,
-        behavior: intent.behavior,
-        summary: intent.summary,
-        targetName: intent.targetName,
-        holdAdvance: intent.holdAdvance,
-        preferAssist: intent.preferAssist,
-      }
+          kind: intent.kind,
+          behavior: intent.behavior,
+          summary: intent.summary,
+          targetName: intent.targetName,
+          holdAdvance: intent.holdAdvance,
+          preferAssist: intent.preferAssist,
+        }
       : {
-        kind: 'route_plan',
-        behavior: 'advance',
-        summary: 'Coordinate the next route step',
-        targetName: '',
-        holdAdvance: false,
-        preferAssist: false,
-      },
+          kind: 'route_plan',
+          behavior: 'advance',
+          summary: 'Coordinate the next route step',
+          targetName: '',
+          holdAdvance: false,
+          preferAssist: false,
+        },
     party: {
       leaderName: readRunnerString(input.bot.runnerState, 'partyLeaderName'),
       tankName: readRunnerString(input.bot.runnerState, 'partyTankName'),
@@ -821,10 +820,11 @@ function contactSummaries(socialState: Record<string, unknown>): AmbientBotLlmCo
       whispersReceived: readNonNegativeInt(value.whispersReceived),
       whispersSent: readNonNegativeInt(value.whispersSent),
     }))
-    .sort((a, b) =>
-      b.whispersReceived - a.whispersReceived
-      || b.sightings - a.sightings
-      || a.name.localeCompare(b.name),
+    .sort(
+      (a, b) =>
+        b.whispersReceived - a.whispersReceived ||
+        b.sightings - a.sightings ||
+        a.name.localeCompare(b.name),
     )
     .slice(0, 4);
 }
@@ -858,10 +858,13 @@ function nearbyPlayers(liveState: AmbientPlayerBotLiveState) {
   const self = liveState.self;
   if (!self) return [];
   return [...liveState.entities.values()]
-    .filter((entity) => entity.k === 'player' && entity.id !== self.id && typeof entity.nm === 'string')
+    .filter(
+      (entity) => entity.k === 'player' && entity.id !== self.id && typeof entity.nm === 'string',
+    )
     .map((entity) => ({
       name: String(entity.nm),
-      distance: Math.round(distance(self.x, self.z, readNumber(entity.x), readNumber(entity.z)) * 10) / 10,
+      distance:
+        Math.round(distance(self.x, self.z, readNumber(entity.x), readNumber(entity.z)) * 10) / 10,
     }))
     .filter((entry) => Number.isFinite(entry.distance))
     .sort((a, b) => a.distance - b.distance || a.name.localeCompare(b.name))
@@ -907,7 +910,9 @@ function auditSnapshot(input: {
   };
 }
 
-function cloneMetrics(value: AmbientPlayerBotLlmMetricsSnapshot): AmbientPlayerBotLlmMetricsSnapshot {
+function cloneMetrics(
+  value: AmbientPlayerBotLlmMetricsSnapshot,
+): AmbientPlayerBotLlmMetricsSnapshot {
   return {
     plan: { ...value.plan },
     social: { ...value.social },
@@ -965,7 +970,9 @@ function cloneSocialDecisionForJob(
   };
 }
 
-function clonePartyChatDecision(value: AmbientBotPartyChatDecisionV1): AmbientBotPartyChatDecisionV1 {
+function clonePartyChatDecision(
+  value: AmbientBotPartyChatDecisionV1,
+): AmbientBotPartyChatDecisionV1 {
   return {
     ...value,
     botRef: { ...value.botRef },
@@ -1018,12 +1025,7 @@ function truncateText(value: string, maxLength: number): string {
   return value.slice(0, maxLength);
 }
 
-function intEnv(
-  env: NodeJS.ProcessEnv,
-  key: string,
-  fallback: number,
-  min: number,
-): number {
+function intEnv(env: NodeJS.ProcessEnv, key: string, fallback: number, min: number): number {
   const raw = Number(env[key] ?? fallback);
   if (!Number.isFinite(raw)) return fallback;
   return Math.max(min, Math.floor(raw));
@@ -1034,9 +1036,7 @@ function arrayLength<T>(value: readonly T[] | null | undefined): number {
 }
 
 function readNonNegativeInt(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0
-    ? Math.floor(value)
-    : 0;
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0;
 }
 
 function readNumber(value: unknown): number {
@@ -1049,10 +1049,7 @@ function distance(ax: number, az: number, bx: number, bz: number): number {
   return Math.sqrt(dx * dx + dz * dz);
 }
 
-function readRunnerString(
-  runnerState: Record<string, unknown>,
-  key: string,
-): string {
+function readRunnerString(runnerState: Record<string, unknown>, key: string): string {
   const value = runnerState[key];
   return typeof value === 'string' ? value : '';
 }
@@ -1074,11 +1071,7 @@ function readPartyChatMembers(
       const name = typeof member.name === 'string' ? member.name : '';
       const classId = typeof member.cls === 'string' ? member.cls : '';
       if (!name || !classId) return null;
-      const combatRole = name === tankName
-        ? 'tank'
-        : name === healerName
-          ? 'healer'
-          : 'dps';
+      const combatRole = name === tankName ? 'tank' : name === healerName ? 'healer' : 'dps';
       return {
         name,
         classId: classId as AmbientBotPartyChatContextV1['party']['members'][number]['classId'],
@@ -1087,9 +1080,14 @@ function readPartyChatMembers(
         isLeader: member.pid === leaderPid,
       };
     })
-    .filter((member): member is AmbientBotPartyChatContextV1['party']['members'][number] => member !== null);
+    .filter(
+      (member): member is AmbientBotPartyChatContextV1['party']['members'][number] =>
+        member !== null,
+    );
 }
 
-function readPartyCombatRole(value: unknown): AmbientBotPartyChatContextV1['selfRole']['combatRole'] {
+function readPartyCombatRole(
+  value: unknown,
+): AmbientBotPartyChatContextV1['selfRole']['combatRole'] {
   return value === 'tank' || value === 'healer' ? value : 'dps';
 }

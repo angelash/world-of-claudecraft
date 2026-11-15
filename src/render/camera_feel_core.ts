@@ -12,6 +12,17 @@
 
 import { RUN_SPEED } from '../sim/types';
 
+/** Follow a submerged swimmer under the surface. The chase boom otherwise
+ * stays above shallow lakes even when the avatar is diving. The renderer folds
+ * this ceiling into its single camera-height assignment, then keeps the eye
+ * above the lake bed with its ordinary ground clamp. */
+// How far under the line the chase camera is pulled while the player is submerged.
+const UNDERWATER_CAMERA_DIP = 0.5;
+
+export function underwaterCameraCeiling(submerged: boolean, waterLevel: number): number {
+  return submerged && Number.isFinite(waterLevel) ? waterLevel - UNDERWATER_CAMERA_DIP : Infinity;
+}
+
 export interface CameraFeelState {
   leadX: number;
   leadZ: number;
@@ -99,10 +110,21 @@ export function punchCameraFov(s: CameraFeelState, degrees: number): void {
   s.punchKick += degrees;
 }
 
-/** Total FOV offset to add on top of the occlusion-compensated FOV. */
+/** Total FOV offset to add on top of the base camera FOV. */
 export function cameraFovOffset(s: CameraFeelState): number {
   const total = s.speedKick + s.punchKick;
   return Math.min(12, Math.max(-8, total));
+}
+
+/**
+ * The camera's per-frame FOV target: the player's configured base FOV (the
+ * options-menu slider value) plus the feel kicks, clamped to the widest range
+ * either arm can reach. `baseFovDeg` MUST be the live setting, never a fixed
+ * constant, or every kick-driven frame silently snaps the camera back to
+ * whatever default the caller hard-coded.
+ */
+export function resolveCameraFov(baseFovDeg: number, s: CameraFeelState): number {
+  return Math.min(100, Math.max(50, baseFovDeg + cameraFovOffset(s)));
 }
 
 /**

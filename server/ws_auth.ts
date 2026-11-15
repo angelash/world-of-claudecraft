@@ -15,12 +15,20 @@ import { randomUUID } from 'node:crypto';
 import type { EventEmitter } from 'node:events';
 import type * as http from 'node:http';
 import type { WebSocket, WebSocketServer } from 'ws';
+import { MEMBERSHIP_OFF, membershipCharacterLocked } from '../src/membership_contract';
+import { type AccountLedger, freshAccountLedger } from '../src/sim/account_ledger';
+import { setReferralArmour } from '../src/sim/referral_armour';
 import {
   type BankBonusSource,
+  DUNGEON_ENTRY_FACING_WIRE_VERSION,
   ONLINE_WORLD_AUTH_TYPE,
   ONLINE_WORLD_INCOMPATIBLE_MESSAGE,
+  PET_SPECIAL_WIRE_VERSION,
   STABLE_TIMER_WIRE_VERSION,
 } from '../src/world_api';
+import { sanitizeAppearance } from '../src/world_api/appearance';
+import { accountAdmissionsFor } from './account_admission';
+import type { AccountMountItemsRow } from './account_mount_items_core';
 import type {
   AccountChatMuteStatus,
   AccountCosmetics,
@@ -29,6 +37,12 @@ import type {
   TokenScope,
 } from './db';
 import type { GameServer } from './game';
+import { noteClientFrame } from './keepalive_sweep';
+import type { MembershipAuthorization } from './membership_service';
+import { negotiateMovementWireVersion } from './movement_wire_version';
+import type { ReferralArmourEntitlement } from './referral_armour_db';
+import { kickStoragePurchaseRecovery } from './storage_purchases';
+import type { HandshakeFlushMode } from './ws_buffer';
 
 // The {t:'error', error} rejection strings, by the exact value the client reads
 // and localizes. Each is part of the wire contract (see the module header).
@@ -56,11 +70,21 @@ const WS_AUTH_ERROR = {
   // commit.
   tooManyConnections: 'too many connections from your network',
   forceRename: 'This character must be renamed before entering the world.',
+  membershipRequired: 'membership required for this character',
   authTimedOut: 'authentication timed out',
   incompatibleWorldLayout: ONLINE_WORLD_INCOMPATIBLE_MESSAGE,
 } as const;
 
 // The first auth frame must arrive within this window or the socket is closed.
+// Scope, established by the phase 16 load review: the timer is cleared the
+// moment the FIRST frame arrives (the ws.once('message') handler below runs
+// clearTimeout synchronously before authenticateWebSocket), so this bounds
+// upgrade-to-first-frame ONLY, never the handshake's database work. A slow
+// handshake that REJECTS (a pool checkout or statement timeout) surfaces as
+// the caught rejection in that same handler, which relabels it with the
+// authTimedOut wire literal (a slow-but-successful handshake surfaces as
+// nothing at all); do not read that client-facing string as this deadline
+// firing.
 const AUTH_TIMEOUT_MS = 10_000;
 
 // Only this upgrade path is accepted; any other path is destroyed at the socket.
@@ -68,14 +92,19 @@ const WS_UPGRADE_PATH = '/ws';
 
 // Every failed handshake check sends exactly one {t:'error'} frame (the shape the
 // client parses in online.ts onMessage), then closes the socket. Centralizes both
-// the frame shape and the send-then-close ordering in one place.
+// the frame shape and the send-then-close ordering in one place. The frame goes
+// out uncompressed: a compressed send makes ws allocate the socket's ~256 KiB
+// deflate stream (server/ws_compression.ts), which a client that never answers
+// the close would hold for ws's close timeout, so rejected sockets never get one.
 function rejectHandshake(ws: WebSocket, error: string): void {
-  ws.send(JSON.stringify({ t: 'error', error }));
+  ws.send(JSON.stringify({ t: 'error', error }), { compress: false });
   ws.close();
 }
 
 export interface WsAuthDeps {
   game: GameServer;
+  getMembership?: (accountId: number) => Promise<MembershipAuthorization>;
+  referralArmourForAccount?: (accountId: number) => Promise<ReferralArmourEntitlement | null>;
   accountAndScopeForToken: (
     token: string,
   ) => Promise<{ accountId: number; scope: TokenScope } | null>;
@@ -98,13 +127,21 @@ export interface WsAuthDeps {
   ) => { fbp?: string | null; fbc?: string | null };
   metaEventSourceUrl: (req: http.IncomingMessage) => string | undefined;
   loadAccountCosmetics: (accountId: number) => Promise<AccountCosmetics>;
+  loadAccountMountItems?: (accountId: number) => Promise<AccountMountItemsRow[]>;
+  loadAccountBuddies?: (accountId: number) => Promise<readonly string[]>;
+  /** The account ledger load (server/account_ledger_db.ts): which characters
+   *  on the account earned each deed and found each relic. */
+  loadAccountLedger: (accountId: number) => Promise<AccountLedger>;
   isConnectionRefused: (input: {
     blocked: boolean;
     isAdmin: boolean;
     ipSessions: number;
     hardLimit: number;
   }) => boolean;
-  bufferHandshakeMessages: (ws: EventEmitter, maxFrames?: number) => () => void;
+  bufferHandshakeMessages: (
+    ws: EventEmitter,
+    maxFrames?: number,
+  ) => (mode?: HandshakeFlushMode) => void;
   requestMetadata: (req: http.IncomingMessage) => { ip: string; userAgent: string };
   maxWsPerIpHard: number;
   // The realm player admission cap: a FRESH WS join is refused (with the realmFull
@@ -154,7 +191,9 @@ export interface WsAuthDeps {
     characterId: number;
     characterName: string;
     ambientBotId: string | null;
-  }) => Promise<void>;
+    admittedCharacter: CharacterRow;
+    isCurrentSession: () => boolean;
+  }) => undefined;
 }
 
 export interface WsAuthHandlers {
@@ -175,6 +214,7 @@ export function createWsAuth(deps: WsAuthDeps): WsAuthHandlers {
     metaRequestUserData,
     metaEventSourceUrl,
     loadAccountCosmetics,
+    loadAccountLedger,
     isConnectionRefused,
     bufferHandshakeMessages,
     requestMetadata,
@@ -260,14 +300,16 @@ export function createWsAuth(deps: WsAuthDeps): WsAuthHandlers {
     raw: string,
     req: http.IncomingMessage,
   ): Promise<void> {
-    let msg: any;
+    let parsed: unknown;
     try {
-      msg = JSON.parse(raw);
+      parsed = JSON.parse(raw);
     } catch (err) {
       console.error('ws auth: malformed first frame, rejecting handshake', err);
       rejectHandshake(ws, WS_AUTH_ERROR.badAuthMessage);
       return;
     }
+    const msg =
+      parsed !== null && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
     if (msg?.t !== ONLINE_WORLD_AUTH_TYPE) {
       const authType = msg?.t;
       const isWorldAuthAttempt =
@@ -288,175 +330,182 @@ export function createWsAuth(deps: WsAuthDeps): WsAuthHandlers {
     // strings, booleans, and unknown future versions stay on the legacy wire.
     const timerWireVersion: 1 | typeof STABLE_TIMER_WIRE_VERSION =
       msg.timerWire === STABLE_TIMER_WIRE_VERSION ? STABLE_TIMER_WIRE_VERSION : 1;
+    const petSpecialWireVersion: 0 | typeof PET_SPECIAL_WIRE_VERSION =
+      msg.petSpecialWire === PET_SPECIAL_WIRE_VERSION ? PET_SPECIAL_WIRE_VERSION : 0;
+    const movementWireVersion = negotiateMovementWireVersion(msg.movementWire);
+    const dungeonEntryFacingWireVersion: 0 | typeof DUNGEON_ENTRY_FACING_WIRE_VERSION =
+      msg.dungeonEntryFacingWire === DUNGEON_ENTRY_FACING_WIRE_VERSION
+        ? DUNGEON_ENTRY_FACING_WIRE_VERSION
+        : 0;
     const account = await accountAndScopeForToken(token);
     if (account === null || account.scope !== 'full' || !Number.isFinite(characterId)) {
       rejectHandshake(ws, WS_AUTH_ERROR.notAuthenticated);
       return;
     }
     const accountId = account.accountId;
-    const status = await moderationStatusForAccount(accountId);
-    if (status.locked) {
-      rejectHandshake(ws, status.message);
-      return;
-    }
-    let character = await getCharacter(accountId, characterId);
-    if (!character) {
-      rejectHandshake(ws, WS_AUTH_ERROR.noSuchCharacter);
-      return;
-    }
-    if (character.force_rename) {
-      rejectHandshake(ws, WS_AUTH_ERROR.forceRename);
-      return;
-    }
-    const chatMute = await chatMuteStatusForAccount(accountId);
-    // Hard per-IP WS connection limit. The soft threshold (composite score evidence)
-    // is handled inside game.join(); this guard blocks egregious bot farms before
-    // they consume a session slot.
-    const meta = requestMetadata(req);
-    const ip = meta.ip;
-    const staff = await adminRolesForAccount(accountId);
-    const isAdmin = staff !== null;
-    const adminPermissions = staff ? [...permissionsForRoles(staff.roles)] : [];
-    const ambientBotId = (await resolveAmbientBotId?.(character.id, accountId)) ?? null;
-    const connectionRefused = isAmbientConnectionRefused
-      ? isAmbientConnectionRefused({
-          blocked: game.isIpBlocked(ip),
-          isAdmin,
-          isAmbientBot: ambientBotId !== null,
-          ip,
-          hardLimit: MAX_WS_PER_IP_HARD,
-        })
-      : isConnectionRefused({
-          blocked: game.isIpBlocked(ip),
-          isAdmin,
-          ipSessions: game.countIpSessions(ip),
-          hardLimit: MAX_WS_PER_IP_HARD,
-        });
-    if (connectionRefused) {
-      rejectHandshake(ws, WS_AUTH_ERROR.tooManyConnections);
-      return;
-    }
-    const accountCosmetics = await loadAccountCosmetics(accountId);
-    const joinMeta = {
-      ...meta,
-      ...metaRequestUserData(req, meta),
-      sourceUrl: metaEventSourceUrl(req),
-      mutedUntil: status.chatMutedUntil ?? chatMute.mutedUntil,
-      reason: chatMute.reason,
-      chatStrikes: status.chatStrikes,
-      accountCosmetics,
-      isAdmin,
-      adminPermissions,
-      clientSeed,
-      ambientBotId,
-      timerWireVersion,
-      // The character's stored action-bar layout, sent once to the owning client
-      // so it restores at login on any device (game.join re-validates it).
-      hotbarLayout: character.hotbar_layout ?? null,
-    };
-    // Two genuinely concurrent handshakes for one character would race to stamp
-    // the lease nonce; admit only the first and refuse the rest (never queue).
-    if (pendingLeaseJoins.has(character.id)) {
-      rejectHandshake(ws, WS_AUTH_ERROR.alreadyInWorld);
-      return;
-    }
-    pendingLeaseJoins.add(character.id);
+    const admission = accountAdmissionsFor(game).begin(accountId);
+    // Capture immediately before the existing auth query. A committed policy
+    // notification received during later handshake awaits overrides this query's
+    // stale value at the synchronous game.join boundary, with no second DB read.
+    const generalChatRateLimitHydration = game.beginGeneralChatRateLimitHydration(accountId);
+    // Same capture-before-the-read contract as above, for the sibling
+    // mute/reason/strikes snapshot: see chat_mod_live.ts for why this fence
+    // exists (a live push landing on this same still-linkdead session during
+    // the reads below must never be discarded by the stale snapshot they'd
+    // otherwise resolve to).
+    const chatModerationHydration = game.beginChatModerationHydration(accountId);
     try {
-      let leaseNonce: string | undefined;
-      let result: ReturnType<GameServer['join']>;
-      if (game.hasSessionForCharacter(character.id)) {
-        // A live or linkdead session in THIS process holds this character, and
-        // still owns the lease row unless it expired during a long stall and a
-        // foreign process reclaimed it. Either way, let planJoin adjudicate (a linkdead session
-        // resumes and keeps its nonce; a live duplicate is rejected) and never
-        // re-stamp the row with a fresh acquire that a doomed handshake could
-        // leave mismatched.
-        result = game.join(
-          ws,
-          accountId,
-          character.id,
-          character.name,
-          character.class,
-          character.state,
-          character.is_gm,
-          joinMeta,
+      const status = await moderationStatusForAccount(accountId);
+      if (status.locked) {
+        rejectHandshake(ws, status.message);
+        return;
+      }
+      const character = await getCharacter(accountId, characterId);
+      if (!character) {
+        rejectHandshake(ws, WS_AUTH_ERROR.noSuchCharacter);
+        return;
+      }
+      if (character.force_rename) {
+        rejectHandshake(ws, WS_AUTH_ERROR.forceRename);
+        return;
+      }
+      const membership = deps.getMembership
+        ? await deps.getMembership(accountId)
+        : { ...MEMBERSHIP_OFF, authorizedUntil: 0, recurringExpiresAt: null };
+      const membershipLocked = (row: CharacterRow) =>
+        membershipCharacterLocked(
+          row.membership_slot,
+          { ...membership, active: membership.active && membership.authorizedUntil > Date.now() },
+          Date.now(),
         );
-      } else {
-        // Realm admission cap: refuse this FRESH join once the realm is at its
-        // configured player cap. This is the fresh arm only: the resume arm above is
-        // exempt because it reuses an existing world slot, never adds one. Staff
-        // bypass the cap, mirroring the per-IP exemption in isConnectionRefused. A
-        // cap of 0 or negative disables it. The count basis is game.clients.size
-        // (which includes linkdead sessions, since they still hold world slots)
-        // PLUS the in-flight fresh admissions, so a burst of concurrent fresh
-        // handshakes racing across the awaits below cannot admit past the cap. The
-        // check-then-increment pair has no await between it, so it is atomic in the
-        // single-threaded loop. Checked here, before the bank-bonus DB read and the
-        // lease acquire, so a refused join never holds a lease and pays for no
-        // fresh-arm DB work (the shared handshake reads above, cosmetics and
-        // moderation among them, are already spent by this point; they stay bounded
-        // by the per-IP hard limit and the auth timeout).
-        if (
-          MAX_PLAYERS_PER_REALM > 0 &&
-          !isAdmin &&
-          game.clients.size + inFlightFreshAdmissions >= MAX_PLAYERS_PER_REALM
-        ) {
-          recordRealmFullRefusal();
-          rejectHandshake(ws, WS_AUTH_ERROR.realmFull);
-          return;
-        }
-        inFlightFreshAdmissions++;
-        try {
-          // Fresh load: claim the lease immediately before creating the session, and
-          // only after every cheap refusal above (auth, moderation, ownership,
-          // force-rename, the per-IP hard limit, the realm cap), so no refusable
-          // handshake pays for the DB write and no session is ever created without a
-          // lease. Acquiring on a raw client-supplied id before the getCharacter
-          // ownership check would let any authenticated user lock arbitrary
-          // characters (a login DoS). The per-join nonce fences the row so a later
-          // stale release cannot delete it. A live foreign lease fails closed with
-          // the exact 'character already in world' string planJoin already uses.
-          //
-          // Recompute the bank bonus slots from live account facts and stamp them into
-          // the character state at load (server authority). Fresh-join arm ONLY: a resume
-          // above keeps its stamped value (no mid-session recompute, locked policy).
-          // Computed BEFORE the lease acquire so the lease-held window stays tight; a bare
-          // await means a DB error fails the handshake exactly like a getCharacter failure.
-          const bankBonus = await bankBonusForAccount(accountId);
-          leaseNonce = randomUUID();
-          const leased = await acquireCharacterLease(character.id, accountId, leaseNonce);
-          if (!leased) {
+      if (membershipLocked(character)) {
+        rejectHandshake(ws, WS_AUTH_ERROR.membershipRequired);
+        return;
+      }
+      const chatMute = await chatMuteStatusForAccount(accountId);
+      // Resolved at each game.join call below, not here: like
+      // generalChatRateLimitHydration, resolving early would leave every
+      // await between here and the synchronous join boundary (adminRolesForAccount,
+      // loadAccountCosmetics, and on the fresh arm bankBonusForAccount, the lease
+      // acquire, and the character reload) unfenced against a live push landing
+      // in that window.
+      const freshModeration = {
+        mutedUntil: status.chatMutedUntil ?? chatMute.mutedUntil,
+        reason: chatMute.reason,
+        strikes: status.chatStrikes,
+      };
+      // Hard per-IP WS connection limit. The soft threshold (composite score evidence)
+      // is handled inside game.join(); this guard blocks egregious bot farms before
+      // they consume a session slot.
+      const meta = requestMetadata(req);
+      const ip = meta.ip;
+      const staff = await adminRolesForAccount(accountId);
+      const isAdmin = staff !== null;
+      const adminPermissions = staff ? [...permissionsForRoles(staff.roles)] : [];
+      const ambientBotId = (await resolveAmbientBotId?.(character.id, accountId)) ?? null;
+      const connectionRefused = isAmbientConnectionRefused
+        ? isAmbientConnectionRefused({
+            blocked: game.isIpBlocked(ip),
+            isAdmin,
+            isAmbientBot: ambientBotId !== null,
+            ip,
+            hardLimit: MAX_WS_PER_IP_HARD,
+          })
+        : isConnectionRefused({
+            blocked: game.isIpBlocked(ip),
+            isAdmin,
+            ipSessions: game.countIpSessions(ip),
+            hardLimit: MAX_WS_PER_IP_HARD,
+          });
+      if (connectionRefused) {
+        rejectHandshake(ws, WS_AUTH_ERROR.tooManyConnections);
+        return;
+      }
+      // The account ledger rides beside the cosmetics: both are account-wide
+      // state the join hands the sim, so one round trip covers the pair.
+      const [accountCosmetics, accountLedger, accountMountItems, accountBuddyOwned] =
+        await Promise.all([
+          loadAccountCosmetics(accountId),
+          // A cosmetic table must never gate login: a failed read joins with a
+          // fresh ledger (the sim's own default) and the next join retries.
+          loadAccountLedger(accountId).catch(() => freshAccountLedger()),
+          deps.loadAccountMountItems?.(accountId).catch(() => undefined),
+          deps.loadAccountBuddies ? deps.loadAccountBuddies(accountId) : Promise.resolve([]),
+        ]);
+      const joinMeta = {
+        ...meta,
+        ...metaRequestUserData(req, meta),
+        sourceUrl: metaEventSourceUrl(req),
+        accountCosmetics,
+        accountMountItems,
+        accountLedger,
+        accountBuddyOwned,
+        isAdmin,
+        adminPermissions,
+        clientSeed,
+        ambientBotId,
+        dungeonEntryFacingWireVersion,
+        timerWireVersion,
+        petSpecialWireVersion,
+        movementWireVersion,
+        // The character's stored action-bar layout, sent once to the owning client
+        // so it restores at login on any device (game.join re-validates it).
+        hotbarLayout: character.hotbar_layout ?? null,
+        // Presence privacy, known before the session joins anyone's roster
+        // (game.join validates it; server/presence_privacy.ts).
+        presenceMode: character.presence_mode ?? null,
+        // The authored modular look (own column). Rides the join so the world
+        // entity carries it and every client in view composes this character's
+        // real body (identity wire key `app`).
+        //
+        // Re-validated HERE as well as at write, the same belt-and-braces the
+        // hotbar layout gets (game.join re-validates that one too): this column is
+        // JSONB the server re-broadcasts to every player in view, and a row could
+        // predate the current bounds, or have been written by an older build, a
+        // migration, or a direct database edit. Sanitizing on the way out means
+        // the only shape that can reach the wire is one today's rules admit,
+        // whatever is actually in the column.
+        appearance: sanitizeAppearance(character.appearance),
+      };
+      // Two genuinely concurrent handshakes for one character would race to stamp
+      // the lease nonce; admit only the first and refuse the rest (never queue).
+      if (pendingLeaseJoins.has(character.id)) {
+        rejectHandshake(ws, WS_AUTH_ERROR.alreadyInWorld);
+        return;
+      }
+      pendingLeaseJoins.add(character.id);
+      try {
+        let admittedCharacter = character;
+        let referralArmour: ReferralArmourEntitlement | null | undefined;
+        let leaseNonce: string | undefined;
+        let result: ReturnType<GameServer['join']>;
+        if (game.hasSessionForCharacter(character.id)) {
+          // A live or linkdead session in THIS process holds this character, and
+          // USUALLY still owns the lease row (not always: a cross-process
+          // same-account takeover may have rotated the nonce already, leaving the
+          // row owned by the other process until the fence-out kick lands, within
+          // one autosave). Either way, let planJoin adjudicate (a linkdead session
+          // resumes and keeps its nonce; a live duplicate is rejected) and never
+          // re-stamp the row with a fresh acquire that a doomed handshake could
+          // leave mismatched.
+          if (
+            !admission.allows(account) ||
+            !admission.allows(await accountAndScopeForToken(token))
+          ) {
+            rejectHandshake(ws, WS_AUTH_ERROR.notAuthenticated);
+            return;
+          }
+          // The final read can outlive linkdead grace. Never let join turn
+          // this resume into a fresh load without its lease/reload/cap checks.
+          if (!game.hasSessionForCharacter(character.id)) {
             rejectHandshake(ws, WS_AUTH_ERROR.alreadyInWorld);
             return;
           }
-          // The ownership-checked snapshot above predates several awaits and the
-          // lease acquire. A previous holder can finish a valid final save before
-          // this acquire wins the lease, so read again only after the nonce rotation
-          // has committed and join exclusively from that post-lease snapshot.
-          let postLeaseCharacter: CharacterRow | null;
-          try {
-            postLeaseCharacter = await getCharacter(accountId, character.id);
-          } catch (err) {
-            await releaseCharacterLease(character.id, leaseNonce).catch((releaseErr) =>
-              console.error('lease release failed:', releaseErr),
-            );
-            throw err;
-          }
-          if (!postLeaseCharacter) {
-            await releaseCharacterLease(character.id, leaseNonce).catch((err) =>
-              console.error('lease release failed:', err),
-            );
-            rejectHandshake(ws, WS_AUTH_ERROR.noSuchCharacter);
+          if (membershipLocked(character)) {
+            rejectHandshake(ws, WS_AUTH_ERROR.membershipRequired);
             return;
           }
-          if (postLeaseCharacter.force_rename) {
-            await releaseCharacterLease(character.id, leaseNonce).catch((err) =>
-              console.error('lease release failed:', err),
-            );
-            rejectHandshake(ws, WS_AUTH_ERROR.forceRename);
-            return;
-          }
-          character = postLeaseCharacter;
+          const moderation = chatModerationHydration.resolve(freshModeration);
           result = game.join(
             ws,
             accountId,
@@ -467,72 +516,304 @@ export function createWsAuth(deps: WsAuthDeps): WsAuthHandlers {
             character.is_gm,
             {
               ...joinMeta,
-              hotbarLayout: character.hotbar_layout ?? null,
-              leaseNonce,
-              bankBonus,
+              mutedUntil: moderation.mutedUntil,
+              reason: moderation.reason,
+              chatStrikes: moderation.strikes,
+              generalChatRateLimit: generalChatRateLimitHydration.resolve(
+                status.generalChatRateLimit ?? null,
+              ),
             },
           );
-        } finally {
-          // Decrement on every fresh-arm exit path (join completed, lease refused,
-          // or a thrown DB error): a successful join is now counted by
-          // game.clients.size, and a failed one consumed no slot, so the count is
-          // conserved for a concurrent handshake either way.
-          inFlightFreshAdmissions--;
+        } else {
+          // Realm admission cap: refuse this FRESH join once the realm is at its
+          // configured player cap. This is the fresh arm only: the resume arm above is
+          // exempt because it reuses an existing world slot, never adds one. Staff
+          // bypass the cap, mirroring the per-IP exemption in isConnectionRefused. A
+          // cap of 0 or negative disables it. The count basis is game.clients.size
+          // (which includes linkdead sessions, since they still hold world slots)
+          // PLUS the in-flight fresh admissions, so a burst of concurrent fresh
+          // handshakes racing across the awaits below cannot admit past the cap. The
+          // check-then-increment pair has no await between it, so it is atomic in the
+          // single-threaded loop. Checked here, before the bank-bonus DB read and the
+          // lease acquire, so a refused join never holds a lease and pays for no
+          // fresh-arm DB work (the shared handshake reads above, cosmetics and
+          // moderation among them, are already spent by this point; they stay bounded
+          // by the per-IP hard limit and the auth timeout).
+          if (
+            MAX_PLAYERS_PER_REALM > 0 &&
+            !isAdmin &&
+            game.clients.size + inFlightFreshAdmissions >= MAX_PLAYERS_PER_REALM
+          ) {
+            recordRealmFullRefusal();
+            rejectHandshake(ws, WS_AUTH_ERROR.realmFull);
+            return;
+          }
+          inFlightFreshAdmissions++;
+          try {
+            // Fresh load: claim the lease immediately before creating the session, and
+            // only after every cheap refusal above (auth, moderation, ownership,
+            // force-rename, the per-IP hard limit, the realm cap), so no refusable
+            // handshake pays for the DB write and no session is ever created without a
+            // lease. Acquiring on a raw client-supplied id before the getCharacter
+            // ownership check would let any authenticated user lock arbitrary
+            // characters (a login DoS). The per-join nonce fences the row so a later
+            // stale release cannot delete it. A live foreign lease fails closed with
+            // the exact 'character already in world' string planJoin already uses.
+            //
+            // Recompute the bank bonus slots from live account facts and stamp them into
+            // the character state at load (server authority). Fresh-join arm ONLY: a resume
+            // above keeps its stamped value (no mid-session recompute, locked policy).
+            // Computed BEFORE the lease acquire so the lease-held window stays tight; a bare
+            // await means a DB error fails the handshake exactly like a getCharacter failure.
+            const bankBonus = await bankBonusForAccount(accountId);
+            // Fixed account-PK read, before the lease; resumes retain live authority.
+            if (deps.referralArmourForAccount)
+              referralArmour = await deps.referralArmourForAccount(accountId);
+            leaseNonce = randomUUID();
+            const leased = await acquireCharacterLease(character.id, accountId, leaseNonce);
+            if (!leased) {
+              rejectHandshake(ws, WS_AUTH_ERROR.alreadyInWorld);
+              return;
+            }
+
+            // The rollback migration fences new admissions by locking the lease
+            // table. A handshake can read the character before that lock, then wait
+            // here until the migration commits. Reload only AFTER the lease is ours
+            // so game.join never receives the stale pre-migration JSON. Conversely,
+            // when this lease lands first, the migration sees it and refuses apply.
+            // If the reload fails, release the lease before propagating/rejecting so
+            // an unavailable row cannot strand the character until lease expiry.
+            //
+            // The previous session's last action-bar save may still be on its way
+            // to the row (HotbarLayoutStore holds it as pending until the write
+            // settles). Capture it BEFORE the reload below, so the join seeds from
+            // the newer of the two whichever side of that read the commit lands
+            // on: a document captured here is at least as new as any row this
+            // handshake can read, and once it settles the reload returns the same
+            // layout. Read after the reload it would race the settle and hand
+            // game.join the stale copy from the ownership read.
+            const queuedHotbarLayout = game.hotbarLayouts.pending(character.id, leaseNonce);
+            try {
+              const refreshedCharacter = await getCharacter(accountId, character.id);
+              if (!refreshedCharacter) {
+                await releaseCharacterLease(character.id, leaseNonce).catch((err) =>
+                  console.error('lease release failed:', err),
+                );
+                leaseNonce = undefined;
+                rejectHandshake(ws, WS_AUTH_ERROR.noSuchCharacter);
+                return;
+              }
+              if (refreshedCharacter.force_rename) {
+                await releaseCharacterLease(character.id, leaseNonce).catch((err) =>
+                  console.error('lease release failed:', err),
+                );
+                leaseNonce = undefined;
+                rejectHandshake(ws, WS_AUTH_ERROR.forceRename);
+                return;
+              }
+              admittedCharacter = refreshedCharacter;
+              // Re-read even if the initial query returned after revocation,
+              // before this probe existed. Check the probe AFTER that await to
+              // fence a disconnect during the final query's stale snapshot.
+              // Keep this within lease cleanup, with no await on success before join.
+              if (
+                !admission.allows(account) ||
+                !admission.allows(await accountAndScopeForToken(token))
+              ) {
+                await releaseCharacterLease(character.id, leaseNonce).catch((err) =>
+                  console.error('lease release failed:', err),
+                );
+                leaseNonce = undefined;
+                rejectHandshake(ws, WS_AUTH_ERROR.notAuthenticated);
+                return;
+              }
+            } catch (err) {
+              if (leaseNonce !== undefined) {
+                await releaseCharacterLease(character.id, leaseNonce).catch((releaseErr) =>
+                  console.error('lease release failed:', releaseErr),
+                );
+              }
+              leaseNonce = undefined;
+              throw err;
+            }
+            const moderation = chatModerationHydration.resolve(freshModeration);
+            if (membershipLocked(admittedCharacter)) {
+              await releaseCharacterLease(character.id, leaseNonce).catch((error) =>
+                console.error('lease release failed:', error),
+              );
+              leaseNonce = undefined;
+              rejectHandshake(ws, WS_AUTH_ERROR.membershipRequired);
+              return;
+            }
+            result = game.join(
+              ws,
+              accountId,
+              admittedCharacter.id,
+              admittedCharacter.name,
+              admittedCharacter.class,
+              admittedCharacter.state,
+              admittedCharacter.is_gm,
+              {
+                ...joinMeta,
+                // The fresh arm re-read the row after the lease: that copy, or
+                // the still-queued document captured before it, supersedes the
+                // ownership-read copy joinMeta carries (game.join re-validates).
+                presenceMode: admittedCharacter.presence_mode ?? null,
+                hotbarLayout: queuedHotbarLayout ?? admittedCharacter.hotbar_layout ?? null,
+                leaseNonce,
+                bankBonus,
+                mutedUntil: moderation.mutedUntil,
+                reason: moderation.reason,
+                chatStrikes: moderation.strikes,
+                generalChatRateLimit: generalChatRateLimitHydration.resolve(
+                  status.generalChatRateLimit ?? null,
+                ),
+              },
+            );
+            // Buddy grants queued while the character was offline (the admin
+            // grant endpoint's offline arm) land now, fresh-join arm only: a
+            // resume never re-reads the queue. Fire-and-forget; the drain owns
+            // its own logging and never fails the handshake.
+            if (!('error' in result)) void game.drainBuddyGrants(result);
+          } finally {
+            // Decrement on every fresh-arm exit path (join completed, lease refused,
+            // or a thrown DB error): a successful join is now counted by
+            // game.clients.size, and a failed one consumed no slot, so the count is
+            // conserved for a concurrent handshake either way.
+            inFlightFreshAdmissions--;
+          }
         }
-      }
-      if ('error' in result) {
-        // join refused after we took the lease. Release it, AWAITED and nonce-fenced
-        // so a stale delete never eats a re-acquired row, UNLESS this process already
-        // has a live session for the character (that session owns the lease and
-        // dropping it would strand the live player). leaseNonce is undefined only on
-        // the hasSession path above, where we took no lease to release.
-        if (leaseNonce !== undefined && !game.hasSessionForCharacter(character.id)) {
-          await releaseCharacterLease(character.id, leaseNonce).catch((err) =>
-            console.error('lease release failed:', err),
+        if ('error' in result) {
+          // join refused after we took the lease. Release it, AWAITED and nonce-fenced
+          // so a stale delete never eats a re-acquired row, UNLESS this process already
+          // has a live session for the character (that session owns the lease and
+          // dropping it would strand the live player). leaseNonce is undefined only on
+          // the hasSession path above, where we took no lease to release.
+          if (leaseNonce !== undefined && !game.hasSessionForCharacter(character.id)) {
+            await releaseCharacterLease(character.id, leaseNonce).catch((err) =>
+              console.error('lease release failed:', err),
+            );
+          }
+          rejectHandshake(ws, result.error);
+          return;
+        }
+        const session = result;
+        session.membershipSlot = admittedCharacter.membership_slot === true;
+        if (deps.getMembership) {
+          game.sim.setMembership(
+            session.pid,
+            membership.active
+              ? Math.max(
+                  0,
+                  (Math.min(membership.expiresAt ?? 0, membership.authorizedUntil) - Date.now()) /
+                    1000,
+                )
+              : 0,
           );
         }
-        rejectHandshake(ws, result.error);
-        return;
-      }
-      const session = result;
-      if (afterJoin) {
-        await afterJoin({
-          accountId,
-          characterId: character.id,
-          characterName: character.name,
-          ambientBotId,
-        }).catch((err) => console.error('ws auth: post-join hook failed', err));
-      }
-      console.log(`+ ${character.name} (${character.class}) joined, ${game.clients.size} online`);
-      const joinedCharacterName = character.name;
-      ws.on('message', (data) => {
-        game.handleMessage(session, String(data));
-      });
-      // A dropped socket starts the linkdead grace instead of logging the
-      // character out: the session is held in-world so the client's
-      // auto-reconnect (or a fresh login on the same character) resumes it.
-      // socketClosed no-ops for kicked sessions and for stale events from a
-      // socket that a resume has already replaced; the grace-expiry sweep in
-      // game.ts runs the eventual leave().
-      ws.on('close', () => {
-        if (game.socketClosed(session, ws)) {
-          console.log(`~ ${joinedCharacterName} linkdead, ${game.clients.size} online`);
+        if (referralArmour !== undefined)
+          setReferralArmour(game.sim.ctx, session.pid, referralArmour);
+        console.log(
+          `+ ${admittedCharacter.name} (${admittedCharacter.class}) joined, ${game.clients.size} online`,
+        );
+        // Bank Storage phase 11: settle any pending Claudium storage purchase
+        // against the freshly loaded state (fire-and-forget; never gates the
+        // join). A join that internally resumed a linkdead session is safe
+        // here too: an in-flight purchase still holds the per-character mutex
+        // and the recovery yields to it immediately.
+        kickStoragePurchaseRecovery(session.characterId);
+        // Every processed frame (input here, pong below) stamps the socket's
+        // liveness clock for the sweep's hard silence deadline
+        // (server/keepalive_sweep.ts socketSilentPastDeadline); the handshake
+        // itself counts as the first frame so a fresh socket is never judged
+        // against a clock it has not started.
+        noteClientFrame(ws);
+        ws.on('message', (data) => {
+          if (session.ws !== ws) return;
+          noteClientFrame(ws);
+          game.handleMessage(session, String(data));
+        });
+        // A dropped socket starts the linkdead grace instead of logging the
+        // character out: the session is held in-world so the client's
+        // auto-reconnect (or a fresh login on the same character) resumes it.
+        // socketClosed no-ops for kicked sessions and for stale events from a
+        // socket that a resume has already replaced; the grace-expiry sweep in
+        // game.ts runs the eventual leave().
+        ws.on('close', () => {
+          if (game.socketClosed(session, ws)) {
+            console.log(`~ ${character.name} linkdead, ${game.clients.size} online`);
+          }
+        });
+        ws.on('error', () => {
+          game.socketClosed(session, ws);
+        });
+        // Clears the keepalive liveness flag (game.ts pingLiveSessions). Guarded
+        // on socket identity so a late pong from a pre-resume socket cannot mask
+        // a black-holed replacement.
+        ws.on('pong', () => {
+          noteClientFrame(ws);
+          if (session.ws === ws) session.awaitingPong = false;
+        });
+        // The socket can die DURING the handshake's awaits, before the close
+        // handler above exists; that close event is gone forever, and the
+        // session it just created would otherwise be a PERMANENT zombie: not
+        // linkdead (so the grace sweep skips it), readyState not OPEN (so
+        // pingLiveSessions skips it and sendRaw silently drops every frame),
+        // holding a realm slot and a character lease its heartbeat renews
+        // forever while planJoin refuses every re-login as 'character already
+        // in world' (the phase 16 load rig hit exactly this). Re-checking
+        // AFTER the handlers are attached closes the race: a death before this
+        // line lands here, a death after it lands in the close handler, and
+        // socketClosed is idempotent per socket so both never double-fire.
+        //
+        // withMarket: false is exclusive to THIS call site. This session
+        // processed zero input (game.join returns synchronously and the re-check
+        // runs before any message handling), so it cannot have touched the
+        // realm-global market or mail escrow and the market halves of the safety
+        // flush would write nothing new. Skipping them matters because the death
+        // this catches happens exactly when the pool is exhausted: one
+        // whole-realm market+mail transaction per dead handshake, all of them
+        // serialized on the process-global market queue, is a feedback loop on
+        // the very resource that caused the death. The character blob still
+        // saves. Every other socketClosed caller keeps the market halves.
+        if (ws.readyState !== ws.OPEN && game.socketClosed(session, ws, { withMarket: false })) {
+          console.log(
+            `~ ${admittedCharacter.name} socket died mid-handshake, entering linkdead, ${game.clients.size} online`,
+          );
         }
-      });
-      ws.on('error', () => {
-        game.socketClosed(session, ws);
-      });
-      // Clears the keepalive liveness flag (game.ts pingLiveSessions). Guarded
-      // on socket identity so a late pong from a pre-resume socket cannot mask
-      // a black-holed replacement.
-      ws.on('pong', () => {
-        if (session.ws === ws) session.awaitingPong = false;
-      });
+        // Synchronous by contract: awaiting after permanent handlers attach
+        // lets handshake buffering replay frames already handled live.
+        const sessionNonce = session.leaseNonce;
+        const isCurrentSession = () =>
+          ws.readyState === ws.OPEN &&
+          session.ws === ws &&
+          !session.linkdead &&
+          session.leaseNonce === sessionNonce &&
+          game.clients.get(session.pid) === session;
+        if (afterJoin && ws.readyState === ws.OPEN && session.ws === ws && !session.linkdead) {
+          try {
+            afterJoin({
+              accountId,
+              characterId: admittedCharacter.id,
+              characterName: admittedCharacter.name,
+              ambientBotId,
+              admittedCharacter,
+              isCurrentSession,
+            });
+          } catch (err) {
+            console.error('ws auth: post-join hook failed', err);
+          }
+        }
+      } finally {
+        // The join is decided (a session now lives in sessionsByCharacterId, or the
+        // handshake was rejected), so a later handshake sees hasSessionForCharacter
+        // and no longer needs this guard.
+        pendingLeaseJoins.delete(character.id);
+      }
     } finally {
-      // The join is decided (a session now lives in sessionsByCharacterId, or the
-      // handshake was rejected), so a later handshake sees hasSessionForCharacter
-      // and no longer needs this guard.
-      pendingLeaseJoins.delete(character.id);
+      admission.release();
+      generalChatRateLimitHydration.release();
+      chatModerationHydration.release();
     }
   }
 
@@ -555,13 +836,33 @@ export function createWsAuth(deps: WsAuthDeps): WsAuthHandlers {
       }
     });
 
+    // A clean pre-auth disconnect (the client hangs up before sending its first
+    // frame) leaves nothing to authenticate, so drop the deadline instead of
+    // letting it run its full window and fire a send-then-close at a socket
+    // that is already gone. The post-auth close handler that starts the
+    // linkdead grace is attached separately inside authenticateWebSocket, as
+    // its own listener, so this one never displaces it.
+    ws.once('close', () => {
+      clearTimeout(authTimer);
+    });
+
     ws.once('message', (data) => {
       clearTimeout(authTimer);
+      // The auth deadline above (like every reject path) SENDS its frame and
+      // then closes the socket, but this listener stays armed. Without the
+      // guard, a first frame that arrives after that close still runs the whole
+      // handshake (every DB read, the lease acquire, game.join) for a
+      // connection the server already rejected, and the mid-handshake death
+      // re-check then hands the session it just created to socketClosed: a
+      // linkdead ghost holding a realm-cap slot and the character lease for the
+      // full grace window, refusing the player's every re-login meanwhile.
+      // Nothing to authenticate on a socket that is not OPEN.
+      if (ws.readyState !== ws.OPEN) return;
       // Buffer any frames the client sends while the async auth/join handshake
       // is still in flight, then replay them once authenticateWebSocket has
       // attached the permanent message handler. Without this the frames are
       // silently dropped (see ws_buffer.ts).
-      const flush = bufferHandshakeMessages(ws);
+      const flushHandshakeBuffer = bufferHandshakeMessages(ws);
       void authenticateWebSocket(ws, String(data), req)
         .catch((err) => {
           // A database rejection under a slow or unreachable Postgres (a pool
@@ -577,7 +878,16 @@ export function createWsAuth(deps: WsAuthDeps): WsAuthHandlers {
           console.error('ws auth: handshake rejected, closing socket', err);
           if (ws.readyState === ws.OPEN) rejectHandshake(ws, WS_AUTH_ERROR.authTimedOut);
         })
-        .finally(flush);
+        .finally(() => {
+          // Replay ONLY into a socket that is still live. Every reject path
+          // closed the socket without attaching a message handler, and a
+          // session whose socket died during the handshake has already been
+          // handed to socketClosed with its movement zeroed, so replaying there
+          // would push captured input straight back into a linkdead session
+          // with nothing gating it. Discard instead; either mode takes the
+          // capture listener back off the socket.
+          flushHandshakeBuffer(ws.readyState === ws.OPEN ? 'replay' : 'discard');
+        });
     });
   }
 

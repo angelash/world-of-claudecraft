@@ -2,23 +2,48 @@
 // main.ts behind an injected deps bag. These run in plain Node with no database
 // and no live server: ws_auth.ts imports only TYPES from ./db and ./game (erased
 // at compile time), so importing it never evaluates db.ts or main.ts. The only
-// runtime import beyond the module under test is the pure bufferHandshakeMessages.
+// runtime imports beyond the module under test are the pure
+// bufferHandshakeMessages and node:fs, which reads server/game.ts as TEXT (never
+// as a module) for the one cross-module contract pinned at the bottom.
+
 import { EventEmitter } from 'node:events';
+import * as fs from 'node:fs';
 import type * as http from 'node:http';
+import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebSocket, WebSocketServer } from 'ws';
+import { ChatModerationLiveState } from '../../server/chat_mod_live';
 import type { AccountModerationStatus, CharacterRow } from '../../server/db';
+import { GeneralChatRateLimitLiveState } from '../../server/general_chat_quota';
 import { isConnectionRefused as realIsConnectionRefused } from '../../server/ip_block';
 import { createWsAuth, type WsAuthDeps } from '../../server/ws_auth';
 import { bufferHandshakeMessages } from '../../server/ws_buffer';
-import { ONLINE_WORLD_AUTH_TYPE } from '../../src/world_api';
+
+const referralSetter = vi.hoisted(() => vi.fn());
+vi.mock('../../src/sim/referral_armour', () => ({ setReferralArmour: referralSetter }));
+
+import { freshAccountLedger } from '../../src/sim/account_ledger';
+import { DUNGEON_ENTRY_FACING_WIRE_VERSION, ONLINE_WORLD_AUTH_TYPE } from '../../src/world_api';
 
 // A fake socket: real EventEmitter wiring (on/once/off/emit) so the handshake
 // buffer and the post-join ws.on('message'|'close'|'error') handlers work, plus
 // spy send/close so we can assert the exact frames and their ordering.
+//
+// KNOWN FIDELITY LIMITS (fix-round audit; deliberate, comment so nobody
+// "fixes" a test into them unaware): close() is a bare spy and does NOT move
+// readyState, where real ws sets CLOSING synchronously, so an arm that wants
+// a dead socket must set readyState by hand; consequently every reject-path
+// case here leaves the socket OPEN and takes the flush's 'replay' branch,
+// where production takes 'discard' (harmless while reject paths attach no
+// message handler, but a regression that attached one there would not be
+// seen by these cases).
 class FakeWs extends EventEmitter {
   send = vi.fn();
   close = vi.fn();
+  // Mirrors the real ws instance constants the mid-handshake death re-check
+  // reads; OPEN by default so every existing case is unaffected.
+  readyState = 1;
+  OPEN = 1;
 }
 
 const asWs = (w: FakeWs): WebSocket => w as unknown as WebSocket;
@@ -57,17 +82,30 @@ function baseChar(over: Partial<CharacterRow> = {}): CharacterRow {
 // spies may be reconfigured before construction too.
 function setup() {
   const ws = new FakeWs();
-  const session = { pid: 1, tag: 'fake-session' };
+  const session = { pid: 1, tag: 'fake-session', ws, linkdead: false };
+  const generalChatRateLimitLiveState = new GeneralChatRateLimitLiveState();
+  const chatModerationLiveState = new ChatModerationLiveState();
   const game = {
     isIpBlocked: vi.fn((_ip: string) => false),
     countIpSessions: vi.fn((_ip: string) => 0),
     // No live session by default, so the handshake takes the fresh-acquire arm.
     hasSessionForCharacter: vi.fn((_characterId: number) => false),
     join: vi.fn(() => session),
+    drainBuddyGrants: vi.fn(async () => {}),
     clients: { size: 1 },
+    sim: { resetDay: '2026-09-24', setMembership: vi.fn() },
     handleMessage: vi.fn(),
     leave: vi.fn(async () => {}),
     socketClosed: vi.fn(() => true),
+    beginGeneralChatRateLimitHydration: vi.fn((accountId: number) =>
+      generalChatRateLimitLiveState.beginHydration(accountId),
+    ),
+    beginChatModerationHydration: vi.fn((accountId: number) =>
+      chatModerationLiveState.beginHydration(accountId),
+    ),
+    // The fresh-join arm asks the action-bar store for a still-queued document
+    // before its post-lease reload; this file has nothing queued.
+    hotbarLayouts: { pending: () => null },
   };
   const deps: WsAuthDeps = {
     game: game as unknown as WsAuthDeps['game'],
@@ -87,11 +125,13 @@ function setup() {
     permissionsForRoles: vi.fn((roles: readonly string[]) => new Set<string>(roles)),
     metaRequestUserData: vi.fn(() => ({ fbp: null, fbc: null })),
     metaEventSourceUrl: vi.fn(() => undefined as string | undefined),
+    loadAccountLedger: async () => freshAccountLedger(),
     loadAccountCosmetics: vi.fn(async () => ({
       completedQuestIds: [],
       mechChromaIds: [],
       weaponSkinIds: [],
       weaponSkinLoadout: {},
+      mountSkinIds: [],
     })),
     // Character-lease deps: the happy path holds the lease so every existing case
     // reaches game.join unchanged; the lease branches themselves are covered by
@@ -112,7 +152,7 @@ function setup() {
     maxPlayersPerRealm: 0,
   };
   const req = {} as http.IncomingMessage;
-  return { ws, game, session, deps, req };
+  return { ws, game, session, deps, req, generalChatRateLimitLiveState, chatModerationLiveState };
 }
 
 function joinedMeta(game: ReturnType<typeof setup>['game']): Record<string, unknown> {
@@ -124,10 +164,12 @@ const authRaw = (over: Record<string, unknown> = {}) =>
   JSON.stringify({ t: ONLINE_WORLD_AUTH_TYPE, token: 'tok', character: 7, ...over });
 
 const errorFrame = (error: string) => JSON.stringify({ t: 'error', error });
+// rejectHandshake sends its frame uncompressed (no deflate stream for a rejected socket).
+const NO_COMPRESS = { compress: false };
 
 function expectSendThenClose(ws: FakeWs, frame: string) {
   expect(ws.send).toHaveBeenCalledTimes(1);
-  expect(ws.send).toHaveBeenCalledWith(frame);
+  expect(ws.send).toHaveBeenCalledWith(frame, NO_COMPRESS);
   expect(ws.close).toHaveBeenCalledTimes(1);
   // ws.send must fire before ws.close on every reject path.
   expect(ws.send.mock.invocationCallOrder[0]).toBeLessThan(ws.close.mock.invocationCallOrder[0]);
@@ -158,6 +200,132 @@ function expectNoAdmissionWork({ deps, game }: ReturnType<typeof setup>): void {
 async function flushMicrotasks() {
   for (let i = 0; i < 20; i++) await Promise.resolve();
 }
+
+// server/game.ts cannot be imported here (it pulls in the database layer, and
+// running with none is this file's whole point), so the receiving half of the
+// socketClosed withMarket contract is pinned against its source text. Comments
+// are stripped first: a commented-out line leaves its text in place and would
+// keep a raw substring pin falsely green.
+function gameSourceCode(): string {
+  return fs
+    .readFileSync(path.resolve(process.cwd(), 'server/game.ts'), 'utf8')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+describe('referral armour fresh admission', () => {
+  beforeEach(() => referralSetter.mockReset());
+
+  it('loads exactly once before leasing and applies after membership authority', async () => {
+    const { ws, deps, req, game } = setup();
+    const entitlement = { inviterAccountId: 10, inviterName: 'Aldric' };
+    deps.referralArmourForAccount = vi.fn(async () => entitlement);
+    deps.getMembership = async () => ({
+      active: false,
+      expiresAt: null,
+      authorizedUntil: 0,
+      recurringExpiresAt: null,
+    });
+    await createWsAuth(deps).authenticateWebSocket(
+      asWs(ws),
+      authRaw({ inviterAccountId: 99 }),
+      req,
+    );
+    expect(deps.referralArmourForAccount).toHaveBeenCalledExactlyOnceWith(1);
+    expect(vi.mocked(deps.referralArmourForAccount).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(deps.acquireCharacterLease).mock.invocationCallOrder[0],
+    );
+    expect(referralSetter).toHaveBeenCalledWith(undefined, 1, entitlement);
+    expect(game.sim.setMembership.mock.invocationCallOrder[0]).toBeLessThan(
+      referralSetter.mock.invocationCallOrder[0],
+    );
+    expect(deps.getCharacter).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not read or replace the live grant on resume', async () => {
+    const { ws, deps, req, game } = setup();
+    game.hasSessionForCharacter.mockReturnValue(true);
+    deps.referralArmourForAccount = vi.fn(async () => null);
+    await createWsAuth(deps).authenticateWebSocket(asWs(ws), authRaw(), req);
+    expect(deps.referralArmourForAccount).not.toHaveBeenCalled();
+    expect(referralSetter).not.toHaveBeenCalled();
+  });
+
+  it('fails a broken entitlement read before acquiring any lease', async () => {
+    const { ws, deps, req, game } = setup();
+    deps.referralArmourForAccount = async () => {
+      throw new Error('referral database unavailable');
+    };
+    await expect(
+      createWsAuth(deps).authenticateWebSocket(asWs(ws), authRaw(), req),
+    ).rejects.toThrow('referral database unavailable');
+    expect(deps.acquireCharacterLease).not.toHaveBeenCalled();
+    expect(game.join).not.toHaveBeenCalled();
+  });
+});
+
+describe('membership character admission', () => {
+  it.each([false, true])(
+    'refuses an expired premium slot on fresh or resumed join (resume=%s)',
+    async (resume) => {
+      const { ws, deps, req, game } = setup();
+      vi.mocked(deps.getCharacter).mockResolvedValue(baseChar({ membership_slot: true }));
+      game.hasSessionForCharacter.mockReturnValue(resume);
+      deps.getMembership = async () => ({
+        active: false,
+        expiresAt: 1,
+        authorizedUntil: 0,
+        recurringExpiresAt: null,
+      });
+      await createWsAuth(deps).authenticateWebSocket(asWs(ws), authRaw(), req);
+      expectSendThenClose(ws, errorFrame('membership required for this character'));
+      expect(game.join).not.toHaveBeenCalled();
+      expect(deps.acquireCharacterLease).not.toHaveBeenCalled();
+    },
+  );
+
+  it('stamps a renewed premium slot with bounded authorization time', async () => {
+    const { ws, deps, req, game } = setup();
+    const now = Date.now();
+    vi.mocked(deps.getCharacter).mockResolvedValue(baseChar({ membership_slot: true }));
+    deps.getMembership = async () => ({
+      active: true,
+      expiresAt: now + 90_000,
+      authorizedUntil: now + 30_000,
+      recurringExpiresAt: null,
+    });
+    await createWsAuth(deps).authenticateWebSocket(asWs(ws), authRaw(), req);
+    expect(game.join).toHaveBeenCalledOnce();
+    expect(game.sim.setMembership).toHaveBeenCalledWith(1, expect.any(Number));
+    expect(game.sim.setMembership.mock.calls[0][1]).toBeGreaterThan(0);
+    expect(game.sim.setMembership.mock.calls[0][1]).toBeLessThanOrEqual(30);
+  });
+
+  it('releases a fresh lease if membership expires during the handshake', async () => {
+    const { ws, deps, req, game } = setup();
+    let now = 1000;
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    try {
+      vi.mocked(deps.getCharacter)
+        .mockResolvedValueOnce(baseChar({ membership_slot: true }))
+        .mockImplementationOnce(async () => {
+          now = 2000;
+          return baseChar({ membership_slot: true });
+        });
+      deps.getMembership = async () => ({
+        active: true,
+        expiresAt: 1500,
+        authorizedUntil: 31_000,
+        recurringExpiresAt: null,
+      });
+      await createWsAuth(deps).authenticateWebSocket(asWs(ws), authRaw(), req);
+      expectSendThenClose(ws, errorFrame('membership required for this character'));
+      expect(deps.releaseCharacterLease).toHaveBeenCalledOnce();
+      expect(game.join).not.toHaveBeenCalled();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+});
 
 describe('createWsAuth: authenticateWebSocket reject paths', () => {
   it('1. rejects unparseable JSON with "bad auth message" and logs the parse error', async () => {
@@ -211,13 +379,13 @@ describe('createWsAuth: authenticateWebSocket reject paths', () => {
     expectNoAdmissionWork(fixture);
   });
 
-  it('2c. rejects an auth-world-2 client on the auth-world-3 server before all admission work', async () => {
+  it('2c-25. rejects an auth-world-25 client before all admission work', async () => {
     const fixture = setup();
     const { ws, deps, req } = fixture;
 
     await createWsAuth(deps).authenticateWebSocket(
       asWs(ws),
-      JSON.stringify({ t: 'auth-world-2', token: 'tok', character: 7 }),
+      JSON.stringify({ t: 'auth-world-25', token: 'tok', character: 7 }),
       req,
     );
 
@@ -228,7 +396,72 @@ describe('createWsAuth: authenticateWebSocket reject paths', () => {
     expectNoAdmissionWork(fixture);
   });
 
-  it.each(['auth-world', 'auth-world-4', 'auth-world-next', 'auth-world-01', 'auth-world-1.0'])(
+  it('2c. rejects a source-unaware auth-world-26 client before all admission work', async () => {
+    const fixture = setup();
+    const { ws, deps, req } = fixture;
+
+    await createWsAuth(deps).authenticateWebSocket(
+      asWs(ws),
+      JSON.stringify({ t: 'auth-world-26', token: 'tok', character: 7 }),
+      req,
+    );
+
+    expectSendThenClose(
+      ws,
+      errorFrame('Game and server versions are incompatible. Reload or update, then try again.'),
+    );
+    expectNoAdmissionWork(fixture);
+  });
+
+  it('2c-harvest. rejects a pre-Field-Kit auth-world-27 client before all admission work', async () => {
+    const fixture = setup();
+    const { ws, deps, req } = fixture;
+
+    await createWsAuth(deps).authenticateWebSocket(
+      asWs(ws),
+      JSON.stringify({ t: 'auth-world-27', token: 'tok', character: 7 }),
+      req,
+    );
+
+    expectSendThenClose(
+      ws,
+      errorFrame('Game and server versions are incompatible. Reload or update, then try again.'),
+    );
+    expectNoAdmissionWork(fixture);
+  });
+
+  it('2c-28. rejects a prior-release auth-world-28 client (profession client without current hazards/layout) before all admission work', async () => {
+    const fixture = setup();
+    const { ws, deps, req } = fixture;
+
+    await createWsAuth(deps).authenticateWebSocket(
+      asWs(ws),
+      JSON.stringify({ t: 'auth-world-28', token: 'tok', character: 7 }),
+      req,
+    );
+
+    expectSendThenClose(
+      ws,
+      errorFrame('Game and server versions are incompatible. Reload or update, then try again.'),
+    );
+    expectNoAdmissionWork(fixture);
+  });
+
+  it.each([
+    'auth-world',
+    'auth-world-42', // previous Farshore salvage layout and model mapping
+    'auth-world-43', // hull was still a collectible entity
+    'auth-world-45', // predates chunked Materials Vault snapshots
+    'auth-world-46', // withdrawn stone-foot collision and no vault chunks
+    'auth-world-47', // vault chunks, but still the withdrawn stone-foot collision
+    // one epoch AHEAD of the live discriminator, derived so a layout-version
+    // bump can never turn this row into the current epoch by accident (the
+    // hardcoded 'auth-world-21' row did exactly that when 20 became 21)
+    ONLINE_WORLD_AUTH_TYPE.replace(/\d+$/, (n) => String(Number(n) + 1)),
+    'auth-world-next',
+    'auth-world-01',
+    'auth-world-1.0',
+  ])(
     '2d. rejects the non-current world auth discriminator %s before all admission work',
     async (authType) => {
       const fixture = setup();
@@ -406,7 +639,10 @@ describe('createWsAuth: authenticateWebSocket reject paths', () => {
     await authenticateWebSocket(asWs(ws), authRaw(), req);
     // isAdmin short-circuits the gate, so the join proceeds and no refusal frame is sent.
     expect(game.join).toHaveBeenCalledTimes(1);
-    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('too many connections from your network'));
+    expect(ws.send).not.toHaveBeenCalledWith(
+      errorFrame('too many connections from your network'),
+      NO_COMPRESS,
+    );
   });
 
   it('9. forwards a game.join error frame', async () => {
@@ -436,15 +672,15 @@ describe('createWsAuth: authenticateWebSocket reject paths', () => {
 });
 
 describe('createWsAuth: timer-wire capability negotiation', () => {
-  it('passes only the exact optional v2 capability into the recipient session meta', async () => {
+  it('passes only the exact optional v3 capability into the recipient session meta', async () => {
     const capable = setup();
     await createWsAuth(capable.deps).authenticateWebSocket(
       asWs(capable.ws),
-      authRaw({ timerWire: 2 }),
+      authRaw({ timerWire: 3 }),
       capable.req,
     );
     expect(capable.game.join).toHaveBeenCalledTimes(1);
-    expect(joinedMeta(capable.game)).toMatchObject({ timerWireVersion: 2 });
+    expect(joinedMeta(capable.game)).toMatchObject({ timerWireVersion: 3 });
 
     const legacy = setup();
     await createWsAuth(legacy.deps).authenticateWebSocket(asWs(legacy.ws), authRaw(), legacy.req);
@@ -460,7 +696,7 @@ describe('createWsAuth: timer-wire capability negotiation', () => {
     expect(unknown.game.join).toHaveBeenCalledTimes(1);
     expect(joinedMeta(unknown.game)).toMatchObject({ timerWireVersion: 1 });
 
-    for (const coercible of ['2', true, { valueOf: () => 2 }]) {
+    for (const coercible of ['3', true, { valueOf: () => 3 }]) {
       const strict = setup();
       await createWsAuth(strict.deps).authenticateWebSocket(
         asWs(strict.ws),
@@ -475,11 +711,65 @@ describe('createWsAuth: timer-wire capability negotiation', () => {
     resume.game.hasSessionForCharacter.mockReturnValue(true);
     await createWsAuth(resume.deps).authenticateWebSocket(
       asWs(resume.ws),
-      authRaw({ timerWire: 2 }),
+      authRaw({ timerWire: 3 }),
       resume.req,
     );
     expect(resume.deps.acquireCharacterLease).not.toHaveBeenCalled();
-    expect(joinedMeta(resume.game)).toMatchObject({ timerWireVersion: 2 });
+    expect(joinedMeta(resume.game)).toMatchObject({ timerWireVersion: 3 });
+  });
+});
+
+describe('createWsAuth: Warlock pet-special capability negotiation', () => {
+  it('accepts only the exact optional v1 capability and otherwise fails closed', async () => {
+    const capable = setup();
+    await createWsAuth(capable.deps).authenticateWebSocket(
+      asWs(capable.ws),
+      authRaw({ petSpecialWire: 1 }),
+      capable.req,
+    );
+    expect(joinedMeta(capable.game)).toMatchObject({ petSpecialWireVersion: 1 });
+
+    for (const advertised of [undefined, 2, '1', true]) {
+      const legacy = setup();
+      await createWsAuth(legacy.deps).authenticateWebSocket(
+        asWs(legacy.ws),
+        authRaw(advertised === undefined ? {} : { petSpecialWire: advertised }),
+        legacy.req,
+      );
+      expect(joinedMeta(legacy.game)).toMatchObject({ petSpecialWireVersion: 0 });
+    }
+
+    const resume = setup();
+    resume.game.hasSessionForCharacter.mockReturnValue(true);
+    await createWsAuth(resume.deps).authenticateWebSocket(
+      asWs(resume.ws),
+      authRaw({ petSpecialWire: 1 }),
+      resume.req,
+    );
+    expect(resume.deps.acquireCharacterLease).not.toHaveBeenCalled();
+    expect(joinedMeta(resume.game)).toMatchObject({ petSpecialWireVersion: 1 });
+  });
+});
+
+describe('createWsAuth: dungeon-entry facing capability negotiation', () => {
+  it('accepts only the exact optional capability and otherwise keeps the legacy path', async () => {
+    const capable = setup();
+    await createWsAuth(capable.deps).authenticateWebSocket(
+      asWs(capable.ws),
+      authRaw({ dungeonEntryFacingWire: DUNGEON_ENTRY_FACING_WIRE_VERSION }),
+      capable.req,
+    );
+    expect(joinedMeta(capable.game)).toMatchObject({ dungeonEntryFacingWireVersion: 1 });
+
+    for (const advertised of [undefined, 2, '1', true]) {
+      const legacy = setup();
+      await createWsAuth(legacy.deps).authenticateWebSocket(
+        asWs(legacy.ws),
+        authRaw(advertised === undefined ? {} : { dungeonEntryFacingWire: advertised }),
+        legacy.req,
+      );
+      expect(joinedMeta(legacy.game)).toMatchObject({ dungeonEntryFacingWireVersion: 0 });
+    }
   });
 });
 
@@ -511,7 +801,7 @@ describe('createWsAuth: realm admission cap', () => {
     const { authenticateWebSocket } = createWsAuth(deps);
     await authenticateWebSocket(asWs(ws), authRaw(), req);
     expect(game.join).toHaveBeenCalledTimes(1);
-    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
   });
 
   it('c. a cap of 0 disables the gate even far past any count', async () => {
@@ -521,7 +811,7 @@ describe('createWsAuth: realm admission cap', () => {
     const { authenticateWebSocket } = createWsAuth(deps);
     await authenticateWebSocket(asWs(ws), authRaw(), req);
     expect(game.join).toHaveBeenCalledTimes(1);
-    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
   });
 
   it('d. staff bypass the cap, mirroring the per-IP exemption', async () => {
@@ -532,7 +822,7 @@ describe('createWsAuth: realm admission cap', () => {
     const { authenticateWebSocket } = createWsAuth(deps);
     await authenticateWebSocket(asWs(ws), authRaw(), req);
     expect(game.join).toHaveBeenCalledTimes(1);
-    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
   });
 
   it('e. admits a fresh join one below the cap (the boundary just under refusal)', async () => {
@@ -542,7 +832,7 @@ describe('createWsAuth: realm admission cap', () => {
     const { authenticateWebSocket } = createWsAuth(deps);
     await authenticateWebSocket(asWs(ws), authRaw(), req);
     expect(game.join).toHaveBeenCalledTimes(1);
-    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
   });
 
   it('f. admits exactly one of two concurrent fresh joins racing for the last slot', async () => {
@@ -571,7 +861,7 @@ describe('createWsAuth: realm admission cap', () => {
     // admission the winner holds fills the last slot before the loser's cap check.
     expect(game.join).toHaveBeenCalledTimes(1);
     expectSendThenClose(ws2, errorFrame('realm is full'));
-    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
     logSpy.mockRestore();
   });
 
@@ -747,7 +1037,7 @@ describe('createWsAuth: realm admission cap', () => {
     const ws3 = new FakeWs();
     await authenticateWebSocket(asWs(ws3), authRaw({ character: 23 }), req);
     expect(game.join).toHaveBeenCalledTimes(1);
-    expect(ws3.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws3.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
     logSpy.mockRestore();
   });
 
@@ -764,10 +1054,10 @@ describe('createWsAuth: realm admission cap', () => {
     const { authenticateWebSocket } = createWsAuth(deps);
     const ws1 = new FakeWs();
     await authenticateWebSocket(asWs(ws1), authRaw({ character: 31 }), req);
-    expect(ws1.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws1.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
     const ws2 = new FakeWs();
     await authenticateWebSocket(asWs(ws2), authRaw({ character: 32 }), req);
-    expect(ws2.send).not.toHaveBeenCalledWith(errorFrame('realm is full'));
+    expect(ws2.send).not.toHaveBeenCalledWith(errorFrame('realm is full'), NO_COMPRESS);
     expect(game.join).toHaveBeenCalledTimes(2);
     logSpy.mockRestore();
   });
@@ -794,11 +1084,13 @@ describe('createWsAuth: authenticateWebSocket accept path', () => {
         mutedUntil: null,
         reason: '',
         chatStrikes: 0,
+        generalChatRateLimit: null,
         accountCosmetics: {
           completedQuestIds: [],
           mechChromaIds: [],
           weaponSkinIds: [],
           weaponSkinLoadout: {},
+          mountSkinIds: [],
         },
         isAdmin: false,
         // Not staff: the snapshotted permission set is EMPTY (fail closed), never
@@ -834,6 +1126,27 @@ describe('createWsAuth: authenticateWebSocket accept path', () => {
     (session as { awaitingPong?: boolean }).awaitingPong = true;
     ws.emit('pong');
     expect((session as { awaitingPong?: boolean }).awaitingPong).toBe(true);
+  });
+
+  it('rejects buffered frames from the old transport after a session resumes', async () => {
+    const { ws, session, game, deps, req } = setup();
+    const auth = createWsAuth(deps);
+    await auth.authenticateWebSocket(asWs(ws), authRaw(), req);
+    ws.emit('message', 'before-logout');
+    expect(game.handleMessage).toHaveBeenCalledWith(session, 'before-logout');
+    game.handleMessage.mockClear();
+
+    const replacement = new FakeWs();
+    game.hasSessionForCharacter.mockReturnValue(true);
+    game.join.mockImplementation(() => {
+      session.ws = replacement;
+      return session;
+    });
+    await auth.authenticateWebSocket(asWs(replacement), authRaw(), req);
+    ws.emit('message', 'stale-command');
+    expect(game.handleMessage).not.toHaveBeenCalled();
+    replacement.emit('message', 'resumed-command');
+    expect(game.handleMessage).toHaveBeenCalledExactlyOnceWith(session, 'resumed-command');
   });
 
   it('snapshots the staff roles into isAdmin + expanded adminPermissions, and rides the CAPI attribution', async () => {
@@ -887,7 +1200,7 @@ describe('createWsAuth: authenticateWebSocket accept path', () => {
     const { ws, game, deps, req } = setup();
     deps.resolveAmbientBotId = vi.fn(async () => 'ambient-7');
     deps.isAmbientConnectionRefused = vi.fn(() => false);
-    deps.afterJoin = vi.fn(async () => {});
+    deps.afterJoin = vi.fn(() => undefined);
 
     const { authenticateWebSocket } = createWsAuth(deps);
     await authenticateWebSocket(asWs(ws), authRaw(), req);
@@ -916,12 +1229,51 @@ describe('createWsAuth: authenticateWebSocket accept path', () => {
       characterId: 7,
       characterName: 'Aldric',
       ambientBotId: 'ambient-7',
+      admittedCharacter: expect.objectContaining({ id: 7 }),
+      isCurrentSession: expect.any(Function),
     });
   });
 
+  it.each([false, true])(
+    'passes the admitted row and fences the current session (resume=%s)',
+    async (resume) => {
+      const { ws, game, session, deps, req } = setup();
+      const nonceSession = session as typeof session & { leaseNonce?: string };
+      nonceSession.leaseNonce = resume ? 'resume-nonce' : 'fresh-nonce';
+      game.clients = new Map([[session.pid, session]]);
+      game.hasSessionForCharacter.mockReturnValue(resume);
+      const first = baseChar({ name: 'Before' });
+      const fresh = baseChar({
+        name: 'Admitted',
+        hosted_play_preferences_version: 1,
+        hosted_play_resume_on_login: true,
+      });
+      deps.getCharacter = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(fresh);
+      const hook = vi.fn<NonNullable<WsAuthDeps['afterJoin']>>(() => undefined);
+      deps.afterJoin = hook;
+      await createWsAuth(deps).authenticateWebSocket(asWs(ws), authRaw(), req);
+      const input = hook.mock.calls[0][0];
+      expect(input.admittedCharacter).toBe(resume ? first : fresh);
+      expect(input.isCurrentSession()).toBe(true);
+      nonceSession.leaseNonce = 'replacement';
+      expect(input.isCurrentSession()).toBe(false);
+      nonceSession.leaseNonce = resume ? 'resume-nonce' : 'fresh-nonce';
+      session.linkdead = true;
+      expect(input.isCurrentSession()).toBe(false);
+      session.linkdead = false;
+      session.ws = new FakeWs();
+      expect(input.isCurrentSession()).toBe(false);
+      session.ws = ws;
+      game.clients = new Map();
+      expect(input.isCurrentSession()).toBe(false);
+      game.clients = new Map([[session.pid, { ...session }]]);
+      expect(input.isCurrentSession()).toBe(false);
+    },
+  );
+
   it('keeps an accepted session when the optional post-join hook fails', async () => {
     const { ws, game, deps, req } = setup();
-    deps.afterJoin = vi.fn(async () => {
+    deps.afterJoin = vi.fn(() => {
       throw new Error('hosted runtime unavailable');
     });
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -971,6 +1323,168 @@ describe('createWsAuth: authenticateWebSocket accept path', () => {
       false,
       expect.objectContaining({ mutedUntil: '2099-01-01T00:00:00Z', reason: 'spam' }),
     );
+  });
+
+  it('passes the General quota loaded by the existing moderation auth query into join', async () => {
+    const { ws, game, deps, req } = setup();
+    deps.moderationStatusForAccount = vi.fn(async () =>
+      modStatus({ generalChatRateLimit: { messages: 7, windowMinutes: 15 } }),
+    );
+    await createWsAuth(deps).authenticateWebSocket(asWs(ws), authRaw(), req);
+    expect(deps.moderationStatusForAccount).toHaveBeenCalledTimes(1);
+    expect(game.join).toHaveBeenCalledWith(
+      ws,
+      1,
+      7,
+      'Aldric',
+      'warrior',
+      null,
+      false,
+      expect.objectContaining({
+        generalChatRateLimit: { messages: 7, windowMinutes: 15 },
+      }),
+    );
+  });
+
+  it.each([
+    {
+      label: 'set',
+      hydrated: null,
+      committed: { messages: 3, windowMinutes: 8 },
+    },
+    {
+      label: 'clear',
+      hydrated: { messages: 7, windowMinutes: 15 },
+      committed: null,
+    },
+  ])(
+    'uses a committed $label notification that arrives during auth hydration',
+    async ({ hydrated, committed }) => {
+      const current = setup();
+      let resolveCharacter!: (character: CharacterRow | null) => void;
+      current.deps.moderationStatusForAccount = vi.fn(async () =>
+        modStatus({ generalChatRateLimit: hydrated }),
+      );
+      current.deps.getCharacter = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<CharacterRow | null>((resolve) => {
+              resolveCharacter = resolve;
+            }),
+        )
+        .mockResolvedValue(baseChar());
+      const authenticating = createWsAuth(current.deps).authenticateWebSocket(
+        asWs(current.ws),
+        authRaw(),
+        current.req,
+      );
+      await vi.waitFor(() =>
+        expect(current.deps.moderationStatusForAccount).toHaveBeenCalledOnce(),
+      );
+
+      current.generalChatRateLimitLiveState.policyChanged(1, committed);
+      resolveCharacter(baseChar());
+      await authenticating;
+
+      expect(joinedMeta(current.game).generalChatRateLimit).toEqual(committed);
+    },
+  );
+
+  it.each([
+    {
+      label: 'mute',
+      hydrated: null,
+      committed: { mutedUntil: '2099-01-01T00:00:00.000Z', reason: 'spam', strikes: 4 },
+      expected: { mutedUntil: '2099-01-01T00:00:00.000Z', reason: 'spam', chatStrikes: 4 },
+    },
+    {
+      label: 'unmute',
+      hydrated: '2099-01-01T00:00:00.000Z',
+      committed: { mutedUntil: null, reason: '', strikes: 1 },
+      expected: { mutedUntil: null, reason: '', chatStrikes: 1 },
+    },
+  ])(
+    // Reproduces the RESUME race server/chat_mod_live.ts exists to close (the
+    // reported bug: a linkdead session's reconnect): a mute or committed admin
+    // unmute pushed onto this account WHILE the auth query snapshot below is
+    // still in flight must win over that now-stale snapshot. Strikes remain
+    // independently fenced.
+    'uses a committed chat-moderation $label that arrives during auth hydration on resume',
+    async ({ hydrated, committed, expected }) => {
+      const current = setup();
+      current.game.hasSessionForCharacter.mockReturnValue(true);
+      let resolveCharacter!: (character: CharacterRow | null) => void;
+      current.deps.moderationStatusForAccount = vi.fn(async () =>
+        modStatus({ chatMutedUntil: hydrated }),
+      );
+      current.deps.getCharacter = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<CharacterRow | null>((resolve) => {
+              resolveCharacter = resolve;
+            }),
+        )
+        .mockResolvedValue(baseChar());
+      const authenticating = createWsAuth(current.deps).authenticateWebSocket(
+        asWs(current.ws),
+        authRaw(),
+        current.req,
+      );
+      await vi.waitFor(() =>
+        expect(current.deps.moderationStatusForAccount).toHaveBeenCalledOnce(),
+      );
+
+      current.chatModerationLiveState.muteChanged(1, committed);
+      current.chatModerationLiveState.strikesChanged(1, committed.strikes);
+      resolveCharacter(baseChar());
+      await authenticating;
+
+      expect(joinedMeta(current.game)).toMatchObject(expected);
+    },
+  );
+
+  it('still catches a push landing after chatMuteStatusForAccount but before the synchronous join boundary', async () => {
+    // The fence must resolve AT the game.join call, not right after its own
+    // DB reads: loadAccountCosmetics (and, on other arms, adminRolesForAccount
+    // / bankBonusForAccount / the lease acquire / the character reload) all
+    // still run between those reads and the actual join, and a push landing
+    // in that later window must not be lost either.
+    const current = setup();
+    current.game.hasSessionForCharacter.mockReturnValue(true);
+    type Cosmetics = Awaited<ReturnType<typeof current.deps.loadAccountCosmetics>>;
+    let resolveCosmetics!: (cosmetics: Cosmetics) => void;
+    current.deps.loadAccountCosmetics = vi.fn(
+      () =>
+        new Promise<Cosmetics>((resolve) => {
+          resolveCosmetics = resolve;
+        }),
+    );
+    const authenticating = createWsAuth(current.deps).authenticateWebSocket(
+      asWs(current.ws),
+      authRaw(),
+      current.req,
+    );
+    await vi.waitFor(() => expect(current.deps.loadAccountCosmetics).toHaveBeenCalledOnce());
+
+    const committed = { mutedUntil: '2099-01-01T00:00:00.000Z', reason: 'late push', strikes: 3 };
+    current.chatModerationLiveState.muteChanged(1, committed);
+    current.chatModerationLiveState.strikesChanged(1, committed.strikes);
+    resolveCosmetics({
+      completedQuestIds: [],
+      mechChromaIds: [],
+      weaponSkinIds: [],
+      weaponSkinLoadout: {},
+      mountSkinIds: [],
+    });
+    await authenticating;
+
+    expect(joinedMeta(current.game)).toMatchObject({
+      mutedUntil: committed.mutedUntil,
+      reason: committed.reason,
+      chatStrikes: committed.strikes,
+    });
   });
 
   it('falls back to the chat-level mute when the account has no mute', async () => {
@@ -1035,6 +1549,80 @@ describe('createWsAuth: bank bonus stamp', () => {
   });
 });
 
+describe('createWsAuth: authored look on the join meta', () => {
+  // The `appearance` column is JSONB the server re-broadcasts to every player in
+  // view, so it is bounded on the way IN (the redesign route) and re-validated
+  // on the way OUT here, the same belt-and-braces the hotbar layout gets. A row
+  // can predate the current rules, or come from an older build, a migration, or
+  // a direct database edit, and the read path is the last gate before the wire.
+
+  it('re-validates the stored look on the way to the world', async () => {
+    const { ws, game, deps, req } = setup();
+    deps.getCharacter = vi.fn(
+      async () =>
+        baseChar({
+          // a row that today's bounds would never have written: unknown keys, an
+          // attacker-chosen slider name, and free text where a style id goes
+          appearance: {
+            gender: 'female',
+            hair: 'BUY GOLD AT EXAMPLE COM',
+            evil: '<script>alert(1)</script>',
+            face: { jaw: 0.5, 'ATTACKER TEXT': 1 },
+          },
+        }) as CharacterRow | null,
+    );
+    const { authenticateWebSocket } = createWsAuth(deps);
+    await authenticateWebSocket(asWs(ws), authRaw(), req);
+
+    expect(joinedMeta(game).appearance).toEqual({ gender: 'female', face: { jaw: 0.5 } });
+  });
+
+  it('passes a clean look through untouched', async () => {
+    const look = { gender: 'male', hair: 'mohawk', skinLight: 0.42, lashes: false };
+    const { ws, game, deps, req } = setup();
+    deps.getCharacter = vi.fn(async () => baseChar({ appearance: look }) as CharacterRow | null);
+    const { authenticateWebSocket } = createWsAuth(deps);
+    await authenticateWebSocket(asWs(ws), authRaw(), req);
+
+    expect(joinedMeta(game).appearance).toEqual(look);
+  });
+
+  it('sends null for a character with no look, never undefined', async () => {
+    // `undefined` means "absent" on the resume arm (keep what the session has),
+    // so a look-less character must be an explicit null rather than a hole.
+    const { ws, game, deps, req } = setup();
+    const { authenticateWebSocket } = createWsAuth(deps);
+    await authenticateWebSocket(asWs(ws), authRaw(), req);
+
+    const meta = joinedMeta(game);
+    expect('appearance' in meta).toBe(true);
+    expect(meta.appearance).toBeNull();
+    // ...and a row whose column holds junk is the same thing: no usable look.
+    const junk = setup();
+    junk.deps.getCharacter = vi.fn(
+      async () => baseChar({ appearance: { evil: 'x' } as never }) as CharacterRow | null,
+    );
+    await createWsAuth(junk.deps).authenticateWebSocket(asWs(junk.ws), authRaw(), junk.req);
+    expect(joinedMeta(junk.game).appearance).toBeNull();
+  });
+
+  it('re-validates on the RESUME arm too, where a redesign may have landed', async () => {
+    // The linkdead window is exactly when a redesign can be saved against a row
+    // the live entity does not know about, so the resume arm carries a freshly
+    // read look and it goes through the same gate.
+    const { ws, game, deps, req } = setup();
+    game.hasSessionForCharacter = vi.fn(() => true);
+    deps.getCharacter = vi.fn(
+      async () =>
+        baseChar({ appearance: { hair: 'mohawk', junk: 'x'.repeat(200) } }) as CharacterRow | null,
+    );
+    const { authenticateWebSocket } = createWsAuth(deps);
+    await authenticateWebSocket(asWs(ws), authRaw(), req);
+
+    expect(joinedMeta(game).appearance).toEqual({ hair: 'mohawk' });
+  });
+});
+
 describe('createWsAuth: onConnection', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -1063,7 +1651,7 @@ describe('createWsAuth: onConnection', () => {
     expect(game.join).toHaveBeenCalledTimes(1);
     // The timer was cleared, so advancing past it produces no timeout frame.
     vi.advanceTimersByTime(10_000);
-    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('authentication timed out'));
+    expect(ws.send).not.toHaveBeenCalledWith(errorFrame('authentication timed out'), NO_COMPRESS);
   });
 
   it('converts a rejected handshake into the retryable authTimedOut frame while the socket is open, then flushes', async () => {
@@ -1092,15 +1680,16 @@ describe('createWsAuth: onConnection', () => {
     errSpy.mockRestore();
   });
 
-  it('logs but sends no frame when the socket already closed during a rejected handshake', async () => {
+  it('logs but sends no frame when the socket closes during a rejected handshake', async () => {
     const { ws, deps, req } = setup();
+    // The socket is OPEN when the first frame lands (the pre-auth guard below
+    // owns the already-closed case) and dies while the handshake is in flight,
+    // so the rejection resolves against a socket that is no longer OPEN: the
+    // caller must not double-send onto a socket already torn down.
     deps.accountAndScopeForToken = vi.fn(async () => {
+      ws.readyState = 3; // CLOSED, mid-handshake
       throw new Error('db down');
     });
-    // Socket already closed (readyState CLOSED, not OPEN): the caller must not
-    // double-send onto a socket a reject path already tore down.
-    (ws as unknown as { readyState: number; OPEN: number }).readyState = 3;
-    (ws as unknown as { OPEN: number }).OPEN = 1;
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { onConnection } = createWsAuth(deps);
     await onConnection(asWs(ws), req);
@@ -1111,6 +1700,115 @@ describe('createWsAuth: onConnection', () => {
     expect(ws.send).not.toHaveBeenCalled();
     expect(errSpy).toHaveBeenCalled();
     errSpy.mockRestore();
+  });
+
+  it('never starts a handshake for a first frame that arrives after the pre-auth reject', async () => {
+    const late = setup();
+    await createWsAuth(late.deps).onConnection(asWs(late.ws), late.req);
+    // The deadline fires: rejectHandshake sends its frame and closes the
+    // socket, which in the real ws leaves readyState CLOSING. The once-listener
+    // stays armed either way, so a slow client's first frame still arrives.
+    vi.advanceTimersByTime(10_000);
+    expectSendThenClose(late.ws, errorFrame('authentication timed out'));
+    late.ws.readyState = 2; // CLOSING
+    late.ws.emit('message', authRaw());
+    await flushMicrotasks();
+    // Not one step of the handshake ran on the rejected connection. Without the
+    // guard this frame buys the full ladder (token, moderation, character, the
+    // lease acquire, game.join), and the mid-handshake death re-check then
+    // hands the session it just created to socketClosed: a linkdead ghost
+    // holding a realm-cap slot and the character lease for the whole grace
+    // window, refusing the player's every re-login meanwhile.
+    expectNoAdmissionWork(late);
+    expect(late.ws.send).toHaveBeenCalledTimes(1); // no second frame either
+
+    // Negative arm, same sequence on a socket that is still OPEN when its late
+    // frame lands: the handshake DOES run, so the readyState guard is what
+    // stopped the case above, not the fired deadline.
+    const open = setup();
+    await createWsAuth(open.deps).onConnection(asWs(open.ws), open.req);
+    vi.advanceTimersByTime(10_000);
+    open.ws.emit('message', authRaw());
+    await flushMicrotasks();
+    expect(open.game.join).toHaveBeenCalledTimes(1);
+  });
+
+  it('a clean pre-auth close clears the deadline instead of firing it at a dead socket', async () => {
+    const closed = setup();
+    await createWsAuth(closed.deps).onConnection(asWs(closed.ws), closed.req);
+    // Exactly one pending timer: the 10s deadline onConnection just armed.
+    expect(vi.getTimerCount()).toBe(1);
+    closed.ws.emit('close');
+    // Cleared, not merely outrun: the client hung up before authenticating, so
+    // there is nothing left to time out.
+    expect(vi.getTimerCount()).toBe(0);
+    vi.advanceTimersByTime(60_000);
+    expect(closed.ws.send).not.toHaveBeenCalled();
+    expect(closed.ws.close).not.toHaveBeenCalled();
+
+    // Negative arm: without the close, the very same deadline still fires and
+    // rejects, so this pins the close listener rather than a disarmed timer.
+    const kept = setup();
+    await createWsAuth(kept.deps).onConnection(asWs(kept.ws), kept.req);
+    expect(vi.getTimerCount()).toBe(1);
+    vi.advanceTimersByTime(10_000);
+    expectSendThenClose(kept.ws, errorFrame('authentication timed out'));
+  });
+
+  it('discards handshake-buffered frames when the socket did not survive the handshake', async () => {
+    const { ws, game, deps, req } = setup();
+    // The socket dies during the handshake awaits. The join still lands and the
+    // re-check holds the session linkdead with its movement zeroed, so the
+    // frames captured meanwhile have no consumer: replaying them would push
+    // buffered input into a session nothing is driving, behind the re-check
+    // that just stopped it.
+    deps.adminRolesForAccount = vi.fn(async () => {
+      ws.readyState = 3; // CLOSED, mid-handshake
+      return null as { username: string; roles: string[] } | null;
+    });
+    deps.afterJoin = vi.fn(() => undefined);
+    const { onConnection } = createWsAuth(deps);
+    await onConnection(asWs(ws), req);
+
+    ws.emit('message', authRaw());
+    ws.emit('message', 'move-frame'); // captured by the handshake buffer
+    // Flushed twice: the buffer decision rides two more promise hops past
+    // game.join (the .catch, then the .finally).
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(game.join).toHaveBeenCalledTimes(1);
+    expect(game.socketClosed).toHaveBeenCalledTimes(1);
+    // The decision HAS been made: the capture listener is off the socket, so
+    // only the permanent handler is left. Without this probe the assertion
+    // below would also pass on a flush that simply had not run yet.
+    expect(ws.listenerCount('message')).toBe(1);
+    // The permanent handler IS attached on this path, so a replay would reach
+    // handleMessage; nothing does.
+    expect(game.handleMessage).not.toHaveBeenCalled();
+    expect(deps.afterJoin).not.toHaveBeenCalled();
+  });
+
+  it('still replays handshake-buffered frames, in order, into a live session', async () => {
+    const { ws, game, session, deps, req } = setup();
+    deps.afterJoin = vi.fn(() => undefined);
+    const { onConnection } = createWsAuth(deps);
+    await onConnection(asWs(ws), req);
+
+    ws.emit('message', authRaw());
+    ws.emit('message', 'move-1');
+    ws.emit('message', 'move-2');
+    // Flushed twice for the same reason as the discard arm above.
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    // The live-socket path is byte-identical to before the discard arm: both
+    // captured frames reach the session, in arrival order.
+    expect(deps.afterJoin).toHaveBeenCalledTimes(1);
+    ws.emit('message', 'move-3');
+    const calls = game.handleMessage.mock.calls as unknown as unknown[][];
+    expect(calls.map((call) => call[1])).toEqual(['move-1', 'move-2', 'move-3']);
+    expect(calls.every((call) => call[0] === session)).toBe(true);
   });
 
   it('tears down quietly on a pre-auth socket error without throwing', async () => {
@@ -1182,5 +1880,103 @@ describe('createWsAuth: attachUpgrade', () => {
 
     expect(socket.destroy).toHaveBeenCalledTimes(1);
     expect(wss.handleUpgrade).not.toHaveBeenCalled();
+  });
+});
+
+describe('mid-handshake socket death cannot mint a permanent zombie session', () => {
+  // The phase 16 finding: a socket that dies during the handshake's awaits
+  // emits its close event BEFORE the post-join close handler exists, so the
+  // event is lost; the freshly-created session is then invisible to every
+  // reaper (not linkdead for the grace sweep, readyState not OPEN for the
+  // keepalive sweep, sendRaw drops its frames silently) while its lease
+  // heartbeat renews forever and planJoin refuses the character's every
+  // re-login. The re-check after the handlers are attached is the fix, and
+  // these arms are its decisive pins.
+  it('a socket already closed when the join lands is handed to socketClosed', async () => {
+    const s = setup();
+    const { authenticateWebSocket } = createWsAuth(s.deps);
+    // The socket dies while the handshake awaits are in flight: model the
+    // final state (the close event itself fired before any handler existed).
+    s.ws.readyState = 3; // CLOSED
+    await authenticateWebSocket(asWs(s.ws), authRaw(), s.req);
+    expect(s.game.join).toHaveBeenCalledTimes(1);
+    expect(s.game.socketClosed).toHaveBeenCalledTimes(1);
+    // The options bag rides this ONE call site (see the market-halves arm below).
+    expect(s.game.socketClosed).toHaveBeenCalledWith(s.session, s.ws, { withMarket: false });
+  });
+
+  it('a live socket is never pushed into linkdead by the re-check', async () => {
+    const s = setup();
+    const { authenticateWebSocket } = createWsAuth(s.deps);
+    await authenticateWebSocket(asWs(s.ws), authRaw(), s.req);
+    expect(s.game.join).toHaveBeenCalledTimes(1);
+    expect(s.game.socketClosed).not.toHaveBeenCalled();
+  });
+
+  it('a close AFTER the handlers attach rides the normal close handler, not the re-check', async () => {
+    const s = setup();
+    const { authenticateWebSocket } = createWsAuth(s.deps);
+    await authenticateWebSocket(asWs(s.ws), authRaw(), s.req);
+    expect(s.game.socketClosed).not.toHaveBeenCalled();
+    s.ws.readyState = 3;
+    s.ws.emit('close');
+    expect(s.game.socketClosed).toHaveBeenCalledTimes(1);
+    expect(s.game.socketClosed).toHaveBeenCalledWith(s.session, s.ws);
+  });
+
+  it('the re-check skips the market halves of the safety save; a real drop keeps them', async () => {
+    // The re-check fires exactly when the pool is exhausted, and socketClosed's
+    // safety flush defaults to the whole-realm market+mail transaction on the
+    // process-global market queue: one per dead handshake would feed back into
+    // the resource that killed them. A session that died mid-handshake
+    // processed ZERO input (game.join returns synchronously and the re-check
+    // runs before any message handling), so it cannot have touched the market
+    // or mail escrow and those halves are safely skipped.
+    const dead = setup();
+    dead.ws.readyState = 3;
+    await createWsAuth(dead.deps).authenticateWebSocket(asWs(dead.ws), authRaw(), dead.req);
+    expect(dead.game.socketClosed).toHaveBeenCalledWith(dead.session, dead.ws, {
+      withMarket: false,
+    });
+
+    // An ordinary dropped socket carries no options bag, so it keeps the
+    // default: that session played, and its bag flush must stay atomic with the
+    // Market escrow.
+    const dropped = setup();
+    const droppedAuth = createWsAuth(dropped.deps);
+    await droppedAuth.authenticateWebSocket(asWs(dropped.ws), authRaw(), dropped.req);
+    dropped.ws.readyState = 3;
+    dropped.ws.emit('close');
+    expect(dropped.game.socketClosed).toHaveBeenCalledWith(dropped.session, dropped.ws);
+    // The post-join socket-error path is the same contract.
+    const errored = setup();
+    const erroredAuth = createWsAuth(errored.deps);
+    await erroredAuth.authenticateWebSocket(asWs(errored.ws), authRaw(), errored.req);
+    errored.ws.emit('error', new Error('connection reset'));
+    expect(errored.game.socketClosed).toHaveBeenCalledWith(errored.session, errored.ws);
+  });
+
+  it('game.socketClosed threads withMarket through to the save (the receiving half)', () => {
+    // The arm above pins what ws_auth PASSES; without this, game.ts could
+    // ignore the option and the fix would be a no-op with every test green.
+    const gameSrc = gameSourceCode();
+    // Sliced to the socketClosed body: saveCharacter declares the same
+    // options shape, so a whole-file toContain would stay green if
+    // socketClosed lost its parameter (the fix-round audit caught the
+    // ambiguity).
+    const socketClosedStart = gameSrc.indexOf('\n  socketClosed(');
+    expect(socketClosedStart).toBeGreaterThan(-1);
+    const socketClosedBody = gameSrc.slice(
+      socketClosedStart,
+      gameSrc.indexOf('\n  }', socketClosedStart),
+    );
+    expect(socketClosedBody).toContain('opts: { withMarket?: boolean } = {}');
+    expect(socketClosedBody).toContain(
+      'this.saveCharacter(session, { withMarket: opts.withMarket ?? true })',
+    );
+    // The unconditional linkdead flush this replaced must not come back (the
+    // .catch suffix scopes the ban to that call site: the leave-path save,
+    // which is genuinely unconditional, is awaited and has no .catch).
+    expect(gameSrc).not.toContain('this.saveCharacter(session, { withMarket: true }).catch');
   });
 });

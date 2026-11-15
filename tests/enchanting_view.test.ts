@@ -9,7 +9,7 @@ import {
   disenchantResultToast,
   disenchantSecondaryLineKey,
   salvageResultToast,
-} from '../src/ui/enchanting_view';
+} from '../src/ui/hud/professions/enchanting_view';
 
 describe('enchanting_view: disenchant toast mapping', () => {
   it('maps a success carrying a yield to the yield-naming chat line', () => {
@@ -43,7 +43,11 @@ describe('enchanting_view: disenchant toast mapping', () => {
   });
   it('maps every reason to its own error toast', () => {
     expect(disenchantResultToast({ ok: false, reason: 'throttled' })).toEqual({
-      key: 'hudChrome.enchanting.disenchantThrottled',
+      key: 'hudChrome.enchanting.disenchantBusy',
+      sink: 'error',
+    });
+    expect(disenchantResultToast({ ok: false, reason: 'busy' })).toEqual({
+      key: 'hudChrome.enchanting.disenchantBusy',
       sink: 'error',
     });
     expect(disenchantResultToast({ ok: false, reason: 'not_disenchantable' }).key).toBe(
@@ -112,7 +116,7 @@ describe('enchanting_view: salvage toast mapping', () => {
   });
   it('maps every reason to its own error toast', () => {
     expect(salvageResultToast({ ok: false, reason: 'throttled' }).key).toBe(
-      'hudChrome.enchanting.salvageThrottled',
+      'hudChrome.enchanting.salvageBusy',
     );
     expect(salvageResultToast({ ok: false, reason: 'not_salvageable' }).key).toBe(
       'hudChrome.enchanting.notSalvageable',
@@ -139,7 +143,7 @@ describe('enchanting_view: apply-enchant toast mapping', () => {
   });
   it('maps every reason to its own error toast', () => {
     expect(applyEnchantResultToast({ ok: false, reason: 'throttled' }).key).toBe(
-      'hudChrome.enchanting.enchantThrottled',
+      'hudChrome.enchanting.enchantBusy',
     );
     expect(applyEnchantResultToast({ ok: false, reason: 'wrong_slot' }).key).toBe(
       'hudChrome.enchanting.enchantWrongSlot',
@@ -160,13 +164,18 @@ describe('enchanting_view: apply-enchant toast mapping', () => {
       key: 'hudChrome.enchanting.enchantNoSpace',
       sink: 'error',
     });
-    // #2415: the two dedicated already-enchanted denies get their OWN honest
-    // copy, never the shared notHeld fallback.
+    // #2415: the dedicated already-enchanted deny gets its OWN honest copy,
+    // never the shared notHeld fallback.
     expect(applyEnchantResultToast({ ok: false, reason: 'already_enchanted' }).key).toBe(
       'hudChrome.enchanting.alreadyEnchanted',
     );
-    expect(applyEnchantResultToast({ ok: false, reason: 'same_enchant' }).key).toBe(
-      'hudChrome.enchanting.sameEnchant',
+    // The Lucent tier's two gates (Masterwrought phase 10), each with its own
+    // cause named rather than the shared notHeld fallback.
+    expect(applyEnchantResultToast({ ok: false, reason: 'not_perfected' }).key).toBe(
+      'hudChrome.enchanting.notPerfected',
+    );
+    expect(applyEnchantResultToast({ ok: false, reason: 'insufficient_skill' }).key).toBe(
+      'hudChrome.enchanting.enchantSkillTooLow',
     );
   });
   it('always routes a failure through the error sink', () => {
@@ -179,7 +188,8 @@ describe('enchanting_view: apply-enchant toast mapping', () => {
       'unknown_item',
       'no_bag_space',
       'already_enchanted',
-      'same_enchant',
+      'not_perfected',
+      'insufficient_skill',
     ] as const) {
       expect(applyEnchantResultToast({ ok: false, reason }).sink).toBe('error');
     }

@@ -1,0 +1,896 @@
+// Unit tests for the client-perf half of the /metrics exporter
+// (server/http/client_perf_metrics.ts): the woc_client_* series fed from stored
+// /api/perf-report rows. These pin the exposed metric NAMES as literals (a
+// rename fails the test, not just a constant swap), prove every label value is
+// drawn from the fixed vocabularies even for hostile inputs (an unrecognized
+// GPU bucket, zone string, or tier never becomes a new series), that benchmark
+// reports are skipped, that the jank counter triggers exactly at the client's
+// 250ms worst-10s clamp, that the suggestion catalog cannot drift from the
+// ingest allowlist, and that the ingest emits through the slot only for rows
+// that were actually stored.
+
+import { EventEmitter } from 'node:events';
+import { Registry } from 'prom-client';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../../server/db', () => ({
+  accountAndScopeForToken: vi.fn(),
+  getCharacter: vi.fn(),
+  insertClientPerfReport: vi.fn(async () => {}),
+}));
+
+import { insertClientPerfReport } from '../../../server/db';
+import { GL_BACKEND_LABELS } from '../../../server/gl_backend';
+import {
+  CLIENT_PERF_CADENCES,
+  CLIENT_PERF_DEVICE_CLASSES,
+  CLIENT_PERF_FPS_AVG_BUCKETS,
+  CLIENT_PERF_FRAME_CAPS,
+  CLIENT_PERF_FRAME_P95_BUCKETS_SECONDS,
+  CLIENT_PERF_GFX_TIERS,
+  CLIENT_PERF_GPU_FAMILIES,
+  CLIENT_PERF_JANK_THRESHOLD_MS,
+  CLIENT_PERF_LONG_TASK_BUCKETS_SECONDS,
+  CLIENT_PERF_OS_FAMILIES,
+  CLIENT_PERF_RENDER_SCALE_BUCKETS,
+  CLIENT_PERF_RUNTIMES,
+  CLIENT_PERF_SCENE_CLASSES,
+  CLIENT_PERF_SHADER_WARM_REFUSALS,
+  CLIENT_PERF_SHED_RUNGS,
+  CLIENT_PERF_SUGGESTION_IDS,
+  CLIENT_PERF_WORST10S_BUCKETS_SECONDS,
+  type ClientPerfSample,
+  cadenceLabel,
+  classifyClientPerfGpuFamily,
+  classifyClientPerfScene,
+  clientPerfMetricsSink,
+  frameCapLabel,
+  noopClientPerfMetricsSink,
+  registerClientPerfMetrics,
+  setClientPerfMetricsSink,
+  shaderWarmRefusalLabel,
+  WOC_CLIENT_CADENCE_REPORTS_TOTAL,
+  WOC_CLIENT_RAW_SUMMARY_SHED_TOTAL,
+  WOC_CLIENT_SHADER_WARM_REPORTS_TOTAL,
+} from '../../../server/http/client_perf_metrics';
+import { handlePerfReport, perfReportInternalsForTest } from '../../../server/perf_report';
+import { RAW_SUMMARY_SHED_RUNG_IDS } from '../../../server/perf_report_shed';
+
+function sample(overrides: Partial<ClientPerfSample> = {}): ClientPerfSample {
+  return {
+    source: 'gameplay',
+    gfxTier: 'high',
+    mobileTouch: false,
+    osFamily: 'windows',
+    glRendererBucket: 'nvidia',
+    glBackend: 'd3d11',
+    zoneOrScenario: 'thornpeak_heights',
+    fpsAvg: 48,
+    frameP95Ms: 33.4,
+    worst10sFrameP95Ms: 66.7,
+    longTaskP95Ms: 120,
+    effectiveRenderScale: 0.85,
+    contextLostCount: 0,
+    suggestionIds: [],
+    shaderWarmWorkerActive: true,
+    shaderWarmRefusal: '',
+    frameCapIntent: 0,
+    cadenceDivisor: 1,
+    refreshHz: 60,
+    desktopShell: false,
+    rawSummary: {},
+    ...overrides,
+  };
+}
+
+function value(text: string, re: RegExp): number {
+  const m = text.match(re);
+  return m ? Number(m[1]) : Number.NaN;
+}
+
+afterEach(() => {
+  setClientPerfMetricsSink(noopClientPerfMetricsSink);
+  vi.clearAllMocks();
+});
+
+describe('classifyClientPerfGpuFamily', () => {
+  it('maps the stored renderer buckets onto the fixed families', () => {
+    expect(classifyClientPerfGpuFamily('nvidia')).toBe('nvidia');
+    expect(classifyClientPerfGpuFamily('amd')).toBe('amd');
+    expect(classifyClientPerfGpuFamily('intel')).toBe('intel-igpu');
+    expect(classifyClientPerfGpuFamily('intel-uhd')).toBe('intel-igpu');
+    expect(classifyClientPerfGpuFamily('intel-iris')).toBe('intel-igpu');
+    expect(classifyClientPerfGpuFamily('apple')).toBe('apple');
+    expect(classifyClientPerfGpuFamily('apple-m4-pro')).toBe('apple');
+    expect(classifyClientPerfGpuFamily('software')).toBe('software');
+  });
+
+  it('collapses unknown and slug-fallback buckets to other, never a new value', () => {
+    for (const hostile of ['unknown', 'qualcomm-adreno-640', 'x'.repeat(48), '', 'NVIDIA; DROP']) {
+      expect(CLIENT_PERF_GPU_FAMILIES).toContain(classifyClientPerfGpuFamily(hostile));
+    }
+    expect(classifyClientPerfGpuFamily('qualcomm-adreno-640')).toBe('other');
+    expect(classifyClientPerfGpuFamily('unknown')).toBe('other');
+  });
+});
+
+describe('classifyClientPerfScene', () => {
+  it('maps prefixes and the fixed instance tokens onto scene classes', () => {
+    expect(classifyClientPerfScene('dungeon:nythraxis_crypt')).toBe('dungeon');
+    expect(classifyClientPerfScene('delve:collapsed_reliquary')).toBe('delve');
+    expect(classifyClientPerfScene('battleground')).toBe('battleground');
+    expect(classifyClientPerfScene('arena')).toBe('arena');
+    expect(classifyClientPerfScene('yumi_maze')).toBe('yumi_maze');
+    expect(classifyClientPerfScene('rift')).toBe('rift');
+    expect(classifyClientPerfScene('instance')).toBe('instance');
+    expect(classifyClientPerfScene('thornpeak_heights')).toBe('overworld');
+  });
+
+  it('sends the ingest defaults to other and any string to a fixed class', () => {
+    expect(classifyClientPerfScene('')).toBe('other');
+    expect(classifyClientPerfScene('gameplay')).toBe('other');
+    expect(classifyClientPerfScene('benchmark')).toBe('other');
+    for (const hostile of ['a'.repeat(80), 'dungeon', 'delve', 'zone with spaces']) {
+      expect(CLIENT_PERF_SCENE_CLASSES).toContain(classifyClientPerfScene(hostile));
+    }
+  });
+});
+
+describe('vocabulary pins', () => {
+  it('keeps the suggestion catalog equal to the ingest allowlist', () => {
+    expect([...CLIENT_PERF_SUGGESTION_IDS]).toEqual([
+      ...perfReportInternalsForTest.KNOWN_PERF_SUGGESTION_IDS,
+    ]);
+  });
+
+  it('pins the label vocabularies as literals', () => {
+    expect([...CLIENT_PERF_GFX_TIERS]).toEqual(['low', 'medium', 'high', 'ultra', 'insane']);
+    expect([...CLIENT_PERF_DEVICE_CLASSES]).toEqual(['desktop', 'mobile']);
+    expect([...CLIENT_PERF_RUNTIMES]).toEqual(['web', 'desktop-shell']);
+    // The shed vocabulary is the ladder's own rung list, bracketed.
+    expect([...CLIENT_PERF_SHED_RUNGS]).toEqual(['none', ...RAW_SUMMARY_SHED_RUNG_IDS, 'other']);
+    expect(CLIENT_PERF_SHED_RUNGS).toContain('rendererPrewarmSummary.lists');
+    expect(WOC_CLIENT_RAW_SUMMARY_SHED_TOTAL).toBe('woc_client_raw_summary_shed_total');
+    expect([...CLIENT_PERF_GPU_FAMILIES]).toEqual([
+      'nvidia',
+      'amd',
+      'intel-igpu',
+      'apple',
+      'software',
+      'other',
+    ]);
+    expect([...CLIENT_PERF_OS_FAMILIES]).toEqual([
+      'windows',
+      'macos',
+      'linux',
+      'ios',
+      'android',
+      'other',
+    ]);
+    expect([...CLIENT_PERF_SCENE_CLASSES]).toEqual([
+      'overworld',
+      'dungeon',
+      'delve',
+      'battleground',
+      'arena',
+      'yumi_maze',
+      'rift',
+      'instance',
+      'other',
+    ]);
+    expect([...GL_BACKEND_LABELS]).toEqual([
+      'd3d11',
+      'd3d9',
+      'vulkan',
+      'metal',
+      'opengl-es',
+      'opengl',
+      'unknown',
+    ]);
+    expect([...CLIENT_PERF_SHADER_WARM_REFUSALS]).toEqual([
+      'none',
+      'ab:off',
+      'cannot-serve:hold-cap',
+      'cannot-serve:hold-cap:censored',
+      'context-lost',
+      'extension-drift',
+      'extension-mismatch',
+      'hold-failures:wedged',
+      'hold-timeouts:expired-share',
+      'hold-timeouts:wedged',
+      'ios-webkit',
+      'no-offscreen-canvas',
+      'no-webgl2',
+      'no-worker',
+      'pagehide',
+      'ready-timeout',
+      'standing-down:silent',
+      'worker-error',
+      'other',
+    ]);
+    expect(CLIENT_PERF_JANK_THRESHOLD_MS).toBe(250);
+  });
+
+  it('pins the shader-warm series name as a literal', () => {
+    // It counts the SAME population as woc_client_reports_total, differing
+    // only by labels, so the name has to say which question it answers: a
+    // reader who saw `perf` there would take it for a different population.
+    expect(WOC_CLIENT_SHADER_WARM_REPORTS_TOTAL).toBe('woc_client_shader_warm_reports_total');
+  });
+
+  it('pins the histogram bucket edges as literals', () => {
+    // The edges are the exporter's public contract: an edit silently rewrites
+    // every dashboard quantile, so a change must be deliberate here too.
+    expect([...CLIENT_PERF_FRAME_P95_BUCKETS_SECONDS]).toEqual([
+      0.0125, 0.0167, 0.02, 0.025, 0.0334, 0.05, 0.0834, 0.125, 0.25,
+    ]);
+    expect([...CLIENT_PERF_WORST10S_BUCKETS_SECONDS]).toEqual([
+      0.0334, 0.05, 0.0667, 0.0834, 0.125, 0.25,
+    ]);
+    expect([...CLIENT_PERF_FPS_AVG_BUCKETS]).toEqual([10, 15, 20, 25, 30, 40, 50, 60, 90, 120]);
+    // Top edge at the ingest's 1000ms longTaskP95Ms clamp: a higher edge is
+    // unreachable and would pin a lie into the contract.
+    expect([...CLIENT_PERF_LONG_TASK_BUCKETS_SECONDS]).toEqual([0.05, 0.1, 0.2, 0.35, 0.5, 1]);
+    expect([...CLIENT_PERF_RENDER_SCALE_BUCKETS]).toEqual([0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]);
+  });
+});
+
+describe('registerClientPerfMetrics', () => {
+  it('exposes a stored gameplay report under the pinned names and labels', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(
+      sample({ contextLostCount: 2, suggestionIds: ['browser-stalls', 'integrated-gpu'] }),
+    );
+
+    const text = await registry.metrics();
+    expect(
+      value(
+        text,
+        /^woc_client_reports_total\{gfx_tier="high",device="desktop",gpu_family="nvidia",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(1);
+    expect(
+      value(
+        text,
+        /^woc_client_frame_p95_seconds_sum\{gfx_tier="high",device="desktop",backend="d3d11",runtime="web"\} ([\d.]+)$/m,
+      ),
+    ).toBeCloseTo(0.0334, 5);
+    expect(
+      value(text, /^woc_client_fps_avg_sum\{gfx_tier="high",device="desktop"\} ([\d.]+)$/m),
+    ).toBe(48);
+    expect(
+      value(
+        text,
+        /^woc_client_worst10s_frame_p95_seconds_sum\{scene="overworld",device="desktop"\} ([\d.]+)$/m,
+      ),
+    ).toBeCloseTo(0.0667, 5);
+    expect(value(text, /^woc_client_long_task_p95_seconds_sum\{gfx_tier="high"\} ([\d.]+)$/m)).toBe(
+      0.12,
+    );
+    expect(
+      value(text, /^woc_client_effective_render_scale_sum\{gfx_tier="high"\} ([\d.]+)$/m),
+    ).toBeCloseTo(0.85, 5);
+    expect(
+      value(text, /^woc_client_context_losses_total\{os="windows",backend="d3d11"\} (\d+)$/m),
+    ).toBe(2);
+    expect(
+      value(text, /^woc_client_suggestions_total\{suggestion="browser-stalls"\} (\d+)$/m),
+    ).toBe(1);
+    expect(
+      value(text, /^woc_client_suggestions_total\{suggestion="integrated-gpu"\} (\d+)$/m),
+    ).toBe(1);
+  });
+
+  it('counts jank exactly at the client clamp threshold', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample({ worst10sFrameP95Ms: CLIENT_PERF_JANK_THRESHOLD_MS - 0.1 }));
+    sink.perfReportStored(sample({ worst10sFrameP95Ms: CLIENT_PERF_JANK_THRESHOLD_MS }));
+
+    const text = await registry.metrics();
+    expect(
+      value(text, /^woc_client_jank_reports_total\{gfx_tier="high",device="desktop"\} (\d+)$/m),
+    ).toBe(1);
+  });
+
+  it('keeps non-finite and negative numerics out of the series', async () => {
+    // These fields arrive clamped from the ingest; the defenses exist for a
+    // direct caller, and a NaN reaching a histogram would poison its _sum.
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(
+      sample({
+        fpsAvg: Number.NaN,
+        frameP95Ms: Number.POSITIVE_INFINITY,
+        longTaskP95Ms: Number.NEGATIVE_INFINITY,
+        effectiveRenderScale: Number.NaN,
+        worst10sFrameP95Ms: Number.NaN,
+        contextLostCount: -3,
+      }),
+    );
+    // A negative finite value must not subtract from a monotone _sum, and an
+    // Infinity worst-10s must not satisfy the jank threshold while its
+    // histogram observes zero: the compare runs on the sanitized value.
+    sink.perfReportStored(
+      sample({
+        frameP95Ms: -50,
+        worst10sFrameP95Ms: Number.POSITIVE_INFINITY,
+        fpsAvg: -10,
+      }),
+    );
+
+    const text = await registry.metrics();
+    expect(text).not.toMatch(/NaN|Infinity/);
+    expect(
+      value(text, /^woc_client_fps_avg_sum\{gfx_tier="high",device="desktop"\} ([\d.]+)$/m),
+    ).toBe(0);
+    // Infinity is floored to zero, not observed at the top bucket.
+    expect(
+      value(
+        text,
+        /^woc_client_frame_p95_seconds_sum\{gfx_tier="high",device="desktop",backend="d3d11",runtime="web"\} ([\d.]+)$/m,
+      ),
+    ).toBe(0);
+    // Neither a NaN nor an Infinity worst-10s satisfies the jank threshold
+    // (the series exists at its primed zero).
+    expect(
+      value(text, /^woc_client_jank_reports_total\{gfx_tier="high",device="desktop"\} (\d+)$/m),
+    ).toBe(0);
+    // A negative loss count never decrements the primed counter.
+    expect(
+      value(text, /^woc_client_context_losses_total\{os="windows",backend="d3d11"\} (\d+)$/m),
+    ).toBe(0);
+  });
+
+  it('never throws on a malformed direct-caller sample', () => {
+    // The ingest always passes a sanitized row; the guard exists for a direct
+    // caller, where a throw would otherwise 500 a beacon whose row is stored.
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    expect(() =>
+      sink.perfReportStored({ ...sample(), suggestionIds: null as unknown as string[] }),
+    ).not.toThrow();
+  });
+
+  it('zero-backfills the whole family at registration', async () => {
+    const registry = new Registry();
+    registerClientPerfMetrics(registry);
+
+    const text = await registry.metrics();
+    // Every counter cross product and every histogram series exists from
+    // boot (the exporter's backfill design), so increase()/rate() see the
+    // first post-deploy increment and the jank share reads 0%, not "no data".
+    expect(
+      value(
+        text,
+        /^woc_client_reports_total\{gfx_tier="insane",device="mobile",gpu_family="software",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+    expect(
+      value(text, /^woc_client_jank_reports_total\{gfx_tier="low",device="desktop"\} (\d+)$/m),
+    ).toBe(0);
+    expect(
+      value(
+        text,
+        /^woc_client_frame_p95_seconds_count\{gfx_tier="ultra",device="desktop",backend="vulkan",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+    expect(
+      value(
+        text,
+        /^woc_client_worst10s_frame_p95_seconds_count\{scene="rift",device="mobile"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+    expect(
+      value(text, /^woc_client_context_losses_total\{os="linux",backend="opengl"\} (\d+)$/m),
+    ).toBe(0);
+    expect(value(text, /^woc_client_suggestions_total\{suggestion="context-loss"\} (\d+)$/m)).toBe(
+      0,
+    );
+  });
+
+  it('skips benchmark-source reports entirely', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample({ source: 'benchmark', zoneOrScenario: 'benchmark' }));
+
+    const text = await registry.metrics();
+    // Every series stays at its backfilled zero: nothing was observed.
+    expect(
+      value(
+        text,
+        /^woc_client_reports_total\{gfx_tier="high",device="desktop",gpu_family="nvidia",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+    expect(
+      value(
+        text,
+        /^woc_client_frame_p95_seconds_count\{gfx_tier="high",device="desktop",backend="d3d11",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+  });
+
+  it('labels the reports counter and the frame p95 histogram with the host runtime', async () => {
+    // The desktop shell is Chromium on the same bundle: without this label no
+    // series could answer "is the desktop client slower than a Chrome tab on
+    // the same hardware". The label rides exactly two families; the rest of
+    // the family stays runtime-blind so its cross products do not double.
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+    sink.perfReportStored(sample({ desktopShell: true }));
+    sink.perfReportStored(sample({ desktopShell: false }));
+    sink.perfReportStored(sample({ desktopShell: false }));
+
+    const text = await registry.metrics();
+    expect(
+      value(
+        text,
+        /^woc_client_reports_total\{gfx_tier="high",device="desktop",gpu_family="nvidia",runtime="desktop-shell"\} (\d+)$/m,
+      ),
+    ).toBe(1);
+    expect(
+      value(
+        text,
+        /^woc_client_reports_total\{gfx_tier="high",device="desktop",gpu_family="nvidia",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(2);
+    expect(
+      value(
+        text,
+        /^woc_client_frame_p95_seconds_count\{gfx_tier="high",device="desktop",backend="d3d11",runtime="desktop-shell"\} (\d+)$/m,
+      ),
+    ).toBe(1);
+    expect(
+      value(
+        text,
+        /^woc_client_frame_p95_seconds_count\{gfx_tier="high",device="desktop",backend="d3d11",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(2);
+    // Exactly two families carry the label: the bound over the whole
+    // exposition, so a runtime label added to any other family reds here.
+    const labeled = new Set(
+      text
+        .split('\n')
+        .filter((line) => line.includes('runtime="'))
+        .map((line) => line.slice(0, line.indexOf('{'))),
+    );
+    expect([...labeled].sort()).toEqual([
+      'woc_client_frame_p95_seconds_bucket',
+      'woc_client_frame_p95_seconds_count',
+      'woc_client_frame_p95_seconds_sum',
+      'woc_client_reports_total',
+    ]);
+  });
+
+  it('counts stored reports by the deepest raw summary shed rung, folded to the vocabulary', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+    sink.perfReportStored(sample({ rawSummary: { seconds: 1 } }));
+    sink.perfReportStored(
+      sample({
+        rawSummary: {
+          truncated: true,
+          dropped: ['rendererPrewarmSummary.lists', 'rendererFoliage'],
+        },
+      }),
+    );
+    sink.perfReportStored(sample({ rawSummary: { truncated: true, dropped: ['not-a-rung'] } }));
+    sink.perfReportStored(sample({ rawSummary: { truncated: true, dropped: [] } }));
+
+    const text = await registry.metrics();
+    const count = (rung: string): number =>
+      value(
+        text,
+        new RegExp(`^woc_client_raw_summary_shed_total\\{rung="${rung}"\\} (\\d+)$`, 'm'),
+      );
+    expect(count('none')).toBe(2);
+    expect(count('rendererFoliage')).toBe(1);
+    expect(count('rendererPrewarmSummary.lists')).toBe(0);
+    expect(count('other')).toBe(1);
+    // Pre-seeded for every rung, so a healthy fleet reads zeros, not gaps.
+    for (const rung of CLIENT_PERF_SHED_RUNGS) expect(count(rung)).toBeGreaterThanOrEqual(0);
+    expect(text).not.toMatch(/rung="not-a-rung"/);
+  });
+
+  it('bounds the backend label: the series count is fixed and no report can grow it', async () => {
+    // The whole point of a closed vocabulary. Pre-seeding means every cross
+    // product already exists at registration, so the count below IS the
+    // ceiling, and the second half proves traffic cannot push past it.
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+    const countSeries = (text: string, name: string): number =>
+      text.split('\n').filter((line) => line.startsWith(`${name}{`)).length;
+
+    const atRegistration = await registry.metrics();
+    // 5 tiers x 2 device classes x 7 backends x 2 runtimes.
+    expect(countSeries(atRegistration, 'woc_client_frame_p95_seconds_count')).toBe(
+      CLIENT_PERF_GFX_TIERS.length *
+        CLIENT_PERF_DEVICE_CLASSES.length *
+        GL_BACKEND_LABELS.length *
+        CLIENT_PERF_RUNTIMES.length,
+    );
+    expect(countSeries(atRegistration, 'woc_client_frame_p95_seconds_count')).toBe(140);
+    // 5 tiers x 2 device classes x 6 GPU families x 2 runtimes.
+    expect(countSeries(atRegistration, 'woc_client_reports_total')).toBe(120);
+    // 6 OS families x 7 backends.
+    expect(countSeries(atRegistration, 'woc_client_context_losses_total')).toBe(
+      CLIENT_PERF_OS_FAMILIES.length * GL_BACKEND_LABELS.length,
+    );
+    expect(countSeries(atRegistration, 'woc_client_context_losses_total')).toBe(42);
+
+    // Every real backend, plus invented ones, plus the shapes a hostile beacon
+    // would try. None of it may add a series to either family.
+    for (const glBackend of [
+      ...GL_BACKEND_LABELS,
+      'directx-42',
+      'D3D11',
+      '',
+      'd3d11 ',
+      'opengl-es-3.2',
+      'x'.repeat(200),
+    ]) {
+      sink.perfReportStored(sample({ glBackend, contextLostCount: 1 }));
+    }
+
+    const afterTraffic = await registry.metrics();
+    expect(countSeries(afterTraffic, 'woc_client_frame_p95_seconds_count')).toBe(140);
+    expect(countSeries(afterTraffic, 'woc_client_reports_total')).toBe(120);
+    expect(countSeries(afterTraffic, 'woc_client_context_losses_total')).toBe(42);
+    // The unrecognised spellings all landed on 'unknown', never on a new label.
+    expect(afterTraffic).not.toMatch(/backend="(directx-42|D3D11|d3d11 |opengl-es-3\.2|xxxx|)"/);
+  });
+
+  it('never mints labels outside the vocabularies for hostile field values', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(
+      sample({
+        gfxTier: 'god-mode',
+        osFamily: 'templeos',
+        glRendererBucket: 'quantum-9000',
+        glBackend: 'directx-42',
+        zoneOrScenario: 'z'.repeat(80),
+        mobileTouch: true,
+        contextLostCount: 1,
+        suggestionIds: ['not-a-real-suggestion'],
+      }),
+    );
+
+    const text = await registry.metrics();
+    // Unknown tier falls back to the ingest's own 'low' fallback, unknown GPU
+    // to 'other', unknown OS to 'other', and a bare unknown zone reads as
+    // overworld; the invented suggestion id is dropped.
+    expect(
+      value(
+        text,
+        /^woc_client_reports_total\{gfx_tier="low",device="mobile",gpu_family="other",runtime="web"\} (\d+)$/m,
+      ),
+    ).toBe(1);
+    // An invented backend falls back to 'unknown', the same way the tier and
+    // os fallbacks work, so a direct caller cannot mint a label value.
+    expect(
+      value(text, /^woc_client_context_losses_total\{os="other",backend="unknown"\} (\d+)$/m),
+    ).toBe(1);
+    expect(text).not.toMatch(
+      /god-mode|templeos|quantum-9000|zzzz|not-a-real-suggestion|directx-42/,
+    );
+  });
+});
+
+describe('perf-report ingest emission', () => {
+  const VALID_IP_A = '203.0.113.77';
+
+  function fakeReq(body: unknown, remoteAddress: string) {
+    const req: any = new EventEmitter();
+    req.method = 'POST';
+    req.url = '/api/perf-report';
+    req.headers = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0) Chrome/126.0' };
+    req.socket = { remoteAddress };
+    req.destroy = vi.fn();
+    setImmediate(() => {
+      req.emit('data', JSON.stringify(body));
+      req.emit('end');
+    });
+    return req;
+  }
+
+  function fakeRes() {
+    const res: any = {
+      statusCode: 0,
+      body: null as any,
+      writeHead(status: number) {
+        this.statusCode = status;
+      },
+      end(data?: string) {
+        this.body = data ? JSON.parse(data) : null;
+      },
+    };
+    return res;
+  }
+
+  it('emits through the slot only for rows that were stored', async () => {
+    const stored: ClientPerfSample[] = [];
+    setClientPerfMetricsSink({
+      perfReportStored(row) {
+        stored.push(row);
+      },
+    });
+    const body = {
+      sessionId: 'emit-test-session',
+      gfxTier: 'ultra',
+      fpsAvg: 42,
+      frameP95Ms: 40,
+      worst10sFrameP95Ms: 250,
+      zoneOrScenario: 'dungeon:sunken_bastion',
+    };
+
+    await handlePerfReport(fakeReq(body, VALID_IP_A), fakeRes());
+    // Same session immediately again: the per-session insert throttle rejects
+    // it before storage, so the slot must not fire a second time.
+    await handlePerfReport(fakeReq(body, VALID_IP_A), fakeRes());
+
+    expect(insertClientPerfReport).toHaveBeenCalledTimes(1);
+    expect(stored).toHaveLength(1);
+    expect(stored[0].gfxTier).toBe('ultra');
+    expect(stored[0].zoneOrScenario).toBe('dungeon:sunken_bastion');
+    expect(stored[0].worst10sFrameP95Ms).toBe(250);
+  });
+
+  it('holds the no-op sink by default so an unwired ingest never throws', () => {
+    expect(clientPerfMetricsSink()).toBe(noopClientPerfMetricsSink);
+    expect(() => clientPerfMetricsSink().perfReportStored(sample())).not.toThrow();
+  });
+});
+
+describe('shaderWarmRefusalLabel', () => {
+  it('keeps the 0.43 experiment off-arm token as a label of its own for lingering clients', () => {
+    // Folded into other, a 0.43 tab still open would read as an unknown refusal.
+    expect(CLIENT_PERF_SHADER_WARM_REFUSALS).toContain('ab:off');
+    expect(shaderWarmRefusalLabel('ab:off')).toBe('ab:off');
+  });
+
+  it('maps the empty refusal to none and keeps the known causes whole', () => {
+    expect(shaderWarmRefusalLabel('')).toBe('none');
+    for (const cause of [
+      'ab:off',
+      'standing-down:silent',
+      'hold-timeouts:expired-share',
+      'hold-timeouts:wedged',
+      'hold-failures:wedged',
+      'cannot-serve:hold-cap',
+      'cannot-serve:hold-cap:censored',
+      'ready-timeout',
+      'ios-webkit',
+      'pagehide',
+      'no-worker',
+      'worker-error',
+      'context-lost',
+      'no-offscreen-canvas',
+      'no-webgl2',
+      'extension-mismatch',
+    ]) {
+      expect(shaderWarmRefusalLabel(cause)).toBe(cause);
+    }
+  });
+
+  it('folds every extension-drift token onto one family and anything unlisted to other', () => {
+    expect(shaderWarmRefusalLabel('extension-drift:ext_color_buffer_float')).toBe(
+      'extension-drift',
+    );
+    expect(shaderWarmRefusalLabel('extension-drift:khr_parallel_shader_compile')).toBe(
+      'extension-drift',
+    );
+    for (const hostile of [
+      'extension-drift',
+      'a'.repeat(40),
+      'invented-cause',
+      'hold-timeouts',
+      'none',
+      'other',
+    ]) {
+      expect(CLIENT_PERF_SHADER_WARM_REFUSALS).toContain(shaderWarmRefusalLabel(hostile));
+    }
+    expect(shaderWarmRefusalLabel('invented-cause')).toBe('other');
+    expect(shaderWarmRefusalLabel('a'.repeat(40))).toBe('other');
+  });
+});
+
+describe('woc_client_shader_warm_reports_total', () => {
+  it('exposes the counter type line and the labelled sample for a refused worker', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(
+      sample({ shaderWarmWorkerActive: false, shaderWarmRefusal: 'hold-timeouts:expired-share' }),
+    );
+
+    const text = await registry.metrics();
+    expect(text).toContain('# TYPE woc_client_shader_warm_reports_total counter');
+    expect(
+      value(
+        text,
+        /^woc_client_shader_warm_reports_total\{shader_warm_active="false",shader_warm_refusal="hold-timeouts:expired-share"\} (\d+)$/m,
+      ),
+    ).toBe(1);
+    // The live cohort is the other arm of the same question and stays at zero.
+    expect(
+      value(
+        text,
+        /^woc_client_shader_warm_reports_total\{shader_warm_active="true",shader_warm_refusal="none"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+  });
+
+  it('counts a live worker under active=true with no refusal', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample());
+
+    expect(
+      value(
+        await registry.metrics(),
+        /^woc_client_shader_warm_reports_total\{shader_warm_active="true",shader_warm_refusal="none"\} (\d+)$/m,
+      ),
+    ).toBe(1);
+  });
+
+  it('folds an unknown refusal to other and an extension drift to its family', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(
+      sample({ shaderWarmWorkerActive: false, shaderWarmRefusal: 'invented-cause' }),
+    );
+    sink.perfReportStored(
+      sample({
+        shaderWarmWorkerActive: false,
+        shaderWarmRefusal: 'extension-drift:ext_color_buffer_float',
+      }),
+    );
+    sink.perfReportStored(
+      sample({
+        shaderWarmWorkerActive: false,
+        shaderWarmRefusal: 'extension-drift:khr_parallel_shader_compile',
+      }),
+    );
+
+    const text = await registry.metrics();
+    expect(
+      value(
+        text,
+        /^woc_client_shader_warm_reports_total\{shader_warm_active="false",shader_warm_refusal="other"\} (\d+)$/m,
+      ),
+    ).toBe(1);
+    // Both drifts share one series: the extension name never mints its own.
+    expect(
+      value(
+        text,
+        /^woc_client_shader_warm_reports_total\{shader_warm_active="false",shader_warm_refusal="extension-drift"\} (\d+)$/m,
+      ),
+    ).toBe(2);
+    const series = text.match(/^woc_client_shader_warm_reports_total\{[^}]*\}/gm) ?? [];
+    // Two active values times the fixed refusal vocabulary, whatever arrived.
+    expect(series.length).toBe(2 * CLIENT_PERF_SHADER_WARM_REFUSALS.length);
+    expect(text).not.toContain('ext_color_buffer_float');
+  });
+
+  it('zero-backfills the shader-warm cross product and skips benchmark reports', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(
+      sample({ source: 'benchmark', shaderWarmWorkerActive: false, shaderWarmRefusal: 'pagehide' }),
+    );
+
+    const text = await registry.metrics();
+    // The harness is not a player: this counter stays 1:1 with the gameplay
+    // reports woc_client_reports_total counts, so a share of one over the
+    // other is a share over the same denominator.
+    expect(
+      value(
+        text,
+        /^woc_client_shader_warm_reports_total\{shader_warm_active="false",shader_warm_refusal="pagehide"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+    expect(
+      value(
+        text,
+        /^woc_client_shader_warm_reports_total\{shader_warm_active="true",shader_warm_refusal="ios-webkit"\} (\d+)$/m,
+      ),
+    ).toBe(0);
+  });
+});
+
+describe('woc_client_cadence_reports_total', () => {
+  const series = (frameCap: string, cadence: string): RegExp =>
+    new RegExp(
+      `^woc_client_cadence_reports_total\\{frame_cap="${frameCap}",cadence="${cadence}"\\} (\\d+)$`,
+      'm',
+    );
+
+  it('pins the series name and both label vocabularies as literals', () => {
+    expect(WOC_CLIENT_CADENCE_REPORTS_TOTAL).toBe('woc_client_cadence_reports_total');
+    expect([...CLIENT_PERF_FRAME_CAPS]).toEqual(['none', '30', '60']);
+    expect([...CLIENT_PERF_CADENCES]).toEqual(['full', 'reduced']);
+  });
+
+  it('zero-backfills the whole cross product at registration', async () => {
+    const registry = new Registry();
+    registerClientPerfMetrics(registry);
+
+    const text = await registry.metrics();
+    expect(text).toContain('# TYPE woc_client_cadence_reports_total counter');
+    expect((text.match(/^woc_client_cadence_reports_total\{[^}]*\}/gm) ?? []).length).toBe(6);
+    for (const frameCap of CLIENT_PERF_FRAME_CAPS) {
+      for (const cadence of CLIENT_PERF_CADENCES) {
+        expect(value(text, series(frameCap, cadence))).toBe(0);
+      }
+    }
+  });
+
+  it('counts a session with no ceiling as none and full', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample());
+
+    const text = await registry.metrics();
+    expect(value(text, series('none', 'full'))).toBe(1);
+    expect(value(text, series('none', 'reduced'))).toBe(0);
+  });
+
+  it('counts a paced 30 ceiling on a 60 Hz display as 30 and reduced', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample({ frameCapIntent: 30, cadenceDivisor: 2, refreshHz: 60 }));
+
+    const text = await registry.metrics();
+    expect(value(text, series('30', 'reduced'))).toBe(1);
+    expect(value(text, series('30', 'full'))).toBe(0);
+  });
+
+  it('counts the unpaced limiter as reduced: a ceiling with no display reading', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample({ frameCapIntent: 30, cadenceDivisor: 1, refreshHz: 0 }));
+
+    expect(value(await registry.metrics(), series('30', 'reduced'))).toBe(1);
+  });
+
+  it('keeps an inert ceiling full: 60 asked for on a 60 Hz display', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample({ frameCapIntent: 60, cadenceDivisor: 1, refreshHz: 59.9 }));
+
+    const text = await registry.metrics();
+    expect(value(text, series('60', 'full'))).toBe(1);
+    expect(value(text, series('60', 'reduced'))).toBe(0);
+  });
+
+  it('never reads an unknown display as reduced when no ceiling was asked for', () => {
+    expect(cadenceLabel({ frameCapIntent: 0, cadenceDivisor: 1, refreshHz: 0 })).toBe('full');
+    expect(frameCapLabel(45)).toBe('none');
+  });
+
+  it('increments once per gameplay report and skips benchmark reports', async () => {
+    const registry = new Registry();
+    const sink = registerClientPerfMetrics(registry);
+
+    sink.perfReportStored(sample({ source: 'benchmark', frameCapIntent: 30, cadenceDivisor: 2 }));
+    sink.perfReportStored(sample({ frameCapIntent: 30, cadenceDivisor: 2 }));
+    sink.perfReportStored(sample({ frameCapIntent: 30, cadenceDivisor: 2 }));
+
+    expect(value(await registry.metrics(), series('30', 'reduced'))).toBe(2);
+  });
+});

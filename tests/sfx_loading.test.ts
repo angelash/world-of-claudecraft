@@ -27,7 +27,10 @@ interface SfxInternals {
   loading: Map<string, Promise<AudioBuffer | null>>;
   failedLoads: Set<string>;
   clips: Record<string, SfxEntry>;
-  pendingLoops: Map<string, { key: string; target: number; x?: number; y?: number; z?: number }>;
+  pendingLoops: Map<
+    string,
+    { key: string; target: number; x?: number; y?: number; z?: number; immediate?: boolean }
+  >;
 }
 
 const BUFFER = { duration: 0.5 } as AudioBuffer;
@@ -365,6 +368,11 @@ describe('sampled SFX loading', () => {
       x: 8,
       y: 9,
       z: 10,
+      // The pending entry carries the caller's immediate flag now, so a loop
+      // resumed after its buffer resolves still snaps to target gain instead
+      // of falling back to a fade-in; an ordinary loop like this one stores
+      // the default false rather than leaving it absent.
+      immediate: false,
     });
 
     gate.resolve(response());
@@ -825,18 +833,24 @@ describe('sampled SFX loading', () => {
     expect(ctx.sources).toHaveLength(sourcesBeforeDecode);
   });
 
-  it('keeps the procedural Vale Cup crowd bed and roar beside sampled runtime clips', () => {
+  it('keeps the procedural crowd bed and drops the dead Vale Cup roar', () => {
     vi.stubGlobal('fetch', vi.fn());
-    const { player, ctx } = startWithStartupCached();
+    const { player } = startWithStartupCached();
     const state = internals(player);
 
     expect(state.buffers.has('amb_crowd')).toBe(true);
-    expect(state.buffers.has('vcup_crowd_roar')).toBe(true);
     player.ambience('vale', false, null, false, 1);
     expect(player.hasLoop('amb_crowd')).toBe(true);
 
-    player.crowdRoar();
-    expect(last(ctx.sources, 'crowd roar').buffer).toBe(state.buffers.get('vcup_crowd_roar'));
+    // The roar half was release-owned dead residue: the vcup_crowd_roar
+    // buffer had no player and crowdRoar() had no caller anywhere in src/ or
+    // server/ once the release retired the Vale Cup. Pinned ABSENT in BOTH
+    // halves (the buffer and the method) so neither can be quietly
+    // re-registered without a player, the game_audio.test.ts dead-method
+    // precedent. goalHorn stays: the deletion was the roar only, and this
+    // asserts it was surgical rather than a sweep of the whole region.
+    expect(state.buffers.has('vcup_crowd_roar')).toBe(false);
+    expect('crowdRoar' in player).toBe(false);
     expect(typeof player.goalHorn).toBe('function');
   });
 });

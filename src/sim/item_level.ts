@@ -11,7 +11,8 @@
 // tests import it directly.
 //
 // Two distinct outputs:
-//   - itemLevel(item): the tier number shown in the tooltip ("Item Level 10").
+//   - itemLevel(item): the definition's baseline tier. itemInstanceLevel adds
+//     an earned Perfected collection tier for the tooltip, never cosmetic rarity.
 //   - primaryStatBudget(...): the total primary-stat points an item of that tier
 //     SHOULD grant. normalizePrimaryStats() distributes that budget back across an
 //     item's existing stats so two drops from the same place carry the same total
@@ -19,6 +20,7 @@
 //     str/sta, a mage cloth piece stays int/spi). itemScore() is the realized
 //     power (stats + armor + weapon dps) for at-a-glance comparison.
 
+import { crucibleCollectionForItem } from './content/crucible_collections';
 import {
   HEROIC_BOSS_LOOT,
   HEROIC_LOOT_SOURCE_LEVEL,
@@ -26,39 +28,85 @@ import {
   NYTHRAXIS_RAID_LOOT_SOURCE_LEVEL,
 } from './content/heroic_loot';
 import { HEROIC_VENDOR_STOCK } from './content/heroic_vendor';
-import { FURY_STOCK, WARFARE_SOURCE_LEVEL } from './content/pvp_honor';
-import { ALL_RECIPES, DUNGEONS, ITEMS, MOBS, QUESTS } from './data';
+import { hoardLootSourceLevels } from './content/hoard_loot';
+import { IGNIVAR_LOOT_ITEM_IDS, IGNIVAR_RAID_LOOT_SOURCE_LEVEL } from './content/ignivar_loot';
+import {
+  NYTHRAXIS_RELOCATED_ITEM_IDS,
+  NYTHRAXIS_RELOCATED_TRINKET_IDS,
+} from './content/nythraxis_loot';
+import { FURY_STOCK, WARFARE_SOURCE_LEVEL, WARFARE_TRINKET_STOCK } from './content/pvp_honor';
+import { SEASON2_SOURCE_LEVEL, SEASON2_STOCK } from './content/pvp_honor_season2';
+import { REFERRAL_REWARD_SOURCE_BOSSES } from './content/referral_rewards';
+import {
+  RIFT_EPIC_ITEM_IDS,
+  RIFT_GEAR_ITEM_IDS,
+  RIFT_LEGENDARY_ITEM_IDS,
+  RIFT_RARE_ITEM_IDS,
+} from './content/rift/items';
+import { CRUCIBLE_TRINKET_ITEM_IDS } from './content/trinkets';
+import { ALL_RECIPES, DUNGEONS, ITEMS, MOBS, QUESTS, studioContentActive } from './data';
 // The pure budget primitives live in the leaf module ./item_budget (no ./data
 // import, so content/heroic_variants.ts can share them at data-eval time without a
 // cycle). Imported for internal use and re-exported so every existing importer of
 // item_level keeps working unchanged.
 import {
+  checkStaminaModel,
+  expectedStatTotal,
   HEROIC_VARIANT_SOURCE_LEVEL,
   normalizePrimaryStats,
+  normalizeToStaminaModel,
   PRIMARY_STATS,
   type PrimaryStat,
   primaryStatBudget,
   QUALITY_ILVL_BONUS,
   QUALITY_STAT_MULT,
+  realizedLineBudget,
   SLOT_STAT_MULT,
+  STAMINA_BASELINE_SHARE,
+  STAMINA_MODEL_EXEMPT_SLOTS,
+  STAMINA_PREMIUM,
   STAT_PER_ILVL,
+  type StaminaModelCheck,
+  type StatIdentity,
+  slotStatMultForItem,
+  staminaBaseline,
+  staminaModelExempt,
+  statIdentity,
   TWOHAND_DPS_MULT,
   TWOHAND_STAT_MULT,
+  WORN_OFFHAND_STAT_MULT,
 } from './item_budget';
-import type { ItemDef } from './types';
+import { lootQualityItemLevelBonus } from './loot_quality/core';
+import { COLLECTION_PERFECTING_SOURCE_INCREASE } from './professions/perfecting_bonus';
+import { RIFT_BAND_SHELLS, riftBandItemLevel } from './rift/band_ladder';
+import type { ItemDef, ItemInstancePayload } from './types';
 
 export {
+  checkStaminaModel,
+  expectedStatTotal,
   HEROIC_VARIANT_SOURCE_LEVEL,
   normalizePrimaryStats,
+  normalizeToStaminaModel,
   PRIMARY_STATS,
   type PrimaryStat,
   primaryStatBudget,
   QUALITY_ILVL_BONUS,
   QUALITY_STAT_MULT,
+  realizedLineBudget,
   SLOT_STAT_MULT,
+  STAMINA_BASELINE_SHARE,
+  STAMINA_MODEL_EXEMPT_SLOTS,
+  STAMINA_PREMIUM,
   STAT_PER_ILVL,
+  type StaminaModelCheck,
+  type StatIdentity,
+  slotStatMultForItem,
+  staminaBaseline,
+  staminaModelExempt,
+  statIdentity,
   TWOHAND_DPS_MULT,
   TWOHAND_STAT_MULT,
+  WORN_OFFHAND_STAT_MULT,
 };
 
 // Raid loot is one tier above same-level 5-player dungeon loot: a 10-player raid
@@ -73,6 +121,34 @@ export const RAID_MIN_PLAYERS = 10;
 // are level-20 content); see buildSourceIndex.
 export const HEROIC_VENDOR_SOURCE_LEVEL = 20;
 
+// The source level the rift-only clear-time gear (the four rift-signature epics
+// plus the two legendaries) reads as. The B/A/S clear pool ALSO pays the heroic
+// five-man epics, which register themselves off HEROIC_BOSS_LOOT below at this
+// same level, so a rift never re-prices them (bump() is highest-level-wins and
+// equal levels are a no-op). The rift mobs themselves are source level 23 (their
+// maxLevel after the rank retune capped spawns at 23; the mob-loot block below
+// picks this up), so the rare world-drops land at ilvl 26 (23 + rare bonus 3)
+// automatically. The clear-time epics sit above the static drops and register at
+// HEROIC_LOOT_SOURCE_LEVEL (25) just like the five-man heroic table, giving them
+// ilvl 31 (25 + epic 6); the legendaries register one tier higher again, at
+// RIFT_LEGENDARY_LOOT_SOURCE_LEVEL (27), for ilvl 37. The C rank pays from the
+// level-20 NORMAL five-man pool, whose members keep their own source 20
+// (ilvl 23 rares / 26 epics); see rift/loot_pools.ts. The riftbound
+// rings (A/S personal gear, source level 20) and gems/essence (tools, no slot)
+// are excluded from item-level registration: rings derive their level from the
+// personal first-clear event (not a static loot source), and tools have no slot
+// so isItemLevelEligible returns false already.
+export const RIFT_CLEAR_LOOT_SOURCE_LEVEL = HEROIC_LOOT_SOURCE_LEVEL; // 25
+
+// The two S-rank legendary chase items sit a tier ABOVE the clear-time epics, at
+// the raid loot source level, so they land at item level 37 (27 + legendary 10).
+// This is a deliberate exception to "a rift never mints above its own tier": the
+// maintainer's call is that the S legendaries ARE top-of-game gear, gated behind
+// a 0.3% roll on the hardest rank of content whose portals spawn a handful of
+// times a day server-wide. They are NOT flagged as raid drops (itemFromRaid stays
+// false); only the source level is shared.
+export const RIFT_LEGENDARY_LOOT_SOURCE_LEVEL = NYTHRAXIS_RAID_LOOT_SOURCE_LEVEL; // 27
+
 // itemScore weights: how many armor points and how much weapon DPS count as one
 // primary-stat point, so a single comparable number can span gear types.
 export const ARMOR_PER_POINT = 12;
@@ -82,9 +158,13 @@ export const WEAPON_DPS_WEIGHT = 0.5;
 // boss therefore reports its raid size). Lets a drop know it came from a raid
 // without a per-mob flag. Built lazily + memoized, pure over the static tables.
 let encounterIndex: Map<string, number> | null = null;
+// DUNGEONS carries Studio rows only while an authored map is active
+// (studio_content.ts); a memo built on the other side of that switch is stale.
+let encounterIndexStudio = false;
 
 function encounterIndexOf(): Map<string, number> {
-  if (encounterIndex) return encounterIndex;
+  if (encounterIndex && encounterIndexStudio === studioContentActive()) return encounterIndex;
+  encounterIndexStudio = studioContentActive();
   const idx = new Map<string, number>();
   for (const def of Object.values(DUNGEONS)) {
     for (const spawn of def.spawns) {
@@ -126,7 +206,17 @@ function buildSourceIndex(): Map<string, ItemSource> {
   for (const mob of Object.values(MOBS)) {
     if (!mob.loot) continue;
     const raid = isRaidMob(mob.id);
-    for (const entry of mob.loot) bump(entry.itemId, mob.maxLevel, raid);
+    for (const entry of mob.loot) {
+      // A world boss's level-gated personal entry (LootEntry.maxPlayerLevel) is content
+      // for the level it can fall to, not for the level of the boss: the locals' share
+      // of a level-20 boss in a level 6 to 13 zone is level-13 gear, budgeted and
+      // level-gated as such, rather than a level-20 epic quietly handed to a level eight.
+      const level =
+        entry.maxPlayerLevel === undefined
+          ? mob.maxLevel
+          : Math.min(mob.maxLevel, entry.maxPlayerLevel);
+      bump(entry.itemId, level, raid);
+    }
   }
   // Quest rewards: gated behind the quest's hardest combat source: direct kill
   // objectives, or collected quest items traced back to the mob that drops them.
@@ -149,7 +239,8 @@ function buildSourceIndex(): Map<string, ItemSource> {
       }
     }
     consider(quest.minLevel, false);
-    for (const itemId of Object.values(quest.itemRewards))
+    // Choose-one rewards come from the same quest, so they price at the same source.
+    for (const itemId of [...Object.values(quest.itemRewards), ...(quest.choiceRewards ?? [])])
       bump(itemId, source?.level, source?.raid ?? false);
   }
   // Heroic Quartermaster stock: the marks-vendor jewelry never drops from a mob,
@@ -157,23 +248,41 @@ function buildSourceIndex(): Map<string, ItemSource> {
   // bosses), so the stock reads that source level: the epic pieces land at item
   // level 26 (20 + the epic bump) and get budget-enforced like any drop.
   for (const offer of HEROIC_VENDOR_STOCK) bump(offer.itemId, HEROIC_VENDOR_SOURCE_LEVEL, false);
-  // FURY's WARFARE stock is level-22 PvP content. The epic quality bump puts
-  // every piece at item level 28, including vendor-only necks and rings.
+  // FURY's WARFARE entry stock reads source 25, so the epic bump puts every
+  // piece at item level 31, including vendor-only necks and rings.
   for (const itemId of FURY_STOCK) bump(itemId, WARFARE_SOURCE_LEVEL, false);
+  // The two honor trinkets sold beside the kit read the same PvP tier.
+  for (const itemId of WARFARE_TRINKET_STOCK) bump(itemId, WARFARE_SOURCE_LEVEL, false);
+  // Referral charms use their milestone boss's ordinary accessory budget: the
+  // level-10 uncommon gives 3 Stamina; the level-13 rare evolution gives 5.
+  for (const [itemId, bossId] of Object.entries(REFERRAL_REWARD_SOURCE_BOSSES))
+    bump(itemId, MOBS[bossId]?.maxLevel, false);
+  // Warfare Season 2 reads source 29: epic item level 35, level with the raid tier.
+  for (const itemId of SEASON2_STOCK) bump(itemId, SEASON2_SOURCE_LEVEL, false);
   // Heroic boss drops: level-20 content one tier up (the heroic bump), so the
   // five-man epic pieces read item level 31 (25 + the epic bump). The 10-player
   // raid (Heroic Nythraxis) is one tier ABOVE the five-mans: its heroic-only
   // weapons register at NYTHRAXIS_RAID_LOOT_SOURCE_LEVEL (27) so they land at
-  // item level 33.
+  // item level 33. Migrated base-table paths preserve their original source
+  // index; listing them in the shared heroic slot must not increase their level.
   for (const [bossId, entries] of Object.entries(HEROIC_BOSS_LOOT)) {
     const src =
       bossId === NYTHRAXIS_RAID_BOSS_ID
         ? NYTHRAXIS_RAID_LOOT_SOURCE_LEVEL
         : HEROIC_LOOT_SOURCE_LEVEL;
     for (const entry of entries) {
-      if (entry.itemId) bump(entry.itemId, src, false);
+      if (entry.itemId && !entry.preserveSourceTier) bump(entry.itemId, src, false);
     }
   }
+  // The raid pieces relocated off Nythraxis (content/nythraxis_loot.ts) keep
+  // the raid tier they shipped at wherever they drop now: the Normal pieces
+  // read the raid boss's own source (its level plus the raid flag, item level
+  // 29), the four trinkets the heroic raid source (item level 33). bump() is
+  // highest-level-wins, so the dungeon sources registered above never lower them.
+  const raidBossLevel = MOBS[NYTHRAXIS_RAID_BOSS_ID]?.maxLevel;
+  for (const id of NYTHRAXIS_RELOCATED_ITEM_IDS) bump(id, raidBossLevel, true);
+  for (const id of NYTHRAXIS_RELOCATED_TRINKET_IDS)
+    bump(id, NYTHRAXIS_RAID_LOOT_SOURCE_LEVEL, false);
   // Heroic upgraded drop variants (content/heroic_variants.ts): the "Heroic X"
   // copies of base dungeon drops read one tier up (source 22), so their epics land
   // at item level 28 and rares at 25. Registered here so a variant's tooltip level
@@ -181,9 +290,11 @@ function buildSourceIndex(): Map<string, ItemSource> {
   // heroic RAID: the Nythraxis raid boss's own set pieces and legendaries upgrade
   // to the raid tier (source 27, item level 33/37), anchored on the raid boss's
   // normal loot so the auto-swap in a heroic claim reads the raid tier too.
-  const raidBases = new Set(
-    (MOBS[NYTHRAXIS_RAID_BOSS_ID]?.loot ?? []).flatMap((e) => (e.itemId ? [e.itemId] : [])),
-  );
+  const raidBases = new Set<string>([
+    ...(MOBS[NYTHRAXIS_RAID_BOSS_ID]?.loot ?? []).flatMap((e) => (e.itemId ? [e.itemId] : [])),
+    // The pieces relocated to the dungeons keep their raid-tier Heroic copies.
+    ...NYTHRAXIS_RELOCATED_ITEM_IDS,
+  ]);
   for (const item of Object.values(ITEMS)) {
     if (!item.heroicOf) continue;
     const src = raidBases.has(item.heroicOf)
@@ -191,18 +302,144 @@ function buildSourceIndex(): Map<string, ItemSource> {
       : HEROIC_VARIANT_SOURCE_LEVEL;
     bump(item.id, src, false);
   }
+  // Ignivar raid loot (content/ignivar_loot.ts): the whole Crucible table reads
+  // source 26 with the raid flag, so every gear piece lands at item level 35
+  // (26 + epic 6 + raid 3). The explicit registration is load-bearing twice
+  // over: the sigil-redeemed set pieces never appear on a mob loot table at
+  // all, and the direct boss drops would otherwise be priced by the level-20
+  // boss mobs (bump() is highest-level-wins, so this overrides that). Sigils
+  // are kind 'tool' with no slot and stay item-level ineligible.
+  for (const id of IGNIVAR_LOOT_ITEM_IDS) bump(id, IGNIVAR_RAID_LOOT_SOURCE_LEVEL, true);
+  // The Crucible raid trinkets (content/trinkets.ts) drop from the same two
+  // bosses on both difficulties (Normal off-set slot and Heroic exclusive
+  // slot), so they read the Crucible tier (35), out-ranking both the level-20
+  // mob-loot source and the heroic-table default source above.
+  for (const id of CRUCIBLE_TRINKET_ITEM_IDS) bump(id, IGNIVAR_RAID_LOOT_SOURCE_LEVEL, true);
+  // Rift-only clear-time epics and legendaries: gated behind B+/A/S final-boss
+  // kills (addRiftClearGearLoot), they never appear on static mob loot tables, so
+  // the mob-loot block above never registers them. The epics register at
+  // RIFT_CLEAR_LOOT_SOURCE_LEVEL (25) for item level 31; the legendaries at
+  // RIFT_LEGENDARY_LOOT_SOURCE_LEVEL (27) for item level 37. Both sit above the
+  // rift world-drop rares (ilvl 26, auto-registered via the mob-loot block above
+  // since rift mobs are maxLevel 23). Neither is a raid source.
+  for (const id of RIFT_EPIC_ITEM_IDS) bump(id, RIFT_CLEAR_LOOT_SOURCE_LEVEL, false);
+  for (const id of RIFT_LEGENDARY_ITEM_IDS) bump(id, RIFT_LEGENDARY_LOOT_SOURCE_LEVEL, false);
+  // Rift rare world-drops: already picked up by the mob-loot block (rift mobs are
+  // maxLevel 23) but listed here explicitly so the intent is clear. The bump() call
+  // is a no-op when the mob block already registered a higher-or-equal level.
+  for (const id of RIFT_RARE_ITEM_IDS) bump(id, 23, false);
+  // Riftbound rings (RIFT_GEAR_ITEM_IDS): personal gear created on first-clear via
+  // createRiftGearInstance. They have no static loot source, so we skip registration
+  // here. Their tooltip defers to the instance payload's rolled quality.
+  void RIFT_GEAR_ITEM_IDS; // referenced to keep the import non-dead
+  // Buried Hoard boss drops (content/hoard_loot.ts): the tier, not a mob level,
+  // sets the source, so the three tiers of one piece land on 26, 29 and 32.
+  for (const { id, sourceLevel } of hoardLootSourceLevels()) bump(id, sourceLevel, false);
   // Crafted gear (content/recipes.ts): a recipe's output is current at the recipe's
   // own level (the level a character can learn/use it, mirroring how a mob's level
   // stands in for its loot). Without this, any crafted item with primary stats has
   // no derivable item level: the budget gates below skip it and the tooltip's item
   // level/score lines never show. Not a raid source.
   for (const recipe of ALL_RECIPES) bump(recipe.resultItemId, recipe.level, false);
+  // The 2026-08-30 ilvl-honesty round: four hand-authored weapon lines sat
+  // above the dps curve their derived item level priced. Players own these
+  // items, so the LINES stay exactly as shipped and the item level rises to
+  // the level each line actually occupies (dps on weaponDpsBudget), giving
+  // future itemization an honest ruler to price against. Sources are stated
+  // so ilvl lands exactly (ilvl = source + quality bonus, + 3 when raid).
+  // Equip gates are unchanged: explicit requiredLevel wins (the shiv freezes
+  // its old gate in content), and the epic/legendary gates clamp at MAX_LEVEL.
+  // tests/twohand_rebudget.test.ts sweeps every weapon against its curve.
+  bump('boneglass_shiv', 18, false); // 12.9 dps: ilvl 21 (was 17)
+  bump('duskwhisper', 22, false); // 15.0 dps: ilvl 28 (was 26)
+  bump('marrowpoint', 23, false); // 15.3 dps: ilvl 29 (was 26)
+  bump('deathless_heartwood', 22, true); // 17.19 dps: ilvl 35 (was 33)
+  bump('kingsbane_last_oath', 36, true); // 21.43 dps: ilvl 49 (was 33)
+  bump('heroic_kingsbane_last_oath', 40, true); // retained line + seed: ilvl 53
+  // The three-tier legendary ladder (maintainer, 2026-08-30): bases 49,
+  // heroic mints 53 (the +70/+30 seed is worth 3-4 levels at the rating
+  // conversions, not 1), the new raid's pair 55 budget-true.
+  // The legendary band (maintainer direction, same round): every legendary is
+  // BUFFED budget-true to the Thronebane tier and labeled there. Bases 49,
+  // heroic mints and the heroic-raid pair 50; the rift pair is non-raid so its
+  // source carries the whole distance.
+  bump('deathless_heartwood', 36, true); // 49
+  bump('heroic_deathless_heartwood', 40, true); // 53 (the heroic legendary tier)
+  bump('varkhul_forgebreaker', 42, true); // 55 (the new-raid legendary tier)
+  bump('varkhul_emberward', 42, true); // 55 (the new-raid legendary tier)
+  bump('voidsong_dirk', 39, false); // 49
+  bump('heart_of_the_rift', 39, false); // 49
+  // The dungeon rework (docs/design/dungeon-rework/) re-leveled three bosses
+  // for pacing: Sexton Marrow 9 to 8, Knight-Commander Olen 13 to 12 and
+  // Choirmother Selthe 18 to 16 (and the Quilted Trousers moved from Morthen,
+  // level 10, to Marrow). Players own the shipped pieces those bosses pay, so
+  // each keeps the source tier it shipped at: its item level, its derived
+  // equip gate and its stat line are unchanged. Only the rework's new pieces
+  // price at the new boss levels. bump() is highest-wins, so these pins only
+  // ever restore the shipped tier. The lower dungeons' normal blues (2026-10-08)
+  // moved the Drowned Prayer Leggings from Vael (13) to Olen (12): same rule.
+  for (const [id, level] of [
+    ['quilted_trousers', 10],
+    ['marrowtread_boots', 9],
+    ['sextons_slippers', 9],
+    ['gravewalker_softboots', 9],
+    ['knight_commanders_greaves', 13],
+    ['tideguard_greaves', 13],
+    ['tideguard_sabatons', 13],
+    ['eelscale_leggings', 13],
+    ['drowned_prayer_leggings', 13],
+    ['drownstep_sabatons', 18],
+    ['drownstep_slippers', 18],
+    ['drownstep_treads', 18],
+    ['selthes_seastriders', 18],
+  ] as const)
+    bump(id, level, false);
   return idx;
 }
 
 function sourceIndexOf(): Map<string, ItemSource> {
   if (!sourceIndex) sourceIndex = buildSourceIndex();
   return sourceIndex;
+}
+
+// itemId -> "this drops from the HEROIC Nythraxis raid", the question the raid
+// flag above cannot answer. The heroic raid's loot registers raid: false on
+// purpose: its source level IS the raid tier (27), so OR-ing the raid bonus in
+// would price it a second time. Two arms, the two ways a heroic raid pays:
+// the heroic-ONLY extras on the boss's own heroic table (the three bespoke
+// weapons), and the heroic variants of the boss's normal drops, which the
+// claim swaps in. Built once, lazily, from the same static tables, and reset
+// with the source index.
+let heroicRaidIndex: Set<string> | null = null;
+
+function buildHeroicRaidIndex(): Set<string> {
+  const idx = new Set<string>();
+  for (const entry of HEROIC_BOSS_LOOT[NYTHRAXIS_RAID_BOSS_ID] ?? []) {
+    if (entry.itemId) idx.add(entry.itemId);
+  }
+  // The relocated raid trinkets keep their heroic-raid standing, so a copy won
+  // before the move behaves exactly as it did (content/nythraxis_loot.ts).
+  for (const id of NYTHRAXIS_RELOCATED_TRINKET_IDS) idx.add(id);
+  const raidBases = new Set<string>([
+    ...(MOBS[NYTHRAXIS_RAID_BOSS_ID]?.loot ?? []).flatMap((e) => (e.itemId ? [e.itemId] : [])),
+    // The pieces relocated to the dungeons keep their raid-tier Heroic copies.
+    ...NYTHRAXIS_RELOCATED_ITEM_IDS,
+  ]);
+  for (const item of Object.values(ITEMS)) {
+    if (item.heroicOf && raidBases.has(item.heroicOf)) idx.add(item.id);
+  }
+  return idx;
+}
+
+// Whether the HEROIC Nythraxis raid is a source for this item. Separate from
+// itemFromRaid because the two answer different questions: that one drives the
+// item-level raid bonus (which the heroic tier already prices into its source
+// level), this one says the piece was won in a raid encounter. Sundering is
+// the consumer: the Phase 05 QA ruling admits heroic-raid epics, and reading
+// the source here keeps that eligibility flip out of the item-level math.
+export function itemFromHeroicRaid(itemId: string): boolean {
+  if (!heroicRaidIndex) heroicRaidIndex = buildHeroicRaidIndex();
+  return heroicRaidIndex.has(itemId);
 }
 
 // The level of the content an item drops from, or undefined for items with no
@@ -238,17 +475,57 @@ export function itemLevel(item: ItemDef): number | undefined {
   return Math.max(1, src.level + bonus + raid);
 }
 
-// The budget an item is expected to carry given its own source/quality/slot, or
-// undefined when the item has no derivable item level. A two-handed weapon carries
-// only the modest TWOHAND_STAT_MULT premium over the mainhand line (its real
-// compensation is weapon dps, TWOHAND_DPS_MULT); rounded so budgets stay integral.
-export function expectedStatBudget(item: ItemDef): number | undefined {
+/** Display a copy's earned tier without repricing static budgets or cosmetic
+ *  promotion. Only the new collections earn three item levels when Perfected;
+ *  their partial ranks and the 17 legacy Masterwrought items keep the base tier. */
+export function itemInstanceLevel(
+  item: ItemDef,
+  instance?: ItemInstancePayload,
+): number | undefined {
+  const level =
+    instance?.rift && RIFT_BAND_SHELLS[item.id]
+      ? riftBandItemLevel(instance.rift.tier, instance.rift.upgradeLevel)
+      : itemLevel(item);
+  if (level === undefined) return undefined;
+  const perfected =
+    instance?.perfected === true && crucibleCollectionForItem(item.id)
+      ? COLLECTION_PERFECTING_SOURCE_INCREASE
+      : 0;
+  return level + perfected + lootQualityItemLevelBonus(instance);
+}
+
+// The offense-and-resource LINE an item is expected to spend on its identity
+// (str/agi or int/spi, plus any stamina above the baseline) given its own
+// source/quality/slot, or undefined when the item has no derivable item level. A
+// two-handed weapon carries only the modest TWOHAND_STAT_MULT premium over the
+// mainhand line (its real compensation is weapon dps, TWOHAND_DPS_MULT); rounded
+// so budgets stay integral. This is the number the stamina baseline is taken from.
+export function expectedLineBudget(item: ItemDef): number | undefined {
   const level = itemLevel(item);
   if (level === undefined) return undefined;
-  const base = primaryStatBudget(level, item.quality, item.slot);
+  const base = primaryStatBudget(level, item.quality, item.slot, slotStatMultForItem(item));
   return item.kind === 'weapon' && item.hand === 'twohand'
     ? Math.round(base * TWOHAND_STAT_MULT)
     : base;
+}
+
+// The primary-stat TOTAL (all five attributes) an item is expected to carry: the
+// line above plus, for a caster identity, its free stamina baseline (a physical
+// identity already holds its baseline inside the line). primaryStatSum(item) equals
+// this for every item on the model; see item_budget.ts for the model.
+export function expectedStatBudget(item: ItemDef): number | undefined {
+  const line = expectedLineBudget(item);
+  if (line === undefined) return undefined;
+  // A stamina-model-exempt slot (the trinket) spends the plain line on its one
+  // attribute, with no caster baseline on top.
+  if (staminaModelExempt(item)) return line;
+  return expectedStatTotal(line, statIdentity(item.stats));
+}
+
+// The stamina-model readout for an item with a derivable line, or undefined.
+export function itemStaminaModel(item: ItemDef): StaminaModelCheck | undefined {
+  const line = expectedLineBudget(item);
+  return line === undefined ? undefined : checkStaminaModel(item.stats, line);
 }
 
 // The sum of an item's primary stats (its realized stat budget).
@@ -276,4 +553,5 @@ export function itemScore(item: ItemDef): number {
 export function resetItemLevelCache(): void {
   sourceIndex = null;
   encounterIndex = null;
+  heroicRaidIndex = null;
 }

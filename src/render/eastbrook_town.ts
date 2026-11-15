@@ -3,22 +3,35 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { BUILDING_TERRAIN_SAMPLE_STEP } from '../sim/building_layout';
 import { BUILTIN_WORLD, getActiveWorldContent } from '../sim/data';
 import { EASTBROOK_LAYOUT, localToWorld, wallSegmentMirrored } from '../sim/eastbrook_layout';
+import {
+  forEachSegmentFootprintSample,
+  pitchedSegmentPlacement,
+  type SegmentPoint,
+} from '../sim/pitched_segment';
 import type { BuildingDef, ZonePropsDef } from '../sim/types';
 import { terrainHeight } from '../sim/world';
 import { loadGltf, releaseGltf } from './assets/loader';
-import { registerPreload } from './assets/preload';
+import { mediaAssetExists } from './assets/media';
+import { registerDeferredPreload } from './assets/preload';
+import { activeWorldHasAuthoredTown } from './authored_town_gate';
+import { buildEastbrookHarbor } from './eastbrook_harbor';
+import { buildEastbrookPlacedBuilding, isPlacedBuildingAsset } from './eastbrook_placed_building';
 import {
-  createEastbrookCivicBeaconState,
-  decorateEastbrookCivicBeaconMaterial,
-  type EastbrookCivicBeaconState,
-  setEastbrookCivicMask,
-  updateEastbrookCivicBeaconMotion,
-} from './eastbrook_civic_beacon';
+  EASTBROOK_STALL_ASSET_URL,
+  isStallCanopyVertex,
+  STALL_CANOPY_SEMANTIC,
+  stallCanopyColor,
+  stallTemplateKey,
+} from './eastbrook_stall_canopy_core';
 import {
+  applyEastbrookTownSurfaceDetail,
   EASTBROOK_SURFACE_ATLAS_URL,
+  EASTBROOK_SURFACE_NORMAL_SCALE,
   eastbrookSurfaceAtlasMetadata,
   eastbrookSurfaceAtlasTexture,
   eastbrookSurfaceGeometry,
+  eastbrookSurfaceNormalTexture,
+  eastbrookSurfaceRoughnessTexture,
   eastbrookTownSemanticForColor,
 } from './eastbrook_surface_atlas';
 import {
@@ -27,20 +40,77 @@ import {
   eastbrookRoofVisibilityPlanInto,
   newEastbrookRoofVisibilityPlan,
 } from './eastbrook_town_visibility_core';
-import { GFX, surfaceMat } from './gfx';
+import { buildEastbrookWeeklyVault, WEEKLY_VAULT_TRIANGLES } from './eastbrook_weekly_vault';
+import { indexExactVertexTuples } from './exact_index_geometry';
+import { EMISSIVE_GLOW, GFX, type GfxSettings, surfaceMat } from './gfx';
+import { type KitWindowPane, kitWindowPanes } from './kit_window_panes_core';
+import { cloneMaterialWithHooks } from './material_clone_hooks';
+import {
+  advanceOccluderFade,
+  type OccluderFadeMat,
+  occluderFadeMat,
+  occluderFadeRecordFor,
+  prefetchOccluderFadeWithin,
+} from './occluder_fade';
+import { type PlacedTextureTier, placedTextureTierPath } from './placed_texture_tier_core';
+import { placedTownCullRadius } from './placed_town_buildings';
+import { createPlacedTownInteriors } from './placed_town_interiors';
+import { activeWorldPromoted } from './promoted_scenery_gate';
+import {
+  buildRealmBuilderMonumentBody,
+  buildRealmBuilderMonumentFx,
+} from './realm_builder_monument_fx';
+import type { RevealGateCore } from './reveal_gate_core';
+import {
+  isLowSceneryCullActive,
+  prepareSceneryDetailRoot,
+  sceneryClutterFar,
+  sceneryStructureFar,
+} from './scenery_detail';
+import {
+  newTownPiecewiseReveal,
+  orderTownRootsNearestFirst,
+  townPiecewiseRevealInto,
+  townRootVisible,
+  townStaticReveal,
+} from './town_reveal_core';
 import { modulateEmissiveByVertexColor } from './vertex_color_emissive';
 
 const ROOT_NAME = 'eastbrookTownRebuild';
 const FOUNDATION_OVERLAP = 0.03;
 const FOUNDATION_COLOR = 0x46505e;
-const TOWN_CULL_RADIUS =
-  EASTBROOK_LAYOUT.wall.radius + EASTBROOK_LAYOUT.wall.maximumSegmentSpan / 2;
+// Warm interior light for the kit buildings (owner refinement round 4): the
+// hexb GLBs carry no emissive materials (their windows are palette texels in
+// the KTX2 atlas), so each kit building gets one amber pane quad per window
+// assembly detected in the model's own geometry (kit_window_panes_core.ts),
+// riding the same vertex-color emissive ladder as the shape buildings'
+// authored windows. Panes derived from the real window frames sit exactly in
+// the models' openings; the earlier bounding-box guesses floated off walls.
+const KIT_WINDOW_AMBER = 0xffb45a;
+const TOWN_CULL_RADIUS = Math.max(
+  placedTownCullRadius(
+    {
+      hub: { center: { x: 0, z: 0 }, radius: EASTBROOK_LAYOUT.wall.radius },
+      buildings: EASTBROOK_LAYOUT.buildings,
+    },
+    EASTBROOK_LAYOUT.wall.maximumSegmentSpan / 2,
+  ),
+  Math.hypot(EASTBROOK_LAYOUT.weeklyVault.x, EASTBROOK_LAYOUT.weeklyVault.z) +
+    Math.hypot(EASTBROOK_LAYOUT.weeklyVault.w / 2, EASTBROOK_LAYOUT.weeklyVault.d / 2),
+);
+/** The one reveal-gate key of the town's static content. */
+const STATIC_REVEAL_KEY = 'eastbrook-town-static';
 
+// Deduped: since round 3 the layout re-uses kit shells across buildings
+// (three hexb_home_a lots, two hexb_home_b), and this list is a set of
+// URLs to load, never a per-building roster.
 const NEW_ASSET_URLS = Object.freeze([
-  ...EASTBROOK_LAYOUT.buildings.map((building) => building.assetId),
-  EASTBROOK_LAYOUT.civic.wellBeacon.assetId,
-  EASTBROOK_LAYOUT.market.stalls[0].assetId,
-  EASTBROOK_LAYOUT.wall.assetId,
+  ...new Set([
+    ...EASTBROOK_LAYOUT.buildings.map((building) => building.assetId),
+    EASTBROOK_LAYOUT.civic.monument.assetId,
+    EASTBROOK_LAYOUT.market.stalls[0].assetId,
+    EASTBROOK_LAYOUT.wall.assetId,
+  ]),
 ]);
 const SUPPORT_ASSET_URLS = Object.freeze([
   EASTBROOK_LAYOUT.civic.benches[0].assetId,
@@ -54,7 +124,7 @@ const ASSET_INSTANCE_COUNTS = (() => {
     counts[assetUrl] = (counts[assetUrl] ?? 0) + 1;
   };
   for (const building of EASTBROOK_LAYOUT.buildings) add(building.assetId);
-  add(EASTBROOK_LAYOUT.civic.wellBeacon.assetId);
+  add(EASTBROOK_LAYOUT.civic.monument.assetId);
   for (const bench of EASTBROOK_LAYOUT.civic.benches) add(bench.assetId);
   for (const stall of EASTBROOK_LAYOUT.market.stalls) add(stall.assetId);
   for (const fence of EASTBROOK_LAYOUT.fences) add(fence.assetId);
@@ -64,14 +134,64 @@ const ASSET_INSTANCE_COUNTS = (() => {
 
 const loadedSources = new Map<string, THREE.Group>();
 const preparedTemplates = new Map<string, TownAssetTemplate>();
+const sourceLoadTasks = new Map<string, Promise<void>>();
+/** The indoor camera's rooms of the live view's walk-in buildings (dropped when the next
+ *  view builds). */
+const cameraInteriors = createPlacedTownInteriors();
+/** The FILE each resident source was read from. A placed building's URL names
+ *  the model; the file follows the profile's texture tier (same geometry, see
+ *  placed_texture_tier_core.ts), so everything else here stays keyed on the
+ *  URL and a tier change is one replaced source. */
+const loadedSourceFiles = new Map<string, string>();
+
+function townSourceFile(url: string, tier: PlacedTextureTier): string {
+  return isPlacedBuildingAsset(url) ? placedTextureTierPath(url, tier, mediaAssetExists) : url;
+}
+
+function prepareTownSource(url: string, tier = GFX.placedTextureTier): Promise<void> {
+  const file = townSourceFile(url, tier);
+  const residentFile = loadedSourceFiles.get(url);
+  if (loadedSources.has(url) && residentFile === file) return Promise.resolve();
+  const existing = sourceLoadTasks.get(url);
+  if (existing) return existing;
+  const task = loadGltf(file)
+    .then((gltf) => {
+      loadedSources.set(url, gltf.scene);
+      loadedSourceFiles.set(url, file);
+      // The tier this replaces is no longer wanted: drop its cache entry (the
+      // retiring view's clones keep its textures alive until they go).
+      if (residentFile !== undefined && residentFile !== file) releaseGltf(residentFile);
+      sourceLoadTasks.delete(url);
+    })
+    .catch((err) => {
+      sourceLoadTasks.delete(url);
+      throw err;
+    });
+  sourceLoadTasks.set(url, task);
+  return task;
+}
+
+/**
+ * `target` is the profile about to be activated: a rebuild prepares its assets
+ * BEFORE the live settings switch, so the texture tier must come from the
+ * target, never from the profile being retired.
+ */
+export function prepareEastbrookTownProfileAssets(
+  target: Pick<GfxSettings, 'placedTextureTier'> = GFX,
+): Promise<void> {
+  return Promise.all(
+    ALL_ASSET_URLS.map((url) => prepareTownSource(url, target.placedTextureTier)),
+  ).then(() => undefined);
+}
+
+export function resetEastbrookTownProfileCaches(): void {
+  preparedTemplates.clear();
+  kitWindowPaneCache.clear();
+}
 
 if (typeof window !== 'undefined') {
   for (const url of ALL_ASSET_URLS) {
-    registerPreload(
-      loadGltf(url).then((gltf) => {
-        loadedSources.set(url, gltf.scene);
-      }),
-    );
+    registerDeferredPreload(() => prepareTownSource(url));
   }
 }
 
@@ -81,12 +201,18 @@ interface TownAssetTemplate {
   opaque: THREE.BufferGeometry | null;
   emissive: THREE.BufferGeometry | null;
   size: THREE.Vector3;
+  /** Kit buildings only: the raw GLB scene, rendered with its own materials
+   *  (KTX2 palette textures the atlas bake cannot read on the CPU). */
+  raw?: THREE.Object3D;
 }
 
 interface RoofHideTarget extends EastbrookRoofVisibilityTarget {
   group: THREE.Group;
-  materials: THREE.Material[];
+  mats: OccluderFadeMat[];
+  interiors?: readonly THREE.Object3D[];
+  interiorsVisible?: boolean;
   hidden: boolean;
+  alpha: number;
 }
 
 export interface EastbrookTownView {
@@ -99,8 +225,27 @@ export interface EastbrookTownView {
     eyeY: number,
     eyeZ: number,
     fogFar: number,
+    dt: number,
     reducedMotion?: boolean,
   ): void;
+  /**
+   * First-reveal compile gating (hitch-hunt P3a): the static batches' first
+   * fog-cull reveal is held hidden until the gate warms the town key, so a
+   * cold approach never links the town's programs inside a live frame. No
+   * gate keeps the historical immediate reveal.
+   */
+  setRevealGate(gate: RevealGateCore | null): void;
+  /** The compile roots behind the town's reveal key (the static batches). */
+  staticRevealRoots(): readonly THREE.Object3D[];
+  /**
+   * Re-bake the Realm Builder monument's projected name.
+   *
+   * The town is built while the world loads, and online the realm's honour
+   * roll may not have arrived yet; an operator can also name somebody in the
+   * middle of a live session. Either way the plaque has to catch up without a
+   * reload, so the name is a texture this can swap.
+   */
+  setRealmBuilderHonouree(name: string): void;
 }
 
 export interface EastbrookTownDrawStats {
@@ -118,6 +263,7 @@ export interface EastbrookTownDrawStats {
 export interface EastbrookTownTriangleBudget {
   assetTriangles: number;
   maximumFoundationTriangles: number;
+  proceduralTriangles: number;
   maximumRuntimeTriangles: number;
   hardCeiling: number;
   target: number;
@@ -158,10 +304,32 @@ function materialIsEmissive(material: THREE.Material): boolean {
   );
 }
 
+/** Repaints the market stall's canopy (eastbrook_stall_canopy_core.ts): every
+ *  canopy vertex takes the stall's canopy colour, so its three panels read as
+ *  one awning instead of a flag. Returns which vertices it repainted, for the
+ *  caller to put on the one canvas cell. */
+function repaintStallCanopy(geometry: THREE.BufferGeometry, canopy: THREE.Color): Uint8Array {
+  const color = geometry.getAttribute('color');
+  const position = geometry.getAttribute('position');
+  const repainted = new Uint8Array(color.count);
+  for (let index = 0; index < color.count; index++) {
+    const semantic = eastbrookTownSemanticForColor(
+      color.getX(index),
+      color.getY(index),
+      color.getZ(index),
+    );
+    if (!isStallCanopyVertex(semantic, position.getY(index))) continue;
+    color.setXYZ(index, canopy.r, canopy.g, canopy.b);
+    repainted[index] = 1;
+  }
+  return repainted;
+}
+
 function geometryFromMesh(
   mesh: THREE.Mesh,
   material: THREE.Material,
   url: string,
+  canopyVariant?: string,
 ): THREE.BufferGeometry {
   const source = mesh.geometry;
   const position = source.getAttribute('position');
@@ -184,12 +352,21 @@ function geometryFromMesh(
   geometry.applyMatrix4(mesh.matrixWorld);
   if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
   const normalizedGeometry = geometry.index ? geometry.toNonIndexed() : geometry;
+  // The stall's glow (lantern, crystal) keeps its own colours.
+  const canopy =
+    url === EASTBROOK_STALL_ASSET_URL && !materialIsEmissive(material)
+      ? repaintStallCanopy(normalizedGeometry, new THREE.Color(stallCanopyColor(canopyVariant)))
+      : null;
   const finalColor = normalizedGeometry.getAttribute('color');
-  return eastbrookSurfaceGeometry(normalizedGeometry, (index) =>
-    eastbrookTownSemanticForColor(
-      finalColor.getX(index),
-      finalColor.getY(index),
-      finalColor.getZ(index),
+  return indexExactVertexTuples(
+    eastbrookSurfaceGeometry(normalizedGeometry, (index) =>
+      canopy?.[index]
+        ? STALL_CANOPY_SEMANTIC
+        : eastbrookTownSemanticForColor(
+            finalColor.getX(index),
+            finalColor.getY(index),
+            finalColor.getZ(index),
+          ),
     ),
   );
 }
@@ -202,7 +379,11 @@ function mergeParts(parts: THREE.BufferGeometry[], label: string): THREE.BufferG
   return merged;
 }
 
-function extractTemplate(source: THREE.Object3D, url: string): TownAssetTemplate {
+function extractTemplate(
+  source: THREE.Object3D,
+  url: string,
+  canopyVariant?: string,
+): TownAssetTemplate {
   // The loader cache is immutable. Clone the transform graph before updating
   // matrices and clone every geometry attribute before normalization.
   const instance = source.clone(true);
@@ -215,7 +396,7 @@ function extractTemplate(source: THREE.Object3D, url: string): TownAssetTemplate
     if (materials.length !== 1) {
       throw new Error(`Eastbrook town asset uses an unsupported material array: ${url}`);
     }
-    const geometry = geometryFromMesh(child, materials[0], url);
+    const geometry = geometryFromMesh(child, materials[0], url, canopyVariant);
     (materialIsEmissive(materials[0]) ? emissive : opaque).push(geometry);
   });
   if (opaque.length === 0 && emissive.length === 0) {
@@ -250,7 +431,32 @@ function prepareTemplates(
     if (cache.has(url)) continue;
     const source = sources.get(url);
     if (!source) throw new Error(`Eastbrook town asset was not preloaded: ${url}`);
-    cache.set(url, extractTemplate(source, url));
+    // Kit buildings (the Galecrest hexb mix) and the Realm Builder monument
+    // render with their OWN GLB materials (see keepsOwnMaterials). The raw
+    // scene rides the template cache for buildKitBuilding and
+    // buildRealmBuilderMonumentBody, and its GLB cache entry is never released
+    // (the clones share its textures).
+    if (keepsOwnMaterials(url)) {
+      const box = new THREE.Box3().setFromObject(source);
+      const kitSize = new THREE.Vector3();
+      box.getSize(kitSize);
+      cache.set(url, { opaque: null, emissive: null, size: kitSize, raw: source });
+      continue;
+    }
+    const template = extractTemplate(source, url);
+    cache.set(url, template);
+    // The market stall draws one template per canopy colour its stalls name;
+    // the plain extraction above already wears the default colour.
+    for (const stall of EASTBROOK_LAYOUT.market.stalls) {
+      const key = stallTemplateKey(stall.assetId, stall.canopyVariant);
+      if (stall.assetId !== url || cache.has(key)) continue;
+      cache.set(
+        key,
+        key === stallTemplateKey(url, undefined)
+          ? template
+          : extractTemplate(source, url, stall.canopyVariant),
+      );
+    }
     if (release) {
       loadedSources.delete(url);
       releaseGltf(url);
@@ -259,15 +465,311 @@ function prepareTemplates(
   return cache;
 }
 
+function isKitBuildingAsset(url: string): boolean {
+  return url.startsWith('/models/biome/');
+}
+
+/**
+ * Assets that keep their OWN GLB materials instead of being baked into the
+ * vertex-colour micro-batch.
+ *
+ * Three different reasons land here. The kit buildings' colour lives in KTX2
+ * palette textures the CPU cannot sample. The Realm Builder monument is a
+ * judgement call: its baked albedo carries the carving that makes it a statue
+ * rather than a shape, and the owner rejected the palette-colour version on
+ * sight, so it draws as its own textured prop. The placed Tidehold buildings
+ * are painted: every wall and roof carries its relief in its own atlases.
+ */
+function keepsOwnMaterials(url: string): boolean {
+  return (
+    isKitBuildingAsset(url) ||
+    isPlacedBuildingAsset(url) ||
+    url === EASTBROOK_LAYOUT.civic.monument.assetId
+  );
+}
+
+// Kit materials keep their GLB textures; on the Lambert tiers they downgrade
+// like every town material (the Low-tier contract the surface-atlas suite
+// audits), carrying map, color, and emissive across.
+function kitMaterial(source: THREE.Material): THREE.Material {
+  if (GFX.standardMaterials) return cloneMaterialWithHooks(source);
+  const from = source as THREE.Material & {
+    map?: THREE.Texture | null;
+    color?: THREE.Color;
+    emissive?: THREE.Color;
+    emissiveMap?: THREE.Texture | null;
+  };
+  const lambert = new THREE.MeshLambertMaterial({
+    map: from.map ?? null,
+    color: from.color?.clone() ?? new THREE.Color(0xffffff),
+  });
+  if (from.emissive) lambert.emissive = from.emissive.clone();
+  if (from.emissiveMap) lambert.emissiveMap = from.emissiveMap;
+  lambert.name = source.name;
+  return lambert;
+}
+
+// Window panes per kit asset URL, derived once from the model's own window
+// assemblies (kit_window_panes_core.ts) in the raw attribute units of the
+// GLB's single mesh. Filled lazily by the first buildKitBuilding for an URL.
+const kitWindowPaneCache = new Map<string, KitWindowPane[]>();
+
+// The shipped kit GLBs decode their meshopt streams into INTERLEAVED
+// attributes (stride 4 with one pad lane), so the raw shared array is never
+// a tight per-vertex scan target. This copies the position lanes into a
+// tight typed array of the SAME element class, preserving the exact raw
+// (quantized) values the detector's exact-position vertex merge relies on.
+// A plain tight BufferAttribute passes its array through untouched.
+function tightRawPositions(
+  attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+): ArrayLike<number> {
+  if (attribute instanceof THREE.InterleavedBufferAttribute) {
+    const data = attribute.data;
+    const src = data.array as unknown as ArrayLike<number> & {
+      constructor: new (length: number) => number[];
+    };
+    const out = new src.constructor(attribute.count * 3);
+    for (let vertex = 0; vertex < attribute.count; vertex++) {
+      const base = vertex * data.stride + attribute.offset;
+      out[vertex * 3] = src[base];
+      out[vertex * 3 + 1] = src[base + 1];
+      out[vertex * 3 + 2] = src[base + 2];
+    }
+    return out;
+  }
+  return attribute.array as ArrayLike<number>;
+}
+
+function kitPanesForAsset(url: string, source: THREE.Object3D): KitWindowPane[] {
+  const cached = kitWindowPaneCache.get(url);
+  if (cached) return cached;
+  let firstMesh: THREE.Mesh | null = null;
+  source.traverse((child) => {
+    if (firstMesh === null && child instanceof THREE.Mesh) firstMesh = child;
+  });
+  // The closure assignment defeats narrowing: name the found mesh explicitly.
+  const first = firstMesh as THREE.Mesh | null;
+  const position = first?.geometry.getAttribute('position');
+  const panes =
+    position && first
+      ? kitWindowPanes(
+          tightRawPositions(position),
+          position.count,
+          (first.geometry.index?.array as ArrayLike<number> | undefined) ?? null,
+        )
+      : [];
+  kitWindowPaneCache.set(url, panes);
+  return panes;
+}
+
+// KHR_mesh_quantization: a normalized attribute renders as value / range on
+// the GPU, so pane quads authored in the raw attribute units the detector
+// scanned need the same factor to land in the mesh node's local space.
+// Interleaved attributes read their element class off the shared buffer.
+function normalizedAttributeScale(
+  attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+): number {
+  if (!attribute.normalized) return 1;
+  const array =
+    attribute instanceof THREE.InterleavedBufferAttribute ? attribute.data.array : attribute.array;
+  if (array instanceof Int8Array) return 1 / 127;
+  if (array instanceof Uint8Array) return 1 / 255;
+  if (array instanceof Int16Array) return 1 / 32767;
+  if (array instanceof Uint16Array) return 1 / 65535;
+  return 1;
+}
+
+// The merged lit-window geometry for one kit building, in raw model space:
+// each detected assembly's recessed glass plane as the model's own triangles
+// (kit_window_panes_core.ts), concatenated into one soup, dequantized and
+// moved by the mesh node's model-root transform (the caller settles
+// matrixWorld while the clone is parentless at the origin). A uniform amber
+// vertex color rides the same vertex-color emissive ladder as the shape
+// buildings' authored windows.
+function kitWindowPaneGeometry(
+  mesh: THREE.Mesh,
+  panes: readonly KitWindowPane[],
+): THREE.BufferGeometry | null {
+  const position = mesh.geometry.getAttribute('position');
+  if (panes.length === 0 || !position) return null;
+  let total = 0;
+  for (const pane of panes) total += pane.positions.length;
+  if (total === 0) return null;
+  const soup = new Float32Array(total);
+  let cursor = 0;
+  for (const pane of panes) {
+    soup.set(pane.positions, cursor);
+    cursor += pane.positions.length;
+  }
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute('position', new THREE.Float32BufferAttribute(soup, 3));
+  merged.computeVertexNormals();
+  const count = merged.getAttribute('position').count;
+  const tint = new THREE.Color(KIT_WINDOW_AMBER);
+  const colors = new Float32Array(count * 3);
+  for (let index = 0; index < count; index++) {
+    colors[index * 3] = tint.r;
+    colors[index * 3 + 1] = tint.g;
+    colors[index * 3 + 2] = tint.b;
+  }
+  merged.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const scale = normalizedAttributeScale(position);
+  merged.scale(scale, scale, scale);
+  merged.applyMatrix4(mesh.matrixWorld);
+  return merged;
+}
+
+// A kit building: the raw GLB scene cloned with its own materials, scaled to
+// the layout's native dimensions and seated like every template building; the
+// roof-hide contract is identical so camera ghosting keeps working.
+function buildKitBuilding(
+  building: (typeof EASTBROOK_LAYOUT.buildings)[number],
+  source: THREE.Object3D,
+  groundAt: GroundAt,
+): { group: THREE.Group; hideTarget: RoofHideTarget } {
+  const dimensions = building.nativeDimensions;
+  const terrain = buildingTerrain(building, groundAt);
+  const foundationDepth = Math.max(0, terrain.entranceY - terrain.minimumY);
+
+  const clone = source.clone(true);
+  // World matrices settle while the clone is parentless at the origin: the
+  // window-pane bake below reads the mesh node's matrixWorld as its
+  // transform relative to the model root.
+  clone.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(clone);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const scaleX = dimensions.width / Math.max(size.x, 1e-4);
+  const scaleY = dimensions.height / Math.max(size.y, 1e-4);
+  const scaleZ = dimensions.depth / Math.max(size.z, 1e-4);
+  const mats: OccluderFadeMat[] = [];
+  let firstKitMesh: THREE.Mesh | null = null;
+  clone.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    if (firstKitMesh === null) firstKitMesh = child;
+    child.castShadow = true;
+    child.receiveShadow = true;
+    const list = Array.isArray(child.material) ? child.material : [child.material];
+    const cloned = list.map((m) => kitMaterial(m));
+    child.material = Array.isArray(child.material) ? cloned : cloned[0];
+    for (const material of cloned) occluderFadeRecordFor(mats, material, child);
+  });
+  const wrap = new THREE.Group();
+  wrap.add(clone);
+  // center the model on its footprint and rest its base at y 0 of the wrap
+  clone.position.set(-(box.min.x + size.x / 2), -box.min.y, -(box.min.z + size.z / 2));
+  wrap.scale.set(scaleX, scaleY, scaleZ);
+  // Lit window panes (owner refinement round 5): each assembly's recessed
+  // glass plane, lifted verbatim from the model's own window assemblies
+  // (kit_window_panes_core.ts) so the glow fits the openings exactly, baked
+  // into raw model space, added AFTER the shadow traverse and AS A SIBLING of
+  // the clone inside the wrap, so the panes keep castShadow false, inherit
+  // the wrap's scale-to-dimensions transform, and share the clone's centering
+  // offset. matrixWorld still holds the parentless-origin update from above:
+  // repositioning the clone does not recompute it.
+  const paneGeometry = firstKitMesh
+    ? kitWindowPaneGeometry(firstKitMesh, kitPanesForAsset(building.assetId, source))
+    : null;
+  if (paneGeometry) {
+    const paneMaterial = townMaterial(true, undefined, true);
+    paneMaterial.name = `eastbrookTownKitPanes:${building.id}`;
+    // A pane sits mid-opening and must read from both approaches.
+    paneMaterial.side = THREE.DoubleSide;
+    // The pane triangles are coplanar with the model's own glass geometry;
+    // the polygon offset wins the depth fight without geometric displacement.
+    paneMaterial.polygonOffset = true;
+    paneMaterial.polygonOffsetFactor = -2;
+    paneMaterial.polygonOffsetUnits = -2;
+    const panes = new THREE.Mesh(paneGeometry, paneMaterial);
+    panes.name = `eastbrookBuildingEmissive:${building.id}`;
+    panes.castShadow = false;
+    panes.receiveShadow = false;
+    panes.position.copy(clone.position);
+    wrap.add(panes);
+    occluderFadeRecordFor(mats, paneMaterial, panes);
+  }
+
+  const group = new THREE.Group();
+  group.name = `eastbrookBuilding:${building.id}`;
+  group.userData.eastbrookBuildingId = building.id;
+  group.userData.assetId = building.assetId;
+  group.userData.assetUrl = building.assetId;
+  group.userData.position = building.position;
+  group.userData.rotation = building.rotation;
+  group.userData.target = building.nativeDimensions;
+  group.userData.front = building.frontStandingPoint;
+  group.userData.foundationDepth = foundationDepth;
+  group.position.set(building.position.x, terrain.entranceY, building.position.z);
+  group.rotation.y = building.rotation;
+  group.add(wrap);
+  if (foundationDepth > 1e-4) {
+    const height = foundationDepth + FOUNDATION_OVERLAP;
+    const skirtGeometry = coloredBox(
+      dimensions.width,
+      height,
+      dimensions.depth,
+      (FOUNDATION_OVERLAP - foundationDepth) / 2,
+    );
+    const skirtMaterial = townMaterial(false, undefined, true);
+    skirtMaterial.name = `eastbrookTownKitSkirt:${building.id}`;
+    const skirt = new THREE.Mesh(skirtGeometry, skirtMaterial);
+    skirt.castShadow = false;
+    skirt.receiveShadow = true;
+    group.add(skirt);
+    occluderFadeRecordFor(mats, skirtMaterial, skirt);
+  }
+
+  return {
+    group,
+    hideTarget: {
+      group,
+      mats,
+      hidden: false,
+      alpha: 1,
+      x: building.position.x,
+      z: building.position.z,
+      halfWidth: dimensions.width / 2,
+      halfDepth: dimensions.depth / 2,
+      cosine: Math.cos(building.rotation),
+      sine: Math.sin(building.rotation),
+      topY: terrain.entranceY + dimensions.height,
+      cullRadius: building.maxCornerRadius,
+    },
+  };
+}
+
 function materialOptions(emissive: boolean, atlas = eastbrookSurfaceAtlasTexture()) {
+  // Baked PBR companions ride the color atlas's cell UVs (Standard tier only;
+  // Lambert tiers skip the bind outright, surfaceMat would drop the maps).
+  // Emissive windows keep their authored flat look.
+  const detail = !emissive && GFX.standardMaterials;
+  const normalMap = detail ? eastbrookSurfaceNormalTexture() : undefined;
+  const roughnessMap = detail ? eastbrookSurfaceRoughnessTexture() : undefined;
   return {
     color: 0xffffff,
     map: emissive ? undefined : atlas,
     vertexColors: true,
-    roughness: emissive ? 0.55 : 0.86,
+    normalMap,
+    roughnessMap,
+    // The rough atlas bakes per-cell base roughness, so it is the authority
+    // when bound; the flat 0.86 stays the fallback while it has not loaded.
+    roughness: emissive ? 0.55 : roughnessMap ? 1 : 0.86,
     metalness: emissive ? 0.08 : 0,
     emissive: emissive ? 0xffffff : 0x000000,
-    emissiveIntensity: emissive ? (GFX.standardMaterials ? 1 : 0.72) : 1,
+    // White x vertex color (vertex_color_emissive.ts), so the amber/cyan pane
+    // tints carry the hue and their luma (0.47 amber) sets how far this has to
+    // climb to clear post.ts BLOOM_THRESHOLD. At the old intensity 1 no window
+    // in town glowed while sunlit plaster nearly did.
+    // EMISSIVE_GLOW is calibrated against the bloom threshold; without the
+    // composer the raise just desaturates the amber to a pasted-on cream,
+    // so non-bloom tiers keep the authored pane level.
+    emissiveIntensity: emissive
+      ? GFX.standardMaterials && GFX.composer
+        ? EMISSIVE_GLOW
+        : GFX.standardMaterials
+          ? 1
+          : 0.72
+      : 1,
     flatShading: !GFX.standardMaterials,
   } as const;
 }
@@ -278,8 +780,21 @@ function townMaterial(
   independent = false,
 ): THREE.Material {
   const shared = surfaceMat(materialOptions(emissive, atlas));
-  const material = independent ? shared.clone() : shared;
-  return emissive ? modulateEmissiveByVertexColor(material) : material;
+  if (shared instanceof THREE.MeshStandardMaterial && shared.normalMap) {
+    // Idempotent on the shared cached material; the key includes the map, so
+    // only the town's atlas-normal material ever carries this scale.
+    shared.normalScale.setScalar(EASTBROOK_SURFACE_NORMAL_SCALE);
+  }
+  // Hook-preserving clone: a bare clone dropped the zone-haze hook and split
+  // the program cache key, so each independent building material linked a new
+  // program at first sight (the town's share of the first-contact burst).
+  const material = independent ? cloneMaterialWithHooks(shared) : shared;
+  // Conservative triplanar detail OVER the baked atlas (the baked cells are
+  // stretched per-face and judged too flat alone); applied after the clone
+  // decision so the clone records its own detail spec.
+  return emissive
+    ? modulateEmissiveByVertexColor(material)
+    : applyEastbrookTownSurfaceDetail(material);
 }
 
 function scaledGeometry(
@@ -310,7 +825,7 @@ function coloredBox(
     colors[index * 3 + 2] = tint.b;
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  return eastbrookSurfaceGeometry(geometry, 'darkStoneBlocks');
+  return indexExactVertexTuples(eastbrookSurfaceGeometry(geometry, 'darkStoneBlocks'));
 }
 
 function buildingTerrain(
@@ -384,7 +899,7 @@ function buildBuilding(
   group.rotation.y = building.rotation;
   group.add(opaqueMesh);
 
-  const materials = [opaqueMaterial];
+  const materials = [occluderFadeMat(opaqueMaterial, opaqueMesh)];
   if (template.emissive) {
     const emissiveMaterial = townMaterial(true, atlas, true);
     emissiveMaterial.name = `eastbrookTownEmissive:${building.id}`;
@@ -396,15 +911,16 @@ function buildBuilding(
     emissiveMesh.castShadow = false;
     emissiveMesh.receiveShadow = false;
     group.add(emissiveMesh);
-    materials.push(emissiveMaterial);
+    materials.push(occluderFadeMat(emissiveMaterial, emissiveMesh));
   }
 
   return {
     group,
     hideTarget: {
       group,
-      materials,
+      mats: materials,
       hidden: false,
+      alpha: 1,
       x: building.position.x,
       z: building.position.z,
       halfWidth: dimensions.width / 2,
@@ -423,18 +939,6 @@ function addPlacedGeometry(
   matrix: THREE.Matrix4,
 ): void {
   if (geometry) out.push(geometry.clone().applyMatrix4(matrix));
-}
-
-function addPlacedCivicEmissiveGeometry(
-  out: THREE.BufferGeometry[],
-  geometry: THREE.BufferGeometry | null,
-  matrix: THREE.Matrix4,
-  selected: boolean,
-): void {
-  if (!geometry) return;
-  const placed = geometry.clone().applyMatrix4(matrix);
-  setEastbrookCivicMask(placed, selected);
-  out.push(placed);
 }
 
 function placementMatrix(
@@ -456,68 +960,6 @@ function placementMatrix(
     quaternion,
     new THREE.Vector3(width / template.size.x, height / template.size.y, depth / template.size.z),
   );
-}
-
-type SegmentPoint = Readonly<{ x: number; z: number }>;
-
-interface PitchedSegmentPlacement {
-  centerX: number;
-  centerY: number;
-  centerZ: number;
-  rotation: number;
-  pitch: number;
-  spatialLength: number;
-  terrainOffset: number;
-}
-
-function forEachSegmentFootprintSample(
-  start: SegmentPoint,
-  end: SegmentPoint,
-  width: number,
-  visit: (x: number, z: number, progress: number) => void,
-): void {
-  const dx = end.x - start.x;
-  const dz = end.z - start.z;
-  const length = Math.hypot(dx, dz);
-  const alongSteps = Math.max(1, Math.ceil(length / BUILDING_TERRAIN_SAMPLE_STEP));
-  const acrossSteps = Math.max(1, Math.ceil(width / BUILDING_TERRAIN_SAMPLE_STEP));
-  const normalX = length > 1e-8 ? -dz / length : 0;
-  const normalZ = length > 1e-8 ? dx / length : 1;
-  for (let along = 0; along <= alongSteps; along++) {
-    const progress = along / alongSteps;
-    const centerX = start.x + dx * progress;
-    const centerZ = start.z + dz * progress;
-    for (let across = 0; across <= acrossSteps; across++) {
-      const lateral = -width / 2 + (width * across) / acrossSteps;
-      visit(centerX + normalX * lateral, centerZ + normalZ * lateral, progress);
-    }
-  }
-}
-
-function pitchedSegmentPlacement(
-  start: SegmentPoint,
-  end: SegmentPoint,
-  width: number,
-  groundAt: GroundAt,
-): PitchedSegmentPlacement {
-  const startY = groundAt(start.x, start.z);
-  const endY = groundAt(end.x, end.z);
-  const horizontalLength = Math.hypot(end.x - start.x, end.z - start.z);
-  const deltaY = endY - startY;
-  let minimumResidual = 0;
-  forEachSegmentFootprintSample(start, end, width, (x, z, progress) => {
-    const pitchedBottomY = startY + deltaY * progress;
-    minimumResidual = Math.min(minimumResidual, groundAt(x, z) - pitchedBottomY);
-  });
-  return {
-    centerX: (start.x + end.x) / 2,
-    centerY: (startY + endY) / 2 + minimumResidual,
-    centerZ: (start.z + end.z) / 2,
-    rotation: Math.atan2(-(end.z - start.z), end.x - start.x),
-    pitch: Math.atan2(deltaY, horizontalLength),
-    spatialLength: Math.hypot(horizontalLength, deltaY),
-    terrainOffset: minimumResidual,
-  };
 }
 
 function reflectedGeometry(source: THREE.BufferGeometry): THREE.BufferGeometry {
@@ -562,7 +1004,6 @@ function wallSegmentNeedsMirror(segment: (typeof EASTBROOK_LAYOUT.wall.segments)
 
 interface MicroBatchBuild {
   batches: THREE.Mesh[];
-  civicBeaconState: EastbrookCivicBeaconState;
 }
 
 function buildMicroBatches(
@@ -572,33 +1013,27 @@ function buildMicroBatches(
 ): MicroBatchBuild {
   const opaque: THREE.BufferGeometry[] = [];
   const emissive: THREE.BufferGeometry[] = [];
-  const well = EASTBROOK_LAYOUT.civic.wellBeacon;
-  const civicBeaconState = createEastbrookCivicBeaconState(well.position.x, well.position.z);
-  const add = (url: string, matrix: THREE.Matrix4, civic = false): void => {
+  const add = (url: string, matrix: THREE.Matrix4): void => {
     const template = templates.get(url);
     if (!template) throw new Error(`Eastbrook town template is missing: ${url}`);
     addPlacedGeometry(opaque, template.opaque, matrix);
-    addPlacedCivicEmissiveGeometry(emissive, template.emissive, matrix, civic);
+    addPlacedGeometry(emissive, template.emissive, matrix);
   };
 
-  const wellTemplate = templates.get(well.assetId);
-  if (!wellTemplate) throw new Error(`Eastbrook town template is missing: ${well.assetId}`);
-  add(
-    well.assetId,
-    placementMatrix(
-      wellTemplate,
-      well.position.x,
-      groundAt(well.position.x, well.position.z),
-      well.position.z,
-      0,
-      well.nativeDimensions.width,
-      well.nativeDimensions.height,
-      well.nativeDimensions.depth,
-    ),
-    true,
-  );
+  // The monument is NOT in this batch: it keeps its own textured materials and
+  // is built beside the batches by buildRealmBuilderMonumentBody. Nothing else
+  // in the town is selected by the civic emissive mask, so it now selects
+  // nothing at all (see the note on the civic flag in addPlacedCivicEmissiveGeometry).
 
-  for (const bench of EASTBROOK_LAYOUT.civic.benches) {
+  // A document that owns the square's dressing as placements
+  // (promotedScenery.authoredTownDressing) draws the benches, stalls and yard
+  // fences itself, so these three loops stand down together.
+  const dressingPromoted = activeWorldPromoted('authoredTownDressing');
+  const benches = dressingPromoted ? [] : EASTBROOK_LAYOUT.civic.benches;
+  const stalls = dressingPromoted ? [] : EASTBROOK_LAYOUT.market.stalls;
+  const fences = dressingPromoted ? [] : EASTBROOK_LAYOUT.fences;
+
+  for (const bench of benches) {
     const template = templates.get(bench.assetId);
     if (!template) throw new Error(`Eastbrook town template is missing: ${bench.assetId}`);
     const horizontalScale = Math.min(bench.width / template.size.x, bench.depth / template.size.z);
@@ -617,11 +1052,12 @@ function buildMicroBatches(
     );
   }
 
-  for (const stall of EASTBROOK_LAYOUT.market.stalls) {
-    const template = templates.get(stall.assetId);
-    if (!template) throw new Error(`Eastbrook town template is missing: ${stall.assetId}`);
+  for (const stall of stalls) {
+    const key = stallTemplateKey(stall.assetId, stall.canopyVariant);
+    const template = templates.get(key);
+    if (!template) throw new Error(`Eastbrook town template is missing: ${key}`);
     add(
-      stall.assetId,
+      key,
       placementMatrix(
         template,
         stall.position.x,
@@ -635,7 +1071,7 @@ function buildMicroBatches(
     );
   }
 
-  for (const fence of EASTBROOK_LAYOUT.fences) {
+  for (const fence of fences) {
     const template = templates.get(fence.assetId);
     if (!template) throw new Error(`Eastbrook town template is missing: ${fence.assetId}`);
     const placement = pitchedSegmentPlacement(fence.start, fence.end, fence.width, groundAt);
@@ -668,11 +1104,7 @@ function buildMicroBatches(
   }
   const emissiveGeometry = mergeParts(emissive, 'micro emissive batch');
   if (emissiveGeometry) {
-    const material = decorateEastbrookCivicBeaconMaterial(
-      townMaterial(true, atlas, true),
-      civicBeaconState,
-    );
-    const mesh = new THREE.Mesh(emissiveGeometry, material);
+    const mesh = new THREE.Mesh(emissiveGeometry, townMaterial(true, atlas, true));
     mesh.name = 'eastbrookTownMicroEmissiveBatch';
     mesh.userData.eastbrookMicroBatch = 'emissive';
     mesh.userData.neverRoofHideTarget = true;
@@ -680,7 +1112,7 @@ function buildMicroBatches(
     mesh.receiveShadow = false;
     batches.push(mesh);
   }
-  return { batches, civicBeaconState };
+  return { batches };
 }
 
 interface WallInstancePlacement {
@@ -808,38 +1240,165 @@ function buildFromTemplates(
     textureUuid: null,
     materialBindings: 0,
   };
+  // the previous view's rooms go with it: a world without the town keeps no air
+  cameraInteriors.clear();
   if (!builtInWorld) {
     group.userData.drawStats = eastbrookTownDrawStats(group);
-    return { group, update: () => undefined };
+    return {
+      group,
+      update: () => undefined,
+      setRevealGate: () => undefined,
+      staticRevealRoots: () => [],
+      setRealmBuilderHonouree: () => undefined,
+    };
   }
 
   const roofHideTargets: RoofHideTarget[] = [];
-  for (const building of EASTBROOK_LAYOUT.buildings) {
+  const buildingGroups: THREE.Object3D[] = [];
+  // The document may own the town's BUILDINGS as placements (the
+  // promoted-scenery contract): only the building loop stands down, the
+  // wells, stalls, fences, streets, wall and harbor stay town-drawn.
+  const buildingsPromoted = activeWorldPromoted('authoredTowns');
+  const buildingList = buildingsPromoted ? [] : EASTBROOK_LAYOUT.buildings;
+  for (const building of buildingList) {
+    const kitTemplate = templates.get(building.assetId);
+    if (kitTemplate?.raw && isPlacedBuildingAsset(building.assetId)) {
+      // A painted Tidehold building, stood as the Studio map stands it
+      // (eastbrook_placed_building.ts). A reveal root and a roof-hide target
+      // like every other building, so the two lists stay index-aligned.
+      const placed = buildEastbrookPlacedBuilding(building, kitTemplate.raw, groundAt);
+      // a walk-in one keeps the indoor camera to its rooms (placed_town_interiors.ts)
+      cameraInteriors.add(building, groundAt);
+      group.add(placed.group);
+      roofHideTargets.push({
+        group: placed.group,
+        mats: placed.mats,
+        interiors: placed.interiors,
+        interiorsVisible: true,
+        hidden: false,
+        alpha: 1,
+        x: building.position.x,
+        z: building.position.z,
+        halfWidth: building.nativeDimensions.width / 2,
+        halfDepth: building.nativeDimensions.depth / 2,
+        cosine: Math.cos(building.rotation),
+        sine: Math.sin(building.rotation),
+        topY: placed.topY,
+        cullRadius: placed.cullRadius,
+        walkIn: building.walkIn,
+      });
+      buildingGroups.push(placed.group);
+      continue;
+    }
+    if (kitTemplate?.raw) {
+      const built = buildKitBuilding(building, kitTemplate.raw, groundAt);
+      group.add(built.group);
+      roofHideTargets.push(built.hideTarget);
+      // A kit building is a reveal root like any other: its kit materials are
+      // unshared with the batches, and roofHideTargets stays index-aligned
+      // with buildingGroups (the footprint anchors are built from that pair).
+      buildingGroups.push(built.group);
+      continue;
+    }
     const template = templates.get(building.assetId);
     if (!template) throw new Error(`Eastbrook town template is missing: ${building.assetId}`);
     const built = buildBuilding(building, template, groundAt, atlas);
     group.add(built.group);
     roofHideTargets.push(built.hideTarget);
+    buildingGroups.push(built.group);
   }
+  const weeklyVault = buildEastbrookWeeklyVault(groundAt);
+  group.add(weeklyVault.group);
+  roofHideTargets.push(weeklyVault.hideTarget);
+  buildingGroups.push(weeklyVault.group);
   const microBuild = buildMicroBatches(templates, groundAt, atlas);
   const microBatches = microBuild.batches;
+  const microBatchCount = microBatches.length;
   for (const batch of microBatches) group.add(batch);
+  // The monument's living half: the honouree's name projected off both honour
+  // plates, and the lantern halos and embers. Additive and text, which a merged
+  // opaque batch cannot carry, so it is its own small group beside the batches.
+  // The square's centrepiece, drawn beside the batches rather than inside them:
+  // it keeps its own textured materials (keepsOwnMaterials), so the body is a
+  // placed clone of the raw GLB, and the projections and lantern light ride on
+  // top of it.
+  const monumentPlacement = EASTBROOK_LAYOUT.civic.monument;
+  const monumentSeat = {
+    x: monumentPlacement.position.x,
+    z: monumentPlacement.position.z,
+    groundY: groundAt(monumentPlacement.position.x, monumentPlacement.position.z),
+    rotation: monumentPlacement.rotation,
+    nativeWidth: monumentPlacement.nativeDimensions.width,
+    nativeHeight: monumentPlacement.nativeDimensions.height,
+    nativeDepth: monumentPlacement.nativeDimensions.depth,
+  };
+  const monumentTemplate = templates.get(monumentPlacement.assetId);
+  if (!monumentTemplate?.raw) {
+    throw new Error(`Eastbrook town template is missing: ${monumentPlacement.assetId}`);
+  }
+  const monumentBody = buildRealmBuilderMonumentBody(monumentTemplate.raw, monumentSeat);
+  group.add(monumentBody.group);
+  const monumentFx = buildRealmBuilderMonumentFx(monumentSeat);
+  group.add(monumentFx.group);
   const wallTemplate = templates.get(EASTBROOK_LAYOUT.wall.assetId);
   if (!wallTemplate)
     throw new Error(`Eastbrook town template is missing: ${EASTBROOK_LAYOUT.wall.assetId}`);
   const wallBatches = buildWallBatches(wallTemplate, groundAt, atlas);
   for (const batch of wallBatches) group.add(batch);
   const staticCullTargets: THREE.Object3D[] = [...microBatches, ...wallBatches];
+  // The reveal gate compiles the buildings with the static batches: their
+  // per-building materials are not shared with any batch, so a building
+  // outside the roots linked cold on the frame its own fog cull first showed
+  // it (the Fenbridge shape, same fix).
+  // The monument rides the reveal roots too: its body and its FX (beam, halos,
+  // embers, name) are not shared with any batch, so they linked six programs
+  // cold on the frame the fog cull first showed them (2026-09-12 hunt).
+  const monumentRoots: THREE.Object3D[] = [monumentBody.group, monumentFx.group];
+  const staticRevealRoots: THREE.Object3D[] = [
+    ...staticCullTargets,
+    ...buildingGroups,
+    ...monumentRoots,
+  ];
+  // Piecewise reveal anchors, in staticRevealRoots order: a batch spans the
+  // whole town so it anchors at the centre (Eastbrook sits on the world
+  // origin), a building at its own footprint. roofHideTargets is built in the
+  // buildingGroups loop, so the two stay index-aligned by construction.
+  // Only the buildings are FOOTPRINT-anchored, so only they can take the reach
+  // floor: a batch's centre anchor is an ordering hint, never an arm's-length
+  // distance (a camera at the centre would flip every batch at once).
+  const rootX: number[] = staticCullTargets.map(() => 0);
+  const rootZ: number[] = staticCullTargets.map(() => 0);
+  const rootFootprint: boolean[] = staticCullTargets.map(() => false);
+  for (const target of roofHideTargets) {
+    rootX.push(target.x);
+    rootZ.push(target.z);
+    rootFootprint.push(true);
+  }
+  for (const _root of monumentRoots) {
+    rootX.push(monumentSeat.x);
+    rootZ.push(monumentSeat.z);
+    rootFootprint.push(true);
+  }
+  const staticPiecewise = newTownPiecewiseReveal(
+    STATIC_REVEAL_KEY,
+    staticRevealRoots,
+    rootX,
+    rootZ,
+    rootFootprint,
+  );
   const roofVisibilityPlan = newEastbrookRoofVisibilityPlan();
 
-  group.userData.buildingIds = EASTBROOK_LAYOUT.buildings.map((building) => building.id);
+  group.userData.buildingIds = [
+    ...EASTBROOK_LAYOUT.buildings.map((building) => building.id),
+    EASTBROOK_LAYOUT.weeklyVault.id,
+  ];
   group.userData.microBatchNames = microBatches.map((batch) => batch.name);
   group.userData.wallBatchNames = wallBatches.map((batch) => batch.name);
   group.userData.mirroredWallSegmentIds = wallBatches.find(
     (batch) => batch.userData.handedness === 'mirrored',
   )?.userData.segmentIds;
   group.userData.microPlacementIds = [
-    EASTBROOK_LAYOUT.civic.wellBeacon.id,
+    EASTBROOK_LAYOUT.civic.monument.id,
     ...EASTBROOK_LAYOUT.civic.benches.map((bench) => bench.id),
     ...EASTBROOK_LAYOUT.market.stalls.map((stall) => stall.id),
     ...EASTBROOK_LAYOUT.fences.map((fence) => fence.id),
@@ -851,8 +1410,34 @@ function buildFromTemplates(
   group.userData.eastbrookSurfaceAtlas = eastbrookSurfaceAtlasMetadata(group, atlas);
   group.userData.drawStats = eastbrookTownDrawStats(group);
 
+  let revealGate: RevealGateCore | null = null;
+  let staticRevealed = false;
+  // The gate asks for the roots the moment the consult fires the request, so
+  // these are the CAMERA's coordinates of that very frame: an arrival submits
+  // the buildings it landed among before the far side of the town.
+  let lastCamX = 0;
+  let lastCamZ = 0;
+  const orderedRevealRoots: THREE.Object3D[] = [];
+  for (const root of [...staticCullTargets, ...buildingGroups, monumentBody.group])
+    prepareSceneryDetailRoot(root);
   return {
     group,
+    setRealmBuilderHonouree(name: string): void {
+      monumentFx.setHonouree(name);
+    },
+    setRevealGate(gate: RevealGateCore | null): void {
+      revealGate = gate;
+    },
+    staticRevealRoots(): readonly THREE.Object3D[] {
+      return orderTownRootsNearestFirst(
+        staticRevealRoots,
+        staticPiecewise.x,
+        staticPiecewise.z,
+        lastCamX,
+        lastCamZ,
+        orderedRevealRoots,
+      );
+    },
     update(
       camX: number,
       camY: number,
@@ -861,13 +1446,51 @@ function buildFromTemplates(
       eyeY: number,
       eyeZ: number,
       fogFar: number,
+      dt: number,
       reducedMotion = false,
     ): void {
-      updateEastbrookCivicBeaconMotion(microBuild.civicBeaconState, reducedMotion);
-      const staticVisible = eastbrookFogVisible(camX, camZ, 0, 0, fogFar, TOWN_CULL_RADIUS);
+      // One write drives both halves: the body's gold pulse and the effects
+      // read the same reduced-motion scalar, so they can never disagree. The
+      // same call carries the camera's distance to the monument's own point,
+      // which is what swaps the statue for its billboard and drops the
+      // projections and lantern light out at range.
+      monumentBody.reducedMotion.value = reducedMotion ? 1 : 0;
+      const monumentDistance = Math.hypot(camX - monumentSeat.x, camZ - monumentSeat.z);
+      monumentBody.setLod(monumentDistance, camX, camZ);
+      monumentFx.update(reducedMotion, monumentDistance);
+      lastCamX = camX;
+      lastCamZ = camZ;
+      const lowCull = isLowSceneryCullActive(fogFar);
+      const clutterFar = sceneryClutterFar(fogFar);
+      const structureFar = sceneryStructureFar(fogFar);
+      const cullX = lowCull ? eyeX : camX;
+      const cullZ = lowCull ? eyeZ : camZ;
+      const microVisible = eastbrookFogVisible(cullX, cullZ, 0, 0, clutterFar, TOWN_CULL_RADIUS);
+      // Eastbrook is centred on the world origin, so the camera's distance
+      // squared to the town centre is camX^2 + camZ^2.
+      const reveal = townStaticReveal(
+        eastbrookFogVisible(cullX, cullZ, 0, 0, structureFar, TOWN_CULL_RADIUS),
+        staticRevealed,
+        cullX * cullX + cullZ * cullZ,
+        TOWN_CULL_RADIUS,
+        revealGate,
+        STATIC_REVEAL_KEY,
+      );
+      if (reveal === 'revealed') staticRevealed = true;
+      // While the key is held, each root that has linked comes in on its own,
+      // nearest first: the whole town no longer waits for its slowest program.
+      townPiecewiseRevealInto(staticPiecewise, reveal, camX, camZ, revealGate);
       for (let index = 0; index < staticCullTargets.length; index++) {
-        staticCullTargets[index].visible = staticVisible;
+        staticCullTargets[index].visible =
+          (index >= microBatchCount || microVisible) &&
+          townRootVisible(reveal, staticPiecewise, index);
       }
+      // Buildings keep their own fog cull and roof fade, but their FIRST
+      // reveal rides the same hold as the batches: while the gate compiles
+      // the town they stay hidden until their own group has linked, and once
+      // the key is revealed the latch above never consults the gate again (a
+      // fog re-entry is a plain cull flip).
+      const buildingRootBase = staticCullTargets.length;
       for (let index = 0; index < roofHideTargets.length; index++) {
         const target = roofHideTargets[index];
         eastbrookRoofVisibilityPlanInto(
@@ -880,16 +1503,38 @@ function buildFromTemplates(
           eyeX,
           eyeY,
           eyeZ,
-          fogFar,
+          structureFar,
+          cullX,
+          cullZ,
         );
-        target.group.visible = roofVisibilityPlan.visible;
-        if (!roofVisibilityPlan.visible || !roofVisibilityPlan.hiddenChanged) continue;
-        target.hidden = roofVisibilityPlan.hidden;
-        for (let materialIndex = 0; materialIndex < target.materials.length; materialIndex++) {
-          const material = target.materials[materialIndex];
-          material.colorWrite = !roofVisibilityPlan.hidden;
-          material.depthWrite = !roofVisibilityPlan.hidden;
+        target.group.visible =
+          roofVisibilityPlan.visible &&
+          townRootVisible(reveal, staticPiecewise, buildingRootBase + index);
+        if (!roofVisibilityPlan.visible) continue;
+        if (target.interiors && target.interiors.length > 0) {
+          const bDx = cullX - target.x;
+          const bDz = cullZ - target.z;
+          const interiorReach = target.cullRadius + 6;
+          const showInteriors =
+            !lowCull ||
+            roofVisibilityPlan.hidden ||
+            bDx * bDx + bDz * bDz <= interiorReach * interiorReach;
+          if (target.interiorsVisible !== showInteriors) {
+            target.interiorsVisible = showInteriors;
+            for (let i = 0; i < target.interiors.length; i++) {
+              target.interiors[i].visible = showInteriors;
+            }
+          }
         }
+        prefetchOccluderFadeWithin(target.mats, target.x, target.z, camX, camZ);
+        target.hidden = roofVisibilityPlan.hidden;
+        target.alpha = advanceOccluderFade(
+          target.mats,
+          target.alpha,
+          target.hidden,
+          dt,
+          reducedMotion,
+        );
       }
     },
   };
@@ -900,16 +1545,25 @@ export function buildEastbrookTownView(seed: number): EastbrookTownView {
   // root stays isolated, while loader-owned decoded sources can be released and
   // a later same-page switch to the built-in world remains synchronous.
   if (loadedSources.size > 0) prepareTemplates(loadedSources, preparedTemplates, true);
-  if (getActiveWorldContent() !== BUILTIN_WORLD) {
+  // Data-gated, not identity-gated: an editor copy of the built-in world
+  // still carries this town's buildings and must get its real art, or the
+  // kit buildings it replaces draw in Studio instead (authored_town_gate.ts).
+  if (!activeWorldHasAuthoredTown(isEastbrookRebuildBuilding)) {
     return buildFromTemplates(preparedTemplates, () => 0, false, undefined);
   }
   prepareTemplates(loadedSources, preparedTemplates, true);
-  return buildFromTemplates(
+  const view = buildFromTemplates(
     preparedTemplates,
     (x, z) => terrainHeight(x, z, seed),
     true,
     eastbrookSurfaceAtlasTexture(),
   );
+  // The harbor waterfront rides the town view's group: quay boardwalk and
+  // piers from the same deck rectangles groundHeight walks
+  // (render/eastbrook_harbor.ts), so the parent's category tag and matrix
+  // freeze cover it.
+  view.group.add(buildEastbrookHarbor(seed));
+  return view;
 }
 
 function sameNumber(left: number, right: number): boolean {
@@ -917,6 +1571,7 @@ function sameNumber(left: number, right: number): boolean {
 }
 
 export function isEastbrookRebuildBuilding(building: BuildingDef): boolean {
+  if (building.id === EASTBROOK_LAYOUT.weeklyVault.id) return true;
   return EASTBROOK_LAYOUT.buildings.some(
     (candidate) =>
       candidate.kind === building.kind &&
@@ -928,8 +1583,12 @@ export function isEastbrookRebuildBuilding(building: BuildingDef): boolean {
   );
 }
 
+/** The authored town's own centrepiece record. It still rides the `wells`
+ *  category (a circular civic feature: one collider, one foliage exclusion,
+ *  one map dot), which is what the category has always meant, even though the
+ *  Realm Builder monument replaced the well beacon that named it. */
 export function isEastbrookRebuildWell(well: ZonePropsDef['wells'][number]): boolean {
-  const candidate = EASTBROOK_LAYOUT.civic.wellBeacon;
+  const candidate = EASTBROOK_LAYOUT.civic.monument;
   return (
     sameNumber(candidate.position.x, well.x) &&
     sameNumber(candidate.position.z, well.z) &&
@@ -1011,13 +1670,33 @@ export function eastbrookTownTriangleBudget(
     };
   });
   const assetTriangles = assets.reduce((sum, asset) => sum + asset.repeatedTriangles, 0);
-  const maximumFoundationTriangles = EASTBROOK_LAYOUT.buildings.length * 12;
-  const maximumRuntimeTriangles = assetTriangles + maximumFoundationTriangles;
-  const hardCeiling = 40_000;
-  const target = 30_000;
+  // A placed building buries its own footing and draws no skirt.
+  const maximumFoundationTriangles =
+    EASTBROOK_LAYOUT.buildings.filter((building) => !isPlacedBuildingAsset(building.assetId))
+      .length * 12;
+  const proceduralTriangles = WEEKLY_VAULT_TRIANGLES;
+  const maximumRuntimeTriangles = assetTriangles + maximumFoundationTriangles + proceduralTriangles;
+  // The Tidehold rebuild: the eleven kit shells (21,924 triangles between
+  // them) gave way to six painted buildings (46,128, furniture included), so
+  // the ceiling moved from 40,000 to 64,000, the measured total plus a
+  // twentieth. Fenbridge's town draws under 88,000 by the same rule. Two
+  // levers stay unpulled: dropping the furniture groups from buildings nobody
+  // can enter (22,128 of those triangles), and the far twins
+  // (`<name>.lod.glb`) the placed-asset pipeline already swaps to at range.
+  const hardCeiling = 64_000;
+  // Round 8 (owner): raised 30,000 to 33,000 to pay for the Realm Builder
+  // monument at full sculpt resolution and double size. The earlier pass
+  // collapse-decimated the statue to 45 percent to fit under 30,000, and the
+  // owner rejected the result on sight: at the size players read it from, the
+  // face and beard went to putty. A target is a budget, not a law of physics,
+  // and this is the town's one hero prop; the HARD CEILING is untouched, so
+  // the headroom that actually protects the frame is unchanged. Everything
+  // else in this town still has to earn its triangles against the new figure.
+  const target = 33_000;
   return {
     assetTriangles,
     maximumFoundationTriangles,
+    proceduralTriangles,
     maximumRuntimeTriangles,
     hardCeiling,
     target,
@@ -1027,9 +1706,46 @@ export function eastbrookTownTriangleBudget(
   };
 }
 
+/**
+ * One town model as a standalone object drawn exactly as the town draws it:
+ * the same extracted, semantic-recoloured geometry (base centred, bottom at
+ * y = 0) under the town's atlas materials. Placed assets
+ * (render/town_styled_placed_assets.ts) use it for the Eastbrook-only models a
+ * Studio document promotes, so a moved market stall keeps its painted look.
+ * The one difference is the stall's canopy colour: the town reads each
+ * stall's own from its layout row, while a placement names only the model, so
+ * every placed stall wears the default canopy (eastbrook_stall_canopy_core.ts).
+ *
+ * Both materials are hook-preserving CLONES (the same program key as the
+ * town's shared entries until a placed-asset patch lands): placed batching
+ * installs its fade on whatever material it is handed, and that must never be
+ * the shared entry the town's own batches still draw with. Null until the
+ * town's atlas has loaded, so a template never caches an atlas-less look.
+ */
+export function eastbrookStyledPlacedObject(
+  source: THREE.Object3D,
+  url: string,
+): THREE.Object3D | null {
+  const atlas = eastbrookSurfaceAtlasTexture();
+  if (!atlas) return null;
+  const template = extractTemplate(source, url);
+  const group = new THREE.Group();
+  if (template.opaque) {
+    const mesh = new THREE.Mesh(template.opaque, townMaterial(false, atlas, true));
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+  }
+  if (template.emissive) {
+    group.add(new THREE.Mesh(template.emissive, townMaterial(true, atlas, true)));
+  }
+  return group;
+}
+
 /** Test-only access to the tier-independent preload and deterministic build contract. */
 export const eastbrookTownInternalsForTest = {
   rootName: ROOT_NAME,
+  townCullRadius: TOWN_CULL_RADIUS,
   newAssetUrls: NEW_ASSET_URLS,
   supportAssetUrls: SUPPORT_ASSET_URLS,
   allAssetUrls: ALL_ASSET_URLS,

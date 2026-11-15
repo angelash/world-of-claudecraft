@@ -1,5 +1,16 @@
-import type { MarketQuery } from '../sim/market_query';
-import type { InvSlot } from '../sim/types';
+import type { MarketOrderView } from '../sim/market_orders';
+import type {
+  MarketArmorClassFilter,
+  MarketItemTypeFilter,
+  MarketPrimaryStatFilter,
+  MarketQuery,
+  MarketRarityFilter,
+  MarketSort,
+  MarketSubtypeFilter,
+} from '../sim/market_query';
+import type { MarketSaleRecord } from '../sim/market_sale_log';
+import type { MaterialComposition } from '../sim/material_sources';
+import type { InvSlot, ItemInstancePayload, ItemProvenance } from '../sim/types';
 
 // ---------------------------------------------------------------------------
 // The World Market (the Merchant's auction house). Listings are global and
@@ -15,22 +26,96 @@ export interface MarketListingView {
   price: number; // total copper buyout for the whole stack
   mine: boolean; // the viewer is the seller (offer them Cancel, not Buy)
   house: boolean; // the Merchant's own standing stock
+  /** DISPLAY payload of an instanced listing (#1165), trimmed to the public
+   *  allowlist (signer/enchant/rolled; never boundTo/bindOnTrade/charges): the
+   *  tooltip's enchant line and maker's mark. Absent on plain listings. */
+  instance?: ItemInstancePayload;
+  /** The listed tracked copy's history (docs/design/item-tracking.md), as
+   *  the public projection (publicProvenanceView: names, dates, source, zone;
+   *  no character id, no parent guid, never the copy's guid), for the row's
+   *  Item history door. A sibling of `instance`, never inside it, so the
+   *  display trim and every payload equality stay untouched. Absent on an
+   *  untracked or plain listing. */
+  history?: ItemProvenance;
+  /** Recipe marker carried by a crafted listing. The client does not display the
+   *  id, but Market Sweep needs the bit so it never offers a bulk action the
+   *  server planner rejects. */
+  craftedRecipeId?: string;
+  materialSources?: MaterialComposition;
 }
 
 export interface MarketInfo {
-  // The viewer's own listings (always wired, for reclaim) followed by ONE page of
-  // other sellers' listings matching the active query. The server filters + paginates
-  // authoritatively, so paging walks the whole market, not just a single wire window.
+  // The viewer's own visible listings followed by ONE page of other sellers' listings
+  // matching the active query. All matching own rows wire for reclaim normally; collapse
+  // mode first narrows the whole match set, including own rows. The server filters +
+  // paginates authoritatively, so paging walks the whole market.
   listings: MarketListingView[];
   totalCount: number; // all listings matching the active filter (mine + others)
   filter: string; // the active search string (echoed back from the server)
+  // The type/subtype/armor-class/primary-stat/rarity filters the server actually
+  // applied, echoed back alongside `filter` above. A fresh join (post-linkdead-grace
+  // reconnect) resets the session-only server query to default while the window's
+  // own filter controls survive the socket drop untouched; echoing every filter
+  // axis, not just the search text, is what lets the client detect that drift
+  // (queryDiffersFromEcho below) instead of silently showing filter buttons that no
+  // longer describe what the listings were actually matched against (issue #2416).
+  itemType: MarketItemTypeFilter;
+  subtype: MarketSubtypeFilter;
+  armorClass: MarketArmorClassFilter;
+  primaryStat: MarketPrimaryStatFilter;
+  rarity: MarketRarityFilter;
+  sort: MarketSort;
+  // Whether the server collapsed matching plain listings to the lowest price per item
+  // (issue #3103), echoed back for the same drift-detection reason as the axes above.
+  collapseLowest: boolean;
   page: number; // current browse page (of other sellers' listings), 0-based
   pageCount: number; // total browse pages of other sellers' listings (>= 1)
   collectionCopper: number; // proceeds waiting to be collected
   collectionItems: InvSlot[]; // returned/expired items waiting to be collected
+  /** The seller's sale history (the History tab): one row per sale, oldest first,
+   *  kept after the gold is collected and bounded by the ledger cap. */
+  collectionSales: MarketSaleRecord[];
+  /** Older sales the ledger cap dropped, so the tab says how many rows it is not
+   *  listing rather than silently showing a short list. */
+  collectionSalesOmitted: number;
   cutPct: number; // the Merchant's cut on a sale, as a percentage
   maxListings: number; // per-seller active-listing cap
   myListingCount: number; // how many active listings the viewer already has
+  // The Sell tab's current-lowest-listing-price reference (issue #3043), echoed
+  // alongside the item id it was computed for so a stale snapshot across an item
+  // switch is detectable (compare against the currently staged item before
+  // trusting sellLowestPrice). Null itemId means nothing is staged; a null
+  // price with a non-null itemId means the item has no active listings.
+  sellPriceItemId: string | null;
+  sellLowestPrice: number | null; // per unit, matching the sell form's "price each" field
+  /** The Market Sweep quote for what the viewer asked to sweep (marketSweepQuote),
+   *  or null when nothing is staged. Echoes the request (itemId, count) so the
+   *  UI trusts a quote only when it matches what it currently has staged, the
+   *  sellPriceItemId precedent. Recomputed on the live book every snapshot. */
+  sweepQuote: MarketSweepQuote | null;
+  /** The Wanted board (src/sim/market_orders.ts): every open buy order, the
+   *  viewer's own rows first, then by item name and best bid. Rows are
+   *  wire-capped (MARKET_ORDER_WIRE_LIMIT) like the browse page. */
+  orders: MarketOrderView[];
+  myOrderCount: number;
+  maxOrders: number; // per-buyer open-order cap
+  /** Honest materials with NO listing on the book at all (house stock included),
+   *  sorted by catalog name: the demand insight a listing-only browse cannot
+   *  give. Recomputed per book revision, never per viewer. */
+  unlistedMaterials: string[];
+}
+
+/** A server-planned Market Sweep: buy `count` units of `itemId` across other
+ *  sellers' plain listings, cheapest per unit first (src/sim/market_sweep.ts).
+ *  `units` may exceed `count` by up to one stack (whole listings only); `short`
+ *  means the book cannot cover `count` and the plan holds every eligible row. */
+export interface MarketSweepQuote {
+  itemId: string;
+  count: number;
+  units: number;
+  listings: number;
+  total: number; // copper for the whole plan
+  short: boolean;
 }
 
 export interface IWorldMarket {
@@ -42,8 +127,72 @@ export interface IWorldMarket {
   // World Market. The browse query (search + type/subtype/rarity filters + page) is
   // sent to the server, which filters and paginates; marketInfo mirrors the result.
   marketSearch(query: MarketQuery): void;
+  /** Ask for a current-lowest-listing-price reference for the Sell tab's staged
+   *  item (issue #3043); null clears it. Purely a display/query narrowing (no
+   *  gameplay effect), the marketSearch precedent. */
+  marketSellPriceCheck(itemId: string | null): void;
   marketList(itemId: string, count: number, price: number): void;
-  marketBuy(listingId: number): void;
+  /** List ONE instanced copy (count 1), named by its payload: the sim escrows
+   *  the actual held copy whose payload matches, refusing transfer-locked
+   *  (bindOnTrade-armed or boundTo-bound) copies. Plain stacks use marketList. */
+  marketListInstance(itemId: string, price: number, instance: ItemInstancePayload): void;
+  /** Buy a listing. `count` omitted (or at/above the listing's stack size) buys
+   *  it whole; anything from 1 up to (stack size - 1) peels that many units off
+   *  a bulk stack at a proportional price instead, leaving the rest listed. */
+  marketBuy(listingId: number, count?: number): void;
+  /** Stage a Market Sweep quote: the next marketInfo carries `sweepQuote` for this
+   *  item and count (a display/query narrowing, the marketSellPriceCheck precedent). */
+  marketSweepQuote(itemId: string, count: number): void;
+  /** Buy `count` units of `itemId` across other sellers' plain listings, cheapest
+   *  per unit first, as one command; the sim re-plans on the live book and refuses
+   *  when the total exceeds `maxCopper` (the quoted total the player agreed to). */
+  marketSweep(itemId: string, count: number, maxCopper: number): void;
   marketCancel(listingId: number): void;
   marketCollect(): void;
+  /** Place a buy order for `count` units of `itemId` at `unitPrice` each: the sim
+   *  fills what the book already offers at or under that price, escrows the
+   *  rest, and the order stays open until delivered into or withdrawn. */
+  marketOrderPlace(itemId: string, count: number, unitPrice: number): void;
+  /** Deliver `count` plain units from the caller's bags into another player's
+   *  open order; proceeds (less the cut) wait in the caller's collection. */
+  marketOrderFill(orderId: number, count: number): void;
+  /** Withdraw your own order; the unfilled escrow returns to the purse. */
+  marketOrderCancel(orderId: number): void;
+}
+
+// True when the caller's intended browse query no longer matches what the server
+// actually applied, per the filter axes MarketInfo echoes back (issue #2416). Page
+// and the raw search text are deliberately left out: the server clamps `page`
+// against the live match count (a normal narrowing, not drift), and `filter` is
+// not sanitized the same way `search` is on the way in (length/trim), so comparing
+// it here would false-positive on a search box the player is mid-typing in. The
+// seven compared axes (five filters plus sort, issue 3102, plus collapseLowest,
+// issue 3103) are exactly the ones that silently reset to default on a fresh join
+// (post-linkdead-grace reconnect) while a window's own filter controls survive the
+// socket drop untouched.
+export function queryDiffersFromEcho(query: MarketQuery, info: MarketInfo): boolean {
+  return (
+    query.itemType !== info.itemType ||
+    query.subtype !== info.subtype ||
+    query.armorClass !== info.armorClass ||
+    query.primaryStat !== info.primaryStat ||
+    query.rarity !== info.rarity ||
+    query.sort !== info.sort ||
+    query.collapseLowest !== info.collapseLowest
+  );
+}
+
+// True when a settled search box no longer matches what the server actually
+// applied. Deliberately NOT folded into queryDiffersFromEcho above: that
+// check runs on every filter-button click (including mid-typed-in searches),
+// where `filter` is not a safe comparison because it is not sanitized the
+// same way `search` is on the client side as the player types. This one is
+// reconnect-only (MarketWindow.onReconnected, once the socket is settled and
+// no keystroke is in flight), where the stored server-side query is exactly
+// `search.slice(0, MARKET_SEARCH_MAX_LEN)` (sanitizeMarketQuery in
+// src/sim/market_query.ts) and so is directly comparable to the echo.
+export const MARKET_SEARCH_MAX_LEN = 40;
+
+export function searchDiffersFromEcho(query: MarketQuery, info: MarketInfo): boolean {
+  return info.filter !== query.search.slice(0, MARKET_SEARCH_MAX_LEN);
 }

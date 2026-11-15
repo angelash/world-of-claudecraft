@@ -97,7 +97,8 @@ const ZH_ACTION_LEADS = [
   '顿了顿',
 ] as const;
 
-const EN_ACTION_START = /^(?:before speaking|before he speaks|before she speaks|without a word|instead of answering)\b/i;
+const EN_ACTION_START =
+  /^(?:before speaking|before he speaks|before she speaks|without a word|instead of answering)\b/i;
 
 export function dynamicSpeechPromptRules(locale: string): string[] {
   const common = [
@@ -157,7 +158,14 @@ export function polishDynamicSpeech(
 ): DynamicSpeechPolishResult {
   const normalized = stripOuterQuotes(text.replace(/[ \t\r\n]+/g, ' ').trim());
   if (!normalized) {
-    return { text: normalized, before: normalized, beforeChars: 0, afterChars: 0, changed: false, charsTrimmed: 0 };
+    return {
+      text: normalized,
+      before: normalized,
+      beforeChars: 0,
+      afterChars: 0,
+      changed: false,
+      charsTrimmed: 0,
+    };
   }
   const withoutSpeaker = stripSpeakerPrefix(normalized);
   const before = withoutSpeaker.trim() || normalized;
@@ -199,7 +207,12 @@ function stripChineseTransitions(text: string): string {
   return out.trim() || text.trim();
 }
 
-function polishChineseSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null, topic?: string | null): string {
+function polishChineseSpeech(
+  text: string,
+  fallback: string,
+  fingerprint?: AiSpeechFingerprint | null,
+  topic?: string | null,
+): string {
   let out = stripChineseTopicEcho(text, topic);
   out = stripChineseTransitions(out);
   out = stripChineseAssistantPhrases(out);
@@ -235,7 +248,10 @@ function stripChineseAssistantPhrases(text: string): string {
     if (out === before) break;
   }
   out = out
-    .replace(/([。！？!?])\s*(?:这说明|这意味着|这表示|这告诉我|总的来说|重点是|问题是)[，,：:\s]*/g, '$1')
+    .replace(
+      /([。！？!?])\s*(?:这说明|这意味着|这表示|这告诉我|总的来说|重点是|问题是)[，,：:\s]*/g,
+      '$1',
+    )
     .trim();
   return out.trim() || text.trim();
 }
@@ -246,7 +262,10 @@ function stripChineseActionNarration(text: string): string {
   const leadGroup = ZH_ACTION_LEADS.map(escapeRegExp).join('|');
   out = out.replace(new RegExp(`^[\\u4e00-\\u9fffA-Za-z0-9' -]{2,32}?(?=(?:${leadGroup}))`), '');
   out = out.replace(/^(?:开口前|说话前|出声前|答话前|回话前)[，,、\s]*/, '');
-  out = out.replace(/^(?:他|她|它)(?=(?:偷偷|悄悄|默默|轻轻|缓缓|抬头|低头|偏头|侧耳|缩了缩|耸耸肩|点点头|摇摇头|瞥了一眼|瞥了眼|看了看|打量着|打量了下|闻了闻|嗅了嗅|盯着|后退半步|退了半步|向前一步|靠近了些|沉默了片刻|顿了顿))/, '');
+  out = out.replace(
+    /^(?:他|她|它)(?=(?:偷偷|悄悄|默默|轻轻|缓缓|抬头|低头|偏头|侧耳|缩了缩|耸耸肩|点点头|摇摇头|瞥了一眼|瞥了眼|看了看|打量着|打量了下|闻了闻|嗅了嗅|盯着|后退半步|退了半步|向前一步|靠近了些|沉默了片刻|顿了顿))/,
+    '',
+  );
   return out.trim() || text.trim();
 }
 
@@ -264,7 +283,12 @@ function stripEnglishTransitions(text: string): string {
   return out.trim() || text.trim();
 }
 
-function polishEnglishSpeech(text: string, fallback: string, fingerprint?: AiSpeechFingerprint | null, topic?: string | null): string {
+function polishEnglishSpeech(
+  text: string,
+  fallback: string,
+  fingerprint?: AiSpeechFingerprint | null,
+  topic?: string | null,
+): string {
   let out = stripEnglishTopicEcho(text, topic);
   out = stripEnglishTransitions(out);
   out = stripEnglishAssistantPhrases(out);
@@ -317,7 +341,10 @@ function stripEnglishAssistantPhrases(text: string): string {
     [/^that (?:means|tells me|suggests)(?: that)?\s*/i, ''],
     [/^as an ai[:,\s]*/i, ''],
     [/^(?:honestly|to be honest|truth be told|frankly|basically)[,\s-]*/i, ''],
-    [/^(?:the short version is|long story short|at the end of the day|more specifically)[,\s:-]*/i, ''],
+    [
+      /^(?:the short version is|long story short|at the end of the day|more specifically)[,\s:-]*/i,
+      '',
+    ],
     [/^(?:the point is|the thing is|what matters is)[:,\s-]*/i, ''],
     [/^i (?:think|guess|would say|d say)\s+/i, ''],
     [/^(?:you should know|let me put it this way|let me say it this way)[:,\s-]*/i, ''],
@@ -328,7 +355,10 @@ function stripEnglishAssistantPhrases(text: string): string {
     if (out === before) break;
   }
   out = out
-    .replace(/([.!?])\s*(?:this means|that means|overall|the point is|the thing is|what matters is)\s*/gi, '$1 ')
+    .replace(
+      /([.!?])\s*(?:this means|that means|overall|the point is|the thing is|what matters is)\s*/gi,
+      '$1 ',
+    )
     .trim();
   return out.trim() || text.trim();
 }
@@ -337,8 +367,14 @@ function stripEnglishActionNarration(text: string): string {
   let out = text.trim();
   if (!out) return out;
   out = out.replace(EN_ACTION_START, '');
-  out = out.replace(/^[A-Z][A-Za-z0-9' -]{1,32}\s+(?=(?:glances|nods|shakes|stiffens|pauses|leans|sniffs|tilts|squints|steps|backs|flinches|hesitates|looks)\b)/, '');
-  out = out.replace(/^(?:he|she|it|they)\s+(?=(?:glances|nods|shakes|stiffens|pauses|leans|sniffs|tilts|squints|steps|backs|flinches|hesitates|looks)\b)/i, '');
+  out = out.replace(
+    /^[A-Z][A-Za-z0-9' -]{1,32}\s+(?=(?:glances|nods|shakes|stiffens|pauses|leans|sniffs|tilts|squints|steps|backs|flinches|hesitates|looks)\b)/,
+    '',
+  );
+  out = out.replace(
+    /^(?:he|she|it|they)\s+(?=(?:glances|nods|shakes|stiffens|pauses|leans|sniffs|tilts|squints|steps|backs|flinches|hesitates|looks)\b)/i,
+    '',
+  );
   return out.trim() || text.trim();
 }
 
@@ -427,7 +463,7 @@ function contractEnglishSpeech(text: string): string {
     .replace(/\b[Ii] am\b/g, "I'm")
     .replace(/\b[Ii]t is\b/g, "it's")
     .replace(/\b[Tt]here is\b/g, "there's")
-    .replace(/\b[Tt]here are\b/g, "there are")
+    .replace(/\b[Tt]here are\b/g, 'there are')
     .trim();
 }
 
@@ -468,21 +504,27 @@ function dropShortEnglishLeadSentence(text: string): string {
   const first = parts[0];
   if (!first || parts.length < 2) return text;
   if (!/[?]$/.test(first)) return text;
-  const words = first.toLowerCase().replace(/[^a-z0-9'\s]/g, '').split(/\s+/).filter(Boolean);
+  const words = first
+    .toLowerCase()
+    .replace(/[^a-z0-9'\s]/g, '')
+    .split(/\s+/)
+    .filter(Boolean);
   if (words.length > 3) return text;
-  return parts.slice(1).join(' ').replace(/[ \t]+/g, ' ').trim() || text;
+  return (
+    parts
+      .slice(1)
+      .join(' ')
+      .replace(/[ \t]+/g, ' ')
+      .trim() || text
+  );
 }
 
 function splitChineseSentences(text: string): string[] {
-  return (text.match(/[^。！？!?]+[。！？!?]?/g) ?? [])
-    .map((part) => part.trim())
-    .filter(Boolean);
+  return (text.match(/[^。！？!?]+[。！？!?]?/g) ?? []).map((part) => part.trim()).filter(Boolean);
 }
 
 function splitEnglishSentences(text: string): string[] {
-  return (text.match(/[^.!?]+[.!?]?/g) ?? [])
-    .map((part) => part.trim())
-    .filter(Boolean);
+  return (text.match(/[^.!?]+[.!?]?/g) ?? []).map((part) => part.trim()).filter(Boolean);
 }
 
 function cleanupChinesePunctuation(text: string): string {
@@ -503,13 +545,21 @@ function cleanupEnglishPunctuation(text: string): string {
 
 function capitalizeEnglishSentence(text: string): string {
   if (!text) return text;
-  return text.replace(/(^|[.!?]\s+)([a-z])/g, (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
+  return text.replace(
+    /(^|[.!?]\s+)([a-z])/g,
+    (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`,
+  );
 }
 
-function stripFingerprintAvoidedPhrases(text: string, fingerprint?: AiSpeechFingerprint | null): string {
+function stripFingerprintAvoidedPhrases(
+  text: string,
+  fingerprint?: AiSpeechFingerprint | null,
+): string {
   if (!fingerprint || fingerprint.avoidedPhrases.length === 0) return text.trim();
   let out = text.trim();
-  for (const phrase of [...new Set(fingerprint.avoidedPhrases.map((value) => value.trim()).filter(Boolean))]) {
+  for (const phrase of [
+    ...new Set(fingerprint.avoidedPhrases.map((value) => value.trim()).filter(Boolean)),
+  ]) {
     out = stripAvoidedPhrase(out, phrase);
   }
   return out.trim() || text.trim();
@@ -527,10 +577,7 @@ function stripAvoidedPhrase(text: string, phrase: string): string {
   const afterComma = hasLatin
     ? new RegExp(`([,，;；])\\s*${escaped}\\b[,，:：;；\\s-]*`, 'gi')
     : new RegExp(`([,，;；])\\s*${escaped}[,，:：;；\\s-]*`, 'g');
-  return text
-    .replace(prefix, '')
-    .replace(afterStop, '$1 ')
-    .replace(afterComma, '$1 ');
+  return text.replace(prefix, '').replace(afterStop, '$1 ').replace(afterComma, '$1 ');
 }
 
 function escapeRegExp(value: string): string {

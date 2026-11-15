@@ -17,16 +17,8 @@ const PLAN_SOCIAL_MODES = new Set<AmbientBotLlmSocialMode>([
   'friendly',
   'helpful',
 ]);
-const FRIEND_POLICIES = new Set<AmbientBotLlmFriendPolicy>([
-  'never',
-  'ifAsked',
-  'afterWhisper',
-]);
-const PRESENCE_EMOTES = new Set<AmbientBotLlmPresenceEmote>([
-  'none',
-  'wave',
-  'cheer',
-]);
+const FRIEND_POLICIES = new Set<AmbientBotLlmFriendPolicy>(['never', 'ifAsked', 'afterWhisper']);
+const PRESENCE_EMOTES = new Set<AmbientBotLlmPresenceEmote>(['none', 'wave', 'cheer']);
 const MEMORY_TAGS = new Set<AmbientBotLlmMemoryTag>([
   'greeting',
   'thanks',
@@ -35,7 +27,8 @@ const MEMORY_TAGS = new Set<AmbientBotLlmMemoryTag>([
   'solo',
   'helpful',
 ]);
-const META_REPLY_PATTERN = /\b(bot|automation|assistant|system prompt|prompt|model|operator|script|token)\b/i;
+const META_REPLY_PATTERN =
+  /\b(bot|automation|assistant|system prompt|prompt|model|operator|script|token)\b/i;
 const EXTERNAL_REPLY_PATTERN = /\b(http|www\.|discord|email|gmail)\b/i;
 
 export function validateAmbientBotPlanDecision(
@@ -43,19 +36,23 @@ export function validateAmbientBotPlanDecision(
   context: AmbientBotPlanContextV1,
 ): AmbientBotPlanDecisionV1 {
   const record = requireRecord(value, 'plan decision');
-  rejectUnexpectedKeys(record, [
-    'schemaVersion',
-    'jobId',
-    'botRef',
-    'ttlMs',
-    'confidence',
-    'socialMode',
-    'focusLabel',
-    'selfSummary',
-    'friendPolicy',
-    'allowPresenceEmote',
-    'audit',
-  ], 'plan decision');
+  rejectUnexpectedKeys(
+    record,
+    [
+      'schemaVersion',
+      'jobId',
+      'botRef',
+      'ttlMs',
+      'confidence',
+      'socialMode',
+      'focusLabel',
+      'selfSummary',
+      'friendPolicy',
+      'allowPresenceEmote',
+      'audit',
+    ],
+    'plan decision',
+  );
   const schemaVersion = requireLiteral(record.schemaVersion, 1, 'plan decision.schemaVersion');
   const jobId = requireString(record.jobId, 'plan decision.jobId');
   if (jobId !== context.jobId) throw new Error('plan decision jobId mismatch');
@@ -66,8 +63,15 @@ export function validateAmbientBotPlanDecision(
   const socialMode = requireEnum(record.socialMode, PLAN_SOCIAL_MODES, 'plan decision.socialMode');
   const focusLabel = requireShortText(record.focusLabel, 'plan decision.focusLabel', 48);
   const selfSummary = requireShortText(record.selfSummary, 'plan decision.selfSummary', 96);
-  const friendPolicy = requireEnum(record.friendPolicy, FRIEND_POLICIES, 'plan decision.friendPolicy');
-  const allowPresenceEmote = requireBoolean(record.allowPresenceEmote, 'plan decision.allowPresenceEmote');
+  const friendPolicy = requireEnum(
+    record.friendPolicy,
+    FRIEND_POLICIES,
+    'plan decision.friendPolicy',
+  );
+  const allowPresenceEmote = requireBoolean(
+    record.allowPresenceEmote,
+    'plan decision.allowPresenceEmote',
+  );
   const audit = parsePlanAudit(record.audit);
   return {
     schemaVersion,
@@ -89,26 +93,31 @@ export function validateAmbientBotSocialDecision(
   context: AmbientBotSocialContextV1,
 ): AmbientBotSocialDecisionV1 {
   const record = requireRecord(value, 'social decision');
-  rejectUnexpectedKeys(record, [
-    'schemaVersion',
-    'jobId',
-    'botRef',
-    'targetName',
-    'ttlMs',
-    'confidence',
-    'replyText',
-    'friendAction',
-    'presenceEmote',
-    'memoryTags',
-    'audit',
-  ], 'social decision');
+  rejectUnexpectedKeys(
+    record,
+    [
+      'schemaVersion',
+      'jobId',
+      'botRef',
+      'targetName',
+      'ttlMs',
+      'confidence',
+      'replyText',
+      'friendAction',
+      'presenceEmote',
+      'memoryTags',
+      'audit',
+    ],
+    'social decision',
+  );
   const schemaVersion = requireLiteral(record.schemaVersion, 1, 'social decision.schemaVersion');
   const jobId = requireString(record.jobId, 'social decision.jobId');
   if (jobId !== context.jobId) throw new Error('social decision jobId mismatch');
   const botRef = parseBotRef(record.botRef, 'social decision.botRef');
   requireMatchingBotRef(botRef, context.botRef, 'social decision.botRef');
   const targetName = requireString(record.targetName, 'social decision.targetName');
-  if (targetName !== context.whisper.fromName) throw new Error('social decision targetName mismatch');
+  if (targetName !== context.whisper.fromName)
+    throw new Error('social decision targetName mismatch');
   const ttlMs = requireNumberInRange(record.ttlMs, 'social decision.ttlMs', 5_000, 300_000);
   const confidence = requireNumberInRange(record.confidence, 'social decision.confidence', 0, 1);
   const replyText = requireReplyText(record.replyText, context.constraints.maxReplyChars);
@@ -119,7 +128,11 @@ export function validateAmbientBotSocialDecision(
   if (friendAction === 'send' && !context.constraints.allowFriendAdd) {
     throw new Error('social decision cannot send friend add in this context');
   }
-  const presenceEmote = requireEnum(record.presenceEmote, PRESENCE_EMOTES, 'social decision.presenceEmote');
+  const presenceEmote = requireEnum(
+    record.presenceEmote,
+    PRESENCE_EMOTES,
+    'social decision.presenceEmote',
+  );
   if (presenceEmote !== 'none' && !context.constraints.allowPresenceEmote) {
     throw new Error('social decision cannot send presence emote in this context');
   }
@@ -145,16 +158,11 @@ export function validateAmbientBotPartyChatDecision(
   context: AmbientBotPartyChatContextV1,
 ): AmbientBotPartyChatDecisionV1 {
   const record = requireRecord(value, 'party decision');
-  rejectUnexpectedKeys(record, [
-    'schemaVersion',
-    'jobId',
-    'botRef',
-    'mode',
-    'ttlMs',
-    'confidence',
-    'lineText',
-    'audit',
-  ], 'party decision');
+  rejectUnexpectedKeys(
+    record,
+    ['schemaVersion', 'jobId', 'botRef', 'mode', 'ttlMs', 'confidence', 'lineText', 'audit'],
+    'party decision',
+  );
   const schemaVersion = requireLiteral(record.schemaVersion, 1, 'party decision.schemaVersion');
   const jobId = requireString(record.jobId, 'party decision.jobId');
   if (jobId !== context.jobId) throw new Error('party decision jobId mismatch');
@@ -193,26 +201,45 @@ function parsePlanAudit(value: unknown): AmbientBotPlanDecisionV1['audit'] {
 
 function parseSocialAudit(value: unknown): AmbientBotSocialDecisionV1['audit'] {
   const record = requireRecord(value, 'social decision.audit');
-  rejectUnexpectedKeys(record, ['shortReason', 'usedPlayerInput', 'safetyNotes'], 'social decision.audit');
+  rejectUnexpectedKeys(
+    record,
+    ['shortReason', 'usedPlayerInput', 'safetyNotes'],
+    'social decision.audit',
+  );
   return {
     shortReason: requireShortText(record.shortReason, 'social decision.audit.shortReason', 80),
-    usedPlayerInput: requireBoolean(record.usedPlayerInput, 'social decision.audit.usedPlayerInput'),
-    safetyNotes: requireStringArray(record.safetyNotes, 'social decision.audit.safetyNotes', 3, 120),
+    usedPlayerInput: requireBoolean(
+      record.usedPlayerInput,
+      'social decision.audit.usedPlayerInput',
+    ),
+    safetyNotes: requireStringArray(
+      record.safetyNotes,
+      'social decision.audit.safetyNotes',
+      3,
+      120,
+    ),
   };
 }
 
-function parseBotRef(
-  value: unknown,
-  path: string,
-): AmbientBotPlanDecisionV1['botRef'] {
+function parseBotRef(value: unknown, path: string): AmbientBotPlanDecisionV1['botRef'] {
   const record = requireRecord(value, path);
-  rejectUnexpectedKeys(record, ['botId', 'characterName', 'profileId', 'classId', 'archetype'], path);
+  rejectUnexpectedKeys(
+    record,
+    ['botId', 'characterName', 'profileId', 'classId', 'archetype'],
+    path,
+  );
   return {
     botId: requireString(record.botId, `${path}.botId`),
     characterName: requireString(record.characterName, `${path}.characterName`),
     profileId: requireString(record.profileId, `${path}.profileId`),
-    classId: requireString(record.classId, `${path}.classId`) as AmbientBotPlanDecisionV1['botRef']['classId'],
-    archetype: requireString(record.archetype, `${path}.archetype`) as AmbientBotPlanDecisionV1['botRef']['archetype'],
+    classId: requireString(
+      record.classId,
+      `${path}.classId`,
+    ) as AmbientBotPlanDecisionV1['botRef']['classId'],
+    archetype: requireString(
+      record.archetype,
+      `${path}.archetype`,
+    ) as AmbientBotPlanDecisionV1['botRef']['archetype'],
   };
 }
 
@@ -222,11 +249,11 @@ function requireMatchingBotRef(
   path: string,
 ): void {
   if (
-    actual.botId !== expected.botId
-    || actual.characterName !== expected.characterName
-    || actual.profileId !== expected.profileId
-    || actual.classId !== expected.classId
-    || actual.archetype !== expected.archetype
+    actual.botId !== expected.botId ||
+    actual.characterName !== expected.characterName ||
+    actual.profileId !== expected.profileId ||
+    actual.classId !== expected.classId ||
+    actual.archetype !== expected.archetype
   ) {
     throw new Error(`${path} mismatch`);
   }
@@ -250,11 +277,7 @@ function rejectUnexpectedKeys(
   }
 }
 
-function requireLiteral<T extends string | number>(
-  value: unknown,
-  expected: T,
-  path: string,
-): T {
+function requireLiteral<T extends string | number>(value: unknown, expected: T, path: string): T {
   if (value !== expected) throw new Error(`${path} must be ${String(expected)}`);
   return expected;
 }
@@ -271,23 +294,14 @@ function requireBoolean(value: unknown, path: string): boolean {
   return value;
 }
 
-function requireNumberInRange(
-  value: unknown,
-  path: string,
-  min: number,
-  max: number,
-): number {
+function requireNumberInRange(value: unknown, path: string, min: number, max: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
     throw new Error(`${path} is out of range`);
   }
   return value;
 }
 
-function requireEnum<T extends string>(
-  value: unknown,
-  allowed: ReadonlySet<T>,
-  path: string,
-): T {
+function requireEnum<T extends string>(value: unknown, allowed: ReadonlySet<T>, path: string): T {
   if (typeof value !== 'string' || !allowed.has(value as T)) {
     throw new Error(`${path} is invalid`);
   }

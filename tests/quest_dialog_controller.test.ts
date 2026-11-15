@@ -1,13 +1,45 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DELVES, NPCS, STATIONS } from '../src/sim/data';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GUILDMASTER_NPC_ID, HIGHWATCH_GUILD_ENTITY_IDS } from '../src/sim/content/highwatch_guild';
+import { inertCharacters } from './helpers/inert_characters';
+
+// char_window's portrait chip reaches the character model preload; keep it
+// inert (tests/helpers/inert_characters.ts has the why).
+vi.mock('../src/render/characters', () => inertCharacters.barrel());
+vi.mock('../src/render/characters/assets', () => inertCharacters.assets());
+vi.mock('../src/render/characters/portrait', () => inertCharacters.portrait());
+
+// This suite drives the quest dialog DOM, not WebGL portraits. char_window and
+// craft-name helpers can reach the portrait chip; keep that unrelated renderer
+// boundary inert so asset loads cannot outlive happy-dom teardown.
+vi.mock('../src/ui/portrait_chip', () => ({
+  crestUrl: () => '',
+  hydrateComposedChips: () => undefined,
+  hydratePortraits: () => undefined,
+  isComposedPortraitKey: () => false,
+  modularLookFor: () => null,
+  onPortraitUpdate: () => undefined,
+  portraitChipHtml: () => '',
+}));
+
+import {
+  INVESTIGATION_CLUES,
+  INVESTIGATION_NPC_IDS,
+  INVESTIGATION_NPCS,
+  INVESTIGATION_QUEST_ID,
+} from '../src/sim/content/world_quest_investigation';
+import { DELVES, ITEMS, NPCS, QUESTS, STATIONS } from '../src/sim/data';
 import { CHRONICLER_TEMPLATE_IDS } from '../src/sim/deeds';
+import { defaultRewardChoice } from '../src/sim/quests/quest_reward_choice';
+import { createReferralCard } from '../src/sim/referral_cards';
 import type { Entity } from '../src/sim/types';
+import { WEEKLY_KEEPER_ENTITY_ID, WEEKLY_KEEPER_ID } from '../src/sim/weekly_rewards';
 import { craftNameText } from '../src/ui/char_window';
+import { itemDisplayName } from '../src/ui/entity_i18n';
 import type { FocusTrapHandle } from '../src/ui/focus_manager';
 import { QuestDialogController } from '../src/ui/hud/quest/quest_dialog_controller';
-import { setLanguage, t } from '../src/ui/i18n';
+import { ensureLocaleLoaded, setLanguage, supportedLanguages, t } from '../src/ui/i18n';
 import type { IWorld } from '../src/world_api';
 
 function npc(id: number, templateId: string, x = 0): Entity {
@@ -33,6 +65,8 @@ function ordinaryNpcId(): string {
 function harness(
   entity = npc(10, ordinaryNpcId()),
   questState = 'available',
+  identityExtra: Record<string, unknown> = {},
+  worldExtra: Record<string, unknown> = {},
   askAiNpcTopic?: (npcId: number, topic: 'recent' | 'rumor' | 'place' | 'quest_hint') => void,
 ) {
   document.body.innerHTML = '';
@@ -46,9 +80,11 @@ function harness(
   const acceptQuest = vi.fn();
   const turnInQuest = vi.fn();
   const reportTelemetry = vi.fn();
+  const convertHusks = vi.fn();
   const world = {
     entities,
     cfg: { playerClass: 'warrior' },
+    talents: { spec: null },
     player: { name: 'Ari', pos: { x: 0, y: 0, z: 0 } },
     questLog: new Map(),
     partyInfo: null,
@@ -64,18 +100,32 @@ function harness(
       switchCount: 0,
       amendsProgress: 0,
       amendsRequired: 5,
+      ...identityExtra,
     },
     questState: vi.fn(() => questState),
+    // The quest-marker inputs the gossip list reads (the phase 23 classifier).
+    questsDone: new Set<string>(),
     targetEntity,
     interact,
     acceptLinkedQuest,
     acceptQuest,
     turnInQuest,
     reportTelemetry,
+    convertHusks,
+    clueHunt: null,
+    ...worldExtra,
   } as unknown as IWorld;
   const release = vi.fn();
   const focusFirst = vi.fn();
-  const trap: FocusTrapHandle = { release, focusFirst };
+  // The element the dialog's OWN focus trap recorded as ITS opener (e.g. the
+  // world interact prompt that opened the quest dialog): stays connected and
+  // visible outside #quest-dialog, unlike a button inside the dialog, which
+  // close(false) hides before a successor window's restore() would run.
+  const trapOpener = document.createElement('button');
+  trapOpener.id = 'world-interact-prompt';
+  document.body.appendChild(trapOpener);
+  const trapOpenerFn = vi.fn(() => trapOpener as HTMLElement | null);
+  const trap: FocusTrapHandle = { release, focusFirst, opener: trapOpenerFn };
   const voice = {
     play: vi.fn(),
     isPlaying: vi.fn(() => true),
@@ -84,12 +134,15 @@ function harness(
   const openChronicles = vi.fn();
   const openVendor = vi.fn();
   const openHeroicVendor = vi.fn();
+  const openCrucibleVendor = vi.fn();
+  const openWarfareVendor = vi.fn();
   const openMarket = vi.fn();
+  const openWorldQuestBoard = vi.fn();
   const openDelveBoard = vi.fn();
-  const openValeCup = vi.fn();
   const openCardDuel = vi.fn();
   const openTrain = vi.fn();
   const openUnbind = vi.fn();
+  const openCrafting = vi.fn();
   const onOpenChange = vi.fn();
   const controller = new QuestDialogController({
     element,
@@ -119,13 +172,16 @@ function harness(
     openChronicles,
     openVendor,
     openHeroicVendor,
+    openCrucibleVendor,
+    openWarfareVendor,
     openMarket,
+    openWorldQuestBoard,
     openDelveBoard,
-    openValeCup,
     openCardDuel,
     ...(askAiNpcTopic ? { askAiNpcTopic } : {}),
     openTrain,
     openUnbind,
+    openCrafting,
     onOpenChange,
     voice,
   });
@@ -142,27 +198,69 @@ function harness(
     acceptQuest,
     turnInQuest,
     reportTelemetry,
+    convertHusks,
     release,
     focusFirst,
+    trapOpener,
+    trapOpenerFn,
     voice,
     openChronicles,
     openVendor,
     openHeroicVendor,
+    openCrucibleVendor,
+    openWarfareVendor,
     openMarket,
+    openWorldQuestBoard,
     openDelveBoard,
-    openValeCup,
     openCardDuel,
     openTrain,
     openUnbind,
+    openCrafting,
     onOpenChange,
   };
 }
 
 describe('QuestDialogController', () => {
+  it('marks only the next stamp quest on pickup and its detail', () => {
+    const card = createReferralCard(8, 10, 20);
+    card.status = 'active';
+    Object.assign(card.participants[0], { characterId: 100, credited: 1, redeemed: 1 });
+    const offered = npc(30, 'brother_aldric');
+    offered.questIds = ['q_hollow', 'q_bones'];
+    const test = harness(
+      offered,
+      'available',
+      {},
+      {
+        referralCardsSnapshot: () => ({
+          revision: 1,
+          accountId: 10,
+          characterId: 100,
+          links: [{ card, friendName: 'Briar' }],
+        }),
+      },
+    );
+    test.controller.open(30);
+    const row = test.element.querySelector<HTMLButtonElement>('[data-quest="q_hollow"]');
+    expect(row).not.toBeNull();
+    expect(row?.getAttribute('aria-label')).toContain('next stamp card reward');
+    expect(row?.querySelector('.referral-quest-indicator')).not.toBeNull();
+    expect(
+      test.element.querySelector('[data-quest="q_bones"] .referral-quest-indicator'),
+    ).toBeNull();
+    row?.click();
+    expect(test.element.querySelector('.referral-quest-indicator')?.textContent).toContain(
+      'next stamp card reward',
+    );
+  });
   beforeEach(() => {
     document.body.innerHTML = '';
     setLanguage('en');
   });
+  // The per-locale label-in-name arm switches the module-global language; a
+  // failure mid-loop must not cascade a non-English locale into every later
+  // test in this file.
+  afterEach(() => setLanguage('en'));
 
   it('owns the normal gossip lifecycle and fades the greeting from NPC distance', () => {
     const test = harness();
@@ -190,6 +288,194 @@ describe('QuestDialogController', () => {
     expect(test.controller.isOpen).toBe(false);
   });
 
+  it('renders a completed repeatable as the blue row with the repeatable aria', () => {
+    // The phase 23 gossip arm over the real cadenced work order. Before the
+    // first completion the row keeps the first-offer gold glyph and the
+    // available aria (acceptance (b)'s negative); once questsDone carries the
+    // id, the glyph class flips to quest-repeat and the aria names the
+    // repeatable state (acceptance (e)).
+    const workOrder = Object.values(QUESTS).find((q) => q.repeatable && q.repeatCadenceTicks);
+    if (!workOrder) throw new Error('expected a cadenced work order');
+    const giver = npc(30, workOrder.giverNpcId);
+    (giver as unknown as { questIds: string[] }).questIds = [workOrder.id];
+
+    const fresh = harness(giver, 'available');
+    fresh.controller.open(30);
+    const freshRow = fresh.element.querySelector(`[data-quest="${workOrder.id}"]`);
+    if (!freshRow) throw new Error('expected the gossip quest row');
+    expect(freshRow.innerHTML).toContain('<span class="gold">!</span>');
+    expect(freshRow.getAttribute('aria-label')).toBe(
+      t('questUi.dialog.availableQuestAria', { name: `quest:${workOrder.id}` }),
+    );
+
+    const giver2 = npc(31, workOrder.giverNpcId);
+    (giver2 as unknown as { questIds: string[] }).questIds = [workOrder.id];
+    const done = harness(giver2, 'available');
+    (done.world as unknown as { questsDone: Set<string> }).questsDone.add(workOrder.id);
+    done.controller.open(31);
+    const doneRow = done.element.querySelector(`[data-quest="${workOrder.id}"]`);
+    if (!doneRow) throw new Error('expected the gossip quest row');
+    expect(doneRow.innerHTML).toContain('<span class="quest-repeat">!</span>');
+    expect(doneRow.getAttribute('aria-label')).toBe(
+      t('questUi.dialog.repeatableQuestAria', {
+        name: `quest:${workOrder.id}`,
+      }),
+    );
+
+    // Inside the cadence window the dialog lists NO row for the order (it is
+    // not offerable), exactly the pre-phase dialog: the dimmed marker is an
+    // overhead/map statement, never a dead gossip button.
+    const giver3 = npc(32, workOrder.giverNpcId);
+    (giver3 as unknown as { questIds: string[] }).questIds = [workOrder.id];
+    const blocked = harness(giver3, 'unavailable');
+    (blocked.world as unknown as { questsDone: Set<string> }).questsDone.add(workOrder.id);
+    (
+      blocked.world.craftingIdentity as unknown as {
+        cadenceBlockedQuests: string[];
+      }
+    ).cadenceBlockedQuests = [workOrder.id];
+    blocked.controller.open(32);
+    expect(blocked.element.querySelector(`[data-quest="${workOrder.id}"]`)).toBeNull();
+  });
+
+  it('surfaces a lapsed work order in an OPEN dialog through refreshIfChanged', () => {
+    // A cadence lapse is a pure tick-threshold crossing: the state re-opens
+    // with NO quest event to repaint through, while the dimmed map marker's
+    // "Available again soon" tag walks the player to this very NPC. The
+    // slowHud refreshIfChanged watch must rebuild the row set in place,
+    // and an unchanged signature must never rebuild the focus-trapped DOM.
+    const workOrder = Object.values(QUESTS).find((q) => q.repeatable && q.repeatCadenceTicks);
+    if (!workOrder) throw new Error('expected a cadenced work order');
+    const giver = npc(33, workOrder.giverNpcId);
+    (giver as unknown as { questIds: string[] }).questIds = [workOrder.id];
+    const test = harness(giver, 'unavailable');
+    (test.world as unknown as { questsDone: Set<string> }).questsDone.add(workOrder.id);
+    test.controller.open(33);
+    expect(test.element.querySelector(`[data-quest="${workOrder.id}"]`)).toBeNull();
+
+    // Unchanged signature: the same DOM nodes survive (identity, not HTML
+    // equality, since a rebuild would produce identical markup).
+    const anchorNode = test.element.querySelector('[data-close]');
+    test.controller.refreshIfChanged();
+    expect(test.element.querySelector('[data-close]')).toBe(anchorNode);
+
+    // The window lapses: the quest state re-opens and the watch repaints.
+    (test.world.questState as ReturnType<typeof vi.fn>).mockReturnValue('available');
+    test.controller.refreshIfChanged();
+    const row = test.element.querySelector(`[data-quest="${workOrder.id}"]`);
+    if (!row) throw new Error('expected the lapsed work order row without close/reopen');
+    expect(row.innerHTML).toContain('<span class="quest-repeat">!</span>');
+    expect(row.getAttribute('aria-label')).toBe(
+      t('questUi.dialog.repeatableQuestAria', {
+        name: `quest:${workOrder.id}`,
+      }),
+    );
+  });
+
+  it('routes the Weekly Vault Keeper through authoritative interaction without gossip', () => {
+    const keeper = harness(npc(WEEKLY_KEEPER_ENTITY_ID, WEEKLY_KEEPER_ID));
+    keeper.controller.open(WEEKLY_KEEPER_ENTITY_ID);
+    expect(keeper.targetEntity).toHaveBeenCalledWith(WEEKLY_KEEPER_ENTITY_ID);
+    expect(keeper.interact).toHaveBeenCalledTimes(1);
+    expect(keeper.element.style.display).not.toBe('block');
+  });
+
+  it("routes Lantern Hall's working residents to their windows, the guildmaster to gossip", () => {
+    // The 2026-10-16 playtest bug: talking to Garrick Holt showed only his greeting, because the
+    // gossip menu never sent the interact that makes the sim emit guildHallOpen.
+    for (const [templateId, entityId] of Object.entries(HIGHWATCH_GUILD_ENTITY_IDS)) {
+      const resident = harness(npc(entityId, templateId));
+      resident.controller.open(entityId);
+      if (templateId === GUILDMASTER_NPC_ID) {
+        expect(resident.interact, templateId).not.toHaveBeenCalled();
+        expect(resident.element.style.display, templateId).toBe('block');
+      } else {
+        expect(resident.targetEntity, templateId).toHaveBeenCalledWith(entityId);
+        expect(resident.interact, templateId).toHaveBeenCalledTimes(1);
+        expect(resident.element.style.display, templateId).not.toBe('block');
+      }
+    }
+  });
+
+  it('a clue hand-over at an ordinary quest giver renders the row and the click sends the interact', () => {
+    // The 2026-09-22 playtest bug: the fenwitch salt hunt's first step is a
+    // hand-over of one cooking salt at Mother Sedge, an ORDINARY quest giver.
+    // The gossip menu only sent the interact for service NPCs or an active
+    // quest's discuss row, so the sim's clue check (talkToNpc runs
+    // onNpcTalkedForClueHunt first on every host) was never reached and the
+    // salt was never taken. The row is the one affordance that sends it.
+    const sedge = harness(
+      npc(77, 'mother_sedge'),
+      'none',
+      {},
+      {
+        clueHunt: { huntId: 'hunt_willowfen_fenwitch_salt', step: 0 },
+      },
+    );
+    sedge.controller.open(77);
+    expect(sedge.element.style.display).toBe('block');
+    const row = sedge.element.querySelector<HTMLButtonElement>('[data-clue-step]');
+    expect(row).not.toBeNull();
+    const salt = itemDisplayName(ITEMS.cooking_salt);
+    expect(row?.textContent).toContain(t('questUi.dialog.clueDeliver', { count: '1', item: salt }));
+    expect(row?.getAttribute('aria-label')).toBe(
+      t('questUi.dialog.clueDeliverAria', { count: '1', item: salt, name: 'npc:mother_sedge' }),
+    );
+    // The English literals once, beside the t() form.
+    expect(row?.textContent).toContain(`Hand over 1 ${salt}.`);
+    expect(row?.getAttribute('aria-label')).toBe(`Hand over 1 ${salt} to npc:mother_sedge`);
+    expect(sedge.interact).not.toHaveBeenCalled();
+    row?.click();
+    expect(sedge.targetEntity).toHaveBeenCalledWith(77);
+    expect(sedge.interact).toHaveBeenCalledTimes(1);
+    // No successor window: close WITH the trap's own focus restore (the husk
+    // trade shape), never the bindRoute release(false).
+    expect(sedge.release).toHaveBeenCalledWith(true);
+    expect(sedge.release).not.toHaveBeenCalledWith(false);
+    expect(sedge.controller.isOpen).toBe(false);
+  });
+
+  it('the clue row is absent for another NPC, a non-talk step, or no hunt', () => {
+    // Same hunt, wrong NPC: the step names mother_sedge, not widow_tansy.
+    const tansy = harness(
+      npc(78, 'widow_tansy'),
+      'none',
+      {},
+      {
+        clueHunt: { huntId: 'hunt_willowfen_fenwitch_salt', step: 0 },
+      },
+    );
+    tansy.controller.open(78);
+    expect(tansy.element.querySelector('[data-clue-step]')).toBeNull();
+    // Right NPC, no hunt (the harness default): nothing to hand over.
+    const idle = harness(npc(77, 'mother_sedge'), 'none');
+    idle.controller.open(77);
+    expect(idle.element.querySelector('[data-clue-step]')).toBeNull();
+    expect(idle.interact).not.toHaveBeenCalled();
+  });
+
+  it('refreshIfChanged repaints the open dialog when the clue step moves off this NPC', () => {
+    const sedge = harness(
+      npc(77, 'mother_sedge'),
+      'none',
+      {},
+      {
+        clueHunt: { huntId: 'hunt_willowfen_fenwitch_salt', step: 0 },
+      },
+    );
+    sedge.controller.open(77);
+    expect(sedge.element.querySelector('[data-clue-step]')).not.toBeNull();
+    // Unchanged state: no repaint (the DOM node identity survives).
+    const before = sedge.element.querySelector('[data-clue-step]');
+    sedge.controller.refreshIfChanged();
+    expect(sedge.element.querySelector('[data-clue-step]')).toBe(before);
+    // The hunt ended (or advanced past this NPC): the row must go. The
+    // harness world is the live object the controller reads.
+    (sedge.world as unknown as { clueHunt: unknown }).clueHunt = null;
+    sedge.controller.refreshIfChanged();
+    expect(sedge.element.querySelector('[data-clue-step]')).toBeNull();
+  });
+
   it('routes bankers and chroniclers through authoritative interaction without gossip', () => {
     const bankerId = Object.values(NPCS).find((definition) => definition.banker)?.id;
     if (!bankerId) throw new Error('banker fixture not found');
@@ -200,6 +486,16 @@ describe('QuestDialogController', () => {
     expect(banker.targetEntity).toHaveBeenCalledWith(20);
     expect(banker.interact).toHaveBeenCalledTimes(1);
     expect(banker.element.style.display).not.toBe('block');
+
+    // The Riftwright (riftForge flag) takes the same short-circuit: the sim's
+    // interact emits the window-opening event, identical on every host.
+    const forgeId = Object.values(NPCS).find((definition) => definition.riftForge)?.id;
+    if (!forgeId) throw new Error('rift forge fixture not found');
+    const forge = harness(npc(22, forgeId));
+    forge.controller.open(22);
+    expect(forge.targetEntity).toHaveBeenCalledWith(22);
+    expect(forge.interact).toHaveBeenCalledTimes(1);
+    expect(forge.element.style.display).not.toBe('block');
 
     const chronicler = harness(npc(21, CHRONICLER_TEMPLATE_IDS[0]));
     chronicler.controller.open(21);
@@ -233,7 +529,9 @@ describe('QuestDialogController', () => {
     offered.element.querySelector<HTMLButtonElement>('.btn')?.click();
 
     expect(offered.acceptQuest).toHaveBeenCalledWith('q_wolves');
-    expect(offered.reportTelemetry).toHaveBeenCalledWith('quest_accept', { timeMs: 0 });
+    expect(offered.reportTelemetry).toHaveBeenCalledWith('quest_accept', {
+      timeMs: 0,
+    });
 
     const readyNpc = npc(31, 'marshal_redbrook');
     readyNpc.questIds = ['q_wolves'];
@@ -243,7 +541,11 @@ describe('QuestDialogController', () => {
     expect(ready.element.innerHTML).toContain('completion:q_wolves');
     ready.element.querySelector<HTMLButtonElement>('.btn')?.click();
 
-    expect(ready.turnInQuest).toHaveBeenCalledWith('q_wolves');
+    // The turn-in carries the preselected choose-one piece: the spec default.
+    expect(ready.turnInQuest).toHaveBeenCalledWith(
+      'q_wolves',
+      defaultRewardChoice(QUESTS.q_wolves, 'warrior', null),
+    );
     expect(ready.reportTelemetry).toHaveBeenCalledWith('quest_turnin', { timeMs: 0 });
   });
 
@@ -251,7 +553,7 @@ describe('QuestDialogController', () => {
     const askAiNpcTopic = vi.fn();
     const offeredNpc = npc(34, 'marshal_redbrook');
     offeredNpc.questIds = ['q_wolves'];
-    const test = harness(offeredNpc, 'available', askAiNpcTopic);
+    const test = harness(offeredNpc, 'available', {}, {}, askAiNpcTopic);
 
     test.controller.open(offeredNpc.id);
     expect(test.element.querySelectorAll('[data-ai-topic]')).toHaveLength(4);
@@ -261,6 +563,75 @@ describe('QuestDialogController', () => {
     test.element.querySelector<HTMLButtonElement>('[data-quest="q_wolves"]')?.click();
     test.element.querySelector<HTMLButtonElement>('.btn')?.click();
     expect(test.element.querySelectorAll('[data-ai-topic]')).toHaveLength(4);
+  });
+
+  it('turns in the reward card the player checked, and only the class can wear', () => {
+    const readyNpc = npc(32, 'marshal_redbrook');
+    readyNpc.questIds = ['q_wolves'];
+    const ready = harness(readyNpc, 'ready');
+    ready.controller.open(readyNpc.id);
+    ready.element.querySelector<HTMLButtonElement>('[data-quest="q_wolves"]')?.click();
+    const cards = [
+      ...ready.element.querySelectorAll<HTMLButtonElement>('button[data-reward-choice]'),
+    ];
+    // A warrior wears all four armor weights, so all four cards are offered.
+    expect(cards.map((c) => c.dataset.rewardChoice)).toEqual(QUESTS.q_wolves.choiceRewards);
+    const defaultId = defaultRewardChoice(QUESTS.q_wolves, 'warrior', null);
+    expect(cards.find((c) => c.getAttribute('aria-checked') === 'true')?.dataset.rewardChoice).toBe(
+      defaultId,
+    );
+    const other = cards.find((c) => c.dataset.rewardChoice !== defaultId);
+    other?.click();
+    expect(other?.getAttribute('aria-checked')).toBe('true');
+    expect(cards.filter((c) => c.getAttribute('aria-checked') === 'true')).toHaveLength(1);
+    ready.element.querySelector<HTMLButtonElement>('.btn')?.click();
+    expect(ready.turnInQuest).toHaveBeenCalledWith('q_wolves', other?.dataset.rewardChoice);
+  });
+
+  it('moves the reward check and the one tab stop with the arrow keys and Home/End', () => {
+    const readyNpc = npc(34, 'marshal_redbrook');
+    readyNpc.questIds = ['q_wolves'];
+    const ready = harness(readyNpc, 'ready');
+    ready.controller.open(readyNpc.id);
+    ready.element.querySelector<HTMLButtonElement>('[data-quest="q_wolves"]')?.click();
+    const cards = [
+      ...ready.element.querySelectorAll<HTMLButtonElement>('button[data-reward-choice]'),
+    ];
+    const checkedIndex = () => cards.findIndex((c) => c.getAttribute('aria-checked') === 'true');
+    const press = (key: string) =>
+      cards[checkedIndex()].dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    press('Home');
+    expect(checkedIndex()).toBe(0);
+    press('ArrowRight');
+    expect(checkedIndex()).toBe(1);
+    expect(document.activeElement).toBe(cards[1]);
+    press('End');
+    expect(checkedIndex()).toBe(cards.length - 1);
+    press('ArrowDown');
+    expect(checkedIndex()).toBe(0);
+    expect(cards.filter((c) => c.tabIndex === 0)).toEqual([cards[0]]);
+    ready.element.querySelector<HTMLButtonElement>('.btn')?.click();
+    expect(ready.turnInQuest).toHaveBeenCalledWith('q_wolves', cards[0].dataset.rewardChoice);
+  });
+
+  it('the preview promises the REMEMBERED hobby when the identity carries one', () => {
+    // The controller must pass identity.questedHobbies through to the view:
+    // with the pass-through dropped, the preview silently reverts to the
+    // skill default, the exact defect the mirror exists to fix.
+    const darva = npc(33, 'forgemistress_darva');
+    darva.questIds = ['q_prof_attune_smith'];
+    const test = harness(darva, 'available', {
+      questedHobbies: { 'weaponcrafting+armorcrafting': 'tailoring' },
+    });
+    test.controller.open(darva.id);
+    test.element.querySelector<HTMLButtonElement>('[data-quest="q_prof_attune_smith"]')?.click();
+    const select = test.element.querySelector<HTMLSelectElement>('[data-profession-selection]');
+    const preview = test.element.querySelector<HTMLElement>('[data-profession-preview]');
+    if (!select) throw new Error('profession selector missing');
+    select.value = 'weaponcrafting+armorcrafting';
+    select.dispatchEvent(new Event('change'));
+    expect(preview?.textContent).toContain('Tailoring');
+    expect(preview?.textContent).not.toContain('Leatherworking');
   });
 
   it('previews and dispatches the selected profession attunement target', () => {
@@ -341,7 +712,9 @@ describe('QuestDialogController', () => {
     if (!select) throw new Error('hobby profession selector missing');
     expect([...select.options].map((option) => option.value)).toEqual(['tailoring']);
     expect(preview?.textContent).toBe(
-      t('hudChrome.crafting.hobbyPreview', { hobby: craftNameText('tailoring') }),
+      t('hudChrome.crafting.hobbyPreview', {
+        hobby: craftNameText('tailoring'),
+      }),
     );
     expect(preview?.getAttribute('aria-live')).toBe('polite');
     expect(preview?.getAttribute('aria-atomic')).toBe('true');
@@ -374,8 +747,11 @@ describe('QuestDialogController', () => {
     vendorNpc.vendorItems = ['minor_healing_potion'];
     const vendor = harness(vendorNpc);
     vendor.controller.open(vendorNpc.id);
-    vendor.element.querySelector<HTMLButtonElement>('[data-vendor]')?.click();
-    expect(vendor.openVendor).toHaveBeenCalledWith(vendorNpc.id);
+    const vendorButton = vendor.element.querySelector<HTMLButtonElement>('[data-vendor]');
+    expect(vendorButton?.innerHTML).toContain('/ui/currency/coin_gold.webp');
+    vendorButton?.focus();
+    vendorButton?.click();
+    expect(vendor.openVendor).toHaveBeenCalledWith(vendorNpc.id, vendor.trapOpener);
     expect(vendor.release).toHaveBeenCalledWith(false);
 
     const marketId = Object.values(NPCS).find((definition) => definition.market)?.id;
@@ -387,10 +763,22 @@ describe('QuestDialogController', () => {
     market.element.querySelector<HTMLButtonElement>('[data-market]')?.click();
     expect(market.openMarket).toHaveBeenCalledTimes(1);
 
+    // The World Quest taskmaster offers the board row and nothing else; the
+    // row routes to the map rail through openWorldQuestBoard.
+    const boardId = Object.values(NPCS).find((definition) => definition.worldQuestBoard)?.id;
+    if (!boardId) throw new Error('world quest board fixture not found');
+    const taskmaster = harness(npc(45, boardId));
+    taskmaster.controller.open(45);
+    taskmaster.element.querySelector<HTMLButtonElement>('[data-world-quest-board]')?.click();
+    expect(taskmaster.openWorldQuestBoard).toHaveBeenCalledTimes(1);
+
     const heroic = harness(npc(42, heroicId));
     heroic.controller.open(42);
-    heroic.element.querySelector<HTMLButtonElement>('[data-heroic-shop]')?.click();
-    expect(heroic.openHeroicVendor).toHaveBeenCalledWith(42);
+    const heroicButton = heroic.element.querySelector<HTMLButtonElement>('[data-heroic-shop]');
+    expect(heroicButton?.innerHTML).toContain('/ui/items/heroic_mark.webp');
+    heroicButton?.focus();
+    heroicButton?.click();
+    expect(heroic.openHeroicVendor).toHaveBeenCalledWith(42, heroic.trapOpener);
 
     const boardNpcId = DELVES.collapsed_reliquary.boardNpcId;
     const board = harness(npc(43, boardNpcId));
@@ -398,15 +786,100 @@ describe('QuestDialogController', () => {
     board.element.querySelector<HTMLButtonElement>('[data-delve-board]')?.click();
     expect(board.openDelveBoard).toHaveBeenCalledWith(43);
 
-    const valeCup = harness(npc(44, 'groundskeeper_bram'));
-    valeCup.controller.open(44);
-    valeCup.element.querySelector<HTMLButtonElement>('[data-vcup]')?.click();
-    expect(valeCup.openValeCup).toHaveBeenCalledTimes(1);
-
     const cardMaster = harness(npc(45, 'card_master'));
     cardMaster.controller.open(45);
     cardMaster.element.querySelector<HTMLButtonElement>('[data-card-duel]')?.click();
     expect(cardMaster.openCardDuel).toHaveBeenCalledTimes(1);
+  });
+
+  it('REPLACES the generic goods row with the WARFARE shop row at a flagged NPC', () => {
+    // The WARFARE quartermaster shows ONE shop row, not two (owner 2026-08-07).
+    // This reverses the round-2 review decision that shipped both: the two rows
+    // open the SAME stock, because a quartermaster's vendorItems IS the whole
+    // WARFARE catalog, so the generic grid was a flat copy of what the sectioned
+    // window lays out properly. Distinct labels made them tellable apart without
+    // making the duplication any less confusing.
+    const flaggedId = Object.values(NPCS).find((definition) => definition.warfareVendor)?.id;
+    if (!flaggedId) throw new Error('warfare vendor fixture not found');
+    const flagged = npc(60, flaggedId);
+    // Non-empty on purpose, and this is the load-bearing half. The honor buy
+    // path (items.ts buyItem) is generic over vendorItems and refuses an empty
+    // list; the warfareVendor flag is a WINDOW routing hint it never reads. So
+    // the suppression has to happen on the ROW. Emptying the stock to hide the
+    // row would turn the shop itself off, which is why this fixture stocks the
+    // NPC and still expects no goods row.
+    flagged.vendorItems = ['minor_healing_potion'];
+    const both = harness(flagged);
+    both.controller.open(flagged.id);
+
+    const goods = both.element.querySelector<HTMLButtonElement>('[data-vendor]');
+    const shop = both.element.querySelector<HTMLButtonElement>('[data-warfare-shop]');
+    expect(goods, 'no generic goods row at a flagged NPC, even with stock').toBeNull();
+    expect(shop, 'the WARFARE shop row').not.toBeNull();
+    expect(shop?.innerHTML).toContain('/ui/currency/honor.webp');
+    expect(shop?.textContent).toContain(t('hudChrome.warfareShop.gossipOption'));
+    expect(shop?.getAttribute('aria-label')).toBe(
+      t('hudChrome.warfareShop.gossipOptionAria', { name: `npc:${flaggedId}` }),
+    );
+
+    // The shop row routes to the sectioned window and nowhere else.
+    shop?.click();
+    expect(both.openWarfareVendor).toHaveBeenCalledWith(flagged.id, both.trapOpener);
+    expect(both.openVendor).not.toHaveBeenCalled();
+
+    // Scoped to the FLAG, not to vendors generally: an ordinary stocked NPC
+    // still gets its goods row, routing to the ordinary window. ("closes gossip
+    // before opening every non-quest destination" above covers the same NPC;
+    // asserted here too so deleting that one cannot quietly make this vacuous.)
+    const ordinary = npc(61, ordinaryNpcId());
+    ordinary.vendorItems = ['minor_healing_potion'];
+    const generic = harness(ordinary);
+    generic.controller.open(61);
+    const genericGoods = generic.element.querySelector<HTMLButtonElement>('[data-vendor]');
+    expect(genericGoods, 'an unflagged stocked NPC keeps its goods row').not.toBeNull();
+    genericGoods?.click();
+    expect(generic.openVendor).toHaveBeenCalledWith(61, generic.trapOpener);
+    expect(generic.openWarfareVendor).not.toHaveBeenCalled();
+  });
+
+  it("hands the successor window the DIALOG TRAP's own opener, not the in-dialog button (WCAG 2.4.3)", () => {
+    // Regression for the second review finding on PR #2619: the first fix
+    // captured document.activeElement (the in-dialog gossip button) BEFORE
+    // close(false) hid #quest-dialog, but that button still lives INSIDE the
+    // dialog's own subtree, so by the time the successor window's
+    // focusManager.restore() runs later (after close(false) has taken
+    // effect), the button fails FocusManager.canFocus (display:none ancestor,
+    // getClientRects().length === 0) and focus still falls to <body>. The
+    // real fix hands the successor the quest dialog's OWN trap opener
+    // instead: a sibling element outside the dialog (e.g. the world interact
+    // prompt) that stays connected and visible for the whole time the vendor
+    // window is open, exactly like openBank()'s live side-rail button.
+    const vendorNpc = npc(50, ordinaryNpcId());
+    vendorNpc.vendorItems = ['minor_healing_potion'];
+    const test = harness(vendorNpc);
+    test.controller.open(vendorNpc.id);
+    const vendorButton = test.element.querySelector<HTMLButtonElement>('[data-vendor]');
+    expect(vendorButton).not.toBeNull();
+    vendorButton?.focus();
+    expect(test.document.activeElement).toBe(vendorButton);
+
+    vendorButton?.click();
+
+    // The dialog is hidden by the time openVendor is invoked...
+    expect(test.element.style.display).toBe('none');
+    // ...openVendor received the trap's OWN opener, read from the trap
+    // handle rather than document.activeElement...
+    expect(test.trapOpenerFn).toHaveBeenCalled();
+    expect(test.openVendor).toHaveBeenCalledWith(vendorNpc.id, test.trapOpener);
+    // ...and, unlike the in-dialog button, that element sits OUTSIDE the
+    // hidden #quest-dialog subtree: jsdom never lays out real geometry (so
+    // FocusManager.canFocus's getClientRects() check cannot be exercised
+    // here), but this is the structural precondition it depends on, and it
+    // is exactly what the in-dialog button fails once close(false) hides its
+    // ancestor.
+    expect(test.trapOpener.isConnected).toBe(true);
+    expect(test.element.contains(test.trapOpener)).toBe(false);
+    expect(vendorButton && test.element.contains(vendorButton)).toBe(true);
   });
 
   it('a station master offers the Train option and routes it to openTrain', () => {
@@ -420,6 +893,97 @@ describe('QuestDialogController', () => {
     button?.click();
     expect(master.openTrain).toHaveBeenCalledWith(46);
     expect(master.release).toHaveBeenCalledWith(false);
+  });
+
+  it('a farmer NPC offers the husk-trade row and the click sends convertHusks once, then closes', () => {
+    // The farming go-live: every NpcDef carrying the farmer flag renders the
+    // [data-husk-trade] row (the ONE UI affordance for convert_husks). The
+    // fixture entity has NO quests and NO vendor rows, so the row is what
+    // keeps this dialog worth opening at all. The click goes straight to the
+    // live world (IWorldFarming.convertHusks) exactly once, and the dialog
+    // closes like every other non-quest destination (the market-row shape).
+    const farmerId = Object.values(NPCS).find((definition) => definition.farmer)?.id;
+    if (!farmerId) throw new Error('farmer NPC fixture not found');
+    const farmer = harness(npc(48, farmerId));
+    farmer.controller.open(48);
+    expect(farmer.element.style.display).toBe('block');
+    const button = farmer.element.querySelector<HTMLButtonElement>('[data-husk-trade]');
+    expect(button).not.toBeNull();
+    expect(button?.textContent).toContain(t('hudChrome.farming.huskTrade'));
+    expect(button?.getAttribute('aria-label')).toBe(
+      t('hudChrome.farming.huskTradeAria', { name: `npc:${farmerId}` }),
+    );
+    // The English literals once, beside the t() form: a key swap to any other
+    // existing key would keep the t() comparisons green on their own.
+    expect(button?.textContent).toContain('Trade husks for compost');
+    expect(button?.getAttribute('aria-label')).toBe(`Trade husks for compost with npc:${farmerId}`);
+    // WCAG 2.5.3 label-in-name (the Phase 14 a11y batch): the accessible
+    // name CONTAINS the visible label verbatim, so speech-input users can
+    // say what they see. Pinned as the containment PROPERTY, not just the
+    // literal above, so a future reword of either key must keep it.
+    expect(button?.getAttribute('aria-label')).toContain(button?.textContent?.trim() ?? 'MISSING');
+    // No shop row for an empty stock, so the trade row is the only action.
+    expect(farmer.element.querySelector('[data-vendor]')).toBeNull();
+    expect(farmer.convertHusks).not.toHaveBeenCalled();
+    button?.click();
+    expect(farmer.convertHusks).toHaveBeenCalledTimes(1);
+    // The trade opens NO successor window (the sim's own event lines are the
+    // feedback), so the dialog closes WITH focus restore: the bindRoute
+    // family releases with false because it hands the trap opener to a
+    // successor that restores focus on its own close; with no successor that
+    // chain would drop keyboard focus to <body> (Phase 9 QA, the frontend
+    // seam's finding).
+    expect(farmer.release).toHaveBeenCalledWith(true);
+    expect(farmer.release).not.toHaveBeenCalledWith(false);
+    expect(farmer.controller.isOpen).toBe(false);
+  });
+
+  it('label-in-name holds in EVERY locale for the husk pair (WCAG 2.5.3)', async () => {
+    // The Phase 14 a11y batch reworded the aria pair so the accessible name
+    // contains the visible label verbatim in every locale (speech-input
+    // users say what they see in their language). The property is asserted
+    // across the WHOLE supported set: the five filled non-Latin locales
+    // render their fills, the rest English-fall-back BOTH keys together, so
+    // containment must hold everywhere; a future one-sided fill (aria
+    // translated, visible pending, or vice versa) reds here. Rendered
+    // through the real sink in the app's own order (await, then switch).
+    const FILLED = new Set(['ja_JP', 'ko_KR', 'ru_RU', 'zh_CN', 'zh_TW']);
+    for (const locale of supportedLanguages) {
+      if (locale === 'en') continue;
+      await ensureLocaleLoaded(locale);
+      setLanguage(locale);
+      const visible = t('hudChrome.farming.huskTrade');
+      const aria = t('hudChrome.farming.huskTradeAria', { name: 'X' });
+      expect(aria, locale).toContain(visible);
+      // Non-vacuity where a real fill exists: not English-falling-back.
+      if (FILLED.has(locale)) expect(visible, locale).not.toBe('Trade husks for compost');
+    }
+    setLanguage('en');
+  });
+
+  it('a farmer with stock renders the trade row BESIDE the goods row', () => {
+    // The two go-live counters at once: Jessica sells seeds and trades husks
+    // from the same dialog, so neither row may suppress the other.
+    const stocked = npc(49, 'farmer_jessica');
+    stocked.vendorItems = [...(NPCS.farmer_jessica.vendorItems ?? [])];
+    const jessica = harness(stocked);
+    jessica.controller.open(49);
+    expect(jessica.element.querySelector('[data-vendor]')).not.toBeNull();
+    expect(jessica.element.querySelector('[data-husk-trade]')).not.toBeNull();
+  });
+
+  it('a non-farmer NPC renders no husk-trade row', () => {
+    const plainId = Object.values(NPCS).find(
+      (definition) =>
+        !definition.banker &&
+        !definition.farmer &&
+        !(CHRONICLER_TEMPLATE_IDS as readonly string[]).includes(definition.id),
+    )?.id;
+    if (!plainId) throw new Error('non-farmer NPC fixture not found');
+    const plain = harness(npc(50, plainId));
+    plain.controller.open(50);
+    expect(plain.element.querySelector('[data-husk-trade]')).toBeNull();
+    expect(plain.convertHusks).not.toHaveBeenCalled();
   });
 
   it('a non-master NPC renders no Train option', () => {
@@ -458,13 +1022,54 @@ describe('QuestDialogController', () => {
     expect(plain.element.querySelector('[data-unbind]')).toBeNull();
   });
 
-  it('does not leak Train or Unbind into a world with no authored stations', () => {
+  it('a station master offers the Crafting shortcut and routes its craft to openCrafting', () => {
+    // The Eastbrook forge master: a fresh viewer (no craft skills) resolves
+    // to weaponcrafting, the first forge craft in declaration order. The aria
+    // names the resolved craft (the {craft} placeholder is substituted).
+    const forge = STATIONS.find((station) => station.type === 'forge');
+    if (!forge) throw new Error('forge station fixture not found');
+    const master = harness(npc(51, forge.masterNpcId));
+    master.controller.open(51);
+    const button = master.element.querySelector<HTMLButtonElement>('[data-crafting]');
+    expect(button).not.toBeNull();
+    const aria = button?.getAttribute('aria-label') ?? '';
+    expect(aria).toContain(craftNameText('weaponcrafting'));
+    expect(aria).not.toContain('{craft}');
+    button?.click();
+    expect(master.openCrafting).toHaveBeenCalledWith('weaponcrafting');
+    expect(master.release).toHaveBeenCalledWith(false);
+  });
+
+  it('the Crafting shortcut follows the viewer stronger craft at the two-craft forge', () => {
+    const forge = STATIONS.find((station) => station.type === 'forge');
+    if (!forge) throw new Error('forge station fixture not found');
+    const master = harness(npc(52, forge.masterNpcId), 'available', {
+      craftSkills: { weaponcrafting: 5, armorcrafting: 30 },
+    });
+    master.controller.open(52);
+    master.element.querySelector<HTMLButtonElement>('[data-crafting]')?.click();
+    expect(master.openCrafting).toHaveBeenCalledWith('armorcrafting');
+  });
+
+  it('a non-master NPC renders no Crafting shortcut', () => {
+    const masters = new Set(STATIONS.map((station) => station.masterNpcId));
+    const plainId = Object.values(NPCS).find(
+      (definition) => !definition.banker && !masters.has(definition.id),
+    )?.id;
+    if (!plainId) throw new Error('non-master NPC fixture not found');
+    const plain = harness(npc(53, plainId));
+    plain.controller.open(53);
+    expect(plain.element.querySelector('[data-crafting]')).toBeNull();
+  });
+
+  it('does not leak Train, Crafting, or Unbind into a world with no authored stations', () => {
     const master = harness(npc(50, STATIONS[0].masterNpcId));
     (master.world as unknown as { stationPlacements: typeof STATIONS }).stationPlacements = [];
 
     master.controller.open(50);
 
     expect(master.element.querySelector('[data-train]')).toBeNull();
+    expect(master.element.querySelector('[data-crafting]')).toBeNull();
     expect(master.element.querySelector('[data-unbind]')).toBeNull();
   });
 
@@ -508,5 +1113,108 @@ describe('QuestDialogController', () => {
     test.controller.refreshIfChanged();
 
     expect(test.element.querySelector('[data-prof-intro-hint]')).toBe(hintNode);
+  });
+
+  it('opens a caravan briefing and confirms through target then interact', () => {
+    const caravan = {
+      ...npc(80, 'eastbrook_freight_caravan'),
+      kind: 'mob',
+      dead: false,
+    } as Entity;
+    const test = harness(caravan);
+    test.world.player.level = 60;
+    test.world.player.dead = false;
+    test.world.worldQuestLog = new Map([
+      ['wq_eastbrook_caravan', { questId: 'wq_eastbrook_caravan', state: 'active', count: 0 }],
+    ]);
+
+    test.controller.open(caravan.id);
+    const start = test.element.querySelector<HTMLButtonElement>('[data-start-wq]');
+    expect(test.controller.isOpen).toBe(true);
+    expect(start).not.toBeNull();
+    expect(start?.hidden).toBe(false);
+    start?.click();
+    expect(test.targetEntity).toHaveBeenCalledWith(caravan.id);
+    expect(test.interact).toHaveBeenCalledTimes(1);
+    expect(test.targetEntity.mock.invocationCallOrder[0]).toBeLessThan(
+      test.interact.mock.invocationCallOrder[0],
+    );
+  });
+});
+
+describe('investigation quest dialogue', () => {
+  it('opens records using existing dialogue chrome and distance dismissal', () => {
+    const clue = INVESTIGATION_CLUES[0];
+    const entity = {
+      ...npc(clue.entityId, `ground_${clue.objectItemId}`),
+      kind: 'object',
+    } as Entity;
+    const h = harness(entity);
+    h.world.worldQuestCycle = 'wq3_0';
+    h.world.worldQuestLog = new Map([
+      [
+        INVESTIGATION_QUEST_ID,
+        {
+          questId: INVESTIGATION_QUEST_ID,
+          state: 'active',
+          count: 0,
+          investigation: { heard: 0, clues: 1, cleared: 0 },
+        },
+      ],
+    ]);
+    h.controller.open(entity.id);
+    expect(h.controller.isOpen).toBe(true);
+    expect(h.element.querySelector('#quest-dialog-title')?.textContent).toBe('Standing Orders');
+    expect(h.element.querySelector('[data-close]')).not.toBeNull();
+    expect(h.element.querySelector('[data-accuse]')).toBeNull();
+    const title = h.element.querySelector('#quest-dialog-title');
+    h.controller.refreshIfChanged();
+    expect(h.element.querySelector('#quest-dialog-title')).toBe(title);
+    h.world.player.pos.x = 100;
+    h.controller.updateProximity();
+    expect(h.controller.isOpen).toBe(false);
+    expect(h.release).toHaveBeenCalled();
+  });
+  it('refreshes after online snapshot arrival, emits only accusation intent and restores correction', () => {
+    const entity = npc(INVESTIGATION_NPC_IDS[0], INVESTIGATION_NPCS[0].id);
+    const h = harness(entity);
+    h.world.worldQuestCycle = 'wq3_0';
+    const progress = {
+      questId: INVESTIGATION_QUEST_ID,
+      state: 'active' as const,
+      count: 0,
+      investigation: { heard: 7, clues: 3, cleared: 0, mobId: undefined as number | undefined },
+    };
+    h.world.worldQuestLog = new Map([[INVESTIGATION_QUEST_ID, progress]]);
+    h.world.accuseWorldQuestSuspect = vi.fn();
+    h.controller.open(entity.id);
+    expect(h.element.querySelector('[data-accuse]')).toBeNull();
+    progress.investigation.heard = 15;
+    h.controller.refreshIfChanged();
+    // One option per guard, in post order, each naming the guard.
+    const options = Array.from(h.element.querySelectorAll<HTMLButtonElement>('[data-accuse]'));
+    expect(options.map((b) => Number(b.dataset.accuse))).toEqual(INVESTIGATION_NPC_IDS.slice(1));
+    expect(options[0].textContent).toBe('Accuse npc:infiltrator_nella');
+    options[1].click();
+    expect(h.world.accuseWorldQuestSuspect).toHaveBeenCalledWith(INVESTIGATION_NPC_IDS[2]);
+    expect(progress.investigation.cleared).toBe(0);
+    expect(h.controller.isOpen).toBe(false);
+    progress.investigation.cleared = 2;
+    h.controller.open(entity.id);
+    expect(h.element.textContent).toContain('try again');
+    expect(
+      Array.from(h.element.querySelectorAll<HTMLButtonElement>('[data-accuse]')).map((b) =>
+        Number(b.dataset.accuse),
+      ),
+    ).toEqual([INVESTIGATION_NPC_IDS[1], INVESTIGATION_NPC_IDS[3], INVESTIGATION_NPC_IDS[4]]);
+    // A guard's own dialog never carries the option.
+    const guard = npc(INVESTIGATION_NPC_IDS[2], INVESTIGATION_NPCS[2].id);
+    h.world.entities.set(guard.id, guard);
+    h.controller.open(guard.id);
+    expect(h.element.querySelector('[data-accuse]')).toBeNull();
+    h.controller.open(entity.id);
+    progress.investigation.mobId = 500;
+    h.controller.refreshIfChanged();
+    expect(h.controller.isOpen).toBe(false);
   });
 });

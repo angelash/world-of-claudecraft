@@ -6,6 +6,7 @@
 
 export const ADMIN_PERMISSIONS = [
   'analytics.read',
+  'analytics.manage',
   'ops_usage.read',
   'ops.perf',
   'accounts.read',
@@ -17,8 +18,11 @@ export const ADMIN_PERMISSIONS = [
   'ipblocks.manage',
   'chatfilter.manage',
   'content.moderate',
+  'realm.motd',
   'botdetector.read',
   'botdetector.configure',
+  'guildbank.purge',
+  'moderation.clearItemName',
   'staff.manage',
 ] as const;
 

@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 import './_setup';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +11,24 @@ const apiGet = vi.fn(async (path: string) => {
       total: 0,
       truncated: false,
     };
+  }
+  // The detail body's economy-oversight panels (AccountWealthPanel /
+  // AccountFlagsPanel) fetch alongside the detail read; empty fixtures keep
+  // this suite about the rewards tab.
+  if (path.endsWith('/wealth')) {
+    return {
+      accountId: 42,
+      purseCopper: 0,
+      mailCopper: 0,
+      marketCopper: 0,
+      totalCopper: 0,
+      updatedAt: null,
+      characters: [],
+      largeMovements: [],
+    };
+  }
+  if (path.endsWith('/flags')) {
+    return { flags: [], events: [] };
   }
   const accountId = path.endsWith('/43') ? 43 : 42;
   return {
@@ -29,6 +47,7 @@ const apiGet = vi.fn(async (path: string) => {
     chatMutedUntil: null,
     chatMuteReason: '',
     chatStrikes: 0,
+    generalChatRateLimit: null,
     dailyRewardsBan: null,
     dailyRewardsIpBans: [],
     lastLoginIp: null,

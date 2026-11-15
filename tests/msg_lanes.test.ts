@@ -9,6 +9,8 @@
 // list-read guard's seam pins (server/list_read_guard.ts, the phase 06
 // maintainer ruling) live here too, beside the other chat-surface pins.
 
+import { readFileSync } from 'node:fs';
+import { join as joinPath } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the db layer so no Postgres is needed (the
@@ -32,6 +34,7 @@ vi.mock('../server/db', () => ({
   loadMarketState: vi.fn(async () => null),
   loadMailState: vi.fn(async () => null),
   insertBankLedgerRow: vi.fn(async () => {}),
+  insertBankLedgerRows: vi.fn(async () => {}),
   acquireCharacterLease: vi.fn(async () => true),
   releaseCharacterLease: vi.fn(async () => {}),
   heartbeatCharacterLeases: vi.fn(async () => {}),
@@ -49,6 +52,8 @@ import {
   MSG_LANE_COMMAND_REFILL_PER_SECOND,
   MSG_LANE_MOVEMENT_BURST,
   MSG_LANE_MOVEMENT_REFILL_PER_SECOND,
+  MSG_LANE_NAME_SCREEN_BURST,
+  MSG_LANE_NAME_SCREEN_REFILL_PER_SECOND,
 } from '../server/msg_lanes';
 import { COMMAND_NAMES } from '../src/world_api';
 
@@ -60,6 +65,74 @@ describe('lane constants hold the R5 budget literals', () => {
     expect(MSG_LANE_COMMAND_BURST).toBe(60);
     expect(MSG_LANE_CHAT_REFILL_PER_SECOND).toBe(4);
     expect(MSG_LANE_CHAT_BURST).toBe(8);
+    // The name-screen lane (the phase 13 QA hot-path review): far above a
+    // human's dialog cadence (two per second sustained, the chat lane's
+    // human-dialog sizing halved: a retype after a refusal is a second of
+    // human time), far below the command lane the obscenity matcher used to
+    // ride.
+    expect(MSG_LANE_NAME_SCREEN_REFILL_PER_SECOND).toBe(2);
+    expect(MSG_LANE_NAME_SCREEN_BURST).toBe(5);
+    expect(MSG_LANE_NAME_SCREEN_REFILL_PER_SECOND).toBeLessThan(MSG_LANE_COMMAND_REFILL_PER_SECOND);
+    // ...and below the chat lane it was sized from (half its human-dialog rate).
+    expect(MSG_LANE_NAME_SCREEN_REFILL_PER_SECOND).toBeLessThan(MSG_LANE_CHAT_REFILL_PER_SECOND);
+  });
+
+  it('the design record states the live name-screen sizing', () => {
+    // A doc figure with no code pin rots at the next constant move.
+    const doc = readFileSync(
+      joinPath(__dirname, '../docs/design/player-performance/packet-3-input-cadence.md'),
+      'utf8',
+    );
+    // Sliced to the name-screen bullet so the chat ladder's own "burst 5"
+    // wording can never satisfy these (the round-3 test audit).
+    const bullet = doc.slice(
+      doc.indexOf('name-screen lane'),
+      doc.indexOf('parsed frames of any OTHER shape'),
+    );
+    expect(bullet).toContain(`refill ${MSG_LANE_NAME_SCREEN_REFILL_PER_SECOND}/s`);
+    expect(bullet).toContain(`burst ${MSG_LANE_NAME_SCREEN_BURST}.`);
+  });
+});
+
+describe('the name-screen lane takes exactly the matcher-running commands', () => {
+  it('pet and buddy renames and guild_create always, perfect_item only with a name', () => {
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'pet_rename', name: 'Rex' })).toBe('name_screen');
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'pet_rename' })).toBe('name_screen');
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'buddy_rename', id: 7, name: 'Rex' })).toBe(
+      'name_screen',
+    );
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'buddy_rename' })).toBe('name_screen');
+    // The guild-name screen (Phase 18): paidGuildCreation screens the name
+    // through isNameOffensive before any row (server/social.ts), the same
+    // pre-sim matcher cost as pet_rename, so it rides this lane with or
+    // without a well-formed name field (the handler's own guard drops the
+    // malformed frame after the lane, exactly like perfect_item below).
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'guild_create', name: 'Ironvale' })).toBe(
+      'name_screen',
+    );
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'guild_create' })).toBe('name_screen');
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'perfect_item', slot: 'neck', name: 'Oath' })).toBe(
+      'name_screen',
+    );
+    // A non-string name still classifies here: the lane is the cheap
+    // pre-parse approximation of "this frame will run a screen", and the
+    // handler's own field drop answers the malformed case after it.
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'perfect_item', slot: 'neck', name: 7 })).toBe(
+      'name_screen',
+    );
+  });
+
+  it('an UNNAMED perfect_item attempt stays on the command lane, as does everything else', () => {
+    // Pet and buddy renames and guild_create classify
+    // here on their own (each always screens); the every-other-command sweep
+    // below excludes them by name. The other guild verbs run no screen.
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'guild_invite', name: 'Rowan' })).toBe('command');
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'guild_accept' })).toBe('command');
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'perfect_item', slot: 'neck' })).toBe('command');
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'perfect_item', bag: 0, item: 'x' })).toBe('command');
+    // A name field on a command that runs no screen changes nothing.
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'equip', name: 'Oath' })).toBe('command');
+    expect(classifyMsgLane({ t: 'cmd', cmd: 'chat', name: 'Oath' })).toBe('chat');
   });
 });
 
@@ -91,6 +164,10 @@ describe('classifyMsgLane mirrors the dispatch switch', () => {
   it('classifies every other dispatched command into the command lane', () => {
     for (const name of COMMAND_NAMES) {
       if (name === 'chat' || name === 'telemetry' || name === 'challengeResponse') continue;
+      // Pet and buddy renames and guild_create screen player text, so they own the
+      // name-screen lane (pinned by name above); every other command,
+      // perfect_item included when it carries no name, is the command lane.
+      if (name === 'pet_rename' || name === 'buddy_rename' || name === 'guild_create') continue;
       expect(classifyMsgLane({ t: 'cmd', cmd: name })).toBe('command');
     }
   });
@@ -117,6 +194,7 @@ describe('per-lane budget arithmetic', () => {
       ['movement', MSG_LANE_MOVEMENT_BURST],
       ['command', MSG_LANE_COMMAND_BURST],
       ['chat', MSG_LANE_CHAT_BURST],
+      ['name_screen', MSG_LANE_NAME_SCREEN_BURST],
     ] as const) {
       const state = createMsgLanes(1000);
       for (let i = 0; i < burst; i++) {
@@ -131,6 +209,7 @@ describe('per-lane budget arithmetic', () => {
       ['movement', MSG_LANE_MOVEMENT_BURST, MSG_LANE_MOVEMENT_REFILL_PER_SECOND],
       ['command', MSG_LANE_COMMAND_BURST, MSG_LANE_COMMAND_REFILL_PER_SECOND],
       ['chat', MSG_LANE_CHAT_BURST, MSG_LANE_CHAT_REFILL_PER_SECOND],
+      ['name_screen', MSG_LANE_NAME_SCREEN_BURST, MSG_LANE_NAME_SCREEN_REFILL_PER_SECOND],
     ] as const) {
       const state = createMsgLanes(1000);
       for (let i = 0; i < burst; i++) consumeLaneToken(state, lane, 1000);
@@ -400,17 +479,80 @@ describe('dispatchMessage lane wiring at the R5 placements', () => {
     sendChat(server, session, 'one too many');
     expect(session.msgRate.dropsThisSecond).toBe(1);
 
-    // A burst of list readouts and moderation commands rides ABOVE the lane
-    // check (the router and filter management stay unthrottled): every one is
-    // handled and none tallies a drop. Ten readouts sit exactly AT the
-    // list-read guard burst, so this arm exercises the lane bypass, not the
-    // guard; a lowered guard burst would fail here first, deliberately.
+    // A burst of list readouts and moderation commands rides ABOVE the CHAT
+    // lane check (the router and filter management never pay chat tokens;
+    // moderation pays the COMMAND lane instead, whose burst comfortably
+    // covers ten): every one is handled and none tallies a drop. Ten
+    // readouts sit exactly AT the list-read guard burst, so this arm
+    // exercises the lane bypass, not the guard; a lowered guard burst would
+    // fail here first, deliberately.
     for (let i = 0; i < 10; i++) sendChat(server, session, '/ignorelist');
     expect(ignoreSpy).toHaveBeenCalledTimes(10);
     moderationSpy.mockClear();
     for (let i = 0; i < 10; i++) sendChat(server, session, '/kick Somebody');
     expect(moderationSpy).toHaveBeenCalledTimes(10);
     expect(session.msgRate.dropsThisSecond).toBe(1);
+  });
+
+  it('a claimed moderation command pays the COMMAND lane (a drained lane drops it whole)', () => {
+    // The /unstuck audit finding's sibling: staff moderation rides the chat
+    // case (classifyMsgLane says 'chat', so the top-of-dispatch command draw
+    // never sees it) but each action is command work with an audited DB
+    // write, so it draws the command lane at the router. A drained lane
+    // drops the frame before the router runs, the drop tallies toward the
+    // flood-kick verdict, and ordinary chat is untouched (its own lane).
+    const server = new GameServer();
+    const session = join(server, { adminPermissions: ['moderation.act'] });
+    sinkDetector(server);
+    const host = server as unknown as {
+      moderation: { handleChatCommand: (session: unknown, text: string) => boolean };
+    };
+    const moderationSpy = vi.spyOn(host.moderation, 'handleChatCommand').mockReturnValue(true);
+    const lanes = session.msgLanes as unknown as {
+      commandTokens: number;
+      lastRefillSec: number;
+    };
+    lanes.commandTokens = 0;
+    lanes.lastRefillSec = Date.now() / 1000 + 3600; // no refill within the test
+    const dropsBefore = session.msgRate.dropsThisSecond;
+    sendChat(server, session, '/kick Somebody');
+    expect(moderationSpy).not.toHaveBeenCalled();
+    expect(session.msgRate.dropsThisSecond).toBe(dropsBefore + 1);
+    // Ordinary chat still flows: the chat lane was never charged for the
+    // refused moderation frame, so a plain line neither drops nor tallies.
+    sendChat(server, session, 'hello there');
+    expect(session.msgRate.dropsThisSecond).toBe(dropsBefore + 1);
+  });
+
+  it('the SPECTATING dispatch site pays the same command lane (its own drop arm)', () => {
+    // The moderation lane draw landed at BOTH dispatch sites; this is the
+    // spectating copy's own observation, so the two-site change cannot
+    // half-revert silently.
+    const server = new GameServer();
+    const session = join(server, { adminPermissions: ['moderation.act'] });
+    sinkDetector(server);
+    session.spectating = {
+      characterId: 2,
+      name: 'Target',
+    } as ClientSession['spectating'];
+    const host = server as unknown as {
+      moderation: { handleChatCommand: (session: unknown, text: string) => boolean };
+    };
+    const moderationSpy = vi.spyOn(host.moderation, 'handleChatCommand').mockReturnValue(true);
+    const lanes = session.msgLanes as unknown as {
+      commandTokens: number;
+      lastRefillSec: number;
+    };
+    // A full lane first: the spectating router runs and pays.
+    sendChat(server, session, '/kick Somebody');
+    expect(moderationSpy).toHaveBeenCalledTimes(1);
+    // A drained lane drops the frame whole and tallies.
+    lanes.commandTokens = 0;
+    lanes.lastRefillSec = Date.now() / 1000 + 3600;
+    const dropsBefore = session.msgRate.dropsThisSecond;
+    sendChat(server, session, '/kick Somebody');
+    expect(moderationSpy).toHaveBeenCalledTimes(1);
+    expect(session.msgRate.dropsThisSecond).toBe(dropsBefore + 1);
   });
 
   it('still fires the chat ladder cooldown messaging on what the lane passes', () => {

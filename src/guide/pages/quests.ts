@@ -1,15 +1,17 @@
-// Quests: how the quest loop works, the kinds of objective you meet, and a spoiler-safe
-// telling of the main-story saga as a trail north (no endings, no boss names), plus the
-// optional side-chains.
+// Quests: how the quest loop works, why an NPC may have nothing for you yet, the kinds of
+// objective you meet (including escort runs), the Card Master's Card Duel as the one NPC
+// errand that is not a quest at all, and a spoiler-safe telling of the main-story saga as a
+// trail north (no endings, no boss names), plus the optional side-chains.
 
 import { esc } from '../../ui/esc';
 import { t } from '../../ui/i18n';
 import { hrefFor } from '../routes';
 import type { GuidePage } from './types';
-import { lead, loreBeat, related } from './ui';
+import { lead, loreBeat, related, sectionPair } from './ui';
 
 const STEPS = [
   ['guide.questsPage.acceptTitle', 'guide.questsPage.acceptBody'],
+  ['guide.questsPage.availableTitle', 'guide.questsPage.availableBody'],
   ['guide.questsPage.objectivesTitle', 'guide.questsPage.objectivesBody'],
   ['guide.questsPage.turninTitle', 'guide.questsPage.turninBody'],
   ['guide.questsPage.partyTitle', 'guide.questsPage.partyBody'],
@@ -20,6 +22,7 @@ const TYPES = [
   ['guide.questsPage.typeSlayTitle', 'guide.questsPage.typeSlayBody'],
   ['guide.questsPage.typeGatherTitle', 'guide.questsPage.typeGatherBody'],
   ['guide.questsPage.typeInteractTitle', 'guide.questsPage.typeInteractBody'],
+  ['guide.questsPage.typeEscortTitle', 'guide.questsPage.typeEscortBody'],
   ['guide.questsPage.typeMusterTitle', 'guide.questsPage.typeMusterBody'],
   ['guide.questsPage.typeGroupTitle', 'guide.questsPage.typeGroupBody'],
 ] as const;
@@ -29,6 +32,14 @@ const SAGA = [
   ['guide.questsPage.sagaValeTitle', 'guide.questsPage.sagaValeBody'],
   ['guide.questsPage.sagaMarshTitle', 'guide.questsPage.sagaMarshBody'],
   ['guide.questsPage.sagaPeaksTitle', 'guide.questsPage.sagaPeaksBody'],
+] as const;
+
+// Clue Scrolls: the treasure hunts the daily world-quest board can earn (spoiler-safe:
+// no coordinates, no answers, no reward odds).
+const CLUES = [
+  ['guide.questsPage.cluesEarnTitle', 'guide.questsPage.cluesEarnBody'],
+  ['guide.questsPage.cluesHuntTitle', 'guide.questsPage.cluesHuntBody'],
+  ['guide.questsPage.cluesCasketTitle', 'guide.questsPage.cluesCasketBody'],
 ] as const;
 
 // The optional side-chains.
@@ -48,6 +59,7 @@ export const quests: GuidePage = {
     const types = TYPES.map(([title, body]) => loreBeat(title, body)).join('');
     const saga = SAGA.map(([title, body]) => loreBeat(title, body)).join('');
     const side = SIDE.map(([title, body]) => loreBeat(title, body)).join('');
+    const clues = CLUES.map(([title, body]) => loreBeat(title, body)).join('');
     return `
       <article class="guide-article">
         <h1>${esc(t('guide.questsPage.heading'))}</h1>
@@ -59,6 +71,8 @@ export const quests: GuidePage = {
           <p>${esc(t('guide.questsPage.typesBody'))}</p>
           <div class="guide-beat-grid">${types}</div>
         </section>
+
+        ${sectionPair('guide.questsPage.cardMasterTitle', 'guide.questsPage.cardMasterBody')}
 
         <section class="guide-block">
           <h2>${esc(t('guide.questsPage.storyTitle'))}</h2>
@@ -77,8 +91,15 @@ export const quests: GuidePage = {
           <div class="guide-beat-grid">${side}</div>
         </section>
 
+        <section class="guide-block">
+          <h2>${esc(t('guide.questsPage.cluesTitle'))}</h2>
+          <p>${esc(t('guide.questsPage.cluesBody'))}</p>
+          <div class="guide-beat-grid">${clues}</div>
+        </section>
+
         ${related([
           { href: hrefFor('world'), key: 'guide.nav.world' },
+          { href: hrefFor('factions'), key: 'guide.nav.factions' },
           { href: hrefFor('dungeons'), key: 'guide.nav.dungeons' },
           { href: hrefFor('how-to-play'), key: 'guide.nav.howToPlay' },
         ])}

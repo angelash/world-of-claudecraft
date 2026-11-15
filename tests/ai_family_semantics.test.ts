@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { MobFamily } from '../src/sim/types';
 import {
   compactFamilySemanticsForMob,
-  familySemanticsFor,
   FAMILY_SEMANTICS,
+  familySemanticsFor,
   MOB_FAMILIES,
 } from '../server/ai/family_semantics';
+import type { MobFamily } from '../src/sim/types';
 
 const expectedFamilies: MobFamily[] = [
   'beast',

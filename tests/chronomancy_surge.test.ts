@@ -1,10 +1,11 @@
 // Chronomancy Phase 3 mechanics (docs/prd/mage-chronomancy.md 13.4 / 14): Aether
 // Surge (Oleada de éter), the single-target Arcane spender with per-caster Arcane
 // Charges. Each cast READS the charges held (scaling damage +30%/charge and cost
-// x1.9/charge), THEN banks one more (cap 4); the charge aura expires 10s after
+// x2/charge), THEN banks one more (cap 4); the charge aura expires 10s after
 // the last cast. Aether Darts (arcane_missiles) consumes every charge on its
 // first landed missile, splitting a flat Arcane bonus across the missiles.
 import { describe, expect, it } from 'vitest';
+
 import {
   AETHER_SURGE_COST_PER_CHARGE,
   AETHER_SURGE_DMG_PER_CHARGE,
@@ -12,15 +13,18 @@ import {
   aetherSurgeDamageMult,
   aetherSurgeStacks,
   armAetherSurgeFree,
+  ECHO_ROTATION_CONVERSION_MULT,
 } from '../src/sim/combat/chronomancy';
 import { ABILITIES } from '../src/sim/content/classes';
 import { MOBS } from '../src/sim/data';
 import { createMob } from '../src/sim/entity';
 import { Sim } from '../src/sim/sim';
 import type { Aura, Entity, SimEvent } from '../src/sim/types';
+import { expectDefined } from './helpers/defined';
+import { EMPTY_TEST_WORLD } from './sim_shared';
 
 function chronoMage(level = 20) {
-  const sim = new Sim({ seed: 41, playerClass: 'mage', autoEquip: true });
+  const sim = new Sim({ seed: 1, playerClass: 'mage', autoEquip: true, world: EMPTY_TEST_WORLD });
   sim.setPlayerLevel(level);
   expect(sim.setSpec('arcane')).toBe(true);
   sim.tick();
@@ -70,6 +74,9 @@ function withCharges(n: number): Entity {
 // projectile:false spell resolves its damage and banks/consumes charges.
 function castResolve(sim: Sim, p: Entity, id: string, targetId: number, seconds = 2.3): SimEvent[] {
   p.resource = p.maxResource;
+  // Hit-cap the caster: these tests are about charge bookkeeping and scaling, not
+  // about whether the hostile spell's resist roll happens to land.
+  p.hitBonus = 1;
   (p as unknown as { gcdRemaining: number }).gcdRemaining = 0;
   sim.targetEntity(targetId);
   sim.castAbility(id);
@@ -95,8 +102,9 @@ describe('Aether Surge charge multipliers (pure)', () => {
 });
 
 describe('Aether Surge cost at each charge level (resolvedAbility choke point)', () => {
-  it('the affordability/spend cost is base x1.9^charges, rounded', () => {
+  it('pins the tuned base and resolves affordability/spend at base x2^charges', () => {
     const base = ABILITIES.arcane_surge.cost; // provisional base, derived via harness
+    expect(base).toBe(14);
     const { sim, p } = chronoMage();
     for (let k = 0; k <= 4; k++) {
       p.auras = p.auras.filter((a) => a.id !== 'arcane_surge');
@@ -125,6 +133,21 @@ describe('Aether Surge charge sequence (use previous, then +1)', () => {
   it('a higher-charge cast hits harder (the damage multiplier is real)', () => {
     const { sim, p } = chronoMage();
     const mob = addHostile(sim);
+    // Pin crit OFF for both casts. A spell crit is a flat 1.5x, big enough to
+    // swamp the +30%-per-charge scaling this test is measuring: a crit on the
+    // zero-charge cast alone made the comparison read backwards. Carried on an
+    // aura rather than a raw stat so the recalc-on-cast cannot wipe it, and
+    // rng.chance still draws its number, so the stream shape is unchanged.
+    p.auras.push({
+      id: 'test_no_crit',
+      name: 'test-pinned-no-crit',
+      kind: 'buff_spellcrit',
+      value: -1,
+      remaining: 600,
+      duration: 600,
+      sourceId: p.id,
+      school: 'arcane',
+    } as Aura);
     const dmgOf = (evs: SimEvent[]) =>
       evs
         .filter(
@@ -138,16 +161,16 @@ describe('Aether Surge charge sequence (use previous, then +1)', () => {
     p.auras.push(chargeAura(3));
     const d3 = dmgOf(castResolve(sim, p, 'arcane_surge', mob.id)); // 3 charges (x1.9)
     expect(d0).toBeGreaterThan(0);
-    expect(d3).toBeGreaterThan(d0 * 1.5); // clearly harder; ~1.9x before roll noise
+    expect(d3).toBeGreaterThan(d0 * 1.5); // clearly harder; ~1.9x with crit pinned off
   });
 });
 
-describe('Aether Surge feeds Temporal Echo (no hidden heal bonus)', () => {
-  it('the marked ally is healed for the Echo fraction of the Aether Surge damage', () => {
+describe('Aether Surge feeds the individual Temporal Echo', () => {
+  it('the marked ally receives the offensive-rotation conversion weight', () => {
     const { sim, p } = chronoMage();
     const mob = addHostile(sim);
     const allyId = sim.addPlayer('warrior', 'Marcado');
-    const ally = sim.entities.get(allyId)!;
+    const ally = expectDefined(sim.entities.get(allyId));
     ally.pos.x = p.pos.x + 4;
     ally.pos.z = p.pos.z;
     ally.maxHp = 1_000_000;
@@ -161,7 +184,10 @@ describe('Aether Surge feeds Temporal Echo (no hidden heal bonus)', () => {
     const dmg = evs
       .filter(
         (e): e is Extract<SimEvent, { type: 'damage' }> =>
-          e.type === 'damage' && e.sourceId === p.id && e.targetId === mob.id,
+          e.type === 'damage' &&
+          e.sourceId === p.id &&
+          e.targetId === mob.id &&
+          e.abilityId === 'arcane_surge',
       )
       .reduce((a, e) => a + e.amount, 0);
     const echo = evs
@@ -171,10 +197,7 @@ describe('Aether Surge feeds Temporal Echo (no hidden heal bonus)', () => {
       )
       .reduce((a, e) => a + e.amount, 0);
     expect(dmg).toBeGreaterThan(0);
-    // Echo heals 35% of the single-target Arcane damage: purely the damage, no
-    // hidden heal bonus (allow +/-1 for per-hit rounding).
-    expect(echo).toBeGreaterThan(0);
-    expect(Math.abs(echo - Math.round(dmg * 0.35))).toBeLessThanOrEqual(1);
+    expect(echo, `surge damage=${dmg}, echo heal=${echo}`).toBe(Math.round(dmg * 1.6));
   });
 });
 
@@ -190,6 +213,102 @@ describe('Aether Surge charge window expires', () => {
 });
 
 describe('Aether Darts consumes the charges', () => {
+  it('forwards its live stable id and converts every missile through the weighted Echo', () => {
+    const { sim, p } = chronoMage();
+    const mob = addHostile(sim);
+    const allyId = sim.addPlayer('warrior', 'DartsEcho');
+    const ally = expectDefined(sim.entities.get(allyId));
+    ally.pos.x = p.pos.x + 4;
+    ally.pos.z = p.pos.z;
+    ally.maxHp = 1_000_000;
+    ally.hp = 1;
+    castResolve(sim, p, 'temporal_echo', allyId, 0.2);
+    ally.maxHp = 1_000_000;
+    ally.hp = 1;
+
+    const evs = castResolve(sim, p, 'arcane_missiles', mob.id, 3.5);
+    const darts = evs.filter(
+      (e): e is Extract<SimEvent, { type: 'damage' }> =>
+        e.type === 'damage' && e.sourceId === p.id && e.abilityId === 'arcane_missiles',
+    );
+    const echo = evs
+      .filter(
+        (e): e is Extract<SimEvent, { type: 'heal2' }> =>
+          e.type === 'heal2' && e.targetId === allyId && e.ability === 'Temporal Echo',
+      )
+      .reduce((sum, e) => sum + e.amount, 0);
+    expect(ECHO_ROTATION_CONVERSION_MULT).toBe(4);
+    expect(darts).toHaveLength(3);
+    expect(
+      echo,
+      JSON.stringify({
+        darts,
+        heals: evs.filter((e) => e.type === 'heal2' && e.targetId === allyId),
+      }),
+    ).toBe(darts.reduce((sum, e) => sum + Math.round(e.amount * 1.6), 0));
+  });
+
+  it('replays the live weighted Darts channel identically from the same seed', () => {
+    const run = () => {
+      const { sim, p } = chronoMage();
+      const mob = addHostile(sim);
+      const allyId = sim.addPlayer('warrior', 'DartsReplay');
+      const ally = expectDefined(sim.entities.get(allyId));
+      ally.pos.x = p.pos.x + 4;
+      ally.pos.z = p.pos.z;
+      ally.maxHp = 1_000_000;
+      ally.hp = 1;
+      castResolve(sim, p, 'temporal_echo', allyId, 0.2);
+      ally.maxHp = 1_000_000;
+      ally.hp = 1;
+      const draws: number[] = [];
+      sim.ctx.rng.setObserver((value) => draws.push(value));
+      const events = castResolve(sim, p, 'arcane_missiles', mob.id, 3.5).filter(
+        (e) =>
+          (e.type === 'damage' && e.abilityId === 'arcane_missiles') ||
+          (e.type === 'heal2' && e.ability === 'Temporal Echo'),
+      );
+      sim.ctx.rng.setObserver(null);
+      return { draws, events, allyHp: ally.hp, mobHp: mob.hp, mana: p.resource };
+    };
+
+    expect(run()).toEqual(run());
+  });
+
+  it.each(['arcane_surge', 'arcane_missiles'])(
+    '%s keeps identical damage and mana with Echo marked',
+    (id) => {
+      const run = (marked: boolean) => {
+        const { sim, p } = chronoMage();
+        const mob = addHostile(sim);
+        const allyId = sim.addPlayer('warrior', 'Preservation');
+        const ally = expectDefined(sim.entities.get(allyId));
+        ally.pos.x = p.pos.x + 4;
+        ally.pos.z = p.pos.z;
+        ally.maxHp = 1_000_000;
+        ally.hp = 1;
+        castResolve(sim, p, 'temporal_echo', allyId, 0.2);
+        if (!marked) ally.auras = ally.auras.filter((a) => a.kind !== 'temporal_echo');
+        ally.maxHp = 1_000_000;
+        ally.hp = 1;
+        p.resource = p.maxResource;
+        const manaBefore = p.resource;
+        const evs = castResolve(sim, p, id, mob.id, id === 'arcane_missiles' ? 3.5 : 2.3);
+        return {
+          damage: evs
+            .filter(
+              (e): e is Extract<SimEvent, { type: 'damage' }> =>
+                e.type === 'damage' && e.sourceId === p.id && e.targetId === mob.id,
+            )
+            .reduce((sum, e) => sum + e.amount, 0),
+          manaSpent: manaBefore - p.resource,
+        };
+      };
+
+      expect(run(true)).toEqual(run(false));
+    },
+  );
+
   it('spends every charge on the first landed missile and hits harder for it', () => {
     // Baseline Aether Darts with no charges.
     const base = chronoMage();
@@ -258,7 +377,10 @@ describe('Aether Surge free-cast proc', () => {
     sim.targetEntity(mob.id);
     sim.castAbility('arcane_surge');
     collect(sim, 2.3);
-    expect(before - p.resource).toBe(0); // charged cost waived
+    // Cost waived: the free cast pays nothing, so mana never dropped below `before`.
+    // (A mana user now passively regenerates Spirit mana in combat, so the window can
+    // even leave resource slightly higher; what matters is the cast itself spent 0.)
+    expect(p.resource).toBeGreaterThanOrEqual(before);
     expect(aetherSurgeStacks(p)).toBe(3); // still banked a charge
 
     // Single-use: strip any fresh proc the free cast may have rolled, then the
@@ -275,7 +397,7 @@ describe('Aether Surge free-cast proc', () => {
   it('the free proc only covers Aether Surge, not other casts', () => {
     const { sim, p } = chronoMage();
     const allyId = sim.addPlayer('warrior', 'Aliado');
-    const ally = sim.entities.get(allyId)!;
+    const ally = expectDefined(sim.entities.get(allyId));
     ally.pos.x = p.pos.x + 4;
     ally.pos.z = p.pos.z;
     ally.hp = Math.floor(ally.maxHp * 0.4);

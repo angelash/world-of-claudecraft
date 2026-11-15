@@ -7,6 +7,114 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: 'Redo för äventyr',
+    desc: 'Ta examen från Prövostranden: klara varje lektion på ön, och ring sedan i färjklockan hem till Östbäck.',
+  },
+  exp_dawnhold_castle: {
+    name: 'En öppen dörr i trädgården',
+    desc: 'Besök Dawnholds slott och strosa genom dess solbelysta trädgårdssalar.',
+  },
+  exp_the_last_keep: {
+    name: 'De tysta salarna',
+    desc: 'Stig in genom Sista fästets dörrar och vandra genom dess tysta salar.',
+  },
+  pvp_bg_first_capture: {
+    name: 'Banér i hand',
+    desc: 'Erövra en flagga i Törnhålefälten.',
+  },
+  pvp_bg_first_win: {
+    name: 'Hålan håller',
+    desc: 'Vinn en drabbning i Törnhålefälten.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Hålans väktare',
+    desc: 'Vinn 25 drabbningar i Törnhålefälten.',
+    title: 'Flaggbärare',
+  },
+  pvp_bg_captures_100: {
+    name: 'Hundra banér',
+    desc: 'Erövra 100 flaggor i Törnhålefälten under din karriär.',
+  },
+  dgn_rift: {
+    name: 'Revvandrare',
+    desc: 'Rensa en reva genom att besegra dess våningsboss.',
+  },
+  dgn_rift_s_rank: {
+    name: 'Revhärskare',
+    desc: 'Rensa en reva av grad S, den svåraste graden en revportal kan skapa.',
+  },
+  pvp_honor_sergeant: {
+    name: 'Linjebrytare',
+    desc: 'Tjäna in 10 000 heder under din livstid. Att spendera den kostar dig aldrig rangen.',
+    title: 'Linjebrytare',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Fälthärjare',
+    desc: 'Tjäna in 40 000 heder under din livstid, en säsong av verkligt krig bakom dig.',
+    title: 'Fälthärjare',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Krigskrönt',
+    desc: 'Tjäna in 150 000 heder under din livstid. Sällsynt i alla riken, och så borde det vara.',
+    title: 'Krigskrönt',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Kullbrytaren',
+    desc: 'Fäll en Drakgapets kullherre bland dess ägg, genom vrålet, klyvhugget och elden.',
+  },
+  chr_maw_matriarch: {
+    name: 'Himlen tystnar',
+    desc: 'Fäll Cindraleth, Gapets matriark, i hennes kraterbo ovanför Drakgapet.',
+  },
+  chr_frostveil_gatherer: {
+    name: 'Skord pa terrasserna',
+    desc: 'Skorda en malmadra, ett tradbestand och en ortbadd i Frostveil.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Forsta isen pa tjarnen',
+    desc: 'Fanga en fisk i Frostveils vatten.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Amberfalls skord',
+    desc: 'Skorda en malmadra, ett tradbestand och en ortbadd i Amberfall.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'En fangst fran stormyren',
+    desc: 'Fanga en fisk i Amberfalls vatten.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'Den drommande skorden',
+    desc: 'Skorda en malmadra, ett tradbestand och en ortbadd i Nightbloom.',
+  },
+  chr_nightbloom_first_cast: {
+    desc: 'Fanga en fisk i Nightblooms vatten.',
+    name: 'En krusning på Månkällan',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Skord under lovtaket',
+    desc: 'Skorda en malmadra, ett tradbestand och en ortbadd i Wraithwood.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Ett kast i spegelviken',
+    desc: 'Fanga en fisk i Wraithwoods vatten.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Skord pa palmstranden',
+    desc: 'Skorda en malmadra, ett tradbestand och en ortbadd i Palmreach.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Kast i safirlagunen',
+    desc: 'Fanga en fisk i Palmreachs vatten.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'Parterrens gava',
+    desc: 'Skorda en malmadra, ett tradbestand och en ortbadd i Evergarden.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Ett kast pa kronbladsdammen',
+    desc: 'Fanga en fisk i Evergardens vatten.',
+  },
   pvp_card_duel_first_win: {
     name: 'Husregler',
     desc: 'Vinn en kortduell hos Kortmästaren.',
@@ -19,14 +127,26 @@ export const table: DeedLocaleTable = {
     name: 'Varm i kläderna',
     desc: 'Nå nivå 5; vildmarken ser redan lite mindre ut.',
   },
-  prog_double_digits: { name: 'Tvåsiffrigt', desc: 'Nå nivå 10 och lås upp dina talanger.' },
-  prog_the_long_middle: { name: 'Den långa mitten', desc: 'Nå nivå 15.' },
-  prog_level_cap: { name: 'Utsikten från toppen', desc: 'Nå nivå 20, den högsta nivån.' },
+  prog_double_digits: {
+    name: 'Tvåsiffrigt',
+    desc: 'Nå nivå 10 och lås upp dina talanger.',
+  },
+  prog_the_long_middle: {
+    name: 'Den långa mitten',
+    desc: 'Nå nivå 15.',
+  },
+  prog_level_cap: {
+    name: 'Utsikten från toppen',
+    desc: 'Nå nivå 20, den högsta nivån.',
+  },
   prog_well_rested: {
     name: 'Utvilad',
     desc: 'Slå dig till ro på ett värdshus tills du har tjänat in utvilad erfarenhet.',
   },
-  prog_talented: { name: 'En väl spenderad poäng', desc: 'Spendera din första talangpoäng.' },
+  prog_talented: {
+    name: 'En väl spenderad poäng',
+    desc: 'Spendera din första talangpoäng.',
+  },
   prog_specialized: {
     name: 'Avsiktsförklaring',
     desc: 'Välj en specialisering och lär dig dess signaturförmåga.',
@@ -39,7 +159,11 @@ export const table: DeedLocaleTable = {
     name: 'Hela sexan',
     desc: 'Välj ett alternativ i alla sex talangrader i ett och samma bygge.',
   },
-  prog_veteran: { name: 'Veteran', desc: 'Tjäna sammanlagt 250 000 erfarenhet.', title: 'Veteran' },
+  prog_veteran: {
+    name: 'Veteranen',
+    desc: 'Tjäna sammanlagt 250 000 erfarenhet.',
+    title: 'Veteranen',
+  },
   prog_champion: {
     name: 'Mästare',
     desc: 'Tjäna sammanlagt 500 000 erfarenhet.',
@@ -50,33 +174,80 @@ export const table: DeedLocaleTable = {
     desc: 'Tjäna sammanlagt 1 000 000 erfarenhet.',
     title: 'Förebild',
   },
-  prog_mythic: { name: 'Mytisk', desc: 'Tjäna sammanlagt 2 500 000 erfarenhet.', title: 'Mytisk' },
-  prog_eternal: { name: 'Evig', desc: 'Tjäna sammanlagt 5 000 000 erfarenhet.', title: 'Evig' },
+  prog_mythic: {
+    name: 'Mytisk',
+    desc: 'Tjäna sammanlagt 2 500 000 erfarenhet.',
+    title: 'Mytisk',
+  },
+  prog_eternal: {
+    name: 'Evig',
+    desc: 'Tjäna sammanlagt 5 000 000 erfarenhet.',
+    title: 'Evig',
+  },
   prog_prestige: {
     name: 'Börja om',
     desc: 'Nå den högsta nivån, fyll mätaren en gång till och gör anspråk på prestigerang 1.',
   },
-  prog_prestige_5: { name: 'Gamla vanor', desc: 'Nå prestigerang 5.' },
-  prog_prestige_10: { name: 'Evighetsmaskinen', desc: 'Nå prestigerang 10.' },
-  prog_first_harvest: { name: 'Markens frukter', desc: 'Skörda din första fyndighet.' },
-  prog_mining_100: { name: 'Malm i blodet', desc: 'Nå 100 i färdigheten Gruvdrift.' },
-  prog_logging_100: { name: 'Kärnvedshuggare', desc: 'Nå 100 i färdigheten Timmerhuggning.' },
-  prog_herbalism_100: { name: 'Ängens mästare', desc: 'Nå 100 i färdigheten Örtkunskap.' },
+  prog_prestige_5: {
+    name: 'Gamla vanor',
+    desc: 'Nå prestigerang 5.',
+  },
+  prog_prestige_10: {
+    name: 'Evighetsmaskinen',
+    desc: 'Nå prestigerang 10.',
+  },
+  prog_first_harvest: {
+    name: 'Markens frukter',
+    desc: 'Skörda din första fyndighet.',
+  },
+  prog_mining_100: {
+    name: 'Malm i blodet',
+    desc: 'Nå 100 i färdigheten Gruvdrift.',
+  },
+  prog_logging_100: {
+    name: 'Kärnvedshuggare',
+    desc: 'Nå 100 i färdigheten Timmerhuggning.',
+  },
+  prog_herbalism_100: {
+    name: 'Ängens mästare',
+    desc: 'Nå 100 i färdigheten Örtkunskap.',
+  },
   prog_master_gatherer: {
     name: 'Mästersamlare',
-    desc: 'Nå 100 i skicklighet i tre valfria av Gruvdrift, Skogsavverkning, Örtkunskap och Fiske.',
+    desc: 'Nå 100 färdighet i valfria tre insamlingsyrken.',
   },
-  prog_first_craft: { name: 'Handgjort', desc: 'Slutför ditt första lyckade hantverk.' },
+  prog_first_craft: {
+    name: 'Handgjort',
+    desc: 'Slutför ditt första lyckade hantverk.',
+  },
   prog_craft_specialist: {
     name: 'Yrkeshemligheter',
     desc: 'Nå 75 i skicklighet i ett valfritt hantverk och lås upp dess specialiseringsförmåner.',
   },
-  prog_around_the_ring: { name: 'Runt ringen', desc: 'Nå 25 i skicklighet i fem olika hantverk.' },
-  cmb_first_blood: { name: 'Första blodet', desc: 'Besegra din första fiende.' },
-  cmb_slayer: { name: 'Dräpare', desc: 'Besegra 1 000 fiender.' },
-  cmb_legion_of_one: { name: 'En mans legion', desc: 'Besegra 10 000 fiender.' },
-  cmb_heavy_hitter: { name: 'Tungviktare', desc: 'Utdela sammanlagt 500 000 skada.' },
-  cmb_critical_eye: { name: 'Kritiskt öga', desc: 'Utdela 500 kritiska träffar.' },
+  prog_around_the_ring: {
+    name: 'Runt ringen',
+    desc: 'Nå 25 i skicklighet i fem olika hantverk.',
+  },
+  cmb_first_blood: {
+    name: 'Första blodet',
+    desc: 'Besegra din första fiende.',
+  },
+  cmb_slayer: {
+    name: 'Dräpare',
+    desc: 'Besegra 1 000 fiender.',
+  },
+  cmb_legion_of_one: {
+    name: 'En mans legion',
+    desc: 'Besegra 10 000 fiender.',
+  },
+  cmb_heavy_hitter: {
+    name: 'Tungviktare',
+    desc: 'Utdela sammanlagt 500 000 skada.',
+  },
+  cmb_critical_eye: {
+    name: 'Kritiskt öga',
+    desc: 'Utdela 500 kritiska träffar.',
+  },
   cmb_giantslayer: {
     name: 'Jättedräpare',
     desc: 'Utdela dödsstöten mot en fiende som är minst fem nivåer över dig.',
@@ -175,8 +346,8 @@ export const table: DeedLocaleTable = {
     title: 'Lindormsfällaren',
   },
   dgn_sanctum_speed: {
-    name: 'Helgedomssprinten',
     desc: 'Besegra Korzul Gravlindormen inom 15 minuter efter att din grupp gjort anspråk på Gravlindormens helgedom.',
+    name: 'Kapplöpning genom helgedomen',
   },
   dgn_nythraxis_gravebreaker: {
     name: 'Böj knä för ingen',
@@ -204,12 +375,18 @@ export const table: DeedLocaleTable = {
     name: 'Bergsvana',
     desc: 'Fäll Thunzharr, den vaknande toppen, tio gånger.',
   },
-  dlv_reliquary: { name: 'Relikvarielöpare', desc: 'Rensa Det rasade relikvariet.' },
+  dlv_reliquary: {
+    name: 'Relikvarielöpare',
+    desc: 'Rensa Det rasade relikvariet.',
+  },
   dlv_reliquary_heroic: {
     name: 'Heroisk: Det rasade relikvariet',
     desc: 'Rensa Det rasade relikvariet på heroisk nivå.',
   },
-  dlv_litany: { name: 'Tysta litanian', desc: 'Rensa Den dränkta litanian.' },
+  dlv_litany: {
+    name: 'Tysta litanian',
+    desc: 'Rensa Den dränkta litanian.',
+  },
   dlv_litany_heroic: {
     name: 'Heroisk: Den dränkta litanian',
     desc: 'Rensa Den dränkta litanian på heroisk nivå.',
@@ -226,7 +403,10 @@ export const table: DeedLocaleTable = {
     name: 'Båda lyktorna tända',
     desc: 'För båda delve-följeslagarna, Akolyten Tessa och Edda Reedhand, till deras högsta rang.',
   },
-  dlv_clears_50: { name: 'Femtio famnar', desc: 'Fullborda 50 delve-vändor.' },
+  dlv_clears_50: {
+    name: 'Femtio famnar',
+    desc: 'Fullborda 50 delve-vändor.',
+  },
   dlv_solo_heroic: {
     name: 'Två är en för mycket',
     desc: 'Rensa en delve på heroisk nivå utan någon annan spelare, bara du och din följeslagare.',
@@ -241,7 +421,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'Klockorna tystnar',
-    desc: 'Besegra Diakon Varric när varje begravningsringare han väcker redan är dräpt.',
+    desc: 'Besegra Diakon Vandric när varje begravningsringare han väcker redan är dräpt.',
   },
   dlv_nhalia_bells: {
     name: 'Klockstillare',
@@ -254,7 +434,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Dalskrönikan, kapitel II',
-    desc: 'Avsluta det andra kapitlet i Sauls krönika: banditer, murlocker och gruvans ohyra nedgjorda, Suggfältet spelat och relikvariet trotsat.',
+    desc: 'Slutför andra kapitlet av Sauls krönika: besegra banditer, murlocker och gruvans ohyra, och våga dig in i Relikvariet.',
   },
   chr_vale_chapter_iii: {
     name: 'Dalens krönika',
@@ -269,10 +449,12 @@ export const table: DeedLocaleTable = {
     name: 'Något i Spegelsjön',
     desc: 'Fånga en fisk ur Östbäcksdalens vatten.',
   },
-  chr_vale_packbreaker: { name: 'Flockbrytare', desc: 'Dräp 3 skogsvargar inom 10 sekunder.' },
+  chr_vale_packbreaker: {
+    name: 'Flockbrytare',
+    desc: 'Dräp 3 skogsvargar inom 10 sekunder.',
+  },
   chr_vale_cup_debut: {
     name: 'Kopparspannens utmanare',
-    desc: 'Gå ut på planen och rör bollen i en Dalcupsmatch på Suggfältet.',
   },
   chr_vale_rares: {
     name: 'Dalens fasor',
@@ -317,12 +499,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'Törntoppens krönika',
-    desc: 'Följ bergets hela berättelse till slutet: Lindormskulten krossad, helgedomen tystad, den vaknande toppen fälld och klippornas alla namnkunniga fasor nedlagda.',
     title: 'av Törntoppen',
+    desc: 'Se hela bergets historia: Brodsvurna besegrade, helgedomen tystad, den vaknande toppen fälld och varje namngiven skräck i klipporna nedgjord.',
   },
   chr_peaks_sparring: {
     name: 'Murövningar',
-    desc: 'Tillfoga träningsdockan ovanför Högvakten sammanlagt 1 000 skada.',
+    desc: 'Tillfoga en träningsdocka sammanlagt 1 000 skada.',
   },
   chr_peaks_glimmer_cast: {
     name: 'Kallt vatten, kallare ljus',
@@ -344,15 +526,27 @@ export const table: DeedLocaleTable = {
     name: 'Hamstrare',
     desc: 'Upptäck 25 olika föremål (ett föremål räknas första gången det någonsin hamnar i din ägo).',
   },
-  col_discovery_75: { name: 'Skata', desc: 'Upptäck 75 olika föremål.' },
+  col_discovery_75: {
+    name: 'Skata',
+    desc: 'Upptäck 75 olika föremål.',
+  },
   col_discovery_150: {
     name: 'Kuriosakabinett',
     desc: 'Upptäck 150 olika föremål.',
     title: 'Intendenten',
   },
-  col_discovery_250: { name: 'Den stora katalogen', desc: 'Upptäck 250 olika föremål.' },
-  col_first_rare: { name: 'Något blått', desc: 'Skaffa ditt första föremål av sällsynt kvalitet.' },
-  col_first_epic: { name: 'Född i purpurn', desc: 'Skaffa ditt första föremål av episk kvalitet.' },
+  col_discovery_250: {
+    name: 'Den stora katalogen',
+    desc: 'Upptäck 250 olika föremål.',
+  },
+  col_first_rare: {
+    name: 'Något blått',
+    desc: 'Skaffa ditt första föremål av sällsynt kvalitet.',
+  },
+  col_first_epic: {
+    name: 'Född i purpurn',
+    desc: 'Skaffa ditt första föremål av episk kvalitet.',
+  },
   col_first_legendary: {
     name: 'Tur att den är orange',
     desc: 'Skaffa ditt första föremål av legendarisk kvalitet.',
@@ -373,7 +567,10 @@ export const table: DeedLocaleTable = {
     name: 'Barrowlords stridsutrustning',
     desc: 'Upptäck varje del av Barrowlords stridsutrustning.',
   },
-  col_set_wyrmshadow: { name: 'Nightfang-skrud', desc: 'Upptäck varje del av Nightfang-skruden.' },
+  col_set_wyrmshadow: {
+    name: 'Nightfang-skrud',
+    desc: 'Upptäck varje del av Nightfang-skruden.',
+  },
   col_set_necromancers: {
     name: 'Mournweave-klädnad',
     desc: 'Upptäck varje del av Mournweave-klädnaden.',
@@ -382,12 +579,18 @@ export const table: DeedLocaleTable = {
     name: 'Bonewrought-regalier',
     desc: 'Upptäck varje del av Bonewrought-regalierna.',
   },
-  col_set_nighttalon: { name: 'Direfang-päls', desc: 'Upptäck varje del av Direfang-pälsen.' },
+  col_set_nighttalon: {
+    name: 'Direfang-päls',
+    desc: 'Upptäck varje del av Direfang-pälsen.',
+  },
   col_set_soulflame: {
     name: 'Wraithfire-regalier',
     desc: 'Upptäck varje del av Wraithfire-regalierna.',
   },
-  col_set_stormcallers: { name: 'Galecall-skrud', desc: 'Upptäck varje del av Galecall-skruden.' },
+  col_set_stormcallers: {
+    name: 'Galecall-skrud',
+    desc: 'Upptäck varje del av Galecall-skruden.',
+  },
   col_seven_regalia: {
     name: 'Den sjufaldiga garderoben',
     desc: 'Upptäck varje del av alla sju episka rustningsfamiljer.',
@@ -403,7 +606,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Stamkund',
-    desc: 'Upptäck alla tio delar av den heroiska kvartersmästarens utbud.',
+    desc: 'Upptäck alla tio utrustningsdelar i den heroiska kvartersmästarens utbud.',
   },
   col_glimmerfin: {
     name: 'Ett skimmer av hopp',
@@ -413,7 +616,10 @@ export const table: DeedLocaleTable = {
     name: 'Full fiskekorg',
     desc: 'Upptäck alla sex vanliga fångster ur dalens, träskets och höjdernas vatten.',
   },
-  col_junk_drawer: { name: 'Skräplådan', desc: 'Upptäck 10 olika föremål av usel kvalitet.' },
+  col_junk_drawer: {
+    name: 'Skräplådan',
+    desc: 'Upptäck 10 olika föremål av usel kvalitet.',
+  },
   pvp_arena_first_match: {
     name: 'Sand i stövlarna',
     desc: 'Utkämpa en rankad match i Askans colosseum, i valfri division.',
@@ -431,89 +637,102 @@ export const table: DeedLocaleTable = {
     desc: 'Nå 1750 i rating i arenans 1 mot 1-division.',
   },
   pvp_arena_1v1_1900: {
-    name: 'Gladiator',
+    name: 'Gladiatorn',
     desc: 'Nå 1900 i rating i arenans 1 mot 1-division.',
-    title: 'Gladiator',
+    title: 'Gladiatorn',
   },
   pvp_arena_2v2_1600: {
     name: 'Två man starka',
     desc: 'Nå 1600 i rating i arenans 2 mot 2-division.',
   },
-  pvp_arena_2v2_1750: { name: 'Fruktad duo', desc: 'Nå 1750 i rating i arenans 2 mot 2-division.' },
+  pvp_arena_2v2_1750: {
+    name: 'Fruktad duo',
+    desc: 'Nå 1750 i rating i arenans 2 mot 2-division.',
+  },
   pvp_arena_2v2_1900: {
     name: 'Perfekta parhästar',
     desc: 'Nå 1900 i rating i arenans 2 mot 2-division.',
   },
-  pvp_duel_first_win: { name: 'Ta det utanför', desc: 'Vinn en duell.' },
+  pvp_duel_first_win: {
+    name: 'Ta det utanför',
+    desc: 'Vinn en duell.',
+  },
   pvp_duel_grace: {
     name: 'En läxa i ödmjukhet',
     desc: 'Förlora en duell med värdigheten någorlunda i behåll.',
   },
   pvp_vcup_first_match: {
     name: 'Stövlar på planen',
-    desc: 'Spela färdigt en hel Dalcupsmatch på Suggfältet, oavsett vinst eller förlust.',
   },
-  pvp_vcup_first_win: { name: 'Första bucklan', desc: 'Vinn en rankad Dalcupsmatch.' },
-  pvp_vcup_wins_10: { name: 'Rutinerad vildsvinsbollare', desc: 'Vinn 10 rankade Dalcupsmatcher.' },
+  pvp_vcup_first_win: {
+    name: 'Första bucklan',
+  },
+  pvp_vcup_wins_10: {
+    name: 'Rutinerad vildsvinsbollare',
+  },
   pvp_vcup_wins_25: {
     name: 'Vildsvinsbollslegend',
-    desc: 'Vinn 25 rankade Dalcupsmatcher.',
     title: 'Vildsvinsbollslegend',
   },
-  pvp_vcup_first_goal: { name: 'Målkontot öppnat', desc: 'Gör ett mål i en rankad Dalcupsmatch.' },
+  pvp_vcup_first_goal: {
+    name: 'Målkontot öppnat',
+  },
   pvp_vcup_hat_trick: {
     name: 'Hattrickhjälte',
-    desc: 'Gör tre mål i en och samma rankade Dalcupsmatch, i 3 mot 3-divisionen eller större.',
   },
   pvp_vcup_golden_goal: {
     name: 'Gyllene ögonblick',
-    desc: 'Gör det gyllene mål som avgör en rankad Dalcupsmatch.',
   },
   pvp_vcup_first_save: {
     name: 'Säkra händer',
-    desc: 'Gör en räddning som målvakt i en rankad Dalcupsmatch.',
   },
   pvp_vcup_clean_sheet: {
     name: 'Här kommer inget förbi',
-    desc: 'Vinn en rankad Dalcupsmatch som målvakt utan att släppa in ett mål.',
   },
   pvp_vcup_guild_win: {
     name: 'För baneret',
-    desc: 'Vinn en rankad Dalcupsmatch spelad under ditt gilles baner.',
   },
   pvp_fiesta_first_bout: {
     name: 'Objuden gäst',
-    desc: 'Utkämpa en hel 2 mot 2-drabbning i Fiestan, oavsett vinst eller förlust.',
   },
   pvp_fiesta_first_win: {
     name: 'Festens medelpunkt',
-    desc: 'Vinn en 2 mot 2-drabbning i Fiestan.',
   },
   pvp_fiesta_double: {
     name: 'Två flugor i en smäll',
-    desc: 'Fäll två motståndare i Fiestan inom fyra sekunder.',
   },
   pvp_fiesta_shutdown: {
     name: 'Glädjedödare',
-    desc: 'Fäll en Fiestamotståndare som är inne på en svit om tre eller fler.',
   },
   pvp_fiesta_full_build: {
     name: 'Klädd för tillfället',
-    desc: 'Vinn en Fiestadrabbning med en förstärkning låst från var och en av de tre vågorna.',
   },
   pvp_fiesta_powerups: {
     name: 'En av varje',
-    desc: 'Plocka upp var och en av ringens fyra kraftbonusar minst en gång: Fartdemon, Koloss, Månkängor och Bärsärk.',
   },
   pvp_fiesta_five_kills: {
     name: 'Bär hela festen',
-    desc: 'Fäll fem motståndare i en och samma Fiestadrabbning.',
   },
-  soc_first_party: { name: 'Bättre tillsammans', desc: 'Gå med i en grupp med en annan spelare.' },
-  soc_full_house: { name: 'Fullt hus', desc: 'Rensa ett fängelsehål med en full grupp om fem.' },
-  soc_guild_joined: { name: 'Under samma baner', desc: 'Bli medlem i ett gille.' },
-  soc_guild_founded: { name: 'Grundarens fjäderpenna', desc: 'Grunda ett eget gille.' },
-  soc_first_trade: { name: 'Ärligt byte', desc: 'Genomför en handel med en annan spelare.' },
+  soc_first_party: {
+    name: 'Bättre tillsammans',
+    desc: 'Gå med i en grupp med en annan spelare.',
+  },
+  soc_full_house: {
+    name: 'Fullt hus',
+    desc: 'Rensa ett fängelsehål med en full grupp om fem.',
+  },
+  soc_guild_joined: {
+    name: 'Under samma baner',
+    desc: 'Bli medlem i ett gille.',
+  },
+  soc_guild_founded: {
+    name: 'Grundarens fjäderpenna',
+    desc: 'Grunda ett eget gille.',
+  },
+  soc_first_trade: {
+    name: 'Ärligt byte',
+    desc: 'Genomför en handel med en annan spelare.',
+  },
   soc_first_sale: {
     name: 'Öppet för affärer',
     desc: 'Hämta ut mynten från din första försäljning på Världsmarknaden.',
@@ -531,7 +750,10 @@ export const table: DeedLocaleTable = {
     name: 'På korpens vingar',
     desc: 'Skicka ett korppostbrev med mynt eller ett paket.',
   },
-  soc_room_for_more: { name: 'Plats för mer', desc: 'Köp din första valvutbyggnad.' },
+  soc_room_for_more: {
+    name: 'Plats för mer',
+    desc: 'Köp din första valvutbyggnad.',
+  },
   soc_gilded_strongbox: {
     name: 'Förgyllda kassakistan',
     desc: 'Köp varje valvutbyggnad som kamrerarna är villiga att sälja dig.',
@@ -540,10 +762,22 @@ export const table: DeedLocaleTable = {
     name: 'Vår Fernando är oss en väldig borg',
     desc: 'Visa din aktning för kamrer Fernando, Förgyllda kassakistans väktare i Östbäck.',
   },
-  soc_pocket_money: { name: 'Fickpengar', desc: 'Plundra sammanlagt 1 guld i mynt.' },
-  soc_heavy_purse: { name: 'Tung börs', desc: 'Plundra sammanlagt 10 guld i mynt.' },
-  soc_wyrms_hoard: { name: 'En lindorms skatt', desc: 'Plundra sammanlagt 100 guld i mynt.' },
-  soc_civic_duty: { name: 'Medborgerlig plikt', desc: 'Placera din första stadsfokuspoäng.' },
+  soc_pocket_money: {
+    name: 'Fickpengar',
+    desc: 'Plundra sammanlagt 1 guld i mynt.',
+  },
+  soc_heavy_purse: {
+    name: 'Tung börs',
+    desc: 'Plundra sammanlagt 10 guld i mynt.',
+  },
+  soc_wyrms_hoard: {
+    name: 'En lindorms skatt',
+    desc: 'Plundra sammanlagt 100 guld i mynt.',
+  },
+  soc_civic_duty: {
+    name: 'Medborgerlig plikt',
+    desc: 'Placera din första stadsfokuspoäng.',
+  },
   exp_long_road_north: {
     name: 'Den långa vägen norrut',
     desc: 'Besök alla tre huvudorterna: Östbäck, Kärrbron och Högvakten.',
@@ -573,10 +807,22 @@ export const table: DeedLocaleTable = {
     name: 'Hackan mot stenen',
     desc: 'Skörda din första malmådra.',
   },
-  exp_first_timber: { name: 'Träd faller!', desc: 'Skörda ditt första timmerbestånd.' },
-  exp_first_herb: { name: 'Gröna fingrar', desc: 'Skörda ditt första örtstånd.' },
-  feat_era_cap: { name: 'Första erans barn', desc: 'Nådde nivå 20 medan Första eran ännu rådde.' },
-  feat_book_complete: { name: 'Hela boken', desc: 'Fullborda varenda bedrift i Bedrifternas bok.' },
+  exp_first_timber: {
+    name: 'Träd faller!',
+    desc: 'Skörda ditt första timmerbestånd.',
+  },
+  exp_first_herb: {
+    name: 'Gröna fingrar',
+    desc: 'Skörda ditt första örtstånd.',
+  },
+  feat_era_cap: {
+    name: 'Första erans barn',
+    desc: 'Nådde nivå 20 medan Första eran ännu rådde.',
+  },
+  feat_book_complete: {
+    name: 'Hela boken',
+    desc: 'Fullborda varenda bedrift i Bedrifternas bok.',
+  },
   feat_brightwood_relic: {
     name: 'Till minne av Ljusskogen',
     desc: 'Bevara en relik från den gamla Ljusskogen: Snårhudsjackan eller Monarkens krona.',
@@ -590,12 +836,18 @@ export const table: DeedLocaleTable = {
     name: 'Den förgyllda rundturen',
     desc: 'Gjorde affärer med alla tre filialerna av Förgyllda kassakistan.',
   },
-  hid_fall_death: { name: 'Tyngdlagen vinner alltid', desc: 'Dog av ett långt samtal med marken.' },
+  hid_fall_death: {
+    name: 'Tyngdlagen vinner alltid',
+    desc: 'Dog av ett långt samtal med marken.',
+  },
   hid_keepers_toll_twice: {
     name: 'Väktaren kräver dubbelt',
     desc: 'Dog medan Väktarens tull ännu vilade tungt på dig.',
   },
-  hid_roll_hundred: { name: 'Naturlig hundra', desc: 'Slog en perfekt 100 på ett vanligt /roll.' },
+  hid_roll_hundred: {
+    name: 'Naturlig hundra',
+    desc: 'Slog en perfekt 100 på ett vanligt /roll.',
+  },
   hid_yumi_cheer: {
     name: 'Yumis största beundrare',
     desc: 'Hejade på Yumi där hon kunde höra dig, mitt under en drabbning.',
@@ -608,7 +860,10 @@ export const table: DeedLocaleTable = {
     name: 'Inte på hennes vakt',
     desc: 'Din delveföljeslagare drog en fallen gruppkamrat på fötter igen.',
   },
-  hid_codfather: { name: 'Upptagen i familjen', desc: 'Drog upp Torskfadern ur Djupkärrsgrunden.' },
+  hid_codfather: {
+    name: 'Upptagen i familjen',
+    desc: 'Drog upp Torskfadern ur Djupkärrsgrunden.',
+  },
   prog_crown_below: {
     name: 'Kronan därnere',
     desc: 'Följ kronan från de rastlösa benfälten till kung Nythraxis grav och fullborda Gisslets slut.',
@@ -629,7 +884,10 @@ export const table: DeedLocaleTable = {
     name: 'Vad kryptan gömde',
     desc: 'Trotsa Den övergivna kryptan och återta båda nyckelstenshalvorna och den uråldriga dagboken från dess väktare.',
   },
-  chr_marsh_first_cast: { name: 'Ålar i vassen', desc: 'Fånga en fisk ur Dykärrsträskets vatten.' },
+  chr_marsh_first_cast: {
+    name: 'Ålar i vassen',
+    desc: 'Fånga en fisk ur Dykärrsträskets vatten.',
+  },
   prog_guildsworn: {
     name: 'Hantverkssvuren',
     desc: 'Inrikta dig på ett arketyppar och ta upp dess hantverk på allvar.',
@@ -744,5 +1002,530 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'Rivningsgården',
     desc: 'Bärga 50 utrustningspjäser tillbaka till råmaterial.',
+  },
+  dgn_wildheart_basin: {
+    name: 'Bassängen bits tillbaka',
+    desc: 'Besegra Zulgar, Bassängens röst, i Vildhjärtats bassäng.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Heroisk: Vildhjärtats bassäng',
+    desc: 'Besegra Zulgar, Bassängens röst, i Vildhjärtats bassäng på heroisk svårighetsgrad.',
+  },
+  chr_peaks_gatherer: {
+    name: 'Höjdernas skörd',
+    desc: 'Skörda en malmåder, en virkesdunge och en örttäppa i Törntoppshöjderna.',
+  },
+  chr_marsh_rares_ii: {
+    name: 'Frossaren, uppräknad',
+    desc: 'Dräp Grävkäft Frossaren, en fjärde namnkunnig fasa i Dykärrsträsket som lämnades utanför den första räkningen.',
+  },
+  chr_peaks_rares_ii: {
+    name: 'Fler namn ristade i klippan',
+    desc: 'Dräp Gamle Klippkäft och Skärvherre Kazzix, två namnkunniga fasor till i Törntoppshöjderna som lämnades utanför den första räkningen.',
+  },
+  chr_gleamstag: {
+    name: 'Legenden som aldrig slog först',
+    desc: 'Dräp Skimmerhjorten, en sällsynt och skygg elit som bara anfaller när den trängs in i ett hörn.',
+  },
+  chr_hollow_rares: {
+    name: 'Hjorden minns',
+    desc: 'Dräp Gamla Märgskal och Aurelhorn, Först i hjorden, Slöjhålans två vandrande sällsynta bossar.',
+  },
+  chr_willowfen_gatherer: {
+    name: 'Kärrmarkens gåvor',
+    desc: 'Skörda en malmåder, en virkesdunge och en örttäppa i Pilkärret.',
+  },
+  chr_willowfen_first_cast: {
+    name: 'Ringar på Liljemyrarna',
+    desc: 'Fånga en fisk ur Pilkärrets vatten.',
+  },
+  chr_galecrest_gatherer: {
+    name: 'Skörd på näset',
+    desc: 'Skörda en malmåder, en virkesdunge och en örttäppa i Stormkammen.',
+  },
+  chr_galecrest_first_cast: {
+    name: 'En lina i Spegeltjärnen',
+    desc: 'Fånga en fisk ur Stormkammens vatten.',
+  },
+  chr_farshore_gatherer: {
+    name: 'Öns proviant',
+    desc: 'Skörda en malmåder, en virkesdunge och en örttäppa på Fjärrkusten.',
+  },
+  chr_farshore_first_cast: {
+    name: 'Det måsarna vet',
+    desc: 'Fånga en fisk ur Fjärrkustens vatten.',
+  },
+  prog_engineering_rare: {
+    name: 'Precisionsingenjörskonst',
+    desc: 'Skapa ditt första sällsynta föremål i Ingenjörskonst.',
+  },
+  prog_alchemy_rare: {
+    name: 'En sällsynt årgång',
+    desc: 'Skapa ditt första sällsynta föremål i Alkemi.',
+  },
+  prog_cooking_rare: {
+    name: 'En rätt att minnas',
+    desc: 'Skapa ditt första sällsynta föremål i Matlagning.',
+  },
+  prog_leatherworking_rare: {
+    name: 'Fin garvning',
+    desc: 'Skapa ditt första sällsynta föremål i Läderhantverkeri.',
+  },
+  prog_tailoring_rare: {
+    name: 'Ett mästerligt stygn',
+    desc: 'Skapa ditt första sällsynta föremål i Skrädderi.',
+  },
+  prog_weaponcrafting_rare: {
+    name: 'Härdad till glans',
+    desc: 'Skapa ditt första sällsynta föremål i Vapensmide.',
+  },
+  prog_armorcrafting_rare: {
+    name: 'Pansrad till perfektion',
+    desc: 'Skapa ditt första sällsynta föremål i Rustningssmide.',
+  },
+  col_reliquary_rank_2: {
+    name: 'Bytesväktare',
+    desc: 'Nå intendentgrad 2 i Relikvariet (10 unika katalogiserade reliker).',
+    title: 'Bytesväktare',
+  },
+  col_reliquary_rank_3: {
+    name: 'Katalogisatorn',
+    desc: 'Nå intendentgrad 3 i Relikvariet (25 unika katalogiserade reliker).',
+    title: 'Katalogisatorn',
+  },
+  col_reliquary_rank_4: {
+    name: 'Ärkeintendent',
+    desc: 'Nå intendentgrad 4 i Relikvariet (50 unika katalogiserade reliker).',
+    title: 'Ärkeintendent',
+  },
+  col_reliquary_rank_5: {
+    name: 'Eviga byten',
+    desc: 'Nå intendentgrad 5 i Relikvariet (100 unika katalogiserade reliker).',
+  },
+  col_reliquary_complete: {
+    name: 'Det Stora Relikvariet',
+    desc: 'Katalogisera varje relik i Relikvariet som en rollperson kan behålla. Att katalogen växer senare tar det aldrig ifrån dig.',
+    title: 'Valvets intendent',
+  },
+  col_reliquary_conquerors: {
+    name: 'Erövrarnas hylla',
+    desc: 'Katalogisera varje relik på Relikvariets hylla Erövrare. Att katalogen växer senare tar det aldrig ifrån dig.',
+    title: 'Valvbrytare',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis illuminerad',
+    desc: 'Illuminera sidan Heroisk: Nythraxis-raid i Relikvariet.',
+    title: 'Nythraxis ljus',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr illuminerad',
+    desc: 'Illuminera sidan Thunzharr, den vaknande toppen i Relikvariet.',
+    title: 'Thunzharrs ljus',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Helgedomen illuminerad',
+    desc: 'Illuminera sidan Heroisk: Gravlindormens helgedom i Relikvariet.',
+    title: 'Helgedomens ljus',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Kassakistans utrustare',
+    desc: 'Lås upp din första väskplats i valvet.',
+  },
+  soc_four_bags_deep: {
+    name: 'Full väskkapacitet',
+    desc: 'Lås upp alla fyra väskplatser i valvet.',
+  },
+  dgn_ignivar: {
+    name: 'Härolden faller',
+    desc: 'Besegra Ignivar, den sista lågans härold, i Degeln vid Sistakällan.',
+  },
+  dgn_ignivar_heroic: {
+    name: 'Heroisk: Härolden faller',
+    desc: 'Besegra Ignivar, den sista lågans härold, på heroisk svårighetsgrad.',
+  },
+  dgn_varkhul: {
+    name: 'Smedjan kallnar',
+    desc: 'Besegra Varkhul, den sista lågans smedjefader, i den inre Smältdegeln.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Heroisk: Smedjan kallnar',
+    desc: 'Besegra Varkhul, den sista lågans smedjefader, på heroisk svårighetsgrad.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Ingen enda glöd slocknad',
+    desc: 'Besegra Varkhul, den sista lågans smedjefader, på heroisk svårighetsgrad utan att en enda raidmedlem dör.',
+    title: 'den Obrända',
+  },
+  col_set_bramblehide: {
+    name: 'Rötternas Törnehud',
+    desc: 'Upptäck varje del av Rötternas Törnehud.',
+  },
+  prog_jewelcrafting_rare: {
+    desc: 'Skapa ditt första sällsynta föremål i Juvelsmide.',
+    name: 'Polerad till briljans',
+  },
+  prog_jewelcrafting_50: {
+    desc: 'Nå 50 i skickligheten Juvelsmide.',
+    name: 'Fasett och filigran',
+  },
+  prog_grandmaster_jewelcrafting: {
+    desc: 'Nå 125 i skickligheten Juvelsmide, den absoluta toppen av hantverket.',
+    name: 'Stormästare i juvelfattning',
+    title: 'Stormästare i juvelfattning',
+  },
+  prog_inscription_rare: {
+    desc: 'Skapa ditt första sällsynta föremål i Inskription.',
+    name: 'Skrivet i finaste bläck',
+  },
+  prog_inscription_50: {
+    desc: 'Nå 50 i skickligheten Inskription.',
+    name: 'Penna och pigment',
+  },
+  prog_grandmaster_inscription: {
+    desc: 'Nå 125 i skickligheten Inskription, den absoluta toppen av hantverket.',
+    name: 'Stormästare i inskription',
+    title: 'Stormästare i inskription',
+  },
+  col_deepest_cast: {
+    desc: 'Skaffa ett Clockreel-fiskespö, det enda spö som når de djupaste fångsterna.',
+    name: 'Det djupaste kastet',
+  },
+  prog_first_planting: {
+    desc: 'Plantera din första gröda i en trädgårdsbädd.',
+    name: 'Så börjar det',
+  },
+  chr_vale_first_harvest: {
+    desc: 'Skörda din första frodiga gröda från en trädgårdsbädd i Östbäcksdalen.',
+    name: 'Dalens första frukter',
+  },
+  chr_marsh_first_harvest: {
+    desc: 'Skörda din första frodiga gröda från en trädgårdsbädd i Dykärrsträsket.',
+    name: 'Skott i torven',
+  },
+  chr_peaks_first_harvest: {
+    desc: 'Skörda din första frodiga gröda från en trädgårdsbädd i Törntoppshöjderna.',
+    name: 'En gröda bland klipporna',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Skörda din första frodiga gröda från en trädgårdsbädd i Evergarden.',
+    name: 'En odlingslott i paradiset',
+  },
+  col_golden_harvest: {
+    desc: 'Skörda en gyllene skörd och låt hela zonen få höra om den.',
+    name: 'Gyllene skörd',
+  },
+  prog_farming_100: {
+    desc: 'Nå 100 i skickligheten Jordbruk.',
+    name: 'Skördemästare',
+    title: 'Skördemästare',
+  },
+  col_farm_roster: {
+    desc: 'Skörda varje gröda som de fyra trädgårdarna odlar.',
+    name: 'Varje fåra fylld',
+  },
+  prog_field_to_feast: {
+    desc: 'Tillaga en festmåltid på höjden, från vars bord en hel raid kan äta.',
+    name: 'Från åker till fest',
+  },
+  prog_legendmaker: {
+    desc: 'Höj ett fulländat verk till en legend med en Skapandets bedrift och ge det ett eget namn.',
+    name: 'Legendmakaren',
+  },
+  hid_forgebreaker: {
+    desc: 'Smid Forgebrytaren själv och återvänd till Maelin med den färdiga hammaren.',
+    name: 'En källa i frihet',
+  },
+  exp_arcane_calligraphy: {
+    name: 'En stadig hand',
+    desc: 'Slutför Arcane Calligraphy i Eastbrook Vale.',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'Skrivet i stjärnljus',
+    desc: 'Tjäna en guldbetyg i Arcane Calligraphy.',
+    title: 'Runekallaren',
+  },
+  exp_forge_helper: {
+    name: 'En hjälpande hammare',
+    desc: 'Hjälp Smith Mara att slutföra en skjold vid Drakväxtningen.',
+  },
+  exp_last_barricade: {
+    name: 'Den sista barrikaden',
+    desc: 'Håll skogvägen mot den odöda horden.',
+  },
+  exp_borrowed_face: {
+    name: 'Ett lånat ansikte',
+    desc: 'Avslöja och besegra infiltratören bland Fenbridge väktare.',
+  },
+  exp_windrider_slalom: {
+    name: 'Vindridares slalom',
+    desc: 'Slutför mekanisk glidflygare nedstigningen genom Galecrest kanjonen.',
+  },
+  exp_duskweave_dispatches: {
+    name: 'Skymningens expres',
+    desc: 'Återvinn banditexpreserna medan du bär Valeries förtrollad mantel.',
+  },
+  exp_wisp_maze: {
+    name: 'Ett ljus i labyrinten',
+    desc: 'Återvinn de stulna pengarpungarna och fly från Evergarden labyrinten.',
+  },
+  prog_rift_watch_trusted: {
+    name: 'Betrodd av Rift Watch',
+    desc: 'Nå Betrodd status hos Rift Watch.',
+  },
+  prog_church_order_trusted: {
+    name: 'Betrodd av kyrkoorden',
+    desc: 'Nå Betrodd status hos kyrkoorden.',
+  },
+  prog_automatons_trusted: {
+    name: 'Betrodd av automaterna',
+    desc: 'Nå Betrodd status hos automaterna.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Rift Watchs mästare',
+    desc: 'Nå Mästare status hos Rift Watch.',
+    title: 'Klyftvakt',
+  },
+  prog_church_order_champion: {
+    name: 'Kyrkoorderns mästare',
+    desc: 'Nå Mästare status hos kyrkoorden.',
+    title: 'Gryningsvakt',
+  },
+  prog_automatons_champion: {
+    name: 'Automaternas mästare',
+    desc: 'Nå Mästare status hos automaterna.',
+    title: 'Smidesmästare',
+  },
+  prog_faction_champion_all: {
+    name: 'Mästare av varje banner',
+    desc: 'Nå Mästare status hos Rift Watch, kyrkoorden och automaterna.',
+  },
+  exp_clue_first_casket: {
+    name: 'Skatt funnen',
+    desc: 'Öppna en skattkista som grävts upp på slutet av en ledtrådsjakts jakt.',
+  },
+  exp_clue_ten_caskets: {
+    name: 'Skattjäger',
+    desc: 'Öppna 10 skattkistor som grävts upp på slutet av ledtrådsjakts jakter.',
+    title: 'Skattjäger',
+  },
+  exp_harbor_to_harbor: {
+    name: 'Hamn till hamn',
+    desc: 'Seglat båda färjorna fram och tillbaka: Östbäck till Månvila, och Wickharbor till Drakväxtningen.',
+  },
+  cmb_coinsack_caught: {
+    name: 'Fångad rödhänt',
+    desc: 'Fånga en Myntpåseskinmare i ett begravt lagom innan det flyr med guldet.',
+  },
+  exp_wisp_maze_hard: {
+    name: 'Klarare an skuggorna',
+    desc: 'Ta tillbaka de stulna myntpungarna och fly fran Evergarden-labyrinten pa Hard.',
+  },
+  prog_titan: {
+    name: 'Jätte',
+    desc: 'Tjäna sammanlagt 10 000 000 erfarenhet under din livstid.',
+    title: 'Jätte',
+  },
+  pvp_flag_1h: {
+    name: 'Djärv',
+    desc: 'Ha Världs-PvP på under 1 timme speltid medan du är vid liv i den öppna världen eller en PvP-match. Fristäder, PvE-instanser, död och utloggning pausar framstegen; att stänga av nollställer dem. Intjänade titlar är permanenta.',
+    title: 'Djärv',
+  },
+  pvp_flag_3h: {
+    name: 'Trotsig',
+    desc: 'Ha Världs-PvP på under 3 timmar speltid medan du är vid liv i den öppna världen eller en PvP-match. Fristäder, PvE-instanser, död och utloggning pausar framstegen; att stänga av nollställer dem. Intjänade titlar är permanenta.',
+    title: 'Trotsig',
+  },
+  pvp_flag_6h: {
+    name: 'Orädd',
+    desc: 'Ha Världs-PvP på under 6 timmar speltid medan du är vid liv i den öppna världen eller en PvP-match. Fristäder, PvE-instanser, död och utloggning pausar framstegen; att stänga av nollställer dem. Intjänade titlar är permanenta.',
+    title: 'Orädd',
+  },
+  pvp_flag_24h: {
+    name: 'Orubblig',
+    desc: 'Ha Världs-PvP på under 24 timmar speltid medan du är vid liv i den öppna världen eller en PvP-match. Fristäder, PvE-instanser, död och utloggning pausar framstegen; att stänga av nollställer dem. Intjänade titlar är permanenta.',
+    title: 'Orubblig',
+  },
+  pvp_flag_168h: {
+    name: 'Okuvlig',
+    desc: 'Ha Världs-PvP på under 7 dagar speltid medan du är vid liv i den öppna världen eller en PvP-match. Fristäder, PvE-instanser, död och utloggning pausar framstegen; att stänga av nollställer dem. Intjänade titlar är permanenta.',
+    title: 'Okuvlig',
+  },
+  dgn_morthen_candlelight: {
+    name: 'Alla ljus tända',
+    desc: 'Besegra Morthen Gravkallaren efter att ha tänt alla fyra minnesljusen igen inom 20 sekunder efter att hans oroliga skydd uppstod.',
+  },
+  dgn_ilvane_hush: {
+    name: 'Tyst nu',
+    desc: 'Besegra kantor Ilvane utan att hennes Klagosång från hålrummet någonsin träffar någon.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Ingen kvar i luften',
+    desc: 'Besegra Benkylans dam utan att hon någonsin släpper någon från sin Frusna omfamning.',
+  },
+  dgn_marrow_tidy: {
+    name: 'En prydlig kyrkogård',
+    desc: 'Besegra dödgrävaren Marrow med varje öppen grav placerad vid klockgårdens kant.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: 'Sista versen',
+    desc: 'Besegra Ysolei, den dränkta månens avatar, med Bleka körens sista kantor vid din sida.',
+    title: 'Körens vittne',
+  },
+  dgn_sledge_tusker: {
+    name: 'Kall last',
+    desc: 'Besegra slädbetaren utan att någon träffas av dess nedtrampning.',
+  },
+  dgn_korzul_thin_ice: {
+    name: 'Tunn is',
+    desc: 'Besegra Korzul Gravlindormen med minst tolv av sjöns nitton plattor obrutna.',
+  },
+  dgn_velkhar_cold: {
+    name: 'Kall tröst',
+    desc: 'Besegra stornekromantikern Velkhar utan att en enda uppväckt benvandrare reser sig en andra gång.',
+  },
+  dgn_korgath_still_bound: {
+    name: 'Låset håller',
+    desc: 'Besegra Korgath den bundne på heroisk svårighetsgrad med minst två kedjor som aldrig brutits.',
+  },
+  dgn_korgath_all_chains: {
+    name: 'Ett mildare slut',
+    desc: 'Besegra Korgath den bundne med alla fyra kedjor brutna.',
+  },
+  dgn_great_saurian: {
+    name: 'Störtad titan',
+    desc: 'Besegra storödlan och dess bärstolsförbannelsekallare inom 20 sekunder från varandra.',
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Aldrig fångad',
+    desc: 'Besegra Zulgar, bassängens röst, utan att någon blir sargad.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Ogräsbekämpning',
+    desc: 'Besegra Frossblomman utan att ett enda taggskott växer upp.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Hållna på avstånd',
+    desc: 'Besegra Bettherren bestmästaren och hans stora jaguar med Flockband aktivt i mindre än 10 sekunder sammanlagt.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Ingen bur håller oss',
+    desc: 'Besegra fängelsevakten utan att någon krossas i en järnbur.',
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Inte ett svedt hårstrå',
+    desc: 'Besegra dödsklangslindormen utan att någon bränns av dess Bålsvep.',
+  },
+  dgn_mere_hydra: {
+    name: 'Alla huvuden ned',
+    desc: 'Dräp sjöhydrans alla tre huvuden inom 10 sekunder från varandra.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: 'Högt och torrt',
+    desc: 'Besegra Ysolei, den dränkta månens avatar, utan att någon träffas av hennes Tidvattensnedslag.',
+  },
+  dgn_colossus_mirror: {
+    name: 'Krossa glaset',
+    desc: 'Besegra tidvattensglaskolossen med varje spegelbild krossad inom 15 sekunder efter att den uppstått.',
+  },
+  dgn_selthe_pitch: {
+    name: 'Varje röst i ton',
+    desc: 'Besegra körmodern Selthe med varje Kör delad av två eller fler och utan att något Solo berör någon annan.',
+  },
+  dgn_turretback: {
+    name: 'Vräkningsbesked',
+    desc: 'Besegra skeppsvrakskaptenen utan att någon träffas av Spöksalva.',
+  },
+  dgn_vael_beacon: {
+    name: 'I fyrens sken',
+    desc: 'Besegra Vael Dimbindaren utan att spränga en enda dimskugga.',
+  },
+  dgn_ossick_moored: {
+    name: 'Trygg hamn',
+    desc: 'Besegra fångvaktare Ossick utan att någon dras ned i Drunkningsgropen.',
+  },
+  dgn_olen_buttress: {
+    name: 'Håll muren',
+    desc: 'Besegra riddarbefälhavare Olen utan att hans Återstudsande bålverk någonsin träffar en andra spelare.',
+  },
+  cmb_point_taken: {
+    name: 'Poängen tagen',
+    desc: 'Släck halmförmannens lykta på uppbådets övningsgård och få plankorna att känna på slagen.',
+  },
+  cmb_balgath_ten: {
+    name: 'Högen behåller inget',
+    desc: 'Fäll den begravde förmannen tio gånger.',
+  },
+  cmb_balgath: { name: 'Förman inte mer', desc: 'Lägg den begravde förmannen i sin gravhög igen.' },
+  dgn_guild_first_contract: {
+    name: 'Uppdragsbrevet undertecknat',
+    desc: 'Slutför ett av Lykthallens veckovisa fängelsehålekontrakt.',
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Stammis vid tavlan',
+    desc: 'Slutför 10 av Lykthallens veckovisa fängelsehålekontrakt.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Kontraktsveteran',
+    desc: 'Slutför 50 av Lykthallens veckovisa fängelsehålekontrakt.',
+  },
+  feat_guild_writ_runner: {
+    name: 'Uppdragsbud',
+    desc: 'Köps hos Garrick Holt, Lykthallens kvartermästare, för 6 lyktsigill.',
+    title: 'Uppdragsbud',
+  },
+  feat_guild_hallsworn: {
+    name: 'Hallsvuren',
+    desc: 'Köps hos Garrick Holt, Lykthallens kvartermästare, för 14 lyktsigill.',
+    title: 'Hallsvuren',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Från Lykthallen',
+    desc: 'Köps hos Garrick Holt, Lykthallens kvartermästare, för 24 lyktsigill.',
+    title: 'från Lykthallen',
+  },
+  feat_gourdlight_guise: {
+    name: 'Pumplyktornas förklädnad',
+    desc: 'Äg ett Snidat pumpahuvud taget från Gamle Halmflin på hans åker bortom Vildsvinsängen under Pumplyktornas afton.',
+  },
+  feat_old_thatchgrin: {
+    name: 'Stubb och aska',
+    desc: 'Hjälp till att besegra Gamle Halmflin på hans pumpaåker bortom Vildsvinsängen under Pumplyktornas afton.',
+  },
+  feat_title_gourdlit: {
+    name: 'Den pumplyste',
+    desc: 'Läs Pumplystes brev, bytt hos Hester Pumpveke mot Pumplyktegodis under Pumplyktornas afton.',
+    title: 'den pumplyste',
+  },
+  feat_title_trickster: {
+    name: 'Busmakare',
+    desc: 'Läs Busmakarens brev, bytt hos Hester Pumpveke mot Pumplyktegodis under Pumplyktornas afton.',
+    title: 'Busmakare',
+  },
+  feat_title_hollow_grinned: {
+    name: 'Den hålflinande',
+    desc: 'Läs Hålflinets brev, bytt hos Hester Pumpveke mot Pumplyktegodis under Pumplyktornas afton.',
+    title: 'den hålflinande',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Pumpjägare',
+    desc: 'Hitta alla Hemsökta pumpor som är gömda runt om i världen under Pumplyktornas afton.',
+    title: 'den ihålige',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Varje dörrtröskel',
+    desc: 'Gå bus eller godis hos varje stadsbo som öppnar efter en knackning i Östbäck, Kärrbron och Högvakten under Pumplyktornas afton.',
+  },
+  feat_gourdlight_errands: {
+    name: 'Till Hesters tjänst',
+    desc: 'Slutför vart och ett av Hester Pumpvekes roterande ärenden under Pumplyktornas afton minst en gång.',
+  },
+  feat_gourdlight_frights: {
+    name: 'Tre skrämda städer',
+    desc: 'Under Hesters ärende Bu! ska du skrämma en stadsbo i vardera Östbäck, Kärrbron och Högvakten.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'Pumplyktor från början till slut',
+    desc: 'Gör hela Pumplyktornas afton: besegra Gamle Halmflin, hitta alla Hemsökta pumpor, slutför alla Hesters ärenden, knacka på varje dörr och skräm en stadsbo i var och en av de tre städerna.',
+    title: 'den pumpsvurne',
   },
 };

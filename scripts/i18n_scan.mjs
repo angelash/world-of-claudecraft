@@ -13,9 +13,11 @@
 //               Seeded from the two hand-maintained allow-lists that used to live
 //               in tests/localization_fixes.test.ts (scripts/i18n_blocked_seed.mjs).
 //   pending     untranslated, or stale (the recorded English source drifted from
-//               the current one). Non-empty for the game and admin scopes:
-//               a locale that omits an overlay key is pending - the
-//               resolved table English-fills it for non-release; release is gated.
+//               the current one). Non-empty for the game, admin and sim scopes:
+//               a locale that omits an overlay key, or whose sim_i18n source
+//               block omits a matcher key, is pending - the resolved table (or
+//               the sim DICT's English spread) fills it for non-release;
+//               release is gated. The server scope's tables are authored dense.
 //
 // Determinism / reproducibility (the load-bearing property): the registry is a
 // PURE function of the current source files plus the static seeds - it does NOT
@@ -50,6 +52,7 @@ import * as esbuild from 'esbuild';
 import { COPIED_ALLOW_IDS, V07_SLASH } from './i18n_blocked_seed.mjs';
 import { flatten } from './i18n_flatten.mjs';
 import { contentHash, PLACEHOLDER_RE, placeholdersOf } from './i18n_hash.mjs';
+import { RETIRED_KEY_SET, RETIRED_REASON } from './i18n_retired_keys.mjs';
 
 const root = process.cwd();
 // I18N_OUT_DIR overrides the destination DIRECTORY for both emitted files (used by
@@ -120,7 +123,7 @@ const SCOPE_RANK = { main: 0, sim: 1, server: 2, admin: 3 };
 // A human-meaningful reason per cognate (blocked rows require one). Keyed by the
 // stable part of the id so the seed stays short; falls back to a generic cognate
 // note for the long tail of accepted borrowings.
-function cognateReason(scope, locale, key) {
+function cognateReason(_scope, _locale, key) {
   if (key === 'who.statusCombat')
     return "'combat' is a real word in this locale and is identical to English.";
   if (key === 'who.statusOnline')
@@ -159,7 +162,7 @@ async function loadSources() {
   for (const lang of NON_EN) lines.push(`export { ${lang} } from '${sourceModule(lang)}';`);
   lines.push("export { localeSupplements } from './src/ui/i18n.catalog/locale_supplements';");
   lines.push("export { DICT as serverDICT } from './src/ui/server_i18n';");
-  lines.push("export { DICT as simDICT } from './src/ui/sim_i18n';");
+  lines.push("export { DICT as simDICT, simDictProvidedKeys } from './src/ui/sim_i18n';");
   lines.push("export { en as adminEn } from './src/admin/i18n.en';");
   for (const lang of NON_EN)
     lines.push(`export { ${lang} as admin_${lang} } from './src/admin/i18n.locales/${lang}';`);
@@ -189,6 +192,7 @@ async function loadSources() {
     overlays,
     serverDICT: mod.serverDICT,
     simDICT: mod.simDICT,
+    simDictProvidedKeys: mod.simDictProvidedKeys,
     adminEn: mod.adminEn,
     adminOverlays,
   };
@@ -197,7 +201,8 @@ async function loadSources() {
 const isPresent = (v) => typeof v === 'string' && v.trim().length > 0;
 
 async function main() {
-  const { en, overlays, serverDICT, simDICT, adminEn, adminOverlays } = await loadSources();
+  const { en, overlays, serverDICT, simDICT, simDictProvidedKeys, adminEn, adminOverlays } =
+    await loadSources();
   const enFlat = flatten(en); // dotted key -> English string
 
   // Per-key per-locale blocked seed: "scope:key" -> Map(locale -> reason).
@@ -229,7 +234,11 @@ async function main() {
 
   const keyEntries = [];
 
-  // main scope: en leaves. No blocked seed here (cognates live in server/admin).
+  // main scope: en leaves. The only blocked rows here are the RETIRED keys
+  // (scripts/i18n_retired_keys.mjs): a key no page renders is never a fill
+  // work item, so its unprovided locale rows carry the retired reason instead
+  // of `pending` (a provided row stays `translated`: the reviewed prose is
+  // real and kept). Cognate blocked rows still live in server/admin only.
   for (const key of Object.keys(enFlat)) {
     const enVal = enFlat[key];
     const ph = placeholdersOf(enVal);
@@ -238,7 +247,9 @@ async function main() {
     for (const lang of NON_EN) {
       locales[lang] = providedByLang[lang].has(key)
         ? { state: 'translated', srcHash: enHash, by: 'human' }
-        : { state: 'pending' };
+        : RETIRED_KEY_SET.has(key)
+          ? { state: 'blocked', reason: RETIRED_REASON }
+          : { state: 'pending' };
     }
     keyEntries.push({
       composite: `main:${key}`,
@@ -250,8 +261,23 @@ async function main() {
     });
   }
 
-  // DICT scopes: sim / server. Each is a DENSE flat Record<locale, Record<key,string>>.
-  const addDictScope = (scope, dict) => {
+  // DICT scopes: sim / server. Each is a DENSE flat Record<locale, Record<key,string>>,
+  // but the two are dense for different reasons, and the difference decides what
+  // "present" means. server_i18n's locale tables are AUTHORED dense (every locale
+  // block spells every key), so presence in the assembled DICT is presence in
+  // the source. sim_i18n's DICT is dense BY CONSTRUCTION: baseEnTable is spread
+  // under every locale before the locale's own block, so a key the block never
+  // filled still reads as present, in English. Reading the assembled sim DICT
+  // therefore marked every sim key translated in every locale and the release
+  // fill could never see a sim-scope row (Masterwrought Phase 19F, ruling
+  // qr-19-sim-scope-pending-is-unreachable). The sim scope now reads the
+  // per-locale SOURCE presence that src/ui/sim_i18n.ts exports as
+  // simDictProvidedKeys, with the same English-dialect rule the main and admin
+  // scopes apply (en_CA's base is en, so it provides every key); es_ES and
+  // fr_CA carry their OWN sim blocks (the sim DICT has no dialect inheritance),
+  // so they are read as themselves. `providedFor(lang)` returns the source set
+  // for a scope that needs it; a scope without one keeps the assembled read.
+  const addDictScope = (scope, dict, providedFor) => {
     for (const key of Object.keys(dict.en)) {
       const enVal = dict.en[key];
       const ph = placeholdersOf(enVal);
@@ -259,12 +285,14 @@ async function main() {
       const blockedForKey = blockedRows.get(`${scope}:${key}`);
       const locales = {};
       for (const lang of NON_EN) {
-        const reason = blockedForKey && blockedForKey.get(lang);
+        const reason = blockedForKey?.get(lang);
         if (reason !== undefined) {
           locales[lang] = { state: 'blocked', reason };
         } else {
-          const v = dict[lang] && dict[lang][key];
-          locales[lang] = isPresent(v)
+          const present = providedFor
+            ? DIALECT_BASE[lang] === 'en' || providedFor(lang).has(key)
+            : isPresent(dict[lang]?.[key]);
+          locales[lang] = present
             ? { state: 'translated', srcHash: enHash, by: 'human' }
             : { state: 'pending' };
         }
@@ -279,7 +307,15 @@ async function main() {
       });
     }
   };
-  addDictScope('sim', simDICT);
+  const simProvided = new Map();
+  addDictScope('sim', simDICT, (lang) => {
+    let set = simProvided.get(lang);
+    if (!set) {
+      set = simDictProvidedKeys(lang);
+      simProvided.set(lang, set);
+    }
+    return set;
+  });
   addDictScope('server', serverDICT);
 
   // admin scope: a flat en base + SPARSE flat overlays. Unlike sim/server
@@ -310,7 +346,7 @@ async function main() {
       const blockedForKey = blockedRows.get(`${scope}:${key}`);
       const locales = {};
       for (const lang of NON_EN) {
-        const reason = blockedForKey && blockedForKey.get(lang);
+        const reason = blockedForKey?.get(lang);
         if (reason !== undefined) {
           locales[lang] = { state: 'blocked', reason };
         } else {
@@ -392,7 +428,7 @@ async function main() {
     };
   }
 
-  const text = JSON.stringify(registry, null, 2) + '\n';
+  const text = `${JSON.stringify(registry, null, 2)}\n`;
   mkdirSync(OUT_DIR, { recursive: true });
   atomicWriteFileSync(OUT_PATH, text);
 
@@ -426,7 +462,7 @@ async function main() {
     counts: registry.counts,
     perLocale,
   };
-  const summaryText = JSON.stringify(summary, null, 2) + '\n';
+  const summaryText = `${JSON.stringify(summary, null, 2)}\n`;
   atomicWriteFileSync(SUMMARY_PATH, summaryText);
 
   console.log(

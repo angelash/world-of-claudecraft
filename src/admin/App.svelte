@@ -21,6 +21,8 @@
   import Overview from './pages/Overview.svelte';
   import Accounts from './pages/Accounts.svelte';
   import Characters from './pages/Characters.svelte';
+  import OnlinePlayers from './pages/OnlinePlayers.svelte';
+  import Guilds from './pages/Guilds.svelte';
   import Usage from './pages/Usage.svelte';
   import TickPerf from './pages/TickPerf.svelte';
   import Moderation from './pages/Moderation.svelte';
@@ -31,10 +33,16 @@
   import AntibotConfig from './pages/AntibotConfig.svelte';
   import SharedIps from './pages/SharedIps.svelte';
   import ChatFilter from './pages/ChatFilter.svelte';
+  import RealmBuilders from './pages/RealmBuilders.svelte';
   import BlockedIps from './pages/BlockedIps.svelte';
   import BugReports from './pages/BugReports.svelte';
+  import UnstuckReports from './pages/UnstuckReports.svelte';
+  import ItemTracking from './pages/ItemTracking.svelte';
   import IpAssociations from './pages/IpAssociations.svelte';
   import Staff from './pages/Staff.svelte';
+  import TopHolders from './pages/TopHolders.svelte';
+  import Flags from './pages/Flags.svelte';
+  import MarketMetrics from './pages/MarketMetrics.svelte';
 
   // Root of the admin SPA. Shows the login overlay until authed, then the shared
   // navigation shell and the routed page. The {#key session.locale} wrapper
@@ -44,8 +52,12 @@
   let route = $state<AdminRoute>(currentAdminRoute());
   const PAGE_COMPONENTS = {
     overview: Overview,
+    'market-metrics': MarketMetrics,
     accounts: Accounts,
     characters: Characters,
+    'online-players': OnlinePlayers,
+    'top-holders': TopHolders,
+    flags: Flags,
     usage: Usage,
     'tick-perf': TickPerf,
     moderation: Moderation,
@@ -56,10 +68,13 @@
     'antibot-config': AntibotConfig,
     'shared-ips': SharedIps,
     'chat-filter': ChatFilter,
+    'realm-builders': RealmBuilders,
     'blocked-ips': BlockedIps,
     'bug-reports': BugReports,
+    'unstuck-reports': UnstuckReports,
+    'item-tracking': ItemTracking,
     staff: Staff,
-  } satisfies Record<AdminPage, Component>;
+  } satisfies Record<Exclude<AdminPage, 'guilds'>, Component>;
   // Permission route guard (presentation only; the server re-checks every
   // call): a route the operator cannot open renders their first visible page
   // instead. The URL is left alone so a later role change makes it work again.
@@ -72,7 +87,9 @@
     return fallback === null ? null : { page: fallback };
   });
   let Page = $derived(
-    guardedRoute === null || guardedRoute.page === 'ip' ? null : PAGE_COMPONENTS[guardedRoute.page],
+    guardedRoute === null || guardedRoute.page === 'ip' || guardedRoute.page === 'guilds'
+      ? null
+      : PAGE_COMPONENTS[guardedRoute.page],
   );
 
   setAdminNavigation({
@@ -110,6 +127,10 @@
       {#if guardedRoute.page === 'ip'}
         {#key guardedRoute.ip}
           <IpAssociations ip={guardedRoute.ip} />
+        {/key}
+      {:else if guardedRoute.page === 'guilds'}
+        {#key guardedRoute.guildId ?? 'directory'}
+          <Guilds guildId={guardedRoute.guildId} />
         {/key}
       {:else if Page}
         <Page />

@@ -11,6 +11,16 @@
 // (same input gives the same output). The Hud owns the two scalars and feeds them
 // back next frame, so the core stays allocation-light (a single returned object,
 // or the shared HIDDEN constant when the bar is off).
+//
+// Dual-wielders (rogue, fury warrior, enhancement shaman) run a genuinely
+// independent OFF-HAND swing clock alongside the main-hand one (see
+// src/sim/combat/auto_attack.ts): offhandSwingTimerState() is the same fill/ready
+// math applied to that second clock, for melee weaving with two weapons. It is a
+// second, instance-parameterized use of the SwingTimerPainter family (like
+// CastBarPainter already drives both the player and target-of-target bars), not a
+// new component: computeSwingState() holds the one copy of the edge-tracking math.
+
+import { clamp01 } from './clamp';
 
 // Epsilon for detecting the swing reset edge: the timer jumping UP past the last
 // value means a fresh swing began, so the full interval is recovered.
@@ -30,6 +40,17 @@ export interface SwingPlayerInput {
 export interface SwingTargetInput {
   dead: boolean;
   kind: string; // entity kind; only 'object' (doors/crates) suppresses the bar
+}
+
+/** The player fields the off-hand bar reads. A structural subset of Entity that
+ *  both the offline Sim and the online ClientWorld mirror expose. Dual-wield
+ *  status is not a separate field: Entity.dualWielding is always exactly
+ *  `offhandWeapon !== null` (the only assignment site is entity.ts's
+ *  recalcPlayerStats), so `offhandWeapon` alone is the complete gate. */
+export interface OffhandSwingPlayerInput {
+  autoAttack: boolean;
+  offhandSwingTimer: number; // seconds remaining; counts down to 0 (= ready)
+  offhandWeapon: { speed: number } | null; // null when not dual-wielding
 }
 
 export interface SwingTimerState {
@@ -52,22 +73,31 @@ const HIDDEN: SwingTimerState = {
   nextTimer: 0,
 };
 
-export function swingTimerState(
-  player: SwingPlayerInput,
-  target: SwingTargetInput | null,
+// A live, non-object target (either bar shows only against one).
+function isLiveSwingTarget(target: SwingTargetInput | null): boolean {
+  return target !== null && !target.dead && target.kind !== 'object';
+}
+
+// The fill/ready math shared by the main-hand and off-hand bars. Recovers the
+// full interval on the reset edge (timer jumped up): the freshly reset timer IS
+// the interval, so trust it outright. The weapon's speed must not floor it
+// (main-hand: Cat Form swings a fixed 1.0s on a slow staff; either hand:
+// haste shortens any swing below its weapon speed). On first show mid-swing
+// the true interval is unknown, so max(timer, weapon speed) stays the best
+// guess until the first edge corrects it; otherwise carry the previous period
+// so the fill grows smoothly as the timer counts down.
+function computeSwingState(
+  swingTimer: number,
+  weaponSpeed: number,
   prevPeriod: number,
   prevTimer: number,
 ): SwingTimerState {
-  const liveTarget = target !== null && !target.dead && target.kind !== 'object';
-  if (!player.autoAttack || !liveTarget) return HIDDEN;
-
-  const swingTimer = player.swingTimer;
-  // Recover the full interval on the reset edge (timer jumped up) or first show;
-  // otherwise carry the previous period so the fill stays smooth as it counts down.
   const period =
-    swingTimer > prevTimer + SWING_EDGE_EPSILON || prevPeriod <= 0
-      ? Math.max(swingTimer, player.weapon.speed)
-      : prevPeriod;
+    swingTimer > prevTimer + SWING_EDGE_EPSILON
+      ? swingTimer
+      : prevPeriod <= 0
+        ? Math.max(swingTimer, weaponSpeed)
+        : prevPeriod;
   const frac = period > 0 ? clamp01(1 - swingTimer / period) : 1;
   const ready = swingTimer <= 0;
   return {
@@ -81,6 +111,50 @@ export function swingTimerState(
   };
 }
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
+export function swingTimerState(
+  player: SwingPlayerInput,
+  target: SwingTargetInput | null,
+  prevPeriod: number,
+  prevTimer: number,
+): SwingTimerState {
+  if (!player.autoAttack || !isLiveSwingTarget(target)) return HIDDEN;
+  return computeSwingState(player.swingTimer, player.weapon.speed, prevPeriod, prevTimer);
+}
+
+export function offhandSwingTimerState(
+  player: OffhandSwingPlayerInput,
+  target: SwingTargetInput | null,
+  prevPeriod: number,
+  prevTimer: number,
+): SwingTimerState {
+  if (!player.autoAttack || !player.offhandWeapon || !isLiveSwingTarget(target)) return HIDDEN;
+  return computeSwingState(
+    player.offhandSwingTimer,
+    player.offhandWeapon.speed,
+    prevPeriod,
+    prevTimer,
+  );
+}
+
+/** The target/target-of-target fields the new bars read. A structural subset
+ *  of Entity that both the offline Sim and the online ClientWorld mirror
+ *  expose (the mirror is populated by src/net/online.ts's general per-entity
+ *  decode of the server's dynamicFields `swing` key, not the self-only path). */
+export interface TargetSwingInput {
+  dead: boolean;
+  kind: string; // entity kind; only 'object' (doors/crates) suppresses the bar
+  autoAttack: boolean;
+  swingTimer: number; // seconds remaining; counts down to 0 (= ready)
+}
+
+export function targetSwingTimerState(
+  target: TargetSwingInput | null,
+  prevPeriod: number,
+  prevTimer: number,
+): SwingTimerState {
+  if (!target || target.dead || target.kind === 'object' || !target.autoAttack) return HIDDEN;
+  // No weapon-speed hint rides the wire for a non-self entity (see
+  // server/game.ts dynamicFields): pass 0, so computeSwingState's first-frame
+  // guess degrades to swingTimer itself, self-correcting at the next reset edge.
+  return computeSwingState(target.swingTimer, 0, prevPeriod, prevTimer);
 }

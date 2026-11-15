@@ -1,8 +1,6 @@
 # Professions 2.0: the shipped system
 
-The single reference for the professions system as it ships in v0.29.0. It
-consolidates the retired planning packet (the `docs/professions-2/` directory,
-which no longer exists; the branch history is the archive). Companion
+The single reference for the professions system as it ships. Companion
 documents: the original design pitch under `docs/design/professions-system/`
 (built HTML at `docs/design/professions-system.html`), the designer asset
 catalog at `docs/design/professions-asset-manifest.json`, the deed authoring
@@ -21,8 +19,12 @@ Ten crafts on a fixed ring (`CRAFT_RING`, `src/sim/content/professions.ts`):
 engineering, alchemy, cooking, leatherworking, tailoring, inscription,
 enchanting, jewelcrafting, weaponcrafting, armorcrafting. Six are deep
 (weapon/armor/tailor/leather/cooking/alchemy), engineering is the toolmaker
-line, enchanting is shallow but reachable, jewelcrafting and inscription are
-placeholders with zero recipes until a future zone expansion. An archetype is
+line, enchanting is shallow but reachable, jewelcrafting ships a 0 to 50 base
+catalog (nine trainer-taught, forge-bound recipes, `JEWELCRAFTING_RECIPES`),
+and inscription ships its own 0 to 50 base catalog (six trainer-taught,
+apothecary-bound recipes, `INSCRIPTION_RECIPES`: caster tomes plus the
+battle-elixir-family buff scrolls). Both crafts also participate in the
+intermediate and apex catalogs described below. An archetype is
 a ring-adjacent PAIR of majors (`ArchetypeState` in
 `src/sim/professions/archetype.ts`: `activeArchetype` + `pairedMajor`,
 uncapped) plus a hobby (the opposite ring craft, capped at rare); every other
@@ -54,9 +56,180 @@ five-way quality roll and `trivialAt` are retired. RNG in, determinism out:
 input randomness (node rarity, rare events, fishing, corpse components) is
 welcome; output randomness is only this proc, never a downgrade.
 
+### The Masterwrought apex tier
+The crafting endgame is the MASTERWROUGHT item family: the apex crafted
+epics whose defs carry the `masterwrought` flag, crafted from
+`APEX_ARMOR_RECIPES`, `APEX_GEAR_RECIPES` and `APEX_CONSUMABLE_RECIPES`
+(`src/sim/content/recipes.ts`). This is the crafting half of the
+masterwrought amendment whose gathering half is the masterwrought R17
+through masterwrought R22 paragraphs below; a Masterwrought ruling is always
+cited as "masterwrought R<n>" in full, because a bare R-number in this
+file means the shipped Professions 2.0 review series, a different
+namespace.
+
+**The worn cap.** A character wears at most `MASTERWROUGHT_EQUIP_CAP` (2)
+masterwrought pieces at once, and at most `MASTERWROUGHT_LEGENDARY_CAP` (1)
+of those may be legendary (`src/sim/equipment_rules.ts`;
+`masterwroughtConflictSlot` is the one conflict rule the equip path
+applies, reporting the piece cap and the legendary sub-cap apart so the
+refusal can say which one bit). A two-hander occupies one equipment slot
+and so consumes ONE of the cap slots (masterwrought R6). Wearing two copies
+of the same apex item is legal inside the cap (masterwrought R16: v1
+pieces are pure stats, so copies are harmless; revisit if v2 adds
+effects). The sub-cap reads INSTANCE-effective quality
+(`effectiveQuality`), and `isUniqueEquipped` is instance-aware for
+promotion-stamped (`perfected`) legendary-rolled copies, so the
+unique-equipped rule and the sub-cap count a promoted copy together.
+Retuning either cap is never a one-line edit: the refusal prose in
+`src/ui/sim_i18n.ts` spells the numbers out in every locale
+(`tests/masterwrought_cap.test.ts` is the reminder).
+
+**masterwrought R5, the power envelope, with masterwrought R14 and
+masterwrought R12 as its texture.** The original target was at most
+5 percent total throughput over pre-packet raid BiS for the full kit
+(two Perfected pieces plus apex enchants, flask and food). R5 closed by
+maintainer ratification, with the historical measurements accepted as
+floors that exclude apex rating deltas, not as proof of that upper bound.
+The baseline caveat and the closure-tip equipped-kit result above the
+target are retained in `docs/design/power-verification.md` (Verdict).
+Those sampled figures describe the closure revision; current deterministic
+harness inputs are pinned by `tests/r5_envelope_probe.test.ts`. Heroic raid
+and S-rift clear difficulty remain the protected asset. v1 apex items carry
+PURE STATS and bounded utility only, no new proc effects anywhere in the family
+(masterwrought R14), and an apex crafted epic disenchants to the standard
+single arcane_shard (masterwrought R12, revisit only if shard prices
+misbehave). Every authored apex piece is swept against the formula budget
+and this texture by `tests/masterwrought_budget.test.ts`.
+
+**masterwrought R1, the Perfecting stage.** The above-raid step is a
+deliberate upgrade a wearer walks on an existing apex piece
+(`src/sim/professions/perfecting.ts`): a track of `PERFECTING_RANKS` (4)
+ranks at `PERFECTING_SUCCESS_CHANCE` (0.8) per attempt, every resolved
+attempt consuming the `PERFECTING_ATTEMPT_COST` bill (one Maker's Ember,
+one Sundered Essence, one Prismglass Setting) on success and failure
+alike. Fail-forward ONLY: a failed attempt consumes the materials and
+never harms or downgrades the piece. Every resolved attempt (and every
+masterwork proc draw on the craft path) emits the server-only `craftRoll`
+audit event, which the online server persists as one `craft_roll_events`
+row (roll, chance, verdict, rank walked; `server/craft_roll_events_db.ts`,
+`docs/analytics-instrumentation.md`), so the real per-attempt success rate
+is read from the ledger rather than inferred from chat. Perfecting is self-service and
+skill-gated at `PERFECTING_SKILL_REQ` (125) in the craft that made the
+piece (masterwrought R13; `craftForApexItem` resolves which craft that
+is). Reaching the top rank stamps `perfected` and merges the bonus
+`perfectedBonusStats` derives into `rolled.stats`: the primary-stat budget
+delta between the recipe's own level and `PERFECTED_SOURCE_LEVEL`,
+composed through the shipped item_budget primitives, never a magic
+number. The cadence is derived, not felt: the rank count and chance give
+an expected five attempts, the mid-band of the 4-to-6-week
+target at one keystone per week (ruling qr-12-CADENCE). masterwrought R11 explicitly
+supersedes the "masterwork stays below the raid band" intent for this
+stage ONLY; the shipped masterwork proc math
+(`src/sim/professions/masterwork.ts`) is untouched. A resolved attempt
+draws exactly one rng roll and every deny arm draws zero (the module
+header owns the draw contract); `perfectingInfoFrom` is the one view
+builder both hosts answer through; the track, the bind, and the budget
+delta are pinned by `tests/perfecting.test.ts`.
+
+**masterwrought R2, base pieces trade, the first attempt binds.** A base
+apex piece is freely tradable; it binds the moment Perfecting begins (the
+Maker's Bond `boundTo` reuse, stamped on the FIRST attempt). The unbind
+service refuses a bound copy with a positive Perfecting rank or the
+Perfected stamp (`isPerfectingBound` and the dedicated `unbind_perfecting`
+deny reason, `src/sim/professions/commission.ts`). A failed first attempt
+that leaves rank zero still permits the ordinary quality-tier unbind fee
+through `resolveUnbind`; the rank-zero behavior was explicitly ratified
+by `qr-19-rank0-bind-shape` in the
+[archived Masterwrought state](https://github.com/levy-street/world-of-claudecraft/blob/6742cd8bf2e65b44b5f8a8887d3ec767c258eff2/docs/prd/masterwrought/state.md).
+A bound commissioned copy with a masterwork head start already has a positive
+rank and is also refused, even before its first attempt. Both cases are
+pinned by `tests/professions_commissions.test.ts`.
+
+**The masterwork head start.** The craft-time masterwork proc on an apex
+craft grants `PERFECTING_HEADSTART_RANK` on the track INSTEAD OF a
+quality bump (masterwrought R1's own words; the effect gate in
+`src/sim/professions/crafting.ts`, where `craftBonusStatsFor` returns
+null for a masterwrought def, so the two outcomes are mutually exclusive
+by construction and the single unconditional proc draw never moves). The
+archetype empowerment ceiling still gates it: a dormant, hobby,
+unattuned, or Jack craft earns no head start, exactly as it earned no
+bump. A head-started copy carries its track rank UNBOUND: the
+masterwrought R2 bind lands on the first attempt, never on the mint.
+
+**masterwrought R3, the orange promotion.** Orange is prestige and
+process only in v1. On an already-Perfected copy, the same perfect_item
+command performs a SEPARATE, DETERMINISTIC act: one Deed of Making
+(`LEGENDARY_PROMOTION_COST`; inscription's first skill-125 rung,
+`recipe_deed_of_making`, a trainer row whose output is tradable so an
+inscriptionist scribes it FOR the promoter) plus a valid player-chosen
+name promotes the copy to legendary PRESENTATION: `rolled.quality`
+becomes legendary and `payload.name` the normalized name, with the stats
+byte-identical (the masterwrought R5 bonus already landed at Perfected).
+No roll rides any arm of the promotion. The name's SHAPE is
+`normalizeLegendaryName` (`src/sim/professions/legendary_name.ts`); the
+online server screens CONTENT before the command reaches the sim
+(`resolvePerfectItemName`, `server/perfect_item_ref.ts`). No unique
+combat effects, ever, and the sub-cap above is the whole power story: at
+most one legendary-quality crafted piece equipped, inside the global cap.
+The system's capstone deed `prog_legendmaker`
+(`src/sim/content/deeds.ts`) celebrates the first legendary,
+cosmetic-only per `docs/design/deeds.md`.
+
+**Sundering, the material faucet.** Sundered Essence comes from breaking
+raid-won epics: `extractEssence` and `completeSunderCast`
+(`src/sim/professions/sundering.ts`), a cast on the enchant-family
+session seam with the disenchant-style pinned-slot re-check at
+completion. Eligibility is `isSunderable`: an epic GEAR item (the
+explicit weapon, armor, and held-offhand kind allowlist) whose
+`itemFromRaid` or `itemFromHeroicRaid` source index says a raid
+encounter drops it, on either difficulty and from any raid tier (ruled
+qr-19-crucible-gear-sundering-admission, 2026-09-02, the status quo
+ratified); rift legendaries and heroic five-man epics are outside the
+index, and patterns, sigils, and other raid-sourced non-gear are outside
+the allowlist. The yield is a deterministic `SUNDERED_ESSENCE_YIELD` per
+epic, no rng anywhere. Any character can sunder, deliberately without a
+profession gate: the research's TBC-tailoring lesson bars stacking
+access gates on the apex chain, and the cost IS the epic.
+
+**masterwrought R8, the acquisition channels, with masterwrought R4 and
+masterwrought R9 on the chase-material side.** Apex recipes are
+acquisition ['drop'], taught by tradable kind-'recipe' pattern items
+(`APEX_PATTERN_ITEMS`, `src/sim/content/apex_patterns.ts`) that bind by
+consumption at learn time (`src/sim/professions/pattern_items.ts`), split
+across the three endgame pillars: the raid loot table carries the
+`APEX_GEAR_RECIPES` patterns (the appended pattern roll group in
+`src/sim/content/dungeons.ts`), winning rift clears roll the
+`APEX_ARMOR_RECIPES` patterns (`RIFT_PATTERN_ITEM_IDS`,
+`src/sim/rift/progression.ts`), and the Heroic Quartermaster sells the
+`APEX_CONSUMABLE_RECIPES` patterns (plus the apex rod schematic)
+deterministically for Heroic Marks, the day-one catch-up valve
+(`src/sim/content/heroic_vendor.ts`; the id contract and the pillar
+split are pinned by `tests/apex_pattern_items.test.ts` and
+`tests/apex_pattern_channels.test.ts`). No pattern takes a Reliquary
+page: the recipe-pattern exclusion is permanent
+(`docs/design/reliquary.md`). The keystone is the Maker's Ember
+(masterwrought R4): soulbound, one per week per character, BANKABLE
+(missed weeks accrue through `tryGrantMakersEmber` under
+`EMBER_ACCRUAL_GRANT_CAP`, with `grantRiftClearEmbers` as the rift-side
+arm; `src/sim/professions/masterwrought_materials.ts`), earnable from
+any endgame pillar. Wyrmfall Cores tie the bills to the pillars the same
+way: eligible final-boss kills award them (`awardWyrmfallCores`) and A
+and S rank rift first clears award them once per character per day
+(`awardRiftFirstClearMaterials`; masterwrought R9 is that rift faucet's
+ruling, and the daily gate is the cap because rifts have no lockout),
+all pinned by `tests/masterwrought_materials.test.ts`. The crafted
+reagent side rides `INTERMEDIATE_RECIPES` (masterwrought R13 places the
+intermediates a skill tier below the apex recipes): the Prismglass
+Setting is jewelcrafting's intermediate (`recipe_prismglass_setting`),
+and the whole chain paces off `recipe_quickening_catalyst`'s
+`oncePerDay` gate, the system's one daily crafting gate, which is also why the
+provisioner firewall (masterwrought R17, below) names it: farm produce
+never feeds this chain, and gathering feeds it through the apex recipe
+bills instead (the supply matrix's endgame column).
+
 ### Gathering, rare events, corpse harvesting
 Gathering proficiencies (mining, logging, herbalism, plus fishing as a
-fourth row) are additive counters with enforced caps
+fourth row and farming as a fifth) are additive counters with enforced caps
 (`src/sim/content/professions.ts` `maxSkill`). A harvest is a gather cast
 (`gatherCastDurationSec`, `src/sim/professions/gathering.ts`: base 2.5 s,
 minus 0.4 s per owned tool tier above the node's, minus 0.15 s per
@@ -67,17 +240,156 @@ Gains are node-tier-relative (`gatherNodeGainMultiplier`,
 (`src/sim/professions/gather_events.ts`) are per-node-type flavors (pristine
 vein, ancient heartwood, moonlit bloom) on ONE shared cadence knob
 (`GATHER_RARE_EVENT_CHANCE`), five times yield, always signed, announced to
-the overworld zone via `emitToZonePlayers`. Corpse harvesting grants ALL
+the overworld zone via `emitToZonePlayers`. Rare-event flavor and material
+signing stay ZONE-AGNOSTIC by design (the content pass's richness audit
+considered zone-flavored rare moments and declined for now): the flavors
+are type identity, the signing is proficiency identity, and the shared
+cadence knob is what the post-launch watch tunes; zone-flavored moments
+become worth their content cost when a zone ships a signature material
+family of its own, the zone-4 design pass's call. Corpse harvesting grants ALL
 plain yields before any signed instance, specimens last, with rarity draws
-staying in the first loop in yield order (`harvestCorpse`,
-`src/sim/interaction.ts`; the draw order is pinned by the corpse suites' own
+staying in the first loop in yield order (`grantCorpseHarvest`,
+`src/sim/professions/corpse_harvest_grant.ts`; the draw order is pinned by the corpse suites' own
 draw-count cases, not by the parity goldens, which drive no corpse harvest).
+The remembered material preference resolves through the existing concentration
+bonus, which counts the families the
+harvest could not EXTRACT, not the ones the player named: a component family
+`HARVEST_COMPONENT_ITEMS` does not map is never extracted, so it is always
+forfeited breadth, costs no rng draw, and never dilutes the bonus
+(`harvestConcentrationBonus` and `yieldingFocusComponents`,
+`src/sim/professions/gathering.ts`, which own the ruling in prose). Every
+family shipped content tags maps today: `claw` and `tusk` were wired at #2905
+and `horn` and `gills` at Masterwrought Phase 11m (`horn` to `curved_tusk`,
+`gills` to `mudfin_scale`, both at the bare-hands tier and neither with a
+specimen row), and `tests/harvest_geography.test.ts` pins that no template
+carries a tag the table does not map, so the rule is exercised on retagged
+test fixtures (`tests/helpers/unmapped_family.ts`) rather than on shipped
+content. The denominator stays the corpse's advertised tag count, so
+an unmapped tag is worth a tier to whoever concentrates, which is what it has
+been since #1142; the shape guard that keeps a corpse from out-paying its own
+tag list lives in `tests/mob_component_tags.test.ts`. Consequence worth
+knowing: on a corpse that mixes mapped and unmapped families the unshifted
+bonus-0 spread is unreachable, and on one carrying a single mapped family
+every legal pick collapses to the same outcome (no shipped template is in
+either shape since Phase 11m).
 The premium arm
 gates on `MONSTER_MATERIAL_TIERS` (every wave-one family is tier 1, so the
-gate is live but never fires yet). One interact press loots AND harvests an
-eligible corpse, client-composed with no new wire command
-(`src/game/corpse_loot_availability.ts` and the interact dispatch); a claimed
-harvest mirrors online via the sparse per-entity `hcb` wire key.
+gate is live but never fires yet). Looting and harvesting are deliberately
+SEPARATE actions (Intentional Gathering PR3). F / Take Loot only ever touches
+ordinary corpse loot (`interact`/`lootCorpse`, `src/sim/interaction.ts`);
+harvesting needs a Field Kit (`field_kit`, a common tool at 20 copper,
+`src/sim/content/items.ts`, sold by ordinary general quartermasters and
+gathering/tool vendors) and an explicit Harvest command. The kit's own use,
+the Professions window, and a corpse's Change entrance all open the SAME
+shared harvest-preference picker (`HarvestPreferenceController`,
+`src/ui/hud/professions/harvest_preference_controller.ts`): the draft resets
+to the persisted choice (All by default, or one visible material) on open and
+is written back only on Apply, never on a bare pick or dismiss. Harvest itself
+starts a 1.5-second cast (`HARVEST_CAST_SECONDS`,
+`src/sim/professions/harvest_admission.ts`) admitted by `admitCorpseHarvest`,
+which checks the actor, the corpse, kit ownership, an exclusive single-use
+reservation, kill-credit priority, and the chosen preference's availability
+before any roll runs. A kill snapshots its credit group's priority for
+`HARVEST_PRIORITY_SECONDS` (10 seconds): the player who lands the kill holds
+it solo, and their party if grouped holds it with them. After that window the
+body opens to the first eligible harvester, whose reservation blocks every
+other attempt until it completes, is cancelled, or the corpse expires, and
+one completion consumes the claim. A chosen material
+absent from the corpse refuses the attempt (`material_unavailable`) without
+disturbing the saved preference. Town Focus allocation remains an independent
+bonus the picker never touches: it raises the tier and quantity of whatever a
+harvest extracts and never narrows the pick, which is why the Town Focus panel
+points at the preference picker in its own hint. A re-spec queued on the
+`time` / `timeAndPartial` tiers is persisted with the character
+(`CharacterState.pendingTownFocus`, remaining seconds, re-anchored on the
+loading Sim's clock by `src/sim/professions/town_focus_pending.ts`), so a
+logout or an instance handoff no longer drops it; re-saving the same
+allocation keeps the running clock (`setTownFocus` in
+`town_focus_commands.ts`), and both hosts expose the queue as IWorld
+`townFocusPending` (self-wire `tfpend`) so the panel shows the saved rows and
+a countdown instead of the old committed allocation. A claimed harvest
+mirrors online via the sparse per-entity `hcb` wire key.
+
+### Farming, the fifth gathering profession
+Farming shares the gathering proficiency shape and the land cap, and it is
+the one gathering row whose pacing is WALL-CLOCK rather than swing-gated: a
+player plants a bed, leaves, and harvests on a later session, which makes it
+the first GATHERING mechanic that pays out across sessions. It is not the
+game's first between-sessions mechanic at all: the `oncePerDay` craft gate,
+the Wyrmfall Core daily and the weekly keystone all predate it, and farming's
+own masterwrought R19 paragraph below leans on their existence when it
+promises no daily reset. What is new is that the WAIT is the gathering step
+rather than a cooldown on a step you already took. The growth engine and its draw
+contract live in `src/sim/professions/farming.ts`, the bed geography in
+`src/sim/content/farm_patches.ts`, and the crop catalog in
+`src/sim/content/farm_crops.ts`; `FARM_PATCHES[].tier` is the authoritative
+per-zone tier ladder and deliberately disagrees with the shipped progression
+column at one zone.
+
+Two things separate it from the node trades and both matter downstream.
+Planting is what needs the tool, so a crop of tier N needs a hoe of tier N
+and the hoe ladder gates the crop ladder rather than the harvest. And
+farming's FINE grade is a skill-scaled harvest roll rather than a tool
+comparison, so it is not a `material_grades.ts` row at all: a fine crop takes
+the same TOOL TIER as its base crop, where a fine ORE needs a tool strictly
+above its material. (Its sell price is the ordinary fine premium, double the
+base; "the same" is about the gate, not the value.) A guard that gates a fine crop
+one tier high invents a requirement the engine does not have
+(`tests/recipe_reachability.test.ts` records the distinction at its farming
+branch).
+
+The hoe ladder (`HOE_RECIPES`, `src/sim/content/recipes.ts`) is a separate
+list from `TOOL_RECIPES` for exactly that reason: `TOOL_RECIPES`' invariant
+is that every member consumes a node fine grade, and farming has none. Its
+own invariant is that every rung consumes the fine TWIN of a crop one tier
+BELOW its result plus the hoe one rung down, at the toolworks, which is the
+closed-circuit resolution the tier-4 pick recorded first. It runs from the
+vendor-priced entry rung to the apex rung, and it is the only tool ladder
+whose rungs above the first are all craft-mint, because its pricing table
+locks the copper price off every one of them.
+
+**masterwrought R17, the provisioner rule.** Farm produce feeds the
+CONSUMABLE professions, cooking and alchemy, at every rung, and never the
+gear chain, the Perfecting materials, or `recipe_quickening_catalyst`. Grain
+and vegetables are the third gathering input family beside meat and fish.
+The one carve-out is the hoe ladder itself, which consumes produce because a
+gathering tool is not gear in that rule's sense: no equip slot, no
+item-level budget contest. Enforced by `tests/provisioner_firewall.test.ts`
+and the produce sweeps in `tests/provisioning_supply_line.test.ts` and its
+apex sibling.
+
+**masterwrought R18, need the output and never the slot.** Everyone needs
+what professions make; nobody needs to have TAKEN a profession to equip,
+enter, or complete anything. Mechanically: every produce item stays
+market-listable `kind: 'junk'`, farming rows are ADDED to bills beside the
+herb and meat rows rather than substituted for them, and every TIER-4 AND
+TIER-5 crafted gathering tool has a non-crafter route through the delve Marks
+counter (`src/sim/content/delves/shop.ts`). The tier bound is not a hedge: the
+rungs below stay craft-or-trade by design, and the one tier-6 rung
+deliberately has no Marks row, an absence `tests/delve_shop.test.ts` pins by
+name. Enforced by the displacement sweep in
+`tests/provisioning_supply_line.test.ts` and the per-tier tool arms in
+`tests/delve_shop.test.ts`.
+
+**masterwrought R19, farming is a long-haul skill.** Its gain curve is
+deliberately slower than the other four because harvests are wall-clock
+gated, and it is tuned against a measured calendar-days-to-cap model built
+from real bed counts and real cycle times, never from feel. Slower never
+becomes punishment: no daily reset, no decay, and a late harvest costs only
+opportunity. The schedule and its teaching ceilings are
+`FARMING_GAIN_SCHEDULE` and `farmingHarvestGainAt`
+(`src/sim/professions/farming.ts`), whose boundary column IS the
+teaching-ceiling source and so is not tuning. Enforced by
+`tests/professions_farming.test.ts` against the calendar model in
+`tests/helpers/farming_calendar_model.ts`, and by the no-punishment sweep
+in `tests/farming_anti_chore.test.ts`.
+
+**THE RECIPROCAL LOOP**, which is the part a reader otherwise misses.
+Herbalism feeds farming through the alchemy-crafted growth tonic; farming
+feeds cooking and alchemy back. Neither displaces the other, because every
+farming row is added beside the herb rather than in place of it, which is
+what makes the fifth gathering profession additive to the economy rather
+than a competitor for the same bills.
 
 ### Fishing
 Fishing folds into the gathering proficiency shape: no separate skill id,
@@ -87,17 +399,43 @@ per cast (`FISH_BITE_DELAY_MIN_SEC` to `FISH_BITE_DELAY_MAX_SEC`, rod tiers
 above the first shave the max by `FISH_BITE_DELAY_ROD_REDUCTION_SEC`), a
 text-free personal bite SimEvent, and a server-authoritative reel window
 (`FISH_REEL_WINDOW_SEC` plus `FISH_REEL_WINDOW_ROD_BONUS_SEC` per rod tier
-above the first); reel is re-pressing the pole. A miss costs only the cast.
+above the first plus `FISH_REEL_WINDOW_RARITY_BONUS_SEC` per rarity rung
+above common); reel is re-pressing the pole. A miss costs only the cast.
+A re-press BEFORE the bite reels the line in empty and ends the session
+(the early-reel arm in `startFishing`, its own text-free `fishingEarlyReel`
+SimEvent and `woc_fishing_early_reels_total` series), except inside a short
+post-cast grace (`FISH_EARLY_REEL_GRACE_SEC`, strictly under
+`FISH_BITE_DELAY_MIN_SEC`) where it stays the plain busy denial so an
+accidental double-press cannot burn the cast. The early reel exists because
+a free pre-bite no-op made spam-pressing a guaranteed catch: one press
+always fell inside the armed window. Like a miss, it costs only the cast.
 The wire carries zero bite information (castRemaining decays uniformly), so a
 scripted client can react faster but can never learn the bite early or
 stretch the window: accepted by design, attention over reflexes. Catch
 tables are proficiency-banded (`FISHING_TABLES_BY_BAND`, bands gated by rod
 tier band+1; band 0 is byte-identical to the original shipped table). Gains
-are band-relative and fractional (`FISHING_GAIN_SCHEDULE`); junk teaches
-nothing at or past `FISHING_JUNK_GAIN_CUTOFF_PROFICIENCY`. Hidden per-cast
-state is three transient Entity fields (`fishBiteAtTick`,
-`fishReelDeadlineTick`, `gatherCastNodeId`), never wired, never persisted,
-cleared on every cast-end path.
+are band-relative and fractional (`FISHING_GAIN_SCHEDULE`), and since R19
+the WATER caps how far they teach (`fishingTeachingCeilingFor`, derived
+from the schedule's own row boundaries: tier-1 water grays at 100, tier-2
+at 150, tier-3 at the cap); junk teaches nothing at or past
+`FISHING_JUNK_GAIN_CUTOFF_PROFICIENCY` wherever the water still teaches.
+Hidden per-cast state is a set of transient Entity fields
+(`fishBiteAtTick`, `fishReelDeadlineTick`, `gatherCastNodeId`,
+`fishCastZoneId`, `gatherCastToolRarity`), never wired, never
+persisted, cleared on every cast-end path.
+
+FISHING'S STATED IDENTITY: fishing deliberately has NO fine-grade
+axis. Its specials are the zone-exclusive catch ladder itself (every
+zone's fish are strictly better eating and coin), the Glimmerfin Koi and
+the Codfather as its rare moments, the Slatefin as its zone-3 exclusive,
+and the empty-hook/got-away rhythm as its failure texture; its
+progression pacing is the rod ladder, the band tables, and the R19
+teaching ceiling. A fine-fish axis was considered in the audit and
+declined: it would duplicate what the band tables already express
+(better water, better fish) without a consumer, and the koi already
+fills the jackpot slot. Symmetry with the land trades is therefore
+CONTENT symmetry (per-zone deeds, per-zone tables, its own tool ladder),
+never mechanism-for-mechanism cloning.
 
 ### Tools and the mastery curve
 Every NODE harvest requires a matching-profession gathering tool covering
@@ -107,14 +445,183 @@ never mine, fell, or pick; `bestOwnedGatherToolTierOrNone` +
 likewise requires a fishing implement in bags: the simple pole or any
 tiered rod (`hasFishingImplement`, the startFishing gate). Bare hands
 still resolve to effective tool tier 1 ONLY on the surfaces that keep the
-old floor: corpse harvesting (`bestOwnedAnyGatherToolTier`, spans all four
-professions) and fishing's bite/reel/band synergy math. The node gate
+old floor: corpse harvesting (`bestOwnedAnyGatherToolTier`, which walks
+`GATHERING_PROFESSION_IDS`, so farming joined it with no edit and a sixth
+profession would too) and fishing's bite/reel/band synergy math. The node gate
 holds at cast START and is deliberately not re-checked at completion;
 completion re-validates exactly range, respawn, and capacity. Using a
 pick/axe/sickle from the bags starts the standard gather cast on the
 nearest matching in-range node (`useGatherToolItem`,
 `src/sim/professions/gathering.ts`), preferring a ready node, and emits
-the text-free `gatherToolNoNode` event when nothing is in reach. Skill gain follows the four-state curve
+the text-free `gatherToolNoNode` event when nothing is in reach.
+
+A better tool also yields a better MATERIAL, which is the third thing the
+tool ladder buys after access and cast speed (`material_grades.ts`). Each
+of the nine node materials has a `fine_` grade, and a harvest grants it
+instead of the plain one when the player's tool is STRICTLY above the
+material's zone tier AND the vein carries that tier. Both arms are
+load-bearing: strictness keeps the tool that merely unlocks a material from
+also improving it (and keeps the parity gather scenario on its shipped
+yields), and the vein arm keeps the deliberate lower-tier veins in Mirefen
+and Thornpeak yielding the plain material, so the base stays gatherable by
+the player who out-tooled the zone. The gate reads the MATERIAL's tier, not
+the node's, because `NODE_MATERIAL_TABLE` resolves a yield from (type, zone)
+alone: all three tiers of Thornpeak vein grant the same id, so a literal
+"one tier above the node" rule would put the tier-4 pick's reagent on the
+easiest vein in the zone. Note this is a DIFFERENT ladder from
+`MATERIAL_TIER_BY_ITEM` (`material_tier.ts`), which is a price band feeding
+the masterwork proc and where the Eastbrook yields are deliberately tier 0.
+Grade resolution is a pure bag scan placed after both rng draws, so the
+two-draw contract is untouched, and it is read at the grant rather than
+carried from the cast start.
+
+The six crafted tool recipes consume the fine grade, so the tool one rung
+down is the only route to the rung above. Two rungs are shaped differently
+and the reason is recorded at `TOOL_RECIPES`: the tier-4 pick is re-pointed
+onto the Mirefen fine ore because the Thornpeak grade would have needed the
+pick that recipe produces, and the tier-5 pick keeps its refined
+`arcanite_bar` (re-pointing off it would strand the bar and its vendor rows)
+while gaining the Thornpeak fine grade.
+
+The EASTBROOK fine grades are the ones no tool recipe names, and that is a
+consequence of the ladder's shape rather than a gap. The fine ladder has three
+tiers where the `TOOL_RECIPES` ladder has two rungs, because the tier-2 and
+tier-3 picks, axes and sickles stay vendor-priced, so "tier N takes the fine
+grade of tier N minus 2" reaches the Mirefen and Thornpeak grades and stops.
+(The hoe ladder is the land family that does NOT work that way: its rungs 2
+and 3 are crafted, which is exactly why farming has no orphaned starter
+grade.) The starter
+grades are not stranded by that: downward substitution below is what pays
+them, along with the doubled sell price, and between them those ARE the reward
+the fine axis pays. Read them as an over-tooled starter harvest paying better,
+never as a reagent looking for a recipe.
+
+**THE APEX TOOL FAMILY IS COMPLETE.** Every gathering profession now has a
+tier-5 base tool at epic rarity and the same price register: a pick, an axe
+and a sickle in `TOOL_RECIPES`, a rod in `ROD_RECIPES`, and a hoe in
+`HOE_RECIPES`. Farming was the family's one hole until the hoe ladder gained
+its apex rung.
+
+The rung a player can REACH is the thing to read off this family, because
+its skillReq column's history is not uniform even though the live numbers now
+are. The three land rows sat at engineering 150 from their authoring until
+masterwrought Phase 11o re-tiered them to 125, the reachable cap tier
+(AMENDED 2026-08-25, masterwrought qr-11o-150): 150 is above engineering's
+own cap, `tierForSkill` resolves it one tier past what the cap resolves to,
+and BOTH learning channels run the same `teachTierMet` gate
+(`src/sim/professions/training.ts` for a trainer, the `'tier'` deny arm in
+`src/sim/professions/pattern_items.ts` for a pattern), so a row authored
+there is permanently unlearnable through every shipped route. The three
+historical rows escaped only because they predate training and sit in the
+frozen `PRE_TRAINING_RECIPE_IDS`; the re-tier changed the printed tier and
+nothing else (no admission behavior, no fee, no cast band, and the
+grandfather list is untouched). The rod and hoe rows were authored after the
+training switch and always sat at the reachable top rung. The learn-cost
+split remains and this file should say so: a grandfathered row is known from
+the start and free, while the reachable trainer rows charge
+`TRAINING_FEE_BY_TIER`'s top entry once each. So the completed tier-5 family
+is uniform in what it does and not in what it costs to learn, which is
+history rather than a balance statement. **Above-cap is not a target**:
+an apex tool authored past the cap band today would be dead content that
+ships green, and `tests/professions_rod_recipes.test.ts` walks every recipe
+carrying an acquisition list against its own craft's cap, and pins the whole
+table inside the reachable band, so it cannot happen twice.
+
+What an apex tool BUYS is narrower than its rarity suggests, and the
+honest version is worth stating because a player will ask. It opens no node
+or crop tier that the tier-4 rung does not already reach, on any land
+profession: the world's deepest node tier is below it, and `FARM_CROPS` types
+its tier field `1 | 2 | 3 | 4`, so the tier-4 hoe already covers every crop
+tier the type admits. Fishing is the one
+exception, and only because its catch ladder has a band above what a tier-5
+rod opens. What the rung actually buys everywhere is the epic rarity step on
+the tool-effect economy: `startingDurabilityFor` pays
+`RARITY_DURABILITY_BONUS` more charges per rarity rung and
+`ratchetCeilingForUse` prices the refill ceiling off the same rarity, so a
+farmer running the Maker's Charm on a rare hoe was paying a strictly lower
+charge ceiling than a miner running it on an epic pick. The charm is an
+EFFECT slot and a base tool is a base tool; they are complements, which is
+why the slot never substituted for the missing rung.
+
+Every tier-5 land tool wields exactly AT its profession's cap
+(`TIER5_TOOL_WIELD_PROFICIENCY` against `maxSkill`,
+`src/sim/professions/wield_gate.ts`), which is the ladder agreeing with
+itself rather than a coincidence. It is also a knife edge in both
+directions, so `tests/recipe_reachability.test.ts` pins that no shipped tool
+demands more proficiency than its own profession can reach: a tool above its
+cap would be permanently unswingable, which the crafting reachability
+fixpoint structurally cannot see because it models a realm rather than a
+player.
+
+#### The supply matrix
+Which gathering family feeds which recipe families, and at which bands.
+Cells name the recipe FAMILY by exported symbol and the band it sits in, not
+the craft and not a count, per this file's anchor rule. (The craft is a
+property of each row inside a family rather than of the family, so naming it
+per cell would be wrong as often as right.)
+
+| family | levelling bands | endgame band |
+|---|---|---|
+| mining | `COMMON_RECIPES`, `LADDER_RECIPES` and `JEWELCRAFTING_RECIPES` across the lower bands; `COMBO_RECIPES`; then `TOOL_RECIPES`, `INTERMEDIATE_RECIPES` and `CASTER_HUB_RECIPES` at the top levelling band | `APEX_ARMOR_RECIPES` and `APEX_GEAR_RECIPES` |
+| logging | `LADDER_RECIPES` across the lower bands, then `TOOL_RECIPES` and `INTERMEDIATE_RECIPES` at the top levelling band | `APEX_GEAR_RECIPES` |
+| herbalism | `COMMON_RECIPES`, `LADDER_RECIPES` and `INSCRIPTION_RECIPES` across the lower bands, plus a `FARM_RECIPES` row; then `TOOL_RECIPES`, `INTERMEDIATE_RECIPES`, `CASTER_HUB_RECIPES` and one `APEX_CONSUMABLE_RECIPES` row at the top | `APEX_CONSUMABLE_RECIPES` and `APEX_GEAR_RECIPES` |
+| fishing | `LADDER_RECIPES` across the lower bands, then `ROD_RECIPES` and one `APEX_CONSUMABLE_RECIPES` row at the top levelling band | `APEX_CONSUMABLE_RECIPES` |
+| farming | `FARM_RECIPES` across every levelling band and `HOE_RECIPES` from the second, plus `LADDER_RECIPES` across the lower bands and `INTERMEDIATE_RECIPES` at the top | `APEX_CONSUMABLE_RECIPES` and `FARM_RECIPES` |
+| corpse harvesting | `COMMON_RECIPES` and `LADDER_RECIPES` across the lower bands; `COMBO_RECIPES`; then `INTERMEDIATE_RECIPES` and `CASTER_HUB_RECIPES` at the top | `APEX_ARMOR_RECIPES` and `APEX_CONSUMABLE_RECIPES` |
+
+One cell is worth naming because it looks like a mistake: `APEX_CONSUMABLE_RECIPES`
+appears in a LEVELLING band as well as the endgame one, because that family
+is not uniformly endgame. Its rungs run 75, 100 and 125, and the row at 75
+falls in the top levelling band.
+
+Two more readings the table is worth pausing on. **A tool ladder appears in
+its own family's LEVELLING bands and never in its endgame cell, and those are
+two different causes rather than one.** Where it DOES appear is skillReq doing
+the work: `TOOL_RECIPES` and `ROD_RECIPES` craft at 75 and above, `HOE_RECIPES`
+spans several bands, so a rung shows up wherever it sits. Where it does NOT is
+the rule: all three ladders have a rung at or above the gathering cap, and the
+coverage guard's self-feeding refusal is the only thing keeping each one out of
+its own family's endgame cell, because a gathering tool a family feeds only
+ITSELF is no evidence that the family feeds the crafts. Read the endgame column
+as the refusal's work, not as an accident of where the rungs landed. And the
+endgame column is narrower than the levelling ones by design: the apex sets are
+where the whole realm's demand concentrates, which is the shape masterwrought
+R21 exists to keep honest.
+
+**masterwrought R20, every gathering profession reaches the endgame.** No
+gathering family may be absent from recipes at the gathering cap or above,
+nor from any 25-point band below it, and this is enforced by a TEST rather
+than by intention. **masterwrought R21** is the demand half of the same
+invariant, at the scope a test can actually hold: every id a family SUPPLIES
+must have at least one consumer. The wider masterwrought R21 question, whether the world
+eats what the crafts MAKE, remains a tuning judgment rather than something
+this guard asserts. The enforceable rules live in
+`tests/gathering_supply_coverage.test.ts`, which derives every supply set
+and every band from the live content tables and asserts PRESENCE only, never
+a count: a numeric floor would turn a correctness guard into a content quota
+that passes on padding.
+
+**masterwrought R22, harvest components must be geographically reachable.**
+Every mapped corpse-harvest tag appears on at least six reachable templates in
+at least four zones spanning at least two level bands. Reachability excludes
+disabled content but admits named and quest-gated mobs; the literal floor and
+its mutation probes live in `tests/harvest_geography.test.ts`.
+
+**That test is the live authority for this table.** When the two disagree,
+the test is the truth and this table is what gets fixed.
+
+Substitution runs DOWNWARD only: a fine grade satisfies a requirement for
+its base, the base never satisfies a requirement for the fine grade. That
+asymmetry is what keeps the fine grade a real gate on the tool recipes, and
+the downward half is not a courtesy: the fine grade REPLACES the plain
+yield and Eastbrook is all tier-1 veins, so without it a player carrying any
+tier-2 tool could no longer gather `copper_ore`, `ironbark_log` or
+`silverleaf_herb` at all, taking two shipped repeatable work orders and
+every tier-1 recipe fed by those three with it. The base grade is spent
+first. One pure planner serves both the craft capacity simulation and the
+real consumption, since those must make the identical decision twice.
+
+Skill gain follows the four-state curve
 (`tierProgressMultiplier`, `src/sim/professions/wheel.ts`: 1 / 0.5 / 0.25 / 0
 by tiers below capability, every tier included, no free floor), with
 deterministic fractional gains and never a skill-up roll. Caps are enforced
@@ -123,8 +630,20 @@ functions); at cap, actions still work, only gain stops. A one-time mastery
 reset ran at the curve's deploy behind the persisted `masteryResetApplied`
 flag (`src/sim/professions/mastery_reset.ts`); `normalizeArchetypeState` is
 the single load-time reader of PRE-reset skill values and must keep running
-before `applyMasteryReset`. Tool effects/charges/recharge stay PARKED as
-dormant pure modules in `tools.ts`: do not wire, do not delete.
+before `applyMasteryReset`. Tool effects are LIVE end to end: the
+acquisition craft mints the two charm items through the game's first
+enchanting recipes (`content/recipes.ts` TOOL_EFFECT_RECIPES,
+trainer-taught at the toolworks), the slot command consumes a charm
+through the one mint authority (`resolveSlotToolEffect`, whose consumed
+copy's signer becomes the slot's `craftedBy`), the harvest bonuses spend a
+charge only when they changed the granted outcome (R42, settled at the
+command boundary), and the recharge command prices the arcane material of
+the recharge-time best tool's rarity rung at a count scaled to the charges
+restored (R39) while refilling to that tool's re-derived maximum (R30).
+The slot policy (R9, `slotToolEffectRefused`) still refuses the parked
+respawn-speed effect and all fishing slots until each has real behavior,
+and the craftable set derives from that policy (no Springback charm
+exists).
 
 Character XP from crafting is LEARNING XP: the level-banded curve
 (`craftActionXp`, `src/sim/professions/profession_xp.ts`) scaled at the
@@ -157,32 +676,51 @@ achievable input, specialized plus self-signed, enforced in
 `tests/recipe_economy.test.ts`.
 
 ### Provenance and instance stacking
-Two slots merge only when itemId matches AND the instance payload is
-byte-equal (`canStackInstancePayloads`,
-`src/sim/item_instance_merge.ts`); a charges-bearing payload never merges;
-any NEW payload field automatically prevents cross-field merges. Provenance
-copy resolves by item KIND: gathered signers read "Gathered by {name}",
-crafted read "Crafted by {name}". Instanced slots carry a bag-grid marker.
-A signed grant needs same-signer stack room OR a genuinely free slot (the
-merge-aware `canGrantItemInstance` gate; a signed instance merges only into
-a byte-equal same-signer stack, never a plain one); with neither, the grant
-falls back to the unsigned fungible top-up (the signature truncates, the
-yield does not; pinned in `tests/gather_node_harvest.test.ts` and the corpse
-suites). That room is measured against the WHOLE grant rather than one copy,
-because a corpse signed component carries its rolled quantity: room for one
-unit of three refuses outright instead of spilling the remainder past
-capacity. A gathering node differs on purpose and lands a partial fit, since
-it has no reserved plain fallback to catch the rest. Mail attachments expire after
-`MAIL_ATTACHMENT_EXPIRY_SECONDS` with exactly one return-to-sender cycle
-(system and work-order mail exempt). A character rename re-keys market and
-mail but sweeps only the renamed character's own blob for instance signers
-(`rekeyInstanceSigner`); foreign-held signed copies keep the stale name (a
-flagged maintainer surface).
+Ordinary instance stacking remains strict: two slots merge only when `itemId`
+matches and the instance payload is byte-equal
+(`canStackInstancePayloads`, `src/sim/item_instance_merge.ts`). A
+charges-bearing payload never merges, and any new payload field automatically
+prevents a cross-field merge. `craftedRecipeId` must also match. Instanced
+slots carry a bag-grid marker.
+
+Materials add canonical per-unit composition without making that composition
+part of the remaining payload identity. `normalizeMaterialStack` projects a
+legacy payload signer into a source descriptor and removes it from the payload;
+it never invents a gatherer for stock that did not record one. New material
+units carry descriptors whose gatherer and premium signer are independent:
+the gatherer includes its stable namespace/id and historic display-name
+snapshot, while the optional signer alone grants the legacy signature benefits.
+Two material stacks are compatible when `itemId`, `craftedRecipeId`, and
+the remaining instance payload match and neither is manually separated.
+Their gatherers, signers, source counts, total counts, and bag cells do not
+block a merge. `mergeMaterialCompositions` preserves and coalesces only exact
+whole descriptors, so no collector or signer is erased.
+
+The hover tooltip shows at most five descriptor rows, followed by exact hidden
+source and unit totals. The Sources dialog shows the full uncapped composition.
+Manual separation is an owner's container grouping preference rather than item
+identity: it survives save/load and inventory sorting, and explicit Combine
+clears it. A transfer strips it from the departing units so the destination can
+pack them normally.
+
+An ordinary material signature rides the units' source descriptor. It never
+truncates separately because a compatible stack contains another gatherer or
+signer: whenever the material units land, the signature lands with them.
+Capacity still limits which units can land. A corpse family's distinct pristine
+specimen remains a different item and still needs its own compatible room; if
+it cannot fit, the ordinary component survives and the specimen is lost.
+
+Mail attachments expire after `MAIL_ATTACHMENT_EXPIRY_SECONDS` with exactly
+one return-to-sender cycle (system and work-order mail exempt). A character
+rename re-keys market and mail but sweeps only the renamed character's own blob
+for legacy instance signers (`rekeyInstanceSigner`). Foreign-held signed
+copies and material gatherer snapshots retain the historic name.
 
 ### Enchanting, disenchant, salvage
 Enchanting is ungated by design (the no-admission-gate ruling is LOCKED:
 never propose an admission gate; depth arrives with the post-level-20 zone
-expansion alongside jewelcrafting and inscription). Disenchant yields the
+expansion, alongside inscription and jewelcrafting's own apex tiers, since
+both base catalogs already ship). Disenchant yields the
 universal ladder (`DISENCHANT_MATERIAL_BY_QUALITY`: Chime Dust / Essence /
 Shard) at every quality, plus a type-keyed secondary at rare+
 (`typedSecondaryFor`, `src/sim/professions/disenchant_reagents.ts`; the five
@@ -202,10 +740,43 @@ agi 25, sta 24 for +240 HP, int 24, spi 12, armor 35, roughly 13 to 21
 percent of the recomputed level-20 BiS budget per axis), the
 Greater-beats-base-by-3 step, and runed strict betweenness are all pinned in
 `tests/enchants_magnitude_invariants.test.ts`. Salvage rides the same seam,
-confirm machinery, and shared throttle as disenchant; it grants no craft
-skill (maintainer-accepted). Crafting, disenchant, enchant-apply, and
-salvage share ONE action window (`CRAFT_THROTTLE_MAX_PER_WINDOW` per
-`CRAFT_THROTTLE_WINDOW_SECONDS`).
+confirm machinery as disenchant; it grants no craft skill
+(maintainer-accepted). Crafting, disenchant, enchant-apply, salvage, and
+tool-effect recharge are cast-paced (recipe-band craft durations; fixed
+1.5 s for enchant-family and recharge). Economy brakes are cast time,
+materials, the gold sink, stations, and skill ceilings, not a shared
+action quota. Rate ruling, stated for the record: the retired quota
+allowed 10 actions per minute across the family; cast pacing allows one
+player roughly 15 to 40 per minute depending on band, and that faster
+ceiling is ACCEPTED because every craft still pays materials and the
+copper fee, and the enchant-family faucets stay bounded by the items a
+player actually holds.
+
+Replacing an existing enchant, including with itself (#2415): a copy already
+carrying an enchant is never silently overwritten, but any existing enchant on
+it, the identical one included, can be replaced after an explicit confirmation
+naming the old enchant and the new one (`confirmReplace`,
+`resolveApplyEnchant`/`resolveApplyEnchantWorn` in
+`src/sim/professions/enchanting.ts`; the bagged and worn menu confirms in
+`src/ui/bag_item_action_menu.ts`). Declining, or never reaching the confirm,
+spends nothing. Accepting always consumes the full reagent cost and grants
+the same Enchanting skill progress as any other apply; a same-enchant accept
+nets to byte-identical stats rather than stacking the bonus a second time,
+and the swap is surgical (signer, masterwork stats, `boundTo`/`bindOnTrade`,
+and Perfecting rank/provenance all carry through untouched). Pinned in
+`tests/professions_enchanting.test.ts` (the #2415 describe block) and the
+confirm-copy tests in `tests/bag_item_action_menu_paint.test.ts` and
+`tests/enchant_apply_view.test.ts`.
+
+Craft cast band rationale (the ladder in `src/sim/content/professions.ts`,
+`CRAFT_CAST_DURATION_*`): skill bands rather than a flat cast so field
+recipes stay snappy while ladder-top and combo recipes read as deliberate
+work; the floor and ceiling clamp every band into the UX range where a
+cast bar is legible but never tedious. Locked starting numbers from the
+implementation plan; retune with evidence (market volume, session
+telemetry), not feel. The enchant family and tool recharge take the flat
+floor-length cast because their pacing brake is the consumed item or
+charge, not the recipe ladder.
 
 ### Commissions and the Maker's Bond
 Opt-in at craft time, equipment only (weapon, armor, held_offhand). The
@@ -220,11 +791,33 @@ so a piece re-binds on its next trade. The master unbind service
 above): no quality unbinds free, ever (the fee is the wash guard and the
 sink), monotonic in quality. Vendor sell denies bound copies (the
 sell-then-buyback wash is closed; mixed stacks sell the unbound copies and
-report "Kept N bound copies."). Mail, market, vendor, and bank refusal of
-bound copies is today EMERGENT from fungible-only escrow;
-`tests/professions_bind_on_trade_surfaces.test.ts` is the wall, and any
-future instanced market/mail carriage MUST re-enforce the `boundTo` lock
-explicitly. The commission ORDER workflow stays wave 2 (#1298).
+report "Kept N bound copies."). Mail and market carry instanced copies
+(#1165) and re-enforce the lock EXPLICITLY: the shared
+`isTransferLockedInstance` (`src/sim/item_instance_transfer.ts`) refuses
+`boundTo`-bound and armed (`bindOnTrade`) copies on both pipes. Vendor and
+bank refusal of bound copies stays emergent from fungible-only escrow;
+`tests/professions_bind_on_trade_surfaces.test.ts` remains the wall.
+
+The commission ORDER workflow (#1298) is a first slice on top of the
+primitive above: `src/sim/professions/commission_order.ts` owns an
+in-memory (not persisted across a restart, the trade/duel precedent) order
+board a requester opens (`open` scope admits any crafter, `crafter` scope
+names one by character name, resolved the whisper way) with NO escrow (a
+later extension needs order-time material escrow, still unbuilt); a crafter
+`accept`s, crafts the recipe with the existing commission opt-in exactly as
+before, then `deliver`s the still-unbound commissioned copy face to face
+(the same bind-on-first-trade stamp trade.ts's `grantOffer` applies, in
+range like a trade), which is what makes the recipient the ORDER's
+recipient rather than whoever happens to receive the first trade. The
+requester can `cancel` only before acceptance. A retention sweep
+(`updateCommissionOrders`) expires a stale open order after 24 sim-hours
+and prunes a terminal one after a short retain window. Client UI: a header
+button in the crafting window opens the order board window
+(`src/ui/hud/professions/commission_order_view.ts` +
+`src/ui/hud/professions/commission_order_window.ts`).
+Deliberately out of scope for this slice: guild/friends-scoped orders (the
+sim has no offline notion of either, both being account/server-only),
+cross-restart persistence, and recipient-tied required-material escrow.
 
 ### Stations, masters, training
 Stations are master NPCs. Six station types (forge, kitchens, loom,
@@ -234,6 +827,23 @@ by `tests/professions_station_placement.test.ts`). Field recipes
 (`FIELD_RECIPES`, the common set in `src/sim/content/recipes.ts`) craft
 anywhere; every ladder recipe is trainer-taught AND station-bound. The
 mobile-crafting-station specialization perk bypasses the station gate.
+
+THE CRAFTING-ANCHOR RECORD:
+engineering's all-Eastbrook placement, the one toolworks station with
+Tinker Gizzel as its only trainer, is the DELIBERATE hub design, not a
+gap. The craft's outward pull rides its reagent side (the tier-3-plus
+tool recipes consume later-zone counters' exclusives and the prior tools
+themselves), while leatherworking and alchemy carry the station-side
+zone anchors (Fenbridge, Highwatch). Giving a later zone a toolworks
+stake was considered in the pass-1 audit and declined: it would dilute
+the toolmaker's-monopoly identity the guide sells without adding a pull
+the reagents do not already provide. Two riders, stated so the record is
+honest about its edges: the mobile-crafting-station perk above means a
+specialized crafter can work ANY ladder recipe in the field, so the
+station anchors are a pull for the unspecialized climb, not a wall; and
+the work-order distribution below follows the station distribution
+(one order per master), which is where the later-zone thinness comes
+from and why it is recorded as deliberate rather than filled.
 Training is skill-tier gated on learning, never on use:
 `tierForSkill(craft skill) >= tierForSkill(recipe.skillReq)`
 (`resolveTrain`, `src/sim/professions/training.ts`), fees from
@@ -246,6 +856,24 @@ never a second knownness rule. Specialization: threshold and discounts in
 `SPECIALIZATION_THRESHOLDS` rows (`src/sim/content/professions.ts`,
 `specializedSkillThreshold` 75, `materialDiscountPct` 0.2).
 
+HOW CRAFTING GATES (added 2026-08-29, qr-GATE-DOC; the design is good and
+was undocumented, and it reads like a bug until traced, so this paragraph
+is what stops a future contributor from "fixing" it). There is deliberately
+NO skillReq admission gate at craft time: `src/sim/professions/crafting.ts`
+states it at its header ("There is still NO skillReq admission gate: any
+known recipe is attemptable on materials alone"), so a low-skill crafter
+holding the materials can always craft a KNOWN recipe, for themselves or
+for a friend. The skill bands are still real, through three other gates:
+the TEACHING gate (`teachTierMet`, `src/sim/professions/training.ts`,
+applied on both acquisition channels, trainer and pattern item alike:
+you cannot LEARN a recipe above your tier), the SKILL-GAIN curve (the
+archetype empowerment ceilings and the tier-distance multipliers shape
+what an attempt is worth, so off-tier crafting advances you slowly or not
+at all), and the masterwork ceiling (proc chance and eligibility read the
+tier and the ceiling, so the empowered outcome stays band-gated even when
+the craft itself succeeds). Knowledge is the gate; materials are the cost;
+tier shapes growth and excellence, never admission.
+
 ### Quests, nudges, work orders, letters
 Attunement rides the archetype chooser quests
 (`src/sim/quests/profession_quest_effects.ts`); while any attunement quest is
@@ -253,7 +881,21 @@ active every other one reports unavailable in both hosts. One cadence-capped
 repeatable work-order quest per master (coin = floor(0.5 * summed vendor
 sellValue of the requested materials), `WORK_ORDER_PAYOUT_FRACTION`,
 cadence `WORK_ORDER_CADENCE_TICKS`; vendoring is always more gold by
-construction). One-shot-per-tier congratulation mail from the attuned
+construction). Two settled work-order calls define the current design: the LATER-ZONE
+THINNESS (four orders in Eastbrook, one each in Fenbridge and Highwatch)
+is deliberate, because orders are a per-master convention and the zones
+have one station master each; filling it would need either non-master
+order givers (a convention break) or later-zone stations (declined in
+the crafting-anchor record above). And the OUT-TOOLED payout stands as
+deliberate friction: a player whose tool mints only the fine grade hands
+over the more valuable material for the same flat coin (turn-in
+substitution is base-first, downward-only, `planGradeRemoval`), which is
+accepted because the order's real pay is its XP and cadence rhythm, the
+flat coin is what keeps the counter a commission rather than a second
+vendor, the sink property survives either way, and the surrendered value
+is bounded by the fine grade's vendor delta per window. The fine grade's
+worth is realized on the market and the crafting bench, not at the
+order counter. One-shot-per-tier congratulation mail from the attuned
 archetype's master (`src/sim/professions/tier_mail.ts`), trend nudges on
 `NUDGE_CADENCE_TICKS` (`src/sim/professions/prof_nudges.ts`, in-memory
 cadence, resets on restart by design), and the one-shot Guild trend letter
@@ -276,9 +918,10 @@ stays DEF quality (the first-masterwork deed celebrates the feat; the
 discovery ledger does not double-count it).
 
 ### The windows and the design language
-The professions wheel window (Shift+P, `src/ui/professions_view.ts` +
-`professions_window.ts`) and the tabbed crafting book
-(`src/ui/crafting_view.ts` + `crafting_window.ts`) follow the pure-view-core
+The professions wheel window (Shift+P, `src/ui/hud/professions/professions_view.ts` +
+`src/ui/hud/professions/professions_window.ts`) and the tabbed crafting book
+(`src/ui/hud/professions/crafting_view.ts` +
+`src/ui/hud/professions/crafting_window.ts`) follow the pure-view-core
 plus thin-painter recipe; the identity card (`profession_identity_card.ts`)
 is COMPOSED by its consumers, never absorbed. The ring is DOM nodes styled
 from tokens, not canvas. Until the root `DESIGN.md` rollout lands its token
@@ -309,16 +952,22 @@ guards.
 | maxSkill (crafts / gathering / fishing) | src/sim/content/professions.ts | 125 / 100 / 200 |
 | specializedSkillThreshold / materialDiscountPct | src/sim/content/professions.ts | 75 / 0.2 |
 | CRAFT_GOLD_SINK_COPPER_PER_BUDGET | src/sim/content/professions.ts | 2 |
-| CRAFT_THROTTLE_MAX_PER_WINDOW / WINDOW_SECONDS | src/sim/content/professions.ts | 10 / 60 |
+| CRAFT_CAST_DURATION_* / ENCHANT_FAMILY / TOOL_RECHARGE (sec) | src/sim/content/professions.ts | field 1.75 to ladder 4.0; floor 1.5 / ceiling 5.0; family+recharge 1.5 |
 | TRAINING_FEE_BY_TIER | src/sim/professions/training.ts | [0, 2500, 10000, 40000, 160000] copper, clamp to last |
 | UNBIND_FEE_BY_QUALITY_TIER | src/sim/professions/commission.ts | [2500, 10000, 40000] copper, clamp both ends |
 | GATHER_CAST_BASE / FLOOR / TOOL_TIER / BAND (sec) | src/sim/professions/gathering.ts | 2.5 / 1.5 / 0.4 / 0.15 |
 | GATHER_GAIN_TIER_STEP | src/sim/professions/gathering.ts | 25 |
+| NODE_HARVEST_TABLE respawnSeconds | src/sim/professions/gathering.ts | 240 (ore / wood / herb) |
+| gather nodes per type per zone | src/sim/content/gather_nodes.ts | 6 |
 | GATHER_RARE_EVENT_CHANCE / YIELD_MULT | src/sim/professions/gather_events.ts | 1/90 / 5 |
+| TIER2 / TIER3_TOOL_GATE_PROFICIENCY | src/sim/content/vendor_row_gates.ts | 40 / 70 |
+| vendor land-tool buyValue by tier | src/sim/content/items.ts | 20 / 120 / 400 (tiers 1 to 3) |
+| tiered rod buyValue by tier | src/sim/content/items.ts | 60 / 150 (tiers 2 and 3) |
+| FISHING_CATCH_BAND_THRESHOLDS | src/sim/professions/fishing_bands.ts | 0 / 100 / 150 / 200 / 200 / 200 (six bands; the SHARED PROFICIENCY_BAND_THRESHOLDS stays [0, 100, 200]) |
 | FISH_BITE_DELAY_MIN / MAX / ROD_REDUCTION (sec) | src/sim/professions/fishing.ts | 3 / 8 / 1.5 |
-| FISH_REEL_WINDOW_SEC / ROD_BONUS_SEC | src/sim/professions/fishing.ts | 3 / 0.75 |
-| FISHING_SESSION_CAP_SEC | src/sim/types.ts | 15 |
-| FISHING_GAIN_SCHEDULE | src/sim/professions/fishing.ts | 1 below 50, 0.5 below 100, 0.1 below 150, 0.02 below 200 |
+| FISH_REEL_WINDOW_SEC / _ROD_BONUS_SEC / _RARITY_BONUS_SEC | src/sim/professions/fishing.ts | 2.5 / 0.75 / 0.25 |
+| FISHING_SESSION_CAP_SEC | src/sim/types.ts | 16 (moved from 15 when the tier-6 rod joined the catch ladder) |
+| FISHING_GAIN_SCHEDULE | src/sim/professions/fishing.ts | 0.08 below 50, 0.05 below 100, 0.04 below 150, 0.03 below 200 (retuned at masterwrought Phase 11i from a measured casts-to-200 model; the four BOUNDARIES are frozen because fishingTeachingCeilingFor derives from them) |
 | FISHING_JUNK_GAIN_CUTOFF_PROFICIENCY | src/sim/professions/fishing.ts | 100 |
 | WORK_ORDER_CADENCE_TICKS / PAYOUT_FRACTION | src/sim/professions/cadence.ts | 36000 / 0.5 |
 | NUDGE_CADENCE_TICKS | src/sim/professions/cadence.ts | 18000 |
@@ -327,19 +976,135 @@ guards.
 | MARKET_MAX_LISTINGS | src/sim/market.ts | 12 per seller |
 | STATION_RADIUS | src/sim/content/professions.ts | 20 |
 | BARE_HANDS_TOOL_TIER | src/sim/professions/tools.ts | 1 |
-| MAIL_ATTACHMENT_EXPIRY_SECONDS | src/sim/mail/post_office.ts | 30 days sim-time |
+| MAIL_ATTACHMENT_EXPIRY_SECONDS | src/sim/mail/post_office.ts | 30 days sim-time (then the parcel flies home and holds Infinity: mail with attachments is never auto-deleted) |
+| MAIL_UNREAD_EXPIRY_SECONDS / MAIL_READ_EXPIRY_SECONDS | src/sim/mail/post_office.ts | 30 days / 3 days sim-time for a letter with no escrow aboard; an unread Exchange Broker letter (WOC_MARKET_LETTER_IDS) waits MAIL_EXCHANGE_UNREAD_EXPIRY_SECONDS (90 days) instead |
+| MAIL_ESCROW_COPPER_MIN | src/sim/mail/post_office.ts | 100 copper (one silver): coin below this is not escrow, so the letter is swept with the coin aboard; any item stack is escrow (mailHoldsEscrow) |
 | CORPSE_INTERACT_GRACE_SECONDS | src/sim/loot/loot_roll.ts | 30 |
 | requiredAmendsProgress | src/sim/professions/archetype.ts | 5 + 3 * switchCount |
 | LEGACY_GOLD_POSITIVE_RECIPE_IDS | tests/recipe_economy.test.ts | empty set (every recipe passes the invariant) |
 
 Time-to-master targets the constants were tuned against: first tier-up in
-15 to 20 minutes, skill 50 in an evening, craft mastery in 10 to 20 focused
-hours, gathering 100 in 8 to 12 hours, fishing 200 in 15 to 25 hours.
-Gathering-100 and fishing-200 currently pace FASTER than target:
-maintainer-accepted for this release; correct post-launch via data-only
-levers (respawn seconds, node density, quantity per rarity, bite-delay band,
-junk share), never via smaller gain numbers. If mastery should get longer,
-the lever is material quantities per craft.
+15 to 20 minutes, skill 50 in an evening, craft mastery in roughly 1.5 to 5
+focused hours, gathering 100 in 8 to 12 hours, fishing 200 in 15 to 25
+hours. THE FISHING FIGURE IS THE AUTHORED TARGET AND THE SHIPPED CURVE NO
+LONGER MATCHES IT: masterwrought Phase 11i measured the climb rather than
+estimating it and retuned FISHING_GAIN_SCHEDULE to about 11 reference hours,
+redistributing the cost instead of lengthening it (the old values put 84
+percent of the climb in the last fifty points). The 15-to-25 band above is
+kept as the record of what was aimed at, not as a description of what ships. The craft-mastery band MOVED from the authored 10-to-20 after measurement: the old
+figure predated the v0.32.0 expansion, whose starter zones re-grant the
+top-rung materials from ten more zones (the all-zones supply arm in
+`tests/professions_crafts_to_mastery.test.ts` prices the same bill at
+about 2.8 gather hours under the deliberately conservative model, floored
+at 2 as its trivially-short alarm), and predated the #2387 Battlefield
+Experience attribution fix; the measured all-levers climb lands nearer 1
+to 3 gathering hours plus the cast and travel time, which is
+where the band's low end comes from. One access assumption the figures
+rest on, stated: the expansion's thorium faucets are TIER-1 nodes, so
+under R22 they need only the tier-1 pick at any proficiency; only the
+Thornpeak tier-3 circuit asks for the wielded tier-3 tool (mining 70).
+Gathering-100 and fishing-200 currently pace FASTER than target: maintainer-accepted for this release;
+correct post-launch via data-only levers (respawn seconds, node density,
+quantity per rarity, bite-delay band, junk share), never via smaller gain
+numbers. If mastery should get longer, the pre-approved lever is material
+quantities per craft, and the durable supply-side answer is the zone-4
+design pass re-tiering the starter-zone faucets (R37's owner).
+
+The wield thresholds and the land-tool prices are the pacing lever on the
+tool ladder, and both halves are needed: the wield gate (R22) says when a
+rung you own starts working, the price says what the counter asks for it,
+and every counter sells ahead freely. Neither is a gain number, so neither
+touches the locked ruling above. The tier-2/3 thresholds must stay strictly
+below the proficiency at which a tier-1 node stops teaching, which is
+`GATHER_GAIN_TIER_STEP` times 3: the first zone is entirely tier-1 ground and
+the gather quests grant only the tier-1 tool, so a threshold at or above that
+ceiling is unreachable by the only means a new player has, and the ladder
+dead-ends. `tests/professions_tool_gate.test.ts` derives the ceiling from the
+live constants rather than restating it, so retuning the curve fails there
+instead of quietly bricking the climb; 70 rather than the ceiling-hugging 75 is
+that margin made deliberate. The prices were chosen against a first-zone solo
+quest income measured during planning; that figure is pinned nowhere, so it is
+the reason for the shape rather than a live number to check against. Rods are deliberately outside both: their
+profession has no nodes, so neither the ceiling derivation nor the hub-stocking
+rule below can be expressed for them.
+
+Which hub stocks which tier is content, not a constant: each hub sells only the
+tiers its own nodes use (Eastbrook tier 1, Fenbridge tiers 1 to 2, Highwatch
+tiers 1 to 3). Rods follow the same shape against WATER tiers: Fenbridge and
+Highwatch each stock the rung their own water demands, and Trader Wilkes keeps
+the whole rod ladder as the one buy-ahead counter (review ruling R20).
+
+The gate is a PURCHASE gate on the NPC counter, not a use-time gate. What a tool
+can work is decided solely by `canGatherTier` (`src/sim/professions/tools.ts`),
+which never reads proficiency, so every non-counter route reaches full tier at
+any proficiency. The routes worth naming, all open by design rather than by
+omission (and deliberately not given as a closed count, since a future feature
+can add another): a tool already owned, since nothing in the gate reads
+inventory; buyback, because returning a player's own sold item is not a new
+acquisition, and reaching it at 0 needs the tool owned and sold first, which the
+one-time mastery reset allows and so does any route below; and
+player-to-player transfer by market, direct trade or mail attachment, since none
+of the six carries `noMarketList`, `soulbound` or `bindOnTrade`, and the tier-4
+tool recipes consume the tier-3 tools as reagents.
+
+**SETTLED (review ruling R22, superseding the purchase-gate-only model).**
+The question was whether tool tier should gate at USE time rather than at
+purchase, and the answer is USE: land tools gain RuneScape-shaped wield
+requirements (tier 2/3 at gathering 40/70, tiers 4/5 derived under the
+knife-edge rule), the vendor purchase gates become advisory (counters sell
+ahead freely), and enforcement moves to the harvest gate, which also closes
+the traded-tool bypass. Rods are exempt: the water gate and the fishing
+teaching ceiling pace them. Pre-gate owners keep their tools and reach the
+threshold to wield them; nothing is confiscated. LIVE since the review
+worklist's phase 13: the wield gate is the shipped enforcement
+(`src/sim/professions/wield_gate.ts`, thresholds 40/70/85/100 pinned with
+the knife-edge derivation in `tests/professions_tool_gate.test.ts`), the
+counters sell ahead freely with the requirement as an advisory line, and
+the old authoritative buy deny is retired.
+
+Two amendments from the "Farming Tools not working correctly" player report
+(pinned in `tests/professions_wield_degrade.test.ts`):
+
+- **Degrade, never drop.** A land tool above its holder's counter is no
+  longer filtered out of the bag scan; it works as the best tier the counter
+  allows (`effectiveWieldableTier`). The report's brick: every hoe upgrade
+  recipe consumes the previous hoe, and the tier-2 hoe is an engineering
+  craft at skill 0, so a farmer who crafted it under farming 40 owned NO
+  usable hoe and could not plant even the tier-1 crops they had been
+  planting. The gate still refuses exactly what it was written to refuse
+  (ground ABOVE the counter, which a traded tool still cannot skip), and a
+  denial now names the TARGET tier's requirement, which under this rule is
+  the number that actually unlocks the ground asked for.
+- **Farming reads its own ladder.** The 40/70/85 table was written against
+  the node ladders; crops open on the 25-point band
+  (`farmCropSkillThreshold`, `src/sim/content/farm_crops.ts`), so a tier-2
+  seed said 25 while its hoe said 40. Farming's hoe requirements are now
+  derived FROM the crop thresholds (`FARMING_WIELD_REQUIREMENT_BY_TIER`,
+  0/25/50/75, the apex hoe at the cap), so a hoe wields on exactly the
+  proficiency that opens its tier of seed. The land node professions keep
+  the shared table; rods stay exempt.
+
+The same report retired the farming plant cast: the plot was written at
+command time and the two-second bar decided nothing, so cancelling it by
+walking off read as a broken cast that had eaten the seed. Planting is now
+instant, like harvesting (`plantCrop` in `src/sim/professions/farming.ts`).
+
+One knock-on worth naming, and it INVERTED when the gate moved: the tier-4
+engineering tool recipes consume the tier-3 land tools as reagents, and
+with the counter open that reagent is purchasable at any proficiency
+(consuming a tool in a craft never wields it). Not a completability
+regression (the tool deed is any station craft, and the same recipes
+already need node-only materials), but it is a new coupling between an engineering craft and a gathering counter.
+
+Respawn seconds and node density are ONE lever, not two. The per-zone harvest
+ceiling is nodes x 3600 / respawn, so moving either alone moves the ceiling:
+240 seconds with six nodes per type per zone is the same 270 harvests an hour
+per zone as the earlier 120 seconds with three, and it brought the two later
+zones down onto that figure from 360 rather than lifting any zone. What the
+pair buys is world density and a longer circuit, so the wait is spent
+travelling instead of standing at a node already worked. The rare-event knob
+reads the same product (GATHER_RARE_EVENT_CHANCE, gather_events.ts), so it
+must be re-derived if either number is ever tuned on its own.
 
 ## Locked rulings (do not re-litigate)
 
@@ -350,11 +1115,21 @@ the lever is material quantities per craft.
   reagents, the craft fee, market cut, unbind fees, make-amends costs). No
   recipe vendors above its input value (`tests/recipe_economy.test.ts`
   enforces output sellValue strictly below reagent value; the value model is
-  reagentUnitValue = buyValue when finite and positive, else sellValue). No
-  gathered or monster material ever gets a vendor buyValue.
+  reagentUnitValue = buyValue when finite and positive, else sellValue). No NPC
+  ever STOCKS a gathered or monster material: nothing a node, a corpse, or a
+  mob yields appears in any `vendorItems` row, so mastery is gathered for, not
+  shopped for. Those materials keep their `buyValue`, which is the economy
+  basis the rule above reads (`reagentUnitValue` falls back to `sellValue`, and
+  every gathered material is priced at exactly 4x, so dropping the field would
+  flip 28 recipes gold-positive against the rule rather than tighten it).
+  `arcanite_bar` is refined, not gathered, and stays stocked. The nine
+  `fine_` grades follow the same shape: node-gathered only, on no
+  `vendorItems` row anywhere, and priced with the same 4x `buyValue` for the
+  same reason.
 - Market: gold buys MATERIALS, never skill. Fungible materials stay
-  listable; the curve, the shared throttle, and material volume are the
-  sanctioned brake on purchased progress.
+  listable; the curve, cast pacing, and material volume are the sanctioned
+  brake on purchased progress (the shared action throttle retired with the
+  Craft Cast System; cast time is the pacing brake now).
 - Unbind fees: never free, monotonic in quality, clamp both ends (the
   clamp-to-first-below reading is maintainer-ratified).
 - Enchant magnitudes are frozen post-launch; tune reagent costs instead.
@@ -441,12 +1216,46 @@ the lever is material quantities per craft.
   means Runed): a novel reagent mix silently lands in the base bucket, so
   re-derive the sweep's tier mapping when introducing one.
 - New gather node or fish: `NODE_MATERIAL_TABLE` / `NODE_HARVEST_TABLE`
+  (a new node material also needs its `fine_` grade row in `MATERIAL_GRADES`,
+  its own committed icon, and its item-name row; the grade table is pinned
+  against the live material table so a missing row fails loudly)
   (`src/sim/professions/gathering.ts`) or `FISHING_TABLES_BY_BAND`
   (`fishing.ts`), preserving the draw-count contracts above; new node tiers
   compose with the tool gate and the curve automatically.
 - New profession mechanic: its own module in `src/sim/professions/` behind
   `SimContext` (see `src/sim/professions/CLAUDE.md` for the seam map and
   landing checklist).
+- New ZONE with professions content: flip its ledger row to 'complete' in
+  `tests/professions_zone_rollout.test.ts` (the R37 guard) and the same
+  file's new-zone checklist conscripts the zone whole: six nodes per type on
+  legal ground with a real tier ladder, materials with fine twins, the tool
+  and rod rungs the zone opens, catch tables in every band, hub stocking per
+  the hub rule with the ladder top routed through content (R23, the delve
+  Marks prototype), R22 wield requirements reachable on the ladder below,
+  the gatherer chronicle and first-cast deeds, and wiki presence. Shipping
+  an incomplete zone reds the gate instead of relying on memory. The first
+  zone that ships a tier-4 node or water also flips the tier-4/5 tools from
+  comfort items into ACCESS items, so the Drowned Litany's Marks tool rows
+  (`src/sim/content/delves/shop.ts`, priced for a world whose ladder tops
+  out at tier 3) and the wield table are re-derived in that SAME change;
+  the shop file's RE-CHECK TRIGGER comment is the other half of this
+  tripwire.
+- CAP SCALING when zone 4 arrives (design note, phase 13; implementation
+  rides the first new zone): the land cap and the fishing cap are today
+  authored constants (`GATHERING_PROFESSIONS` maxSkill 100 / 200) that
+  HAPPEN to equal what the shipped tier ladder teaches: land tier T ground
+  teaches to `GATHER_GAIN_TIER_STEP * (T + 2)` clamped at the cap, and
+  tier-T water teaches to the fishing schedule's row-T boundary. When a
+  tier-4 zone ships, raise the caps as a CONTENT CONSEQUENCE of that
+  derivation (land 125 = 25 * (4 + 2) minus nothing to clamp; fishing gains
+  a schedule row whose boundary becomes the new ceiling), never as a bare
+  constant edit: the character-sheet denominator reads maxSkill live and
+  follows; the R22 wield table gains its next rung under the knife-edge
+  rule (reachable on tier-4 ground, pinned like 40/70/85/100); the
+  empty-hook shortfall schedule gains a band column derived like the
+  shipped ones; and the load clamp (`normalizeGatheringProficiency`) makes
+  any cap RAISE rollback-destructive, so the raise ships with the zone,
+  never ahead of it (the phase 9 rollback note owns the mechanics).
 
 ## Open worklists
 
@@ -471,8 +1280,17 @@ the lever is material quantities per craft.
   temporarily non-enchantable, no data loss), the fee-free combo re-grant
   window, the mastery-reset strip-refire under rollback (DESTRUCTIVE), the
   bank sanitize count clamp plus the mail returned-flag arm (DESTRUCTIVE),
-  the silent band-cap retroactivity, the pacing acceptance note, and the
-  release-tier fill budget.
+  the silent band-cap retroactivity, the pacing acceptance note, the
+  release-tier fill budget, and the `toolEffectSlots` rollback across the
+  acquisition-craft boundary (DESTRUCTIVE of real player value now: the
+  slot's charm cost, its recharges, and its `craftedBy` provenance all
+  erase on the first autosave under ANY binary that predates the
+  `toolEffectSlots` field, which is every binary off this branch: the
+  v0.32.x production line AND the unmerged release/v0.33.0 base alike,
+  because such a binary rebuilds the character state without the key; a
+  mid-packet binary that knows the field preserves it losslessly. See
+  "Rollback erases newer fields" in
+  docs/design/professions-tuning-packet.md).
 - Drop the one-release `AURA_NAME_KEY` legacy alias for the pre-rename
   Venomfire aura string after v0.29.0 ships (mixed-fleet deploy window
   only; `src/ui/sim_i18n.ts`).
@@ -489,9 +1307,10 @@ the lever is material quantities per craft.
 - Closest-call name keeps flagged for review: Quartermaster Bree (recorded
   voice assets raise the rename cost), Highwatch (TERA's endgame hub city
   shares the exact coin; the town predates professions scope).
-- Buyback payload option b: whether vendor buyback should record and
-  re-grant the exact instance payload instead of a plain copy
+- Buyback payload option b (RESOLVED, shipped): vendor buyback records and
+  re-grants the exact instance payload instead of a plain copy
   (self-inflicted-loss class, not a wash; the bound arm is closed).
+  `items.ts` `recordVendorBuyback`/`buyBackItem` (#2412).
 
 ### Post-launch watches
 - Shard prices and heroic clear speed (tune enchanting via reagent costs).
@@ -501,16 +1320,36 @@ the lever is material quantities per craft.
 - Gathering-100 / fishing-200 pacing (data-only levers above).
 - Rare-event cadence stays ONE shared knob until zone-expansion data argues
   for a per-family split.
+- Fine-grade market depth floats free of supply pressure, by construction:
+  node timers are strictly per player (`PlayerMeta.nodeHarvestReadyAt`; shared
+  depletion is rejected by design),
+  so no player's harvesting tightens anyone else's supply, and every
+  fine-grade ask on the market is priced against effectively unlimited
+  personal faucets rather than scarcity. That is the accepted trade of the
+  per-player model, not a defect; the consequence to watch is fine-grade
+  listings drifting toward vendor floor rather than holding a premium. The
+  honest trigger today is indirect: sustained tier-2/3 traffic in
+  `woc_gather_harvests_total{band,tier}` (the same gate the D6 revisit
+  already names) with anecdotal price-floor reports, because no market
+  telemetry exists yet: no listing-book gauge, no sale-price series, and
+  the harvest counter cannot tell a fine mint from a plain yield. A
+  data-driven revisit therefore needs one of those built first; the
+  smallest is a bounded grade label (fine|plain) on the harvest counter,
+  which requires threading the resolved item id into the counter call
+  (`server/game.ts`) under the fixed-cardinality contract
+  (`server/http/game_signals.ts`).
 
 ### Deferred follow-ups (recorded, not scheduled)
-- Wave 2 on #1866/#1298: the commission ORDER workflow, market/mail
-  carriage for instanced goods (must re-enforce the boundTo lock
-  explicitly), batch salvage UI.
+- Wave 2 on #1866: market/mail carriage for instanced goods (must
+  re-enforce the boundTo lock explicitly; #1146), batch salvage UI. The
+  commission ORDER workflow itself shipped a first slice on #1298 (see
+  above); guild/friends-scoped orders, cross-restart persistence, and
+  recipient-tied material escrow remain unbuilt follow-ups on that slice.
 - Two-procs-one-drain masterwork toast coalescing (celebration plan-contract
   change; banner and sound coalescing are by design).
 - Windfall per-instance loot-line burst batching polish.
-- Zone-1 signed starter instances design confirm (the identical-payload
-  stacking premise changed: same-signer copies now merge).
+- Zone-1 signed starter material design confirm (sources now merge across
+  gatherers and signers while preserving every exact descriptor).
 - The bareClient fixture unification chore (#2088) and the shared
   deep-water predicate extraction (SWIM_DEPTH copies).
 - Delete the dead non-en positional entity arrays in

@@ -1,11 +1,6 @@
 import type { AmbientPlayerBotConfig } from './types';
 
-function intEnv(
-  env: NodeJS.ProcessEnv,
-  key: string,
-  fallback: number,
-  min: number,
-): number {
+function intEnv(env: NodeJS.ProcessEnv, key: string, fallback: number, min: number): number {
   const raw = Number(env[key] ?? fallback);
   if (!Number.isFinite(raw)) return fallback;
   return Math.max(min, Math.floor(raw));
@@ -43,7 +38,8 @@ export function applyAmbientPlayerBotConfigPatch(
   for (const [key, value] of Object.entries(patch)) {
     switch (key) {
       case 'enabled':
-        if (typeof value !== 'boolean') throw new Error('ambient bot config enabled must be a boolean');
+        if (typeof value !== 'boolean')
+          throw new Error('ambient bot config enabled must be a boolean');
         next.enabled = value;
         applied++;
         break;

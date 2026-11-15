@@ -947,7 +947,8 @@ export interface SuspiciousPlayer {
     name: string;
     ip: string;
   };
-  // CONFIRMED = an automated moderator report went out for this session.
+  // CONFIRMED = an automated case (a suspicion flag, or a moderator report on a
+  // host without the flag store) went out for this session.
   state: 'SUSPICIOUS' | 'CONFIRMED';
   snapshot: {
     capturedAt: number;
@@ -1034,6 +1035,169 @@ export interface AccountRow {
   characterCount: number;
   maxLevel: number;
   playtimeSeconds: number;
+  // Materialised total gold (purse + mail/market escrow); 0 until the server's
+  // wealth sweep first runs.
+  totalCopper: number;
+  // Present only when the operator holds moderation.read (the server strips it
+  // otherwise); count of active suspicion flags on the account.
+  activeFlagCount?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Economy oversight: wealth breakdown + the suspicion-flag workflow. Shapes
+// mirror server/account_wealth_db.ts and server/suspicion_flags_db.ts exactly.
+// ---------------------------------------------------------------------------
+
+export interface TopWealthHolderRow {
+  accountId: number;
+  username: string;
+  purseCopper: number;
+  mailCopper: number;
+  marketCopper: number;
+  totalCopper: number;
+  maxLevel: number;
+  lastLogin: string | null;
+  bannedAt: string | null;
+  suspendedUntil: string | null;
+  // Present only when the operator holds moderation.read (the server strips
+  // it otherwise, the same rule as the accounts list).
+  activeFlagCount?: number;
+  updatedAt: string;
+}
+
+// Live World Market listing metrics; mirrors server/admin_market_metrics.ts
+// exactly. All six buckets are always present, in the server's fixed order.
+export type MarketMetricsBucketId =
+  | 'cores'
+  | 'essence'
+  | 'patterns'
+  | 'produce'
+  | 'seeds'
+  | 'compost';
+
+export interface AdminMarketMetricsItemRow {
+  itemId: string;
+  // Server-resolved English item name, rendered as data.
+  name: string;
+  listingCount: number;
+  totalQuantity: number;
+  lowestPerUnit: number;
+  medianPerUnit: number;
+}
+
+// What changed hands in a bucket over the readout window. Every other figure
+// here describes the LIVE BOOK (what is on offer now); these come from the
+// server's accumulating sold-volume store.
+export interface AdminMarketSoldVolume {
+  saleCount: number;
+  quantity: number;
+  /** Gross buyout copper, before the Merchant's cut. */
+  copper: number;
+}
+
+export interface AdminMarketMetricsBucket {
+  bucket: MarketMetricsBucketId;
+  listingCount: number;
+  totalQuantity: number;
+  trackedItemCount: number;
+  listedItemCount: number;
+  items: AdminMarketMetricsItemRow[];
+  sold: AdminMarketSoldVolume;
+}
+
+export interface AdminMarketMetrics {
+  realm: string;
+  buckets: AdminMarketMetricsBucket[];
+  /** The trailing UTC-day window the `sold` figures cover. */
+  soldWindowDays: number;
+  /** False when the server could not read the store; the sold figures are then meaningless. */
+  soldAvailable: boolean;
+}
+
+export interface AccountWealthCharacterRow {
+  characterId: number;
+  name: string;
+  realm: string;
+  level: number;
+  copper: number;
+  guildId: number | null;
+  guildName: string | null;
+  guildTreasuryCopper: number | null;
+  guildMemberCount: number | null;
+}
+
+export interface LargeGoldMovementRow {
+  id: number;
+  characterId: number;
+  characterName: string | null;
+  op: string;
+  container: string;
+  copperDelta: number;
+  createdAt: string;
+}
+
+export interface AccountWealthData {
+  accountId: number;
+  purseCopper: number;
+  mailCopper: number;
+  marketCopper: number;
+  totalCopper: number;
+  updatedAt: string | null;
+  characters: AccountWealthCharacterRow[];
+  largeMovements: LargeGoldMovementRow[];
+  /** The ledger read failed (timed out) after the breakdown was computed:
+   *  largeMovements is empty because it is unknown, not because it is none. */
+  largeMovementsUnavailable?: boolean;
+}
+
+export interface RelatedAccountRef {
+  accountId: number;
+  username: string | null;
+}
+
+export interface SuspicionFlagRow {
+  id: number;
+  accountId: number;
+  username: string;
+  bannedAt: string | null;
+  suspendedUntil: string | null;
+  source: string;
+  kind: string;
+  severity: 'low' | 'medium' | 'high';
+  details: string;
+  relatedAccounts: RelatedAccountRef[];
+  status: 'new' | 'under_review' | 'cleared' | 'actioned';
+  copperAtFlag: number | null;
+  copperNow: number | null;
+  occurrences: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  updatedAt: string;
+}
+
+export interface SuspicionFlagEventRow {
+  id: number;
+  flagId: number;
+  adminAccountId: number | null;
+  adminUsername: string | null;
+  fromStatus: SuspicionFlagRow['status'] | null;
+  toStatus: SuspicionFlagRow['status'] | null;
+  note: string;
+  createdAt: string;
+}
+
+export interface FlagListData {
+  rows: SuspicionFlagRow[];
+  total: number;
+  page: number;
+  limit: number;
+  counts: Record<SuspicionFlagRow['status'], number>;
+  truncated: boolean;
+}
+
+export interface AccountFlagsData {
+  flags: SuspicionFlagRow[];
+  events: SuspicionFlagEventRow[];
 }
 
 export interface CharacterRow {
@@ -1043,10 +1207,50 @@ export interface CharacterRow {
   level: number;
   accountId: number;
   username: string;
+  guildId: number | null;
+  guildName: string | null;
+  guildRank: string | null;
   copper: number;
   xp: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// R35 professions inspector (GET /admin/api/characters/:id/professions);
+// matches server/character_professions.ts CharacterProfessionsSheet exactly.
+export interface CharacterProfessionsSheet {
+  characterId: number;
+  name: string;
+  class: string;
+  level: number;
+  accountId: number;
+  username: string;
+  live: boolean;
+  updatedAt: string | null;
+  preMigration: boolean;
+  archetype: {
+    activeArchetype: string | null;
+    pairedMajor: string | null;
+    hobbyCraft: string | null;
+  };
+  gathering: { professionId: string; proficiency: number }[];
+  crafting: { craftId: string; skill: number; tier: number }[];
+  knownRecipes: number;
+  slots: {
+    professionId: string;
+    effectId: string;
+    durability: number;
+    maxDurability: number;
+    craftedBy: string | null;
+    confirmMode: string;
+  }[];
+  nodeTimers: {
+    nodeId: string;
+    zoneId: string | null;
+    nodeType: string | null;
+    remainingSeconds: number;
+  }[];
+  toolEffectIds: string[];
 }
 
 export interface Paginated<T> {
@@ -1054,6 +1258,75 @@ export interface Paginated<T> {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface GuildSummary {
+  id: number;
+  name: string;
+  realm: string;
+  createdAt: string;
+  memberCount: number;
+  leaderName: string | null;
+}
+
+export interface GuildDetailData {
+  guild: {
+    id: number;
+    name: string;
+    realm: string;
+    createdAt: string;
+    memberCount: number;
+  };
+  members: {
+    characterId: number;
+    characterName: string;
+    accountId: number;
+    username: string;
+    class: string;
+    level: number;
+    rank: string;
+    joinedAt: string;
+    lastLogin: string | null;
+    online: boolean;
+  }[];
+}
+
+export interface GuildRenameHistoryRow {
+  id: number;
+  oldName: string;
+  newName: string;
+  reason: string;
+  createdAt: string;
+  adminAccountId: number | null;
+  adminUsername: string | null;
+}
+
+export interface GuildRenameHistoryData {
+  rows: GuildRenameHistoryRow[];
+}
+
+/** One slot of a guild's live bank as GET /admin/api/guilds/:id/bank answers
+ *  it. `index` is the exact `slot` argument the purge takes and `itemId` is its
+ *  confirmation token; `dormant` means the anonymous-pipe policy refuses the
+ *  copy in both directions, so the guild can neither withdraw it nor disband
+ *  while it sits there, and it is the ONLY thing the purge will remove.
+ *  Deliberately carries no per-copy instance payload (see
+ *  server/admin_guild_bank_view.ts). */
+export interface GuildBankSlot {
+  index: number;
+  itemId: string;
+  count: number;
+  dormant: boolean;
+}
+
+export interface GuildBankStateData {
+  guildId: number;
+  treasury: number;
+  capacity: number;
+  purchasedSlots: number;
+  usedSlots: number;
+  dormantSlots: number;
+  slots: GuildBankSlot[];
 }
 
 export interface IpAssociationsData {
@@ -1094,6 +1367,11 @@ export interface SharedIpRow {
 
 export type SharedIpsData = Paginated<SharedIpRow>;
 
+export interface GeneralChatRateLimit {
+  messages: number;
+  windowMinutes: number;
+}
+
 export interface AccountDetail {
   id: number;
   username: string;
@@ -1106,12 +1384,22 @@ export interface AccountDetail {
   online: boolean;
   bannedAt: string | null;
   suspendedUntil: string | null;
+  // Set when the player deactivated the account themselves; the moderation
+  // actions offer the audited reactivate while it is non-null.
+  deactivatedAt: string | null;
   moderationReason: string;
   chatMutedUntil: string | null;
   chatMuteReason: string;
   chatStrikes: number;
+  generalChatRateLimit: GeneralChatRateLimit | null;
   dailyRewardsBan?: { reason: string; createdAt: string; expiresAt: string | null } | null;
   dailyRewardsIpBans?: { ip: string; reason: string; createdAt: string }[];
+  // The operator-applied Cheater mark: remaining played-second budget, audited
+  // reason, and when it was applied. Null when the account is not marked.
+  cheaterMark?: { secondsRemaining: number; reason: string; setAt: string | null } | null;
+  // The operator world quest block: audited reason and when it was applied. Null
+  // when the account is not blocked.
+  worldQuestBlock?: { reason: string; blockedAt: string } | null;
   lastLoginIp: string | null;
   playtimeSeconds: number;
   characters: {
@@ -1119,6 +1407,9 @@ export interface AccountDetail {
     name: string;
     class: string;
     level: number;
+    guildId: number | null;
+    guildName: string | null;
+    guildRank: string | null;
     copper: number;
     xp: number;
     pos: { x: number; z: number } | null;
@@ -1163,10 +1454,15 @@ export interface ModerationHistoryEntry {
 }
 
 export interface ModerationActionHistoryRow extends ModerationHistoryEntry {
-  source: 'account' | 'ip';
+  source: 'account' | 'ip' | 'guild';
   accountId: number | null;
   username: string | null;
   ip: string | null;
+  // Guild renames are audited realm-wide, not per account. guildId is the snapshot
+  // id the audit row carries, so it stays set even after the guild is deleted;
+  // guildName is the guild's current name, falling back to the recorded new name.
+  guildId: number | null;
+  guildName: string | null;
 }
 
 export interface ModerationQueueRow {
@@ -1199,6 +1495,88 @@ export interface BugReportRow {
   meta: unknown;
   status: string;
   created_at: string;
+}
+
+export interface UnstuckArea {
+  kind: string;
+  id: string;
+  instanceId: string | null;
+  slot: number | null;
+}
+
+export interface UnstuckPosition {
+  x: number;
+  y: number;
+  z: number;
+  localX: number;
+  localY: number;
+  localZ: number;
+}
+
+export type UnstuckOutcome = 'completed' | 'cancelled' | 'failed';
+
+export interface UnstuckReportRow {
+  id: number;
+  characterId: number | null;
+  characterName: string | null;
+  area: UnstuckArea;
+  origin: UnstuckPosition;
+  destination: UnstuckPosition | null;
+  outcome: UnstuckOutcome;
+  reason: string;
+  invokedAt: string;
+  resolvedAt: string | null;
+}
+
+export interface UnstuckHotspot {
+  area: UnstuckArea;
+  bucket: { x: number; y: number; z: number };
+  count: number;
+  completed: number;
+  cancelled: number;
+  failed: number;
+  lastUsedAt: string;
+}
+
+/** One item_ledger row (server/item_ledger_db.ts). */
+export interface ItemLedgerEvent {
+  id: number;
+  guid: string;
+  itemId: string;
+  quality: string;
+  kind: 'mint' | 'transfer' | 'modify' | 'consume' | 'derive';
+  characterId: number | null;
+  accountId: number | null;
+  characterName: string;
+  source: string;
+  zone: string | null;
+  /** The step's short note (a rank, an enchant id, what the copy became). */
+  detail: string | null;
+  /** The other copy a swap or derivation names. */
+  relatedGuid: string | null;
+  occurredAt: string;
+  createdAt: string;
+}
+
+export interface ItemLedgerPage {
+  events: ItemLedgerEvent[];
+  limit: number;
+  hasMore: boolean;
+  nextBeforeId: number | null;
+}
+
+export interface ItemLedgerHistory {
+  guid: string;
+  events: ItemLedgerEvent[];
+}
+
+export interface UnstuckReportsData {
+  reports: UnstuckReportRow[];
+  hotspots: UnstuckHotspot[];
+  days: number;
+  limit: number;
+  hasMore: boolean;
+  nextBeforeId: number | null;
 }
 
 export interface ReportDetail {
@@ -1395,6 +1773,26 @@ export interface PerfCaptureResult {
   aggroVisitsMaxPerTick: number;
   threatVisitsTotal: number;
   threatVisitsMaxPerTick: number;
+  routePlansTotal: number;
+  routePlansMaxPerTick: number;
+  routeNodesTotal: number;
+  routeNodesMaxPerTick: number;
+  routeFailedTotal: number;
+  routeFailedMaxPerTick: number;
+  routeDeferredTotal: number;
+  routeDeferredMaxPerTick: number;
+  sightQueriesTotal: number;
+  sightQueriesMaxPerTick: number;
+  movementConsumedTotal: number;
+  movementStarvedTotal: number;
+  movementExtrapolatedTotal: number;
+  movementDiscardedLateTotal: number;
+  movementDroppedOldestTotal: number;
+  movementRejectedAnchoredWindowTotal: number;
+  movementRejectedSanityBoundTotal: number;
+  movementResyncsTotal: number;
+  movementPlayoutGrowthsTotal: number;
+  movementPlayoutShrinksTotal: number;
   profile: {
     samples: number;
     windowTicks: number;

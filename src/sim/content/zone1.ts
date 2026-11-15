@@ -2,7 +2,6 @@
 // wolves and boars, the bandit camp, and Brother Aldric's Gravecaller chain
 // leading to the Hollow Crypt.
 
-import { EASTBROOK_GRAND_ARMOURY } from '../building_layout';
 import {
   EASTBROOK_LAYOUT,
   EASTBROOK_NPC_PLACEMENTS_BY_ID,
@@ -12,6 +11,7 @@ import { WORK_ORDER_CADENCE_TICKS } from '../professions/cadence';
 import type {
   CampDef,
   GroundObjectDef,
+  HeightStamp,
   MobTemplate,
   NpcDef,
   QuestDef,
@@ -21,6 +21,150 @@ import type {
 
 export const TOWN_RADIUS = 26;
 export const GRAVEYARD_POS = { ...EASTBROOK_LAYOUT.services.graveyard.legacyReleasePoint };
+// The Copper Dig's phase 0b home: northeast of the Wolf Run on the Mirefen
+// road, on the rise beyond Mirror Lake's northeast shore (the New Eastbrook
+// program, docs/design/eastbrook-revamp/master-plan.md). This level stamp
+// authors the working grade (the jail cage pad precedent); its taper drains
+// the lake's shallow northeast blend apron by design (the diggers' spoil
+// ground), while the declared lake circle stays fully wet: verified against
+// applyStamp over every sub-waterline cell inside LAKE.radius. Radius covers
+// the kobold scatter disc, all six ore veins, and Grix's camp.
+export const COPPER_DIG_TERRAIN_EDITS: HeightStamp[] = [
+  { x: -32, z: 144, radius: 64, delta: -1.2, falloff: 'smooth', mode: 'level' },
+];
+
+// The harbor-town plat: grading for New Eastbrook's reserved basin footprint
+// (master plan section 7). The basin lobes in world.ts VALE_LAND_LOBES hold
+// the ground out of the sea; these level stamps take the lobe bulges down to
+// town grade so the plat reads as buildable coastal shelf. Street- and
+// pad-level grading lands with the measured site plan; this is the plat.
+export const TOWN_PLAT_TERRAIN_EDITS: HeightStamp[] = [
+  { x: -14, z: -112, radius: 80, delta: -1.0, falloff: 'smooth', mode: 'level' },
+  { x: -48, z: -126, radius: 46, delta: -0.8, falloff: 'smooth', mode: 'level' },
+];
+
+// The plat's beach apron (owner direction 2026-08-18: no cliff edges, smooth
+// beach shores). A row of wide, low level stamps centered on the waterline
+// arc pulls the last ~25yd of land down through the shore band (-4.3 to
+// -2.7) and eases the first ~15yd of seabed up to a wading shelf, so the
+// coast reads as beach the whole way. Applied after the plat stamps (array
+// order is application order), tuned against the shore profile probe:
+// slope through the band stays under 0.2 and the beach band runs 12yd plus
+// at every sampled x. Sea cells under a stamp stay sea (verified: below
+// waterline ground inside a stamp still reads water -4.3).
+// The harbor quay (wave A of the site plan): a flat-falloff pad at working
+// grade fronting the carved cove, read as a built edge (the quay wall props
+// face the drop in the dock wave), with a smooth approach blend from the
+// flank so the walk onto the pad never exceeds the movement slope gate.
+// The flat stamps stop at x -99; the cove's water starts near x -102, so
+// no wet cell is lifted (the Mirror Lake lesson).
+export const EASTBROOK_QUAY_TERRAIN_EDITS: HeightStamp[] = [
+  { x: -84, z: -54, radius: 18, delta: -1.9, falloff: 'smooth', mode: 'level' },
+  { x: -92, z: -46, radius: 13, delta: -2.0, falloff: 'smooth', mode: 'level' },
+  { x: -92, z: -54, radius: 13, delta: -2.0, falloff: 'smooth', mode: 'level' },
+  { x: -92, z: -62, radius: 13, delta: -2.0, falloff: 'smooth', mode: 'level' },
+  { x: -88, z: -67, radius: 10, delta: -2.0, falloff: 'smooth', mode: 'level' },
+  { x: -92, z: -46, radius: 7, delta: -2.0, falloff: 'flat', mode: 'level' },
+  { x: -92, z: -54, radius: 7, delta: -2.0, falloff: 'flat', mode: 'level' },
+  { x: -92, z: -62, radius: 7, delta: -2.0, falloff: 'flat', mode: 'level' },
+  // Round 6: a narrow graded strip under the quay boardwalk itself. A berm ran
+  // along x -99 and punched up THROUGH the planks (groundHeight takes the max
+  // of terrain and deck surface, so the player walked over a dirt hump in the
+  // middle of the boardwalk and the boards drew underground). Radius 4.5 keeps
+  // every stamp east of x -103.5, clear of the cove water near x -104, so no
+  // wet cell is lifted.
+  { x: -98.5, z: -40, radius: 4, delta: -2.0, falloff: 'flat', mode: 'level' },
+  { x: -98.5, z: -46, radius: 4, delta: -2.0, falloff: 'flat', mode: 'level' },
+  { x: -98.5, z: -52, radius: 4, delta: -2.0, falloff: 'flat', mode: 'level' },
+  { x: -98.5, z: -58, radius: 4, delta: -2.0, falloff: 'flat', mode: 'level' },
+  { x: -98.5, z: -64, radius: 4, delta: -2.0, falloff: 'flat', mode: 'level' },
+  { x: -98.5, z: -70, radius: 4, delta: -2.0, falloff: 'flat', mode: 'level' },
+];
+
+// Sandy shoreline around the harbor cove's rims near the town (owner
+// refinement): narrow aprons pulled into the shore band so the splat reads
+// sand where the town meets the water, north and south of the quay.
+export const HARBOR_SAND_TERRAIN_EDITS: HeightStamp[] = [
+  { x: -99, z: -37, radius: 9, delta: -3.4, falloff: 'smooth', mode: 'level' },
+  { x: -100, z: -71, radius: 9, delta: -3.4, falloff: 'smooth', mode: 'level' },
+];
+
+// Round 3 (owner): the sea now starts a dozen yards below the town's south
+// lots, so the strand is a NARROW apron riding the new lobe line, not a wide
+// shelf. Each stamp centers ~8yd north of the local open-sea line with a
+// radius that dies before the nearest building pad (the tight middle stretch
+// runs small radii on purpose: the toolworks lot is 4-9yd from the line
+// there, and the natural field slope already reads as beach).
+export const SOWFIELD_BEACH_TERRAIN_EDITS: HeightStamp[] = [
+  { x: -66, z: -139, radius: 13, delta: -3.6, falloff: 'smooth', mode: 'level' },
+  { x: -54, z: -138, radius: 14, delta: -3.9, falloff: 'smooth', mode: 'level' },
+  { x: -42, z: -136, radius: 14, delta: -4.0, falloff: 'smooth', mode: 'level' },
+  { x: -30, z: -135, radius: 13, delta: -4.0, falloff: 'smooth', mode: 'level' },
+  { x: -23, z: -136, radius: 10, delta: -4.0, falloff: 'smooth', mode: 'level' },
+  { x: -8, z: -131, radius: 7, delta: -3.9, falloff: 'smooth', mode: 'level' },
+  { x: 4, z: -130, radius: 9, delta: -3.9, falloff: 'smooth', mode: 'level' },
+  { x: 16, z: -132, radius: 11, delta: -3.9, falloff: 'smooth', mode: 'level' },
+  { x: 28, z: -136, radius: 12, delta: -3.9, falloff: 'smooth', mode: 'level' },
+  { x: 40, z: -137, radius: 13, delta: -3.9, falloff: 'smooth', mode: 'level' },
+];
+
+// The seabed apron: the wide plat stamps above still reach past the coast
+// and would hold a dry shelf inside cells the (un-stamped) field already
+// calls open sea. This row rides ~5yd SOUTH of the field's sea line and
+// takes the stamped ground below the waterline there, so the water you see
+// starts where the sea actually is. Applied after the beach row (order is
+// application order); every center sits in open-sea cells, so no dry land
+// is ever pulled wet (the stamps-never-create-water rule is about the field,
+// which this row does not touch).
+export const SOWFIELD_SEABED_TERRAIN_EDITS: HeightStamp[] = [
+  { x: -66, z: -152, radius: 13, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: -54, z: -150, radius: 13, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: -42, z: -148, radius: 13, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: -30, z: -148, radius: 13, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: -20, z: -146, radius: 13, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: -10, z: -142, radius: 12, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: 0, z: -137, radius: 11, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: 10, z: -140, radius: 12, delta: -5.2, falloff: 'smooth', mode: 'level' },
+  { x: 20, z: -146, radius: 13, delta: -5.2, falloff: 'smooth', mode: 'level' },
+];
+
+// The Tidehold rebuild's building pads (sim/eastbrook_layout.ts pads): a grid
+// of level stamps under each placed building, its solid cores covering the
+// model's whole reach, each shelf eased into the streets by its own taper,
+// the vault on the bank's shelf. Applied LAST (array order is application
+// order), after the plat, the quay and the strand; the Studio rebuild map
+// carries the same list. None reaches the quay's working pad or the player
+// start, and none lifts a cell of sea out of the water. A grid, not one disc
+// per building: a disc whose core covers a whole reach spills well past its
+// long sides, and on the World of ClaudeCraft Studio map's sites those discs
+// (the bank's above all) lifted the harbour seabed out of the sea.
+// Copied: the layout's records are frozen, and edit lists are plain data.
+export const EASTBROOK_BUILDING_PAD_TERRAIN_EDITS: HeightStamp[] = EASTBROOK_LAYOUT.pads.map(
+  (pad) => ({ ...pad }),
+);
+// Flower drifts beside the lamplit town streets (owner refinement round 3).
+// The renderer's grass ring treats these circles as guaranteed bloom cells
+// (the REALM_FLOWER_MEADOWS mechanism); placement inside them still skips
+// water, steep ground, and roads, so the drifts read as blooming verges.
+export const ZONE1_FLOWER_MEADOWS: { x: number; z: number; r: number }[] = [
+  { x: -22, z: -100, r: 7 }, // the civic green, west of the square
+  // Round 6c (owner): the boar meadow at the west road's end blooms, so the
+  // walk out of town pays off in ground cover rather than plain grass
+  { x: 52, z: -62, r: 9 },
+  { x: 66, z: -79, r: 8 },
+  { x: 47, z: -80, r: 7 },
+  // the churchyard, blooms among the headstones (it moved beside the chapel
+  // with the World of ClaudeCraft Studio map's arrangement; the smithy
+  // stands on the old chapel rise)
+  { x: 36, z: -101, r: 8 },
+  { x: -36, z: -103, r: 6 }, // the main-street verge by the market home
+  { x: -6, z: -116, r: 6 }, // the beach promenade's east verge
+  // Owner refinement round 4: the Wolf Run reads green meadow, not strand.
+  { x: -6, z: 2, r: 9 },
+  { x: 14, z: -18, r: 8 },
+  { x: 4, z: 14, r: 8 },
+];
+
 // Basin carved into the heightfield. Pushed to the far northeast so its
 // shoreline meets the fishing dock and the murloc camp instead of drowning them.
 export const LAKE = { x: -92, z: 88, radius: 30 };
@@ -32,24 +176,38 @@ export const ZONE1_ZONE: ZoneDef = {
   zMax: 180,
   levelRange: [1, 7],
   biome: 'vale',
-  hub: { x: 0, z: 0, radius: TOWN_RADIUS, name: 'Eastbrook' },
+  hub: { x: -14, z: -100, radius: TOWN_RADIUS, name: 'Eastbrook' },
   graveyard: GRAVEYARD_POS,
   lakes: [LAKE],
   pois: [
-    { x: 0, z: -3, label: 'Eastbrook', id: 'eastbrook' },
-    { x: -2, z: 70, label: 'Wolf Run', id: 'wolf_run' },
-    { x: 65, z: 0, label: 'Boar Meadow', id: 'boar_meadow' },
+    { x: -14, z: -102, label: 'Eastbrook', id: 'eastbrook' },
+    { x: 2, z: -4, label: 'Wolf Run', id: 'wolf_run' },
+    // follows the boars to their new downs (round 6 swap, then the westward push)
+    // pulled off the causeway's latitude: both labels sat at z -46 and the
+    // world map drew them on the same line, overlapping
+    { x: 60, z: -64, label: 'Boar Meadow', id: 'boar_meadow' },
     { x: -88, z: 82, label: 'Mirror Lake', id: 'mirror_lake' },
     { x: -60, z: 4, label: 'Sableweb', id: 'sableweb' },
-    { x: -84, z: -64, label: 'Copper Dig', id: 'copper_dig' },
-    { x: 76, z: -76, label: 'Bandit Camp', id: 'bandit_camp' },
+    { x: -34, z: 142, label: 'Copper Dig', id: 'copper_dig' },
+    // stays with Gorrak's camp, which did not move in the round 6 swap
+    { x: 98, z: 28, label: 'Bandit Camp', id: 'bandit_camp' },
     { x: 80, z: 80, label: 'Fallen Chapel', id: 'fallen_chapel' },
-    { x: -5, z: -52, label: 'Reliquary Hill', id: 'reliquary_hill' },
+    { x: -136, z: 112, label: 'Reliquary Hill', id: 'reliquary_hill' },
     { x: 40, z: 140, label: 'Brightwood Glade', id: 'brightwood_glade' },
-    { x: -11, z: -112, label: 'The Sowfield', id: 'the_sowfield' },
+    // The stadium is demolished and the ground is town now, so the label stops
+    // drawing. The RECORD stays: the shipped exp_vale_wayfarer deed counts a
+    // visit to this id, and the deeds catalog is append-only, so deleting the
+    // entry would strand a frozen trigger.
+    { x: -11, z: -112, label: 'The Sowfield', id: 'the_sowfield', hideOnMap: true },
+    { x: 150, z: -46, label: 'The Farshore Causeway', id: 'the_farshore_causeway' },
+    // APPENDED, never inserted: poi labels resolve through positional locale
+    // keys, so a mid-list insert renumbers every later landmark's translation.
+    { x: -101, z: -54, label: 'Eastbrook Docks', id: 'eastbrook_docks' },
   ],
   welcome: 'Find Marshal Redbrook in town - he has work for you.',
   welcomeQuestId: 'q_wolves',
+  welcomeDone:
+    'Marshal Redbrook has no more work for you - the quaint seaside town where your journey began rests easier for it.',
 };
 
 // ---------------------------------------------------------------------------
@@ -113,8 +271,8 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     loot: [
       { copper: 8, chance: 1 },
       { itemId: 'wolf_fang', chance: 0.45 },
-      { itemId: 'milepost_boots', chance: 0.1 },
-      { itemId: 'wolfhide_satchel', chance: 0.02 },
+      { itemId: 'milepost_boots', chance: 0.017 },
+      { itemId: 'wolfhide_satchel', chance: 0.003 },
     ],
     scale: 0.9,
     color: 0x7f8c8d,
@@ -170,7 +328,7 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
       { copper: 12, chance: 1 },
       { itemId: 'boar_hide', chance: 0.6, questId: 'q_boars' },
       { itemId: 'tough_jerky', chance: 0.3 },
-      { itemId: 'trail_leggings', chance: 0.1 },
+      { itemId: 'trail_leggings', chance: 0.02 },
     ],
     scale: 0.85,
     color: 0x935116,
@@ -203,7 +361,7 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
       { copper: 14, chance: 1 },
       { itemId: 'webwood_silk', chance: 0.55, questId: 'q_spiders' },
       { itemId: 'spider_leg', chance: 0.4 },
-      { itemId: 'mosshide_vest', chance: 0.12 },
+      { itemId: 'mosshide_vest', chance: 0.02 },
     ],
     scale: 0.9,
     color: 0x4a235a,
@@ -246,6 +404,9 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
       { itemId: 'moggers_shiv', chance: 0.25, rollGroup: 'mogger_chase' },
       { itemId: 'cryptstalker_jerkin', chance: 0.25, rollGroup: 'mogger_chase' },
       { itemId: 'valefire_lantern', chance: 0.2 },
+      // The hunter offhand rides its own independent roll beside the caster
+      // lantern, so neither class's odds depend on the other's.
+      { itemId: 'moggers_hide_quiver', chance: 0.2 },
     ],
     scale: 1.28,
     color: 0x8e5b33,
@@ -316,8 +477,8 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
       { itemId: 'tallow_candle', chance: 0.6 },
       { itemId: 'blessed_wax', chance: 0.45, questId: 'q_rite' },
       { itemId: 'linen_scrap', chance: 0.25 },
-      { itemId: 'mossy_handwraps', chance: 0.15 },
-      { itemId: 'thornling_grips', chance: 0.15 },
+      { itemId: 'mossy_handwraps', chance: 0.01 },
+      { itemId: 'thornling_grips', chance: 0.01 },
     ],
     scale: 0.85,
     color: 0x9c640c,
@@ -332,7 +493,20 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     elite: true,
     canSwim: true,
     ccImmune: true,
-    respawnMult: 432,
+    // Random respawn window, drawn fresh per death: 36 to 72 times the 25s base
+    // is 15 to 30 minutes (was a fixed 432, three hours).
+    //
+    // WHY THE CADENCE MOVED. A level 7 named miniboss is content for players
+    // passing through Zone 1, and an experienced player solos an account to cap
+    // in about four hours, so a three-hour timer meant most of his audience
+    // never saw him at all. WHY THIS WINDOW. Zone 1's rare ladder runs from
+    // Mogger and Old Greyjaw at 4x (100s) up to Wraithbinder Maldrec at 432x
+    // (three hours); the geometric midpoint of that span is about 42x, and this
+    // window brackets it. Grix stays strictly rarer than the plain rares and far
+    // rarer than trash, while a Zone 1 visit now contains two to four of his
+    // spawns instead of a fraction of one. The randomness is separate and is
+    // what stops the camp being clock-farmed.
+    respawnWindow: { minMult: 36, maxMult: 72 },
     hpBase: 280,
     hpPerLevel: 52,
     dmgBase: 11,
@@ -341,6 +515,10 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 24,
     moveSpeed: 7,
     aggroRadius: 13,
+    // Hard tether: the Tunnelking fights on his own ground. Kiting him past 50
+    // yards of his spawn (the town square is 100+) sends him home to a full
+    // reset, adds swept with him.
+    hardLeashRadius: 50,
     aoePulse: { min: 12, max: 18, radius: 8, every: 9, name: 'Cave-In', school: 'physical' },
     summonAdds: { mobId: 'tunnel_rat', count: 2, atHpPct: [0.55, 0.3] },
     enrage: { belowHpPct: 0.3, dmgMult: 1.4, hasteMult: 1.3 },
@@ -354,7 +532,13 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
       { itemId: 'hollowbone_hauberk', chance: 0.25, rollGroup: 'grix_tunnelking_chase' },
       { itemId: 'briarroot_staff', chance: 0.3 },
     ],
-    scale: 1.15,
+    // Half again the Deeprock Diggers he summons (tunnel_rat scale 0.85 x 1.5),
+    // up from 1.15. Not purely cosmetic: mob_combat's scaledDefaultMobMeleeRange
+    // adds 3 yd of reach per unit of scale ABOVE 1, so this widens his melee
+    // reach by 0.375 yd (and desiredRange, which is 0.8x of it) as well as his
+    // silhouette. That is the intended read for a rare elite standing in a pack
+    // of its own adds; it is also why this is a parity-affecting change.
+    scale: 1.275,
     color: 0xb9770e,
   },
   vale_bandit: {
@@ -400,6 +584,7 @@ export const ZONE1_MOBS: Record<string, MobTemplate> = {
       { copper: 30, chance: 1 },
       { itemId: 'bone_fragments', chance: 0.6 },
       { itemId: 'ghostly_essence', chance: 0.55, questId: 'q_rite' },
+      { itemId: 'restless_skull', chance: 1, questId: 'q_bones' },
     ],
     scale: 1.0,
     color: 0xd5dbdb,
@@ -531,7 +716,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     questIds: [],
     market: true,
     greeting:
-      'Welcome to the World Market, $C. Buy from every adventurer in the realm — or set out your own wares and let coin find you.',
+      'Welcome to the World Market, $C. Buy from every adventurer in the realm, or set out your own wares and let coin find you.',
   },
   marshal_redbrook: {
     id: 'marshal_redbrook',
@@ -560,17 +745,25 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
       'minor_mana_potion',
       'linen_pouch',
       'travelers_knapsack',
+      // Gathering tools, TIER 1 ONLY (#2343's rule: each zone hub stocks the
+      // tiers its own nodes use). Eastbrook is entirely tier-1 ground, so a
+      // tier-2 or tier-3 land tool opens nothing here; the marsh and the peaks
+      // sell the rungs their own veins need, and this counter used to be the
+      // one place in the world that sold the whole ladder at the front door.
+      // The tiered rods stay, and Wilkes is now the one counter carrying the
+      // WHOLE rod ladder rather than the only one carrying any of it: each
+      // zone's water has a required rod tier of its own now
+      // (professions/fishing_zones.ts), so the marsh and the peaks stock the
+      // rung they ask for and this counter is where you buy ahead.
       'copper_mining_pick',
-      'iron_mining_pick',
-      'mithril_mining_pick',
       'handaxe',
-      'felling_axe',
-      'ironbark_axe',
       'gathering_sickle',
-      'bronze_sickle',
-      'silverleaf_sickle',
       'ironreel_fishing_rod',
       'silverstream_fishing_rod',
+      'field_kit',
+      // The one materials-only satchel a vendor stocks, sold beside the two
+      // general pouches above so the two-pool trade is legible at the counter.
+      'burlap_reagent_pouch',
     ],
     greeting: 'Fresh bread, clean water, fair prices. What can I get you?',
   },
@@ -582,7 +775,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     facing: EASTBROOK_NPC_PLACEMENTS_BY_ID.apothecary_lin.facing,
     color: 0x7d3c98,
     questIds: ['q_spiders'],
-    greeting: 'Careful where you step in the eastern woods, friend.',
+    greeting: 'Careful where you step in the northeastern woods, friend.',
   },
   brother_aldric: {
     id: 'brother_aldric',
@@ -600,6 +793,7 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
       'q_sexton',
       'q_hollow',
       'q_gravecallers_trail',
+      'q_divine_tome',
       'q_fenbridge_muster',
     ],
     greeting: 'The Light keep you. Even the dead find no rest here of late.',
@@ -612,18 +806,21 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     facing: EASTBROOK_NPC_PLACEMENTS_BY_ID.smith_haldren.facing,
     color: 0x707b7c,
     questIds: ['q_prof_hobby_switch'],
+    // qr-11n-WIDE pulled the four byte-identical crafted gear rows from this
+    // stock (eastbrook_arming_sword, eastbrook_chain_vest,
+    // eastbrook_wool_trousers, tanned_leather_jerkin): identical id, zero
+    // margin, unlimited restock, R23's purest competitor form. The recipes,
+    // items and prices stay, and the smith keeps his non-crafted staples
+    // below. (The four ids drop nowhere; other zone-1 drops fill the legs
+    // and chest slots.)
     vendorItems: [
-      'eastbrook_arming_sword',
       'eastbrook_greatsword',
       'bronzework_mace',
       'vale_carving_knife',
       'hickory_shortstaff',
       'eastbrook_buckler',
-      'eastbrook_chain_vest',
       'valespun_robe',
-      'tanned_leather_jerkin',
       'hobnail_boots',
-      'eastbrook_wool_trousers',
     ],
     greeting: 'Mind the sparks, $C. Good steel is the difference between a scar and a grave.',
   },
@@ -635,8 +832,8 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     facing: EASTBROOK_NPC_PLACEMENTS_BY_ID.fisherman_brandt.facing,
     color: 0x2471a3,
     questIds: ['q_murlocs'],
-    vendorItems: ['simple_fishing_pole'],
-    greeting: 'Blrb-glub— sorry, been listening to those fish-men too long.',
+    vendorItems: ['simple_fishing_pole', 'field_kit'],
+    greeting: 'Blrb-glub... sorry, been listening to those fish-men too long.',
   },
   foreman_odell: {
     id: 'foreman_odell',
@@ -647,6 +844,18 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     color: 0xa04000,
     questIds: ['q_prof_intro', 'q_mine'],
     greeting: "Whole dig's crawling with those dirt-caked vermin!",
+  },
+  eastbrook_vault_keeper: {
+    id: 'eastbrook_vault_keeper',
+    name: 'Vault Keeper',
+    title: 'Weekly Rewards',
+    pos: { ...EASTBROOK_LAYOUT.weeklyVault.keeper },
+    facing: EASTBROOK_LAYOUT.weeklyVault.rot,
+    color: 0xc9a227,
+    questIds: [],
+    dynamic: true,
+    greeting:
+      'Your weekly rewards await. Choose one item from your earned choices after the Crucible reset.',
   },
   bursar_fernando: {
     id: 'bursar_fernando',
@@ -669,22 +878,6 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     questIds: [],
     cardMaster: true,
     greeting: 'Care for a Card Duel? Best of three, winner takes the bragging rights.',
-  },
-  groundskeeper_bram: {
-    id: 'groundskeeper_bram',
-    name: 'Groundskeeper Bram',
-    title: 'Keeper of the Sowfield',
-    // At the Sowfield's north gate with the book of fixtures (vale_cup_layout
-    // BRAM_POS). dynamic: the generic surface-placement loop skips him; the
-    // Vale Cup module spawns him at world init under a RESERVED entity id so
-    // adding him never shifts the ctor id sequence (parity goldens pin nextId).
-    pos: { x: -6, z: -82 },
-    facing: Math.PI,
-    color: 0x3f7d34,
-    questIds: [],
-    dynamic: true,
-    greeting:
-      'The truce holds at the Sowfield, $C: boots and shoulders only. Care to play for the Copper Pail?',
   },
   chronicler_saul: {
     id: 'chronicler_saul',
@@ -711,16 +904,13 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     // its escalating make-amends return live here now (moved off Smith Haldren),
     // plus the repeatable forge work order.
     questIds: ['q_prof_attune_smith', 'q_prof_amends_smith', 'q_prof_workorder_forge'],
-    // Station stocking: thorium_ore is the premium reagent the forge
-    // station's own recipe (recipe_sootscale_mantle) consumes, so the master
-    // sells it alongside quartermaster_bree (zone3).
-    vendorItems: [
-      'copper_mining_pick',
-      'iron_mining_pick',
-      'mithril_mining_pick',
-      'smithing_flux',
-      'thorium_ore',
-    ],
+    // Station stocking: the forge master sells the tools and the vendor-only
+    // staple its station's recipes need. thorium_ore, the premium reagent
+    // recipe_sootscale_mantle consumes, is NOT here: it is a node yield, and no
+    // NPC stocks a gathered material (professions.md, Locked rulings). The
+    // pick is tier 1 alone, the tier Eastbrook's own veins use; the higher
+    // rungs moved to the hubs whose ground needs them.
+    vendorItems: ['copper_mining_pick', 'field_kit', 'smithing_flux'],
     greeting: 'The forge answers to me, $C. Bring good ore and it will answer to you too.',
   },
   cook_marlow: {
@@ -733,7 +923,13 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     // Professions 2.0: the Apothecary pair's (alchemy + cooking) anchor
     // master. Attunement, make-amends return, and the repeatable kitchens work
     // order live here.
-    questIds: ['q_prof_attune_apothecary', 'q_prof_amends_apothecary', 'q_prof_workorder_kitchens'],
+    questIds: [
+      'q_prof_attune_apothecary',
+      'q_prof_amends_apothecary',
+      'q_prof_workorder_kitchens',
+      'q_prof_workorder_kitchens_wheat',
+      'q_prof_workorder_kitchens_rice',
+    ],
     vendorItems: [
       'baked_bread',
       'spring_water',
@@ -755,18 +951,17 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
     // anchor master. Attunement, make-amends return, and the repeatable loom work
     // order live here.
     questIds: ['q_prof_attune_outfitter', 'q_prof_amends_outfitter', 'q_prof_workorder_loom'],
-    // Station stocking: thorium_ore was stocked as the premium
-    // reagent of the loom's own recipe. An input rework later
-    // moved recipe_wardweave_cowl off osmium (silk plus premium herbs now),
-    // but the stock stays: removing a shipped vendor row is out of that
-    // rework's scope, and loom customers still buy it for the
-    // forge crafts next door.
+    // Station stocking: the loom master sells its own goods, the tier-1 sickle,
+    // and the vendor-only thread staple. thorium_ore used to sit here as a
+    // premium reagent; it is a node yield, and no NPC stocks a gathered
+    // material (professions.md, Locked rulings).
     vendorItems: [
       'linen_pouch',
       'travelers_knapsack',
       'gathering_sickle',
+      'field_kit',
       'spool_of_thread',
-      'thorium_ore',
+      'burlap_reagent_pouch',
     ],
     greeting: 'Mind the threads, $C. A steady hand at the loom beats a strong one.',
   },
@@ -785,25 +980,59 @@ export const ZONE1_NPCS: Record<string, NpcDef> = {
       'q_prof_amends_bombardier',
       'q_prof_workorder_toolworks',
     ],
-    // Station stocking: the six premium reagents the toolworks
-    // recipes (TOOL_RECIPES) consume, previously sold only by
-    // quartermaster_bree (zone3).
-    vendorItems: [
-      'handaxe',
-      'felling_axe',
-      'ironbark_axe',
-      'bronze_sickle',
-      'silverleaf_sickle',
-      'simple_fishing_pole',
-      'thorium_ore',
-      'arcanite_bar',
-      'ashwood_log',
-      'elderwood_log',
-      'goldleaf_herb',
-      'sunpetal_herb',
-    ],
+    // Station stocking: the toolworks tools, plus arcanite_bar, the one premium
+    // reagent TOOL_RECIPES consume that a counter may carry. The other five
+    // (thorium_ore, ashwood_log, elderwood_log, goldleaf_herb, sunpetal_herb)
+    // are node yields, and no NPC stocks a gathered material (professions.md,
+    // Locked rulings): a tool above tier 3 is gathered up to, not bought.
+    // Tier-1 implements only, the tier Eastbrook's own stands and patches use.
+    // The tier-2 and tier-3 axes and sickles moved to the marsh and the peaks;
+    // the tier-1 sickle still sits on Ottilie rather than here, the shipped
+    // split between the two masters.
+    vendorItems: ['handaxe', 'simple_fishing_pole', 'field_kit', 'arcanite_bar'],
     greeting:
       'Springs, sprockets, and sharp edges, $C: the toolworks has whatever your hands lack.',
+  },
+  // The farming go-live: the tier-1 farmer, the face of the Eastbrook
+  // allotments (content/farm_patches.ts patch_eastbrook) and the front door
+  // of the profession (q_farm_intro). She stands 6 yd off the patch anchor on
+  // its +x side (the world's WEST, per the compass note above the camps) at
+  // the harbor town's north-east edge: 20 yd from the civic center, 20 yd off
+  // the nearest lane, 48 yd outside the nearest camp disc. She carries an
+  // INLINE pos rather than an eastbrook_layout row: the layout is the town's
+  // placement table and she is not a town NPC. Facing the beds (atan2(dx, dz)
+  // toward the patch anchor: -x from where she stands). Her stock is the D9/D11 opening counter:
+  // tier-1 seeds, the one vendor-priced produce (brook_carrot, the starter
+  // watch fee), compost, and the rung-one hoe; tier 3/4 seeds and the crafted
+  // hoes are stocked NOWHERE (tests/professions_zone_rollout.test.ts). Her
+  // placement (never nudged by findSafePos, beside the beds, off the road,
+  // in her zone) is pinned by tests/farmer_npc_placement.test.ts.
+  farmer_jessica: {
+    id: 'farmer_jessica',
+    name: 'Farmer Jessica',
+    title: 'Allotment Keeper',
+    // (the Tidehold rebuild's smithy stands a few strides west of her and
+    // the inn up the slope north of the beds; she keeps her spot: at the old
+    // Studio rebuild map's (-17, -82) she would stand inside the 3 yd the beds
+    // keep clear, and a customer beside her inside a bed's working reach)
+    pos: { x: -15.5, z: -81.5 },
+    facing: -Math.PI / 2,
+    color: 0xa8843a,
+    questIds: ['q_farm_intro'],
+    vendorItems: [
+      'vale_wheat_seed',
+      'brook_carrot_seed',
+      'brook_carrot',
+      'compost',
+      'garden_hoe',
+      'field_kit',
+    ],
+    farmer: true,
+    // The two teaching sentences below are pinned VERBATIM (the go-live
+    // greeting arm): the anti-chore promise, and the pointer to the Harvest
+    // Journal, the one durable surface that shows every planted bed's timer.
+    greeting:
+      'Good soil and fair weather, $N. Buy a seed from me, sow it in one of those beds, and go about your day. It keeps growing while you are away, and it never spoils. Your Harvest Journal (Shift+K, or the Farming row of your Professions window) lists every planted bed and its timer.',
   },
 };
 
@@ -830,13 +1059,75 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'A Trade for Every Hand',
     giverNpcId: 'foreman_odell',
     turnInNpcId: 'foreman_odell',
-    text: "Every soul in Eastbrook works a trade besides the sword, $N. There are ore veins in the rocks around the Copper Dig, southwest of town. Go swing a pick and work 5 of them yourself, mind; I'll know the difference.",
+    text: "Every soul in Eastbrook works a trade besides the sword, $N. There are ore veins in the rocks around the Copper Dig, northeast of town past the wolf runs. Go swing a pick and work 5 of them yourself, mind; I'll know the difference.",
     completionText:
       "See? Ore gathered and callus on your hands. Keep at the mining, logging, and herb-picking as you travel the roads, and when you're back in town, mind the Town Focus board by the market and the crafting bench nearby. There's a fair trade waiting in all of it, if you want it.",
     objectives: [{ type: 'gather', nodeType: 'ore', count: 5, label: 'Ore vein harvested' }],
     xpReward: 150,
     copperReward: 50,
     itemRewards: {},
+    // The quest says to go swing a pick, and under the always-require-tool rule
+    // (#2343) a bare-handed harvest is denied outright. A new character starts
+    // with zero copper, so the game's FIRST quest silently required a detour to
+    // earn 20 copper and buy a pick before its objective could move at all (the
+    // pick is a vendor staple, so this was a dead end only until the player
+    // found that out). questFallbackGrants hands the pick over on accept and
+    // re-grants it if it is ever lost, exactly like a prerequisite quest item.
+    requiredItems: ['copper_mining_pick'],
+  },
+  // Farming onboarding (the farming go-live, D20): the profession's front
+  // door, on the q_prof_intro template. Two ACTION objectives on the farm
+  // arm of the objective union (plant one Vale Wheat in the Eastbrook patch,
+  // then harvest it), credited by the plant and harvest commands themselves
+  // (quests/quest_credit.ts): inventory ownership cannot prove a harvest,
+  // since produce also arrives from the market and work-order pouches. No
+  // minLevel and no prerequisite: like q_prof_intro it is a level-1 entry
+  // point at its own NPC. Fallback grants: the rung-one hoe (the step-12
+  // hoe gate refuses a bare-handed plant) and ONE seed, so a day-one
+  // character with zero copper is never dead-ended at the first bed. NOTE
+  // the seed is CONSUMED by planting, and requiredItems re-grants on every
+  // giver talk while the quest is ACTIVE, so this is a small free-seed
+  // faucet: one 4-copper seed per talk, bounded by the beds a player can
+  // hold planted before the first harvest turns the quest ready (the
+  // re-grant runs for active quests only, never once ready or done). The
+  // seed itself is fenced (noVendorSell, noMarketList: no vendor, market,
+  // mail, or guild-bank cash-out), so the faucet feeds beds, not coin;
+  // face-to-face trade is the one exchange pipe that does not read those
+  // flags (a cooperative pair can pass free seeds). That exception is accepted
+  // at go-live.
+  q_farm_intro: {
+    id: 'q_farm_intro',
+    name: 'First Furrow',
+    giverNpcId: 'farmer_jessica',
+    turnInNpcId: 'farmer_jessica',
+    text: 'Take this hoe and a pinch of vale wheat seed, $N. Sow the seed in one of the beds beside me, then go about your business. Come back whenever you like and bring the crop in; I will be here.',
+    // The two teaching sentences are pinned VERBATIM by
+    // tests/farm_intro_quest_content.test.ts (the D20 magic sentence and the
+    // Harvest Journal pointer, the same two Jessica's greeting carries).
+    completionText:
+      'There, your first crop in your own hands. It keeps growing while you are away, and it never spoils. Your Harvest Journal (Shift+K, or the Farming row of your Professions window) lists every planted bed and its timer. Come back for seed whenever the beds call you, $N.',
+    objectives: [
+      {
+        type: 'farm',
+        action: 'plant',
+        cropId: 'vale_wheat',
+        patchId: 'patch_eastbrook',
+        count: 1,
+        label: 'Vale Wheat planted',
+      },
+      {
+        type: 'farm',
+        action: 'harvest',
+        cropId: 'vale_wheat',
+        patchId: 'patch_eastbrook',
+        count: 1,
+        label: 'Vale Wheat harvested',
+      },
+    ],
+    xpReward: 150,
+    copperReward: 50,
+    itemRewards: {},
+    requiredItems: ['garden_hoe', 'vale_wheat_seed'],
   },
   q_wolves: {
     id: 'q_wolves',
@@ -859,7 +1150,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     turnInNpcId: 'marshal_redbrook',
     text: "There is one wolf no trap has held: Old Greyjaw. He has taken three hounds and a stable boy's arm. He prowls the deep woods north of the wolf runs. Bring me his fang.",
     completionText:
-      'So the old devil is dead at last. The stable boy will sleep easier — and so will I.',
+      'So the old devil is dead at last. The stable boy will sleep easier, and so will I.',
     objectives: [
       { type: 'collect', itemId: 'greyjaw_fang', count: 1, label: "Old Greyjaw's Fang" },
     ],
@@ -877,7 +1168,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Bristly Boar Hides',
     giverNpcId: 'trader_wilkes',
     turnInNpcId: 'trader_wilkes',
-    text: 'Boar hide makes the finest travel packs, and the meadows west of town are crawling with the beasts. Bring me 5 Bristly Boar Hides and I will make it worth your time.',
+    text: 'Boar hide makes the finest travel packs, and the meadows northwest of town are crawling with the beasts. Bring me 5 Bristly Boar Hides and I will make it worth your time.',
     completionText: 'Ah, fine bristly hides! These will fetch a good price.',
     objectives: [{ type: 'collect', itemId: 'boar_hide', count: 5, label: 'Bristly Boar Hide' }],
     xpReward: 350,
@@ -889,7 +1180,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Sableweb Menace',
     giverNpcId: 'apothecary_lin',
     turnInNpcId: 'apothecary_lin',
-    text: 'The lurkers in the eastern woods spin a silk I need for my poultices — and they have grown far too numerous besides. Cull 6 Sableweb Lurkers and cut 4 silk glands from their bellies.',
+    text: 'The lurkers in the northeastern woods spin a silk I need for my poultices, and they have grown far too numerous besides. Cull 6 Sableweb Lurkers and cut 4 silk glands from their bellies.',
     completionText: "Ugh, still twitching. Perfect. Here, you've earned this.",
     objectives: [
       { type: 'kill', targetMobId: 'webwood_spider', count: 6, label: 'Sableweb Lurker slain' },
@@ -905,7 +1196,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Trouble at the Lake',
     giverNpcId: 'fisherman_brandt',
     turnInNpcId: 'fisherman_brandt',
-    text: 'Twenty years I have fished Mirror Lake, and never lost a net until those gurgling fish-men crawled out of the shallows. Drive the Mudfin back — slay 8 of them. And watch yourself: where there is one mudfin, there are five.',
+    text: 'Twenty years I have fished Mirror Lake, and never lost a net until those gurgling fish-men crawled out of the shallows. Drive the Mudfin back: slay 8 of them. And watch yourself: where there is one mudfin, there are five.',
     completionText: 'Hah! That will teach them to mind their own mudholes.',
     objectives: [
       { type: 'kill', targetMobId: 'mudfin_murloc', count: 8, label: 'Mudfin Skulker slain' },
@@ -921,7 +1212,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     giverNpcId: 'foreman_odell',
     turnInNpcId: 'foreman_odell',
     text: 'We struck a fine copper vein and then those burrowing vermin came boiling out of the hillside. My crew will not set foot in the dig until it is cleared. Put down 10 Deeprock Diggers.',
-    completionText: 'Ha! Back to work, lads! You have my thanks — and my coin.',
+    completionText: 'Ha! Back to work, lads! You have my thanks, and my coin.',
     objectives: [
       { type: 'kill', targetMobId: 'tunnel_rat', count: 10, label: 'Deeprock Digger slain' },
     ],
@@ -932,22 +1223,23 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
   },
   q_bones: {
     id: 'q_bones',
+    rev: 1, // objective rework (zones 1-3 dedupe): pre-rework in-flight runs reset on restore
     name: 'The Restless Dead',
     giverNpcId: 'brother_aldric',
     turnInNpcId: 'brother_aldric',
-    text: 'The old ruin on the northwest hill was a chapel once, and its yard a resting place. Something has stirred the dead from their sleep. Grant them peace, $N — return 8 Restless Bones to the earth.',
+    text: 'The old ruin on the northwest hill was a chapel once, and its yard a resting place. Something has stirred the dead from their sleep. Put them down and bring me a skull from each you lay to rest, $N, eight in all, so I may speak the rites over them and grant the peace they were denied.',
     completionText: 'May they rest now, and may the Light forgive whatever woke them.',
     objectives: [
       {
-        type: 'kill',
-        targetMobId: 'restless_bones',
+        type: 'collect',
+        itemId: 'restless_skull',
         count: 8,
-        label: 'Restless Bones laid to rest',
+        label: 'Restless Skulls recovered',
       },
     ],
     xpReward: 700,
     copperReward: 260,
-    itemRewards: {},
+    itemRewards: { warrior: 'lychgate_buckler' },
     minLevel: 5,
   },
   q_supplies: {
@@ -955,7 +1247,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Stolen Supplies',
     giverNpcId: 'trader_wilkes',
     turnInNpcId: 'trader_wilkes',
-    text: 'Those bandits hit my last wagon and made off with four crates of goods — tools, salt, good Eastbrook linen. The crates are stacked around their camp in the southeast hills. Steal them back for me, would you?',
+    text: 'Those bandits hit my last wagon and made off with four crates of goods: tools, salt, good Eastbrook linen. The crates are stacked around their camp in the northwest hills. Steal them back for me, would you?',
     completionText: 'My crates! Barely a scratch on them. You are a wonder.',
     objectives: [
       { type: 'collect', itemId: 'supply_crate', count: 4, label: 'Stolen Supply Crate' },
@@ -970,7 +1262,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Whispers Below',
     giverNpcId: 'brother_aldric',
     turnInNpcId: 'brother_aldric',
-    text: 'You have laid the dead to rest, but they will not stay resting — something calls them back. Search the chapel ruin for any trace of the one doing the calling. If you find a sigil or seal, bring it to me untouched.',
+    text: 'You have laid the dead to rest, but they will not stay resting: something calls them back. Search the chapel ruin for any trace of the one doing the calling. If you find a sigil or seal, bring it to me untouched.',
     completionText:
       'This sigil... it bears the mark of the Gravecallers, a sect I had prayed was extinct. This is worse than I feared, $N.',
     objectives: [
@@ -986,9 +1278,9 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'The Names of the Dead',
     giverNpcId: 'brother_aldric',
     turnInNpcId: 'brother_aldric',
-    text: 'If the Gravecallers raised our dead, I must know whose graves they robbed. The chapel sexton kept a burial ledger, and the wind has scattered its pages across the chapel yard. Gather 3 of them for me, $N — the dead deserve to be called by their names.',
+    text: 'If the Gravecallers raised our dead, I must know whose graves they robbed. The chapel sexton kept a burial ledger, and the wind has scattered its pages across the chapel yard. Gather 3 of them for me, $N. The dead deserve to be called by their names.',
     completionText:
-      "These poor souls... and look here. Sexton Marrow — the chapel's own living caretaker — his grave the first disturbed. Morthen began with the very man who buried Eastbrook's dead.",
+      "These poor souls... and look here. Sexton Marrow, the chapel's own living caretaker, his grave the first disturbed. Morthen began with the very man who buried Eastbrook's dead.",
     objectives: [
       {
         type: 'collect',
@@ -1009,7 +1301,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     turnInNpcId: 'brother_aldric',
     text: "Every name in that ledger is a soul Morthen means to drag from the earth, and the chapel yard already crawls with those he has called. Return 12 Restless Bones to their graves, $N, before the Gravecaller's whisper swells into a chorus.",
     completionText:
-      'The yard grows quieter — but the calling has not stopped. It rises from below now, $N. From the crypt itself.',
+      'The yard grows quieter, but the calling has not stopped. It rises from below now, $N. From the crypt itself.',
     objectives: [
       { type: 'kill', targetMobId: 'restless_bones', count: 12, label: 'Restless Bones silenced' },
     ],
@@ -1023,7 +1315,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'The Binding Rite',
     giverNpcId: 'brother_aldric',
     turnInNpcId: 'brother_aldric',
-    text: "The crypt beneath the chapel must be unsealed if we are to stop the Gravecaller — but only a binding rite will let the living pass. I need 4 lumps of Blessed Tallow — the mine's burrowers hoard tallow by the crate — and 6 Ghostly Essences from the restless dead.",
+    text: "The crypt beneath the chapel must be unsealed if we are to stop the Gravecaller, but only a binding rite will let the living pass. I need 4 lumps of Blessed Tallow (the mine's burrowers hoard tallow by the crate) and 6 Ghostly Essences from the restless dead.",
     completionText:
       'It is done. The way below stands open... and may the Light forgive me for opening it. Gather your strongest companions before you descend, $N. No one should face the Hollow alone.',
     objectives: [
@@ -1040,9 +1332,9 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Into the Hollow',
     giverNpcId: 'brother_aldric',
     turnInNpcId: 'brother_aldric',
-    text: "Morthen the Gravecaller waits at the bottom of the Hollow Crypt, ringed by the elite dead he has raised. He is far beyond any one hero — take four companions, no fewer. End him, and the Vale's dead will finally sleep.",
+    text: "Morthen the Gravecaller waits at the bottom of the Hollow Crypt, ringed by the elite dead he has raised. He is far beyond any one hero: take four companions, no fewer. End him, and the Vale's dead will finally sleep.",
     completionText:
-      'The whispering has stopped. You have done what the whole Vale could not, $N — the dead sleep, and Eastbrook owes you everything it has.',
+      'The whispering has stopped. You have done what the whole Vale could not, $N. The dead sleep, and Eastbrook owes you everything it has.',
     objectives: [
       { type: 'kill', targetMobId: 'morthen', count: 1, label: 'Morthen the Gravecaller slain' },
     ],
@@ -1061,9 +1353,9 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: "The Sexton's Bell",
     giverNpcId: 'brother_aldric',
     turnInNpcId: 'brother_aldric',
-    text: "The ledger named him and the crypt holds him: Sexton Marrow, the chapel's caretaker, the first man Morthen raised — guarding his master's door in death as faithfully as he kept the chapel in life. Take four companions into the Hollow Crypt and grant the old sexton the rest he was robbed of, $N.",
+    text: "The ledger named him and the crypt holds him: Sexton Marrow, the chapel's caretaker, the first man Morthen raised, guarding his master's door in death as faithfully as he kept the chapel in life. Take four companions into the Hollow Crypt and grant the old sexton the rest he was robbed of, $N.",
     completionText:
-      'So Marrow is free at last. Ring no bell for him — he heard enough of them in life.',
+      'So Marrow is free at last. Ring no bell for him: he heard enough of them in life.',
     objectives: [
       { type: 'kill', targetMobId: 'sexton_marrow', count: 1, label: 'Sexton Marrow laid to rest' },
     ],
@@ -1082,9 +1374,9 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: "The Gravecaller's Trail",
     giverNpcId: 'brother_aldric',
     turnInNpcId: 'brother_aldric',
-    text: 'Morthen is dead, yet a question gnaws at me: a sect that hid for a century does not spend itself on one village chapel. He kept a grimoire — his rites, his correspondence. If anything of it survives, it lies in the vestry of the ruined chapel above the crypt. Search the ruin and bring me whatever remains of his writings, $N.',
+    text: 'Morthen is dead, yet a question gnaws at me: a sect that hid for a century does not spend itself on one village chapel. He kept a grimoire: his rites, his correspondence. If anything of it survives, it lies in the vestry of the ruined chapel above the crypt. Search the ruin and bring me whatever remains of his writings, $N.',
     completionText:
-      "Morthen wrote to a 'Fogbinder' in the northern fen. The sect is not dead, $N — it has merely been patient.",
+      "Morthen wrote to a 'Fogbinder' in the northern fen. The sect is not dead, $N. It has merely been patient.",
     objectives: [
       { type: 'collect', itemId: 'morthen_grimoire', count: 1, label: "Morthen's Grimoire" },
     ],
@@ -1093,13 +1385,40 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     itemRewards: {},
     requiresQuest: 'q_hollow',
   },
+  // --- Paladin-only Dawnbound Tome chain (learn Recall the Fallen). Step 1 with Brother
+  // Aldric in the Vale opens the rite and sends you after him; the rite itself is
+  // completed with Aldric in Mirefen Marsh (q_rite_of_redemption, zone2), which
+  // grants the resurrection on turn-in. ---
+  q_divine_tome: {
+    id: 'q_divine_tome',
+    name: 'The Dawnbound Tome',
+    giverNpcId: 'brother_aldric',
+    turnInNpcId: 'brother_aldric',
+    text: 'The Light does not rest in you quietly, $N. I have watched you lay the dead to peace, and I believe you are ready for what few paladins are ever taught: the Rite of Recall, by which a fallen soul is called back to the living. Its words are kept in the Dawnbound Tome, here in my keeping, but a book is no blessing while the restless dead still walk this ground. Return 6 more Restless Bones to the earth, and I will begin to teach you.',
+    completionText:
+      'The chapel yard grows quiet. You are ready for the words, $N, but the Rite of Recall cannot be spoken in a warm chapel. It must be sung where the veil between life and death wears thin. I mean to carry the Tome north into the Mirefen Marsh. Follow me there, and we will finish this.',
+    objectives: [
+      {
+        type: 'kill',
+        targetMobId: 'restless_bones',
+        count: 6,
+        label: 'Restless Bones laid to rest',
+      },
+    ],
+    xpReward: 650,
+    copperReward: 200,
+    itemRewards: {},
+    requiredClass: ['paladin'],
+    requiresQuest: 'q_bones',
+    minLevel: 6,
+  },
   q_bandits: {
     id: 'q_bandits',
     name: 'Bandits of the Vale',
     giverNpcId: 'marshal_redbrook',
     turnInNpcId: 'marshal_redbrook',
-    text: 'A pack of cutthroats has made camp in the southwest hills. They have robbed three wagons this week. Drive them out — slay 10 Vale Bandits.',
-    completionText: 'Ten fewer knives in the dark. Take this — you have earned it.',
+    text: 'A pack of cutthroats has made camp in the northwest hills. They have robbed three wagons this week. Drive them out: slay 10 Vale Bandits.',
+    completionText: 'Ten fewer knives in the dark. Take this: you have earned it.',
     objectives: [
       { type: 'kill', targetMobId: 'vale_bandit', count: 10, label: 'Vale Bandit slain' },
     ],
@@ -1129,7 +1448,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Mogger Must Fall',
     giverNpcId: 'marshal_redbrook',
     turnInNpcId: 'marshal_redbrook',
-    text: 'Mogger has split carts, flattened fences, and killed enough livestock to empty half the Vale. Do not face him alone. Take two strong companions into the eastern meadow and put the brute down for good.',
+    text: 'Mogger has split carts, flattened fences, and killed enough livestock to empty half the Vale. Do not face him alone. Take two strong companions into the western meadow and put the brute down for good.',
     completionText:
       "Mogger dead at last. Eastbrook's fields are safer, and you leave the Vale with one more tale worth retelling.",
     objectives: [{ type: 'kill', targetMobId: 'mogger', count: 1, label: 'Mogger slain' }],
@@ -1166,18 +1485,30 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     copperReward: 0,
     itemRewards: {},
     shareable: false,
+    // An anchor master is an independent entry point (no q_prof_intro gate), so
+    // this one cannot lean on the intro quest's pick: it grants its own.
+    requiredItems: ['copper_mining_pick'],
     completionEffect: { type: 'attunePair', mode: 'new', pairId: 'weaponcrafting+armorcrafting' },
   },
+  // STALE-OVERLAY NOTE (docs/i18n-scaling/translation-workflow.md, "Rewording an
+  // existing English value"): the giver text and objectives.0.label for this key
+  // were reworded (mob display names webwood spider -> Sableweb Lurker) without a
+  // matching overlay re-fill. The status registry has no staleness detection yet
+  // (srcHash/enHash comparison is dormant), so translated locales keep rendering
+  // the OLD mob name and the release-tier pending gate will NOT catch it. Flagging
+  // here for the next maintainer i18n-locale-fill pass to re-do
+  // entities.quests.q_prof_attune_outfitter.{text,objectives.0.label} in every
+  // locale overlay.
   q_prof_attune_outfitter: {
     id: 'q_prof_attune_outfitter',
     name: "The Outfitter's Measure",
     giverNpcId: 'weaver_ottilie',
     turnInNpcId: 'weaver_ottilie',
-    text: 'Measure the cost before you cut, that is the first rule at my loom. Choose me and Leatherworking and Tailoring become your two majors, the pair you may carry beyond rare work; the craft opposite them settles in as your hobby, taken to rare and left there. The trades you set aside are not unravelled, $N, only folded away, dormant until you take them up again. Be certain, though: should you leave this pair and later want it back, the way home is paid in labor that lengthens each time, five culled at first, then eight, then eleven, always a little more. If your mind is made, cull four webwood spiders and bring their silk to the loom, for good thread starts every good garment.',
+    text: 'Measure the cost before you cut, that is the first rule at my loom. Choose me and Leatherworking and Tailoring become your two majors, the pair you may carry beyond rare work; the craft opposite them settles in as your hobby, taken to rare and left there. The trades you set aside are not unravelled, $N, only folded away, dormant until you take them up again. Be certain, though: should you leave this pair and later want it back, the way home is paid in labor that lengthens each time, five culled at first, then eight, then eleven, always a little more. If your mind is made, cull four Sableweb Lurkers and bring their silk to the loom, for good thread starts every good garment.',
     completionText:
       'Even thread, even hand. Leatherworking and Tailoring are yours to carry as far as your skill will reach. Measure twice, and they will not fail you.',
     objectives: [
-      { type: 'kill', targetMobId: 'webwood_spider', count: 4, label: 'Webwood Spider culled' },
+      { type: 'kill', targetMobId: 'webwood_spider', count: 4, label: 'Sableweb Lurker culled' },
     ],
     xpReward: 150,
     copperReward: 0,
@@ -1213,6 +1544,9 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     copperReward: 0,
     itemRewards: {},
     shareable: false,
+    // A herb objective, so this one grants the SICKLE, not the pick: a mining
+    // tool does not satisfy the herbalism tool gate.
+    requiredItems: ['gathering_sickle'],
     completionEffect: { type: 'attunePair', mode: 'new', pairId: 'engineering+alchemy' },
   },
   // Make-amends returns (Professions 2.0): repeatable, one per anchor
@@ -1244,16 +1578,19 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
       pairId: 'weaponcrafting+armorcrafting',
     },
   },
+  // STALE-OVERLAY NOTE: same reword-without-refill gap as q_prof_attune_outfitter
+  // above (webwood spider -> Sableweb Lurker), needs an i18n-locale-fill pass for
+  // entities.quests.q_prof_amends_outfitter.{text,objectives.0.label}.
   q_prof_amends_outfitter: {
     id: 'q_prof_amends_outfitter',
     name: 'Threads Rejoined',
     giverNpcId: 'weaver_ottilie',
     turnInNpcId: 'weaver_ottilie',
-    text: 'Back at my loom after all. I hold no grudge, $N, but the thread remembers a hand that let it go, and the cost of taking it up again is measured out longer each time. Cull the webwood spiders crowding the western woods, and the labor will settle your hands before they touch good silk again.',
+    text: 'Back at my loom after all. I hold no grudge, $N, but the thread remembers a hand that let it go, and the cost of taking it up again is measured out longer each time. Cull the Sableweb Lurkers crowding the northeastern woods, and the labor will settle your hands before they touch good silk again.',
     completionText:
       'Steady again. Leatherworking and Tailoring return to your hands as majors. Measure twice this time before you wander.',
     objectives: [
-      { type: 'kill', targetMobId: 'webwood_spider', count: 5, label: 'Webwood Spider culled' },
+      { type: 'kill', targetMobId: 'webwood_spider', count: 5, label: 'Sableweb Lurker culled' },
     ],
     xpReward: 100,
     copperReward: 0,
@@ -1268,7 +1605,7 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     name: 'Back on the Stove',
     giverNpcId: 'cook_marlow',
     turnInNpcId: 'cook_marlow',
-    text: 'Well, look who is back at my pot. No hard feelings, $N, a kitchen always has room, but you know the tab runs longer every time you walk out on it. Go thin the wild boars in the east meadow, because honest sweat is the first ingredient, and it will remind your hands of the work.',
+    text: 'Well, look who is back at my pot. No hard feelings, $N, a kitchen always has room, but you know the tab runs longer every time you walk out on it. Go thin the wild boars in the northwest meadow, because honest sweat is the first ingredient, and it will remind your hands of the work.',
     completionText:
       'There is the old flavor. Alchemy and Cooking are back on your stove as majors. Stay a while this time.',
     objectives: [{ type: 'kill', targetMobId: 'wild_boar', count: 5, label: 'Wild Boar hunted' }],
@@ -1280,16 +1617,19 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     resolvedObjectiveCounts: 'archetypeAmends',
     completionEffect: { type: 'attunePair', mode: 'return', pairId: 'alchemy+cooking' },
   },
+  // STALE-OVERLAY NOTE: same reword-without-refill gap as q_prof_attune_outfitter
+  // above (tunnel rat -> Deeprock Digger), needs an i18n-locale-fill pass for
+  // entities.quests.q_prof_amends_bombardier.{text,objectives.0.label}.
   q_prof_amends_bombardier: {
     id: 'q_prof_amends_bombardier',
     name: 'The Ledger Grows',
     giverNpcId: 'tinker_gizzel',
     turnInNpcId: 'tinker_gizzel',
-    text: 'You came BACK, ha, they always come back, the loud stuff has a pull, yes? No sulking from me, $N, but the ledger, oh the ledger, it grows every time you skip out, more each return, that is only fair. Go clear the tunnel rats out of the dig for me, sweat first, sparks later, that is the rule I just made up.',
+    text: 'You came BACK, ha, they always come back, the loud stuff has a pull, yes? No sulking from me, $N, but the ledger, oh the ledger, it grows every time you skip out, more each return, that is only fair. Go clear the Deeprock Diggers out of the dig for me, sweat first, sparks later, that is the rule I just made up.',
     completionText:
       'THERE it is, the itch is back in your hands. Engineering and Alchemy, majors again, go on, go make a bang. Try to stay put this time, eh?',
     objectives: [
-      { type: 'kill', targetMobId: 'tunnel_rat', count: 5, label: 'Tunnel Rat exterminated' },
+      { type: 'kill', targetMobId: 'tunnel_rat', count: 5, label: 'Deeprock Digger exterminated' },
     ],
     xpReward: 100,
     copperReward: 0,
@@ -1302,7 +1642,8 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
   // Repeatable craft work orders (Professions 2.0): a master takes a
   // stack of their craft's staple material off your hands for coin, a light
   // economy sink on a fixed cadence (repeatCadenceTicks WORK_ORDER_CADENCE_TICKS).
-  // The collect turn-in consumes the materials (turnInQuestCore removeItem).
+  // The collect turn-in consumes the materials (turnInQuestCore via
+  // removePreferFungible: plain stacks first, signed copies last).
   // copperReward is floor(0.5 * summed vendor sell value of the requested
   // materials); xpReward matches the only repeatable-quest precedent in the game,
   // the make-amends band (100), since no zone-2/3 repeatable exists to scale to.
@@ -1337,6 +1678,49 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     xpReward: 100,
     // floor(0.5 * 8 * 4) = 16 (game_meat sellValue 4).
     copperReward: 16,
+    itemRewards: {},
+    repeatable: true,
+    shareable: false,
+    repeatCadenceTicks: WORK_ORDER_CADENCE_TICKS,
+  },
+  // Farming go-live: the kitchens take the two early-tier crops off a
+  // farmer's hands on the same work-order contract (fungible produce only:
+  // farming's fine twins have no downward grade substitution, so a Fine Vale
+  // Wheat never fills a plain-wheat order). Two rows, one per early tier, so
+  // both the Eastbrook and the Fenbridge beds have a coin sink from day one.
+  q_prof_workorder_kitchens_wheat: {
+    id: 'q_prof_workorder_kitchens_wheat',
+    name: 'Kitchens Wheat Order',
+    giverNpcId: 'cook_marlow',
+    turnInNpcId: 'cook_marlow',
+    text: 'Bread does not bake itself, $N, and my flour bins are scraping bottom. Bring me eight sheaves of vale wheat and I will pay you honest coin for the lot. Grown by your own hand or bought off the market, I do not care, so long as it grinds.',
+    completionText:
+      'Good dry grain, and plenty of it. There is your pay, counted out. When the next crop comes in, you know which door to knock on.',
+    objectives: [
+      { type: 'collect', itemId: 'vale_wheat', count: 8, label: 'Vale Wheat delivered' },
+    ],
+    xpReward: 100,
+    // floor(0.5 * 8 * 4) = 16 (vale_wheat sellValue 4).
+    copperReward: 16,
+    itemRewards: {},
+    repeatable: true,
+    shareable: false,
+    repeatCadenceTicks: WORK_ORDER_CADENCE_TICKS,
+  },
+  q_prof_workorder_kitchens_rice: {
+    id: 'q_prof_workorder_kitchens_rice',
+    name: 'Kitchens Rice Order',
+    giverNpcId: 'cook_marlow',
+    turnInNpcId: 'cook_marlow',
+    text: 'The marsh folk swear by their rice, $N, and I mean to find out why. Fetch me five measures of marsh rice and there is coin waiting for you here. Keep it dry on the road, mind: wet rice is porridge, and I did not order porridge.',
+    completionText:
+      'Plump and dry, every grain. Here is your coin. If the marsh keeps giving, so do I.',
+    objectives: [
+      { type: 'collect', itemId: 'marsh_rice', count: 5, label: 'Marsh Rice delivered' },
+    ],
+    xpReward: 100,
+    // floor(0.5 * 5 * 8) = 20 (marsh_rice sellValue 8).
+    copperReward: 20,
     itemRewards: {},
     repeatable: true,
     shareable: false,
@@ -1397,12 +1781,27 @@ export const ZONE1_QUESTS: Record<string, QuestDef> = {
     requiresQuest: 'q_prof_intro',
     repeatable: true,
     shareable: false,
+    // The same 30-minute window its four work-order siblings carry. The iron
+    // gate on the tool mint is the accept-time presence predicate
+    // (quests/quest_item_presence.ts, spanning bank/mail/escrow). The cadence
+    // bounds ONLY the turn-in loop (armCadence fires in turnInQuestCore;
+    // abandoning arms nothing), so the one transfer route left deliberately
+    // open (direct trade, R10) still moves one sickle per accept-abandon
+    // cycle. What actually bounds that route is the value ceiling: the tools
+    // carry noVendorSell and noMarketList, so a traded copy has no route to
+    // copper (guarded in tests/professions_starter_tools.test.ts).
+    repeatCadenceTicks: WORK_ORDER_CADENCE_TICKS,
+    // Also a herb objective, so also the sickle. This is the repeatable one, so
+    // it is the reason the tier-1 tools carry noVendorSell (items.ts): without
+    // that flag, accept-sell-abandon would be an unbounded copper faucet.
+    requiredItems: ['gathering_sickle'],
     completionEffect: { type: 'switchHobby' },
   },
 };
 
 export const ZONE1_QUEST_ORDER = [
   'q_prof_intro',
+  'q_farm_intro',
   'q_wolves',
   'q_boars',
   'q_spiders',
@@ -1420,6 +1819,7 @@ export const ZONE1_QUEST_ORDER = [
   'q_sexton',
   'q_hollow',
   'q_gravecallers_trail',
+  'q_divine_tome',
   'q_mogger',
   'q_prof_attune_smith',
   'q_prof_attune_outfitter',
@@ -1431,6 +1831,8 @@ export const ZONE1_QUEST_ORDER = [
   'q_prof_amends_bombardier',
   'q_prof_workorder_forge',
   'q_prof_workorder_kitchens',
+  'q_prof_workorder_kitchens_wheat',
+  'q_prof_workorder_kitchens_rice',
   'q_prof_workorder_loom',
   'q_prof_workorder_toolworks',
   'q_prof_hobby_switch',
@@ -1442,27 +1844,101 @@ export const ZONE1_QUEST_ORDER = [
 // rendered world and the corrected map both put -x on your right).
 // ---------------------------------------------------------------------------
 
+// STARTER PACING: every packed camp whose disc reaches within 100 yd of the town
+// hub is spaced so adjacent mobs stand at least 11.5 yd apart (radius / sqrt(count),
+// camp_scatter.ts), no disc comes closer than 38 yd to the hub, and NO TWO
+// POPULATIONS OVERLAP: two camps of DIFFERENT mobIds keep their discs fully apart
+// (distance >= radiusA + radiusB + 2). Two camps of the SAME mobId are one
+// population split in two, so they may still abut ((rA + rB) * 0.75 + 8).
+// Below that the packs chain-pull: aggro radii here run 9-13 yd, so a camp
+// scattered tighter than its own aggro radius drags neighbours onto a level-1
+// player, and two interleaved camps pull two different families at once. The
+// lever is spacing and (where a camp could not otherwise fit) a small count cut;
+// aggroRadius and the social-aggro flee-rally (src/sim/mob/social_aggro.ts) are
+// deliberately unchanged, and no named rare or elite was ever thinned. Counts were
+// trimmed by one per crowded camp (murlocs by three, see below) on maintainer
+// authorization, 2026-07-28, and every camp stays at or above half of the largest
+// single kill-quest requirement against its mobId. Camps were pushed OUTWARD along
+// their existing bearing so each stays in its own corner.
+// Guarded by tests/eastbrook_camp_spacing.test.ts. Row ORDER is a determinism
+// contract (see the CAMPS merge in data.ts): edit values, never reorder.
 export const ZONE1_CAMPS: CampDef[] = [
+  // Compass check for every placement comment and quest text below: the
+  // canonical convention statement lives higher in this file (the pois
+  // block: +z north, +x WEST, east is -x), and reading +X as east is what
+  // produced a run of mirrored quest directions; verify any direction claim
+  // against that note, never against raw signs.
   // Wolves: north woods
-  { mobId: 'forest_wolf', center: { x: -15, z: 55 }, radius: 22, count: 7 },
-  { mobId: 'forest_wolf', center: { x: 20, z: 70 }, radius: 20, count: 6 },
-  { mobId: 'old_greyjaw', center: { x: 0, z: 95 }, radius: 8, count: 1 },
-  // Boars: east meadow
-  { mobId: 'wild_boar', center: { x: 55, z: 12 }, radius: 22, count: 6 },
-  { mobId: 'wild_boar', center: { x: 80, z: -15 }, radius: 18, count: 5 },
+  { mobId: 'forest_wolf', center: { x: -10, z: 6 }, radius: 28.5, count: 6 },
+  { mobId: 'forest_wolf', center: { x: 12, z: 52 }, radius: 26, count: 5 },
+  // Nudged north to stay ahead of the widened wolf runs (q_greyjaw sends the
+  // player to "the deep woods north of the wolf runs").
+  { mobId: 'old_greyjaw', center: { x: 0, z: 100 }, radius: 8, count: 1 },
+  // Boars: west meadow
+  // Round 6 (owner + team): the boar meadow and the bandit camp trade ground.
+  // The bandits sat closest of any hostile camp to the town gate (disc edge 41
+  // yd from the hub) while the harmless boars had the far meadow, so the two
+  // populations swap and both step north, spacing the zone's encounters more
+  // evenly. Row ORDER is untouched (a reorder would move every later camp's
+  // spawn); only the centers move. BOTH boar rows travel, because the bandit
+  // disc (radius 28.5) does not fit the meadow while the second boar camp
+  // holds its corner of it.
+  // Round 6b (owner): pushed further WEST, off the town's doorstep. Three
+  // things forced the exact spots: a camp levels a disc of radius*1.8 around
+  // itself, so the first placement was flattening the vale road at (30,-30) and
+  // lifting it a yard and a half; camp B sat close enough to Gorrak's camp that
+  // his tents read as bandit gear abandoned in the boar meadow; and camp A's
+  // disc edge was only 42 yd from the town hub. Now the road is outside both
+  // flatten discs, Gorrak's dressing is well clear, camp A's edge is 76 yd from
+  // town, and camp B rejoins Mogger on the downs, who was left behind by the
+  // first move.
+  // Round 6c (owner): the meadow settles where the west road actually ENDS,
+  // (65,-65), so the path leads a player somewhere instead of petering out
+  // in empty grass. Camp A holds the road-end meadow; camp B sits on the
+  // downs at the same-population spacing floor, keeping Mogger 27 yd off
+  // its disc so the rare still patrols his boars. The A centre keeps the
+  // vale-road probe at (30,-30) outside its flatten reach (50.5 vs 47.8),
+  // the trap this corridor sprang once already this round.
+  { mobId: 'wild_boar', center: { x: 58, z: -72 }, radius: 26, count: 5 },
+  { mobId: 'wild_boar', center: { x: 97, z: -43 }, radius: 23.5, count: 4 },
   { mobId: 'mogger', center: { x: 118, z: -26 }, radius: 5, count: 1 },
-  // Spiders: western woods
-  { mobId: 'webwood_spider', center: { x: -60, z: 5 }, radius: 22, count: 7 },
-  // Murlocs: lake shore northwest — camp straddles the waterline
-  { mobId: 'mudfin_murloc', center: { x: -75, z: 57 }, radius: 14, count: 8 },
-  // Kobolds: mine southwest
-  { mobId: 'tunnel_rat', center: { x: -82, z: -62 }, radius: 20, count: 9 },
-  // Bandits: southeast camp
-  { mobId: 'vale_bandit', center: { x: 65, z: -65 }, radius: 24, count: 7 },
-  { mobId: 'vale_bandit', center: { x: 90, z: -90 }, radius: 16, count: 5 },
-  { mobId: 'gorrak', center: { x: 92, z: -92 }, radius: 2, count: 1 },
-  // Undead: ruins northeast
-  { mobId: 'restless_bones', center: { x: 80, z: 78 }, radius: 18, count: 8 },
+  // Spiders: eastern woods
+  { mobId: 'webwood_spider', center: { x: -70, z: 2 }, radius: 28.5, count: 6 },
+  // Murlocs: lake shore northeast, camp still straddles the waterline. This camp is
+  // radius-capped by Mirror Lake, not by its neighbours: the terrain flatten disc is
+  // radius * 1.8, so a radius wide enough for 11.5 yd spacing drags a 59 yd flatten
+  // across the lake and lifts its bed above swim depth (the lake stops needing a
+  // swim, fish stop leaping, the map stops painting it as water). Even radius 15.5
+  // reshapes the south shore enough to break the mount-versus-swimmer waterline
+  // (tests/mount_transition.test.ts), so 15 is the measured shore-safe ceiling and
+  // the COUNT comes down instead: 8 to 5. That keeps Fisher Dunwall's "where there
+  // is one mudfin, there are five" literal, still covers half of his slay-8, and
+  // lifts spacing from 4.95 to 6.71 yd. It is the one camp that cannot reach 11.5;
+  // the documented exception and the lake guard live in
+  // tests/eastbrook_camp_spacing.test.ts.
+  { mobId: 'mudfin_murloc', center: { x: -75, z: 57 }, radius: 15, count: 5 },
+  // Kobolds: the Copper Dig, northeast of the Wolf Run on the Mirefen road
+  // (phase 0b of the New Eastbrook program: the interim dig headland went
+  // back to open sea for the ferry lane, and the whole cluster moved rigidly
+  // +110,+230 to the rise past Mirror Lake). Keep-outs verified empirically:
+  // 54yd to Old Greyjaw's prowl disc, 74yd+ to both wolf runs, the camp edge
+  // stops 3yd inside the zone 1 band.
+  { mobId: 'tunnel_rat', center: { x: -32, z: 144 }, radius: 33, count: 8 },
+  // Bandits: southwest camp. Shifted off its own campfire collider and clear of the
+  // boar meadow; the tents, crates and supply drops all stay inside the disc, and it
+  // no longer merges with the outpost below.
+  // The main bandit band takes the old boar meadow, a step north of where the
+  // boars stood. Gorrak's own camp below stays put with the boss, so the
+  // Bandit Camp landmark and the ringleader fight keep their ground.
+  { mobId: 'vale_bandit', center: { x: 80, z: 15 }, radius: 28.5, count: 6 },
+  // Round 6b (owner): Gorrak's camp joins the main band. The two bandit
+  // camps were 105 yd apart with the boar meadow sitting between them, so
+  // half the vale bandits read as a separate population with no camp.
+  { mobId: 'vale_bandit', center: { x: 115, z: 42 }, radius: 16, count: 5 },
+  { mobId: 'gorrak', center: { x: 118, z: 45 }, radius: 2, count: 1 },
+  // Undead: ruins northwest. The chapel guardians below are the same population, so
+  // they may still flank the altar inside this disc.
+  { mobId: 'restless_bones', center: { x: 82, z: 78 }, radius: 28.5, count: 6 },
   { mobId: 'captain_verlan', center: { x: 92, z: 90 }, radius: 4, count: 1 },
 ];
 
@@ -1482,12 +1958,12 @@ export const ZONE1_OBJECTS: GroundObjectDef[] = [
     itemId: 'supply_crate',
     name: 'Stolen Supply Crate',
     positions: [
-      { x: 58, z: -58 },
-      { x: 73, z: -70 },
-      { x: 86, z: -82 },
-      { x: 95, z: -97 },
-      { x: 64, z: -76 },
-      { x: 81, z: -94 },
+      { x: 65, z: 23 },
+      { x: 72, z: 15 },
+      { x: 82, z: 22 },
+      { x: 106, z: 40 },
+      { x: 110, z: 48 },
+      { x: 116, z: 37 },
     ],
   },
   {
@@ -1517,28 +1993,58 @@ export const ZONE1_OBJECTS: GroundObjectDef[] = [
 // Roads from town toward each hub — used for terrain painting and the map.
 // Roads from town toward each hub — used for terrain painting and the map.
 export const ZONE1_ROADS: { x: number; z: number }[][] = [
-  [...EASTBROOK_LAYOUT.roads[0].points, { x: -8, z: 30 }, { x: -15, z: 55 }, { x: -2, z: 78 }], // north to wolves
-  [...EASTBROOK_LAYOUT.roads[1].points, { x: 30, z: 8 }, { x: 55, z: 12 }], // east to boars
-  [...EASTBROOK_LAYOUT.roads[2].points, { x: 30, z: -30 }, { x: 50, z: -50 }, { x: 65, z: -65 }], // southeast to bandits
-  [...EASTBROOK_LAYOUT.roads[3].points, { x: -35, z: 25 }, { x: -58, z: 48 }, { x: -66, z: 58 }], // northwest to lake
-  [...EASTBROOK_LAYOUT.roads[4].points, { x: -30, z: -28 }, { x: -55, z: -45 }, { x: -70, z: -55 }], // southwest to mine
-  [...EASTBROOK_LAYOUT.roads[5].points, { x: 35, z: 35 }, { x: 60, z: 60 }, { x: 78, z: 74 }], // northeast to ruins
+  [
+    ...EASTBROOK_LAYOUT.roads[0].points,
+    { x: -2, z: -34 },
+    { x: 2, z: -4 },
+    { x: -8, z: 30 },
+    { x: -15, z: 55 },
+    { x: -2, z: 78 },
+    { x: -16, z: 104 },
+    { x: -26, z: 124 },
+    { x: -32, z: 140 },
+  ], // north over the chapel green, through the Wolf Run on the old town ground, on past Mirror Lake to the Copper Dig and the Mirefen road
+  [...EASTBROOK_LAYOUT.roads[1].points], // the main street: market square east to the harbor quay
+  [
+    ...EASTBROOK_LAYOUT.roads[2].points,
+    // Owner report (round 6e): the old beach line (-24,-132)(-12,-135)(12,-131)
+    // dipped under the bay south of town (min height -4.49 vs water -4.3), so
+    // the map painted the meadow road cut by the sea. This arc hugs the dry
+    // sand instead: every sample along it, across a 2.5yd half-width, holds at
+    // least 1.2yd of freeboard over WATER_LEVEL (probed against live terrain).
+    { x: -18, z: -128 },
+    { x: -16, z: -130 },
+    { x: -10, z: -126.5 },
+    { x: -4, z: -123.5 },
+    // Up off the strand past the chapel's door, clear of its bell tower, and
+    // north across the square's west corner.
+    { x: 2, z: -119 },
+    { x: 6, z: -113 },
+    { x: 9, z: -106 },
+    { x: 14, z: -99 },
+    { x: 30, z: -30 },
+    { x: 50, z: -50 },
+    { x: 65, z: -65 },
+  ], // crafts lane, then the coast track along the bay, north to the boar meadow
+  [...EASTBROOK_LAYOUT.roads[3].points], // the beach promenade
+  [...EASTBROOK_LAYOUT.roads[4].points], // civic link across the squares
+  [...EASTBROOK_LAYOUT.roads[5].points, { x: -96, z: -66 }], // the quay walk, joining the flank track (the freed dig ground)
+  [...EASTBROOK_LAYOUT.roads[6].points], // the inn lane down to the main street
 ];
 
 // ---------------------------------------------------------------------------
 // Static props (rendering + collision share this placement data)
 // ---------------------------------------------------------------------------
 
+// The churchyard rails' turns: the end rails run along the yard's north side,
+// the side rails down its east and west sides, square to the chapel.
+const CHURCHYARD_END_RAIL = (35 * Math.PI) / 180;
+const CHURCHYARD_SIDE_RAIL = (125 * Math.PI) / 180;
+
 export const ZONE1_PROPS: ZonePropsDef = {
   buildings: [
-    {
-      id: EASTBROOK_LAYOUT.preservedBuildings[0].id,
-      assetId: EASTBROOK_LAYOUT.preservedBuildings[0].assetId,
-      kind: EASTBROOK_LAYOUT.preservedBuildings[0].kind,
-      landmark: EASTBROOK_GRAND_ARMOURY.landmark,
-      ...EASTBROOK_GRAND_ARMOURY.lot,
-      height: EASTBROOK_GRAND_ARMOURY.aboveGradeHeight,
-    },
+    // Round 4: the preserved Grand Armoury row left this table; the KayKit
+    // barracks and its watch tower stand on the lot as decorProps below.
     ...EASTBROOK_LAYOUT.buildings.map((building) => ({
       id: building.id,
       assetId: building.assetId,
@@ -1550,16 +2056,16 @@ export const ZONE1_PROPS: ZonePropsDef = {
       rot: building.rotation,
       height: building.nativeDimensions.height,
     })),
+    { ...EASTBROOK_LAYOUT.weeklyVault },
   ],
   wells: [
     {
-      id: EASTBROOK_LAYOUT.civic.wellBeacon.id,
-      assetId: EASTBROOK_LAYOUT.civic.wellBeacon.assetId,
-      x: EASTBROOK_LAYOUT.civic.wellBeacon.position.x,
-      z: EASTBROOK_LAYOUT.civic.wellBeacon.position.z,
-      r: EASTBROOK_LAYOUT.civic.wellBeacon.radius,
-      height: EASTBROOK_LAYOUT.civic.wellBeacon.height,
-      camGhost: false,
+      id: EASTBROOK_LAYOUT.civic.monument.id,
+      assetId: EASTBROOK_LAYOUT.civic.monument.assetId,
+      x: EASTBROOK_LAYOUT.civic.monument.position.x,
+      z: EASTBROOK_LAYOUT.civic.monument.position.z,
+      r: EASTBROOK_LAYOUT.civic.monument.radius,
+      height: EASTBROOK_LAYOUT.civic.monument.height,
     },
   ],
   stalls: EASTBROOK_LAYOUT.market.stalls.map((stall) => ({
@@ -1573,27 +2079,142 @@ export const ZONE1_PROPS: ZonePropsDef = {
     d: stall.depth,
     height: stall.height,
     canopyVariant: stall.canopyVariant,
-    camGhost: false,
   })),
-  mines: [{ x: -88, z: -68, rot: 0.8 }],
+  mines: [{ x: -38, z: 138, rot: 0.8 }],
+  // The harbor fleet, moored on the piers' open water only (berths verified
+  // against the deck rectangles in sim/eastbrook_harbor.ts: each hull's
+  // collider stays a full radius plus half-width clear of every walkway, the
+  // Wickharbor rule, so nobody wedges between hull and rail).
+  decorProps: [
+    // The harbor fleet on the Wickharbor pattern (owner refinement): the same
+    // hulls Galecrest moors, on the piers' open sides only. Berths verified
+    // against the fanned deck rectangles in sim/eastbrook_harbor.ts: each
+    // hull's collider stays a full radius plus half-width clear of every
+    // walkway, so nobody wedges between hull and rail.
+    // Round 6 (owner + team): the fleet re-berthed and grown. Four of the five
+    // hulls used to sit partly on dry land, one of them a yard and a half ABOVE
+    // the waterline in the middle of the graded quay pad, because a decorProp
+    // seats on raw terrain and only sinks to its float draft where the ground
+    // is already below the sea. These berths were measured against the cove
+    // bathymetry so every hull is wet across its whole footprint, and each lies
+    // alongside a pier in the gap the round 6 respacing opened.
+    // The Eastbrook ferry berths broadside across the ferry pier's T-head,
+    // but it is no longer a decorProps row: it sails a timetable to Moonrest
+    // in the Nightbloom and back (content/transport_ships.ts
+    // EASTBROOK_NIGHTBLOOM_FERRY), its deck placed at both berths and gated
+    // by the schedule. To make its berth (Phase 1), the blue hull that lay in
+    // the gap north of the ferry pier (x -115, z -45) was retired, the second
+    // blue hull (x -115, z -63, whose stern reached under the ferry's
+    // quarter) moved out to ride at anchor offshore, north west of the cove
+    // mouth, where its calm pad reshapes no shore, and the fishing hull
+    // (x -122, z -54, under the ferry) moved into the freed gap north of the
+    // pier.
+    { key: 'hexShipBlue', x: -170, z: -22, rot: 1.55, scale: 7, r: 4.6, h: 11, float: 0.55 },
+    // a smaller fishing hull riding the gap between the ferry pier and the
+    // north working pier
+    { key: 'seaBoatFishing', x: -113, z: -46, rot: 0, scale: 2.5, r: 2.4, h: 7, float: 0.5 },
+    // dinghies riding the water in the pier gaps, Wickharbor-style
+    // the two dinghies pulled off the pad and into real water beside the piers
+    { key: 'hexBoat', x: -107.5, z: -47, rot: 0.7, scale: 6, float: 0.1 },
+    { key: 'hexBoat', x: -107, z: -61, rot: -1.9, scale: 6, float: 0.1 },
+    // Round 6 (owner): a rowboat hauled up the strand north of the quay, the
+    // beached pose the Palmreach shore uses (a hull with no float rides the
+    // ground it stands on). The two south of the quay left with the shore
+    // camp's move down the strand (the World of ClaudeCraft Studio map).
+    { key: 'rowboat', x: -100, z: -33, rot: 2.4, scale: 1, r: 1.4, h: 1.2 },
+    // the small watch tower on the quay's north shoulder, eyes on the fairway
+    { key: 'hexWatchtower', x: -89, z: -41, rot: -2.3, scale: 6.5, r: 2.4, h: 12 },
+    // tidy quay dressing: the anchor by the tower, cargo clustered at the
+    // boardwalk roots rather than scattered
+    { key: 'hexAnchor', x: -87.5, z: -44.5, rot: -0.9, scale: 6 },
+    { key: 'hexCrateBig', x: -95.5, z: -44, rot: 0.3, scale: 5, r: 1.2, h: 2 },
+    { key: 'hexCrateOpen', x: -95.5, z: -46.2, rot: -0.5, scale: 5, r: 1.1, h: 1.6 },
+    { key: 'hexSack', x: -95.8, z: -62, rot: 1.1, scale: 5 },
+    { key: 'hexBarrel', x: -95.4, z: -64, rot: 0, scale: 5, r: 1, h: 1.8 },
+    // The three extra homes moved into EASTBROOK_LAYOUT.buildings (round 3):
+    // as first-class houses they get lots, skirts, and lit windows there.
+    // Flower plantings along the lamplit streets (owner refinement round 3):
+    // walk-through dressing (no r/h), every cluster a hand-checked 2.2yd plus
+    // off its street's centerline so nothing sits on the track.
+    // (the World of ClaudeCraft Studio map's planting: two of the square's
+    // four are gone, one moved into the churchyard below and one to the
+    // crafts lane's bend)
+    { key: 'shrubFlowering', x: -15.7, z: -118.82, rot: 2.7, scale: 0.95 },
+    // fairway buoys marking the channel to the ferry berth (both moved clear
+    // of the Eastbrook ferry's hull when it took the berth: they stood at
+    // (-126, -46) and (-124, -62), inside its footprint; then out to the
+    // western fairway when the ferry began sailing, since a hull swinging out
+    // of the cove sweeps the water where they stood at (-134, -44) and
+    // (-134, -64): tests/transport_lanes.test.ts keeps them clear)
+    { key: 'seaBuoy', x: -160, z: -58, rot: 0.4, scale: 3, float: 0.15 },
+    { key: 'seaBuoyFlag', x: -160, z: -90, rot: -0.8, scale: 3, float: 0.15 },
+    // The Tidehold rebuild retired Smith Haldren's KayKit blacksmith from the
+    // green at (2, -112): he keeps the painted smithy on the square now, and
+    // the Weekly Vault stands on the lot.
+    // The Pale Keeper's churchyard moved with the chapel (the World of
+    // ClaudeCraft Studio map's arrangement, carried the same 5 yd west and
+    // 10.2 yd north the chapel went): iron rails on three sides at a
+    // 3.4 yd pitch, walk-through dressing with no colliders, round the graves
+    // beside the chapel's north wall, the open side toward the square. The
+    // smithy stands on the old yard's rise.
+    { key: 'gardenIronFence', x: 38.11, z: -89.76, rot: CHURCHYARD_END_RAIL },
+    { key: 'gardenIronFence', x: 40.9, z: -91.68, rot: CHURCHYARD_END_RAIL },
+    { key: 'gardenIronFence', x: 43.66, z: -93.58, rot: CHURCHYARD_END_RAIL },
+    { key: 'gardenIronFence', x: 46.45, z: -95.49, rot: CHURCHYARD_END_RAIL },
+    { key: 'gardenIronFence', x: 49.25, z: -97.4, rot: CHURCHYARD_END_RAIL },
+    { key: 'gardenIronFence', x: 49.67, z: -99.77, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 47.72, z: -102.56, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 45.79, z: -105.31, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 43.87, z: -108.1, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 41.93, z: -110.88, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 40, z: -113.65, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 29.45, z: -94.16, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 27.46, z: -96.91, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 25.52, z: -99.66, rot: CHURCHYARD_SIDE_RAIL },
+    { key: 'gardenIronFence', x: 23.67, z: -102.49, rot: CHURCHYARD_SIDE_RAIL },
+    // a bloom against the west rails
+    { key: 'shrubFlowering', x: 47.97, z: -96.06, rot: 0.39, scale: 0.95 },
+    // the two yews that shaded the old churchyard, set out where that map
+    // moved them: one north of the smithy, one above the inn
+    { key: 'oakTree', x: -9.39, z: -57.36, rot: -0.366, scale: 1.3, r: 0.8, h: 9 },
+    { key: 'oakTree', x: -41.59, z: -43.6, rot: -1.1, scale: 1.2, r: 0.8, h: 9 },
+    // The round 6 kitchen gardens and door benches of the harbour quarter's
+    // kit houses left with those houses in the Tidehold rebuild: the painted
+    // smithy and chapel stand on that ground.
+    // Round 6c (owner): blooms where the west road ends in the boar meadow,
+    // walk-through like every flower, set off the painted track
+    { key: 'shrubFlowering', x: 55, z: -66, rot: -1.2, scale: 0.95 },
+    { key: 'shrubFlowering', x: 50, z: -76, rot: 0.3, scale: 0.9 },
+  ],
   docks: [{ x: -64, z: 60, rot: -2.2, hutLocal: { x: 2.8, z: 2.4, hw: 1.7, hd: 1.5 } }],
+  // The first two tents, the first two crates and the first campfire are the
+  // main bandit band's camp dressing and travelled north with it in the round 6
+  // swap; the rest belong to Gorrak's camp, which did not move.
   tents: [
-    { x: 62, z: -61, rot: 0.4, scale: 1 },
-    { x: 69, z: -69, rot: 2.1, scale: 1 },
-    { x: 88, z: -86, rot: 1.2, scale: 1.3 },
-    { x: 95, z: -94, rot: -0.6, scale: 1 },
+    { x: 58, z: 25, rot: 0.4, scale: 1 },
+    { x: 68, z: 16, rot: 2.1, scale: 1 },
+    { x: 113, z: 47, rot: 1.2, scale: 1.3 },
+    { x: 119, z: 39, rot: -0.6, scale: 1 },
+    // Round 6 (owner): a fisherman's camp on the strand south of the quay,
+    // set out down the strand by the water where the World of ClaudeCraft
+    // Studio map moved it
+    { x: -104.5, z: -81.9, rot: -1.658, scale: 1 },
   ],
   crates: [
-    [60, -63],
-    [66, -67],
-    [87, -88],
-    [93, -90],
-    [70, -72],
+    [56, 22],
+    [64, 26],
+    [112, 44],
+    [118, 40],
+    [66, 14],
   ],
   campfires: [
-    [65, -65],
-    [90, -90],
-    [-80, -60],
+    // off the camp centre on purpose: a campfire carries a collider, and a
+    // camp whose centre is blocked cannot seat its spawns
+    [59, 17],
+    [111, 46],
+    // the shore camp's fire (round 6), beside its tent on the strand
+    [-101.52, -78.71],
+    [-30, 146],
     [-61, 56],
   ],
   mudHuts: [
@@ -1603,8 +2224,16 @@ export const ZONE1_PROPS: ZonePropsDef = {
   ],
   marshReeds: [],
   ruinRings: [
-    { x: 80, z: 78, ringR: 7, columns: 7 },
-    { x: -5, z: -60, ringR: 8, columns: 6 },
+    // The Fallen Chapel stands on this ring's site (the Hollow Crypt's world
+    // entrance, src/sim/hollow_crypt_entrance.ts) and brings its own nave piers,
+    // so the ring is bare: it keeps only its terrain pad and clearings.
+    { x: 80, z: 78, ringR: 7, columns: 7, bare: true },
+    // The chapel-rise ruin (-5, -60) is gone: the smithy's eaves reach over
+    // its south column. The World of ClaudeCraft Studio map takes down the
+    // same five columns, the statue and the fallen column, and keeps one
+    // broken stump, carried off to (-14.1, -66.9); a ring here draws its
+    // relics with any column it keeps, so the built-in town lets the stump
+    // go with the rest.
   ],
   fences: EASTBROOK_LAYOUT.fences.map((fence) => ({
     id: fence.id,
@@ -1625,7 +2254,6 @@ export const ZONE1_PROPS: ZonePropsDef = {
     d: bench.depth,
     rot: bench.rotation,
     height: 1,
-    camGhost: false,
   })),
   walls: EASTBROOK_LAYOUT.wall.segments.map((segment) => ({
     id: segment.id,
@@ -1636,11 +2264,26 @@ export const ZONE1_PROPS: ZonePropsDef = {
     d: segment.footprint.halfDepth * 2,
     rot: segment.footprint.rotation,
     height: segment.height,
-    camGhost: false,
     // The wing's tall lantern pillar sits gate-side on mirrored segments;
     // the collider builder places the pylon colliders from this.
     ...(wallSegmentMirrored(segment) ? { mirrored: true as const } : {}),
   })),
-  graveyards: [{ ...EASTBROOK_LAYOUT.services.graveyard.position }, { x: 4, z: -56 }],
-  delveMarkers: [{ x: -5, z: -52, delveId: 'collapsed_reliquary' }],
+  // The third anchor is the north-Vale yard on the Copper Dig road: every
+  // graveyard record spawns a Pale Keeper, and a keeper with no graves under
+  // her reads as a bug, so the headstone cluster goes where the release does
+  // (content/graveyards.ts gy_vale_north).
+  graveyards: [
+    { ...EASTBROOK_LAYOUT.services.graveyard.position },
+    { x: -22, z: 118 },
+    // Round 6 (owner): a second plot, now the south end of the churchyard by
+    // the chapel's north wall. Anchors here render six more standable
+    // headstones; only the OVERWORLD_GRAVEYARDS rows spawn a Pale Keeper, so
+    // this plot adds graves without a second angel hovering beside the first.
+    { x: 28.5, z: -107.8 },
+  ],
+  // Round 6b (owner): the Collapsed Reliquary moved off the town's chapel rise
+  // to the Mirror Lake shore. The lake's own margin is marsh and the north
+  // beach sits barely a foot above the tideline, so the mouth takes the
+  // nearest stable ground, 18 yd off the water.
+  delveMarkers: [{ x: -136, z: 112, delveId: 'collapsed_reliquary' }],
 };

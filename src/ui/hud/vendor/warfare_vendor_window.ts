@@ -1,0 +1,265 @@
+import { BUDDY_PORTRAIT_URLS } from '../../target_portrait_view';
+// Thin DOM consumer for the WARFARE quartermaster's shop window.
+//
+// The consumer half of the pure-core + thin-consumer split (reference
+// heroic_vendor_window.ts): paints #warfare-window from the sectioned
+// WarfareShopView and reports buy/close clicks back through the injected
+// callbacks. It owns no state and decides nothing; the purchase resolves
+// server-side.
+//
+// Family reuse is deliberate, exactly as the Heroic Marks shop reuses it: the
+// goods grid (.vendor-goods-grid), the tile (.vendor-item), the name and price
+// cells (.vi-name / .vi-sub / .vi-price), the section title
+// (.vendor-section-title) and the honor price / balance classes
+// (.warfare-price / .warfare-balance) all already exist, so the shop reads as
+// the same window family. Only what SECTIONING genuinely needs is new.
+//
+// WHAT THIS WINDOW DELIBERATELY DOES NOT SHOW, so it does not get added back:
+// the set bonus text, and any owned-count or "N more for the next bonus" line.
+// Both were here and both were cut as more than a buy list needs to say. The
+// bonuses live in the ITEM TOOLTIP, where every raid tier set already shows them
+// through the shared itemSetBlock path, lit when a threshold is met and greyed
+// otherwise, so repeating all three per family here was duplicating a surface the
+// player already reads. What survives is what a purchase decision actually needs:
+// the family grouping, the price, and the per-tile Owned marker, which is not
+// progress narration but the only thing standing between a mis-tap and a second
+// copy of a soulbound piece that carries no refund and no sell value.
+//
+// The view core still exposes tiers / ownedPieces / totalPieces / nextTier. They
+// are honest data and a future caller may want them; this painter simply renders
+// none of it.
+
+import type { BuddyVendorOffer } from '../../../sim/content/buddy_offers';
+import { talentsFor } from '../../../sim/content/talents';
+import type { ItemDef, PlayerClass } from '../../../sim/types';
+import { buddyDisplayName } from '../../buddy_event_lines';
+import { currencyIconHtml } from '../../currency_art';
+import { markDialogRoot } from '../../dialog_root';
+import { itemDisplayName, tEntity } from '../../entity_i18n';
+import { esc } from '../../esc';
+import { focusedWithin, restoreFirstEnabled } from '../../focus_restore';
+import { formatMoney, formatNumber, t } from '../../i18n';
+import { itemNameColor } from '../../item_name_color';
+import type { PainterHostPresentation } from '../../painter_host';
+import { tTalent } from '../../talent_i18n';
+import { svgIcon } from '../../ui_icons';
+import type { WarfareShopOffer, WarfareShopSection, WarfareShopView } from './warfare_vendor_view';
+
+export interface WarfareVendorWindowDeps extends PainterHostPresentation {
+  hideTooltip(): void;
+  /** Reports the click only. The confirm dialog and the buy command both live on
+   *  the coordinator, so the command can fire ONLY from the confirm callback
+   *  (honor purchases record no buyback, so a mis-tap is unrefundable). */
+  onBuy(itemId: string): void;
+  onClose(): void;
+}
+
+function honorText(amount: number): string {
+  return t('hudChrome.warfare.honorAmount', {
+    amount: formatNumber(amount, { maximumFractionDigits: 0 }),
+  });
+}
+
+/** A row's price as plain text, for the tile's accessible name: gold for the
+ *  Season 1 rows, Honor for Season 2 and the trinkets. */
+function priceText(offer: Pick<WarfareShopOffer, 'honor' | 'copper'>): string {
+  return offer.copper > 0 ? formatMoney(offer.copper, 'long') : honorText(offer.honor);
+}
+
+/** The purchase confirm's body for one item, priced the way the shop sells it.
+ *  Shared with the Hud coordinator so the dialog and the tile cannot disagree. */
+export function warfarePurchaseConfirmBody(item: ItemDef | Readonly<BuddyVendorOffer>): string {
+  const name = item.kind === 'companion' ? buddyDisplayName(item.buddy) : itemDisplayName(item);
+  const copper = item.kind === 'companion' ? 0 : Math.max(0, Math.floor(item.buyValue ?? 0));
+  if (copper > 0) {
+    return t('hudChrome.warfareShop.buyConfirmBodyGold', {
+      item: name,
+      price: formatMoney(copper, 'long'),
+    });
+  }
+  return t('hudChrome.warfareShop.buyConfirmBody', {
+    item: name,
+    honor: honorText(Math.max(0, Math.floor(item.priceHonor ?? 0))),
+  });
+}
+
+function count(value: number): string {
+  return formatNumber(value, { maximumFractionDigits: 0 });
+}
+
+function sectionTitleText(section: WarfareShopSection): string {
+  if (section.kind === 'set') {
+    return tEntity({ kind: 'itemSet', id: section.setId, field: 'name' });
+  }
+  if (section.kind === 'goods') return t('hudChrome.warfareShop.goods');
+  if (section.kind === 'jewelry') return t('hudChrome.warfareShop.jewelry');
+  return t('hudChrome.warfareShop.weapons');
+}
+
+function groupTitleText(group: WarfareShopSection['group']): string {
+  if (group === 'season2') return t('hudChrome.warfareShop.groupSeason2');
+  if (group === 'companions') return t('hudChrome.warfareShop.companions');
+  return t('hudChrome.warfareShop.groupEntry');
+}
+
+function appendOfferTile(
+  grid: HTMLElement,
+  section: WarfareShopSection,
+  offer: WarfareShopOffer,
+  deps: WarfareVendorWindowDeps,
+): void {
+  const { itemId, item, copper, affordable, owned } = offer;
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = owned ? 'vendor-item ui-card warfare-owned' : 'vendor-item ui-card';
+  const companion = item.kind === 'companion';
+  tile.disabled = !affordable || (companion && owned);
+  // Keyed on the SECTION plus the item id so the restore ladder can never land
+  // on a same-named tile in another section (the sectioned window's version of
+  // the heroic shop's one-tile-per-item identity).
+  tile.dataset.focusKey = `buy:${section.key}:${itemId}`;
+  const itemName = item.kind === 'companion' ? buddyDisplayName(item.buddy) : itemDisplayName(item);
+  const price = priceText(offer);
+  // An aria-label REPLACES the button's content as its accessible name, so the
+  // owned marker folds into the name itself rather than being announced twice
+  // or not at all. One combined key, never two concatenated t() results.
+  tile.setAttribute(
+    'aria-label',
+    companion && owned
+      ? t('hudChrome.warfareShop.companionOwnedAria', { item: itemName })
+      : owned
+        ? t('hudChrome.warfareShop.buyOwnedAria', { item: itemName, honor: price })
+        : t('hudChrome.warfareShop.buyAria', { item: itemName, honor: price }),
+  );
+  const ownedMark = owned
+    ? `<span class="vi-sub">${esc(t('hudChrome.warfareShop.owned'))}</span>`
+    : '';
+  const icon =
+    item.kind === 'companion'
+      ? `<img src="${esc(BUDDY_PORTRAIT_URLS[item.buddy])}" alt="" width="40" height="40">`
+      : deps.itemIcon(item);
+  const color = item.kind === 'companion' ? 'inherit' : itemNameColor(item);
+  // Season 1 rows sell for gold (the coin readout every vendor uses), the rest
+  // for Honor.
+  const priceHtml =
+    copper > 0
+      ? `<span class="vi-price ui-money${affordable ? '' : ' unaffordable'}">${deps.moneyHtml(copper)}</span>`
+      : `<span class="vi-price ui-money"><span class="warfare-price${affordable ? '' : ' unaffordable'}">${currencyIconHtml('honor')}${esc(price)}</span></span>`;
+  tile.innerHTML = `<span class="ui-socket ui-socket--bag">${icon}</span><span class="vi-name" style="color:${color}">${esc(itemName)}${ownedMark}</span>${priceHtml}`;
+  tile.addEventListener('click', () => deps.onBuy(itemId));
+  deps.attachTooltip(tile, () => {
+    if (item.kind === 'companion') {
+      return `<div class="tt-title">${esc(itemName)}</div><div class="tt-sub">${esc(t('hudChrome.warfareShop.companionPurchase'))}</div>`;
+    }
+    return `${deps.itemTooltip(item)}<div class="tt-sub">${esc(t('itemUi.tooltip.clickBuy'))}</div>`;
+  });
+  grid.appendChild(tile);
+}
+
+/** Paint the WARFARE shop panel from a prepared view. */
+/** The translated spec name for a Season 2 set, or null (entry tier, unknown). */
+function setSpecName(spec: { cls: string; spec: string } | undefined): string | null {
+  if (!spec) return null;
+  const def = talentsFor(spec.cls as PlayerClass)?.specs.find((s) => s.id === spec.spec);
+  return def ? tTalent({ kind: 'talentSpec', spec: def, field: 'name' }) : null;
+}
+
+export function renderWarfareVendorWindow(
+  el: HTMLElement,
+  vendorName: string,
+  view: WarfareShopView,
+  deps: WarfareVendorWindowDeps,
+): void {
+  // The rebuild replaces the hovered tile (its mouseleave never fires) and
+  // collapses the scrolled list; drop the tooltip and restore the scroll.
+  deps.hideTooltip();
+  // Inventory and balance deltas repaint this window UNINITIATED, so carry
+  // keyboard focus across the wipe per the focus-across-a-REBUILD contract:
+  // the exact tile when it survived enabled, else outward neighbours inside
+  // the SAME section grid, else the close button.
+  const focused = focusedWithin(el);
+  const focusKey = focused?.dataset.focusKey ?? null;
+  const focusedGrid = focused?.closest<HTMLElement>('.vendor-goods-grid');
+  const focusedGridName = focusedGrid?.dataset.grid ?? null;
+  const focusedSlot = focusedGrid
+    ? [...focusedGrid.querySelectorAll('button')].indexOf(focused as HTMLButtonElement)
+    : -1;
+  const scrollTop = el.scrollTop;
+
+  const title = t('itemUi.vendor.goodsTitle', { name: vendorName });
+  markDialogRoot(el, { label: title });
+  el.innerHTML = `<div class="panel-title ui-win-head"><span class="ui-win-title">${esc(title)}</span><button type="button" class="x-btn ui-x-btn" data-close data-focus-key="close" aria-label="${esc(t('itemUi.vendor.close'))}">${svgIcon('close')}</button></div>`;
+
+  const balance = document.createElement('div');
+  balance.className = 'warfare-balance';
+  balance.innerHTML = `${currencyIconHtml('honor')}${esc(t('hudChrome.warfare.balance', { amount: count(view.balance) }))}`;
+  // Gold rows grey out against the coin purse, so show it beside the Honor.
+  if (view.goldBalance !== null)
+    balance.innerHTML += `<span class="warfare-balance-gold ui-money">${deps.moneyHtml(view.goldBalance)}</span>`;
+  el.appendChild(balance);
+
+  let group: WarfareShopSection['group'] | null = null;
+  for (const section of view.sections) {
+    // Guard mirrors the vendor window's grids: never leave a dead empty node.
+    // It covers the HEADING as well as the grid, because a title with nothing
+    // under it is the deader of the two. buildWarfareVendorView emits no empty
+    // section today; this stays correct if it ever does.
+    if (section.offers.length === 0) continue;
+    // A group heading (Warfare Season 2 above the entry tier, then the
+    // companions) whenever the group changes, so each reads as its own block.
+    if (section.group !== group) {
+      group = section.group;
+      const groupHeading = document.createElement('div');
+      groupHeading.className = 'vendor-section-title warfare-group-title';
+      groupHeading.textContent = groupTitleText(group);
+      el.appendChild(groupHeading);
+    }
+    // The companions group holds one section, so its group heading already
+    // names it; a second "Companions" title under it would only repeat it.
+    if (section.group !== 'companions') {
+      const heading = document.createElement('div');
+      heading.className = 'vendor-section-title';
+      heading.textContent = sectionTitleText(section);
+      // A Season 2 set names the spec it is built for beside the set name.
+      const specName = section.kind === 'set' ? setSpecName(section.spec) : null;
+      if (specName) {
+        const spec = document.createElement('span');
+        spec.className = 'warfare-set-spec';
+        spec.textContent = specName;
+        heading.appendChild(spec);
+      }
+      el.appendChild(heading);
+    }
+    const grid = document.createElement('div');
+    grid.className = 'vendor-goods-grid';
+    grid.dataset.grid = section.key;
+    for (const offer of section.offers) appendOfferTile(grid, section, offer, deps);
+    el.appendChild(grid);
+  }
+
+  el.querySelector('[data-close]')?.addEventListener('click', () => deps.onClose());
+  el.style.display = 'block';
+  el.scrollTop = scrollTop;
+  // Restore focus LAST (a bare focus() may scroll the tile into view, which
+  // must win over the raw scroll restore for a keyboard player). Dataset
+  // equality rather than an attribute selector: the keys embed item ids and
+  // this needs no CSS.escape (the vendor_window precedent).
+  if (focusKey) {
+    const keyed = [...el.querySelectorAll<HTMLButtonElement>('[data-focus-key]')];
+    const exact = keyed.find((b) => b.dataset.focusKey === focusKey);
+    const grid =
+      focusedGridName !== null
+        ? el.querySelector<HTMLElement>(`.vendor-goods-grid[data-grid="${focusedGridName}"]`)
+        : null;
+    const rows = grid ? [...grid.querySelectorAll('button')] : [];
+    const slot = focusedSlot >= 0 ? Math.min(focusedSlot, rows.length - 1) : -1;
+    const neighbors: (HTMLButtonElement | undefined)[] = [];
+    if (slot >= 0) {
+      for (let step = 0; step < rows.length; step++) {
+        if (rows[slot + step]) neighbors.push(rows[slot + step] as HTMLButtonElement);
+        if (step > 0 && rows[slot - step]) neighbors.push(rows[slot - step] as HTMLButtonElement);
+      }
+    }
+    restoreFirstEnabled([exact, ...neighbors, keyed.find((b) => b.dataset.focusKey === 'close')]);
+  }
+}

@@ -9,14 +9,14 @@
     "acceptQuest -> finalizeQuestAccept -> onInventoryChangedForQuests",
     "turnInQuest (xp + copper reward)"
   ],
-  "draws": 40,
-  "drawDigest": "0e96c13c",
+  "draws": 41,
+  "drawDigest": "2c514b20",
   "frames": [
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "28f12f87",
+      "nextId": 1012,
+      "state": "caf53a89",
       "events": "741638a5",
       "rng": {
         "draws": 0,
@@ -36,12 +36,23 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -54,14 +65,20 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1004,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
@@ -72,10 +89,20 @@
           "mailWelcomed": true,
           "nodeHarvestReadyAt": {},
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -90,7 +117,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1004
             }
           ],
           "blockChance": 0.05,
@@ -100,10 +127,11 @@
           "critChance": 0.06,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.06,
-          "fallStartY": 1.5,
+          "fallStartY": -2,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 100,
-          "id": 415,
+          "id": 1004,
           "kind": "player",
           "level": 1,
           "lootFfaTimer": "Infinity",
@@ -115,16 +143,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -147,9 +175,9 @@
     {
       "tick": 0,
       "time": 0,
-      "nextId": 416,
-      "state": "f00da35a",
-      "events": "9b7e48a7",
+      "nextId": 1012,
+      "state": "c3bfca8c",
+      "events": "340ae109",
       "rng": {
         "draws": 0,
         "digest": "811c9dc5"
@@ -168,12 +196,23 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "counters": {},
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {},
             "dungeonClears": {},
@@ -186,14 +225,20 @@
           },
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1004,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
@@ -220,10 +265,20 @@
             ]
           ],
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -238,7 +293,7 @@
               "name": "Battle Stance",
               "remaining": 3600,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1004
             }
           ],
           "blockChance": 0.05,
@@ -248,10 +303,11 @@
           "critChance": 0.0645,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.0645,
-          "fallStartY": 1.5,
+          "fallStartY": -0.507145,
           "fiveSecondRule": 99,
+          "healPower": 5,
           "hp": 50000,
-          "id": 415,
+          "id": 1004,
           "kind": "player",
           "level": 10,
           "lootFfaTimer": "Infinity",
@@ -263,16 +319,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": 4.5,
-            "y": 1.5,
-            "z": 5.5
+            "x": 1.5,
+            "y": -0.507145,
+            "z": -95.3
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -295,12 +351,12 @@
     {
       "tick": 8,
       "time": 0.4,
-      "nextId": 424,
-      "state": "2931d52e",
-      "events": "90016984",
+      "nextId": 1020,
+      "state": "01288ee0",
+      "events": "0afecc5f",
       "rng": {
         "draws": 40,
-        "digest": "0e96c13c"
+        "digest": "73f698f7"
       },
       "label": "quest-ready",
       "players": [
@@ -316,7 +372,18 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "counters": {
@@ -324,8 +391,8 @@
             "kills": 8,
             "questProgress": 8
           },
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {
               "damageDealt": 8432,
@@ -363,14 +430,20 @@
           ],
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1004,
           "equipment": {
             "chest": "recruit_tunic",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
@@ -397,11 +470,21 @@
             ]
           ],
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "renown": 30,
           "talents": {
             "rows": {}
           },
-          "townFocus": {}
+          "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {}
         }
       ],
       "entities": [
@@ -416,7 +499,7 @@
               "name": "Battle Stance",
               "remaining": 3599.6,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1004
             }
           ],
           "blockChance": 0.05,
@@ -426,10 +509,11 @@
           "critChance": 0.0645,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.0645,
-          "fallStartY": 1.5,
+          "fallStartY": -0.507145,
           "fiveSecondRule": 99.4,
+          "healPower": 5,
           "hp": 50000,
-          "id": 415,
+          "id": 1004,
           "inCombat": true,
           "kind": "player",
           "level": 10,
@@ -442,16 +526,16 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": 4.5,
-            "y": 1.5,
-            "z": 5.5
+            "x": 1.5,
+            "y": -0.507145,
+            "z": -95.3
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
@@ -474,12 +558,12 @@
     {
       "tick": 8,
       "time": 0.4,
-      "nextId": 424,
-      "state": "a8908153",
-      "events": "6df26093",
+      "nextId": 1020,
+      "state": "42d00b5a",
+      "events": "ee143ce2",
       "rng": {
-        "draws": 40,
-        "digest": "0e96c13c"
+        "draws": 41,
+        "digest": "2c514b20"
       },
       "label": "quest-turned-in",
       "players": [
@@ -495,7 +579,18 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 75,
@@ -506,8 +601,8 @@
             "questsCompleted": 1,
             "xpGained": 250
           },
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {
               "damageDealt": 8432,
@@ -516,6 +611,7 @@
             "dungeonClears": {},
             "itemsDiscovered": [
               "baked_bread",
+              "brookwatch_hauberk",
               "eastbrook_buckler",
               "recruit_tunic",
               "worn_sword"
@@ -545,19 +641,29 @@
           ],
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1004,
           "equipment": {
-            "chest": "recruit_tunic",
+            "chest": "brookwatch_hauberk",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 5,
               "itemId": "baked_bread"
+            },
+            {
+              "count": 1,
+              "itemId": "recruit_tunic"
             }
           ],
           "lifetimeXp": 27850,
@@ -567,18 +673,28 @@
             "q_wolves"
           ],
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "renown": 30,
           "talents": {
             "rows": {}
           },
           "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {},
           "xp": 250
         }
       ],
       "entities": [
         {
           "aiState": "idle",
-          "attackPower": 82,
+          "attackPower": 84,
           "auras": [
             {
               "duration": 3600,
@@ -587,7 +703,7 @@
               "name": "Battle Stance",
               "remaining": 3599.6,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1004
             }
           ],
           "blockChance": 0.05,
@@ -597,15 +713,16 @@
           "critChance": 0.0645,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.0645,
-          "fallStartY": 1.5,
+          "fallStartY": -0.507145,
           "fiveSecondRule": 99.4,
-          "hp": 50000,
-          "id": 415,
+          "healPower": 5,
+          "hp": 452,
+          "id": 1004,
           "inCombat": true,
           "kind": "player",
           "level": 10,
           "lootFfaTimer": "Infinity",
-          "maxHp": 50000,
+          "maxHp": 452,
           "maxResource": 100,
           "moveSpeed": 7,
           "offhandItemId": "eastbrook_buckler",
@@ -613,25 +730,25 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": 4.5,
-            "y": 1.5,
-            "z": 5.5
+            "x": 1.5,
+            "y": -0.507145,
+            "z": -95.3
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
             "agi": 29,
-            "armor": 270,
+            "armor": 301,
             "int": 10,
             "spi": 11,
-            "sta": 41,
-            "str": 41
+            "sta": 42,
+            "str": 42
           },
           "templateId": "warrior",
           "weapon": {
@@ -645,12 +762,12 @@
     {
       "tick": 10,
       "time": 0.5,
-      "nextId": 424,
-      "state": "47c250f6",
+      "nextId": 1020,
+      "state": "c6d21321",
       "events": "741638a5",
       "rng": {
-        "draws": 40,
-        "digest": "0e96c13c"
+        "draws": 41,
+        "digest": "2c514b20"
       },
       "label": "final",
       "players": [
@@ -666,7 +783,18 @@
             null,
             null
           ],
-          "bank": {},
+          "bank": {
+            "socketBags": [
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "bgRating": 1500,
+          "buddies": {
+            "names": {}
+          },
           "cls": "warrior",
           "companionUpgrades": {},
           "copper": 75,
@@ -677,8 +805,8 @@
             "questsCompleted": 1,
             "xpGained": 250
           },
+          "craftDaily": {},
           "craftSkills": {},
-          "craftThrottle": {},
           "deedStats": {
             "counters": {
               "damageDealt": 8432,
@@ -687,6 +815,7 @@
             "dungeonClears": {},
             "itemsDiscovered": [
               "baked_bread",
+              "brookwatch_hauberk",
               "eastbrook_buckler",
               "recruit_tunic",
               "worn_sword"
@@ -716,19 +845,29 @@
           ],
           "delveClears": {},
           "delveDaily": {},
-          "entityId": 415,
+          "entityId": 1004,
           "equipment": {
-            "chest": "recruit_tunic",
+            "chest": "brookwatch_hauberk",
             "mainhand": "worn_sword",
             "offhand": "eastbrook_buckler"
           },
           "equipmentInstance": {},
+          "factionCurrencies": {},
+          "factions": {},
           "gatheringProficiency": {},
+          "gliderRecords": {},
+          "harvestPreference": {
+            "kind": "all"
+          },
           "heroicDaily": {},
           "inventory": [
             {
               "count": 5,
               "itemId": "baked_bread"
+            },
+            {
+              "count": 1,
+              "itemId": "recruit_tunic"
             }
           ],
           "lifetimeXp": 27850,
@@ -738,18 +877,28 @@
             "q_wolves"
           ],
           "recipesGrandfathered": true,
+          "reliquary": {
+            "counts": {},
+            "firstFind": {}
+          },
           "renown": 30,
           "talents": {
             "rows": {}
           },
           "townFocus": {},
+          "vault": {
+            "stock": {}
+          },
+          "vaultAttemptDurable": true,
+          "worldQuestReplacements": {},
+          "wyrmfallDaily": {},
           "xp": 250
         }
       ],
       "entities": [
         {
           "aiState": "idle",
-          "attackPower": 82,
+          "attackPower": 84,
           "auras": [
             {
               "duration": 3600,
@@ -758,7 +907,7 @@
               "name": "Battle Stance",
               "remaining": 3599.5,
               "school": "physical",
-              "sourceId": 415
+              "sourceId": 1004
             }
           ],
           "blockChance": 0.05,
@@ -768,15 +917,16 @@
           "critChance": 0.0645,
           "detonateTimer": "Infinity",
           "dodgeChance": 0.0645,
-          "fallStartY": 1.5,
+          "fallStartY": -0.507145,
           "fiveSecondRule": 99.5,
-          "hp": 50000,
-          "id": 415,
+          "healPower": 5,
+          "hp": 452,
+          "id": 1004,
           "inCombat": true,
           "kind": "player",
           "level": 10,
           "lootFfaTimer": "Infinity",
-          "maxHp": 50000,
+          "maxHp": 452,
           "maxResource": 100,
           "moveSpeed": 7,
           "offhandItemId": "eastbrook_buckler",
@@ -784,25 +934,25 @@
           "overpowerUntil": -1,
           "petMode": "defensive",
           "pos": {
-            "x": 4.5,
-            "y": 1.5,
-            "z": 5.5
+            "x": 1.5,
+            "y": -0.507145,
+            "z": -95.3
           },
           "potionCooldownUntil": -1,
           "resourceType": "rage",
           "spawnPos": {
-            "x": 2,
-            "y": 1.5,
-            "z": -2
+            "x": -94,
+            "y": -2,
+            "z": -58
           },
           "spellPower": 5,
           "stats": {
             "agi": 29,
-            "armor": 270,
+            "armor": 301,
             "int": 10,
             "spi": 11,
-            "sta": 41,
-            "str": 41
+            "sta": 42,
+            "str": 42
           },
           "templateId": "warrior",
           "weapon": {

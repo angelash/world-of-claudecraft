@@ -11,6 +11,7 @@
 // only on the KEPT legacy rollback arms, and the route layer adds module-private
 // test/runtime seams (setAccountDbForTests, configureAccountRuntime).
 import type http from 'node:http';
+import { deleteAccountAttribution } from './attribution_db';
 import {
   hashPassword,
   MAX_PASSWORD_LENGTH,
@@ -44,12 +45,14 @@ import {
   listCharacters,
   listCompanionTokens,
   moderationStatusForAccount,
+  pool,
   revokeCompanionToken,
   revokeToken,
   revokeTokensExcept,
   scopeAllowsMutation,
   setAccountDeactivated,
   setAccountMarketingOptIn,
+  setInitialPasswordHashIfUnset,
   setTotpPending,
   updatePasswordHash,
 } from './db';
@@ -82,10 +85,10 @@ import {
 const TOTP_ISSUER = 'World of ClaudeCraft';
 
 // How long an email-change verification link stays valid.
-const EMAIL_CHANGE_TTL_HOURS = 24;
+export const EMAIL_CHANGE_TTL_HOURS = 24;
 // How long a password-reset link stays valid. Shorter than the email-change TTL:
 // a reset is higher-value and the user acts on it immediately.
-const PASSWORD_RESET_TTL_HOURS = 1;
+export const PASSWORD_RESET_TTL_HOURS = 1;
 
 // Hooks main.ts injects so the deactivate path can consult and tear down live
 // game sessions without account.ts importing the GameServer (which pulls in the
@@ -93,9 +96,20 @@ const PASSWORD_RESET_TTL_HOURS = 1;
 export interface AccountGameHooks {
   /** True when any of the account's characters is currently in a live session. */
   anyCharacterOnline(characterIds: number[]): boolean;
-  /** Close any established socket for the account right after deactivation. */
+  /** Close any established socket for the account, unconditionally. */
   disconnectAccount(accountId: number, reason: string): void;
 }
+
+// The narrower hook a credential-change handler needs: just the live-WS
+// teardown, not the online-character check the deactivate flow uses.
+type DisconnectHook = Pick<AccountGameHooks, 'disconnectAccount'>;
+
+// Disconnect reason for the live-WS kick a password change/reset forces. Byte-
+// identical to admin.ts's IP_BLOCK_KICK_MESSAGE, which the client already
+// localizes (api_error_i18n.ts): reusing the exact literal needs no new i18n
+// work and matches the same "credentials changed, an open socket is no longer
+// trustworthy" posture as the admin-initiated reset-password handlers.
+const CREDENTIAL_CHANGE_KICK_MESSAGE = 'Connection to the server was lost.';
 
 // GET /api/account: whoami; re-validates a stored token on reload + feeds the
 // portal header. characterCount is account-wide (every realm), matching the
@@ -118,18 +132,33 @@ export async function handleAccountWhoami(
     createdAt: acct.created_at,
     characterCount,
     twoFactorEnabled,
+    // False for an Apple- or Discord-provisioned account that never got a real,
+    // owner-chosen password (see handleAccountSetInitialPassword below): the
+    // client uses this to show "Set a Password" instead of "Change Password".
+    passwordSet: acct.password_set,
   });
 }
 
 // POST /api/account/password: re-verify current, then revoke every OTHER token
 // so a password change signs out other devices while keeping this one alive.
 // callerToken is resolved by main.ts; it must never be null here (validated up
-// the stack) so the revoke below can never accidentally nuke this session.
+// the stack) so the revoke below can never accidentally nuke this session. Token
+// revocation alone does not close an already-open WS (an attacker who is
+// already in-world stays connected), so we also force-disconnect every live
+// session for the account, mirroring handleAccountDeactivate below. This
+// deliberately does NOT try to spare the caller's own live session: a bearer
+// token is a reusable wire credential, not a per-socket identity, so a stolen
+// token could authenticate an attacker's live session too, and an exemption
+// keyed on token equality could just as easily spare the attacker instead of
+// the legitimate device. Any of the account's own other tabs simply
+// reconnects with the fresh credentials, the same as password reset already
+// requires.
 export async function handleAccountChangePassword(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   accountId: number,
   callerToken: string,
+  hooks: DisconnectHook,
 ): Promise<void> {
   if (!rateLimited(req).allowed) return json(res, 429, { error: 'too many attempts, slow down' });
   const body = await readBody(req);
@@ -160,6 +189,7 @@ export async function handleAccountChangePassword(
   }
   await updatePasswordHash(accountId, await hashPassword(next));
   await revokeTokensExcept(accountId, callerToken);
+  hooks.disconnectAccount(accountId, CREDENTIAL_CHANGE_KICK_MESSAGE);
   // Best-effort security notice; never blocks the password change on mail state.
   emailPasswordChanged(acct);
   return json(res, 200, { ok: true });
@@ -198,10 +228,15 @@ export async function handleAccountPasswordForgot(
 // Unauthenticated: complete a reset with the emailed token + a new password. The
 // token is validated, the new password applied, and every session revoked, all in
 // one atomic DB call. Invalid and expired tokens return the same 400 so neither a
-// bad guess nor an old link reveals anything.
+// bad guess nor an old link reveals anything. Revoking tokens alone does not close
+// an already-open WS (this reset exists precisely because the account may be
+// recovering from a compromise, and a compromised session may already be
+// in-world), so we also force-disconnect any live session for the account right
+// after the reset lands, mirroring handleAccountDeactivate below.
 export async function handleAccountPasswordReset(
   req: http.IncomingMessage,
   res: http.ServerResponse,
+  hooks: DisconnectHook,
 ): Promise<void> {
   if (!rateLimited(req).allowed) return json(res, 429, { error: 'too many attempts, slow down' });
   const body = await readBody(req);
@@ -216,6 +251,7 @@ export async function handleAccountPasswordReset(
   }
   const applied = await consumePasswordResetRequest(hashEmailToken(raw), await hashPassword(next));
   if (!applied) return json(res, 400, { error: 'invalid or expired link' });
+  hooks.disconnectAccount(applied.accountId, CREDENTIAL_CHANGE_KICK_MESSAGE);
   // Best-effort "your password changed" notice; never blocks the reset on mail state.
   const target = await accountMailTarget(applied.accountId);
   if (target) emailPasswordChanged(target);
@@ -278,6 +314,60 @@ export async function handleAccountSetInitialEmail(
   return json(res, 200, { ok: true, email });
 }
 
+// POST /api/account/password/set-initial: set a real, owner-chosen password on an
+// account that still has none (password_set = false). This is the account created
+// through Apple or Discord sign-in, whose only credential is a random placeholder
+// hash the owner never saw: they cannot log in with a username + password on a
+// platform that has no federated sign-in button (e.g. the Mac desktop client only
+// offers Continue with Apple on native iOS), and cannot use the first-time-login
+// chooser to add Discord as an alternate credential either, since that chooser also
+// re-verifies the very password they were never given. The bearer session IS the
+// authorization, exactly like email/set-initial above: the caller already proved
+// ownership through the federated login that minted this session, and there is no
+// existing real password to re-verify. Once a real password is set the account is
+// an ordinary password account; /api/account/password (change) is the only way to
+// rotate it from here, so a repeat call here is a 409 steering to that flow.
+export async function handleAccountSetInitialPassword(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  accountId: number,
+): Promise<void> {
+  if (!rateLimited(req).allowed) return json(res, 429, { error: 'too many attempts, slow down' });
+  const body = await readBody(req);
+  const acct = await accountById(accountId);
+  if (!acct) return json(res, 404, { error: 'account not found', code: 'account.not_found' });
+  if (acct.password_set) {
+    return json(res, 409, {
+      error: 'this account already has a password, use change password instead',
+      code: 'account.password_already_set',
+    });
+  }
+  const next = body.next;
+  if (typeof next !== 'string' || next.length < MIN_PASSWORD_LENGTH) {
+    return json(res, 400, {
+      error: `password must be at least ${MIN_PASSWORD_LENGTH} chars`,
+      code: 'account.password_too_short',
+    });
+  }
+  if (next.length > MAX_PASSWORD_LENGTH) {
+    return json(res, 400, {
+      error: `password must be at most ${MAX_PASSWORD_LENGTH} chars`,
+      code: 'account.password_too_long',
+    });
+  }
+  const changed = await setInitialPasswordHashIfUnset(accountId, await hashPassword(next));
+  if (!changed) {
+    return json(res, 409, {
+      error: 'this account already has a password, use change password instead',
+      code: 'account.password_already_set',
+    });
+  }
+  // Best-effort security notice, same as the change/reset flows; never blocks on
+  // mail state (a no-op when the account has no recovery email yet).
+  emailPasswordChanged(acct);
+  return json(res, 200, { ok: true });
+}
+
 // POST /api/account/deactivate: re-confirm password + username, require all
 // characters offline, then lock the account and revoke ALL tokens. The lock is
 // reversible by an admin. After locking we deterministically tear down any
@@ -310,6 +400,10 @@ export async function handleAccountDeactivate(
     });
   }
   await setAccountDeactivated(accountId, true);
+  // User-facing removal is a soft delete, which never fires the attribution
+  // table's FK CASCADE; erase the ad-click identifiers explicitly so leaving
+  // the game also ends the acquisition linkage (attribution_db.ts header).
+  await deleteAccountAttribution(pool, accountId);
   await revokeTokensExcept(accountId, null);
   hooks.disconnectAccount(accountId, 'This account has been deactivated.');
   emailAccountDeleted(acct);
@@ -727,7 +821,18 @@ async function passwordHandler(ctx: Ctx): Promise<void> {
     json(ctx.res, 401, NOT_AUTHENTICATED);
     return;
   }
-  return handleAccountChangePassword(ctx.req, ctx.res, ctxAccountId(ctx), callerToken);
+  return handleAccountChangePassword(
+    ctx.req,
+    ctx.res,
+    ctxAccountId(ctx),
+    callerToken,
+    useRuntime(),
+  );
+}
+
+/** POST /api/account/password/set-initial: set a real password on a passwordless account. */
+async function passwordSetInitialHandler(ctx: Ctx): Promise<void> {
+  return handleAccountSetInitialPassword(ctx.req, ctx.res, ctxAccountId(ctx));
 }
 
 /** POST /api/account/logout: revoke this device's bearer token. */
@@ -857,6 +962,13 @@ export const routes: RouteDef[] = [
     surface: 'api',
     middleware: [activeGuard],
     handler: passwordHandler,
+  },
+  {
+    method: 'POST',
+    path: '/api/account/password/set-initial',
+    surface: 'api',
+    middleware: [activeGuard],
+    handler: passwordSetInitialHandler,
   },
   {
     method: 'POST',

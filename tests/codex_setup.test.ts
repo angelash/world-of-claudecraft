@@ -4,30 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { bashExecutable, bashFixtureEnv, bashPath } from './helpers/bash_fixture';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
-const gitBash = path.join(
-  process.env.ProgramFiles ?? 'C:\\Program Files',
-  'Git',
-  'bin',
-  'bash.exe',
-);
-const bash = process.platform === 'win32' && fs.existsSync(gitBash) ? gitBash : 'bash';
-
-async function removeFixture(directory: string): Promise<void> {
-  const retryable = new Set(['EBUSY', 'ENOTEMPTY', 'EPERM']);
-  for (let attempt = 0; ; attempt++) {
-    try {
-      fs.rmSync(directory, { recursive: true, force: true });
-      return;
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code ?? '';
-      if (process.platform !== 'win32' || !retryable.has(code) || attempt >= 10) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-  }
-}
 
 interface HookHandler {
   type: string;
@@ -72,28 +52,29 @@ describe('Codex project configuration', () => {
 
   it(
     'extends the stop gate to tracked and untracked Codex file types',
-    async () => {
+    () => {
       const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'woc-codex-hook-'));
       try {
         fs.mkdirSync(path.join(fixture, '.claude/hooks'), { recursive: true });
         fs.mkdirSync(path.join(fixture, '.codex/hooks'), { recursive: true });
         fs.mkdirSync(path.join(fixture, '.codex/agents'), { recursive: true });
         fs.mkdirSync(path.join(fixture, 'src'), { recursive: true });
-        fs.copyFileSync(
-          path.join(root, '.claude/hooks/qa-stop.sh'),
+        fs.writeFileSync(
           path.join(fixture, '.claude/hooks/qa-stop.sh'),
+          read('.claude/hooks/qa-stop.sh').replace(/\r\n/g, '\n'),
         );
-        fs.copyFileSync(
-          path.join(root, '.codex/hooks/qa-stop.sh'),
+        fs.writeFileSync(
           path.join(fixture, '.codex/hooks/qa-stop.sh'),
+          read('.codex/hooks/qa-stop.sh').replace(/\r\n/g, '\n'),
         );
         spawnSync('git', ['init', '--quiet', fixture], { encoding: 'utf8' });
         const agent = path.join(fixture, '.codex/agents/new.toml');
         fs.writeFileSync(agent, 'name = "clean"\n');
 
         const run = (active: boolean) =>
-          spawnSync(bash, [path.join(fixture, '.codex/hooks/qa-stop.sh')], {
+          spawnSync(bashExecutable(), [bashPath(path.join(fixture, '.codex/hooks/qa-stop.sh'))], {
             cwd: fixture,
+            env: bashFixtureEnv(),
             input: JSON.stringify({ stop_hook_active: active }),
             encoding: 'utf8',
           });
@@ -129,13 +110,11 @@ describe('Codex project configuration', () => {
         expect(JSON.parse(trackedBlocked.stdout).reason).toContain('leftover debugger');
         expect(run(true).stdout).toBe('');
       } finally {
-        await removeFixture(fixture);
+        // Git antivirus/indexer handles can linger briefly on Windows after exit.
+        fs.rmSync(fixture, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
       }
     },
-    // This integration arm launches Git Bash and Git several times. On a busy
-    // Windows merge-validation run those child processes can exceed 15s even
-    // though the same fixture completes in ~7s in isolation.
-    process.platform === 'win32' ? 30_000 : 10_000,
+    process.platform === 'win32' ? 30_000 : 20_000,
   );
 
   it('tracks shared Codex files while leaving local state ignored', () => {
@@ -164,6 +143,7 @@ describe('Codex custom agents', () => {
       'woc_persistence.toml',
       'woc_release_malware.toml',
       'woc_security.toml',
+      'woc_server_hot_path.toml',
       'woc_sim_architecture.toml',
       'woc_test_coverage.toml',
     ]);
@@ -247,6 +227,44 @@ describe('Codex custom agents', () => {
     expect(read('docs/codex.md')).toContain('`woc_database_performance`');
     expect(read('docs/qa-gate.md')).toContain('| Database performance |');
   });
+
+  it('routes server hot-path work to the dedicated reviewer', () => {
+    // The Codex mirror of server-hot-path-reviewer: the grown-collection rules
+    // (server/CLAUDE.md "Hot paths") must be routed, not only documented.
+    const agent = read('.codex/agents/woc_server_hot_path.toml');
+    expect(agent).toContain('name = "woc_server_hot_path"');
+    expect(agent).toContain('Proposed-change review:');
+    expect(agent).toContain('Finished-diff review:');
+    expect(agent).toContain('An empty diff is not a reason to exit this mode.');
+    expect(agent).toMatch(/neither the assigned proposal nor the finished diff can affect/);
+    expect(agent).toContain('no O(realm-collection) read sits on the per-tick self path');
+    expect(agent).toContain('no named bound, no per-tick key');
+    expect(agent).toMatch(/never O\(the stored book\)/);
+    expect(agent).toContain('whole-book world_state blob');
+    expect(agent).toContain('SELF_WIRE_PHASES');
+    expect(agent).toContain('seeded backing collection (1,000+ rows)');
+    expect(agent).toContain('never run a load test against production');
+    expect(agent).toContain('Verdict: `PASS`, `BLOCK`, or `OUT_OF_SCOPE`');
+    expect(agent).toContain('Required runtime proof:');
+    expect(agent).toContain('woc_database_performance');
+    expect(read('.agents/skills/woc-qa/SKILL.md')).toMatch(
+      /`woc_server_hot_path` for per-tick, per-request, per-broadcast, or recurring/,
+    );
+    expect(read('.agents/skills/woc-review-pr/SKILL.md')).toMatch(
+      /Invoke `woc_server_hot_path` when the diff adds or changes/,
+    );
+    expect(read('.agents/skills/woc-feature-plan/SKILL.md')).toMatch(
+      /use `woc_server_hot_path` for\s+the non-SQL budget/,
+    );
+    expect(read('.agents/skills/woc-extract-and-test/SKILL.md')).toMatch(
+      /and `woc_server_hot_path` when the diff adds or changes per-tick, per-request,/,
+    );
+    expect(read('AGENTS.md')).toContain('`woc_server_hot_path`');
+    expect(read('docs/codex.md')).toContain('`woc_server_hot_path`');
+    expect(read('docs/qa-gate.md')).toMatch(
+      /\| Server hot-path performance \| `server-hot-path-reviewer` \| `woc_server_hot_path` \|/,
+    );
+  });
 });
 
 describe('Codex skills', () => {
@@ -263,13 +281,12 @@ describe('Codex skills', () => {
       'woc-release-malware-audit',
       'woc-release-merge-audit',
       'woc-review-pr',
+      'woc-write-game-tooltips',
     ]);
 
     const descriptions = new Set<string>();
     for (const skill of skills) {
-      const text = fs
-        .readFileSync(path.join(skillsDir, skill, 'SKILL.md'), 'utf8')
-        .replaceAll('\r\n', '\n');
+      const text = fs.readFileSync(path.join(skillsDir, skill, 'SKILL.md'), 'utf8');
       const frontmatter = text.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
       if (!frontmatter) throw new Error(`${skill} has no YAML frontmatter`);
       const keys = [...frontmatter.matchAll(/^([a-z_]+):/gm)].map((match) => match[1]);
@@ -298,37 +315,45 @@ describe('Codex skills', () => {
   });
 });
 
-describe('Codex PR review automation', () => {
-  it('isolates untrusted PR data and keeps credentials in separate least-privilege jobs', () => {
-    const workflow = read('.github/workflows/pr-ai.yml');
-    expect(workflow).toContain('uses: openai/codex-action@v1');
-    expect(workflow).toContain(`openai-api-key: \${{ secrets.OPENAI_API_KEY }}`);
-    expect(workflow).toContain('permission-profile: ":read-only"');
-    expect(workflow).toContain('safety-strategy: "drop-sudo"');
-    expect(workflow).toContain('path: review/untrusted/pr');
-    expect(workflow).toContain('persist-credentials: false');
-    expect(workflow).not.toContain('CODEX_AUTH_JSON');
-    expect(workflow).not.toContain('danger-full-access');
-    expect(workflow).not.toContain('npm install -g @openai/codex');
-
-    const reviewStart = workflow.indexOf('  codex-review:');
-    const postStart = workflow.indexOf('  post-codex-review:');
-    expect(reviewStart).toBeGreaterThan(0);
-    expect(postStart).toBeGreaterThan(reviewStart);
-    const reviewJob = workflow.slice(reviewStart, postStart);
-    const actionStart = reviewJob.indexOf('uses: openai/codex-action@v1');
-    expect(actionStart).toBeGreaterThan(0);
-    expect(reviewJob.slice(actionStart)).not.toMatch(/^\s+- name:/m);
-    expect(workflow.slice(postStart)).not.toContain('OPENAI_API_KEY');
+describe('retired CI reviewer stays retired', () => {
+  // The Codex CI review workflow was removed 2026-08 (maintainer decision;
+  // docs/codex.md, "Pull request automation"). Reintroducing a CI reviewer
+  // needs a fresh security design, so the absence is pinned the decisive way:
+  // a scan of the whole workflow directory, not a hardcoded filename that a
+  // renamed workflow would evade.
+  //
+  // The OPENAI_API_KEY arm is DELIBERATELY broader than the retirement: the
+  // secret's only legitimate consumers are server-side and local tooling env
+  // vars, never a workflow. If a future workflow legitimately needs it,
+  // narrow this assertion to the codex-action arm; do not delete the test.
+  it('keeps every workflow free of the codex-action and its credential', () => {
+    const dir = path.join(root, '.github/workflows');
+    const files = fs.readdirSync(dir).filter((f) => /\.ya?ml$/.test(f));
+    expect(files.length).toBeGreaterThan(0);
+    for (const f of files) {
+      const text = fs.readFileSync(path.join(dir, f), 'utf8');
+      expect(text, f).not.toContain('openai/codex-action');
+      expect(text, f).not.toContain('OPENAI_API_KEY');
+    }
   });
 
-  it('has a valid fixed output schema and no obsolete credential-bearing runner', () => {
-    const schema = JSON.parse(read('.github/codex/review-output.schema.json'));
-    expect(schema.additionalProperties).toBe(false);
-    expect(schema.properties.findings.maxItems).toBe(20);
-    expect(fs.existsSync(path.join(root, 'scripts/prepare_ai_review.mjs'))).toBe(true);
-    expect(fs.existsSync(path.join(root, 'scripts/post_ai_review.mjs'))).toBe(true);
-    expect(fs.existsSync(path.join(root, 'scripts/ai_review.mjs'))).toBe(false);
-    expect(fs.existsSync(path.join(root, 'scripts/ai_review_diff.mjs'))).toBe(false);
+  it('keeps the retired reviewer files deleted', () => {
+    for (const p of [
+      '.github/codex',
+      'docs/ai-pr-bot.md',
+      'scripts/prepare_ai_review.mjs',
+      'scripts/prepare_ai_review.d.mts',
+      'scripts/post_ai_review.mjs',
+      'scripts/post_ai_review.d.mts',
+      'scripts/redact_secrets.mjs',
+      'scripts/redact_secrets.d.mts',
+      'scripts/gh_sticky_comment.mjs',
+      'scripts/ai_review.mjs',
+      'scripts/ai_review_diff.mjs',
+      'tests/ai_review.test.ts',
+      'tests/redact_secrets.test.ts',
+    ]) {
+      expect(fs.existsSync(path.join(root, p)), p).toBe(false);
+    }
   });
 });

@@ -17,6 +17,7 @@ function spec(
   masteryName: string,
   masteryDescription: string,
   effect: TalentEffect,
+  extraSignatures?: readonly string[],
 ): SpecDef {
   return {
     id,
@@ -26,6 +27,7 @@ function spec(
     icon,
     description,
     signature,
+    ...(extraSignatures ? { extraSignatures } : {}),
     mastery: { name: masteryName, description: masteryDescription, effect },
   };
 }
@@ -34,11 +36,11 @@ const PALADIN_SPECS: SpecDef[] = [
   spec(
     'holy',
     'paladin',
-    'Sacrament',
+    'Sunmender',
     'healer',
     '+',
     'A devoted healer who turns the Light into steady single-target recovery.',
-    'holy_shock',
+    'mercy_lance',
     'Kindled Faith',
     'Your healing spells critically heal for double.',
     { global: { critDmgHealPct: 0.5 } },
@@ -46,23 +48,33 @@ const PALADIN_SPECS: SpecDef[] = [
   spec(
     'protection',
     'paladin',
-    'Vigil',
+    'Faithwarden',
     'tank',
     '#',
     'A shield-bearing defender who converts Holy power into threat and mitigation.',
-    'holy_shield',
+    'sunward_disc',
     'Oathward',
-    'Increases all threat you generate by 50% and your armor by 20%.',
-    { global: { threatPct: 0.5 }, stats: { armorPct: 0.2 } },
+    'Increases all threat you generate by 100%, your armor by 20% and your Stamina by 35%.',
+    // staPct 0.35 carries the 2026-07 tank-parity pass that used to live in
+    // SPEC_BASELINES: with no stamina multiplier the paladin sat at 76% of the
+    // prot warrior's effective HP. The mastery is where an overhauled class
+    // keeps its floor (see Recompense on the warrior), so it lands here.
+    // threatPct 1.0 (v0.44 tank threat parity, docs/design/tank-threat-v044.md):
+    // live 0.42/0.43 raid parses put the Faithwarden at 234 generated threat/s
+    // against the Ironguard's 330, so the composed holy multiplier now runs
+    // 2.0 x Burning Oath 1.3 = 2.6 (physical 2.0). Earlier values, for the
+    // record: 0.5 at launch, trimmed to 0.4 in the v0.38 parity pass when the
+    // triple stack (ability mult x mastery x Burning Oath) overshot the other tanks.
+    { global: { threatPct: 1.0 }, stats: { armorPct: 0.2, staPct: 0.35 } },
   ),
   spec(
     'retribution',
     'paladin',
-    'Requital',
+    'Dawnreaver',
     'dps',
     'x',
     'A holy warrior who judges enemies with weapon strikes and radiant burst.',
-    'crusader_strike',
+    'final_edict',
     'Blood Debt',
     'Increases your Holy and physical ability damage by 20%.',
     { global: { meleeDmgPct: 0.2, spellDmgPct: 0.2 } },
@@ -76,11 +88,11 @@ const HUNTER_SPECS: SpecDef[] = [
     'Packlord',
     'dps',
     '+',
-    'A wild commander who fights beside a durable companion.',
+    'A wild commander who builds Pack Ferocity and unleashes a growing companion.',
     'bestial_wrath',
     'Packbond',
-    'Your pet deals 35% more damage. Increases maximum health by 8%.',
-    { global: { petDmgPct: 0.35 }, stats: { maxHpPct: 0.08 } },
+    'Your pet deals 25% more damage and your maximum health is increased by 8%.',
+    { global: { petDmgPct: 0.25 }, stats: { maxHpPct: 0.08 } },
   ),
   spec(
     'marksmanship',
@@ -88,11 +100,11 @@ const HUNTER_SPECS: SpecDef[] = [
     'Coldsight',
     'dps',
     'x',
-    'A precise archer built around ranged burst and efficient shots.',
-    'trueshot_aura',
-    'Iron Aim',
-    'Increases your ranged ability damage by 20% and critical strike chance by 3%.',
-    { global: { meleeDmgPct: 0.2 }, stats: { crit: 0.03 } },
+    'A deliberate archer who builds Focus and commits to precision shots.',
+    'cold_focus',
+    'Cold Read',
+    'Increases physical ability damage by 12% and critical strike chance by 3%.',
+    { global: { meleeDmgPct: 0.12 }, stats: { crit: 0.03 } },
   ),
   spec(
     'survival',
@@ -100,13 +112,14 @@ const HUNTER_SPECS: SpecDef[] = [
     'Fieldcraft',
     'dps',
     'o',
-    'A skirmisher who controls distance and survives close pressure.',
-    'wyvern_sting',
+    'A melee-first skirmisher who tears one wound and controls re-entry.',
+    'bloodhook',
     // Balance pass: was +15% Agility / +15% physical damage, a straight Iron
-    // Aim rival with no niche. Now the evasive-skirmisher identity.
+    // Aim rival with no niche. Now the evasive-skirmisher identity (Agility
+    // raised 15% to 20% in the Fieldcraft rework).
     'Quickblood',
-    'Increases your Agility by 15% and your dodge chance by 4%.',
-    { stats: { agiPct: 0.15, dodge: 0.04 } },
+    'Increases your Agility by 20% and your dodge chance by 4%.',
+    { stats: { agiPct: 0.2, dodge: 0.04 } },
   ),
 ];
 
@@ -140,11 +153,11 @@ const MAGE_SPECS: SpecDef[] = [
     // bypass that learnLevel gate (grants always do).
     'pyroblast',
     'Ignition',
-    'Your spell critical strikes burn the target for 40% of the damage dealt over 6 sec, stacking. Increases critical strike chance by 2%.',
+    'Your spell critical strikes burn the target for 30% of the damage dealt over 6 sec, stacking. Increases critical strike chance by 2%.',
     // The burn fraction is the scalable mastery axis (runtime: fire_mage's
     // igniteOnCrit copies the resolved crit damage); crit chance is the static
     // secondary.
-    { global: { ignitionPct: 0.4 }, stats: { crit: 0.02 } },
+    { global: { ignitionPct: 0.3 }, stats: { crit: 0.02 } },
   ),
   spec(
     'frost',
@@ -154,7 +167,7 @@ const MAGE_SPECS: SpecDef[] = [
     '#',
     'A spellcaster who controls the battlefield with ice, slows, and freezes. They build glacial power to destroy enemies with precise attacks.',
     // Signature swapped to the proc spender (owner leveling pass 2026-07-14):
-    // Icy Veins moved into the spec kit at level 12 (see combustion above).
+    // Coldsurge moved into the spec kit at level 12 (see combustion above).
     'ice_lance',
     'Brittlebreak',
     'Increases your Frost spell damage by 25%. Increases armor by 10%.',
@@ -178,7 +191,7 @@ const ROGUE_SPECS: SpecDef[] = [
     'Knifework',
     'dps',
     'x',
-    'A burst specialist using critical strikes and finishers.',
+    'A poison specialist. Your strikes add Venom Ritual; at 6, Dirt Nap becomes Venomrend, which cashes in all your bleeds at once and plants a fresh wound.',
     'cold_blood',
     // Balance pass (maintainer sheet): the backstab identity (the classic
     // Improved Backstab 30%), not a bleed rider on Subtlety's turf.
@@ -201,7 +214,7 @@ const ROGUE_SPECS: SpecDef[] = [
     'Thuggery',
     'dps',
     '/',
-    'A sustained fighter focused on direct weapon strikes.',
+    'A stand-up brawler. A 4+ combo Dirt Nap starts Redline for 8 sec: your strikes become Haymakers that build it up, and Lights Out spends it all before the timer ends.',
     'blade_flurry',
     // Balance pass (maintainer sheet): the only mastery in the game with a
     // penalty loses it.
@@ -218,18 +231,21 @@ const ROGUE_SPECS: SpecDef[] = [
     'Skulduggery',
     'dps',
     '>',
-    'A stealth attacker built around openers, control, and avoidance.',
+    "A stealth striker. Openers from Duskveil add Gloam; at 3 Gloam your openers work without stealth, and the next one is free and starts the Shadow Veil, doubling your first Lurker's Strike inside it.",
     'hemorrhage',
     // Balance pass (maintainer sheet): tuned down from +40% crit damage and
-    // +10% Agility; the stealth-speed identity comes in instead (the Duskveil
-    // slow eases from 50% toward 25% at full mastery).
+    // +10% Agility; the stealth-speed identity comes in instead. The buffPct
+    // scales the Duskveil aura's own move-speed multiplier. Duskveil and
+    // Smokefade now move at full speed for every rogue (1.0), so 0.15 lifts
+    // Skulduggery to 1.15: a stealth value above 1 counts as a speed buff
+    // (player_motion.ts moveSpeedMult).
     'False Face',
-    'Increases the damage of your critical strikes by 25%, and you move 50% faster while in Duskveil.',
+    'Increases the damage of your critical strikes by 25%, and you move 15% faster while in Duskveil.',
     {
       global: { critDmgPhysPct: 0.25 },
       ability: [
-        { ability: 'stealth', buffPct: 0.5 },
-        { ability: 'vanish', buffPct: 0.5 },
+        { ability: 'stealth', buffPct: 0.15 },
+        { ability: 'vanish', buffPct: 0.15 },
       ],
     },
   ),
@@ -243,7 +259,7 @@ const PRIEST_SPECS: SpecDef[] = [
     'healer',
     '#',
     'A mitigator who shields allies and heals through controlled efficiency.',
-    'power_infusion',
+    'scouring_mercy',
     'Fixed Purpose',
     'Your shields absorb 30% more. Increases maximum health by 8%.',
     { global: { absorbPct: 0.3 }, stats: { maxHpPct: 0.08 } },
@@ -255,7 +271,7 @@ const PRIEST_SPECS: SpecDef[] = [
     'healer',
     '+',
     'A direct healer with strong throughput and restorative prayers.',
-    'holy_nova',
+    'seraphic_vigil',
     'Grave Mercy',
     'Increases all healing you do by 20%.',
     { global: { healPct: 0.2 } },
@@ -267,7 +283,7 @@ const PRIEST_SPECS: SpecDef[] = [
     'dps',
     '*',
     'A damage caster built around Shadow damage over time and mind spells.',
-    'shadowform',
+    'summon_tithefiend',
     'Gloamveil',
     'Increases your damage-over-time damage by 15% and your spell damage by 10%.',
     { global: { dotDmgPct: 0.15, spellDmgPct: 0.1 } },
@@ -302,13 +318,13 @@ const SHAMAN_SPECS: SpecDef[] = [
   spec(
     'restoration',
     'shaman',
-    'Spiritmend',
+    'Spiritcall',
     'healer',
     '+',
     'A healer using ancestral waves and efficient nature magic.',
     'chain_heal',
     'Cleansing Tides',
-    'Your healing spells cost 20% less mana.',
+    'Mending Waters and Cascading Mend cost 20% less Mana.',
     {
       ability: [
         { ability: 'chain_heal', costPct: -0.2 },
@@ -325,23 +341,32 @@ const WARLOCK_SPECS: SpecDef[] = [
     'Hexcraft',
     'dps',
     '*',
-    'A curse-weaver using damage over time and drains.',
-    'siphon_life',
-    'Creeping Rot',
-    'Your damage-over-time effects deal 20% more damage.',
-    { global: { dotDmgPct: 0.2 } },
+    'A curse-weaver who turns enemy and allied actions into Condemnation.',
+    'evil_eye',
+    'Sentence',
+    'Increases Needle of Fate, Sentence, and Litany of Guilt damage by 10%.',
+    {
+      ability: [
+        { ability: 'needle_of_fate', dmgPct: 0.1 },
+        { ability: 'sentence', dmgPct: 0.1 },
+        // The viability pass authored Litany's 5/9/14 expecting the mastery on
+        // top (tests/warlock_viability_fixes.test.ts pins 6/10/15 resolved);
+        // the wiring was missed when the ability landed.
+        { ability: 'litany_of_guilt', dmgPct: 0.1 },
+      ],
+    },
   ),
   spec(
     'demonology',
     'warlock',
-    'Pactbound',
+    'Necromancy',
     'dps',
     '+',
-    'A durable warlock who survives through demonic resilience.',
+    'A master of Soul Fragments who raises and commands an undead army.',
     'metamorphosis',
-    'Fiendlore',
-    '20% of damage you take is redirected to your demon. Increases Stamina by 10%.',
-    { global: { petDmgSharePct: 0.2 }, stats: { staPct: 0.1 } },
+    'Grave Dominion',
+    'Your undead deal 20% more damage, and your Graveguard intercepts 20% of damage you take. Increases Stamina by 10%.',
+    { global: { petDmgPct: 0.2, petDmgSharePct: 0.2 }, stats: { staPct: 0.1 } },
   ),
   spec(
     'destruction',
@@ -349,18 +374,11 @@ const WARLOCK_SPECS: SpecDef[] = [
     'Ruination',
     'dps',
     'x',
-    'A burst caster using Gloom Bolt, fire, and Duskfire.',
+    'A siege caster who builds Wrack and spends it on overwhelming fire.',
     'conflagrate',
-    // Balance pass (maintainer sheet): the Destruction mastery is a scoped
-    // nuke amp (the Brittlebreak shape), not a fire-crit multiplier.
     'Desolation',
-    'Increases Ruinbolt and Gloom Bolt damage by 20%.',
-    {
-      ability: [
-        { ability: 'chaos_bolt', dmgPct: 0.2 },
-        { ability: 'shadow_bolt', dmgPct: 0.2 },
-      ],
-    },
+    'Conflagrate grants Desolation. It significantly shortens your next Ruinbolt cast or calls down the first wave of Rain of Fire immediately.',
+    {},
   ),
 ];
 
@@ -371,7 +389,7 @@ const DRUID_SPECS: SpecDef[] = [
     'Moongrove',
     'dps',
     '*',
-    'A caster who uses lunar and nature magic from range.',
+    'A Moonwing caster whose casts fill the Moontide; at 3 you choose how to spend it: Moonsurge for damage or Sunwake for mana.',
     'moonkin_form',
     'Moonrage',
     'Increases your spell damage by 15% and your spell haste by 10%.',
@@ -383,13 +401,13 @@ const DRUID_SPECS: SpecDef[] = [
     'Wildfang',
     'tank',
     'x',
-    'A shapeshifter who tanks in bear form and fights up close.',
+    "A shapeshifter whose landed hits build Old Blood in both forms: Cat spends it for damage, Bruin spends it to tank. Reaches 1 yd further with every melee attack, and melee autoattacks grant Nature's Boon about every 15 sec: for 10 sec, one free Sporemending castable in any form and 50% stronger, or one free Oakhide in Bruin Form and 25% stronger.",
     'feral_charge',
     'Primal Heart',
     // The +15% armor carries the v0.27 Dire Bruin retune (the old feral_choice_bear
     // node) into the spec mastery: in Talents 2.0 the bear-tank identity IS this spec.
-    'Increases your physical ability damage by 15%, your bleed damage by 15%, your threat by 20%, and your armor by 15%.',
-    { global: { meleeDmgPct: 0.15, dotDmgPct: 0.15, threatPct: 0.2 }, stats: { armorPct: 0.15 } },
+    'Increases your physical ability damage by 50%, your bleed damage by 50%, your threat by 45%, and your armor by 15%.',
+    { global: { meleeDmgPct: 0.5, dotDmgPct: 0.5, threatPct: 0.45 }, stats: { armorPct: 0.15 } },
   ),
   spec(
     'restoration',
@@ -397,11 +415,14 @@ const DRUID_SPECS: SpecDef[] = [
     'Groveheart',
     'healer',
     '+',
-    'A healer using heal-over-time effects and efficient nature magic.',
+    "A healer who grows Verdance with completed HoT casts and harvests the garden with Overbloom. Ticks of your heal-over-time effects grant Nature's Boon (at most once every 10 sec): for 10 sec, one Wildmend that is instant, free, castable in any form, and 25% stronger.",
     'swiftmend',
     "Grove's Gift",
     'Your heal-over-time effects heal 25% more.',
     { global: { hotHealPct: 0.25 } },
+    // Groveheart's form signature beside Fleetmend, the Moonwing of the healer
+    // spec (combat/druid_sporemender.ts).
+    ['sporemender_form'],
   ),
 ];
 

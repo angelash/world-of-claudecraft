@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import { apiGet } from '../api';
   import AccountLink from '../components/AccountLink.svelte';
+  import AutoRefreshToggle from '../components/AutoRefreshToggle.svelte';
   import IpLink from '../components/IpLink.svelte';
   import Panel from '../components/Panel.svelte';
+  import PermissionDenied from '../components/PermissionDenied.svelte';
   import { fmtDate, fmtRelative } from '../format';
   import { adminLanguageTag, t } from '../i18n';
-  import { auth } from '../state/auth.svelte';
+  import { createAutoRefresh } from '../state/auto_refresh.svelte';
   import { buildSuspiciousSessionsExport } from '../suspicious_sessions_export';
   import type { SuspiciousEvidence, SuspiciousPlayer, SuspiciousPlayersData } from '../types';
 
@@ -16,14 +18,15 @@
   const AUTO_REFRESH_STORAGE_KEY = 'claudecraft_admin_suspicious_auto_refresh';
   const AUTO_REFRESH_MS = 30_000;
 
-  let data = $state<SuspiciousPlayersData | null>(null);
-  let failed = $state(false);
+  const surface = createAutoRefresh<SuspiciousPlayersData>({
+    storageKey: AUTO_REFRESH_STORAGE_KEY,
+    intervalMs: AUTO_REFRESH_MS,
+    load: () => apiGet<SuspiciousPlayersData>('/admin/api/suspicious-players'),
+  });
+  let data = $derived(surface.data);
   let sort = $state<SortColumn>('observed');
   let direction = $state<SortDirection>('desc');
   let query = $state('');
-  let autoRefresh = $state(true);
-  let mounted = $state(false);
-  let requestId = 0;
 
   const sortedPlayers = $derived.by(() => {
     if (!data) return [];
@@ -111,19 +114,6 @@
     return parts.join(' | ');
   }
 
-  async function refresh(): Promise<void> {
-    const currentRequest = ++requestId;
-    try {
-      const result = await apiGet<SuspiciousPlayersData>('/admin/api/suspicious-players');
-      if (currentRequest !== requestId) return;
-      data = result;
-      failed = false;
-    } catch (err) {
-      if (currentRequest !== requestId) return;
-      if (!auth.handleAuthFailure(err)) failed = true;
-    }
-  }
-
   function downloadJson(): void {
     if (data === null) return;
     const file = buildSuspiciousSessionsExport(data);
@@ -162,26 +152,7 @@
     return direction === 'asc' ? '▲' : '▼';
   }
 
-  function changeAutoRefresh(event: Event): void {
-    autoRefresh = (event.currentTarget as HTMLInputElement).checked;
-    localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, autoRefresh ? '1' : '0');
-    if (autoRefresh) void refresh();
-  }
-
-  $effect(() => {
-    if (!mounted || !autoRefresh) return;
-    const id = setInterval(() => void refresh(), AUTO_REFRESH_MS);
-    return () => clearInterval(id);
-  });
-
-  onMount(() => {
-    autoRefresh = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY) !== '0';
-    mounted = true;
-    void refresh();
-    return () => {
-      requestId += 1;
-    };
-  });
+  onMount(() => surface.start());
 </script>
 
 <div class="suspicious-page">
@@ -190,13 +161,11 @@
       <div class="description-row">
         <p class="description">{t('suspiciousPlayers.sessionDescription')}</p>
         <div class="control-actions">
-          <label class="auto-refresh">
-            <input type="checkbox" checked={autoRefresh} onchange={changeAutoRefresh} />
-            <span class="switch-track" aria-hidden="true"><span></span></span>
-            <span>
-              {t('suspiciousPlayers.autoRefresh', { seconds: AUTO_REFRESH_MS / 1000 })}
-            </span>
-          </label>
+          <AutoRefreshToggle
+            checked={surface.enabled}
+            label={t('suspiciousPlayers.autoRefresh', { seconds: AUTO_REFRESH_MS / 1000 })}
+            onChange={(enabled) => surface.setEnabled(enabled)}
+          />
           <button type="button" disabled={data === null} onclick={downloadJson}>
             {t('suspiciousPlayers.downloadJson')}
           </button>
@@ -216,7 +185,9 @@
       {data === null ? '' : resultCountLabel(sortedPlayers.length)}
     </p>
 
-    {#if failed}
+    {#if surface.failure === 'forbidden'}
+      <PermissionDenied />
+    {:else if surface.failure === 'error'}
       <div class="empty">{t('suspiciousPlayers.loadFailed')}</div>
     {:else if data === null}
       <div class="empty">{t('suspiciousPlayers.loading')}</div>
@@ -344,59 +315,6 @@
     flex: none;
     align-items: center;
     gap: 12px;
-  }
-
-  .auto-refresh {
-    position: relative;
-    display: inline-flex;
-    min-height: 40px;
-    flex: none;
-    align-items: center;
-    gap: 8px;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 12px;
-  }
-
-  .auto-refresh input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-  }
-
-  .switch-track {
-    display: inline-flex;
-    width: 34px;
-    height: 19px;
-    align-items: center;
-    padding: 2px;
-    background: var(--control-bg);
-    border: 1px solid var(--control-border);
-    border-radius: 999px;
-  }
-
-  .switch-track span {
-    width: 13px;
-    height: 13px;
-    background: var(--text-dim);
-    border-radius: 50%;
-    transition: transform 120ms ease, background 120ms ease;
-  }
-
-  .auto-refresh input:checked + .switch-track {
-    background: #17301f;
-    border-color: #348b56;
-  }
-
-  .auto-refresh input:checked + .switch-track span {
-    background: #7bea9f;
-    transform: translateX(15px);
-  }
-
-  .auto-refresh input:focus-visible + .switch-track {
-    outline: 2px solid var(--gold);
-    outline-offset: 2px;
   }
 
   .visually-hidden {

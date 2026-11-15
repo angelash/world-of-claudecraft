@@ -1,4 +1,4 @@
-// Heroic Leap (owner 2026-07-09): the leap ARCS to the landing over ~0.6s instead
+// Vaulting Charge (owner 2026-07-09): the leap ARCS to the landing over ~0.6s instead
 // of teleporting, and its AoE slams down on touchdown (not at cast). Drives the sim
 // deterministically: arm the flight, watch it rise, then land + blast.
 // Restored from the pre-revert payload (f274835b1^); the HeroicLeapFlight fields
@@ -14,15 +14,21 @@ import { readyArenaFighter } from '../src/sim/social/arena';
 import { fiestaDownEntity } from '../src/sim/social/fiesta';
 import type { Entity } from '../src/sim/types';
 import { MAX_LEVEL } from '../src/sim/types';
+import { EMPTY_TEST_WORLD } from './sim_shared';
 
 type AnySim = Sim & {
   nextId: number;
   addEntity(entity: Entity): void;
 };
 
-describe('Heroic Leap: arcs over time, slams on landing', () => {
+describe('Vaulting Charge: arcs over time, slams on landing', () => {
   it('arms a flight, rises mid-air, then lands near the aim and blasts on touchdown', () => {
-    const sim = new Sim({ seed: 7, playerClass: 'warrior', autoEquip: true }) as AnySim;
+    const sim = new Sim({
+      seed: 7,
+      playerClass: 'warrior',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     sim.setPlayerLevel(MAX_LEVEL);
     const p: Entity = sim.player;
     const from = { ...p.pos };
@@ -60,7 +66,12 @@ describe('Heroic Leap: arcs over time, slams on landing', () => {
   });
 
   it('does not teleport: it is NOT at the destination on the first tick', () => {
-    const sim = new Sim({ seed: 3, playerClass: 'warrior', autoEquip: true }) as AnySim;
+    const sim = new Sim({
+      seed: 3,
+      playerClass: 'warrior',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     sim.setPlayerLevel(MAX_LEVEL);
     const p: Entity = sim.player;
     const aim = { x: p.pos.x + 12, z: p.pos.z };
@@ -73,7 +84,12 @@ describe('Heroic Leap: arcs over time, slams on landing', () => {
   });
 
   it('cannot arm or continue through unbreakable encounter control', () => {
-    const rooted = new Sim({ seed: 31, playerClass: 'warrior', autoEquip: true }) as AnySim;
+    const rooted = new Sim({
+      seed: 31,
+      playerClass: 'warrior',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     rooted.setPlayerLevel(MAX_LEVEL);
     const rootedPlayer = rooted.player;
     const rootedStart = { ...rootedPlayer.pos };
@@ -98,7 +114,12 @@ describe('Heroic Leap: arcs over time, slams on landing', () => {
     expect(rootedPlayer.resource).toBe(rootedResource);
     expect(rootedPlayer.cooldowns.has('heroic_leap')).toBe(false);
 
-    const stunned = new Sim({ seed: 32, playerClass: 'warrior', autoEquip: true }) as AnySim;
+    const stunned = new Sim({
+      seed: 32,
+      playerClass: 'warrior',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     stunned.setPlayerLevel(MAX_LEVEL);
     const stunnedPlayer = stunned.player;
     stunned.castAbility('heroic_leap', stunnedPlayer.id, {
@@ -129,9 +150,14 @@ describe('Heroic Leap: arcs over time, slams on landing', () => {
 // The flight must die with the caster or with any external relocation: a stale
 // leap otherwise resumes later and teleports the player onto the stored landing
 // point (skipping the corpse run, or undoing an arena/fiesta placement).
-describe('Heroic Leap: lifecycle resets', () => {
+describe('Vaulting Charge: lifecycle resets', () => {
   function armLeap(seed: number): { sim: AnySim; p: Entity; landing: { x: number; z: number } } {
-    const sim = new Sim({ seed, playerClass: 'warrior', autoEquip: true }) as AnySim;
+    const sim = new Sim({
+      seed,
+      playerClass: 'warrior',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    }) as AnySim;
     sim.setPlayerLevel(MAX_LEVEL);
     const p: Entity = sim.player;
     p.gcdRemaining = 0;
@@ -162,7 +188,8 @@ describe('Heroic Leap: lifecycle resets', () => {
       duration: 0.6,
       apex: 5,
       landingAoe: { min: 24, max: 32, radius: 6 },
-      abilityName: 'Heroic Leap',
+      abilityName: 'Vaulting Charge',
+      abilityId: 'heroic_leap',
       school: 'physical',
     };
     const ghostPos = { ...p.pos };

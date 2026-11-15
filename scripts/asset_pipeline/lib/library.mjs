@@ -16,10 +16,11 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, join, relative, sep } from 'node:path';
+import { basename, join, normalize, relative } from 'node:path';
 import { REPO_ROOT } from './env.mjs';
 import { weaponFamilyFor } from './families.mjs';
 import { inspectGlb } from './glb.mjs';
+import { findGlbReferences } from './glb_source_references.mjs';
 import { renderHeldPreviews, renderSkinThumb, renderThumb } from './preview.mjs';
 
 export const LIBRARY_DIR = join(REPO_ROOT, 'tmp/asset_pipeline/library');
@@ -121,7 +122,11 @@ export function parseVisualUrls(src) {
   };
   // visualKey: { url: `${DIR}/file.glb` ... } blocks, including nested attach
   // urls; attribute each url between this key and the next to the key.
-  const keyRe = /^\s{2}([a-z0-9_]+):\s*\{/gm;
+  // A def may be WRAPPED in a helper call (`player_warrior: swims({ ... })`,
+  // which layers the shared swim strokes on), so the opening brace can sit
+  // behind an identifier and a paren. Missing that does not just drop the key:
+  // its urls get attributed to whichever key was matched before it.
+  const keyRe = /^\s{2}([a-z0-9_]+):\s*(?:[A-Za-z_$][\w$]*\()?\{/gm;
   const keys = [...src.matchAll(keyRe)].map((m) => ({ key: m[1], at: m.index }));
   for (let i = 0; i < keys.length; i++) {
     const end = keys[i + 1]?.at ?? src.length;
@@ -192,8 +197,44 @@ function slugName(s) {
   return s.replace(/[^a-zA-Z0-9_]+/g, '_');
 }
 
-function relativeAssetPath(root, path) {
-  return relative(root, path).split(sep).join('/');
+function slashPath(path) {
+  return path.replace(/\\/g, '/');
+}
+
+export function heldPreviewCacheDestination(file, held, heldRight) {
+  return basename(slashPath(file)) === 'held_hero.png' ? held : heldRight;
+}
+
+export function liveLibraryHtml(html) {
+  return html
+    .replace('<head>', '<head>\n<link rel="icon" href="data:,">')
+    .replace('window.__LIVE__ = false;', 'window.__LIVE__ = true;')
+    .replace(
+      '</body>',
+      '<script type="module" src="/viewer_live.js"></script>\n' +
+        '<script type="module" src="/wizard_ui.js"></script>\n</body>',
+    );
+}
+
+const REPO_ASSET_PREFIXES = ['public/', 'tmp/asset_pipeline/'];
+
+export function repoAssetRequestPath(path) {
+  const rel = slashPath(normalize(slashPath(path))).replace(/^(\.\.\/)+/, '');
+  return REPO_ASSET_PREFIXES.some((prefix) => rel.startsWith(prefix)) ? rel : null;
+}
+
+export function generatedJobDisplayGlb(jobDir, name) {
+  for (const file of [`${name}.glb`, 'textured.glb', 'raw.glb']) {
+    const path = join(jobDir, file);
+    if (existsSync(path)) return path;
+  }
+  return null;
+}
+
+export function skinAtlasPathParts(path) {
+  const [, , model, file] = slashPath(path).split('/');
+  if (!model || !file) throw new Error(`invalid skin atlas path: ${path}`);
+  return { model, file };
 }
 
 /** Every .ts source under src/, concatenated once, for the generic
@@ -224,12 +265,16 @@ export function collectInventory() {
     ),
     chromas: parseMechChromas(readFileSync(join(REPO_ROOT, 'src/sim/content/skins.ts'), 'utf8')),
   };
-  const haystack = sourceHaystack();
+  const models = walk(join(REPO_ROOT, 'public/models')).filter((f) => f.endsWith('.glb'));
+  const references = findGlbReferences(
+    sourceHaystack(),
+    models.map((f) => basename(f)),
+  );
   const assets = [];
 
   // 1. Every GLB under public/models.
-  for (const abs of walk(join(REPO_ROOT, 'public/models')).filter((f) => f.endsWith('.glb'))) {
-    const rel = relativeAssetPath(join(REPO_ROOT, 'public'), abs); // models/...
+  for (const abs of models) {
+    const rel = slashPath(relative(join(REPO_ROOT, 'public'), abs)); // models/...
     const parts = rel.split('/');
     const category = parts[1] === 'chars' ? `chars/${parts[2]}` : parts[1];
     const name = parts[parts.length - 1].replace(/\.glb$/, '');
@@ -241,7 +286,7 @@ export function collectInventory() {
       path: rel,
       abs,
       bytes: statSync(abs).size,
-      registration: { referenced: haystack.includes(`${name}.glb`) },
+      registration: { referenced: references.has(`${name}.glb`) },
     };
     if (category === 'weapons') {
       const grip = registries.accessory.get(name) ?? null;
@@ -269,8 +314,8 @@ export function collectInventory() {
   for (const abs of walk(join(REPO_ROOT, 'public/textures/skins')).filter((f) =>
     f.endsWith('.png'),
   )) {
-    const rel = relativeAssetPath(join(REPO_ROOT, 'public'), abs);
-    const [, , model, file] = rel.split('/');
+    const rel = slashPath(relative(join(REPO_ROOT, 'public'), abs));
+    const { model, file } = skinAtlasPathParts(rel);
     const slots = registries.skins.get(rel) ?? [];
     assets.push({
       id: `skin:${rel}`,
@@ -296,8 +341,11 @@ export function collectInventory() {
   const mechTexDir = join(REPO_ROOT, 'public/models/chars/players/Mech/textures');
   const mechGlb = 'models/chars/players/Mech/characters/CombatMech.glb';
   for (const abs of walk(mechTexDir).filter((f) => f.endsWith('.png') && !f.includes('_emis'))) {
-    const rel = relativeAssetPath(join(REPO_ROOT, 'public'), abs);
-    const file = basename(abs).replace(/\.png$/, '');
+    const rel = slashPath(relative(join(REPO_ROOT, 'public'), abs));
+    const file = rel
+      .split('/')
+      .pop()
+      .replace(/\.png$/, '');
     const chromaId = file.replace(/^combatmech_(rare_|epic_)?/, '');
     const rank = registries.chromas.get(chromaId) ?? null;
     assets.push({
@@ -333,11 +381,17 @@ export function collectInventory() {
       }
       const name = state.name ?? id;
       const builtGlb = join(jobsRoot, id, `${name}.glb`);
-      const previewDir = join(jobsRoot, id, 'preview');
+      const displayGlb = generatedJobDisplayGlb(join(jobsRoot, id), name);
+      const finalPreviewDir = join(jobsRoot, id, 'preview');
+      const modelPreviewDir = join(jobsRoot, id, 'preview_model');
+      const previewDir = existsSync(finalPreviewDir) ? finalPreviewDir : modelPreviewDir;
       const previews = existsSync(previewDir)
         ? readdirSync(previewDir)
             .filter((f) => f.endsWith('.png'))
-            .map((f) => `../${id}/preview/${f}`)
+            .map(
+              (f) =>
+                `../${id}/${previewDir === finalPreviewDir ? 'preview' : 'preview_model'}/${f}`,
+            )
         : [];
       // Let a generated weapon be grip-tuned + saved from the viewer. Resolve its
       // VAR_* grip in priority order: the live grip of an already --applied weapon
@@ -361,14 +415,15 @@ export function collectInventory() {
         category: 'generated',
         name: `${state.kind ?? 'job'}: ${name}`,
         path: `tmp/asset_pipeline/${id}`,
-        abs: existsSync(builtGlb) ? builtGlb : null,
-        bytes: existsSync(builtGlb) ? statSync(builtGlb).size : 0,
+        abs: displayGlb,
+        bytes: displayGlb ? statSync(displayGlb).size : 0,
         // Weapon-lane jobs carry their grip family so the live viewer can
         // equip them on characters exactly like applied weapons.
         family: state.kind === 'weapon' ? (weaponFamilyFor(name)?.name ?? null) : null,
         job: {
           id,
           lane: state.kind ?? null,
+          finished: existsSync(builtGlb),
           steps: Object.fromEntries(
             Object.entries(state.steps ?? {}).map(([k, v]) => [k, v.status]),
           ),
@@ -470,11 +525,11 @@ export async function enrichAssets(assets, { full = false, log = console.log } =
             });
             // renderHeldPreviews writes held_hero/held_right; move to hash names.
             for (const f of files) {
-              const base = basename(f);
-              const dest =
-                base === 'held_hero.png'
-                  ? held
-                  : join(THUMBS_DIR, `${slugName(asset.name)}.${hash}.held_right.png`);
+              const dest = heldPreviewCacheDestination(
+                f,
+                held,
+                join(THUMBS_DIR, `${slugName(asset.name)}.${hash}.held_right.png`),
+              );
               writeFileSync(dest, readFileSync(f));
             }
           }
@@ -547,7 +602,7 @@ export function emitViewer(assets) {
         repoGlb = `public/${a.modelGlb}`;
         repoAtlas = `public/${a.path}`;
       } else if (a.kind === 'job' && abs) {
-        repoGlb = relativeAssetPath(REPO_ROOT, abs);
+        repoGlb = slashPath(relative(REPO_ROOT, abs));
       }
       return { ...a, repoGlb, repoAtlas };
     }),
@@ -607,8 +662,6 @@ export async function serveLibrary({ port = 5180, refresh = null } = {}) {
   // viewer / wizard / VFX layer show up on a plain page reload.
   const pageModule = (name) => rf(join(REPO_ROOT, `scripts/asset_pipeline/${name}`), 'utf8');
 
-  // Only these repo subtrees are reachable via /repo/* (never .env, src, etc.).
-  const ALLOWED = ['public/', 'tmp/asset_pipeline/'];
   const send = (res, code, type, body) => {
     res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
     res.end(body);
@@ -688,13 +741,7 @@ export async function serveLibrary({ port = 5180, refresh = null } = {}) {
     } catch {
       // keep serving the previous snapshot if a rebuild fails
     }
-    let html = rf(join(LIBRARY_DIR, 'index.html'), 'utf8');
-    html = html.replace('window.__LIVE__ = false;', 'window.__LIVE__ = true;');
-    html = html.replace(
-      '</body>',
-      '<script type="module" src="/viewer_live.js"></script>\n' +
-        '<script type="module" src="/wizard_ui.js"></script>\n</body>',
-    );
+    const html = liveLibraryHtml(rf(join(LIBRARY_DIR, 'index.html'), 'utf8'));
     send(res, 200, MIME['.html'], html);
   };
 
@@ -742,8 +789,16 @@ export async function serveLibrary({ port = 5180, refresh = null } = {}) {
       if (url === '/api/wizard/upload' && req.method === 'POST') return void handleUpload(req, res);
       if (url.startsWith('/api/')) return void handleApi(req, res, url);
       if (url === '/wizard_ui.js') return send(res, 200, MIME['.js'], pageModule('wizard_ui.js'));
+      if (url === '/wizard_status.mjs')
+        return send(res, 200, MIME['.js'], pageModule('wizard_status.mjs'));
       if (url === '/' || url === '/index.html') return void serveIndex(res);
       if (url === '/three.bundle.js') return send(res, 200, MIME['.js'], threeBundle);
+      if (url === '/basis/basis_transcoder.js' || url === '/basis/basis_transcoder.wasm') {
+        // Shipped GLB textures are KTX2; the viewer's KTX2Loader fetches its
+        // transcoder from the same origin, mirroring the game client.
+        const p = pjoin(REPO_ROOT, 'public', url.slice(1));
+        return send(res, 200, MIME[extname(p)] ?? 'application/octet-stream', rf(p));
+      }
       if (url === '/viewer_live.js')
         return send(res, 200, MIME['.js'], pageModule('viewer_live.js'));
       if (url === '/weapon_vfx.js') return send(res, 200, MIME['.js'], pageModule('weapon_vfx.js'));
@@ -754,9 +809,8 @@ export async function serveLibrary({ port = 5180, refresh = null } = {}) {
         return send(res, 404, 'text/plain', 'not found');
       }
       if (url.startsWith('/repo/')) {
-        const rel = pnorm(url.slice('/repo/'.length)).replace(/^(\.\.[/\\])+/, '');
-        if (!ALLOWED.some((a) => rel.startsWith(a)))
-          return send(res, 403, 'text/plain', 'forbidden');
+        const rel = repoAssetRequestPath(pnorm(url.slice('/repo/'.length)));
+        if (!rel) return send(res, 403, 'text/plain', 'forbidden');
         const p = pjoin(REPO_ROOT, rel);
         if (!p.startsWith(REPO_ROOT)) return send(res, 403, 'text/plain', 'forbidden');
         if (ex(p) && st(p).isFile()) {

@@ -5,8 +5,21 @@ import type { AiCreatureMemory, AiCreaturePlan } from './creature_memory';
 import type { SceneFrameV1 } from './scene_frame';
 import type { AiWorldTrace, AiWorldTraceKind } from './world_traces';
 
-export type AiWorldDirectorMood = 'uncanny' | 'haunted' | 'hungry' | 'covetous' | 'stirred' | 'triumphant' | 'dread' | 'relieved';
-export type AiWorldDirectorProposalType = 'npcTopicShift' | 'campAlert' | 'traceEcho' | 'encounterEcho' | 'questEcho';
+export type AiWorldDirectorMood =
+  | 'uncanny'
+  | 'haunted'
+  | 'hungry'
+  | 'covetous'
+  | 'stirred'
+  | 'triumphant'
+  | 'dread'
+  | 'relieved';
+export type AiWorldDirectorProposalType =
+  | 'npcTopicShift'
+  | 'campAlert'
+  | 'traceEcho'
+  | 'encounterEcho'
+  | 'questEcho';
 export type AiWorldDirectorProposalIntent =
   | 'nudgeNpcRumor'
   | 'raiseCampCaution'
@@ -186,7 +199,10 @@ export class AiWorldDirectorStore {
     });
   }
 
-  noteBossMemory(input: { memory: AiBossEncounterMemory; nowSeconds: number }): AiWorldDirectorState {
+  noteBossMemory(input: {
+    memory: AiBossEncounterMemory;
+    nowSeconds: number;
+  }): AiWorldDirectorState {
     this.prune(input.nowSeconds);
     const mood: AiWorldDirectorMood = input.memory.outcome === 'defeated' ? 'triumphant' : 'dread';
     return this.upsert({
@@ -201,7 +217,11 @@ export class AiWorldDirectorStore {
       subjectTemplateId: input.memory.templateId,
       subjectName: input.memory.entityName,
       heatGain: input.memory.heat,
-      evidence: [`bossMemory:${input.memory.outcome}`, `scale:${input.memory.scale}`, ...input.memory.evidence.slice(0, 3)],
+      evidence: [
+        `bossMemory:${input.memory.outcome}`,
+        `scale:${input.memory.scale}`,
+        ...input.memory.evidence.slice(0, 3),
+      ],
       nowSeconds: input.nowSeconds,
     });
   }
@@ -229,10 +249,17 @@ export class AiWorldDirectorStore {
     });
   }
 
-  stateForScene(sceneId: string | null | undefined, playerEntityId: number, nowSeconds: number): AiWorldDirectorState | null {
+  stateForScene(
+    sceneId: string | null | undefined,
+    playerEntityId: number,
+    nowSeconds: number,
+  ): AiWorldDirectorState | null {
     if (!sceneId) return null;
     this.prune(nowSeconds);
-    const state = this.states.find((candidate) => candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId);
+    const state = this.states.find(
+      (candidate) =>
+        candidate.sceneId === sceneId && candidate.sourcePlayerEntityId === playerEntityId,
+    );
     return state ? copyState(decayedState(state, nowSeconds, this.stateTtlSeconds)) : null;
   }
 
@@ -245,19 +272,27 @@ export class AiWorldDirectorStore {
   }): AiWorldDirectorState | null {
     if (!input.zoneId) return null;
     this.prune(input.nowSeconds);
-    const state = this.states.find((candidate) =>
-      candidate.zoneId === input.zoneId
-      && candidate.sourcePlayerEntityId === input.playerEntityId
-      && candidate.sceneId !== input.sceneId
+    const state = this.states.find(
+      (candidate) =>
+        candidate.zoneId === input.zoneId &&
+        candidate.sourcePlayerEntityId === input.playerEntityId &&
+        candidate.sceneId !== input.sceneId,
     );
     if (state) return copyState(decayedState(state, input.nowSeconds, this.stateTtlSeconds));
     if (!input.includeAdjacentZones) return null;
-    const adjacentState = this.states.find((candidate) =>
-      candidate.sourcePlayerEntityId === input.playerEntityId
-      && candidate.sceneId !== input.sceneId
-      && zonesAreAdjacent(candidate.zoneId, input.zoneId!));
+    const adjacentState = this.states.find(
+      (candidate) =>
+        candidate.sourcePlayerEntityId === input.playerEntityId &&
+        candidate.sceneId !== input.sceneId &&
+        zonesAreAdjacent(candidate.zoneId, input.zoneId!),
+    );
     return adjacentState
-      ? copyState(adjacentZoneState(decayedState(adjacentState, input.nowSeconds, this.stateTtlSeconds), input.zoneId))
+      ? copyState(
+          adjacentZoneState(
+            decayedState(adjacentState, input.nowSeconds, this.stateTtlSeconds),
+            input.zoneId,
+          ),
+        )
       : null;
   }
 
@@ -292,11 +327,12 @@ export class AiWorldDirectorStore {
     evidence: string[];
     nowSeconds: number;
   }): AiWorldDirectorState {
-    const existing = this.states.find((candidate) =>
-      candidate.sceneId === input.sceneId
-      && candidate.sourcePlayerEntityId === input.sourcePlayerEntityId
-      && candidate.mood === input.mood
-      && candidate.itemId === input.itemId,
+    const existing = this.states.find(
+      (candidate) =>
+        candidate.sceneId === input.sceneId &&
+        candidate.sourcePlayerEntityId === input.sourcePlayerEntityId &&
+        candidate.mood === input.mood &&
+        candidate.itemId === input.itemId,
     );
     if (existing) {
       existing.heat = clamp01(existing.heat + input.heatGain * 0.35);
@@ -377,7 +413,12 @@ export class AiWorldDirectorStore {
   }
 }
 
-export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, state: AiWorldDirectorState | null, pid: number): SimEvent | null {
+export function worldDirectorEvent(
+  scene: SceneFrameV1 | null,
+  speaker: Entity,
+  state: AiWorldDirectorState | null,
+  pid: number,
+): SimEvent | null {
   if (!state) return null;
   const encounter = state.subjectKind === 'encounter';
   const quest = state.subjectKind === 'quest';
@@ -390,12 +431,18 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
       mode: 'lineId',
       lineId: state.lineId,
       values: {
-        ...(quest ? { questId: state.itemId } : sceneSubject ? { sceneId: state.sceneId } : { itemId: state.itemId }),
+        ...(quest
+          ? { questId: state.itemId }
+          : sceneSubject
+            ? { sceneId: state.sceneId }
+            : { itemId: state.itemId }),
         ...(state.subjectName ? { itemName: state.subjectName } : {}),
-        ...(encounter ? {
-          bossTemplateId: state.subjectTemplateId ?? state.itemId,
-          bossName: state.subjectName ?? state.itemId,
-        } : {}),
+        ...(encounter
+          ? {
+              bossTemplateId: state.subjectTemplateId ?? state.itemId,
+              bossName: state.subjectName ?? state.itemId,
+            }
+          : {}),
         directorMood: state.mood,
         directorHeat: Math.round(state.heat * 100),
       },
@@ -405,12 +452,16 @@ export function worldDirectorEvent(scene: SceneFrameV1 | null, speaker: Entity, 
       kind: state.mood === 'haunted' || state.mood === 'dread' ? 'avoid' : 'inspect',
       ...(encounter || quest || sceneSubject ? {} : { targetItemId: state.itemId }),
       score: Math.round(state.heat * 100) / 100,
-      sceneTags: scene ? [...new Set([
-        ...scene.locationTags,
-        ...scene.structureTags,
-        ...scene.environmentalTags,
-        `director:${state.mood}`,
-      ])].slice(0, 8) : [`director:${state.mood}`],
+      sceneTags: scene
+        ? [
+            ...new Set([
+              ...scene.locationTags,
+              ...scene.structureTags,
+              ...scene.environmentalTags,
+              `director:${state.mood}`,
+            ]),
+          ].slice(0, 8)
+        : [`director:${state.mood}`],
     },
     pid,
   };
@@ -443,11 +494,17 @@ export function worldDirectorEventFromMemoryAudit(
       mode: 'lineId',
       lineId,
       values: {
-        ...(quest ? { questId: subjectId } : sceneSubject ? { sceneId: subjectId } : { itemId: subjectId }),
-        ...(encounter ? {
-          bossTemplateId: record.templateId || record.itemId || subjectId,
-          bossName: record.templateId || record.itemId || subjectId,
-        } : {}),
+        ...(quest
+          ? { questId: subjectId }
+          : sceneSubject
+            ? { sceneId: subjectId }
+            : { itemId: subjectId }),
+        ...(encounter
+          ? {
+              bossTemplateId: record.templateId || record.itemId || subjectId,
+              bossName: record.templateId || record.itemId || subjectId,
+            }
+          : {}),
         directorMood: mood,
         directorHeat: Math.round(record.salience * 100),
       },
@@ -457,19 +514,25 @@ export function worldDirectorEventFromMemoryAudit(
       kind: mood === 'haunted' || mood === 'dread' ? 'avoid' : 'inspect',
       ...(encounter || quest || sceneSubject ? {} : { targetItemId: subjectId }),
       score: Math.round(record.salience * 100) / 100,
-      sceneTags: scene ? [...new Set([
-        `director:${mood}`,
-        'persistedMemory',
-        ...scene.locationTags,
-        ...scene.structureTags,
-        ...scene.environmentalTags,
-      ])].slice(0, 8) : [`director:${mood}`, 'persistedMemory'],
+      sceneTags: scene
+        ? [
+            ...new Set([
+              `director:${mood}`,
+              'persistedMemory',
+              ...scene.locationTags,
+              ...scene.structureTags,
+              ...scene.environmentalTags,
+            ]),
+          ].slice(0, 8)
+        : [`director:${mood}`, 'persistedMemory'],
     },
     pid,
   };
 }
 
-export function worldDirectorProposalFromMemoryAudit(record: AiMemoryAuditRecord | null): AiWorldDirectorProposal | null {
+export function worldDirectorProposalFromMemoryAudit(
+  record: AiMemoryAuditRecord | null,
+): AiWorldDirectorProposal | null {
   if (!record || record.kind !== 'worldDirectorState') return null;
   const lineId = record.lineIds.find(isWorldDirectorLineId);
   if (!lineId) return null;
@@ -505,37 +568,58 @@ export function worldDirectorProposalFromMemoryAudit(record: AiMemoryAuditRecord
 
 export function moodForTraceKind(kind: AiWorldTraceKind): AiWorldDirectorMood {
   switch (kind) {
-    case 'singularity': return 'uncanny';
-    case 'cursed': return 'haunted';
-    case 'food': return 'hungry';
-    case 'valuable': return 'covetous';
-    case 'generic': return 'stirred';
+    case 'singularity':
+      return 'uncanny';
+    case 'cursed':
+      return 'haunted';
+    case 'food':
+      return 'hungry';
+    case 'valuable':
+      return 'covetous';
+    case 'generic':
+      return 'stirred';
   }
 }
 
 function proposalTypeForMood(mood: AiWorldDirectorMood): AiWorldDirectorProposalType {
   switch (mood) {
-    case 'haunted': return 'campAlert';
-    case 'uncanny': return 'campAlert';
-    case 'hungry': return 'traceEcho';
-    case 'covetous': return 'npcTopicShift';
-    case 'stirred': return 'traceEcho';
-    case 'triumphant': return 'encounterEcho';
-    case 'dread': return 'encounterEcho';
-    case 'relieved': return 'questEcho';
+    case 'haunted':
+      return 'campAlert';
+    case 'uncanny':
+      return 'campAlert';
+    case 'hungry':
+      return 'traceEcho';
+    case 'covetous':
+      return 'npcTopicShift';
+    case 'stirred':
+      return 'traceEcho';
+    case 'triumphant':
+      return 'encounterEcho';
+    case 'dread':
+      return 'encounterEcho';
+    case 'relieved':
+      return 'questEcho';
   }
 }
 
 function lineIdForMood(mood: AiWorldDirectorMood): AiWorldDirectorLineId {
   switch (mood) {
-    case 'uncanny': return 'hudChrome.aiSpeech.worldDirectorUncanny';
-    case 'haunted': return 'hudChrome.aiSpeech.worldDirectorHaunted';
-    case 'hungry': return 'hudChrome.aiSpeech.worldDirectorHungry';
-    case 'covetous': return 'hudChrome.aiSpeech.worldDirectorCovetous';
-    case 'stirred': return 'hudChrome.aiSpeech.worldDirectorStirred';
-    case 'triumphant': return 'hudChrome.aiSpeech.worldDirectorBossDefeated';
-    case 'dread': return 'hudChrome.aiSpeech.worldDirectorBossWipe';
-    case 'relieved': return 'hudChrome.aiSpeech.worldDirectorQuestComplete';
+    case 'uncanny':
+      return 'hudChrome.aiSpeech.worldDirectorUncanny';
+    case 'haunted':
+      return 'hudChrome.aiSpeech.worldDirectorHaunted';
+    case 'hungry':
+      return 'hudChrome.aiSpeech.worldDirectorHungry';
+    case 'covetous':
+      return 'hudChrome.aiSpeech.worldDirectorCovetous';
+    case 'stirred':
+      return 'hudChrome.aiSpeech.worldDirectorStirred';
+    case 'triumphant':
+      return 'hudChrome.aiSpeech.worldDirectorBossDefeated';
+    case 'dread':
+      return 'hudChrome.aiSpeech.worldDirectorBossWipe';
+    case 'relieved':
+      return 'hudChrome.aiSpeech.worldDirectorQuestComplete';
   }
 }
 
@@ -579,7 +663,9 @@ function moodForLineId(lineId: AiWorldDirectorLineId): AiWorldDirectorMood {
 }
 
 function moodFromAuditReason(reason: string): AiWorldDirectorMood | null {
-  const match = /:([a-z]+):(?:npcTopicShift|campAlert|traceEcho|encounterEcho|questEcho)$/.exec(reason);
+  const match = /:([a-z]+):(?:npcTopicShift|campAlert|traceEcho|encounterEcho|questEcho)$/.exec(
+    reason,
+  );
   const mood = match?.[1] ?? '';
   switch (mood) {
     case 'uncanny':
@@ -623,8 +709,15 @@ function creatureMemoryEvidence(
   ];
 }
 
-function decayedState(state: AiWorldDirectorState, nowSeconds: number, ttlSeconds: number): AiWorldDirectorState {
-  const heat = Math.max(0.15, state.heat * (1 - Math.max(0, nowSeconds - state.updatedAt) / ttlSeconds));
+function decayedState(
+  state: AiWorldDirectorState,
+  nowSeconds: number,
+  ttlSeconds: number,
+): AiWorldDirectorState {
+  const heat = Math.max(
+    0.15,
+    state.heat * (1 - Math.max(0, nowSeconds - state.updatedAt) / ttlSeconds),
+  );
   const decayed = {
     ...state,
     heat,
@@ -638,9 +731,16 @@ function decayedState(state: AiWorldDirectorState, nowSeconds: number, ttlSecond
   return decayed;
 }
 
-function adjacentZoneState(state: AiWorldDirectorState, targetZoneId: string): AiWorldDirectorState {
+function adjacentZoneState(
+  state: AiWorldDirectorState,
+  targetZoneId: string,
+): AiWorldDirectorState {
   const heat = Math.max(0.05, Math.round(state.heat * ADJACENT_ZONE_INTENSITY_SCALE * 100) / 100);
-  const evidence = mergeRecent(state.evidence, [`adjacentZone:${state.zoneId}->${targetZoneId}`], 8);
+  const evidence = mergeRecent(
+    state.evidence,
+    [`adjacentZone:${state.zoneId}->${targetZoneId}`],
+    8,
+  );
   const adjacent: AiWorldDirectorState = {
     ...state,
     heat,
@@ -658,7 +758,11 @@ function zonesAreAdjacent(sourceZoneId: string, targetZoneId: string): boolean {
   return ADJACENT_ZONE_IDS[sourceZoneId]?.includes(targetZoneId) ?? false;
 }
 
-function mergeRecent(previous: readonly string[], next: readonly string[], limit: number): string[] {
+function mergeRecent(
+  previous: readonly string[],
+  next: readonly string[],
+  limit: number,
+): string[] {
   return [...next, ...previous.filter((value) => !next.includes(value))].slice(0, limit);
 }
 
@@ -692,23 +796,32 @@ function proposalForState(state: Omit<AiWorldDirectorState, 'proposal'>): AiWorl
   };
 }
 
-function proposalIntentForState(state: Omit<AiWorldDirectorState, 'proposal'>): AiWorldDirectorProposalIntent {
+function proposalIntentForState(
+  state: Omit<AiWorldDirectorState, 'proposal'>,
+): AiWorldDirectorProposalIntent {
   switch (state.proposalType) {
-    case 'npcTopicShift': return 'nudgeNpcRumor';
-    case 'campAlert': return 'raiseCampCaution';
-    case 'traceEcho': return 'echoTrace';
-    case 'encounterEcho': return 'echoEncounterMemory';
-    case 'questEcho': return 'echoQuestRelief';
+    case 'npcTopicShift':
+      return 'nudgeNpcRumor';
+    case 'campAlert':
+      return 'raiseCampCaution';
+    case 'traceEcho':
+      return 'echoTrace';
+    case 'encounterEcho':
+      return 'echoEncounterMemory';
+    case 'questEcho':
+      return 'echoQuestRelief';
   }
 }
 
 function proposalReasonTags(state: Omit<AiWorldDirectorState, 'proposal'>): string[] {
-  return [...new Set([
-    `mood:${state.mood}`,
-    `subject:${state.subjectKind}`,
-    `proposal:${state.proposalType}`,
-    ...state.evidence,
-  ])].slice(0, 8);
+  return [
+    ...new Set([
+      `mood:${state.mood}`,
+      `subject:${state.subjectKind}`,
+      `proposal:${state.proposalType}`,
+      ...state.evidence,
+    ]),
+  ].slice(0, 8);
 }
 
 function copyProposal(proposal: AiWorldDirectorProposal): AiWorldDirectorProposal {
@@ -719,7 +832,9 @@ function copyProposal(proposal: AiWorldDirectorProposal): AiWorldDirectorProposa
   };
 }
 
-function copyProposalAuditEntry(entry: AiWorldDirectorProposalAuditEntry): AiWorldDirectorProposalAuditEntry {
+function copyProposalAuditEntry(
+  entry: AiWorldDirectorProposalAuditEntry,
+): AiWorldDirectorProposalAuditEntry {
   return {
     ...entry,
     reasonTags: [...entry.reasonTags],

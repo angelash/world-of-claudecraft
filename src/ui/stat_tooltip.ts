@@ -11,7 +11,9 @@
 // tests/stat_tooltip.test.ts cross-checks this module against real
 // recalcPlayerStats output so the numbers cannot silently drift.
 
+import { SPELL_CRIT_BASE, SPELL_CRIT_PER_INT } from '../sim/combat/spell_combat';
 import { CLASSES } from '../sim/data';
+import { COMBAT_SPIRIT_REGEN_FRACTION, spiritRegenPer2s } from '../sim/mana_regen';
 import {
   type AuraKind,
   armorReduction,
@@ -45,8 +47,10 @@ export type StatId =
   | 'armor'
   | 'attackPower'
   | 'spellPower'
+  | 'healPower'
   | 'dps'
   | 'critChance'
+  | 'spellCrit'
   | 'dodge'
   | 'critRating'
   | 'hasteRating'
@@ -67,6 +71,7 @@ export type StatEffectKind =
   | 'spellCritPct'
   | 'healthRegen'
   | 'manaRegen'
+  | 'manaRegenCombat'
   | 'damageReduction'
   | 'dpsFromAp';
 
@@ -105,6 +110,7 @@ export interface GearStatSource {
   name: string;
   stats?: Partial<CoreStats>;
   spellPower?: number;
+  healPower?: number;
 }
 
 /** One active aura's stat contribution, with the localized buff name. */
@@ -124,6 +130,8 @@ export interface StatTooltipModel {
   /** The two live effects summarized by the single player-facing Warfare stat. */
   warfareDamageIncrease?: number;
   warfareDamageReduction?: number;
+  /** WARFARE Vitality, percent of maximum health (0 without honor gear). */
+  warfareHealthIncrease?: number;
   effects: StatEffect[];
   /** Show "Of little benefit to your class." (Int/Spi on a non-mana class). */
   minorForClass: boolean;
@@ -145,8 +153,13 @@ export interface StatTooltipInput {
   attackPower: number;
   /** entity.spellPower (Intellect conversion + flat gear / buff Spell Power). */
   spellPower: number;
-  /** entity.critChance, 0..1. */
+  /** entity.healPower (all of Spell Power + flat gear / set Healing Power). */
+  healPower: number;
+  /** entity.critChance, 0..1: the melee/ranged (Agility) crit pool. */
   critChance: number;
+  /** The spell/heal crit pool, 0..1: combat/spell_combat.ts spellCritChance
+   *  (Intellect + the shared crit core + spell crit auras). */
+  spellCritChance: number;
   /** entity.dodgeChance, 0..1. */
   dodgeChance: number;
   /** entity.critRating, the accumulated crit rating from gear + set bonuses. */
@@ -174,7 +187,6 @@ const AGI_CRIT_PER_POINT = 0.0005; // entity.ts: critChance = 0.05 + s.agi * 0.0
 const AGI_DODGE_PER_POINT = 0.0005; // entity.ts: dodgeChance = 0.05 + s.agi * 0.0005
 const STR_PARRY_PER_POINT = 0.0005; // warrior_hit_table.ts: parry = 0.05 + str * 0.0005
 const HUNTER_RANGED_AP_PER_AGI = 2; // entity.ts: rangedPower = s.agi * 2 (hunter)
-const INT_SPELLCRIT_PER_POINT = 0.0008; // sim.ts spellCrit(): 0.05 + int * 0.0008
 const AP_PER_DPS = 14; // sim.ts: attackPower / 14 = bonus dps
 // updateRegen (sim.ts) ticks every 2s out of combat; 5s is ~2.5 ticks. The "per
 // 5 sec" framing is the classic MP5/HP5 convention players expect.
@@ -225,13 +237,23 @@ export function restingHealthPer5s(sta: number): number {
   return Math.round(Math.round(Math.max(0, sta) * 0.3 + 2) * REGEN_TICKS_PER_5S);
 }
 
-/** Out-of-combat mana regen, per 5 sec (sim.ts updateRegen, five-second rule:
- *  mana gains round(spi / 3 + 4 + floor(level / 5)) every 2s). Per-tick rounded
- *  first to match the engine, then scaled by 2.5 ticks. */
+/** Out-of-combat mana regen, per 5 sec (sim mana_regen.ts, five-second rule
+ *  elapsed: mana gains round(spi / 3 + 4 + floor(level / 5)) every 2s). Per-tick
+ *  rounded first to match the engine, then scaled by 2.5 ticks. The Spirit
+ *  formula is imported from the sim leaf so the sheet cannot drift from the tick. */
 export function restingManaPer5s(spi: number, level: number): number {
-  return Math.round(
-    Math.round(Math.max(0, spi) / 3 + 4 + Math.floor(level / 5)) * REGEN_TICKS_PER_5S,
+  return Math.round(Math.round(spiritRegenPer2s(Math.max(0, spi), level, 0)) * REGEN_TICKS_PER_5S);
+}
+
+/** In-combat mana regen, per 5 sec: while the five-second rule is active the sim
+ *  restores COMBAT_SPIRIT_REGEN_FRACTION of the full Spirit amount each 2s tick
+ *  (round(full * fraction)), the classic "mp5" share. Rounded per-tick first, like
+ *  restingManaPer5s, so the two lines read consistently. */
+export function combatManaPer5s(spi: number, level: number): number {
+  const perTick = Math.round(
+    spiritRegenPer2s(Math.max(0, spi), level, 0) * COMBAT_SPIRIT_REGEN_FRACTION,
   );
+  return Math.round(perTick * REGEN_TICKS_PER_5S);
 }
 
 /** Build the structured breakdown for one stat cell. Pure: no DOM, no i18n.
@@ -255,6 +277,7 @@ export function buildStatTooltip(stat: StatId, input: StatTooltipInput): StatToo
   let statValue = 0;
   let warfareDamageIncrease: number | undefined;
   let warfareDamageReduction: number | undefined;
+  let warfareHealthIncrease: number | undefined;
 
   switch (stat) {
     case 'str': {
@@ -284,7 +307,7 @@ export function buildStatTooltip(stat: StatId, input: StatTooltipInput): StatToo
       statValue = stats.int;
       if (mana) {
         effects.push({ kind: 'maxMana', value: manaFromIntellect(stats.int) });
-        effects.push({ kind: 'spellCritPct', value: stats.int * INT_SPELLCRIT_PER_POINT * 100 });
+        effects.push({ kind: 'spellCritPct', value: stats.int * SPELL_CRIT_PER_INT * 100 });
       } else {
         minorForClass = true;
       }
@@ -294,6 +317,7 @@ export function buildStatTooltip(stat: StatId, input: StatTooltipInput): StatToo
       statValue = stats.spi;
       if (mana) {
         effects.push({ kind: 'manaRegen', value: restingManaPer5s(stats.spi, level) });
+        effects.push({ kind: 'manaRegenCombat', value: combatManaPer5s(stats.spi, level) });
       } else {
         minorForClass = true;
       }
@@ -323,6 +347,14 @@ export function buildStatTooltip(stat: StatId, input: StatTooltipInput): StatToo
       if (!mana) minorForClass = true;
       break;
     }
+    case 'healPower': {
+      // Heals, HoTs and absorbs read it; like Spell Power, only the mana
+      // classes cast them, so the rest see the "minor benefit" note.
+      isPrimary = false;
+      statValue = input.healPower;
+      if (!mana) minorForClass = true;
+      break;
+    }
     case 'dps': {
       isPrimary = false;
       statValue = input.dps;
@@ -333,6 +365,14 @@ export function buildStatTooltip(stat: StatId, input: StatTooltipInput): StatToo
       isPrimary = false;
       statValue = input.critChance * 100;
       baseChanceNote = true;
+      break;
+    }
+    case 'spellCrit': {
+      // The separate spell/heal crit pool (the same 5% base as critChance).
+      isPrimary = false;
+      statValue = input.spellCritChance * 100;
+      baseChanceNote = true;
+      if (!mana) minorForClass = true;
       break;
     }
     case 'dodge': {
@@ -369,6 +409,7 @@ export function buildStatTooltip(stat: StatId, input: StatTooltipInput): StatToo
       statValue = stats.pvpOffense * 100;
       warfareDamageIncrease = stats.pvpOffense * 100;
       warfareDamageReduction = stats.pvpDefense * 100;
+      warfareHealthIncrease = (stats.pvpVitality ?? 0) * 100;
       break;
     }
   }
@@ -379,6 +420,7 @@ export function buildStatTooltip(stat: StatId, input: StatTooltipInput): StatToo
     statValue,
     warfareDamageIncrease,
     warfareDamageReduction,
+    warfareHealthIncrease,
     effects,
     minorForClass,
     baseChanceNote,
@@ -407,11 +449,14 @@ function basePrimary(cls: PlayerClass, key: keyof CoreStats, level: number): num
   return def.baseStats[key] + def.statsPerLevel[key] * (level - 1);
 }
 
-/** Sum the contribution of one attribute (or spellPower) across equipped gear. */
-function gearTotal(gear: GearStatSource[], key: keyof CoreStats | 'spellPower'): number {
+/** Sum the contribution of one attribute (or a flat power) across equipped gear. */
+function gearTotal(
+  gear: GearStatSource[],
+  key: keyof CoreStats | 'spellPower' | 'healPower',
+): number {
   let total = 0;
   for (const g of gear) {
-    if (key === 'spellPower') total += g.spellPower ?? 0;
+    if (key === 'spellPower' || key === 'healPower') total += g[key] ?? 0;
     else total += g.stats?.[key] ?? 0;
   }
   return total;
@@ -497,11 +542,31 @@ export function buildStatSources(stat: StatId, input: StatTooltipInput): StatSou
       sources.push(...buffLines(buffs, ['buff_spellpower']));
       return finish(input.spellPower, 1);
     }
+    case 'healPower': {
+      // All of Spell Power carries into healing (entity.ts healPower), then the
+      // heal-only gear affix; item-set Healing Power lands in the remainder.
+      sources.push({ kind: 'attributes', value: input.spellPower, fromStat: 'spellPower' });
+      const g = gearTotal(gear, 'healPower');
+      if (g !== 0) sources.push({ kind: 'gear', value: g });
+      return finish(input.healPower, 1);
+    }
     case 'critChance': {
       sources.push({ kind: 'base', value: 5 });
       const fromAgi = stats.agi * AGI_CRIT_PER_POINT * 100;
       if (fromAgi !== 0) sources.push({ kind: 'attributes', value: fromAgi, fromStat: 'agi' });
       return finish(input.critChance * 100, 0.1);
+    }
+    case 'spellCrit': {
+      // Same shape as critChance with Intellect in place of Agility; the spell
+      // crit auras itemize by name, and the shared core (crit rating, talent and
+      // set crit) folds into the remainder exactly as it does for critChance.
+      sources.push({ kind: 'base', value: SPELL_CRIT_BASE * 100 });
+      const fromInt = stats.int * SPELL_CRIT_PER_INT * 100;
+      if (fromInt !== 0) sources.push({ kind: 'attributes', value: fromInt, fromStat: 'int' });
+      for (const b of buffLines(buffs, ['buff_spellcrit'])) {
+        sources.push({ ...b, value: b.value * 100 });
+      }
+      return finish(input.spellCritChance * 100, 0.1);
     }
     case 'dodge': {
       sources.push({ kind: 'base', value: 5 });

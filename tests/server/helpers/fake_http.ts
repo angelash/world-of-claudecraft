@@ -13,6 +13,7 @@
 // `as unknown as` cast bridges each fake to its node type at the boundary.
 
 import { Buffer } from 'node:buffer';
+import { EventEmitter } from 'node:events';
 import type * as http from 'node:http';
 import { Readable } from 'node:stream';
 
@@ -29,8 +30,11 @@ function chunkToString(chunk: string | Buffer | Uint8Array): string {
 /**
  * A faithful, framework-free fake of the http.ServerResponse surface the pipeline
  * uses. Header keys are lower-cased (node-faithful) so reads are case-insensitive.
+ * An EventEmitter like the real ServerResponse, so lifecycle listeners attach and
+ * a test can model a torn connection with `res.emit('close')` (node emits 'close'
+ * on every terminated connection, finished or not).
  */
-export class FakeRes {
+export class FakeRes extends EventEmitter {
   /** The response status; defaults to 200 and is settable directly or via writeHead. */
   statusCode = 200;
 
@@ -40,6 +44,7 @@ export class FakeRes {
   private _writableEnded = false;
   private _capturedBody: string | null = null;
   private _capturedHeaders: Record<string, HeaderValue> | null = null;
+  private readonly _endWaiters = new Set<() => void>();
 
   /** true once writeHead, write, or end has committed the headers. */
   get headersSent(): boolean {
@@ -120,7 +125,29 @@ export class FakeRes {
     this._writableEnded = true;
     this._capturedBody = this._bodyChunks.join('');
     this._capturedHeaders = this.snapshotHeaders();
+    for (const resolve of this._endWaiters) resolve();
+    this._endWaiters.clear();
     return this;
+  }
+
+  /**
+   * Wait for end() without spinning on scheduler turns. The deadline is elapsed
+   * time, so a busy worker cannot fail merely because it ran many setImmediate
+   * callbacks while real async I/O was still within budget.
+   */
+  async waitForEnd(timeoutMs = 5_000): Promise<void> {
+    if (this._writableEnded) return;
+    await new Promise<void>((resolve, reject) => {
+      const onEnd = () => {
+        clearTimeout(timeout);
+        resolve();
+      };
+      const timeout = setTimeout(() => {
+        this._endWaiters.delete(onEnd);
+        reject(new Error(`FakeRes response did not end within ${timeoutMs}ms`));
+      }, timeoutMs);
+      this._endWaiters.add(onEnd);
+    });
   }
 
   private snapshotHeaders(): Record<string, HeaderValue> {

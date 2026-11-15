@@ -3,6 +3,7 @@
 // when the manifest is regenerated. Uses real temp directories (existsSync is
 // the tested behaviour; mocking fs defeats the purpose).
 
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -10,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 // @ts-expect-error scripts use the repository's untyped Node ESM convention
 import * as manifestModule from '../scripts/sfx/manifest.mjs';
+import { SFX_CLIPS } from '../src/game/sfx_manifest.generated';
 
 const {
   buildSfxManifestData,
@@ -162,12 +164,62 @@ describe('buildManifest', () => {
     expect(manifest).toContain('cast_lightning_bolt');
   });
 
-  it('keeps the release catalog and all 62 UI cues in one 210-key inventory', () => {
+  it('keeps release cues, Warrior recordings, hoard cues, the tavern bed and the destrier in 408 keys', () => {
+    // Combine the release farming/crafting cues with the candidate mount cues.
+    // Release inventory: 319 total, 92 UI, 34 mount. A mount may share
+    // player footfalls or have several cues, so this is not a mount count.
+    // 319 = the 299-key release inventory plus the 20 player-selectable aura
+    // proc alerts (src/game/aura_cue_catalog.ts), which are all ui_aura_ keys.
+    // 381 adds 62 new keys on top of that 319: 60 whose name contains
+    // "_warrior_" (asserted below), plus two that do not, piercing_howl and
+    // impact_masterwork_execution (also asserted below).
+    // 387 adds the Viridian Valestrider's six mount cues on top of that 381:
+    // its gait pool, summon call, takeoff, touchdown, and the squawk/flap pair
+    // it calls at the apex of a jump. Mount cues 34 -> 40; UI is unchanged.
+    // The six Buried Hoard cues (the entrance open/hum pair and the four
+    // tide-wave boss cues) bring that total to 393 (release/v0.44.0 merge
+    // into feature/buried-hoards), the Mirefen tavern's room bed, amb_tavern, makes 394,
+    // and the Lantern Hall Destrier's whinny as it rears (mount_neigh_lantern_hall_destrier,
+    // synthesized) makes 408, mount cues 41.
     const keys = new Set(SFX.map((entry) => entry.key));
-    expect(keys.size).toBe(210);
-    expect([...keys].filter((key) => key.startsWith('ui_'))).toHaveLength(62);
+    expect(keys.size).toBe(408);
+    expect([...keys].filter((key) => key.startsWith('hoard_')).sort()).toEqual([
+      'hoard_entrance_hum',
+      'hoard_entrance_open',
+      'hoard_tide_build',
+      'hoard_tide_crash',
+      'hoard_tide_hit',
+      'hoard_tide_rush',
+    ]);
+    expect(keys.has('amb_tavern')).toBe(true);
+    expect([...keys].filter((key) => key.includes('_warrior_'))).toHaveLength(60);
+    expect([...keys].filter((key) => key.includes('_masterwork_'))).toEqual([
+      'impact_masterwork_execution',
+    ]);
+    expect([...keys].filter((key) => key.startsWith('signature_'))).toHaveLength(0);
+    expect(keys.has('piercing_howl')).toBe(true);
+    expect([...keys].filter((key) => key.startsWith('ui_aura_'))).toHaveLength(20);
+    expect([...keys].filter((key) => key.startsWith('ui_'))).toHaveLength(92);
+    expect([...keys].filter((key) => key.startsWith('mount_'))).toHaveLength(43);
+    expect(keys.has('ui_craft_cast')).toBe(true);
+    expect(keys.has('ui_farm_plant')).toBe(true);
+    expect(keys.has('ui_farm_harvest')).toBe(true);
+    expect(keys.has('ui_farm_withered')).toBe(true);
+    expect(keys.has('ui_farm_ready')).toBe(true);
+    expect(keys.has('ui_farm_golden')).toBe(true);
+    expect(keys.has('ui_farm_feast')).toBe(true);
+    expect(keys.has('ui_perfecting_attempt')).toBe(true);
+    expect(keys.has('ui_perfecting_success')).toBe(true);
+    expect(keys.has('ui_legendary_forged')).toBe(true);
+    expect(keys.has('ui_sunder_complete')).toBe(true);
     for (const key of [
       'cast_lightning_bolt',
+      // the Mech Bird, the store mount: the 1-2-1 gait beat plus the game's
+      // first standstill idle hum and mount-specific jump/land takes
+      'mount_run_mech_bird',
+      'mount_idle_mech_bird',
+      'mount_jump_mech_bird',
+      'mount_land_mech_bird',
       'mob_mudfin_attack',
       'mob_burrower_attack',
       'mob_reptile_attack',
@@ -183,6 +235,52 @@ describe('buildManifest', () => {
       'player_eat_food',
       'player_drink_water',
       'player_drink_potion',
+      'mount_run_terrorspark_groundshaker',
+      // the Drakemaw Raptor, the ninth mount cue (the brood rework's legendary)
+      'mount_run_drakemaw_raptor',
+      'fear_shout',
+      'fear',
+      'intimidating_shout',
+      'battle_shout',
+      'demoralizing_shout',
+      'emboldening_roar',
+      'defiant_bellow',
+      'rallying_cry',
+      'ice_block',
+      'frost_nova',
+      'hammer_of_justice',
+      'entangling_roots',
+      'blind',
+      'cloak_of_shadows',
+      'scorch',
+      'pyroblast',
+      'meteor',
+      'flamestrike',
+      'frozen_orb',
+      'glacial_spike',
+      'blizzard',
+      'blink',
+      'arcane_blast',
+      'shadowstep',
+      'vanish',
+      'cheap_shot',
+      'ambush',
+      'backstab',
+      'garrote',
+      'sap',
+      'sinister_strike',
+      'eviscerate',
+      'stealth',
+      'rift_portal_spawn',
+      'rift_portal_enter',
+      'rift_portal_drone',
+      'rift_gate_grind',
+      'rift_boulder_impact',
+      'rift_boulder_roll',
+      'rift_ice_start',
+      'rift_ice_glide',
+      'rift_ice_stop',
+      'rift_lava_tick',
     ]) {
       expect(keys.has(key), key).toBe(true);
     }
@@ -195,7 +293,8 @@ describe('buildManifest', () => {
     // purely filesystem-discovered.
     const mobFamilyKeys = [...keys].filter((key) => key.startsWith('mob_'));
     expect(mobFamilyKeys).toHaveLength(65); // 13 families x 5 actions
-    expect(SFX_FIXED_CATALOG_KEYS).toHaveLength(210);
+    expect(SFX_FIXED_CATALOG_KEYS).toHaveLength(408);
+    expect([...SFX_FIXED_CATALOG_KEYS].sort()).toEqual([...keys].sort());
   });
 });
 
@@ -390,5 +489,96 @@ describe('mob subfamily scanning', () => {
     expect(spatialForSfx('amb_campfire')).toBe(true);
     expect(spatialForSfx('amb_forge')).toBe(true);
     expect(spatialForSfx('amb_water')).toBe(false);
+    // the tavern's room bed plays non-positional through its own lowpass (sfx.ts)
+    expect(spatialForSfx('amb_tavern')).toBe(false);
+  });
+});
+
+describe('Mech Bird jump and landing asset binding', () => {
+  it('ships byte-distinct launch and impact recordings', () => {
+    const jump = readFileSync(path.join(realSfxDir, 'mount_jump_mech_bird.mp3'));
+    const land = readFileSync(path.join(realSfxDir, 'mount_land_mech_bird.mp3'));
+    const jumpHash = createHash('sha256').update(jump).digest('hex');
+    const landHash = createHash('sha256').update(land).digest('hex');
+
+    expect(landHash).not.toBe(jumpHash);
+  });
+});
+
+// Pins the exact asset-to-ability binding this PR restored, so a future
+// re-swap (Meteor's landing recording and Flamestrike's cast recording were
+// mixed up once already, see the fix commit's history) gets caught by CI
+// instead of shipping silently. Reads the real committed files under
+// public/audio/sfx, not the manifest, since a manifest bug could hide the
+// exact same mistake.
+describe('meteor/flamestrike asset binding', () => {
+  const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const sfxDir = path.join(repoRoot, 'public/audio/sfx');
+
+  // Pinned via `sha256sum public/audio/sfx/meteor.mp3 public/audio/sfx/flamestrike.mp3`
+  // against the recordings committed by d83aab74ac (the swap fix). A byte-distinct
+  // check alone cannot catch a RE-swap: two swapped files are still byte-distinct
+  // from each other, and the original bug here was a missing meteor.mp3, not a
+  // swap. Pinning each file's own literal hash catches both a re-swap and either
+  // file silently changing out from under the binding.
+  const METEOR_SHA256 = 'd57a0627c1bfe6daacd67706c2359347af522be0c89ba13466dcb58d94b77416';
+  const FLAMESTRIKE_SHA256 = 'bd4257d3567b43f5228066cba5f1dff5c31b205c9314bfb4c7f0d6cbfebcdf15';
+
+  it('pins meteor.mp3 and flamestrike.mp3 to their exact committed recordings', () => {
+    const meteor = readFileSync(path.join(sfxDir, 'meteor.mp3'));
+    const flamestrike = readFileSync(path.join(sfxDir, 'flamestrike.mp3'));
+    expect(createHash('sha256').update(meteor).digest('hex')).toBe(METEOR_SHA256);
+    expect(createHash('sha256').update(flamestrike).digest('hex')).toBe(FLAMESTRIKE_SHA256);
+  });
+
+  it('binds the "meteor" and "flamestrike" manifest keys to the right file each', () => {
+    expect(SFX_CLIPS.meteor.url.split('?')[0]).toBe('/audio/sfx/meteor.mp3');
+    expect(SFX_CLIPS.flamestrike.url.split('?')[0]).toBe('/audio/sfx/flamestrike.mp3');
+  });
+});
+
+// The build step's ORDER, which is load-bearing rather than cosmetic.
+//
+// writeSfxManifest validates every custom key's resolved gain (category
+// baseline + keyTrimDb) against the per-key ceiling in
+// sfx_gain_ceiling.generated.json, and throws when the resolved value exceeds
+// it. writeSfxGainCeilings is what puts a key INTO that file, measured from the
+// audio. Running the manifest first therefore means a newly-added custom key
+// carrying a positive trim can never bootstrap: its ceiling does not exist yet,
+// so it defaults to 0dB, the bounds check throws, and the manifest is left
+// stale on disk.
+//
+// That failure mode is quiet in the worst way. The command exits non-zero, but
+// if the stale manifest is committed anyway the missing key is simply absent
+// from SFX_CLIPS, so the cue never loads and the game plays silence with
+// nothing red anywhere. Two shipped cues were lost to exactly this: a mount's
+// summon call and a mount's three reverse takes, both present on disk and
+// reachable in code.
+//
+// Ceilings depend only on the catalog and the audio files, never on the
+// manifest, so generating them first is safe as well as correct.
+describe('build_sfx_manifest.mjs step order', () => {
+  const entryScript = readFileSync(
+    path.join(fileURLToPath(new URL('..', import.meta.url)), 'scripts/build_sfx_manifest.mjs'),
+    'utf8',
+  );
+
+  it('writes the gain ceilings before loading the manifest that validates against them', () => {
+    expect(entryScript).not.toMatch(
+      /import\s+\{[^}]*\bwriteSfxManifest\b[^}]*\}\s+from\s+['"]\.\/sfx\/manifest\.mjs['"]/,
+    );
+    const ceilingsAt = entryScript.indexOf('writeSfxGainCeilings(');
+    const manifestImportAt = entryScript.indexOf("await import('./sfx/manifest.mjs')");
+    const manifestWriteAt = entryScript.indexOf('writeSfxManifest(');
+    expect(ceilingsAt).toBeGreaterThan(-1);
+    expect(manifestImportAt).toBeGreaterThan(-1);
+    expect(manifestWriteAt).toBeGreaterThan(-1);
+    expect(
+      ceilingsAt,
+      'writeSfxGainCeilings must run BEFORE manifest.mjs is imported: importing the ' +
+        'manifest evaluates playback_profile.mjs and reads the generated ceiling file, ' +
+        'so a new custom key with a positive trim cannot bootstrap if the import happens first',
+    ).toBeLessThan(manifestImportAt);
+    expect(manifestImportAt).toBeLessThan(manifestWriteAt);
   });
 });

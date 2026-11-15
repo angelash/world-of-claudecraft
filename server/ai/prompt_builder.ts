@@ -284,10 +284,14 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   ];
   if (context.topic) lines.push(`Player ask: ${describePlayerAsk(context.topic)}`);
   if (policy.includeQuestFacts) {
-    lines.push(`Quest facts visible to player: ${context.questFacts
-      .slice(0, policy.questLimit)
-      .map((fact) => `${fact.questId}:${fact.visibility}`)
-      .join(', ') || 'none'}`);
+    lines.push(
+      `Quest facts visible to player: ${
+        context.questFacts
+          .slice(0, policy.questLimit)
+          .map((fact) => `${fact.questId}:${fact.visibility}`)
+          .join(', ') || 'none'
+      }`,
+    );
   }
   if (policy.includeProfile && context.profile) {
     lines.push(
@@ -298,7 +302,9 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
       `Social memory style: ${context.profile.socialMemory?.style ?? 'grounded local recollection'}`,
     );
     if (context.profile.speechFingerprint) {
-      lines.push(`Speech fingerprint: ${formatSpeechFingerprint(context.profile.speechFingerprint, policy.compactTagLimit)}`);
+      lines.push(
+        `Speech fingerprint: ${formatSpeechFingerprint(context.profile.speechFingerprint, policy.compactTagLimit)}`,
+      );
     }
   }
   if (scene && policy.sceneDetail !== 'none') {
@@ -309,33 +315,56 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
         ...scene.locationTags,
         ...scene.structureTags,
         ...scene.environmentalTags,
-      ].slice(0, policy.sceneDetail === 'brief' ? 8 : 18).join(', ')}`,
+      ]
+        .slice(0, policy.sceneDetail === 'brief' ? 8 : 18)
+        .join(', ')}`,
       `Time/weather: ${scene.time.phase}, ${scene.weather.kind}, light ${scene.light.level}`,
       `Danger: undead=${scene.danger.undeadPressure.toFixed(2)}, hostile=${scene.danger.hostileDensity.toFixed(2)}, safe=${scene.danger.safeHavenScore.toFixed(2)}`,
     );
     if (policy.sceneDetail === 'full') {
-      lines.splice(lines.length - 1, 0, `Time/weather mood: dayEnergy=${scene.mood.dayEnergy.toFixed(2)}, nightFatigue=${scene.mood.nightFatigue.toFixed(2)}, clearNightAwe=${scene.mood.clearNightAwe.toFixed(2)}, rainIrritation=${scene.mood.rainIrritation.toFixed(2)}, fogFear=${scene.mood.fogFear.toFixed(2)}`);
+      lines.splice(
+        lines.length - 1,
+        0,
+        `Time/weather mood: dayEnergy=${scene.mood.dayEnergy.toFixed(2)}, nightFatigue=${scene.mood.nightFatigue.toFixed(2)}, clearNightAwe=${scene.mood.clearNightAwe.toFixed(2)}, rainIrritation=${scene.mood.rainIrritation.toFixed(2)}, fogFear=${scene.mood.fogFear.toFixed(2)}`,
+      );
     }
     if (policy.includeNearbyObjects && scene.nearbySemanticObjects.length > 0) {
-      lines.push(`Nearby semantic objects: ${scene.nearbySemanticObjects
-        .slice(0, policy.objectLimit)
-        .map((object) => `${object.objectId}:${object.displayName}[${object.source}](tags=${object.tags.slice(0, 4).join('/')}; features=${object.featureTags.slice(0, 4).join('/')}; affordances=${object.affordanceTags.slice(0, 4).join('/')}; ${object.distance}yd)`)
-        .join(', ')}`);
+      lines.push(
+        `Nearby semantic objects: ${scene.nearbySemanticObjects
+          .slice(0, policy.objectLimit)
+          .map(
+            (object) =>
+              `${object.objectId}:${object.displayName}[${object.source}](tags=${object.tags.slice(0, 4).join('/')}; features=${object.featureTags.slice(0, 4).join('/')}; affordances=${object.affordanceTags.slice(0, 4).join('/')}; ${object.distance}yd)`,
+          )
+          .join(', ')}`,
+      );
     }
     if (policy.includeDroppedItems && scene.droppedItems.length > 0) {
-      lines.push(`Dropped items: ${scene.droppedItems
-        .slice(0, policy.itemLimit)
-        .map((item) => `${item.itemId}:${item.displayName}(${[...item.itemTags, ...item.dangerTags, ...item.valueSignals].slice(0, 6).join('/')}, fresh=${item.freshnessSeconds}s)`)
-        .join(', ')}`);
+      lines.push(
+        `Dropped items: ${scene.droppedItems
+          .slice(0, policy.itemLimit)
+          .map(
+            (item) =>
+              `${item.itemId}:${item.displayName}(${[...item.itemTags, ...item.dangerTags, ...item.valueSignals].slice(0, 6).join('/')}, fresh=${item.freshnessSeconds}s)`,
+          )
+          .join(', ')}`,
+      );
     }
     if (policy.includeCompanions && scene.companions.length > 0) {
-      lines.push(`Companions: ${scene.companions
-        .slice(0, policy.companionLimit)
-        .map((companion) => `${companion.displayName}:${companion.templateId}:${companion.family ?? 'unknown'}(${companion.tags.slice(0, 4).join('/')})`)
-        .join(', ')}`);
+      lines.push(
+        `Companions: ${scene.companions
+          .slice(0, policy.companionLimit)
+          .map(
+            (companion) =>
+              `${companion.displayName}:${companion.templateId}:${companion.family ?? 'unknown'}(${companion.tags.slice(0, 4).join('/')})`,
+          )
+          .join(', ')}`,
+      );
     }
     if (policy.includeRecentSceneEvents && scene.recentSceneEvents.length > 0) {
-      lines.push(`Recent scene events: ${scene.recentSceneEvents.slice(0, policy.eventLimit).join(', ')}`);
+      lines.push(
+        `Recent scene events: ${scene.recentSceneEvents.slice(0, policy.eventLimit).join(', ')}`,
+      );
     }
   }
   if (policy.includeFamilySemantics && family) {
@@ -347,40 +376,62 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
       `Speech style: ${family.speechStyle}`,
     );
     if (family.speechFingerprint) {
-      lines.push(`Family speech fingerprint: ${formatSpeechFingerprint(family.speechFingerprint, policy.compactTagLimit)}`);
+      lines.push(
+        `Family speech fingerprint: ${formatSpeechFingerprint(family.speechFingerprint, policy.compactTagLimit)}`,
+      );
     }
   }
   if (policy.includeRecentObservations && context.recentObservations.length > 0) {
-    lines.push(`Recent observations: ${context.recentObservations.slice(0, policy.observationLimit).join(', ')}`);
+    lines.push(
+      `Recent observations: ${context.recentObservations.slice(0, policy.observationLimit).join(', ')}`,
+    );
   }
   if (context.sequenceParticipants && context.sequenceParticipants.length > 0) {
-    lines.push(`Sequence participants: ${context.sequenceParticipants
-      .map((participant) => `${participant.slot}:${participant.kind}:${participant.templateId}:${participant.name}`)
-      .join(', ')}`);
+    lines.push(
+      `Sequence participants: ${context.sequenceParticipants
+        .map(
+          (participant) =>
+            `${participant.slot}:${participant.kind}:${participant.templateId}:${participant.name}`,
+        )
+        .join(', ')}`,
+    );
   }
-  if (policy.includeDirectorProposals && context.directorProposals && context.directorProposals.length > 0) {
-    lines.push(`Director proposals: ${context.directorProposals
-      .slice(0, policy.directorLimit)
-      .map((proposal) => [
-        `${proposal.intent}:${proposal.status}:${proposal.risk}`,
-        `intensity=${proposal.intensity.toFixed(2)}`,
-        `target=${proposal.targetRef}`,
-        `scene=${proposal.sceneId}`,
-        `zone=${proposal.zoneId}`,
-        `line=${proposal.suggestedLineId}`,
-        `expires=${Math.round(proposal.expiresAt)}`,
-        `reasons=${proposal.reasonTags.slice(0, 6).join('/') || 'none'}`,
-        `safety=${proposal.safetyNotes.join('/') || 'none'}`,
-      ].join(':'))
-      .join(', ')}`);
+  if (
+    policy.includeDirectorProposals &&
+    context.directorProposals &&
+    context.directorProposals.length > 0
+  ) {
+    lines.push(
+      `Director proposals: ${context.directorProposals
+        .slice(0, policy.directorLimit)
+        .map((proposal) =>
+          [
+            `${proposal.intent}:${proposal.status}:${proposal.risk}`,
+            `intensity=${proposal.intensity.toFixed(2)}`,
+            `target=${proposal.targetRef}`,
+            `scene=${proposal.sceneId}`,
+            `zone=${proposal.zoneId}`,
+            `line=${proposal.suggestedLineId}`,
+            `expires=${Math.round(proposal.expiresAt)}`,
+            `reasons=${proposal.reasonTags.slice(0, 6).join('/') || 'none'}`,
+            `safety=${proposal.safetyNotes.join('/') || 'none'}`,
+          ].join(':'),
+        )
+        .join(', ')}`,
+    );
     const familyProjectionSummary = directorFamilyProjectionSummary(context, policy);
     if (familyProjectionSummary) lines.push(familyProjectionSummary);
   }
   if (policy.includeMemorySignals && context.memorySignals && context.memorySignals.length > 0) {
-    lines.push(`Memory signals: ${context.memorySignals
-      .slice(0, policy.memoryLimit)
-      .map((signal) => `${signal.kind}:${signal.refId}:${signal.scope}:salience=${signal.salience.toFixed(2)}:${signal.reason}`)
-      .join(', ')}`);
+    lines.push(
+      `Memory signals: ${context.memorySignals
+        .slice(0, policy.memoryLimit)
+        .map(
+          (signal) =>
+            `${signal.kind}:${signal.refId}:${signal.scope}:salience=${signal.salience.toFixed(2)}:${signal.reason}`,
+        )
+        .join(', ')}`,
+    );
   }
   lines.push(
     '',
@@ -392,7 +443,10 @@ export function buildCodexDecisionPrompt(context: AiJobContextV1): string {
   return lines.join('\n');
 }
 
-function compactPromptContext(context: AiJobContextV1, policy: PromptPolicy): Record<string, unknown> {
+function compactPromptContext(
+  context: AiJobContextV1,
+  policy: PromptPolicy,
+): Record<string, unknown> {
   return omitUndefined({
     schemaVersion: context.schemaVersion,
     jobId: context.jobId,
@@ -406,7 +460,9 @@ function compactPromptContext(context: AiJobContextV1, policy: PromptPolicy): Re
       templateId: context.entity.templateId,
       name: context.entity.name,
       level: context.entity.level,
-      questIds: policy.includeEntityQuestIds ? context.entity.questIds.slice(0, policy.questLimit) : undefined,
+      questIds: policy.includeEntityQuestIds
+        ? context.entity.questIds.slice(0, policy.questLimit)
+        : undefined,
       dead: context.entity.dead,
     },
     player: {
@@ -414,36 +470,60 @@ function compactPromptContext(context: AiJobContextV1, policy: PromptPolicy): Re
       name: context.player.name,
       level: context.player.level,
       classId: context.player.classId,
-      activeQuestIds: policy.includePlayerQuestIds ? context.player.activeQuestIds.slice(0, policy.questLimit) : undefined,
-      completedQuestIds: policy.includePlayerQuestIds ? context.player.completedQuestIds.slice(0, policy.questLimit) : undefined,
-    },
-    profile: policy.includeProfile && context.profile ? {
-      profileId: context.profile.profileId,
-      persona: context.profile.persona,
-      knowledgeScope: context.profile.knowledgeScope.slice(0, policy.compactTagLimit),
-      tabooTopics: context.profile.tabooTopics.slice(0, policy.compactTagLimit),
-      socialMemoryStyle: context.profile.socialMemory?.style,
-      speechFingerprint: context.profile.speechFingerprint
-        ? compactSpeechFingerprint(context.profile.speechFingerprint, policy.compactTagLimit)
+      activeQuestIds: policy.includePlayerQuestIds
+        ? context.player.activeQuestIds.slice(0, policy.questLimit)
         : undefined,
-    } : undefined,
-    scene: context.scene && policy.sceneDetail !== 'none' ? compactScene(context.scene, policy) : undefined,
-    familySemantics: policy.includeFamilySemantics && context.familySemantics ? {
-      family: context.familySemantics.family,
-      familyName: context.familySemantics.familyName,
-      instincts: context.familySemantics.baseInstincts.slice(0, policy.compactTagLimit),
-      attractedItemTags: context.familySemantics.attractedItemTags.slice(0, policy.compactTagLimit),
-      avoidedItemTags: context.familySemantics.avoidedItemTags.slice(0, policy.compactTagLimit),
-      speechStyle: context.familySemantics.speechStyle,
-      speechFingerprint: compactSpeechFingerprint(context.familySemantics.speechFingerprint, policy.compactTagLimit),
-    } : undefined,
-    questFacts: policy.includeQuestFacts ? context.questFacts.slice(0, policy.questLimit).map((fact) => ({
-      questId: fact.questId,
-      visibility: fact.visibility,
-      summary: fact.summary,
-      stageId: fact.stageId,
-      source: fact.source,
-    })) : undefined,
+      completedQuestIds: policy.includePlayerQuestIds
+        ? context.player.completedQuestIds.slice(0, policy.questLimit)
+        : undefined,
+    },
+    profile:
+      policy.includeProfile && context.profile
+        ? {
+            profileId: context.profile.profileId,
+            persona: context.profile.persona,
+            knowledgeScope: context.profile.knowledgeScope.slice(0, policy.compactTagLimit),
+            tabooTopics: context.profile.tabooTopics.slice(0, policy.compactTagLimit),
+            socialMemoryStyle: context.profile.socialMemory?.style,
+            speechFingerprint: context.profile.speechFingerprint
+              ? compactSpeechFingerprint(context.profile.speechFingerprint, policy.compactTagLimit)
+              : undefined,
+          }
+        : undefined,
+    scene:
+      context.scene && policy.sceneDetail !== 'none'
+        ? compactScene(context.scene, policy)
+        : undefined,
+    familySemantics:
+      policy.includeFamilySemantics && context.familySemantics
+        ? {
+            family: context.familySemantics.family,
+            familyName: context.familySemantics.familyName,
+            instincts: context.familySemantics.baseInstincts.slice(0, policy.compactTagLimit),
+            attractedItemTags: context.familySemantics.attractedItemTags.slice(
+              0,
+              policy.compactTagLimit,
+            ),
+            avoidedItemTags: context.familySemantics.avoidedItemTags.slice(
+              0,
+              policy.compactTagLimit,
+            ),
+            speechStyle: context.familySemantics.speechStyle,
+            speechFingerprint: compactSpeechFingerprint(
+              context.familySemantics.speechFingerprint,
+              policy.compactTagLimit,
+            ),
+          }
+        : undefined,
+    questFacts: policy.includeQuestFacts
+      ? context.questFacts.slice(0, policy.questLimit).map((fact) => ({
+          questId: fact.questId,
+          visibility: fact.visibility,
+          summary: fact.summary,
+          stageId: fact.stageId,
+          source: fact.source,
+        }))
+      : undefined,
     recentObservations: policy.includeRecentObservations
       ? context.recentObservations.slice(0, policy.observationLimit)
       : undefined,
@@ -454,38 +534,45 @@ function compactPromptContext(context: AiJobContextV1, policy: PromptPolicy): Re
       templateId: participant.templateId,
       name: participant.name,
     })),
-    memorySignals: policy.includeMemorySignals ? context.memorySignals?.slice(0, policy.memoryLimit).map((signal) => ({
-      kind: signal.kind,
-      refId: signal.refId,
-      scope: signal.scope,
-      sceneId: signal.sceneId,
-      zoneId: signal.zoneId,
-      templateId: signal.templateId,
-      itemId: signal.itemId,
-      questId: signal.questId,
-      subjectKind: signal.subjectKind,
-      lineIds: signal.lineIds.slice(0, 3),
-      salience: round2(signal.salience),
-      reason: signal.reason,
-    })) : undefined,
-    directorProposals: policy.includeDirectorProposals ? context.directorProposals?.slice(0, policy.directorLimit).map((proposal) => ({
-      intent: proposal.intent,
-      status: proposal.status,
-      risk: proposal.risk,
-      intensity: round2(proposal.intensity),
-      targetRef: proposal.targetRef,
-      sceneId: proposal.sceneId,
-      zoneId: proposal.zoneId,
-      suggestedLineId: proposal.suggestedLineId,
-      reasonTags: proposal.reasonTags.slice(0, policy.compactTagLimit),
-      safetyNotes: proposal.safetyNotes.slice(0, 3),
-    })) : undefined,
+    memorySignals: policy.includeMemorySignals
+      ? context.memorySignals?.slice(0, policy.memoryLimit).map((signal) => ({
+          kind: signal.kind,
+          refId: signal.refId,
+          scope: signal.scope,
+          sceneId: signal.sceneId,
+          zoneId: signal.zoneId,
+          templateId: signal.templateId,
+          itemId: signal.itemId,
+          questId: signal.questId,
+          subjectKind: signal.subjectKind,
+          lineIds: signal.lineIds.slice(0, 3),
+          salience: round2(signal.salience),
+          reason: signal.reason,
+        }))
+      : undefined,
+    directorProposals: policy.includeDirectorProposals
+      ? context.directorProposals?.slice(0, policy.directorLimit).map((proposal) => ({
+          intent: proposal.intent,
+          status: proposal.status,
+          risk: proposal.risk,
+          intensity: round2(proposal.intensity),
+          targetRef: proposal.targetRef,
+          sceneId: proposal.sceneId,
+          zoneId: proposal.zoneId,
+          suggestedLineId: proposal.suggestedLineId,
+          reasonTags: proposal.reasonTags.slice(0, policy.compactTagLimit),
+          safetyNotes: proposal.safetyNotes.slice(0, 3),
+        }))
+      : undefined,
     allowedIntents: context.allowedIntents,
     allowedLineIds: context.allowedLineIds,
   });
 }
 
-function compactScene(scene: NonNullable<AiJobContextV1['scene']>, policy: PromptPolicy): Record<string, unknown> {
+function compactScene(
+  scene: NonNullable<AiJobContextV1['scene']>,
+  policy: PromptPolicy,
+): Record<string, unknown> {
   return omitUndefined({
     zoneId: scene.zoneId,
     subsceneId: scene.subsceneId,
@@ -513,31 +600,42 @@ function compactScene(scene: NonNullable<AiJobContextV1['scene']>, policy: Promp
       hostile: round2(scene.danger.hostileDensity),
       safe: round2(scene.danger.safeHavenScore),
     },
-    nearbySemanticObjects: policy.includeNearbyObjects ? scene.nearbySemanticObjects.slice(0, policy.objectLimit).map((object) => ({
-      objectId: object.objectId,
-      entityId: object.entityId,
-      templateId: object.templateId,
-      displayName: object.displayName,
-      source: object.source,
-      distance: object.distance,
-      tags: object.tags.slice(0, 4),
-      features: object.featureTags.slice(0, 4),
-      affordances: object.affordanceTags.slice(0, 4),
-    })) : undefined,
-    droppedItems: policy.includeDroppedItems ? scene.droppedItems.slice(0, policy.itemLimit).map((item) => ({
-      itemId: item.itemId,
-      displayName: item.displayName,
-      rarity: item.rarity,
-      freshnessSeconds: item.freshnessSeconds,
-      tags: [...item.itemTags, ...item.smellTags, ...item.dangerTags, ...item.valueSignals].slice(0, policy.compactTagLimit),
-    })) : undefined,
-    companions: policy.includeCompanions ? scene.companions.slice(0, policy.companionLimit).map((companion) => ({
-      entityId: companion.entityId,
-      templateId: companion.templateId,
-      displayName: companion.displayName,
-      family: companion.family,
-      tags: companion.tags.slice(0, 4),
-    })) : undefined,
+    nearbySemanticObjects: policy.includeNearbyObjects
+      ? scene.nearbySemanticObjects.slice(0, policy.objectLimit).map((object) => ({
+          objectId: object.objectId,
+          entityId: object.entityId,
+          templateId: object.templateId,
+          displayName: object.displayName,
+          source: object.source,
+          distance: object.distance,
+          tags: object.tags.slice(0, 4),
+          features: object.featureTags.slice(0, 4),
+          affordances: object.affordanceTags.slice(0, 4),
+        }))
+      : undefined,
+    droppedItems: policy.includeDroppedItems
+      ? scene.droppedItems.slice(0, policy.itemLimit).map((item) => ({
+          itemId: item.itemId,
+          displayName: item.displayName,
+          rarity: item.rarity,
+          freshnessSeconds: item.freshnessSeconds,
+          tags: [
+            ...item.itemTags,
+            ...item.smellTags,
+            ...item.dangerTags,
+            ...item.valueSignals,
+          ].slice(0, policy.compactTagLimit),
+        }))
+      : undefined,
+    companions: policy.includeCompanions
+      ? scene.companions.slice(0, policy.companionLimit).map((companion) => ({
+          entityId: companion.entityId,
+          templateId: companion.templateId,
+          displayName: companion.displayName,
+          family: companion.family,
+          tags: companion.tags.slice(0, 4),
+        }))
+      : undefined,
     recentSceneEvents: policy.includeRecentSceneEvents
       ? scene.recentSceneEvents.slice(0, policy.eventLimit)
       : undefined,
@@ -562,7 +660,10 @@ function formatSpeechFingerprint(fingerprint: AiSpeechFingerprint, limit: number
   ].join('; ');
 }
 
-function compactSpeechFingerprint(fingerprint: AiSpeechFingerprint, limit: number): Record<string, unknown> {
+function compactSpeechFingerprint(
+  fingerprint: AiSpeechFingerprint,
+  limit: number,
+): Record<string, unknown> {
   return {
     rhythm: fingerprint.sentenceRhythm,
     address: fingerprint.addressStyle,
@@ -592,7 +693,10 @@ function promptPolicyFor(trigger: AiPromptTrigger): PromptPolicy {
   return PROMPT_POLICIES[trigger];
 }
 
-function directorFamilyProjectionSummary(context: AiJobContextV1, policy: PromptPolicy): string | null {
+function directorFamilyProjectionSummary(
+  context: AiJobContextV1,
+  policy: PromptPolicy,
+): string | null {
   const family = promptProjectionFamily(context);
   if (!family || !context.directorProposals || context.directorProposals.length === 0) return null;
   const summaries = context.directorProposals
@@ -621,14 +725,18 @@ function promptProjectionFamily(context: AiJobContextV1) {
 }
 
 function speechFingerprintForContext(context: AiJobContextV1): AiSpeechFingerprint | null {
-  if (context.entity.kind === 'mob') return context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint ?? null;
+  if (context.entity.kind === 'mob')
+    return context.familySemantics?.speechFingerprint ?? context.profile?.speechFingerprint ?? null;
   return context.profile?.speechFingerprint ?? context.familySemantics?.speechFingerprint ?? null;
 }
 
 function providerRepairPromptRules(recentObservations: readonly string[]): string[] {
-  const rejected = recentObservations.find((observation) => observation.startsWith('providerRejected:'));
+  const rejected = recentObservations.find((observation) =>
+    observation.startsWith('providerRejected:'),
+  );
   if (!rejected) return [];
-  const reason = rejected.slice('providerRejected:'.length).trim() || 'validator rejected the previous line';
+  const reason =
+    rejected.slice('providerRejected:'.length).trim() || 'validator rejected the previous line';
   return [
     `- Repair pass: the previous dynamicText candidate was rejected because "${reason}". Rewrite once with a concrete visible hook.`,
     '- Do not repeat the rejected shape. Avoid topic-label question openers, vague sensory questions, generic recent-event openers, and meta explanations.',
@@ -643,9 +751,15 @@ function speechFingerprintPromptRules(fingerprint: AiSpeechFingerprint | null): 
   return [
     `- Speech rhythm target: ${fingerprint.sentenceRhythm}.`,
     `- Address style target: ${fingerprint.addressStyle}.`,
-    ...(openings ? [`- If you need an opening, lean toward this voice: ${openings}. Do not stack multiple openings.`] : []),
+    ...(openings
+      ? [
+          `- If you need an opening, lean toward this voice: ${openings}. Do not stack multiple openings.`,
+        ]
+      : []),
     ...(sensory ? [`- Favor concrete sensory anchors such as ${sensory}.`] : []),
-    ...(avoided ? [`- Never use or echo these phrases unless the scene literally demands them: ${avoided}.`] : []),
+    ...(avoided
+      ? [`- Never use or echo these phrases unless the scene literally demands them: ${avoided}.`]
+      : []),
   ];
 }
 
@@ -675,17 +789,22 @@ function dialoguePresencePromptRules(context: AiJobContextV1): string[] {
   }
 }
 
-function sceneEmotionPromptRules(scene: NonNullable<AiJobContextV1['scene']> | undefined): string[] {
+function sceneEmotionPromptRules(
+  scene: NonNullable<AiJobContextV1['scene']> | undefined,
+): string[] {
   if (!scene) return [];
   const cues: string[] = [];
   if (scene.danger.undeadPressure >= 0.55) cues.push('hushed or uneasy around death');
   if (scene.mood.fogFear >= 0.45) cues.push('wary, listening harder than usual');
-  if (scene.mood.rainIrritation >= 0.45) cues.push('irritable, damp, eager to shorten the exchange');
+  if (scene.mood.rainIrritation >= 0.45)
+    cues.push('irritable, damp, eager to shorten the exchange');
   if (scene.mood.nightFatigue >= 0.55) cues.push('tired, lower-energy, shorter-breathed');
   if (scene.mood.clearNightAwe >= 0.4) cues.push('softened or briefly awed by the light or sky');
   if (scene.mood.dayEnergy >= 0.55) cues.push('awake, brisk, and more ready to speak');
   if (cues.length === 0) return [];
-  return [`- Emotional pressure right now: ${cues.slice(0, 3).join('; ')}. Let at least one cue color the tone if it fits.`];
+  return [
+    `- Emotional pressure right now: ${cues.slice(0, 3).join('; ')}. Let at least one cue color the tone if it fits.`,
+  ];
 }
 
 function describePlayerAsk(topic: NonNullable<AiJobContextV1['topic']>): string {

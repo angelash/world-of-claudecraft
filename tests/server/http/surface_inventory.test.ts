@@ -38,6 +38,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { apiRoutes } from '../../../server/http/registry';
+import { paramRouteRegexSources } from '../../helpers/param_route_sources';
 import {
   API_CONTENT_TYPE,
   BINARY,
@@ -78,12 +79,6 @@ const API_PREFIX_ALTERNATION = '(?:api|admin\\/api|internal|oauth)';
 // dispatched API prefix. The quote is captured so the same quote closes it.
 const EXACT_ROUTE_RE = new RegExp(`===\\s*(['"])(\\/${API_PREFIX_ALTERNATION}\\/[^'"]*)\\1`, 'g');
 
-// Every `const <name>Match = /<regex>/.exec(...)`. Group 1 is the const name,
-// group 2 is the regex source body (slash-escaped exactly as `RegExp.source`
-// reports it). `(?:\\.|[^\/\\\n])*` consumes escaped chars (\/ , \d) and stops
-// at the first unescaped closing slash.
-const PARAM_ROUTE_RE = /const\s+(\w*Match)\s*=\s*\/((?:\\.|[^/\\\n])*)\/[a-z]*\.exec/g;
-
 const API_REGEX_PREFIXES = ['^\\/api\\/', '^\\/admin\\/api\\/', '^\\/internal\\/', '^\\/oauth\\/'];
 
 // Every method-first dispatch arm, `(req.)?method === 'METHOD' && <lhs> === '<path>'`
@@ -115,8 +110,7 @@ function sourceExactPaths(text: string): Set<string> {
 
 function sourceParamRegexSources(text: string): Set<string> {
   const found = new Set<string>();
-  for (const m of text.matchAll(PARAM_ROUTE_RE)) {
-    const body = m[2];
+  for (const body of paramRouteRegexSources(text)) {
     if (API_REGEX_PREFIXES.some((p) => body.startsWith(p))) found.add(body);
   }
   return found;
@@ -152,17 +146,66 @@ const sorted = (s: Set<string>): string[] => [...s].sort();
 // Exact paths a registered RouteDef dispatches (the migrated router side of the
 // flag). Param routes (:id) are excluded: their legacy arms are `*Match` regexes
 // covered by the param gate below, and a RouteDef path template is not a regex
-// source. Paths whose inventory row is flagged `unreachable` (the swag claim:
+// source. The one exception is a REGISTRY-ONLY param route (born after the
+// migration, so it has no legacy arm and no match regex): its RouteDef path
+// template IS its one dispatch source and its inventory row is classified
+// exact (no match), so it joins the comparison verbatim via the allowlist
+// below. Paths whose inventory row is flagged `unreachable` (the swag claim:
 // registered, but deliberately recorded as having no legacy dispatch arm) keep
-// that classification; the unreachable filter on dispatchedRows already excludes
-// them from the inventory side, so they must not enter the source side either.
-// See the header note on REGISTERED RouteDefs.
+// that classification; the unreachable filter on dispatchedRows already
+// excludes them from the inventory side, so they must not enter the source
+// side either. See the header note on REGISTERED RouteDefs.
 const inventoryUnreachablePaths = new Set(
   SURFACE_INVENTORY.filter((r) => r.unreachable).map((r) => r.path),
 );
+const REGISTRY_ONLY_PARAM_PATHS = new Set([
+  '/api/characters/:id/deeds-recent',
+  // The Cheater mark pair: the first registry-only :param routes on the ADMIN
+  // surface, so admin.ts holds no `*Match` regex for them either.
+  '/admin/api/moderation/accounts/:id/cheater-mark',
+  '/admin/api/moderation/accounts/:id/lift-cheater-mark',
+  // The phase 13 legendary-name strip, same registry-only shape.
+  '/admin/api/moderation/characters/:id/clear-item-name',
+  // The buddy grant channel (server/buddy_wire.ts), same registry-only shape.
+  '/admin/api/moderation/characters/:id/grant-buddy',
+  // The admin-panel kick: the same registry-only shape (server/admin_kick_api.ts).
+  '/admin/api/moderation/accounts/:id/kick',
+  // The world quest block pair: the same registry-only shape
+  // (server/world_quest_block_api.ts).
+  '/admin/api/moderation/accounts/:id/world-quests-block',
+  '/admin/api/moderation/accounts/:id/world-quests-unblock',
+]);
 const registryExactPaths = new Set(
   apiRoutes
-    .filter((r) => !r.path.includes(':') && !inventoryUnreachablePaths.has(r.path))
+    .filter(
+      (r) =>
+        (!r.path.includes(':') || REGISTRY_ONLY_PARAM_PATHS.has(r.path)) &&
+        !inventoryUnreachablePaths.has(r.path),
+    )
+    .map((r) => r.path),
+);
+// Registry-only RouteDefs with a `:param` pattern (the woc_market family)
+// dispatch through the router's compiled pattern, never a source regex, so
+// their ledger rows join the expected set by registry path, exactly like the
+// exact-path RouteDefs above. A migrated dual-arm route keeps riding its
+// legacy regex row instead (the match-source comparison below), so only
+// param routes with NO regex twin in the ledger join here; a brand-new
+// registry param route with no ledger row at all still fails the equality.
+const inventoryRegexHumanPaths = new Set(
+  SURFACE_INVENTORY.filter((r) => r.match).map((r) => r.path),
+);
+// The one migrated route whose registry path differs from its ledger rows: the
+// moderation enum alternation was rewritten to :action (see completeness.test.ts
+// enumToActionParam), so its regex rows carry the enumerated human paths.
+inventoryRegexHumanPaths.add('/admin/api/moderation/accounts/:id/:action');
+const registryParamPaths = new Set(
+  apiRoutes
+    .filter(
+      (r) =>
+        r.path.includes(':') &&
+        !inventoryUnreachablePaths.has(r.path) &&
+        !inventoryRegexHumanPaths.has(r.path),
+    )
     .map((r) => r.path),
 );
 
@@ -172,6 +215,7 @@ describe('surface inventory: route-count freshness gate', () => {
     // Guard against a vacuous pass: the scan must actually find routes.
     expect(fromSource.size).toBeGreaterThan(50);
     for (const p of registryExactPaths) fromSource.add(p);
+    for (const p of registryParamPaths) fromSource.add(p);
     expect(sorted(fromSource)).toEqual(sorted(inventoryExactPaths));
   });
 

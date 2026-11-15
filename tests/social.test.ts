@@ -1,9 +1,12 @@
+// Parties, duels, trading, and the dungeon instances. The per-class kit tests
+// and elite-mob scaling live in tests/social_classes.test.ts (sharded so
+// neither file carries the whole bill); shared fixtures are in
+// tests/social_shared.ts. Tests here run on the entity-stripped
+// SOCIAL_TEST_WORLD via makeWorld() except the three that fight or loot a
+// live camp wolf, which keep the full built-in world via makeFullWorld().
+
 import { describe, expect, it } from 'vitest';
-import { computeTalentModifiers, TALENTS } from '../src/sim/content/talents';
 import {
-  ABILITIES,
-  abilitiesKnownAt,
-  CLASSES,
   CRYPT_SPAWNS,
   DUNGEON_X_THRESHOLD,
   DUNGEONS,
@@ -11,27 +14,32 @@ import {
   instanceOrigin,
   MOBS,
 } from '../src/sim/data';
+import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../src/sim/eastbrook_layout';
+import { cryptDevTrigger } from '../src/sim/encounters/hollow_crypt';
 import { createMob } from '../src/sim/entity';
+import { claimedInstanceAt } from '../src/sim/instances/dungeons';
 import { type Party, Sim } from '../src/sim/sim';
 import {
-  ALL_CLASSES,
   dist2d,
   type Entity,
   INTERACT_RANGE,
+  type InvSlot,
   type LootSlot,
-  MAX_LEVEL,
+  type SimEvent,
 } from '../src/sim/types';
-import { groundHeight } from '../src/sim/world';
 import type { PartyMemberInfo } from '../src/world_api';
+import { face, makeFullWorld, makeWorld, mustEntity, nearestMob, teleport } from './social_shared';
 
-function makeWorld() {
-  return new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+const FRESH_CORPSE_TIMER = 60;
+
+type ErrorEvent = Extract<SimEvent, { type: 'error' }>;
+
+function isErrorFor(event: SimEvent, pid: number): event is ErrorEvent {
+  return event.type === 'error' && event.pid === pid;
 }
 
-function mustEntity(sim: Sim, pid: number): Entity {
-  const entity = sim.entities.get(pid);
-  if (!entity) throw new Error(`missing entity ${pid}`);
-  return entity;
+function errorTextsFor(events: SimEvent[], pid: number): string[] {
+  return events.filter((event) => isErrorFor(event, pid)).map((event) => event.text);
 }
 
 function mustParty(sim: Sim, pid: number): Party {
@@ -46,20 +54,6 @@ function mustPartyMember(sim: Sim, pid: number): PartyMemberInfo {
   return member;
 }
 
-function teleport(sim: Sim, pid: number, x: number, z: number) {
-  const e = mustEntity(sim, pid);
-  e.pos.x = x;
-  e.pos.z = z;
-  e.pos.y = groundHeight(x, z, sim.cfg.seed);
-  e.prevPos = { ...e.pos };
-}
-
-function face(sim: Sim, pid: number, targetId: number) {
-  const e = mustEntity(sim, pid);
-  const t = mustEntity(sim, targetId);
-  e.facing = Math.atan2(t.pos.x - e.pos.x, t.pos.z - e.pos.z);
-}
-
 function fillPartyToFive(sim: Sim, leader: number): number[] {
   const added: number[] = [];
   while ((sim.partyOf(leader)?.members.length ?? 1) < 5) {
@@ -71,304 +65,10 @@ function fillPartyToFive(sim: Sim, leader: number): number[] {
   return added;
 }
 
-function nearestMob(
-  sim: Sim,
-  templateId: string,
-  from: { x: number; z: number } = { x: 0, z: 0 },
-): Entity {
-  let best: Entity | null = null;
-  let bestD = Infinity;
-  for (const e of sim.entities.values()) {
-    if (e.kind !== 'mob' || e.dead || e.templateId !== templateId) continue;
-    const d = Math.hypot(e.pos.x - from.x, e.pos.z - from.z);
-    if (d < bestD) {
-      bestD = d;
-      best = e;
-    }
-  }
-  if (!best) throw new Error(`missing mob ${templateId}`);
-  return best;
-}
-
-describe('nine classes', () => {
-  it('every class spawns with a working kit and stats', () => {
-    for (const cls of ALL_CLASSES) {
-      const sim = new Sim({ seed: 42, playerClass: cls });
-      const p = sim.player;
-      expect(p.maxHp).toBeGreaterThan(30);
-      expect(sim.known.length).toBeGreaterThan(0);
-      // Expanded kits can exceed the 12 action-bar slots; overflow remains
-      // available from the spellbook and can be dragged onto the bar.
-      expect(CLASSES[cls].abilities.length).toBeGreaterThan(0);
-      // At MAX_LEVEL a no-spec player resolves every ability EXCEPT the ones
-      // reserved for a committed spec (the class redesigns gate spec kits behind
-      // `specs`), so the resolvable no-spec kit is EXACTLY the ungated abilities.
-      // Spec-gated abilities are reachable across the class's three committed
-      // specializations.
-      const kit = abilitiesKnownAt(cls, MAX_LEVEL);
-      const ungated = CLASSES[cls].abilities.filter((id) => !ABILITIES[id]?.specs);
-      expect(new Set(kit.map((k) => k.def.id))).toEqual(new Set(ungated));
-      const reachable = new Set(kit.map((known) => known.def.id));
-      for (const spec of TALENTS[cls].specs) {
-        const mods = computeTalentModifiers(cls, { spec: spec.id, rows: {} }, MAX_LEVEL);
-        for (const known of abilitiesKnownAt(cls, MAX_LEVEL, mods)) reachable.add(known.def.id);
-      }
-      expect(CLASSES[cls].abilities.every((abilityId) => reachable.has(abilityId))).toBe(true);
-      // the 10-20 band still has things to learn. Exception: the mage baseline kit
-      // compressed to level 10 when the choice-row unlock guard moved pyroblast/scorch/
-      // ice_barrier earlier (rows carry the 11-20 progression); flagged for PTR pacing
-      // review in the row-quality pass.
-      if (cls !== 'mage') expect(abilitiesKnownAt(cls, 10).length).toBeLessThan(kit.length);
-      // every class's core kit keeps scaling: something reaches rank 3+ by 20
-      expect(kit.some((k) => k.rank >= 3)).toBe(true);
-      // resource type sane
-      if (cls === 'warrior') expect(p.resourceType).toBe('rage');
-      else if (cls === 'rogue') expect(p.resourceType).toBe('energy');
-      else expect(p.resourceType).toBe('mana');
-    }
-  });
-
-  it('priest heals and shields', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'priest' });
-    const p = sim.player;
-    sim.setPlayerLevel(6);
-    p.hp = 30;
-    sim.castAbility('lesser_heal');
-    for (let i = 0; i < 20 * 3; i++) sim.tick();
-    expect(p.hp).toBeGreaterThan(30);
-    // PW:S absorbs damage
-    sim.castAbility('power_word_shield');
-    sim.tick();
-    expect(p.auras.some((a) => a.kind === 'absorb')).toBe(true);
-    const hpBefore = p.hp;
-    sim.dealDamage(null, p, 20, false, 'physical', 'test', 'hit');
-    expect(p.hp).toBe(hpBefore); // fully soaked
-  });
-
-  it('friendly target spells can affect selected players', () => {
-    const sim = makeWorld();
-    const priestId = sim.addPlayer('priest', 'Healer');
-    const priest = mustEntity(sim, priestId);
-    const allyId = sim.addPlayer('warrior', 'Ally');
-    const ally = mustEntity(sim, allyId);
-    teleport(sim, priestId, ally.pos.x + 5, ally.pos.z);
-    sim.setPlayerLevel(6, priestId);
-    priest.resource = priest.maxResource;
-    ally.hp = 20;
-
-    sim.targetEntity(ally.id, priestId);
-    sim.castAbility('lesser_heal', priestId);
-    for (let i = 0; i < 20 * 3; i++) sim.tick();
-    expect(ally.hp).toBeGreaterThan(20);
-
-    for (let i = 0; i < 25; i++) sim.tick();
-    sim.castAbility('power_word_shield', priestId);
-    sim.tick();
-    expect(ally.auras.some((a) => a.kind === 'absorb')).toBe(true);
-  });
-
-  it('renew ticks healing over time', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'priest' });
-    sim.setPlayerLevel(8);
-    const p = sim.player;
-    p.hp = 20;
-    sim.castAbility('renew');
-    for (let i = 0; i < 20 * 7; i++) sim.tick();
-    expect(p.hp).toBeGreaterThan(30);
-  });
-
-  it('paladin seal empowers swings and judgement consumes it', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'paladin' });
-    sim.setPlayerLevel(4);
-    const p = sim.player;
-    sim.castAbility('seal_of_righteousness');
-    sim.tick();
-    expect(p.auras.some((a) => a.kind === 'imbue')).toBe(true);
-    const wolf = nearestMob(sim, 'forest_wolf');
-    teleport(sim, p.id, wolf.pos.x + 3, wolf.pos.z);
-    sim.targetEntity(wolf.id);
-    face(sim, p.id, wolf.id);
-    p.resource = p.maxResource;
-    // wait out gcd then judge
-    for (let i = 0; i < 35; i++) sim.tick();
-    // Judgement's spell hit is an RNG roll (capped at 99%), so a single cast can
-    // miss on some world seeds and deal no damage. Re-seal and retry until it
-    // lands, so this checks the mechanic (judgement hits and consumes the seal)
-    // rather than a lucky roll — robust to RNG-stream shifts from new content.
-    let landed = false;
-    for (let attempt = 0; attempt < 25 && !landed; attempt++) {
-      if (!p.auras.some((a) => a.kind === 'imbue')) {
-        sim.castAbility('seal_of_righteousness');
-        sim.tick();
-      }
-      p.gcdRemaining = 0;
-      p.cooldowns.delete('judgement');
-      p.resource = p.maxResource;
-      face(sim, p.id, wolf.id);
-      const dealtBefore = sim.counters.damageDealt;
-      sim.castAbility('judgement');
-      sim.tick();
-      landed = sim.counters.damageDealt > dealtBefore;
-    }
-    expect(landed).toBe(true); // judgement connected and dealt damage
-    expect(p.auras.some((a) => a.kind === 'imbue')).toBe(false); // consumed
-  });
-
-  it('warlock life taps and drains life', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'warlock' });
-    sim.setPlayerLevel(10);
-    const p = sim.player;
-    p.resource = 10;
-    const hpBefore = p.hp;
-    sim.castAbility('life_tap');
-    sim.tick();
-    expect(p.hp).toBe(hpBefore - 30);
-    expect(p.resource).toBe(40);
-    // drain life channel heals
-    const wolf = nearestMob(sim, 'forest_wolf');
-    teleport(sim, p.id, wolf.pos.x + 10, wolf.pos.z);
-    sim.targetEntity(wolf.id);
-    face(sim, p.id, wolf.id);
-    p.hp = 30;
-    p.resource = p.maxResource;
-    for (let i = 0; i < 35; i++) sim.tick();
-    face(sim, p.id, wolf.id);
-    sim.castAbility('drain_life');
-    for (let i = 0; i < 20 * 6 && p.castingAbility; i++) sim.tick();
-    expect(p.hp).toBeGreaterThan(30);
-  });
-
-  it('hunter kills with ranged auto shot from distance', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'hunter' });
-    const p = sim.player;
-    const wolf = nearestMob(sim, 'forest_wolf');
-    p.maxHp = 500;
-    p.hp = 500;
-    wolf.hp = 60;
-    teleport(sim, p.id, wolf.pos.x + 35, wolf.pos.z);
-    sim.targetEntity(wolf.id);
-    face(sim, p.id, wolf.id);
-    sim.startAutoAttack();
-    let killed = false;
-    let autoShots = 0;
-    for (let i = 0; i < 20 * 60 && !killed; i++) {
-      face(sim, p.id, wolf.id);
-      const events = sim.tick();
-      for (const ev of events) {
-        if (ev.type === 'damage' && ev.ability === 'Auto Shot' && ev.kind === 'hit') autoShots++;
-        if (ev.type === 'death' && ev.entityId === wolf.id) killed = true;
-      }
-    }
-    expect(killed).toBe(true);
-    expect(autoShots).toBeGreaterThan(0); // ranged shots landed before melee
-  });
-
-  it('lightning shield zaps attackers (thorns)', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'shaman' });
-    sim.setPlayerLevel(8);
-    const p = sim.player;
-    sim.castAbility('lightning_shield');
-    sim.tick();
-    const wolf = nearestMob(sim, 'forest_wolf');
-    // The level-based miss curve means a L1-2 wolf almost never lands a hit on an L8
-    // player, so match its level to the player to actually exercise the reflect.
-    wolf.level = p.level;
-    teleport(sim, p.id, wolf.pos.x + 2, wolf.pos.z);
-    const wolfHpBefore = wolf.hp;
-    let zapped = false;
-    for (let i = 0; i < 20 * 15 && !zapped; i++) {
-      sim.tick();
-      if (wolf.hp < wolfHpBefore) zapped = true;
-    }
-    expect(zapped).toBe(true);
-  });
-
-  it('lightning shield reflects at most 3 charges, gated by a 5s internal cooldown', () => {
-    const runReflects = () => {
-      const sim = new Sim({ seed: 7, playerClass: 'shaman' });
-      sim.setPlayerLevel(12);
-      const p = sim.player;
-      sim.castAbility('lightning_shield');
-      sim.tick();
-      const aura = p.auras.find((a) => a.id === 'lightning_shield');
-      expect(aura?.charges).toBe(3);
-      const wolf = nearestMob(sim, 'forest_wolf');
-      // A fast, low-damage, beefy attacker: lands many swings without killing the
-      // shaman or dying to the reflects, so we measure the cap, not the fight.
-      wolf.level = p.level;
-      wolf.weapon = { min: 1, max: 1, speed: 1 };
-      wolf.hp = wolf.maxHp = 100000;
-      p.hp = p.maxHp = 100000;
-      teleport(sim, p.id, wolf.pos.x + 2, wolf.pos.z);
-      let reflects = 0;
-      const reflectTicks: number[] = [];
-      for (let i = 0; i < 20 * 40; i++) {
-        const evs = sim.tick();
-        for (const e of evs) {
-          // The 3-charge cap and 5s internal cooldown are shield-wide, not per-attacker
-          // (a wandering low-level mob can also land a hit now that it connects >= 80%),
-          // so count every Thunder Ward reflect regardless of which attacker it hits.
-          if (e.type === 'damage' && e.ability === 'Thunder Ward') {
-            reflects++;
-            reflectTicks.push(i);
-          }
-        }
-      }
-      return {
-        reflects,
-        reflectTicks,
-        auraGone: !p.auras.some((a) => a.id === 'lightning_shield'),
-      };
-    };
-
-    const r = runReflects();
-    // exactly the 3 charges fire, then the aura is spent and removed
-    expect(r.reflects).toBe(3);
-    expect(r.auraGone).toBe(true);
-    // consecutive reflects are at least the 5s internal cooldown apart (>= 100 ticks)
-    for (let i = 1; i < r.reflectTicks.length; i++) {
-      expect(r.reflectTicks[i] - r.reflectTicks[i - 1]).toBeGreaterThanOrEqual(20 * 5);
-    }
-    // deterministic
-    expect(runReflects()).toEqual(r);
-  }, 15_000);
-
-  it('druid bear form toggles and raises armor', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'druid' });
-    sim.setPlayerLevel(10);
-    const p = sim.player;
-    const armorBefore = p.stats.armor;
-    sim.castAbility('bear_form');
-    sim.tick();
-    expect(p.auras.some((a) => a.kind === 'form_bear')).toBe(true);
-    expect(p.stats.armor).toBeGreaterThan(armorBefore * 1.4);
-    for (let i = 0; i < 35; i++) sim.tick();
-    sim.castAbility('bear_form');
-    sim.tick();
-    expect(p.auras.some((a) => a.kind === 'form_bear')).toBe(false);
-    expect(p.stats.armor).toBe(armorBefore);
-  });
-});
-
-describe('elite mobs', () => {
-  it('elites scale like vanilla elites (~2.3x hp, 1.5x damage, 2x xp)', () => {
-    const sim = makeWorld();
-    const pid = sim.addPlayer('warrior', 'Tank');
-    sim.enterCrypt(pid);
-    const origin = instanceOrigin(0, 0);
-    const shambler = nearestMob(sim, 'crypt_shambler', origin);
-    expect(shambler).toBeTruthy();
-    const t = MOBS.crypt_shambler;
-    const normalHp = t.hpBase + t.hpPerLevel * (shambler.level - 1);
-    expect(shambler.maxHp).toBe(Math.round(normalHp * 2.3));
-    const normalDmg = t.dmgBase + t.dmgPerLevel * (shambler.level - 1);
-    expect(shambler.weapon.max).toBe(Math.round(normalDmg * 1.5 * 1.25));
-  });
-});
-
 describe('parties', () => {
-  function makeDuo(): { sim: Sim; a: number; b: number } {
-    const sim = makeWorld();
+  // Pass makeFullWorld() for the tests that hunt a live camp wolf; the default
+  // entity-stripped world covers everything else.
+  function makeDuo(sim: Sim = makeWorld()): { sim: Sim; a: number; b: number } {
     const a = sim.addPlayer('warrior', 'Aleph');
     const b = sim.addPlayer('priest', 'Bet');
     sim.partyInvite(b, a);
@@ -389,6 +89,7 @@ describe('parties', () => {
     const mob = createMob(sim.nextId++, MOBS.forest_wolf, 2, { x: 0, y: 0, z: 0 });
     mob.dead = true;
     mob.lootable = true;
+    mob.corpseTimer = FRESH_CORPSE_TIMER;
     mob.tappedById = tapper;
     mob.lootRecipientIds = recipients;
     mob.loot = loot;
@@ -403,6 +104,127 @@ describe('parties', () => {
     sim.partyLeave(b);
     expect(sim.partyOf(a)).toBe(null);
     expect(sim.partyOf(b)).toBe(null);
+  });
+
+  it('removes persistent paladin auras but keeps 30-minute devotion buffs when the caster leaves', () => {
+    for (const persistentAura of ['devotion_ward', 'retribution_aura'] as const) {
+      const sim = makeWorld();
+      const paladin = sim.addPlayer('paladin', 'Paladin');
+      const member = sim.addPlayer('warrior', 'Member');
+      sim.setPlayerLevel(16, paladin);
+
+      const paladinEntity = sim.entities.get(paladin);
+      if (!paladinEntity) throw new Error('missing paladin entity');
+      sim.castAbility(persistentAura, paladin);
+      paladinEntity.gcdRemaining = 0;
+      sim.partyInvite(member, paladin);
+      sim.partyAccept(member);
+      sim.castAbility('dawn_devotion', paladin);
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === persistentAura)).toBeDefined();
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === 'dawn_devotion')).toBeDefined();
+
+      sim.partyLeave(paladin);
+
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === persistentAura)).toBeUndefined();
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === 'dawn_devotion')).toBeDefined();
+    }
+  });
+
+  it('removes persistent paladin auras from a non-paladin member who leaves', () => {
+    for (const persistentAura of ['devotion_ward', 'retribution_aura'] as const) {
+      const sim = makeWorld();
+      const paladin = sim.addPlayer('paladin', 'Paladin');
+      const member = sim.addPlayer('warrior', 'Member');
+      sim.setPlayerLevel(16, paladin);
+      sim.partyInvite(member, paladin);
+      sim.partyAccept(member);
+
+      sim.castAbility(persistentAura, paladin);
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === persistentAura)).toBeDefined();
+
+      sim.partyLeave(member);
+
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === persistentAura)).toBeUndefined();
+      expect(sim.entities.get(paladin)?.auras.find((a) => a.id === persistentAura)).toBeDefined();
+    }
+  });
+
+  // This bug class (a permanent paladin party aura outliving the party relationship)
+  // shipped and had to be re-fixed six times across a month of releases before landing
+  // for good in removeFromParty. The two tests above only exercise the voluntary-leave
+  // path; the three below pin the other exit routes that also fall through
+  // removeFromParty (kick, disconnect, and a full 10-player raid split across both
+  // groups) so a future refactor of that shared teardown cannot silently regress one
+  // of them while the voluntary-leave tests stay green.
+  it('removes persistent paladin auras from remaining members when the paladin is kicked from the party', () => {
+    for (const persistentAura of ['devotion_ward', 'retribution_aura'] as const) {
+      const sim = makeWorld();
+      const leader = sim.addPlayer('warrior', 'Leader');
+      const paladin = sim.addPlayer('paladin', 'Paladin');
+      sim.setPlayerLevel(16, paladin);
+      sim.partyInvite(paladin, leader);
+      sim.partyAccept(paladin);
+
+      sim.castAbility(persistentAura, paladin);
+      expect(sim.entities.get(leader)?.auras.find((a) => a.id === persistentAura)).toBeDefined();
+
+      sim.partyKick(paladin, leader);
+
+      expect(sim.entities.get(leader)?.auras.find((a) => a.id === persistentAura)).toBeUndefined();
+      expect(sim.entities.get(paladin)?.auras.find((a) => a.id === persistentAura)).toBeDefined();
+    }
+  });
+
+  it('removes persistent paladin auras from the remaining member when the paladin disconnects', () => {
+    for (const persistentAura of ['devotion_ward', 'retribution_aura'] as const) {
+      const sim = makeWorld();
+      const paladin = sim.addPlayer('paladin', 'Paladin');
+      const member = sim.addPlayer('warrior', 'Member');
+      sim.setPlayerLevel(16, paladin);
+      sim.partyInvite(member, paladin);
+      sim.partyAccept(member);
+
+      sim.castAbility(persistentAura, paladin);
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === persistentAura)).toBeDefined();
+
+      sim.removePlayer(paladin);
+
+      expect(sim.entities.get(member)?.auras.find((a) => a.id === persistentAura)).toBeUndefined();
+      expect(sim.partyOf(member)).toBe(null);
+    }
+  });
+
+  it('removes persistent paladin auras from every member of a ten player raid, both groups, when the caster leaves', () => {
+    for (const persistentAura of ['devotion_ward', 'retribution_aura'] as const) {
+      const sim = makeWorld();
+      const paladin = sim.addPlayer('paladin', 'Paladin');
+      sim.setPlayerLevel(16, paladin);
+      const pids = Array.from({ length: 9 }, (_, i) => sim.addPlayer('priest', `Raid${i}`));
+      for (const pid of pids.slice(0, 4)) {
+        sim.partyInvite(pid, paladin);
+        sim.partyAccept(pid);
+      }
+      sim.convertPartyToRaid(paladin);
+      for (const pid of pids.slice(4)) {
+        sim.partyInvite(pid, paladin);
+        sim.partyAccept(pid);
+      }
+      const party = mustParty(sim, paladin);
+      expect(party.members).toHaveLength(10);
+      expect(party.members.filter((pid) => party.raidGroups.get(pid) === 1)).toHaveLength(5);
+      expect(party.members.filter((pid) => party.raidGroups.get(pid) === 2)).toHaveLength(5);
+
+      sim.castAbility(persistentAura, paladin);
+      for (const pid of pids) {
+        expect(sim.entities.get(pid)?.auras.find((a) => a.id === persistentAura)).toBeDefined();
+      }
+
+      sim.partyLeave(paladin);
+
+      for (const pid of pids) {
+        expect(sim.entities.get(pid)?.auras.find((a) => a.id === persistentAura)).toBeUndefined();
+      }
+    }
   });
 
   it('does not replace a pending party invite', () => {
@@ -639,10 +461,22 @@ describe('parties', () => {
   });
 
   it('party members share kill xp with the group bonus and quest credit', () => {
-    const { sim, a, b } = makeDuo();
+    const { sim, a, b } = makeDuo(makeFullWorld()); // hunts a live camp wolf
     // both accept the wolf quest
-    teleport(sim, a, 4, 4);
-    teleport(sim, b, 4, 5);
+    // Re-pinned 2026-08 for the harbor move (d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md): marshal_redbrook (the
+    // q_wolves giver) now stands at (10, -97.5) by the noticeboard; stand the
+    // duo just south of him so acceptQuest's interact-range gate passes.
+    // Re-pinned for owner refinement round 6b, which redistributed the town's
+    // NPCs by role along the dock road: Redbrook moved out to the harbour
+    // market at (-58, -102), so the duo stands 2 and 3 yards south of his new
+    // stand, both well inside the 5 yard interact gate.
+    // Re-pinned for the first-quest handoff: Redbrook stands beside the
+    // noticeboard on the civic square, so the duo reads his stand from the
+    // layout and keeps the same 2 and 3 yard offsets.
+    const marshal = EASTBROOK_NPC_PLACEMENTS_BY_ID.marshal_redbrook.position;
+    teleport(sim, a, marshal.x, marshal.z + 2);
+    teleport(sim, b, marshal.x, marshal.z + 3);
     sim.acceptQuest('q_wolves', a);
     sim.acceptQuest('q_wolves', b);
     const wolf = nearestMob(sim, 'forest_wolf');
@@ -669,7 +503,7 @@ describe('parties', () => {
   });
 
   it("party members may loot each other's tapped kills and split copper", () => {
-    const { sim, a, b } = makeDuo();
+    const { sim, a, b } = makeDuo(makeFullWorld()); // hunts a live camp wolf
     const wolf = nearestMob(sim, 'forest_wolf');
     wolf.hp = 1;
     teleport(sim, a, wolf.pos.x + 2, wolf.pos.z);
@@ -693,7 +527,7 @@ describe('parties', () => {
   });
 
   it('non-party members cannot loot tapped kills', () => {
-    const sim = makeWorld();
+    const sim = makeFullWorld(); // hunts a live camp wolf
     const a = sim.addPlayer('warrior', 'Aleph');
     const c = sim.addPlayer('rogue', 'Gimel');
     const wolf = nearestMob(sim, 'forest_wolf');
@@ -930,18 +764,20 @@ describe('duels', () => {
     sim.startAutoAttack(a);
     expect(sim.entities.get(a)?.autoAttack).toBe(true);
     let ended = false;
-    let winnerEvent: any = null;
+    let winnerEvent: Extract<SimEvent, { type: 'duelEnd' }> | undefined;
     for (let i = 0; i < 20 * 30 && !ended; i++) {
       face(sim, a, b);
       const events = sim.tick();
-      const end = events.find((e) => e.type === 'duelEnd');
+      const end = events.find(
+        (e): e is Extract<SimEvent, { type: 'duelEnd' }> => e.type === 'duelEnd',
+      );
       if (end) {
         ended = true;
         winnerEvent = end;
       }
     }
     expect(ended).toBe(true);
-    expect(winnerEvent.winnerName).toBe('Aleph');
+    expect(winnerEvent?.winnerName).toBe('Aleph');
     expect(eb.hp).toBeGreaterThanOrEqual(1); // nobody dies in a duel
     expect(eb.dead).toBe(false);
     expect(sim.duelFor(a)).toBe(null);
@@ -1035,8 +871,12 @@ describe('trading', () => {
     for (let i = 0; i < 3; i++) sim.addItemInstance('wolf_fang', { signer: 'Cyn' }, b);
     const fangsOf = (pid: number) =>
       sim.meta(pid)!.inventory.filter((s) => s.itemId === 'wolf_fang');
-    expect(fangsOf(a)).toEqual([{ itemId: 'wolf_fang', count: 4, instance: { signer: 'Cyn' } }]);
-    expect(fangsOf(b)).toEqual([{ itemId: 'wolf_fang', count: 3, instance: { signer: 'Cyn' } }]);
+    // The legacy signer projects into the units' own source bucket rather
+    // than surviving as an `instance` payload: the whole stack is one
+    // signed bucket, exact count.
+    const cynSource = (count: number) => [{ source: { signer: 'Cyn' }, count }];
+    expect(fangsOf(a)).toEqual([{ itemId: 'wolf_fang', count: 4, materialSources: cynSource(4) }]);
+    expect(fangsOf(b)).toEqual([{ itemId: 'wolf_fang', count: 3, materialSources: cynSource(3) }]);
 
     sim.drainEvents();
     sim.tradeRequest(b, a);
@@ -1047,8 +887,8 @@ describe('trading', () => {
     sim.tradeConfirm(b);
     expect(sim.tradeFor(a)).toBe(null);
     // Merge-on-receive on both ends: one counted slot each, 7 units conserved.
-    expect(fangsOf(a)).toEqual([{ itemId: 'wolf_fang', count: 5, instance: { signer: 'Cyn' } }]);
-    expect(fangsOf(b)).toEqual([{ itemId: 'wolf_fang', count: 2, instance: { signer: 'Cyn' } }]);
+    expect(fangsOf(a)).toEqual([{ itemId: 'wolf_fang', count: 5, materialSources: cynSource(5) }]);
+    expect(fangsOf(b)).toEqual([{ itemId: 'wolf_fang', count: 2, materialSources: cynSource(2) }]);
 
     // Second leg back: B returns its remainder; A reunites the full seven.
     sim.tradeRequest(a, b);
@@ -1057,7 +897,7 @@ describe('trading', () => {
     sim.tradeSetOffer([], 0, a);
     sim.tradeConfirm(b);
     sim.tradeConfirm(a);
-    expect(fangsOf(a)).toEqual([{ itemId: 'wolf_fang', count: 7, instance: { signer: 'Cyn' } }]);
+    expect(fangsOf(a)).toEqual([{ itemId: 'wolf_fang', count: 7, materialSources: cynSource(7) }]);
     expect(fangsOf(b)).toEqual([]);
     expect(sim.drainEvents().some((e) => e.type === 'error')).toBe(false);
   });
@@ -1134,10 +974,13 @@ describe('trading', () => {
       { itemId: 'wolf_fang', count: Infinity },
       { count: 3 },
       { itemId: 'wolf_fang', count: 2 },
-    ] as any;
+    ];
     // must not throw, and only the one valid slot survives
-    expect(() => sim.tradeSetOffer(junk, 0, a)).not.toThrow();
-    expect(sim.tradeFor(a)?.offerA.items).toEqual([{ itemId: 'wolf_fang', count: 2 }]);
+    expect(() => sim.tradeSetOffer(junk as InvSlot[], 0, a)).not.toThrow();
+    // The staged unit is unrecorded provenance, stated as its own bucket.
+    expect(sim.tradeFor(a)?.offerA.items).toEqual([
+      { itemId: 'wolf_fang', count: 2, materialSources: [{ source: {}, count: 2 }] },
+    ]);
     sim.tradeConfirm(a);
     sim.tradeConfirm(b);
     expect(sim.tradeFor(a)).toBe(null);
@@ -1164,7 +1007,10 @@ describe('trading', () => {
       0,
       a,
     );
-    expect(sim.tradeFor(a)?.offerA.items).toEqual([{ itemId: 'wolf_fang', count: 4 }]);
+    // Both merged units are unrecorded provenance, coalesced into one bucket.
+    expect(sim.tradeFor(a)?.offerA.items).toEqual([
+      { itemId: 'wolf_fang', count: 4, materialSources: [{ source: {}, count: 4 }] },
+    ]);
     sim.tradeConfirm(a);
     sim.tradeConfirm(b);
     expect(sim.tradeFor(a)).toBe(null);
@@ -1250,6 +1096,10 @@ describe('the Hollow Crypt', () => {
     expect(cryptMobs.length).toBe(CRYPT_SPAWNS.length);
     // walk the player onto the boss: pulse should hit within ~12s
     const boss = nearestMob(sim, 'morthen', origin);
+    // Skip his entrance at the Rite Ring (encounters/hollow_crypt): this pins
+    // the pulse in combat, not the cinematic.
+    const claim = claimedInstanceAt(sim.ctx, mustEntity(sim, a).pos);
+    if (claim) cryptDevTrigger(sim.ctx, claim, 'skip');
     const ea = sim.entities.get(a)!;
     sim.setPlayerLevel(10, a);
     ea.hp = ea.maxHp;
@@ -1331,7 +1181,11 @@ describe('the new dungeons', () => {
           Math.abs(e.pos.x - origin.x) < 120,
       ).length;
     expect(addsNear()).toBe(0);
+    // The waves are his encounter's (encounters/gravewyrm_sanctum/velkhar.ts):
+    // they come while he is in his fight, on a target.
     velkhar.inCombat = true;
+    velkhar.aggroTargetId = a;
+    velkhar.aiState = 'attack';
     velkhar.hp = Math.floor(velkhar.maxHp * 0.6);
     sim.tick();
     expect(addsNear()).toBe(3);
@@ -1356,19 +1210,26 @@ describe('dungeon difficulty slash command', () => {
     const p = sim.addPlayer('warrior', 'Solo');
     sim.enterDungeon('hollow_crypt', p);
     sim.leaveDungeon(p);
-    sim.setDungeonDifficulty('heroic', p);
+    // Seed a divergent preference so this tests explicit slash-command routing,
+    // independently of the automatic switch covered in difficulty_selection.test.ts.
+    sim.players.get(p)!.dungeonDifficulty = 'heroic';
+    const claim = sim.instances.find((inst) => inst.dungeonId === 'hollow_crypt' && inst.partyKey);
+    expect(claim?.difficulty).toBe('normal');
 
     sim.drainEvents();
     sim.chat('/dungeon reset', p);
 
     expect(
-      (sim.drainEvents() as any[]).some(
-        (event) =>
-          event.type === 'error' &&
-          event.pid === p &&
-          event.text === 'All instances have been reset.',
-      ),
+      sim
+        .drainEvents()
+        .some(
+          (event) =>
+            event.type === 'error' &&
+            event.pid === p &&
+            event.text === 'All instances have been reset.',
+        ),
     ).toBe(true);
+    expect(claim?.difficulty).toBe('heroic');
   });
 
   it('routes the /dungeons and /instances reset aliases', () => {
@@ -1378,12 +1239,14 @@ describe('dungeon difficulty slash command', () => {
       sim.drainEvents();
       sim.chat(cmd, p);
       expect(
-        (sim.drainEvents() as any[]).some(
-          (event) =>
-            event.type === 'error' &&
-            event.pid === p &&
-            event.text === 'You have no instances to reset.',
-        ),
+        sim
+          .drainEvents()
+          .some(
+            (event) =>
+              event.type === 'error' &&
+              event.pid === p &&
+              event.text === 'You have no instances to reset.',
+          ),
       ).toBe(true);
     }
   });
@@ -1399,18 +1262,25 @@ describe('dungeon difficulty slash command', () => {
     sim.chat('/dungeon heroic', member);
     expect(sim.dungeonDifficulty(leader)).toBe('normal');
     expect(
-      (sim.drainEvents() as any[]).some(
-        (e) => e.type === 'error' && e.pid === member && e.text === 'You are not the party leader.',
-      ),
+      sim
+        .drainEvents()
+        .some(
+          (e) =>
+            e.type === 'error' && e.pid === member && e.text === 'You are not the party leader.',
+        ),
     ).toBe(true);
 
     sim.chat('/dungeon heroic', leader);
     expect(sim.dungeonDifficulty(member)).toBe('heroic');
     expect(
-      (sim.drainEvents() as any[]).some(
-        (e) =>
-          e.type === 'error' && e.pid === leader && e.text === 'Dungeon difficulty set to Heroic.',
-      ),
+      sim
+        .drainEvents()
+        .some(
+          (e) =>
+            e.type === 'error' &&
+            e.pid === leader &&
+            e.text === 'Dungeon difficulty set to Heroic.',
+        ),
     ).toBe(true);
 
     sim.chat('/dungeon normal', leader);
@@ -1435,17 +1305,13 @@ describe('dungeon difficulty slash command', () => {
 
     sim.drainEvents();
     sim.chat('/dungeon', p);
-    let texts = (sim.drainEvents() as any[])
-      .filter((e) => e.type === 'error' && e.pid === p)
-      .map((e) => e.text);
+    let texts = errorTextsFor(sim.drainEvents(), p);
     expect(texts).toContain('Dungeon difficulty: Normal. Use /dungeon heroic to change it.');
 
     sim.chat('/dungeon heroic', p);
     sim.drainEvents();
     sim.chat('/dungeon', p);
-    texts = (sim.drainEvents() as any[])
-      .filter((e) => e.type === 'error' && e.pid === p)
-      .map((e) => e.text);
+    texts = errorTextsFor(sim.drainEvents(), p);
     expect(texts).toContain('Dungeon difficulty: Heroic. Use /dungeon normal to change it.');
   });
 });

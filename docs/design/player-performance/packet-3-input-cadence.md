@@ -11,7 +11,7 @@ steady-state drop at offered rate r against the 40/s refill is (r - 40) / r once
 (at exactly 30 the unconditional timer arm makes the drop share timer-phase
 dependent), 33 percent at 60 fps, 50 percent at 80 msg/s).
 
-Worktree: /Users/fernando/Documents/wocc-input-cadence, branch feature/input-cadence
+Worktree: worktree wocc-input-cadence, branch feature/input-cadence
 (off release/v0.30.0; LOCAL ONLY: never pushed and no PR without the maintainer's
 explicit go).
 Deliverable: a PR off the latest release branch (when the maintainer okays it),
@@ -131,6 +131,15 @@ R5. Per-class post-parse lanes (the reserved-lane requirement), with detector-sa
       throttle and messaging and is untouched; the lane only bounds what a chat flood
       can burn, and because the lane is more generous than the ladder, the ladder's
       error messaging still fires on the passed subset.
+    - name-screen lane (added at the Masterwrought phase 13 QA hot-path review),
+      cmd 'pet_rename', 'buddy_rename', 'guild_create', and cmd 'perfect_item'
+      carrying a `name` field: refill 2/s, burst 5. These handlers run the obscenity matcher on player text BEFORE
+      any sim gate; an ALLOWED under-ceiling frame books no drop, so on the command
+      lane a hostile client could spend the matcher's cost per frame indefinitely
+      while naming an empty slot. These are dialog actions at single digits per
+      minute for a real player; the handlers are shape-first (the matcher prices
+      the sim's normalized value, never the raw token). Drops tally like every other
+      lane drop. An unnamed perfect_item frame stays on the command lane.
     - parsed frames of any OTHER shape (unknown t, non-object JSON, unknown cmd)
       also draw a command-lane token, after their protocol-anomaly observation:
       that bounds sub-ceiling garbage to the lane rate and makes anything above it
@@ -204,7 +213,8 @@ R8. Observability lands in the game-signals seam, and wsMessage('in') keeps its
     meaning is KEPT, and the existing pin stays green unedited. The loss becomes
     visible through NEW methods on the GameMetricsCounters interface
     (server/http/game_signals.ts): wsMessageDropped(cause) with cause one of 'rate' |
-    'bytes' | 'lane_movement' | 'lane_command' | 'lane_chat', wsRateKick(), and
+    'bytes' | 'lane_movement' | 'lane_command' | 'lane_chat' | 'lane_name_screen',
+    wsRateKick(), and
     wsInputSeqGap(missed). Exporter side (registerGameStateMetrics in
     server/http/game_metrics.ts, each inc wrapped in the seam's never-throw contract):
     woc_ws_messages_dropped_total{cause}, woc_ws_rate_kicks_total,
@@ -233,9 +243,23 @@ R9. Gap-aware echo accounting, resolved into a server-side seq-gap counter. The 
     gap into wsInputSeqGap, guarded: only when session.lastInputSeq is positive (the
     server zeroes it on session resume and the client restarts seq on reconnect), and
     capped per observation by MSG_SEQ_GAP_SANITY (1,000) so a reset-mismatch edge
-    never books a giant gap. The CLIENT-side surfacing of drops (a beacon field
-    riding packet 0's net-pipeline plumbing) is DEFERRED until packet 0 merges; the
-    server counter plus /metrics is the fleet visibility this packet ships.
+    never books a giant gap. The fold lives in server/input_seq.ts and is shared with
+    the one seq-bearing command, the client's 'target' (it draws from the same
+    counter so the online mirror can read a covering ack as "built after my
+    command", src/net/target_echo.ts); folding it at receipt (post-parse, ahead of
+    the lane verdict) keeps the high-water an in-order receipt mark for the whole
+    socket, so a parsed command seq never reads as a gap on the next input frame.
+    A command shed by the PRE-parse gate does book one gap there, the same as a
+    shed input frame: the counter is the parsed-stream share of the drops. The two
+    folds are placed asymmetrically on purpose: the input arm folds AFTER the
+    movement lane verdict, so a lane-dropped input frame still books a gap on the
+    next frame (it is a lost movement frame, the thing the counter attributes),
+    while the command arm folds BEFORE the command lane verdict, so a lane-dropped
+    'target' is acked and never booked (the client hold then yields to the server's
+    value for a command that never ran, which is the only correct outcome). The
+    CLIENT-side surfacing of drops (a beacon field riding packet 0's net-pipeline
+    plumbing) is DEFERRED until packet 0 merges; the server counter plus /metrics
+    is the fleet visibility this packet ships.
 R10. Dedicated kick reason with matcher lockstep, enforced by byte pins (the S3
     scanner cannot see this class). Today the limiter kick reuses the literal pair
     kickSession(session, 'rejected by server', 'moderation action'): the client
@@ -277,7 +301,7 @@ R10. Dedicated kick reason with matcher lockstep, enforced by byte pins (the S3
 R11. Bot-detector verdict: no contract change, both copies untouched, coupling is
     positive, and the lane rules above are what keep it that way. Verified against
     BOTH copies (the private overlay at private/bot_detector/ in the main tree and
-    /Users/fernando/Documents/wocc-bot-protection; src trees byte-identical at
+    worktree wocc-bot-protection; src trees byte-identical at
     authoring; this worktree carries only server/bot_detector/contract.ts plus stub,
     and the #bot-detector build alias resolves to the stub here, which nothing in
     this packet needs): the detector consumes only ALLOWED, parsed traffic

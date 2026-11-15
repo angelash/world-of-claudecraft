@@ -50,7 +50,8 @@ export function aiAttentionBodyOffset(
   options: AiAttentionBodyOffsetOptions = {},
 ): { x: number; z: number } | null {
   if (!canUseAiAttention(source, options)) return null;
-  if (timing.durationMs <= 0 || timing.elapsedMs < 0 || timing.elapsedMs > timing.durationMs) return null;
+  if (timing.durationMs <= 0 || timing.elapsedMs < 0 || timing.elapsedMs > timing.durationMs)
+    return null;
 
   const dx = target.x - renderPos.x;
   const dz = target.z - renderPos.z;
@@ -63,9 +64,8 @@ export function aiAttentionBodyOffset(
   const pulse = Math.sin(progress * Math.PI);
   if (pulse <= 0.000001) return null;
 
-  const maxOffset = reaction === 'inspect'
-    ? options.inspectOffset ?? 0.14
-    : options.stepOffset ?? 0.48;
+  const maxOffset =
+    reaction === 'inspect' ? (options.inspectOffset ?? 0.14) : (options.stepOffset ?? 0.48);
   const signedOffset = (reaction === 'avoid' ? -maxOffset : maxOffset) * pulse;
   const invDistance = 1 / Math.sqrt(d2);
   return {
@@ -74,7 +74,10 @@ export function aiAttentionBodyOffset(
   };
 }
 
-function canUseAiAttention(source: AiAttentionFacingEntity, options: AiAttentionFacingOptions): boolean {
+function canUseAiAttention(
+  source: AiAttentionFacingEntity,
+  options: AiAttentionFacingOptions,
+): boolean {
   if (source.kind !== 'npc' && source.kind !== 'mob') return false;
   if (source.dead || source.inCombat || source.castingAbility !== null) return false;
   const movingEpsilon = options.movingEpsilon ?? 0.02;

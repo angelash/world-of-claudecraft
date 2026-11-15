@@ -14,7 +14,11 @@
 // until the legacy ladder is removed.
 
 import type * as http from 'node:http';
-import { WEAPON_SKINS } from '../src/sim/content/weapon_skins';
+import { MEMBERSHIP_TOKEN_SKU } from '../src/membership_token_contract';
+import { isStoreMountSkinId } from '../src/sim/content/mount_skins';
+import { isKnownStorageSkuId } from '../src/sim/content/storage_charters';
+import { isGrantableWeaponSkin } from '../src/sim/content/weapon_skins';
+import { GAME_SUBSCRIPTION_PLAN, GAME_SUBSCRIPTION_PRICE } from '../src/subscription_contract';
 import {
   type ClaudiumNativeRail,
   type ClaudiumPriceRail,
@@ -33,8 +37,14 @@ import {
   claudiumStore,
   claudiumStripeWebhook,
   claudiumUsdcBalance,
+  membershipStripeWebhook,
 } from './claudium_proxy';
-import { accountAndScopeForToken, grantAccountWeaponSkins, moderationStatusForAccount } from './db';
+import {
+  accountAndScopeForToken,
+  grantAccountMountSkins,
+  grantAccountWeaponSkins,
+  moderationStatusForAccount,
+} from './db';
 import { ctxAccountId } from './http/context';
 import { type BearerActiveGuardDb, createActiveGuard } from './http/middleware/bearer_active_guard';
 import {
@@ -50,11 +60,20 @@ import {
 } from './http/middleware/rate_limit';
 import type { Ctx, RateLimitOutcome, RouteDef } from './http/types';
 import { json, readBinaryBody, readBody } from './http_util';
+import { gameMembershipAnnualClaim, membershipAnnualRecipient } from './membership_annual_store';
+import {
+  gameMembershipTokenCheckout,
+  gameMembershipTokenClaim,
+  gameMembershipTokenOffer,
+} from './membership_token_store';
 import {
   type ClaudiumMutationAction,
   claudiumMutationRateLimited,
   claudiumPreAuthRateLimited as claudiumPreAuthIpRateLimited,
+  publicReadRateLimited,
 } from './ratelimit';
+import { STORAGE_KEY_PATTERN, STORAGE_MAX_EXPECTED_COST_CLAUDIUM } from './storage_purchases';
+import { gameSubscriptionLink, gameSubscriptionSnapshot } from './subscription_proxy';
 
 const STRIPE_WEBHOOK_MAX_BYTES = 1024 * 1024;
 
@@ -92,18 +111,29 @@ function parseNativeRail(value: unknown): ClaudiumNativeRail | null {
   return value === 'sol' || value === 'usdc' || value === 'woc' ? value : null;
 }
 
-function parseSpendKind(value: unknown): 'cosmetic' | 'skin' | 'item' | null {
-  return value === 'cosmetic' || value === 'skin' || value === 'item' ? value : null;
+function parseSpendKind(value: unknown): 'cosmetic' | 'skin' | 'item' | 'storage' | null {
+  return value === 'cosmetic' || value === 'skin' || value === 'item' || value === 'storage'
+    ? value
+    : null;
 }
 
 function isKnownWeaponSkinId(itemId: string): boolean {
-  return Object.hasOwn(WEAPON_SKINS, itemId);
+  // a skin reserved for a future raid is no SKU, even if the service ever listed one
+  return isGrantableWeaponSkin(itemId);
 }
 
 function claudiumMutationAction(req: http.IncomingMessage): ClaudiumMutationAction | null {
   if (req.method !== 'POST') return null;
   const path = new URL(req.url ?? '/', 'http://localhost').pathname;
-  if (path === '/api/claudium/purchase') return 'purchase';
+  if (
+    path === '/api/claudium/purchase' ||
+    path === '/api/claudium/subscription/checkout' ||
+    path === '/api/claudium/subscription/portal' ||
+    path === '/api/claudium/subscription/annual/claim' ||
+    path === '/api/claudium/membership-token/checkout' ||
+    path === '/api/claudium/membership-token/claim'
+  )
+    return 'purchase';
   if (path === '/api/claudium/native/quote') return 'quote';
   if (path === '/api/claudium/native/confirm') {
     return 'confirm';
@@ -116,6 +146,13 @@ function claudiumMutationAction(req: http.IncomingMessage): ClaudiumMutationActi
 export function claudiumPreAuthMutationRateLimited(
   req: http.IncomingMessage,
 ): RateLimitOutcome | null {
+  if (
+    req.method === 'GET' &&
+    ['/api/claudium/subscription', '/api/claudium/membership-token'].includes(
+      new URL(req.url ?? '/', 'http://localhost').pathname,
+    )
+  )
+    return publicReadRateLimited(req);
   const action = claudiumMutationAction(req);
   return action ? claudiumPreAuthIpRateLimited(req, action) : null;
 }
@@ -127,12 +164,36 @@ export function claudiumConfigured(): boolean {
 
 // Live-game hooks, injected from server/main.ts exactly like configureDiscordRuntime
 // so `export const routes` stays a static array. The economy service is the
-// ownership source of truth for Claudium purchases; these hooks mirror weapon-skin
-// grants into the rollback-safe game entitlement table so the in-game equip gate
-// and identity wire see them immediately (and the self-snapshot pushes to any live
-// session).
+// ownership source of truth for Claudium purchases; these hooks mirror skin
+// grants (weapon skins and mount skins, the two cosmetic families that share
+// the kind 'skin' SKU) into their rollback-safe game entitlement tables so the
+// in-game equip gates and identity wire see them immediately (and the
+// self-snapshot pushes to any live session).
 interface ClaudiumGameHooks {
   grantWeaponSkins(accountId: number, skinIds: string[]): void;
+  /** Mirror purchased mount skins (src/sim/content/mount_skins.ts, kind 'skin'
+   *  SKUs) into account_mount_cosmetics, the same account-wide shape as the
+   *  weapon skins. Wearing one is the character's own later command; a grant
+   *  never lands an item anywhere. */
+  grantMountSkins(accountId: number, skinIds: string[]): void;
+  /** The whole storage purchase flow (Bank Storage phase 11): resolve the
+   *  live character session, gate, persist the pending record, spend, and
+   *  apply the slots exactly once (server/storage_purchases.ts). The result
+   *  is the spend wire shape verbatim. Unlike the skin mirror there is NO
+   *  no-runtime fallback: a storage purchase REQUIRES the live game, so the
+   *  spend branch fails closed as 'unavailable' when the runtime itself is
+   *  not configured (tests/tools). */
+  storagePurchase(input: {
+    accountId: number;
+    itemId: string;
+    expectedCostClaudium: number;
+    idempotencyKey: string;
+  }): Promise<{
+    granted: boolean;
+    balance: number | null;
+    costClaudium: number | null;
+    reason: string | null;
+  }>;
 }
 let claudiumRuntime: ClaudiumGameHooks | null = null;
 
@@ -153,13 +214,48 @@ function noteWeaponSkinGrants(accountId: number, skinIds: string[]): void {
   );
 }
 
-export async function handleClaudiumStripeWebhook(
+function noteMountSkinGrants(accountId: number, skinIds: string[]): void {
+  const known = skinIds.filter(isStoreMountSkinId);
+  if (known.length === 0) return;
+  if (claudiumRuntime) {
+    claudiumRuntime.grantMountSkins(accountId, known);
+    return;
+  }
+  // No live game wired (tests/tools): persist directly so ownership still lands.
+  void grantAccountMountSkins(accountId, known).catch((err) =>
+    console.error('failed to persist mount skin grant:', err),
+  );
+}
+
+/** The kind 'skin' allowlist: a weapon skin OR a mount skin, two disjoint
+ *  registries behind one SKU family (docs/claudium-store.md). */
+function isKnownSkinSkuId(itemId: string): boolean {
+  return isKnownWeaponSkinId(itemId) || isStoreMountSkinId(itemId);
+}
+
+export function handleClaudiumStripeWebhook(
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ): Promise<void> {
+  return relayStripeWebhook(req, res, claudiumStripeWebhook);
+}
+
+/** Stripe's membership billing events, relayed to the economy service's own endpoint. */
+export function handleMembershipStripeWebhook(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): Promise<void> {
+  return relayStripeWebhook(req, res, membershipStripeWebhook);
+}
+
+async function relayStripeWebhook(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  forward: typeof claudiumStripeWebhook,
+): Promise<void> {
   const signature = String(req.headers['stripe-signature'] ?? '');
   const rawBody = await readBinaryBody(req, STRIPE_WEBHOOK_MAX_BYTES);
-  const result = await claudiumStripeWebhook(rawBody, signature);
+  const result = await forward(rawBody, signature);
   return json(res, result.received ? 200 : 400, result);
 }
 
@@ -187,6 +283,59 @@ export async function handleClaudiumApi(
     if (!outcome.allowed) return json(res, 429, { error: 'rate_limited' });
   }
 
+  if (req.method === 'GET' && path === '/api/claudium/membership-token') {
+    return json(res, 200, {
+      sku: MEMBERSHIP_TOKEN_SKU,
+      ...(await gameMembershipTokenOffer(accountId)),
+    });
+  }
+  if (req.method === 'POST' && path === '/api/claudium/membership-token/checkout') {
+    return json(
+      res,
+      200,
+      await gameMembershipTokenCheckout(accountId, await readBody(req).catch(() => null)),
+    );
+  }
+  if (req.method === 'POST' && path === '/api/claudium/membership-token/claim') {
+    return json(
+      res,
+      200,
+      await gameMembershipTokenClaim(accountId, await readBody(req).catch(() => null)),
+    );
+  }
+  if (req.method === 'POST' && path === '/api/claudium/subscription/annual/claim') {
+    return json(
+      res,
+      200,
+      await gameMembershipAnnualClaim(accountId, await readBody(req).catch(() => null)),
+    );
+  }
+  if (req.method === 'GET' && path === '/api/claudium/subscription') {
+    return json(res, 200, {
+      plan: GAME_SUBSCRIPTION_PLAN,
+      price: GAME_SUBSCRIPTION_PRICE,
+      ...(await gameSubscriptionSnapshot(accountId)),
+    });
+  }
+  if (req.method === 'POST' && path === '/api/claudium/subscription/checkout') {
+    return json(
+      res,
+      200,
+      await gameSubscriptionLink(
+        accountId,
+        'checkout',
+        await readBody(req).catch(() => null),
+        membershipAnnualRecipient(accountId),
+      ),
+    );
+  }
+  if (req.method === 'POST' && path === '/api/claudium/subscription/portal') {
+    return json(
+      res,
+      200,
+      await gameSubscriptionLink(accountId, 'portal', await readBody(req).catch(() => null)),
+    );
+  }
   if (req.method === 'GET' && path === '/api/claudium/balance') {
     return json(res, 200, await claudiumBalance(accountId));
   }
@@ -231,16 +380,38 @@ export async function handleClaudiumApi(
   }
   if (req.method === 'GET' && path === '/api/claudium/store') {
     const store = await claudiumStore(accountId);
+    // The same allowlist rule per family: the service can never mint an id
+    // the game registry does not carry. Storage rows (Bank Storage phase 11)
+    // pass through for the phase 12 store category and the phase 13 banker
+    // price tag; their `owned` is false forever and is never interpreted.
     const supportedStore = {
       ...store,
-      items: store.items.filter((item) => item.kind === 'skin' && isKnownWeaponSkinId(item.itemId)),
+      items: store.items.filter(
+        (item) =>
+          (item.kind === 'skin' && isKnownSkinSkuId(item.itemId)) ||
+          (item.kind === 'storage' && isKnownStorageSkuId(item.itemId)),
+      ),
     };
     // Reconcile: the service's grant ledger is authoritative for purchases, so
-    // mirror any owned weapon skins the game DB does not know about yet.
-    noteWeaponSkinGrants(
-      accountId,
-      supportedStore.items.filter((item) => item.owned).map((item) => item.itemId),
-    );
+    // mirror any owned skins (weapon or mount) the game does not know about yet.
+    // Filtering on `owned` alone is safe here, and it is worth saying why so a
+    // later reader does not "fix" it the wrong way. `owned` means the service
+    // holds a GRANT row, which only the skin family ever has: a storage spend
+    // writes no grant row, so a storage row's owned is false by construction
+    // and forever. Two independent gates keep a storage id out of either skin
+    // entitlement table even if the service ever set the flag on one: the
+    // filter just above admits a row only under its OWN family's registry, and
+    // noteWeaponSkinGrants / noteMountSkinGrants re-filter their input through
+    // isKnownWeaponSkinId / isStoreMountSkinId. Reaching either would take an id
+    // carried by two registries, and all three are disjoint
+    // (tests/server/storage_gates.test.ts pins the tampered owned:true storage
+    // row never reaching the mirror). The two skin mirrors receive the SAME
+    // owned id list and each keeps only its own registry's ids.
+    const ownedSkinIds = supportedStore.items
+      .filter((item) => item.owned && item.kind === 'skin')
+      .map((item) => item.itemId);
+    noteWeaponSkinGrants(accountId, ownedSkinIds);
+    noteMountSkinGrants(accountId, ownedSkinIds);
     return json(res, 200, supportedStore);
   }
   if (req.method === 'GET' && path === '/api/claudium/history') {
@@ -317,7 +488,69 @@ export async function handleClaudiumApi(
         reason: 'invalid_request',
       });
     }
-    if (kind !== 'skin' || !isKnownWeaponSkinId(itemId)) {
+    if (kind === 'storage') {
+      // Bank Storage phase 11: repeatable bank-capacity SKUs. The storage id
+      // allowlist mirrors the skin one (a skin id declared as storage falls
+      // through here as unknown_item, exactly as a storage id declared as
+      // skin falls through the gate below), and the flow itself lives behind
+      // the runtime hook: it must resolve the LIVE character session, hold
+      // the per-character purchase mutex, persist the pending record, and
+      // apply the slots exactly once against the idempotent receipt. The
+      // skin path's owned re-read mirror below deliberately does NOT run for
+      // storage: a storage spend writes no grant row, so `owned` stays false
+      // forever and re-reading it would refuse every purchase.
+      //
+      // The key and cost bounds are load-bearing, not hygiene: the key must
+      // fit the SHARED bound the sim persists and reloads (an overlong key
+      // would apply, save, and then vanish on the next load, voiding the
+      // exactly-once dedupe), and the declared cost must fit the pending
+      // row's INT column (it is fingerprint-bound and persisted verbatim).
+      if (
+        !STORAGE_KEY_PATTERN.test(idempotencyKey) ||
+        expectedCostClaudium > STORAGE_MAX_EXPECTED_COST_CLAUDIUM
+      ) {
+        return json(res, 200, {
+          granted: false,
+          balance: null,
+          costClaudium: null,
+          reason: 'invalid_request',
+        });
+      }
+      if (!isKnownStorageSkuId(itemId)) {
+        return json(res, 200, {
+          granted: false,
+          balance: null,
+          costClaudium: null,
+          reason: 'unknown_item',
+        });
+      }
+      if (!claudiumRuntime?.storagePurchase) {
+        // No live game wired (tests/tools). Unlike noteWeaponSkinGrants there
+        // is no persist-directly fallback: without a live character session
+        // nothing may spend, so fail closed as unavailable.
+        return json(res, 200, {
+          granted: false,
+          balance: null,
+          costClaudium: null,
+          reason: 'unavailable',
+        });
+      }
+      return json(
+        res,
+        200,
+        await claudiumRuntime.storagePurchase({
+          accountId,
+          itemId,
+          expectedCostClaudium,
+          idempotencyKey,
+        }),
+      );
+    }
+    // The paid cosmetic family: kind 'skin' carries both weapon skins and mount
+    // skins. Legacy kind 'item' rows (the retired reins-in-bags store mount)
+    // are no longer products and fall through as unknown_item.
+    const supportedSku = kind === 'skin' && isKnownSkinSkuId(itemId);
+    if (!supportedSku) {
       return json(res, 200, {
         granted: false,
         balance: null,
@@ -338,11 +571,20 @@ export async function handleClaudiumApi(
     // authoritative grant ledger and mirror only this exact owned skin. A transient
     // store failure leaves the game mirror untouched; the next store open heals it.
     if (result.granted || result.reason === 'already_granted') {
+      // The raw store, not the filtered view: `itemId` already passed the
+      // family allowlist above and `kind` is pinned, so the only row this can
+      // match is a real skin, and both mirrors re-filter through their own
+      // registry before anything lands.
       const store = await claudiumStore(accountId);
-      const ownsRequestedSkin = store.items.some(
-        (item) => item.kind === 'skin' && item.itemId === itemId && item.owned,
+      const ownsRequested = store.items.some(
+        (item) => item.kind === kind && item.itemId === itemId && item.owned,
       );
-      if (ownsRequestedSkin) noteWeaponSkinGrants(accountId, [itemId]);
+      if (ownsRequested) {
+        // Each mirror re-filters through its own registry; the id lands in
+        // exactly one of the two.
+        noteWeaponSkinGrants(accountId, [itemId]);
+        noteMountSkinGrants(accountId, [itemId]);
+      }
     }
     return json(res, 200, result);
   }
@@ -358,10 +600,107 @@ function claudiumHandler(ctx: Ctx): Promise<void> {
 export const routes: RouteDef[] = [
   {
     method: 'POST',
+    path: '/api/claudium/subscription/annual/claim',
+    surface: 'api',
+    middleware: [
+      rateLimit(CLAUDIUM_PURCHASE_PRE_AUTH_POLICY),
+      activeGuard,
+      rateLimit(CLAUDIUM_PURCHASE_POLICY),
+    ],
+    handler: claudiumHandler,
+  },
+  {
+    method: 'GET',
+    path: '/api/claudium/membership-token',
+    surface: 'api',
+    middleware: [
+      async (ctx, next) => {
+        if (!publicReadRateLimited(ctx.req).allowed) {
+          json(ctx.res, 429, { error: 'rate_limited' });
+          return;
+        }
+        await next();
+      },
+      activeGuard,
+    ],
+    handler: claudiumHandler,
+  },
+  {
+    method: 'POST',
+    path: '/api/claudium/membership-token/checkout',
+    surface: 'api',
+    middleware: [
+      rateLimit(CLAUDIUM_PURCHASE_PRE_AUTH_POLICY),
+      activeGuard,
+      rateLimit(CLAUDIUM_PURCHASE_POLICY),
+    ],
+    handler: claudiumHandler,
+  },
+  {
+    method: 'POST',
+    path: '/api/claudium/membership-token/claim',
+    surface: 'api',
+    middleware: [
+      rateLimit(CLAUDIUM_PURCHASE_PRE_AUTH_POLICY),
+      activeGuard,
+      rateLimit(CLAUDIUM_PURCHASE_POLICY),
+    ],
+    handler: claudiumHandler,
+  },
+
+  {
+    method: 'GET',
+    path: '/api/claudium/subscription',
+    surface: 'api',
+    middleware: [
+      async (ctx, next) => {
+        const outcome = publicReadRateLimited(ctx.req);
+        if (!outcome.allowed) {
+          json(ctx.res, 429, { error: 'rate_limited' });
+          return;
+        }
+        await next();
+      },
+      activeGuard,
+    ],
+    handler: claudiumHandler,
+  },
+  {
+    method: 'POST',
+    path: '/api/claudium/subscription/checkout',
+    surface: 'api',
+    middleware: [
+      rateLimit(CLAUDIUM_PURCHASE_PRE_AUTH_POLICY),
+      activeGuard,
+      rateLimit(CLAUDIUM_PURCHASE_POLICY),
+    ],
+    handler: claudiumHandler,
+  },
+  {
+    method: 'POST',
+    path: '/api/claudium/subscription/portal',
+    surface: 'api',
+    middleware: [
+      rateLimit(CLAUDIUM_PURCHASE_PRE_AUTH_POLICY),
+      activeGuard,
+      rateLimit(CLAUDIUM_PURCHASE_POLICY),
+    ],
+    handler: claudiumHandler,
+  },
+
+  {
+    method: 'POST',
     path: '/api/claudium/stripe/webhook',
     surface: 'api',
     meta: { publicRead: true },
     handler: (ctx) => handleClaudiumStripeWebhook(ctx.req, ctx.res),
+  },
+  {
+    method: 'POST',
+    path: '/api/claudium/membership/stripe/webhook',
+    surface: 'api',
+    meta: { publicRead: true },
+    handler: (ctx) => handleMembershipStripeWebhook(ctx.req, ctx.res),
   },
   {
     method: 'GET',

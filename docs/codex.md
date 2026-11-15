@@ -74,8 +74,8 @@ recover. High-impact planning and GitHub issue creation disable implicit invocat
 ## Specialist agents
 
 The read-only roles are `woc_sim_architecture`, `woc_cross_platform`,
-`woc_persistence`, `woc_database_performance`, `woc_security`, `woc_test_coverage`,
-`woc_frontend`, `woc_release_malware`, and `woc_docs_researcher`. The main agent owns
+`woc_persistence`, `woc_database_performance`, `woc_server_hot_path`, `woc_security`,
+`woc_test_coverage`, `woc_frontend`, `woc_release_malware`, and `woc_docs_researcher`. The main agent owns
 edits, integration, and deterministic commands. Review agents inspect the assigned
 proposal or established diff and shared results so the same gate is not rerun by every
 specialist.
@@ -115,19 +115,11 @@ work.
 
 ## Pull request automation
 
-`.github/workflows/pr-ai.yml` uses `openai/codex-action@v1` with an API-key proxy,
-read-only permission profile, `drop-sudo`, an empty Codex home, and structured output.
-The PR checkout is nested untrusted data and no PR code is executed. A separate fresh job
-with no OpenAI credential validates, redacts, and posts the review.
-
-Configure:
-
-- Repository secret `OPENAI_API_KEY`.
-- Optional repository variables `CODEX_REVIEW_MODEL`, `CODEX_REVIEW_EFFORT`, and
-  `CODEX_CLI_VERSION`.
-
-Never store a ChatGPT `auth.json` in CI. See `docs/ai-pr-bot.md` and the
-[official action security guide](https://github.com/openai/codex-action/blob/main/docs/security.md).
+The repository has no CI-side Codex review workflow. The former `pr-ai.yml` Codex
+review assist was retired in 2026-08 (maintainer decision): its checks never gated
+merges, and interactive review (`$woc-review-pr` here, `/review-pr` in Claude Code)
+covers the same ground on demand. Do not reintroduce a CI reviewer without a fresh
+security design; the old three-trust-zone layout lives in git history if needed.
 
 ## Maintenance
 
@@ -141,7 +133,7 @@ policy need justifies them.
 Useful validation:
 
 ```sh
-npx vitest run tests/codex_setup.test.ts tests/ai_review.test.ts tests/malware_scan.test.ts
+npx vitest run tests/codex_setup.test.ts tests/malware_scan.test.ts
 npx tsc --noEmit
 npm run gate
 ```

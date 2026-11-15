@@ -1,6 +1,6 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 import './_setup';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const accountModalOpen = vi.fn();
@@ -58,5 +58,51 @@ describe('OnlineTable', () => {
   it('shows the empty message for no players', () => {
     render(OnlineTable, { players: [] });
     expect(screen.getByText(t('online.empty'))).toBeInTheDocument();
+  });
+
+  it('renders plain headers without a sort handler and sort buttons with one', async () => {
+    const { unmount } = render(OnlineTable, { players });
+    const plainHeader = screen.getByRole('columnheader', { name: t('online.colLevel') });
+    expect(plainHeader).not.toHaveAttribute('aria-sort');
+    expect(within(plainHeader).queryByRole('button')).not.toBeInTheDocument();
+    unmount();
+
+    const onSort = vi.fn();
+    render(OnlineTable, { players, sort: 'level', dir: 'desc', onSort });
+    const sortableHeader = screen.getByRole('columnheader', {
+      name: new RegExp(t('online.colLevel')),
+    });
+    expect(sortableHeader).toHaveAttribute('aria-sort', 'descending');
+    // Position has no meaningful order, so it stays a plain header even when sorting.
+    expect(screen.getByRole('columnheader', { name: t('online.colPos') })).not.toHaveAttribute(
+      'aria-sort',
+    );
+
+    await fireEvent.click(within(sortableHeader).getByRole('button'));
+    expect(onSort).toHaveBeenCalledWith('level');
+  });
+
+  it('renders a per-row Kick button and its column only when onKick is passed', async () => {
+    const { unmount } = render(OnlineTable, { players });
+    // No handler, no column: the parent decides (on moderation.act) whether the
+    // action exists at all, so a viewer's table carries no trace of it.
+    expect(screen.queryByText(t('online.kick'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', { name: t('online.colActions') }),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    const onKick = vi.fn();
+    render(OnlineTable, { players, onKick });
+    expect(screen.getByRole('columnheader', { name: t('online.colActions') })).toBeInTheDocument();
+    // The accessible name carries the player so a screen reader hears WHO each
+    // row's button drops; the visible label stays the short verb. Danger styling
+    // reaches the button through the actions cell's class (styles/moderation.css).
+    const kick = screen.getByRole('button', { name: t('online.kickPlayer', { name: 'Aragorn' }) });
+    expect(kick).toHaveTextContent(t('online.kick'));
+    expect(kick).toHaveClass('danger');
+    expect(kick.closest('td')).toHaveClass('row-actions');
+    await fireEvent.click(kick);
+    expect(onKick).toHaveBeenCalledWith(players[0]);
   });
 });

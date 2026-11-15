@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
 import type { AiMemoryAuditRecord } from '../server/ai/ai_types';
-import { AI_MEMORY_SCHEMA, PgAiMemoryDb, normalizeAiMemoryAuditRecord } from '../server/ai_memory_db';
+import {
+  AI_MEMORY_SCHEMA,
+  normalizeAiMemoryAuditRecord,
+  PgAiMemoryDb,
+} from '../server/ai_memory_db';
 import { REALM } from '../server/realm';
 
 class FakePool {
@@ -9,7 +13,10 @@ class FakePool {
   payloadRows: Array<Record<string, unknown>> = [];
   rowCount = 0;
 
-  async query(sql: string, values?: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>>; rowCount: number }> {
+  async query(
+    sql: string,
+    values?: readonly unknown[],
+  ): Promise<{ rows: Array<Record<string, unknown>>; rowCount: number }> {
     this.calls.push({ sql, values });
     if (sql.includes('INSERT INTO ai_memory_records') && values) {
       const payload = JSON.parse(String(values[17])) as Record<string, unknown>;
@@ -29,14 +36,23 @@ class FakePool {
     const sourcePlayerEntityId = typeof values[1] === 'number' ? values[1] : null;
     const sceneId = typeof values[2] === 'string' ? values[2] : '';
     const zoneId = typeof values[3] === 'string' ? values[3] : '';
-    const kinds = Array.isArray(values[4]) ? new Set(values[4].filter((value): value is string => typeof value === 'string')) : null;
-    const scopes = Array.isArray(values[5]) ? new Set(values[5].filter((value): value is string => typeof value === 'string')) : null;
+    const kinds = Array.isArray(values[4])
+      ? new Set(values[4].filter((value): value is string => typeof value === 'string'))
+      : null;
+    const scopes = Array.isArray(values[5])
+      ? new Set(values[5].filter((value): value is string => typeof value === 'string'))
+      : null;
     const nowSeconds = typeof values[6] === 'number' ? values[6] : 0;
     const limit = typeof values[7] === 'number' ? values[7] : 20;
     return this.payloadRows
       .filter((row) => {
         const payload = row.payload as Partial<AiMemoryAuditRecord> | undefined;
-        if (!payload || sourcePlayerEntityId === null || payload.sourcePlayerEntityId !== sourcePlayerEntityId) return false;
+        if (
+          !payload ||
+          sourcePlayerEntityId === null ||
+          payload.sourcePlayerEntityId !== sourcePlayerEntityId
+        )
+          return false;
         if (kinds && (!payload.kind || !kinds.has(payload.kind))) return false;
         if (scopes && (!payload.scope || !scopes.has(payload.scope))) return false;
         if (typeof payload.expiresAt === 'number' && payload.expiresAt <= nowSeconds) return false;
@@ -47,8 +63,10 @@ class FakePool {
       .sort((a, b) => {
         const left = a.payload as Partial<AiMemoryAuditRecord>;
         const right = b.payload as Partial<AiMemoryAuditRecord>;
-        return (right.salience ?? 0) - (left.salience ?? 0)
-          || (right.createdAt ?? 0) - (left.createdAt ?? 0);
+        return (
+          (right.salience ?? 0) - (left.salience ?? 0) ||
+          (right.createdAt ?? 0) - (left.createdAt ?? 0)
+        );
       })
       .slice(0, Math.max(1, limit));
   }
@@ -73,7 +91,9 @@ const record: AiMemoryAuditRecord = {
 describe('AI memory DB', () => {
   it('defines additive schema and query indexes for persistent living-world memory', () => {
     expect(AI_MEMORY_SCHEMA).toContain('CREATE TABLE IF NOT EXISTS ai_memory_records');
-    expect(AI_MEMORY_SCHEMA).toContain('ALTER TABLE ai_memory_records ADD COLUMN IF NOT EXISTS realm');
+    expect(AI_MEMORY_SCHEMA).toContain(
+      'ALTER TABLE ai_memory_records ADD COLUMN IF NOT EXISTS realm',
+    );
     expect(AI_MEMORY_SCHEMA).toContain('CREATE UNIQUE INDEX IF NOT EXISTS ai_memory_records_ref');
     expect(AI_MEMORY_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_memory_records_player_scene');
     expect(AI_MEMORY_SCHEMA).toContain('CREATE INDEX IF NOT EXISTS ai_memory_records_player_zone');
@@ -91,23 +111,27 @@ describe('AI memory DB', () => {
 
     await db.saveRecords([record]);
     const insert = pool.calls[0];
-    expect(insert.sql).toContain('ON CONFLICT (realm, kind, ref_id, source_player_entity_id) DO UPDATE');
-    expect(insert.values).toEqual(expect.arrayContaining([
-      'rumor',
-      'rumor-1',
-      'region',
-      'eastbrook_forge',
-      'eastbrook_vale',
-      437,
-      'redbrook_blade',
-      'item',
-      ['hudChrome.aiSpeech.itemInterestInspect'],
-      0.75,
-      12,
-      102,
-      'discarded:redbrook_blade',
-      JSON.stringify(record),
-    ]));
+    expect(insert.sql).toContain(
+      'ON CONFLICT (realm, kind, ref_id, source_player_entity_id) DO UPDATE',
+    );
+    expect(insert.values).toEqual(
+      expect.arrayContaining([
+        'rumor',
+        'rumor-1',
+        'region',
+        'eastbrook_forge',
+        'eastbrook_vale',
+        437,
+        'redbrook_blade',
+        'item',
+        ['hudChrome.aiSpeech.itemInterestInspect'],
+        0.75,
+        12,
+        102,
+        'discarded:redbrook_blade',
+        JSON.stringify(record),
+      ]),
+    );
 
     const loaded = await db.loadRecords({
       sourcePlayerEntityId: 437,

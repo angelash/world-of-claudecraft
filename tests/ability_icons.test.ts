@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+import { describe, expect, it } from 'vitest';
 import { ABILITIES } from '../src/sim/data';
-import { abilityIconRecipe, hasExplicitAbilityIcon } from '../src/ui/icons';
+import { abilityIconRecipe, hasExplicitAbilityIcon, hasExplicitAuraIcon } from '../src/ui/icons';
 
 // Every class ability must have a deliberate, visually distinct icon.
 // The procedural fallback (school + name keywords) collides for many ids
@@ -8,6 +11,71 @@ import { abilityIconRecipe, hasExplicitAbilityIcon } from '../src/ui/icons';
 // a hand-authored recipe per ability and guard against any two colliding.
 
 const abilityIds = Object.keys(ABILITIES);
+const iconsSourcePath = new URL('../src/ui/icons.ts', import.meta.url);
+
+function abilityRecipeIds(): string[] {
+  const source = readFileSync(iconsSourcePath, 'utf8');
+  const sourceFile = ts.createSourceFile(
+    'src/ui/icons.ts',
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  let recipes: ts.ObjectLiteralExpression | undefined;
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === 'ABILITY_RECIPES'
+    ) {
+      if (!node.initializer || !ts.isObjectLiteralExpression(node.initializer)) {
+        throw new Error('ABILITY_RECIPES must remain an object literal');
+      }
+      recipes = node.initializer;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  if (!recipes) throw new Error('ABILITY_RECIPES declaration not found');
+
+  const ids = recipes.properties.map((property) => {
+    if (!ts.isPropertyAssignment(property)) {
+      throw new Error('ABILITY_RECIPES may contain only explicit property assignments');
+    }
+    const name = property.name;
+    if (
+      ts.isIdentifier(name) ||
+      ts.isStringLiteral(name) ||
+      ts.isNumericLiteral(name) ||
+      ts.isNoSubstitutionTemplateLiteral(name)
+    ) {
+      return name.text;
+    }
+    throw new Error('ABILITY_RECIPES keys must be statically named');
+  });
+  return ids.sort((left, right) => left.localeCompare(right));
+}
+
+function stableSerialize(value: unknown): string {
+  if (value === undefined) return 'undefined';
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error('recipe values must be finite');
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+  if (typeof value === 'object') {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nested]) => `${JSON.stringify(key)}:${stableSerialize(nested)}`)
+      .join(',')}}`;
+  }
+  throw new Error(`unsupported recipe value type: ${typeof value}`);
+}
 
 function serialize(id: string): string {
   const recipe = abilityIconRecipe(id);
@@ -23,7 +91,9 @@ describe('ability icons', () => {
 
   it('every ability has an explicit (non-fallback) icon recipe', () => {
     const missing = abilityIds.filter((id) => !hasExplicitAbilityIcon(id));
-    expect(missing, `abilities relying on the procedural fallback: ${missing.join(', ')}`).toEqual([]);
+    expect(missing, `abilities relying on the procedural fallback: ${missing.join(', ')}`).toEqual(
+      [],
+    );
   });
 
   it('no two abilities resolve to an identical icon', () => {
@@ -37,5 +107,46 @@ describe('ability icons', () => {
     const collisions = [...byRecipe.values()].filter((ids) => ids.length > 1);
     const report = collisions.map((ids) => ids.join(' = ')).join('\n');
     expect(collisions, `colliding icon groups:\n${report}`).toEqual([]);
+  });
+
+  it('has explicit buff-bar icons for every Warlock specialization resource and guardian window', () => {
+    for (const id of [
+      'aura_soul_fragments',
+      'aura_affliction_doom',
+      'aura_destruction_ruin',
+      'aura_desolation',
+      'aura_duskfire_claim',
+      'aura_pyre_guardian',
+    ]) {
+      expect(hasExplicitAuraIcon(id), id).toBe(true);
+    }
+  });
+
+  it('pins every ABILITY_RECIPES key and payload by stable content identity', () => {
+    const ids = abilityRecipeIds();
+    expect(ids).toEqual([...new Set(ids)].sort((left, right) => left.localeCompare(right)));
+    // 464: 450 plus the fourteen Nythraxis Raid Boss Guide mechanic recipes;
+    // 469: plus the Wildfang kit pass 2 glyphs (lunge, hamstring_bite).
+    // 473: plus the Buried Hoards Clockwork Shock Bomb glyph (the 2026-09-28
+    // release/v0.44.0 merge into feature/buried-hoards).
+    // 476: plus the Mirefen world boss's Shardpike bar verbs (lance_brace,
+    // lance_thrust, lance_release), at the release/v0.45.0 merge.
+    // 477: plus the membership Courier glyph (parked in ABILITY_ART_PENDING until
+    // its skill painting ships), at the v0.45.0 integration.
+    // 511: plus the Gravewyrm Sanctum dungeon boss guide mechanic recipes
+    // (dgn_sanctum_*, src/ui/boss_journal/dungeons/gravewyrm_sanctum.ts).
+    // 536: plus the Wildheart Basin boss guide recipes (dgn_wildheart_*).
+    // 567: plus the Hollow Crypt boss guide recipes (dgn_crypt_*).
+    // 586: plus the Sunken Bastion boss guide recipes (dgn_bastion_*).
+    // 614: plus the Drowned Temple boss guide recipes (dgn_temple_*).
+    // Vampiric Touch, Tithe Bomb and Void Rupture.
+    expect(ids).toHaveLength(626);
+    for (const id of ids) expect(hasExplicitAbilityIcon(id), id).toBe(true);
+
+    const identity = ids.map((id) => ({ id, recipe: abilityIconRecipe(id) }));
+    const hash = createHash('sha256').update(stableSerialize(identity)).digest('hex');
+    // Re-minted over the merged ABILITY_RECIPES literal (v0.45.0 integration: + courier;
+    // then + the five-player dungeon boss guide recipes, plus release ability recipes).
+    expect(hash).toBe('91b046f0c1025ce2aa9666728280d33fef818d263036c8b269a2b4834b52f5fb');
   });
 });

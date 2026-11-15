@@ -62,8 +62,9 @@ export interface MobileHudLayoutInput {
 export interface MobileHudLayout {
   tier: MobileHudTier;
   /** Exactly one of hud-mobile-compact / hud-mobile-standard / hud-mobile-tablet,
-   *  plus hud-menu-open iff menuOpen and hud-chat-open iff chatOpen. Empty when
-   *  touchMode is false (desktop stays untouched). */
+   *  plus hud-mobile-landscape when width exceeds height, hud-menu-open iff
+   *  menuOpen, and hud-chat-open iff chatOpen. Empty when touchMode is false
+   *  (desktop stays untouched). */
   classes: string[];
   /** CSS custom properties this layout wants set on body (currently the safe-area
    *  echo used by the tier CSS; the raw insets are also directly available via
@@ -85,6 +86,24 @@ const TIER_CLASS: Record<MobileHudTier, string> = {
   tablet: 'hud-mobile-tablet',
 };
 
+/** The compact touch tier, read off the body's class list: the test the
+ *  tracker headers share with their click delegation (a count chip that opens
+ *  the window instead of a disclosure toggle). Takes the list, not the DOM,
+ *  so the predicate stays host-free. */
+export function isCompactTouchHud(classes: { contains(cls: string): boolean }): boolean {
+  return classes.contains('mobile-touch') && classes.contains(TIER_CLASS.compact);
+}
+
+/** Touch mode with the bags sheet showing (its inline display is not none):
+ *  the vendor and bank close paths tear the mobile bags down on this. Takes
+ *  the class list and the bags element's display value, not the DOM. */
+export function touchBagsShown(
+  classes: { contains(cls: string): boolean },
+  bagsDisplay: string,
+): boolean {
+  return classes.contains('mobile-touch') && bagsDisplay !== 'none';
+}
+
 /** Resolve the responsive mobile HUD layout for the given viewport/mode inputs.
  *  Deterministic and side-effect-free: same input always yields a deeply equal
  *  output (no DOM reads, no Date/performance/random). Returns an empty classes
@@ -95,6 +114,7 @@ export function resolveMobileHudLayout(input: MobileHudLayoutInput): MobileHudLa
   }
   const tier = resolveTier(input.width, input.height);
   const classes: string[] = [TIER_CLASS[tier]];
+  if (input.width > input.height) classes.push('hud-mobile-landscape');
   if (input.menuOpen) classes.push('hud-menu-open');
   if (input.chatOpen) classes.push('hud-chat-open');
   const cssVars: Record<string, string> = {

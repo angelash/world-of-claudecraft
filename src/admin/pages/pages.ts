@@ -7,20 +7,28 @@ import type { AdminPermission } from '../permissions';
 // presentation.
 export type AdminPage =
   | 'overview'
+  | 'market-metrics'
   | 'usage'
   | 'tick-perf'
   | 'accounts'
   | 'characters'
+  | 'online-players'
+  | 'guilds'
+  | 'top-holders'
   | 'moderation'
   | 'moderation-history'
+  | 'flags'
   | 'suspicious-players'
   | 'ai-operations'
   | 'detection-calibration'
   | 'antibot-config'
   | 'shared-ips'
   | 'chat-filter'
+  | 'realm-builders'
   | 'blocked-ips'
   | 'bug-reports'
+  | 'unstuck-reports'
+  | 'item-tracking'
   | 'staff';
 
 export interface AdminNavItem {
@@ -40,7 +48,12 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
   {
     id: 'dashboard',
     defaultPage: 'overview',
-    items: [{ id: 'overview', labelKey: 'nav.overview', permission: 'analytics.read' }],
+    items: [
+      { id: 'overview', labelKey: 'nav.overview', permission: 'analytics.read' },
+      // Live World Market listing metrics: realm-wide aggregates, so it rides
+      // analytics.read like the overview (matches the endpoint permission).
+      { id: 'market-metrics', labelKey: 'nav.marketMetrics', permission: 'analytics.read' },
+    ],
   },
   {
     id: 'operations',
@@ -58,6 +71,13 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
     items: [
       { id: 'accounts', labelKey: 'nav.accounts', permission: 'accounts.read' },
       { id: 'characters', labelKey: 'nav.characters', permission: 'accounts.read' },
+      // The live roster moved off the Overview dashboard onto its own page, so it
+      // keeps the already-localized title that panel used.
+      { id: 'online-players', labelKey: 'online.title', permission: 'accounts.read' },
+      { id: 'guilds', labelKey: 'nav.guilds', permission: 'accounts.read' },
+      // The rich list (economy oversight): reads the same materialised wealth
+      // data the accounts list sorts by, so it rides the same permission.
+      { id: 'top-holders', labelKey: 'nav.topHolders', permission: 'accounts.read' },
     ],
   },
   {
@@ -66,6 +86,9 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
     defaultPage: 'moderation',
     items: [
       { id: 'moderation', labelKey: 'nav.reports', permission: 'moderation.read' },
+      // Persisted suspicion flags (economy oversight): the workflow queue over
+      // the flag store the monitoring emitters feed.
+      { id: 'flags', labelKey: 'nav.flags', permission: 'moderation.read' },
       { id: 'moderation-history', labelKey: 'nav.history', permission: 'moderation.read' },
       { id: 'shared-ips', labelKey: 'nav.sharedIps', permission: 'moderation.read' },
       { id: 'blocked-ips', labelKey: 'nav.blockedIps', permission: 'moderation.read' },
@@ -91,11 +114,28 @@ export const NAV_SECTIONS: readonly AdminNavSection[] = [
       },
     ],
   },
+  // The realm's own public content: things operators decide and every player
+  // sees. One page for now, its own section because the Realm Builder roll is
+  // not moderation (nobody is in trouble) and not bot detection.
+  {
+    id: 'realm-content',
+    labelKey: 'nav.realmContent',
+    defaultPage: 'realm-builders',
+    items: [
+      { id: 'realm-builders', labelKey: 'nav.realmBuilders', permission: 'content.moderate' },
+    ],
+  },
   {
     id: 'support',
     labelKey: 'nav.support',
     defaultPage: 'bug-reports',
-    items: [{ id: 'bug-reports', labelKey: 'nav.bugReports', permission: 'support.read' }],
+    items: [
+      { id: 'bug-reports', labelKey: 'nav.bugReports', permission: 'support.read' },
+      { id: 'unstuck-reports', labelKey: 'nav.unstuckReports', permission: 'support.read' },
+      // The tracked epic/legendary item ledger (server/item_ledger_db.ts):
+      // a support read, beside the reports it answers.
+      { id: 'item-tracking', labelKey: 'nav.itemTracking', permission: 'support.read' },
+    ],
   },
   {
     id: 'administration',

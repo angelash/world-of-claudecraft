@@ -1,9 +1,441 @@
 // Dungeon content: mob templates that only spawn inside instances, spawn
 // lists, and the DungeonDef registry merged by sim/data.ts.
 
-import type { DungeonDef, DungeonSpawn, MobTemplate } from '../types';
+import {
+  IGNIVAR_BOSS_SPAWN_Z,
+  IGNIVAR_CONDUITS,
+  IGNIVAR_WATER_CONDUIT_TEMPLATES,
+} from '../ignivar_arena';
+import {
+  IGNIVAR_CINDER_ARTIFICER_ID,
+  IGNIVAR_CRUCIBLE_WARDEN_ID,
+  IGNIVAR_EMBER_SENTINEL_ID,
+  IGNIVAR_FORGE_APPROACH_ID,
+  IGNIVAR_GATE_LOCKED_TEMPLATE,
+  IGNIVAR_LIFT_GATE_LOCKED_TEMPLATE,
+  IGNIVAR_LIFT_ROOM_ID,
+  IGNIVAR_MOLTEN_ASSEMBLY_ID,
+  IGNIVAR_RAID_ARENA_ID,
+  IGNIVAR_SECOND_WING_ID,
+  VARKHUL_BOSS_ID,
+} from '../ignivar_raid_ids';
+import { VARKHUL_CRUCIBLE_QUAKE_CAST_ID } from '../mob/healer_channel';
+import {
+  BASTION_DROWNED_SURGE,
+  BASTION_THROATLIGHT,
+  BASTION_THROATLIGHT_ORB,
+} from '../mob/trash_kit/bastion_cast_ids';
+import { CRYPT_RIMESILK_SPIT } from '../mob/trash_kit/cast_ids';
+import {
+  SANCTUM_BOILING_MELTWATER,
+  SANCTUM_CINDER_BREATH,
+  SANCTUM_COUNTERWEIGHT_LASH,
+} from '../mob/trash_kit/sanctum_cast_ids';
+import type {
+  DungeonDef,
+  DungeonSpawn,
+  DungeonSpawnMinibossTuning,
+  ItemDef,
+  LootEntry,
+  MobTemplate,
+} from '../types';
+import { CRUCIBLE_PROFESSION_PATTERN_LOOT } from './crucible_collections';
+import { HEROIC_FINALE_COPPER, NYTHRAXIS_HEROIC_COPPER } from './dungeon_difficulty';
+import {
+  GRAVEWYRM_SANCTUM_GATE_OBJECTS,
+  GRAVEWYRM_SANCTUM_GATES,
+  GRAVEWYRM_SANCTUM_SPAWNS,
+  GRAVEWYRM_SANCTUM_STORY_OBJECTS,
+} from './gravewyrm_sanctum';
+import { GRAVEWYRM_SANCTUM_ANCHORS, QUENCH_POOLS } from './gravewyrm_sanctum_layout';
+import { HOLLOW_CRYPT_GATE_OBJECTS, HOLLOW_CRYPT_GATES, HOLLOW_CRYPT_SPAWNS } from './hollow_crypt';
+import { HOLLOW_CRYPT_ANCHORS } from './hollow_crypt_layout';
+import {
+  IGNIVAR_LORE_OBJECTS,
+  IGNIVAR_MAELIN_NPC_ID,
+  IGNIVAR_MAELIN_PROJECTION_NPC_ID,
+  IGNIVAR_RECORD_IDS,
+} from './ignivar_raid_lore';
+import { NYTHRAXIS_EQUIPMENT_LOOT } from './nythraxis_loot';
+import {
+  BRINE_MEND_KIT,
+  SUNKEN_BASTION_ENCOUNTER_OBJECTS,
+  SUNKEN_BASTION_GATE_OBJECTS,
+  SUNKEN_BASTION_GATES,
+  SUNKEN_BASTION_SPAWNS,
+} from './sunken_bastion';
+import { SUNKEN_BASTION_ANCHORS } from './sunken_bastion_layout';
+
+// Keepsake ground-object items owned by the walk-in castle interiors below
+// (their zone item modules are other workstreams' files), merged into ITEMS
+// by sim/data.ts. The Last Keep's signet lives in drakelands.ts; Dawnhold's
+// posy lands here beside its dungeon def.
+export const DUNGEON_KEEPSAKE_ITEMS: Record<string, ItemDef> = {
+  // Dawnhold Castle's conservatory souvenir: the interior instance's one
+  // ground object (a dungeon must place at least one encounter; the
+  // zero-combat palace places a keepsake instead of a fight).
+  dawnhold_posy: {
+    id: 'dawnhold_posy',
+    name: 'Dawnhold Garden Posy',
+    kind: 'junk',
+    sellValue: 25,
+  },
+};
+
+// A Normal-only exclusive-group row (LootEntry.normalOnly): a heroic claim
+// skips the whole group and the boss's HEROIC_BOSS_LOOT slot pays instead, so
+// Heroic REPLACES the slot rather than stacking on it (loot_difficulty_gate.ts).
+const normalOnlyRow = (rollGroup: string, itemId: string, chance: number): LootEntry => ({
+  itemId,
+  chance,
+  rollGroup,
+  normalOnly: true,
+});
 
 export const DUNGEON_MOBS: Record<string, MobTemplate> = {
+  // WIP forge mech enemy: a downed automaton that lies still on the ground until
+  // pulled, then crawls, lurches up to strike, and dies (visual mob_mech /
+  // mech.glb). idleStationary keeps it motionless in its pack formation; the
+  // render side freezes it on the first crawl frame (VisualDef.idleFrozen).
+  // Placeholder stats, tune per role.
+  derelict_mech: {
+    id: 'derelict_mech',
+    name: 'Derelict Mech',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'elemental',
+    elite: true,
+    hpBase: 400,
+    hpPerLevel: 60,
+    dmgBase: 24,
+    dmgPerLevel: 4.5,
+    attackSpeed: 2.6,
+    armorPerLevel: 40,
+    moveSpeed: 6.5,
+    aggroRadius: 14,
+    hardLeashRadius: 18,
+    idleStationary: true,
+    // Suicide bomber: crawl to the target, stand up over ~the StandUp clip length
+    // (2.8s) flashing red, then detonate an AoE fire blast and die. Blast tuned
+    // to the classic living-bomb proportion (about 70% of a cloth raider's HP
+    // when unavoided, about a third of a warrior's): measured BiS level-20
+    // pools run cloth ~870-910 / warrior ~1700, so 550-700 keeps the classic
+    // "move out or a clothie nearly dies" pressure without a guaranteed kill.
+    meleeBomb: { windup: 2.8, min: 550, max: 700, radius: 8, name: 'Meltdown', school: 'fire' },
+    loot: [],
+    scale: 0.8,
+    color: 0x8a8f96,
+  },
+  [VARKHUL_BOSS_ID]: {
+    id: VARKHUL_BOSS_ID,
+    name: 'Varkhul, Forgefather of the Last Flame',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'elemental',
+    elite: true,
+    boss: true,
+    ccImmune: true,
+    slowImmune: true,
+    damageFloorPct: 0.5,
+    hpBase: 120000 / 2.3,
+    hpPerLevel: 0,
+    dmgBase: 52,
+    dmgPerLevel: 10.5,
+    attackSpeed: 2.6,
+    armorPerLevel: 46,
+    moveSpeed: 6.8,
+    aggroRadius: 30,
+    // Ilvl-35 loot per docs/prd/ignivar-raid-loot.md "Boss loot tables": ONE
+    // item per five raiders per kill (two on the 10-player raid). Slot one is
+    // the merged sigil partition (legging + helm), slot two the Normal-only
+    // feet / ring partition; a heroic claim skips slot two (LootEntry.normalOnly)
+    // and the HEROIC_BOSS_LOOT exclusive slot (gear only: weapons, shields,
+    // offhands, and trinkets) pays in its place, plus ONE guaranteed Robe sigil from its
+    // own heroic group (2026-09-11 re-cut), all at the same ilvl 35 (this raid
+    // has NO heroic item-level layer).
+    // Copper rides the raid-finale base on the Ignivar wiring. Re-cut
+    // 2026-09-02 from the launch tables' four groups; draw order is
+    // parity-sensitive from here: entries APPEND, never reorder.
+    loot: [
+      // Varkhul is the Inner Crucible's registered heroic finale boss
+      // (dungeon_difficulty.ts), so his money entry carries the shared raid
+      // heroic base like Ignivar's (tests/heroic_finale_gold.test.ts).
+      { copper: 200000, heroicCopper: NYTHRAXIS_HEROIC_COPPER, chance: 1 },
+      // Both axes of the sigil partition stay balanced: leggings 0.50 / helms
+      // 0.50, Anvil 0.34 / Ember 0.33 / Tempest 0.33 (the old per-group thirds).
+      { itemId: 'sigil_anvil_legs', chance: 0.17, rollGroup: 'varkhul_sigils' },
+      { itemId: 'sigil_ember_legs', chance: 0.17, rollGroup: 'varkhul_sigils' },
+      { itemId: 'sigil_tempest_legs', chance: 0.16, rollGroup: 'varkhul_sigils' },
+      { itemId: 'sigil_anvil_helmet', chance: 0.17, rollGroup: 'varkhul_sigils' },
+      { itemId: 'sigil_ember_helmet', chance: 0.16, rollGroup: 'varkhul_sigils' },
+      { itemId: 'sigil_tempest_helmet', chance: 0.17, rollGroup: 'varkhul_sigils' },
+      // The rings keep half of what is left after the two raid trinkets take a
+      // quarter of this slot (1/8 each, at the tail): rings 0.08984375, the ten
+      // feet 0.0390625. Both held offhands moved to the Heroic exclusive partition
+      // in the 2026-09-07 redistribution (neither carries hit, so the Normal hit
+      // lane is untouched). Every weight is a binary fraction (5/128, 23/256,
+      // 1/8) so the partition sums to EXACTLY 1.00 in floating point in this row
+      // order (tests/ignivar_loot.test.ts pins the sum with toBe(1)): the roller's
+      // `roll < cumulative` walk and the at-or-below-100% guard in
+      // tests/loot_roll.test.ts both read the float sum, and decimal weights
+      // like 0.035 drift past 1 by an ulp.
+      normalOnlyRow('varkhul_offset', 'cindersoaked_slippers', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'steps_of_quiet_water', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'ashenbark_treads', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'ashrunner_boots', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'scorchgrove_striders', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'dewfall_moccasins', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'anvilstance_sabatons', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'furnace_march_greaves', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'thundershock_treads', 0.0390625),
+      normalOnlyRow('varkhul_offset', 'springwarden_sabatons', 0.0390625),
+      // Neither legendary drops on Normal. Emberward's 3 percent roll lives
+      // in Varkhul's heroic-only exclusive group; Forgebreaker's one-time
+      // quest shaping belongs to Weaponcrafting, never a boss loot row.
+      normalOnlyRow('varkhul_offset', 'seal_of_the_forgewall', 0.08984375),
+      normalOnlyRow('varkhul_offset', 'band_of_marked_strikes', 0.08984375),
+      normalOnlyRow('varkhul_offset', 'circle_of_cinders', 0.08984375),
+      normalOnlyRow('varkhul_offset', 'loop_of_quiet_springs', 0.08984375),
+      // The Crucible raid trinkets (content/trinkets.ts), appended at the
+      // group's tail, inside this slot rather than as an extra drop. They
+      // also sit in the boss's Heroic exclusive group (HEROIC_BOSS_LOOT).
+      normalOnlyRow('varkhul_offset', 'forgefathers_temper', 0.125),
+      normalOnlyRow('varkhul_offset', 'heart_of_the_crucible', 0.125),
+      // The professions fast-follow's core reagent starts dropping AHEAD of
+      // its recipes (maintainer staging call): the classic molten-core band,
+      // one guaranteed plus a 50 percent second, so crafters bank cores
+      // before the scroll-taught tier lands (PR 3704 extends this exact
+      // shape with the scroll roll group and the hammer chain starter).
+      { itemId: 'lastflame_core', chance: 1 },
+      { itemId: 'lastflame_core', chance: 0.5 },
+      ...CRUCIBLE_PROFESSION_PATTERN_LOOT,
+      { itemId: 'forgefathers_ember', chance: 1, questId: 'q_forgefathers_requiem' },
+    ],
+    scale: 3.2,
+    color: 0x9f351c,
+  },
+  [IGNIVAR_EMBER_SENTINEL_ID]: {
+    id: IGNIVAR_EMBER_SENTINEL_ID,
+    name: 'Ember Sentinel',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'elemental',
+    elite: true,
+    hpBase: 250,
+    hpPerLevel: 50,
+    dmgBase: 22,
+    dmgPerLevel: 4.2,
+    attackSpeed: 2.4,
+    armorPerLevel: 32,
+    moveSpeed: 7.4,
+    aggroRadius: 13,
+    hardLeashRadius: 18,
+    arcCleave: {
+      every: 3,
+      arcDeg: 100,
+      range: 7,
+      mult: 0.65,
+      name: 'Tempered Sweep',
+      burn: {
+        perTick: 7,
+        interval: 3,
+        duration: 9,
+        name: 'Tempered Cinders',
+        school: 'fire',
+      },
+    },
+    loot: [],
+    scale: 1.45,
+    color: 0xb94b23,
+  },
+  [IGNIVAR_CRUCIBLE_WARDEN_ID]: {
+    id: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    name: 'Crucible Warden',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'elemental',
+    elite: true,
+    hpBase: 350,
+    hpPerLevel: 55,
+    dmgBase: 20,
+    dmgPerLevel: 3.8,
+    attackSpeed: 2.8,
+    armorPerLevel: 42,
+    moveSpeed: 6.8,
+    aggroRadius: 13,
+    hardLeashRadius: 18,
+    bigCast: {
+      castId: VARKHUL_CRUCIBLE_QUAKE_CAST_ID,
+      name: 'Crucible Quake',
+      castTime: 2.5,
+      every: 12,
+      radius: 10,
+      min: 28,
+      max: 38,
+      school: 'fire',
+    },
+    loot: [],
+    scale: 1.7,
+    color: 0x7c4529,
+  },
+  [IGNIVAR_CINDER_ARTIFICER_ID]: {
+    id: IGNIVAR_CINDER_ARTIFICER_ID,
+    name: 'Cinder Artificer',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'elemental',
+    elite: true,
+    ccImmune: false,
+    slowImmune: false,
+    hpBase: 650,
+    hpPerLevel: 80,
+    dmgBase: 10,
+    dmgPerLevel: 2,
+    attackSpeed: 2.6,
+    armorPerLevel: 44,
+    moveSpeed: 8.2,
+    aggroRadius: 15,
+    hardLeashRadius: 18,
+    petSpell: {
+      name: 'Cinderbolt',
+      school: 'fire',
+      min: 55,
+      max: 75,
+      range: 25,
+      every: 3,
+      windup: 0.7,
+    },
+    channelHeal: {
+      radius: 20,
+      every: 5,
+      baseHeal: 160,
+      rampAdd: 120,
+      maxHeal: 640,
+      name: 'Recalibrate',
+      school: 'fire',
+    },
+    loot: [],
+    scale: 1.55,
+    color: 0xd17936,
+  },
+  // Ignivar's dedicated visual is dispatched by render/characters/manifest.ts.
+  // Encounter behavior lives in encounters/ignivar.ts, not on generic template hooks.
+  ignivar_herald_of_the_last_flame: {
+    id: 'ignivar_herald_of_the_last_flame',
+    name: 'Ignivar, Herald of the Last Flame',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'elemental',
+    elite: true,
+    boss: true,
+    ccImmune: true,
+    slowImmune: true,
+    hpBase: 120000 / 2.3,
+    hpPerLevel: 0,
+    dmgBase: 48,
+    dmgPerLevel: 10,
+    attackSpeed: 2.6,
+    armorPerLevel: 42,
+    moveSpeed: 7,
+    aggroRadius: 30,
+    // Raid-finale money ladder, the Nythraxis wiring mirrored: 15g normal
+    // base, and a heroic-claim kill substitutes the shared 20g raid base on
+    // the same single draw (tests/heroic_finale_gold.test.ts). Item drops are
+    // still to be authored for the development raid tier.
+    // Ilvl-35 loot per docs/prd/ignivar-raid-loot.md "Boss loot tables": ONE
+    // item per five raiders per kill (two on the 10-player raid). Slot one is
+    // the merged sigil partition (mantle + grip), slot two the Normal-only
+    // neck / waist / melee-hit-weapon partition; a heroic claim skips slot two
+    // (LootEntry.normalOnly) and the HEROIC_BOSS_LOOT exclusive slot (weapons
+    // only for Ignivar) pays in its place, plus ONE guaranteed Robe sigil from
+    // its own heroic group (2026-09-11 re-cut), all at the same ilvl 35 (this
+    // raid has NO heroic item-level layer).
+    // Re-cut 2026-09-02 from the launch tables' four groups; draw order is
+    // parity-sensitive from here: entries APPEND, never reorder.
+    loot: [
+      { copper: 150000, heroicCopper: NYTHRAXIS_HEROIC_COPPER, chance: 1 },
+      // Both axes of the sigil partition stay balanced: shoulders 0.50 / gloves
+      // 0.50, Anvil 0.34 / Ember 0.33 / Tempest 0.33 (the old per-group thirds).
+      { itemId: 'sigil_anvil_shoulder', chance: 0.17, rollGroup: 'ignivar_sigils' },
+      { itemId: 'sigil_ember_shoulder', chance: 0.17, rollGroup: 'ignivar_sigils' },
+      { itemId: 'sigil_tempest_shoulder', chance: 0.16, rollGroup: 'ignivar_sigils' },
+      { itemId: 'sigil_anvil_gloves', chance: 0.17, rollGroup: 'ignivar_sigils' },
+      { itemId: 'sigil_ember_gloves', chance: 0.16, rollGroup: 'ignivar_sigils' },
+      { itemId: 'sigil_tempest_gloves', chance: 0.17, rollGroup: 'ignivar_sigils' },
+      // The necks keep half of what is left after the three raid trinkets take
+      // three eighths of this slot (1/8 each, at the tail): necks 0.078125, the
+      // waists 0.01953125 and the two melee hit weapons 0.05859375. The Wand of
+      // Quenched Sparks moved to the Heroic exclusive partition in the 2026-09-07
+      // redistribution: casters reach the spell hit cap from a waist plus two
+      // rings alone, while the melee cap needs a weapon, so the Kris and the
+      // Cleaver stay as the Normal melee hit lane (tests/ignivar_loot.test.ts).
+      // Every weight is a binary fraction (5/64, 5/256, 15/256, 1/8) so the
+      // partition sums to EXACTLY 1.00 in floating point:
+      // the roller's `roll < cumulative` walk and the at-or-below-100% guard in
+      // tests/loot_roll.test.ts both read the float sum, and decimal weights
+      // like 0.035 drift past 1 by an ulp.
+      normalOnlyRow('ignivar_offset', 'pendant_of_the_first_tempering', 0.078125),
+      normalOnlyRow('ignivar_offset', 'ignivars_ember_choker', 0.078125),
+      normalOnlyRow('ignivar_offset', 'locket_of_the_last_flame', 0.078125),
+      normalOnlyRow('ignivar_offset', 'heartspring_amulet', 0.078125),
+      normalOnlyRow('ignivar_offset', 'cord_of_the_last_flame', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'springbinder_sash', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'cinderbark_cinch', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'slagstalker_belt', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'moonscorch_waistwrap', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'grovetender_belt', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'forgewall_girdle', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'warforged_waistguard', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'stormkindled_chain', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'tidebinder_links', 0.01953125),
+      normalOnlyRow('ignivar_offset', 'cinderfang_kris', 0.05859375),
+      normalOnlyRow('ignivar_offset', 'slagrender_cleaver', 0.05859375),
+      // The Crucible raid trinkets (content/trinkets.ts), appended at the
+      // group's tail, inside this slot rather than as an extra drop. They
+      // also sit in the boss's Heroic exclusive group (HEROIC_BOSS_LOOT).
+      normalOnlyRow('ignivar_offset', 'kindling_orb', 0.125),
+      normalOnlyRow('ignivar_offset', 'molten_fletching', 0.125),
+      normalOnlyRow('ignivar_offset', 'last_flame_lantern', 0.125),
+      // The professions fast-follow's core reagent starts dropping AHEAD of
+      // its recipes (maintainer staging call): the classic molten-core band,
+      // one guaranteed plus a 50 percent second, so crafters bank cores
+      // before the scroll-taught tier lands (PR 3704 extends this exact
+      // shape with the scroll roll group and the hammer chain starter).
+      { itemId: 'lastflame_core', chance: 1 },
+      { itemId: 'lastflame_core', chance: 0.5 },
+      ...CRUCIBLE_PROFESSION_PATTERN_LOOT,
+    ],
+    scale: 3.4,
+    color: 0xd64316,
+    // Deliberately NO hasteMult: the encounter script owns Ignivar's frenzy.
+    // Last Inferno flips `enraged` itself at 20% (so dmgMult applies) and
+    // carries the swing-speed half as its encounter-owned 1.2x haste aura;
+    // a template hasteMult would stack on that aura and double-dip. Pinned
+    // by tests/mob_enrage.test.ts and tests/ignivar_encounter.test.ts.
+    enrage: { belowHpPct: 0.25, dmgMult: 1.35 },
+  },
+  // Stationary priority target for Ignivar's Normal intermission.
+  ignivar_heart_of_the_end: {
+    id: 'ignivar_heart_of_the_end',
+    name: 'Ignivar Ashcaller',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'elemental',
+    elite: true,
+    ccImmune: true,
+    slowImmune: true,
+    hpBase: 7000 / 2.3,
+    hpPerLevel: 0,
+    dmgBase: 0,
+    dmgPerLevel: 0,
+    attackSpeed: 2.6,
+    armorPerLevel: 12,
+    moveSpeed: 0,
+    aggroRadius: 0,
+    loot: [],
+    scale: 2.25,
+    color: 0xff6a1a,
+  },
   // ---- The Hollow Crypt (5-player elite instance) ----
   crypt_shambler: {
     id: 'crypt_shambler',
@@ -72,6 +504,27 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 12,
     moveSpeed: 8,
     aggroRadius: 13,
+    // Rimesilk Spit (the Hollow Crypt trash pass): a frost web spat down a
+    // lane at one player; whoever it catches is rooted 2 s, and beside the
+    // egg sacs that is the danger. 8 to 12 frost is a scratch; step aside.
+    // Math, landed raw: normal 8 to 12, 4 to 6 percent of a level 8 cloth
+    // wearer's ~210; heroic on the Crypt's dungeon-wide x20 (the widow has no
+    // override) 160 to 240, 13 to 19 percent of ~1,250.
+    trashKit: {
+      line: {
+        castId: CRYPT_RIMESILK_SPIT,
+        name: 'Rimesilk Spit',
+        castTime: 1.5,
+        every: 12,
+        first: 5,
+        school: 'frost',
+        length: 22,
+        halfWidth: 1.4,
+        min: 8,
+        max: 12,
+        root: 2,
+      },
+    },
     loot: [
       { copper: 120, chance: 1 },
       { itemId: 'spider_leg', chance: 0.7 },
@@ -82,14 +535,19 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
   sexton_marrow: {
     id: 'sexton_marrow',
     name: 'Sexton Marrow',
-    minLevel: 9,
-    maxLevel: 9,
+    // Level 8 in the rework (boss 1 of 4). His kit is the Bell Yard encounter
+    // module (encounters/hollow_crypt/marrow.ts): Shovelful, Measured for the
+    // Grave and the Burial Toll; nothing on the template but his melee.
+    minLevel: 8,
+    maxLevel: 8,
     family: 'undead',
     elite: true,
     // Named mid-boss: the boss CC/snare immunity rule applies on both
     // difficulties even without the boss: true flag (see morthen).
     ccImmune: true,
     slowImmune: true,
+    // He drops boss loot: his corpse holds like a boss's (boss_corpse_hold.ts).
+    bossCorpseHold: true,
     hpBase: 110,
     hpPerLevel: 24,
     dmgBase: 9,
@@ -98,25 +556,41 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 22,
     moveSpeed: 7,
     aggroRadius: 14,
-    charge: {
-      minRange: 5,
-      maxRange: 30,
-      cooldown: 12,
-      stunDuration: 0.5,
-      name: 'Onrush',
-      school: 'physical',
-    },
+    // The rework's per-boss table (hollow_crypt.md 8.1): one guaranteed piece,
+    // one armor archetype each, plus the Spadehaft chase row. Heroic rides
+    // HEROIC_BOSS_LOOT.sexton_marrow.
     loot: [
-      { copper: 400, chance: 1 },
-      { itemId: 'quilted_trousers', chance: 0.4 },
-      { itemId: 'oiled_boots', chance: 0.4 },
+      { copper: 800, chance: 1 },
+      {
+        itemId: 'quilted_trousers',
+        chance: 0.25,
+        rollGroup: 'marrow_guaranteed',
+        normalOnly: true,
+      },
+      { itemId: 'oiled_boots', chance: 0.25, rollGroup: 'marrow_guaranteed', normalOnly: true },
+      {
+        itemId: 'gravedirt_treads',
+        chance: 0.25,
+        rollGroup: 'marrow_guaranteed',
+        normalOnly: true,
+      },
+      { itemId: 'bellrope_girdle', chance: 0.25, rollGroup: 'marrow_guaranteed', normalOnly: true },
+      // The normal blue (hollow_crypt_items.ts): one draw, 35 percent in equal
+      // shares, the gloves trio and the Spadehaft (once its own 0.10 row).
+      { itemId: 'spadeworn_gauntlets', chance: 0.0875, rollGroup: 'marrow_blue', normalOnly: true },
+      { itemId: 'gravedirt_grips', chance: 0.0875, rollGroup: 'marrow_blue', normalOnly: true },
+      { itemId: 'bellrope_mitts', chance: 0.0875, rollGroup: 'marrow_blue', normalOnly: true },
+      { itemId: 'sextons_spadehaft', chance: 0.0875, rollGroup: 'marrow_blue', normalOnly: true },
     ],
-    scale: 1.2,
+    // His Blender body is authored at full size (crypt_skel_sexton's height).
+    scale: 1,
     color: 0x839192,
   },
   morthen: {
     id: 'morthen',
     name: 'Morthen the Gravecaller',
+    // The 9 yd lich: melee reaches him from his robes' hem (MobTemplate.bodyRadius).
+    bodyRadius: 2.5,
     minLevel: 10,
     maxLevel: 10,
     family: 'undead',
@@ -135,16 +609,47 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 26,
     moveSpeed: 7,
     aggroRadius: 16,
-    aoePulse: { min: 12, max: 18, radius: 12, every: 10, name: 'Shadow Pulse' },
+    // His whole kit is the Rite Ring encounter module (encounters/hollow_crypt/
+    // morthen.ts): the telegraphed Shadow Pulse, Gravecall, the Rite of the
+    // Unquiet and its candles, Reap the Unquiet; nothing on the template but
+    // his melee (the old untelegraphed aoePulse is gone).
     loot: [
-      { copper: 2500, chance: 1 },
-      { itemId: 'cryptbone_greaves', chance: 0.34, rollGroup: 'morthen_guaranteed_uncommon' },
-      { itemId: 'quilted_trousers', chance: 0.33, rollGroup: 'morthen_guaranteed_uncommon' },
-      { itemId: 'oiled_boots', chance: 0.33, rollGroup: 'morthen_guaranteed_uncommon' },
-      { itemId: 'greyjaw_hide_boots', chance: 0.25, rollGroup: 'morthen_bonus' },
-      { itemId: 'gravewoven_bag', chance: 0.2, rollGroup: 'morthen_bonus' },
-      { itemId: 'cryptbone_helm', chance: 0.18, rollGroup: 'morthen_bonus' },
-      { itemId: 'cryptbone_pauldrons', chance: 0.18, rollGroup: 'morthen_bonus' },
+      { copper: 2500, heroicCopper: HEROIC_FINALE_COPPER, chance: 1 },
+      {
+        itemId: 'cryptbone_greaves',
+        chance: 0.34,
+        rollGroup: 'morthen_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      // Quilted Trousers and Oiled Leather Boots moved to Sexton Marrow in the
+      // rework (hollow_crypt.md 8.1); the Gravecaller's own pieces replace them.
+      {
+        itemId: 'gravecallers_vestments',
+        chance: 0.33,
+        rollGroup: 'morthen_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'unquiet_stalkers_hood',
+        chance: 0.33,
+        rollGroup: 'morthen_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      { itemId: 'greyjaw_hide_boots', chance: 0.25, rollGroup: 'morthen_bonus', normalOnly: true },
+      { itemId: 'gravewoven_bag', chance: 0.2, rollGroup: 'morthen_bonus', normalOnly: true },
+      { itemId: 'cryptbone_helm', chance: 0.18, rollGroup: 'morthen_bonus', normalOnly: true },
+      { itemId: 'cryptbone_pauldrons', chance: 0.18, rollGroup: 'morthen_bonus', normalOnly: true },
+      // The normal blue (hollow_crypt_items.ts): guaranteed on the final boss,
+      // the chest trio and the Gravecaller's Rod in equal shares.
+      { itemId: 'knellbound_hauberk', chance: 0.25, rollGroup: 'morthen_blue', normalOnly: true },
+      { itemId: 'candlewatch_jerkin', chance: 0.25, rollGroup: 'morthen_blue', normalOnly: true },
+      {
+        itemId: 'robe_of_the_unquiet_rite',
+        chance: 0.25,
+        rollGroup: 'morthen_blue',
+        normalOnly: true,
+      },
+      { itemId: 'gravecallers_rod', chance: 0.25, rollGroup: 'morthen_blue', normalOnly: true },
     ],
     scale: 1.35,
     color: 0x4a235a,
@@ -182,6 +687,38 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     scale: 1.1,
     color: 0x7fa8a0,
     mortalStrike: { chance: 0.3, healReduction: 0.5, duration: 6, name: 'Maiming Strike' },
+    // Throatlight (the trash pass's second wave, the engine's G5 walker): as
+    // it falls, the green sea-light in its throat leaves as an orb drifting
+    // at 3 yd a second (about 3 s across a pack) to its nearest fighting
+    // packmate, which it heals for 15 percent of its health (heroic: and a
+    // Drowned Surge, 20 percent more damage for 12 s). Any player who steps
+    // into its path swallows it instead. Math, landed raw on the swallower:
+    // normal 10 to 14 (2 to 3 percent of a level 13 cloth wearer's 430);
+    // heroic on the revenant's x18 (dungeon_difficulty.ts: the Bastion's
+    // dungeon-wide factor, the revenant has no mechanic override) 180 to 252
+    // (14 to 20 percent of ~1,250). A cheap body-block, never a trap.
+    trashKit: {
+      walker: {
+        castId: BASTION_THROATLIGHT,
+        name: 'Throatlight',
+        objectTemplate: BASTION_THROATLIGHT_ORB,
+        launch: 'death',
+        school: 'nature',
+        speed: 3,
+        interceptRadius: 1.5,
+        reachRadius: 1.5,
+        maxSeconds: 8,
+        empower: {
+          auraId: BASTION_DROWNED_SURGE,
+          name: 'Drowned Surge',
+          damagePct: 0,
+          heroicDamagePct: 0.2,
+          seconds: 12,
+          healPct: 0.15,
+        },
+        intercept: { min: 10, max: 14 },
+      },
+    },
   },
   tidebound_acolyte: {
     id: 'tidebound_acolyte',
@@ -203,7 +740,9 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
       { itemId: 'linen_scrap', chance: 0.5 },
       { itemId: 'mistveil_grips', chance: 0.06, rollGroup: 'acolyte_bonus' },
     ],
-    desperateHeal: { belowHpPct: 0.3, healPct: 0.25 },
+    // Brine Mend (the Bastion rework): an interruptible heal on a hurt ally,
+    // replacing the silent desperate heal. Kick it.
+    trashKit: BRINE_MEND_KIT,
     scale: 1.0,
     color: 0x1f618d,
   },
@@ -236,8 +775,10 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
   knight_commander_olen: {
     id: 'knight_commander_olen',
     name: 'Knight-Commander Olen',
-    minLevel: 13,
-    maxLevel: 13,
+    // Level 12 in the rework, so the dungeon ramps 12, 13, 13 (about 6,000
+    // health through the Bastion's normal tuning row).
+    minLevel: 12,
+    maxLevel: 12,
     family: 'undead',
     elite: true,
     // Named mid-boss: CC- and snare-immune on both difficulties (see morthen).
@@ -251,22 +792,52 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 24,
     moveSpeed: 7,
     aggroRadius: 14,
-    charge: {
-      minRange: 5,
-      maxRange: 30,
-      cooldown: 12,
-      stunDuration: 0.5,
-      name: 'Onrush',
-      school: 'physical',
-    },
+    // The fallen paladin's kit (encounters/sunken_bastion/olen.ts: Hallowed
+    // Brine, Rebounding Bulwark, Sentence of the Tide, the Unbroken Oath)
+    // replaces his Onrush; the Reaping Arc cleave stays below.
     loot: [
       { copper: 800, chance: 1 },
-      { itemId: 'trollhide_leggings', chance: 0.5, rollGroup: 'olen_guaranteed_uncommon' },
-      { itemId: 'marshstrider_boots', chance: 0.5, rollGroup: 'olen_guaranteed_uncommon' },
-      { itemId: 'fenmist_robe', chance: 0.25, rollGroup: 'olen_bonus' },
-      { itemId: 'tideguard_greaves', chance: 0.1, rollGroup: 'olen_bonus' },
-      { itemId: 'tideguard_sabatons', chance: 0.1, rollGroup: 'olen_bonus' },
-      { itemId: 'eelscale_leggings', chance: 0.1, rollGroup: 'olen_bonus' },
+      // The rework (sunken_bastion.md 8.1): the Fenmist Robe joins the
+      // guaranteed group so every archetype has a piece, plus the Longsword
+      // chase row. The Longsword rides his shipped rare bonus group, so a kill
+      // still pays at most one rare beside the guaranteed uncommon.
+      // Heroic rides HEROIC_BOSS_LOOT.knight_commander_olen.
+      {
+        itemId: 'trollhide_leggings',
+        chance: 0.34,
+        rollGroup: 'olen_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'marshstrider_boots',
+        chance: 0.33,
+        rollGroup: 'olen_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'fenmist_robe',
+        chance: 0.33,
+        rollGroup: 'olen_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      // The normal blue (sunken_bastion_items.ts): one draw, 35 percent in
+      // equal shares. The old one-of-four bonus row became the legs trio and
+      // the Longsword: the Drowned Prayer Leggings moved here from Vael and
+      // the Tideguard Sabatons moved to Vael's feet trio.
+      { itemId: 'tideguard_greaves', chance: 0.0875, rollGroup: 'olen_blue', normalOnly: true },
+      { itemId: 'eelscale_leggings', chance: 0.0875, rollGroup: 'olen_blue', normalOnly: true },
+      {
+        itemId: 'drowned_prayer_leggings',
+        chance: 0.0875,
+        rollGroup: 'olen_blue',
+        normalOnly: true,
+      },
+      {
+        itemId: 'knight_commanders_longsword',
+        chance: 0.0875,
+        rollGroup: 'olen_blue',
+        normalOnly: true,
+      },
     ], // his greaves are Maren's quest reward, not a drop
     scale: 1.2,
     color: 0x95a5a6,
@@ -291,22 +862,43 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 26,
     moveSpeed: 7,
     aggroRadius: 16,
-    aoePulse: { min: 16, max: 24, radius: 12, every: 10, name: 'Mist Surge' },
+    // Mist Surge, the Fog Veil and the Drowning Hymn are his encounter module
+    // (encounters/sunken_bastion/vael.ts); the thralls stay template-driven.
     summonAdds: { mobId: 'drowned_thrall', count: 2, atHpPct: [0.6, 0.3] },
     loot: [
-      { copper: 5000, chance: 1 },
-      { itemId: 'trollhide_leggings', chance: 0.34, rollGroup: 'vael_guaranteed_uncommon' },
-      { itemId: 'marshstrider_boots', chance: 0.33, rollGroup: 'vael_guaranteed_uncommon' },
-      { itemId: 'fenmist_robe', chance: 0.33, rollGroup: 'vael_guaranteed_uncommon' },
+      { copper: 5000, heroicCopper: HEROIC_FINALE_COPPER, chance: 1 },
+      {
+        itemId: 'trollhide_leggings',
+        chance: 0.34,
+        rollGroup: 'vael_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'marshstrider_boots',
+        chance: 0.33,
+        rollGroup: 'vael_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'fenmist_robe',
+        chance: 0.33,
+        rollGroup: 'vael_guaranteed_uncommon',
+        normalOnly: true,
+      },
       { itemId: 'deepfen_pearl', chance: 1 },
-      { itemId: 'eelskin_tunic', chance: 0.2, rollGroup: 'vael_bonus' },
-      { itemId: 'tidescale_vest', chance: 0.1, rollGroup: 'vael_bonus' },
-      { itemId: 'drowned_prayer_leggings', chance: 0.1, rollGroup: 'vael_bonus' },
-      { itemId: 'drowned_prayer_sandals', chance: 0.1, rollGroup: 'vael_bonus' },
-      { itemId: 'eelscale_treads', chance: 0.1, rollGroup: 'vael_bonus' },
-      { itemId: 'mistveil_cord', chance: 0.12, rollGroup: 'vael_bonus' },
-      { itemId: 'mistveil_grips', chance: 0.12, rollGroup: 'vael_bonus' },
-      { itemId: 'mistcallers_duffel', chance: 0.1, rollGroup: 'vael_bonus' },
+      // The bonus group keeps its uncommons and the Duffel at their shipped
+      // chances; its four rares left for the blue groups (the Vest to Ossick,
+      // the Prayer Leggings to Olen, the Sandals and Treads below).
+      { itemId: 'eelskin_tunic', chance: 0.2, rollGroup: 'vael_bonus', normalOnly: true },
+      { itemId: 'mistveil_cord', chance: 0.12, rollGroup: 'vael_bonus', normalOnly: true },
+      { itemId: 'mistveil_grips', chance: 0.12, rollGroup: 'vael_bonus', normalOnly: true },
+      { itemId: 'mistcallers_duffel', chance: 0.1, rollGroup: 'vael_bonus', normalOnly: true },
+      // The normal blue (sunken_bastion_items.ts): guaranteed on the final
+      // boss, the feet trio (the Sabatons from Olen) and the Fogbinder's Rod.
+      { itemId: 'tideguard_sabatons', chance: 0.25, rollGroup: 'vael_blue', normalOnly: true },
+      { itemId: 'eelscale_treads', chance: 0.25, rollGroup: 'vael_blue', normalOnly: true },
+      { itemId: 'drowned_prayer_sandals', chance: 0.25, rollGroup: 'vael_blue', normalOnly: true },
+      { itemId: 'fogbinders_rod', chance: 0.25, rollGroup: 'vael_blue', normalOnly: true },
     ],
     scale: 1.35,
     color: 0x48c9b0,
@@ -360,6 +952,61 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 26,
     moveSpeed: 7,
     aggroRadius: 13,
+    // Cinder Breath (the Ice Tomb rework): the drowned brood still breathes
+    // cinders. A telegraphed 90 degree cone across its front; only the tank
+    // belongs in it.
+    breathCone: {
+      castId: SANCTUM_CINDER_BREATH,
+      name: 'Cinder Breath',
+      castTime: 2,
+      every: 12,
+      range: 8,
+      arcDeg: 90,
+      min: 150,
+      max: 180,
+      school: 'fire',
+    },
+    trashKit: {
+      // Counterweight Lash (the trash mechanics pass, MECANICAS_TRASH.md 8.2
+      // A): a 1 s bar, then its spiked tail lashes the 100 degree cone behind
+      // it, 7 yd. With the breath across its front, only its flanks are safe:
+      // the melee learn to stand at its sides. 120 to 140 landed on the 950
+      // health cloth reference (13 to 15 percent): a lighter dodge than the
+      // breath, on a shorter bar.
+      tailLash: {
+        castId: SANCTUM_COUNTERWEIGHT_LASH,
+        name: 'Counterweight Lash',
+        castTime: 1,
+        every: 9,
+        first: 5,
+        school: 'physical',
+        range: 7,
+        arcDeg: 100,
+        min: 120,
+        max: 140,
+      },
+      // Heroic Boiling Meltwater (8.2 B): where the breath lands the ice
+      // melts to scalding water, a 3.5 yd pool 4.5 yd out along the cone for
+      // 5 s. 32 to 38 a second landed (about 3.5 percent) before the heroic
+      // mechanic multiplier, the soulfire patch's pace; the first scald one
+      // second after it spills. The tank walks the Scaleguard off its pools.
+      breathPool: {
+        ahead: 4.5,
+        heroicOnly: true,
+        hazard: {
+          castId: SANCTUM_BOILING_MELTWATER,
+          name: 'Boiling Meltwater',
+          objectTemplate: SANCTUM_BOILING_MELTWATER,
+          radius: 3.5,
+          seconds: 5,
+          tick: 1,
+          min: 32,
+          max: 38,
+          school: 'fire',
+          hits: 'players',
+        },
+      },
+    },
     loot: [
       { copper: 350, chance: 1 },
       { itemId: 'cracked_wyrm_scale', chance: 0.5 },
@@ -415,22 +1062,49 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     moveSpeed: 7,
     aggroRadius: 15,
     enrage: { belowHpPct: 0.3, dmgMult: 1.5, hasteMult: 1.3 },
-    stomp: { radius: 10, every: 12, duration: 1.5, min: 20, max: 30, name: 'Shuddering Stomp' },
+    // Shuddering Stomp and his chain kit run in encounters/gravewyrm_sanctum/
+    // korgath.ts (KORGATH_TUNING), telegraphed with a bar.
     loot: [
       { copper: 5000, chance: 1 },
-      { itemId: 'boneplate_vest', chance: 0.34, rollGroup: 'korgath_guaranteed_uncommon' },
-      { itemId: 'revenant_silk_robe', chance: 0.33, rollGroup: 'korgath_guaranteed_uncommon' },
-      { itemId: 'nightwalk_jerkin', chance: 0.33, rollGroup: 'korgath_guaranteed_uncommon' },
-      { itemId: 'zealotsbane_blade', chance: 0.19, rollGroup: 'korgath_bonus' },
-      { itemId: 'korgaths_chainwraps', chance: 0.1, rollGroup: 'korgath_bonus' },
-      { itemId: 'staff_of_velkhar', chance: 0.1, rollGroup: 'korgath_bonus' },
-      { itemId: 'shadowmeld_tunic', chance: 0.1, rollGroup: 'korgath_bonus' },
-      { itemId: 'wyrmcult_grand_robe', chance: 0.1, rollGroup: 'korgath_bonus' },
-      { itemId: 'gravewyrm_sabatons', chance: 0.1, rollGroup: 'korgath_bonus' },
-      { itemId: 'wyrmcult_soulsteps', chance: 0.1, rollGroup: 'korgath_bonus' },
-      { itemId: 'wyrmshadow_treads', chance: 0.05, rollGroup: 'korgath_bonus' },
-      { itemId: 'boundstone_helm', chance: 0.08, rollGroup: 'korgath_bonus' },
-      { itemId: 'gravewyrm_mantle', chance: 0.08, rollGroup: 'korgath_bonus' },
+      {
+        itemId: 'foremans_grips',
+        chance: 0.34,
+        rollGroup: 'korgath_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'serac_stride_boots',
+        chance: 0.33,
+        rollGroup: 'korgath_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'seal_rune_mantle',
+        chance: 0.33,
+        rollGroup: 'korgath_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      // The uncommon filler gives up 0.12 of the roll to the relocated raid pieces.
+      { itemId: 'zealotsbane_blade', chance: 0.07, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'korgaths_chainwraps', chance: 0.1, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'staff_of_velkhar', chance: 0.1, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'shadowmeld_tunic', chance: 0.1, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'wyrmcult_grand_robe', chance: 0.1, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'gravewyrm_sabatons', chance: 0.1, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'wyrmcult_soulsteps', chance: 0.1, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'wyrmshadow_treads', chance: 0.05, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'boundstone_helm', chance: 0.08, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'gravewyrm_mantle', chance: 0.08, rollGroup: 'korgath_bonus', normalOnly: true },
+      // Relocated Nythraxis raid pieces (content/nythraxis_loot.ts): item level 29,
+      // 4% each inside this one bonus roll, so a kill never pays an extra item.
+      {
+        itemId: 'bonewrought_greatsword',
+        chance: 0.04,
+        rollGroup: 'korgath_bonus',
+        normalOnly: true,
+      },
+      { itemId: 'bonewrought_bulwark', chance: 0.04, rollGroup: 'korgath_bonus', normalOnly: true },
+      { itemId: 'thornpeak_wardblade', chance: 0.04, rollGroup: 'korgath_bonus', normalOnly: true },
     ],
     scale: 1.5,
     color: 0x8f6f46,
@@ -453,20 +1127,82 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 20,
     moveSpeed: 7,
     aggroRadius: 15,
-    summonAdds: { mobId: 'raised_bonewalker', count: 3, atHpPct: [0.66, 0.33] },
+    // His Raised Bonewalkers (the Waking Thaw and the kept 66 and 33 percent
+    // waves) climb out of the thaw pools: encounters/gravewyrm_sanctum/velkhar.ts
+    // owns them, so the template carries no summonAdds.
     loot: [
       { copper: 5000, chance: 1 },
-      { itemId: 'boneplate_vest', chance: 0.34, rollGroup: 'velkhar_guaranteed_uncommon' },
-      { itemId: 'revenant_silk_robe', chance: 0.33, rollGroup: 'velkhar_guaranteed_uncommon' },
-      { itemId: 'nightwalk_jerkin', chance: 0.33, rollGroup: 'velkhar_guaranteed_uncommon' },
-      { itemId: 'emberwood_staff', chance: 0.2, rollGroup: 'velkhar_bonus' },
-      { itemId: 'boneguard_breastplate', chance: 0.1, rollGroup: 'velkhar_bonus' },
-      { itemId: 'shadowmeld_tunic', chance: 0.1, rollGroup: 'velkhar_bonus' },
-      { itemId: 'staff_of_velkhar', chance: 0.1, rollGroup: 'velkhar_bonus' },
-      { itemId: 'gravewyrm_stalkers_treads', chance: 0.1, rollGroup: 'velkhar_bonus' },
-      { itemId: 'deathlord_legguards', chance: 0.05, rollGroup: 'velkhar_bonus' },
-      { itemId: 'necromancers_soulsteps', chance: 0.05, rollGroup: 'velkhar_bonus' },
-      { itemId: 'wyrmshadow_legguards', chance: 0.05, rollGroup: 'velkhar_bonus' },
+      {
+        itemId: 'thawbound_legguards',
+        chance: 0.34,
+        rollGroup: 'velkhar_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'pyre_tenders_hood',
+        chance: 0.33,
+        rollGroup: 'velkhar_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'meltwater_cord',
+        chance: 0.33,
+        rollGroup: 'velkhar_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      // The uncommon filler gives up 0.12 of the roll to the relocated raid pieces.
+      { itemId: 'emberwood_staff', chance: 0.08, rollGroup: 'velkhar_bonus', normalOnly: true },
+      {
+        itemId: 'boneguard_breastplate',
+        chance: 0.1,
+        rollGroup: 'velkhar_bonus',
+        normalOnly: true,
+      },
+      { itemId: 'shadowmeld_tunic', chance: 0.1, rollGroup: 'velkhar_bonus', normalOnly: true },
+      { itemId: 'staff_of_velkhar', chance: 0.1, rollGroup: 'velkhar_bonus', normalOnly: true },
+      {
+        itemId: 'gravewyrm_stalkers_treads',
+        chance: 0.1,
+        rollGroup: 'velkhar_bonus',
+        normalOnly: true,
+      },
+      { itemId: 'deathlord_legguards', chance: 0.05, rollGroup: 'velkhar_bonus', normalOnly: true },
+      {
+        itemId: 'necromancers_soulsteps',
+        chance: 0.05,
+        rollGroup: 'velkhar_bonus',
+        normalOnly: true,
+      },
+      {
+        itemId: 'wyrmshadow_legguards',
+        chance: 0.05,
+        rollGroup: 'velkhar_bonus',
+        normalOnly: true,
+      },
+      // Relocated Nythraxis raid pieces (content/nythraxis_loot.ts): item level 29,
+      // 4% each inside this one bonus roll, so a kill never pays an extra item.
+      {
+        itemId: 'votive_ward_of_the_deathless_court',
+        chance: 0.04,
+        rollGroup: 'velkhar_bonus',
+        normalOnly: true,
+      },
+      { itemId: 'wraithfire_orb', chance: 0.04, rollGroup: 'velkhar_bonus', normalOnly: true },
+      { itemId: 'courtiers_bonefang', chance: 0.04, rollGroup: 'velkhar_bonus', normalOnly: true },
+      // The dungeon rung of the materials-satchel ladder, same shape and rate
+      // as the Gravewoven Bag on Morthen. Velkhar is the one Sanctum boss with
+      // room for it: velkhar_bonus sums to 0.75, so a 0.2 row lands fully
+      // inside the partition and still leaves slack for a no-bonus kill, the
+      // way morthen_bonus does at 0.81. korgath_bonus already sums to exactly
+      // 1.0 (an appended row could never be rolled) and korzul_bonus to 0.87
+      // (0.2 would overflow and clip its own tail), so neither could carry it
+      // without re-pricing the pieces already there.
+      {
+        itemId: 'necromancers_reagent_satchel',
+        chance: 0.2,
+        rollGroup: 'velkhar_bonus',
+        normalOnly: true,
+      },
     ],
     scale: 1.25,
     color: 0x512e5f,
@@ -490,48 +1226,110 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     armorPerLevel: 34,
     moveSpeed: 7,
     aggroRadius: 18,
-    // Grave Inferno (2026-07): the old Necrotic Shockwave aoePulse hit every
-    // melee for an unavoidable, unmitigated 570-798 each 8s. Replaced by a
-    // Geddon-style stationary channel: 8s rooted, no melee, four escalating
-    // fire pulses (base x1/2/3/4 x the per-mob mechanic multiplier), 14yd.
-    // Moving out at the windup eats the small first pulse or nothing.
-    // The 50% hp gate (2026-07-26) guarantees the channel fires once per kill
-    // on BOTH difficulties: a group out-pacing the 30s cadence used to skip
-    // the mechanic entirely. One gate only, and it lands before the 30% enrage
-    // so the burn phase never stacks on enraged melee.
-    infernoChannel: {
-      every: 30,
-      duration: 8,
-      pulses: 4,
-      min: 7,
-      max: 9,
-      radius: 14,
-      name: 'Grave Inferno',
-      school: 'fire',
-      atHpPct: [0.5],
-    },
+    // The great wyrm: melee reaches him from his body's edge (about 5 yd).
+    bodyRadius: 5,
+    // Grave Inferno, the breath, the tail, the flights and the plate floor are
+    // the encounter's (encounters/gravewyrm_sanctum/korzul.ts, design 6.3):
+    // the Inferno moved off the template (infernoChannel) so the plate under
+    // him can break it (Doused). Its numbers are stated LANDED there.
     enrage: { belowHpPct: 0.3, dmgMult: 1.5, hasteMult: 1.3 },
     loot: [
-      { copper: 50000, chance: 1 },
-      { itemId: 'boneplate_vest', chance: 0.34, rollGroup: 'korzul_guaranteed_uncommon' },
-      { itemId: 'revenant_silk_robe', chance: 0.33, rollGroup: 'korzul_guaranteed_uncommon' },
-      { itemId: 'nightwalk_jerkin', chance: 0.33, rollGroup: 'korzul_guaranteed_uncommon' },
-      { itemId: 'cultist_flayer', chance: 0.1, rollGroup: 'korzul_bonus' },
-      { itemId: 'wyrmfang_greatblade', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'staff_of_the_gravewyrm', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'fang_of_korzul', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'deathlord_warplate', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'necromancers_starshroud', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'wyrmshadow_harness', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'boundstone_girdle', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'gravewyrm_gauntlets', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'deathlords_dread_visage', chance: 0.04, rollGroup: 'korzul_bonus' },
-      { itemId: 'necromancers_soulspire_mantle', chance: 0.04, rollGroup: 'korzul_bonus' },
-      { itemId: 'wyrmshadow_talongrips', chance: 0.04, rollGroup: 'korzul_bonus' },
-      { itemId: 'nightfangs_greatstaff', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'wildgrowth_leggings', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'grovewardens_grips', chance: 0.05, rollGroup: 'korzul_bonus' },
-      { itemId: 'verdant_walkers', chance: 0.05, rollGroup: 'korzul_bonus' },
+      // 15000c base rolls to 9000c to 21000c (the 0.6x to 1.4x loot band):
+      // roughly the 1g to 2g finale payout, a 3x premium over the 5000c the
+      // other Sanctum bosses pay. The old 50000c base paid 3g to 7g per pop
+      // on a lockout-free, skip-pullable finale, the prime repeat gold-farm
+      // target (Zulgar in Wildheart took the same nerf). The daily-lockout
+      // heroic clear pays the 10g finale base instead;
+      // tests/gravewyrm_boss_gold.test.ts pins both bands.
+      { copper: 15000, heroicCopper: HEROIC_FINALE_COPPER, chance: 1 },
+      {
+        itemId: 'boneplate_vest',
+        chance: 0.34,
+        rollGroup: 'korzul_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'revenant_silk_robe',
+        chance: 0.33,
+        rollGroup: 'korzul_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      {
+        itemId: 'nightwalk_jerkin',
+        chance: 0.33,
+        rollGroup: 'korzul_guaranteed_uncommon',
+        normalOnly: true,
+      },
+      { itemId: 'cultist_flayer', chance: 0.1, rollGroup: 'korzul_bonus', normalOnly: true },
+      { itemId: 'wyrmfang_greatblade', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      {
+        itemId: 'staff_of_the_gravewyrm',
+        chance: 0.05,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      { itemId: 'fang_of_korzul', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      { itemId: 'deathlord_warplate', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      {
+        itemId: 'necromancers_starshroud',
+        chance: 0.05,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      { itemId: 'wyrmshadow_harness', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      { itemId: 'boundstone_girdle', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      { itemId: 'gravewyrm_gauntlets', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      {
+        itemId: 'deathlords_dread_visage',
+        chance: 0.04,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      {
+        itemId: 'necromancers_soulspire_mantle',
+        chance: 0.04,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      {
+        itemId: 'wyrmshadow_talongrips',
+        chance: 0.04,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      {
+        itemId: 'nightfangs_greatstaff',
+        chance: 0.05,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      { itemId: 'wildgrowth_leggings', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      { itemId: 'grovewardens_grips', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      { itemId: 'verdant_walkers', chance: 0.05, rollGroup: 'korzul_bonus', normalOnly: true },
+      // korzul_bonus deliberately sums below 1 (some kills yield no bonus
+      // piece), so the quiver takes its 0.05 from that slack at the same
+      // per-class rate as every other piece here, diluting none of them.
+      {
+        itemId: 'gravewyrm_bone_quiver',
+        chance: 0.05,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      // Relocated Nythraxis raid pieces (content/nythraxis_loot.ts): item level 29,
+      // 4% each inside this one bonus roll, so a kill never pays an extra item.
+      { itemId: 'gravecourt_hewer', chance: 0.04, rollGroup: 'korzul_bonus', normalOnly: true },
+      {
+        itemId: 'stormhymn_chain_grips',
+        chance: 0.04,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
+      {
+        itemId: 'stormhymn_chain_treads',
+        chance: 0.04,
+        rollGroup: 'korzul_bonus',
+        normalOnly: true,
+      },
     ],
     scale: 1.8,
     color: 0x3d5c45,
@@ -648,6 +1446,39 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     scale: 1.12,
     color: 0x776f83,
   },
+  // Bone Spike: the stationary pillar Nythraxis impales a raider on
+  // (src/sim/nythraxis_bone_spike.ts). It never moves, aggroes, or swings; the
+  // impaled raider drains until the raid kills it, so its health IS the
+  // mechanic's timer: 1,000 on both difficulties (normal through the arena's
+  // shared 2.0x, heroic through a per-mob 2.0 override that mirrors it), about
+  // four seconds of two DPS on normal and a little longer on heroic against
+  // the level-22 miss gap. Heroic scales the victim count, cadence, and drain
+  // instead of the pool. xpMult 0: shattering a spike is the counterplay,
+  // never a kill worth experience.
+  nythraxis_bone_spike: {
+    id: 'nythraxis_bone_spike',
+    name: 'Bone Spike',
+    minLevel: 20,
+    maxLevel: 20,
+    family: 'undead',
+    elite: true,
+    ccImmune: true,
+    slowImmune: true,
+    ignoreTaunt: true,
+    quietMechanics: true,
+    xpMult: 0,
+    hpBase: 500 / 2.3,
+    hpPerLevel: 0,
+    dmgBase: 0,
+    dmgPerLevel: 0,
+    attackSpeed: 2.6,
+    armorPerLevel: 0,
+    moveSpeed: 0,
+    aggroRadius: 0,
+    loot: [],
+    scale: 1,
+    color: 0xd9d2b8,
+  },
   // Brother Aldric is now a dynamically-spawned NPC (see NPCS.brother_aldric_raid
   // in zone3.ts and spawnNythraxisAldric in sim.ts), not a mob.
   nythraxis_scourge_of_thornpeak: {
@@ -666,123 +1497,224 @@ export const DUNGEON_MOBS: Record<string, MobTemplate> = {
     // this via the nythraxis_boss_arena healthMultiplier.
     hpBase: 60000 / 2.3,
     hpPerLevel: 0,
-    dmgBase: 54,
-    dmgPerLevel: 11.4,
+    // 70% of the pre-redo swing (54 / 11.4): the owner's first playtest of the
+    // mechanics redo (2026-09-04) found the white damage too high on top of
+    // the Dread Curse stacks. Gravebreaker's splash scales off the swing too.
+    dmgBase: 37.8,
+    dmgPerLevel: 7.98,
     attackSpeed: 2.6,
     armorPerLevel: 42,
     moveSpeed: 10.5,
     aggroRadius: 22,
-    // Each nythraxis_drop_* rollGroup is exclusive (one partitioned rng draw per
-    // group) and sums to exactly 1.00. The offhand/two-hander epics ride the
-    // existing four groups, one per group, with the set-piece chances rebalanced.
+    // One equipment item per five raiders on either difficulty: the shared
+    // partition plus Normal epics or the Heroic-exclusive weapon partition.
     loot: [
-      { copper: 150000, chance: 1 },
-      { itemId: 'deathless_heartwood', chance: 0.03, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'bonewrought_greatsword', chance: 0.13, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'crownforged_dreadhelm', chance: 0.14, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'nighttalon_crown', chance: 0.14, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'soulflame_cowl', chance: 0.14, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'stormcallers_crown', chance: 0.14, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'nighttalon_shoulderguards', chance: 0.14, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'soulflame_mantle', chance: 0.14, rollGroup: 'nythraxis_drop_1' },
-      { itemId: 'kingsbane_last_oath', chance: 0.03, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'bonewrought_bulwark', chance: 0.13, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'crownforged_warspaulders', chance: 0.14, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'nighttalon_shoulderguards', chance: 0.14, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'soulflame_mantle', chance: 0.14, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'crownforged_dreadhelm', chance: 0.14, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'nighttalon_crown', chance: 0.14, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'stormcallers_spaulders', chance: 0.14, rollGroup: 'nythraxis_drop_2' },
-      { itemId: 'wraithfire_orb', chance: 0.16, rollGroup: 'nythraxis_drop_3' },
-      { itemId: 'crownforged_dreadhelm', chance: 0.14, rollGroup: 'nythraxis_drop_3' },
-      { itemId: 'nighttalon_crown', chance: 0.14, rollGroup: 'nythraxis_drop_3' },
-      { itemId: 'soulflame_cowl', chance: 0.14, rollGroup: 'nythraxis_drop_3' },
-      { itemId: 'stormcallers_crown', chance: 0.14, rollGroup: 'nythraxis_drop_3' },
-      { itemId: 'nighttalon_shoulderguards', chance: 0.14, rollGroup: 'nythraxis_drop_3' },
-      { itemId: 'soulflame_mantle', chance: 0.14, rollGroup: 'nythraxis_drop_3' },
-      { itemId: 'direfang_greatblade', chance: 0.16, rollGroup: 'nythraxis_drop_4' },
-      { itemId: 'soulflame_mantle', chance: 0.14, rollGroup: 'nythraxis_drop_4' },
-      { itemId: 'crownforged_warspaulders', chance: 0.14, rollGroup: 'nythraxis_drop_4' },
-      { itemId: 'nighttalon_shoulderguards', chance: 0.14, rollGroup: 'nythraxis_drop_4' },
-      { itemId: 'stormcallers_spaulders', chance: 0.14, rollGroup: 'nythraxis_drop_4' },
-      { itemId: 'crownforged_dreadhelm', chance: 0.14, rollGroup: 'nythraxis_drop_4' },
-      { itemId: 'nighttalon_crown', chance: 0.14, rollGroup: 'nythraxis_drop_4' },
-      // The feral ladder's top rung rides its own bonus group: a fifth,
-      // independent draw so the four guaranteed groups above keep their exact
-      // 1.00 partitions (a 25% bonus shot, never displacing a set piece).
-      { itemId: 'maul_of_the_scourged_wilds', chance: 0.25, rollGroup: 'nythraxis_drop_5' },
+      { copper: 150000, heroicCopper: NYTHRAXIS_HEROIC_COPPER, chance: 1 },
+      ...NYTHRAXIS_EQUIPMENT_LOOT,
+      // Masterwrought apex GEAR patterns (Phase 11, R8 channel doctrine): the
+      // raid pillar carries the ten weaponcrafting/jewelcrafting/engineering/
+      // inscription patterns (content/apex_patterns.ts) as ONE new partitioned
+      // rollGroup, 0.04 each (0.40 total: at most one pattern per kill, 60% of
+      // kills shed none). APPENDED AT THE TAIL by contract: loot_roll.ts
+      // consumes rng draws in array order (one draw per rollGroup at its first
+      // member's index; the second equipment group is Normal-only and draws
+      // nothing on a heroic claim), so a tail append leaves every
+      // existing draw's stream
+      // position byte-identical WITHIN THE BASE WALK (a heroic claim's
+      // HEROIC_BOSS_LOOT draws roll after the base table in the same rollLoot
+      // call, so they sit one draw later; benign, and PINNED since Phase 11f,
+      // which recorded the nythraxis_heroic_claim parity scenario for exactly
+      // that stream, so this is no longer covered only by the normal-difficulty
+      // kill the sibling scenario drives) while an insert or
+      // reorder forks the parity digest. The v0.42.0 equipment re-cut above
+      // intentionally changes that stream; recipe probabilities stay fixed.
+      // kind 'recipe' defs mint no heroic variants
+      // (heroic_variants.ts generator filter), so the heroic auto-upgrade
+      // path ignores them.
+      { itemId: 'pattern_duskforged_warblade', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_ridgebreaker', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_duskforged_bulwark', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_wyrmfall_pendant', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_warhewn_signet', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_prismglass_loop', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_gyrelens_array', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_masters_field_forge', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_makers_charm', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      { itemId: 'pattern_voidbound_grimoire', chance: 0.04, rollGroup: 'nythraxis_patterns' },
+      // Farming's raid channel (Phase 11f, masterwrought R8): the farm ladder's PINNACLE
+      // rides the pinnacle encounter. ONE more partitioned rollGroup at the
+      // tail carrying pattern_harvest_feast (the party feast, now cooking 100)
+      // and every TIER-4 seed, so a raid night can hand a farmer the recipe for
+      // the feast the raid itself eats, or the seed for the crop it is made of.
+      //
+      // Appended BELOW 'nythraxis_patterns' under the same contract the block
+      // above states, and for the same reason: one more draw at the very end of
+      // the base walk, so every existing draw keeps its stream position. The
+      // heroic draws that roll after the base table in the same rollLoot call
+      // DO shift by one, which is no longer unpinned: the nythraxis_heroic_claim
+      // parity scenario records exactly that stream.
+      //
+      // RATE: 0.04 per entry, the SHIPPED per-pattern point the group above
+      // uses, reused rather than re-derived. Five entries, so 0.20 total: at
+      // most one item per kill and four kills in five shed nothing here.
+      { itemId: 'pattern_harvest_feast', chance: 0.04, rollGroup: 'nythraxis_farm' },
+      { itemId: 'gilded_sunmelon_seed', chance: 0.04, rollGroup: 'nythraxis_farm' },
+      { itemId: 'evergarden_greens_seed', chance: 0.04, rollGroup: 'nythraxis_farm' },
+      { itemId: 'gilded_yam_seed', chance: 0.04, rollGroup: 'nythraxis_farm' },
+      { itemId: 'evergarden_pumpkin_seed', chance: 0.04, rollGroup: 'nythraxis_farm' },
     ],
     scale: 3.1,
     color: 0x221b2d,
   },
 };
 
-// Trash packs of 2 elites (spaced beyond social-aggro range so groups can
-// pull them one pack at a time), a miniboss pair, then Morthen with guards.
-const CRYPT_SPAWN_LIST: DungeonSpawn[] = [
-  { mobId: 'crypt_shambler', x: -3, z: 18 },
-  { mobId: 'crypt_shambler', x: 3, z: 19 },
-  { mobId: 'crypt_shambler', x: -9, z: 38 },
-  { mobId: 'hollow_acolyte', x: -5, z: 39 },
-  { mobId: 'crypt_shambler', x: 9, z: 54 },
-  { mobId: 'hollow_acolyte', x: 5, z: 55 },
-  { mobId: 'bonechill_widow', x: -5, z: 68 },
-  { mobId: 'bonechill_widow', x: -1, z: 70 },
-  { mobId: 'sexton_marrow', x: -4, z: 82 },
-  { mobId: 'hollow_acolyte', x: 1, z: 83 },
-  { mobId: 'morthen', x: 0, z: 98 },
-  { mobId: 'crypt_shambler', x: -4, z: 96 },
-  { mobId: 'crypt_shambler', x: 4, z: 96 },
-];
-
 // Sunken Bastion: same 13-spawn pacing as the crypt — packs of 2 elites,
 // the Knight-Commander as miniboss, then Vael on the dais with two guards.
-const BASTION_SPAWN_LIST: DungeonSpawn[] = [
-  { mobId: 'bastion_revenant', x: -3, z: 18 },
-  { mobId: 'bastion_revenant', x: 3, z: 19 },
-  { mobId: 'bastion_revenant', x: -9, z: 38 },
-  { mobId: 'tidebound_acolyte', x: -5, z: 39 },
-  { mobId: 'tidebound_acolyte', x: 9, z: 54 },
-  { mobId: 'bastion_revenant', x: 5, z: 55 },
-  { mobId: 'bastion_revenant', x: -5, z: 68 },
-  { mobId: 'tidebound_acolyte', x: -1, z: 70 },
-  { mobId: 'knight_commander_olen', x: -4, z: 82 },
-  { mobId: 'bastion_revenant', x: 1, z: 83 },
-  { mobId: 'vael_the_mistcaller', x: 0, z: 98 },
-  { mobId: 'tidebound_acolyte', x: -4, z: 96 },
-  { mobId: 'bastion_revenant', x: 4, z: 96 },
-];
+// The Sunken Bastion's spawns, packs and gates live in sunken_bastion.ts (the
+// open-air sea fortress rework).
 
-// Gravewyrm Sanctum: three chambers — the Boneworks (z<60), the Ritual Vault
-// (75-115) and the Wyrm's Hollow (115+) — with Korgath holding the first
-// waist, Velkhar the second, and Korzul on the great dais at the end.
-const SANCTUM_SPAWN_LIST: DungeonSpawn[] = [
-  { mobId: 'sanctum_boneguard', x: -3, z: 20 },
-  { mobId: 'sanctum_boneguard', x: 3, z: 21 },
-  { mobId: 'sanctum_boneguard', x: -8, z: 30 },
-  { mobId: 'sanctum_drakonid', x: -4, z: 31 },
-  { mobId: 'sanctum_drakonid', x: 7, z: 44 },
-  { mobId: 'sanctum_boneguard', x: 3, z: 45 },
-  { mobId: 'sanctum_boneguard', x: -6, z: 58 },
-  { mobId: 'sanctum_drakonid', x: -2, z: 59 },
-  { mobId: 'korgath_the_bound', x: 0, z: 72 },
-  { mobId: 'sanctum_drakonid', x: -7, z: 86 },
-  { mobId: 'sanctum_boneguard', x: -3, z: 87 },
-  { mobId: 'sanctum_boneguard', x: 6, z: 100 },
-  { mobId: 'sanctum_drakonid', x: 2, z: 101 },
-  { mobId: 'grand_necromancer_velkhar', x: 0, z: 114 },
-  { mobId: 'sanctum_boneguard', x: -4, z: 112 },
-  { mobId: 'sanctum_boneguard', x: 4, z: 112 },
-  { mobId: 'sanctum_drakonid', x: -5, z: 130 },
-  { mobId: 'sanctum_drakonid', x: -1, z: 132 },
-  { mobId: 'korzul_the_gravewyrm', x: 0, z: 146 },
-  { mobId: 'sanctum_drakonid', x: -5, z: 144 },
-  { mobId: 'sanctum_drakonid', x: 5, z: 144 },
-];
+// Gravewyrm Sanctum: the Ice Tomb of the Wyrm rework (gravewyrm_sanctum.ts):
+// its spawns, packs, gates and story markers live there, on the open-air
+// glacier cirque of gravewyrm_sanctum_layout.ts.
 
 const NYTHRAXIS_RAID_SPAWN_LIST: DungeonSpawn[] = [
   { mobId: 'nythraxis_scourge_of_thornpeak', x: 0, z: 96 },
 ];
+
+const IGNIVAR_RAID_SPAWN_LIST: DungeonSpawn[] = [
+  { mobId: 'ignivar_herald_of_the_last_flame', x: 0, z: IGNIVAR_BOSS_SPAWN_Z },
+];
+
+const IGNIVAR_WARDEN_MINIBOSS: DungeonSpawnMinibossTuning = {
+  healthMultiplier: 2.35,
+  scale: 2.75,
+  ccImmune: true,
+  slowImmune: true,
+};
+
+// First-room packs: five tight, inward-facing huddles up the Halls of the First
+// Tempering, hand-placed from live in-world coordinates (instance origin
+// (116200, -1250) subtracted to local). "crawler" = derelict_mech. Each pack is
+// a rough circle ~3 to 4 yards across, every mob facing the pack centre. Every
+// mob is idleStationary so the whole formation holds until pulled (the mechs
+// already are via their template; the guardians take the per-spawn flag).
+const IGNIVAR_FORGE_APPROACH_SPAWN_LIST: DungeonSpawn[] = [
+  // Pack 1 (2 crawlers + 1 Ember Sentinel), center local (-16, -15)
+  { mobId: 'derelict_mech', x: -16, z: -17, facing: 0, packId: 'approach_1' },
+  { mobId: 'derelict_mech', x: -14.3, z: -14, facing: -2.09, packId: 'approach_1' },
+  {
+    mobId: IGNIVAR_EMBER_SENTINEL_ID,
+    x: -17.7,
+    z: -14,
+    facing: 2.09,
+    idleStationary: true,
+    packId: 'approach_1',
+  },
+  // Pack 2 (2 crawlers + 1 Crucible Warden), center local (13, 4)
+  { mobId: 'derelict_mech', x: 13, z: 2, facing: 0, packId: 'approach_2' },
+  { mobId: 'derelict_mech', x: 14.7, z: 5, facing: -2.09, packId: 'approach_2' },
+  {
+    mobId: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    x: 11.3,
+    z: 5,
+    facing: 2.09,
+    idleStationary: true,
+    packId: 'approach_2',
+  },
+  // Pack 3 (1 promoted Warden + 2 crawlers), center local (-21, 9)
+  {
+    mobId: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    x: -21,
+    z: 7,
+    facing: 0,
+    idleStationary: true,
+    packId: 'approach_3',
+    miniboss: IGNIVAR_WARDEN_MINIBOSS,
+  },
+  { mobId: 'derelict_mech', x: -19.3, z: 10, facing: -2.09, packId: 'approach_3' },
+  { mobId: 'derelict_mech', x: -22.7, z: 10, facing: 2.09, packId: 'approach_3' },
+  // Pack 4 (2 crawlers + 1 Crucible Warden + 1 Ember Sentinel), center local (19, 42)
+  { mobId: 'derelict_mech', x: 19, z: 39.7, facing: 0, packId: 'approach_4' },
+  { mobId: 'derelict_mech', x: 21.3, z: 42, facing: -1.57, packId: 'approach_4' },
+  {
+    mobId: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    x: 19,
+    z: 44.3,
+    facing: -3.14,
+    idleStationary: true,
+    packId: 'approach_4',
+  },
+  {
+    mobId: IGNIVAR_EMBER_SENTINEL_ID,
+    x: 16.7,
+    z: 42,
+    facing: 1.57,
+    idleStationary: true,
+    packId: 'approach_4',
+  },
+  // Pack 5 (2 crawlers + 2 Wardens + 1 Ember Sentinel), center local (-22, 42)
+  { mobId: 'derelict_mech', x: -22, z: 39.4, facing: 0, packId: 'approach_5' },
+  { mobId: 'derelict_mech', x: -19.5, z: 41.2, facing: -1.26, packId: 'approach_5' },
+  {
+    mobId: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    x: -20.5,
+    z: 44.1,
+    facing: -2.51,
+    idleStationary: true,
+    packId: 'approach_5',
+  },
+  {
+    mobId: IGNIVAR_EMBER_SENTINEL_ID,
+    x: -23.5,
+    z: 44.1,
+    facing: 2.51,
+    idleStationary: true,
+    packId: 'approach_5',
+  },
+  {
+    mobId: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    x: -24.5,
+    z: 41.2,
+    facing: 1.26,
+    idleStationary: true,
+    packId: 'approach_5',
+    miniboss: IGNIVAR_WARDEN_MINIBOSS,
+  },
+];
+
+const IGNIVAR_MOLTEN_ASSEMBLY_SPAWN_LIST: DungeonSpawn[] = [
+  { mobId: IGNIVAR_EMBER_SENTINEL_ID, x: -5, z: -24, packId: 'intake' },
+  { mobId: IGNIVAR_EMBER_SENTINEL_ID, x: 0, z: -22, packId: 'intake' },
+  { mobId: IGNIVAR_EMBER_SENTINEL_ID, x: 5, z: -24, packId: 'intake' },
+  { mobId: IGNIVAR_EMBER_SENTINEL_ID, x: -5, z: 4, packId: 'middle' },
+  { mobId: IGNIVAR_EMBER_SENTINEL_ID, x: 0, z: 6, packId: 'middle' },
+  { mobId: IGNIVAR_EMBER_SENTINEL_ID, x: 5, z: 4, packId: 'middle' },
+  {
+    mobId: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    x: -5,
+    z: 31,
+    packId: 'final',
+    miniboss: IGNIVAR_WARDEN_MINIBOSS,
+  },
+  { mobId: IGNIVAR_EMBER_SENTINEL_ID, x: 0, z: 33, packId: 'final' },
+  {
+    mobId: IGNIVAR_CRUCIBLE_WARDEN_ID,
+    x: 5,
+    z: 31,
+    packId: 'final',
+    miniboss: IGNIVAR_WARDEN_MINIBOSS,
+  },
+];
+
+const IGNIVAR_INNER_CRUCIBLE_SPAWN_LIST: DungeonSpawn[] = [
+  { mobId: VARKHUL_BOSS_ID, x: 0, z: 16, facing: 0 },
+];
+
+// The Ignivar raid family's ONE overworld entrance: the keep tower door on
+// Forgefather's Isle (the forge-lift's walk-up). Every raid room's doorPos
+// points here so any outside displacement or front-room leave sets players
+// down beside the keep. The old Eastbrook walk-up testing door is retired.
+const IGNIVAR_KEEP_DOOR_POS = { x: 503.05, z: 2243.7 };
 
 export const DUNGEON_DEFS: Record<string, DungeonDef> = {
   hollow_crypt: {
@@ -790,13 +1722,23 @@ export const DUNGEON_DEFS: Record<string, DungeonDef> = {
     name: 'The Hollow Crypt',
     index: 0,
     doorPos: { x: 80, z: 90 }, // entrance portal at the chapel ruin
-    // Arrive back near the exit portal so the first pack (z 18+) is outside aggro
-    // range on entry: no mob can pull the moment you zone in. See dungeon_entry_clearance test.
-    entry: { x: 0, z: -2 },
-    exitOffset: { x: 0, z: -6 },
-    spawns: CRYPT_SPAWN_LIST,
-    interior: 'crypt',
-    tombDressing: 'coffins',
+    // The open-air necropolis rework (content/hollow_crypt*.ts): arrival on
+    // the Lychgate Landing, 70 yd above and behind the first pack, so no mob
+    // can pull the moment you zone in. See dungeon_entry_clearance test.
+    entry: { x: HOLLOW_CRYPT_ANCHORS.entry.x, z: HOLLOW_CRYPT_ANCHORS.entry.z },
+    exitOffset: { x: HOLLOW_CRYPT_ANCHORS.exit.x, z: HOLLOW_CRYPT_ANCHORS.exit.z },
+    // Morthen's ring sits on the crag ~340 yd from the door: a second exit
+    // opens beside the altar once the Knellwyrm his dying rite summons falls
+    // (the run's last fight; Morthen stays the final boss for lockouts).
+    bossExitPortal: { x: -12, z: 190, after: 'crypt_knellwyrm' },
+    spawns: HOLLOW_CRYPT_SPAWNS,
+    objects: HOLLOW_CRYPT_GATE_OBJECTS,
+    gates: HOLLOW_CRYPT_GATES,
+    // No skipping: every pack is gated, and pulling Morthen early still wakes
+    // anything left alive (instances/boss_chain_pull.ts).
+    bossChainPull: true,
+    areaCastsPlant: true,
+    interior: 'hollow_crypt',
     suggestedPlayers: 5,
     enterText: 'You descend into the Hollow Crypt...',
     leaveText: 'You climb back into daylight.',
@@ -806,11 +1748,22 @@ export const DUNGEON_DEFS: Record<string, DungeonDef> = {
     name: 'The Sunken Bastion',
     index: 1,
     doorPos: { x: 45, z: 515 }, // drowned keep south of the Gravecaller camp
-    entry: { x: 0, z: -2 }, // clear-of-aggro arrival (see dungeon_entry_clearance test)
-    exitOffset: { x: 0, z: -6 },
-    spawns: BASTION_SPAWN_LIST,
-    interior: 'crypt',
-    tombDressing: 'cargo',
+    // The open-air sea fortress rework (content/sunken_bastion*.ts): arrival on
+    // the Sea-Gate Landing, 50 yd above and behind the first pack, so no mob
+    // can pull the moment you zone in. See dungeon_entry_clearance test.
+    entry: { x: SUNKEN_BASTION_ANCHORS.entry.x, z: SUNKEN_BASTION_ANCHORS.entry.z },
+    exitOffset: { x: SUNKEN_BASTION_ANCHORS.exit.x, z: SUNKEN_BASTION_ANCHORS.exit.z },
+    // Vael's roof sits at the top of the headland, 440 yd of climbing from the
+    // door: a second exit opens beside the Fogbeacon on his death.
+    bossExitPortal: { x: 10, z: 192 },
+    spawns: SUNKEN_BASTION_SPAWNS,
+    objects: [...SUNKEN_BASTION_GATE_OBJECTS, ...SUNKEN_BASTION_ENCOUNTER_OBJECTS],
+    gates: SUNKEN_BASTION_GATES,
+    // No skipping: every pack is gated, and pulling Vael early still wakes
+    // anything left alive (instances/boss_chain_pull.ts).
+    bossChainPull: true,
+    areaCastsPlant: true,
+    interior: 'sunken_bastion',
     suggestedPlayers: 5,
     enterText: 'You wade down into the Sunken Bastion...',
     leaveText: 'You climb out of the drowning dark.',
@@ -819,11 +1772,26 @@ export const DUNGEON_DEFS: Record<string, DungeonDef> = {
     id: 'gravewyrm_sanctum',
     name: 'Gravewyrm Sanctum',
     index: 2,
-    doorPos: { x: 0, z: 858 }, // sealed gate in the graveyard, off the Sanctum Approach slope
-    entry: { x: 0, z: -2 }, // clear-of-aggro arrival (see dungeon_entry_clearance test)
-    exitOffset: { x: 0, z: -6 },
-    spawns: SANCTUM_SPAWN_LIST,
-    interior: 'sanctum',
+    doorPos: { x: 0, z: 858 }, // the Smith's Seal Gate in the graveyard, off the Sanctum Approach slope
+    // The Ice Tomb rework (content/gravewyrm_sanctum*.ts): arrival on the Gate
+    // Landing, 5 yd above and 44 yd from the first pack, so no mob can pull the
+    // moment you step out of the gate tunnel. See dungeon_entry_clearance test.
+    entry: { x: GRAVEWYRM_SANCTUM_ANCHORS.entry.x, z: GRAVEWYRM_SANCTUM_ANCHORS.entry.z },
+    exitOffset: { x: GRAVEWYRM_SANCTUM_ANCHORS.exit.x, z: GRAVEWYRM_SANCTUM_ANCHORS.exit.z },
+    // The Wyrm's Hollow lies 410 yd down the cirque from the gate: a second
+    // exit opens beside the fight on the permanent rock rim once Korzul falls.
+    // Outside the breakable lake plates, inside the shelf's cliff edge.
+    bossExitPortal: { x: -42, z: 192 },
+    spawns: GRAVEWYRM_SANCTUM_SPAWNS,
+    objects: [...GRAVEWYRM_SANCTUM_GATE_OBJECTS, ...GRAVEWYRM_SANCTUM_STORY_OBJECTS],
+    gates: GRAVEWYRM_SANCTUM_GATES,
+    // No skipping: every pack is gated, and pulling Korzul early still wakes
+    // anything left alive (instances/boss_chain_pull.ts).
+    bossChainPull: true,
+    areaCastsPlant: true,
+    // The meltwater pools that douse a Goadsmith's Branding Iron.
+    quenchZones: QUENCH_POOLS,
+    interior: 'gravewyrm_sanctum',
     suggestedPlayers: 5,
     enterText: 'The air goes cold. Something vast breathes below...',
     leaveText: 'You stagger back into the mountain wind.',
@@ -865,28 +1833,291 @@ export const DUNGEON_DEFS: Record<string, DungeonDef> = {
     enterText: 'You cross the threshold of the Abandoned Crypt.',
     leaveText: 'You return to the cold air of Thornpeak.',
   },
+  the_last_keep: {
+    id: 'the_last_keep',
+    name: 'The Last Keep',
+    // Overflow band: indexes 0..7 are taken (temple 3, orkadia 6, wildheart 7),
+    // so the keep claims 8 (instanceOrigin: DUNGEON_OVERFLOW_X_BASE + 600).
+    index: 8,
+    // The rebuilt keep's real door: the owner's placed castle_door facade
+    // on the temple court (forgefather_fortress.ts, the keep rebuild rows;
+    // the facade base sits at the court's stamped ground and faces WEST
+    // over the terrace). doorPos stands 1.2yd proud of the facade as a
+    // porch (the old keep's flush-jamb lesson), the visible body is the
+    // facade itself (door_portal.ts doorArchAuthoredElsewhere), and
+    // leaving drops the player forward onto the terrace deck (-x).
+    doorPos: { x: 479.4, z: 2168.1 },
+    leaveOffset: { x: -3.5, z: 0 },
+    staticDoor: true,
+    // Arrival just inside the entrance hall's south end, 4yd north of the exit
+    // portal so zoning in never lands inside the exit's 2yd door trigger.
+    entry: { x: 0, z: -5 },
+    exitOffset: { x: 0, z: -9 },
+    // Zero combat, zero loot by design: the keep is a place to walk, not a
+    // fight (the zero-spawn Nythraxis attunement crypt is the precedent). It is
+    // deliberately absent from FINDER_ACTIVITIES, so the Dungeon Finder never
+    // queues a group into an empty instance (orkadia/wildheart precedent: the
+    // finder catalogue is explicit, not derived from DUNGEONS).
+    spawns: [],
+    objects: [
+      // the hall's keepsake: a signet dropped by the garrison that never
+      // came home, on the entrance hall floor east of the door
+      { itemId: 'last_keep_signet', name: 'Signet of the Last Keep', x: 4, z: 0 },
+    ],
+    interior: 'lastkeep',
+    suggestedPlayers: 1,
+    enterText: 'You step into the cold, silent halls of the Last Keep.',
+    leaveText: 'You pull the keep door shut and step back into the Drakelands wind.',
+  },
+  dawnhold_castle: {
+    id: 'dawnhold_castle',
+    name: 'Dawnhold Castle',
+    // Overflow band: the Last Keep took 8, so Dawnhold claims 9
+    // (instanceOrigin: DUNGEON_OVERFLOW_X_BASE + 1200).
+    index: 9,
+    // FLUSH against the keep model's south face on its door axis (the keep
+    // sits at 258,878 at scale 7.5, facing +z into the bailey with its hall
+    // wing): the portal arch emerges from the palace stone and reads as the
+    // castle's own door. Leaving therefore drops the player FORWARD onto the
+    // courtyard lawn (leaveOffset +z) instead of the default z - 4, which
+    // would land inside the keep's decor collider (dawnhold_layout).
+    doorPos: { x: 258, z: 886.6 },
+    leaveOffset: { x: 0, z: 3.2 },
+    staticDoor: true,
+    // Arrival just inside the entrance hall's south end, 4yd north of the
+    // exit portal so zoning in never lands inside the exit's 2yd door trigger.
+    entry: { x: 0, z: -5 },
+    exitOffset: { x: 0, z: -9 },
+    // Zero combat, zero loot by design: a warm garden palace to walk, not a
+    // fight (the Last Keep is the direct precedent). Deliberately absent from
+    // FINDER_ACTIVITIES, so the Dungeon Finder never queues a group into an
+    // empty instance.
+    spawns: [],
+    objects: [
+      // the palace's keepsake: a pressed posy from the conservatory beds,
+      // dropped on the entrance hall floor east of the door
+      { itemId: 'dawnhold_posy', name: 'Dawnhold Garden Posy', x: 4, z: -3 },
+    ],
+    interior: 'dawnhold',
+    suggestedPlayers: 1,
+    enterText: 'You step into the warm, flower-scented halls of Dawnhold Castle.',
+    leaveText: 'You slip back out onto the sunlit garden lawn.',
+  },
   nythraxis_boss_arena: {
     id: 'nythraxis_boss_arena',
     name: 'Nythraxis Raid Arena',
     index: 5,
     doorPos: { x: -152, z: 610 },
     overworldDoor: false,
-    entry: { x: 0, z: 4 },
-    exitOffset: { x: 0, z: -6 },
+    // The hall runs z 16 to 116 (NYTHRAXIS_LAYOUT): raiders enter at the front
+    // wall and the exit portal sits just inside it.
+    entry: { x: 0, z: 20 },
+    exitOffset: { x: 0, z: 17 },
     spawns: NYTHRAXIS_RAID_SPAWN_LIST,
     objects: [
-      // Three soul wardstones in a wide forward triangle in front of the boss
-      // (spawn 0,96), well clear of his body so all three read distinctly and
-      // raiders must split to channel them. Kept within the encounter's
-      // wardstone search radius (see nythraxisWardstones in sim.ts).
-      { itemId: 'bastion_ward_stone', name: 'Left Wardstone', x: -40, z: 79 },
-      { itemId: 'bastion_ward_stone', name: 'Right Wardstone', x: 40, z: 79 },
-      { itemId: 'bastion_ward_stone', name: 'Threshold Wardstone', x: 0, z: 63 },
+      // Three soul wardstones in a forward triangle in front of the boss (spawn
+      // 0,96), 34 to 38 yd out so all three read distinctly and raiders must
+      // split to channel them, and 6 yd clear of the sigil and Soulfire
+      // placement rules. Kept within the encounter's wardstone search radius
+      // (see nythraxisWardstones in sim.ts). The item id doubles as the Sunken
+      // Bastion quest pickup, so without interactOnly the quest-collectable
+      // display gate hides them from every raider who is not on that zone 2
+      // quest.
+      { itemId: 'bastion_ward_stone', name: 'Left Wardstone', x: -30, z: 74, interactOnly: true },
+      { itemId: 'bastion_ward_stone', name: 'Right Wardstone', x: 30, z: 74, interactOnly: true },
+      {
+        itemId: 'bastion_ward_stone',
+        name: 'Threshold Wardstone',
+        x: 0,
+        z: 62,
+        interactOnly: true,
+      },
     ],
     interior: 'nythraxis',
     tombDressing: 'coffins',
     suggestedPlayers: 10,
     enterText: 'You pass through the sealed royal door.',
     leaveText: 'You return to the cold air of Thornpeak.',
+  },
+  [IGNIVAR_LIFT_ROOM_ID]: {
+    id: IGNIVAR_LIFT_ROOM_ID,
+    name: 'The Forge-Lift',
+    // 14, not 13: the raid arm's Molten Assembly took 13 in parallel, and
+    // two rooms sharing an instance slot resolve door triggers to the
+    // wrong interior (found in the Drakelands entrance merge).
+    index: 14,
+    // The raid's overworld entrance: the Forgefather's Isle keep tower's
+    // south face, at the top of the keep stair (the owner's chosen spot).
+    // Walking into the keep's doorway boards the forge-lift: a sealed car
+    // that "rides down" for a fixed spell (the room never moves; the
+    // shaft illusion sells it), then its exit gate becomes an ordinary
+    // portal into the Halls. src/sim/ignivar_forge_lift.ts owns the ride.
+    doorPos: IGNIVAR_KEEP_DOOR_POS,
+    guideVisible: false,
+    entry: { x: 0, z: -4 },
+    exitOffset: { x: 0, z: -6.5 },
+    spawns: [],
+    npcs: [],
+    objects: [
+      {
+        itemId: '',
+        name: 'Forge-Lift Gate',
+        x: 0,
+        z: 6.5,
+        templateId: IGNIVAR_LIFT_GATE_LOCKED_TEMPLATE,
+        dungeonId: IGNIVAR_FORGE_APPROACH_ID,
+        lootable: false,
+      },
+    ],
+    interior: 'ignivar_lift',
+    suggestedPlayers: 10,
+    enterText: 'The forge-lift shudders and sinks; hammerfall rises to meet you.',
+    leaveText: 'The lift hauls you back into the open air of the keep.',
+  },
+  [IGNIVAR_FORGE_APPROACH_ID]: {
+    id: IGNIVAR_FORGE_APPROACH_ID,
+    name: 'Halls of the First Tempering',
+    index: 10,
+    // Interior raid room reached through the Forge-Lift's opened gate; doorPos
+    // is only where leaving drops players, beside the keep entrance. The old
+    // Eastbrook walk-up testing door is retired.
+    doorPos: IGNIVAR_KEEP_DOOR_POS,
+    overworldDoor: false,
+    guideVisible: false,
+    entry: { x: 0, z: -50 },
+    exitOffset: { x: 0, z: -54 },
+    // Return below the keep stair, clear of the lift door's walk-in trigger.
+    leaveOffset: { x: 0, z: -6.5 },
+    spawns: IGNIVAR_FORGE_APPROACH_SPAWN_LIST,
+    npcs: [
+      { npcId: IGNIVAR_MAELIN_NPC_ID, x: 0, z: -47 },
+      { npcId: IGNIVAR_MAELIN_PROJECTION_NPC_ID, x: 0, z: 48 },
+    ],
+    objects: [
+      {
+        itemId: IGNIVAR_RECORD_IDS.firstTempering,
+        name: IGNIVAR_LORE_OBJECTS[IGNIVAR_RECORD_IDS.firstTempering].name,
+        x: -13,
+        z: -40,
+        interactOnly: true,
+      },
+      {
+        itemId: IGNIVAR_RECORD_IDS.livingMetal,
+        name: IGNIVAR_LORE_OBJECTS[IGNIVAR_RECORD_IDS.livingMetal].name,
+        x: 13,
+        z: -8,
+        interactOnly: true,
+      },
+      {
+        itemId: IGNIVAR_RECORD_IDS.heraldKey,
+        name: IGNIVAR_LORE_OBJECTS[IGNIVAR_RECORD_IDS.heraldKey].name,
+        x: -13,
+        z: 21,
+        interactOnly: true,
+      },
+      {
+        itemId: '',
+        name: 'Sealed Herald Gate',
+        x: 0,
+        z: 53,
+        templateId: IGNIVAR_GATE_LOCKED_TEMPLATE,
+        dungeonId: IGNIVAR_RAID_ARENA_ID,
+        lootable: false,
+      },
+    ],
+    interior: 'ignivar_approach',
+    suggestedPlayers: 10,
+    enterText: 'Hammerfall echoes through the Halls of the First Tempering.',
+    leaveText: 'You step away from the first forge and breathe freely again.',
+  },
+  [IGNIVAR_RAID_ARENA_ID]: {
+    id: IGNIVAR_RAID_ARENA_ID,
+    name: 'Crucible of the Last Spring',
+    index: 11,
+    // Internal raid room reached through the Herald gate in the approach;
+    // doorPos is only where leaving drops players, beside the keep entrance.
+    doorPos: IGNIVAR_KEEP_DOOR_POS,
+    overworldDoor: false,
+    guideVisible: false,
+    entry: { x: 0, z: -27 },
+    exitOffset: { x: 0, z: -30 },
+    spawns: IGNIVAR_RAID_SPAWN_LIST,
+    // Between the north pillars, facing south into the arena (Math.PI = -z).
+    npcs: [{ npcId: IGNIVAR_MAELIN_PROJECTION_NPC_ID, x: 10, z: 24, facing: Math.PI }],
+    objects: [
+      // The four water pumps ARE the water conduits: each pump is promoted to
+      // a sim object so the encounter can flip its state (ready/active/
+      // cooldown) and cleanse players standing in its water. Positions match
+      // the baked water_pump dressing placements (IGNIVAR_CONDUITS), so the
+      // state overlay renders on the pump the player sees.
+      ...IGNIVAR_CONDUITS.map((conduit) => ({
+        itemId: '',
+        name: `${conduit.id} Water Conduit`,
+        x: conduit.x,
+        z: conduit.z,
+        templateId: IGNIVAR_WATER_CONDUIT_TEMPLATES.ready,
+        lootable: false,
+      })),
+      {
+        itemId: '',
+        name: 'Sealed Assembly Gate',
+        x: 0,
+        z: 31.5,
+        templateId: IGNIVAR_GATE_LOCKED_TEMPLATE,
+        dungeonId: IGNIVAR_MOLTEN_ASSEMBLY_ID,
+        lootable: false,
+      },
+    ],
+    interior: 'ignivar',
+    suggestedPlayers: 10,
+    enterText: 'Heat shimmers above the sealed waters of the Crucible.',
+    leaveText: 'You step away from the Crucible and breathe freely again.',
+  },
+  [IGNIVAR_MOLTEN_ASSEMBLY_ID]: {
+    id: IGNIVAR_MOLTEN_ASSEMBLY_ID,
+    name: 'Molten Assembly',
+    index: 13,
+    // Internal raid route reached only through the gate behind Ignivar;
+    // doorPos is only where leaving drops players, beside the keep entrance.
+    doorPos: IGNIVAR_KEEP_DOOR_POS,
+    overworldDoor: false,
+    guideVisible: false,
+    entry: { x: 0, z: -50 },
+    exitOffset: { x: 0, z: -54 },
+    spawns: IGNIVAR_MOLTEN_ASSEMBLY_SPAWN_LIST,
+    npcs: [{ npcId: IGNIVAR_MAELIN_PROJECTION_NPC_ID, x: 0, z: -47 }],
+    objects: [
+      {
+        itemId: '',
+        name: 'Sealed Inner Crucible Gate',
+        x: 0,
+        z: 53,
+        templateId: IGNIVAR_GATE_LOCKED_TEMPLATE,
+        dungeonId: IGNIVAR_SECOND_WING_ID,
+        lootable: false,
+      },
+    ],
+    interior: 'ignivar_approach',
+    suggestedPlayers: 10,
+    enterText: 'The opened gate leads into a molten assembly hall.',
+    leaveText: 'You leave the assembly line and return to the Crucible.',
+  },
+  [IGNIVAR_SECOND_WING_ID]: {
+    id: IGNIVAR_SECOND_WING_ID,
+    name: 'The Inner Crucible',
+    index: 12,
+    // Internal raid wing reached only through the Molten Assembly gate;
+    // doorPos is only where leaving drops players, beside the keep entrance.
+    doorPos: IGNIVAR_KEEP_DOOR_POS,
+    overworldDoor: false,
+    guideVisible: false,
+    entry: { x: 0, z: -34 },
+    exitOffset: { x: 0, z: -38 },
+    spawns: IGNIVAR_INNER_CRUCIBLE_SPAWN_LIST,
+    npcs: [{ npcId: IGNIVAR_MAELIN_PROJECTION_NPC_ID, x: 14, z: 31 }],
+    interior: 'ignivar_depths',
+    suggestedPlayers: 10,
+    enterText: 'The opened gate leads deeper into the Crucible.',
+    leaveText: 'You leave the silent depths of the Crucible.',
   },
 };

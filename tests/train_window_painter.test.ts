@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+// @vitest-environment happy-dom
 
 // Painter pins for the train window's card treatment: the two-arm fee
 // rendering (the gold action chip on an AFFORDABLE teachable row only, the
@@ -11,7 +11,7 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ITEMS } from '../src/sim/data';
 import type { TrainRow, TrainView } from '../src/ui/hud/vendor/train_view';
 import { renderTrainWindow } from '../src/ui/hud/vendor/train_window';
@@ -156,25 +156,125 @@ describe('renderTrainWindow quality-glow socket', () => {
 describe('train/unbind card hover restores (CSS source pins)', () => {
   // jsdom runs no layout or cascade, so the two rules that keep the card fill
   // under the vendor family's higher-specificity hover arms are pinned at the
-  // source: without them, .vendor-item:disabled:hover blanks a disabled card
-  // to transparent and the known row's wash suppressor did the same.
-  const css = readFileSync(join(__dirname, '../src/styles/components.css'), 'utf8').replace(
-    /\r\n?/g,
-    '\n',
-  );
+  // source. W10 moved the shared card hover to filter-only so disabled and
+  // known service rows suppress that filter without overriding ui-card fill.
+  const css = readFileSync(join(__dirname, '../src/styles/components.css'), 'utf8');
 
   it('restates the card fill on disabled hover for both service windows', () => {
     const start = css.indexOf('.train-row:disabled:hover,\n  .unbind-row:disabled:hover {');
     expect(start).toBeGreaterThanOrEqual(0);
     const rule = css.slice(start, css.indexOf('}', start));
-    expect(rule).toContain('background: rgba(0, 0, 0, 0.24)');
+    expect(rule).toContain('filter: none');
+    expect(rule).not.toContain('background:');
   });
 
   it('keeps the card fill (never transparent) on the known-row hover', () => {
     const start = css.indexOf('.train-row.train-known:hover {');
     expect(start).toBeGreaterThanOrEqual(0);
     const rule = css.slice(start, css.indexOf('}', start));
-    expect(rule).toContain('background: rgba(0, 0, 0, 0.24)');
-    expect(rule).not.toContain('background: transparent');
+    expect(rule).toContain('filter: none');
+    expect(rule).not.toContain('background:');
+  });
+});
+
+describe('renderTrainWindow keyboard focus carry (uninitiated rebuilds)', () => {
+  // Inventory and purse deltas repaint an open window uninitiated (#2931), so
+  // the painter must carry keyboard focus across its full-subtree wipe (the
+  // focus-across-a-REBUILD contract, vendor_window idiom). Roots attach to
+  // document.body: focus() and activeElement are inert on a detached tree.
+  function paintInto(el: HTMLElement, rows: TrainRow[]): void {
+    renderTrainWindow(el, 'Darva', { stationType: 'forge', rows }, deps());
+  }
+  function attachedRoot(): HTMLElement {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    return el;
+  }
+  // A mid-test failure must not leak a focused node into the shared document
+  // for later tests in the file.
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('keeps focus on the same recipe row across a repaint', () => {
+    const el = attachedRoot();
+    paintInto(el, [row({ recipeId: 'recipe_a' }), row({ recipeId: 'recipe_b' })]);
+    const first = el.querySelector<HTMLButtonElement>('[data-focus-key="learn:recipe_a"]');
+    first?.focus();
+    expect(document.activeElement).toBe(first);
+    paintInto(el, [row({ recipeId: 'recipe_a' }), row({ recipeId: 'recipe_b' })]);
+    // The node was rebuilt, so identity moved; the key must not.
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toBe('learn:recipe_a');
+    el.remove();
+  });
+
+  it('falls to the ladder neighbor when the focused row came back disabled', () => {
+    const el = attachedRoot();
+    paintInto(el, [row({ recipeId: 'recipe_a' }), row({ recipeId: 'recipe_b' })]);
+    el.querySelector<HTMLButtonElement>('[data-focus-key="learn:recipe_a"]')?.focus();
+    // The disabling repaint IS the new edge: a purse delta reserved away the
+    // focused row's fee.
+    paintInto(el, [
+      row({ recipeId: 'recipe_a', affordable: false }),
+      row({ recipeId: 'recipe_b' }),
+    ]);
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toBe('learn:recipe_b');
+    el.remove();
+  });
+
+  it('walks BACKWARD to the nearer earlier neighbor when the later side is exhausted', () => {
+    // Focus the LAST row, disable it: the forward walk finds nothing past the
+    // ladder end, so the backward rung must catch (deleting the slot - step
+    // arm would drop this to the close button).
+    const el = attachedRoot();
+    const three = [
+      row({ recipeId: 'recipe_a' }),
+      row({ recipeId: 'recipe_b' }),
+      row({ recipeId: 'recipe_c' }),
+    ];
+    paintInto(el, three);
+    el.querySelector<HTMLButtonElement>('[data-focus-key="learn:recipe_c"]')?.focus();
+    paintInto(el, [three[0], three[1], row({ recipeId: 'recipe_c', affordable: false })]);
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toBe('learn:recipe_b');
+    el.remove();
+  });
+
+  it('lands on the nearest surviving row when the ladder came back shorter', () => {
+    // Focus the third row, repaint with two: the exact key is gone and the
+    // remembered slot is out of range, so the slot fallback must land on the
+    // new last row, never skip the ladder for the close button. (The
+    // Math.min clamp itself is outcome-equivalent to the out-of-range walk;
+    // what this decides is that the slot fallback survives a shrink at all.)
+    const el = attachedRoot();
+    paintInto(el, [
+      row({ recipeId: 'recipe_a' }),
+      row({ recipeId: 'recipe_b' }),
+      row({ recipeId: 'recipe_c' }),
+    ]);
+    el.querySelector<HTMLButtonElement>('[data-focus-key="learn:recipe_c"]')?.focus();
+    paintInto(el, [row({ recipeId: 'recipe_a' }), row({ recipeId: 'recipe_b' })]);
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toBe('learn:recipe_b');
+    el.remove();
+  });
+
+  it('falls to the close button when every row came back disabled', () => {
+    const el = attachedRoot();
+    paintInto(el, [row({ recipeId: 'recipe_a' })]);
+    el.querySelector<HTMLButtonElement>('[data-focus-key="learn:recipe_a"]')?.focus();
+    paintInto(el, [row({ recipeId: 'recipe_a', affordable: false })]);
+    expect((document.activeElement as HTMLElement).dataset.focusKey).toBe('close');
+    el.remove();
+  });
+
+  it('never steals focus that was outside the window', () => {
+    const el = attachedRoot();
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    paintInto(el, [row({ recipeId: 'recipe_a' })]);
+    outside.focus();
+    paintInto(el, [row({ recipeId: 'recipe_a' })]);
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
+    el.remove();
   });
 });

@@ -15,6 +15,7 @@ import type {
   ActionBarSlotState,
   ActionBarState,
 } from '../../src/ui/hud/action_bar/action_bar_view';
+import { MOBILE_ACTION_BUTTONS } from '../../src/ui/hud/action_bar/mobile_action_page_view';
 import { MobileActionRingPainter } from '../../src/ui/hud/action_bar/mobile_action_ring_painter';
 import { boolToggleNextValue, buildInterfaceControls } from '../../src/ui/options_view';
 import { makeWriterFacet } from '../../src/ui/painter_host';
@@ -31,6 +32,7 @@ function slot(kind: ActionBarSlotState['kind']): ActionBarSlotState {
     kind,
     abilityId: null,
     itemId: null,
+    petCommand: null,
     iconKey: kind === 'attack' ? '__attack' : '',
     cooldownRemaining: 0,
     cooldownTotal: 0,
@@ -42,9 +44,16 @@ function slot(kind: ActionBarSlotState['kind']): ActionBarSlotState {
     usable: true,
     outOfRange: false,
     queued: false,
+    aiming: false,
     procGlow: false,
     empowered: false,
+    naturesBoonGlow: false,
+    ascensionSpender: false,
+    ascensionCostLabel: '',
+    fateConsumeReady: false,
+    fateSentenceReady: false,
     ariaLabel: kind,
+    ariaDescription: '',
     keybindLabel: '',
   };
 }
@@ -90,7 +99,8 @@ describe.each(VIEWPORTS)('mobile Attack setting in $label', ({ width, height }) 
 
     const ring = document.createElement('div');
     ring.id = 'mobile-action-ring';
-    const slots = Array.from({ length: 6 }, (_, index) => ringSlot(index));
+    // The ring is the attack toggle plus MOBILE_ACTION_BUTTONS radial buttons.
+    const slots = Array.from({ length: MOBILE_ACTION_BUTTONS + 1 }, (_, index) => ringSlot(index));
     ring.append(...slots.map((entry) => entry.btn));
     const pageToggle = document.createElement('button');
     const pageIndicator = document.createElement('span');
@@ -111,7 +121,10 @@ describe.each(VIEWPORTS)('mobile Attack setting in $label', ({ width, height }) 
       (key) => key,
     );
     const state: ActionBarState = {
-      slots: [slot('attack'), ...Array.from({ length: 5 }, () => slot('empty'))],
+      slots: [
+        slot('attack'),
+        ...Array.from({ length: MOBILE_ACTION_BUTTONS }, () => slot('empty')),
+      ],
       manySpells: false,
     };
     const paint = () => painter.paint(state, 0, 1, settings.get('showAttackButton'));

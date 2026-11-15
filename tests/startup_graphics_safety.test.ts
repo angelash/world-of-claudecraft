@@ -1,10 +1,22 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { safeStartupGraphicsPreset } from '../src/game/startup_graphics_safety';
+import { PROFILE_TOKENS } from './helpers/profile_tokens';
 
 const ULTRA = 4;
 const HIGH = 3;
 const MEDIUM = 2;
+
+function closingBrace(source: string, openBrace: number): number {
+  let depth = 0;
+  for (let index = openBrace; index < source.length; index++) {
+    if (source[index] === '{') depth++;
+    if (source[index] !== '}') continue;
+    depth--;
+    if (depth === 0) return index;
+  }
+  throw new Error('unterminated source block');
+}
 
 describe('safeStartupGraphicsPreset', () => {
   it('downgrades a saved Ultra preset on iOS Safari (webkit + mobile, not native)', () => {
@@ -35,7 +47,86 @@ describe('safeStartupGraphicsPreset', () => {
 describe('constrained renderer integration', () => {
   it('uses the resolved dynamic-shadow policy for both the WebGL map and sun pass', () => {
     const source = readFileSync(new URL('../src/render/renderer.ts', import.meta.url), 'utf8');
+    // The shadow arm lives in src/render/compile_arms.ts; the renderer binds
+    // its gate to the same static preset knob the WebGL map and the sun read.
+    const arms = readFileSync(new URL('../src/render/compile_arms.ts', import.meta.url), 'utf8');
+    const prewarmMethod = arms.indexOf('export function runShadowArm<T>(');
+    const prewarmGuard = arms.indexOf('if (!host.shadowArm()) return null;', prewarmMethod);
+    const prewarmTraversal = arms.indexOf('root.traverse((obj) => {', prewarmMethod);
+
     expect(source).toContain('this.webgl.shadowMap.enabled = GFX.dynamicShadows;');
     expect(source).toContain('sun.castShadow = GFX.dynamicShadows;');
+    expect(source).toContain('shadowArm: () => GFX.dynamicShadows && this.asyncCompileSupported,');
+    expect(prewarmMethod).toBeGreaterThanOrEqual(0);
+    expect(prewarmGuard).toBeGreaterThan(prewarmMethod);
+    expect(prewarmGuard).toBeLessThan(prewarmTraversal);
+  });
+
+  it('gates shadow-only CPU work while retaining the crowd animation bands', () => {
+    const source = readFileSync(new URL('../src/render/renderer.ts', import.meta.url), 'utf8');
+    // The band plan is filled into a renderer-owned object rather than
+    // allocated per frame; what this test guards is that it is still computed
+    // from the live rig count, not which of the two entry points computes it.
+    expect(source).toContain(`const lodBands = characterLodBandsInto(
+      this.characterLodPlan,
+      this.lastVisibleRigCount,`);
+    expect(source).toContain(`const shadowRangeSq = lodBands.shadowRangeSq;
+    const shadowsEnabled = this.sun.castShadow;`);
+    const remoteViews = source.indexOf('visibleRigCount++; // crowd-density signal');
+    const shadowGate = source.indexOf('if (shadowsEnabled) {', remoteViews);
+    const shadowGateEnd = closingBrace(source, source.indexOf('{', shadowGate));
+    const cadence = source.indexOf('const cadence = animCadenceFrames(d2, lodBands);');
+    expect(remoteViews).toBeGreaterThan(-1);
+    expect(shadowGate).toBeGreaterThan(remoteViews);
+    expect(cadence).toBeGreaterThan(shadowGateEnd);
+    expect(source.slice(shadowGate, shadowGateEnd)).toContain('v.visual?.setProxyShadow(');
+    expect(source.slice(shadowGate, shadowGateEnd)).toContain(
+      'v.mountVisual?.setShadow(wantFormShadow);',
+    );
+    for (const condition of ['if (shadowsEnabled) {', 'if (this.sun.castShadow) {']) {
+      let conditionAt = source.indexOf(condition);
+      while (conditionAt >= 0) {
+        const blockEnd = closingBrace(source, source.indexOf('{', conditionAt));
+        expect(source.slice(conditionAt, blockEnd)).not.toContain(
+          'animCadenceFrames(d2, lodBands)',
+        );
+        conditionAt = source.indexOf(condition, blockEnd);
+      }
+    }
+    // sun.castShadow is assigned GFX.dynamicShadows and never reassigned, so the
+    // prewarm gate above pins the same policy through the static preset knob.
+    expect(source).toContain('shadowArm: () => GFX.dynamicShadows && this.asyncCompileSupported,');
+    expect(source).toContain('if (this.lowGfx && !this.sun.castShadow) return;');
+    // The gather-node view runs its shadow shed off sun.castShadow itself (it
+    // reads the flag inside update, never the governor), at both frame sites.
+    const stripped = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    expect(stripped.match(/this\.gatherNodes\.update\(this\.camera, this\.sun,/g)).toHaveLength(2);
+    const gatherNodes = readFileSync(
+      new URL('../src/render/gather_nodes.ts', import.meta.url),
+      'utf8',
+    )
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+    expect(gatherNodes).toContain('sun.castShadow');
+    for (const token of PROFILE_TOKENS) {
+      expect(gatherNodes.includes(token), `gather_nodes.ts must not read ${token}`).toBe(false);
+    }
+  });
+
+  it('keys fixed LOW daylight by biome and invalidates it for developer overrides', () => {
+    const source = readFileSync(new URL('../src/render/renderer.ts', import.meta.url), 'utf8');
+    expect(source).toContain('if (this.lowGfx && DAY_ONLY && phaseOverride === null) {');
+    expect(source).toContain('if (this.fixedLowDayBiome !== biome) {');
+    expect(source).toContain('this.fixedLowDayBiome = biome;');
+    expect(source).toContain(`} else {
+      this.fixedLowDayBiome = null;`);
+    // The dome's camera anchor goes through the Buried Hoard seam
+    // (hoard_valley_frame.ts setSkyCamera: the camera outside a valley, the dig
+    // zone's sky point inside one), still on every tier ahead of the LOW gate.
+    expect(
+      source.match(
+        /hoardValley\.setSkyCamera\(this\.skyView, this\.sim\.riftFloor, this\.camera\.position, dt\);\n\s+if \(!this\.lowGfx\) \{/g,
+      ),
+    ).toHaveLength(2);
   });
 });

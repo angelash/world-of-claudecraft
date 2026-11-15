@@ -1,0 +1,825 @@
+import { describe, expect, it } from 'vitest';
+import {
+  ANIM_REPAIR_FRAMES,
+  type AnimActionWeight,
+  type AnimState,
+  advanceBankRoll,
+  advanceSwimPitch,
+  advanceTreadBlend,
+  applyLocoDirection,
+  BANK_FULL_SPEED,
+  BANK_FULL_YAW_RATE,
+  BANK_ROLL_MAX,
+  castHoldStep,
+  desiredBaseState,
+  drivesPose,
+  GAIT_WIND_DOWN_SETTLE,
+  gaitWindDownTimeScale,
+  isSubmergedAtHeadHeight,
+  isWadingAtDepth,
+  locomotionTimeScale,
+  needsAnimRepair,
+  SWIM_PITCH_FULL_SPEED,
+  SWIM_PITCH_MAX,
+  scanAnimRepair,
+  shouldInterruptLanding,
+  shouldPlayLanding,
+  shouldPlayOutCastExit,
+  TURN_LEAN_MAX,
+  weaponStowedOverlay,
+  yawRateBetween,
+} from '../src/render/characters/anim_state';
+
+// A three.js SkinnedMesh renders BIND POSE (arms out, the T-pose) whenever the
+// summed effective weight of the mixer's scheduled actions is below 1: the
+// PropertyMixer blends the deficit back toward the bind transform. These
+// helpers are the pure half of the watchdog that catches a rig left with no
+// action driving it at all.
+
+const driving = (effectiveWeight: number): AnimActionWeight => ({
+  scheduled: true,
+  effectiveWeight,
+});
+/** stop()ped actions keep a stale effective weight; the mixer ignores them */
+const stopped = (effectiveWeight: number): AnimActionWeight => ({
+  scheduled: false,
+  effectiveWeight,
+});
+
+const anim = (over: Partial<AnimState> = {}): AnimState => ({
+  speed: 0,
+  moving: false,
+  running: false,
+  airborne: false,
+  backwards: false,
+  dead: false,
+  casting: false,
+  swimming: false,
+  submerged: false,
+  swimPitch: 0,
+  wading: false,
+  sitting: false,
+  ...over,
+});
+
+describe('cat prowl states', () => {
+  const choose = (over: Partial<AnimState>) =>
+    desiredBaseState(anim({ stealthed: true, ...over }), true, true, true, true, true);
+
+  it('crouches while concealed and uses the stalking gait even at a running speed', () => {
+    expect(choose({ combat: true })).toBe('prowlIdle');
+    expect(choose({ moving: true, running: true })).toBe('prowlWalk');
+    expect(choose({ moving: true, backwards: true })).toBe('prowlWalk');
+    expect(choose({ stealthed: false, moving: true, running: true })).toBe('run');
+  });
+
+  it('keeps higher-priority poses and rigs without prowl clips unchanged', () => {
+    expect(choose({ airborne: true })).toBe('jump');
+    expect(choose({ swimming: true })).toBe('swimIdle');
+    expect(choose({ sitting: true })).toBe('sit');
+    expect(choose({ casting: true })).toBe('cast');
+    expect(choose({ moving: true, wading: true })).toBe('wade');
+    expect(desiredBaseState(anim({ stealthed: true }), true)).toBe('idle');
+    expect(desiredBaseState(anim({ stealthed: true, moving: true }), true)).toBe('walk');
+  });
+
+  it('matches stalk tempo to its own foot speed and reverses backpedaling', () => {
+    expect(locomotionTimeScale('prowlWalk', anim({ speed: 1.4 }), 2.2, 7, 1.4)).toBe(1);
+    expect(
+      locomotionTimeScale('prowlWalk', anim({ speed: 1.4, backwards: true }), 2.2, 7, 1.4),
+    ).toBe(-1);
+    expect(locomotionTimeScale('prowlIdle', anim())).toBeNull();
+    expect(
+      locomotionTimeScale('walkBack', anim({ speed: 4.25, backwards: true }), 1.4, 7, 6, 4.25),
+    ).toBe(1);
+    expect(locomotionTimeScale('run', anim({ speed: 3.5 }), 2.12, 7, 6, 4.25, 0.35)).toBe(0.5);
+    expect(locomotionTimeScale('run', anim({ speed: 3.5 }), 2.12, 7)).toBe(0.6);
+  });
+});
+
+describe('swimming head-height selection', () => {
+  it('keeps the cat surfaced at its physical surface pivot, including after a dive', () => {
+    // Surface feet stay .75 below the waterline; the posed cat head is 1.0
+    // above that pivot. The humanoid height fraction incorrectly submerged it.
+    expect(isSubmergedAtHeadHeight(false, true, 0.75, 1)).toBe(false);
+    expect(isSubmergedAtHeadHeight(false, true, 1.1, 1)).toBe(true);
+    expect(isSubmergedAtHeadHeight(true, true, 0.75, 1)).toBe(false);
+    expect(isSubmergedAtHeadHeight(false, true, 1.019, 1)).toBe(false);
+    expect(isSubmergedAtHeadHeight(false, true, 1.021, 1)).toBe(true);
+    expect(isSubmergedAtHeadHeight(true, true, 0.779, 1)).toBe(false);
+    expect(isSubmergedAtHeadHeight(true, true, 0.781, 1)).toBe(true);
+    expect(isSubmergedAtHeadHeight(true, false, 1.1, 1)).toBe(false);
+  });
+});
+
+describe('landing recovery interruption', () => {
+  it('recovers on the ground and releases for any new physical motion', () => {
+    expect(shouldInterruptLanding(anim())).toBe(false);
+    expect(shouldInterruptLanding(anim({ moving: true }))).toBe(true);
+    expect(shouldInterruptLanding(anim({ airborne: true }))).toBe(true);
+    expect(shouldInterruptLanding(anim({ swimming: true }))).toBe(true);
+  });
+});
+
+describe('drivesPose', () => {
+  it('accepts a scheduled action at full weight', () => {
+    expect(drivesPose(driving(1))).toBe(true);
+  });
+
+  it('rejects a stopped action even though its last weight is stale at full', () => {
+    expect(drivesPose(stopped(1))).toBe(false);
+  });
+
+  it('rejects a scheduled action whose fade-out has completed', () => {
+    expect(drivesPose(driving(0))).toBe(false);
+    expect(drivesPose(driving(0.01))).toBe(false);
+  });
+
+  it('rejects nothing at all', () => {
+    expect(drivesPose(null)).toBe(false);
+  });
+});
+
+describe('needsAnimRepair', () => {
+  it('flags a rig whose only action was stopped (bind pose with no way back)', () => {
+    expect(needsAnimRepair([stopped(1), stopped(0)], false)).toBe(true);
+  });
+
+  it('flags a rig whose actions all faded out to zero', () => {
+    expect(needsAnimRepair([driving(0), driving(0)], false)).toBe(true);
+  });
+
+  it('does not flag a normal crossfade, whose halves still sum to one', () => {
+    expect(needsAnimRepair([driving(0.6), driving(0.4)], false)).toBe(false);
+  });
+
+  it('does not flag the first frame of a partnered fade-in', () => {
+    expect(needsAnimRepair([driving(0.93), driving(0.07)], false)).toBe(false);
+  });
+
+  it('does not flag a clamped-hold one-shot (a statue at full weight, not a T-pose)', () => {
+    // A finished LoopOnce action with clampWhenFinished is PAUSED, so three's
+    // isRunning() is false, yet it still accumulates at weight 1. The predicate
+    // must key off scheduling + weight, never off isRunning().
+    expect(needsAnimRepair([driving(1), stopped(0)], false)).toBe(false);
+  });
+
+  it('does not flag a dead-locked rig (the death clip clamps by design)', () => {
+    expect(needsAnimRepair([stopped(1)], true)).toBe(false);
+    // the same rig, alive, is starved: dead-lock is what suppresses it
+    expect(needsAnimRepair([stopped(1)], false)).toBe(true);
+  });
+
+  it('does not flag a rig that has no actions at all (clip-less prop rigs)', () => {
+    expect(needsAnimRepair([], false)).toBe(false);
+  });
+});
+
+describe('scanAnimRepair', () => {
+  it('does not repair on the first starved frame (a legitimate fade-in starts at zero)', () => {
+    const scan = scanAnimRepair(0, [driving(0)], false);
+    expect(scan.starvedFrames).toBe(1);
+    expect(scan.repair).toBe(false);
+  });
+
+  it('repairs on the third consecutive starved frame, not before', () => {
+    expect(ANIM_REPAIR_FRAMES).toBe(3);
+    const first = scanAnimRepair(0, [driving(0)], false);
+    const second = scanAnimRepair(first.starvedFrames, [driving(0)], false);
+    const third = scanAnimRepair(second.starvedFrames, [driving(0)], false);
+    expect([first.repair, second.repair, third.repair]).toEqual([false, false, true]);
+    expect([first.starvedFrames, second.starvedFrames]).toEqual([1, 2]);
+  });
+
+  it('forgets a starved run interrupted by a driven frame', () => {
+    const first = scanAnimRepair(0, [driving(0)], false);
+    const second = scanAnimRepair(first.starvedFrames, [driving(0)], false);
+    const driven = scanAnimRepair(second.starvedFrames, [driving(1)], false);
+    const third = scanAnimRepair(driven.starvedFrames, [driving(0)], false);
+    const fourth = scanAnimRepair(third.starvedFrames, [driving(0)], false);
+    expect([driven.repair, third.repair, fourth.repair]).toEqual([false, false, false]);
+  });
+
+  it('re-arms after a repair so a rig that is still starved is driven again', () => {
+    const scan = scanAnimRepair(ANIM_REPAIR_FRAMES - 1, [driving(0)], false);
+    expect(scan.repair).toBe(true);
+    expect(scan.starvedFrames).toBe(0);
+  });
+
+  it('resets the counter as soon as an action drives the pose again', () => {
+    const starved = scanAnimRepair(ANIM_REPAIR_FRAMES - 1, [driving(1)], false);
+    expect(starved.starvedFrames).toBe(0);
+    expect(starved.repair).toBe(false);
+  });
+
+  it('never repairs a dead-locked rig, however long it holds', () => {
+    let starvedFrames = 0;
+    for (let i = 0; i < ANIM_REPAIR_FRAMES * 3; i++) {
+      const scan = scanAnimRepair(starvedFrames, [stopped(1)], true);
+      starvedFrames = scan.starvedFrames;
+      expect(scan.repair).toBe(false);
+    }
+    expect(starvedFrames).toBe(0);
+  });
+
+  it('never repairs a crossfading rig, however long it runs', () => {
+    let starvedFrames = 0;
+    for (let i = 0; i < ANIM_REPAIR_FRAMES * 3; i++) {
+      const scan = scanAnimRepair(starvedFrames, [driving(0.5), driving(0.5)], false);
+      starvedFrames = scan.starvedFrames;
+      expect(scan.repair).toBe(false);
+    }
+  });
+});
+
+describe('desiredBaseState', () => {
+  it('never asks for walkBack when the loaded rig has no such action', () => {
+    // The mixer falls back to the plain walk action when walkBack is missing
+    // (baseAction), so a state machine that still believes it is in walkBack
+    // desyncs from what is actually playing.
+    const backwards = anim({ moving: true, backwards: true });
+    expect(desiredBaseState(backwards, false)).toBe('walk');
+    expect(desiredBaseState({ ...backwards, running: true }, false)).toBe('run');
+  });
+
+  it('asks for walkBack when the rig really has the clip', () => {
+    expect(desiredBaseState(anim({ moving: true, backwards: true }), true)).toBe('walkBack');
+  });
+
+  it('keeps the forward clip for a rig that backpedals by reversing it', () => {
+    expect(
+      desiredBaseState(anim({ moving: true, backwards: true, reverseBackpedal: true }), true),
+    ).toBe('walk');
+  });
+
+  it('keeps the documented precedence over locomotion', () => {
+    const moving = { moving: true, backwards: true };
+    expect(desiredBaseState(anim({ ...moving, swimming: true }), true)).toBe('swimSurface');
+    expect(desiredBaseState(anim({ ...moving, swimming: true, submerged: true }), true)).toBe(
+      'swim',
+    );
+    expect(desiredBaseState(anim({ ...moving, airborne: true }), true)).toBe('jump');
+    expect(desiredBaseState(anim({ ...moving, spinning: true }), true)).toBe('spin');
+    expect(desiredBaseState(anim({ ...moving, casting: true }), true)).toBe('cast');
+    expect(desiredBaseState(anim({ ...moving, sitting: true }), true)).toBe('sit');
+    expect(desiredBaseState(anim(), true)).toBe('idle');
+  });
+});
+
+describe('advanceBankRoll', () => {
+  // The sim's facing grows counter-clockwise (forward is `(sin f, cos f)`), so a
+  // POSITIVE yaw rate is a left-hand turn; the pose wrap's +Z raises the body's
+  // left side. Leaning INTO a left turn drops that side, hence a negative roll.
+  it('leans into the turn, not away from it', () => {
+    let roll = 0;
+    for (let i = 0; i < 200; i++) roll = advanceBankRoll(roll, BANK_FULL_YAW_RATE, 99, 1 / 60);
+    expect(roll).toBeLessThan(0);
+    expect(roll).toBeCloseTo(-BANK_ROLL_MAX, 2);
+
+    let right = 0;
+    for (let i = 0; i < 200; i++) right = advanceBankRoll(right, -BANK_FULL_YAW_RATE, 99, 1 / 60);
+    expect(right).toBeCloseTo(BANK_ROLL_MAX, 2);
+  });
+
+  it('clamps a mouse flick instead of throwing the body on its side', () => {
+    let roll = 0;
+    for (let i = 0; i < 200; i++) roll = advanceBankRoll(roll, 40, 99, 1 / 60);
+    expect(roll).toBeCloseTo(-BANK_ROLL_MAX, 2);
+  });
+
+  it('does not bank a body that is turning on the spot', () => {
+    let roll = 0;
+    for (let i = 0; i < 200; i++) roll = advanceBankRoll(roll, BANK_FULL_YAW_RATE, 0, 1 / 60);
+    expect(roll).toBeCloseTo(0, 5);
+  });
+
+  it('scales with travel up to the full-authority speed', () => {
+    let half = 0;
+    for (let i = 0; i < 200; i++) {
+      half = advanceBankRoll(half, BANK_FULL_YAW_RATE, BANK_FULL_SPEED / 2, 1 / 60);
+    }
+    expect(half).toBeCloseTo(-BANK_ROLL_MAX / 2, 2);
+  });
+
+  it('unwinds to level when the turn stops', () => {
+    let roll = -BANK_ROLL_MAX;
+    for (let i = 0; i < 200; i++) roll = advanceBankRoll(roll, 0, 99, 1 / 60);
+    expect(Math.abs(roll)).toBeLessThan(1e-3);
+  });
+
+  it('takes a land lean far smaller than a swimmer bank', () => {
+    let lean = 0;
+    for (let i = 0; i < 200; i++) {
+      lean = advanceBankRoll(lean, BANK_FULL_YAW_RATE, 99, 1 / 60, TURN_LEAN_MAX);
+    }
+    expect(lean).toBeCloseTo(-TURN_LEAN_MAX, 3);
+    expect(Math.abs(lean)).toBeLessThan(BANK_ROLL_MAX / 3);
+  });
+
+  it('survives a non-finite rate or speed', () => {
+    expect(advanceBankRoll(0, Number.NaN, 9, 1 / 60)).toBeCloseTo(0, 6);
+    expect(advanceBankRoll(0, 1, Number.NaN, 1 / 60)).toBeCloseTo(0, 6);
+  });
+});
+
+describe('yawRateBetween', () => {
+  it('takes the short way around the wrap', () => {
+    // Without wrapping, a heading crossing +/-PI reads as a 360deg/frame flick
+    // and slams the body onto its side for one frame.
+    const rate = yawRateBetween(Math.PI - 0.05, -Math.PI + 0.05, 0.1);
+    expect(rate).toBeCloseTo(1, 5);
+  });
+
+  it('is zero on a stalled frame', () => {
+    expect(yawRateBetween(0, 1, 0)).toBe(0);
+  });
+});
+
+// Upstream's battle stance (v0.42): an IDLE variant every other pose outranks.
+// Fourth argument is the stance clip.
+describe('desiredBaseState (battle stance)', () => {
+  it('holds the battle stance instead of the idle while engaged and standing', () => {
+    expect(desiredBaseState(anim({ combat: true }), true, true, true)).toBe('combatIdle');
+    // Not engaged: the relaxed idle, exactly as before the stance existed.
+    expect(desiredBaseState(anim(), true, true, true)).toBe('idle');
+  });
+
+  it('never asks for the battle stance when the loaded rig has no stance clip', () => {
+    // Same rule as walkBack: baseAction() falls back to the plain idle action, so
+    // a machine believing it is in combatIdle would desync from what is playing.
+    expect(desiredBaseState(anim({ combat: true }), true, true, false)).toBe('idle');
+    // ...and the default is off, so every existing rig is untouched by the flag.
+    expect(desiredBaseState(anim({ combat: true }), true, true)).toBe('idle');
+  });
+
+  it('lets every other pose outrank the battle stance', () => {
+    // The stance is an IDLE variant: it must lose to anything that describes the
+    // body actually doing something. One arm per competing branch, since a single
+    // combined case would pass on any one of them working.
+    const fighting = { combat: true };
+    expect(desiredBaseState(anim({ ...fighting, moving: true }), true, true, true)).toBe('walk');
+    expect(
+      desiredBaseState(anim({ ...fighting, moving: true, running: true }), true, true, true),
+    ).toBe('run');
+    expect(desiredBaseState(anim({ ...fighting, swimming: true }), true, true, true)).toBe(
+      'swimIdle',
+    );
+    expect(desiredBaseState(anim({ ...fighting, airborne: true }), true, true, true)).toBe('jump');
+    expect(desiredBaseState(anim({ ...fighting, spinning: true }), true, true, true)).toBe('spin');
+    expect(desiredBaseState(anim({ ...fighting, casting: true }), true, true, true)).toBe('cast');
+    expect(desiredBaseState(anim({ ...fighting, sitting: true }), true, true, true)).toBe('sit');
+  });
+});
+
+// A Q/E strafe slides the body sideways at the full run speed. A rig that ships
+// both side runs plays them; every other rig keeps the run it always played.
+describe('desiredBaseState strafe', () => {
+  const strafing = (over: Partial<AnimState> = {}) =>
+    anim({ moving: true, running: true, speed: 7, strafe: 'left', ...over });
+  /** A rig with walkBack and both side runs (the WOC player bodies). The positions
+   *  are walkBack, wade, glide, combatIdle, prowlIdle, prowlWalk, braced, strafe. */
+  const withSideRuns = (s: AnimState, hasWalkBack = true) =>
+    desiredBaseState(s, hasWalkBack, true, true, false, false, false, true);
+
+  it('plays the side run for the side the body travels toward', () => {
+    expect(withSideRuns(strafing())).toBe('strafeLeft');
+    expect(withSideRuns(strafing({ strafe: 'right' }))).toBe('strafeRight');
+  });
+
+  it('keeps the run for a rig without both side runs (the default)', () => {
+    expect(desiredBaseState(strafing(), true)).toBe('run');
+    expect(desiredBaseState(strafing(), true, true, true, false, false, false, false)).toBe('run');
+  });
+
+  it('keeps a slow sideways walk on the walk cycle', () => {
+    expect(withSideRuns(strafing({ running: false, speed: 2.2 }))).toBe('walk');
+  });
+
+  it('only strafes while moving: a stale side on a standing body is an idle', () => {
+    expect(withSideRuns(strafing({ moving: false, running: false, speed: 0 }))).toBe('idle');
+    expect(withSideRuns(strafing({ moving: false, running: false, combat: true }))).toBe(
+      'combatIdle',
+    );
+    expect(withSideRuns(anim({ moving: true, running: true, speed: 7, strafe: null }))).toBe('run');
+  });
+
+  it('never strafes a backpedal, whatever the rig covers it with', () => {
+    const back = strafing({ backwards: true });
+    expect(withSideRuns(back)).toBe('walkBack');
+    // no walkBack clip, or a rig that reverses its forward cycle: still the run
+    expect(withSideRuns(back, false)).toBe('run');
+    expect(withSideRuns(strafing({ backwards: true, reverseBackpedal: true }))).toBe('run');
+  });
+
+  it('yields to every higher-priority pose (one arm per competing branch)', () => {
+    expect(withSideRuns(strafing({ wading: true }))).toBe('wade');
+    expect(
+      desiredBaseState(strafing({ stealthed: true }), true, true, true, true, true, false, true),
+    ).toBe('prowlWalk');
+    expect(withSideRuns(strafing({ swimming: true }))).toBe('swimSurface');
+    expect(withSideRuns(strafing({ airborne: true }))).toBe('jump');
+    expect(withSideRuns(strafing({ spinning: true }))).toBe('spin');
+    expect(withSideRuns(strafing({ casting: true }))).toBe('cast');
+    expect(withSideRuns(strafing({ sitting: true }))).toBe('sit');
+    // stealth WITHOUT a prowl clip (every humanoid) strafes as usual
+    expect(withSideRuns(strafing({ stealthed: true }))).toBe('strafeLeft');
+  });
+});
+
+describe('applyLocoDirection', () => {
+  it('feeds every direction fact, overwriting the last entity the scratch held', () => {
+    const s = anim({ backwards: true, reverseBackpedal: true, strafe: 'right' });
+    applyLocoDirection(s, { backwards: false, strafe: 'left' }, false);
+    expect([s.backwards, s.reverseBackpedal, s.strafe]).toEqual([false, false, 'left']);
+    applyLocoDirection(s, { backwards: true, strafe: null }, true);
+    expect([s.backwards, s.reverseBackpedal, s.strafe]).toEqual([true, true, null]);
+  });
+});
+
+describe('locomotionTimeScale', () => {
+  it('matches foot speed against the walk reference, clamped', () => {
+    expect(locomotionTimeScale('walk', { speed: 2.2, backwards: false })).toBeCloseTo(1);
+    expect(locomotionTimeScale('walk', { speed: 0.1, backwards: false })).toBeCloseTo(0.6);
+    expect(locomotionTimeScale('walk', { speed: 99, backwards: false })).toBeCloseTo(1.8);
+  });
+
+  it('matches foot speed against the run reference, clamped', () => {
+    expect(locomotionTimeScale('run', { speed: 7, backwards: false })).toBeCloseTo(1);
+    expect(locomotionTimeScale('run', { speed: 99, backwards: false })).toBeCloseTo(1.6);
+  });
+
+  it('lets a rig raise the cadence ceilings past the stock clamp', () => {
+    // A mount travels at ONE fixed speed, so its time scale is a constant and
+    // the CEILING binds, not the reference: past that point lowering the ref
+    // changes nothing and the knob reads as dead. The Valestrider's real
+    // numbers, forward at RUN_SPEED 7 * 1.8 = 12.6 yd/s.
+    const fast = { speed: 12.6, backwards: false };
+    // stock ceiling: 12.6/7.64 and 12.6/7.16 both saturate to the same 1.6
+    expect(locomotionTimeScale('run', fast, undefined, 7.64)).toBeCloseTo(1.6);
+    expect(locomotionTimeScale('run', fast, undefined, 7.16)).toBeCloseTo(1.6);
+    // raised ceiling: the reference is live again and the two differ
+    expect(
+      locomotionTimeScale(
+        'run',
+        fast,
+        undefined,
+        7.64,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2,
+      ),
+    ).toBeCloseTo(1.649);
+    expect(
+      locomotionTimeScale(
+        'run',
+        fast,
+        undefined,
+        7.16,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2,
+      ),
+    ).toBeCloseTo(1.76);
+    // reverse: 12.6 * BACKPEDAL_MULT 0.65 = 8.19 against the walk band
+    expect(locomotionTimeScale('walkBack', { speed: 8.19, backwards: true }, 5.52)).toBeCloseTo(
+      1.484,
+    );
+    // a raised ceiling never LOWERS anything: below it, nothing changes
+    expect(
+      locomotionTimeScale(
+        'run',
+        { speed: 7, backwards: false },
+        undefined,
+        7,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2,
+      ),
+    ).toBeCloseTo(1);
+  });
+
+  it('brakes an outgoing gait to a HOLD early in its crossfade', () => {
+    const fade = 0.22;
+    const brake = fade * GAIT_WIND_DOWN_SETTLE; // 0.044s
+    // Full cadence on the frame the fade starts, then straight down.
+    expect(gaitWindDownTimeScale(1.76, 0, fade)).toBeCloseTo(1.76);
+    expect(gaitWindDownTimeScale(1.76, brake / 2, fade)).toBeCloseTo(0.88);
+    // Frozen by the end of the brake, which is a fifth of the way in: the
+    // REST of the crossfade blends a still pose, so the legs return to idle
+    // from wherever they were instead of playing out the cycle.
+    expect(gaitWindDownTimeScale(1.76, brake, fade)).toBeCloseTo(0);
+    expect(gaitWindDownTimeScale(1.76, fade / 2, fade)).toBeCloseTo(0);
+    expect(gaitWindDownTimeScale(1.76, fade, fade)).toBeCloseTo(0);
+    // Never goes NEGATIVE however long the caller keeps ticking: a negative
+    // scale would run the outgoing clip backwards under the blend.
+    expect(gaitWindDownTimeScale(1.76, 99, fade)).toBe(0);
+    // A zero-length fade freezes immediately rather than dividing by zero.
+    expect(gaitWindDownTimeScale(1.2, 0, 0)).toBe(0);
+    // The brake is proportional to the cadence the clip was actually at, so a
+    // sprint and an amble both take the same TIME to stop.
+    expect(gaitWindDownTimeScale(0.6, brake / 2, fade)).toBeCloseTo(0.3);
+  });
+
+  it('returns null for every non-locomotion pose', () => {
+    for (const state of ['idle', 'cast', 'spin', 'sit', 'jump'] as const) {
+      expect(locomotionTimeScale(state, { speed: 4, backwards: false }), state).toBeNull();
+    }
+  });
+
+  it('paces both swim strokes off swim speed, and never reverses them', () => {
+    for (const state of ['swim', 'swimSurface'] as const) {
+      // clamped either side, so a drifting swimmer still strokes
+      expect(locomotionTimeScale(state, { speed: 0, backwards: false }), state).toBeCloseTo(0.55);
+      expect(locomotionTimeScale(state, { speed: 3.2, backwards: false }), state).toBeCloseTo(1);
+      expect(locomotionTimeScale(state, { speed: 99, backwards: false }), state).toBeCloseTo(1.4);
+      // a backpedalling swimmer pulls slower, it never plays the stroke backwards
+      const value = locomotionTimeScale(state, {
+        speed: 2,
+        backwards: true,
+        reverseBackpedal: true,
+      });
+      expect(value, state).toBeGreaterThan(0);
+    }
+  });
+
+  it('reverses the forward clip only for a backpedalling reverse rig', () => {
+    const back = { speed: 2.2, backwards: true, reverseBackpedal: true };
+    expect(locomotionTimeScale('walk', back)).toBeCloseTo(-1);
+    // an authored walkBack clip plays FORWARD; only the reversed fallback negates
+    expect(locomotionTimeScale('walkBack', back)).toBeCloseTo(1);
+    expect(locomotionTimeScale('walk', { ...back, backwards: false })).toBeCloseTo(1);
+  });
+
+  it('matches both side runs against strafeRef, clamped like the run', () => {
+    for (const state of ['strafeLeft', 'strafeRight'] as const) {
+      const at = (speed: number) => ({ speed, backwards: false });
+      // strafeRef is the LAST parameter, defaulting to the run's reference
+      expect(locomotionTimeScale(state, at(7)), state).toBeCloseTo(1);
+      expect(locomotionTimeScale(state, at(3.5), 2.2, 3.5), state).toBeCloseTo(1);
+      // strafeRef rides after the cadence ceilings (walkMax, runMax)
+      expect(
+        locomotionTimeScale(state, at(5), 2.2, 7, 2.2, 2.2, 0.6, undefined, undefined, 5),
+        state,
+      ).toBeCloseTo(1);
+      expect(
+        locomotionTimeScale(state, at(4), 2.2, 7, 2.2, 2.2, 0.6, undefined, undefined, 5),
+        state,
+      ).toBeCloseTo(0.8);
+      // the run's clamp: 1.6 on top, runTimeScaleMin (default 0.6) underneath
+      expect(locomotionTimeScale(state, at(99)), state).toBeCloseTo(1.6);
+      expect(locomotionTimeScale(state, at(0.5)), state).toBeCloseTo(0.6);
+      expect(locomotionTimeScale(state, at(0.5), 2.2, 7, 2.2, 2.2, 0.35), state).toBeCloseTo(0.35);
+    }
+  });
+
+  it('never reverses a side run, even for a rig that reverses its backpedal', () => {
+    const odd = { speed: 7, backwards: true, reverseBackpedal: true };
+    expect(locomotionTimeScale('strafeLeft', odd)).toBeCloseTo(1);
+    expect(locomotionTimeScale('strafeRight', odd)).toBeCloseTo(1);
+    // (the run under the same flags DOES reverse: the branch is what differs)
+    expect(locomotionTimeScale('run', odd)).toBeCloseTo(-1);
+  });
+});
+
+// A swimmer noses over toward wherever they are actually travelling, so the
+// stroke reads as aimed rather than as a flat body sliding down a lift shaft.
+// It follows MOTION, not the local camera, so peers pitch too and the pose can
+// never contradict the descent it is drawn against.
+describe('swim pitch follow', () => {
+  /** Run the ease to rest at a held vertical speed. */
+  const settle = (verticalSpeed: number, swimming = true, from = 0): number => {
+    let pitch = from;
+    for (let i = 0; i < 240; i++) pitch = advanceSwimPitch(pitch, verticalSpeed, swimming, 1 / 60);
+    return pitch;
+  };
+
+  it('holds level when the body holds its depth', () => {
+    expect(settle(0)).toBeCloseTo(0, 5);
+  });
+
+  it('noses DOWN while descending and UP while climbing', () => {
+    expect(settle(-SWIM_PITCH_FULL_SPEED)).toBeCloseTo(SWIM_PITCH_MAX, 4);
+    expect(settle(SWIM_PITCH_FULL_SPEED)).toBeCloseTo(-SWIM_PITCH_MAX, 4);
+  });
+
+  it('clamps, so a fast lift cannot stand the body on its head', () => {
+    expect(settle(-40)).toBeCloseTo(SWIM_PITCH_MAX, 4);
+    expect(settle(40)).toBeCloseTo(-SWIM_PITCH_MAX, 4);
+  });
+
+  it('eases rather than snapping: one frame moves a fraction of the way', () => {
+    const oneFrame = advanceSwimPitch(0, -SWIM_PITCH_FULL_SPEED, true, 1 / 60);
+    expect(oneFrame).toBeGreaterThan(0);
+    expect(oneFrame).toBeLessThan(SWIM_PITCH_MAX * 0.2);
+  });
+
+  it('unwinds to level on leaving the water, even mid-dive', () => {
+    expect(settle(-SWIM_PITCH_FULL_SPEED, false, SWIM_PITCH_MAX)).toBeCloseTo(0, 5);
+  });
+
+  it('survives a NaN carried in from a divide by a zero frame time', () => {
+    expect(Number.isFinite(advanceSwimPitch(Number.NaN, -1, true, 1 / 60))).toBe(true);
+  });
+});
+
+// The water lane has four phases now, and which one plays is the whole point:
+// stroke while moving, tread while still, wade while the ground is still there.
+describe('water base states', () => {
+  const swimming = (over: Partial<AnimState> = {}) =>
+    anim({ swimming: true, moving: true, speed: 3, ...over });
+
+  it('treads water when a swimmer stops, at any depth', () => {
+    expect(desiredBaseState(swimming({ moving: false }), true)).toBe('swimIdle');
+    expect(desiredBaseState(swimming({ moving: false, submerged: true }), true)).toBe('swimIdle');
+  });
+
+  it('strokes while moving, picking the stroke by depth', () => {
+    expect(desiredBaseState(swimming(), true)).toBe('swimSurface');
+    expect(desiredBaseState(swimming({ submerged: true }), true)).toBe('swim');
+  });
+
+  it('wades instead of walking or running when the feet are in water', () => {
+    const wading = anim({ moving: true, wading: true, speed: 5, running: true });
+    // one cycle covers both gaits...
+    expect(desiredBaseState(wading, true)).toBe('wade');
+    expect(desiredBaseState({ ...wading, running: false }, true)).toBe('wade');
+    // ...and it is the WATER that picks it, not the pace
+    expect(desiredBaseState({ ...wading, wading: false }, true)).toBe('run');
+  });
+
+  it('does not wade while standing still, or while swimming', () => {
+    expect(desiredBaseState(anim({ wading: true }), true)).toBe('idle');
+    expect(desiredBaseState(swimming({ wading: true }), true)).toBe('swimSurface');
+  });
+
+  it('holds the tread at its own tempo but matches the wade to the pace', () => {
+    expect(locomotionTimeScale('swimIdle', { speed: 0.4, backwards: false })).toBeNull();
+    const slow = locomotionTimeScale('wade', { speed: 2, backwards: false });
+    const fast = locomotionTimeScale('wade', { speed: 6, backwards: false });
+    expect(slow).not.toBeNull();
+    expect(slow!).toBeLessThan(fast!);
+    expect(fast!).toBeLessThanOrEqual(1.45);
+    expect(slow!).toBeGreaterThanOrEqual(0.65);
+  });
+});
+
+describe('the wade latch', () => {
+  it('needs the water over the ankle, and lets go later than it caught', () => {
+    expect(isWadingAtDepth(false, false, false, 0.1)).toBe(false);
+    expect(isWadingAtDepth(false, false, false, 0.3)).toBe(true);
+    // hysteresis: still wading just under the enter depth, dry well below it
+    expect(isWadingAtDepth(true, false, false, 0.15)).toBe(true);
+    expect(isWadingAtDepth(true, false, false, 0.05)).toBe(false);
+  });
+
+  it('is off while swimming, while dead, and out of the water entirely', () => {
+    expect(isWadingAtDepth(true, true, false, 2)).toBe(false);
+    expect(isWadingAtDepth(true, false, true, 2)).toBe(false);
+    expect(isWadingAtDepth(true, false, false, Number.NEGATIVE_INFINITY)).toBe(false);
+  });
+});
+
+// The tread swaps the body between two water poses that sit a third of a yard
+// apart vertically, so the OFFSET has to ease even though the clips crossfade
+// on their own. This is the half a unit test can hold: that no single frame
+// moves a large share of that distance, at any frame rate.
+describe('tread blend', () => {
+  it('starts at rest and settles at the target', () => {
+    expect(advanceTreadBlend(0, false, 1 / 60)).toBeCloseTo(0, 6);
+    let b = 0;
+    for (let i = 0; i < 240; i++) b = advanceTreadBlend(b, true, 1 / 60);
+    expect(b).toBeCloseTo(1, 4);
+    for (let i = 0; i < 240; i++) b = advanceTreadBlend(b, false, 1 / 60);
+    expect(b).toBeCloseTo(0, 4);
+  });
+
+  it('never jumps: one frame covers only a slice of the remaining gap', () => {
+    expect(advanceTreadBlend(0, true, 1 / 60)).toBeLessThan(0.12);
+    expect(advanceTreadBlend(0, true, 1 / 30)).toBeLessThan(0.22);
+  });
+
+  it('is frame-rate independent: the same wall-clock lands in the same place', () => {
+    let fast = 0;
+    for (let i = 0; i < 60; i++) fast = advanceTreadBlend(fast, true, 1 / 120);
+    let slow = 0;
+    for (let i = 0; i < 15; i++) slow = advanceTreadBlend(slow, true, 1 / 30);
+    expect(fast).toBeCloseTo(slow, 3); // both are half a second in
+  });
+
+  it('shrugs off a NaN and a negative frame time', () => {
+    expect(Number.isFinite(advanceTreadBlend(Number.NaN, true, 1 / 60))).toBe(true);
+    expect(advanceTreadBlend(0.5, true, -1)).toBeCloseTo(0.5, 6);
+  });
+});
+
+describe('shouldPlayLanding', () => {
+  // (wasAirborne, airborne, dead, hasLandClip, swimming = false)
+  it('fires exactly on the airborne -> grounded edge', () => {
+    expect(shouldPlayLanding(true, false, false, true)).toBe(true);
+  });
+
+  it('stays silent while still airborne, so the jump pose keeps its hold', () => {
+    expect(shouldPlayLanding(true, true, false, true)).toBe(false);
+  });
+
+  it('stays silent on the ground and on the takeoff edge', () => {
+    expect(shouldPlayLanding(false, false, false, true)).toBe(false);
+    expect(shouldPlayLanding(false, true, false, true)).toBe(false);
+  });
+
+  it('does nothing for a rig with no landing clip (every pre-existing rig)', () => {
+    expect(shouldPlayLanding(true, false, false, false)).toBe(false);
+  });
+
+  it('yields to death: a body killed mid-air collapses, it does not stick a landing', () => {
+    expect(shouldPlayLanding(true, false, true, true)).toBe(false);
+  });
+
+  it('yields to water: a jump that ends in a lake enters the swim, not a landing', () => {
+    // The grounded edge fires as the feet pass the swim latch too; the water
+    // entry owns that frame (advanceSwimBlend), so no touchdown one-shot plays.
+    expect(shouldPlayLanding(true, false, false, true, true)).toBe(false);
+    expect(shouldPlayLanding(true, false, false, true, false)).toBe(true);
+  });
+});
+
+describe('weaponStowedOverlay', () => {
+  it('draws normally when the player has it drawn and is neither swimming nor mounted', () => {
+    expect(weaponStowedOverlay(false, false, false)).toBe(false);
+  });
+
+  it("respects the player's own sheathe choice on dry land, unmounted", () => {
+    expect(weaponStowedOverlay(true, false, false)).toBe(true);
+  });
+
+  it('forces the sheathed pose while swimming, regardless of the sim bit', () => {
+    expect(weaponStowedOverlay(false, true, false)).toBe(true);
+    expect(weaponStowedOverlay(true, true, false)).toBe(true);
+  });
+
+  it('forces the sheathed pose while mounted, regardless of the sim bit', () => {
+    expect(weaponStowedOverlay(false, false, true)).toBe(true);
+    expect(weaponStowedOverlay(true, false, true)).toBe(true);
+  });
+
+  it('forces the sheathed pose while sitting, regardless of the sim bit', () => {
+    expect(weaponStowedOverlay(false, false, false, true)).toBe(true);
+    expect(weaponStowedOverlay(true, false, false, true)).toBe(true);
+    expect(weaponStowedOverlay(false, false, false, false)).toBe(false);
+  });
+
+  it('is only ever an overlay: it never reports drawn when any input says stowed', () => {
+    expect(weaponStowedOverlay(true, true, true)).toBe(true);
+    // Swimming and mounted can never both be true in the live sim (mounting
+    // auto-dismounts on water entry), but the pure overlay still resolves the
+    // combination correctly rather than depending on that sim invariant.
+    expect(weaponStowedOverlay(false, true, true)).toBe(true);
+  });
+});
+
+describe('castHoldStep (freeze the pointing frame while the cast channels)', () => {
+  // The Forgefather's Casting clip: 1.033s, pointing gesture peak at 0.72s.
+  const DURATION = 1.033;
+  const HOLD = 0.72;
+
+  it('plays the raise forward untouched until the hold point', () => {
+    expect(castHoldStep(0, HOLD, DURATION)).toEqual({ paused: false });
+    expect(castHoldStep(HOLD - 0.01, HOLD, DURATION)).toEqual({ paused: false });
+  });
+
+  it('freezes exactly on the hold frame, pinning a coarse-frame overshoot onto it', () => {
+    expect(castHoldStep(HOLD, HOLD, DURATION)).toEqual({ paused: true, time: HOLD });
+    expect(castHoldStep(HOLD + 0.2, HOLD, DURATION)).toEqual({ paused: true, time: HOLD });
+  });
+
+  it('disables the freeze when the hold point is not inside the clip', () => {
+    expect(castHoldStep(0.5, 0, DURATION)).toEqual({ paused: false });
+    expect(castHoldStep(0.5, DURATION, DURATION)).toEqual({ paused: false });
+  });
+});
+
+describe('shouldPlayOutCastExit (finish the clip instead of snapping to base)', () => {
+  const PLAY_OUT = ['Casting', 'Slam'];
+
+  it('plays out a listed clip that was cut mid-way (the Slam recovery)', () => {
+    // frontal cast ends at clip-time 1.62 of 2.433: the stand-back-up must play
+    expect(shouldPlayOutCastExit(PLAY_OUT, 'Slam', 1.62, 2.433)).toBe(true);
+    expect(shouldPlayOutCastExit(PLAY_OUT, 'Casting', 0.72, 1.033)).toBe(true);
+  });
+
+  it('does nothing for a clip that already reached its end', () => {
+    expect(shouldPlayOutCastExit(PLAY_OUT, 'Slam', 2.433, 2.433)).toBe(false);
+  });
+
+  it('leaves unlisted clips on the instant handoff (the Forging cadence loop)', () => {
+    expect(shouldPlayOutCastExit(PLAY_OUT, 'Forging', 0.9, 1.633)).toBe(false);
+    expect(shouldPlayOutCastExit(undefined, 'Slam', 1.62, 2.433)).toBe(false);
+    expect(shouldPlayOutCastExit(PLAY_OUT, null, 1.62, 2.433)).toBe(false);
+  });
+});

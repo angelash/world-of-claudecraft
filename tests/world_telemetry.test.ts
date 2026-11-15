@@ -3,7 +3,11 @@ import { telemetryZoneId } from '../src/game/world_telemetry';
 import {
   ARENA_X_MIN,
   DUNGEON_X_THRESHOLD,
+  DUNGEONS,
   delveOrigin,
+  instanceOrigin,
+  RIFT_BAND_X_MIN,
+  riftInstanceOrigin,
   YUMI_BAND_X_MAX,
   YUMI_BAND_X_MIN,
 } from '../src/sim/data';
@@ -19,7 +23,12 @@ describe('telemetry zone id', () => {
   });
 
   it('reports a bounded dungeon-scoped id inside a dungeon band', () => {
-    expect(telemetryZoneId(900, 0)).toBe('dungeon:hollow_crypt');
+    // Derived from instanceOrigin, never a literal: this fork's INSTANCE_X_BASE
+    // is 99_400, so upstream's hard-coded plane x lands in the overworld here.
+    // Derived from the band helper, never a literal x: the atlas-grid world
+    // moved every instance band far east of the old single-strip coordinates.
+    const crypt = instanceOrigin(DUNGEONS.hollow_crypt.index, 0);
+    expect(telemetryZoneId(crypt.x, crypt.z)).toBe('dungeon:hollow_crypt');
   });
 
   it('reports a bounded delve-scoped id inside a delve band', () => {
@@ -33,10 +42,28 @@ describe('telemetry zone id', () => {
     expect(telemetryZoneId(YUMI_BAND_X_MIN + 10, 0)).toBe('yumi_maze');
   });
 
+  it('reports the fixed rift id inside the rift band, never the instance fallback', () => {
+    // Rift sessions must not fold into the generic 'instance' bucket: the fleet
+    // perf dimension needs rifts separable to correlate degradation reports.
+    const first = riftInstanceOrigin(0, 0);
+    expect(telemetryZoneId(first.x, first.z)).toBe('rift');
+    // A deeper floor of a later slot stays on the same bounded id.
+    const deep = riftInstanceOrigin(5, 3);
+    expect(telemetryZoneId(deep.x, deep.z)).toBe('rift');
+  });
+
   it('keeps the defensive fallbacks bounded for unmapped instance coordinates', () => {
     // A delve-band slot with no delve record behind it (only indexes 0-1 have
     // content today) still emits a bounded label, never a raw coordinate.
-    expect(telemetryZoneId(7900, 0)).toBe('delve:unknown');
+    // The tail of the delve band, past the last authored room. Upstream v0.40
+    // retired the Vale Cup practice band, so the delve band now meets the rift
+    // band directly and that ceiling is the one to probe under. Derived from
+    // the band constants because this fork ships two delves, not upstream's set.
+    expect(telemetryZoneId(RIFT_BAND_X_MIN - 1, 0)).toBe('delve:unknown');
+    // Between the last authored delve slot and the band ceiling: inside the
+    // delve band by position, with no delve record behind it.
+    const pastLastDelve = delveOrigin(1, 0).x + 300;
+    expect(telemetryZoneId(pastLastDelve, 0)).toBe('delve:unknown');
     // Past every mapped band (beyond the yumi maze ceiling) folds to the
     // generic instance label.
     expect(telemetryZoneId(YUMI_BAND_X_MAX + 10, 0)).toBe('instance');

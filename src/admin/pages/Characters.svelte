@@ -2,28 +2,33 @@
   import { onMount } from 'svelte';
   import type { CharacterRow, Paginated } from '../types';
   import { apiGet } from '../api';
+  import { type AdminLoadFailure, classifyAdminLoadFailure } from '../load_failure';
+  import PermissionDenied from '../components/PermissionDenied.svelte';
   import { auth } from '../state/auth.svelte';
   import { SEARCH_DEBOUNCE_MS } from '../state/poll';
   import { t } from '../i18n';
   import Panel from '../components/Panel.svelte';
   import Pager from '../components/Pager.svelte';
   import CharactersTable from '../components/CharactersTable.svelte';
+  import CharacterProfessionsModal from '../components/CharacterProfessionsModal.svelte';
 
   let characters = $state<Paginated<CharacterRow> | null>(null);
-  let failed = $state(false);
+  let failed = $state<AdminLoadFailure>('none');
   let search = $state('');
   let sort = $state('level');
   let dir = $state<'asc' | 'desc'>('desc');
   let page = $state(1);
   let searchTimer: ReturnType<typeof setTimeout> | null = null;
+  // R35 professions inspector: the character whose modal is open.
+  let inspected = $state<CharacterRow | null>(null);
 
   async function refresh(): Promise<void> {
     try {
       const params = new URLSearchParams({ page: String(page), search, sort, dir });
       characters = await apiGet<Paginated<CharacterRow>>(`/admin/api/characters?${params}`);
-      failed = false;
+      failed = 'none';
     } catch (err) {
-      if (!auth.handleAuthFailure(err)) failed = true;
+      if (!auth.handleAuthFailure(err)) failed = classifyAdminLoadFailure(err);
     }
   }
 
@@ -72,9 +77,25 @@
       </div>
     {/if}
   </div>
-  {#if failed}
+  {#if failed === 'forbidden'}
+    <PermissionDenied />
+  {:else if failed === 'error'}
     <div class="empty">{t('characters.loadFailed')}</div>
   {:else if characters}
-    <CharactersTable rows={characters.rows} {sort} {dir} {onSort} />
+    <CharactersTable
+      rows={characters.rows}
+      {sort}
+      {dir}
+      {onSort}
+      onInspectProfessions={(row) => (inspected = row)}
+    />
   {/if}
 </Panel>
+
+{#if inspected}
+  <CharacterProfessionsModal
+    characterId={inspected.id}
+    characterName={inspected.name}
+    onClose={() => (inspected = null)}
+  />
+{/if}

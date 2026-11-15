@@ -30,6 +30,7 @@ function masteryOnly(cls: PlayerClass, specId: string) {
 
 function known(cls: PlayerClass, id: string, spec?: string): KnownAbility {
   const mods = spec ? masteryOnly(cls, spec) : undefined;
+  if (mods && spec) mods.spec = spec;
   const ability = abilitiesKnownAt(cls, 20, mods).find((a) => a.def.id === id);
   if (!ability) throw new Error(`missing ${cls} ability ${id}`);
   return ability;
@@ -68,14 +69,22 @@ describe('spec masteries', () => {
         { ability: 'healing_wave', costPct: -0.2 },
       ],
     });
-    expect(TALENTS.warlock?.specs.find((s) => s.id === 'affliction')?.mastery.effect).toEqual({
-      global: { dotDmgPct: 0.2 },
+    const afflictionMastery = TALENTS.warlock?.specs.find((s) => s.id === 'affliction')?.mastery;
+    expect(afflictionMastery?.name).toBe('Sentence');
+    expect(afflictionMastery?.effect).toEqual({
+      ability: [
+        { ability: 'needle_of_fate', dmgPct: 0.1 },
+        { ability: 'sentence', dmgPct: 0.1 },
+        // Owner ruling 2026-08-08: the viability pass authored Litany's ranks
+        // expecting the mastery on top; the wiring was missed when it landed.
+        { ability: 'litany_of_guilt', dmgPct: 0.1 },
+      ],
     });
     // Mage rework (owner leveling pass 2026-07-14): Fire's mastery is Ignition, a
     // crit-triggered burn (ignitionPct) plus a static +2% crit chance, not the old
     // Afterflame crit-damage bonus.
     expect(TALENTS.mage?.specs.find((s) => s.id === 'fire')?.mastery.effect).toEqual({
-      global: { ignitionPct: 0.4 },
+      global: { ignitionPct: 0.3 },
       stats: { crit: 0.02 },
     });
     expect(TALENTS.mage?.specs.find((s) => s.id === 'frost')?.mastery.effect).toEqual({
@@ -88,7 +97,7 @@ describe('spec masteries', () => {
       stats: { armorPct: 0.1 },
     });
     expect(TALENTS.hunter?.specs.find((s) => s.id === 'beast_mastery')?.mastery.effect).toEqual({
-      global: { petDmgPct: 0.35 },
+      global: { petDmgPct: 0.25 },
       stats: { maxHpPct: 0.08 },
     });
     // Balance pass: the penalty is gone; the Sword Specialization extra-attack
@@ -97,26 +106,30 @@ describe('spec masteries', () => {
       global: { meleeHastePct: 0.1, extraAttackPct: 0.05 },
     });
     expect(TALENTS.warlock?.specs.find((s) => s.id === 'demonology')?.mastery.effect).toEqual({
-      global: { petDmgSharePct: 0.2 },
+      global: { petDmgPct: 0.2, petDmgSharePct: 0.2 },
       stats: { staPct: 0.1 },
     });
   });
 
   it('authors the all-27 extension mastery effects exactly', () => {
+    // staPct carries the tank-parity floor that used to live in SPEC_BASELINES:
+    // an overhauled class keeps its passive floor on the mastery (see Recompense
+    // on the warrior), and without a stamina multiplier Faithwarden sat at 76% of
+    // the prot warrior's effective HP.
     expect(TALENTS.paladin?.specs.find((s) => s.id === 'protection')?.mastery.effect).toEqual({
-      global: { threatPct: 0.5 },
-      stats: { armorPct: 0.2 },
+      global: { threatPct: 1.0 },
+      stats: { armorPct: 0.2, staPct: 0.35 },
     });
     expect(TALENTS.paladin?.specs.find((s) => s.id === 'retribution')?.mastery.effect).toEqual({
       global: { meleeDmgPct: 0.2, spellDmgPct: 0.2 },
     });
     expect(TALENTS.hunter?.specs.find((s) => s.id === 'marksmanship')?.mastery.effect).toEqual({
-      global: { meleeDmgPct: 0.2 },
+      global: { meleeDmgPct: 0.12 },
       stats: { crit: 0.03 },
     });
     // Balance pass: Quickblood is the evasive-skirmisher mastery.
     expect(TALENTS.hunter?.specs.find((s) => s.id === 'survival')?.mastery.effect).toEqual({
-      stats: { agiPct: 0.15, dodge: 0.04 },
+      stats: { agiPct: 0.2, dodge: 0.04 },
     });
     // Mage rework: the 'arcane' internal id is now the Chronomancy healer (Chronoweave
     // mastery), so its effect boosts healing/mana, not spell damage.
@@ -133,12 +146,14 @@ describe('spec masteries', () => {
         { ability: 'crippling_poison', dmgPct: 0.1 },
       ],
     });
-    // Balance pass: tuned down plus the Duskveil stealth-speed identity.
+    // Balance pass: tuned down plus the Duskveil stealth-speed identity. Duskveil
+    // and Smokefade run at full speed for every rogue, so buffPct 0.15 lifts the
+    // 1.0 aura to 1.15.
     expect(TALENTS.rogue?.specs.find((s) => s.id === 'subtlety')?.mastery.effect).toEqual({
       global: { critDmgPhysPct: 0.25 },
       ability: [
-        { ability: 'stealth', buffPct: 0.5 },
-        { ability: 'vanish', buffPct: 0.5 },
+        { ability: 'stealth', buffPct: 0.15 },
+        { ability: 'vanish', buffPct: 0.15 },
       ],
     });
     expect(TALENTS.priest?.specs.find((s) => s.id === 'holy')?.mastery.effect).toEqual({
@@ -147,6 +162,9 @@ describe('spec masteries', () => {
     expect(TALENTS.priest?.specs.find((s) => s.id === 'shadow')?.mastery.effect).toEqual({
       global: { dotDmgPct: 0.15, spellDmgPct: 0.1 },
     });
+    expect(TALENTS.shaman?.specs.find((s) => s.id === 'elemental')?.mastery.effect).toEqual({
+      global: { spellDmgPct: 0.15, spellHastePct: 0.1 },
+    });
     expect(TALENTS.shaman?.specs.find((s) => s.id === 'enhancement')?.mastery.effect).toEqual({
       global: { meleeHastePct: 0.1, meleeDmgPct: 0.1 },
     });
@@ -154,23 +172,27 @@ describe('spec masteries', () => {
       global: { spellDmgPct: 0.15, spellHastePct: 0.1 },
     });
     expect(TALENTS.druid?.specs.find((s) => s.id === 'feral')?.mastery.effect).toEqual({
-      global: { meleeDmgPct: 0.15, dotDmgPct: 0.15, threatPct: 0.2 },
+      global: { meleeDmgPct: 0.5, dotDmgPct: 0.5, threatPct: 0.45 },
       // The v0.27 Dire Bruin retune rides the mastery now that the old
       // feral_choice_bear node is retired.
       stats: { armorPct: 0.15 },
     });
-    // Balance pass (maintainer sheet): the scoped Ruinbolt/Gloom Bolt amp.
-    expect(TALENTS.warlock?.specs.find((s) => s.id === 'destruction')?.mastery.effect).toEqual({
-      ability: [
-        { ability: 'chaos_bolt', dmgPct: 0.2 },
-        { ability: 'shadow_bolt', dmgPct: 0.2 },
-      ],
-    });
+    // Destruction's mastery is now the rotational Desolation mechanic, owned
+    // by combat/destruction.ts rather than a flat TalentEffect modifier.
+    expect(TALENTS.warlock?.specs.find((s) => s.id === 'destruction')?.mastery.effect).toEqual({});
   });
 
   it('bakes DoT, HoT, absorb, cost, and melee damage mastery fields into abilities', () => {
     expect(effect(known('warlock', 'corruption'), 'dot').total).toBe(85);
-    expect(effect(known('warlock', 'corruption', 'affliction'), 'dot').total).toBe(102);
+    // 2026-08-09 120s band round re-pin: needle rank-3 base stepped 45-53 to
+    // 41-49 in the Hexcraft trim (41/49 times the affliction mastery rider).
+    expect(effect(known('warlock', 'needle_of_fate', 'affliction'), 'directDamage')).toMatchObject({
+      min: 45,
+      max: 54,
+    });
+    expect(effect(known('warlock', 'sentence', 'affliction'), 'afflictionSentence')).toMatchObject({
+      damageMult: 1.1,
+    });
 
     expect(effect(known('druid', 'rejuvenation'), 'hot').total).toBe(168);
     expect(effect(known('druid', 'rejuvenation', 'restoration'), 'hot').total).toBe(210);
@@ -189,13 +211,18 @@ describe('spec masteries', () => {
 
   it('applies petDmgPct at BOTH the melee and ranged pet damage sites, not only the helper', () => {
     // Drive the actual damage sites (a regression that drops `dmg *= petDamageMult` at
-    // either would still pass a helper-only assertion). Same seed + fixed rolls + an
-    // identical dummy (armor cancels in the ratio) isolate the multiplier: BM's Packbond (petDmgPct 0.35)
-    // must deal exactly 1.35x what a no-pet-mastery spec's identical pet deals.
+    // either would still pass a helper-only assertion). A fixed attack-site RNG + an
+    // identical dummy (armor cancels in the ratio) isolate the multiplier: Packlord's
+    // Packbond (petDmgPct 0.25) must deal exactly 1.25x what a no-pet-mastery spec's
+    // identical pet deals.
     const setup = (spec: string) => {
       const sim = new Sim({ seed: 11, playerClass: 'hunter', autoEquip: true });
       sim.setPlayerLevel(20);
       sim.setSpec(spec);
+      // World construction consumes the shared RNG, so pin subsequent combat rolls:
+      // adding unrelated world content must not move this multiplier test across an
+      // integer-rounding boundary.
+      (sim as unknown as { rng: { next: () => number } }).rng.next = () => 0.5;
       const pet = createMob(9101, MOBS.forest_wolf, 20, sim.player.pos);
       pet.ownerId = sim.player.id;
       pet.weapon = { ...pet.weapon, min: 100, max: 100 };
@@ -235,40 +262,103 @@ describe('spec masteries', () => {
     const meleeBm = dealtMelee('beast_mastery');
     const meleeNone = dealtMelee('marksmanship');
     expect(meleeNone).toBeGreaterThan(0);
-    expect(meleeBm / meleeNone).toBeCloseTo(1.35, 2);
+    expect(meleeBm / meleeNone).toBeCloseTo(1.25, 2);
 
     const rangedBm = dealtRanged('beast_mastery');
     const rangedNone = dealtRanged('marksmanship');
     expect(rangedNone).toBeGreaterThan(0);
-    expect(rangedBm / rangedNone).toBeCloseTo(1.35, 2);
+    expect(rangedBm / rangedNone).toBeCloseTo(1.25, 2);
   });
 
-  it('Veinleech (siphon_life) leeches: the affliction dot tick heals the caster', () => {
+  it("applies Unleashed Frenzy (+25% pet damage) at BOTH the melee and ranged pet damage sites, not only Pack Command/Unleash Beast's own strikes", () => {
+    // Regression: hunter_packlord.ts, hunter_shared.ts, pet_ai.ts, and sim.ts each had
+    // their own copy of "the pet damage multiplier", and only the hunter_packlord.ts
+    // copy (used by Pack Command/Unleash Beast/Frenzy Cleave's own petStrike calls)
+    // carried the Unleashed Frenzy 1.25x term. The pet's ordinary auto-attacks
+    // (mobSwing) and ranged bolts (updateRangedPetAttack), which are the bulk of its
+    // damage, silently kept dealing normal damage through the whole frenzy window.
+    // Same setup as the petDmgPct test above, marksmanship (0 petDmgPct) isolates the
+    // frenzy term specifically.
+    const setup = (frenzied: boolean) => {
+      const sim = new Sim({ seed: 13, playerClass: 'hunter', autoEquip: true });
+      sim.setPlayerLevel(20);
+      sim.setSpec('marksmanship');
+      (sim as unknown as { rng: { next: () => number } }).rng.next = () => 0.5;
+      if (frenzied) {
+        sim.player.auras.push({
+          id: 'pack_frenzy',
+          name: 'Unleashed Frenzy',
+          kind: 'hunter_frenzy',
+          remaining: 8,
+          duration: 8,
+          value: 0.25,
+          sourceId: sim.player.id,
+          school: 'physical',
+        });
+      }
+      const pet = createMob(9201, MOBS.forest_wolf, 20, sim.player.pos);
+      pet.ownerId = sim.player.id;
+      pet.weapon = { ...pet.weapon, min: 100, max: 100 };
+      pet.swingTimer = 0;
+      (sim as unknown as { addEntity(e: Entity): void }).addEntity(pet);
+      const dummy = createMob(9202, MOBS.forest_wolf, 20, {
+        x: sim.player.pos.x,
+        y: sim.player.pos.y,
+        z: sim.player.pos.z + 2,
+      });
+      dummy.maxHp = dummy.hp = 100000;
+      (sim as unknown as { addEntity(e: Entity): void }).addEntity(dummy);
+      return { sim, pet, dummy };
+    };
+    const dealtMelee = (frenzied: boolean): number => {
+      const { sim, pet, dummy } = setup(frenzied);
+      const before = dummy.hp;
+      (sim as unknown as { mobSwing(a: Entity, b: Entity): void }).mobSwing(pet, dummy);
+      return before - dummy.hp;
+    };
+    const dealtRanged = (frenzied: boolean): number => {
+      const { sim, pet, dummy } = setup(frenzied);
+      const spell = {
+        name: 'Test Bolt',
+        school: 'nature' as const,
+        min: 100,
+        max: 100,
+        range: 100,
+        every: 2,
+      };
+      const before = dummy.hp;
+      (
+        sim as unknown as { updateRangedPetAttack(p: Entity, t: Entity, s: typeof spell): void }
+      ).updateRangedPetAttack(pet, dummy, spell);
+      return before - dummy.hp;
+    };
+
+    const meleeCalm = dealtMelee(false);
+    const meleeFrenzied = dealtMelee(true);
+    expect(meleeCalm).toBeGreaterThan(0);
+    // A wider window than toBeCloseTo(1.25, 2): both sites deal a small integer
+    // amount, so a single Math.round can move the ratio a few percent off 1.25.
+    // Still decisive against a missing multiplier (ratio ~1.0) or a doubled one.
+    expect(meleeFrenzied / meleeCalm).toBeGreaterThan(1.15);
+    expect(meleeFrenzied / meleeCalm).toBeLessThan(1.35);
+
+    const rangedCalm = dealtRanged(false);
+    const rangedFrenzied = dealtRanged(true);
+    expect(rangedCalm).toBeGreaterThan(0);
+    expect(rangedFrenzied / rangedCalm).toBeGreaterThan(1.15);
+    expect(rangedFrenzied / rangedCalm).toBeLessThan(1.35);
+  });
+
+  it('replaces Veinleech with the Evil Eye Condemnation signature', () => {
     const sim = new Sim({ seed: 12, playerClass: 'warlock', autoEquip: true });
     sim.setPlayerLevel(20);
-    sim.setSpec('affliction'); // grants the Veinleech signature (siphon_life)
-    const caster = sim.player;
-    caster.hp = Math.round(caster.maxHp * 0.5); // leave room for the leech to heal
-    const target = createMob(9201, MOBS.forest_wolf, 20, {
-      x: caster.pos.x,
-      y: caster.pos.y,
-      z: caster.pos.z + 3,
-    });
-    target.hostile = true;
-    target.maxHp = target.hp = 100000;
-    (sim as unknown as { addEntity(e: Entity): void }).addEntity(target);
-    sim.targetEntity(target.id);
-    caster.facing = Math.atan2(target.pos.x - caster.pos.x, target.pos.z - caster.pos.z);
-    sim.castAbility('siphon_life');
+    sim.setSpec('affliction');
+    const knownIds = sim.players.get(sim.playerId)?.known.map((ability) => ability.def.id);
 
-    // Tick until a dot tick lands; the leech emits a heal2 whose target is the caster.
-    let selfHeal = false;
-    for (let i = 0; i < 20 * 6 && !selfHeal; i++) {
-      for (const ev of sim.tick()) {
-        if (ev.type === 'heal2' && ev.targetId === caster.id && ev.amount > 0) selfHeal = true;
-      }
-    }
-    expect(selfHeal).toBe(true);
+    expect(knownIds).toEqual(
+      expect.arrayContaining(['evil_eye', 'needle_of_fate', 'sentence', 'drain_life']),
+    );
+    expect(knownIds).not.toContain('siphon_life');
   });
 
   it('applies passive stat, pet damage, damage-share, and heal-crit masteries at runtime', () => {
@@ -284,7 +374,7 @@ describe('spec masteries', () => {
     hunterPet.ownerId = hunter.player.id;
     expect(
       (hunter as unknown as { petDamageMult(e: Entity): number }).petDamageMult(hunterPet),
-    ).toBeCloseTo(1.35);
+    ).toBeCloseTo(1.25);
 
     const paladin = new Sim({ seed: 6, playerClass: 'paladin', autoEquip: true });
     paladin.setPlayerLevel(20);
@@ -396,22 +486,22 @@ describe('spec masteries', () => {
       warrior: {
         arms: { global: 'masteryTwoHandDmgPct', value: 0.1 },
         fury: { stat: 'crit', value: 0.05 },
-        prot: { global: 'threatPct', value: 0.3 },
+        prot: { global: 'threatPct', value: 1.1 },
       },
       paladin: {
         holy: { global: 'critDmgHealPct', value: 0.5 },
-        protection: { global: 'threatPct', value: 0.5 },
+        protection: { global: 'threatPct', value: 1.0 },
         retribution: { global: 'meleeDmgPct', value: 0.2 },
       },
       hunter: {
-        beast_mastery: { global: 'petDmgPct', value: 0.35 },
-        marksmanship: { global: 'meleeDmgPct', value: 0.2 },
-        survival: { stat: 'agiPct', value: 0.15 },
+        beast_mastery: { global: 'petDmgPct', value: 0.25 },
+        marksmanship: { global: 'meleeDmgPct', value: 0.12 },
+        survival: { stat: 'agiPct', value: 0.2 },
       },
       mage: {
         // Mage rework: arcane is the Chronomancy healer (healing axis), fire is Ignition.
         arcane: { global: 'healPct', value: 0.15 },
-        fire: { global: 'ignitionPct', value: 0.4 },
+        fire: { global: 'ignitionPct', value: 0.3 },
         frost: { abilities: ['frostbolt', 'frost_nova'], dmgPct: 0.25 },
       },
       rogue: {
@@ -430,13 +520,12 @@ describe('spec masteries', () => {
         restoration: { abilities: ['chain_heal', 'healing_wave'], costPct: -0.2 },
       },
       warlock: {
-        affliction: { global: 'dotDmgPct', value: 0.2 },
+        affliction: { abilities: ['needle_of_fate', 'sentence'], dmgPct: 0.1 },
         demonology: { global: 'petDmgSharePct', value: 0.2 },
-        destruction: { abilities: ['chaos_bolt', 'shadow_bolt'], dmgPct: 0.2 },
       },
       druid: {
         balance: { global: 'spellDmgPct', value: 0.15 },
-        feral: { global: 'meleeDmgPct', value: 0.15 },
+        feral: { global: 'meleeDmgPct', value: 0.5 },
         restoration: { global: 'hotHealPct', value: 0.25 },
       },
     };

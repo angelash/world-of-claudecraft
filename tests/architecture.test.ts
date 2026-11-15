@@ -62,20 +62,40 @@ function onDiskCores(dir: string): string[] {
 
 // Blank out comments while preserving line count and column positions, so prose
 // (a code comment that names Math.random, or "the search window") cannot create a
-// false positive. String literals are left intact: the dotted patterns matched
-// below (Math.random, window., ...) do not appear inside the sim's player text.
+// false positive. A shared twin lives at tests/helpers/strip_comments.ts; this
+// copy stays local ON PURPOSE (a load-bearing guard stays self-contained) and
+// the two may drift independently. String literals are left intact: the dotted patterns matched
+// below (Math.random, window., ...) do not appear inside the sim's player text, and neither does
+// the $WOC firewall's vocabulary, whose two words the game DOES use of its own accord (treasury,
+// signature) are matched only in their money-affixed compound forms for exactly that reason.
+// One alternation, so leftmost-first matching decides precedence: a line comment
+// whose text contains /* is consumed AS a line comment instead of opening a
+// bogus block that swallows everything to the next */ elsewhere in the file
+// (that ordering bug exempted most of data.ts, its 53 imports included, from
+// every scan below). The (^|[^:]) guard keeps protocol strings (http://) intact.
 function stripComments(src: string): string {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  return src.replace(/\/\*[\s\S]*?\*\/|(^|[^:])\/\/[^\n]*/gm, (m, pre) =>
+    m.startsWith('/*') ? m.replace(/[^\n]/g, ' ') : (pre ?? ''),
+  );
 }
 
 // A specifier a host-agnostic sim file must never import. Returns the offending
-// layer/package, or null when the import is allowed.
+// layer/package, or null when the import is allowed. `server/` is banned like the
+// browser host layers (even type-only): server modules drag Node-only deps (pg,
+// node:*) that would break the sim in the browser, and shared server contracts are
+// REDECLARED in the sim with a test-side lockstep pin instead (the GuildRank
+// precedent: src/sim/guild_bank.ts GUILD_RANKS pinned by tests/guild_bank.test.ts).
 function forbiddenImport(spec: string): string | null {
   if (spec === 'three' || spec.startsWith('three/')) return 'three';
-  const layer = spec.match(/(?:^|\/)(render|ui|game|net)\//);
-  return layer ? layer[1] : null;
+  // The trailing slash is not required: `../server` and `../../server.js` are
+  // the same ban, and the slash-only form let both through. A layer name must
+  // therefore END the specifier, take a `/` (a file inside it), or take a `.js`
+  // extension. The leading `(?:^|\/)` still anchors the name to a path segment,
+  // so `my_server_helper` and `src/uiverse/x` are not matches.
+  const layer = spec.match(
+    /(?:^|\/)(render|ui|game|net|server)(?:\/|\.js)?$|(?:^|\/)(render|ui|game|net|server)\//,
+  );
+  return layer ? (layer[1] ?? layer[2]) : null;
 }
 
 // Same idea for a src/ui pure core: it lives in ui and may lean on sibling pure
@@ -111,9 +131,76 @@ function forbiddenRenderCoreImport(spec: string): string | null {
 const IMPORT_RE = /\b(?:import|export)\b[^;'"]*?\bfrom\s*['"]([^'"]+)['"]/g;
 const DYN_IMPORT_RE = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 const DOM_GLOBAL_RE = /\b(document|window|navigator|localStorage|sessionStorage)\s*[.[]/;
+
+// Value-position sibling of DOM_GLOBAL_RE above. The member-access form requires an
+// identifier immediately after a `.`/`[`, so it cannot see a browser global reached
+// any other way: a feature-detect (`typeof localStorage !== 'undefined' ?
+// localStorage : null`, the shape guild_hide_offline.ts and party_collapse.ts each
+// used to duplicate before being unified into src/ui/safe_local_storage.ts), a type
+// check against the same global (`instanceof Document` / `instanceof Window` /
+// `instanceof Storage`), or the global handed over bare in assignment/return/argument
+// position. Scoped narrower than the src/ui module-classification sweep's
+// UI_HOST_VALUE_RE below (no prose-safety burden here: a pure core carries no
+// player-facing English the way an i18n catalog does).
+const DOM_GLOBAL_VALUE_RE =
+  /\btypeof\s+(?:document|window|navigator|localStorage|sessionStorage)\b|\binstanceof\s+(?:Document|Window|Navigator|Storage)\b|(?:[=(]|\breturn\b)\s*(?:document|window|navigator|localStorage|sessionStorage)\s*[),;]/;
 const NONDETERMINISM_RE = /\b(Math\.random|Date\.now|performance\.now)\b/;
 
 const simFiles = walk(simRoot);
+
+describe('live graphics profile architecture', () => {
+  it('resolves renderer-bound layout and deferred preload choices from live GFX', () => {
+    const renderSource = (relativePath: string): string =>
+      readFileSync(join(repoRoot, 'src', 'render', relativePath), 'utf8');
+    const props = renderSource('props.ts');
+    const foliage = renderSource('foliage.ts');
+    // The merge band depth moved out of props.ts with the static merge itself
+    // (src/render/static_merge.ts); the live-GFX rule follows the code.
+    const staticMerge = renderSource('static_merge.ts');
+
+    expect(staticMerge).not.toMatch(/\bconst\s+MERGE_BAND_DEPTH\s*=\s*GFX\b/);
+    expect(staticMerge).toContain('export const mergeBandDepth = ():');
+    expect(props).toContain('deferredPropKeys ??= preloadPropKeys(GFX.standardMaterials)');
+    expect(foliage).not.toMatch(/\bconst\s+MODEL_URLS\s*=\s*GFX\b/);
+    expect(foliage).toContain('const foliageModelUrls = ():');
+    expect(foliage).toContain('foliageModelUrlsFor(GFX)');
+
+    const directDeferredProfiles = [
+      ['terrain.ts', 'prepareTerrainProfileAssets'],
+      ['detail_normals.ts', 'prepareStoneDetailProfileAssets'],
+      ['worn_stone.ts', 'prepareSurfaceDetailProfileAssets'],
+      ['canopy_detail.ts', 'prepareCanopyDetailProfileAssets'],
+      ['great_tree_prewarm.ts', 'prepareGreatTreeProfileAssets'],
+    ] as const;
+    for (const [relativePath, prepare] of directDeferredProfiles) {
+      expect(renderSource(relativePath)).toContain(
+        `registerDeferredPreload(() => ${prepare}(GFX))`,
+      );
+    }
+  });
+
+  it(
+    'registers every exported profile cache reset in the central invalidator',
+    () => {
+      const renderFiles = walk(join(repoRoot, 'src', 'render'));
+      const resetNames = new Set<string>();
+      for (const file of renderFiles) {
+        const source = stripComments(readFileSync(file, 'utf8'));
+        for (const match of source.matchAll(/\bexport function (reset\w+ProfileCaches?)\s*\(/g)) {
+          resetNames.add(match[1]);
+        }
+      }
+
+      const coordinator = stripComments(
+        readFileSync(join(repoRoot, 'src', 'render', 'assets', 'graphics_profile.ts'), 'utf8'),
+      );
+      const resetTable = coordinator.slice(coordinator.indexOf('const RESETTERS'));
+      expect(resetNames.size).toBeGreaterThan(20);
+      for (const resetName of resetNames) expect(resetTable).toContain(resetName);
+    },
+    process.platform === 'win32' ? 90_000 : 20_000,
+  );
+});
 
 // Curated src/ui pure cores: host-agnostic view models hud.ts imports, each
 // paired with a DOM painter that is deliberately NOT registered here. Seeded with
@@ -125,21 +212,180 @@ const simFiles = walk(simRoot);
 // import), so it is registered here even though it lives in src/game. Paths are
 // repo-relative for the failure messages.
 const UI_PURE_CORES = [
+  'src/ui/hud/referral_cards/referral_reward_core.ts',
+  'src/ui/hud/courier/courier_core.ts',
+  'src/ui/hud/referral_cards/referral_cards_view.ts',
+  // Whether the "restoring graphics" note shows over the held 3D view.
+  'src/ui/graphics_restore_note_view.ts',
+  'src/ui/ferry_port_map_core.ts',
+  'src/ui/frame_presets_core.ts',
+  // The landing select's and first-login prompt's shared graphics-choice policy.
+  'src/ui/graphics_choice_core.ts',
+  'src/ui/frame_menu_core.ts',
+  'src/ui/loot_quality_view.ts',
+  // The store purchase loot window and membership congratulation (painter:
+  // purchase_reward_dialogs.ts).
+  'src/ui/purchase_reward_view.ts',
+  // The tracked epic/legendary copy's history lines (origin, every later
+  // hand); the right-click Item history dialog renders them.
+  'src/ui/item_history_view.ts',
+  // Which record a viewer's Item history reads (the public projection for a
+  // copy someone else holds) and which door a trade row / bank cell shows.
+  'src/ui/item_history_access_view.ts',
+  // A copy's own display name (the World PvP trophy skull's "<name>'s Skull").
+  'src/ui/item_copy_name_core.ts',
+  'src/ui/item_combat_tooltip_view.ts',
+  'src/ui/treasure_map_tooltip_view.ts',
+  'src/ui/hud/action_bar/slot_edit_hints_core.ts',
+  'src/ui/trinket_tooltip_view.ts',
+  // The trinket auras' tooltip descriptor and their item-icon art map.
+  'src/ui/trinket_aura_effect.ts',
+  'src/ui/trinket_aura_art.ts',
+  // The zone-entry chat line (welcome hint vs the town-done line); the
+  // decision is the sim leaf src/sim/town_quests.ts, this maps it to text.
+  'src/ui/zone_entry_line_core.ts',
+  // The Pale Keeper's two-step revive copy (dialogue, then a level-aware confirm);
+  // hud.ts resolves the keys and owns the dialog DOM.
+  'src/ui/keeper_revive_dialog_core.ts',
+  // The one clamp and disabled rule the source picker's row steppers and the
+  // bank quantity prompt share (quantity_stepper.ts is their DOM consumer).
+  'src/ui/quantity_step_core.ts',
+  'src/ui/party_pids_core.ts',
+  // The one face-button tone rule, shared by the interact prompt and the pad
+  // hint strip so a printed glyph and its colour can never disagree.
+  'src/ui/micro_menu_state_view.ts',
+  'src/ui/ability_tooltip_lines.ts',
+  'src/ui/dawnreaver_damage_tooltip_core.ts',
+  'src/ui/proc_ready_glow_core.ts',
+  'src/ui/reticle_ticks_core.ts',
+  'src/ui/aura_watchlist_core.ts',
+  // The Cooldown Manager's per-frame core: readiness composed from the action
+  // bar's own pure view, the transform and glow flags, and the cue edges.
+  'src/ui/hud/cooldown_manager/cooldown_manager_view.ts',
+  'src/ui/collection_actions_core.ts',
+  'src/ui/hud/cosmetics/buddy_cosmetics_view.ts',
+  // The buddy presence and reveal chat lines.
+  'src/ui/buddy_event_lines.ts',
+  'src/ui/hud/cosmetics/cosmetics_cards_view.ts',
+  'src/ui/hud/cosmetics/cosmetics_view.ts',
+  'src/ui/hud/faction_reward_tooltip_view.ts',
+  'src/ui/hud/treasure/treasure_map_view.ts',
+  'src/ui/hud/treasure/ink_map_picker_view.ts',
+  'src/ui/hud/vehicle/vehicle_aim_core.ts',
+  'src/ui/hud/vehicle/vehicle_action_bar_view.ts',
+  'src/ui/hud/vehicle/glider_action_bar_view.ts',
+  'src/ui/hud/vehicle/cannon_feedback_core.ts',
+  'src/ui/hud/vehicle/cannon_tactics_view.ts',
+  'src/ui/map_entity_disclosure_core.ts',
+  'src/ui/map_navigation_landmarks_core.ts',
+  'src/ui/map_marker_profile_core.ts',
+  'src/ui/map_poi_label_clearance_core.ts',
+  'src/ui/map_marker_semantics_core.ts',
+  'src/ui/map_semantic_accessibility_core.ts',
+  'src/ui/map_surface_core.ts',
+  'src/ui/map_pan_core.ts',
+  // Which per-zone map backgrounds the HUD keeps (map_bg.ts is its DOM half).
+  'src/ui/map_bg_residency_core.ts',
+  'src/ui/mouseover_cast_core.ts',
+  'src/ui/world_quest_view.ts',
+  'src/ui/world_quest_trace_view.ts',
+  // The Reputation tab's rows and day summary (src/ui/hud/reputation/).
+  'src/ui/hud/reputation/faction_tier_celebration_view.ts',
+  'src/ui/hud/reputation/reputation_view.ts',
+  // The Currencies tab's balances (src/ui/hud/currencies/).
+  'src/ui/hud/currencies/currencies_view.ts',
+  // The map rail's world-quest section: the character's board, the shared
+  // selection and the daily replacement's availability (src/ui/hud/map/).
+  'src/ui/hud/map/world_quest_rail_view.ts',
+  // The world quest hover card model (title, faction, time left, objective, and
+  // the standing / currency / money / XP / item rewards); world_quest_tooltip_html
+  // paints it into the shared #tooltip.
+  'src/ui/hud/map/world_quest_tooltip_view.ts',
+  // Which zone the overworld map frames (dungeon door, frozen last zone,
+  // committed zone, override), lifted out of Hud.updateMapWindow.
+  'src/ui/hud/map/map_zone_focus_core.ts',
+  // The resizable map's canvas backing side (map_canvas_size_controller.ts
+  // feeds it the ResizeObserver content box).
+  'src/ui/hud/map/map_canvas_size_core.ts',
+  // The atlas rail width: clamp, drag and key steps (map_rail_resize_controller.ts
+  // applies it as --map-rail-width).
+  'src/ui/hud/map/map_rail_width_core.ts',
+  'src/ui/world_quest_forge_view.ts',
+  'src/ui/world_quest_leaderboard_view.ts',
+  'src/ui/leaderboard_podium_view.ts',
+  'src/ui/leaderboard_podium_html.ts',
+  'src/ui/leaderboard_board_html.ts',
+  'src/ui/weekly_quests_view.ts',
+  'src/ui/hud/guild_hall/guild_hall_view.ts',
+  'src/ui/hud/guild_hall/guild_quartermaster_view.ts',
+  'src/ui/hud/quest/weekly_quest_tracker_view.ts',
+  'src/ui/world_quest_wisp_maze_view.ts',
+  'src/ui/world_quest_shadow_view.ts',
+  'src/ui/world_quest_investigation_view.ts',
+  'src/ui/world_quest_glider_view.ts',
+  'src/ui/world_quest_puzzle_view.ts',
+  'src/ui/world_quest_match3_view.ts',
+  'src/ui/world_quest_confection_view.ts',
+  'src/ui/world_quest_confection_fx_view.ts',
+  'src/ui/world_quest_ley_view.ts',
+  'src/ui/world_quest_ley_fx_view.ts',
+  'src/ui/world_quest_instructor_view.ts',
+  'src/ui/quest_event_view.ts',
+  'src/ui/seasonal_event_view.ts',
+  'src/ui/haunted_pumpkin_view.ts',
+  'src/ui/paladin_devotion_view.ts',
+  'src/ui/aura_icon_view.ts',
+  'src/ui/aura_strip_order_core.ts',
+  'src/ui/aura_overlay_view.ts',
+  'src/ui/banner_queue.ts',
+  'src/ui/item_kind_label.ts',
+  // The coin-icon money readout (moneyHtml): the shared money markup authority
+  // the Hud's PainterHost deps, the bags / bank / vault / mailbox windows and
+  // the social tab's roster confirm compose; bare-named, so its import bans
+  // are enforced here rather than only by the residual no-host rule.
+  'src/ui/money_html.ts',
+  // The shared item-tooltip authority (the phase 13 QA): a bare-named pure
+  // core several registered cores and the DOM windows beside them import, so
+  // its import bans are enforced here rather than only by the residual
+  // no-host rule.
+  'src/ui/item_instance_tooltip.ts',
+  'src/ui/worn_item_cell_view.ts',
   'src/ui/proc_overlay_view.ts',
-  'src/ui/camera_prompt_core.ts',
   'src/ui/chat_ignore_core.ts',
+  'src/ui/daily_rewards_chrome_view.ts',
+  'src/ui/daily_rewards_tasks_view.ts',
   'src/ui/daily_rewards_launcher_core.ts',
+  'src/ui/death_recap_view.ts',
+  'src/ui/death_screen_view.ts',
   'src/ui/char_bags_pairing_core.ts',
+  'src/ui/empower_hold_core.ts',
   'src/ui/equip_drop_core.ts',
+  'src/ui/error_text_i18n_core.ts',
+  'src/ui/held_loot_warning_view.ts',
+  'src/ui/loot_roll_win_view.ts',
+  'src/ui/system_text_i18n.ts',
+  'src/ui/general_chat_quota_view.ts',
+  'src/ui/known_item.ts',
   'src/ui/log_event_route.ts',
   'src/ui/mob_idle_sfx.ts',
+  // The weekly vault opening choreography (timeline + per-element ray / star /
+  // streak / ring layout): the reveal controller maps it onto --vault-* vars.
+  'src/ui/weekly_vault_burst_core.ts',
   'src/ui/unit_portrait.ts',
+  // Which body a player entity's frame shows (mech, composed, stock) and the
+  // matching rule for a landed portrait; unit_portrait_painter.ts draws it.
+  'src/ui/player_portrait_core.ts',
+  // Its sibling for everyone else a frame can hold: an authored face, committed
+  // mob art or the crest, and the matching rule for a landed face.
+  'src/ui/nonplayer_portrait_core.ts',
   'src/ui/xp_bar.ts',
   'src/ui/absorb_bar.ts',
   'src/ui/party_frames.ts',
+  'src/ui/party_target_hotkeys_core.ts',
   'src/ui/party_below_target_core.ts',
   'src/ui/party_collapse.ts',
   'src/ui/guild_hide_offline.ts',
+  'src/ui/guild_motd_login.ts',
   'src/ui/rest_indicator.ts',
   'src/ui/low_health.ts',
   'src/ui/low_resource.ts',
@@ -147,96 +393,449 @@ const UI_PURE_CORES = [
   'src/ui/compass.ts',
   'src/ui/coords.ts',
   'src/ui/hud/quest/quest_tracker.ts',
+  'src/ui/hud/quest/quest_strip_core.ts',
+  'src/ui/hud/action_bar/item_bags_line_core.ts',
+  'src/ui/hud/quest/clue_talk_row_core.ts',
+  'src/ui/hud/quest/dungeon_guide_dialog_core.ts',
+  'src/ui/hud/dungeon/dungeon_guide_speech_view.ts',
+  'src/ui/hud/action_bar/trinket_slot_core.ts',
+  'src/ui/hud/action_bar/action_bar_item_core.ts',
   'src/ui/hud/quest/prof_intro_hint_core.ts',
+  'src/ui/hud/quest/clue_step_row_view.ts',
+  'src/ui/hud/quest/trick_or_treat_row_view.ts',
+  'src/ui/hud/pet_bar_core.ts',
+  'src/ui/hud/shardpike/shardpike_bar_view.ts',
+  'src/ui/hud/shardpike/shardpike_prompt_view.ts',
+  'src/ui/hud/shardpike/shardpike_lean_view.ts',
+  'src/ui/hud/action_bar/pet_slot_core.ts',
+  'src/ui/hud/warlock/doom_meter_view.ts',
+  'src/ui/hud/priest/shadow_charge_view.ts',
+  'src/ui/hud/aura_tracks/aura_track_catalog.ts',
+  'src/ui/hud/aura_tracks/aura_track_descriptors.ts',
+  'src/ui/hud/aura_tracks/aura_track_view.ts',
+  'src/ui/hud/quest/master_craft_core.ts',
+  'src/ui/hud/quest/hearthstone_attune_row_core.ts',
+  // The world quest entry banner model (the #banner 'worldQuest' plate).
+  'src/ui/hud/quest/world_quest_banner_view.ts',
+  'src/ui/hud/quest/quest_reward_choice_view.ts',
+  'src/ui/quest_marker_tags.ts',
   'src/ui/hud/delve/delve_map.ts',
+  'src/ui/hud/rift/rift_map_core.ts',
+  'src/ui/hud/battleground/battleground_map_view.ts',
+  'src/ui/hud/battleground/battleground_kill_feed_view.ts',
+  'src/ui/hud/battleground/battleground_proposal_view.ts',
+  'src/ui/raid_boss_guide_view.ts',
+  'src/ui/boss_journal/journal_view.ts',
   'src/ui/raid_lockout_view.ts',
   'src/ui/hosted_play_status_view.ts',
+  'src/ui/restart_strip_core.ts',
+  'src/ui/playtime_view.ts',
   'src/ui/stat_tooltip_view.ts',
   'src/ui/target_portrait_view.ts',
   'src/ui/target_rank_view.ts',
+  'src/ui/target_flair_line_view.ts',
+  'src/ui/meters_breakdown_view.ts',
+  'src/ui/interface_unlock_core.ts',
+  'src/ui/focus_targets_core.ts',
+  'src/ui/interface_visibility_core.ts',
+  'src/ui/interface_unlock_menu_core.ts',
+  'src/ui/touch_frame_drag_core.ts',
+  'src/ui/keybind_transfer_core.ts',
+  'src/ui/keyboard_map_core.ts',
+  'src/ui/keybind_conflict_prompt_core.ts',
+  'src/ui/keybind_action_names_core.ts',
+  'src/ui/keybind_device_notes_core.ts',
+  'src/ui/keyboard_layout_pref_core.ts',
+  'src/ui/keyboard_layout_convert_core.ts',
+  'src/ui/settings_transfer_core.ts',
+  'src/ui/meters_frame_core.ts',
+  'src/ui/meters_menu_view.ts',
+  'src/ui/meters_rows_view.ts',
+  'src/ui/meters_dev_view.ts',
+  'src/ui/mouseover_cast_core.ts',
+  'src/ui/threat_subject_core.ts',
   'src/ui/mob_tooltip_view.ts',
   'src/ui/player_tooltip_view.ts',
+  'src/ui/preview_prewarm_core.ts',
+  // The phone creator's one-time pinch hint: its phases and its stored flag.
+  'src/ui/preview_touch_hint_core.ts',
   'src/ui/talents_view.ts',
   'src/ui/social_view.ts',
+  // Which player menu a Social row right-click opens (self / unit frame / by name).
+  'src/ui/social_row_menu_core.ts',
+  'src/ui/guild_ranks_view.ts',
+  'src/ui/who_tab_view.ts',
   'src/ui/tab_strip_view.ts',
+  'src/ui/bag_filter.ts',
+  'src/ui/bank_filter.ts',
   'src/ui/bags_view.ts',
   'src/ui/bag_item_context_menu.ts',
-  'src/ui/enchant_apply_view.ts',
-  'src/ui/enchanting_view.ts',
-  'src/ui/disenchant_yield_view.ts',
-  'src/ui/material_hint_view.ts',
+  'src/ui/hud/professions/enchant_apply_view.ts',
+  'src/ui/hud/professions/enchanting_view.ts',
+  'src/ui/entity_display_core.ts',
+  // npc id to localized Profession Trainer label; the nameplate painter and
+  // entity_display_core are its thin consumers.
+  'src/ui/profession_trainer_label_core.ts',
+  'src/ui/hud/professions/disenchant_yield_view.ts',
+  'src/ui/hud/professions/material_hint_view.ts',
+  'src/ui/hud/professions/reagent_suffix_view.ts',
+  'src/ui/hud/professions/material_profession_hint_view.ts',
+  'src/ui/hud/professions/craft_denial_line_view.ts',
+  'src/ui/hud/professions/elixir_tooltip_view.ts',
+  'src/ui/hud/professions/recipe_pattern_tooltip_view.ts',
+  'src/ui/hud/professions/wellfed_stat_keys.ts',
+  'src/ui/hud/professions/wellfed_tooltip_view.ts',
+  'src/ui/hud/professions/feast_tooltip_view.ts',
+  'src/ui/stack_size_tooltip_view.ts',
+  'src/ui/hud/professions/craft_name_view.ts',
+  'src/ui/hud/professions/station_name_view.ts',
+  'src/ui/hud/professions/cooking_catch_hint_view.ts',
   'src/ui/bag_instance_glyph_view.ts',
+  'src/ui/item_instance_glyph_mark.ts',
+  'src/ui/bag_corner_mark_view.ts',
+  'src/ui/bag_fine_mark_view.ts',
+  'src/ui/bag_quest_mark_view.ts',
+  'src/ui/bag_quest_tracker_highlight_view.ts',
+  'src/ui/quest_item_tooltip_view.ts',
+  'src/ui/item_name_color.ts',
+  'src/ui/item_compare_view.ts',
+  // The per-unit material provenance model behind the item tooltip's source
+  // rows: descriptor identity, surviving counts, and the premium marker, with
+  // no DOM and no name lookup of any kind.
+  'src/ui/material_sources_view.ts',
+  'src/ui/material_source_transfer_view.ts',
+  'src/ui/item_slot_labels.ts',
   'src/ui/bank_view.ts',
+  // The bank's bonus-slot breakdown footer: the KNOWN account-source table and the
+  // markup it projects a BankBonusModel into (Bank Storage phase 17, the extraction
+  // this window's ratchet row named).
+  'src/ui/bank_bonus_view.ts',
+  'src/ui/bank_socket_purchase_core.ts',
+  'src/ui/storage_rung_echo_core.ts',
+  'src/ui/vault_view.ts',
+  'src/ui/weekly_rewards_view.ts',
+  'src/ui/bank_tabs_view.ts',
+  'src/ui/character_membership_view.ts',
+  'src/ui/account_bank_view.ts',
+  'src/ui/vault_search.ts',
+  'src/ui/guild_bank_log_view.ts',
+  'src/ui/guild_bank_view.ts',
   'src/ui/item_set_tooltip_view.ts',
   'src/ui/weapon_proc_view.ts',
+  'src/ui/controller_options_view.ts',
   'src/ui/options_view.ts',
+  'src/ui/hud/loot_explorer/loot_explorer_view.ts',
   'src/ui/hud/vendor/vendor_view.ts',
   'src/ui/hud/vendor/heroic_vendor_view.ts',
+  'src/ui/hud/vendor/crucible_vendor_view.ts',
+  'src/ui/hud/vendor/warfare_vendor_view.ts',
   'src/ui/hud/vendor/train_view.ts',
   'src/ui/hud/vendor/train_learn_core.ts',
   'src/ui/hud/vendor/unbind_view.ts',
   'src/ui/card_duel_view.ts',
   'src/ui/claudium_launcher_balance_core.ts',
   'src/ui/claudium_view.ts',
+  'src/ui/charter_card_view.ts',
+  // The Season 1 Armory's section / card / class-chip markup, the charter_card_view
+  // twin on the other half of the same store body (Bank Storage phase 15).
+  'src/ui/armory_card_view.ts',
+  // The Machine Stable's section / card markup (the store-mount strip), the
+  // armory_card_view twin for the account-mount SKUs.
+  'src/ui/store_mount_card_view.ts',
+  'src/ui/mount_inspect_view.ts',
+  'src/ui/daily_rewards_reason_view.ts',
+  // The daily-rewards spin wheel's markup and its landing geometry (Bank Storage
+  // phase 17). The overlay ELEMENT lives in the thin painter beside it.
+  'src/ui/daily_rewards_spin_view.ts',
+  // The rewards tab's leaderboard and payout-history panels, pure functions of the
+  // wire records (Bank Storage phase 17's review round, which spent the room the
+  // spin extraction bought and paid for it here rather than raising a ceiling).
+  'src/ui/daily_rewards_ranks_view.ts',
+  // The rewards tab's wallet LOCK card, a pure three-way branch on the lock reason
+  // (Bank Storage phase 17's review round, paying for a comment correction the way
+  // the phase paid for everything else).
+  'src/ui/daily_rewards_wallet_card_view.ts',
   'src/ui/woc_store_view.ts',
+  // The banker rung purchase's copy mappers and its second price tag's markup
+  // (Bank Storage phase 13), the charter_card_view twin one surface over.
+  'src/ui/bank_rung_view.ts',
+  // The capacity meter's copy: its accessible name and its tooltip body
+  // (Bank Storage phase 18, the same extraction shape one surface over).
+  'src/ui/bank_meter_view.ts',
+  // The banker rung purchase's money STATE MACHINE (Bank Storage phase 17,
+  // ruling 30): the sent latch, the in-flight SKU, the result band, the confirm
+  // latch and the re-prompt cap, plus the spend and its refusal handling. Every
+  // host effect is an injected closure, so it is DOM-free by construction. It is
+  // registered by name here rather than only swept: the determinism scan is what
+  // this file is for on this path, because a clock or an rng draw inside a
+  // purchase state machine is what mints a second key.
+  'src/ui/bank_rung_purchase_core.ts',
+  // The bank pane's short-phone chrome contract (Bank Storage phase 18): which
+  // bands must never scroll out of view, the compact-regime breakpoint the
+  // stylesheet also states, and where the pane's scroll offset lives. Pure
+  // numbers and selector strings; the sheet is held to it by
+  // tests/bank_chrome_layout.test.ts.
+  'src/ui/bank_chrome_layout_core.ts',
+  // The Claudium spend seam both spending windows consume. Not a *_view/*_core
+  // name, so registered by hand: it holds no state of its own and reads its
+  // host lazily, and a clock or an rng draw in here would reach the money path.
+  'src/ui/claudium_purchase_bridge.ts',
+  // The store's purchase-intent ledger. Not a *_view/*_core name, so the
+  // completeness scan below would never adopt it: registered by hand so the
+  // purity and determinism scans cover it. It holds one idempotency key per
+  // open purchase intent, and a clock or an rng draw in here would make a
+  // retry mint a new key, which is a second real charge.
+  'src/ui/store_purchase_intent.ts',
+  // The DURABLE half of that ledger: the row codec plus every guard that decides
+  // whether a stored intent may be handed back (scope, charset, cost, age, cap).
+  // Registered by hand for the same reason and with more force: it is the module
+  // a staleness rule would tempt someone to give a clock, and a clock in here
+  // would make the age check untestable and the ledger's own purity pointless.
+  // The clock and the browser storage live one door over, in the deliberately
+  // impure src/ui/purchase_intent_durability.ts.
+  'src/ui/purchase_intent_record.ts',
+  // What the open store remembers about charter FIT between paints: the server's
+  // refusals plus the ladder count last painted against, and the rule by which a
+  // count that moves DOWN invalidates the refusals (Bank Storage phase 15 QA).
+  // Not a *_view/*_core name, so registered by hand like the intent ledger above.
+  // It is deliberately DOM-free and clock-free: a wall-clock expiry in here would
+  // make a refusal lapse mid-visit and repaint a guaranteed-to-fail card enabled.
+  'src/ui/charter_fit_memory.ts',
   'src/ui/wallet_connection_view.ts',
   'src/ui/hud/loot/loot_roll_status_view.ts',
   'src/ui/hud/loot/loot_settings_view.ts',
-  'src/ui/craft_celebration_view.ts',
+  'src/ui/hud/professions/craft_celebration_view.ts',
+  'src/ui/hud/professions/craft_celebration_text_view.ts',
+  'src/ui/hud/professions/skill_level_toast_view.ts',
+  'src/ui/hud/professions/tool_effect_result_view.ts',
   'src/ui/grant_line_view.ts',
-  'src/ui/crafting_view.ts',
-  'src/ui/profession_event_lines_core.ts',
-  'src/ui/profession_identity_view.ts',
-  'src/ui/profession_tutorial_view.ts',
-  'src/ui/professions_view.ts',
+  'src/ui/hud/professions/farming_view.ts',
+  'src/ui/hud/professions/farming_plant_sheet_view.ts',
+  'src/ui/hud/professions/harvest_journal_view.ts',
+  'src/ui/hud/professions/harvest_preference_view.ts',
+  'src/ui/hud/professions/perfecting_view.ts',
+  'src/ui/hud/professions/perfecting_swap_view.ts',
+  'src/ui/hud/professions/perfecting_candidate_view.ts',
+  'src/ui/hud/professions/learned_profession_name.ts',
+  'src/ui/hud/professions/apex_recipe_view.ts',
+  'src/ui/hud/professions/crafting_view.ts',
+  'src/ui/hud/professions/crafting_deny_core.ts',
+  'src/ui/hud/professions/denial_line_core.ts',
+  'src/ui/hud/professions/profession_log_tones.ts',
+  'src/ui/hud/professions/commission_order_view.ts',
+  'src/ui/hud/professions/craft_cast_view.ts',
+  'src/ui/hud/professions/profession_event_lines_core.ts',
+  'src/ui/hud/professions/profession_identity_view.ts',
+  'src/ui/hud/professions/profession_tutorial_view.ts',
+  'src/ui/hud/professions/professions_view.ts',
+  'src/ui/tutorial_greeting_view.ts',
+  'src/ui/bootcamp_view.ts',
+  'src/ui/zone_announcement_core.ts',
+  'src/ui/coach_prompt_view.ts',
+  'src/ui/objective_glow_view.ts',
+  'src/ui/vendor_stock_gate_core.ts',
   'src/ui/market_view.ts',
+  'src/ui/market_consumable_sources_view.ts',
+  'src/ui/market_price_view.ts',
+  'src/ui/market_name_color.ts',
+  'src/ui/market_armor_badge.ts',
+  'src/ui/market_search_localized_core.ts',
+  'src/ui/bank_item_name_core.ts',
+  'src/ui/market_buy_confirm_core.ts',
+  'src/ui/market_sweep_core.ts',
+  // The Wanted tab's rows, place-form validity, and item-picker search.
+  'src/ui/market_orders_core.ts',
+  'src/ui/usd_text.ts',
+  'src/ui/woc_tokens_text.ts',
+  'src/ui/woc_log_tones.ts',
+  'src/ui/hud_tones.ts',
+  'src/ui/tooltip_clamp_core.ts',
+  'src/ui/woc_balance_chip.ts',
+  'src/ui/woc_market_chrome.ts',
+  'src/ui/woc_market_activity_html.ts',
+  'src/ui/woc_market_detail_html.ts',
+  'src/ui/woc_market_sales_html.ts',
+  'src/ui/guild_tag.ts',
+  'src/ui/wallet_bridge_reason_text.ts',
+  'src/ui/terms_link.ts',
+  'src/ui/duration_text.ts',
+  'src/ui/clock_seconds_core.ts',
+  'src/ui/realm_builder_name.ts',
+  'src/ui/woc_affordable_core.ts',
+  'src/ui/woc_market_poll_core.ts',
+  'src/ui/woc_market_reason_text.ts',
+  'src/ui/woc_market_view.ts',
   'src/ui/mailbox_view.ts',
+  'src/ui/mail_parcel_sources_view.ts',
   'src/ui/calendar_view.ts',
   'src/ui/char_view.ts',
+  // Gearscore: the average worn item level (character sheet + inspect).
+  'src/ui/gear_score_view.ts',
+  'src/ui/masterwrought_cap_view.ts',
   'src/ui/char_stats_view.ts',
+  // The live world -> stat-sheet model bridge (extracted from Hud.statModel).
+  'src/ui/char_stat_model_core.ts',
+  'src/ui/worn_item_definition_core.ts',
+  'src/ui/char_sheet_sig_core.ts',
   'src/ui/inspect_view.ts',
   'src/ui/quality_glow.ts',
+  'src/ui/dungeon_map_view.ts',
+  'src/ui/field_map_view.ts',
+  'src/ui/lastkeep_map_view.ts',
   'src/ui/map_pinch_zoom_core.ts',
+  'src/ui/bg_field_relief_core.ts',
+  'src/ui/castle_plan_core.ts',
+  'src/ui/map_gather_tip_memo.ts',
   'src/ui/map_window_view.ts',
+  'src/ui/map_sidebar_view.ts',
+  'src/ui/continent_land_mask_core.ts',
+  'src/ui/map_show_on_map_core.ts',
+  'src/ui/continent_map_view.ts',
+  'src/ui/map_open_sea_edge_core.ts',
   'src/ui/map_quest_list_view.ts',
+  'src/ui/quest_tracking_core.ts',
+  'src/ui/quest_map_location_core.ts',
   'src/ui/arena_window_view.ts',
+  'src/ui/pvp_record_core.ts',
+  'src/ui/pvp_tabs_view.ts',
+  'src/ui/pvp_hostile_core.ts',
+  'src/ui/pvp_risk_core.ts',
   'src/ui/dungeon_finder_view.ts',
+  'src/ui/dungeon_catalogue_view.ts',
+  'src/ui/dungeon_loot_preview_view.ts',
+  'src/ui/hud/expeditions/expedition_view.ts',
   'src/ui/yumi_match_view.ts',
-  'src/ui/vale_cup_window_view.ts',
-  'src/ui/vale_cup_indicator_view.ts',
-  'src/ui/vale_cup_hud_view.ts',
-  'src/ui/vale_cup_briefing_view.ts',
-  'src/ui/vale_cup_betting_view.ts',
-  'src/ui/vale_cup_charge_view.ts',
+  'src/ui/hud/battleground/battleground_atlas_view.ts',
+  'src/ui/hud/battleground/battleground_window_view.ts',
+  'src/ui/hud/world_pvp/world_pvp_window_view.ts',
+  // The World PvP Skull Bag pane's rows and signature, and the bag's tooltip line.
+  'src/ui/hud/skull_bag/skull_bag_view.ts',
+  'src/ui/hud/skull_bag/skull_bag_tooltip_view.ts',
+  // The potion Use lines of the item tooltip, moved out of Hud.itemTooltip.
+  'src/ui/potion_tooltip_view.ts',
+  'src/ui/hud/hill/hill_bar_view.ts',
+  // The Iron Cage escape prompt (the Gaol Turnkey's button-mash).
+  'src/ui/hud/dungeon/cage_escape_view.ts',
+  // Gaoler Ossick's chain alert (the Drowned Anchor, the Shackle Pair).
+  'src/ui/hud/dungeon/gaol_chain_view.ts',
+  // The shared encounter alert family's view contract, and the floating
+  // combat text's avoidance word.
+  'src/ui/hud/dungeon/encounter_alert_view.ts',
+  'src/ui/hud/dungeon/fct_avoidance_core.ts',
+  // The Wildheart Basin's alert (the Prey, the Stalk, the pollen, the bond;
+  // Zulgar's breath, spear, Sunstruck window and sun glyphs) and its scene scan.
+  'src/ui/hud/dungeon/wildheart_alert_view.ts',
+  'src/ui/hud/dungeon/wildheart_alert_scene_core.ts',
+  // The Sunken Bastion's alert on the Beacon Crown (the scythe, the Fog Veil).
+  'src/ui/hud/dungeon/bastion_alert_view.ts',
+  // The Drowned Temple's alert (Choirmother Selthe's Score) and its scene scan.
+  'src/ui/hud/dungeon/temple_alert_view.ts',
+  'src/ui/hud/dungeon/temple_alert_scene_core.ts',
+  // The Gravewyrm Sanctum's alert (the chains, the meltwater, the lake) and its
+  // scene scan.
+  'src/ui/hud/dungeon/sanctum_alert_view.ts',
+  'src/ui/hud/dungeon/sanctum_alert_scene_core.ts',
+  // The Hollow Crypt's alert (the grave mark, the Embrace, the Lament, the
+  // Open Grave, Morthen's Rite Ring, the Knell's half, the Toll and Harmony
+  // readouts) and its scene scan.
+  'src/ui/hud/dungeon/crypt_alert_view.ts',
+  'src/ui/hud/dungeon/crypt_alert_scene_core.ts',
+  // The trash engine's use prompt (a Soul Brazier to topple) and its scene scan.
+  'src/ui/hud/dungeon/kit_use_prompt_view.ts',
+  // Which dungeon prompt the "Dungeon mechanic hints" setting governs, and who
+  // holds the prompts' shared slot.
+  'src/ui/hud/dungeon/dungeon_prompt_policy_core.ts',
+  // The dungeon objectives tracker (the plate and its boss rows): what it
+  // shows, and which rows a kill just lit.
+  'src/ui/hud/dungeon/dungeon_tracker_view.ts',
+  // The death screens: which of the Release overlay, PvP Resurrect button and
+  // ghost surfaces show (src/ui/hud/death).
+  'src/ui/hud/death/death_prompt_view.ts',
+  'src/ui/hud/battleground/bg_end_banner_view.ts',
+  'src/ui/hud/battleground/battleground_scoreboard_view.ts',
   'src/ui/leaderboard_view.ts',
   'src/ui/guild_leaderboard_view.ts',
+  // The signpost guild board's roster drill-in core (the board itself reuses
+  // guild_leaderboard_view above).
+  'src/ui/hud/guild_board/guild_roster_view.ts',
+  // The Rift Forge window's row/affordance core (the Riftwright's service).
+  'src/ui/hud/rift_forge/rift_forge_view.ts',
   'src/ui/dev_leaderboard_view.ts',
   'src/ui/dev_command_view.ts',
   'src/ui/dev_item_picker_view.ts',
   'src/ui/deeds_leaderboard_view.ts',
+  'src/ui/leaderboard_podium_view.ts',
+  'src/ui/leaderboard_podium_html.ts',
+  'src/ui/leaderboard_board_html.ts',
   'src/ui/daily_rewards_view.ts',
+  'src/ui/deed_border_view.ts',
+  'src/ui/deed_heraldry_plaque_core.ts',
   'src/ui/deeds_view.ts',
+  'src/ui/reliquary_cell_art.ts',
+  'src/ui/reliquary_view.ts',
+  'src/ui/reliquary_sheet_view.ts',
+  'src/ui/character_progression_view.ts',
+  'src/ui/reliquary_tracker_view.ts',
+  'src/ui/recipe_tracker_view.ts',
+  'src/ui/tracker_stack_anchor_core.ts',
   'src/ui/spellbook_view.ts',
   'src/ui/hud/quest/questlog_view.ts',
   'src/ui/swing_timer.ts',
   'src/ui/unit_frame.ts',
+  'src/ui/target_frame_descriptor.ts',
+  'src/ui/hud_frames.ts',
   'src/ui/stance_bar_view.ts',
+  'src/ui/hud/stance/stance_radial_core.ts',
   'src/ui/hud/action_bar/action_bar_view.ts',
   'src/ui/hud/action_bar/action_bar_layout_core.ts',
   'src/ui/hud/action_bar/action_bar_visibility_core.ts',
+  'src/ui/hud/action_bar/action_bar_toggle_core.ts',
+  'src/ui/hud/action_bar/action_bar_bind_core.ts',
+  // The action-bar drag payload, pure over the DataTransfer it is handed.
+  'src/ui/hud/action_bar/hotbar_drag.ts',
   'src/ui/hud/action_bar/mobile_action_page_view.ts',
   'src/ui/hud/action_bar/consumable_bar_view.ts',
+  'src/ui/hud/action_bar/consumable_strip_core.ts',
+  'src/ui/hud/action_bar/radial_action_core.ts',
+  'src/ui/hud/action_bar/bar_editor/bar_editor_core.ts',
+  'src/ui/hud/menu/menu_strip_core.ts',
+  'src/ui/hud/action_bar/radial_gesture_core.ts',
+  'src/ui/hud/tap_menu_core.ts',
+  'src/ui/hud/warlock/destruction_resource_view.ts',
   'src/ui/mobile_hud_layout.ts',
   'src/ui/mobile_fullscreen_window_core.ts',
   'src/ui/auras_view.ts',
+  'src/ui/target_auras_view.ts',
   'src/ui/minimap_markers.ts',
-  'src/ui/gathering_view.ts',
+  'src/ui/hud/professions/gathering_view.ts',
+  'src/ui/hud/professions/gathering_goal_view.ts',
+  'src/ui/hud/professions/gathering_source_view.ts',
+  'src/ui/gather_rare_event_feedback.ts',
   'src/ui/gather_tool_tooltip.ts',
+  'src/ui/tool_effect_tooltip.ts',
+  'src/ui/hud/professions/mobile_station_tooltip.ts',
+  // The one line builder those three and recipe_pattern_tooltip_view share
+  // (the Phase 18 collapse of four private copies): emit-only, esc() and the
+  // class div, nothing else.
+  'src/ui/tooltip_line_core.ts',
   'src/ui/fct_core.ts',
+  'src/ui/fct_emphasis_core.ts',
   'src/ui/fct_event.ts',
+  // Which authored contact beat a damage floater rides, and how long it waits. The
+  // beat table is INJECTED by the painter (it lives in src/game, a layer a pure core
+  // may not import), so this core imports nothing at all.
+  'src/ui/fct_stage_core.ts',
+  'src/ui/honor_float_view.ts',
+  'src/ui/heal_landing_feedback_core.ts',
+  'src/ui/block_landing_feedback_core.ts',
+  'src/ui/boot_splash_core.ts',
+  // Which boot a home page load takes, and the landing's touch-interface answer.
+  'src/ui/landing_first_core.ts',
   'src/ui/window_drag_core.ts',
+  'src/ui/window_reflow_core.ts',
   'src/ui/window_resize_core.ts',
   'src/ui/window_stack_state_core.ts',
+  'src/ui/target_frame_pos.ts',
   'src/ui/focus_order.ts',
   'src/ui/roving_index.ts',
   'src/ui/live_region_politeness.ts',
@@ -246,13 +845,58 @@ const UI_PURE_CORES = [
   'src/ui/perf_nudge_view.ts',
   'src/ui/hud/loot/corpse_harvest_view.ts',
   'src/ui/town_focus_view.ts',
+  'src/ui/mount_race_view.ts',
   'src/ui/pet_action_icons.ts',
+  'src/ui/pet_frame_view.ts',
+  'src/ui/loading_backdrop_core.ts',
   'src/ui/loading_slow_hint_core.ts',
   'src/ui/reconnect_status_core.ts',
   'src/ui/chat_bubble_style.ts',
+  'src/ui/hud/cross_hotbar/cross_hotbar_view.ts',
+  // The System Report section's phase machine and its result table: the whole
+  // shell-verdict-to-copy mapping, keys only, so the table is asserted as data.
+  'src/ui/host_diag_view.ts',
+  'src/ui/dpad_nav_core.ts',
+  'src/game/graphics_rebuild_core.ts',
+  'src/game/hoard_mechanic_audio_core.ts',
+  'src/game/presentation_gate.ts',
+  'src/game/stale_chrome_focus.ts',
+  'src/game/perf_diagnosis_core.ts',
+  // Imported by the diagnosis core above: the purity scan does not follow imports.
+  'src/game/perf_frame_health_core.ts',
+  'src/game/post_entry_warmups_core.ts',
+  'src/game/perf_shader_warm_core.ts',
   'src/game/ui_effects_profile.ts',
+  'src/game/glider_pitch_input.ts',
   'src/game/ui_tier_knobs.ts',
+  // Warrior audio cue tables shared by game, render and ui (PR 4139): pure data
+  // plus event discriminators, no DOM, no Three.
+  'src/game/fury_audio_core.ts',
+  'src/game/warrior_control_audio_core.ts',
+  'src/game/warrior_recovery_core.ts',
+  // The Toggle Friendly Nameplates view pref (Ctrl+V): module state the input
+  // layer owns and the nameplate painter reads, so render imports it as a game
+  // leaf the same way it reads the tier knobs. Pure: no DOM, no sim, no renderer.
+  'src/game/nameplate_view_prefs.ts',
+  'src/game/nearby_interaction_core.ts',
+  'src/ui/trade_view.ts',
+  'src/ui/trade_woc_view.ts',
+  'src/ui/hud/rift/rift_floor_tracker_view.ts',
+  'src/ui/hud/transport/ferry_hud_view.ts',
+  'src/ui/raid_marker_labels_view.ts',
+  'src/ui/hud/practice/practice_dps_view.ts',
+  'src/ui/hud/practice/hub_lesson_view.ts',
+  'src/ui/hud/talking_head/talking_head_core.ts',
+  'src/ui/hud/woc_trade/woc_trade_offer_view.ts',
+  'src/ui/hud/target_dots/target_dots_view.ts',
+  'src/ui/safe_local_storage.ts',
 ].map((rel) => join(repoRoot, rel));
+
+// The one pure core allowed to trip DOM_GLOBAL_VALUE_RE: the shared safeLocalStorage()
+// feature-detect every persisted-toggle pure core now imports instead of duplicating.
+// Every OTHER registered pure core must stay clear of it; the honesty check below
+// keeps this from becoming a blanket exemption nobody needs.
+const DOM_GLOBAL_VALUE_ALLOWLIST = new Set([join(repoRoot, 'src/ui/safe_local_storage.ts')]);
 
 // Pure logic cores that live in src/render (the painter half is Three-side):
 // cast_bar (the overhead cast/channel state) and nameplate_view (the per-entity
@@ -262,28 +906,666 @@ const UI_PURE_CORES = [
 // terrain_region_core (editor partial-rebuild chunk/texel selection math) and
 // water_core (the shore-depth sample shared by build + editor setLevel) follow
 // the same contract for the map editor's realtime terrain/water edits.
+// day_night_core is the clock-to-grade math of the world day/night cycle
+// (Date.now stays in the renderer that calls it), so a Vitest can drive any
+// moment of the cycle. night_lighting_core is the pair of ramps every
+// after-dark readability layer fades on, so it stays drivable without a
+// renderer. (The streetlamp layout and style cores used to sit here too; they
+// are `src/sim/streetlamp_layout.ts` and `src/sim/streetlamp_style.ts` now,
+// because the sim collides with the posts it lays out.)
+// post_bloom_shader_core is the host-agnostic GLSL source patch for the
+// identity tint terms in UnrealBloom's composite shader.
 const RENDER_PURE_CORES = [
+  'src/render/courier_visual_core.ts',
+  // the lantern horse's ember rates and hoof-strike weight (mount_embers.ts)
+  'src/render/mount_embers_core.ts',
+  // the destrier's standing rear-up trigger and hop cancel (mount_presentation.ts)
+  'src/render/mount_rear_core.ts',
+  // the per-skin swing trail lookup (renderer.ts triggerAttack)
+  'src/render/weapon_skin_trail_core.ts',
+  // the ambient motes' fade around the local player (motes.ts)
+  'src/render/motes_keepout_core.ts',
+  // the seasonal props' glow: dim by day, bright at night, a candle flicker
+  'src/render/seasonal_glow_core.ts',
+  // the strung seasonal garland's catenary and the spacing of its leaves and beads
+  'src/render/seasonal_garland_core.ts',
+  // Old Thatchgrin's gourd arc, burning-patch fade and timing (scarecrow_fx.ts).
+  'src/render/scarecrow_fx_core.ts',
+  // Thatchbound's eyes, sigils, swirl and shockwave plan (thatchbound_fx.ts).
+  'src/render/thatchbound_fx_core.ts',
+  // the indoor pumpkins' wisps: their drift and breath (seasonal_interior_wisps.ts)
+  'src/render/seasonal_interior_wisps_core.ts',
+  // where the seasonal dressing's candlelight is: its halos and ground-light sites
+  'src/render/seasonal_glow_sites_core.ts',
+  // the road lanterns' draw runs (seasonal_decor.ts ranges each run like a city)
+  'src/render/seasonal_road_lanterns_core.ts',
+  // Hester's toys' plan: the prank's arc and head timing, the ghost's orbit, the bats'
+  // flight, the candle's mist and the play broom's pose (seasonal_toys_fx.ts)
+  'src/render/seasonal_toys_fx_core.ts',
+  'src/render/haunted_pumpkin_core.ts',
+  // Was a click aimed at a body: the pick ray against its visible core.
+  'src/render/pick_aim_core.ts',
+  'src/render/action_cam_core.ts',
+  // the indoor chase-camera clamp's walk through a building's air (interior_camera.ts)
+  'src/render/interior_camera_core.ts',
+  // the chase camera's floor (ground, rift tier, maze hedges), out of renderer.ts
+  'src/render/chase_camera_floor_core.ts',
+  // the air of a walk-in placed town building (its rooms and doors) for the indoor camera
+  'src/render/placed_town_interior_core.ts',
+  'src/render/highwatch_guild_trophies_core.ts',
+  // Which body plays an overhead emote (a player's, or a talking NPC's gesture).
+  'src/render/body_emote_core.ts',
+  // The rig / frozen-far-mesh handoff with hysteresis (the far-LOD flicker fix).
+  'src/render/far_lod_latch_core.ts',
+  // The Hollow Crypt finale's effect plan (Morthen's entrance, the Knellwyrm).
+  'src/render/hollow_crypt/crypt_boss_fx_core.ts',
+  // Cantor Ilvane's Dirge plan (swell, voices, the shock of sound, the marks).
+  'src/render/hollow_crypt/ilvane_dirge_fx_core.ts',
+  'src/render/hollow_crypt/crypt_finale_fx_core.ts',
+  // Morthen the Lich Bishop's stance latch, body anchors and effect timings.
+  'src/render/hollow_crypt/morthen_fx_core.ts',
+  // Morthen's Rite and the Knellwyrm's Burning Knell: telegraph shapes, candle
+  // looks, the ward's cracks, the Grasp's hands.
+  'src/render/hollow_crypt/morthen_rite_fx_core.ts',
+  // The Gravewyrm Sanctum bosses' Blender bodies, measured, and their gestures.
+  'src/render/gravewyrm_sanctum_bosses/boss_model_core.ts',
+  'src/render/gravewyrm_sanctum_bosses/boss_fx_core.ts',
+  // The authored open-air field's terrain plan and the Hollow Crypt's dressing,
+  // set-dressing and gate-memory cores (docs/design/dungeon-rework).
+  'src/render/authored_field/field_mesh_core.ts',
+  'src/render/authored_field/field_clip_core.ts',
+  'src/render/authored_field/field_skirt_core.ts',
+  'src/render/hollow_crypt/crypt_plan_core.ts',
+  'src/render/hollow_crypt/crypt_kit_plan_core.ts',
+  'src/render/hollow_crypt/crypt_trash_fx_core.ts',
+  // The crypt trash mechanics pass's hero effects (bone pile, rupture, granite, marks).
+  'src/render/hollow_crypt/crypt_trash_kit_fx_core.ts',
+  'src/render/hollow_crypt/crypt_creature_fx_core.ts',
+  'src/render/hollow_crypt/crypt_set_dressing_core.ts',
+  'src/render/hollow_crypt/crypt_gate_state_core.ts',
+  // The Sunken Bastion's dressing, kit placement and headland rock cores.
+  'src/render/sunken_bastion/bastion_plan_core.ts',
+  'src/render/sunken_bastion/bastion_kit_plan_core.ts',
+  'src/render/sunken_bastion/bastion_headland_core.ts',
+  'src/render/sunken_bastion/bastion_fx_core.ts',
+  'src/render/sunken_bastion/bastion_boss_fx_core.ts',
+  'src/render/sunken_bastion/bastion_rain_core.ts',
+  'src/render/sunken_bastion/bastion_creature_fx_core.ts',
+  // The drowned garrison's drips, sprays and death gush.
+  'src/render/sunken_bastion/bastion_drowned_fx_core.ts',
+  // The fifth pass's cage, anchor, shackle and reaper visual plan.
+  'src/render/sunken_bastion/bastion_gaol_reaper_core.ts',
+  // Vael's staging (entrance eruptions, the gathering fog, the scythe flash)
+  // and the hollow shade's ghost predicate renderer.ts asks.
+  'src/render/sunken_bastion/bastion_vael_stage_core.ts',
+  'src/render/sunken_bastion/bastion_shade_ghost_core.ts',
+  'src/render/sunken_bastion/bastion_trash_fx_core.ts',
+  'src/render/sunken_bastion/bastion_order_fx_core.ts',
+  // Olen the fallen paladin's visuals: the brine, the shield, the Sentence, the Oath.
+  'src/render/sunken_bastion/bastion_olen_fx_core.ts',
+  'src/render/sunken_bastion/bastion_ghost_fx_core.ts',
+  // The Drowning Yard's Mooring Post lamps: lit, dark, kindling, the flare, the ring.
+  'src/render/sunken_bastion/bastion_mooring_core.ts',
+  'src/render/authored_field/field_edge_plan_core.ts',
+  'src/render/drowned_temple/temple_plan_core.ts',
+  'src/render/drowned_temple/temple_kit_plan_core.ts',
+  // The Wildheart Basin kit's placement plan (props, lips, caldera, gorge, pyramid).
+  'src/render/wildheart_basin/basin_kit_plan_core.ts',
+  // The Wildheart Basin's plan (sun, falls, rainbows, river, lights, life, gate curves)
+  // and its telegraph and creature-effect specs.
+  'src/render/wildheart_basin/basin_plan_core.ts',
+  'src/render/wildheart_basin/basin_fx_core.ts',
+  // The basin's three boss encounters: cast specs from the sim tuning, aura
+  // dressing, the spirit cord, the pods' swell and the seeds' arc.
+  'src/render/wildheart_basin/basin_boss_fx_core.ts',
+  // The Great Saurian's Blender body (its measured model facts and clip beats)
+  // and its body effects' plan (the beats, the tail sweep, the splash curves).
+  'src/render/wildheart_basin/saurian_model_core.ts',
+  'src/render/wildheart_basin/saurian_fx_core.ts',
+  // The Fanglord's Great Jaguar's Blender body (its measured facts and beats), and
+  // the dazed loop a stunned body holds (ClipMap.stunned).
+  'src/render/wildheart_basin/jaguar_model_core.ts',
+  'src/render/wildheart_basin/zulgar_avatar_core.ts',
+  // Zulgar's hunt rework: the sun glyphs' four looks, the Sunstruck window,
+  // the Hunting Spear and the half the Idol's Breath marks.
+  'src/render/wildheart_basin/zulgar_hunt_fx_core.ts',
+  'src/render/wildheart_basin/bond_cord_core.ts',
+  'src/render/wildheart_basin/basin_fire_core.ts',
+  'src/render/characters/stun_idle_core.ts',
+  // The Gorgebloom's Blender body (its measured anchors and beats) and its body
+  // effects' plan (beats, clip rates, the lash's thorn wave, the glow pulses),
+  // the rooted turn in place (ClipMap.turn) and the gesture-flared glow map.
+  'src/render/wildheart_basin/gorgebloom_model_core.ts',
+  'src/render/wildheart_basin/gorgebloom_fx_core.ts',
+  // The Snarlvine Lasher's and the Thorn Sprout's bodies and the Lasher's lash
+  // lane, and the thorn waves both lashes tear down their lanes.
+  'src/render/wildheart_basin/lasher_model_core.ts',
+  'src/render/wildheart_basin/lasher_fx_core.ts',
+  'src/render/wildheart_basin/basin_thorns_core.ts',
+  // The trash hunt (the trash mechanics pass): its telegraphs, shocks, marks,
+  // tongue and clip rates, all read off the sim's templates.
+  'src/render/wildheart_basin/basin_trash_fx_core.ts',
+  'src/render/wildheart_basin/basin_trash_model_core.ts',
+  'src/render/wildheart_basin/maw_glow_core.ts',
+  // The Gravewyrm Sanctum's Sledge Tusker body and sledge (measured facts,
+  // clip beats, the sledge's trailer drag and the bowls onto their patches)
+  // and its creature effects' plan (telegraph specs, the Trample lane's
+  // length, the object looks, the palette and the timelines).
+  'src/render/gravewyrm_sanctum_fx/tusker_model_core.ts',
+  'src/render/gravewyrm_sanctum_fx/sanctum_fx_core.ts',
+  // The trash engine's visuals: the catalog swept from the kits, the hazard
+  // looks, the wall box, the nova's sight reach and wave, the use hint, the
+  // freeze and encase timelines, the quench pools' placement.
+  'src/render/trash_engine_fx/trash_engine_fx_core.ts',
+  // The line-of-sight field's dense draped layout (shared by the nova and the Dirge).
+  'src/render/trash_engine_fx/sight_field_core.ts',
+  'src/render/characters/turn_in_place_core.ts',
+  'src/render/characters/glow_pulse_core.ts',
+  // Creased smooth normals for a faceted rig (VisualDef.smoothNormals).
+  'src/render/characters/smooth_normals_core.ts',
+  'src/render/drowned_temple/temple_shore_core.ts',
+  'src/render/drowned_temple/temple_fx_core.ts',
+  // Laverock's finale on the Moon Altar (the fallen rising as moonlight).
+  'src/render/drowned_temple/temple_cantor_finale_core.ts',
+  // The trash kit's death-burst rings: their look and their fuse.
+  'src/render/death_burst_fx_core.ts',
+  // The Gravewyrm Sanctum (render/gravewyrm_sanctum): the palette, fires and
+  // air spots; the Calving Face's frame, swap seam and stage curves; the
+  // story-step memory; the Smith's chains; the kit placement plan; the gates'
+  // motion; the lake's plate cells; the fires' counts; the Thaw Works' marks.
+  'src/render/gravewyrm_sanctum/sanctum_plan_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_face_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_story_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_chains_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_kit_plan_core.ts',
+  // The interior AAA pass's placement plan (the second kit, zone by zone).
+  'src/render/gravewyrm_sanctum/sanctum_interior_plan_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_gates_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_lake_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_fire_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_works_core.ts',
+  'src/render/gravewyrm_sanctum/sanctum_surface_wear_core.ts',
+  'src/render/drowned_temple/temple_rising_stair_core.ts',
+  // The Mere Hydra's Tsunami: the breaking wave's profile, timeline, spray and foam.
+  'src/render/drowned_temple/temple_tsunami_core.ts',
+  // The Mere Hydra's neck fold, regrowth rise and orphaned breath pours.
+  'src/render/drowned_temple/temple_hydra_neck_core.ts',
+  // The Temple encounter pass: the Combined Breath's floor marks, wall and
+  // crystals, Ysolei's moon (its swell, eclipse and ward cracks), the
+  // Moonmantle Ray's glide and wingbeat, and the Moonbridge's beam timeline.
+  'src/render/drowned_temple/temple_hydra_combo_core.ts',
+  'src/render/drowned_temple/temple_moon_core.ts',
+  'src/render/drowned_temple/temple_manta_core.ts',
+  'src/render/drowned_temple/temple_moonbridge_core.ts',
+  // The Temple trash mechanics pass: the vigil bubble, the oath, the echo,
+  // the gaze eye and veil, the whirlpool, the spark's arcs and the swell.
+  'src/render/drowned_temple/temple_trash_fx_core.ts',
+  'src/render/drowned_temple/temple_lure_fx_core.ts',
+  // Selthe's Score: a moon tile's six looks, its pips and numeral strokes,
+  // her ward's water and Discord's wave.
+  'src/render/drowned_temple/temple_score_fx_core.ts',
+  // The shared dungeon floor telegraph look (cones, rings, lanes, kick glyphs).
+  'src/render/floor_telegraph/telegraph_look_core.ts',
+  // where a body sitting on a seat is drawn, and which seat a screen ray points at
+  'src/render/seated_pose_core.ts',
+  'src/render/seat_pick_core.ts',
+  'src/render/ambience_state_core.ts',
+  'src/render/ability_vfx/cast_admission_core.ts',
+  'src/render/ability_vfx/physical_choreography_core.ts',
+  'src/render/ability_vfx/signature_core.ts',
+  'src/render/ability_vfx/warrior_attention_core.ts',
+  'src/render/ability_vfx/warrior_insult_core.ts',
+  'src/render/camera_impact_core.ts',
+  'src/render/melee_impact_core.ts',
+  'src/render/warrior_fury_state_core.ts',
+  'src/render/warrior_power_core.ts',
+  'src/render/warrior_readiness_core.ts',
+  'src/render/hoard_orbital_lightning_core.ts',
+  'src/render/hoard_bone_reaper_core.ts',
+  'src/render/hoard_ice_age_core.ts',
+  'src/render/hoard_pulsars_core.ts',
+  'src/render/hoard_forge_hammer_core.ts',
+  'src/render/hoard_tentacles_core.ts',
+  'src/render/hoard_boulder_core.ts',
+  'src/render/hoard_cocoon_core.ts',
+  'src/render/hoard_goblin_coins_core.ts',
+  'src/render/hoard_mimic_coins_core.ts',
+  'src/render/hoard_boss_dressing_core.ts',
+  'src/render/hoard_cliff_mass_core.ts',
+  'src/render/hoard_encounter_accents_core.ts',
+  'src/render/hoard_reward_chest_core.ts',
+  'src/render/hoard_spell_fx_core.ts',
+  'src/render/hoard_boss_fx_core.ts',
+  'src/render/hoard_boss_gestures_core.ts',
+  'src/render/hoard_forge_gate_core.ts',
+  'src/render/hoard_room_kit_core.ts',
+  'src/render/hoard_room_themes_core.ts',
+  'src/render/hoard_tide_wave_fx_core.ts',
+  'src/render/hoard_entrance_core.ts',
+  // The Gravewyrm Sanctum Seal Gate's cosmetic plan (mist flow, rime fan).
+  'src/render/sanctum_seal_gate_core.ts',
+  // The Sunken Bastion's Drowned Gate Tower: the Fogbeacon's turn, the flooded
+  // passage's trace, the marsh fog's puffs and the gate sprites.
+  'src/render/sunken_bastion_entrance_core.ts',
+  // What a built set piece puts between the chase camera and the character:
+  // one occluder box per collider row, tested with the fade family's own test.
+  'src/render/set_piece_occluders_core.ts',
+  // The Hollow Crypt's Fallen Chapel: the virtual stair trace, the grave
+  // mist's puffs and the spirit sprites (flames, motes, wisps, rose glow).
+  'src/render/hollow_crypt_entrance_core.ts',
+  // The Drowned Temple's Moon Stair: the moonrise's clock, the pool's moon and
+  // its parallax, the mirror's sight of the gate, the mist and the sprites.
+  'src/render/drowned_temple_entrance_core.ts',
+  // The Wildheart Basin's Jaguar Maw: the idol's breath, the flooded throat's
+  // trace, the mist's puffs and the maw's sprites.
+  'src/render/wildheart_basin_entrance_core.ts',
+  'src/render/hoard_valley_core.ts',
+  'src/render/hoard_cavern_core.ts',
+  'src/render/hoard_cavern_ground_core.ts',
+  'src/render/hoard_cavern_foliage_core.ts',
+  'src/render/tree_hide_index_core.ts',
+  'src/render/transport_ship_core.ts',
+  'src/render/harbor_route_marker_core.ts',
+  'src/render/wyrmwatch_harbor_core.ts',
+  'src/render/wickharbor_wharf_core.ts',
+  'src/render/wickharbor_harbor_core.ts',
+  'src/render/wyrmwatch_harbor_house_core.ts',
+  'src/render/mirefen_tavern_core.ts',
+  // the tavern's air for the indoor chase camera (interior_camera_core.ts is registered above)
+  'src/render/mirefen_tavern_interior_core.ts',
+  // the tavern's dog breathing on its porch and its chimney smoke
+  'src/render/mirefen_tavern_dog_core.ts',
+  'src/render/mirefen_tavern_smoke_core.ts',
+  // the tavern's wall fire laid out in its fireplace's mouth
+  'src/render/mirefen_tavern_wall_fire_core.ts',
+  'src/render/ship_wake_core.ts',
+  'src/render/water_approach_core.ts',
+  'src/render/view_candidate_scan_core.ts',
+  'src/render/required_views_core.ts',
+  'src/render/wisp_maze_core.ts',
+  // the maze kit's dressing plan (hedge piece per wall cell, gates, lanterns)
+  'src/render/wisp_maze_kit_core.ts',
+  'src/render/glider_course_core.ts',
+  'src/render/glider_flight_pose_core.ts',
+  'src/render/shadow_detection_core.ts',
+  'src/render/world_quest_public_trace_core.ts',
+  'src/render/world_quest_trace_core.ts',
+  'src/render/assets/load_priority_core.ts',
+  'src/render/voxel_identity_core.ts',
+  'src/render/cut_cavity_tile_core.ts',
+  'src/render/rail_tracks_core.ts',
+  'src/render/terrain_paint_interior_core.ts',
+  'src/render/arena_wall_occlusion_core.ts',
+  'src/render/outdoor_light_rig_core.ts',
+  'src/render/wall_backface_cull_core.ts',
+  'src/render/dais_blocks_core.ts',
+  'src/render/dungeon_banner_core.ts',
+  'src/render/dungeon_tile_kind_core.ts',
+  'src/render/open_air_field_visibility_core.ts',
+  'src/render/rift_platform_core.ts',
+  'src/render/ignivar_dressing_plan_core.ts',
+  'src/render/nythraxis_bound_cage_core.ts',
+  'src/render/nythraxis_grave_core.ts',
+  'src/render/nythraxis_gravefire_core.ts',
+  'src/render/nythraxis_hazard_palette_core.ts',
+  'src/render/nythraxis_sigil_core.ts',
+  'src/render/nythraxis_soft_fire_core.ts',
+  'src/render/nythraxis_soul_rend_marker_core.ts',
+  'src/render/roof_darkness_core.ts',
+  'src/render/varkhul_assembly_focus_core.ts',
+  'src/render/delve_interior_cache_core.ts',
+  'src/render/entity_gate_stand_in_core.ts',
+  'src/render/entity_ground_sample_core.ts',
+  'src/render/balgath_aura_core.ts',
+  'src/render/balgath_death_fx_core.ts',
+  'src/render/balgath_debris_core.ts',
+  'src/render/characters/charge_glow_core.ts',
+  'src/render/characters/eye_glow_core.ts',
+  'src/render/characters/aura_idle_core.ts',
+  'src/render/characters/effigy_rig_core.ts',
+  'src/render/balgath_fx_core.ts',
+  'src/render/balgath_loot_relics_core.ts',
+  'src/render/balgath_ranged_fx_core.ts',
+  'src/render/balgath_starwake_fx_core.ts',
+  'src/render/shardpike_throw_core.ts',
+  'src/render/boss_impostor_core.ts',
+  'src/render/eye_ward_marker_core.ts',
+  'src/render/ground_puff_color_core.ts',
+  'src/render/entity_view_policy_core.ts',
+  'src/render/quest_object_gate_core.ts',
+  'src/render/adaptive_link_budget_core.ts',
+  'src/render/affliction_familiar_core.ts',
+  'src/render/trinket_relics_core.ts',
+  'src/render/arrival_event_core.ts',
+  'src/render/build_lane_core.ts',
+  'src/render/build_ledger_core.ts',
+  'src/render/hitch_frame_align_core.ts',
+  'src/render/initial_frame_core.ts',
+  'src/render/character_cull_core.ts',
+  'src/render/characters/anim_state_entity_core.ts',
+  'src/render/characters/combat_brace_core.ts',
+  'src/render/characters/weapon_loadout_core.ts',
+  'src/render/characters/held_item_size_core.ts',
+  'src/render/characters/attack_swing_core.ts',
+  'src/render/characters/woc_autoattack_core.ts',
+  'src/render/characters/woc_armor_core.ts',
+  'src/render/characters/woc_armor_merge_core.ts',
+  'src/render/characters/death_grounding_core.ts',
+  'src/render/characters/stonebound_shell_core.ts',
+  'src/render/characters/form_adornment_core.ts',
+  // Gloamveil (the Shadow priest's form): the climbing dark on the body (the
+  // tongue tables, the cast surge and entry, the shader text and its CPU twin),
+  // then the floor and smoke layer around it (what each tier keeps, where a
+  // stain lies and when it is laid, the smoke pool and its eviction).
+  'src/render/characters/gloam_climb_core.ts',
+  'src/render/gloam_field_core.ts',
+  'src/render/gloam_pool_core.ts',
+  'src/render/gloam_smoke_core.ts',
+  'src/render/entry_detail_horizon_core.ts',
+  'src/render/gather_batch_reach_core.ts',
+  'src/render/zone_feature_cells_core.ts',
+  'src/render/scenery_geometry_lod_core.ts',
+  'src/render/scenery_detail_core.ts',
+  'src/render/scenery_bands/policy_core.ts',
+  'src/render/characters/portrait_bitmap_transfer_core.ts',
+  'src/render/characters/portrait_capture_lane_core.ts',
+  'src/render/quest_beacon_core.ts',
+  'src/render/coach_trail_core.ts',
+  'src/render/eastbrook_wolves_guidance_core.ts',
+  'src/render/wolf_hunt_area_core.ts',
+  'src/render/island_isolation_core.ts',
+  'src/render/characters/portrait_prewarm_core.ts',
+  'src/render/characters/portrait_readback_core.ts',
+  'src/render/characters/preview_open_gate_core.ts',
+  'src/render/characters/preview_armor_detail_core.ts',
+  'src/render/characters/preview_touch_core.ts',
+  'src/render/characters/design_code_core.ts',
+  'src/render/view_vfx_pose_core.ts',
+  'src/render/live_program_watch_core.ts',
+  'src/render/mount_preview_framing_core.ts',
+  'src/render/gpu_timer_probe_core.ts',
+  'src/render/post_reveal_links_core.ts',
+  'src/render/program_key_ledger_core.ts',
+  'src/render/renderer_extensions.ts',
+  'src/render/shader_warmup_core.ts',
+  'src/render/shader_warm_audit_core.ts',
+  'src/render/shader_warm_client_core.ts',
+  'src/render/gpu_backend_class_core.ts',
+  'src/render/shader_warm_settle_judge_core.ts',
+  'src/render/shader_warm_worker_core.ts',
+  'src/render/shader_warmup_gl_core.ts',
+  'src/render/realm_builder_monument_fx_core.ts',
+  'src/render/reveal_gate_core.ts',
+  // The WebGL context-restore registry and pass sequencing (context_restore.ts
+  // is its host).
+  'src/render/context_restore_core.ts',
+  'src/render/stride_audio_core.ts',
+  'src/render/town_reveal_core.ts',
+  'src/render/foliage_bucket_reveal_core.ts',
+  'src/render/foliage_prewarm_twins_core.ts',
+  'src/render/frame_ms_stats_core.ts',
+  'src/render/ability_vfx_core.ts',
+  'src/render/characters/player_look_core.ts',
+  // who draws the worn seasonal pumpkin head and the helm it hides (seasonal/)
+  'src/render/characters/seasonal_head_core.ts',
+  'src/render/characters/far_lod_reveal_core.ts',
+  'src/render/characters/woc_parts_core.ts',
+  'src/render/characters/woc_entry_core.ts',
+  'src/render/characters/woc_crowd_prefetch_core.ts',
+  'src/render/characters/woc_idle_cache_core.ts',
+  'src/render/characters/woc_head_look_core.ts',
+  'src/render/characters/woc_head_stream_core.ts',
+  'src/render/characters/woc_head_merge_core.ts',
+  'src/render/characters/woc_head_merge_proof_core.ts',
+  'src/render/characters/woc_far_head_core.ts',
+  'src/render/characters/woc_shadow_stand_in_core.ts',
+  'src/render/characters/woc_skin_tint_core.ts',
+  'src/render/characters/woc_tint_hsv_core.ts',
+  'src/render/characters/woc_lod_core.ts',
+  'src/render/assets/load_queue_core.ts',
+  'src/render/assets/geometry_lod_core.ts',
+  'src/render/ability_vfx_longbuff_core.ts',
   'src/render/arena_water_band_core.ts',
+  'src/render/biome_haze_field_core.ts',
+  // Palette lab (?palette=on dev tool): per-zone ground overrides the terrain
+  // caches re-read, and the zone-look model, display solver and export.
+  'src/render/ground_palette_override_core.ts',
+  'src/render/meadow_fullness_core.ts',
+  'src/render/palette_lab/zone_look_core.ts',
+  'src/render/spell_lab/spell_lab_catalog_core.ts',
+  'src/render/ocean/ocean_spectrum_core.ts',
+  'src/render/ocean/ocean_foam_core.ts',
+  'src/render/ocean/water_character_core.ts',
+  'src/render/ocean/water_liveness_core.ts',
+  'src/render/battleground_core.ts',
+  'src/render/battleground_fx_core.ts',
+  'src/render/battleground_lantern_fx_core.ts',
+  'src/render/battleground_rune_vfx_core.ts',
+  'src/render/blade_grass_dense_core.ts',
+  'src/render/blade_grass_pool_core.ts',
+  'src/render/blade_grass_upload_bands_core.ts',
+  'src/render/blob_shadow_core.ts',
   'src/render/camera_boom_core.ts',
+  'src/render/compile_gate.ts',
+  'src/render/link_piece_core.ts',
+  'src/render/program_variant_settle_core.ts',
   'src/render/camera_director_core.ts',
+  'src/render/vehicle_camera_core.ts',
+  'src/render/first_person_core.ts',
   'src/render/camera_feel_core.ts',
   'src/render/cast_bar.ts',
+  'src/render/character_effects_core.ts',
+  'src/render/character_presentation_core.ts',
+  'src/render/character_view_core.ts',
+  'src/render/chosen_cadence_pressure_core.ts',
+  'src/render/chunk_residency_core.ts',
+  'src/render/cliff_scree_core.ts',
+  'src/render/dashed_ring_core.ts',
+  'src/render/detail_horizon_core.ts',
+  'src/render/drape_lod_core.ts',
+  'src/render/floor_vfx_layer_core.ts',
+  'src/render/draw_program_signature_core.ts',
+  'src/render/legendary_regalia_core.ts',
+  'src/render/draped_bounds_core.ts',
+  'src/render/vfx_screen_bounds_core.ts',
+  'src/render/weapon_vfx_emissive_cache_core.ts',
+  'src/render/weapon_vfx_shed_core.ts',
   'src/render/draw_stats_core.ts',
+  'src/render/farm_patches_core.ts',
   'src/render/fishing_bobber_core.ts',
+  'src/render/flower_meadows_core.ts',
   'src/render/foliage_core.ts',
+  'src/render/foliage_decimation_core.ts',
+  'src/render/foliage_shore_gate_core.ts',
+  'src/render/gpu_queue_window_core.ts',
+  'src/render/compile_priority_core.ts',
+  'src/render/view_create_budget_core.ts',
+  'src/render/gpu_prep_budget_core.ts',
+  'src/render/evil_eye_marker_core.ts',
+  'src/render/kit_uv_surface_core.ts',
+  'src/render/kit_window_panes_core.ts',
+  'src/render/lich_audio_state_core.ts',
+  'src/render/needle_of_fate_vfx_core.ts',
+  'src/render/spirit_bomb_visual_core.ts',
+  'src/render/prewarm_resume_ledger_core.ts',
+  'src/render/prewarm_resume_start_gate_core.ts',
+  'src/render/preview_prewarm_lane.ts',
+  'src/render/sentence_vfx_core.ts',
+  'src/render/umbral_anchor_vfx_core.ts',
+  'src/render/foliage_shader_core.ts',
+  'src/render/foliage_shadow_core.ts',
+  'src/render/frame_present.ts',
+  'src/render/self_motion_rift_lift.ts',
+  'src/render/shadow_cadence_core.ts',
+  'src/render/shadow_extent_core.ts',
+  'src/render/shadow_texel_snap_core.ts',
+  'src/render/terrain_detail_shed_core.ts',
+  'src/render/frost_ice_fields_core.ts',
+  'src/render/frost_sky_fade_core.ts',
+  'src/render/gfx_aa_policy_core.ts',
+  'src/render/gfx_override_core.ts',
+  'src/render/goblin_rocket_sled_fx_core.ts',
+  'src/render/ground_aim_reticle_core.ts',
+  'src/render/ignivar_encounter_core.ts',
+  'src/render/varkhul_encounter_core.ts',
+  'src/render/ignivar_judgment_fire_core.ts',
+  // A torched mudfin hut's fire: the ten-second flame and smoke timeline and
+  // the particle sampler over the hut (randomness passed in).
+  'src/render/hut_fire_core.ts',
+  // ...and its lit smoke plume: how much smoke, where each puff is (hashed, no rng).
+  'src/render/hut_smoke_core.ts',
   'src/render/stations_core.ts',
+  'src/render/mobile_stations_core.ts',
   'src/render/delve_interactable_visibility_core.ts',
+  'src/render/drain_channel_visual_core.ts',
   'src/render/env_prefilter_core.ts',
+  'src/render/environment_transition_core.ts',
   'src/render/ground_tilt_core.ts',
+  'src/render/grass_build_slicer_core.ts',
+  'src/render/grass_cap_collapse_core.ts',
+  'src/render/grass_tuft_cards_core.ts',
   'src/render/step_smooth_core.ts',
   'src/render/eastbrook_town_visibility_core.ts',
+  'src/render/eastbrook_stall_canopy_core.ts',
+  'src/render/fenbridge_town_visibility_core.ts',
+  'src/render/occluder_fade_core.ts',
+  'src/render/point_light_shader_core.ts',
+  'src/render/point_light_carriers_core.ts',
+  'src/render/final_color_nan_guard_core.ts',
+  // The opt-in cel-shading R&D look (`?cel=on`): URL parse + the toon ramp
+  // patch over three's directional light loop.
+  'src/render/cel_shading_core.ts',
+  'src/render/post_bloom_shader_core.ts',
+  'src/render/dynamic_resolution_core.ts',
+  'src/render/post_plan_core.ts',
+  'src/render/post_pixel_budget_core.ts',
+  'src/render/resize_coalesce_core.ts',
+  'src/render/post_shed_core.ts',
   'src/render/nameplate_view.ts',
+  'src/render/nameplate_pick_core.ts',
+  'src/render/nameplate_paint_gate_core.ts',
+  'src/render/spirit_grade_core.ts',
+  'src/render/nameplate_cadence_core.ts',
+  'src/render/nameplate_heraldry_core.ts',
+  'src/render/nameplate_tag_fill_core.ts',
+  'src/render/nameplate_dots_core.ts',
+  'src/render/nameplate_cooldowns_core.ts',
+  'src/render/nameplate_friendly_core.ts',
   'src/render/net_interp_core.ts',
+  'src/render/paladin_ascension_core.ts',
+  'src/render/paladin_sun_verdict_core.ts',
+  'src/render/prewarm_compile_submission_core.ts',
+  'src/render/prewarm_submit_stop_core.ts',
+  // Bare-named, so the on-disk *_core sweep cannot find them: registered
+  // voluntarily (the prewarm_policy.ts precedent). Both are injected-clock pure
+  // logic with no three and no DOM, and the pacing pair is exactly the kind of
+  // module that grows a `performance.now()` the first time someone is in a hurry.
+  'src/render/link_rate_budget.ts',
+  'src/render/prewarm_compile_lifecycle.ts',
   'src/render/prewarm_policy.ts',
+  // Same reason, one seam over: the per-interior encounter prewarm's decision
+  // layer (which interior warms what, the kill switch, the live-queue verdict).
+  'src/render/interior_encounter_prewarm.ts',
+  'src/render/canopy_detail_tier_core.ts',
+  'src/render/camp_brazier_placement_core.ts',
+  'src/render/night_accents_core.ts',
+  'src/render/night_light_field_core.ts',
+  'src/render/night_lighting_core.ts',
+  'src/render/opaque_draw_order_core.ts',
+  'src/render/perceptual_lod_core.ts',
+  'src/render/prop_cell_core.ts',
+  'src/render/prop_cull_core.ts',
+  'src/render/race_line_core.ts',
+  'src/render/renderer_frame_telemetry_core.ts',
+  'src/render/rift_death_zone_core.ts',
+  'src/render/hill_ring_core.ts',
+  'src/render/scene_census_core.ts',
+  'src/render/sea_mist_core.ts',
+  'src/render/self_prediction_core.ts',
+  'src/render/self_render_position_core.ts',
+  'src/render/shadow_pass_gate_core.ts',
+  'src/render/shore_water_gate_core.ts',
+  'src/render/static_merge_shadow_core.ts',
+  'src/render/target_highlight_core.ts',
   'src/render/terrain_region_core.ts',
+  // The chunk grid's world box (shipped box, or an authored map's own rect
+  // plus outskirts): pure arithmetic over the active zones and stamps.
+  'src/render/terrain_grid_core.ts',
+  'src/render/texture_prep_core.ts',
+  'src/render/terrain_splat_presence_core.ts',
+  'src/render/vehicle_exhaust_core.ts',
+  'src/render/vehicle_steering_core.ts',
+  'src/render/vehicle_suspension_core.ts',
+  'src/render/vfx_pool_core.ts',
+  'src/render/view_candidate_pool_core.ts',
   'src/render/water_core.ts',
+  'src/render/water_coverage_core.ts',
+  'src/render/weather_field_core.ts',
+  'src/render/water_flora_core.ts',
+  'src/render/water_flora_shader_core.ts',
+  'src/render/day_night_core.ts',
+  'src/render/authored_walls_core.ts',
+  'src/render/garden_maze_core.ts',
+  'src/render/garden_parterre_core.ts',
+  'src/render/far_surface_core.ts',
+  'src/render/far_terrain_core.ts',
+  'src/render/foliage_impostor_core.ts',
+  'src/render/foliage_frame_windows_core.ts',
+  'src/render/lava_chain_core.ts',
+  'src/render/foliage_lod.ts',
+  'src/render/prewarm_pass.ts',
+  'src/render/prewarm_policy.ts',
+  'src/render/prewarm_resume.ts',
+  'src/render/resident_scenery_core.ts',
+  'src/render/sky_residency_core.ts',
+  'src/render/player_aura_rings_core.ts',
   'src/render/warrior_cast_fx_core.ts',
+  'src/render/characters/form_visual_selection_core.ts',
+  'src/render/characters/form_visual_slots_core.ts',
+  'src/render/characters/metamorph_wing_motion_core.ts',
+  'src/render/warlock_meteor_fx_core.ts',
+  'src/render/weapon_vfx_apply_queue_core.ts',
+  'src/render/weapon_vfx_emissive_core.ts',
+  'src/render/zone_dressing_lod_core.ts',
+  'src/render/zone_feature_visibility_core.ts',
+  'src/render/zone_eviction_core.ts',
+  'src/render/drakelands_kit_lane_core.ts',
+  'src/render/zone_prewarm_templates_core.ts',
+  'src/render/cast_vfx_readiness_core.ts',
+  'src/render/characters/skeleton_update_core.ts',
+  'src/render/characters/material_program_shape_core.ts',
+  'src/render/characters/far_bake_groups_core.ts',
+  'src/render/characters/spirit_veil_family_core.ts',
+  'src/render/characters/spirit_veil_palette_core.ts',
+  'src/render/ghost_style_core.ts',
+  'src/render/characters/modular_name_facts_core.ts',
+  'src/render/characters/morph_union_core.ts',
+  'src/render/characters/rift_body_stream_core.ts',
+  'src/render/characters/tinted_material_cache_core.ts',
+  'src/render/characters/composed_variant_residency_core.ts',
   'src/render/characters/weapon_attack_style_core.ts',
+  // FORK (Studio) pure cores.
+  'src/render/foliage_far_placements_core.ts',
+  'src/render/decal_stream_core.ts',
+  // renderer.ts extractions: the authored-map layer.
+  'src/render/authored_map/chase_boom_core.ts',
+  'src/render/authored_map/gameplay_fog_core.ts',
+  'src/render/authored_map/lighting_rig_core.ts',
+  'src/render/authored_map/shadow_cache_core.ts',
+  'src/render/authored_map/underworld_core.ts',
+  'src/render/authored_map/zone_atmosphere_core.ts',
+  'src/render/authored_map/zone_residency_core.ts',
+  'src/render/placed_batch_core.ts',
+  'src/render/placed_sprite_pick_core.ts',
+  'src/render/placed_texture_tier_core.ts',
+  'src/render/city_clutter_core.ts',
+  'src/render/terrain_cut_clip_core.ts',
+  'src/render/terrain_cut_rim_core.ts',
+  'src/render/cut_cavity_core.ts',
+  'src/render/grass_edge_taper_core.ts',
+  'src/render/grass_interaction_core.ts',
+  'src/render/sprites_buddy_flame_core.ts',
+  'src/render/characters/decal_texture_size_core.ts',
 ].map((rel) => join(repoRoot, rel));
 
 // Bare-named pure cores: registered cores (from UI_PURE_CORES + RENDER_PURE_CORES)
@@ -295,26 +1577,88 @@ const RENDER_PURE_CORES = [
 // updating this list) fails the cross-check instead of silently escaping the
 // reverse-completeness guard.
 const BARE_NAMED = [
+  'src/ui/trinket_aura_effect.ts',
+  'src/ui/trinket_aura_art.ts',
+  'src/ui/ability_tooltip_lines.ts',
+  'src/ui/banner_queue.ts',
+  'src/ui/item_instance_glyph_mark.ts',
+  'src/ui/item_instance_tooltip.ts',
+  'src/ui/item_kind_label.ts',
+  'src/ui/item_name_color.ts',
+  'src/ui/market_name_color.ts',
+  'src/ui/market_armor_badge.ts',
+  'src/ui/usd_text.ts',
+  'src/ui/money_html.ts',
+  'src/ui/woc_tokens_text.ts',
+  'src/ui/woc_log_tones.ts',
+  'src/ui/hud/professions/profession_log_tones.ts',
+  'src/ui/hud_tones.ts',
+  'src/ui/woc_balance_chip.ts',
+  'src/ui/woc_market_chrome.ts',
+  'src/ui/woc_market_activity_html.ts',
+  'src/ui/woc_market_detail_html.ts',
+  'src/ui/woc_market_sales_html.ts',
+  'src/ui/leaderboard_podium_html.ts',
+  'src/ui/leaderboard_board_html.ts',
+  'src/ui/guild_tag.ts',
+  'src/ui/wallet_bridge_reason_text.ts',
+  'src/ui/terms_link.ts',
+  'src/ui/duration_text.ts',
+  'src/ui/realm_builder_name.ts',
+  'src/ui/woc_market_reason_text.ts',
+  'src/render/foliage_lod.ts',
+  'src/render/frame_present.ts',
+  'src/render/self_motion_rift_lift.ts',
+  'src/game/presentation_gate.ts',
+  'src/game/glider_pitch_input.ts',
+  'src/game/stale_chrome_focus.ts',
+  'src/render/compile_gate.ts',
+  'src/render/link_rate_budget.ts',
+  'src/render/prewarm_compile_lifecycle.ts',
+  'src/render/prewarm_pass.ts',
+  'src/render/interior_encounter_prewarm.ts',
   'src/render/prewarm_policy.ts',
+  'src/render/prewarm_resume.ts',
+  'src/render/renderer_extensions.ts',
+  'src/render/preview_prewarm_lane.ts',
   'src/ui/mob_idle_sfx.ts',
+  'src/ui/gather_rare_event_feedback.ts',
+  'src/ui/hud/professions/wellfed_stat_keys.ts',
   'src/ui/gather_tool_tooltip.ts',
+  'src/ui/tool_effect_tooltip.ts',
+  'src/ui/hud/professions/mobile_station_tooltip.ts',
+  'src/ui/known_item.ts',
   'src/ui/unit_portrait.ts',
   'src/ui/xp_bar.ts',
   'src/ui/absorb_bar.ts',
   'src/ui/party_frames.ts',
   'src/ui/party_collapse.ts',
   'src/ui/guild_hide_offline.ts',
+  'src/ui/guild_motd_login.ts',
   'src/ui/rest_indicator.ts',
   'src/ui/low_health.ts',
   'src/ui/low_resource.ts',
+  'src/ui/map_gather_tip_memo.ts',
   'src/ui/clock.ts',
   'src/ui/compass.ts',
   'src/ui/coords.ts',
+  'src/ui/bag_filter.ts',
   'src/ui/bag_item_context_menu.ts',
+  'src/ui/bank_filter.ts',
+  'src/ui/vault_search.ts',
+  'src/ui/item_slot_labels.ts',
   'src/ui/hud/quest/quest_tracker.ts',
+  'src/ui/quest_marker_tags.ts',
+  'src/ui/hud/aura_tracks/aura_track_catalog.ts',
+  'src/ui/hud/aura_tracks/aura_track_descriptors.ts',
   'src/ui/hud/delve/delve_map.ts',
+  'src/ui/hud/professions/learned_profession_name.ts',
   'src/ui/swing_timer.ts',
+  'src/ui/system_text_i18n.ts',
+  'src/ui/target_frame_pos.ts',
   'src/ui/unit_frame.ts',
+  'src/ui/target_frame_descriptor.ts',
+  'src/ui/hud_frames.ts',
   'src/ui/minimap_markers.ts',
   'src/ui/fct_event.ts',
   'src/ui/focus_order.ts',
@@ -324,10 +1668,19 @@ const BARE_NAMED = [
   'src/ui/mobile_hud_layout.ts',
   'src/ui/pet_action_icons.ts',
   'src/ui/quality_glow.ts',
+  'src/ui/reliquary_cell_art.ts',
   'src/ui/chat_bubble_style.ts',
   'src/game/ui_effects_profile.ts',
   'src/game/ui_tier_knobs.ts',
+  'src/game/nameplate_view_prefs.ts',
   'src/render/cast_bar.ts',
+  'src/ui/safe_local_storage.ts',
+  'src/ui/claudium_purchase_bridge.ts',
+  'src/ui/store_purchase_intent.ts',
+  'src/ui/purchase_intent_record.ts',
+  'src/ui/charter_fit_memory.ts',
+  'src/ui/buddy_event_lines.ts',
+  'src/ui/hud/action_bar/hotbar_drag.ts',
 ].map((rel) => join(repoRoot, rel));
 
 function importSpecs(src: string): string[] {
@@ -365,9 +1718,45 @@ describe('src/sim architecture invariants', () => {
     expect(simFiles.length).toBeGreaterThan(10);
   });
 
-  it('imports nothing from render/ui/game/net or three (host-agnostic core)', () => {
+  it('imports nothing from render/ui/game/net/server or three (host-agnostic core)', () => {
     const violations = scanImports(simFiles, forbiddenImport);
     expect(violations, `src/sim must stay host-agnostic:\n${violations.join('\n')}`).toEqual([]);
+  });
+
+  it('the ban actually FIRES on every spelling a sim file could reach a host by', () => {
+    // A guard with no self-test is a guard nobody has seen fail. The
+    // directory-with-trailing-slash spellings were caught; the BARE ones
+    // (`../server`, `../../server.js`) were not, and a type-only
+    // `import type { X } from '../server'` is exactly the shape a sim file
+    // drifts into first.
+    for (const spec of [
+      '../server',
+      '../../server.js',
+      '../../server/game',
+      './server/db',
+      '../net',
+      '../net/online',
+      '../ui/hud',
+      '../render/renderer',
+      '../game/input',
+      'three',
+      'three/examples/jsm/x',
+    ]) {
+      expect(forbiddenImport(spec), spec).not.toBeNull();
+    }
+    // ...and does NOT fire on the legitimate neighbours, so it can never be
+    // satisfied by a rule that simply bans everything.
+    for (const spec of [
+      './types',
+      '../world_api',
+      '../world_api/guild_bank',
+      './professions/training',
+      'node:assert',
+      './my_server_helper',
+      './renderer_notes',
+    ]) {
+      expect(forbiddenImport(spec), spec).toBeNull();
+    }
   });
 
   it('touches no DOM/browser globals', () => {
@@ -470,6 +1859,219 @@ function posixRel(rel: string): string {
   return rel.split('\\').join('/');
 }
 
+// ---------------------------------------------------------------------------
+// Reliquary state mutation scope: every write to the sparse blob's surfaces
+// lives in ONE module, because the wire memo depends on it.
+// ---------------------------------------------------------------------------
+//
+// src/sim/reliquary.ts memoizes the serialized `reliq` self blob per state
+// revision, and every writer inside it bumps that revision. A write from
+// anywhere else would not bump, and the failure mode is SILENT: the server
+// compares the memo's string against session.lastSent, so a stale build ships
+// NOTHING and the client keeps the old blob forever with no error on any
+// surface. Nothing reds, nothing logs, the player just stops seeing finds.
+//
+// So the invariant is scope, not spelling: the five mutable surfaces
+// (firstFind, marks, recent, counts, illuminatedPages) are written only by
+// the module that owns the revision counter. REPLACING the whole
+// `meta.reliquary` object is deliberately allowed (sim.ts does it on
+// character load) and is safe for the opposite reason: a fresh object has a
+// fresh identity, so the identity-keyed cache simply has no entry for it.
+const RELIQUARY_STATE_OWNER = join(simRoot, 'reliquary.ts');
+const RELIQUARY_SURFACES = 'firstFind|marks|recent|counts|illuminatedPages';
+// Every assignment operator spelling: plain `=`, the compound forms
+// (`+=`, `??=`, `||=`, `&&=`, `**=`, shifts, bitwise), guarded so `==`,
+// `===`, `>=`, `<=`, and `!=` comparisons never fire (the operator class
+// excludes `<`, `>`, and `!`, and the trailing `[^=]` excludes `==`).
+const ASSIGN_OP = `(?:\\*\\*|<<|>>>|>>|\\?\\?|\\|\\||&&|[+\\-*/%&|^])?=[^=]`;
+/** Assignment or in-place mutation of a Reliquary state surface. */
+const RELIQUARY_WRITE_RE = new RegExp(
+  `\\.reliquary\\.(?:${RELIQUARY_SURFACES})\\s*` +
+    `(?:(?:\\.length\\s*)?${ASSIGN_OP}` +
+    `|\\[[^\\]]*\\]\\s*${ASSIGN_OP}` +
+    `|(?:\\[[^\\]]*\\]|\\.length)?\\s*(?:\\+\\+|--)` +
+    `|\\.(?:add|delete|clear|set|push|pop|shift|unshift|splice|sort|reverse|fill|copyWithin)\\s*\\()`,
+);
+/** `delete x.reliquary.firstFind[id]`, which the shape above cannot see. */
+const RELIQUARY_DELETE_RE = new RegExp(
+  `\\bdelete\\s+[^;]*\\.reliquary\\.(?:${RELIQUARY_SURFACES})\\b`,
+);
+/** Prefix increment and Object.assign, which put the surface AFTER the verb. */
+const RELIQUARY_PREFIX_RE = new RegExp(
+  `(?:\\+\\+|--)\\s*[\\w.$]*\\.reliquary\\.(?:${RELIQUARY_SURFACES})\\b`,
+);
+const RELIQUARY_OBJASSIGN_RE = new RegExp(
+  `Object\\.assign\\(\\s*[^,)]*\\.reliquary\\.(?:${RELIQUARY_SURFACES})\\b`,
+);
+// ACCEPTED LIMITATION: a line regex cannot see identity-level aliasing, so a
+// write through a stored alias (`const st = meta.reliquary; st.counts[id] = 1`)
+// or through a held surface reference (`ownership.marks.add(id)`) escapes this
+// scan. The owning module itself uses exactly those shapes internally, which is
+// legal (its writers bump the wire revision); outside it, none exist today
+// (verified by hand at Phase 17). This guard is a tripwire for the common
+// spellings, not a proof: treat a new alias-shaped write as a review item.
+function reliquaryStateWrite(line: string): boolean {
+  return (
+    RELIQUARY_WRITE_RE.test(line) ||
+    RELIQUARY_DELETE_RE.test(line) ||
+    RELIQUARY_PREFIX_RE.test(line) ||
+    RELIQUARY_OBJASSIGN_RE.test(line)
+  );
+}
+
+describe('Reliquary sparse-state writes stay inside their owning module', () => {
+  // headless/ joins the walk: the RL env server holds a live Sim and could
+  // grow a surface write as easily as server/ (it has none today).
+  const scanned = [
+    ...walk(simRoot),
+    ...walk(join(repoRoot, 'server')),
+    ...walk(join(repoRoot, 'headless')),
+  ].filter((f) => f !== RELIQUARY_STATE_OWNER);
+
+  it('finds all three trees to scan', () => {
+    // Floor ABOVE the flat top-level file count of either large root ALONE
+    // (about 139 for src/sim and 167 for server at authoring, recursive total
+    // about 650), so a walk that silently stopped recursing, or lost one of
+    // the two LARGE roots, cannot pass (headless is two files; only its
+    // membership arm below catches losing it). The .some() arms pin the
+    // recursion reaching a nested directory in each large root and the
+    // headless root being present at all.
+    expect(scanned.length).toBeGreaterThan(500);
+    expect(scanned.some((f) => f.includes(join('src', 'sim', 'professions')))).toBe(true);
+    expect(scanned.some((f) => f.includes(join('server', 'http')))).toBe(true);
+    // Anchored on a real file, not a bare path fragment: a checkout whose own
+    // absolute path contains a `headless` component must not satisfy this.
+    expect(scanned.some((f) => f.endsWith(join('headless', 'env_server.ts')))).toBe(true);
+    // The owner itself is excluded, and it really exists (an excluded path that
+    // is simply a typo would make this whole guard vacuous).
+    expect(existsSync(RELIQUARY_STATE_OWNER)).toBe(true);
+    expect(scanned).not.toContain(RELIQUARY_STATE_OWNER);
+  });
+
+  it(
+    'no module outside src/sim/reliquary.ts writes firstFind / marks / recent / counts / illuminatedPages',
+    () => {
+      const violations = scanLines(scanned, RELIQUARY_WRITE_RE)
+        .concat(scanLines(scanned, RELIQUARY_DELETE_RE))
+        .concat(scanLines(scanned, RELIQUARY_PREFIX_RE))
+        .concat(scanLines(scanned, RELIQUARY_OBJASSIGN_RE));
+      expect(
+        violations,
+        'a Reliquary state write outside its owning module skips the wire-memo revision bump,\n' +
+          'which ships a STALE blob silently (see src/sim/reliquary.ts reliquaryWireJson):\n' +
+          `${violations.join('\n')}`,
+      ).toEqual([]);
+    },
+    process.platform === 'win32' ? 90_000 : 20_000,
+  );
+
+  it(
+    'noteRelicObtain is called from the grant hubs and the atomic vault-save projector',
+    () => {
+      // The tally writer takes `meta` directly (no SimContext hop), so a NEW
+      // caller adopts whatever movement policy it likes with no seam forcing
+      // the question, and the line-regex ban above cannot see it (the write
+      // happens inside the owning module on the caller's behalf). Pin the
+      // caller set AND call text: both grant hubs keep their movement gate.
+      // The vault projector is the third approved caller: it commits world-sourced
+      // finds in the same transaction as the immutable direct claim marker.
+      // A new caller is not banned, it is
+      // a REVIEW ITEM: extend this pin only after classifying the new site
+      // against the movement rule. Scope: all of src/ (ClientWorld and the UI
+      // import from the owning module already, so a caller there is one import
+      // away) plus server/ and headless/; the owner file is excluded, which is
+      // also what keeps its own `export function noteRelicObtain(` definition
+      // line from matching. Accepted limitation: an aliased import
+      // (`import { noteRelicObtain as x }`) escapes the regex; treat one as a
+      // review item, the same standing as the write-ban's alias blind spot.
+      const callerScanned = [
+        ...walk(join(repoRoot, 'src')),
+        ...walk(join(repoRoot, 'server')),
+        ...walk(join(repoRoot, 'headless')),
+      ].filter((f) => f !== RELIQUARY_STATE_OWNER);
+      const callers = scanLines(callerScanned, /\bnoteRelicObtain\s*\(/);
+      const files = [...new Set(callers.map((v) => v.split(':')[0]))].sort();
+      expect(files, `unexpected noteRelicObtain callers:\n${callers.join('\n')}`).toEqual([
+        relative(repoRoot, join(simRoot, 'rift', 'hoard_reward_save.ts')),
+        relative(repoRoot, join(simRoot, 'sim.ts')),
+      ]);
+      const texts = callers.map((v) => v.slice(v.indexOf('  ') + 2));
+      expect(
+        texts,
+        'the projector is world-sourced; both hub arms retain their movement gate',
+      ).toEqual([
+        'noteRelicObtain(meta, item.itemId, item.count);',
+        'if (!opts?.movement) noteRelicObtain(meta, itemId, count);',
+        'if (!opts?.movement) noteRelicObtain(meta, itemId, count);',
+      ]);
+    },
+    process.platform === 'win32' ? 90_000 : 20_000,
+  );
+
+  it('the ban FIRES on every write spelling, and spares reads and whole-object replacement', () => {
+    // A guard with no self-test is a guard nobody has seen fail.
+    for (const line of [
+      'meta.reliquary.marks.add(markId);',
+      'meta.reliquary.marks.delete(markId);',
+      'meta.reliquary.marks.clear();',
+      'meta.reliquary.recent.push(id);',
+      'meta.reliquary.recent.shift();',
+      'meta.reliquary.recent.splice(i, 1);',
+      'meta.reliquary.recent.sort();',
+      'state.reliquary.firstFind[itemId] = {};',
+      'r.meta.reliquary.counts[id] = 3;',
+      'meta.reliquary.counts = {};',
+      'this.primary.reliquary.recent = [];',
+      'delete meta.reliquary.firstFind[itemId];',
+      // Compound assignment, increment, and after-the-verb spellings: the
+      // shapes a tally write from another module would most plausibly use.
+      'meta.reliquary.counts[id] += 1;',
+      'meta.reliquary.counts[itemId]++;',
+      '++meta.reliquary.counts[id];',
+      'meta.reliquary.firstFind[id] ??= {};',
+      'meta.reliquary.recent.length = 0;',
+      'Object.assign(meta.reliquary.counts, saved);',
+      // The Phase 18 sticky illumination record: every write spelling an
+      // outside module would plausibly use against the Set surface.
+      'meta.reliquary.illuminatedPages.add(pageId);',
+      'meta.reliquary.illuminatedPages.delete(pageId);',
+      'meta.reliquary.illuminatedPages.clear();',
+      'meta.reliquary.illuminatedPages = new Set();',
+    ]) {
+      expect(reliquaryStateWrite(line), line).toBe(true);
+    }
+    // ...and does NOT fire on reads, which are everywhere and legitimate, nor
+    // on replacing the whole state object (safe: fresh identity, fresh cache).
+    for (const line of [
+      'return this.primary.reliquary.firstFind;',
+      'return this.primary.reliquary.counts;',
+      'if (meta.reliquary.marks.has(markId)) return false;',
+      'const n = meta.reliquary.counts[id] ?? 0;',
+      'expect(meta.reliquary.recent).toEqual([]);',
+      'meta.reliquary = restoreReliquaryState(s.reliquary);',
+      'marks: this.primary.reliquary.marks,',
+      'if (meta.reliquary.firstFind[itemId] === undefined) return;',
+      // Comparison and arithmetic READS that the widened operator arm must
+      // keep sparing: >= and <= and != end in the same '=' a lazy regex trips on.
+      'if (meta.reliquary.counts[id] >= 1) return;',
+      'while (meta.reliquary.recent.length > cap) {',
+      'const more = meta.reliquary.counts[id] + 1;',
+      'if (meta.reliquary.counts[id] != null) draw();',
+      // Reads of the illumination record are everywhere-legal like the rest.
+      'if (meta.reliquary.illuminatedPages.has(pageId)) continue;',
+      // The NEAR-MISS identifier: `illuminatedPageId` is the reliquaryUnlock
+      // EVENT field, not a state surface, and the surface name was chosen so
+      // neither is a prefix of the other. Even a write spelled through it
+      // must not match (tsc rejects the field anyway); a sloppy prefix-style
+      // alternation would false-positive on exactly these lines.
+      'meta.reliquary.illuminatedPageId = pageId;',
+      'const bannerPage = ev.illuminatedPageId;',
+    ]) {
+      expect(reliquaryStateWrite(line), line).toBe(false);
+    }
+  });
+});
+
 describe('src/world_api IWorld seam purity invariants', () => {
   it('finds the IWorld seam (world_api.ts + every facet file)', () => {
     expect(worldApiFiles).toContain(worldApiEntry);
@@ -558,6 +2160,259 @@ describe('server host-layer import invariants', () => {
   });
 });
 
+// The $WOC token firewall (docs/prd/woc/marketplace.md "Constraints"): no
+// wallet, token, or settlement code may live in src/sim. The PRD names this
+// scan as the mechanical enforcement, so it exists here rather than as prose.
+// The allowlist is read-only projections of chain state, never money logic.
+describe('the $WOC token firewall over src/sim', () => {
+  // The ONE tenant: daily_rewards_stub.ts, the offline daily-rewards readout
+  // (#1307), which is a constant literal with no logic behind it. It was carved
+  // out of sim.ts precisely so the coordinator is scanned like every other
+  // file. holder_tier.ts and types.ts came OFF this list when they were
+  // measured against the pattern: the cosmetic holder ladder and the holder
+  // field declarations name none of this vocabulary outside comments, and an
+  // allowlist entry that is not covering a real hit only hides the next one.
+  // A NEW file wanting on this list is the signal the firewall is being
+  // breached, not extended.
+  const FIREWALL_ALLOWED = new Set(['src/sim/daily_rewards_stub.ts']);
+  // The shape every allowlisted file must keep to stay exempt: a read-only
+  // projection. Exactly ONE `export function`, and the only other statements
+  // allowed are type-only lines (`export type`, `import type`). Everything
+  // that could grow money LOGIC behind the exemption is refused by name:
+  // any other export form (const/let/var/class/default/interface/enum), a
+  // re-export (`export {}` / `export *`, which would let the file front a
+  // module nothing scans), a generator, control flow, try/catch, the logical
+  // operators, a ternary or optional, a value import, and a dynamic
+  // `import(...)`. Each rule is proven to bite against a synthetic offender
+  // below, so none of them is passing merely because the file never had the
+  // construct; the non-vacuity check additionally requires each entry to
+  // still carry a real pattern hit, so a stale entry cannot linger as a
+  // whole-file blind spot.
+  const PROJECTION_RULES: [string, RegExp][] = [
+    ['a non-function export', /\bexport\s+(?!(?:async\s+)?function\b|type\b)/],
+    ['a re-export', /\bexport\s*[{*]/],
+    ['a generator', /\bfunction\s*\*/],
+    ['control flow', /\b(?:if|for|while|switch)\s*\(/],
+    ['a try or catch', /\b(?:try|catch)\b/],
+    ['a logical operator', /&&|\|\||\?\?/],
+    ['a ternary or optional', /\?/],
+    ['a value import', /^import\b(?!\s+type\s)/m],
+    ['a dynamic import', /\bimport\s*\(/],
+  ];
+  const projectionViolations = (src: string): string[] =>
+    PROJECTION_RULES.filter(([, re]) => re.test(src)).map(([rule]) => rule);
+  // Identifier-shaped money/chain vocabulary. Deliberately NOT matched inside
+  // comments (the escrow prose in market.ts and inventory_extract.ts is fine):
+  // the scan strips comments first, exactly like the sibling purity scans.
+  // No trailing \b on purpose: the leak shapes are COMPOUND identifiers
+  // (sellerWallet, walletForAccount, quoteUsdCents), which a closed word
+  // boundary would miss entirely.
+  // The compound arms carry NO LEFT boundary either, and that asymmetry is
+  // deliberate: a sim file named orderSignature or blockHash over-matches and
+  // reds at PR time, which costs one reviewer glance, while a missed leak
+  // costs the firewall. Failing toward MORE scanning is the direction this
+  // guard prefers.
+  // `treasury` carries a REQUIRED money suffix, unlike the rest. A bare match was
+  // too broad to survive contact with the game's own vocabulary: v0.34.0 added a
+  // keep room whose id is literally 'treasury' (src/sim/dungeon_layout.ts), which
+  // is a place on a map, not a fee destination. Every shape this firewall exists
+  // to catch is compound anyway (treasuryWallet, treasuryBps), and the bare word
+  // was the one token here that could flag ordinary content.
+  // `signature` is narrowed the same way and for the same reason: the bare word
+  // is the game's own vocabulary (the talent-spec `signature` field, ability and
+  // reliquary descriptions calling something a signature move), while every leak
+  // shape is a money-affixed compound (txSignature, signature_reused,
+  // signatureRequired). Bare `token` is left out entirely on the same grounds
+  // (riftToken, chatTokens).
+  // The affix sets are calibrated against the REAL identifier corpus of the
+  // excluded modules (server/woc_market_*, claudium_proxy, native_attestation,
+  // woc_balance), not invented examples: treasuryBase, signatureAtMs,
+  // derSignature, signatureHeader, bs58 (the npm package name, which the
+  // literal 'base58' misses), keypair, the secret- and private-key shapes,
+  // blockhash, and the transaction verbs all exist server-side today. (The
+  // key shapes are spelled with their optional separator in the pattern
+  // below and hyphenated here so the malware scanner's own key-exfil
+  // signature, which hunts the contiguous identifiers, does not flag the
+  // very guard that forbids them in the sim.)
+  const FIREWALL_RE =
+    /(?:wallet|pubkey|solana|usdcents|pricecents|amountbase|settlementquote|bondcents|treasury[_-]?(?:wallet|pubkey|address|bps|cents|leg|share|base|cut|fee|account)|custodyclaim|lamports|base58|bs58|keypair|secret[_-]?key|private[_-]?key|blockhash|spl[_-]?token|(?:send|sign)[_-]?transaction|woc[_-]?(?:balance|price|amount|payout|transfer)|(?:tx|txn|bond|settlement|burn|transfer|der|escrow|payer|seller|mint)[_-]?signature|signature[_-]?(?:reused|required|field|header|verified|at[_-]?ms|bytes))/i;
+
+  it('exempts exactly one file, by exact membership', () => {
+    // Set EQUALITY, not a lower bound: widening the exemption has to be a
+    // deliberate visible edit to this line, never a quiet extra entry that
+    // takes a whole sim file out of the scan.
+    expect([...FIREWALL_ALLOWED]).toEqual(['src/sim/daily_rewards_stub.ts']);
+    expect(FIREWALL_ALLOWED.size).toBe(1);
+  });
+
+  it('keeps wallet, token, and settlement identifiers out of every sim file', () => {
+    const offenders: string[] = [];
+    for (const file of simFiles) {
+      const rel = relative(repoRoot, file).replace(/\\/g, '/');
+      if (FIREWALL_ALLOWED.has(rel)) continue;
+      const stripped = stripComments(readFileSync(file, 'utf8'));
+      const hit = FIREWALL_RE.exec(stripped);
+      if (hit) offenders.push(`${rel}: ${hit[0]}`);
+    }
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+
+  it('is non-vacuous: the scan sees the sim tree and its own pattern bites', () => {
+    // Near the real count (492 today) per the tests/CLAUDE.md floor rule: a
+    // walk that quietly lost most of the tree must fail here, because with
+    // sim.ts off the allowlist the corpus IS the firewall.
+    expect(simFiles.length).toBeGreaterThan(480);
+    // Every allowlisted file still exists, still trips the pattern (a stale
+    // entry is a whole-file blind spot), and still has the read-only
+    // projection shape spelled out at PROJECTION_RULES above.
+    for (const rel of FIREWALL_ALLOWED) {
+      const src = readFileSync(join(repoRoot, rel), 'utf8');
+      const stripped = stripComments(src);
+      expect(FIREWALL_RE.test(stripped), `${rel} no longer trips the pattern`).toBe(true);
+      // \b, not a trailing space: `export function* rows()` is a generator
+      // whose exported name a space-anchored count never sees.
+      expect(
+        stripped.match(/\bexport\s+(?:async\s+)?function\b/g),
+        `${rel} export count`,
+      ).toHaveLength(1);
+      expect(projectionViolations(stripped), `${rel} left the read-only projection shape`).toEqual(
+        [],
+      );
+      // Inline type imports (import { type X }) are deliberately refused by
+      // the value-import rule too: write them as import type instead.
+    }
+    // Both compound shapes must bite, and ordinary custody vocabulary must not.
+    expect(FIREWALL_RE.test('const w = walletForAccount(id);')).toBe(true);
+    expect(FIREWALL_RE.test('const k = row.sellerWallet;')).toBe(true);
+    expect(FIREWALL_RE.test('const escrowed = extractTradableCopy(inv, ref, def);')).toBe(false);
+    // The narrowed treasury arm, both directions: a fee destination or a split
+    // still bites, a room on a dungeon map does not.
+    expect(FIREWALL_RE.test('const dest = cfg.treasuryWallet;')).toBe(true);
+    expect(FIREWALL_RE.test('const bps = TREASURY_BPS;')).toBe(true);
+    expect(FIREWALL_RE.test("{ id: 'treasury', x0: 32, x1: 42 }")).toBe(false);
+    // The chain-settlement arms: an on-chain amount, an address encoding, and
+    // both compound signature shapes.
+    expect(FIREWALL_RE.test('const sig = row.txSignature;')).toBe(true);
+    expect(FIREWALL_RE.test('const b = toBase58(pk);')).toBe(true);
+    expect(FIREWALL_RE.test('const fee = LAMPORTS_PER_SOL / 2;')).toBe(true);
+    expect(FIREWALL_RE.test("if (reason === 'signature_reused') {")).toBe(true);
+    // ...and the game's own `signature`, which the narrowing must leave alone:
+    // player copy, the talent-spec field, and an ordinary derived-key helper.
+    expect(
+      FIREWALL_RE.test("description: 'Blasts nearby enemies with frost. (Frost signature)'"),
+    ).toBe(false);
+    expect(FIREWALL_RE.test("signature: 'mortal_strike',")).toBe(false);
+    expect(FIREWALL_RE.test('stationTypesSignature(types)')).toBe(false);
+  });
+
+  // One realistic usage per pattern arm the checks above do not already reach.
+  // An arm nobody probes is an arm a careless narrowing can delete for free,
+  // which is how a firewall loses a lane while staying green.
+  //
+  // The key shapes and the two transaction verbs are ASSEMBLED from fragments
+  // rather than spelled contiguously: the repo's malware scanner hunts exactly
+  // those source shapes (its key-exfil and web3-drain signatures), and the
+  // guard that forbids them in the sim must not read as one itself (the same
+  // hyphenation workaround the pattern comment describes). Each probe still
+  // carries the whole identifier at RUNTIME, which is what the pattern sees.
+  const CAMEL_KEY = 'Key';
+  const SNAKE_KEY = '_key';
+  const TX = 'Transaction';
+  const FIREWALL_ARM_PROBES: [string, string][] = [
+    ['bs58', 'const enc = bs58.encode(bytes);'],
+    ['keypair', 'const kp = keypairFromSeed(seed);'],
+    ['a camel-cased secret key', `const k = cfg.secret${CAMEL_KEY};`],
+    ['a snake-cased secret key', `const k = row.secret${SNAKE_KEY};`],
+    ['a private key', `const k = cfg.private${CAMEL_KEY};`],
+    ['blockhash', 'const { blockhash } = await conn.getLatest();'],
+    ['splToken', 'const mint = splToken.createMint(conn, payer);'],
+    ['sendTransaction', `await conn.send${TX}(tx);`],
+    ['signTransaction', `const signed = await provider.sign${TX}(tx);`],
+    ['wocBalance', 'const bal = row.wocBalance;'],
+    ['wocPrice', 'const price = quote.wocPrice;'],
+    ['wocAmount', 'const amount = order.wocAmount;'],
+    ['wocPayout', 'const payout = leg.wocPayout;'],
+    ['wocTransfer', 'await wocTransfer(from, to, amount);'],
+    ['treasuryPubkey', 'const dest = cfg.treasuryPubkey;'],
+    ['treasuryAddress', 'const dest = cfg.treasuryAddress;'],
+    ['treasuryBase', 'const base = split.treasuryBase;'],
+    ['treasuryCents', 'const cents = split.treasuryCents;'],
+    ['treasuryLeg', 'const leg = split.treasuryLeg;'],
+    ['treasuryShare', 'const share = split.treasuryShare;'],
+    ['treasuryCut', 'const cut = split.treasuryCut;'],
+    ['treasuryFee', 'const fee = split.treasuryFee;'],
+    ['treasuryAccount', 'const acct = cfg.treasuryAccount;'],
+    ['txnSignature', 'const sig = row.txnSignature;'],
+    ['derSignature', 'const sig = row.derSignature;'],
+    ['bondSignature', 'const sig = row.bondSignature;'],
+    ['settlementSignature', 'const sig = row.settlementSignature;'],
+    ['burnSignature', 'const sig = row.burnSignature;'],
+    ['transferSignature', 'const sig = row.transferSignature;'],
+    ['escrowSignature', 'const sig = row.escrowSignature;'],
+    ['payerSignature', 'const sig = row.payerSignature;'],
+    ['sellerSignature', 'const sig = row.sellerSignature;'],
+    ['mintSignature', 'const sig = row.mintSignature;'],
+    ['signatureRequired', 'const need = rules.signatureRequired;'],
+    ['signatureField', 'const field = body.signatureField;'],
+    ['signatureHeader', 'const header = req.signatureHeader;'],
+    ['signatureVerified', 'const ok = row.signatureVerified;'],
+    ['signatureAtMs', 'const at = row.signatureAtMs;'],
+    ['signatureBytes', 'const raw = row.signatureBytes;'],
+    ['custodyClaim', 'const claim = row.custodyClaim;'],
+    ['usdCents', 'const usd = quote.usdCents;'],
+    ['priceCents', 'const price = row.priceCents;'],
+    ['bondCents', 'const bond = order.bondCents;'],
+    ['amountBase', 'const amount = order.amountBase;'],
+    ['settlementQuote', 'const quote = order.settlementQuote;'],
+    ['pubkey', 'const pk = session.pubkey;'],
+    ['solana', 'const rpc = cfg.solanaRpcUrl;'],
+  ];
+
+  it.each(FIREWALL_ARM_PROBES)('bites on %s', (_arm, probe) => {
+    expect(FIREWALL_RE.test(probe)).toBe(true);
+  });
+
+  // The read-only-projection shape, proven rule by rule. Each offender names
+  // the rule it must trip, so deleting or loosening one rule reds here even
+  // though the one allowlisted file never carried the construct.
+  const PROJECTION_OFFENDERS: [string, string, string][] = [
+    ['a generator export', 'export function* rows() { yield 1; }', 'a generator'],
+    ['a named re-export', "export { dailyRewardsStub } from './other';", 'a re-export'],
+    ['a star re-export', "export * from './other';", 'a re-export'],
+    ['an exported interface', 'export interface Shape { a: number }', 'a non-function export'],
+    ['an exported enum', 'export enum Tier { One }', 'a non-function export'],
+    ['an exported const', 'export const rate = 1;', 'a non-function export'],
+    ['a loop', 'for (const row of rows) sum += row.a;', 'control flow'],
+    ['a try block', 'try { run(); } catch { }', 'a try or catch'],
+    ['a logical and', 'const v = a && b;', 'a logical operator'],
+    ['a logical or', 'const v = a || b;', 'a logical operator'],
+    ['a nullish fallback', 'const v = a ?? b;', 'a logical operator'],
+    ['a ternary', 'const v = a > 1 ? a : b;', 'a ternary or optional'],
+    ['a value import', "import { ITEMS } from './data';", 'a value import'],
+    ['a dynamic import', "const m = await import('./other');", 'a dynamic import'],
+  ];
+
+  it.each(PROJECTION_OFFENDERS)('refuses %s in an allowlisted file', (_label, src, rule) => {
+    expect(projectionViolations(src)).toContain(rule);
+  });
+
+  it('probes every projection rule, and still allows the one sanctioned shape', () => {
+    // Completeness both ways: a new rule with no offender above is unproven
+    // (the distinct rule names the offenders trip must cover the whole list),
+    // and the shape the exemption exists for must keep passing.
+    const probed = new Set(PROJECTION_OFFENDERS.map(([, , rule]) => rule));
+    expect(probed.size).toBe(PROJECTION_RULES.length);
+    const sanctioned = [
+      "import type { DailyRewardStatus } from '../world_api';",
+      'export type Readout = DailyRewardStatus;',
+      'export function readout(): Promise<Readout> {',
+      "  return Promise.resolve({ day: '1970-01-01' } as Readout);",
+      '}',
+    ].join('\n');
+    expect(projectionViolations(sanctioned)).toEqual([]);
+  });
+});
+
 describe('src/ui pure-core invariants', () => {
   it('lists only files that exist (the curated pure cores)', () => {
     const missing = UI_PURE_CORES.filter((f) => !statSync(f).isFile());
@@ -587,11 +2442,52 @@ describe('src/ui pure-core invariants', () => {
     ).toEqual([]);
   });
 
-  it('touches no DOM/browser globals', () => {
-    const violations = scanLines(UI_PURE_CORES, DOM_GLOBAL_RE);
+  it('touches no DOM/browser globals (member access AND value-position typeof/instanceof/direct-assign)', () => {
+    const memberViolations = scanLines(UI_PURE_CORES, DOM_GLOBAL_RE);
+    const valueScanFiles = UI_PURE_CORES.filter((f) => !DOM_GLOBAL_VALUE_ALLOWLIST.has(f));
+    const valueViolations = scanLines(valueScanFiles, DOM_GLOBAL_VALUE_RE);
+    const violations = [...memberViolations, ...valueViolations];
     expect(
       violations,
       `src/ui pure cores must run headless (no DOM globals):\n${violations.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  // Honesty check for DOM_GLOBAL_VALUE_ALLOWLIST (mirrors the UI_DOM_MODULES honesty
+  // check below): the exemption must name an actually-registered pure core that
+  // actually needs it, so it cannot rot into a blanket opt-out nobody uses.
+  it('keeps the value-position DOM exemption honest (registered, and still needs it)', () => {
+    for (const f of DOM_GLOBAL_VALUE_ALLOWLIST) {
+      const shown = relative(repoRoot, f);
+      expect(
+        UI_PURE_CORES,
+        `${shown} must be a registered pure core to need this exemption`,
+      ).toContain(f);
+      const code = stripComments(readFileSync(f, 'utf8'));
+      expect(
+        DOM_GLOBAL_VALUE_RE.test(code),
+        `${shown} no longer trips DOM_GLOBAL_VALUE_RE; drop the stale exemption`,
+      ).toBe(true);
+    }
+  });
+
+  // Regression for the purity-guard gap: DOM_GLOBAL_RE above only matches member
+  // access (window.x), so a pure core probing localStorage in VALUE position
+  // (`typeof localStorage !== 'undefined' ? localStorage : null`) was entirely
+  // invisible to it. party_collapse.ts and guild_hide_offline.ts each used to
+  // duplicate exactly that idiom; the fix moves it into the one shared module
+  // allowed to use it (src/ui/safe_local_storage.ts) and adds DOM_GLOBAL_VALUE_RE
+  // to catch a future regression of the same shape. This pins the two ORIGINAL
+  // files clean of the raw idiom using the real production regex, not a copy.
+  it('party_collapse.ts / guild_hide_offline.ts no longer carry the raw value-position localStorage probe', () => {
+    const files = [
+      join(repoRoot, 'src/ui/party_collapse.ts'),
+      join(repoRoot, 'src/ui/guild_hide_offline.ts'),
+    ];
+    const violations = scanLines(files, DOM_GLOBAL_VALUE_RE);
+    expect(
+      violations,
+      `these pure cores must import safeLocalStorage from src/ui/safe_local_storage.ts rather than duplicating the value-position probe:\n${violations.join('\n')}`,
     ).toEqual([]);
   });
 
@@ -653,6 +2549,29 @@ describe('purity scan matchers keep their teeth (the shared DOM / determinism re
       'const navigatorState = 1;',
     ]) {
       expect(DOM_GLOBAL_RE.test(negative), negative).toBe(false);
+    }
+  });
+
+  it('DOM_GLOBAL_VALUE_RE matches the value-position idiom (typeof/instanceof/direct-assign) and rejects benign lookalikes', () => {
+    for (const positive of [
+      "typeof localStorage !== 'undefined' ? localStorage : null",
+      "typeof window === 'undefined'",
+      'const s = localStorage;',
+      'return sessionStorage;',
+      'callback(document)',
+      'x instanceof Storage',
+      'y instanceof Window',
+    ]) {
+      expect(DOM_GLOBAL_VALUE_RE.test(positive), positive).toBe(true);
+    }
+    for (const negative of [
+      'const windowless = computeViewport();',
+      "'Press M to close the map window. Then click the marker.',",
+      'const typeofWindow = probe();',
+      'this.documentTitle = t;',
+      'const storageQuota = 5;',
+    ]) {
+      expect(DOM_GLOBAL_VALUE_RE.test(negative), negative).toBe(false);
     }
   });
 
@@ -742,6 +2661,140 @@ describe('src/render pure-core invariants', () => {
   });
 });
 
+// Pure re-derivation of "the registered cores whose name is bare (not _view/_core)"
+// from a pair of pure-core arrays. Factored into a function (rather than inlined in
+// the `it()` below) so the regression test further down can run the EXACT same
+// derivation against a mutated copy of the real arrays instead of hand-duplicating
+// the logic, which would risk the two silently drifting apart.
+function deriveBareNamedCores(uiCores: string[], renderCores: string[]): string[] {
+  const viewOrCoreRe = /_(?:view|core)\.ts$/;
+  return [
+    ...new Set(
+      [...uiCores, ...renderCores]
+        .filter((f) => !viewOrCoreRe.test(f))
+        .map((f) => posixRel(relative(repoRoot, f))),
+    ),
+  ].sort();
+}
+
+// Independent, hand-maintained pin for the BARE_NAMED forward-completeness check
+// below. Deliberately NOT derived from UI_PURE_CORES / RENDER_PURE_CORES (the arrays
+// deriveBareNamedCores() above already cross-references): a synchronized two-list
+// delete (the same bare-named path removed from BOTH its purity allowlist AND
+// BARE_NAMED in the same edit) keeps the derived check green, because derivedBare is
+// computed FROM the very arrays the delete just shrank, so both sides lose the same
+// entry and the equality holds despite the module silently dropping out of every
+// purity scan. This literal array is the third, independent pin: extend it BY HAND
+// in the same change that adds, renames, or removes a bare-named core from either
+// allowlist, so a synchronized delete leaves BARE_NAMED disagreeing with THIS list
+// instead of only agreeing with itself.
+const EXPECTED_BARE_NAMED = [
+  'src/game/glider_pitch_input.ts',
+  'src/game/nameplate_view_prefs.ts',
+  'src/game/presentation_gate.ts',
+  'src/game/stale_chrome_focus.ts',
+  'src/game/ui_effects_profile.ts',
+  'src/game/ui_tier_knobs.ts',
+  'src/render/cast_bar.ts',
+  'src/render/compile_gate.ts',
+  'src/render/foliage_lod.ts',
+  'src/render/frame_present.ts',
+  'src/render/interior_encounter_prewarm.ts',
+  'src/render/link_rate_budget.ts',
+  'src/render/preview_prewarm_lane.ts',
+  'src/render/prewarm_compile_lifecycle.ts',
+  'src/render/prewarm_pass.ts',
+  'src/render/prewarm_policy.ts',
+  'src/render/prewarm_resume.ts',
+  'src/render/renderer_extensions.ts',
+  'src/render/self_motion_rift_lift.ts',
+  'src/ui/ability_tooltip_lines.ts',
+  'src/ui/absorb_bar.ts',
+  'src/ui/bag_filter.ts',
+  'src/ui/bag_item_context_menu.ts',
+  'src/ui/bank_filter.ts',
+  'src/ui/banner_queue.ts',
+  'src/ui/buddy_event_lines.ts',
+  'src/ui/charter_fit_memory.ts',
+  'src/ui/chat_bubble_style.ts',
+  'src/ui/claudium_purchase_bridge.ts',
+  'src/ui/clock.ts',
+  'src/ui/compass.ts',
+  'src/ui/coords.ts',
+  'src/ui/duration_text.ts',
+  'src/ui/fct_event.ts',
+  'src/ui/focus_order.ts',
+  'src/ui/gather_rare_event_feedback.ts',
+  'src/ui/gather_tool_tooltip.ts',
+  'src/ui/guild_hide_offline.ts',
+  'src/ui/guild_motd_login.ts',
+  'src/ui/guild_tag.ts',
+  'src/ui/hud/action_bar/hotbar_drag.ts',
+  'src/ui/hud/aura_tracks/aura_track_catalog.ts',
+  'src/ui/hud/aura_tracks/aura_track_descriptors.ts',
+  'src/ui/hud/delve/delve_map.ts',
+  'src/ui/hud/professions/learned_profession_name.ts',
+  'src/ui/hud/professions/mobile_station_tooltip.ts',
+  'src/ui/hud/professions/profession_log_tones.ts',
+  'src/ui/hud/professions/wellfed_stat_keys.ts',
+  'src/ui/hud/quest/quest_tracker.ts',
+  'src/ui/hud_frames.ts',
+  'src/ui/hud_tones.ts',
+  'src/ui/item_instance_glyph_mark.ts',
+  'src/ui/item_instance_tooltip.ts',
+  'src/ui/item_kind_label.ts',
+  'src/ui/item_name_color.ts',
+  'src/ui/item_slot_labels.ts',
+  'src/ui/known_item.ts',
+  'src/ui/leaderboard_board_html.ts',
+  'src/ui/leaderboard_podium_html.ts',
+  'src/ui/live_region_politeness.ts',
+  'src/ui/log_event_route.ts',
+  'src/ui/low_health.ts',
+  'src/ui/low_resource.ts',
+  'src/ui/map_gather_tip_memo.ts',
+  'src/ui/market_armor_badge.ts',
+  'src/ui/market_name_color.ts',
+  'src/ui/minimap_markers.ts',
+  'src/ui/mob_idle_sfx.ts',
+  'src/ui/mobile_hud_layout.ts',
+  'src/ui/money_html.ts',
+  'src/ui/party_collapse.ts',
+  'src/ui/party_frames.ts',
+  'src/ui/pet_action_icons.ts',
+  'src/ui/purchase_intent_record.ts',
+  'src/ui/quality_glow.ts',
+  'src/ui/quest_marker_tags.ts',
+  'src/ui/realm_builder_name.ts',
+  'src/ui/reliquary_cell_art.ts',
+  'src/ui/rest_indicator.ts',
+  'src/ui/roving_index.ts',
+  'src/ui/safe_local_storage.ts',
+  'src/ui/store_purchase_intent.ts',
+  'src/ui/swing_timer.ts',
+  'src/ui/system_text_i18n.ts',
+  'src/ui/target_frame_descriptor.ts',
+  'src/ui/target_frame_pos.ts',
+  'src/ui/terms_link.ts',
+  'src/ui/tool_effect_tooltip.ts',
+  'src/ui/trinket_aura_art.ts',
+  'src/ui/trinket_aura_effect.ts',
+  'src/ui/unit_frame.ts',
+  'src/ui/unit_portrait.ts',
+  'src/ui/usd_text.ts',
+  'src/ui/vault_search.ts',
+  'src/ui/wallet_bridge_reason_text.ts',
+  'src/ui/woc_balance_chip.ts',
+  'src/ui/woc_log_tones.ts',
+  'src/ui/woc_market_activity_html.ts',
+  'src/ui/woc_market_chrome.ts',
+  'src/ui/woc_market_detail_html.ts',
+  'src/ui/woc_market_reason_text.ts',
+  'src/ui/woc_market_sales_html.ts',
+  'src/ui/woc_tokens_text.ts',
+  'src/ui/xp_bar.ts',
+];
+
 describe('curated bare-named pure cores (cross-check)', () => {
   // Bare names are enforced by this curated cross-check while *_view / *_core are
   // auto-swept by onDiskCores(): the sweep's /_(?:view|core)\.ts$/ regex cannot see a
@@ -769,15 +2822,47 @@ describe('curated bare-named pure cores (cross-check)', () => {
     // basename is bare (not _view / _core). A new bare-named core added to an allowlist
     // but forgotten here would escape both onDiskCores() (bare name) and the loop above
     // (not listed), reopening the gap; this equality makes that omission fail.
-    const viewOrCoreRe = /_(?:view|core)\.ts$/;
-    const derivedBare = [...UI_PURE_CORES, ...RENDER_PURE_CORES]
-      .filter((f) => !viewOrCoreRe.test(f))
-      .map((f) => relative(repoRoot, f))
-      .sort();
+    const derivedBare = deriveBareNamedCores(UI_PURE_CORES, RENDER_PURE_CORES);
+    const bareNamedRel = [
+      ...new Set(BARE_NAMED.map((f) => posixRel(relative(repoRoot, f)))),
+    ].sort();
     expect(
-      [...new Set(derivedBare)],
+      derivedBare,
       'BARE_NAMED must equal the registered cores whose name is bare (not _view/_core)',
-    ).toEqual([...new Set(BARE_NAMED.map((f) => relative(repoRoot, f)))].sort());
+    ).toEqual(bareNamedRel);
+
+    // Independent third pin (not derived from the arrays above): catches a
+    // synchronized delete that the derived check just above cannot (see
+    // EXPECTED_BARE_NAMED's own comment). Extend EXPECTED_BARE_NAMED by hand
+    // whenever a bare-named core is added, renamed, or removed.
+    expect(
+      bareNamedRel,
+      `BARE_NAMED must equal the hand-maintained EXPECTED_BARE_NAMED pin (update BOTH together):\n${bareNamedRel.join('\n')}`,
+    ).toEqual(EXPECTED_BARE_NAMED);
+  });
+
+  // Regression: the derived-completeness check above re-derives its expected list
+  // FROM UI_PURE_CORES / RENDER_PURE_CORES, the very arrays a delete would shrink.
+  // A synchronized two-list delete (the same bare-named path removed from BOTH its
+  // purity allowlist AND BARE_NAMED in one edit) keeps that check green, because
+  // both sides lose the same entry together, while the module silently drops out of
+  // every purity scan (it is bare-named, so onDiskCores()'s *_view/*_core sweep
+  // cannot see it either). EXPECTED_BARE_NAMED is hand-maintained and independent of
+  // the arrays under test, so it disagrees with BARE_NAMED after the same mutation.
+  it('the independent EXPECTED_BARE_NAMED pin catches a synchronized delete the derived check misses', () => {
+    const target = join(repoRoot, 'src/ui/party_collapse.ts');
+    const mutatedUiCores = UI_PURE_CORES.filter((f) => f !== target);
+    const mutatedBareNamed = BARE_NAMED.filter((f) => f !== target);
+
+    const derivedBare = deriveBareNamedCores(mutatedUiCores, RENDER_PURE_CORES);
+    const mutatedBareNamedRel = [
+      ...new Set(mutatedBareNamed.map((f) => posixRel(relative(repoRoot, f)))),
+    ].sort();
+    // The OLD derived check: still green after the synchronized delete (the gap).
+    expect(derivedBare).toEqual(mutatedBareNamedRel);
+    // The NEW independent pin: red, because EXPECTED_BARE_NAMED still lists
+    // party_collapse.ts and the mutated BARE_NAMED no longer does.
+    expect(mutatedBareNamedRel).not.toEqual(EXPECTED_BARE_NAMED);
   });
 });
 
@@ -877,9 +2962,13 @@ const SWEPT_BY_NAME_RE = /_(?:view|core|painter)\.ts$/;
 // portrait_chip, proc_overlay_dom), a `typeof window !== 'undefined'` probe, a
 // `(globalThis as {...}).ResizeObserver` cast, `instanceof HTMLElement`
 // (dialog_key_activation), and a bare `new Date()`.
-// (DOM_GLOBAL_RE itself is deliberately left alone: widening it would redden the
-// two registered pure cores that probe `typeof localStorage`, which is a separate
-// change with a separate blast radius.)
+// (DOM_GLOBAL_RE itself is deliberately left alone here too: the src/ui pure-core
+// scan above layers its own narrower value-position sibling, DOM_GLOBAL_VALUE_RE,
+// on top of it instead, scoped to that one file family and allowlisting only
+// src/ui/safe_local_storage.ts, the shared `typeof localStorage` feature-detect
+// guild_hide_offline.ts and party_collapse.ts both used to duplicate. Widening
+// DOM_GLOBAL_RE itself would still touch sim/world_api/render, which have no
+// instance of this idiom today and stay out of scope for this fix.)
 //
 // Deliberately OUT of scope, so the absence is a decision rather than an
 // oversight: `setTimeout` / `setInterval` / `queueMicrotask` / `fetch` /
@@ -895,12 +2984,13 @@ const UI_HOST_MEMBER_RE = new RegExp(`\\b(?:${UI_HOST_GLOBALS})\\??\\s*(?:\\.[A-
 // Assigned, passed, returned, spread, shorthanded, probed or cast rather than
 // dereferenced: `= document)`, `(document)`, `return document;`, `() => window`,
 // `{ document }`, `[document, window]`, `{ ...globalThis }`,
-// `typeof window !== 'undefined'`, `(window as X).y`. Anchored on a code delimiter
-// at BOTH ends so prose ("close the window, then click") cannot match, and the
-// open brace refuses a `${...}` interpolation so a template variable named
-// `window` (talent_i18n has one) is not mistaken for the global.
+// `typeof window !== 'undefined'`, `(window as X).y`, and ternary value arms such
+// as `enabled ? window : fallback`. Anchored on a code delimiter at BOTH ends so
+// prose ("close the window, then click") cannot match, and the open brace refuses
+// a `${...}` interpolation so a template variable named `window` (talent_i18n has
+// one) is not mistaken for the global.
 const UI_HOST_VALUE_RE = new RegExp(
-  `typeof\\s+(?:${UI_HOST_GLOBALS})\\b|(?:[=(,?!\\[]|(?<!\\$)\\{|=>|\\.\\.\\.|\\breturn)\\s*(?:${UI_HOST_GLOBALS})\\s*(?:[),;:!=}\\]]|\\s+as\\b|$)`,
+  `typeof\\s+(?:${UI_HOST_GLOBALS})\\b|\\?\\s*(?:${UI_HOST_GLOBALS})\\s*:|(?:[=(,?!\\[]|(?<!\\$)\\{|=>|\\.\\.\\.|\\breturn)\\s*(?:${UI_HOST_GLOBALS})\\s*(?:[),;!=}\\]]|\\s+as\\b|$)`,
   'm',
 );
 // window.location reached bare. Pinned to the real Location members so a game
@@ -961,7 +3051,7 @@ const HELPER_HOST_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
   [
     'a browser global, passed or probed',
     new RegExp(
-      `typeof\\s+(?:${HELPER_HOST_GLOBALS})\\b|(?:[=(,?!\\[]|(?<!\\$)\\{|=>|\\.\\.\\.|\\breturn)\\s*(?:${HELPER_HOST_GLOBALS})\\s*(?:[),;:!=}\\]]|\\s+as\\b|$)`,
+      `typeof\\s+(?:${HELPER_HOST_GLOBALS})\\b|\\?\\s*(?:${HELPER_HOST_GLOBALS})\\s*:|(?:[=(,?!\\[]|(?<!\\$)\\{|=>|\\.\\.\\.|\\breturn)\\s*(?:${HELPER_HOST_GLOBALS})\\s*(?:[),;!=}\\]]|\\s+as\\b|$)`,
       'm',
     ),
   ],
@@ -978,7 +3068,8 @@ const HELPER_HOST_PATTERNS: ReadonlyArray<readonly [string, RegExp]> = [
 // (the painter reads the --color-* CSS vars once per redraw), so a baked color in
 // the helper is a token-discipline break. Deliberately NOT applied to the default
 // bucket, where a tier or art palette IS the module (holder_tier, dev_tier,
-// percentile_tier, discord_tier, perf_overlay_model all bake theirs on purpose).
+// percentile_tier, discord_tier, curator_sigil, perf_overlay_model all bake
+// theirs on purpose).
 const COLOR_HEX_RE = /#[0-9a-fA-F]{3,8}\b/g;
 const COLOR_FUNC_RE = /\brgba?\s*\(/g;
 
@@ -992,7 +3083,14 @@ const COLOR_FUNC_RE = /\brgba?\s*\(/g;
 // is imported BY a painter and paints nothing itself; a window painter owns and
 // updates the nodes of its own window. What the gate enforces is that one of them
 // is chosen on purpose.
-const UI_PAINTER_HELPERS = ['src/ui/text_sprite_cache.ts'].map((rel) => join(repoRoot, rel));
+const UI_PAINTER_HELPERS = [
+  // The Show Absorb Shields root-class gate (one classList.toggle on an injected host).
+  'src/ui/absorb_overlay_gate.ts',
+  'src/ui/continent_land_mask.ts',
+  'src/ui/text_sprite_cache.ts',
+  // Detached tt-desc / tt-sub line mint (createElement + textContent only).
+  'src/ui/tooltip_line.ts',
+].map((rel) => join(repoRoot, rel));
 
 // Modules that REACH A HOST: they own browser state (the windows, the HUD
 // controllers, the drag / resize / focus plumbing, the storage-backed settings) or
@@ -1018,20 +3116,145 @@ const UI_PAINTER_HELPERS = ['src/ui/text_sprite_cache.ts'].map((rel) => join(rep
 // the English catalog, it is a maintainer fix during the release locale fill:
 // contributors do not edit those files.
 const UI_DOM_MODULES = [
+  'src/ui/footer_shell.ts',
+  'src/ui/hud/referral_cards/referral_reward_celebration_window.ts',
+  'src/ui/hud/referral_cards/referral_cards_controller.ts',
+  'src/ui/hud/referral_cards/referral_cards_hud_controller.ts',
+  'src/ui/hud/expeditions/finder_surfaces.ts',
+  'src/ui/hud/expeditions/expedition_controller.ts',
+  'src/ui/hud/expeditions/notification_sound.ts',
+  // Mints the "restoring graphics" status line and toggles it on the context
+  // restore hold's edges.
+  'src/ui/graphics_restore_note_controller.ts',
+  'src/ui/tooltip_binding.ts',
+  // The Skull Bag sub-inventory pane the bags window docks (createElement only).
+  'src/ui/hud/skull_bag/skull_bag_pane_controller.ts',
+  'src/ui/error_toast_controller.ts',
+  'src/ui/boot_splash.ts',
+  // The first-login graphics prompt: a top-level pre-game modal reading the URL and navigator.
+  'src/ui/graphics_choice_prompt.ts',
+  // The landing-first boot (body classes, splash lift, prefetch, held clicks) and the
+  // characters-created counter it shares with main.ts.
+  'src/ui/landing_first.ts',
+  'src/ui/project_stats.ts',
+  'src/ui/frame_presets_live.ts',
+  'src/ui/frame_editor_deps.ts',
+  'src/ui/frame_presets_controls.ts',
+  'src/ui/options_frame_settings.ts',
+  // Wires registered HUD roots to persistent movers and their live DOM homes.
+  'src/ui/hud_frame_registry.ts',
+  // Mints the shared unit and bag-stack step buttons around a number input and
+  // writes the input on a press; the rules are quantity_step_core.ts.
+  'src/ui/quantity_stepper.ts',
+  'src/ui/canvas_dpr.ts', // Reads the display's device pixel ratio.
+  'src/ui/mobile_frame_long_press.ts',
+  'src/ui/hud/vehicle/vehicle_action_bar_controller.ts',
+  'src/ui/hud/map/minimap_objective_tap.ts',
+  // Owns a ResizeObserver over the map canvas and writes its backing store.
+  'src/ui/hud/map/map_canvas_size_controller.ts',
+  // Hud's map-window sizing wiring: a ResizeObserver over #map-window that
+  // re-reads the stored rail width once settings exist.
+  'src/ui/hud/map/map_window_sizing_wiring.ts',
+  'src/ui/hud/treasure/treasure_map_window.ts',
+  // Mounts the Cartographer's Ink map picker into #prompt-stack.
+  'src/ui/hud/treasure/ink_map_picker_controller.ts',
+  'src/ui/hud/vehicle/shadow_action_bar_controller.ts',
+  'src/ui/hud/vehicle/forge_action_bar_controller.ts',
+  'src/ui/account_portal_dom.ts',
+  'src/ui/appearance_customizer.ts',
+  // The WOC face builder's painter (its rules are woc_head_builder_model.ts).
+  'src/ui/woc_head_builder.ts',
+  // Owns browser state on purpose: it mints the reticle tick ring's root and
+  // mounts it, which is exactly the work it exists to keep out of hud.ts. The
+  // RULES it wires up are all in the pure cores (reticle_ticks_core,
+  // proc_ready_glow_core, haptic_pulse_core, aura_watchlist_core).
+  'src/ui/aura_overlay_wiring.ts',
+  // The Cooldown Manager's browser half: the controller mints and mounts the
+  // floating row and reads one drag rect; the store owns its localStorage record;
+  // the settings panel builds the Options sub-view; the wiring attaches the sfx
+  // engine and reads the live body class. Every RULE is in the two pure cores
+  // (cooldown_manager_config, cooldown_manager_view).
+  'src/ui/hud/cooldown_manager/cooldown_manager_controller.ts',
+  'src/ui/hud/cooldown_manager/cooldown_manager_settings.ts',
+  'src/ui/hud/cooldown_manager/cooldown_manager_store.ts',
+  'src/ui/hud/cooldown_manager/cooldown_manager_wiring.ts',
   'src/ui/arena_window.ts',
   'src/ui/armory_inspect.ts',
   'src/ui/auth_utils.ts',
+  'src/ui/mount_inspect_controller.ts',
   'src/ui/bag_item_action_menu.ts',
   'src/ui/bags_window.ts',
+  'src/ui/membership_bag_socket.ts',
+  'src/ui/bank_buy_prompt.ts',
+  'src/ui/bank_quantity_prompt.ts',
+  'src/ui/bank_status_line.ts',
   'src/ui/bank_window.ts',
+  'src/ui/bank_window_lifecycle.ts',
+  'src/ui/account_bank_window.ts',
+  'src/ui/friendship_armour_claim.ts',
+  'src/ui/bank_window_focus.ts',
+  'src/ui/breath_bar.ts',
   'src/ui/calendar_window.ts',
-  'src/ui/camera_prompt.ts',
+  'src/ui/hud/action_bar/action_bar_bind_banner.ts',
+  'src/ui/weekly_quests_window.ts',
+  'src/ui/hud/guild_hall/guild_hall_window.ts',
+  'src/ui/hud/guild_hall/guild_offer_stage_controller.ts',
+  'src/ui/hud/action_bar/bar_editor/bar_editor_window.ts',
+  'src/ui/hud/action_bar/consumable_seat_controller.ts',
+  'src/ui/hud/action_bar/mobile_action_ring_controller.ts',
+  'src/ui/hud/action_bar/radial_gesture_controller.ts',
+  'src/ui/hud/menu/menu_control_controller.ts',
+  // The pet-bar button builder (Hud.renderPetBar's sockets, their touch hold
+  // and the drag that copies a pet command onto the action bar).
+  'src/ui/hud/pet_bar_button.ts',
+  'src/ui/hud/stance/stance_bar_controller.ts',
+  'src/ui/hud/stance/stance_control_controller.ts',
+  'src/ui/hud/tap_menu.ts',
+  'src/ui/hud/strip_gesture_controller.ts',
+  'src/ui/hud/quest/quest_strip_controller.ts',
+  'src/ui/hud/quest/quest_strip_gesture_controller.ts',
+  'src/ui/hud/cross_hotbar/cross_hotbar_controller.ts',
+  'src/ui/options_window_shell.ts',
+  'src/ui/options_interface_rows.ts',
+  // Key Bindings > Keyboard Layout: mints its own nodes; the conversion lives in
+  // the registered pure core src/ui/keyboard_layout_convert_core.ts.
+  'src/ui/keybind_layout_convert_rows.ts',
+  // Interface > Combat: the subhead and checkbox row shapes (createElement).
+  'src/ui/options_check_rows.ts',
+  // Options > Performance > System Report: mints its own nodes (createElement)
+  // and reads the desktop bridge for its availability gate. Decisions live in
+  // the registered pure core src/ui/host_diag_view.ts; this half is nodes, one
+  // click handler and a class.
+  'src/ui/host_diag_section_controller.ts',
+  'src/ui/options_main_menu_controller.ts',
+  'src/ui/hud/talking_head/talking_head_controller.ts',
+  // Composes the dungeon prompt painters (they mount the DOM) and reads the UI
+  // clock once a frame for the Sanctum's Ice Slab cover hint; the decisions
+  // stay in the registered pure cores (sanctum_alert_view, its scene scan).
+  'src/ui/hud/dungeon/dungeon_prompts.ts',
   'src/ui/char_skin_window.ts',
   'src/ui/char_window.ts',
   'src/ui/charselect_news.ts',
+  'src/ui/charselect_redesign.ts',
+  'src/ui/charselect_woc_market_panel.ts',
   'src/ui/chat_command_menu.ts',
   'src/ui/claudium_window.ts',
-  'src/ui/crafting_window.ts',
+  'src/ui/continent_art.ts',
+  'src/ui/touch_peek.ts',
+  'src/ui/hud/professions/crafting_window.ts',
+  'src/ui/hud/professions/commission_order_window.ts',
+  // The spin celebration's live element: created, listened to, mounted on
+  // document.body and torn down (Bank Storage phase 17). Its markup and geometry
+  // are in the pure src/ui/daily_rewards_spin_view.ts. Named `_controller` so the
+  // painter gate's filename sweep keeps the cold contract this code held while it
+  // lived in the window, WITHOUT the stricter facet-routed contract a `_painter`
+  // carries or the by-name sweep that would drop this very row. The double
+  // coverage is the deliberate one this file's own header describes.
+  'src/ui/daily_rewards_spin_controller.ts',
+  'src/ui/store_subscription.ts',
+  // The rotating promo card above chat: it owns its DOM, a rotation interval,
+  // a retire-guard clock read and the prefers-reduced-motion query.
+  'src/ui/store_promo_card.ts',
   'src/ui/daily_rewards_window.ts',
   'src/ui/deeds_window.ts',
   'src/ui/desktop_update_toast.ts',
@@ -1039,11 +3262,26 @@ const UI_DOM_MODULES = [
   'src/ui/dialog_key_activation.ts',
   'src/ui/discord_widget.ts',
   'src/ui/entry_guard_banner.ts',
+  'src/ui/epic_link.ts',
   'src/ui/focus_manager.ts',
-  'src/ui/gather_node_tooltip.ts',
+  'src/ui/focus_restore.ts',
+  // The town-bell homecoming policy: the return-bell hint's per-device one-shot
+  // lives in localStorage; the note models stay in the pure tutorial_greeting_view.
+  'src/ui/ferry_bell_home_note.ts',
+  'src/ui/form_draft.ts',
+  'src/ui/gather_node_tooltip_controller.ts',
   'src/ui/gpu_notice_toast.ts',
   'src/ui/hosted_play_panel.ts',
+  'src/ui/guild_bank_log_window.ts',
+  'src/ui/guild_bank_window.ts',
+  'src/ui/hud/professions/harvest_journal_window.ts',
+  'src/ui/hud/professions/harvest_preference_picker.ts',
+  'src/ui/hud/professions/perfecting_window.ts',
+  'src/ui/hud/professions/perfecting_swap_controller.ts',
+  'src/ui/hud/professions/legendary_naming_controller.ts',
+  'src/ui/input_controller.ts',
   'src/ui/hud.ts',
+  'src/ui/hud/action_bar/action_bar_toggle_controller.ts',
   'src/ui/hud/chat/chat_geometry_controller.ts',
   'src/ui/hud/chat/chat_window_controller.ts',
   'src/ui/hud/cosmetics/skin_event_controller.ts',
@@ -1059,26 +3297,74 @@ const UI_DOM_MODULES = [
   'src/ui/hud/player_card/player_card_controller.ts',
   'src/ui/hud/quest/quest_dialog_controller.ts',
   'src/ui/hud/quest/quest_tracker_controller.ts',
+  'src/ui/hud/quest/wisp_maze_hud_controller.ts',
   'src/ui/hud/quest/questlog_window.ts',
+  'src/ui/world_quest_puzzle_window.ts',
+  'src/ui/world_quest_confection_window.ts',
+  'src/ui/world_quest_confection_fx_controller.ts',
+  'src/ui/world_quest_ley_window.ts',
+  'src/ui/world_quest_ley_fx_controller.ts',
+  'src/ui/hud/vendor/buy_quantity_prompt_window.ts',
   'src/ui/hud/vendor/heroic_vendor_window.ts',
+  'src/ui/hud/vendor/crucible_vendor_window.ts',
   'src/ui/hud/vendor/train_window.ts',
   'src/ui/hud/vendor/unbind_window.ts',
+  'src/ui/hud/buddy_menu.ts',
   'src/ui/hud/vendor/vendor_window.ts',
+  'src/ui/hud/vendor/warfare_vendor_window.ts',
+  'src/ui/hud/woc_trade/woc_trade_controller.ts',
   'src/ui/i18n.ts',
   'src/ui/icon_prewarm.ts',
+  'src/ui/icon_prewarm_worker.ts',
   'src/ui/icons.ts',
   'src/ui/inspect_window.ts',
+  'src/ui/interface_unlock.ts',
+  'src/ui/settings_transfer.ts',
+  'src/ui/keyboard_map.ts',
+  'src/ui/keyboard_map_window.ts',
   'src/ui/item_drop_hit_test.ts',
+  'src/ui/loading_backdrop.ts',
   'src/ui/loading_slow_hint.ts',
   'src/ui/loading_tips.ts',
   'src/ui/mailbox_window.ts',
+  'src/ui/map_art.ts',
+  'src/ui/map_bg.ts',
+  'src/ui/map_marker_icon_loader.ts',
+  'src/ui/map_marker_palette_lifecycle.ts',
+  // The World Map atlas rail adapter: it owns the rail subtree (a click listener
+  // on the injected root plus an innerHTML swap) and reads document.activeElement
+  // so the focused chip or quest row survives that swap.
+  'src/ui/map_sidebar_controller.ts',
+  'src/ui/market_sweep_panel.ts',
+  'src/ui/market_orders_panel.ts',
   'src/ui/market_window.ts',
+  'src/ui/woc_market_window.ts',
+  'src/ui/material_sources_dialog.ts',
+  // The Item history prompt (the sources dialog's #prompt-stack recipe).
+  'src/ui/item_history_dialog.ts',
+  'src/ui/personal_bank_item_cell.ts',
   'src/ui/meters.ts',
+  'src/ui/meters_frame.ts',
+  'src/ui/meters_options_dialog.ts',
+  'src/ui/death_recap_dialog.ts',
+  'src/ui/hud/practice/hub_lesson_controller.ts',
   'src/ui/minimap_gilded_ornament.ts',
   'src/ui/mobile_wallet_launcher.ts',
+  'src/ui/wallet_reauth_prompt.ts',
+  'src/ui/wallet_verify_request.ts',
+  'src/ui/mount_race_controls.ts',
+  'src/ui/mount_race_strip.ts',
+  'src/ui/aura_overlay_config.ts',
+  'src/ui/aura_overlay_controller.ts',
+  'src/ui/aura_overlay_settings.ts',
   'src/ui/movable_frame.ts',
+  'src/ui/native_select_hold.ts',
   'src/ui/native_update_prompt.ts',
+  'src/ui/noticeboard_popup.ts',
+  'src/ui/realm_builder_popup.ts',
   'src/ui/options_window.ts',
+  'src/ui/ota_update_overlay.ts',
+  'src/ui/fatal_overlay_controller.ts',
   'src/ui/perf_metrics_sampler.ts',
   'src/ui/perf_nudge_toast.ts',
   'src/ui/perf_ornament_svg.ts',
@@ -1087,32 +3373,103 @@ const UI_DOM_MODULES = [
   'src/ui/perf_overlay_settings.ts',
   'src/ui/portrait_chip.ts',
   'src/ui/proc_overlay_dom.ts',
-  'src/ui/proc_overlay_drag.ts',
-  'src/ui/profession_identity_card.ts',
-  'src/ui/profession_tutorial_window.ts',
-  'src/ui/professions_window.ts',
+  'src/ui/hud/professions/gathering_goal_track_row.ts',
+  'src/ui/hud/professions/profession_identity_card.ts',
+  'src/ui/hud/professions/profession_tutorial_window.ts',
+  'src/ui/preview_stand_in.ts',
+  // The launcher turntable's loading silhouette: mints its own layer and SVG
+  // art (the `= document` default) and moves it between stage containers.
+  'src/ui/preview_loading_silhouette.ts',
+  // The phone creator's one-time pinch hint: mints its own tab and glyph (the
+  // `= document` default), remembers the first gesture in localStorage, and times its exit.
+  'src/ui/preview_touch_hint.ts',
+  'src/ui/prompt_dialog.ts',
+  // The report window body moved whole out of hud.ts (the Phase 9b headroom
+  // extraction); it paints #report-window and owns its listeners. Renamed to
+  // the _window suffix by the 9b QA so the cold-painter sweep in
+  // tests/hud_perf_budget.test.ts governs it like every sibling window.
+  'src/ui/report_window.ts',
+  'src/ui/tutorial_greeting_window.ts',
+  // professions_window.ts is BACK on the ledger: the focus_restore move left
+  // it host-free for a while, but armSentGuard's one-shot re-arm timer is a
+  // real host reach, now spelled window.setTimeout so this sweep can see it
+  // (a bare setTimeout sat in the sweep's blind spot, the whole-branch
+  // review's note).
+  'src/ui/hud/professions/professions_window.ts',
+  'src/ui/raid_boss_guide_window.ts',
+  'src/ui/raid_boss_guide_model_controller.ts',
+  'src/ui/hud/chat/ready_check_leader_window.ts',
+  // The binder that gives a purchase-intent ledger a durable half. It reaches
+  // localStorage (through the safe_local_storage seam, the one sanctioned door)
+  // and the clock, which is precisely why it is not in the pure record core it
+  // wraps: the age bound has to be injectable or it cannot be tested, and a
+  // clock inside a registered core would break the scan the ledger's whole
+  // testability rests on. Its sibling src/ui/purchase_intent_key.ts is listed
+  // here too, for the same reason on the other half of the split.
+  'src/ui/purchase_intent_durability.ts',
+  // The ONE Claudium idempotency-key minter. It reaches globalThis.crypto and,
+  // on the fallback arm, the clock and an rng, which is exactly why it is NOT
+  // in store_purchase_intent.ts: that ledger is a pure core whose determinism
+  // scan is what lets a caller inject a minter and test it deterministically.
+  'src/ui/purchase_intent_key.ts',
   'src/ui/reconnect_overlay.ts',
+  // reliquary_window.ts joined the ledger with the HUD-tracker pin store: the
+  // pinned page set persists per character in localStorage (the deeds_window
+  // watchlist shape), which is browser state this module owns.
+  'src/ui/reliquary_window.ts',
   'src/ui/settings_controls.ts',
   'src/ui/social_window.ts',
   'src/ui/spectate_badge.ts',
   'src/ui/spellbook_window.ts',
+  'src/ui/start_skin_picker_portraits.ts',
   'src/ui/steam_link.ts',
+  'src/ui/steam_wishlist.ts',
+  'src/ui/store_decision_prompt.ts',
+  // Resolves and mints the body-level host a Store decision takes while an
+  // inspect overlay is up (document lookups and a body append; the rule is in
+  // its header).
+  'src/ui/store_prompt_host.ts',
   'src/ui/store_stack_diag.ts',
+  'src/ui/swing_timer_bars.ts',
   'src/ui/talents_window.ts',
+  'src/ui/target_auras_window.ts',
+  // target_swing_timer_bars.ts mirrors swing_timer_bars.ts's own reach: it
+  // resolves the #swingbar-target/#swingbar-tot elements via document.querySelector
+  // once in its constructor, the same DOM-owning shape as its sibling above.
+  'src/ui/target_swing_timer_bars.ts',
   'src/ui/theme.ts',
+  // The engine indicators' touch drag: pointer events on the frame, a resize
+  // listener, localStorage and the document's safe-area probe (the math is the
+  // touch_frame_drag_core pure core).
+  'src/ui/touch_frame_drag.ts',
   'src/ui/touch_item_drag.ts',
   'src/ui/touch_tap.ts',
   'src/ui/town_focus_window.ts',
+  // The tracker-stack seat applier: owns a resize listener and bounded
+  // getBoundingClientRect reads by design (the module comment carries the
+  // cadence contract); the seat math itself is the tracker_stack_anchor_core
+  // pure core.
+  'src/ui/tracker_stack_anchor.ts',
   'src/ui/tutorial.ts',
+  'src/ui/bootcamp.ts',
   'src/ui/ui_effects_applier.ts',
   'src/ui/ui_icons.ts',
   'src/ui/ui_scale.ts',
-  'src/ui/vale_cup_betting.ts',
-  'src/ui/vale_cup_briefing.ts',
-  'src/ui/vale_cup_charge.ts',
-  'src/ui/vale_cup_hud.ts',
+  'src/ui/vault_window.ts',
+  'src/ui/weekly_rewards_window.ts',
+  'src/ui/weekly_reward_claim_controller.ts',
+  'src/ui/weekly_reward_table_picker_controller.ts',
+  'src/ui/weekly_reward_loot_catalog_controller.ts',
+  'src/ui/weekly_reward_loot_focus_controller.ts',
+  'src/ui/weekly_rewards_ready_prompt.ts',
+  'src/ui/purchase_reward_dialogs.ts',
+  'src/ui/weekly_vault_reveal_controller.ts',
+  'src/ui/wiki_link.ts',
   'src/ui/window_drag.ts',
+  'src/ui/window_open_state.ts',
+  'src/ui/window_reflow.ts',
   'src/ui/window_resize.ts',
+  'src/ui/woc_market_link.ts',
 ].map((rel) => join(repoRoot, rel));
 
 // The sweep's domain: every src/ui module the other two sweeps do NOT already
@@ -1320,6 +3677,8 @@ describe('src/ui module classification (every module is swept by exactly one gat
       'const deps = { document };',
       'const hosts = [document, window];',
       'const merged = { ...globalThis };',
+      'const host = enabled ? window : fallback;',
+      'const doc = enabled ? document : fallback;',
     ]) {
       expect(UI_HOST_VALUE_RE.test(positive), positive).toBe(true);
     }
@@ -1395,6 +3754,7 @@ describe('src/ui module classification (every module is swept by exactly one gat
     expect(HELPER_HOST_PATTERNS[0][1].test('document.createElement(x)')).toBe(false);
     expect(HELPER_HOST_PATTERNS[0][1].test('window.innerWidth')).toBe(true);
     expect(HELPER_HOST_PATTERNS[1][1].test("typeof localStorage !== 'undefined'")).toBe(true);
+    expect(HELPER_HOST_PATTERNS[1][1].test('const host = enabled ? window : fallback;')).toBe(true);
     expect(HELPER_HOST_PATTERNS[1][1].test('return document;')).toBe(false);
     // The helper document rule counts every access, so a second, live-tree call
     // cannot hide behind the sanctioned one.
@@ -1407,5 +3767,92 @@ describe('src/ui module classification (every module is swept by exactly one gat
     expect('rgba(0, 0, 0, .5)'.match(COLOR_FUNC_RE)).toEqual(['rgba(']);
     expect('rgb(1 2 3)'.match(COLOR_FUNC_RE)).toEqual(['rgb(']);
     expect('const hex = colorToken;'.match(COLOR_HEX_RE)).toBeNull();
+  });
+});
+
+// Shipping source (src/ and server/) must stay free of raw C0 control bytes.
+// This is not style: a single NUL makes the whole file BINARY to the grep-family
+// tools the repo's own sweeps are built on, and they fail SILENTLY. On this
+// machine `grep` is ugrep, which skips a binary file outright: before the Bank
+// Storage phase 11 QA fix, `grep -c export server/storage_purchases.ts` printed
+// nothing and exited 1 while `grep --binary-files=text` found ten, so the
+// phase's largest money-path module read as an EMPTY file to every source sweep.
+// tests/ is deliberately exempt: a test legitimately embeds a control byte as
+// INPUT (appearance_wire_bounds pins one inside a name, enchant_apply_view builds
+// a NUL-separated composite key, glb_assets feeds a sanitizer), and those files
+// are not what a source sweep is trying to read.
+const CONTROL_BYTE_ROOTS = ['src', 'server'] as const;
+
+/** Index of the first raw C0 control byte (or DEL), else -1. A codepoint scan
+ *  rather than a regex on purpose: a regex literal holding control characters
+ *  is itself a biome error (noControlCharactersInRegex), and a character class
+ *  is easy to widen or invert by accident, whereas this predicate is directly
+ *  unit-testable. Tab and newline are the only legal ones; carriage return is
+ *  banned with the rest because this repo is LF-only, so a CR here is
+ *  corruption too. */
+function firstControlByteIndex(text: string): number {
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code === 0x09 || code === 0x0a) continue;
+    if (code < 0x20 || code === 0x7f) return i;
+  }
+  return -1;
+}
+
+describe('shipping source carries no raw control bytes', () => {
+  const files = CONTROL_BYTE_ROOTS.flatMap((root) => walk(join(repoRoot, root)));
+
+  it('finds both shipping source trees', () => {
+    expect(files.length).toBeGreaterThan(400);
+  });
+
+  it(
+    'has no control byte in any src/ or server/ TypeScript file',
+    () => {
+      const offenders: string[] = [];
+      for (const file of files) {
+        const text = readFileSync(file, 'utf8');
+        const at = firstControlByteIndex(text);
+        if (at === -1) continue;
+        const line = text.slice(0, at).split('\n').length;
+        const code = text.charCodeAt(at).toString(16).padStart(4, '0');
+        offenders.push(`${file.slice(repoRoot.length)}:${line} carries U+${code.toUpperCase()}`);
+      }
+      expect(
+        offenders,
+        'A raw control byte makes the file binary to grep, so every source sweep ' +
+          'silently skips it. Write the character as an escape in a string literal ' +
+          `instead:\n${offenders.join('\n')}`,
+      ).toEqual([]);
+    },
+    process.platform === 'win32' ? 90_000 : 20_000,
+  );
+
+  it('the ban FIRES on every control byte and spares tab, newline, and real text', () => {
+    // Mutation-proof for the predicate itself: the sweep above is only as strong
+    // as this scan, and an off-by-one in either bound would silently disarm it.
+    const nul = String.fromCharCode(0);
+    const del = String.fromCharCode(0x7f);
+    const esc = String.fromCharCode(0x1b);
+    // The exact regression this guard was written for.
+    expect(firstControlByteIndex(`const K = '${nul}recovery-scan';`)).toBe(11);
+    expect(firstControlByteIndex(del)).toBe(0);
+    expect(firstControlByteIndex(esc)).toBe(0);
+    expect(firstControlByteIndex(String.fromCharCode(0x0d))).toBe(0);
+    // Both edges of the legal window, so neither bound can drift.
+    expect(firstControlByteIndex(String.fromCharCode(0x08))).toBe(0);
+    expect(firstControlByteIndex(String.fromCharCode(0x0b))).toBe(0);
+    expect(firstControlByteIndex(String.fromCharCode(0x1f))).toBe(0);
+    expect(firstControlByteIndex(String.fromCharCode(0x20))).toBe(-1);
+    expect(firstControlByteIndex(String.fromCharCode(0x7e))).toBe(-1);
+    // Tab and newline stay legal, and the shipped fix uses a real SPACE.
+    expect(firstControlByteIndex('\t')).toBe(-1);
+    expect(firstControlByteIndex('\n')).toBe(-1);
+    expect(firstControlByteIndex(`const K = ' recovery-scan';`)).toBe(-1);
+    // The escaped SPELLING of a control byte stays legal: only the raw byte is
+    // banned, so a module that genuinely needs one can still express it.
+    expect(firstControlByteIndex(`const sep = '\\u0000';`)).toBe(-1);
+    // It reports the FIRST offender, not merely "some", so the message locates it.
+    expect(firstControlByteIndex(`ab${del}c${nul}`)).toBe(2);
   });
 });

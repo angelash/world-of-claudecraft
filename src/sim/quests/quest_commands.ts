@@ -23,30 +23,46 @@
 // render/ui/game/net/DOM/Three, no Math.random/Date.now), so it runs unchanged in
 // Node, the browser, and the headless RL env.
 
-import { bagCapacity, bagsFullError, countFit, removeStacked } from '../bags';
-import { QUESTS, questRewardItemId } from '../data';
+import { bagPools, bagsFullError, consumeOneScratch, countStacked, fitsAll } from '../bags';
+import { WISP_MAZE_QUEST_ID } from '../content/world_quest_wisp_maze';
+import { DUNGEONS, ITEMS, QUESTS } from '../data';
 import { formatMoney } from '../format_money';
+import { removePreferFungible } from '../items';
+import { grantFreshLoot } from '../loot/fresh_quality_grant';
 import type { ArchetypeState } from '../professions/archetype';
 import { armCadence, cadenceBlockedKeys } from '../professions/cadence';
+import { planGradeRemoval } from '../professions/material_grades';
 import { questFallbackGrants } from '../quest_fallback';
+import { emitReferralQuestEvidence } from '../referral_evidence';
+import { markGourdlightErrand } from '../seasonal/gourdlight_deed_marks';
+import { seasonalBlockedQuestIds } from '../seasonal/seasonal_quests';
+import { activeSeasonalEventOf } from '../seasonal/seasonal_state';
 import type { PlayerMeta } from '../sim';
 import type { SimContext } from '../sim_context';
+import { hubHealingAbilityId } from '../tutorial/hub_healing_lesson';
 import {
   dist2d,
   type Entity,
   INTERACT_RANGE,
+  type PlayerClass,
   type QuestDef,
   type QuestProgress,
   type QuestState,
   questObjectiveRequired,
   questTurnInNpcIds,
 } from '../types';
+import { leaveWispMaze } from '../world_quest_wisp_maze';
 import {
   applyProfessionQuestEffect,
+  isIdentityTransitionQuest,
   professionQuestSelectionTargets,
   resolvedQuestObjectiveCounts,
   validateProfessionQuestSelection,
 } from './profession_quest_effects';
+import { playerHoldsQuestItem } from './quest_item_presence';
+import { grantQuestRecipeReward, validateQuestRecipeReward } from './quest_recipe_rewards';
+import { defaultRewardChoice, questFixedReward, resolveRewardChoice } from './quest_reward_choice';
+import { weeklyLockedQuestIds, weeklyQuestLockoutId } from './weekly_quest_lock';
 
 // Pure quest-state computation, shared by the sim and the network client. Relocated
 // from sim.ts (W4) and re-exported from sim.ts so the ClientWorld import
@@ -62,6 +78,7 @@ export function computeQuestState(
   // ctx.tickCount, the online client from the server-computed cprof mirror), so
   // this shared decision point never reasons about tick domains itself.
   withinCadence?: ReadonlySet<string>,
+  playerClass?: PlayerClass,
 ): QuestState {
   const qp = questLog.get(questId);
   if (qp) return qp.state === 'ready' ? 'ready' : 'active';
@@ -70,7 +87,25 @@ export function computeQuestState(
   if (questsDone.has(questId) && !quest.repeatable) return 'done';
   if (quest.requiresQuest && !questsDone.has(quest.requiresQuest)) return 'unavailable';
   if (quest.minLevel && playerLevel < quest.minLevel) return 'unavailable';
+  if (quest.maxLevel && playerLevel > quest.maxLevel) return 'unavailable';
   if (quest.retired) return 'unavailable';
+  // A quest pointing into a development-only room waits until that room ships.
+  if (quest.gatedWithDungeon && DUNGEONS[quest.gatedWithDungeon]?.guideVisible === false)
+    return 'unavailable';
+  // Class-locked quest (the paladin-only Divine Tome chain): invisible to any
+  // other class. A missing class fails closed so a class-less caller never opens it.
+  if (quest.requiredClass && (!playerClass || !quest.requiredClass.includes(playerClass)))
+    return 'unavailable';
+  // The hub's optional healing lesson: unavailable until the SAME resolver its
+  // credit arm and the UI coach read (hub_healing_lesson.ts) says this class
+  // has actually learned a usable direct heal at this level, so an eligible
+  // class never sees the quest before their kit has anything to teach it with.
+  if (
+    quest.requiresUsableHealAbility &&
+    (!playerClass || hubHealingAbilityId(playerClass, playerLevel) === null)
+  ) {
+    return 'unavailable';
+  }
   if (
     quest.completionEffect &&
     professionState &&
@@ -78,16 +113,23 @@ export function computeQuestState(
   ) {
     return 'unavailable';
   }
-  // One pending identity transition at a time: while any attunePair-effect
-  // quest is active, every OTHER attunePair-effect quest is unavailable.
-  // resolvedCounts is stamped at accept and turn-in never re-resolves it, so a
-  // banked second amends would complete at a stale cost after the first return
-  // raised switchCount, dodging the 5 + 3 * switchCount escalation. The gate
-  // lives here so both hosts and the server accept path share it (the quest
-  // already in the log returned 'active' above, so it never gates itself).
-  if (quest.completionEffect?.type === 'attunePair') {
+  // One pending identity transition at a time: while ANY identity-transition
+  // quest is active (attunePair or switchHobby, see isIdentityTransitionQuest),
+  // every OTHER identity-transition quest is unavailable. Two distinct stale-bank
+  // failures share this one gate, which is why its scope is both effect types
+  // rather than the attunePair-only scope it originally shipped with:
+  //   - resolvedCounts is stamped at accept and turn-in never re-resolves it, so
+  //     a banked second amends would complete at a stale cost after the first
+  //     return raised switchCount, dodging the 5 + 3 * switchCount escalation.
+  //   - the hobby quest banks its chosen craft on QuestProgress at accept, but a
+  //     pair transition rewrites both the candidate set and the hobby, so a bank
+  //     that straddles a transition either turns in against the wrong pair or
+  //     sticks unturnable-in on the revalidation below.
+  // The gate lives here so both hosts and the server accept path share it (the
+  // quest already in the log returned 'active' above, so it never gates itself).
+  if (isIdentityTransitionQuest(quest)) {
     for (const activeId of questLog.keys()) {
-      if (QUESTS[activeId]?.completionEffect?.type === 'attunePair') return 'unavailable';
+      if (isIdentityTransitionQuest(QUESTS[activeId])) return 'unavailable';
     }
   }
   // A repeatable work order inside its cooldown window is unavailable until it
@@ -100,10 +142,7 @@ export function computeQuestState(
 export function questState(ctx: SimContext, questId: string, pid?: number): QuestState {
   const r = ctx.resolve(pid);
   if (!r) return 'unavailable';
-  const withinCadence =
-    r.meta.questCadence.size > 0
-      ? new Set(cadenceBlockedKeys(r.meta.questCadence, ctx.tickCount))
-      : undefined;
+  const withinCadence = repeatBlockedQuestIds(ctx, r.meta);
   return computeQuestState(
     questId,
     r.meta.questLog,
@@ -111,7 +150,33 @@ export function questState(ctx: SimContext, questId: string, pid?: number): Ques
     r.e.level,
     r.meta.archetype,
     withinCadence,
+    r.meta.cls,
   );
+}
+
+/**
+ * The repeatable quests this player cannot take again yet: work orders inside their tick
+ * cadence, plus weekly quests locked until the weekly reset (weekly_quest_lock.ts). One
+ * set, fed to computeQuestState here and mirrored to the online client through the cprof
+ * `cadenceBlockedQuests` (professions/crafting_identity.ts), so both worlds agree.
+ * Undefined when nothing is blocked, which keeps the common case allocation-free.
+ */
+export function repeatBlockedQuestIds(
+  ctx: SimContext,
+  meta: PlayerMeta,
+): ReadonlySet<string> | undefined {
+  const cadence =
+    meta.questCadence.size > 0 ? cadenceBlockedKeys(meta.questCadence, ctx.tickCount) : [];
+  const weekly =
+    meta.raidLockouts.size > 0 ? weeklyLockedQuestIds(meta.raidLockouts, ctx.lockoutNowMs()) : [];
+  // Seasonal quests close with their event (seasonal/seasonal_quests.ts).
+  const seasonal = seasonalBlockedQuestIds(
+    activeSeasonalEventOf(ctx.seasonal),
+    ctx.resetDay,
+    ctx.seasonal.devDaily,
+  );
+  if (cadence.length === 0 && weekly.length === 0 && seasonal.length === 0) return undefined;
+  return new Set([...cadence, ...weekly, ...seasonal]);
 }
 
 function questNpcFor(
@@ -145,14 +210,34 @@ export function finalizeQuestAccept(
   selection?: string,
 ): boolean {
   if (!validateProfessionQuestSelection(quest, meta, selection)) return false;
+  // The riding lesson is pickable only after the 80g skill purchase at Marla.
+  // Gated here so the npc, linked-share, and dev accept paths cannot drift.
+  if (quest.requiresRidingTrained && !meta.ridingTrained) {
+    ctx.error(meta.entityId, 'You must learn Riding before taking this lesson.');
+    return false;
+  }
   meta.questLog.set(questId, {
     questId,
     counts: quest.objectives.map(() => 0),
     state: 'active',
     ...(selection === undefined ? {} : { selection }),
     resolvedCounts: resolvedQuestObjectiveCounts(quest, meta),
+    // Stamp the objective-list revision so a later rework (a rev bump) resets
+    // only runs accepted under the OLD list (quest_progress_migration.ts).
+    ...(quest.rev === undefined ? {} : { rev: quest.rev }),
   });
-  for (const itemId of questFallbackGrants(quest, (id) => ctx.countItem(id, meta.entityId) > 0)) {
+  // The re-grant predicate spans every store the player can recover the item
+  // from alone (bags, bank, market escrow, mailbox), not just the bags: a
+  // bags-only read was the unbounded starter-tool mint (bank it, abandon,
+  // re-accept, repeat). See quest_item_presence.ts for the full reasoning.
+  // Capacity is deliberately NOT pre-checked here, nor in the giver-talk twin
+  // regrantMissingQuestItems below: a required item the player can no longer
+  // obtain must never be lost to a full bag, so the grant force-adds and the
+  // over-capacity bag is tolerated and visible. The turn-in reward below DOES
+  // gate (countFit + bagsFullError); that asymmetry is the design. See the
+  // ungated-paths list in src/sim/bags.ts (qr-19-qprofintro-overflow-grant,
+  // 2026-09-01).
+  for (const itemId of questFallbackGrants(quest, (id) => playerHoldsQuestItem(ctx, meta, id))) {
     ctx.addItem(itemId, 1, meta.entityId);
   }
   ctx.emit({ type: 'questAccepted', questId, pid: meta.entityId });
@@ -233,11 +318,62 @@ export function acceptLinkedQuest(
   if (sharer) ctx.notice(sharerPid, `${meta.name} accepted your shared quest.`);
 }
 
+// Strip a quest's OWN required items (the firebottle for q_deepfen_purge) from the
+// bag on turn-in and abandon, so a finished quest never leaves its tool behind.
+// Scoped HARD to items the quest itself owns (kind 'quest' with a matching questId):
+// requiredItems is the fallback-grant list (quest_fallback.ts) and its other users
+// are durable prerequisites the player keeps, the profession tools (the mining pick,
+// the gathering sickle) and cross-quest keys (the Crypt Keystone). Stripping those
+// would delete a tool the always-require-tool harvest gate still needs.
+function stripRequiredItems(ctx: SimContext, quest: QuestDef, meta: PlayerMeta): void {
+  for (const itemId of quest.requiredItems ?? []) {
+    const def = ITEMS[itemId];
+    if (!def || def.kind !== 'quest' || def.questId !== quest.id) continue;
+    const have = ctx.countItem(itemId, meta.entityId);
+    if (have > 0) ctx.removeItem(itemId, have, meta.entityId);
+  }
+}
+
+// Talking to the giver of an ACTIVE quest re-grants any required item the player
+// no longer holds anywhere they could recover it from themselves (a deleted
+// firebottle for q_deepfen_purge, say), so a lost prerequisite can never
+// permanently strand the quest. The accept path does the same grant
+// (finalizeQuestAccept); this is its in-progress twin, and it MUST use the same
+// playerHoldsQuestItem predicate: a bags-only read here would reopen the
+// unbounded starter-tool mint (bank the tool, talk to the giver, repeat) that
+// quest_item_presence.ts exists to close.
+export function regrantMissingQuestItems(
+  ctx: SimContext,
+  meta: PlayerMeta,
+  npcTemplateId: string,
+): void {
+  for (const qp of meta.questLog.values()) {
+    if (qp.state !== 'active') continue;
+    const quest = QUESTS[qp.questId];
+    if (!quest || quest.giverNpcId !== npcTemplateId || !quest.requiredItems) continue;
+    for (const itemId of questFallbackGrants(quest, (id) => playerHoldsQuestItem(ctx, meta, id))) {
+      ctx.addItem(itemId, 1, meta.entityId);
+      ctx.emit({
+        type: 'log',
+        text: 'You recover a quest item you were missing.',
+        color: '#ff0',
+        pid: meta.entityId,
+      });
+    }
+  }
+}
+
 export function abandonQuest(ctx: SimContext, questId: string, pid?: number): void {
   const r = ctx.resolve(pid);
   if (!r) return;
   const { meta } = r;
+  // The maze's Leave button reuses the quest verb, retaining personal collection.
+  if (questId === WISP_MAZE_QUEST_ID) {
+    leaveWispMaze(ctx, meta, r.e);
+    return;
+  }
   if (!meta.questLog.has(questId)) return;
+  stripRequiredItems(ctx, QUESTS[questId], meta);
   meta.questLog.delete(questId);
   ctx.emit({
     type: 'log',
@@ -247,8 +383,16 @@ export function abandonQuest(ctx: SimContext, questId: string, pid?: number): vo
   });
 }
 
-export function turnInQuest(ctx: SimContext, questId: string, pid?: number): void {
-  const r = ctx.resolve(pid);
+// `choiceOrPid` mirrors acceptQuest's selection slot: a string is the picked
+// choose-one reward (QuestDef.choiceRewards), a number is the player id.
+export function turnInQuest(
+  ctx: SimContext,
+  questId: string,
+  choiceOrPid?: string | number,
+  pid?: number,
+): void {
+  const picked = typeof choiceOrPid === 'string' ? choiceOrPid : undefined;
+  const r = ctx.resolve(typeof choiceOrPid === 'number' ? choiceOrPid : pid);
   if (!r) return;
   const { meta, e: p } = r;
   // Dead players (released ghosts included) cannot turn in quests.
@@ -279,24 +423,52 @@ export function turnInQuest(ctx: SimContext, questId: string, pid?: number): voi
     ctx.error(meta.entityId, nearby.tooFar ? 'Too far away.' : 'That quest turn-in is not nearby.');
     return;
   }
-  // Capacity gate (classic): the reward must fit AFTER the collect items are
+  const choice = resolveRewardChoice(quest, meta.cls, picked, meta.talents.spec);
+  if (!choice.ok) {
+    ctx.error(meta.entityId, 'That reward is not offered.');
+    return;
+  }
+  // Capacity gate (classic): the rewards must fit AFTER the collect items are
   // handed in, so simulate the hand-in on a scratch copy before committing.
-  const rewardItem = questRewardItemId(quest, meta.cls);
-  if (rewardItem) {
+  // The fixed reward and the chosen one are checked together (fitsAll), so two
+  // one-slot items against one free slot correctly refuse.
+  const rewardItems = [questFixedReward(quest, meta.cls), choice.itemId].filter(
+    (id): id is string => id !== undefined,
+  );
+  if (rewardItems.length > 0) {
     const scratch = meta.inventory.map((s) => ({ ...s }));
     for (const obj of quest.objectives) {
+      // An ownership turn-in consumes nothing, so it frees no room either:
+      // modelling a removal here would let the reward overflow the bags
+      // (the #2139 class, in the other direction).
+      if (quest.keepsCollectedItems) break;
       if (obj.type === 'collect' && obj.itemId) {
         const index = quest.objectives.indexOf(obj);
-        removeStacked(scratch, obj.itemId, questObjectiveRequired(quest, qp, index));
+        // The same grade plan turnInQuestCore applies, against the scratch
+        // copy, so the room this gate frees is the room the hand-in frees.
+        // Per unit through consumeOneScratch (no exclusion), the scratch
+        // mirror of removePreferFungible's plain-first walk below: a gate
+        // that models the removal differently from the remover it gates
+        // re-opens the overflow class (#2139).
+        for (const take of planGradeRemoval(
+          obj.itemId,
+          questObjectiveRequired(quest, qp, index),
+          (id) => countStacked(scratch, id),
+        )) {
+          for (let unit = 0; unit < take.count; unit++) {
+            consumeOneScratch(scratch, take.itemId);
+          }
+        }
       }
     }
-    if (countFit(scratch, bagCapacity(meta.bags), rewardItem, 1) < 1) {
-      bagsFullError(ctx, meta.entityId);
+    const adds = rewardItems.map((itemId) => ({ itemId, count: 1 }));
+    if (!fitsAll(scratch, bagPools(meta.bags), adds)) {
+      bagsFullError(ctx, meta.entityId, rewardItems[rewardItems.length - 1]);
       return;
     }
   }
 
-  turnInQuestCore(ctx, questId, quest, meta);
+  turnInQuestCore(ctx, questId, quest, meta, choice.itemId);
 }
 
 // Shared turn-in reward core: consumes the collect items, marks the quest done, and
@@ -305,20 +477,47 @@ export function turnInQuest(ctx: SimContext, questId: string, pid?: number): voi
 // the state + NPC-proximity checks; the /dev completer forces the objectives ready).
 // Both the NPC turn-in and quests/dev_quest_commands.ts go through here so the reward
 // math cannot drift.
+// `rewardChoice` is the validated choose-one pick; a caller with no dialog (the
+// /dev completer, scripted completions) leaves it out and the spec default is
+// granted, so no path can finish a choice quest empty.
 export function turnInQuestCore(
   ctx: SimContext,
   questId: string,
   quest: QuestDef,
   meta: PlayerMeta,
+  rewardChoice?: string,
 ): boolean {
   const qp = meta.questLog.get(questId);
   if (!qp) return false;
+  if (!validateQuestRecipeReward(ctx, quest, meta)) return false;
   if (!applyProfessionQuestEffect(ctx, quest, qp, meta)) return false;
   for (const [index, obj] of quest.objectives.entries()) {
+    // An ownership objective (QuestDef.keepsCollectedItems) proves the player
+    // HAS the thing; the turn-in leaves it with them, so nothing is consumed.
+    if (quest.keepsCollectedItems) break;
     if (obj.type === 'collect' && obj.itemId) {
-      ctx.removeItem(obj.itemId, questObjectiveRequired(quest, qp, index), meta.entityId);
+      // Base grade first, then the fine grade, so a player holding both hands
+      // over the plain ore and keeps the premium copies. Within each grade
+      // line, plain stacks are spent before instanced copies
+      // (removePreferFungible's own plain-first walk): a signed specimen
+      // survives any turn-in that plain copies can pay, and is consumed only
+      // when nothing plain remains. The trade and vendor arms additionally
+      // deprioritize the owner's self-signed CHARM copies; that charm-scoped
+      // rule is deliberately absent here because no shipped quest collects a
+      // charm (the grade-pool guard in tests/material_grades.test.ts keeps
+      // the collect vocabulary honest).
+      for (const take of planGradeRemoval(
+        obj.itemId,
+        questObjectiveRequired(quest, qp, index),
+        (id) => ctx.countItem(id, meta.entityId),
+      )) {
+        removePreferFungible(ctx, take.itemId, take.count, meta.entityId);
+      }
     }
   }
+  // Required items (tools, not rewards) leave with the finished quest, so a spent
+  // firebottle does not linger in the bag after "Back to the Shallows".
+  stripRequiredItems(ctx, quest, meta);
   qp.state = 'done';
   meta.questLog.delete(questId);
   const firstCompletion = !meta.questsDone.has(questId);
@@ -326,6 +525,8 @@ export function turnInQuestCore(
   if (firstCompletion) meta.counters.questsCompleted++;
   // Quest and chapter deed predicates read questsDone, so re-check this player.
   ctx.markDeedsDirty(meta.entityId);
+  // Gourdlight Eve's whole-event checklist counts each rotating errand once.
+  markGourdlightErrand(ctx, meta, questId);
   if (quest.copperReward > 0) {
     meta.copper += quest.copperReward;
     ctx.emit({
@@ -334,8 +535,13 @@ export function turnInQuestCore(
       pid: meta.entityId,
     });
   }
-  const rewardItem = questRewardItemId(quest, meta.cls);
-  if (rewardItem) ctx.addItem(rewardItem, 1, meta.entityId);
+  const rewardItem = questFixedReward(quest, meta.cls);
+  // The quest labels a tracked reward copy's provenance (item_tracking.ts).
+  const rewardOpts = { source: `quest:${quest.id}` };
+  if (rewardItem) grantFreshLoot(ctx, rewardItem, 1, meta.entityId, rewardOpts);
+  const chosen = rewardChoice ?? defaultRewardChoice(quest, meta.cls, meta.talents.spec);
+  if (chosen) grantFreshLoot(ctx, chosen, 1, meta.entityId, rewardOpts);
+  grantQuestRecipeReward(ctx, quest, meta);
   ctx.grantXp(quest.xpReward, meta);
   // Arm the repeat-cadence window (work orders): the quest stays
   // unavailable (computeQuestState) until now + repeatCadenceTicks, server-
@@ -343,7 +549,20 @@ export function turnInQuestCore(
   if (quest.repeatCadenceTicks && quest.repeatCadenceTicks > 0) {
     armCadence(meta.questCadence, questId, ctx.tickCount, quest.repeatCadenceTicks);
   }
+  // A weekly quest locks until the realm's weekly reset (weekly_quest_lock.ts); a
+  // daily one rides the same lock to the next daily reset.
+  if (quest.weeklyReset || quest.dailyReset) {
+    const now = ctx.lockoutNowMs();
+    const until = quest.dailyReset ? ctx.raidResetMs(now) : ctx.weeklyRaidResetMs(now);
+    meta.raidLockouts.set(weeklyQuestLockoutId(questId), until);
+  }
+  // A quest that unlocks a quest-gated ability (recall_the_fallen <-
+  // q_rite_of_redemption) must surface it now: rebuild the known list (which reads
+  // the just-updated questsDone) and announce the newly learned ability. The diff
+  // in refreshKnownAbilities means an ordinary turn-in announces nothing.
+  ctx.refreshKnownAbilities(meta, true);
   ctx.emit({ type: 'questDone', questId, pid: meta.entityId });
+  emitReferralQuestEvidence(ctx, meta, questId);
   ctx.emit({
     type: 'log',
     text: `Quest completed: ${quest.name}`,

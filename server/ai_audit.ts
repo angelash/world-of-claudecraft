@@ -14,7 +14,7 @@ export const AI_AUDIT_WINDOWS = [
   { key: 'h24', labelKey: 'usage.window.24h', milliseconds: 24 * 60 * 60_000 },
 ] as const;
 
-export type AiAuditWindowKey = typeof AI_AUDIT_WINDOWS[number]['key'];
+export type AiAuditWindowKey = (typeof AI_AUDIT_WINDOWS)[number]['key'];
 export type AiAuditStatus = 'accepted' | 'rejected' | 'provider_error' | 'local_reaction';
 export type AiAuditProviderSource = 'codex' | 'fallback' | 'local' | 'provider';
 export type AiAuditEntityKind = 'npc' | 'mob' | 'object' | 'system';
@@ -268,7 +268,11 @@ function bucketForRecord(record: AiAuditRecord): AiAuditCounterBucket {
   return bucket;
 }
 
-function recordWindowCounter(counter: WindowCounters, at: number, bucket: AiAuditCounterBucket): void {
+function recordWindowCounter(
+  counter: WindowCounters,
+  at: number,
+  bucket: AiAuditCounterBucket,
+): void {
   const bucketStart = Math.floor(at / counter.bucketMs) * counter.bucketMs;
   const index = bucketIndex(bucketStart, counter.bucketMs, counter.buckets.length);
   if (counter.bucketStarts[index] !== bucketStart) {
@@ -306,7 +310,8 @@ export class AiAuditRuntime implements AiAuditSink {
     const at = Date.parse(record.createdAt);
     const safeAt = Number.isFinite(at) ? at : Date.now();
     const bucket = bucketForRecord(record);
-    for (const window of AI_AUDIT_WINDOWS) recordWindowCounter(this.windows[window.key], safeAt, bucket);
+    for (const window of AI_AUDIT_WINDOWS)
+      recordWindowCounter(this.windows[window.key], safeAt, bucket);
     addBucket(this.totals, bucket);
     this.lastInputTokens = record.inputTokens;
     this.lastOutputTokens = record.outputTokens;
@@ -340,9 +345,8 @@ export class AiAuditRuntime implements AiAuditSink {
         inputTokens: this.totals.inputTokens,
         outputTokens: this.totals.outputTokens,
         totalTokens: this.totals.totalTokens,
-        averageProviderJobTokens: this.totals.providerJobs > 0
-          ? this.totals.totalTokens / this.totals.providerJobs
-          : 0,
+        averageProviderJobTokens:
+          this.totals.providerJobs > 0 ? this.totals.totalTokens / this.totals.providerJobs : 0,
         lastInputTokens: this.lastInputTokens,
         lastOutputTokens: this.lastOutputTokens,
         lastTotalTokens: this.lastTotalTokens,
@@ -476,7 +480,7 @@ export function createProviderAuditRecord(input: {
     memoryWriteRefs: aiMemoryWriteRefs(input.memoryWrites),
     reason: providerError
       ? `providerError:${providerError}`
-      : input.result?.reason ?? input.decision?.audit.shortReason ?? '',
+      : (input.result?.reason ?? input.decision?.audit.shortReason ?? ''),
     error: providerError,
     ...(input.providerTimings ? { providerTimings: input.providerTimings } : {}),
     playerAction,
@@ -574,7 +578,8 @@ function aiAuditChain(input: {
     },
     validation: {
       ok: input.providerError ? false : Boolean(input.result?.ok),
-      reason: input.providerError || input.result?.reason || input.decision?.audit.shortReason || '',
+      reason:
+        input.providerError || input.result?.reason || input.decision?.audit.shortReason || '',
       events: validationEvents.map(aiAuditEventSummary),
     },
     delivered: {
@@ -606,12 +611,18 @@ function aiAuditPlayerActionLabelKey(trigger: string, topic: string): string {
   if (trigger === 'npc_gossip_opened') return 'usage.aiActionNpcGreeting';
   if (trigger === 'npc_question') {
     switch (topic) {
-      case 'recent': return 'usage.aiActionNpcRecent';
-      case 'rumor': return 'usage.aiActionNpcRumor';
-      case 'place': return 'usage.aiActionNpcPlace';
-      case 'quest_hint': return 'usage.aiActionNpcQuestHint';
-      case 'greeting': return 'usage.aiActionNpcGreeting';
-      default: return 'usage.aiActionNpcQuestion';
+      case 'recent':
+        return 'usage.aiActionNpcRecent';
+      case 'rumor':
+        return 'usage.aiActionNpcRumor';
+      case 'place':
+        return 'usage.aiActionNpcPlace';
+      case 'quest_hint':
+        return 'usage.aiActionNpcQuestHint';
+      case 'greeting':
+        return 'usage.aiActionNpcGreeting';
+      default:
+        return 'usage.aiActionNpcQuestion';
     }
   }
   if (trigger === 'object_inspected') return 'usage.aiActionObjectInspected';
@@ -624,12 +635,14 @@ function aiAuditPlayerActionLabelKey(trigger: string, topic: string): string {
 
 function aiAuditEventSummary(event: SimEvent): AiAuditEventSummary {
   const record = event as Record<string, unknown>;
-  const speech = record.speech && typeof record.speech === 'object'
-    ? record.speech as Record<string, unknown>
-    : null;
-  const reaction = record.reaction && typeof record.reaction === 'object'
-    ? record.reaction as Record<string, unknown>
-    : null;
+  const speech =
+    record.speech && typeof record.speech === 'object'
+      ? (record.speech as Record<string, unknown>)
+      : null;
+  const reaction =
+    record.reaction && typeof record.reaction === 'object'
+      ? (record.reaction as Record<string, unknown>)
+      : null;
   const raw = boundedJsonValue(event, AI_AUDIT_RAW_EVENT_MAX_CHARS);
   return {
     type: stringField(record.type),
@@ -642,7 +655,9 @@ function aiAuditEventSummary(event: SimEvent): AiAuditEventSummary {
     lineId: stringField(speech?.lineId),
     language: stringField(speech?.language),
     speechText: stringField(speech?.text),
-    targetEntityId: nullableNumberField(reaction?.targetEntityId ?? record.targetId ?? record.entityId),
+    targetEntityId: nullableNumberField(
+      reaction?.targetEntityId ?? record.targetId ?? record.entityId,
+    ),
     targetObjectId: nullableNumberField(reaction?.targetObjectId),
     targetItemId: stringField(reaction?.targetItemId),
     reactionKind: stringField(reaction?.kind),
@@ -674,7 +689,10 @@ function truncateText(value: string, maxLength: number): { text: string; truncat
   return { text: value.slice(0, maxLength), truncated: true };
 }
 
-function boundedJsonValue(value: unknown, maxLength: number): { value: unknown; truncated: boolean } {
+function boundedJsonValue(
+  value: unknown,
+  maxLength: number,
+): { value: unknown; truncated: boolean } {
   let serialized: string;
   try {
     serialized = JSON.stringify(value) ?? '';

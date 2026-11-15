@@ -8,12 +8,46 @@
 // deploy-watchdog restart, a crash): checkSql finds the carcass, dropSql
 // removes it (CONCURRENTLY, so peer realms' writes never stall behind the
 // drop), and createSql rebuilds it.
+// A replacement may also carry retireSql: it runs strictly after createSql
+// succeeds, so an interrupted build never removes the older serving index.
 
+import {
+  ADMIN_OVERVIEW_ACTIVE_SESSIONS_INDEX_SQL,
+  ADMIN_OVERVIEW_ACTIVE_SESSIONS_INVALID_INDEX_CHECK_SQL,
+  ADMIN_OVERVIEW_ACTIVE_SESSIONS_INVALID_INDEX_DROP_SQL,
+} from './admin_db_indexes';
+import {
+  GUILDS_REALM_CREATED_ID_INDEX_SQL,
+  GUILDS_REALM_CREATED_ID_INVALID_INDEX_CHECK_SQL,
+  GUILDS_REALM_CREATED_ID_INVALID_INDEX_DROP_SQL,
+  GUILDS_REALM_LOWER_NAME_PREFIX_INDEX_SQL,
+  GUILDS_REALM_LOWER_NAME_PREFIX_INVALID_INDEX_CHECK_SQL,
+  GUILDS_REALM_LOWER_NAME_PREFIX_INVALID_INDEX_DROP_SQL,
+} from './admin_guilds_schema';
 import {
   AI_AUDIT_RETENTION_INDEX_SQL,
   AI_AUDIT_RETENTION_INVALID_INDEX_CHECK_SQL,
   AI_AUDIT_RETENTION_INVALID_INDEX_DROP_SQL,
 } from './ai_audit_db';
+import {
+  BANK_LEDGER_ACCOUNT_INDEX_SQL,
+  BANK_LEDGER_ACCOUNT_INVALID_INDEX_CHECK_SQL,
+  BANK_LEDGER_ACCOUNT_INVALID_INDEX_DROP_SQL,
+  BANK_LEDGER_ACCOUNT_LARGE_INDEX_SQL,
+  BANK_LEDGER_ACCOUNT_LARGE_INVALID_INDEX_CHECK_SQL,
+  BANK_LEDGER_ACCOUNT_LARGE_INVALID_INDEX_DROP_SQL,
+  BANK_LEDGER_CONTAINER_INDEX_SQL,
+  BANK_LEDGER_CONTAINER_INVALID_INDEX_CHECK_SQL,
+  BANK_LEDGER_CONTAINER_INVALID_INDEX_DROP_SQL,
+  BANK_LEDGER_GUILD_MONEY_INDEX_SQL,
+  BANK_LEDGER_GUILD_MONEY_INVALID_INDEX_CHECK_SQL,
+  BANK_LEDGER_GUILD_MONEY_INVALID_INDEX_DROP_SQL,
+} from './bank_ledger_indexes';
+import {
+  CHAT_VIOLATIONS_RETENTION_INDEX_SQL,
+  CHAT_VIOLATIONS_RETENTION_INVALID_INDEX_CHECK_SQL,
+  CHAT_VIOLATIONS_RETENTION_INVALID_INDEX_DROP_SQL,
+} from './chat_violations_retention_index';
 import {
   CLIENT_PERF_WORST10S_INDEX_SQL,
   CLIENT_PERF_WORST10S_INVALID_INDEX_CHECK_SQL,
@@ -41,12 +75,41 @@ import {
   PLAYER_METRICS_INVALID_INDEX_CHECK_SQL,
   PLAYER_METRICS_INVALID_INDEX_DROP_SQL,
 } from './player_metrics_db';
+import {
+  PLAYER_REPORTS_RETENTION_INDEX_SQL,
+  PLAYER_REPORTS_RETENTION_INVALID_INDEX_CHECK_SQL,
+  PLAYER_REPORTS_RETENTION_INVALID_INDEX_DROP_SQL,
+} from './player_reports_retention_index';
+import {
+  REFERRAL_FRIEND_PAGE_INDEX_SQL,
+  REFERRAL_FRIEND_PAGE_INVALID_CHECK_SQL,
+  REFERRAL_FRIEND_PAGE_INVALID_DROP_SQL,
+} from './referral_indexes';
+import {
+  WOC_MARKET_OPS_CLOSED_INDEX_SQL,
+  WOC_MARKET_OPS_CLOSED_INVALID_INDEX_CHECK_SQL,
+  WOC_MARKET_OPS_CLOSED_INVALID_INDEX_DROP_SQL,
+} from './woc_market_ops_listings_index';
+import {
+  WOC_MARKET_SALES_REALM_INDEX_SQL,
+  WOC_MARKET_SALES_REALM_INVALID_INDEX_CHECK_SQL,
+  WOC_MARKET_SALES_REALM_INVALID_INDEX_DROP_SQL,
+} from './woc_market_sales_realm_index';
+import {
+  WOC_MARKET_SALES_SELLER_INDEX_SQL,
+  WOC_MARKET_SALES_SELLER_INVALID_INDEX_CHECK_SQL,
+  WOC_MARKET_SALES_SELLER_INVALID_INDEX_DROP_SQL,
+} from './woc_market_sales_seller_index';
 
 export interface ConcurrentIndexMigration {
   name: string;
   createSql: string;
   checkSql: string;
   dropSql: string;
+  /** Optional superseded index drop. The runner issues this only after the
+   *  replacement create succeeds, preserving service through every restart
+   *  or interrupted-build boundary. */
+  retireSql?: string;
 }
 
 export const CONCURRENT_INDEX_MIGRATIONS: readonly ConcurrentIndexMigration[] = [
@@ -97,5 +160,110 @@ export const CONCURRENT_INDEX_MIGRATIONS: readonly ConcurrentIndexMigration[] = 
     createSql: CLIENT_PERF_WORST10S_INDEX_SQL,
     checkSql: CLIENT_PERF_WORST10S_INVALID_INDEX_CHECK_SQL,
     dropSql: CLIENT_PERF_WORST10S_INVALID_INDEX_DROP_SQL,
+  },
+  {
+    name: 'play_sessions_ended_account',
+    createSql: ADMIN_OVERVIEW_ACTIVE_SESSIONS_INDEX_SQL,
+    checkSql: ADMIN_OVERVIEW_ACTIVE_SESSIONS_INVALID_INDEX_CHECK_SQL,
+    dropSql: ADMIN_OVERVIEW_ACTIVE_SESSIONS_INVALID_INDEX_DROP_SQL,
+  },
+  {
+    name: 'guilds_realm_lower_name_prefix',
+    createSql: GUILDS_REALM_LOWER_NAME_PREFIX_INDEX_SQL,
+    checkSql: GUILDS_REALM_LOWER_NAME_PREFIX_INVALID_INDEX_CHECK_SQL,
+    dropSql: GUILDS_REALM_LOWER_NAME_PREFIX_INVALID_INDEX_DROP_SQL,
+  },
+  {
+    name: 'guilds_realm_created_id',
+    createSql: GUILDS_REALM_CREATED_ID_INDEX_SQL,
+    checkSql: GUILDS_REALM_CREATED_ID_INVALID_INDEX_CHECK_SQL,
+    dropSql: GUILDS_REALM_CREATED_ID_INVALID_INDEX_DROP_SQL,
+  },
+  // The guild bank activity log's per-guild reader (server/guild_bank_log.ts).
+  // Appended, never inserted: the order is load-bearing and pinned.
+  {
+    name: 'bank_ledger_container_recent',
+    createSql: BANK_LEDGER_CONTAINER_INDEX_SQL,
+    checkSql: BANK_LEDGER_CONTAINER_INVALID_INDEX_CHECK_SQL,
+    dropSql: BANK_LEDGER_CONTAINER_INVALID_INDEX_DROP_SQL,
+  },
+  // The player_reports retention-sweep prune (moderation_db.ts
+  // prunePlayerReportsBatch). Partial on the resolved-report predicate the
+  // prune actually scans; see player_reports_retention_index.ts.
+  {
+    name: 'player_reports_retention_created',
+    createSql: PLAYER_REPORTS_RETENTION_INDEX_SQL,
+    checkSql: PLAYER_REPORTS_RETENTION_INVALID_INDEX_CHECK_SQL,
+    dropSql: PLAYER_REPORTS_RETENTION_INVALID_INDEX_DROP_SQL,
+  },
+  // The chat_violations retention-sweep prune (chat_filter_db.ts
+  // pruneChatViolationsBatch). See chat_violations_retention_index.ts.
+  {
+    name: 'chat_violations_retention_created',
+    createSql: CHAT_VIOLATIONS_RETENTION_INDEX_SQL,
+    checkSql: CHAT_VIOLATIONS_RETENTION_INVALID_INDEX_CHECK_SQL,
+    dropSql: CHAT_VIOLATIONS_RETENTION_INVALID_INDEX_DROP_SQL,
+  },
+  // The admin economy-oversight per-account bank_ledger reader
+  // (account_wealth_db.ts largeGoldMovementsForAccount). This shipped entry
+  // stays in its original position: fresh databases need it for FK support,
+  // and mixed-release peers still use its broad ordered shape.
+  {
+    name: 'bank_ledger_account_recent',
+    createSql: BANK_LEDGER_ACCOUNT_INDEX_SQL,
+    checkSql: BANK_LEDGER_ACCOUNT_INVALID_INDEX_CHECK_SQL,
+    dropSql: BANK_LEDGER_ACCOUNT_INVALID_INDEX_DROP_SQL,
+  },
+  // The Exchange's seller click-through read (woc_market_db.ts
+  // salesForSeller). See woc_market_sales_seller_index.ts.
+  {
+    name: 'woc_market_sales_seller',
+    createSql: WOC_MARKET_SALES_SELLER_INDEX_SQL,
+    checkSql: WOC_MARKET_SALES_SELLER_INVALID_INDEX_CHECK_SQL,
+    dropSql: WOC_MARKET_SALES_SELLER_INVALID_INDEX_DROP_SQL,
+  },
+  // The internal dashboard's Sold and Cancelled listing filters. Appended,
+  // never inserted: the migration order is load-bearing and pinned.
+  {
+    name: 'woc_market_ops_closed_created',
+    createSql: WOC_MARKET_OPS_CLOSED_INDEX_SQL,
+    checkSql: WOC_MARKET_OPS_CLOSED_INVALID_INDEX_CHECK_SQL,
+    dropSql: WOC_MARKET_OPS_CLOSED_INVALID_INDEX_DROP_SQL,
+  },
+  // The partial ordered reader for large per-account movements. New entries
+  // append after every previously shipped migration, never replace or move an
+  // old entry (the release's ops-closed entry above shipped first, so this
+  // branch's entry follows it). See bank_ledger_indexes.ts for the staged
+  // retirement plan.
+  {
+    name: 'bank_ledger_account_large_recent',
+    createSql: BANK_LEDGER_ACCOUNT_LARGE_INDEX_SQL,
+    checkSql: BANK_LEDGER_ACCOUNT_LARGE_INVALID_INDEX_CHECK_SQL,
+    dropSql: BANK_LEDGER_ACCOUNT_LARGE_INVALID_INDEX_DROP_SQL,
+  },
+  // The guild bank history's sparse MONEY slice (guild_bank_log_db.ts): a
+  // partial index over the money ops of the guild container so a Money page
+  // is a bounded scan rather than a heap walk past every item row. See
+  // bank_ledger_indexes.ts.
+  {
+    name: 'bank_ledger_container_money_recent',
+    createSql: BANK_LEDGER_GUILD_MONEY_INDEX_SQL,
+    checkSql: BANK_LEDGER_GUILD_MONEY_INVALID_INDEX_CHECK_SQL,
+    dropSql: BANK_LEDGER_GUILD_MONEY_INVALID_INDEX_DROP_SQL,
+  },
+  // The Exchange's realm-wide Sales History read (woc_market_db.ts
+  // salesForRealm). Appended after every prior migration, never moved (the
+  // order is pinned). See woc_market_sales_realm_index.ts.
+  {
+    name: 'woc_market_sales_realm_created',
+    createSql: WOC_MARKET_SALES_REALM_INDEX_SQL,
+    checkSql: WOC_MARKET_SALES_REALM_INVALID_INDEX_CHECK_SQL,
+    dropSql: WOC_MARKET_SALES_REALM_INVALID_INDEX_DROP_SQL,
+  },
+  {
+    name: 'referrals_referrer_referee',
+    createSql: REFERRAL_FRIEND_PAGE_INDEX_SQL,
+    checkSql: REFERRAL_FRIEND_PAGE_INVALID_CHECK_SQL,
+    dropSql: REFERRAL_FRIEND_PAGE_INVALID_DROP_SQL,
   },
 ];

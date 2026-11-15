@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DUNGEONS } from '../src/sim/data';
 import {
   createAmbientPlayerBotGroupRuntimeState,
   tickAmbientPlayerBotGroupCoordinator,
 } from '../server/ambient_bots/group';
 import type { AmbientPlayerBotRecord } from '../server/ambient_bots/types';
 import type { AmbientPlayerBotLiveState } from '../server/ambient_bots/ws_client';
+import { DUNGEONS } from '../src/sim/data';
 import type { PartyMemberInfo } from '../src/world_api';
 
 function bot(overrides: Partial<AmbientPlayerBotRecord> = {}): AmbientPlayerBotRecord {
@@ -96,42 +96,75 @@ describe('ambient player bot group coordinator', () => {
       class: 'mage',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 102,
-          x: 1518,
-          z: -1200,
-          dgn: 'sunken_bastion',
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1518, z: -1200, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 102,
+            x: 1518,
+            z: -1200,
+            dgn: 'sunken_bastion',
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 1500,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 1518,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: [leader, follower],
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: [leader, follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'chat', text: '/follow Branoraaa' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'chat', text: '/follow Branoraaa' }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'follow_leader',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 18,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'follow_leader',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 18,
+      }),
+    );
   });
 
   it('holds the Bastion leader at the door until the outdoor party is stacked', () => {
@@ -139,48 +172,85 @@ describe('ambient player bot group coordinator', () => {
     const leader = bot();
     const members = [
       leader,
-      bot({ botId: 'bot-2', accountId: 12, characterId: 102, characterName: 'Branorabb', accountUsername: 'bot_user_2', authToken: 'token-2', class: 'mage' }),
-      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
-      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
-      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+      bot({
+        botId: 'bot-2',
+        accountId: 12,
+        characterId: 102,
+        characterName: 'Branorabb',
+        accountUsername: 'bot_user_2',
+        authToken: 'token-2',
+        class: 'mage',
+      }),
+      bot({
+        botId: 'bot-3',
+        accountId: 13,
+        characterId: 103,
+        characterName: 'Branoracc',
+        accountUsername: 'bot_user_3',
+        authToken: 'token-3',
+        class: 'priest',
+      }),
+      bot({
+        botId: 'bot-4',
+        accountId: 14,
+        characterId: 104,
+        characterName: 'Branoradd',
+        accountUsername: 'bot_user_4',
+        authToken: 'token-4',
+        class: 'rogue',
+      }),
+      bot({
+        botId: 'bot-5',
+        accountId: 15,
+        characterId: 105,
+        characterName: 'Branoraee',
+        accountUsername: 'bot_user_5',
+        authToken: 'token-5',
+        class: 'mage',
+      }),
     ];
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: leader,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: door.x - 1,
-          z: door.z - 6,
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
-              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
-              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 9),
-              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 18),
-              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 28),
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: leader,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: door.x - 1,
+            z: door.z - 6,
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
+                partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+                partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 9),
+                partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 18),
+                partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 28),
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'enter_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: members,
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'enter_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: members,
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'hold_regroup',
-      groupNeedsRegroup: true,
-      groupLaggingMembers: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'hold_regroup',
+        groupNeedsRegroup: true,
+        groupLaggingMembers: 2,
+      }),
+    );
   });
 
   it('enters Bastion when the outdoor party is stacked at the door', () => {
@@ -188,49 +258,84 @@ describe('ambient player bot group coordinator', () => {
     const leader = bot();
     const members = [
       leader,
-      bot({ botId: 'bot-2', accountId: 12, characterId: 102, characterName: 'Branorabb', accountUsername: 'bot_user_2', authToken: 'token-2', class: 'mage' }),
-      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
-      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
-      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+      bot({
+        botId: 'bot-2',
+        accountId: 12,
+        characterId: 102,
+        characterName: 'Branorabb',
+        accountUsername: 'bot_user_2',
+        authToken: 'token-2',
+        class: 'mage',
+      }),
+      bot({
+        botId: 'bot-3',
+        accountId: 13,
+        characterId: 103,
+        characterName: 'Branoracc',
+        accountUsername: 'bot_user_3',
+        authToken: 'token-3',
+        class: 'priest',
+      }),
+      bot({
+        botId: 'bot-4',
+        accountId: 14,
+        characterId: 104,
+        characterName: 'Branoradd',
+        accountUsername: 'bot_user_4',
+        authToken: 'token-4',
+        class: 'rogue',
+      }),
+      bot({
+        botId: 'bot-5',
+        accountId: 15,
+        characterId: 105,
+        characterName: 'Branoraee',
+        accountUsername: 'bot_user_5',
+        authToken: 'token-5',
+        class: 'mage',
+      }),
     ];
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: leader,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: door.x - 1,
-          z: door.z - 6,
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
-              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
-              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
-              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
-              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: leader,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: door.x - 1,
+            z: door.z - 6,
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
+                partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+                partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
+                partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
+                partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'enter_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: members,
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'enter_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: members,
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'enter_dungeon', dungeon: 'sunken_bastion' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'enter_dungeon', dungeon: 'sunken_bastion' }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'brain',
-      groupNeedsRegroup: false,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'brain',
+        groupNeedsRegroup: false,
+      }),
+    );
   });
 
   it('keeps an outdoor Bastion follower at the door until the leader enters first', () => {
@@ -248,46 +353,75 @@ describe('ambient player bot group coordinator', () => {
     const members = [
       leader,
       follower,
-      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
-      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
-      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+      bot({
+        botId: 'bot-3',
+        accountId: 13,
+        characterId: 103,
+        characterName: 'Branoracc',
+        accountUsername: 'bot_user_3',
+        authToken: 'token-3',
+        class: 'priest',
+      }),
+      bot({
+        botId: 'bot-4',
+        accountId: 14,
+        characterId: 104,
+        characterName: 'Branoradd',
+        accountUsername: 'bot_user_4',
+        authToken: 'token-4',
+        class: 'rogue',
+      }),
+      bot({
+        botId: 'bot-5',
+        accountId: 15,
+        characterId: 105,
+        characterName: 'Branoraee',
+        accountUsername: 'bot_user_5',
+        authToken: 'token-5',
+        class: 'mage',
+      }),
     ];
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 102,
-          x: door.x - 2,
-          z: door.z - 6,
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
-              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
-              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
-              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
-              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 102,
+            x: door.x - 2,
+            z: door.z - 6,
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                partyMember(101, 'Branoraaa', 'warrior', door.x - 1, door.z - 6),
+                partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+                partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
+                partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
+                partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'enter_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: members,
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'enter_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: members,
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'follow_leader',
-      groupLeaderName: 'Branoraaa',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'follow_leader',
+        groupLeaderName: 'Branoraaa',
+      }),
+    );
   });
 
   it('has an outdoor Bastion follower enter instead of following an inside leader coordinate', () => {
@@ -305,47 +439,74 @@ describe('ambient player bot group coordinator', () => {
     const members = [
       leader,
       follower,
-      bot({ botId: 'bot-3', accountId: 13, characterId: 103, characterName: 'Branoracc', accountUsername: 'bot_user_3', authToken: 'token-3', class: 'priest' }),
-      bot({ botId: 'bot-4', accountId: 14, characterId: 104, characterName: 'Branoradd', accountUsername: 'bot_user_4', authToken: 'token-4', class: 'rogue' }),
-      bot({ botId: 'bot-5', accountId: 15, characterId: 105, characterName: 'Branoraee', accountUsername: 'bot_user_5', authToken: 'token-5', class: 'mage' }),
+      bot({
+        botId: 'bot-3',
+        accountId: 13,
+        characterId: 103,
+        characterName: 'Branoracc',
+        accountUsername: 'bot_user_3',
+        authToken: 'token-3',
+        class: 'priest',
+      }),
+      bot({
+        botId: 'bot-4',
+        accountId: 14,
+        characterId: 104,
+        characterName: 'Branoradd',
+        accountUsername: 'bot_user_4',
+        authToken: 'token-4',
+        class: 'rogue',
+      }),
+      bot({
+        botId: 'bot-5',
+        accountId: 15,
+        characterId: 105,
+        characterName: 'Branoraee',
+        accountUsername: 'bot_user_5',
+        authToken: 'token-5',
+        class: 'mage',
+      }),
     ];
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 102,
-          x: door.x - 2,
-          z: door.z - 6,
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              partyMember(101, 'Branoraaa', 'warrior', 1500, -246),
-              partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
-              partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
-              partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
-              partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 102,
+            x: door.x - 2,
+            z: door.z - 6,
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                partyMember(101, 'Branoraaa', 'warrior', 1500, -246),
+                partyMember(102, 'Branorabb', 'mage', door.x - 2, door.z - 6),
+                partyMember(103, 'Branoracc', 'priest', door.x - 3, door.z - 6),
+                partyMember(104, 'Branoradd', 'rogue', door.x - 4, door.z - 6),
+                partyMember(105, 'Branoraee', 'mage', door.x - 5, door.z - 6),
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'enter_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: members,
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'enter_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: members,
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'enter_dungeon', dungeon: 'sunken_bastion' },
-    ]);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'brain',
-      groupLeaderDistance: expect.any(Number),
-    }));
+    expect(result.commands).toEqual([{ cmd: 'enter_dungeon', dungeon: 'sunken_bastion' }]);
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'brain',
+        groupLeaderDistance: expect.any(Number),
+      }),
+    );
   });
 
   it('holds the Bastion leader in place while another ambient party member lags far behind', () => {
@@ -360,40 +521,75 @@ describe('ambient player bot group coordinator', () => {
       class: 'mage',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: leader,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: 1500,
-          z: -1200,
-          dgn: 'sunken_bastion',
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1528, z: -1200, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: leader,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: 1500,
+            z: -1200,
+            dgn: 'sunken_bastion',
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 1500,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 1528,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: [leader, follower],
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: [leader, follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'hold_regroup',
-      groupNeedsRegroup: true,
-      groupLaggingMembers: 1,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'hold_regroup',
+        groupNeedsRegroup: true,
+        groupLaggingMembers: 1,
+      }),
+    );
   });
 
   it('uses live party pids instead of stored character ids when a follower syncs to the leader', () => {
@@ -411,42 +607,75 @@ describe('ambient player bot group coordinator', () => {
       runnerState: { pid: 402 },
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 402,
-          x: 1518,
-          z: -1200,
-          dgn: 'sunken_bastion',
-          party: {
-            leader: 401,
-            raid: false,
-            members: [
-              { pid: 401, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
-              { pid: 402, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 1518, z: -1200, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 402,
+            x: 1518,
+            z: -1200,
+            dgn: 'sunken_bastion',
+            party: {
+              leader: 401,
+              raid: false,
+              members: [
+                {
+                  pid: 401,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 1500,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 402,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 1518,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: [leader, follower],
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: [leader, follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'chat', text: '/follow Branoraaa' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'chat', text: '/follow Branoraaa' }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'follow_leader',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 18,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'follow_leader',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 18,
+      }),
+    );
   });
 
   it('has the ambient leader hold position while another bot is still finishing party prep', () => {
@@ -464,40 +693,75 @@ describe('ambient player bot group coordinator', () => {
       runnerState: { pid: 402, groupMode: 'buff_party' },
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: leader,
-      liveState: liveState({
-        self: {
-          id: 401,
-          x: 1500,
-          z: -1200,
-          dgn: 'sunken_bastion',
-          party: {
-            leader: 401,
-            raid: false,
-            members: [
-              { pid: 401, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 1500, z: -1200, dead: 0, inCombat: 0, group: 1 },
-              { pid: 402, name: 'Branoracc', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 1502, z: -1200, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: leader,
+        liveState: liveState({
+          self: {
+            id: 401,
+            x: 1500,
+            z: -1200,
+            dgn: 'sunken_bastion',
+            party: {
+              leader: 401,
+              raid: false,
+              members: [
+                {
+                  pid: 401,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 1500,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 402,
+                  name: 'Branoracc',
+                  cls: 'priest',
+                  level: 12,
+                  hp: 90,
+                  mhp: 90,
+                  res: 180,
+                  mres: 180,
+                  rtype: 'mana',
+                  x: 1502,
+                  z: -1200,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_olen',
-      objectiveQuestId: 'q_olen',
-      objectiveDungeonId: 'sunken_bastion',
-      objectiveSuggestedPartySize: 5,
-      directory: [leader, priest],
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_olen',
+        objectiveQuestId: 'q_olen',
+        objectiveDungeonId: 'sunken_bastion',
+        objectiveSuggestedPartySize: 5,
+        directory: [leader, priest],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'buff_party',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 0,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'buff_party',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 0,
+      }),
+    );
   });
 
   it('waits for the outdoor q_crushers party to assemble before the leader moves on', () => {
@@ -522,36 +786,37 @@ describe('ambient player bot group coordinator', () => {
       lastKnownZoneId: 'thornpeak',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: leader,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: -120,
-          z: 738,
-        },
-        entities: [
-          { id: 102, k: 'player', nm: 'Branorabb', x: -118, z: 739, lv: 18 },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_crushers',
-      objectiveQuestId: 'q_crushers',
-      objectiveSuggestedPartySize: 3,
-      directory: [leader, follower],
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: leader,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: -120,
+            z: 738,
+          },
+          entities: [{ id: 102, k: 'player', nm: 'Branorabb', x: -118, z: 739, lv: 18 }],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+        directory: [leader, follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'pinvite', id: 102 },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'pinvite', id: 102 }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'wait_party',
-      groupAwaitingParty: true,
-      groupObjectiveQuestId: 'q_crushers',
-      groupObjectiveScope: 'outdoor',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'wait_party',
+        groupAwaitingParty: true,
+        groupObjectiveQuestId: 'q_crushers',
+        groupObjectiveScope: 'outdoor',
+      }),
+    );
   });
 
   it('has a trailing outdoor q_crushers follower use the real /follow chat path and pause the brain drive', () => {
@@ -581,40 +846,73 @@ describe('ambient player bot group coordinator', () => {
       },
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 102,
-          x: -107,
-          z: 738,
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: -125, z: 738, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: -107, z: 738, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 102,
+            x: -107,
+            z: 738,
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 18,
+                  hp: 150,
+                  mhp: 150,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: -125,
+                  z: 738,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 18,
+                  hp: 120,
+                  mhp: 120,
+                  res: 180,
+                  mres: 180,
+                  rtype: 'mana',
+                  x: -107,
+                  z: 738,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_crushers',
-      objectiveQuestId: 'q_crushers',
-      objectiveSuggestedPartySize: 3,
-      directory: [leader, follower],
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+        directory: [leader, follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'chat', text: '/follow Branoraaa' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'chat', text: '/follow Branoraaa' }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'follow_leader',
-      groupObjectiveScope: 'outdoor',
-      groupLeaderDistance: 18,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'follow_leader',
+        groupObjectiveScope: 'outdoor',
+        groupLeaderDistance: 18,
+      }),
+    );
   });
 
   it('does not treat a same-cluster bot on a different grouped outdoor quest as a q_crushers party candidate', () => {
@@ -644,35 +942,38 @@ describe('ambient player bot group coordinator', () => {
       },
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: leader,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: -120,
-          z: 738,
-        },
-        entities: [
-          { id: 102, k: 'player', nm: 'Branorabb', x: -118, z: 739, lv: 18 },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_crushers',
-      objectiveQuestId: 'q_crushers',
-      objectiveSuggestedPartySize: 3,
-      directory: [leader, otherQuestPeer],
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: leader,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: -120,
+            z: 738,
+          },
+          entities: [{ id: 102, k: 'player', nm: 'Branorabb', x: -118, z: 739, lv: 18 }],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+        directory: [leader, otherQuestPeer],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(result.pauseBrainDrive).toBe(false);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'brain',
-      groupObjectiveQuestId: 'q_crushers',
-      groupObjectiveScope: 'outdoor',
-      groupTargetSize: 1,
-      groupPartySize: 1,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'brain',
+        groupObjectiveQuestId: 'q_crushers',
+        groupObjectiveScope: 'outdoor',
+        groupTargetSize: 1,
+        groupPartySize: 1,
+      }),
+    );
   });
 
   it('accepts a party invite from its assigned player even when the live pid differs from the assigned character id', () => {
@@ -683,58 +984,68 @@ describe('ambient player bot group coordinator', () => {
       },
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: 4,
-          z: 6,
-        },
-      }),
-      recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Realhero' }],
-      objectiveId: 'accept_wolves',
-      objectiveQuestId: 'q_wolves',
-      objectiveSuggestedPartySize: 1,
-      directory: [follower],
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+          },
+        }),
+        recentEvents: [{ type: 'partyInvite', fromPid: 201, fromName: 'Realhero' }],
+        objectiveId: 'accept_wolves',
+        objectiveQuestId: 'q_wolves',
+        objectiveSuggestedPartySize: 1,
+        directory: [follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([{ cmd: 'paccept' }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'accept_invite',
-      groupLeaderName: 'Realhero',
-      groupTargetSize: 1,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'accept_invite',
+        groupLeaderName: 'Realhero',
+        groupTargetSize: 1,
+      }),
+    );
   });
 
   it('declines an unrelated party invite so trusted invites are not blocked', () => {
     const follower = bot();
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: 4,
-          z: 6,
-        },
-      }),
-      recentEvents: [{ type: 'partyInvite', fromPid: 900, fromName: 'Stranger' }],
-      objectiveId: 'accept_wolves',
-      objectiveQuestId: 'q_wolves',
-      objectiveSuggestedPartySize: 1,
-      directory: [follower],
-      nowMs: 5_000,
-    }, state);
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: 4,
+            z: 6,
+          },
+        }),
+        recentEvents: [{ type: 'partyInvite', fromPid: 900, fromName: 'Stranger' }],
+        objectiveId: 'accept_wolves',
+        objectiveQuestId: 'q_wolves',
+        objectiveSuggestedPartySize: 1,
+        directory: [follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([{ cmd: 'pdecline' }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: '',
-      groupLeaderName: 'Branoraaa',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: '',
+        groupLeaderName: 'Branoraaa',
+      }),
+    );
   });
 
   it('buffs a nearby warrior with fortitude even when another stamina aura is already present', () => {
@@ -748,60 +1059,95 @@ describe('ambient player bot group coordinator', () => {
       class: 'priest',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: priest,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 0,
-          z: 0,
-          res: 180,
-          mres: 180,
-          rtype: 'mana',
-          gcd: 0,
-          target: null,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
-          },
-        },
-        entities: [
-          {
-            id: 101,
-            k: 'player',
-            nm: 'Branoraaa',
-            x: 2,
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: priest,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 0,
             z: 0,
-            auras: [{ id: 'commanding_shout', kind: 'buff_sta', rem: 95, dur: 120 }],
+            res: 180,
+            mres: 180,
+            rtype: 'mana',
+            gcd: 0,
+            target: null,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branoracc',
+                  cls: 'priest',
+                  level: 12,
+                  hp: 90,
+                  mhp: 90,
+                  res: 180,
+                  mres: 180,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [priest],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            {
+              id: 101,
+              k: 'player',
+              nm: 'Branoraaa',
+              x: 2,
+              z: 0,
+              auras: [{ id: 'commanding_shout', kind: 'buff_sta', rem: 95, dur: 120 }],
+            },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [priest],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 101 },
       { cmd: 'cast', ability: 'power_word_fortitude' },
     ]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'buff_party',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'buff_party',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 2,
+      }),
+    );
   });
 
   it('has a grouped warlock summon before the party keeps advancing', () => {
@@ -815,54 +1161,85 @@ describe('ambient player bot group coordinator', () => {
       class: 'warlock',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: warlock,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 0,
-          z: 0,
-          hp: 90,
-          mhp: 90,
-          res: 180,
-          mres: 180,
-          rtype: 'mana',
-          gcd: 0,
-          target: null,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorawl', cls: 'warlock', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: warlock,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 0,
+            z: 0,
+            hp: 90,
+            mhp: 90,
+            res: 180,
+            mres: 180,
+            rtype: 'mana',
+            gcd: 0,
+            target: null,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorawl',
+                  cls: 'warlock',
+                  level: 12,
+                  hp: 90,
+                  mhp: 90,
+                  res: 180,
+                  mres: 180,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [bot(), warlock],
-      nowMs: 5_000,
-    }, state);
+          entities: [{ id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] }],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [bot(), warlock],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'cast', ability: 'summon_succubus' },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'cast', ability: 'summon_voidwalker' }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'prepare_party',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'prepare_party',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 2,
+      }),
+    );
   });
 
   it('has a nearby healer top up a wounded party member in combat', () => {
@@ -876,54 +1253,89 @@ describe('ambient player bot group coordinator', () => {
       class: 'shaman',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: shaman,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 0,
-          z: 0,
-          res: 150,
-          mres: 150,
-          rtype: 'mana',
-          gcd: 0,
-          target: null,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 44, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branorash', cls: 'shaman', level: 12, hp: 95, mhp: 95, res: 150, mres: 150, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: shaman,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 0,
+            z: 0,
+            res: 150,
+            mres: 150,
+            rtype: 'mana',
+            gcd: 0,
+            target: null,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 44,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorash',
+                  cls: 'shaman',
+                  level: 12,
+                  hp: 95,
+                  mhp: 95,
+                  res: 150,
+                  mres: 150,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [shaman],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [shaman],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 101 },
       { cmd: 'cast', ability: 'healing_wave' },
     ]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'heal_party',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'heal_party',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 2,
+      }),
+    );
   });
 
   it('lets a stable off-healer heal the tank instead of empty self-preserving', () => {
@@ -937,58 +1349,93 @@ describe('ambient player bot group coordinator', () => {
       class: 'druid',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: druid,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 15,
-          x: 0,
-          z: 0,
-          hp: 68,
-          mhp: 100,
-          res: 500,
-          mres: 900,
-          rtype: 'mana',
-          gcd: 0,
-          target: null,
-          auto: false,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Alden', cls: 'warrior', level: 15, hp: 44, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Liora', cls: 'druid', level: 15, hp: 68, mhp: 100, res: 500, mres: 900, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: druid,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 15,
+            x: 0,
+            z: 0,
+            hp: 68,
+            mhp: 100,
+            res: 500,
+            mres: 900,
+            rtype: 'mana',
+            gcd: 0,
+            target: null,
+            auto: false,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Alden',
+                  cls: 'warrior',
+                  level: 15,
+                  hp: 44,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Liora',
+                  cls: 'druid',
+                  level: 15,
+                  hp: 68,
+                  mhp: 100,
+                  res: 500,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 101, k: 'player', nm: 'Alden', x: 2, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
-          { id: 502, k: 'mob', h: 80, x: 0, z: 1, aggro: 102, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [druid],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 101, k: 'player', nm: 'Alden', x: 2, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
+            { id: 502, k: 'mob', h: 80, x: 0, z: 1, aggro: 102, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [druid],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 101 },
       expect.objectContaining({ cmd: 'cast' }),
     ]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'heal_party',
-      groupLeaderName: 'Alden',
-      groupLeaderDistance: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'heal_party',
+        groupLeaderName: 'Alden',
+        groupLeaderDistance: 2,
+      }),
+    );
   });
 
   it('lets a threatened healer shield itself when it is the lowest-health member', () => {
@@ -1002,57 +1449,92 @@ describe('ambient player bot group coordinator', () => {
       class: 'priest',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: priest,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 15,
-          x: 0,
-          z: 0,
-          hp: 40,
-          mhp: 100,
-          res: 500,
-          mres: 900,
-          rtype: 'mana',
-          gcd: 0,
-          target: 501,
-          auto: true,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Alden', cls: 'warrior', level: 15, hp: 100, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Mira', cls: 'priest', level: 15, hp: 40, mhp: 100, res: 500, mres: 900, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: priest,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 15,
+            x: 0,
+            z: 0,
+            hp: 40,
+            mhp: 100,
+            res: 500,
+            mres: 900,
+            rtype: 'mana',
+            gcd: 0,
+            target: 501,
+            auto: true,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Alden',
+                  cls: 'warrior',
+                  level: 15,
+                  hp: 100,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Mira',
+                  cls: 'priest',
+                  level: 15,
+                  hp: 40,
+                  mhp: 100,
+                  res: 500,
+                  mres: 900,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 101, k: 'player', nm: 'Alden', x: 2, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 1, z: 0, aggro: 102, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [priest],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 101, k: 'player', nm: 'Alden', x: 2, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 1, z: 0, aggro: 102, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [priest],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 102 },
       { cmd: 'cast', ability: 'power_word_shield' },
     ]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'shield_party',
-      groupLeaderName: 'Alden',
-      groupLeaderDistance: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'shield_party',
+        groupLeaderName: 'Alden',
+        groupLeaderDistance: 2,
+      }),
+    );
   });
 
   it('has a wounded priest preserve itself before hard-casting a heal', () => {
@@ -1066,162 +1548,264 @@ describe('ambient player bot group coordinator', () => {
       class: 'priest',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: priest,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 2,
-          x: 0,
-          z: 0,
-          hp: 42,
-          mhp: 66,
-          res: 100,
-          mres: 100,
-          rtype: 'mana',
-          gcd: 0,
-          target: 501,
-          auto: true,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 3, hp: 70, mhp: 166, res: 10, mres: 100, rtype: 'rage', x: 12, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branorash', cls: 'priest', level: 2, hp: 42, mhp: 66, res: 100, mres: 100, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: priest,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 2,
+            x: 0,
+            z: 0,
+            hp: 42,
+            mhp: 66,
+            res: 100,
+            mres: 100,
+            rtype: 'mana',
+            gcd: 0,
+            target: 501,
+            auto: true,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 3,
+                  hp: 70,
+                  mhp: 166,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 12,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorash',
+                  cls: 'priest',
+                  level: 2,
+                  hp: 42,
+                  mhp: 66,
+                  res: 100,
+                  mres: 100,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 101, k: 'player', nm: 'Branoraaa', x: 12, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 1, z: 0, aggro: 102, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [priest],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 101, k: 'player', nm: 'Branoraaa', x: 12, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 1, z: 0, aggro: 102, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [priest],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
-    expect(result.commands).toEqual([
-      { cmd: 'stopattack' },
-      { cmd: 'target', id: null },
-    ]);
+    expect(result.commands).toEqual([{ cmd: 'stopattack' }, { cmd: 'target', id: null }]);
     expect(result.travelGoal).toEqual({
       target: { x: 12, z: 0 },
       arrivalRange: 6,
       goalKey: 'party-recover-anchor:101:12:0',
     });
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'heal_party',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 12,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'heal_party',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 12,
+      }),
+    );
   });
 
   it('has a warrior taunt a mob off the party healer', () => {
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 12,
-          x: 0,
-          z: 0,
-          res: 20,
-          mres: 100,
-          rtype: 'rage',
-          gcd: 0,
-          target: null,
-          cast: null,
-          cds: {},
-          auras: [{ id: 'defensive_stance', kind: 'defensive_stance', rem: 300, dur: 3600 }],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 20, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 65, mhp: 90, res: 160, mres: 160, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 1, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 12,
+            x: 0,
+            z: 0,
+            res: 20,
+            mres: 100,
+            rtype: 'rage',
+            gcd: 0,
+            target: null,
+            cast: null,
+            cds: {},
+            auras: [{ id: 'defensive_stance', kind: 'defensive_stance', rem: 300, dur: 3600 }],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 20,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branoracc',
+                  cls: 'priest',
+                  level: 12,
+                  hp: 65,
+                  mhp: 90,
+                  res: 160,
+                  mres: 160,
+                  rtype: 'mana',
+                  x: 3,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', nm: 'Branoracc', x: 3, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 3, z: 1, aggro: 102, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [bot()],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', nm: 'Branoracc', x: 3, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 3, z: 1, aggro: 102, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [bot()],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 501 },
       { cmd: 'cast', ability: 'taunt' },
     ]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'taunt_party',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 0,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'taunt_party',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 0,
+      }),
+    );
   });
 
   it('has a warrior taunt a healer before switching into defensive stance', () => {
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: bot(),
-      liveState: liveState({
-        self: {
-          id: 101,
-          lv: 12,
-          x: 0,
-          z: 0,
-          res: 20,
-          mres: 100,
-          rtype: 'rage',
-          gcd: 0,
-          target: null,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 20, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 88, mhp: 90, res: 160, mres: 160, rtype: 'mana', x: 3, z: 0, dead: 0, inCombat: 1, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: bot(),
+        liveState: liveState({
+          self: {
+            id: 101,
+            lv: 12,
+            x: 0,
+            z: 0,
+            res: 20,
+            mres: 100,
+            rtype: 'rage',
+            gcd: 0,
+            target: null,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 20,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branoracc',
+                  cls: 'priest',
+                  level: 12,
+                  hp: 88,
+                  mhp: 90,
+                  res: 160,
+                  mres: 160,
+                  rtype: 'mana',
+                  x: 3,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', nm: 'Branoracc', x: 3, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 3, z: 1, aggro: 102, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [bot()],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', nm: 'Branoracc', x: 3, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 3, z: 1, aggro: 102, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [bot()],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 501 },
       { cmd: 'cast', ability: 'taunt' },
     ]);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'taunt_party',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'taunt_party',
+      }),
+    );
   });
 
   it('has a priest shield a threatened tank before switching to damage', () => {
@@ -1235,94 +1819,162 @@ describe('ambient player bot group coordinator', () => {
       class: 'priest',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: priest,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 0,
-          z: 0,
-          hp: 90,
-          mhp: 90,
-          res: 180,
-          mres: 180,
-          rtype: 'mana',
-          gcd: 0,
-          target: null,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 118, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: priest,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 0,
+            z: 0,
+            hp: 90,
+            mhp: 90,
+            res: 180,
+            mres: 180,
+            rtype: 'mana',
+            gcd: 0,
+            target: null,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 118,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branoracc',
+                  cls: 'priest',
+                  level: 12,
+                  hp: 90,
+                  mhp: 90,
+                  res: 180,
+                  mres: 180,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [bot(), priest],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 101, k: 'player', nm: 'Branoraaa', x: 2, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 2, z: 1, aggro: 101, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [bot(), priest],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 101 },
       { cmd: 'cast', ability: 'power_word_shield' },
     ]);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'shield_party',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'shield_party',
+      }),
+    );
   });
 
   it('retargets onto the party focus target before combat logic resumes', () => {
     const follower = bot();
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: 0,
-          z: 0,
-          target: null,
-          party: {
-            leader: 1,
-            raid: false,
-            members: [
-              { pid: 1, name: 'Realhero', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 0, mres: 0, rtype: 'rage', x: 8, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 100, mhp: 100, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: 0,
+            z: 0,
+            target: null,
+            party: {
+              leader: 1,
+              raid: false,
+              members: [
+                {
+                  pid: 1,
+                  name: 'Realhero',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 8,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 501, k: 'mob', h: 80, x: 7, z: 0, aggro: 1 },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [follower],
-      nowMs: 5_000,
-    }, state);
+          entities: [{ id: 501, k: 'mob', h: 80, x: 7, z: 0, aggro: 1 }],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([{ cmd: 'target', id: 501 }]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'focus_fire',
-      groupLeaderName: 'Realhero',
-      groupLeaderDistance: 8,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'focus_fire',
+        groupLeaderName: 'Realhero',
+        groupLeaderDistance: 8,
+      }),
+    );
   });
 
   it('prioritizes a skull-marked party focus target before aggro', () => {
@@ -1336,52 +1988,88 @@ describe('ambient player bot group coordinator', () => {
       class: 'mage',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: mage,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 0,
-          z: 0,
-          hp: 100,
-          mhp: 100,
-          res: 120,
-          mres: 120,
-          rtype: 'mana',
-          target: null,
-          marks: { 502: 7 },
-          gcd: 0,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, targetId: 501, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: mage,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 0,
+            z: 0,
+            hp: 100,
+            mhp: 100,
+            res: 120,
+            mres: 120,
+            rtype: 'mana',
+            target: null,
+            marks: { 502: 7 },
+            gcd: 0,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 6,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  targetId: 501,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 501, k: 'mob', h: 80, x: 8, z: 0, aggro: 101, auras: [] },
-          { id: 502, k: 'mob', h: 80, x: 10, z: 0, aggro: 101, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [bot(), mage],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 501, k: 'mob', h: 80, x: 8, z: 0, aggro: 101, auras: [] },
+            { id: 502, k: 'mob', h: 80, x: 10, z: 0, aggro: 101, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [bot(), mage],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands[0]).toEqual({ cmd: 'target', id: 502 });
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'focus_fire',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'focus_fire',
+      }),
+    );
   });
 
   it('follows the party target vote before falling back to aggro', () => {
@@ -1395,54 +2083,137 @@ describe('ambient player bot group coordinator', () => {
       class: 'mage',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: mage,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 0,
-          z: 0,
-          hp: 100,
-          mhp: 100,
-          res: 120,
-          mres: 120,
-          rtype: 'mana',
-          target: null,
-          gcd: 0,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 103, name: 'Branoracc', cls: 'rogue', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'energy', x: 5, z: 1, dead: 0, inCombat: 1, targetId: 502, group: 1 },
-              { pid: 104, name: 'Branoradd', cls: 'hunter', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 5, z: -1, dead: 0, inCombat: 1, targetId: 502, group: 1 },
-              { pid: 105, name: 'Branoraee', cls: 'paladin', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 7, z: 0, dead: 0, inCombat: 1, targetId: 501, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: mage,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 0,
+            z: 0,
+            hp: 100,
+            mhp: 100,
+            res: 120,
+            mres: 120,
+            rtype: 'mana',
+            target: null,
+            gcd: 0,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 6,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 103,
+                  name: 'Branoracc',
+                  cls: 'rogue',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'energy',
+                  x: 5,
+                  z: 1,
+                  dead: 0,
+                  inCombat: 1,
+                  targetId: 502,
+                  group: 1,
+                },
+                {
+                  pid: 104,
+                  name: 'Branoradd',
+                  cls: 'hunter',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 5,
+                  z: -1,
+                  dead: 0,
+                  inCombat: 1,
+                  targetId: 502,
+                  group: 1,
+                },
+                {
+                  pid: 105,
+                  name: 'Branoraee',
+                  cls: 'paladin',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 7,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  targetId: 501,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 501, k: 'mob', h: 80, x: 8, z: 0, aggro: 101, auras: [] },
-          { id: 502, k: 'mob', h: 80, x: 12, z: 0, aggro: null, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [bot(), mage],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 501, k: 'mob', h: 80, x: 8, z: 0, aggro: 101, auras: [] },
+            { id: 502, k: 'mob', h: 80, x: 12, z: 0, aggro: null, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [bot(), mage],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands[0]).toEqual({ cmd: 'target', id: 502 });
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'focus_fire',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'focus_fire',
+      }),
+    );
   });
 
   it('has a ranged party member pull the leader target from a safe distance', () => {
@@ -1457,56 +2228,90 @@ describe('ambient player bot group coordinator', () => {
       class: 'mage',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: mage,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 2,
-          z: 0,
-          hp: 100,
-          mhp: 100,
-          res: 120,
-          mres: 120,
-          rtype: 'mana',
-          target: null,
-          gcd: 0,
-          cast: null,
-          cds: {},
-          auras: [
-            { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
-            { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
-          ],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, targetId: 502, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 12, hp: 100, mhp: 100, res: 120, mres: 120, rtype: 'mana', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: mage,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 2,
+            z: 0,
+            hp: 100,
+            mhp: 100,
+            res: 120,
+            mres: 120,
+            rtype: 'mana',
+            target: null,
+            gcd: 0,
+            cast: null,
+            cds: {},
+            auras: [
+              { id: 'frost_armor', kind: 'buff_armor', rem: 1_700, dur: 1_800 },
+              { id: 'arcane_intellect', kind: 'buff_int', rem: 1_700, dur: 1_800 },
             ],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  targetId: 502,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 12,
+                  hp: 100,
+                  mhp: 100,
+                  res: 120,
+                  mres: 120,
+                  rtype: 'mana',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 502, k: 'mob', h: 80, x: 20, z: 0, aggro: null, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [leader, mage],
-      nowMs: 5_000,
-    }, state);
+          entities: [{ id: 502, k: 'mob', h: 80, x: 20, z: 0, aggro: null, auras: [] }],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [leader, mage],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 502 },
       expect.objectContaining({ cmd: 'cast' }),
     ]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'prepare_party',
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'prepare_party',
+      }),
+    );
   });
 
   it('has a grouped priest cast on the focus target instead of only jogging after it', () => {
@@ -1520,56 +2325,91 @@ describe('ambient player bot group coordinator', () => {
       class: 'priest',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: priest,
-      liveState: liveState({
-        self: {
-          id: 102,
-          lv: 12,
-          x: 0,
-          z: 0,
-          hp: 90,
-          mhp: 90,
-          res: 180,
-          mres: 180,
-          rtype: 'mana',
-          gcd: 0,
-          target: null,
-          cast: null,
-          cds: {},
-          auras: [],
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 12, hp: 120, mhp: 120, res: 10, mres: 100, rtype: 'rage', x: 6, z: 0, dead: 0, inCombat: 1, group: 1 },
-              { pid: 102, name: 'Branoracc', cls: 'priest', level: 12, hp: 90, mhp: 90, res: 180, mres: 180, rtype: 'mana', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: priest,
+        liveState: liveState({
+          self: {
+            id: 102,
+            lv: 12,
+            x: 0,
+            z: 0,
+            hp: 90,
+            mhp: 90,
+            res: 180,
+            mres: 180,
+            rtype: 'mana',
+            gcd: 0,
+            target: null,
+            cast: null,
+            cds: {},
+            auras: [],
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 12,
+                  hp: 120,
+                  mhp: 120,
+                  res: 10,
+                  mres: 100,
+                  rtype: 'rage',
+                  x: 6,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 1,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branoracc',
+                  cls: 'priest',
+                  level: 12,
+                  hp: 90,
+                  mhp: 90,
+                  res: 180,
+                  mres: 180,
+                  rtype: 'mana',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 101, k: 'player', nm: 'Branoraaa', x: 6, z: 0, auras: [] },
-          { id: 501, k: 'mob', h: 80, x: 25, z: 0, aggro: 101, auras: [] },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_boars',
-      objectiveQuestId: 'q_boars',
-      objectiveSuggestedPartySize: 1,
-      directory: [bot(), priest],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 101, k: 'player', nm: 'Branoraaa', x: 6, z: 0, auras: [] },
+            { id: 501, k: 'mob', h: 80, x: 25, z: 0, aggro: 101, auras: [] },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_boars',
+        objectiveQuestId: 'q_boars',
+        objectiveSuggestedPartySize: 1,
+        directory: [bot(), priest],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([
       { cmd: 'target', id: 501 },
       expect.objectContaining({ cmd: 'cast' }),
     ]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'focus_fire',
-      groupLeaderName: 'Branoraaa',
-      groupLeaderDistance: 6,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'focus_fire',
+        groupLeaderName: 'Branoraaa',
+        groupLeaderDistance: 6,
+      }),
+    );
   });
 
   it('keeps a nearby ambient follower from breaking the server follow state', () => {
@@ -1584,38 +2424,73 @@ describe('ambient player bot group coordinator', () => {
       class: 'mage',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 102,
-          x: -123,
-          z: 738,
-          party: {
-            leader: 101,
-            raid: false,
-            members: [
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: -125, z: 738, dead: 0, inCombat: 0, group: 1 },
-              { pid: 102, name: 'Branorabb', cls: 'mage', level: 18, hp: 120, mhp: 120, res: 180, mres: 180, rtype: 'mana', x: -123, z: 738, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 102,
+            x: -123,
+            z: 738,
+            party: {
+              leader: 101,
+              raid: false,
+              members: [
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 18,
+                  hp: 150,
+                  mhp: 150,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: -125,
+                  z: 738,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 102,
+                  name: 'Branorabb',
+                  cls: 'mage',
+                  level: 18,
+                  hp: 120,
+                  mhp: 120,
+                  res: 180,
+                  mres: 180,
+                  rtype: 'mana',
+                  x: -123,
+                  z: 738,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_crushers',
-      objectiveQuestId: 'q_crushers',
-      objectiveSuggestedPartySize: 3,
-      directory: [leader, follower],
-      nowMs: 5_000,
-    }, state);
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+        directory: [leader, follower],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'follow_leader',
-      groupObjectiveScope: 'outdoor',
-      groupLeaderDistance: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'follow_leader',
+        groupObjectiveScope: 'outdoor',
+        groupLeaderDistance: 2,
+      }),
+    );
   });
 
   it('does not wait for more members when a real player is the party leader', () => {
@@ -1639,42 +2514,77 @@ describe('ambient player bot group coordinator', () => {
       class: 'priest',
     });
     const state = createAmbientPlayerBotGroupRuntimeState();
-    const result = tickAmbientPlayerBotGroupCoordinator({
-      bot: follower,
-      liveState: liveState({
-        self: {
-          id: 101,
-          x: 2,
-          z: 0,
-          party: {
-            leader: 1,
-            raid: false,
-            members: [
-              { pid: 1, name: 'Realhero', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 0, z: 0, dead: 0, inCombat: 0, group: 1 },
-              { pid: 101, name: 'Branoraaa', cls: 'warrior', level: 18, hp: 150, mhp: 150, res: 0, mres: 0, rtype: 'rage', x: 2, z: 0, dead: 0, inCombat: 0, group: 1 },
-            ],
+    const result = tickAmbientPlayerBotGroupCoordinator(
+      {
+        bot: follower,
+        liveState: liveState({
+          self: {
+            id: 101,
+            x: 2,
+            z: 0,
+            party: {
+              leader: 1,
+              raid: false,
+              members: [
+                {
+                  pid: 1,
+                  name: 'Realhero',
+                  cls: 'warrior',
+                  level: 18,
+                  hp: 150,
+                  mhp: 150,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 0,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+                {
+                  pid: 101,
+                  name: 'Branoraaa',
+                  cls: 'warrior',
+                  level: 18,
+                  hp: 150,
+                  mhp: 150,
+                  res: 0,
+                  mres: 0,
+                  rtype: 'rage',
+                  x: 2,
+                  z: 0,
+                  dead: 0,
+                  inCombat: 0,
+                  group: 1,
+                },
+              ],
+            },
           },
-        },
-        entities: [
-          { id: 102, k: 'player', nm: 'Branorabb', x: 3, z: 0, lv: 18 },
-          { id: 103, k: 'player', nm: 'Branoracc', x: 4, z: 0, lv: 18 },
-        ],
-      }),
-      recentEvents: [],
-      objectiveId: 'hunt_crushers',
-      objectiveQuestId: 'q_crushers',
-      objectiveSuggestedPartySize: 3,
-      directory: [follower, peerA, peerB],
-      nowMs: 5_000,
-    }, state);
+          entities: [
+            { id: 102, k: 'player', nm: 'Branorabb', x: 3, z: 0, lv: 18 },
+            { id: 103, k: 'player', nm: 'Branoracc', x: 4, z: 0, lv: 18 },
+          ],
+        }),
+        recentEvents: [],
+        objectiveId: 'hunt_crushers',
+        objectiveQuestId: 'q_crushers',
+        objectiveSuggestedPartySize: 3,
+        directory: [follower, peerA, peerB],
+        nowMs: 5_000,
+      },
+      state,
+    );
 
     expect(result.commands).toEqual([]);
     expect(result.pauseBrainDrive).toBe(true);
-    expect(result.runnerStatePatch).toEqual(expect.objectContaining({
-      groupMode: 'follow_leader',
-      groupLeaderName: 'Realhero',
-      groupAwaitingParty: false,
-      groupLeaderDistance: 2,
-    }));
+    expect(result.runnerStatePatch).toEqual(
+      expect.objectContaining({
+        groupMode: 'follow_leader',
+        groupLeaderName: 'Realhero',
+        groupAwaitingParty: false,
+        groupLeaderDistance: 2,
+      }),
+    );
   });
 });

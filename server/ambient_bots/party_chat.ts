@@ -2,16 +2,16 @@ import type { SimEvent } from '../../src/sim/types';
 import type { PartyInfo } from '../../src/world_api';
 import type { AmbientBotPlanDecisionV1 } from './llm_types';
 import {
-  ambientPartyRoleAssignmentForPid,
-  planAmbientPartyRoles,
-  type AmbientPartyRoleAssignment,
-} from './party_roles';
-import {
+  type AmbientPartyCoordinationIntent,
   buildAmbientPartyCoordinationIntent,
   emptyPartyIntentRunnerStatePatch,
   partyIntentRunnerStatePatch,
-  type AmbientPartyCoordinationIntent,
 } from './party_intent';
+import {
+  type AmbientPartyRoleAssignment,
+  ambientPartyRoleAssignmentForPid,
+  planAmbientPartyRoles,
+} from './party_roles';
 import type { AmbientPlayerBotRecord } from './types';
 import type { AmbientPlayerBotLiveState } from './ws_client';
 
@@ -117,9 +117,10 @@ export function tickAmbientPlayerBotPartyChatShell(
     objectiveQuestId: input.objectiveQuestId,
     objectiveDungeonId: input.objectiveDungeonId,
   });
-  const selfRole = ambientPartyRoleAssignmentForPid(rolePlan, selfPid ?? -1)
-    ?? rolePlan.assignments.find((assignment) => assignment.name === input.bot.characterName)
-    ?? null;
+  const selfRole =
+    ambientPartyRoleAssignmentForPid(rolePlan, selfPid ?? -1) ??
+    rolePlan.assignments.find((assignment) => assignment.name === input.bot.characterName) ??
+    null;
   if (!selfRole) {
     state.pendingUtterances = [];
     return {
@@ -127,15 +128,17 @@ export function tickAmbientPlayerBotPartyChatShell(
       runnerStatePatch: emptyPartyRunnerStatePatch(),
     };
   }
-  const partyIntent = input.partyIntent ?? buildAmbientPartyCoordinationIntent({
-    party,
-    liveState: input.liveState,
-    recentEvents: input.recentEvents,
-    rolePlan,
-    objectiveId: input.objectiveId,
-    objectiveLabel: input.objectiveLabel,
-    groupMode: input.groupMode,
-  });
+  const partyIntent =
+    input.partyIntent ??
+    buildAmbientPartyCoordinationIntent({
+      party,
+      liveState: input.liveState,
+      recentEvents: input.recentEvents,
+      rolePlan,
+      objectiveId: input.objectiveId,
+      objectiveLabel: input.objectiveLabel,
+      groupMode: input.groupMode,
+    });
 
   state.pendingUtterances = state.pendingUtterances
     .filter((utterance) => utterance.briefKey.startsWith(rolePlan.key))
@@ -144,10 +147,11 @@ export function tickAmbientPlayerBotPartyChatShell(
   if (leaderIsAmbientBot && leader?.pid === selfPid) {
     const leaderBriefKey = `${rolePlan.key}|${partyIntent.key}`;
     if (
-      leaderBriefKey !== state.lastLeaderBriefKey
-      && canQueueLeaderBrief(state, input.nowMs, partyIntent)
-      && !state.pendingUtterances.some((utterance) =>
-        utterance.mode === 'leader_brief' && utterance.briefKey === leaderBriefKey)
+      leaderBriefKey !== state.lastLeaderBriefKey &&
+      canQueueLeaderBrief(state, input.nowMs, partyIntent) &&
+      !state.pendingUtterances.some(
+        (utterance) => utterance.mode === 'leader_brief' && utterance.briefKey === leaderBriefKey,
+      )
     ) {
       enqueueUtterance(state, {
         mode: 'leader_brief',
@@ -166,11 +170,12 @@ export function tickAmbientPlayerBotPartyChatShell(
     if (leaderEvent && (leaderIsAmbientBot || looksLikePartyCoordinationLine(leaderEvent.text))) {
       const ackKey = `${rolePlan.key}|ack|${normalizeChatText(leaderEvent.text)}`;
       if (
-        ackKey !== state.lastAckedBriefKey
-        && shouldSelfAcknowledgeLeaderLine(party, selfPid, ackKey)
-        && canQueueMemberAck(state, input.nowMs)
-        && !state.pendingUtterances.some((utterance) =>
-          utterance.mode === 'member_ack' && utterance.briefKey === ackKey)
+        ackKey !== state.lastAckedBriefKey &&
+        shouldSelfAcknowledgeLeaderLine(party, selfPid, ackKey) &&
+        canQueueMemberAck(state, input.nowMs) &&
+        !state.pendingUtterances.some(
+          (utterance) => utterance.mode === 'member_ack' && utterance.briefKey === ackKey,
+        )
       ) {
         enqueueUtterance(state, {
           mode: 'member_ack',
@@ -199,7 +204,9 @@ export function tickAmbientPlayerBotPartyChatShell(
     const lineText = partyLineText(utterance);
     commands.push({ type: 'chat', text: `/p ${lineText}` });
     markPartyChatSent(state, utterance, input.nowMs);
-    state.pendingUtterances = state.pendingUtterances.filter((candidate) => candidate.revision !== utterance.revision);
+    state.pendingUtterances = state.pendingUtterances.filter(
+      (candidate) => candidate.revision !== utterance.revision,
+    );
   }
 
   return {
@@ -218,14 +225,16 @@ export function tickAmbientPlayerBotPartyChatShell(
       partyComposition: rolePlan.compositionSummary,
       ...(commands[0]
         ? {
-          lastPartyChatAction: commands[0].text.startsWith('/p ') ? commands[0].text.slice(3) : commands[0].text,
-        }
+            lastPartyChatAction: commands[0].text.startsWith('/p ')
+              ? commands[0].text.slice(3)
+              : commands[0].text,
+          }
         : {}),
       ...(input.llmPlan
         ? {
-          llmPlanMode: input.llmPlan.socialMode,
-          llmPlanFocus: input.llmPlan.focusLabel,
-        }
+            llmPlanMode: input.llmPlan.socialMode,
+            llmPlanFocus: input.llmPlan.focusLabel,
+          }
         : {}),
     },
   };
@@ -239,10 +248,7 @@ function canQueueLeaderBrief(
   return !hasRecentTimestamp(state.lastLeaderBriefAtMs, nowMs, leaderBriefCooldownMs(partyIntent));
 }
 
-function canQueueMemberAck(
-  state: AmbientPlayerBotPartyChatRuntimeState,
-  nowMs: number,
-): boolean {
+function canQueueMemberAck(state: AmbientPlayerBotPartyChatRuntimeState, nowMs: number): boolean {
   return !hasRecentTimestamp(state.lastMemberAckAtMs, nowMs, MEMBER_ACK_COOLDOWN_MS);
 }
 
@@ -250,12 +256,12 @@ function nextAllowedPartyChatAtMs(
   state: AmbientPlayerBotPartyChatRuntimeState,
   utterance: AmbientPlayerBotPendingPartyUtterance,
 ): number {
-  const modeLastAtMs = utterance.mode === 'leader_brief'
-    ? state.lastLeaderBriefAtMs
-    : state.lastMemberAckAtMs;
-  const modeCooldownMs = utterance.mode === 'leader_brief'
-    ? leaderBriefCooldownMsForUtterance(utterance)
-    : MEMBER_ACK_COOLDOWN_MS;
+  const modeLastAtMs =
+    utterance.mode === 'leader_brief' ? state.lastLeaderBriefAtMs : state.lastMemberAckAtMs;
+  const modeCooldownMs =
+    utterance.mode === 'leader_brief'
+      ? leaderBriefCooldownMsForUtterance(utterance)
+      : MEMBER_ACK_COOLDOWN_MS;
   return Math.max(
     nextAllowedAfter(state.lastPartyChatAtMs, modeCooldownMs),
     nextAllowedAfter(modeLastAtMs, modeCooldownMs),
@@ -283,9 +289,11 @@ function leaderBriefCooldownMs(intent: AmbientPartyCoordinationIntent): number {
     : LEADER_BRIEF_COOLDOWN_MS;
 }
 
-function leaderBriefCooldownMsForUtterance(utterance: AmbientPlayerBotPendingPartyUtterance): number {
-  return utterance.briefKey.includes('|party-intent|recovery|')
-    || utterance.briefKey.includes('|party-intent|correction|')
+function leaderBriefCooldownMsForUtterance(
+  utterance: AmbientPlayerBotPendingPartyUtterance,
+): number {
+  return utterance.briefKey.includes('|party-intent|recovery|') ||
+    utterance.briefKey.includes('|party-intent|correction|')
     ? URGENT_LEADER_BRIEF_COOLDOWN_MS
     : LEADER_BRIEF_COOLDOWN_MS;
 }
@@ -317,8 +325,10 @@ function enqueueUtterance(
   utterance: AmbientPlayerBotPendingPartyUtterance,
 ): void {
   state.pendingUtterances = [
-    ...state.pendingUtterances.filter((candidate) =>
-      !(candidate.mode === utterance.mode && candidate.briefKey === utterance.briefKey)),
+    ...state.pendingUtterances.filter(
+      (candidate) =>
+        !(candidate.mode === utterance.mode && candidate.briefKey === utterance.briefKey),
+    ),
     utterance,
   ]
     .sort((a, b) => a.dueAtMs - b.dueAtMs || a.revision - b.revision)
@@ -334,9 +344,7 @@ function nextRevision(state: AmbientPlayerBotPartyChatRuntimeState): number {
 function parsePartyInfo(value: unknown): PartyInfo | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const record = value as PartyInfo;
-  return typeof record.leader === 'number' && Array.isArray(record.members)
-    ? record
-    : null;
+  return typeof record.leader === 'number' && Array.isArray(record.members) ? record : null;
 }
 
 function readSelfPid(value: Record<string, unknown>): number | null {
@@ -367,11 +375,11 @@ function latestLeaderPartyEvent(
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i];
     if (
-      event.type === 'chat'
-      && event.channel === 'party'
-      && event.from === leaderName
-      && typeof event.text === 'string'
-      && event.text.trim() !== ''
+      event.type === 'chat' &&
+      event.channel === 'party' &&
+      event.from === leaderName &&
+      typeof event.text === 'string' &&
+      event.text.trim() !== ''
     ) {
       return { text: event.text };
     }
@@ -385,15 +393,17 @@ function buildLeaderFallbackText(
   groupMode: string,
   partyIntent: AmbientPartyCoordinationIntent,
 ): string {
-  const prepLine = isPreparationGroupMode(groupMode) || groupMode === 'hold_regroup' || groupMode === 'wait_party'
-    ? 'Regroup on me, finish buffs, then move together'
-    : 'Buff up first, then collapse on one target';
+  const prepLine =
+    isPreparationGroupMode(groupMode) || groupMode === 'hold_regroup' || groupMode === 'wait_party'
+      ? 'Regroup on me, finish buffs, then move together'
+      : 'Buff up first, then collapse on one target';
   const healerCall = rolePlan.healerName
     ? `${rolePlan.healerName} keeps us topped`
     : 'watch your health and peel fast';
-  const focusCall = rolePlan.focusCallerName && rolePlan.focusCallerName !== selfRole.name
-    ? `assist ${rolePlan.focusCallerName}`
-    : 'assist my target';
+  const focusCall =
+    rolePlan.focusCallerName && rolePlan.focusCallerName !== selfRole.name
+      ? `assist ${rolePlan.focusCallerName}`
+      : 'assist my target';
   if (partyIntent.kind === 'recovery') {
     return chooseTemplate(partyIntent.key, [
       `Reset a second. ${healerCall}, then ${focusCall}.`,
@@ -447,15 +457,18 @@ function buildMemberAckFallbackText(
     ? `${rolePlan.focusCallerName}'s target`
     : 'the called target';
   if (partyIntent.kind === 'recovery') {
-    return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, selfRole.combatRole === 'healer'
-      ? [
-        `Copy, stabilizing ${rolePlan.tankName || 'the frontline'} before we move.`,
-        'On it, I am topping people before the next pull.',
-      ]
-      : [
-        'Copy, holding for recovery and watching for strays.',
-        'Got it, resetting and staying close.',
-      ]);
+    return chooseTemplate(
+      `${partyIntent.key}|${selfRole.name}`,
+      selfRole.combatRole === 'healer'
+        ? [
+            `Copy, stabilizing ${rolePlan.tankName || 'the frontline'} before we move.`,
+            'On it, I am topping people before the next pull.',
+          ]
+        : [
+            'Copy, holding for recovery and watching for strays.',
+            'Got it, resetting and staying close.',
+          ],
+    );
   }
   if (partyIntent.kind === 'correction') {
     return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, [
@@ -472,20 +485,17 @@ function buildMemberAckFallbackText(
     ]);
   }
   if (partyIntent.kind === 'focus') {
-    return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, selfRole.combatRole === 'tank'
-      ? [
-        'Copy, I will hold the front and peel strays.',
-        'On it, anchoring the pull.',
-      ]
-      : selfRole.combatRole === 'healer'
-        ? [
-          `Copy, keeping ${rolePlan.tankName || 'the frontline'} stable while you burn focus.`,
-          'On heals, watching spikes and loose mobs.',
-        ]
-        : [
-          `Copy, staying on ${focusCall} and peeling runners.`,
-          'On it, all damage on focus.',
-        ]);
+    return chooseTemplate(
+      `${partyIntent.key}|${selfRole.name}`,
+      selfRole.combatRole === 'tank'
+        ? ['Copy, I will hold the front and peel strays.', 'On it, anchoring the pull.']
+        : selfRole.combatRole === 'healer'
+          ? [
+              `Copy, keeping ${rolePlan.tankName || 'the frontline'} stable while you burn focus.`,
+              'On heals, watching spikes and loose mobs.',
+            ]
+          : [`Copy, staying on ${focusCall} and peeling runners.`, 'On it, all damage on focus.'],
+    );
   }
   if (partyIntent.kind === 'praise') {
     return chooseTemplate(`${partyIntent.key}|${selfRole.name}`, [
@@ -494,43 +504,40 @@ function buildMemberAckFallbackText(
       'Good work, staying tight.',
     ]);
   }
-  const templates = selfRole.combatRole === 'tank'
-    ? [
-      'Copy, I take point and keep loose mobs off the backline.',
-      `On it, I will anchor the pull and keep everyone safe.`,
-      `Got it, I will hold the front and pull strays back in.`,
-    ]
-    : selfRole.combatRole === 'healer'
+  const templates =
+    selfRole.combatRole === 'tank'
       ? [
-        `On heals, I will keep ${rolePlan.tankName || 'the frontline'} stable.`,
-        'Copy, I am watching health bars and danger spikes.',
-        `Got it, I will top the group and call if I need space.`,
-      ]
-      : [
-        `Copy, I will stay on ${focusCall} and peel loose mobs.`,
-        'On it, I am sticking to focus and cleaning up runners.',
-        `Got it, I will keep pressure on the called target.`,
-      ];
+          'Copy, I take point and keep loose mobs off the backline.',
+          `On it, I will anchor the pull and keep everyone safe.`,
+          `Got it, I will hold the front and pull strays back in.`,
+        ]
+      : selfRole.combatRole === 'healer'
+        ? [
+            `On heals, I will keep ${rolePlan.tankName || 'the frontline'} stable.`,
+            'Copy, I am watching health bars and danger spikes.',
+            `Got it, I will top the group and call if I need space.`,
+          ]
+        : [
+            `Copy, I will stay on ${focusCall} and peel loose mobs.`,
+            'On it, I am sticking to focus and cleaning up runners.',
+            `Got it, I will keep pressure on the called target.`,
+          ];
   return chooseTemplate(`${rolePlan.key}|${selfRole.name}`, templates);
 }
 
 function isPreparationGroupMode(groupMode: string): boolean {
-  return groupMode === 'buff_party'
-    || groupMode === 'prepare_party'
-    || groupMode === 'heal_party';
+  return groupMode === 'buff_party' || groupMode === 'prepare_party' || groupMode === 'heal_party';
 }
 
 function partyLineText(utterance: AmbientPlayerBotPendingPartyUtterance): string {
-  const text = utterance.llmStatus === 'ready' && utterance.llmLineText
-    ? utterance.llmLineText
-    : utterance.fallbackText;
+  const text =
+    utterance.llmStatus === 'ready' && utterance.llmLineText
+      ? utterance.llmLineText
+      : utterance.fallbackText;
   return normalizeChatText(text);
 }
 
-function chooseTemplate(
-  key: string,
-  templates: readonly string[],
-): string {
+function chooseTemplate(key: string, templates: readonly string[]): string {
   if (templates.length === 0) return '';
   const index = stableHash(key) % templates.length;
   return templates[index] ?? templates[0] ?? '';

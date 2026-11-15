@@ -28,6 +28,7 @@ import {
   handleAccountMarketing,
   handleAccountSetEmail,
   handleAccountSetInitialEmail,
+  handleAccountSetInitialPassword,
   handleAccountWhoami,
   handleEmailUnsubscribe,
 } from '../server/account';
@@ -70,12 +71,17 @@ const parse = (res: any) => ({
 // the right rows by inspecting the SQL, and records the writes it sees.
 let accountRow: any;
 let characters: any[];
+// Rows returned for the account-wide (every realm) character read the GDPR
+// export uses: distinct from `characters` (this process's realm only) so a
+// test can prove the export is not silently dropping the other-realm rows.
+let charactersAllRealms: any[];
 let charCount: number;
 let writes: { sql: string; params: any[] }[];
 // Pending email-change row the consume UPDATE returns (null = invalid/expired).
 let pendingChange: any;
 // Rows the atomic set-initial backfill UPDATE reports (1 = filled, 0 = race-loser).
 let emailBackfillRows: number;
+let passwordBackfillRows: number;
 
 function routeQuery(sql: string, params: any[]) {
   writes.push({ sql, params });
@@ -86,14 +92,23 @@ function routeQuery(sql: string, params: any[]) {
     return { rows: accountRow ? [{ id: accountRow.id }] : [] };
   if (sql.includes('unsubscribe_token'))
     return { rows: [{ unsubscribe_token: params[1] ?? 'unsub-token' }] };
+  if (sql.includes('FROM accounts a') && sql.includes('account_general_chat_rate_limits'))
+    return { rows: accountRow ? [accountRow] : [] };
   if (sql.includes('FROM accounts WHERE id')) return { rows: accountRow ? [accountRow] : [] };
   if (sql.includes('COUNT(*)')) return { rows: [{ count: charCount }] };
+  // Must be checked before the generic realm-scoped branch below: this is the
+  // account-wide (every realm) read, keyed by its distinguishing ORDER BY.
+  if (sql.includes('ORDER BY realm, id')) return { rows: charactersAllRealms };
   if (sql.includes('FROM characters WHERE account_id') || sql.includes('FROM characters c')) {
     return { rows: characters };
   }
   // The atomic recovery-email backfill (set-initial): rowCount drives filled vs.
   // race-loser. `emailBackfillRows` lets a test simulate the loser (0 rows).
   if (sql.includes("email IS NULL OR email = ''")) return { rows: [], rowCount: emailBackfillRows };
+  // The atomic initial-password write: rowCount drives filled vs. race-loser.
+  if (sql.includes('password_hash = $2') && sql.includes('password_set = FALSE')) {
+    return { rows: [], rowCount: passwordBackfillRows };
+  }
   return { rows: [] }; // UPDATE / DELETE / INSERT writes
 }
 
@@ -106,6 +121,7 @@ beforeEach(async () => {
     id: 1,
     username: 'Aelwyn',
     password_hash: pwHash,
+    password_set: true,
     email: null,
     created_at: '2026-01-15T10:00:00.000Z',
     deactivated_at: null,
@@ -113,9 +129,11 @@ beforeEach(async () => {
     marketing_opt_in: false,
   };
   characters = [{ id: 10 }, { id: 11 }];
+  charactersAllRealms = characters;
   charCount = 2;
   pendingChange = { account_id: 1, new_email: 'new@example.com' };
   emailBackfillRows = 1;
+  passwordBackfillRows = 1;
   writes = [];
   dbMock.query.mockReset();
   dbMock.query.mockImplementation((sql: string, params: any[]) => routeQuery(sql, params));
@@ -149,6 +167,17 @@ describe('handleAccountWhoami', () => {
     const res = makeRes();
     await handleAccountWhoami(res, 1);
     expect(parse(res).status).toBe(404);
+  });
+  it('reports passwordSet:false for an Apple/Discord-provisioned account', async () => {
+    accountRow.password_set = false;
+    const res = makeRes();
+    await handleAccountWhoami(res, 1);
+    expect(parse(res).data.passwordSet).toBe(false);
+  });
+  it('reports passwordSet:true once a real password exists', async () => {
+    const res = makeRes();
+    await handleAccountWhoami(res, 1);
+    expect(parse(res).data.passwordSet).toBe(true);
   });
 });
 
@@ -196,6 +225,61 @@ describe('handleAccountSetInitialEmail (mandatory recovery-email backfill)', () 
   });
 });
 
+describe('handleAccountSetInitialPassword (Apple/Discord passwordless-account bootstrap)', () => {
+  beforeEach(() => {
+    accountRow.password_set = false;
+  });
+  it('sets a real password on an account that has none (200)', async () => {
+    const res = makeRes();
+    await handleAccountSetInitialPassword(makeReq({ next: 'brandnew1' }), res, 1);
+    const { status, data } = parse(res);
+    expect(status).toBe(200);
+    expect(data).toEqual({ ok: true });
+    const write = writes.find((w) => w.sql.includes('UPDATE accounts SET password_hash'));
+    expect(write).toBeTruthy();
+    expect(write!.params[0]).toBe(1);
+    expect(write!.sql).toContain('password_set = FALSE');
+  });
+  it('returns 409 when a concurrent initial-password request wins first', async () => {
+    // The read-side guard passed (acct.password_set false) but the atomic UPDATE
+    // matched 0 rows because another request filled it first. The loser must
+    // not silently replace that first password.
+    passwordBackfillRows = 0;
+    const res = makeRes();
+    await handleAccountSetInitialPassword(makeReq({ next: 'brandnew1' }), res, 1);
+    const { status, data } = parse(res);
+    expect(status).toBe(409);
+    expect(data.code).toBe('account.password_already_set');
+  });
+  it('rejects a too-short password without writing (400)', async () => {
+    const res = makeRes();
+    await handleAccountSetInitialPassword(makeReq({ next: 'short' }), res, 1);
+    expect(parse(res).status).toBe(400);
+    expect(writes.some((w) => w.sql.includes('UPDATE accounts SET password_hash'))).toBe(false);
+  });
+  it('rejects a too-long password without writing (400)', async () => {
+    const res = makeRes();
+    await handleAccountSetInitialPassword(makeReq({ next: 'x'.repeat(129) }), res, 1);
+    expect(parse(res).status).toBe(400);
+    expect(writes.some((w) => w.sql.includes('UPDATE accounts SET password_hash'))).toBe(false);
+  });
+  it('refuses when a real password already exists, steering to change-password (409)', async () => {
+    accountRow.password_set = true;
+    const res = makeRes();
+    await handleAccountSetInitialPassword(makeReq({ next: 'brandnew1' }), res, 1);
+    const { status, data } = parse(res);
+    expect(status).toBe(409);
+    expect(data.code).toBe('account.password_already_set');
+    expect(writes.some((w) => w.sql.includes('UPDATE accounts SET password_hash'))).toBe(false);
+  });
+  it('404s when the account row is gone', async () => {
+    accountRow = null;
+    const res = makeRes();
+    await handleAccountSetInitialPassword(makeReq({ next: 'brandnew1' }), res, 1);
+    expect(parse(res).status).toBe(404);
+  });
+});
+
 describe('handleAccountChangePassword', () => {
   it('rejects an incorrect current password (401)', async () => {
     const res = makeRes();
@@ -204,6 +288,7 @@ describe('handleAccountChangePassword', () => {
       res,
       1,
       'tokA',
+      noHooks,
     );
     expect(parse(res).status).toBe(401);
     expect(writes.some((w) => w.sql.includes('UPDATE accounts SET password_hash'))).toBe(false);
@@ -215,6 +300,7 @@ describe('handleAccountChangePassword', () => {
       res,
       1,
       'tokA',
+      noHooks,
     );
     expect(parse(res).status).toBe(400);
   });
@@ -225,6 +311,7 @@ describe('handleAccountChangePassword', () => {
       res,
       1,
       'tokA',
+      noHooks,
     );
     const { status, data } = parse(res);
     expect(status).toBe(400);
@@ -237,6 +324,7 @@ describe('handleAccountChangePassword', () => {
       res,
       1,
       'tokA',
+      noHooks,
     );
     expect(parse(res).status).toBe(200);
     expect(writes.some((w) => w.sql.includes('UPDATE accounts SET password_hash'))).toBe(true);
@@ -245,6 +333,42 @@ describe('handleAccountChangePassword', () => {
     // The "<> $2" (keep caller) variant, with the caller token as a param.
     expect(revoke!.sql).toContain('token <>');
     expect(revoke!.params).toContain('tokA');
+  });
+  // Token revocation alone does not close an already-open WS: an attacker who
+  // phished the password and is already in-world would otherwise keep playing
+  // on the victim's character after the victim locks them out. A successful
+  // change must also force-disconnect any live session for the account.
+  it('force-disconnects every live WS session for the account, unconditionally', async () => {
+    const disconnectAccount = vi.fn();
+    const res = makeRes();
+    await handleAccountChangePassword(
+      makeReq({ current: CORRECT_PW, next: 'brandnew1' }, '198.51.100.93'),
+      res,
+      1,
+      'tokA',
+      { disconnectAccount },
+    );
+    expect(parse(res).status).toBe(200);
+    // No exception token: a bearer token is a reusable wire credential, not a
+    // per-socket identity, so exempting a live session by token equality could
+    // just as easily spare an attacker's session sharing a stolen token as the
+    // legitimate caller's. disconnectAccount always kicks every live session for
+    // the account (a review finding on the original PR).
+    expect(disconnectAccount).toHaveBeenCalledWith(1, expect.any(String));
+    expect(disconnectAccount.mock.calls[0]).toHaveLength(2);
+  });
+  it('does not disconnect anyone when the change is rejected (wrong current password)', async () => {
+    const disconnectAccount = vi.fn();
+    const res = makeRes();
+    await handleAccountChangePassword(
+      makeReq({ current: 'wrong', next: 'brandnew1' }, '198.51.100.94'),
+      res,
+      1,
+      'tokA',
+      { disconnectAccount },
+    );
+    expect(parse(res).status).toBe(401);
+    expect(disconnectAccount).not.toHaveBeenCalled();
   });
 });
 
@@ -340,6 +464,7 @@ describe('account portal rate limiting (429)', () => {
         last,
         1,
         'tokA',
+        noHooks,
       );
     }
     expect(parse(last).status).toBe(429);
@@ -378,6 +503,7 @@ describe('account portal auth-failure accounting', () => {
       res,
       1,
       'tokA',
+      noHooks,
     );
     expect(parse(res).status).toBe(200);
   });
@@ -472,6 +598,23 @@ describe('handleAccountExport', () => {
     const bundle = JSON.parse(res.body);
     expect(bundle.account).toMatchObject({ id: 1, username: 'Aelwyn' });
     expect(Array.isArray(bundle.characters)).toBe(true);
+  });
+  it('includes characters from every realm the account holds, not just this process realm', async () => {
+    // This deployment runs multiple realm processes against one shared
+    // database (server/realm.ts); an account may hold characters on several of
+    // them. The export is an account-wide self-service surface (matching
+    // characterCountForAccount / handleAccountWhoami), so it must return every
+    // realm's characters, not only the realm serving this request.
+    charactersAllRealms = [
+      { id: 10, name: 'Aelwyn', class: 'warrior', level: 12, state: {}, realm: 'ashvale' },
+      { id: 55, name: 'Faelar', class: 'druid', level: 30, state: {}, realm: 'thornreach' },
+    ];
+    const res = makeRes();
+    await handleAccountExport(makeReq({}, '198.51.100.42'), res, 1);
+    const bundle = JSON.parse(res.body);
+    const realms = bundle.characters.map((c: any) => c.realm).sort();
+    expect(realms).toEqual(['ashvale', 'thornreach']);
+    expect(bundle.characters.map((c: any) => c.id).sort()).toEqual([10, 55]);
   });
   it('404s when the account is gone', async () => {
     accountRow = null;
@@ -575,5 +718,39 @@ describe('moderationStatusForAccount precedence', () => {
     expect(s.suspendedUntil).toBeTruthy();
     expect(s.deactivated).toBeFalsy();
     expect(s.message).toContain('suspended');
+  });
+  // Direct-path parity after the auth_guard_core extraction: the fetch +
+  // compute pair must carry the mute, strike, and LEFT-JOINed policy columns
+  // exactly as the inline compute did, and a lapsed suspension must unlock.
+  it('carries mute, strikes, and the quota policy through the direct read', async () => {
+    const mutedUntil = new Date(Date.now() + 1_800_000).toISOString();
+    accountRow = {
+      banned_at: null,
+      suspended_until: null,
+      moderation_reason: null,
+      chat_muted_until: mutedUntil,
+      chat_strikes: '2',
+      deactivated_at: null,
+      messages: '5',
+      window_minutes: '10',
+    };
+    const s = await moderationStatusForAccount(1);
+    expect(s.locked).toBe(false);
+    expect(s.chatMutedUntil).toBe(new Date(mutedUntil).toISOString());
+    expect(s.chatStrikes).toBe(2);
+    expect(s.generalChatRateLimit).toEqual({ messages: 5, windowMinutes: 10 });
+  });
+  it('a lapsed suspension is unlocked through the direct read (read-time compute)', async () => {
+    accountRow = {
+      banned_at: null,
+      suspended_until: new Date(Date.now() - 1_000).toISOString(),
+      moderation_reason: 'timeout',
+      chat_muted_until: null,
+      chat_strikes: 0,
+      deactivated_at: null,
+    };
+    const s = await moderationStatusForAccount(1);
+    expect(s.locked).toBe(false);
+    expect(s.suspendedUntil).toBeNull();
   });
 });

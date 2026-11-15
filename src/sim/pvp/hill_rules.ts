@@ -1,0 +1,289 @@
+// King of the Hill: the pure rules. Once every two hours, at a random
+// moment inside the window, a hill is announced somewhere in one of the
+// northern zones; it rises HILL_WARNING_SECONDS later as a HILL_RADIUS
+// circle on dry, open ground and stands for HILL_DURATION_SECONDS. The PARTY
+// with the most members standing inside it contests it, holds it after
+// HILL_CAPTURE_SECONDS of majority (a rival walking in pauses the clock, it
+// never resets it while the group keeps a living member inside), and every
+// holder standing inside earns a slow trickle of Honor for as long as they hold
+// it. While it stands the realm hears where it is every HILL_NOTICE_SECONDS,
+// with the standings (hill_ranking.ts): the group that held it longest earns a
+// point toward the Weekly Vault's PvP row when it falls. Raid members do
+// not count; players must meet the World PvP minimum level. No SimContext,
+// no rng, no clock: every function here is a plain function of its arguments so the
+// sim (hill.ts), the HUD bar and the tests read the same verdicts. The
+// ctx-bound system that owns the schedule, the presence pass, the contest
+// clock and the payouts is hill.ts.
+
+import { WORLD_PVP_MIN_LEVEL } from './world_pvp_rules';
+
+/** The circle's radius in yards (owner spec). */
+export const HILL_RADIUS = 50;
+/** One hill per window of this length (owner spec: "once every 2 hours", the
+ *  v0.44.1 retune, restored 2026-10-27 after the v0.45 merge lost it). */
+export const HILL_WINDOW_SECONDS = 2 * 60 * 60;
+/** The realm is told where the hill will rise this long before it does
+ *  (owner spec: a 15 minute warning), so parties can form and travel. */
+export const HILL_WARNING_SECONDS = 15 * 60;
+/** A risen hill stands this long, then falls (owner spec: 30 minutes, the
+ *  v0.44.1 retune, restored 2026-10-27). */
+export const HILL_DURATION_SECONDS = 30 * 60;
+/** While a hill stands the realm is reminded where it is, and told the
+ *  standings, this often (owner spec 2026-09-29: every 5 minutes). */
+export const HILL_NOTICE_SECONDS = 5 * 60;
+/** The first window opens this long after boot (the natural rift portal
+ *  precedent: never at tick zero). Sim time, so offline the first window
+ *  opens two minutes into a session. */
+export const HILL_FIRST_WINDOW_AT_SECONDS = 120;
+/** The latest a warning may sound inside its window and still leave the
+ *  whole warning and the whole stand inside that window, so two hills never
+ *  overlap. The warning's offset is drawn uniformly from [0, this]. */
+export const HILL_LATEST_WARN_OFFSET_SECONDS =
+  HILL_WINDOW_SECONDS - HILL_WARNING_SECONDS - HILL_DURATION_SECONDS;
+/** Majority for this long takes the hill (owner spec 2026-10-12: 30 seconds,
+ *  down from a minute). The seconds need not be unbroken: hillProgressStep
+ *  pauses a group's clock while it is not the leader. */
+export const HILL_CAPTURE_SECONDS = 30;
+/** Each holder standing inside accrues this many seconds of presence before a
+ *  payout of HILL_HONOR_PER_PAYOUT. The rate is FLAT: every paid minute is
+ *  worth the same, however long the holding party has held the hill (owner
+ *  tuning 2026-10-14, replacing the 2026-09-25 ramp of 2 a minute climbing to
+ *  12). A full uncontested stand pays 261 each (29 paid minutes of the
+ *  30-minute stand), so King of the Hill stays a real road to Warfare gear.
+ *  Only a party can hold, so a party's size is the payee cap. */
+export const HILL_ACCRUAL_SECONDS = 60;
+/** The flat Honor paid for one held minute. */
+export const HILL_HONOR_PER_PAYOUT = 9;
+/** The Weekly Vault point for the longest hold (hill_ranking.ts) pays only a
+ *  player who stood inside for at least this long while their group held the
+ *  hill, and who is still in that group when it falls: a one-second visit, or
+ *  a player cycled through the party, earns nothing. */
+export const HILL_VAULT_MIN_INSIDE_SECONDS = 60;
+/** The longest hold must last at least this long in total before it pays any
+ *  Weekly Vault point (owner decision 2026-10-05): a lone player who captures
+ *  an empty hill on a quiet realm and stands a minute still tops the
+ *  standings, but five such visits must not fill the PvP row. */
+export const HILL_VAULT_MIN_HOLD_SECONDS = 10 * 60;
+
+/** The circle keeps this much clear of the zone's edges beyond its own radius,
+ *  and this much clear of the hub settlement's radius. */
+export const HILL_EDGE_MARGIN = 25;
+export const HILL_HUB_MARGIN = 30;
+/** Random spots tried before the spawn gives up for this attempt. */
+export const HILL_SPAWN_ATTEMPTS = 96;
+/** The samples the spot probe takes around the rim and around an inner ring
+ *  at half the radius: a lake or a building can sit between two rim samples
+ *  or wholly inside the circle, and the probe must see both. */
+export const HILL_RIM_SAMPLES = 16;
+export const HILL_INNER_SAMPLES = 8;
+/** Clearance the centre must have from any collider: a hill never rises on
+ *  a building, a wall or a fence. The rings are not collider-checked: the
+ *  northern zones are forests, a trunk on a sample point is not a
+ *  structure, and the hub exclusion keeps the circle off every settlement. */
+export const HILL_CENTER_CLEARANCE = 6;
+
+/** Whether a player counts on the hill (owner spec: parties only): a raid
+ *  member does not, so a raid cannot flood the circle. Players below the normal
+ *  World PvP level cannot count or earn honor while immune to opponents. */
+export type HillStanding = 'counted' | 'raid' | 'level';
+
+export function hillStanding(
+  party: { raid: boolean } | null,
+  level = WORLD_PVP_MIN_LEVEL,
+): HillStanding {
+  if (level < WORLD_PVP_MIN_LEVEL) return 'level';
+  return party?.raid ? 'raid' : 'counted';
+}
+
+/** The group a counted player contests for: their party, or a group of one
+ *  when ungrouped. A raid has no key (it does not count). */
+export function hillGroupKey(
+  pid: number,
+  party: { id: number; raid: boolean } | null,
+): string | null {
+  if (!party) return `solo:${pid}`;
+  return party.raid ? null : `party:${party.id}`;
+}
+
+/** The group with the most members inside, or null on a tie for first place
+ *  (or an empty hill): a tie never moves the hill. Iteration order does not
+ *  matter: the answer is the strict maximum or nothing. */
+export function hillLeader(
+  counts: ReadonlyMap<string, number>,
+): { key: string; count: number } | null {
+  let best: { key: string; count: number } | null = null;
+  let tied = false;
+  for (const [key, count] of counts) {
+    if (count <= 0) continue;
+    if (best === null || count > best.count) {
+      best = { key, count };
+      tied = false;
+    } else if (count === best.count) {
+      tied = true;
+    }
+  }
+  return tied ? null : best;
+}
+
+/** Does a challenger with this many inside beat the holder with that many? A
+ *  strict majority over the holder's PRESENT count (owner spec: "a majority
+ *  will win the zone over"); an absent holder is beaten by anyone. */
+export function hillChallengeStands(challengerCount: number, holderCount: number): boolean {
+  return challengerCount > 0 && challengerCount > holderCount;
+}
+
+/** Every group's contest clock after one pass (owner spec 2026-10-12: a rival
+ *  walking in only PAUSES a challenge). The challenger, the leader that beats
+ *  the holder, banks `dt`; every other group with a member still counted
+ *  inside keeps its seconds, paused (a tie, or a bigger group walked in); a
+ *  group with nobody counted inside loses them, which is how a death resets a
+ *  challenge (the dead are not counted) and how walking away does. The holder
+ *  never carries a clock. Returns a fresh map; the input is not touched. */
+export function hillProgressStep(
+  prev: ReadonlyMap<string, number>,
+  counts: ReadonlyMap<string, number>,
+  challenger: string | null,
+  holder: string | null,
+  dt: number,
+): Map<string, number> {
+  const next = new Map<string, number>();
+  for (const [key, seconds] of prev) {
+    if (key === holder || (counts.get(key) ?? 0) <= 0) continue;
+    next.set(key, seconds);
+  }
+  if (challenger !== null && challenger !== holder) {
+    next.set(challenger, (next.get(challenger) ?? 0) + dt);
+  }
+  return next;
+}
+
+/** One member of a group whose key just stopped naming anyone in it: the
+ *  key the member counts under now (null in a raid) and whether they stand
+ *  inside the circle. */
+export interface HillSuccessorMember {
+  key: string | null;
+  inside: boolean;
+}
+
+/** The group a hold or a contest clock follows when its key stops naming any
+ *  of its members: a lone holder formed or joined a party (`solo:` becomes
+ *  `party:`), or the holding party disbanded around its last member. The key
+ *  carrying the most of the old group's members inside the circle wins, then
+ *  the most members anywhere, then the earliest member's in the given order
+ *  (the caller lists the capturers first). Null when no member still counts
+ *  (they all left the realm or joined a raid). */
+export function hillSuccessorKey(members: Iterable<HillSuccessorMember>): string | null {
+  const tally = new Map<string, { inside: number; total: number; order: number }>();
+  let order = 0;
+  for (const m of members) {
+    if (m.key === null) continue;
+    const row = tally.get(m.key) ?? { inside: 0, total: 0, order: order++ };
+    row.total += 1;
+    if (m.inside) row.inside += 1;
+    tally.set(m.key, row);
+  }
+  let best: string | null = null;
+  let bestRow: { inside: number; total: number; order: number } | null = null;
+  for (const [key, row] of tally) {
+    if (
+      bestRow === null ||
+      row.inside > bestRow.inside ||
+      (row.inside === bestRow.inside && row.total > bestRow.total) ||
+      (row.inside === bestRow.inside && row.total === bestRow.total && row.order < bestRow.order)
+    ) {
+      best = key;
+      bestRow = row;
+    }
+  }
+  return best;
+}
+
+/** The world reads a spawn probe needs; the sim binds them to the terrain,
+ *  the water bodies and the collider grid, the tests to fakes. */
+export interface HillSpotProbe {
+  /** Water surface or open sea at this point, or ground below the water line. */
+  wet(x: number, z: number): boolean;
+  /** Too steep to stand on at this point. */
+  steep(x: number, z: number): boolean;
+  /** A collider (a building, a wall, a prop) within `r` of this point. */
+  blocked(x: number, z: number, r: number): boolean;
+  /** The zone id the point falls in, or null outside every zone. */
+  zoneIdAt(x: number, z: number): string | null;
+}
+
+/** Is a circle of `radius` at (x, z) a legal hill in `zoneId`: dry, flat and
+ *  clear of colliders at the centre; dry and inside the zone at
+ *  HILL_RIM_SAMPLES points around the rim and HILL_INNER_SAMPLES points
+ *  around the half-radius ring (no circle straddles a zone line or a lake). */
+export function hillSpotIsOpen(
+  probe: HillSpotProbe,
+  zoneId: string,
+  x: number,
+  z: number,
+  radius: number,
+): boolean {
+  if (probe.zoneIdAt(x, z) !== zoneId) return false;
+  if (probe.wet(x, z) || probe.steep(x, z)) return false;
+  if (probe.blocked(x, z, HILL_CENTER_CLEARANCE)) return false;
+  const ring = (samples: number, r: number): boolean => {
+    for (let i = 0; i < samples; i++) {
+      const a = (i / samples) * Math.PI * 2;
+      const rx = x + Math.cos(a) * r;
+      const rz = z + Math.sin(a) * r;
+      if (probe.zoneIdAt(rx, rz) !== zoneId) return false;
+      if (probe.wet(rx, rz)) return false;
+    }
+    return true;
+  };
+  return ring(HILL_RIM_SAMPLES, radius) && ring(HILL_INNER_SAMPLES, radius / 2);
+}
+
+/** The three moments of one hill: the realm-wide warning, the rise, the fall. */
+export interface HillTimes {
+  warnAt: number;
+  risesAt: number;
+  closesAt: number;
+}
+
+/** The window open at sim time `now`: -1 before the first, then 0, 1, 2... */
+export function hillWindowAt(now: number): number {
+  if (now < HILL_FIRST_WINDOW_AT_SECONDS) return -1;
+  return Math.floor((now - HILL_FIRST_WINDOW_AT_SECONDS) / HILL_WINDOW_SECONDS);
+}
+
+/** The times of window `ordinal`'s hill whose warning sounds `offset` seconds
+ *  into the window (clamped into [0, HILL_LATEST_WARN_OFFSET_SECONDS], so the
+ *  hill always falls inside its own window). */
+export function hillTimes(ordinal: number, offset: number): HillTimes {
+  const clamped = Math.max(0, Math.min(HILL_LATEST_WARN_OFFSET_SECONDS, Math.floor(offset)));
+  const warnAt = HILL_FIRST_WINDOW_AT_SECONDS + ordinal * HILL_WINDOW_SECONDS + clamped;
+  const risesAt = warnAt + HILL_WARNING_SECONDS;
+  return { warnAt, risesAt, closesAt: risesAt + HILL_DURATION_SECONDS };
+}
+
+/** `times` as they run when the warning actually sounds at `now`: unchanged
+ *  on schedule, else slid whole so a late hill (a spot retry, a /dev hill
+ *  still standing, a realm switched back on) keeps its full warning and its
+ *  full stand. A slid hill may run past its window; the next window waits. */
+export function hillTimesFrom(times: HillTimes, now: number): HillTimes {
+  if (now <= times.warnAt) return times;
+  const risesAt = now + HILL_WARNING_SECONDS;
+  return { warnAt: now, risesAt, closesAt: risesAt + HILL_DURATION_SECONDS };
+}
+
+/** Whole minutes from `now` to `at`, rounded up, never below zero: the one
+ *  rounding every countdown (the notices, /hill, the bar) shares. */
+export function hillMinutesUntil(at: number, now: number): number {
+  return Math.max(0, Math.ceil((at - now) / 60));
+}
+
+/** Is (px, pz) inside the circle? Squared distance, no sqrt on the presence pass. */
+export function hillContains(
+  hill: { x: number; z: number; radius: number },
+  px: number,
+  pz: number,
+): boolean {
+  const dx = px - hill.x;
+  const dz = pz - hill.z;
+  return dx * dx + dz * dz <= hill.radius * hill.radius;
+}

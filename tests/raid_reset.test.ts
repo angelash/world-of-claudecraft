@@ -1,10 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_RAID_RESET_TIME_ZONE,
+  dailyResetRemainingSec,
+  eventLeadDayKey,
   isSupportedTimeZone,
   nextRaidResetMs,
+  nextResetMemoSizeForTest,
+  nextWeeklyRaidResetMs,
+  nextWorldQuestRotationMs,
+  RAID_RESET_HOUR,
+  resetDayKey,
 } from '../server/raid_reset';
 import { resolveRaidResetTimeZone } from '../server/realm';
+import { DAILY_RESET_HOUR } from '../src/game/utc_day';
+import { DOUBLE_HONOR_LEAD_MS } from '../src/sim/pvp/honor_event';
+import { worldQuestCycleForResetDay } from '../src/sim/world_quests';
 
 // The daily raid reset lands at 03:00 (3 AM, the classic daily-reset hour) in the realm's
 // civil time zone (default US Eastern, America/New_York), so a realm shares one
@@ -138,6 +148,117 @@ describe('isSupportedTimeZone', () => {
   });
 });
 
+describe('resetDayKey: the ONE daily boundary a realm turns over on', () => {
+  it('finds the realm reset that expires the current world-quest rotation', () => {
+    const now = Date.UTC(2026, 7, 31, 16, 0, 0);
+    const expiry = nextWorldQuestRotationMs(now);
+    expect(expiry).toBeGreaterThan(now);
+    expect(expiry - now).toBeLessThanOrEqual(3 * 24 * 60 * 60_000);
+    expect(worldQuestCycleForResetDay(resetDayKey(expiry))).not.toBe(
+      worldQuestCycleForResetDay(resetDayKey(now)),
+    );
+  });
+  it('expires the opening rotation exactly at realm-local 03:00', () => {
+    const now = Date.UTC(2026, 8, 1, 12, 0, 0);
+    expect(nextWorldQuestRotationMs(now, 'America/New_York')).toBe(Date.UTC(2026, 8, 2, 7, 0, 0));
+  });
+  it('holds one key across a whole evening of play, where midnight UTC split it', () => {
+    // The reported bug, as instants. Both are 2026-08-07 in US Pacific, either
+    // side of midnight UTC (5 PM Pacific in August), and the player won a
+    // battleground before the first and saw "first win of the day" after the
+    // second.
+    const morning = Date.UTC(2026, 7, 7, 17, 0, 0); // 10:00 Pacific, 13:00 Eastern
+    const evening = Date.UTC(2026, 7, 8, 1, 11, 0); // 18:11 Pacific, 21:11 Eastern
+
+    expect(resetDayKey(morning)).toBe(resetDayKey(evening));
+    // ...and it is a real regression test only because the OLD key differed.
+    const utcKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    expect(utcKey(morning)).not.toBe(utcKey(evening));
+  });
+
+  it('turns over exactly at the reset hour, not at local midnight', () => {
+    // 02:59 and 03:00 Eastern on the same civil date: the reset hour is the cut,
+    // so the earlier instant still belongs to the PREVIOUS day's window.
+    const beforeReset = Date.UTC(2026, 7, 7, 6, 59, 0); // 02:59 Eastern (EDT, UTC-4)
+    const afterReset = Date.UTC(2026, 7, 7, 7, 0, 0); // 03:00 Eastern
+    expect(resetDayKey(beforeReset)).toBe('2026-08-06');
+    expect(resetDayKey(afterReset)).toBe('2026-08-07');
+  });
+
+  it('rolls the month and the year back across an edge', () => {
+    // 01:00 Eastern on the 1st belongs to the last day of the previous month,
+    // and on Jan 1 to the previous YEAR. Date.UTC owns that arithmetic.
+    expect(resetDayKey(Date.UTC(2026, 7, 1, 5, 0, 0))).toBe('2026-07-31');
+    expect(resetDayKey(Date.UTC(2026, 0, 1, 6, 0, 0))).toBe('2025-12-31');
+  });
+
+  it('agrees with the lockout boundary: the key changes exactly when a reset passes', () => {
+    // The whole point of sharing RAID_RESET_HOUR. Step across the next raid
+    // reset and the day key must change on the same instant the lockout expires.
+    const now = Date.UTC(2026, 7, 7, 20, 0, 0);
+    const reset = nextRaidResetMs(now);
+    expect(resetDayKey(reset - 1)).toBe(resetDayKey(now));
+    expect(resetDayKey(reset)).not.toBe(resetDayKey(now));
+  });
+
+  it('is pure and zone-parameterized, like the rest of this module', () => {
+    const now = Date.UTC(2026, 7, 8, 1, 11, 0);
+    expect(resetDayKey(now)).toBe(resetDayKey(now));
+    // 18:11 Pacific on the 7th is already 10:11 on the 8th in Tokyo, past its
+    // own 3 AM, so a realm in that zone is legitimately a day ahead.
+    expect(resetDayKey(now, 'Asia/Tokyo')).toBe('2026-08-08');
+    expect(resetDayKey(now, DEFAULT_RAID_RESET_TIME_ZONE)).toBe('2026-08-07');
+  });
+
+  it('memoizes within an epoch minute without blurring the reset boundary', () => {
+    // Two instants in the same epoch minute answer identically (the memo
+    // path), and the reset instant starts a new minute, so the 02:59 to 03:00
+    // flip still lands exactly where the boundary test above pins it.
+    const base = Date.UTC(2026, 7, 7, 6, 59, 0); // 02:59 Eastern
+    expect(resetDayKey(base)).toBe('2026-08-06');
+    expect(resetDayKey(base + 30_000)).toBe('2026-08-06');
+    expect(resetDayKey(base + 59_999)).toBe('2026-08-06');
+    expect(resetDayKey(base + 60_000)).toBe('2026-08-07');
+  });
+
+  it('shares its reset hour with the offline client, which has no realm zone', () => {
+    // Offline there is no realm, so src/game/utc_day.ts applies the same rule in
+    // the player's OWN local zone. The hour is the promise both make ("a daily
+    // never turns over mid-evening"), so a drift between them is a bug.
+    expect(DAILY_RESET_HOUR).toBe(RAID_RESET_HOUR);
+  });
+});
+
+describe('eventLeadDayKey: the weekend event early-open probe', () => {
+  it('reads the reset window the lead ahead: Friday 3 PM realm time already reads Saturday', () => {
+    // 2026-08-21 is a Friday. 18:59 UTC is 14:59 Eastern (EDT, UTC-4): the
+    // probe instant is Saturday 02:59 Eastern, still before the reset hour,
+    // so the key reads Friday and the event window is not yet open.
+    expect(eventLeadDayKey(Date.UTC(2026, 7, 21, 18, 59, 0))).toBe('2026-08-21');
+    // 19:00 UTC is 15:00 Eastern: the probe crosses Saturday's 3 AM reset,
+    // which is the instant honor_event.ts opens the weekend window.
+    expect(eventLeadDayKey(Date.UTC(2026, 7, 21, 19, 0, 0))).toBe('2026-08-22');
+  });
+
+  it('is resetDayKey shifted by DOUBLE_HONOR_LEAD_MS, in any realm zone', () => {
+    const now = Date.UTC(2026, 7, 21, 10, 0, 0);
+    for (const zone of [DEFAULT_RAID_RESET_TIME_ZONE, 'Asia/Tokyo', 'Pacific/Auckland']) {
+      expect(eventLeadDayKey(now, zone), zone).toBe(resetDayKey(now + DOUBLE_HONOR_LEAD_MS, zone));
+    }
+  });
+
+  it('holds across the US DST shifts: the lead is real time, not wall-clock', () => {
+    // Spring forward (2026-03-08): Saturday 3 PM EST probes 04:00 EDT Sunday
+    // (an 11-hour wall-clock lead), still past the reset hour, so Sunday.
+    expect(eventLeadDayKey(Date.UTC(2026, 2, 7, 20, 0, 0))).toBe('2026-03-08');
+    // Fall back (2026-11-01): Saturday 3 PM EDT probes 02:00 EST Sunday (a
+    // 13-hour wall-clock lead), BEFORE the reset hour, so the key still reads
+    // Saturday. Benign for the event: both candidate keys are weekend days,
+    // and the resetDay arm governs the Sunday close either way.
+    expect(eventLeadDayKey(Date.UTC(2026, 9, 31, 19, 0, 0))).toBe('2026-10-31');
+  });
+});
+
 describe('resolveRaidResetTimeZone', () => {
   it('returns a valid configured zone unchanged', () => {
     expect(resolveRaidResetTimeZone('Europe/Paris')).toBe('Europe/Paris');
@@ -153,5 +274,189 @@ describe('resolveRaidResetTimeZone', () => {
     expect(resolveRaidResetTimeZone('Bad/Zone')).toBe(DEFAULT_RAID_RESET_TIME_ZONE);
     expect(warn).toHaveBeenCalledTimes(1);
     warn.mockRestore();
+  });
+});
+
+// The when-half of resetDayKey (Masterwrought phase 14): whole seconds until
+// the reset that closes the current window, fed to the sim by
+// server/sim_calendar_feed.ts so the daily craft gate's refusal can answer
+// with a countdown. Pure in (instant, zone) like every sibling here.
+describe('dailyResetRemainingSec', () => {
+  it('is exactly the ceil of the distance to nextRaidResetMs', () => {
+    for (const now of [
+      Date.UTC(2025, 5, 29, 16, 0, 0), // summer (EDT)
+      Date.UTC(2025, 0, 15, 12, 0, 0), // winter (EST)
+      Date.UTC(2025, 11, 31, 23, 59, 0), // year boundary
+    ]) {
+      expect(dailyResetRemainingSec(now)).toBe(Math.ceil((nextRaidResetMs(now) - now) / 1000));
+    }
+  });
+
+  it('expires exactly where resetDayKey flips, and never answers 0', () => {
+    // One second before the summer boundary (2025-06-30 03:00 EDT == 07:00
+    // UTC): one second remains and the key still reads the old window; at
+    // the boundary a full day remains and the key reads the new one. The
+    // floor at 1 keeps a live realm clock from ever feeding the sim its
+    // 0 = "no calendar" sentinel.
+    const boundary = Date.UTC(2025, 5, 30, 7, 0, 0);
+    expect(dailyResetRemainingSec(boundary - 1000)).toBe(1);
+    expect(resetDayKey(boundary - 1000)).toBe('2025-06-29');
+    expect(dailyResetRemainingSec(boundary)).toBe(24 * 3600);
+    expect(resetDayKey(boundary)).toBe('2025-06-30');
+    expect(dailyResetRemainingSec(boundary - 1)).toBeGreaterThanOrEqual(1);
+  });
+
+  it('the per-window memo answers identically across one window (the 20 Hz loop cost bound)', () => {
+    // Two instants inside one window must resolve the SAME closing instant
+    // (the memoized value), so remaining figures differ by exactly the
+    // elapsed seconds.
+    const morning = Date.UTC(2025, 5, 29, 16, 0, 0);
+    const later = morning + 3600 * 1000;
+    expect(dailyResetRemainingSec(morning) - dailyResetRemainingSec(later)).toBe(3600);
+  });
+
+  it('honors the zone parameter like its siblings', () => {
+    const now = Date.UTC(2025, 5, 29, 16, 0, 0);
+    expect(dailyResetRemainingSec(now, 'Europe/Paris')).not.toBe(
+      dailyResetRemainingSec(now, DEFAULT_RAID_RESET_TIME_ZONE),
+    );
+  });
+
+  it('survives the ambiguous DST fall-back hour: the memo expires on the instant, not the label', () => {
+    // EET fall-back 2026-10-25: local 04:00 EEST becomes 03:00 EET, so 03:00
+    // happens twice. resetDayKey flips at the FIRST 03:00 (00:00Z) while the
+    // reset resolves to the SECOND (01:00Z). A label-keyed memo populated at
+    // 00:00Z would keep serving 01:00Z after it passed, pinning the answer at
+    // the 1-second floor for the rest of the window (the wave-1 hot-path
+    // review's measured finding). The memo must re-resolve once the cached
+    // instant passes, in exact agreement with nextRaidResetMs at every probe.
+    const zone = 'Europe/Athens';
+    const firstThree = Date.UTC(2026, 9, 25, 0, 0, 0);
+    const secondThree = Date.UTC(2026, 9, 25, 1, 0, 0);
+    // Populate the memo inside the ambiguous window, then probe past the
+    // resolved reset: the answer must track nextRaidResetMs, never the floor.
+    expect(dailyResetRemainingSec(firstThree, zone)).toBe(
+      Math.ceil((nextRaidResetMs(firstThree, zone) - firstThree) / 1000),
+    );
+    for (const probe of [
+      secondThree - 1000,
+      secondThree,
+      secondThree + 60 * 1000,
+      secondThree + 12 * 3600 * 1000,
+    ]) {
+      expect(dailyResetRemainingSec(probe, zone), new Date(probe).toISOString()).toBe(
+        Math.max(1, Math.ceil((nextRaidResetMs(probe, zone) - probe) / 1000)),
+      );
+    }
+    // Sanity: an hour after the second 03:00 the countdown is a large number
+    // (the next day's reset), not the 1-second lie.
+    expect(dailyResetRemainingSec(secondThree + 3600 * 1000, zone)).toBeGreaterThan(20 * 3600);
+  });
+
+  it('the memo stays bounded across many zones and still answers correctly after the sweep', () => {
+    // NEXT_RESET_MEMO_MAX clears the map at 16 entries; deleting that line
+    // grows it unbounded across (window, zone) keys. Behavioral pin: drive
+    // well past the bound with distinct zones, then re-probe an early zone;
+    // a correct clear-on-overflow re-resolves and agrees with
+    // nextRaidResetMs (an unbounded map would too, so the agreement half is
+    // the correctness control while the count half below is the bound).
+    const now = Date.UTC(2025, 5, 29, 16, 0, 0);
+    const zones = [
+      'America/New_York',
+      'Europe/Paris',
+      'Europe/Athens',
+      'Asia/Tokyo',
+      'Asia/Seoul',
+      'Asia/Shanghai',
+      'Australia/Sydney',
+      'Pacific/Auckland',
+      'Pacific/Chatham',
+      'America/Santiago',
+      'America/Sao_Paulo',
+      'Africa/Cairo',
+      'Asia/Kolkata',
+      'Asia/Dubai',
+      'Europe/London',
+      'Europe/Berlin',
+      'Europe/Madrid',
+      'America/Chicago',
+      'America/Denver',
+      'America/Los_Angeles',
+    ];
+    for (const zone of zones) dailyResetRemainingSec(now, zone);
+    // The bound itself: 20 distinct keys were driven, so an unbounded map
+    // would hold at least 20; the clear-on-overflow keeps it at or under the
+    // 16-entry cap (plus the entries re-added since the last sweep).
+    expect(nextResetMemoSizeForTest()).toBeLessThanOrEqual(16);
+    for (const zone of [zones[0], zones[1]]) {
+      expect(dailyResetRemainingSec(now, zone)).toBe(
+        Math.max(1, Math.ceil((nextRaidResetMs(now, zone) - now) / 1000)),
+      );
+    }
+  });
+});
+
+describe('nextWeeklyRaidResetMs', () => {
+  // The weekly raid lockout boundary: RAID_RESET_HOUR on WEEKLY_RESET_WEEKDAY
+  // (Tuesday) in the realm zone. Chosen from 28 days of prod concurrency: the
+  // population is EU-evening/US-afternoon shaped with its weekly peak Sunday
+  // evening UTC and its trough 00:00-06:00 UTC, so Tuesday 3 AM US Eastern
+  // lands in the dead band, gives every lockout week one full weekend, and
+  // reuses the classic Tuesday-reset convention on the realm's existing
+  // daily-reset hour.
+
+  it('walks a mid-week instant forward to next Tuesday 3 AM Eastern', () => {
+    // Wednesday 2026-08-26 12:00 EDT (16:00 UTC) resets Tuesday 2026-09-01
+    // 03:00 EDT (07:00 UTC).
+    expect(nextWeeklyRaidResetMs(Date.UTC(2026, 7, 26, 16, 0, 0))).toBe(
+      Date.UTC(2026, 8, 1, 7, 0, 0),
+    );
+  });
+
+  it('a kill in the small hours of Tuesday unlocks at that same morning reset', () => {
+    // Tuesday 2026-08-25 02:59 EDT (06:59 UTC) resets 03:00 EDT the same day.
+    expect(nextWeeklyRaidResetMs(Date.UTC(2026, 7, 25, 6, 59, 0))).toBe(
+      Date.UTC(2026, 7, 25, 7, 0, 0),
+    );
+  });
+
+  it('the boundary itself belongs to the NEXT week (strictly after)', () => {
+    // Exactly Tuesday 03:00:00.000 EDT rolls a full week forward, matching
+    // nextRaidResetMs's strictly-after contract.
+    expect(nextWeeklyRaidResetMs(Date.UTC(2026, 7, 25, 7, 0, 0))).toBe(
+      Date.UTC(2026, 8, 1, 7, 0, 0),
+    );
+  });
+
+  it('crosses the US fall-back transition onto standard time', () => {
+    // Monday 2026-11-02 12:00 EST (17:00 UTC): the next Tuesday reset is
+    // 2026-11-03 03:00 EST = 08:00 UTC (the zone fell back on 11-01).
+    expect(nextWeeklyRaidResetMs(Date.UTC(2026, 10, 2, 17, 0, 0))).toBe(
+      Date.UTC(2026, 10, 3, 8, 0, 0),
+    );
+  });
+
+  it('crosses the US spring-forward transition onto daylight time', () => {
+    // Monday 2027-03-15 12:00 EDT (16:00 UTC): next Tuesday 2027-03-16
+    // 03:00 EDT = 07:00 UTC (the zone sprang forward on 03-14).
+    expect(nextWeeklyRaidResetMs(Date.UTC(2027, 2, 15, 16, 0, 0))).toBe(
+      Date.UTC(2027, 2, 16, 7, 0, 0),
+    );
+  });
+
+  it('honors an explicit zone and weekday', () => {
+    // Wednesday convention in Europe/Paris (CEST, UTC+2 in August): from
+    // Monday 2026-08-24 12:00 CEST, the next Wednesday 03:00 CEST is
+    // 2026-08-26 01:00 UTC.
+    expect(nextWeeklyRaidResetMs(Date.UTC(2026, 7, 24, 10, 0, 0), 'Europe/Paris', 3)).toBe(
+      Date.UTC(2026, 7, 26, 1, 0, 0),
+    );
+  });
+
+  it('is always strictly in the future and exactly one week apart when chained', () => {
+    const first = nextWeeklyRaidResetMs(Date.UTC(2026, 7, 26, 16, 0, 0));
+    const second = nextWeeklyRaidResetMs(first);
+    expect(first).toBeGreaterThan(Date.UTC(2026, 7, 26, 16, 0, 0));
+    expect(second - first).toBe(7 * 24 * 60 * 60 * 1000);
   });
 });

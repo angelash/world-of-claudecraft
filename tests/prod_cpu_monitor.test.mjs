@@ -73,16 +73,12 @@ describe('production CPU monitor parsing', () => {
     expect(parseCpuSamples(' 95.01%\n199.8%\n96%\n')).toEqual([95.01, 199.8, 96]);
   });
 
-  it.each([
-    '',
-    '--',
-    'NaN%',
-    '-1%',
-    '95',
-    '95%\ninvalid%',
-  ])('rejects malformed CPU output %j', (raw) => {
-    expect(() => parseCpuSamples(raw)).toThrow();
-  });
+  it.each(['', '--', 'NaN%', '-1%', '95', '95%\ninvalid%'])(
+    'rejects malformed CPU output %j',
+    (raw) => {
+      expect(() => parseCpuSamples(raw)).toThrow();
+    },
+  );
 
   it('uses a strict threshold and a two-of-three confirmation by default', () => {
     expect(shouldTriggerProfile([95, 95, 95], 95, 2)).toBe(false);
@@ -122,6 +118,12 @@ describe('production CPU monitor configuration', () => {
     const dockerfile = await readFile(new URL('../Dockerfile', import.meta.url), 'utf8');
     expect(dockerfile).toContain('/app/scripts/prod_cpu_game_helper.mjs /app/ops/');
     expect(dockerfile).toContain('/app/scripts/prod_cpu_profile_client.mjs /app/ops/');
+  });
+
+  it('keeps the immutable helpers in the Docker build context', async () => {
+    const dockerignore = await readFile(new URL('../.dockerignore', import.meta.url), 'utf8');
+    expect(dockerignore).toContain('!scripts/prod_cpu_game_helper.mjs');
+    expect(dockerignore).toContain('!scripts/prod_cpu_profile_client.mjs');
   });
 
   it('pins the inspector client to the discovered game PID and requests shutdown', () => {
@@ -573,39 +575,43 @@ describe('production CPU polling orchestration', () => {
 });
 
 describe('container-local V8 profile client', () => {
-  posixIt('verifies the target PID, captures a profile, and closes the inspector', async () => {
-    const target = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
-      stdio: 'ignore',
-    });
-    try {
-      await wait(300);
-      process.kill(target.pid, 'SIGUSR1');
-      await inspectorOpen(true);
-
-      const wrongTarget = await runProfileClient({
-        WOC_PROFILE_MS: '1000',
-        WOC_EXPECTED_PID: String(target.pid + 1),
-        WOC_CLOSE_INSPECTOR: '0',
+  posixIt(
+    'verifies the target PID, captures a profile, and closes the inspector',
+    async () => {
+      const target = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+        stdio: 'ignore',
       });
-      expect(wrongTarget.code).not.toBe(0);
-      expect(wrongTarget.stderr).toContain('unexpected inspector PID');
-      await inspectorOpen(true);
+      try {
+        await wait(300);
+        process.kill(target.pid, 'SIGUSR1');
+        await inspectorOpen(true);
 
-      const captured = await runProfileClient({
-        WOC_PROFILE_MS: '1000',
-        WOC_EXPECTED_PID: String(target.pid),
-        WOC_CLOSE_INSPECTOR: '1',
-      });
-      expect(captured.code, captured.stderr).toBe(0);
-      expect(captured.stderr).toContain('WOC_PROFILE_STARTED');
-      expect(captured.stderr).toContain('WOC_PROFILE_STOPPED');
-      const profile = JSON.parse(captured.stdout);
-      expect(profile.nodes.length).toBeGreaterThan(0);
-      expect(profile.samples.length).toBeGreaterThan(0);
-      await inspectorOpen(false);
-    } finally {
-      target.kill('SIGTERM');
-      await new Promise((resolve) => target.once('close', resolve));
-    }
-  }, 15_000);
+        const wrongTarget = await runProfileClient({
+          WOC_PROFILE_MS: '1000',
+          WOC_EXPECTED_PID: String(target.pid + 1),
+          WOC_CLOSE_INSPECTOR: '0',
+        });
+        expect(wrongTarget.code).not.toBe(0);
+        expect(wrongTarget.stderr).toContain('unexpected inspector PID');
+        await inspectorOpen(true);
+
+        const captured = await runProfileClient({
+          WOC_PROFILE_MS: '1000',
+          WOC_EXPECTED_PID: String(target.pid),
+          WOC_CLOSE_INSPECTOR: '1',
+        });
+        expect(captured.code, captured.stderr).toBe(0);
+        expect(captured.stderr).toContain('WOC_PROFILE_STARTED');
+        expect(captured.stderr).toContain('WOC_PROFILE_STOPPED');
+        const profile = JSON.parse(captured.stdout);
+        expect(profile.nodes.length).toBeGreaterThan(0);
+        expect(profile.samples.length).toBeGreaterThan(0);
+        await inspectorOpen(false);
+      } finally {
+        target.kill('SIGTERM');
+        await new Promise((resolve) => target.once('close', resolve));
+      }
+    },
+    15_000,
+  );
 });

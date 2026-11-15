@@ -1,5 +1,6 @@
 import { classifyGpuRenderer, isWeakIntegratedGpu } from '../render/gfx';
 import { isSoftwareRendererName } from '../render/software_renderer';
+import { type FrameHealthCadence, isBadFrameWindow } from './perf_frame_health_core';
 
 export type PerfSuggestionSeverity = 'info' | 'warning' | 'critical';
 
@@ -33,6 +34,8 @@ export interface PerfSuggestion {
 export interface PerfDoctorSnapshot {
   frameMs: { p95: number; long50: number };
   windows: { last10s: { frames: number; fps: number; frameMs: { p95: number; long50: number } } };
+  /** The chosen frame rate ceiling, when one paces the frames. */
+  cadence?: FrameHealthCadence | null;
   renderer: {
     tier: string;
     pixelRatio: number;
@@ -55,7 +58,7 @@ export interface PerfDoctorSnapshot {
 function hasForcedHighGraphics(search: string): boolean {
   const params = new URLSearchParams(search);
   const gfx = params.get('gfx');
-  return gfx === 'high' || gfx === 'ultra';
+  return gfx === 'high' || gfx === 'ultra' || gfx === 'insane';
 }
 
 function lowGraphicsHref(search: string): string {
@@ -65,11 +68,6 @@ function lowGraphicsHref(search: string): string {
   const path = typeof location !== 'undefined' ? location.pathname : '/';
   const hash = typeof location !== 'undefined' ? location.hash : '';
   return `${path}${qs ? `?${qs}` : ''}${hash}`;
-}
-
-function isBadFrameWindow(s: PerfDoctorSnapshot): boolean {
-  const w = s.windows.last10s;
-  return w.frames !== 0 && (w.fps < 45 || w.frameMs.p95 >= 28 || w.frameMs.long50 >= 3);
 }
 
 /**
@@ -95,7 +93,7 @@ export function analyzePerfSuggestions(
   env: { desktopShell: boolean } = { desktopShell: false },
 ): PerfSuggestion[] {
   const out: PerfSuggestion[] = [];
-  const badFrames = isBadFrameWindow(s);
+  const badFrames = isBadFrameWindow(s.windows.last10s, s.cadence);
   const renderer = s.renderer;
 
   if (renderer && isSoftwareRendererName(renderer.glRenderer)) {
@@ -114,9 +112,12 @@ export function analyzePerfSuggestions(
     // Hybrid-GPU laptops (brainstorm finding 16): the browser binds the
     // integrated GPU even when a discrete one exists. Mutually exclusive with
     // 'hardware-acceleration' (software classification wins, ruling R15), and
-    // never inside the desktop shell, which already forces the dGPU (PR #1991).
-    // Copy is conditional on purpose: the adapter string cannot prove a
-    // discrete GPU exists, only that the session is NOT on one.
+    // never inside the desktop shell: the shell REQUESTS the dGPU (PR #1991),
+    // and when the OS ignores that request it detects the miss and explains it
+    // through the boot gpu notice (the phase 3 discreteInactive verdict), so
+    // in-shell messaging is owned there and this copy's desktop-app claim
+    // stays web-only. Copy is conditional on purpose: the adapter string
+    // cannot prove a discrete GPU exists, only that the session is NOT on one.
     out.push({
       id: 'integrated-gpu',
       severity: 'warning',

@@ -17,10 +17,7 @@ import { QUALITY_COLOR } from '../src/ui/icons';
 // File-based (read CSS/TS sources, regex/flat-parse), the
 // tests/ctx_menu_mobile_stacking.test.ts idiom: no jsdom.
 function read(rel: string): string {
-  return readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8').replace(
-    /\r\n/g,
-    '\n',
-  );
+  return readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8').replace(/\r\n/g, '\n');
 }
 /** CSS source with block comments stripped. A RAW read makes every rule pin
  *  below gameable in one move: wrapping a rule in a comment leaves its text
@@ -197,15 +194,23 @@ describe('#ctx-menu destructive meta sub-line (Apply Enchant replace row)', () =
     expect(arm).not.toMatch(/var\(--/);
   });
 
-  it('scales up on touch, alone among the meta sub-lines', () => {
+  it('scales up on touch, with the gate line, apart from the plain meta line', () => {
     // The tier captions and effect lines already take a touch bump ("the base
     // sizes are tuned for the desktop popup and read as fine print at arm's
-    // length"); a destroy warning has the strongest claim on that, and the
-    // informational tags beside it stay at the base size so the hierarchy is
+    // length"); a destroy warning has the strongest claim on that, and since the
+    // Masterwrought phase 10 QA so does the act-on GATE line (the skill floor or
+    // the Perfected requirement, the only explanation of why a row cannot be
+    // tapped): the two share ONE rule (the gate selector first, the danger
+    // selector last, which this block regex depends on), while the plain
+    // informational meta line stays at the base size so the hierarchy is
     // visible rather than uniform.
     const danger = block(
       HUD_MOBILE_CSS,
       /body\.mobile-touch #ctx-menu \.ctx-item-meta\.ctx-item-danger\s*\{[^}]*\}/,
+    );
+    // The gate line rides the same rule (one declaration, two selectors).
+    expect(HUD_MOBILE_CSS).toMatch(
+      /body\.mobile-touch #ctx-menu \.ctx-item-meta\.ctx-item-gate,\s*body\.mobile-touch #ctx-menu \.ctx-item-meta\.ctx-item-danger\s*\{/,
     );
     const size = danger.match(/font-size:\s*(\d+(?:\.\d+)?)px/);
     expect(size, 'the destructive sub-line needs a touch size').not.toBeNull();
@@ -230,5 +235,47 @@ describe('#ctx-menu destructive meta sub-line (Apply Enchant replace row)', () =
     // ...and NOT the already-applied or plain arms, whose rows destroy nothing.
     expect(code).not.toMatch(/CTX_ITEM_DANGER_CLASS[\s\S]{0,120}sameEnchantTag/);
     expect(code).not.toMatch(/CTX_ITEM_DANGER_CLASS[\s\S]{0,120}enchanting\.plainTag/);
+  });
+});
+
+// #2466 AC 2: "the discriminator is a t() key, not a concatenation". The rendered
+// text is pinned in tests/bag_item_action_menu_paint.test.ts, but English bytes
+// alone cannot see the MECHANISM: folding the ordinal into the plain worn tag's
+// {slot} value, or hardcoding '[HEROIC]', renders identically in English while
+// shipping untranslated text (the mark) or taking the slot/ordinal order away from
+// every translator (the ordinal, which zh_CN and ja_JP set with no space at all).
+describe('Apply Enchant target rows: the name discriminators are keyed, not glued', () => {
+  // Comments stripped first: both key names appear in the prose above the painter's
+  // branches, and a source pin that matched a comment would survive the markup
+  // being reverted.
+  const code = PAINTER_TS.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  it('resolves the heroic mark from the shared key, never an inline literal', () => {
+    // The key comes from the pure core, so the picker and the item tooltip cannot
+    // drift onto two spellings of one mark.
+    expect(code).toMatch(/esc\(t\(HEROIC_TAG_KEY\)\)/);
+    expect(code).not.toContain('[HEROIC]');
+  });
+
+  it('selects between two worn-tag KEYS on slotIndex, and glues nothing into {slot}', () => {
+    // The indexed arm names its own key...
+    expect(code).toMatch(
+      /slotIndex === undefined[\s\S]{0,200}enchanting\.wornTag'[\s\S]{0,200}enchanting\.wornTagIndexed'/,
+    );
+    // ...and the ordinal rides its own {index} placeholder, formatted like every
+    // other number this menu prints, rather than being concatenated onto the slot
+    // label (which would leave the plain wornTag as the only key in play).
+    expect(code).toMatch(/index: itemNumber\(target\.slotIndex\)/);
+    expect(code).not.toMatch(/slot: `/);
+    expect(code).not.toMatch(/slotName\(target\.slot\)\s*\+/);
+    expect(code).not.toMatch(/slotName\(target\.slot\)\}\s*\$\{/);
+  });
+
+  it('keeps both new keys in the English catalog, with their placeholders', () => {
+    // A source pin on the painter cannot tell a live key from a typo, so the
+    // catalog rows are pinned beside it, placeholders and all.
+    const catalog = read('../src/ui/i18n.catalog/hud_chrome.ts');
+    expect(catalog).toMatch(/wornTagIndexed: 'Worn \(\{slot\} \{index\}\)'/);
+    expect(catalog).toMatch(/itemHeroicTag: '\[HEROIC\]'/);
   });
 });

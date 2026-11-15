@@ -5,10 +5,14 @@
 // core stays deterministic (no wall-clock reads). Registered in UI_PURE_CORES;
 // tested in tests/calendar_view.test.ts.
 
-import type { GuildEventInfo } from '../world_api';
+import type { GuildEventInfo, GuildInfo } from '../world_api';
+import { viewerGuildCan } from './guild_ranks_view';
 
 // Recurring system events (display-only: each points the player at a real
-// activity; none changes gameplay). Titles/notes localize in the painter via
+// activity; none changes gameplay). Every id here must name something a player
+// can actually go and do: the weekly Fiesta Night row was dropped when the
+// Fiesta ring stayed unqueueable, because a calendar entry for a mode nobody can
+// queue is false advertising. Titles/notes localize in the painter via
 // hudChrome.calendar.events.<id>.*; weekday is 0=Sunday..6=Saturday (UTC).
 export interface SystemEventDef {
   id: string;
@@ -18,8 +22,14 @@ export interface SystemEventDef {
 export const SYSTEM_EVENTS: SystemEventDef[] = [
   { id: 'raid_call', rule: { kind: 'weekly', weekday: 2 } }, // Tuesday
   { id: 'market_day', rule: { kind: 'weekly', weekday: 3 } }, // Wednesday
-  { id: 'fiesta_night', rule: { kind: 'weekly', weekday: 5 } }, // Friday
   { id: 'arena_clash', rule: { kind: 'weekly', weekday: 6 } }, // Saturday
+  // The Double Honor Weekend takes one def per weekend day (a day matches at
+  // most one, so no day lists the id twice). Saturday deliberately carries
+  // two rows: the clash names the ladder, this names the payout. The activity
+  // both point at is real (queue Thornhollow Fields;
+  // src/sim/pvp/honor_event.ts doubles its honor awards on these windows).
+  { id: 'double_honor', rule: { kind: 'weekly', weekday: 6 } }, // Saturday
+  { id: 'double_honor', rule: { kind: 'weekly', weekday: 0 } }, // Sunday
   { id: 'fishing_derby', rule: { kind: 'weekly', weekday: 0 } }, // Sunday
   { id: 'delve_day', rule: { kind: 'monthly', day: 7 } },
   { id: 'moongate_communion', rule: { kind: 'monthly', day: 15 } },
@@ -122,7 +132,11 @@ export function nextOccurrence(def: SystemEventDef, todayIso: string): string {
   return todayIso;
 }
 
-// Whether the viewer may manage guild events (mirrors the server's rule).
-export function canManageGuildEvents(rank: string | null | undefined): boolean {
-  return rank === 'leader' || rank === 'officer';
+// Whether the viewer may manage guild events: their rank holds the 'events'
+// permission on the guild's ladder (mirrors the server's rule; the Guild
+// Master and officers on the default ladder). False guildless.
+export function canManageGuildEvents(
+  guild: Pick<GuildInfo, 'rank' | 'ranks'> | null | undefined,
+): boolean {
+  return viewerGuildCan(guild, 'events');
 }

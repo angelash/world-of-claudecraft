@@ -7,14 +7,15 @@ import { describe, expect, it } from 'vitest';
 import { applyIgnite, fireGuaranteedCrit, HOT_STREAK_BUILDERS } from '../src/sim/combat/fire_mage';
 import { abilitiesKnownAt } from '../src/sim/content/classes';
 import { ROW_TREES } from '../src/sim/content/talent_rows';
-import { computeTalentModifiers, emptyAllocation } from '../src/sim/content/talents';
+import { computeTalentModifiers, emptyAllocation, TALENTS } from '../src/sim/content/talents';
 import { ABILITIES, MOBS } from '../src/sim/data';
 import { createMob } from '../src/sim/entity';
 import { Sim } from '../src/sim/sim';
 import type { Entity, SimEvent } from '../src/sim/types';
+import { EMPTY_TEST_WORLD } from './sim_shared';
 
 function mageWithSpec(spec: 'fire' | 'frost') {
-  const sim = new Sim({ seed: 33, playerClass: 'mage', autoEquip: true });
+  const sim = new Sim({ seed: 33, playerClass: 'mage', autoEquip: true, world: EMPTY_TEST_WORLD });
   sim.setPlayerLevel(20);
   expect(sim.setSpec(spec)).toBe(true);
   sim.tick();
@@ -98,8 +99,15 @@ describe('guaranteed crits and Ignition', () => {
     expect(hits[0].crit).toBe(true); // the guaranteed builder
     const ignite = mob.auras.find((a) => a.id === 'ignite');
     expect(ignite?.kind).toBe('dot');
-    // 40% of the crit over 6s / 2s ticks = a third of the burn per tick.
-    expect(ignite?.value).toBe(Math.max(1, Math.round(Math.round(hits[0].amount * 0.4) / 3)));
+    // ignitionPct of the crit over 6s / 2s ticks = a third of the burn per
+    // tick (0.3 since the fire mastery re-band; read it from the mastery so a
+    // future re-tune moves this pin with it).
+    const fireMastery = TALENTS.mage.specs.find((s) => s.id === 'fire');
+    const ignitionPct = fireMastery?.mastery.effect.global?.ignitionPct ?? 0;
+    expect(ignitionPct).toBeGreaterThan(0);
+    expect(ignite?.value).toBe(
+      Math.max(1, Math.round(Math.round(hits[0].amount * ignitionPct) / 3)),
+    );
   });
 
   it('a second crit STACKS the running Ignite instead of replacing it', () => {
@@ -538,7 +546,12 @@ describe('Meteor', () => {
 
 describe('the personal-barrier slot', () => {
   it('Warded cuts damage behind Blazing Barrier and heals when it breaks', () => {
-    const sim = new Sim({ seed: 33, playerClass: 'mage', autoEquip: true });
+    const sim = new Sim({
+      seed: 33,
+      playerClass: 'mage',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    });
     sim.setPlayerLevel(20);
     expect(sim.applyTalents({ spec: 'fire', rows: { 8: 'mag_r8_warded' } } as never)).toBe(true);
     sim.tick();
@@ -574,7 +587,12 @@ describe('the personal-barrier slot', () => {
   });
 
   it('Cold Snap finishes the Blazing Barrier cooldown too', () => {
-    const sim = new Sim({ seed: 33, playerClass: 'mage', autoEquip: true });
+    const sim = new Sim({
+      seed: 33,
+      playerClass: 'mage',
+      autoEquip: true,
+      world: EMPTY_TEST_WORLD,
+    });
     sim.setPlayerLevel(20);
     expect(sim.applyTalents({ spec: 'fire', rows: { 17: 'mag_r17_cold_snap' } } as never)).toBe(
       true,

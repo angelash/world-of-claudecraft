@@ -32,13 +32,25 @@ export function chronoOverlayCharges(auras: ReadonlyArray<{ id: string; value?: 
   return 0;
 }
 
-// Frost uses the phoenix as a five-part Icicle bank for Glacial Spike. The
+// Frost uses the phoenix as a five-part Icicle bank for Rimeneedle. The
 // server omits an aura's `stacks` field when it equals one, so a present
 // `icicles` aura with no mirrored count is deliberately read as the first
 // stack. The view clamps defensive wire input without owning any gameplay.
 export function frostOverlayCharges(auras: ReadonlyArray<{ id: string; stacks?: number }>): number {
   for (const aura of auras) {
     if (aura.id !== 'icicles') continue;
+    return Math.max(0, Math.min(5, Math.round(aura.stacks ?? 1)));
+  }
+  return 0;
+}
+
+// Necromancy uses the shared overlay as a five-crystal Soul Fragment bank.
+// Like Icicles, a present single-stack aura may omit `stacks` on the wire.
+export function necromancyOverlayCharges(
+  auras: ReadonlyArray<{ id: string; stacks?: number }>,
+): number {
+  for (const aura of auras) {
+    if (aura.id !== 'soul_fragments') continue;
     return Math.max(0, Math.min(5, Math.round(aura.stacks ?? 1)));
   }
   return 0;

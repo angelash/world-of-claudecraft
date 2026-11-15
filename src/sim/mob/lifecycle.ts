@@ -18,7 +18,11 @@
 // rng.range(min,max) per in-radius player, in this.players iteration order) are
 // preserved exactly so the parity gate's full-state trace AND rng draw-order log stay
 // byte-identical. The in-place Entity mutation is intentional (the refactor's
-// immutability waiver).
+// immutability waiver). One deliberate post-move exception: respawnMob's wanderTimer
+// re-roll goes through the shared idleRng helper (mob/idle_rng.ts) rather than ctx.rng
+// directly, so an off-stream mob's PASSIVE draws stay private; the helper's fallback
+// returns ctx.rng ITSELF, so every shared-stream mob's draw position is byte-identical
+// (pinned by tests/off_stream_rng.test.ts).
 //
 // `src/sim`-pure: no DOM/Three/render/ui/game/net imports, no Math.random/Date.now
 // (enforced by tests/architecture.test.ts). data/types/world/threat are imported
@@ -29,11 +33,24 @@
 
 import { MOBS } from '../data';
 import * as deedsMod from '../deeds';
+import { resetIgnivarEncounter } from '../encounters/ignivar';
+import { resetVarkhulEncounter, VARKHUL_BOSS_ID } from '../encounters/varkhul';
+import { releasePin } from '../instances/instance_combat_hold';
+import { cancelCorpseHarvestForCorpse } from '../professions/corpse_harvest_session';
 import type { SimContext } from '../sim_context';
 import { clearThreat } from '../threat';
-import { dist2d, type Entity, NYTHRAXIS_BOSS_ID } from '../types';
-import { groundHeight } from '../world';
+import { dist2d, type Entity, IGNIVAR_BOSS_ID, NYTHRAXIS_BOSS_ID } from '../types';
+import { mobGroundHeight } from '../world';
+import { clearCorpseSink } from './boss_corpse_sink';
+import { resetBossRangedMechanics } from './boss_ranged_mechanics';
+import { resetBossSlams } from './boss_slams';
+import { resetBossStarwake } from './boss_starwake';
 import { resetMobCharge } from './charge';
+import { idleRng, wanderPause } from './idle_rng';
+import { resetMechanicSpacing } from './mechanic_spacing';
+import { resetRiftMechanicWindups } from './rift_escape_window';
+import { boneShrapnel } from './trash_kit/crypt_hooks';
+import { resetWarpath } from './warpath';
 
 const PACK_FRENZY_AURA_ID = 'pack_frenzy'; // attack-speed buff granted to surviving packmates
 
@@ -43,16 +60,44 @@ export function respawnMob(ctx: SimContext, mob: Entity): void {
     return;
   }
   ctx.clearNonPlayerStatAuras(mob);
+  // The entity id is about to be reused for a live mob: a corpse-harvest
+  // reservation must not survive it (Intentional Gathering, PR3). A no-op
+  // when nobody was harvesting; draws no rng.
+  cancelCorpseHarvestForCorpse(ctx, mob);
+  mob.corpseHarvestState = undefined;
+  // A fresh life pays again (an encounter's regrown part: Entity.regrown).
+  mob.regrown = undefined;
+  // A death burst belongs to one life (mob/trash_kit/death_burst.ts).
+  mob.deathBurst = undefined;
+  // The trash kit's long-lived state (Reassemble, Carrion Glut, Snapped
+  // Fetters) belongs to the life that ended.
+  mob.trashLife = undefined;
   mob.dead = false;
   mob.lootable = false;
   mob.loot = null;
   mob.lootRecipientIds = undefined;
+  mob.lootPartyTradeEligibility = undefined;
   mob.tappedById = null;
   mob.harvestClaimedBy = null;
   mob.ownerId = null;
   mob.hostile = true;
+  clearCorpseSink(mob);
+  // A patroller (editor Mob tool) walks its spawnPos along the route, so it
+  // would otherwise respawn wherever it happened to die. Send it back to the
+  // head of its path and restart the walk. Inert for every routeless mob.
+  if (mob.route && mob.route.points.length >= 2) {
+    mob.spawnPos.x = mob.route.points[0].x;
+    mob.spawnPos.z = mob.route.points[0].z;
+    // Re-seat the home point too: a later evade walks straight at spawnPos, so
+    // it must not keep the height of wherever the patrol died.
+    mob.spawnPos.y = ctx.groundPos(mob.spawnPos.x, mob.spawnPos.z).y;
+    mob.routeIdx = 0;
+    mob.routeDir = 1;
+    mob.routeWaitLeft = 0;
+  }
   mob.pos = { ...mob.spawnPos };
-  mob.pos.y = groundHeight(mob.pos.x, mob.pos.z, ctx.cfg.seed);
+  // a camp on a mine floor respawns on that floor, not on the summit above it
+  mob.pos.y = mobGroundHeight(mob.pos.x, mob.pos.z, ctx.cfg.seed, mob.spawnPos.y);
   mob.prevPos = { ...mob.pos };
   ctx.rebucket(mob);
   mob.hp = mob.maxHp;
@@ -66,9 +111,28 @@ export function respawnMob(ctx: SimContext, mob: Entity): void {
   }
   mob.leashAnchor = null;
   mob.evadeStall = 0;
+  mob.chaseStall = 0;
+  mob.chaseRoute = undefined;
+  mob.chainPullInbound = false;
+  releasePin(mob);
   mob.fleeTimer = 0;
   mob.fleeReturnTimer = 0;
   mob.hasFled = false;
+  // A warpath circuit does not survive a death: the next spawn opens on his focus
+  // phase at the barrow, not mid-run to whichever landmark he was heading for.
+  resetWarpath(mob);
+  resetBossSlams(mob);
+  resetBossRangedMechanics(ctx, mob);
+  resetBossStarwake(mob);
+  // A slumbering template that ever respawned in place (none does today: the world boss is
+  // scheduler-owned) must come back awake, or a daytime respawn would run the dawn wake
+  // and broadcast the realm-wide call on every single respawn.
+  if (MOBS[mob.templateId]?.slumber) {
+    mob.asleep = false;
+    // ...and unheld: a respawn that inherited a stale rise would come back hostile but
+    // AI-frozen for the rest of it (mob/slumber.ts rise()).
+    mob.slumberRise = 0;
+  }
   clearThreat(mob);
   // A respawn is a brand-new pull: the world-boss damager roster clears with
   // the hate table so loot rights never carry across lives.
@@ -85,8 +149,13 @@ export function respawnMob(ctx: SimContext, mob: Entity): void {
   mob.firedSummons = 0;
   mob.enraged = false;
   mob.healedThisPull = false;
+  mob.pulseTimer = MOBS[mob.templateId]?.aoePulse?.every ?? 0;
   mob.stompTimer = MOBS[mob.templateId]?.stomp?.every ?? 0;
   mob.terrifyTimer = MOBS[mob.templateId]?.terrify?.every ?? 0;
+  // The shared spacing lock dies with the life like the timers around it.
+  resetMechanicSpacing(mob);
+  // An in-flight instant-mechanic windup dies with the life too.
+  resetRiftMechanicWindups(mob);
   // A mid-flight inferno channel dies with the life; the cadence reseeds and
   // the hp gates re-arm alongside firedSummons above.
   mob.infernoTimer = MOBS[mob.templateId]?.infernoChannel?.every ?? 0;
@@ -113,8 +182,37 @@ export function respawnMob(ctx: SimContext, mob: Entity): void {
     mob.castTargetId = null;
   }
   mob.yelledEngage = false;
-  mob.wanderTimer = ctx.rng.range(2, 8);
+  // Dragonkin brood pull-state resets with the respawn (the resetEvadingMob
+  // twin): breath cadence reseeds lazily, cleave cadence and counter-stun
+  // re-arm, the fresh spawn shouts again on its first pull, and a respawned
+  // egg is whole again (unhatched, no pending ripple, no ward tag).
+  mob.breathTimer = undefined;
+  mob.swingCleaveCount = undefined;
+  mob.counterStunReadyAt = undefined;
+  mob.shoutFired = undefined;
+  mob.shoutIntroUntil = undefined;
+  mob.broodCracked = undefined;
+  mob.broodHatched = undefined;
+  mob.broodChainAt = undefined;
+  mob.broodWardOnHatch = undefined;
+  // Same ordering contract as the resetEvadingMob twin: the authored speed comes
+  // back BEFORE leapUntil clears, because the brood pass only restores it while
+  // leapUntil is still live. A whelp killed mid-pounce would otherwise respawn
+  // stuck at its leap-burst speed for the rest of its life.
+  if (mob.leapUntil !== undefined) {
+    mob.moveSpeed = MOBS[mob.templateId]?.moveSpeed ?? mob.moveSpeed;
+  }
+  mob.leapUntil = undefined;
+  mob.leapReadyAt = undefined;
+  mob.leapBurnPending = undefined;
+  mob.wardOneHit = undefined;
+  // A fresh life re-seeds the idle timer through the same passive lane. An explicit
+  // off-stream mob leaves the shared lane untouched; a distance-culling config routes
+  // every mob here privately and intentionally has a different shared RNG digest.
+  mob.wanderTimer = wanderPause(idleRng(ctx, mob), mob, 2, 8);
   if (mob.templateId === NYTHRAXIS_BOSS_ID) ctx.resetNythraxisEncounter(mob);
+  if (mob.templateId === IGNIVAR_BOSS_ID) resetIgnivarEncounter(ctx, mob);
+  if (mob.templateId === VARKHUL_BOSS_ID) resetVarkhulEncounter(ctx, mob);
   for (const meta of ctx.players.values()) {
     const e = ctx.entities.get(meta.entityId);
     if (e && e.targetId === mob.id) e.targetId = null;
@@ -226,4 +324,6 @@ export function detonateCorpse(ctx: SimContext, dead: Entity): void {
   }
   // A clean bloat kill means the blast caught nobody it credits.
   deedsMod.onBloatDetonatedForDeeds(ctx, dead, damagedPids);
+  // The Bone Minion's shrapnel also cuts the skeletons round it.
+  boneShrapnel(ctx, dead);
 }

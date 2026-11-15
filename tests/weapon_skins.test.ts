@@ -1,9 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
+import { describe, expect, it, vi } from 'vitest';
 import { WEAPON_VFX } from '../src/render/weapon_vfx';
 import {
   eligibleClassesForWeaponSkinType,
+  mainhandShowsWeaponSkin,
   offhandMirrorsWeaponSkin,
   resolveActiveWeaponSkin,
   skinnableWeaponTypesFor,
@@ -12,6 +14,8 @@ import {
   weaponTypeForItem,
 } from '../src/sim/content/weapon_skin_rules';
 import {
+  RESERVED_WEAPON_SKIN_IDS,
+  STORE_WEAPON_SKIN_LIST,
   WEAPON_SKIN_COLLECTIONS,
   WEAPON_SKIN_LIST,
   WEAPON_SKINS,
@@ -20,12 +24,33 @@ import { ITEMS } from '../src/sim/data';
 import { armoryCollectionStrings, armorySkinStrings } from '../src/ui/i18n.catalog/armory';
 import { ITEM_WEAPON_VARIANTS } from '../src/ui/weapon_variants';
 import { armorySkinArt } from '../src/ui/woc_store_view';
+import { failWocHeads, landWocBodies } from './helpers/woc_streamed';
 
 const ROOT = join(__dirname, '..');
 
 describe('season 1 weapon skin catalog', () => {
   it('ships exactly the 29 paid skins: 7 per collection plus the Fallen Star encore', () => {
-    expect(WEAPON_SKIN_LIST.length).toBe(29);
+    expect(STORE_WEAPON_SKIN_LIST.length).toBe(29);
+    // plus five skins the store never sells: Lantern Hall's earned blade, and four elemental arms
+    // reserved for a future raid (obtainable nowhere yet), outside the store's collections
+    expect(WEAPON_SKIN_LIST.length).toBe(34);
+    expect(WEAPON_SKIN_LIST.filter((s) => s.earnedFrom).map((s) => s.id)).toEqual([
+      'lantern_hall_sword',
+      'hearthbrand_sword',
+      'squallcrest_sword',
+      'rimelight_staff',
+      'duskwick_staff',
+    ]);
+    expect(
+      WEAPON_SKIN_LIST.filter((s) => s.earnedFrom === 'lantern_hall').map((s) => s.id),
+    ).toEqual(['lantern_hall_sword']);
+    expect(RESERVED_WEAPON_SKIN_IDS).toEqual([
+      'hearthbrand_sword',
+      'squallcrest_sword',
+      'rimelight_staff',
+      'duskwick_staff',
+    ]);
+    expect(WEAPON_SKIN_COLLECTIONS).not.toContain('lantern_hall');
     for (const collection of WEAPON_SKIN_COLLECTIONS) {
       const inCollection = WEAPON_SKIN_LIST.filter((s) => s.collection === collection);
       expect(inCollection.length, collection).toBe(collection === 'fallen_star' ? 8 : 7);
@@ -112,13 +137,33 @@ describe('weapon type classification', () => {
 
   it('stays in lockstep with the render variant family for mapped items', () => {
     const familyOf = (variant: string): string | null => {
+      // The violet-gem KayKit sword and axe (the Nythraxis gap-fill one-handers)
+      // carry the same VAR_SWORD / VAR_AXE grips as the adv set in assets.ts.
+      if (variant === 'purple_sword') return 'sword';
+      if (variant === 'purple_axe') return 'axe';
       if (/^(adv_)?sword/.test(variant)) return 'sword';
+      // The bespoke dagger skins carry thematic names; assets.ts tags each of
+      // these variants VAR_DAGGER, which is the render-side family authority.
+      if (/^(ice_fang|redskull_dagger|purple_dagger|whittler_s_knife)$/.test(variant))
+        return 'dagger';
       if (/^(adv_)?dagger/.test(variant)) return 'dagger';
       if (/^(adv_)?(druid_)?staff|^adv_druid_staff/.test(variant)) return 'staff';
+      // Bespoke boss weapons carry thematic names rather than a family prefix, exactly
+      // like the dagger skins above; assets.ts tags this one VAR_HAMMER, which is the
+      // render-side family authority.
+      if (/^balgath_barrowmaul_hammer$/.test(variant)) return 'mace';
+      if (/^craterglass_stave$/.test(variant)) return 'staff';
       if (/^hammer/.test(variant)) return 'mace';
       if (/^(adv_)?axe/.test(variant)) return 'axe';
       if (/^(adv_)?wand/.test(variant)) return 'wand';
       if (/^spear|^scythe/.test(variant)) return 'polearm';
+      // The Armory bow GLBs double as held-model variants for real bow items
+      // (the Crucible longbow is the first); crossbow names must match first.
+      if (/crossbow/.test(variant)) return 'crossbow';
+      if (/bow$/.test(variant)) return 'bow';
+      // Another bespoke thematic name, same shape as the barrowmaul above: the family token
+      // is a SUFFIX here (`shardpike_spear`) and every other rule in this list is prefixed.
+      if (/^shardpike_spear$/.test(variant)) return 'polearm';
       return null;
     };
     for (const id of weaponIds) {
@@ -160,34 +205,147 @@ describe('weapon type classification', () => {
 
 describe('skin apply rule', () => {
   it('requires an equipped mainhand weapon', () => {
-    expect(skinnableWeaponTypesFor('warrior', null)).toEqual([]);
-    expect(skinnableWeaponTypesFor('hunter', null)).toEqual([]);
+    expect(skinnableWeaponTypesFor('warrior', null, 'class')).toEqual([]);
+    expect(skinnableWeaponTypesFor('hunter', null, 'class')).toEqual([]);
+    expect(skinnableWeaponTypesFor('hunter', null, 'mech')).toEqual([]);
   });
 
   it('matches the equipped item type for weapon-swapping classes', () => {
-    expect(skinnableWeaponTypesFor('warrior', 'worn_sword')).toEqual(['sword']);
-    expect(skinnableWeaponTypesFor('rogue', 'rusty_dagger')).toEqual(['dagger']);
-    expect(weaponSkinTypeMatches('mage', 'gnarled_staff', 'staff')).toBe(true);
-    expect(weaponSkinTypeMatches('warrior', 'worn_sword', 'axe')).toBe(false);
+    expect(skinnableWeaponTypesFor('warrior', 'worn_sword', 'class')).toEqual(['sword']);
+    expect(skinnableWeaponTypesFor('rogue', 'rusty_dagger', 'class')).toEqual(['dagger']);
+    expect(weaponSkinTypeMatches('mage', 'gnarled_staff', 'staff', 'class')).toBe(true);
+    expect(weaponSkinTypeMatches('warrior', 'worn_sword', 'axe', 'class')).toBe(false);
   });
 
   it('lets hunters use bow and crossbow skins (class-fixed ranged visual)', () => {
-    expect(skinnableWeaponTypesFor('hunter', 'rusty_hatchet').sort()).toEqual(['bow', 'crossbow']);
+    expect(skinnableWeaponTypesFor('hunter', 'rusty_hatchet', 'class').sort()).toEqual([
+      'bow',
+      'crossbow',
+    ]);
+  });
+
+  it('the mech body ALSO lets a hunter skin the weapon it really shows', () => {
+    // The hunter rig displays a fixed crossbow and never the equipped item, so
+    // a melee skin there would be invisible. The mech swaps in the mainhand, so
+    // the held weapon's own type joins the list.
+    expect(skinnableWeaponTypesFor('hunter', 'direfang_greatblade', 'mech')).toEqual([
+      'crossbow',
+      'bow',
+      'sword',
+    ]);
+    expect(weaponSkinTypeMatches('hunter', 'direfang_greatblade', 'sword', 'mech')).toBe(true);
+    // ...and NOT on the class rig, where it could never render.
+    expect(weaponSkinTypeMatches('hunter', 'direfang_greatblade', 'sword', 'class')).toBe(false);
+    // Ranged stays FIRST, so a hunter who already had a bow skin keeps that
+    // look when they put the suit on.
+    expect(skinnableWeaponTypesFor('hunter', 'direfang_greatblade', 'mech')[0]).toBe('crossbow');
+    // A type no skin targets adds nothing, mech or not: spears stay bare.
+    expect(skinnableWeaponTypesFor('hunter', 'ironbark_boar_spear', 'mech')).toEqual([
+      'crossbow',
+      'bow',
+    ]);
+    // Every other class is unaffected by the body it wears.
+    expect(skinnableWeaponTypesFor('warrior', 'worn_sword', 'mech')).toEqual(['sword']);
+    expect(skinnableWeaponTypesFor('rogue', 'rusty_dagger', 'mech')).toEqual(['dagger']);
   });
 
   it('offers nothing for polearms', () => {
-    expect(skinnableWeaponTypesFor('warrior', 'tidereaver_gaff')).toEqual([]);
+    expect(skinnableWeaponTypesFor('warrior', 'tidereaver_gaff', 'class')).toEqual([]);
+    expect(skinnableWeaponTypesFor('warrior', 'tidereaver_gaff', 'mech')).toEqual([]);
   });
 
   it('every paid skin type is reachable by some class and item', () => {
     const reachable = new Set<string>();
     for (const id of Object.keys(WEAPON_TYPE_BY_ITEM)) {
-      for (const t of skinnableWeaponTypesFor('warrior', id)) reachable.add(t);
+      for (const t of skinnableWeaponTypesFor('warrior', id, 'class')) reachable.add(t);
     }
-    for (const t of skinnableWeaponTypesFor('hunter', 'worn_sword')) reachable.add(t);
+    for (const t of skinnableWeaponTypesFor('hunter', 'worn_sword', 'class')) reachable.add(t);
     for (const skin of WEAPON_SKIN_LIST) {
       expect(reachable.has(skin.weaponType), `${skin.id} (${skin.weaponType})`).toBe(true);
     }
+  });
+});
+
+describe('offhand-held weapon type (reported: legendary mace skin never loaded)', () => {
+  // A rogue keeps the dagger mainhand and the equip resolver parks a mace in the
+  // offhand, so the account's mace skin showed as owned but could never apply:
+  // the rules read the mainhand alone. Both hands count now, mainhand first.
+  it('counts the offhand weapon type for apply, after the mainhand type', () => {
+    expect(
+      skinnableWeaponTypesFor('rogue', 'rusty_dagger', 'class', 'forgefathers_warhammer'),
+    ).toEqual(['dagger', 'mace']);
+    expect(
+      weaponSkinTypeMatches('rogue', 'rusty_dagger', 'mace', 'class', 'forgefathers_warhammer'),
+    ).toBe(true);
+    // Two weapons of one type count once; a shield or a spear adds nothing.
+    expect(skinnableWeaponTypesFor('rogue', 'rusty_dagger', 'class', 'keen_dirk')).toEqual([
+      'dagger',
+    ]);
+    expect(skinnableWeaponTypesFor('warrior', 'worn_sword', 'class', 'eastbrook_buckler')).toEqual([
+      'sword',
+    ]);
+    expect(skinnableWeaponTypesFor('warrior', 'worn_sword', 'class', 'tidereaver_gaff')).toEqual([
+      'sword',
+    ]);
+    // The mainhand-only call keeps its exact old answer.
+    expect(skinnableWeaponTypesFor('rogue', 'rusty_dagger', 'class')).toEqual(['dagger']);
+    // A bare mainhand beside an offhand weapon still counts; beside a shield or
+    // nothing it applies nothing, so a hunter with empty hands keeps [] too.
+    expect(skinnableWeaponTypesFor('rogue', null, 'class', 'forgefathers_warhammer')).toEqual([
+      'mace',
+    ]);
+    expect(skinnableWeaponTypesFor('warrior', null, 'class', 'eastbrook_buckler')).toEqual([]);
+    expect(skinnableWeaponTypesFor('hunter', null, 'class', 'eastbrook_buckler')).toEqual([]);
+    expect(skinnableWeaponTypesFor('hunter', null, 'mech', 'eastbrook_buckler')).toEqual([]);
+    // The hunter arm still needs a mainhand, whatever the offhand holds.
+    expect(skinnableWeaponTypesFor('hunter', null, 'class', 'forgefathers_warhammer')).toEqual([]);
+    expect(skinnableWeaponTypesFor('hunter', null, 'mech', 'forgefathers_warhammer')).toEqual([]);
+    // An offhand polearm is a weapon no skin targets: nothing to apply.
+    expect(skinnableWeaponTypesFor('warrior', null, 'class', 'tidereaver_gaff')).toEqual([]);
+  });
+
+  it('resolves the offhand-held type when only that skin is applied, mainhand type first', () => {
+    expect(
+      resolveActiveWeaponSkin(
+        'rogue',
+        'rusty_dagger',
+        { mace: 'starfall_mace' },
+        'class',
+        'forgefathers_warhammer',
+      ),
+    ).toBe('starfall_mace');
+    expect(
+      resolveActiveWeaponSkin(
+        'rogue',
+        'rusty_dagger',
+        { mace: 'starfall_mace', dagger: 'astravyr_dagger' },
+        'class',
+        'forgefathers_warhammer',
+      ),
+    ).toBe('astravyr_dagger');
+    // Without the offhand the mace skin stays dormant, exactly as before.
+    expect(
+      resolveActiveWeaponSkin('rogue', 'rusty_dagger', { mace: 'starfall_mace' }, 'class'),
+    ).toBeNull();
+  });
+
+  it('dresses the mainhand only while it holds the skin type; ranged skins always', () => {
+    expect(mainhandShowsWeaponSkin('starfall_mace', 'forgefathers_warhammer')).toBe(true);
+    expect(mainhandShowsWeaponSkin('starfall_mace', 'rusty_dagger')).toBe(false);
+    expect(mainhandShowsWeaponSkin('starfall_mace', null)).toBe(false);
+    expect(mainhandShowsWeaponSkin(null, 'forgefathers_warhammer')).toBe(false);
+    // The hunter rig's fixed attach and the mech swap slot take a ranged skin
+    // whatever the hand holds.
+    expect(mainhandShowsWeaponSkin('winterbite', 'rusty_hatchet')).toBe(true);
+    expect(mainhandShowsWeaponSkin('meteorlatch_crossbow', null)).toBe(true);
+    // The renderer's mainhand swap gates the skin url on this rule, so a dagger
+    // mainhand beside a skinned offhand mace keeps its own dagger model.
+    const src = readFileSync(join(ROOT, 'src/render/characters/assets.ts'), 'utf8');
+    const fn = src.slice(
+      src.indexOf('function swapAttachDef('),
+      src.indexOf('function offhandAttachDef('),
+    );
+    expect(fn).toContain('mainhandShowsWeaponSkin(weaponSkinId, weaponItemId)');
   });
 });
 
@@ -207,7 +365,12 @@ describe('offhand weapon-skin mirror rule', () => {
     // mainhand next to a bare offhand greatsword: the asymmetry this rule removes.
     expect(WEAPON_TYPE_BY_ITEM.eastbrook_greatsword).toBe('sword');
     expect(
-      resolveActiveWeaponSkin('warrior', 'eastbrook_greatsword', { sword: 'ice_fang_sword' }),
+      resolveActiveWeaponSkin(
+        'warrior',
+        'eastbrook_greatsword',
+        { sword: 'ice_fang_sword' },
+        'class',
+      ),
     ).toBe('ice_fang_sword');
     expect(offhandMirrorsWeaponSkin('ice_fang_sword', 'eastbrook_greatsword')).toBe(true);
     // A different-type two-hander stays bare, same as the one-hand arm.
@@ -244,15 +407,17 @@ describe('offhand weapon-skin mirror rule', () => {
 
 describe('bow skin attack animation (hunter draw instead of crossbow aim)', () => {
   it('starts every typed player ranged shot at launch and suppresses its impact replay', async () => {
-    const { playerRangedAttackAlreadyStarted, playerRangedAttackStartsAtLaunch } = await import(
+    const { playerAttackAnimationAlreadyStarted, playerRangedAttackStartsAtLaunch } = await import(
       '../src/render/characters/skin_attack'
     );
     expect(playerRangedAttackStartsAtLaunch('player', 'ranged-shot')).toBe(true);
     expect(playerRangedAttackStartsAtLaunch('player', undefined)).toBe(false);
     expect(playerRangedAttackStartsAtLaunch('mob', 'ranged-shot')).toBe(false);
-    expect(playerRangedAttackAlreadyStarted('player', true)).toBe(true);
-    expect(playerRangedAttackAlreadyStarted('player', undefined)).toBe(false);
-    expect(playerRangedAttackAlreadyStarted('mob', true)).toBe(false);
+    // Not ranged-only: the same flag also covers a melee swing already started
+    // at launch (an auto-attack, or an ability like Red Harvest).
+    expect(playerAttackAnimationAlreadyStarted('player', true)).toBe(true);
+    expect(playerAttackAnimationAlreadyStarted('player', undefined)).toBe(false);
+    expect(playerAttackAnimationAlreadyStarted('mob', true)).toBe(false);
   });
 
   it('bow skins substitute the authored draw clip; every other type keeps its attack', async () => {
@@ -262,20 +427,30 @@ describe('bow skin attack animation (hunter draw instead of crossbow aim)', () =
     const { weaponSkinHandling } = await import('../src/render/characters/skin_attack');
     for (const skin of WEAPON_SKIN_LIST) {
       const sub = weaponSkinAttackClips(skin.id);
-      if (weaponSkinHandling(skin) === 'bow') {
+      const handling = weaponSkinHandling(skin);
+      if (handling === 'bow') {
         expect(sub?.clips, skin.id).toContain('Bow_Draw_Shot');
         // This is a renderer-only substitution: it must not alter sim timing.
         expect(sub).not.toHaveProperty('releaseAt');
-        // Every substitute clip must be one the constructor binds.
-        for (const clip of sub?.clips ?? []) expect(SKIN_ATTACK_CLIP_NAMES).toContain(clip);
+      } else if (handling === 'crossbow') {
+        // Named, not inherited: the mech authors a melee chop, so a crossbow
+        // skin has to ask for the shoulder-aim by name to shoulder it there.
+        expect(sub?.clips, skin.id).toEqual(['2H_Ranged_Shoot']);
+        // On the hunter this IS the authored attack, so re-timing it would
+        // change the shot speed of a rig that was already correct.
+        expect(sub?.timeScale, skin.id).toBeUndefined();
       } else {
         expect(sub, `${skin.id} (${skin.weaponType}) must keep the authored attack`).toBeNull();
       }
+      // Every substitute clip must be one the constructor binds.
+      for (const clip of sub?.clips ?? []) expect(SKIN_ATTACK_CLIP_NAMES).toContain(clip);
     }
     // The encore star-cannon is a bow-slot skin HANDLED like a crossbow: it
     // keeps the shoulder-aim and the right hand.
     expect(weaponSkinHandling(WEAPON_SKINS.encore_bow)).toBe('crossbow');
-    expect(weaponSkinAttackClips('encore_bow')).toBeNull();
+    expect(weaponSkinAttackClips('encore_bow')?.clips).toEqual(['2H_Ranged_Shoot']);
+    // Melee skins never substitute: a sword swings whatever the rig authors.
+    expect(weaponSkinAttackClips('solheim_sword')).toBeNull();
     expect(weaponSkinAttackClips(null)).toBeNull();
     expect(weaponSkinAttackClips('not_a_skin')).toBeNull();
   });
@@ -306,14 +481,196 @@ describe('bow skin attack animation (hunter draw instead of crossbow aim)', () =
     expect(weaponSkinOrientPin(null)).toBeNull();
   });
 
+  it('the aim pin tracks SHOOTING, not merely "some one-shot is playing"', async () => {
+    const { rangedSkinAiming } = await import('../src/render/characters/skin_attack');
+    // The release: the attack one-shot is the moment the pin was written for.
+    expect(rangedSkinAiming('attack', null)).toBe(true);
+    // The DRAW: a cast-time shot (Long Draw, castTime 3.0) is a held base
+    // state, not a one-shot, so the old "is a one-shot playing" test missed
+    // the whole three seconds the bow should have been up.
+    expect(rangedSkinAiming(null, 'aimed_shot')).toBe(true);
+    // ...but only for a SHOT. Reported by review on PR 2941: a hunter's pet
+    // utility casts also set the cast state, and holding a bow aimed through a
+    // six-second beast taming is wrong.
+    expect(rangedSkinAiming(null, 'tame_beast')).toBe(false);
+    expect(rangedSkinAiming(null, 'revive_pet')).toBe(false);
+    // Taking a hit plays a one-shot and is NOT shooting. This is the case
+    // that made a bow jerk upright through the flinch.
+    expect(rangedSkinAiming('other', null)).toBe(false);
+    // Emotes were already excluded and stay excluded.
+    expect(rangedSkinAiming('emote', null)).toBe(false);
+    // Idle, doing nothing at all.
+    expect(rangedSkinAiming(null, null)).toBe(false);
+    // A one-shot that is not the attack wins over a concurrent cast flag:
+    // whatever interrupted the draw is what the body is actually playing.
+    expect(rangedSkinAiming('other', 'aimed_shot')).toBe(false);
+    // ...and the attack one-shot during a cast stays aimed (the release frame
+    // of a channelled shot, where both are briefly true).
+    expect(rangedSkinAiming('attack', 'aimed_shot')).toBe(true);
+  });
+
+  it('every cast-time ranged shot in the ability table is classified', async () => {
+    const { isDrawnShotCast } = await import('../src/render/characters/skin_attack');
+    const { ABILITIES } = await import('../src/sim/data');
+    // A DRAWN shot is the intersection the allowlist exists to name: it takes
+    // cast time (so the held pose is visible at all) and is a hunter ability that
+    // scales with ranged attack power. Instant shots need no held pose, and a
+    // cast that does not scale off the bow (tame_beast, revive_pet) is a pet
+    // utility, not something a bow draws. (The scan keyed on the classic ranged
+    // dead zone until the v0.45 hunter pass removed every hunter minRange.)
+    const candidates = Object.values(ABILITIES)
+      .filter((a) => (a.castTime ?? 0) > 0 && a.class === 'hunter' && a.scalesWith === 'ranged')
+      .map((a) => a.id);
+    expect(candidates.length, 'the scan must not be vacuous').toBeGreaterThan(0);
+    const unclassified = candidates.filter((id) => !isDrawnShotCast(id));
+    expect(
+      unclassified,
+      `new cast-time ranged shot(s) with no DRAWN_SHOT_CAST_IDS row: ${unclassified.join(', ')}`,
+    ).toEqual([]);
+    // And the list must not creep the other way onto things that are not shots.
+    expect(isDrawnShotCast('tame_beast')).toBe(false);
+    expect(isDrawnShotCast('charge')).toBe(false);
+    expect(isDrawnShotCast(null)).toBe(false);
+  });
+
+  it('visual.ts asks the shared predicate rather than re-deriving the trigger', () => {
+    const src = readFileSync(join(ROOT, 'src/render/characters/visual.ts'), 'utf8');
+    const fn = src.slice(
+      src.indexOf('private applySkinOrientation('),
+      src.indexOf('/** Re-scale VFX point sprites'),
+    );
+    expect(fn).toContain('rangedSkinAiming(');
+    // The old inline trigger must be gone, not merely supplemented.
+    expect(fn).not.toContain('this.currentIsOneShot && !this.currentOneShotIsEmote');
+  });
+
+  it('a live skin swap mid-cast re-selects the cast action', () => {
+    // The cast pose depends on the displayed skin, but the base action is only
+    // re-selected on a base-state EDGE, and applying a skin does not edge the
+    // state. Without an explicit re-drive the rig keeps Spellcasting after a
+    // bow is equipped mid-cast (or keeps the draw after it is removed) for the
+    // rest of that cast. Reported by review on PR 2950.
+    const src = readFileSync(join(ROOT, 'src/render/characters/visual.ts'), 'utf8');
+    const fn = src.slice(
+      src.indexOf('setWeaponSkin(weaponSkinId: string | null)'),
+      src.indexOf('private reattachHeldWeapon('),
+    );
+    expect(fn).toContain("this.baseState === 'cast'");
+    expect(fn).toContain('this.baseAction()');
+    // Guarded so it cannot fight a clamped one-shot or the death pose, both of
+    // which own the rig outright (the zero-weight rules in this directory).
+    expect(fn).toContain('!this.currentIsOneShot');
+    expect(fn).toContain('!this.deadLock');
+  });
+
+  it('the full re-attach returns non-mirrored offhand payloads for the compile gate', () => {
+    // A weapon swap or skin change re-attaches BOTH hands, but the
+    // non-mirrored offhand (a shield, a held offhand) used to be dropped from
+    // the returned payload list, so the caller's compile gate never saw it
+    // and its first draw linked synchronously. It must ride the RETURN while
+    // staying out of the skin material/VFX set (pixel-untouched).
+    const src = readFileSync(join(ROOT, 'src/render/characters/visual.ts'), 'utf8');
+    const fn = src.slice(
+      src.indexOf('private reattachHeldWeapon('),
+      src.indexOf('private finishWeaponAttach('),
+    );
+    // The skin material/VFX set is the hands that SHOW the skin (a melee skin
+    // held in the offhand alone leaves the mainhand's own model out of it).
+    expect(fn).toContain('this.finishWeaponAttach(skinned)');
+    // A hand outside the skin set still gets its bone-texture pass (the lean
+    // setOffhand path already gave a plain offhand one; the full re-attach now
+    // matches it).
+    expect(fn).toContain('if (!skinned.includes(payload)) configureTightBoneTextures(payload)');
+    // The sheathe swap feeds attachAllProps' skinned set to the same tail, so
+    // it sweeps the whole rig for the excluded hand instead.
+    const stow = src.slice(
+      src.indexOf('private applyStowSwap('),
+      src.indexOf('private rebuildCasters('),
+    );
+    expect(stow).toContain('configureTightBoneTextures(this.model)');
+    expect(fn).toContain('mainhandShowsWeaponSkin(this.weaponSkinId, this.weaponItemId)');
+    expect(fn).toContain('return [...payloads, ...offPayloads]');
+  });
+
+  it('a drawn bow holds its draw while CASTING, instead of the caster gesture', async () => {
+    const { weaponSkinCastClip, weaponSkinHandling, SKIN_ATTACK_CLIP_NAMES } = await import(
+      '../src/render/characters/skin_attack'
+    );
+    // Casting is a HELD base state, and every class takes `Spellcasting` from
+    // the shared kaykit() ClipMap, so a hunter part-way through Long Draw
+    // (castTime 3.0) played a caster's arm circle while holding a bow.
+    expect(weaponSkinCastClip('winterbite', 'aimed_shot')).toBe('Bow_Draw_Hold');
+    expect(weaponSkinCastClip('fletcher_s_guild_bow', 'aimed_shot')).toBe('Bow_Draw_Hold');
+    // Only for a drawn SHOT: a bow skin is still a bow during a pet cast, and
+    // holding a full draw through tame_beast (6s) is the POSE half of the same
+    // bug the aim pin gates. Reported by review on PR 2941.
+    expect(weaponSkinCastClip('winterbite', 'tame_beast')).toBeNull();
+    expect(weaponSkinCastClip('winterbite', 'revive_pet')).toBeNull();
+    expect(weaponSkinCastClip('winterbite', null)).toBeNull();
+    // Crossbow handling is shouldered, not drawn: it keeps the authored cast
+    // until a pose exists for it. The encore gun aims like a crossbow.
+    expect(weaponSkinCastClip('meteorlatch_crossbow', 'aimed_shot')).toBeNull();
+    expect(weaponSkinHandling(WEAPON_SKINS.encore_bow)).toBe('crossbow');
+    expect(weaponSkinCastClip('encore_bow', 'aimed_shot')).toBeNull();
+    // Melee skins and no skin never substitute a cast pose.
+    expect(weaponSkinCastClip('ice_fang_sword', 'aimed_shot')).toBeNull();
+    expect(weaponSkinCastClip(null, 'aimed_shot')).toBeNull();
+    expect(weaponSkinCastClip('not_a_skin', 'aimed_shot')).toBeNull();
+    // The constructor only binds names in this list, so an unlisted clip would
+    // resolve to no action and silently fall through to the caster gesture.
+    expect(SKIN_ATTACK_CLIP_NAMES).toContain('Bow_Draw_Hold');
+  });
+
+  it('the cast pose GLB ships, holds a STATIC pose, and shares the draw rig', () => {
+    const parse = (rel: string) => {
+      const b = readFileSync(join(ROOT, rel));
+      return JSON.parse(b.subarray(20, 20 + b.readUInt32LE(12)).toString('utf8'));
+    };
+    const hold = parse('public/models/chars/players/bow_hold_anim.glb');
+    const draw = parse('public/models/chars/players/bow_anims.glb');
+    expect((hold.animations ?? []).map((a: { name?: string }) => a.name)).toEqual([
+      'Bow_Draw_Hold',
+    ]);
+    // Clip donor only: no mesh rides along (the draw GLB's contract too).
+    expect(hold.meshes ?? []).toEqual([]);
+    // Same skeleton as the draw it was resampled from, so the pose binds on any
+    // rig the draw already binds on.
+    const names = (d: { nodes?: { name?: string }[] }) =>
+      new Set((d.nodes ?? []).flatMap((n) => (n.name ? [n.name] : [])));
+    const held = names(hold);
+    expect([...names(draw)].filter((n) => !held.has(n))).toEqual([]);
+    // STATIC: both keys carry the same value, or the "hold" would drift.
+    const anim = hold.animations[0];
+    const sampler = anim.samplers[0];
+    const acc = hold.accessors[sampler.output];
+    expect(acc.count).toBe(2);
+    // The hunter loads it.
+    const manifestSrc = readFileSync(join(ROOT, 'src/render/characters/manifest.ts'), 'utf8');
+    // The KayKit hunter (KAYKIT_HUNTER, the `_modular` baseline since the WOC
+    // body took the class) is the rig that binds the donor.
+    const hunterBlock = manifestSrc.slice(
+      manifestSrc.indexOf('export const KAYKIT_HUNTER'),
+      manifestSrc.indexOf('export const KAYKIT_ROGUE'),
+    );
+    expect(hunterBlock).toContain('bow_hold_anim.glb');
+  });
+
   it('the hunter ships the bow clip via animUrls and the GLB carries it', async () => {
     // Source scan, not an import: pulling the manifest into Node would kick
     // the module-import GLB preloads (assets.ts loading contract).
     const manifestSrc = readFileSync(join(ROOT, 'src/render/characters/manifest.ts'), 'utf8');
+    // Anchor inside VISUALS on the KEY alone: the same keys appear earlier in
+    // the SKINS table, and player defs are wrapped (`player_hunter: swims({`)
+    // to layer the shared swim strokes on — so neither a bare key search nor a
+    // brace anchor lands on the def. Both would slice the wrong text and pass.
+    // The KayKit hunter rig moved out of VISUALS into the KAYKIT_HUNTER export
+    // (the `_modular` baseline) when the WOC body took the class; the export
+    // name is unique, so it anchors without the skin-row ambiguity.
     const hunterBlock = manifestSrc.slice(
-      manifestSrc.indexOf('player_hunter: {'),
-      manifestSrc.indexOf('player_rogue: {'),
+      manifestSrc.indexOf('export const KAYKIT_HUNTER'),
+      manifestSrc.indexOf('export const KAYKIT_ROGUE'),
     );
+    expect(hunterBlock, 'anchored on the KayKit hunter rig').toContain('ranger.glb');
     expect(hunterBlock).toContain('bow_anims.glb');
     // Parse the shipped GLB's JSON chunk and assert the clips are inside
     // (scripts/build_bow_anims.mjs output; regenerate from the CC0 pack).
@@ -332,6 +689,107 @@ describe('bow skin attack animation (hunter draw instead of crossbow aim)', () =
     expect(Number(m?.[1])).toBeGreaterThan(0);
   });
 
+  it('a rig missing the substitute clip keeps its authored attack (the Combat Mech)', async () => {
+    const { pickSkinAttackClips } = await import('../src/render/characters/skin_attack');
+    // The hunter ships Bow_Draw_Shot via animUrls, so the draw substitutes.
+    expect(pickSkinAttackClips('winterbite', () => true)?.clips).toEqual(['Bow_Draw_Shot']);
+    // The Combat Mech is a separate model with no animUrls entry, so the clip
+    // is never bound on it. Substituting a clip the rig does not have makes
+    // playOneShot a silent no-op and the attack plays NOTHING; fall back to
+    // the rig's own authored attack instead.
+    expect(pickSkinAttackClips('winterbite', () => false)).toBeNull();
+    // Partial availability still falls back: every named clip must be bound.
+    expect(pickSkinAttackClips('winterbite', (c) => c !== 'Bow_Draw_Shot')).toBeNull();
+    // Crossbow handling gets the shoulder-aim, and both live rigs ship it, so
+    // this arm resolves rather than falling back.
+    expect(pickSkinAttackClips('meteorlatch_crossbow', () => true)?.clips).toEqual([
+      '2H_Ranged_Shoot',
+    ]);
+    expect(pickSkinAttackClips('encore_bow', () => true)?.clips).toEqual(['2H_Ranged_Shoot']);
+    // ...and it falls back the same way on a rig that lacks it.
+    expect(pickSkinAttackClips('meteorlatch_crossbow', () => false)).toBeNull();
+    // Melee skins never substitute, so there is nothing to resolve.
+    expect(pickSkinAttackClips('solheim_sword', () => true)).toBeNull();
+    expect(pickSkinAttackClips(null, () => true)).toBeNull();
+    expect(pickSkinAttackClips('not_a_skin', () => true)).toBeNull();
+  });
+
+  it('playAttack resolves the substitute against the clips the rig actually bound', () => {
+    // Wiring pin: the fallback is worthless if the coordinator still asks for
+    // the substitute unconditionally.
+    const src = readFileSync(join(ROOT, 'src/render/characters/visual.ts'), 'utf8');
+    const playAttack = src.slice(src.indexOf('  playAttack('), src.indexOf('  playWhirl('));
+    expect(playAttack).toContain('pickSkinAttackClips(');
+    expect(playAttack).toContain('this.action(');
+    expect(playAttack).not.toContain('weaponSkinAttackClips(');
+  });
+
+  it('the mech ships both ranged clips: the bow donor by animUrls, the shot in its GLB', () => {
+    const manifestSrc = readFileSync(join(ROOT, 'src/render/characters/manifest.ts'), 'utf8');
+    const mechBlock = manifestSrc.slice(
+      manifestSrc.indexOf('player_mech: swims({'),
+      manifestSrc.indexOf('npc_fernando: {'),
+    );
+    expect(mechBlock).toContain('bow_anims.glb');
+
+    // The crossbow/gun arm needs no donor: CombatMech.glb already carries the
+    // shoulder-aim, it was just never named by the mech's ClipMap. If a future
+    // re-bake drops it, a crossbow skin silently loses its animation.
+    const glb = readFileSync(
+      join(ROOT, 'public/models/chars/players/Mech/characters/CombatMech.glb'),
+    );
+    const doc = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString('utf8'));
+    const clips = (doc.animations ?? []).map((a: { name?: string }) => a.name);
+    expect(clips).toContain('2H_Ranged_Shoot');
+  });
+
+  it('the bow draw retargets onto the mech: every bone it drives exists on both rigs', () => {
+    // The substitution is bind-by-name through the AnimationMixer, so the clip
+    // only plays if the mech carries the bones the tracks target. Held against
+    // the HUNTER (the rig the clip was authored for) rather than an absolute
+    // count: the donor names some IK-control nodes neither exported rig keeps,
+    // and those are inert. What must not differ is the two rigs' answer.
+    const parse = (p: string) => {
+      const b = readFileSync(join(ROOT, p));
+      return JSON.parse(b.subarray(20, 20 + b.readUInt32LE(12)).toString('utf8'));
+    };
+    const bow = parse('public/models/chars/players/bow_anims.glb');
+    const names = (doc: { nodes?: { name?: string }[] }) =>
+      new Set((doc.nodes ?? []).flatMap((n) => (n.name ? [n.name] : [])));
+    const mech = names(parse('public/models/chars/players/Mech/characters/CombatMech.glb'));
+    const hunter = names(parse('public/models/chars/players/ranger.glb'));
+
+    const draw = (bow.animations ?? []).find(
+      (a: { name?: string }) => a.name === 'Bow_Draw_Shot',
+    ) as { channels?: { target?: { node?: number } }[] } | undefined;
+    expect(draw, 'bow_anims.glb must carry Bow_Draw_Shot').toBeTruthy();
+    const targets = new Set<string>();
+    for (const ch of draw?.channels ?? []) {
+      const n = bow.nodes?.[ch.target?.node as number];
+      if (n?.name) targets.add(n.name);
+    }
+    expect(targets.size).toBeGreaterThan(20);
+    const missingOn = (rig: Set<string>) => [...targets].filter((t) => !rig.has(t)).sort();
+    expect(missingOn(mech)).toEqual(missingOn(hunter));
+  });
+
+  it('the swap-slot path applies the ranged hand rule too (bow on the mech)', () => {
+    // rangedSkinAttachDef already moved a drawn bow to the left handslot, but
+    // that path only serves the hunter's FIXED attach. The mech shows a
+    // hunter's weapon through the weaponSlots swap path, so the rule has to
+    // live there as well or the bow renders backwards in the right hand.
+    const src = readFileSync(join(ROOT, 'src/render/characters/assets.ts'), 'utf8');
+    const swap = src.slice(
+      src.indexOf('function swapAttachDef('),
+      src.indexOf('function resolveBone('),
+    );
+    expect(swap).toContain('weaponSkinAttachBone(');
+    expect(swap).toContain('weaponSkinHandling(');
+    // Gated on the resident skin url: a not-yet-streamed skin must leave the
+    // equipped item's own model in its authored hand.
+    expect(swap).toContain('residentOrEnsure(');
+  });
+
   it('uses typed launch correlation instead of a gameplay-system label dependency', () => {
     const renderer = readFileSync(join(ROOT, 'src/render/renderer.ts'), 'utf8');
     const launch = renderer.slice(
@@ -344,11 +802,114 @@ describe('bow skin attack animation (hunter draw instead of crossbow aim)', () =
     );
     expect(renderer).not.toContain("from '../sim/combat/auto_attack'");
     expect(launch).toContain("ev.attackAnimation === 'ranged-shot'");
-    expect(damage).toContain('playerRangedAttackAlreadyStarted(');
+    // The damage-side gate moved behind damageEventStartsAttackAnimation
+    // (characters/damage_attack_animation.ts), which still consults the typed
+    // launch correlation first.
+    expect(damage).toContain('damageEventStartsAttackAnimation(');
     expect(damage).toContain('ev.attackAnimationStarted,');
+    const damageGate = readFileSync(
+      join(ROOT, 'src/render/characters/damage_attack_animation.ts'),
+      'utf8',
+    );
+    expect(damageGate).toContain('playerAttackAnimationAlreadyStarted(');
     expect(launch).not.toContain('weaponSkinAttackClips(source.weaponSkinId)');
     expect(damage).not.toContain('weaponSkinAttackClips(source.weaponSkinId)');
   });
+
+  it('a displayed bow skin still wins over a hunter ability-specific attackByAbility override (PR #2958 review)', async () => {
+    // Regression for the CharacterVisual.playAttack precedence bug flagged in
+    // review: hunter_ability_anims.glb's per-ability overrides (aimed_shot ->
+    // Hunter_Shot_LongDraw) must not shadow the bow-skin substitution, or a
+    // visible bow would fire the crossbow-shoulder ability pose instead of
+    // Bow_Draw_Shot.
+    vi.resetModules();
+    const clip = (name: string) => new THREE.AnimationClip(name, 1, []);
+    vi.doMock('../src/render/assets/loader', () => ({
+      loadGltf: vi.fn(() =>
+        Promise.resolve({
+          scene: new THREE.Group(),
+          // The live hunter is the WOC rig (2026-09-18): its shot clip, the
+          // blade clips its melee overrides name, and the bow donor's draw.
+          animations: [
+            'Ranged_Shoot',
+            'Woc_Attack_Rifle',
+            'Woc_Attack_1H_0',
+            'Woc_Attack_1H_1',
+            'Woc_Attack_1H_Stab',
+            '1H_Chop',
+            '1H_Slash',
+            'Cast_Raise',
+            'Bow_Draw_Shot',
+            'Idle',
+            'Walk',
+            'Run',
+          ].map(clip),
+        }),
+      ),
+      loadTexture: vi.fn(() => Promise.resolve(new THREE.Texture())),
+      loadKtx2Texture: vi.fn(() => Promise.resolve(new THREE.Texture())),
+      releaseGltf: vi.fn(),
+    }));
+    const assets = await import('../src/render/characters/assets');
+    await assets.charactersReady();
+    await landWocBodies(assets, ['player_hunter']);
+    // the stub ships no head library: the world view's wait for the hunter's head has ended
+    failWocHeads(await import('../src/render/characters/woc_head_packs'));
+    const { createCharacterVisual } = await import('../src/render/characters/index');
+    const { CharacterVisual } = await import('../src/render/characters/visual');
+    type ActionPeek = { current: { getClip(): { name: string } } | null };
+
+    const hunterEntity = {
+      kind: 'player',
+      id: 1,
+      templateId: 'hunter',
+      color: 0xffffff,
+      skin: 0,
+      mainhandItemId: null,
+      offhandItemId: null,
+    } as unknown as import('../src/sim/types').Entity;
+
+    const visual = createCharacterVisual(hunterEntity);
+    expect(visual).not.toBeNull();
+    if (!visual) return;
+    expect(visual).toBeInstanceOf(CharacterVisual);
+
+    // No skin displayed: the authored ability override plays (the release
+    // half the WOC hunter mints from its shot clip, ClipMap.clipSplits).
+    visual.playAttack('aimed_shot');
+    expect((visual as unknown as ActionPeek).current?.getClip().name).toBe(
+      'Woc_Attack_Rifle#release',
+    );
+
+    // A bow skin displayed: the same ability call must fall back to the
+    // draw clip instead, not the crossbow-shoulder ability pose.
+    visual.setWeaponSkin('winterbite');
+    visual.playAttack('aimed_shot');
+    expect((visual as unknown as ActionPeek).current?.getClip().name).toBe('Bow_Draw_Shot');
+
+    // A melee ability (range 0) keeps its bespoke melee swing even
+    // with the same bow skin displayed: the bow substitution is a RANGED-only
+    // precedence, since a displayed bow never changes how a melee hit is
+    // thrown (second review round on PR #2958).
+    visual.playAttack('raptor_strike');
+    expect((visual as unknown as ActionPeek).current?.getClip().name).toBe('Woc_Attack_1H_0');
+
+    // A self-buff aspect toggle (range-agnostic, no swing) must never play the
+    // draw-shot attack with the same bow skin displayed (Rubsey's OSSBrain
+    // review on PR #2958). On the WOC hunter every instant is silent by rule:
+    // no override exists, so the ability painter, which gates ceremonial
+    // gestures on hasAttackClipOverride, never asks for a gesture at all, and
+    // the renderer's gesture-only arm returns before any clip plays.
+    expect(visual.hasAttackClipOverride('aspect_of_the_hawk')).toBe(false);
+    expect(visual.hasAttackClipOverride('rapid_fire')).toBe(false);
+    const before = (visual as unknown as ActionPeek).current?.getClip().name;
+    visual.playAttack('aspect_of_the_hawk', true);
+    visual.playAttack('rapid_fire', true);
+    expect((visual as unknown as ActionPeek).current?.getClip().name).toBe(before);
+    // A full charactersReady() reload pulls in this branch's much larger
+    // manifest (release/v0.35.0's own content growth), so this single test's
+    // real preload pass runs well past the 20s default under host load.
+  }, 60000);
 });
 
 describe('grip override wiring (editor saves reach the game)', () => {
@@ -380,6 +941,30 @@ describe('grip override wiring (editor saves reach the game)', () => {
     expect(tuned.quaternion).not.toEqual(bare.quaternion);
   });
 
+  it('rotOffhand replaces rot on the off-hand only, and absent falls back to rot', async () => {
+    // The Forgebreaker case: the owner-tuned 180 yaw reads right in the RIGHT
+    // hand but composes against the identity base on the left, so the row pins
+    // the off-hand to the bare mirrored fit with rotOffhand [0, 0, 0].
+    const { variantGripTransform } = await import('../src/render/characters/weapon_grip');
+    const bareLeft = variantGripTransform(1.2, true, 0.05, 1.6, undefined);
+    const pinned = variantGripTransform(1.2, true, 0.05, 1.6, {
+      rot: [0, 180, 0],
+      rotOffhand: [0, 0, 0],
+    });
+    // [0, 0, 0] means the bare mirrored family fit, byte-identical.
+    expect(pinned.quaternion).toEqual(bareLeft.quaternion);
+    // The right hand still takes the authored rot.
+    const right = variantGripTransform(1.2, false, 0.05, 1.6, {
+      rot: [0, 180, 0],
+      rotOffhand: [0, 0, 0],
+    });
+    const bareRight = variantGripTransform(1.2, false, 0.05, 1.6, undefined);
+    expect(right.quaternion).not.toEqual(bareRight.quaternion);
+    // Absent rotOffhand keeps the prior behavior: rot applies on the left too.
+    const fallback = variantGripTransform(1.2, true, 0.05, 1.6, { rot: [0, 180, 0] });
+    expect(fallback.quaternion).not.toEqual(bareLeft.quaternion);
+  });
+
   it('mirrors a per-weapon offset onto the off-hand (X and Z flip, Y shared)', async () => {
     // The override is authored against the right hand; the off-hand is the mirror
     // image (a 180-degree turn about Y), so a large offset must flip X and Z or the
@@ -409,13 +994,20 @@ describe('eligible classes per skin type (store card chips)', () => {
     expect(eligibleClassesForWeaponSkinType('crossbow')).toEqual(['hunter']);
   });
 
-  it('hunters are never eligible for a non-ranged type (mainhand never displays)', () => {
+  it('hunters ARE eligible for the melee types they can equip (the mech body shows them)', () => {
+    // They were excluded while no body could render a hunter's held weapon.
+    // The Combat Mech does, so the chip would be lying; the item data decides
+    // per type instead, and canApplyNow still gates the body worn right now.
+    expect(eligibleClassesForWeaponSkinType('axe')).toContain('hunter');
+    expect(eligibleClassesForWeaponSkinType('sword')).toContain('hunter');
+    // Not a blanket add: a type hunters cannot equip still omits them.
+    expect(eligibleClassesForWeaponSkinType('wand')).not.toContain('hunter');
+    // Every type still lists whoever the item data says, hunter or not.
     for (const skin of WEAPON_SKIN_LIST) {
-      if (skin.weaponType === 'bow' || skin.weaponType === 'crossbow') continue;
       expect(
-        eligibleClassesForWeaponSkinType(skin.weaponType),
-        `${skin.weaponType} must not list hunter`,
-      ).not.toContain('hunter');
+        eligibleClassesForWeaponSkinType(skin.weaponType).length,
+        `${skin.weaponType} must list someone`,
+      ).toBeGreaterThan(0);
     }
   });
 
@@ -448,26 +1040,57 @@ describe('active skin resolution', () => {
     // An axe skin stranded under the sword key (a hand-edited save or a
     // catalog re-type) must never render on a sword.
     expect(
-      resolveActiveWeaponSkin('warrior', 'worn_sword', { sword: 'glaciersplit_axe' }),
+      resolveActiveWeaponSkin('warrior', 'worn_sword', { sword: 'glaciersplit_axe' }, 'class'),
     ).toBeNull();
   });
 
   it('resolves null for a missing loadout or no equipped mainhand', () => {
-    expect(resolveActiveWeaponSkin('warrior', 'worn_sword', null)).toBeNull();
-    expect(resolveActiveWeaponSkin('warrior', 'worn_sword', undefined)).toBeNull();
-    expect(resolveActiveWeaponSkin('warrior', null, { sword: 'ice_fang_sword' })).toBeNull();
+    expect(resolveActiveWeaponSkin('warrior', 'worn_sword', null, 'class')).toBeNull();
+    expect(resolveActiveWeaponSkin('warrior', 'worn_sword', undefined, 'class')).toBeNull();
+    expect(
+      resolveActiveWeaponSkin('warrior', null, { sword: 'ice_fang_sword' }, 'class'),
+    ).toBeNull();
   });
 
   it('prefers the crossbow skin over the bow skin for hunters (native visual)', () => {
     expect(
-      resolveActiveWeaponSkin('hunter', 'rusty_hatchet', {
-        bow: 'winterbite',
-        crossbow: 'cinderlatch_crossbow',
-      }),
+      resolveActiveWeaponSkin(
+        'hunter',
+        'rusty_hatchet',
+        { bow: 'winterbite', crossbow: 'cinderlatch_crossbow' },
+        'class',
+      ),
     ).toBe('cinderlatch_crossbow');
-    expect(resolveActiveWeaponSkin('hunter', 'rusty_hatchet', { bow: 'winterbite' })).toBe(
+    expect(resolveActiveWeaponSkin('hunter', 'rusty_hatchet', { bow: 'winterbite' }, 'class')).toBe(
       'winterbite',
     );
+  });
+
+  it('a mech hunter shows the weapon skin only when no ranged skin is applied', () => {
+    const both = { bow: 'winterbite', sword: 'ice_fang_sword' };
+    // Ranged first: putting the suit on never silently changes the look a
+    // hunter already had.
+    expect(resolveActiveWeaponSkin('hunter', 'direfang_greatblade', both, 'mech')).toBe(
+      'winterbite',
+    );
+    // Clearing the ranged entry (Sim.setWeaponSkin(pid, null, 'bow')) reveals
+    // the weapon skin, so neither look is ever locked out.
+    expect(
+      resolveActiveWeaponSkin('hunter', 'direfang_greatblade', { sword: 'ice_fang_sword' }, 'mech'),
+    ).toBe('ice_fang_sword');
+    // The same loadout on the class rig resolves the bow and NEVER the sword,
+    // which that body cannot render.
+    expect(resolveActiveWeaponSkin('hunter', 'direfang_greatblade', both, 'class')).toBe(
+      'winterbite',
+    );
+    expect(
+      resolveActiveWeaponSkin(
+        'hunter',
+        'direfang_greatblade',
+        { sword: 'ice_fang_sword' },
+        'class',
+      ),
+    ).toBeNull();
   });
 });
 

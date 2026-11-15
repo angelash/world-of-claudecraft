@@ -43,6 +43,8 @@ describe('item links in a chat draft', () => {
       selectedQuestId: () => null,
       hasQuest: () => false,
       showError: () => {},
+      openWhoTab: () => false,
+      openGroupFinder: () => {},
     });
     controller.init();
 

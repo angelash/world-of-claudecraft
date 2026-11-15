@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { floorVfxRenderOrder } from './floor_vfx_layer';
 import { surfaceMat } from './gfx';
 
 const REVEAL_SECONDS = 0.12;
@@ -7,12 +8,16 @@ const REFERENCE_CHARACTER_HEIGHT = 1.8;
 const BASE_GEOMETRY = new THREE.CylinderGeometry(0.7, 0.76, 0.2, 8);
 const SHARD_GEOMETRY = new THREE.ConeGeometry(0.13, 0.5, 5);
 
-interface FrostRootMaterials {
+export interface FrostRootMaterials {
   base: THREE.Material;
   shards: THREE.Material;
 }
 
 let materials: FrostRootMaterials | null = null;
+
+export function resetFrostNovaRootProfileCaches(): void {
+  materials = null;
+}
 
 export function isFrostNovaRootAura(aura: { id: string; kind: string }): boolean {
   return (
@@ -21,7 +26,7 @@ export function isFrostNovaRootAura(aura: { id: string; kind: string }): boolean
 }
 
 /** Created after initGfxTier(), retaining a readable Lambert fallback on low graphics. */
-function frostRootMaterials(): FrostRootMaterials {
+export function frostRootMaterials(): FrostRootMaterials {
   if (materials) return materials;
 
   const base = surfaceMat({
@@ -81,13 +86,13 @@ export class FrostNovaRootVisual {
     // Keep the lowest facet microscopically above y=0 to avoid z-fighting with terrain.
     base.position.y = 0.105;
     base.scale.z = 0.72;
-    base.renderOrder = 8;
+    base.renderOrder = floorVfxRenderOrder('player', 0);
     content.add(base);
 
     const shards = new THREE.InstancedMesh(SHARD_GEOMETRY, material.shards, 7);
     this.shards = shards;
     shards.name = 'frost-nova-root-shards';
-    shards.renderOrder = 9;
+    shards.renderOrder = floorVfxRenderOrder('player', 1);
 
     const dummy = new THREE.Object3D();
     const placements = [

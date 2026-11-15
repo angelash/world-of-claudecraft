@@ -54,6 +54,9 @@ describe('wireEntity aura serialization', () => {
     expect(w).not.toHaveProperty('stacks');
     expect(w).not.toHaveProperty('charges');
     expect(w).not.toHaveProperty('src');
+    expect(w).not.toHaveProperty('ub');
+    expect(w).not.toHaveProperty('und');
+    expect(w).not.toHaveProperty('bt');
   });
 
   it('includes every optional field when the aura carries a non-default value', () => {
@@ -69,6 +72,9 @@ describe('wireEntity aura serialization', () => {
         stacks: 4,
         charges: 2,
         sourceId: 7,
+        unbreakableControl: true,
+        undispellable: true,
+        breakThreshold: 25,
       }),
     ];
 
@@ -87,6 +93,9 @@ describe('wireEntity aura serialization', () => {
       stacks: 4,
       charges: 2,
       src: 7,
+      ub: 1,
+      und: 1,
+      bt: 1,
     });
     expect(Object.keys(w)).toEqual([
       'id',
@@ -102,6 +111,9 @@ describe('wireEntity aura serialization', () => {
       'stacks',
       'charges',
       'src',
+      'ub',
+      'und',
+      'bt',
     ]);
   });
 
@@ -118,7 +130,7 @@ describe('wireEntity aura serialization', () => {
   it('includes value2/value3/tickInterval/charges when defined as exactly 0', () => {
     // These fields are gated on `!== undefined`, not truthiness (unlike value/sourceId,
     // which are gated on truthiness and legitimately omit 0). A defined 0 must still ride
-    // the wire, or a judgement min-range of 0 or a Lightning Shield down to 0 charges would
+    // the wire, or a Lightning Shield down to 0 charges would
     // silently vanish and decode back to "absent" on the client.
     const sim = new Sim({ seed: 1, playerClass: 'warrior' });
     const e = sim.player;
@@ -143,5 +155,22 @@ describe('wireEntity aura serialization', () => {
 
     const w = wireAuras(e)[0];
     expect(w.value).toBe(-0.004);
+  });
+
+  it('a REAL quaffed flask serializes und=1 and no flask field (the STK-2 stamp end to end)', () => {
+    // Composes the two halves the phase 11 review found only pinned apart:
+    // the mint carries undispellable (tests/mob_purge.test.ts) and the flag
+    // serializes (the generic arm above). This drives the genuine mint
+    // through the real serializer: a stale client suppresses the cancel
+    // affordance off this und, and the flask MARKER stays off the wire by
+    // design (the phase 14 glyph note's premise).
+    const sim = new Sim({ seed: 1, playerClass: 'warrior' });
+    const pid = sim.playerId;
+    sim.addItem('ironhusk_flask', 1, pid);
+    sim.useItem('ironhusk_flask', pid);
+    const w = wireAuras(sim.player).find((a) => a.id === 'elixir_buff_sta');
+    expect(w, 'the quaffed flask aura rides the wire').toBeDefined();
+    expect(w?.und).toBe(1);
+    expect(w).not.toHaveProperty('flask');
   });
 });

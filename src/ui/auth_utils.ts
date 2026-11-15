@@ -55,7 +55,9 @@ function normalizeAuthMemory(value: unknown): AuthMemoryState {
   });
 }
 
-export function readAuthMemory(storage: AuthMemoryStorage | null = browserStorage()): AuthMemoryState {
+export function readAuthMemory(
+  storage: AuthMemoryStorage | null = browserStorage(),
+): AuthMemoryState {
   if (!storage) return defaultAuthMemory();
   try {
     const raw = storage.getItem(AUTH_MEMORY_KEY);
@@ -65,7 +67,10 @@ export function readAuthMemory(storage: AuthMemoryStorage | null = browserStorag
   }
 }
 
-export function writeAuthMemory(input: AuthMemoryInput, storage: AuthMemoryStorage | null = browserStorage()): AuthMemoryState {
+export function writeAuthMemory(
+  input: AuthMemoryInput,
+  storage: AuthMemoryStorage | null = browserStorage(),
+): AuthMemoryState {
   const state = buildAuthMemoryState(input);
   if (!storage) return state;
   try {
@@ -118,10 +123,10 @@ export function validateForm(form: HTMLFormElement): boolean {
 
   for (const input of inputs) {
     const fieldValid = syncInputAriaState(input);
-    
+
     // Apply fallback dirty/invalid classes
     input.classList.toggle('user-invalid-fallback', !fieldValid);
-    
+
     // For browsers/tests, toggle error display block
     const errorEl = form.querySelector(`#${input.id}-error`) as HTMLElement | null;
     if (errorEl) {
@@ -169,4 +174,3 @@ export function validateCharacterName(name: string): boolean {
   const trimmed = name.trim();
   return /^[A-Za-z][A-Za-z' -]{1,15}$/.test(trimmed);
 }
-

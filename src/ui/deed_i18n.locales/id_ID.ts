@@ -7,6 +7,115 @@
 import type { DeedLocaleTable } from '../deed_i18n';
 
 export const table: DeedLocaleTable = {
+  prog_ready_for_an_adventure: {
+    name: 'Siap Berpetualang',
+    desc: 'Lulus dari Pesisir Pembuktian: selesaikan setiap pelajaran di pulau itu, lalu bunyikan lonceng feri pulang ke Eastbrook.',
+  },
+  exp_dawnhold_castle: {
+    name: 'Pintu Terbuka di Taman',
+    desc: 'Kunjungi Kastil Dawnhold dan jelajahi aula tamannya yang bermandikan cahaya.',
+  },
+  exp_the_last_keep: {
+    name: 'Aula yang Sunyi',
+    desc: 'Masuklah melalui pintu Benteng Terakhir dan susuri aula-aulanya yang sunyi.',
+  },
+  pvp_bg_first_capture: {
+    name: 'Bendera di Tangan',
+    desc: 'Rebut bendera di Medan Thornhollow.',
+  },
+  pvp_bg_first_win: {
+    name: 'Thornhollow Bertahan',
+    desc: 'Menangkan pertempuran di Medan Thornhollow.',
+  },
+  pvp_bg_wins_25: {
+    name: 'Penjaga Thornhollow',
+    desc: 'Menangkan 25 pertempuran di Medan Thornhollow.',
+    title: 'Pembawa Panji',
+  },
+  pvp_bg_captures_100: {
+    name: 'Seratus Bendera',
+    desc: 'Rebut 100 bendera di Medan Thornhollow sepanjang kariermu.',
+  },
+  dgn_rift: {
+    name: 'Penjelajah Rift',
+    desc: 'Bersihkan Rift dengan mengalahkan bos lantainya.',
+  },
+  dgn_rift_s_rank: {
+    name: 'Penguasa Rift',
+    desc: 'Bersihkan Rift peringkat S, tingkat tersulit yang bisa dimunculkan portal Rift.',
+  },
+  pvp_honor_sergeant: {
+    name: 'Pemecah Barisan',
+    desc: 'Raih 10.000 kehormatan seumur hidupmu. Membelanjakannya tidak akan pernah menghilangkan pangkat ini.',
+    title: 'Pemecah Barisan',
+  },
+  pvp_honor_knight_lieutenant: {
+    name: 'Perusak Medan',
+    desc: 'Raih 40.000 kehormatan seumur hidupmu, satu musim perang sungguhan di belakangmu.',
+    title: 'Perusak Medan',
+  },
+  pvp_honor_field_marshal: {
+    name: 'Bermahkota Perang',
+    desc: 'Raih 150.000 kehormatan seumur hidupmu. Langka di realm mana pun, dan memang seharusnya begitu.',
+    title: 'Bermahkota Perang',
+  },
+  chr_drakemaw_broodlord: {
+    name: 'Pemusnah Tetasan',
+    desc: 'Tumpaskan seekor Penguasa Sarang Drakemaw di tengah telur-telurnya, menembus raungan, tebasan, dan apinya.',
+  },
+  chr_maw_matriarch: {
+    name: 'Langit Membisu',
+    desc: 'Tumpaskan Cindraleth Sang Matriark Rahang di sarang kawahnya di atas Drakemaw.',
+  },
+  chr_frostveil_gatherer: {
+    name: 'Panen Teras',
+    desc: 'Panen urat bijih, tegakan kayu, dan petak herba di Frostveil.',
+  },
+  chr_frostveil_first_cast: {
+    name: 'Es Pertama di Tarn',
+    desc: 'Tangkap ikan dari perairan Frostveil.',
+  },
+  chr_amberfall_gatherer: {
+    name: 'Panen Amberfall',
+    desc: 'Panen urat bijih, tegakan kayu, dan petak herba di Amberfall.',
+  },
+  chr_amberfall_first_cast: {
+    name: 'Tangkapan dari Rawa Besar',
+    desc: 'Tangkap ikan dari perairan Amberfall.',
+  },
+  chr_nightbloom_gatherer: {
+    name: 'Panen Bermimpi',
+    desc: 'Panen urat bijih, tegakan kayu, dan petak herba di Nightbloom.',
+  },
+  chr_nightbloom_first_cast: {
+    desc: 'Tangkap ikan dari perairan Nightbloom.',
+
+    name: 'Kuncup Malam Pertama',
+  },
+  chr_wraithwood_gatherer: {
+    name: 'Panen di Bawah Kanopi',
+    desc: 'Panen urat bijih, tegakan kayu, dan petak herba di Wraithwood.',
+  },
+  chr_wraithwood_first_cast: {
+    name: 'Lemparan di Teluk Cermin',
+    desc: 'Tangkap ikan dari perairan Wraithwood.',
+  },
+  chr_palmreach_gatherer: {
+    name: 'Panen di Pantai Palem',
+    desc: 'Panen urat bijih, tegakan kayu, dan petak herba di Palmreach.',
+  },
+  chr_palmreach_first_cast: {
+    name: 'Melempar di Laguna Safir',
+    desc: 'Tangkap ikan dari perairan Palmreach.',
+  },
+  chr_evergarden_gatherer: {
+    name: 'Karunia Parterre',
+    desc: 'Panen urat bijih, tegakan kayu, dan petak herba di Evergarden.',
+  },
+  chr_evergarden_first_cast: {
+    name: 'Lemparan di Kolam Kelopak',
+    desc: 'Tangkap ikan dari perairan Evergarden.',
+  },
   pvp_card_duel_first_win: {
     name: 'Aturan Sendiri',
     desc: 'Menangkan Duel Kartu di hadapan Ahli Kartu.',
@@ -43,9 +152,9 @@ export const table: DeedLocaleTable = {
     desc: 'Pilih satu opsi pada keenam baris talenta dalam satu build.',
   },
   prog_veteran: {
-    name: 'Veteran',
+    name: 'Pejuang Berpengalaman',
     desc: 'Kumpulkan total 250.000 pengalaman sepanjang hayat.',
-    title: 'Veteran',
+    title: 'Pejuang Berpengalaman',
   },
   prog_champion: {
     name: 'Juara',
@@ -79,7 +188,7 @@ export const table: DeedLocaleTable = {
   prog_herbalism_100: { name: 'Penguasa Padang Rumput', desc: 'Capai 100 kecakapan Herbalisme.' },
   prog_master_gatherer: {
     name: 'Pengumpul Ulung',
-    desc: 'Capai 100 kecakapan pada tiga dari Penambangan, Penebangan Kayu, Herbalisme, dan Memancing.',
+    desc: 'Capai kecakapan 100 dalam tiga kerajinan pengumpulan apa pun.',
   },
   prog_first_craft: { name: 'Buatan Tangan', desc: 'Selesaikan hasil kerajinan sukses pertamamu.' },
   prog_craft_specialist: {
@@ -193,8 +302,9 @@ export const table: DeedLocaleTable = {
     title: 'Penumbang Wyrm',
   },
   dgn_sanctum_speed: {
-    name: 'Lari Kencang Sanktum',
     desc: 'Kalahkan Korzul sang Gravewyrm dalam 15 menit sejak party-mu mengklaim Sanktum Gravewyrm.',
+
+    name: 'Sanktum Kilat',
   },
   dgn_nythraxis_gravebreaker: {
     name: 'Tak Bertekuk Lutut pada Raja',
@@ -256,7 +366,7 @@ export const table: DeedLocaleTable = {
   },
   dlv_varric_ringers: {
     name: 'Lonceng-Lonceng Terdiam',
-    desc: 'Kalahkan Diaken Varric dengan setiap Pembunyi Lonceng Pemakaman yang ia bangkitkan telah tewas lebih dulu.',
+    desc: 'Kalahkan Diaken Vandric dengan setiap Pembunyi Lonceng Pemakaman yang ia bangkitkan telah tewas lebih dulu.',
   },
   dlv_nhalia_bells: {
     name: 'Peredam Lonceng',
@@ -269,7 +379,7 @@ export const table: DeedLocaleTable = {
   },
   chr_vale_chapter_ii: {
     name: 'Kronik Lembah, Bab II',
-    desc: 'Selesaikan bab kedua kronik Saul: bandit, murloc, dan hama tambang ditumpas, laga di Sowfield dimainkan, dan Reliquary dijajal.',
+    desc: 'Selesaikan bab kedua kronik Saul: tumbangkan bandit, murloc, dan hama tambang, lalu beranikan diri memasuki Relikuari.',
   },
   chr_vale_chapter_iii: {
     name: 'Kronik Sang Lembah',
@@ -289,8 +399,8 @@ export const table: DeedLocaleTable = {
     desc: 'Bantai 3 Serigala Hutan dalam waktu 10 detik.',
   },
   chr_vale_cup_debut: {
+    desc: 'Masuki lapangan dan sentuh bola dalam pertandingan Piala Vale di Sowfield. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Penantang Ember Tembaga',
-    desc: 'Turun ke lapangan dan sentuh bola dalam sebuah pertandingan Piala Lembah di Sowfield.',
   },
   chr_vale_rares: {
     name: 'Teror-Teror Lembah',
@@ -335,12 +445,12 @@ export const table: DeedLocaleTable = {
   },
   chr_peaks_chapter_iii: {
     name: 'Kronik Thornpeak',
-    desc: 'Tuntaskan seluruh kisah gunung: Wyrmcult dihancurkan, Sanktum dibungkam, sang Puncak yang Terjaga dirobohkan, dan setiap teror bernama di tebing-tebing ditumbangkan.',
+    desc: 'Tuntaskan seluruh kisah gunung: Broodsworn dihancurkan, Sanktum dibungkam, sang Puncak yang Terjaga dirobohkan, dan setiap teror bernama di tebing-tebing ditumbangkan.',
     title: 'dari Thornpeak',
   },
   chr_peaks_sparring: {
     name: 'Latihan Tembok',
-    desc: 'Berikan total 1.000 kerusakan pada Boneka Latihan di atas Menara Pengawas.',
+    desc: 'Berikan total 1.000 kerusakan pada sebuah boneka latihan.',
   },
   chr_peaks_glimmer_cast: {
     name: 'Air Dingin, Cahaya Lebih Dingin',
@@ -433,7 +543,7 @@ export const table: DeedLocaleTable = {
   },
   col_quartermaster_buyout: {
     name: 'Pelanggan Kesayangan',
-    desc: 'Temukan kesepuluh barang dagangan Kepala Perbekalan Vex.',
+    desc: 'Temukan kesepuluh barang perlengkapan dagangan Kepala Perbekalan Vex.',
   },
   col_glimmerfin: {
     name: 'Kilau Harapan',
@@ -461,9 +571,9 @@ export const table: DeedLocaleTable = {
   },
   pvp_arena_1v1_1750: { name: 'Rival Koliseum', desc: 'Capai rating 1750 di divisi arena 1v1.' },
   pvp_arena_1v1_1900: {
-    name: 'Gladiator',
+    name: 'Gladiator Arena',
     desc: 'Capai rating 1900 di divisi arena 1v1.',
-    title: 'Gladiator',
+    title: 'Gladiator Arena',
   },
   pvp_arena_2v2_1600: { name: 'Kuat Berdua', desc: 'Capai rating 1600 di divisi arena 2v2.' },
   pvp_arena_2v2_1750: { name: 'Duet Maut', desc: 'Capai rating 1750 di divisi arena 2v2.' },
@@ -477,70 +587,73 @@ export const table: DeedLocaleTable = {
     desc: 'Kalah dalam duel dengan martabat yang sebagian besar masih utuh.',
   },
   pvp_vcup_first_match: {
+    desc: 'Selesaikan pertandingan Piala Vale penuh di Sowfield, menang atau kalah. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Turun ke Lapangan',
-    desc: 'Selesaikan satu pertandingan Piala Lembah secara penuh di Sowfield, menang ataupun kalah.',
   },
   pvp_vcup_first_win: {
+    desc: 'Menangkan pertandingan Piala Vale berperingkat. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Trofi Pertama',
-    desc: 'Menangkan satu pertandingan Piala Lembah berperingkat.',
   },
   pvp_vcup_wins_10: {
+    desc: 'Menangkan 10 pertandingan Piala Vale berperingkat. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Pebola Babi Hutan Kawakan',
-    desc: 'Menangkan 10 pertandingan Piala Lembah berperingkat.',
   },
   pvp_vcup_wins_25: {
+    desc: 'Menangkan 25 pertandingan Piala Vale berperingkat. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Legenda Bola Babi Hutan',
-    desc: 'Menangkan 25 pertandingan Piala Lembah berperingkat.',
     title: 'Legenda Bola Babi Hutan',
   },
   pvp_vcup_first_goal: {
+    desc: 'Cetak gol dalam pertandingan Piala Vale berperingkat. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Pecah Telur',
-    desc: 'Cetak satu gol dalam pertandingan Piala Lembah berperingkat.',
   },
   pvp_vcup_hat_trick: {
+    desc: 'Cetak tiga gol dalam satu pertandingan Piala Vale berperingkat, di kelompok 3v3 atau lebih besar. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Pahlawan Hat-trick',
-    desc: 'Cetak tiga gol dalam satu pertandingan Piala Lembah berperingkat, di divisi 3v3 atau lebih besar.',
   },
   pvp_vcup_golden_goal: {
+    desc: 'Cetak gol emas yang menentukan pertandingan Piala Vale berperingkat. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Momen Emas',
-    desc: 'Cetak gol emas yang menentukan hasil sebuah pertandingan Piala Lembah berperingkat.',
   },
   pvp_vcup_first_save: {
+    desc: 'Lakukan penyelamatan sebagai penjaga gawang dalam pertandingan Piala Vale berperingkat di kelompok 3v3 atau lebih besar. Hanya tembakan yang cukup cepat untuk menguji peganganmu yang dihitung; tangkapan lembut tidak dihitung. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Tangan Andal',
-    desc: 'Lakukan satu penyelamatan sebagai kiper dalam pertandingan Piala Lembah berperingkat.',
   },
   pvp_vcup_clean_sheet: {
+    desc: 'Menangkan pertandingan Piala Vale berperingkat sebagai penjaga gawang tanpa kebobolan, di kelompok 3v3 atau lebih besar. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Tak Satu Pun Lolos',
-    desc: 'Menangkan pertandingan Piala Lembah berperingkat sebagai kiper tanpa kebobolan satu gol pun.',
   },
   pvp_vcup_guild_win: {
+    desc: 'Menangkan pertandingan Piala Vale berperingkat dengan panji guild-mu. Pertandingan Piala Vale tidak lagi dapat dimainkan, jadi ini tidak dapat diperoleh lagi.',
     name: 'Demi Sang Panji',
-    desc: 'Menangkan pertandingan Piala Lembah berperingkat yang diikuti di bawah panji guild-mu.',
   },
   pvp_fiesta_first_bout: {
+    desc: 'Jalani pertarungan Fiesta 2v2 penuh, menang atau kalah. Pertarungan Fiesta tidak lagi ditawarkan dalam antrean Arena, jadi ini tidak dapat diperoleh lagi.',
     name: 'Penyusup Pesta',
-    desc: 'Bertarunglah dalam satu laga Fiesta 2v2 secara penuh, menang ataupun kalah.',
   },
-  pvp_fiesta_first_win: { name: 'Bintang Fiesta', desc: 'Menangkan satu laga Fiesta 2v2.' },
+  pvp_fiesta_first_win: {
+    name: 'Bintang Fiesta',
+    desc: 'Menangkan pertarungan Fiesta 2v2. Pertarungan Fiesta tidak lagi ditawarkan dalam antrean Arena, jadi ini tidak dapat diperoleh lagi.',
+  },
   pvp_fiesta_double: {
+    desc: 'Jatuhkan dua lawan dalam Fiesta dalam waktu empat detik. Pertarungan Fiesta tidak lagi ditawarkan dalam antrean Arena, jadi ini tidak dapat diperoleh lagi.',
     name: 'Sekali Dayung, Dua Tumbang',
-    desc: 'Robohkan dua lawan Fiesta dalam rentang empat detik.',
   },
   pvp_fiesta_shutdown: {
+    desc: 'Jatuhkan lawan Fiesta yang sedang memiliki rentetan tiga atau lebih. Pertarungan Fiesta tidak lagi ditawarkan dalam antrean Arena, jadi ini tidak dapat diperoleh lagi.',
     name: 'Perusak Pesta',
-    desc: 'Robohkan lawan Fiesta yang tengah berada dalam rentetan tiga atau lebih.',
   },
   pvp_fiesta_full_build: {
+    desc: 'Menangkan pertarungan Fiesta dengan satu penguatan terkunci dari ketiga gelombang. Pertarungan Fiesta tidak lagi ditawarkan dalam antrean Arena, jadi ini tidak dapat diperoleh lagi.',
     name: 'Berdandan untuk Pesta',
-    desc: 'Menangkan laga Fiesta dengan augmen terkunci dari ketiga gelombang.',
   },
   pvp_fiesta_powerups: {
+    desc: 'Ambil keempat peningkat kekuatan cincin setidaknya sekali: Speed Demon, Colossus, Moon Boots, dan Berserker. Pertarungan Fiesta tidak lagi ditawarkan dalam antrean Arena, jadi ini tidak dapat diperoleh lagi.',
     name: 'Cicipi Semuanya',
-    desc: 'Ambil masing-masing dari keempat power-up gelanggang setidaknya sekali: Setan Kecepatan, Raksasa, Bot Bulan, dan Berserker.',
   },
   pvp_fiesta_five_kills: {
+    desc: 'Jatuhkan lima lawan dalam satu pertarungan Fiesta. Pertarungan Fiesta tidak lagi ditawarkan dalam antrean Arena, jadi ini tidak dapat diperoleh lagi.',
     name: 'Tulang Punggung Pesta',
-    desc: 'Robohkan lima lawan dalam satu laga Fiesta.',
   },
   soc_first_party: {
     name: 'Lebih Baik Bersama',
@@ -810,5 +923,533 @@ export const table: DeedLocaleTable = {
   soc_salvage_50: {
     name: 'Halaman Pembongkaran',
     desc: 'Salvasi 50 potong perlengkapan kembali menjadi material mentah.',
+  },
+  dgn_wildheart_basin: {
+    name: 'Cekungan Membalas',
+    desc: 'Kalahkan Zulgar, Suara Cekungan, di Cekungan Hati Liar.',
+  },
+  dgn_wildheart_basin_heroic: {
+    name: 'Heroik: Cekungan Hati Liar',
+    desc: 'Kalahkan Zulgar, Suara Cekungan, di Cekungan Hati Liar pada tingkat kesulitan Heroik.',
+  },
+  chr_peaks_gatherer: {
+    name: 'Tuaian dari Dataran Tinggi',
+    desc: 'Panen satu urat bijih, satu tegakan kayu, dan satu petak herba di Dataran Tinggi Thornpeak.',
+  },
+  chr_marsh_rares_ii: {
+    name: 'Sang Pelahap, Diperhitungkan',
+    desc: 'Bantai Grubjaw sang Pelahap, teror bernama keempat di Rawa Mirefen yang luput dari perhitungan pertama.',
+  },
+  chr_peaks_rares_ii: {
+    name: 'Lebih Banyak Nama Terpahat di Tebing',
+    desc: 'Bantai Cragmaw Tua dan Tuan Serpihan Kazzix, dua teror bernama lagi di Dataran Tinggi Thornpeak yang luput dari perhitungan pertama.',
+  },
+  chr_gleamstag: {
+    name: 'Legenda yang Tak Pernah Menyerang Lebih Dulu',
+    desc: 'Bantai Rusa Kemilau, elite langka dan pemalu yang hanya menyerang bila terdesak.',
+  },
+  chr_hollow_rares: {
+    name: 'Kawanan Itu Ingat',
+    desc: 'Bantai Marrowshell Tua dan Aurelhorn, yang Pertama dari Kawanan, dua bos langka pengembara di Ceruk Terselubung.',
+  },
+  chr_willowfen_gatherer: {
+    name: 'Limpahan Tanah Paya',
+    desc: 'Panen satu urat bijih, satu tegakan kayu, dan satu petak herba di Paya Willow.',
+  },
+  chr_willowfen_first_cast: {
+    name: 'Riak di Paya Lili',
+    desc: 'Pancing seekor ikan dari perairan Paya Willow.',
+  },
+  chr_galecrest_gatherer: {
+    name: 'Tuaian di Ujung Tanjung',
+    desc: 'Panen satu urat bijih, satu tegakan kayu, dan satu petak herba di Puncak Angin.',
+  },
+  chr_galecrest_first_cast: {
+    name: 'Seutas Kail di Danau Cermin',
+    desc: 'Pancing seekor ikan dari perairan Puncak Angin.',
+  },
+  chr_farshore_gatherer: {
+    name: 'Perbekalan dari Pulau',
+    desc: 'Panen satu urat bijih, satu tegakan kayu, dan satu petak herba di Pesisir Jauh.',
+  },
+  chr_farshore_first_cast: {
+    name: 'Yang Diketahui Para Camar',
+    desc: 'Pancing seekor ikan dari perairan Pesisir Jauh.',
+  },
+  prog_engineering_rare: {
+    name: 'Rekayasa Presisi',
+    desc: 'Buat barang bertingkat langka pertamamu dalam Rekayasa.',
+  },
+  prog_alchemy_rare: {
+    name: 'Vintage Langka',
+    desc: 'Buat barang bertingkat langka pertamamu dalam Alkimia.',
+  },
+  prog_cooking_rare: {
+    name: 'Hidangan yang Tak Terlupakan',
+    desc: 'Buat barang bertingkat langka pertamamu dalam Memasak.',
+  },
+  prog_leatherworking_rare: {
+    name: 'Penyamakan Halus',
+    desc: 'Buat barang bertingkat langka pertamamu dalam Pengolahan Kulit.',
+  },
+  prog_tailoring_rare: {
+    name: 'Jahitan Sang Maestro',
+    desc: 'Buat barang bertingkat langka pertamamu dalam Menjahit.',
+  },
+  prog_weaponcrafting_rare: {
+    name: 'Ditempa hingga Berkilau',
+    desc: 'Buat barang bertingkat langka pertamamu dalam Penempaan Senjata.',
+  },
+  prog_armorcrafting_rare: {
+    name: 'Dilapisi hingga Sempurna',
+    desc: 'Buat barang bertingkat langka pertamamu dalam Penempaan Zirah.',
+  },
+  col_reliquary_rank_2: {
+    name: 'Penjaga Rampasan',
+    desc: 'Capai peringkat Kurator 2 di Relikuari (10 relik unik terkatalog).',
+    title: 'Penjaga Rampasan',
+  },
+  col_reliquary_rank_3: {
+    name: 'Sang Pembuat Katalog',
+    desc: 'Capai peringkat Kurator 3 di Relikuari (25 relik unik terkatalog).',
+    title: 'sang Pembuat Katalog',
+  },
+  col_reliquary_rank_4: {
+    name: 'Kurator Utama',
+    desc: 'Capai peringkat Kurator 4 di Relikuari (50 relik unik terkatalog).',
+    title: 'Kurator Utama',
+  },
+  col_reliquary_rank_5: {
+    name: 'Rampasan Abadi',
+    desc: 'Capai peringkat Kurator 5 di Relikuari (100 relik unik terkatalog).',
+  },
+  col_reliquary_complete: {
+    name: 'Relikuari Agung',
+    desc: 'Katalogkan setiap relik di Relikuari yang bisa disimpan sebuah karakter. Pertumbuhan katalog di kemudian hari tidak pernah menariknya kembali.',
+    title: 'Kurator Ruang Simpan',
+  },
+  col_reliquary_conquerors: {
+    name: 'Rak Penakluk',
+    desc: 'Katalogkan setiap relik di rak Penakluk pada Relikuari. Pertumbuhan katalog di kemudian hari tidak pernah menariknya kembali.',
+    title: 'Pembobol Ruang Simpan',
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    name: 'Nythraxis Diterangi',
+    desc: 'Terangi halaman Heroik: Raid Nythraxis pada Relikuari.',
+    title: 'Cahaya Nythraxis',
+  },
+  col_reliquary_illum_thunzharr: {
+    name: 'Thunzharr Diterangi',
+    desc: 'Terangi halaman Thunzharr, Puncak yang Terjaga pada Relikuari.',
+    title: 'Cahaya Thunzharr',
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    name: 'Sanktum Diterangi',
+    desc: 'Terangi halaman Heroik: Sanktum Gravewyrm pada Relikuari.',
+    title: 'Cahaya Sanktum',
+  },
+  soc_strongbox_outfitter: {
+    name: 'Penata Brankas',
+    desc: 'Buka slot tas bank pertamamu.',
+  },
+  soc_four_bags_deep: {
+    name: 'Keempat Tas',
+    desc: 'Buka keempat slot tas bank.',
+  },
+  dgn_ignivar: {
+    name: 'Sang Utusan Tumbang',
+    desc: 'Kalahkan Ignivar, Utusan Api Terakhir, di Tungku Mata Air Terakhir.',
+  },
+  dgn_ignivar_heroic: {
+    name: 'Heroik: Sang Utusan Tumbang',
+    desc: 'Kalahkan Ignivar, Utusan Api Terakhir, di Tungku Mata Air Terakhir pada tingkat kesulitan heroik.',
+  },
+  dgn_varkhul: {
+    name: 'Tungku Mendingin',
+    desc: 'Kalahkan Varkhul, Bapak Penempa Api Terakhir, di Tungku Dalam.',
+  },
+  dgn_varkhul_heroic: {
+    name: 'Heroik: Tungku Mendingin',
+    desc: 'Kalahkan Varkhul, Bapak Penempa Api Terakhir, di Tungku Dalam pada tingkat kesulitan heroik.',
+  },
+  dgn_varkhul_flawless: {
+    name: 'Tak Sebutir Bara Pun Hilang',
+    desc: 'Kalahkan Varkhul, Bapak Penempa Api Terakhir, di Tungku Dalam tanpa ada pemain yang gugur.',
+    title: 'sang Nirbakar',
+  },
+  col_set_bramblehide: {
+    name: 'Kulit Semak Duri',
+    desc: 'Temukan setiap bagian dari Kulit Semak Duri.',
+  },
+  prog_jewelcrafting_rare: {
+    desc: 'Buat item tingkat langka pertamamu dalam Perhiasan.',
+    name: 'Dipoles hingga Cemerlang',
+  },
+  prog_jewelcrafting_50: { desc: 'Capai keahlian 50 dalam Perhiasan.', name: 'Segi dan Filigran' },
+  prog_grandmaster_jewelcrafting: {
+    desc: 'Capai keahlian 125 dalam Perhiasan, puncak kerajinan ini.',
+
+    name: 'Pembuatan Perhiasan Mahaguru',
+    title: 'Pembuatan Perhiasan Mahaguru',
+  },
+  prog_inscription_rare: {
+    desc: 'Buat item tingkat langka pertamamu dalam Inskripsi.',
+    name: 'Tertulis dengan Tinta Halus',
+  },
+  prog_inscription_50: { desc: 'Capai keahlian 50 dalam Inskripsi.', name: 'Pena dan Pigmen' },
+  prog_grandmaster_inscription: {
+    desc: 'Capai keahlian 125 dalam Inskripsi, puncak kerajinan ini.',
+
+    name: 'Prasasti Mahaguru',
+    title: 'Prasasti Mahaguru',
+  },
+  col_deepest_cast: {
+    desc: 'Dapatkan Joran Clockreel, satu-satunya joran yang mencapai tangkapan terdalam.',
+
+    name: 'Lemparan Terdalam',
+  },
+  prog_first_planting: { desc: 'Tanam tanaman pertamamu di petak kebun.', name: 'Benih Awal' },
+  chr_vale_first_harvest: {
+    desc: 'Panen tanaman subur pertamamu dari petak kebun di Eastbrook Vale.',
+
+    name: 'Buah Pertama Lembah',
+  },
+  chr_marsh_first_harvest: {
+    desc: 'Panen tanaman subur pertamamu dari petak kebun di Rawa Mirefen.',
+
+    name: 'Tunas di Gambut',
+  },
+  chr_peaks_first_harvest: {
+    desc: 'Panen tanaman subur pertamamu dari petak kebun di Puncak Thornpeak.',
+
+    name: 'Tanaman di Antara Tebing',
+  },
+  chr_evergarden_first_harvest: {
+    desc: 'Panen tanaman subur pertamamu dari petak kebun di Evergarden.',
+
+    name: 'Petak di Firdaus',
+  },
+  col_golden_harvest: {
+    desc: 'Panen emas dan biarkan seluruh zona mendengarnya.',
+    name: 'Panen Emas',
+  },
+  prog_farming_100: {
+    desc: 'Capai kecakapan 100 dalam Bertani.',
+    name: 'Master Panen',
+    title: 'Master Panen',
+  },
+  col_farm_roster: {
+    desc: 'Panen setiap tanaman yang ditumbuhkan keempat kebun.',
+    name: 'Setiap Alur Terisi',
+  },
+  prog_field_to_feast: {
+    desc: 'Masak pesta tingkat puncak yang dapat disantap seluruh raid.',
+    name: 'Dari Ladang ke Pesta',
+  },
+  prog_legendmaker: {
+    desc: 'Naikkan karya yang Disempurnakan menjadi legenda dengan Surat Pembuatan, lalu beri nama yang sepenuhnya milikmu.',
+
+    name: 'Pembuat Legenda',
+  },
+  hid_forgebreaker: {
+    desc: 'Bentuk Pemecah Tempa dengan tanganmu sendiri dan kembali ke Maelin membawa palu yang sudah selesai.',
+
+    name: 'Mata Air Terbelenggu',
+  },
+  exp_arcane_calligraphy: {
+    name: 'Tangan yang Stabil',
+    desc: 'Selesaikan Kaligrafi Arkan di Lembah Eastbrook.',
+  },
+  exp_arcane_calligraphy_gold: {
+    name: 'Ditulis di Cahaya Bintang',
+    desc: 'Raih peringkat Emas di Kaligrafi Arkan.',
+    title: 'Pemanggil Rune',
+  },
+  exp_forge_helper: {
+    name: 'Palu Pembantu',
+    desc: 'Bantu Pandai Smith Mara menyelesaikan perisai di Wyrmwatch.',
+  },
+  exp_last_barricade: {
+    name: 'Barrikade Terakhir',
+    desc: 'Bertahan di jalur hutan melawan gerombolan mayat hidup.',
+  },
+  exp_borrowed_face: {
+    name: 'Wajah yang Dipinjam',
+    desc: 'Ungkap dan mengalahkan penyusup di antara pengawas Fenbridge.',
+  },
+  exp_windrider_slalom: {
+    name: 'Slalom Angin Naik',
+    desc: 'Selesaikan keturunan peluncur mekanisme melalui ngarai Galecrest.',
+  },
+  exp_duskweave_dispatches: {
+    name: 'Pengiriman Anyaman Senja',
+    desc: 'Pulihkan pengiriman bandit sambil memakai jubah bersinisme Valerie.',
+  },
+  exp_wisp_maze: {
+    name: 'Cahaya di Labirin',
+    desc: 'Pulihkan kantong koin yang dicuri dan keluar dari labirin Evergarden.',
+  },
+  prog_rift_watch_trusted: {
+    name: 'Dipercaya oleh Pengawas Celah',
+    desc: 'Capai status Dipercaya dengan Pengawas Celah.',
+  },
+  prog_church_order_trusted: {
+    name: 'Dipercaya oleh Ordo Gereja',
+    desc: 'Capai status Dipercaya dengan Ordo Gereja.',
+  },
+  prog_automatons_trusted: {
+    name: 'Dipercaya oleh Automaton',
+    desc: 'Capai status Dipercaya dengan Automaton.',
+  },
+  prog_rift_watch_champion: {
+    name: 'Juara Pengawas Celah',
+    desc: 'Capai status Juara dengan Pengawas Celah.',
+    title: 'Penjaga Celah',
+  },
+  prog_church_order_champion: {
+    name: 'Juara Ordo Gereja',
+    desc: 'Capai status Juara dengan Ordo Gereja.',
+    title: 'Penjaga Fajar',
+  },
+  prog_automatons_champion: {
+    name: 'Juara Automaton',
+    desc: 'Capai status Juara dengan Automaton.',
+    title: 'Maestro Pengrajin',
+  },
+  prog_faction_champion_all: {
+    name: 'Juara Setiap Bendera',
+    desc: 'Capai status Juara dengan Pengawas Celah, Ordo Gereja dan Automaton.',
+  },
+  exp_clue_first_casket: {
+    name: 'Harta Ditemukan',
+    desc: 'Buka Peti Harta yang digali di akhir perburuan gulir petunjuk.',
+  },
+  exp_clue_ten_caskets: {
+    name: 'Pemburu Harta',
+    desc: 'Buka 10 Peti Harta yang digali di akhir perburuan gulir petunjuk.',
+    title: 'Pemburu Harta',
+  },
+  exp_harbor_to_harbor: {
+    name: 'Pelabuhan ke Pelabuhan',
+    desc: 'Berlayar dengan kedua feri bolak-balik: Eastbrook ke Moonrest, dan Wickharbor ke Wyrmwatch.',
+  },
+  cmb_coinsack_caught: {
+    name: 'Tertangkap Saat Berbuat Buruk',
+    desc: 'Tangkap Penari Mata Uang dalam Harta Karun Terkubur sebelum dia kabur dengan emas.',
+  },
+  exp_wisp_maze_hard: {
+    name: 'Lebih Terang dari Bayangan',
+    desc: 'Rebut kembali kantong koin yang dicuri dan keluar dari labirin Evergarden pada tingkat Hard.',
+  },
+  prog_titan: {
+    name: 'Raksasa',
+    desc: 'Dapatkan total 10.000.000 pengalaman seumur hidup.',
+    title: 'Raksasa',
+  },
+  pvp_flag_1h: {
+    name: 'Berani',
+    desc: 'Pertahankan PvP Dunia tetap aktif selama 1 jam waktu bermain ketika masih hidup di dunia terbuka atau pertandingan PvP. Suaka, instans PvE, kematian, dan keluar menjeda kemajuan; menonaktifkannya mengatur ulang kemajuan. Gelar yang diperoleh bersifat permanen.',
+    title: 'Berani',
+  },
+  pvp_flag_3h: {
+    name: 'Pembangkang',
+    desc: 'Pertahankan PvP Dunia tetap aktif selama 3 jam waktu bermain ketika masih hidup di dunia terbuka atau pertandingan PvP. Suaka, instans PvE, kematian, dan keluar menjeda kemajuan; menonaktifkannya mengatur ulang kemajuan. Gelar yang diperoleh bersifat permanen.',
+    title: 'Pembangkang',
+  },
+  pvp_flag_6h: {
+    name: 'Tak Gentar',
+    desc: 'Pertahankan PvP Dunia tetap aktif selama 6 jam waktu bermain ketika masih hidup di dunia terbuka atau pertandingan PvP. Suaka, instans PvE, kematian, dan keluar menjeda kemajuan; menonaktifkannya mengatur ulang kemajuan. Gelar yang diperoleh bersifat permanen.',
+    title: 'Tak Gentar',
+  },
+  pvp_flag_24h: {
+    name: 'Tak Tergoyahkan',
+    desc: 'Pertahankan PvP Dunia tetap aktif selama 24 jam waktu bermain ketika masih hidup di dunia terbuka atau pertandingan PvP. Suaka, instans PvE, kematian, dan keluar menjeda kemajuan; menonaktifkannya mengatur ulang kemajuan. Gelar yang diperoleh bersifat permanen.',
+    title: 'Tak Tergoyahkan',
+  },
+  pvp_flag_168h: {
+    name: 'Tak Tertaklukkan',
+    desc: 'Pertahankan PvP Dunia tetap aktif selama 7 hari waktu bermain ketika masih hidup di dunia terbuka atau pertandingan PvP. Suaka, instans PvE, kematian, dan keluar menjeda kemajuan; menonaktifkannya mengatur ulang kemajuan. Gelar yang diperoleh bersifat permanen.',
+    title: 'Tak Tertaklukkan',
+  },
+  dgn_morthen_candlelight: {
+    name: 'Semua Lilin Menyala',
+    desc: 'Kalahkan Morthen Pemanggil Makam setelah menyalakan kembali keempat Lilin Kenangan dalam 20 detik setelah Perisai Arwah Gelisahnya muncul.',
+  },
+  dgn_ilvane_hush: {
+    name: 'Diamlah Kini',
+    desc: 'Kalahkan Kantor Ilvane tanpa Ratapan Kehampaannya pernah mengenai siapa pun.',
+  },
+  dgn_lady_nobody_hanging: {
+    name: 'Tak Ada yang Dibiarkan Menggantung',
+    desc: 'Kalahkan Nyonya Dingin Tulang tanpa ia pernah menjatuhkan siapa pun dari Pelukan Bekunya.',
+  },
+  dgn_marrow_tidy: {
+    name: 'Halaman Gereja yang Rapi',
+    desc: 'Kalahkan Pengurus Makam Marrow dengan setiap Makam Terbuka ditempatkan di tepi Halaman Lonceng.',
+  },
+  dgn_drowned_temple_cantor: {
+    name: 'Bait Terakhir',
+    desc: 'Kalahkan Ysolei, Avatar Bulan Tenggelam, dengan Kantor Terakhir Paduan Suara Pucat di sisimu.',
+    title: 'Saksi Paduan Suara',
+  },
+  dgn_sledge_tusker: {
+    name: 'Muatan Dingin',
+    desc: 'Kalahkan Binatang Gading Penarik Kereta tanpa siapa pun terkena Injak-injaknya.',
+  },
+  dgn_korzul_thin_ice: {
+    name: 'Es Tipis',
+    desc: 'Kalahkan Korzul Wyrm Makam dengan setidaknya dua belas dari sembilan belas lempeng danau tetap utuh.',
+  },
+  dgn_velkhar_cold: {
+    name: 'Penghiburan Dingin',
+    desc: 'Kalahkan Nekromancer Agung Velkhar tanpa satu pun Pejalan Tulang yang Dibangkitkan bangkit untuk kedua kalinya.',
+  },
+  dgn_korgath_still_bound: {
+    name: 'Gembok Tetap Kukuh',
+    desc: 'Kalahkan Korgath yang Terikat pada kesulitan Heroik dengan setidaknya dua rantainya tidak pernah diputus.',
+  },
+  dgn_korgath_all_chains: {
+    name: 'Akhir yang Lebih Belas Kasih',
+    desc: 'Kalahkan Korgath yang Terikat setelah memutus keempat rantainya.',
+  },
+  dgn_great_saurian: {
+    name: 'Titan Tumbang',
+    desc: 'Kalahkan Kadal Raksasa dan Pemanggil Kutukan Tandunya dengan selisih waktu tidak lebih dari 20 detik.',
+  },
+  dgn_zulgar_uncaught: {
+    name: 'Tak Pernah Tertangkap',
+    desc: 'Kalahkan Zulgar, Suara Cekungan, tanpa siapa pun dicabik.',
+  },
+  dgn_gorgebloom_clean: {
+    name: 'Pengendalian Gulma',
+    desc: 'Kalahkan Bunga Pelahap tanpa satu pun Tunas Duri tumbuh.',
+  },
+  dgn_beastmaster_apart: {
+    name: 'Tetap Berjauhan',
+    desc: 'Kalahkan Penguasa Taring Sang Penguasa Binatang dan Jaguar Besarnya dengan Ikatan Kawanan aktif kurang dari 10 detik secara keseluruhan.',
+  },
+  dgn_turnkey_cage: {
+    name: 'Tak Ada Kurungan yang Menahan Kami',
+    desc: 'Kalahkan Sipir Penjara tanpa siapa pun diremukkan di dalam Kurungan Besi.',
+  },
+  dgn_crypt_knellwyrm: {
+    name: 'Tak Sehelai Rambut Hangus',
+    desc: 'Kalahkan Wyrm Lonceng Kematian tanpa siapa pun terbakar Sapuan Api Unggunnya.',
+  },
+  dgn_mere_hydra: {
+    name: 'Semua Kepala Tumbang',
+    desc: 'Bunuh ketiga kepala Hidra Danau dengan selisih waktu tidak lebih dari 10 detik.',
+  },
+  dgn_ysolei_high_and_dry: {
+    name: 'Tinggi dan Kering',
+    desc: 'Kalahkan Ysolei, Avatar Bulan Tenggelam, tanpa siapa pun terkena Hantaman Pasangnya.',
+  },
+  dgn_colossus_mirror: {
+    name: 'Pecahkan Kacanya',
+    desc: 'Kalahkan Kolosus Kaca Pasang dengan setiap Bayangan dihancurkan dalam 15 detik setelah muncul.',
+  },
+  dgn_selthe_pitch: {
+    name: 'Semua Suara Selaras',
+    desc: 'Kalahkan Ibu Paduan Suara Selthe dengan setiap Paduan Suara ditanggung bersama oleh dua pemain atau lebih dan tanpa Solo menyentuh pemain lain.',
+  },
+  dgn_turretback: {
+    name: 'Pemberitahuan Pengusiran',
+    desc: 'Kalahkan Kapten Kapal Karam tanpa siapa pun terkena Rentetan Meriam Hantu.',
+  },
+  dgn_vael_beacon: {
+    name: 'Dengan Cahaya Mercusuar',
+    desc: 'Kalahkan Vael Pengikat Kabut tanpa meledakkan satu pun Bayangan Kabut.',
+  },
+  dgn_ossick_moored: {
+    name: 'Pelabuhan Aman',
+    desc: 'Kalahkan Sipir Ossick tanpa siapa pun terseret ke Lubang Penenggelaman.',
+  },
+  dgn_olen_buttress: {
+    name: 'Pertahankan Tembok',
+    desc: 'Kalahkan Komandan Kesatria Olen tanpa Benteng Memantul miliknya pernah mengenai pemain kedua.',
+  },
+  cmb_point_taken: {
+    name: 'Ujung Tombak Berbicara',
+    desc: 'Padamkan lentera Mandor Jerami di lapangan latihan pengerahan dan buat papan-papannya merasakan hantaman.',
+  },
+  cmb_balgath_ten: {
+    name: 'Gundukan Tak Menyimpan Apa Pun',
+    desc: 'Tumbangkan Mandor Terkubur sepuluh kali.',
+  },
+  cmb_balgath: {
+    name: 'Bukan Mandor Lagi',
+    desc: 'Kembalikan Mandor Terkubur ke gundukan makamnya.',
+  },
+  dgn_guild_first_contract: {
+    name: 'Surat Perintah Ditandatangani',
+    desc: 'Selesaikan satu kontrak dungeon mingguan Balai Lentera.',
+  },
+  dgn_guild_ten_contracts: {
+    name: 'Langganan Papan Kontrak',
+    desc: 'Selesaikan 10 kontrak dungeon mingguan Balai Lentera.',
+  },
+  dgn_guild_fifty_contracts: {
+    name: 'Veteran Kontrak',
+    desc: 'Selesaikan 50 kontrak dungeon mingguan Balai Lentera.',
+  },
+  feat_guild_writ_runner: {
+    name: 'Pembawa Surat Perintah',
+    desc: 'Dibeli dari Garrick Holt, pengurus perbekalan Balai Lentera, dengan 6 Segel Lentera.',
+    title: 'Pembawa Surat Perintah',
+  },
+  feat_guild_hallsworn: {
+    name: 'Setia pada Balai',
+    desc: 'Dibeli dari Garrick Holt, pengurus perbekalan Balai Lentera, dengan 14 Segel Lentera.',
+    title: 'Setia pada Balai',
+  },
+  feat_guild_of_lantern_hall: {
+    name: 'Dari Balai Lentera',
+    desc: 'Dibeli dari Garrick Holt, pengurus perbekalan Balai Lentera, dengan 24 Segel Lentera.',
+    title: 'dari Balai Lentera',
+  },
+  feat_gourdlight_guise: {
+    name: 'Wujud Cahaya Labu',
+    desc: 'Miliki Kepala Labu Ukir yang diambil dari Si Tua Seringai Jerami di ladangnya melewati Padang Babi Hutan selama Malam Cahaya Labu.',
+  },
+  feat_old_thatchgrin: {
+    name: 'Jerami dan Abu',
+    desc: 'Bantu tumbangkan Si Tua Seringai Jerami di ladang labunya melewati Padang Babi Hutan selama Malam Cahaya Labu.',
+  },
+  feat_title_gourdlit: {
+    name: 'Si Bercahaya Labu',
+    desc: 'Baca Piagam Si Bercahaya Labu yang ditukar dari Hester Sumbu Labu dengan Permen Cahaya Labu selama Malam Cahaya Labu.',
+    title: 'Si Bercahaya Labu',
+  },
+  feat_title_trickster: {
+    name: 'Si Usil',
+    desc: 'Baca Piagam Si Usil yang ditukar dari Hester Sumbu Labu dengan Permen Cahaya Labu selama Malam Cahaya Labu.',
+    title: 'Si Usil',
+  },
+  feat_title_hollow_grinned: {
+    name: 'Si Seringai Hampa',
+    desc: 'Baca Piagam Seringai Hampa yang ditukar dari Hester Sumbu Labu dengan Permen Cahaya Labu selama Malam Cahaya Labu.',
+    title: 'Si Seringai Hampa',
+  },
+  feat_pumpkin_hunter: {
+    name: 'Pemburu Labu',
+    desc: 'Temukan setiap Labu Berhantu yang tersembunyi di seluruh dunia selama Malam Cahaya Labu.',
+    title: 'Si Hampa',
+  },
+  feat_gourdlight_doorsteps: {
+    name: 'Setiap Ambang Pintu',
+    desc: 'Mintalah permen atau keisengan kepada setiap warga yang membuka pintu di Eastbrook, Jembatan Rawa, dan Menara Pengawas selama Malam Cahaya Labu.',
+  },
+  feat_gourdlight_errands: {
+    name: 'Siap Melayani Hester',
+    desc: 'Selesaikan setiap tugas bergilir Malam Cahaya Labu dari Hester Sumbu Labu setidaknya sekali.',
+  },
+  feat_gourdlight_frights: {
+    name: 'Tiga Kota Terkejut',
+    desc: 'Pada tugas Huu! dari Hester, takuti seorang warga di masing-masing kota Eastbrook, Jembatan Rawa, dan Menara Pengawas.',
+  },
+  feat_gourdlight_eve_complete: {
+    name: 'Cahaya Labu, Awal hingga Akhir',
+    desc: 'Selesaikan seluruh Malam Cahaya Labu: tumbangkan Si Tua Seringai Jerami, temukan setiap Labu Berhantu, selesaikan setiap tugas Hester, ketuk setiap pintu, dan takuti seorang warga di masing-masing dari ketiga kota.',
+    title: 'Si Tersumpah Labu',
   },
 };

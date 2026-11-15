@@ -1,9 +1,53 @@
+import type { CourierAccountExchange, CourierBankExchange } from './courier';
+import { cloneItemProvenance, type ItemTrackedKind } from './item_provenance';
+import { cloneLootQuality, type LootQualityDescriptor } from './loot_quality/types';
+import type { PurchaseParcelView } from './mail/purchase_parcels';
+import type { LocalGathererIdentity } from './material_gatherer';
+import { cloneMaterialData, cloneMaterialPayload } from './material_payload_identity';
+import type { MaterialComposition } from './material_sources';
 // Core shared types for the simulation. The sim layer has zero DOM/rendering deps.
 
 import type { ChatSenderFlair, StreamerLinks } from './account_flair';
-import type { GatheringProfessionId } from './content/professions';
+import type { ClutterStamp } from './city_clutter';
+import type { BuddyKey } from './content/buddies';
+import type { MountKey } from './content/mounts';
+import type { CraftDef, GatheringProfessionId, ToolEffectId } from './content/professions';
+import type { RealmBuilderHonour } from './content/realm_builders';
+import type { InkMapTarget, TreasureMapRarity } from './content/treasure_maps';
+import type { DungeonGuideRun } from './dungeon_guide/types';
+import type { KorgathFightState } from './encounters/gravewyrm_sanctum/korgath_state';
+import type { KorzulFightState } from './encounters/gravewyrm_sanctum/korzul_state';
+import type { VelkharFightState } from './encounters/gravewyrm_sanctum/velkhar_state';
+import type {
+  CryptBossFightState,
+  KnellwyrmKnellState,
+} from './encounters/hollow_crypt/boss_state';
+import type { GrassClearCircle } from './grass_clear';
 import type { LockSession, LootTier, PickAction, StepResult, VisibleCell } from './lockpick';
+import type { MapObjectives } from './map_objectives';
+import type { GliderFlightResult, GliderFlightState } from './minigames/glider_flight';
+import type { WispMazeState } from './minigames/wisp_maze';
+import type { BastionKitDef } from './mob/trash_kit/bastion_kit_types';
+import type { TempleKitDef, TempleKitState } from './mob/trash_kit/temple_kit_types';
+import type { WildheartKitDef, WildheartKitState } from './mob/trash_kit/wildheart_kit_types';
+import type { ObjectMoves } from './moved_objects';
+import type { FishingCatchBand } from './professions/fishing_bands';
 import type { HarvestYield } from './professions/harvest_yields';
+import type {
+  PerfectingSwapDenyReason,
+  PerfectingSwapRequest,
+} from './professions/perfecting_swap';
+import type { RespawnWindow } from './respawn_policy';
+import type { HoardControlCast } from './rift/hoard_control_casts';
+import type { TreeParams } from './tree_params';
+import type {
+  VarkhulAssemblyDifficulty,
+  VarkhulAssemblyPhase,
+  VarkhulAssemblyRuneControl,
+} from './varkhul_assembly';
+import type { VarkhulEngageState } from './varkhul_engage';
+import type { VarkhulForgeBeamWindow } from './varkhul_forge_intermission';
+import type { WorldQuestMedal } from './world_quest_scoreboards';
 
 export const TICK_RATE = 20; // sim ticks per second
 export const DT = 1 / TICK_RATE;
@@ -27,6 +71,15 @@ export const INTERACT_RANGE = 5;
 // code that stays on Sim (the chat router, pickUpObject) and an extracted slice (the
 // Nythraxis encounter's yells + crypt-relic respawn), so they live here, not in sim.ts.
 export const YELL_RANGE = 100;
+// New ordinary entities enter a live client's interest set at this radius.
+// Presentation that enumerates the complete offline Sim must use the same edge
+// or it can reveal entities that an online client has not received yet.
+export const PLAYER_INTEREST_RADIUS = 90;
+// Shared host interest boundary: the renderer destroys ordinary entity views at
+// 96 yards, and the network keeps known entities through this slightly wider
+// hysteresis edge. Offline and server Sims may therefore skip only idle,
+// ownerless mob AI beyond this radius without freezing anything a player sees.
+export const PLAYER_INTEREST_DROP_RADIUS = 100;
 export const OBJECT_RESPAWN = 30;
 // How many of a party member's auras ride the party wire (PartyMemberInfo.auras,
 // the mini icon strip under each party frame row). A cap, not a filter: the first
@@ -48,6 +101,13 @@ export const DUNGEON_LEASH_DISTANCE = 70;
 // Nythraxis add template id. Used by the mob-locomotion slice (the add branch of
 // updateMob); the boss id NYTHRAXIS_BOSS_ID lives lower in this file (C1 relocation).
 export const NYTHRAXIS_ADD_ID = 'nythraxis_skeleton_warrior';
+// Owner playtest call 2026-09-04: the mechanics redo fields NO adds. Raise
+// Fallen's guard waves (phase 1) and the heroic court summon (phase 2) both read
+// this switch, and so do the Raid Boss Guide page and the Dungeon Finder blurbs,
+// so the fight and the text that describes it always agree. The add templates
+// and their AI stay authored (loot, portraits, deeds, and the direct-call unit
+// tests reference them); flipping this back restores the waves and the court.
+export const NYTHRAXIS_ADDS_ENABLED = false;
 export const GCD = 1.5; // seconds
 // Owner 2026-07-13: spell haste now shortens the global cooldown, floored here so it
 // never collapses to nothing. The base GCD is divided by spellHasteMult at cast time.
@@ -69,7 +129,35 @@ export function hitFractionFromRating(rating: number): number {
   return rating / (HIT_RATING_PER_PCT * 100);
 }
 
-export type HonorReason = 'arena_win' | 'fiesta_kill' | 'fiesta_complete' | 'fiesta_win';
+export type HonorReason =
+  | 'arena_win'
+  // A ranked arena bout that did not end in a win: a loss, or a draw, which pays
+  // both sides the loss award. One reason for both, mirroring the battleground's
+  // own `battleground_complete`, because the player-facing fact is the same one
+  // (the match was fought and it paid) and a drawn bout has no loser to name.
+  | 'arena_complete'
+  | 'fiesta_kill'
+  | 'fiesta_complete'
+  | 'fiesta_win'
+  | 'battleground_win'
+  // The once-per-UTC-day first Thornhollow Fields win bonus, paid as its own
+  // grant beside the ordinary win award so the float and the chat line name it.
+  | 'battleground_first_win'
+  | 'battleground_complete'
+  | 'battleground_kill'
+  | 'battleground_assist'
+  // World PvP (/pvp flag, src/sim/pvp/world_pvp.ts): the killing blow's share
+  // of the kill pool, and everyone else's who damaged the victim or healed a
+  // damager inside the assist window. Two reasons so the float and the chat
+  // line can name which one just paid, like the battleground drip above.
+  | 'world_kill'
+  | 'world_assist'
+  // King of the Hill (pvp/hill.ts): the once-a-minute trickle to a holder
+  // standing inside the circle.
+  | 'hill_hold'
+  // The day's Honor world quests (src/sim/world_quest_honor_slots.ts): two
+  // rotating world quests per realm cycle pay a flat Honor bonus on completion.
+  | 'world_quest';
 
 // Persisted anti-win-trading window for ranked honor. `winsByOpponent` is keyed
 // by bracket plus the stable, sorted opposing-team identity; `totalWins` drives
@@ -77,7 +165,22 @@ export type HonorReason = 'arena_win' | 'fiesta_kill' | 'fiesta_complete' | 'fie
 export interface HonorArenaDailyState {
   date: string;
   winsByOpponent: Record<string, number>;
+  // Ranked LOSSES (and draws) per bracket plus opposing-team identity, on the
+  // same ARENA_REPEAT_DR curve as the wins beside it but on its OWN counter, so
+  // losing to a team first does not spend the win award for beating it later
+  // (optional so pre-loss-award saves stay byte-equal; absent until the first
+  // paying loss).
+  lossesByOpponent?: Record<string, number>;
   fiestaCompletionsByOpponent: Record<string, number>;
+  // Thornhollow Fields results per opposing-team identity (optional so pre-battleground
+  // saves stay byte-equal; absent until the first battleground result).
+  bgResultsByOpponent?: Record<string, number>;
+  // The first-win-of-the-day bonus has been paid for `date` already. Optional and
+  // absent until it is claimed, exactly like `bgResultsByOpponent`, so a save that
+  // predates the bonus (or a day that has not paid it yet) round-trips byte-equal.
+  // It rides THIS window rather than a state of its own because the window already
+  // owns the UTC date string and the one rollover that clears every daily counter.
+  bgFirstWinClaimed?: boolean;
   totalWins: number;
 }
 // Shared cooldown across ALL combat potions (classic-era potion sickness): one
@@ -92,16 +195,48 @@ export const CAST_COMPLETE_EPS = 1e-9;
 // erroring, and fires the instant the current cast completes.
 export const CAST_QUEUE_WINDOW_SEC = 0.4;
 export const FISHING_CAST_ID = 'fishing';
-export const FISHING_CAST_NAME = 'Fishing';
 // The constant castTotal/castRemaining of a fishing session (Professions 2.0,
 // retiring the fixed FISHING_CAST_TIME cast): a generous cap that
 // carries ZERO information about the hidden bite (max bite delay plus max
 // reel window end every real session well before it), so the broadcast cast
 // fields can never leak the bite timing to a modified client.
-export const FISHING_SESSION_CAP_SEC = 15;
+export const FISHING_SESSION_CAP_SEC = 16;
 // The gather-cast sentinel riding castingAbility (Professions 2.0),
 // beside FISHING_CAST_ID above: an activity marker, never an ability id.
 export const GATHER_CAST_ID = 'gathering';
+// The craft-cast sentinel (Craft Cast System Phase 1): same activity-marker
+// shape as gather/fishing, never an ability id. Membership in isNonSpellCast
+// is load-bearing (cancel, damage cancel, item-use block, session_teardown).
+export const CRAFT_CAST_ID = 'crafting';
+// Enchant-family cast sentinels (Craft Cast System Phase 4): same
+// activity-marker shape as craft/gather/fishing. Separate ids keep cast-bar
+// labels and audio routing clean (gather vs fishing precedent).
+export const DISENCHANT_CAST_ID = 'disenchanting';
+export const ENCHANT_CAST_ID = 'enchanting_apply';
+export const SALVAGE_CAST_ID = 'salvaging';
+// The Sundered Essence extraction cast (Masterwrought phase 04): breaks a
+// raid-won epic into the bound ceiling material. Same enchant-family session
+// shape (professions/sundering.ts reuses the enchantCast* fields and the
+// pinned-slot re-check).
+export const SUNDER_CAST_ID = 'sundering';
+// Tool-effect recharge cast sentinel (Craft Cast System Phase 5): same
+// activity-marker shape as craft/enchant-family. Separate id keeps cast-bar
+// labels and audio routing clean.
+export const TOOL_RECHARGE_CAST_ID = 'tool_recharge';
+// The corpse-harvest cast (Intentional Gathering, PR3): same activity-marker
+// shape as gather/craft/fishing. HARVEST_CAST_SECONDS (professions/
+// harvest_admission.ts) is the frozen duration; professions/
+// corpse_harvest_session.ts owns the whole session.
+export const CORPSE_HARVEST_CAST_ID = 'corpse_harvest';
+export const ALLIED_HEARTHSTONE_CAST_ID = 'allied_hearthstone';
+// The trash engine's G3 use (TrashKitDef.usable, mob/trash_kit/
+// encounter_use.ts): every usable body's cast id starts with this prefix, so
+// a use is one more non-spell activity (a hit, a move or a stun breaks it)
+// while its bar still names the use it is.
+export const KIT_USE_CAST_PREFIX = 'kituse_';
+export function isKitUseCast(castId: string | null): boolean {
+  return castId !== null && castId.startsWith(KIT_USE_CAST_PREFIX);
+}
 // The non-spell casts: castingAbility sentinels that are activities, not
 // abilities. They share one semantics bundle at the casting choke points:
 // exempt from silence and school lockouts, no blink-through, no spell queue,
@@ -110,7 +245,44 @@ export const GATHER_CAST_ID = 'gathering';
 // a member: its channel keeps its own per-site behavior, folded in explicitly
 // only where that behavior is already byte-identical (see the call sites).
 export function isNonSpellCast(castId: string | null): boolean {
-  return castId === FISHING_CAST_ID || castId === GATHER_CAST_ID;
+  return (
+    castId === FISHING_CAST_ID ||
+    castId === GATHER_CAST_ID ||
+    castId === CRAFT_CAST_ID ||
+    castId === DISENCHANT_CAST_ID ||
+    castId === ENCHANT_CAST_ID ||
+    castId === SALVAGE_CAST_ID ||
+    castId === SUNDER_CAST_ID ||
+    castId === TOOL_RECHARGE_CAST_ID ||
+    castId === CORPSE_HARVEST_CAST_ID ||
+    castId === ALLIED_HEARTHSTONE_CAST_ID ||
+    isKitUseCast(castId)
+  );
+}
+
+// Corpse-harvest per-corpse state (Intentional Gathering, PR3), transient:
+// never persisted, never on the wire. Lives on the mob Entity so the single
+// live reservation and the kill-credit priority snapshot travel with the
+// corpse itself. `token` is a fresh, unexported-shape marker object minted
+// once per `recordCorpseHarvestDeath` (or lazily on first admitted harvest
+// for a corpse that never went through a recorded death, e.g. a bare test
+// fixture): comparing it by REFERENCE is what lets an in-flight session tell
+// its own corpse apart from a same-entity-id corpse that despawned and came
+// back (respawnMob reuses the entity id), since a fresh token never equals an
+// old one even though every primitive field could coincidentally match.
+export interface CorpseHarvestState {
+  readonly token: object;
+  /** ctx.time the kill-credit priority window closes; 0 (or any time already
+   *  passed) means the corpse is public. */
+  priorityEndsAt: number;
+  /** Stable priority keys snapshotted once at death (see
+   *  professions/harvest_admission.ts `harvestPriorityKeyFor`); never
+   *  recomputed from live party state. Empty means nobody is owed the
+   *  window. */
+  readonly priorityMemberKeys: readonly string[];
+  /** entityId of the actor holding the single live reservation/cast against
+   *  this corpse, or null when nobody has one. */
+  reservedBy: number | null;
 }
 // Seconds an empty instance idles before it resets. Shared by the dungeon instance
 // reaper (instances/dungeons.ts) and the delve reaper (sim.ts). NYTHRAXIS_BOSS_ID
@@ -172,24 +344,13 @@ export function isDungeonDifficulty(value: unknown): value is DungeonDifficulty 
   return value === 'normal' || value === 'heroic';
 }
 
-// The Vale Cup boarball minigame (docs/prd/vale-cup.md): transient match
-// sides pick a banner nation and each fighter picks a sport role.
-export type VcNationId =
-  | 'vale'
-  | 'mirefen'
-  | 'thornpeak'
-  | 'coliseum'
-  | 'choir'
-  | 'ogre'
-  | 'moon'
-  | 'copperdig';
-export type SportRole = 'allrounder' | 'striker' | 'sweeper' | 'keeper';
-export type VcBracket = 1 | 2 | 3 | 4 | 5;
-
 export interface ArenaStanding {
   rating: number;
   wins: number;
   losses: number;
+  /** Matches that ended level. Counted since the W-L-D record change; a
+   *  character who drew before it always reads 0, never a wrong number. */
+  draws: number;
 }
 
 export interface ArenaCombatant {
@@ -209,7 +370,7 @@ export const ALL_CLASSES: PlayerClass[] = [
   'warlock',
   'druid',
 ];
-export type ResourceType = 'rage' | 'mana' | 'energy';
+export type ResourceType = 'rage' | 'mana' | 'energy' | 'focus';
 export const OVERHEAD_EMOTE_IDS = [
   'wave',
   'laugh',
@@ -237,9 +398,43 @@ export type EntityKind = 'player' | 'mob' | 'npc' | 'object';
 
 export type AiState = 'idle' | 'chase' | 'attack' | 'flee' | 'evade' | 'dead';
 
+/** An engaged mob's cached route to its target, its plan throttle, and (for a
+ *  caster) its last line-of-sight answer (mob/chase_route.ts, mob/cast_sight.ts). */
+export interface MobChaseRoute {
+  /** The target this record was made for; another target starts a fresh one. */
+  targetId: number;
+  /** Waypoints still ahead (world x and z), the last one the target's spot
+   *  when the route was planned. One or none: no route, chase straight. */
+  path: Vec3[];
+  /** The sim tick before which no new plan is made (the re-plan period, and
+   *  the backoff after a failed search). Outlives the path. */
+  planAt: number;
+  /** Plans spent, found or failed, and the tick the count last gave one back
+   *  (one every ROUTE_TRY_FORGIVE_TICKS). Outlives the path: nothing the
+   *  target does hands them back. */
+  tries: number;
+  triesAt: number;
+  /** Failed searches in a row (the backoff's exponent). */
+  fails: number;
+  /** The watchdog: the nearest the mob has been to its next waypoint, the
+   *  tick it last got nearer, and the tick it last walked the route. */
+  stuckDist: number;
+  stuckAt: number;
+  walkedAt: number;
+  /** A caster's last line-of-sight answer (mob/cast_sight.ts). */
+  sightClear: boolean;
+}
+
 export type AuraKind =
   | 'dot'
+  | 'doctrine'
+  | 'slow_fall'
+  // Temporary authoritative displacement state (Oath Chain). It is harmful for
+  // UI/dispel classification, but intentionally bypasses root/slow immunity.
+  | 'forced_move'
   | 'slow'
+  | 'slow_immunity'
+  | 'buff_aura_mastery'
   | 'stun'
   | 'stasis'
   | 'root'
@@ -253,11 +448,15 @@ export type AuraKind =
   | 'pet_spellhaste'
   | 'buff_armor'
   | 'buff_int'
+  | 'buff_str'
   | 'buff_agi'
   | 'buff_dodge'
   | 'buff_speed'
   | 'buff_haste'
   | 'buff_spellpower'
+  | 'buff_healing_done'
+  | 'buff_threat'
+  | 'buff_mana_grace'
   // Rallying Cry: value = fraction added to maximum health while worn (the
   // recalc keeps the hp fraction, so current health scales with it).
   | 'buff_maxhp_pct'
@@ -268,6 +467,34 @@ export type AuraKind =
   // no stat effect. While it rides, a target cannot benefit from another group haste
   // burst (aoeAllyHaste with exhaust), so the effects can never be chained.
   | 'sated'
+  // Seasonal cosmetics (src/sim/seasonal/): the worn pumpkin head and the
+  // trick-or-treat tricks. Pure presentation markers with NO sim effect at all:
+  // the client draws them (a head piece, a body swap, a smoke cloud), the sim
+  // only times them out and strips them when the event closes.
+  | 'seasonal_cosmetic'
+  // Dusk Economy linger (rogue row, combat/rogue_talents.ts): a pure marker worn
+  // for 6 sec after leaving Duskveil; while it rides, energy costs stay cut.
+  | 'dusk_economy'
+  // Rogue spec engines (combat/rogue_engines.ts): pure stage markers. The
+  // player owns each state; buttons transform off the stacks via
+  // actionReplacement (venom_ritual arms Venomrend, gloam arms Veilstrike),
+  // redline drives the Wicked Slash offhand echo window, and veiled_edge is
+  // the one-shot Lurker's Strike spike Veilstrike arms.
+  | 'venom_ritual'
+  | 'gloam'
+  | 'redline'
+  | 'veiled_edge'
+  // Druid spec engines (combat/druid_engines.ts): pure stage markers, one per
+  // engine. moontide is Moongrove's single bank: wrath, starfire, and
+  // moonseed casts fill it, and at full bank BOTH payoff buttons light up
+  // (Moonseed becomes Moonsurge, Skyfall becomes Sunwake); pressing either
+  // spends the bank. old_blood is Wildfang's shared bank: form strikes fill
+  // it in either form and the form worn at the spend decides the payoff
+  // (Redharvest in Cat, Marrowbreak in Bruin). verdance is Groveheart's
+  // garden: completed HoT casts plant stages toward Overbloom.
+  | 'moontide'
+  | 'old_blood'
+  | 'verdance'
   // Cauterize lockout (fire mage, combat/fire_mage.ts): a pure debuff marking that
   // the lethal save already fired. While worn, Cauterize cannot save again. It
   // SURVIVES death (resurrection.ts aurasSurvivingDeath) and pauses while dead, so
@@ -296,10 +523,44 @@ export type AuraKind =
   | 'form_travel'
   | 'form_fireball'
   | 'form_moonkin'
+  // Groveheart's Sporemender Form: a caster form that keeps the full kit and
+  // mana bar (+20% healing done, +40% armor, 20% slower movement;
+  // combat/druid_sporemender.ts).
+  | 'form_sporemender'
   | 'form_shadow'
+  // Necromancy secondary resource and signature transformation.
+  | 'soul_fragments'
+  | 'form_lich'
+  // Affliction's shared 0 to 100 Condemnation pool and its curse network.
+  | 'affliction_doom'
+  | 'affliction_eye'
+  | 'affliction_eye_secondary'
+  | 'affliction_accomplice'
+  | 'affliction_violence'
+  | 'affliction_vicarious'
+  | 'affliction_possession'
+  | 'affliction_judgment'
+  | 'affliction_litany'
+  | 'affliction_fate_threads'
+  | 'affliction_consume_threads'
+  // Short hostile tag used to award Funeral Harvest from recent owner or
+  // servant damage when the marked enemy dies.
+  | 'necromancy_harvest_mark'
+  // Ossuary Mark stores landed damage from its Necromancy owner and undead.
+  | 'necromancy_ossuary_mark'
+  // Spatial residue left by a recently slain enemy. value/value2 store world
+  // x/z so the authoritative aura also survives online replication/reconnect.
+  | 'necromancy_death_echo'
+  // Shared Warlock return point. value/value2/value3 store its world x/y/z.
+  | 'warlock_anchor'
   // Warlock Metamorphosis: a temporary demon transform (cosmetic scale + tint in render,
   // its damage/haste bonuses ride separate buff auras).
   | 'form_metamorph'
+  // The Knucklebone of Balgath's Shape of the Foreman (combat/balgath_trinkets.ts): the
+  // wearer takes the cyclops's body. value = percent more armor (folded in entity.ts,
+  // with the body's scale); knockbacks are refused in knockback.ts. NOT a class form
+  // (never in FORM_AURA_KINDS): abilities, casts and the action bar work as normal.
+  | 'form_foreman'
   // Feral (cat form): Energy regeneration multiplier while active (value = fraction, 1 = +100%).
   | 'buff_energyregen'
   | 'stealth'
@@ -315,13 +576,25 @@ export type AuraKind =
   // cooldown, and keeps its base damage (consumed in castAbility's override).
   // `winters_chill`: TARGET debuff with 2 charges; each compatible spell
   // impact spends one to count the target as frozen.
-  // `icicles`: self buff, up to 5 stacks, built by Rimelance impacts and Frozen
-  // Orb pulses. At 5 it gates Glacial Spike (requiresAuraStacks), which consumes
+  // `icicles`: self buff, up to 5 stacks, built by Rimelance impacts and
+  // Frostglobe pulses. At 5 it gates Rimeneedle (requiresAuraStacks), which consumes
   // the whole stack for its slow, heavy hit + a target freeze.
   | 'fingers_of_frost'
   | 'brain_freeze'
   | 'winters_chill'
   | 'icicles'
+  // Vespers Priest: source-owned self resource built by Mindfracture and
+  // Effigy-bound Dirge ticks, consumed whole by Call Tithefiend.
+  | 'gloomtithe'
+  | 'spirit_bomb_charge'
+  // Benison Dawnweave: up to three direct-prayer stacks, consumed by Choirmend.
+  | 'benison_prayers'
+  // Destruction warlock secondary-resource and cast-shaping state.
+  | 'destruction_ruin'
+  | 'desolation'
+  | 'ruinous_brand'
+  | 'duskfire_claim'
+  | 'pyre_guardian'
   // Chronomancer offensive cooldown (combat/chronomancy.ts): while worn, Aether
   // Darts does not consume the caster's Arcane Charges.
   | 'perfect_moment'
@@ -338,6 +611,11 @@ export type AuraKind =
   // Sunder Armor (effectiveArmor takes the larger of the two percents). Own kind so
   // it is never summed flat with sunder.
   | 'faerie_fire'
+  // Rogue Melting Acid: a percent armor reduction whose fraction rides the
+  // aura's own `value` (unlike faerie_fire's constant). Joins the same
+  // max-combine group in effectiveArmor, so it never stacks with Sunder Armor
+  // or Faerie Fire.
+  | 'melting_acid'
   | 'mortal_wound'
   | 'silence'
   | 'blind'
@@ -357,6 +635,10 @@ export type AuraKind =
   | 'next_cast_free'
   | 'next_execute_free'
   | 'next_cast_cheap'
+  | 'paladin_radiant_resonance'
+  | 'paladin_debt_of_light'
+  | 'paladin_solar_reprisal'
+  | 'paladin_dawns_wrath'
   // Lifesap (druid): flat resource restored on each classic 2-sec regen tick,
   // any resource type, combat or not, carried across form shifts.
   | 'resource_sap'
@@ -367,6 +649,13 @@ export type AuraKind =
   // boosts max-hp when >1); `buff_jump` value = jump-height multiplier.
   | 'buff_scale'
   | 'buff_jump'
+  // The operator-applied Cheater mark's countdown readout (src/sim/moderation/
+  // cheater_mark.ts). DELIBERATELY INERT: no stat fold, no combat branch, and no
+  // recalc reads it, so the sanction is visibility and never a handicap. It is a
+  // distinct kind rather than a zeroed borrow of a real debuff so that intent is
+  // unmistakable and no later tuning pass can quietly give it a mechanical
+  // effect. Classified as a debuff for the buff-bar sort only.
+  | 'cheater_mark'
   // Percent raid buffs (vanilla group-buff style). Value is stored as integer percent
   // POINTS (5 = +5%, 10 = +10%) so it survives the integer-rounding talent value
   // multiplier; divided by 100 when folded in recalcPlayerStats. Distinct from
@@ -383,6 +672,7 @@ export type AuraKind =
   | 'buff_armor_pct'
   | 'buff_ap_pct'
   | 'buff_dmg_done'
+  | 'buff_heal_done'
   | 'buff_crit'
   | 'buff_rage_gen'
   | 'buff_reckless'
@@ -397,11 +687,27 @@ export type AuraKind =
   | 'victory_rush'
   | 'aoe_echo'
   | 'sure_crit'
+  // Hunter specialization state. These are visible owner auras, not resources.
+  // Pack Ferocity and Hunting Momentum carry their stage in `stacks`.
+  | 'hunter_ferocity'
+  | 'hunter_frenzy'
+  | 'hunter_cold_focus'
+  // Coldsight shot-choice read (combat/hunter_coldsight_read.ts, v0.42): the
+  // visible 10 sec opportunity a fully completed Fevered Draw grants. The
+  // internal reserved-marker step of that state machine deliberately rides
+  // the existing 'internal_cd' kind instead of a second new kind here.
+  | 'hunter_coldsight_read'
+  | 'hunter_momentum'
+  // Play Dead (hunter feign death): display-only death; the entity stays alive.
+  | 'feign_death'
+  | 'hunter_reentry'
+  | 'hunter_bloodtrail'
   // Ice Floes (mage choice row): `value` = cast-time spells left that may be
   // cast while moving. player_motion skips its cancel while worn; finishing a
   // hard cast decrements the value and removes the aura at 0
   // (casting_lifecycle). Draws no rng.
   | 'ice_floes'
+  | 'processional_grace'
   // Overload (mage choice row): armed amplifier; the next mana spell is baked
   // 40% stronger and 50% costlier from a scaled copy of its resolved ability
   // (casting_lifecycle consumeOverload). value = the output fraction (0.4).
@@ -419,18 +725,42 @@ export type AuraKind =
   // player can watch tick). Kept apart per user by the aura id (Temporal
   // Rift's 20s ICD, Overflowing Power's 30s shave window).
   | 'internal_cd'
+  // Thornhollow Fields: "you are carrying the enemy flag" (social/battleground.ts).
+  // Deliberately its own kind rather than a borrowed inert marker, because the
+  // guarantee it needs is that NOTHING keys on it: no combat reader, no stat
+  // recalc (it is neither buff_* nor form_*), and no dispel (it rides the
+  // physical school, which isDispellableAura refuses). It is pure visible state
+  // whose ONE affordance is the player-initiated cancel, which the battleground
+  // intercepts and turns into a voluntary flag drop. Its lifetime is exactly the
+  // carry: applied at the pickup, removed by clearCarrierAuras on every path the
+  // flag leaves the carrier.
+  | 'flag_carried'
+  // Eastbrook freight World Quest: an inert, public marker worn exactly while
+  // the player carries a crate. The movement kernel applies its value as the
+  // cargo speed multiplier; no combat or stat-recalc path consumes it.
+  | 'world_quest_cargo'
   // Chronomancy Temporal Echo mark (docs/prd/mage-chronomancy.md section 13): a
   // per-caster (sourceId) buff on ONE ally; while it rides, a fraction of the
   // mage's Arcane damage heals the marked ally. Value is unused (1); the
   // conversion rate is a constant read at damage time, not stored on the aura.
   | 'temporal_echo'
+  // Beacon of Light: a per-Paladin permanent group mark. Half of eligible direct
+  // effective healing on another group member is copied by combat/heal.ts.
+  | 'beacon_of_light'
+  // Verdict of the Sun God: a hostile, per-Paladin mark. `value` is the number
+  // of filled sun segments (0 to 3); 3 is an inert 0.2s detonation flash.
+  | 'sun_verdict'
+  // Sacred Form carries all three Holy-only modifiers on one visible aura:
+  // healing done in value, spell crit in value2, and threat multiplier in value3.
+  | 'sacred_form'
   // Chronomancy Aether Surge charges (docs/prd/mage-chronomancy.md sections
   // 13.4 / 14): a self buff whose `value`/`stacks` count the Arcane Charges held
   // (cap 4). Each charge scales the next Aether Surge's damage and cost; Aether
   // Darts consumes them. Read by aura id 'arcane_surge' in combat/chronomancy.ts.
   | 'arcane_charge'
   | 'buff_dr'
-  | 'buff_dr_phys';
+  | 'buff_dr_phys'
+  | 'buff_block';
 
 // The shapeshift/stance aura kinds toggled by casting their granting ability (see the
 // isFormKind toggle in combat/effect_dispatch.ts): mutually exclusive, never expire on
@@ -445,7 +775,9 @@ export const FORM_AURA_KINDS: ReadonlySet<AuraKind> = new Set<AuraKind>([
   'form_travel',
   'form_fireball',
   'form_moonkin',
+  'form_sporemender',
   'form_shadow',
+  'form_lich',
 ]);
 
 export function isFormAuraKind(kind: AuraKind): boolean {
@@ -458,16 +790,68 @@ export interface Aura {
   kind: AuraKind;
   remaining: number; // seconds
   duration: number;
+  // Permanent auras do not age out. Death cleanup still removes them normally.
+  permanent?: boolean;
   value: number; // dot/hot: per tick; slow/haste/speed: multiplier; absorb: remaining; buffs: amount
-  value2?: number; // imbue: judgement min; thorns unused
-  value3?: number; // imbue: judgement max
+  value2?: number; // imbue: judgement min; Greater Invisibility: aftereffect DR
+  value3?: number; // imbue: judgement max; Greater Invisibility: aftereffect duration
   tickInterval?: number;
   tickTimer?: number;
+  tickDamage?: number;
+  tickDoom?: number;
+  // HoT only: a one-time heal paid when the aura runs its full duration
+  // (Second Bloom's closing heal, combat/druid_second_bloom.ts).
+  closingHeal?: number;
+  // Sim-only periodic ramp: after each resolved DoT tick, increase `stacks`
+  // and recompute `value` as per-stack damage times stacks, up to this cap.
+  // The wire already mirrors the resulting value/stacks, so clients do not
+  // need this authoring field.
+  maxTickStacks?: number;
   sourceId: number;
   school: 'physical' | 'fire' | 'frost' | 'arcane' | 'shadow' | 'holy' | 'nature';
   // Encounter-authored control that must land through immunity and cannot be
   // removed by player counters. Natural expiry and encounter cleanup still own it.
   unbreakableControl?: true;
+  // Encounter-authored mechanic that ordinary dispels and broad self-cleanses
+  // cannot remove. Death, natural expiry, and the encounter script still clear it.
+  // Server-internal by qr-19-encounter-owned-aura-wire (Phase 19): no aura snapshot
+  // carries it on the wire until an encounter applies one to a PLAYER, the trigger
+  // that would earn the encode/decode pair and the parity re-record.
+  encounterOwned?: true;
+  // An aura no PLAYER counter may shed: dispel, cleanse, spellsteal, and any
+  // player purge that ever ships all skip it, and it is never right-click
+  // cancelable. The mob Spellgnaw devour affix deliberately reads neither
+  // this flag nor the flask marker (mob/mob_swing.ts isDevourableAura), so a
+  // mob purge still takes a flagged buff: the rule scopes to player-driven
+  // counters. Only its own timer (or a rule that bypasses player counters
+  // entirely) takes it off. Set today
+  // at four sites: applySickness in ./spirit.ts (both recovery sicknesses,
+  // matching the fact that they already survive death and relogging; without
+  // it a single dispel erased the entire Pale Keeper / unstuck penalty), the
+  // cheater mark (./moderation/cheater_mark.ts), the flask mint in
+  // ./items.ts useItem (the phase 10 QA STK-2 ruling: classic consumable
+  // buffs carried no dispel type, so a flask is neither offensively
+  // dispellable nor stealable), and the warlock Fate Threads self-aura
+  // (./combat/affliction.ts, the v0.40.0 rework: a resource carrier a
+  // dispel could strip would zero the class kit). The rule itself is
+  // isPlayerRemovableAura in
+  // ./aura_classify.ts.
+  undispellable?: true;
+  // Marks a FLASK consumable aura (kind 'flask', src/sim/items.ts useItem).
+  // Three rules key on it and nothing else does: the one-flask singleton strip
+  // (a second flask sheds every aura already carrying this marker, whatever its
+  // effect kind, so only one flask ever rides at a time), the downward-refusal
+  // guard (a same-family elixir or scroll is refused rather than allowed to
+  // overwrite a flask), and death persistence (aurasSurvivingDeath in
+  // ./resurrection.ts keeps it). A flask also persists through a logout or a
+  // restart like every other consumable buff (./aura_persist.ts, which keeps
+  // this marker and the undispellable stamp on the saved record). The
+  // elixir/scroll sources of the same aura id never set it, so a plain elixir
+  // stays mortal and stays outside the singleton. The mint also stamps
+  // `undispellable` BESIDE this marker (the phase 10 QA STK-2 ruling; see
+  // that field above): dispel/steal protection rides that flag, never this
+  // marker, so the three rules here stay the marker's complete consumer list.
+  flask?: true;
   breaksOnDamage?: boolean;
   // Lingering Dread lets a break-on-damage fear absorb this much damage before
   // breaking. Undefined retains the normal break-on-any-damage behavior.
@@ -480,6 +864,9 @@ export interface Aura {
   damageAccrued?: number;
   stacks?: number; // sunder armor: applications stack up to the effect's cap
   charges?: number; // thorns: remaining reflect charges (Lightning Shield); undefined => unlimited
+  // affliction_eye: sim-time until the enemy-action doom stream may grant again
+  // (combat/affliction.ts onAfflictionDamage). Sim-internal bookkeeping only.
+  actionGainLockout?: number;
   icd?: number; // thorns: internal-cooldown remaining, seconds (counts down each tick)
   icdMax?: number; // thorns: configured internal cooldown, seconds (re-armed on each reflect)
   // Talent-proc empowerment auras (next_cast_free/instant/cheap): which ability
@@ -488,17 +875,33 @@ export interface Aura {
   // extendDot bookkeeping: seconds already added to this DoT application, so
   // the per-application maxBonus cap holds across channel ticks.
   extendedBy?: number;
+  // Vespers duplicate guard: one Dirge aura can mint at most one Gloomtithe
+  // stack in a simulation tick even if a hook is accidentally dispatched twice.
+  gloomtitheTick?: number;
+  // Second Verse counts natural VT pulses on its own Effigy per application.
+  shadowVerseTicks?: number;
+  // Effigy eligibility at the aura phase's start, independent of expiry order.
+  shadowVerseEffigyTick?: number;
+  // Periodic effects may author an explicit threat multiplier without creating
+  // a parallel tick runner. Undefined keeps the classic 1x DoT threat.
+  threatMult?: number;
   leechPct?: number; // dot only: fraction of tick damage healed back to source
+  // Oath Chain travel state. A forced_move aura reels the target in and then
+  // applies the authored slow through the normal immunity-aware aura gate.
+  pullStopDistance?: number;
+  pullSpeed?: number;
+  pullSlowMult?: number;
+  pullSlowDuration?: number;
   // dot only: the per-tick value was copied from ALREADY-RESOLVED damage (Ignite's
   // 40%-of-the-crit bank), so ticks pass dealDamage's alreadyFinal and skip the
   // source-output multipliers a second application would double-dip (PR #2360
   // review finding: a 300 bank paid 330 under a +10% damage buff).
   finalDamage?: boolean;
   // Chronomancy Temporal Echo bookkeeping (temporal_echo auras only). echoGroup
-  // marks the ORIGIN: false/undefined = the single-target Temporal Echo (35% ST /
+  // marks the ORIGIN: false/undefined = the single-target Temporal Echo (40% ST /
   // 15% AoE conversion), true = a Cascada temporal group echo (13% ST / 6% AoE).
   // echoConvertRate stores the single-target coefficient the mark converts at
-  // (0.35 or 0.13); the AoE rate is derived from echoGroup. Both are read only by
+  // (0.4 or 0.13); the AoE rate is derived from echoGroup. Both are read only by
   // combat/chronomancy.ts during Arcane-damage conversion (server-authoritative and
   // offline), so they never need to ride the wire.
   echoGroup?: boolean;
@@ -518,6 +921,8 @@ export interface DamageBreakBudget {
 
 export type CrowdControlDrCategory =
   | 'root'
+  | 'incapacitate'
+  | 'sleep'
   | 'polymorph'
   | 'fear'
   | 'lockout'
@@ -541,6 +946,11 @@ export interface Stats {
   // player-vs-player damage only; PvE never reads them.
   pvpOffense: number;
   pvpDefense: number;
+  // WARFARE Vitality: the maximum-health fraction honor gear grants outside PvE
+  // instances (pvp/power.ts pvpVitalityFromRating). Unlike the two above it is
+  // not scoped to hostile hits; pvp/vitality.ts switches it off in dungeons,
+  // raids, delves and rift floors.
+  pvpVitality: number;
 }
 
 // The six class/item attributes authored in content. WARFARE fractions are
@@ -569,28 +979,17 @@ export type EquipSlot =
   | 'gloves'
   | 'feet'
   | 'ring1'
-  | 'ring2';
-
-// The eleven launch equip slots, frozen for the original full-paperdoll deed and
-// the all-slot PvP sets. Offhand is intentionally not added to this historical
-// list: ALL_EQUIP_SLOTS is the live stat/command surface.
-export const EQUIP_SLOTS: readonly EquipSlot[] = [
-  'mainhand',
-  'helmet',
-  'neck',
-  'shoulder',
-  'chest',
-  'waist',
-  'legs',
-  'gloves',
-  'feet',
-  'ring1',
-  'ring2',
-];
+  | 'ring2'
+  | 'trinket';
 
 // Every live equipment key, including the redesigned Warrior's additive
-// offhand. Stat derivation and command validators use this list; launch-era
-// completeness rewards continue to use the frozen EQUIP_SLOTS list above.
+// offhand. THE equipment surface: stat derivation, command validators, and
+// anything else that iterates or checks slots reads this list.
+//
+// The frozen eleven-slot launch list is deliberately NOT here beside it; it
+// lives in launch_paperdoll_slots.ts, which explains why. Sitting next to this
+// one under the near-identical name EQUIP_SLOTS, it got picked up twice by code
+// that meant this list.
 export const ALL_EQUIP_SLOTS: readonly EquipSlot[] = [
   'mainhand',
   'offhand',
@@ -604,7 +1003,21 @@ export const ALL_EQUIP_SLOTS: readonly EquipSlot[] = [
   'feet',
   'ring1',
   'ring2',
+  'trinket',
 ];
+
+/** Narrow an untrusted slot string (a wire field, a DOM dataset value, a
+ *  persisted JSONB key) to an EquipSlot against the LIVE slot surface.
+ *
+ *  Use this instead of hand-rolling a membership check. Every hand-rolled one
+ *  needed an `as readonly string[]` cast to compile, and that cast erases
+ *  exactly the type information that would flag the wrong list: five sites
+ *  carried it, four with a comment warning which constant to use, and the
+ *  unguarded fifth dropped every worn offhand's enchant on login. The cast
+ *  belongs here, once, where the list it applies to is not a choice. */
+export function isEquipSlot(value: string): value is EquipSlot {
+  return (ALL_EQUIP_SLOTS as readonly string[]).includes(value);
+}
 
 // What an ITEM declares as its slot. Rings declare the slot KIND ('ring'); the
 // equip path resolves the concrete ring1/ring2 equipment key at equip time
@@ -613,6 +1026,26 @@ export const ALL_EQUIP_SLOTS: readonly EquipSlot[] = [
 export type ItemSlot = EquipSlot | 'ring';
 
 export type SkinCatalog = 'class' | 'mech';
+
+/**
+ * Is this entity wearing the Combat Mech cosmetic?
+ *
+ * The ONE definition of the rule. The mech is a whole replacement body, not a
+ * layer: nothing of the wearer's composed character may render with it, or the
+ * two bodies occupy the same space and intersect. Every site that has to know
+ * (visual construction, the character-sheet preview, the frame portrait, the
+ * title chip) asks this rather than re-deriving `skinCatalog === 'mech'`, so a
+ * new site cannot quietly get it wrong.
+ *
+ * Lives here, beside the catalog type, rather than in the render layer: the UI
+ * panels need it too and they are barred from importing `src/render/*`
+ * (tests/char_window.test.ts pins that boundary).
+ */
+export function isMechWearer(
+  e: { kind?: string; skinCatalog?: SkinCatalog } | null | undefined,
+): boolean {
+  return !!e && e.kind === 'player' && e.skinCatalog === 'mech';
+}
 
 // Season 1 Armory weapon-skin cosmetics (src/sim/content/weapon_skins.ts). The
 // loadout is the account-wide "applied skin per weapon type" selection; a skin
@@ -630,6 +1063,30 @@ export type WeaponSkinLoadout = Partial<Record<WeaponSkinType, string>>;
 
 export type ItemUse =
   | { type: 'fishing' }
+  // Thrown at the nearest murloc hut to torch it (q_deepfen_purge); see
+  // src/sim/interactions/firebottle_hut.ts. Reusable, so it is never consumed.
+  | { type: 'throw' }
+  // Used at its quest's summon site to call the named foe out (the Proving
+  // Shore's tide-pool miniboss); see src/sim/interactions/crab_summon.ts.
+  // Reusable like the firebottle, so a wipe can always retry.
+  | { type: 'summon' }
+  // The Proving Shore's death lesson (src/sim/tutorial/death_lesson.ts): a
+  // single-use rite stone that lays its user down where they stand, so a new
+  // player meets their first death somewhere nothing is hunting them.
+  // Consumed on use and refused unless the lesson is active.
+  | { type: 'passingStone' }
+  // A Clue Scroll (src/sim/clue_scrolls.ts): with no hunt active, consumed to
+  // start one; on a dig step, used on the spot to advance it (not consumed);
+  // refused otherwise.
+  | { type: 'clueScroll' }
+  // A Treasure Casket (src/sim/clue_casket.ts): consumed to pay the hunt's reward.
+  | { type: 'clueCasket' }
+  /** A treasure map (src/sim/treasure_vault.ts): read it, then dig on the X. */
+  | { type: 'treasureMap'; rarity: TreasureMapRarity }
+  /** Cartographer's Ink: redraws the read treasure map one rarity finer. */
+  | { type: 'cartographersInk' }
+  // Starts the one-time hammer quest; the Ember is consumed by crafting.
+  | { type: 'forgebreakerEmber' }
   | { type: 'mechChroma'; chromaId: string }
   // Opens the client-side event skin-select overlay. The server rolls a rank on
   // use (see Sim.openSkinSelect) and the player locks one in via claimEventSkin.
@@ -638,7 +1095,51 @@ export type ItemUse =
   // it can gather: see src/sim/professions/tools.ts (canGatherTier). This item
   // type never carries a durability field (this repo has no durability
   // mechanic anywhere), so a base tool can never become unusable.
-  | { type: 'gatherTool'; professionId: GatheringProfessionId; tier: number };
+  | { type: 'gatherTool'; professionId: GatheringProfessionId; tier: number }
+  // A reusable all-class tool that opens the shared harvest-preference picker
+  // (runtime integration lands separately; this item's use arm only marks it).
+  | { type: 'harvestPreference' }
+  // A crafted tool-effect charm (the acquisition craft): the item form of one
+  // TOOL_EFFECTS entry. Consumed by the slot_tool_effect command through
+  // resolveSlotToolEffect (src/sim/professions/tools.ts), never by useItem:
+  // the resolver is the ONE validation authority for minting a slot, so the
+  // item declares WHICH effect it carries and nothing else. The def is the
+  // single source of the effect-to-item mapping; a guard derives the craftable
+  // set from these defs against the R9 slot policy so no item can exist for an
+  // effect the policy refuses everywhere.
+  | { type: 'toolEffect'; effectId: ToolEffectId }
+  // Places a party-shared mobile crafting station at the user's position
+  // (Masterwrought phase 09, the Master's Field Forge): no specialization
+  // gate, holding the item is the credential, and the item is never consumed
+  // (a permanent tool). `stationCraftId` is a CRAFT id, not a StationType, so
+  // stationTypeForCraft resolves the station's type (weaponcrafting or
+  // armorcrafting for a forge) and MobileCraftingStation plus the `mst` wire
+  // value keep their existing craft-id shape unchanged. CraftDef['id'] is the
+  // narrowest named craft-id type the professions content has (there is no
+  // craft-id union today; CRAFT_RING types its ids as string), so this
+  // documents the domain without changing the checked type.
+  | { type: 'placeMobileStation'; stationCraftId: CraftDef['id'] }
+  | { type: 'alliedHearthstone' }
+  | { type: 'riftGlider' }
+  | { type: 'targetDummy' }
+  | { type: 'dawnStandard' }
+  | { type: 'manaElixir' }
+  | { type: 'invisibility' }
+  | { type: 'sharpeningStone' }
+  | { type: 'shockBomb' }
+  | { type: 'armorKit' }
+  // A container: using it hands the owner its contents and consumes one unit
+  // (src/sim/emissary_cache.ts owns the one container shipped so far).
+  | { type: 'container'; container: 'emissary_cache' | 'gourdlight_pouch' | 'thatchgrin_sack' }
+  // A seasonal event toy (src/sim/seasonal/seasonal_items.ts): the worn pumpkin
+  // head toggle and the Jar of Mischief. Refused while its event is closed.
+  | {
+      type: 'seasonal';
+      // costume: a ten-minute skeleton, ghost or bat body (content/gourdlight_eve.ts
+      // GOURDLIGHT_COSTUMES); titleWrit: grants its title Feat (GOURDLIGHT_TITLE_WRITS);
+      // toy: one of Hester's reusable toys (GOURDLIGHT_TOYS, seasonal/seasonal_toys.ts).
+      action: 'pumpkinHead' | 'trickJar' | 'strawlingCharm' | 'costume' | 'titleWrit' | 'toy';
+    };
 
 // Rarity ranks for the cosmetic skin-select event, ordered low → high. A rolled
 // rank unlocks its own tier and every tier below it (epic unlocks rare+uncommon).
@@ -646,7 +1147,10 @@ export type SkinRank = 'uncommon' | 'rare' | 'epic';
 
 export type ArmorType = 'cloth' | 'leather' | 'mail';
 
-type ItemKind =
+// Exported so inventory_sort.ts can type its clean-up ladder as
+// Record<ItemKind, number>: a new kind then FAILS to compile until it is
+// given a rank, instead of silently sorting after gray trash.
+export type ItemKind =
   | 'weapon'
   | 'armor'
   | 'held_offhand'
@@ -657,7 +1161,76 @@ type ItemKind =
   | 'tool'
   | 'potion'
   | 'elixir'
-  | 'bag';
+  | 'flask'
+  | 'scroll'
+  | 'bag'
+  | 'mount'
+  | 'recipe'
+  | 'buddy'
+  | 'buddy_cosmetic';
+// The aura kinds a timed FLAT STAT buff may carry. Narrower than AuraKind on
+// purpose: this payload's whole contract is "a flat stat buff for a while", and
+// its consumers act on that. The grant sites apply the kind as a plain stat aura
+// and let recalcPlayerStats fold it, and the one-flask singleton strip
+// (src/sim/items.ts useItem) sheds a worn one by splicing the aura and
+// recalculating, which is correct for a flat stat buff and silently WRONG for a
+// kind whose removal owes more than a recalc (a stealth or invisibility aura, a
+// percent-scaled buff, anything with a paired timer). Typing the field as the
+// whole AuraKind let a content author write one of those into a food or elixir
+// record and get no compiler complaint at all.
+//
+// The set is exactly the kinds the live carriers use (the elixir, scroll and
+// flask defs, the seven buff foods, and Gourdlight Eve's five candies, which
+// add the three remaining primaries: Strength, Agility, Spirit), derived rather
+// than re-typed so it cannot drift from AuraKind's own spelling. Widening it
+// means auditing the singleton strip in the same change, not just adding a row:
+// the candy widening was audited (str, agi and spi are flat buffs that
+// recalcPlayerStats folds straight off the aura, src/sim/entity.ts, so the
+// splice-and-recalc strip is correct for them). FlaskAuraKind below carries
+// the same warning over the same kinds, and tests/wellfed.test.ts pins that the
+// two stay identical.
+export type TimedStatBuffAuraKind = Extract<
+  AuraKind,
+  'buff_sta' | 'buff_ap' | 'buff_int' | 'buff_str' | 'buff_agi' | 'buff_spi'
+>;
+
+// What a successful `useItem` reports back to its caller when the use did more
+// than consume the item. `undefined` is the ordinary answer (a potion, a food,
+// a scroll: the effect is already applied and there is nothing to say); a
+// variant means the caller has a follow-up of its own, which today is the
+// mech-chroma unlock the online host mirrors as an account-cosmetic change.
+//
+// Home moved here (masterwrought Phase 18) from mech_chroma_ownership.ts, where
+// it had been parked beside its ONLY variant. That home read as if the type
+// belonged to the chroma system rather than to `useItem`, so the next variant
+// would have had a choice between importing the cosmetic module for an
+// unrelated result and quietly starting a second result type. It is an
+// items-domain shape, so it lives with the other shared item types; sim.ts
+// keeps its public re-export so every foreign importer stands unchanged.
+export interface ItemUseResult {
+  type: 'mechChroma';
+  chromaId: string;
+}
+
+/** What an item use is aimed at, beyond the item: the exact bag copy, a ground
+ *  point (an aimed throwable), or the treasure map a Cartographer's Ink redraws. */
+export interface ItemUseTarget {
+  slotIndex?: number;
+  aim?: { x: number; z: number };
+  inkMap?: InkMapTarget;
+}
+
+// One timed flat stat buff, the payload shape shared by the elixir/scroll/flask
+// `elixir` record, the role foods' `wellFed` record, and the meal in flight
+// (FoodConsuming.wellFed). Named once because three copies had grown (the repo's
+// rule-of-three threshold); the grant POINT (use vs meal completion) is what
+// makes them different mechanics, never the payload.
+export interface TimedStatBuffPayload {
+  aura: string;
+  kind: TimedStatBuffAuraKind;
+  value: number;
+  duration: number;
+}
 
 interface BaseItemDef {
   id: string;
@@ -669,6 +1242,12 @@ interface BaseItemDef {
   // Kept off `Stats` because Spell Power is a derived combat rating (like attackPower),
   // not one of the six primary attributes.
   spellPower?: number;
+  // Healing Power affix (healer gear): flat healing-only power. Folds into
+  // Entity.healPower (spellPower + Healing Power), which the heal, HoT, and
+  // absorb riders read. The directionality contract: Spell Power adds to
+  // healing, but Healing Power never adds to damage (damage riders read
+  // Entity.spellPower only). See docs/prd/ignivar-raid-loot.md.
+  healPower?: number;
   // Combat ratings, converted to crit%/haste%/hit% in recalcPlayerStats.
   critRating?: number;
   hasteRating?: number;
@@ -683,11 +1262,36 @@ interface BaseItemDef {
   // Honor price for a Quartermaster purchase. An honor-only item omits
   // buyValue; both fields may coexist when a vendor charges both currencies.
   priceHonor?: number;
+  // Token price: a vendor that charges in an ITEM currency (a seasonal event's
+  // sweets) debits `count` copies of `itemId` from the buyer's bags per
+  // purchase (items.ts buyItem). Per-purchase like Honor, never stack-multiplied.
+  priceItem?: { itemId: string; count: number };
+  // EVENT-BOUND: the item exists only while this seasonal event runs. When the event is
+  // closed the seasonal tick sweeps it out of the owner's bags, bank and courier cargo
+  // (src/sim/seasonal/seasonal_bound_items.ts), at the close and again on the first tick
+  // a character spends in a closed world (a login after the event ended).
+  seasonalEvent?: string;
   use?: ItemUse;
+  /**
+   * A quest implement every class may equip, weapon-proficiency rules notwithstanding
+   * (equipment_rules.ts checks it before the archetype and rogue-two-hander gates). For
+   * tools whose POINT is being wielded by anyone (the Shardpike: 1-2 damage, its worth is
+   * the lance_trial verb), where a proficiency lockout would gate a mechanic, not power.
+   */
+  questTool?: true;
+  /**
+   * Gear LENT for one encounter (the muster pike: src/sim/muster_pike.ts). It is never
+   * the player's to keep: the bank refuses it, no save ever writes it (the lender takes
+   * it back and the displaced weapons return first), and it is always soulbound too, so
+   * trade, mail, market and vendor refuse it on the existing soulbound arms.
+   */
+  lentGear?: true;
   sellValue: number; // copper (vendor buys at this)
   buyValue?: number; // copper (vendor sells at this)
   questId?: string;
   noVendorSell?: boolean;
+  /** Reclaimable rewards must not turn into unlimited salvage/disenchant materials. */
+  noSalvage?: boolean;
   noDiscard?: boolean;
   noMarketList?: boolean;
   // Soulbound: the item is bound to its owner. It cannot be traded, mailed,
@@ -696,6 +1300,11 @@ interface BaseItemDef {
   // reward tokens can opt into permanent storage. Enforced in social/trade.ts,
   // mail/post_office.ts, market.ts, and items.ts.
   soulbound?: boolean;
+  // Vendor service entry: buying this "item" teaches the riding skill instead of
+  // adding anything to the bags (items.ts buyItem delegates to learnRiding, which
+  // owns every gate: already trained, level, the 80g fee). Only the stablemaster
+  // stocks it.
+  teachesRiding?: boolean;
   /** Shown when interacting with a ground quest object before the quest is active. */
   pickupDeny?: string;
   /** Shown when the quest is active but the collect count is already met. */
@@ -705,34 +1314,59 @@ interface BaseItemDef {
   drinkMana?: number;
   // potions: restored instantly, usable in combat, share a cooldown (#103)
   potionHp?: number;
+  // Percentage-of-maximum-health potion restore (Soul Stone). It rides the
+  // same authoritative use path and shared cooldown as flat healing potions.
+  potionHpPctMax?: number;
   potionMana?: number;
   // elixirs: a temporary stat-buff aura granted on use (classic battle elixirs).
   // `aura` is a flavor name shown in the buff frame; `value` is the stat amount,
   // `duration` the buff length in seconds. Folds through the normal aura/stat path.
-  elixir?: { aura: string; kind: AuraKind; value: number; duration: number };
+  elixir?: TimedStatBuffPayload;
   quality?: 'poor' | 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'; // gray/white/green/blue/purple/orange name colors
+  // Unique: only one copy of this item can be carried or equipped at a time.
+  unique?: boolean;
   // bags (kind:'bag'): extra inventory slots granted while equipped in one of
   // the 4 bag sockets (see src/sim/bags.ts; the 16-slot backpack is implicit).
   bagSlots?: number;
+  // Materials-only bag (kind:'bag'): its bagSlots feed the materials pool, a
+  // second slot budget only honest materials may occupy (src/sim/bag_pools.ts;
+  // the material set is the derived taxonomy, never an item-kind test). An
+  // unrestricted bag omits this and feeds the general pool.
+  materialsOnly?: boolean;
   // Max copies per inventory slot. When omitted the default is derived from
   // `kind` (weapon/armor/bag/tool: 1, everything else: 20); see stackSizeOf.
   stackSize?: number;
   requiredClass?: PlayerClass[];
+  // Class-locked gear (Warfare Season 2 spec sets): only the requiredClass list
+  // may equip it. Without the flag, armor follows the armor-type rank alone and
+  // requiredClass is advisory (canEquipItem in equipment_rules.ts).
+  classLocked?: boolean;
   // Minimum character level needed to equip this piece. When omitted, the level
   // is DERIVED from `quality` (see src/sim/item_level_req.ts); set this only to
   // override the per-quality default for a specific item.
   requiredLevel?: number;
   /** Set id this piece belongs to; equipping enough pieces grants the set bonuses (see ITEM_SETS). */
   set?: string;
-  // Heroic upgraded variant: the base item id this "Heroic X" copy was generated
+  // Heroic upgraded variant: the base item id this upgraded copy was generated
   // from (content/heroic_variants.ts). Set only on the generated variants, which
   // drop in place of their base from a heroic dungeon's normal loot table. The
-  // client composes the display name as "Heroic {base name}" from this (see
-  // itemDisplayName), so a variant carries no translated name key of its own.
+  // client resolves the display name to the BASE item's name unchanged (see
+  // itemDisplayName), classic behavior, so a variant carries no translated name
+  // key of its own and the heroic distinction shows as the separate "[HEROIC]"
+  // tag instead (the item tooltip's quality line, the Apply Enchant target row).
   heroicOf?: string;
+  // Collection identity only: this item is another TIER of `relicOf` (the Buried
+  // Hoard pieces, content/hoard_loot.ts), so obtaining it also discovers that
+  // item and fills its Reliquary slot. Unlike heroicOf it changes nothing else:
+  // the tier keeps its own name, art, item level and unique-equip family.
+  relicOf?: string;
   // Marks a bespoke heroic-tier item (e.g. the Heroic Nythraxis raid epics) for
   // tooltip chrome; these keep their own name key, unlike heroicOf variants.
   heroic?: boolean;
+  // Member of the Masterwrought counted equip family: at most two flagged items
+  // worn, at most one of them with effective legendary quality
+  // (src/sim/equipment_rules.ts masterwroughtConflictSlot).
+  masterwrought?: boolean;
 }
 
 // Item-set bonuses (classic "tier set" style). Flat effects fold into
@@ -755,6 +1389,12 @@ export interface SetProc {
   // Target-applied procs (the stacking bleeds): 'target' lands the aura on the
   // struck enemy instead of the wearer. Defaults to the wearer.
   applyTo?: 'self' | 'target';
+  // WARFARE gating: when true the proc only fires when source and target are
+  // both players and hostile to each other, so the bonus contributes exactly
+  // nothing in PvE. Checked in combat/set_procs.ts BEFORE the chance roll, so a
+  // gated proc draws no rng outside hostile player-versus-player combat and a
+  // PvE run stays byte-identical.
+  pvpOnly?: true;
   tickInterval?: number; // dot/hot tick cadence, seconds
   // Stacking cap: reapplication adds a stack (magnitude scales linearly with
   // the count) and refreshes the duration.
@@ -770,6 +1410,7 @@ export interface SetBonusEffect {
   spi?: number;
   ap?: number; // flat attack power
   sp?: number; // flat spell power (mirrors `ap` for the caster archetype)
+  healPower?: number; // flat Healing Power (heals only; see BaseItemDef.healPower)
   crit?: number; // flat crit chance, 0..1
   critRating?: number; // crit rating (converted to % in recalcPlayerStats)
   // Haste fraction (0.15 = 15% faster). ONE stat: it speeds melee and ranged
@@ -780,6 +1421,24 @@ export interface SetBonusEffect {
   hitRating?: number; // hit rating (converted to % in recalcPlayerStats): less miss/resist
   castPushbackReduction?: number; // 0..1: fraction of damage cast-pushback removed (1 = immune)
   knockbackResistance?: number; // 0..1: fraction of on-hit knockback distance resisted (1 = immune)
+  // WARFARE ratings granted by the set, in the same units as an item's
+  // pvpOffenseRating/pvpDefenseRating. They are added to the gear totals in
+  // recalcPlayerStats BEFORE the single pvpFractionsFromRatings call, so the
+  // combined value clamps at the cap exactly once. Both are inert outside
+  // hostile player-versus-player combat because of where they are consumed:
+  // pvp/power.ts reads the derived fractions only on the hostile-player damage
+  // path, so they contribute nothing to PvE, friendly, pet, or mob damage.
+  pvpOffenseRating?: number;
+  pvpDefenseRating?: number;
+  // 0..1: fraction removed from the duration of crowd control cast on the
+  // wearer BY A HOSTILE PLAYER. Max-combines across met tiers rather than
+  // summing, so two sources can never stack into immunity. Applied in
+  // Sim.diminishedCrowdControlDuration, which is the player-sourced funnel, so
+  // this is inert against mob and encounter control. (Crowd control applied by
+  // a player's PET is entity kind 'mob' and takes the same non-player early
+  // return, so it is not reduced either: tier text must say "cast on you by
+  // hostile players" rather than "from hostile players".)
+  ccDurationReduction?: number;
   proc?: SetProc;
 }
 
@@ -792,12 +1451,17 @@ export interface SetBonusTier {
 export interface ItemSet {
   id: string;
   name: string; // English source
+  // Cross-tier ladder id (content/item_sets.ts LINEAGE_*): families sharing a
+  // lineage SHARE one bonuses array, their worn counts sum, and the resolver
+  // applies the shared table exactly once. Absent for standalone families
+  // (WARFARE, the haste kits).
+  lineage?: string;
   bonuses: SetBonusTier[]; // ascending by `pieces`
 }
 
 export interface ArmorItemDef extends BaseItemDef {
   kind: 'armor';
-  slot: Exclude<EquipSlot, 'mainhand' | 'neck' | 'ring1' | 'ring2'>;
+  slot: Exclude<EquipSlot, 'mainhand' | 'neck' | 'ring1' | 'ring2' | 'trinket'>;
   armorType: ArmorType;
   weapon?: never;
   // A shield stays inside v0.26's established armor item kind, avoiding a new
@@ -807,13 +1471,13 @@ export interface ArmorItemDef extends BaseItemDef {
   blockValue?: number;
 }
 
-// Jewelry: neck and ring pieces. kind 'armor' so the equip/budget/tooltip paths
+// Jewelry: neck, ring, and trinket pieces. kind 'armor' so the equip/budget/tooltip paths
 // treat it as gear, but it carries NO armor class: equipment_rules falls through
 // the armorType gate, so any class can wear jewelry (requiredClass still applies
 // when set). Rings declare slot 'ring'; see resolveEquipSlot.
 export interface JewelryItemDef extends BaseItemDef {
   kind: 'armor';
-  slot: 'neck' | 'ring';
+  slot: 'neck' | 'ring' | 'trinket';
   armorType?: never;
   weapon?: never;
 }
@@ -862,7 +1526,13 @@ export type WeaponProcEffect =
       duration: number;
     }
   // A heal-over-time on the trigger's target (e.g. Lifebloom).
-  | { kind: 'hot'; name: string; perTick: number; interval: number; duration: number };
+  | {
+      kind: 'hot';
+      name: string;
+      perTick: number;
+      interval: number;
+      duration: number;
+    };
 
 export interface WeaponProc {
   id: string; // unique per item; used for the applied aura ids
@@ -872,18 +1542,228 @@ export interface WeaponProc {
   effects: WeaponProcEffect[];
 }
 
-// Held-in-offhand caster stat stick (orb/tome): no armor class, no weapon damage,
-// equips in the offhand slot by literal requiredClass (equipment_rules).
+// Offhand-slot stat stick with no armor class and no weapon damage (a caster
+// orb/tome, a hunter's quiver): equips in the offhand slot by literal
+// requiredClass (equipment_rules).
 export interface HeldOffhandItemDef extends BaseItemDef {
   kind: 'held_offhand';
   slot: 'offhand';
   armorType?: never;
   weapon?: never;
+  // Whether the item takes up a HAND, not just the offhand slot. Defaults to
+  // true (an orb or tome is held). A quiver is WORN, slung on the back, so it
+  // sets false and the two-hand exclusion never applies to it: see
+  // occupiesHand + displacedSlotForEquip in equipment_rules.ts. Anything false
+  // here also budgets on the lighter worn line (item_budget.ts), because a slot
+  // you keep alongside a two-hander is worth more than one you trade it for.
+  occupiesHand?: false;
 }
 
 export interface OtherItemDef extends BaseItemDef {
-  kind: Exclude<ItemKind, 'armor' | 'weapon' | 'held_offhand'>;
+  kind: Exclude<
+    ItemKind,
+    | 'armor'
+    | 'weapon'
+    | 'held_offhand'
+    | 'mount'
+    | 'recipe'
+    | 'scroll'
+    | 'flask'
+    | 'food'
+    | 'buddy'
+    | 'buddy_cosmetic'
+  >;
   armorType?: never;
+  // The shared feast (farming, D16): a placeable item whose use spawns a
+  // world entity instead of consuming food. `charges` is how many
+  // players may eat once each, `durationTicks` the tick-domain lifetime, and
+  // `dishItemId` names the dish whose serving each bite IS: the eating slot
+  // points at that dish, so its foodHp and wellFed fields drive the restore
+  // and the completion mint unchanged (src/sim/professions/feast.ts owns the
+  // whole lifecycle; both numbers are maintainer-flagged tuning). It lives
+  // HERE rather than on BaseItemDef for the same reason wellFed lives on
+  // FoodItemDef: the shipped harvest_feast is kind 'junk' (the tonic
+  // precedent for a crafted non-equippable usable), and kind-scoping keeps a
+  // sword or a drink from silently carrying a feast payload nothing places.
+  //
+  // `templateId` NAMES THE PLACED ENTITY'S TEMPLATE, and it is a content field
+  // rather than a constant in the behavior module for one reason
+  // (masterwrought Phase 11k): the placed title is composed client-side off
+  // templateId, so a feast sharing another feast's template is labelled as the
+  // rung it is not. Putting it here makes the placeable FAMILY derivable from
+  // the catalog (professions/feast.ts walks ITEMS for this payload and builds
+  // the membership set). FIVE sites key on a template id and none of them names
+  // a string literal any more, which is the narrow and true version of the
+  // claim: authoring a def joins the DERIVED set at all five. It does not
+  // finish the job. Two of those five are the title composers, and they reach
+  // the family through a hand-listed key map in src/ui/hud/professions/feast_title.ts (a t()
+  // key built by template literal is invisible to every static consumer), so a
+  // new def leaves that map short and the exhaustiveness pin in
+  // tests/entity_display_name.test.ts is what catches it. professions/feast.ts's
+  // own header carries the full site list. The template must be UNIQUE per
+  // feast id, pinned in tests/professions_feast.
+  feast?: {
+    charges: number;
+    durationTicks: number;
+    dishItemId: string;
+    templateId: string;
+  };
+}
+
+// FOOD. Its own kind-scoped def for exactly one reason: `wellFed` lives HERE
+// rather than on BaseItemDef, so a drink (or a potion, or a sword) cannot
+// silently carry a Well Fed payload that nothing would ever grant. Only the
+// eating path GRANTS it (the item tooltip merely describes it), and only a
+// food def can spell it.
+//
+// The buff is the classic Well Fed: same payload shape as `elixir`, but the
+// grant POINT is what makes it a different mechanic. It lands only when the
+// 18-second Consuming drain runs out (combat/auras.ts updateRegen), so standing
+// up early feeds you and buffs you not at all. Every well-fed food shares one
+// aura id ('well_fed'), so the newest meal replaces the last through the
+// ordinary same-id rule, and it carries no flask marker: Well Fed dies with you.
+// Optional, because most food is a plain sit-down heal with no buff at all.
+export interface FoodItemDef extends BaseItemDef {
+  kind: 'food';
+  // The one well-fed field (unified in Masterwrought 11c; farming's lowercase
+  // `wellfed` twin was retired with its per-kind aura namespace). The aura is
+  // minted only when the 18s sit-restore COMPLETES (never on first bite; an
+  // interrupted meal forfeits it; src/sim/wellfed.ts owns the mint), under
+  // the one shared WELL_FED_AURA_ID.
+  wellFed?: TimedStatBuffPayload;
+  // A food is a sit-down heal that may leave Well Fed; it is never also an
+  // elixir source (the use path's elixir arm would never see a food anyway,
+  // so an `elixir` record here would be dead data, the same class as `use`).
+  elixir?: never;
+  armorType?: never;
+  weapon?: never;
+  // Barred for the same reason ScrollItemDef and FlaskItemDef bar it: a `use`
+  // payload resolves in useItem's use-arm chain ABOVE the kind arms, so a food
+  // carrying one would never reach the eating path at all and its wellFed
+  // record would be dead data. The kind was split out to make the eating path's
+  // assumptions type-enforced; this is one of them.
+  use?: never;
+}
+
+// A buff SCROLL: the inscription-crafted alternative source of a battle-elixir
+// aura family (masterwrought R14 corollary; see docs/design/professions.md). It reuses the SAME
+// `elixir` effect payload and the same use-path arm as kind 'elixir', so the
+// synthesized aura id (`elixir_${kind}`) and applyAura same-id replacement make
+// a scroll and an elixir of one family mutually exclusive in both orders with
+// no new stacking path. Its own kind rather than another 'elixir' row so the
+// tooltip kind line and the use log can say scroll ("You read"), and so the
+// effect payload can never be omitted (the Exclude above).
+export interface ScrollItemDef extends BaseItemDef {
+  kind: 'scroll';
+  elixir: NonNullable<BaseItemDef['elixir']>;
+  // A scroll is read, never eaten or drunk: the sit-down payloads are dead
+  // data on this kind (the eating arm never sees a scroll), barred like `use`.
+  foodHp?: never;
+  drinkMana?: never;
+  armorType?: never;
+  weapon?: never;
+  use?: never;
+}
+
+// A FLASK: the alchemy apex consumable (see docs/design/professions.md). Like
+// the scroll above it reuses the SAME `elixir` effect payload and the same
+// use-path arm, so it joins the shipped `elixir_${kind}` aura family and a flask
+// and an elixir of one stat replace each other in both orders through applyAura,
+// with no new stacking path. Two rules make it a flask rather than a stronger
+// elixir, both keyed on the Aura.flask marker the use path stamps, never on the
+// item kind: only ONE flask rides at a time whatever its stat (a second sheds
+// the first), and the buff survives death. Its own kind rather than another
+// 'elixir' row so the tooltip kind line, the bag/market/tray surfaces, and the
+// sort ladder can name it, and so the effect payload can never be omitted (the
+// Exclude above). Its band deliberately sits ABOVE the documented elixir
+// ceiling (value <= 12, duration <= 900): the ceiling binds the elixir/scroll
+// bands, which is exactly what a flask is meant to beat.
+//
+// The effect kind is NARROWED to the flat stat axes (the three the shipped
+// flask rung uses, plus Strength, Agility and Spirit, which the timed-buff
+// payload carries for Gourdlight Eve's candies; still flat, still recalc-safe),
+// deliberately, and it is the type that enforces it rather than a
+// comment: the one-flask singleton strip (src/sim/items.ts useItem) sheds a
+// worn flask by splicing the aura and recalculating stats, which is correct for
+// a flat stat buff and silently WRONG for a kind whose removal owes more than a
+// stat recalc (a stealth or invisibility aura, a percent-scaled buff). Those
+// omissions are known-inert only because no such flask can exist; widening this
+// union means auditing that strip in the same change, not just adding a row.
+export type FlaskAuraKind = Extract<
+  AuraKind,
+  'buff_sta' | 'buff_ap' | 'buff_int' | 'buff_str' | 'buff_agi' | 'buff_spi'
+>;
+
+export interface FlaskItemDef extends BaseItemDef {
+  kind: 'flask';
+  elixir: NonNullable<BaseItemDef['elixir']> & { kind: FlaskAuraKind };
+  // Quaffed, never eaten or drunk over 18 seconds: the sit-down payloads are
+  // dead data on this kind, barred like `use` (symmetric with FoodItemDef
+  // barring `elixir`).
+  foodHp?: never;
+  drinkMana?: never;
+  armorType?: never;
+  weapon?: never;
+  use?: never;
+}
+
+// A collectible mount item. Owning the item IS owning the mount: while it sits
+// in the player's bags or bank, the catalog mount it names is selectable and
+// ridable (src/sim/mounts.ts mountOwned). Player reins are NOT soulbound, so
+// ownership transfers with the item (trade, mail, market, guild bank); only
+// the developer-only tank stays bound. Every catalog mount has one, the horse
+// included: five are sub-1% boss drops, the horse's reins comes from the
+// stablemaster.
+export interface MountItemDef extends BaseItemDef {
+  kind: 'mount';
+  mount: MountKey;
+  armorType?: never;
+  weapon?: never;
+}
+
+// Historical item shape only. No buddy items exist in the live catalog.
+export interface BuddyItemDef extends BaseItemDef {
+  kind: 'buddy';
+  buddy: BuddyKey;
+  armorType?: never;
+  weapon?: never;
+}
+
+// Historical buddy cosmetic token shape, retained for existing inventories.
+// Tokens no longer unlock looks and are not consumed on use.
+export interface BuddyCosmeticItemDef extends BaseItemDef {
+  kind: 'buddy_cosmetic';
+  /** Historical cosmetic id, retained for old inventory records. */
+  cosmetic: string;
+  armorType?: never;
+  weapon?: never;
+}
+
+// A recipe PATTERN item: the physical drop that teaches one ProfessionRecipeRecord
+// when used from the bags (src/sim/professions/pattern_items.ts). The def names the
+// recipe it teaches and nothing else; `teachesRecipeId` is a recipe id
+// (content/recipes.ts recipeById), never an item id. Patterns are ordinary
+// tradable drops: no soulbound, no noMarketList. The bind happens by CONSUMPTION
+// at learn time, so a pattern is worth exactly what an unlearned copy is worth
+// and nothing once the knowledge is spent. Its own kind rather than a `use` arm
+// on OtherItemDef, so the recipe id can never be omitted (the Exclude above) and
+// the browse/stack/tooltip surfaces can key on the kind. Two more fields are
+// barred outright: a `use` payload would resolve in useItem's use-arm chain
+// ABOVE the recipe kind arm, so the click would never reach the learn, and an
+// explicit `stackSize` wins over UNSTACKED_KINDS in stackSizeOf, so it would
+// silently stack a kind every surface asserts is one-per-slot.
+export interface RecipeItemDef extends BaseItemDef {
+  kind: 'recipe';
+  teachesRecipeId: string;
+  /** A collection manual teaches these recipes atomically. The first id also
+   *  occupies teachesRecipeId for legacy discovery and preview consumers. */
+  teachesRecipeIds?: readonly string[];
+  /** A formula uses the enchant catalog rather than the crafting catalog. */
+  teachesEnchantId?: string;
+  armorType?: never;
+  weapon?: never;
+  use?: never;
+  stackSize?: never;
 }
 
 export type ItemDef =
@@ -891,7 +1771,44 @@ export type ItemDef =
   | WeaponItemDef
   | JewelryItemDef
   | HeldOffhandItemDef
-  | OtherItemDef;
+  | OtherItemDef
+  | MountItemDef
+  | RecipeItemDef
+  | ScrollItemDef
+  | FlaskItemDef
+  | FoodItemDef
+  | BuddyItemDef
+  | BuddyCosmeticItemDef;
+
+/** One hand a tracked copy passed through: the character (display name plus
+ *  the stable character id where the host knows one) and the host epoch ms.
+ *  The origin record and every entry of the owner chain share this shape. */
+export interface ItemOwnerRecord {
+  at: number;
+  by: string;
+  byId?: number;
+}
+
+/** The provenance record on a tracked copy (item_provenance.ts owns the
+ *  bounds and the transfer rule). `source` is a sim-composed id
+ *  ("mob:<templateId>", "quest:<questId>", "craft:<recipeId>", "vendor",
+ *  "dev", "world", "legacy", "promotion", "restore", "boost"), never
+ *  player text; `zone` is the zone or dungeon id where the origin grant
+ *  landed. `owners` is the most
+ *  recent MAX_ITEM_OWNER_HISTORY holders after the origin, oldest first;
+ *  `transfers` is the true count of hands it changed, which keeps counting
+ *  after the chain rolls. */
+export interface ItemProvenance extends ItemOwnerRecord {
+  source: string;
+  zone?: string;
+  /** The guid of the copy this one was made from, when it was derived from
+   *  another tracked copy (an upgrade recipe that consumes one, an admin
+   *  restore of a lost copy, a duplicate-guid split): the parent's ledger
+   *  carries the matching consume row. */
+  derivedFrom?: string;
+  owners?: ItemOwnerRecord[];
+  transfers?: number;
+}
 
 // Per-instance item payload (#1165). Additive and OPTIONAL: most items stay plain
 // {itemId, count} with no instance payload (fungible, market-listable). A slot
@@ -901,6 +1818,29 @@ export type ItemDef =
 // time, see market.ts marketList); #1146 wires real market handling for
 // instanced items later.
 export interface ItemInstancePayload {
+  /** Per-copy identity for a TRACKED copy (an epic or legendary item,
+   *  item_provenance.ts TRACKED_ITEM_QUALITIES): one canonical UUID, minted
+   *  once at the inventory hub (item_tracking.ts) from the host's randomness
+   *  (SimConfig.mintItemGuid, the server's crypto.randomUUID) or the
+   *  deterministic fallback, and never rewritten afterwards. Two copies never
+   *  share one, so a tracked copy is one-per-slot by construction (the merge
+   *  predicate compares every key). Owner-only on the wire: the eqi peer
+   *  allowlist and publicInstanceView leave it out. */
+  guid?: string;
+  /** The tracked copy's provenance record (item_provenance.ts): who first
+   *  obtained it, when (host epoch ms), from what source and where, plus the
+   *  bounded chain of later holders the hub appends on every grant that
+   *  changes hands (`movement` grants to a different character). Stamped
+   *  beside `guid` and judged atomically on load. The full record is
+   *  owner-only; other players read its publicProvenanceView: beside the
+   *  payload on a market row (`history`) and the inspect `eqh` key, inside
+   *  the slot on the guild bank member wire (guildBankMemberWireView), never
+   *  inside publicInstanceView, so no payload equality moves. */
+  provenance?: ItemProvenance;
+  /** Exact referral-card provenance for a movable trinket; bags remain fungible. */
+  referralLinkId?: number;
+  /** Permanent loot quality (enemy drops and other earned rewards), independent of rarity, enchants and upgrades. */
+  lootQuality?: LootQualityDescriptor;
   /** Player name that signed/crafted this specific copy, if any. */
   signer?: string;
   /** Remaining charges for a per-effect-limited item, keyed by effect id. */
@@ -912,7 +1852,11 @@ export interface ItemInstancePayload {
    *  marks a masterwork proc copy (professions/masterwork.ts) whose `stats`
    *  are the baked tier-delta bonus rather than an enchant; the enchanted
    *  marker is the separate `enchant` field below. */
-  rolled?: { quality?: string; stats?: Record<string, number>; masterwork?: boolean };
+  rolled?: {
+    quality?: string;
+    stats?: Record<string, number>;
+    masterwork?: boolean;
+  };
   /** Id of the enchant applied to this specific copy (content/enchants.ts):
    *  the authoritative already-enchanted marker (professions/enchanting.ts
    *  isEnchantedInstance). Legacy enchanted copies predate this field and are
@@ -932,11 +1876,150 @@ export interface ItemInstancePayload {
    *  boundTo, nothing item-specific. Additive and JSONB-safe: an absent flag is
    *  an ordinary freely-tradeable instance. */
   bindOnTrade?: boolean;
+  /** Mid-track Perfecting rank (Masterwrought phase 12,
+   *  professions/perfecting.ts): an integer in [1, PERFECTING_RANKS - 1],
+   *  absent = rank 0, DELETED when `perfected` below stamps (rank
+   *  PERFECTING_RANKS is Perfected itself, never a `perfecting` value).
+   *  Written by resolvePerfectingAttempt and by the crafting.ts masterwork
+   *  head start (PERFECTING_HEADSTART_RANK). A plain number, so
+   *  cloneItemInstancePayload's spread covers it; the load bound keeps only a
+   *  legal in-range integer (item_instance_load.ts, drop-only). */
+  perfecting?: number;
+  /** Permanent Perfecting binding, retained when a collection rank swap leaves rank zero. */
+  perfectingBound?: true;
+  /** This collection copy's immutable primary bonus, applied in rolled.stats only while Perfected. */
+  perfectingBonus?: Partial<CoreStats>;
+  /** Marks a copy that has completed the Perfecting stage (Masterwrought R1).
+   *  Minted by phase 12's rank walk (professions/perfecting.ts
+   *  resolvePerfectingAttempt, when the track reaches PERFECTING_RANKS); the
+   *  phase 10 Lucent Infusion guard (content/enchants.ts requiresPerfected,
+   *  professions/enchanting.ts) reads it. Only ever `true`; absent is an
+   *  ordinary copy, so pre-phase saves load clean. Included in the public
+   *  inspect projection so Perfected-only enchants can correctly become
+   *  dormant after rank exchange; mid-track ranks and binding/bonus
+   *  provenance remain owner-only via `inv` and `einst`. */
+  perfected?: true;
+  /** Player-chosen legendary name (Masterwrought phase 13, R3): stamped by the
+   *  orange promotion (professions/perfecting.ts, the chain
+   *  resolvePerfectingAttempt -> its internal promotion arm ->
+   *  promotePerfectedCopy, the last being the stamp site) alongside
+   *  rolled.quality = 'legendary', on an already-Perfected copy only.
+   *  Player-authored TEXT, always a VALUE and never an i18n key: standalone it
+   *  renders raw through the entity-name path (esc, untranslated); composed
+   *  lines interpolate it into a t() template (the feast/makers-mark
+   *  precedent). This field is COSMETIC PRESTIGE and
+   *  deliberately JOINS the server's `eqi` peer wire allowlist and
+   *  publicInstanceView (the phase 13 decision: an inspecting viewer seeing
+   *  the name is the point of the promotion), beside signer/enchant/rolled.
+   *  Live shape is validated in the sim (legendary_name.ts); the load bound
+   *  keeps a printable-ASCII string within its own byte ceiling
+   *  (item_instance_load.ts, a dedicated drop-only arm on the signer
+   *  doctrine: deliberately looser than the live shape so persisted values
+   *  outlive an alphabet widening). */
+  name?: string;
+  /** Player-toggled safety mark (issue 3042, item_lock.ts isItemLocked): while
+   *  true this specific copy refuses salvage, profession-craft reagent
+   *  consumption, and vendor sell (single and bulk) until the player unlocks
+   *  it again. Nothing to do with boundTo/bindOnTrade above (a content/trade
+   *  rule nobody chooses) or the def-level noVendorSell/noDiscard flags
+   *  (items.ts): this is an optional mark the owner sets on an otherwise
+   *  ordinary copy. */
+  locked?: boolean;
+  /** Bind-on-pickup party trade window (src/sim/loot/bop_trade_window.ts): a
+   *  soulbound copy awarded from party boss loot stays tradeable until
+   *  `untilMs` (the ctx.lockoutNowMs() clock), but only with the characters
+   *  in the drop-moment loot-candidate snapshot: `eligible` holds their
+   *  display names; `eligibleIds` their stable character ids where the host
+   *  knows them (the gate prefers ids, rename-proof). Equipping the copy
+   *  strips this field (items.ts equipmentPayloadFor), ending the window for
+   *  good. Additive and JSONB-safe: an absent or expired window is an
+   *  ordinary soulbound copy. */
+  partyTrade?: { untilMs: number; eligible: string[]; eligibleIds?: number[] };
+  /** Long-term Rift gear progression. `rolled.stats` is the authoritative
+   * aggregate consumed by recalcPlayerStats (the band's whole stat line plus
+   * its gem ratings); this record is the bounded input it is rebuilt from
+   * (rift/progression.ts rebuildRolledStats, priced by rift/band_ladder.ts):
+   * the clear's rank sets the base item level, every essence upgrade raises it
+   * by one, and each socketed gem adds one rating line. `power` is the rank's
+   * essence weight (salvage yield and first-clear essence count). */
+  rift?: {
+    sourceEventId: string;
+    tier: RiftTier;
+    power: number;
+    upgradeLevel: number;
+    maxUpgradeLevel: number;
+    gemSlots: number;
+    gems: string[];
+    /** LEGACY (pre-ladder payloads only): the old additive base line. Never
+     *  read; the load rebuild drops it. Kept optional so a persisted copy
+     *  still types. */
+    baseStats?: Record<string, number>;
+    /** LEGACY (pre-ladder payloads only): the retired forge enchant. Never
+     *  read; the load rebuild drops it. */
+    enchant?: { stat: string; value: number };
+  };
+}
+
+// A shallow `{ ...instance }` aliases the mutable `charges`/`rolled.stats`/`rift`
+// maps between a live payload and a serialized/loaded copy: decrementing a charge
+// on one would silently mutate the other. Deep-clones at every save/load boundary
+// instead. Shared by cloneInvSlot below and the equipped-instance map (an
+// enchanted piece's payload, src/sim/professions/enchanting.ts, or a Rift gear
+// piece's, src/sim/rift/progression.ts), so all copy through the exact same rules.
+export function cloneItemInstancePayload(src: ItemInstancePayload): ItemInstancePayload {
+  const instance: ItemInstancePayload = { ...src };
+  // Invalid descriptors remain untouched until the atomic load-bound arm drops
+  // them. Never iterate or clone an unbounded corrupt weights subtree here.
+  const lootQuality = cloneLootQuality(src.lootQuality);
+  if (lootQuality) instance.lootQuality = lootQuality;
+  if (src.charges) instance.charges = { ...src.charges };
+  // The owner chain is a mutable array on the provenance record (item_provenance.ts).
+  if (src.provenance && typeof src.provenance === 'object')
+    instance.provenance = cloneItemProvenance(src.provenance);
+  if (
+    src.perfectingBonus &&
+    typeof src.perfectingBonus === 'object' &&
+    !Array.isArray(src.perfectingBonus)
+  )
+    instance.perfectingBonus = { ...src.perfectingBonus };
+  if (src.rolled)
+    instance.rolled = {
+      ...src.rolled,
+      ...(src.rolled.stats && { stats: { ...src.rolled.stats } }),
+    };
+  // The array spreads below are guarded by Array.isArray so the clone stays
+  // TOTAL over malformed external data: every persisted container deep-clones
+  // through here BEFORE its load sanitizer runs (Sim.addPlayer, bank.ts,
+  // materials_vault.ts, the escrow books), so a hand-edited field that is not
+  // an array must copy without throwing; a guarded spread that does not fire
+  // leaves the malformed value shallow-aliased for the sanitizer to drop
+  // (item_instance_load.ts drops a malformed partyTrade marker whole).
+  if (src.rift) {
+    instance.rift = {
+      ...src.rift,
+      ...(src.rift.baseStats && { baseStats: { ...src.rift.baseStats } }),
+      ...(src.rift.enchant && { enchant: { ...src.rift.enchant } }),
+      ...(Array.isArray(src.rift.gems) ? { gems: [...src.rift.gems] } : {}),
+    };
+  }
+  if (src.partyTrade) {
+    const { eligible, eligibleIds } = src.partyTrade;
+    instance.partyTrade = {
+      ...src.partyTrade,
+      ...(Array.isArray(eligible) ? { eligible: [...eligible] } : {}),
+      ...(Array.isArray(eligibleIds) ? { eligibleIds: [...eligibleIds] } : {}),
+    };
+  }
+  return instance;
 }
 
 export interface InvSlot {
   itemId: string;
   count: number;
+  /** Exact surviving material sources. Absent on legacy homogeneous saves. */
+  materialSources?: MaterialComposition;
+  /** Owner grouping choice, retained by sorting/saving and stripped on transfer. */
+  materialSeparated?: true;
   /** Additive, optional per-instance payload (#1165). Absent for ordinary fungible stacks. */
   instance?: ItemInstancePayload;
   /** Recipe id that minted this stack when crafting provenance matters but the
@@ -951,29 +2034,44 @@ export interface InvSlot {
   slot?: number;
 }
 
-// A shallow `{ ...instance }` aliases the mutable `charges`/`rolled.stats` maps
-// between a live payload and a serialized/loaded copy: decrementing a charge on
-// one would silently mutate the other. Deep-clones at every save/load boundary
-// instead. Shared by cloneInvSlot below and the equipped-instance map (an
-// enchanted piece's payload, src/sim/professions/enchanting.ts), so both copy
-// through the exact same rules.
-export function cloneItemInstancePayload(src: ItemInstancePayload): ItemInstancePayload {
-  const instance: ItemInstancePayload = { ...src };
-  if (src.charges) instance.charges = { ...src.charges };
-  if (src.rolled)
-    instance.rolled = {
-      ...src.rolled,
-      ...(src.rolled.stats && { stats: { ...src.rolled.stats } }),
-    };
-  return instance;
-}
-
 // A shallow `{ ...slot }` aliases `instance` between the live slot and a
-// serialized/loaded copy; see cloneItemInstancePayload above for why that is
+// serialized/loaded copy; see cloneItemInstancePayload above (shared with the
+// equipped-instance map, src/sim/professions/enchanting.ts) for why that is
 // unsafe and what this clones instead.
 export function cloneInvSlot<T extends InvSlot>(slot: T): T {
-  if (!slot.instance) return { ...slot };
-  return { ...slot, instance: cloneItemInstancePayload(slot.instance) };
+  const copied = { ...slot };
+  if (slot.instance) {
+    copied.instance =
+      slot.materialSources === undefined
+        ? cloneItemInstancePayload(slot.instance)
+        : cloneMaterialPayload(slot.instance);
+  }
+  // Copy before load validation without interpreting malformed source data.
+  // A rejected descriptor must never be silently replaced with unknown stock.
+  if (slot.materialSources !== undefined) {
+    copied.materialSources = cloneMaterialData(slot.materialSources);
+  }
+  return copied;
+}
+
+/** ONE unit lifted out of an inventory slot, carrying BOTH provenance channels
+ *  the slot can hold: the per-instance `instance` payload and the plain-stack
+ *  `craftedRecipeId` marker. Any remover that reports what it consumed must
+ *  return this, never the bare payload: a plain crafted stack has no `instance`
+ *  at all, so a payload-only return silently drops its marker and the re-grant
+ *  launders the copy (the class the trade/market/mail/bank fixes each closed
+ *  at their own boundary). THE shape for this, not one of several: items.ts
+ *  (VendorRemovedUnit, the equip bridge) and professions/enchanting.ts
+ *  (ConsumedDisenchantUnit) alias it rather than redeclare it, so a remover
+ *  cannot quietly grow a third spelling that reports only one channel.
+ *  Returned by Sim.removeEnchantableItem, items.ts removeVendorSellUnits,
+ *  item_instance_transfer.ts removeMatchingInstance, and enchanting.ts's
+ *  victim walks. */
+export interface InventoryUnit {
+  instance: ItemInstancePayload | undefined;
+  craftedRecipeId: string | undefined;
+  /** Exact material source for this one unit; payload stays canonical. */
+  materialSources?: MaterialComposition;
 }
 
 export interface LootSlot extends InvSlot {
@@ -1003,6 +2101,7 @@ export type ItemLootStrategy = 'looter-takes-all' | 'need-greed' | 'round-robin'
 export interface LootRollPrompt {
   rollId: number;
   itemId: string;
+  instance?: ItemInstancePayload;
   itemName: string;
   quality: ItemDef['quality'];
   expiresAt: number;
@@ -1024,6 +2123,7 @@ export interface LootRollStatusEntry {
 export interface LootRollGroupStatus {
   rollId: number;
   itemId: string;
+  instance?: ItemInstancePayload;
   itemName: string;
   quality: ItemDef['quality'];
   expiresAt: number;
@@ -1037,6 +2137,26 @@ export interface MasterLootSettings {
   enabled: boolean;
   looter: number; // pid of the master looter; 0 means "the current leader"
   threshold: MasterLootThreshold;
+}
+
+// An open master-loot assignment still in its curate phase, as its MASTER LOOTER
+// sees it. The reconcile twin of LootRollPrompt (same reason: the transient
+// `masterLoot` SimEvent is delivered once, so a client that missed it, or that
+// consumed it and then had its assignment refused, has no other way back to the
+// prompt before the 300s window runs out). `candidates` is rebuilt from the roll's
+// CURRENT candidate list on every read, not from the open-time snapshot the event
+// carried, so a re-shown prompt can never offer a player who has since left.
+// Master-looter-only by construction: activeMasterLootRolls filters on
+// `masterLooter === pid`, the exact complement of the guard that keeps a
+// curate-phase roll out of activeLootRolls / lootRollGroupStatus for candidates.
+export interface MasterLootPrompt {
+  rollId: number;
+  itemId: string;
+  instance?: ItemInstancePayload;
+  itemName: string;
+  quality: ItemDef['quality'];
+  expiresAt: number;
+  candidates: { pid: number; name: string }[];
 }
 
 export interface LootStrategies {
@@ -1056,11 +2176,47 @@ export const DEFAULT_PARTY_LOOT_STRATEGIES: LootStrategies = {
 export interface LootEntry {
   itemId?: string;
   copper?: number;
+  // Heroic-claim money base: when the kill carries a live heroic instance
+  // claim, the loot roller substitutes this for `copper` as the roll base
+  // (same 0.6x to 1.4x band on the same single draw). Authored only on
+  // dungeon final bosses via the HEROIC_FINALE_COPPER /
+  // NYTHRAXIS_HEROIC_COPPER bases in content/dungeon_difficulty.ts, and it
+  // always rides a truthy `copper` (the roller's money arm gates on copper).
+  heroicCopper?: number;
   chance: number; // 0..1
   questId?: string; // only drops while this quest is active and not complete
   // Entries sharing a rollGroup are exclusive: one rng draw is partitioned by
   // their chances, so at most one matching entry drops.
   rollGroup?: string;
+  // Rolls on Normal kills only: a heroic claim skips the entry, and for a
+  // rollGroup the whole group (no rng draw), so the boss's HEROIC_BOSS_LOOT
+  // append can REPLACE that slot instead of stacking on it (the Crucible's
+  // one-item-per-five-raiders cadence; loot/loot_difficulty_gate.ts is the one
+  // predicate). Every entry of a group must agree, and the heroic-append
+  // tables never carry it (both pinned by tests/loot_roll.test.ts).
+  normalOnly?: true;
+  // A migrated base-loot acquisition in HEROIC_BOSS_LOOT keeps its original
+  // source level and stats; listing it here must not promote it to the
+  // bespoke heroic equipment tier or seed the higher-tier rift reward pool.
+  preserveSourceTier?: true;
+  // WORLD-BOSS PERSONAL LOOT ONLY (world_boss.ts rollWorldBossLoot): a keepsake the
+  // contributor never gets twice. The entry is still ROLLED for everyone (the draw order
+  // stays a function of the roster), and the win is discarded for a contributor who
+  // already holds the item in bags, bank or courier cargo.
+  unlessOwned?: true;
+  // WORLD-BOSS PERSONAL LOOT ONLY (world_boss.ts rollWorldBossLoot): like unlessOwned,
+  // but keyed on ANOTHER item: the win is discarded for a contributor who already holds
+  // this item in bags, bank or courier cargo (a token stops once its purchase is kept:
+  // Old Thatchgrin's Emberwoven Sheaf and the broom it buys). Still rolled for everyone.
+  unlessOwnedItem?: string;
+  // WORLD-BOSS PERSONAL LOOT ONLY (world_boss.ts rollWorldBossLoot): the entry is
+  // rolled only for a contributor whose level is at or below this. The locals' share
+  // of a boss placed in their zone: gear a level-eight can wear, which the level-twenty
+  // raid alongside them never sees in its own roll. Item level follows the gate, not
+  // the boss (item_level.ts): an item that can only ever fall to a level-13 player is
+  // level-13 content, whatever the level of the thing that dropped it. Ignored by the
+  // shared rollLoot path, so it must never appear on an ordinary mob's table.
+  maxPlayerLevel?: number;
 }
 
 export type MobFamily =
@@ -1076,7 +2232,8 @@ export type MobFamily =
   | 'dragonkin'
   | 'demon'
   | 'reptile';
-export type PetMode = 'passive' | 'defensive' | 'aggressive';
+// 'assist' attacks only the owner's active target once they cast on it (pet/pet_assist.ts).
+export type PetMode = 'passive' | 'defensive' | 'aggressive' | 'assist';
 export type PetRole = 'melee_tank' | 'ranged_dps';
 
 export type AiActiveMobActionIntent = 'startCombat' | 'flee' | 'callForHelp';
@@ -1140,6 +2297,17 @@ export interface AiActiveNpcActionResult {
   targetPos?: { x: number; z: number };
 }
 
+// A mechanic-applied refreshing fire DoT (the dragonkin brood's burns): the
+// same dot-aura shape the on-hit venom/cinder affix family applies, shared by
+// arcCleave / breathCone / broodWhelp so every burn rides the one seam.
+export interface MobBurnSpec {
+  perTick: number;
+  interval: number;
+  duration: number;
+  name: string;
+  school?: string;
+}
+
 export interface MobTemplate {
   id: string;
   name: string;
@@ -1154,8 +2322,25 @@ export interface MobTemplate {
   armorPerLevel: number;
   moveSpeed: number;
   aggroRadius: number; // base, at equal level
+  // Hard tether (yards from spawnPos): past it the mob evades home to a full
+  // reset, whatever its refreshing leashAnchor says. The soft leash measures
+  // from an anchor every hostile action re-seeds, so a patient player can walk
+  // an ordinary mob across the map one leash-length at a time; a mob carrying
+  // this cannot be kited off its ground (mob/combat_profile.ts).
+  hardLeashRadius?: number;
+  /** Optional mandatory encounter threshold. Damage cannot move the mob below
+   * this max-HP fraction until encounter logic clears its runtime floor. */
+  damageFloorPct?: number;
   loot: LootEntry[];
   scale: number; // render hint
+  /** A big body's reach from its pivot to the edge players stand at (yards).
+   *  Set on the towering bosses and the dungeons' great non-boss bodies (the
+   *  Turretback Hermit, the Mere Hydra's heads, the Great Saurian): a
+   *  player's melee reaches it from bodyRadius + 3
+   *  (combat/player_attack_reach.ts) instead of the stock 5 yd that put them
+   *  inside the model, and the boss's own swing reaches one yard past that
+   *  (mob_combat.ts), so nobody can hit it from outside its reach. */
+  bodyRadius?: number;
   color: number; // render hint
   // Profession harvesting: the skinning/salvage component types this mob's corpse
   // can yield (e.g. 'hide', 'horn', 'venomSac', 'gills', 'fang', 'claw', 'feather').
@@ -1163,12 +2348,27 @@ export interface MobTemplate {
   // via the tag-to-item map in src/sim/content/professions.ts (#1141).
   componentTags?: string[];
   boss?: boolean;
+  /**
+   * A named instance mid-boss that carries boss loot without the `boss` flag
+   * (the Hollow Crypt's wing bosses): its lootable corpse stands for the boss
+   * hold instead of the 60 s trash window (mob/boss_corpse_hold.ts), so a
+   * group that spends a minute on its adds, a resurrection or an unanswered
+   * roll still finds the body. Nothing else a `boss` template gets.
+   */
+  bossCorpseHold?: boolean;
   rare?: boolean;
+  // Explicit tame opt-out for ordinary beasts whose encounter lifecycle must
+  // not be replaced by the hunter pet respawn lifecycle.
+  untameable?: boolean;
   // World boss: a server-wide elite that spawns on a fixed cadence (not from a
   // CAMP), announces itself when it rises, and drops PERSONAL loot to every player
   // who damaged it (gated to once per day per boss). The spawn schedule + location
   // live in src/sim/world_boss.ts; the loot roll runs through rollWorldBossLoot.
   worldBoss?: boolean;
+  // A seasonal event's field boss (src/sim/seasonal/scarecrow.ts): exists only while
+  // this event runs. A world boss in every rule above, except that his kill never
+  // counts toward the weekly world-boss quest (a seasonal window must not gate it).
+  seasonalEvent?: string;
   // Suppresses the per-mechanic combat-log barks ("<Name> unleashes <Mechanic>!"
   // and "<Name> becomes enraged!") for a mob whose only voice should be its
   // periodic zone-wide battle cry (a world boss). The mechanics still fire, with
@@ -1179,6 +2379,10 @@ export interface MobTemplate {
   // Kill-XP multiplier (default 1). 0 marks a puzzle-object mob (e.g. the 1 HP
   // spider egg-sac) that must not pay full kill XP for a single hit.
   xpMult?: number;
+  // Quest-gated destructible: when set, the mob is only damageable by a player who
+  // has this quest active (state 'active' or 'ready'). Used for quest-exclusive
+  // objects like Broodmother eggs so non-questers cannot grief the clutch.
+  requiresQuestId?: string;
   // Rare/miniboss controls.
   canSwim?: boolean;
   // Every movement step (chase, flee, wander, leash return) uses Sim.moveToward's
@@ -1186,6 +2390,387 @@ export interface MobTemplate {
   // the steep-wall gate. For mountain-sized movers (world bosses) that must never
   // wedge on camp furniture while closing on a target.
   phasesThroughObstacles?: boolean;
+  /**
+   * Circles a PHASING mover never walks into (mob/keep_out.ts): a straight line that
+   * would enter one bends round its edge, a target inside one is chased only to its
+   * edge, and a body that finds itself inside walks straight out. The phasing mode
+   * above ignores every wall, so this is the one way to keep a giant out of a place.
+   */
+  keepOut?: readonly { x: number; z: number; radius: number }[];
+  /**
+   * Yards of water this body walks THROUGH with its feet on the bed before it would
+   * have to swim. A giant does not float: in a fen whose lakes are a few yards deep
+   * he wades, the surface rides up his shins, and the raid on the shore watches the
+   * whole body cross rather than a head bobbing on the waterline. Above this depth he
+   * rides the surface like everyone else, so a body can never walk along the bottom of
+   * a lake deeper than it is tall. Unset keeps the shipped rule (players' swim depth
+   * for walkers, the surface for phasing movers).
+   */
+  wadeDepth?: number;
+  /**
+   * The corpse sinks into the ground over the last `seconds` of its corpse window, by
+   * `depth` yards, so a body too big to vanish cleanly sinks out of sight instead of
+   * popping out of existence (mob/boss_corpse_sink.ts). It also keeps the body lying for
+   * the WHOLE window once its loot is emptied, rather than collapsing it on the fast arm
+   * trash takes, because the sink is how it leaves. Inert for every mob without it.
+   */
+  corpseSink?: { seconds: number; depth: number };
+  /**
+   * Slumber: the mob sleeps through the night (mob/slumber.ts). At dusk, once out of
+   * combat, he walks home to his spawn point and lies down; asleep he is neutral (not
+   * attackable, never aggroes) and heals; at dawn he wakes, announces himself, and is
+   * a boss again. A fight that is running at dusk is fought to its end first.
+   *
+   * Inert for every mob without it and for every host without a day/night clock
+   * (SimConfig.dayNightNowMs): with no clock there is no night, so tests and the RL
+   * env see the pre-cycle world. The world-boss scheduler reads the same field to
+   * respawn a slain slumbering boss at the next dawn rather than on the interval.
+   */
+  slumber?: {
+    /** Aura shown on his frame while he sleeps (the raid's "come back at dawn"). */
+    auraName: string;
+    /** Yell as he lies down at dusk (optional) and as he wakes at dawn. */
+    sleepYell?: string;
+    wakeYell: string;
+    yellRange?: number;
+    /** How close to the spawn point counts as "in bed": inside it he lies down. */
+    bedRadius: number;
+    /** Seconds the AI waits after the dawn wake before he moves or acts, so the body
+     *  can stand up (the renderer's wake one-shot) without the first wander step or
+     *  chase sliding the pose across the ground. Hostile and attackable throughout;
+     *  absent means no hold. */
+    riseSeconds?: number;
+    /** When he is AWAKE: 'day' (absent, the Mirefen Foreman) sleeps from sunset to
+     *  sunrise; 'night' (Old Thatchgrin) hangs asleep on his pole from sunrise to sunset
+     *  and fights only after dark. A clockless host keeps either one awake. */
+    awakeAt?: 'day' | 'night';
+    /** Lie down EXACTLY on the spawn point, facing `Entity.bedFacing`: a bed that is a
+     *  fixed prop (his pole) rather than open ground. */
+    snapToBed?: boolean;
+  };
+  /**
+   * Seconds of spacing between this mob's boss mechanics, and the opt-in that turns
+   * its instant AoEs (`aoePulse`, `stomp`) into TELEGRAPHED ones: a ground ring drawn
+   * at the true blast radius, a windup, then the blast measured from the ring's centre
+   * rather than from wherever the boss has since walked.
+   *
+   * Set it on any boss whose counterplay is meant to be reading the ground and stepping
+   * out. Leaving it undefined keeps the shipped instant fire, which is right for trash
+   * and for bosses whose AoE is a soak rather than a dodge.
+   *
+   * Rift bosses get the same treatment stamped per spawn instead (rift/runs.ts), which
+   * is why the entity-side field it feeds is still called `riftMechanicSpacing`.
+   */
+  telegraphedMechanics?: number;
+  /**
+   * Warpath: the boss walks a circuit of authored landmarks instead of parking in your
+   * melee range (mob/warpath.ts). He plants and fights (focus), runs to the next stop
+   * while backhanding whoever is near him and regenerating if nobody hurts him (travel),
+   * then slams the place he arrived at behind a telegraph ring (wreck), and repeats.
+   *
+   * Inert for every mob without it. Set it on a boss whose fight is meant to be an event
+   * that crosses the zone rather than a health bar standing in a field. Pair it with
+   * `canLeash: false` in mob_combat.ts: the shipped leash measures from the SPAWN, so a
+   * tethered boss walks two landmarks and evades home mid-circuit.
+   */
+  warpath?: {
+    /** Seconds planted and fighting before he leaves. The melee uptime window. */
+    focusSeconds: number;
+    /**
+     * Multiplier on moveSpeed while travelling. Tune it ABOVE a walking player and BELOW
+     * a running one: faster and melee can never touch him again, slower and there is no
+     * chase, only a follow.
+     */
+    travelSpeedMult: number;
+    /** Abandon the run after this long, so an unreachable landmark cannot soft-lock. */
+    travelTimeoutSeconds: number;
+    /** Close enough to the landmark to count as arrived. */
+    arriveRadius: number;
+    /** Seconds spent on the arrival set-piece, telegraph fuse included. */
+    wreckSeconds: number;
+    /**
+     * The circuit, walked IN ORDER and wrapping. Authored order is the pacing: each leg's
+     * length is how long that chase lasts. `yell` is his bark on setting off for that
+     * stop (variable-routed chat, English from content like every other boss bark).
+     */
+    destinations: Array<{ x: number; z: number; label: string; yell?: string }>;
+    /** Widen his barks past YELL_RANGE for a voice that carries across the zone. */
+    yellRange?: number;
+    /**
+     * Heals while nobody has hurt him recently: what makes the chase mandatory. `name`
+     * labels the green number, so the raid can read WHY the bar is climbing.
+     */
+    regen: { unharriedSeconds: number; pctPerSecond: number; name: string };
+    /**
+     * When he drops the pull and walks home to his spawn (his bed) as an ordinary evade:
+     * immune on the way, full health on arrival. `tetherRadius` is how far from the spawn
+     * he may ever be, in any phase; `playerRange` is how close a living player must be;
+     * `aloneGraceSeconds` is how long nobody may be inside that range before he gives up (a
+     * ranged raid swinging wide as he sets off must not reset him); `unharriedSeconds` is how
+     * long he waits with nobody hurting him (mob/warpath.ts).
+     */
+    giveUp: {
+      tetherRadius: number;
+      playerRange: number;
+      aloneGraceSeconds: number;
+      unharriedSeconds: number;
+    };
+    /** The travelling backhand: one random player inside `radius`, on a timer. */
+    swipe: {
+      every: number;
+      radius: number;
+      min: number;
+      max: number;
+      name: string;
+      school?: string;
+    };
+    /** The arrival slam, telegraphed for WARPATH_WRECK_FUSE_SEC before it lands. */
+    wreck: { radius: number; min: number; max: number; name: string; school?: string };
+    wreckYell?: string;
+  };
+  /**
+   * Aimed slams (mob/boss_slams.ts): a fist HAMMER dropped on a snapshot of where a
+   * player was standing, dodged by moving, and a low CLEAVE dragged across the ground in
+   * an arc in front of him, dodged by jumping and nothing else.
+   *
+   * Inert for every mob without it. They exist because the shipped boss AoE vocabulary is
+   * circles centred on the boss, all of which are dodged by walking out, so a fight built
+   * only from those teaches one skill and then repeats it.
+   */
+  slams?: {
+    /** One fist, raised and dropped where a player was standing. */
+    hammer: {
+      every: number;
+      /** Seconds the ring is shown before the fist lands. */
+      windup: number;
+      /** Small on purpose: this is dodged by stepping aside, not by leaving the fight. */
+      radius: number;
+      min: number;
+      max: number;
+      name: string;
+      school?: string;
+    };
+    /** A low arm drag across the ground in front of him. */
+    cleave: {
+      every: number;
+      windup: number;
+      /** Reach of the arc, and the max distance he will start one from. */
+      range: number;
+      /** Half-width of the arc in degrees, measured off his aim at the wind. */
+      halfArcDeg: number;
+      /** Yards per second the arm travels, which is what a player who cleared it rides. */
+      sweepSpeed: number;
+      min: number;
+      max: number;
+      name: string;
+      school?: string;
+    };
+  };
+  /**
+   * The ranged-punish kit (mob/boss_ranged_mechanics.ts): three telegraphed mechanics
+   * that reach the players who stand far from him, each on its own cadence and all three
+   * behind the same mechanic spacing lock as every other telegraph, so no two wind-ups
+   * ever share the ground. Inert for every mob without it.
+   */
+  rangedMechanics?: {
+    /** Boulders hurled at the `count` FARTHEST players standing at least `minRange` out. */
+    boulder: {
+      every: number;
+      windup: number;
+      minRange: number;
+      maxRange: number;
+      count: number;
+      radius: number;
+      min: number;
+      max: number;
+      name: string;
+      school?: string;
+    };
+    /** A ground-hugging beam down a snapshot line from him through one far player. */
+    glare: {
+      every: number;
+      windup: number;
+      minRange: number;
+      maxRange: number;
+      /** Half the beam's width in yards. */
+      halfWidth: number;
+      /** How far past the target the line runs, and the floor/ceiling of its length. */
+      overshoot: number;
+      minLength: number;
+      maxLength: number;
+      min: number;
+      max: number;
+      name: string;
+      school?: string;
+    };
+    /** A shared soak marked on one player: its damage is split by everyone inside. */
+    burden: {
+      every: number;
+      windup: number;
+      range: number;
+      radius: number;
+      /** Total damage as a fraction of EACH soaker's max health, split by the soaker count. */
+      totalFraction: number;
+      /** Soakers the marker asks for (its occupancy runes); the split itself has no cap. */
+      recommended: number;
+      name: string;
+      yell?: string;
+    };
+    /** Seconds of the shared spacing lock each one holds AFTER its wind-up. */
+    spacing: number;
+  };
+  /**
+   * Wake of the Fallen Star (mob/boss_starwake.ts): the fallen star in his crater wakes,
+   * lava fissures crawl across the fen behind a telegraph that fills, geysers burst along
+   * them and under a few players, and molten pools linger where the geysers burst. Holds
+   * the shared mechanic spacing lock for its whole wind-up, so it never shares the ground
+   * with another telegraph. Inert for every mob without it.
+   */
+  starwake?: {
+    /** Seconds between casts (ticked while planted and fighting, like his other kit). */
+    every: number;
+    /** The warning: the cast bar while the star wakes (fists in the ground, the yell). */
+    warn: number;
+    /** The fissure telegraphs crawl from their origin to their tips over this long. */
+    crawl: number;
+    /** Then they sit full on the ground this long before the eruption. */
+    hold: number;
+    /** Seconds of the spacing lock held after the eruption. */
+    spacing: number;
+    /** Where the fallen star sits (the crater centre), and the band of boss distances
+     *  inside which the fissures run FROM it rather than from under his feet. */
+    star: { x: number; z: number };
+    starMinReach: number;
+    starMaxReach: number;
+    fissures: {
+      fanCount: number;
+      fanDeg: number;
+      reachPast: number;
+      minLength: number;
+      maxLength: number;
+      ringCount: number;
+      ringLength: number;
+      jitterDeg: number;
+      /** Half the strip's width in yards. */
+      halfWidth: number;
+      min: number;
+      max: number;
+    };
+    geysers: {
+      /** Players a targeted geyser is laid under (at most), drawn from those in `range`. */
+      targets: number;
+      range: number;
+      /** A targeted geyser's radius (and its pool's). */
+      radius: number;
+      /** Each fissure's own geyser: how far down it, and its radius (and its pool's). */
+      alongFraction: number;
+      fissureRadius: number;
+      min: number;
+      max: number;
+    };
+    pool: {
+      seconds: number;
+      interval: number;
+      min: number;
+      max: number;
+      name: string;
+    };
+    /**
+     * The meteor shower the eruption calls down (mob/boss_starwake_meteors.ts): waves of
+     * Ignivar's own Falling Cinders meteors (his placement, circle, telegraph and fall) for
+     * `seconds`, round the players within `range` of him, the star and the cracks, each
+     * with its own flat hit in place of the raid's max-HP share.
+     */
+    meteors: {
+      /** Players this far from him are the shower's player anchors. */
+      range: number;
+      /** Seconds of waves from the eruption (the last wave still falls its full telegraph). */
+      seconds: number;
+      /** Seconds between waves, drawn per wave in [waveMin, waveMax]. */
+      waveMin: number;
+      waveMax: number;
+      /** Meteors per wave, drawn per wave in [perWaveMin, perWaveMax]. */
+      perWaveMin: number;
+      perWaveMax: number;
+      min: number;
+      max: number;
+      name: string;
+    };
+    /** The cast bar's name, the eruption's damage label and the mechanic's name. */
+    name: string;
+    school: string;
+    yell?: string;
+  };
+  /**
+   * Punt, rather than shove, on every heavy slam this mob lands (mob/boss_slams.ts
+   * `launchFromSlam`, called from the telegraphed detonations, the warpath arrival, and
+   * both aimed slams above).
+   *
+   * The shipped knockback slides a victim along the ground, which reads as a push. A body
+   * thrown into the AIR reads as having been hit by something enormous, and for a boss
+   * whose whole identity is his fists that difference is the fight's texture. Set it only
+   * on a mob big enough that being launched by it is believable.
+   */
+  launch?: {
+    /** Yards of ground shove, run through the shared applyKnockback rules. */
+    distance: number;
+    /** Vertical impulse in yards/sec. GRAVITY is 16, so apex is up^2/32 yards; keep the
+     * apex under FALL_SAFE_DISTANCE (12) or the boss starts dealing fall damage too. */
+    up: number;
+    /** Outward air speed carried after the shove, so they keep travelling as they rise. */
+    outSpeed: number;
+    /** Multiplier at the blast rim, easing from 1 at the epicentre. */
+    edgeScale: number;
+  };
+  /**
+   * This mob's telegraphed blasts hurt OTHER CREATURES standing in them, not just players
+   * (mob/boss_collateral.ts `splashNearbyMobs`).
+   *
+   * For a world boss loose in an inhabited zone: he craters the road, and the boars standing
+   * in the crater die with everyone else. Inert without it, so every mob shipped before this
+   * keeps hitting exactly who it hit, in the same order, drawing the same rng.
+   */
+  /**
+   * A standing mitigation ward only a MECHANIC can remove (mob/eye_ward.ts): a permanent
+   * buff_dr aura on the mob, pried open for `blindSeconds` by the Shardpike's eye thrust
+   * (lance_trial.ts), then sealed against a re-blind for `refractorySeconds` after it
+   * re-forms. The level-spread device for a world boss: low levels open the window with a
+   * fixed-damage mechanic, high levels spend it.
+   */
+  eyeWard?: {
+    /** Buff name on his frame while the ward stands. */
+    name: string;
+    /** Fraction of incoming damage the ward turns away (a buff_dr value, 0..1). */
+    reduction: number;
+    /** Seconds the ward stays down after a successful thrust. */
+    blindSeconds: number;
+    /** Seconds after the ward RE-FORMS before it can be pried again. */
+    refractorySeconds: number;
+    /** Debuff name for the open window (its remaining time is the raid's timer). */
+    blindName: string;
+    /** Bark on being blinded, broadcast to `yellRange` (default 160). */
+    blindYell?: string;
+    yellRange?: number;
+  };
+  collateral?: {
+    /**
+     * Fraction of the blast's AUTHORED midpoint a bystander takes. Below 1 because zone
+     * wildlife has a fraction of a raider's health pool and a full-strength raid mechanic
+     * would sterilize the whole zone on the first pull.
+     */
+    mult: number;
+  };
+  /**
+   * Yards at which this mob is still VISIBLE, as a far sprite, long after the renderer has
+   * stopped drawing its rig (render/boss_impostor.ts) and the server would normally have
+   * stopped sending it (server/game.ts `interestLimitSq`).
+   *
+   * For a world boss, whose whole point is being a landmark you can see from across the zone
+   * and decide to walk toward. It costs one wire entity per viewer in range and one
+   * two-triangle draw, so it is for the one creature an hour that earns it, never for an
+   * elite. Absent means the ordinary interest and draw bands, which is every other mob.
+   */
+  landmarkRange?: number;
   ccImmune?: boolean;
   // Immune to movement-speed slow auras (kind 'slow'). Distinct from ccImmune, which
   // blocks the hard control auras (stun/root/incapacitate/polymorph) but intentionally
@@ -1194,14 +2779,82 @@ export interface MobTemplate {
   // Ignores taunt/growl forced-target windows. Used by special add AI only.
   ignoreTaunt?: boolean;
   respawnMult?: number;
+  // A RANDOM respawn window authored INSTEAD of respawnMult, in the same
+  // 25s-base units: each death draws its multiplier uniformly in the half-open
+  // [minMult, maxMult) (src/sim/respawn_policy.ts). Both bounds in one field, so
+  // a lone bound or an inverted window cannot be written.
+  respawnWindow?: RespawnWindow;
   // Fixed respawn delay in seconds, overriding respawnSeconds*respawnMult; also
   // caps corpse decay so the mob returns on schedule. (Training dummy: 10s.)
   respawnSeconds?: number;
-  // Training dummy: a stationary practice target — attackable (so it counts for
+  // Training dummy: a stationary practice target - attackable (so it counts for
   // damage and the combat meters) but never moves, aggros, or retaliates; drops
   // combat and heals to full a few seconds after the last hit. Guarded in
   // enterCombat (sim.ts) and updateMob (mob/locomotion.ts).
   dummy?: boolean;
+  // A `dummy` that is an ALLY rather than a target: spawns non-hostile and
+  // carries Entity.friendlyPracticeTarget, which is what opens it to heals in
+  // sim.isFriendlyTo. It rests below full health and sheds healing back down
+  // (mob/practice_dummies.ts) so a healer always has something real to heal and
+  // the target resets itself for the next player.
+  friendlyPracticeTarget?: boolean;
+  // Custom resting health fraction for friendly practice targets (default: 0.35).
+  restHpFraction?: number;
+  // Take PASSIVE idle draws off the shared world stream (Entity.offStreamRng).
+  // CampDef.offStream covers a wholly new camp; this covers a template that
+  // REPLACED shipped content in an existing camp slot, where the spawn draws
+  // must stay on the shared stream (so the replaced camp's own spawns do not
+  // move) but the new mob's idling must not drift it: a swap with a different
+  // moveSpeed arrives at its wander targets on a different cadence, which
+  // re-rolls the shared stream for every mob after it. Stamped onto the spawn in
+  // createMob (src/sim/entity.ts), so the contract holds through EVERY spawn path
+  // (the camp loop, a brood egg hatching a whelp, a dev spawn), not just one.
+  offStreamIdle?: boolean;
+  // Idle-wander liveliness multiplier (default 1). Divides the wander PAUSE at
+  // EVERY site that rolls one, so a restless creature (the dragonkin whelp)
+  // putters around its patch instead of standing statuesque: the two in the idle
+  // wander step (arrival and the 30s walk-budget timeout), the camp spawn, the
+  // respawn reset, and the evade-home reset. All five go through the one owner,
+  // wanderPause in mob/idle_rng.ts, because a knob honored at only SOME of them
+  // does nothing measurable: a quick mob only ever reaches arrival, which is how
+  // this shipped dead when only the timeout divided. Applied AFTER the draw: the
+  // draw count, order, and drawn values are identical for every template, so the
+  // parity draw digest never moves.
+  wanderHaste?: number;
+  // Dormant-until-pulled: the mob never idle-wanders, so a hand-placed pack holds
+  // its exact spawn position and facing until something aggros it (then it chases
+  // and fights normally). Used by the downed forge mechs, which pair this with the
+  // render-side frozen idle pose (VisualDef.idleFrozen). Skips the idle wander draw
+  // entirely, so it stays put with zero movement.
+  idleStationary?: boolean;
+  // Suicide bomber (the derelict forge mech): the mob crawls to its target,
+  // turning in place to FACE it before it translates (no sideways gliding), and on
+  // reaching melee range it stands up over `windup` seconds (flashing red) before
+  // detonating an AoE blast and dying. Owned by mob/derelict_bomber.ts.
+  meleeBomb?: {
+    windup: number; // seconds standing/arming before the blast (match the StandUp clip)
+    min: number;
+    max: number;
+    radius: number;
+    name: string;
+    school?: Aura['school'];
+  };
+  // Purely-ambient decoration (the Highwatch stable horses): never hostile,
+  // never aggros/fights, un-attackable and un-tameable, but wanders a bounded
+  // patch. Spawned RNG-free (like the dummy) so it never perturbs the shared
+  // seed stream, and driven by the ambient arm (mob/ambient.ts) whose wander
+  // draws a private Rng sub-stream, not ctx.rng. See src/sim/mob/ambient.ts.
+  ambient?: boolean;
+  // A soldier of the Mirefen muster (src/sim/mirefen_muster.ts): friendly set dressing
+  // that holds its post. Never hostile, never in combat, un-attackable (isHostileTo reads
+  // mob.hostile) and never on anyone's hate table, so it can neither hurt a boss nor feed
+  // his loot roster or HP scaling; only a collateral boss slam (mob/boss_collateral.ts)
+  // can kill it, and the muster module stands it back up. Spawned RNG-free by that module.
+  musterSoldier?: true;
+  // Boss mechanics sized by the RECEIVING player's level (mob/mechanic_level_scale.ts):
+  // the authored ranges at `fromLevel` and below, `toMult` times them at `toLevel`, a
+  // straight line between. Players only; the boss's melee swing is never scaled.
+  mechanicLevelScale?: { fromLevel: number; toLevel: number; toMult: number };
   // Boss mechanic: periodic AoE pulse around the mob while in combat.
   aoePulse?: {
     min: number;
@@ -1211,6 +2864,10 @@ export interface MobTemplate {
     name: string;
     school?: string;
     fx?: 'nova' | 'projectile';
+    // A safe ring inside the blast (boss_ring_gap.ts): anyone standing between these two
+    // fractions of the radius is missed. Balgath's Barrow Smash only; his renderer draws
+    // the same gap from the same fractions.
+    safeGap?: { inner: number; outer: number };
   };
   // Boss mechanic: a Geddon-style stationary channel. Every `every` seconds
   // the boss roots in place, stops meleeing, and channels for `duration`,
@@ -1233,6 +2890,69 @@ export interface MobTemplate {
     school?: string;
     atHpPct?: number[];
   };
+  // Boss mechanic: a periodic telegraphed FRONTAL CONE hardcast (the dragonkin
+  // fire breath). Mirrors bigCast's cast machinery (real cast bar via castId,
+  // keeps meleeing, melee-gated cadence) but resolves against every living
+  // player inside `range` yards AND the `arcDeg` cone about the mob's facing
+  // at cast completion, not a radius. Sidestepping the cone is the intended
+  // counterplay. Optionally sets the `burn` fire DoT on everyone caught.
+  // Dungeon trash kit (mob/trash_kit): interruptible bolts, raises, calls
+  // and screeches, leaps, growth, perched dives and the drake's strikes.
+  trashKit?: TrashKitDef;
+  breathCone?: {
+    castId: string;
+    name: string;
+    castTime: number;
+    every: number;
+    range: number;
+    arcDeg: number;
+    min: number;
+    max: number;
+    school?: string;
+    burn?: MobBurnSpec;
+  };
+  // On-aggro battle shout (the dragonkin brood): the mob roots in place for
+  // `rootSeconds` on its FIRST player aggro of a pull (facing its target,
+  // not moving, not swinging; the renderer plays the Shout clip off the
+  // 'shout' spellfx) before it starts walking. Fires once per pull; resets on
+  // evade/respawn. The broodlords also crack every dragonkin egg within
+  // `breakEggsRadius` yards awake, and `wardWhelps` wraps each whelp those
+  // eggs hatch in a one-hit ward (the first player hit is fully absorbed;
+  // src/sim/mob/dragonkin_brood.ts strips the ward after it soaks).
+  engageShout?: {
+    rootSeconds: number;
+    breakEggsRadius?: number;
+    wardWhelps?: { duration: number; name: string };
+  };
+  // Counter-stun (the dragonkin broodlords): when a player's hard stun lands
+  // on this mob, it hammers a `seconds` stun back onto the stunner (both end
+  // up stunned), at most once per `cooldown` seconds. The player's stun still
+  // lands normally; pin-trading a broodlord is the deliberate cost.
+  counterStun?: { seconds: number; cooldown: number; name: string };
+  // Dragonkin egg behavior (the 1 HP clutch mob): any death cracks it open
+  // and hatches `hatchMobId` at its spot; the break ripples to every other
+  // egg within `chainRadius` yards on a `chainDelay` stagger per hop, and a
+  // player closing inside `proximityRadius` springs it early. Driven by
+  // src/sim/mob/dragonkin_brood.ts.
+  broodEgg?: {
+    chainRadius: number;
+    chainDelay: number;
+    proximityRadius: number;
+    hatchMobId: string;
+    /** The school of the burst the shell breaks in (default 'fire', the
+     *  dragonkin egg; the Hollow Crypt's rime egg sac bursts in frost). */
+    burstSchool?: Aura['school'];
+  };
+  // Dragonkin whelp behavior: on hatch it pounces, a `leapSeconds` burst at
+  // `leapSpeedMult` x move speed toward its victim, and its first landed
+  // swing sets the `burn` DoT (the pounce "landing"). Hatch targeting prefers
+  // a healer or damage-dealer within reach over the closest player.
+  broodWhelp?: {
+    leapRange: number;
+    leapSpeedMult: number;
+    leapSeconds: number;
+    burn: MobBurnSpec;
+  };
   // Boss mechanic: a periodic telegraphed HARDCAST. Unlike the instant aoePulse,
   // the mob shows a real cast bar (the entity casting fields carry castId) for
   // `castTime` seconds, then the spell lands as an AoE nova on every living player
@@ -1249,6 +2969,36 @@ export interface MobTemplate {
     school?: string;
     yell?: string;
   };
+  // Boss mechanic: lethal telegraphed zone (A-rank). The boss hardcasts for
+  // `castTime` seconds (a visible cast bar, same as bigCast), placing a ground
+  // zone at a targeted player's position the instant casting begins. Any player
+  // still inside `radius` when the cast completes takes flat p.hp + p.maxHp
+  // (guaranteed kill, no mechanicDamageMult). `yell` fires at cast start;
+  // `detonateText` fires in a log line at detonation. Zone state lives on
+  // RiftInstance.bossDeathZones and ticks down; only rift boss floors emit these.
+  deathZoneCast?: {
+    castId: string;
+    name: string;
+    castTime: number;
+    every: number;
+    radius: number;
+    school?: string;
+    yell?: string;
+    detonateText: string;
+  };
+  // Boss mechanic: lethal telegraphed zone (S-rank), identical driver to
+  // deathZoneCast but with distinct castId/name/flavor (wider radius, slower
+  // cast) so rank S bosses run two distinct lethal patterns simultaneously.
+  deathZoneStrike?: {
+    castId: string;
+    name: string;
+    castTime: number;
+    every: number;
+    radius: number;
+    school?: string;
+    yell?: string;
+    detonateText: string;
+  };
   // Boss bark lines, broadcast as 'yell'-channel chat to every player within
   // YELL_RANGE (mirroring the Nythraxis encounter yells; sim-emitted English by
   // the variable-routed-chat precedent, see the S3 note in
@@ -1257,6 +3007,15 @@ export interface MobTemplate {
   yells?: { engage?: string; summon?: string; enrage?: string };
   // Boss mechanic: spawn adds when hp first drops below each threshold (descending fractions).
   summonAdds?: { mobId: string; count: number; atHpPct: number[] };
+  // Rift rank gating: the boss's headline mechanics in unlock order. A rift boss
+  // spawned at rank C runs only the first entry, B the first two, A three, S all
+  // four (src/sim/rift/ranks.ts riftMechanicSuppressed, consulted at each fire
+  // site). Absent (every non-rift template) or on an entity with no
+  // riftMechanicLimit, nothing is suppressed. Keys name MobTemplate mechanic
+  // fields driven by the timed/threshold runners (aoePulse, aoeSlow, bigCast,
+  // stoneskin, stomp, terrify, summonAdds, desperateHeal, deathZoneCast,
+  // deathZoneStrike); on-hit affixes stay ungated flavor.
+  rankMechanics?: readonly string[];
   // Boss mechanic: damage multiplier (and optional swing-speed haste) once hp
   // drops below the threshold. hasteMult > 1 makes the enraged mob swing faster.
   enrage?: { belowHpPct: number; dmgMult: number; hasteMult?: number };
@@ -1264,14 +3023,14 @@ export interface MobTemplate {
   // below the threshold (healPct is a fraction of maxHp). Resets on evade/respawn.
   desperateHeal?: { belowHpPct: number; healPct: number };
   // Self-buff affix ("Battle Fury" / Rampage): every landed melee swing whips the
-  // attacker into an escalating frenzy — a self-applied, stacking buff_ap aura (up
+  // attacker into an escalating frenzy - a self-applied, stacking buff_ap aura (up
   // to `maxStacks`) that grows its attack power, and thus its melee damage, the
   // longer the fight drags on. Rides the existing buff_ap aura that
   // effectiveAttackPower already folds into mob swing damage, so there is no new
   // combat math. Unlike `enrage` (a one-shot threshold burst) or `packFrenzy` (a
   // haste pulse on an ally's death), this ramps continuously while the mob keeps
   // connecting. The single shared aura slot is refreshed each hit; left alone it
-  // falls off after `duration`s, undoing the ramp — so burning the mob down or
+  // falls off after `duration`s, undoing the ramp - so burning the mob down or
   // kiting it out of melee both reset its fury.
   rampage?: {
     ap: number;
@@ -1295,7 +3054,7 @@ export interface MobTemplate {
   };
   // Support mechanic ("Ward"): the defensive twin of `mendAlly`. While in combat,
   // periodically wrap every living friendly mob within `radius` (incl. itself) in
-  // a damage-absorbing barrier soaking a flat `amount` for `duration`s — a leader
+  // a damage-absorbing barrier soaking a flat `amount` for `duration`s - a leader
   // shielding the crew. Rides the existing `absorb` aura (soaked in dealDamage
   // before any HP loss), so there is no new aura kind or combat math. Telegraphed:
   // the first ward lands one full `every` interval after combat opens. Resets on
@@ -1327,7 +3086,7 @@ export interface MobTemplate {
   };
   // Commander mechanic ("Rallying Banner"): periodically empowers every friendly
   // mob in range (including the caster) with a refreshing `buff_ap` aura worth
-  // `ap` attack power for `duration`s — the support twin of mendAlly, granting
+  // `ap` attack power for `duration`s - the support twin of mendAlly, granting
   // offense instead of healing. Rides the existing buff_ap aura that
   // effectiveAttackPower already folds for mobs, so no new aura kind or combat
   // math. Telegraphed like stomp/mendAlly: the first rally only lands one full
@@ -1383,11 +3142,11 @@ export interface MobTemplate {
   };
   // Periodic self-shield: the mob wraps itself in a damage-absorbing barrier
   // every `every` seconds, soaking up to `amount` damage for `duration` seconds.
-  // Reuses the existing `absorb` aura (soaked first in dealDamage) — no new combat math.
+  // Reuses the existing `absorb` aura (soaked first in dealDamage) - no new combat math.
   stoneskin?: { amount: number; every: number; duration: number; name: string; school?: string };
   // Boss/elite mechanic ("Banshee's Wail"): a periodic, telegraphed scream that
   // terrifies every nearby player into fleeing for `duration`s. Unlike the
-  // on-hit `dread`, this is a timed AoE — the room-clearing analogue of `stomp`,
+  // on-hit `dread`, this is a timed AoE - the room-clearing analogue of `stomp`,
   // but it applies the same `fear_incap` aura the player-cast Fear uses (driven
   // by `updateFearMovement`) instead of a stun. Telegraphed: the first wail only
   // lands one full `every` interval after combat opens. No new aura kind.
@@ -1423,6 +3182,22 @@ export interface MobTemplate {
   // Melee mechanic: each landed swing also splashes onto other players near the
   // primary target for `mult` of the (pre-armor) hit. A classic-style cleave arc.
   cleave?: { radius: number; mult: number; name?: string };
+  // Cadenced FRONT-ARC cleave (the dragonkin broodlords): every `every`th
+  // LANDED swing also strikes every other player inside `range` yards and the
+  // `arcDeg` frontal arc for `mult` x the base swing (armor-reduced per
+  // victim), optionally setting the `burn` fire DoT on everyone struck
+  // (primary target included). Distinct from `cleave` above, which splashes
+  // near the PRIMARY TARGET on every swing with no arc, no cadence, no burn.
+  // Deterministic cadence: draws no rng (the every-Nth counter lives on
+  // Entity.swingCleaveCount).
+  arcCleave?: {
+    every: number;
+    arcDeg: number;
+    range: number;
+    mult: number;
+    name: string;
+    burn?: MobBurnSpec;
+  };
   // On-hit debuff: a chance per landed melee swing to inflict a stacking-refresh
   // damage-over-time poison on the struck target (spiders, serpents, scorpions).
   venom?: {
@@ -1435,7 +3210,7 @@ export interface MobTemplate {
   };
   // On-hit rot: a landed melee swing has `chance` to fester a refreshing SHADOW
   // damage-over-time wound on the victim ("Soulrot"). The same on-hit DoT seam as
-  // `venom` (nature/poison) and `bleed` (physical), but shadow-school — the
+  // `venom` (nature/poison) and `bleed` (physical), but shadow-school - the
   // undead/necrotic flavour, and it bites every class (resisted by shadow, not
   // nature/physical mitigation). Refreshes (never stacks) like venom.
   soulrot?: {
@@ -1448,7 +3223,7 @@ export interface MobTemplate {
   };
   // On-hit bleed: a landed melee swing has `chance` to open a refreshing PHYSICAL
   // damage-over-time wound on the victim ("Rend"). Distinct from `venom` (a
-  // nature/poison DoT) — bleeds are physical-school, the predator/beast flavour
+  // nature/poison DoT) - bleeds are physical-school, the predator/beast flavour
   // of the same on-hit DoT seam. Refreshes (never stacks) like venom.
   bleed?: {
     chance: number;
@@ -1459,7 +3234,7 @@ export interface MobTemplate {
     school?: Aura['school'];
   };
   // On-hit frostbite: a landed melee swing has `chance` to open a refreshing
-  // damage-over-time frost burn on the struck target — the frost twin of venom
+  // damage-over-time frost burn on the struck target - the frost twin of venom
   // (chilling/elemental creatures). Reuses the 'dot' aura; school defaults to 'frost'.
   frostbite?: {
     chance: number;
@@ -1479,7 +3254,7 @@ export interface MobTemplate {
     name: string;
     school?: string;
   };
-  // On-hit debuff: the fire-school twin of `venom` — a chance per landed melee
+  // On-hit debuff: the fire-school twin of `venom` - a chance per landed melee
   // swing to set a stacking-refresh burning damage-over-time (cinder/ember mobs,
   // demolitionists carrying blasting powder). Same DoT seam, school defaults 'fire'.
   cinder?: {
@@ -1504,8 +3279,8 @@ export interface MobTemplate {
     school?: string;
   };
   // On-hit debuff: a *stacking* poison DoT. Unlike `venom` (a single fixed-value
-  // DoT that merely refreshes), each landed swing adds a stack — the per-tick
-  // damage is `perTick * stacks`, ramping up to `maxStacks` — so the longer the
+  // DoT that merely refreshes), each landed swing adds a stack - the per-tick
+  // damage is `perTick * stacks`, ramping up to `maxStacks` - so the longer the
   // creature stays on its target the worse the venom bites (classic "Deadly
   // Poison"). Reuses the `dot` aura kind; the shared slot carries the stack count.
   stackPoison?: {
@@ -1528,6 +3303,11 @@ export interface MobTemplate {
     delay: number;
     name: string;
     school?: Aura['school'];
+    /** The burst also cuts the claim's living mobs of `family` inside the
+     *  radius (the Bone Minion's Splinter Burst: drag the skeletons onto it
+     *  before it dies) for `maxHpPct` of their own health, never a killing
+     *  blow. No rng (mob/trash_kit/crypt_hooks.ts boneShrapnel). */
+    shrapnel?: { family: MobFamily; maxHpPct: number; name: string };
   };
   // Classic beast "Frenzy": when a mob with this trait dies, nearby living
   // same-family hostile mobs briefly attack faster (hasteMult, e.g. 1.3 = +30%
@@ -1546,7 +3326,13 @@ export interface MobTemplate {
   // necrotic blight that devours the next `amount` points of incoming healing
   // (a consumable shield, not a percentage) before fading after `duration`.
   // Distinct from mortalStrike, which scales every heal down for its whole life.
-  healAbsorb?: { chance: number; amount: number; duration: number; name: string; school?: string };
+  healAbsorb?: {
+    chance: number;
+    amount: number;
+    duration: number;
+    name: string;
+    school?: string;
+  };
   // On-hit lifesteal: a landed melee swing heals the mob for `healFrac` of the
   // damage it just dealt (drowned undead, leeches, vampiric beasts). Unlike the
   // other on-hit affixes it sustains the attacker instead of debuffing the
@@ -1554,12 +3340,18 @@ export interface MobTemplate {
   lifeleech?: { healFrac: number; chance?: number; name?: string };
   // Melee mechanic: a landed swing has `chance` to land a concussive blow that
   // STUNS the victim for `duration`s (can't move, cast, or act). The single-target
-  // cousin of War Stomp's AoE slam — rides the existing `stun` aura, no new kind.
+  // cousin of War Stomp's AoE slam - rides the existing `stun` aura, no new kind.
   concuss?: { chance: number; duration: number; name: string; school?: Aura['school'] };
   // Melee mechanic: a landed swing has `chance` to crack the victim's guard with
   // an Expose debuff that raises the physical damage they take by `dmgIncrease`
   // (e.g. 0.15 = +15%) for `duration` seconds. Stacks multiplicatively with armor.
-  expose?: { chance: number; dmgIncrease: number; duration: number; name: string; school?: string };
+  expose?: {
+    chance: number;
+    dmgIncrease: number;
+    duration: number;
+    name: string;
+    school?: string;
+  };
   // Combat mechanic: a landed melee hit has `chance` to corrode the victim's
   // armor: a stacking `sunder` debuff (up to `maxStacks`) so the victim takes
   // more physical damage from everyone until it expires. Rides the existing
@@ -1575,7 +3367,7 @@ export interface MobTemplate {
   // Combat mechanic: a landed melee hit has `chance` to curse the victim with a
   // spell-vulnerability debuff (`spellvuln`) that amplifies all NON-physical
   // (magic) damage they take by `amp` (e.g. 0.15 = +15%) from every attacker for
-  // `duration`. The arcane twin of `corrode` — corrode shreds armor (physical
+  // `duration`. The arcane twin of `corrode` - corrode shreds armor (physical
   // mitigation); this raises magic damage taken. Holy is excluded so healing-
   // school spells stay unaffected.
   spellVuln?: {
@@ -1587,21 +3379,36 @@ export interface MobTemplate {
   };
   // Melee mechanic: a landed swing has `chance` to knock the victim off-balance,
   // cutting their dodge chance by `dodgeReduction` (a flat fraction, e.g. 0.05)
-  // for `duration` seconds — so the attacker (and everyone else) lands more hits.
+  // for `duration` seconds - so the attacker (and everyone else) lands more hits.
   // Rides the existing buff_dodge aura with a NEGATIVE value; no new aura kind.
-  staggerHit?: { chance: number; dodgeReduction: number; duration: number; name: string };
+  staggerHit?: {
+    chance: number;
+    dodgeReduction: number;
+    duration: number;
+    name: string;
+  };
   // On-hit web mechanic: a landed melee swing has `chance` to ensnare the struck
-  // player in place — a `root` aura for `duration`s (naga/spider snares). Rides the
+  // player in place - a `root` aura for `duration`s (naga/spider snares). Rides the
   // existing root aura + crowd-control DR; no new aura kind. Players only; rooting a
   // fellow mob is meaningless and would let a friendly pet trivially lock enemies.
-  ensnare?: { chance: number; duration: number; name: string; school?: Aura['school'] };
+  ensnare?: {
+    chance: number;
+    duration: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // On-hit debuff: a chance per landed crushing blow to briefly stun the victim.
   // Reuses the `stun` aura kind (same one the AoE stomp applies); players only, and
   // hostile-only so a friendly pet sharing the swing path never stuns the party.
-  stunOnHit?: { chance: number; duration: number; name: string; school?: Aura['school'] };
+  stunOnHit?: {
+    chance: number;
+    duration: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // On-hit debuff: a chance per landed melee swing to mire the victim, slowing
   // their ATTACK SPEED (an `attackspeed` aura, `mult` > 1 lengthens the swing
-  // interval) for `duration`s. Rides the existing swingIntervalMult hook — no new
+  // interval) for `duration`s. Rides the existing swingIntervalMult hook - no new
   // combat math. Distinct from a movement snare (`slow`) or an AP cut (`debuff_ap`).
   slowStrike?: {
     chance: number;
@@ -1611,16 +3418,21 @@ export interface MobTemplate {
     school?: Aura['school'];
   };
   // On-hit knockback: a landed melee swing has `chance` to physically hurl the
-  // struck player `distance` yards straight away from the mob — an instantaneous
+  // struck player `distance` yards straight away from the mob - an instantaneous
   // positional shove, not an aura. The displacement is terrain-clamped (it stops
   // before deep water and cliffs, reusing the charge-movement safety checks), so a
   // knockback can never strand the victim off the world. Players only; shoving a
   // fellow mob is meaningless and a friendly pet shares this swing path.
-  knockback?: { chance: number; distance: number; name: string; school?: Aura['school'] };
+  knockback?: {
+    chance: number;
+    distance: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // On-hit curse ("Curse of Tongues"): a landed melee swing has `chance` to garble
   // the victim's incantations, stretching their SPELL CAST TIMES by `mult` (>1 =
   // slower) for `duration`s. Read at cast-start so it composes with the already
-  // haste-resolved cast time — no new combat math. Distinct from `slowStrike` (melee
+  // haste-resolved cast time - no new combat math. Distinct from `slowStrike` (melee
   // swing speed) and `silence` (a full spell lockout): a casting victim still casts,
   // just slower. Inert against rage/energy melee classes that never hard-cast.
   tongues?: {
@@ -1633,17 +3445,27 @@ export interface MobTemplate {
   // On-hit mechanic ("Mana Burn"): a landed melee swing has `chance` to drain a
   // flat `amount` of mana from a mana-using victim (casters). Rage/energy users
   // are unaffected. Drains only what mana the victim still has; no overkill.
-  manaBurn?: { chance: number; amount: number; name: string; school?: Aura['school'] };
+  manaBurn?: {
+    chance: number;
+    amount: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // On-hit mechanic ("Sap Vigor"): the melee-resource twin of manaBurn. A landed
   // swing has `chance` to drain a flat `amount` of rage or energy from a melee
   // victim (warriors, rogues, feral druids), starving their ability use. Mana
   // users are unaffected. Drains only what the victim still has; no overkill.
-  sapVigor?: { chance: number; amount: number; name: string; school?: Aura['school'] };
+  sapVigor?: {
+    chance: number;
+    amount: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // On-hit curse: a landed melee swing has `chance` to fog the victim's mind,
   // draining `int` Intellect for `duration` and thus shrinking a caster's mana
   // pool (recalcPlayerStats clamps current mana down with the smaller ceiling).
   // Rides the existing buff_int aura with a NEGATIVE value, so there is no new
-  // resource math. Only meaningful on mana users — applied to them alone.
+  // resource math. Only meaningful on mana users - applied to them alone.
   enfeeble?: {
     chance: number;
     int: number;
@@ -1654,7 +3476,7 @@ export interface MobTemplate {
   // On-hit curse: a landed melee swing has `chance` to drain `sta` Stamina from
   // the victim for `duration`s, shrinking their maximum-HP pool (recalcPlayerStats
   // re-derives maxHp from Stamina and scales current HP down with the smaller
-  // ceiling, clamped to a 1-HP floor — it never kills outright). Rides the
+  // ceiling, clamped to a 1-HP floor - it never kills outright). Rides the
   // existing buff_sta aura with a NEGATIVE value, so there is no new HP math.
   // Affects every class (all players have Stamina), unlike enfeeble (mana only).
   enervate?: {
@@ -1670,28 +3492,39 @@ export interface MobTemplate {
   // down with the shrunken pool), so there is no new HP math. Rides the existing
   // buff_sta aura with a NEGATIVE value. Unlike enfeeble (casters only) it
   // afflicts everyone, since Stamina matters to every class.
-  plague?: { chance: number; sta: number; duration: number; name: string; school?: Aura['school'] };
+  plague?: {
+    chance: number;
+    sta: number;
+    duration: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // On-hit curse: a landed melee swing has `chance` to wither the victim's sinews,
-  // draining `agi` Agility for `duration`. Agility is a derived-stat hub — it feeds
-  // armor (agi*2), dodge and crit — so a single drain shreds both the victim's
+  // draining `agi` Agility for `duration`. Agility is a derived-stat hub - it feeds
+  // armor (agi*2), dodge and crit - so a single drain shreds both the victim's
   // physical mitigation and their avoidance at once. Rides a `buff_agi` aura with a
   // NEGATIVE value (recalcPlayerStats folds it through), so there is no new stat math.
   wither?: { chance: number; agi: number; duration: number; name: string; school?: Aura['school'] };
-  // Combat mechanic: a landed melee hit has `chance` to terrify the victim — a
+  // Combat mechanic: a landed melee hit has `chance` to terrify the victim - a
   // fear that sends the struck player fleeing for `duration`s. Rides the existing
   // `fear_incap` incapacitate aura the player-cast Fear uses, so `updateFearMovement`
   // drives the panicked run with no new aura kind or movement hook.
-  dread?: { chance: number; duration: number; name: string; school?: Aura['school'] };
+  dread?: {
+    chance: number;
+    duration: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // Polymorph-on-hit (murloc oracle's hex): a landed hit can briefly turn the
   // victim into a harmless critter. Reuses the exact `polymorph` aura the mage's
-  // Polymorph applies — `isStunned` locks out all actions and the aura breaks the
-  // instant the victim takes damage — so no new aura kind, gating, or UI.
+  // Polymorph applies - `isStunned` locks out all actions and the aura breaks the
+  // instant the victim takes damage - so no new aura kind, gating, or UI.
   polymorphHex?: { chance: number; duration: number; name: string; school?: Aura['school'] };
   // On-hit curse: a landed melee swing has `chance` to lay a curse of frailty on
   // the victim, raising all damage they take by `amp` (e.g. 0.15 = +15%) from
   // every source for `duration`s. Introduces the `vulnerability` aura kind, read
   // once in dealDamage as a damage multiplier (the offensive mirror of Defensive
-  // Stance's 10% cut). Players only — amplifying a fellow mob would let a friendly
+  // Stance's 10% cut). Players only - amplifying a fellow mob would let a friendly
   // pet soften enemies for its owner.
   vulnerability?: {
     chance: number;
@@ -1700,12 +3533,23 @@ export interface MobTemplate {
     name: string;
     school?: Aura['school'];
   };
-  // Pet mechanic: this creature is a ranged caster (warlock Emberkin) — instead of
+  // Pet mechanic: this creature is a ranged caster (warlock Emberkin) - instead of
   // closing to melee, it stays at `range` and hurls bolts of `school` damage.
   // updatePet reads this; the bolt damage comes from the mob's weapon range.
   petRanged?: {
     range: number;
     school: Aura['school'];
+    /** Stable VFX/animation id plus the combat-log label for this pet's
+     *  signature projectile. Omitted by legacy ranged pets. */
+    ability?: string;
+    name?: string;
+    /** A successful projectile refreshes this magic-damage vulnerability.
+     *  Source ownership is keyed to the summoner, so multiple identical
+     *  servants refresh one debuff instead of stacking it. */
+    spellVuln?: {
+      amp: number;
+      duration: number;
+    };
     // Water Jet (mage water elemental): the pet-bar command channels a beam,
     // leaving `total` damage ticking over `duration` at `interval`.
     jet?: {
@@ -1716,9 +3560,34 @@ export interface MobTemplate {
       slow: number;
       cooldown: number;
     };
+    /** Commanded extra cast shown on the pet bar. Its projectile uses the
+     *  ranged attack's authored ability, name, school, and range. */
+    active?: {
+      cooldown: number;
+    };
+  };
+  /** Automatic anti-kite utility for a tank pet. It only moves ordinary mobs;
+   *  bosses and control-immune enemies are rejected by the pet-skill module. */
+  petChainPull?: {
+    ability: string;
+    name: string;
+    triggerRange: number;
+    maxRange: number;
+    pullRange: number;
+    cooldown: number;
+  };
+  /** A melee servant periodically splashes a fraction of one weapon roll onto
+   *  nearby hostile enemies other than its primary target. */
+  petCleave?: {
+    radius: number;
+    mult: number;
+    cooldown: number;
   };
   /** False for utility-free ranged summons such as the mage Water Elemental. */
   petCanTaunt?: boolean;
+  /** Optional visual growth steps for an owned pet. The base `scale` is rank 1;
+   *  later rows apply when the owner's level reaches their threshold. */
+  petScaleRanks?: { rank: number; level: number; scale: number }[];
   petRole?: PetRole;
   petSpell?: {
     name: string;
@@ -1740,21 +3609,37 @@ export interface MobTemplate {
   // adding `miss` to the chance their own melee/ranged swings whiff for
   // `duration` seconds. The flip side of `silence`: it spoils weapon attacks
   // rather than spells. The added miss chance is carried in the aura's `value`.
-  blind?: { chance: number; miss: number; duration: number; name: string; school?: string };
+  blind?: {
+    chance: number;
+    miss: number;
+    duration: number;
+    name: string;
+    school?: string;
+  };
   // On-hit mechanic ("Disarm"): a landed melee swing has `chance` to knock the
-  // victim's weapon from their grip — a `disarm` aura that suppresses their
+  // victim's weapon from their grip - a `disarm` aura that suppresses their
   // auto-attack (melee and ranged) for `duration` seconds. The inverse of silence:
   // silence locks out spells, disarm locks out weapon swings; movement and
   // instant abilities are untouched. Players only (only they auto-attack at the
   // primary-target swing path). Refreshes by id; never stacks.
-  disarm?: { chance: number; duration: number; name: string; school?: Aura['school'] };
+  disarm?: {
+    chance: number;
+    duration: number;
+    name: string;
+    school?: Aura['school'];
+  };
   // On-hit mechanic: chance to lock out a SINGLE spell school (a school-specific
   // counterspell) for a duration. Unlike `silence` (which blocks all non-physical
   // casts), only casts whose `ability.school` matches `school` are denied/broken.
-  lockout?: { chance: number; duration: number; name: string; school: Aura['school'] };
+  lockout?: {
+    chance: number;
+    duration: number;
+    name: string;
+    school: Aura['school'];
+  };
   // On-hit "draining curse": a landed swing has `chance` to inflate every
   // ability the victim uses by `pct` (e.g. 0.4 = +40% resource cost) for
-  // `duration` seconds — taxes mana/rage/energy alike, not a stat drain.
+  // `duration` seconds - taxes mana/rage/energy alike, not a stat drain.
   costTax?: { chance: number; pct: number; duration: number; name: string; school?: string };
   // On-hit chill: a landed melee swing has `chance` to slow the victim's
   // movement to `mult` of normal for `duration` seconds (frost school). Reuses
@@ -1768,7 +3653,7 @@ export interface MobTemplate {
   // On-hit curse: a landed melee swing has `chance` to siphon the victim's
   // Spirit for `duration`, slowing their out-of-combat mana/health regen
   // (updateRegen reads `stats.spi`). Rides a `buff_spi` aura with a NEGATIVE
-  // value — recalcPlayerStats folds it and floors Spirit at 0, so there is no
+  // value - recalcPlayerStats folds it and floors Spirit at 0, so there is no
   // new regen math. Distinct from manaBurn (one-shot mana drain) and enfeeble
   // (Intellect → mana-pool size): this attacks the REGEN axis. Only meaningful
   // on mana users; applied to them alone. Hostile mobs only (a friendly pet,
@@ -1781,24 +3666,29 @@ export interface MobTemplate {
     school?: Aura['school'];
   };
   // Innate "spiked hide" trait: melee attackers take flat damage back on every
-  // connecting swing — the mob-side equivalent of the druid Thorns aura.
+  // connecting swing - the mob-side equivalent of the druid Thorns aura.
   thorns?: { value: number; school?: Aura['school']; name?: string };
   // Reactive "Frenzy": when this creature is WOUNDED (takes a landed player hit)
   // it has `chance` to fly into a blood frenzy, swinging faster (`hasteMult`,
   // e.g. 1.3 = +30% swing speed) for `duration`s. Rides the existing buff_haste
-  // aura packFrenzy uses — no new combat math. Unlike packFrenzy (a death-rattle
+  // aura packFrenzy uses - no new combat math. Unlike packFrenzy (a death-rattle
   // that buffs survivors) or enrage (a fixed HP threshold), this is a per-hit
   // self-buff on the struck mob; it refreshes rather than stacks.
-  frenzyOnHit?: { chance: number; hasteMult: number; duration: number; name?: string };
+  frenzyOnHit?: {
+    chance: number;
+    hasteMult: number;
+    duration: number;
+    name?: string;
+  };
   // Innate "warded" trait: casters take flat damage back on every connecting
-  // SPELL hit — the magic-school twin of `thorns` (which only punishes melee).
+  // SPELL hit - the magic-school twin of `thorns` (which only punishes melee).
   // Reflects on any non-physical damage instance the mob survives.
   spellReflect?: { value: number; school?: Aura['school']; name?: string };
   // On-hit affix ("Weakening Hex"): a landed melee swing has `chance` to curse
   // the player victim, scaling BOTH the damage and the healing *they* deal by
   // (1 - reductionPct) for `duration` seconds. Distinct from `demoralize` (flat
   // attack-power cut, physical only) and `mortal_wound` (healing *received*):
-  // this throttles the victim's whole offensive/support output — classic witch-
+  // this throttles the victim's whole offensive/support output - classic witch-
   // doctor / curse-of-weakness flavour. Rides a dedicated `hex` aura kind read in
   // dealDamage (outgoing) and applyHeal (outgoing).
   hex?: {
@@ -1811,7 +3701,7 @@ export interface MobTemplate {
   // On-hit affix ("Find Weakness"): a landed melee swing has `chance` to leave the
   // victim's flesh exposed, so CRITICAL hits against them (from anyone, any school)
   // deal an extra `critDamage` fraction for `duration`s. Read once in the dealDamage
-  // funnel (crit-only). Distinct from a flat-damage vuln (expose/spellvuln) — this
+  // funnel (crit-only). Distinct from a flat-damage vuln (expose/spellvuln) - this
   // sharpens only the rare crits, the way a predator's bite finds the soft spot.
   critVuln?: {
     chance: number;
@@ -1821,12 +3711,12 @@ export interface MobTemplate {
     school?: Aura['school'];
   };
   // On-hit purge ("Devour Magic"): a landed melee swing has `chance` to strip
-  // one beneficial enhancement aura off the player victim — a positive buff_*
+  // one beneficial enhancement aura off the player victim - a positive buff_*
   // stat buff, a heal-over-time, an absorb shield, or a weapon imbue. Forms,
   // stances, stealth, and every debuff are left untouched. Removes nothing if
   // the victim carries no such buff. Players only; offensive against a fellow
   // mob is meaningless and a friendly pet (mobSwing's other caller) must never
-  // strip its owner's party. Rides the existing aura system — no new aura kind.
+  // strip its owner's party. Rides the existing aura system - no new aura kind.
   purgeOnHit?: { chance: number; name: string };
 }
 
@@ -1868,6 +3758,37 @@ type AoeRootEffect =
       trap: { armTime: number; lifetime: number };
     });
 
+/** A weapon-coat rider: what ONE landed melee swing inflicts on the struck
+ *  target while the coating is worn. Authored on an `imbue` effect, so a coat
+ *  is always carried by the imbue aura the coating ability applies, and the
+ *  rider borrows that aura's id and display name (combat/poison_coating.ts).
+ *  This is the player-side twin of the mob on-hit DoT seam (`stackPoison`,
+ *  `venom`, `corrode` on MobTemplate): same aura shapes, but applied by a
+ *  coating the player chose to put on rather than by a creature's innate bite. */
+export type PoisonCoat =
+  // Classic Deadly Poison: a stacking damage-over-time whose per-tick damage is
+  // perTick x stacks. Every landed swing adds a stack (up to maxStacks) and
+  // fully refreshes the timer, so the poison bites harder the longer you stay on
+  // the target. Reuses the `dot` aura kind; the shared slot carries the count.
+  | {
+      rider: 'stackDot';
+      perTick: number;
+      maxStacks: number;
+      duration: number;
+      interval: number;
+      school?: Aura['school'];
+    }
+  // A plain refreshing debuff rider (an armor shred, a healing-taken cut): every
+  // landed swing re-applies it at full duration, the same shape the mob on-hit
+  // debuffs already use.
+  | {
+      rider: 'debuff';
+      kind: AuraKind;
+      value: number;
+      duration: number;
+      school?: Aura['school'];
+    };
+
 export type AbilityEffect =
   | { type: 'weaponDamage'; bonus: number } // on-next-swing bonus (heroic strike)
   | {
@@ -1876,8 +3797,31 @@ export type AbilityEffect =
       cannotBeDodged?: boolean;
       requiresBehind?: boolean;
       weaponMult?: number;
+      restoreMana?: number;
+      selfHealDamageFrac?: number;
+      // Classic instant-attack normalization: when set, the weapon-damage
+      // portion is scaled to a fixed normalized speed by weapon class (dagger
+      // 1.7, other one-hand 2.4) instead of the weapon's real speed, so a slow
+      // high-per-hit weapon cannot inflate an energy-gated instant it is pressed
+      // at will. Off by default (the un-normalized classic-era behavior).
+      normalized?: boolean;
+      // Sweep variant (Scratch, combat/druid_scratch.ts): strike EVERY hostile
+      // within this many yards of the caster instead of one target, each hit
+      // rolling its own swing and awarding the ability's combo points.
+      sweepRadius?: number;
     } // instant special attack (sinister strike, overpower, backstab)
-  | { type: 'directDamage'; min: number; max: number; vsRootedMult?: number }
+  | {
+      type: 'directDamage';
+      min: number;
+      max: number;
+      damageMult?: number;
+      vsRootedMult?: number;
+      guaranteedCrit?: boolean;
+      restoreMana?: number;
+      selfHealDamageFrac?: number;
+      /** Optional authored coefficient that replaces the cast-time coefficient. */
+      spellPowerCoeff?: number;
+    }
   // rageOnInterrupt: rage minted when a cast is ACTUALLY cut (Pummel's
   // incentive design), scaled like ability-granted rage; never on a whiff.
   | { type: 'interrupt'; lockout: number; rageOnInterrupt?: number }
@@ -1885,6 +3829,7 @@ export type AbilityEffect =
       type: 'chainDamage';
       min: number;
       max: number;
+      damageMult?: number;
       jumps: number;
       falloff: number;
       radius: number;
@@ -1893,7 +3838,7 @@ export type AbilityEffect =
       hitsPrimary?: boolean;
     }
   // Removes magic-only auras in the ally/enemy direction. `steal` transfers a
-  // stripped enemy benefit to the caster (Spellsteal). `selfHealPctMaxOnDispel`
+  // stripped enemy benefit to the caster (Spellplunder). `selfHealPctMaxOnDispel`
   // heals the caster this fraction of max health ONLY when something was
   // actually devoured (Voidfeast: no free heal off an empty target).
   // `requiresDispellable` refuses the CAST at the gate (before billing mana or
@@ -1913,9 +3858,107 @@ export type AbilityEffect =
   | { type: 'clearCooldowns'; abilities: string[] }
   | { type: 'breakRoots' }
   | { type: 'breakControl' }
+  | {
+      type: 'packCommand';
+      min: number;
+      max: number;
+      focus: number;
+      ferocityDuration: number;
+    }
+  | {
+      type: 'unleashBeast';
+      primaryMin: number;
+      primaryMax: number;
+      clapMin: number;
+      clapMax: number;
+      secondaryClapMult?: number;
+      radius: number;
+      frenzyDuration: number;
+    }
+  | { type: 'howlingRage'; duration: number }
+  | {
+      type: 'hunterStampede';
+      beasts: number;
+      duration: number;
+      attackInterval: number;
+      min: number;
+      max: number;
+      rangedPowerCoeff: number;
+    }
+  | {
+      type: 'hunterBloodhook';
+      bleedTotal: number;
+      bleedDuration: number;
+      bleedInterval: number;
+      rangedPowerCoeff: number;
+      damageMult?: number;
+      /** Arrival slow: the hooked target moves at this multiplier (0.7 = 30% slower). */
+      slowMult?: number;
+      slowDuration?: number;
+    }
+  | {
+      type: 'hunterShrapnel';
+      primaryMin: number;
+      primaryMax: number;
+      splashMin: number;
+      splashMax: number;
+      /** Cone fired from the hunter's facing: reach in yards and full arc in degrees. */
+      coneRange: number;
+      coneAngleDeg: number;
+      spreadTotal: number;
+      spreadDuration: number;
+      spreadInterval: number;
+      damageMult?: number;
+    }
+  | { type: 'hunterTrailbreak'; distance: number }
+  /** movingGrace: seconds a hunter who cast it while moving has to stop. */
+  | { type: 'hunterPlayDead'; movingGrace: number }
+  | { type: 'hunterPackRally'; duration: number; radius: number }
+  | {
+      type: 'frostjawTrap';
+      radius: number;
+      armTime: number;
+      lifetime: number;
+      rootDuration: number;
+      slowMult: number;
+      slowDuration: number;
+    }
+  | {
+      type: 'hunterBearTrap';
+      radius: number;
+      armTime: number;
+      lifetime: number;
+      /** The victim's bleed: base total plus rangedPowerCoeff x Ranged AP over its duration. */
+      bleedTotal: number;
+      bleedDuration: number;
+      bleedInterval: number;
+      rangedPowerCoeff: number;
+      slowMult: number;
+      slowDuration: number;
+    }
+  /** Shove every enemy in the cone straight back until it stands pushTo yards away. */
+  | { type: 'hunterScatterbolt'; coneRange: number; coneAngleDeg: number; pushTo: number }
   // Ice Block: strip every player-removable debuff (control, DoTs, stat saps, ...)
   // Broader than breakRoots and breakControl. See effect_dispatch.
   | { type: 'cleanseSelf' }
+  | { type: 'cleanseMovement' }
+  | { type: 'divineAscension' }
+  | { type: 'grantDevotion'; amount: number }
+  | {
+      type: 'veilboundMarch';
+      duration: number;
+      speedMult: number;
+      armorPct: number;
+      ascended?: boolean;
+    }
+  | {
+      type: 'valkyrsCalling';
+      min: number;
+      max: number;
+      radius: number;
+      softCap: number;
+      ascended?: boolean;
+    }
   | {
       type: 'repositionToAim';
       breakRoots?: boolean;
@@ -1924,13 +3967,22 @@ export type AbilityEffect =
   // Swept teleport: travel facing-forward (Shadeslip snaps behind the target),
   // stopping at walls, steep slopes, and deep water.
   | { type: 'blinkForward'; distance: number; breakRoots?: boolean }
-  | { type: 'heal'; min: number; max: number } // friendly target (or self)
+  | {
+      type: 'heal';
+      min: number;
+      max: number;
+      // When present, the base heal is this fraction of the caster's maximum
+      // health instead of a random min/max roll plus Spell Power.
+      casterMaxHpPct?: number;
+      canCrit?: boolean;
+    } // friendly target (or self)
   // Chronomancy Temporal Echo (docs/prd/mage-chronomancy.md section 13): place a
   // per-caster mark on the friendly target (or self) for `duration` sec. The
   // small initial heal is authored as a sibling `heal` effect on the same
   // ability (so $d shows it); this effect owns only the mark. The Arcane-damage
   // conversion is handled by combat/chronomancy.ts, not by a stored field.
   | { type: 'temporalEcho'; duration: number }
+  | { type: 'beaconOfLight' }
   // Chronomancy Cascada temporal (docs/prd/mage-chronomancy.md Phase 4): the group
   // version of Temporal Echo. Centered on the friendly target (which must be the
   // caster or a living group/raid member and is ALWAYS included), it marks up to
@@ -1968,6 +4020,20 @@ export type AbilityEffect =
       selfCooldownRate: number;
       allyCooldownRate: number;
     }
+  // Druid Spore Burst (combat/druid_spore_burst.ts): plants a spore burster at
+  // the aimed point. After `fuse` seconds it bursts once, healing every friendly
+  // unit within `radius` for healMin..healMax and dealing min..max Nature damage
+  // to every hostile one (no target cap on either side). Groveheart also plants
+  // Sporemending on each ally it heals.
+  | {
+      type: 'sporeBurst';
+      min: number;
+      max: number;
+      healMin: number;
+      healMax: number;
+      radius: number;
+      fuse: number;
+    }
   // Chronomancy raid cooldown (Rewind / Rebobinar): instant, no target, centered on
   // the caster. Restores `fraction` of the REAL damage each living group/raid member
   // within `radius` took in the last `windowSec` seconds, capped per target at
@@ -1980,6 +4046,18 @@ export type AbilityEffect =
       windowSec: number;
       radius: number;
     }
+  | {
+      type: 'sunGodVerdict';
+      duration: number;
+      charges: number;
+      singleTargetMin: number;
+      singleTargetMax: number;
+      areaMin: number;
+      areaMax: number;
+      areaRadius: number;
+      areaSoftCap: number;
+      stunDuration: number;
+    }
   // Chain Heal (shaman): heals the friendly target, then arcs to up to `jumps`
   // nearby allies within `radius`, each hop healing `falloff` of the previous
   // hop's amount.
@@ -1991,17 +4069,41 @@ export type AbilityEffect =
       falloff: number;
       radius: number;
     }
-  | { type: 'hot'; total: number; duration: number; interval: number } // renew, rejuvenation
-  | { type: 'absorb'; amount: number; duration: number; spellPowerCoeff?: number } // power word: shield
-  | { type: 'imbue'; bonus: number; duration: number; judgeMin?: number; judgeMax?: number } // seals / rockbiter: extra damage per swing
-  | { type: 'judgement'; dmgMult?: number; flat?: number } // consume your imbue, deal its judgement damage to the target
+  // pctOfMax: when set, the heal total is this fraction of the TARGET's max
+  // health at cast time instead of the flat total, so the heal scales with
+  // gear and any future pool retune (Savage Mending is the first user).
+  | {
+      type: 'hot';
+      total: number;
+      duration: number;
+      interval: number;
+      pctOfMax?: number;
+      // Second Bloom: when the HoT runs its full duration, heal the target again
+      // for the amount this cast's direct heal produced (combat/
+      // druid_second_bloom.ts). Needs a 'heal' effect earlier in the list.
+      closingHealFromDirect?: boolean;
+    } // renew, rejuvenation
+  | {
+      type: 'absorb';
+      amount: number;
+      duration: number;
+      spellPowerCoeff?: number;
+      // Adds a shield equal to this fraction of the caster's maximum health.
+      casterMaxHpPct?: number;
+      auraId?: string;
+    } // power word: shield
+  // seals / rockbiter / rogue poisons: flat extra damage on every swing, plus the
+  // optional weapon-coat rider a landed swing inflicts on whatever it strikes.
+  | { type: 'imbue'; bonus: number; duration: number; coat?: PoisonCoat }
   | { type: 'lifeTap'; hp: number; mana: number }
   | { type: 'drainTick'; min: number; max: number; healFrac: number } // channel tick that heals the caster
   | {
       type: 'buffTarget';
       kind: AuraKind;
       value: number;
+      value2?: number;
       duration: number;
+      permanent?: boolean;
       // When true, the buff is a raid buff: it lands on the caster, the explicit
       // target (a friendly or a controlled pet), and every living member of the
       // caster's party/raid, regardless of range. Used by Mark of the Wild, Arcane
@@ -2026,10 +4128,41 @@ export type AbilityEffect =
       auraId?: string;
       directPct?: number;
       school?: Aura['school'];
+      perCombo?: number; // rupture/rip: combo-point finisher scaling, added to total
+      /** Classic finisher bleed (Rupture): duration = baseDuration +
+       *  perComboDuration x combo points spent; the per-tick value stays
+       *  fixed (total/duration/interval define it), so more points = a
+       *  longer bleed and more total damage. */
+      baseDuration?: number;
+      perComboDuration?: number;
+      /** Classic finisher bleed (Rip): total = baseTotal + perComboTotal x
+       *  combo points spent at a FIXED duration, so points buy bigger ticks.
+       *  `total` stays the 5-point canonical for tooltips and balance pins. */
+      baseTotal?: number;
+      perComboTotal?: number;
     }
   | { type: 'extendDot'; dot: string; seconds: number; maxBonus: number }
   | { type: 'consumeDot'; dot: string }
+  // Wildfang Marrowbreak (combat/druid_engines.ts): the bear cash-out's
+  // survival arm. Below the health fraction, the spent bank heals the druid for
+  // healPctMaxHp of maximum health and refunds rage instead of striking; above it the strike
+  // alone carries the payoff. Deterministic, druid-only.
+  | { type: 'druidMarrowbreakGuard'; belowFrac: number; healPctMaxHp: number; rage: number }
+  // Groveheart Overbloom (combat/druid_engines.ts): harvest every HoT the
+  // caster owns for harvestPct of its remaining healing, then replant a
+  // Sporemending on the cast target (or on every harvested ally with the
+  // Seedspread row lean).
+  | { type: 'druidOverbloom'; harvestPct: number }
   | { type: 'slow'; mult: number; duration: number }
+  | {
+      type: 'pullTarget';
+      stopDistance: number;
+      travelSpeed: number;
+      slowMult: number;
+      slowDuration: number;
+      maxTargets?: number;
+    }
+  | { type: 'threatPulse'; amount: number; radius: number }
   | { type: 'root'; duration: number }
   | { type: 'stun'; duration: number }
   | { type: 'incapacitate'; duration: number } // gouge: breaks on damage
@@ -2039,6 +4172,8 @@ export type AbilityEffect =
       min: number;
       max: number;
       radius: number;
+      /** Detonate around the selected enemy instead of the caster or ground aim. */
+      centerOnTarget?: boolean;
       // The blast can critically strike: ONE crit decision per CAST (a single
       // rng draw once at least one target is struck; fireGuaranteedCrit
       // overrides the outcome), applied to every struck enemy together, and
@@ -2047,11 +4182,24 @@ export type AbilityEffect =
       // Absent: the classic never-crits AoE path, zero extra rng.
       canCrit?: boolean;
       frontal?: boolean;
+      /** Optional frontal half-angle in radians. Falls back to MELEE_ARC. */
+      frontalHalfAngle?: number;
       stunSec?: number;
+      // Pull every non-boss target to the blast center before applying the
+      // paired stun. Used by Abyssal Rift.
+      pullToCenter?: boolean;
       softCap?: number;
       rageOnHit?: { base: number; perTarget: number; capTargets: number };
     }
-  | { type: 'aoeHeal'; min: number; max: number; radius: number }
+  | {
+      type: 'aoeHeal';
+      min: number;
+      max: number;
+      radius: number;
+      playersOnly?: boolean;
+      centerOnTarget?: boolean;
+      friendlyTargetOnly?: boolean;
+    }
   | {
       type: 'groundAoE';
       min: number;
@@ -2073,16 +4221,25 @@ export type AbilityEffect =
       // Blizzard: each pulse also snares everyone struck (kind 'slow').
       slowMult?: number;
       slowDuration?: number;
-      // Blizzard: each struck enemy shaves the running Frozen Orb cooldown
+      // Blizzard: each struck enemy shaves the running Frostglobe cooldown
       // (frost_mage's per-cast budget, reset when the zone is placed).
       orbCdr?: boolean;
+      // Paladin Consecration grants this amount once, on the first pulse that
+      // actually strikes at least one hostile target.
+      devotionOnFirstHit?: number;
     }
   | { type: 'aoeAttackSpeed'; mult: number; duration: number; radius: number } // thunder clap rider
   // Demoralizing roar/shout. `amount` = the legacy flat attack-power drain
   // (debuff_ap); `pct` = a percentage cut to ALL damage the victims deal (a
   // negative buff_dmg_done aura), the owner's Direhowl rework: mobs carry most
   // of their damage on the weapon roll, so a flat AP drain barely dents them.
-  | { type: 'aoeAttackPower'; amount?: number; pct?: number; duration: number; radius: number }
+  | {
+      type: 'aoeAttackPower';
+      amount?: number;
+      pct?: number;
+      duration: number;
+      radius: number;
+    }
   // party-style ALLY buff: +AP aura on the caster and nearby friendlies (Trueshot Aura)
   | {
       type: 'aoeAllyAttackPower';
@@ -2107,7 +4264,12 @@ export type AbilityEffect =
       groupOnly?: boolean;
     }
   | { type: 'aoeAllyDamage'; pct: number; duration: number; radius: number }
-  | { type: 'aoeAllySureCrit'; charges: number; duration: number; radius: number }
+  | {
+      type: 'aoeAllySureCrit';
+      charges: number;
+      duration: number;
+      radius: number;
+    }
   | { type: 'aoeSlow'; mult: number; duration: number; radius: number }
   | AoeRootEffect
   | {
@@ -2127,7 +4289,7 @@ export type AbilityEffect =
         incapacitateDuration?: number;
       }[];
     }
-  // Frozen Orb (combat/frozen_orb.ts): releases a slow-drifting orb from the
+  // Frostglobe (combat/frozen_orb.ts): releases a slow-drifting orb from the
   // caster that pulses frost damage + a snare every `interval` for `duration`
   // seconds and banks Icicles (frost mage spec kit).
   | {
@@ -2145,20 +4307,6 @@ export type AbilityEffect =
       dazeMult: number;
       dazeDuration: number;
     }
-  // The Vale Cup boarball moves (docs/prd/vale-cup.md). ballKick launches the
-  // match ball toward the caster's castAim (power = ground speed yd/s, loft =
-  // initial vertical speed); sportDash is a targetless directional lunge along
-  // the aim direction (catchBall lets a keeper's Dive catch a crossing ball);
-  // sportShove bumps the target back via the knockback walker. ballPass rolls a
-  // firm auto-paced ground pass to the caster's targeted teammate (else the best
-  // teammate toward the aim), leading their run. All no-damage.
-  | { type: 'ballKick'; power: number; loft: number }
-  | { type: 'ballPass'; power: number; loft: number }
-  // ballShoot fires the ball at the enemy goal; power (ground speed) and loft
-  // both scale with the caster's charge, so a max-power shot sails OVER the bar.
-  | { type: 'ballShoot'; power: number; loft: number }
-  | { type: 'sportDash'; distance: number; catchBall?: boolean }
-  | { type: 'sportShove'; distance: number }
   | {
       type: 'consumeAura';
       auraIds?: string[];
@@ -2170,13 +4318,32 @@ export type AbilityEffect =
       type: 'selfBuff';
       kind: AuraKind;
       value: number;
+      value2?: number;
+      value3?: number;
       duration: number;
+      permanent?: boolean;
       // thorns auras only: a charge-limited reflect (Lightning Shield) caps how
       // many melee hits reflect, gated by an internal cooldown between reflects.
       charges?: number;
       internalCooldown?: number;
       auraId?: string;
       auraName?: string;
+      // Optional sustained health price for a toggle buff. The aura pays this
+      // fraction of maximum health each second and switches itself off once
+      // the wearer reaches the configured health floor.
+      healthDrainPctMax?: number;
+      disableBelowHpPct?: number;
+    }
+  | {
+      type: 'paladinAegis';
+      radius: number;
+      tickMin: number;
+      tickMax: number;
+      finalMin: number;
+      finalMax: number;
+      damageReduction: number;
+      speedMult: number;
+      speedDuration: number;
     }
   | { type: 'petBuff'; kind: AuraKind; value: number; duration: number }
   | { type: 'applyDebuff'; kind: AuraKind; value: number; duration: number }
@@ -2185,10 +4352,86 @@ export type AbilityEffect =
   | { type: 'finisherStun'; base: number; perCombo: number } // kidney shot: stun seconds scale with combo
   | { type: 'gainResource'; amount: number } // bloodrage immediate
   | { type: 'selfDamagePctMax'; pct: number } // bloodrage cost
+  | { type: 'selfDamagePctCurrent'; pct: number }
   | { type: 'selfHealPctMax'; pct: number }
+  | { type: 'selfAbsorbPctMax'; pct: number; duration: number }
+  | { type: 'gainSoulFragments'; amount: number }
+  | {
+      type: 'summonUndead';
+      templateId: string;
+      temporary: boolean;
+      duration?: number;
+    }
+  | {
+      type: 'commandUndead';
+      duration: number;
+      dmgPct: number;
+      hastePct: number;
+    }
+  | { type: 'sacrificeUndead'; healPctMax: number }
+  | { type: 'reapingCommand' }
+  | { type: 'armyOfDead'; duration: number }
+  | {
+      type: 'empowerUndeadArmy';
+      duration: number;
+      dmgPct: number;
+      hastePct: number;
+    }
+  | {
+      type: 'necromancyOssuaryMark';
+      duration: number;
+      storedDamagePct: number;
+      soulLanceBonusPct: number;
+      deathRadius: number;
+    }
+  | { type: 'afflictionEvilEye' }
+  // doom: base Condemnation the landed Needle generates on a marked target,
+  // BEFORE eyeGeneration's Eye multipliers. Resolved (the Hexthread 2pc
+  // rewrite raises it for wearers): the dispatch and the {needleDoom}
+  // description splice read the same resolved payload.
+  | { type: 'afflictionNeedle'; doom: number }
+  | { type: 'afflictionSentence'; damageMult?: number; flat?: number }
+  | { type: 'afflictionAccomplice' }
+  | {
+      type: 'afflictionViolence';
+      duration: number;
+      charges: number;
+      doomPerProc: number;
+      damage: number;
+      interval?: number;
+      tickDoom?: number;
+    }
+  | {
+      type: 'afflictionCruelPact';
+      healthPct: number;
+      manaPctMax: number;
+      doom: number;
+    }
+  | { type: 'afflictionVicarious'; duration: number; maxDoom: number }
+  | { type: 'warlockUmbralAnchor'; duration: number; maxRange: number }
+  | {
+      type: 'afflictionCoven';
+      duration: number;
+      radius: number;
+      maxSecondary: number;
+    }
+  | { type: 'afflictionPossession'; duration: number; doom: number }
+  | { type: 'afflictionJudgment'; duration: number; doom: number; refund: number }
+  | {
+      type: 'afflictionLitany';
+      duration: number;
+      radius: number;
+      maxTargets: number;
+      damage: number;
+    }
   | { type: 'selfHotPctMax'; pct: number; duration: number; interval: number }
   | { type: 'aoeAllyMaxHp'; pct: number; duration: number; radius: number }
-  | { type: 'partyMeleeBuff'; attackSpeedMult: number; dmgPct: number; duration: number }
+  | {
+      type: 'partyMeleeBuff';
+      attackSpeedMult: number;
+      dmgPct: number;
+      duration: number;
+    }
   // Mass Barrier (mage choice row): the caster and every friendly within radius
   // gain an absorb shield (the aoeAlly* family shape with an 'absorb' aura).
   | {
@@ -2199,17 +4442,18 @@ export type AbilityEffect =
       // When set, only the NEAREST this many friendlies in radius are shielded (the
       // caster included, distance 0). Absent = every friendly in radius.
       maxTargets?: number;
+      // Optional healPower coefficient: absorbBonus is computed ONCE per cast from
+      // the caster and added to every recipient's shield. Absent = flat amount.
+      spellPowerCoeff?: number;
     }
-  // Greater Invisibility (mage choice row): one dispatch applies the whole
-  // package (a 'stealth'-kind vanish for `duration`, a buff_dr damage cut for
-  // `duration` + `linger` so it survives an early break, and strips up to
-  // `removeDotCount` damage-over-time auras). One effect so the two self-auras
-  // get distinct ids (the selfBuff case keys auras by the ability id alone).
+  // Greater Invisibility (mage choice row): strips up to `removeDotCount`
+  // damage-over-time auras, vanishes for `duration`, then applies `drValue`
+  // damage reduction for `afterDuration` once the vanish ends.
   | {
       type: 'greaterInvisibility';
       duration: number;
       drValue: number;
-      linger: number;
+      afterDuration: number;
       removeDotCount: number;
     }
   | { type: 'charge' }
@@ -2220,7 +4464,14 @@ export type AbilityEffect =
   // flat threat. `full` lands all `maxStacks` at once (Expose Armor, a finisher that
   // applies the cap in one cast) instead of building one stack per hit (warrior Sunder).
   // `armor` is retained for the threat value; the reduction percent is a fixed constant.
-  | { type: 'sunder'; armor: number; maxStacks: number; full?: boolean }
+  | {
+      type: 'sunder';
+      armor: number;
+      maxStacks: number;
+      full?: boolean;
+      /** Classic Expose Armor: stacks applied = combo points spent. */
+      perCombo?: boolean;
+    }
   | { type: 'faerieFire'; duration: number } // fixed-percent armor reduction (AuraKind 'faerie_fire')
   | { type: 'absorbSpentResource'; mult: number; duration: number }
   | { type: 'aoeTaunt'; radius: number }
@@ -2228,7 +4479,12 @@ export type AbilityEffect =
   | { type: 'tamePet' } // hunter tame beast: the targeted mob becomes the caster's pet
   | { type: 'dismissPet' } // release the caster's pet back to the wild
   | { type: 'summonPet'; templateId: string } // warlock demon summon: creates/replaces a controlled pet
-  | { type: 'summonDemon'; mobId: string }; // warlock: summon a demon pet (emberkin/gloomshade)
+  | { type: 'summonDemon'; mobId: string } // warlock: summon a demon pet (emberkin/gloomshade)
+  | { type: 'summonSoulwell'; duration: number }
+  | { type: 'destructionConflagrate' }
+  | { type: 'ruinousBrand'; duration: number; charges: number }
+  | { type: 'duskfireClaim'; duration: number }
+  | { type: 'summonPyreColossus'; duration: number };
 
 export interface AbilityRank {
   rank: number;
@@ -2239,11 +4495,28 @@ export interface AbilityRank {
   threatFlat?: number; // overrides the base threat.flat for this rank
 }
 
+// One transform-in-place rule: while the actor wears at least minStacks of the
+// aura kind (auraKind), and/or wears NO aura of absentAuraKind, the base action
+// resolves as abilityId (see combat/action_replacement.ts). A presence rule is
+// a payoff over the base and shares its clock; an absence-only rule is a MODE
+// of the same button (Slinkstrike stealthed, Lunge unstealthed) and keeps the
+// replacement's own cooldown key.
+export interface ActionReplacementRule {
+  abilityId: string;
+  auraKind?: AuraKind;
+  minStacks?: number;
+  actorAuraKind?: AuraKind;
+  absentAuraKind?: AuraKind;
+}
+
 export interface AbilityDef {
   id: string;
   name: string;
   class: PlayerClass;
   cost: number; // rage/mana/energy (rank 1; ranks may override)
+  // Destruction-only secondary-resource spend. Mana remains the primary cost;
+  // the cast lifecycle validates and spends this deterministic 0..5 meter too.
+  ruinCost?: number;
   castTime: number; // 0 = instant
   // Hold-to-charge spell. The server derives the released stage from its own
   // cast clock; clients send only the release intent.
@@ -2275,7 +4548,7 @@ export interface AbilityDef {
   // Overrides the flying-projectile VISUAL for this spell (the mechanic is
   // unchanged): 'lightning' draws a jagged electric bolt from caster to target
   // instead of the default glowing bolt. Renderer-only; the sim just forwards it.
-  projectileFx?: 'lightning' | 'heavyBolt';
+  projectileFx?: 'lightning' | 'heavyBolt' | 'paladinSunwardDisc';
   // Instant-cast VISUAL cue (renderer-only; the sim just emits a spellfx with it):
   // 'shout' plays the caster's roar one-shot + an expanding ground shockwave ring
   // (the warrior shouts); 'flourish' plays the ability-mapped one-shot clip
@@ -2295,6 +4568,9 @@ export interface AbilityDef {
   // wherever the flat known list is read (e.g. the cost choke point in
   // resolvedAbility); castAbility refuses it silently.
   passive?: boolean;
+  // Registered for save/test compatibility but omitted from player-facing
+  // spellbook and action-bar placement while a replacement kit is developed.
+  hiddenFromPlayer?: boolean;
   // Spec-gated base kit: when set, only players whose CHOSEN spec id is in the
   // list keep this ability in their known list (abilitiesKnownAt). A player who
   // has not committed to a spec keeps the full kit, and talent/row GRANTS are
@@ -2341,14 +4617,31 @@ export interface AbilityDef {
   offGcd?: boolean;
   awardsCombo?: number; // rogue builders
   spendsCombo?: boolean; // rogue finishers
+  /** A finisher that fires at zero points with its base damage; any points
+   *  held still strengthen it (Redharvest: the bank is the real payment). */
+  comboOptional?: boolean;
   fearDr?: boolean; // incapacitate effects that use fear diminishing returns
+  /** The cast never puts the caster or the victim into combat. Classic Sap:
+   *  the rogue stays out of combat and hidden, and the victim wakes up where
+   *  it stood instead of being handed an aggro target it never saw. Only
+   *  meaningful on an ability whose effect arm would otherwise call
+   *  `enterCombat`. */
+  noCombatEntry?: boolean;
   requiresDodgeProc?: boolean; // overpower
   requiresTargetHpBelow?: number; // execute-style (fraction)
+  executeThreshold?: number; // strict execute threshold: target health must be below this fraction
+  // Paladin secondary resource cost. Checked before mana/cooldown/GCD and
+  // spent only when the cast is committed.
+  devotionCost?: number;
   requiresShield?: boolean;
   // Classic threat riders: flat bonus threat on a successful use and/or a
   // multiplier on the damage-threat (both scale with stance/form modifiers).
   threat?: { flat?: number; mult?: number };
-  requiresForm?: 'bear' | 'cat'; // druid form kit (maul/growl/swipe/claw/bite)
+  // Druid form kit (maul/growl/swipe/claw/bite). A LIST names an ability that
+  // several forms share (Savage Mending: Bruin and Cat). Read it through
+  // combat/form_requirement.ts, never by hand: that module owns the
+  // single-or-list normalization, the aura kinds, and the English label.
+  requiresForm?: 'bear' | 'cat' | readonly ('bear' | 'cat')[];
   // Castable while shapeshifted without requiring a SPECIFIC form (Feral Instinct works in
   // both Cat and Bear Form). Exempts the ability from the "can't act while shapeshifted" lock.
   usableInForm?: boolean;
@@ -2363,31 +4656,90 @@ export interface AbilityDef {
   // raid instance. Toggle buffs may still be cancelled there to avoid trapping the
   // player in an action-locking form.
   requiresOutsideInstance?: boolean;
-  // Usable only while the caster wears an aura of this kind (Victory Rush's
+  // Usable only while the caster wears an aura of this kind (Victor's Surge's
   // on-kill window); runEffects consumes the enabling aura on a successful cast.
   requiresAuraKind?: AuraKind;
-  // Minimum stacks of requiresAuraKind needed to cast (Glacial Spike needs the
+  // Minimum stacks of requiresAuraKind needed to cast (Rimeneedle needs the
   // full 5-stack Icicles buff). Absent means any presence of the aura suffices.
   // The whole aura is still consumed on cast (consumeAuraKind removes it).
   requiresAuraStacks?: number;
-  // Spend-ALL ability (Iron Resolve): `cost` is only the MINIMUM gate; the
+  // Resource banks can require the caster's own aura, excluding borrowed stacks.
+  requiresOwnAura?: boolean;
+  // Partial bank payment at cast commitment. Absent preserves full-aura consumption.
+  consumesRequiredAuraStacks?: number;
+  // Aura gates normally represent a bank that the successful cast consumes.
+  // Set false for persistent state requirements such as a shapeshift form.
+  consumesRequiredAura?: boolean;
+  // A known action may resolve to another authored ability while a visible aura
+  // state is active. The hotbar keeps the base id, so saved bindings survive the
+  // transformation. The replacement itself is never learned as a second action.
+  // A list holds one rule per spec engine (the aura kinds are spec-gated, so at
+  // most one rule can match); the first matching rule wins.
+  // (Ported from the PR #2218 owned-classes infrastructure.)
+  actionReplacement?: ActionReplacementRule | ActionReplacementRule[];
+  // Necromancy spenders use Soul Fragments in addition to the ordinary mana bar.
+  soulFragmentCost?: number;
+  // Spend-ALL ability: `cost` is only the MINIMUM gate; the
   // actual bill is the caster's resource bar (capped by spendResourceCap when
   // set), snapshotted into the resolved cost at apply time so both the spend and
   // the effects (e.g. absorbSpentResource) read the true spent amount.
   spendsAllResource?: boolean;
   // Optional ceiling on a spendsAllResource bill: the ability spends at most this
-  // much resource (Iron Resolve caps at 40 rage), keeping the effect it feeds bounded.
+  // much resource, keeping the effect it feeds bounded.
   spendResourceCap?: number;
   learnLevel: number;
+  // Quest-gated ability: even at or above learnLevel the ability stays hidden from
+  // the class kit until this quest id is in the player's questsDone. A talent/spec
+  // GRANT still bypasses this (grants are already scoped). Learned permanently once
+  // the quest is turned in (abilitiesKnownAt reads questsDone). Used by the paladin
+  // resurrection chain (recall_the_fallen <- q_rite_of_redemption).
+  requiresQuest?: string;
   effects: AbilityEffect[];
   ranks?: AbilityRank[]; // later ranks (sorted by level)
   description: string; // tooltip text, $d = damage placeholder
+  /** The description already states this buff's numbers in prose; skip the
+   *  derived aura-effect line so the tooltip never says the same thing twice
+   *  (owner feedback: Ghostfoot showed its dodge buff two ways). */
+  tooltipOmitEffectLines?: boolean;
+  /** Per-spec tooltip sentences (internal spec id -> English), rendered ONLY
+   *  for the player's current spec so a shared button never carries another
+   *  spec's teaching text. Localized as
+   *  entities.abilities.<id>.specNote_<spec>. */
+  specNotes?: Readonly<Record<string, string>>;
 }
 
 // ---------------------------------------------------------------------------
-// Content shapes — zones, NPCs, camps, props, dungeons. The per-zone content
+// Content shapes - zones, NPCs, camps, props, dungeons. The per-zone content
 // modules in sim/content/ export records of these; sim/data.ts merges them.
 // ---------------------------------------------------------------------------
+
+/** Ambient presentation authored in ClaudeCraft Studio for an NPC or mob camp. */
+export type AuthorVfxPreset = 'arcane' | 'fire' | 'frost' | 'holy' | 'nature' | 'shadow';
+
+export interface AuthorVfx {
+  preset: AuthorVfxPreset;
+  /** Relative particle density. The renderer clamps this again before use. */
+  intensity: number;
+}
+
+/** One stop on an authored NPC patrol route. `wait` is a pause in seconds. */
+export interface NpcRoutePoint {
+  x: number;
+  z: number;
+  wait?: number;
+}
+
+/**
+ * An authored NPC patrol route walked by src/sim/npc_routes.ts. `mode` picks
+ * how the end of the point list is handled: 'loop' wraps back to the first
+ * point, 'pingpong' reverses and walks the list backwards. `speed` is in
+ * yards per second (clamped at use; absent means the default walk pace).
+ */
+export interface NpcRoute {
+  points: NpcRoutePoint[];
+  mode: 'loop' | 'pingpong';
+  speed?: number;
+}
 
 export interface NpcDef {
   id: string;
@@ -2402,24 +4754,98 @@ export interface NpcDef {
   // sells its stock for free when the realm has ALLOW_DEV_COMMANDS. Never placed
   // as permanent content; spawned on demand by /dev vendor.
   devVendor?: boolean;
+  // Quest-gated vendor rows: itemId -> the quest that must be in the buyer's
+  // log (or done) before the row is sold OR shown. Validated sim-side in
+  // items.ts buyItem and filtered client-side by ui/vendor_stock_gate_core.ts,
+  // both off this same def, so no wire field is needed. First user: the
+  // tutorial island's Linen Pouch (q_ps_pouch_and_purse), so an early
+  // purchase cannot strand the lesson's copper.
+  vendorQuestGates?: Record<string, string>;
   // The Merchant: talking to this NPC opens the player-driven World Market
   // (auction house) instead of a fixed vendor stock.
   market?: boolean;
   // A banker: talking to this NPC opens the player's bank (deposit box). The bank
   // deposit/withdraw/buy-slots commands gate on standing near one of these.
   banker?: true;
+  // An innkeeper (the Mirefen tavern's): the nameplate's role line reads Innkeeper whatever
+  // food and drink she also sells (src/sim/npc_role.ts).
+  innkeeper?: true;
   // The Heroic Quartermaster: talking to this NPC opens the Heroic Marks
   // shop (src/sim/content/heroic_vendor.ts) instead of a copper vendor stock.
   heroicVendor?: boolean;
+  // The World Quest taskmaster: talking to this NPC offers the world-quest
+  // board (the map's world-quest rail, where the daily reroll lives).
+  worldQuestBoard?: boolean;
+  // A WARFARE quartermaster: talking to this NPC opens the set-divided honor
+  // shop instead of the flat vendor grid. A FLAG rather than a hard-keyed NPC id
+  // deliberately, so a second placement needs no constant widened: the Heroic
+  // Quartermaster is keyed to one id and that is the mistake not repeated here.
+  // Purchasing itself stays emergent from the stock carrying priceHonor, so an
+  // unflagged honor vendor still sells its stock through the ordinary grid.
+  warfareVendor?: boolean;
+  // The Crucible Quartermaster: talking to this NPC opens the sigil-redemption
+  // shop for the Ignivar raid set pieces (src/sim/content/ignivar_loot.ts).
+  // A flag on the warfareVendor precedent so a second placement never widens a
+  // hard-keyed constant.
+  crucibleVendor?: boolean;
+  // The Riftwright: talking to this NPC opens the Rift Forge window (upgrade,
+  // socket on Riftbound rings, src/sim/rift/progression.ts), and the
+  // two forge commands gate on standing within reach of one of these (the
+  // banker precedent, src/sim/rift/forge_gate.ts). A flag rather than a
+  // hard-keyed id so a second forge placement never widens a constant.
+  riftForge?: boolean;
   // The Card Master: talking to this NPC joins/leaves the Card Duel minigame
   // queue (src/sim/social/card_duel.ts) instead of any vendor/bank flow.
   cardMaster?: boolean;
+  // A farmer NPC (the farming go-live): the range anchor of the husk-to-compost
+  // trade (src/sim/professions/farming.ts convertHusks refuses out of reach of
+  // one) and the gossip row that offers it. A FLAG rather than a hard-keyed id
+  // list (the warfareVendor precedent) so a fifth farmer needs no constant
+  // widened. Vending stays emergent from vendorItems; the watch fee is a
+  // plant-time bag payment and never gates on this flag (D9).
+  farmer?: true;
+  // The weekly emissary: talking to this NPC opens the weekly-quest window
+  // (src/sim/weekly_quests.ts) instead of the gossip menu.
+  weeklyEmissary?: boolean;
+  // A seasonal event's keeper (src/sim/seasonal/): her nameplate shows her own
+  // title rather than the role her small shop would otherwise classify as.
+  seasonalKeeper?: true;
   greeting: string;
+  /** Authored patrol route; sanitized in map_doc sanitizeNpc. */
+  route?: NpcRoute;
+  /** Explicit rigged-character manifest key. Absent keeps template dispatch. */
+  visualKey?: string;
+  /** Optional ambient particle treatment shown in editor and playtest. */
+  authorVfx?: AuthorVfx;
+  /** Editor-facing role and AI briefs. They never enter gameplay decisions. */
+  authorRole?: string;
+  aiNotes?: string;
+  questNotes?: string;
   // Registered but not surface-placed at world init. The owning system spawns
   // the entity on demand (e.g. the Nythraxis encounter walks Brother Aldric in
   // mid-fight). Keeping the def in NPCS lets the online client reconstruct its
   // questIds and treat it as a turn-in NPC.
   dynamic?: boolean;
+  // A `dynamic` NPC whose owning system always raises it at `pos` (the Muster Commander,
+  // raised with the Mirefen muster): the map may mark it from the def like a placed NPC.
+  fixedPost?: boolean;
+}
+
+/**
+ * Per-camp stat tuning authored in the editor's Mob tool. Every field is a
+ * MULTIPLIER on the value createMob already derived from the template and
+ * level, so 1 means "template default", >1 a bonus and <1 a penalty. Absent
+ * fields (and an absent statMods entirely) leave the spawn byte-identical to
+ * an untuned camp, this is the parity contract that keeps shipped content
+ * unchanged. Applied by applyCampMobTuning (src/sim/camp_authoring.ts).
+ */
+export interface CampStatMods {
+  health?: number;
+  damage?: number;
+  armor?: number;
+  moveSpeed?: number;
+  attackSpeed?: number;
+  scale?: number;
 }
 
 export interface CampDef {
@@ -2427,44 +4853,1525 @@ export interface CampDef {
   center: { x: number; z: number };
   radius: number;
   count: number;
+  /** Optional camp-specific level range. Absent uses the mob template range. */
+  levelMin?: number;
+  levelMax?: number;
+  /** Optional ambient particle treatment copied to every spawned camp member. */
+  authorVfx?: AuthorVfx;
+  /** Editor stat multipliers applied to every spawned member. Absent = stock. */
+  statMods?: CampStatMods;
+  /**
+   * Seconds between a member's death and its in-place respawn. Absent = the
+   * realm default (cfg.respawnSeconds x the template's rare/respawn multiplier).
+   */
+  respawnSeconds?: number;
+  /**
+   * Authored patrol route walked by every member of the camp (same waypoint
+   * shape the City Build Routes subtool authors for NPCs). Absent = the stock
+   * random wander around the spawn point.
+   */
+  route?: NpcRoute;
+  /** Editor-only briefs preserved for later AI quest and encounter generation. */
+  aiNotes?: string;
+  questNotes?: string;
+  // Scatter this camp off a PRIVATE rng sub-stream instead of the shared
+  // world stream (the ambient-horse / training-dummy principle in the Sim camp
+  // loop, generalized so a camp can still scatter). The shared stream's
+  // POSITION is what every seeded gameplay roll downstream inherits, so a camp
+  // appended on it shifts every later draw in the world: harmless in play, but
+  // it silently re-rolls every test and golden pinned to a hunted seed. A camp
+  // that carries this draws zero shared rng, so adding or removing it leaves
+  // the rest of the world bit-identical. The sub-stream is seeded from the
+  // world seed plus the camp's own authored identity (see campPrivateRng in
+  // sim.ts), so its own spawns stay deterministic across all three hosts.
+  // Use it for NEW camps added to shipped content; a camp that already shipped
+  // on the shared stream must stay there, or its own spawns move. Both halves are
+  // pinned by tests/off_stream_rng.test.ts: zero shared draws at world build, and
+  // spawn stability under camp reordering.
+  offStream?: boolean;
 }
 
 // Ground interactables (sparkle objects)
+export const STABLE_GROUND_OBJECT_ENTITY_ID_MIN = 2_147_000_000;
+
+export interface GroundObjectPosition {
+  x: number;
+  z: number;
+  /** Exact world height when authored; omitted positions sit on the terrain. */
+  y?: number;
+  /** Authored yaw in radians. */
+  facing?: number;
+  scale?: number;
+}
+
 export interface GroundObjectDef {
   itemId: string;
   name: string;
-  positions: { x: number; z: number }[];
+  positions: GroundObjectPosition[];
+  /** Optional ids in the reserved high range, used without shifting the legacy roster. */
+  entityIds?: readonly number[];
 }
 
 // Gatherable world nodes (ore/wood/herb). Permanent, unowned fixtures: this
 // issue is content plus visibility only, no harvest logic (see G3).
 export type GatherNodeType = 'ore' | 'wood' | 'herb';
 
-// Rare gather event flavors (Professions 2.0), one per node family:
+// Rare gather event flavors (Professions 2.0), one per gather family:
 // ore rolls pristine_vein, wood rolls ancient_heartwood, herb rolls
-// moonlit_bloom (professions/gather_events.ts gatherRareEventFlavor).
-export type GatherRareEventFlavor = 'pristine_vein' | 'ancient_heartwood' | 'moonlit_bloom';
+// moonlit_bloom, and a farm-bed harvest rolls golden_harvest, all mapped by
+// professions/gather_events.ts gatherRareEventFlavor.
+export type GatherRareEventFlavor =
+  | 'pristine_vein'
+  | 'ancient_heartwood'
+  | 'moonlit_bloom'
+  | 'golden_harvest';
+
+// What rolled a rare event: a gather-node family, or a farm bed ('crop').
+// Widens the gatherRareEvent payload's nodeType leaf WITHOUT conscripting
+// 'crop' into GatherNodeType itself: farm beds are deliberately not gather
+// nodes (no GATHER_NODES row, no placement suite, no node tooltip family;
+// the fishing precedent).
+export type GatherRareEventSource = GatherNodeType | 'crop';
 
 export interface GatherNodeDef {
   id: string;
   zoneId: string;
   type: GatherNodeType;
   pos: { x: number; z: number };
+  // A Studio map's turn (radians) and size multiplier for this node
+  // (sim/moved_objects.ts). Built-in rows never carry them.
+  rotY?: number;
+  scale?: number;
   // Effective content level for the profession-XP green/gray curve
   // (professions/profession_xp.ts gatherActionXp), snapshotted at authoring
-  // time from the node's zone levelRange midpoint rather than looked up live.
+  // time as the CEIL of the node's zone levelRange midpoint rather than
+  // looked up live (every shipped node follows the ceil form, pinned by the
+  // level arm in tests/gather_node_placement.test.ts).
   level: number;
   // Access tier (Professions 2.0), 1 = bare-hands: gated via
-  // canGatherTier against the player's best owned matching tool
-  // (professions/tools.ts bestOwnedGatherToolTier). Pure access gating, never
+  // canGatherTier against the player's best WIELDABLE matching tool (R22:
+  // professions/wield_gate.ts bestWieldableGatherToolTierOrNone; an owned but
+  // unwieldable tool no longer opens the node). Pure access gating, never
   // a speed mechanic; every pre-phase node is tier 1.
   tier: number;
+}
+
+export interface DungeonSpawnMinibossTuning {
+  healthMultiplier: number;
+  scale: number;
+  ccImmune?: boolean;
+  slowImmune?: boolean;
 }
 
 export interface DungeonSpawn {
   mobId: string;
   x: number; // relative to instance origin
   z: number;
+  facing?: number;
+  // Per-spawn dormancy: this placed mob never idle-wanders, so a hand-authored
+  // pack holds its formation until pulled (see MobTemplate.idleStationary for the
+  // template-level equivalent). Stored on the spawned Entity.idleStationary.
+  idleStationary?: boolean;
+  /** Placement-authored pull identity. Mobs sharing this id in one claimed room
+   * enter combat together even when the pack mixes templates. */
+  packId?: string;
+  /** Per-placement promotion for a recurring trash template. The base template
+   * remains unchanged for ordinary encounter waves that reuse the same mob. */
+  miniboss?: DungeonSpawnMinibossTuning;
+  /** Idle patrol (mob/patrol.ts): a closed loop of instance-local waypoints
+   * walked while idle, zero rng. `offset` (yards along the loop) spaces the
+   * members of one patrolling pack. */
+  patrol?: DungeonSpawnPatrol;
+  /** A perched placement (a gargoyle on an arch): the instance-local height of
+   *  the perch the mob waits on until its pack is pulled (mob/trash_kit). */
+  perch?: { y: number };
+}
+
+export interface DungeonSpawnPatrol {
+  points: readonly { x: number; z: number }[];
+  offset?: number;
+  /** Walk speed as a fraction of the mob's run speed (default 0.4). */
+  pace?: number;
+  /** A FLYING patrol: the loop is flown this many yards over the instance
+   *  floor, in straight lines over walls and gaps (the drake, a crow flock).
+   *  Once pulled the flier lands (MobTemplate.trashKit.land). */
+  altitude?: number;
+}
+
+/** A dungeon trash kit cast: a real cast bar on the mob (castId), `first`
+ *  seconds into the pull, then every `every` seconds. */
+export interface TrashKitCast {
+  castId: string;
+  name: string;
+  castTime: number;
+  every: number;
+  first: number;
+  school: Aura['school'];
+  /** Heroic only: on normal the driver never starts this cast (the Gravecaller
+   *  Adept's Grave Bolt, which its normal volley replaces). */
+  heroicOnly?: boolean;
+}
+
+/**
+ * The dungeon trash kit (mob/trash_kit): simple, readable pack mechanics in
+ * the style of classic five-man trash. Every cast is a real cast bar; the ones
+ * registered in the trash kit's cast table are interruptible (a kick cancels
+ * them), the drake's strikes are not. Zero rng: targets are picked by a
+ * deterministic hash over the living players in reach.
+ */
+export interface TrashKitDef {
+  /** An interruptible hardcast at a living player in reach, landing as a bolt. */
+  bolt?: TrashKitCast & { range: number; min: number; max: number };
+  /** An interruptible channel that raises one add beside the caster. */
+  raise?: TrashKitCast & { summon: string; maxAlive: number };
+  /** An interruptible cast that summons a flock round the caster. */
+  call?: TrashKitCast & { summon: string; count: number; maxAlive: number };
+  /** An interruptible cast that stuns every player near the caster. */
+  screech?: TrashKitCast & { radius: number; stun: number; min: number; max: number };
+  /** A leap onto the farthest mana user in reach (else the farthest player),
+   *  opening a bleed and fixating on the victim for a few seconds. */
+  leap?: {
+    /** The ability id its `windup` spellfx carries (the Basin Raptor's Pounce),
+     *  so the renderer can key the leap; absent: a bare windup. */
+    castId?: string;
+    name: string;
+    every: number;
+    first: number;
+    minRange: number;
+    maxRange: number;
+    seconds: number;
+    fixate: number;
+    /** A bleed opened on landing (the crypt's Rending Leap). */
+    bleed?: { perTick: number; interval: number; duration: number };
+    /** A stun on landing, in seconds (the Bastion Warhound's Lunge). */
+    stun?: number;
+    /** A slow on landing: the victim runs at `mult` of its speed for
+     *  `seconds` (the Ossuary Cutthroat's Torn Tendon). */
+    slow?: { mult: number; seconds: number; name: string };
+    /** Heroic: when nobody answers the leap inside its fixate (a taunt, or a
+     *  stun, root or slow on the leaper), it leaps again at the next caster
+     *  (mob/trash_kit/crypt_kit.ts). */
+    releapOnHeroic?: boolean;
+  };
+  /** An add that stays alive this long in combat turns into `into`. */
+  grow?: { after: number; into: string; name: string };
+  /** A perched statue: holds its perch until its pack is pulled, then dives. */
+  perch?: { diveSeconds: number; name: string };
+  /** A frontal-cone breath's rear twin: a short-bar lash of everything behind. */
+  tailLash?: TrashKitCast & { range: number; arcDeg: number; min: number; max: number };
+  /** A wing blast round the mob: damage and a knockback. */
+  wingGust?: TrashKitCast & { radius: number; knockback: number; min: number; max: number };
+  /** A flier lands this long after its pull, from its altitude to the floor. */
+  land?: { seconds: number };
+  /** An interruptible heal on the most injured living ally in reach, for a
+   *  share of that ally's maximum health (the Tidebound Acolyte's Brine Mend).
+   *  Only starts while an ally is under `below` of its health. */
+  mend?: TrashKitCast & {
+    range: number;
+    healPct: number;
+    below: number;
+    /** Only allies of this family. */
+    family?: MobFamily;
+    /** Never these templates (a mender that tends trash only, never the
+     *  great body or the boss it is pulled beside). */
+    exclude?: readonly string[];
+  };
+  /** An interruptible absorb shield on the most injured unshielded ally in
+   *  reach, worth a share of its maximum health (the Mistweaver's Fog Ward). */
+  ward?: TrashKitCast & { range: number; shieldPct: number; duration: number };
+  /** A telegraphed shot down a lane toward one player: the lane locks when the
+   *  bar starts, and everyone standing in it when the bar ends is hit (the
+   *  Fogbound Arbalest's Piercing Bolt). Physical: dodge it, never kick it. */
+  line?: TrashKitCast & {
+    length: number;
+    halfWidth: number;
+    min: number;
+    max: number;
+    /** A root on everyone the lane catches, in seconds (the Vine Lasher's
+     *  Entangling Lash). */
+    root?: number;
+  };
+  /** Once per pull, below a share of its health: it shelters for `seconds`
+   *  (no attacks, no casts) taking `reduction` less damage (the Turretback
+   *  Hermit's Withdraw). A breather, then the burn. */
+  withdraw?: { belowHpPct: number; seconds: number; reduction: number; name: string };
+  /** An interruptible song at one player in reach (never the one it is
+   *  fighting while anyone else stands in reach): a sleep that breaks on
+   *  damage (the Pale Choir Acolyte's Lullaby). Kick it, or wake the sleeper. */
+  lullaby?: TrashKitCast & { range: number; seconds: number };
+  /** Once per pull under a share of its health: a self absorb shield worth a
+   *  share of its maximum health (the Moonmantle Ray's Nacre Cocoon). */
+  carapace?: { belowHpPct: number; shieldPct: number; seconds: number; name: string };
+  /** It bursts where it fell, `delay` seconds after it dies (0: at once): a
+   *  splash round the corpse (the Rime Whelp's Hoarfrost Pop, the Glacier
+   *  Splinter's Shatter). A delayed burst paints its ring on the floor while
+   *  it builds. */
+  deathBurst?: {
+    castId: string;
+    name: string;
+    delay: number;
+    radius: number;
+    min: number;
+    max: number;
+    school: TrashKitCast['school'];
+    /** A slow on everyone the burst catches: `mult` of their run speed for
+     *  `seconds` (the Rime Whelp's Hoarfrost Pop). */
+    slow?: { mult: number; seconds: number };
+    /** Grows with the mob's kit stacks (Entity.trashLife.gorge, the Barnacle
+     *  Crawler's Carrion Glut): each stack adds `radius` yards and `damage` of the
+     *  base roll. */
+    perStack?: { radius: number; damage: number };
+  };
+  /** A healing pulse with no cast bar, every `every` seconds while it fights:
+   *  each living ally in the fight within `radius` (never itself) mends for a
+   *  share of its own maximum health (the Sunbone Totem's Sunbone Mending).
+   *  Kill the source. */
+  pulse?: {
+    castId: string;
+    name: string;
+    every: number;
+    radius: number;
+    healPct: number;
+    school: TrashKitCast['school'];
+  };
+  /** A cloud it bursts into where it dies, standing `seconds` on the floor:
+   *  every `tick` seconds each player inside `radius` takes a roll (the Spore
+   *  Toad's Spore Burst). The cloud is an encounter object of
+   *  `objectTemplate` (scale = radius) the client mirrors. Step out. It rides
+   *  the mob's `deathBurst` record, so a template carries a deathCloud OR a
+   *  deathBurst, never both (pinned in tests/wildheart_basin_trash.test.ts). */
+  deathCloud?: {
+    castId: string;
+    name: string;
+    radius: number;
+    seconds: number;
+    tick: number;
+    min: number;
+    max: number;
+    school: TrashKitCast['school'];
+    objectTemplate: string;
+  };
+  /** An interruptible goad at one ally in the fight within `range` (another
+   *  before itself, never one already goaded): a damage-done aura worth
+   *  `damagePct` for `seconds` (the Broodsworn Goadsmith's Goad). Kick it. */
+  goad?: TrashKitCast & { range: number; damagePct: number; seconds: number };
+  /** A telegraphed throw at the farthest living player within `range`: the
+   *  spot locks when the bar starts (a ring object the client mirrors, scale =
+   *  radius), and everyone inside `radius` of it when the bar ends is hit (the
+   *  Ogre Sledge-Hauler's Ice Block Toss). Physical: dodge it, never kick it. */
+  toss?: TrashKitCast & {
+    range: number;
+    radius: number;
+    min: number;
+    max: number;
+    /** The block stays where it lands as a temporary combat wall (mob/
+     *  trash_kit/combat_walls.ts): an object of `objectTemplate` (a shape in
+     *  COMBAT_WALL_SHAPES) that blocks movement and line of sight for
+     *  `seconds` (the Ogre Sledge-Hauler's Ice Slab). */
+    leavesWall?: { objectTemplate: string; name: string; seconds: number };
+  };
+  /** No cast bar: every `every` seconds each living ally in the fight within
+   *  `radius` (never the source) swings `hastePct` faster for `seconds` (the
+   *  Soul Brazier). A stoke source whose summoner has died gutters out. */
+  stoke?: {
+    castId: string;
+    name: string;
+    every: number;
+    radius: number;
+    hastePct: number;
+    seconds: number;
+    school: TrashKitCast['school'];
+  };
+  /** A seeker that bursts on reaching its victim: within `reach` it breaks in
+   *  a splash round itself and is gone (the Tidewisp). Kill it on the way in. */
+  detonate?: {
+    reach: number;
+    radius: number;
+    min: number;
+    max: number;
+    name: string;
+    school: TrashKitCast['school'];
+    /** A slow on everyone the burst catches: `mult` of their run speed for
+     *  `seconds` (the Tidewisp's chill). */
+    slow?: { mult: number; seconds: number };
+  };
+  // ---- The trash engine pieces (mob/trash_kit/CLAUDE.md "Engine pieces"):
+  // generic, data-driven keys any dungeon's trash may carry. ----
+  /** An interruptible rite on a fallen packmate's corpse (one of `corpses`
+   *  within `range`, never one already raised): the bar runs on the corpse,
+   *  and when it lands a `summon` climbs out where the body lies, at `hpPct`
+   *  of its health (the Broodsworn Thawcaller's Thaw the Held). Kick it. */
+  reanimate?: TrashKitCast & {
+    range: number;
+    corpses: readonly string[];
+    summon: string;
+    hpPct: number;
+  };
+  /** An interruptible brand at one player in reach (never the one it fights
+   *  while anyone else stands in reach) who must stay in its line of sight
+   *  through the bar: a burn every `interval` seconds for `seconds`, which the
+   *  dungeon's quench zones (DungeonDef.quenchZones) put out the moment the
+   *  victim stands in one (the Broodsworn Goadsmith's Branding Iron). Kick it,
+   *  hide from it, or douse it. */
+  brand?: TrashKitCast & {
+    range: number;
+    perTick: number;
+    interval: number;
+    seconds: number;
+    /** The aura id the brand leaves (its look and its quench key). */
+    auraId: string;
+    /** The aura's name (the brand the victim wears). */
+    auraName: string;
+  };
+  /** A short-bar frontal cone at the one it fights (the Rime Whelp's Rime
+   *  Breath): everyone inside `range` and `arcDeg` takes the roll, and a
+   *  `freezeStack` slows them a step more each time, freezing at its cap.
+   *  Not kickable: step out of the front. */
+  cone?: TrashKitCast & {
+    range: number;
+    arcDeg: number;
+    min: number;
+    max: number;
+    freezeStack?: FreezeStackDef;
+  };
+  /** G6, the line-of-sight nova: a bar, then a blast on every player within
+   *  `radius` who can SEE the caster (a wall, a pillar or an ice slab between
+   *  them shields them). Interruptible when its castId is registered in the
+   *  dungeon's kit cast table; every `unstoppableEvery`-th cast runs under
+   *  `unstoppableCastId` (never registered), so it must be hidden from. An
+   *  optional `silence` lands on everyone it strikes. */
+  nova?: TrashKitCast & {
+    radius: number;
+    min: number;
+    max: number;
+    silence?: number;
+    unstoppableEvery?: number;
+    unstoppableCastId?: string;
+  };
+  /** G3, a usable encounter body: a player in reach who presses interact on
+   *  it (target it, then interact) channels a non-spell use for `channel`
+   *  seconds (any hit, a move or a stun breaks it, like a gather), validated
+   *  by the authoritative sim; when it completes the effect lands (the Soul
+   *  Brazier's Topple Brazier). The cast id MUST start with
+   *  KIT_USE_CAST_PREFIX. */
+  usable?: KitUseDef;
+  /** G5, a walker: an orb that drifts from the mob toward the nearest living
+   *  ally in the fight and empowers it on arrival; a player who stands in its
+   *  path intercepts it instead (the orb pops on them, for the `intercept`
+   *  effect). Launched when the mob dies (`launch: 'death'`) or by a bar
+   *  (`launch: 'cast'`, with the cast fields). */
+  walker?: KitWalkerDef;
+  /** Once per pull under `belowHpPct` of its health it splits in two: it
+   *  shrinks to `scale` of its size and a copy of itself climbs out beside
+   *  it, each holding `share` of the health it had left (rounded up), and a
+   *  split body's death burst shrinks by `burstScale` (the Glacier Splinter's
+   *  Fracture). Neither half splits again. */
+  split?: {
+    castId: string;
+    name: string;
+    belowHpPct: number;
+    share: number;
+    scale: number;
+    burstScale: number;
+  };
+  /** Where its template breath cone (MobTemplate.breathCone) lands it leaves
+   *  a hazard pool in front of it, centred `ahead` yards out (the Sanctum
+   *  Scaleguard's heroic Boiling Meltwater). `heroicOnly` keeps it off normal. */
+  breathPool?: { ahead: number; heroicOnly?: boolean; hazard: KitHazardDef };
+  // ---- The Hollow Crypt and Sunken Bastion trash mechanics pass
+  // (mob/trash_kit/crypt_kit.ts, bastion_kit.ts) ----
+  /** It stands back up: when it falls while a living `masters` mob of its pack
+   *  stands, a `pile` mob (its bones) lies where it fell for `seconds`; break
+   *  the pile, or kill the master, or the body rises with `hpPct` of its health
+   *  (heroic: `heroicHpPct`), at most `rises` times (heroic: `heroicRises`).
+   *  A risen body pays nothing twice (Entity.regrown). The Ossuary Warrior's
+   *  Reassemble. */
+  reassemble?: {
+    name: string;
+    masters: readonly string[];
+    pile: string;
+    seconds: number;
+    hpPct: number;
+    heroicHpPct: number;
+    rises: number;
+    heroicRises: number;
+  };
+  /** This mob is a Reassemble's bone pile: it never moves or swings, and the
+   *  body it lies on stands when its countdown ends (Entity.trashLife.pile). */
+  bonePile?: { name: string };
+  /** An interruptible cast that bursts a fallen packmate's corpse: the corpse
+   *  nearest the caster's foe within `range` is marked (a ring object the
+   *  client mirrors, scale = radius) and everyone inside `radius` of it when
+   *  the bar ends is hit. Heroic leaves a `pool` burning there (the Gravecaller
+   *  Necromancer's Grave Rupture). */
+  rupture?: TrashKitCast & {
+    range: number;
+    radius: number;
+    min: number;
+    max: number;
+    pool: { seconds: number; tick: number; min: number; max: number };
+  };
+  /** A stone ward that thickens every `every` seconds in the fight, `perStack`
+   *  less damage taken per stack (heroic: `heroicPerStack`) up to `maxStacks`;
+   *  a stun shatters it and leaves the mob cracked, taking `cracked.taken`
+   *  more damage for `cracked.seconds` (the Chapel Gargoyle's Granite Skin). */
+  granite?: {
+    name: string;
+    every: number;
+    perStack: number;
+    heroicPerStack: number;
+    maxStacks: number;
+    cracked: { name: string; seconds: number; taken: number };
+  };
+  /** An interruptible mark on one player in reach (never the caster's own foe
+   *  while anyone else stands in reach): for `seconds` every living `flock`
+   *  mob in the fight hunts the marked player (the Crow Caller's Carrion Eye). */
+  eye?: TrashKitCast & { range: number; seconds: number; flock: string };
+  /** The template breath cone leaves its fire on the floor on heroic: for
+   *  `seconds` every `tick` seconds each player inside the burnt cone takes a
+   *  roll (an object the client mirrors, scale = the cone's range). The
+   *  Ossuary Drake's Barrow Embers. */
+  scorch?: {
+    name: string;
+    seconds: number;
+    tick: number;
+    min: number;
+    max: number;
+    school: TrashKitCast['school'];
+  };
+  /** A telegraphed hook down a lane at the farthest player at least
+   *  `minRange` away: whoever stands in the lane when the bar ends is hit,
+   *  and the farthest one caught is dragged to `stop` yards in front of the
+   *  caster over `pullSeconds`. On heroic the caster's breath cone comes
+   *  `heroicSweepIn` seconds after a catch. Physical: step aside (the Drowned
+   *  Watchman's Boathook). */
+  hook?: TrashKitCast & {
+    minRange: number;
+    length: number;
+    halfWidth: number;
+    min: number;
+    max: number;
+    stop: number;
+    pullSeconds: number;
+    heroicSweepIn: number;
+  };
+  /** Heroic only: while another living mob of its own template in the fight
+   *  stands within `radius`, it takes `reduction` less damage (the Drowned
+   *  Watchmen's Halberd Wall). Split them. */
+  wall?: { name: string; radius: number; reduction: number };
+  /** When a player closes within `trigger` yards it leaps `distance` yards
+   *  straight back over `seconds`, at most every `every` seconds; a stun, a
+   *  root or a slow on it holds it (the Fogbound Arbalest's Fall Back). */
+  fallBack?: {
+    name: string;
+    every: number;
+    first: number;
+    trigger: number;
+    distance: number;
+    seconds: number;
+  };
+  /** Within `reach` of a corpse in its claim it feeds: a stack every `every`
+   *  seconds up to `maxStacks` (its deathBurst grows by deathBurst.perStack;
+   *  the Barnacle Crawler's Carrion Glut). */
+  gorge?: { name: string; every: number; reach: number; maxStacks: number };
+  /** An interruptible cast that lays a fog patch of `radius` under its foe
+   *  for `seconds` (an object the client mirrors, scale = radius): every ally
+   *  in the fight standing in it takes `reduction` less damage (heroic:
+   *  `heroicReduction`). Drag them out of it (the Mist Chanter's Fog Bank). */
+  fogBank?: TrashKitCast & {
+    range: number;
+    radius: number;
+    seconds: number;
+    reduction: number;
+    heroicReduction: number;
+  };
+  /** An interruptible channel at one player in reach (never the caster's own
+   *  foe while anyone else is in reach): the victim is rooted for the whole
+   *  bar and takes a roll every `tick` seconds while it runs. Kick it or stun
+   *  the caster to free them (the Tidebound Acolyte's Brine Column). */
+  column?: TrashKitCast & { range: number; tick: number; min: number; max: number };
+  /** Under `belowHpPct` of its health it stops fighting: inert, untouchable
+   *  and no longer hostile, it kneels for `seconds` and leaves the fight (the
+   *  Shackled Prisoner's Snapped Fetters). */
+  unshackle?: { name: string; belowHpPct: number; seconds: number };
+  /** The Drowned Temple trash's own keys (mob/trash_kit/temple_kit_types.ts). */
+  temple?: TempleKitDef;
+  /** The Sunken Bastion trash's second-wave keys (mob/trash_kit/bastion_kit_types.ts). */
+  bastion?: BastionKitDef;
+  /** The Wildheart Basin trash's own keys (mob/trash_kit/wildheart_kit_types.ts). */
+  wildheart?: WildheartKitDef;
+}
+
+/** Trash kit state that outlives a pull's TrashKitState (Entity.trashLife;
+ *  mob/trash_kit/crypt_kit.ts, bastion_kit.ts). Sim only, never on the wire. */
+export interface TrashLifeState {
+  /** Reassemble: how many times this body has already stood back up. */
+  rises?: number;
+  /** Reassemble: this fall was judged (a pile was laid, or none could be). */
+  judged?: boolean;
+  /** Grave Rupture burst this corpse: it never stands again. */
+  ruptured?: boolean;
+  /** On a bone pile: the body it lies on and the seconds before it stands. */
+  pile?: { corpseId: number; remaining: number };
+  /** Carrion Glut stacks (its death burst grows with them). */
+  gorge?: number;
+  /** Snapped Fetters: seconds before the freed prisoner leaves the fight. */
+  freed?: number;
+  /** Reassemble: the first life's corpse was lootable when it stood; its
+   *  loot is held (unlootable) while it stands and given back when it falls. */
+  lootHeld?: boolean;
+}
+
+/** A hazard pool a trash mechanic leaves on the floor (mob/trash_kit/
+ *  kit_hazard.ts): an encounter object of `objectTemplate` (scale = radius)
+ *  the client mirrors, standing `seconds`; every `tick` seconds each body of
+ *  the `hits` side inside `radius` takes a roll of `school` damage. */
+export interface KitHazardDef {
+  castId: string;
+  name: string;
+  objectTemplate: string;
+  radius: number;
+  seconds: number;
+  tick: number;
+  min: number;
+  max: number;
+  school: Aura['school'];
+  /** Who it burns: the players, or the claim's mobs (a pool turned on them;
+   *  never a boss or a control-immune great body). */
+  hits: 'players' | 'mobs';
+  /** Burn each victim for this share of ITS maximum health a beat instead of
+   *  the roll (no draw): a pool turned on the mobs scales with whatever it
+   *  burns, on either difficulty. */
+  pctMaxHp?: number;
+}
+
+/** The generic "freeze at N stacks" slow (mob/trash_kit/freeze_stacks.ts):
+ *  each application adds a stack slowing `perStack` more of the run speed for
+ *  `seconds` (refreshed); the `maxStacks`-th freezes the victim solid (a stun
+ *  of `freezeSeconds`) and clears the stacks. */
+export interface FreezeStackDef {
+  auraId: string;
+  name: string;
+  perStack: number;
+  maxStacks: number;
+  seconds: number;
+  freezeAuraId: string;
+  freezeName: string;
+  freezeSeconds: number;
+}
+
+/** A G3 usable encounter body (TrashKitDef.usable). */
+export interface KitUseDef {
+  /** The use's cast id (the player's bar): starts with KIT_USE_CAST_PREFIX. */
+  castId: string;
+  name: string;
+  /** Seconds the use channels. */
+  channel: number;
+  /** Reach, yards from the body's centre. */
+  range: number;
+  /** What completing the use does. 'topple': the body is destroyed (it dies,
+   *  credited to the user) and a hazard spills `ahead` yards past it, away
+   *  from the user. 'relight': the body's dungeon module reads the completion
+   *  off the body (`Entity.kitUseCompletedBy`) and decides what it lights
+   *  (the Hollow Crypt's Remembrance Candles, encounters/hollow_crypt/
+   *  morthen_candles.ts). 'free': the same hand-off to the dungeon module,
+   *  for a body that holds a player (the Wildheart Basin's Hunting Spear,
+   *  encounters/wildheart_basin/zulgar_spear.ts); only the prompt's copy
+   *  differs. */
+  effect:
+    | { kind: 'topple'; ahead: number; hazard: KitHazardDef }
+    | { kind: 'relight'; school: Aura['school'] }
+    | { kind: 'free'; school: Aura['school'] };
+  /** The use is NOT broken by a hit that lands on the user (a step, a stun,
+   *  death or drifting out of reach still break it): the candle's channel
+   *  drains its lighter's health and the healer heals them through it. */
+  holdsThroughHits?: boolean;
+}
+
+/** A G5 walker (TrashKitDef.walker). */
+export interface KitWalkerDef {
+  castId: string;
+  name: string;
+  objectTemplate: string;
+  /** 'death' and 'cast' are launched by the driver; 'event' only by the
+   *  dungeon module that owns the moment (the Moonmantle Ray's Heartpearl
+   *  when its cocoon breaks, temple_pearl.ts). */
+  launch: 'death' | 'cast' | 'event';
+  /** The bar, when `launch` is 'cast'. */
+  castTime?: number;
+  every?: number;
+  first?: number;
+  school: Aura['school'];
+  /** Yards a second it drifts. */
+  speed: number;
+  /** A player within this many yards of the orb intercepts it. */
+  interceptRadius: number;
+  /** The orb empowers its ally within this many yards of it. */
+  reachRadius: number;
+  /** Seconds before an orb that reached nothing fades. */
+  maxSeconds: number;
+  /** Only these templates may receive it (absent: any fighting mob). */
+  allies?: readonly string[];
+  /** It leaves the mob this many yards out, on the side away from the one
+   *  the mob fights (out of the melee pile, so taking it is a choice). */
+  eject?: number;
+  /** With no ally to roll to, it waits where it is for its `maxSeconds`
+   *  (still a body may take it) instead of fading at once. */
+  lingers?: boolean;
+  /** What it does to the ally it reaches: a damage-done aura worth
+   *  `damagePct` for `seconds` (0: none), and a heal of `healPct` of the
+   *  ally's maximum health (the Bastion Revenant's Last Breath shape). */
+  empower: {
+    auraId: string;
+    name: string;
+    damagePct: number;
+    seconds: number;
+    healPct?: number;
+    /** On heroic the damage-done aura is worth this instead (normal only
+     *  heals: the Bastion Revenant's Throatlight). */
+    heroicDamagePct?: number;
+    /** An absorb shield of this share of the ally's maximum health, for
+     *  `seconds` (the Moonmantle Ray's Heartpearl Ward). It rides `auraId`,
+     *  so a def never both shields and arms (tests/dungeon_trash_wave2.test.ts
+     *  pins it). */
+    shieldPct?: number;
+    /** The damage-done aura STACKS: every arrival adds one (its value is
+     *  `damagePct` per stack), up to this many (Morthen's Gorged on the Dead,
+     *  encounters/hollow_crypt/morthen_gravecall.ts). Absent: it refreshes. */
+    maxStacks?: number;
+  };
+  /** What an interception does to the player who took it: a roll of damage,
+   *  and optionally the same empower turned on them. */
+  intercept: {
+    min: number;
+    max: number;
+    grantsEmpower?: boolean;
+    /** The taker's whole group: every living player within `radius` of the
+     *  taker gains an absorb of `pctMaxHp` of their own maximum health for
+     *  `seconds` (the Heartpearl's Nacre Mantle). */
+    groupShield?: {
+      auraId: string;
+      name: string;
+      pctMaxHp: number;
+      seconds: number;
+      radius: number;
+    };
+  };
+}
+
+/** The live state of an engine encounter object (Entity.kitObject): a hazard
+ *  pool, a temporary combat wall or a walker. Sim authority only. */
+export type KitObjectState =
+  | { kind: 'hazard'; def: KitHazardDef; remaining: number; tickTimer: number; sourceId: number }
+  | { kind: 'wall'; remaining: number }
+  | {
+      kind: 'walker';
+      def: KitWalkerDef;
+      sourceId: number;
+      allyId: number | null;
+      remaining: number;
+      mechanicDamageMult: number;
+    };
+
+/** Per-pull runtime state of a trash kit (Entity.trashKit). */
+export interface TrashKitState {
+  /** Seconds until each kit ability may start again, by ability key. */
+  timers: Record<string, number>;
+  /** The cast in flight, if any. */
+  cast: { key: string; castId: string; targetId: number | null } | null;
+  /** A leap in flight: from where, onto whom, and how far along. */
+  leap: { fromX: number; fromZ: number; fromY: number; targetId: number; t: number } | null;
+  /** A descent in flight (a perch dive or a landing): from which height. */
+  descent: { fromY: number; t: number; seconds: number; dive: boolean } | null;
+  /** Seconds this mob has been in combat this pull. */
+  engaged: number;
+  /** Casts started this pull (the deterministic target hash salt). */
+  casts: number;
+  /** A line shot's locked aim (sim yaw) while its bar runs. */
+  aim?: number;
+  /** The once-per-pull withdraw already fired. */
+  withdrawn?: boolean;
+  /** The once-per-pull carapace already closed. */
+  carapaced?: boolean;
+  /** A toss's locked landing spot (world) and its ring object while its bar runs. */
+  toss?: { x: number; z: number; objectId: number | null };
+  /** Novas started this pull (TrashKitDef.nova's unstoppable cadence). */
+  novas?: number;
+  /** Walker bars started this pull, and the orbs launched (kit_walker.ts). */
+  walkers?: number;
+  /** The once-per-pull split already happened (TrashKitDef.split). */
+  split?: true;
+  // ---- The Hollow Crypt and Sunken Bastion trash mechanics pass ----
+  /** Grave Rupture: the corpse marked while the bar runs and its ring. */
+  rupture?: { corpseId: number; x: number; z: number; objectId: number | null };
+  /** Grave Rupture's heroic pool burning on the floor. */
+  pool?: { x: number; z: number; remaining: number; objectId: number | null };
+  /** Granite Skin: stacks, the clock to the next, and the crack's seconds left. */
+  granite?: { stacks: number; t: number; cracked: number };
+  /** Heroic Rending Leap: the victim, the fixate's seconds left, and whether
+   *  anyone answered (a taunt, or a stun, root or slow on the leaper). */
+  releap?: { victimId: number; remaining: number; answered: boolean };
+  /** Barrow Embers: a breath that landed this tick (set by the breath bar),
+   *  and the burnt cones still on the floor. */
+  scorchAt?: { x: number; z: number; facing: number };
+  scorches?: {
+    x: number;
+    z: number;
+    facing: number;
+    remaining: number;
+    objectId: number | null;
+  }[];
+  /** Boathook: the caught player being dragged and the seconds left. */
+  hook?: { victimId: number; remaining: number };
+  /** Fall Back: a leap back in flight. */
+  fall?: { fromX: number; fromZ: number; fromY: number; toX: number; toZ: number; t: number };
+  /** Fog Bank: the patch while its bar runs (the spot) and while it stands. */
+  fog?: { x: number; z: number; remaining: number; objectId: number | null; laid: boolean };
+  /** Brine Column: the victim held while the channel runs. */
+  column?: { victimId: number; tick: number };
+  /** The Drowned Temple keys' per-pull state. */
+  temple?: TempleKitState;
+  /** The Wildheart Basin keys' per-pull state. */
+  wildheart?: WildheartKitState;
+}
+
+/** Per-fight state of a Sunken Bastion boss (encounters/sunken_bastion),
+ *  on the boss entity; cleared when the fight ends (a kill, an evade, a wipe). */
+export interface OlenFightState {
+  kind: 'olen';
+  /** Seconds until the next Hallowed Brine, Rebounding Bulwark, Sentence. */
+  brineTimer: number;
+  bulwarkTimer: number;
+  sentenceTimer: number;
+  /** Mechanic casts started (the deterministic victim hash salt). */
+  casts: number;
+  /** The bar running (his own cast: which, and on whom), else null. */
+  bar: { what: 'brine' | 'bulwark' | 'sentence'; targetId: number; x: number; z: number } | null;
+  /** Pools of Hallowed Brine still standing (instance-local, object ids). */
+  pools: { objectId: number; x: number; z: number; radius: number; remaining: number }[];
+  /** Seconds to the next brine damage pulse (one a second, all pools). */
+  brineTick: number;
+  /** The shield in flight: who it strikes in order, the leg it flies (from
+   *  the body at `hop - 1`, Olen for the first, to the body at `hop`), the
+   *  leg's clock, and whether it is flying home to him. */
+  bulwark: { chain: number[]; hop: number; t: number; home: boolean } | null;
+  /** The marked player and the seconds before the Sentence falls on them. */
+  sentence: { markId: number; remaining: number } | null;
+  /** The Unbroken Oath: not yet, kneeling, keeping the vigil in the bubble,
+   *  or done this fight; its clock and his soldiers' ids. */
+  oath: 'none' | 'kneel' | 'vigil' | 'done';
+  oathT: number;
+  soldierIds: number[];
+  /** Where he knelt (instance-local): the vigil holds him there. */
+  oathSpot: { x: number; z: number } | null;
+  /** The Bulwark rebounded onto a second player this fight (the deed reads it). */
+  rebounded: boolean;
+}
+
+export interface OssickFightState {
+  kind: 'ossick';
+  anchorTimer: number;
+  shackleTimer: number;
+  cudgelTimer: number;
+  /** Live anchors: the hooked player, the anchor body, the seconds the chain
+   *  has held (the haul starts after the settle), the chain's length (yd
+   *  from the winch's centre: the victim never stands further out; it only
+   *  shortens), and where it hooked them (instance-local: a Mooring Post this
+   *  near the hook spot never takes the chain). */
+  anchors: {
+    playerId: number;
+    anchorId: number;
+    held: number;
+    chain: number;
+    hookX: number;
+    hookZ: number;
+  }[];
+  /** Seconds each Mooring Post stays dark (0: lit), in MOORING_POST_SPOTS order. */
+  postDark: number[];
+  /** Live shackle pairs, the seconds left, and the strain tick clock. */
+  shackles: { a: number; b: number; remaining: number; tick: number }[];
+  /** Open the Cells thresholds already fired. */
+  cellsFired: number;
+  /** Anyone hauled into the Drowning Pit this fight (the deed reads it). */
+  keelhauled: boolean;
+  /** Mechanic casts started (the deterministic victim hash salt). */
+  casts: number;
+  /** The players the running bar will take when it lands. */
+  pending: number[];
+}
+
+/** The Gaol Turnkey's fight (encounters/sunken_bastion/turnkey.ts). */
+export interface TurnkeyFightState {
+  kind: 'turnkey';
+  cageTimer: number;
+  /** Cage casts started (the deterministic victim hash salt). */
+  casts: number;
+  /** The players the running Iron Cage bar will lock up. */
+  pending: number[];
+  /** Live cages by entity id. */
+  cageIds: number[];
+  /** A cage burst on its prisoner this fight (the deed reads it). */
+  crushed: boolean;
+}
+
+/** One Iron Cage (on the cage body): its prisoner, its clocks, and the last
+ *  counted escape press (the server-side press rate limit). */
+export interface GaolCageState {
+  kind: 'cage';
+  prisonerId: number;
+  /** The Turnkey that dropped it. */
+  ownerId: number;
+  /** Seconds the cage has stood. */
+  age: number;
+  /** Sim time of the last counted press. */
+  pressAt: number;
+  /** Counted presses (tests, the log). */
+  presses: number;
+  /** The mend clock. */
+  mend: number;
+  /** Heroic brine flood: seconds of flooding already charged. */
+  flooded: number;
+  /** The floor it lands on (it drops from above: pos.y falls to this). */
+  floorY: number;
+}
+
+export interface VaelFightState {
+  kind: 'vael';
+  surgeTimer: number;
+  /** Fog Veils started this fight (thresholds fired). */
+  veils: number;
+  /** The veil in flight: its clock, the health the real Vael had when it
+   *  fell, which rim slot is real, the shades' ids by slot, and the beam. */
+  veil: {
+    elapsed: number;
+    hpAt: number;
+    realSlot: number;
+    shadeIds: number[];
+    phase: number;
+    beamStart: number;
+    tick: number;
+    drift: number;
+    /** Where Vael stood when the fog took him (he steps back out there). */
+    home: { x: number; z: number };
+    /** The health every shade was last set to (a drop below it is a hit). */
+    shadeHp: number;
+  } | null;
+  /** A Fog Shade burst this fight (the deed reads it). */
+  burst: boolean;
+  /** Seconds until the next Shadowstep. */
+  reapTimer: number;
+  /** Shadowsteps started (the deterministic victim hash salt). */
+  reaps: number;
+  /** The Shadowstep in flight: its phase clock, the mark, the pool (object id,
+   *  spot and sweep yaw) once it opens, and where he stood when he sank; and
+   *  the chain it belongs to (this step, the chain's length, the players it
+   *  has marked so far, each step taking someone new while anyone is left). */
+  reap: {
+    phase: 'vanish' | 'pool' | 'rise' | 'recover';
+    elapsed: number;
+    markId: number;
+    poolId: number;
+    x: number;
+    z: number;
+    yaw: number;
+    fromX: number;
+    fromZ: number;
+    step: number;
+    steps: number;
+    marked: number[];
+  } | null;
+  /** Heroic Grave Shadows still burning: object id, seconds left, tick clock. */
+  graves: { objectId: number; remaining: number; tick: number }[];
+  /** The fog gathering before a veil: its clock, whether he has begun to
+   *  sink, and where he stands still for it (vael_veil_gather.ts). */
+  gather: { elapsed: number; sinking: boolean; x: number; z: number; yaw: number } | null;
+}
+
+/** Vael's entrance on the Beacon Crown (encounters/sunken_bastion/
+ *  vael_intro.ts), on Vael for the claim's life (it outlives every fight). */
+export interface VaelIntroState {
+  /** Buried under the crown, playing the entrance, or done (he fights);
+   *  `rearm` waits out a wipe to bury him for the short entrance. */
+  phase: 'buried' | 'playing' | 'done' | 'rearm';
+  /** The full entrance has played once (a later one is the short one). */
+  played: boolean;
+  /** This entrance is the short one (one rise at his place). */
+  short: boolean;
+  /** The stop he is at (an index into VAEL_INTRO_STOPS) and its part. */
+  stop: number;
+  part: 'rise' | 'speak' | 'sink' | 'under';
+  /** Seconds into the part. */
+  t: number;
+}
+
+/** Captain state is server-only; lane objects and cast bars carry its public tells. */
+export interface GhostCaptainFightState {
+  kind: 'ghostCaptain';
+  next: number;
+  timer: number;
+  struck: boolean;
+  action: {
+    move: 'broadside' | 'anchor' | 'boarding';
+    stage: 'warning' | 'active';
+    elapsed: number;
+    seconds: number;
+    x: number;
+    z: number;
+    yaw: number;
+    objects: number[];
+    hit: number[];
+  } | null;
+}
+
+export type BastionFightState =
+  | OlenFightState
+  | OssickFightState
+  | VaelFightState
+  | GhostCaptainFightState
+  | TurnkeyFightState
+  | GaolCageState;
+
+/** Per-fight state of a Drowned Temple boss (encounters/drowned_temple), on
+ *  the boss entity; cleared when the fight ends (a kill, an evade, a wipe). */
+export interface SeltheFightState {
+  kind: 'selthe';
+  chorusTimer: number;
+  soloTimer: number;
+  /** Seconds to the next Mere Surge and the next Drowning Aria. */
+  surgeTimer: number;
+  ariaTimer: number;
+  /** Seconds to her next Moonwater Bolt (it runs only while she sings no
+   *  bar), and whether its gather cue has gone out. */
+  boltTimer: number;
+  boltCued: boolean;
+  /** After a kick: seconds she throws no bolt and sings no aria. */
+  quiet: number;
+  /** The kickable bar she began (the aria), so a cut one is seen. */
+  kickable: string | null;
+  /** The Mere Surge's locked aim while its bar runs. */
+  surgeYaw: number | null;
+  /** The Drowning Aria in flight: whom she sings at, whom the beam strikes now
+   *  (the target, or a body that stepped into it), how many pulses in a row
+   *  it has struck, and the seconds to the next pulse. */
+  aria: { targetId: number; struckId: number; streak: number; pulse: number } | null;
+  /** Arias and Surges begun (their own hash salt, so the marks' picks keep
+   *  the salt they had before the caster pass). */
+  barCasts: number;
+  /** Marks in flight: whose, and the seconds until each resolves. */
+  marks: { mark: 'chorus' | 'solo'; playerId: number; remaining: number }[];
+  /** Heroic Echo: marks resolving again where they fell (their object ids). */
+  echoes: {
+    mark: 'chorus' | 'solo';
+    x: number;
+    z: number;
+    remaining: number;
+    objectId: number;
+  }[];
+  /** Marks started this fight (the deterministic victim hash salt). */
+  casts: number;
+  /** Someone took a Chorus alone or a Solo caught a second player (the deed). */
+  flubbed: boolean;
+  /** The moon tiles round her pool (selthe_score.ts): their spots
+   *  (instance-local) and their encounter objects, in tile order. */
+  tiles: { x: number; z: number; objectId: number }[];
+  /** Scores begun this fight, and whether the next one is owed (her health
+   *  crossed its mark and she is waiting for her bar and her marks to end). */
+  scores: number;
+  scoreQueued: boolean;
+  /** The Score in flight. */
+  score: SeltheScoreState | null;
+}
+
+/** One Score (encounters/drowned_temple/selthe_score.ts): she sings the
+ *  melody on the tiles, then the group steps on them in that order. */
+export interface SeltheScoreState {
+  phase: 'melody' | 'answer';
+  /** Which Score of the fight this is (0 the first): its notes and its clock. */
+  index: number;
+  /** The melody: tile indices in the order they ring. */
+  order: number[];
+  /** Heroic: the tiles go dark for the answer. */
+  hidden: boolean;
+  /** Seconds left in this phase (it mirrors her bar). */
+  timer: number;
+  /** Melody: notes rung so far and the seconds to the next. */
+  rung: number;
+  noteIn: number;
+  /** Answer: tiles sounded in order so far. */
+  progress: number;
+  /** Last correct singer, independent of the display aura and wrong notes. */
+  lastSingerId: number | null;
+  /** Who stands on each tile (player ids, by tile), so a step counts once,
+   *  on the way in. */
+  inside: number[][];
+  /** Tiles a wrong step soured, and the seconds until each clears. */
+  sour: { tile: number; remaining: number }[];
+}
+
+/** The Mere Hydra's fight, SHARED by its three heads (one object referenced
+ *  from each head, so a fallen head never takes the state with it). */
+export interface HydraFightState {
+  kind: 'hydra';
+  /** Seconds to each element's next attack: the Freezing Breath (ice), the Venom
+   *  Spit (venom) and the Crushing Torrent (water). Whoever wields the element
+   *  (its own head, or the survivor that inherited it) casts it. */
+  breathTimer: number;
+  spitTimer: number;
+  torrentTimer: number;
+  /** Venom Spit pools about to burst (their object ids). */
+  spits: { x: number; z: number; remaining: number; objectId: number }[];
+  /** Venom left where a spit burst: a standing hazard for a few seconds. */
+  venom: { x: number; z: number; remaining: number; objectId: number }[];
+  /** A Crushing Torrent's locked lane while its bar runs: the caster and the aim. */
+  torrent: { headId: number; yaw: number } | null;
+  /** Seconds to the next Tsunami, and how many have rolled this fight. */
+  tsunamiTimer: number;
+  tsunamis: number;
+  /** The Tsunami in flight: the side it rises on, its clock, its wave object,
+   *  and whether a heroic backwash follows. */
+  tsunami: {
+    side: 'east' | 'west';
+    remaining: number;
+    objectId: number;
+    backwash: boolean;
+  } | null;
+  casts: number;
+  /** Sim time each head (left, centre, right) last fell; null while it lives.
+   *  A fallen head grows back regrowAfter seconds later while another lives. */
+  diedAt: (number | null)[];
+  /** The Combined Breath (encounters/drowned_temple/hydra_combo.ts): combos
+   *  begun this fight (the fixed order's index and their own hash salt), the
+   *  slots fired since the last Tsunami began, the combo whose bar runs (its
+   *  kind, its heads, and the Frostlocked Torrent's locked lane), the Ice Wall
+   *  standing, the sliding Venom Current pools and the Toxic Rime crystals. */
+  combos: number;
+  comboSlot: number;
+  combo: {
+    kind: 'frostlock' | 'current' | 'rime';
+    headIds: number[];
+    remaining: number;
+    yaw: number;
+  } | null;
+  iceWall: {
+    x: number;
+    z: number;
+    yaw: number;
+    length: number;
+    remaining: number;
+    objectId: number;
+  } | null;
+  currents: {
+    x: number;
+    z: number;
+    yaw: number;
+    slide: number;
+    remaining: number;
+    tick: number;
+    objectId: number;
+  }[];
+  crystals: { x: number; z: number; remaining: number; objectId: number }[];
+}
+
+export interface ColossusFightState {
+  kind: 'colossus';
+  lanceTimer: number;
+  slamTimer: number;
+  /** Prism Flares fired this fight (thresholds passed). */
+  flares: number;
+  /** The Moonlight Lance's locked aim while its bar runs. */
+  lanceYaw: number | null;
+  /** Living Reflections: the add, the player it mirrors, and when it rose. */
+  reflections: { id: number; ownerId: number; born: number }[];
+  swapTimer: number;
+  casts: number;
+  /** A Reflection outlived the deed window (the deed reads it). */
+  lingered: boolean;
+  /** Where it planted its feet for the bar in flight (instance world
+   *  coordinates), so a bar's lane and ring land where they were drawn. */
+  plantedAt: { x: number; y: number; z: number } | null;
+  /** Seconds to the next Tideglass Fracture. */
+  fractureTimer: number;
+  /** The Tideglass Fracture in flight: the round (-1 while its bar opens),
+   *  the seconds to that round's detonation, the cast's slice rotation, and
+   *  its eight slice objects (index = slice). */
+  fracture: { round: number; timer: number; rot: number; objectIds: number[] } | null;
+  /** Fractures begun (their own hash salt, so the Lance's victim keeps its). */
+  fractures: number;
+}
+
+export interface YsoleiFightState {
+  kind: 'ysolei';
+  lunarTimer: number;
+  undertowTimer: number;
+  /** The Undertow in flight: its clock, and where each pulled player stood. */
+  undertow: { remaining: number; starts: { playerId: number; x: number; z: number }[] } | null;
+  /** The Rising Tide once it starts: the flooded half, the seconds to the
+   *  next switch, and the warned half. */
+  tide: { half: 'north' | 'south'; timer: number } | null;
+  /** Heroic Riptide puddles (their object ids). */
+  riptides: { x: number; z: number; remaining: number; tick: number; objectId: number }[];
+  /** Heroic Drowned Moon: seconds to the next Moonspawn out of the flood. */
+  moonTimer: number;
+  /** One tick of flood damage a second. */
+  floodTick: number;
+  /** Anyone was caught by a Tidal Crash (the deed reads it). */
+  crashed: boolean;
+  /** Moonspawn waves and the enrage already answered with a roar, and the
+   *  roars still waiting for her to be free (Moonspawn Call, Drowned Wrath). */
+  summonsRoared: number;
+  wrathRoared: boolean;
+  roars: string[];
+  /** She calls the moon (encounters/drowned_temple/ysolei_moon.ts): tear
+   *  thresholds passed, the calls still waiting for her to be free, the tears
+   *  rolling at her (heading toward her coil), the heroic moonglow pools, and
+   *  the Full Moon (queued, its bar running, or done). */
+  tearWaves: number;
+  tearCalls: number;
+  tears: { x: number; z: number; objectId: number }[];
+  glows: { x: number; z: number; remaining: number; tick: number; objectId: number }[];
+  /** Each body's Moonsear stacks and when they fade (sim time): the count the
+   *  next tear reads, kept here so a cleanse of the display aura sheds none. */
+  sear: { playerId: number; stacks: number; until: number }[];
+  fullMoon: 'queued' | 'falling' | 'done' | null;
+}
+
+export type TempleFightState =
+  | SeltheFightState
+  | HydraFightState
+  | ColossusFightState
+  | YsoleiFightState;
+
+/** The Great Saurian's pull (encounters/wildheart_basin/great_saurian.ts), on
+ *  the Saurian; cleared when the pull ends (a kill, an evade, a wipe). */
+export interface SaurianFightState {
+  kind: 'saurian';
+  tailTimer: number;
+  stompTimer: number;
+  /** The Tail Swipe's locked aim (the Saurian's facing) while its bar runs. */
+  tailYaw: number | null;
+  /** Where it braced its feet for the bar in flight (world coordinates), so
+   *  the strike lands where it was drawn. */
+  plantedAt: { x: number; y: number; z: number } | null;
+  /** The howdah broke this pull (the Howdah Hexcaller is down). */
+  howdahBroken: boolean;
+  /** The rider that jumped down, while it lives. */
+  riderId: number | null;
+  /** Seconds until the rider, mid-leap off the broken howdah, lands (absent
+   *  once it has, or before the break). */
+  riderLandsIn?: number;
+  enraged: boolean;
+  /** Mechanic casts started (the deterministic salt). */
+  casts: number;
+  /** Sim time the Saurian fell, and its rider (the Toppled Titan deed's
+   *  window); the state outlives the Saurian until the deed is settled. */
+  diedAt?: number;
+  riderDiedAt?: number;
+  deedSettled?: boolean;
+}
+
+/** The Fanglord Beastmaster's pull with his Great Jaguar
+ *  (encounters/wildheart_basin/beastmaster.ts), on the Beastmaster: one
+ *  health pool across both, Pack Bond, Stalk and the master's kit. */
+export interface BeastmasterFightState {
+  kind: 'beastmaster';
+  jaguarId: number | null;
+  /** The shared pool as last synced onto both bodies. */
+  pool: number;
+  quakeTimer: number;
+  huntTimer: number;
+  wardTimer: number;
+  heelTimer: number;
+  /** Where he braced for the Beast Pit Quake (world coordinates). */
+  plantedAt: { x: number; y: number; z: number } | null;
+  /** The jaguar's prey (Stalk) and the seconds left on its hunt. */
+  preyId: number | null;
+  /** Where the jaguar holds while nobody can be stalked (world coordinates). */
+  waitAt: { x: number; y: number; z: number } | null;
+  stalkTimer: number;
+  biteTimer: number;
+  /** Where the jaguar crouched for Heel! (world coordinates). */
+  heelFrom: { x: number; y: number; z: number } | null;
+  bonded: boolean;
+  /** Seconds Pack Bond held this pull (the Divide and Conquer deed). */
+  bondSeconds: number;
+  casts: number;
+}
+
+/** The Great Jaguar's control windows (seconds left per kind), on the
+ *  jaguar; read by the aura gate (encounters/wildheart_basin/control_gate.ts). */
+export interface JaguarFightState {
+  kind: 'jaguar';
+  windows: { stun: number; root: number; slow: number };
+}
+
+/** The Gorgebloom's pull (encounters/wildheart_basin/gorgebloom.ts). */
+export interface GorgebloomFightState {
+  kind: 'gorgebloom';
+  seedTimer: number;
+  pollinateTimer: number;
+  lashTimer: number;
+  gorgeTimer: number;
+  /** The Vine Lash's locked aim while its bar runs. */
+  lashYaw: number | null;
+  /** The pods on the loam (instance-local spot, seconds since they landed). */
+  pods: { objectId: number; x: number; z: number; age: number }[];
+  /** Heroic Pollen Cloud: seconds each clean player has stood by a
+   *  pollinated one. */
+  cloud: { playerId: number; t: number }[];
+  /** Seconds its target has stood out of its reach, and the spit clock. */
+  outOfReach: number;
+  spitTimer: number;
+  /** A Thorn Sprout grew this pull (the Weed Control deed fails). */
+  sprouted: boolean;
+  casts: number;
+}
+
+/** Zulgar's pull (encounters/wildheart_basin/zulgar.ts). */
+/** One sun glyph of Zulgar's terrace (zulgar_glyphs.ts). */
+export interface ZulgarGlyphState {
+  /** Its encounter object (the look: lit or dark, and its clocks). */
+  objectId: number;
+  lit: boolean;
+  /** Seconds a player has stood lighting it (0 when nobody does). */
+  kindle: number;
+  /** Seconds left before a spent glyph can be lit again. */
+  cold: number;
+}
+
+/** A Hunting Spear standing in the terrace (zulgar_spear.ts). */
+export interface ZulgarSpearState {
+  /** The spear's usable body and the player it pins. */
+  bodyId: number;
+  victimId: number;
+  /** Seconds it has stood, and bleeds dealt. */
+  age: number;
+  bleeds: number;
+  /** Where it pinned its victim (world): a shove never drags them off it. */
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** The Idol's Breath of the final phase (zulgar_idol.ts). */
+export interface ZulgarIdolState {
+  /** Seconds to the next warning. */
+  timer: number;
+  /** The half the next exhale marks (+1 east, -1 west). */
+  side: 1 | -1;
+  /** The exhale in flight: its object, its half, and the seconds left of
+   *  its warning (then of its pour). */
+  breath: { objectId: number; side: 1 | -1; left: number; landed: boolean } | null;
+}
+
+export interface ZulgarFightState {
+  kind: 'zulgar';
+  /** `final`: The Idol Wakes (30 percent): the avatar hunts until he dies. */
+  phase: 'fight' | 'hunt' | 'ambush' | 'final';
+  pulseTimer: number;
+  /** Spirit of the Hunt thresholds fired (70 and 40 percent). */
+  huntsFired: number;
+  /** The Idol Wakes has begun (its 30 percent threshold fires once a pull). */
+  idolFired: boolean;
+  /** Seconds left of the hunt (or of the ambush). */
+  huntLeft: number;
+  /** The prey marks (two on heroic Twin Prey) and which one he chases. */
+  preyIds: number[];
+  chase: number;
+  switchTimer: number;
+  /** Seconds he still feeds on a mauled prey before he hunts on. */
+  feedTimer: number;
+  /** The tank when the hunt began: never the Prey while anyone else stands. */
+  tankId: number | null;
+  /** Mauled players' respite (seconds left): never the Prey again until it
+   *  runs out, so knockdowns never chain. */
+  respite: { id: number; left: number }[];
+  /** He roared over the kill, waiting out a respite with nobody to hunt. */
+  waiting: boolean;
+  /** The six sun glyphs, in SUN_GLYPHS order. */
+  glyphs: ZulgarGlyphState[];
+  /** Seconds a Sunstruck avatar is still wary of the sun: no glyph strikes
+   *  him again until it runs out. */
+  sunWary: number;
+  /** Seconds to the next Hunting Spear, the pick its bar is aimed at, and
+   *  the spears standing. */
+  spearTimer: number;
+  spearTargetId: number | null;
+  spears: ZulgarSpearState[];
+  /** The final phase's Prey clock (seconds to the next switch) and the
+   *  idol's breath; null until the idol wakes. */
+  markClock: number;
+  idol: ZulgarIdolState | null;
+  /** Heroic Ambush: the marked spot (instance-local) and its circle. */
+  ambushAt: { x: number; z: number } | null;
+  ambushMarkId: number | null;
+  plantedAt: { x: number; y: number; z: number } | null;
+  /** Someone was Mauled this pull (the Never Caught deed fails). */
+  mauled: boolean;
+  casts: number;
+}
+
+export type WildheartFightState =
+  | SaurianFightState
+  | BeastmasterFightState
+  | JaguarFightState
+  | GorgebloomFightState
+  | ZulgarFightState;
+
+/** The Sledge Tusker's pull (encounters/gravewyrm_sanctum/sledge_tusker.ts),
+ *  on the Tusker: Tusk Sweep, Trample, Spilled Braziers and its enrage. */
+export interface TuskerFightState {
+  kind: 'tusker';
+  sweepTimer: number;
+  trampleTimer: number;
+  /** The Tusk Sweep's locked aim (the Tusker's facing) while its bar runs. */
+  sweepYaw: number | null;
+  /** Trample: the lane locked at the bar's start (world start, yaw, length),
+   *  then the charge down it (`t` seconds into the run). */
+  lane: { x: number; z: number; yaw: number; length: number } | null;
+  charge: { x: number; z: number; yaw: number; length: number; t: number; hit: number[] } | null;
+  /** Where it braced its feet for the bar in flight (world coordinates). */
+  plantedAt: { x: number; y: number; z: number } | null;
+  /** Where it unhitched its sledge when pulled (world, and its facing then):
+   *  the sledge waits there and tips at half health. */
+  sledge: { x: number; z: number; yaw: number } | null;
+  /** The sledge tipped this pull (the soulfire patches are down). */
+  spilled: boolean;
+  /** The burning patches still on the road: object id, seconds left, tick clock. */
+  patches: { objectId: number; x: number; z: number; remaining: number; tick: number }[];
+  enraged: boolean;
+  /** Anyone hit by a Trample this pull (the Cold Cargo deed reads it). */
+  trampleLanded: boolean;
+  /** The Cold Cargo check ran at its death (granted or not), once. */
+  deedDone: boolean;
+  /** Mechanic casts started (the deterministic salt). */
+  casts: number;
+}
+
+export type SanctumFightState =
+  | TuskerFightState
+  | KorgathFightState
+  | VelkharFightState
+  | KorzulFightState;
+
+/** Morthen's entrance and the Knellwyrm finale at the Hollow Crypt's Rite Ring
+ *  (encounters/hollow_crypt), on Morthen for the claim's life: the entrance
+ *  plays once per claim, the finale once after he falls. */
+export interface CryptRiteState {
+  phase: 'dormant' | 'wakes' | 'rise' | 'proclaim' | 'descend' | 'land' | 'risen';
+  /** Seconds into the current entrance phase. */
+  t: number;
+  finale: 'none' | 'pyre' | 'arrive' | 'settle' | 'fight' | 'slain';
+  /** Seconds into the current finale phase. */
+  ft: number;
+  /** The Knellwyrm, once summoned. */
+  wyrmId: number | null;
+  /** The burning ritual circle (the warning), while it stands. */
+  pyreObjectId: number | null;
+}
+
+/** The Knellwyrm's fight (encounters/hollow_crypt/knellwyrm.ts), on the wyrm;
+ *  cleared when the fight ends (a kill, an evade, a wipe). */
+export interface KnellwyrmFightState {
+  strafeTimer: number;
+  bellowTimer: number;
+  /** A marked strafe: its lane (instance-local), then the run along it. */
+  strafe: {
+    x: number;
+    z: number;
+    yaw: number;
+    length: number;
+    phase: 'mark' | 'run';
+    t: number;
+    /** Where it took wing from (instance-local). */
+    fromX: number;
+    fromZ: number;
+    /** The lane's encounter object (the mark, then the burning lane). */
+    objectId: number;
+    /** Players the run already burned (one hit each). */
+    hit: number[];
+  } | null;
+  /** Lanes still burning (their object ids). */
+  lanes: {
+    x: number;
+    z: number;
+    yaw: number;
+    length: number;
+    remaining: number;
+    tick: number;
+    objectId: number;
+  }[];
+  casts: number;
+  /** Someone was burned by a Pyre Strafe this fight (the deed reads it). */
+  burned: boolean;
+  /** Heroic Burning Knell (encounters/hollow_crypt/knellwyrm_knell.ts):
+   *  seconds to the next flight, and the flight in progress. */
+  knellTimer?: number;
+  knell?: KnellwyrmKnellState | null;
+  /** Burning Knells flown (the half pick's draw order). */
+  knells?: number;
+}
+
+/** What an in-dungeon gate looks like (render-only pick; collision is one box). */
+export type DungeonGateKind =
+  | 'portcullis'
+  | 'bone_barrier'
+  | 'web_curtain'
+  | 'warded_arch'
+  | 'rite_ward'
+  // The Sunken Bastion: a drawbridge that lowers over the moat ditch, and a
+  // wall of Vael's fog that parts.
+  | 'drawbridge'
+  | 'fog_wall'
+  // The Drowned Temple: a waterfall curtain that parts, a bridge of moonlight
+  // that assembles, and a stair that rises out of the lagoon as a pool drains.
+  | 'water_veil'
+  | 'light_bridge'
+  | 'sunken_stair'
+  // The Wildheart Basin: vines that weave themselves into a bridge over the
+  // gorge, and a hedge of thorns that recedes into the ground.
+  | 'vine_bridge'
+  | 'thorn_wall'
+  // Gravewyrm Sanctum: a wall of ice that shatters and falls, a chain-hung
+  // grate that rises, and a great chain that falls across the gulf and pulls
+  // taut as a walkway.
+  | 'ice_wall'
+  | 'chain_gate'
+  | 'chain_bridge';
+
+/**
+ * An in-dungeon gate or encounter seal (instances/dungeon_gates.ts): one
+ * collider box across a passage, closed until its packs and bosses are dead,
+ * and optionally re-sealed while a named boss is engaged. Instance-local.
+ */
+export interface DungeonGateDef {
+  id: string;
+  /** English display name of the gate object (entity label). */
+  name: string;
+  kind: DungeonGateKind;
+  x: number;
+  z: number;
+  /** Half width across the passage and yaw (three.js convention). */
+  hw: number;
+  rot: number;
+  /** Placement packIds (DungeonSpawn.packId) that must all be dead. */
+  packs?: readonly string[];
+  /** Mob template ids (bosses) that must all be dead. */
+  bosses?: readonly string[];
+  /** Seals behind the group while this boss (template id) is alive and
+   *  engaged: BOSS_ROOM_SEAL_DELAY_SECONDS into the fight, or at once if the
+   *  boss reaches the doorway first (instances/dungeon_gates.ts). */
+  sealWhileEngaged?: string;
+  /** English log line when the gate first opens (sim_i18n EXACT map). */
+  openText?: string;
+}
+
+export interface DungeonNpcSpawn {
+  npcId: string;
+  x: number; // relative to instance origin
+  z: number;
+  /** Optional fixed facing in radians (sim convention: 0 = +z). Defaults to
+   *  the NpcDef facing when omitted. */
+  facing?: number;
 }
 
 export interface DungeonObjectSpawn {
@@ -2472,8 +6379,40 @@ export interface DungeonObjectSpawn {
   name: string;
   x: number; // relative to instance origin
   z: number;
-  templateId?: 'dungeon_door' | 'dungeon_exit';
+  templateId?:
+    | 'dungeon_door'
+    | 'dungeon_exit'
+    | 'ignivar_raid_gate_locked'
+    | 'ignivar_lift_gate_locked'
+    | 'ignivar_water_conduit_ready'
+    | 'ignivar_water_conduit_active'
+    | 'ignivar_water_conduit_cooldown'
+    // In-dungeon gates and seals (instances/dungeon_gates.ts): the state rides
+    // the template id so the online client mirrors it with the entity.
+    | 'dungeon_gate_closed'
+    | 'dungeon_gate_open'
+    | 'dungeon_gate_sealed'
+    // The Sunken Bastion's encounter objects (encounters/sunken_bastion): the
+    // state rides the template id so the online client mirrors it.
+    | 'bastion_buttress_intact'
+    | 'bastion_beacon_lamp'
+    | 'bastion_mooring_lit'
+    // The Hollow Crypt's grave lanterns (encounters/hollow_crypt/
+    // lady_lanterns.ts): lit, dark or kindling rides the template id.
+    | 'crypt_lady_lantern_lit'
+    // The Gravewyrm Sanctum's story markers (encounters/gravewyrm_sanctum/
+    // story.ts): the Calving Face's crack step rides the template id.
+    | 'sanctum_story_0';
   dungeonId?: string;
+  /**
+   * This object is an encounter mechanic players INTERACT with, never a pickup, even
+   * though its item id is a quest collectable elsewhere in the world (the Nythraxis
+   * arena wardstones reuse the Sunken Bastion ward stone). The quest-collectable
+   * display gate (quest_gated_entity.ts) never hides a flagged object.
+   */
+  interactOnly?: boolean;
+  /** False for encounter scenery that is targeted by mechanics, not by interact. */
+  lootable?: boolean;
 }
 
 export interface DungeonDef {
@@ -2481,12 +6420,49 @@ export interface DungeonDef {
   name: string;
   index: number; // x-band for instance origins; must be unique
   doorPos: { x: number; z: number }; // overworld entrance portal
+  /** where leaving drops the player, relative to doorPos (default 0,-4);
+   *  doors flush against a building face need a FORWARD drop instead. Also the
+   *  predefined exit facing: leaveDungeon points the player away from the door
+   *  along this vector, instead of leaving them facing whatever way they were
+   *  walking inside the instance. */
+  leaveOffset?: { x: number; z: number };
+  /** render the entrance membrane still (no swirl spin): for doors that
+   *  read as a building's own doorway rather than a magic portal */
+  staticDoor?: boolean;
   overworldDoor?: boolean; // false for rooms only reached by internal instance doors
+  /** False for development-only rooms that must stay out of the public Guide. */
+  guideVisible?: boolean;
   entry: { x: number; z: number }; // player arrival point (instance-local)
   exitOffset: { x: number; z: number }; // exit portal (instance-local)
+  // Where a second exit portal opens when the final boss dies (instance-local).
+  // For open-field dungeons whose boss stands far from the entrance with no
+  // corridor back; absent = no boss portal (every corridor dungeon).
+  // `after` names the mob whose death opens it when that is not the final boss
+  // (the Hollow Crypt: the Knellwyrm Morthen's dying rite summons).
+  bossExitPortal?: { x: number; z: number; after?: string };
   spawns: DungeonSpawn[];
+  /** Optional dungeon id whose mob difficulty tuning applies to this room's
+   * static spawn list. Rewards and lockouts still use this dungeon's own id. */
+  mobDifficultyTuningId?: string;
+  npcs?: DungeonNpcSpawn[];
   objects?: DungeonObjectSpawn[];
-  interior: 'crypt' | 'sanctum' | 'temple' | 'nythraxis'; // renderer + collider interior builder key
+  // renderer + collider interior builder key
+  interior:
+    | 'crypt'
+    | 'sanctum'
+    | 'temple'
+    | 'nythraxis'
+    | 'ignivar'
+    | 'ignivar_approach'
+    | 'ignivar_lift'
+    | 'ignivar_depths'
+    | 'wildheart'
+    | 'hollow_crypt'
+    | 'sunken_bastion'
+    | 'drowned_temple'
+    | 'gravewyrm_sanctum'
+    | 'lastkeep'
+    | 'dawnhold';
   /**
    * What dresses this dungeon's wall-side obstacle slots (matches the render
    * variant): coffins get one standable lid, cargo splits into the crate
@@ -2495,19 +6471,86 @@ export interface DungeonDef {
    * `dungeon_layout.ts` layoutColliders.
    */
   tombDressing?: 'coffins' | 'cargo';
+  /**
+   * Opt in to the premature-boss-pull punish: aggroing this dungeon's final
+   * boss while ANY of the instance's other mobs is still alive and idle pulls
+   * every one of them onto the puller at once (instances/boss_chain_pull.ts).
+   * Absent, a boss pull behaves classically (only the boss and its own social
+   * radius). Deliberately per dungeon rather than global: it turns skipping
+   * trash from a shortcut into a wipe, which is a per-dungeon design choice.
+   */
+  bossChainPull?: boolean;
+  /** A telegraphed area never moves with its caster: every mob of this
+   *  dungeon plants its feet, and holds its facing, for the whole bar of its
+   *  breath cone, the way every trash-kit area cast does everywhere
+   *  (mob/trash_kit/cast_hold.ts). The five reworked dungeons set it. */
+  areaCastsPlant?: boolean;
+  /** The quench zones (instance-local circles): a player standing in one has
+   *  a trash brand (TrashKitDef.brand) put out at once (mob/trash_kit/
+   *  brand.ts). The client paints them from the same list. */
+  quenchZones?: readonly { x: number; z: number; r: number }[];
+  /** In-dungeon gates and encounter seals (instances/dungeon_gates.ts). */
+  gates?: readonly DungeonGateDef[];
   suggestedPlayers: number;
   enterText: string;
   leaveText: string;
 }
 
-export type BiomeId = 'vale' | 'marsh' | 'peaks' | 'beach' | 'desert' | 'volcano' | 'cave';
+export type BiomeId =
+  | 'vale'
+  | 'marsh'
+  | 'peaks'
+  | 'beach'
+  | 'desert'
+  | 'volcano'
+  | 'cave'
+  | 'dusk'
+  | 'ember'
+  | 'frost'
+  | 'amber'
+  | 'fen'
+  | 'night'
+  | 'haunt'
+  | 'jungle'
+  | 'garden'
+  | 'gale';
 
 export interface ZoneDef {
   id: string;
   name: string;
+  /** Natural Rift portals may only select zones explicitly opted in. */
+  riftPortalEligible?: boolean;
+  /** Relative C/B/A/S weights for portals in this zone. Missing/zero ranks are
+   * never selected. Kept on content data so adding/reordering zones cannot
+   * silently change endgame difficulty. */
+  riftTierWeights?: Partial<Record<RiftTier, number>>;
   zMin: number;
+  /**
+   * Optional east-west extent (a world GRID column). Omitted = the original
+   * full-width strip [-WORLD_SIZE/2, WORLD_SIZE/2]. Zones are rectangles;
+   * zoneAt(x, z) picks by rect, so side-by-side columns can share a z band
+   * and meet at a real walkable border, exactly like the north passes.
+   */
+  xMin?: number;
+  xMax?: number;
+  /**
+   * Road passes through a COLUMN border (a shared vertical edge with the
+   * neighbor east or west), the sideways twin of southPassX: the z where
+   * the border ridge opens. Only read when such an edge exists.
+   */
+  eastPassZ?: number;
+  westPassZ?: number;
   zMax: number;
   levelRange: [number, number];
+  /**
+   * World PvP policy of the ground (src/sim/pvp/world_pvp_zones.ts). 'sanctuary':
+   * no world PvP at all, flagged or not. 'ffa': free-for-all, everyone standing
+   * here is fair game with no flag. Absent: contested, the mutual-flag rule.
+   * Owner tuning: the tutorial island and the starter zone are sanctuaries, the
+   * three highest-level zones are free-for-all (tests/world_pvp_zones.test.ts
+   * pins the set; flip one word here to move a zone).
+   */
+  worldPvp?: 'sanctuary' | 'ffa';
   biome: BiomeId;
   hub: { x: number; z: number; radius: number; name: string };
   graveyard: { x: number; z: number };
@@ -2516,13 +6559,66 @@ export interface ZoneDef {
   // it, so it must never change once shipped); label is display-only and may be
   // re-worded freely. Optional because user-authored custom maps (MapDocContent
   // reuses ZoneDef) omit it; every static ZONES poi carries one (content-guarded).
-  pois: { x: number; z: number; label: string; id?: string }[];
+  /** Named places. `id` is a STABLE key: deed visit marks reference it, so a
+   *  shipped id is never renamed or removed. `hideOnMap` drops the label from
+   *  the world map while keeping the record (and its marks) alive, for a place
+   *  that no longer reads as a landmark. */
+  pois: { x: number; z: number; label: string; id?: string; hideOnMap?: boolean }[];
   welcome: string; // chat-log hint shown on first entry
   welcomeQuestId?: string; // only show the hint while this quest is available
+  // Replaces the welcome hint on entry once every town quest of the zone is
+  // turned in (sim/town_quests.ts). Zones without it keep the welcome rule only.
+  welcomeDone?: string;
+  // The zone's southern border ridge has NO road pass and is raised past the
+  // climbable slope: the zone is reachable only by portal (see world.ts).
+  sealedSouthBorder?: boolean;
+  // Where the road pass through the zone's SOUTHERN border ridge sits (x).
+  // Defaults to 0 (the original zones' central road); the Drakelands set it
+  // to the Pale Causeway's head so the Wyrmgate opens where the road arrives.
+  southPassX?: number;
+  // Per-zone override of the open-world trash respawn delay (seconds), which
+  // otherwise is the single world delay TRASH_RESPAWN_SECONDS
+  // (src/sim/respawn_policy.ts trashRespawnSecondsForZone; the level-band tiers
+  // that used to decide it are retired, see that file's header). An explicit
+  // SimConfig.respawnSeconds still wins over it, and a MobTemplate.respawnSeconds
+  // still wins over both.
+  trashRespawnSeconds?: number;
+}
+
+// One end of a paired overworld portal. Walking within the pair's trigger
+// radius of this side teleports the player to the OTHER side's landing;
+// `landing` is where a traveler coming out of this side arrives, placed
+// outside this side's own trigger radius so arrivals never bounce back.
+export interface PortalSide {
+  x: number;
+  z: number;
+  landing: { x: number; z: number; facing: number };
+}
+
+// A two-way positional portal between overworld locations (the Veiled Hollow
+// cave). Purely data: src/sim/portals.ts checks these in the tick, in every
+// host, with no entities and no rng.
+export interface PortalDef {
+  id: string;
+  a: PortalSide;
+  b: PortalSide;
+  radius: number;
+  enterText: string; // flavor line for a -> b
+  leaveText: string; // flavor line for b -> a
 }
 
 export interface BuildingDef {
-  kind: 'house' | 'inn' | 'chapel';
+  // hollow* kinds are the Veiled Hollow town set: KayKit medieval buildings
+  // recolored to the dusk palette (render/props.ts maps kind -> asset)
+  kind:
+    | 'house'
+    | 'inn'
+    | 'chapel'
+    | 'hollowHouse'
+    | 'hollowInn'
+    | 'hollowChapel'
+    | 'hollowSmith'
+    | 'hollowMarket';
   /** Stable authored placement identity for focused landmark renderers. */
   id?: string;
   /** Runtime asset URL. Absent keeps the legacy procedural prop path. */
@@ -2533,7 +6629,7 @@ export interface BuildingDef {
   w: number;
   d: number;
   rot: number;
-  /** Authored height above grade for camera collision. */
+  /** Authored visual height above grade. */
   height?: number;
 }
 
@@ -2546,8 +6642,6 @@ export interface StaticObbPropDef {
   d: number;
   rot: number;
   height: number;
-  /** False when a merged mesh cannot hide this placement independently. */
-  camGhost?: boolean;
   /**
    * The asset renders x-mirrored (an asymmetric wing flipped end for end,
    * e.g. a town-wall wing whose tall lantern pillar swaps sides). Collision
@@ -2556,7 +6650,7 @@ export interface StaticObbPropDef {
   mirrored?: true;
 }
 
-// Static prop placement per zone — the renderer builds meshes from these and
+// Static prop placement per zone - the renderer builds meshes from these and
 // the collider grid blocks movement against them, so they must stay in sync.
 export interface ZonePropsDef {
   buildings: BuildingDef[];
@@ -2567,7 +6661,6 @@ export interface ZonePropsDef {
     z: number;
     r: number;
     height?: number;
-    camGhost?: boolean;
   }[];
   stalls: {
     id?: string;
@@ -2581,7 +6674,6 @@ export interface ZonePropsDef {
     height?: number;
     canopyVariant?: string;
     smithy?: true;
-    camGhost?: boolean;
   }[];
   // moundOffset/moundRadius override the collider's default backward offset
   // and radius (colliders.ts) for the rock mound behind the timber portal,
@@ -2590,19 +6682,49 @@ export interface ZonePropsDef {
   // circle bleed into the approach side and swallow the point itself. Keep
   // both close to the entry's actual rendered mound extent (src/render/props.ts)
   // so the collider does not drift onto open, visually clear ground.
-  mines: { x: number; z: number; rot: number; moundOffset?: number; moundRadius?: number }[];
+  mines: {
+    x: number;
+    z: number;
+    rot: number;
+    moundOffset?: number;
+    moundRadius?: number;
+  }[];
   docks: {
     x: number;
     z: number;
     rot: number;
+    /** Uniform size multiplier for the whole pier (planks, posts, dressing,
+     *  rowboat). Omitted means the classic 1; the walkable deck maths in
+     *  dock_layout.ts normalizes through it, so render, collision ground,
+     *  and footstep routing all scale together. */
+    scale?: number;
     hutLocal: { x: number; z: number; hw: number; hd: number };
   }[];
   tents: { x: number; z: number; rot: number; scale: number }[];
   marshReeds: [number, number][];
-  crates: [number, number][];
+  /** [x, z, stack?]: camp clutter crates/barrels. The optional third element
+   *  stacks that many identical units at the point (default 1); a stack of 2
+   *  puts the top in the ledge-climb band (src/sim/climb.ts), the Gauntlet's
+   *  parkour lesson. Collider top and drawn meshes stay in lockstep through
+   *  campCrateShape (prop_layout.ts). */
+  crates: [number, number, number?][];
   campfires: [number, number][];
   mudHuts: [number, number][];
-  ruinRings: { x: number; z: number; ringR: number; columns: number }[];
+  /** `omit` drops columns by index (prop_layout.ts ruinRingColumns); a `bare`
+   *  ring, or one with `columns: 0`, draws and collides nothing (a set piece
+   *  dresses its site) and stays in the table only for its terrain pad and
+   *  clearings. */
+  ruinRings: {
+    x: number;
+    z: number;
+    ringR: number;
+    columns: number;
+    omit?: readonly number[];
+    bare?: boolean;
+  }[];
+  // kind 'stone': the low scalloped KayKit stone wall (garden/path walls);
+  // kind 'palisade': the spiked KayKit log wall (raider camps); both keep
+  // the wood rail's run geometry and the same jumpable OBB
   fences: {
     id?: string;
     assetId?: string;
@@ -2612,6 +6734,7 @@ export interface ZonePropsDef {
     z2: number;
     width?: number;
     height?: number;
+    kind?: 'stone' | 'palisade';
   }[];
   /** Small authored solid OBB props, currently civic benches. */
   benches?: StaticObbPropDef[];
@@ -2621,6 +6744,56 @@ export interface ZonePropsDef {
   // delveId resolves to the delve's localized name at render time (the carved
   // entrance sign), so the marker carries no hardcoded English label.
   delveMarkers?: { x: number; z: number; delveId: string }[];
+  // The show-jumping race fixtures (the Highwatch stables): the start/finish
+  // arch and one jump per course gate, placed from content/mounts
+  // MOUNT_RACE_COURSE so the props can never drift from the course. colliders.ts
+  // gives each jump a matching fence-like OBB: grounded riders stop at the rail,
+  // while a deliberate airborne jump clears it. `dir` is the riding heading.
+  raceCourse?: {
+    arch: { x: number; z: number; dir: number };
+    jumps: { x: number; z: number; dir: number; kind: 'vertical' | 'oxer' }[];
+  };
+  // Hand-placed giant trees (the Eldershine centerpiece): solid trunk
+  // colliders here, rendered by render/realm_flora.ts from the same record.
+  greatTrees?: { x: number; z: number; r: number }[];
+  // Hand-placed one-off GLB props (the generated storybook set). `key` names a
+  // PROP_ASSET_DEFS entry (render/props.ts); the GLB is authored at world scale
+  // with its front on +z, so `rot` alone orients it. r > 0 adds a circle
+  // collider of that radius (keep it matched to the model's measured footprint,
+  // or to the trunk for canopy trees); r 0/absent is walk-through dressing.
+  // h is the visual height, used only for the camera-ghost top. scale is a
+  // uniform visual multiplier over the authored world-scale model; when set,
+  // keep r and h matched to the SCALED footprint by hand.
+  decorProps?: {
+    key: string;
+    /** Small dressing seated on verified existing ground may opt out of terrain flattening. */
+    terrainCalm?: false;
+    x: number;
+    z: number;
+    rot?: number;
+    r?: number;
+    h?: number;
+    scale?: number;
+    /** Rectangular collider half-extents in the model's LOCAL axes, already
+     * scaled. Supply BOTH to collide as the model's real box instead of a
+     * circle: these models are rectangles, and a circle that contains one
+     * bulges past its flat walls (an invisible wall a stride out) while a
+     * circle inside one cuts its corners off. `rot` orients the box, so these
+     * never need swapping for a rotated building. `r` is unchanged and still
+     * the CLEARANCE radius that scatter, roads and parterre keep-outs read, so
+     * it must stay set even when a box is given. */
+    hw?: number;
+    hd?: number;
+    /** ride the water surface instead of the seabed (moored ships/boats);
+     * sunk this many yd below the waterline (the hull's draft) */
+    float?: number;
+    /** A standable top (crate/rock family, see `colliders.ts`): this many yd
+     * above the rendered base, ground for ordinary props and the waterline
+     * draft for floating props. A mover may land and stand on it instead of the piece
+     * colliding as a full-height wall. Requires `r` (or `hw`/`hd`) for the
+     * footprint; omit for ordinary full-height or walk-through decor. */
+    standableTop?: number;
+  }[];
 }
 
 export function emptyZoneProps(): ZonePropsDef {
@@ -2656,11 +6829,117 @@ export type QuestObjective =
       targetObjectItemId?: string;
       targetNpcId?: string;
     })
+  // A named world event this player caused, credited by the owning system module (the
+  // exemplar: 'balgath_blinded' from src/sim/lance_trial.ts). Label-only in every
+  // presentation surface, so a new event costs its emitter one credit call and nothing else.
+  | (QuestObjectiveBase & { type: 'event'; eventId: string })
   | (QuestObjectiveBase & { type: 'craft'; recipeId: string })
   | (QuestObjectiveBase & { type: 'gather' } & (
         | { nodeType: GatherNodeType; itemId?: string }
         | { nodeType?: undefined; itemId: string }
-      ));
+      ))
+  // Escort: completed by the escort run in src/sim/escort.ts when the walked
+  // NPC reaches its final waypoint with this player in credit range. count is
+  // always 1; the run starts by interacting with the idle escortee while this
+  // quest is active.
+  | (QuestObjectiveBase & { type: 'escort'; escortId: string })
+  // Farm: credited by the plant and harvest ACTIONS in
+  // src/sim/professions/farming.ts (the gather precedent: inventory cannot
+  // prove the deed, and produce is a fungible material). `cropId` narrows the
+  // action to one crop; `patchId` is marker guidance only (quest_targets.ts
+  // encloses that patch's beds; without it every farming patch qualifies) and
+  // never gates the credit. A harvest credits on every outcome, withered
+  // included: the visit is the deed.
+  | (QuestObjectiveBase & {
+      type: 'farm';
+      action: 'plant' | 'harvest';
+      cropId?: string;
+      patchId?: string;
+    });
+
+// ---------------------------------------------------------------------------
+// Escort runs (src/sim/escort.ts): a quest NPC that walks an authored waypoint
+// path while scripted ambushes attack it. Defs are data-as-code in the realm
+// content modules, merged into ESCORTS by data.ts.
+// ---------------------------------------------------------------------------
+
+export interface EscortAmbushDef {
+  // Fires when the escortee ARRIVES at this waypoint index (0-based).
+  atWaypoint: number;
+  mobId: string;
+  count: number;
+  // Optional authored level for scaled public-event waves. Ordinary quest
+  // escorts omit it and keep using the template's minimum level.
+  level?: number;
+  // Spawn scatter ring around the escortee (world yards).
+  radius?: number;
+}
+
+interface EscortDefBase {
+  id: string;
+  // MobTemplate of the escortee: a non-hostile mob with moveSpeed 0 (the run
+  // drives all movement) and aggroRadius 0. Players cannot attack it; mobs
+  // damage it through seeded ambush threat; players may heal it while live.
+  npcMobId: string;
+  start: { x: number; z: number };
+  waypoints: { x: number; z: number }[];
+  moveSpeed: number;
+  ambushes: EscortAmbushDef[];
+  // Players with the quest active within this range of the escortee at the
+  // final waypoint receive objective credit.
+  creditRadius: number;
+  // Idle escortee respawn delay (seconds) after a success or a failure.
+  respawnSeconds: number;
+  // Player-visible flavor barked by the escortee as 'yell'-channel chat
+  // (emitMobYell), riding the MobTemplate.yells variable-routed-chat precedent
+  // (see the S3 note about boss yells in tests/localization_fixes.test.ts).
+  startText: string;
+  successText: string;
+  failText: string;
+  // Optional checkpoint story, spoken only between ambushes. Each line becomes
+  // eligible after arriving at its waypoint, then waits for reading space.
+  story?: {
+    speaker: string;
+    lineSpacingSeconds: number;
+    ambushText: string;
+    lines: { atWaypoint: number; text: string }[];
+  };
+}
+
+export type EscortDef = EscortDefBase &
+  (
+    | {
+        // The ordinary quest carrying this escort objective.
+        questId: string;
+        worldQuestId?: never;
+      }
+    | {
+        // The public world quest carrying this escort objective.
+        worldQuestId: string;
+        questId?: never;
+      }
+  );
+
+// Live per-def escort state (src/sim/escort.ts; the backing map stays on Sim).
+// Exactly one of three phases: idle (npcId set, run null), live (npcId set,
+// run set), or respawning (npcId null, respawnAt in the future).
+export interface EscortRunState {
+  escortId: string;
+  npcId: number | null;
+  respawnAt: number;
+  run: {
+    waypointIndex: number;
+    startedAt: number;
+    ambushIds: number[];
+    fired: boolean[];
+    story?: { nextLine: number; nextSpeechAt: number; finaleAt?: number };
+    // Stuck-advance bookkeeping: a walker pinned against a collider for a few
+    // seconds counts its current waypoint as reached (escort.ts).
+    lastX: number;
+    lastZ: number;
+    stuckTicks: number;
+  } | null;
+}
 
 export interface QuestDef {
   id: string;
@@ -2674,11 +6953,53 @@ export interface QuestDef {
   xpReward: number;
   copperReward: number;
   itemRewards: Partial<Record<PlayerClass, string>>;
+  // Choose-one rewards (classic): the player picks ONE of these at turn-in. An
+  // authored GEAR itemRewards piece joins the same list rather than being granted
+  // on top; a non-gear one stays a fixed grant. Offered per class through the
+  // shared resolver (quests/quest_reward_choice.ts: only what the class can
+  // wear), validated by the server at turn-in. Typically one piece per armor
+  // type or role.
+  choiceRewards?: string[];
+  // Teaches through acquisition source 'quest' on a successful turn-in.
+  // The recipe's own craft skill floor is checked before any rewards or
+  // consumption, so an early hand-in cannot lose the recipe.
+  recipeReward?: string;
   requiresQuest?: string; // prerequisite quest id (must be turned in)
+  // Acceptance requires the purchased riding skill (PlayerMeta.ridingTrained).
+  // Enforced in finalizeQuestAccept so every accept path (npc, linked share,
+  // dev completer) shares the gate.
+  requiresRidingTrained?: boolean;
   requiredItems?: string[]; // quest items obtained earlier (e.g. a prerequisite reward) that this
   // quest needs; re-granted on accept if the player no longer has them, to avoid a progression block
+  requiredClass?: PlayerClass[]; // class-locked quest: only these classes see/accept it
+  // (e.g. the paladin-only Divine Tome chain). Availability enforced in computeQuestState.
+  // Additionally requires a resolvable ability beyond class/level alone. The ONE
+  // user today is the hub's optional healing lesson (q_hub_healing_numbers),
+  // which needs the SAME resolver its credit arm and the UI coach read
+  // (sim/tutorial/hub_healing_lesson.ts hubHealingAbilityId) so a class that is
+  // nominally eligible never sees the quest before their kit has anything to
+  // teach the lesson with. Enforced in computeQuestState.
+  requiresUsableHealAbility?: boolean;
   minLevel?: number;
+  // The highest level that may ACCEPT it (enforced in computeQuestState, which both hosts
+  // share). A quest already in the log stays finishable. The muster's pike tutorial is the
+  // first: its pikes are lent to level 19 and below (lance_balance_core MUSTER_PIKE_MAX_LEVEL).
+  maxLevel?: number;
   retired?: boolean; // remains finishable if already accepted, but cannot be newly accepted
+  // Offered only while this dungeon is public: a quest that points into a
+  // development-only room (DungeonDef.guideVisible false, the Crucible raid's
+  // flag) stays unavailable until that room ships. Enforced in
+  // computeQuestState, so both hosts share it.
+  gatedWithDungeon?: string;
+  // OWNERSHIP collect objectives instead of DELIVERY ones: the collect count
+  // includes worn equipment and bag sockets (quests/quest_owned_count.ts) and the
+  // turn-in never consumes them. For a quest that asks the player to acquire
+  // and KEEP a thing rather than fetch it, e.g. the tutorial island's Pouch
+  // and Purse: it tells the player to buy a Linen Pouch and buckle it on, so
+  // taking it back at the turn-in would undo the lesson it just taught, and
+  // counting carried copies alone made the objective unfinishable the moment
+  // they equipped it.
+  keepsCollectedItems?: boolean;
   shareable?: boolean; // quest-link sharing allowed (default true; set false to opt out)
   suggestedPlayers?: number; // group quests ("Suggested players: 5")
   // Repeatable quests remain in questsDone as history but become available
@@ -2689,6 +7010,18 @@ export interface QuestDef {
   // use professions/cadence.ts WORK_ORDER_CADENCE_TICKS). Only meaningful with
   // `repeatable`; absent means no cooldown (available again immediately).
   repeatCadenceTicks?: number;
+  // Repeatable once per WEEKLY reset (the raid rooms' boundary, ctx.weeklyRaidResetMs):
+  // the turn-in writes a `weeklyquest:<id>` lockout (quests/weekly_quest_lock.ts) that
+  // keeps the quest unavailable until the reset. Only meaningful with `repeatable`.
+  weeklyReset?: boolean;
+  // Repeatable once per DAILY reset (the realm's daily boundary, ctx.raidResetMs):
+  // the same raidLockouts lock as weeklyReset, expiring at the next daily reset.
+  // Only meaningful with `repeatable`.
+  dailyReset?: boolean;
+  // Offered only while this seasonal event runs (src/sim/seasonal/). Folded into
+  // the repeat-blocked set both hosts already share (quest_commands.ts
+  // repeatBlockedQuestIds), so an event quest closes with its event everywhere.
+  seasonalEvent?: string;
   // Typed, server-authoritative profession transition applied only by the
   // validated turn-in path. The selected target is persisted on QuestProgress.
   // `pairId` (Professions 2.0): a per-pair attune quest pins its ONE
@@ -2702,6 +7035,14 @@ export interface QuestDef {
   // Resolve the first objective's count from the character's return history at
   // acceptance time. The snapshotted value stays stable while the quest is active.
   resolvedObjectiveCounts?: 'archetypeAmends';
+  // Objective-list revision. Bump when a rework changes what an objective INDEX
+  // means (a new target, type, or count under the same quest id), so an
+  // in-flight save's index-keyed counts stop applying: on restore, a
+  // QuestProgress whose stamped rev differs is reset to a fresh run
+  // (quests/quest_progress_migration.ts). Without this, a carried count at or
+  // above the new requirement can never flip ready (the credit paths skip an
+  // at-cap objective before their ready check) and the quest strands.
+  rev?: number;
 }
 
 export function questTurnInNpcIds(quest: QuestDef): readonly string[] {
@@ -2722,6 +7063,287 @@ export interface QuestProgress {
   state: 'active' | 'ready' | 'done';
   selection?: string;
   resolvedCounts?: number[];
+  // World objects torched THIS quest run (burned murloc huts), each with the
+  // sim-time it was last burned. A hut is on cooldown until HUT_REBURN_COOLDOWN_SECS
+  // after that, then it can be torched (and credited) again. Only the latest burn
+  // per object is kept, keyed by the STABLE content key (object item id plus
+  // rounded spawn position, firebottle_hut.ts stableHutKey), never the runtime
+  // entity id, which is spawn-order-assigned and can alias across a reboot or a
+  // content change. Fresh (empty) on accept; persisted with the run
+  // (serialize/restore in sim.ts). See src/sim/interactions/firebottle_hut.ts.
+  burnedObjects?: { key: string; at: number }[];
+  // Ledger of the distinct objects an `interact` objective has already been
+  // credited off, so one object cannot satisfy a multi-count objective on its
+  // own (see quests/interact_object_credit.ts). Absent until the first credit.
+  // The firebottle huts deliberately do NOT ride this ledger: their re-burn
+  // crediting is the timed burnedObjects cooldown above.
+  creditedObjects?: string[];
+  // The QuestDef.rev this progress was accepted (or migrated) under; restore
+  // resets the run when the def's rev has moved (quest_progress_migration.ts),
+  // dropping the per-run scratch (burnedObjects, creditedObjects) with it.
+  rev?: number;
+}
+
+/** A level-scaled copper purse: `base + perLevel * level`. */
+export interface WorldQuestCopperSchedule {
+  base: number;
+  perLevel: number;
+}
+
+/** Per-quest overrides of what a world quest pays. Every world quest pays XP,
+ *  copper and faction standing (src/sim/world_quests.ts awardWorldQuest); a def
+ *  only names what differs from the shared schedule. The day's item rewards are
+ *  never authored here: three zone slots per cycle carry one, chosen per cycle
+ *  and per class (src/sim/world_quest_item_slots.ts). */
+export interface WorldQuestReward {
+  /** XP as a share of xpForLevel(level); WORLD_QUEST_XP_RATE when omitted. */
+  xpRate?: number;
+  /** Copper purse override; WORLD_QUEST_COPPER when omitted. */
+  copper?: WorldQuestCopperSchedule;
+  /** A fixed extra item on top of the bundle (the two rift essence quests),
+   *  never equipment: gear comes only from the day's item slots. */
+  extraItem?: { itemId: string; count: number };
+}
+
+export type WorldQuestBeamSide = 'north' | 'east' | 'south' | 'west';
+
+export interface WorldQuestBeamPuzzleDef {
+  columns: number;
+  rows: number;
+  source: { tileIndex: number; side: WorldQuestBeamSide };
+  target: { tileIndex: number; side: WorldQuestBeamSide };
+  tiles: readonly {
+    kind: 'straight' | 'corner';
+    initialRotation: number;
+  }[];
+}
+
+export type WorldQuestMatch3Candy = 0 | 1 | 2 | 3 | 4;
+
+export interface WorldQuestMatch3LevelDef {
+  columns: number;
+  rows: number;
+  board: readonly WorldQuestMatch3Candy[];
+  refill: readonly WorldQuestMatch3Candy[];
+  target: number;
+  maxMoves: number;
+}
+
+export interface WorldQuestTraceDef {
+  kind:
+    | 'triangle'
+    | 'square'
+    | 'star'
+    | 'hourglass'
+    | 'lightning'
+    | 'spiral'
+    | 'double-triangle'
+    | 'diamond'
+    | 'pentagon'
+    | 'arrow'
+    | 'zigzag'
+    | 'cross';
+  /** Closed outline, with the first vertex repeated at the end. */
+  points: readonly { x: number; z: number }[];
+}
+
+export interface WorldQuestTraceRoundScore {
+  precision: number;
+  efficiency: number;
+  time: number;
+}
+
+export interface WorldQuestTraceResult extends WorldQuestTraceRoundScore {
+  score: number;
+  rating: 'bronze' | 'silver' | 'gold';
+}
+
+export interface WorldQuestTraceMetrics {
+  startedAt: number;
+  distance: number;
+  deviationDistance: number;
+}
+
+export interface WorldQuestTraceState {
+  questId: string;
+  shapeIndex: number;
+  phase: 'preview' | 'drawing' | 'failed' | 'success';
+  previewUntil: number;
+  expiresAt: number;
+  /** Authoritative bounded trail, never supplied by a client or persisted. */
+  trail: { x: number; z: number }[];
+  lastPosition: { x: number; z: number };
+  segment: number;
+  direction: -1 | 0 | 1;
+  started: boolean;
+  /** Private scoring accumulation, never a client authority or persistence field. */
+  metrics?: WorldQuestTraceMetrics;
+  reason?: 'off-path' | 'movement' | 'timeout' | 'combat';
+}
+
+export type ForgeStationId = 'fuel' | 'metal' | 'water' | 'tools';
+
+export interface WorldQuestForgeResult {
+  elapsed: number;
+  mistakes: number;
+  adjustedTime: number;
+  rating: 'bronze' | 'silver' | 'gold';
+}
+
+export interface WorldQuestForgeState {
+  phase: 'countdown' | 'working' | 'success' | 'failed';
+  /** Last authoritative clock sample, published at bounded cadence for both hosts. */
+  observedAt: number;
+  /** Isolated stream for the band centres (minigames/forge_workshop.ts). */
+  seed: number;
+  readyAt: number;
+  startedAt: number;
+  /** Good strikes landed so far (FORGE_STRIKES finishes the piece). */
+  strikes: number;
+  /** The strike band: centre and half-width on the 0..1 bar. */
+  band: number;
+  bandHalf: number;
+  /** Heat sample (0..100) and the clock it was taken at; decays lazily from there. */
+  heat: number;
+  heatAt: number;
+  stokeReadyAt: number;
+  lockUntil: number;
+  mistakes: number;
+  feedback: 'ready' | 'hit' | 'miss' | 'cold' | 'stoked';
+  result?: WorldQuestForgeResult;
+}
+
+export type WorldQuestObjective =
+  | { type: 'glider'; instructorNpcId: string; courseId: string }
+  | { type: 'investigation'; targetMobId: string }
+  | { type: 'shadow'; instructorNpcId: string }
+  | { type: 'forging'; instructorNpcId: string }
+  | { type: 'wisp_maze'; instructorNpcId: string }
+  | { type: 'vehicle'; stationId: string }
+  | {
+      type: 'tracing';
+      instructorNpcId: string;
+      shapes: readonly WorldQuestTraceDef[];
+      advancedShapes?: readonly WorldQuestTraceDef[];
+    }
+  | { type: 'kill'; targetMobId: string }
+  | { type: 'escort'; escortId: string }
+  | { type: 'interact'; targetObjectItemId: string }
+  | {
+      type: 'salvage';
+      objectItemId: string;
+      /** Stable ground-object entity ids, one eight-piece arrangement per week. */
+      layouts: readonly (readonly number[])[];
+    }
+  | { type: 'gather'; nodeType: GatherNodeType }
+  | {
+      type: 'delivery';
+      pickupObjectItemId: string;
+      deliveryObjectItemId: string;
+    }
+  | {
+      type: 'puzzle';
+      activationObjectItemId: string;
+      puzzles: readonly WorldQuestBeamPuzzleDef[];
+    }
+  | {
+      type: 'match3';
+      activationObjectItemId: string;
+      levels: readonly WorldQuestMatch3LevelDef[];
+    };
+
+/** A repeatable open-world objective. World quests have no giver or turn-in:
+ *  entering the authored area starts them and completing the objective pays
+ *  the reward immediately. */
+export interface WorldQuestDef {
+  id: string;
+  zoneId: string;
+  faction?: 'rift_watch' | 'church_order' | 'automatons';
+  minLevel: number;
+  area: { x: number; z: number; radius: number };
+  /** Where the completion champion rises (world_quest_champion.ts), for a
+   *  ring whose centre plus the default offset lands somewhere unfit, such as
+   *  inside a hedge maze; omitted means that offset from the area centre. */
+  championAt?: { x: number; z: number };
+  objective: WorldQuestObjective;
+  count: number;
+  /** Overrides of the shared reward schedule; omitted means XP, copper and
+   *  standing at the defaults. */
+  reward?: WorldQuestReward;
+}
+
+/** Per-character state for the current host-provided UTC cycle. Available
+ *  quests are absent; only started and completed entries are persisted. */
+export interface WorldQuestInvestigationState {
+  heard: number;
+  clues: number;
+  cleared: number;
+  mobId?: number;
+}
+
+export interface WorldQuestShadowState {
+  /** Internal fixed-tick guard, never wired. */
+  lastTick?: number;
+  phase: 'cloaked' | 'caught';
+  suspicion: number;
+  cooldown: number;
+  stealing?: { targetId: number; remaining: number; x: number; z: number };
+}
+
+/** The one weekly charge a character holds (src/sim/weekly_quests.ts). */
+export interface WeeklyQuestProgress {
+  questId: string;
+  /** The week the pick belongs to; a different current week means it is over. */
+  week: string;
+  count: number;
+  state: 'active' | 'completed';
+  /** The faction id that took the week's commendation (standing), once the
+   *  finished charge's one choice is made; absent until then. */
+  commended?: string;
+  /** Set once a later week has begun while the commendation is still
+   *  unclaimed: the pick is held only for that claim. Absent otherwise. */
+  carried?: true;
+}
+
+export interface WorldQuestProgress {
+  /** Reward-free replay cursor. Session only; saved as the earned completion. */
+  practiceOnly?: boolean;
+  /** Completed lesson scores retained while a session-only replay is in progress. */
+  practiceTraceScores?: WorldQuestTraceRoundScore[];
+  /** Personal borrowed cloak and channel, omitted from saves. */
+  shadow?: WorldQuestShadowState;
+  /** Personal investigation clues and live summon reference, omitted from saves. */
+  investigation?: WorldQuestInvestigationState;
+  questId: string;
+  count: number;
+  state: 'active' | 'completed';
+  /** Private maze actors and collection, session only. */
+  wispMaze?: WispMazeState & { paused?: boolean };
+  forging?: WorldQuestForgeState;
+  /** Best completed workshop result for this rotation. */
+  forgeResult?: WorldQuestForgeResult;
+  /** Personal glider flight, omitted from saves. */
+  glider?: GliderFlightState;
+  gliderResult?: GliderFlightResult;
+  /** Session-only tracing readout. Omitted from character saves. */
+  tracing?: WorldQuestTraceState;
+  /** Stable advanced figure id and earned scores survive interruption and save/load. */
+  traceVariant?: string;
+  traceScores?: WorldQuestTraceRoundScore[];
+  traceResult?: WorldQuestTraceResult;
+  creditedObjects?: string[];
+  puzzleVariant?: number;
+  /** Ley bonus boards past the daily solve (sim/world_quest_ley_bonus.ts): the
+   *  charged level (1 or 2) and how many this offer already paid. Persisted. */
+  puzzleBonusLevel?: number;
+  puzzleBonusClaimed?: number;
+  /** Deterministic daily generation marker; absent on authored legacy/dev attempts. */
+  puzzleDay?: number;
+  puzzleRotations?: number[];
+  puzzleExpiresAt?: number;
+  match3Board?: WorldQuestMatch3Candy[];
+  match3Moves?: number;
+  match3RefillIndex?: number;
 }
 
 export function questObjectiveRequired(
@@ -2737,9 +7359,8 @@ export function questObjectiveRequired(
 export const CONSUME_DURATION = 18; // seconds
 export const CONSUME_TICKS = 9; // CONSUME_DURATION / 2s regen tick
 
-export interface Consuming {
+interface ConsumingBase {
   itemId: string;
-  kind: 'food' | 'drink';
   hpPer2s: number;
   manaPer2s: number;
   remaining: number;
@@ -2750,8 +7371,59 @@ export interface Consuming {
   ticksElapsed: number;
 }
 
+// A meal in the eating slot: the ONE Consuming arm that can spell a Well Fed
+// payload, so the D15 food-only contract is kind-scoped at the record as well
+// as at the def (FoodItemDef.wellFed): types beat guards at both layers, and
+// the completion site (combat/auras.ts) narrows on the record's kind before
+// handing the payload to the one mint in src/sim/wellfed.ts.
+export interface FoodConsuming extends ConsumingBase {
+  kind: 'food';
+  // The Well Fed buff this meal owes on COMPLETION, carried by reference off
+  // the food def at sit-down (FoodItemDef.wellFed, the only ItemDef member
+  // that can spell it) by the src/sim/consuming.ts builder. Carried here
+  // rather than re-read from the def at the end so the grant is decided by
+  // what was eaten, not by what the catalog says now, and so the drain in
+  // combat/auras.ts needs no item lookup. Absent for food that grants no
+  // buff. A REFERENCE to the def's record, not a copy (house style, the same
+  // as `def.elixir`): read-only by every consumer.
+  wellFed?: TimedStatBuffPayload;
+}
+
+// A drink in the drinking slot: no payload arm at all, so a gulp completion
+// can never reach the mint with one (unrepresentable, not guarded).
+export interface DrinkConsuming extends ConsumingBase {
+  kind: 'drink';
+}
+
+export type Consuming = FoodConsuming | DrinkConsuming;
+
 export function isConsuming(e: { eating: Consuming | null; drinking: Consuming | null }): boolean {
   return e.eating !== null || e.drinking !== null;
+}
+
+/** A ferry passenger's voyage (src/sim/transport_ferry.ts): which route,
+ *  and the berths it sails from and to (the ferry deed and a save taken
+ *  aboard read them). Where they stand is their ordinary position: the
+ *  moving deck carries it (src/sim/transport_deck.ts). */
+export interface FerryRide {
+  /** route id (content/transport_ships.ts TRANSPORT_ROUTES) */
+  route: string;
+  /** departure and destination berth indexes */
+  from: number;
+  to: number;
+  /** the ship's pose this tick (the frame the wire's deck spot is taken in) */
+  ship: { x: number; z: number; rot: number };
+}
+
+/** An online entity's spot on a sailing ship's deck, as the snapshot sends it
+ *  (src/net/transport_wire.ts): the route index, the spot in the hull's frame
+ *  (x port, y above the waterline, z bow) and the heading off the bow. */
+export interface FerryDeckMirror {
+  route: number;
+  x: number;
+  y: number;
+  z: number;
+  f: number;
 }
 
 /**
@@ -2776,7 +7448,21 @@ export interface HeroicLeapFlight {
   apex: number;
   landingAoe: { min: number; max: number; radius: number };
   abilityName: string;
+  abilityId: string;
   school: AbilityDef['school'];
+  // A heal the body takes the moment it lands (the Muster Grapnel's haul,
+  // combat/balgath_trinkets.ts), snapshotted at the throw from the thrower's power.
+  landingHeal?: { sourceId: number; amount: number; name: string };
+}
+
+export interface ValkyrsCallingFlight {
+  from: Vec3;
+  to: Vec3;
+  elapsed: number;
+  landingAoe: { min: number; max: number; radius: number; softCap: number };
+  abilityName: string;
+  school: AbilityDef['school'];
+  ascended: boolean;
 }
 
 // DEV-ONLY Cascada temporal playtest tally (see Entity.cascadeDevStats). All sums
@@ -2799,6 +7485,65 @@ export interface DamageTick {
   amount: number;
 }
 
+/** Transient, non-command guardian runtime. Never serialized or put on the pet bar. */
+export interface GuardianState {
+  key: string;
+  remaining: number;
+  attackTimer: number;
+  attackInterval: number;
+  minDamage: number;
+  maxDamage: number;
+  /** Fraction of the owner's current Spell Power added to each guardian hit. */
+  spellPowerCoeff?: number;
+  school: string;
+  abilityId: string;
+  abilityName: string;
+  preferredTargetId: number | null;
+  maxRange: number;
+  /** Optional owner-scoped aura required on every valid target. */
+  requiredTargetAuraId?: string;
+  /** Fire-and-forget guardians may dismiss when their target contract is exhausted. */
+  dismissWhenUntargeted?: boolean;
+  /** Opt-in walking melee mode (combat/guardians.ts). Absent: the classic stationary
+   *  guardian that fires at range, unchanged. A POSTED guardian (GuardianMelee, the
+   *  Muster Standard's soldiers) or an ASSIST one (GuardianAssistMelee, the Wildheart
+   *  spirit jaguar); the router tells them apart by the posted shape's `leash`. */
+  melee?: GuardianMelee | GuardianAssistMelee;
+}
+
+/** An assist melee guardian: it runs at `moveSpeed` to its target, assisting its
+ *  owner's current hostile target (else its preferred one, else the nearest enemy),
+ *  and bites within `reach` yards; with no target it heels to its owner. */
+export interface GuardianAssistMelee {
+  moveSpeed: number;
+  reach: number;
+}
+
+/**
+ * A walking melee guardian (the Muster Standard's soldiers): it fights ONLY its owner's
+ * current hostile target, runs to it at `moveSpeed`, swings from `reach`, and walks back
+ * to its post (`postX`/`postZ`) while the owner has no target. It never picks a fight of
+ * its own. It is dismissed with its post: when the owner strays more than `leash` yd from
+ * it, and then the owner's aura `postAuraId` (the planted standard) is taken down too.
+ */
+export interface GuardianMelee {
+  moveSpeed: number;
+  reach: number;
+  postX: number;
+  postZ: number;
+  leash: number;
+  postAuraId?: string;
+  /**
+   * Follow the OWNER instead of holding the post (combat/guardians.ts): with nothing to
+   * fight it falls in beside its owner, the leash and the target reach are measured from
+   * the owner, and a guardian left past the leash rejoins at the owner's side rather than
+   * leaving. The Muster Standard's soldiers. Absent = the post-holding mode, unchanged.
+   */
+  followOwner?: boolean;
+  /** Which side of its owner a follower walks on: -1 left, 1 right. */
+  followSide?: number;
+}
+
 /**
  * Fields the SIM NEVER WRITES: client-side mirrors decoded from the wire
  * (src/net/online.ts) so the online renderer can pose movement modes it does
@@ -2813,12 +7558,43 @@ export interface ClientMirroredEntityFields {
    *  0..1 through the pull at the snapshot cadence; the visual smooths it. */
   climbing?: boolean;
   climbProgress?: number;
+  /** Mirror of an in-flight Vaulting Charge: a bare server-owned movement bit. */
+  leaping?: boolean;
+  /** Mirror of a ferry ride (`ferryRide`): aboard a sailing ship, with the
+   *  deck spot of the newest snapshot and the one being interpolated from, so
+   *  the renderer draws deck-bound bodies in the ship's frame (no slide
+   *  against the deck while it moves). */
+  ferryRiding?: boolean;
+  ferryDeck?: FerryDeckMirror | null;
+  ferryDeckPrev?: FerryDeckMirror | null;
+  /** A dungeon guide NPC's offer and run state (src/sim/dungeon_guide): the
+   *  dialog's rows and greeting read it. Wired as `gds`; absent on every
+   *  other entity. */
+  guideState?: DungeonGuideState;
 }
 
+/** A dungeon guide's state as the client sees it: his offer stands (`open`,
+ *  or `declined` and still open to a change of mind), he walks with the group
+ *  (`joined`), the offer lapsed unanswered or refused (`closed`), or he sings
+ *  his finale (`singing`). */
+export type DungeonGuideState = 'open' | 'declined' | 'joined' | 'closed' | 'singing';
+/** Every DungeonGuideState, for decoding the wire's `gds` (unknown drops). */
+export const DUNGEON_GUIDE_STATES: readonly DungeonGuideState[] = [
+  'open',
+  'declined',
+  'joined',
+  'closed',
+  'singing',
+];
+
 export interface Entity extends ClientMirroredEntityFields {
+  guardianState?: GuardianState;
   // Transient talent-proc counters and internal cooldowns (combat/talent_procs.ts).
   // Never serialized; reset on death.
-  procState?: { counters: Record<string, number>; icds: Record<string, number> };
+  procState?: {
+    counters: Record<string, number>;
+    icds: Record<string, number>;
+  };
   // Set when a cast consumes a next_cast_free / next_execute_free /
   // next_cast_instant / next_cast_cheap aura (combat/empower_next.ts), read and
   // cleared by that cast's onCastCompleted so an empowered cast never advances
@@ -2826,6 +7602,11 @@ export interface Entity extends ClientMirroredEntityFields {
   // resolution: never serialized or wired, excluded from the parity digest
   // (tests/parity/trace.ts ENTITY_EXCLUDE).
   castConsumedEmpower?: boolean;
+  // Radiant Resonance reserved by an in-flight Dawn's Embrace. The aura itself
+  // remains visible until the cast succeeds, so an interruption preserves the
+  // proc; this flag locks the 50% cost even if the 10 sec aura expires mid-cast.
+  // Runtime-only and excluded from the parity digest like castConsumedEmpower.
+  castRadiantResonance?: boolean;
   // Chronomancy Rewind (combat/damage_history.ts): a bounded ring of the REAL HP
   // loss this player took, tagged by sim tick, pruned to the last few seconds on
   // every write. Recorded only for players, only at the canonical post-mitigation/
@@ -2833,7 +7614,7 @@ export interface Entity extends ClientMirroredEntityFields {
   // pinned by the parity digest (excluded in tests/parity/trace.ts ENTITY_EXCLUDE);
   // it lives on the entity so it is dropped automatically when the entity is removed.
   damageHistory?: DamageTick[];
-  // Transient per-cast budget: how much Frozen Orb cooldown this Blizzard
+  // Transient per-cast budget: how much Frostglobe cooldown this Blizzard
   // channel has already refunded (combat/frost_mage.ts, reset at channel
   // start). Never serialized or wired.
   blizzardOrbCdr?: number;
@@ -2883,17 +7664,45 @@ export interface Entity extends ClientMirroredEntityFields {
   name: string;
   level: number;
   guild: string;
-  // Book of Deeds display title: a deed id (never display text), null/absent
-  // for untitled players and every mob/npc. Written by the sim title setter
+  // Guild pledge (docs/prd/guild-pledge-board.md): the guild this character
+  // has publicly pledged to JOIN, '' for none and always '' for members (a
+  // pledge clears on joining any guild). Server-set display only, like guild.
+  pledgeGuild: string;
+  // The guild colour tier for the guild line (sim/guild_tier.ts): derived
+  // from the guild's (or pledged guild's) collective lifetime XP. 0 for the
+  // base look and for the unguilded. Server-set display only.
+  guildTier: number;
+  // Display title: a title-deed id or a developer-badge rung title id
+  // ('dev:<rung>', not a deed), never display text; null/absent for untitled
+  // players and every mob/npc. Written by the sim title setter
   // (src/sim/deeds.ts setActiveTitle) and player spawn from persisted state;
   // rides the identity wire only when non-null.
   title?: string | null;
+  // Book of Deeds nameplate border: a deed id (never a slug, never display
+  // text), null/absent for borderless players and every mob/npc. Written by
+  // the sim border setter (src/sim/deeds.ts setActiveBorder) and player spawn
+  // from persisted state; rides the identity wire only when non-null.
+  border?: string | null;
+  // The chosen talent specialization (a spec id such as 'holy', never display
+  // text), null for a character with no spec yet and for every mob/npc.
+  // Render-only mirror of PlayerMeta.talentMods.spec, stamped by
+  // recalcPlayerStats beside the other worn-state mirrors so every spec,
+  // respec, loadout, level, and load path refreshes it. The sim never reads
+  // it; it rides the identity wire for the mouseover tooltip's spec line.
+  specId?: string | null;
+  /** Trusted live entitlement mirror, never loaded from character state. */
+  membershipActive?: boolean;
+  /** Trusted referral gear entitlement and inviter display, never loaded from a save. */
+  referralInviterName?: string;
   pos: Vec3;
   prevPos: Vec3; // for render interpolation
   facing: number; // radians, 0 = +Z
   prevFacing: number;
+  // Monotonic, transient generation for successful dungeon entries. Online
+  // clients acknowledge this exact value before their facing regains authority.
+  dungeonEntrySeq?: number;
   // online clients only: when this entity's last wire update landed and the
-  // measured update cadence — distant entities are sent below snapshot rate,
+  // measured update cadence - distant entities are sent below snapshot rate,
   // so each interpolates on its own clock (see ClientWorld.applySnapshot)
   netUpdatedAt?: number;
   netInterval?: number;
@@ -2905,6 +7714,27 @@ export interface Entity extends ClientMirroredEntityFields {
   // Lets a jump clear fences for the whole arc, independent of slope.
   jumping: boolean;
   fallStartY: number;
+  // Set while a hostile airborne knockback (Typhoon) has the body in flight
+  // (combat/knockback_launch.ts): who threw it, and the movement-kernel steps
+  // the throw has left. While set, air steering is off and a fall credits the
+  // thrower. The kernel counts it down and clears it once the body stands
+  // settled (not sliding); death and teleports clear it. Sim-side only.
+  launchedBy?: { sourceId: number; ticksLeft: number };
+  // Seconds of held underwater travel. Ramps the dive speed from its slow
+  // opening pace to the cruise across one stroke (see player_motion.ts
+  // swimSpeedMult); zero whenever the body is not submerged.
+  swimStroke: number;
+  // The player chose to be under the surface (the dive input has been held since
+  // entering this body of water). Buoyancy floats a swimmer who did NOT choose
+  // it straight back to the line, so a teleport, a spawn or a knockback into a
+  // lake never strands anyone on the bed; a diver holds their depth hands-free.
+  swimDiving: boolean;
+  /** On a ladder (ladders.ts): the climb owns this body's motion, with no
+   *  gravity; the render plays the floating tread pose. Absent = not climbing. */
+  climbing?: boolean;
+  fatigueTicks: number; // ticks spent past the open-sea fatigue line (sim/fatigue.ts)
+  breathUsedTicks: number; // ticks of the lungful spent underwater (sim/breath.ts)
+  drownTicks: number; // ticks submerged past an empty lungful (paces the drown pulses)
   hp: number;
   maxHp: number;
   resource: number;
@@ -2919,12 +7749,19 @@ export interface Entity extends ClientMirroredEntityFields {
   attackPower: number;
   rangedPower: number; // hunters: ranged attack power
   spellPower: number; // casters: added to spell damage via per-spell coefficients
+  // Healing power: spellPower plus flat Healing Power from gear and set
+  // bonuses. Every heal, HoT, and absorb rider reads this; damage riders read
+  // spellPower, so Spell Power feeds healing but Healing Power never feeds
+  // damage.
+  healPower: number;
   // Haste fractions from item-set bonuses (0 = none). Melee/ranged haste speed up
   // the respective auto-attack swing; spell haste shortens cast and channel time.
   meleeHaste: number;
   rangedHaste: number;
   spellHaste: number;
   setProcs: SetProc[];
+  /** Derived from two worn pieces of one Crucible crafting collection; never saved. */
+  craftedCollectionId?: string;
   procReadyAt: Record<string, number>;
   critChance: number; // 0..1
   critRating: number; // accumulated crit rating from gear + set bonuses
@@ -2944,10 +7781,14 @@ export interface Entity extends ClientMirroredEntityFields {
   critDmgPhysBonus: number;
   critDmgHealBonus: number;
   dodgeChance: number;
-  blockChance: number; // 0..1: shield block chance, consumed by Warrior combat
+  blockChance: number; // 0..1: shield block chance, consumed by shield-capable combat
   blockValue: number; // flat physical damage prevented by a successful block
   castPushbackReduction: number; // 0..1: damage cast-pushback removed by item-set bonuses (1 = immune)
   knockbackResistance: number; // 0..1: on-hit knockback distance resisted by item-set bonuses (1 = immune)
+  // 0..1: duration removed from crowd control cast on this entity by a hostile
+  // PLAYER, from item-set bonuses (1 = immune). Read only by
+  // Sim.diminishedCrowdControlDuration, so mob and encounter control is unaffected.
+  ccDurationReduction: number;
   moveSpeed: number;
   hostile: boolean;
   // combat
@@ -2970,6 +7811,10 @@ export interface Entity extends ClientMirroredEntityFields {
   // Hosts read it per interest-scan visit (O(viewers x neighbors)); recomputing
   // it from auras each visit was a measurable cost in crowds.
   stealthed: boolean;
+  // Practice bot for an authored map's objective rehearsal
+  // (sim/social/map_objectives_run.ts + map_objective_bots.ts). Absent on every
+  // other entity, so nothing outside that module changes behaviour for one.
+  objectiveBot?: { team: 0 | 1 };
   ccDr: Map<CrowdControlDrCategory, CrowdControlDrState>;
   castingAbility: string | null;
   castRemaining: number;
@@ -2984,8 +7829,9 @@ export interface Entity extends ClientMirroredEntityFields {
   // aimed at, captured (server-clamped to range) when the cast begins and read by
   // its area effects when it resolves. null for normal entity/self casts.
   castAim: Vec3 | null;
-  // Hidden per-cast state (Professions 2.0). All three are
-  // transient: initialized inert ('' / 0) at entity creation, nonzero ONLY
+  // Hidden per-cast state (Professions 2.0). Every field here is
+  // transient: initialized inert ('' / 0 / false) at entity creation,
+  // non-inert ONLY
   // between a real cast start and its end, and cleared on EVERY end path
   // (completion, reel, miss, cancelCast). Parity contract: while inert they
   // canonicalize away (omitDefaults), so existing goldens stay byte-identical;
@@ -2994,10 +7840,105 @@ export interface Entity extends ClientMirroredEntityFields {
   // fields only), so the bite timing stays server-hidden.
   /** Node id a running gather cast resolves against at completion ('' = none). */
   gatherCastNodeId: string;
+  /**
+   * Rarity of the best matching-profession tool owned when the running
+   * gather cast STARTED, captured only when the profession had a tool-effect
+   * slot ('' otherwise, and between casts). The R47 use-time ratchet latches
+   * the slot's price ceiling off BOTH ends of the cast (this capture and the
+   * completion-time bag scan), so handing the good tool away mid-cast cannot
+   * take the bonus while dodging the price rung. Cleared wherever
+   * `gatherCastNodeId` clears; inert ('') at rest so it stays out of every
+   * at-rest parity sample.
+   */
+  gatherCastToolRarity: Exclude<ItemDef['quality'], undefined> | '';
+  /**
+   * The R40 per-use consent, captured at gather-cast start from the
+   * harvest command's confirmEffectUse flag, and only when the profession
+   * actually carries a tool-effect slot (false otherwise, and between
+   * casts, so every slot-less frame stays byte-identical). Read once by
+   * completeGatherCast and threaded into the grade resolution and the
+   * grant: a 'prompt' slot fires and spends only when this was true, an
+   * 'always' slot ignores it. Cleared wherever `gatherCastNodeId` clears;
+   * inert (false) at rest.
+   */
+  gatherCastEffectConfirmed: boolean;
+  /**
+   * Recipe id a running craft cast resolves against at completion ('' = none).
+   * Transient, never wired, never persisted. Cleared on every cast end path
+   * (complete, cancelCast, death) with unconditional inert writes.
+   */
+  craftCastRecipeId: string;
+  /**
+   * Commission opt-in captured at craft-cast start (Maker's Bond). Read once
+   * by completeCraftCast so a mid-cast UI toggle cannot change the resolve.
+   * Inert (false) at rest.
+   */
+  craftCastCommission: boolean;
+  /**
+   * Batch crafts remaining including the in-flight cast (Phase 1 always 1
+   * while casting; 0 when idle). Phase 3 drives auto-repeat off this field.
+   */
+  craftCastBatchRemaining: number;
+  /**
+   * Batch size captured at batch start for UI progress (Phase 1 always 1
+   * while casting; 0 when idle).
+   */
+  craftCastBatchTotal: number;
+  /**
+   * Item id a running enchant-family cast (disenchant / apply / salvage)
+   * resolves against ('' = none). Transient, never wired, never persisted.
+   * Shared session bag for the three cast ids; only one non-spell cast runs.
+   */
+  enchantCastItemId: string;
+  /**
+   * Optional bag slot for a disenchant cast, stored 1-BASED (slotIndex + 1);
+   * 0 = not pin-selected. The 1-based encoding keeps the resting value 0 so
+   * the parity sampler's default-omission drops it (a -1 rest value re-hashed
+   * every golden). Encode/decode live only in beginEnchantFamilyCast /
+   * clearEnchantCastSession. Read once at complete; cleared with the rest of
+   * the enchant session.
+   */
+  enchantCastBagSlot: number;
+  /**
+   * Enchant id for an apply-enchant cast ('' when the live cast is
+   * disenchant or salvage). Captured at start so a mid-cast UI change
+   * cannot retarget the resolve.
+   */
+  enchantCastEnchantId: string;
+  /**
+   * Worn equipment slot for an apply-enchant cast ('' = bagged arm).
+   * Same capture discipline as craftCastCommission.
+   */
+  enchantCastEquipSlot: string;
+  /**
+   * confirmReplace consent for an apply-enchant cast (#2415). Captured at
+   * start; inert (false) at rest and on disenchant/salvage casts.
+   */
+  enchantCastConfirmReplace: boolean;
+  /**
+   * Mid-cast target identity pin ('' = none). For a pin-selected disenchant
+   * cast: the canonical fingerprint of the selected copy (itemId + instance
+   * payload + craftedRecipeId), so a mid-cast bag splice cannot redirect the
+   * destroy onto a different copy of the same item id. For an apply-enchant
+   * cast with confirmReplace: the enchant id the consent was given against,
+   * so a mid-cast copy swap cannot spend the consent on a different enchant.
+   * Transient, never wired, never persisted; cleared on every cast end path.
+   */
+  enchantCastTargetPin: string;
+  /**
+   * Gathering profession id a running tool-recharge cast fills ('' = none).
+   * Transient, never wired, never persisted. Cleared on complete, cancelCast,
+   * death, and arena/fiesta with unconditional inert writes.
+   */
+  toolRechargeCastProfessionId: string;
   /** Hidden seeded sim tick the fishing bite fires on (0 = no pending bite). */
   fishBiteAtTick: number;
   /** Sim-tick deadline for the fishing reel re-press (0 = window not armed). */
   fishReelDeadlineTick: number;
+  /** Zone id of the water the fishing cast was validated against (the probe
+   *  point's zone, pinned at cast start; '' = no live fishing session).
+   *  completeFishing resolves the catch table and deed credit from it. */
+  fishCastZoneId: string;
   channeling: boolean;
   channelTickTimer: number;
   channelTickEvery: number;
@@ -3012,39 +7953,86 @@ export interface Entity extends ClientMirroredEntityFields {
   queuedOnSwing: string | null; // heroic strike
   queuedOnSwingFree?: boolean; // next_cast_free consumed at queue time
   queuedOnSwingCostMultiplier?: number; // next_cast_cheap consumed at queue time
-  // single-slot spell queue: a press during the tail of the current cast (see
-  // CAST_QUEUE_WINDOW_SEC), fired by updateCasting on cast completion. Distinct
-  // from queuedOnSwing (a melee on-next-swing queue, not a cast queue).
+  // single-slot spell queue: a press during the tail of the current cast or of
+  // a bare GCD (see CAST_QUEUE_WINDOW_SEC), fired by updateCasting on cast
+  // completion or when the GCD clears. Distinct from queuedOnSwing (a melee
+  // on-next-swing queue, not a cast queue). queuedCastTargetId preserves the
+  // mouseover-cast target override so the fired press heals the unit the
+  // player pointed at, not their selected target.
   queuedCastAbility: string | null;
   queuedCastAim: { x: number; z: number } | null;
+  queuedCastTargetId: number | null;
   fiveSecondRule: number; // time since last mana spend
   comboPoints: number; // retail-style: character-bound, not anchored to a target
   comboUntil: number; // sim-time until which unspent combo points persist
+  // Paladin Devotion is a secondary class resource, separate from the shared
+  // mana bar. It is session combat state: logout, death, and a fresh character
+  // all restart the cycle at zero. The optional shape keeps every non-paladin
+  // entity and old wire payload byte-compatible.
+  paladinDevotion?: {
+    value: number;
+    ascensionCharges: number;
+    ascensionRemaining: number;
+    outOfCombatTime: number;
+    decayProgress: number;
+    blockIcdRemaining: number;
+  };
   overpowerUntil: number; // sim-time until which overpower is usable
   potionCooldownUntil: number; // sim-time until a combat potion can be used again (#103)
   // Same shared potion cooldown as REMAINING seconds, materialized per tick (like
   // gcdRemaining) so the action bar can paint a cooldown swipe without a client
   // clock. Derived from potionCooldownUntil; excluded from the parity trace.
   potionCdRemaining: number;
+  // The firebottle throw cooldown (q_deepfen_purge) as REMAINING seconds,
+  // materialized per tick like potionCdRemaining so the bag can paint a cooldown
+  // swipe on the firebottle slot without a client clock. Set on throw
+  // (firebottle_hut.ts), decremented in combat/auras.ts; excluded from the parity
+  // trace. The authoritative use-gate stays on PlayerMeta.firebottleReadyAt.
+  firebottleCdRemaining: number;
   // warrior charge: forced run toward the target along a pathfound route
   chargeTargetId: number | null;
   chargeTimeLeft: number; // seconds; failsafe so a blocked charge can't run forever
   chargePath: Vec3[]; // waypoints consumed front-to-back; last leg homes on the live target
-  // Authoritative Heroic Leap arc. While present, it owns movement and defers the
+  // Authoritative Vaulting Charge arc. While present, it owns movement and defers the
   // landing area hit until touchdown. Absent until first use so unrelated entity
   // snapshots and deterministic traces do not gain inert state.
   leap?: HeroicLeapFlight | null;
+  // Valkyr's Calling owns movement through a visible ascent, forward flight,
+  // and descent. Optional so unrelated entities and old wire payloads remain
+  // byte-compatible until the ability is first used.
+  valkyrsCalling?: ValkyrsCallingFlight | null;
   // Authoritative ledge-climb pull-up. Like `leap`, it owns movement while it
   // runs; see `src/sim/climb.ts`.
   climb?: LedgeClimb | null;
+  // A scheduled ferry passenger (src/sim/transport_ferry.ts): aboard while the
+  // ship sails, carried by its moving deck. Session-only and absent until a
+  // first voyage; the wire carries the deck spot (`fry`, see ferryDeck).
+  ferryRide?: FerryRide | null;
+  // The ferry parked this player's pet for a crossing (the delve pet stash);
+  // it comes back once the owner is off the ship and alive.
+  ferryPetParked?: boolean;
   followTargetId: number | null; // /follow: auto-walk after another player until interrupted
   savedMana: number; // druid forms: mana put aside while running on rage/energy
+  // Druid Cat Form: how far the parked energy pool sits below full while out of
+  // the form (0 or absent = full). See combat/cat_form_energy.ts.
+  parkedEnergyDeficit?: number;
   sitting: boolean;
   eating: Consuming | null;
   drinking: Consuming | null;
   // Z-key cosmetic toggle: held weapons render sheathed on the back. Cleared by
   // any deliberate combat action (auto-attack engage, ability cast), WoW-style.
   weaponStowed: boolean;
+  // Paperdoll eye toggle: the composed body renders without its kit's head
+  // piece. A standing wardrobe preference (never auto-cleared), it rides the
+  // entity wire (`hh` bit) so peers and portraits present the chosen look.
+  helmHidden: boolean;
+  // The authored modular-creator look (characters.appearance column), riding
+  // the identity wire (`app`) so every client in view composes this player's
+  // real body. Deliberately opaque here: the sim never reads it, and typing it
+  // as the render layer's ModularAppearance would put a src/render import into
+  // the sim. Consumers normalize it (normalizeAppearance) before composing.
+  // Null/absent = no authored look; the legacy class rig renders.
+  modularAppearance?: Record<string, unknown> | null;
   // /afk display mirror: true while this player's PlayerMeta.away is in `afk`
   // mode. Kept in lockstep with meta.away by src/sim/social/away.ts so the flag
   // rides the entity (wire `ak` bit) to other clients' nameplates and the social
@@ -3053,6 +8041,19 @@ export interface Entity extends ClientMirroredEntityFields {
   afk: boolean;
   // mob AI
   aiState: AiState;
+  /**
+   * The eye-ward clock (mob/eye_ward.ts): while `eyeWardDownUntil` is ahead of the sim
+   * clock the ward is pried open (the Blinded window); `eyeWardSealedUntil` refuses the
+   * next blind until the fight has breathed. Timestamps are the truth, the auras are
+   * presentation; only mobs whose template declares `eyeWard` ever carry them.
+   */
+  eyeWardDownUntil?: number;
+  eyeWardSealedUntil?: number;
+  /**
+   * Wire-visible: this player has the Shardpike couched (src/sim/lance_trial.ts). Other
+   * clients render the brace pose from it; the balance itself is self-only state.
+   */
+  bracing?: boolean;
   tappedById: number | null; // first player to damage this mob owns loot/xp/quest credit
   /** Classic-style hate table: attacker entity id (player or pet) -> threat.
    *  Wiped on evade/respawn/death; drives target selection with the 110%
@@ -3070,19 +8071,47 @@ export interface Entity extends ClientMirroredEntityFields {
   ownerId: number | null; // controlled pets: owning player's entity id (null = wild)
   petMode: PetMode; // hunter pet behavior stance
   petTauntTimer: number; // controlled pet Growl cooldown
+  petSkillTimer?: number; // independent cooldown for a pet template's signature skill
+  petAutoSkill?: boolean; // right-click autocast toggle for the template's signature skill
+  // Online rolling-deploy capability on player entities. Undefined means the
+  // local/offline world supports the current pet bar; an old online client is false.
+  petSpecialCommandsSupported?: boolean;
   petAutoTaunt?: boolean; // right-click autocast toggle for controlled pet Growl
   petAutoWaterJet?: boolean; // right-click autocast toggle for the Water Elemental's Water Jet
   petManualTauntPending?: boolean; // manual Growl command waiting until the pet reaches range
   petPath: Vec3[]; // controlled pet heel route around obstacles; consumed front-to-back (like chargePath)
   petPathCooldown: number; // seconds until this pet may recompute its heel path again
+  // Health this pet currently inherits from its owner (pet/pet_scaling.ts). Tracked
+  // separately from maxHp because the raid stat auras add to maxHp too: re-deriving
+  // the share means swapping THIS delta, never recomputing maxHp from the template.
+  petOwnerHpBonus: number;
   pulseTimer: number; // boss aoe pulse countdown
   stompTimer: number; // boss War Stomp stun-pulse countdown
   bigCastTimer: number; // boss telegraphed-hardcast (bigCast) cadence countdown
+  deathZoneCastTimer: number; // lethal zone cast (deathZoneCast) cadence countdown
+  deathZoneStrikeTimer: number; // lethal zone cast (deathZoneStrike) cadence countdown
   infernoTimer: number; // infernoChannel cadence countdown
   infernoRemaining: number; // seconds left in a live inferno channel (0 = not channeling)
   infernoPulsesFired: number; // pulses already fired this channel
   infernoGatesFired: number; // infernoChannel.atHpPct thresholds already consumed
   yelledEngage: boolean; // engage bark fired this pull (reset on evade/respawn)
+  // --- dragonkin brood state (all optional: only brood templates carry them) ---
+  swingCleaveCount?: number; // arcCleave: landed swings since the last front-arc cleave
+  breathTimer?: number; // breathCone cadence countdown (the bigCastTimer twin)
+  shoutFired?: boolean; // engageShout consumed this pull (reset on evade/respawn)
+  shoutIntroUntil?: number; // sim-time end of the rooted shout window
+  counterStunReadyAt?: number; // sim-time the counterStun retaliation is next available
+  broodCracked?: boolean; // egg: died through the REAL damage path (handleDeath); only flagged corpses hatch
+  broodHatched?: boolean; // egg: break already processed (hatch fired)
+  broodChainAt?: number; // egg: sim-time a rippling chain-break cracks this egg
+  // egg: the broodlord's shout cracked this egg, so its hatchling comes out
+  // wrapped in the named one-hit ward (engageShout.wardWhelps, stamped at
+  // shout time; chain breaks beyond the shout radius never carry it)
+  broodWardOnHatch?: { duration: number; name: string };
+  leapUntil?: number; // whelp: sim-time end of the pounce speed burst (duration derives from launch distance)
+  leapReadyAt?: number; // whelp: sim-time the NEXT pounce may launch (re-pounce cooldown)
+  leapBurnPending?: boolean; // whelp: first landed swing still owes the pounce burn
+  wardOneHit?: boolean; // whelp: one-hit ward live (brood module strips it after it soaks)
   stoneskinTimer: number; // periodic self-absorb barrier countdown
   terrifyTimer: number; // Banshee's Wail fear-pulse countdown
   aoeSlowTimer: number; // Howling Gale anti-kite snare-pulse countdown
@@ -3098,6 +8127,28 @@ export interface Entity extends ClientMirroredEntityFields {
   warcryTimer: number; // warcry ally-haste pulse countdown
   firedSummons: number; // summonAdds thresholds already triggered
   summonedIds: number[]; // live adds this boss summoned; despawned on reset
+  // Server-local (never on the wire; blankEntity keeps host shapes identical):
+  // true for a mob spawnBossAdds erupted beside its summoner. A slain add
+  // unravels with its corpse instead of respawning at its eruption point,
+  // which is wherever the fight dragged (see mob/locomotion.ts).
+  summonedAdd: boolean;
+  // Server-local (never on the wire, same as summonedAdd above): this mob was
+  // spawned by an `offStream` camp (CampDef.offStream), so its PASSIVE idle
+  // draws come from a private sub-stream instead of the shared world stream.
+  // Spawning it off-stream is only half the guarantee: an idle mob keeps
+  // drawing shared rng forever as its wander timer re-rolls, so a herd of new
+  // ambient content would still drift every seeded roll in the world a minute
+  // later (measured: identical at 1s, diverged by 31s). Combat draws stay on
+  // the shared stream: those only happen because a player engaged, which is a
+  // real gameplay event rather than passive world churn. Same principle as the
+  // ambient stable horses (mob/ambient.ts), generalized to a fighting mob.
+  // PASSIVE means every draw that re-rolls the idle wander timer: the three in the
+  // idle arm (mob/locomotion.ts), the evade-home reset (resetEvadingMob, same file),
+  // and the respawn reset (mob/lifecycle.ts). All five call sites route through the
+  // one idleRng helper (mob/idle_rng.ts), whose fallback returns ctx.rng ITSELF, so
+  // no shared-stream mob's draw position moves. Pinned by
+  // tests/off_stream_rng.test.ts.
+  offStreamRng?: boolean;
   enraged: boolean; // enrage mechanic active
   // Heroic-instance mechanic scaling (instances/difficulty.ts applyDungeonMobTuning).
   // Mechanic numbers (aoePulse/bigCast/stomp damage; mendAlly/wardAllies/stoneskin
@@ -3105,6 +8156,21 @@ export interface Entity extends ClientMirroredEntityFields {
   // multiply by these AFTER the rng draw. undefined = 1 (normal difficulty).
   mechanicDamageMult?: number;
   mechanicHealMult?: number;
+  // Per-entity multiplier for mechanic-applied burn auras. Kept separate from
+  // the impact so Heroic Sentinel sweep and burn tuning can differ safely.
+  mechanicBurnDamageMult?: number;
+  // Ranged petSpell scaling for a TUNED instance spawn, the third fire-time
+  // multiplier beside the two above. A hostile mob's petSpell damage is rolled
+  // from the base MOBS table and multiplied by petDamageMult, which returns a
+  // flat 1 for any mob with no owner, so NEITHER the spawn-time template
+  // transform (which only moves dmgBase/dmgPerLevel, i.e. melee) nor
+  // mechanicDamageMult can reach it. Without this a petSpell caster is immune
+  // to dungeon tuning, and since a caster stands and casts instead of meleeing
+  // (mob/combat_profile.ts updateCasterCombat) that is its ENTIRE damage
+  // output. Set from NormalDungeonTuning.rangedDamageMultiplierByMob;
+  // undefined = 1 (untuned, and every heroic spawn, which keeps its shipped
+  // calibration).
+  rangedDamageMult?: number;
   // Entity-level CC/snare immunity, the per-spawn twin of the MobTemplate
   // ccImmune/slowImmune flags (which are read from the base MOBS table, so a
   // spawn-time template transform cannot grant them). Heroic instances set
@@ -3122,36 +8188,169 @@ export interface Entity extends ClientMirroredEntityFields {
   mobChargeTimeLeft?: number; // seconds left in the in-flight dash (undefined/0 = not dashing)
   mobChargeTargetId?: number | null; // dash victim; null/undefined = not dashing
   healedThisPull: boolean; // desperation self-heal already used this pull
+  // Room-gated Sentinel cast state. Optional so unrelated entities and wire
+  // snapshots retain their existing shape.
+  ignivarTrashSpellTimer?: number;
+  ignivarTrashSpell?: 'cinderLance';
+  ignivarTrashCastKey?: number;
   nythraxis?: NythraxisEncounterState; // sim-only state for the Nythraxis raid encounter
+  spiritBombRaidPullStarted?: boolean; // one bank reset per raid boss attempt, sim-only
+  ignivar?: IgnivarEncounterState; // sim-only state for the Ignivar raid encounter
+  varkhul?: VarkhulEncounterState; // sim-only state for the Varkhul raid encounter
+  varkhulAssemblyAttempt?: number; // survives encounter resets so Heroic rune slots reshuffle per pull
   spawnPos: Vec3;
   aiActiveMoveTarget: Vec3 | null;
   aiActiveReturnAt: number;
   aiActiveReturningHome: boolean;
   leashAnchor: Vec3 | null; // refreshed by hostile player/pet actions; spawnPos remains the true home
   evadeStall: number; // seconds an evading mob has failed to get closer to home; snaps it home if it can't path back (e.g. across water)
+  // An engaged mob's route round an obstacle, its plan throttle and, for a
+  // caster, its last line-of-sight answer (mob/chase_route.ts,
+  // mob/cast_sight.ts). Made the first time something is in the mob's way and
+  // kept for the rest of the pull (the throttle must outlive the path);
+  // undefined on a mob nothing has blocked and after every pull reset (never
+  // deleted). Server-local: never on the wire.
+  chaseRoute?: MobChaseRoute;
+  // On a TARGET: the last route search toward it that found nothing, for the
+  // rest of the pack (mob/chase_route.ts): the tick, where the target stood,
+  // where the search began and whether the asker swims. A few seconds old at
+  // most when it is read; never cleared, only overwritten. Server-local: never
+  // on the wire.
+  routeDenied?: {
+    tick: number;
+    x: number;
+    z: number;
+    fromX: number;
+    fromZ: number;
+    swim: boolean;
+  };
+  chaseStall: number; // seconds an engaged mob has been pinned unable to close on its target; at CHASE_STALL_TIMEOUT (mob/reachability.ts) it evades home like a leash break
+  evadeEpoch: number; // bumped every full evade-home reset (resetEvadingMob): a test-observable count of pulls this mob has walked home from
+  chainPullInbound: boolean; // woken by a boss chain pull and still crossing to the puller; suspends the soft leash until it arrives (mob/chain_pull_transit.ts)
+  // Holding in place in an evade stance inside an instance slot: immune while
+  // stuck, aggro intact, out of reach of its target; the value is the seconds
+  // held so far (instances/instance_combat_hold.ts phases the mob to its target
+  // once the grace runs out, attackable on the way). Undefined whenever not
+  // pinned (never deleted), which the parity sampler drops like an absent key.
+  evadeInPlace?: number;
+  // On an in-dungeon gate OBJECT that seals for a boss: the sim tick its
+  // pending seal lands, stamped when the boss starts fighting and cleared when
+  // the boss dies, drops the pull or goes idle (instances/dungeon_gates.ts);
+  // Infinity while a due seal waits for a boss thrown past the gate's line.
+  // Undefined on everything else and whenever no seal is pending or landed
+  // (never deleted). Session state of the claim; never on the wire, the
+  // gate's template id is what the client mirrors.
+  gateSealTick?: number;
   fleeTimer: number; // seconds left in a low-HP panic flee; counts down in the 'flee' state
   fleeReturnTimer: number; // grace after a panic flee hits leash edge, letting it run back before normal leash reset resumes
   hasFled: boolean; // a cowardly mob flees only once per pull; cleared when it resets at spawn
   wanderTarget: Vec3 | null;
   wanderTimer: number;
+  // Patrol runtime (src/sim/npc_routes.ts): the target waypoint index, the
+  // seconds left in a waypoint pause, and the ping-pong walk direction. Lazily
+  // initialized on the first routed tick; absent on entities without a route.
+  // Shared by routed NPCs and routed camp mobs (the idle arm of updateMob).
+  routeIdx?: number;
+  routeWaitLeft?: number;
+  routeDir?: 1 | -1;
   aggroTargetId: number | null;
   /** GM character: invulnerable (dealDamage no-ops). Server-set from the
    *  characters.is_gm column; never user-settable. */
   gm?: boolean;
+  /** Dev "smite" mode: this player's damage one-shots any mob it hits. Toggled by
+   *  the dev command /dev smite (gated by ALLOW_DEV_COMMANDS); never set otherwise. */
+  oneShot?: boolean;
   // [dev] /dev god cheat state, kept OFF the production gm flag so it never touches a
   // real game master (who could otherwise deal 100x or have their invuln toggled).
   devGod?: boolean;
+  /** Dev "no-aggro" mode: mobs never autonomously pull this player, so a designer
+   *  can walk among freshly spawned mobs to verify placement without scattering
+   *  them. Toggled by /dev noaggro (gated by ALLOW_DEV_COMMANDS); never persisted. */
+  devNoAggro?: boolean;
+  /** Staff invisibility (/visible off): no other player sees this entity, its
+   *  corpse included, and no mob or other player can aggro, track, or target it.
+   *  Server-set through gm_presence.ts setGmHidden; never persisted. */
+  gmHidden?: boolean;
+  /** Per-spawn dormancy override (DungeonSpawn.idleStationary): this mob never
+   *  idle-wanders even if its template would. Set at spawn; see mob/locomotion.ts. */
+  idleStationary?: boolean;
+  /** Runtime marker set only by DungeonSpawn.miniboss placement tuning. */
+  dungeonSpawnMiniboss?: boolean;
+  /** Suicide-bomber fuse (MobTemplate.meleeBomb): seconds remaining in the arming
+   *  windup after the mech reached melee range. >0 means it is standing up and
+   *  about to detonate; owned by mob/derelict_bomber.ts. */
+  bombWindup?: number;
+  /** Dev-only invulnerability used by /dev immortal and profiler tooling so
+   *  combat presentation remains active without /dev god's outgoing damage
+   *  multiplier. Server-private and never persisted. */
+  profilerInvulnerable?: boolean;
+  /** Encounter-owned hard immunity. This is authoritative gameplay state and is
+   * checked before every damage modifier, absorb, exact-copy, and dev path. */
+  damageImmune?: boolean;
+  /** Runtime HP floor initialized from MobTemplate.damageFloorPct. */
+  damageFloorHp?: number;
+  /** Encounter adds that must pursue their assigned player throughout an arena
+   * can opt out of a template's ordinary open-world hard tether. */
+  ignoreHardLeash?: boolean;
   /** Owner of a mob created by /dev spawn. Server-private and never persisted. */
   devSpawnOwnerId?: number;
+  /** Dev/test healer target: friendly-selectable inert dummy instance. */
+  friendlyPracticeTarget?: boolean;
   /** Moderation-jailed player: prisoners are mutually hostile (the jail brawl,
    *  see isHostileTo). Server-set via setJailed on jail/unjail and at join
    *  restore; never true offline, never user-settable. */
   jailed?: boolean;
+  /** World PvP flag (/pvp, src/sim/pvp/world_pvp.ts): two flagged players who
+   *  share no party or raid (a guild is no shield) are mutually hostile in the
+   *  open world (isHostileTo's world arm). The DISPLAY mirror of the
+   *  authoritative PlayerMeta.worldPvp state, written only by that module
+   *  (the away.ts meta<->entity precedent), and it rides the entity wire
+   *  (`pvp`) so every nearby client colours the nameplate. Absent/false is
+   *  unflagged, so an unflagged character samples and serializes exactly as
+   *  before the flag existed. */
+  pvpFlag?: boolean;
+  /** Host-only disconnect grace marker; absent for offline/headless players. Never persisted. */
+  pvpRewardsPaused?: boolean;
+  /** World PvP bounty (src/sim/pvp/world_pvp_bounty.ts): this player's kill
+   *  streak earned a bounty, so every client paints their whole name tag blood
+   *  red. The DISPLAY mirror of PlayerMeta.worldPvp.bounty, written only by
+   *  that module, and it rides the entity wire (`bty`). Absent/false is no
+   *  bounty, so a character without one samples and serializes as before. */
+  bounty?: boolean;
+  /** King of the Hill bounty (src/sim/pvp/hill_bounty.ts): the Honor this
+   *  player is worth while a kill streak on the risen hill lifts it above the
+   *  plain world kill. Rides the entity wire (`hbn`) so every nearby client tags
+   *  the nameplate and target frame; absent otherwise. */
+  hillBounty?: number;
+  /** WARFARE Vitality switch (src/sim/pvp/vitality.ts): false while the player
+   *  stands in a PvE instance (a dungeon, raid, delve or rift floor), so honor
+   *  gear's health bonus never reaches raid content. Absent means the open
+   *  world, where it applies; battlegrounds and arenas apply it too. */
+  pvpVitalityActive?: boolean;
+  /** Wearing the operator-applied Cheater tag (src/sim/moderation/). Server-set
+   *  via setCheaterMark at join restore and when an operator applies or lifts a
+   *  mark; never true offline, never user-settable. Cosmetic: nothing reads it
+   *  for power, and the countdown lives on the mark's own aura. */
+  cheaterMark?: boolean;
   /** True for a mob spawned BY a delve affix (e.g. Restless Graves' Raised
    *  Bonewalker). Affix re-trigger checks exclude these so an affix-spawned mob's
    *  own death can never re-trigger the same affix (would otherwise chain forever). */
   affixSpawned?: boolean;
+  /** An encounter part that grew back after it fell (the Mere Hydra's regrown
+   *  head, encounters/drowned_temple/hydra_regrowth.ts): its first death paid
+   *  the kill, so its later deaths pay no XP, loot or kill credit. */
+  regrown?: boolean;
+  /** True for a mob spawned by a RUN or script rather than placed by a CAMP
+   *  (e.g. an escort ambush wave). It has no authored home in the world, so its
+   *  death must not schedule an in-place respawn: handleDeath gives it an
+   *  Infinity respawnTimer and its owner drops it when the run ends. Without
+   *  this, every killed wave member returned as a permanent orphan spawn and
+   *  the run's route accumulated mobs indefinitely. */
+  runScoped?: boolean;
   respawnTimer: number;
+  /** Authored per-camp respawn delay (CampDef.respawnSeconds), copied at spawn.
+   *  Absent leaves the realm default / template respawn rules untouched. */
+  campRespawnSeconds?: number;
   corpseTimer: number;
   lootFfaTimer: number; // seconds of owner-lock left before tap loot opens to all (FFA); Infinity until rollLoot starts it
   // Profession harvest: single-use, first-come claim on this corpse's componentTags
@@ -3167,19 +8366,360 @@ export interface Entity extends ClientMirroredEntityFields {
   // (src/sim/professions/gathering.ts), which the client resolves locally off
   // `tid` (#2513).
   harvestClaimedBy: number | null;
+  // Corpse-harvest CAST state (Intentional Gathering, PR3): the kill-credit
+  // priority window and the single live reservation against a timed harvest
+  // cast, transient (never persisted, never on the wire), owned by
+  // professions/corpse_harvest_session.ts. Absent means no death was ever
+  // recorded for this corpse (a bare fixture, or content lootable outside a
+  // kill): treated as immediately public with no reservation.
+  corpseHarvestState?: CorpseHarvestState;
   despawnTimer?: number;
+  // An unconditional lifetime countdown. Unlike despawnTimer, combat, retargeting,
+  // and evade transitions never clear this timer.
+  hardDespawnTimer?: number;
+  // Summoned quest add (e.g. a Broodmother-egg hatchling): seconds it survives out
+  // of combat before despawning. updateMob starts the despawnTimer countdown when
+  // the add leashes home and cancels it while the add is back in combat.
+  leashDespawnSecs?: number;
   damageIdleDespawnTimer?: number;
   lootable: boolean;
   loot: CorpseLoot | null;
   lootRecipientIds?: number[];
+  /** Runtime-only stable identity for a soulbound drop's party-trade window.
+   *  Captured synchronously when loot rolls, so a later disconnect cannot
+   *  erase a kill-eligible character from the copy's transfer group. */
+  lootPartyTradeEligibility?: { names: string[]; characterIds: number[] };
+  /** Runtime-only: the durable character behind each entity id a full-bags
+   *  award is held on this corpse for (loot/awarded_loot_hold.ts). A relog
+   *  mints a new entity id, so the join re-points the held slots through it.
+   *  Never on the wire: the snapshot sends the loot slots, not this map. */
+  heldLootOwners?: Map<number, number>;
   xpValue: number;
   // npc
   questIds: string[];
   vendorItems: string[];
   devVendor?: boolean; // dev free-epic vendor (ptr_dev_vendor.ts)
+  // Authored patrol route deep-copied at spawn from NpcDef (createNpc) or from
+  // the owning CampDef (applyCampMobTuning); walked by src/sim/npc_routes.ts,
+  // every tick for an NPC, on idle ticks for a mob. Absent = stationary NPC /
+  // stock wandering mob.
+  route?: NpcRoute;
   // object (ground interactable)
   objectItemId: string | null;
+  // Runtime-only Soulwell ownership/eligibility state. The object itself is wired
+  // through objectItemId; this authority data never needs to reach clients.
+  soulwell?: {
+    ownerId: number;
+    partyId: number | null;
+    eligiblePlayerIds: number[];
+    wardAbsorbPctMax: number;
+    wardedPlayerIds: number[];
+  };
   dungeonId: string | null; // set on dungeon door/exit portals
+  /** Claim-local identity for authored dungeon packs. Sim authority only; the
+   * server resolves the pull and clients need no extra wire state. */
+  dungeonPackId?: string;
+  /** World-space idle patrol loop (mob/patrol.ts), stamped at claim time from
+   * DungeonSpawn.patrol. Sim authority only (the walk itself is mirrored). */
+  dungeonPatrol?: {
+    points: { x: number; z: number }[];
+    offset: number;
+    pace: number;
+    /** A flying patrol (DungeonSpawnPatrol.altitude): the absolute height it
+     *  flies the loop at, straight over walls and gaps. */
+    flightY?: number;
+  };
+  /** A perched dungeon mob (DungeonSpawn.perch): the absolute height of its
+   *  perch, held while it waits (mob/trash_kit). Sim authority; the height is
+   *  mirrored through pos.y. */
+  perchY?: number;
+  /** The height a perched or flying dungeon mob was up at on its last idle
+   *  tick (mob/trash_kit): its pull descends from here, since the mob AI of
+   *  the pull tick has already stood it on the floor. Sim authority only. */
+  airY?: number;
+  /** Where a dungeon mob planted its feet for the area cast in flight, and the
+   *  facing the bar began with (mob/trash_kit/cast_hold.ts): the ring, cone or
+   *  lane stays where it was drawn. Sim authority only; gone with the bar. */
+  castHold?: { castId: string; x: number; y: number; z: number; facing: number };
+  /** Per-pull state of a dungeon trash kit (MobTemplate.trashKit, mob/trash_kit).
+   *  Sim authority only; cleared whenever the mob leaves combat. */
+  trashKit?: TrashKitState;
+  /** Trash kit state that outlives the pull (Reassemble, a bone pile, Carrion Glut,
+   *  Snapped Fetters); TrashLifeState. Sim only. */
+  trashLife?: TrashLifeState;
+  /** Per-fight state of a Sunken Bastion boss (encounters/sunken_bastion). Sim
+   *  authority only; the client reads the fight from casts, auras and the
+   *  encounter objects. */
+  bastionFight?: BastionFightState;
+  /** Vael's entrance on the Beacon Crown (encounters/sunken_bastion/
+   *  vael_intro.ts). Sim authority only; the client reads casts, heights and
+   *  auras. */
+  vaelIntro?: VaelIntroState;
+  /** Per-fight state of a Drowned Temple boss (encounters/drowned_temple). Sim
+   *  authority only; the client reads the fight from casts, auras and the
+   *  encounter objects. */
+  templeFight?: TempleFightState;
+  /** A dungeon guide NPC's run (src/sim/dungeon_guide): offer, speech queue,
+   *  trail and finale. Sim authority only; the client reads `guideState`. */
+  guideRun?: DungeonGuideRun;
+  /** Per-fight state of a Wildheart Basin encounter (encounters/wildheart_basin:
+   *  the Great Saurian, and the bosses in phase B). Sim authority only; the
+   *  client reads the fight from casts, auras and the encounter objects. */
+  wildheartFight?: WildheartFightState;
+  /** Per-fight state of a Gravewyrm Sanctum encounter (encounters/
+   *  gravewyrm_sanctum: the Sledge Tusker, and the bosses in phase B). Sim
+   *  authority only; the client reads the fight from casts, auras and objects. */
+  sanctumFight?: SanctumFightState;
+  /** A dead trash-kit mob's burst in the making (MobTemplate.trashKit.deathBurst,
+   *  mob/trash_kit/death_burst.ts): seconds left, its floor ring, and whether it
+   *  has gone off. A death cloud (trashKit.deathCloud, wildheart_kit.ts) rides
+   *  the same record: seconds the cloud still stands, its floor object, and
+   *  whether it has faded. Sim authority only. */
+  deathBurst?: { remaining: number; objectId: number | null; done: boolean };
+  /** An engine encounter object's live state (a hazard pool, a combat wall, a
+   *  walker; mob/trash_kit/kit_objects.ts). Sim authority only: the client
+   *  reads the object's template id, position and scale. */
+  kitObject?: KitObjectState;
+  /** A split trash body (TrashKitDef.split, mob/trash_kit/kit_split.ts): the
+   *  half that was the original keeps its pre-split health pool and size to
+   *  restore if the pull ends; a copy is 'child'. Sim authority only (the
+   *  client sees the new `scale`). */
+  kitSplit?: { role: 'parent'; maxHp: number; scale: number } | { role: 'child' };
+  /** A corpse a reanimate rite already raised (TrashKitDef.reanimate): it is
+   *  never raised twice. Sim authority only. */
+  kitReanimated?: true;
+  /** A walker launched at this mob's death already left (TrashKitDef.walker).
+   *  Sim authority only. */
+  kitWalkerSent?: true;
+  /** The players this mob's brand (TrashKitDef.brand) still burns: the quench
+   *  walks only these (mob/trash_kit/brand.ts). Sim authority only. */
+  kitBranded?: number[];
+  /** DEV ONLY: a trash kit lent to this mob in place of its template's (only
+   *  `/dev trashkit demo`, dev/trash_engine_dev.ts, and the suites set it), so
+   *  an engine piece no shipped template carries yet can be playtested. Sim
+   *  authority only; never set in a live realm without ALLOW_DEV_COMMANDS. */
+  devTrashKit?: TrashKitDef;
+  /** Morthen's entrance and the Knellwyrm finale (encounters/hollow_crypt),
+   *  on Morthen. Sim authority only; the client reads casts, auras, heights. */
+  cryptRite?: CryptRiteState;
+  /** The Knellwyrm's fight state (encounters/hollow_crypt/knellwyrm.ts). */
+  knellwyrmFight?: KnellwyrmFightState;
+  /** Per-fight state of a Hollow Crypt wing boss (encounters/hollow_crypt:
+   *  Sexton Marrow, the Lady of the Bonechill, Cantor Ilvane). Sim authority
+   *  only; the client reads casts, auras and the encounter objects. */
+  cryptBossFight?: CryptBossFightState;
+  /** A 'relight' or 'free' G3 use completed on this body (mob/trash_kit/encounter_use.ts):
+   *  the user's entity id, read and cleared by the dungeon module that owns
+   *  the body on its next pass. Sim authority only. */
+  kitUseCompletedBy?: number;
+  /** An encounter carries this player in the air and moves them itself (the
+   *  Lady of the Bonechill's Frozen Embrace): the carrier's entity id. The
+   *  walking kernel stands down (carried_body.ts). Sim authority only. */
+  carriedBy?: number;
+  /** An encounter's scripted entrance owns this mob (Morthen rising, the
+   *  Knellwyrm flying in): inert, non-hostile and out of combat, the mob AI
+   *  skips it and the encounter moves it, until the script hands it back. */
+  encounterHeld?: boolean;
+  /** A Tideglass Reflection's owner: the player it mirrors and fights, who
+   *  cannot hurt it (encounters/drowned_temple/reflection_guard.ts). Sim only;
+   *  the client reads the owner from the Reflection's forcedTargetId. */
+  mirrorOwnerId?: number;
+  // Procedural Rift portal: set on an overworld 'rift_portal' object so walking
+  // into it opens a freshly generated rift from this descriptor (see rift/runs.ts).
+  riftSeed?: number;
+  riftBaseLevel?: number;
+  // Stable identity of the shared natural Rift event. Two groups entering the
+  // same portal receive separate instances tied to this one race record.
+  // Absent on legacy/dev portals that are not global events.
+  riftEventId?: string;
+  // Rank of a world-spawned rift portal (rift/portals.ts); drives the rank badge
+  // both hosts render above the portal and the Heroic Mark payout on sealing.
+  // Absent on dev-spawned portals.
+  riftTier?: RiftTier;
+  // Treasure vault portals (src/sim/treasure_vault.ts): the character whose map
+  // opened it (only they and their party may enter), the map's rarity, and the
+  // Host lockout-clock deadline (epoch ms online), shared with the vault attempt.
+  vaultOwnerPid?: number;
+  /** Stable owner identity across disconnect/reconnect; runtime pid may change. */
+  vaultOwnerCharacterId?: number;
+  /** Frozen before map consumption, so an owner who disconnects before the
+   * first party entrant still has a reward claim when the boss falls. */
+  vaultOwnerRewardSnapshot?: {
+    characterId: number;
+    name: string;
+    cls: PlayerClass;
+    level: number;
+    mountOwned: boolean;
+    guestCapped: boolean;
+    guestCycle: string;
+  };
+  /** Party members already with the owner when the map was consumed remain
+   * authorized if the owner's connection drops before the first entry. */
+  vaultInitialPartyCharacterIds?: number[];
+  vaultAttemptId?: string;
+  vaultOpenPending?: boolean;
+  vaultRarity?: TreasureMapRarity;
+  vaultExpiresAt?: number;
+  // Dev only (`/dev hoard ... goblin`, src/sim/dev/hoard_travel.ts): the hoard
+  // this descriptor opens always holds a Coinsack Scurrier.
+  devForceHoardGoblin?: true;
+  // Sim time of the last "level too low" rift denial shown to this player, so
+  // standing inside the portal trigger radius does not spam the toast per tick.
+  riftDeniedAt?: number;
+  // A hard control this mob is CASTING inside a Buried Hoard instead of landing
+  // it instantly (src/sim/rift/hoard_control_casts.ts). Sim-only, never wired:
+  // the cast bar itself rides castingAbility / castRemaining.
+  hoardControlCast?: HoardControlCast;
+  // Sim time of the last "pool full" / "event already cleared" denial shown to
+  // this player on walk-in, so a 20 Hz trigger does not spam the error toast.
+  riftPoolFullAt?: number;
+  // Sim time of the last "the orb is sealed" nudge shown to this player at a
+  // dormant Blood Orb (authored citadel), throttled the same way.
+  riftOrbNoticeAt?: number;
+  // Sim time of the last "your raid is still in combat" Ignivar entry denial
+  // shown to this player, so the 20 Hz walk-in door trigger does not spam the
+  // toast (instances/ignivar_entry.ts).
+  ignivarEntryDeniedAt?: number;
+  // Sim time of the last "the forge doors hold fast" Ignivar exit denial shown
+  // to this player while a boss fight seals the room, throttled the same way:
+  // the 20 Hz exit-portal walk-in trigger must not spam the toast
+  // (instances/ignivar_exit.ts).
+  ignivarExitDeniedAt?: number;
+  // Sim time of the last lockpickOffer emitted to this player from a
+  // rift_locked_chest click, so repeated F-key presses don't spam the UI.
+  riftLockpickOfferAt?: number;
+  // Walk-in portal grace after leaving a rift: until this sim time the player
+  // does not auto-enter portals, so being returned near the entry portal can
+  // never bounce them straight back in (clicking the portal still works).
+  riftReentryGraceUntil?: number;
+  // Locked glide heading while ice-sliding on a rift frost sheet (unit vector);
+  // both 0/undefined means not sliding. The slide advances a fixed step along this
+  // each tick, ignoring steering input, until a wall or the sheet edge stops it.
+  riftSlideDirX?: number;
+  riftSlideDirZ?: number;
+  // True while the ice slide is carrying the player: the renderer holds a frozen
+  // braced pose (no run cycle) so they read as gliding, not sprinting. Wired (`sld`).
+  riftSliding?: boolean;
+  // Cooldown gate (sim time) between rolling-boulder knockbacks, so a single pass
+  // shoves + chips once rather than every tick of overlap.
+  riftRollerUntil?: number;
+  // Rift boss rank budget: how many entries of the template's `rankMechanics`
+  // list are live on THIS spawn (C=1, B=2, A=3, S=4; rift/ranks.ts). Undefined
+  // (every non-rift mob, and rift trash) suppresses nothing.
+  riftMechanicLimit?: number;
+  // Mechanic spacing: the minimum gap in seconds between two boss mechanic fires
+  // on THIS spawn, so mechanics never land on top of each other
+  // (mob/mechanic_spacing.ts), AND the switch that turns the instant AoEs into
+  // TELEGRAPHED ones (a ground ring, a windup, then the blast at the snapshot
+  // centre). Undefined disables both, which is every ordinary mob.
+  //
+  // The `rift` in the name is historical: rifts were the first and for a long
+  // time the only consumer, stamped per spawn by rift/runs.ts. It is now also set
+  // from `MobTemplate.telegraphedMechanics` for authored bosses whose design is
+  // dodge-the-circle. The name is kept because it is recorded in the parity golden
+  // entity samples, and a cosmetic rename there would force a golden regeneration.
+  riftMechanicSpacing?: number;
+  // Countdown on the shared mechanic lock (mob/mechanic_spacing.ts). Armed each
+  // time a spacing-governed mechanic fires (plus the cast time for a hardcast,
+  // so an instant can never land mid-telegraph); while it runs, every other
+  // spacing-governed mechanic holds at due and fires the tick the lock clears.
+  // Only ever defined on a mob with riftMechanicSpacing.
+  mechanicLockTimer?: number;
+  // Windup countdowns for a rift-stamped boss's instant AoE mechanics
+  // (mob/rift_escape_window.ts): the stomp / aoePulse ground-ring telegraph is
+  // in flight while > 0, and the damage lands when the countdown hits zero.
+  // Only ever defined on a mob with riftMechanicSpacing (the same
+  // defined-vs-undefined discipline as mechanicLockTimer, so parity entity
+  // samples never churn for unstamped mobs).
+  stompWindupRemaining?: number;
+  pulseWindupRemaining?: number;
+  // Warpath state (mob/warpath.ts). Only ever defined on a mob whose template declares
+  // `warpath`, the same defined-vs-undefined discipline as the windup fields above, so
+  // the parity golden's entity samples never churn for a mob that does not walk one.
+  warpathPhase?: 'focus' | 'travel' | 'wreck';
+  warpathTimer?: number;
+  // Slumber state (mob/slumber.ts): true while a `slumber` template sleeps through the
+  // night. Only ever defined on such a mob (the same defined-vs-undefined discipline as
+  // the warpath fields), mirrored to clients so the rig can lie down and wake with him.
+  asleep?: boolean;
+  /** Seconds left in the dawn rise (mob/slumber.ts): the AI is held while it runs. */
+  slumberRise?: number;
+  /** A /dev wake or sleep holding him against the clock until it agrees (mob/slumber.ts). */
+  slumberDevHold?: 'awake' | 'asleep';
+  /** The facing a `slumber.snapToBed` sleeper is laid down with (his spawn's), so a body
+   *  that hangs on a fixed prop (Old Thatchgrin's pole) always lines up with it. */
+  bedFacing?: number;
+  /** Where the corpse lay before it began to sink (mob/boss_corpse_sink.ts). */
+  corpseSinkBaseY?: number;
+  /** Index into the template's destination list. */
+  warpathDestination?: number;
+  /** Seconds since anything reduced his health. */
+  warpathUnharried?: number;
+  /** Seconds with no living player inside his give-up range (mob/warpath.ts). */
+  warpathAlone?: number;
+  /** Health observed last tick, so any damage source counts as harassment. */
+  warpathLastHp?: number;
+  warpathSwipeTimer?: number;
+  // Aimed-slam state (mob/boss_slams.ts). Only ever defined on a mob whose template
+  // declares `slams`, the same defined-vs-undefined discipline as the windup fields
+  // above, so the parity golden's entity samples never churn for a mob without them.
+  // ONE windup slot for both, deliberately: the shared mechanic spacing lock already
+  // forbids two telegraphs at once, so a second slot could only ever hold a state the
+  // fight is not allowed to reach.
+  slamKind?: 'hammer' | 'cleave';
+  slamWindup?: number;
+  /** The hammer's snapshot aim POINT; the cleave's snapshot aim DIRECTION. */
+  slamX?: number;
+  slamZ?: number;
+  hammerTimer?: number;
+  cleaveTimer?: number;
+  // Ranged-punish state (mob/boss_ranged_mechanics.ts). Only ever defined on a mob whose
+  // template declares `rangedMechanics`, the same defined-vs-undefined discipline as the
+  // slam fields above. ONE windup slot for the three, for the same reason.
+  rangedKind?: 'boulder' | 'glare' | 'burden';
+  rangedWindup?: number;
+  /** Boulder: flat [x, z] impact points. Glare: [originX, originZ, dirX, dirZ, length]. */
+  rangedAim?: number[];
+  /** The player the burden was laid on. */
+  rangedTargetId?: number;
+  boulderTimer?: number;
+  glareTimer?: number;
+  burdenTimer?: number;
+  /** Seconds overdue of the oldest aimable due one, published each tick for the circle
+   *  smashes' oldest-due drain (mob/mechanic_spacing.ts); undefined when none is ready. */
+  rangedReadyOverdue?: number;
+  // Wake of the Fallen Star state (mob/boss_starwake.ts). Only ever defined on a mob whose
+  // template declares `starwake`, the same defined-vs-undefined discipline as above.
+  starwakeTimer?: number;
+  /** Seconds since the current cast began; undefined while none is in flight. */
+  starwakeElapsed?: number;
+  /** The laid fissures, flat [originX, originZ, dirX, dirZ, length] per fissure. */
+  starwakeFissures?: number[];
+  /** The laid geyser circles, flat [x, z, radius] per geyser. */
+  starwakeGeysers?: number[];
+  /** Live molten pools, flat [x, z, radius, remaining, tickTimer] per pool. */
+  starwakePools?: number[];
+  /** The meteor shower since the eruption; undefined while none is calling or falling
+   *  (mob/boss_starwake_meteors.ts). */
+  starwakeShower?: StarwakeShowerState;
+  /** Absolute sim time the arrival slam lands; null once it has, so it fires once. */
+  warpathBlastAt?: number | null;
+  // The telegraphed ring center each windup was drawn at: the detonation is
+  // measured from HERE, never from the boss's live position, so the edge
+  // players dodge is the edge they were shown even if the boss chased during
+  // the windup. Same defined-vs-undefined discipline as the countdowns.
+  stompWindupX?: number;
+  stompWindupZ?: number;
+  pulseWindupX?: number;
+  pulseWindupZ?: number;
+  // Absolute sim-time deadline of the boss's current escape window
+  // (mob/rift_escape_window.ts): stamped at every telegraph start (windup,
+  // bigCast, death-zone cast) to the moment the LAST blast can land. An
+  // absolute deadline, deliberately not a castingAbility introspection: a
+  // kited boss freezes its melee-gated cast bar, and a frozen bar must never
+  // pin the window open (that would permanently disable the anti-kite snare).
+  // Only ever defined on a mob with riftMechanicSpacing.
+  escapeWindowUntil?: number;
   // misc
   dead: boolean;
   // Ghost/spirit state for the WoW-style death -> corpse-run -> resurrect loop.
@@ -3195,10 +8735,64 @@ export interface Entity extends ClientMirroredEntityFields {
   // Null for world corpses and saved ghosts. Instance exits are recreated on
   // every claim, so stale corpse coordinates cannot match a recycled slot.
   corpseInstanceId: number | null;
+  // PvP Resurrect (src/sim/pvp/pvp_resurrect.ts): true while this corpse may stand
+  // up at the nearest graveyard at full health with no Keeper's Toll, because a
+  // hostile player had a hand in the death. Reset when a living player dies
+  // (combat/damage.ts handleDeath), stamped by that death, and cleared by the
+  // shared revive (spirit.ts reviveAt); absent on everyone else.
+  pvpResurrect?: boolean;
+  // Seconds left before that offer may be taken (PVP_RESURRECT_WAIT_SECONDS at the
+  // death, counted down by combat/auras.ts updateTimers, cleared with the offer).
+  // Online it mirrors the self wire's whole-second `pvrw`.
+  pvpResurrectWait?: number;
   scale: number;
   color: number;
+  /** Authored character rig override and ambient VFX. Render-only. */
+  visualKey?: string;
+  authorVfx?: AuthorVfx;
   skinCatalog: SkinCatalog; // player appearance catalog: class texture set or cosmetic body.
   skin: number; // player appearance: index into SKINS[visualKey]; 0 = default. synced in identity fields.
+  // Active rideable ground mount ('' = dismounted; players only). Unlike the
+  // render-only cosmetics below, the sim READS this: player_motion.moveSpeedMult
+  // (speed), auto_attack.meleeSwing (melee block), and recalcPlayerStats (crit)
+  // key off it, so it syncs in identity fields (terse `mnt`) like `skin` and the
+  // online self-extrapolator predicts mounted speed in lockstep. The persisted
+  // selection lives on PlayerMeta.selectedMount (src/sim/content/mounts.ts).
+  mountKey: string;
+  // Character training controls movement for every cosmetic mount model.
+  ridingTier: 0 | 1 | 2;
+  // Mount summon/dismount transition (players only; 0 = idle). Seconds left in the
+  // call-the-mount summon or the dismount, driven per tick by updateMountTransition
+  // (src/sim/mounts.ts). The sim READS it: player_motion.stepPlayerMotion roots the
+  // player (no walk/strafe/jump) while it is > 0, so it must sync on the wire like
+  // mountKey (terse `mcr`) for the online self-extrapolator to root in lockstep and
+  // for other clients to time the summon FX. handleDeath clears it.
+  mountCastRemaining: number;
+  // The catalog key being summoned during a mount transition ('' while dismounting or
+  // idle). Render-only (the summon-FX / call-pose the client draws); the sim never
+  // reads it. Syncs on the wire (terse `mck`) alongside mountCastRemaining, and
+  // handleDeath clears it.
+  mountCastKey: string;
+  // Active cosmetic buddy ('' = none; players only). Zero GAMEPLAY effect on
+  // the owner (no stat, no combat), but since 2026-08-27 it names a real
+  // server-simulated owned mob entity: spawning/despawning it is the job of
+  // every write site (src/sim/buddies.ts's summonBuddyItem/toggleBuddy), and
+  // src/sim/pet/buddy_ai.ts's updateBuddyMob heels that entity with the same
+  // A*-pathed locomotion a hunter pet uses and reads this field back each
+  // tick to confirm the entity is still wanted. Still syncs in identity
+  // fields (terse `bud`) like `skin`/`mountKey` for HUD/UI state. No
+  // persisted selection, same as mounts: summoning is an item use, and the
+  // whistle you clicked IS the choice.
+  buddyKey: string;
+  // Buddy autoloot toggled on (players only; false otherwise). Set from the
+  // buddy's own target-frame right-click menu (src/sim/buddies.ts's
+  // setBuddyAutoloot). While on, the live buddy entity breaks off its heel to
+  // walk to the owner's OWN lootable corpses inside BUDDY_LOOT_RANGE and loot
+  // them for the owner (src/sim/pet/buddy_autoloot.ts). Syncs in identity
+  // fields (terse `budal`) like `bud` above so the menu can render the right
+  // Enable/Disable row. Session state, not persisted, exactly like buddyKey:
+  // the buddy itself is re-summoned every login.
+  buddyAutoloot: boolean;
   // Equipped mainhand item id (players only; null otherwise). Render-only: the
   // client maps it to a held weapon model. Recomputed in recalcPlayerStats and
   // synced in identity fields (terse `mh`). The sim never reads it for gameplay.
@@ -3216,6 +8810,12 @@ export interface Entity extends ClientMirroredEntityFields {
   // applies. Render-only: the client swaps the held weapon model and rarity VFX.
   // Recomputed in recalcPlayerStats and synced in identity fields (terse `wsk`).
   weaponSkinId: string | null;
+  // Worn mount skin id (players only; null otherwise): the account cosmetic
+  // drawn OVER whatever mount `mountKey` names (content/mount_skins.ts).
+  // Render-only: the client swaps the mount visual and audio set. The sim never
+  // reads it for gameplay (speed stays on mountKey). Set by Sim.setMountSkin and
+  // synced in identity fields (terse `msk`), like `wsk`.
+  mountSkinId: string | null;
   // Full worn equipment (players only; empty otherwise). Render-only mirror of
   // PlayerMeta.equipment, recomputed in recalcPlayerStats and synced in identity
   // fields (terse `eq`) so another player can be inspected. Like mainhandItemId,
@@ -3255,6 +8855,17 @@ export interface Entity extends ClientMirroredEntityFields {
   devTier?: number;
   devMergedPrs?: number;
   githubLogin?: string;
+  // Curator standing flair (cosmetic, server-set from the character's LIVE
+  // Reliquary ownership; the sim never reads any of it): the Curator rank
+  // (0/undefined = unranked, 1-5 = Apprentice…Eternal Curator) and the
+  // character-scoped completion pair behind it, for the inspect card's
+  // Reliquary line and the rank-5 sigil. Stamped and cleared together
+  // server-side; the wire omits all three for an unranked character, and the
+  // client mirror resolves that to rank 0 with the pair undefined, the same
+  // 0/undefined split as the dev fields above.
+  curatorRank?: number;
+  relicsOwned?: number;
+  relicsTotal?: number;
   // Account flair (cosmetic, operator-set from the admin dashboard; the sim
   // never reads either): the AI-operated mark that prefixes the name with [AI],
   // and an official streamer's platform links for the player menu. `streamerLinks`
@@ -3282,8 +8893,22 @@ export interface NythraxisDialogueCue {
   text: string;
 }
 
+/** One live Bone Spike: the spike mob and the raider it holds. */
+export interface NythraxisBoneSpike {
+  spikeId: number;
+  playerId: number;
+  // Seconds until the next impale drain tick.
+  tickTimer: number;
+}
+
+/** One raider's Bone Spike cooldown: seconds until a cast may pick them again. */
+export interface NythraxisBoneSpikeCooldown {
+  playerId: number;
+  remaining: number;
+}
+
 export interface NythraxisEncounterState {
-  phase: 1 | 'transition' | 2 | 'dead';
+  phase: 1 | 'transition' | 2 | 3 | 'dead';
   introSpoken: boolean;
   transitionStarted: boolean;
   transitionTimer: number;
@@ -3305,12 +8930,332 @@ export interface NythraxisEncounterState {
   deathlessCastRemaining: number;
   deathlessStunRemaining: number;
   heroicSummonChannelRemaining?: number;
+  // The mechanic-redo fields below are optional on the TYPE only so the many
+  // hand-built state literals in tests stay valid; initNythraxisEncounter sets
+  // every one, and the driver backfills a missing field with its default
+  // (encounters/nythraxis.ts nythraxisMechanicState) before reading it.
+  // Dread Curse (the tank swap, both difficulties): only the cadence lives
+  // here; the stacks live on the victim's aura (nythraxis_dread_curse.ts).
   dreadCurseTimer?: number;
-  dreadCurseTargetId?: number | null;
-  dreadCurseStacks?: number;
+  // Who Dread Curse currently treats as the settled tank, tracked separately
+  // from the live boss.aggroTargetId so a taunt back onto a still-cursed
+  // player can be told apart from a genuine swap-in and refused (see
+  // enforceNythraxisDreadCurseSwap in encounters/nythraxis.ts).
+  dreadCurseHolderId?: number | null;
+  // Bone Spike cadence, the live spike/victim pairs, and the per-raider
+  // cooldown ledger that spreads waves across the raid (nythraxis_bone_spike.ts).
+  boneSpikeTimer?: number;
+  boneSpikes?: NythraxisBoneSpike[];
+  boneSpikeCooldowns?: NythraxisBoneSpikeCooldown[];
+  // Spikes and fire never overlap: seconds left in the settle window after an
+  // eruption lands (spikes hold) and after a spike wave (eruptions hold).
+  eruptionSettleTimer?: number;
+  spikeSettleTimer?: number;
+  // Grave Eruption: the cadence, the live warning window, and the burning
+  // patches it left behind (nythraxis_grave_eruption.ts). eruptionCastKey is
+  // the stable id root the warning rows and their impact events share.
+  eruptionTimer?: number;
+  eruptionCastKey?: number;
+  eruptionImpactRemaining?: number;
+  eruptionPoints?: { x: number; z: number }[];
+  // Every burning patch. In play these are all Grave Flame; the 'soul' kind
+  // (the Soulfire pools Soul Rend used to leave) was retired from play in
+  // v0.42.2 and survives only so the wire and renderer keep their shape.
+  graveFlames?: {
+    seq: number;
+    kind: 'grave' | 'soul';
+    radius: number;
+    x: number;
+    z: number;
+    remaining: number;
+    tickTimer: number;
+  }[];
+  graveFlameSeq?: number;
+  // Gravefire: the cadence and the live traveling lines (nythraxis_gravefire.ts).
+  gravefireTimer?: number;
+  gravefires?: {
+    seq: number;
+    x: number;
+    z: number;
+    dirX: number;
+    dirZ: number;
+    elapsed: number;
+    tickTimer: number;
+  }[];
+  gravefireSeq?: number;
+  // Binding Sigil: the cadence, the live sigil (null between casts), and the
+  // gap timer that keeps the body-owning majors (Deathless Rage, the sigil
+  // drag) from overlapping (nythraxis_binding_sigil.ts).
+  sigilTimer?: number;
+  // The side the LAST sigil landed on (+1 world +x, the raid's left facing
+  // the dais; -1 world -x, its right); null before the first cast. The next
+  // cast takes the other side.
+  sigilSide?: 1 | -1 | null;
+  sigil?: {
+    castKey: number;
+    x: number;
+    z: number;
+    remaining: number;
+    ascensionTimer: number;
+    ascensionStacks: number;
+  } | null;
+  majorGapTimer?: number;
+  // Seconds left before Bone Storm may begin after a Soul Rend detonation
+  // (nythraxis_soul_rend.ts); 0 when no detonation is settling.
+  soulRendSettleTimer?: number;
+  // Seconds left before a Grave Eruption may begin after the Soul Rend marks
+  // detonate or are released (nythraxis_soul_rend.ts); 0 when no gap runs.
+  soulRendFireGapTimer?: number;
+  // The Crown Endures: seconds since the first encounter tick (the clock runs
+  // through the transition) and the enrage stack the boss carries once it has
+  // run out (nythraxis_enrage_clock.ts).
+  enrageElapsed?: number;
+  enrageStacks?: number;
+  // Bone Storm (phase 3): the cadence and the live storm, null between storms
+  // (nythraxis_bone_storm.ts).
+  boneStormTimer?: number;
+  boneStorm?: {
+    castKey: number;
+    elapsed: number;
+    chargeIndex: number;
+    chargeTargetId: number | null;
+    slammed: boolean;
+    whirlTickTimer: number;
+    chargedIds: number[];
+  } | null;
   wardChannels: NythraxisWardChannel[];
-  finalStand: boolean;
   deathSpoken: boolean;
+  // Players seen alive inside the arena during this pull. Session-only attempt
+  // roster used for raid-wipe recovery, so a remote group member cannot farm
+  // cooldown resets without participating.
+  attemptParticipantIds?: number[];
+}
+
+/**
+ * Balgath's Star Debris shower in flight (mob/boss_starwake_meteors.ts): the waves still
+ * to call and the meteors still falling. Plain numbers only, like the other starwake state.
+ */
+export interface StarwakeShowerState {
+  /** The shower's cast key: every wave's pattern and every warning id derive from it. */
+  key: number;
+  /** Where he stood at the eruption: the shower's arena origin, wherever he walks next. */
+  originX: number;
+  originZ: number;
+  /** Seconds since the eruption. */
+  elapsed: number;
+  /** Seconds until the next wave. */
+  nextWave: number;
+  /** Waves called so far. */
+  wave: number;
+  /** Meteors called so far (each meteor's warning id index). */
+  serial: number;
+  /** The eruption's fissures, flat [originX, originZ, dirX, dirZ, length] per fissure. */
+  lines: number[];
+  /** Falling meteors, flat [x, z, secondsLeft, serial] per meteor. */
+  falling: number[];
+}
+
+export interface IgnivarEncounterState {
+  /** Players seen alive in this pull, used for wipe recovery and defeat barks. */
+  attemptParticipantIds?: number[];
+  /** Session-only voice pacing and at-most-once defeat bark bookkeeping. */
+  dialogueCooldownRemaining?: number;
+  announcedDefeatedPlayerIds?: number[];
+  finalBrandYellSpoken?: boolean;
+  brandTimer: number;
+  forgeStrikeTimer: number;
+  frontalTimer: number;
+  frontalCastRemaining: number;
+  frontalFacing: number;
+  skyfireTimer: number;
+  skyfireCastRemaining: number;
+  skyfireFacing: number;
+  meteorTimer: number;
+  meteorCastKey: number;
+  meteorImpactRemaining: number;
+  meteorPoints: Array<{ x: number; z: number }>;
+  forgeChainsTimer: number;
+  forgeChainsRemaining: number;
+  forgeChainsAttachGraceRemaining: number;
+  forgeChainsStrainSeconds: number[];
+  forgeChainsPlayerIds: [number, number][] | null;
+  forgeChainsLastPositions: Array<{ playerId: number; x: number; z: number }>;
+  rotatingRaysTimer: number;
+  rotatingRaysWindupRemaining: number;
+  rotatingRaysActiveRemaining: number;
+  rotatingRaysFacing: number;
+  rotatingRaysBossFacing: number;
+  rotatingRaysDirection: -1 | 1;
+  rotatingRaysNextDirection: -1 | 1;
+  rotatingRaysPulseTimer: number;
+  rotatingRaysHitCooldownByPlayerId?: Record<number, number>;
+  forgeWaveTimer: number;
+  forgeWaveWindupRemaining: number;
+  forgeWaveActiveRemaining: number;
+  forgeWaveFacing: number;
+  forgeWaveRadius: number;
+  forgeWaveHitPlayerIds: number[];
+  soakTimer: number;
+  soakTargetId: number | null;
+  soakRemaining: number;
+  overlapTimer: number;
+  conduitTimers: Partial<Record<'north_west' | 'north_east' | 'south_east' | 'south_west', number>>;
+  apocalypseTriggered: boolean;
+  apocalypseAddId: number | null;
+  apocalypseCastRemaining: number;
+  apocalypseResolved: boolean;
+  forgeJudgmentPhase: 'idle' | 'moving' | 'warning' | 'active' | 'done';
+  forgeJudgmentRemaining: number;
+  forgeJudgmentPulseTimer: number;
+  forgeJudgmentRotation: number;
+  forgeJudgmentSafeIndex: 0 | 1 | 2;
+  lastInfernoTriggered: boolean;
+  lastInfernoRemaining: number;
+  lastInfernoResolved: boolean;
+  finalFrontalTimer: number;
+  finalNextFrontal: 'searing' | 'skyfire';
+}
+
+export interface VarkhulEncounterState {
+  /** Players seen alive in this pull, used only for wipe cooldown recovery. */
+  attemptParticipantIds?: number[];
+  engage: VarkhulEngageState;
+  makersBrandTimer: number;
+  frontalTimer: number;
+  frontalCastKey: number;
+  frontalCastRemaining: number;
+  /** post-release stand-back-up window: he holds his ground through the
+   *  Slam's recovery animation before chasing again */
+  frontalRecoverRemaining: number;
+  frontalFacing: number;
+  frontalTargetId: number | null;
+  cinderOrbsTimer: number;
+  cinderOrbsCastKey: number;
+  cinderOrbsMarkRemaining: number;
+  cinderOrbsTargetIds: number[];
+  cinderFires: Array<{ id: string; pos: Vec3; tickTimer: number }>;
+  cinderOrbProjectiles: Array<{
+    id: string;
+    ownerId: number;
+    pos: Vec3;
+    dir: { x: number; z: number };
+    remaining: number;
+    hitPlayerIds: number[];
+    radius?: number;
+    duration?: number;
+    speed?: number;
+    damageMaxHp?: number;
+    ability?: string;
+  }>;
+  forgestormTimer: number;
+  forgestormCastKey: number;
+  forgestormWaveIndex: number;
+  forgestormWarningRemaining: number;
+  forgestormPoints: Vec3[];
+  sharedPyreTimer: number;
+  sharedPyreTargetId: number | null;
+  sharedPyreRemaining: number;
+  anvilTimer: number;
+  anvilWalking: boolean;
+  anvilStrikeIndex: number;
+  anvilStrikeRemaining: number;
+  anvilMeteorCastKey: number;
+  anvilMeteorBatches: Array<{
+    castKey: number;
+    strikeIndex: number;
+    remaining: number;
+    points: Vec3[];
+  }>;
+  interceptBeamTimer: number;
+  interceptBeamCastKey: number;
+  interceptBeamCastRemaining: number;
+  interceptBeamTargetId: number | null;
+  interceptBeamBlockerId: number | null;
+  majorAbility:
+    | 'none'
+    | 'frontal'
+    | 'cinderOrbs'
+    | 'forgestorm'
+    | 'sharedPyre'
+    | 'anvil'
+    | 'interceptBeam';
+  assemblyTriggered: boolean;
+  assemblyRuneDifficulty: VarkhulAssemblyDifficulty;
+  assemblyPhase: VarkhulAssemblyPhase;
+  assemblyAddIds: number[];
+  assemblyLinkAddIds: number[];
+  assemblyLinkWardenIdsByWave: Array<number | null>;
+  assemblyLinkWardenSpawns: Array<{
+    wave: number;
+    remaining: number;
+  }>;
+  assemblyRemaining: number;
+  assemblyWipeResolved: boolean;
+  assemblyDroppedAddIds: number[];
+  assemblyCores: Array<{
+    id: string;
+    sourceAddId: number;
+    pos: Vec3;
+    carrierId: number | null;
+    delivered: boolean;
+    burdenStacks: number;
+    burdenTickTimer: number;
+  }>;
+  assemblyForgeHp: number;
+  assemblyForgeOverheat: number;
+  forgeBeamWindow: VarkhulForgeBeamWindow;
+  forgeBeamWindowRemaining: number;
+  forgeBeamTeachingTriggered: boolean;
+  forgeBeamPressureTriggered: boolean;
+  forgeBeamFinalTriggered: boolean;
+  forgeHeatWarningMask: number;
+  assemblyForgeBeamActiveMask: number;
+  assemblyForgeBeamWarningMask: number;
+  assemblyForgeBeamWarmupRemaining: number;
+  assemblyForgeBeamBlockerIds: Array<number | null>;
+  assemblyForgeBeamDamageTimers: number[];
+  assemblyForgeMeltdownRemaining: number;
+  assemblyForgeMeltdownTickTimer: number;
+  assemblyForgeHammerTimer: number;
+  assemblyForgeVentedThisTick: boolean;
+  assemblyPortalSpawns: Array<{ wave: number; spawnIndex: number; remaining: number }>;
+  assemblyOrdinaryAddWaves: Array<{ addId: number; wave: number }>;
+  assemblyNextWaveIndex: number;
+  assemblyNextWaveRemaining: number;
+  assemblyIntermissionWaves: number;
+  assemblyArtificerNextSpawnRemaining: number;
+  assemblyArtificerSpawnIndex: number;
+  assemblyArtificerPortalSpawns: Array<{ portalIndex: number; remaining: number }>;
+  assemblyDeliveryWindowRemaining: number;
+  assemblyDeliveredCoreIds: string[];
+  assemblyArtificerRepaired: boolean;
+  assemblyFixateTargetId: number | null;
+  assemblyRuneCenter: Vec3 | null;
+  assemblyRuneAssignments: Array<{
+    playerId: number;
+    symbol: number;
+    locked: boolean;
+  }>;
+  assemblyRuneAngles: number[];
+  assemblyRuneControls: VarkhulAssemblyRuneControl[];
+  assemblyRuneControlHoldSeconds: number[];
+  assemblyRuneAlignmentHoldSeconds: number[];
+  assemblyRuneRescuerIds: Array<number | null>;
+  assemblyRuneUnavailablePlayerIds: number[];
+  assemblyRuneSlots: number[];
+  assemblyRuneLayoutKey: number;
+  assemblyLinkFireballTimer: number;
+  assemblyLinkFireballWave: number;
+  assemblyRuneRound: number;
+  assemblyRuneRounds: number;
+  assemblyRuneRemaining: number;
+  assemblyStunRemaining: number;
+  masterpieceTriggered: boolean;
+  masterpieceRemaining: number;
+  masterpiecePulseTimer: number;
+  masterpieceWorldfireStage: number;
+  masterpieceWorldfireTickTimer: number;
+  masterpieceWipeResolved: boolean;
 }
 
 export type ErrorReason = 'target_dead';
@@ -3327,6 +9272,7 @@ export type MailResultCode =
   | 'tooManyParcels'
   | 'noMailQuestItems'
   | 'noMailSoulbound'
+  | 'noMailBound'
   | 'notEnoughItems'
   | 'cantAffordPostage'
   | 'recipientBoxFull'
@@ -3348,6 +9294,12 @@ export type CalendarResultCode =
 // `set` is the success, the rest refusals).
 export type MotdResultCode = 'set' | 'notInGuild' | 'notOfficer';
 
+// Guild roster expansion refusals (mirrors server/social.ts
+// GuildRosterResultCode; every code is a refusal, the success is the
+// guild-wide guildRosterExpanded event). Redeclared here because src/sim
+// never imports server/; tests/social_system.test.ts pins the two in lockstep.
+export type GuildRosterResultCode = 'notInGuild' | 'notLeader' | 'maxed' | 'cannotAfford' | 'retry';
+
 // An in-flight party/raid ready check (social/ready_check.ts). Keyed on Sim by party
 // id. Each member is 'pending' until they answer; anyone still 'pending' when the
 // timeout fires is counted as "no response" (there is no separate afk state).
@@ -3360,29 +9312,204 @@ export interface ReadyCheck {
   responses: Map<number, 'ready' | 'notready' | 'pending'>; // pid -> answer
 }
 
+export interface ReadyCheckMemberResponse {
+  pid: number;
+  name: string;
+  state: 'ready' | 'notready' | 'pending';
+}
+
+// An active party/raid pull timer (/pull X).
+export interface PullTimer {
+  partyId: number;
+  initiator: number;
+  endsAt: number;
+  totalSeconds: number;
+  lastAnnounced: number;
+}
+
+// A player's active riding-lesson attempt (src/sim/mounts_training.ts), kept on
+// PlayerMeta.mountTraining. Session-only: never persisted/serialized (unlike the
+// one-time mountTrainingFeePaid flag also on PlayerMeta), so a save/load never
+// resumes a half-finished lesson. The lesson is the Mount/Dismount keybind
+// tutorial: begin at Marla, then climb onto the training Valorsteed with that
+// key, which succeeds the lesson and credits the quest objective. No rng, so
+// installing this system perturbs no draw order.
+export interface MountTrainingSession {
+  sessionId: string;
+  ownerId: number;
+  /** Marla's position captured at begin (she is stationary), so the per-tick
+   *  stray check never rescans the entity map for her. */
+  anchor: { x: number; z: number };
+  state: 'IN_PROGRESS' | 'SUCCESS' | 'ABANDONED';
+  /** Lesson phase while IN_PROGRESS: 'mount' before the player has climbed onto
+   *  the training steed, 'ride' once mounted (ride the course to the start line
+   *  and finish a race to pass). Mounting no longer completes the lesson; a race
+   *  finished while the lesson is live is what credits the quest. */
+  phase: 'mount' | 'ride';
+}
+
+// A player's own active show-jumping race (src/sim/mount_race.ts), kept on
+// PlayerMeta.mountRace. Session-only: never persisted/serialized, so a
+// save/load never resumes a half-run race. Strictly per-player by design (the
+// online-concurrency requirement): no field references any other player or any
+// shared course state. The lap starts on the 'mount_race_start' command at the
+// arch, counts down, then runs a timed lap in which the seven jumps may be
+// cleared in ANY order (a bit per jump), finishing on the next arch crossing once
+// all bits are set. No rng.
+export interface MountRaceSession {
+  raceId: string;
+  ownerId: number;
+  /** 'countdown' from the start command until GO (gates inert), then 'racing'. */
+  phase: 'countdown' | 'racing';
+  /** The tick the countdown ends and the timed lap begins (the 3..2..1..GO
+   *  boundary); the elapsed time and the deadline both measure from here. */
+  goTick: number;
+  /** The tick the timed lap times out (goTick + budget); only checked while racing. */
+  deadlineTick: number;
+  /** Bitmask of cleared jumps (bit i = MOUNT_RACE_COURSE.jumps[i]); the lap
+   *  finishes when every bit is set and the rider re-crosses the arch. jumpsTotal
+   *  is <= 31, so a number bitmask suffices. */
+  clearedMask: number;
+}
+
+// Structured, player-safe recovery telemetry. The sim captures both raw world
+// coordinates and content-local coordinates at invocation time so operators can
+// group repeated problem spots across separate instance slots. Stable codes only:
+// player-facing prose is assembled by the client i18n catalog.
+export type UnstuckAreaKind = 'overworld' | 'dungeon' | 'delve' | 'rift' | 'battleground';
+
+export interface UnstuckArea {
+  kind: UnstuckAreaKind;
+  id: string;
+  instanceId?: string;
+  slot?: number;
+}
+
+export interface UnstuckPosition extends Vec3 {
+  localX: number;
+  localZ: number;
+}
+
+export type UnstuckBlockedReason =
+  | 'already_active'
+  | 'already_safe'
+  | 'cooldown'
+  | 'dead'
+  | 'ghost'
+  | 'jailed'
+  | 'combat'
+  | 'controlled'
+  | 'falling'
+  | 'moving'
+  | 'busy'
+  | 'spectating'
+  | 'competitive'
+  | 'trading'
+  | 'invalid_area';
+
+export type UnstuckCancelReason =
+  | 'moved'
+  | 'damaged'
+  | 'combat'
+  | 'busy'
+  | 'state_changed'
+  | 'disconnected';
+
+export type UnstuckEvent =
+  | { type: 'unstuck'; phase: 'started'; seconds: number }
+  | { type: 'unstuck'; phase: 'countdown'; seconds: number }
+  | { type: 'unstuck'; phase: 'blocked'; reason: UnstuckBlockedReason; seconds?: number }
+  | {
+      type: 'unstuck';
+      phase: 'cancelled';
+      reason: UnstuckCancelReason;
+      area: UnstuckArea;
+      origin: UnstuckPosition;
+      duration: number;
+    }
+  | {
+      type: 'unstuck';
+      phase: 'failed';
+      reason: 'no_safe_position';
+      area: UnstuckArea;
+      origin: UnstuckPosition;
+      duration: number;
+    }
+  | {
+      type: 'unstuck';
+      phase: 'completed';
+      // 'moved_to_graveyard': a living player was moved there and left alive.
+      // 'revived_at_graveyard': an already dead or released player was pulled to
+      // the graveyard and raised there.
+      // Both charge Unstuck Sickness on a repeat inside the hour window (see
+      // `sickness`). The two retired reasons stay in the union so the client renders
+      // them rather than t(undefined): 'nearest_safe_position' (the short-range
+      // teleport) survives in historical telemetry, and 'nearest_graveyard' (the
+      // pre-0.32.1 kill-and-release outcome) can still arrive from a not-yet-updated
+      // server under an OTA bundle that agrees on the layout epoch.
+      reason:
+        | 'nearest_safe_position'
+        | 'nearest_graveyard'
+        | 'moved_to_graveyard'
+        | 'revived_at_graveyard';
+      // Whether Unstuck Sickness was applied by this completion: false for the first
+      // use in an hour (and for a character below the sickness floor), true for a
+      // repeat inside the window. Optional only for wire skew: a not-yet-updated
+      // server (pre-window) omits it, and it always charged, so an absent value reads
+      // as charged.
+      sickness?: boolean;
+      area: UnstuckArea;
+      origin: UnstuckPosition;
+      destination: UnstuckPosition;
+      duration: number;
+      distance: number;
+    };
+
 // A player resurrection that has been offered but not yet accepted. The Sim owns
 // one authoritative offer per dead target. The cast-time destination is retained
-// only as a fallback if the caster no longer exists when the target accepts.
+// as a fallback if the caster no longer exists, has died, or has left resurrection
+// reach of the body when the target accepts; maxRange is the reach the producing
+// cast enforced, re-applied to the arrival anchor at accept time.
 export interface PendingResurrection {
   casterId: number;
   hpFrac: number;
   fallbackDestination: Vec3;
   expiresAt: number;
+  maxRange: number;
 }
 
-export type DamageEventKind = 'hit' | 'miss' | 'dodge' | 'parry' | 'block' | 'resist';
+export type DamageEventKind = 'hit' | 'miss' | 'dodge' | 'parry' | 'block' | 'resist' | 'evade';
 
 // `pid` (when present) marks a personal event that should only be delivered to
 // that player entity's owner; events without pid are world-visible.
 export type SimEvent = { pid?: number } & (
+  | import('./referral_evidence').ReferralEvidence
+  | { type: 'courier'; playerId: number }
   | {
       type: 'damage';
       sourceId: number;
+      // Snapshotted when the event is emitted so pet/guardian damage remains
+      // attributable after owner death despawns the source before hosts consume it.
+      sourceOwnerId?: number;
       targetId: number;
       amount: number;
       crit: boolean;
       school: string;
       ability: string | null;
+      // The stable content id of the ability that dealt this damage, when
+      // known (dealDamage's own abilityId param, see combat/damage.ts).
+      // `ability` above stays the DISPLAY LABEL (player-facing combat log,
+      // playerSwingCueForDamage's 'Auto Shot' check): a display-only rename
+      // must never break a client-side lookup keyed off it, the way
+      // IMPACT_ABILITY_CUES (src/ui/combat_sfx.ts) was before this field
+      // existed. Populated only for the PRIMARY direct hit: auto-attacks,
+      // DoT ticks, and echoed or fanned-out copies (Power Echo, Bladed Echo,
+      // Sweeping Strikes) deliberately omit it, so a dedicated impact cue
+      // fires once where the ability lands and never replays per tick or
+      // per extra target (a hybrid's dot shares the ability id: Throat
+      // Wire's bleed is aura id 'garrote'). Client code must fall back to
+      // school/material when this is absent.
+      abilityId?: string | null;
       kind: DamageEventKind;
       absorbed?: number;
       // Presentation-only correlation: this hit belongs to a ranged shot whose
@@ -3423,6 +9550,52 @@ export type SimEvent = { pid?: number } & (
   // ID only, never English text; `retro` marks the on-join back-credit pass so
   // the client can batch those into one summary line instead of banner spam.
   | { type: 'deedUnlocked'; deedId: string; retro?: boolean }
+  // A dungeon guide's line (src/sim/dungeon_guide), always personal: one copy
+  // per player in the claim. Ids only, never English (the deedUnlocked rule):
+  // the client resolves the line's key from the guide's record and shows it as
+  // a quiet `say` bubble plus a chat line (an emote line has no bubble).
+  | { type: 'dungeonGuideLine'; guideId: string; lineId: string; npcId: number }
+  // A dungeon guide begins his finale song (always personal, one copy per player
+  // in the claim): the world positions (x, y, z triplets, rounded) where the
+  // fallen he sings to rest lie, so the renderer can raise them as light.
+  | { type: 'dungeonGuideFinale'; guideId: string; npcId: number; spots: number[] }
+  // Account ledger relic record (always personal: emitted with pid). Fired
+  // when the acting character is appended as a finder of a catalogued relic
+  // (an item, an authored mark, or a mount) on its account ledger
+  // (src/sim/account_ledger.ts). `key` is the accountRelicKey. Never English;
+  // NOT presentation: the client ignores it (the heavy `acct` self key is the
+  // membership authority), the server persists the row and fans the entry out
+  // to the account's other live sessions. `retro` marks the on-join seed pass.
+  | { type: 'relicRecorded'; key: string; retro?: boolean }
+  // A Barrowglass Thrust broke the world boss's ward (src/sim/lance_trial.ts). Personal
+  // (carries pid): the wielder is the one owed the feedback, and `count` is their running
+  // tally so the client can float `+N` without holding its own counter, which would drift
+  // from the character's persisted number across a relog. Id-only, no English.
+  | { type: 'lanceBlind'; pid: number; count: number; targetId: number; effigy?: true }
+  // Reliquary first fill (always personal: emitted with pid). Id-only: exactly
+  // one of itemId / markId is set for a catalogued relic or authored mark.
+  // pageIds list pages that list the relic; illuminatedPageId is set when a
+  // page became complete on this fill. Never English; presentation only
+  // (sparse self blob is the membership authority).
+  | {
+      type: 'reliquaryUnlock';
+      itemId?: string;
+      markId?: string;
+      pageIds?: string[];
+      illuminatedPageId?: string;
+      /** New cosmetic Curator rank index when this fill crossed a threshold. */
+      curatorRank?: number;
+      /**
+       * Set on the on-join seed pass: the client batches these into one
+       * summary line instead of a toast per relic. The event itself stays
+       * self-scoped (a HEAVY_SELF_EVENTS member), but since Phase 18 the flag
+       * also gates the server's illumination fan-out exactly like
+       * deedUnlocked's: detectActivity broadcasts a first-ever
+       * illuminatedPageId to the earner's guildmates and followers only when
+       * retro is not true (a veteran's on-join seed pass must never marquee).
+       */
+      retro?: boolean;
+    }
   | { type: 'learnAbility'; abilityId: string; rank: number }
   // The hub grant event. Two independent stand-down flags, both set only from
   // Sim.addItem/addItemInstance's opts param (the one place either gets set):
@@ -3439,11 +9612,21 @@ export type SimEvent = { pid?: number } & (
   //   link) off its own result event. Without it a profession action printed
   //   two lines for one grant (#2430). Everything else the client does on a
   //   loot event (bag refresh, loot-roll close) still runs.
-  | { type: 'loot'; text: string; silent?: boolean; callerLogs?: boolean }
+  | {
+      type: 'loot';
+      text: string;
+      rollId?: number;
+      silent?: boolean;
+      callerLogs?: boolean;
+      itemId?: string;
+      instance?: ItemInstancePayload;
+      count?: number;
+    }
   | {
       type: 'lootRoll';
       rollId: number;
       itemId: string;
+      instance?: ItemInstancePayload;
       itemName: string;
       quality: ItemDef['quality'];
       expiresAt: number;
@@ -3453,16 +9636,69 @@ export type SimEvent = { pid?: number } & (
       type: 'masterLoot';
       rollId: number;
       itemId: string;
+      instance?: ItemInstancePayload;
       itemName: string;
       quality: ItemDef['quality'];
       expiresAt: number;
       candidates: { pid: number; name: string }[];
+    }
+  // A party loot roll GRANTED its item: fired once per roll, at resolution
+  // (a need/greed win or a direct master-loot assignment), pid-scoped to the
+  // winner. Distinct from the `lootRoll` PROMPT above, which fans one copy out
+  // per candidate before anyone has rolled and so never names a recipient; a
+  // consumer that wants "who received the drop" (the Discord rare-drop card)
+  // reads this event, never the prompt. Never fired when everyone passes or
+  // the winner is gone (the item returns to the corpse instead).
+  | {
+      type: 'lootRollAwarded';
+      rollId: number;
+      itemId: string;
+      itemName: string;
+      quality: ItemDef['quality'];
+    }
+  // A King of the Hill phase was announced to the realm: fired beside the
+  // realm's `log` line in hill.ts announcePhase, once per phase change.
+  // SERVER-ONLY like worldPvpKill: its one consumer is the Discord PvP feed
+  // (server/discord_hill_feed.ts), and server/event_frame.ts strips it from
+  // every client frame (clients already get the log line). Carries no pid and
+  // no absolute sim time: the seconds are RELATIVE to the moment of the
+  // announcement, so a host maps them onto its own clock.
+  | {
+      type: 'hillAnnounced';
+      phase: 'warning' | 'risen' | 'fallen';
+      zoneId: string;
+      secondsUntilRise: number;
+      secondsUntilFall: number;
+    }
+  // A World PvP (/pvp flag) death resolved: fired exactly once per death, from
+  // worldPvpOnPlayerDeath behind its paid-death guard, and only for a death at
+  // a world-hostile player's hands (duels, battlegrounds and arenas never
+  // fire it). SERVER-ONLY: its one consumer is the Discord PvP kill feed
+  // (server/discord_pvp_feed.ts), and server/event_frame.ts strips it from
+  // every client frame. Carries no pid. `zoneId` is the victim's zone (null
+  // off the zone table); `assists` counts the credited contributors other
+  // than the killing blow; `copper` is the stake actually taken from the
+  // victim, never the nominal stake.
+  | {
+      type: 'worldPvpKill';
+      killerName: string;
+      victimName: string;
+      killerLevel: number;
+      victimLevel: number;
+      zoneId: string | null;
+      assists: number;
+      copper: number;
     }
   | {
       type: 'error';
       text: string;
       reason?: ErrorReason;
       aiInteraction?: { speakerId: number; interactionId?: string };
+      // Optional stable identity and data for server-authored error events.
+      // `text` remains the compatibility fallback for older or unknown clients.
+      code?: string;
+      channel?: string;
+      retryAfterSeconds?: number;
     }
   | {
       type: 'aiThinking';
@@ -3511,7 +9747,229 @@ export type SimEvent = { pid?: number } & (
     }
   | { type: 'questReady'; questId: string }
   | { type: 'questDone'; questId: string }
-  | { type: 'aura'; targetId: number; name: string; gained: boolean; auraKind?: AuraKind }
+  /** The Gambler's Die landed (src/sim/combat/trinkets.ts): the client names the
+   *  fortune it rolled. */
+  | { type: 'trinketGamble'; fortune: 'keenEdge' | 'luckyHeal' | 'gildedGuard' | 'snakeEyes' }
+  | { type: 'worldQuestStarted'; questId: string }
+  // The weekly emissary (src/sim/weekly_quests.ts): open the window, the pick,
+  // progress, and the paid completion. All personal (pid); the client owns
+  // every visible string.
+  | { type: 'worldQuestWeeklyOpen' }
+  | { type: 'worldQuestWeeklyChosen'; questId: string }
+  | { type: 'worldQuestWeeklyProgress'; questId: string; count: number; required: number }
+  | { type: 'worldQuestWeeklyDone'; questId: string }
+  // Lantern Hall, the Highwatch adventurers' guild (src/sim/guild_contracts.ts,
+  // src/sim/guild_quartermaster.ts, src/sim/highwatch_guild.ts): a resident opens the guild
+  // window on a tab or the Dungeon Finder; a contract paid its seals; a cosmetic was bought
+  // or refused. All personal (pid); the client owns every visible string.
+  | { type: 'guildHallOpen'; tab: 'contracts' | 'quartermaster' }
+  | { type: 'guildRecruiterOpen' }
+  | { type: 'guildContractDone'; contractId: string; seals: number }
+  | { type: 'guildCosmeticBought'; offerId: string }
+  | { type: 'guildCosmeticRefused'; offerId: string; reason: GuildCosmeticRefusal }
+  /** A big on-screen line for a shared world-quest moment (the client owns the
+   *  wording under questUi.worldQuest.banner.<banner>). */
+  | { type: 'worldQuestBanner'; banner: WorldQuestBannerId }
+  | ({ type: 'cannonResult' } & CannonResult)
+  /** One finished scoreboard attempt (src/sim/world_quest_scoreboards.ts); the
+   *  server keeps the character's best row per board. */
+  | {
+      type: 'worldQuestScore';
+      board: string;
+      medal: WorldQuestMedal | null;
+      metric: number;
+      resetDay?: string;
+    }
+  | {
+      type: 'worldQuestProgress';
+      questId: string;
+      count: number;
+      required: number;
+    }
+  | { type: 'worldQuestPuzzleOpened'; questId: string }
+  | { type: 'worldQuestPuzzleClosed'; questId: string }
+  | {
+      type: 'worldQuestPuzzleUpdated';
+      questId: string;
+      tileIndex: number;
+      rotation: number;
+    }
+  | { type: 'worldQuestPuzzleFailed'; questId: string }
+  | { type: 'worldQuestMatch3Updated'; questId: string }
+  | {
+      type: 'worldQuestDone';
+      questId: string;
+      traceResult?: Pick<WorldQuestTraceResult, 'score' | 'rating'>;
+    }
+  // Clue Scrolls (src/sim/clue_scrolls.ts, src/sim/clue_casket.ts): ids and
+  // indices only, the client resolves every clue and line (clues.<huntId>.<step>).
+  /** The day's slate paid a scroll and it landed in the bags. */
+  | { type: 'clueScrollEarned' }
+  /** The slate paid a scroll but the stack or the bags could not hold it: lost for the day. */
+  | { type: 'clueScrollLost' }
+  | { type: 'clueHuntStarted'; huntId: string; total: number }
+  /** `step` is the index of the step that just completed; `total` is steps.length. */
+  | { type: 'clueHuntStep'; huntId: string; step: number; total: number }
+  | { type: 'clueHuntDone'; huntId: string }
+  // Seasonal events (src/sim/seasonal/): ids and numbers only, the client
+  // composes every line. `npc` is the NPC TEMPLATE id; `trick` an aura id.
+  | {
+      type: 'seasonal';
+      what:
+        | 'treat'
+        | 'trick'
+        | 'alreadyKnocked'
+        | 'notActive'
+        | 'tooFar'
+        | 'pumpkinOn'
+        | 'pumpkinOff'
+        | 'jarTrick'
+        // the Strawling Charm (Old Thatchgrin's cosmetic) put its guise on the user
+        | 'guise'
+        // a costume draught put its body on the user (`trick` is the costume aura id)
+        | 'costume'
+        // a title writ granted its Feat (`trick` is the deed id), or was refused because
+        // the title is already earned
+        | 'titleGranted'
+        | 'titleKnown'
+        // an event-bound item was swept away because its event closed (`trick` = item id)
+        | 'boundItemGone'
+        // a Haunted Pumpkin was found and lit for this player (count of total)
+        | 'pumpkinFound'
+        // the Boo! daily (seasonal/gourdlight_dailies.ts): a costumed fright landed on
+        // `npc`, or was refused (no costume, already frightened today, not on the errand)
+        | 'boo'
+        | 'booNoCostume'
+        | 'booAlready'
+        | 'booNotOnErrand'
+        // one of Hester's toys played (`trick` = the toy's item id; `who` = the prank's
+        // target), the prank's splat landed on this player (`who` = the thrower), or a
+        // toy was refused: the prank needs another player out of combat, or the user
+        // is hidden in stealth (a toy would give them away)
+        | 'toy'
+        | 'pranked'
+        | 'prankNeedsPlayer'
+        | 'toyHidden'
+        // this player drank from a Gurglegreen Cauldron (seasonal/toy_cauldron.ts)
+        | 'cauldronDrink';
+      /** A player's name (the toys: the prank's target or thrower). */
+      who?: string;
+      pumpkinId?: string;
+      zoneId?: string;
+      count?: number;
+      total?: number;
+      npc?: string;
+      sweets?: number;
+      trick?: string;
+    }
+  | { type: 'clueHuntAbandoned'; huntId: string }
+  /** One id per grant (the Heroic Marks stack appears once) plus the copper paid. */
+  | { type: 'clueCasketOpened'; itemIds: string[]; copper: number }
+  // Treasure maps and vaults (src/sim/treasure_vault.ts). The sim emits ids
+  // only; the client resolves the prose and opens the map window on a read.
+  | { type: 'treasureMapEarned'; rarity: TreasureMapRarity }
+  /** Retired: the slate's map now waits in the mailbox when the bags are full
+   *  (worldQuestRewardMailed). Kept so the client case and its key still resolve. */
+  | { type: 'treasureMapLost' }
+  /** World quest reward items that did not fit in the bags and were posted to
+   *  the Ravenpost instead (src/sim/world_quest_reward_mail.ts). Ids only. */
+  | { type: 'worldQuestRewardMailed'; itemIds: string[] }
+  | { type: 'treasureMapRead'; rarity: TreasureMapRarity; siteId: string; fresh: boolean }
+  | { type: 'treasureMapUpgraded'; rarity: TreasureMapRarity; inks: number }
+  | { type: 'treasureVaultOpened'; rarity: TreasureMapRarity }
+  /** Server-only durable settlement input, never forwarded to clients. */
+  | {
+      type: 'treasureVaultOutcomePending';
+      bossKilledAtMs?: number;
+      attemptId: string;
+      ownerCharacterId: number;
+      claims: {
+        characterId: number;
+        recipientName: string;
+        items: { itemId: string; count: number; lootQuality?: LootQualityDescriptor }[];
+        copper: number;
+        guestCycle?: string;
+      }[];
+    }
+  /** Server-only request; the chest grants nothing until the fenced save commits. */
+  | { type: 'treasureVaultClaimRequested'; attemptId: string; characterId: number }
+  | {
+      type: 'treasureVaultLooted';
+      rarity: TreasureMapRarity;
+      capped: boolean;
+      itemIds?: string[];
+      copper?: number;
+    }
+  /** The room this player just climbed into holds a living Coinsack Scurrier
+   *  (src/sim/rift/hoard_goblin.ts): its escape bar length and the seconds it
+   *  has left before leaving untouched, so the explanation never drifts. */
+  | { type: 'hoardGoblinSighted'; escapeSec: number; idleSec: number }
+  | {
+      type: 'varkhulCallout';
+      sourceId: number;
+      call:
+        | 'leftPillarCharging'
+        | 'rightPillarCharging'
+        | 'bothPillarsCharging'
+        | 'leftPillar'
+        | 'rightPillar'
+        | 'bothPillars'
+        | 'portalsOpening'
+        | 'artificerApproaches'
+        | 'heat75'
+        | 'heat90'
+        | 'addsDefeated'
+        | 'worldfireBegins'
+        | 'worldfireClosing'
+        | 'worldfireConsumed';
+    }
+  // Text-free structured Nythraxis raid warning (the Varkhul callout's
+  // sibling): the sim ships the enum, the client renders localized copy.
+  | {
+      type: 'nythraxisCallout';
+      sourceId: number;
+      call:
+        | 'impaled'
+        | 'youAreImpaled'
+        | 'spikeBroken'
+        | 'dreadCurseSwap'
+        | 'sigilAppears'
+        | 'sigilBound'
+        | 'sigilUnbound'
+        | 'gravefireTarget'
+        | 'kingsWrath'
+        | 'boneStormBegins'
+        | 'boneStormCharge'
+        | 'boneStormEnds'
+        | 'crownEndures60'
+        | 'crownEndures30'
+        | 'crownEndures10'
+        | 'crownEndures';
+    }
+  | {
+      type: 'aura';
+      targetId: number;
+      name: string;
+      gained: boolean;
+      auraKind?: AuraKind;
+      // Attribution the Aura object always had but the event used to drop
+      // (parse fidelity 7.2): the caster's entity id, the stable aura/ability
+      // id, and the stack count at application. Carried by the Sim.applyAura
+      // emit path (gained, refresh, and same-id brand-swap fades) and the
+      // stack-bump re-emit in effect_dispatch; the scattered gained AND fade
+      // sites elsewhere (mob_swing, Blood Frenzy, Pack Frenzy, pet buffs,
+      // empower_next, expiries, dispels, ...) still emit bare, and consumers
+      // must treat every field here as optional.
+      sourceId?: number;
+      abilityId?: string;
+      stacks?: number;
+      // True when a gained event displaced a same-id same-name aura already on
+      // the target (a re-application; no fade is emitted, and the aura moves
+      // to the end of the array exactly as a fresh application always has):
+      // parses and combat logs read this as SPELL_AURA_REFRESH rather than a
+      // fresh application.
+      refresh?: boolean;
+    }
   | {
       type: 'castStart';
       entityId: number;
@@ -3524,8 +9982,17 @@ export type SimEvent = { pid?: number } & (
     }
   | { type: 'castStop'; entityId: number; success: boolean }
   | { type: 'comboPoint'; points: number }
-  | { type: 'playerDeath' }
-  | { type: 'respawn' }
+  // Classic-era death recap: killerId names the entity (by id, so the client
+  // resolves its localized display name the same way any other event does)
+  // that landed the kill, omitted for an untracked source (fall damage, an
+  // unresolved cause). killerAbility is the raw English ability/cause name
+  // (e.g. 'Falling' for environmental damage), the client localizes it via
+  // abilityDisplayNameFromSource like every other ability-name event field.
+  | { type: 'playerDeath'; killerId?: number; killerAbility?: string }
+  // sickness names the penalty the revive charged, so the client can say so; a
+  // penalty-free revive (corpse run, instance re-entry, delve reset) omits it.
+  | { type: 'respawn'; sickness?: 'resurrection' }
+  | UnstuckEvent
   // itemId names the single item for buy/sell/buyback; it is omitted for the
   // bulk "sell all junk" sweep, which the client treats as a plain refresh signal.
   | { type: 'vendor'; action: 'buy' | 'sell' | 'buyback'; itemId?: string }
@@ -3540,11 +10007,58 @@ export type SimEvent = { pid?: number } & (
   // Asks the client to open the bank window (the interact path at a banker NPC).
   // Structured data only (pid supplied by the union intersection); the client
   // builds every visible string, the mailbox precedent.
-  | { type: 'bank' }
+  | { type: 'bank' | 'weekly_rewards' }
+  // Asks the client to open the Rift Forge window (the interact path at a
+  // riftForge NPC). Structured only, the bank precedent above.
+  | { type: 'riftForge' }
+  // Asks the client to open the corpse-harvest preference picker (the Field
+  // Kit's 'harvestPreference' use effect, Intentional Gathering PR3). `pid`
+  // is REQUIRED here, unlike `mailbox`/`bank` above: this is minted directly
+  // from an item-use command body rather than routed through the union
+  // intersection's usual pid-supplied-by-caller convention, so a future
+  // caller cannot accidentally emit it world-wide with no owner.
+  | { type: 'harvestPreferenceOpen'; pid: number }
   // Interacting with a town noticeboard. Structured and personal: the client
   // owns localized feedback, and online routing sends it only to the reader.
-  | { type: 'noticeboard'; noticeboardId: string; state: 'empty' }
+  // 'listings' carries the board's posted notices verbatim (guild names and
+  // notes are world data, spliced by the client like player names, never
+  // translated); a board with nothing posted stays the bare 'empty' shape.
+  | {
+      // The Realm Builder monument was inspected. Carries the whole roll so
+      // the card renders identically offline and online, and so a later live
+      // source (Postgres, or the Discord role sync) only has to change what
+      // fills these fields. Honouree names splice verbatim, like player names.
+      type: 'realmBuilder';
+      current: RealmBuilderHonour;
+      past: readonly RealmBuilderHonour[];
+    }
+  | { type: 'worldQuestInvestigationDialogue'; targetId: number }
+  // `boardId` is the authored NoticeboardDef id (every board shares one
+  // templateId), so the client can tell the Proving Shore's recruits' signpost
+  // from a town board and open the guild board on its default view.
+  | { type: 'noticeboard'; noticeboardId: string; boardId: string; state: 'empty' }
+  | {
+      type: 'noticeboard';
+      noticeboardId: string;
+      boardId: string;
+      state: 'listings';
+      listings: readonly NoticeboardListing[];
+    }
+  | {
+      // A world object (a torched murloc hut, q_deepfen_purge) bursts into flames.
+      // The renderer plays a fire burst at (x, z). Visual-only.
+      type: 'worldObjectBurning';
+      objectId: number;
+      x: number;
+      z: number;
+    }
   | { type: 'mailArrived'; senderName: string; letterId?: string }
+  // A paid store reward landed in (or still waits in) this player's mailbox: the
+  // client opens a loot window that takes it from anywhere (mail/purchase_parcels.ts).
+  | { type: 'purchaseParcels'; parcels: PurchaseParcelView[] }
+  // The server redeemed a membership token for this player: a congratulation
+  // dialog. `expiresAt` is the new membership end in Unix ms (server-emitted only).
+  | { type: 'membershipRedeemed'; days: number; expiresAt: number | null }
   | { type: 'mailResult'; code: MailResultCode; value?: number; name?: string }
   // Guild calendar outcome. Emitted only by the server's SocialService (the
   // sim never books guild events); declared here so the one client event
@@ -3554,12 +10068,25 @@ export type SimEvent = { pid?: number } & (
   // sim never edits the billboard); declared here, like calendarResult, so the
   // one client event switch stays exhaustively typed.
   | { type: 'motdResult'; code: MotdResultCode }
+  // Guild roster expansion refusal (a code, never English; `price` in copper
+  // rides only the cannotAfford arm) and the guild-wide success line: the
+  // buyer's name and the new seat cap. Both emitted only by the server's
+  // SocialService (the sim never seats guild members); declared here, like
+  // calendarResult, so the one client event switch stays exhaustively typed.
+  | { type: 'guildRosterResult'; code: GuildRosterResultCode; price?: number }
+  | { type: 'guildRosterExpanded'; byName: string; cap: number }
   // A guildmate's or followed friend's marquee deed unlock. Emitted only by
   // the server's SocialService (the sim never sees other players' social
   // graphs); declared here, like calendarResult, so the one client event
   // switch stays exhaustively typed. Carries ids and the earner's name only,
   // never deed text: the client composes the line from deed_i18n.
   | { type: 'deedBroadcast'; characterName: string; deedId: string }
+  // A guildmate's or followed friend's FIRST-EVER Reliquary page Illumination
+  // (Phase 18). Emitted only by the server's SocialService, declared here
+  // like deedBroadcast so the one client event switch stays exhaustively
+  // typed. Carries the earner's name and the page id only, never page text:
+  // the client composes the line from reliquary_i18n plus its own chrome key.
+  | { type: 'reliquaryIlluminationBroadcast'; characterName: string; pageId: string }
   // say/yell are delivered only to players in range and carry the speaker's
   // entity id so the client can hang a chat bubble over their head; whisper
   // goes to the target (and echoes to the sender with `to` set); general is
@@ -3580,6 +10107,12 @@ export type SimEvent = { pid?: number } & (
         | 'whisper'
         | 'general'
         | 'party'
+        // Everyone in the sender's battleground, BOTH teams. Cross-team on
+        // purpose: talking to the opposing side is the whole reason it exists
+        // (players were falling back to General for it).
+        | 'battleground'
+        // Party/raid leader alert broadcast to all party members.
+        | 'raidWarning'
         | 'guild'
         | 'officer'
         | 'world'
@@ -3603,23 +10136,51 @@ export type SimEvent = { pid?: number } & (
       // for every player-sourced chat line (mob/boss yells omit it, same as
       // fromTitle).
       classId?: PlayerClass;
+      // Optional localization identity for generated system chat. Player-authored
+      // chat stays literal `text`; generated lines carry this so clients render
+      // them through the catalog while older clients can still fall back to text.
+      textKey?: string;
+      textValues?: Record<string, string | number>;
     }
   | { type: 'partyInvite'; fromPid: number; fromName: string }
   // The party/raid leader started a ready check: the recipient's client plays a
   // sound and shows a yes/no prompt (social/ready_check.ts). Personal (pid set).
   | { type: 'readyCheckStart'; fromName: string }
+  // Live status update for the party/raid leader during a ready check. Personal (pid set to leader).
+  | {
+      type: 'readyCheckStatus';
+      initiatorPid: number;
+      partyId: number;
+      responses: ReadyCheckMemberResponse[];
+      done: boolean;
+    }
   // A player resurrection is never automatic: the dead recipient chooses whether
   // to return. Personal (pid set), with all visible copy composed client-side.
   | { type: 'resurrectionOffer'; fromName: string }
   // a guild invitation from an online guild officer/leader; resolved by name
   // server-side so it carries no pid
   | { type: 'guildInvite'; fromName: string; guildName: string }
+  // An admin rename invalidated an already-open guild invitation. Structured
+  // and neutral: the client owns the localized feedback and receives neither
+  // the old guild name nor a moderation reason.
+  | { type: 'guildInviteCancelled' }
+  // A guild rename committed while this member was online. The stable id lets
+  // the client patch only the matching social mirror; the new display name is
+  // player-controlled and must be escaped at every HTML sink.
+  | { type: 'guildRenamed'; guildId: number; newName: string }
   | { type: 'tradeRequest'; fromPid: number; fromName: string }
   | { type: 'tradeDone' }
   | { type: 'duelRequest'; fromPid: number; fromName: string }
   | { type: 'duelCountdown'; seconds: number }
   | { type: 'duelStart' }
-  | { type: 'duelEnd'; winnerName: string; loserName: string }
+  | {
+      type: 'duelEnd';
+      winnerName: string;
+      loserName: string;
+      winnerPid: number;
+      loserPid: number;
+      zoneId: string | null;
+    }
   // Dungeon Finder: a 30s availability proposal opened for this player (the
   // client pops the finder window; state rides the `df` self snapshot).
   | { type: 'dfProposal' }
@@ -3648,13 +10209,70 @@ export type SimEvent = { pid?: number } & (
       allies: ArenaCombatant[];
       enemies: ArenaCombatant[];
     }
-  // 2v2 Fiesta party mode. All carry pid (personal — delivered to each combatant).
+  // Thornhollow Fields 5v5 capture-the-flag: queue state, match lifecycle, flag plays,
+  // and the rating result. All personal (each carries a pid).
+  // position: the group's 1-based place in the queue line
+  | { type: 'bgQueued'; position: number }
+  | { type: 'bgUnqueued' }
+  // The queue-pop offer opened for this player: `seconds` is the answer
+  // window. The client opens its Accept/Decline prompt on this event and
+  // polls bgInfo.proposal for the countdown thereafter.
+  | { type: 'bgProposed'; seconds: number }
+  // One more fighter accepted the offer this player is looking at.
+  | { type: 'bgProposalUpdate'; accepted: number }
+  | { type: 'bgFound'; team: number }
+  | { type: 'bgCountdown'; seconds: number }
+  | { type: 'bgStart' }
+  | {
+      type: 'bgFlag';
+      action: 'taken' | 'dropped' | 'returned' | 'captured';
+      team: number;
+      byName: string;
+      scoreCrimson: number;
+      scoreAzure: number;
+    }
+  // Kill feed: one per match member per player death (names resolve
+  // client-side against the localized feed line; teams color the entry).
+  | {
+      type: 'bgKill';
+      killerName: string | null; // null: an unattributed death (no enemy credit)
+      victimName: string;
+      killerTeam: number | null;
+      victimTeam: number;
+    }
+  // The match clock crossed a remaining-time threshold (BG_TIME_WARNINGS). One
+  // copy per match member, like bgKill: the call belongs to the whole field.
+  // `secondsLeft` is the threshold itself, not a live clock, so a late-delivered
+  // event never announces a number that has already gone stale.
+  | { type: 'bgTimeWarning'; secondsLeft: number }
+  | {
+      type: 'bgEnd';
+      won: boolean;
+      draw: boolean;
+      scoreCrimson: number;
+      scoreAzure: number;
+      ratingBefore: number;
+      ratingAfter: number;
+      // WHY the match ended, so the finish surface can say so: played to the
+      // capture target, the match clock ran out, or a side forfeited. A timer
+      // ending used to be indistinguishable from a played-out one on screen.
+      ended: 'caps' | 'timer' | 'forfeit';
+      // The first-win-of-the-day Honor bonus included in THIS result, or 0.
+      firstWinBonus: number;
+    }
+  // 2v2 Fiesta party mode. All carry pid (personal - delivered to each combatant).
   // `fiestaScore`: the running team tally changed. `fiestaWave`: a new augment
   // wave just opened. `fiestaWord`: an exaggerated word-pop cue (the client maps
   // `flavor` to a localized exclamation). `fiestaDown`: you were dropped and will
   // respawn in `seconds`. `augmentOffer`: pick one of these augment ids.
   // `augmentChosen`: a fighter locked in an augment (own or ally, for flavor).
-  | { type: 'fiestaScore'; a: number; b: number; limit: number; team: 'A' | 'B' }
+  | {
+      type: 'fiestaScore';
+      a: number;
+      b: number;
+      limit: number;
+      team: 'A' | 'B';
+    }
   | { type: 'fiestaWave'; wave: number; totalWaves: number }
   | {
       type: 'fiestaWord';
@@ -3669,7 +10287,14 @@ export type SimEvent = { pid?: number } & (
   // once-per-second personal scoreboard heartbeat (the arena wire field is
   // rate-limited and the enemy cat can sit outside interest range, so the
   // live bars ride the event queue like fiesta's dynamics do).
-  | { type: 'yumiTeleport'; catId: number; fromX: number; fromZ: number; toX: number; toZ: number }
+  | {
+      type: 'yumiTeleport';
+      catId: number;
+      fromX: number;
+      fromZ: number;
+      toX: number;
+      toZ: number;
+    }
   | { type: 'yumiDown'; seconds: number }
   | { type: 'yumiSuddenDeath' }
   | {
@@ -3684,63 +10309,29 @@ export type SimEvent = { pid?: number } & (
       mult: number;
       team: 'A' | 'B';
     }
-  | { type: 'augmentOffer'; tier: 'silver' | 'gold' | 'prismatic'; wave: number; choices: string[] }
-  | { type: 'augmentChosen'; augmentId: string; byPid: number; byName: string; mine: boolean }
+  | {
+      type: 'augmentOffer';
+      tier: 'silver' | 'gold' | 'prismatic';
+      wave: number;
+      choices: string[];
+    }
+  | {
+      type: 'augmentChosen';
+      augmentId: string;
+      byPid: number;
+      byName: string;
+      mine: boolean;
+    }
   // A fighter grabbed a ring power-up (world event so everyone sees the glow).
   // Whether it's "mine" is decided client-side (entityId === local player).
-  | { type: 'fiestaPowerup'; entityId: number; defId: string; glow: number; duration: number }
+  | {
+      type: 'fiestaPowerup';
+      entityId: number;
+      defId: string;
+      glow: number;
+      duration: number;
+    }
   // The Vale Cup (docs/prd/vale-cup.md). Queue lifecycle events carry pid
-  // (personal). Match-theatre events (kickoff/goal/save/golden/end) carry a
-  // WORLD x/z anchor at the pitch instead, so walk-up spectators in the
-  // Sowfield stands see the banners and fireworks too (routeEvents delivers
-  // anchored pid-less events to everyone within 90yd).
-  | { type: 'vcupQueued'; bracket: VcBracket; position: number }
-  | { type: 'vcupUnqueued' }
-  | {
-      type: 'vcupFound';
-      bracket: VcBracket;
-      nationA: VcNationId;
-      nationB: VcNationId;
-      team: 'A' | 'B';
-      allies: ArenaCombatant[];
-      enemies: ArenaCombatant[];
-    }
-  | { type: 'vcupCountdown'; seconds: number; x: number; z: number }
-  | { type: 'vcupKickoff'; x: number; z: number }
-  | {
-      type: 'vcupGoal';
-      scorerName: string;
-      team: 'A' | 'B';
-      scoreA: number;
-      scoreB: number;
-      nationA: VcNationId;
-      nationB: VcNationId;
-      x: number;
-      z: number;
-    }
-  | { type: 'vcupSave'; keeperName: string; x: number; z: number }
-  // A spectator's parimutuel wager settled: pid-scoped so it refreshes their purse
-  // and toasts the outcome. payout is the total copper credited (0 on a loss).
-  | {
-      type: 'vcupBetSettled';
-      pid: number;
-      outcome: 'won' | 'lost' | 'refunded';
-      stake: number;
-      payout: number;
-    }
-  | { type: 'vcupGolden'; x: number; z: number }
-  | {
-      type: 'vcupEnd';
-      scoreA: number;
-      scoreB: number;
-      nationA: VcNationId;
-      nationB: VcNationId;
-      winner: 'A' | 'B' | null;
-      x: number;
-      z: number;
-    }
-  // personal outcome line for each fighter (rides beside the anchored vcupEnd)
-  | { type: 'vcupResult'; won: boolean; draw: boolean }
   // Card Duel minigame (src/sim/social/card_duel.ts). Personal (pid), text-free
   // on purpose (the client picks its own audio/copy off the structured
   // fields, same as gatherResult/craftResult above).
@@ -3764,10 +10355,18 @@ export type SimEvent = { pid?: number } & (
       amount: number;
       crit: boolean;
       ability: string;
-      // Set only by a HoT's periodic tick (auras.ts), never a direct cast or the
-      // one-shot application emit below: the client uses this to silence the
+      // Healing a heal-absorb shield (necrotic blight) devoured before it could
+      // land, omitted when nothing was absorbed. Load-bearing for the client:
+      // `amount: 0` alone is ambiguous between "target was already at full
+      // health" and "a blight ate the whole heal", and those need opposite
+      // feedback. See src/ui/heal_landing_feedback_core.ts.
+      absorbed?: number;
+      // Set only by a periodic tick (auras.ts), never a direct cast or the
+      // one-shot application emit below: every HoT tick, plus a DoT leech tick
+      // that landed as pure overheal. The client uses this to silence the
       // repeated per-tick sound (see hud.ts), since a HoT fires this every couple
-      // seconds for its whole duration and the full heal_impact hit read as spam.
+      // seconds for its whole duration and the full heal_impact hit read as spam;
+      // the meters and the parse recorder treat a hot tick as passive activity.
       hot?: boolean;
       // The aura's ability id (Aura.id), set on both the per-tick emit and the
       // one-shot application emit (Sim.applyAura) so the client can except one
@@ -3780,6 +10379,26 @@ export type SimEvent = { pid?: number } & (
       // same thing from amount === 0, since a genuine direct heal (applyHeal)
       // can also legitimately land at amount 0 (full HP, fully absorbed).
       cueOnly?: boolean;
+      // Healing lost to the missing-hp clamp (parse fidelity 7.1), omitted
+      // when zero. Computed AFTER heal-absorb consumption, so absorbed and
+      // overheal never double-count the same lost healing. Set at every
+      // clamped heal2 emit site. A HoT or DoT-leech tick that fully overheals
+      // still emits (amount 0, hot: true); a few other periodic heals (Temporal
+      // Hourglass, Demon Heal, Drain Life) still emit nothing in that case.
+      overheal?: number;
+    }
+  // One absorb shield soaking part of one hit. Emitted per shield drained
+  // (combat/absorb_credit.ts) so the Healing meter and the parse recorder can
+  // credit the SHIELDER: the damage event's aggregate `absorbed` total names
+  // nobody. `sourceId` is the shield aura's caster, `ability` its display
+  // name, `abilityId` its aura id. Never emitted for a zero soak.
+  | {
+      type: 'absorb';
+      sourceId: number;
+      targetId: number;
+      amount: number;
+      ability: string;
+      abilityId: string;
     }
   // visual-only cue for the renderer: spell projectiles, channel beams, dot
   // ticks, aoe novas, and the ranged-mob windup telegraph ('windup' fires at
@@ -3797,14 +10416,34 @@ export type SimEvent = { pid?: number } & (
         | 'heavyBolt'
         | 'beam'
         | 'bubbleBeam'
+        | 'drainBeam'
+        // Affliction companion's brief Eye-to-target ray. It is never a projectile.
+        | 'evilEyeGaze'
         | 'tick'
         | 'nova'
+        // A fear-flavored incapacitate actually lands on a target (Harrow):
+        // audio-only, sounds at the target, distinct from the caster-anchored
+        // 'nova' cast moment the three AoE fears (Terror Canticle, Dread
+        // Chorus, Intimidating Shout) also emit. Gated to ability.id ===
+        // 'fear' at the emit site (effect_dispatch.ts), not the broader
+        // fearDr flag death_coil (Morrowlash) also carries: Morrowlash has no
+        // fear recording of its own.
+        | 'fearImpact'
+        // A cc effect actually lands on a target (Sundering Gavel/Hammer of
+        // Justice's stun, Gripping Roots/entangling_roots, Dirt Toss/blind's
+        // incapacitate): audio-only, sounds at the target. Gated per-ability
+        // (CC_IMPACT_ABILITY_CUES, src/ui/combat_sfx.ts) rather than by
+        // effect type, since most stun/root/incapacitate abilities have no
+        // dedicated recording and stay silent here.
+        | 'ccImpact'
         | 'chainHeal'
         | 'windup'
         | 'lightning'
         | 'shout'
         | 'weaponAura'
         | 'flourish'
+        // Ability-specific, entity-anchored activation with no travel component.
+        | 'selfCast'
         // Talent-moment effects: a proc arming (procSurge), a ward appearing
         // (wardBloom), a stored heal-echo firing (echoBurst), and a DoT being
         // detonated (detonate). Visual-only; whole-JSON wire needs no schema change.
@@ -3812,6 +10451,9 @@ export type SimEvent = { pid?: number } & (
         | 'wardBloom'
         | 'echoBurst'
         | 'detonate'
+        // Affliction's final Condemnation release. The level field carries the
+        // consumed 20 to 100 pool for presentation scaling only.
+        | 'sentenceBurst'
         // Chronomancy Temporal Echo (docs/prd/mage-chronomancy.md section 13):
         // a brief temporal glyph blooming directly OVER the marked ally on apply.
         // Target-anchored, no projectile travels to the ally. Visual-only.
@@ -3820,17 +10462,52 @@ export type SimEvent = { pid?: number } & (
         | 'temporalRewindNova'
         | 'frostCone'
         | 'fireCone'
-        // A teleport step (Flickerstep / Shadowstep): the renderer SNAPS the
+        | 'paladinAscensionStart'
+        | 'paladinAscensionImpact'
+        | 'paladinHolyShock'
+        | 'paladinSunwardDisc'
+        | 'paladinSunwardDiscImpact'
+        | 'paladinBastionSweep'
+        | 'paladinBastionSweepImpact'
+        | 'paladinDawnfall'
+        | 'paladinDawnfallImpact'
+        | 'paladinFinalEdict'
+        // Necromancy Lich Form entry. The event is cosmetic and lets clients
+        // synchronize the eruption, camera impulse, and transformation sound.
+        | 'lichTransform'
+        // A teleport step (Flitstep / Shadowstep): the renderer SNAPS the
         // mover instead of arcing the reposition like a leap.
-        | 'blinkStep';
+        | 'blinkStep'
+        // A DoT landing on its target the moment it is APPLIED (Rupture): audio-only,
+        // fires once at ctx.applyAura time, distinct from the periodic 'tick' fx the
+        // same DoT emits every interval thereafter. Gated per-ability
+        // (DOT_APPLY_ABILITY_CUES, src/ui/combat_sfx.ts) so a DoT with no dedicated
+        // recording stays silent here, exactly like 'ccImpact' above.
+        | 'dotApply'
+        // A cast completing with no castFx and no other event of its own: the
+        // only completion cue such casts emit, so the per-ability VFX layer
+        // can stage their read. Untargeted/self ceremonies (forms, summon
+        // rites, aspects) carry targetId == sourceId; hostile-targeted
+        // pure-utility completions (sunder, interrupts, taunts, stuns) carry
+        // the victim in targetId so the read anchors there. Visual-only.
+        | 'selfCast';
       // The casting ability's id, carried only by fx kinds whose visual varies per
       // ability (shouts pick their wave colour; weapon auras identify the buff).
       ability?: string;
+      /** Stable semantic variant for an empowered Paladin impact. */
+      impact?: 'healing' | 'defensive' | 'offensive' | 'area';
       /** Lifetime of a persistent visual such as Water Jet's bubble stream. */
       duration?: number;
       range?: number;
       angle?: number;
+      /** Authoritative cast-start facing for directional visuals. */
+      facing?: number;
       level?: number;
+      /** Total segments in a chained visual, used with level as the zero-based hop. */
+      count?: number;
+      // Fate Threads severed by Sentence. Presentation uses 1 to 3 to make
+      // the retained-thread verdict visibly stronger than a plain discharge.
+      threads?: number;
       // Stable presentation discriminator; renderers must not infer a player
       // attack animation from school or an English ability label.
       attackAnimation?: 'ranged-shot';
@@ -3842,7 +10519,7 @@ export type SimEvent = { pid?: number } & (
   // visual-only cue anchored to a WORLD POINT rather than an entity: a
   // ground-targeted spell's impact (the burst/nova lands where it was aimed, not
   // on the caster). The renderer drapes it onto the terrain at (x, z). An 'orb'
-  // is the roaming Frozen Orb release: its flight is a straight line at fixed
+  // is the roaming Frostglobe release: its flight is a straight line at fixed
   // speed, so this ONE event carries the whole path (origin, direction, speed,
   // duration) and the client animates the sphere locally; the sim's orb state
   // (ctx.frozenOrbs) is never wired.
@@ -3851,7 +10528,31 @@ export type SimEvent = { pid?: number } & (
       x: number;
       z: number;
       school: string;
-      fx: 'burst' | 'nova' | 'orb' | 'meteorFall' | 'runeCircle' | 'snowZone';
+      // 'tick' is a ground-zone pulse (Consecration et al) anchored at the
+      // ZONE, not the caster; the other kinds are impact/lifetime visuals.
+      fx:
+        | 'hoardDig'
+        | 'burst'
+        | 'nova'
+        | 'orb'
+        | 'meteorFall'
+        | 'felMeteorRain'
+        | 'felMeteorRainStop'
+        | 'felMeteorFall'
+        | 'runeCircle'
+        | 'snowZone'
+        // Periodic pulse of a persistent ground effect such as Rain of Fire.
+        | 'tick'
+        // Soul released by Sacrifice Undead. It starts at this world point and
+        // travels to targetId as a cosmetic homing projectile.
+        | 'soulTravel'
+        | 'meteorImpact'
+        // A Spore Burst mushroom bursting (combat/druid_spore_burst.ts).
+        | 'sporeBurst'
+        | 'ambientMeteorFall';
+      // The casting ability's id, so the renderer can pick that ground cast's
+      // authored visual instead of a generic per-school one.
+      ability?: string;
       // blast radius in yards; when set the renderer flashes a terrain-draped
       // AoE ring of this size under the burst so the impact area reads clearly
       radius?: number;
@@ -3861,13 +10562,34 @@ export type SimEvent = { pid?: number } & (
       dirZ?: number;
       speed?: number;
       duration?: number;
+      // 'meteorFall' only: seconds where the ground warning is visible before
+      // the falling body appears. Included inside duration, so impact timing stays shared.
+      warningLead?: number;
+      // Stable id for a persistent warning also carried by the snapshot. A
+      // renderer deduplicates the live event against reconnect reconstruction.
+      persistentId?: string;
       // 'orb' only: which flight moment this is. 'release' starts the local
       // animation; 'halt'/'resume' freeze and restart it at the server's real
       // coordinates when the orb latches onto (and outlives) an enemy.
       phase?: 'release' | 'halt' | 'resume';
-      // 'orb' only: the casting entity, keying halt/resume to their live orb
-      // (one orb per caster: the cooldown far outlasts the flight).
+      // 'orb': the casting entity, keying halt/resume to their live orb (one
+      // orb per caster: the cooldown far outlasts the flight). 'tick': the
+      // zone's owner, so the renderer can attribute the pulse. 'nova' (aimed
+      // blasts): the caster, so the renderer can fly the ability's authored
+      // projectile volley from their hands to the aimed point.
       sourceId?: number;
+      // Optional entity destination for world-originating effects.
+      targetId?: number;
+      // A fixed SFX manifest key that replaces the generic nova/burst+school
+      // sound the client would otherwise pick. Used by rift mechanics that
+      // have their own custom recording (src/sim/rift/fx.ts riftFx) instead
+      // of the generic per-school impact; unset for every other spellfxAt
+      // caller, which keeps the existing generic sound unchanged.
+      sfxKey?: string;
+      // A hidden hunter trap's placement and armed shimmer: the server delivers
+      // it only to sourceId and their group (server/event_delivery.ts), so enemy
+      // players never see where the trap lies.
+      concealedFromHostiles?: boolean;
     }
   // entityId (when set) anchors the log to that entity so the server only
   // delivers it to nearby players; anchorless logs broadcast server-wide
@@ -3875,7 +10597,13 @@ export type SimEvent = { pid?: number } & (
   // (a channel, a burst warning, a targeted debuff callout) rather than ambient
   // flavor chatter: it must reach General/Chat even though it is anchored, since
   // it may be a player's only cue. See src/ui/log_event_route.ts.
-  | { type: 'log'; text: string; color?: string; entityId?: number; telegraph?: boolean }
+  | {
+      type: 'log';
+      text: string;
+      color?: string;
+      entityId?: number;
+      telegraph?: boolean;
+    }
   | { type: 'delveEntered'; delveId: string; tierId: string }
   | { type: 'delveObjectiveComplete'; delveId: string; tierId: string }
   | { type: 'delveComplete'; delveId: string; tierId: string }
@@ -3947,7 +10675,7 @@ export type SimEvent = { pid?: number } & (
   // renders its own localized copy, so no sim/server i18n matcher rule is needed.
   | { type: 'delveRiteChoosePrompt'; reliquaryId: number }
   // personal cue (carries `pid`) to open the cosmetic skin-select overlay with
-  // the server-rolled rank. Text-free on purpose — the client renders its own
+  // the server-rolled rank. Text-free on purpose - the client renders its own
   // localized copy, so no sim/server i18n matcher rule is needed.
   | { type: 'skinEvent'; rank: SkinRank; catalog?: SkinCatalog }
   // Common-tier crafting outcome (#1127): mirrors CraftResult so the online
@@ -3965,14 +10693,47 @@ export type SimEvent = { pid?: number } & (
       // so the online client's lastCraftResult mirror stays field-complete.
       quality?: ItemDef['quality'];
       masterwork?: boolean;
+      // The crafted copy's whole payload, only when it rolled loot quality.
+      instance?: ItemInstancePayload;
       reason?:
         | 'unknown_recipe'
         | 'insufficient_materials'
+        | 'locked'
         | 'combo_requirement_unmet'
         | 'recipe_not_learned'
         | 'throttled'
+        | 'busy'
         | 'station_required'
-        | 'no_bag_space';
+        | 'no_bag_space'
+        // Masterwrought phase 07: the recipe is oncePerDay and this
+        // character already crafted it inside the current reset-day window
+        // (professions/crafting.ts CraftResult.reason mirror).
+        | 'daily_limit';
+      // Masterwrought phase 14: whole seconds until the daily reset reopens
+      // the gate, present ONLY beside reason 'daily_limit' and only when the
+      // host fed a live calendar countdown (Sim.dailyResetRemainingSec > 0).
+      // Refusal-time data by ruling: gate STATE stays learn-on-attempt, so
+      // no standing readout or snapshot field may ever mirror this.
+      retryAfterSeconds?: number;
+    }
+  // Materials Vault craft consumption (Bank Storage Phase 04): emitted at cast
+  // completion, AFTER the stock decrement, when a craft or enchant drew any
+  // reagent units from the vault. Always personal (carries pid). The server's
+  // tick observer turns it into bank_ledger rows (op 'craft_consume'): the
+  // craft resolves inside sim.tick() several ticks after the craft_item
+  // dispatch, so there is no dispatch bracket to diff across and the event IS
+  // the record (the deeds_records observer precedent). Text-free: no player
+  // copy rides here, so no sim/server i18n matcher rule is needed.
+  | {
+      type: 'vaultCraftConsume';
+      // One entry per material id drawn, sorted by id (the diffVaultOp row
+      // discipline: order is a function of the ids alone, never of object-key
+      // or plan iteration order), with counts aggregated across reagents that
+      // drew the same id. Distinct grades are distinct ids and stay separate.
+      takes: { itemId: string; count: number }[];
+      // The vault's upgrade rung at consumption time; rides to the ledger's
+      // NOT NULL purchased_slots_after column, same as every vault row.
+      upgrades: number;
     }
   // Enchanting profession outcomes (Professions 2.0): mirror
   // src/sim/professions/enchanting.ts DisenchantResult / ApplyEnchantResult and
@@ -3994,7 +10755,13 @@ export type SimEvent = { pid?: number } & (
       count?: number;
       secondaryItemId?: string;
       secondaryCount?: number;
-      reason?: 'unknown_item' | 'not_disenchantable' | 'not_held' | 'throttled' | 'no_bag_space';
+      reason?:
+        | 'unknown_item'
+        | 'not_disenchantable'
+        | 'not_held'
+        | 'throttled'
+        | 'no_bag_space'
+        | 'busy';
     }
   | {
       type: 'enchantResult';
@@ -4004,15 +10771,39 @@ export type SimEvent = { pid?: number } & (
       reason?:
         | 'unknown_item'
         | 'unknown_enchant'
+        | 'recipe_not_learned'
         | 'wrong_slot'
         | 'not_held'
         | 'insufficient_materials'
         | 'throttled'
         | 'no_bag_space'
-        // #2415: already-enchanted target without the confirmReplace flag,
-        // and the identical-enchant-id re-apply denied on every arm.
+        // #2415: already-enchanted target without the confirmReplace flag. A
+        // confirmed identical-enchant-id re-apply is a normal replace, not a
+        // deny (professions/enchanting.ts).
         | 'already_enchanted'
-        | 'same_enchant';
+        // Masterwrought phase 10: the Lucent tier's two gates. A
+        // requiresPerfected enchant aimed at a copy carrying no `perfected`
+        // marker, and an enchant whose skillReq is above the applier's flat
+        // Enchanting skill.
+        | 'not_perfected'
+        | 'insufficient_skill'
+        | 'busy';
+    }
+  // Outcome of applying a loadout's saved gear set. TEXT-FREE on purpose: the sim
+  // stays language-agnostic and the client renders the copy from a t() key, which
+  // avoids adding a twentieth-locale in-file dictionary entry for one sentence.
+  // Personal (carries pid). Only emitted when a loadout actually captured gear.
+  | {
+      type: 'loadoutGearResult';
+      /** Pieces equipped from the saved set. */
+      equipped: number;
+      /** Slots already wearing the exact saved copy. */
+      alreadyWorn: number;
+      /** Saved pieces that could not be found, by reason, so the client can word
+       *  "you no longer own it" differently from "that enchanted copy is gone". */
+      notHeld: number;
+      copyGone: number;
+      takenByOtherSlot: number;
     }
   | {
       type: 'salvageResult';
@@ -4020,7 +10811,45 @@ export type SimEvent = { pid?: number } & (
       itemId: string;
       materialItemId?: string;
       count?: number;
-      reason?: 'unknown_item' | 'not_salvageable' | 'not_held' | 'throttled' | 'no_bag_space';
+      reason?:
+        | 'unknown_item'
+        | 'not_salvageable'
+        | 'not_held'
+        | 'throttled'
+        | 'no_bag_space'
+        | 'busy'
+        | 'locked';
+    }
+  // Tool-effect action outcome (the acquisition craft): the one result event
+  // for the slot_tool_effect and recharge_tool_effect commands, mirroring
+  // professions/tools.ts resolveSlotToolEffect / resolveRechargeToolEffect so
+  // the client renders the outcome without deciding it (the
+  // disenchant/salvage template above). Personal (pid = the actor). Text-free
+  // on purpose: ids only, localized client-side, so no sim/server i18n
+  // matcher rule is needed. On a recharge, `materialItemId`/`count` carry the
+  // R39 price actually paid (ok) or required (insufficient_materials), so the
+  // client can show the cost without a preview surface. `reason` is absent on
+  // success.
+  | {
+      type: 'toolEffectResult';
+      action: 'slot' | 'recharge';
+      ok: boolean;
+      professionId: string;
+      effectId?: string;
+      materialItemId?: string;
+      count?: number;
+      reason?:
+        | 'invalid_request'
+        | 'no_tool'
+        | 'no_charm'
+        | 'no_gain'
+        | 'no_slot'
+        | 'already_full'
+        | 'tool_capped'
+        | 'insufficient_materials'
+        | 'busy'
+        // Historical: shared action throttle retired in Craft Cast System Phase 5.
+        | 'throttled';
     }
   // Recipe-training outcome (Professions 2.0): mirrors
   // professions/training.ts TrainResult so the online client can reflect the
@@ -4058,10 +10887,64 @@ export type SimEvent = { pid?: number } & (
       reason?:
         | 'unbind_not_eligible'
         | 'unbind_not_bound'
+        | 'unbind_perfecting'
         | 'unbind_out_of_range'
         | 'unbind_no_space'
         | 'unbind_cannot_afford';
       fee: number;
+    }
+  // Personal, text-free confirmation outcome. Echo both capture tokens so a
+  // stale refusal cannot complete a newer prompt for the same item ids.
+  | {
+      type: 'perfectingSwapResult';
+      ok: boolean;
+      sourceItemId?: string;
+      targetItemId?: string;
+      sourceRank?: number;
+      targetRank?: number;
+      craftId?: string | null;
+      skillReq?: number;
+      reason?: PerfectingSwapDenyReason;
+      request?: PerfectingSwapRequest;
+    }
+  // Commission order board outcome (issue #1298): mirrors one of
+  // professions/commission_order.ts's four result shapes (OpenOrderResult/
+  // CancelOrderResult/AcceptOrderResult/DeliverOrderResult), discriminated by
+  // `action`. Personal (emitted with pid = the acting player's entity id, the
+  // requester for 'open'/'cancel', the crafter for 'accept'/'deliver').
+  // Text-free on purpose (the trainResult precedent): the client derives
+  // recipe/item/player names from ids plus static content, so the event
+  // carries NO display text. `orderId` is absent only on 'open' failing
+  // before an order exists (unknown-recipe, ineligible output, unknown
+  // crafter, self-target, or the open-order cap); every other action always
+  // names the order id, even on a deny. `reason` is absent on success.
+  | {
+      type: 'commissionOrderResult';
+      action: 'open' | 'cancel' | 'accept' | 'deliver';
+      ok: boolean;
+      orderId?: number;
+      itemId?: string;
+      // The requester's display name, resolved off the still-retained order
+      // record (issue #1298 follow-up): 'deliver' is the crafter's own
+      // action, so ev.pid names the crafter, not the requester the client
+      // needs to greet in the success line.
+      requesterName?: string;
+      reason?:
+        | 'unknown_recipe'
+        | 'not_commission_eligible'
+        | 'unknown_crafter'
+        | 'self_crafter'
+        | 'too_many_open'
+        | 'unknown_order'
+        | 'order_not_open'
+        | 'self_order'
+        | 'not_eligible_crafter'
+        | 'not_your_order'
+        | 'order_not_accepted'
+        | 'not_your_acceptance'
+        | 'not_crafted'
+        | 'deliver_out_of_range'
+        | 'no_space';
     }
   // Masterwork proc (Professions 2.0): a successful craft's single
   // output-side rng draw procced, minting a masterwork instance with baked
@@ -4069,6 +10952,55 @@ export type SimEvent = { pid?: number } & (
   // `crafter` repeats as payload). Ids only, text-free on purpose (like
   // craftResult above): the client renders its own localized copy.
   | { type: 'masterwork'; recipeId: string; itemId: string; crafter: number }
+  // Chance-based craft outcome audit record (craft_roll_events): one per
+  // resolved roll that decides a crafting outcome, carrying the draw the sim
+  // actually made, the chance it was measured against, and the verdict, so
+  // the real success rate of a system can be read back from the database
+  // after the fact. `kind` names the roll: 'masterwork' is the single
+  // output-side proc draw of a player craft whose output could ever proc
+  // (chance is the EFFECTIVE chance, 0 when an archetype ceiling or a worse
+  // Jack variance gated the effect off); 'perfecting' is the Perfecting
+  // attempt's success roll (professions/perfecting.ts), with the rank walked
+  // from and to (rank PERFECTING_RANKS meaning Perfected). Personal (pid =
+  // the crafter's entity id), SERVER-SIDE EVIDENCE ONLY: never routed to a
+  // client (server/event_frame.ts filterRoutableEvents), text-free, and emits
+  // no draw of its own (the roll it reports is the one the system drew).
+  | {
+      type: 'craftRoll';
+      kind: 'masterwork' | 'perfecting';
+      recipeId: string | null;
+      itemId: string;
+      roll: number;
+      chance: number;
+      success: boolean;
+      rankBefore?: number;
+      rankAfter?: number;
+    }
+  // Tracked-item ledger event (item_tracking.ts): one per lifecycle step of
+  // an epic or legendary copy (ITEM_TRACKED_KINDS, item_provenance.ts): the
+  // guid mint, each recorded change of hands, each in-place modification,
+  // the end of its life, and the mint of a copy derived from another. Server-
+  // only (server/event_frame.ts SERVER_ONLY_EVENT_TYPES): the authoritative
+  // server mirrors it into item_ledger (server/item_ledger.ts), no client ever
+  // receives it. The pid is the character the step happened to; by/byId name
+  // that character (display name plus the stable character id online). The
+  // at field is host epoch ms. `detail` is a short sim-composed note (a rank,
+  // an enchant id, what the copy became) and `relatedGuid` the other copy a
+  // swap or derivation names. Draw-free by construction.
+  | {
+      type: 'itemTracked';
+      kind: ItemTrackedKind;
+      guid: string;
+      itemId: string;
+      quality: string;
+      by: string;
+      byId?: number;
+      source: string;
+      zone?: string;
+      detail?: string;
+      relatedGuid?: string;
+      at: number;
+    }
   // Masterwork zone broadcast (Professions 2.0): the soft zone-wide
   // copy of a masterwork proc, one per overworld player currently in the
   // crafter's zone INCLUDING the crafter, `pid` being the RECIPIENT (the
@@ -4088,6 +11020,174 @@ export type SimEvent = { pid?: number } & (
       itemId: string;
       recipeId: string;
       zoneId: string;
+    }
+  // Orange promotion (Masterwrought phase 13, R3): a Perfected copy consumed a
+  // Deed of Making and became legendary presentation. Personal (emitted with
+  // pid = the owner's entity id, which `owner` repeats as payload). Ids plus
+  // the player-chosen name only, no other text: the client renders its own
+  // localized line with the name interpolated as a VALUE
+  // (hudChrome.crafting.legendaryLine).
+  | { type: 'legendaryForged'; itemId: string; name: string; owner: number }
+  // The soft zone-wide copy, one per overworld player currently in the owner's
+  // zone INCLUDING the owner, `pid` being the RECIPIENT (the masterworkZone
+  // idiom above; a SEPARATE type for the same own-mirror reason). itemName is
+  // the player-chosen legendary name; the first event type carrying a
+  // player-authored ITEM name beside a character name (ownerName and
+  // itemName; duelEnd and guildInvite already carry two player-chosen names),
+  // both VALUES the client interpolates, never keys.
+  | {
+      type: 'legendaryForgedZone';
+      pid: number;
+      ownerPid: number;
+      ownerName: string;
+      itemId: string;
+      itemName: string;
+      zoneId: string;
+    }
+  // Riding lesson (src/sim/mounts_training.ts). Both personal (pid-scoped).
+  // mountTrainSession announces a fresh attempt or a phase change: `phase` is
+  // 'mount' at begin (the client toasts the Mount/Dismount hint) and re-emitted
+  // as 'ride' once the player climbs on (toast: follow the marker to the start
+  // line). mountTrainEnd reports the terminal outcome.
+  | {
+      type: 'mountTrainSession';
+      sessionId: string;
+      phase: 'mount' | 'ride';
+      pid: number;
+    }
+  | {
+      type: 'mountTrainEnd';
+      sessionId: string;
+      outcome: 'success' | 'abandoned';
+      pid: number;
+    }
+  // Show-jumping race (src/sim/mount_race.ts). ALL personal (pid-scoped): each
+  // rider only ever hears about their own race, so concurrent racers never
+  // interfere. mountRaceCountdown fires on the start command with the pre-GO
+  // budget (the client shows 3..2..1..GO); mountRaceStart fires at GO and arms
+  // the lap timer; mountRaceJump reports one jump cleared any-order (`jump` is the
+  // gate index just marked, `cleared` the running count, `mask` the full bitset);
+  // mountRaceEnd reports the terminal outcome with the elapsed ticks from GO
+  // (meaningful on 'finished'). Gate positions are NOT on the wire: the client
+  // derives them from the shared MOUNT_RACE_COURSE content.
+  | {
+      type: 'mountRaceCountdown';
+      raceId: string;
+      countdownTicks: number;
+      pid: number;
+    }
+  | {
+      type: 'mountRaceStart';
+      raceId: string;
+      timeLimitTicks: number;
+      jumpsTotal: number;
+      pid: number;
+    }
+  | {
+      type: 'mountRaceJump';
+      raceId: string;
+      jump: number;
+      cleared: number;
+      mask: number;
+      jumpsTotal: number;
+      pid: number;
+    }
+  | {
+      type: 'mountRaceEnd';
+      raceId: string;
+      outcome: 'finished' | 'timeout' | 'abandoned';
+      timeTicks: number;
+      pid: number;
+    }
+  // Procedural Rift state, pushed to the entering player so the client can
+  // regenerate the current floor's geometry + visual style from the descriptor
+  // (the same pure generator the server ran). `active:false` clears it on leave.
+  // Text-free structured fields (like skinEvent/craftResult): the client renders
+  // its own localized floor label from name/themeName.
+  | {
+      type: 'riftState';
+      pid: number;
+      active: boolean;
+      eventId: string | null;
+      instanceId: number;
+      seed: number;
+      baseLevel: number;
+      floorIndex: number;
+      floorCount: number;
+      origin: { x: number; z: number };
+      contentId: string;
+      contentHash: string;
+      upgrade: import('./rift/types').RiftUpgradeManifest | null;
+      name: string;
+      themeName: string;
+      tier: RiftTier | null;
+      hoardCues?: Array<{
+        instanceId: number;
+        cueId: number;
+        kind: 'sweep' | 'mark';
+        variant?: import('./rift/types').HoardBossCueVariant;
+        phase: 'warning' | 'hazard';
+        x: number;
+        z: number;
+        radius: number;
+        remaining: number;
+        total: number;
+        facing?: number;
+        halfAngle?: number;
+        innerRadius?: number;
+        waveGap?: number;
+        waveSpan?: number;
+        waveLead?: number;
+        targetId?: number;
+      }>;
+      // Epoch-ms deadline (via ctx.lockoutNowMs, the same conversion
+      // rift/persistence.ts uses for save/load) after which the rift's backing
+      // world event stops admitting new parties. Null for a dev-spawned rift
+      // (no backing RiftEvent) or once the party has left. The client mirrors
+      // this verbatim and derives a locally-ticking "closes in" countdown from
+      // it, so it never needs a snapshot round trip once a second.
+      expiresAtMs: number | null;
+    }
+  | {
+      type: 'riftRaceResult';
+      pid: number;
+      eventId: string;
+      outcome: 'won' | 'lost';
+      tier: RiftTier;
+      winnerNames: string[];
+      clearTime: number;
+    }
+  | {
+      type: 'riftRaceWorld';
+      eventId: string;
+      tier: RiftTier;
+      winnerNames: string[];
+      clearTime: number;
+    }
+  | {
+      type: 'riftForgeResult';
+      pid: number;
+      ok: boolean;
+      action: 'upgrade' | 'socket';
+      itemId: string;
+      reason?:
+        | 'not_found'
+        | 'not_rift_gear'
+        | 'max_upgrade'
+        | 'insufficient_essence'
+        | 'invalid_gem'
+        // Type-level only: the while-dead refusal is returned to callers but
+        // never emitted (the two dead-gate early returns in
+        // rift/progression.ts sit ABOVE emitResult); its one player-facing
+        // surface is the shared "You can't do that while dead." error line.
+        | 'dead'
+        // Type-level only as well: the away-from-forge refusal (forge_gate.ts)
+        // returns above emitResult; its surface is the too-far error line.
+        | 'too_far';
+      upgradeLevel?: number;
+      essenceSpent?: number;
+      /** The gem a socket destroyed to make room (sockets are replaceable). */
+      replacedGem?: string;
     }
   // Gather-node harvest outcome (#1729): a successful resource harvest emits
   // this so the client can play a gathering audio cue for the acting player.
@@ -4109,12 +11209,22 @@ export type SimEvent = { pid?: number } & (
       qty: number;
       // The rare event this harvest rolled (resolveHarvest draw #2), or null.
       rareEvent: GatherRareEventFlavor | null;
+      // The last-charge signal (the UX pass): present, and true, exactly when
+      // THIS harvest's R42 settle spent the slotted effect's final charge, so
+      // the client can say the effect expired instead of stopping silently.
+      // Additive and optional (the phase 11 stale-client doctrine): absent on
+      // every other harvest keeps the event byte-identical to the pre-field
+      // wire, and an old bundle's whole-event decode ignores it.
+      effectDepleted?: true;
     }
   // Gathering tool-gate denial (Professions 2.0, extended by #2343): the
   // player lacks a matching tool of at least `requiredTier` for a node
   // harvest (bare hands never harvest: requiredTier 1 means "no tool owned
-  // at all"), for a corpse harvest's premium (signed/specimen) arm, or lacks
-  // any fishing implement when casting a line (surface 'fishing'). Personal
+  // at all"), or for a corpse harvest's premium (signed/specimen) arm. The
+  // 'fishing' surface carries BOTH fishing refusals and the client splits
+  // them on requiredTier exactly like the node arm: tier 1 is "no tackle at
+  // all" (the implement gate) and tier 2 and up is "this water takes a better
+  // rod" (the per-zone gate, professions/fishing_zones.ts). Personal
   // (pid = the gatherer) and text-free on purpose (like gatherResult above):
   // the client composes its own localized copy off the structured fields.
   // `professionId` is present exactly when surface === 'node' or 'fishing'
@@ -4126,6 +11236,16 @@ export type SimEvent = { pid?: number } & (
       surface: 'node' | 'corpse' | 'fishing';
       requiredTier: number;
       professionId?: GatheringProfessionId;
+      // The R22 wield arm, additive on the wire: present exactly when a tool
+      // COVERING requiredTier is already in the player's bags and only its
+      // proficiency requirement is short. Carries the smallest proficiency at
+      // which something they already carry would work the target (see
+      // professions/wield_gate.ts minWieldRequirementToWork); the client
+      // renders the wield line instead of the tier line when present. A
+      // bundle predating this field ignores it and shows its tier-based
+      // copy: misleading only in wording, never a throw (the stale-client
+      // doctrine of phase 11).
+      wieldProficiency?: number;
     }
   // Gathering-tool item use found nothing to work on (#2343): the player used
   // a pick/axe/sickle from the bags with no matching resource node within
@@ -4145,10 +11265,14 @@ export type SimEvent = { pid?: number } & (
   // gatherDenied above): the client composes its own localized copy off the
   // structured fields. Emitted at most ONCE per harvest command (the
   // gatherDenied dedupe idiom), even when several yields downgrade.
+  // 'crop' is the golden-harvest surface (farming.ts):
+  // farming's nothing-rots rule means a crop can only ever lose the mark
+  // (totals always land in full; only the signature truncates), so a crop
+  // event always carries lost 'mark', never 'find'.
   | {
       type: 'gatherDowngrade';
       pid: number;
-      surface: 'node' | 'corpse';
+      surface: 'node' | 'corpse' | 'crop';
       lost: 'mark' | 'find';
     }
   // Corpse-harvest outcome (#2457): what one harvestCorpse command actually
@@ -4192,11 +11316,16 @@ export type SimEvent = { pid?: number } & (
   // structured fields, so no sim/server i18n matcher rule is needed.
   // `quality` is the caught ItemDef's quality (poor for junk catches,
   // uncommon for the rare koi) so the line colors like an item name.
+  // zoneId and band carry the session's pinned water zone and the effective
+  // catch band (min of proficiency band and rod band) for the server-side
+  // fishing telemetry; both resolve draw-free from pure state.
   | {
       type: 'fishingResult';
       pid: number;
       itemId: string;
       quality: NonNullable<ItemDef['quality']>;
+      zoneId: string;
+      band: FishingCatchBand;
     }
   // Fishing bite (Professions 2.0): the hidden seeded bite fired
   // for this angler's running fishing session. Personal (pid = the angler)
@@ -4207,19 +11336,44 @@ export type SimEvent = { pid?: number } & (
   // wire never reveals the delay distribution.
   | { type: 'fishingBite'; pid: number }
   // Fishing miss (Professions 2.0): the reel window closed with no
-  // re-press ("it got away"), or a session defensively timed out. Personal
-  // and text-free like fishingBite: the client renders its own localized
-  // got-away line. Costs nothing but the ended cast; recast immediately.
-  | { type: 'fishingGotAway'; pid: number }
+  // re-press ("it got away"), a session defensively timed out, or a landed
+  // catch found no bag room (that branch spent its table draw and lost the
+  // catch, so it IS a got-away). Personal and text-free like fishingBite:
+  // the client renders its own localized got-away line off the type alone,
+  // which on the bags-full branch means DOUBLED feedback on purpose: the
+  // bags-full error (a toast the HUD also mirrors into the chat log)
+  // carries the reason, and this event's line records the loss. Costs
+  // nothing but the ended cast; recast immediately. zoneId/band mirror
+  // fishingResult, for the telemetry.
+  | { type: 'fishingGotAway'; pid: number; zoneId: string; band: FishingCatchBand }
+  // Fishing early reel (the spam-click fix): the angler re-pressed the pole
+  // BEFORE the bite, so the line came in empty and the session ended. Exists
+  // because a free pre-bite no-op made spam-pressing a guaranteed catch (one
+  // press always fell inside the armed reel window); ending the session is
+  // what makes the bite a reaction test again. Personal and text-free like
+  // fishingGotAway, and counted apart from it in the telemetry (a got-away
+  // is the game costing the player; an early reel is self-inflicted, and
+  // folding them would hide whether the anti-spam change burns real
+  // anglers). Costs nothing but the ended cast; recast immediately.
+  | { type: 'fishingEarlyReel'; pid: number; zoneId: string; band: FishingCatchBand }
+  // Fishing empty hook (Professions 2.0): the single table draw resolved
+  // the itemId: null row (nothing was biting). Telemetry-only sibling of
+  // fishingResult: the player feedback stays the existing localized log
+  // line, and old clients ignore the unknown type. Emitted exactly where
+  // the null row resolves, draw-free.
+  | { type: 'fishingEmptyHook'; pid: number; zoneId: string; band: FishingCatchBand }
   // Rare gather event (Professions 2.0): a harvest struck a pristine
-  // vein / ancient heartwood / moonlit bloom. Soft zone broadcast: one copy is
-  // emitted per player currently in the node's zone, `pid` being the RECIPIENT
-  // (the chat fanout idiom); finderPid/finderName identify the harvester. Ids
-  // plus values only, text-free on purpose: the client renders its own
-  // localized line off `flavor` (the gatherEvent.* keys). The HUD reads only
+  // vein / ancient heartwood / moonlit bloom, or a farm bed paid a golden
+  // harvest (nodeType 'crop', the farming celebrations phase). Soft zone
+  // broadcast: one copy is emitted per player currently in the source's
+  // zone, `pid` being the RECIPIENT (the chat fanout idiom);
+  // finderPid/finderName identify the harvester. Ids plus values only,
+  // text-free on purpose: the client renders its own localized line off
+  // `flavor` (the gatherEvent.* keys). The HUD reads only
   // flavor/finderName/finderPid today; zoneId/nodeType/itemId are forward
   // payload for the per-family deeds/tuning consumers (asserted by the
-  // gather rare-event tests so the shape is already load-bearing on the wire).
+  // gather rare-event tests so the shape is already load-bearing on the
+  // wire).
   | {
       type: 'gatherRareEvent';
       pid: number;
@@ -4227,9 +11381,51 @@ export type SimEvent = { pid?: number } & (
       finderName: string;
       finderPid: number;
       zoneId: string;
-      nodeType: GatherNodeType;
+      nodeType: GatherRareEventSource;
       itemId: string;
     }
+  // Rift boss lethal death zone placed (deathZoneCast / deathZoneStrike mechanic).
+  // Emitted at zone-placement time so online clients can mirror the countdown
+  // locally without a snapshot field. Interest-scoped by x/z world position like
+  // spellfxAt, so only instance players (who are inside the instance area) receive
+  // it. `durationSecs` equals the cast-time fuse the sim uses internally. The
+  // client counts the zone down locally starting from `durationSecs` and removes
+  // it when remaining reaches zero. Late joiners missing an in-flight zone are an
+  // accepted edge (the fuse is at most a few seconds).
+  | {
+      type: 'riftDeathZoneSpawn';
+      x: number;
+      z: number;
+      radius: number;
+      durationSecs: number;
+    }
+  // The sim cancelled every pending death zone before its fuse ran out (boss
+  // death, boss evade, or floor teardown). Online mirrors count zones down
+  // locally from riftDeathZoneSpawn, so without this they would keep drawing a
+  // phantom "about to detonate" telegraph for the rest of the fuse. Personal
+  // (pid = each instance member) so delivery never depends on interest radius.
+  | { type: 'riftDeathZoneClear'; pid: number }
+  | {
+      type: 'hoardBossCue';
+      pid: number;
+      instanceId: number;
+      cueId: number;
+      kind: 'sweep' | 'mark';
+      variant?: import('./rift/types').HoardBossCueVariant;
+      phase: 'warning' | 'hazard';
+      x: number;
+      z: number;
+      radius: number;
+      durationSecs: number;
+      facing?: number;
+      halfAngle?: number;
+      innerRadius?: number;
+      waveGap?: number;
+      waveSpan?: number;
+      waveLead?: number;
+      targetId?: number;
+    }
+  | { type: 'hoardBossCueClear'; pid: number }
   // Trend nudge (Professions 2.0): a soft, at-most-once-per-window
   // reminder that an unattuned crafter's skills are leaning toward an adjacent
   // pair (professions/prof_nudges.ts). Personal (pid = the crafter) and
@@ -4244,11 +11440,32 @@ export type SimEvent = { pid?: number } & (
   // the client renders its own one-shot tier-up explainer. Carries no ids beyond
   // the recipient; the persisted one-shot flag guarantees it never re-fires.
   | { type: 'profTierTutorial'; pid: number }
+  // Ferry bell homecoming (tutorial island): fired every time the island's
+  // bell sets a player down in Eastbrook town (interactions/ferry_bell.ts).
+  // Personal and text-free: the client decides ONCE per device (localStorage)
+  // to point out the town's twin bell, in case the ride was a misclick.
+  | { type: 'ferryBellHome'; pid: number }
+  // Ferry island arrival (tutorial island): fired every time a ride sets a
+  // player down at the Proving Shore arrival (the greeting ferry and the town
+  // bell alike). Personal and text-free: the client renders Ferryman Odo's
+  // welcome note, which carries the walk and talk controls, whenever
+  // `firstVisit` says this character has not started the shore's rail yet
+  // (interactions/ferry_bell.ts isFirstIslandVisit). Per CHARACTER, not per
+  // device: a new character on a browser that has seen it still gets taught.
+  | { type: 'ferryIslandArrival'; pid: number; firstVisit: boolean }
   // Attunement celebration, personal copy (Professions 2.0): a
   // quest-validated pair attunement (new OR return) landed for this player
   // (professions/attunement_events.ts). Personal (pid = the celebrant) and
   // text-free: the client renders its own localized line off `pairId`.
   | { type: 'attuned'; pid: number; pairId: string }
+  // Buddy companions (src/sim/buddies.ts, content/buddy_sources.ts). All
+  // events are personal and text-free: the client renders a localized chat
+  // line off the id. `buddyPresence` fires when a boss roll attaches a
+  // PENDING companion ("you feel a presence watching you"); `buddyRevealed`
+  // when a companion becomes owned (the zone-out reveal, a deed grant, a
+  // token use, an admin grant).
+  | { type: 'buddyPresence'; pid: number; key: string }
+  | { type: 'buddyRevealed'; pid: number; key: string }
   // Attunement celebration, zone broadcast (Professions 2.0): the soft
   // zone-wide copy of an attunement, one per overworld player currently in the
   // celebrant's zone INCLUDING the celebrant, `pid` being the RECIPIENT (the
@@ -4265,6 +11482,145 @@ export type SimEvent = { pid?: number } & (
       pairId: string;
       zoneId: string;
     }
+  // Farming: a crop went into a bed (the growth-engine phase). Personal
+  // (pid = the farmer) and text-free on purpose (the gatherResult idiom): the
+  // client logs its own localized line off the ids. Carries no timing, because
+  // the plot projection (the fplot wire key) already serves readyAtMs and is
+  // the ONE place growth deadlines reach a client.
+  | { type: 'farmPlanted'; pid: number; bedId: string; cropId: string }
+  // Farming: a ready plot was harvested. `count` is the base-grade produce
+  // granted and `fineCount` the fine-grade twin; the two together are the
+  // picks the harvest-lives roll resolved, since a fine roll UPGRADES a pick
+  // rather than adding one. Both fine fields are absent when no pick upgraded
+  // (the effectDepleted precedent: an absent optional keeps the common event
+  // byte-identical to the pre-field wire). `seedBackCount` is the tier 3/4
+  // seed-back roll's payout in crop seeds (the client resolves the seed item
+  // from cropId), present ONLY when positive, the same only-when-true rule.
+  // `effectDepleted` is gatherResult's last-charge signal on the farming
+  // path: present (true) exactly when THIS harvest's R42 settle spent the
+  // slotted tool effect's final charge, so the client can announce the break
+  // instead of the charm dying silently. Only farmHarvested can carry it:
+  // the withered return sits above the effect block, so a failed crop never
+  // applies, spends, or depletes. `goldenBonusItemId` (masterwrought Phase
+  // 11f) is the ONE extra item a GOLDEN harvest's bonus draw paid, a seed of
+  // the next tier up or, far more rarely, a farming pattern; present only on a
+  // golden win, the same only-when-set rule as the fields above, so an
+  // ordinary harvest's frame stays byte-identical. It is named on the event
+  // rather than logged by the grant because the farmHarvested line owns the
+  // whole visit's feedback (the #2430 one-line-per-grant rule), exactly as
+  // seedBackCount does. Text-free (the gatherResult idiom).
+  | {
+      type: 'farmHarvested';
+      pid: number;
+      bedId: string;
+      cropId: string;
+      itemId: string;
+      count: number;
+      fineItemId?: string;
+      fineCount?: number;
+      seedBackCount?: number;
+      goldenBonusItemId?: string;
+      effectDepleted?: true;
+    }
+  // Farming: a plot that lost its survival pre-roll was cleared, paying
+  // `count` withered husks instead of produce. Emitted at HARVEST, never at
+  // the growth deadline: nothing rots and no timer fires, so the player learns
+  // the outcome when they come to collect. `seedBackCount` mirrors
+  // farmHarvested's field (the tier 3/4 seed-back roll fires on BOTH
+  // outcomes; the withered consolation is deliberate), present ONLY when
+  // positive. Text-free (the gatherResult idiom).
+  | {
+      type: 'farmWithered';
+      pid: number;
+      bedId: string;
+      cropId: string;
+      count: number;
+      seedBackCount?: number;
+    }
+  // Farming: a plant or harvest was refused. Personal and text-free (the
+  // gatherDenied idiom): the client composes its own localized copy off
+  // `reason`. `bedId` and `cropId` are present when the refusing arm KNOWS
+  // them: usually because the refused command named them, and on harvest's
+  // not_ready arm the cropId comes from the STORED plot (harvest_crop names
+  // only the bed). Do not prune a field to match the named-by-the-command
+  // reading; the wire and the goldens carry the stored-plot case today.
+  | {
+      type: 'farmDenied';
+      pid: number;
+      reason:
+        | 'bad_bed'
+        | 'bad_crop'
+        | 'range'
+        | 'bed_taken'
+        | 'skill'
+        | 'no_seed'
+        | 'not_ready'
+        | 'no_plot'
+        // The knobs phase, appended (wire enums are never reordered):
+        // convert_husks with fewer husks than one batch costs, then the
+        // three plant-time knob payments that could not be met (each denies
+        // the WHOLE plant with nothing consumed and zero draws).
+        | 'no_husks'
+        | 'no_compost'
+        | 'no_fee_produce'
+        | 'no_tonic'
+        // The hoe phase, appended: the step-12 hoe gate refused the plant (no
+        // WIELDABLE farming hoe covering the crop's tier in bags; one reason
+        // for both the no-hoe and the tier-short case, like gatherDenied's
+        // tool arm).
+        | 'tool'
+        // The v0.38.0 sync, appended: the shortfall is caused SOLELY by the
+        // owner's own item locks (issue 3042 acceptance: "each refused
+        // action surfaces a clear locked-item message", the CraftResult
+        // 'locked' twin). Fired when the raw held count would have passed
+        // the gate that the unlocked count failed, for any of the five
+        // farming spends.
+        | 'locked'
+        // The farming go-live, appended: convert_husks refused because no
+        // farmer NPC stands within FARMER_TRADE_RANGE of the sender
+        // (professions/farmer_npcs.ts). Its own reason rather than 'range',
+        // whose HUD line names a crop bed; the trade has no bed.
+        | 'no_farmer'
+        // The shared feast, appended (professions/feast.ts): place-arm
+        // refusals cover a missing item or an already-active table. Consume-arm
+        // refusals cover a stale or expired id, a picked-clean table, or a
+        // repeat diner. An out-of-range lookup is deliberately
+        // indistinguishable from a stale feast id, so it reuses feast_expired.
+        // The lock-caused shortfall reuses locked above.
+        | 'no_feast'
+        | 'feast_active'
+        | 'feast_expired'
+        | 'feast_finished'
+        | 'feast_eaten';
+      bedId?: string;
+      cropId?: string;
+    }
+  // Farming: withered husks were traded for compost (the knobs phase's
+  // convert_husks command). Personal and text-free (the gatherResult idiom):
+  // `husks` is what left the bags and `compost` what arrived, so the client
+  // composes its one localized line off the counts. The compost grant itself
+  // rides the hub loot event with the silent/callerLogs flags, exactly like a
+  // harvest grant, so this event owns both halves of the feedback.
+  | { type: 'farmHusksConverted'; pid: number; husks: number; compost: number }
+  // Farming: one or more of this player's plots FINISHED (the ready-notice
+  // phase). Personal (pid = the farmer) and text-free like every other farm
+  // event, and COUNTS ONLY: `ready` is how many beds are waiting to be
+  // brought in and `withered` how many finished as failed crops, omitted
+  // when zero (the seedBackCount idiom). `ready` is always present and IS 0
+  // on a withered-only notice: consumers branch on each count, not on the
+  // event's presence. Deliberately carries no bed or crop
+  // id, and no timing: the fplot projection is already the ONE place a client
+  // learns which bed holds what, so a per-plot payload here would be a second
+  // definition of plot state free to drift from it. Emitted once per plot per
+  // growth cycle, gated by the plot's persisted `notified` flag
+  // (professions/farm_ready.ts), so relogging never repeats a notice.
+  | { type: 'farmReady'; pid: number; ready: number; withered?: number }
+  // The shared feast: the placer's own confirmation that the feast entity
+  // spawned (professions/feast.ts). Personal and text-free like every farm
+  // event; the entity itself is everyone else's signal (it rides the normal
+  // snapshot), so this exists only to drive the placer's cue and toast.
+  // `feastId` is the spawned entity id.
+  | { type: 'farmFeastPlaced'; pid: number; feastId: number }
 );
 
 export interface MoveInput {
@@ -4275,6 +11631,25 @@ export interface MoveInput {
   strafeLeft: boolean;
   strafeRight: boolean;
   jump: boolean;
+  /** Swim DOWN. Only ever read while swimming, where it is the mirror of
+   *  `surface` below: together they are the vertical stick that lets a player
+   *  leave the surface and travel underwater. Ignored on land. Set by the dive
+   *  key AND by pitching the camera down (see input.ts readMoveInput). */
+  dive: boolean;
+  /** Swim UP. Distinct from `jump`, which ALSO rises but hops you out onto a
+   *  bank once you reach the line — holding a look-up camera at the surface
+   *  must not launch you out of the water over and over. Ignored on land. */
+  surface: boolean;
+  /** How STEEPLY the camera is aimed into the dive or the climb, 0..1, as a
+   *  quantised step (see SWIM_STEER_STEPS in input.ts). It scales the vertical
+   *  rate, so easing the view down eases you down and burying it plunges: the
+   *  boolean above says WHETHER, this says HOW MUCH. Optional on the wire — the
+   *  key binding, a bot, and any client that never sends it all read as 1
+   *  (`swimSteerRate`), which is exactly the old on/off behaviour. */
+  swimSteer?: number;
+  /** Signed flight pitch intent, -1 dive to +1 climb. Absent uses keyboard
+   * controls; zero explicitly requests a neutral glide. */
+  gliderPitch?: number;
 }
 
 // A bounded height edit (the sculpt brush stamp), applied inside terrainHeight()
@@ -4283,6 +11658,8 @@ export interface MoveInput {
 // array order: `add` (default) adds `delta`, weighted by the falloff; `level`
 // pulls the height toward the ABSOLUTE height `delta`, weighted by the falloff
 // (the flatten/plateau brush; full weight means h becomes exactly `delta`).
+export type TerrainBrushAlphaId = 'noise' | 'splatter' | 'streaks' | 'dots' | 'chunks';
+
 export interface HeightStamp {
   x: number;
   z: number;
@@ -4290,6 +11667,39 @@ export interface HeightStamp {
   delta: number; // add: +raise / -lower at the centre; level: target height
   falloff: 'smooth' | 'flat';
   mode?: 'add' | 'level'; // absent = 'add' (v1 documents)
+  /** LEVEL stamps only: the target's slope in world yards per yard, so the
+   *  stamp levels toward a tilted PLANE (`delta` at the centre) instead of one
+   *  flat height. Absent = the flat target every v1..v3 document has.
+   *
+   *  This is what lets Smooth take the jaggies off a hillside without turning
+   *  it into a terrace: on ground that is already planar the target equals the
+   *  ground, so the stamp does nothing at all (SPACEY, 2026-09-09: "the smooth
+   *  tool completely ruins the shape of the land even on low"). */
+  gx?: number;
+  gz?: number;
+  /** LEVEL stamps only: how far toward the target this stamp pulls, on top of
+   *  the falloff (0..1). Absent = 1, the full pull every v1..v3 document has.
+   *  Smooth carries its brush strength here so the TARGET can stay the honest
+   *  local surface: a planar slope then cancels exactly, at any strength. */
+  strength?: number;
+  /** Footprint: 'square' reaches max(|dx|, |dz|) < radius (radius is half
+   *  the side). Absent or 'circle' = the original round brush. */
+  shape?: 'circle' | 'square';
+  /** Solid inner-radius ratio. Absent preserves the original fully soft brush. */
+  hardness?: number;
+  /** Optional deterministic built-in mask. Imported paint masks stay editor-local. */
+  alpha?: TerrainBrushAlphaId;
+  /** ADD stamps only, the Noise brush: present = the falloff-weighted delta is
+   *  scaled by a seeded fractal field in world space (terrain_noise_brush.ts),
+   *  so one stroke paints natural undulation across the whole brush. Bump size
+   *  in yards; the stroke's pattern seed; fine-detail share 0..1 (absent 0.5). */
+  noiseSize?: number;
+  noiseSeed?: number;
+  noiseRough?: number;
+  /** A Studio map's permanent id for this stamp, so a change-only push can
+   *  tell which stamps an edit added or erased (editor/map_merge_core.ts).
+   *  The terrain ignores it; the game-ready projection drops it. */
+  id?: string;
 }
 
 // A freely placed GLB model the editor drops onto the world. Rendered by the
@@ -4297,14 +11707,160 @@ export interface HeightStamp {
 // the sim additionally derives a static circle collider from this record, so
 // what-you-see-is-what-you-collide-with holds for editor placements too.
 // Carried on WorldContent so both sides read the SAME record.
+/** How a placed fire emitter is seated on its owning model. Offsets remain in
+ *  the model's local axes but are measured in world yards, which makes gizmo
+ *  edits predictable even when the asset has a very unusual source scale. */
+export type AssetFireAnchor = 'base' | 'center' | 'top';
+export type AssetFireStyle = 'torch' | 'bonfire' | 'wildfire' | 'soulfire' | 'embers';
+export type AssetFireBlend = 'additive' | 'alpha';
+
+/** One independently authored procedural fire source on a placed asset. */
+export interface AssetFireEmitter {
+  id: string;
+  enabled: boolean;
+  anchor: AssetFireAnchor;
+  style: AssetFireStyle;
+  blend: AssetFireBlend;
+  /** Model-local yard offsets from `anchor`, editable with the 3-axis gizmo. */
+  x: number;
+  y: number;
+  z: number;
+  /** Overall size plus independent flame width/height shaping. */
+  scale: number;
+  width: number;
+  height: number;
+  /** Number of layered flame tongues (1..8). */
+  flames: number;
+  intensity: number;
+  opacity: number;
+  /** Local point-light brightness and radius. */
+  glow: number;
+  glowRange: number;
+  /** Smoke density, puff scale, and upward travel. */
+  smoke: number;
+  smokeScale: number;
+  smokeRise: number;
+  /** Procedural flame colour and motion controls. */
+  hue: number;
+  saturation: number;
+  speed: number;
+  turbulence: number;
+  flicker: number;
+  /** Normalized ember density (0..1). */
+  embers: number;
+}
+
 export interface PlacedAsset {
+  wallFinishes?: import('./wall_finishes').WallFinishes;
+  materialFinishes?: import('./material_finishes').MaterialFinishes;
+  building?: import('./building').BuildingMembership;
   path: string; // public GLB url, e.g. "/models/props/well.glb"
   x: number;
   z: number;
   rotY: number; // radians
   scale: number;
+  worldPropKind?: 'fence' | 'inn';
+  worldPropWidth?: number;
+  worldPropDepth?: number;
   // Circle collider radius in yards (already scaled), or absent/0 for walk-through.
   collideRadius?: number;
+  // Footprint shape: absent = circle, 'square' = rotY-following OBB with
+  // half-extents = collideRadius (see sim/colliders.ts).
+  collideShape?: 'square';
+  // The maker hand-authored the radius/shape: keep the legacy footprint even
+  // when a baked per-asset collision entry exists for the model.
+  collideCustom?: boolean;
+  // Resolved hitboxes overriding the baked/generated set: hand-edited boxes
+  // (baked mode) or the fine "true collision" bake (mesh mode). Normalized
+  // model space; `ry` = per-box yaw on top of the placement's rotY.
+  hitboxes?: readonly {
+    x: number;
+    y: number;
+    z: number;
+    hx: number;
+    hy: number;
+    hz: number;
+    ry?: number;
+  }[];
+  // Per-placement WALKABLE ramp decks (normalized model space, the
+  // AuthoredCollisionRamp shape): the walkable floor rises linearly along the
+  // deck's local +X from y0 to y1. When present they replace the asset's
+  // authored/generated deck table (see sim/placement_ramps.ts) - the channel
+  // that lets a Collision Master playtest walk unsaved ramps.
+  ramps?: readonly {
+    x: number;
+    z: number;
+    hx: number;
+    hz: number;
+    ry?: number;
+    y0: number;
+    y1: number;
+  }[];
+  // Optional extra transform axes (the editor gizmo): visual-only tilts and
+  // per-axis scale multipliers on top of the uniform scale. Absent = 0 / 1.
+  rotX?: number;
+  rotZ?: number;
+  scaleX?: number;
+  scaleY?: number;
+  scaleZ?: number;
+  // Vertical offset above the terrain seat (yards). Absent = 0.
+  y?: number;
+  // Editor detach (see MapPlacement.detached): when true the model floats at a
+  // fixed height: `groundY` is the frozen ground it seats above instead of the
+  // live terrainHeight, with `y` still added on top. Absent = terrain-seated.
+  detached?: boolean;
+  groundY?: number;
+  // Grass hue override in degrees [0, 360] for procedural grass patches
+  // (path 'procedural://grass-patch'); absent = the default grass tint.
+  hue?: number;
+  // Grass blade lightness [0, 1] and tufts per patch [1, 60]; absent = defaults.
+  lum?: number;
+  clump?: number;
+  // Generated rock (path 'procedural://rock') shape parameters: deterministic
+  // seed + generator sliders (noise amount, feature detail, sharpness, texture
+  // index). Absent on ordinary placements.
+  rockSeed?: number;
+  rockNoise?: number;
+  rockDetail?: number;
+  rockSharp?: number;
+  rockTex?: number;
+  // v3 rock params: vertical stretch, ground embed, ridged jaggedness, and a
+  // built-in terrain texture set key (render/terrain_texture_sets.ts) with
+  // its tile size in yards per repeat.
+  rockHeight?: number;
+  rockDepth?: number;
+  rockJag?: number;
+  rockTexId?: string;
+  rockTexTile?: number;
+  // Merged rock ridge (path 'procedural://rock-ridge'): the chain's nodes as
+  // anchor-relative offsets (girth radius in yards, height multiplier).
+  rockNodes?: { dx: number; dz: number; dy: number; r: number; h: number }[];
+  // Custom built model (path 'procedural://model'): inline editable mesh
+  // volumes rendered as one textured solid (render/model_gen.ts). `modelTexId`
+  // is a built-in terrain texture set key; `modelTexTile` is yards per repeat.
+  meshes?: readonly { verts: number[]; tris: number[]; ramp?: boolean }[];
+  modelTexId?: string;
+  modelTexTile?: number;
+  // Material adjustments (map_doc MapPlacement.modelHue/Sat/Light).
+  modelHue?: number;
+  modelSat?: number;
+  modelLight?: number;
+  // Generated tree (path 'procedural://tree'): the whole generator recipe,
+  // foundation trunk, branch growth, canopy volumes, leaf scatter, bark, wind
+  // (sim/tree_params.ts). The renderer regrows the tree from it deterministically.
+  tree?: TreeParams;
+  // Material overrides (shader tweaks): albedo tint multiply, transparency,
+  // emissive glow color + strength. Absent = the model's own materials.
+  tint?: number;
+  opacity?: number;
+  glow?: number;
+  glowStrength?: number;
+  // Animated fire effect anchored at the model's top (render-only): a live
+  // flame + a boot-time point light in playtest. Absent = none.
+  fire?: boolean;
+  // Rich multi-emitter successor to `fire`. When present it is authoritative;
+  // the legacy flag still renders its original single flame for old maps.
+  fireEffects?: readonly AssetFireEmitter[];
 }
 
 // An invisible blocker wall (editor-authored, custom maps only): a world-space
@@ -4318,6 +11874,257 @@ export interface BlockerDef {
   z2: number;
 }
 
+// An editor-authored collision volume (custom maps only), resolved from a
+// 'collider/<kind>' placement by sim/collider_volumes.ts. Dimensions are FINAL
+// world-space yards (placement scale already applied). Boxes and spheres become
+// static movement colliders; planes raise the walkable floor (groundHeight)
+// over their footprint. Like blockers, there is NO render mesh in the shipped
+// game; the editor draws a translucent overlay instead.
+export interface ColliderVolume {
+  kind: 'box' | 'sphere' | 'plane' | 'wall';
+  x: number;
+  z: number;
+  rotY: number; // three.js rotation.y convention (matches ObbCollider.rot)
+  // Plane tilt (radians, three.js Euler 'XYZ' with rotY): a tilted plane is a
+  // sloped walkable floor (ramp). Absent/0 for boxes and spheres (yaw-only OBBs).
+  rotX?: number;
+  rotZ?: number;
+  sizeX: number; // box width / sphere diameter / plane width
+  sizeY: number; // box height / plane floor offset above the terrain at center
+  sizeZ: number; // box depth / plane depth
+  // Placement Y-lift (the gizmo's Y arrow) and detached anchor, folded into the
+  // plane's walkable floor so collision sits exactly where the overlay draws it
+  // (ramps/fluids already carry these). Absent = 0 / follow the live terrain.
+  offsetY?: number;
+  detached?: boolean;
+  groundY?: number;
+}
+
+// One control point of a cave/tunnel centerline (editor Caves tool).
+// `y` is the ABSOLUTE floor height of the tunnel at this node; `radius` is the
+// half-width of the bore in yards. Consecutive nodes form a capsule-chain
+// corridor; src/sim/caves.ts owns all geometry math derived from these.
+export interface CaveNode {
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+}
+
+// A cave/tunnel (editor-authored, custom maps only). Pure data shared by sim
+// (ground sheets, wall confinement, camera clamp) and render (the standalone
+// tube mesh), exactly like HeightStamp: both sides sample the same analytic
+// functions in src/sim/caves.ts so what you walk on is what you see.
+//
+// The tube is TERRAIN-INDEPENDENT: its size and shape come only from the
+// authored nodes (never clamped, carved, or collapsed by the surrounding
+// ground). Openings into the terrain are authored separately as TerrainHole
+// cutouts the maker lines the cave up with.
+export interface CaveDef {
+  id: string;
+  nodes: CaveNode[];
+  // The base bore radius this cave was AUTHORED with (yards). Regenerating
+  // the bore (moving a rig node) reuses it, so a cave never silently changes
+  // girth because the Tunnel brush slider moved since. Absent (v1 docs) =
+  // the editor falls back to the live brush radius.
+  radius?: number;
+  // Bore multipliers (editor Cave panel sliders): width scales every node
+  // radius, height scales the interior clearance. Absent = 1 (v1 documents).
+  width?: number;
+  height?: number;
+  // Organic wobble [0,1] applied when the bore is (re)generated from its rig
+  // points: lateral path noise + radius variation. Absent = 0 (straight bore).
+  variance?: number;
+  // Floor bumps [0,1]: deterministic noise rolled into the WALKABLE floor
+  // (sim sheet + render mesh share sim/caves.ts caveFloorBumpAt), fading to
+  // zero at the walls. Absent = 0 (flat floor).
+  floorVariance?: number;
+  // Cosmetic spike density [0,1] for the interior mesh (render-only; the sim
+  // never collides with them). Absent = 0 (bare bore, v1 documents).
+  stalactites?: number;
+  stalagmites?: number;
+  // Spike size multiplier [0.3, 3] for the formations above. Absent = 1.
+  spikeSize?: number;
+  // Mouth toggles: whether each end of the tube is an OPEN entrance ring
+  // (walk-in mouth at exactly the authored node size) or a sealed rock cap.
+  // Absent = true (open) at both ends.
+  startOpen?: boolean;
+  endOpen?: boolean;
+  // Interior base-texture set key (render/terrain_texture_sets.ts): the detail
+  // map tiled over walls/floor. Absent = the default granite (Rock051). The
+  // Paint tool's vertex tinting layers on top either way, so a re-textured
+  // cave stays fully paintable.
+  tex?: string;
+  // Texture tile size in yards per repeat. Absent = 28 for a picked texture
+  // set, the legacy 5 for the stock granite.
+  texTile?: number;
+  // Carve the mouth from the bore itself: the tube emits a matching `tube`
+  // TerrainCut (sim/caves.ts caveBoreCut), so wherever the bore breaches the
+  // surface it opens its own opening. Absent/false = the v1 contract, where
+  // openings are authored by hand as separate cuts, so an existing document
+  // never gains an opening it did not have.
+  autoMouth?: boolean;
+  // Smooth-union radius (yards) for that self-carved mouth, which melts it
+  // into a hand-placed cut beside it instead of leaving a crease. Absent = 0.
+  mouthBlend?: number;
+}
+
+// One node of a `tube` cut's chain: a world-space centreline point with its
+// own cross-section. `radius` is the lateral half-width, `vy` the vertical
+// semi-axis (absent = circular). A cave bore emits exactly this shape.
+export interface TerrainCutNode {
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  vy?: number;
+}
+
+// A boolean cutout through the terrain sheet (editor Cut tool): the ground
+// surface simply does not exist where it passes inside the solid. The mesher
+// drops the quads inside it and skirts the rim (render/terrain_cut_rim_core.ts)
+// and movement treats the missing sheet as either a drop into a cave below or
+// a hard wall (nothing to stand on). `y` anchors the solid at the surface
+// height captured when the cut was made, so re-sculpting nearby ground never
+// smears it.
+//
+// An absent `shape` is the v1 sphere, so every existing document evaluates
+// bit-identically; sim and render both sample the union through
+// src/sim/terrain_cuts.ts, which is what keeps a cut from becoming an
+// invisible wall.
+export interface TerrainCut {
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  // Absent = 'sphere' (v1 documents). FORK: 'voxel' is the map's dug rock
+  // volume (the Dig / Fill / Smooth brushes bake into it), a signed-distance
+  // grid sampled trilinearly; there is at most one per document.
+  shape?: 'box' | 'capsule' | 'tube' | 'voxel';
+  // Orientation: yaw about Y then pitch about X, radians. A pitched box is how
+  // a slot follows a cliff face rather than dropping straight down.
+  rotY?: number;
+  rotX?: number;
+  // Smooth-union radius in yards: melts this cut into the ones before it
+  // instead of leaving a crease. Absent/0 = a hard union (the v1 behaviour).
+  blend?: number;
+  // box: half extents. Absent = `radius` on that axis.
+  halfX?: number;
+  halfY?: number;
+  halfZ?: number;
+  // capsule: half length along the local X axis, and the cross-section's
+  // vertical semi-axis as a multiple of `radius` (absent = 1, circular).
+  len?: number;
+  vert?: number;
+  // tube: the world-space chain. `bore` clips the solid to the half ABOVE the
+  // chain line, which is exactly a cave bore's horseshoe, so a tube arcing
+  // over a valley cuts the ground it passes through and not the ground under
+  // it.
+  nodes?: TerrainCutNode[];
+  bore?: boolean;
+  // A CARVE (the Carve tool): the solid's underground interior is a real
+  // cavity, walkable floor, rock walls and ceiling, and an interior mesh
+  // (render/cut_cavity_mesh.ts). Absent = the v1 hole: a pure sheet cutout
+  // whose void drops into whatever runs beneath it, so no existing document
+  // gains a floor it never had.
+  carve?: boolean;
+  // A carve's interior base texture: a terrain texture-set key tiled over the
+  // cavity's walls/floor (absent = the default granite), and its tiling
+  // period in yards. Cluster-resolved: the first carve of a blended cluster
+  // carrying one dresses the whole interior, so a brush-dug extension
+  // inherits the room's rock.
+  tex?: string;
+  texTile?: number;
+  // ---- FORK: organic shaping (the Carve tool's "cave system" dials). All
+  // absent = the exact primitive above, so every existing document evaluates
+  // bit-identically. Evaluated in the ONE field the sim, the physics and the
+  // interior mesher share (sim/terrain_cuts.ts), so the ghost, the cut and
+  // the walkable floor always agree.
+  // Undulation: the surface is displaced in and out by up to `warp` yards of
+  // low-frequency noise with features about `warpScale` yards across.
+  warp?: number;
+  warpScale?: number;
+  // Capsule only. `taper` multiplies the radius at the two ends (1 = uniform,
+  // <1 pinched, >1 flared); `wobble` is a periodic radius variance along the
+  // length (0..0.6 of the radius) with period `wobbleLen` yards; `bend` curves
+  // the axis in the horizontal plane and `arch` in the vertical, both in
+  // radians of total turn over the length.
+  taper?: number;
+  wobble?: number;
+  wobbleLen?: number;
+  bend?: number;
+  arch?: number;
+  // ---- FORK: the 'voxel' shape. A grid of `nx*ny*nz` cells of `cell` yards
+  // whose min corner sits at (vx0, vy0, vz0); `vox` is the run-length coded
+  // Int8 signed distance in units of cell/VOXEL_UNIT (positive = rock).
+  // `x/y/z/radius` are the grid's centre and half-diagonal, kept in step so
+  // every rect test that reads them still works.
+  cell?: number;
+  vx0?: number;
+  vy0?: number;
+  vz0?: number;
+  nx?: number;
+  ny?: number;
+  nz?: number;
+  vox?: string;
+  /** FORK, runtime only (never saved): identity + revision of the decoded
+   *  volume, so the zone build workers receive a dug volume once per edit
+   *  instead of once per tile job (render/zone_build_pool.ts). */
+  vid?: string;
+  vrev?: number;
+}
+
+// The v1 name. A hole IS a cut; v1 documents simply authored spheres only.
+export type TerrainHole = TerrainCut;
+
+// A remesh DETAIL region (the Carve tool's Remesh brush): inside its disc the
+// carve-interior mesher extracts at `cell` yards instead of the default, so a
+// maker spends triangles exactly where a cave needs to read clean. Presentation
+// only, the sim samples the analytic field, which has no resolution.
+export interface DetailRegion {
+  x: number;
+  z: number;
+  radius: number;
+  cell: number;
+}
+
+// LEGACY (retired Patch tool): a disc where the old terrain-carving cave
+// layer was suppressed. Still parsed so old documents round-trip, but the
+// runtime ignores it ? the rebuilt cave system never carves terrain.
+export interface CavePatch {
+  x: number;
+  z: number;
+  radius: number;
+}
+
+// A fluid pool volume (lava/acid/spectral/water), resolved from a
+// 'fluid/<kind>' placement by sim/fluid_volumes.ts. An ellipse footprint
+// (half-axes, rotated by rotY) whose surface sits at terrainHeight(center) +
+// offsetY. Independent of the map-wide water level: the sim only reads it for
+// the submerged damage tick; the renderer draws the surface + effects.
+export type FluidKind = 'lava' | 'acid' | 'spectral' | 'water';
+export type FluidSchool = 'physical' | 'fire' | 'frost' | 'arcane' | 'shadow' | 'holy' | 'nature';
+export interface FluidVolume {
+  kind: FluidKind;
+  x: number;
+  z: number;
+  rotY: number;
+  halfX: number;
+  halfZ: number;
+  offsetY: number;
+  hue: number; // degrees
+  lum: number; // 0..1
+  dps: number; // flat damage per second while submerged (0 = harmless)
+  // Additional damage per second as a fraction of the victim's MAX HP (0..1),
+  // stacked on top of `dps`. Lava = 0.10 (10% max HP/s); the others are flat-only.
+  dpsPct: number;
+  school: FluidSchool;
+  fx: number; // FLUID_FX_* bits (fluid_volumes.ts)
+  glow: number; // emissive strength 0..1
+  lightColor: number;
+  lightIntensity: number;
+}
+
 // A coarse 2D biome paint grid (editor). Each cell holds a biome id (0=vale,
 // 1=marsh, 2=peaks) or 255 for unpainted. Where painted, it overrides both the
 // terrain SHAPE (sim, in shapeAt) and the ground COLOR (render). Absent for the
@@ -4329,6 +12136,240 @@ export interface BiomePaint {
   originX: number; // world x of the grid's (col 0) edge
   originZ: number; // world z of the grid's (row 0) edge
   ids: number[]; // length cols*rows; 0/1/2 = biome, 255 = unpainted
+  // Maker-defined color swatches (editor palette additions): cells painted with
+  // a custom id (see CUSTOM_PAINT_ID_MIN in sim/map_doc.ts) tint the ground
+  // that color; terrain SHAPE keeps the zone band (color-only painting).
+  custom?: CustomPaintSwatch[];
+  /**
+   * How the boundary between two painted textures LOOKS, map-wide. Both are
+   * 0..1 and both are absent on a document that has never been asked about
+   * them, which reads as the defaults in render/terrain_paint_layers.ts, NOT
+   * as zero, a plain one-cell bilinear over a 0.25-0.5yd grid is a hard
+   * cut-out at walking distance, which is the look these replace.
+   *
+   * `edgeSoftness` widens the shader's blend kernel (in yards, converted to
+   * cells against `cell`). It is the half of the brush-hardness feature that
+   * was missing: a soft stroke already stores its rim as DITHERED cells, and
+   * a kernel only one cell wide resolves that dither as salt-and-pepper
+   * speckle instead of the coverage ramp it encodes.
+   *
+   * `edgeDetail` warps the paint lookup with world-space noise, so a boundary
+   * breaks into interlocking fingers instead of following the grid. Zero for
+   * both is exactly the pre-2026-09-22 look.
+   */
+  edgeSoftness?: number;
+  edgeDetail?: number;
+}
+
+export interface CustomPaintSwatch {
+  id: number; // CUSTOM_PAINT_ID_MIN..CUSTOM_PAINT_ID_MAX, unique per map
+  color: number; // 0xRRGGBB (also the fallback when the texture is unavailable)
+  label?: string;
+  // Content hash of an imported ground texture (stored browser-side in
+  // IndexedDB); when present, painting with this swatch tiles the image over
+  // the ground. A machine without the texture falls back to the color.
+  textureSha?: string;
+  // Yards per texture repeat (default 8).
+  tileSize?: number;
+  // ANTI-TILING, 0..1 (absent/0 = the plain repeating grid this has always
+  // been). A painted swatch is one tap at worldXZ/tileSize, so it grids up
+  // visibly on open ground - unlike the procedural layers, which already mix
+  // rotated octaves and a hue drift. Above 0 the tile is sampled a SECOND
+  // time through a rotated, offset frame and the two are blended by a smooth
+  // low-frequency field, so the repeat never lines up. The second tap is
+  // taken only where variation > 0, which makes this slider its own cost
+  // control.
+  variation?: number;
+  // SURFACE DEPTH, 0..1 (absent/0 = flat, the historical look). Painted
+  // ground gets a normal map but none of the height-driven shading the
+  // procedural layers enjoy - no parallax, no cavity darkening, no
+  // micro-shadow - which is why paving reads flat next to natural rock.
+  // Above 0 the swatch's AmbientOcclusion map (already shipped beside every
+  // builtin Color/NormalGL) is sampled and its crevices are shaded in, so the
+  // stones sit in their mortar instead of floating on it. One extra texture
+  // read, taken only where a swatch asks for it.
+  depth?: number;
+  // Hue rotation in degrees (-180..180) and lightness shift (-1..1) applied
+  // on top of the swatch's base look; 0/absent paints exactly the base.
+  hueShift?: number;
+  light?: number;
+  // Built-in biome id (index into world.ts BIOME_BY_ID) this swatch is a
+  // hue/light variant of: painting re-bases like that biome instead of the
+  // flat-color path, so the variant keeps the stock biome's ground look.
+  baseBiome?: number;
+  // A user-saved tint copy: the biome sliders' auto-variant reuse skips it,
+  // so tweaking a built-in biome's sliders never mutates a saved swatch.
+  saved?: boolean;
+  // Emissive glow strength for the hot/orange parts of the texture (lava): 0 or
+  // absent = no glow; >0 makes bright warm pixels emit light so the bloom pass
+  // gives them a molten glow. Auto-set to 1 when a builtin Lava texture is
+  // picked; the renderer also defaults any lava swatch to 1 (see terrain.ts).
+  glow?: number;
+}
+
+// Map-authored music (game-client presentation only). Track ids are the
+// game's MusicZone names (game/music.ts); unknown ids are ignored at play
+// time so documents stay forward-compatible.
+export interface MapMusic {
+  // Map-wide soundtrack; absent = derived from the biome as usual.
+  zoneTrack?: string;
+  // Rect areas with their own track; the smallest containing rect wins.
+  areas?: { minX: number; minZ: number; maxX: number; maxZ: number; track: string }[];
+}
+
+// Map-authored positional "point sound": a looping sound-effect emitter placed
+// at a spot, audible within `radius` yards (spherical falloff) at up to `volume`
+// gain. Client-audio presentation only; `sound` is an SFX clip id (game/sfx
+// SFX_CLIPS) and an unknown/undecoded id is ignored at play time so documents
+// stay forward-compatible.
+export interface MapPointSound {
+  x: number;
+  z: number;
+  // Height above the terrain seat (yards) of the emitter.
+  y: number;
+  // SFX clip id to loop (see SFX_CLIPS in src/game/sfx.ts).
+  sound: string;
+  // Peak gain 0..1 at the emitter, before distance falloff.
+  volume: number;
+  // Falloff radius in yards: full at the centre, silent at/beyond this distance.
+  radius: number;
+}
+
+// Map-authored ground DECAL: one stamped image draped over the terrain
+// (pentagram, blast scorch, blood pool, tracks, ...). Render-only presentation
+// decals never collide, block, or affect the sim, so an unknown `tex` is
+// simply not drawn and documents stay forward-compatible.
+//
+// The art is resolved like a paint swatch's texture: `builtin:<key>` names an
+// entry of the shipped decal library (render/decal_library.generated.ts) and a
+// 64-hex sha256 names an image imported into this browser. Only decals near
+// the camera are meshed and only their textures are fetched (render/decals.ts),
+// so a map may carry many more than are ever resident at once.
+export interface MapDecal {
+  x: number;
+  z: number;
+  /** `builtin:<key>` or a sha256 of an imported image. */
+  tex: string;
+  /** Footprint DIAMETER in yards along the decal's local x. */
+  size: number;
+  /** Yaw in radians (0 = the art's own up runs along +z). */
+  rot: number;
+  /** Height/width ratio, 1 = square. */
+  aspect?: number;
+  /** Overall opacity 0..1; absent = 1. */
+  opacity?: number;
+  /** Tint (0xRRGGBB) multiplied into the art; absent = untinted. */
+  color?: number;
+  /** Emissive strength 0..1 (glowing sigils); absent = unlit. */
+  glow?: number;
+  /** Draw-order bias among overlapping decals (higher wins); absent = 0. */
+  sort?: number;
+}
+
+// Per-map authored scene lighting (render-only): the editor's Lighting tab
+// saved into the document, applied over the biome/day-night rig in playtest
+// and the editor alike. Absent = the shipped biome/day-night lighting.
+// Structurally identical to the render layer's EditorLightingProfile (the sim
+// stays render-free, so the shape is declared here too).
+export interface MapLighting {
+  sunIntensity: number;
+  sunColor: number; // 0xRRGGBB
+  hemiIntensity: number;
+  skyColor: number; // 0xRRGGBB
+  envScale: number;
+  sunAzimuthDeg: number;
+  sunElevationDeg: number;
+  // How much of the authored daylight the deepest night keeps, 0..1 (absent =
+  // the shipped night dip). Lifts the whole night grade - key, ambient, sky,
+  // fog - so a map can run its clock without going murky after dark.
+  nightFloor?: number;
+  // Cave brightness 0..1: lifts the carved-cavity vertex tint floor from the
+  // shipped cave dark toward plain rock (absent/0 = shipped).
+  caveLight?: number;
+}
+
+/** Optional presentation overrides applied while the camera/player is inside
+ * one authored zone. Missing fields inherit the map-wide atmosphere. */
+export interface ZoneAtmosphere {
+  lighting?: MapLighting;
+  timeScale?: number;
+  skybox?: string | null;
+  // Per-zone ambient weather. Overrides the map-wide `weather` while the player
+  // stands in this zone, so one realm can run its own storm cycle without
+  // dragging the rest of a whole-world map into the same sky.
+  weather?: MapWeather;
+}
+
+/** A weather look the sky can actually hold ('auto' is the absence of one). */
+export type WeatherPrecipMode = 'clear' | 'rain' | 'snow' | 'sparkle' | 'blizzard';
+
+// Map-authored ambient weather (render-only, presentation-only). Absent = the
+// shipped biome rule (snow in the peaks, rain in the marsh).
+export interface MapWeather {
+  // Fixed weather; 'auto' keeps the biome rule. A non-empty schedule wins.
+  mode?: 'auto' | WeatherPrecipMode;
+  // Precipitation strength 0..1 (default 1).
+  intensity?: number;
+  // Billboard cloud deck: coverage 0..1, puff height in yards above sea level.
+  // Authored low it hugs the terrain and reads as rolling ground fog.
+  clouds?: { coverage: number; height: number };
+  // Dynamic weather: cycle these in order, each holding for `minutes`.
+  schedule?: { mode: WeatherPrecipMode; minutes: number }[];
+  // An aurora over the map, strength 0..1 (absent = none). Curtains hang
+  // high over the camera wherever it goes, brightest at night, faint by day.
+  aurora?: number;
+}
+
+// Automatic terrain texturing rules (render-only). Every rule defaults ON
+// (absent = the shipped look); the map editor exposes them as per-map toggles
+// so makers can paint cliffs and peaks themselves. Painted ground always wins
+// over the enabled rules regardless.
+export interface TerrainStyle {
+  // Rock texture creeping over steep slopes.
+  slopeRock?: boolean;
+  // High ground turning rocky then snow-capped.
+  snowCaps?: boolean;
+  // The world-rim "distant sunlit peaks" haze + rock band.
+  rimMountains?: boolean;
+  // Sand feathering in near the waterline (digging below it goes sandy).
+  shoreSand?: boolean;
+  // The high-tier rock rubble scattered over steep relief (render/cliff_scree).
+  // A carved city's terraces read as cliffs to it; off, the streets stay clean.
+  scree?: boolean;
+  // The drifting airborne specks (render/motes.ts: gold pollen, snow dust).
+  // OPT-IN on an authored map (absent = none): they are the shipped world's
+  // ambience, and over a maker's city they read as stray golden particles
+  // (SPACEY, 2026-09-18, twice: "remove these golden particles").
+  motes?: boolean;
+}
+
+/** One spline railway: floor points in world yards, in running order. */
+export interface RailLine {
+  points: { x: number; y: number; z: number }[];
+  /** Rail spacing in yards (absent = the standard mine gauge). */
+  gauge?: number;
+}
+
+/** One Mesh Fix knockout: terrain quads centred within `r` of (x, z) at a
+ *  height within `ySpan` of `y` do not draw (the height keeps a knockout on a
+ *  cliff's draped skin from also opening the plateau above it). */
+export interface TerrainKnockout {
+  x: number;
+  z: number;
+  y: number;
+  r: number;
+}
+
+/** One Mesh Fix vertex move: every DRAWN terrain vertex within `r` of (x, z)
+ *  is lifted by `dy`. Render-only, exactly like TerrainKnockout, the sim's
+ *  ground is untouched, so this tidies the stretched skin a boolean cut
+ *  leaves over a cave mouth without moving anything a player stands on.
+ *  `r` defaults to half the densest chunk lattice, i.e. one vertex. */
+export interface TerrainVertexEdit {
+  x: number;
+  z: number;
+  dy: number;
+  r?: number;
 }
 
 export type StationType = 'forge' | 'kitchens' | 'apothecary' | 'tannery' | 'loom' | 'toolworks';
@@ -4344,7 +12385,28 @@ export interface StationDef {
 export interface MailboxDef {
   x: number;
   z: number;
+  /** Optional yaw for the spawned pillar entity (the renderer rotates every
+   *  object by its facing). Omitted means the default 0 the pillars have
+   *  always had; content sets it only where a slot faces the wrong way. */
+  facing?: number;
 }
+
+// The Eastbrook Vale Realm Builder monument. One singleton static service, so
+// it needs a templateId rather than a def list: interaction.ts recognises the
+// entity by this id and the client sizes its click range from it.
+export const REALM_BUILDER_MONUMENT_TEMPLATE_ID = 'realm_builder_monument' as const;
+/**
+ * How close (yards, from the statue's centre) a player must stand for the
+ * monument to be the object an interact press picks. Its collider keeps the
+ * player 3.19 yd out, so the live band is 3.19 to 4 yd: arm's reach from the
+ * plinth. The Ravenpost mailbox stands 6.21 yd from the centre and its posting
+ * spot about 7 yd, so a player who walked up to post a letter is outside this
+ * band, and one pressed against the plinth on the mailbox's side is nearer
+ * the mailbox anyway: nearest wins, and the monument never takes the press
+ * from it. The client sizes its click range from the same constant
+ * (src/game/interactions.ts objectInteractionRange).
+ */
+export const REALM_BUILDER_MONUMENT_INTERACT_RADIUS = 4;
 
 // Noticeboards currently have one complete cross-platform implementation. Keep
 // the world-content shape closed over that renderer/collider contract instead
@@ -4358,7 +12420,15 @@ export const EASTBROOK_NOTICEBOARD_NATIVE_DIMENSIONS = Object.freeze({
 } as const);
 export const EASTBROOK_NOTICEBOARD_INTERACTION_RADIUS = 4 as const;
 // Static world services use their own namespace above the sequential allocator
-// and the reserved 1_000_000_000/1_000_000_001 singleton NPC ids.
+// and reserved 1_000_000_x singleton ids (the Vale Cup groundskeeper, FURY in
+// Eastbrook, Warmarshal Draven Kole in Highwatch, the Crucible vendor, the
+// Wyrmwatch harbormaster, the Eastbrook vault keeper, practice dummies, the Mirefen
+// innkeeper; each id
+// is taken ONCE, tests/reserved_singleton_entity_ids.test.ts pins the band). A singleton NPC takes a reserved id AND
+// `dynamic: true` so the generic world-init loop skips it: that loop allocates
+// ids by iterating the merged NPC table in insertion order, so a plain
+// insertion would shift the id of every NPC, camp mob and object created after
+// it, which the parity goldens pin per frame.
 export const STATIC_WORLD_SERVICE_ENTITY_ID_MIN = 2_000_000_001;
 
 /** The one static, interactable noticeboard contract supported by every host. */
@@ -4376,6 +12446,29 @@ export interface NoticeboardDef {
   depth: (typeof EASTBROOK_NOTICEBOARD_NATIVE_DIMENSIONS)['depth'];
   height: (typeof EASTBROOK_NOTICEBOARD_NATIVE_DIMENSIONS)['height'];
   interactionRadius: typeof EASTBROOK_NOTICEBOARD_INTERACTION_RADIUS;
+  frontStandingPoint: { x: number; z: number };
+}
+
+/** One posted notice on an interactable noticeboard, carried verbatim on the
+ *  'listings' arm of the noticeboard event: guild names and notes are world
+ *  data the client splices like player names, never translation keys. (A
+ *  board with NO authored listings opens the guild board window instead,
+ *  src/ui/hud/guild_board/; this shape is the authored-notice card only.) */
+export interface NoticeboardListing {
+  guild: string;
+  note: string;
+}
+
+/** A non-interactive authored muster board whose visible footprint is solid. */
+export interface MusterBoardDef {
+  id: string;
+  assetId: string;
+  x: number;
+  z: number;
+  rotation: number;
+  width: number;
+  depth: number;
+  height: number;
   frontStandingPoint: { x: number; z: number };
 }
 
@@ -4448,6 +12541,7 @@ export interface WorldServicesDef {
   stations?: readonly StationDef[];
   mailboxes?: readonly MailboxDef[];
   noticeboards?: readonly NoticeboardDef[];
+  musterBoards?: readonly MusterBoardDef[];
   graveyards?: readonly GraveyardDef[];
 }
 
@@ -4458,7 +12552,18 @@ export interface WorldServicesDef {
 // registry (both, because terrain reaches the data by module global and the Sim
 // reaches it by config). CAMPS order is a determinism contract: append, never
 // reorder, since the Sim draws the shared Rng in array order.
+export type MapPresentationMode =
+  | 'blank'
+  | 'dungeon'
+  | 'temple'
+  | 'nythraxis'
+  | 'delve'
+  | 'sowfield'
+  | 'yumiMaze';
+
 export interface WorldContent {
+  /** Editor preview of the live overworld: retain release terrain, scenery and movement rules. */
+  liveWorldPreview?: true;
   zones: ZoneDef[];
   camps: CampDef[];
   npcs: Record<string, NpcDef>;
@@ -4466,8 +12571,11 @@ export interface WorldContent {
   roads: { x: number; z: number }[][];
   props: ZonePropsDef;
   playerStart: { x: number; z: number };
+  zoneAtmosphere?: Record<string, ZoneAtmosphere>;
+  /** Optional author-authored area used to spread new players across distinct positions. */
+  playerSpawnArea?: { minX: number; minZ: number; maxX: number; maxZ: number };
   // Optional by design: active custom maps that omit services must not inherit
-  // built-in stations, mailboxes, noticeboards, or graveyards.
+  // built-in stations, mailboxes, noticeboards, muster boards, or graveyards.
   services?: WorldServicesDef;
   // Heightfield edits applied inside terrainHeight(). Absent/empty for the
   // built-in world, so its heightfield stays byte-identical.
@@ -4478,31 +12586,323 @@ export interface WorldContent {
   // Invisible blocker walls (editor). Collision-only OBBs in the sim's static
   // colliders; never rendered. Absent for the built-in world.
   blockers?: BlockerDef[];
+  // Editor-authored collision volumes (box/sphere block movement, plane raises
+  // the floor); never rendered in playtest. Absent for the built-in world.
+  colliderVolumes?: ColliderVolume[];
+  // Game-mode anchors an authored map tagged with `regionRole` (each team's
+  // flag, respawn ring, banner and graveyard, plus the rune pads), resolved
+  // into the record the objective driver reads (sim/map_objectives.ts). Absent
+  // for the built-in world and for any map that tagged nothing.
+  objectives?: MapObjectives;
+  // Per-imported-asset baked collision boxes (normalized model space, keyed by
+  // the placement path / 'local|user/<sha>' id). Catalogue assets resolve into
+  // the generated table instead; see sim/asset_collision.ts.
+  // Per-asset wind-sway opt-out (MapDoc.assetSway), keyed by asset id or model
+  // path. Only `false` entries are carried; an absent asset sways as usual.
+  // Render-only: the sim never reads it.
+  assetSway?: Record<string, boolean>;
+  assetCollision?: Record<
+    string,
+    readonly { x: number; y: number; z: number; hx: number; hy: number; hz: number }[]
+  >;
   // 2D biome paint overriding terrain shape (sim) and color (render).
   biomePaint?: BiomePaint;
+  // FORK: the carve interior mesher's document-wide base cell in yards (the
+  // Remesh panel's "Cave mesh detail"); absent = the mesher's default.
+  caveMeshCell?: number;
+  // Caves/tunnels (editor Caves tool): standalone tube volumes, independent
+  // of the heightfield. Absent for the built-in world.
+  caves?: CaveDef[];
+  // Legacy patch discs (the retired Patch tool). Parsed for old documents but
+  // ignored at runtime: terrain is no longer carved, so there is nothing to
+  // patch. Absent = none.
+  cavePatches?: CavePatch[];
+  // Spherical cutouts through the terrain sheet (editor Hole tool). Absent
+  // for the built-in world, so its ground stays byte-identical.
+  holes?: TerrainHole[];
+  // Patch spheres restoring the ground inside hole cutouts (editor Patch hole
+  // mode): a patch beats every hole it overlaps. Absent = none.
+  holePatches?: TerrainHole[];
+  // Mesh Fix knockouts (editor Mesh Fix tool): small discs whose terrain
+  // quads are simply not drawn. RENDER-ONLY: the sim's ground is untouched,
+  // so this is for the stretched leftover polys a cut leaves draped over a
+  // cave mouth, never for making a hole to walk through. Absent = none.
+  terrainKnockouts?: TerrainKnockout[];
+  // Spline railways (render/rail_tracks.ts): each line is a list of FLOOR
+  // points a continuous track is swept through. Render-only dressing.
+  rails?: RailLine[];
+  // Mesh Fix vertex moves (editor Mesh Fix tool, Vertices mode): per-vertex
+  // height nudges applied by render/terrain_vertex_edits.ts inside
+  // meshTerrainHeight. RENDER-ONLY, like terrainKnockouts. Absent = none.
+  terrainVertexEdits?: TerrainVertexEdit[];
+  // Remesh detail regions (Carve tool's Remesh brush): finer carve-interior
+  // tessellation inside each disc. Absent = the default cell everywhere.
+  detailRegions?: DetailRegion[];
+  // Fluid pool volumes (lava/acid/...), projected from 'fluid/<kind>'
+  // placements. Sim reads the damage tick; render draws surfaces + effects.
+  fluids?: FluidVolume[];
+  // Map-wide water tint (hue degrees / lightness 0..1); absent = shipped blues.
+  waterHue?: number;
+  waterLum?: number;
+  // Auto-texturing rule toggles (render-only; absent = all rules on).
+  terrainStyle?: TerrainStyle;
+  // Ambience animation speed (render-only): scales cosmetic world motion
+  // (water, foliage sway, fire, birds, weather). 1 = shipped speed. Never
+  // touches the sim tick or any gameplay timing.
+  timeScale?: number;
+  // Placed-asset view distance (render-only): how far free-placed decor renders
+  // before it culls, capped at the fog. Absent = the default.
+  assetViewDistance?: number;
+  // Ambient weather override (render-only; absent = the biome rule).
+  weather?: MapWeather;
+  // Authored scene lighting (render-only; absent = biome/day-night rig).
+  lighting?: MapLighting;
+  // Authored soundtrack (client presentation; absent = the biome rule).
+  music?: MapMusic;
+  // The map's sky: 'builtin:<id>' (bundled equirect) or 'custom:<sha256>'
+  // (uploaded, IndexedDB). Absent = the procedural HDRI sky. Render-only.
+  skybox?: string;
+  // Named location rects (editor-authored): the HUD shows the containing
+  // rect's name as the player's current location.
+  locations?: { name: string; minX: number; minZ: number; maxX: number; maxZ: number }[];
+  // Authored maps: the world-space point the map's origin samples the shipped
+  // world's natural heightfield from (Generate Terrain). Absent = flat slate.
+  terrainBase?: { x: number; z: number };
+  // A LINKED custom map embedded in the shipped world (customMapToWorldContent
+  // linked projection): the map's rect in LOCAL map coords + the world-space
+  // anchor its origin sits at. Inside the rect the map's own terrain (flat
+  // slate, or its Generate Terrain source) replaces the overworld base with an
+  // edge blend, and the lethal open-sea fatigue is suppressed so a map placed
+  // offshore is safe ground. Derived at projection time, never persisted.
+  linkedMap?: {
+    anchor: { x: number; z: number };
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+    terrainBase?: { x: number; z: number };
+  };
+  // Editor-authored point lights (render-only; y is height above terrain).
+  lights?: { x: number; z: number; y: number; color: number; intensity: number; range: number }[];
+  // Editor-authored positional point sounds (client audio only): each loops its
+  // SFX clip, attenuated to silence at `radius` yards. y is height above terrain.
+  pointSounds?: MapPointSound[];
+  // Editor-authored ground decals (render-only): images draped over the terrain
+  // near the camera. See MapDecal and render/decals.ts.
+  decals?: MapDecal[];
   // Water surface height for this map; absent = the built-in WATER_LEVEL (-4.5).
   // Read through waterLevel() in src/sim/world.ts, never directly.
   waterLevel?: number;
+  // Half the world's x extent in yards (world spans [-worldHalfX, worldHalfX]);
+  // absent = the built-in WORLD_MAX_X. Drives the terrain rim walls and the
+  // decoration field bounds; the z extent comes from the zone bands.
+  worldHalfX?: number;
+  // Procedural terrain decorations (trees/rocks) are enabled by default. The
+  // map editor's blank-flat template opts out so makers start from bare ground.
+  decorationsMode?: 'empty';
+  // Stable keys of procedural decorations replaced by editable placements.
+  decorationExclusions?: string[];
+  // Painted no-grass discs: the procedural meadow grass (render/foliage.ts) is
+  // suppressed inside each circle, so a maker can scrub away built-in grass.
+  grassClear?: readonly GrassClearCircle[];
+  // Painted ground-clutter stamps (Studio Paint Clutter brush): the renderer
+  // scatters tier-gated dressing inside each disc (render/city_clutter.ts);
+  // nothing here reaches the simulation.
+  clutter?: readonly ClutterStamp[];
+  // Render/sim presentation defaults are enabled by default. 'blank' keeps only
+  // the neutral terrain base and sky birds for new flat authoring worlds.
+  presentationMode?: MapPresentationMode;
+  // Scenery families this world's DOCUMENT already owns as editable placements,
+  // so the renderer-owned builders that normally draw them must stand down or
+  // the same tree is drawn twice, once movable, once not. Absent for the
+  // built-in world BY CONSTRUCTION, so the shipped path cannot drift.
+  promotedScenery?: PromotedScenery;
+  // Gameplay objects this map moved (farm beds, practice dummies, gather
+  // nodes, dungeon doors), keyed `<kind>:<id>`; every position reader
+  // resolves through sim/moved_objects.ts with the built-in row as the
+  // fallback. Frozen; absent for the built-in world.
+  objectMoves?: ObjectMoves;
+  // Declarative Fenbridge town layout touch-ups (moved painted buildings,
+  // civic props, NPCs, and added cottage pads).
+  fenbridgeTouchup?: import('./fenbridge_touchup').FenbridgeTouchup;
 }
+
+/**
+ * Renderer-owned scenery a map document has taken over as placements.
+ *
+ * Only families whose builder reads a STATIC content module need a flag. Every
+ * family props.ts draws out of ZonePropsDef is already gated by the projection
+ * emptying that array (withoutEditableWorldProps), so it must NOT get one.
+ */
+export interface PromotedScenery {
+  /** The Palmreach strand's beach palms (world.ts reachPalmSpots). */
+  reachPalms?: boolean;
+  /** The banyan giants (render/jungle_features.ts reads PALMREACH_PROPS). */
+  greatTrees?: boolean;
+  /** The road network's lamp posts (colliders.ts streetlampPlacements, one
+   *  gate stands down the fixtures, the post colliders and the night-light
+   *  registration together, since all three read the same plan). */
+  streetlamps?: boolean;
+  /** The weeping willows (sim/fen_willows.ts spots: render/fen_features.ts
+   *  draws the fen's, render/water_flora.ts the Veiled Hollow's, and
+   *  colliders.ts blocks both sets' trunks). */
+  willows?: boolean;
+  /** The Farshore isle's strand palms (world.ts farshorePalmSpots, a
+   *  separate list from the Palmreach strand's reachPalms). */
+  farshorePalms?: boolean;
+  /** The Drakelands' den dressing: dragon hoards, egg clutches, ember-lily
+   *  trees and crystal clusters (render/ember_features.ts spots; the lily
+   *  trunk colliders in colliders.ts ride the same flag). */
+  emberDressing?: boolean;
+  /** The Veiled Hollow's valley-floor boulders (render/realm_flora.ts). */
+  realmBoulders?: boolean;
+  /** The Willowfen's pond lilies, shoreline reeds and glow mushrooms
+   *  (render/fen_features.ts). */
+  fenFlora?: boolean;
+  /** Every other declared lake's lily rafts and reeds
+   *  (render/water_flora.ts). */
+  waterFlora?: boolean;
+  /** The fallen-coconut clusters under the strand palms (jungle_features.ts
+   *  reachCoconutSpots + farshore_features.ts's isle clusters). */
+  jungleCoconuts?: boolean;
+  /** The authored towns' (Eastbrook Vale / Fenbridge) rebuild BUILDINGS,
+   *  the town views' building loops and the record colliders stand down;
+   *  wells, stalls, fences, streets and the harbor stay town-drawn.
+   *  Highwatch has its own family, highwatchTown. */
+  authoredTowns?: boolean;
+  /** The Eastbrook Weekly Vault (render/eastbrook_weekly_vault.ts draws it
+   *  from EASTBROOK_LAYOUT.weeklyVault, and its record collider rides the
+   *  same flag). Its own family, not part of authoredTowns: a document
+   *  promoted before the vault had a placeable model keeps the town-drawn
+   *  hall until this family promotes too. */
+  eastbrookVault?: boolean;
+  /** The authored towns' square dressing: Eastbrook's market stalls, benches
+   *  and yard fences, and Fenbridge's cistern, provision stall, muster board
+   *  and boardwalks (the town views' micro and boardwalk batches stand down;
+   *  the stall, cistern and fence record colliders ride the same flag through
+   *  sim/authored_town_dressing.ts). The town wall and the Realm Builder
+   *  monument stay town-drawn. */
+  authoredTownDressing?: boolean;
+  /** Highwatch's painted rebuild BUILDINGS (sim/highwatch_layout.ts): the
+   *  town view's building loop, the record colliders and the walk-in floors
+   *  stand down. Its own family for the vault's reason: a document promoted
+   *  before Highwatch was rebuilt carries authoredTowns and none of these
+   *  placements, so it keeps the town-drawn buildings. */
+  highwatchTown?: boolean;
+  /** The painted towns' rebuild BUILDINGS (sim/painted_towns/, every town
+   *  after Highwatch): the town views' building loops, the record colliders
+   *  and the walk-in floors stand down. One family for all of them (they
+   *  arrived together), its own for the vault's reason. */
+  paintedTowns?: boolean;
+}
+
+/** The resolved storage price tables every sim price read consumes: bank slot
+ *  expansions, bank bag sockets, and Materials Vault rungs (index 0 of
+ *  vaultUpgrades IS the vault unlock). Built once at Sim construction by
+ *  storage_prices.ts resolveStoragePrices, which guarantees each list keeps the
+ *  exact length of its compiled default table. Declared here (not in
+ *  storage_prices.ts) so bank.ts/materials_vault.ts never import that module:
+ *  it imports their price constants, and a types home keeps the graph acyclic. */
+export interface StoragePrices {
+  readonly bankExpansions: readonly number[];
+  readonly bankSockets: readonly number[];
+  readonly vaultUpgrades: readonly number[];
+}
+
+/** Host-supplied per-dimension override for StoragePrices. A dimension applies
+ *  only as an array of exactly the compiled default's length whose every entry
+ *  is a safe integer >= 0 (Number.isSafeInteger); anything else falls back to
+ *  the default for that dimension alone (storage_prices.ts owns the
+ *  validation). */
+export interface StoragePricesOverride {
+  readonly bankExpansions?: readonly number[];
+  readonly bankSockets?: readonly number[];
+  readonly vaultUpgrades?: readonly number[];
+}
+
+/** One Materials Vault unit draw offered to the authoritative host before the
+ *  sim mutates any character state. Identity-free (pooled stock) unless
+ *  `signer` is set: then every unit of the take comes out of the crafter's OWN
+ *  signed buckets, which the custody ledger keys by that signer
+ *  (vault_material_sources.ts splitVaultTakesBySigner). */
+export interface VaultConsumptionTake {
+  readonly itemId: string;
+  readonly count: number;
+  readonly signer?: string;
+}
+
+/** Opaque host reservation for one planned Materials Vault consumption. */
+export interface VaultConsumptionReservation {
+  commit(): void;
+  cancel(): void;
+}
+
+/** Host-side bounded-admission seam for craft/enchant vault consumption.
+ *  Returning null refuses the action before its first mutation. */
+export type VaultConsumptionAdmission = (
+  pid: number,
+  takes: readonly VaultConsumptionTake[],
+  vaultUpgrades: number,
+) => VaultConsumptionReservation | null;
 
 export interface SimConfig {
   seed: number;
   playerClass: PlayerClass;
-  respawnSeconds?: number; // mob respawn time (default 25)
+  // Global base mob respawn delay (seconds). LEAVE IT UNSET for a normal world:
+  // open-world trash then respawns on the per-zone level-band tier
+  // (src/sim/respawn_policy.ts), and only mobs outside every zone rect (instanced
+  // interiors) fall back to the 25s default. Setting it pins EVERY mob in the
+  // world to this base instead, which is what the RL env and the fast unit tests
+  // want; that is why it stays possibly-undefined on Sim.cfg.
+  respawnSeconds?: number;
   autoEquip?: boolean; // auto-equip better gear on loot (headless convenience)
   playerName?: string;
   noPlayer?: boolean; // multiplayer server: start with an empty world and addPlayer() later
   devCommands?: boolean; // local dev: /dev level|tp|give chat cheats
+  worldPvpDisabled?: boolean; // realm kill switch for the /pvp flag (server env WORLD_PVP_DISABLED=1)
   lockoutNowMs?: () => number; // host wall-clock for persisted raid lockouts
+  // Host randomness for the per-copy guid of a tracked (epic or legendary)
+  // item (item_tracking.ts): the server binds crypto.randomUUID, the offline
+  // client its own crypto. Unset (tests, headless) falls back to the
+  // deterministic mint in item_provenance.ts, which never touches the rng.
+  mintItemGuid?: () => string;
+  // Host wall clock the day/night cycle is anchored to (src/sim/day_night.ts): the
+  // server's Date.now, the offline client's Date.now (or its /daynight override), so
+  // a boss who sleeps at night sleeps under the sky the renderer actually draws.
+  // Omitted (tests, the RL env): the sim has NO day/night clock, Sim.dayNightPhase()
+  // answers null, nocturnal behavior stays off and every schedule keeps its interval
+  // cadence, exactly the pre-cycle world. Only ever read through the SimContext seam,
+  // so the parity gate's rng draw order is untouched either way.
+  dayNightNowMs?: () => number;
   // Live server: schedule the first world-boss rise at boot instead of one
   // interval out, so a freshly (re)started realm has Thunzharr up immediately.
   // Offline worlds and parity traces keep the default (first rise after one
   // interval), so this never fires inside a short deterministic scenario.
   worldBossAtBoot?: boolean;
+  // Live worlds (server + offline client): enable the natural ranked rift portal
+  // scheduler (rift/portals.ts). Default OFF so deterministic tests, parity
+  // traces, and the RL env keep a portal-free world unless they opt in.
+  riftPortals?: boolean;
+  // Live worlds (server + offline client): the tutorial is COMPULSORY for a
+  // genuinely fresh character (never asked, never skippable): the greeting
+  // sweep ferries a fresh mainland character straight to the Proving Shore.
+  // Default OFF so deterministic tests, parity traces, and the RL env never
+  // teleport a fresh character mid-scenario unless they opt in.
+  compulsoryTutorial?: boolean;
+  // Live worlds (server + offline client): raise the Mirefen muster (its squads, the
+  // command camp and its weapon rack; src/sim/mirefen_muster.ts) on the first tick,
+  // whether or not Balgath is up. Default OFF so deterministic tests, parity traces and
+  // the RL env allocate no muster ids unless they opt in (or see a Balgath).
+  mirefenMuster?: boolean;
   // Host-computed next raid-reset instant for a given lockout "now" (epoch ms). The
   // authoritative server uses its realm-local 3 AM daily reset; offline/headless omit
   // this and fall back to a flat 24h day. Keeps the time zone out of the sim core.
   raidResetMs?: (nowMs: number) => number;
+  // Host-computed next WEEKLY raid-reset instant for a given lockout "now" (epoch
+  // ms): the raid rooms' lockout boundary (the server uses Tuesday at the realm's
+  // daily-reset hour; see server/raid_reset.ts nextWeeklyRaidResetMs). Offline and
+  // headless omit this and fall back to a flat 7-day week.
+  weeklyRaidResetMs?: (nowMs: number) => number;
   // Offline play-test: a custom world to run instead of the built-in one. The Sim
   // ctor reads spawns from here; render/terrain read it via the data.ts registry,
   // so callers that set this MUST also call setActiveWorldContent() with content
@@ -4519,15 +12919,50 @@ export interface SimConfig {
   // omits it. Passing a reference allocates nothing and stays behavior-inert (the
   // host reads it, the sim never does), so the parity/determinism gates are untouched.
   perfLap?: (phase: string, entity?: Entity) => void;
+  // Distance-cull throttle: when positive, idle ownerless mobs farther than this many
+  // world units from every player skip their per-tick idle AI. The offline browser and
+  // live GameServer set it to PLAYER_INTEREST_DROP_RADIUS; deterministic tests leave it
+  // unset unless they are explicitly pinning the culling contract. The headless RL env
+  // keeps its own intentional 80-unit throttle (headless/env_server.ts). Positive values
+  // also move every passive idle roll to the per-mob lane; see mob/idle_rng.ts.
+  idleMobTickRadius?: number;
   // When true, the Sowfield auto-runs a bot-vs-bot showcase match after a stretch
   // of no queue activity, so a walk-up spectator always has a game to watch (and
   // bet on). Server + offline game enable it; tests/goldens leave it off so the
   // idle timer never perturbs a deterministic scenario.
-  valeCupShowcase?: boolean;
+  // Storage price override (bank expansions/sockets, vault rungs). Boot-time
+  // construction input only: the Sim ctor resolves it ONCE into the frozen
+  // Sim.storagePrices table (never carried onto Sim.cfg, the noPlayer idiom)
+  // and no code reads it mid-tick.
+  storagePrices?: StoragePricesOverride;
+  // Authoritative hosts reserve bounded audit capacity through this callback
+  // before a craft or enchant consumes from the Materials Vault. Offline and
+  // headless hosts omit it and receive an inert successful reservation.
+  vaultConsumptionAdmission?: VaultConsumptionAdmission;
+  courierBankExchange?: CourierBankExchange;
+  // The courier's other-character leg (server membership services); offline
+  // hosts omit it and a courier there has no other characters to visit.
+  courierAccountExchange?: CourierAccountExchange;
+  // The material-gatherer identity for the player this constructor MINTS (the
+  // primary offline/headless character), allocated by the HOST outside the sim
+  // and passed in whole (src/sim/material_gatherer.ts). A VALUE, never a
+  // factory: the sim reads it once at construction and never derives one, so
+  // the same explicit inputs always give the same attribution and no clock,
+  // randomness or crypto is reachable from here.
+  //
+  // A production browser or headless host ALWAYS supplies it for a real player.
+  // Omitting it (a unit test, a probe rig, the editor viewport) is the supported
+  // UNKNOWN case: that player gathers unrecorded stock exactly as before this
+  // feature, and nothing is invented from the seed, the entity id or the name.
+  //
+  // Secondary players a host adds later carry their OWN id through
+  // addPlayer({ localGathererIdentity }); this field never covers them.
+  gathererIdentity?: LocalGathererIdentity;
 }
 
 export function emptyMoveInput(): MoveInput {
   return {
+    gliderPitch: undefined,
     forward: false,
     back: false,
     turnLeft: false,
@@ -4535,6 +12970,8 @@ export function emptyMoveInput(): MoveInput {
     strafeLeft: false,
     strafeRight: false,
     jump: false,
+    dive: false,
+    surface: false,
   };
 }
 
@@ -4573,6 +13010,19 @@ export const XP_TABLE = [
   400, 900, 1400, 2100, 2800, 3600, 4500, 5400, 6500, 7600, 8800, 10100, 11400, 12900, 14400, 16000,
   17700, 19400, 21300, 23200,
 ];
+// Procedural Rift rank ladder (C lowest, S highest); tuning per rank lives in
+// rift/portals.ts (RIFT_TIER_INFO). Declared here so Entity can carry it.
+export type RiftTier = 'C' | 'B' | 'A' | 'S';
+
+// Rank badge colours, shared by the sim tuning table and the renderer's
+// floating rank badge (single source so the two can never drift).
+export const RIFT_TIER_COLORS: Record<RiftTier, number> = {
+  C: 0x3fbf5f,
+  B: 0x3f7fff,
+  A: 0xb04fff,
+  S: 0xffb020,
+};
+
 export const MAX_LEVEL = 20;
 
 // Shared sim constants relocated here (C1) so both sim.ts and the extracted damage
@@ -4582,6 +13032,7 @@ export const PARTY_XP_RANGE = 80; // yards: members this close share kill xp/cre
 // boss death) and the still-on-Sim encounter logic; N1 may re-home it when it owns
 // the encounter. Kept here as the neutral shared seam in the meantime.
 export const NYTHRAXIS_BOSS_ID = 'nythraxis_scourge_of_thornpeak';
+export const IGNIVAR_BOSS_ID = 'ignivar_herald_of_the_last_flame';
 // The Nythraxis arena room radius (yards from the boss spawn). Shared here so
 // deeds.ts can read it without importing encounters/nythraxis.ts (which itself
 // imports deeds.ts). Membership consumers (the lockout roster and the deed
@@ -4601,7 +13052,7 @@ export function xpForLevel(level: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Post-cap progression — "Max-Level XP Overflow" (see docs/prd/…).
+// Post-cap progression - "Max-Level XP Overflow" (see docs/prd/…).
 //
 // At the level cap, XP keeps accruing into a 64-bit lifetime counter that
 // drives a cosmetic *virtual level* so the XP bar keeps "leveling" forever.
@@ -4643,7 +13094,7 @@ export function xpToReachLevel(level: number): number {
 
 // Cosmetic virtual level for a lifetime-XP total. Below the cap this equals the
 // real level; at/after the cap it climbs past MAX_LEVEL. O(log n) over the
-// cached table — never recomputed per frame, never per combat tick.
+// cached table - never recomputed per frame, never per combat tick.
 export function virtualLevel(lifetimeXp: number): number {
   const xp = Math.max(0, lifetimeXp);
   let lo = 1,
@@ -4670,7 +13121,7 @@ export function virtualLevelProgress(lifetimeXp: number): {
   return { level, into: Math.max(0, Math.min(span, lifetimeXp - floor)), span };
 }
 
-// Cosmetic lifetime-XP milestones (Paragon-style). Strictly cosmetic — they
+// Cosmetic lifetime-XP milestones (Paragon-style). Strictly cosmetic - they
 // grant titles / nameplate borders, never power. Ordered by threshold.
 export interface MilestoneDef {
   id: string;
@@ -4737,11 +13188,27 @@ export type DeedStatKey =
   | 'groundObjectsLooted'
   | 'dungeonFinalBossKills'
   | 'thunzharrKills'
+  | 'balgathKills'
   | 'bloatCleanKills'
   | 'hubCraftsPerformed'
   | 'attunementsCompleted'
   | 'masterworksCrafted'
-  | 'salvagesPerformed';
+  | 'salvagesPerformed'
+  | 'riftClears'
+  | 'riftSRankClears'
+  // Rides home rung on the island ferry bell AFTER the Proving Shore rail is
+  // fully handed in (interactions/ferry_bell.ts): the graduation moment.
+  | 'tutorialGraduations'
+  // Orange promotions performed (Masterwrought phase 13): bumped once per
+  // legendary promotion at the promotePerfectedCopy stamp site
+  // (professions/perfecting.ts, reached via resolvePerfectingAttempt's internal promotion arm), feeding prog_legendmaker.
+  | 'legendariesForged'
+  // Coinsack Scurriers caught in a Buried Hoard (rift/hoard_goblin.ts): bumped
+  // for every player paid off one, feeding cmb_coinsack_caught.
+  | 'hoardGoblinKills'
+  // Old Thatchgrin slain (Gourdlight Eve's field boss, seasonal/scarecrow.ts): bumped
+  // for every contributor, feeding feat_old_thatchgrin.
+  | 'thatchgrinKills';
 
 // The canonical counter key list (init/serialize iterate it in this fixed
 // order so equal states always serialize byte-equal).
@@ -4765,11 +13232,18 @@ export const DEED_STAT_KEYS: readonly DeedStatKey[] = [
   'groundObjectsLooted',
   'dungeonFinalBossKills',
   'thunzharrKills',
+  'balgathKills',
   'bloatCleanKills',
   'hubCraftsPerformed',
   'attunementsCompleted',
   'masterworksCrafted',
   'salvagesPerformed',
+  'riftClears',
+  'riftSRankClears',
+  'tutorialGraduations',
+  'legendariesForged',
+  'hoardGoblinKills',
+  'thatchgrinKills',
 ];
 
 // Numeric readings computed from already-persisted PlayerMeta state (never new
@@ -4780,14 +13254,31 @@ export type DeedMeterId =
   | 'talentPoints'
   | 'arenaRankedMatches'
   | 'arenaRankedWins'
+  | 'bgWins'
+  | 'bgCaptures'
   | 'vcupWins'
   | 'vcupGuildWins'
   | 'bankPurchasedSlots'
+  // Gold-bought bank bag sockets unlocked (BankState.unlockedSockets, phase 06;
+  // monotonic: an unlock never reverts).
+  | 'bankSocketsUnlocked'
   | 'townFocusPoints'
   | 'delveLoreCount'
   | 'companionRankBest'
   | 'itemsDiscoveredCount'
-  | 'poorItemsDiscoveredCount';
+  | 'poorItemsDiscoveredCount'
+  // Career Honor earned, never spent: PlayerMeta.lifetimeHonor is monotonic, so
+  // spending at the WARFARE quartermaster can never cost a rank title.
+  | 'lifetimeHonor'
+  // Faction standing (PlayerMeta.factions, src/sim/factions.ts): one meter
+  // per allied faction. awardFactionReputation only ever adds, so a standing
+  // tier once reached is never lost.
+  | 'standingRiftWatch'
+  | 'standingChurchOrder'
+  | 'standingAutomatons'
+  // Clue Scrolls: lifetime Treasure Caskets opened (PlayerMeta.clueCasketsOpened,
+  // src/sim/clue_casket.ts). Only ever climbs.
+  | 'clueCasketsOpened';
 
 // Boolean predicates over already-persisted state (see the flag table in
 // deeds.ts). Like meters, they retro-grant on load.
@@ -4818,19 +13309,36 @@ export type DeedTrigger =
   | { kind: 'stat'; stat: DeedStatKey; count: number }
   // deedStats.dungeonClears (keys '<dungeonId>' and '<dungeonId>:heroic');
   // difficulty absent sums both keys.
-  | { kind: 'dungeonClears'; dungeonId: string; difficulty?: 'normal' | 'heroic'; count: number }
+  | {
+      kind: 'dungeonClears';
+      dungeonId: string;
+      difficulty?: 'normal' | 'heroic';
+      count: number;
+    }
   // The EXISTING persisted PlayerMeta.delveClears (keys '<delveId>:<tierId>').
   // delveId absent sums every key (the all-delves total); tier absent sums the
   // delve's tiers.
-  | { kind: 'delveClears'; delveId?: string; tier?: 'normal' | 'heroic'; count: number }
+  | {
+      kind: 'delveClears';
+      delveId?: string;
+      tier?: 'normal' | 'heroic';
+      count: number;
+    }
   // The existing persisted Ashen Coliseum standings (one-way unlock: the deed
   // stays earned if rating later falls).
   | { kind: 'arenaRating'; bracket: '1v1' | '2v2'; rating: number }
   // craftSkills: with craftId, that one craft at or above level; without, at
   // least `count` (default 1) crafts on the ring at or above level.
   | { kind: 'craftSkill'; craftId?: string; level: number; count?: number }
-  // gatheringProficiency: same shape as craftSkill over the three professions.
-  | { kind: 'gathering'; professionId?: GatheringProfessionId; amount: number; count?: number }
+  // gatheringProficiency: same shape as craftSkill over the gathering
+  // professions (the live roster is GATHERING_PROFESSION_IDS in
+  // content/professions.ts).
+  | {
+      kind: 'gathering';
+      professionId?: GatheringProfessionId;
+      amount: number;
+      count?: number;
+    }
   // At least `count` (default all) of the listed ids in deedStats.itemsDiscovered.
   | { kind: 'collectItems'; itemIds: string[]; count?: number }
   // Membership in deedStats.visited (stable authored marks like 'npc:saul' or
@@ -4882,7 +13390,7 @@ export interface DeedStats {
 // Prestige cost. Each prestige rank requires a full level-cap bar's worth of
 // post-cap lifetime XP, so prestige rank is a pure function of XP actually
 // earned past the cap. This is the anti-abuse guard: the prestige command can't
-// be spammed from a hacked client to inflate the (leaderboard-visible) rank —
+// be spammed from a hacked client to inflate the (leaderboard-visible) rank  -
 // the server caps rank at maxPrestigeRank(lifetimeXp) regardless of how many
 // prestige commands arrive.
 export const PRESTIGE_XP_PER_RANK = xpForLevel(MAX_LEVEL); // = 23,200
@@ -4895,7 +13403,7 @@ export function maxPrestigeRank(lifetimeXp: number): number {
 
 // Authoritative prestige eligibility: at the cap, and with enough unspent
 // post-cap XP for the next rank. Used server-side (enforced) and client-side
-// (to enable/disable the button — display only).
+// (to enable/disable the button - display only).
 export function canPrestige(level: number, lifetimeXp: number, prestigeRank: number): boolean {
   return level >= MAX_LEVEL && prestigeRank < maxPrestigeRank(lifetimeXp);
 }
@@ -4961,6 +13469,11 @@ export const SHIELD_BLOCK_BASE = 0.05;
 export const ENRAGE_DMG_DONE = 0.07;
 export const ENRAGE_HASTE_PCT = 0.25;
 export const ENRAGE_MOVE_MULT = 1.1;
+// Druid Cat Form: +15% passive move speed. The form_cat aura's VALUE is the
+// threat multiplier (0.71), so moveSpeedMult reads this constant, never
+// a.value. Sits under Loping Stride (1.6), Dash (1.5), and every mount, and
+// rides the same non-stacking Math.max path as those speed auras.
+export const CAT_FORM_MOVE_MULT = 1.15;
 // Avatar's colossus body-size multiplier while the buff_avatar aura is worn.
 export const AVATAR_SCALE = 1.15;
 export const REVENGE_FREE_CHANCE = 0.3;
@@ -4997,7 +13510,14 @@ export function berserkerCritDamage(e: Entity): number {
 // engines. Beyond the last entry the penalty SATURATES at the cap (does not blow up).
 // Preserve the established +1/+2 leveling curve; only the old +3 cliff is softened.
 //   +1 -> 2.5   +2 -> 14   +3 -> 21   (+4 and beyond hold at 21)
-const ABOVE_LEVEL_MISS_PCT = [0, 2.5, 14, 21];
+// Lowered from [0, 2.5, 14, 21] at the Crucible hit rebalance (2026-08-30,
+// maintainer ruling): the old +2 penalty put the heroic-raid melee cap at 190
+// rating while the tier's elective hit lanes topped out near 145, so upgrading
+// into the tier SHED cap the old lineage stack carried (retribution measured a
+// net loss). The lowered ramp keeps a real above-level tax but brings the
+// heroic cap within the tier's redistributed hit budget; classic-era boss
+// penalties sat near this shape.
+const ABOVE_LEVEL_MISS_PCT = [0, 2.5, 8, 14];
 function aboveLevelMissPct(diff: number): number {
   if (diff <= 0) return 0;
   return diff < ABOVE_LEVEL_MISS_PCT.length
@@ -5047,6 +13567,49 @@ export function swingMissChance(attacker: Entity, target: Entity): number {
 export function armorReduction(armor: number, attackerLevel: number): number {
   const a = Math.max(0, armor);
   return Math.min(0.75, a / (a + 85 * attackerLevel + 400));
+}
+
+// Enemy mobs' damage against a player is never mitigated away by armor DR by more
+// than this fraction, mirroring MOB_VS_PLAYER_MAX_MISS's floor on melee miss chance
+// (same value, same directional guard). Without this, a heavily armored higher-level
+// player or player-owned pet could reduce a lower-level hostile mob's already-floored
+// hit chance further into near-zero damage per swing, making defensive-pet AFK farming
+// risk-free (see issue #1050).
+export const MOB_VS_PLAYER_MAX_ARMOR_DR = MOB_VS_PLAYER_MAX_MISS;
+
+// Below this many levels under the target, the armor-DR cap is fully saturated at
+// MOB_VS_PLAYER_MAX_ARMOR_DR; between 0 and this span it ramps linearly rather than
+// stepping off a single-level cliff. Mirrors the span ABOVE_LEVEL_MISS_PCT ramps its
+// own above-level penalty over (3 levels), so a mob one level below the target only
+// loses a third of the way toward the cap instead of jumping straight to it.
+const ARMOR_DR_RAMP_LEVELS = 3;
+
+// Effective armor-DR fraction for `attacker`'s hit on `target`, floored directionally
+// the same way swingMissChance floors mob miss. Unlike meleeMissChance, armorReduction
+// itself carries NO level-difference term (only the attacker's level and the target's
+// armor), so unconditionally capping it here would also neuter armor against a
+// same-level or higher-level mob, including raid bosses: a live tanking stat, not an
+// anti-power-level deterrent, and level parity is not what issue #1050 was about.
+// The cap only applies in the exact inverted case the miss/resist floors correct: a
+// LOWER-level hostile mob (or its cleave splash) hitting a higher-level player or
+// player-owned pet. At or above the target's level, armor keeps its full, uncapped
+// scaling in both directions. The cap itself ramps with the level gap (linearly, from
+// the natural uncapped DR at a 1-level gap down to MOB_VS_PLAYER_MAX_ARMOR_DR at
+// ARMOR_DR_RAMP_LEVELS and beyond) rather than snapping straight to the floor at a
+// single level below, so a heavily armored player doesn't take a discontinuous jump in
+// damage taken crossing one level boundary (a mob 3+ levels down keeps the full cap,
+// matching the far-below-level farming case issue #1050 describes).
+export function mobArmorReduction(attacker: Entity, target: Entity, armor: number): number {
+  const dr = armorReduction(armor, attacker.level);
+  const mobAttacker = attacker.kind === 'mob' && attacker.hostile && attacker.ownerId === null;
+  const playerSide = target.kind === 'player' || target.ownerId !== null;
+  const diff = target.level - attacker.level;
+  if (mobAttacker && playerSide && diff > 0) {
+    const t = Math.min(1, diff / ARMOR_DR_RAMP_LEVELS);
+    const rampedCap = dr - (dr - MOB_VS_PLAYER_MAX_ARMOR_DR) * t;
+    return Math.min(dr, rampedCap);
+  }
+  return dr;
 }
 
 // ---------------------------------------------------------------------------
@@ -5274,12 +13837,6 @@ export interface DrownedLitanyBaptistryState {
   burstIds: number[];
 }
 
-export interface DelveDailyState {
-  date: string;
-  firstClearXp: string[];
-  markClears: number;
-}
-
 export interface DelveCompanionDef {
   id: string;
   name: string;
@@ -5375,8 +13932,6 @@ export const RITE_SHRINE_KINDS: RiteShrineKind[] = [
  * for Hard. Loot ceiling rises with difficulty (Easy=low, Medium=medium, Hard=premium). */
 export type RiteIntensity = 'easy' | 'medium' | 'hard';
 
-export const RITE_INTENSITIES: RiteIntensity[] = ['easy', 'medium', 'hard'];
-
 /** Per-run Drowned Reliquary Rite puzzle state (DelveRun.drownedLitanyRite). */
 export interface DrownedLitanyRiteState {
   /** True after the reliquary rises until the player picks a difficulty; the
@@ -5413,3 +13968,136 @@ export interface DelveRestlessPending {
   z: number;
   mobId: string;
 }
+
+/** Vehicle encounters are private runtime actors, never shared combat entities. */
+export type CannonActionId = 'cannonball' | 'grapeshot' | 'incendiary';
+export type CannonEnemyKind = 'infantry' | 'runner' | 'armored' | 'commander' | 'sapper';
+export interface CannonPoint {
+  x: number;
+  z: number;
+}
+export interface CannonField {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+export interface CannonActionDef {
+  damage: number;
+  radius: number;
+  cooldownTicks: number;
+  flightTicks: number;
+  slowTicks: number;
+  slowMultiplier: number;
+  burnTicks: number;
+  burnDamage: number;
+}
+export interface CannonEnemyDef {
+  hp: number;
+  speed: number;
+  breachDamage: number;
+}
+export interface CannonSpawnDef {
+  atTick: number;
+  lane: number;
+  kind: CannonEnemyKind;
+}
+export interface CannonEnemy extends CannonPoint {
+  id: number;
+  kind: CannonEnemyKind;
+  hp: number;
+  slowUntilTick: number;
+  armorBroken?: boolean;
+}
+export interface CannonBarrel extends CannonPoint {
+  id: number;
+  active: boolean;
+}
+export interface CannonFeedback extends CannonPoint {
+  id: number;
+  tick: number;
+  kind: 'shot' | 'impact' | 'barrel' | 'armor' | 'charge' | 'death';
+  enemyId?: number;
+}
+export const WORLD_QUEST_BANNER_IDS = [
+  'riftOpens',
+  'captainSteps',
+  'riftRouted',
+  'championRises',
+  'championFallen',
+  'endlessBegins',
+] as const;
+export type WorldQuestBannerId = (typeof WORLD_QUEST_BANNER_IDS)[number];
+
+export interface CannonResult {
+  medal: 'bronze' | 'silver' | 'gold' | null;
+  integrity: number;
+  shotsFired: number;
+  shotsHit: number;
+  /** Waves held in total, endless rounds included (absent on pre-endless payloads). */
+  wavesCleared?: number;
+}
+export interface CannonShot extends CannonPoint {
+  id: number;
+  action: CannonActionId;
+  firedTick: number;
+  impactTick: number;
+}
+export interface CannonFirePatch extends CannonPoint {
+  id: number;
+  nextPulseTick: number;
+  expiresTick: number;
+  hitCredited?: boolean;
+}
+/** Caller owns this state. Tick/action functions have no hidden world state. */
+export interface CannonEncounterState {
+  tick: number;
+  phase: 'countdown' | 'wave' | 'intermission' | 'won' | 'failed';
+  phaseUntilTick: number;
+  wave: number;
+  waveStartTick: number;
+  spawnCursor: number;
+  integrity: number;
+  killed: number;
+  breached: number;
+  commanderKilled: boolean;
+  nextId: number;
+  recoveryUntilTick: number;
+  readyAt: Record<CannonActionId, number>;
+  enemies: CannonEnemy[];
+  shots: CannonShot[];
+  fires: CannonFirePatch[];
+  barrels: CannonBarrel[];
+  feedback: CannonFeedback[];
+  shotsFired: number;
+  shotsHit: number;
+  commanderCharging: boolean;
+  /** Endless play past the authored victory (minigames/cannon_endless.ts): the
+   *  medal latched at the victory, and the running count of waves held. */
+  endless?: boolean;
+  wavesCleared?: number;
+  victoryMedal?: CannonResult['medal'];
+}
+
+export interface VehicleStationDef {
+  id: string;
+  entityId: number;
+  questId: string;
+  x: number;
+  z: number;
+  field: CannonField;
+}
+
+/** Transient personal vehicle session. Never included in character saves. */
+export interface VehicleSession {
+  kind: 'cannon';
+  stationId: string;
+  cycle: string;
+  origin: Vec3;
+  encounter: CannonEncounterState;
+}
+
+/** Why Lantern Hall's quartermaster refused a purchase (src/sim/guild_quartermaster.ts): out of
+ *  reach, already owned, short of seals, the horse's reins to a rider who cannot ride yet, or
+ *  no bag room for the reins. The client owns every visible string. */
+export type GuildCosmeticRefusal = 'owned' | 'seals' | 'range' | 'riding' | 'bags';

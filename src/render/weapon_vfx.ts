@@ -25,6 +25,20 @@
 // legendary kit (orbit motes, aurora, spin) or vice versa; the escalation ramp
 // is the whole point of the collections.
 import * as THREE from 'three';
+import { attachGloamClimb } from './characters/gloam_climb';
+import { addRimGlow, GFX } from './gfx';
+import { isSharedTexture, markSharedTexture } from './shared_resource';
+import { DEFAULT_WEAPON_POINT_MAX_PX, maxPointSizePx } from './vfx_screen_bounds_core';
+import {
+  WEAPON_EMISSIVE_IDLE_CACHE_MAX,
+  WeaponEmissiveDerivationCache,
+} from './weapon_vfx_emissive_cache_core';
+import {
+  deriveEmissiveTexels,
+  type WeaponEmissiveTint,
+  weaponEmissiveCacheKey,
+} from './weapon_vfx_emissive_core';
+import { applyRiggedWornDetail } from './worn_stone';
 
 // ---------------------------------------------------------------------------
 // Palettes + tier presets (colors from the Armory Codex swatches)
@@ -240,6 +254,7 @@ const TUNE_KEY_BY_KIND: Record<string, keyof WeaponVfxTuning | undefined> = {
   aurora: 'aurora',
   drift: 'mist',
   twinkles: 'sparkle',
+  arcs: 'sparkle',
   shell: 'shell',
   pool: 'pool',
 };
@@ -412,6 +427,9 @@ export interface WeaponVfxAurora {
   amp?: number;
   speed?: number;
   opacity?: number;
+  /** The ribbon's three-stop gradient. Absent, the Fallen Star's gold, violet and teal. Uniforms
+   *  only, so a recoloured ribbon links the same program as every other aurora. */
+  colors?: [number, number, number];
 }
 
 export interface WeaponVfxDrift {
@@ -427,6 +445,10 @@ export interface WeaponVfxDrift {
   colorA: number;
   colorB: number;
   opacity?: number;
+  /** 'smoke' draws the puffs with normal (over) blending instead of additive light, so a dark
+   *  colour DARKENS what is behind it: smoke an additive cloud cannot draw. Blending is GL state,
+   *  not shader source, so a smoke drift links the same program as a lit one. */
+  blend?: 'smoke';
 }
 
 export interface WeaponVfxTwinkles {
@@ -438,12 +460,39 @@ export interface WeaponVfxTwinkles {
   star?: boolean;
 }
 
+/** Crackling arcs: short jagged bolts that leap between points along a weapon-local line and
+ *  re-strike `rate` times a second, each bolt lit for only part of its strikes. All the jitter
+ *  is a hash of (bolt, strike) in the vertex shader, so the geometry is built once and the CPU
+ *  writes one time uniform a frame, like every other part. */
+export interface WeaponVfxArcs {
+  kind: 'arcs';
+  /** The span the bolts strike along (each bolt picks its own stretch of it per strike). */
+  line: [WeaponVfxAnchor, WeaponVfxAnchor];
+  count: number;
+  /** How far off the line a bolt's ends sit (native units). */
+  radius: number;
+  /** A bolt's length as a fraction of the line. */
+  length: number;
+  /** Sideways jag of the bolt's middle (native units). */
+  jitter: number;
+  /** Ribbon width (native units). */
+  width: number;
+  /** Strikes a second. */
+  rate: number;
+  /** Fraction of strikes a bolt is lit for (0..1). */
+  duty: number;
+  color: number;
+  core: number;
+  opacity?: number;
+}
+
 export type WeaponVfxComponent =
   | WeaponVfxCoreSprite
   | WeaponVfxMotes
   | WeaponVfxAurora
   | WeaponVfxDrift
-  | WeaponVfxTwinkles;
+  | WeaponVfxTwinkles
+  | WeaponVfxArcs;
 
 export interface WeaponVfxSpec {
   tier: WeaponVfxTierName;
@@ -1485,7 +1534,7 @@ export const WEAPON_VFX: Record<string, WeaponVfxSpec> = {
 
   winterbite: {
     tier: 'epic',
-    name: 'Winterbite',
+    name: 'Wintergnaw',
     type: 'bow',
     lore: 'A bow of silvered steel and blue ice, a glowing frozen core in the riser and a nocked arrow of solid ice trailing cold.',
     emissive: { intensity: 1.35 },
@@ -1587,6 +1636,392 @@ export const WEAPON_VFX: Record<string, WeaponVfxSpec> = {
         rate: [0.3, 0.8],
         color: EMBER.hot,
         star: false,
+      },
+    ],
+  },
+
+  // The Blade of Lantern Hall (the guild quartermaster's sword appearance): a fuller of
+  // banked lantern-fire up the steel and a caged lantern burning in the crossguard. Hotter
+  // and louder than the store's rare blades on purpose: it is the guild's showpiece, so the
+  // fire reads from across a courtyard. The window is narrowed to the bright, fully saturated
+  // amber the build paints for fire (scripts/assets/lantern_hall_steed/build_sword.py), so the
+  // deeper gilt of the guard and cheeks stays metal instead of glowing with it.
+  lantern_hall_sword: {
+    tier: 'rare',
+    name: 'Blade of Lantern Hall',
+    type: 'sword',
+    lore: 'Broad steel blade with a fuller of banked lantern-fire, gilt cheeks, a caged lantern burning in the crossguard.',
+    emissive: { minS: 0.8, minL: 0.5, intensity: 1.7, pulse: 0.28, pulseHz: 0.9 },
+    shell: { strength: 0.2 },
+    light: { at: { yF: 0.26 }, intensity: 5.5, distance: 6, flicker: 0.45, hz: 2.6 },
+    fx: [
+      // the lantern in the guard: a hot core that gutters like a wick
+      {
+        kind: 'coreSprite',
+        at: { yF: 0.26 },
+        size: 0.2,
+        color: EMBER.hot,
+        flare: 0.55,
+        hz: 2.2,
+        opacity: 0.6,
+      },
+      // embers lifting off the fuller and out of the cage
+      {
+        kind: 'drift',
+        line: [{ yF: 0.26 }, { yF: 0.88 }],
+        count: 22,
+        vel: [0, 0.22, 0],
+        spread: [0.07, 0.05, 0.06],
+        life: [1.4, 2.8],
+        size: [0.016, 0.036],
+        grow: 0.15,
+        swirl: 0.08,
+        colorA: EMBER.hot,
+        colorB: EMBER.coal,
+        opacity: 0.75,
+      },
+      {
+        kind: 'twinkles',
+        surface: { yMinF: 0.28, count: 24 },
+        size: [0.02, 0.045],
+        rate: [0.5, 1.2],
+        color: EMBER.hot,
+        star: false,
+      },
+    ],
+  },
+
+  // The four elemental arms built for Lantern Hall (scripts/assets/lantern_hall_arms/), now
+  // RESERVED as loot for a future raid (content/weapon_skins.ts earnedFrom 'future_raid'): epic
+  // showpieces, each window narrowed to the element its build paints, so the metal stays metal.
+  // Hearthbrand: a forge-hot flame-waved blade. Its edges and the seam up its heart burn, embers
+  // pour off it and the air above it shimmers with heat; the light gutters like a fire.
+  hearthbrand: {
+    tier: 'epic',
+    name: 'Hearthbrand',
+    type: 'sword',
+    lore: 'A flame-waved blade of blackened steel, forge-hot along both edges, a molten seam branching up its heart and a guard of bronze flames round a burning stone.',
+    emissive: {
+      hue: [8, 52],
+      minS: 0.7,
+      minL: 0.35,
+      whiteL: 0.97,
+      tint: 0xff6a1e,
+      intensity: 1.9,
+      pulse: 0.3,
+      pulseHz: 1.1,
+    },
+    shell: { color: EMBER.glow, strength: 0.32, power: 2.8 },
+    light: { color: 0xff7a2a, at: { yF: 0.55 }, intensity: 8, distance: 7, flicker: 0.5, hz: 2.8 },
+    fx: [
+      // the stone in the guard, breathing like a coal
+      {
+        kind: 'coreSprite',
+        at: { yF: 0.27 },
+        size: 0.28,
+        color: EMBER.hot,
+        flare: 0.6,
+        hz: 1.6,
+        opacity: 0.6,
+      },
+      // embers boiling up off the whole blade
+      {
+        kind: 'drift',
+        line: [{ yF: 0.3 }, { yF: 1.0 }],
+        count: 46,
+        vel: [0, 0.42, 0],
+        spread: [0.12, 0.05, 0.08],
+        life: [0.9, 2.0],
+        size: [0.018, 0.042],
+        grow: 0.1,
+        swirl: 0.12,
+        colorA: EMBER.hot,
+        colorB: EMBER.coal,
+        opacity: 0.95,
+      },
+      // the heat shimmer: big faint flame-coloured puffs rising and spreading
+      {
+        kind: 'drift',
+        line: [{ yF: 0.35 }, { yF: 0.95 }],
+        count: 18,
+        vel: [0, 0.32, 0],
+        spread: [0.08, 0.04, 0.06],
+        life: [0.8, 1.4],
+        size: [0.12, 0.22],
+        grow: 1.4,
+        swirl: 0.06,
+        colorA: 0xff8a2a,
+        colorB: 0xff4a10,
+        opacity: 0.16,
+      },
+      // sparks snapping off the edges
+      {
+        kind: 'twinkles',
+        surface: { yMinF: 0.3, count: 40 },
+        size: [0.03, 0.06],
+        rate: [0.9, 2.2],
+        color: 0xffc070,
+        star: true,
+      },
+    ],
+  },
+
+  // Squallcrest: a sea-storm blade. The refined shimmer is the point: a bright rim over the
+  // whole blade, glints running its length, a tidal ribbon of sea light winding up it, spray
+  // drifting off, and lightning crackling between its edges.
+  squallcrest: {
+    tier: 'epic',
+    name: 'Squallcrest',
+    type: 'sword',
+    lore: 'A long sea-blue blade whose edges run bright as a breaking wave, a storm channel up its heart, a gilt wave over the ricasso, a dorsal fin down one edge and a guard of gilt breakers round a storm pearl.',
+    emissive: {
+      hue: [180, 215],
+      minS: 0.6,
+      minL: 0.45,
+      whiteL: 0.97,
+      tint: 0x5fd8ff,
+      intensity: 1.7,
+      pulse: 0.4,
+      pulseHz: 0.7,
+    },
+    shell: { color: 0x7fe0ff, strength: 0.6, power: 2.2 },
+    light: { color: 0x7fd4ff, at: { yF: 0.6 }, intensity: 8, distance: 7, flicker: 0.4, hz: 3.4 },
+    fx: [
+      {
+        kind: 'coreSprite',
+        at: { yF: 0.28 },
+        size: 0.26,
+        color: 0x9fe8ff,
+        flare: 0.7,
+        hz: 0.9,
+        opacity: 0.55,
+      },
+      // the tide: a ribbon of sea light winding up the blade
+      {
+        kind: 'aurora',
+        helix: { from: { yF: 0.3 }, to: { yF: 0.98 }, radius: 0.16, turns: 1.4 },
+        width: 0.1,
+        amp: 0.04,
+        speed: 0.9,
+        opacity: 0.5,
+        colors: [0x3fa8ff, 0xbff4ff, 0x2fe0d0],
+      },
+      // lightning leaping between the edges
+      {
+        kind: 'arcs',
+        line: [{ yF: 0.32 }, { yF: 0.95 }],
+        count: 4,
+        radius: 0.13,
+        length: 0.28,
+        jitter: 0.05,
+        width: 0.03,
+        rate: 9,
+        duty: 0.45,
+        color: 0x4fb8ff,
+        core: 0xeafaff,
+        opacity: 0.95,
+      },
+      // sea spray drifting off and falling
+      {
+        kind: 'drift',
+        line: [{ yF: 0.35 }, { yF: 1.0 }],
+        count: 30,
+        vel: [0, -0.18, 0],
+        spread: [0.14, 0.05, 0.1],
+        life: [1.4, 2.6],
+        size: [0.02, 0.045],
+        grow: 0.2,
+        swirl: 0.1,
+        colorA: 0xdff8ff,
+        colorB: 0x6fd0ff,
+        opacity: 0.7,
+      },
+      // the refined shimmer: glints running the whole blade
+      {
+        kind: 'twinkles',
+        surface: { yMinF: 0.3, count: 70 },
+        size: [0.03, 0.065],
+        rate: [0.7, 1.8],
+        color: 0xe6fbff,
+        star: true,
+      },
+    ],
+  },
+
+  // The Rimelight Staff: a crown of ice round a crystal of cold light. Frost mist rolls off
+  // the crown and pours down, ice dust falls, glints wink on the shards, and three motes of
+  // frost circle the light.
+  rimelight_staff: {
+    tier: 'epic',
+    name: 'Rimelight Staff',
+    type: 'staff',
+    lore: 'A pale shaft bound in silver and wound with rime, crowned by a silver claw holding a great crystal of cold light inside a crown of ice shards.',
+    emissive: {
+      hue: [175, 215],
+      minS: 0.5,
+      minL: 0.55,
+      whiteL: 0.97,
+      tint: 0x7fe4ff,
+      intensity: 1.5,
+      pulse: 0.3,
+      pulseHz: 0.45,
+    },
+    shell: { color: ICE.glow, strength: 0.45, power: 2.6 },
+    light: { color: ICE.glow, at: { yF: 0.88 }, intensity: 8, distance: 7, flicker: 0.12, hz: 0.5 },
+    fx: [
+      {
+        kind: 'coreSprite',
+        at: { yF: 0.88 },
+        size: 0.5,
+        color: ICE.core,
+        flare: 0.6,
+        hz: 0.5,
+        opacity: 0.6,
+      },
+      {
+        kind: 'motes',
+        at: { yF: 0.88 },
+        radius: [0.26, 0.36],
+        count: 10,
+        heroCount: 3,
+        size: [0.02, 0.045],
+        heroSize: 0.09,
+        speed: [0.5, 1.0],
+        tilt: 0.35,
+        bob: 0.04,
+        colorA: ICE.core,
+        colorB: ICE.white,
+        opacity: 0.9,
+      },
+      // frost mist rolling off the crown and pouring down the shaft
+      {
+        kind: 'drift',
+        line: [{ yF: 0.72 }, { yF: 0.98 }],
+        count: 40,
+        vel: [0, -0.2, 0],
+        spread: [0.2, 0.06, 0.2],
+        life: [2.4, 4.0],
+        size: [0.14, 0.28],
+        grow: 1.3,
+        swirl: 0.08,
+        colorA: 0xbfeaff,
+        colorB: 0x7fd4ff,
+        opacity: 0.2,
+      },
+      // ice dust falling round the head
+      {
+        kind: 'drift',
+        line: [
+          { yF: 0.7, dx: -0.25 },
+          { yF: 1.0, dx: 0.25 },
+        ],
+        count: 30,
+        vel: [0, -0.3, 0],
+        spread: [0.22, 0.06, 0.22],
+        life: [2.6, 4.4],
+        size: [0.02, 0.05],
+        grow: 0,
+        swirl: 0.05,
+        colorA: ICE.white,
+        colorB: ICE.glow,
+        opacity: 0.85,
+      },
+      {
+        kind: 'twinkles',
+        surface: { yMinF: 0.68, count: 60 },
+        size: [0.035, 0.07],
+        rate: [0.5, 1.3],
+        color: 0xdff6ff,
+        star: true,
+      },
+    ],
+  },
+
+  // The Duskwick Staff: an open iron lantern burning a violet dusk-flame. Dark smoke curls up
+  // out of the cage (drawn over the scene, so it darkens what is behind it), violet wisps wind
+  // round the head, and dim sparks drift up out of the flame.
+  duskwick_staff: {
+    tier: 'epic',
+    name: 'Duskwick Staff',
+    type: 'staff',
+    lore: 'A shaft of two twisted black-wood strands bound in iron, crowned by an open iron lantern burning a violet dusk-flame between two curling horns.',
+    emissive: {
+      hue: [260, 300],
+      minS: 0.6,
+      minL: 0.45,
+      whiteL: 0.97,
+      tint: 0xa040ff,
+      intensity: 1.8,
+      pulse: 0.4,
+      pulseHz: 0.6,
+    },
+    shell: { color: 0x8a3cff, strength: 0.4, power: 2.4 },
+    light: {
+      color: 0x9a50ff,
+      at: { yF: 0.82 },
+      intensity: 7,
+      distance: 6.5,
+      flicker: 0.35,
+      hz: 1.8,
+    },
+    fx: [
+      {
+        kind: 'coreSprite',
+        at: { yF: 0.82 },
+        size: 0.42,
+        color: 0xb070ff,
+        flare: 0.55,
+        hz: 0.8,
+        opacity: 0.6,
+      },
+      // the dark smoke: slow black-violet puffs rising out of the cage and spreading
+      {
+        kind: 'drift',
+        line: [{ yF: 0.78 }, { yF: 0.95 }],
+        count: 26,
+        vel: [0, 0.22, 0],
+        spread: [0.08, 0.05, 0.08],
+        life: [2.2, 3.6],
+        size: [0.16, 0.3],
+        grow: 1.6,
+        swirl: 0.14,
+        colorA: 0x0c0614,
+        colorB: 0x1c0c2c,
+        opacity: 0.5,
+        blend: 'smoke',
+      },
+      // violet wisps winding round the lantern
+      {
+        kind: 'aurora',
+        helix: { from: { yF: 0.66 }, to: { yF: 1.0 }, radius: 0.22, turns: 1.2 },
+        width: 0.09,
+        amp: 0.05,
+        speed: 0.6,
+        opacity: 0.45,
+        colors: [0x5a1ea8, 0xc080ff, 0x3a1070],
+      },
+      // dim violet sparks drifting up out of the flame
+      {
+        kind: 'drift',
+        line: [{ yF: 0.75 }, { yF: 0.92 }],
+        count: 22,
+        vel: [0, 0.28, 0],
+        spread: [0.06, 0.04, 0.06],
+        life: [1.4, 2.6],
+        size: [0.018, 0.04],
+        grow: 0.2,
+        swirl: 0.12,
+        colorA: 0xc080ff,
+        colorB: 0x7a30e0,
+        opacity: 0.85,
+      },
+      {
+        kind: 'twinkles',
+        surface: { yMinF: 0.7, count: 36 },
+        size: [0.03, 0.06],
+        rate: [0.4, 1.0],
+        color: 0xd0a0ff,
+        star: true,
       },
     ],
   },
@@ -2138,12 +2573,115 @@ interface EmissiveRestore {
   roughness: number;
   metalnessMap: THREE.Texture | null;
   roughnessMap: THREE.Texture | null;
+  envMapIntensity: number;
 }
 
 interface EmissiveEntry {
   prev: EmissiveRestore;
   tex: THREE.CanvasTexture | null;
   albedoTex: THREE.CanvasTexture | null;
+  /** The derivation-cache key this entry holds a reference on, or null on the
+   *  flat-tint fallback path (nothing cached, nothing to release). */
+  cacheKey: string | null;
+}
+
+interface DerivedEmissiveTextures {
+  tex: THREE.CanvasTexture;
+  albedoTex: THREE.CanvasTexture;
+}
+
+// One derivation per (source albedo map, resolved emissive spec) per RENDERER.
+// The result is a pure function of that pair, but it used to be recomputed per
+// payload (twice over when a mirrored offhand joins the skin), per wearer and
+// per rebuild: two canvases the size of the GLB albedo, two getImageData
+// readbacks, a per-texel HSL walk (262144 iterations at 512x512) and two fresh
+// texture uploads, all inside the frame a skinned player came into view. The
+// entries are marked shared, so an individual rig tearing down never disposes
+// the textures the next wearer is still drawing with.
+//
+// BOUNDED, not renderer-lifetime: each rig holds a reference for as long as it
+// lives (deriveEmissive acquires, the rig's dispose releases), and the cache
+// evicts only IDLE derivations (every wearer gone) past
+// WEAPON_EMISSIVE_IDLE_CACHE_MAX, least-recently-released first, disposing
+// both textures. The boot prewarm never populates this cache (its host
+// material has no albedo map), so without the bound every cosmetic that ever
+// walked past retained a two-canvas, two-texture pair until teardown (the C2
+// memory ratchet). Eviction is invisible on screen: a live wearer's entry is
+// pinned by its reference count, and an evicted key re-derives byte-identically
+// (pure function of the key). The terminal release path remains
+// disposeWeaponEmissiveCache below, which the renderer calls at teardown.
+const derivedEmissiveCache = new WeaponEmissiveDerivationCache<DerivedEmissiveTextures>(
+  WEAPON_EMISSIVE_IDLE_CACHE_MAX,
+  ({ tex, albedoTex }) => {
+    tex.dispose();
+    albedoTex.dispose();
+  },
+);
+
+/**
+ * Release every memoized derivation (one megabyte-class texture pair per skin).
+ * TERMINAL ONLY: the renderer calls this from its own resource teardown, after
+ * every view (and therefore every rig that borrowed these textures) is gone, so
+ * a WebGL context recycle does not carry the whole set into the next context.
+ * Calling it while rigs are live would leave their materials pointing at
+ * disposed textures.
+ */
+export function disposeWeaponEmissiveCache(): void {
+  for (const { tex, albedoTex } of derivedEmissiveCache.drain()) {
+    tex.dispose();
+    albedoTex.dispose();
+  }
+}
+
+/** Test seam: drop the page-lifetime sprite/sky texture memo so a suite can
+ *  observe a cold build (which canvases a rig actually draws) regardless of
+ *  what an earlier case in the file already cached. */
+export function clearWeaponVfxTextureCacheForTest(): void {
+  for (const texture of texCache.values()) texture.dispose();
+  texCache.clear();
+  prewarmHostMap = null;
+}
+
+/** Cold-build the emissive + de-baked albedo pair for one source map: the
+ *  canvas plumbing around the pure per-texel core. Callers go through the
+ *  bounded derivedEmissiveCache (deriveEmissive acquires), never call this
+ *  directly, so one build serves every wearer. */
+function buildDerivedEmissiveTextures(
+  source: THREE.Texture,
+  img: HTMLImageElement | HTMLCanvasElement | ImageBitmap,
+  e: WeaponVfxEmissiveSpec,
+  tint: WeaponEmissiveTint,
+): DerivedEmissiveTextures {
+  const w = img.width;
+  const h = img.height;
+  const cv = document.createElement('canvas');
+  cv.width = w;
+  cv.height = h;
+  const cx = cv.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+  cx.drawImage(img, 0, 0, w, h);
+  const data = cx.getImageData(0, 0, w, h);
+  // Second buffer: the DE-BAKED albedo. The generator paints its "glow" right
+  // into the base color, so every texel promoted to emissive is also darkened
+  // in the base map; otherwise lighting + emission double up and the core
+  // clips to a flat white patch instead of glowing.
+  const av = document.createElement('canvas');
+  av.width = w;
+  av.height = h;
+  const ax = av.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+  ax.drawImage(img, 0, 0, w, h);
+  const adata = ax.getImageData(0, 0, w, h);
+  deriveEmissiveTexels(data.data, adata.data, e, tint);
+  cx.putImageData(data, 0, 0);
+  ax.putImageData(adata, 0, 0);
+  const mkTex = (canvas: HTMLCanvasElement) => {
+    const t = new THREE.CanvasTexture(canvas);
+    t.flipY = false; // match GLTF UV orientation
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = source.wrapS;
+    t.wrapT = source.wrapT;
+    return markSharedTexture(t);
+  };
+  return { tex: mkTex(cv), albedoTex: mkTex(av) };
 }
 
 function deriveEmissive(mat: THREE.MeshStandardMaterial, e: WeaponVfxEmissiveSpec): EmissiveEntry {
@@ -2157,95 +2695,42 @@ function deriveEmissive(mat: THREE.MeshStandardMaterial, e: WeaponVfxEmissiveSpe
     roughness: mat.roughness,
     metalnessMap: mat.metalnessMap ?? null,
     roughnessMap: mat.roughnessMap ?? null,
+    envMapIntensity: mat.envMapIntensity,
   };
   // Temper the PBR response while the rig owns the material: the generator's
   // metallic map scatters hot metallic texels that explode into blocky glints
-  // under bloom. The codex look is flat-shaded stylized anyway.
+  // under bloom. The codex look is flat-shaded stylized anyway. The metal env
+  // boost from applyWeaponMaterialPolish is neutralized with it (metalness 0
+  // makes it near-inert, but a boosted dielectric still picks up a visible
+  // sheen) and restored on dispose alongside the rest.
   mat.metalness = 0;
   mat.roughness = 1;
   mat.metalnessMap = null;
   mat.roughnessMap = null;
+  mat.envMapIntensity = 1;
   const img = mat.map?.image as HTMLImageElement | HTMLCanvasElement | ImageBitmap | undefined;
-  if (!img?.width) {
+  // A compressed (KTX2) map has a truthy image {width,height} but is not
+  // drawable into a canvas, so it must take the flat-tint fallback. Skin
+  // models with a WEAPON_VFX rig deliberately ship webp for this derivation
+  // (scripts/assets/compress_glb_textures.mjs excludes them); this guard keeps
+  // a future mistakenly-compressed skin subtle instead of throwing mid-frame.
+  const drawable = !(mat.map as { isCompressedTexture?: boolean } | null)?.isCompressedTexture;
+  if (!img?.width || !drawable) {
     mat.emissive = new THREE.Color(e.tint);
     mat.emissiveIntensity = 0.3;
-    return { prev, tex: null, albedoTex: null };
+    return { prev, tex: null, albedoTex: null, cacheKey: null };
   }
-  const w = img.width;
-  const h = img.height;
-  const cv = document.createElement('canvas');
-  cv.width = w;
-  cv.height = h;
-  const cx = cv.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
-  cx.drawImage(img, 0, 0, w, h);
-  const data = cx.getImageData(0, 0, w, h);
-  const d = data.data;
-  // Second buffer: the DE-BAKED albedo. The generator paints its "glow" right
-  // into the base color, so every texel promoted to emissive is also darkened
-  // in the base map; otherwise lighting + emission double up and the core
-  // clips to a flat white patch instead of glowing.
-  const av = document.createElement('canvas');
-  av.width = w;
-  av.height = h;
-  const ax = av.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
-  ax.drawImage(img, 0, 0, w, h);
-  const adata = ax.getImageData(0, 0, w, h);
-  const ad = adata.data;
-  const tint = new THREE.Color(e.tint);
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i] / 255;
-    const g = d[i + 1] / 255;
-    const b = d[i + 2] / 255;
-    const mx = Math.max(r, g, b);
-    const mn = Math.min(r, g, b);
-    const l = (mx + mn) / 2;
-    let hue = 0;
-    let s = 0;
-    if (mx !== mn) {
-      const dd = mx - mn;
-      s = dd / (1 - Math.abs(2 * l - 1));
-      if (mx === r) hue = 60 * (((g - b) / dd + 6) % 6);
-      else if (mx === g) hue = 60 * ((b - r) / dd + 2);
-      else hue = 60 * ((r - g) / dd + 4);
-    }
-    let score = 0;
-    if (hue >= e.hue[0] && hue <= e.hue[1] && s >= e.minS && l >= e.minL) {
-      score = Math.min(1, 0.45 + (s - e.minS) * 1.4) * Math.min(1, 0.5 + (l - e.minL) * 1.3);
-    } else if (l >= e.whiteL && (s < 0.14 || (hue >= e.hue[0] && hue <= e.hue[1]))) {
-      score = e.whiteScale * Math.min(1, 0.4 + (l - e.whiteL) * 4);
-    }
-    if (score <= 0.01) {
-      d[i] = d[i + 1] = d[i + 2] = 0;
-    } else {
-      // Graded: source color pushed toward the tier tint, scaled by score.
-      d[i] = Math.round(255 * Math.min(1, (r + (tint.r - r) * 0.62) * score));
-      d[i + 1] = Math.round(255 * Math.min(1, (g + (tint.g - g) * 0.62) * score));
-      d[i + 2] = Math.round(255 * Math.min(1, (b + (tint.b - b) * 0.62) * score));
-      // De-bake: pull the albedo down where the glow now lives.
-      const keep = 1 - 0.72 * score;
-      ad[i] = Math.round(ad[i] * keep);
-      ad[i + 1] = Math.round(ad[i + 1] * keep);
-      ad[i + 2] = Math.round(ad[i + 2] * keep);
-    }
-  }
-  cx.putImageData(data, 0, 0);
-  ax.putImageData(adata, 0, 0);
-  const mkTex = (canvas: HTMLCanvasElement) => {
-    const t = new THREE.CanvasTexture(canvas);
-    t.flipY = false; // match GLTF UV orientation
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.wrapS = (mat.map as THREE.Texture).wrapS;
-    t.wrapT = (mat.map as THREE.Texture).wrapT;
-    return t;
-  };
-  const tex = mkTex(cv);
-  const albedoTex = mkTex(av);
+  const source = mat.map as THREE.Texture;
+  const cacheKey = weaponEmissiveCacheKey(source.uuid, e);
+  const { tex, albedoTex } = derivedEmissiveCache.acquire(cacheKey, () =>
+    buildDerivedEmissiveTextures(source, img, e, new THREE.Color(e.tint)),
+  );
   mat.emissiveMap = tex;
   mat.emissive = new THREE.Color(0xffffff);
   mat.emissiveIntensity = e.intensity;
   mat.map = albedoTex;
   mat.needsUpdate = true;
-  return { prev, tex, albedoTex };
+  return { prev, tex, albedoTex, cacheKey };
 }
 
 // ---------------------------------------------------------------------------
@@ -2322,6 +2807,7 @@ function makeMotes(b: THREE.Box3, c: WeaponVfxMotes): VfxPart {
     uniforms: {
       uTime: { value: 0 },
       uScale: { value: 600 },
+      uMaxPx: { value: DEFAULT_WEAPON_POINT_MAX_PX },
       uMap: { value: starFlareTex() },
       uColorA: { value: new THREE.Color(c.colorA) },
       uColorB: { value: new THREE.Color(c.colorB) },
@@ -2332,7 +2818,7 @@ function makeMotes(b: THREE.Box3, c: WeaponVfxMotes): VfxPart {
       attribute float aTiltX; attribute float aTiltZ; attribute float aSize;
       attribute float aMix; attribute float aSeed; attribute float aBob;
       attribute float aEcc;
-      uniform float uTime; uniform float uScale;
+      uniform float uTime; uniform float uScale; uniform float uMaxPx;
       varying float vMix; varying float vTw;
       void main() {
         float a = aPhase + uTime * aSpeed;
@@ -2345,7 +2831,7 @@ function makeMotes(b: THREE.Box3, c: WeaponVfxMotes): VfxPart {
         vMix = aMix;
         vTw = 0.7 + 0.3 * sin(uTime * (1.5 + aSeed * 2.5) + aSeed * 40.0);
         vec4 mv = modelViewMatrix * vec4(position + p, 1.0);
-        gl_PointSize = aSize * uScale / max(0.15, -mv.z);
+        gl_PointSize = min(aSize * uScale / max(0.15, -mv.z), uMaxPx);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
@@ -2399,9 +2885,13 @@ function makeDrift(b: THREE.Box3, c: WeaponVfxDrift): VfxPart {
   geo.setAttribute('aSwirl', new THREE.BufferAttribute(aSwirl, 1));
   const mat = new THREE.ShaderMaterial({
     ...POINT_COMMON,
+    // smoke: the premultiplied output over NormalBlending leaves (colour x alpha squared) over
+    // (1 - alpha) of the scene, so a dark colour reads as a darkening puff
+    blending: c.blend === 'smoke' ? THREE.NormalBlending : THREE.AdditiveBlending,
     uniforms: {
       uTime: { value: 0 },
       uScale: { value: 600 },
+      uMaxPx: { value: DEFAULT_WEAPON_POINT_MAX_PX },
       uMap: { value: softDiscTex() },
       uColorA: { value: new THREE.Color(c.colorA) },
       uColorB: { value: new THREE.Color(c.colorB) },
@@ -2411,7 +2901,7 @@ function makeDrift(b: THREE.Box3, c: WeaponVfxDrift): VfxPart {
     vertexShader: `
       attribute vec3 aVel; attribute float aLife; attribute float aPhase;
       attribute float aSize; attribute float aSeed; attribute float aSwirl;
-      uniform float uTime; uniform float uScale; uniform float uGrow;
+      uniform float uTime; uniform float uScale; uniform float uGrow; uniform float uMaxPx;
       varying float vFade; varying float vSeed;
       void main() {
         float ft = fract(uTime / aLife + aPhase);
@@ -2423,7 +2913,7 @@ function makeDrift(b: THREE.Box3, c: WeaponVfxDrift): VfxPart {
         vSeed = aSeed;
         float size = aSize * (1.0 + uGrow * ft);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = size * uScale / max(0.15, -mv.z);
+        gl_PointSize = min(size * uScale / max(0.15, -mv.z), uMaxPx);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
@@ -2466,19 +2956,24 @@ function makeTwinkles(root: THREE.Object3D, b: THREE.Box3, c: WeaponVfxTwinkles)
     uniforms: {
       uTime: { value: 0 },
       uScale: { value: 600 },
+      uMaxPx: { value: DEFAULT_WEAPON_POINT_MAX_PX },
       uMap: { value: c.star ? starFlareTex() : softDiscTex() },
       uColor: { value: new THREE.Color(c.color) },
       uOpacity: { value: 1 },
     },
     vertexShader: `
       attribute float aSeed; attribute float aSize; attribute float aRate;
-      uniform float uTime; uniform float uScale;
+      uniform float uTime; uniform float uScale; uniform float uMaxPx;
       varying float vI;
       void main() {
-        float w = 0.5 + 0.5 * sin(uTime * aRate * 6.2831 + aSeed * 6.2831);
+        // clamp() is load-bearing: GLSL leaves the precision of sin() to the
+        // implementation, so 0.5 + 0.5 * sin(x) is only non-negative in exact
+        // arithmetic. pow() of a negative base is NaN, and one NaN here is a
+        // hard-edged black rectangle once the bloom blurs it.
+        float w = clamp(0.5 + 0.5 * sin(uTime * aRate * 6.2831 + aSeed * 6.2831), 0.0, 1.0);
         vI = pow(w, 9.0);
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = aSize * uScale * (0.55 + 0.45 * vI) / max(0.15, -mv.z);
+        gl_PointSize = min(aSize * uScale * (0.55 + 0.45 * vI) / max(0.15, -mv.z), uMaxPx);
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: `
@@ -2580,9 +3075,9 @@ function makeAurora(b: THREE.Box3, c: WeaponVfxAurora): VfxPart | null {
       uAmp: { value: c.amp ?? 0.04 },
       uSpeed: { value: c.speed ?? 0.5 },
       uOpacity: { value: c.opacity ?? 0.5 },
-      uColA: { value: new THREE.Color(STAR.gold) },
-      uColB: { value: new THREE.Color(STAR.violet) },
-      uColC: { value: new THREE.Color(STAR.teal) },
+      uColA: { value: new THREE.Color(c.colors?.[0] ?? STAR.gold) },
+      uColB: { value: new THREE.Color(c.colors?.[1] ?? STAR.violet) },
+      uColC: { value: new THREE.Color(c.colors?.[2] ?? STAR.teal) },
     },
     vertexShader: `
       attribute vec3 aNorm;
@@ -2601,11 +3096,124 @@ function makeAurora(b: THREE.Box3, c: WeaponVfxAurora): VfxPart | null {
         float t = fract(vUv.x * 1.4 - uTime * 0.1);
         float tri = 1.0 - abs(2.0 * t - 1.0);
         vec3 c = tri < 0.5 ? mix(uColA, uColB, tri * 2.0) : mix(uColB, uColC, tri * 2.0 - 1.0);
-        float ends = pow(sin(3.14159 * vUv.x), 0.75);
-        float edge = pow(1.0 - abs(vUv.y * 2.0 - 1.0), 1.6);
+        float ends = pow(max(0.0, sin(3.14159 * vUv.x)), 0.75);
+        float edge = pow(max(0.0, 1.0 - abs(vUv.y * 2.0 - 1.0)), 1.6);
         float shim = 0.72 + 0.28 * sin(uTime * 1.1 + vUv.x * 8.0);
         float a = ends * edge * shim * uOpacity;
         gl_FragColor = vec4(c * a, a);
+      }`,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.frustumCulled = false;
+  return { node: mesh, mats: [mat] };
+}
+
+/** Kinks per bolt: enough to read as lightning, few enough to stay a handful of quads. */
+const ARC_SEGMENTS = 7;
+
+function makeArcs(b: THREE.Box3, c: WeaponVfxArcs): VfxPart {
+  const a0 = resolvePoint(b, c.line[0]);
+  const a1 = resolvePoint(b, c.line[1]);
+  // Each bolt is two crossed ribbons (planes 0 and 1), so it reads from any side of the weapon.
+  // Per vertex: bolt index, kink index along the bolt, side of the ribbon, plane. Positions are
+  // all computed in the shader; the position attribute only carries the vertex count.
+  const perBolt = 2 * (ARC_SEGMENTS + 1) * 2;
+  const n = c.count * perBolt;
+  const aBolt = new Float32Array(n);
+  const aSeg = new Float32Array(n);
+  const aSide = new Float32Array(n);
+  const aPlane = new Float32Array(n);
+  const index: number[] = [];
+  let v = 0;
+  for (let bolt = 0; bolt < c.count; bolt++) {
+    for (let plane = 0; plane < 2; plane++) {
+      const start = v;
+      for (let seg = 0; seg <= ARC_SEGMENTS; seg++) {
+        for (let side = 0; side < 2; side++) {
+          aBolt[v] = bolt;
+          aSeg[v] = seg;
+          aSide[v] = side === 0 ? -1 : 1;
+          aPlane[v] = plane;
+          v++;
+        }
+      }
+      for (let seg = 0; seg < ARC_SEGMENTS; seg++) {
+        const k = start + seg * 2;
+        index.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
+      }
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  geo.setAttribute('aBolt', new THREE.BufferAttribute(aBolt, 1));
+  geo.setAttribute('aSeg', new THREE.BufferAttribute(aSeg, 1));
+  geo.setAttribute('aSide', new THREE.BufferAttribute(aSide, 1));
+  geo.setAttribute('aPlane', new THREE.BufferAttribute(aPlane, 1));
+  geo.setIndex(index);
+  const mat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    uniforms: {
+      uTime: { value: 0 },
+      uA: { value: a0.clone() },
+      uB: { value: a1.clone() },
+      uRadius: { value: c.radius },
+      uLen: { value: c.length },
+      uJitter: { value: c.jitter },
+      uWidth: { value: c.width },
+      uRate: { value: c.rate },
+      uDuty: { value: c.duty },
+      uColor: { value: new THREE.Color(c.color) },
+      uCore: { value: new THREE.Color(c.core) },
+      uOpacity: { value: c.opacity ?? 1 },
+    },
+    // The strike counter wraps (mod 997) so the hash input stays small: sin() of a large float
+    // loses its low bits and a long session would freeze every bolt in place.
+    vertexShader: `
+      attribute float aBolt; attribute float aSeg; attribute float aSide; attribute float aPlane;
+      uniform float uTime; uniform vec3 uA; uniform vec3 uB; uniform float uRadius;
+      uniform float uLen; uniform float uJitter; uniform float uWidth; uniform float uRate;
+      uniform float uDuty;
+      varying float vSide; varying float vOn; varying float vU;
+      float h(float n) { return fract(sin(n * 12.9898 + 4.1414) * 43758.5453); }
+      void main() {
+        float strike = mod(floor(uTime * uRate + h(aBolt * 3.7) * 9.0), 997.0);
+        float key = aBolt * 31.0 + strike * 7.0;
+        vOn = step(h(key + 5.0), uDuty);
+        float u = aSeg / ${ARC_SEGMENTS.toFixed(1)};
+        vU = u;
+        vec3 axis = uB - uA;
+        vec3 s = uA + axis * (h(key + 1.0) * (1.0 - uLen));
+        vec3 e = s + axis * uLen * (0.55 + 0.45 * h(key + 2.0));
+        float ang0 = h(key + 3.0) * 6.2831;
+        float ang1 = ang0 + (h(key + 4.0) - 0.5) * 2.6;
+        vec3 r0 = vec3(cos(ang0), 0.0, sin(ang0)) * uRadius;
+        vec3 r1 = vec3(cos(ang1), 0.0, sin(ang1)) * uRadius;
+        vec3 p = mix(s + r0, e + r1, u);
+        // the jag: a fresh kick per kink, pinned to zero at both ends
+        float env = sin(3.14159 * u);
+        vec3 radial = normalize(mix(r0, r1, u) + vec3(1e-4, 0.0, 0.0));
+        vec3 dir = normalize(e + r1 - s - r0 + vec3(0.0, 1e-4, 0.0));
+        vec3 across = normalize(cross(dir, radial) + vec3(0.0, 0.0, 1e-4));
+        p += across * (h(key + aSeg * 1.7 + 11.0) - 0.5) * 2.0 * uJitter * env;
+        p += radial * h(key + aSeg * 2.3 + 17.0) * uJitter * env;
+        vec3 wdir = aPlane < 0.5 ? across : radial;
+        p += wdir * aSide * uWidth * 0.5 * (0.35 + 0.65 * env);
+        vSide = aSide;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }`,
+    fragmentShader: `
+      uniform vec3 uColor; uniform vec3 uCore; uniform float uOpacity; uniform float uTime;
+      varying float vSide; varying float vOn; varying float vU;
+      void main() {
+        float d = abs(vSide);
+        float core = 1.0 - smoothstep(0.0, 0.35, d);
+        float glow = 1.0 - smoothstep(0.2, 1.0, d);
+        float flick = 0.75 + 0.25 * sin(uTime * 61.0 + vU * 9.0);
+        float a = (core + glow * 0.6) * vOn * uOpacity * flick;
+        gl_FragColor = vec4(mix(uColor, uCore, core) * a, a);
       }`,
   });
   const mesh = new THREE.Mesh(geo, mat);
@@ -2636,7 +3244,13 @@ function makeShell(root: THREE.Object3D, shellSpec: WeaponVfxShellSpec): VfxPart
       uniform vec3 uColor; uniform float uStr; uniform float uPow; uniform float uTime;
       varying vec3 vN; varying vec3 vV;
       void main() {
-        float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), uPow);
+        // max() is load-bearing: abs(dot(...)) of two vectors normalized in
+        // shader overshoots 1.0 by an ulp where they are aligned or
+        // anti-aligned, i.e. where the surface faces the camera head-on, so the
+        // base goes an ulp NEGATIVE there and pow() of a negative base is NaN.
+        // One NaN pixel here becomes a hard-edged black rectangle after the
+        // bloom blur.
+        float f = pow(max(0.0, 1.0 - abs(dot(normalize(vN), normalize(vV)))), uPow);
         float a = f * uStr * (0.85 + 0.15 * sin(uTime * 1.7));
         gl_FragColor = vec4(uColor * a, a);
       }`,
@@ -2644,11 +3258,17 @@ function makeShell(root: THREE.Object3D, shellSpec: WeaponVfxShellSpec): VfxPart
   const shells: { host: THREE.Mesh; shell: THREE.Mesh }[] = [];
   root.traverse((o) => {
     const host = o as THREE.Mesh;
-    if (!host.isMesh || !host.geometry || host.userData.__vfx) return;
+    if (!host.isMesh || !host.geometry || isWeaponVfxShell(host)) return;
     const shell = new THREE.Mesh(host.geometry, mat);
     shell.scale.setScalar(1.015);
     shell.frustumCulled = false;
     shell.userData.__vfx = true;
+    // The shell parents to the host weapon mesh, not the rig group visual.ts
+    // tags, and userData is per object, never inherited. Without its own skip
+    // tag applyMaterials re-owns the shell with a ShaderMaterial clone, so the
+    // rig's per-frame uTime and shed uStr uniform writes land on a material
+    // nothing renders anymore.
+    shell.userData.weaponVfxMesh = true;
     shells.push({ host, shell });
   });
   for (const { host, shell } of shells) host.add(shell);
@@ -2759,12 +3379,59 @@ function makeBackdrop(tier: WeaponVfxTier): VfxScenePart {
 // Returns { group, sceneExtras, light, update(dt), setPixelScale(px),
 // dispose() }. `sceneExtras` (backdrop dome + ground pool) go on the SCENE,
 // not the weapon; pass grounded=false to skip the ground pool (held mode).
+//
+// The backdrop follows `grounded` by default, and that default is a
+// performance fix, not a cosmetic one: the world path never adds `sceneExtras`
+// to any scene, so its dome was built (a 1024x1024 canvas of gradients plus
+// hundreds of individually drawn stars, then a sphere and material thrown
+// away) purely to be discarded, inside the frame a skinned player came into
+// view. The showcase paths that DO mount `sceneExtras` keep it. `backdrop` is
+// separable from `grounded` for the boot prewarm, which wants the ground
+// pool's program without paying for a sky texture nothing will draw.
+// `setBackdropVisible` stays safe to call either way.
 // ---------------------------------------------------------------------------
+
+export interface WeaponVfxCreateOptions {
+  /** Showcase mode: mount the ground light pool under the weapon. */
+  grounded?: boolean;
+  /** Build the sky dome. Defaults to `grounded`: only a caller that mounts
+   *  `sceneExtras` in a scene has anything to draw it into. */
+  backdrop?: boolean;
+  /**
+   * The caller registers this rig's light into a point-light budget that owns
+   * `visible` (the world path). The light is then born HIDDEN, because three
+   * counts a light into numPointLights iff it is visible, intensity included
+   * or not: a light born visible is counted for the frames before the budget
+   * first rules on it, and that changed count relinks every material drawn in
+   * them. Measured: one frame in 5434 sat at 7 budgeted lights against a pin
+   * of 6, and a relink is a 100 to 200 ms stall.
+   *
+   * A caller with no budget (the armoury preview owns its own renderer and
+   * scene) leaves this off and keeps a light that lights immediately.
+   */
+  budgetedLight?: boolean;
+  /**
+   * Mount the cast light at all. A handful of hand-tuned skins ship
+   * `light: 0` (weapon_vfx_tuning.ts), which used to build the PointLight
+   * anyway, park it in the rig, and let the point-light budget rank a light
+   * whose intensity every update() drove straight back to zero: it holds one of
+   * the fixed counted slots away from a light that would actually shine, and
+   * pays a per-frame ancestor walk for it. The caller knows the effective
+   * tuning (visual.ts resolves it before the rig is built) so it decides.
+   * Default true, which is every showcase and preview host.
+   */
+  withLight?: boolean;
+}
+
+/** Scene-census bucket for every weapon-skin VFX rig (the `?perf` overlay's
+ *  `renderCategory`). Diagnostics only: nothing reads it to decide a draw. */
+export const WEAPON_VFX_RENDER_CATEGORY = 'weaponvfx';
 
 export interface WeaponVfxHandle {
   group: THREE.Group;
   sceneExtras: THREE.Group;
-  light: THREE.PointLight;
+  /** Null when the skin's tuning mutes the light (see withLight). */
+  light: THREE.PointLight | null;
   tier: WeaponVfxTier;
   spec: WeaponVfxSpec;
   tuning: WeaponVfxTuning;
@@ -2775,34 +3442,99 @@ export interface WeaponVfxHandle {
   dispose(): void;
 }
 
+/** Whether `object` is a weapon-skin glow shell. A shell hangs off the weapon
+ *  mesh it hugs, outside the group its handle owns. */
+export function isWeaponVfxShell(object: THREE.Object3D): boolean {
+  return object.userData.__vfx === true;
+}
+
 export function createWeaponVfx(
   weaponRoot: THREE.Object3D,
   spec: WeaponVfxSpec,
-  { grounded = true }: { grounded?: boolean } = {},
+  {
+    grounded = true,
+    backdrop: withBackdrop = grounded,
+    budgetedLight = false,
+    withLight = true,
+  }: WeaponVfxCreateOptions = {},
 ): WeaponVfxHandle {
   const tier = TIERS[spec.tier];
   const b = localBounds(weaponRoot);
+  // The shell is mounted on the weapon root and therefore reuses its
+  // geometry. That geometry belongs to the GLB/character owner, not this VFX
+  // handle. Retain the ownership set so terminal cleanup cannot dispose the
+  // host buffer and then dispose it again in the prewarm host wrapper.
+  const weaponOwnedGeometries = new Set<THREE.BufferGeometry>();
+  weaponRoot.traverse((object) => {
+    const geometry = (object as THREE.Mesh).geometry;
+    if (geometry) weaponOwnedGeometries.add(geometry);
+  });
   const group = new THREE.Group();
   group.name = 'weapon_vfx';
   const sceneExtras = new THREE.Group();
   sceneExtras.name = 'weapon_vfx_extras';
+  // Diagnostics-only label the `?perf` scene census buckets by (the renderer's
+  // setRenderCategory writes the same key, and the census inherits it down the
+  // subtree). Without it a rig's 6 to 10 additive draws landed in the character
+  // rig's own bucket, so the overlay could not see what a skin actually costs.
+  // NEVER a behaviour or visibility gate.
+  group.userData.renderCategory = WEAPON_VFX_RENDER_CATEGORY;
+  sceneExtras.userData.renderCategory = WEAPON_VFX_RENDER_CATEGORY;
 
   const parts: VfxPart[] = [];
   const emissives: EmissiveEntry[] = [];
   let time = 0;
 
+  // The single owner of the emissive unwind: restore every derived material to
+  // its captured state FIRST (after which no material of this rig references
+  // the shared pair), then drop this rig's cache reference, so a
+  // release-triggered eviction can never dispose a texture a material still
+  // points at. The derived pair is memoized and shared with every other wearer
+  // of this skin: dropping the reference leaves eviction to the bounded cache,
+  // which never touches an entry another wearer still pins (a disposed texture
+  // would leave that weapon unglowing). The unmarked-texture guard keeps a
+  // future rig-OWNED (non-shared) texture releasable. Clearing the array makes
+  // a second run a no-op.
+  const restoreAndReleaseEmissives = () => {
+    for (const { prev, tex, albedoTex, cacheKey } of emissives) {
+      prev.mat.emissiveMap = prev.emissiveMap;
+      prev.mat.map = prev.map;
+      prev.mat.metalness = prev.metalness;
+      prev.mat.roughness = prev.roughness;
+      prev.mat.metalnessMap = prev.metalnessMap;
+      prev.mat.roughnessMap = prev.roughnessMap;
+      prev.mat.envMapIntensity = prev.envMapIntensity;
+      if (prev.emissive) prev.mat.emissive.copy(prev.emissive);
+      prev.mat.emissiveIntensity = prev.emissiveIntensity;
+      prev.mat.needsUpdate = true;
+      if (cacheKey !== null) derivedEmissiveCache.release(cacheKey);
+      if (tex && !isSharedTexture(tex)) tex.dispose();
+      if (albedoTex && !isSharedTexture(albedoTex)) albedoTex.dispose();
+    }
+    emissives.length = 0;
+  };
+
   // 1. Emissive core derived from the painted texture (per unique material).
   const eSpec: WeaponVfxEmissiveSpec = { ...tier.emissive, ...(spec.emissive ?? {}) };
   const seen = new Set<THREE.Material>();
-  weaponRoot.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.material || mesh.userData.__vfx) return;
-    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-      if (seen.has(m)) continue;
-      seen.add(m);
-      emissives.push(deriveEmissive(m as THREE.MeshStandardMaterial, eSpec));
-    }
-  });
+  try {
+    weaponRoot.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.material || mesh.userData.__vfx) return;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        if (seen.has(m)) continue;
+        seen.add(m);
+        emissives.push(deriveEmissive(m as THREE.MeshStandardMaterial, eSpec));
+      }
+    });
+  } catch (error) {
+    // A derivation that throws mid-traverse (a detached ImageBitmap, a tainted
+    // or context-less canvas) must not leave the earlier materials' cache
+    // references pinned forever: a leaked reference silently reverts that skin
+    // to the unbounded ratchet. Unwind what was acquired and rethrow.
+    restoreAndReleaseEmissives();
+    throw error;
+  }
 
   // 2. Fresnel rim shell (the "living magic" silhouette glow).
   const shellSpec: WeaponVfxShellSpec = { ...tier.shell, ...(spec.shell ?? {}) };
@@ -2815,12 +3547,19 @@ export function createWeaponVfx(
     ...tier.light,
     ...(spec.light ?? {}),
   };
-  const light = new THREE.PointLight(lightSpec.color, lightSpec.intensity, lightSpec.distance, 2);
-  // World-rendered weapon lights move with the held model and drive their own
-  // flicker. The renderer still ranks them inside its fixed point-light count.
-  light.userData.budgetDynamic = true;
-  light.position.copy(resolvePoint(b, lightSpec.at ?? { yF: 0.7 }));
-  group.add(light);
+  const light = withLight
+    ? new THREE.PointLight(lightSpec.color, lightSpec.intensity, lightSpec.distance, 2)
+    : null;
+  if (light) {
+    // World-rendered weapon lights move with the held model and drive their own
+    // flicker. The renderer still ranks them inside its fixed point-light count.
+    light.userData.budgetDynamic = true;
+    // Born hidden on a budgeted path: the budget, not this constructor, decides
+    // whether the light is counted. See budgetedLight in WeaponVfxCreateOptions.
+    if (budgetedLight) light.visible = false;
+    light.position.copy(resolvePoint(b, lightSpec.at ?? { yF: 0.7 }));
+    group.add(light);
+  }
 
   // 4. Spec'd particle components.
   for (const c of spec.fx ?? []) {
@@ -2830,6 +3569,7 @@ export function createWeaponVfx(
     else if (c.kind === 'twinkles') part = makeTwinkles(weaponRoot, b, c);
     else if (c.kind === 'aurora') part = makeAurora(b, c);
     else if (c.kind === 'coreSprite') part = makeCoreSprite(b, c);
+    else if (c.kind === 'arcs') part = makeArcs(b, c);
     if (part) {
       if (part.node) part.node.name = `vfx_${c.kind}`;
       part.kind = c.kind;
@@ -2837,11 +3577,13 @@ export function createWeaponVfx(
     }
   }
 
-  // 5. Scene dressing: backdrop always, ground pool only on the pedestal.
-  const backdrop = makeBackdrop(tier);
-  backdrop.kind = 'backdrop';
-  parts.push(backdrop);
-  sceneExtras.add(backdrop.node);
+  // 5. Scene dressing: both ride sceneExtras, which only a showcase mounts.
+  const backdrop = withBackdrop ? makeBackdrop(tier) : null;
+  if (backdrop) {
+    backdrop.kind = 'backdrop';
+    parts.push(backdrop);
+    sceneExtras.add(backdrop.node);
+  }
   if (grounded) {
     const pool = makePool(tier);
     pool.kind = 'pool';
@@ -2854,7 +3596,12 @@ export function createWeaponVfx(
   }
   weaponRoot.add(group);
 
-  const allMats = parts.flatMap((p) => p.mats ?? []);
+  // A component can legitimately share one material with another part (for
+  // example a sprite pair reused by two authored emitters). Keep the terminal
+  // owner set-like: disposing the same Three material multiple times is not
+  // harmless for the prewarm failure path because it can release one linked
+  // program/cache entry while another part still references it.
+  const allMats = [...new Set(parts.flatMap((p) => p.mats ?? []))];
 
   // Live FX tuning: per-channel multipliers over the spec values, applied to
   // the running rig (the inspector's fx sliders drive this). Each part's
@@ -2887,6 +3634,11 @@ export function createWeaponVfx(
     }
   };
 
+  // dispose() releases this rig's reference on each shared derivation, so it
+  // must run at most once: a second call would strip a reference another live
+  // wearer of the same skin still depends on.
+  let rigDisposed = false;
+
   return {
     group,
     sceneExtras,
@@ -2899,13 +3651,20 @@ export function createWeaponVfx(
       applyTuning();
     },
     setBackdropVisible(v: boolean) {
-      backdrop.node.visible = v;
+      if (backdrop) backdrop.node.visible = v;
     },
     setPixelScale(devicePxHeight: number) {
       // Device px per world unit at distance 1 for a 35-degree vertical fov.
       const s = (devicePxHeight * 0.5) / Math.tan((35 * Math.PI) / 360);
+      // gl_PointSize here divides by view depth, so it diverges as the weapon
+      // approaches the near plane: a sprite that would paint a quarter of the
+      // frame is pure additive fill the composer bloom then re-reads. The
+      // ceiling sits far above any ordinary camera distance
+      // (vfx_screen_bounds_core.ts), so it only trims that close-range case.
+      const maxPx = maxPointSizePx(devicePxHeight);
       for (const m of allMats) {
         if (m.uniforms?.uScale) m.uniforms.uScale.value = s;
+        if (m.uniforms?.uMaxPx) m.uniforms.uMaxPx.value = maxPx;
       }
     },
     update(dt: number) {
@@ -2921,38 +3680,300 @@ export function createWeaponVfx(
           prev.mat.emissiveIntensity = e.intensity * glowPulse * tuning.glow;
         }
       }
-      const flick =
-        1 -
-        lightSpec.flicker +
-        lightSpec.flicker *
-          (0.6 * Math.sin(time * lightSpec.hz * 6.4) + 0.4 * Math.sin(time * lightSpec.hz * 17.3));
-      light.intensity = lightSpec.intensity * flick * tuning.light;
+      if (light) {
+        const flick =
+          1 -
+          lightSpec.flicker +
+          lightSpec.flicker *
+            (0.6 * Math.sin(time * lightSpec.hz * 6.4) +
+              0.4 * Math.sin(time * lightSpec.hz * 17.3));
+        light.intensity = lightSpec.intensity * flick * tuning.light;
+      }
     },
     dispose() {
+      if (rigDisposed) return;
+      rigDisposed = true;
       weaponRoot.remove(group);
       sceneExtras.parent?.remove(sceneExtras);
+      const disposedGeometries = new Set<THREE.BufferGeometry>();
       for (const p of parts) {
         p.extraDispose?.();
         if (p.node) {
           p.node.traverse?.((o) => {
-            (o as THREE.Mesh).geometry?.dispose?.();
+            // Three's SpriteGeometry is a renderer-wide singleton shared by
+            // every Sprite. It is never owned by an individual weapon rig.
+            if ((o as THREE.Sprite).isSprite) return;
+            const geometry = (o as THREE.Mesh).geometry;
+            if (
+              !geometry ||
+              weaponOwnedGeometries.has(geometry) ||
+              disposedGeometries.has(geometry)
+            )
+              return;
+            disposedGeometries.add(geometry);
+            geometry.dispose();
           });
         }
       }
       for (const m of allMats) m.dispose();
-      for (const { prev, tex, albedoTex } of emissives) {
-        tex?.dispose();
-        albedoTex?.dispose();
-        prev.mat.emissiveMap = prev.emissiveMap;
-        prev.mat.map = prev.map;
-        prev.mat.metalness = prev.metalness;
-        prev.mat.roughness = prev.roughness;
-        prev.mat.metalnessMap = prev.metalnessMap;
-        prev.mat.roughnessMap = prev.roughnessMap;
-        if (prev.emissive) prev.mat.emissive.copy(prev.emissive);
-        prev.mat.emissiveIntensity = prev.emissiveIntensity;
-        prev.mat.needsUpdate = true;
-      }
+      restoreAndReleaseEmissives();
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Boot prewarm: link every weapon-VFX program once, behind the loading screen.
+//
+// A weapon skin is worn by other players, so the first sighting is the first
+// time these programs link, and it lands mid-gameplay on whoever walks into
+// view first. The shader sources here carry no spec values (every authored
+// number arrives as a uniform or an attribute), so ONE synthetic rig covering
+// each component family produces the exact program cache keys the live rigs
+// ask for later: motes, drift, twinkles, aurora, shell, the pool, and the two
+// sprite materials of the core flare, plus the shared sprite textures they
+// sample. The sky dome is deliberately NOT warmed: nothing in the world path
+// builds one any more.
+// ---------------------------------------------------------------------------
+
+/** The shared sprite textures every weapon-VFX rig samples, created on first
+ *  ask and cached for the page. Uploading them at boot keeps the first sighting
+ *  of a skin off the synchronous texture-upload path. */
+export function weaponVfxPrewarmTextures(): THREE.Texture[] {
+  return [softDiscTex(), starFlareTex(), noiseTex()];
+}
+
+/** Stable catalog order shared by the loading-screen and resume paths. */
+export const WEAPON_VFX_PREWARM_KEYS: readonly string[] = Object.freeze(Object.keys(WEAPON_VFX));
+
+/**
+ * One hidden rig per REAL catalog spec, for the boot prewarm scene, built
+ * through the exact worn-skin path (grounded: false) so every program cache
+ * key a live arrival can ask for is linked at boot. A single synthetic spec
+ * exercising each component FAMILY was not enough: the first skin sighted in
+ * the world still linked ~108 programs inside one frame (the measured
+ * geared-arrival freeze). Off-screen (y = -1000) and frustum-culling-exempt
+ * like the other prewarm groups; the caller adds it to the scene, lets the
+ * compile entry link it, then removes it (never disposes: disposing a
+ * material releases its linked program, which is the thing being warmed).
+ */
+let prewarmHostMap: THREE.Texture | null = null;
+const prewarmSkinCleanup = new WeakMap<THREE.Group, () => void>();
+
+/**
+ * A one-pixel base-colour map for the prewarm hosts, shared by every spec.
+ * deriveEmissive BRANCHES on the host material's `map`: a mapless host takes
+ * the flat-tint fallback, so the boot twin carried map-absent and
+ * emissiveMap-absent while the live path carries both present (and
+ * metalnessMap / roughnessMap nulled), which is a different program-cache key
+ * for the whole variant set. One pixel keeps the derivation memo cost that the
+ * mapless host was protecting against (weapon_vfx_emissive_cache_core.ts) down
+ * to two 1x1 canvases per catalog spec, pinned for the session by the prewarm
+ * rigs, which are deliberately never disposed.
+ */
+function weaponVfxPrewarmHostMap(): THREE.Texture {
+  if (prewarmHostMap) return prewarmHostMap;
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const cx = canvas.getContext('2d');
+  if (cx) {
+    cx.fillStyle = '#ffffff';
+    cx.fillRect(0, 0, 1, 1);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.flipY = false; // match GLTF UV orientation, as the real skin maps do
+  texture.colorSpace = THREE.SRGBColorSpace;
+  prewarmHostMap = markSharedTexture(texture);
+  return prewarmHostMap;
+}
+
+/**
+ * The shipped GLB material shape of each catalog skin, as far as it reaches a
+ * program cache key. Every skin's main material carries base colour,
+ * metal-rough, normal and occlusion textures and is opaque; what varies is
+ * `doubleSided`, and one GLB adds an untextured part. Pinned against each
+ * GLB's own JSON by tests/weapon_skin_prewarm_host.test.ts, so a re-exported
+ * skin that changes either fails there instead of linking live.
+ */
+export const WEAPON_VFX_DOUBLE_SIDED_SKINS: ReadonlySet<string> = new Set([
+  'ice_fang',
+  'solheim_last_light_of_the_dawn',
+  'skyrender_the_firmament_s_wound',
+  'cosmarch_spire_of_the_endless_void',
+  'meteorlatch_the_sky_s_last_judgment',
+  'rude_awakening_sword',
+  'rimecrusher',
+  'frostbite',
+  'shard_of_everwinter',
+  'forgeheart_stave',
+]);
+
+/** Untextured, single-sided extra materials, by GLB material name. */
+export const WEAPON_VFX_UNTEXTURED_PARTS: Readonly<Record<string, readonly string[]>> = {
+  astravyr_fang_of_the_fallen_star: ['ring_gold'],
+};
+
+/**
+ * The textured host surface, in the class and texture slots the worn skin
+ * draws on this tier (characters/assets.ts buildTintedClone): a Lambert with
+ * its map on the Lambert tier; otherwise the GLB's standard material with its
+ * normal and occlusion maps plus the silhouette rim glow, which
+ * characters/visual.ts carries into its hook-preserving isolation clone, and
+ * on both tiers the dormant Gloamveil climb every lit rig material carries. The
+ * metal-rough maps are left out because deriveEmissive nulls them on the live
+ * weapon too. Only slot presence reaches the key, so the one-pixel map fills
+ * every slot.
+ */
+function prewarmHostTexturedMaterial(side: THREE.Side): THREE.Material {
+  const map = weaponVfxPrewarmHostMap();
+  const name = 'weapon-vfx-prewarm-host:textured';
+  if (!GFX.standardMaterials) {
+    const lambert = new THREE.MeshLambertMaterial({ name, color: 0xffffff, map, side });
+    attachGloamClimb(lambert);
+    return lambert;
+  }
+  const material = new THREE.MeshStandardMaterial({
+    name,
+    color: 0xffffff,
+    map,
+    normalMap: map,
+    aoMap: map,
+    side,
+  });
+  addRimGlow(material);
+  attachGloamClimb(material);
+  return material;
+}
+
+/** An untextured part: deriveEmissive takes its flat-tint arm, and the GLB
+ *  name routes the same worn layer buildTintedClone gives that name. The
+ *  routing reads the name once, and three's key never does, so the host takes
+ *  its own name afterwards and a program label tells it from the live part. */
+function prewarmHostUntexturedMaterial(part: string): THREE.Material {
+  const name = `weapon-vfx-prewarm-host:${part}`;
+  if (!GFX.standardMaterials) {
+    const lambert = new THREE.MeshLambertMaterial({ name, color: 0xffffff });
+    attachGloamClimb(lambert);
+    return lambert;
+  }
+  const material = new THREE.MeshStandardMaterial({ color: 0xffffff, name: part });
+  addRimGlow(material);
+  attachGloamClimb(material);
+  applyRiggedWornDetail(material);
+  material.name = name;
+  return material;
+}
+
+/**
+ * Builds one deterministic, hidden prewarm unit for a real catalog skin.
+ *
+ * The unit boundary is intentionally the skin, not a component family. A
+ * component-family fixture does not cover the material/program combinations
+ * selected by each authored spec, while one group for every spec makes the
+ * resume lane hold the GPU queue for hundreds of milliseconds. The aggregate
+ * builder below uses this same function, so the loading-screen path and the
+ * resumed path cannot drift apart.
+ */
+export function buildWeaponVfxPrewarmSkinGroup(key: string): THREE.Group {
+  const spec = WEAPON_VFX[key];
+  if (!spec) throw new Error(`unknown weapon VFX prewarm skin: ${key}`);
+
+  const group = new THREE.Group();
+  group.name = `weapon-vfx-program-prewarm:${key}`;
+  group.userData.renderCategory = 'prewarm';
+
+  const surfaces: THREE.Mesh[] = [];
+  let handle: WeaponVfxHandle | null = null;
+  let disposed = false;
+  const cleanup = (): void => {
+    if (disposed) return;
+    disposed = true;
+    handle?.dispose();
+    for (const surface of surfaces) {
+      surface.geometry.dispose();
+      (surface.material as THREE.Material).dispose();
+    }
+  };
+  try {
+    // The host is the SHAPE of the worn skin's material on this tier, one
+    // surface per GLB material: a host keyed differently warms a program no
+    // live sighting asks for and leaves the real one to link on the first
+    // arrival.
+    const side = WEAPON_VFX_DOUBLE_SIDED_SKINS.has(key) ? THREE.DoubleSide : THREE.FrontSide;
+    const host = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 1, 0.1),
+      prewarmHostTexturedMaterial(side),
+    );
+    host.name = `prewarm-skin-host:${key}`;
+    host.frustumCulled = false;
+    surfaces.push(host);
+    for (const part of WEAPON_VFX_UNTEXTURED_PARTS[key] ?? []) {
+      // The GLB part has no UVs; neither does its twin.
+      const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+      geometry.deleteAttribute('uv');
+      const surface = new THREE.Mesh(geometry, prewarmHostUntexturedMaterial(part));
+      surface.name = `prewarm-skin-host:${key}:${part}`;
+      surface.frustumCulled = false;
+      host.add(surface);
+      surfaces.push(surface);
+    }
+    handle = createWeaponVfx(host, spec, { grounded: false });
+    // A visible light would change the scene's light counts, and those counts
+    // are part of every program cache key: one extra point light here and the
+    // whole boot compile warms keys no live frame ever asks for.
+    if (handle.light) handle.light.visible = false;
+    // The boot prewarm group is census-tagged 'prewarm' as a whole; keep the
+    // rigs inside that bucket rather than reporting as live skins.
+    handle.group.userData.renderCategory = 'prewarm';
+    handle.sceneExtras.userData.renderCategory = 'prewarm';
+    group.add(host);
+    group.add(handle.sceneExtras);
+    prewarmSkinCleanup.set(group, cleanup);
+    return group;
+  } catch (error) {
+    // A failed unit must not leave a partially derived emissive rig pinned in
+    // the cache. createWeaponVfx unwinds its own derivation failures; if a
+    // later attachment/tagging step fails, use the same terminal owner here.
+    cleanup();
+    throw error;
+  }
+}
+
+/**
+ * Terminally release one staged resume unit. Successful prewarm deliberately
+ * leaves these materials alive so their linked programs stay hot; a failed
+ * resume has no such contract and must release every derived emissive pair,
+ * host buffer, and VFX material it built before the failure. The closure is
+ * idempotent because a failed build can be observed by both the unit hook and
+ * the renderer's aggregate cleanup.
+ */
+export function disposeWeaponVfxPrewarmSkinGroup(group: THREE.Group): void {
+  const cleanup = prewarmSkinCleanup.get(group);
+  if (!cleanup) return;
+  prewarmSkinCleanup.delete(group);
+  cleanup();
+}
+
+/** Release a staged batch after a resume unit fails. */
+export function disposeWeaponVfxPrewarmSkinGroups(groups: Iterable<THREE.Group>): void {
+  for (const group of groups) disposeWeaponVfxPrewarmSkinGroup(group);
+}
+
+export function buildWeaponVfxPrewarmGroup(): THREE.Group {
+  const group = new THREE.Group();
+  group.name = 'weapon-vfx-program-prewarm';
+  group.position.set(0, -1000, 0); // off-screen; compile ignores position
+  try {
+    for (const key of Object.keys(WEAPON_VFX)) {
+      group.add(buildWeaponVfxPrewarmSkinGroup(key));
+    }
+  } catch (error) {
+    // A catalog or canvas failure after a few successful units must not pin
+    // their derived emissive cache entries. The successful units are normally
+    // intentionally retained after a successful prewarm, but a failed
+    // aggregate is never published, so unwind every unit before rethrowing.
+    group.traverse((object) => prewarmSkinCleanup.get(object as THREE.Group)?.());
+    throw error;
+  }
+  return group;
 }

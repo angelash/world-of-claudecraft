@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { validCharNameShape, validUsernameShape } from '../server/auth';
 import { ambientBotAccountUsername, ambientBotCharacterName } from '../server/ambient_bots/naming';
+import { validCharNameShape, validUsernameShape } from '../server/auth';
 
 describe('ambient player bot naming', () => {
   it('keeps generated account usernames within the live auth shape limit', () => {

@@ -1,24 +1,10 @@
 import type { PlayerClass } from '../../src/sim/types';
 
-export type AmbientBotLifecycleStatus =
-  | 'ready'
-  | 'reserved'
-  | 'online'
-  | 'cooldown'
-  | 'retired';
+export type AmbientBotLifecycleStatus = 'ready' | 'reserved' | 'online' | 'cooldown' | 'retired';
 
-export type AmbientBotProvisionState =
-  | 'needsAccount'
-  | 'needsCharacter'
-  | 'ready'
-  | 'retired';
+export type AmbientBotProvisionState = 'needsAccount' | 'needsCharacter' | 'ready' | 'retired';
 
-export type AmbientBotArchetype =
-  | 'newcomer'
-  | 'quester'
-  | 'traveler'
-  | 'helper'
-  | 'grinder';
+export type AmbientBotArchetype = 'newcomer' | 'quester' | 'traveler' | 'helper' | 'grinder';
 
 export interface AmbientBotLevelBand {
   min: number;
@@ -233,30 +219,30 @@ export interface AmbientPlayerBotLogoutAllResult {
 
 export type AmbientBotPlanAction =
   | {
-    type: 'loginBot';
-    botId: string;
-    clusterId: string;
-    zoneId: string;
-    targetCharacterId: number;
-    targetCharacterName?: string;
-    reason: string;
-  }
+      type: 'loginBot';
+      botId: string;
+      clusterId: string;
+      zoneId: string;
+      targetCharacterId: number;
+      targetCharacterName?: string;
+      reason: string;
+    }
   | {
-    type: 'logoutBot';
-    botId: string;
-    reason: string;
-  }
+      type: 'logoutBot';
+      botId: string;
+      reason: string;
+    }
   | {
-    type: 'provisionBot';
-    requestId: string;
-    profileId: string;
-    class: PlayerClass;
-    clusterId: string;
-    zoneId: string;
-    targetCharacterId: number;
-    targetCharacterName?: string;
-    reason: string;
-  };
+      type: 'provisionBot';
+      requestId: string;
+      profileId: string;
+      class: PlayerClass;
+      clusterId: string;
+      zoneId: string;
+      targetCharacterId: number;
+      targetCharacterName?: string;
+      reason: string;
+    };
 
 export interface AmbientPlayerClusterSnapshot {
   clusterId: string;

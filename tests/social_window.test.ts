@@ -1,5 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { GUILD_RANK_PERMISSIONS } from '../src/sim/guild_ranks';
+import { guildRanksPanelView } from '../src/ui/guild_ranks_view';
+import { type GuildRow, socialPageControls } from '../src/ui/social_view';
+import {
+  guildMemberRowHtml,
+  guildRanksPanelHtml,
+  rankLabelText,
+  rosterExpandConfirmHtml,
+  socialPagerHtml,
+  splicePriceHtml,
+} from '../src/ui/social_window';
+import type { SocialInfo } from '../src/world_api';
 
 // Source-level guards for the social painter. The pure row + signature decisions are
 // unit-tested in social_view.test.ts; here we pin the no-magic-values
@@ -17,9 +29,32 @@ const hudChromeCatalog = readFileSync(
 );
 const mobileCss = readFileSync(new URL('../src/styles/hud.mobile.css', import.meta.url), 'utf8');
 
+describe('social block list paging', () => {
+  it('provides both return and continuation controls for inherited overflow pages', () => {
+    const html = socialPagerHtml('block', { first: true, next: 12 });
+    expect(html).toContain('data-act="block-page" data-cursor="0"');
+    expect(html).toContain('data-act="block-page" data-cursor="12"');
+    expect(painter).toContain('w.socialBlocksPage(Number(node.dataset.cursor ?? 0))');
+  });
+  it('selects block metadata independently and rejects unsafe continuation values', () => {
+    const social = {
+      blocksCursor: 1,
+      blocksNextCursor: 8,
+      friendsCursor: 0,
+      friendsNextCursor: 4,
+    } as SocialInfo;
+    expect(socialPageControls(social, 'block')).toEqual({ first: true, next: 8 });
+    expect(socialPageControls(social, 'friend')).toEqual({ first: false, next: 4 });
+    expect(
+      socialPageControls({ ...social, blocksNextCursor: Number.NaN }, 'block').next,
+    ).toBeNull();
+    expect(socialPagerHtml('block', socialPageControls(null, 'block'))).toBe('');
+  });
+});
+
 describe('social_window: .soc-body layout never uses CSS multicol', () => {
   // Regression for a review finding on the wide-landscape relayout: `.soc-body` is a
-  // flex item inside `#social-window`, which has a DEFINED height (`height: 480px`). A
+  // flex item inside `#social-window`, which has a DEFINED height (`height: 640px`). A
   // multicol container (`columns:`/`column-count:`) with a bounded, non-auto block size
   // does not grow vertically: it spills rows past the box into extra INLINE columns
   // instead, and `overflow-x: hidden` (also set here) clips them with no scroll path to
@@ -85,10 +120,10 @@ describe('social_window: WAI-ARIA tabs', () => {
     expect(painter).toContain('tabStripModel(');
     expect(painter).toContain('wireTabStrip(');
     expect(painter).toContain("panelId: 'soc-body-panel'");
-    expect(painter).toContain("stripClass: 'soc-tabs'");
-    expect(painter).toContain("tabClass: 'soc-tab'");
+    expect(painter).toContain("stripClass: 'soc-tabs ui-tabs'");
+    expect(painter).toContain("tabClass: 'soc-tab ui-tab'");
     expect(painter).toContain("selectedClass: 'on'");
-    for (const id of ['friends', 'guild', 'ignore', 'block', 'raid']) {
+    for (const id of ['friends', 'guild', 'who', 'ignore', 'block', 'raid']) {
       expect(painter).toContain(`{ id: '${id}',`);
     }
   });
@@ -132,6 +167,37 @@ describe('social_window: delegated row listeners (no per-tick churn)', () => {
     const body = painter.slice(start, next);
     expect(body).toContain('body.innerHTML');
     expect(body).not.toContain('addEventListener');
+  });
+});
+
+describe('social_window: row right-click opens the player menu', () => {
+  it('wires ONE delegated contextmenu listener on the body, dispatched by onBodyContextMenu', () => {
+    expect(painter).toMatch(/body\.addEventListener\('contextmenu'/);
+    expect(painter).toContain('private onBodyContextMenu(');
+  });
+
+  it('claims only a row that names a player: the early return precedes preventDefault', () => {
+    const start = painter.indexOf('private onBodyContextMenu(');
+    const handler = painter.slice(start, painter.indexOf('\n  }\n', start));
+    expect(handler).toContain(".closest<HTMLElement>('[data-player]')");
+    expect(handler.indexOf('return;')).toBeGreaterThan(-1);
+    expect(handler.indexOf('return;')).toBeLessThan(handler.indexOf('e.preventDefault()'));
+  });
+
+  it('tags a player row on every roster tab (friends, guild, ignore/block, pledges, raid, who)', () => {
+    // Six row builders, each must carry the attribute the handler resolves.
+    expect(painter.match(/<div class="soc-row[^`]*data-player="\$\{esc\(/g)?.length).toBe(6);
+  });
+
+  it('hud wires each menu dep to the matching unit-frame / chat-name menu', () => {
+    const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+    expect(hud).toContain('openSelfMenu: (x, y) => this.openSelfContextMenu(x, y),');
+    expect(hud).toContain(
+      'openUnitMenu: (pid, name, x, y) => this.openContextMenu(pid, name, x, y),',
+    );
+    expect(hud).toContain(
+      'openNameMenu: (name, x, y) => this.openChatPlayerContextMenu(name, x, y),',
+    );
   });
 });
 
@@ -185,16 +251,147 @@ describe('social_window: Book of Deeds title spans (both roster surfaces)', () =
     expect(painter).toContain('${esc(f.name)}${titleSpan}');
   });
 
-  it('guild rows localize the id, gate on it, and place the title AFTER the rank chip', () => {
+  it('guild rows localize the id, gate on it, and place the title AFTER the role chip', () => {
     expect(painter).toContain(
       "const memberTitle = m.activeTitle ? deedTitleText(m.activeTitle) : '';",
     );
     expect(painter).toContain('<span class="soc-title">${esc(memberTitle)}</span>');
-    // name, then rank chip, then title: a long title trims off the tail and
-    // can never push the chip out of the ellipsized cell.
+    // name, then the ONE role chip, then title: a long title trims off the
+    // tail and can never push the chip out of the ellipsized cell.
     expect(painter).toContain(
-      '${esc(m.name)}<span class="rank">${esc(rankLabel(m.rank))}</span>${memberTitleSpan}',
+      '${esc(m.name)}<span class="rank">${esc(chipLabel(chip))}</span>${memberTitleSpan}',
     );
+  });
+});
+
+describe('social_window: guild displayed-role chip (source pins)', () => {
+  // The role decision (rank passthrough + 7/30-day tenure thresholds) is
+  // pure and unit-tested in social_view.test.ts; the behavioral render cases
+  // live in the next describe. These pins hold the contracts a rendered
+  // string cannot prove: the role comes from the pure core with ONE hoisted
+  // clock read per rebuild (never a per-row date computation), every label is
+  // a t() key, and every splice passes esc().
+  it('derives the role from the pure core with one clock read per rebuild', () => {
+    expect(painter).toContain('const now = Date.now();');
+    expect(painter).toContain(
+      'const chip = guildRosterChip(m.rankLabel, tenureTier(m.joinedAt, now));',
+    );
+    // The row builder itself must stay clock-free (the caller threads `now`),
+    // so a per-row Date.now() cannot sneak back in behind the hoisted read.
+    const rowBuilder = painter.slice(
+      painter.indexOf('export function guildMemberRowHtml'),
+      painter.indexOf('export class SocialWindow'),
+    );
+    expect(rowBuilder.length).toBeGreaterThan(0);
+    expect(rowBuilder).not.toContain('Date.now()');
+  });
+
+  it('escapes the localized chip text into the ONE shared .rank chip (no tier class)', () => {
+    // User call: all five role labels share the rank-chip treatment; the
+    // label alone distinguishes the tiers. A soc-tenure-* class or a
+    // role-derived class sneaking back in must fail here.
+    expect(painter).toContain('<span class="rank">${esc(chipLabel(chip))}</span>');
+    expect(painter).not.toContain('soc-tenure');
+  });
+
+  it('localizes every role label through t() keys (tiers + ranks via rankLabelText)', () => {
+    expect(painter).toContain("t('hud.social.tenure.recruit')");
+    expect(painter).toContain("t('hud.social.tenure.veteran')");
+    expect(painter).toContain("t('hud.social.ranks.member')");
+    expect(painter).toContain("if (chip.kind === 'rank') return rankLabelText(chip.label);");
+  });
+});
+
+describe('social_window: guild displayed-role chip (rendered rows)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  // Deliberately YEARS away from the real clock: an implementation that
+  // ignored the `now` parameter and read Date.now() inside the row builder
+  // would flip the recruit (3d) and member (15d) cases below to veteran.
+  const NOW = Date.UTC(2021, 0, 1);
+  const row = (over: Partial<GuildRow> = {}): GuildRow => ({
+    name: 'Gorak',
+    cls: 'warrior',
+    level: 10,
+    online: false,
+    dot: 'off',
+    status: undefined,
+    zone: undefined,
+    lastLogin: null,
+    activeTitle: null,
+    rank: 'member',
+    // A built-in rank at its default title, derived from the row's rank id
+    // unless a case overrides the label itself (a guild-titled rank).
+    rankLabel: {
+      kind: 'default',
+      rank: (over.rank ?? 'member') as 'leader' | 'officer' | 'member',
+    },
+    self: false,
+    canWhisper: false,
+    canTransfer: false,
+    canPromote: false,
+    promoteLabel: null,
+    canDemote: false,
+    demoteLabel: null,
+    canKick: false,
+    joinedAt: null,
+    ...over,
+  });
+  // EVERY role/rank/tenure chip in the row, in order. Exact-array asserts on
+  // this are the regression teeth for the one-chip model: a tenure chip
+  // reappearing beside a member rank chip (two entries) or an officer gaining
+  // a tenure label (wrong entry) fails decisively.
+  const chips = (html: string): string[] =>
+    html.match(/<span class="rank[^"]*">[^<]*<\/span>/g) ?? [];
+
+  it('renders ONE chip, the Recruit tier as the role, for a 3-day member', () => {
+    const html = guildMemberRowHtml(row({ joinedAt: NOW - 3 * DAY }), NOW);
+    expect(chips(html)).toEqual(['<span class="rank">Recruit</span>']);
+    expect(html).not.toContain('>Member<');
+  });
+
+  it('renders ONE chip, the Veteran tier as the role, for a 200-day member', () => {
+    const html = guildMemberRowHtml(row({ joinedAt: NOW - 200 * DAY }), NOW);
+    expect(chips(html)).toEqual(['<span class="rank">Veteran</span>']);
+    expect(html).not.toContain('>Member<');
+  });
+
+  it('renders the plain Member rank chip for a 15-day member (no tenure class)', () => {
+    const html = guildMemberRowHtml(row({ joinedAt: NOW - 15 * DAY }), NOW);
+    expect(chips(html)).toEqual(['<span class="rank">Member</span>']);
+    expect(html).not.toContain('soc-tenure');
+  });
+
+  it('renders the plain Member rank chip when joinedAt is unknown', () => {
+    const html = guildMemberRowHtml(row(), NOW);
+    expect(chips(html)).toEqual(['<span class="rank">Member</span>']);
+    expect(html).not.toContain('soc-tenure');
+  });
+
+  it('an officer keeps the rank label and NEVER gains a tenure label, at any tenure', () => {
+    for (const joinedAt of [NOW - 3 * DAY, NOW - 200 * DAY, null]) {
+      const html = guildMemberRowHtml(row({ rank: 'officer', joinedAt }), NOW);
+      expect(chips(html)).toEqual(['<span class="rank">Officer</span>']);
+      expect(html).not.toContain('soc-tenure');
+    }
+  });
+
+  it('the leader keeps the rank label and NEVER gains a tenure label', () => {
+    const html = guildMemberRowHtml(row({ rank: 'leader', joinedAt: NOW - 3 * DAY }), NOW);
+    expect(chips(html)).toEqual(['<span class="rank">Guild Master</span>']);
+    expect(html).not.toContain('soc-tenure');
+  });
+
+  it('tags the row with the member name for the right-click player menu (escaped)', () => {
+    expect(guildMemberRowHtml(row(), NOW)).toMatch(
+      /^<div class="soc-row is-offline" data-player="Gorak">/,
+    );
+    expect(guildMemberRowHtml(row({ name: 'A"b<' }), NOW)).toContain('data-player="A&quot;b&lt;"');
+  });
+
+  it('escapes the member name around the chip', () => {
+    const html = guildMemberRowHtml(row({ name: 'Bad<img src=x>', joinedAt: NOW - 3 * DAY }), NOW);
+    expect(html).not.toContain('<img');
+    expect(html).toContain('Bad&lt;img');
   });
 });
 
@@ -206,7 +403,9 @@ describe('social_window: guild billboard', () => {
     expect(painter).toContain('${esc(g.motd)}');
     const section = painter.slice(
       painter.indexOf('private billboardHtml'),
-      painter.indexOf('private guildMemberRowHtml'),
+      // billboardHtml is the last method before raidHtml now that the roster
+      // row builder is a module-level function (exported for behavior tests).
+      painter.indexOf('private raidHtml'),
     );
     expect(section.length).toBeGreaterThan(0);
     expect(section).not.toContain('<a ');
@@ -218,7 +417,14 @@ describe('social_window: guild billboard', () => {
     // copy of it in an input. UX only: the server enforces the real rank gate.
     expect(painter).toContain('const edit = g.canEditMotd');
     expect(painter).toContain('data-act="gmotd-save"');
-    expect(painter).not.toContain("' disabled'");
+    // Scoped to the billboard builder: the Ranks tab legitimately shows its
+    // permission table to every member with the checkboxes disabled.
+    const billboard = painter.slice(
+      painter.indexOf('private billboardHtml'),
+      painter.indexOf('private myPledgeHtml'),
+    );
+    expect(billboard.length).toBeGreaterThan(0);
+    expect(billboard).not.toContain('disabled');
   });
 
   it('renders no billboard box at all for a member when no message is set', () => {
@@ -237,8 +443,8 @@ describe('social_window: guild billboard', () => {
     // content changes; the draft capture keys off defaultValue (the motd
     // rendered at the last paint) so an untouched input takes server updates
     // while a touched or focused one survives the swap.
-    expect(painter).toContain('prevMotd.value !== prevMotd.defaultValue');
-    expect(painter).toContain('document.activeElement === prevMotd');
+    expect(painter).toContain('prev.value !== prev.defaultValue');
+    expect(painter).toContain('document.activeElement === prev');
     expect(painter).toContain('next.setSelectionRange(draft.selStart, draft.selEnd)');
   });
 
@@ -267,8 +473,9 @@ describe('social_window: guild billboard', () => {
 
     const section = painter.slice(
       painter.indexOf('private billboardHtml'),
-      painter.indexOf('private guildMemberRowHtml'),
+      painter.indexOf('private raidHtml'),
     );
+    expect(section.length).toBeGreaterThan(0);
     expect(section).toContain('<div class="soc-billboard-msg">$' + '{esc(g.motd)}</div>');
     expect(section).not.toContain('class="soc-billboard-msg" data-');
   });
@@ -276,12 +483,269 @@ describe('social_window: guild billboard', () => {
 
 describe('social_window: guild header copy', () => {
   it('renders the guild name without decorative angle brackets', () => {
-    expect(painter).toContain('<div class="soc-guild-head">$' + '{esc(g.name)} <span class="gm">');
+    expect(painter).toContain(
+      '<div class="soc-guild-head"><span class="guild-tier-$' +
+        '{g.tier}">$' +
+        '{esc(g.name)}</span> <span class="gm">',
+    );
     expect(painter).not.toContain('&lt;$' + '{esc(g.name)}&gt;');
   });
 
   it('uses localized membership copy that avoids the broken rank article sentence', () => {
     expect(hudChromeCatalog).toContain("one: 'your guild rank is {rank}; {count} member'");
     expect(hudChromeCatalog).toContain("other: 'your guild rank is {rank}; {count} members'");
+  });
+});
+
+describe('social_window: guild roster expansion (source pins)', () => {
+  // The painter renders what the pure core decided (guildView memberCap /
+  // nextRosterPrice / canExpandRoster), spends gold only through the shared
+  // confirm prompt, and formats the price with the money formatter.
+  it('reads the seat cap off the pure core and renders the price as coin icons, never a raw number', () => {
+    expect(painter).toContain("t('hudChrome.social.roster.seats'");
+    expect(painter).toContain('cap: formatNumber(g.memberCap');
+    // The price lives in the confirm prompt only, as the shared coin-icon readout with
+    // formatMoney's compact coin set and bare digits (no thousands separators).
+    expect(painter).toContain(
+      'moneyHtml(roster.nextRosterPrice, { compact: true, grouping: false })',
+    );
+    expect(painter).not.toContain('formatMoney(');
+    expect(painter).not.toMatch(/roster\.nextRosterPrice\s*\/\s*10_?000/);
+  });
+
+  it('shows the buy button to the leader only, disabled once the ladder is complete', () => {
+    expect(painter).toContain("roster && guild.rank === 'leader'");
+    expect(painter).toContain('data-act="guild-expand" disabled');
+    expect(painter).toContain("t('hudChrome.social.roster.maxed')");
+    // The button carries no seats or price (the catalog value is the bare label).
+    expect(painter).toContain("t('hudChrome.social.roster.expand')");
+    expect(painter).not.toContain("t('hudChrome.social.roster.expand',");
+    expect(hudChromeCatalog).toContain("expand: 'Expand roster',");
+  });
+
+  it('the expand button leads the footer row the disband / leave button ends', () => {
+    // One .soc-add.soc-leave row holds both: the leader-only expand button first
+    // (pushed to the start edge by .soc-foot-start), the disband or leave button last.
+    expect(painter).toContain('foot += `<div class="soc-add soc-leave">${expand}${leave}</div>`;');
+    expect(painter).toContain('class="btn ui-btn soc-foot-start" data-act="guild-expand"');
+    expect(painter).not.toContain('<div class="soc-add soc-leave"><button');
+    expect(componentsCss).toContain(
+      '.soc-add.soc-leave .soc-foot-start {\n    margin-right: auto;\n  }',
+    );
+    // The shared row wraps rather than squeezing a long label beside the other button.
+    const leaveRule = componentsCss.slice(
+      componentsCss.indexOf('.soc-add.soc-leave {'),
+      componentsCss.indexOf('.soc-add.soc-leave .soc-foot-start {'),
+    );
+    expect(leaveRule).toContain('flex-wrap: wrap;');
+  });
+
+  it('a bought page (a structural change) rebuilds the footer around a preserved draft', () => {
+    // The footer button is emitted by render(), which refreshIfChanged reaches
+    // only on a structural change; the roster cap and price are part of that
+    // signature (tests/social_view.test.ts), and the rebuild keeps the
+    // half-typed invite or billboard draft the relocalize() way.
+    const start = painter.indexOf('refreshIfChanged(): void {');
+    const body = painter.slice(start, painter.indexOf('relocalize(): void {', start));
+    expect(body).toContain('const draft = captureFormDraft(el);');
+    expect(body).toContain('this.render();');
+    expect(body).toContain('restoreFormDraft(el, draft);');
+    expect(body.indexOf('captureFormDraft(el)')).toBeLessThan(body.indexOf('this.render();'));
+    expect(body.indexOf('this.render();')).toBeLessThan(
+      body.indexOf('restoreFormDraft(el, draft)'),
+    );
+  });
+
+  it('buys through the shared confirm prompt, gated on the pure core permission', () => {
+    const handler = painter.slice(painter.indexOf("act === 'guild-expand'"));
+    const body = handler.slice(0, handler.indexOf("act === 'guild-leave'"));
+    expect(body).toContain('roster?.canExpandRoster && roster.nextRosterPrice !== null');
+    expect(body).toContain('this.deps.showPrompt(');
+    expect(body).toContain('rosterExpandConfirmHtml(');
+    expect(body).toContain("t('hudChrome.social.roster.confirmAction')");
+    expect(body).toContain('() => w.guildBuyRosterPage()');
+  });
+
+  it('the confirm body escapes the localized sentence and splices the coin markup into its slot', () => {
+    // The sentence never reaches innerHTML raw: only the trusted price markup does.
+    const price = '<span class="money-inline">1736<span class="coin g"></span></span>';
+    const html = rosterExpandConfirmHtml('20', price);
+    expect(html).toBe(
+      `Expand the guild roster by 20 seats for ${price}? The gold comes from your own purse and is not refunded.`,
+    );
+    expect(html).not.toContain('\u0000');
+    // A price carrying replacement-pattern characters is spliced verbatim.
+    expect(rosterExpandConfirmHtml('20', '$&$1')).toContain('for $&$1?');
+    // The seats value is escaped like any other interpolated text.
+    expect(rosterExpandConfirmHtml('<b>', price)).toContain('by &lt;b&gt; seats');
+  });
+
+  it('the price splice fills every slot and never leaves the prompt unpriced', () => {
+    const price = '<span class="money-inline">7</span>';
+    // A sentence naming the price twice fills both (split/join, not first-only).
+    expect(splicePriceHtml('Pay \u0000 now, yes \u0000?', price)).toBe(
+      `Pay ${price} now, yes ${price}?`,
+    );
+    // Replacement-pattern characters in the markup are kept verbatim.
+    expect(splicePriceHtml('for \u0000?', '$&$1')).toBe('for $&$1?');
+    // A sentence that lost its slot still ends with the price.
+    expect(splicePriceHtml('Expand the roster?', price)).toBe(`Expand the roster? ${price}`);
+  });
+
+  it('the catalog carries the roster block with every key the painter and hud read', () => {
+    // Scoped to the `roster: {` block under `social`, so a same-named key
+    // elsewhere in the catalog (there are several `maxed:` / `retry:` leaves)
+    // cannot satisfy this pin; tests/result_code_keys.test.ts resolves the
+    // hud-side keys through the generated bundle.
+    const start = hudChromeCatalog.indexOf('    roster: {');
+    expect(start).toBeGreaterThan(-1);
+    const block = hudChromeCatalog.slice(start, hudChromeCatalog.indexOf('\n    },\n', start));
+    for (const key of [
+      'seats:',
+      'expand:',
+      'maxed:',
+      'confirm:',
+      'confirmAction:',
+      'expandedLine:',
+      'result: {',
+      'notLeader:',
+      'cannotAfford:',
+      'retry:',
+    ]) {
+      expect(block, key).toContain(key);
+    }
+  });
+});
+
+describe('social_window: guild custom ranks (docs/prd/guild-custom-ranks.md)', () => {
+  const RANKS = [
+    { id: 'leader', name: '', perms: [...GUILD_RANK_PERMISSIONS] },
+    { id: 'officer', name: 'Council', perms: ['invite' as const] },
+    { id: 'r1', name: '', perms: ['bank' as const] },
+    { id: 'member', name: "Keeper's Hand", perms: [] },
+  ];
+  const social = (rank: string): SocialInfo => ({
+    friends: [],
+    blocks: [],
+    ignores: [],
+    myPledge: null,
+    guild: {
+      id: 1,
+      name: 'Iron Vanguard',
+      rank,
+      ranks: RANKS,
+      motd: '',
+      motdSetBy: '',
+      members: [],
+      events: [],
+      pledgeSettings: { enabled: true, minLevel: 1, note: '', newPlayerFriendly: false },
+      pledges: [],
+      tier: 0,
+    },
+  });
+  const cells = (html: string, re: RegExp): string[] => html.match(re) ?? [];
+
+  it('rankLabelText localizes defaults, numbers untitled ranks, and passes titles through', () => {
+    expect(rankLabelText({ kind: 'default', rank: 'leader' })).toBe('Guild Master');
+    expect(rankLabelText({ kind: 'numbered', n: 2 })).toBe('Rank 2');
+    expect(rankLabelText({ kind: 'custom', name: 'Council' })).toBe('Council');
+  });
+
+  it('the Guild Master gets title inputs, live checkboxes, order controls, Add and Save', () => {
+    const html = guildRanksPanelHtml(guildRanksPanelView(social('leader'))!);
+    // One title input per rank, keyed by rank id, the stored title as value.
+    expect(cells(html, /data-field="rank-name:[^"]+"/g)).toEqual([
+      'data-field="rank-name:leader"',
+      'data-field="rank-name:officer"',
+      'data-field="rank-name:r1"',
+      'data-field="rank-name:member"',
+    ]);
+    // Every permission column, every rank; only the Guild Master row locked.
+    expect(cells(html, /data-field="rank-perm:[^"]+"/g)).toHaveLength(
+      4 * GUILD_RANK_PERMISSIONS.length,
+    );
+    expect(cells(html, /<input class="ui-check"[^>]*disabled\/>/g)).toHaveLength(
+      GUILD_RANK_PERMISSIONS.length,
+    );
+    expect(html).toContain(
+      'data-field="rank-perm:r1:bank" aria-label="Guild Bank for Rank 2" checked',
+    );
+    // Middle ranks reorder and remove; the ends never.
+    expect(cells(html, /data-act="rank-(?:up|down|remove)" data-rank="[^"]+"/g)).toEqual([
+      'data-act="rank-down" data-rank="officer"',
+      'data-act="rank-remove" data-rank="officer"',
+      'data-act="rank-up" data-rank="r1"',
+      'data-act="rank-remove" data-rank="r1"',
+    ]);
+    expect(html).toContain('data-act="rank-add"');
+    expect(html).toContain('data-act="rank-save"');
+  });
+
+  it('every other member reads the table: names as text, every checkbox disabled, no controls', () => {
+    const html = guildRanksPanelHtml(guildRanksPanelView(social('officer'))!);
+    expect(html).not.toContain('rank-name:');
+    expect(html).not.toContain('data-act="rank-');
+    const boxes = cells(html, /<input class="ui-check"[^>]*>/g);
+    expect(boxes).toHaveLength(4 * GUILD_RANK_PERMISSIONS.length);
+    expect(boxes.every((b) => b.includes(' disabled'))).toBe(true);
+    expect(html).toContain('<span class="soc-ranks-name">Council</span>');
+  });
+
+  it('escapes a player-authored title in every sink (value, labels, text)', () => {
+    const edit = guildRanksPanelHtml(guildRanksPanelView(social('leader'))!);
+    const read = guildRanksPanelHtml(guildRanksPanelView(social('member'))!);
+    expect(edit).toContain('value="Keeper&#39;s Hand"');
+    expect(edit).toContain('aria-label="Title for Keeper&#39;s Hand"');
+    expect(read).toContain('<span class="soc-ranks-name">Keeper&#39;s Hand</span>');
+    for (const html of [edit, read]) expect(html).not.toContain("Keeper's");
+  });
+
+  it('a ladder the shared sanitizer refuses renders as the default ladder (fail closed)', () => {
+    const bad = social('leader');
+    (bad.guild as NonNullable<SocialInfo['guild']>).ranks = [
+      ...RANKS.slice(0, 3),
+      { id: 'member', name: '<b>Pleb</b>', perms: [] },
+    ];
+    const html = guildRanksPanelHtml(guildRanksPanelView(bad)!);
+    expect(html).not.toContain('Pleb');
+    expect(cells(html, /data-field="rank-name:[^"]+"/g)).toEqual([
+      'data-field="rank-name:leader"',
+      'data-field="rank-name:officer"',
+      'data-field="rank-name:member"',
+    ]);
+  });
+
+  it('the roster chip shows a titled rank instead of a tenure tier', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const NOW = Date.UTC(2021, 0, 1);
+    const html = guildMemberRowHtml(
+      {
+        name: 'Gorak',
+        cls: 'warrior',
+        level: 10,
+        online: false,
+        dot: 'off',
+        status: undefined,
+        zone: undefined,
+        lastLogin: null,
+        activeTitle: null,
+        rank: 'member',
+        rankLabel: { kind: 'custom', name: 'Initiate' },
+        self: false,
+        canWhisper: false,
+        canTransfer: false,
+        canPromote: true,
+        promoteLabel: { kind: 'numbered', n: 3 },
+        canDemote: false,
+        demoteLabel: null,
+        canKick: false,
+        joinedAt: NOW - 3 * DAY,
+      },
+      NOW,
+    );
+    expect(html.match(/<span class="rank[^"]*">[^<]*<\/span>/g)).toEqual([
+      '<span class="rank">Initiate</span>',
+    ]);
+    expect(html).toContain('title="Promote Gorak to Rank 3"');
   });
 });

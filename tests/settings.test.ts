@@ -1,15 +1,21 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clickMoveButtonLabel,
   normalizeClickMoveButton,
   SETTING_RANGES,
   Settings,
+  UNIT_FRAME_STOCK_WIDTH,
 } from '../src/game/settings';
 
 function installStorage(): void {
   const map = new Map<string, string>();
-  (globalThis as any).localStorage = {
-    getItem: (k: string) => (map.has(k) ? map.get(k)! : null),
+  const storage: Storage = {
+    get length() {
+      return map.size;
+    },
+    key: (index: number) => Array.from(map.keys())[index] ?? null,
+    getItem: (k: string) => map.get(k) ?? null,
     setItem: (k: string, v: string) => {
       map.set(k, v);
     },
@@ -18,9 +24,40 @@ function installStorage(): void {
     },
     clear: () => map.clear(),
   };
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: storage,
+  });
 }
 
-beforeEach(() => installStorage());
+function installTouchDefault(matches: boolean): void {
+  if (typeof window === 'undefined') {
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {},
+    });
+  }
+  if (typeof document !== 'undefined') document.body.classList.remove('native-app');
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string) =>
+      ({
+        matches,
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as MediaQueryList,
+  });
+}
+
+beforeEach(() => {
+  installStorage();
+  installTouchDefault(false);
+});
 
 describe('Settings', () => {
   it('defaults fresh sessions and initial logins to the medium graphics preset', () => {
@@ -46,6 +83,80 @@ describe('Settings', () => {
     expect(new Settings().get('cameraZoom')).toBe(8);
   });
 
+  it('defaults Spell Effects on and remembers turning it off', () => {
+    // On out of the box: the option only ever removes presentation, and a
+    // player opts into the calmer screen.
+    expect(new Settings().get('spellEffects')).toBe(true);
+    expect(new Settings().set('spellEffects', false)).toBe(false);
+    expect(new Settings().get('spellEffects')).toBe(false);
+    expect(JSON.parse(localStorage.getItem('woc_settings') ?? '{}').spellEffects).toBe(false);
+  });
+
+  it('persists the controller glyph family with Auto as the default', () => {
+    const settings = new Settings();
+
+    expect(SETTING_RANGES.gamepadGlyphStyle).toEqual({ min: 0, max: 3, def: 0 });
+    expect(settings.get('gamepadGlyphStyle')).toBe(0);
+    expect(settings.set('gamepadGlyphStyle', 1)).toBe(1);
+    expect(new Settings().get('gamepadGlyphStyle')).toBe(1);
+    expect(settings.set('gamepadGlyphStyle', 99)).toBe(3);
+  });
+
+  it('defaults Raw Mouse Input on and persists turning it off', () => {
+    const settings = new Settings();
+
+    expect(settings.get('rawMouseInput')).toBe(true);
+    expect(settings.set('rawMouseInput', false)).toBe(false);
+    expect(new Settings().get('rawMouseInput')).toBe(false);
+  });
+
+  it('defaults and clamps controller reticle speed to its slider range', () => {
+    const settings = new Settings();
+
+    expect(SETTING_RANGES.gamepadReticleSpeed).toEqual({ min: 0.5, max: 2, def: 1 });
+    expect(settings.get('gamepadReticleSpeed')).toBe(1);
+    expect(settings.set('gamepadReticleSpeed', 99)).toBe(2);
+    expect(settings.set('gamepadReticleSpeed', 0)).toBe(0.5);
+  });
+
+  it('ships both unit frame widths at the whole-frame stock and migrates the legacy stocks', () => {
+    // Both vars now drive the WHOLE frame (hud.css derives the bars panel as the
+    // width minus 46px), so the defaults must be the --unit-frame-w stock: main.ts
+    // stamps every persisted value onto the root, so a stale default ships as-is
+    // and the CSS fallback never gets a chance to correct it.
+    expect(UNIT_FRAME_STOCK_WIDTH).toBe(278);
+    expect(SETTING_RANGES.playerFrameWidth).toEqual({ min: 200, max: 460, def: 278 });
+    expect(SETTING_RANGES.targetFrameWidth).toEqual({ min: 200, max: 460, def: 278 });
+    // The editor must be able to REACH the stock from either edge drag.
+    expect(SETTING_RANGES.playerFrameWidth.min).toBeLessThan(UNIT_FRAME_STOCK_WIDTH);
+    expect(SETTING_RANGES.targetFrameWidth.min).toBeLessThan(UNIT_FRAME_STOCK_WIDTH);
+
+    // The constant's doc comment claims it MIRRORS --unit-frame-w, and the legacy
+    // rescue in settings.ts keys off the exact stock, so the two homes have to
+    // agree: read the sheet rather than trusting the prose.
+    const tokensCss = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
+    expect(tokensCss).toContain(`--unit-frame-w: ${UNIT_FRAME_STOCK_WIDTH}px;`);
+
+    // A player carrying the retired stocks (612 full row / 190 bars panel) is
+    // re-stamped to the new stock rather than keeping a frame they never chose.
+    localStorage.setItem(
+      'woc_settings',
+      JSON.stringify({ playerFrameWidth: 612, targetFrameWidth: 190 }),
+    );
+    const migrated = new Settings();
+    expect(migrated.get('playerFrameWidth')).toBe(278);
+    expect(migrated.get('targetFrameWidth')).toBe(278);
+
+    // A width the player actually dragged is kept, clamped to the new range.
+    localStorage.setItem(
+      'woc_settings',
+      JSON.stringify({ playerFrameWidth: 320, targetFrameWidth: 900 }),
+    );
+    const kept = new Settings();
+    expect(kept.get('playerFrameWidth')).toBe(320);
+    expect(kept.get('targetFrameWidth')).toBe(460);
+  });
+
   it('keeps graphicsDefaultApplied false through an unrelated save and clears it on reset', () => {
     const s = new Settings();
     expect(s.get('graphicsDefaultApplied')).toBe(false);
@@ -61,6 +172,27 @@ describe('Settings', () => {
     expect(s.get('graphicsDefaultApplied')).toBe(false);
   });
 
+  it('asks the first-login graphics prompt on a fresh store only, never for a returning player', () => {
+    // A brand new browser: nothing stored, so the prompt is unanswered.
+    expect(new Settings().get('graphicsPromptAnswered')).toBe(false);
+    // A store written by THIS build before the prompt is answered (the landing contrast
+    // toggle, say) def-fills the key as an explicit false, so the prompt still asks.
+    new Settings().set('showFps', true);
+    expect(JSON.parse(localStorage.getItem('woc_settings') ?? '{}').graphicsPromptAnswered).toBe(
+      false,
+    );
+    expect(new Settings().get('graphicsPromptAnswered')).toBe(false);
+    // A store persisted before the key existed is a player who has already played: answered.
+    localStorage.setItem('woc_settings', JSON.stringify({ graphicsPreset: 3, showFps: true }));
+    expect(new Settings().get('graphicsPromptAnswered')).toBe(true);
+    // Answering persists; reset() returns it to false so Reset to Defaults asks again.
+    const s = new Settings();
+    s.set('graphicsPromptAnswered', true);
+    expect(new Settings().get('graphicsPromptAnswered')).toBe(true);
+    s.reset();
+    expect(new Settings().get('graphicsPromptAnswered')).toBe(false);
+  });
+
   it('starts at the documented defaults (camera calmer than the old 1.0)', () => {
     const s = new Settings();
     expect(s.get('cameraSpeed')).toBe(SETTING_RANGES.cameraSpeed.def);
@@ -73,6 +205,10 @@ describe('Settings', () => {
     expect(s.get('shadowQuality')).toBe(SETTING_RANGES.shadowQuality.def);
     expect(s.get('renderScale')).toBe(1);
     expect(s.get('fullscreen')).toBe(1);
+    // Borderless fullscreen, matching the desktop shell's own prefs default:
+    // the shell opens that way, so a fresh profile must not disagree with the
+    // window it is already looking at.
+    expect(s.get('displayMode')).toBe(1);
     expect(s.get('clickToMove')).toBe(0);
     expect(s.get('clickToMoveButton')).toBe(0);
     expect(s.get('cameraFov')).toBe(SETTING_RANGES.cameraFov.def);
@@ -85,6 +221,11 @@ describe('Settings', () => {
     expect(s.get('targetFrameScale')).toBe(1);
     // the classic top-right aura corner stays the default; frame-anchoring is opt-in.
     expect(s.get('aurasOnPlayerFrame')).toBe(false);
+    // the anchored buff row sits above the frame by default; below is opt-in.
+    expect(s.get('auraBarBelowFrame')).toBe(false);
+    // the target's aura strip sits above the frame by default (the stock seat is
+    // over the action bar); hanging it below is the player's opt-in.
+    expect(s.get('targetAurasBelowFrame')).toBe(false);
     expect(s.get('joystickDeadzone')).toBe(SETTING_RANGES.joystickDeadzone.def);
     // Interface Mode defaults to Auto (0): detect desktop vs touch from the device.
     expect(s.get('interfaceMode')).toBe(SETTING_RANGES.interfaceMode.def);
@@ -104,6 +245,33 @@ describe('Settings', () => {
     expect(s.set('cameraFov', 75)).toBe(75);
   });
 
+  it('starts Ambience at the stored Sound Effects level for a profile saved before the split', () => {
+    // A fresh profile gets the documented default.
+    expect(new Settings().get('ambientVolume')).toBe(SETTING_RANGES.ambientVolume.def);
+    // A pre-split profile only has sfxVolume (which used to drive ambience too):
+    // the new slider starts there, so a player who had muted SFX stays muted.
+    localStorage.setItem('woc_settings', JSON.stringify({ sfxVolume: 0 }));
+    expect(new Settings().get('ambientVolume')).toBe(0);
+    localStorage.setItem('woc_settings', JSON.stringify({ sfxVolume: 0.35 }));
+    expect(new Settings().get('ambientVolume')).toBe(0.35);
+    // Once the player has set Ambience it is independent of Sound Effects.
+    localStorage.setItem('woc_settings', JSON.stringify({ sfxVolume: 0.35, ambientVolume: 1 }));
+    const s = new Settings();
+    expect(s.get('ambientVolume')).toBe(1);
+    s.set('sfxVolume', 0.1);
+    expect(new Settings().get('ambientVolume')).toBe(1);
+  });
+
+  it('clamps a stored historical Insane shadow dial (2) down to High on load', () => {
+    // The Shadow Quality ladder is capped at High (the dial's 4096 map, above
+    // the High tier's own 2560 base): the retired Insane rung persisted 2,
+    // which must come back as High, not survive.
+    localStorage.setItem('woc_settings', JSON.stringify({ shadowQuality: 2 }));
+    const s = new Settings();
+    expect(SETTING_RANGES.shadowQuality.max).toBe(1);
+    expect(s.get('shadowQuality')).toBe(1);
+  });
+
   it('clamps out-of-range values to the slider bounds', () => {
     const s = new Settings();
     expect(s.set('cameraSpeed', 99)).toBe(SETTING_RANGES.cameraSpeed.max);
@@ -115,6 +283,10 @@ describe('Settings', () => {
     expect(s.set('effectsQuality', 99)).toBe(SETTING_RANGES.effectsQuality.max);
     expect(s.set('shadowQuality', -1)).toBe(SETTING_RANGES.shadowQuality.min);
     expect(s.set('fullscreen', -1)).toBe(0);
+    // displayMode is a two-value picker stored as a number: anything outside
+    // [0, 1] clamps rather than reaching the shell as an unknown mode.
+    expect(s.set('displayMode', -1)).toBe(0);
+    expect(s.set('displayMode', 4)).toBe(1);
     // Interface Mode (0 Auto, 1 Desktop, 2 Touch) clamps to its 0..2 bounds.
     expect(s.set('interfaceMode', 99)).toBe(SETTING_RANGES.interfaceMode.max);
     expect(s.set('interfaceMode', -1)).toBe(SETTING_RANGES.interfaceMode.min);
@@ -150,10 +322,15 @@ describe('Settings', () => {
     a.set('cameraSpeed', 0.4);
     a.set('musicVolume', 0.2);
     a.set('fullscreen', 0);
+    a.set('displayMode', 0);
     const b = new Settings();
     expect(b.get('cameraSpeed')).toBe(0.4);
     expect(b.get('musicVolume')).toBe(0.2);
     expect(b.get('fullscreen')).toBe(0);
+    // The chosen window mode outlives the session: the shell restores its own
+    // window at launch and the boot reflection re-reads it, but a player who
+    // never opens options must still find their choice on the row.
+    expect(b.get('displayMode')).toBe(0);
   });
 
   it('persists boolean settings across instances', () => {
@@ -161,6 +338,24 @@ describe('Settings', () => {
     a.set('mouseCamera', true);
     const b = new Settings();
     expect(b.get('mouseCamera')).toBe(true);
+  });
+
+  it('defaults spell hover tooltips on and persists disabling them across reloads', () => {
+    const s = new Settings();
+    expect(s.get('spellTooltipOnHover')).toBe(true);
+    s.set('spellTooltipOnHover', false);
+    expect(new Settings().get('spellTooltipOnHover')).toBe(false);
+  });
+
+  it('enables spell hover tooltips for older settings and restores their default on reset', () => {
+    localStorage.setItem('woc_settings', JSON.stringify({ cameraSpeed: 0.5 }));
+    const s = new Settings();
+    expect(s.get('spellTooltipOnHover')).toBe(true);
+    s.set('spellTooltipOnHover', false);
+    s.reset(['spellTooltipOnHover']);
+    expect(s.get('spellTooltipOnHover')).toBe(true);
+    expect(new Settings().get('spellTooltipOnHover')).toBe(true);
+    expect(s.get('cameraSpeed')).toBe(0.5);
   });
 
   it('defaults left-handed touch off and persists it across instances', () => {
@@ -179,12 +374,89 @@ describe('Settings', () => {
     expect(b.get('mobileCameraJoystick')).toBe(true);
   });
 
+  it('defaults precise touch ground targeting on and persists quick mode across instances', () => {
+    const a = new Settings();
+    expect(a.get('touchPreciseGroundAim')).toBe(true);
+    a.set('touchPreciseGroundAim', false);
+    const b = new Settings();
+    expect(b.get('touchPreciseGroundAim')).toBe(false);
+  });
+
   it('defaults the own nameplate on for a fresh player and preserves an existing off choice', () => {
     const fresh = new Settings();
     expect(fresh.get('showOwnNameplate')).toBe(true);
 
     fresh.set('showOwnNameplate', false);
     expect(new Settings().get('showOwnNameplate')).toBe(false);
+  });
+
+  it('defaults Time Played revealed and persists concealing it across instances', () => {
+    // The character sheet's privacy eye and the Options row both write this
+    // per-device display preference; a blob saved before the setting existed
+    // resolves the same default-on path.
+    const fresh = new Settings();
+    expect(fresh.get('showPlaytime')).toBe(true);
+
+    fresh.set('showPlaytime', false);
+    expect(new Settings().get('showPlaytime')).toBe(false);
+  });
+
+  it('defaults the dedicated-GPU preference on and persists an opt-out across instances', () => {
+    // Default true preserves today's shipped behavior (the desktop shell forces
+    // the dedicated GPU). The stored shell field is the INVERSE opt-out, so this
+    // key reads false exactly when the shell is told to opt out; the boot
+    // reflection and the options write arm each invert once.
+    const fresh = new Settings();
+    expect(fresh.get('forceHighPerfGpu')).toBe(true);
+
+    fresh.set('forceHighPerfGpu', false);
+    expect(new Settings().get('forceHighPerfGpu')).toBe(false);
+
+    // and back: an opt-out is not sticky once the player re-enables the row
+    new Settings().set('forceHighPerfGpu', true);
+    expect(new Settings().get('forceHighPerfGpu')).toBe(true);
+  });
+
+  it('defaults Discord Rich Presence on and persists an opt-out across instances', () => {
+    // Default true is the phase 10 decision: presence is on out of the box, and
+    // Discord's own activity-sharing setting still gates who sees it. Same
+    // polarity on both sides of the bridge, so the stored value IS what the
+    // shell is told (no inversion, unlike the GPU preference above).
+    const fresh = new Settings();
+    expect(fresh.get('discordPresence')).toBe(true);
+
+    fresh.set('discordPresence', false);
+    expect(new Settings().get('discordPresence')).toBe(false);
+
+    new Settings().set('discordPresence', true);
+    expect(new Settings().get('discordPresence')).toBe(true);
+  });
+
+  it('defaults other-player nameplates off for fresh mobile sessions', () => {
+    installTouchDefault(true);
+
+    const fresh = new Settings();
+
+    expect(localStorage.getItem('woc_settings')).toBeNull();
+    expect(fresh.get('showPlayerNameplates')).toBe(false);
+  });
+
+  it('keeps other-player nameplates on by default for fresh desktop sessions', () => {
+    const fresh = new Settings();
+
+    expect(localStorage.getItem('woc_settings')).toBeNull();
+    expect(fresh.get('showPlayerNameplates')).toBe(true);
+  });
+
+  it('lets saved other-player nameplate preferences override the device default', () => {
+    installTouchDefault(true);
+    localStorage.setItem('woc_settings', JSON.stringify({ showPlayerNameplates: true }));
+    expect(new Settings().get('showPlayerNameplates')).toBe(true);
+
+    installStorage();
+    installTouchDefault(false);
+    localStorage.setItem('woc_settings', JSON.stringify({ showPlayerNameplates: false }));
+    expect(new Settings().get('showPlayerNameplates')).toBe(false);
   });
 
   it('defaults footstep sounds off and persists re-enabling across instances', () => {
@@ -225,6 +497,7 @@ describe('Settings', () => {
     s.set('fullscreen', 0);
     s.set('mouseCamera', true);
     s.set('mobileCameraJoystick', true);
+    s.set('touchPreciseGroundAim', false);
     s.reset();
     expect(s.get('cameraSpeed')).toBe(SETTING_RANGES.cameraSpeed.def);
     expect(s.get('renderScale')).toBe(SETTING_RANGES.renderScale.def);
@@ -237,6 +510,7 @@ describe('Settings', () => {
     expect(s.get('clickToMoveButton')).toBe(SETTING_RANGES.clickToMoveButton.def);
     expect(s.get('mouseCamera')).toBe(false);
     expect(s.get('mobileCameraJoystick')).toBe(false);
+    expect(s.get('touchPreciseGroundAim')).toBe(true);
   });
 
   // Issue 2341: the Esc options menu's Graphics/Audio/Controller sub-views each
@@ -293,6 +567,41 @@ describe('Settings', () => {
     snap.cameraSpeed = 99;
     expect(s.get('cameraSpeed')).not.toBe(99);
   });
+
+  it('patches multiple validated settings atomically with one persistence write', () => {
+    const s = new Settings();
+    const write = vi.spyOn(localStorage, 'setItem');
+
+    const applied = s.patch({
+      graphicsPreset: 99,
+      terrainDetail: -1,
+      showFps: true,
+    });
+
+    expect(applied.graphicsPreset).toBe(SETTING_RANGES.graphicsPreset.max);
+    expect(applied.terrainDetail).toBe(SETTING_RANGES.terrainDetail.min);
+    expect(applied.showFps).toBe(true);
+    expect(s.all()).toEqual(applied);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(new Settings().get('graphicsPreset')).toBe(SETTING_RANGES.graphicsPreset.max);
+  });
+
+  it('rejects an invalid patch without changing memory or persistence', () => {
+    const s = new Settings();
+    const before = s.all();
+    const write = vi.spyOn(localStorage, 'setItem');
+
+    expect(() =>
+      s.patch({
+        cameraSpeed: 0.4,
+        showFps: 'yes' as unknown as boolean,
+      }),
+    ).toThrow(TypeError);
+
+    expect(s.all()).toEqual(before);
+    expect(write).not.toHaveBeenCalled();
+    expect(new Settings().all()).toEqual(before);
+  });
 });
 
 describe('Interface & Comfort settings pack', () => {
@@ -305,6 +614,7 @@ describe('Interface & Comfort settings pack', () => {
     expect(s.get('chatOpacity')).toBe(1);
     expect(s.get('reduceMotion')).toBe(false);
     expect(s.get('highContrastText')).toBe(false);
+    expect(s.get('colorblindMode')).toBe(false);
     expect(s.get('frostedPanels')).toBe(false);
     expect(s.get('compactChat')).toBe(false);
     expect(s.get('showFps')).toBe(false);
@@ -314,7 +624,19 @@ describe('Interface & Comfort settings pack', () => {
     expect(s.get('showDailyRewardsChest')).toBe(true);
     expect(s.get('showSecondaryActionBar')).toBe(false);
     expect(s.get('showThirdActionBar')).toBe(false);
+    expect(s.get('hideUnusedActionSlots')).toBe(false);
     expect(s.get('invertLookY')).toBe(false);
+  });
+
+  // Issue 2429: hide the empty-slot chrome (background/border/keybind label) on
+  // desktop action-bar slots with no ability or item bound. Off by default (the
+  // classic look, unchanged out of the box).
+  it('defaults hideUnusedActionSlots off and persists enabling it across instances', () => {
+    const a = new Settings();
+    expect(a.get('hideUnusedActionSlots')).toBe(false);
+    a.set('hideUnusedActionSlots', true);
+    const b = new Settings();
+    expect(b.get('hideUnusedActionSlots')).toBe(true);
   });
 
   it('clamps the comfort sliders to their documented bounds', () => {
@@ -324,6 +646,7 @@ describe('Interface & Comfort settings pack', () => {
     expect(s.set('tooltipScale', 9)).toBe(SETTING_RANGES.tooltipScale.max);
     expect(s.set('fctScale', 0)).toBe(SETTING_RANGES.fctScale.min);
     expect(s.set('chatFontScale', 1.2)).toBe(1.2);
+    expect(s.set('chatFontScale', 9)).toBe(SETTING_RANGES.chatFontScale.max);
     expect(s.set('chatOpacity', 0)).toBe(SETTING_RANGES.chatOpacity.min);
   });
 
@@ -374,5 +697,26 @@ describe('click-to-move mouse button setting', () => {
     expect(normalizeClickMoveButton(2)).toBe(2);
     expect(clickMoveButtonLabel(0)).toBe('Left Click');
     expect(clickMoveButtonLabel(2)).toBe('Right Click');
+  });
+});
+
+// Chat text is 11px at stock, so the old 1.4 ceiling left it unreadable on a 4K
+// display at 100% OS scaling (players dropped to 1080p just to read chat). The
+// slider must reach at least 2x (1080p-equivalent size on 4K) and accept it
+// unclamped; the ceiling itself sits above that for TV / low-vision headroom.
+describe('chat text size reaches 4K-readable sizes', () => {
+  it('lets the slider double the stock chat text', () => {
+    const s = new Settings();
+    expect(SETTING_RANGES.chatFontScale.max).toBeGreaterThanOrEqual(2);
+    expect(s.set('chatFontScale', 2)).toBe(2);
+    const reloaded = new Settings();
+    expect(reloaded.get('chatFontScale')).toBe(2);
+  });
+
+  it('pins the ceiling at 2.5 and clamps above it', () => {
+    const s = new Settings();
+    expect(SETTING_RANGES.chatFontScale.max).toBe(2.5);
+    expect(s.set('chatFontScale', 2.5)).toBe(2.5);
+    expect(s.set('chatFontScale', 3)).toBe(2.5);
   });
 });

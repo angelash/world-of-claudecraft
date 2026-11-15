@@ -1,5 +1,7 @@
 import type { SimContext } from '../sim_context';
+import { duelJustEndedBetween } from '../social/duel';
 import type { Aura, AuraKind, Entity, SetProc } from '../types';
+import { runTrinketTrigger } from './trinkets';
 
 export function applySetProcs(
   ctx: SimContext,
@@ -7,6 +9,8 @@ export function applySetProcs(
   target: Entity | null,
   trigger: SetProc['trigger'],
 ): void {
+  // The worn trinket's passives ride the same moments (combat/trinkets.ts).
+  if (trigger !== 'spellCrit') runTrinketTrigger(ctx, source, target, trigger);
   const matching = source.setProcs.filter((proc) => proc.trigger === trigger);
   if (matching.length === 0) return;
   source.procReadyAt ??= {};
@@ -19,6 +23,27 @@ export function applySetProcs(
     // differently than before, keeping the rng stream stable for old procs.
     const recipient = proc.applyTo === 'target' ? target : source;
     if (!recipient || recipient.dead) continue;
+    // A target-applied proc landing on the killing blow's own opponent must
+    // not outlive the duel it just ended (see duelJustEndedBetween, social/
+    // duel.ts). Self-applied procs are never something the OPPONENT inflicted,
+    // so endDuel's own clear was never going to touch them either; they are
+    // correctly out of scope for this check regardless of who lands the hit.
+    // Ungated on aura kind (unlike equip_procs.ts's dot/attackSlow narrowing):
+    // 'target' is definitionally the struck enemy (SetProc.applyTo, types.ts),
+    // never a heal/ally recipient, so every shipped and future target-applied
+    // set proc is safe to gate here without a per-kind check.
+    if (proc.applyTo === 'target' && duelJustEndedBetween(ctx, recipient, source)) continue;
+    // WARFARE gating, checked BEFORE the chance roll so a gated proc draws no
+    // rng outside hostile player-versus-player combat and every PvE run stays
+    // byte-identical. WARFARE covers ALL PvP combat (owner rule), so the target
+    // resolves to the player who controls it: a hostile player's pet counts, a
+    // wild mob or the wearer's own pet never does. isHostileTo comes off the
+    // SimContext seam rather than being reimplemented here.
+    if (proc.pvpOnly) {
+      const targetPlayer = ctx.pvpController(target);
+      if (source.kind !== 'player' || !target || !targetPlayer) continue;
+      if (targetPlayer.id === source.id || !ctx.isHostileTo(source, target)) continue;
+    }
     if (!ctx.rng.chance(proc.chance)) continue;
 
     source.procReadyAt[proc.id] = ctx.time + (proc.icd ?? 0);

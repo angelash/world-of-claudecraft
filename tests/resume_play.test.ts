@@ -258,22 +258,36 @@ describe('main.ts resume wiring', () => {
     );
   });
 
-  it('the roster consume gate requires the marker realm to match the api realm', () => {
+  it('consumes resume only for the matching realm and an unlocked character', () => {
+    // Keep the realm lookup and shared entry policy in the same block: a
+    // colliding id in another realm or a membership-locked character must
+    // clear the marker without entering. The shared policy's locked/takeover
+    // behavior is exercised by membership_character_ui.test.ts.
     expect(mainTs).toContain(
-      'resume.realm === api.realm ? chars.find((c) => c.id === resume.characterId) : undefined',
-    );
-    // a missing character or realm mismatch clears the persisted marker
-    expect(mainTs).toContain(
-      'if (target) {\n        void enterWorld(target);\n        return;\n      }\n      clearPlayMarker();',
+      [
+        'pendingResume = null;',
+        '      const target =',
+        '        resume.realm === api.realm ? chars.find((c) => c.id === resume.characterId) : undefined;',
+        "      if (target && charselectPrimaryAction(target).kind !== 'disabled') {",
+        '        void enterWorld(target);',
+        '        return;',
+        '      }',
+        '      clearPlayMarker();',
+      ].join('\n'),
     );
   });
 
   it('re-stamps on hide and pagehide via the freshness-gated refresh', () => {
     expect(mainTs).toContain(
-      "if (document.visibilityState === 'hidden') {\n      console.info('[entry-diag] page hidden; entry probe cleared as a lifecycle transition');\n      refreshPlayMarker(Date.now());",
+      "if (document.visibilityState === 'hidden') {\n      refreshPlayMarker(Date.now());",
     );
-    expect(mainTs).toContain("window.addEventListener('pagehide', (event) => {");
-    expect(mainTs).toContain('console.info(`[entry-diag] pagehide persisted=');
+    expect(mainTs).toContain("window.addEventListener('pagehide', () => {");
+    // Both lifecycle moments disarm the probe. Pinned as behavior rather than
+    // alongside a console echo: those echoes fired on every tab switch and were
+    // removed as log noise, which has no bearing on what this test guards.
+    expect(mainTs).toContain(
+      'refreshPlayMarker(Date.now());\n      // A page that leaves the foreground mid-entry',
+    );
     // The same hide/pagehide moments also disarm the world-entry crash probe: leaving
     // the foreground (or a deliberate reload) is not a foreground entry crash, so it
     // must never cost the player a graphics tier (entry_crash_guard.ts).

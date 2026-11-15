@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { adminLanguage, setAdminLanguage } from '../../src/admin/i18n';
 import {
   addNote,
   banAccount,
@@ -6,8 +7,11 @@ import {
   chatMuteCustom,
   chatMuteHours,
   forceRename,
+  kickPlayer,
   liftChatMute,
   moderateDailyRewardsIp,
+  reactivateAccount,
+  resetChatStrikes,
   resetPassword,
   suspendCustom,
   suspendHours,
@@ -29,6 +33,20 @@ describe('moderation_actions', () => {
     expect(chatMuteHours(5, 1, '')).toEqual({ errorKey: 'alert.noteRequired' });
     expect(liftChatMute(5, '')).toEqual({ errorKey: 'alert.noteRequired' });
     expect(forceRename(9, 'Foo', '')).toEqual({ errorKey: 'alert.noteRequired' });
+    expect(kickPlayer(5, 'Foo', '')).toEqual({ errorKey: 'alert.noteRequired' });
+  });
+
+  it('builds a danger kick request against the ACCOUNT with the character as a row', () => {
+    const built = kickPlayer(42, 'Aragorn', 'AFK for two hours');
+    if (!('pending' in built)) throw new Error('expected pending');
+    expect(built.pending.endpoint).toBe('/admin/api/moderation/accounts/42/kick');
+    expect(built.pending.body).toEqual({ reason: 'AFK for two hours' });
+    expect(built.pending.danger).toBe(true);
+    // The row the operator clicked names the character; the request targets the
+    // account, since a kick tears down every session on it.
+    expect(built.pending.rows.map((row) => row.value)).toEqual(
+      expect.arrayContaining(['Aragorn', '#42', 'AFK for two hours']),
+    );
   });
 
   it('builds a suspend request with the right endpoint, reason, and future expiry', () => {
@@ -39,6 +57,27 @@ describe('moderation_actions', () => {
     expect(body.reason).toBe('harassment');
     expect(new Date(body.expiresAt).getTime()).toBeGreaterThan(Date.now());
     expect(built.pending.danger).toBeUndefined();
+  });
+
+  it('builds a reason-required reactivate request against the audited endpoint', () => {
+    const previousLanguage = adminLanguage();
+    setAdminLanguage('en');
+    try {
+      expect(reactivateAccount(42, '')).toEqual({ errorKey: 'alert.noteRequired' });
+      const built = reactivateAccount(42, 'deactivated by accident');
+      if (!('pending' in built)) throw new Error('expected pending');
+      expect(built.pending.title).toBe('Confirm reactivation');
+      expect(built.pending.endpoint).toBe('/admin/api/moderation/accounts/42/reactivate');
+      expect(built.pending.body).toEqual({ reason: 'deactivated by accident' });
+      expect(built.pending.danger).toBeUndefined();
+      expect(built.pending.rows.map((row) => row.value)).toEqual([
+        '#42',
+        "Undo the player's own deactivation and restore login access",
+        'deactivated by accident',
+      ]);
+    } finally {
+      setAdminLanguage(previousLanguage);
+    }
   });
 
   it('marks ban as danger and posts to the ban endpoint', () => {
@@ -113,6 +152,17 @@ describe('moderation_actions', () => {
     const built = liftChatMute(42, 'appeal accepted');
     if (!('pending' in built)) throw new Error('expected pending');
     expect(built.pending.endpoint).toBe('/admin/api/moderation/accounts/42/lift-mute');
+    expect(built.pending.body).toEqual({ reason: 'appeal accepted' });
+  });
+
+  it('requires a reason to reset chat strikes', () => {
+    expect(resetChatStrikes(42, '')).toEqual({ errorKey: 'alert.noteRequired' });
+  });
+
+  it('builds an audited chat strikes reset request', () => {
+    const built = resetChatStrikes(42, 'appeal accepted');
+    if (!('pending' in built)) throw new Error('expected pending');
+    expect(built.pending.endpoint).toBe('/admin/api/moderation/accounts/42/reset-strikes');
     expect(built.pending.body).toEqual({ reason: 'appeal accepted' });
   });
 

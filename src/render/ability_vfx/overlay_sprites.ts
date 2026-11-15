@@ -1,0 +1,261 @@
+import * as THREE from 'three';
+import { tagCastVfxEngine } from '../cast_vfx_family';
+import { registerContextRestoreReset } from '../context_restore_registry';
+import { type AbilityVfxTextures, OVERLAY_ATLAS_GRID, OVERLAY_CELL } from './fx_textures';
+
+// One pooled point cloud for every persistent overlay sprite (windup orbs,
+// buff-orbit bands): positions are recomputed each frame by the owner, so this
+// is an immediate-mode surface with a hard capacity. beginFrame() resets the
+// cursor, push() writes the next point, commit() uploads once. One draw call
+// for every orbiting sprite in the scene; zero allocation after construction.
+
+const CAPACITY = 128;
+
+export class OverlaySprites {
+  private points: THREE.Points;
+  private geo = new THREE.BufferGeometry();
+  private pos = new Float32Array(CAPACITY * 3);
+  private col = new Float32Array(CAPACITY * 3);
+  private size = new Float32Array(CAPACITY);
+  private cell = new Float32Array(CAPACITY);
+  private alpha = new Float32Array(CAPACITY);
+  private count = 0;
+  private drawOrder = new Uint16Array(CAPACITY);
+  private depths = new Float32Array(CAPACITY);
+  private hasCoverage = false;
+  private priorities = new Uint8Array(CAPACITY);
+  private wasEmpty = true;
+  // Until the cloud has been submitted once, an empty frame keeps it visible so
+  // the zero-count submit still links its program where the ability-primitives
+  // prewarm entry was skipped (../vfx.ts's cloudWarmed).
+  private warmed = false;
+  private tmpColor = new THREE.Color();
+  private disposed = false;
+
+  constructor(scene: THREE.Scene, tex: AbilityVfxTextures) {
+    this.geo.setAttribute(
+      'position',
+      new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.geo.setAttribute(
+      'aColor',
+      new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.geo.setAttribute(
+      'aSize',
+      new THREE.BufferAttribute(this.size, 1).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.geo.setAttribute(
+      'aCell',
+      new THREE.BufferAttribute(this.cell, 1).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.geo.setAttribute(
+      'aAlpha',
+      new THREE.BufferAttribute(this.alpha, 1).setUsage(THREE.DynamicDrawUsage),
+    );
+    // Explicit, like ../vfx.ts: the default range is Infinity, which would make
+    // the first submit (before any commit) draw the whole zeroed point buffer.
+    this.geo.setDrawRange(0, 0);
+    this.geo.setIndex(
+      new THREE.BufferAttribute(this.drawOrder, 1).setUsage(THREE.DynamicDrawUsage),
+    );
+    this.geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(450, 0, 0), 2400);
+    const mat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      // Premultiplied output preserves the old additive cells (zero coverage)
+      // while physical steel and receiver scars can occlude the backdrop.
+      // Both share the already-prewarmed point cloud and its existing budget.
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneMinusSrcAlphaFactor,
+      uniforms: { uScale: { value: 600 }, uAtlas: { value: tex.overlay } },
+      vertexShader: `
+        attribute vec3 aColor;
+        attribute float aSize;
+        attribute float aCell;
+        attribute float aAlpha;
+        varying vec3 vColor;
+        varying float vCell;
+        varying float vAlpha;
+        uniform float uScale;
+        void main() {
+          vColor = aColor;
+          vCell = aCell;
+          vAlpha = aAlpha;
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = clamp(aSize * uScale / max(1.0, -mv.z), 0.0, 96.0);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        uniform sampler2D uAtlas;
+        varying vec3 vColor;
+        varying float vCell;
+        varying float vAlpha;
+        void main() {
+          float idx = floor(vCell + 0.5);
+          vec2 cell = vec2(mod(idx, ${OVERLAY_ATLAS_GRID}.0), floor(idx / ${OVERLAY_ATLAS_GRID}.0));
+          vec2 uv = (cell + gl_PointCoord) / ${OVERLAY_ATLAS_GRID}.0;
+          uv.y = 1.0 - uv.y; // canvas row 0 is the visual top (the vfx.ts atlas idiom)
+          vec4 tex = texture2D(uAtlas, uv);
+          float lum = max(tex.r, max(tex.g, tex.b)) * tex.a;
+          if (lum * vAlpha < 0.012) discard;
+          float opacity = tex.a * vAlpha;
+          float physical = max(step(${OVERLAY_CELL.hammer0}.0, idx), 1.-step(.5,abs(idx-${OVERLAY_CELL.breachMark}.0)));
+          gl_FragColor = vec4(vColor * tex.rgb * opacity, opacity * physical);
+        }`,
+    });
+    this.points = new THREE.Points(this.geo, mat);
+    this.points.frustumCulled = false;
+    this.points.renderOrder = 7;
+    tagCastVfxEngine(this.points);
+    // An idle cloud is NOT free: three does not early-out on a zero draw count,
+    // so a drawRange of 0 still pays setProgram, the VAO bind and a zero-count
+    // draw every frame. Hide when empty, show on the first push: the toggle
+    // idiom ../vfx.ts uses around its own point cloud.
+    this.points.onAfterRender = () => {
+      this.warmed = true;
+      if (this.geo.drawRange.count === 0) this.points.visible = false;
+    };
+    scene.add(this.points);
+    registerContextRestoreReset('overlay-sprites', this, (owner) => owner.forgetContext());
+  }
+
+  /** A WebGL context restore: the cloud draws again until its program is
+   *  relinked on the restored context, the same idiom as ../vfx.ts. */
+  forgetContext(): void {
+    if (this.disposed) return;
+    this.warmed = false;
+    this.points.visible = true;
+  }
+
+  /** The one drawable, which the boot links ahead of the rest of the pools. */
+  get drawable(): THREE.Points {
+    return this.points;
+  }
+
+  setViewportScale(value: number): void {
+    ((this.points.material as THREE.ShaderMaterial).uniforms.uScale as { value: number }).value =
+      value;
+  }
+
+  beginFrame(): void {
+    this.count = 0;
+    this.hasCoverage = false;
+  }
+
+  /** Reserve the already-drawn hard-control tells above projectile heads. */
+  protectPrefix(): void {
+    this.priorities.fill(2, 0, this.count);
+  }
+
+  push(
+    x: number,
+    y: number,
+    z: number,
+    colorHex: number,
+    size: number,
+    cell: number,
+    alpha: number,
+    brightness = 1,
+    priority: 0 | 1 = 0,
+  ): void {
+    let i = this.count;
+    if (i >= CAPACITY) {
+      if (priority === 0) return;
+      for (i = CAPACITY - 1; i >= 0; i--) if (this.priorities[i] < priority) break;
+      if (i < 0) return;
+    } else this.count++;
+    this.priorities[i] = priority;
+    this.pos[i * 3] = x;
+    this.pos[i * 3 + 1] = y;
+    this.pos[i * 3 + 2] = z;
+    this.tmpColor.setHex(colorHex).multiplyScalar(brightness);
+    this.col[i * 3] = this.tmpColor.r;
+    this.col[i * 3 + 1] = this.tmpColor.g;
+    this.col[i * 3 + 2] = this.tmpColor.b;
+    this.size[i] = size;
+    this.cell[i] = cell;
+    if (cell >= OVERLAY_CELL.hammer0 || cell === OVERLAY_CELL.breachMark) this.hasCoverage = true;
+    this.alpha[i] = alpha;
+  }
+
+  commit(camera?: THREE.Camera): void {
+    if (this.disposed) return;
+    if (this.count === 0) {
+      if (!this.wasEmpty) {
+        this.wasEmpty = true;
+        this.geo.setDrawRange(0, 0);
+        this.points.visible = !this.warmed;
+      }
+      return;
+    }
+    this.wasEmpty = false;
+    this.points.visible = true;
+    this.orderForCamera(camera);
+    // Upload only the prefix this frame wrote (the pooled cloud's idiom,
+    // ../vfx.ts packRenderCloud): a frame showing two windup orbs re-uploaded
+    // all CAPACITY points otherwise. Points past the prefix are stale by
+    // design and unreachable, because setDrawRange below stops at this.count.
+    this.upload(this.geo.attributes.position as THREE.BufferAttribute, this.count * 3);
+    this.upload(this.geo.attributes.aColor as THREE.BufferAttribute, this.count * 3);
+    this.upload(this.geo.attributes.aSize as THREE.BufferAttribute, this.count);
+    this.upload(this.geo.attributes.aCell as THREE.BufferAttribute, this.count);
+    this.upload(this.geo.attributes.aAlpha as THREE.BufferAttribute, this.count);
+    this.geo.setDrawRange(0, this.count);
+  }
+
+  /** May run after the camera moves, without replaying effects or their clocks. */
+  orderForCamera(camera?: THREE.Camera): void {
+    if (this.disposed || this.count === 0) return;
+    // Admission priority stays attached to the original slot. Only draw indices
+    // move: solid sprites blend far-to-near, with hard-control tells last.
+    const view = camera?.matrixWorldInverse.elements;
+    for (let i = 0; i < this.count; i++) {
+      this.drawOrder[i] = i;
+      if (view)
+        this.depths[i] = -(
+          view[2] * this.pos[i * 3] +
+          view[6] * this.pos[i * 3 + 1] +
+          view[10] * this.pos[i * 3 + 2] +
+          view[14]
+        );
+    }
+    if (this.hasCoverage && view) {
+      for (let i = 1; i < this.count; i++) {
+        const next = this.drawOrder[i],
+          layer = this.priorities[next] === 2 ? 1 : 0;
+        let j = i;
+        while (j > 0) {
+          const previous = this.drawOrder[j - 1],
+            previousLayer = this.priorities[previous] === 2 ? 1 : 0;
+          if (
+            previousLayer < layer ||
+            (previousLayer === layer && this.depths[previous] >= this.depths[next])
+          )
+            break;
+          this.drawOrder[j] = previous;
+          j--;
+        }
+        this.drawOrder[j] = next;
+      }
+    }
+    this.upload(this.geo.index!, this.count);
+  }
+
+  // clearUpdateRanges first, so a range queued on a frame this cloud was never
+  // submitted (nothing drawn, nothing uploaded) cannot pile up.
+  private upload(attr: THREE.BufferAttribute, components: number): void {
+    attr.clearUpdateRanges();
+    attr.addUpdateRange(0, components);
+    attr.needsUpdate = true;
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.points.removeFromParent();
+    this.geo.dispose();
+    (this.points.material as THREE.Material).dispose();
+  }
+}

@@ -3,25 +3,35 @@
 // sockets, and captures the bag bar (backpack + the 4 sockets) plus the item grid, on desktop
 // and in mobile LANDSCAPE (the client gates portrait behind a rotate prompt). Compare against
 // the same shots on the base branch to see the procedural sacks give way to the painted art.
-// Needs a dev server (default :5173, override GAME_URL). Renders at ?gfx=ultra.
+// Needs a dev server (default :5173, override GAME_URL). Renders at ?gfx=low: the shot
+// compares ICON art, not graphics presets, and capture rigs seed the low preset by rule.
 
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { BROWSER_PATH } from './browser_path.mjs';
 import { enterOfflineGame } from './enter_offline_game.mjs';
 
-const URL = `${process.env.GAME_URL ?? 'http://localhost:5173'}/?gfx=ultra`;
+const URL = `${process.env.GAME_URL ?? 'http://localhost:5173'}/?gfx=low`;
 const OUT = process.env.SHOT_DIR ?? 'tmp';
 const TAG = process.env.SHOT_TAG ?? 'after';
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// The 4 equip sockets take the 4 bags the player can actually loot/buy; the 5th (epic)
-// stays loose in the inventory so its icon also shows in the item grid.
+// The 4 equip sockets take a spread of the phase 05 family (crafted, world drop, dungeon,
+// and the epic materials satchel); the rest of the shipped bag catalog stays loose in the
+// inventory so every painted bag icon, old and new, shows in the item grid.
 const BAGS = [
+  'duskweave_bag',
+  'wayfarers_backpack',
+  'necromancers_reagent_satchel',
+  'loombound_reagent_satchel',
+  'resonant_weave_bag',
+  'burlap_reagent_pouch',
+  'foragers_haversack',
   'linen_pouch',
   'travelers_knapsack',
   'wolfhide_satchel',
+  'silkspun_satchel',
   'gravewoven_bag',
   'mistcallers_duffel',
 ];
@@ -59,7 +69,8 @@ async function shoot(label, viewport) {
   await page.evaluate((bags) => {
     const sim = window.__game.sim;
     for (const id of bags) sim.addItem(id, 1);
-    // socket 0..3: common, common, uncommon, rare; the epic duffel stays in the grid
+    // socket 0..3: the first four list entries (the phase 05 spread); the rest of the
+    // family stays loose so the item grid shows every painted icon.
     bags.slice(0, 4).forEach((id, i) => {
       sim.equipBag(id, i);
     });

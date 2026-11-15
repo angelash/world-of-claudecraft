@@ -1,0 +1,242 @@
+import { describe, expect, it } from 'vitest';
+import type { QuestSelfMirrors } from '../src/net/quest_snapshot_wire';
+import { applyQuestSelfWire } from '../src/net/quest_snapshot_wire';
+import { interactObjectCreditKey } from '../src/sim/quests/interact_object_credit';
+import { activeWorldQuestsForCycle } from '../src/sim/world_quest_rotation';
+
+function mirrors(): QuestSelfMirrors {
+  return {
+    questLog: new Map(),
+    questsDone: new Set(),
+    worldQuestCycle: '2026-08-31',
+    worldQuestExpiresAtMs: 1_800_000_000_000,
+    worldQuestLog: new Map([
+      ['wq_eastbrook_bandits', { questId: 'wq_eastbrook_bandits', count: 2, state: 'active' }],
+    ]),
+    weeklyQuest: null,
+    weeklyQuestResetAtMs: 0,
+  };
+}
+
+describe('world quest snapshot wire', () => {
+  it('retains delta mirrors for omitted or malformed containers without throwing', () => {
+    const target = mirrors();
+    applyQuestSelfWire(target, {});
+    applyQuestSelfWire(target, {
+      wqday: '2026-09-03',
+      wqexp: Number.NaN,
+      wqlog: { nope: true },
+    });
+    for (const deadline of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      applyQuestSelfWire(target, { wqexp: deadline });
+    }
+    expect(target.worldQuestCycle).toBe('2026-08-31');
+    expect(target.worldQuestExpiresAtMs).toBe(1_800_000_000_000);
+    expect([...target.worldQuestLog.values()]).toEqual([
+      { questId: 'wq_eastbrook_bandits', count: 2, state: 'active' },
+    ]);
+  });
+
+  it('does not clear a valid mirror when an explicit cycle is malformed', () => {
+    const target = mirrors();
+    applyQuestSelfWire(target, {
+      wqday: { hostile: true },
+      wqexp: 1_900_000_000_000,
+      wqlog: [{ questId: 'wq_galecrest_wisps', count: 0, state: 'active' }],
+    });
+
+    expect(target.worldQuestCycle).toBe('2026-08-31');
+    expect(target.worldQuestExpiresAtMs).toBe(1_800_000_000_000);
+    expect([...target.worldQuestLog.values()]).toEqual([
+      { questId: 'wq_eastbrook_bandits', count: 2, state: 'active' },
+    ]);
+  });
+
+  it('adopts valid empty arrays and filters malformed, future, and prototype rows', () => {
+    const target = mirrors();
+    applyQuestSelfWire(target, {
+      wqday: '2026-08-31',
+      wqexp: 1_900_000_000_000,
+      wqlog: [
+        { questId: 'constructor', count: 1, state: 'completed' },
+        { questId: 'future_world_quest', count: 1, state: 'active' },
+        { questId: 'wq_eastbrook_bandits', count: Number.NaN, state: 'active' },
+      ],
+    });
+    expect(target.worldQuestCycle).toBe('wq1_0');
+    expect(target.worldQuestExpiresAtMs).toBe(1_900_000_000_000);
+    expect([...target.worldQuestLog.values()]).toEqual([
+      { questId: 'wq_eastbrook_bandits', count: 0, state: 'active' },
+    ]);
+
+    applyQuestSelfWire(target, { wqlog: [] });
+    expect(target.worldQuestLog.size).toBe(0);
+  });
+
+  it('retains valid puzzle rotations and normalizes hostile snapshot values', () => {
+    const target = mirrors();
+    applyQuestSelfWire(target, {
+      wqlog: [
+        {
+          questId: 'wq_galecrest_wisps',
+          count: 0,
+          state: 'active',
+          puzzleExpiresAt: 125,
+          puzzleRotations: [1, 5, -1, 2, Number.NaN, 0, 3, 2, 1],
+        },
+      ],
+    });
+
+    expect(target.worldQuestLog.get('wq_galecrest_wisps')).toEqual({
+      questId: 'wq_galecrest_wisps',
+      count: 0,
+      state: 'active',
+      puzzleVariant: 0,
+      puzzleRotations: [1, 1, 3, 2, 0, 0, 3, 2, 1],
+      puzzleExpiresAt: 125,
+    });
+  });
+
+  it('tracks authoritative simulation time without accepting invalid clocks', () => {
+    const target = mirrors();
+    applyQuestSelfWire(target, {}, 35);
+    expect(target.worldQuestTime).toBe(35);
+    applyQuestSelfWire(target, {}, Number.NaN);
+    applyQuestSelfWire(target, {}, -1);
+    expect(target.worldQuestTime).toBe(35);
+  });
+
+  it('adopts a rollover atomically and filters rows against its active rotation', () => {
+    const target = mirrors();
+    applyQuestSelfWire(target, {
+      wqday: '2026-09-07',
+      wqlog: [
+        { questId: 'wq_eastbrook_caravan', count: 1, state: 'active' },
+        {
+          questId: 'wq_frostveil_howlers',
+          count: 2,
+          state: 'active',
+          creditedObjects: [
+            interactObjectCreditKey(0, { x: 1, z: 2 }),
+            interactObjectCreditKey(0, { x: 3, z: 4 }),
+            interactObjectCreditKey(0, { x: 5, z: 6 }),
+          ],
+        },
+      ],
+    });
+
+    expect(target.worldQuestCycle).toBe('wq1_7');
+    expect([...target.worldQuestLog.values()]).toEqual([
+      {
+        questId: 'wq_frostveil_howlers',
+        count: 2,
+        state: 'active',
+        creditedObjects: ['0@1.0,2.0', '0@3.0,4.0'],
+      },
+    ]);
+  });
+
+  it('retains the forced Farshore dev offer when its projected cycle is wired online', () => {
+    const target = mirrors();
+    applyQuestSelfWire(target, {
+      wqday: 'wq3_4',
+      wqlog: [
+        {
+          questId: 'wq_farshore_salvage',
+          count: 0,
+          state: 'active',
+          puzzleVariant: 0,
+        },
+      ],
+    });
+
+    expect(target.worldQuestCycle).toBe('wq1_12');
+    expect(target.worldQuestLog.get('wq_farshore_salvage')).toEqual({
+      questId: 'wq_farshore_salvage',
+      count: 0,
+      state: 'active',
+      puzzleVariant: 0,
+    });
+  });
+
+  it('keeps the row of a replacement quest, which is not on the base board', () => {
+    // wq1_101 offers the stealth heist in Eastbrook; calligraphy is the reroll.
+    const cycle = 'wq1_101';
+    const row = { questId: 'wq_eastbrook_calligraphy', count: 1, state: 'active' as const };
+    const target = mirrors();
+    applyQuestSelfWire(target, {
+      wqday: cycle,
+      wqrep: { wq_eastbrook_shadow: row.questId },
+      wqlog: [row],
+    });
+    expect(target.worldQuestLog.get(row.questId)).toMatchObject(row);
+
+    // A later delta carries the row alone; the mirrored replacement still admits it.
+    const later = { ...row, count: 2 };
+    applyQuestSelfWire(target, { wqlog: [later] });
+    expect(target.worldQuestLog.get(row.questId)).toMatchObject(later);
+
+    // A rollover never carries yesterday's replacement onto the new board.
+    applyQuestSelfWire(target, { wqday: 'wq1_102', wqlog: [later] });
+    expect(target.worldQuestLog.has(row.questId)).toBe(false);
+  });
+
+  // Discord report: the rerolled "Load freight into the wagon" completed and paid out,
+  // but the map board kept it open (0/6) because the decode filtered its row against
+  // the shared rotation only, never the character's personal replacement.
+  it("keeps progress rows for a personal replacement quest on today's board", () => {
+    const replacementId = 'wq_eastbrook_bandits';
+    let cycle = '';
+    let replacedId = '';
+    for (let day = 1; day <= 64 && !cycle; day++) {
+      const ids = activeWorldQuestsForCycle(`wq1_${day}`).map((quest) => quest.id);
+      const replaced = ids.find((id) => id.startsWith('wq_eastbrook_') && id !== replacementId);
+      if (replaced && !ids.includes(replacementId)) {
+        cycle = `wq1_${day}`;
+        replacedId = replaced;
+      }
+    }
+    expect(cycle).not.toBe('');
+    const replacement = { questId: replacementId, count: 6, state: 'completed' };
+
+    // Both keys in one snapshot (login or resume).
+    const target = mirrors();
+    applyQuestSelfWire(target, {
+      wqday: cycle,
+      wqrr: cycle,
+      wqrep: { [replacedId]: replacementId },
+      wqlog: [replacement],
+    });
+    expect(target.worldQuestLog.get(replacementId)).toEqual(replacement);
+
+    // The delta gate sends the reroll first, then progress on a later tick.
+    const delta = mirrors();
+    applyQuestSelfWire(delta, {
+      wqday: cycle,
+      wqlog: [],
+      wqrr: cycle,
+      wqrep: { [replacedId]: replacementId },
+    });
+    applyQuestSelfWire(delta, { wqlog: [{ questId: replacementId, count: 3, state: 'active' }] });
+    expect(delta.worldQuestLog.get(replacementId)).toEqual({
+      questId: replacementId,
+      count: 3,
+      state: 'active',
+    });
+
+    // A rollover snapshot without `wqrep` never applies the old cycle's mapping.
+    let nextCycle = '';
+    for (let day = 1; day <= 64 && !nextCycle; day++) {
+      const ids = activeWorldQuestsForCycle(`wq1_${day}`).map((quest) => quest.id);
+      if (`wq1_${day}` !== cycle && !ids.includes(replacementId)) nextCycle = `wq1_${day}`;
+    }
+    applyQuestSelfWire(delta, { wqday: nextCycle, wqlog: [replacement] });
+    expect(delta.worldQuestCycle).toBe(nextCycle);
+    expect(delta.worldQuestLog.has(replacementId)).toBe(false);
+
+    // Without a replacement mapping the off-board row is still dropped.
+    const plain = mirrors();
+    applyQuestSelfWire(plain, { wqday: cycle, wqlog: [replacement] });
+    expect(plain.worldQuestLog.has(replacementId)).toBe(false);
+  });
+});

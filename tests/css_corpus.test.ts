@@ -25,8 +25,8 @@ import { expectScansOnlyThroughSharedWalkers } from './helpers/scan_guard_self_a
 // "a rule was dropped during extraction" regression we want to catch.
 //
 // The extraction is now COMPLETE, so today the union is lopsided: both inline
-// <style> blocks are comment-only (pinned by tests/per_entry_css_wiring.test.ts) and
-// carry no ten-dash banner, so every pinned section below is accounted for by
+// <style> blocks hold only the boot splash (pinned by tests/per_entry_css_wiring.test.ts)
+// and carry no ten-dash banner, so every pinned section below is accounted for by
 // src/styles alone. The union side stays because it is what makes the guard
 // indifferent to WHERE a section lives, which is the property being guarded, but it
 // means the src/styles read below is now the whole corpus rather than a supplement
@@ -116,6 +116,8 @@ const CORPUS = [
   inlineStyleCss('play.html'),
   extractedStyleCss(),
 ].join('\n');
+const MOBILE_HUD_CSS = readFileSync(join(stylesDir, 'hud.mobile.css'), 'utf8');
+const DESKTOP_HUD_CSS = readFileSync(join(stylesDir, 'hud.css'), 'utf8');
 const CORPUS_SECTIONS = new Set(sectionNames(CORPUS));
 
 // PINNED manifest: the ten-dash section banners, enumerated live from the shipped
@@ -132,6 +134,8 @@ const CORPUS_SECTIONS = new Set(sectionNames(CORPUS));
 // tooltip is shared via hud.css and the windows via components.css / layout.css, all of
 // which play loads). play's set is a subset of index's, so this is the union.
 const INDEX_SECTIONS = [
+  'open expeditions',
+  'weekly rewards',
   'UI chrome icons (inline SVG from ui_icons.ts, tinted via currentColor)',
   'nameplates',
   'chat bubbles (/say, /yell)',
@@ -158,7 +162,9 @@ const INDEX_SECTIONS = [
   'talents',
   'modals and dropdown',
   'vendor',
+  'courier',
   'bags',
+  'skull bag pane',
   'social',
   'map',
   'Dungeon Finder',
@@ -207,6 +213,26 @@ const INDEX_SECTIONS = [
   // standalone touch layout (hud.mobile.css); both modules load in both entries.
   'deeds',
   'mobile deeds (standalone window + tracker)',
+  // The set-divided WARFARE quartermaster shop (components.css); loads in both
+  // entries, so it is not a PLAY_OMITS row.
+  'WARFARE quartermaster shop',
+  // World PvP: the merged PvP window's flag tab body and the King of the Hill
+  // bar (components.css); both load in both entries.
+  "World PvP (the merged PvP window's flag tab)",
+  'King of the Hill (the in-zone bar over the standing hill)',
+  // The Sunken Bastion's Iron Cage escape prompt (src/ui/hud/dungeon/).
+  "Iron Cage escape (the Gaol Turnkey's button-mash prompt)",
+  // The dungeon objectives tracker's plate and boss rows (hud.css; both
+  // entries load it through the barrel).
+  'dungeon objectives tracker',
+  'ui library (shared primitives)',
+  // The WOC character-creation face builder (shell.css); the barrel loads it
+  // in both entries.
+  'woc face builder',
+  // The launcher turntable's loading silhouette (shell.css, in both entries).
+  'character preview loading silhouette',
+  // The phone creator's one-time pinch hint beside the model (shell.css, in both entries).
+  'character preview touch hint',
 ];
 
 // The two index-only sections play.html does not ship, so its count is 58 (plus the
@@ -218,12 +244,22 @@ const PLAY_SECTIONS = INDEX_SECTIONS.filter((name) => !PLAY_OMITS.includes(name)
 const MANIFEST = INDEX_SECTIONS;
 
 describe('css_corpus section manifest', () => {
-  it('pins a non-vacuous manifest: 69 index + 67 play sections, no duplicate names', () => {
-    expect(INDEX_SECTIONS.length).toBe(69);
-    expect(PLAY_SECTIONS.length).toBe(67);
-    expect(MANIFEST.length).toBe(69);
-    expect(new Set(INDEX_SECTIONS).size).toBe(69);
-    expect(new Set(PLAY_SECTIONS).size).toBe(67);
+  it('pins a non-vacuous manifest: 80 index + 78 play sections, no duplicate names', () => {
+    // The World Quests branch's vehicle bar and music override sections (72 / 70)
+    // plus World PvP (the flag tab) and King of the Hill (src/ui/hud/hill/), one
+    // components.css section each in both entries: 74 / 72. The courier
+    // window adds one shared section (75 / 73), and the character branch's WOC
+    // face builder (shell.css, in both entries) another: 76 / 74 on the v0.45.0
+    // integration.
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 77, 75.
+    // + the dungeon objectives tracker (hud.css, in both entries): 78, 76.
+    // + the launcher turntable's loading silhouette (shell.css, in both entries): 79, 77.
+    // + the phone creator's pinch hint (shell.css, in both entries): 80, 78.
+    expect(INDEX_SECTIONS.length).toBe(82);
+    expect(PLAY_SECTIONS.length).toBe(80);
+    expect(MANIFEST.length).toBe(82);
+    expect(new Set(INDEX_SECTIONS).size).toBe(82);
+    expect(new Set(PLAY_SECTIONS).size).toBe(80);
   });
 
   it('captures the live corpus markers (the marker regex is non-vacuous, not a zero match)', () => {
@@ -244,6 +280,26 @@ describe('css_corpus section completeness (inline UNION src/styles)', () => {
       `section banners missing from index/play inline <style> UNION src/styles/*.css ` +
         `(a section dropped during CSS extraction, or a renamed banner):\n${missing.join('\n')}`,
     ).toEqual([]);
+  });
+});
+
+describe('Paladin Ascension action indicators remain accessible across HUD tiers', () => {
+  it('stops the mobile empowered pulse when reduced motion is requested', () => {
+    expect(MOBILE_HUD_CSS).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?#mobile-action-ring button\.empowered\s*\{\s*animation:\s*none;/,
+    );
+  });
+
+  it('restores system colors for the mobile cost badge after mobile-layer styling', () => {
+    expect(MOBILE_HUD_CSS).toMatch(
+      /@media \(forced-colors: active\)[\s\S]*?#mobile-action-ring button\.ascension-spender::after\s*\{[\s\S]*?border-color:\s*Highlight;[\s\S]*?background:\s*Canvas;[\s\S]*?color:\s*Highlight;/,
+    );
+  });
+
+  it('renders the localized painter-provided cost instead of a CSS number literal', () => {
+    expect(DESKTOP_HUD_CSS).toContain('content: attr(data-ascension-cost);');
+    expect(MOBILE_HUD_CSS).toContain('content: attr(data-ascension-cost);');
+    expect(`${DESKTOP_HUD_CSS}\n${MOBILE_HUD_CSS}`).not.toMatch(/content:\s*["']-1["']/);
   });
 });
 
@@ -310,15 +366,21 @@ describe('css_corpus per-file brace balance', () => {
     // Consumes the ONE read at the top of the file (this used to be a second,
     // separately-flat readdirSync, so the two could drift, #2502).
     //
-    // The vacuity floor sits at the live module count, 10, which an empty OR a
+    // The vacuity floor sits at the live module count, 11, which an empty OR a
     // truncated scan cannot clear: the `> 0` floor it replaces was satisfied by a
     // single sheet, so a walk that lost the other nine, or that returned only the
     // one file whose name survived a filter typo, passed while checking almost
-    // nothing. The names pin that the 10 are the real modules.
+    // nothing. The names pin that the 11 are the real modules.
     const names = STYLE_SHEETS.map((sheet) => sheet.file);
-    expect(names.length).toBeGreaterThanOrEqual(10);
+    expect(names.length).toBeGreaterThanOrEqual(11);
     expect(names).toEqual(
-      expect.arrayContaining(['index.css', 'components.css', 'hud.mobile.css', 'tokens.css']),
+      expect.arrayContaining([
+        'index.css',
+        'components.css',
+        'hud.mobile.css',
+        'tokens.css',
+        'library.css',
+      ]),
     );
     for (const { file, css } of STYLE_SHEETS) {
       expect(braceBalance(css), `src/styles/${file} must have balanced braces`).toBe(0);

@@ -7,15 +7,109 @@ import type { BiomeId } from '../sim/types';
 
 export type Surface = 'grass' | 'dirt' | 'stone' | 'wood' | 'snow' | 'water';
 
-export interface AmbientPointSource {
-  readonly id: string;
-  readonly kind: 'campfire' | 'forge';
+/** Where a mount's engine audio currently is, for visuals that want to land on
+ *  a specific moment of it. Kept structural rather than importing the sim-side
+ *  state type, so src/render keeps its no-src/game rule. */
+export interface MountEnginePhase {
+  state: 'idle' | 'starting' | 'moving' | 'stopping';
+  /** Seconds on the audio clock since this phase began. */
+  elapsed: number;
+}
+
+/** The avatar's eye, where the player stands: what a room bed (the tavern's) is decided
+ *  from. Not the camera, which trails the player and can sit in the doorway or over the
+ *  roof while the player stands in the hall. */
+export interface AmbienceEye {
   readonly x: number;
   readonly y: number;
   readonly z: number;
 }
 
+export interface AmbientPointSource {
+  readonly id: string;
+  // 'rift_portal'/'rift_roller'/'rift_ice_glide' are dynamic (spawn/move/
+  // despawn during play, or track a gliding player), as is 'hoard_entrance', unlike the static
+  // world-built campfire/forge set; see src/render/rift_ambience.ts. 'tavern' is the
+  // Mirefen tavern's room bed (src/game/tavern_ambience_core.ts decides its level and tone
+  // from where the player stands, the ambience eye below; it plays non-positional, the point
+  // only anchors it).
+  readonly kind:
+    | 'campfire'
+    | 'forge'
+    | 'tavern'
+    | 'rift_portal'
+    | 'rift_roller'
+    | 'rift_ice_glide'
+    | 'hoard_entrance';
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+/** A map-authored looping emitter (the editor's 'sound' tool): any SFX clip
+ *  parked at a world point with its own gain and falloff radius. Distinct from
+ *  AmbientPointSource, whose kind picks a fixed built-in bed. */
+export interface PointSoundSource {
+  readonly id: string;
+  /** SFX clip id to loop (SFX_CLIPS); an unknown id stays silent. */
+  readonly key: string;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  /** Peak gain 0..1 at the emitter, before distance falloff. */
+  readonly volume: number;
+  /** Falloff radius in yards: full at the centre, silent at/beyond it. */
+  readonly radius: number;
+}
+
+/** Per-ability audio moments fired by the ability-VFX engine: windup (the
+ *  charge bed while a cast is winding up, at the caster), release (cast lets
+ *  go, at the caster), impact (at the impact point), pulse (one soft zone
+ *  re-hit), crit (the sting layered over a critical impact), spirit (a
+ *  creature apparition calls as it spawns), motif (set-piece foley at the
+ *  motif anchor). */
+export type AbilityAudioKind =
+  | 'windup'
+  | 'release'
+  | 'impact'
+  | 'pulse'
+  | 'crit'
+  | 'spirit'
+  | 'motif';
+
+export interface AbilityAudioOpts {
+  /** Quieter, sub-less version (spec liteAudio or a degraded visual tier). */
+  lite?: boolean;
+  finisher?: boolean;
+  /** Spec archetype: heal/buff/cc chime gently instead of booming. */
+  archetype?: string;
+  /** Authored buff apply style ('raise' | 'morph' | 'veil'). Inert while the
+   *  buff landing is carried by the recorded buff_apply cue; kept so a future
+   *  conformed sample pack can style it again without re-plumbing the seam. */
+  buffStyle?: string;
+  /** Authored recording key for a retained, prepared contact or release. */
+  sample?: string;
+  /** The spirit creature model ('spirit') or motif name ('motif'). */
+  name?: string;
+  /** The casting ability id, so the audio engine can resolve the ability's
+   *  school and projectile flag and skip any moment a hand-recorded cue
+   *  already sounds (src/game/ability_sfx_coverage.ts). */
+  abilityId?: string;
+}
+
 export interface SpatialAudioSink {
+  /** One positional one-shot of a manifest clip (a render layer's own timed cue, e.g.
+   *  Gourdfall's whistle as a pumpkin starts to fall). Optional: silent without it. */
+  playAt?(
+    key: string,
+    x: number,
+    y: number,
+    z: number,
+    opts?: { gain?: number; cooldown?: number },
+  ): boolean;
+  /** Every variant is decoded before a timed event claims audio ownership. */
+  isBuffered?(key: string): boolean;
+  preload?(key: string): void;
   /** Listener pose each frame: position + forward unit vector (camera). */
   setListener(x: number, y: number, z: number, fx: number, fy: number, fz: number): void;
   /** One footfall for an entity (self or other) at a world position. */
@@ -27,17 +121,124 @@ export interface SpatialAudioSink {
     running: boolean,
     self: boolean,
   ): void;
-  /** A discrete movement event (jump / land / water entry / swim stroke). */
+  /** One running stride for a mounted entity. `surface` is the ground the
+   *  mount is on, used only by mounts with no stride cue of their own, which
+   *  fall back to the ordinary footfall for that surface. */
+  mountRun(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    surface: Surface,
+    self: boolean,
+  ): void;
+  /** Windup/loop/winddown engine audio for a mount with a dedicated take set
+   *  (see src/game/mount_engine_state.ts); call every frame a rider is
+   *  mounted and grounded. Returns true when `mountKey` actually has an
+   *  engine take set, so the caller can skip mountRun's gait beat for it;
+   *  false means fall back to the ordinary per-stride mountRun cue instead. */
+  mountEngine(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    moving: boolean,
+    entityId: number,
+    backwards?: boolean,
+    airborne?: boolean,
+    /** Turning on the spot. Works the engine the way reverse does, load with
+     *  no road speed, so it takes the same pitch bend. */
+    pivoting?: boolean,
+  ): boolean;
+  /** The mount-appears one-shot, fired on the summon channel's completion
+   *  edge. Silent for a mount with no summon take. */
+  mountSummon(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    self: boolean,
+    entityId: number,
+  ): void;
+  /** The call a mount gives as it rears up (mount_rear_core.ts): `mount_neigh_<look>`, silent
+   *  for a mount with no take. Optional, so a host without one simply stays quiet. */
+  mountNeigh?(x: number, y: number, z: number, look: string, self: boolean): void;
+  /** Warm a mount's summon take on the channel's START edge. */
+  preloadMountSummon(mountKey: string): void;
+  /** The standstill powered-on hum for a mount with a dedicated idle take
+   *  (mount_idle_<mountKey>): active=true every grounded stopped frame,
+   *  active=false from the moving branch. A no-op for mounts without one. */
+  mountIdle(
+    x: number,
+    y: number,
+    z: number,
+    mountKey: string,
+    active: boolean,
+    entityId: number,
+  ): void;
+  /** Drop an entity's per-mount loops (engine phase + idle hum) and state
+   *  (dismount, death while mounted, audio-gate exit, interest culled,
+   *  disconnect). */
+  mountEngineReset(entityId: number): void;
+  /** Whether this mount's engine keeps running while airborne, and so can be
+   *  polled mid-jump without a hop reading as a stop. True for a mount with a
+   *  parked idle take. */
+  mountEngineIdles(mountKey: string): boolean;
+  /** Engine phase for an entity, or null when it has no engine running.
+   *
+   *  `elapsed` is seconds since the phase began, measured on the AUDIO clock
+   *  rather than a frame counter. That is what lets a visual event be pinned to
+   *  a known moment INSIDE an authored take and stay pinned through a frame
+   *  hitch, instead of drifting against the sound it is meant to punctuate. */
+  mountEnginePhase(entityId: number): MountEnginePhase | null;
+  /** Warm a mount's authored run/idle/jump/land and engine take set ahead of
+   *  first movement. The renderer calls this on summon-cast and mountKey
+   *  transitions. A no-op for a mount with no custom movement clips. */
+  preloadMountEngine(mountKey: string): void;
+  /** The call a mount makes at the TOP of a jump, once per jump.
+   *
+   *  Keyed per mount and silent for any mount without the takes, the same way
+   *  the takeoff and landing above resolve, so giving another mount a voice
+   *  here is a matter of dropping in files and registering keys.
+   *
+   *  Two keys, not one: on the Valestrider it is a squawk and a wingbeat. They
+   *  stay separate so their variants rotate independently and the two can be
+   *  balanced against each other in the gain map. */
+  mountApex(x: number, y: number, z: number, mountKey: string): void;
+  /** Continuous movement loop for a mount that HAS one (a wheeled cart rolls;
+   *  it has no stride to hang a one-shot on). Called every frame per mounted
+   *  entity, keyed by entity id so several riders each get their own voice.
+   *  `moving` false stops it, as does an entity going away (`stopMountLoop`). */
+  mountLoop(id: number, x: number, y: number, z: number, mountKey: string, moving: boolean): void;
+  /** Drop a mount loop when its entity despawns or dismounts. */
+  stopMountLoop(id: number): void;
+  /** A discrete movement event (jump / land / water entry / swim stroke).
+   *
+   *  `mountKey` is the rider's mount, '' when on foot. A mount that ships its
+   *  own takeoff and landing takes uses them instead of the rider's. */
   movement(
     kind: 'jump' | 'land' | 'splash' | 'swim',
     x: number,
     y: number,
     z: number,
     self: boolean,
+    mountKey?: string,
+  ): void;
+  /** Lich Form entry, ambient pulse, and a sacrificed soul reaching its owner. */
+  necromancy(
+    kind: 'lichTransform' | 'lichHeartbeat' | 'soulConsume',
+    x: number,
+    y: number,
+    z: number,
+    self: boolean,
+    sourceId?: number,
   ): void;
   /** Per-frame ambience state around the player; the engine cross-fades loops.
-   *  `crowd` is the Sowfield crowd-murmur level (0 away from the stadium,
-   *  about 0.4 on the grounds, 1 while a Vale Cup match is live). */
+   *  `biome` is the full `BiomeId` union (covers both the grid-world biomes and
+   *  the beach/desert/volcano/cave set). `crowd` is the Sowfield crowd-murmur
+   *  level (0 away from the stadium, about 0.4 on the grounds, 1 while a Vale
+   *  Cup match is live). `eye` is the avatar's eye the biome was sampled at, which the
+   *  room beds follow too (the camera listener when omitted). */
   ambience(
     biome: BiomeId,
     inDungeon: boolean,
@@ -45,5 +246,37 @@ export interface SpatialAudioSink {
     nearWater: boolean,
     crowd: number,
     points?: readonly AmbientPointSource[],
+    eye?: AmbienceEye,
   ): void;
+  /** Per-frame state of the map-authored point sounds (the editor's Sound
+   *  tool). Static for a session, so the renderer passes the same resolved
+   *  array every frame; the engine starts the ones in range and stops the ones
+   *  out of it. Optional: an engine without the layer stays silent. */
+  pointSounds?(sources: readonly PointSoundSource[]): void;
+  /** One per-ability procedural audio moment at a world position (the 12
+   *  palette identities live in src/game/sfx.ts). Optional: an engine without
+   *  the synth layer simply stays silent for ability moments. */
+  abilityAudio?(
+    kind: AbilityAudioKind,
+    palette: string,
+    power: number,
+    x: number,
+    y: number,
+    z: number,
+    opts?: AbilityAudioOpts,
+  ): void;
+  /** A fixed-duration ground zone loop (Blizzard's storm): starts `key`
+   *  looping at (x,y,z) and auto-stops after `duration` seconds. `id`
+   *  discriminates concurrent zones (e.g. two mages both casting Blizzard);
+   *  a fresh call with the same id restarts the timer at the new position,
+   *  matching a zone that just landed again. No-op for a key with no clip. */
+  timedGroundLoop(id: string, key: string, x: number, y: number, z: number, duration: number): void;
+}
+
+/** Start missing loads without claiming this event before decoding completes. */
+export function preparedAbilityAudio(sink: SpatialAudioSink | null, key: string): boolean {
+  if (!sink?.abilityAudio) return false;
+  if (sink.isBuffered?.(key)) return true;
+  sink.preload?.(key);
+  return false;
 }

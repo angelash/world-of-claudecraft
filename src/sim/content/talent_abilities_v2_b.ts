@@ -4,7 +4,7 @@ import type { AbilityDef } from '../types';
 export const TALENT_ABILITIES_V2_B = {
   spellsteal: {
     id: 'spellsteal',
-    name: 'Spellsteal',
+    name: 'Spellplunder',
     class: 'mage',
     learnLevel: 8,
     cost: 40,
@@ -22,6 +22,11 @@ export const TALENT_ABILITIES_V2_B = {
     id: 'voidfeast',
     name: 'Voidfeast',
     class: 'warlock',
+    // RETIRED by the three-spec overhaul (PR #2742): the row-8 option that
+    // granted it was consciously repurposed into Abyssal Gag (spell_lock) and
+    // no other grant exists. The def stays, hidden, so persisted action bars
+    // can identify and discard it (the same contract death_coil above uses).
+    hiddenFromPlayer: true,
     learnLevel: 8,
     cost: 35,
     castTime: 0,
@@ -39,6 +44,74 @@ export const TALENT_ABILITIES_V2_B = {
     description:
       'Devours a magic effect (a beneficial one from an enemy, or a harmful one from an ally) and heals you for 6% of your maximum health. Only usable when there is an effect to devour.',
   },
+  sacrilegious_march: {
+    id: 'sacrilegious_march',
+    name: 'Sacrilegious March',
+    class: 'warlock',
+    learnLevel: 5,
+    cost: 0,
+    castTime: 0,
+    cooldown: 0,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    offGcd: true,
+    effects: [
+      {
+        type: 'selfBuff',
+        kind: 'buff_speed',
+        value: 1.35,
+        duration: 3600,
+        healthDrainPctMax: 0.02,
+        disableBelowHpPct: 0.2,
+      },
+    ],
+    description:
+      'Increases movement speed by 35%, but sacrifices 2% of your maximum health each second. Cast again to cancel. It switches off at 20% health.',
+  },
+  dark_pact: {
+    id: 'dark_pact',
+    name: 'Sanguine Covenant',
+    class: 'warlock',
+    learnLevel: 11,
+    cost: 0,
+    castTime: 0,
+    cooldown: 45,
+    range: 0,
+    school: 'shadow',
+    requiresTarget: false,
+    effects: [
+      { type: 'selfDamagePctCurrent', pct: 0.1 },
+      { type: 'selfAbsorbPctMax', pct: 0.3, duration: 8 },
+    ],
+    description:
+      'Sacrifices 10% of your current health to absorb damage equal to 30% of your maximum health for 8 sec.',
+  },
+  abyssal_rift: {
+    id: 'abyssal_rift',
+    name: 'Abyssal Rift',
+    class: 'warlock',
+    learnLevel: 20,
+    cost: 100,
+    castTime: 0,
+    cooldown: 45,
+    range: 30,
+    school: 'shadow',
+    requiresTarget: false,
+    targetMode: 'position',
+    effects: [
+      {
+        type: 'aoeDamage',
+        min: 110,
+        max: 130,
+        radius: 8,
+        pullToCenter: true,
+        stunSec: 2,
+      },
+    ],
+    description:
+      'Tears open a rift at the selected location, pulling enemies within 8 yd to its center, dealing $d Shadow damage, and stunning them for 2 sec. Bosses take damage but resist the pull and stun.',
+  },
   howl_of_terror: {
     id: 'howl_of_terror',
     name: 'Dread Chorus',
@@ -50,9 +123,9 @@ export const TALENT_ABILITIES_V2_B = {
     range: 0,
     school: 'shadow',
     requiresTarget: false,
-    effects: [{ type: 'aoeFear', duration: 3, radius: 8 }],
+    effects: [{ type: 'aoeFear', duration: 5, radius: 8 }],
     description:
-      'Frightens nearby enemies for up to 3 sec. Damage may break the effect. (Warlock talent)',
+      "Frightens nearby enemies for up to 5 sec. Damage totaling 8% of a target's maximum health breaks its fear. (Warlock talent)",
   },
   curse_of_exhaustion: {
     id: 'curse_of_exhaustion',
@@ -72,6 +145,12 @@ export const TALENT_ABILITIES_V2_B = {
     id: 'death_coil',
     name: 'Morrowlash',
     class: 'warlock',
+    // RETIRED by the three-spec overhaul (PR #2742): the row-17 option that
+    // granted it was consciously repurposed into Grand Malediction (the
+    // signature-cooldown talent) and no other grant exists. The def stays,
+    // hidden, so persisted action bars can identify and discard it (the same
+    // contract PALADIN_LEGACY_ABILITY_IDS uses).
+    hiddenFromPlayer: true,
     learnLevel: 10,
     cost: 70,
     castTime: 0,
@@ -91,15 +170,27 @@ export const TALENT_ABILITIES_V2_B = {
     id: 'chaos_bolt',
     name: 'Ruinbolt',
     class: 'warlock',
-    learnLevel: 10,
-    cost: 95,
-    castTime: 2.5,
-    cooldown: 12,
+    learnLevel: 5,
+    cost: 65,
+    ruinCost: 3,
+    castTime: 2.3,
+    cooldown: 0,
     range: 30,
     school: 'fire',
     requiresTarget: true,
-    effects: [{ type: 'directDamage', min: 128, max: 156 }],
-    description: 'Hurls a bolt of chaotic fire for $d Fire damage. (Warlock talent)',
+    specs: ['destruction'],
+    projectileFx: 'heavyBolt',
+    effects: [
+      {
+        type: 'directDamage',
+        min: 192,
+        max: 235,
+        spellPowerCoeff: 2.5 / 3.5,
+        guaranteedCrit: true,
+      },
+    ],
+    description:
+      'Spends 3 Wrack to hurl a heavy bolt of chaotic fire for $d Fire damage before critical damage is applied. Always critically strikes when it hits. Desolation shortens its cast by 30%.',
   },
 
   typhoon: {
@@ -113,12 +204,17 @@ export const TALENT_ABILITIES_V2_B = {
     range: 0,
     requiresTarget: false,
     school: 'nature',
-    effects: [{ type: 'aoeKnockback', radius: 8, distance: 6, dazeMult: 0.5, dazeDuration: 4 }],
+    // 15 yd and airborne: an enemy player is thrown in a straight line along
+    // a low arc (the Trailbreak hop, combat/knockback_launch.ts), so a shove
+    // over a ledge keeps going and the fall that follows is credited to the
+    // druid. Mobs keep the grounded shove.
+    effects: [{ type: 'aoeKnockback', radius: 8, distance: 15, dazeMult: 0.5, dazeDuration: 4 }],
     description:
-      'A blast of wind knocks back all enemies within 8 yd and dazes them, slowing their movement by 50% for 4 sec.',
+      'A blast of wind hurls all enemies within 8 yd 15 yd away from you and dazes them, slowing their movement by 50% for 4 sec. Enemy players are thrown into the air in a straight line: knocked off a ledge, they keep going and take falling damage, and a fatal fall counts as your kill.',
   },
   innervate: {
     id: 'innervate',
+    tooltipOmitEffectLines: true,
     name: 'Lifesap',
     class: 'druid',
     learnLevel: 10,
@@ -133,10 +229,18 @@ export const TALENT_ABILITIES_V2_B = {
     description:
       'Living sap wells up in you for 10 sec, restoring 20 of your current resource in waves: mana, Rage, or Energy, and shifting forms does not break it. Sleep, stun, or stasis stills the sap. (Druid talent)',
   },
+  // Wildfang's in-form heal. Authored for the Talents 2.0 L17 row, but that row
+  // shipped granting Gladesong instead and left this stranded: fully defined,
+  // iconed, and wired through the HUD heal-tick arm, yet granted by nothing and
+  // so unreachable in play. It is a Wildfang spec ability now rather than a row
+  // grant, which is why the level gate and the "(Druid talent)" framing are
+  // gone. A shapeshifted druid cannot cast its healing spells, so this is the
+  // only heal Bruin Form has.
   frenzied_regeneration: {
     id: 'frenzied_regeneration',
     name: 'Savage Mending',
     class: 'druid',
+    specs: ['feral'],
     learnLevel: 10,
     cost: 10,
     castTime: 0,
@@ -144,12 +248,24 @@ export const TALENT_ABILITIES_V2_B = {
     range: 0,
     school: 'nature',
     requiresTarget: false,
-    requiresForm: 'bear',
-    effects: [{ type: 'hot', total: 180, duration: 10, interval: 2 }],
-    description: 'Restores 180 health over 10 sec. Bruin Form only. (Druid talent)',
+    // Both Wildfang forms since the v0.43 feral pass: Cat had no self-heal at
+    // all, which is what made the spec's only recovery button a reason to
+    // leave Cat Form mid-fight. The cost and cooldown are deliberately
+    // untouched: `cost: 10` is billed against whichever pool the live form
+    // runs on, so it is 10 Rage in Bruin (as before) and 10 Energy in Cat,
+    // and the 60 sec cooldown is shared across both.
+    requiresForm: ['bear', 'cat'],
+    // 40% of max health (was a flat 180, about 8% of a best-geared bear pool):
+    // a percentage keeps the heal meaningful as gear grows and scales through
+    // any future bear pool retune. total remains as the no-pct fallback value.
+    // pctOfMax reads the LIVE pool, so Cat's smaller health pool heals for
+    // proportionally less without a second authored number.
+    effects: [{ type: 'hot', total: 180, duration: 10, interval: 2, pctOfMax: 0.4 }],
+    description: 'Restores 40% of your maximum health over 10 sec. Bruin or Cat Form only.',
   },
   berserk: {
     id: 'berserk',
+    tooltipOmitEffectLines: true,
     name: 'Red Haze',
     class: 'druid',
     learnLevel: 10,
@@ -159,6 +275,7 @@ export const TALENT_ABILITIES_V2_B = {
     range: 0,
     school: 'physical',
     requiresTarget: false,
+    offGcd: true,
     usableInForm: true,
     effects: [{ type: 'selfBuff', kind: 'buff_ap', value: 70, duration: 15 }],
     description: 'Increases attack power by 70 for 15 sec. (Druid talent)',
@@ -168,10 +285,12 @@ export const TALENT_ABILITIES_V2_B = {
     name: 'Gladesong',
     class: 'druid',
     learnLevel: 10,
-    cost: 120,
+    // Groveheart rework: a 60 sec cooldown (was 300) paid for with double
+    // the mana (was 120).
+    cost: 240,
     castTime: 0,
     channel: { duration: 4, ticks: 4 },
-    cooldown: 300,
+    cooldown: 60,
     range: 0,
     school: 'nature',
     requiresTarget: false,

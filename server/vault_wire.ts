@@ -1,0 +1,416 @@
+import { readMaterialSourceTransferWire } from './material_source_transfer_wire';
+import { emitPacedVaultProjection, type VaultTransferSession } from './vault_transfer';
+// Materials Vault wire glue: the vault command dispatch bodies and the cvault
+// snapshot cadence rule, extracted from server/game.ts behind narrow host
+// interfaces (the module-first seam: none of this needs GameServer's private
+// state). game.ts stays a thin consumer: its dispatch cases and self-block
+// emission each keep a one-line call into this module. (The per-tick
+// vaultCraftConsume batch that once lived here was the fire-and-forget
+// observer the reservation journal replaced; the sim-side event stays, as
+// the conservation sweep's expectation source, and routeEvents drops it from
+// the client relay.)
+//
+// Wire posture (moved verbatim from the game.ts self-block emission):
+// - `vault` rides beside `bank` on the same proximity gate and is
+//   SELF-BLOCK-ONLY: a
+//   private per-character store, so it never enters the interest-scoped
+//   entity broadcast and rides only the ANCHOR session's self block. Under
+//   moderator spectate the anchor is re-pointed at the spectated character,
+//   so a spectating moderator sees the SPECTATED player's vault in their own
+//   self block, exactly the posture bank and guildBank have. A cheap proximity
+//   + revision signature runs every snapshot. A revision-pinned live read
+//   advances in bounded token batches only as its socket drains; no whole
+//   projection clone occurs on the server snapshot path.
+// - `cvault` (the craft-from-vault stock view, Bank Storage Phase 04) has the
+//   SAME owner-only self-block posture, but is gated on the craft-draw
+//   context predicate (src/sim/vault_craft_gate.ts) instead of banker
+//   proximity, because crafting happens at stations and in the open world
+//   where vaultInfo is deliberately null. The sim computes the gate
+//   (server-authoritative; the client folds a non-null record into the
+//   crafting window with zero context logic of its own), so entering an
+//   instanced context flips it to an explicit null on the next evaluation
+//   and the delta elides it while unchanged. Rows are pre-filtered to the
+//   drawable rule, so the payload is bounded by the material set like the
+//   vault key. SIGNATURE-GATED like vault, on the pair (vaultWireRevFor,
+//   craftVaultDrawBlockedFor): every stock mutation bumps the rev and the
+//   gate probe is a pure position/membership read, so the pair fully
+//   determines whether the projection could have changed, and the expensive
+//   projection clone runs only when it did. (This replaced the earlier 4 Hz
+//   cadence rebuild, which re-cloned the projection for every connected
+//   session four times a second whether or not anything changed; the gate
+//   probe is cheap enough to run every snapshot since the derived west fast
+//   path landed.) Off-signature snapshots omit the key, which the client
+//   reads as unchanged.
+
+import { MAX_INSTANCE_STRING_LENGTH } from '../src/sim/item_instance_load';
+import {
+  materialSourceTransferSelectionMatches,
+  readMaterialSourceTransferSelection,
+} from '../src/sim/material_source_transfer_selection';
+import type { VaultMoveFacts, VaultUpgradeFacts } from '../src/sim/materials_vault';
+import type { InvSlot } from '../src/sim/types';
+import type { VaultSpecialRef } from '../src/world_api';
+import { buildVaultLedgerRows, recordVaultOp } from './bank_ledger';
+import type { BankLedgerAdmission, BankLedgerAdmissionHandle } from './bank_ledger_admission';
+import { bankVaultLedgerMaxRows } from './bank_vault_ledger_guard';
+import { gameMetricsCounters } from './http/game_signals';
+import { vaultCommandLedgerSnapshots } from './vault_command_facts';
+import {
+  VAULT_LEDGER_ROW_BOUND_MAX,
+  vaultDepositAllLedgerRowBound,
+  vaultDepositLedgerRowBound,
+  vaultWithdrawLedgerRowBound,
+} from './vault_ledger_row_bound';
+
+/** The slice of Sim the vault dispatch bodies call; a narrow host interface
+ *  so a Vitest drives the bodies without a GameServer. `inventory` is read
+ *  ONLY to bound a deposit's ledger rows before the reservation (see
+ *  vault_ledger_row_bound.ts); the Sim still owns every deposit rule. */
+export interface VaultSim {
+  ctx: {
+    resolve(pid?: number): {
+      meta: {
+        entityId: number;
+        inventory: readonly InvSlot[];
+        vault: { readonly special: readonly InvSlot[] };
+      };
+    } | null;
+    error(id: number, text: string): void;
+  };
+  vaultInfoWireRevFor(pid: number): number | null;
+  vaultDeposit(
+    slot: number,
+    count?: number,
+    pidOrSelection?:
+      | number
+      | import('../src/sim/material_source_transfer_selection').MaterialSourceTransferSelection,
+    pid?: number,
+  ): VaultMoveFacts | undefined;
+  vaultWithdraw(itemId: string, count?: number, pid?: number): VaultMoveFacts | undefined;
+  vaultWithdraw(
+    itemId: string,
+    count: number | undefined,
+    special: VaultSpecialRef,
+    pid: number,
+  ): VaultMoveFacts | undefined;
+  vaultDepositAll(pid?: number): VaultMoveFacts | undefined;
+  vaultBuyUpgrade(pid?: number): VaultUpgradeFacts | undefined;
+}
+
+/** Narrow snapshot host: cheap revision/gate probes stay separate from the
+ *  revision-pinned incremental vault read and the crafting projection. */
+export interface VaultSelfWireSim {
+  vaultInfoWireRevFor(pid: number): number | null;
+  vaultWireRevFor(pid: number): number | null;
+  /** Gate-only probe (no projection clone): the cvault signature's second
+   *  half beside the rev, a pure position/membership read. */
+  craftVaultDrawBlockedFor(pid: number): boolean;
+  vaultInfoReadFor(pid: number): import('../src/sim/materials_vault').VaultInfoRead | null;
+  craftVaultStockFor(pid: number): Record<string, number> | null;
+}
+
+export interface VaultSelfWireSession extends VaultTransferSession {
+  lastSent: Readonly<Record<string, string>>;
+  lastVaultWirePid: number | null;
+  lastVaultWireRev: number | null;
+  lastCvaultWirePid: number | null;
+  lastCvaultWireRev: number | null;
+  lastCvaultWireBlocked: boolean | null;
+}
+
+/** Emit owner-only vault keys. Both cheap signatures are probed each pass;
+ * changed owner state starts a revision-pinned read only after backlog pacing.
+ * No source clone precedes the bounded token/UTF-8 batch. */
+export function emitVaultSelfKeys(
+  emit: (key: 'vault' | 'cvault', value: unknown) => void,
+  sim: VaultSelfWireSim,
+  session: VaultSelfWireSession,
+  anchorPid: number,
+): void {
+  const vaultRev = sim.vaultInfoWireRevFor(anchorPid);
+  emitPacedVaultProjection(emit, session, anchorPid, vaultRev, () =>
+    sim.vaultInfoReadFor(anchorPid),
+  );
+
+  const cvaultRev = sim.vaultWireRevFor(anchorPid);
+  const cvaultBlocked = sim.craftVaultDrawBlockedFor(anchorPid);
+  if (
+    session.lastSent.cvault === undefined ||
+    anchorPid !== session.lastCvaultWirePid ||
+    cvaultRev !== session.lastCvaultWireRev ||
+    cvaultBlocked !== session.lastCvaultWireBlocked
+  ) {
+    // A blocked gate IS the null answer craftVaultStockFor would compute, so
+    // the blocked arm never pays the projection call just to learn that.
+    emit('cvault', cvaultBlocked ? null : sim.craftVaultStockFor(anchorPid));
+    session.lastCvaultWirePid = anchorPid;
+    session.lastCvaultWireRev = cvaultRev;
+    session.lastCvaultWireBlocked = cvaultBlocked;
+  }
+}
+
+const SPECIAL_REF_KEYS = new Set(['index', 'instance', 'craftedRecipeId', 'selection']);
+const MAX_SPECIAL_REF_NODES = 1_024;
+const MAX_SPECIAL_REF_DEPTH = 12;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isBoundedJson(value: unknown): boolean {
+  let nodes = 0;
+  const visit = (current: unknown, depth: number): boolean => {
+    if (++nodes > MAX_SPECIAL_REF_NODES || depth > MAX_SPECIAL_REF_DEPTH) return false;
+    if (current === null || typeof current === 'boolean') return true;
+    if (typeof current === 'string') return current.length <= MAX_INSTANCE_STRING_LENGTH;
+    if (typeof current === 'number') return Number.isFinite(current);
+    if (Array.isArray(current)) return current.every((entry) => visit(entry, depth + 1));
+    if (!isRecord(current)) return false;
+    return Object.entries(current).every(
+      ([key, entry]) => key.length <= MAX_INSTANCE_STRING_LENGTH && visit(entry, depth + 1),
+    );
+  };
+  return visit(value, 0);
+}
+
+/** Strictly decode the optional identity-bearing withdrawal selector. Unknown
+ *  keys, advisory slot data, malformed payload trees, and lossy recipe markers
+ *  all fail closed before the sim sees the request. */
+export function decodeVaultSpecialRef(value: unknown): VaultSpecialRef | null {
+  if (!isRecord(value) || Object.keys(value).some((key) => !SPECIAL_REF_KEYS.has(key))) return null;
+  if (!Number.isSafeInteger(value.index) || Number(value.index) < 0) return null;
+  if (
+    value.craftedRecipeId !== undefined &&
+    (typeof value.craftedRecipeId !== 'string' ||
+      value.craftedRecipeId === '' ||
+      value.craftedRecipeId.length > MAX_INSTANCE_STRING_LENGTH)
+  ) {
+    return null;
+  }
+  const selection = Object.hasOwn(value, 'selection')
+    ? readMaterialSourceTransferSelection(value.selection)
+    : undefined;
+  if (Object.hasOwn(value, 'selection') && selection === null) return null;
+  if (
+    value.instance !== undefined &&
+    (!isRecord(value.instance) || !isBoundedJson(value.instance))
+  ) {
+    return null;
+  }
+  return selection === undefined
+    ? (value as unknown as VaultSpecialRef)
+    : ({ ...value, selection } as VaultSpecialRef);
+}
+
+export type VaultCommandName =
+  | 'vault_deposit'
+  | 'vault_withdraw'
+  | 'vault_deposit_all'
+  | 'vault_buy_upgrade';
+
+function refuseLedgerAdmission(sim: VaultSim, pid: number): void {
+  const entityId = sim.ctx.resolve(pid)?.meta.entityId;
+  if (entityId !== undefined) sim.ctx.error(entityId, 'You are busy.');
+}
+
+/** Undefined preserves the temporary legacy observer path. Null means the
+ *  live session has no admission owner and must refuse before mutation.
+ *
+ *  `rowBound` is the command's OWN worst case, read from the pre-mutation state
+ *  (vault_ledger_row_bound.ts): one row per distinct ledger identity the
+ *  stack(s) it touches can produce. The table entry stays the floor. The two
+ *  must be combined here, because a commit whose rows exceed the reservation
+ *  is a post-mutation failure that quarantines and disconnects the session; a
+ *  bound the guard cannot reserve at all is refused up front instead. */
+function reserveLedgerRows(
+  admission: BankLedgerAdmission | null | undefined,
+  sim: VaultSim,
+  who: { characterId: number },
+  pid: number,
+  command: VaultCommandName,
+  rowBound: number,
+): BankLedgerAdmissionHandle | null | undefined {
+  if (admission === undefined) return undefined;
+  const maxRows = Math.max(bankVaultLedgerMaxRows(command), rowBound);
+  if (maxRows > VAULT_LEDGER_ROW_BOUND_MAX) {
+    // Refused before the guard ever sees it, so the guard's own refusal
+    // telemetry cannot record this arm; count it here or a player whose
+    // sweep is refused every time (more distinct material/signer keys carried
+    // than the burst can hold) leaves no server-side trace at all. The log
+    // line names the character because the metric never does (character id
+    // is unbounded, so it is banned as a label): it IS the identifying detail
+    // the counter's docblock promises an operator. Volume is bounded by the
+    // command lane, so no dedupe is needed.
+    gameMetricsCounters().vaultLedgerIncident('row_bound_exceeded');
+    console.warn(
+      `bank_ledger vault ${command} refused for character ${who.characterId}: row bound ${maxRows} exceeds the ${VAULT_LEDGER_ROW_BOUND_MAX}-row reservation ceiling`,
+    );
+    refuseLedgerAdmission(sim, pid);
+    return null;
+  }
+  const reservation = admission?.tryReserve(maxRows, 0, 'vault') ?? null;
+  if (!reservation) refuseLedgerAdmission(sim, pid);
+  return reservation;
+}
+
+function runReservedSimCall<T>(
+  reservation: BankLedgerAdmissionHandle | undefined,
+  mutate: () => T,
+): T {
+  try {
+    return mutate();
+  } catch (err) {
+    reservation?.failAfterMutation(err);
+    throw err;
+  }
+}
+
+function finishReservedSimCall<T>(
+  reservation: BankLedgerAdmissionHandle | undefined,
+  finish: () => T,
+): T {
+  try {
+    return finish();
+  } catch (err) {
+    reservation?.failAfterMutation(err);
+    throw err;
+  }
+}
+
+/** The four vault command-case bodies, moved verbatim from dispatchMessage.
+ *  Shape-only checks here (the bank_* idiom): the Sim owns every gameplay
+ *  rule (banker proximity, material scope, the per-material cap, the exact
+ *  upgrade copper). Deposit takes a carried-inventory index in `slot` with an
+ *  optional partial `count`; withdraw is keyed by `itemId` because vault
+ *  stock has no slots.
+ *  The live bank_ledger path reserves bounded outbox capacity before mutation,
+ *  then derives one exact batch from the owning mutation's detached actual
+ *  movement facts. A refused/no-op result cancels its reservation.
+ *  Undefined admission preserves the fire-and-forget recorder for isolated
+ *  callers until every host supplies a character-owned outbox. */
+export function dispatchVaultCommand(
+  sim: VaultSim,
+  who: { characterId: number; accountId: number },
+  cmd: VaultCommandName,
+  msg: Record<string, unknown>,
+  pid: number,
+  admission?: BankLedgerAdmission | null,
+): void {
+  switch (cmd) {
+    case 'vault_deposit':
+      if (typeof msg.slot === 'number') {
+        const slot = msg.slot;
+        const transfer = readMaterialSourceTransferWire(msg, slot);
+        if (transfer === null) break;
+        const { count, selection } = transfer;
+        // The carried stack is read only to BOUND the rows; the Sim re-reads
+        // and validates it inside vaultDeposit. A slot index the Sim will
+        // refuse bounds to the table's single row.
+        const carried = sim.ctx.resolve(pid)?.meta.inventory;
+        const slotIndex = Number.isInteger(slot) && slot >= 0 ? slot : -1;
+        const reservation = reserveLedgerRows(
+          admission,
+          sim,
+          who,
+          pid,
+          'vault_deposit',
+          vaultDepositLedgerRowBound(slotIndex < 0 ? undefined : carried?.[slotIndex]),
+        );
+        if (reservation === null) break;
+        const facts = runReservedSimCall(reservation, () =>
+          sim.vaultDeposit(slot, count, selection, pid),
+        );
+        finishReservedSimCall(reservation, () => {
+          const { before, after } = vaultCommandLedgerSnapshots(facts, 'deposit');
+          if (reservation) reservation.commit(buildVaultLedgerRows('deposit', who, before, after));
+          else recordVaultOp('deposit', who, before, after);
+        });
+      }
+      break;
+    case 'vault_withdraw':
+      if (typeof msg.itemId === 'string') {
+        const itemId = msg.itemId;
+        const count = typeof msg.count === 'number' ? msg.count : undefined;
+        const special = msg.special === undefined ? undefined : decodeVaultSpecialRef(msg.special);
+        if (special === null) break;
+        if (
+          special?.selection !== undefined &&
+          !materialSourceTransferSelectionMatches(special.selection, {
+            itemId,
+            slotIndex: special.index,
+            count: msg.count,
+          })
+        )
+          break;
+        // Borrow only the current authoritative rows for the same exact
+        // selector/identity bound. The banker gate and read happen before
+        // reservation; no whole-book clone or retained preimage is needed.
+        const snapshot =
+          sim.vaultInfoWireRevFor(pid) === null ? null : (sim.ctx.resolve(pid)?.meta.vault ?? null);
+        const reservation = reserveLedgerRows(
+          admission,
+          sim,
+          who,
+          pid,
+          'vault_withdraw',
+          vaultWithdrawLedgerRowBound(snapshot, itemId, special),
+        );
+        if (reservation === null) break;
+        // All preflight reads precede reservation. A throwing mutation or
+        // facts projection retains the existing quarantine/no-save policy.
+        const facts = runReservedSimCall(reservation, () =>
+          special === undefined
+            ? sim.vaultWithdraw(itemId, count, pid)
+            : sim.vaultWithdraw(itemId, count, special, pid),
+        );
+        finishReservedSimCall(reservation, () => {
+          const { before, after } = vaultCommandLedgerSnapshots(facts, 'withdraw');
+          if (reservation) reservation.commit(buildVaultLedgerRows('withdraw', who, before, after));
+          else recordVaultOp('withdraw', who, before, after);
+        });
+      }
+      break;
+    case 'vault_deposit_all': {
+      // Argument-free (the sweep takes the whole carried inventory), so no
+      // shape guard; the Sim owns every per-slot rule. Only successful actual
+      // grants enter one facts batch, grouped by the existing identity differ.
+      // The legacy observer still writes ONE batched insert. The bound is the
+      // distinct (material, identity) keys across the whole carried inventory,
+      // never below the table's 112-slot floor.
+      const reservation = reserveLedgerRows(
+        admission,
+        sim,
+        who,
+        pid,
+        'vault_deposit_all',
+        vaultDepositAllLedgerRowBound(sim.ctx.resolve(pid)?.meta.inventory ?? []),
+      );
+      if (reservation === null) break;
+      const facts = runReservedSimCall(reservation, () => sim.vaultDepositAll(pid));
+      finishReservedSimCall(reservation, () => {
+        const { before, after } = vaultCommandLedgerSnapshots(facts, 'deposit');
+        if (reservation) reservation.commit(buildVaultLedgerRows('deposit', who, before, after));
+        else recordVaultOp('deposit', who, before, after);
+      });
+      break;
+    }
+    case 'vault_buy_upgrade': {
+      // A rung purchase writes exactly one copper row; the table floor is exact.
+      const reservation = reserveLedgerRows(admission, sim, who, pid, 'vault_buy_upgrade', 1);
+      if (reservation === null) break;
+      const facts = runReservedSimCall(reservation, () => sim.vaultBuyUpgrade(pid));
+      finishReservedSimCall(reservation, () => {
+        const { before, after } = vaultCommandLedgerSnapshots(facts, 'buy_slots');
+        if (reservation) reservation.commit(buildVaultLedgerRows('buy_slots', who, before, after));
+        else recordVaultOp('buy_slots', who, before, after);
+      });
+      break;
+    }
+    default: {
+      // Closes the union from this end too: a fifth VaultCommandName member
+      // whose case is missing here is a compile error, never a silent drop.
+      const unhandled: never = cmd;
+      throw new Error(`unhandled vault command: ${unhandled as string}`);
+    }
+  }
+}

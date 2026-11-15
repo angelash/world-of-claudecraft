@@ -15,30 +15,35 @@
 // kept pids update in place, new pids take a free row or build one. The rows are
 // re-parented in member order into a persistent .party-rows WRAPPER (their own element,
 // one level under #party-frames), and the container's own direct children are ordered
-// chip (mobile only), wrapper, master-loot control. The wrapper is what
-// lets the mobile chip sit alone on its own line: with the rows nested inside it, no
-// member frame can auto-flow beside the chip (the container's mobile column stacks chip,
-// wrapper; the 2-column double-stack lives on the wrapper). The mobile
+// desktop header, chip (mobile only), wrapper, master-loot control. The wrapper
+// lets either disclosure sit alone above the rows; the 2-column mobile grid lives on it. The mobile
 // row-styling rules key on .party-frame:first-of-type / :not(:first-of-type), which now
 // resolve within the wrapper (only member rows live there); appendChild/insertBefore
 // move a node without dropping its keyboard focus or its listeners.
 
 import { formatNumber, t } from './i18n';
 import type { PainterHostWriters } from './painter_host';
-import { createPartyChip, type PartyChip } from './party_chip';
+import {
+  createPartyChip,
+  createPartyFrameHeader,
+  type PartyChip,
+  type PartyFrameHeader,
+} from './party_chip';
 import { partyChipState } from './party_collapse';
 import {
   createPartyRow,
   createPartyRowsWrapper,
+  PARTY_BAR_SCALE_PRECISION,
   PARTY_CREST_KEY_PREFIX,
-  PARTY_LEADER_GLYPH,
   type PartyRow,
   type PartyRowAuraDeps,
   type PartyRowDeps,
 } from './party_frame_row';
 import {
   type PartyFrameDisplayConfig,
+  type PartyFrameHeaderState,
   type PartyFrameMember,
+  partyFrameHeaderState,
   partyFrameHealthText,
   resolvePartyFrameStyle,
 } from './party_frames';
@@ -64,6 +69,11 @@ const CHIP_PRESENT_CLASS = 'has-party-chip';
 const EXPANDED_CLASS = 'party-expanded';
 const PARTY_PRESENT_CLASS = 'party-present';
 const RAID_STYLE_CLASS = 'party-style-raid';
+const HEADER_COLLAPSED_CLASS = 'party-header-collapsed';
+const TARGET_CLASS = 'is-on';
+const ROLE_TANK_CLASS = 'tank';
+const ROLE_HEALER_CLASS = 'healer';
+const ROLE_DAMAGE_CLASS = 'damage';
 // The chip's aria-expanded attribute name/values (a disclosure control).
 const ARIA_EXPANDED = 'aria-expanded';
 const ARIA_TRUE = 'true';
@@ -71,6 +81,10 @@ const ARIA_FALSE = 'false';
 // Badge visibility: '' reverts to the stylesheet display (shown), 'none' hides. The
 // badges persist in the DOM and only their display toggles, so the icon cue survives
 // forced-colors (where the combat box-shadow is dropped).
+// The pet sliver's show/hide values and dead-state class, mirroring the badge pair.
+const PET_SHOWN = '';
+const PET_HIDDEN = 'none';
+const PET_DEAD_CLASS = 'dead';
 const BADGE_SHOWN = '';
 const BADGE_HIDDEN = 'none';
 
@@ -81,10 +95,15 @@ export interface PartyFramesPainterDeps {
   onContextMenu: (pid: number, name: string, x: number, y: number) => void;
   /** Hover tracking for Clique-style mouseover casts: pid on enter, null on leave. */
   onHover: (pid: number | null) => void;
+  /** Select a member's PET by entity id (the pet sliver's click / Enter). */
+  onTargetPet: (entityId: number) => void;
+  /** The localized accessible name for a pet sliver ("Fang, 65%"), re-read each
+   *  paint so a language switch re-localizes it through the elided setText. */
+  petLabel: (name: string, frac: number) => string;
   /** The localized "Party" chip caption, re-read each update so an in-game language
    *  switch re-localizes it (through the elided setText). Mobile only. */
   chipLabel: () => string;
-  /** Toggle the persisted mobile collapse choice (the chip's tap). The Hud flips +
+  /** Toggle the persisted collapse choice from either disclosure. The Hud flips +
    *  persists its collapsed flag and re-drives setCollapse; a pure USER action, never
    *  gated on data-fx-level / reduce-motion / the governor (party HP is actionable). */
   onToggleCollapse: () => void;
@@ -97,11 +116,14 @@ export class PartyFramesPainter {
   // Active rows by member key (pid). One persistent node per key, reused across
   // rebuilds; the keyed pool this painter requires.
   private readonly pool = new Map<number, PartyRow>();
+  // DOM removal and collapse need not dispatch mouseleave. Keep the hovered
+  // identity here so detaching its row also clears Hud's cast-target override.
+  private hoveredPid: number | null = null;
   // Detached rows kept for reuse (recycling a departed row to a new pid). The row's
   // listeners stay attached and read the live slot, so a recycled row is safe.
   private readonly free: PartyRow[] = [];
   // The member-rows wrapper: every pooled row nests one level under #party-frames inside
-  // this element, so the chip, the rows, the master-loot control, and Leave stack as a
+  // this element, so the chip, rows, boss guide, and master-loot control stack as a
   // simple column (the chip alone on its own line). On mobile the wrapper carries the
   // 2-column auto-flow grid the container used to; on desktop it is display:contents
   // (transparent), so the rows lay out in the #party-frames flex column exactly as before.
@@ -110,9 +132,14 @@ export class PartyFramesPainter {
   private rowsWrapper: HTMLElement | null = null;
   // The mobile collapse chip, built lazily on the first mobile update and then kept
   // in the DOM (first child of the container) while in a party on mobile. Off mobile
-  // it is never built (desktop party frames are unchanged). Its click toggles the
+  // it is never built. Its click toggles the
   // persisted collapse state through deps.onToggleCollapse.
   private chip: PartyChip | null = null;
+  private header: PartyFrameHeader | null = null;
+  private headerCollapsed = false;
+  private memberCount = 0;
+  private selfShown = false;
+  private mobile = false;
   // The last-synced expanded flag, so relocalize() can re-emit the chip caption in
   // the new language after an in-game switch (a switch does not flip the collapse
   // state, so the Hud never re-drives setCollapse for it, like the group labels).
@@ -122,6 +149,9 @@ export class PartyFramesPainter {
   // after the member rows, and persists across member-frame
   // rebuilds so its checkbox / dropdowns are never churned under the cursor.
   private masterControl: HTMLElement | null = null;
+  // Contextual raid-boss guide opener, owned by the Hud window controller and
+  // seated between member rows and the leader-only loot control.
+  private guideControl: HTMLElement | null = null;
   // The last synced raid flag, so relocalize() can re-emit each pooled row's group
   // label in the new language after an in-game language switch (a switch does not flip
   // partyFrameSignature, so the Hud never re-syncs us, exactly like the badge tooltips).
@@ -140,7 +170,11 @@ export class PartyFramesPainter {
     this.rowDeps = {
       onTarget: deps.onTarget,
       onContextMenu: deps.onContextMenu,
-      onHover: deps.onHover,
+      onHover: (pid) => {
+        this.hoveredPid = pid;
+        deps.onHover(pid);
+      },
+      onTargetPet: deps.onTargetPet,
     };
   }
 
@@ -155,16 +189,20 @@ export class PartyFramesPainter {
    * chat-open) inputs, every frame (cheap and fully elided). On mobile in a party it
    * lazily builds the chip, keeps it as the container's first child, and toggles the
    * container's chip-present + expanded classes so CSS shows the chip and reveals or
-   * hides the member rows; on desktop (or out of a party) the chip is
-   * removed and the container carries neither class, so the desktop stack is exactly
-   * as before. While the mobile chat overlay is open the party UI yields entirely (the
+   * hides the member rows. On desktop the same persisted choice drives the unbacked
+   * Party header. While the mobile chat overlay is open the party UI yields entirely (the
    * chip and frames hide), so the chat log / composer own the top-left; the persisted
    * collapse choice is untouched, so closing chat restores it. Every DOM effect routes
    * through the elided writers (class + attr + text), so a steady state (unchanged
    * inputs, the dominant case) writes nothing.
    */
   setCollapse(inParty: boolean, mobile: boolean, collapsed: boolean, chatOpen: boolean): void {
+    this.mobile = mobile;
+    this.headerCollapsed = collapsed;
     const state = partyChipState({ inParty, mobile, collapsed, chatOpen });
+    // Desktop's own header also hides the rows when collapsed; the chat
+    // overlay only hides them on mobile (partyChipState leaves desktop alone).
+    if (!inParty || collapsed || (mobile && chatOpen)) this.clearHover();
     if (state.chipVisible) {
       const chip = this.ensureChip();
       this.chipShown = true;
@@ -187,11 +225,40 @@ export class PartyFramesPainter {
     // even though the resolver reports framesExpanded=true on desktop (frames always
     // show there). On mobile it reflects the expanded state exactly.
     this.writers.toggleClass(this.container, EXPANDED_CLASS, state.framesExpanded && mobile);
+    this.paintHeader();
   }
 
   private ensureChip(): PartyChip {
     if (!this.chip) this.chip = createPartyChip(this.doc, this.deps.onToggleCollapse);
     return this.chip;
+  }
+
+  private ensureHeader(): PartyFrameHeader {
+    if (!this.header) {
+      this.header = createPartyFrameHeader(this.doc, this.deps.onToggleCollapse);
+    }
+    return this.header;
+  }
+
+  private headerState(): PartyFrameHeaderState {
+    return partyFrameHeaderState(this.memberCount, this.headerCollapsed, this.selfShown);
+  }
+
+  private paintHeader(): void {
+    const state = this.headerState();
+    const visible = state.visible && !this.mobile;
+    if (visible) {
+      const header = this.ensureHeader();
+      if (header.el.parentNode !== this.container) {
+        this.container.insertBefore(header.el, this.container.firstChild);
+      }
+      this.writers.setText(header.label, t('hudChrome.partyFrames.header'));
+      this.writers.setText(header.count, formatNumber(state.count));
+      this.writers.setAttr(header.el, ARIA_EXPANDED, state.collapsed ? ARIA_FALSE : ARIA_TRUE);
+    } else {
+      this.header?.el.remove();
+    }
+    this.writers.toggleClass(this.container, HEADER_COLLAPSED_CLASS, visible && state.collapsed);
   }
 
   /** Set (or clear with null) the leader-only master-loot control. The Hud rebuilds
@@ -206,6 +273,15 @@ export class PartyFramesPainter {
     if (el) this.container.appendChild(el);
   }
 
+  /** Set or clear the contextual raid-boss guide opener. Unlike member rows this
+   *  is cold UI, but it keeps one stable node so keyboard focus is never churned. */
+  setGuideControl(el: HTMLElement | null): void {
+    if (this.guideControl === el) return;
+    this.guideControl?.remove();
+    this.guideControl = el;
+    if (el) this.container.insertBefore(el, this.masterControl);
+  }
+
   /** Reconcile the pool to `members` and repaint each in place. Called only when the
    *  party signature changed (the Hud short-circuits an unchanged party before this),
    *  so the reconcile cost is paid only on a real change. */
@@ -214,7 +290,11 @@ export class PartyFramesPainter {
     leader: number,
     raid: boolean,
     config?: PartyFrameDisplayConfig,
+    targetId?: number | null,
   ): void {
+    this.memberCount = members.length;
+    this.selfShown = config?.showSelf ?? false;
+    this.paintHeader();
     this.writers.toggleClass(this.container, PARTY_PRESENT_CLASS, members.length > 0);
     this.writers.toggleClass(
       this.container,
@@ -227,6 +307,7 @@ export class PartyFramesPainter {
     // Detach rows whose member left; keep them (listeners intact) for reuse.
     for (const [pid, row] of this.pool) {
       if (!next.has(pid)) {
+        if (pid === this.hoveredPid) this.clearHover();
         row.el.remove();
         this.free.push(row);
         this.pool.delete(pid);
@@ -245,7 +326,7 @@ export class PartyFramesPainter {
       // Update the LIVE slot BEFORE painting so the crest gate + listeners read the
       // current member, never a stale captured one (top-risk 3).
       row.slot.member = m;
-      this.paintRow(row, m, leader, raid, config);
+      this.paintRow(row, m, leader, raid, config, targetId);
       ordered.push(row);
     }
     // Reconcile the DOM order with the MINIMUM number of node moves. A steady-state rebuild
@@ -274,9 +355,9 @@ export class PartyFramesPainter {
   // Two passes: (1) order the member rows INSIDE the rows wrapper (their own element,
   // so no member frame ever flows beside the container-level chip), then (2) order the
   // container's own direct children: the mobile chip first (when present, the collapse
-  // header above the stack), the rows wrapper, the leader-only master-loot control, and
-  // the master-loot control last. On desktop the chip is null and the wrapper is
-  // display:contents, so the sequence renders as wrapper's rows, [master], exactly
+  // header above the stack), the rows wrapper, the contextual boss guide, and the
+  // leader-only master-loot control last. On desktop the chip is null and the wrapper is
+  // display:contents, so the sequence renders as wrapper's rows, [guide, master], exactly
   // the pre-wrapper order. A steady-state rebuild moves nothing in EITHER pass.
   private reconcileOrder(rows: PartyRow[]): void {
     const wrapper = this.ensureRowsWrapper();
@@ -298,8 +379,10 @@ export class PartyFramesPainter {
         this.container.insertBefore(node, ref);
       }
     };
+    if (this.header && this.header.el.parentNode === this.container) place(this.header.el);
     if (this.chip && this.chip.el.parentNode === this.container) place(this.chip.el);
     place(wrapper);
+    if (this.guideControl) place(this.guideControl);
     if (this.masterControl) place(this.masterControl);
   }
 
@@ -314,6 +397,12 @@ export class PartyFramesPainter {
       // above; the group label needs the same treatment, from the live slot + last raid
       // flag, since a language switch does not flip partyFrameSignature).
       this.writers.setText(row.group, this.groupLabel(row.slot.member, this.lastRaid));
+      // The pet sliver's accessible name is the only text on it, and it is built
+      // through t() like the group label, so it needs the same arm. Routed through
+      // the SAME paintPet the sync path uses rather than re-emitting the label
+      // inline, so the two can never drift; every other write it makes is elided
+      // to a no-op here because only the language moved.
+      this.paintPet(row, row.slot.member);
     }
     for (const row of this.free) row.relocalize();
     // Re-emit the chip caption in the new language while it is shown (a language
@@ -322,11 +411,16 @@ export class PartyFramesPainter {
     if (this.chip && this.chipShown) {
       this.writers.setText(this.chip.label, this.deps.chipLabel());
     }
+    if (this.header?.el.parentNode === this.container) {
+      this.writers.setText(this.header.label, t('hudChrome.partyFrames.header'));
+      this.writers.setText(this.header.count, formatNumber(this.headerState().count));
+    }
   }
 
-  /** Empty the frames (no party): detach every row + the chip.
+  /** Empty the frames (no party): detach every row and both disclosure controls.
    *  Keeps the detached rows in the free list so a re-formed party reuses them. */
   clear(): void {
+    this.clearHover();
     for (const [pid, row] of this.pool) {
       row.el.remove();
       this.free.push(row);
@@ -334,6 +428,8 @@ export class PartyFramesPainter {
     }
     this.masterControl?.remove();
     this.masterControl = null;
+    this.guideControl?.remove();
+    this.guideControl = null;
     // Detach the (now empty) rows wrapper too, so a no-party container is truly empty and
     // not a lone wrapper box; the detached wrapper node is kept for reuse when a party
     // re-forms (the pooled rows are re-parented back into it by reconcileOrder).
@@ -343,10 +439,19 @@ export class PartyFramesPainter {
     // stack. The chip node is kept for reuse if a party re-forms on mobile.
     this.chip?.el.remove();
     this.chipShown = false;
+    this.memberCount = 0;
+    this.header?.el.remove();
     this.writers.toggleClass(this.container, CHIP_PRESENT_CLASS, false);
     this.writers.toggleClass(this.container, EXPANDED_CLASS, false);
     this.writers.toggleClass(this.container, PARTY_PRESENT_CLASS, false);
     this.writers.toggleClass(this.container, RAID_STYLE_CLASS, false);
+    this.writers.toggleClass(this.container, HEADER_COLLAPSED_CLASS, false);
+  }
+
+  private clearHover(): void {
+    if (this.hoveredPid === null) return;
+    this.hoveredPid = null;
+    this.deps.onHover(null);
   }
 
   private paintRow(
@@ -355,6 +460,7 @@ export class PartyFramesPainter {
     leader: number,
     raid: boolean,
     config?: PartyFrameDisplayConfig,
+    targetId?: number | null,
   ): void {
     // The class-color token + the combat class are the party-only writes the four
     // original writers cannot express (setStyleProp / toggleClass).
@@ -363,6 +469,10 @@ export class PartyFramesPainter {
     this.writers.toggleClass(row.el, COMBAT_CLASS, inCombat);
     this.writers.toggleClass(row.el, THREAT_CLASS, !!m.hasAggro && !m.dead);
     this.writers.toggleClass(row.el, DISCONNECTED_CLASS, m.connected === 0);
+    this.writers.toggleClass(row.el, TARGET_CLASS, m.pid === targetId);
+    this.writers.toggleClass(row.role, ROLE_TANK_CLASS, m.role === 'tank');
+    this.writers.toggleClass(row.role, ROLE_HEALER_CLASS, m.role === 'healer');
+    this.writers.toggleClass(row.role, ROLE_DAMAGE_CLASS, !m.role || m.role === 'dps');
     this.writers.toggleClass(row.el, HIDE_RESOURCE_CLASS, config?.showResource === false);
     this.writers.toggleClass(row.el, HIDE_AURAS_CLASS, config?.showAuras === false);
     // The shared frame (name / level / hp + resource fills / dead + out-of-range
@@ -398,10 +508,9 @@ export class PartyFramesPainter {
     );
     this.writers.setStyleProp(row.incoming, '--incoming-start', `${(hpFrac * 100).toFixed(1)}%`);
     this.writers.setWidth(row.incoming, `${(incomingFrac * 100).toFixed(1)}%`);
-    // The leader star (aria-hidden, decorative) and the visually-hidden raid-group label,
-    // both per-frame text routed through the elided writer (no raw write on the hot path);
-    // each is cached, so a steady-state tick re-writes neither.
-    this.writers.setText(row.leadStar, leader === m.pid ? PARTY_LEADER_GLYPH : '');
+    // The leader crown is built once as an aria-hidden SVG; only its display
+    // state changes here. The visually-hidden raid-group label remains text.
+    this.writers.setDisplay(row.leadStar, leader === m.pid ? BADGE_SHOWN : BADGE_HIDDEN);
     this.writers.setText(row.group, this.groupLabel(m, raid));
     // The dead / combat / out-of-range badge icons: persistent, only display toggles
     // (the non-color cue that stays distinguishable under forced-colors).
@@ -409,6 +518,7 @@ export class PartyFramesPainter {
     this.writers.setDisplay(row.badges.combat, inCombat ? BADGE_SHOWN : BADGE_HIDDEN);
     this.writers.setDisplay(row.badges.oor, m.oor ? BADGE_SHOWN : BADGE_HIDDEN);
     this.writers.setDisplay(row.badges.offline, m.connected === 0 ? BADGE_SHOWN : BADGE_HIDDEN);
+    this.paintPet(row, m);
     // The member's mini aura strip: the row's own keyed aura pool (writes elided
     // inside it). Signature-gated like the rest of this sync, never per frame.
     row.paintAuras(config?.showAuras === false ? [] : (m.auras ?? []));
@@ -417,6 +527,26 @@ export class PartyFramesPainter {
   /** The localized "Group n" raid cue for a member, or '' outside raid. The group number
    *  goes through formatNumber (i18n digits). Used by paintRow and by relocalize (so a
    *  language switch re-emits it from the last synced raid flag). */
+  // The member's pet health sliver. `m.pet` is attached client-side from the entity
+  // roster, so it is simply absent for a petless member, a pet outside the client's
+  // interest scope, or with the Show Pets option off: all three collapse to hiding
+  // the sliver, which is why there is no separate "has pet" flag to keep in sync.
+  private paintPet(row: PartyRow, m: PartyFrameMember): void {
+    const pet = m.pet;
+    if (!pet) {
+      this.writers.setDisplay(row.petBar, PET_HIDDEN);
+      // Blank the label too: a screen reader walking a hidden-but-labelled node
+      // would otherwise still read the last pet's health.
+      this.writers.setText(row.petLabel, '');
+      return;
+    }
+    this.writers.setDisplay(row.petBar, PET_SHOWN);
+    const frac = Math.max(0, Math.min(1, pet.hp / Math.max(1, pet.maxHp)));
+    this.writers.setTransform(row.petFill, `scaleX(${frac.toFixed(PARTY_BAR_SCALE_PRECISION)})`);
+    this.writers.toggleClass(row.petBar, PET_DEAD_CLASS, pet.dead);
+    this.writers.setText(row.petLabel, this.deps.petLabel(pet.name, frac));
+  }
+
   private groupLabel(m: PartyFrameMember, raid: boolean): string {
     return raid
       ? t('hudChrome.unitFrame.partyGroup', {

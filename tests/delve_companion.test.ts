@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-
+import { DELVES } from '../src/sim/data';
 import { updateDelveCompanion } from '../src/sim/delves/companion';
 import { Sim } from '../src/sim/sim';
 import { terrainHeight } from '../src/sim/world';
@@ -15,6 +15,11 @@ function teleport(sim: Sim, x: number, z: number) {
   p.pos.y = terrainHeight(x, z, sim.cfg.seed);
   p.prevPos = { ...p.pos };
 }
+
+// Rank-up is gated to the delve door, like the shop and enter_delve; every
+// companionUpgrade test below must stand the player there first.
+const reliquaryDoor = DELVES.collapsed_reliquary.doorPos;
+const teleportToReliquaryDoor = (sim: Sim) => teleport(sim, reliquaryDoor.x, reliquaryDoor.z);
 
 describe('delve companions', () => {
   it('solo enter spawns Acolyte Tessa', () => {
@@ -73,7 +78,7 @@ describe('delve companions', () => {
     expect(clear.x).toBeCloseTo(grave.pos.x + 20);
   });
 
-  it('stows hunter pet on enter and restores on leave', () => {
+  it('keeps the hunter pet on enter (alongside Tessa) and brings it back out on leave', () => {
     const sim = makeSim('hunter');
     sim.setPlayerLevel(10);
     const boar = [...sim.entities.values()].find(
@@ -83,12 +88,13 @@ describe('delve companions', () => {
     expect(sim.petOf(sim.playerId)?.templateId).toBe('wild_boar');
     teleport(sim, 0, 0);
     sim.enterDelve('collapsed_reliquary', 'normal');
-    expect(sim.petOf(sim.playerId)).toBeNull();
+    expect(sim.petOf(sim.playerId)?.templateId).toBe('wild_boar');
+    expect(sim.companionState?.companionId).toBe('companion_tessa');
     sim.leaveDelve();
     expect(sim.petOf(sim.playerId)?.templateId).toBe('wild_boar');
   });
 
-  it('serializes the stowed pet while in a delve (no pet loss on mid-delve disconnect/save)', () => {
+  it('serializes the hunter pet while in a delve (no pet loss on mid-delve disconnect/save)', () => {
     const sim = makeSim('hunter');
     sim.setPlayerLevel(10);
     const boar = [...sim.entities.values()].find(
@@ -97,10 +103,7 @@ describe('delve companions', () => {
     (sim as any).completeTame(sim.player, boar!);
     teleport(sim, 0, 0);
     sim.enterDelve('collapsed_reliquary', 'normal');
-    // The live pet is despawned (stowed) while inside the delve...
-    expect(sim.petOf(sim.playerId)).toBeNull();
-    // ...but a save taken right now (autosave / disconnect / shutdown saveAll) must
-    // still persist it from the stash, or the pet is lost when the character reloads.
+    // A save taken right now (autosave / disconnect / shutdown saveAll) persists it.
     const state = sim.serializeCharacter(sim.playerId)!;
     expect(state.pet?.templateId).toBe('wild_boar');
   });
@@ -326,6 +329,7 @@ describe('delve companions', () => {
 
   it('companion upgrade rank 2 costs 3 marks (Marks only, no copper)', () => {
     const sim = makeSim();
+    teleportToReliquaryDoor(sim);
     const meta = (sim as any).players.get(sim.playerId);
     meta.delveMarks = 10;
     meta.copper = 100;
@@ -337,6 +341,7 @@ describe('delve companions', () => {
 
   it('companion upgrade is a no-op without enough marks or for an unknown companion', () => {
     const sim = makeSim();
+    teleportToReliquaryDoor(sim);
     const meta = (sim as any).players.get(sim.playerId);
     meta.companionUpgrades.companion_tessa = 1;
     meta.delveMarks = 2; // rank 2 costs 3 Marks, so this is short
@@ -346,6 +351,19 @@ describe('delve companions', () => {
     sim.companionUpgrade('no_such_companion');
     expect(meta.companionUpgrades.companion_tessa).toBe(1);
     expect(meta.delveMarks).toBe(2);
+  });
+
+  it('companion upgrade is rejected far from the delve door, no debit (defense-in-depth: the WS dispatch already geo-gates this, but the sim must refuse it too)', () => {
+    const sim = makeSim();
+    teleport(sim, reliquaryDoor.x + 200, reliquaryDoor.z + 200);
+    const meta = (sim as any).players.get(sim.playerId);
+    meta.delveMarks = 10;
+    sim.drainEvents();
+    sim.companionUpgrade('companion_tessa');
+    expect(meta.companionUpgrades.companion_tessa ?? 1).toBe(1); // rank unchanged
+    expect(meta.delveMarks, 'the Marks must survive the refusal').toBe(10);
+    const ev = sim.drainEvents();
+    expect(ev.some((e) => e.type === 'error' && e.text === 'Too far away.')).toBe(true);
   });
 
   it('companion damages hostile mobs in combat', () => {

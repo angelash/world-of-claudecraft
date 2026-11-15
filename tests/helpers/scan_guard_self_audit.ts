@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect } from 'vitest';
+import { stripComments } from './strip_comments';
 
 // The mechanical half of the shared-walker rule in tests/CLAUDE.md: a guard that
 // scans a directory of sources reads it through helpers/ts_files_under.ts or
@@ -39,10 +41,15 @@ export function expectScansOnlyThroughSharedWalkers(
   sourceUrl: string,
   walkerModules: string[],
 ): void {
-  const name = fileURLToPath(sourceUrl).split('/').pop() ?? sourceUrl;
-  const code = readFileSync(fileURLToPath(sourceUrl), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  // basename, not a manual split: fileURLToPath returns backslash-separated
+  // paths on Windows, where a '/' split never divides and "name" becomes the
+  // whole absolute path (#3225, same class as the .pathname trap above).
+  const name = basename(fileURLToPath(sourceUrl));
+  // Through the shared order-safe stripper: the hand-rolled block-first
+  // two-pass form opens a false block on a bare /* inside a line comment and
+  // could swallow the very readdirSync line this audit exists to catch (the
+  // strip_comments.ts header documents the shipped instance of this class).
+  const code = stripComments(readFileSync(fileURLToPath(sourceUrl), 'utf8'));
   for (const spelling of DIRECTORY_READS) {
     expect(
       code.split(spelling).length - 1,

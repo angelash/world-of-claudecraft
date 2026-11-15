@@ -8,7 +8,16 @@
 // persisted in character saves and, later, on Steam, where API names are
 // stable forever).
 
+import { STANDING_THRESHOLDS } from '../factions';
 import type { DeedDef } from '../types';
+import { FARM_CROP_IDS } from './farm_crops';
+import {
+  GOURDLIGHT_BOO_MARKS,
+  GOURDLIGHT_ERRAND_MARKS,
+  GOURDLIGHT_EVE_MARKS,
+  GOURDLIGHT_KNOCK_MARKS,
+  GOURDLIGHT_META_TITLE,
+} from './gourdlight_eve_deeds';
 
 // The current content era. Bumped ONLY by the maintainer at era boundaries;
 // feats gated on an era stay visible afterward as history markers and a
@@ -207,12 +216,14 @@ export const DEEDS: Record<string, DeedDef> = {
   prog_master_gatherer: {
     id: 'prog_master_gatherer',
     name: 'Master Gatherer',
-    // Desc reword (fishing joined the gathering ring, and the any-three
-    // trigger counts it): the desc names all four professions.
+    // Desc reword, second time (farming joined the gathering ring after
+    // fishing did, and the any-three trigger counts every registered trade).
+    // Enumerating the roster is what went stale twice, so the desc no longer
+    // names or counts the trades at all and a sixth trade cannot restale it.
     // The trigger itself is untouched (rule 9); the stale locale desc fills
     // were dropped with the reword and refill at release (deed_i18n.locales,
-    // English fallback until then).
-    desc: 'Reach 100 proficiency in any three of Mining, Logging, Herbalism, and Fishing.',
+    // English fallback until then), the same protocol as the fishing round.
+    desc: 'Reach 100 proficiency in any three gathering trades.',
     category: 'progression',
     renown: 25,
     trigger: { kind: 'gathering', amount: 100, count: 3 },
@@ -507,7 +518,7 @@ export const DEEDS: Record<string, DeedDef> = {
   },
   dgn_sanctum_speed: {
     id: 'dgn_sanctum_speed',
-    name: 'Sanctum Sprint',
+    name: 'Sanctum Footrace',
     desc: 'Defeat Korzul the Gravewyrm within 15 minutes of your party claiming Gravewyrm Sanctum.',
     category: 'dungeon',
     renown: 25,
@@ -654,7 +665,7 @@ export const DEEDS: Record<string, DeedDef> = {
   dlv_varric_ringers: {
     id: 'dlv_varric_ringers',
     name: 'The Bells Fall Silent',
-    desc: 'Defeat Deacon Varric with every Funeral Ringer he raises already slain.',
+    desc: 'Defeat Deacon Vandric with every Funeral Ringer he raises already slain.',
     category: 'delve',
     renown: 10,
     trigger: { kind: 'manual' },
@@ -681,15 +692,23 @@ export const DEEDS: Record<string, DeedDef> = {
       questIds: ['q_wolves', 'q_boars', 'q_spiders', 'q_greyjaw'],
     },
   },
+  // chr_vale_cup_debut dropped from this meta trigger (deeds.md rule 5,
+  // reviewed and deliberate): the Vale Cup minigame retired in commit
+  // 1c74387b4c ("demolish the Sowfield and retire the Vale Cup"), so that
+  // prerequisite became permanently unearnable and Chapter II would
+  // otherwise dead-end for every player who had not already finished it.
+  // deedsEarned is append-only, so an earned Chapter II is untouched; this
+  // only reopens the earn path for everyone else. The desc drops the matching
+  // clause so it never promises a task that no longer exists.
   chr_vale_chapter_ii: {
     id: 'chr_vale_chapter_ii',
     name: 'Vale Chronicle, Chapter II',
-    desc: "Finish the second chapter of Saul's chronicle: bandits, murlocs, and mine vermin put down, the Sowfield played, and the Reliquary braved.",
+    desc: "Finish the second chapter of Saul's chronicle: bandits, murlocs, and mine vermin put down, and the Reliquary braved.",
     category: 'chronicle',
     renown: 10,
     trigger: {
       kind: 'meta',
-      deedIds: ['chr_vale_packbreaker', 'chr_vale_cup_debut', 'dlv_reliquary'],
+      deedIds: ['chr_vale_packbreaker', 'dlv_reliquary'],
       questIds: ['q_murlocs', 'q_supplies', 'q_bandits', 'q_ringleader', 'q_mine', 'q_bones'],
     },
   },
@@ -746,13 +765,16 @@ export const DEEDS: Record<string, DeedDef> = {
     renown: 5,
     trigger: { kind: 'manual' },
   },
+  // Feat of Strength (deeds.md rule 5): joins the ten pvp_vcup_* Feats below
+  // (see their block comment) now that the Vale Cup minigame is gone.
   chr_vale_cup_debut: {
     id: 'chr_vale_cup_debut',
     name: 'Copper Pail Contender',
-    desc: 'Take the field and touch the ball in a Vale Cup match at the Sowfield.',
+    desc: 'Take the field and touch the ball in a Vale Cup match at the Sowfield. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'chronicle',
-    renown: 5,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   chr_vale_rares: {
     id: 'chr_vale_rares',
@@ -932,7 +954,7 @@ export const DEEDS: Record<string, DeedDef> = {
   chr_peaks_chapter_iii: {
     id: 'chr_peaks_chapter_iii',
     name: 'Chronicle of Thornpeak',
-    desc: "See the mountain's whole story through: the Wyrmcult broken, the Sanctum silenced, the Waking Peak felled, and every named terror of the crags laid low.",
+    desc: "See the mountain's whole story through: the Broodsworn broken, the Sanctum silenced, the Waking Peak felled, and every named terror of the crags laid low.",
     category: 'chronicle',
     renown: 50,
     trigger: {
@@ -964,7 +986,7 @@ export const DEEDS: Record<string, DeedDef> = {
   chr_peaks_sparring: {
     id: 'chr_peaks_sparring',
     name: 'Wall Drills',
-    desc: 'Deal 1,000 total damage to the training dummy above Highwatch.',
+    desc: 'Deal 1,000 total damage to a training dummy.',
     category: 'chronicle',
     renown: 5,
     trigger: { kind: 'stat', stat: 'dummyDamage', count: 1000 },
@@ -1244,7 +1266,7 @@ export const DEEDS: Record<string, DeedDef> = {
   col_quartermaster_buyout: {
     id: 'col_quartermaster_buyout',
     name: 'Preferred Customer',
-    desc: "Discover all ten pieces of the Heroic Quartermaster's stock.",
+    desc: "Discover all ten pieces of the Heroic Quartermaster's gear stock.",
     category: 'collection',
     renown: 25,
     trigger: {
@@ -1379,133 +1401,192 @@ export const DEEDS: Record<string, DeedDef> = {
     renown: 5,
     trigger: { kind: 'stat', stat: 'duelsLost', count: 1 },
   },
+  // Feats of Strength, the feat_brightwood_relic class (deeds.md rule 5): the
+  // New Eastbrook program (commit 1c74387b4c, "feat(world)!: demolish the
+  // Sowfield and retire the Vale Cup") pulled the whole boarball minigame out
+  // of the game, so a Vale Cup match can no longer be entered by any real
+  // player and none of these ten (plus chr_vale_cup_debut above) can be newly
+  // earned. Off the pvp_ prefix on purpose, the col_reliquary_complete
+  // exception class (renaming would silently strip the deed from every
+  // veteran's earned set, since PlayerMeta.deedsEarned keys on the id
+  // verbatim): see OFF_PREFIX_FEATS in tests/deeds_content.test.ts. Renown
+  // drops to 0 and they exit Book completion (deedDisplayCategory routes on
+  // category, not feat, so they stay on the PvP and Sport shelf), resolving
+  // docs/design/eastbrook-revamp/master-plan.md section 6 decision 1 (RETIRE,
+  // don't delete: earned copies, including pvp_vcup_wins_25's Boarball Legend
+  // title, stay exactly as earned). Each desc states the retirement directly,
+  // the feat_brightwood_relic precedent, since a stuck-looking Vale Cup deed
+  // with no explanation reads as a broken achievement rather than a removed
+  // game mode.
   pvp_vcup_first_match: {
     id: 'pvp_vcup_first_match',
     name: 'Boots on the Pitch',
-    desc: 'See out a full Vale Cup match at the Sowfield, win or lose.',
+    desc: 'See out a full Vale Cup match at the Sowfield, win or lose. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 5,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_vcup_first_win: {
     id: 'pvp_vcup_first_win',
     name: 'First Silverware',
-    desc: 'Win a rated Vale Cup match.',
+    desc: 'Win a rated Vale Cup match. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'meter', meter: 'vcupWins', amount: 1 },
+    feat: true,
   },
   pvp_vcup_wins_10: {
     id: 'pvp_vcup_wins_10',
     name: 'Seasoned Boarballer',
-    desc: 'Win 10 rated Vale Cup matches.',
+    desc: 'Win 10 rated Vale Cup matches. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'meter', meter: 'vcupWins', amount: 10 },
+    feat: true,
   },
   pvp_vcup_wins_25: {
     id: 'pvp_vcup_wins_25',
     name: 'Boarball Legend',
-    desc: 'Win 25 rated Vale Cup matches.',
+    desc: 'Win 25 rated Vale Cup matches. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 25,
+    renown: 0,
     trigger: { kind: 'meter', meter: 'vcupWins', amount: 25 },
     reward: { kind: 'title', text: 'Boarball Legend' },
+    feat: true,
   },
   pvp_vcup_first_goal: {
     id: 'pvp_vcup_first_goal',
     name: 'Off the Mark',
-    desc: 'Score a goal in a rated Vale Cup match.',
+    desc: 'Score a goal in a rated Vale Cup match. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 5,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_vcup_hat_trick: {
     id: 'pvp_vcup_hat_trick',
     name: 'Hat Trick Hero',
-    desc: 'Score three goals in a single rated Vale Cup match, in the 3v3 bracket or larger.',
+    desc: 'Score three goals in a single rated Vale Cup match, in the 3v3 bracket or larger. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 25,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_vcup_golden_goal: {
     id: 'pvp_vcup_golden_goal',
     name: 'Golden Moment',
-    desc: 'Score the golden goal that decides a rated Vale Cup match.',
+    desc: 'Score the golden goal that decides a rated Vale Cup match. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 25,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_vcup_first_save: {
     id: 'pvp_vcup_first_save',
     name: 'Safe Hands',
-    desc: 'Make a save as keeper in a rated Vale Cup match.',
+    desc: 'Make a save as keeper in a rated Vale Cup match, in the 3v3 bracket or larger. Only a shot moving fast enough to test your grip counts: a soft catch does not. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 5,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_vcup_clean_sheet: {
     id: 'pvp_vcup_clean_sheet',
     name: 'Nothing Gets Past Me',
-    desc: 'Win a rated Vale Cup match as keeper without conceding a goal.',
+    desc: 'Win a rated Vale Cup match as keeper without conceding a goal, in the 3v3 bracket or larger. Vale Cup matches are no longer playable, so this can no longer be newly earned.',
     category: 'pvp',
-    renown: 25,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_vcup_guild_win: {
     id: 'pvp_vcup_guild_win',
     name: 'For the Banner',
-    desc: "Win a rated Vale Cup match entered under your guild's banner.",
+    desc: "Win a rated Vale Cup match entered under your guild's banner. Vale Cup matches are no longer playable, so this can no longer be newly earned.",
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'meter', meter: 'vcupGuildWins', amount: 1 },
+    feat: true,
   },
+  // Feats of Strength, the feat_brightwood_relic class (deeds.md rule 5): the
+  // Ravenrift PvP-window merge (commit 9583d36103, "the Fiesta and Protect
+  // Yumi brackets retire from the strip along with the offline practice
+  // hook") pulled Fiesta out of the queueable bracket list, so none of these
+  // seven can be newly earned through the shipped client. Off the pvp_
+  // prefix on purpose, the col_reliquary_complete exception class (renaming
+  // would silently strip the deed from every veteran's earned set, since
+  // PlayerMeta.deedsEarned keys on the id verbatim): see OFF_PREFIX_FEATS in
+  // tests/deeds_content.test.ts. They stay on the PvP and Sport shelf, not
+  // the Feats shelf: deedDisplayCategory keys on `category` alone (still
+  // 'pvp' here), and only hidden-category deeds plus the true feat_* ids
+  // land on Feats; the feat ribbon marks them in place instead. Renown drops
+  // to 0 and they exit Book completion, which also un-strands
+  // feat_book_complete for anyone who had not earned all seven
+  // pre-retirement (see "un-strands the capstone" below) and is what stops a
+  // new player's maximum from sitting behind a bracket nobody can enter.
+  // This is a DELIBERATE exception to deeds.md rule 2 ("the account score
+  // must never decrease"): recomputeRenown (src/sim/deeds.ts) and the
+  // account Renown board (server/deeds_board.ts) both re-derive from the
+  // LIVE catalog, so an existing earner's Renown total and board score drop
+  // by up to 65 on their next load. The earned RECORD never changes (that is
+  // what keeping the pvp_ id protects); only the score moves, which rule 5's
+  // retirement path forces by construction, since a Feat is zero-Renown
+  // under rule 2's own scale. Flagged for maintainer review; see the PR
+  // description. Each desc states the retirement directly, the
+  // feat_brightwood_relic precedent, since a stuck-looking Fiesta deed in
+  // the PvP and Sport tab is what got reported as "the mode was removed."
   pvp_fiesta_first_bout: {
     id: 'pvp_fiesta_first_bout',
     name: 'Party Crasher',
-    desc: 'Fight a full 2v2 Fiesta bout, win or lose.',
+    desc: 'Fight a full 2v2 Fiesta bout, win or lose. Fiesta bouts are no longer offered in the Arena queue; this cannot be newly earned.',
     category: 'pvp',
-    renown: 5,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_fiesta_first_win: {
     id: 'pvp_fiesta_first_win',
     name: 'Life of the Fiesta',
-    desc: 'Win a 2v2 Fiesta bout.',
+    desc: 'Win a 2v2 Fiesta bout. Fiesta bouts are no longer offered in the Arena queue; this cannot be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_fiesta_double: {
     id: 'pvp_fiesta_double',
     name: 'Double Trouble',
-    desc: 'Score two Fiesta takedowns within four seconds.',
+    desc: 'Score two Fiesta takedowns within four seconds. Fiesta bouts are no longer offered in the Arena queue; this cannot be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_fiesta_shutdown: {
     id: 'pvp_fiesta_shutdown',
     name: 'Party Pooper',
-    desc: 'Take down a Fiesta foe who is on a streak of three or more.',
+    desc: 'Take down a Fiesta foe who is on a streak of three or more. Fiesta bouts are no longer offered in the Arena queue; this cannot be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_fiesta_full_build: {
     id: 'pvp_fiesta_full_build',
     name: 'Dressed for the Occasion',
-    desc: 'Win a Fiesta bout with an augment locked in from all three waves.',
+    desc: 'Win a Fiesta bout with an augment locked in from all three waves. Fiesta bouts are no longer offered in the Arena queue; this cannot be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
   pvp_fiesta_powerups: {
     id: 'pvp_fiesta_powerups',
     name: 'One of Everything',
-    desc: 'Grab each of the four ring power-ups at least once: Speed Demon, Colossus, Moon Boots, and Berserker.',
+    desc: 'Grab each of the four ring power-ups at least once: Speed Demon, Colossus, Moon Boots, and Berserker. Fiesta bouts are no longer offered in the Arena queue; this cannot be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: {
       kind: 'visits',
       markIds: [
@@ -1515,14 +1596,16 @@ export const DEEDS: Record<string, DeedDef> = {
         'fiesta:pow_berserker',
       ],
     },
+    feat: true,
   },
   pvp_fiesta_five_kills: {
     id: 'pvp_fiesta_five_kills',
     name: 'Carrying the Party',
-    desc: 'Score five takedowns in a single Fiesta bout.',
+    desc: 'Score five takedowns in a single Fiesta bout. Fiesta bouts are no longer offered in the Arena queue; this cannot be newly earned.',
     category: 'pvp',
-    renown: 10,
+    renown: 0,
     trigger: { kind: 'manual' },
+    feat: true,
   },
 
   soc_first_party: {
@@ -1803,11 +1886,16 @@ export const DEEDS: Record<string, DeedDef> = {
   // be created. Holders earn it at login or receipt (the items are unbound,
   // so they still trade); a fresh realm can never mint a first earner. That
   // is the intended nature of this feat class, it stays visible as a history
-  // marker, and feat deeds are excluded from BOOK_COMPLETE_REQUIREMENTS.
+  // marker, and feat deeds are excluded from BOOK_COMPLETE_REQUIREMENTS. The
+  // desc states the no-longer-drops fact directly (the col_reliquary_complete
+  // caveat-sentence precedent) since players otherwise read a stuck 0/1 as a
+  // broken achievement and report it as a bug.
   feat_brightwood_relic: {
     id: 'feat_brightwood_relic',
     name: 'Brightwood Remembered',
-    desc: "Keep a relic of the old Brightwood: the Bramblehide Jerkin or the Monarch's Crown.",
+    desc:
+      "Keep a relic of the old Brightwood: the Bramblehide Jerkin or the Monarch's Crown. " +
+      'The relics no longer drop; only a trade with an existing holder can pass one on.',
     category: 'feat',
     renown: 0,
     trigger: {
@@ -1942,12 +2030,12 @@ export const DEEDS: Record<string, DeedDef> = {
     renown: 5,
     trigger: { kind: 'quest', questId: 'q_prof_intro' },
   },
-  // Reagent sourcing: every toolworks recipe requires one of the six tier
-  // 4/5 reagents (thorium_ore, arcanite_bar, ashwood_log, elderwood_log,
-  // goldleaf_herb, sunpetal_herb), sold by Quartermaster Bree at the
-  // Highwatch hub (zone3.ts), so this deed (and feat_book_complete through
-  // it) is completable in live play. The vendor-to-craft-to-grant chain is
-  // pinned by tests/professions_crafting_hub.test.ts. The stat key stays
+  // Completability: the trigger is ONE station-bound craft at ANY station, not
+  // a toolworks tool recipe and not any single vendor's stock, so no change to
+  // what a counter sells can strand this deed (or feat_book_complete through
+  // it). What it does need is that every station recipe has a live reagent
+  // source, a vendor row or a gather node, which is what
+  // tests/professions_crafting_hub.test.ts pins. The stat key stays
   // 'hubCraftsPerformed' (persisted): it counts station-bound
   // crafts at any station (see professions/crafting.ts craftItem).
   prog_tools_of_the_trade: {
@@ -1990,10 +2078,24 @@ export const DEEDS: Record<string, DeedDef> = {
   // within this block only). Craft-skill thresholds reference ONLY resolved
   // caps or below: every CRAFT_RING craft caps at 125 (craftMaxSkillFor),
   // fishing at 200, the other gathering professions at 100
-  // (content/professions.ts maxSkill). Jewelcrafting and Inscription have no
-  // live skill-gain path yet (zero recipes, no enchanting-style action), so
-  // their milestone and Grandmaster deeds stay deferred with prog_ringwright
-  // rather than shipping visible-but-unearnable.
+  // (content/professions.ts maxSkill). Inscription gained its live skill-gain
+  // path with the Masterwrought phase 06 base catalog (INSCRIPTION_RECIPES);
+  // its milestone and Grandmaster deeds ship in the appended block at the
+  // table tail. prog_ringwright stays deferred on its OWN account now: the
+  // ring deed has no recorded design (no trigger shape, threshold, name, or
+  // renown anywhere), so it waits on a maintainer ruling, not on an engine
+  // surface. Jewelcrafting left the deferred set when its base catalog
+  // landed (JEWELCRAFTING_RECIPES); its rare-tier milestone is
+  // prog_jewelcrafting_rare in the appended block below, and the phase 05 QA
+  // ruling (2026-08-10) authored its skill-50 and Grandmaster pair behind it
+  // (prog_jewelcrafting_50 / prog_grandmaster_jewelcrafting): the 125 cap is
+  // reachable on the base catalog alone for an unattuned character, and
+  // post-attunement whenever jewelcrafting is the pair or the hobby (a
+  // non-hobby crafter stalls at the common ceiling like EVERY craft; the
+  // shipped switchHobby quest keeps the deed reachable for all), so the hold
+  // was authoring, not mechanics. No attunement quest names a jewelcrafting
+  // pair yet (content/zone1.ts ships four), so the craft climbs as a hobby.
+  // Earnability is pinned by derivation in tests/deeds_content.test.ts.
   prog_guildsworn: {
     id: 'prog_guildsworn',
     name: 'Craftsworn',
@@ -2216,6 +2318,1808 @@ export const DEEDS: Record<string, DeedDef> = {
     category: 'social',
     renown: 10,
     trigger: { kind: 'stat', stat: 'salvagesPerformed', count: 50 },
+  },
+
+  // Wildheart Basin (Palmreach). New records stay at the append-only tail.
+  dgn_wildheart_basin: {
+    id: 'dgn_wildheart_basin',
+    name: 'The Basin Bites Back',
+    desc: 'Defeat Zulgar, Voice of the Basin in the Wildheart Basin.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'dungeonClears', dungeonId: 'wildheart_basin', count: 1 },
+  },
+  dgn_wildheart_basin_heroic: {
+    id: 'dgn_wildheart_basin_heroic',
+    name: 'Heroic: The Wildheart Basin',
+    desc: 'Defeat Zulgar, Voice of the Basin in the Wildheart Basin on Heroic difficulty.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: {
+      kind: 'dungeonClears',
+      dungeonId: 'wildheart_basin',
+      difficulty: 'heroic',
+      count: 1,
+    },
+  },
+  // The zone-3 rung of the per-zone gatherer chronicle line (R21): the
+  // gather:thornpeak_heights:* marks have been written by completeGatherCast
+  // since the t3 veins shipped, with no consumer until this deed. Unlike its
+  // vale and marsh siblings it is NOT a chapter prerequisite: the peaks
+  // chapter deedIds were already shipped, and shipped triggers are frozen
+  // (authoring rule 9), so this deed stands alone.
+  chr_peaks_gatherer: {
+    id: 'chr_peaks_gatherer',
+    name: 'Harvest of the Heights',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in Thornpeak Heights.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: [
+        'gather:thornpeak_heights:ore',
+        'gather:thornpeak_heights:wood',
+        'gather:thornpeak_heights:herb',
+      ],
+    },
+  },
+  // Two camp rares shipped alongside their zones but were left off the first
+  // reckoning of named terrors (chr_marsh_rares / chr_peaks_rares). Design
+  // rule 9 forbids widening those shipped trigger lists, so the missed
+  // rares get their own NEW deeds instead of a retro-edit.
+  chr_marsh_rares_ii: {
+    id: 'chr_marsh_rares_ii',
+    name: 'The Glutton, Reckoned',
+    desc: 'Slay Grubjaw the Glutton, a fourth named terror of Mirefen Marsh left off the first reckoning.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'slain:grubjaw' },
+  },
+  chr_peaks_rares_ii: {
+    id: 'chr_peaks_rares_ii',
+    name: 'More Names Cut into the Crag',
+    desc: 'Slay Old Cragmaw and Shardlord Kazzix, two more named terrors of Thornpeak Heights left off the first reckoning.',
+    category: 'chronicle',
+    renown: 10,
+    trigger: { kind: 'visits', markIds: ['slain:old_cragmaw', 'slain:shardlord_kazzix'] },
+  },
+  // The Gleamstag shipped with the Wildheart Basin content wave as another
+  // persistent camp rare with a unique display name, and was likewise never
+  // wired into the deed credit system; see the RARE_SLAIN_TEMPLATES coverage
+  // test in tests/deeds_content.test.ts.
+  chr_gleamstag: {
+    id: 'chr_gleamstag',
+    name: 'The Legend That Would Not Strike First',
+    desc: 'Slay the Gleamstag, a rare and reclusive elite that will not attack unless cornered.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'slain:gleamstag' },
+  },
+  // Old Marrowshell and Aurelhorn are the Hollow's two wandering rare bosses
+  // (huntsman_deral's chain points at both) but neither their kill quests
+  // nor RARE_SLAIN_TEMPLATES fed a deed; same gap class, found by the same
+  // coverage test.
+  chr_hollow_rares: {
+    id: 'chr_hollow_rares',
+    name: 'The Herd Remembers',
+    desc: 'Slay Old Marrowshell and Aurelhorn, First of the Herd, the two wandering rare bosses of the Hollow.',
+    category: 'chronicle',
+    renown: 10,
+    trigger: { kind: 'visits', markIds: ['slain:old_marrowshell', 'slain:aurelhorn'] },
+  },
+
+  // --- Thornhollow Fields, the 5v5 capture-the-flag battleground (src/sim/social/
+  // battleground.ts). Meters read the persisted PlayerMeta standing (bgWins /
+  // bgCaptures), so they count OUTCOMES, never attendance (rule 6), and
+  // retro-grant on load like every meter.
+  //
+  // The career-100 captures deed paces off BG_CAPS_TO_WIN, which was retuned
+  // from 5 to 3: a dominant winner now banks at most 3 captures per match
+  // rather than 5, so that deed's tail lengthens by roughly the same ratio.
+  // Left AS IS deliberately. The meter is career-cumulative with no time
+  // window, deeds are cosmetic-only (a title and Renown, never power), and
+  // re-cutting the threshold every time the match target moves would keep
+  // re-basing a number players are already partway through.
+  pvp_bg_first_capture: {
+    id: 'pvp_bg_first_capture',
+    name: 'Banner in Hand',
+    desc: 'Capture a flag in Thornhollow Fields.',
+    category: 'pvp',
+    renown: 5,
+    trigger: { kind: 'meter', meter: 'bgCaptures', amount: 1 },
+  },
+  pvp_bg_first_win: {
+    id: 'pvp_bg_first_win',
+    name: 'The Hollow Holds',
+    desc: 'Win a Thornhollow Fields battleground.',
+    category: 'pvp',
+    renown: 5,
+    trigger: { kind: 'meter', meter: 'bgWins', amount: 1 },
+  },
+  pvp_bg_wins_25: {
+    id: 'pvp_bg_wins_25',
+    name: 'Warden of the Hollow',
+    desc: 'Win 25 Thornhollow Fields battlegrounds.',
+    category: 'pvp',
+    renown: 25,
+    trigger: { kind: 'meter', meter: 'bgWins', amount: 25 },
+    reward: { kind: 'title', text: 'Flagbearer' },
+  },
+  pvp_bg_captures_100: {
+    id: 'pvp_bg_captures_100',
+    name: 'A Hundred Banners',
+    desc: 'Capture 100 flags in Thornhollow Fields across your career.',
+    category: 'pvp',
+    renown: 50,
+    trigger: { kind: 'meter', meter: 'bgCaptures', amount: 100 },
+  },
+
+  // The phase 20 density pass brought the three bottom-map zones to the
+  // strip's own gathering density (Q26 in
+  // docs/design/professions-tuning-packet-review.md): each gets the zone
+  // chronicle pair the strip zones carry, the gatherer chronicle (the R21
+  // line) and the first-cast deed. The gather marks have been written by
+  // completeGatherCast since the v0.32.0 starter kits shipped; the fish
+  // marks fire through ZONE_FISH rows listing the Vale-fallback draws these
+  // zones' waters actually yield until the zone-4 pass authors their own
+  // catch tables. Standalone chronicles with no chapter meta (the
+  // chr_peaks_gatherer precedent; shipped chapter triggers are frozen,
+  // authoring rule 9).
+  chr_willowfen_gatherer: {
+    id: 'chr_willowfen_gatherer',
+    name: 'Fenland Bounty',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Willowfen.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:willowfen:ore', 'gather:willowfen:wood', 'gather:willowfen:herb'],
+    },
+  },
+  chr_willowfen_first_cast: {
+    id: 'chr_willowfen_first_cast',
+    name: 'Ripples in the Lilymoors',
+    desc: 'Catch a fish from the waters of the Willowfen.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:willowfen' },
+  },
+  chr_galecrest_gatherer: {
+    id: 'chr_galecrest_gatherer',
+    name: 'Harvest on the Headland',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Galecrest.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:galecrest:ore', 'gather:galecrest:wood', 'gather:galecrest:herb'],
+    },
+  },
+  chr_galecrest_first_cast: {
+    id: 'chr_galecrest_first_cast',
+    name: 'A Line in the Mirror Tarn',
+    desc: 'Catch a fish from the waters of the Galecrest.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:galecrest' },
+  },
+  chr_farshore_gatherer: {
+    id: 'chr_farshore_gatherer',
+    name: 'Island Provisions',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch on the Farshore.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: [
+        'gather:farshore_isle:ore',
+        'gather:farshore_isle:wood',
+        'gather:farshore_isle:herb',
+      ],
+    },
+  },
+  chr_farshore_first_cast: {
+    id: 'chr_farshore_first_cast',
+    name: 'What the Gulls Know',
+    desc: 'Catch a fish from the waters of the Farshore.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:farshore_isle' },
+  },
+  // The Drakelands dragonkin brood rework (v0.35): the Drakemaw Broodlords
+  // are the zone's new standing elites (shout, egg clutch, cleave, breath,
+  // counter-stun), and Cindraleth, the shipped quest capstone, was never
+  // wired into slain-mark credit (the Gleamstag gap class; both templates
+  // now sit in RARE_SLAIN_TEMPLATES).
+  chr_drakemaw_broodlord: {
+    id: 'chr_drakemaw_broodlord',
+    name: 'Clutch Breaker',
+    desc: 'Slay a Drakemaw Broodlord amid its eggs, through the shout, the cleave, and the fire.',
+    category: 'chronicle',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'slain:drakemaw_broodlord' },
+  },
+  chr_maw_matriarch: {
+    id: 'chr_maw_matriarch',
+    name: 'The Sky Goes Quiet',
+    desc: 'Slay Cindraleth the Maw Matriarch in her crater roost above the Drakemaw.',
+    category: 'chronicle',
+    renown: 10,
+    // Rides the shipped kill quest (retro-grantable for every veteran who
+    // already finished the chain), so the boss template needs no rare flag.
+    trigger: { kind: 'quest', questId: 'q_dk_matriarch_of_the_maw' },
+  },
+
+  // Rifts (src/sim/rift/): the procedural infinite-dungeon system, ranked C
+  // through S. No single dungeonId exists to key a dungeonClears trigger
+  // against (every rift regenerates from a seed), so both deeds read a
+  // lifetime counter instead, bumped in rift/runs.ts on run completion.
+  dgn_rift: {
+    id: 'dgn_rift',
+    name: 'Riftwalker',
+    desc: 'Clear a Rift by defeating its floor boss.',
+    category: 'dungeon',
+    renown: 5,
+    trigger: { kind: 'stat', stat: 'riftClears', count: 1 },
+  },
+  dgn_rift_s_rank: {
+    id: 'dgn_rift_s_rank',
+    name: 'Rift Sovereign',
+    desc: 'Clear an S-rank Rift, the hardest tier a Rift portal can spawn.',
+    category: 'dungeon',
+    renown: 25,
+    trigger: { kind: 'stat', stat: 'riftSRankClears', count: 1 },
+  },
+
+  // Basic universal profession deeds, issue #2055: per-craft rare-tier
+  // milestones. Each fires off the craft_rare:<craftId> mark
+  // (professions/crafting.ts craftItem) the first time a player crafts a
+  // rare-or-better output IN THAT CRAFT. Output quality is a static fact of
+  // the recipe's result def (the Professions 2.0 output roll is retired), so
+  // this is never luck-based, only whether the player knows the recipe and
+  // holds the reagents: standard renown, no title, same tier as the other
+  // moderate profession-depth milestones (prog_fishing_100). Covers exactly
+  // the crafts that ship a rare-or-better recipe (see
+  // tests/deeds_content.test.ts for the derivation): the seven below, plus
+  // prog_jewelcrafting_rare (Masterwrought phase 05) and
+  // prog_inscription_rare (phase 06), both appended at the table tail
+  // (DEED_ORDER is append-only). Enchanting alone stays out: it has no
+  // item-def output to grade. prog_ringwright stays deferred on its own
+  // account (the completed-ring deed has no recorded design; see the
+  // Professions 2.0 block above).
+  prog_engineering_rare: {
+    id: 'prog_engineering_rare',
+    name: 'Precision Engineering',
+    desc: 'Craft your first rare-tier item in Engineering.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:engineering' },
+  },
+  prog_alchemy_rare: {
+    id: 'prog_alchemy_rare',
+    name: 'A Rare Vintage',
+    desc: 'Craft your first rare-tier item in Alchemy.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:alchemy' },
+  },
+  prog_cooking_rare: {
+    id: 'prog_cooking_rare',
+    name: 'A Dish to Remember',
+    desc: 'Craft your first rare-tier item in Cooking.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:cooking' },
+  },
+  prog_leatherworking_rare: {
+    id: 'prog_leatherworking_rare',
+    name: 'Fine Tanning',
+    desc: 'Craft your first rare-tier item in Leatherworking.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:leatherworking' },
+  },
+  prog_tailoring_rare: {
+    id: 'prog_tailoring_rare',
+    name: "A Master's Stitch",
+    desc: 'Craft your first rare-tier item in Tailoring.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:tailoring' },
+  },
+  prog_weaponcrafting_rare: {
+    id: 'prog_weaponcrafting_rare',
+    name: 'Tempered to a Shine',
+    desc: 'Craft your first rare-tier item in Weaponcrafting.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:weaponcrafting' },
+  },
+  prog_armorcrafting_rare: {
+    id: 'prog_armorcrafting_rare',
+    name: 'Plated to Perfection',
+    desc: 'Craft your first rare-tier item in Armorcrafting.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:armorcrafting' },
+  },
+  // The remaining starter-tier zones from the v0.32.0 expansion pick up the
+  // same chronicle pair the phase 20 pass gave Willowfen, Galecrest, and
+  // Farshore: identical infrastructure (starter-kit gather nodes plus the
+  // Vale-fallback catch table), just never wired to a deed. Drakelands
+  // already picked up its own pair (chr_drakemaw_broodlord,
+  // chr_maw_matriarch) with the v0.35.0 dragonkin brood rework, so this
+  // batch covers only the six zones that rework never touched. Copied
+  // line-for-line from the template above; renown 5 each.
+  chr_frostveil_gatherer: {
+    id: 'chr_frostveil_gatherer',
+    name: 'Terraced Harvest',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Frostveil.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:frostveil:ore', 'gather:frostveil:wood', 'gather:frostveil:herb'],
+    },
+  },
+  chr_frostveil_first_cast: {
+    id: 'chr_frostveil_first_cast',
+    name: 'First Ice on the Tarn',
+    desc: 'Catch a fish from the waters of the Frostveil.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:frostveil' },
+  },
+  chr_amberfall_gatherer: {
+    id: 'chr_amberfall_gatherer',
+    name: 'The Amberfall Harvest',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Amberfall.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:amberfall:ore', 'gather:amberfall:wood', 'gather:amberfall:herb'],
+    },
+  },
+  chr_amberfall_first_cast: {
+    id: 'chr_amberfall_first_cast',
+    name: 'A Catch from the Great Mere',
+    desc: 'Catch a fish from the waters of the Amberfall.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:amberfall' },
+  },
+  chr_nightbloom_gatherer: {
+    id: 'chr_nightbloom_gatherer',
+    name: 'The Dreaming Harvest',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Nightbloom.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:nightbloom:ore', 'gather:nightbloom:wood', 'gather:nightbloom:herb'],
+    },
+  },
+  chr_nightbloom_first_cast: {
+    id: 'chr_nightbloom_first_cast',
+    name: 'A Ripple on the Moonspring',
+    desc: 'Catch a fish from the waters of the Nightbloom.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:nightbloom' },
+  },
+  chr_wraithwood_gatherer: {
+    id: 'chr_wraithwood_gatherer',
+    name: 'Harvest Under the Canopy',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Wraithwood.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:wraithwood:ore', 'gather:wraithwood:wood', 'gather:wraithwood:herb'],
+    },
+  },
+  chr_wraithwood_first_cast: {
+    id: 'chr_wraithwood_first_cast',
+    name: 'A Cast in the Looking-Glass',
+    desc: 'Catch a fish from the waters of the Wraithwood.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:wraithwood' },
+  },
+  chr_palmreach_gatherer: {
+    id: 'chr_palmreach_gatherer',
+    name: 'Harvest on the Palmstrand',
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Palmreach.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:palmreach:ore', 'gather:palmreach:wood', 'gather:palmreach:herb'],
+    },
+  },
+  chr_palmreach_first_cast: {
+    id: 'chr_palmreach_first_cast',
+    name: 'Casting the Sapphire Lagoon',
+    desc: 'Catch a fish from the waters of the Palmreach.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:palmreach' },
+  },
+  chr_evergarden_gatherer: {
+    id: 'chr_evergarden_gatherer',
+    name: "The Parterre's Bounty",
+    desc: 'Harvest an ore vein, a wood stand, and an herb patch in the Evergarden.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: ['gather:evergarden:ore', 'gather:evergarden:wood', 'gather:evergarden:herb'],
+    },
+  },
+  chr_evergarden_first_cast: {
+    id: 'chr_evergarden_first_cast',
+    name: 'A Cast on the Petal Pond',
+    desc: 'Catch a fish from the waters of the Evergarden.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'fish:evergarden' },
+  },
+
+  // The Reliquary Curator ranks (cosmetic prestige over unique catalogued
+  // relic fills). Zero Renown: catalog / luck prestige never scores the
+  // board (docs/design/reliquary.md + deeds.md rule 2). Manual: granted by
+  // syncCuratorRankDeeds when the pure rank threshold is crossed (and on
+  // join retro for veterans who already crossed). Titles/borders only.
+  // Appended after the starter-zone chronicle block so DEED_ORDER stays
+  // append-only across the release merge.
+  col_reliquary_rank_2: {
+    id: 'col_reliquary_rank_2',
+    name: 'Spoilskeeper',
+    desc: 'Reach Curator rank 2 in The Reliquary (10 unique catalogued relics).',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Spoilskeeper' },
+  },
+  col_reliquary_rank_3: {
+    id: 'col_reliquary_rank_3',
+    name: 'The Cataloguer',
+    desc: 'Reach Curator rank 3 in The Reliquary (25 unique catalogued relics).',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'the Cataloguer' },
+  },
+  col_reliquary_rank_4: {
+    id: 'col_reliquary_rank_4',
+    name: 'Arch-Curator',
+    desc: 'Reach Curator rank 4 in The Reliquary (50 unique catalogued relics).',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Arch-Curator' },
+  },
+  col_reliquary_rank_5: {
+    id: 'col_reliquary_rank_5',
+    name: 'Eternal Spoils',
+    desc: 'Reach Curator rank 5 in The Reliquary (100 unique catalogued relics).',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'border', slug: 'reliquary_gilt' },
+  },
+  // The WARFARE lifetime-honor ladder: what honor is FOR once the set is
+  // bought. The meter reads PlayerMeta.lifetimeHonor, which is monotonic
+  // (grantHonor only ever adds), so spending at the quartermaster can never
+  // take a rank back, and a veteran who earned the honor before these deeds
+  // shipped is credited by the join-time retro pass.
+  // Rank names are IP-SAFE COINAGES in this world's title voice (the
+  // Peakbreaker / Wyrmfeller / Craftsworn shape), NOT the classic-era PvP ladder
+  // they originally copied: Sergeant, Knight-Lieutenant and Field Marshal are
+  // verbatim ranks from another game. They still climb toward Warmarshal Draven
+  // Kole and stop deliberately short of his rank, so the quartermaster stays the
+  // top of the chain of command being climbed.
+  // Thresholds derive from a modelled ~900 honor per committed day of
+  // Thornhollow Fields (result honor plus the uncapped per-kill drip, after the
+  // per-opponent daily decay in src/sim/pvp/honor.ts), so roughly 11, 44 and 167
+  // committed days. Linebreaker deliberately lands a little AFTER the 7,550-honor
+  // complete kit, so the first title rewards finishing the gear grind rather than
+  // being a step along it. The thresholds are the tunable here; the income
+  // assumption they rest on is written down so they can be moved with evidence
+  // rather than by feel.
+  pvp_honor_sergeant: {
+    id: 'pvp_honor_sergeant',
+    name: 'Linebreaker',
+    desc: 'Earn 10,000 honor in your lifetime. Spending it never costs you the rank.',
+    category: 'pvp',
+    renown: 10,
+    trigger: { kind: 'meter', meter: 'lifetimeHonor', amount: 10_000 },
+    reward: { kind: 'title', text: 'Linebreaker' },
+  },
+  pvp_honor_knight_lieutenant: {
+    id: 'pvp_honor_knight_lieutenant',
+    name: 'Fieldreaver',
+    desc: 'Earn 40,000 honor in your lifetime, a season of real war behind you.',
+    category: 'pvp',
+    renown: 25,
+    trigger: { kind: 'meter', meter: 'lifetimeHonor', amount: 40_000 },
+    reward: { kind: 'title', text: 'Fieldreaver' },
+  },
+  pvp_honor_field_marshal: {
+    id: 'pvp_honor_field_marshal',
+    name: 'Warcrowned',
+    desc: 'Earn 150,000 honor in your lifetime. Rare on any realm, and it should be.',
+    category: 'pvp',
+    renown: 50,
+    trigger: { kind: 'meter', meter: 'lifetimeHonor', amount: 150_000 },
+    reward: { kind: 'title', text: 'Warcrowned' },
+  },
+  // The Reliquary completion ladder (Phase 18): catalog-wide and shelf-wide
+  // completion plus the three flagship page Illuminations. Zero Renown:
+  // catalog / luck prestige never scores the board (docs/design/reliquary.md +
+  // deeds.md rule 2). Manual: granted by syncReliquaryCompletionDeeds when the
+  // pure completion read holds (and on join retro for veterans who already
+  // hold it). STICKY: later catalog growth lowers the live completion read but
+  // never revokes the earned record (the feat_book_complete precedent: the
+  // requirement is "the catalog as shipped when you finished it", not a moving
+  // target). Titles only. Appended after the WARFARE honor ladder so
+  // DEED_ORDER stays append-only across the release merge. The GRANT-CHECK
+  // order lives in RELIQUARY_COMPLETION_DEED_IDS (src/sim/reliquary.ts) and
+  // deliberately differs from this table's order: illuminations before the
+  // shelf before the catalog, so a title granted earlier in one pass is
+  // visible to the later checks.
+  // feat: true, uniquely off the feat_ prefix (pinned with rationale in
+  // tests/deeds_content.test.ts): the capstone is a dynamic meta over a
+  // growing catalog, the feat_book_complete class, and the flag is what
+  // keeps it OUT of BOOK_COMPLETE_REQUIREMENTS. Two catalog slots are
+  // owner-pended today (reins_lanternback_troll, reins_wobbles_slime;
+  // reins_terrorspark_groundshaker left when the annual membership bundle
+  // began granting it;
+  // masterwork:engineering was the third until masterwrought Phase 11o's
+  // stats-bearing copperlens_ocular made the mark earnable, 2026-08-25, and
+  // reins_drakemaw_raptor left the list when the Mirefen world boss took it),
+  // so a non-feat capstone would dead-end
+  // The Whole Book for every player (the retroFallbackGrants stranded-heal
+  // doctrine names exactly that failure). It stays on the Collection shelf
+  // beside its ladder; grant, marquee, and feed behavior are unaffected.
+  col_reliquary_complete: {
+    id: 'col_reliquary_complete',
+    name: 'The Grand Reliquary',
+    desc: 'Catalogue every relic in The Reliquary that a character can keep. Later catalog growth never takes it back.',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Curator of the Vault' },
+    feat: true,
+  },
+  col_reliquary_conquerors: {
+    id: 'col_reliquary_conquerors',
+    name: 'Shelf of Conquerors',
+    desc: 'Catalogue every relic on the Conquerors shelf of The Reliquary. Later catalog growth never takes it back.',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Vaultbreaker' },
+  },
+  col_reliquary_illum_nythraxis_heroic: {
+    id: 'col_reliquary_illum_nythraxis_heroic',
+    name: 'Nythraxis Illuminated',
+    desc: 'Illuminate the Heroic Nythraxis Raid page of The Reliquary.',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Light of Nythraxis' },
+  },
+  col_reliquary_illum_thunzharr: {
+    id: 'col_reliquary_illum_thunzharr',
+    name: 'Thunzharr Illuminated',
+    desc: 'Illuminate the Thunzharr, the Waking Peak page of The Reliquary.',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Light of Thunzharr' },
+  },
+  col_reliquary_illum_gravewyrm_heroic: {
+    id: 'col_reliquary_illum_gravewyrm_heroic',
+    name: 'Sanctum Illuminated',
+    desc: 'Illuminate the Heroic Gravewyrm Sanctum page of The Reliquary.',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Light of the Sanctum' },
+  },
+  // The walk-in castle visits, appended per the append-only DEED_ORDER
+  // contract. The Last Keep one retro-fixes a rule gap: the keep shipped
+  // without its deeds (every new conquerable content authors deeds in the
+  // same change; docs/design/deeds.md). Both key on the dungeon: visit mark
+  // enterDungeon writes, the drowned_temple moongate precedent.
+  exp_the_last_keep: {
+    id: 'exp_the_last_keep',
+    name: 'The Quiet Halls',
+    desc: 'Step through the doors of the Last Keep and walk its silent halls.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'dungeon:the_last_keep' },
+  },
+  exp_dawnhold_castle: {
+    id: 'exp_dawnhold_castle',
+    name: 'An Open Door in the Garden',
+    desc: 'Call on Dawnhold Castle and wander its sunlit garden halls.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'dungeon:dawnhold_castle' },
+  },
+  // Jewelcrafting joins the per-craft rare-tier milestone family (issue
+  // #2055) with the Masterwrought phase 05 base catalog, whose rung-50
+  // outputs are the craft's first rare recipes. Same fields as the seven
+  // records in the family block above (standard renown, no title, the
+  // craft_rare mark professions/crafting.ts fires for every craft);
+  // appended here, not beside its siblings, because DEED_ORDER derives
+  // from table order and is append-only.
+  prog_jewelcrafting_rare: {
+    id: 'prog_jewelcrafting_rare',
+    name: 'Polished to Brilliance',
+    desc: 'Craft your first rare-tier item in Jewelcrafting.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:jewelcrafting' },
+  },
+  // The jewelcrafting 50-skill and Grandmaster milestones join their
+  // cross-craft families (phase 05 QA ruling 2026-08-10: author both now
+  // rather than defer with the archetype pairs; enchanting shipped its pair
+  // in the same no-pair-quest position, and the 125 cap is reachable on the
+  // base catalog alone). Same fields as their family blocks above; appended
+  // at the tail because DEED_ORDER derives from table order and is
+  // append-only.
+  prog_jewelcrafting_50: {
+    id: 'prog_jewelcrafting_50',
+    name: 'Facet and Filigree',
+    desc: 'Reach 50 skill in Jewelcrafting.',
+    category: 'progression',
+    renown: 5,
+    trigger: { kind: 'craftSkill', craftId: 'jewelcrafting', level: 50 },
+  },
+  prog_grandmaster_jewelcrafting: {
+    id: 'prog_grandmaster_jewelcrafting',
+    name: 'Grandmaster Jewelcrafting',
+    desc: 'Reach 125 skill in Jewelcrafting, the very top of the craft.',
+    category: 'progression',
+    renown: 25,
+    trigger: { kind: 'craftSkill', craftId: 'jewelcrafting', level: 125 },
+    reward: { kind: 'title', text: 'Grandmaster Jewelcrafting' },
+  },
+  // Inscription joins all three cross-craft milestone families with the
+  // Masterwrought phase 06 base catalog (INSCRIPTION_RECIPES): the rung-50
+  // outputs are the craft's first rare recipes, so the rare-tier derivation
+  // demands the milestone, and the 50/Grandmaster pair follows the
+  // enchanting-then-jewelcrafting double precedent (author with the catalog,
+  // never visible-but-unearnable: the 125 cap is reachable on the base
+  // catalog alone). Same fields as the family blocks above; appended at the
+  // tail because DEED_ORDER derives from table order and is append-only. The
+  // Grandmaster title deed's Reliquary titles-page slot lands in the same
+  // change (content/reliquary.ts, the locked titles-page rule).
+  prog_inscription_rare: {
+    id: 'prog_inscription_rare',
+    name: 'Written in Fine Ink',
+    desc: 'Craft your first rare-tier item in Inscription.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'visit', markId: 'craft_rare:inscription' },
+  },
+  prog_inscription_50: {
+    id: 'prog_inscription_50',
+    name: 'Quill and Pigment',
+    desc: 'Reach 50 skill in Inscription.',
+    category: 'progression',
+    renown: 5,
+    trigger: { kind: 'craftSkill', craftId: 'inscription', level: 50 },
+  },
+  prog_grandmaster_inscription: {
+    id: 'prog_grandmaster_inscription',
+    name: 'Grandmaster Inscription',
+    desc: 'Reach 125 skill in Inscription, the very top of the craft.',
+    category: 'progression',
+    renown: 25,
+    trigger: { kind: 'craftSkill', craftId: 'inscription', level: 125 },
+    reward: { kind: 'title', text: 'Grandmaster Inscription' },
+  },
+
+  // The angler's endgame deed (masterwrought Phase 11i). EXACTLY ONE row, and
+  // the count is the ruling rather than restraint: the shipped per-profession
+  // gathering ladder is measured and COMPLETE at 5 / 10 / 25 (a first-gather
+  // rung, a 100 rung, the cross-profession master, and a cap rung with a title
+  // where the cap exceeds 100, which for fishing is prog_master_angler at 200).
+  // No gathering profession in the game has a rung at 50 or 150, so adding them
+  // to fishing alone would make it the only five-rung ladder there is, which is
+  // the asymmetry R20's coverage test exists to stop recurring quietly.
+  //
+  // RENOWN 10 is the shipped per-profession 100-rung point (prog_mining_100,
+  // prog_fishing_100, prog_farming_100 all sit there), which is the right rung
+  // because this is DETERMINISTIC and skill-gated rather than luck-gated:
+  // docs/design/deeds.md rule 2 zeroes the Renown on a luck-dependent deed, and
+  // nothing here is a roll. NO TITLE, because prog_master_angler already owns
+  // fishing's one title and the catalog gives a profession one.
+  //
+  // THE TRIGGER IS 'collectItems', AND THE WORDING FOLLOWS THE TRIGGER RATHER
+  // THAN THE OTHER WAY ROUND. There is no shipped per-ITEM craft trigger
+  // in the DeedTrigger union: the craft-shaped kinds are craftSkill (a skill
+  // milestone, and prog_grandmaster_engineering above already owns that rung)
+  // and the 'craft_rare' / masterwork visit marks (per-CRAFT, not per-item).
+  // The shipped way to say "you got this specific thing" is collectItems over
+  // deedStats.itemsDiscovered, which col_glimmerfin and col_full_creel already
+  // use. That trigger fires on ANY acquisition, market purchase included, so
+  // the desc says OBTAIN and not CRAFT: a deed that claimed a craft while
+  // firing on a purchase would be a false player-facing claim. It is also
+  // the R18-consistent reading, since the rod must stay buyable.
+  //
+  // A per-item craft mark WAS the alternative and was declined here rather than
+  // silently: it needs a new namespace registered in src/sim/deeds.ts plus a
+  // save/load round-trip pin in the same change (an unregistered namespace
+  // serializes fine and is DROPPED on load, which has bitten this codebase
+  // twice), and it makes migration-safety a required reviewer. That remains a
+  // maintainer decision rather than an implicit content default.
+  //
+  // Category 'collection' matches its trigger family (col_glimmerfin,
+  // col_full_creel), and the row sits BEFORE the farming block below so that
+  // block stays last and contiguous under the catalog's three-tier ordering.
+  col_deepest_cast: {
+    id: 'col_deepest_cast',
+    name: 'The Deepest Cast',
+    desc: 'Obtain a Clockreel Fishing Rod, the only rod that reaches the deepest catches.',
+    category: 'collection',
+    renown: 10,
+    trigger: { kind: 'collectItems', itemIds: ['clockreel_fishing_rod'] },
+  },
+
+  // NO DEED FOR THE APEX HOE, recorded here beside the rod's because a
+  // decline nobody wrote down reads as an omission (masterwrought Phase 11j).
+  // docs/design/deeds.md scopes the same-change obligation to a dungeon,
+  // delve, raid, world boss, zone or rare, so a crafted item owes nothing,
+  // and the four sibling tier-5 tools (arcanite_mining_pick, elderwood_axe,
+  // sunpetal_sickle, tidewrought_fishing_rod) carry no deed either: the hoe
+  // matching them is the symmetry, and it is the reason.
+  //
+  // The rod above is NOT the counter-example it looks like, and the
+  // distinction is narrower than it first reads. BOTH deeds would be
+  // collectItems triggers: col_deepest_cast fires on obtaining the rod by any
+  // route, market purchase included, as its own note directly above says. So
+  // the difference is not owning-versus-conquering. It is WHAT THE OWNED
+  // THING OPENS: the clockreel is the only way to reach catch band 5, so
+  // holding one really does mark reaching the deepest water, while the apex
+  // hoe opens no crop tier the rung below does not already reach. A deed on
+  // the hoe would mark a purchase and nothing else.
+
+  // The farming celebration deeds (D13), appended per the append-only
+  // DEED_ORDER contract. All cosmetic, zero rng, no power. The farm:planted
+  // mark is written at plant success and the farm:<zone> marks at surviving
+  // harvest (src/sim/deeds.ts onCropHarvestedForDeeds), both from
+  // professions/farming.ts.
+  prog_first_planting: {
+    id: 'prog_first_planting',
+    name: 'Sow It Begins',
+    desc: 'Plant your first crop in a garden bed.',
+    category: 'progression',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'farm:planted' },
+  },
+  // The four first-harvest chronicles, one per farming hub
+  // (FARM_CHRONICLE_ZONES, src/sim/deeds.ts). ALL FOUR are earnable today:
+  // plantCrop carries no bed-tier gate (probed live in the celebrations
+  // phase), so vendor-stocked tier 1/2 seeds can be planted and harvested at
+  // every hub, Highwatch and the Evergarden included. That held even before
+  // tier 3/4 seeds had a faucet because only the high-tier CROPS were gated,
+  // never these marks; since GATE 1 (Phase 11e) stocked all eight
+  // upper seeds the caveat is moot, and the marks were never the constraint.
+  chr_vale_first_harvest: {
+    id: 'chr_vale_first_harvest',
+    name: 'First Fruits of the Vale',
+    desc: 'Harvest your first thriving crop from a garden bed in Eastbrook Vale.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'farm:eastbrook_vale' },
+  },
+  chr_marsh_first_harvest: {
+    id: 'chr_marsh_first_harvest',
+    name: 'Sprouts in the Peat',
+    desc: 'Harvest your first thriving crop from a garden bed in Mirefen Marsh.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'farm:mirefen_marsh' },
+  },
+  chr_peaks_first_harvest: {
+    id: 'chr_peaks_first_harvest',
+    name: 'A Crop Among the Crags',
+    desc: 'Harvest your first thriving crop from a garden bed in Thornpeak Heights.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'farm:thornpeak_heights' },
+  },
+  chr_evergarden_first_harvest: {
+    id: 'chr_evergarden_first_harvest',
+    name: 'A Plot in Paradise',
+    desc: 'Harvest your first thriving crop from a garden bed in the Evergarden.',
+    category: 'chronicle',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'farm:evergarden' },
+  },
+  // Rare-find deed: luck-based, so renown 0 and no title (docs/design/deeds.md
+  // rule 2), and VISIBLE like col_pristine_vein (the hid_ shelf is for spoiler
+  // delights, not public zone-wide celebrations). Keys on the finder-only
+  // gather_event mark its announce site writes; golden_harvest joins the
+  // family from the farming rare-event seam (professions/gather_events.ts),
+  // and since masterwrought Phase 18 it also pages a Reliquary field note
+  // beside its three node siblings.
+  col_golden_harvest: {
+    id: 'col_golden_harvest',
+    name: 'Golden Harvest',
+    desc: 'Reap a golden harvest and let the whole zone hear about it.',
+    category: 'collection',
+    renown: 0,
+    trigger: { kind: 'visit', markId: 'gather_event:golden_harvest' },
+  },
+  // Renown 10, the prog_mining_100 / prog_fishing_100 family value; the title
+  // placement is the D13 mandate, and it is DELIBERATELY the catalog's first
+  // profession-100 title: farming caps at 100 with no 200 tier, so its
+  // capstone carries the program's one title the way fishing's 200-cap
+  // Master Angler does at its own cap. Whether the other gathering caps gain
+  // titles is a catalog-wide maintainer call, not taken here. Reaching 100
+  // requires tier 3+ crops (the tier-2 teaching ceiling grays at 75,
+  // farmingTeachingCeilingFor in professions/farming.ts).
+  //
+  // EARNABLE since masterwrought Phase 11e (2026-08-21). This row used to say
+  // those crops had no seed faucet until the D11 bootstrap ruling, and that
+  // GATE 1 shipped: both upper farmers now stock their tier's seeds with
+  // positive buyValues, so farming teaches to the cap and this deed and its
+  // title are live. The honesty arm in tests/deeds_content.test.ts was
+  // INVERTED with the faucet (green now means earnable, and it reds if the
+  // faucet is ever removed), and the docs/design/deeds.md dormancy waiver is
+  // closed with its date.
+  prog_farming_100: {
+    id: 'prog_farming_100',
+    name: 'Harvestmaster',
+    desc: 'Reach 100 Farming proficiency.',
+    category: 'progression',
+    renown: 10,
+    trigger: { kind: 'gathering', professionId: 'farming', amount: 100 },
+    reward: { kind: 'title', text: 'Harvestmaster' },
+  },
+  // The roster deed (masterwrought DECISION E). A single crop is not
+  // conquerable content, but the ROSTER is a collection, and 'collection' is
+  // the shipped category for exactly that; renown 5 is the gathering ladder's
+  // first-rung point (prog_first_harvest, prog_first_mine and their siblings
+  // all sit there). NO title and no border: it is what makes twelve crops read
+  // as a set rather than a longer list, and deeds are cosmetic-only.
+  //
+  // The mark ids are generated from FARM_CROP_IDS rather than listed, so a
+  // thirteenth crop joins the collection by existing. That is deliberate: a
+  // hand list would let a new crop ship outside the set silently, which is the
+  // opposite of what a completion deed is for.
+  //
+  // RENOWN 5 VERSUS deeds.md RULE 2, recorded rather than passed over (raised
+  // by the Phase 11e content review). Rule 2 says ZERO Renown for "dynamic
+  // metas whose requirements grow with content", and this is the catalog's
+  // FIRST visits deed whose markIds are derived from a live table rather than
+  // hand-listed, so its requirement really does grow. masterwrought DECISION E
+  // ruled renown 5 explicitly (the shipped gathering first-rung point), and
+  // that ruling stands here rather than being re-decided in passing.
+  // Why the two can coexist: rule 2's stated reason is that "the account score
+  // must never be able to decrease on any content patch", and it cannot here.
+  // deedsEarned is sticky (src/sim/deeds.ts skips any id already earned) and
+  // character_deeds is insert-only, so a farmer who completes the roster keeps
+  // the 5 when a thirteenth crop ships; only an UNFINISHED collection widens.
+  // If a maintainer prefers the letter of the rule to its rationale, the change
+  // is renown 5 to 0 here plus the totals in tests/deeds_content.test.ts.
+  col_farm_roster: {
+    id: 'col_farm_roster',
+    name: 'Every Furrow Filled',
+    desc: 'Harvest every crop the four gardens grow.',
+    category: 'collection',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: [...FARM_CROP_IDS].sort().map((cropId) => `farm_crop:${cropId}`),
+    },
+  },
+  // THE CROSS-PACKET DEED (masterwrought Phase 11k). It cannot be earned
+  // without touching BOTH halves of the merged program, and that is structural
+  // rather than a claim: the apex feast bill names farm produce, a Wyrmfall
+  // Core from the rift, and all three high-band fishing catches, so a cook who
+  // has never farmed, never raided or never fished cannot complete one.
+  //
+  // Cosmetic with ZERO rng, satisfying D13 and docs/design/deeds.md: renown 5,
+  // NO title, no border. A capstone that is a ROLE rather than a stat is the
+  // whole design claim of this phase's prestige deliverable, and paying it in
+  // stats would refute it. The trigger is the shipped { kind: 'visit' } family
+  // on a mark written at the SAME craft-credit arm that already writes
+  // craft_rare and the masterwork marks (professions/crafting.ts), and the mark
+  // key is BOUNDED by the authored recipe set exactly as craft_rare's is: an
+  // unbounded key source writes permanent ledger noise nothing can read back.
+  prog_field_to_feast: {
+    id: 'prog_field_to_feast',
+    name: 'From Field to Feast',
+    desc: 'Cook an apex feast, the table a whole raid eats from.',
+    category: 'progression',
+    renown: 5,
+    trigger: { kind: 'visit', markId: 'apex_feast:crafted' },
+  },
+  // Bank bag sockets (Bank Storage phase 06): the socket ladder's two rungs of
+  // recognition, beside soc_room_for_more / soc_gilded_strongbox for the slot
+  // ladder. The meter reads BankState.unlockedSockets, bumped only by
+  // bankUnlockSocket (bank_sockets.ts), which marks deeds dirty on purchase.
+  // Placed behind the masterwrought packet tail at the v0.41.0 release merge,
+  // keeping both sides' tails in their own authored order.
+  soc_strongbox_outfitter: {
+    id: 'soc_strongbox_outfitter',
+    name: 'Strongbox Outfitter',
+    desc: 'Unlock your first bank bag socket.',
+    category: 'social',
+    renown: 5,
+    trigger: { kind: 'meter', meter: 'bankSocketsUnlocked', amount: 1 },
+  },
+  soc_four_bags_deep: {
+    id: 'soc_four_bags_deep',
+    name: 'Four Bags Deep',
+    desc: 'Unlock all four bank bag sockets.',
+    category: 'social',
+    renown: 25,
+    trigger: { kind: 'meter', meter: 'bankSocketsUnlocked', amount: 4 },
+  },
+  // The Proving Shore graduation: every lesson on the tutorial island handed
+  // in, then the ferry bell rung for the ride home. The stat is bumped by
+  // interactions/ferry_bell.ts on the island bell's home crossing, only once
+  // the whole rail sits in questsDone, so the deed can never fire on a
+  // mid-lesson misclick ride or a veteran's refresher visit. Appended at the
+  // release merge behind the castle visits, keeping both sides' tails in
+  // their own authored order.
+  prog_ready_for_an_adventure: {
+    id: 'prog_ready_for_an_adventure',
+    name: 'Ready for an Adventure',
+    desc: 'Graduate the Proving Shore: finish every lesson on the island, then ring the ferry bell home to Eastbrook.',
+    category: 'progression',
+    renown: 5,
+    trigger: { kind: 'stat', stat: 'tutorialGraduations', count: 1 },
+  },
+  // THE PACKET'S CAPSTONE (masterwrought Phase 13): the first legendary. The
+  // stat is bumped once per orange promotion at the promotePerfectedCopy
+  // stamp site (professions/perfecting.ts, reached via
+  // resolvePerfectingAttempt's internal promotion arm): a Perfected apex
+  // copy plus one Deed of Making plus a valid player-chosen name, raised to
+  // legendary presentation.
+  //
+  // Renown 50 is the deliberate-prestige band (deeds.md rule 7: sub-1%
+  // unlocks are deliberate prestige only), and positive Renown is legitimate
+  // under rule 2 because the earn is EFFORT-gated, not luck-gated: the
+  // fail-forward Perfecting rank track paces the road here (roughly five
+  // weeks at one Maker's Ember per week), and the promotion act itself never
+  // rolls, the prog_masterwright precedent. Double prog_masterwright's 25
+  // deliberately: this is the system's capstone, a roughly five-week paced
+  // chain stacked ON TOP of the masterwork moment that deed already rewards,
+  // so it sits in rule 7's top prestige band while staying zero-rng on the
+  // act itself.
+  //
+  // NO title and no border, deliberately: R3 gives the prestige to the ITEM
+  // (the named legendary IS the trophy), and a title deed would also force
+  // committed crest art under the Reliquary title-shelf rule
+  // (tests/reliquary_cell_art.test.ts), where this deed rides the
+  // DEED_ART_PENDING ledger until its commissioned art lands.
+  prog_legendmaker: {
+    id: 'prog_legendmaker',
+    name: 'The Legendmaker',
+    desc: 'Raise a Perfected work to legend with a Deed of Making, and grant it a name all its own.',
+    category: 'progression',
+    renown: 50,
+    trigger: { kind: 'stat', stat: 'legendariesForged', count: 1 },
+  },
+  // The Crucible of the Last Spring raid (the deeds its content rule owes,
+  // docs/prd/ignivar-raid-loot.md "Obligations closeout"). Clear credit is
+  // per boss room: each raid room is its own dungeon id, so the clear deeds
+  // mirror the dgn_nythraxis pair per boss (FINAL_BOSS_DUNGEONS rows in
+  // src/sim/deeds.ts land in the same change). The flawless task rides the
+  // generic FLAWLESS_TASKS window on the raid finale, the
+  // dgn_nythraxis_deathless shape.
+  dgn_ignivar: {
+    id: 'dgn_ignivar',
+    name: 'The Herald Falls',
+    desc: 'Defeat Ignivar, Herald of the Last Flame, in the Crucible of the Last Spring.',
+    category: 'dungeon',
+    renown: 25,
+    trigger: { kind: 'dungeonClears', dungeonId: 'ignivar_raid_arena', count: 1 },
+  },
+  dgn_ignivar_heroic: {
+    id: 'dgn_ignivar_heroic',
+    name: 'Heroic: The Herald Falls',
+    desc: 'Defeat Ignivar, Herald of the Last Flame, on Heroic difficulty.',
+    category: 'dungeon',
+    renown: 25,
+    trigger: {
+      kind: 'dungeonClears',
+      dungeonId: 'ignivar_raid_arena',
+      difficulty: 'heroic',
+      count: 1,
+    },
+  },
+  dgn_varkhul: {
+    id: 'dgn_varkhul',
+    name: 'The Forge Goes Cold',
+    desc: 'Defeat Varkhul, Forgefather of the Last Flame, in the Inner Crucible.',
+    category: 'dungeon',
+    renown: 25,
+    trigger: { kind: 'dungeonClears', dungeonId: 'ignivar_inner_crucible', count: 1 },
+  },
+  dgn_varkhul_heroic: {
+    id: 'dgn_varkhul_heroic',
+    name: 'Heroic: The Forge Goes Cold',
+    desc: 'Defeat Varkhul, Forgefather of the Last Flame, on Heroic difficulty.',
+    category: 'dungeon',
+    renown: 25,
+    trigger: {
+      kind: 'dungeonClears',
+      dungeonId: 'ignivar_inner_crucible',
+      difficulty: 'heroic',
+      count: 1,
+    },
+  },
+  dgn_varkhul_flawless: {
+    id: 'dgn_varkhul_flawless',
+    name: 'Not One Ember Lost',
+    desc: 'Defeat Varkhul, Forgefather of the Last Flame, on Heroic difficulty without a single raider dying.',
+    category: 'dungeon',
+    renown: 50,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'the Unscorched' },
+  },
+  // Roots' Bramblehide, the feral druid's Strength leather family (zone3.ts),
+  // shipped off the Nythraxis raid and relocated to the Wildheart Basin bosses on
+  // 2026-10-08 (content/nythraxis_loot.ts). Appended at the END per the append-only
+  // contract; col_seven_regalia keeps its shipped seven-family trigger (rule
+  // 9: never retro-edit an existing trigger), so this family is not part of
+  // that meta.
+  col_set_bramblehide: {
+    id: 'col_set_bramblehide',
+    name: "Roots' Bramblehide",
+    desc: "Discover every piece of Roots' Bramblehide.",
+    category: 'collection',
+    renown: 0,
+    trigger: {
+      kind: 'collectItems',
+      itemIds: [
+        'bramblehide_crown',
+        'bramblehide_mantle',
+        'bramblehide_harness',
+        'bramblehide_cinch',
+        'bramblehide_legguards',
+        'bramblehide_grips',
+        'bramblehide_treads',
+      ],
+    },
+  },
+  // A class-restricted, soulbound quest craft is a personal celebration,
+  // never a mandatory Book completion or Renown step for other classes.
+  hid_forgebreaker: {
+    id: 'hid_forgebreaker',
+    name: 'A Spring Unchained',
+    desc: 'Shape Forgebreaker yourself and return to Maelin with the finished hammer.',
+    category: 'hidden',
+    renown: 0,
+    trigger: { kind: 'quest', questId: 'q_requiem_at_the_forge' },
+    hidden: true,
+  },
+  exp_arcane_calligraphy: {
+    id: 'exp_arcane_calligraphy',
+    name: 'A Steady Hand',
+    desc: 'Complete Arcane Calligraphy in Eastbrook Vale.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  exp_arcane_calligraphy_gold: {
+    id: 'exp_arcane_calligraphy_gold',
+    name: 'Written in Starlight',
+    desc: 'Earn a Gold rating in Arcane Calligraphy.',
+    category: 'exploration',
+    renown: 10,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'the Runecaller' },
+  },
+  exp_forge_helper: {
+    id: 'exp_forge_helper',
+    name: 'A Helping Hammer',
+    desc: 'Help Smith Mara complete a shield at Wyrmwatch.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  exp_last_barricade: {
+    id: 'exp_last_barricade',
+    name: 'The Last Barricade',
+    desc: 'Hold the forest pass against the undead horde.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  exp_borrowed_face: {
+    id: 'exp_borrowed_face',
+    name: 'A Borrowed Face',
+    desc: 'Expose and defeat the infiltrator among the Fenbridge watch.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  exp_windrider_slalom: {
+    id: 'exp_windrider_slalom',
+    name: 'Windrider Slalom',
+    desc: 'Complete the mechanical glider descent through the Galecrest canyon.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  exp_duskweave_dispatches: {
+    id: 'exp_duskweave_dispatches',
+    name: 'Duskweave Dispatches',
+    desc: "Recover the bandit dispatches while wearing Valerie's enchanted cloak.",
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  exp_wisp_maze: {
+    id: 'exp_wisp_maze',
+    name: 'A Light in the Maze',
+    desc: 'Recover the stolen coin purses and escape the Evergarden maze.',
+    category: 'exploration',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  // Faction standing (world quests): one Trusted and one Champion deed per
+  // allied faction, the exact shape of the WARFARE lifetime-honor ladder
+  // above. Each meter reads PlayerMeta.factions, which awardFactionReputation
+  // only ever grows, so a tier once reached is never lost and a veteran who
+  // reached it before these deeds shipped is credited by the join-time retro
+  // pass. Amounts are the live STANDING_THRESHOLDS, so the deed can never
+  // drift from the quartermasters' standing gates. The Champion titles are
+  // the factions' vanguard flavor titles (FACTION_TIER_TITLES): the top of
+  // each standing ladder is the one place a player can wear them.
+  prog_rift_watch_trusted: {
+    id: 'prog_rift_watch_trusted',
+    name: 'Trusted by the Rift Watch',
+    desc: 'Reach Trusted standing with the Rift Watch.',
+    category: 'progression',
+    renown: 5,
+    trigger: { kind: 'meter', meter: 'standingRiftWatch', amount: STANDING_THRESHOLDS.trusted },
+  },
+  prog_church_order_trusted: {
+    id: 'prog_church_order_trusted',
+    name: 'Trusted by the Church Order',
+    desc: 'Reach Trusted standing with the Church Order.',
+    category: 'progression',
+    renown: 5,
+    trigger: {
+      kind: 'meter',
+      meter: 'standingChurchOrder',
+      amount: STANDING_THRESHOLDS.trusted,
+    },
+  },
+  prog_automatons_trusted: {
+    id: 'prog_automatons_trusted',
+    name: 'Trusted by the Automatons',
+    desc: 'Reach Trusted standing with the Automatons.',
+    category: 'progression',
+    renown: 5,
+    trigger: { kind: 'meter', meter: 'standingAutomatons', amount: STANDING_THRESHOLDS.trusted },
+  },
+  prog_rift_watch_champion: {
+    id: 'prog_rift_watch_champion',
+    name: 'Champion of the Rift Watch',
+    desc: 'Reach Champion standing with the Rift Watch.',
+    category: 'progression',
+    renown: 25,
+    trigger: { kind: 'meter', meter: 'standingRiftWatch', amount: STANDING_THRESHOLDS.champion },
+    reward: { kind: 'title', text: 'Riftwarden' },
+  },
+  prog_church_order_champion: {
+    id: 'prog_church_order_champion',
+    name: 'Champion of the Church Order',
+    desc: 'Reach Champion standing with the Church Order.',
+    category: 'progression',
+    renown: 25,
+    trigger: {
+      kind: 'meter',
+      meter: 'standingChurchOrder',
+      amount: STANDING_THRESHOLDS.champion,
+    },
+    reward: { kind: 'title', text: 'Dawnkeeper' },
+  },
+  prog_automatons_champion: {
+    id: 'prog_automatons_champion',
+    name: 'Champion of the Automatons',
+    desc: 'Reach Champion standing with the Automatons.',
+    category: 'progression',
+    renown: 25,
+    trigger: { kind: 'meter', meter: 'standingAutomatons', amount: STANDING_THRESHOLDS.champion },
+    reward: { kind: 'title', text: 'Forgemaster' },
+  },
+  prog_faction_champion_all: {
+    id: 'prog_faction_champion_all',
+    name: 'Champion of Every Banner',
+    desc: 'Reach Champion standing with the Rift Watch, the Church Order and the Automatons.',
+    category: 'progression',
+    renown: 50,
+    trigger: {
+      kind: 'meta',
+      deedIds: [
+        'prog_rift_watch_champion',
+        'prog_church_order_champion',
+        'prog_automatons_champion',
+      ],
+    },
+  },
+  // Clue Scrolls (world quests, Stage 3; docs/design/clue-scrolls.md): the
+  // first Treasure Casket opened and the tenth. The clueCasketsOpened meter
+  // is a persisted lifetime counter the casket-opening site bumps
+  // (src/sim/clue_casket.ts), so a veteran's caskets are credited by the
+  // join-time retro pass. The tenth grants the Treasure Hunter title, which
+  // pages on the Reliquary titles page like every non-hidden title deed.
+  exp_clue_first_casket: {
+    id: 'exp_clue_first_casket',
+    name: 'Treasure Found',
+    desc: 'Open a Treasure Casket dug up at the end of a clue scroll hunt.',
+    category: 'exploration',
+    renown: 10,
+    trigger: { kind: 'meter', meter: 'clueCasketsOpened', amount: 1 },
+  },
+  exp_clue_ten_caskets: {
+    id: 'exp_clue_ten_caskets',
+    name: 'Treasure Hunter',
+    desc: 'Open 10 Treasure Caskets dug up at the end of clue scroll hunts.',
+    category: 'exploration',
+    renown: 25,
+    trigger: { kind: 'meter', meter: 'clueCasketsOpened', amount: 10 },
+    reward: { kind: 'title', text: 'Treasure Hunter' },
+  },
+  // Buried Hoards: the Coinsack Scurrier (src/sim/rift/hoard_goblin.ts) that
+  // sometimes runs through a room with a sack of stolen gold. Every player paid
+  // off one is credited (the hoardGoblinKills stat).
+  cmb_coinsack_caught: {
+    id: 'cmb_coinsack_caught',
+    name: 'Caught Red-Handed',
+    desc: 'Catch a Coinsack Scurrier in a Buried Hoard before it escapes with the gold.',
+    category: 'combat',
+    renown: 10,
+    trigger: { kind: 'stat', stat: 'hoardGoblinKills', count: 1 },
+  },
+  // The scheduled ferries (sim/transport_ferry.ts): one crossing in each
+  // direction on every route, the visit marks written when a living passenger
+  // steps off at the far pier. Cosmetic exploration at the castle-visit value
+  // (renown 5); appended at the END per the append-only contract, after
+  // the branch's Clue Scroll casket pair at the release/v0.44.0 base merge.
+  exp_harbor_to_harbor: {
+    id: 'exp_harbor_to_harbor',
+    name: 'Harbor to Harbor',
+    desc: 'Sail both ferries there and back: Eastbrook to Moonrest, and Wickharbor to Wyrmwatch.',
+    category: 'exploration',
+    renown: 5,
+    trigger: {
+      kind: 'visits',
+      markIds: [
+        'ferry:eastbrook_nightbloom',
+        'ferry:nightbloom_eastbrook',
+        'ferry:wickharbor_drakelands',
+        'ferry:drakelands_wickharbor',
+      ],
+    },
+  },
+  // The sixth lifetime-XP rung, appended at the END per the append-only
+  // contract rather than beside its five siblings. Unlike those five it has
+  // no legacy milestone id: MILESTONE_DEED_TO_LEGACY is a frozen one-release
+  // mirror of the retired milestone system, so this rung is a deed title only
+  // (picked from the Book of Deeds like every post-unification title).
+  prog_titan: {
+    id: 'prog_titan',
+    name: 'Titan',
+    desc: 'Earn 10,000,000 lifetime experience.',
+    category: 'progression',
+    renown: 50,
+    trigger: { kind: 'lifetimeXp', amount: 10_000_000 },
+    reward: { kind: 'title', text: 'Titan' },
+  },
+  pvp_flag_1h: {
+    id: 'pvp_flag_1h',
+    name: 'Bold',
+    desc: 'Keep World PvP on while alive in the open world or a PvP match for 1 hour of played time. Sanctuary, PvE instances, death and logout pause progress; switching off resets it. Earned titles are permanent.',
+    category: 'pvp',
+    renown: 5,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Bold' },
+  },
+  pvp_flag_3h: {
+    id: 'pvp_flag_3h',
+    name: 'Defiant',
+    desc: 'Keep World PvP on while alive in the open world or a PvP match for 3 hours of played time. Sanctuary, PvE instances, death and logout pause progress; switching off resets it. Earned titles are permanent.',
+    category: 'pvp',
+    renown: 10,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Defiant' },
+  },
+  pvp_flag_6h: {
+    id: 'pvp_flag_6h',
+    name: 'Dauntless',
+    desc: 'Keep World PvP on while alive in the open world or a PvP match for 6 hours of played time. Sanctuary, PvE instances, death and logout pause progress; switching off resets it. Earned titles are permanent.',
+    category: 'pvp',
+    renown: 10,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Dauntless' },
+  },
+  pvp_flag_24h: {
+    id: 'pvp_flag_24h',
+    name: 'Unyielding',
+    desc: 'Keep World PvP on while alive in the open world or a PvP match for 24 hours of played time. Sanctuary, PvE instances, death and logout pause progress; switching off resets it. Earned titles are permanent.',
+    category: 'pvp',
+    renown: 25,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Unyielding' },
+  },
+  pvp_flag_168h: {
+    id: 'pvp_flag_168h',
+    name: 'Indomitable',
+    desc: 'Keep World PvP on while alive in the open world or a PvP match for 7 days of played time. Sanctuary, PvE instances, death and logout pause progress; switching off resets it. Earned titles are permanent.',
+    category: 'pvp',
+    renown: 50,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Indomitable' },
+  },
+  // The Evergarden wisp maze on Hard (the fifth shadow, a second chaser): a
+  // manual grant at the maze win in src/sim/world_quests.ts, on any Hard
+  // clear including a replay after the day's credit, the Arcane Calligraphy
+  // Gold precedent.
+  // Standard renown (10) for the harder tier; appended at the END per the
+  // append-only contract after the World PvP played-time title deeds.
+  exp_wisp_maze_hard: {
+    id: 'exp_wisp_maze_hard',
+    name: 'Brighter Than the Shadows',
+    desc: 'Recover the stolen coin purses and escape the Evergarden maze on Hard.',
+    category: 'exploration',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // Appended, never inserted: DEED_ORDER is derived from this object's key order and its
+  // indices are pinned by tests/deeds_content.test.ts, so adding a deed anywhere but the
+  // end silently re-points every later one.
+  cmb_balgath: {
+    id: 'cmb_balgath',
+    name: 'Foreman No More',
+    desc: 'Put the Buried Foreman back in his barrow.',
+    category: 'combat',
+    renown: 10,
+    trigger: { kind: 'stat', stat: 'balgathKills', count: 1 },
+  },
+  cmb_balgath_ten: {
+    id: 'cmb_balgath_ten',
+    name: 'The Mound Keeps Nothing',
+    desc: 'Bring down the Buried Foreman ten times.',
+    category: 'combat',
+    renown: 10,
+    trigger: { kind: 'stat', stat: 'balgathKills', count: 10 },
+  },
+  // The muster's pike drill (content/mirefen_muster_quests.ts): the lesson that makes a
+  // level 6 useful at the Foreman's pull. Routine Renown, earned by finishing the drill.
+  cmb_point_taken: {
+    id: 'cmb_point_taken',
+    name: 'Point Taken',
+    desc: "Put out the Straw Foreman's lantern at the muster's drill yard and make its planks count.",
+    category: 'combat',
+    renown: 5,
+    trigger: { kind: 'quest', questId: 'q_muster_pike_drill' },
+  },
+  // The Sunken Bastion rework (docs/design/dungeon-rework/sunken_bastion.md,
+  // "Deeds"): one per boss core and one for the showpiece, granted by the
+  // encounter modules (src/sim/encounters/sunken_bastion) to every player in
+  // the claim at the kill. Cosmetic only; appended at the END per the
+  // append-only contract.
+  dgn_olen_buttress: {
+    id: 'dgn_olen_buttress',
+    name: 'Hold the Wall',
+    desc: 'Defeat Knight-Commander Olen without his Rebounding Bulwark ever striking a second player.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_ossick_moored: {
+    id: 'dgn_ossick_moored',
+    name: 'Safe Harbor',
+    desc: 'Defeat Gaoler Ossick without anyone being dragged into the Drowning Pit.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_vael_beacon: {
+    id: 'dgn_vael_beacon',
+    name: "By the Beacon's Light",
+    desc: 'Defeat Vael the Fogbinder without bursting a single Fog Shade.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_turretback: {
+    id: 'dgn_turretback',
+    name: 'Eviction Notice',
+    desc: 'Defeat the Shipwreck Captain without anyone being hit by Spectral Broadside.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // The Drowned Temple rework (docs/design/dungeon-rework/drowned_temple.md,
+  // "Deeds"): one per boss core and one for the Mere Hydra, granted by the
+  // encounter modules (src/sim/encounters/drowned_temple) to every player in
+  // the claim at the kill. Cosmetic only; appended at the END per the
+  // append-only contract. Names are generic English phrases, checked at
+  // authoring (2026-09-30).
+  dgn_selthe_pitch: {
+    id: 'dgn_selthe_pitch',
+    name: 'Every Voice in Tune',
+    desc: 'Defeat Choirmother Selthe with every Chorus shared by two or more and no Solo touching anyone else.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_colossus_mirror: {
+    id: 'dgn_colossus_mirror',
+    name: 'Break the Glass',
+    desc: 'Defeat the Tideglass Colossus with every Reflection broken within 15 seconds of rising.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_ysolei_high_and_dry: {
+    id: 'dgn_ysolei_high_and_dry',
+    name: 'High and Dry',
+    desc: 'Defeat Ysolei, Avatar of the Drowned Moon, without anyone being struck by her Tidal Crash.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_mere_hydra: {
+    id: 'dgn_mere_hydra',
+    name: 'All Heads Down',
+    desc: 'Slay all three heads of the Mere Hydra within 10 seconds of each other.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // The Hollow Crypt's fourth pass: the Knellwyrm finale Morthen's dying rite
+  // summons (src/sim/encounters/hollow_crypt/knellwyrm.ts), granted to every
+  // player in the claim at the kill. Cosmetic only; appended at the END per
+  // the append-only contract. Generic English idiom, checked 2026-09-30.
+  dgn_crypt_knellwyrm: {
+    id: 'dgn_crypt_knellwyrm',
+    name: 'Not a Hair Singed',
+    desc: 'Defeat the Knellwyrm without anyone being burned by its Pyre Strafe.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // The Sunken Bastion's fifth pass: the Gaol Turnkey, the gaol's miniboss
+  // (src/sim/encounters/sunken_bastion/turnkey.ts), granted to every player in
+  // the claim at the kill. Cosmetic only; appended at the END per the
+  // append-only contract. Generic English idiom, checked 2026-09-30.
+  dgn_turnkey_cage: {
+    id: 'dgn_turnkey_cage',
+    name: 'No Cage Can Hold Us',
+    desc: 'Defeat the Gaol Turnkey without anyone being crushed in an Iron Cage.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // The Wildheart Basin rework (docs/design/dungeon-rework/wildheart_basin.md
+  // section 9): one encounter deed per boss core and one for the Great
+  // Saurian, granted by the encounter modules (src/sim/encounters/
+  // wildheart_basin) to every player in the claim at the kill. Cosmetic only;
+  // appended at the END per the append-only contract. The design's "Divide and
+  // Conquer" is an exact World of Warcraft achievement name (the IP check,
+  // 2026-10-02), so it ships as "Kept at Bay"; the other three names returned
+  // no game use.
+  dgn_beastmaster_apart: {
+    id: 'dgn_beastmaster_apart',
+    name: 'Kept at Bay',
+    desc: 'Defeat the Fanglord Beastmaster and his Great Jaguar with Pack Bond up for less than 10 seconds in all.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_gorgebloom_clean: {
+    id: 'dgn_gorgebloom_clean',
+    name: 'Weed Control',
+    desc: 'Defeat the Gorgebloom without a single Thorn Sprout growing.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_zulgar_uncaught: {
+    id: 'dgn_zulgar_uncaught',
+    name: 'Never Caught',
+    desc: 'Defeat Zulgar, Voice of the Basin without anyone being Mauled.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_great_saurian: {
+    id: 'dgn_great_saurian',
+    name: 'Toppled Titan',
+    desc: 'Defeat the Great Saurian and its Howdah Hexcaller within 20 seconds of each other.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // The Gravewyrm Sanctum rework (docs/design/dungeon-rework/gravewyrm_sanctum.md
+  // section 10): one deed per boss core and one for the Sledge Tusker, granted
+  // by the encounter modules (src/sim/encounters/gravewyrm_sanctum) to every
+  // player in the claim at the kill. Cosmetic only; appended at the END per the
+  // append-only contract. The five names are common English phrases with no
+  // distinctive game use (the IP check, 2026-10-03; "Cold Comfort" is also a
+  // Guild Wars 2 achievement title, an everyday idiom kept as shared
+  // vocabulary).
+  dgn_korgath_all_chains: {
+    id: 'dgn_korgath_all_chains',
+    name: 'A Kinder End',
+    desc: 'Defeat Korgath the Bound with all four of his chains broken.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_korgath_still_bound: {
+    id: 'dgn_korgath_still_bound',
+    name: 'The Lock Holds',
+    desc: 'Defeat Korgath the Bound on Heroic difficulty with at least two of his chains never broken.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_velkhar_cold: {
+    id: 'dgn_velkhar_cold',
+    name: 'Cold Comfort',
+    desc: 'Defeat Grand Necromancer Velkhar without a single Raised Bonewalker rising a second time.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_korzul_thin_ice: {
+    id: 'dgn_korzul_thin_ice',
+    name: 'Thin Ice',
+    desc: 'Defeat Korzul the Gravewyrm with at least twelve of the nineteen lake plates unbroken.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_sledge_tusker: {
+    id: 'dgn_sledge_tusker',
+    name: 'Cold Cargo',
+    desc: 'Defeat the Sledge Tusker without anyone being hit by its Trample.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // The Drowned Temple's lore guide (src/sim/dungeon_guide, content/
+  // drowned_temple_cantor.ts): granted to everyone in the claim when Ysolei
+  // falls while Laverock walks with the group. Cosmetic only: the title.
+  dgn_drowned_temple_cantor: {
+    id: 'dgn_drowned_temple_cantor',
+    name: 'The Last Verse',
+    desc: 'Defeat Ysolei, Avatar of the Drowned Moon, with the Last Cantor of the Pale Choir at your side.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Witness of the Choir' },
+  },
+  // The Hollow Crypt's wing bosses (src/sim/encounters/hollow_crypt: marrow.ts,
+  // lady.ts, ilvane.ts), granted to everyone in the claim at the kill.
+  // Cosmetic only; appended at the END per the append-only contract.
+  dgn_marrow_tidy: {
+    id: 'dgn_marrow_tidy',
+    name: 'A Tidy Churchyard',
+    desc: 'Defeat Sexton Marrow with every Open Grave laid at the edge of the Bell Yard.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_lady_nobody_hanging: {
+    id: 'dgn_lady_nobody_hanging',
+    name: 'Nobody Left Hanging',
+    desc: 'Defeat the Lady of the Bonechill without her ever dropping anyone from her Frozen Embrace.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_ilvane_hush: {
+    id: 'dgn_ilvane_hush',
+    name: 'Hush Now',
+    desc: 'Defeat Cantor Ilvane without her Dirge of the Hollow ever striking anyone.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // Morthen the Gravecaller's Rite (encounters/hollow_crypt/morthen.ts), granted
+  // to everyone in the claim at the kill. Cosmetic only; appended at the END.
+  dgn_morthen_candlelight: {
+    id: 'dgn_morthen_candlelight',
+    name: 'Every Candle Lit',
+    desc: 'Defeat Morthen the Gravecaller after relighting all four Remembrance Candles within 20 seconds of his Unquiet Ward rising.',
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  // Lantern Hall, the Highwatch adventurers' guild (src/sim/guild_contracts.ts and
+  // src/sim/guild_quartermaster.ts), appended at the END. The three contract milestones are
+  // granted when a character's lifetime contract count reaches them; the three feats are the
+  // titles Garrick Holt sells for Lantern Seals. Every
+  // one cosmetic; the feats score nothing and sit outside the Book's completion (rule 2).
+  dgn_guild_first_contract: {
+    id: 'dgn_guild_first_contract',
+    name: 'Writ Signed',
+    desc: "Complete one of Lantern Hall's weekly dungeon contracts.",
+    category: 'dungeon',
+    renown: 5,
+    trigger: { kind: 'manual' },
+  },
+  dgn_guild_ten_contracts: {
+    id: 'dgn_guild_ten_contracts',
+    name: 'Regular at the Board',
+    desc: "Complete 10 of Lantern Hall's weekly dungeon contracts.",
+    category: 'dungeon',
+    renown: 10,
+    trigger: { kind: 'manual' },
+  },
+  dgn_guild_fifty_contracts: {
+    id: 'dgn_guild_fifty_contracts',
+    name: 'Contract Veteran',
+    desc: "Complete 50 of Lantern Hall's weekly dungeon contracts.",
+    category: 'dungeon',
+    renown: 25,
+    trigger: { kind: 'manual' },
+  },
+  feat_guild_writ_runner: {
+    id: 'feat_guild_writ_runner',
+    name: 'Writ-Runner',
+    desc: "Bought from Garrick Holt, Lantern Hall's quartermaster, for 6 Lantern Seals.",
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Writ-Runner' },
+    feat: true,
+  },
+  feat_guild_hallsworn: {
+    id: 'feat_guild_hallsworn',
+    name: 'Hallsworn',
+    desc: "Bought from Garrick Holt, Lantern Hall's quartermaster, for 14 Lantern Seals.",
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Hallsworn' },
+    feat: true,
+  },
+  feat_guild_of_lantern_hall: {
+    id: 'feat_guild_of_lantern_hall',
+    name: 'Of Lantern Hall',
+    desc: "Bought from Garrick Holt, Lantern Hall's quartermaster, for 24 Lantern Seals.",
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'of Lantern Hall' },
+    feat: true,
+  },
+  // Gourdlight Eve (content/gourdlight_eve.ts), the autumn seasonal event: a Feat,
+  // zero Renown and outside Book completion, because the head drops only from Old
+  // Thatchgrin, who stands only while the event runs (a seasonal window must never
+  // gate the completion meta).
+  // Cosmetic only; appended at the END.
+  feat_gourdlight_guise: {
+    id: 'feat_gourdlight_guise',
+    name: 'Gourdlight Guise',
+    desc: 'Own a Carved Pumpkin Head, taken from Old Thatchgrin in his field past Boar Meadow while Gourdlight Eve runs.',
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'collectItems', itemIds: ['carved_pumpkin_head'] },
+    feat: true,
+  },
+  // Old Thatchgrin, Gourdlight Eve's field boss (seasonal/scarecrow.ts): a Feat for the
+  // same reason as the Guise above, he stands only while the event runs. Appended at the END.
+  feat_old_thatchgrin: {
+    id: 'feat_old_thatchgrin',
+    name: 'Stubble and Ash',
+    desc: 'Help bring down Old Thatchgrin in his pumpkin patch past Boar Meadow while Gourdlight Eve runs.',
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'stat', stat: 'thatchgrinKills', count: 1 },
+    feat: true,
+  },
+  // Gourdlight Eve's three title writs (content/gourdlight_eve.ts GOURDLIGHT_TITLE_WRITS):
+  // Feats for the same reason as the Guise above (sold only while the event runs), granted
+  // by reading the writ (seasonal/seasonal_items.ts), cosmetic titles only. Appended at
+  // the END.
+  feat_title_gourdlit: {
+    id: 'feat_title_gourdlit',
+    name: 'The Gourdlit',
+    desc: 'Read a Writ of the Gourdlit, traded from Hester Gourdwick for Gourdlight Sweets while Gourdlight Eve runs.',
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'the Gourdlit' },
+    feat: true,
+  },
+  feat_title_trickster: {
+    id: 'feat_title_trickster',
+    name: 'Trickster',
+    desc: 'Read a Writ of the Trickster, traded from Hester Gourdwick for Gourdlight Sweets while Gourdlight Eve runs.',
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'Trickster' },
+    feat: true,
+  },
+  feat_title_hollow_grinned: {
+    id: 'feat_title_hollow_grinned',
+    name: 'The Hollow-Grinned',
+    desc: 'Read a Writ of the Hollow Grin, traded from Hester Gourdwick for Gourdlight Sweets while Gourdlight Eve runs.',
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    reward: { kind: 'title', text: 'the Hollow-Grinned' },
+    feat: true,
+  },
+  // Gourdlight Eve's Haunted Pumpkin hunt (seasonal/haunted_pumpkins.ts): a zero-Renown
+  // Feat granted when every pumpkin of the edition is found, cosmetic title only.
+  // Appended at the END, after the title writs.
+  feat_pumpkin_hunter: {
+    id: 'feat_pumpkin_hunter',
+    name: 'Pumpkin Hunter',
+    desc: 'Find every Haunted Pumpkin hidden around the world during Gourdlight Eve.',
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'manual' },
+    feat: true,
+    reward: { kind: 'title', text: 'the Hollow' },
+  },
+  // Gourdlight Eve round 12: the whole event. Three section Feats and the meta, every one
+  // a `visits` checklist over the lifetime 'gourdlight' marks (content/gourdlight_eve_deeds.ts,
+  // written where each act really happens by seasonal/gourdlight_deed_marks.ts), so each
+  // card shows its progress, and progress carries across days, sessions and yearly
+  // editions. Feats (zero Renown, outside Book completion) for the Guise's reason: the
+  // event runs only in its window. Cosmetic only; the meta's one reward is a title.
+  // Appended at the END.
+  feat_gourdlight_doorsteps: {
+    id: 'feat_gourdlight_doorsteps',
+    name: 'Every Doorstep',
+    desc: 'Trick-or-treat every townsperson who answers a knock in Eastbrook, Fenbridge and Highwatch during Gourdlight Eve.',
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'visits', markIds: [...GOURDLIGHT_KNOCK_MARKS] },
+    feat: true,
+  },
+  feat_gourdlight_errands: {
+    id: 'feat_gourdlight_errands',
+    name: "At Hester's Beck and Call",
+    desc: "Finish each of Hester Gourdwick's rotating Gourdlight Eve errands at least once.",
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'visits', markIds: [...GOURDLIGHT_ERRAND_MARKS] },
+    feat: true,
+  },
+  feat_gourdlight_frights: {
+    id: 'feat_gourdlight_frights',
+    name: 'Three Towns Startled',
+    desc: "On Hester's Boo! errand, frighten a townsperson in each of Eastbrook, Fenbridge and Highwatch.",
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'visits', markIds: [...GOURDLIGHT_BOO_MARKS] },
+    feat: true,
+  },
+  feat_gourdlight_eve_complete: {
+    id: 'feat_gourdlight_eve_complete',
+    name: 'Gourdlight, Start to Finish',
+    desc: "Do the whole of Gourdlight Eve: bring down Old Thatchgrin, find every Haunted Pumpkin, finish each of Hester's errands, knock on every door and frighten a townsperson in each of the three towns.",
+    category: 'feat',
+    renown: 0,
+    trigger: { kind: 'visits', markIds: [...GOURDLIGHT_EVE_MARKS] },
+    feat: true,
+    reward: { kind: 'title', text: GOURDLIGHT_META_TITLE },
   },
 };
 

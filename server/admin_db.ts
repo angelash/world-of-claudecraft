@@ -1,10 +1,15 @@
 import { normalizeAccountFlair, type StreamerLinks } from '../src/sim/account_flair';
+import type { AdminAccountSort, AdminAccountSortDirection } from './admin_accounts_sort';
 import {
   type ClientPerfSummaryBuckets,
   cleanHours,
+  mapClientPerfModelRows,
   mapClientPerfSummaryRows,
   mapSuggestionCountRows,
   PERF_SUMMARY_LIMITS,
+  PERF_SUMMARY_MIN_GROUP_SAMPLES,
+  type PerfHpAdapterBucket,
+  type PerfModelBucket,
   type PerfSuggestionCount,
 } from './client_perf_summary_shape';
 import {
@@ -14,6 +19,12 @@ import {
   runWithStatementTimeout,
   saveWorldState,
 } from './db';
+import type { GeneralChatRateLimit } from './general_chat_quota_db';
+// Interpolated into the GPU model statement's HAVING, on the same grounds as
+// PERF_SUMMARY_MIN_GROUP_SAMPLES above: a module-level `const` string export,
+// so an ESM importer cannot rebind it and the SQL text can never carry
+// anything but the pinned key.
+import { GL_MODEL_OTHER } from './gpu_model_bucket';
 import { REALM } from './realm';
 
 // Read-side queries for the admin dashboard. All inputs are parameterized;
@@ -39,22 +50,36 @@ export interface OverviewCounts {
   siteUsersNow: number;
 }
 
-export async function overviewCounts(): Promise<OverviewCounts> {
-  // A big multi-subquery aggregate over accounts / characters / play_sessions,
-  // request-driven through the admin overview cache (server/admin_overview_cache.ts),
-  // which bounds how often the admin Overview poll can re-run it: run it on the
-  // raised allowance so a growing play_sessions table cannot trip the default
-  // statement timeout. peak_online_all_time is GREATEST of the retained sample
-  // window's live max and the folded world_state peak (foldOnlinePeak below), so
-  // a peak inside the retained window stays honest before the next fold and a
-  // pruned-away peak is never lost. Only foldOnlinePeak writes the peak key, but
-  // a tampered or corrupted stored value must degrade to 0 under the guarded
-  // cast, never take down the whole overview read; the digit-count bound in the
-  // regex is part of that guard (a digits-only value wider than int4 would pass
-  // a bare digit match and the ::int cast would then error out the whole read).
-  const res = await runWithStatementTimeout(DB_HEAVY_STATEMENT_TIMEOUT_MS, (query) =>
-    query(
-      `
+// world_state key prefix for the folded per-realm all-time online peak.
+// Single-sourced across foldOnlinePeak and the overviewCounts reader SQL (a
+// drifting copy on either side would silently orphan the stored peak); it is a
+// compile-time constant interpolated into SQL text, never user input. Declared
+// ahead of OVERVIEW_COUNTS_SQL below so that template literal can reference it
+// at module-load time.
+export const ONLINE_PEAK_WORLD_STATE_PREFIX = 'admin_online_peak:';
+
+// A big multi-subquery aggregate over accounts / characters / play_sessions,
+// request-driven through the admin overview cache (server/admin_overview_cache.ts),
+// which bounds how often the admin Overview poll can re-run it: run it on the
+// raised allowance so a growing play_sessions table cannot trip the default
+// statement timeout. peak_online_all_time is GREATEST of the retained sample
+// window's live max and the folded world_state peak (foldOnlinePeak below), so
+// a peak inside the retained window stays honest before the next fold and a
+// pruned-away peak is never lost. Only foldOnlinePeak writes the peak key, but
+// a tampered or corrupted stored value must degrade to 0 under the guarded
+// cast, never take down the whole overview read; the digit-count bound in the
+// regex is part of that guard (a digits-only value wider than int4 would pass
+// a bare digit match and the ::int cast would then error out the whole read).
+//
+// The active/returning-account subqueries use the sargable
+// `(ended_at IS NULL OR ended_at > cutoff)` form, never
+// `COALESCE(ended_at, now()) > cutoff`: a volatile function (now()) inside
+// the COALESCE makes the whole expression un-indexable, forcing a sequential
+// scan of play_sessions on every admin Overview refresh. The OR form lets the
+// planner serve both arms (still-open sessions, sessions that ended after the
+// cutoff) from play_sessions_ended_account (ended_at, account_id), the
+// concurrent index built in server/admin_db_indexes.ts.
+export const OVERVIEW_COUNTS_SQL = `
     SELECT
       (SELECT count(*) FROM accounts)::int                                               AS accounts,
       (SELECT count(*) FROM characters)::int                                             AS characters,
@@ -63,16 +88,16 @@ export async function overviewCounts(): Promise<OverviewCounts> {
       (SELECT count(*) FROM accounts WHERE created_at > now() - interval '30 days')::int AS accounts_month,
       (SELECT count(*) FROM play_sessions WHERE started_at > now() - interval '1 day')::int AS sessions_today,
       (SELECT count(DISTINCT account_id) FROM play_sessions
-        WHERE started_at <= now() AND COALESCE(ended_at, now()) > now() - interval '1 day')::int AS active_accounts_today,
+        WHERE started_at <= now() AND (ended_at IS NULL OR ended_at > now() - interval '1 day'))::int AS active_accounts_today,
       (SELECT count(DISTINCT account_id) FROM play_sessions
-        WHERE started_at <= now() AND COALESCE(ended_at, now()) > now() - interval '7 days')::int AS active_accounts_week,
+        WHERE started_at <= now() AND (ended_at IS NULL OR ended_at > now() - interval '7 days'))::int AS active_accounts_week,
       (SELECT count(DISTINCT account_id) FROM play_sessions
-        WHERE started_at <= now() AND COALESCE(ended_at, now()) > now() - interval '30 days')::int AS active_accounts_month,
+        WHERE started_at <= now() AND (ended_at IS NULL OR ended_at > now() - interval '30 days'))::int AS active_accounts_month,
       (SELECT count(DISTINCT ps.account_id) FROM play_sessions ps
         JOIN accounts a ON a.id = ps.account_id
         WHERE a.created_at <= now() - interval '1 day'
           AND ps.started_at <= now()
-          AND COALESCE(ps.ended_at, now()) > now() - interval '1 day')::int AS returning_accounts_today,
+          AND (ps.ended_at IS NULL OR ps.ended_at > now() - interval '1 day'))::int AS returning_accounts_today,
       -- The rollup term keeps the average stable as old sessions fold forward.
       COALESCE(
         ((SELECT COALESCE(sum(EXTRACT(EPOCH FROM (COALESCE(ended_at, now()) - started_at))), 0) FROM play_sessions)
@@ -90,9 +115,11 @@ export async function overviewCounts(): Promise<OverviewCounts> {
       )::int AS peak_online_all_time,
       (SELECT count(*) FROM site_presence_sessions
         WHERE last_seen_at > now() - interval '2 minutes')::int AS site_users_now
-  `,
-      [REALM],
-    ),
+  `;
+
+export async function overviewCounts(): Promise<OverviewCounts> {
+  const res = await runWithStatementTimeout(DB_HEAVY_STATEMENT_TIMEOUT_MS, (query) =>
+    query(OVERVIEW_COUNTS_SQL, [REALM]),
   );
   const r = res.rows[0];
   return {
@@ -256,10 +283,25 @@ const ONLINE_HISTORY_RANGES: Record<
   '30d': { interval: '30 days', bucket: 'day' },
 };
 
-function cleanOnlineHistoryRange(range: string): OnlineHistoryRange {
+/**
+ * Fold any query-string value onto one of the three ranges. Exported so the
+ * read cache's own copy of this rule (`cacheKeyForRange`,
+ * server/admin_online_history_cache.ts, which cannot import from here; its
+ * header says why) can be asserted to agree with it: the cache must key on the
+ * value THIS function would resolve, or one range's numbers get served under
+ * another range's key.
+ */
+export function cleanOnlineHistoryRange(range: string): OnlineHistoryRange {
   return range === '24h' || range === '7d' || range === '30d' ? range : '30d';
 }
 
+/**
+ * The raw aggregate. NOT the read path a request should take: it is two
+ * date_trunc GROUP BY scans FULL OUTER JOINed over up to 30 days of samples,
+ * and the response is viewer-identical per range, so both dispatch arms go
+ * through readOnlineHistoryCached (server/admin_online_history_cache.ts) and
+ * this stays the cache's refresh.
+ */
 export async function onlineHistory(rangeInput: string): Promise<OnlineHistory> {
   const range = cleanOnlineHistoryRange(rangeInput);
   const config = ONLINE_HISTORY_RANGES[range];
@@ -315,12 +357,7 @@ export async function onlineHistory(rangeInput: string): Promise<OnlineHistory> 
 // sweep for the whole database: it folds each realm's all-time online peak into
 // world_state first, then deletes expired rows in bounded batches. The fold is
 // what makes pruning lossless for the admin Overview's all-time peak.
-
-// world_state key prefix for the folded per-realm all-time online peak.
-// Single-sourced across foldOnlinePeak and the overviewCounts reader SQL (a
-// drifting copy on either side would silently orphan the stored peak); it is a
-// compile-time constant interpolated into SQL text, never user input.
-export const ONLINE_PEAK_WORLD_STATE_PREFIX = 'admin_online_peak:';
+// ONLINE_PEAK_WORLD_STATE_PREFIX is declared above, ahead of OVERVIEW_COUNTS_SQL.
 
 // Every realm with samples in this database, not just this process's REALM: the
 // retention sweep runs in one advisory-locked process on behalf of the whole
@@ -444,6 +481,11 @@ export interface PerfSummary extends ClientPerfSummaryBuckets {
   // carried each allowlisted perf-doctor suggestion id. A report carries up to
   // three ids, so these never partition the totals row.
   suggestionCounts: PerfSuggestionCount[];
+  // The GPU model dimensions: per-(os, model) aggregates, and the subset of
+  // those that also reported a WebGPU high-performance adapter, keyed by it as
+  // well. Both come from ONE extra statement (see clientPerfSummary).
+  byModel: PerfModelBucket[];
+  byHpMismatch: PerfHpAdapterBucket[];
 }
 
 export interface PerfRawRow {
@@ -459,6 +501,9 @@ export interface PerfRawRow {
   gfxTier: string;
   autoGovernor: boolean;
   targetFps: number;
+  frameCapIntent: number;
+  cadenceDivisor: number;
+  refreshHz: number;
   renderScale: number;
   effectiveRenderScale: number;
   fpsAvg: number;
@@ -479,10 +524,16 @@ export interface PerfRawRow {
   deviceMemory: number | null;
   hardwareConcurrency: number;
   mobileTouch: boolean;
+  desktopShell: boolean;
   browserFamily: string;
   osFamily: string;
   glVendor: string;
   glRendererBucket: string;
+  glBackend: string;
+  glRendererRaw: string;
+  glModel: string;
+  glLaptop: boolean | null;
+  gpuHpAdapter: string;
   zoneOrScenario: string;
   source: string;
   crowdBucket: string;
@@ -492,6 +543,18 @@ export interface PerfRawRow {
   worst10sFrameP95Ms: number;
   suggestionIds: string[];
   rawSummary: unknown;
+  // "Host essentials", desktop shell only (server/perf_report_host.ts): null
+  // and '' are "no evidence", which every web and mobile row carries.
+  hostMemTotalMb: number | null;
+  hostMemFreeMb: number | null;
+  appWorkingSetMb: number | null;
+  appRendererWsMb: number | null;
+  appGpuWsMb: number | null;
+  hostOnBattery: boolean | null;
+  hostPowerPlan: string;
+  hostPowerMode: string;
+  hostHags: boolean | null;
+  hostGameMode: boolean | null;
 }
 
 function cleanPerfLimit(limit: number): number {
@@ -506,7 +569,7 @@ function cleanBeforeId(id: number | undefined): number | null {
 
 export async function clientPerfSummary(hoursInput = 24): Promise<PerfSummary> {
   const hours = cleanHours(hoursInput);
-  // TWO raised-timeout statements inside one transaction. The first (GROUPING
+  // THREE raised-timeout statements inside one transaction. The first (GROUPING
   // SETS over client_perf_reports) replaced the former seven serialized reads:
   // the () set is the totals row and each single-column set is one bucket list.
   // Postgres computes BOTH orderings as window ranks per grouping set (volume:
@@ -525,13 +588,17 @@ export async function clientPerfSummary(hoursInput = 24): Promise<PerfSummary> {
       `WITH agg AS (
          SELECT
            graphics_preset,
+           gfx_tier,
            gl_renderer_bucket,
+           gl_backend,
            browser_family,
            os_family,
            zone_or_scenario,
            crowd_bucket,
            GROUPING(graphics_preset) AS g_preset,
+           GROUPING(gfx_tier) AS g_gfxtier,
            GROUPING(gl_renderer_bucket) AS g_gpu,
+           GROUPING(gl_backend) AS g_backend,
            GROUPING(browser_family) AS g_browser,
            GROUPING(os_family) AS g_os,
            GROUPING(zone_or_scenario) AS g_scenario,
@@ -545,29 +612,118 @@ export async function clientPerfSummary(hoursInput = 24): Promise<PerfSummary> {
            COALESCE(avg(effective_render_scale), 0)::real AS avg_effective_render_scale
          FROM client_perf_reports
          WHERE created_at > now() - ($1 || ' hours')::interval
-         GROUP BY GROUPING SETS ((), (graphics_preset), (gl_renderer_bucket), (browser_family), (os_family), (zone_or_scenario), (crowd_bucket))
+         GROUP BY GROUPING SETS ((), (graphics_preset), (gfx_tier), (gl_renderer_bucket), (gl_backend), (browser_family), (os_family), (zone_or_scenario), (crowd_bucket))
        ),
        ranked AS (
          SELECT
            agg.*,
            (row_number() OVER (
-             PARTITION BY g_preset, g_gpu, g_browser, g_os, g_scenario, g_crowd
-             ORDER BY sample_count DESC, COALESCE(graphics_preset, gl_renderer_bucket, browser_family, os_family, zone_or_scenario, crowd_bucket) ASC
+             PARTITION BY g_preset, g_gfxtier, g_gpu, g_backend, g_browser, g_os, g_scenario, g_crowd
+             ORDER BY sample_count DESC, COALESCE(graphics_preset, gfx_tier, gl_renderer_bucket, gl_backend, browser_family, os_family, zone_or_scenario, crowd_bucket) ASC
            ))::int AS vol_rank,
            (row_number() OVER (
-             PARTITION BY g_preset, g_gpu, g_browser, g_os, g_scenario, g_crowd
+             PARTITION BY g_preset, g_gfxtier, g_gpu, g_backend, g_browser, g_os, g_scenario, g_crowd
              ORDER BY p95_frame_ms DESC, sample_count DESC
            ))::int AS worst_rank
          FROM agg
        )
        SELECT * FROM ranked
-       WHERE (g_preset + g_gpu + g_browser + g_os + g_scenario + g_crowd = 6)
+       WHERE (g_preset + g_gfxtier + g_gpu + g_backend + g_browser + g_os + g_scenario + g_crowd = 8)
           OR (g_preset = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byPreset})
+          OR (g_gfxtier = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byGfxTier})
           OR (g_gpu = 0 AND (vol_rank <= ${PERF_SUMMARY_LIMITS.byGpu} OR worst_rank <= ${PERF_SUMMARY_LIMITS.worstGpu}))
+          OR (g_backend = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byBackend})
           OR (g_browser = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byBrowser})
           OR (g_os = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byOs})
           OR (g_scenario = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byScenario})
           OR (g_crowd = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byCrowd})`,
+      [String(hours)],
+    );
+    // The THIRD statement, and the reason it is not another grouping set in the
+    // first: byModel keys on a PAIR of columns, which the mapper's one-zero-bit
+    // classification cannot express, and byHpMismatch needs a row filter that a
+    // shared statement would apply to every other set too. Both still ride ONE
+    // pass here, as two grouping sets over the same window, capped per set
+    // exactly like the roll-up above.
+    //
+    // Everything that bounds this read is in the HAVING, which prunes at
+    // aggregation time, BEFORE the window sort. That placement is the whole
+    // design: the per-set rank caps bound only what crosses to Node, never what
+    // Postgres materializes and sorts, and gl_model is derived from a
+    // client-supplied string, so its key COUNT is attacker-influenced even
+    // though modelKey bounds each key's shape. The sample floor turns that into
+    // a structural bound (surviving groups are at most window rows over the
+    // floor) instead of a data-dependent one.
+    //
+    // The mismatch predicate is what byHpMismatch is NAMED for, and every arm
+    // guards a different way the list would lie: without the empty-string arms
+    // the adapter-less majority (every client with no WebGPU) takes the rank
+    // slots and a report carrying an adapter but NO renderer string reads as a
+    // mismatch against nothing, without the 'other' arms an unparsed renderer
+    // (a fingerprint-resistant browser reports one) reads as a disagreement
+    // when it is really an absence of evidence, and without the vendor
+    // comparison the AGREEING rows take the slots (on a real fleet, most of
+    // them). Rank first and filter after, or drop any arm, and the list comes
+    // back empty, truncated, or false while still looking like a complete
+    // answer.
+    //
+    // The comparison is at VENDOR granularity, the leading segment of the
+    // family key both sides carry, because that is the only granularity both
+    // sides can actually reach. Chrome populates GPUAdapterInfo.device and
+    // .description only behind its WebGPUDeveloperFeatures runtime flag, so a
+    // normal page's adapter is {vendor, architecture} and gpu_hp_adapter lands
+    // as the vendor-only key ('apple', 'nvidia') beside a model-level gl_model
+    // ('apple-m4-pro', 'nvidia-rtx-4070'). Comparing the whole keys filed every
+    // single-GPU Chrome client with a recognised WebGL model as a mismatch.
+    // Vendor granularity still catches the case the column exists for: an Intel
+    // or AMD iGPU rendering the page while a discrete NVIDIA part sits idle.
+    // 'software' is deliberately NOT excluded, but a reader must know WHICH
+    // side it came from. On gl_model it is the actionable case, the page
+    // rendering WebGL on a CPU rasterizer while a real adapter exists. On
+    // gpu_hp_adapter it would mean the opposite (WebGPU had no hardware
+    // adapter to offer, saying nothing about WebGL), so the client probe drops
+    // a fallback adapter rather than describing it
+    // (src/game/gpu_adapter_probe.ts, GPUAdapter.isFallbackAdapter) and the
+    // key should not reach that column from a browser that sets the flag.
+    //
+    // A rarer-than-the-floor mismatch is deliberately not counted here: this is
+    // the fleet-level dimension, and single-report forensics ride clientPerfRaw,
+    // which serves gl_renderer_raw and gpu_hp_adapter per row.
+    const models = await query(
+      `WITH agg AS (
+         SELECT
+           os_family,
+           gl_model,
+           gpu_hp_adapter,
+           GROUPING(gpu_hp_adapter) AS g_hp,
+           count(*)::int AS sample_count,
+           COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY fps_avg), 0)::real AS median_fps,
+           COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY frame_p95_ms), 0)::real AS p95_frame_ms,
+           COALESCE(percentile_cont(0.99) WITHIN GROUP (ORDER BY frame_p95_ms), 0)::real AS p99_frame_ms,
+           COALESCE(sum(context_lost_count), 0)::int AS context_loss_count,
+           COALESCE(avg(render_scale), 0)::real AS avg_render_scale,
+           COALESCE(avg(effective_render_scale), 0)::real AS avg_effective_render_scale
+         FROM client_perf_reports
+         WHERE created_at > now() - ($1 || ' hours')::interval
+         GROUP BY GROUPING SETS ((os_family, gl_model), (os_family, gl_model, gpu_hp_adapter))
+        HAVING count(*) >= ${PERF_SUMMARY_MIN_GROUP_SAMPLES}
+           AND (GROUPING(gpu_hp_adapter) = 1
+                OR (gpu_hp_adapter NOT IN ('', '${GL_MODEL_OTHER}')
+                    AND gl_model NOT IN ('', '${GL_MODEL_OTHER}')
+                    AND split_part(gpu_hp_adapter, '-', 1) <> split_part(gl_model, '-', 1)))
+       ),
+       ranked AS (
+         SELECT
+           agg.*,
+           (row_number() OVER (
+             PARTITION BY g_hp
+             ORDER BY sample_count DESC, os_family ASC, gl_model ASC, COALESCE(gpu_hp_adapter, '') ASC
+           ))::int AS vol_rank
+         FROM agg
+       )
+       SELECT * FROM ranked
+       WHERE (g_hp = 1 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byModel})
+          OR (g_hp = 0 AND vol_rank <= ${PERF_SUMMARY_LIMITS.byHpMismatch})`,
       [String(hours)],
     );
     const suggestions = await query(
@@ -580,12 +736,13 @@ export async function clientPerfSummary(hoursInput = 24): Promise<PerfSummary> {
         LIMIT ${PERF_SUMMARY_LIMITS.suggestionCounts}`,
       [String(hours)],
     );
-    return { summaryRows: summary.rows, suggestionRows: suggestions.rows };
+    return { summaryRows: summary.rows, modelRows: models.rows, suggestionRows: suggestions.rows };
   });
   return {
     hours,
     generatedAt: new Date().toISOString(),
     ...mapClientPerfSummaryRows(res.summaryRows),
+    ...mapClientPerfModelRows(res.modelRows),
     suggestionCounts: mapSuggestionCountRows(res.suggestionRows),
   };
 }
@@ -602,13 +759,17 @@ export async function clientPerfRaw(
     `SELECT
        id, created_at, release_version, build_id, session_id, account_id, character_id, realm,
        graphics_preset, gfx_tier, auto_governor, target_fps, render_scale, effective_render_scale,
+       frame_cap_intent, cadence_divisor, refresh_hz,
        fps_avg, frame_p95_ms, frame_p99_ms, long_frame_count,
        renderer_calls, renderer_triangles, renderer_textures, renderer_programs, context_lost_count,
        long_task_count, long_task_p95_ms, memory_used_mb, memory_limit_mb,
-       dpr, viewport_bucket, device_memory, hardware_concurrency, mobile_touch,
-       browser_family, os_family, gl_vendor, gl_renderer_bucket, zone_or_scenario, source,
+       dpr, viewport_bucket, device_memory, hardware_concurrency, mobile_touch, desktop_shell,
+       browser_family, os_family, gl_vendor, gl_renderer_bucket, gl_renderer_raw,
+       gl_backend, gl_model, gl_laptop, gpu_hp_adapter, zone_or_scenario, source,
        crowd_bucket, sim_entities, active_views, visible_views, worst_10s_frame_p95_ms,
-       suggestion_ids, raw_summary
+       suggestion_ids, raw_summary,
+       host_mem_total_mb, host_mem_free_mb, app_working_set_mb, app_renderer_ws_mb, app_gpu_ws_mb,
+       host_on_battery, host_power_plan, host_power_mode, host_hags, host_game_mode
      FROM client_perf_reports
      WHERE created_at > now() - ($1 || ' hours')::interval
        AND ($3::bigint IS NULL OR id < $3)
@@ -629,6 +790,9 @@ export async function clientPerfRaw(
     gfxTier: r.gfx_tier,
     autoGovernor: r.auto_governor,
     targetFps: r.target_fps,
+    frameCapIntent: r.frame_cap_intent,
+    cadenceDivisor: r.cadence_divisor,
+    refreshHz: r.refresh_hz,
     renderScale: r.render_scale,
     effectiveRenderScale: r.effective_render_scale,
     fpsAvg: r.fps_avg,
@@ -649,10 +813,20 @@ export async function clientPerfRaw(
     deviceMemory: r.device_memory,
     hardwareConcurrency: r.hardware_concurrency,
     mobileTouch: r.mobile_touch,
+    desktopShell: r.desktop_shell,
     browserFamily: r.browser_family,
     osFamily: r.os_family,
     glVendor: r.gl_vendor,
     glRendererBucket: r.gl_renderer_bucket,
+    glBackend: r.gl_backend,
+    // The raw renderer string is CLIENT text: it is stored verbatim (bounded to
+    // 160 chars, control characters stripped) and served here for per-report
+    // forensics behind the admin gate. Any renderer of this field must escape
+    // it like any other untrusted string; nothing may interpolate it as markup.
+    glRendererRaw: r.gl_renderer_raw,
+    glModel: r.gl_model,
+    glLaptop: r.gl_laptop,
+    gpuHpAdapter: r.gpu_hp_adapter,
     zoneOrScenario: r.zone_or_scenario,
     source: r.source,
     crowdBucket: r.crowd_bucket,
@@ -662,6 +836,16 @@ export async function clientPerfRaw(
     worst10sFrameP95Ms: r.worst_10s_frame_p95_ms,
     suggestionIds: r.suggestion_ids,
     rawSummary: r.raw_summary,
+    hostMemTotalMb: r.host_mem_total_mb,
+    hostMemFreeMb: r.host_mem_free_mb,
+    appWorkingSetMb: r.app_working_set_mb,
+    appRendererWsMb: r.app_renderer_ws_mb,
+    appGpuWsMb: r.app_gpu_ws_mb,
+    hostOnBattery: r.host_on_battery,
+    hostPowerPlan: r.host_power_plan,
+    hostPowerMode: r.host_power_mode,
+    hostHags: r.host_hags,
+    hostGameMode: r.host_game_mode,
   }));
 }
 
@@ -682,6 +866,9 @@ export interface AdminAccountRow {
   characterCount: number;
   maxLevel: number;
   playtimeSeconds: number;
+  // The materialised account_wealth total (purse + mail/market escrow; see
+  // server/account_wealth_db.ts). 0 until the first sweep writes the row.
+  totalCopper: number;
   // Operator-set account flair. The list carries only the two flags (the links
   // themselves ride the detail response, where the edit form reads them).
   isAi: boolean;
@@ -884,32 +1071,93 @@ export async function associationsForIp(
   };
 }
 
+// Maps each allowlisted AdminAccountSort to the SQL it orders by. character_count,
+// max_level, and playtime_seconds address their own SELECT-list aliases (Postgres
+// resolves an ORDER BY item against the output column list), so no separate
+// aggregate expression needs repeating here.
+const ACCOUNT_SORT_COLUMNS: Record<AdminAccountSort, string> = {
+  id: 'a.id',
+  username: 'lower(a.username)',
+  character_count: 'character_count',
+  max_level: 'max_level',
+  playtime_seconds: 'playtime_seconds',
+  created_at: 'a.created_at',
+  last_login: 'a.last_login',
+  total_copper: 'total_copper',
+};
+const POSTGRES_INT_MAX = 2_147_483_647;
+
 export async function listAccounts(
   search: string,
   page: number,
   limit: number,
+  sort: AdminAccountSort = 'id',
+  dir: AdminAccountSortDirection = sort === 'username' ? 'asc' : 'desc',
 ): Promise<Paginated<AdminAccountRow>> {
-  const pattern = search ? `%${escapeLike(search)}%` : '%';
+  // Trimmed ahead of the empty check so a whitespace-only search from either
+  // dispatch arm takes the no-search predicate below, never the search arm.
+  const term = search.trim();
+  const pattern = term ? `%${escapeLike(term)}%` : '%';
+  // An all-digits search additionally matches an exact account id or character
+  // id, so admins can paste an id from a report and land on the account; the
+  // username/character-name partial match still applies alongside.
+  const numericSearch =
+    /^\d+$/.test(term) && Number.isSafeInteger(Number(term)) && Number(term) <= POSTGRES_INT_MAX
+      ? Number(term)
+      : null;
   const offset = (page - 1) * limit;
+  const direction = dir === 'asc' ? 'ASC' : 'DESC';
+  const column = ACCOUNT_SORT_COLUMNS[sort];
+  // a.last_login is nullable (accounts that never logged in): Postgres sorts NULL
+  // before every non-null value on DESC, which would put never-logged-in accounts
+  // ahead of recently active ones under a descending "Last login" sort, the opposite
+  // of what the header implies. Pin NULLS LAST for both directions so "never" always
+  // sorts as the oldest possible login, not the newest.
+  const nullsPolicy = sort === 'last_login' ? ' NULLS LAST' : '';
+  // a.id is always the unique tiebreaker; for the id sort itself that would
+  // just repeat "a.id DESC, a.id DESC", so it is the whole ORDER BY on its own.
+  const order =
+    sort === 'id' ? `a.id ${direction}` : `${column} ${direction}${nullsPolicy}, a.id ${direction}`;
+  // Shared by the page and count queries so the two can never disagree.
+  // $1 = ILIKE pattern, and the last parameter is the exact-id arm (NULL when
+  // the search is not numeric). With NO search term the predicate stays the
+  // pre-search shape (a plain ILIKE '%' over username): the default listing is
+  // the most-opened page in the dashboard and must not pay the correlated
+  // character-match subqueries it is not using. The id parameter is still
+  // referenced (always NULL here) so both queries keep a fixed bind count.
+  const matchSql = (idParam: string) =>
+    term === ''
+      ? `(a.username ILIKE $1 AND ${idParam}::int IS NULL)`
+      : `(
+       a.username ILIKE $1
+       OR EXISTS (SELECT 1 FROM characters cs WHERE cs.account_id = a.id AND cs.name ILIKE $1)
+       OR (${idParam}::int IS NOT NULL AND (a.id = ${idParam}
+           OR EXISTS (SELECT 1 FROM characters ci WHERE ci.account_id = a.id AND ci.id = ${idParam})))
+     )`;
   const [rows, total] = await Promise.all([
     pool.query(
       `SELECT a.id, a.username, a.created_at, a.last_login, a.is_admin,
               a.banned_at, a.suspended_until, a.is_ai, a.is_streamer,
               count(c.id)::int AS character_count,
               COALESCE(max(c.level), 0)::int AS max_level,
+              COALESCE(w.total_copper, 0)::bigint AS total_copper,
               (COALESCE((SELECT sum(EXTRACT(EPOCH FROM (COALESCE(s.ended_at, now()) - s.started_at)))
                          FROM play_sessions s WHERE s.account_id = a.id), 0)
                + COALESCE((SELECT sum(t.playtime_seconds)
                            FROM play_session_totals t WHERE t.account_id = a.id), 0))::bigint AS playtime_seconds
        FROM accounts a
        LEFT JOIN characters c ON c.account_id = a.id
-       WHERE a.username ILIKE $1
-       GROUP BY a.id
-       ORDER BY a.id DESC
+       LEFT JOIN account_wealth w ON w.account_id = a.id
+       WHERE ${matchSql('$4')}
+       GROUP BY a.id, w.total_copper
+       ORDER BY ${order}
        LIMIT $2 OFFSET $3`,
-      [pattern, limit, offset],
+      [pattern, limit, offset, numericSearch],
     ),
-    pool.query(`SELECT count(*)::int AS total FROM accounts WHERE username ILIKE $1`, [pattern]),
+    pool.query(`SELECT count(*)::int AS total FROM accounts a WHERE ${matchSql('$2')}`, [
+      pattern,
+      numericSearch,
+    ]),
   ]);
   return {
     rows: rows.rows.map((r) => ({
@@ -923,6 +1171,7 @@ export async function listAccounts(
       characterCount: r.character_count,
       maxLevel: r.max_level,
       playtimeSeconds: Number(r.playtime_seconds),
+      totalCopper: Number(r.total_copper),
       isAi: r.is_ai === true,
       isStreamer: r.is_streamer === true,
     })),
@@ -943,6 +1192,9 @@ export interface AdminCharacterRow {
   xp: number;
   createdAt: string;
   updatedAt: string;
+  guildId: number | null;
+  guildName: string | null;
+  guildRank: string | null;
 }
 
 const CHARACTER_SORT_COLUMNS: Record<string, string> = {
@@ -963,19 +1215,29 @@ export async function listCharacters(
 ): Promise<Paginated<AdminCharacterRow>> {
   const pattern = search ? `%${escapeLike(search)}%` : '%';
   const column = CHARACTER_SORT_COLUMNS[sort] ?? 'c.level';
+  const pageColumn = column.replace('c.', 'page.');
   const direction = dir === 'asc' ? 'ASC' : 'DESC';
   const offset = (page - 1) * limit;
   const [rows, total] = await Promise.all([
     pool.query(
-      `SELECT c.id, c.name, c.class, c.level, c.account_id, a.username,
-              COALESCE((c.state->>'copper')::bigint, 0) AS copper,
-              COALESCE((c.state->>'xp')::bigint, 0) AS xp,
-              c.created_at, c.updated_at
-       FROM characters c
-       JOIN accounts a ON a.id = c.account_id
-       WHERE c.name ILIKE $1
-       ORDER BY ${column} ${direction}, c.id
-       LIMIT $2 OFFSET $3`,
+      `WITH page AS MATERIALIZED (
+         SELECT c.id, c.name, c.class, c.level, c.account_id, c.realm,
+                c.state, c.created_at, c.updated_at
+           FROM characters c
+          WHERE c.name ILIKE $1
+          ORDER BY ${column} ${direction}, c.id
+          LIMIT $2 OFFSET $3
+       )
+       SELECT page.id, page.name, page.class, page.level, page.account_id, a.username,
+              COALESCE((page.state->>'copper')::bigint, 0) AS copper,
+              COALESCE((page.state->>'xp')::bigint, 0) AS xp,
+              page.created_at, page.updated_at,
+              g.id AS guild_id, g.name AS guild_name, gm.rank AS guild_rank
+         FROM page
+         JOIN accounts a ON a.id = page.account_id
+         LEFT JOIN guild_members gm ON gm.character_id = page.id
+         LEFT JOIN guilds g ON g.id = gm.guild_id AND g.realm = page.realm
+        ORDER BY ${pageColumn} ${direction}, page.id`,
       [pattern, limit, offset],
     ),
     pool.query(
@@ -997,10 +1259,64 @@ export async function listCharacters(
       xp: Number(r.xp),
       createdAt: r.created_at,
       updatedAt: r.updated_at,
+      guildId: r.guild_id == null ? null : Number(r.guild_id),
+      guildName: r.guild_name ?? null,
+      guildRank: r.guild_rank ?? null,
     })),
     total: total.rows[0].total,
     page,
     limit,
+  };
+}
+
+// R35 GM professions inspector: one character's identity plus its raw state
+// blob (JSONB, already parsed by pg). The handler overlays a live
+// serializeCharacter snapshot when the character is online, then shapes both
+// through the pure characterProfessionsSheet normalizer. `state` is
+// UNDEFINED when the caller suppressed the fetch (includeState false, the
+// live path) and null/object when fetched: undefined-vs-null is what keeps
+// "not fetched" distinguishable from "never entered" (SQL NULL blob), the
+// distinction characterProfessionsSheetFromRow's emptyBlob derivation rides.
+export interface AdminCharacterProfessionsRow {
+  id: number;
+  name: string;
+  class: string;
+  level: number;
+  accountId: number;
+  username: string;
+  state: unknown;
+  updatedAt: string;
+}
+
+export async function characterProfessionsRow(
+  characterId: number,
+  includeState = true,
+): Promise<AdminCharacterProfessionsRow | null> {
+  // includeState false when the caller holds a LIVE serializeCharacter
+  // snapshot: the stored blob would be discarded, and `state` is the widest
+  // column in the schema (a TOASTed detoast for nothing on the shared box).
+  const res = await pool.query(
+    `SELECT c.id, c.name, c.class, c.level, c.account_id, a.username,
+            CASE WHEN $2::boolean THEN c.state ELSE NULL END AS state,
+            c.updated_at
+     FROM characters c
+     JOIN accounts a ON a.id = c.account_id
+     WHERE c.id = $1`,
+    [characterId, includeState],
+  );
+  const r = res.rows[0];
+  if (!r) return null;
+  return {
+    id: r.id,
+    name: r.name,
+    class: r.class,
+    level: r.level,
+    accountId: r.account_id,
+    username: r.username,
+    // Honest suppression: the CASE arm returns SQL NULL when the fetch was
+    // skipped, which would be indistinguishable from a genuinely NULL blob.
+    state: includeState ? r.state : undefined,
+    updatedAt: r.updated_at,
   };
 }
 
@@ -1012,10 +1328,15 @@ export interface AccountDetail {
   isAdmin: boolean;
   bannedAt: string | null;
   suspendedUntil: string | null;
+  // When the player locked the account through POST /api/account/deactivate
+  // (accounts.deactivated_at); null for a live account. Independent of a ban or
+  // suspension, so the dashboard offers the audited reactivate action on it alone.
+  deactivatedAt: string | null;
   moderationReason: string;
   chatMutedUntil: string | null;
   chatMuteReason: string;
   chatStrikes: number;
+  generalChatRateLimit: GeneralChatRateLimit | null;
   // Operator-set account flair, as the dashboard's edit form needs to read it back:
   // the two flags plus the stored links. The links are re-normalized on the way out
   // (normalizeAccountFlair), so a value that could not survive the write gate is not
@@ -1025,6 +1346,14 @@ export interface AccountDetail {
   streamerLinks: StreamerLinks;
   dailyRewardsBan?: { reason: string; createdAt: string; expiresAt: string | null } | null;
   dailyRewardsIpBans?: { ip: string; reason: string; createdAt: string }[];
+  // The operator-applied Cheater mark (accounts.cheater_mark_*): the remaining
+  // played-second budget, the audited reason, and when it was applied. Null when
+  // the account is not marked, so the dashboard can branch apply-vs-lift the way
+  // it does for dailyRewardsBan.
+  cheaterMark: { secondsRemaining: number; reason: string; setAt: string | null } | null;
+  // The operator world quest block (accounts.world_quests_*): the audited reason and
+  // when it was applied. Null when the account is not blocked.
+  worldQuestBlock: { reason: string; blockedAt: string } | null;
   lastLoginIp: string | null;
   playtimeSeconds: number;
   characters: {
@@ -1037,6 +1366,9 @@ export interface AccountDetail {
     pos: { x: number; z: number } | null;
     createdAt: string;
     updatedAt: string;
+    guildId: number | null;
+    guildName: string | null;
+    guildRank: string | null;
   }[];
   recentSessions: {
     id: number;
@@ -1155,12 +1487,28 @@ export async function dailyRewardPointEvents(
 
 export type ModerationHistoryTab = 'all' | 'mine' | 'notes';
 
+// The action kinds the guild arm can carry, the guild-scoped sibling of the
+// account-scoped MODERATION_ACTIONS (server/moderation_db.ts). Guild moderation
+// used to write exactly one row shape, so the audit query stamped the
+// discriminator as a literal; the dormant-slot bank purge made it two, so
+// guild_moderation_actions gained an additive `action` column (defaulting to
+// the rename literal, which is what keeps every pre-existing row correct) and
+// the union now reads that column. The dashboard's label table
+// (src/admin/labels.ts) keys off these constants and
+// tests/admin/moderation_action_labels.test.ts pins the whole closed set
+// against it, so a third guild action cannot regress to "Other action".
+export const GUILD_RENAME_ACTION = 'guild_rename';
+export const GUILD_BANK_PURGE_ACTION = 'guild_bank_purge';
+export const GUILD_MODERATION_ACTIONS = [GUILD_RENAME_ACTION, GUILD_BANK_PURGE_ACTION] as const;
+
 export interface ModerationActionHistoryEntry {
-  source: 'account' | 'ip';
+  source: 'account' | 'ip' | 'guild';
   id: number;
   accountId: number | null;
   username: string | null;
   ip: string | null;
+  guildId: number | null;
+  guildName: string | null;
   action: string;
   reason: string;
   createdAt: string;
@@ -1183,17 +1531,27 @@ export async function listModerationActions(
   limit: number,
 ): Promise<ModerationActionHistoryPage> {
   const offset = (page - 1) * limit;
-  const params: unknown[] = [];
+  // $1 is always the realm: only the guild arm is realm-scoped (accounts and
+  // blocked IPs are global), and pinning it first keeps the tab parameter at a
+  // fixed $2 across all three tabs.
+  const params: unknown[] = [REALM];
   let accountWhereSql = '';
   let ipWhereSql = '';
+  let guildWhereSql = 'WHERE guild_action.realm = $1';
   if (tab === 'mine') {
     params.push(adminAccountId);
-    accountWhereSql = 'WHERE action_log.admin_account_id = $1';
-    ipWhereSql = 'WHERE ip_action.admin_account_id = $1';
+    accountWhereSql = 'WHERE action_log.admin_account_id = $2';
+    ipWhereSql = 'WHERE ip_action.admin_account_id = $2';
+    guildWhereSql = 'WHERE guild_action.realm = $1 AND guild_action.admin_account_id = $2';
   } else if (tab === 'notes') {
     params.push(adminAccountId);
-    accountWhereSql = "WHERE action_log.admin_account_id = $1 AND action_log.action = 'note'";
+    accountWhereSql = "WHERE action_log.admin_account_id = $2 AND action_log.action = 'note'";
     ipWhereSql = 'WHERE false';
+    // A guild rename is never a note, so the notes tab excludes the arm outright.
+    // The realm predicate stays in front of the constant: it is the only place
+    // $1 appears, and Postgres refuses to parse a statement carrying a parameter
+    // no arm references ("could not determine data type of parameter $1").
+    guildWhereSql = 'WHERE guild_action.realm = $1 AND false';
   }
   const pageParams = [...params, limit, offset];
   const limitParam = params.length + 1;
@@ -1210,7 +1568,9 @@ export async function listModerationActions(
                 action_log.created_at,
                 action_log.expires_at,
                 action_log.admin_account_id,
-                admin.username AS admin_username
+                admin.username AS admin_username,
+                NULL::int AS guild_id,
+                NULL::text AS guild_name
          FROM account_moderation_actions action_log
          JOIN accounts target ON target.id = action_log.account_id
          LEFT JOIN accounts admin ON admin.id = action_log.admin_account_id
@@ -1226,10 +1586,31 @@ export async function listModerationActions(
                 ip_action.created_at,
                 NULL::timestamptz AS expires_at,
                 ip_action.admin_account_id,
-                admin.username AS admin_username
+                admin.username AS admin_username,
+                NULL::int AS guild_id,
+                NULL::text AS guild_name
          FROM blocked_ip_actions ip_action
          LEFT JOIN accounts admin ON admin.id = ip_action.admin_account_id
          ${ipWhereSql}
+         UNION ALL
+         SELECT 'guild' AS source,
+                guild_action.id,
+                NULL::int AS account_id,
+                NULL::text AS username,
+                NULL::text AS ip,
+                guild_action.action,
+                guild_action.reason,
+                guild_action.created_at,
+                NULL::timestamptz AS expires_at,
+                guild_action.admin_account_id,
+                admin.username AS admin_username,
+                guild_action.guild_id,
+                COALESCE(guild.name, guild_action.new_name) AS guild_name
+         FROM guild_moderation_actions guild_action
+         LEFT JOIN accounts admin ON admin.id = guild_action.admin_account_id
+         LEFT JOIN guilds guild
+                ON guild.id = guild_action.guild_id AND guild.realm = guild_action.realm
+         ${guildWhereSql}
        ) audit_log`;
   const [rows, total] = await Promise.all([
     pool.query(
@@ -1251,6 +1632,8 @@ export async function listModerationActions(
       accountId: entry.account_id === null ? null : Number(entry.account_id),
       username: entry.username ?? null,
       ip: entry.ip ?? null,
+      guildId: entry.guild_id === null ? null : Number(entry.guild_id),
+      guildName: entry.guild_name ?? null,
       action: entry.action,
       reason: entry.reason,
       createdAt: entry.created_at,
@@ -1273,20 +1656,30 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
     runWithStatementTimeout(DB_HEAVY_STATEMENT_TIMEOUT_MS, (query) =>
       query(
         `SELECT id, username, created_at, last_login, is_admin, banned_at, suspended_until,
+                deactivated_at,
                 COALESCE(moderation_reason, '') AS moderation_reason,
                 chat_muted_until,
                 COALESCE(chat_mute_reason, '') AS chat_mute_reason,
                 COALESCE(chat_strikes, 0) AS chat_strikes,
                 is_ai, is_streamer, streamer_links,
+                general_chat_quota.messages AS general_chat_quota_messages,
+                general_chat_quota.window_minutes AS general_chat_quota_window_minutes,
                 active_daily_rewards_ban.daily_rewards_ban_reason,
                 active_daily_rewards_ban.daily_rewards_banned_at,
                 active_daily_rewards_ban.daily_rewards_ban_expires_at,
+                cheater_mark_seconds,
+                COALESCE(cheater_mark_reason, '') AS cheater_mark_reason,
+                cheater_mark_set_at,
+                world_quests_blocked_at,
+                COALESCE(world_quests_block_reason, '') AS world_quests_block_reason,
                 last_login_ip,
                 (COALESCE((SELECT sum(EXTRACT(EPOCH FROM (COALESCE(s.ended_at, now()) - s.started_at)))
                            FROM play_sessions s WHERE s.account_id = accounts.id), 0)
                  + COALESCE((SELECT sum(t.playtime_seconds)
                              FROM play_session_totals t WHERE t.account_id = accounts.id), 0))::bigint AS playtime_seconds
          FROM accounts
+         LEFT JOIN account_general_chat_rate_limits general_chat_quota
+           ON general_chat_quota.account_id = accounts.id
          LEFT JOIN LATERAL (
            SELECT reason AS daily_rewards_ban_reason,
                   created_at AS daily_rewards_banned_at,
@@ -1300,11 +1693,16 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
       ),
     ),
     pool.query(
-      `SELECT id, name, class, level,
-              COALESCE((state->>'copper')::bigint, 0) AS copper,
-              COALESCE((state->>'xp')::bigint, 0) AS xp,
-              state->'pos' AS pos, created_at, updated_at
-       FROM characters WHERE account_id = $1 ORDER BY level DESC, id`,
+      `SELECT c.id, c.name, c.class, c.level,
+              COALESCE((c.state->>'copper')::bigint, 0) AS copper,
+              COALESCE((c.state->>'xp')::bigint, 0) AS xp,
+              c.state->'pos' AS pos, c.created_at, c.updated_at,
+              g.id AS guild_id, g.name AS guild_name, gm.rank AS guild_rank
+       FROM characters c
+       LEFT JOIN guild_members gm ON gm.character_id = c.id
+       LEFT JOIN guilds g ON g.id = gm.guild_id AND g.realm = c.realm
+       WHERE c.account_id = $1
+       ORDER BY c.level DESC, c.id`,
       [accountId],
     ),
     pool.query(
@@ -1360,10 +1758,18 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
     isAdmin: a.is_admin,
     bannedAt: a.banned_at,
     suspendedUntil: a.suspended_until,
+    deactivatedAt: a.deactivated_at ?? null,
     moderationReason: a.moderation_reason,
     chatMutedUntil: a.chat_muted_until,
     chatMuteReason: a.chat_mute_reason,
     chatStrikes: Number(a.chat_strikes ?? 0),
+    generalChatRateLimit:
+      a.general_chat_quota_messages == null
+        ? null
+        : {
+            messages: Number(a.general_chat_quota_messages),
+            windowMinutes: Number(a.general_chat_quota_window_minutes),
+          },
     isAi: flair.ai,
     isStreamer: flair.streamer,
     streamerLinks: flair.links,
@@ -1380,6 +1786,21 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
       reason: String(row.reason),
       createdAt: row.created_at,
     })),
+    cheaterMark:
+      Number(a.cheater_mark_seconds) > 0
+        ? {
+            secondsRemaining: Number(a.cheater_mark_seconds),
+            reason: String(a.cheater_mark_reason),
+            setAt: a.cheater_mark_set_at ?? null,
+          }
+        : null,
+    worldQuestBlock:
+      a.world_quests_blocked_at == null
+        ? null
+        : {
+            reason: String(a.world_quests_block_reason),
+            blockedAt: a.world_quests_blocked_at,
+          },
     lastLoginIp: a.last_login_ip ?? null,
     playtimeSeconds: Number(a.playtime_seconds),
     characters: characters.rows.map((c) => ({
@@ -1395,6 +1816,9 @@ export async function accountDetail(accountId: number): Promise<AccountDetail | 
           : null,
       createdAt: c.created_at,
       updatedAt: c.updated_at,
+      guildId: c.guild_id == null ? null : Number(c.guild_id),
+      guildName: c.guild_name ?? null,
+      guildRank: c.guild_rank ?? null,
     })),
     recentSessions: sessions.rows.map((s) => ({
       id: s.id,

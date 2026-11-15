@@ -14,6 +14,7 @@
 
 import type { Keybinds } from '../game/keybinds';
 import type { Renderer } from '../render/renderer';
+import { isOnProvingShore } from '../sim/content/proving_shore';
 import { PLAYER_START, QUESTS, ZONES } from '../sim/data';
 import { dist2d, INTERACT_RANGE } from '../sim/types';
 import type { IWorld } from '../world_api';
@@ -26,6 +27,7 @@ import {
   tutorialNeedsRerender,
   tutorialSlayHintPlan,
 } from './tutorial_copy';
+import { svgIcon } from './ui_icons';
 
 // Starter content the onboarding guides the player toward — all derived from the
 // shipped sim sources so a content rename or a moved spawn can't silently desync
@@ -69,6 +71,13 @@ export function isFreshCharacter(world: IWorld): boolean {
   const p = world.player;
   if (!p) return false;
   if (world.playerId < 0 || p.id !== world.playerId) return false;
+  // A fresh character standing on the Proving Shore (the tutorial island) is
+  // being taught by the island's own on-rails chain; this Eastbrook coachmark
+  // stays quiet there and still engages normally if they ferry back with no
+  // quest history. The gate is the shared zone-rectangle predicate, both axes:
+  // the island's x column also covers four mainland zones that differ only by
+  // z. (pos is optional-chained for the online pre-snapshot placeholder.)
+  if (isOnProvingShore(p.pos?.x ?? 0, p.pos?.z ?? 0)) return false;
   return p.level === 1 && world.questsDone.size === 0 && world.questLog.size === 0;
 }
 
@@ -100,6 +109,8 @@ export class TutorialOverlay {
   private tipsEl!: HTMLElement;
   private skipBtn!: HTMLButtonElement;
   private arrow: HTMLElement | null = null;
+  private arrowShown = false;
+  private arrowTransform = '';
 
   constructor() {
     this.completed = readDone();
@@ -149,6 +160,26 @@ export class TutorialOverlay {
     }
 
     this.updateArrow(world, renderer);
+  }
+
+  /**
+   * Re-localize after an in-game language switch (the Hud's woc:languagechange
+   * fan-out). Self-gated on there being a card on screen, so the fan-out can
+   * call it unconditionally.
+   *
+   * update() repaints only when the STEP changes or Interface Mode flips, so a
+   * card that is already up would keep its old-locale copy for the whole step.
+   * Takes the world and keybinds the same way update() does, since the card's
+   * copy interpolates the live keybind labels and the player's name.
+   */
+  relocalize(world: IWorld, keybinds: Keybinds): void {
+    if (this.completed || !this.engaged || this.step === null) return;
+    // The same defense update() and isFreshCharacter take: player is typed as an
+    // Entity but is absent in the online pre-snapshot window, and renderPanel
+    // reads player.name. A throw here would unwind the whole fan-out and skip
+    // every arm after this one.
+    if (!world.player) return;
+    this.renderPanel(world, keybinds);
   }
 
   // ---- internals --------------------------------------------------------
@@ -247,7 +278,7 @@ export class TutorialOverlay {
     const arrow = document.createElement('div');
     arrow.className = 'tut-arrow';
     arrow.setAttribute('aria-hidden', 'true');
-    arrow.textContent = '➤'; // ➤
+    arrow.innerHTML = svgIcon('next');
     ui.appendChild(arrow);
     this.arrow = arrow;
   }
@@ -365,14 +396,24 @@ export class TutorialOverlay {
     sx = Math.max(margin, Math.min(w - margin, sx));
     sy = Math.max(margin, Math.min(h - margin, sy));
 
-    this.arrow.style.display = 'block';
-    this.arrow.style.left = `${sx}px`;
-    this.arrow.style.top = `${sy}px`;
-    this.arrow.style.transform = `translate(-50%, -50%) rotate(${angle}rad)`;
+    // One transform carries the position too (the sheet pins left/top at 0), and
+    // it is written only when it changes: the arrow moves every frame the camera
+    // turns, but a still frame writes nothing.
+    const transform = `translate(${sx}px, ${sy}px) translate(-50%, -50%) rotate(${angle}rad)`;
+    if (!this.arrowShown) {
+      this.arrowShown = true;
+      this.arrow.style.display = 'block';
+    }
+    if (transform !== this.arrowTransform) {
+      this.arrowTransform = transform;
+      this.arrow.style.transform = transform;
+    }
   }
 
   private hideArrow(): void {
-    if (this.arrow) this.arrow.style.display = 'none';
+    if (!this.arrow || !this.arrowShown) return;
+    this.arrowShown = false;
+    this.arrow.style.display = 'none';
   }
 
   private finish(): void {
@@ -381,6 +422,8 @@ export class TutorialOverlay {
     writeDone();
     this.root?.remove();
     this.arrow?.remove();
+    this.arrowShown = false;
+    this.arrowTransform = '';
     this.root = null;
     this.arrow = null;
   }

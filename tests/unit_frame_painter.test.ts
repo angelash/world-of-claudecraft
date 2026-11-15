@@ -11,9 +11,20 @@
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
+import {
+  borderAccent,
+  DEED_HERALDRY_MOTIF_ATTR,
+  DEED_HERALDRY_WELL_FILL,
+  DEED_HERALDRY_WELL_PROP,
+} from '../src/ui/deed_border_view';
 import type { PainterHostWriters } from '../src/ui/painter_host';
+import { makeWriterFacet } from '../src/ui/painter_host';
 import { type UnitFrameDescriptor, unitFrameView } from '../src/ui/unit_frame';
 import {
+  PORTRAIT_BORDER_ATTR,
+  PORTRAIT_BORDER_EDGE_PROP,
+  PORTRAIT_BORDER_FRAME_PROP,
+  PORTRAIT_BORDER_GLOW_PROP,
   type UnitFrameElements,
   type UnitFrameOptions,
   UnitFramePainter,
@@ -104,7 +115,10 @@ function paint(
 describe('UnitFramePainter: the player instance routes every write through the elided writers', () => {
   it('paints level, hp, absorb, resource type/fill/text and NOTHING else (byte-faithful)', () => {
     const calls = paint(playerDescriptor());
-    // absorb { hp: 300, maxHp: 600, auras: [] } -> fillFrac = 300/600 = 0.5 (no shield).
+    // absorb { hp: 300, maxHp: 600, auras: [] } -> no shield -> the overlay SEGMENT
+    // collapses to zero width at the health edge. (The old left-anchored
+    // scaleX(fillFrac) = scaleX(0.5) hatched the whole health fill with no shield
+    // up: the striped-hp-bar bug.)
     // No setDisplay (CSS owns it), no name (static, set at login), no dead/oor
     // (player frame never carries them): exactly the inline block + the absorb /
     // resource-type folds.
@@ -112,11 +126,13 @@ describe('UnitFramePainter: the player instance routes every write through the e
       { m: 'setText', args: [LEVEL, '60'] },
       { m: 'setTransform', args: [HP_FILL, 'scaleX(0.5)'] },
       { m: 'setText', args: [HP_TEXT, '300 / 600'] },
-      { m: 'setTransform', args: [ABSORB, 'scaleX(0.5)'] },
+      { m: 'setTransform', args: [ABSORB, 'translateX(50%) scaleX(0)'] },
       { m: 'toggleClass', args: [ABSORB, 'overshield', false] },
       { m: 'toggleClass', args: [RES_CONTAINER, 'rage', false] },
       { m: 'toggleClass', args: [RES_CONTAINER, 'energy', false] },
+      { m: 'toggleClass', args: [RES_CONTAINER, 'focus', false] },
       { m: 'toggleClass', args: [RES_CONTAINER, 'mana', true] },
+      { m: 'toggleClass', args: [RES_CONTAINER, 'is-empty', false] },
       { m: 'setTransform', args: [RES_FILL, 'scaleX(0.8)'] },
       { m: 'setText', args: [RES_TEXT, '80 / 100'] },
     ]);
@@ -129,12 +145,22 @@ describe('UnitFramePainter: the player instance routes every write through the e
     expect(calls.some((c) => c.args[1] === 'dead' || c.args[1] === 'oor')).toBe(false);
   });
 
-  it('drives the rage/energy discriminator exclusively (folds the className swap)', () => {
+  it('drives the rage, energy, and focus discriminator exclusively', () => {
     const rage = paint(playerDescriptor({ resourceKind: 'rage' }));
     expect(rage).toContainEqual({ m: 'toggleClass', args: [RES_CONTAINER, 'rage', true] });
     expect(rage).toContainEqual({ m: 'toggleClass', args: [RES_CONTAINER, 'mana', false] });
     const energy = paint(playerDescriptor({ resourceKind: 'energy' }));
     expect(energy).toContainEqual({ m: 'toggleClass', args: [RES_CONTAINER, 'energy', true] });
+    const focus = paint(playerDescriptor({ resourceKind: 'focus' }));
+    expect(focus).toContainEqual({ m: 'toggleClass', args: [RES_CONTAINER, 'focus', true] });
+    expect(focus).toContainEqual({ m: 'toggleClass', args: [RES_CONTAINER, 'mana', false] });
+  });
+
+  it('shrinks the empty resource rail and restores it when text returns', () => {
+    const empty = paint(playerDescriptor({ resourceKind: 'none', resFrac: 0, resText: '' }));
+    expect(empty).toContainEqual({ m: 'toggleClass', args: [RES_CONTAINER, 'is-empty', true] });
+    const filled = paint(playerDescriptor());
+    expect(filled).toContainEqual({ m: 'toggleClass', args: [RES_CONTAINER, 'is-empty', false] });
   });
 
   it('folds the absorb overshield toggle onto the elided writers', () => {
@@ -159,8 +185,49 @@ describe('UnitFramePainter: the player instance routes every write through the e
         },
       }),
     );
-    expect(calls).toContainEqual({ m: 'setTransform', args: [ABSORB, 'scaleX(1)'] });
+    // Right-aligned segment: start = 1 - 50/600, size = 50/600 (never scaleX(1)).
+    expect(calls).toContainEqual({
+      m: 'setTransform',
+      args: [ABSORB, `translateX(91.667%) scaleX(${50 / 600})`],
+    });
     expect(calls).toContainEqual({ m: 'toggleClass', args: [ABSORB, 'overshield', true] });
+  });
+
+  it('hatches ONLY the shield segment past current health, never the health fill', () => {
+    // hp 300 + shield 60 over 600 -> the overlay starts at the 50% health edge and
+    // spans 10% of the bar (a 300-hp / 30-shield tank reads as 10% hatched, not 100%).
+    const calls = paint(
+      playerDescriptor({
+        absorb: {
+          hp: 300,
+          maxHp: 600,
+          auras: [
+            {
+              id: 'power_word_shield',
+              name: 'Power Word: Shield',
+              kind: 'absorb',
+              remaining: 30,
+              duration: 30,
+              value: 60,
+              sourceId: 1,
+              school: 'holy',
+            },
+          ],
+        },
+      }),
+    );
+    expect(calls).toContainEqual({
+      m: 'setTransform',
+      args: [ABSORB, 'translateX(50%) scaleX(0.1)'],
+    });
+    expect(calls).toContainEqual({ m: 'toggleClass', args: [ABSORB, 'overshield', false] });
+    // The shield segment never carries a left-anchored fill transform.
+    expect(
+      calls.some(
+        (c) =>
+          c.m === 'setTransform' && c.args[0] === ABSORB && /^scaleX\(/.test(String(c.args[1])),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -299,6 +366,78 @@ describe('UnitFramePainter: the portrait repaint gate (lastPortraitTarget path)'
   });
 });
 
+describe('UnitFramePainter: the raid-marker badge (target frame)', () => {
+  const BADGE = { tag: 'raidMarker' } as unknown as HTMLElement;
+  const MARKED_ELEMENTS: UnitFrameElements = { ...FULL_ELEMENTS, raidMarker: BADGE };
+  const urlFor = (marker: number) => `data:marker-${marker}`;
+
+  it('paints the resolved symbol url and shows the badge for a marked unit', () => {
+    const calls = paint(playerDescriptor({ raidMarker: 5 }), MARKED_ELEMENTS, {
+      raidMarkerUrl: urlFor,
+    });
+    const badge = calls.filter((c) => c.args[0] === BADGE);
+    expect(badge).toEqual([
+      { m: 'setStyleProp', args: [BADGE, 'background-image', 'url(data:marker-5)'] },
+      { m: 'setDisplay', args: [BADGE, 'block'] },
+    ]);
+  });
+
+  it('hides the badge and clears the image for an unmarked unit', () => {
+    const calls = paint(playerDescriptor({ raidMarker: null }), MARKED_ELEMENTS, {
+      raidMarkerUrl: urlFor,
+    });
+    const badge = calls.filter((c) => c.args[0] === BADGE);
+    expect(badge).toEqual([
+      { m: 'setDisplay', args: [BADGE, 'none'] },
+      { m: 'setStyleProp', args: [BADGE, 'background-image', ''] },
+    ]);
+  });
+
+  it('hides the badge when no url resolver is wired, even for a marked unit', () => {
+    const calls = paint(playerDescriptor({ raidMarker: 2 }), MARKED_ELEMENTS);
+    const badge = calls.filter((c) => c.args[0] === BADGE);
+    expect(badge.some((c) => c.m === 'setDisplay' && c.args[1] === 'block')).toBe(false);
+    expect(badge.some((c) => c.m === 'setDisplay' && c.args[1] === 'none')).toBe(true);
+  });
+
+  it('resolves the symbol url once per marker change, never per repeated frame', () => {
+    const { calls, writers } = recordingFacet();
+    const resolver = vi.fn(urlFor);
+    const painter = new UnitFramePainter(writers, MARKED_ELEMENTS, { raidMarkerUrl: resolver });
+    painter.paint(unitFrameView(playerDescriptor({ raidMarker: 4 })));
+    painter.paint(unitFrameView(playerDescriptor({ raidMarker: 4 })));
+    painter.paint(unitFrameView(playerDescriptor({ raidMarker: 4 })));
+    expect(resolver).toHaveBeenCalledTimes(1);
+    painter.paint(unitFrameView(playerDescriptor({ raidMarker: 1 })));
+    expect(resolver).toHaveBeenCalledTimes(2);
+    const urls = calls
+      .filter((c) => c.args[0] === BADGE && c.m === 'setStyleProp')
+      .map((c) => c.args[2]);
+    expect(urls).toEqual([
+      'url(data:marker-4)',
+      'url(data:marker-4)',
+      'url(data:marker-4)',
+      'url(data:marker-1)',
+    ]);
+  });
+
+  it('an instance without the badge element pays zero marker writes (player, party)', () => {
+    const calls = paint(playerDescriptor({ raidMarker: 2 }), FULL_ELEMENTS, {
+      raidMarkerUrl: urlFor,
+    });
+    expect(calls.some((c) => c.args[0] === BADGE)).toBe(false);
+    expect(calls.some((c) => c.args[1] === 'background-image')).toBe(false);
+  });
+
+  it('writes nothing for the badge while the unit is absent (the family contract)', () => {
+    const calls = paint(playerDescriptor({ present: false, raidMarker: 2 }), MARKED_ELEMENTS, {
+      shownDisplay: 'flex',
+      raidMarkerUrl: urlFor,
+    });
+    expect(calls).toEqual([{ m: 'setDisplay', args: [FRAME, 'none'] }]);
+  });
+});
+
 describe('UnitFramePainter: no raw DOM writes, no magic values', () => {
   const src = readFileSync(new URL('../src/ui/unit_frame_painter.ts', import.meta.url), 'utf8');
   const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
@@ -360,5 +499,240 @@ describe('UnitFramePainter: the title-decoration spans (Book of Deeds)', () => {
     );
     expect(calls.some((c) => c.args[0] === TITLE_PRE || c.args[0] === TITLE_POST)).toBe(false);
     expect(calls.some((c) => c.args[1] === '[Pre] ' || c.args[1] === ' [Post]')).toBe(false);
+  });
+});
+
+describe('UnitFramePainter: the portrait border ring (Book of Deeds)', () => {
+  const PORTRAIT_BORDER = { tag: 'portraitBorder' } as unknown as HTMLElement;
+  const NAME_HEADER = { tag: 'nameHeader' } as unknown as HTMLElement;
+  const SEAL_MOTIF = { tag: 'sealMotif' } as unknown as HTMLElement;
+  const HEADER_PATTERN = { tag: 'headerPattern' } as unknown as HTMLElement;
+  const BORDERED_ELEMENTS: UnitFrameElements = {
+    ...FULL_ELEMENTS,
+    portraitBorder: PORTRAIT_BORDER,
+    heraldry: {
+      nameHeader: NAME_HEADER,
+      sealMotif: SEAL_MOTIF,
+      headerPattern: HEADER_PATTERN,
+    },
+  };
+  const ACCENT = borderAccent('reliquary_gilt');
+
+  it('E47: writes one slug, palette, seal, and quiet header motif through elided writers', () => {
+    const calls = paint(playerDescriptor({ borderSlug: 'reliquary_gilt' }), BORDERED_ELEMENTS, {
+      shownDisplay: 'flex',
+    });
+    expect(ACCENT).not.toBeNull();
+    expect(calls).toContainEqual({
+      m: 'setAttr',
+      args: [PORTRAIT_BORDER, PORTRAIT_BORDER_ATTR, 'reliquary_gilt'],
+    });
+    expect(calls).toContainEqual({
+      m: 'setStyleProp',
+      args: [PORTRAIT_BORDER, PORTRAIT_BORDER_FRAME_PROP, ACCENT?.frame],
+    });
+    expect(calls).toContainEqual({
+      m: 'setStyleProp',
+      args: [PORTRAIT_BORDER, PORTRAIT_BORDER_EDGE_PROP, ACCENT?.edge],
+    });
+    expect(calls).toContainEqual({
+      m: 'setStyleProp',
+      args: [PORTRAIT_BORDER, PORTRAIT_BORDER_GLOW_PROP, ACCENT?.glow],
+    });
+    expect(calls).toContainEqual({
+      m: 'setAttr',
+      args: [PORTRAIT_BORDER, DEED_HERALDRY_MOTIF_ATTR, ACCENT?.motif],
+    });
+    expect(calls).toContainEqual({
+      m: 'setStyleProp',
+      args: [PORTRAIT_BORDER, DEED_HERALDRY_WELL_PROP, DEED_HERALDRY_WELL_FILL],
+    });
+    for (const host of [NAME_HEADER]) {
+      expect(calls).toContainEqual({
+        m: 'setAttr',
+        args: [host, PORTRAIT_BORDER_ATTR, 'reliquary_gilt'],
+      });
+      expect(calls).toContainEqual({
+        m: 'setAttr',
+        args: [host, DEED_HERALDRY_MOTIF_ATTR, ACCENT?.motif],
+      });
+      expect(calls).toContainEqual({
+        m: 'setStyleProp',
+        args: [host, PORTRAIT_BORDER_FRAME_PROP, ACCENT?.frame],
+      });
+      expect(calls).toContainEqual({
+        m: 'setStyleProp',
+        args: [host, PORTRAIT_BORDER_EDGE_PROP, ACCENT?.edge],
+      });
+      expect(calls).toContainEqual({
+        m: 'setStyleProp',
+        args: [host, PORTRAIT_BORDER_GLOW_PROP, ACCENT?.glow],
+      });
+      expect(calls).toContainEqual({
+        m: 'setStyleProp',
+        args: [host, DEED_HERALDRY_WELL_PROP, DEED_HERALDRY_WELL_FILL],
+      });
+    }
+    for (const motif of [SEAL_MOTIF, HEADER_PATTERN]) {
+      expect(calls).toContainEqual({
+        m: 'setAttr',
+        args: [motif, 'd', ACCENT?.motifPath],
+      });
+    }
+  });
+
+  it('E47: clears every reveal slot for a borderless player', () => {
+    // '' is also what a stale id and a title-reward deed resolve to at the call
+    // site, so this one arm covers every no-accent case the view can carry.
+    const calls = paint(playerDescriptor({ borderSlug: '' }), BORDERED_ELEMENTS, {
+      shownDisplay: 'flex',
+    });
+    expect(calls).toContainEqual({
+      m: 'setAttr',
+      args: [PORTRAIT_BORDER, PORTRAIT_BORDER_ATTR, ''],
+    });
+    for (const host of [PORTRAIT_BORDER, NAME_HEADER]) {
+      for (const prop of [
+        PORTRAIT_BORDER_FRAME_PROP,
+        PORTRAIT_BORDER_EDGE_PROP,
+        PORTRAIT_BORDER_GLOW_PROP,
+        DEED_HERALDRY_WELL_PROP,
+      ]) {
+        expect(calls).toContainEqual({ m: 'setStyleProp', args: [host, prop, ''] });
+      }
+      expect(calls).toContainEqual({
+        m: 'setAttr',
+        args: [host, DEED_HERALDRY_MOTIF_ATTR, ''],
+      });
+    }
+    expect(calls).toContainEqual({ m: 'setAttr', args: [NAME_HEADER, PORTRAIT_BORDER_ATTR, ''] });
+    expect(calls).toContainEqual({ m: 'setAttr', args: [SEAL_MOTIF, 'd', ''] });
+    expect(calls).toContainEqual({ m: 'setAttr', args: [HEADER_PATTERN, 'd', ''] });
+  });
+
+  it('renders an unknown slug as borderless: the palette gates every host (content drift)', () => {
+    // A slug with no palette (a drifted id the table cannot color) writes '' into
+    // the gate attribute AND the three props, so the CSS :not([data-border=""])
+    // gate stays closed and no transparent ::after box paints. This matches the
+    // nameplate, which early-returns to nothing for the same case, so both
+    // surfaces of one identity render a drifted id identically.
+    const calls = paint(
+      playerDescriptor({ borderSlug: 'slug_with_no_palette' }),
+      BORDERED_ELEMENTS,
+    );
+    const expectedClears: Call[] = [
+      { m: 'setAttr', args: [PORTRAIT_BORDER, PORTRAIT_BORDER_ATTR, ''] },
+      { m: 'setAttr', args: [NAME_HEADER, PORTRAIT_BORDER_ATTR, ''] },
+      { m: 'setAttr', args: [SEAL_MOTIF, 'd', ''] },
+      { m: 'setAttr', args: [HEADER_PATTERN, 'd', ''] },
+    ];
+    for (const host of [PORTRAIT_BORDER, NAME_HEADER]) {
+      for (const prop of [
+        PORTRAIT_BORDER_FRAME_PROP,
+        PORTRAIT_BORDER_EDGE_PROP,
+        PORTRAIT_BORDER_GLOW_PROP,
+        DEED_HERALDRY_WELL_PROP,
+      ]) {
+        expectedClears.push({ m: 'setStyleProp', args: [host, prop, ''] });
+      }
+      expectedClears.push({
+        m: 'setAttr',
+        args: [host, DEED_HERALDRY_MOTIF_ATTR, ''],
+      });
+    }
+    expect(expectedClears).toHaveLength(14);
+    expect(calls).toEqual(expect.arrayContaining(expectedClears));
+  });
+
+  it('elides every border write on a repeat paint (the facet caches, no local field)', () => {
+    // The painter holds NO lastBorderSlug: the multi-slot writer caches own the
+    // elision, so a steady frame costs zero DOM writes. This drives the REAL
+    // makeWriterFacet over element stubs rather than the recording facet, which
+    // records but never elides.
+    const attrs: Record<string, string> = {};
+    const props: Record<string, string> = {};
+    const stub = (): HTMLElement =>
+      ({
+        style: {
+          setProperty: (prop: string, value: string) => {
+            props[prop] = value;
+          },
+        },
+        classList: { toggle: () => {} },
+        setAttribute: (name: string, value: string) => {
+          attrs[name] = value;
+        },
+      }) as unknown as HTMLElement;
+    let writes = 0;
+    let skips = 0;
+    const host = stub();
+    const facet = makeWriterFacet(
+      new Map(),
+      new Map(),
+      new Map(),
+      new Map(),
+      () => {
+        writes++;
+      },
+      () => {
+        skips++;
+      },
+    );
+    const elements: UnitFrameElements = {
+      frame: stub(),
+      name: stub(),
+      level: stub(),
+      hpFill: stub(),
+      hpText: stub(),
+      portraitBorder: host,
+      heraldry: {
+        nameHeader: stub(),
+        sealMotif: stub(),
+        headerPattern: stub(),
+      },
+    };
+    const painter = new UnitFramePainter(facet, elements, { shownDisplay: 'flex' });
+    const view = unitFrameView(playerDescriptor({ borderSlug: 'deepward' }));
+
+    painter.paint(view);
+    expect(attrs[PORTRAIT_BORDER_ATTR]).toBe('deepward');
+    expect(props[PORTRAIT_BORDER_FRAME_PROP]).toBe(borderAccent('deepward')?.frame);
+    const firstWrites = writes;
+    const firstSkips = skips;
+
+    painter.paint(view);
+    expect(writes).toBe(firstWrites);
+    expect(skips).toBeGreaterThan(firstSkips);
+
+    // A real change still lands, and the palette follows the slug.
+    painter.paint(unitFrameView(playerDescriptor({ borderSlug: 'prestige_laurels' })));
+    expect(attrs[PORTRAIT_BORDER_ATTR]).toBe('prestige_laurels');
+    expect(props[PORTRAIT_BORDER_FRAME_PROP]).toBe(borderAccent('prestige_laurels')?.frame);
+    expect(writes).toBeGreaterThan(firstWrites);
+  });
+
+  it('E48: an instance without the two optional heraldry hosts pays zero identity writes', () => {
+    const calls = paint(playerDescriptor({ borderSlug: 'deepward' }), FULL_ELEMENTS, {
+      shownDisplay: 'flex',
+    });
+    expect(calls.some((c) => c.args[0] === PORTRAIT_BORDER)).toBe(false);
+    expect(calls.some((c) => c.args[0] === NAME_HEADER)).toBe(false);
+    expect(calls.some((c) => c.args[0] === SEAL_MOTIF)).toBe(false);
+    expect(calls.some((c) => c.args[0] === HEADER_PATTERN)).toBe(false);
+    expect(calls.some((c) => c.m === 'setAttr' || c.m === 'setStyleProp')).toBe(false);
+  });
+
+  it('writes nothing but the hide when the unit is absent (the family contract)', () => {
+    // Hiding stays byte-faithful to every other field: nothing is cleared while the
+    // frame is display:none. The reset lands on the next PRESENT paint, which
+    // always rewrites all four slots (the borderless arm above).
+    const calls = paint(
+      playerDescriptor({ present: false, borderSlug: 'deepward' }),
+      BORDERED_ELEMENTS,
+      {
+        shownDisplay: 'flex',
+      },
+    );
+    expect(calls).toEqual([{ m: 'setDisplay', args: [FRAME, 'none'] }]);
   });
 });

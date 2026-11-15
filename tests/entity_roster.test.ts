@@ -9,6 +9,7 @@ import { createDeedRuntime } from '../src/sim/deeds';
 import { createMob } from '../src/sim/entity';
 import {
   addEntityToRoster,
+  type DelayedEvent,
   drainDelayedEvents,
   dropEntityFromRoster,
   type GroundAoE,
@@ -17,14 +18,22 @@ import {
   runDespawnDecay,
   tickGroundAoEs,
 } from '../src/sim/entity_roster';
+import { freshMusterArmy } from '../src/sim/mirefen_muster';
 import { createMobScanCounters } from '../src/sim/mob/scan_counters';
+import type { PendingProjectile } from '../src/sim/projectile_travel';
 import { Rng } from '../src/sim/rng';
-import { createSimContext, type SimContextHost } from '../src/sim/sim_context';
-import { createVcState } from '../src/sim/social/vale_cup';
+import { freshSeasonalWorldState } from '../src/sim/seasonal';
+import { Sim } from '../src/sim/sim';
+import {
+  createSimContext,
+  inertVaultConsumptionAdmission,
+  type SimContextHost,
+} from '../src/sim/sim_context';
 import { SpatialGrid } from '../src/sim/spatial';
+import { DEFAULT_STORAGE_PRICES } from '../src/sim/storage_prices';
 import type { Entity } from '../src/sim/types';
 
-type AnyEntity = Entity & Record<string, any>;
+type AnyEntity = Entity & Record<string, unknown>;
 
 // A SpatialGrid contains `e` iff a radius query around its position finds its id.
 function gridHas(grid: SpatialGrid, e: Entity): boolean {
@@ -49,12 +58,27 @@ function makeCtx() {
   const players = new Map();
   const cfg = { seed: 1 } as unknown as SimContextHost['cfg'];
   const clock = { time: 0, tick: 0 };
-  let delayedEvents: { at: number; event: any; guard?: () => boolean }[] = [];
-  let pendingProjectiles: any[] = [];
+  let delayedEvents: DelayedEvent[] = [];
+  let pendingProjectiles: PendingProjectile[] = [];
   const emit = vi.fn();
   const clearEntityMarker = vi.fn();
   const pulseGroundAoE = vi.fn();
   const host: SimContextHost = {
+    riftCollisionToken: 1,
+    accountCosmetics: {
+      completedQuestIds: [],
+      mechChromaIds: [],
+      weaponSkinIds: [],
+      weaponSkinLoadout: {},
+      mountSkinIds: [],
+    },
+    storagePrices: DEFAULT_STORAGE_PRICES,
+    naturalRiftPortals: [],
+    riftEvents: [],
+    nextRiftInstanceId: 1,
+    riftPortalNextAt: 120,
+    transportClockOffset: 0,
+    riftPortalSpawnCount: 0,
     get rng() {
       return rng;
     },
@@ -67,9 +91,11 @@ function makeCtx() {
     get entities() {
       return entities;
     },
+    entityRosterVersion: 0,
     primaryId: -1,
     tradeInvites: new Map(),
     duelInvites: new Map(),
+    feasts: new Map(),
     nextId: 1,
     get grid() {
       return grid;
@@ -97,6 +123,9 @@ function makeCtx() {
       return dungeonDoorIds;
     },
     instances: [],
+    riftInstances: [],
+    riftPortalIds: null,
+    pendingDifficultyChanges: new Map(),
     dungeonResetLocks: new Map(),
     get arenaMatches() {
       return arenaMatches;
@@ -104,7 +133,10 @@ function makeCtx() {
     get players() {
       return players;
     },
+    masteryResetNoticeCounter: { pending: 0 },
     stationPlacements: [],
+    graveyards: [],
+    playerStart: { x: 0, z: 0 },
     get cfg() {
       return cfg;
     },
@@ -117,23 +149,58 @@ function makeCtx() {
     arenaQueueYumi5: [],
     yumiBusySlots: new Set(),
     yumiCatMatches: new Map(),
+    escortRuns: new Map(),
     matchmakeYumi: vi.fn(),
     updateYumiActive: vi.fn(),
     yumiPlayerDown: vi.fn(),
     yumiCatDamaged: vi.fn(),
     cleanupYumiMatch: vi.fn(),
     nextArenaMatchId: 1,
+    bgQueue: [],
+    bgMatches: new Map(),
+    worldPvpDisabled: false,
+    hillState: { active: null, window: 0, plan: null, attempts: 0, retryAt: 0, passTick: 0 },
+    seasonal: freshSeasonalWorldState(),
+    hillProbe: { wet: () => false, steep: () => false, blocked: () => false, zoneIdAt: () => null },
+    worldPvpBooks: {
+      recentDamage: new Map(),
+      recentSupport: new Map(),
+      lastFightAt: new Map(),
+      paidDeaths: new Set(),
+      spoils: new Map(),
+      killsByPair: new Map(),
+      zoneOf: new Map(),
+      nextDisarmAt: Number.POSITIVE_INFINITY,
+      zonePassTick: Number.NEGATIVE_INFINITY,
+      sweptAtTick: 0,
+      nextPayoutAt: Number.POSITIVE_INFINITY,
+      forfeitVictim: null,
+    },
+    bgBusySlots: new Set(),
+    bgOutcomes: [],
+    bgProposals: [],
+    bgProposalLockouts: new Map(),
+    nextBgProposalId: 1,
+    nextBgMatchId: 1,
     delveRuns: [],
     delvePetStash: new Map(),
     utcDay: '',
+    resetDay: '',
+    eventLeadDay: '',
+    dailyResetRemainingSec: 0,
     pendingMobRespawns: [],
     partyInvites: new Map(),
     readyChecks: new Map(),
+    pullTimers: new Map(),
     pendingResurrections: new Map(),
     chatTokens: new Map(),
     channelSubs: new Map(),
     emit,
     error: vi.fn(),
+    // This fake models no durable audit sink: the explicit inert admission is
+    // now REQUIRED on the host type (the storagePrices compiler-enforcement
+    // rule), so a host that forgot to decide cannot compile.
+    reserveVaultConsumption: inertVaultConsumptionAdmission,
     clearEntityMarker,
     pulseGroundAoE,
     dealDamage: vi.fn(),
@@ -171,6 +238,7 @@ function makeCtx() {
     isControlAura: vi.fn(() => false),
     applyRootAura: vi.fn(),
     applyKnockback: vi.fn(() => 0),
+    isIceBlocked: vi.fn(() => false),
     diminishedCrowdControlDuration: vi.fn(() => null),
     hostilesInRadius: vi.fn(() => []),
     friendliesInRadius: vi.fn(() => []),
@@ -187,11 +255,20 @@ function makeCtx() {
     removeFungibleItem: vi.fn(),
     partyOf: vi.fn(() => null),
     removeFromParty: vi.fn(),
+    hillPartyDisband: vi.fn(),
+    hillPartyJoin: vi.fn(),
     dropPartyMarkers: vi.fn(),
     formDungeonFinderGroup: vi.fn(() => null),
     onMobKilledForQuests: vi.fn(),
+    onMobKilledForWorldQuests: vi.fn(),
     onRecipeCraftedForQuests: vi.fn(),
     onNodeGatheredForQuests: vi.fn(),
+    onCropFarmedForQuests: vi.fn(),
+    onNodeGatheredForWorldQuests: vi.fn(),
+    onObjectInteractedForWorldQuests: vi.fn(() => false),
+    currentWorldQuestRotation: vi.fn(() => ({ cycle: '', quests: [] })),
+    hasActiveWorldQuest: vi.fn(() => false),
+    completeWorldQuestEscort: vi.fn(),
     onInventoryChangedForQuests: vi.fn(),
     checkQuestReady: vi.fn(),
     countItem: vi.fn(() => 0),
@@ -202,16 +279,24 @@ function makeCtx() {
     completeCurrentQuestsForDev: vi.fn(() => 0),
     lockoutNowMs: vi.fn(() => 0),
     raidResetMs: vi.fn((nowMs: number) => nowMs),
+    weeklyRaidResetMs: vi.fn((nowMs: number) => nowMs),
+    dayNightPhase: vi.fn(() => null),
     instanceKeyFor: vi.fn(() => 'solo:0'),
     instanceOriginOf: vi.fn(() => ({ x: 0, z: 0 })),
     instanceClaimIdAt: vi.fn(() => null),
     enterDungeon: vi.fn(),
     leaveDungeon: vi.fn(),
+    enterRift: vi.fn(),
+    leaveRift: vi.fn(),
+    emitRiftDeparture: vi.fn(),
+    riftOpenTreasure: vi.fn(),
     resetDungeonInstances: vi.fn(),
     inheritDungeonResetLocks: vi.fn(),
+    onDungeonFinderPartyJoined: vi.fn(),
     dungeonDifficulty: vi.fn(() => 'normal' as const),
     setDungeonDifficulty: vi.fn(),
     awardHeroicMarks: vi.fn(),
+    awardWyrmfallCores: vi.fn(),
     addEntity: vi.fn(),
     dropEntity: vi.fn(),
     rebucket: vi.fn(),
@@ -227,16 +312,22 @@ function makeCtx() {
     pendingLootRolls: new Map(),
     nextLootRollId: 1,
     devCommands: false,
+    compulsoryTutorial: false,
     marketListings: [],
+    commissionOrderBoard: [],
+    nextCommissionOrderId: 1,
     bankerIds: [],
-    vcup: createVcState(),
+    guildBanks: new Map(),
     deedDirtyPids: new Set<number>(),
     deedDirtyKeys: new Map<number, Set<string>>(),
     worldBossEntityIds: [],
+    musterArmy: freshMusterArmy(),
     deedRuntime: createDeedRuntime(),
     fiestaBotPids: [],
     mobScanCounters: createMobScanCounters(),
+    engagedPids: new Set<number>(),
     bumpDeedStat: vi.fn(),
+    bumpCommissionOrderBoardRev: vi.fn(),
     markItemDiscovered: vi.fn(),
     markVisited: vi.fn(),
     markDeedsDirty: vi.fn(),
@@ -271,6 +362,7 @@ function makeCtx() {
     swingIntervalMult: vi.fn(() => 1),
     mobCanSwim: vi.fn(() => false),
     resolveMovePoint: vi.fn(() => ({ x: 0, z: 0 })),
+    resolvePlayerMove: vi.fn(() => ({ x: 0, z: 0 })),
     resolveMove: vi.fn(() => ({ x: 0, z: 0 })),
     updatePet: vi.fn(),
     isDelveCompanionMob: vi.fn(() => false),
@@ -310,6 +402,9 @@ function makeCtx() {
     abandonLockpick: vi.fn(),
     tickLockpickTimeout: vi.fn(),
     startDelveRaiseDeadChannel: vi.fn(() => false),
+    tickMountTraining: vi.fn(),
+    tickMountRace: vi.fn(),
+    abandonMountTraining: vi.fn(),
     resolvedAbility: vi.fn(() => null),
     playerGcdFor: vi.fn(() => 1.5),
     isFriendlyTo: vi.fn(() => false),
@@ -318,13 +413,23 @@ function makeCtx() {
     stopFollow: vi.fn(),
     partyInvite: vi.fn(),
     readyCheckStart: vi.fn(),
+    pullTimerStart: vi.fn(),
+    pullTimerCancel: vi.fn(),
     tameError: vi.fn(() => null),
     standUp: vi.fn(),
     breakGhostWolf: vi.fn(),
+    forceDismount: vi.fn(),
     startAutoAttack: vi.fn(),
+    tryPlayerSwing: vi.fn(),
     revivePet: vi.fn(),
     completeFishing: vi.fn(),
     completeGatherCast: vi.fn(),
+    completeCraftCast: vi.fn(),
+    completeDisenchantCast: vi.fn(),
+    completeApplyEnchantCast: vi.fn(),
+    completeSalvageCast: vi.fn(),
+    completeSunderCast: vi.fn(),
+    completeRechargeCast: vi.fn(),
     applyDemonHealTick: vi.fn(),
     awardCombo: vi.fn(),
     meleeSwing: vi.fn(() => false),
@@ -342,6 +447,7 @@ function makeCtx() {
     spawnDevVendor: vi.fn(),
     startCascadePlaytest: vi.fn(),
     startDevSandbox: vi.fn(),
+    setDevMobsFrozen: vi.fn(() => false),
     seedDungeonFinderDev: vi.fn(() => ({ spawned: 0, note: 'ok' as const })),
     // L2 inventory/vendor (W2): the four still-on-Sim helpers the moved useItem dispatches to.
     startFishing: vi.fn(),
@@ -358,14 +464,15 @@ function makeCtx() {
     // Ravenpost mail: the quest turn-in letter hook.
     queueQuestLetter: vi.fn(),
     mailHeroicMarks: vi.fn(),
+    mailWyrmfallCores: vi.fn(),
     mailAuthoredLetter: vi.fn(),
+    mailboxHoldsItem: vi.fn(() => false),
     applySetProcs: vi.fn(),
-    // The Vale Cup sport-move arms.
-    vcupBallKick: vi.fn(),
-    vcupBallPass: vi.fn(),
-    vcupShoot: vi.fn(),
-    vcupSportDash: vi.fn(),
-    vcupSportShove: vi.fn(),
+    // Thornhollow Fields battleground hooks.
+    bgOnPlayerDeath: vi.fn(),
+    bgOnPlayerDamaged: vi.fn(),
+    bgOnPlayerHealed: vi.fn(),
+    bgCancelFlagAura: vi.fn(() => false),
   };
   const ctx = createSimContext(host);
   return {
@@ -485,7 +592,7 @@ describe('entity_roster: despawn prologue (isolated ctx)', () => {
     const t = makeCtx();
     t.clock.time = 50;
     const m = mob(220, 1, 1);
-    m.overheadEmoteId = 'laugh' as any;
+    m.overheadEmoteId = 'laugh' as Entity['overheadEmoteId'];
     m.overheadEmoteUntil = 49; // already past
     addEntityToRoster(t.ctx, m);
     runDespawnDecay(t.ctx);
@@ -511,6 +618,20 @@ describe('entity_roster: delayed-event drain (isolated ctx)', () => {
     expect(t.delayed()).toEqual([{ at: 100, event: { type: 'respawn', pid: 4 } }]);
   });
 
+  it('runs a due deterministic callback once without emitting a wire event', () => {
+    const t = makeCtx();
+    const resolve = vi.fn();
+    t.clock.time = 10;
+    t.ctx.delayedEvents = [{ at: 10, resolve }];
+
+    drainDelayedEvents(t.ctx);
+    drainDelayedEvents(t.ctx);
+
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(t.emit).not.toHaveBeenCalled();
+    expect(t.delayed()).toEqual([]);
+  });
+
   it('is a no-op (no allocation churn) when there are no delayed events', () => {
     const t = makeCtx();
     drainDelayedEvents(t.ctx);
@@ -530,7 +651,8 @@ describe('entity_roster: ground-AoE drain (isolated ctx)', () => {
       interval: 1,
       tickTimer: 0,
       school: 'holy',
-      ability: 'consecration',
+      ability: 'Consecration',
+      abilityId: 'consecration',
       ...over,
     };
   }
@@ -562,3 +684,49 @@ describe('entity_roster: graveyardReadout (pure)', () => {
 
 // The release-spirit / ghost-loop tests moved to tests/spirit.test.ts (the flow now
 // lives in src/sim/spirit.ts). graveyardReadout (above) stays here with the roster.
+
+// The despawn prologue's paladin gate (review 3050): the three paladin-sourced
+// cleanups walk the full roster, so dropEntityFromRoster runs them only for a
+// despawning paladin player. Pinned both ways against a real Sim: a non-paladin
+// despawn must not disturb a live paladin's devotion, and a paladin despawn
+// must still strip every aura it sourced.
+describe('paladin-sourced despawn cleanup gate', () => {
+  function plantDevotion(target: Entity, sourceId: number): void {
+    target.auras.push({
+      id: 'devotion_ward',
+      name: 'Bastion Devotion',
+      kind: 'buff_dr',
+      remaining: 999,
+      duration: 999,
+      permanent: true,
+      value: 0.05,
+      sourceId,
+      school: 'holy',
+    });
+  }
+
+  it('leaves a live paladin devotion intact when a non-paladin despawns', () => {
+    const sim = new Sim({ seed: 4242, playerClass: 'paladin', autoEquip: true });
+    const ctx = (sim as unknown as { ctx: Parameters<typeof dropEntityFromRoster>[0] }).ctx;
+    plantDevotion(sim.player, sim.player.id);
+
+    const bystander = createMob(880001, MOBS.ridge_stalker, 3, { x: 4, y: 0, z: 4 });
+    addEntityToRoster(ctx, bystander);
+    dropEntityFromRoster(ctx, bystander.id);
+
+    expect(sim.player.auras.some((a) => a.id === 'devotion_ward')).toBe(true);
+  });
+
+  it('still strips every sourced devotion when the paladin despawns', () => {
+    const sim = new Sim({ seed: 4243, playerClass: 'paladin', autoEquip: true });
+    const ctx = (sim as unknown as { ctx: Parameters<typeof dropEntityFromRoster>[0] }).ctx;
+    const allyId = sim.addPlayer('priest', 'Vera');
+    const ally = sim.entities.get(allyId);
+    if (!ally) throw new Error('missing ally');
+    plantDevotion(ally, sim.player.id);
+
+    dropEntityFromRoster(ctx, sim.player.id);
+
+    expect(ally.auras.some((a) => a.id === 'devotion_ward')).toBe(false);
+  });
+});

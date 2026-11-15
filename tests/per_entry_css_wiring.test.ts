@@ -1,18 +1,19 @@
 // Guards the one non-mechanical part of the CSS extraction: the per-entry CSS wiring
-// and the #rotate-device orientation gate (in-game landscape-only). After the
-// extraction both inline <style> blocks are empty and the game CSS lives in the shared
+// and the #rotate-device orientation gate (in-game landscape-only). The inline <style>
+// blocks hold only the boot splash, and the game CSS lives in the shared
 // src/styles/* @layer modules (loaded by both entries via the src/main.ts barrel),
 // EXCEPT the #rotate-device gate which differs per entry: index suppresses the
 // rotate overlay in browser web gameplay but lets the native app show it in portrait,
 // while play shows it in portrait. Each entry loads ONLY its own per-entry .extra via
 // a <link>.
 //
-// css_corpus is blind to this (it tests inline UNION modules, so empty-inline +
+// css_corpus is blind to this (it tests inline UNION modules, so the inline splash +
 // modules passes regardless) and client_shell asserts hud.mobile.css CONTENT but
 // not the wiring. A dropped <link>, the index suppress leaking into the shared
 // barrel, or play.html re-loading index.extra would all stay green without this.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { FORK_COMMUNITY_MOUNT, forkCommunityRoot } from './helpers/fork_community_root';
 
 const read = (p: string) =>
   readFileSync(new URL(p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -31,11 +32,32 @@ function inlineStyleBody(html: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+// Every selector of the inline CSS, keyframe stops excluded and @media blocks unwrapped.
+function inlineSelectors(css: string): string[] {
+  const flat = css
+    .replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '')
+    .replace(/@media[^{]*\{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/g, '$1');
+  return [...flat.matchAll(/([^{}]+)\{[^{}]*\}/g)].flatMap((m) =>
+    m[1].split(',').map((s) => s.trim()),
+  );
+}
+
 describe('per-entry CSS wiring + #rotate-device gate', () => {
-  it('both inline <style> blocks are empty (comment-only, zero CSS rules)', () => {
-    // No selector block (`{`) survives once the explanatory comment is stripped.
-    expect(inlineStyleBody(indexHtml)).not.toContain('{');
-    expect(inlineStyleBody(playHtml)).not.toContain('{');
+  it('both inline <style> blocks hold only the boot splash, identical in both entries', () => {
+    // Unlayered inline rules outrank every layered sheet, so a rule that is not scoped
+    // to the splash or to the boot-only body class would override the game CSS for good.
+    const indexCss = inlineStyleBody(indexHtml);
+    expect(inlineStyleBody(playHtml)).toBe(indexCss);
+    expect(indexCss).not.toContain('@layer');
+    // Outside the src/styles root-anchored :has() scan, so the cost rule is pinned here.
+    expect(indexCss).not.toMatch(/:has\(|\[style/);
+    const selectors = inlineSelectors(indexCss);
+    expect(selectors.length).toBeGreaterThan(0);
+    for (const selector of selectors) {
+      expect(selector, 'inline rule escapes the boot splash scope').toMatch(
+        /^(body\.boot-pending|#boot-splash|\.boot-splash-[a-z-]+)(?=$|[\s.:>,~+[])/,
+      );
+    }
   });
 
   it('index.html links its own index.extra.css and NOT play.extra.css', () => {
@@ -74,7 +96,7 @@ describe('per-entry CSS wiring + #rotate-device gate', () => {
     // a different cascade slot. A dotted name (e.g. "hud.mobile") would be a SUBLAYER of the
     // early "hud" layer and lose to shell, the exact trap fixed here.
     const ORDER =
-      '@layer tokens, base, layout, components, hud, shell, hud-mobile, index-extra, play-extra;';
+      '@layer tokens, base, layout, library, components, hud, shell, hud-mobile, index-extra, play-extra;';
     for (const [name, css] of [
       ['barrel', barrel],
       ['index.extra.css', indexExtra],
@@ -89,6 +111,123 @@ describe('per-entry CSS wiring + #rotate-device gate', () => {
       );
       expect(css, `${name} must not regress to a dotted play.extra sublayer`).not.toContain(
         'play.extra,',
+      );
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The in-game HUD subtree (#ui) must carry the SAME element ids in both game
+// entries, because both are bootstrapped by the one src/main.ts and dressed by the
+// one shared style barrel. The pre-game shell around it is legitimately different
+// (index.html owns the marketing landing, the account panels and offline character
+// creation; play.html owns none of it), so the parity claim is scoped to #ui.
+//
+// This exists because it was missed for real: the #aura-stack wrapper that now owns
+// the buff/debuff strips' positioning was added to index.html only. On /play both
+// strips fell back to static flow, since the positioning had moved off #buff-bar and
+// #debuff-bar onto the wrapper. Nothing caught it: css_corpus tests inline UNION
+// modules, mobile_window_coverage scrapes .window ids (a bare layout div is not one),
+// and styles_extraction only pins the barrel's @import set. A structural id diff is
+// what closes that gap, and it holds for any future HUD element, not just this one.
+// ---------------------------------------------------------------------------
+describe('game entry HUD parity', () => {
+  // Ids that legitimately live in only ONE entry's #ui. Keep this list tiny and
+  // justified: every entry here is a HUD element one game entry deliberately lacks.
+  const UI_ID_EXCEPTIONS: ReadonlyMap<string, string> = new Map([
+    [
+      'mobile-chat-reply',
+      'play.html only: the mobile chat launcher button, whose body.mobile-chat-reply ' +
+        'state main.ts drives for the touch shell that /play serves.',
+    ],
+  ]);
+
+  /** The ids inside the `<div id="ui">` subtree, found by walking div depth from it. */
+  function hudIds(html: string, entry: string): Set<string> {
+    html = html.replace(/<!--[\s\S]*?-->/g, '');
+    const start = html.indexOf('<div id="ui"');
+    expect(start, `${entry} must contain the #ui HUD root`).toBeGreaterThanOrEqual(0);
+    const tag = /<(\/?)div\b[^>]*?(\/?)>/g;
+    tag.lastIndex = start;
+    let depth = 0;
+    let end = -1;
+    let m: RegExpExecArray | null = tag.exec(html);
+    while (m) {
+      // A self-closing <div/> opens and closes in one tag, so it never moves depth.
+      if (m[2] !== '/') {
+        depth += m[1] === '/' ? -1 : 1;
+        if (depth === 0) {
+          end = m.index + m[0].length;
+          break;
+        }
+      }
+      m = tag.exec(html);
+    }
+    expect(end, `${entry}'s #ui subtree must be balanced`).toBeGreaterThan(start);
+    const markup = html.slice(start, end);
+    const ids = new Set([...markup.matchAll(/id="([^"]+)"/g)].map((x) => x[1]));
+    const community = forkCommunityRoot(html, markup);
+    if (community) {
+      ids.delete(FORK_COMMUNITY_MOUNT);
+      ids.add(community.id);
+      for (const match of community.inner.matchAll(/id="([^"]+)"/g)) ids.add(match[1]);
+    }
+    return ids;
+  }
+
+  it('index.html and play.html declare the same #ui element ids', () => {
+    const inIndex = hudIds(indexHtml, 'index.html');
+    const inPlay = hudIds(playHtml, 'play.html');
+    // Sanity floor: a broken slice that found almost nothing must not pass vacuously.
+    expect(inIndex.size).toBeGreaterThan(100);
+    expect(inPlay.size).toBeGreaterThan(100);
+
+    const onlyIndex = [...inIndex].filter((id) => !inPlay.has(id) && !UI_ID_EXCEPTIONS.has(id));
+    const onlyPlay = [...inPlay].filter((id) => !inIndex.has(id) && !UI_ID_EXCEPTIONS.has(id));
+    expect(onlyIndex, 'HUD ids present in index.html but missing from play.html').toEqual([]);
+    expect(onlyPlay, 'HUD ids present in play.html but missing from index.html').toEqual([]);
+  });
+
+  it('the composed community subtree exposes missing and unexpected nested ids to parity', () => {
+    const inPlay = hudIds(playHtml, 'play.html');
+    expect(indexHtml).toContain('id="community-menu"');
+    const removed = hudIds(indexHtml.replace('id="community-menu"', ''), 'missing nested id');
+    expect([...inPlay].filter((id) => !removed.has(id) && !UI_ID_EXCEPTIONS.has(id))).toEqual([
+      'community-menu',
+    ]);
+    const added = hudIds(
+      indexHtml.replace(
+        '<details id="community-menu">',
+        '<div id="unexpected-community-child"></div><details id="community-menu">',
+      ),
+      'unexpected nested id',
+    );
+    expect([...added].filter((id) => !inPlay.has(id))).toEqual(['unexpected-community-child']);
+  });
+
+  it('every exception is really one-sided, so the list cannot rot into a blanket waiver', () => {
+    const inIndex = hudIds(indexHtml, 'index.html');
+    const inPlay = hudIds(playHtml, 'play.html');
+    for (const [id, why] of UI_ID_EXCEPTIONS) {
+      expect(why.length, `${id} needs a real justification`).toBeGreaterThan(20);
+      // An id that has since landed in BOTH entries no longer needs a waiver; leaving it
+      // here would silently excuse it from the parity check if one side later dropped it.
+      expect(
+        inIndex.has(id) !== inPlay.has(id),
+        `${id} is in both entries now; drop it from UI_ID_EXCEPTIONS`,
+      ).toBe(true);
+    }
+  });
+
+  it('the aura strips are wrapped in #aura-stack in BOTH entries', () => {
+    // The specific regression above, pinned directly: the wrapper owns the strips'
+    // positioning, so a bare pair of bars in either entry is the broken layout.
+    for (const [entry, html] of [
+      ['index.html', indexHtml],
+      ['play.html', playHtml],
+    ] as const) {
+      expect(html, `${entry} must wrap the aura strips`).toMatch(
+        /<div id="aura-stack">\s*<div id="buff-bar"><\/div>\s*<div id="debuff-bar"><\/div>\s*<\/div>/,
       );
     }
   });

@@ -1,14 +1,146 @@
 import { resolvePosition, seatGroundedAt } from '../colliders';
+import { VANGUARD_FURY_4PC_ENRAGE_DURATION_SEC } from '../content/vanguard_set_bonuses_a';
 import { PLAYER_BODY_RADIUS, PLAYER_MAX_CLIMB_SLOPE, PLAYER_SWIM_DEPTH } from '../pathfind';
+import { riftPlayerLift } from '../rift/runs';
 import type { SimContext } from '../sim_context';
-import { type AbilityDef, DT, type Entity, type Vec3 } from '../types';
+import { traversalBand } from '../traversal_band';
+import { type AbilityDef, DT, ENRAGE_DMG_DONE, type Entity, type Vec3 } from '../types';
 import { groundHeight, terrainSteepnessAt, waterLevelAt } from '../world';
 import { hasUnbreakableMovementLock } from './cc';
+import { wearsSetBonus } from './set_bonus_wearer';
 
 const SWEEP_STEP = 0.5;
 const FLIGHT_DURATION = 0.6;
 const FLIGHT_APEX = 3.2;
 const EXTERNAL_RELOCATION_EPSILON = 0.05;
+
+/** The one sweep body both the live cast and the preview run: steps toward the
+ * aim, refusing deep water and unclimbable rises, resolving each step through
+ * the caller's collision resolvers (grounded, then at the flight crest for
+ * props the arc clears), and seating the end point on whatever stands there.
+ *
+ * Sibling: hunter_trailbreak_arc.ts walks the same half-yard line for the
+ * hunter's Trailbreak, but gates differently on purpose: this is a SCRIPTED
+ * flight that owns the body until touchdown, so it must refuse any rise the
+ * walker could not climb and any aim in deep water; Trailbreak plans a launch
+ * for the real jump physics, which flies over a short steep feature within
+ * mantle reach of walkable footing and splashes into water like any jump. Two
+ * copies is inside the rule of three; a third leap-shaped ability should pull
+ * the line walk into one core with per-ability gates. */
+function sweepLeapLanding(
+  seed: number,
+  fromX: number,
+  fromZ: number,
+  fromFeetY: number,
+  to: { x: number; z: number },
+  resolveGrounded: (x: number, z: number) => { x: number; z: number },
+  resolveAtCrest: (x: number, z: number) => { x: number; z: number },
+): { x: number; y: number; z: number } {
+  const dx = to.x - fromX;
+  const dz = to.z - fromZ;
+  const distance = Math.hypot(dx, dz);
+  let safeX = fromX;
+  let safeZ = fromZ;
+  let previousGround = groundHeight(fromX, fromZ, seed);
+
+  if (distance > 1e-6) {
+    const steps = Math.max(1, Math.ceil(distance / SWEEP_STEP));
+    for (let index = 1; index <= steps; index++) {
+      const progress = index / steps;
+      const nextX = fromX + dx * progress;
+      const nextZ = fromZ + dz * progress;
+      const step = Math.hypot(nextX - safeX, nextZ - safeZ);
+      const nextGround = groundHeight(nextX, nextZ, seed);
+      if (nextGround < waterLevelAt(nextX, nextZ, seed) - PLAYER_SWIM_DEPTH) break;
+      if (
+        nextGround > previousGround &&
+        step > 1e-6 &&
+        ((nextGround - previousGround) / step > PLAYER_MAX_CLIMB_SLOPE ||
+          terrainSteepnessAt(nextX, nextZ, seed) > PLAYER_MAX_CLIMB_SLOPE)
+      ) {
+        break;
+      }
+
+      const resolved = resolveGrounded(nextX, nextZ);
+      const moved = Math.hypot(resolved.x - safeX, resolved.z - safeZ);
+      const diverted =
+        Math.hypot(resolved.x - nextX, resolved.z - nextZ) > PLAYER_BODY_RADIUS * 0.25;
+      if (diverted || moved < step * 0.5) {
+        // The grounded resolve treats every prop as a wall, but the flight
+        // arc rises FLIGHT_APEX above the takeoff line: anything with a
+        // movement top under that crest (a stall canopy, a crate stack) is
+        // flown OVER, not hit. Re-resolve the point at crest height; if it
+        // comes back clean the sweep continues across the prop and the seat
+        // below lands the body on its top. A genuine full-height blocker
+        // still diverts the crest resolve and ends the sweep at its face.
+        const over = resolveAtCrest(nextX, nextZ);
+        if (Math.hypot(over.x - nextX, over.z - nextZ) > PLAYER_BODY_RADIUS * 0.25) break;
+        safeX = nextX;
+        safeZ = nextZ;
+        previousGround = groundHeight(safeX, safeZ, seed);
+        continue;
+      }
+
+      safeX = resolved.x;
+      safeZ = resolved.z;
+      previousGround = groundHeight(safeX, safeZ, seed);
+    }
+  }
+
+  // Support-aware seat: the sweep above passes over props under the arc's
+  // crest, so the end point may sit on a standable top (land ON it, at its
+  // sampled sloped height) or inside a passed-over footprint (nudge clear)
+  // instead of embedding at terrain. The crest is the honest feet height for
+  // the gate: the body descends from there onto whatever is below.
+  const seat = seatGroundedAt(seed, safeX, safeZ, PLAYER_BODY_RADIUS, fromFeetY + FLIGHT_APEX);
+  return { x: seat.x, y: seat.y, z: seat.z };
+}
+
+/**
+ * Preview arm over the shared sweep: the caller's REAL feet height and
+ * airborne state feed the same mover-height rule the live resolver applies
+ * (colliders moverHeightFor: lift MANTLE_REACH while airborne). Still
+ * seed-derived only: live delve modules, doors, and rift walls are per-Sim
+ * state a preview cannot see, so those arms can diverge from the cast.
+ */
+export function computeHeroicLeapLanding(
+  seed: number,
+  from: { x: number; y: number; z: number; onGround: boolean },
+  to: { x: number; z: number },
+): { x: number; z: number } {
+  const lift = from.onGround ? 0 : traversalBand();
+  const landing = sweepLeapLanding(
+    seed,
+    from.x,
+    from.z,
+    from.y,
+    to,
+    (x, z) =>
+      resolvePosition(seed, x, z, PLAYER_BODY_RADIUS, false, undefined, { y: from.y, lift }),
+    (x, z) =>
+      resolvePosition(seed, x, z, PLAYER_BODY_RADIUS, false, undefined, {
+        y: from.y + FLIGHT_APEX,
+        lift: 0,
+      }),
+  );
+  return { x: landing.x, z: landing.z };
+}
+
+/** The IWorld placement-preview gate both hosts delegate to: leap gets the
+ *  mirrored landing, every other ability keeps its own point. */
+export function heroicLeapPlacementPreview(
+  seed: number,
+  caster: { pos: { x: number; y: number; z: number }; onGround: boolean },
+  abilityId: string,
+  point: { x: number; z: number },
+): { x: number; z: number } {
+  if (abilityId !== 'heroic_leap') return point;
+  return computeHeroicLeapLanding(
+    seed,
+    { x: caster.pos.x, y: caster.pos.y, z: caster.pos.z, onGround: caster.onGround },
+    point,
+  );
+}
 
 function pointOnFlight(entity: Entity, elapsed: number): Vec3 {
   const flight = entity.leap;
@@ -30,86 +162,34 @@ function wasExternallyRelocated(entity: Entity): boolean {
   );
 }
 
-export function sweptLanding(ctx: SimContext, entity: Entity, aim: Vec3): Vec3 {
-  const fromFeetY = entity.pos.y;
-  const fromX = entity.pos.x;
-  const fromZ = entity.pos.z;
-  const dx = aim.x - fromX;
-  const dz = aim.z - fromZ;
-  const distance = Math.hypot(dx, dz);
-  let safeX = fromX;
-  let safeZ = fromZ;
-  let previousGround = groundHeight(fromX, fromZ, ctx.cfg.seed);
-
-  if (distance > 1e-6) {
-    const steps = Math.max(1, Math.ceil(distance / SWEEP_STEP));
-    for (let index = 1; index <= steps; index++) {
-      const progress = index / steps;
-      const nextX = fromX + dx * progress;
-      const nextZ = fromZ + dz * progress;
-      const step = Math.hypot(nextX - safeX, nextZ - safeZ);
-      const nextGround = groundHeight(nextX, nextZ, ctx.cfg.seed);
-      if (nextGround < waterLevelAt(nextX, nextZ) - PLAYER_SWIM_DEPTH) break;
-      if (
-        nextGround > previousGround &&
-        step > 1e-6 &&
-        ((nextGround - previousGround) / step > PLAYER_MAX_CLIMB_SLOPE ||
-          terrainSteepnessAt(nextX, nextZ, ctx.cfg.seed) > PLAYER_MAX_CLIMB_SLOPE)
-      ) {
-        break;
-      }
-
-      const resolved = ctx.resolveMovePoint(nextX, nextZ, PLAYER_BODY_RADIUS, entity);
-      const moved = Math.hypot(resolved.x - safeX, resolved.z - safeZ);
-      const diverted =
-        Math.hypot(resolved.x - nextX, resolved.z - nextZ) > PLAYER_BODY_RADIUS * 0.25;
-      if (diverted || moved < step * 0.5) {
-        // The grounded resolve treats every prop as a wall, but the flight
-        // arc rises FLIGHT_APEX above the takeoff line: anything with a
-        // movement top under that crest (a stall canopy, a crate stack) is
-        // flown OVER, not hit. Re-resolve the point at crest height; if it
-        // comes back clean the sweep continues across the prop and the seat
-        // below lands the body on its top. A genuine full-height blocker
-        // still diverts the crest resolve and ends the sweep at its face.
-        const crest = fromFeetY + FLIGHT_APEX;
-        const over = resolvePosition(
-          ctx.cfg.seed,
-          nextX,
-          nextZ,
-          PLAYER_BODY_RADIUS,
-          false,
-          undefined,
-          { y: crest, lift: 0 },
-        );
-        if (Math.hypot(over.x - nextX, over.z - nextZ) > PLAYER_BODY_RADIUS * 0.25) break;
-        safeX = nextX;
-        safeZ = nextZ;
-        previousGround = groundHeight(safeX, safeZ, ctx.cfg.seed);
-        continue;
-      }
-
-      safeX = resolved.x;
-      safeZ = resolved.z;
-      previousGround = groundHeight(safeX, safeZ, ctx.cfg.seed);
-    }
-  }
-
-  // Support-aware seat: the sweep above passes over props under the arc's
-  // crest, so the end point may sit on a standable top (land ON it, at its
-  // sampled sloped height) or inside a passed-over footprint (nudge clear)
-  // instead of embedding at terrain. The crest is the honest feet height for
-  // the gate: the body descends from there onto whatever is below.
-  const seat = seatGroundedAt(
+export function sweptLanding(
+  ctx: SimContext,
+  entity: Entity,
+  aim: Vec3,
+  feetY: number = entity.pos.y,
+): Vec3 {
+  return sweepLeapLanding(
     ctx.cfg.seed,
-    safeX,
-    safeZ,
-    PLAYER_BODY_RADIUS,
-    fromFeetY + FLIGHT_APEX,
+    entity.pos.x,
+    entity.pos.z,
+    feetY,
+    aim,
+    (x, z) => ctx.resolveMovePoint(x, z, PLAYER_BODY_RADIUS, entity),
+    (x, z) =>
+      resolvePosition(
+        ctx.cfg.seed,
+        x,
+        z,
+        PLAYER_BODY_RADIUS,
+        false,
+        undefined,
+        { y: feetY + FLIGHT_APEX, lift: 0 },
+        ctx.riftCollisionToken,
+      ),
   );
-  return { x: seat.x, y: seat.y, z: seat.z };
 }
 
-/** Instant relocation through the same collision/terrain sweep as Heroic Leap. */
+/** Instant relocation through the same collision/terrain sweep as Vaulting Charge. */
 export function relocateSwept(ctx: SimContext, entity: Entity, aim: Vec3): void {
   const landing = sweptLanding(ctx, entity, aim);
   entity.pos = landing;
@@ -125,20 +205,28 @@ export function armHeroicLeap(
   entity: Entity,
   aim: Vec3,
   landingAoe: { min: number; max: number; radius: number },
-  ability: Pick<AbilityDef, 'name' | 'school'>,
+  ability: Pick<AbilityDef, 'id' | 'name' | 'school'>,
 ): void {
   if (hasUnbreakableMovementLock(entity)) return;
-  const landing = sweptLanding(ctx, entity, aim);
+  // A rift's raised deck is a Y lift the movement step strips before it runs and
+  // re-applies after (player_movement_modes.ts, rift/runs.ts riftPlayerLift), so
+  // the flight lives in the lift-free frame that step sees. Armed in the lifted
+  // frame, the strip on the first tick read as an outside relocation and the leap
+  // cancelled itself with its cooldown spent (Warlord Grask player report). The
+  // landing seats on the flat floor and the lift puts it back on the deck.
+  const feetY = entity.pos.y - riftPlayerLift(ctx, entity);
+  const landing = sweptLanding(ctx, entity, aim, feetY);
   entity.chargeTargetId = null;
   entity.chargePath = [];
   entity.leap = {
-    from: { ...entity.pos },
+    from: { ...entity.pos, y: feetY },
     to: landing,
     elapsed: 0,
     duration: FLIGHT_DURATION,
     apex: FLIGHT_APEX,
     landingAoe: { ...landingAoe },
     abilityName: ability.name,
+    abilityId: ability.id,
     school: ability.school,
   };
 }
@@ -148,6 +236,9 @@ export function advanceHeroicLeap(ctx: SimContext, entity: Entity): boolean {
   if (!flight) return false;
   if (entity.dead || hasUnbreakableMovementLock(entity) || wasExternallyRelocated(entity)) {
     entity.leap = null;
+    // Stopped before it ever left the ground: the leap never happened, so it
+    // costs no cooldown. One stopped mid-air was a real leap and keeps it.
+    if (flight.elapsed <= 0) entity.cooldowns.delete(flight.abilityId);
     return false;
   }
 
@@ -163,18 +254,57 @@ export function advanceHeroicLeap(ctx: SimContext, entity: Entity): boolean {
   entity.jumping = false;
   entity.fallStartY = entity.pos.y;
   entity.leap = null;
-  ctx.emit({
-    type: 'spellfxAt',
-    x: entity.pos.x,
-    z: entity.pos.z,
-    school: flight.school,
-    fx: 'nova',
-    radius: flight.landingAoe.radius,
-  });
-  for (const target of ctx.hostilesInRadius(entity, entity.pos, flight.landingAoe.radius)) {
-    if (!ctx.hasLineOfSight(entity, target)) continue;
-    const damage = Math.round(ctx.rng.range(flight.landingAoe.min, flight.landingAoe.max));
-    ctx.dealDamage(entity, target, damage, false, flight.school, flight.abilityName, 'hit');
+  // A flight with no landing blast (the Muster Grapnel's haul, balgath_trinkets.ts)
+  // lands quietly: no nova, no damage sweep, no draw.
+  if (flight.landingAoe.radius > 0) {
+    ctx.emit({
+      type: 'spellfxAt',
+      x: entity.pos.x,
+      z: entity.pos.z,
+      school: flight.school,
+      fx: 'nova',
+      radius: flight.landingAoe.radius,
+      ability: flight.abilityId,
+    });
+    for (const target of ctx.hostilesInRadius(entity, entity.pos, flight.landingAoe.radius)) {
+      if (!ctx.hasLineOfSight(entity, target)) continue;
+      const damage = Math.round(ctx.rng.range(flight.landingAoe.min, flight.landingAoe.max));
+      ctx.dealDamage(entity, target, damage, false, flight.school, flight.abilityName, 'hit');
+    }
   }
+  // The Muster Grapnel's haul lands with a heal from whoever threw it (never crits, so
+  // the tooltip's number is the number healed; draws no rng).
+  if (flight.landingHeal) {
+    const healer = ctx.entities.get(flight.landingHeal.sourceId) ?? entity;
+    ctx.applyHeal(
+      healer,
+      entity,
+      flight.landingHeal.amount,
+      flight.landingHeal.name,
+      flight.abilityId,
+      false,
+    );
+  }
+  enrageOnVaultingLanding(ctx, entity, flight.abilityId);
   return true;
+}
+
+/** Bloodmarch Ragegear 4pc (Warfare Season 2): landing Vaulting Charge
+ *  Enrages the wearer. The SAME fury_enrage aura Bloodletting and Red Harvest
+ *  apply (effect_dispatch's enrageChance case), so it refreshes the one
+ *  Enrage rather than stacking a second. Runs after the landing damage, draws
+ *  no rng. */
+function enrageOnVaultingLanding(ctx: SimContext, entity: Entity, abilityId: string): void {
+  if (abilityId !== 'heroic_leap' || entity.dead) return;
+  if (!wearsSetBonus(ctx, entity, 'vanguard_warrior_fury', 4)) return;
+  ctx.applyAura(entity, {
+    id: 'fury_enrage',
+    name: 'Enraged',
+    kind: 'enrage',
+    remaining: VANGUARD_FURY_4PC_ENRAGE_DURATION_SEC,
+    duration: VANGUARD_FURY_4PC_ENRAGE_DURATION_SEC,
+    value: ENRAGE_DMG_DONE,
+    sourceId: entity.id,
+    school: 'physical',
+  });
 }

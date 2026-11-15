@@ -10,13 +10,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DEEDS } from '../src/sim/content/deeds';
-import { MASTERY_RESET_LETTER } from '../src/sim/content/letters';
+import { authoredLettersById, MASTERY_RESET_LETTER } from '../src/sim/content/letters';
 import { CRAFT_RING, GATHERING_PROFESSION_IDS } from '../src/sim/content/professions';
 import { markDeedsDirty } from '../src/sim/deeds';
-import { applyMasteryReset, MASTERY_RESET_LETTER_ID } from '../src/sim/professions/mastery_reset';
+import {
+  applyMasteryReset,
+  MASTERY_RESET_LETTER_ID,
+  updateMasteryResetNotices,
+} from '../src/sim/professions/mastery_reset';
 import { proficiencyBandFor } from '../src/sim/professions/proficiency_bands';
 import { isSpecialized, tierCapability } from '../src/sim/professions/wheel';
-import { type CharacterState, Sim } from '../src/sim/sim';
+import { type CharacterState, type PlayerMeta, Sim } from '../src/sim/sim';
+import type { SimContext } from '../src/sim/sim_context';
+import { knownLetterId } from '../src/ui/entity_i18n';
 import { samplePlayerMeta } from './parity/trace';
 
 const makeSim = (seed = 42) => new Sim({ seed, playerClass: 'warrior', noPlayer: true });
@@ -105,7 +111,7 @@ describe('applyMasteryReset (pure, in place)', () => {
 
   it('the letter id is registered in the LETTER_IDS table of world_entity_i18n.ts', () => {
     // LETTER_IDS is a module-private const, so pin it by source scan (the
-    // professions_trend.test.ts precedent for the guild trend letters).
+    // professions_trend_content.test.ts precedent for the guild trend letters).
     const src = fs.readFileSync(path.resolve(process.cwd(), 'src/ui/world_entity_i18n.ts'), 'utf8');
     const start = src.indexOf('const LETTER_IDS = [');
     expect(start, 'the LETTER_IDS declaration should exist').toBeGreaterThan(-1);
@@ -113,16 +119,16 @@ describe('applyMasteryReset (pure, in place)', () => {
     expect(src.slice(start, end)).toContain(`'${MASTERY_RESET_LETTER_ID}'`);
   });
 
-  it('the letter is registered in the entity_i18n LETTERS_BY_ID runtime registry', () => {
-    // The SECOND ui letter registry (the tEntity runtime source); also
-    // module-private, so the same source-scan idiom pins the literal entry.
-    const src = fs.readFileSync(path.resolve(process.cwd(), 'src/ui/entity_i18n.ts'), 'utf8');
-    const start = src.indexOf('const LETTERS_BY_ID: Record<string, LetterDef> = {');
-    expect(start, 'the LETTERS_BY_ID declaration should exist').toBeGreaterThan(-1);
-    const end = src.indexOf('};', start);
-    expect(src.slice(start, end)).toContain(
-      '[MASTERY_RESET_LETTER.letterId]: MASTERY_RESET_LETTER',
-    );
+  it('the letter is known to the entity_i18n runtime registry, through the shared authored map', () => {
+    // The SECOND ui letter registry (the tEntity runtime source) is no longer a
+    // hand-seeded literal: entity_i18n.ts builds it from the ONE shared
+    // authoredLettersById() map (the Masterwrought phase 10 QA closed the
+    // Wyrmfall letter gap that way), so pin the RUNTIME registry through its
+    // exported stale-client guard and the shared map's own row, not source text.
+    expect(knownLetterId(MASTERY_RESET_LETTER_ID), 'the ui bundle knows the letter').toBe(true);
+    expect(authoredLettersById()[MASTERY_RESET_LETTER_ID]).toBe(MASTERY_RESET_LETTER);
+    // Negative control: the guard is not a tautology.
+    expect(knownLetterId('mastery_reset_notice_never_authored')).toBe(false);
   });
 });
 
@@ -188,7 +194,62 @@ describe('the keep ledger (one decisive pin per row)', () => {
     ).toBe(1);
   });
   it('bank KEPT', () => {
-    expect(meta.bank.inventory).toEqual([{ itemId: 'roasted_boar', count: 1 }]);
+    expect(meta.bank).toEqual({
+      inventory: [
+        { itemId: 'roasted_boar', count: 1, materialSources: [{ source: {}, count: 1 }] },
+      ],
+      purchasedSlots: 0,
+      bonusSlots: 0,
+      unlockedSockets: 0,
+      socketBags: [null, null, null, null],
+      appliedStorageKeys: [],
+    });
+  });
+  it('keeps the whole populated bank, its source identities and storage metadata through reset and reload', () => {
+    const state = resetSave();
+    state.bank = {
+      inventory: [
+        { itemId: 'roasted_boar', count: 1 },
+        {
+          itemId: 'minor_healing_potion',
+          count: 4,
+          instance: { locked: true },
+          materialSources: [{ source: { signer: 'Maker' }, count: 4 }],
+          craftedRecipeId: 'recipe_minor_healing_potion',
+          materialSeparated: true,
+        },
+        { itemId: 'worn_sword', count: 1, instance: { signer: 'Smith', boundTo: 77 } },
+      ],
+      purchasedSlots: 6,
+      bonusSlots: 2,
+      unlockedSockets: 1,
+      socketBags: ['silkspun_satchel', null, null, null],
+      appliedStorageKeys: ['kept-storage-receipt'],
+    };
+    const original = structuredClone(state.bank);
+    const expected = {
+      ...original,
+      inventory: [
+        { itemId: 'roasted_boar', count: 1, materialSources: [{ source: {}, count: 1 }] },
+        ...original.inventory.slice(1),
+      ],
+    };
+    const reset = makeSim();
+    const resetPid = reset.addPlayer('warrior', 'BankKeeper', { state });
+    expect(metaOf(reset, resetPid).bank).toEqual(expected);
+    expect(state.bank).toEqual(original);
+    const control = makeSim();
+    const controlPid = control.addPlayer('warrior', 'BankKeeper', {
+      state: { ...structuredClone(state), masteryResetApplied: true },
+    });
+    expect(metaOf(reset, resetPid).bank).toEqual(metaOf(control, controlPid).bank);
+    const saved = reset.serializeCharacter(resetPid);
+    if (!saved) throw new Error('serializeCharacter returned null');
+    expect(saved.bank).toEqual(expected);
+    const reloaded = makeSim();
+    const reloadedPid = reloaded.addPlayer('warrior', 'BankKeeper', { state: saved });
+    expect(metaOf(reloaded, reloadedPid).bank).toEqual(expected);
+    expect(reloaded.serializeCharacter(reloadedPid)?.bank).toEqual(expected);
   });
   it('copper KEPT', () => {
     expect(meta.copper).toBe(98765);
@@ -296,18 +357,57 @@ describe('one-shot: the flag serializes literal true and never re-fires', () => 
 });
 
 describe('the mail-phase notice letter', () => {
-  it('arrives exactly once, on the first tick after the reset load', () => {
+  it('arrives exactly once, on the first tick after the reset load (counter-gated)', () => {
     const sim = makeSim();
     const pid = sim.addPlayer('warrior', 'Notice', { state: resetSave() });
     expect(sim.mailUnreadFor(pid)).toBe(0);
+    // The phase 16 fast path: the load flip arms the live counter, the very
+    // NEXT tick drains it (a wider window would let a save-and-leave lose the
+    // one-shot forever, the phase 16 review finding), and the drained counter
+    // returns to zero so the 20 Hz sweep is a single integer read afterwards.
+    expect(sim.masteryResetNoticeCounter.pending).toBe(1);
     sim.tick();
     expect(sim.mailUnreadFor(pid)).toBe(1);
+    expect(sim.masteryResetNoticeCounter.pending).toBe(0);
     for (let i = 0; i < 40; i++) sim.tick();
     expect(sim.mailUnreadFor(pid)).toBe(1);
     moveToMailbox(sim, pid);
     const info = sim.mailInfoFor(pid);
     const notices = info?.messages.filter((m) => m.letterId === MASTERY_RESET_LETTER_ID) ?? [];
     expect(notices).toHaveLength(1);
+  });
+
+  it('THE COUNTER GATE: a pending player is not mailed while the counter reads zero', () => {
+    // The exact contract of the phase 16 fast path, which nothing else in
+    // the repo pins: with the counter at zero the sweep returns BEFORE the
+    // walk, so deleting that early return left the whole suite green even
+    // though it turns a one-integer-read-per-tick sweep back into a walk of
+    // every online player at 20 Hz. Driven through a fake ctx because the
+    // live sim never presents this state (the load branch arms the counter
+    // in the same block that arms the meta), and that is precisely why the
+    // guard has had no pin of its own.
+    const mailed: string[] = [];
+    const meta = { pendingMasteryResetNotice: true } as unknown as PlayerMeta;
+    const ctx = {
+      masteryResetNoticeCounter: { pending: 0 },
+      players: new Map([[1, meta]]),
+      mailAuthoredLetter: (_meta: PlayerMeta, letter: { letterId: string }) => {
+        mailed.push(letter.letterId);
+      },
+    } as unknown as SimContext;
+    updateMasteryResetNotices(ctx);
+    expect(mailed).toEqual([]);
+    // Still ARMED: the gate must skip the walk, never consume the one-shot.
+    expect(meta.pendingMasteryResetNotice).toBe(true);
+    // Positive control on the same fixture: with the counter armed the very
+    // same call mails exactly one letter, drains the flag, and re-zeroes the
+    // counter. Without it the pin above would pass on a sweep that never
+    // mails anything at all.
+    ctx.masteryResetNoticeCounter.pending = 1;
+    updateMasteryResetNotices(ctx);
+    expect(mailed).toEqual([MASTERY_RESET_LETTER_ID]);
+    expect(meta.pendingMasteryResetNotice).toBe(false);
+    expect(ctx.masteryResetNoticeCounter.pending).toBe(0);
   });
 
   it('a reloaded flag-true character gets no letter at all', () => {

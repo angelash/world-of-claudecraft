@@ -1,17 +1,58 @@
 // Postgres-backed SocialDb. The schema is appended to the main ensureSchema()
-// run in db.ts. All relationships are keyed by character id; the realm column
-// on `characters` scopes a character to a world/shard (one realm today, but
-// stored now so cross-realm friends/guilds need no migration later).
+// run in db.ts. Friends and blocks are account-global, with realm-local
+// character identities for display. Guilds and chat ignores remain character keyed.
 
 import type { Pool } from 'pg';
+import {
+  GUILD_RANK_LEADER_ID,
+  GUILD_RANK_MEMBER_ID,
+  type GuildRankDef,
+  type GuildRankId,
+  resolveGuildRankLadder,
+} from '../src/sim/guild_ranks';
+import { guildRosterCap, guildRosterPagesBought } from '../src/sim/guild_roster';
+import type { GuildPledgeSettings } from '../src/world_api/social_graph';
+import {
+  ACCOUNT_FRIENDS_SCHEMA,
+  type AccountSocialDatabaseAdmission,
+  PgAccountFriendsDb,
+} from './account_friends_db';
+import { bustAdminGuildListReads } from './admin_guilds_read';
+import {
+  GUILD_NAME_ADVISORY_LOCK_SQL,
+  GUILD_NAME_COLLISION_SQL,
+  guildNameLockKey,
+} from './guild_name_db';
+import type { GuildPledgeSettingsInput } from './guild_pledge_settings_cmd';
+import { GuildRosterCache } from './guild_roster_cache';
 import { REALM } from './realm';
-import type { CharInfo, CharRef, GuildEventRow, GuildRank, SocialDb } from './social';
+import type { CharInfo, CharRef, GuildEventRow, SocialDb } from './social';
+
+// The exact element type SocialDb.guildMembers() promises, named once so the
+// cache and the raw reader below can share it without repeating the shape.
+type GuildMemberRow = CharInfo & {
+  rank: GuildRankId;
+  lastLogin: string | null;
+  activeTitle: string | null;
+  joinedAt: number | null;
+};
 
 // kept as an alias for the schema's column default; the live realm is REALM
 export const DEFAULT_REALM = REALM;
 
+/** guild_members.joined_at (TIMESTAMPTZ) as finite epoch ms, or null. The
+ *  explicit finite guard (the discord_db joined-at precedent) keeps a bad
+ *  driver value from riding the wire as NaN. */
+function joinedAtEpochMs(raw: unknown): number | null {
+  if (raw === null || raw === undefined) return null;
+  const ms = new Date(raw as string | Date).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
 export const SOCIAL_SCHEMA = `
 ALTER TABLE characters ADD COLUMN IF NOT EXISTS realm TEXT NOT NULL DEFAULT '${DEFAULT_REALM.replace(/'/g, "''")}';
+-- Presence privacy (server/presence_privacy.ts): everyone | friends | none.
+ALTER TABLE characters ADD COLUMN IF NOT EXISTS presence_mode TEXT NOT NULL DEFAULT 'everyone';
 CREATE INDEX IF NOT EXISTS characters_realm ON characters(realm);
 -- Classic MMOs make character names unique per realm, not globally. Relax the original
 -- global unique on characters.name to a (realm, name) composite. This is a
@@ -113,6 +154,97 @@ CREATE UNIQUE INDEX IF NOT EXISTS guilds_realm_name ON guilds(realm, name);
 ALTER TABLE guilds ADD COLUMN IF NOT EXISTS motd TEXT NOT NULL DEFAULT '';
 ALTER TABLE guilds ADD COLUMN IF NOT EXISTS motd_set_by TEXT NOT NULL DEFAULT '';
 
+-- Guild pledge board (docs/prd/guild-pledge-board.md): per-guild recruiting
+-- settings ride the guilds row like the motd.
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS pledges_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS pledge_min_level INT NOT NULL DEFAULT 1;
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS pledge_note TEXT NOT NULL DEFAULT '';
+-- Guild board categories (src/sim/guild_board_category.ts): the opt-in that
+-- lists the guild on the Proving Shore signpost's new-player-friendly view.
+-- Off by default: a guild declares it, the board never guesses.
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS new_player_friendly BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Guild roster expansion (docs/prd/guild-roster-expansion.md): how many
+-- 20-seat pages the Guild Master has bought. The CAP derives from it
+-- (src/sim/guild_roster.ts guildRosterCap), never the other way round, so the
+-- next page's price always indexes the ladder by pages actually paid for.
+-- Additive and idempotent; 0 keeps every existing guild at the base roster.
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS roster_pages INT NOT NULL DEFAULT 0;
+
+-- Guild custom ranks (docs/prd/guild-custom-ranks.md): the guild's rank LADDER,
+-- an ordered JSONB array of { id, name, perms } (src/sim/guild_ranks.ts owns
+-- the shape and its one sanitizer). NULL is the default ladder (Guild Master,
+-- Officer, Member with the pre-ladder permissions), so every existing guild
+-- keeps its rules without a backfill, and guild_members.rank already holds
+-- valid rank ids ('leader' | 'officer' | 'member'). Bounded by construction
+-- (at most GUILD_RANK_MAX short entries per guild row, gone with the guild),
+-- so no retention story is needed. Additive and idempotent.
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS ranks JSONB;
+
+-- One receipt per bought roster page, written in the SAME transaction as the
+-- page and the buyer's charged purse (server/guild_roster_page_db.ts). Its
+-- only reader is the reconcile step after a lost COMMIT answer: a matching
+-- row under the purchase's own key proves the page landed and must not be
+-- refunded. Bounded by construction (the compare-and-set caps pages at the
+-- ladder's length, so at most that many rows per guild, gone with the
+-- guild), so no retention sweep is needed. copper is BIGINT on purpose: the
+-- ladder crosses INT4 at page 30. Uniqueness is the batch_key alone, NOT
+-- (guild_id, page): an operator who lowers roster_pages to compensate a
+-- player must be able to sell that page number again without deleting
+-- receipts first, so the page index below is a plain index (it serves the
+-- guild cascade). The inline CHECKs are frozen at first creation (CREATE
+-- TABLE IF NOT EXISTS never revisits the body, the bank_ledger_batch_db
+-- lesson); they interpolate no constant, so a change needs its own ALTER.
+CREATE TABLE IF NOT EXISTS guild_roster_receipts (
+  batch_key TEXT PRIMARY KEY,
+  guild_id INT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  page INT NOT NULL,
+  character_id INT NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+  copper BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT guild_roster_receipts_page_positive CHECK (page > 0),
+  CONSTRAINT guild_roster_receipts_copper_positive CHECK (copper > 0)
+);
+-- The first cut of this table (never released) made (guild_id, page) unique.
+ALTER TABLE guild_roster_receipts DROP CONSTRAINT IF EXISTS guild_roster_receipts_page_once;
+CREATE INDEX IF NOT EXISTS guild_roster_receipts_guild_page
+  ON guild_roster_receipts (guild_id, page);
+-- The character cascade (the account-delete path) must never scan this table.
+CREATE INDEX IF NOT EXISTS guild_roster_receipts_character
+  ON guild_roster_receipts (character_id);
+
+-- One active pledge per character (the pledge is a public line on the
+-- character, singular by construction). Bounded at one row per character, so
+-- no retention sweep is needed.
+CREATE TABLE IF NOT EXISTS guild_pledges (
+  character_id INT PRIMARY KEY REFERENCES characters(id) ON DELETE CASCADE,
+  guild_id INT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS guild_pledges_guild ON guild_pledges(guild_id);
+
+-- The re-pledge cooldown stamp, per character: the last time they PLEDGED,
+-- SURVIVING withdraw (which deletes the pledge row itself), so
+-- withdraw-and-re-pledge cannot dodge the anti-spam window
+-- (server/social.ts PLEDGE_REPLEDGE_COOLDOWN_MS). Bounded at one row per
+-- character, so no retention sweep is needed.
+CREATE TABLE IF NOT EXISTS guild_pledge_cooldowns (
+  character_id INT PRIMARY KEY REFERENCES characters(id) ON DELETE CASCADE,
+  pledged_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- The rejection ladder, per (guild, ACCOUNT): 1 day, then 1 week, then
+-- forever (sim/guild_pledge_ladder.ts owns the arithmetic). KEEP FOREVER by
+-- design: the third tier is permanent, so rows must outlive every sweep; the
+-- table is bounded by guilds x accounts that were actually rejected.
+CREATE TABLE IF NOT EXISTS guild_pledge_ladder (
+  guild_id INT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  account_id INT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  reject_count INT NOT NULL DEFAULT 0,
+  rejected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (guild_id, account_id)
+);
+
 CREATE TABLE IF NOT EXISTS guild_members (
   character_id INT PRIMARY KEY REFERENCES characters(id) ON DELETE CASCADE,
   guild_id INT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
@@ -135,12 +267,54 @@ CREATE TABLE IF NOT EXISTS guild_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS guild_events_guild_day ON guild_events(guild_id, day);
+
+-- Guild bank books (Guild Bank Phase 3): one JSONB book per guild (treasury,
+-- inventory, purchasedSlots; the shape src/sim/guild_bank.ts owns). Lives in
+-- this schema family because guilds owns the parent row: a committed guild
+-- DELETE cascades the book away. ROLLBACK SAFETY: the ONLY thing standing
+-- between that cascade and destroyed escrow value is the empty-bank guard in
+-- server/social.ts, which BOTH guild-deleting paths must keep (guildDisband
+-- AND the last-member arm of guildLeave, each consulting guildBankHoldings
+-- and failing closed on an unloaded book). Any future code change that adds
+-- a guild-deleting path or reorders either guard past its DELETE re-opens
+-- item/copper destruction; tests/social_system.test.ts pins both guards.
+-- Boot-loaded per realm (realm rides the row for that read); every write runs
+-- inside the character-lease-fenced escrow transaction in server/db.ts, never
+-- standalone. realm carries no DEFAULT deliberately: the interpolated-default
+-- pattern is last-boot-wins across realm processes, so every insert passes
+-- realm explicitly.
+CREATE TABLE IF NOT EXISTS guild_banks (
+  guild_id INT PRIMARY KEY REFERENCES guilds(id) ON DELETE CASCADE,
+  realm TEXT NOT NULL,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+${ACCOUNT_FRIENDS_SCHEMA}
 `;
 
 const CHAR_COLS = 'id, name, class AS cls, level, realm';
 
 export class PgSocialDb implements SocialDb {
-  constructor(private readonly pool: Pool) {}
+  // See server/guild_roster_cache.ts for what this caches, why it is safe for
+  // the "fresh database read" carrier lookup, and why it lives per instance.
+  private readonly guildRoster = new GuildRosterCache<GuildMemberRow[]>((guildId) =>
+    this.loadGuildMembers(guildId),
+  );
+
+  private readonly accountFriends: PgAccountFriendsDb;
+
+  constructor(
+    private readonly pool: Pool,
+    database?: AccountSocialDatabaseAdmission,
+  ) {
+    this.accountFriends = new PgAccountFriendsDb(pool, database);
+  }
+
+  /** Atomic paid creation lives outside the SocialDb interface, but it still
+   *  has to invalidate this instance-local roster cache after commit. */
+  bustGuildRoster(guildId: number): void {
+    this.guildRoster.bust(guildId);
+  }
 
   async findCharacterByName(name: string): Promise<CharInfo | null> {
     // scoped to this realm: you can only friend/ignore/invite characters that
@@ -166,71 +340,59 @@ export class PgSocialDb implements SocialDb {
     return res.rows[0] ?? null;
   }
 
-  async addFriend(charId: number, friendId: number): Promise<void> {
-    await this.pool.query(
-      'INSERT INTO friendships (character_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [charId, friendId],
-    );
+  addFriend(charId: number, friendId: number) {
+    return this.accountFriends.addFriend(charId, friendId);
   }
 
-  async removeFriend(charId: number, friendId: number): Promise<void> {
-    await this.pool.query('DELETE FROM friendships WHERE character_id = $1 AND friend_id = $2', [
-      charId,
-      friendId,
-    ]);
+  removeFriend(charId: number, friendId: number) {
+    return this.accountFriends.removeFriend(charId, friendId);
   }
 
-  async listFriends(charId: number): Promise<(CharInfo & { activeTitle: string | null })[]> {
-    // state->>'activeTitle' rides the same JOINed characters row (the
-    // charactersForDeedsBoard read precedent in server/db.ts): no extra query.
-    const res = await this.pool.query(
-      `SELECT c.id, c.name, c.class AS cls, c.level, c.realm,
-              c.state->>'activeTitle' AS active_title
-       FROM friendships f JOIN characters c ON c.id = f.friend_id
-       WHERE f.character_id = $1 ORDER BY c.name`,
-      [charId],
-    );
-    return res.rows.map(({ active_title, ...r }) => ({
-      ...r,
-      activeTitle: typeof active_title === 'string' && active_title !== '' ? active_title : null,
-    }));
+  listFriends(charId: number) {
+    return this.accountFriends.listFriends(charId);
   }
 
-  async whoFriended(charId: number): Promise<number[]> {
-    const res = await this.pool.query('SELECT character_id FROM friendships WHERE friend_id = $1', [
-      charId,
-    ]);
-    return res.rows.map((r) => r.character_id);
+  listFriendPage(charId: number, afterCursor = 0) {
+    return this.accountFriends.listFriendPage(charId, afterCursor);
   }
 
-  async addBlock(charId: number, blockedId: number): Promise<void> {
-    await this.pool.query(
-      'INSERT INTO blocks (character_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [charId, blockedId],
-    );
+  presenceEdgesForAccount(accountId: number, candidates: readonly number[]) {
+    return this.accountFriends.presenceEdgesForAccount(accountId, candidates);
+  }
+  presenceEdgesForLiveAccounts(accountIds: readonly number[]) {
+    return this.accountFriends.presenceEdgesForLiveAccounts(accountIds);
   }
 
-  async removeBlock(charId: number, blockedId: number): Promise<void> {
-    await this.pool.query('DELETE FROM blocks WHERE character_id = $1 AND blocked_id = $2', [
-      charId,
-      blockedId,
-    ]);
+  whoFriended(charId: number, onlineCharacterIds?: readonly number[]) {
+    return this.accountFriends.whoFriended(charId, onlineCharacterIds);
   }
 
-  async listBlocks(charId: number): Promise<CharRef[]> {
-    const res = await this.pool.query(
-      `SELECT c.id, c.name FROM blocks b JOIN characters c ON c.id = b.blocked_id
-       WHERE b.character_id = $1 ORDER BY c.name`,
-      [charId],
-    );
-    return res.rows;
+  addBlock(charId: number, blockedId: number) {
+    return this.accountFriends.addBlock(charId, blockedId);
   }
 
-  async blockedIds(charId: number): Promise<number[]> {
-    const res = await this.pool.query('SELECT blocked_id FROM blocks WHERE character_id = $1', [
-      charId,
-    ]);
-    return res.rows.map((r) => r.blocked_id);
+  removeBlock(charId: number, blockedId: number) {
+    return this.accountFriends.removeBlock(charId, blockedId);
+  }
+
+  listBlocks(charId: number) {
+    return this.accountFriends.listBlocks(charId);
+  }
+
+  listBlockPage(charId: number, afterCursor = 0) {
+    return this.accountFriends.listBlockPage(charId, afterCursor);
+  }
+
+  blockedIds(charId: number, candidates?: readonly number[]) {
+    return this.accountFriends.blockedIds(charId, candidates);
+  }
+
+  blockedAccountIds(charId: number) {
+    return this.accountFriends.blockedAccountIds(charId);
+  }
+
+  blockedAccountIdsForAccounts(accountIds: readonly number[]) {
+    return this.accountFriends.blockedAccountIdsForAccounts(accountIds);
   }
 
   async addIgnore(charId: number, ignoredId: number): Promise<void> {
@@ -270,6 +432,12 @@ export class PgSocialDb implements SocialDb {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query(GUILD_NAME_ADVISORY_LOCK_SQL, [guildNameLockKey(DEFAULT_REALM, name)]);
+      const collision = await client.query(GUILD_NAME_COLLISION_SQL, [DEFAULT_REALM, name, null]);
+      if (collision.rows[0]) {
+        await client.query('ROLLBACK');
+        return { error: 'name_taken' };
+      }
       let guildId: number;
       try {
         const res = await client.query(
@@ -294,7 +462,13 @@ export class PgSocialDb implements SocialDb {
         await client.query('ROLLBACK');
         return { error: 'already_in_guild' };
       }
+      // Founding a guild is joining one: clear any standing pledge in the
+      // same transaction, so no stale request lingers on another guild's
+      // board (docs/prd/guild-pledge-board.md).
+      await client.query('DELETE FROM guild_pledges WHERE character_id = $1', [leaderId]);
       await client.query('COMMIT');
+      this.guildRoster.bust(guildId);
+      bustAdminGuildListReads();
       return { guildId };
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
@@ -306,37 +480,110 @@ export class PgSocialDb implements SocialDb {
 
   async deleteGuild(id: number): Promise<void> {
     await this.pool.query('DELETE FROM guilds WHERE id = $1', [id]);
+    this.guildRoster.bust(id);
+    bustAdminGuildListReads();
   }
 
-  async guildMembership(
-    charId: number,
-  ): Promise<{ guildId: number; guildName: string; rank: GuildRank } | null> {
+  async guildMembership(charId: number): Promise<{
+    guildId: number;
+    guildName: string;
+    rank: GuildRankId;
+    rosterPages: number;
+    ranks: GuildRankDef[];
+  } | null> {
+    // roster_pages and the rank ladder ride the same JOIN the membership read
+    // already pays for, so the roster cap and every rank-permission gate cost
+    // the snapshot and the op gates no extra query.
     const res = await this.pool.query(
-      `SELECT gm.guild_id, g.name AS guild_name, gm.rank
+      `SELECT gm.guild_id, g.name AS guild_name, gm.rank, g.roster_pages, g.ranks
        FROM guild_members gm JOIN guilds g ON g.id = gm.guild_id
        WHERE gm.character_id = $1`,
       [charId],
     );
     const row = res.rows[0];
-    return row ? { guildId: row.guild_id, guildName: row.guild_name, rank: row.rank } : null;
+    return row
+      ? {
+          guildId: row.guild_id,
+          guildName: row.guild_name,
+          rank: row.rank,
+          rosterPages: guildRosterPagesBought(row.roster_pages),
+          ranks: resolveGuildRankLadder(row.ranks),
+        }
+      : null;
+  }
+
+  async guildRanks(guildId: number): Promise<GuildRankDef[]> {
+    const res = await this.pool.query('SELECT ranks FROM guilds WHERE id = $1', [guildId]);
+    return resolveGuildRankLadder(res.rows[0]?.ranks);
+  }
+
+  async setGuildRankLadder(
+    guildId: number,
+    leaderCharId: number,
+    ladder: readonly GuildRankDef[],
+  ): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      // Compare-and-set on leadership (the roster-page CAS idiom): the write
+      // lands only while the caller is STILL this guild's Guild Master, so a
+      // leadership transfer racing the service's gate cannot let the former
+      // leader rewrite the ranks. The guild row lock it takes also serializes
+      // two racing ladder saves.
+      const res = await client.query(
+        `UPDATE guilds SET ranks = $2::jsonb
+         WHERE id = $1 AND EXISTS (
+           SELECT 1 FROM guild_members
+           WHERE guild_id = $1 AND character_id = $3 AND rank = '${GUILD_RANK_LEADER_ID}'
+         )`,
+        [guildId, JSON.stringify(ladder), leaderCharId],
+      );
+      if ((res.rowCount ?? 0) === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      // A deleted rank's holders fall back to the joining rank IN THE SAME
+      // transaction, so no committed state ever names a rank the ladder lacks
+      // (the resolver would read it as the joining rank anyway: fail closed).
+      await client.query(
+        `UPDATE guild_members SET rank = '${GUILD_RANK_MEMBER_ID}'
+         WHERE guild_id = $1 AND NOT (rank = ANY($2::text[]))`,
+        [guildId, ladder.map((r) => r.id)],
+      );
+      await client.query('COMMIT');
+      this.guildRoster.bust(guildId);
+      bustAdminGuildListReads();
+      return true;
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async addGuildMemberAtomic(
     guildId: number,
     charId: number,
-    rank: GuildRank,
-    limit: number,
-  ): Promise<'ok' | 'full' | 'already_member' | 'no_guild'> {
+    rank: GuildRankId,
+    requirePledge = false,
+  ): Promise<'ok' | 'full' | 'already_member' | 'no_guild' | 'no_pledge'> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
       // lock the guild row so concurrent accepts serialize — without this the
       // count-then-insert races and N pending invitees can all pass the cap.
-      const g = await client.query('SELECT id FROM guilds WHERE id = $1 FOR UPDATE', [guildId]);
+      // The cap is read from the SAME locked row (bought roster pages), so a
+      // page purchase landing between a caller's snapshot and this seat is
+      // honoured, and a stale client-side cap can never widen it.
+      const g = await client.query('SELECT id, roster_pages FROM guilds WHERE id = $1 FOR UPDATE', [
+        guildId,
+      ]);
       if (g.rowCount === 0) {
         await client.query('ROLLBACK');
         return 'no_guild';
       }
+      const limit = guildRosterCap(guildRosterPagesBought(g.rows[0].roster_pages));
       const existing = await client.query('SELECT 1 FROM guild_members WHERE character_id = $1', [
         charId,
       ]);
@@ -364,7 +611,22 @@ export class PgSocialDb implements SocialDb {
         await client.query('ROLLBACK');
         return 'already_member';
       }
+      if (requirePledge) {
+        // The pledge is the seat's consent: consume it in the same
+        // transaction, so a withdraw or decline racing the caller's pledge
+        // read rolls the seat back instead of seating a player who said no.
+        const consumed = await client.query(
+          'DELETE FROM guild_pledges WHERE character_id = $1 AND guild_id = $2',
+          [charId, guildId],
+        );
+        if ((consumed.rowCount ?? 0) === 0) {
+          await client.query('ROLLBACK');
+          return 'no_pledge';
+        }
+      }
       await client.query('COMMIT');
+      this.guildRoster.bust(guildId);
+      bustAdminGuildListReads();
       return 'ok';
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
@@ -375,14 +637,88 @@ export class PgSocialDb implements SocialDb {
   }
 
   async removeGuildMember(charId: number): Promise<void> {
-    await this.pool.query('DELETE FROM guild_members WHERE character_id = $1', [charId]);
+    // RETURNING costs nothing extra (the row is already read to be deleted)
+    // and is the only way this method learns which guild's roster cache to
+    // bust: its signature carries no guildId, only the character.
+    const res = await this.pool.query(
+      'DELETE FROM guild_members WHERE character_id = $1 RETURNING guild_id',
+      [charId],
+    );
+    const guildId = res.rows[0]?.guild_id;
+    if (guildId !== undefined) this.guildRoster.bust(Number(guildId));
+    bustAdminGuildListReads();
   }
 
-  async setGuildRank(charId: number, rank: GuildRank): Promise<void> {
-    await this.pool.query('UPDATE guild_members SET rank = $2 WHERE character_id = $1', [
-      charId,
-      rank,
-    ]);
+  async setGuildRank(charId: number, guildId: number, rank: GuildRankId): Promise<boolean> {
+    // Both predicates matter: the guild_id guard means a rank change decided
+    // against guild A can never rewrite a row the target has since moved to
+    // guild B, and the checked rowcount tells the caller whether the UPDATE
+    // actually landed (a leave/kick/disband may have removed the row between
+    // the caller's membership read and this write). The caller must treat
+    // false as a refusal and stamp NOTHING: the live sim's guild membership
+    // stamp authorizes guild bank access, so stamping a rank the DB refused
+    // is privilege escalation.
+    const res = await this.pool.query(
+      'UPDATE guild_members SET rank = $2 WHERE character_id = $1 AND guild_id = $3',
+      [charId, rank, guildId],
+    );
+    bustAdminGuildListReads();
+    const moved = (res.rowCount ?? 0) > 0;
+    if (moved) this.guildRoster.bust(guildId);
+    return moved;
+  }
+
+  async transferGuildLeader(
+    guildId: number,
+    fromCharId: number,
+    toCharId: number,
+    stepDownRank: GuildRankId,
+  ): Promise<'ok' | 'not_leader' | 'not_member' | 'no_guild'> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      // lock the guild row so a racing transfer serializes behind this one:
+      // without this, two /gleader calls can both read "actor is still
+      // leader" before either write lands, and both promotions go through.
+      const g = await client.query('SELECT id FROM guilds WHERE id = $1 FOR UPDATE', [guildId]);
+      if (g.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return 'no_guild';
+      }
+      const rows = await client.query(
+        'SELECT character_id, rank FROM guild_members WHERE guild_id = $1 AND character_id IN ($2, $3)',
+        [guildId, fromCharId, toCharId],
+      );
+      const fromRow = rows.rows.find((r) => r.character_id === fromCharId);
+      const toRow = rows.rows.find((r) => r.character_id === toCharId);
+      // re-check under the lock: the actor may have lost leadership (or the
+      // target may have left) to a transfer that committed first.
+      if (!fromRow || fromRow.rank !== 'leader') {
+        await client.query('ROLLBACK');
+        return 'not_leader';
+      }
+      if (!toRow) {
+        await client.query('ROLLBACK');
+        return 'not_member';
+      }
+      await client.query("UPDATE guild_members SET rank = 'leader' WHERE character_id = $1", [
+        toCharId,
+      ]);
+      // The former leader steps down to the ladder's most senior non-leader
+      // rank (the default ladder's Officer), resolved by the caller.
+      await client.query('UPDATE guild_members SET rank = $2 WHERE character_id = $1', [
+        fromCharId,
+        stepDownRank,
+      ]);
+      await client.query('COMMIT');
+      this.guildRoster.bust(guildId);
+      return 'ok';
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async setGuildMotd(guildId: number, motd: string, setBy: string): Promise<void> {
@@ -402,24 +738,196 @@ export class PgSocialDb implements SocialDb {
     return { motd: row?.motd ?? '', motdSetBy: row?.motdSetBy ?? '' };
   }
 
-  async guildMembers(
+  // ---- guild pledges (docs/prd/guild-pledge-board.md) ----
+
+  async guildByName(name: string): Promise<{ id: number; name: string } | null> {
+    const res = await this.pool.query(
+      'SELECT id, name FROM guilds WHERE realm = $1 AND lower(name) = lower($2)',
+      [REALM, name],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async guildPledgeSettings(guildId: number): Promise<GuildPledgeSettings> {
+    const res = await this.pool.query(
+      `SELECT pledges_enabled AS enabled, pledge_min_level AS "minLevel", pledge_note AS note,
+              new_player_friendly AS "newPlayerFriendly"
+         FROM guilds WHERE id = $1`,
+      [guildId],
+    );
+    const row = res.rows[0];
+    return {
+      enabled: row?.enabled ?? true,
+      minLevel: row?.minLevel ?? 1,
+      note: row?.note ?? '',
+      newPlayerFriendly: row?.newPlayerFriendly ?? false,
+    };
+  }
+
+  // An absent category flag (an older client's write, guild_pledge_settings_cmd.ts)
+  // keeps the stored value INSIDE the statement, so the write stays one round
+  // trip and two officers saving at once can never interleave a stale read
+  // over a fresher toggle.
+  async setGuildPledgeSettings(guildId: number, settings: GuildPledgeSettingsInput): Promise<void> {
+    await this.pool.query(
+      `UPDATE guilds
+          SET pledges_enabled = $2, pledge_min_level = $3, pledge_note = $4,
+              new_player_friendly = COALESCE($5, new_player_friendly)
+        WHERE id = $1`,
+      [
+        guildId,
+        settings.enabled,
+        settings.minLevel,
+        settings.note,
+        settings.newPlayerFriendly ?? null,
+      ],
+    );
+  }
+
+  async guildPledges(guildId: number): Promise<(CharInfo & { sinceMs: number })[]> {
+    const res = await this.pool.query(
+      `SELECT c.id, c.name, c.class AS cls, c.level, c.realm,
+              (EXTRACT(EPOCH FROM p.created_at) * 1000)::float8 AS "sinceMs"
+         FROM guild_pledges p JOIN characters c ON c.id = p.character_id
+        WHERE p.guild_id = $1
+        ORDER BY p.created_at ASC`,
+      [guildId],
+    );
+    return res.rows;
+  }
+
+  async pledgeOf(
+    charId: number,
+  ): Promise<{ guildId: number; guildName: string; sinceMs: number } | null> {
+    const res = await this.pool.query(
+      `SELECT p.guild_id AS "guildId", g.name AS "guildName",
+              (EXTRACT(EPOCH FROM p.created_at) * 1000)::float8 AS "sinceMs"
+         FROM guild_pledges p JOIN guilds g ON g.id = p.guild_id
+        WHERE p.character_id = $1`,
+      [charId],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async upsertPledge(charId: number, guildId: number): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO guild_pledges (character_id, guild_id) VALUES ($1, $2)
+       ON CONFLICT (character_id) DO UPDATE SET guild_id = EXCLUDED.guild_id, created_at = now()`,
+      [charId, guildId],
+    );
+  }
+
+  async deletePledge(charId: number): Promise<void> {
+    await this.pool.query('DELETE FROM guild_pledges WHERE character_id = $1', [charId]);
+  }
+
+  async lastPledgeAtMs(charId: number): Promise<number | null> {
+    const res = await this.pool.query(
+      `SELECT (EXTRACT(EPOCH FROM pledged_at) * 1000)::float8 AS ms
+         FROM guild_pledge_cooldowns WHERE character_id = $1`,
+      [charId],
+    );
+    return res.rows[0]?.ms ?? null;
+  }
+
+  async touchPledgeCooldown(charId: number): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO guild_pledge_cooldowns (character_id) VALUES ($1)
+       ON CONFLICT (character_id) DO UPDATE SET pledged_at = now()`,
+      [charId],
+    );
+  }
+
+  async accountIdForCharacter(charId: number): Promise<number | null> {
+    const res = await this.pool.query('SELECT account_id AS id FROM characters WHERE id = $1', [
+      charId,
+    ]);
+    return res.rows[0]?.id ?? null;
+  }
+
+  async pledgeLadder(
     guildId: number,
-  ): Promise<
-    (CharInfo & { rank: GuildRank; lastLogin: string | null; activeTitle: string | null })[]
-  > {
+    accountId: number,
+  ): Promise<{ rejectCount: number; rejectedAtMs: number } | null> {
+    const res = await this.pool.query(
+      `SELECT reject_count AS "rejectCount",
+              (EXTRACT(EPOCH FROM rejected_at) * 1000)::float8 AS "rejectedAtMs"
+         FROM guild_pledge_ladder WHERE guild_id = $1 AND account_id = $2`,
+      [guildId, accountId],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async bumpPledgeLadder(guildId: number, accountId: number): Promise<number> {
+    const res = await this.pool.query(
+      `INSERT INTO guild_pledge_ladder (guild_id, account_id, reject_count, rejected_at)
+       VALUES ($1, $2, 1, now())
+       ON CONFLICT (guild_id, account_id)
+       DO UPDATE SET reject_count = guild_pledge_ladder.reject_count + 1, rejected_at = now()
+       RETURNING reject_count AS "rejectCount"`,
+      [guildId, accountId],
+    );
+    return res.rows[0]?.rejectCount ?? 1;
+  }
+
+  async wipePledgeLadder(guildId: number, accountId: number): Promise<void> {
+    await this.pool.query(
+      'DELETE FROM guild_pledge_ladder WHERE guild_id = $1 AND account_id = $2',
+      [guildId, accountId],
+    );
+  }
+
+  async guildLifetimeXpTotal(guildId: number): Promise<number> {
+    // The same per-member expression the guild high-score board sums
+    // (db.ts LIFETIME_XP_EXPR family); one indexed aggregate per call site
+    // (join-time stamping), never per frame.
+    const res = await this.pool.query(
+      `SELECT COALESCE(SUM(COALESCE((c.state->>'lifetimeXp')::float8, 0)), 0) AS total
+         FROM guild_members m JOIN characters c ON c.id = m.character_id
+        WHERE m.guild_id = $1`,
+      [guildId],
+    );
+    return Number(res.rows[0]?.total ?? 0);
+  }
+
+  // Cached: see server/guild_roster_cache.ts. The raw JOIN lives in
+  // loadGuildMembers below; every call here goes through the per-guild TTL +
+  // single-flight cache instead. Use guildMembersFresh below for the one
+  // caller that documents needing an uncached read.
+  async guildMembers(guildId: number): Promise<GuildMemberRow[]> {
+    return this.guildRoster.read(guildId);
+  }
+
+  // Uncached escape hatch: bypasses guildRoster entirely, straight to
+  // loadGuildMembers. NOT part of the SocialDb interface (SocialService has no
+  // need for it; every one of its guildMembers reads is a display/broadcast
+  // audience, not an authorization decision). The one caller today is
+  // GameServer.guildBankSaveCarrier (server/game.ts), which documents exactly
+  // why: a stale membership read there can put a player who was just kicked on
+  // a rollback-and-kick path for an operator's admin purge, so that read must
+  // see the outcome of a same-process write that has not yet reached the next
+  // bust, not just one that is older than the roster cache's TTL.
+  async guildMembersFresh(guildId: number): Promise<GuildMemberRow[]> {
+    return this.loadGuildMembers(guildId);
+  }
+
+  private async loadGuildMembers(guildId: number): Promise<GuildMemberRow[]> {
     const res = await this.pool.query(
       `SELECT c.id, c.name, c.class AS cls, c.level, c.realm, c.last_login AS "lastLogin", gm.rank,
-              c.state->>'activeTitle' AS active_title
+              gm.joined_at AS "joinedAt", c.state->>'activeTitle' AS active_title
        FROM guild_members gm JOIN characters c ON c.id = gm.character_id
        WHERE gm.guild_id = $1 ORDER BY gm.joined_at`,
       [guildId],
     );
     // last_login is a TIMESTAMPTZ; serialize to an ISO string for the wire (never a
-    // raw Date), null when the character has never entered the world. active_title
-    // normalizes exactly like charactersForDeedsBoard (a deed id or null).
+    // raw Date), null when the character has never entered the world. joined_at is
+    // NOT NULL in the DDL, so the null arm is defensive only; it rides the wire as
+    // epoch milliseconds (drives the roster tenure badges). active_title normalizes
+    // exactly like charactersForDeedsBoard (a deed id or null).
     return res.rows.map(({ active_title, ...r }) => ({
       ...r,
       lastLogin: r.lastLogin ? new Date(r.lastLogin).toISOString() : null,
+      joinedAt: joinedAtEpochMs(r.joinedAt),
       activeTitle: typeof active_title === 'string' && active_title !== '' ? active_title : null,
     }));
   }

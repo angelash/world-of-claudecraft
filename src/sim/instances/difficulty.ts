@@ -1,12 +1,35 @@
-import { HEROIC_DUNGEON_TUNING, NORMAL_DUNGEON_TUNING } from '../content/dungeon_difficulty';
+import {
+  HEROIC_DUNGEON_TUNING,
+  HEROIC_MOB_TUNING,
+  type HeroicMobTuning,
+  NORMAL_DUNGEON_TUNING,
+} from '../content/dungeon_difficulty';
 import { MOBS } from '../data';
+import { IGNIVAR_LIFT_ROOM_ID } from '../ignivar_raid_ids';
 import type { DungeonDifficulty, Entity, MobTemplate } from '../types';
 
-export const HEROIC_DUNGEON_IDS = new Set(Object.keys(HEROIC_DUNGEON_TUNING));
+export const HEROIC_DUNGEON_IDS = new Set([
+  ...Object.keys(HEROIC_DUNGEON_TUNING),
+  ...Object.keys(HEROIC_MOB_TUNING),
+  IGNIVAR_LIFT_ROOM_ID,
+]);
 
-// Every heroic-instance mob moves at least this fast (player RUN_SPEED is 7),
-// so heroic pulls cannot be kited on foot; escapes need a sprint cooldown.
+function heroicMobTuningFor(dungeonId: string): HeroicMobTuning | undefined {
+  return HEROIC_MOB_TUNING[dungeonId] ?? HEROIC_DUNGEON_TUNING[dungeonId];
+}
+
+// Every heroic-instance mob that walks moves at least this fast (player
+// RUN_SPEED is 7), so heroic pulls cannot be kited on foot; escapes need a
+// sprint cooldown.
 export const HEROIC_MIN_MOVE_SPEED = 8;
+
+/** A template's heroic move speed. The floor lifts a slow walker; a template
+ *  authored immobile (moveSpeed 0: an egg sac, a totem, a shackle, a rooted
+ *  boss) stays immobile, or the floor would set it wandering and chasing. */
+export function heroicMoveSpeed(templateMoveSpeed: number): number {
+  if (templateMoveSpeed <= 0) return templateMoveSpeed;
+  return Math.max(templateMoveSpeed, HEROIC_MIN_MOVE_SPEED);
+}
 
 export function claimDifficultyForDungeon(
   dungeonId: string,
@@ -42,15 +65,16 @@ export function mobTemplateForDungeonDifficulty(
     const normal = NORMAL_DUNGEON_TUNING[dungeonId];
     if (!normal) return template;
     const dmgMult = normal.damageMultiplierByMob[template.id] ?? 1;
+    const hpMult = normal.healthMultiplierByMob?.[template.id] ?? normal.healthMultiplier;
     return {
       ...template,
-      hpBase: template.hpBase * normal.healthMultiplier,
-      hpPerLevel: template.hpPerLevel * normal.healthMultiplier,
+      hpBase: template.hpBase * hpMult,
+      hpPerLevel: template.hpPerLevel * hpMult,
       dmgBase: template.dmgBase * dmgMult,
       dmgPerLevel: template.dmgPerLevel * dmgMult,
     };
   }
-  const tuning = HEROIC_DUNGEON_TUNING[dungeonId];
+  const tuning = heroicMobTuningFor(dungeonId);
   if (!tuning) return template;
   const dmgMult =
     tuning.damageMultiplierByMob?.[template.id] ??
@@ -65,7 +89,7 @@ export function mobTemplateForDungeonDifficulty(
     dmgBase: template.dmgBase * dmgMult,
     dmgPerLevel: template.dmgPerLevel * dmgMult,
     armorPerLevel: template.armorPerLevel * tuning.armorMultiplier,
-    moveSpeed: Math.max(template.moveSpeed, HEROIC_MIN_MOVE_SPEED),
+    moveSpeed: heroicMoveSpeed(template.moveSpeed),
   };
 }
 
@@ -75,7 +99,7 @@ export function mobLevelForDungeonDifficulty(
   rolledLevel: number,
 ): number {
   if (difficulty !== 'heroic') return rolledLevel;
-  return HEROIC_DUNGEON_TUNING[dungeonId]?.level ?? rolledLevel;
+  return heroicMobTuningFor(dungeonId)?.level ?? rolledLevel;
 }
 
 // Boss/support mechanic numbers (aoePulse, bigCast, stomp damage; mendAlly,
@@ -106,15 +130,22 @@ export function applyDungeonMobTuning(
     if (normal && dmgMult !== undefined) {
       mob.mechanicDamageMult = normal.mechanicDamageMultiplierByMob?.[mob.templateId] ?? dmgMult;
       mob.mechanicHealMult = normal.healthMultiplier;
+      // A petSpell caster's nuke is rolled from the base table and cannot be
+      // reached by the template transform (melee only) or by
+      // mechanicDamageMult, so it takes its own factor or stays at 1.
+      const ranged = normal.rangedDamageMultiplierByMob?.[mob.templateId];
+      if (ranged !== undefined) mob.rangedDamageMult = ranged;
     }
     return;
   }
-  const tuning = HEROIC_DUNGEON_TUNING[dungeonId];
+  const tuning = heroicMobTuningFor(dungeonId);
   if (!tuning) return;
   mob.mechanicDamageMult =
+    tuning.mechanicDamageMultiplierByMob?.[mob.templateId] ??
     tuning.damageMultiplierByMob?.[mob.templateId] ??
     (role?.summonedAdd ? tuning.addDamageMultiplier : tuning.damageMultiplier);
   mob.mechanicHealMult = tuning.healthMultiplier;
+  mob.mechanicBurnDamageMult = tuning.burnDamageMultiplierByMob?.[mob.templateId];
   if (MOBS[mob.templateId]?.boss) {
     mob.ccImmune = true;
     mob.slowImmune = true;

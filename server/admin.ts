@@ -1,23 +1,69 @@
 import type * as http from 'node:http';
+import { verifyLoginTwoFactor } from './account';
 import {
-  type OverviewCounts,
+  LARGE_GOLD_MOVEMENT_LIMIT,
+  readLargeMovementsPane,
+  readTopWealthHolders,
+  redactActiveFlagCounts,
+} from './account_wealth';
+import { accountWealthBreakdown, largeGoldMovementsForAccount } from './account_wealth_db';
+import { parseAdminAccountSort } from './admin_accounts_sort';
+import {
+  ACTIVITY_WINDOW_DAYS,
+  classDistribution,
+  levelDistribution,
+  registrationsByDay,
+  sessionsByDay,
+} from './admin_activity_cache';
+import {
   accountDetail,
   associationsForIp,
-  classDistribution,
+  type BucketCount,
+  characterProfessionsRow,
   clientPerfRaw,
-  clientPerfSummary,
+  type DayPoint,
   dailyRewardPointEvents,
-  levelDistribution,
   listAccounts,
   listCharacters,
   listModerationActions,
   listSharedIps,
-  onlineHistory,
-  registrationsByDay,
-  sessionsByDay,
+  type OverviewCounts,
+  type SessionDayPoint,
 } from './admin_db';
+import {
+  type AdminGeneralChatRateLimitDeps,
+  type AdminGeneralChatRateLimitService,
+  createAdminGeneralChatRateLimitService,
+} from './admin_general_chat_rate_limit';
+import type { AdminGuildBankView } from './admin_guild_bank_view';
+import {
+  ADMIN_GUILD_REASON_MAX,
+  type AdminGuildRenameError,
+  adminGuildDetail,
+  listAdminGuildHistory,
+  listAdminGuilds,
+  recordAdminGuildBankPurge,
+  renameAdminGuild,
+} from './admin_guilds_db';
+import {
+  AdminGuildListBusyError,
+  type AdminGuildListRequest,
+  readAdminGuildList,
+} from './admin_guilds_read';
+import { parseAdminGuildSort } from './admin_guilds_sort';
 import { cleanIpAssociationLookup } from './admin_ip_association';
+import {
+  adminKickBodySchema,
+  adminKickMessage,
+  KICK_ADMIN_TARGET_CODE,
+  KICK_REASON_REQUIRED_CODE,
+  KICK_TARGET_OFFLINE_CODE,
+  normalizeAdminKickReason,
+} from './admin_kick_api';
+import { readAdminMarketMetrics } from './admin_market_metrics';
+import { readOnlineHistoryCached } from './admin_online_history_cache';
 import { readOverviewCounts } from './admin_overview_cache';
+import { readClientPerfSummaryCached } from './admin_perf_summary_cache';
 import {
   type AdminPermission,
   ASSIGNABLE_ADMIN_ROLES,
@@ -47,7 +93,21 @@ import {
   newToken,
   verifyPassword,
 } from './auth';
-import { getBugReportScreenshot, listBugReports } from './bug_report_db';
+import { queueBuddyGrant } from './buddy_grants_db';
+import { type BuddyGrant, buddyGrantBodyError } from './buddy_wire';
+import {
+  type BugReportResolution,
+  getBugReportScreenshot,
+  listBugReports,
+  resolveBugReport,
+} from './bug_report_db';
+import {
+  characterProfessionsSheetFromRow,
+  restoreItemAuditDetail,
+  restoreItemBodyError,
+  restoreItemDerivedFrom,
+  restoreSlotBodyError,
+} from './character_professions';
 import {
   addFilterWord,
   chatModeratedAccounts,
@@ -55,10 +115,18 @@ import {
   getFilterConfig,
   listFilterWords,
   removeFilterWord,
-  resetChatStrikes,
   updateFilterConfig,
   type WordTier,
 } from './chat_filter_db';
+import {
+  CHEATER_MARK_ADMIN_TARGET_CODE,
+  cheaterMarkBodySchema,
+  liftCheaterMarkBodySchema,
+  rethrowCheaterMarkRefusal,
+} from './cheater_mark_api';
+import { runClearItemName } from './clear_item_name';
+import { clearOfflineItemName } from './clear_item_name_db';
+import { cleanContentModerationReason } from './content_moderation_db';
 import { currentDailyRewardDay } from './daily_rewards';
 import {
   accountAndScopeForToken,
@@ -70,52 +138,106 @@ import {
   pool,
   revokeTokensExcept,
   saveToken,
-  setAccountDeactivated,
   touchLogin,
   updatePasswordHash,
 } from './db';
 import { emailSecurityIncident } from './email';
 import type { GameServer } from './game';
+import { type GeneralChatRateLimit, setGeneralChatRateLimit } from './general_chat_quota_db';
 import { ctxAccountId } from './http/context';
+import { HttpError } from './http/errors';
 import { logger } from './http/logger';
+import { withBody } from './http/middleware/body';
 import {
   ADMIN_META,
   type AdminAuthDb,
   adminIdentityOf,
+  adminTargetGuid,
   adminTargetId,
   adminTargetMeta,
   createRequireAdmin,
+  requireAdminGuidTarget,
   requireAdminTarget,
 } from './http/middleware/require_admin';
 import { enum_ } from './http/schema';
 import type { Ctx, Next, RouteDef } from './http/types';
 import { json, readBody } from './http_util';
 import { addBlockedIp, cleanIp, listBlockedIps, removeBlockedIp } from './ip_block_db';
+import {
+  ITEM_LEDGER_DEFAULT_LIMIT,
+  ITEM_LEDGER_MAX_LIMIT,
+  isItemLedgerGuid,
+  itemLedgerHistory as itemLedgerHistoryDb,
+  listItemLedger as listItemLedgerDb,
+} from './item_ledger_db';
 import { PgMapsDb } from './maps_db';
 import {
   addAccountNote,
   forceCharacterRename,
   ignoreReport,
   liftAccountChatMute,
+  liftAccountCheaterMark,
   moderateAccount,
-  moderationQueue,
   moderationReportsForAccount,
   muteAccountChat,
+  reactivateAccountAudited,
+  recordInGameAction,
+  recordItemNameClear,
   recordPasswordReset,
+  recordProfessionsRestore,
+  resetChatStrikesAudited,
   setAccountAiFlag,
+  setAccountCheaterMark,
   setAccountStreamerFlair,
   setDailyRewardsBan,
   setDailyRewardsIpBan,
 } from './moderation_db';
+import { readModerationQueue } from './moderation_queue_cache';
+import { createOkResponseMemo, type OkResponseMemoStats } from './ok_response_memo';
 import { providerUsageSnapshot } from './provider_usage';
-import { rateLimited } from './ratelimit';
+import {
+  adminAnalyticsReadRateLimited,
+  adminFlagWriteRateLimited,
+  adminOversightReadRateLimited,
+  authThrottled,
+  clearAuthFailures,
+  rateLimited,
+  recordAuthFailure,
+} from './ratelimit';
+import { REALM } from './realm';
 import {
   adminRolesForAccount,
   listStaff,
   roleChangeHistory,
   setAccountAdminRoles,
 } from './staff_db';
+import { flagListResponse } from './suspicion_flag_list';
+import { isSuspicionFlagStatus } from './suspicion_flag_workflow';
+import { bustSuspicionFlagCache, readSuspicionFlagDataset } from './suspicion_flags';
+import {
+  activeSuspicionFlagCounts,
+  addSuspicionFlagNote,
+  type SuspicionFlagTransitionResult,
+  suspicionFlagsForAccount,
+  transitionSuspicionFlag,
+} from './suspicion_flags_db';
+import {
+  type UnstuckHotspotRow as DbUnstuckHotspotRow,
+  type UnstuckReportPage as DbUnstuckReportPage,
+  type UnstuckReportRow as DbUnstuckReportRow,
+  listUnstuckHotspots as listUnstuckHotspotsDb,
+  listUnstuckReports as listUnstuckReportsDb,
+  UNSTUCK_HOTSPOT_MAX_LIMIT,
+  UNSTUCK_REPORT_MAX_DAYS,
+  UNSTUCK_REPORT_MAX_LIMIT,
+} from './unstuck_db';
 import { PgUserAssetsDb } from './user_assets_db';
+import {
+  rethrowWorldQuestBlockRefusal,
+  WORLD_QUEST_BLOCK_ADMIN_TARGET_CODE,
+  worldQuestBlockBodySchema,
+} from './world_quest_block_api';
+import { liftAccountWorldQuestBlock, setAccountWorldQuestBlock } from './world_quest_block_db';
 
 // Admin API: everything under /admin/api/*. Auth is an exact full-scope bearer
 // token whose account has at least one staff role (accounts.admin_roles;
@@ -126,12 +248,43 @@ import { PgUserAssetsDb } from './user_assets_db';
 // runs, so a route absent from that table can never execute.
 
 const ADMIN_LOGIN_MAX_PER_MINUTE = 10;
+// Per-account brute-force throttle, mirroring server/auth_routes.ts loginHandler
+// (#93): the per-IP ceiling above cannot stop a distributed attacker who spreads
+// guesses for one admin username across many source IPs, so admin login also gates
+// on authThrottled/recordAuthFailure/clearAuthFailures (server/ratelimit.ts), keyed
+// by username exactly like the player /api/login guard. The message matches a
+// bad-password response so it never reveals whether the account exists.
+const ADMIN_LOGIN_TOO_MANY_FAILED_ATTEMPTS =
+  'too many failed attempts, wait a few minutes and try again';
+
+// Economy-oversight endpoints (player search / wealth / flagged workflow)
+// plus the analytics dashboard reads (overview / activity / market metrics),
+// which share the same 429 literal on their own bucket.
+// Error literals are reverse-mapped to i18n keys by the admin client
+// (ADMIN_ERROR_KEYS in src/admin/i18n.ts); change one and the mapping in the
+// SAME change.
+const ADMIN_TOO_MANY_REQUESTS = 'too many requests, wait a moment and try again';
+const FLAG_NOT_FOUND = 'flag not found';
+const FLAG_INVALID_STATUS = 'invalid flag status';
+const FLAG_INVALID_TRANSITION = 'that status change is not allowed';
+const FLAG_ACTIVE_EXISTS = 'this account already has an open flag of that kind';
+const FLAG_NOTE_REQUIRED = 'a note is required';
+// Second factor, mirroring server/auth_routes.ts loginHandler exactly: an account
+// with TOTP enabled (account.totp_enabled_at) must supply a live code or a recovery
+// code before a token is minted. Without one, the response is a 200 CHALLENGE (never
+// a token), so the client shows the code step; with a wrong one it is a 401 that also
+// counts against the same per-account throttle as a bad password.
+const ADMIN_LOGIN_INVALID_TWO_FACTOR_CODE = 'invalid authentication code';
 const MAX_PAGE_LIMIT = 200;
 const DEFAULT_PAGE_LIMIT = 25;
-const ACTIVITY_WINDOW_DAYS = 30;
 const ANTIBOT_CONFIG_NOTE_MAX = 500;
+const UNSTUCK_DEFAULT_DAYS = 30;
+const UNSTUCK_DEFAULT_LIMIT = 50;
 
 const IP_BLOCK_KICK_MESSAGE = 'Connection to the server was lost.';
+// The admin-panel kick's line is ADMIN_KICK_MESSAGE_PREFIX + the operator's reason
+// (server/admin_kick_api.ts adminKickMessage), a wire contract with the client
+// matcher like the literal above; it lives with its contract module, not here.
 
 export interface AmbientPlayerBotAdminSurface {
   diagnosticsSnapshot(): AmbientPlayerBotAdminDiagnosticsSnapshot;
@@ -150,6 +303,219 @@ const STREAMER_FLAG_REQUIRED = 'streamer must be a boolean';
 const STREAMER_LINKS_REQUIRED = 'a links object is required';
 const ACCOUNT_FLAIR_FAILED = 'failed to update account flair';
 const DAILY_REWARD_EVENT_DAY_REQUIRED = 'a valid daily rewards date is required';
+// The guild bank dormant-slot purge refusals. Shared by both dispatch arms so
+// the strings stay byte-identical, and mirrored into the dashboard's
+// ADMIN_ERROR_KEYS matcher (src/admin/i18n.ts) like every other operator error.
+const GUILD_BANK_SLOT_REQUIRED = 'a slot index is required';
+const GUILD_BANK_ITEM_REQUIRED = 'the item id in that slot is required';
+const GUILD_BANK_REASON_REQUIRED = 'a moderation reason is required (500 chars max)';
+const GUILD_BANK_NOT_LOADED = 'that guild has no loaded bank';
+const GUILD_BANK_NO_CARRIER = 'no member of that guild is online to persist the change';
+const GUILD_BANK_SLOT_NOT_DORMANT = 'that slot is not a stuck item';
+const GUILD_BANK_SAVE_FAILED = 'the change could not be saved and was rolled back';
+// The guild-delete window. Deliberately NOT the save_failed line: nothing was
+// attempted, so nothing was saved and nothing was rolled back, and the
+// instruction is the opposite one (the bank is going away with the guild, so
+// there is nothing to retry).
+const GUILD_BANK_DELETING = 'that guild is being deleted, so its bank is closed';
+const GUILD_BANK_PURGE_REFUSED = 'the guild bank change was refused';
+
+const realAdminGeneralChatRateLimitDeps: AdminGeneralChatRateLimitDeps = {
+  set: setGeneralChatRateLimit,
+  isAdminAccount,
+};
+let adminGeneralChatRateLimitService: AdminGeneralChatRateLimitService =
+  createAdminGeneralChatRateLimitService(realAdminGeneralChatRateLimitDeps);
+
+/** Install the narrow General chat policy persistence seam for endpoint tests. */
+export function setAdminGeneralChatRateLimitDepsForTests(
+  deps: AdminGeneralChatRateLimitDeps,
+): void {
+  adminGeneralChatRateLimitService = createAdminGeneralChatRateLimitService(deps);
+}
+
+/** Restore the production General chat policy persistence seam after a unit test. */
+export function resetAdminGeneralChatRateLimitDepsForTests(): void {
+  adminGeneralChatRateLimitService = createAdminGeneralChatRateLimitService(
+    realAdminGeneralChatRateLimitDeps,
+  );
+}
+
+/**
+ * The one general-chat-rate-limit endpoint body, shared verbatim by the legacy
+ * handleAdminApi arm and the routes-table handler. The service validates
+ * bounds, refuses admin targets, and calls the atomic persistence seam once;
+ * that transaction owns the audit row, window reset, and NOTIFY, so no live
+ * state can apply before the durable commit. Applying synchronously afterward
+ * closes the response-to-NOTIFY window for sessions on the handling realm;
+ * LISTEN remains authoritative elsewhere.
+ */
+async function respondGeneralChatRateLimit(
+  res: http.ServerResponse,
+  input: { targetAccountId: number; adminAccountId: number; body: unknown },
+  applyLive: (accountId: number, after: GeneralChatRateLimit | null) => void,
+): Promise<void> {
+  const outcome = await adminGeneralChatRateLimitService.update({
+    accountId: input.targetAccountId,
+    adminAccountId: input.adminAccountId,
+    body: input.body,
+  });
+  if (!outcome.ok) return fail(res, outcome.status, outcome.error);
+  applyLive(input.targetAccountId, outcome.value.after);
+  return ok(res, { ok: true });
+}
+
+function flagTransitionFailure(
+  res: http.ServerResponse,
+  error: Exclude<SuspicionFlagTransitionResult, { ok: true }>['error'],
+): void {
+  switch (error) {
+    case 'not_found':
+      fail(res, 404, FLAG_NOT_FOUND);
+      return;
+    case 'active_flag_exists':
+      fail(res, 409, FLAG_ACTIVE_EXISTS);
+      return;
+    case 'invalid_transition':
+      fail(res, 400, FLAG_INVALID_TRANSITION);
+      return;
+    default: {
+      // Exhaustiveness: a new refusal variant must fail HERE at compile time,
+      // not fall through with no response written and hold the socket open.
+      const unhandled: never = error;
+      throw new Error(`unhandled flag transition refusal: ${String(unhandled)}`);
+    }
+  }
+}
+
+function guildRenameFailure(error: AdminGuildRenameError): { status: number; message: string } {
+  switch (error) {
+    case 'not_found':
+      return { status: 404, message: 'guild not found' };
+    case 'name_taken':
+      return { status: 409, message: 'guild name is already taken' };
+    case 'same_name':
+      return { status: 400, message: 'guild name must change' };
+    case 'invalid_reason':
+      return { status: 400, message: 'a moderation reason is required (500 chars max)' };
+    case 'member_limit_exceeded':
+      return { status: 409, message: 'guild member limit exceeded' };
+    case 'invalid_name':
+      return { status: 400, message: 'guild name must be 3-24 letters with single spaces' };
+  }
+}
+
+/** The guild bank operator READ, resolved ONCE for both dispatch arms (the
+ *  dual-edit rule), exactly like the purge below it.
+ *
+ *  It exists because the purge is unusable without it: that call names a slot
+ *  INDEX and the itemId at it, and until this landed an operator had to dig
+ *  both out of `guild_banks` with SQL. Reads the live book through the same
+ *  ungated snapshot the purge mutates through, so the listing an operator acts
+ *  on and the refusal they may get back cannot disagree.
+ *
+ *  A missing book reuses the purge's own 404 line rather than minting a second
+ *  one: it is the same fact ("that guild has no loaded bank"), and the dashboard
+ *  already localizes it (error.guildBankNotLoaded). */
+function guildBankStateOutcome(
+  rt: Pick<AdminRuntime, 'adminGuildBankState'>,
+  guildId: number,
+):
+  | { ok: true; body: { guildId: number } & AdminGuildBankView }
+  | { ok: false; status: number; message: string } {
+  const state = rt.adminGuildBankState(guildId);
+  if (!state) return { ok: false, status: 404, message: GUILD_BANK_NOT_LOADED };
+  return { ok: true, body: { guildId, ...state } };
+}
+
+/** The guild bank dormant-slot purge, resolved ONCE for both dispatch arms so
+ *  the legacy ladder and the RouteDef handler can never drift (the dual-edit
+ *  rule). Shape validation, the game call, the audited moderation row, and the
+ *  outcome-to-response mapping all live here; each arm only reads the body,
+ *  supplies the acting operator, and writes the envelope.
+ *
+ *  Three operator inputs, all required: the slot INDEX, the itemId that index
+ *  is believed to hold (a confirmation token, because a purge shifts every
+ *  higher index down by one), and a moderation REASON, held to the same bar as
+ *  the strictly less destructive guild rename beside it. */
+async function purgeGuildBankSlotOutcome(
+  rt: Pick<AdminRuntime, 'adminPurgeGuildBankSlot'>,
+  guildId: number,
+  actorAccountId: number,
+  body: { slot?: unknown; itemId?: unknown; reason?: unknown },
+): Promise<
+  | {
+      ok: true;
+      body: {
+        guildId: number;
+        slotIndex: number;
+        itemId: string;
+        count: number;
+        audited: boolean;
+      };
+    }
+  | { ok: false; status: number; message: string }
+> {
+  const rawSlot = body.slot;
+  if (typeof rawSlot !== 'number' || !Number.isInteger(rawSlot) || rawSlot < 0) {
+    return { ok: false, status: 400, message: GUILD_BANK_SLOT_REQUIRED };
+  }
+  const expectItemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+  if (!expectItemId) return { ok: false, status: 400, message: GUILD_BANK_ITEM_REQUIRED };
+  const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+  if (!reason || reason.length > ADMIN_GUILD_REASON_MAX) {
+    return { ok: false, status: 400, message: GUILD_BANK_REASON_REQUIRED };
+  }
+  const result = await rt.adminPurgeGuildBankSlot(guildId, rawSlot, expectItemId, actorAccountId);
+  if (!result.ok) {
+    switch (result.reason) {
+      case 'no_book':
+        return { ok: false, status: 404, message: GUILD_BANK_NOT_LOADED };
+      case 'no_carrier':
+        return { ok: false, status: 409, message: GUILD_BANK_NO_CARRIER };
+      case 'not_dormant':
+        return { ok: false, status: 400, message: GUILD_BANK_SLOT_NOT_DORMANT };
+      case 'save_failed':
+        return { ok: false, status: 503, message: GUILD_BANK_SAVE_FAILED };
+      case 'delete_in_flight':
+        // 409, not 503: this is a state conflict with a delete that is already
+        // in flight, not a transient failure the operator should retry into.
+        return { ok: false, status: 409, message: GUILD_BANK_DELETING };
+    }
+    // Fail closed: a refusal reason added later must never fall through into
+    // the success return below (which would read `removed` off a refusal).
+    return { ok: false, status: 500, message: GUILD_BANK_PURGE_REFUSED };
+  }
+  // The audited moderation row (the rename precedent): who, why, and when, on
+  // the same history surface an operator already reads. Written AFTER the
+  // removal proved durable, so a reverted purge is never logged as done. A
+  // failed insert cannot un-remove the item, so it is reported, not thrown:
+  // the ledger row is already the machine-readable evidence.
+  let audited = true;
+  try {
+    await adminDb().recordAdminGuildBankPurge({
+      guildId,
+      reason,
+      adminAccountId: actorAccountId,
+      itemId: result.removed.itemId,
+      count: result.removed.count,
+      slotIndex: rawSlot,
+    });
+  } catch (err) {
+    audited = false;
+    console.error(`guild bank purge audit row failed for guild ${guildId}:`, err);
+  }
+  return {
+    ok: true,
+    body: {
+      guildId,
+      slotIndex: rawSlot,
+      itemId: result.removed.itemId,
+      count: result.removed.count,
+      audited,
+    },
+  };
+}
 
 async function dailyRewardEventDay(value: string | null): Promise<string | null> {
   if (value === null) return currentDailyRewardDay();
@@ -158,6 +524,103 @@ async function dailyRewardEventDay(value: string | null): Promise<string | null>
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
     ? value
     : null;
+}
+
+function boundedPositiveParam(raw: string | null, fallback: number, max: number): number {
+  const value = Number(raw ?? fallback);
+  return Number.isFinite(value) ? Math.min(max, Math.max(1, Math.floor(value))) : fallback;
+}
+
+function unstuckQuery(params: URLSearchParams): {
+  days: number;
+  limit: number;
+  beforeId?: number;
+} {
+  const days = boundedPositiveParam(
+    params.get('days'),
+    UNSTUCK_DEFAULT_DAYS,
+    UNSTUCK_REPORT_MAX_DAYS,
+  );
+  const limit = boundedPositiveParam(
+    params.get('limit'),
+    UNSTUCK_DEFAULT_LIMIT,
+    UNSTUCK_REPORT_MAX_LIMIT,
+  );
+  const rawBeforeId = Number(params.get('beforeId'));
+  return {
+    days,
+    limit,
+    ...(Number.isSafeInteger(rawBeforeId) && rawBeforeId > 0 ? { beforeId: rawBeforeId } : {}),
+  };
+}
+
+function adminUnstuckReport(row: DbUnstuckReportRow): unknown {
+  const destination =
+    row.destinationRawX === null ||
+    row.destinationRawY === null ||
+    row.destinationRawZ === null ||
+    row.destinationLocalX === null ||
+    row.destinationLocalZ === null
+      ? null
+      : {
+          x: row.destinationRawX,
+          y: row.destinationRawY,
+          z: row.destinationRawZ,
+          localX: row.destinationLocalX,
+          localY: row.destinationLocalY,
+          localZ: row.destinationLocalZ,
+        };
+  return {
+    id: row.id,
+    characterId: row.characterId,
+    characterName: row.characterName,
+    area: {
+      kind: row.areaKind,
+      id: row.areaId,
+      instanceId: row.instanceId,
+      slot: row.instanceSlot,
+    },
+    origin: {
+      x: row.originRawX,
+      y: row.originRawY,
+      z: row.originRawZ,
+      localX: row.originLocalX,
+      localY: row.originLocalY,
+      localZ: row.originLocalZ,
+    },
+    destination,
+    outcome: row.outcome,
+    reason: row.reason,
+    invokedAt: row.invokedAt,
+    resolvedAt: row.resolvedAt,
+  };
+}
+
+function adminUnstuckHotspot(row: DbUnstuckHotspotRow): unknown {
+  return {
+    area: { kind: row.areaKind, id: row.areaId, instanceId: null, slot: null },
+    bucket: { x: row.bucketLocalX, y: row.bucketLocalY, z: row.bucketLocalZ },
+    count: row.reportCount,
+    completed: row.completedCount,
+    cancelled: row.cancelledCount,
+    failed: row.failedCount,
+    lastUsedAt: row.lastResolvedAt,
+  };
+}
+
+function adminUnstuckPayload(
+  page: DbUnstuckReportPage,
+  hotspots: DbUnstuckHotspotRow[],
+  query: { days: number; limit: number },
+): unknown {
+  return {
+    reports: page.rows.map(adminUnstuckReport),
+    hotspots: hotspots.map(adminUnstuckHotspot),
+    days: query.days,
+    limit: query.limit,
+    hasMore: page.hasMore,
+    nextBeforeId: page.nextBeforeId,
+  };
 }
 
 /**
@@ -294,6 +757,72 @@ async function requireAiAuditTarget(ctx: Ctx, next: Next): Promise<void> {
   await next();
 }
 
+// Serialize-once envelope memos for the analytics dashboard reads whose
+// response is a pure function of a TTL-cached snapshot: ONE INSTANCE PER
+// ROUTE (the memo's key space has no notion of response shape, so the metrics
+// identity key and the activity four-part key never share an instance), and
+// each route's instance is shared by BOTH of its dispatch arms, so a cache
+// window costs one stringify however the request arrives. The overview read
+// stays on plain ok(): its response embeds the per-request live adminStats()
+// merge, so memoized bytes could never match what ok() would produce (see
+// overviewHandler).
+const activityOkMemo = createOkResponseMemo();
+const marketMetricsOkMemo = createOkResponseMemo();
+
+export interface AdminAnalyticsMemoStats {
+  activity: OkResponseMemoStats;
+  marketMetrics: OkResponseMemoStats;
+}
+
+/** The two memos' serve/stringify counters for the internal ops readout
+ *  (server/main.ts): stringifies climbing toward serves is a hit-rate
+ *  regression (a cache turning over per request, or a key that stopped being
+ *  stable) that nothing else would make visible. */
+export function adminAnalyticsMemoStats(): AdminAnalyticsMemoStats {
+  return { activity: activityOkMemo.stats(), marketMetrics: marketMetricsOkMemo.stats() };
+}
+
+/**
+ * Serve the activity response (both dispatch arms call this with the four
+ * cache-stable arrays off the shared admin_activity_cache bundle). The
+ * composed wrapper object is fresh per request, so the memo keys on the parts
+ * tuple: stable identities inside a TTL window hit the memoized bytes, and a
+ * torn read across a turnover re-stringifies rather than serving stale bytes.
+ * `days` is deliberately NOT a part: it is the module constant
+ * ACTIVITY_WINDOW_DAYS (every caller passes it and admin_activity_cache's
+ * assertWindow refuses any other value), so it cannot vary across requests.
+ * The memo's key contract (ok_response_memo.ts header) says exactly this; the
+ * non-part field set is pinned in tests/server/admin_analytics_reads.test.ts.
+ */
+function sendActivityOk(
+  res: http.ServerResponse,
+  registrations: DayPoint[],
+  sessions: SessionDayPoint[],
+  classes: BucketCount[],
+  levels: BucketCount[],
+): void {
+  activityOkMemo.send(
+    res,
+    { days: ACTIVITY_WINDOW_DAYS, registrations, sessions, classes, levels },
+    [registrations, sessions, classes, levels],
+  );
+}
+
+async function sendAdminGuildList(
+  res: http.ServerResponse,
+  request: AdminGuildListRequest,
+  load: () => Promise<unknown>,
+): Promise<void> {
+  try {
+    ok(res, await readAdminGuildList(request, load));
+  } catch (err) {
+    if (err instanceof AdminGuildListBusyError) {
+      return fail(res, 503, 'guild list busy, try again');
+    }
+    throw err;
+  }
+}
+
 export interface PageParams {
   page: number;
   limit: number;
@@ -351,6 +880,16 @@ function moderationHistoryTab(params: URLSearchParams): ModerationHistoryTab {
   return tab === 'mine' || tab === 'notes' ? tab : 'all';
 }
 
+// Stamp each account row with its active suspicion-flag count. Only callers
+// holding moderation.read receive the counts at all (the flag store is
+// moderation data; accounts.read alone must not see it).
+function withActiveFlagCounts<T extends { id: number }>(
+  rows: readonly T[],
+  counts: ReadonlyMap<number, number>,
+): (T & { activeFlagCount: number })[] {
+  return rows.map((row) => ({ ...row, activeFlagCount: counts.get(row.id) ?? 0 }));
+}
+
 function getBlockedIpsForAccount(
   blocker: { isIpBlocked(ip: string): boolean },
   detail: { lastLoginIp: string | null; recentSessions: { ip: string | null }[] },
@@ -393,14 +932,31 @@ async function handleLogin(req: http.IncomingMessage, res: http.ServerResponse):
     return fail(res, 429, 'too many attempts, wait a minute and try again');
   }
   const body = await readBody(req);
-  const account = typeof body.username === 'string' ? await findAccount(body.username) : null;
+  const username = typeof body.username === 'string' ? body.username : '';
+  if (username && !authThrottled(username).allowed) {
+    return fail(res, 429, ADMIN_LOGIN_TOO_MANY_FAILED_ATTEMPTS);
+  }
+  const account = username ? await findAccount(username) : null;
   if (!account || !(await verifyPassword(String(body.password ?? ''), account.password_hash))) {
+    if (username) recordAuthFailure(username);
     return fail(res, 401, 'invalid username or password');
   }
   const staff = await adminRolesForAccount(account.id);
   if (staff === null) {
     return fail(res, 403, 'this account does not have admin access');
   }
+  if (account.totp_enabled_at) {
+    const code = typeof body.code === 'string' ? body.code : '';
+    const recoveryCode = typeof body.recoveryCode === 'string' ? body.recoveryCode : '';
+    if (!code && !recoveryCode) {
+      return ok(res, { twoFactorRequired: true });
+    }
+    if (!(await verifyLoginTwoFactor(account, code, recoveryCode))) {
+      recordAuthFailure(username);
+      return fail(res, 401, ADMIN_LOGIN_INVALID_TWO_FACTOR_CODE);
+    }
+  }
+  clearAuthFailures(username);
   await touchLogin(account.id);
   const token = newToken();
   await saveToken(token, account.id);
@@ -612,8 +1168,13 @@ export async function handleAdminApi(
     const reactivateMatch = /^\/admin\/api\/moderation\/accounts\/(\d+)\/reactivate$/.exec(path);
     if (req.method === 'POST' && reactivateMatch) {
       const targetAccountId = Number(reactivateMatch[1]);
+      const body = await readBody(req);
       try {
-        await setAccountDeactivated(targetAccountId, false);
+        await reactivateAccountAudited({
+          accountId: targetAccountId,
+          adminAccountId: accountId,
+          reason: body.reason,
+        });
         return ok(res, { ok: true });
       } catch (err) {
         return fail(res, 400, err instanceof Error ? err.message : 'reactivation failed');
@@ -691,6 +1252,21 @@ export async function handleAdminApi(
       const ignored = await ignoreReport(Number(ignoreMatch[1]), accountId, body.note);
       return ignored ? ok(res, { ok: true }) : fail(res, 404, 'open report not found');
     }
+    const bugReportResolveMatch = /^\/admin\/api\/bug-reports\/(\d+)\/(resolve|dismiss)$/.exec(
+      path,
+    );
+    if (req.method === 'POST' && bugReportResolveMatch) {
+      const body = await readBody(req);
+      const status: BugReportResolution =
+        bugReportResolveMatch[2] === 'resolve' ? 'resolved' : 'dismissed';
+      const resolved = await resolveBugReport(
+        Number(bugReportResolveMatch[1]),
+        accountId,
+        status,
+        body.note,
+      );
+      return resolved ? ok(res, { ok: true }) : fail(res, 404, 'open bug report not found');
+    }
     const forceRenameMatch = /^\/admin\/api\/moderation\/characters\/(\d+)\/force-rename$/.exec(
       path,
     );
@@ -709,6 +1285,84 @@ export async function handleAdminApi(
         return ok(res, { ok: true });
       } catch (err) {
         return fail(res, 400, err instanceof Error ? err.message : 'force rename failed');
+      }
+    }
+
+    // R35 GM restores (professions tooling): validate, require online HERE,
+    // audit row, then the sync live mint (the RouteDef twin's exact order).
+    const restoreItemMatch = /^\/admin\/api\/moderation\/characters\/(\d+)\/restore-item$/.exec(
+      path,
+    );
+    if (req.method === 'POST' && restoreItemMatch) {
+      const id = Number(restoreItemMatch[1]);
+      const body = await readBody(req);
+      const bodyError = restoreItemBodyError(body);
+      if (bodyError) return fail(res, 400, bodyError);
+      const itemId = String(body.itemId);
+      const count = Number(body.count);
+      const derivedFrom = restoreItemDerivedFrom(body);
+      try {
+        if (!game.adminCharacterOnline(id)) {
+          return fail(res, 400, 'character is not online on this realm');
+        }
+        await recordProfessionsRestore({
+          characterId: id,
+          adminAccountId: accountId,
+          action: 'restore_item',
+          detail: restoreItemAuditDetail(itemId, count, derivedFrom),
+          reason: body.reason,
+        });
+        const result = game.adminRestoreItem(id, itemId, count, derivedFrom);
+        // Defensive twin of the pre-audit body check; reachable only if the
+        // runtime and validator ever disagree about ITEMS.
+        if (result === 'invalid_item') return fail(res, 400, 'unknown item id');
+        if (result !== 'ok') {
+          return fail(res, 400, 'character went offline before the restore landed');
+        }
+        return ok(res, { ok: true });
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'item restore failed');
+      }
+    }
+    const restoreSlotMatch = /^\/admin\/api\/moderation\/characters\/(\d+)\/restore-slot$/.exec(
+      path,
+    );
+    if (req.method === 'POST' && restoreSlotMatch) {
+      const id = Number(restoreSlotMatch[1]);
+      const body = await readBody(req);
+      const bodyError = restoreSlotBodyError(body);
+      if (bodyError) return fail(res, 400, bodyError);
+      const professionId = String(body.professionId);
+      const effectId = String(body.effectId);
+      try {
+        if (!game.adminCharacterOnline(id)) {
+          return fail(res, 400, 'character is not online on this realm');
+        }
+        await recordProfessionsRestore({
+          characterId: id,
+          adminAccountId: accountId,
+          action: 'restore_slot',
+          detail: `${professionId}/${effectId}`,
+          reason: body.reason,
+        });
+        const result = game.adminRestoreToolEffectSlot(id, professionId, effectId);
+        if (result === 'no_tool') {
+          return fail(res, 400, 'the character owns no tool for that profession');
+        }
+        // A restore is for a row that is GONE: an overwrite would destroy the
+        // live row's provenance, confirm mode, and ratcheted ceiling.
+        if (result === 'already_slotted') {
+          return fail(res, 400, 'that profession already has a slotted effect');
+        }
+        if (result === 'invalid_request') {
+          return fail(res, 400, 'that effect cannot be slotted on that profession');
+        }
+        if (result !== 'ok') {
+          return fail(res, 400, 'character went offline before the restore landed');
+        }
+        return ok(res, { ok: true });
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'slot restore failed');
       }
     }
 
@@ -747,9 +1401,18 @@ export async function handleAdminApi(
     );
     if (req.method === 'POST' && resetStrikesMatch) {
       const id = Number(resetStrikesMatch[1]);
-      const reset = await resetChatStrikes(id);
-      if (reset) game.resetChatStrikesLive(id);
-      return reset ? ok(res, { ok: true }) : fail(res, 404, 'account not found');
+      const body = await readBody(req);
+      try {
+        const reset = await resetChatStrikesAudited({
+          accountId: id,
+          adminAccountId: accountId,
+          reason: body.reason,
+        });
+        if (reset) game.resetChatStrikesLive(id);
+        return reset ? ok(res, { ok: true }) : fail(res, 404, 'account not found');
+      } catch (err) {
+        return fail(res, 400, err instanceof Error ? err.message : 'chat strikes reset failed');
+      }
     }
 
     // Set a new password on any account (admin-initiated credential reset). The
@@ -786,6 +1449,22 @@ export async function handleAdminApi(
       } catch (err) {
         return fail(res, 400, err instanceof Error ? err.message : 'password reset failed');
       }
+    }
+
+    const generalChatRateLimitMatch =
+      /^\/admin\/api\/accounts\/(\d+)\/general-chat-rate-limit$/.exec(path);
+    if (req.method === 'POST' && generalChatRateLimitMatch) {
+      // `await`, not a bare returned promise: a rejected setter must land in
+      // this function's own catch (the 500 'internal error' boundary).
+      return await respondGeneralChatRateLimit(
+        res,
+        {
+          targetAccountId: Number(generalChatRateLimitMatch[1]),
+          adminAccountId: accountId,
+          body: await readBody(req),
+        },
+        (id, after) => game.applyGeneralChatRateLimitLive(id, after),
+      );
     }
 
     // Account flair: the AI-operated mark and an official streamer's links. Both
@@ -832,6 +1511,57 @@ export async function handleAdminApi(
       } catch (err) {
         return fail(res, 400, err instanceof Error ? err.message : ACCOUNT_FLAIR_FAILED);
       }
+    }
+
+    const guildRenameMatch = /^\/admin\/api\/guilds\/(\d+)\/rename$/.exec(path);
+    if (req.method === 'POST' && guildRenameMatch) {
+      const body = await readBody(req);
+      const renamed = await renameAdminGuild(
+        Number(guildRenameMatch[1]),
+        typeof body.name === 'string' ? body.name : '',
+        typeof body.reason === 'string' ? body.reason : '',
+        accountId,
+      );
+      if ('error' in renamed) {
+        const failure = guildRenameFailure(renamed.error);
+        return fail(res, failure.status, failure.message);
+      }
+      game.social.guildRenamed(
+        renamed.result.guildId,
+        renamed.result.oldName,
+        renamed.result.newName,
+        renamed.result.memberCharacterIds,
+      );
+      bustAdminGuildBoardCaches();
+      return ok(res, {
+        id: renamed.result.guildId,
+        name: renamed.result.newName,
+      });
+    }
+
+    // The guild bank dormant-slot escape hatch: remove ONE permanently
+    // unwithdrawable copy so the guild can empty its bank and disband. The
+    // removal runs through the same observed book-mutation path every other
+    // guild bank op uses (ledger row op 'admin_purge' + the fenced escrow
+    // save); the sim refuses anything that is not actually dormant.
+    const guildBankPurgeMatch = /^\/admin\/api\/guilds\/(\d+)\/bank\/purge-slot$/.exec(path);
+    if (req.method === 'POST' && guildBankPurgeMatch) {
+      const body = await readBody(req);
+      // Number() on a digit string can still yield 0 or a past-2^53 id here
+      // where the RouteDef arm's requireAdminTarget('guild') loader 422s. That
+      // is the adminIdParamDecode deviation class, and this path is ledgered
+      // for it by name (tests/server/http/known_deviations.ts): it is the first
+      // /admin/api/guilds/* entry, so it was NOT covered by the family the
+      // other :id admin routes sit in. Both arms REFUSE such an id without
+      // touching the live book: adminPurgeGuildBankSlot rejects a non-positive
+      // or non-integer guild id up front. Only the status differs.
+      const outcome = await purgeGuildBankSlotOutcome(
+        game,
+        Number(guildBankPurgeMatch[1]),
+        accountId,
+        body,
+      );
+      return outcome.ok ? ok(res, outcome.body) : fail(res, outcome.status, outcome.message);
     }
 
     // Chat filter: word list + escalation config management. Every edit reloads
@@ -960,16 +1690,25 @@ export async function handleAdminApi(
 
     // Map editor moderation: force a published map back to private, and
     // block/unblock an uploaded GLB asset (blocked assets 404 on the public
-    // byte GET and reject re-uploads of the same hash).
+    // byte GET and reject re-uploads of the same hash). Both write a
+    // content_moderation_actions audit row (content_moderation_db.ts).
     const mapUnpublishMatch = /^\/admin\/api\/maps\/(\d+)\/unpublish$/.exec(path);
     if (req.method === 'POST' && mapUnpublishMatch) {
-      const done = await adminMapsDb().setStatus(Number(mapUnpublishMatch[1]), null, 'private');
+      const body = await readBody(req);
+      const done = await adminMapsDb().adminUnpublish(Number(mapUnpublishMatch[1]), {
+        adminAccountId: accountId,
+        reason: cleanContentModerationReason(body.reason),
+      });
       return done ? ok(res, { ok: true }) : fail(res, 404, 'map_not_found');
     }
     const assetBlockMatch = /^\/admin\/api\/user-assets\/(\d+)\/(block|unblock)$/.exec(path);
     if (req.method === 'POST' && assetBlockMatch) {
       const status = assetBlockMatch[2] === 'block' ? 'blocked' : 'active';
-      const done = await adminUserAssetsDb().setStatus(Number(assetBlockMatch[1]), status);
+      const body = await readBody(req);
+      const done = await adminUserAssetsDb().adminSetStatus(Number(assetBlockMatch[1]), status, {
+        adminAccountId: accountId,
+        reason: cleanContentModerationReason(body.reason),
+      });
       return done ? ok(res, { ok: true }) : fail(res, 404, 'asset_not_found');
     }
 
@@ -985,6 +1724,45 @@ export async function handleAdminApi(
       const raw = body.durationMs;
       const durationMs = typeof raw === 'number' && Number.isFinite(raw) ? raw : undefined;
       return ok(res, game.startPerfCapture(durationMs));
+    }
+
+    const flagStatusMatch = /^\/admin\/api\/flags\/(\d+)\/status$/.exec(path);
+    if (req.method === 'POST' && flagStatusMatch) {
+      if (!adminFlagWriteRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
+      const body = await readBody(req);
+      if (!isSuspicionFlagStatus(body.status)) return fail(res, 400, FLAG_INVALID_STATUS);
+      const note = typeof body.note === 'string' ? body.note.trim() : '';
+      const result = await transitionSuspicionFlag({
+        flagId: Number(flagStatusMatch[1]),
+        adminAccountId: accountId,
+        to: body.status,
+        note,
+      });
+      if (!result.ok) {
+        flagTransitionFailure(res, result.error);
+        return;
+      }
+      bustSuspicionFlagCache();
+      return ok(res, { flag: result.flag });
+    }
+    const flagNoteMatch = /^\/admin\/api\/flags\/(\d+)\/note$/.exec(path);
+    if (req.method === 'POST' && flagNoteMatch) {
+      if (!adminFlagWriteRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
+      const body = await readBody(req);
+      const note = typeof body.note === 'string' ? body.note.trim() : '';
+      if (!note) return fail(res, 400, FLAG_NOTE_REQUIRED);
+      const added = await addSuspicionFlagNote({
+        flagId: Number(flagNoteMatch[1]),
+        adminAccountId: accountId,
+        note,
+      });
+      if (!added) return fail(res, 404, FLAG_NOT_FOUND);
+      bustSuspicionFlagCache();
+      return ok(res, { ok: true });
     }
 
     if (req.method !== 'GET') return fail(res, 405, 'method not allowed');
@@ -1009,6 +1787,9 @@ export async function handleAdminApi(
     }
 
     if (path === '/admin/api/overview') {
+      if (!adminAnalyticsReadRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
       const counts = await adminDb().overviewCounts();
       const serverStats = game.adminStats();
       return ok(res, overviewPayload(counts, serverStats));
@@ -1025,7 +1806,7 @@ export async function handleAdminApi(
         diagnostics: game.aiActiveTriggerDiagnostics(),
       });
     }
-    const aiAuditMatch = /^\/admin\/api\/ai\/audit\/([^\/]+)$/.exec(path);
+    const aiAuditMatch = /^\/admin\/api\/ai\/audit\/([^/]+)$/.exec(path);
     if (aiAuditMatch) {
       const auditId = decodeAiAuditId(aiAuditMatch[1]);
       if (auditId === null) return fail(res, 400, 'invalid AI audit id');
@@ -1056,20 +1837,26 @@ export async function handleAdminApi(
       return ok(res, game.detectionCalibration());
     }
     if (path === '/admin/api/online-history') {
-      return ok(res, await onlineHistory(url.searchParams.get('range') ?? '30d'));
+      if (!adminAnalyticsReadRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
+      return ok(res, await readOnlineHistoryCached(url.searchParams.get('range') ?? '30d'));
     }
     if (path === '/admin/api/activity') {
+      if (!adminAnalyticsReadRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
       const [registrations, sessions, classes, levels] = await Promise.all([
         registrationsByDay(ACTIVITY_WINDOW_DAYS),
         sessionsByDay(ACTIVITY_WINDOW_DAYS),
         classDistribution(),
         levelDistribution(),
       ]);
-      return ok(res, { days: ACTIVITY_WINDOW_DAYS, registrations, sessions, classes, levels });
+      return sendActivityOk(res, registrations, sessions, classes, levels);
     }
     if (path === '/admin/api/perf/summary') {
       const hours = Number(url.searchParams.get('hours') ?? '24');
-      return ok(res, await clientPerfSummary(hours));
+      return ok(res, await readClientPerfSummaryCached(hours));
     }
     if (path === '/admin/api/perf/raw') {
       const hours = Number(url.searchParams.get('hours') ?? '24');
@@ -1088,7 +1875,93 @@ export async function handleAdminApi(
     if (path === '/admin/api/accounts') {
       const { page, limit } = parsePageParams(url.searchParams);
       const search = (url.searchParams.get('search') ?? '').slice(0, 64);
-      return ok(res, await listAccounts(search, page, limit));
+      const { sort, dir } = parseAdminAccountSort(url.searchParams);
+      const list = await listAccounts(search, page, limit, sort, dir);
+      if (!identity.permissions.has('moderation.read')) return ok(res, list);
+      const counts = await activeSuspicionFlagCounts(list.rows.map((row) => row.id));
+      return ok(res, { ...list, rows: withActiveFlagCounts(list.rows, counts) });
+    }
+    if (path === '/admin/api/wealth/top') {
+      if (!adminOversightReadRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
+      const rows = await readTopWealthHolders();
+      // Flag counts are moderation data: the same rule as the accounts list.
+      return identity.permissions.has('moderation.read')
+        ? ok(res, { rows })
+        : ok(res, { rows: redactActiveFlagCounts(rows) });
+    }
+    const accountWealthMatch = /^\/admin\/api\/accounts\/(\d+)\/wealth$/.exec(path);
+    if (accountWealthMatch) {
+      if (!adminOversightReadRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
+      const targetAccountId = Number(accountWealthMatch[1]);
+      const breakdown = await accountWealthBreakdown(targetAccountId);
+      if (breakdown === null) return fail(res, 404, 'account not found');
+      const pane = await readLargeMovementsPane(targetAccountId, () =>
+        largeGoldMovementsForAccount(targetAccountId, LARGE_GOLD_MOVEMENT_LIMIT),
+      );
+      return ok(res, { ...breakdown, ...pane });
+    }
+    const accountFlagsMatch = /^\/admin\/api\/accounts\/(\d+)\/flags$/.exec(path);
+    if (accountFlagsMatch) {
+      if (!adminOversightReadRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
+      return ok(res, await suspicionFlagsForAccount(Number(accountFlagsMatch[1])));
+    }
+    if (path === '/admin/api/flags') {
+      if (!adminOversightReadRateLimited(req, accountId).allowed) {
+        return fail(res, 429, ADMIN_TOO_MANY_REQUESTS);
+      }
+      return ok(
+        res,
+        flagListResponse(
+          await readSuspicionFlagDataset(),
+          url.searchParams,
+          parsePageParams(url.searchParams),
+        ),
+      );
+    }
+    if (path === '/admin/api/guilds') {
+      const { page, limit } = parsePageParams(url.searchParams);
+      const search = url.searchParams.get('search') ?? '';
+      const { sort, dir } = parseAdminGuildSort(url.searchParams);
+      return await sendAdminGuildList(res, { search, page, limit, sort, dir }, () =>
+        listAdminGuilds(search, page, limit, sort, dir),
+      );
+    }
+    const guildHistoryMatch = /^\/admin\/api\/guilds\/(\d+)\/history$/.exec(path);
+    if (guildHistoryMatch) {
+      const rows = await listAdminGuildHistory(Number(guildHistoryMatch[1]));
+      return rows === null ? fail(res, 404, 'guild not found') : ok(res, { rows });
+    }
+    // The guild bank operator READ: the live book (treasury, capacity, and the
+    // slot list with its dormant flags) the dormant-slot purge is unusable
+    // without. Same shared outcome helper as the RouteDef arm; the degenerate
+    // digit-string :id class diverges here exactly as it does on the purge
+    // beside it (both ledgered in tests/server/http/known_deviations.ts):
+    // adminGuildBankState refuses a non-positive or non-integer guild id
+    // itself, so this arm 404s where the RouteDef arm 422s and NEITHER reads a
+    // live book.
+    const guildBankStateMatch = /^\/admin\/api\/guilds\/(\d+)\/bank$/.exec(path);
+    if (guildBankStateMatch) {
+      const outcome = guildBankStateOutcome(game, Number(guildBankStateMatch[1]));
+      return outcome.ok ? ok(res, outcome.body) : fail(res, outcome.status, outcome.message);
+    }
+    const guildDetailMatch = /^\/admin\/api\/guilds\/(\d+)$/.exec(path);
+    if (guildDetailMatch) {
+      const detail = await adminGuildDetail(Number(guildDetailMatch[1]));
+      if (!detail) return fail(res, 404, 'guild not found');
+      const onlineIds = game.liveCharacterIds();
+      return ok(res, {
+        guild: detail.guild,
+        members: detail.members.map((member) => ({
+          ...member,
+          online: onlineIds.has(member.characterId),
+        })),
+      });
     }
     if (path === '/admin/api/shared-ips') {
       const { page, limit } = parsePageParams(url.searchParams);
@@ -1133,7 +2006,7 @@ export async function handleAdminApi(
       });
     }
     if (path === '/admin/api/moderation/queue') {
-      return ok(res, { rows: await moderationQueue(game.liveAccountIds()) });
+      return ok(res, { rows: await readModerationQueue(game.liveAccountIds()) });
     }
     if (path === '/admin/api/moderation/history') {
       const { page, limit } = parsePageParams(url.searchParams);
@@ -1146,6 +2019,54 @@ export async function handleAdminApi(
       const { page, limit } = parsePageParams(url.searchParams);
       const { rows, total } = await listBugReports(limit, (page - 1) * limit);
       return ok(res, { rows, total, page, limit });
+    }
+    if (path === '/admin/api/unstuck-reports') {
+      const query = unstuckQuery(url.searchParams);
+      const [page, hotspots] = await Promise.all([
+        listUnstuckReportsDb(pool, { realm: REALM, ...query }),
+        query.beforeId === undefined
+          ? listUnstuckHotspotsDb(pool, {
+              realm: REALM,
+              days: query.days,
+              limit: UNSTUCK_HOTSPOT_MAX_LIMIT,
+            })
+          : Promise.resolve<DbUnstuckHotspotRow[]>([]),
+      ]);
+      return ok(res, adminUnstuckPayload(page, hotspots, query));
+    }
+    if (path === '/admin/api/item-ledger') {
+      const limit = boundedPositiveParam(
+        url.searchParams.get('limit'),
+        ITEM_LEDGER_DEFAULT_LIMIT,
+        ITEM_LEDGER_MAX_LIMIT,
+      );
+      const rawBeforeId = Number(url.searchParams.get('beforeId'));
+      const rawCharacterId = Number(url.searchParams.get('characterId'));
+      const rawItemId = url.searchParams.get('itemId') ?? '';
+      const page = await listItemLedgerDb(pool, {
+        realm: REALM,
+        limit,
+        ...(Number.isSafeInteger(rawBeforeId) && rawBeforeId > 0 ? { beforeId: rawBeforeId } : {}),
+        ...(Number.isSafeInteger(rawCharacterId) && rawCharacterId > 0
+          ? { characterId: rawCharacterId }
+          : {}),
+        ...(rawItemId.length > 0 && rawItemId.length <= 128 ? { itemId: rawItemId } : {}),
+      });
+      return ok(res, {
+        events: page.rows,
+        limit,
+        hasMore: page.hasMore,
+        nextBeforeId: page.nextBeforeId,
+      });
+    }
+    // A startsWith arm rather than a ladder regex: the permission scan
+    // (tests/admin_routes.test.ts) samples only digit captures, so this row
+    // is pinned there by hand, like the registry-only kick.
+    const ITEM_GUID_PREFIX = '/admin/api/items/';
+    if (path.startsWith(ITEM_GUID_PREFIX) && !path.slice(ITEM_GUID_PREFIX.length).includes('/')) {
+      const guid = path.slice(ITEM_GUID_PREFIX.length).toLowerCase();
+      if (!isItemLedgerGuid(guid)) return fail(res, 400, 'invalid item guid');
+      return ok(res, { guid, events: await itemLedgerHistoryDb(pool, REALM, guid) });
     }
     const bugScreenshotMatch = /^\/admin\/api\/bug-reports\/(\d+)\/screenshot$/.exec(path);
     if (bugScreenshotMatch) {
@@ -1196,6 +2117,22 @@ export async function handleAdminApi(
       const sort = url.searchParams.get('sort') ?? 'level';
       const dir = url.searchParams.get('dir') === 'asc' ? 'asc' : 'desc';
       return ok(res, await listCharacters(search, sort, dir, page, limit));
+    }
+    // R35 professions inspector (the RouteDef twin's exact shape: live
+    // serializeCharacter snapshot when online, stored blob otherwise). The
+    // explicit GET check matches every sibling branch in this ladder: the
+    // central ADMIN_ROUTE_PERMISSIONS gate already refuses other methods, but
+    // this branch must not silently start serving one the day someone adds a
+    // POST permission for the path.
+    const characterProfessionsMatch = /^\/admin\/api\/characters\/(\d+)\/professions$/.exec(path);
+    if (req.method === 'GET' && characterProfessionsMatch) {
+      const id = Number(characterProfessionsMatch[1]);
+      // Live snapshot FIRST (the RouteDef twin's exact shape): a live read
+      // discards the blob, so the query skips fetching it.
+      const liveState = game.adminCharacterState(id);
+      const row = await characterProfessionsRow(id, liveState === null);
+      if (!row) return fail(res, 404, 'character not found');
+      return ok(res, characterProfessionsSheetFromRow(row, liveState));
     }
     if (path === '/admin/api/maps') {
       const { page, limit } = parsePageParams(url.searchParams);
@@ -1255,7 +2192,11 @@ export async function handleAdminApi(
 //    ADMIN_LOGIN_MAX_PER_MINUTE), NOT the new coded POLICIES table (rate_limit.ts):
 //    its own per-minute ceiling, isolated from the account/IP policy set, keeping the
 //    429 body byte-identical. Its own isolated limiter STORE is the two-tier limiter
-//    end-state; parity-first keeps the legacy shared-store call in-handler.
+//    end-state; parity-first keeps the legacy shared-store call in-handler. Both login
+//    arms ALSO gate on the shared per-account authThrottled/recordAuthFailure/
+//    clearAuthFailures throttle (server/ratelimit.ts), the same username-keyed guard
+//    server/auth_routes.ts uses for the player login: the per-IP ceiling alone cannot
+//    stop a distributed attacker who never repeats a source IP against one account.
 //
 //  - The enum-segment route restructures. The legacy regex route
 //    /moderation/accounts/:id/(suspend|unsuspend|ban|unban) violates the table
@@ -1299,13 +2240,22 @@ export type AdminRuntime = Pick<
   | 'isIpBlocked'
   | 'liveSharedIps'
   | 'liveAccountIds'
+  | 'liveCharacterIds'
   | 'disconnectAccount'
   | 'muteAccountChat'
   | 'liftChatMuteLive'
   | 'resetChatStrikesLive'
+  | 'applyGeneralChatRateLimitLive'
   // Push an operator's account-flair edit onto the account's live session, so the
   // AI mark / streamer links change without a reconnect.
   | 'applyAccountFlairLive'
+  // Push a Cheater mark change onto the account's live session. Without it a
+  // sanction applied to a logged-in player does nothing until their next login,
+  // which is the session it is most needed in.
+  | 'applyCheaterMarkLive'
+  // Push a world quest block change onto the account's live session, so a
+  // bot caught mid-circuit stops earning in that session, not at its next login.
+  | 'applyWorldQuestBlockLive'
   | 'reloadChatFilter'
   | 'reloadBlockedIps'
   | 'disconnectByIp'
@@ -1325,6 +2275,20 @@ export type AdminRuntime = Pick<
   | 'cleanAiAuditNonRealRecords'
   | 'ambientPlayerBotDiagnostics'
   | 'updateAmbientPlayerBotConfig'
+  // The guild bank dormant-slot escape hatch (guildbank.purge). A live-sim
+  // mutation, so it rides the runtime Pick like every other game-session hook,
+  // beside the live-book READ (moderation.read) an operator discovers the slot
+  // index and its item id with.
+  | 'adminGuildBankState'
+  | 'adminPurgeGuildBankSlot'
+  // R35 GM professions tooling: a live character-state snapshot for the
+  // inspector, and the two audited restores (item mint, slot re-mint).
+  | 'adminCharacterState'
+  | 'adminCharacterOnline'
+  | 'adminRestoreItem'
+  | 'adminRestoreToolEffectSlot'
+  | 'adminGrantBuddy'
+  | 'social'
 >;
 
 let runtime: AdminRuntime | null = null;
@@ -1378,6 +2342,22 @@ function adminPlayersCap(): number {
   return playersCapSource ? playersCapSource() : 0;
 }
 
+let adminGuildBoardCacheBustSource: (() => void) | null = null;
+
+/** Inject the leaderboard cache invalidation hook used after a committed rename. */
+export function configureAdminGuildBoardCacheBust(fn: () => void): void {
+  adminGuildBoardCacheBustSource = fn;
+}
+
+/** Clear the leaderboard cache invalidation hook for unit tests. */
+export function resetAdminGuildBoardCacheBustForTests(): void {
+  adminGuildBoardCacheBustSource = null;
+}
+
+function bustAdminGuildBoardCaches(): void {
+  adminGuildBoardCacheBustSource?.();
+}
+
 // The DB reads/writes (plus the login-path auth + rate-limit primitives) the admin
 // route layer needs, bundled behind a test-only setter so they can be driven with a
 // fake and no Postgres; production never calls the setter. The same functions the
@@ -1392,16 +2372,31 @@ function makeRealAdminDb() {
   return {
     accountDetail,
     associationsForIp,
+    characterProfessionsRow,
+    // Cache-backed (the shared admin activity bundle; both dispatch arms read
+    // it): a setAdminDbForTests override still replaces these members outright,
+    // which bypasses the cache and keeps existing fakes exact.
     classDistribution,
     clientPerfRaw,
-    clientPerfSummary,
+    // Cache-backed (the hours-keyed perf-summary memo; both dispatch arms
+    // read it): a setAdminDbForTests override still replaces this member
+    // outright, which bypasses the cache and keeps existing fakes exact.
+    clientPerfSummary: readClientPerfSummaryCached,
     dailyRewardPointEvents,
     levelDistribution,
     listAccounts,
     listCharacters,
+    listAdminGuilds,
+    adminGuildDetail,
+    listAdminGuildHistory,
+    renameAdminGuild,
+    recordAdminGuildBankPurge,
     listModerationActions,
     listSharedIps,
-    onlineHistory,
+    // Cache-backed (the range-keyed online-history memo; both dispatch arms read
+    // it): a setAdminDbForTests override still replaces this member outright,
+    // which bypasses the cache and keeps existing fakes exact.
+    onlineHistory: readOnlineHistoryCached,
     // Cache-backed (the shared admin overview memo; both dispatch arms read it):
     // a setAdminDbForTests override still replaces this member outright, which
     // bypasses the cache and keeps existing fakes exact.
@@ -1410,6 +2405,14 @@ function makeRealAdminDb() {
     sessionsByDay,
     listBugReports,
     getBugReportScreenshot,
+    resolveBugReport,
+    listUnstuckReports: (options: Parameters<typeof listUnstuckReportsDb>[1]) =>
+      listUnstuckReportsDb(pool, options),
+    listUnstuckHotspots: (options: Parameters<typeof listUnstuckHotspotsDb>[1]) =>
+      listUnstuckHotspotsDb(pool, options),
+    listItemLedger: (options: Parameters<typeof listItemLedgerDb>[1]) =>
+      listItemLedgerDb(pool, options),
+    itemLedgerHistory: (realm: string, guid: string) => itemLedgerHistoryDb(pool, realm, guid),
     listFilterWords,
     addFilterWord,
     removeFilterWord,
@@ -1417,7 +2420,7 @@ function makeRealAdminDb() {
     updateFilterConfig,
     chatModerationForAccount,
     chatModeratedAccounts,
-    resetChatStrikes,
+    resetChatStrikesAudited,
     cleanIp,
     listBlockedIps,
     addBlockedIp,
@@ -1427,9 +2430,21 @@ function makeRealAdminDb() {
     ignoreReport,
     liftAccountChatMute,
     moderateAccount,
-    moderationQueue,
+    // Cache-backed (the shared moderation queue memo; both dispatch arms read
+    // it and it is bust-wired by moderation_db.ts's setOnModerationQueueChanged
+    // hook): a setAdminDbForTests override still replaces this member outright.
+    moderationQueue: readModerationQueue,
     moderationReportsForAccount,
     muteAccountChat,
+    // The Cheater mark: apply/re-length and lift early. Deliberately NO
+    // remaining-budget read here: the apply arm returns what its own transaction
+    // stored, and a second read could be overtaken by a save-path burn and push
+    // a stale budget onto the live session.
+    setAccountCheaterMark,
+    liftAccountCheaterMark,
+    // The world quest block: the two audited writes (server/world_quest_block_db.ts).
+    setAccountWorldQuestBlock,
+    liftAccountWorldQuestBlock,
     accountAndScopeForToken,
     accountMailTarget,
     findAccount,
@@ -1437,10 +2452,14 @@ function makeRealAdminDb() {
     // chat muted" guards); the CALLER gate resolves roles via adminRolesForAccount.
     isAdminAccount,
     saveToken,
-    setAccountDeactivated,
+    reactivateAccountAudited,
+    recordProfessionsRestore,
     touchLogin,
     newToken,
     verifyPassword,
+    // Login second factor: an account with TOTP enabled must supply a live code or
+    // a recovery code before a token is minted (mirrors server/auth_routes.ts).
+    verifyLoginTwoFactor,
     // Admin-initiated password reset: existence check, credential write, sign out
     // every device, and its moderation-history audit row.
     accountById,
@@ -1448,6 +2467,13 @@ function makeRealAdminDb() {
     updatePasswordHash,
     revokeTokensExcept,
     recordPasswordReset,
+    // Audited, atomic offline legendary-name moderation.
+    clearOfflineItemName,
+    recordItemNameClear,
+    // The admin-panel kick's audit row: the SAME writer the in-game /kick uses
+    // (game.ts wires it into the moderation service as recordAction), so a kick
+    // reads identically in moderation history whichever surface issued it.
+    recordInGameAction,
     setDailyRewardsBan,
     setDailyRewardsIpBan,
     // Account flair: the two audited writes plus the read-back the live push sends
@@ -1458,6 +2484,10 @@ function makeRealAdminDb() {
     emailSecurityIncident,
     providerUsageSnapshot,
     rateLimited,
+    // Per-account failed-login throttle (mirrors server/auth_routes.ts loginHandler).
+    authThrottled,
+    recordAuthFailure,
+    clearAuthFailures,
     // Staff-role reads/writes (accounts.admin_roles + the audit trail).
     adminRolesForAccount,
     listStaff,
@@ -1467,6 +2497,25 @@ function makeRealAdminDb() {
     loadAntibotConfig,
     listAntibotConfigHistory,
     saveAntibotConfigChange,
+    // Economy oversight: the materialised wealth reads (top holders is
+    // cache-backed like overviewCounts; an override replaces it outright),
+    // the persisted suspicion-flag workflow, and the dedicated oversight
+    // rate limiters (scoped buckets, see server/ratelimit.ts).
+    topWealthHolders: readTopWealthHolders,
+    accountWealthBreakdown,
+    largeGoldMovementsForAccount,
+    suspicionFlagDataset: readSuspicionFlagDataset,
+    suspicionFlagsForAccount,
+    transitionSuspicionFlag,
+    addSuspicionFlagNote,
+    activeSuspicionFlagCounts,
+    adminOversightReadRateLimited,
+    adminFlagWriteRateLimited,
+    // Analytics dashboard read metering (overview / activity / market
+    // metrics): its own bucket, deliberately not the oversight pair, so the
+    // landing page's default poll can never starve the moderation Flagged
+    // workflow (see server/ratelimit.ts).
+    adminAnalyticsReadRateLimited,
   };
 }
 
@@ -1478,7 +2527,10 @@ let realAdminDb: AdminDb | undefined;
 let adminDbOverride: AdminDb | undefined;
 
 /** The active admin db: a setAdminDbForTests override if present, else the real bundle. */
-function adminDb(): AdminDb {
+// Exported for sibling admin-surface RouteDef modules (woc_market_routes.ts):
+// one live bundle, one test seam, so the ownership sweep's fakes reach every
+// admin route regardless of which module mounts the gate.
+export function adminDb(): AdminDb {
   if (adminDbOverride) return adminDbOverride;
   realAdminDb ??= makeRealAdminDb();
   return realAdminDb;
@@ -1501,7 +2553,10 @@ export function resetAdminDbForTests(): void {
 // The admin-auth gate reads its two db functions (accountAndScopeForToken and
 // adminRolesForAccount) off the active bundle, so a setAdminDbForTests fake drives
 // it too. AdminDb is a superset of AdminAuthDb, so the getter is assignable.
-const requireAdmin = createRequireAdmin((): AdminAuthDb => adminDb());
+// Exported so sibling admin-surface domain modules (server/ad_spend.ts) mount
+// the SAME gate over the SAME seam, keeping the scope sweep and the
+// setAdminDbForTests injection authoritative for every admin route.
+export const requireAdmin = createRequireAdmin((): AdminAuthDb => adminDb());
 
 /**
  * The four moderation actions the enum route accepts. The central permission gate
@@ -1516,24 +2571,47 @@ const MODERATION_ACTION_SCHEMA = enum_(['suspend', 'unsuspend', 'ban', 'unban'] 
 // ported body is byte-identical.
 // ---------------------------------------------------------------------------
 
-/** POST /admin/api/login: anonymous, its own in-handler rateLimited limiter. */
+/**
+ * POST /admin/api/login: anonymous, its own in-handler rateLimited limiter PLUS the
+ * per-account failed-login throttle (mirrors server/auth_routes.ts loginHandler),
+ * so a distributed attack spread across many source IPs cannot bypass a lockout by
+ * never repeating an IP. Also mirrors loginHandler's second-factor gate: a staff
+ * account with TOTP enabled must supply a live code or a recovery code before a
+ * token is minted, so 2FA is never bypassable for the highest-privilege surface.
+ */
 async function loginHandler(ctx: Ctx): Promise<void> {
   if (!adminDb().rateLimited(ctx.req, ADMIN_LOGIN_MAX_PER_MINUTE).allowed) {
     return fail(ctx.res, 429, 'too many attempts, wait a minute and try again');
   }
   const body = await readBody(ctx.req);
-  const account =
-    typeof body.username === 'string' ? await adminDb().findAccount(body.username) : null;
+  const username = typeof body.username === 'string' ? body.username : '';
+  if (username && !adminDb().authThrottled(username).allowed) {
+    return fail(ctx.res, 429, ADMIN_LOGIN_TOO_MANY_FAILED_ATTEMPTS);
+  }
+  const account = username ? await adminDb().findAccount(username) : null;
   if (
     !account ||
     !(await adminDb().verifyPassword(String(body.password ?? ''), account.password_hash))
   ) {
+    if (username) adminDb().recordAuthFailure(username);
     return fail(ctx.res, 401, 'invalid username or password');
   }
   const staff = await adminDb().adminRolesForAccount(account.id);
   if (staff === null) {
     return fail(ctx.res, 403, 'this account does not have admin access');
   }
+  if (account.totp_enabled_at) {
+    const code = typeof body.code === 'string' ? body.code : '';
+    const recoveryCode = typeof body.recoveryCode === 'string' ? body.recoveryCode : '';
+    if (!code && !recoveryCode) {
+      return ok(ctx.res, { twoFactorRequired: true });
+    }
+    if (!(await adminDb().verifyLoginTwoFactor(account, code, recoveryCode))) {
+      adminDb().recordAuthFailure(username);
+      return fail(ctx.res, 401, ADMIN_LOGIN_INVALID_TWO_FACTOR_CODE);
+    }
+  }
+  adminDb().clearAuthFailures(username);
   await adminDb().touchLogin(account.id);
   const token = adminDb().newToken();
   await adminDb().saveToken(token, account.id);
@@ -1545,8 +2623,17 @@ async function loginHandler(ctx: Ctx): Promise<void> {
   });
 }
 
-/** GET /admin/api/overview: headline counts merged with live server stats. */
+/** GET /admin/api/overview: headline counts merged with live server stats.
+ *  Metered on the analytics read bucket like its activity/metrics siblings,
+ *  but EXEMPT from the family's serialize-once memos (activityOkMemo and
+ *  marketMetricsOkMemo): the
+ *  response embeds the per-request live adminStats() merge (online, uptime,
+ *  memory), so memoized bytes could never stay byte-identical with what ok()
+ *  produces. Only the DB counts are cached (admin_overview_cache.ts). */
 async function overviewHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminAnalyticsReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
   const rt = useAdminRuntime();
   const counts = await adminDb().overviewCounts();
   const serverStats = rt.adminStats();
@@ -1588,11 +2675,7 @@ async function aiActiveTriggerConfigHandler(ctx: Ctx): Promise<void> {
   try {
     ok(ctx.res, useAdminRuntime().updateAiActiveTriggerConfig(body));
   } catch (err) {
-    fail(
-      ctx.res,
-      400,
-      err instanceof Error ? err.message : 'invalid active trigger configuration',
-    );
+    fail(ctx.res, 400, err instanceof Error ? err.message : 'invalid active trigger configuration');
   }
 }
 
@@ -1660,6 +2743,21 @@ async function aiAuditRecordHandler(ctx: Ctx): Promise<void> {
   const auditId = ctx.state.get(AI_AUDIT_ID) as string;
   const record = await useAdminRuntime().aiAuditRecord(auditId);
   return record ? ok(ctx.res, record) : fail(ctx.res, 404, 'AI audit record not found');
+}
+
+/** GET /admin/api/market/metrics: live World Market listing aggregates over the
+ *  tracked supply buckets (server/admin_market_metrics.ts). Metered on the
+ *  analytics read bucket: the read itself is a warm in-memory cache with zero
+ *  DB cost, but metering is uniform across the admin read families so no
+ *  route is the unthrottled odd one out (the oversight bucket stays scoped to
+ *  the DB-cost economy-oversight reads). The response IS the cached snapshot,
+ *  so the envelope bytes are memoized per cache turnover on the route's own
+ *  memo (marketMetricsOkMemo, identity-keyed on the snapshot). */
+async function marketMetricsHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminAnalyticsReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
+  marketMetricsOkMemo.send(ctx.res, await readAdminMarketMetrics());
 }
 
 /** GET /admin/api/me: the caller's own staff identity (any staff role). */
@@ -1796,20 +2894,30 @@ async function detectionCalibrationHandler(ctx: Ctx): Promise<void> {
   ok(ctx.res, useAdminRuntime().detectionCalibration());
 }
 
-/** GET /admin/api/online-history: bucketed online + site-user history. */
+/** GET /admin/api/online-history: bucketed online + site-user history.
+ *  Metered on the analytics read bucket like its overview/activity/metrics
+ *  siblings (it is fetched from the SAME Promise.all as activity, so leaving it
+ *  off the meter left one uncapped door into the family's heaviest aggregate),
+ *  and served from the range-keyed memo bound into the bundle below. */
 async function onlineHistoryHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminAnalyticsReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
   ok(ctx.res, await adminDb().onlineHistory(ctx.url.searchParams.get('range') ?? '30d'));
 }
 
 /** GET /admin/api/activity: registrations + sessions + class/level distributions. */
 async function activityHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminAnalyticsReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
   const [registrations, sessions, classes, levels] = await Promise.all([
     adminDb().registrationsByDay(ACTIVITY_WINDOW_DAYS),
     adminDb().sessionsByDay(ACTIVITY_WINDOW_DAYS),
     adminDb().classDistribution(),
     adminDb().levelDistribution(),
   ]);
-  ok(ctx.res, { days: ACTIVITY_WINDOW_DAYS, registrations, sessions, classes, levels });
+  sendActivityOk(ctx.res, registrations, sessions, classes, levels);
 }
 
 /** GET /admin/api/perf/summary: aggregated client-perf percentiles. */
@@ -1850,11 +2958,201 @@ async function perfTickCaptureHandler(ctx: Ctx): Promise<void> {
   ok(ctx.res, useAdminRuntime().startPerfCapture(durationMs));
 }
 
-/** GET /admin/api/accounts: paged account search (search clamped to 64 chars). */
+/** GET /admin/api/accounts: paged, sortable account search (search clamped to
+ *  64 chars; an all-digits search also matches exact account/character ids,
+ *  and character names match alongside usernames). Rows carry the materialised
+ *  gold total, plus active suspicion-flag counts for moderation.read holders
+ *  only (the flag store is moderation data). */
 async function accountsHandler(ctx: Ctx): Promise<void> {
   const { page, limit } = parsePageParams(ctx.url.searchParams);
   const search = (ctx.url.searchParams.get('search') ?? '').slice(0, 64);
-  ok(ctx.res, await adminDb().listAccounts(search, page, limit));
+  const { sort, dir } = parseAdminAccountSort(ctx.url.searchParams);
+  const list = await adminDb().listAccounts(search, page, limit, sort, dir);
+  const identity = adminIdentityOf(ctx);
+  if (!identity?.permissions.has('moderation.read')) return ok(ctx.res, list);
+  const counts = await adminDb().activeSuspicionFlagCounts(list.rows.map((row) => row.id));
+  ok(ctx.res, { ...list, rows: withActiveFlagCounts(list.rows, counts) });
+}
+
+/** GET /admin/api/wealth/top: the rich list (top holders by materialised
+ *  total), served from the TTL cache in server/account_wealth.ts. Flag counts
+ *  are stripped for callers without moderation.read, the same rule as the
+ *  accounts list. */
+async function wealthTopHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminOversightReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
+  const rows = await adminDb().topWealthHolders();
+  const identity = adminIdentityOf(ctx);
+  ok(
+    ctx.res,
+    identity?.permissions.has('moderation.read')
+      ? { rows }
+      : { rows: redactActiveFlagCounts(rows) },
+  );
+}
+
+/** GET /admin/api/accounts/:id/wealth: one account's gold breakdown (per
+ *  character, escrow, guild treasury context) plus its recent large
+ *  bank-ledger movements. */
+async function accountWealthHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminOversightReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
+  const accountId = adminTargetId(ctx);
+  const breakdown = await adminDb().accountWealthBreakdown(accountId);
+  if (breakdown === null) return fail(ctx.res, 404, 'account not found');
+  const pane = await readLargeMovementsPane(accountId, () =>
+    adminDb().largeGoldMovementsForAccount(accountId, LARGE_GOLD_MOVEMENT_LIMIT),
+  );
+  ok(ctx.res, { ...breakdown, ...pane });
+}
+
+/** GET /admin/api/accounts/:id/flags: the account's full flag history (active
+ *  and resolved; flags never silently disappear) with the workflow audit
+ *  trail. */
+async function accountFlagsHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminOversightReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
+  ok(ctx.res, await adminDb().suspicionFlagsForAccount(adminTargetId(ctx)));
+}
+
+/** GET /admin/api/flags: the Flagged view (cached dataset, filtered and paged
+ *  by flagListResponse). */
+async function flagsHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminOversightReadRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
+  ok(
+    ctx.res,
+    flagListResponse(
+      await adminDb().suspicionFlagDataset(),
+      ctx.url.searchParams,
+      parsePageParams(ctx.url.searchParams),
+    ),
+  );
+}
+
+/** POST /admin/api/flags/:id/status: one workflow move (validated against the
+ *  state machine), recorded with the acting admin in the audit trail. */
+async function flagStatusHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminFlagWriteRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
+  const body = await readBody(ctx.req);
+  if (!isSuspicionFlagStatus(body.status)) return fail(ctx.res, 400, FLAG_INVALID_STATUS);
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  const result = await adminDb().transitionSuspicionFlag({
+    flagId: adminTargetId(ctx),
+    adminAccountId: ctxAccountId(ctx),
+    to: body.status,
+    note,
+  });
+  if (!result.ok) {
+    flagTransitionFailure(ctx.res, result.error);
+    return;
+  }
+  bustSuspicionFlagCache();
+  ok(ctx.res, { flag: result.flag });
+}
+
+/** POST /admin/api/flags/:id/note: append a note-only audit event. */
+async function flagNoteHandler(ctx: Ctx): Promise<void> {
+  if (!adminDb().adminFlagWriteRateLimited(ctx.req, ctxAccountId(ctx)).allowed) {
+    return fail(ctx.res, 429, ADMIN_TOO_MANY_REQUESTS);
+  }
+  const body = await readBody(ctx.req);
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  if (!note) return fail(ctx.res, 400, FLAG_NOTE_REQUIRED);
+  const added = await adminDb().addSuspicionFlagNote({
+    flagId: adminTargetId(ctx),
+    adminAccountId: ctxAccountId(ctx),
+    note,
+  });
+  if (!added) return fail(ctx.res, 404, FLAG_NOT_FOUND);
+  bustSuspicionFlagCache();
+  ok(ctx.res, { ok: true });
+}
+
+/** GET /admin/api/guilds: current-realm guild search with bounded pagination. */
+async function guildsHandler(ctx: Ctx): Promise<void> {
+  const { page, limit } = parsePageParams(ctx.url.searchParams);
+  const search = ctx.url.searchParams.get('search') ?? '';
+  const { sort, dir } = parseAdminGuildSort(ctx.url.searchParams);
+  await sendAdminGuildList(ctx.res, { search, page, limit, sort, dir }, () =>
+    adminDb().listAdminGuilds(search, page, limit, sort, dir),
+  );
+}
+
+/** GET /admin/api/guilds/:id: minimal roster with a cheap live online merge. */
+async function guildDetailHandler(ctx: Ctx): Promise<void> {
+  const detail = await adminDb().adminGuildDetail(adminTargetId(ctx));
+  if (!detail) return fail(ctx.res, 404, 'guild not found');
+  const onlineIds = useAdminRuntime().liveCharacterIds();
+  ok(ctx.res, {
+    guild: detail.guild,
+    members: detail.members.map((member) => ({
+      ...member,
+      online: onlineIds.has(member.characterId),
+    })),
+  });
+}
+
+/** GET /admin/api/guilds/:id/history: retained moderation rename audit. */
+async function guildHistoryHandler(ctx: Ctx): Promise<void> {
+  const rows = await adminDb().listAdminGuildHistory(adminTargetId(ctx));
+  if (rows === null) return fail(ctx.res, 404, 'guild not found');
+  ok(ctx.res, { rows });
+}
+
+/** POST /admin/api/guilds/:id/rename: atomic rename, audit, then bounded live push. */
+async function guildRenameHandler(ctx: Ctx): Promise<void> {
+  const body = await readBody(ctx.req);
+  const renamed = await adminDb().renameAdminGuild(
+    adminTargetId(ctx),
+    typeof body.name === 'string' ? body.name : '',
+    typeof body.reason === 'string' ? body.reason : '',
+    ctxAccountId(ctx),
+  );
+  if ('error' in renamed) {
+    const failure = guildRenameFailure(renamed.error);
+    return fail(ctx.res, failure.status, failure.message);
+  }
+  useAdminRuntime().social.guildRenamed(
+    renamed.result.guildId,
+    renamed.result.oldName,
+    renamed.result.newName,
+    renamed.result.memberCharacterIds,
+  );
+  bustAdminGuildBoardCaches();
+  ok(ctx.res, { id: renamed.result.guildId, name: renamed.result.newName });
+}
+
+/** GET /admin/api/guilds/:id/bank: the live book behind the escape hatch (see
+ *  guildBankStateOutcome for the shared body, and
+ *  server/admin_guild_bank_view.ts for what the payload deliberately omits). */
+function guildBankStateHandler(ctx: Ctx): void {
+  const outcome = guildBankStateOutcome(useAdminRuntime(), adminTargetId(ctx));
+  if (!outcome.ok) {
+    fail(ctx.res, outcome.status, outcome.message);
+    return;
+  }
+  ok(ctx.res, outcome.body);
+}
+
+/** POST /admin/api/guilds/:id/bank/purge-slot: the dormant guild bank slot
+ *  escape hatch (see purgeGuildBankSlotOutcome for the shared body). */
+async function guildBankPurgeSlotHandler(ctx: Ctx): Promise<void> {
+  const body = await readBody(ctx.req);
+  const outcome = await purgeGuildBankSlotOutcome(
+    useAdminRuntime(),
+    adminTargetId(ctx),
+    ctxAccountId(ctx),
+    body,
+  );
+  if (!outcome.ok) return fail(ctx.res, outcome.status, outcome.message);
+  ok(ctx.res, outcome.body);
 }
 
 /** GET /admin/api/shared-ips: paged shared IPs; the online=1 branch reads live. */
@@ -2004,8 +3302,14 @@ async function moderateActionHandler(ctx: Ctx): Promise<void> {
 
 /** POST /admin/api/moderation/accounts/:id/reactivate: reverse a self-deactivation. */
 async function reactivateHandler(ctx: Ctx): Promise<void> {
+  const id = adminTargetId(ctx);
+  const body = await readBody(ctx.req);
   try {
-    await adminDb().setAccountDeactivated(adminTargetId(ctx), false);
+    await adminDb().reactivateAccountAudited({
+      accountId: id,
+      adminAccountId: ctxAccountId(ctx),
+      reason: body.reason,
+    });
     return ok(ctx.res, { ok: true });
   } catch (err) {
     return fail(ctx.res, 400, err instanceof Error ? err.message : 'reactivation failed');
@@ -2104,6 +3408,130 @@ async function forceRenameHandler(ctx: Ctx): Promise<void> {
   }
 }
 
+/**
+ * Refuse a Cheater mark aimed at an operator account.
+ *
+ * Admin accounts are exempt for the same reason they are exempt from
+ * suspend/ban/chat-mute (the isAdminAccount guards above): an operator must not be
+ * able to brand another operator, deliberately or by mistyping an account id.
+ * Applied to the LIFT arm as well as the mark arm, so the pair states the same
+ * rule; the cost is that an account marked BEFORE being promoted to staff has to
+ * be demoted before its tag can be lifted through the API.
+ */
+async function refuseAdminCheaterMarkTarget(targetAccountId: number): Promise<void> {
+  if (await adminDb().isAdminAccount(targetAccountId)) {
+    throw new HttpError(400, CHEATER_MARK_ADMIN_TARGET_CODE);
+  }
+}
+
+/**
+ * POST /admin/api/moderation/accounts/:id/cheater-mark: brand an account with the
+ * Cheater tag for a budget of PLAYED seconds, and push it onto the live session.
+ *
+ * A REGISTRY-ONLY route (no legacy handleAdminApi twin), so it follows the
+ * new-endpoint recipe rather than the chat-mute arm beside it: the body is parsed
+ * by withBody and decoded through a typed schema (a shape failure is the
+ * pipeline's 422 validation.failed), and every refusal is a stable
+ * `cheater_mark.*` code through HttpError, never English prose.
+ */
+async function cheaterMarkHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const targetAccountId = adminTargetId(ctx);
+  // Cheap-reject-first: the decode is pure CPU, the operator-target check is a
+  // db read, so a malformed request never buys a query.
+  const decoded = cheaterMarkBodySchema.decode(ctx.body ?? {});
+  if (!decoded.ok) throw decoded;
+  await refuseAdminCheaterMarkTarget(targetAccountId);
+  // No initializer on purpose: 0 is the wire form of "no mark", so a default
+  // here would mean a future non-throwing arm in the catch below silently LIFTS
+  // a live mark. rethrowCheaterMarkRefusal returns never, which is what makes
+  // the definite assignment hold.
+  let storedSeconds: number;
+  try {
+    storedSeconds = await adminDb().setAccountCheaterMark({
+      accountId: targetAccountId,
+      adminAccountId: ctxAccountId(ctx),
+      reason: decoded.value.reason,
+      seconds: decoded.value.seconds,
+    });
+  } catch (err) {
+    rethrowCheaterMarkRefusal(err);
+  }
+  // Push the budget the WRITE ITSELF returned, never the requested one (
+  // moderation_db clamps to CHEATER_MARK_MAX_SECONDS) and never a follow-up
+  // read: the unaudited save-path burn is guarded only by
+  // `cheater_mark_seconds > 0`, so it can land between the COMMIT and a second
+  // SELECT. Re-lengthening a live mark would then push the OLD remaining while
+  // the API answered ok, and the operator's correction would silently vanish.
+  rt.applyCheaterMarkLive(targetAccountId, storedSeconds);
+  ok(ctx.res, { ok: true });
+}
+
+/**
+ * POST /admin/api/moderation/accounts/:id/lift-cheater-mark: clear the tag early
+ * and push the lift onto the live session. Registry-only, same recipe as its
+ * sibling above; 0 seconds is the wire form of "no mark".
+ */
+async function liftCheaterMarkHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const targetAccountId = adminTargetId(ctx);
+  const decoded = liftCheaterMarkBodySchema.decode(ctx.body ?? {});
+  if (!decoded.ok) throw decoded;
+  await refuseAdminCheaterMarkTarget(targetAccountId);
+  try {
+    await adminDb().liftAccountCheaterMark({
+      accountId: targetAccountId,
+      adminAccountId: ctxAccountId(ctx),
+      reason: decoded.value.reason,
+    });
+  } catch (err) {
+    rethrowCheaterMarkRefusal(err);
+  }
+  rt.applyCheaterMarkLive(targetAccountId, 0);
+  ok(ctx.res, { ok: true });
+}
+
+/**
+ * The operator-target guard for the world quest block pair, the Cheater mark's
+ * rule on both arms: an operator cannot block another operator's account.
+ */
+async function refuseAdminWorldQuestBlockTarget(targetAccountId: number): Promise<void> {
+  if (await adminDb().isAdminAccount(targetAccountId)) {
+    throw new HttpError(400, WORLD_QUEST_BLOCK_ADMIN_TARGET_CODE);
+  }
+}
+
+/**
+ * POST /admin/api/moderation/accounts/:id/world-quests-block and
+ * .../world-quests-unblock: block every character on an account from world
+ * quests (the sanction for world quest botting, short of a ban), or lift it, then
+ * push the change onto the live session. Registry-only like the Cheater mark
+ * pair: a typed body (a shape failure is the pipeline's 422) and stable
+ * `world_quest_block.*` codes. The audited write commits before the live push,
+ * so a session is never blocked without its history row.
+ */
+async function worldQuestBlockHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const targetAccountId = adminTargetId(ctx);
+  const blocked = ctx.path.endsWith('/world-quests-block');
+  const decoded = worldQuestBlockBodySchema.decode(ctx.body ?? {});
+  if (!decoded.ok) throw decoded;
+  await refuseAdminWorldQuestBlockTarget(targetAccountId);
+  const input = {
+    accountId: targetAccountId,
+    adminAccountId: ctxAccountId(ctx),
+    reason: decoded.value.reason,
+  };
+  try {
+    if (blocked) await adminDb().setAccountWorldQuestBlock(input);
+    else await adminDb().liftAccountWorldQuestBlock(input);
+  } catch (err) {
+    rethrowWorldQuestBlockRefusal(err);
+  }
+  rt.applyWorldQuestBlockLive(targetAccountId, blocked);
+  ok(ctx.res, { ok: true });
+}
+
 /** POST /admin/api/moderation/accounts/:id/lift-mute: clear a chat mute + live push. */
 async function liftMuteHandler(ctx: Ctx): Promise<void> {
   const rt = useAdminRuntime();
@@ -2142,9 +3570,18 @@ async function noteHandler(ctx: Ctx): Promise<void> {
 async function resetStrikesHandler(ctx: Ctx): Promise<void> {
   const rt = useAdminRuntime();
   const id = adminTargetId(ctx);
-  const reset = await adminDb().resetChatStrikes(id);
-  if (reset) rt.resetChatStrikesLive(id);
-  return reset ? ok(ctx.res, { ok: true }) : fail(ctx.res, 404, 'account not found');
+  const body = await readBody(ctx.req);
+  try {
+    const reset = await adminDb().resetChatStrikesAudited({
+      accountId: id,
+      adminAccountId: ctxAccountId(ctx),
+      reason: body.reason,
+    });
+    if (reset) rt.resetChatStrikesLive(id);
+    return reset ? ok(ctx.res, { ok: true }) : fail(ctx.res, 404, 'account not found');
+  } catch (err) {
+    return fail(ctx.res, 400, err instanceof Error ? err.message : 'chat strikes reset failed');
+  }
 }
 
 /** GET /admin/api/moderation/queue: accounts with open reports. */
@@ -2193,12 +3630,220 @@ async function accountDetailHandler(ctx: Ctx): Promise<void> {
   ok(ctx.res, { ...detail, online: rt.liveAccountIds().has(id) });
 }
 
+/** GET /admin/api/characters/:id/professions: the R35 professions inspector.
+ *  A live character reads a fresh serializeCharacter snapshot (the stored
+ *  blob lags the 30s autosave); an offline one reads the stored blob, whose
+ *  updatedAt tells the operator which clock the node timers anchor to. */
+async function characterProfessionsHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const id = adminTargetId(ctx);
+  // Live snapshot FIRST: when one exists the stored blob is discarded, so
+  // the query skips detoasting the widest column in the schema for nothing.
+  const liveState = rt.adminCharacterState(id);
+  const row = await adminDb().characterProfessionsRow(id, liveState === null);
+  if (!row) return fail(ctx.res, 404, 'character not found');
+  ok(ctx.res, characterProfessionsSheetFromRow(row, liveState));
+}
+
+/** POST /admin/api/moderation/characters/:id/restore-item: the R35 GM item
+ *  restore. Order is deliberate: validate (no audit row for an impossible
+ *  grant), require the character online HERE, write the audit row, then the
+ *  sync live mint, so a grant can never exist unaudited; the rare
+ *  leave-between-audit-and-mint race surfaces as an explicit 400 and the
+ *  audit row honestly records the attempt. */
+async function restoreItemHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const id = adminTargetId(ctx);
+  const body = await readBody(ctx.req);
+  const bodyError = restoreItemBodyError(body);
+  if (bodyError) return fail(ctx.res, 400, bodyError);
+  const itemId = String(body.itemId);
+  const count = Number(body.count);
+  const derivedFrom = restoreItemDerivedFrom(body);
+  try {
+    if (!rt.adminCharacterOnline(id)) {
+      return fail(ctx.res, 400, 'character is not online on this realm');
+    }
+    await adminDb().recordProfessionsRestore({
+      characterId: id,
+      adminAccountId: ctxAccountId(ctx),
+      action: 'restore_item',
+      detail: restoreItemAuditDetail(itemId, count, derivedFrom),
+      reason: body.reason,
+    });
+    const result = rt.adminRestoreItem(id, itemId, count, derivedFrom);
+    // Defensive twin of the pre-audit body check; reachable only if the
+    // runtime and validator ever disagree about ITEMS.
+    if (result === 'invalid_item') return fail(ctx.res, 400, 'unknown item id');
+    if (result !== 'ok') {
+      return fail(ctx.res, 400, 'character went offline before the restore landed');
+    }
+    return ok(ctx.res, { ok: true });
+  } catch (err) {
+    return fail(ctx.res, 400, err instanceof Error ? err.message : 'item restore failed');
+  }
+}
+
+/** POST /admin/api/moderation/characters/:id/grant-buddy: attach a buddy
+ *  companion on a character (the channel the
+ *  monthly PvP ladder, top-parse and zodiac awards land through; owner plan
+ *  2026-09-09). Body: { buddyKey }, plus reason. Audit
+ *  first, then: ONLINE targets take the sim's grant path at once; OFFLINE
+ *  targets are queued (server/buddy_grants_db.ts queueBuddyGrant) and drained at the
+ *  character's next join, so an award never depends on the winner being
+ *  logged in. Idempotent on the sim side: an already-owned grant answers
+ *  409 rather than re-announcing. */
+async function grantBuddyHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const id = adminTargetId(ctx);
+  const body = await readBody(ctx.req);
+  const bodyError = buddyGrantBodyError(body);
+  if (bodyError) return fail(ctx.res, 400, bodyError);
+  const grant: BuddyGrant = { buddyKey: String(body.buddyKey) };
+  try {
+    await adminDb().recordProfessionsRestore({
+      characterId: id,
+      adminAccountId: ctxAccountId(ctx),
+      action: 'grant_buddy',
+      detail: grant.buddyKey ?? '',
+      reason: body.reason,
+    });
+    const result = rt.adminGrantBuddy(id, grant);
+    if (result === 'already_owned') return fail(ctx.res, 409, 'character already has that');
+    if (result === 'offline') {
+      await queueBuddyGrant(id, grant);
+      return ok(ctx.res, { ok: true, queued: true });
+    }
+    return ok(ctx.res, { ok: true, queued: false });
+  } catch (err) {
+    return fail(ctx.res, 400, err instanceof Error ? err.message : 'buddy grant failed');
+  }
+}
+
+/** POST /admin/api/moderation/characters/:id/restore-slot: the R35 GM
+ *  tool-effect slot re-mint, same ordering contract as restore-item; the
+ *  sim action refuses no_tool (charges are sized by the best owned tool,
+ *  so the tool must be restored first). */
+async function restoreSlotHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const id = adminTargetId(ctx);
+  const body = await readBody(ctx.req);
+  const bodyError = restoreSlotBodyError(body);
+  if (bodyError) return fail(ctx.res, 400, bodyError);
+  const professionId = String(body.professionId);
+  const effectId = String(body.effectId);
+  try {
+    if (!rt.adminCharacterOnline(id)) {
+      return fail(ctx.res, 400, 'character is not online on this realm');
+    }
+    await adminDb().recordProfessionsRestore({
+      characterId: id,
+      adminAccountId: ctxAccountId(ctx),
+      action: 'restore_slot',
+      detail: `${professionId}/${effectId}`,
+      reason: body.reason,
+    });
+    const result = rt.adminRestoreToolEffectSlot(id, professionId, effectId);
+    if (result === 'no_tool') {
+      return fail(ctx.res, 400, 'the character owns no tool for that profession');
+    }
+    // A restore is for a row that is GONE: an overwrite would destroy the
+    // live row's provenance, confirm mode, and ratcheted ceiling.
+    if (result === 'already_slotted') {
+      return fail(ctx.res, 400, 'that profession already has a slotted effect');
+    }
+    // Defense-in-depth only since the phase 18 close: restoreSlotBodyError
+    // now runs the same pure pair-validity policy BEFORE the audit write, so
+    // this arm is reachable only if the validator and the sim action ever
+    // disagree (a content change landing between the two checks).
+    if (result === 'invalid_request') {
+      return fail(ctx.res, 400, 'that effect cannot be slotted on that profession');
+    }
+    if (result !== 'ok') {
+      return fail(ctx.res, 400, 'character went offline before the restore landed');
+    }
+    return ok(ctx.res, { ok: true });
+  } catch (err) {
+    return fail(ctx.res, 400, err instanceof Error ? err.message : 'slot restore failed');
+  }
+}
+
+/** POST /admin/api/moderation/characters/:id/clear-item-name: strip a stamped
+ *  legendary name (ItemInstancePayload.name) from an OFFLINE character's copy,
+ *  the phase 13 remediation arm. The whole decision (target validation, the
+ *  audit-first ordering, the offline requirement, the blob region walk) is
+ *  server/clear_item_name.ts runClearItemName; this binder wires the real
+ *  runtime + db seams and maps the typed outcome onto the restore family's
+ *  English admin error model. Registry-only (the cheater-mark precedent). */
+async function clearItemNameHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const id = adminTargetId(ctx);
+  const body = await readBody(ctx.req);
+  try {
+    const outcome = await runClearItemName(
+      {
+        characterOnline: (characterId) => rt.adminCharacterOnline(characterId),
+        clearOfflineItemName: (characterId, target) =>
+          adminDb().clearOfflineItemName(characterId, target),
+        recordAudit: (input) => adminDb().recordItemNameClear(input),
+      },
+      { characterId: id, adminAccountId: ctxAccountId(ctx), body },
+    );
+    if (!outcome.ok) return fail(ctx.res, 400, outcome.error);
+    return ok(ctx.res, { ok: true, cleared: outcome.cleared });
+  } catch (err) {
+    return fail(ctx.res, 400, err instanceof Error ? err.message : 'item name clear failed');
+  }
+}
+
 /** GET /admin/api/accounts/:id/daily-rewards-events: bounded point-award ledger. */
 async function dailyRewardPointEventsHandler(ctx: Ctx): Promise<void> {
   const day = await dailyRewardEventDay(ctx.url.searchParams.get('day'));
   if (!day) return fail(ctx.res, 400, DAILY_REWARD_EVENT_DAY_REQUIRED);
   const limit = Number(ctx.url.searchParams.get('limit') ?? '100');
   ok(ctx.res, await adminDb().dailyRewardPointEvents(adminTargetId(ctx), day, limit));
+}
+
+/**
+ * POST /admin/api/moderation/accounts/:id/kick: drop a live player's sessions
+ * from the dashboard, the twin of the in-game /kick (server/moderation_service.ts).
+ *
+ * Registry-only like the Cheater mark pair above, so it follows the same
+ * new-endpoint recipe: withBody plus a typed schema, and every refusal a stable
+ * `kick.*` code through HttpError (server/admin_kick_api.ts). The order is the
+ * in-game kick's and restore-item's: decide every refusal first (a blank reason,
+ * no live session on this realm, an operator target), THEN write the
+ * moderation-history row (action 'kick', actor = the operator, reason), THEN
+ * disconnect through the runtime seam. The audit write precedes the live effect
+ * so a kick can never happen unaudited, and the online check precedes the write
+ * so a player who left between page load and click gets a 409 and no history
+ * row claiming a disconnect that did not happen. The leave-between-check-and-
+ * disconnect window that remains is restore-item's race: the row honestly
+ * records the attempt.
+ */
+async function adminKickHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  const targetAccountId = adminTargetId(ctx);
+  // Cheap-reject-first: the decode and trim are pure CPU, the roster check is
+  // an in-memory read, and the operator-target check is the one db read.
+  const decoded = adminKickBodySchema.decode(ctx.body ?? {});
+  if (!decoded.ok) throw decoded;
+  const reason = normalizeAdminKickReason(decoded.value.reason);
+  if (reason === null) throw new HttpError(400, KICK_REASON_REQUIRED_CODE);
+  if (!rt.liveAccountIds().has(targetAccountId)) {
+    throw new HttpError(409, KICK_TARGET_OFFLINE_CODE);
+  }
+  if (await adminDb().isAdminAccount(targetAccountId)) {
+    throw new HttpError(400, KICK_ADMIN_TARGET_CODE);
+  }
+  await adminDb().recordInGameAction({
+    action: 'kick',
+    accountId: targetAccountId,
+    adminAccountId: ctxAccountId(ctx),
+    reason,
+  });
+  rt.disconnectAccount(targetAccountId, adminKickMessage(reason));
+  ok(ctx.res, { ok: true });
 }
 
 /**
@@ -2242,6 +3887,25 @@ async function resetPasswordHandler(ctx: Ctx): Promise<void> {
   } catch (err) {
     return fail(ctx.res, 400, err instanceof Error ? err.message : 'password reset failed');
   }
+}
+
+/**
+ * POST /admin/api/accounts/:id/general-chat-rate-limit: set or clear the account's
+ * General-channel-only quota. Same moderation family as suspend/ban/chat-mute, so
+ * the shared service refuses admin targets (clearing stays allowed); the full
+ * endpoint body lives in respondGeneralChatRateLimit, shared with the legacy arm.
+ */
+async function generalChatRateLimitHandler(ctx: Ctx): Promise<void> {
+  const rt = useAdminRuntime();
+  return respondGeneralChatRateLimit(
+    ctx.res,
+    {
+      targetAccountId: adminTargetId(ctx),
+      adminAccountId: ctxAccountId(ctx),
+      body: await readBody(ctx.req),
+    },
+    (id, after) => rt.applyGeneralChatRateLimitLive(id, after),
+  );
 }
 
 /**
@@ -2345,10 +4009,77 @@ async function bugReportsHandler(ctx: Ctx): Promise<void> {
   ok(ctx.res, { rows, total, page, limit });
 }
 
+/** GET /admin/api/item-ledger: recent tracked-item ledger rows, newest first,
+ *  cursor-paged, optionally narrowed to one character id or one item id. */
+async function itemLedgerHandler(ctx: Ctx): Promise<void> {
+  const params = ctx.url.searchParams;
+  const limit = boundedPositiveParam(
+    params.get('limit'),
+    ITEM_LEDGER_DEFAULT_LIMIT,
+    ITEM_LEDGER_MAX_LIMIT,
+  );
+  const rawBeforeId = Number(params.get('beforeId'));
+  const rawCharacterId = Number(params.get('characterId'));
+  const rawItemId = params.get('itemId') ?? '';
+  const page = await adminDb().listItemLedger({
+    realm: REALM,
+    limit,
+    ...(Number.isSafeInteger(rawBeforeId) && rawBeforeId > 0 ? { beforeId: rawBeforeId } : {}),
+    ...(Number.isSafeInteger(rawCharacterId) && rawCharacterId > 0
+      ? { characterId: rawCharacterId }
+      : {}),
+    ...(rawItemId.length > 0 && rawItemId.length <= 128 ? { itemId: rawItemId } : {}),
+  });
+  ok(ctx.res, { events: page.rows, limit, hasMore: page.hasMore, nextBeforeId: page.nextBeforeId });
+}
+
+/** GET /admin/api/items/:guid: one tracked copy's whole ledger, oldest first
+ *  (the mint, then every recorded change of hands). An unknown guid is an
+ *  empty history, never a 404: guids are unguessable and the answer "never
+ *  seen on this realm" is itself what a support lookup needs. */
+async function itemLedgerHistoryHandler(ctx: Ctx): Promise<void> {
+  // requireAdminGuidTarget already 422d a malformed :guid before any DB call.
+  const guid = adminTargetGuid(ctx);
+  const events = await adminDb().itemLedgerHistory(REALM, guid);
+  ok(ctx.res, { guid, events });
+}
+
+/** GET /admin/api/unstuck-reports: bounded reports plus content-local hotspots. */
+async function unstuckReportsHandler(ctx: Ctx): Promise<void> {
+  const query = unstuckQuery(ctx.url.searchParams);
+  const [page, hotspots] = await Promise.all([
+    adminDb().listUnstuckReports({ realm: REALM, ...query }),
+    query.beforeId === undefined
+      ? adminDb().listUnstuckHotspots({
+          realm: REALM,
+          days: query.days,
+          limit: UNSTUCK_HOTSPOT_MAX_LIMIT,
+        })
+      : Promise.resolve<DbUnstuckHotspotRow[]>([]),
+  ]);
+  ok(ctx.res, adminUnstuckPayload(page, hotspots, query));
+}
+
 /** GET /admin/api/bug-reports/:id/screenshot: one report's screenshot on demand. */
 async function bugScreenshotHandler(ctx: Ctx): Promise<void> {
   ok(ctx.res, { screenshot: await adminDb().getBugReportScreenshot(adminTargetId(ctx)) });
 }
+
+/** POST /admin/api/bug-reports/:id/(resolve|dismiss): close an open bug report, audited. */
+function bugReportResolveHandler(status: BugReportResolution) {
+  return async (ctx: Ctx): Promise<void> => {
+    const body = await readBody(ctx.req);
+    const resolved = await adminDb().resolveBugReport(
+      adminTargetId(ctx),
+      ctxAccountId(ctx),
+      status,
+      body.note,
+    );
+    return resolved ? ok(ctx.res, { ok: true }) : fail(ctx.res, 404, 'open bug report not found');
+  };
+}
+const bugReportResolveHandlerResolved = bugReportResolveHandler('resolved');
+const bugReportResolveHandlerDismissed = bugReportResolveHandler('dismissed');
 
 /** GET /admin/api/characters: paged, sortable character search. */
 async function charactersHandler(ctx: Ctx): Promise<void> {
@@ -2377,16 +4108,24 @@ async function adminUserAssetsListHandler(ctx: Ctx): Promise<void> {
   ok(ctx.res, { rows, total, page, limit });
 }
 
-/** POST /admin/api/maps/:id/unpublish: force a published map back to private. */
+/** POST /admin/api/maps/:id/unpublish: force a published map back to private, audited. */
 async function adminMapUnpublishHandler(ctx: Ctx): Promise<void> {
-  const done = await adminMapsDb().setStatus(adminTargetId(ctx), null, 'private');
+  const body = await readBody(ctx.req);
+  const done = await adminMapsDb().adminUnpublish(adminTargetId(ctx), {
+    adminAccountId: adminIdentityOf(ctx).accountId,
+    reason: cleanContentModerationReason(body.reason),
+  });
   return done ? ok(ctx.res, { ok: true }) : fail(ctx.res, 404, 'map_not_found');
 }
 
-/** POST /admin/api/user-assets/:id/(block|unblock): flip an upload's moderation flag. */
+/** POST /admin/api/user-assets/:id/(block|unblock): flip an upload's moderation flag, audited. */
 function adminAssetStatusHandler(status: 'blocked' | 'active') {
   return async (ctx: Ctx): Promise<void> => {
-    const done = await adminUserAssetsDb().setStatus(adminTargetId(ctx), status);
+    const body = await readBody(ctx.req);
+    const done = await adminUserAssetsDb().adminSetStatus(adminTargetId(ctx), status, {
+      adminAccountId: adminIdentityOf(ctx).accountId,
+      reason: cleanContentModerationReason(body.reason),
+    });
     return done ? ok(ctx.res, { ok: true }) : fail(ctx.res, 404, 'asset_not_found');
   };
 }
@@ -2508,6 +4247,15 @@ export const routes: RouteDef[] = [
     meta: ADMIN_META,
     handler: activityHandler,
   },
+  // Registry-only (born after the migration): no legacy ladder arm.
+  {
+    method: 'GET',
+    path: '/admin/api/market/metrics',
+    surface: 'admin',
+    middleware: [requireAdmin],
+    meta: ADMIN_META,
+    handler: marketMetricsHandler,
+  },
   {
     method: 'GET',
     path: '/admin/api/perf/summary',
@@ -2547,6 +4295,54 @@ export const routes: RouteDef[] = [
     middleware: [requireAdmin],
     meta: ADMIN_META,
     handler: accountsHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/guilds',
+    surface: 'admin',
+    middleware: [requireAdmin],
+    meta: ADMIN_META,
+    handler: guildsHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/guilds/:id',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('guild')],
+    meta: adminTargetMeta('guild'),
+    handler: guildDetailHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/guilds/:id/history',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('guild')],
+    meta: adminTargetMeta('guild'),
+    handler: guildHistoryHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/guilds/:id/rename',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('guild')],
+    meta: adminTargetMeta('guild'),
+    handler: guildRenameHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/guilds/:id/bank',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('guild')],
+    meta: adminTargetMeta('guild'),
+    handler: guildBankStateHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/guilds/:id/bank/purge-slot',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('guild')],
+    meta: adminTargetMeta('guild'),
+    handler: guildBankPurgeSlotHandler,
   },
   {
     method: 'GET',
@@ -2638,6 +4434,46 @@ export const routes: RouteDef[] = [
   },
   {
     method: 'GET',
+    path: '/admin/api/characters/:id/professions',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('character')],
+    meta: adminTargetMeta('character'),
+    handler: characterProfessionsHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/characters/:id/restore-item',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('character')],
+    meta: adminTargetMeta('character'),
+    handler: restoreItemHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/characters/:id/restore-slot',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('character')],
+    meta: adminTargetMeta('character'),
+    handler: restoreSlotHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/characters/:id/grant-buddy',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('character')],
+    meta: adminTargetMeta('character'),
+    handler: grantBuddyHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/characters/:id/clear-item-name',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('character')],
+    meta: adminTargetMeta('character'),
+    handler: clearItemNameHandler,
+  },
+  {
+    method: 'GET',
     path: '/admin/api/accounts/:id/daily-rewards-events',
     surface: 'admin',
     middleware: [requireAdmin, requireAdminTarget('account')],
@@ -2651,6 +4487,65 @@ export const routes: RouteDef[] = [
     middleware: [requireAdmin, requireAdminTarget('account')],
     meta: adminTargetMeta('account'),
     handler: resetPasswordHandler,
+  },
+
+  // Economy oversight (p2p market launch): the rich list, per-account gold
+  // breakdown, and the persisted suspicion-flag workflow.
+  {
+    method: 'GET',
+    path: '/admin/api/wealth/top',
+    surface: 'admin',
+    middleware: [requireAdmin],
+    meta: ADMIN_META,
+    handler: wealthTopHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/accounts/:id/wealth',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account')],
+    meta: adminTargetMeta('account'),
+    handler: accountWealthHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/accounts/:id/flags',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account')],
+    meta: adminTargetMeta('account'),
+    handler: accountFlagsHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/flags',
+    surface: 'admin',
+    middleware: [requireAdmin],
+    meta: ADMIN_META,
+    handler: flagsHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/flags/:id/status',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('flag')],
+    meta: adminTargetMeta('flag'),
+    handler: flagStatusHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/flags/:id/note',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('flag')],
+    meta: adminTargetMeta('flag'),
+    handler: flagNoteHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/accounts/:id/general-chat-rate-limit',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account')],
+    meta: adminTargetMeta('account'),
+    handler: generalChatRateLimitHandler,
   },
 
   // Account flair: the AI-operated mark and an official streamer's platform links.
@@ -2758,6 +4653,56 @@ export const routes: RouteDef[] = [
     middleware: [requireAdmin, requireAdminTarget('account')],
     meta: adminTargetMeta('account'),
     handler: chatMuteHandler,
+  },
+  // The Cheater mark pair. Registry-only (born after the migration, so no legacy
+  // ladder twin), which is why these two are the only admin routes that mount
+  // withBody: the dual-edit parity rule that keeps the migrated handlers
+  // self-reading does not describe a route with nothing to be in parity with.
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/cheater-mark',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account'), withBody()],
+    meta: adminTargetMeta('account'),
+    handler: cheaterMarkHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/lift-cheater-mark',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account'), withBody()],
+    meta: adminTargetMeta('account'),
+    handler: liftCheaterMarkHandler,
+  },
+  // The world quest block pair (server/world_quest_block_api.ts): registry-only
+  // like the Cheater mark pair, so the same withBody mount, operator gate pair,
+  // and envelope; the legacy rollback answers 404 for both by design.
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/world-quests-block',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account'), withBody()],
+    meta: adminTargetMeta('account'),
+    handler: worldQuestBlockHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/world-quests-unblock',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account'), withBody()],
+    meta: adminTargetMeta('account'),
+    handler: worldQuestBlockHandler,
+  },
+  // The admin-panel kick (server/admin_kick_api.ts): registry-only like the
+  // Cheater mark pair, so the same withBody mount, operator gate pair, and
+  // envelope; the legacy rollback answers 404 for it by design.
+  {
+    method: 'POST',
+    path: '/admin/api/moderation/accounts/:id/kick',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('account'), withBody()],
+    meta: adminTargetMeta('account'),
+    handler: adminKickHandler,
   },
   {
     method: 'POST',
@@ -2909,11 +4854,51 @@ export const routes: RouteDef[] = [
   },
   {
     method: 'GET',
+    path: '/admin/api/unstuck-reports',
+    surface: 'admin',
+    middleware: [requireAdmin],
+    meta: ADMIN_META,
+    handler: unstuckReportsHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/item-ledger',
+    surface: 'admin',
+    middleware: [requireAdmin],
+    meta: ADMIN_META,
+    handler: itemLedgerHandler,
+  },
+  {
+    method: 'GET',
+    path: '/admin/api/items/:guid',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminGuidTarget('itemGuid')],
+    meta: adminTargetMeta('itemGuid'),
+    handler: itemLedgerHistoryHandler,
+  },
+  {
+    method: 'GET',
     path: '/admin/api/bug-reports/:id/screenshot',
     surface: 'admin',
     middleware: [requireAdmin, requireAdminTarget('bugReport')],
     meta: adminTargetMeta('bugReport'),
     handler: bugScreenshotHandler,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/bug-reports/:id/resolve',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('bugReport')],
+    meta: adminTargetMeta('bugReport'),
+    handler: bugReportResolveHandlerResolved,
+  },
+  {
+    method: 'POST',
+    path: '/admin/api/bug-reports/:id/dismiss',
+    surface: 'admin',
+    middleware: [requireAdmin, requireAdminTarget('bugReport')],
+    meta: adminTargetMeta('bugReport'),
+    handler: bugReportResolveHandlerDismissed,
   },
   {
     method: 'GET',

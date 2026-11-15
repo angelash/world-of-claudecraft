@@ -40,7 +40,10 @@ describe('AI boss encounter memory', () => {
       outcome: 'defeated',
       lineId: 'hudChrome.aiSpeech.bossMemoryDefeated',
     });
-    expect(store.memoryForScene('bandit_camp', 1, 8)).toMatchObject({ templateId: 'gorrak', heat: expect.any(Number) });
+    expect(store.memoryForScene('bandit_camp', 1, 8)).toMatchObject({
+      templateId: 'gorrak',
+      heat: expect.any(Number),
+    });
     expect(store.memoryForScene('bandit_camp', 2, 8)).toBeNull();
     expect(store.memoryForScene('other_scene', 1, 8)).toBeNull();
     expect(store.memoryForScene('bandit_camp', 1, 15)).toBeNull();
@@ -99,14 +102,16 @@ describe('AI boss encounter memory', () => {
       lineId: 'hudChrome.aiSpeech.bossPhaseBloodied',
       healthPct: 45,
     });
-    expect(store.noteDamagePhase({
-      sceneId: 'bandit_camp',
-      entity: { ...gorrak, hp: 40, maxHp: 100, dead: false } as Entity,
-      scale: 'boss',
-      sourcePlayerEntityId: 1,
-      nowSeconds: 21,
-      evidence: ['simEvent:damage'],
-    })).toBeNull();
+    expect(
+      store.noteDamagePhase({
+        sceneId: 'bandit_camp',
+        entity: { ...gorrak, hp: 40, maxHp: 100, dead: false } as Entity,
+        scale: 'boss',
+        sourcePlayerEntityId: 1,
+        nowSeconds: 21,
+        evidence: ['simEvent:damage'],
+      }),
+    ).toBeNull();
 
     const desperate = store.noteDamagePhase({
       sceneId: 'bandit_camp',
@@ -140,7 +145,11 @@ describe('AI boss encounter memory', () => {
       speech: {
         mode: 'lineId',
         lineId: 'hudChrome.aiSpeech.bossPhaseDesperate',
-        values: expect.objectContaining({ bossTemplateId: 'gorrak', encounterPhase: 'desperate', bossHealthPct: 19 }),
+        values: expect.objectContaining({
+          bossTemplateId: 'gorrak',
+          encounterPhase: 'desperate',
+          bossHealthPct: 19,
+        }),
       },
       reaction: { kind: 'avoid' },
       pid: 1,

@@ -11,7 +11,7 @@ import {
   eastbrookNoticeboardSourceFingerprint,
 } from '../scripts/assets/eastbrook_noticeboard/source_fingerprint.mjs';
 import { MEDIA_ASSETS } from '../src/render/assets/manifest.generated';
-import { GFX } from '../src/render/gfx';
+import { gfxInternalsForTest } from '../src/render/gfx';
 import {
   buildEastbrookNoticeboard,
   buildNoticeboardFromSource,
@@ -22,9 +22,14 @@ import { isSharedGeometry, isSharedMaterial } from '../src/render/shared_resourc
 const REPO_ROOT = path.join(__dirname, '..');
 const ASSET_PATH = path.join(REPO_ROOT, 'public/models/props/eastbrook_noticeboard.glb');
 const ASSET_BYTES = 24_684;
-const ASSET_SHA256 = 'c1117d948a52fc56cc75e5469bd583b68095bed3836378b674be159a8eeefa99';
-const SOURCE_FINGERPRINT = 'de34fb8ce9003495bde3e1404731bda83dc615bf8e80f6e79effc3eb65bfed7c';
-const ORIGINAL_STANDARD_MATERIALS = GFX.standardMaterials;
+const ASSET_SHA256 = 'e390184d1075a62aaa7e7f08f07767d2625b54274b377d5504e928a82bb2d9f1';
+const SOURCE_FINGERPRINT = '4da7386767712ba3cfa7aa703d1ec55781f3dc93253d04a7d11cd4d8f945dcc3';
+let restoreGfx: (() => void) | null = null;
+
+function setStandardMaterials(value: boolean): void {
+  restoreGfx?.();
+  restoreGfx = gfxInternalsForTest.overrideSettings({ standardMaterials: value });
+}
 
 function coloredBox(
   size: readonly [number, number, number],
@@ -92,8 +97,8 @@ function meshMaterialName(mesh: THREE.Mesh): string {
 }
 
 afterEach(() => {
-  (GFX as unknown as { standardMaterials: boolean }).standardMaterials =
-    ORIGINAL_STANDARD_MATERIALS;
+  restoreGfx?.();
+  restoreGfx = null;
 });
 
 describe('Eastbrook noticeboard shipping asset', () => {
@@ -107,7 +112,7 @@ describe('Eastbrook noticeboard shipping asset', () => {
       'scripts/assets/eastbrook_noticeboard/source_fingerprint.mjs',
       'scripts/assets/specs/eastbrook_noticeboard.json',
       'scripts/assets/build_assets.mjs',
-      'package-lock.json',
+      'pnpm-lock.yaml',
     ]);
     expect(eastbrookNoticeboardSourceFingerprint(REPO_ROOT)).toBe(SOURCE_FINGERPRINT);
     expect(eastbrookNoticeboardSourceFingerprint(REPO_ROOT)).toBe(
@@ -370,7 +375,7 @@ describe('Eastbrook noticeboard renderer adapter', () => {
   });
 
   it('retains vertex color and the shared atlas on the Lambert-compatible Low path', () => {
-    (GFX as unknown as { standardMaterials: boolean }).standardMaterials = false;
+    setStandardMaterials(false);
     const atlas = new THREE.Texture();
     const built = buildNoticeboardFromSource(sourceModel(), atlas);
     for (const mesh of meshesOf(built)) {

@@ -1,5 +1,5 @@
-import type { SimEvent } from '../../src/sim/types';
 import WebSocket from 'ws';
+import type { SimEvent } from '../../src/sim/types';
 
 const DELTA_SELF_KEYS = [
   'achg',
@@ -141,7 +141,9 @@ export class AmbientPlayerBotWsClient {
 
   constructor(options: AmbientPlayerBotWsClientOptions) {
     this.wsBaseUrl = options.wsBaseUrl.replace(/\/+$/, '');
-    this.webSocketFactory = options.webSocketFactory ?? ((url) => new WebSocket(url) as unknown as AmbientPlayerBotSocket);
+    this.webSocketFactory =
+      options.webSocketFactory ??
+      ((url) => new WebSocket(url) as unknown as AmbientPlayerBotSocket);
     this.onSnapshot = options.onSnapshot;
     this.onClose = options.onClose;
   }
@@ -163,7 +165,10 @@ export class AmbientPlayerBotWsClient {
         clearTimeout(timeout);
         fn();
       };
-      const timeout = setTimeout(() => finish(() => reject(new Error('ambient bot connect timed out'))), timeoutMs);
+      const timeout = setTimeout(
+        () => finish(() => reject(new Error('ambient bot connect timed out'))),
+        timeoutMs,
+      );
 
       ws.on('open', () => {
         this.sendJson({
@@ -189,7 +194,8 @@ export class AmbientPlayerBotWsClient {
         if (msg.t === 'snap') {
           this.self = mergeSelf(this.self, msg.self as AmbientPlayerBotWireSelf);
           this.entities = mergeEntities(this.entities, msg);
-          if (this.self?.id) this.entities.set(this.self.id, this.self as unknown as Record<string, unknown>);
+          if (this.self?.id)
+            this.entities.set(this.self.id, this.self as unknown as Record<string, unknown>);
           this.onSnapshot?.(this.state());
           return;
         }
@@ -206,7 +212,9 @@ export class AmbientPlayerBotWsClient {
           return;
         }
         if (msg.t === 'error') {
-          finish(() => reject(new Error(typeof msg.error === 'string' ? msg.error : 'ambient bot ws error')));
+          finish(() =>
+            reject(new Error(typeof msg.error === 'string' ? msg.error : 'ambient bot ws error')),
+          );
         }
       });
       ws.on('error', (error) => {
@@ -332,7 +340,9 @@ function normalizeFriend(value: unknown): AmbientPlayerBotFriendInfo | null {
     realm,
     online,
     ...(typeof row.zone === 'string' ? { zone: row.zone } : {}),
-    ...(presenceStatusValue(row.status) ? { status: row.status as AmbientPlayerBotPresenceStatus } : {}),
+    ...(presenceStatusValue(row.status)
+      ? { status: row.status as AmbientPlayerBotPresenceStatus }
+      : {}),
     ...(finiteNumber(row.x) !== null ? { x: finiteNumber(row.x) as number } : {}),
     ...(finiteNumber(row.z) !== null ? { z: finiteNumber(row.z) as number } : {}),
   };
@@ -370,12 +380,15 @@ function mergeSocialPositions(
   value: unknown,
 ): AmbientPlayerBotSocialInfo | null {
   if (!current || !Array.isArray(value)) return current;
-  const byId = new Map<number, {
-    x?: number;
-    z?: number;
-    zone?: string;
-    status?: AmbientPlayerBotPresenceStatus;
-  }>();
+  const byId = new Map<
+    number,
+    {
+      x?: number;
+      z?: number;
+      zone?: string;
+      status?: AmbientPlayerBotPresenceStatus;
+    }
+  >();
   for (const entry of value) {
     if (!entry || typeof entry !== 'object') continue;
     const row = entry as Record<string, unknown>;
@@ -385,40 +398,45 @@ function mergeSocialPositions(
       ...(finiteNumber(row.x) !== null ? { x: finiteNumber(row.x) as number } : {}),
       ...(finiteNumber(row.z) !== null ? { z: finiteNumber(row.z) as number } : {}),
       ...(typeof row.zone === 'string' ? { zone: row.zone } : {}),
-      ...(presenceStatusValue(row.status) ? { status: row.status as AmbientPlayerBotPresenceStatus } : {}),
+      ...(presenceStatusValue(row.status)
+        ? { status: row.status as AmbientPlayerBotPresenceStatus }
+        : {}),
     });
   }
-  const apply = (friends: AmbientPlayerBotFriendInfo[]) => friends.map((friend) => {
-    const update = byId.get(friend.id);
-    if (!update) return friend;
-    return {
-      ...friend,
-      ...update,
-      online: true,
-    };
-  });
+  const apply = (friends: AmbientPlayerBotFriendInfo[]) =>
+    friends.map((friend) => {
+      const update = byId.get(friend.id);
+      if (!update) return friend;
+      return {
+        ...friend,
+        ...update,
+        online: true,
+      };
+    });
   return {
     friends: apply(current.friends),
     blocks: current.blocks.map((block) => ({ ...block })),
     guild: current.guild
       ? {
-        ...current.guild,
-        members: apply(current.guild.members),
-      }
+          ...current.guild,
+          members: apply(current.guild.members),
+        }
       : null,
   };
 }
 
-function cloneSocialInfo(value: AmbientPlayerBotSocialInfo | null): AmbientPlayerBotSocialInfo | null {
+function cloneSocialInfo(
+  value: AmbientPlayerBotSocialInfo | null,
+): AmbientPlayerBotSocialInfo | null {
   if (!value) return null;
   return {
     friends: value.friends.map((friend) => ({ ...friend })),
     blocks: value.blocks.map((block) => ({ ...block })),
     guild: value.guild
       ? {
-        ...value.guild,
-        members: value.guild.members.map((member) => ({ ...member })),
-      }
+          ...value.guild,
+          members: value.guild.members.map((member) => ({ ...member })),
+        }
       : null,
   };
 }

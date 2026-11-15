@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Pool } from 'pg';
-import { Sim } from '../src/sim/sim';
-import { groundHeight } from '../src/sim/world';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { AiMemoryAuditRecord } from '../server/ai/ai_types';
+import { Sim } from '../src/sim/sim';
 import type { SimEvent } from '../src/sim/types';
+import { groundHeight } from '../src/sim/world';
 
 type AiMemoryDbModule = typeof import('../server/ai_memory_db');
 type LifeLayerModule = typeof import('../server/ai/life_layer');
@@ -72,7 +72,7 @@ function aiSpeechLineIds(events: readonly unknown[]): string[] {
       if (!event || typeof event !== 'object') return null;
       const candidate = event as { type?: string; speech?: { mode?: string; lineId?: string } };
       return candidate.type === 'aiSpeech' && candidate.speech?.mode === 'lineId'
-        ? candidate.speech.lineId ?? null
+        ? (candidate.speech.lineId ?? null)
         : null;
     })
     .filter((lineId): lineId is string => lineId !== null);
@@ -81,8 +81,13 @@ function aiSpeechLineIds(events: readonly unknown[]): string[] {
 async function realmRowCount(kind?: AiMemoryAuditRecord['kind']): Promise<number> {
   if (!pool) throw new Error('Postgres pool not initialized');
   const res = kind
-    ? await pool.query('SELECT COUNT(*)::int AS count FROM ai_memory_records WHERE realm = $1 AND kind = $2', [realm, kind])
-    : await pool.query('SELECT COUNT(*)::int AS count FROM ai_memory_records WHERE realm = $1', [realm]);
+    ? await pool.query(
+        'SELECT COUNT(*)::int AS count FROM ai_memory_records WHERE realm = $1 AND kind = $2',
+        [realm, kind],
+      )
+    : await pool.query('SELECT COUNT(*)::int AS count FROM ai_memory_records WHERE realm = $1', [
+        realm,
+      ]);
   return Number(res.rows[0]?.count ?? 0);
 }
 
@@ -130,7 +135,8 @@ describeLongrun('AI memory real Postgres long-run', () => {
 
   afterAll(async () => {
     try {
-      if (pool && realm) await pool.query('DELETE FROM ai_memory_records WHERE realm = $1', [realm]);
+      if (pool && realm)
+        await pool.query('DELETE FROM ai_memory_records WHERE realm = $1', [realm]);
     } finally {
       await pool?.end();
       pool = null;
@@ -212,13 +218,19 @@ describeLongrun('AI memory real Postgres long-run', () => {
       limit: 20,
     });
 
-    expect(playerOneEastbrook).toEqual(expect.arrayContaining([
-      expect.objectContaining({ sourcePlayerEntityId: playerOne, itemId: 'roasted_boar' }),
-    ]));
-    expect(playerTwoMirefen).toEqual(expect.arrayContaining([
-      expect.objectContaining({ sourcePlayerEntityId: playerTwo, itemId: 'gravecaller_sigil' }),
-    ]));
-    expect(playerTwoEastbrook.some((record) => record.sourcePlayerEntityId === playerOne)).toBe(false);
+    expect(playerOneEastbrook).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sourcePlayerEntityId: playerOne, itemId: 'roasted_boar' }),
+      ]),
+    );
+    expect(playerTwoMirefen).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sourcePlayerEntityId: playerTwo, itemId: 'gravecaller_sigil' }),
+      ]),
+    );
+    expect(playerTwoEastbrook.some((record) => record.sourcePlayerEntityId === playerOne)).toBe(
+      false,
+    );
     expect(playerTwoEastbrook.some((record) => record.itemId === 'roasted_boar')).toBe(false);
 
     const expiredRecord: AiMemoryAuditRecord = {
@@ -241,15 +253,17 @@ describeLongrun('AI memory real Postgres long-run', () => {
     const pruned = await db.pruneExpired(sim.time, 10);
     expect(pruned).toBeGreaterThanOrEqual(1);
     expect(await realmRowCount()).toBe(rowsBeforePrune - pruned);
-    await expect(db.loadRecords({
-      sourcePlayerEntityId: playerOne,
-      nowSeconds: sim.time,
-      zoneId: 'eastbrook_vale',
-      kinds: ['rumor'],
-      limit: 20,
-    })).resolves.not.toEqual(expect.arrayContaining([
-      expect.objectContaining({ refId: expiredRecord.refId }),
-    ]));
+    await expect(
+      db.loadRecords({
+        sourcePlayerEntityId: playerOne,
+        nowSeconds: sim.time,
+        zoneId: 'eastbrook_vale',
+        kinds: ['rumor'],
+        limit: 20,
+      }),
+    ).resolves.not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ refId: expiredRecord.refId })]),
+    );
 
     const restarted = new AiLifeLayer({ enabled: true, memoryDb: db });
     const restoredEvents: SimEvent[] = [];
@@ -278,7 +292,9 @@ describeLongrun('AI memory real Postgres long-run', () => {
       deliver: (events) => afterClearEvents.push(...events),
     });
 
-    expect(aiSpeechLineIds(afterClearEvents)).not.toContain('hudChrome.aiSpeech.worldDirectorHungry');
+    expect(aiSpeechLineIds(afterClearEvents)).not.toContain(
+      'hudChrome.aiSpeech.worldDirectorHungry',
+    );
     expect(questState(sim, playerOne)).toBe(beforePlayerOneQuestState);
     expect(questState(sim, playerTwo)).toBe(beforePlayerTwoQuestState);
   }, 120_000);

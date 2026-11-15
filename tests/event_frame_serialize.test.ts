@@ -15,7 +15,11 @@ vi.mock('../server/db', () => ({
   grantAccountMechChroma: vi.fn(async () => ({ completedQuestIds: [], mechChromaIds: [] })),
 }));
 
-import { assembleEventsFrame, serializeEventFragments } from '../server/event_frame';
+import {
+  assembleEventsFrame,
+  filterRoutableEvents,
+  serializeEventFragments,
+} from '../server/event_frame';
 import { type ClientSession, GameServer } from '../server/game';
 import type { PlayerClass, SimEvent } from '../src/sim/types';
 
@@ -202,9 +206,6 @@ describe('routeEvents frame bytes and session mutations', () => {
     watcher.spectating = {
       characterId: subject.characterId,
       name: 'Subject',
-      savedPos: { ...entityPos(server, watcher.pid) },
-      priorGm: false,
-      stowedPet: null,
     };
     fWatcher.sent.length = 0;
     fSubject.sent.length = 0;
@@ -247,9 +248,6 @@ describe('routeEvents frame bytes and session mutations', () => {
     spec.spectating = {
       characterId: owner.characterId,
       name: 'Owner',
-      savedPos: { ...entityPos(server, spec.pid) },
-      priorGm: false,
-      stowedPet: null,
     };
     owner.selfHeavyDirty = false;
     spec.selfHeavyDirty = false;
@@ -372,6 +370,34 @@ describe('routeEvents frame bytes and session mutations', () => {
     expect(fFar.sent).toEqual([]);
   });
 
+  it('delivers a Buried Hoard cue only to its instance member', () => {
+    const server = new GameServer();
+    const fNear = fakeWs();
+    const near = joinServer(server, fNear, 1, 'Near');
+    const fFar = fakeWs();
+    joinServer(server, fFar, 2, 'Far');
+    const nearPos = entityPos(server, near.pid);
+    fNear.sent.length = 0;
+    fFar.sent.length = 0;
+    const cue: SimEvent = {
+      type: 'hoardBossCue',
+      pid: near.pid,
+      instanceId: 19,
+      cueId: 7,
+      kind: 'mark',
+      variant: 'frost-ring',
+      phase: 'warning',
+      x: nearPos.x,
+      z: nearPos.z,
+      radius: 13,
+      innerRadius: 4.5,
+      durationSecs: 1.45,
+    };
+    routeRaw(server, [cue]);
+    expect(fNear.sent).toEqual([eventsFrame(cue)]);
+    expect(fFar.sent).toEqual([]);
+  });
+
   it('serializes a high-volume mixed batch byte-identically across a 20+ session crowd', () => {
     const server = new GameServer();
     const crowd: { fc: FakeClient; session: ClientSession }[] = [];
@@ -476,9 +502,6 @@ describe('routeEvents bot-detector observation and serialize-once shape', () => 
     watcher.spectating = {
       characterId: subject.characterId,
       name: 'Subject',
-      savedPos: { ...entityPos(server, watcher.pid) },
-      priorGm: false,
-      stowedPet: null,
     };
     const spy = vi.spyOn(botDetectorOf(server), 'observeEvent');
 
@@ -498,6 +521,111 @@ describe('routeEvents bot-detector observation and serialize-once shape', () => 
     expect(spy.mock.calls[0][0]).toBe(watcher.botTrackingContext);
     expect(spy.mock.calls[0][1]).toBe(whisper);
     expect(typeof spy.mock.calls[0][2]).toBe('number');
+  });
+
+  it('prefilters internal vault events before serialization: never stringified or delivered', () => {
+    const server = new GameServer();
+    const sessions: ClientSession[] = [];
+    for (let i = 0; i < 3; i++) {
+      const fc = fakeWs();
+      sessions.push(joinServer(server, fc, i + 1, `Vaulter${i}`));
+      (sessions[i] as unknown as { fc: FakeClient }).fc = fc;
+    }
+    const speaker = sessions[0];
+    const batch: SimEvent[] = [
+      {
+        type: 'chat',
+        fromPid: speaker.pid,
+        from: 'Vaulter0',
+        channel: 'general',
+        text: 'before',
+      },
+      {
+        type: 'vaultCraftConsume',
+        pid: speaker.pid,
+        takes: [{ itemId: 'copper_ore', count: 2 }],
+        upgrades: 1,
+      } as SimEvent,
+      {
+        type: 'treasureVaultOutcomePending',
+        attemptId: 'secret-attempt',
+        ownerCharacterId: 1,
+        claims: [{ characterId: 1, recipientName: 'Secret', items: [], copper: 987654 }],
+      } as SimEvent,
+      {
+        type: 'treasureVaultClaimRequested',
+        attemptId: 'secret-attempt',
+        characterId: 1,
+        pid: speaker.pid,
+      } as SimEvent,
+      {
+        type: 'chat',
+        fromPid: speaker.pid,
+        from: 'Vaulter0',
+        channel: 'general',
+        text: 'after',
+      },
+    ];
+    const stringifySpy = vi.spyOn(JSON, 'stringify');
+    stringifySpy.mockClear();
+    routeRaw(server, batch);
+    // The consumer-less event is filtered BEFORE the once-per-batch
+    // serialization: only the two chat lines are ever stringified, instead of
+    // paying a JSON.stringify per batch for an event every recipient drops.
+    expect(stringifySpy).toHaveBeenCalledTimes(2);
+    stringifySpy.mockRestore();
+    for (const session of sessions) {
+      const fc = (session as unknown as { fc: FakeClient }).fc;
+      for (const frame of fc.sent) {
+        expect(frame).not.toContain('vaultCraftConsume');
+        expect(frame).not.toContain('treasureVaultOutcomePending');
+        expect(frame).not.toContain('treasureVaultClaimRequested');
+        expect(frame).not.toContain('secret-attempt');
+        expect(frame).not.toContain('987654');
+      }
+      // The surrounding chat still arrives: the filter removed one event, not
+      // the batch.
+      expect(fc.sent.some((frame) => frame.includes('before'))).toBe(true);
+      expect(fc.sent.some((frame) => frame.includes('after'))).toBe(true);
+    }
+  });
+
+  it('prefilters the server-only craftRoll audit event: never stringified, never delivered', () => {
+    // craft_roll_events (server/craft_roll_events.ts) is the only consumer of
+    // craftRoll; the roll values it carries must never reach a client frame,
+    // its own recipient included.
+    const server = new GameServer();
+    const fc = fakeWs();
+    const crafter = joinServer(server, fc, 1, 'Roller');
+    fc.sent.length = 0;
+    const batch: SimEvent[] = [
+      {
+        type: 'craftRoll',
+        kind: 'perfecting',
+        recipeId: 'recipe_wyrmfall_pendant',
+        itemId: 'wyrmfall_pendant',
+        roll: 0.91,
+        chance: 0.8,
+        success: false,
+        rankBefore: 0,
+        rankAfter: 0,
+        pid: crafter.pid,
+      },
+      {
+        type: 'chat',
+        fromPid: crafter.pid,
+        from: 'Roller',
+        channel: 'general',
+        text: 'after',
+      },
+    ];
+    const stringifySpy = vi.spyOn(JSON, 'stringify');
+    stringifySpy.mockClear();
+    routeRaw(server, batch);
+    expect(stringifySpy).toHaveBeenCalledTimes(1);
+    stringifySpy.mockRestore();
+    for (const frame of fc.sent) expect(frame).not.toContain('craftRoll');
+    expect(fc.sent.some((frame) => frame.includes('after'))).toBe(true);
   });
 
   it('serializes each event exactly once for the whole batch, not once per session', () => {
@@ -538,6 +666,55 @@ describe('routeEvents bot-detector observation and serialize-once shape', () => 
 // caller's mine.length > 0 guard keeps the integration path from reaching (an empty list,
 // a single fragment) and the length-alignment serializeEventFragments must hold.
 describe('event_frame pure assembly', () => {
+  it('filterRoutableEvents returns the SAME array when nothing matches (allocation-free common case)', () => {
+    const events = [
+      { type: 'chat', fromPid: 7, from: 'A', channel: 'general', text: 'hi' },
+    ] as unknown as SimEvent[];
+    expect(filterRoutableEvents(events)).toBe(events);
+    expect(filterRoutableEvents([])).toEqual([]);
+  });
+
+  it('filterRoutableEvents drops the server-only lootRollAwarded (its consumer is the Discord card, never a client)', () => {
+    const award = {
+      type: 'lootRollAwarded',
+      rollId: 3,
+      itemId: 'greyjaw_hide_boots',
+      itemName: 'Greyjaw Hide Boots',
+      quality: 'uncommon',
+      pid: 7,
+    };
+    const loot = { type: 'loot', text: 'Aaa wins [[i:greyjaw_hide_boots]] (88)', pid: 7 };
+    const events = [loot, award] as unknown as SimEvent[];
+    expect(filterRoutableEvents(events)).toEqual([loot]);
+  });
+
+  it('filterRoutableEvents drops the server-only worldPvpKill (its consumer is the Discord kill feed)', () => {
+    const kill: SimEvent = {
+      type: 'worldPvpKill',
+      killerName: 'Kargath',
+      victimName: 'Annthar',
+      killerLevel: 60,
+      victimLevel: 58,
+      zoneId: 'drakelands',
+      assists: 0,
+      copper: 0,
+    };
+    const log = { type: 'log', text: 'You have slain Annthar.', pid: 7 } as unknown as SimEvent;
+    expect(filterRoutableEvents([kill, log])).toEqual([log]);
+  });
+
+  it('filterRoutableEvents drops the server-only hillAnnounced (clients already get the realm log line)', () => {
+    const call: SimEvent = {
+      type: 'hillAnnounced',
+      phase: 'warning',
+      zoneId: 'drakelands',
+      secondsUntilRise: 900,
+      secondsUntilFall: 3600,
+    };
+    const log = { type: 'log', text: 'A hill will rise in Drakelands in 15 minutes.' } as SimEvent;
+    expect(filterRoutableEvents([call, log])).toEqual([log]);
+  });
+
   it('serializeEventFragments stringifies each event once, index-aligned', () => {
     const events = [
       { type: 'chat', fromPid: 7, from: 'A', channel: 'general', text: 'hi' },
@@ -585,6 +762,7 @@ describe('routeEvents selection guards', () => {
     const event: SimEvent = {
       type: 'noticeboard',
       noticeboardId: 'noticeboard_eastbrook',
+      boardId: 'eastbrook_noticeboard',
       state: 'empty',
       pid: reader.pid,
     };
@@ -594,6 +772,7 @@ describe('routeEvents selection guards', () => {
       eventsFrame({
         type: 'noticeboard',
         noticeboardId: 'noticeboard_eastbrook',
+        boardId: 'eastbrook_noticeboard',
         state: 'empty',
         pid: reader.pid,
       }),
@@ -614,9 +793,6 @@ describe('routeEvents selection guards', () => {
     watcher.spectating = {
       characterId: target.characterId,
       name: 'Target',
-      savedPos: { ...entityPos(server, watcher.pid) },
-      priorGm: false,
-      stowedPet: null,
     };
     fWatcher.sent.length = 0;
     fTarget.sent.length = 0;
@@ -651,5 +827,64 @@ describe('routeEvents selection guards', () => {
     fa.sent.length = 0;
     routeRaw(server, []);
     expect(fa.sent).toEqual([]);
+  });
+
+  it('a spectator frame merges the anchor pid, its OWN pid, and the broadcast set in BATCH order', () => {
+    // The per-pid index (server/event_pid_index.ts) walks three separate lists
+    // for a spectating session; this is the case that would come out reordered
+    // if they were walked one after another instead of merged by original index.
+    // Authored so the three sources INTERLEAVE: own, broadcast, anchor, own,
+    // broadcast, anchor. A concatenating walk would emit them grouped instead.
+    const server = new GameServer();
+    const fWatcher = fakeWs();
+    const watcher = joinServer(server, fWatcher, 1, 'Watcher');
+    const fTarget = fakeWs();
+    const target = joinServer(server, fTarget, 2, 'Target');
+    const fSender = fakeWs();
+    const sender = joinServer(server, fSender, 3, 'Sender');
+    watcher.spectating = {
+      characterId: target.characterId,
+      name: 'Target',
+    };
+    fWatcher.sent.length = 0;
+
+    const ownWhisper = (text: string): SimEvent => ({
+      type: 'chat',
+      fromPid: sender.pid,
+      from: 'Sender',
+      channel: 'whisper',
+      text,
+      pid: watcher.pid,
+    });
+    const worldSay = (text: string): SimEvent => ({
+      type: 'chat',
+      fromPid: sender.pid,
+      from: 'Sender',
+      channel: 'say',
+      text,
+    });
+    const anchorLoot = (itemId: string): SimEvent =>
+      ({ type: 'loot', pid: target.pid, itemId, count: 1 }) as unknown as SimEvent;
+
+    routeRaw(server, [
+      ownWhisper('own-1'),
+      worldSay('world-1'),
+      anchorLoot('anchor_1'),
+      ownWhisper('own-2'),
+      worldSay('world-2'),
+      anchorLoot('anchor_2'),
+    ]);
+
+    expect(fWatcher.sent).toHaveLength(1);
+    const list = (JSON.parse(fWatcher.sent[0]) as { list: { text?: string; itemId?: string }[] })
+      .list;
+    expect(list.map((ev) => ev.text ?? ev.itemId)).toEqual([
+      'own-1',
+      'world-1',
+      'anchor_1',
+      'own-2',
+      'world-2',
+      'anchor_2',
+    ]);
   });
 });

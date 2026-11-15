@@ -1,21 +1,128 @@
+// @vitest-environment happy-dom
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { InvSlot } from '../src/sim/types';
+import { BagsWindow, type BagsWindowDeps } from '../src/ui/bags_window';
+import { ItemDragState } from '../src/ui/item_drag_state';
+import type { IWorld } from '../src/world_api';
 
 // Source-level guards for the bags painter. The pure click/tooltip/grid decisions are
 // unit-tested in bags_view.test.ts; here we pin the no-magic-values
 // contract (no raw hex; the unranked-quality fallback is a token) plus the two
 // load-bearing behaviors: reusing bag_filter via buildBagGrid (not re-deriving the
 // filter) and preserving the .bag-grid scroll offset across a rebuild.
-const painter = readFileSync(new URL('../src/ui/bags_window.ts', import.meta.url), 'utf8');
-const tokens = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
-const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
-const components = readFileSync(new URL('../src/styles/components.css', import.meta.url), 'utf8');
+//
+// The DOM environment is for the one arm a source pin cannot decide (the socket
+// aria-label's materials variant, below). Under a DOM env import.meta.url is an
+// http URL that readFileSync rejects, so every source read resolves from
+// __dirname instead (the vendor_window_painter.test.ts idiom).
+const source = (relPath: string): string => readFileSync(join(__dirname, '..', relPath), 'utf8');
+
+// Blank out comments while preserving line structure, so a comment quoting a call
+// shape can neither satisfy a positive pin nor trip a negative one. Block comments
+// go FIRST (a JSDoc block quoting a call is otherwise left whole by a line-comment
+// pass), then line comments INCLUDING trailing ones; the [^:] guard keeps a '://'
+// in a URL from being read as a line comment. The stripComments precedent lives in
+// tests/pool_wiring_pins.test.ts and tests/architecture.test.ts.
+const stripComments = (src: string): string =>
+  src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+// The REAL BagsWindow driven against a DOM container (the
+// tests/bags_window_use_routing.test.ts fixture idiom), for the arms that have to
+// read what the painter actually rendered rather than what its source says.
+// The harness form also records every attachTooltip call (the phase 08 counter
+// arms read the lazily built html off the recorded builder) and takes the
+// carried inventory + summed capacity for the bag-bar counter fixtures.
+function renderBagsHarness(
+  bags: (string | null)[],
+  inventory: InvSlot[] = [],
+  bagCapacity = 16,
+): {
+  root: HTMLElement;
+  tooltips: { el: HTMLElement; html: () => string }[];
+  window: BagsWindow;
+} {
+  document.body.innerHTML = '';
+  const world = { inventory, bags, bagCapacity, copper: 0 } as unknown as IWorld;
+  const root = document.createElement('div');
+  document.body.appendChild(root);
+  const noop = (): void => {};
+  const tooltips: { el: HTMLElement; html: () => string }[] = [];
+  const deps: BagsWindowDeps = {
+    itemIcon: () => '<span class="item-icon"></span>',
+    moneyHtml: () => '',
+    itemTooltip: () => '',
+    attachTooltip: (el, html) => tooltips.push({ el, html }),
+    root: () => root,
+    world: () => world,
+    wocBalanceHtml: () => '',
+    claudiumLauncherHtml: () => '',
+    openClaudium: noop,
+    openWallet: noop,
+    hideTooltip: noop,
+    consumePeek: () => false,
+    cancelPetFeed: noop,
+    captureFocus: () => null,
+    restoreFocus: noop,
+    renderCharIfOpen: noop,
+    vendorOpen: () => false,
+    tradeOpen: () => false,
+    isMarketSell: () => false,
+    isMailAttach: () => false,
+    isBankOpen: () => false,
+    isPersonalBankTab: () => false,
+    isGuildBankTab: () => false,
+    isVaultBankTab: () => false,
+    sellConfirmPolicy: () => ({ enabled: true, minQualityRank: 1 }),
+    pendingPetFeed: () => false,
+    closeVendor: noop,
+    closeBank: noop,
+    onClosed: noop,
+    addItemToTrade: noop,
+    tradeOfferHeadroom: () => 0,
+    stageMarketSell: noop,
+    stageMailParcel: noop,
+    insertItemChatLink: noop,
+    showError: noop,
+    setPendingPetFeed: noop,
+    resetPetBarSig: noop,
+    isHotbarItemId: () => false,
+    useGatherTool: () => false,
+    setDragAction: noop,
+    clearActionDropTargets: noop,
+    dragState: new ItemDragState(),
+    isTouchHud: () => false,
+    markEquipDropTargets: noop,
+    dropOnEquipSlot: noop,
+    dropOnActionSlot: noop,
+    dropOnActionRingSlot: noop,
+    openItemActionMenu: noop,
+  };
+  const win = new BagsWindow(deps);
+  win.render();
+  return { root, tooltips, window: win };
+}
+
+function renderBags(bags: (string | null)[]): HTMLElement {
+  return renderBagsHarness(bags).root;
+}
+
+const painter = source('src/ui/bags_window.ts');
+const view = source('src/ui/bags_view.ts');
+const promptDialog = source('src/ui/prompt_dialog.ts');
+const tokens = source('src/styles/tokens.css');
+const hud = source('src/ui/hud.ts');
+const bagCurrency = source('src/ui/bag_currency_html.ts');
+const components = source('src/styles/components.css');
 
 describe('bags_window: no magic values', () => {
   it('carries no literal hex color in TS (quality color comes from QUALITY_COLOR + a token)', () => {
     // Issue references in comments (#2343) match the hex shape, so the scan
     // runs on comment-stripped source: a hex COLOR only matters in live code.
-    const code = painter.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const code = stripComments(painter);
     const hex = code.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
     expect(hex, `hex colors must move to tokens: ${hex.join(', ')}`).toEqual([]);
   });
@@ -34,16 +141,164 @@ describe('bags_window: no magic values', () => {
   });
 });
 
+describe('bags_window: accessibility contract', () => {
+  // Bags rides alongside vendor / trade / market (a non-modal companion window,
+  // per close()'s own comment), so it must NOT gain a focus trap here: it only
+  // needs the same role=dialog + accessible name every other window family
+  // member gets via markDialogRoot (mirrors bank_window.ts, which already calls
+  // this with its own title key).
+  it('marks the window as a dialog root with the bags title as its accessible name', () => {
+    expect(painter).toContain("markDialogRoot(el, { label: t('itemUi.bags.title') });");
+  });
+
+  it('does not install a focus trap (no modal:true) on the non-modal bags root', () => {
+    expect(painter).not.toMatch(/markDialogRoot\([^)]*modal:\s*true/);
+  });
+});
+
 describe('bags_window: load-bearing behaviors preserved', () => {
-  it('uses the branded Claudium icon and matching balance color', () => {
-    expect(hud).toContain('src="/claudium/icons/claudium_coin_64.webp"');
-    expect(components).toMatch(/\.claudium-launcher\s*\{[^}]*color:\s*#9eeeff;/s);
+  it('uses the branded Claudium icon and shared money-row primitives', () => {
+    // The markup moved out of hud.ts into bag_currency_html.ts (the two bag-header currency
+    // chips are pure value-to-markup and needed nothing from the coordinator). Scraped from
+    // its new home rather than deleted: the point of the pin is that the BRANDED asset is
+    // the one referenced, and a scrape of a file that no longer contains the string passes
+    // vacuously the moment it goes missing.
+    expect(bagCurrency).toContain('src="/claudium/icons/claudium_coin_64.webp"');
+    // W7 hands wallet color and interaction paint to the shared button and chip primitives.
+    expect(painter).toContain("'[data-wallet-action], [data-claudium-launcher]'");
+    expect(painter).toContain("control.classList.add('ui-btn')");
+    expect(painter).toContain("classList.add('ui-chip')");
   });
 
   it('reuses bag_filter via buildBagGrid (does not re-derive the filter)', () => {
     expect(painter).toContain('buildBagGrid(');
     // the filter/sort stays in bag_filter.ts; the painter must not call it directly
     expect(painter).not.toContain('applyBagFilter(');
+  });
+
+  it('wires Phase 3 findability chrome from pure cores (count, empty copy, list rows)', () => {
+    // Count badge, empty Quest copy, and soft section rows come from pure
+    // helpers; the painter only maps results to DOM. Do not re-derive kind
+    // counts or section rules inline.
+    expect(painter).toContain('bagQuestItemCount(');
+    expect(painter).toContain('bagNoMatchKind(');
+    expect(painter).toContain('buildBagListRows(');
+    expect(painter).toContain('hudChrome.bags.noQuestItems');
+    expect(painter).toContain('hudChrome.bags.filterQuestCountAria');
+    expect(painter).toContain('bag-chip-count');
+    expect(painter).toContain('bag-section-header');
+    // Badge only when N > 0 (state.md metric lock): presence of bag-chip-count
+    // alone still passes if zero is painted; pin the gate next to the badge.
+    expect(painter).toMatch(/questCount\s*>\s*0/);
+    // Warm empty copy association: inverting the ternary keeps bare toContain
+    // green; pin both arms as literals so quest maps to noQuestItems only.
+    expect(painter).toMatch(
+      /bagNoMatchKind\([^)]*\)\s*===\s*'quest'\s*\?\s*'hudChrome\.bags\.noQuestItems'\s*:\s*'hudChrome\.bags\.noMatch'/,
+    );
+  });
+
+  it('never inserts section headers into the manual cells drop-target stream', () => {
+    // Locked decision 7: the model.cells loop must not call buildBagListRows
+    // or buildSectionHeader. Section headers live only on the derived list path
+    // after the cells early-return.
+    const fillStart = painter.indexOf('private fillGrid(');
+    const fillEnd = painter.indexOf('private buildStackCell(');
+    const fill = painter.slice(fillStart, fillEnd);
+    const cellsBranch = fill.slice(
+      fill.indexOf('if (model.cells.length > 0)'),
+      fill.indexOf('// Derived list:'),
+    );
+    expect(cellsBranch).toContain('buildStackCell');
+    expect(cellsBranch).not.toContain('buildBagListRows');
+    expect(cellsBranch).not.toContain('buildSectionHeader');
+    expect(cellsBranch).not.toContain('bag-section-header');
+  });
+
+  it('wires bag hover and keyboard focus to tracker highlight via pure id + thin controller', () => {
+    // Pure id + controller are unit-tested elsewhere; this pin keeps the
+    // bags painter from dropping the call site while those suites stay green.
+    expect(painter).toContain("from './bag_quest_tracker_highlight'");
+    expect(painter).toContain("from './bag_quest_tracker_highlight_view'");
+    expect(painter).toContain('BagQuestTrackerHighlight');
+    expect(painter).toContain('bagQuestTrackerHighlightId');
+    expect(painter).toContain('trackerHighlight.set');
+    expect(painter).toContain('trackerHighlight.clear');
+    expect(painter).toContain("addEventListener('mouseenter'");
+    expect(painter).toContain("addEventListener('mouseleave'");
+    // Keyboard parity: bag tooltips show on focusin, so the tracker highlight
+    // must too (and clear on focusout).
+    expect(painter).toContain("addEventListener('focusin'");
+    expect(painter).toContain("addEventListener('focusout'");
+    expect(painter).toContain('clearTrackerHighlight');
+    // Clear on rebuild (render + refreshGrid) and close; hideTooltip path uses
+    // hideTooltipClearingTracker so drag/peek does not leave a sticky glow.
+    expect(painter).toContain('hideTooltipClearingTracker');
+    const clearCalls = painter.match(/this\.clearTrackerHighlight\(\)/g) ?? [];
+    // At least: close, render, refreshGrid, hideTooltipClearingTracker (+ leave/focusout).
+    expect(clearCalls.length).toBeGreaterThanOrEqual(4);
+    // Hover CSS: always-on token, no --fx gate.
+    const hudCss = source('src/styles/hud.css');
+    expect(hudCss).toContain('.qt-title.qt-bag-hover');
+    expect(hudCss).toContain('var(--color-quest-tracker-bag-hover)');
+    expect(tokens).toContain('--color-quest-tracker-bag-hover:');
+    const hoverStart = hudCss.indexOf('.qt-title.qt-bag-hover');
+    expect(hoverStart).toBeGreaterThan(-1);
+    const hoverBlock = hudCss.slice(hoverStart, hudCss.indexOf('}', hoverStart));
+    expect(hoverBlock).not.toContain('--fx-');
+  });
+
+  it('the socket aria-label derives its slots line from the ITEM via the shared leaf', () => {
+    // The regression this catches is a hardcoded key, not a mistyped argument:
+    // passing the socket model instead of the item is a tsc error (BagSocketModel
+    // has no `kind`, so it does not satisfy the leaf's parameter), but writing the
+    // plain `t('itemUi.tooltip.bagSlots', {` back at the call site compiles, reads
+    // fine, and silently drops the materials-satchel variant from every equipped
+    // bag's aria-label while this suite and bags_view's stay green. So pin the
+    // leaf call itself; the variant choice is table-tested in tests/bags_view.test.ts.
+    // Scoped to the socket loop and comment-stripped: an unscoped whole-file
+    // toContain over comment-intact source is satisfied by a comment quoting the
+    // call, or by the same expression surviving in some other method after the
+    // socket label itself regressed.
+    const socketLoopStart = painter.indexOf(
+      'for (const socket of model.sockets.slice(0, BAG_SOCKETS)) {',
+    );
+    const afterBagBarStart = painter.indexOf('private persistFilter(): void {');
+    expect(
+      socketLoopStart,
+      'socket-loop anchor not found in bags_window.ts',
+    ).toBeGreaterThanOrEqual(0);
+    expect(afterBagBarStart).toBeGreaterThan(socketLoopStart);
+    const socketLoop = stripComments(painter.slice(socketLoopStart, afterBagBarStart));
+    expect(socketLoop).toContain("t(bagSlotsLineKey(item) ?? 'itemUi.tooltip.bagSlots', {");
+  });
+
+  it('a socketed materials satchel SAYS so in its rendered socket aria-label', () => {
+    // The source pin above is region-scoped, so it still passes on a painter
+    // that hardcodes the plain key AT the aria call while some other line in
+    // the same span (the tooltip, a later socket branch) keeps a leaf call
+    // alive. Only rendering decides it: this drives the real painter with a
+    // materials satchel in socket 0 and reads the label a screen reader gets.
+    // Forager's Haversack is a real materialsOnly ITEMS def (12 slots), so the
+    // variant choice rides the shipped content, not a fixture's opinion.
+    const root = renderBags(['foragers_haversack', null, null, null]);
+    const sockets = [...root.querySelectorAll('.bag-socket:not(.backpack):not(.empty)')];
+    expect(sockets, 'the socketed bag must render its own socket button').toHaveLength(1);
+    // The resolved ENGLISH, pinned whole (the vault_window.test.ts render-sink
+    // idiom): the regression this catches renders the plain-variant
+    // "Forager's Haversack: 12 Slot Bag", which is not merely a different
+    // wording but a dropped claim about what the bag will hold.
+    expect(sockets[0].getAttribute('aria-label')).toBe(
+      "Forager's Haversack: 12 Slot Materials Bag",
+    );
+  });
+
+  it('a socketed UNRESTRICTED bag keeps the plain slots wording (the counter-example)', () => {
+    // Without this arm the pin above passes on a painter that hardcodes the
+    // MATERIALS key at the aria call, which would promise every general bag
+    // holds materials only.
+    const root = renderBags(['wayfarers_backpack', null, null, null]);
+    const socket = root.querySelector('.bag-socket:not(.backpack):not(.empty)');
+    expect(socket?.getAttribute('aria-label')).toBe("Wayfarer's Backpack: 16 Slot Bag");
   });
 
   it("asks for the backpack icon by the id the art is wired under ('backpack')", () => {
@@ -63,7 +318,13 @@ describe('bags_window: load-bearing behaviors preserved', () => {
     // Without stopPropagation the keypress bubbles to the input layer's window
     // keydown, whose escape action runs closeAll: one Escape on a prompt BUTTON
     // (not tag-exempt like inputs) would dismiss the prompt AND close the bags.
-    expect(painter).toMatch(/ke\.preventDefault\(\);\s*ke\.stopPropagation\(\);/);
+    // The recipe lives in the shared module (prompt_dialog.ts) since the
+    // rule-of-three extraction; the window must still delegate to it with its
+    // own root, or the recipe protects nothing here.
+    expect(promptDialog).toMatch(/ke\.preventDefault\(\);\s*ke\.stopPropagation\(\);/);
+    expect(painter).toMatch(
+      /installModalPromptDialog\(prompt, opener, close, \{\s*inertRoot: this\.deps\.root\(\),/,
+    );
   });
 });
 
@@ -71,12 +332,36 @@ describe('bags_window: bank-deposit mode wiring', () => {
   it('reads the bank-open mode fresh each click through the injected dep', () => {
     // The mode flag is HUD state; the painter must read it via the dep each click,
     // never cache it, mirroring vendorOpen / isMailAttach.
-    expect(painter).toContain('isBankOpen(): boolean;');
-    expect(painter).toContain('bankDeposit: this.deps.isBankOpen(),');
+    expect(painter).toContain('isPersonalBankTab(): boolean;');
+    expect(painter).toContain('isGuildBankTab(): boolean;');
+    expect(painter).toContain('isVaultBankTab(): boolean;');
+    // At most ONE of the three bank modes, and possibly NONE: each is armed
+    // only while its own grid is on screen to drop into, so the guild pane's
+    // log view and the LOCKED vault pane (reading/purchase surfaces) arm
+    // nothing. `isBankOpen && !guildTab` is NOT the personal predicate: it
+    // armed the personal deposit behind the log.
+    expect(painter).toContain('bankDeposit: this.deps.isPersonalBankTab(),');
+    expect(painter).toContain('guildBankDeposit: this.deps.isGuildBankTab(),');
+    expect(painter).toContain('vaultDeposit: this.deps.isVaultBankTab(),');
+    // ...and the SUPERSET flag that says the bank cluster owns the slot at all.
+    // Without it, both deposits off is bit-identical to "no window is open",
+    // which demoted the click to the use/equip default and re-armed the destroy
+    // prompt and the item action menu over the guild pane's reading surface.
+    expect(painter).toContain('bankOpen: this.deps.isBankOpen(),');
+    // The consumers that must read the superset, not the deposit pair.
+    expect(painter).toContain('!mode.bankOpen &&');
+    expect(view).toContain("if (mode.bankOpen) return 'bankDepositBlockedNoTarget';");
+    expect(view).toContain("if (mode.bankOpen) return 'hudChrome.bank.cannotDepositNow';");
   });
 
   it('hud wires isBankOpen to the live bank-window open state', () => {
     expect(hud).toContain('isBankOpen: () => this.bankWindow.isOpen,');
+    expect(hud).toContain('isPersonalBankTab: () => this.bankWindow.personalTabActive,');
+    expect(hud).toContain('isGuildBankTab: () => this.bankWindow.guildTabActive,');
+    // The vault dep must aim at ITS OWN getter: rewiring it to guildTabActive
+    // (or deleting the line) breaks nothing else in the suite because the
+    // routing tests inject the dep directly.
+    expect(hud).toContain('isVaultBankTab: () => this.bankWindow.vaultTabActive,');
   });
 
   it('resolves the deposit target by reference index, not itemId (the index command)', () => {
@@ -104,20 +389,23 @@ describe('bags_window: bank-deposit mode wiring', () => {
   });
 
   it('the deposit prompt re-resolves the live slot at submit and refuses on a mismatch', () => {
-    // The bags can repaint under the open prompt; submit must re-read inventory[index],
-    // refuse (null) rather than deposit the wrong item, and clamp otherwise.
+    // The bags can repaint under the open prompt; the shared builder's submit
+    // (bank_quantity_prompt.ts) calls resolveCount, whose bags closure re-reads
+    // inventory[index] and refuses (null) rather than deposit the wrong item,
+    // clamping otherwise. The null arm's dismiss lives in the builder.
     expect(painter).toContain('const live = this.deps.world().inventory[index];');
-    expect(painter).toContain(
-      'const count = resolveDepositSubmit(live, captured, Number(input.value) || 0, maxCount);',
-    );
-    expect(painter).toMatch(/if \(count === null\) \{\s*dismiss\(\);/);
+    expect(painter).toContain('return resolveDepositSubmit(live, captured, requested, maxCount);');
     expect(painter).toContain('this.deps.world().bankDeposit(index, count);');
+    const builder = source('src/ui/bank_quantity_prompt.ts');
+    expect(builder).toMatch(/if \(count === null\) \{\s*dismiss\(\);/);
   });
 
   it('registers the deposit prompt class so close() tears it down (no orphaned modal)', () => {
     expect(painter).toContain('.bank-deposit-prompt');
+    // The trade offer-quantity prompt and the Cartographer's Ink map picker
+    // (opened from a bag click) ride the same teardown selector.
     expect(painter).toContain(
-      "'.discard-item-prompt, .sell-quantity-prompt, .bank-deposit-prompt'",
+      "'.discard-item-prompt, .sell-quantity-prompt, .sell-confirm-prompt, .bank-deposit-prompt, .trade-offer-prompt, .tmap-ink-prompt'",
     );
   });
 
@@ -125,9 +413,20 @@ describe('bags_window: bank-deposit mode wiring', () => {
     // The tooltip shows depositPartialHint ONLY on the deposit-hint arm (never on a
     // blocked quest item) and only for a splittable stack; without this line the
     // catalog key would be dead and the affordance undiscoverable.
-    expect(painter).toContain("key === 'hudChrome.bank.depositHint' && bankDepositOpensPrompt(s)");
-    expect(painter).toContain("t('hudChrome.bank.depositPartialHint')");
-    expect(painter).toContain('+ extra + partial + equipDrag + destroy + link');
+    // All THREE deposit-hint arms advertise the split (the vault joined the
+    // pair in Bank Storage Phase 03). ONE regex over COMMENT-STRIPPED source
+    // spans the whole expression, so three matching fragments scattered
+    // across the file (or quoted in a comment) can never satisfy it apart.
+    const code = stripComments(painter);
+    expect(code).toMatch(
+      /\(key === 'hudChrome\.bank\.depositHint' \|\|\s*key === 'hudChrome\.bank\.guildDepositHint' \|\|\s*key === 'hudChrome\.bank\.vaultDepositHint'\) &&\s*bankDepositOpensPrompt\(s\)/,
+    );
+    expect(code).toContain("t('hudChrome.bank.depositPartialHint')");
+    // Whitespace-tolerant: the composition now carries materialSourcesForDisplay(s)
+    // as a third itemTooltip argument and is Biome-wrapped across several lines,
+    // so an exact single-line substring can no longer match; the CONJUNCTION of
+    // all five hint fragments in order is what is load-bearing here.
+    expect(code).toMatch(/\+\s*extra\s*\+\s*partial\s*\+\s*equipDrag\s*\+\s*destroy\s*\+\s*link/);
   });
 });
 
@@ -141,8 +440,10 @@ describe('bags_window: touch peek + bank-cluster close', () => {
     // The peek check stays FIRST; the only thing that may sit between it and the
     // shift-link arm is the touch-drag click suppression (the synthetic click that
     // trails a completed drag), which is likewise a "swallow this click" gate.
+    // Peek dismiss uses hideTooltipClearingTracker so bag hover cannot leave a
+    // sticky tracker glow after a long-press inspect (Phase 5).
     expect(painter).toMatch(
-      /row\.addEventListener\('click', \(ev\) => \{[\s\S]{0,320}?if \(this\.deps\.consumePeek\(\)\) \{\s*this\.deps\.hideTooltip\(\);\s*return;\s*\}[\s\S]{0,400}?if \(ev\.shiftKey && bagShiftLinks/,
+      /row\.addEventListener\('click', \(ev\) => \{[\s\S]{0,320}?if \(this\.deps\.consumePeek\(\)\) \{\s*this\.hideTooltipClearingTracker\(\);\s*return;\s*\}[\s\S]{0,400}?if \(ev\.shiftKey && bagShiftLinks/,
     );
     // The drag's trailing click must never ALSO run the stack's action.
     expect(painter).toMatch(
@@ -166,11 +467,20 @@ describe('bags_window: touch peek + bank-cluster close', () => {
     // the document-level native-menu suppress set), and fails safe to inspect
     // when a mobile-touch browser reports no pointerType (Firefox Android).
     expect(painter).toMatch(
-      /row\.addEventListener\('contextmenu', \(ev\) => \{[\s\S]{0,700}?pointerType === 'touch'[\s\S]{0,200}?ev\.preventDefault\(\);\s*return;\s*\}\s*\/\/ At a vendor/,
+      /row\.addEventListener\('contextmenu', \(ev\) => \{[\s\S]{0,700}?pointerType === 'touch'[\s\S]{0,200}?ev\.preventDefault\(\);\s*return;\s*\}\s*if \(this\.deps\.vendorOpen\(\)\)/,
     );
     expect(painter).toContain(
       "(document.body.classList.contains('mobile-touch') && pointerType !== 'mouse')",
     );
+  });
+
+  it('the extra member socket preserves the materials-only accessible capacity label', () => {
+    const root = renderBags([null, null, null, null, 'foragers_haversack']);
+    const memberSocket = root.querySelector('.membership-bag-slot');
+    expect(memberSocket?.getAttribute('aria-label')).toBe(
+      "Forager's Haversack: 12 Slot Materials Bag",
+    );
+    expect(memberSocket?.getAttribute('aria-disabled')).toBeNull();
   });
 
   it('the bags x-btn closes the whole bank cluster on touch (mirrors the vendor close)', () => {
@@ -208,8 +518,13 @@ describe('bags_window: touch peek + bank-cluster close', () => {
       /this\.deps\.restoreFocus\(this\.openerFocus\);\s*this\.openerFocus = null;\s*this\.deps\.onClosed\(\);/,
     );
     expect(hud).toContain('onClosed: () => this.onBagsClosed(),');
-    expect(hud).toMatch(
-      /private onBagsClosed\(\): void \{\s*if \(document\.body\.classList\.contains\('mobile-touch'\) && this\.bankWindow\.isOpen\) \{\s*document\.body\.classList\.remove\('bank-open'\);/,
+    // The mobile-touch gate and the bank-open drop moved into
+    // bank_window_lifecycle.ts undockBagCompanions with the membership bank
+    // courier (5769f2a2596), which behavior-pins them in
+    // tests/bank_window_lifecycle.test.ts; the hud half is that onBagsClosed
+    // hands it the live bank-open state first thing.
+    expect(stripComments(hud)).toMatch(
+      /private onBagsClosed\(\): void \{\s*undockBagCompanions\(this\.bankWindow\.isOpen, this\.marketWindow\.isOpen\);/,
     );
     expect(hud).toMatch(
       /this\.bagsWindow\.noteOpener\(\);[\s\S]{0,400}?if \(this\.bankWindow\.isOpen\) document\.body\.classList\.add\('bank-open'\);/,
@@ -222,8 +537,10 @@ describe('bags_window: touch peek + bank-cluster close', () => {
     // bind steals the WCAG 2.4.3 focus return. The prompt's own keydown listener
     // stops the bubble, and once the prompt was detached mid-dispatch it must ALSO
     // cancel the default (or the activation ghost-clicks the re-landed focus).
-    // The older Escape-only handling reds this.
-    expect(painter).toMatch(
+    // The older Escape-only handling reds this. The handler lives in the
+    // shared recipe (prompt_dialog.ts); the delegation pin rides the Escape
+    // test above.
+    expect(promptDialog).toMatch(
       /if \(ke\.key === 'Enter' \|\| ke\.key === ' ' \|\| ke\.code === 'Space'\) \{\s*ke\.stopPropagation\(\);\s*if \(!prompt\.isConnected\) ke\.preventDefault\(\);\s*return;\s*\}/,
     );
   });
@@ -238,15 +555,75 @@ describe('bags_window: touch peek + bank-cluster close', () => {
     // right-click without a live DOM harness.
     const start = painter.indexOf('private runBagAction(');
     const body = painter.slice(start, painter.indexOf('\n  }\n', start));
-    expect(body).toMatch(/case 'trade':\s*this\.deps\.addItemToTrade\(s\.itemId\);/);
-    expect(body).toMatch(/case 'mailAttach':\s*this\.deps\.stageMailParcel\(s\.itemId\);/);
-    expect(body).toMatch(/case 'marketSell':\s*this\.deps\.stageMarketSell\(s\.itemId\);/);
-    expect(body).toMatch(/case 'bankDeposit': \{/);
-    expect(body).toMatch(/case 'petFeed':\s*this\.deps\.world\(\)\.feedPet\(s\.itemId\);/);
-    // The 'use' case tries the gathering-tool routing first (#2343) and only
-    // falls back to the plain useItem command when the hook declines.
+    // The trade arm now guards a shift-click offer-quantity prompt first (the
+    // bank withdraw prompt's trade twin); the plain-click stage still follows.
     expect(body).toMatch(
-      /case 'use': \{[\s\S]{0,400}?if \(!item \|\| !this\.deps\.useGatherTool\(item\)\) this\.deps\.world\(\)\.useItem\(s\.itemId\);/,
+      /case 'trade': \{[\s\S]*?this\.showTradeQuantityPrompt\(s\.itemId, headroom\);[\s\S]*?this\.deps\.addItemToTrade\(s\.itemId\);/,
+    );
+    expect(body).toMatch(
+      /case 'mailAttach':\s*this\.deps\.stageMailParcel\(s\.itemId, s\.instance\);/,
+    );
+    expect(body).toMatch(
+      /case 'marketSell': \{[\s\S]*?marketConsumableSellSources\(s\)[\s\S]*?this\.deps\.stageMarketSell\(s\.itemId, s\.instance\);/,
+    );
+    expect(body).toMatch(/case 'bankDeposit': \{/);
+    // feedPet and useItem now also forward WHICH bag copy was clicked, resolved
+    // through copyRefFor, which REFUSES a stale click rather than falling back
+    // to an id-only command that would spend an id-mate. These pins are about
+    // REACHABILITY from the shared dispatch, so they match through the refusal
+    // guard to the call opening and leave the argument list to
+    // tests/item_copy_addressing_guard.
+    expect(body).toMatch(
+      /case 'petFeed':[\s\S]{0,200}?const at = this\.copyRefFor\(s\);\s*if \(!at\) return;\s*this\.deps\.world\(\)\.feedPet\(s\.itemId, at\);/,
+    );
+    // The 'use' case tries the gathering-tool routing first (#2343), then the
+    // Cartographer's Ink map picker, and only falls back to the plain useItem
+    // command when both decline.
+    expect(body).toMatch(
+      /case 'use': \{[\s\S]{0,400}?if \(!item \|\| !this\.deps\.useGatherTool\(item\)\) \{[\s\S]{0,300}?if \(pickInkMap\(this\.deps\.world\(\), s\.itemId, ink\)\) \{[\s\S]{0,200}?this\.deps\.world\(\)\.useItem\(s\.itemId, at\);/,
+    );
+  });
+
+  it('routes the placeFeast case to world.placeFeast() exactly once, never useItem (Farming Phase 12)', () => {
+    // The classification half lives in bags_view.test.ts; this pins that the
+    // dispatch actually reaches the IWorldFarming verb. Comment-stripped
+    // (line comments first, then blocks) so prose naming useItem cannot
+    // trip the negative arm, sliced to the case's own break so the claim
+    // cannot ride the neighboring 'use' case.
+    const code = painter.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    const start = code.indexOf('private runBagAction(');
+    expect(start).toBeGreaterThan(-1);
+    const body = code.slice(start, code.indexOf('\n  }\n', start));
+    const caseAt = body.indexOf("case 'placeFeast':");
+    expect(caseAt).toBeGreaterThan(-1);
+    const caseEnd = body.indexOf('break;', caseAt);
+    expect(caseEnd).toBeGreaterThan(caseAt);
+    const caseBody = body.slice(caseAt, caseEnd);
+    // The verb now carries the clicked COPY (Phase 18, bags-feast-clicked-copy):
+    // the resolve refuses a stale click before the send, and the send names the
+    // copy rather than leaving the server's id-only walk to pick one.
+    expect(caseBody).toContain('const at = this.copyRefFor(s);');
+    expect(caseBody).toContain('if (!at) return;');
+    expect(caseBody).toContain('this.deps.world().placeFeast(at)');
+    expect(caseBody).not.toContain('useItem');
+    // Exactly one placeFeast call in the whole dispatch: the case is the one
+    // client entry point for the verb (the reachability suite pins the file).
+    expect(body.split('.placeFeast(').length - 1).toBe(1);
+  });
+
+  it('mail-attach-blocked-bound shows the specific bound reason, distinct from the generic mail deny', () => {
+    // A per-copy transfer lock (an armed disenchant typed secondary, or an
+    // already-traded boundTo copy) is not simply "unmailable": it clears once
+    // traded in person. The click deny must voice the same specific reason the
+    // sim's own send-time noMailBound refusal uses, never the generic line the
+    // def-level (quest/noMarketList) deny below still correctly uses.
+    const start = painter.indexOf('private runBagAction(');
+    const body = painter.slice(start, painter.indexOf('\n  }\n', start));
+    expect(body).toMatch(
+      /case 'mailAttachBlockedBound':[\s\S]{0,500}?this\.deps\.showError\(t\('hudChrome\.mailbox\.result\.noMailBound'\)\);\s*return;/,
+    );
+    expect(body).toMatch(
+      /case 'mailAttachBlocked':\s*this\.deps\.showError\(t\('hudChrome\.mailbox\.cannotMail'\)\);\s*return;/,
     );
   });
 });
@@ -264,7 +641,7 @@ describe('bags_window: right-click uses, dragging destroys/equips', () => {
     expect(ctx).not.toContain('showDiscardItemPrompt');
     expect(ctx).not.toContain('bagDestroyAction');
     // The vendor's Ctrl/Meta split-stack sell survives untouched.
-    expect(ctx).toContain('this.sellBagItem(s, ev)');
+    expect(ctx).toContain('this.sellBagItem(item, s, ev)');
   });
 
   it('every stack is draggable outside the transactional modes (not just hotbar items)', () => {
@@ -278,7 +655,21 @@ describe('bags_window: right-click uses, dragging destroys/equips', () => {
   });
 
   it('the world drop opens the destroy prompt and honors the noDiscard refusal', () => {
-    expect(painter).toContain('promptDestroy(itemId: string, count: number): void');
+    // The prompt takes the dragged COPY's identity (its pick-up index plus its
+    // pin), not a bare index: the bags shift mid-drag, and an index alone can
+    // come to name a different copy of the same id by the time the drop lands.
+    expect(painter).toContain(
+      'promptDestroy(itemId: string, count: number, ref: DraggedCopyRef | null = null): void',
+    );
+    // The touch drag ghost carries the copy's rim too (never exercised by the
+    // marker rig, whose render does not start a drag, so pinned here over
+    // COMMENT-STRIPPED source: it is the only coverage of that read, and a
+    // commented-out arrow must not satisfy it). The destroy prompt's TARGETED
+    // single-copy arm is behavioral (tests/bags_vendor_sell_confirm.test.ts).
+    const ghostCode = painter.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    expect(ghostCode).toMatch(
+      /ghostHtml: \(\) =>\s*this\.deps\.itemIcon\(item, wornItemCellParts\(item, s\.instance\)\.quality\),/,
+    );
     expect(painter).toContain('destroyAction(itemId: string): BagDestroyAction');
     expect(painter).toContain("t('hudChrome.bags.cannotDestroy')");
     // The HUD installs the canvas as the world drop target with exactly those seams.
@@ -291,6 +682,72 @@ describe('bags_window: right-click uses, dragging destroys/equips', () => {
     expect(painter).toContain("t('hudChrome.bags.dragEquipHint')");
     expect(painter).toContain("t('hudChrome.bags.dragDestroyHint')");
     expect(painter).not.toContain('rightClickDestroy');
+  });
+});
+
+describe('bags_window: a vendor click confirms before selling anything but true junk', () => {
+  // The reported bug: selling gray junk one item at a time (a plain click while
+  // the vendor is open) had no per-item confirmation, so a single stray click
+  // could vendor an adjacent, unrelated, enchanted item with no recourse beyond
+  // the bounded buyback list. vendorSellIsInstant (bags_view.ts) is the pure
+  // gate; the real dispatch (which command each modifier sends, the stale-copy
+  // refusal, the focus landing) is behaviorally pinned in
+  // tests/bags_vendor_sell_confirm.test.ts against the real BagsWindow; these
+  // source pins are the no-magic-values-file's own idiom for anchoring the
+  // wiring text they exercise.
+  it('gates the plain-click arm on the sell-confirm policy (vendor_sell_confirm_policy.ts)', () => {
+    expect(painter).toContain('vendorSaleNeedsConfirm');
+    const body = painter.slice(
+      painter.indexOf('private sellBagItem('),
+      painter.indexOf('private showSellConfirmPrompt('),
+    );
+    // The sell-confirm policy (the confirmVendorSell opt-out plus the quality
+    // threshold) folds into the same instant gate: a sale the policy does not
+    // confirm is instant, restoring the classic one-click sale.
+    expect(body).toContain('this.deps.sellConfirmPolicy()');
+    expect(body).toContain('const instant = !vendorSaleNeedsConfirm(');
+    expect(body).toContain('!instant');
+    expect(body).toContain('this.showSellConfirmPrompt(item, slot)');
+    // Ctrl/meta and shift both still confirm a non-instant sale (the review-round
+    // fix): only the id-scoped bulk quantity prompt or the per-slot confirm
+    // prompt, never an unconfirmed instant sellItem call, for anything but junk.
+    expect(body).toMatch(/if \(instant\)[\s\S]{0,40}sellItem\(slot\.itemId, count\)/);
+    expect(body).toContain('this.showSellQuantityPrompt(slot.itemId, heldTotal);');
+    // The full-stack fix: a plain click on a non-instant STACK (count > 1) also
+    // routes through the bulk quantity prompt instead of confirming exactly one
+    // unit at a time (the "can't sell full stacks" regression).
+    expect(body).toContain('!instant && count > 1');
+  });
+
+  it('the confirm prompt re-resolves the live slot at submit and refuses on a mismatch', () => {
+    // Comment-stripped source (the source-text pin trap), sliced to the next
+    // method boundary rather than a magic length that rots on every edit.
+    const stripped = painter.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const start = stripped.indexOf('private showSellConfirmPrompt(');
+    const body = stripped.slice(start, stripped.indexOf('\n  private ', start + 1));
+    // Re-resolved by reference identity at SUBMIT time, not the index captured
+    // when the dialog opened: the whole point of this fix is that a stale
+    // selection must REFUSE rather than fall back to an itemId-only sellItem
+    // guess that could vendor a different (e.g. the enchanted) copy of the id.
+    expect(body).toContain('const index = bagStackIndex(this.deps.world().inventory, slot);');
+    expect(body).toContain('if (index < 0) {');
+    expect(body).toContain("this.deps.showError(tSim('error.noItem'));");
+    expect(body).toContain('sellItem(slot.itemId, 1, { slotIndex: index })');
+    // Lands on the always-present close button, not the (about-to-detach) opener.
+    expect(body).toContain("this.deps.root().querySelector('[data-close]')");
+    expect(body).not.toContain('opener?.focus()');
+    // Reuses the existing sell-quantity wording (every locale already has it)
+    // rather than minting new i18n keys for a second sell-confirm dialog.
+    expect(body).toContain("t('itemUi.vendor.sellQuantityTitle', { item: itemName })");
+    expect(body).toContain("t('itemUi.vendor.sellQuantityConfirm')");
+    expect(body).toContain("t('itemUi.vendor.sellQuantityCancel')");
+  });
+
+  it('the pure gate itself: only poor quality with no instance or crafted marker is instant', () => {
+    expect(view).toContain('export function vendorSellIsInstant(');
+    expect(view).toContain(
+      "return item.quality === 'poor' && instance === undefined && craftedRecipeId === undefined;",
+    );
   });
 });
 
@@ -309,12 +766,262 @@ describe('bags_window: styles for the drag affordances', () => {
 });
 
 describe('bags_window: per-copy instance tooltip forwarding (Professions 2.0)', () => {
-  it("forwards the slot's instance payload into the widened itemTooltip dep", () => {
+  it("forwards the slot's instance payload AND its material composition into the widened itemTooltip dep", () => {
     // The bank arm has a model-level pin (bank_view.test.ts BankSlotModel
     // .instance passthrough); the bags arm is a direct painter call, so the
     // call site itself is the load-bearing surface: dropping `s.instance`
     // reverts every bag tooltip to def-only while all pure-core suites stay
     // green (the exact regression class the widened dep was added for).
-    expect(painter).toContain('this.deps.itemTooltip(item, s.instance)');
+    // The call now also carries materialSourcesForDisplay(s), the per-unit
+    // provenance a material stack's tooltip needs (the source-count algebra):
+    // dropping that third argument would silently blind every material
+    // tooltip to who gathered/signed the units it holds.
+    expect(painter).toContain(
+      'this.deps.itemTooltip(item, s.instance, materialSourcesForDisplay(s))',
+    );
+  });
+});
+
+describe('bags_window: unknown-id stacks stay visible (stale-client guard, R34)', () => {
+  // The keep/exclude decision lives in bag_filter.ts (pinned in
+  // bag_filter.test.ts); these pins hold the painter to rendering what the
+  // core keeps. Comment-stripped so prose naming an arm cannot satisfy a pin.
+  const code = stripComments(painter);
+
+  it('paints an unknown-id stack through buildUnknownStackCell in BOTH grid views', () => {
+    // The pristine view used to paint it as an EMPTY square; the list view
+    // used to drop the row entirely (`if (!item) continue`).
+    expect(code).toContain('this.buildUnknownStackCell(stack, cell)');
+    expect(code).toContain('this.buildUnknownStackCell(s, null)');
+    expect(code).not.toContain('if (!item) continue');
+    // BOTH branches resolve through the own-property predicate: a bare
+    // ITEMS read sends a prototype key down the known arm (the merge
+    // settlement caught the pristine branch keeping one).
+    expect(code).toContain('knownItemDef(ITEMS, stack.itemId)');
+    expect(code).toContain('knownItemDef(ITEMS, s.itemId)');
+    expect(code).not.toContain('stack ? ITEMS[stack.itemId] : undefined');
+  });
+
+  it('renders the fallback icon, the raw id, and an UNKNOWN accessible name', () => {
+    const start = code.indexOf('private buildUnknownStackCell(');
+    const end = code.indexOf('private bindBagCellDrop(');
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const body = code.slice(start, end);
+    expect(body).toContain('unknownItemIconHtml(s.itemId)');
+    // The cell keeps the shared bag-cell styling at the default rung and its
+    // count badge, so an unknown stack reads like a stack, not a hole.
+    // W7 gives fallback stacks the same shared socket ownership as known bag cells.
+    expect(body).toContain("row.className = 'bag-item ui-socket ui-socket--bag q-common'");
+    expect(body).toContain('bi-count');
+    // The aria channel carries the UNKNOWN signal (the tooltip is hover-only),
+    // plus the raw id; the tooltip title is the raw id with the unknown
+    // sub-line.
+    expect(body).toContain("t('itemUi.bags.unknownItemAria', {");
+    expect(body).toContain('id: s.itemId');
+    expect(body).toContain("t('itemUi.bags.unknownItem')");
+    // Exactly ONE click action, the def-free bank deposit, and only while
+    // the bank is open (bankDeposit is index-based like the move, so the
+    // withdraw the guard kept live is not a one-way trip); outside the bank
+    // the cell stays a focusable no-op and aria-disabled stays honest. The
+    // def-requiring action ladder (runBagAction) is still never wired. The
+    // DRAG source stays live, because a move works on indices alone; both
+    // drag arms and the touch drop's bag-cell move are pinned so the
+    // capability cannot silently vanish.
+    // The ladder decision itself moved into the pure core (bags_view.ts
+    // bagUnknownAction, unit-tested against bagItemAction's mode fixtures in
+    // tests/bags_window_unknown_cell.test.ts); the cell must read THAT one
+    // definition, never re-inline its own copy of the conjunction.
+    expect(body).toContain("bagUnknownAction(this.bagMode()) === 'bankDeposit'");
+    expect(body).toContain("if (!canDeposit) row.setAttribute('aria-disabled', 'true')");
+    expect(body).toContain('if (canDeposit) {');
+    expect(body).toContain('this.deps.world().bankDeposit(index)');
+    expect(body).toContain('this.showDepositQuantityPrompt(index, s,');
+    // The one listener sits INSIDE the canDeposit arm: no second click path.
+    const clickArms = body.split("addEventListener('click'").length - 1;
+    expect(clickArms).toBe(1);
+    // The touch drop SUPPRESSES the trailing synthetic click (the
+    // touch_item_drag contract): without this a reorganize drag with the
+    // bank open would also deposit on release. Pinned inside the unknown
+    // cell's own onDrop, before the target resolve.
+    const onDropAt = body.indexOf('onDrop: (x, y) => {');
+    expect(onDropAt).toBeGreaterThan(-1);
+    const suppressAt = body.indexOf('this.suppressNextClick = true', onDropAt);
+    expect(suppressAt).toBeGreaterThan(onDropAt);
+    expect(suppressAt).toBeLessThan(body.indexOf('resolveDropTargetAt', onDropAt));
+    expect(body.indexOf("addEventListener('click'")).toBeGreaterThan(
+      body.indexOf('if (canDeposit) {'),
+    );
+    expect(body).not.toContain('runBagAction');
+    expect(body).not.toContain('onclick');
+    // The def-free corner glyph and its aria flag survive the missing def: a
+    // bound or enchanted copy keeps its marker in both channels.
+    expect(body).toContain('bagInstanceGlyphKind(s.instance, s.materialSources)');
+    expect(body).toContain('t(UNKNOWN_INSTANCE_GLYPH_ARIA_KEYS[glyphKind], {');
+    // Never the known cell's keys: those drop the UNKNOWN signal. The known
+    // map's name is a SUBSTRING of the unknown one, so the lookbehind keeps
+    // the legitimate UNKNOWN_INSTANCE_GLYPH_ARIA_KEYS use from matching.
+    expect(body).not.toMatch(/(?<!UNKNOWN_)INSTANCE_GLYPH_ARIA_KEYS/);
+    expect(body).toContain('row.draggable = !this.deps.tradeOpen() && !this.deps.vendorOpen()');
+    expect(body).toContain("row.addEventListener('dragstart'");
+    expect(body).toContain("row.addEventListener('dragend'");
+    expect(body).toContain('bindTouchItemDrag(row, {');
+    expect(body).toContain('this.dropOnBagCell(index >= 0 ? index : null, target.index)');
+    // Still a drop target in the pristine view, so re-parking other stacks
+    // around the unknown one keeps working.
+    expect(body).toContain('this.bindBagCellDrop(row, cell)');
+  });
+
+  it('styles the unknown cell without the click affordance (both CSS arms)', () => {
+    // The hover lift is suppressed outright; the cursor rule covers the
+    // non-draggable state only, because the later [draggable="true"] grab
+    // rule deliberately wins while the drag is available. Pinning both rules
+    // keeps that interplay from being "cleaned up" into a dead declaration.
+    expect(components).toContain('.bag-item[aria-disabled="true"]:hover');
+    expect(components).toMatch(
+      /\.bag-item\[aria-disabled="true"\]\s*\{\s*cursor:\s*var\(--cursor-arrow\);/,
+    );
+    expect(components).toMatch(
+      /\.bag-item\[draggable="true"\]\s*\{\s*cursor:\s*var\(--cursor-grab\);/,
+    );
+  });
+
+  it('never skips a slot in the grid fill (no continue of any wording)', () => {
+    // The shipped defect was `if (!item) continue`; a re-worded equivalent
+    // (`item == null`, a braced body) would evade a literal pin, so the whole
+    // fillGrid slice is held to zero continue statements.
+    const start = code.indexOf('private fillGrid(');
+    const end = code.indexOf('private buildStackCell(');
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(code.slice(start, end)).not.toContain('continue');
+  });
+});
+
+describe('bags_window: the bag-bar counter pools readout (phase 08)', () => {
+  // The pure split (carriedPools) is table-tested in tests/bags_view.test.ts;
+  // these arms read what the painter actually renders: the counter keeps its
+  // exact text and over-class behavior, gains the split aria only when the
+  // materials pool has something to say, and ALWAYS carries the lazy per-pool
+  // tooltip. The counter stays a non-actionable span: no click, no peek guard.
+  it('splits the counter aria and tooltip when a materials satchel is equipped', () => {
+    const { root, tooltips } = renderBagsHarness(
+      ['foragers_haversack', null, null, null],
+      [
+        { itemId: 'iron_ore', count: 1 },
+        { itemId: 'worn_sword', count: 1 },
+      ],
+      28,
+    );
+    const counter = root.querySelector('.bag-capacity');
+    // Issue #3795: the inline text names both pools once a satchel is equipped
+    // (the summed pair alone reads roomy while the general pool refuses).
+    expect(counter?.textContent).toBe('Items 1/16, Materials 1/12');
+    expect(counter?.getAttribute('aria-label')).toBe(
+      'Bag slots used: 2 of 28. General items: 1 of 16. Materials: 1 of 12.',
+    );
+    const tip = tooltips.find((entry) => entry.el === counter);
+    expect(tip).toBeDefined();
+    const html = tip?.html() ?? '';
+    expect(html).toContain('General: 1 of 16');
+    expect(html).toContain('Materials: 1 of 12');
+  });
+
+  it('keeps the exact text and simple aria without materials; the tooltip still attaches', () => {
+    const { root, tooltips } = renderBagsHarness(
+      ['wayfarers_backpack', null, null, null],
+      [{ itemId: 'worn_sword', count: 1 }],
+      32,
+    );
+    const counter = root.querySelector('.bag-capacity');
+    expect(counter?.textContent).toBe('1/32');
+    expect(counter?.getAttribute('aria-label')).toBe('Bag slots used: 1 of 32');
+    const tip = tooltips.find((entry) => entry.el === counter);
+    expect(tip).toBeDefined();
+    const html = tip?.html() ?? '';
+    expect(html).toContain('General: 1 of 32');
+    expect(html).not.toContain('Materials');
+  });
+
+  it('the over class still composes and the counter stays a span (no affordance change)', () => {
+    const seventeen: InvSlot[] = Array.from({ length: 17 }, () => ({
+      itemId: 'worn_sword',
+      count: 1,
+    }));
+    const { root } = renderBagsHarness([null, null, null, null], seventeen, 16);
+    const counter = root.querySelector('.bag-capacity');
+    expect(counter?.tagName).toBe('SPAN');
+    expect(counter?.classList.contains('over')).toBe(true);
+    expect(counter?.textContent).toBe('17/16');
+  });
+
+  it('the counter is focusable (keyboard users reach the per-pool tooltip)', () => {
+    // The split lives only in the tooltip, whose host serves hover,
+    // long-press, AND focusin; the tab stop is what makes the third path
+    // reachable (the bank meter's twin, QA 08).
+    const { root } = renderBagsHarness(
+      ['foragers_haversack', null, null, null],
+      [{ itemId: 'iron_ore', count: 1 }],
+      28,
+    );
+    expect(root.querySelector('.bag-capacity')?.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('keyboard focus parked on the counter survives a whole-window rebuild', () => {
+    // The restore ladder resolves by data-focus-key (dataset equality):
+    // without the counter's key, a reader parked on the pool tooltip dropped
+    // to <body> on the next inventory repaint (the focus_restore.ts #2528
+    // class the ladder exists to prevent).
+    const { root, window: win } = renderBagsHarness(
+      ['foragers_haversack', null, null, null],
+      [{ itemId: 'iron_ore', count: 1 }],
+      28,
+    );
+    const counter = root.querySelector('.bag-capacity') as HTMLElement;
+    counter.focus();
+    expect(document.activeElement).toBe(counter);
+    win.render();
+    const rebuilt = root.querySelector('.bag-capacity') as HTMLElement;
+    expect(rebuilt).not.toBe(counter);
+    expect(document.activeElement).toBe(rebuilt);
+  });
+});
+
+describe('bags_window: the grid fills the window it lives in (W24)', () => {
+  it('lays the sockets out as fluid auto-fill tracks, never a fixed centred count', () => {
+    // The review finding: a fixed six-column band centred in the body left dead
+    // space down both sides of every bag. Tracks now auto-fill the body width
+    // with the bag socket species as the floor, so the grid grows with the
+    // window (and with the wider vendor / bank companion docks).
+    expect(components).toContain(
+      'grid-template-columns: repeat(auto-fill, minmax(var(--socket-size-bag), 1fr));',
+    );
+    expect(components).not.toContain('grid-template-columns: repeat(6, 40px);');
+    // The socket species token itself is unchanged: cells still floor at 40px.
+    expect(tokens).toContain('--socket-size-bag: 40px;');
+  });
+
+  it('sizes the window to its content from the bottom anchor, capped for full bags', () => {
+    // Review round 2: a fixed 560px sheet left a small bag with a tall empty
+    // grid; the window is bottom-anchored, so an auto height grows upward with
+    // the slots and the cap keeps a full bag scrolling inside the viewport.
+    const bags = /\n {2}#bags \{([^}]*)\}/.exec(components)?.[1] ?? '';
+    expect(bags).toContain('height: auto;');
+    expect(bags).toContain('max-height: min(560px, calc(100vh - 18px));');
+    expect(bags).not.toContain('height: 560px;');
+  });
+
+  it('keeps every chrome row at its natural height so the grid is the one scroller', () => {
+    for (const row of ['#bags .panel-title', '#bags .bag-bar', '#bags .bag-filter-bar']) {
+      expect(components).toContain(`${row} {\n    flex: none;\n  }`);
+    }
+    expect(components).toContain('#bags .bag-grid {\n    flex: 1 1 auto;\n    min-height: 0;');
+  });
+
+  it('seats the money block as a ruled footer row pinned to the bottom edge', () => {
+    const money = /#bags \.money \{([^}]*)\}/.exec(components)?.[1] ?? '';
+    expect(money).toContain('flex: none;');
+    expect(money).toContain('border-top: 1px solid var(--color-border-showcase);');
+    expect(money).toContain('padding-top: var(--spacing-sm);');
   });
 });

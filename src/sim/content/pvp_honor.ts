@@ -1,131 +1,225 @@
-// WARFARE gear sold by FURY, the Honor Quartermaster. Every item is a
-// level-20 epic sourced at level 22, so the item-level index reads it as item
-// level 28 after the epic +6 quality bump.
+// WARFARE gear, sold by BOTH honor quartermasters from this one canonical stock:
+// FURY in Eastbrook Vale and Warmarshal Draven Kole in Highwatch. Every item is a
+// level-20 epic sourced at WARFARE_SOURCE_LEVEL, so the item-level index reads it
+// as item level 31 after the epic +6 quality bump: level with the heroic five-man
+// and rift clear-time epics, which is the current farmable tier.
 //
-// Every piece weights its stat budget toward WARFARE: primary stats are 60% of the
-// slot budget (see item_budget.ts), and the freed budget is expressed as the piece's
-// full WARFARE ratings (which still mirror the FULL slot budget, driving the 16.8%
-// full-set target). Armor mitigation and weapon DPS, the slot's inherent baseline,
-// are kept at the ilvl-28 curve. The net effect: PvP gear is a PvP-first, stat-light
-// kit that never out-stats same-tier PvE gear in PvE (where its WARFARE rating is
-// dead), while still winning in PvP through the WARFARE rating. In particular a PvP
-// ring/amulet never out-stats the ilvl-26 PvE badge jewelry from the Heroic
-// Quartermaster. The budget rule + the badge-comparison guard live in
-// tests/pvp_honor_gear.test.ts.
+// Three authored fractions shape every piece. All three are named constants
+// below so the tests pin the constant rather than a magic number:
+//   - WARFARE_STAT_FRACTION of the slot's primary-stat budget on armor and
+//     weapons, so a WARFARE piece stays visibly below a same-slot PvE epic.
+//   - WARFARE_JEWELRY_STAT_FRACTION on neck and rings, which is what keeps a
+//     WARFARE ring or amulet scoring below the Heroic Quartermaster's badge
+//     jewelry, five item levels lower and carrying a combat rating per piece.
+//     Badge jewelry is not the only other jewelry source: the rift epic ring
+//     abysswrought_band is level with this tier and out-stats the WARFARE ring.
+//   - WARFARE_RATING_FRACTION on every slot: the FULL slot budget again,
+//     expressed as WARFARE Offense and Defense Rating.
+// Armor mitigation and weapon DPS are the slot's inherent baseline rather than
+// budget-derived, and both sit on the item-level-31 curve beside the same-slot,
+// same-armor-type PvE epics.
+//
+// The rule this tier is built to, which replaces the older "never out-stats
+// same-tier PvE gear": honor gear sits at the current five-man epic item level,
+// carries a deliberate primary-stat discount against a same-slot PvE epic, and
+// never reaches raid or legendary stat levels. Its advantage over PvE gear is
+// expressed entirely in WARFARE, which is inert outside hostile
+// player-versus-player combat. No WARFARE piece carries critRating, hitRating,
+// or hasteRating and none ever will: every item-level-31 PvE epic carries one,
+// which is what keeps a complete honor kit from being a shortcut past the
+// heroic tier.
+//
+// The five armor families are also the five WARFARE item sets (see
+// content/item_sets.ts), with 2, 4, and 7 piece tiers paid in WARFARE rating and
+// PvP-gated effects only, so the sets contribute exactly nothing in PvE. Neck,
+// rings, and weapons carry no set tag: they are shared across role profiles.
+// The budget rule and the badge-comparison guard live in
+// tests/pvp_honor_gear.test.ts; the tier arithmetic in
+// tests/warfare_gear_tier.test.ts. Design doc: docs/design/warfare.md.
 
 import { EASTBROOK_NPC_PLACEMENTS_BY_ID } from '../eastbrook_layout';
+import { WORLD_PVP_SKULL_BAG_ITEM_ID } from '../pvp/world_pvp_trophy';
 import type { ItemDef, NpcDef } from '../types';
+import {
+  SET_WARFARE_ASHSTALKER,
+  SET_WARFARE_CINDERWEAVE,
+  SET_WARFARE_FURYFORGED,
+  SET_WARFARE_STORMBOUND,
+  SET_WARFARE_THORNHIDE,
+} from './item_sets';
+import { SEASON2_STOCK } from './pvp_honor_season2';
 
 export const FURY_NPC_ID = 'fury';
 // Reserved so adding FURY does not shift the deterministic nextId sequence used
 // by every existing world spawn and parity replay.
 export const FURY_ENTITY_ID = 1_000_000_001;
-export const WARFARE_SOURCE_LEVEL = 22;
+// The content level FURY's stock reads as. item_level.buildSourceIndex registers
+// every FURY_STOCK id here, so the epic quality bump (+6) puts the whole catalog
+// at item level 31.
+export const WARFARE_SOURCE_LEVEL = 25;
+
+// Share of the slot's primary-stat budget an armor or weapon piece carries. The
+// discount against a same-slot PvE epic (which carries the full budget) is the
+// structural half of "honor gear is not a PvE shortcut"; the other half is that
+// no WARFARE piece carries a combat rating.
+export const WARFARE_STAT_FRACTION = 0.9;
+// Jewelry is held lower on purpose. What it is calibrated against is the Heroic
+// Quartermaster's badge jewelry, which sits at item level 26, five below this
+// tier, and carries 25 of a combat rating per piece. At the armor fraction a
+// WARFARE ring reaches 12 primary points against the badge ring's 11 and a WARFARE
+// neck 13 against the badge neck's 12, which would overtake that lower tier on raw
+// stats and break the guard in tests/pvp_honor_gear.test.ts. At this fraction the
+// ring lands on 10 and the neck on 11. Badge jewelry is NOT the only other jewelry
+// source: the rift epic ring abysswrought_band (content/rift/items.ts) is item
+// level 31, level with this tier, and carries 13 primary points and 25 Haste
+// Rating, so a ring above the WARFARE ring already exists and is farmable.
+export const WARFARE_JEWELRY_STAT_FRACTION = 0.75;
+// WARFARE Offense and Defense Rating per piece, as a share of the same slot
+// budget: the full budget, on every slot, unchanged from the shipped rule. The
+// base 11-slot kit therefore carries 182 of each rating (18.2 percent) and the
+// seven-piece set tops it up to the cap rather than carrying it.
+export const WARFARE_RATING_FRACTION = 1.0;
+// Caster armor and weapons carry this share of the stamina premium the physical
+// WARFARE piece in the same slot carries over them (owner call, 2026-09-24: the
+// PvP gear health study found physical honor pieces authored 2 to 3 stamina per
+// slot above their PvE peers while caster pieces sat on their floor, leaving
+// cloth at 72 to 73 percent of an arms warrior in full honor gear). Half closes
+// most of that gap while cloth stays the squishier armor; rounded half up, it
+// adds 19 stamina to a caster kit. Jewelry is excluded: it stays calibrated
+// below the badge jewelry (WARFARE_JEWELRY_STAT_FRACTION above).
+export const WARFARE_CASTER_STAMINA_PREMIUM_SHARE = 0.5;
+
+// Season 1 sells for GOLD now that Warfare Season 2 is the honor tier (owner
+// rule, 2026-10-02: "make the last season of PvP sets just worth gold, perhaps
+// 100g for the set"). Copper per purchase, by slot: the seven armor pieces of
+// one family come to exactly 100 gold, split in proportion to the old honor
+// prices (5,400 Honor for the seven) and rounded to whole gold; jewelry and
+// weapons follow the same rate (neck 400 Honor to 7 gold, ring 275 to 5, weapon
+// 1,200 to 22). The two Warfare trinkets stay honor purchases.
+export const WARFARE_SEASON1_PRICE_COPPER = {
+  helmet: 170_000,
+  shoulder: 130_000,
+  chest: 220_000,
+  waist: 90_000,
+  legs: 190_000,
+  gloves: 100_000,
+  feet: 100_000,
+  neck: 70_000,
+  ring: 50_000,
+  mainhand: 220_000,
+} as const;
 
 export const WARFARE_ITEMS: Record<string, ItemDef> = {
   // Furyforged Battlegear: Strength and Stamina mail.
   furyforged_warhelm: {
     id: 'furyforged_warhelm',
+    set: SET_WARFARE_FURYFORGED,
     name: 'Furyforged Warhelm',
     kind: 'armor',
     armorType: 'mail',
     slot: 'helmet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 265, str: 4, sta: 6 },
-    pvpOffenseRating: 17,
-    pvpDefenseRating: 17,
-    priceHonor: 500,
+    stats: { armor: 292, str: 6, sta: 10 },
+    pvpOffenseRating: 18,
+    pvpDefenseRating: 18,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.helmet,
     sellValue: 0,
     soulbound: true,
   },
   furyforged_warspaulders: {
     id: 'furyforged_warspaulders',
+    set: SET_WARFARE_FURYFORGED,
     name: 'Furyforged Warspaulders',
     kind: 'armor',
     armorType: 'mail',
     slot: 'shoulder',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 220, str: 4, sta: 5 },
-    pvpOffenseRating: 15,
-    pvpDefenseRating: 15,
-    priceHonor: 400,
+    stats: { armor: 240, str: 6, sta: 8 },
+    pvpOffenseRating: 16,
+    pvpDefenseRating: 16,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.shoulder,
     sellValue: 0,
     soulbound: true,
   },
   furyforged_warplate: {
     id: 'furyforged_warplate',
+    set: SET_WARFARE_FURYFORGED,
     name: 'Furyforged Warplate',
     kind: 'armor',
     armorType: 'mail',
     slot: 'chest',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 305, str: 5, sta: 7 },
-    pvpOffenseRating: 20,
-    pvpDefenseRating: 20,
-    priceHonor: 700,
+    stats: { armor: 335, str: 8, sta: 12 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.chest,
     sellValue: 0,
     soulbound: true,
   },
   furyforged_girdle: {
     id: 'furyforged_girdle',
+    set: SET_WARFARE_FURYFORGED,
     name: 'Furyforged Girdle',
     kind: 'armor',
     armorType: 'mail',
     slot: 'waist',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 200, str: 3, sta: 5 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 250,
+    stats: { armor: 224, str: 5, sta: 9 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.waist,
     sellValue: 0,
     soulbound: true,
   },
   furyforged_legguards: {
     id: 'furyforged_legguards',
+    set: SET_WARFARE_FURYFORGED,
     name: 'Furyforged Legguards',
     kind: 'armor',
     armorType: 'mail',
     slot: 'legs',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 285, str: 5, sta: 6 },
-    pvpOffenseRating: 18,
-    pvpDefenseRating: 18,
-    priceHonor: 600,
+    stats: { armor: 315, str: 8, sta: 10 },
+    pvpOffenseRating: 20,
+    pvpDefenseRating: 20,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.legs,
     sellValue: 0,
     soulbound: true,
   },
   furyforged_gauntlets: {
     id: 'furyforged_gauntlets',
+    set: SET_WARFARE_FURYFORGED,
     name: 'Furyforged Gauntlets',
     kind: 'armor',
     armorType: 'mail',
     slot: 'gloves',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 200, str: 3, sta: 5 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 300,
+    stats: { armor: 224, str: 5, sta: 9 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.gloves,
     sellValue: 0,
     soulbound: true,
   },
   furyforged_sabatons: {
     id: 'furyforged_sabatons',
+    set: SET_WARFARE_FURYFORGED,
     name: 'Furyforged Sabatons',
     kind: 'armor',
     armorType: 'mail',
     slot: 'feet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 190, str: 4, sta: 4 },
-    pvpOffenseRating: 13,
-    pvpDefenseRating: 13,
-    priceHonor: 300,
+    stats: { armor: 212, str: 7, sta: 6 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.feet,
     sellValue: 0,
     soulbound: true,
   },
@@ -133,106 +227,113 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
   // Stormbound Vestments: Intellect, Stamina, and Spirit mail.
   stormbound_crown: {
     id: 'stormbound_crown',
+    set: SET_WARFARE_STORMBOUND,
     name: 'Stormbound Crown',
     kind: 'armor',
     armorType: 'mail',
     slot: 'helmet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 265, int: 5, sta: 3, spi: 2 },
-    pvpOffenseRating: 17,
-    pvpDefenseRating: 17,
-    priceHonor: 500,
+    stats: { armor: 292, int: 8, sta: 8, spi: 3 },
+    pvpOffenseRating: 18,
+    pvpDefenseRating: 18,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.helmet,
     sellValue: 0,
     soulbound: true,
   },
   stormbound_spaulders: {
     id: 'stormbound_spaulders',
+    set: SET_WARFARE_STORMBOUND,
     name: 'Stormbound Spaulders',
     kind: 'armor',
     armorType: 'mail',
     slot: 'shoulder',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 220, int: 4, sta: 3, spi: 2 },
-    pvpOffenseRating: 15,
-    pvpDefenseRating: 15,
-    priceHonor: 400,
+    stats: { armor: 240, int: 6, sta: 7, spi: 3 },
+    pvpOffenseRating: 16,
+    pvpDefenseRating: 16,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.shoulder,
     sellValue: 0,
     soulbound: true,
   },
   stormbound_hauberk: {
     id: 'stormbound_hauberk',
+    set: SET_WARFARE_STORMBOUND,
     name: 'Stormbound Hauberk',
     kind: 'armor',
     armorType: 'mail',
     slot: 'chest',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 305, int: 6, sta: 4, spi: 2 },
-    pvpOffenseRating: 20,
-    pvpDefenseRating: 20,
-    priceHonor: 700,
+    stats: { armor: 335, int: 10, sta: 10, spi: 3 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.chest,
     sellValue: 0,
     soulbound: true,
   },
   stormbound_waistguard: {
     id: 'stormbound_waistguard',
+    set: SET_WARFARE_STORMBOUND,
     name: 'Stormbound Waistguard',
     kind: 'armor',
     armorType: 'mail',
     slot: 'waist',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 200, int: 3, sta: 3, spi: 2 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 250,
+    stats: { armor: 224, int: 5, sta: 7, spi: 4 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.waist,
     sellValue: 0,
     soulbound: true,
   },
   stormbound_legmail: {
     id: 'stormbound_legmail',
+    set: SET_WARFARE_STORMBOUND,
     name: 'Stormbound Legmail',
     kind: 'armor',
     armorType: 'mail',
     slot: 'legs',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 285, int: 5, sta: 4, spi: 2 },
-    pvpOffenseRating: 18,
-    pvpDefenseRating: 18,
-    priceHonor: 600,
+    stats: { armor: 315, int: 8, sta: 9, spi: 3 },
+    pvpOffenseRating: 20,
+    pvpDefenseRating: 20,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.legs,
     sellValue: 0,
     soulbound: true,
   },
   stormbound_handguards: {
     id: 'stormbound_handguards',
+    set: SET_WARFARE_STORMBOUND,
     name: 'Stormbound Handguards',
     kind: 'armor',
     armorType: 'mail',
     slot: 'gloves',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 200, int: 3, sta: 3, spi: 2 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 300,
+    stats: { armor: 224, int: 5, sta: 7, spi: 4 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.gloves,
     sellValue: 0,
     soulbound: true,
   },
   stormbound_greaves: {
     id: 'stormbound_greaves',
+    set: SET_WARFARE_STORMBOUND,
     name: 'Stormbound Greaves',
     kind: 'armor',
     armorType: 'mail',
     slot: 'feet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 190, int: 4, sta: 2, spi: 2 },
-    pvpOffenseRating: 13,
-    pvpDefenseRating: 13,
-    priceHonor: 300,
+    stats: { armor: 212, int: 7, sta: 6, spi: 3 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.feet,
     sellValue: 0,
     soulbound: true,
   },
@@ -240,106 +341,113 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
   // Ashstalker Kit: Agility and Stamina leather.
   ashstalker_cowl: {
     id: 'ashstalker_cowl',
+    set: SET_WARFARE_ASHSTALKER,
     name: 'Ashstalker Cowl',
     kind: 'armor',
     armorType: 'leather',
     slot: 'helmet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 150, agi: 5, sta: 5 },
-    pvpOffenseRating: 17,
-    pvpDefenseRating: 17,
-    priceHonor: 500,
+    stats: { armor: 168, agi: 8, sta: 8 },
+    pvpOffenseRating: 18,
+    pvpDefenseRating: 18,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.helmet,
     sellValue: 0,
     soulbound: true,
   },
   ashstalker_shoulderguards: {
     id: 'ashstalker_shoulderguards',
+    set: SET_WARFARE_ASHSTALKER,
     name: 'Ashstalker Shoulderguards',
     kind: 'armor',
     armorType: 'leather',
     slot: 'shoulder',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 135, agi: 4, sta: 5 },
-    pvpOffenseRating: 15,
-    pvpDefenseRating: 15,
-    priceHonor: 400,
+    stats: { armor: 148, agi: 6, sta: 8 },
+    pvpOffenseRating: 16,
+    pvpDefenseRating: 16,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.shoulder,
     sellValue: 0,
     soulbound: true,
   },
   ashstalker_harness: {
     id: 'ashstalker_harness',
+    set: SET_WARFARE_ASHSTALKER,
     name: 'Ashstalker Harness',
     kind: 'armor',
     armorType: 'leather',
     slot: 'chest',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 155, agi: 5, sta: 7 },
-    pvpOffenseRating: 20,
-    pvpDefenseRating: 20,
-    priceHonor: 700,
+    stats: { armor: 172, agi: 8, sta: 12 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.chest,
     sellValue: 0,
     soulbound: true,
   },
   ashstalker_waistband: {
     id: 'ashstalker_waistband',
+    set: SET_WARFARE_ASHSTALKER,
     name: 'Ashstalker Waistband',
     kind: 'armor',
     armorType: 'leather',
     slot: 'waist',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 90, agi: 3, sta: 5 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 250,
+    stats: { armor: 100, agi: 5, sta: 9 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.waist,
     sellValue: 0,
     soulbound: true,
   },
   ashstalker_legguards: {
     id: 'ashstalker_legguards',
+    set: SET_WARFARE_ASHSTALKER,
     name: 'Ashstalker Legguards',
     kind: 'armor',
     armorType: 'leather',
     slot: 'legs',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 120, agi: 5, sta: 6 },
-    pvpOffenseRating: 18,
-    pvpDefenseRating: 18,
-    priceHonor: 600,
+    stats: { armor: 132, agi: 8, sta: 10 },
+    pvpOffenseRating: 20,
+    pvpDefenseRating: 20,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.legs,
     sellValue: 0,
     soulbound: true,
   },
   ashstalker_grips: {
     id: 'ashstalker_grips',
+    set: SET_WARFARE_ASHSTALKER,
     name: 'Ashstalker Grips',
     kind: 'armor',
     armorType: 'leather',
     slot: 'gloves',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 95, agi: 3, sta: 5 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 300,
+    stats: { armor: 104, agi: 5, sta: 9 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.gloves,
     sellValue: 0,
     soulbound: true,
   },
   ashstalker_treads: {
     id: 'ashstalker_treads',
+    set: SET_WARFARE_ASHSTALKER,
     name: 'Ashstalker Treads',
     kind: 'armor',
     armorType: 'leather',
     slot: 'feet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 85, agi: 4, sta: 4 },
-    pvpOffenseRating: 13,
-    pvpDefenseRating: 13,
-    priceHonor: 300,
+    stats: { armor: 96, agi: 7, sta: 6 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.feet,
     sellValue: 0,
     soulbound: true,
   },
@@ -347,111 +455,247 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
   // Cinderweave Regalia: Intellect, Stamina, and Spirit cloth.
   cinderweave_cowl: {
     id: 'cinderweave_cowl',
+    set: SET_WARFARE_CINDERWEAVE,
     name: 'Cinderweave Cowl',
     kind: 'armor',
     armorType: 'cloth',
     slot: 'helmet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 70, int: 5, sta: 3, spi: 2 },
-    pvpOffenseRating: 17,
-    pvpDefenseRating: 17,
-    priceHonor: 500,
+    stats: { armor: 76, int: 8, sta: 8, spi: 3 },
+    pvpOffenseRating: 18,
+    pvpDefenseRating: 18,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.helmet,
     sellValue: 0,
     soulbound: true,
   },
   cinderweave_mantle: {
     id: 'cinderweave_mantle',
+    set: SET_WARFARE_CINDERWEAVE,
     name: 'Cinderweave Mantle',
     kind: 'armor',
     armorType: 'cloth',
     slot: 'shoulder',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 50, int: 4, sta: 3, spi: 2 },
-    pvpOffenseRating: 15,
-    pvpDefenseRating: 15,
-    priceHonor: 400,
+    stats: { armor: 56, int: 6, sta: 7, spi: 3 },
+    pvpOffenseRating: 16,
+    pvpDefenseRating: 16,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.shoulder,
     sellValue: 0,
     soulbound: true,
   },
   cinderweave_raiment: {
     id: 'cinderweave_raiment',
+    set: SET_WARFARE_CINDERWEAVE,
     name: 'Cinderweave Raiment',
     kind: 'armor',
     armorType: 'cloth',
     slot: 'chest',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 80, int: 6, sta: 4, spi: 2 },
-    pvpOffenseRating: 20,
-    pvpDefenseRating: 20,
-    priceHonor: 700,
+    stats: { armor: 90, int: 10, sta: 10, spi: 3 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.chest,
     sellValue: 0,
     soulbound: true,
   },
   cinderweave_cord: {
     id: 'cinderweave_cord',
+    set: SET_WARFARE_CINDERWEAVE,
     name: 'Cinderweave Cord',
     kind: 'armor',
     armorType: 'cloth',
     slot: 'waist',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 45, int: 3, sta: 3, spi: 2 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 250,
+    stats: { armor: 48, int: 5, sta: 7, spi: 4 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.waist,
     sellValue: 0,
     soulbound: true,
   },
   cinderweave_legwraps: {
     id: 'cinderweave_legwraps',
+    set: SET_WARFARE_CINDERWEAVE,
     name: 'Cinderweave Legwraps',
     kind: 'armor',
     armorType: 'cloth',
     slot: 'legs',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 65, int: 5, sta: 4, spi: 2 },
-    pvpOffenseRating: 18,
-    pvpDefenseRating: 18,
-    priceHonor: 600,
+    stats: { armor: 72, int: 8, sta: 9, spi: 3 },
+    pvpOffenseRating: 20,
+    pvpDefenseRating: 20,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.legs,
     sellValue: 0,
     soulbound: true,
   },
   cinderweave_handwraps: {
     id: 'cinderweave_handwraps',
+    set: SET_WARFARE_CINDERWEAVE,
     name: 'Cinderweave Handwraps',
     kind: 'armor',
     armorType: 'cloth',
     slot: 'gloves',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 45, int: 3, sta: 3, spi: 2 },
-    pvpOffenseRating: 14,
-    pvpDefenseRating: 14,
-    priceHonor: 300,
+    stats: { armor: 52, int: 5, sta: 7, spi: 4 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.gloves,
     sellValue: 0,
     soulbound: true,
   },
   cinderweave_slippers: {
     id: 'cinderweave_slippers',
+    set: SET_WARFARE_CINDERWEAVE,
     name: 'Cinderweave Slippers',
     kind: 'armor',
     armorType: 'cloth',
     slot: 'feet',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { armor: 40, int: 4, sta: 2, spi: 2 },
-    pvpOffenseRating: 13,
-    pvpDefenseRating: 13,
-    priceHonor: 300,
+    stats: { armor: 44, int: 7, sta: 6, spi: 3 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.feet,
     sellValue: 0,
     soulbound: true,
   },
 
-  // Necklaces: one Strength, one Agility, and one caster profile.
+  // Thornhide Garb, the leather caster family. Added after review: a druid's
+  // maximum armor weight is LEATHER (equipment_rules.ts LEATHER_CLASSES), and the
+  // only int/spi families were Stormbound (mail, unwearable) and Cinderweave
+  // (cloth, a full rank below what the class can wear), so a caster druid was
+  // giving up an armor rank to a content gap rather than to a decision. The
+  // 7-piece capstone made that worse rather than better: before the sets existed
+  // a druid could mix cloth and leather freely, and the capstone turned that
+  // hedge into a forfeit.
+  //
+  // Stat identity is Cinderweave's, slot for slot, because the caster budget is
+  // the caster budget. Armor is Ashstalker's, slot for slot, because armor is a
+  // function of weight and item level, not of stat identity. No requiredClass:
+  // these gate on armorType like every other WARFARE piece, so a rogue may equip
+  // them and get nothing useful, exactly as with Cinderweave today.
+  thornhide_headdress: {
+    id: 'thornhide_headdress',
+    set: SET_WARFARE_THORNHIDE,
+    name: 'Thornhide Headdress',
+    kind: 'armor',
+    armorType: 'leather',
+    slot: 'helmet',
+    quality: 'epic',
+    requiredLevel: 20,
+    stats: { armor: 168, int: 8, sta: 8, spi: 3 },
+    pvpOffenseRating: 18,
+    pvpDefenseRating: 18,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.helmet,
+    sellValue: 0,
+    soulbound: true,
+  },
+  thornhide_mantle: {
+    id: 'thornhide_mantle',
+    set: SET_WARFARE_THORNHIDE,
+    name: 'Thornhide Mantle',
+    kind: 'armor',
+    armorType: 'leather',
+    slot: 'shoulder',
+    quality: 'epic',
+    requiredLevel: 20,
+    stats: { armor: 148, int: 6, sta: 7, spi: 3 },
+    pvpOffenseRating: 16,
+    pvpDefenseRating: 16,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.shoulder,
+    sellValue: 0,
+    soulbound: true,
+  },
+  thornhide_vestment: {
+    id: 'thornhide_vestment',
+    set: SET_WARFARE_THORNHIDE,
+    name: 'Thornhide Vestment',
+    kind: 'armor',
+    armorType: 'leather',
+    slot: 'chest',
+    quality: 'epic',
+    requiredLevel: 20,
+    stats: { armor: 172, int: 10, sta: 10, spi: 3 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.chest,
+    sellValue: 0,
+    soulbound: true,
+  },
+  thornhide_cinch: {
+    id: 'thornhide_cinch',
+    set: SET_WARFARE_THORNHIDE,
+    name: 'Thornhide Cinch',
+    kind: 'armor',
+    armorType: 'leather',
+    slot: 'waist',
+    quality: 'epic',
+    requiredLevel: 20,
+    stats: { armor: 100, int: 5, sta: 7, spi: 4 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.waist,
+    sellValue: 0,
+    soulbound: true,
+  },
+  thornhide_leggings: {
+    id: 'thornhide_leggings',
+    set: SET_WARFARE_THORNHIDE,
+    name: 'Thornhide Leggings',
+    kind: 'armor',
+    armorType: 'leather',
+    slot: 'legs',
+    quality: 'epic',
+    requiredLevel: 20,
+    stats: { armor: 132, int: 8, sta: 9, spi: 3 },
+    pvpOffenseRating: 20,
+    pvpDefenseRating: 20,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.legs,
+    sellValue: 0,
+    soulbound: true,
+  },
+  thornhide_gloves: {
+    id: 'thornhide_gloves',
+    set: SET_WARFARE_THORNHIDE,
+    name: 'Thornhide Gloves',
+    kind: 'armor',
+    armorType: 'leather',
+    slot: 'gloves',
+    quality: 'epic',
+    requiredLevel: 20,
+    stats: { armor: 104, int: 5, sta: 7, spi: 4 },
+    pvpOffenseRating: 15,
+    pvpDefenseRating: 15,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.gloves,
+    sellValue: 0,
+    soulbound: true,
+  },
+  thornhide_boots: {
+    id: 'thornhide_boots',
+    set: SET_WARFARE_THORNHIDE,
+    name: 'Thornhide Boots',
+    kind: 'armor',
+    armorType: 'leather',
+    slot: 'feet',
+    quality: 'epic',
+    requiredLevel: 20,
+    stats: { armor: 96, int: 7, sta: 6, spi: 3 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.feet,
+    sellValue: 0,
+    soulbound: true,
+  },
+
+  // Necklaces: one Strength, one Agility, and one caster profile. Jewelry carries
+  // no set tag (it is shared across role profiles) and rides the lower
+  // WARFARE_JEWELRY_STAT_FRACTION.
   final_oath_medallion: {
     id: 'final_oath_medallion',
     name: 'Medallion of the Final Oath',
@@ -459,10 +703,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'neck',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { str: 4, sta: 4 },
-    pvpOffenseRating: 13,
-    pvpDefenseRating: 13,
-    priceHonor: 225,
+    stats: { str: 6, sta: 5 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.neck,
     sellValue: 0,
     soulbound: true,
   },
@@ -473,10 +717,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'neck',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { agi: 4, sta: 4 },
-    pvpOffenseRating: 13,
-    pvpDefenseRating: 13,
-    priceHonor: 225,
+    stats: { agi: 6, sta: 5 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.neck,
     sellValue: 0,
     soulbound: true,
   },
@@ -487,10 +731,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'neck',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { int: 4, sta: 3, spi: 1 },
-    pvpOffenseRating: 13,
-    pvpDefenseRating: 13,
-    priceHonor: 225,
+    stats: { int: 6, sta: 5, spi: 1 },
+    pvpOffenseRating: 14,
+    pvpDefenseRating: 14,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.neck,
     sellValue: 0,
     soulbound: true,
   },
@@ -503,10 +747,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'ring',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { str: 3, sta: 4 },
-    pvpOffenseRating: 12,
-    pvpDefenseRating: 12,
-    priceHonor: 150,
+    stats: { str: 4, sta: 6 },
+    pvpOffenseRating: 13,
+    pvpDefenseRating: 13,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.ring,
     sellValue: 0,
     soulbound: true,
   },
@@ -517,10 +761,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'ring',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { str: 4, sta: 3 },
-    pvpOffenseRating: 12,
-    pvpDefenseRating: 12,
-    priceHonor: 150,
+    stats: { str: 6, sta: 4 },
+    pvpOffenseRating: 13,
+    pvpDefenseRating: 13,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.ring,
     sellValue: 0,
     soulbound: true,
   },
@@ -531,10 +775,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'ring',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { agi: 4, sta: 3 },
-    pvpOffenseRating: 12,
-    pvpDefenseRating: 12,
-    priceHonor: 150,
+    stats: { agi: 6, sta: 4 },
+    pvpOffenseRating: 13,
+    pvpDefenseRating: 13,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.ring,
     sellValue: 0,
     soulbound: true,
   },
@@ -545,10 +789,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'ring',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { agi: 3, sta: 4 },
-    pvpOffenseRating: 12,
-    pvpDefenseRating: 12,
-    priceHonor: 150,
+    stats: { agi: 4, sta: 6 },
+    pvpOffenseRating: 13,
+    pvpDefenseRating: 13,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.ring,
     sellValue: 0,
     soulbound: true,
   },
@@ -559,10 +803,10 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'ring',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { int: 4, sta: 2, spi: 1 },
-    pvpOffenseRating: 12,
-    pvpDefenseRating: 12,
-    priceHonor: 150,
+    stats: { int: 6, sta: 4, spi: 1 },
+    pvpOffenseRating: 13,
+    pvpDefenseRating: 13,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.ring,
     sellValue: 0,
     soulbound: true,
   },
@@ -573,15 +817,18 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'ring',
     quality: 'epic',
     requiredLevel: 20,
-    stats: { int: 3, sta: 2, spi: 2 },
-    pvpOffenseRating: 12,
-    pvpDefenseRating: 12,
-    priceHonor: 150,
+    stats: { int: 4, sta: 4, spi: 3 },
+    pvpOffenseRating: 13,
+    pvpDefenseRating: 13,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.ring,
     sellValue: 0,
     soulbound: true,
   },
 
-  // Main hands: Strength, Agility, and caster profiles on the ilvl-28 DPS curve.
+  // Main hands: Strength, Agility, and caster profiles on the ilvl-31 DPS curve.
+  // Deliberately a contested slot rather than one this tier owns: an ilvl-31
+  // honor weapon cannot out-scale an ilvl-33 raid epic or an ilvl-37 legendary
+  // at any WARFARE budget, and it is not meant to.
   final_argument_greatblade: {
     id: 'final_argument_greatblade',
     name: 'Final Argument Greatblade',
@@ -589,11 +836,11 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'mainhand',
     quality: 'epic',
     requiredLevel: 20,
-    weapon: { min: 34, max: 50, speed: 2.8 },
-    stats: { str: 5, sta: 7 },
-    pvpOffenseRating: 20,
-    pvpDefenseRating: 20,
-    priceHonor: 800,
+    weapon: { min: 36, max: 53, speed: 2.8 },
+    stats: { str: 8, sta: 12 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.mainhand,
     sellValue: 0,
     soulbound: true,
     requiredClass: ['warrior', 'paladin', 'shaman'],
@@ -605,11 +852,11 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'mainhand',
     quality: 'epic',
     requiredLevel: 20,
-    weapon: { min: 20, max: 31, speed: 1.7, dagger: true },
-    stats: { agi: 5, sta: 7 },
-    pvpOffenseRating: 20,
-    pvpDefenseRating: 20,
-    priceHonor: 800,
+    weapon: { min: 21, max: 33, speed: 1.7, dagger: true },
+    stats: { agi: 8, sta: 12 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.mainhand,
     sellValue: 0,
     soulbound: true,
     requiredClass: ['rogue', 'hunter', 'druid'],
@@ -621,11 +868,11 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
     slot: 'mainhand',
     quality: 'epic',
     requiredLevel: 20,
-    weapon: { min: 37, max: 54, speed: 3 },
-    stats: { int: 6, sta: 4, spi: 2 },
-    pvpOffenseRating: 20,
-    pvpDefenseRating: 20,
-    priceHonor: 800,
+    weapon: { min: 39, max: 57, speed: 3 },
+    stats: { int: 10, sta: 10, spi: 3 },
+    pvpOffenseRating: 22,
+    pvpDefenseRating: 22,
+    buyValue: WARFARE_SEASON1_PRICE_COPPER.mainhand,
     sellValue: 0,
     soulbound: true,
     requiredClass: ['mage', 'priest', 'warlock', 'shaman', 'paladin', 'druid'],
@@ -633,6 +880,40 @@ export const WARFARE_ITEMS: Record<string, ItemDef> = {
 };
 
 export const FURY_STOCK: readonly string[] = Object.keys(WARFARE_ITEMS);
+
+// The two PvP trinkets (content/trinkets.ts), sold beside the WARFARE kit for
+// 800 honor. They carry WARFARE like the rest of the honor gear, on the jewelry
+// rule: one attribute at WARFARE_JEWELRY_STAT_FRACTION of the item-level-31
+// trinket line (10 of 13, no stamina top-up: the trinket slot is exempt from the
+// stamina model) and WARFARE Offense and Defense Rating at
+// WARFARE_RATING_FRACTION of it (13 each). They have no set tag and their defs
+// live in content/trinkets.ts, so they sit outside FURY_STOCK (and outside the
+// kit and set arithmetic, which counts the eleven kit slots); a full kit plus
+// both trinkets reads 208 of each rating before any set tier, and the set
+// capstone still clamps at the cap. Registered at WARFARE_SOURCE_LEVEL by
+// item_level.buildSourceIndex. Soulbound with no gold sell value, like every
+// honor purchase.
+export const WARFARE_TRINKET_STOCK: readonly string[] = ['medallion_of_defiance', 'duelists_brand'];
+
+// World PvP goods: the Skull Bag (src/sim/pvp/skull_bag.ts), a 500 honor
+// sub-inventory for trophy skulls. No stats and no set, so it sits outside the
+// gear arithmetic; the shop window gives it its own Goods section.
+export const WORLD_PVP_GOODS_STOCK: readonly string[] = [WORLD_PVP_SKULL_BAG_ITEM_ID];
+
+// What both honor quartermasters sell: the Warfare entry tier above, then Warfare
+// Season 2 (content/pvp_honor_season2.ts), the item-level-35 spec sets and
+// weapons, with the two honor trinkets and the World PvP goods between them
+// (the release pins the entry tier as the head of the list and Season 2 as its
+// tail). FURY_STOCK keeps
+// meaning the entry tier everywhere it is read.
+export const HONOR_QUARTERMASTER_STOCK: readonly string[] = [
+  ...FURY_STOCK,
+  ...WARFARE_TRINKET_STOCK,
+  ...WORLD_PVP_GOODS_STOCK,
+  ...SEASON2_STOCK,
+];
+/** Shared honor vendor stock; FURY_STOCK remains the gear-only list. */
+export const HONOR_VENDOR_STOCK: readonly string[] = [...HONOR_QUARTERMASTER_STOCK];
 
 export const FURY_NPC: NpcDef = {
   id: FURY_NPC_ID,
@@ -642,7 +923,10 @@ export const FURY_NPC: NpcDef = {
   facing: EASTBROOK_NPC_PLACEMENTS_BY_ID.fury.facing,
   color: 0xb52a2a,
   questIds: [],
-  vendorItems: [...FURY_STOCK],
+  vendorItems: [...HONOR_VENDOR_STOCK],
   dynamic: true,
+  // The Eastbrook mirror sells the identical stock, so it presents the identical
+  // set-divided shop window. One canonical stock, two placements.
+  warfareVendor: true,
   greeting: 'The sands remember every victory. Spend your honor well.',
 };

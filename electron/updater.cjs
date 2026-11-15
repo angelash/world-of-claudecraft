@@ -9,10 +9,14 @@
 //
 // UX contract: this side only LOGS and forwards whitelisted payloads
 // (electron/update_events.cjs) to the renderer over 'desktop-update-event';
-// the renderer renders the t()-localized toast and calls
-// 'desktop-update-install' when the player picks "restart now". Downloads
+// the renderer renders the t()-localized card and calls
+// 'desktop-update-install' when the player picks "restart now". Every check
+// forwards 'checking' (the renderer shows only the first per session, so the
+// launch check surfaces "Checking for updates" and the 4-hour rechecks stay
+// silent), 'not-available' answers it, and 'error' clears a stuck
+// checking/downloading card without ever carrying user-facing text. Downloads
 // start as soon as an offered update passes the cross-track origin guard
-// (electron/update_guard.cjs); if the player ignores the toast the update
+// (electron/update_guard.cjs); if the player ignores the card the update
 // installs on quit (autoInstallOnAppQuit).
 //
 // Track safety: this install reads ONLY the update channel derived from its
@@ -95,6 +99,13 @@ function initUpdater({
   };
 
   let lastProgressSent = -1;
+  let downloading = false;
+  let downloaded = false;
+  let checkInFlight = null;
+  autoUpdater.on('checking-for-update', () => {
+    log.info('[updater] checking for updates');
+    send(updateEventPayload('checking'));
+  });
   autoUpdater.on('update-available', (info) => {
     const verdict = evaluateUpdateOffer({ apiOrigin, info });
     if (!verdict.ok) {
@@ -105,20 +116,28 @@ function initUpdater({
         offeredOrigin: verdict.offeredOrigin,
         expectedOrigin: verdict.expectedOrigin,
       });
+      send(updateEventPayload('error'));
       return;
     }
     log.info('[updater] update available', {
       version: info?.version,
       originStamp: verdict.stamped ? 'match' : 'absent (pre-split feed file)',
     });
+    if (downloading || downloaded) return;
+    downloading = true;
     lastProgressSent = -1;
     send(updateEventPayload('available', info));
-    autoUpdater
-      .downloadUpdate()
-      .catch((err) => log.warn('[updater] download failed', err?.message ?? String(err)));
+    autoUpdater.downloadUpdate().catch((err) => {
+      downloading = false;
+      log.warn('[updater] download failed', err?.message ?? String(err));
+      // Clear the renderer's "downloading" card; the retry happens on the next
+      // scheduled check either way.
+      send(updateEventPayload('error'));
+    });
   });
   autoUpdater.on('update-not-available', (info) => {
     log.info('[updater] up to date', { version: info?.version });
+    send(updateEventPayload('not-available', info));
   });
   autoUpdater.on('download-progress', (progress) => {
     if (!shouldNotifyProgress(lastProgressSent, progress?.percent)) return;
@@ -127,15 +146,21 @@ function initUpdater({
     send(payload);
   });
   autoUpdater.on('update-downloaded', (info) => {
+    downloading = false;
+    downloaded = true;
     log.info('[updater] update downloaded; will install on quit or restart', {
       version: info?.version,
     });
     send(updateEventPayload('downloaded', info));
   });
-  // Log-only: a failed check is normal life (offline, captive portal, feed
-  // host down) and retries on the next interval. Never user-facing.
+  // A failed check is normal life (offline, captive portal, feed host down)
+  // and retries on the next interval. Never user-facing text: the bare 'error'
+  // payload only lets the renderer clear a checking/downloading card that
+  // would otherwise sit there forever.
   autoUpdater.on('error', (err) => {
+    downloading = false;
     log.warn('[updater] error (will retry on the next check)', err?.message ?? String(err));
+    send(updateEventPayload('error'));
   });
 
   ipcMain.handle('desktop-update-install', (event) => {
@@ -147,10 +172,26 @@ function initUpdater({
   });
 
   const check = () => {
-    autoUpdater
-      .checkForUpdates()
-      .catch((err) => log.warn('[updater] check failed', err?.message ?? String(err)));
+    if (downloaded) return Promise.resolve('ready');
+    if (downloading) return Promise.resolve('checking');
+    if (checkInFlight) return checkInFlight;
+    checkInFlight = Promise.resolve()
+      .then(() => autoUpdater.checkForUpdates())
+      .then(() => 'checking')
+      .catch((err) => {
+        log.warn('[updater] check failed', err?.message ?? String(err));
+        send(updateEventPayload('error'));
+        return 'unavailable';
+      })
+      .finally(() => {
+        checkInFlight = null;
+      });
+    return checkInFlight;
   };
+  ipcMain.handle('desktop-update-check', (event) => {
+    if (!isTrusted(event)) return 'unavailable';
+    return check();
+  });
   // First check after the game has had its boot bandwidth; then periodically.
   // Process-lifetime timers by design (the updater lives as long as the app),
   // so they are deliberately never cleared.

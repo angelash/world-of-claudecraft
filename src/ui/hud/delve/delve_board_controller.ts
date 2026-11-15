@@ -1,11 +1,14 @@
 import { COMPANION_UPGRADE_COSTS, DELVES, ITEMS } from '../../../sim/data';
 import type { ItemDef, SimEvent } from '../../../sim/types';
 import type { IWorld } from '../../../world_api';
+import { currencyIconHtml } from '../../currency_art';
+import { markDialogRoot } from '../../dialog_root';
 import { itemDisplayName } from '../../entity_i18n';
 import { esc } from '../../esc';
 import type { FocusTrapHandle } from '../../focus_manager';
 import { formatNumber, type TranslationKey, t } from '../../i18n';
 import { QUALITY_COLOR } from '../../icons';
+import type { PainterHostPresentation } from '../../painter_host';
 import { svgIcon } from '../../ui_icons';
 
 type DelveTier = 'normal' | 'heroic';
@@ -18,7 +21,10 @@ export interface DelveBoardControllerDeps {
   closeOtherWindows(selector: string): void;
   hideTooltip(): void;
   attachTooltip(element: HTMLElement, html: () => string): void;
-  itemIcon(item: ItemDef): string;
+  /** The PainterHostPresentation.itemIcon signature, named from the seam
+   *  rather than re-typed; the quality parameter is shape uniformity only
+   *  here, since no copy payload reaches this surface, and is never passed. */
+  itemIcon: PainterHostPresentation['itemIcon'];
   itemTooltip(item: ItemDef): string;
   delveName(delveId: string): string;
   preloadInterior(event: Extract<SimEvent, { type: 'delveEntered' }>): void;
@@ -101,10 +107,13 @@ export class DelveBoardController {
             heroicLabel,
             canEnter,
           );
+    // A standalone focus-trapped window (open() arms a FocusTrapHandle):
+    // announce it as a labeled dialog for the focus contract.
+    markDialogRoot(element, { label: t('delveUi.board.title') });
     element.innerHTML =
       `<div class="panel-title"><span>${esc(t('delveUi.board.title'))}</span><button type="button" class="x-btn" data-close aria-label="${esc(t('questUi.dialog.close'))}">${svgIcon('close')}</button></div>` +
       `<div class="delve-board-name">${esc(delveName)}</div>` +
-      `<div class="delve-board-meta">${esc(t('delveUi.board.marks', { count: marks }))}</div>` +
+      `<div class="delve-board-meta">${currencyIconHtml('delve_mark')}${esc(t('delveUi.board.marks', { count: marks }))}</div>` +
       `<div class="delve-board-req${world.player.level >= delve.minLevel ? '' : ' req-unmet'}">${esc(t('delveUi.board.minLevel', { level: formatNumber(delve.minLevel, { maximumFractionDigits: 0 }) }))}</div>` +
       `<div class="delve-board-req${partyTooLarge ? ' req-unmet' : ''}">${esc(t('delveUi.board.partyTooLarge', { max: formatNumber(delve.maxPlayers, { maximumFractionDigits: 0 }) }))}</div>` +
       `<div class="delve-tabs" role="tablist" aria-label="${esc(t('delveUi.board.title'))}">${tabButton('delve', t('delveUi.board.tabDelve'))}${tabButton('shop', t('delveUi.board.tabShop'))}</div>` +
@@ -162,7 +171,7 @@ export class DelveBoardController {
       companionAction =
         `<button type="button" class="btn delve-companion-upgrade" data-companion-upgrade="${esc(companionId)}"` +
         ` aria-label="${esc(t('delveUi.board.companion.upgradeAria', { name: companionName, rank: nextRankLabel, marks: costMarks }))}"` +
-        `${affordable ? '' : ' disabled'}>${esc(t('delveUi.board.companion.upgrade', { rank: nextRankLabel, marks: costMarks }))}</button>`;
+        `${affordable ? '' : ' disabled'}>${currencyIconHtml('delve_mark')}${esc(t('delveUi.board.companion.upgrade', { rank: nextRankLabel, marks: costMarks }))}</button>`;
     }
     const tierRow = (['normal', 'heroic'] as const)
       .map((tier) => {
@@ -212,7 +221,7 @@ export class DelveBoardController {
           `<div class="delve-shop-row${offer.unlocked ? '' : ' locked'}" role="listitem" data-shop-item="${esc(offer.itemId)}">` +
           `${this.deps.itemIcon(item)}` +
           `<div class="delve-shop-info"><span class="delve-shop-name" style="color:${qualityColor}">${esc(name)}</span>` +
-          `<span class="delve-shop-price${priceClass}">${esc(priceLabel)}</span></div>${action}</div>`
+          `<span class="delve-shop-price${priceClass}">${currencyIconHtml('delve_mark')}${esc(priceLabel)}</span></div>${action}</div>`
         );
       })
       .join('');

@@ -41,7 +41,8 @@
 //   (3) Domain feature-config getters that own their own env (discord.ts, github.ts
 //       OAuth, oauth.ts, native_attestation.ts, email/, auth.ts banlist,
 //       chat_filter_db.ts, woc_balance.ts, perf_report.ts, TRUSTED_PROXY_IPS in
-//       ratelimit.ts), plus daily_rewards.ts's module-load cache-TTL test knob
+//       ratelimit.ts, and woc_market_routes.ts's wocMarketConfig with its
+//       clamped WOC_MARKET_CONFIRMING_REVIEW_HOURS read), plus daily_rewards.ts's module-load cache-TTL test knob
 //       WOC_DAILY_REWARD_CONFIG_TTL_MS (a garbage value degrades to cache-off,
 //       never breaks a request).
 //   (4) The security-header / enforce-flag middlewares keep their own
@@ -86,8 +87,15 @@ export interface Config {
   // live cheat gates (game.ts, the two /api/perf arms) deliberately re-read env per
   // command today (see conscious exception (2) above).
   readonly allowDevCommands: boolean;
+  // Off-by-default community-realm account provisioning. When enabled, the
+  // central account insert atomically creates the full level-20 test roster.
+  readonly provisionTestAccounts: boolean;
   readonly turnstileSecret: string;
   readonly maxWsPerIpHard: number;
+  // permessage-deflate on the game WebSocket (server/ws_compression.ts). ON by
+  // default: WS_PERMESSAGE_DEFLATE=0 (or false) is the kill switch; unset, empty,
+  // 1 and true keep it on, and any other set value fails fast like the other flags.
+  readonly wsPerMessageDeflate: boolean;
   // The realm player admission cap: the WS handshake (server/ws_auth.ts) refuses a
   // fresh join once the realm holds this many sessions, and /api/status advertises
   // it so the client realm list can display honestly. The raw value is trimmed
@@ -101,10 +109,11 @@ export interface Config {
   readonly githubToken: string;
   readonly chatLogRetentionDays: number;
   readonly perfReportRetentionDays: number;
-  // The six retention keys below follow the chatLogRetentionDays contract: 0 =
+  // The retention keys below follow the chatLogRetentionDays contract: 0 =
   // keep forever, and the read is deliberately UNTRIMMED, so a whitespace-only
   // value falls to 0, the SAFE side for a destructive delete (keep, never prune).
   readonly dailyRewardEventsRetentionDays: number;
+  readonly unstuckReportRetentionDays: number;
   readonly onlineSamplesRetentionDays: number;
   readonly sitePresenceRetentionDays: number;
   // Play sessions older than this fold into the lifetime rollups and are deleted;
@@ -122,6 +131,66 @@ export interface Config {
   // Remote-provider AI audit payloads are diagnostic history, not permanent
   // character state. 0 keeps them forever; the default bounds JSONB growth.
   readonly aiAuditRetentionDays: number;
+  // How many days of password_reset_requests / email_change_requests rows to
+  // keep after creation. The per-account supersede DELETE at each create call
+  // only removes a duplicate still-PENDING row (createPasswordResetRequest /
+  // createEmailChangeRequest, server/db.ts); a consumed or abandoned-and-expired
+  // row is untouched there, so these are the only knobs that bound either table.
+  readonly passwordResetRequestRetentionDays: number;
+  readonly emailChangeRequestRetentionDays: number;
+  // How many days of email_log rows (the outbound-email audit trail) to keep.
+  readonly emailLogRetentionDays: number;
+  // How many days of RESOLVED player_reports rows (status 'ignored' or
+  // 'actioned') to keep; an OPEN report is never pruned regardless of age,
+  // since moderationQueue and moderationReportsForAccount only ever surface
+  // status = 'open' rows. 0 keeps resolved reports forever.
+  readonly playerReportRetentionDays: number;
+  // How many days of bug_reports rows to keep. Each row can carry a
+  // screenshot up to ~900 KB, so this table is the fastest-growing of the
+  // report tables. 0 keeps them forever.
+  readonly bugReportRetentionDays: number;
+  // How many days of the chat_violations hard-word incident log to keep. Its
+  // only reader (chatModerationForAccount) is already LIMIT-bounded per
+  // account, so pruning the oldest rows never invalidates a page it can still
+  // return. 0 keeps them forever.
+  readonly chatViolationRetentionDays: number;
+  // How many days of the progression analytics event logs to keep
+  // (level_up_events: one row per ding; ftue_events: new-player quest/death
+  // events, already level-gated at write time). Both follow the untrimmed
+  // 0-keeps-forever retention contract above.
+  readonly levelUpEventsRetentionDays: number;
+  readonly ftueEventsRetentionDays: number;
+  // How many days a world-quest scoreboard row (a character's best attempt on
+  // one ladder) survives without being improved. Same 0-keeps-forever contract.
+  readonly worldQuestScoresRetentionDays: number;
+  // How many days of the chance-based crafting outcome audit
+  // (craft_roll_events: one row per masterwork proc draw or Perfecting
+  // attempt, server/craft_roll_events_db.ts) to keep. Same 0-keeps-forever
+  // contract.
+  readonly craftRollEventsRetentionDays: number;
+  // How many days an item_ledger row (one per tracked epic/legendary copy
+  // mint or change of hands, server/item_ledger_db.ts) is kept. The copy's
+  // own payload keeps its bounded provenance forever; this is the audit
+  // twin. Same 0-keeps-forever contract.
+  readonly itemLedgerRetentionDays: number;
+  // How many days a CLOSED, fully-disposed $WOC Exchange listing (and, via
+  // FK cascade, its bids and settlements) is kept. Sales are the permanent
+  // provenance record and never prune. 0 keeps listings forever.
+  readonly wocMarketListingsRetentionDays: number;
+  // How many days a buy-now abandon-ledger row (the claim-cooldown evidence)
+  // is kept. Rows are dead once outside every cooldown window; 0 keeps them
+  // forever.
+  readonly wocMarketAbandonsRetentionDays: number;
+  // How many days a RESOLVED directed p2p offer (accepted, declined,
+  // withdrawn, expired) is kept. Pending offers never prune (they expire
+  // through the sweep first); 0 keeps resolved rows forever.
+  readonly wocMarketOffersRetentionDays: number;
+  // How many days a BOOKED custody-claim row (delivery provenance) is kept.
+  // Unbooked rows are the operator queue and never prune regardless of this
+  // knob; 0 keeps booked rows forever. Must stay comfortably above the
+  // listings window: a booked claim is the exactly-once evidence and has to
+  // outlive every settlement/listing row that could re-drive its delivery.
+  readonly wocMarketCustodyClaimsRetentionDays: number;
   // The two sweep knobs follow the maxPlayersPerRealm trimmed-read contract
   // instead, because for them a whitespace-derived 0 is fail-DANGEROUS: hour 0
   // moves the sweep to 00:00 UTC, next to the nightly 03:15 UTC pg_dump window
@@ -168,6 +237,7 @@ const DEFAULT_MAX_PLAYERS_PER_REALM = 5000;
 const DEFAULT_GITHUB_REPO = 'levy-street/world-of-claudecraft';
 const DEFAULT_GITHUB_TOKEN = '';
 const DEFAULT_CHAT_LOG_RETENTION_DAYS = 90;
+const DEFAULT_UNSTUCK_REPORT_RETENTION_DAYS = 90;
 const DEFAULT_PERF_REPORT_RETENTION_DAYS = 14;
 const DEFAULT_DAILY_REWARD_EVENTS_RETENTION_DAYS = 400;
 const DEFAULT_ONLINE_SAMPLES_RETENTION_DAYS = 90;
@@ -176,6 +246,46 @@ const DEFAULT_PLAY_SESSION_RETENTION_DAYS = 180;
 const DEFAULT_ACCOUNT_IP_ASSOCIATION_RETENTION_DAYS = 730;
 const DEFAULT_PLAYER_ACTIVITY_RETENTION_DAYS = 400;
 const DEFAULT_AI_AUDIT_RETENTION_DAYS = 90;
+const DEFAULT_PASSWORD_RESET_REQUEST_RETENTION_DAYS = 30;
+const DEFAULT_EMAIL_CHANGE_REQUEST_RETENTION_DAYS = 30;
+const DEFAULT_EMAIL_LOG_RETENTION_DAYS = 90;
+const DEFAULT_PLAYER_REPORT_RETENTION_DAYS = 180;
+const DEFAULT_BUG_REPORT_RETENTION_DAYS = 90;
+const DEFAULT_CHAT_VIOLATION_RETENTION_DAYS = 90;
+// level_up_events feeds multi-month friction maps, so it defaults to a year.
+// ftue_events answers a FIRST-SESSION question and has the higher intake
+// (roughly 100-250 rows per new character), so it defaults to a quarter: at
+// the sweep's per-run row budget a long window could otherwise fall behind
+// during a paid-campaign burst.
+const DEFAULT_LEVEL_UP_EVENTS_RETENTION_DAYS = 365;
+const DEFAULT_FTUE_EVENTS_RETENTION_DAYS = 90;
+const DEFAULT_WORLD_QUEST_SCORES_RETENTION_DAYS = 365;
+// craft_roll_events answers "what did the server really roll" for slow-paced
+// systems (a Perfecting attempt costs a once-a-week Maker's Ember), so a
+// year keeps a whole item's walk auditable; the intake is one row per
+// eligible craft, far below ftue_events' per-character burst.
+const DEFAULT_CRAFT_ROLL_EVENTS_RETENTION_DAYS = 365;
+// item_ledger answers "who has held this legendary" for copies that live as
+// long as the realm. Transfers and modifications also add rows, so retention
+// bounds their lifetime while item_ledger.ts bounds the pending write queue.
+const DEFAULT_ITEM_LEDGER_RETENTION_DAYS = 1095;
+const DEFAULT_WOC_MARKET_LISTINGS_RETENTION_DAYS = 180;
+// Abandon rows are dead once outside every cooldown window (an hour); 30 days
+// keeps generous forensics for tuning the cooldown numbers.
+const DEFAULT_WOC_MARKET_ABANDONS_RETENTION_DAYS = 30;
+// A resolved directed offer is inbox history (the SALE rows carry the durable
+// deal provenance); half a year matches the listings window so a deal's offer
+// and listing rows age out together.
+const DEFAULT_WOC_MARKET_OFFERS_RETENTION_DAYS = 180;
+// A full year, comfortably above the listings window on purpose and never
+// matched to it: a booked claim
+// is the exactly-once delivery evidence, and it must provably outlive the
+// settlement and listing rows (180-day window, aged on updated_at) that could
+// still reach bookCustodyOnce with the same custody ref. booked_at is stamped
+// at delivery, at or before the listing's closing updated_at, so an equal
+// window could prune the claim FIRST and re-arm the duplication the ledger
+// exists to prevent.
+const DEFAULT_WOC_MARKET_CUSTODY_CLAIMS_RETENTION_DAYS = 365;
 // PROVISIONAL: two hours after the nightly 03:15 UTC pg_dump window, pending real
 // traffic-curve evidence of the quietest hour; revisit when that evidence lands.
 const DEFAULT_RETENTION_SWEEP_UTC_HOUR = 5;
@@ -190,9 +300,12 @@ const DEFAULT_METRICS_TOKEN = '';
 const REQUIRE_WEB_LOGIN_ENV = 'REQUIRE_WEB_LOGIN';
 const CONTENT_TYPE_ENFORCE_ENV = 'API_CONTENT_TYPE_ENFORCE';
 const ORIGIN_CHECK_ENFORCE_ENV = 'API_ORIGIN_CHECK_ENFORCE';
+const PROVISION_TEST_ACCOUNTS_ENV = 'PROVISION_TEST_ACCOUNTS';
+const WS_PERMESSAGE_DEFLATE_ENV = 'WS_PERMESSAGE_DEFLATE';
 
-// The recognized boolean-flag vocabulary shared by REQUIRE_WEB_LOGIN and the two
-// API enforce flags (matches web_login_guard.ts / content_type.ts / origin_check.ts:
+// The recognized boolean-flag vocabulary shared by REQUIRE_WEB_LOGIN, the two API
+// enforce flags, PROVISION_TEST_ACCOUNTS and WS_PERMESSAGE_DEFLATE (matches
+// web_login_guard.ts / content_type.ts / origin_check.ts:
 // '1'/'true' => on, '0'/'false' => off, compared case-insensitively). Unset or
 // empty means "not set" and the flag's own default applies; any OTHER set value is
 // garbage and fails fast at boot.
@@ -224,6 +337,18 @@ function validateBooleanFlag(env: NodeJS.ProcessEnv, key: string): void {
   if (!RECOGNIZED_BOOLEAN_FLAG_VALUES.has(raw.toLowerCase())) {
     throw new Error(`${key} must be one of 1, true, 0, false when set`);
   }
+}
+
+function resolveBooleanFlag(env: NodeJS.ProcessEnv, key: string): boolean {
+  const value = (env[key] ?? '').toLowerCase();
+  return value === '1' || value === 'true';
+}
+
+// The default-ON twin of resolveBooleanFlag, for kill switches: only an explicit
+// '0'/'false' turns the flag off. validateBooleanFlag has already thrown on garbage.
+function resolveDefaultOnFlag(env: NodeJS.ProcessEnv, key: string): boolean {
+  const value = (env[key] ?? '').toLowerCase();
+  return value !== '0' && value !== 'false';
 }
 
 // Resolve REQUIRE_WEB_LOGIN to a boolean, mirroring web_login_guard.ts
@@ -304,6 +429,8 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
   validateBooleanFlag(env, REQUIRE_WEB_LOGIN_ENV);
   validateBooleanFlag(env, CONTENT_TYPE_ENFORCE_ENV);
   validateBooleanFlag(env, ORIGIN_CHECK_ENFORCE_ENV);
+  validateBooleanFlag(env, PROVISION_TEST_ACCOUNTS_ENV);
+  validateBooleanFlag(env, WS_PERMESSAGE_DEFLATE_ENV);
   validatePublicOrigin(env);
   validateRealms(env);
 
@@ -319,8 +446,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     databaseUrl,
     port: numberOr(env.PORT, DEFAULT_PORT),
     allowDevCommands: env.ALLOW_DEV_COMMANDS === ALLOW_DEV_COMMANDS_ON,
+    provisionTestAccounts: resolveBooleanFlag(env, PROVISION_TEST_ACCOUNTS_ENV),
     turnstileSecret: env.TURNSTILE_SECRET ?? DEFAULT_TURNSTILE_SECRET,
     maxWsPerIpHard: numberOr(env.MAX_WS_PER_IP_HARD, DEFAULT_MAX_WS_PER_IP_HARD),
+    wsPerMessageDeflate: resolveDefaultOnFlag(env, WS_PERMESSAGE_DEFLATE_ENV),
     // Trimmed so a whitespace-only value reads as unset -> the default, never as
     // the explicit 0 that disables the cap (see the Config field comment). Scoped
     // to the fail-dangerous keys: the two RETENTION_SWEEP_* reads below share this
@@ -330,6 +459,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     githubRepo: env.GITHUB_REPO ?? DEFAULT_GITHUB_REPO,
     githubToken: env.GITHUB_TOKEN ?? DEFAULT_GITHUB_TOKEN,
     chatLogRetentionDays: numberOr(env.CHAT_LOG_RETENTION_DAYS, DEFAULT_CHAT_LOG_RETENTION_DAYS),
+    unstuckReportRetentionDays: numberOr(
+      env.UNSTUCK_REPORT_RETENTION_DAYS,
+      DEFAULT_UNSTUCK_REPORT_RETENTION_DAYS,
+    ),
     perfReportRetentionDays: numberOr(
       env.PERF_REPORT_RETENTION_DAYS,
       DEFAULT_PERF_REPORT_RETENTION_DAYS,
@@ -358,9 +491,63 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
       env.PLAYER_ACTIVITY_RETENTION_DAYS,
       DEFAULT_PLAYER_ACTIVITY_RETENTION_DAYS,
     ),
-    aiAuditRetentionDays: numberOr(
-      env.AI_AUDIT_RETENTION_DAYS,
-      DEFAULT_AI_AUDIT_RETENTION_DAYS,
+    aiAuditRetentionDays: numberOr(env.AI_AUDIT_RETENTION_DAYS, DEFAULT_AI_AUDIT_RETENTION_DAYS),
+    passwordResetRequestRetentionDays: numberOr(
+      env.PASSWORD_RESET_REQUEST_RETENTION_DAYS,
+      DEFAULT_PASSWORD_RESET_REQUEST_RETENTION_DAYS,
+    ),
+    emailChangeRequestRetentionDays: numberOr(
+      env.EMAIL_CHANGE_REQUEST_RETENTION_DAYS,
+      DEFAULT_EMAIL_CHANGE_REQUEST_RETENTION_DAYS,
+    ),
+    emailLogRetentionDays: numberOr(env.EMAIL_LOG_RETENTION_DAYS, DEFAULT_EMAIL_LOG_RETENTION_DAYS),
+    playerReportRetentionDays: numberOr(
+      env.PLAYER_REPORT_RETENTION_DAYS,
+      DEFAULT_PLAYER_REPORT_RETENTION_DAYS,
+    ),
+    bugReportRetentionDays: numberOr(
+      env.BUG_REPORT_RETENTION_DAYS,
+      DEFAULT_BUG_REPORT_RETENTION_DAYS,
+    ),
+    levelUpEventsRetentionDays: numberOr(
+      env.LEVEL_UP_EVENTS_RETENTION_DAYS,
+      DEFAULT_LEVEL_UP_EVENTS_RETENTION_DAYS,
+    ),
+    ftueEventsRetentionDays: numberOr(
+      env.FTUE_EVENTS_RETENTION_DAYS,
+      DEFAULT_FTUE_EVENTS_RETENTION_DAYS,
+    ),
+    worldQuestScoresRetentionDays: numberOr(
+      env.WORLD_QUEST_SCORES_RETENTION_DAYS,
+      DEFAULT_WORLD_QUEST_SCORES_RETENTION_DAYS,
+    ),
+    craftRollEventsRetentionDays: numberOr(
+      env.CRAFT_ROLL_EVENTS_RETENTION_DAYS,
+      DEFAULT_CRAFT_ROLL_EVENTS_RETENTION_DAYS,
+    ),
+    itemLedgerRetentionDays: numberOr(
+      env.ITEM_LEDGER_RETENTION_DAYS,
+      DEFAULT_ITEM_LEDGER_RETENTION_DAYS,
+    ),
+    chatViolationRetentionDays: numberOr(
+      env.CHAT_VIOLATION_RETENTION_DAYS,
+      DEFAULT_CHAT_VIOLATION_RETENTION_DAYS,
+    ),
+    wocMarketListingsRetentionDays: numberOr(
+      env.WOC_MARKET_LISTINGS_RETENTION_DAYS,
+      DEFAULT_WOC_MARKET_LISTINGS_RETENTION_DAYS,
+    ),
+    wocMarketAbandonsRetentionDays: numberOr(
+      env.WOC_MARKET_ABANDONS_RETENTION_DAYS,
+      DEFAULT_WOC_MARKET_ABANDONS_RETENTION_DAYS,
+    ),
+    wocMarketOffersRetentionDays: numberOr(
+      env.WOC_MARKET_OFFERS_RETENTION_DAYS,
+      DEFAULT_WOC_MARKET_OFFERS_RETENTION_DAYS,
+    ),
+    wocMarketCustodyClaimsRetentionDays: numberOr(
+      env.WOC_MARKET_CUSTODY_CLAIMS_RETENTION_DAYS,
+      DEFAULT_WOC_MARKET_CUSTODY_CLAIMS_RETENTION_DAYS,
     ),
     // An hour outside 0..23 is garbage, not a preference; fall back like numberOr does.
     retentionSweepUtcHour:

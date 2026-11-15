@@ -52,6 +52,14 @@ interface ActiveDrag {
   armed: boolean;
   timer: number;
   ghost: HTMLElement | null;
+  /** Document-level release safety (the fix-round review): the row's own
+   *  listeners die with the row when the grid rebuilds mid-drag (the 500ms
+   *  refresh band on any inventory change), which stranded
+   *  body.touch-item-dragging, and with it the drag-window z-raise, for the
+   *  rest of the session. Registered when the drag ARMS, removed in
+   *  teardown; it only ever cancels (never drops), so a stale payload can
+   *  never act. */
+  docEnd: ((e: PointerEvent) => void) | null;
 }
 
 // The tooltip's long-press peek timer (Hud.attachTooltip) lives in a closure we
@@ -73,6 +81,10 @@ export function bindTouchItemDrag(el: HTMLElement, deps: TouchItemDragDeps): voi
     window.clearTimeout(drag.timer);
     drag.ghost?.remove();
     const wasArmed = drag.armed;
+    if (drag.docEnd) {
+      document.removeEventListener('pointerup', drag.docEnd);
+      document.removeEventListener('pointercancel', drag.docEnd);
+    }
     drag = null;
     document.body.classList.remove('touch-item-dragging');
     el.classList.remove('touch-drag-source');
@@ -94,6 +106,7 @@ export function bindTouchItemDrag(el: HTMLElement, deps: TouchItemDragDeps): voi
       startY,
       armed: false,
       ghost: null,
+      docEnd: null,
       timer: window.setTimeout(() => {
         if (!drag || drag.pointerId !== pointerId) return;
         drag.armed = true;
@@ -116,9 +129,41 @@ export function bindTouchItemDrag(el: HTMLElement, deps: TouchItemDragDeps): voi
         }
         deps.onStart();
         deps.onMove(startX, startY);
+        // The dead-row safety net (see ActiveDrag.docEnd): if this row is
+        // rebuilt away mid-drag, the release still tears the drag down.
+        // When the row survives, its own pointerup runs the drop FIRST
+        // (target listeners fire before the document's bubble tail) and
+        // teardown clears `drag`, so this handler no-ops.
+        const docEnd = (e2: PointerEvent): void => {
+          if (!drag || drag.pointerId !== e2.pointerId) return;
+          teardown();
+        };
+        drag.docEnd = docEnd;
+        document.addEventListener('pointerup', docEnd);
+        document.addEventListener('pointercancel', docEnd);
       }, TOUCH_DRAG_HOLD_MS),
     };
   });
+
+  // Touch scrolling cannot be stopped from pointermove (the window_resize.ts
+  // lesson): #ui is touch-action pan-x pan-y on the touch HUD so its windows
+  // scroll, and the body.touch-item-dragging override lands after the browser
+  // has latched touch-action at touchstart. So the first move of an armed drag
+  // was claimed as a pan and answered with pointercancel, which tears the drag
+  // down without a drop (the "cannot drag an item out of the bag on mobile"
+  // report). A non-passive touchmove on the row itself, bound up front so the
+  // browser knows it can block before the touch starts, cancels the scroll for
+  // an ARMED drag only; an unarmed flick still scrolls the grid. Touch HUD only
+  // (rows rebuild on every render), so the desktop grid keeps passive scrolling.
+  if (deps.isTouchHud()) {
+    el.addEventListener(
+      'touchmove',
+      (e) => {
+        if (drag?.armed && e.cancelable) e.preventDefault();
+      },
+      { passive: false },
+    );
+  }
 
   el.addEventListener('pointermove', (e) => {
     if (!drag || drag.pointerId !== e.pointerId) return;

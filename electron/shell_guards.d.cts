@@ -13,7 +13,26 @@ export function navigationAllowed(
   isMainFrame: boolean,
   mainFrameOrigins: Iterable<string>,
   subframeOrigins?: Iterable<string>,
+  subframeHostSuffixes?: readonly string[],
 ): boolean;
+export interface FrameLike {
+  url: string;
+  parent: FrameLike | null;
+}
+export function frameAncestorUrls(frame: FrameLike | null | undefined): string[] | null;
+export function frameNavigationAllowed(
+  url: string,
+  isMainFrame: boolean,
+  ancestorUrls: readonly string[] | null,
+  mainFrameOrigins: Iterable<string>,
+  subframeOrigins?: Iterable<string>,
+  subframeHostSuffixes?: readonly string[],
+): boolean;
+export const NESTED_FRAME_ROOT_ORIGINS: ReadonlySet<string>;
+export function navigationDecision(
+  details: { url: string; isMainFrame?: boolean; frame?: FrameLike | null },
+  mainFrameOrigins: Iterable<string>,
+): { allowed: boolean; isMainFrame: boolean };
 export function isTrustedSender(
   frame: { origin?: unknown; url?: unknown } | null | undefined,
   allowedOrigins: Iterable<string>,
@@ -37,6 +56,7 @@ export function isSoftwareRenderer(
 ): boolean;
 export const ALLOWED_PERMISSIONS: Set<string>;
 export const EMBEDDED_SUBFRAME_ORIGINS: Set<string>;
+export const EMBEDDED_SUBFRAME_HOST_SUFFIXES: readonly string[];
 export const CSP_ORIGINS: {
   script: string[];
   connect: string[];
@@ -44,6 +64,14 @@ export const CSP_ORIGINS: {
   turnstile: string;
   fontsStyle: string;
   fontsFile: string;
+  walletFrames: string[];
+  reownFonts: string;
+  stripe: {
+    script: string[];
+    connect: string[];
+    frame: string[];
+    img: string[];
+  };
 };
 export function extractInlineScriptHashes(html: string): string[];
 export function buildContentSecurityPolicy(options?: {
@@ -51,3 +79,10 @@ export function buildContentSecurityPolicy(options?: {
   scriptHashes?: string[];
 }): string;
 export function withCspHeader(response: Response, csp: string): Response;
+export const EXTERNAL_DOCUMENT_PATHS: Set<string>;
+export function isExternalDocumentUrl(urlString: string): boolean;
+export function toCanonicalExternalUrl(
+  urlString: string,
+  _appOrigin?: string,
+  apiOrigin?: string,
+): string;

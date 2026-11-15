@@ -1,11 +1,13 @@
 // Pure per-element graphics-tier knobs (v0.16.0). Now
 // that every hot HUD element is a core+painter, each per-element cost knob
 // becomes a pure function of the STATIC ui effects tier (the data-fx-level the
-// applier stamps from graphicsPresetLabel), NEVER the FPS governor. That is the
+// applier stamps from graphicsPresetLabel), NEVER the FPS governor. A narrow
+// actionability input may only bypass shedding and restore full cadence, as the
+// Rift minimap does for lethal mechanics. That is the
 // two-controller hazard: the auto-governor
 // cannot measure HUD/compositor cost, so the HUD effect tier is owned by the preset the
-// player chose. This module is the single home of that mapping, so a knob can only move
-// when the static preset moves.
+// player chose. This module is the single home of that mapping, so no hidden
+// runtime controller can move a knob.
 //
 // This file is host-agnostic and DOM/Three-free: it imports nothing at runtime (only the
 // UiEffectsTier TYPE, erased at compile time), references no governor, and uses no DOM
@@ -58,8 +60,9 @@ export function fctTtlScale(tier: UiEffectsTier): number {
 }
 
 // ---------------------------------------------------------------------------
-// Minimap: the canvas redraw cadence. The marker core + painter are
-// unchanged; only how often the Hud calls them is tiered.
+// Minimap: the canvas redraw cadence. The marker core + painter are unchanged;
+// only how often the Hud calls them is tiered. A reaction-critical surface may
+// disable the low-tier shed, but can never become slower than its base tier.
 // ---------------------------------------------------------------------------
 
 /** Minimum ms between minimap redraws on low. The Hud drives the minimap from its
@@ -68,9 +71,11 @@ export function fctTtlScale(tier: UiEffectsTier): number {
 export const MINIMAP_REDRAW_INTERVAL_LOW_MS = 250;
 
 /** Minimum ms between minimap redraws for `tier`. 0 (full tiers) means "no extra
- *  throttle" (redraw every fastHud tick = the unchanged ~10Hz); low throttles. */
-export function minimapRedrawIntervalMs(tier: UiEffectsTier): number {
-  return tier === 'low' ? MINIMAP_REDRAW_INTERVAL_LOW_MS : 0;
+ * throttle" (redraw every fastHud tick = the unchanged ~10Hz). A surface with
+ * lethal dynamic mechanics also stays at that full cadence on low, so a graphics
+ * preset can never delay information the player must immediately react to. */
+export function minimapRedrawIntervalMs(tier: UiEffectsTier, fullCadenceRequired = false): number {
+  return tier === 'low' && !fullCadenceRequired ? MINIMAP_REDRAW_INTERVAL_LOW_MS : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +186,49 @@ export const NAMEPLATE_INTERVAL_FULL_SEC = 1 / 24;
  *  accumulated dt, not through cadenceDue(). */
 export function nameplateIntervalSec(tier: UiEffectsTier): number {
   return tier === 'low' ? NAMEPLATE_INTERVAL_LOW_SEC : NAMEPLATE_INTERVAL_FULL_SEC;
+}
+
+// ---------------------------------------------------------------------------
+// Nameplate SURFACE resolution: the backing-store pixel ratio of the one
+// full-viewport 2D canvas the overhead plates are composited on. This is a
+// compositor-cost knob, not a tier shed: the plate layer used to size itself at
+// min(devicePixelRatio, 2) whatever the 3D frame was doing, so a 1440p HiDPI
+// panel running the world at a 1.48 or 1.75 pixel-ratio cap (gfx_aa_policy_core)
+// still paid a native-resolution second full-screen surface. Bounding it by the
+// renderer's own EFFECTIVE ratio (the tier's pixelRatioCap times the live render
+// scale) means the text layer is never finer than the world under it.
+//
+// Two rules keep it fairness-safe and cheap:
+//  - a FLOOR of 1: a plate is text a player reads, so it never drops below CSS
+//    resolution however far the adaptive render scale backs off. Nothing is
+//    hidden or delayed by this knob, only resampled.
+//  - a QUANTIZED step: TextSpriteCache.setPixelRatio CLEARS the sprite cache on
+//    any change, and the adaptive render scale moves continuously, so an
+//    unquantized bound would re-rasterize every label on a scale wobble. The
+//    step rounds DOWN so the bound stays at or under the world ratio.
+// ---------------------------------------------------------------------------
+
+/** Never below CSS resolution: overhead plates are read, not decoration. */
+export const NAMEPLATE_PIXEL_RATIO_MIN = 1;
+/** The historical nameplate ceiling (min(devicePixelRatio, 2)), kept as the cap. */
+export const NAMEPLATE_PIXEL_RATIO_MAX = 2;
+/** Quantization step of the bound, so a moving render scale does not thrash the
+ *  label sprite cache (which clears on every pixel-ratio change). */
+export const NAMEPLATE_PIXEL_RATIO_STEP = 0.125;
+
+/** The nameplate surface's backing-store pixel ratio: the device ratio, capped at
+ *  NAMEPLATE_PIXEL_RATIO_MAX, bounded by the renderer's effective pixel ratio,
+ *  floored at NAMEPLATE_PIXEL_RATIO_MIN and quantized DOWN to
+ *  NAMEPLATE_PIXEL_RATIO_STEP. Pure: both ratios are injected (the painter reads
+ *  window.devicePixelRatio and the renderer reports its own). A non-finite or
+ *  non-positive input falls back to 1 rather than poisoning the surface size. */
+export function nameplatePixelRatio(devicePixelRatio: number, rendererPixelRatio: number): number {
+  const device = devicePixelRatio > 0 && Number.isFinite(devicePixelRatio) ? devicePixelRatio : 1;
+  const renderer =
+    rendererPixelRatio > 0 && Number.isFinite(rendererPixelRatio) ? rendererPixelRatio : device;
+  const bounded = Math.min(NAMEPLATE_PIXEL_RATIO_MAX, device, renderer);
+  const quantized = Math.floor(bounded / NAMEPLATE_PIXEL_RATIO_STEP) * NAMEPLATE_PIXEL_RATIO_STEP;
+  return Math.max(NAMEPLATE_PIXEL_RATIO_MIN, quantized);
 }
 
 // ---------------------------------------------------------------------------

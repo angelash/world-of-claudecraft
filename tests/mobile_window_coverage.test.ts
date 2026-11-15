@@ -9,7 +9,8 @@ import { tsFilesUnder } from './helpers/ts_files_under';
 
 // Phase 5 mobile-HUD-parity coverage guard.
 //
-// Every desktop HUD window (an element with class `window` and an id) must have a
+// Every desktop HUD window (an element with class `window` or meter-style
+// `mt-panel`, and an id) must have a
 // deliberate mobile-touch decision: either it is brought into the shared "mobile
 // sheet base" pattern (at least one `body.mobile-touch ... #id ...` rule that also
 // carries a real pin/size/floor property, not merely a cosmetic z-index/border), or
@@ -32,7 +33,7 @@ function read(relPath: string): string {
   return readFileSync(fileURLToPath(new URL(relPath, import.meta.url)), 'utf8');
 }
 
-// The static `.window` ids from a markup entry. Attribute-ORDER-TOLERANT: it scans
+// The static `.window` / `.mt-panel` ids from a markup entry. Attribute-ORDER-TOLERANT: it scans
 // whole opening tags and tests `id=` and a `window` className INDEPENDENTLY per tag,
 // so a future class-first element (class="..." before id="...") is still picked up
 // (the old id-then-class regex would have silently missed it).
@@ -49,7 +50,7 @@ function windowIdsFromHtml(html: string): string[] {
     const attrs = tag[1];
     const idMatch = attrs.match(/\bid="([a-z0-9-]+)"/);
     const classMatch = attrs.match(/\bclass="([^"]*)"/);
-    if (idMatch && classMatch && /\bwindow\b/.test(classMatch[1])) {
+    if (idMatch && classMatch && /\b(?:window|mt-panel)\b/.test(classMatch[1])) {
       ids.push(idMatch[1]);
     }
   }
@@ -99,14 +100,20 @@ function dynamicWindowIds(dir: string = fileURLToPath(new URL(UI_DIR, import.met
 // Windows deliberately NOT brought into the mobile sheet pattern, each with a
 // reason. These pass coverage without a mobile-touch positioning rule.
 const MOBILE_WINDOW_EXCEPTIONS: Record<string, string> = {
+  'heal-window': 'detached desktop meter; mobile intentionally keeps it hidden',
+  'threat-window': 'detached desktop meter; mobile intentionally keeps it hidden',
   'loot-window':
     'cursor-popped by design: the loot roll popup spawns at the drop, not as a docked sheet',
   'confirm-dialog':
     'small centered modal (dynamic, reused by the input dialog); the base .window centering is correct on touch',
   'profession-tutorial':
     'small centered modal (dynamic, the first-tier profession tutorial); centered and clamped by its own base #profession-tutorial rule plus the shared .window viewport clamp, with its z-index floored above the mobile sheet (96) in JS',
+  'tutorial-greeting':
+    'small centered modal (dynamic, the live ferry-note dialog); centered and clamped by its own base #tutorial-greeting rule plus the shared .window viewport clamp, with its z-index floored above the mobile sheet (96) in JS, the profession-tutorial precedent',
   'delve-rite-panel': 'in-run gameplay overlay, not a menu window that docks to a sheet',
   'lockpick-panel': 'in-run gameplay overlay, not a menu window that docks to a sheet',
+  'keyboard-map-window':
+    'desktop-only keyboard overview pop-out (dynamic): the Key Bindings panel paints the board and its Pop Out button only off useTouchInterface(), since touch has no physical keyboard, so the window never opens on mobile',
 };
 
 // A src/styles/*.css module contains a positioning/floor rule for #id on touch when
@@ -233,13 +240,29 @@ describe('mobile window coverage (Phase 5 parity)', () => {
     // the same change that gives its window a mobile rule or an exception below.
     expect(dyn.windowClassFiles).toEqual([
       'dev_command_window.ts',
+      // The Perfecting window (Masterwrought phase 14) mints its own root and
+      // carries the four-edge body.mobile-touch pin in hud.mobile.css.
+      'hud/professions/perfecting_window.ts',
+      'hud/professions/profession_tutorial_window.ts',
+      // The Buried Hoard treasure map parchment (a phone sheet in hud.mobile.css).
+      'hud/treasure/treasure_map_window.ts',
       'hud.ts',
-      'profession_tutorial_window.ts',
+      // The extracted input modal (the other half of the shared
+      // #confirm-dialog id; the exception row below covers the id).
+      'input_controller.ts',
+      'keyboard_map_window.ts',
+      'tutorial_greeting_window.ts',
+      'world_quest_puzzle_window.ts',
     ]);
     expect([...dyn.ids].sort()).toEqual([
       'confirm-dialog',
       'dev-command-window',
+      'keyboard-map-window',
+      'perfecting-window',
       'profession-tutorial',
+      'treasure-map-window',
+      'tutorial-greeting',
+      'world-quest-puzzle-window',
     ]);
   });
 
@@ -336,7 +359,6 @@ describe('mobile window coverage (Phase 5 parity)', () => {
       'mailbox-window',
       'emote-editor',
       'arena-window',
-      'valecup-window',
       'delve-board',
       'leaderboard-window',
       'loot-settings-window',

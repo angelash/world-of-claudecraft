@@ -104,7 +104,6 @@ const MERGE_MOB_IDS = [
   'varkas_boneguard',
   'emberkin',
   'gloomshade',
-  'duskborn',
   'grix_the_tunnelking',
   'brutok_skullsmasher',
   'captain_verlan',
@@ -112,10 +111,7 @@ const MERGE_MOB_IDS = [
   'sloomtooth_the_drowned',
   'voskar_emberwing',
   'wraithbinder_maldrec',
-  'spellhound',
-  'warfiend',
   'pyre_colossus',
-  'wraithborn',
 ] as const;
 
 type MergeNameTranslations<TId extends string> = Record<TId, { name: string }>;
@@ -143,27 +139,40 @@ const mergePetHud = {
   en: {
     attack: 'Attack',
     waterJet: 'Water Jet',
+    felbolt: 'Felbolt',
+    abyssalChain: 'Abyssal Chain',
+    autocastOn: 'Autocast on. Right-click, touch-hold, or press Shift+Enter to turn it off.',
+    autocastOff: 'Autocast off. Right-click, touch-hold, or press Shift+Enter to turn it on.',
     taunt: 'Taunt',
     healDemon: 'Heal Demon',
     healPet: 'Feed Pet',
     passive: 'Passive',
     defensive: 'Defensive',
     aggressive: 'Aggressive',
+    assist: 'Assist',
     petAttackTitle: 'Pet Attack',
     petAttackDesc: 'Command your pet to attack your current hostile target.',
     waterJetTitle: 'Water Jet',
     waterJetDesc:
       'Command your Water Elemental to channel a slowing stream for 3 seconds. 8 second cooldown. Right-click to auto-cast it whenever it is off cooldown.',
+    felboltTitle: 'Felbolt',
+    felboltDesc:
+      'Command Emberkin to launch an extra fel projectile at your target. 8 second cooldown. Right-click, touch-hold, or press Shift+Enter to toggle autocast.',
+    abyssalChainTitle: 'Abyssal Chain',
+    abyssalChainDesc:
+      'Command Duskmurk to drag a normal enemy more than 8 and up to 20 yards back to itself. Bosses cannot be pulled. 15 second cooldown. Right-click, touch-hold, or press Shift+Enter to toggle autocast.',
     petTauntTitle: 'Pet Taunt',
     petTauntDesc:
       'Command your pet to engage and Growl when in range. 10 second cooldown. Right-click to auto-cast it whenever it is off cooldown.',
     healDemonDesc: 'Spend mana to channel healing into your demon over 5 seconds.',
     healPetDesc: 'Click, then click food in your bags to feed your pet, healing it over 5 seconds.',
     stanceTitle: 'Pet Stance',
-    stanceDesc: 'Click to choose Passive, Defensive, or Aggressive.',
+    stanceDesc: 'Click to choose Passive, Defensive, Aggressive, or Assist.',
     passiveDesc: 'Only attacks when you command it.',
     defensiveDesc: 'Attacks enemies that hurt you or your pet.',
     aggressiveDesc: 'Attacks nearby hostile enemies.',
+    assistDesc:
+      'Attacks only your current target, once you cast an ability on it. Ignores enemies that attack you.',
     rename: 'Rename Pet',
     revive: 'Patch Up',
     abandon: 'Abandon Pet',
@@ -179,17 +188,30 @@ const mergePetHud = {
   es: {
     attack: 'Atacar',
     waterJet: 'Chorro de agua',
+    felbolt: 'Descarga vil',
+    abyssalChain: 'Cadena abisal',
+    autocastOn:
+      'Lanzamiento automático activado. Haz clic derecho, mantén pulsado o pulsa Mayús+Intro para desactivarlo.',
+    autocastOff:
+      'Lanzamiento automático desactivado. Haz clic derecho, mantén pulsado o pulsa Mayús+Intro para activarlo.',
     taunt: 'Provocar',
     healDemon: 'Sanar demonio',
     healPet: 'Sanar mascota',
     passive: 'Pasivo',
     defensive: 'Defensivo',
     aggressive: 'Agresivo',
+    assist: 'Asistir',
     petAttackTitle: 'Ataque de mascota',
     petAttackDesc: 'Ordena a tu mascota atacar a tu objetivo hostil actual.',
     waterJetTitle: 'Chorro de agua',
     waterJetDesc:
       'Ordena a tu elemental de agua canalizar un chorro ralentizador durante 3 segundos. Reutilización de 8 segundos. Clic derecho para autolanzarlo cuando esté disponible.',
+    felboltTitle: 'Descarga vil',
+    felboltDesc:
+      'Ordena a Emberkin lanzar un proyectil vil adicional contra tu objetivo. Reutilización de 8 segundos. Haz clic derecho, mantén pulsado o pulsa Mayús+Intro para alternar el lanzamiento automático.',
+    abyssalChainTitle: 'Cadena abisal',
+    abyssalChainDesc:
+      'Ordena a Duskmurk arrastrar hacia sí a un enemigo normal situado a más de 8 y hasta 20 metros. No funciona contra jefes. Reutilización de 15 segundos. Haz clic derecho, mantén pulsado o pulsa Mayús+Intro para alternar el lanzamiento automático.',
     petTauntTitle: 'Provocación de mascota',
     petTauntDesc:
       'Ordena a tu mascota entrar en combate y usar Gruñido al estar en alcance. Reutilización de 10 segundos. Clic derecho para autolanzarlo cuando esté disponible.',
@@ -197,10 +219,12 @@ const mergePetHud = {
     healPetDesc:
       'Haz clic y luego haz clic en comida de tus bolsas para alimentar y sanar a tu mascota durante 5 segundos.',
     stanceTitle: 'Actitud de mascota',
-    stanceDesc: 'Haz clic para elegir Pasivo, Defensivo o Agresivo.',
+    stanceDesc: 'Haz clic para elegir Pasivo, Defensivo, Agresivo o Asistir.',
     passiveDesc: 'Solo ataca cuando se lo ordenas.',
     defensiveDesc: 'Ataca a enemigos que te dañen a ti o a tu mascota.',
     aggressiveDesc: 'Ataca a enemigos hostiles cercanos.',
+    assistDesc:
+      'Solo ataca a tu objetivo actual después de que uses una habilidad sobre él. Ignora a los enemigos que te atacan.',
     rename: 'Renombrar mascota',
     revive: 'Remendar',
     abandon: 'Abandonar mascota',
@@ -221,6 +245,7 @@ const mergePetHud = {
     passive: 'Passif',
     defensive: 'Défensif',
     aggressive: 'Agressif',
+    assist: 'Assistance',
     petAttackTitle: 'Attaque du familier',
     petAttackDesc: "Ordonne à votre familier d'attaquer votre cible hostile actuelle.",
     petTauntTitle: 'Provocation du familier',
@@ -230,10 +255,12 @@ const mergePetHud = {
     healPetDesc:
       'Cliquez, puis cliquez sur de la nourriture dans vos sacs pour nourrir et soigner votre familier pendant 5 secondes.',
     stanceTitle: 'Posture du familier',
-    stanceDesc: 'Cliquez pour choisir Passif, Défensif ou Agressif.',
+    stanceDesc: 'Cliquez pour choisir Passif, Défensif, Agressif ou Assistance.',
     passiveDesc: "N'attaque que lorsque vous lui en donnez l'ordre.",
     defensiveDesc: 'Attaque les ennemis qui vous blessent, vous ou votre familier.',
     aggressiveDesc: 'Attaque les ennemis hostiles proches.',
+    assistDesc:
+      "N'attaque que votre cible actuelle, une fois que vous avez utilisé une technique sur elle. Ignore les ennemis qui vous attaquent.",
     rename: 'Renommer le familier',
     revive: 'Rafistoler',
     abandon: 'Abandonner le familier',
@@ -254,6 +281,7 @@ const mergePetHud = {
     passive: 'Passiva',
     defensive: 'Difensiva',
     aggressive: 'Aggressiva',
+    assist: 'Assistenza',
     petAttackTitle: 'Attacco mascotte',
     petAttackDesc: 'Ordina alla tua mascotte di attaccare il tuo attuale bersaglio ostile.',
     petTauntTitle: 'Provocazione mascotte',
@@ -263,10 +291,12 @@ const mergePetHud = {
     healPetDesc:
       'Clicca, poi clicca del cibo nelle borse per nutrire e curare la mascotte per 5 secondi.',
     stanceTitle: 'Posizione mascotte',
-    stanceDesc: 'Clicca per scegliere Passiva, Difensiva o Aggressiva.',
+    stanceDesc: 'Clicca per scegliere Passiva, Difensiva, Aggressiva o Assistenza.',
     passiveDesc: 'Attacca solo quando glielo ordini.',
     defensiveDesc: 'Attacca i nemici che feriscono te o la tua mascotte.',
     aggressiveDesc: 'Attacca i nemici ostili vicini.',
+    assistDesc:
+      "Attacca solo il tuo bersaglio attuale, dopo che hai usato un'abilità su di esso. Ignora i nemici che ti attaccano.",
     rename: 'Rinomina mascotte',
     revive: 'Rattoppare',
     abandon: 'Abbandona mascotte',
@@ -285,6 +315,7 @@ const mergePetHud = {
     passive: 'Passiv',
     defensive: 'Defensiv',
     aggressive: 'Aggressiv',
+    assist: 'Unterstützen',
     petAttackTitle: 'Begleiterangriff',
     petAttackDesc: 'Befiehlt deinem Begleiter, dein aktuelles feindliches Ziel anzugreifen.',
     petTauntTitle: 'Begleiterspott',
@@ -294,10 +325,12 @@ const mergePetHud = {
     healPetDesc:
       'Klicke hier und dann auf Nahrung in deinen Taschen, um deinen Begleiter 5 Sekunden lang zu füttern und zu heilen.',
     stanceTitle: 'Begleiterhaltung',
-    stanceDesc: 'Klicken, um Passiv, Defensiv oder Aggressiv zu wählen.',
+    stanceDesc: 'Klicken, um Passiv, Defensiv, Aggressiv oder Unterstützen zu wählen.',
     passiveDesc: 'Greift nur an, wenn du es befiehlst.',
     defensiveDesc: 'Greift Gegner an, die dich oder deinen Begleiter verletzen.',
     aggressiveDesc: 'Greift nahe feindliche Gegner an.',
+    assistDesc:
+      'Greift nur dein aktuelles Ziel an, sobald du eine Fähigkeit darauf wirkst. Ignoriert Gegner, die dich angreifen.',
     rename: 'Begleiter umbenennen',
     revive: 'Zusammenflicken',
     abandon: 'Begleiter aufgeben',
@@ -316,6 +349,7 @@ const mergePetHud = {
     passive: '被动',
     defensive: '防御',
     aggressive: '攻击',
+    assist: '协助',
     petAttackTitle: '宠物攻击',
     petAttackDesc: '命令你的宠物攻击当前敌对目标。',
     petTauntTitle: '宠物嘲讽',
@@ -323,10 +357,11 @@ const mergePetHud = {
     healDemonDesc: '消耗法力，在 5 秒内向你的恶魔引导治疗。',
     healPetDesc: '点击后，再点击背包中的食物，在 5 秒内喂养并治疗你的宠物。',
     stanceTitle: '宠物姿态',
-    stanceDesc: '点击选择被动、防御或攻击。',
+    stanceDesc: '点击选择被动、防御、攻击或协助。',
     passiveDesc: '只在你命令时攻击。',
     defensiveDesc: '攻击伤害你或你宠物的敌人。',
     aggressiveDesc: '攻击附近的敌对敌人。',
+    assistDesc: '只在你对当前目标施放技能后攻击该目标。不理会攻击你的敌人。',
     rename: '重命名宠物',
     revive: '修补',
     abandon: '放弃宠物',
@@ -345,6 +380,7 @@ const mergePetHud = {
     passive: '被動',
     defensive: '防禦',
     aggressive: '攻擊',
+    assist: '協助',
     petAttackTitle: '寵物攻擊',
     petAttackDesc: '命令你的寵物攻擊目前敵對目標。',
     petTauntTitle: '寵物嘲諷',
@@ -352,10 +388,11 @@ const mergePetHud = {
     healDemonDesc: '消耗法力，在 5 秒內向你的惡魔引導治療。',
     healPetDesc: '點擊後，再點擊背包中的食物，在 5 秒內餵養並治療你的寵物。',
     stanceTitle: '寵物姿態',
-    stanceDesc: '點擊選擇被動、防禦或攻擊。',
+    stanceDesc: '點擊選擇被動、防禦、攻擊或協助。',
     passiveDesc: '只在你命令時攻擊。',
     defensiveDesc: '攻擊傷害你或你寵物的敵人。',
     aggressiveDesc: '攻擊附近的敵對敵人。',
+    assistDesc: '只在你對當前目標施放技能後攻擊該目標。不理會攻擊你的敵人。',
     rename: '重新命名寵物',
     revive: '修補',
     abandon: '放棄寵物',
@@ -374,6 +411,7 @@ const mergePetHud = {
     passive: '수동',
     defensive: '방어',
     aggressive: '공격',
+    assist: '지원',
     petAttackTitle: '소환수 공격',
     petAttackDesc: '현재 적대적인 대상에게 소환수가 공격하도록 명령합니다.',
     petTauntTitle: '소환수 도발',
@@ -382,10 +420,12 @@ const mergePetHud = {
     healDemonDesc: '마나를 소비해 5초 동안 악마에게 치유를 집중합니다.',
     healPetDesc: '클릭한 뒤 가방의 음식을 클릭해 5초 동안 소환수에게 먹이를 주고 치유합니다.',
     stanceTitle: '소환수 태세',
-    stanceDesc: '클릭해 수동, 방어 또는 공격을 선택하세요.',
+    stanceDesc: '클릭해 수동, 방어, 공격 또는 지원을 선택하세요.',
     passiveDesc: '명령할 때만 공격합니다.',
     defensiveDesc: '당신이나 소환수를 해치는 적을 공격합니다.',
     aggressiveDesc: '근처의 적대적인 적을 공격합니다.',
+    assistDesc:
+      '현재 대상에게 기술을 사용한 후에만 그 대상을 공격합니다. 당신을 공격하는 적은 무시합니다.',
     rename: '소환수 이름 변경',
     revive: '응급 처치',
     abandon: '소환수 포기',
@@ -404,6 +444,7 @@ const mergePetHud = {
     passive: '受動',
     defensive: '防御',
     aggressive: '攻撃',
+    assist: 'アシスト',
     petAttackTitle: 'ペット攻撃',
     petAttackDesc: '現在の敵対対象を攻撃するようペットに命令します。',
     petTauntTitle: 'ペット挑発',
@@ -412,10 +453,12 @@ const mergePetHud = {
     healPetDesc:
       'クリックしてからバッグ内の食べ物をクリックし、5秒かけてペットに餌を与えて治癒します。',
     stanceTitle: 'ペットスタンス',
-    stanceDesc: 'クリックして受動、防御、攻撃を選びます。',
+    stanceDesc: 'クリックして受動、防御、攻撃、アシストを選びます。',
     passiveDesc: '命令した時だけ攻撃します。',
     defensiveDesc: 'あなたまたはペットを傷つけた敵を攻撃します。',
     aggressiveDesc: '近くの敵対的な敵を攻撃します。',
+    assistDesc:
+      '現在のターゲットにアビリティを使った後、そのターゲットだけを攻撃します。あなたを攻撃する敵は無視します。',
     rename: 'ペット名変更',
     revive: '応急処置',
     abandon: 'ペット放棄',
@@ -434,6 +477,7 @@ const mergePetHud = {
     passive: 'Passivo',
     defensive: 'Defensivo',
     aggressive: 'Agressivo',
+    assist: 'Assistir',
     petAttackTitle: 'Ataque do mascote',
     petAttackDesc: 'Comande seu mascote a atacar seu alvo hostil atual.',
     petTauntTitle: 'Provocação do mascote',
@@ -443,10 +487,12 @@ const mergePetHud = {
     healPetDesc:
       'Clique e depois clique em comida nas bolsas para alimentar e curar seu mascote por 5 segundos.',
     stanceTitle: 'Postura do mascote',
-    stanceDesc: 'Clique para escolher Passivo, Defensivo ou Agressivo.',
+    stanceDesc: 'Clique para escolher Passivo, Defensivo, Agressivo ou Assistir.',
     passiveDesc: 'Só ataca quando você comanda.',
     defensiveDesc: 'Ataca inimigos que ferem você ou seu mascote.',
     aggressiveDesc: 'Ataca inimigos hostis próximos.',
+    assistDesc:
+      'Só ataca seu alvo atual depois que você usa uma habilidade nele. Ignora inimigos que atacam você.',
     rename: 'Renomear mascote',
     revive: 'Remendar',
     abandon: 'Abandonar mascote',
@@ -465,6 +511,7 @@ const mergePetHud = {
     passive: 'Пассивный',
     defensive: 'Защитный',
     aggressive: 'Агрессивный',
+    assist: 'Помощь',
     petAttackTitle: 'Атака питомца',
     petAttackDesc: 'Прикажите питомцу атаковать вашу текущую враждебную цель.',
     petTauntTitle: 'Провокация питомца',
@@ -474,10 +521,12 @@ const mergePetHud = {
     healPetDesc:
       'Нажмите, затем выберите пищу в сумках, чтобы кормить и исцелять питомца 5 секунд.',
     stanceTitle: 'Стойка питомца',
-    stanceDesc: 'Нажмите, чтобы выбрать Пассивный, Защитный или Агрессивный.',
+    stanceDesc: 'Нажмите, чтобы выбрать Пассивный, Защитный, Агрессивный или Помощь.',
     passiveDesc: 'Атакует только по вашей команде.',
     defensiveDesc: 'Атакует врагов, которые ранят вас или питомца.',
     aggressiveDesc: 'Атакует ближайших враждебных врагов.',
+    assistDesc:
+      'Атакует только вашу текущую цель после того, как вы применили к ней способность. Игнорирует врагов, которые атакуют вас.',
     rename: 'Переименовать питомца',
     revive: 'Подлатать',
     abandon: 'Оставить питомца',
@@ -496,8 +545,291 @@ const mergeStringsEn = {
     cast: {
       fishing: 'Fishing',
       gathering: 'Gathering',
+      crafting: 'Crafting',
+      disenchanting: 'Disenchanting',
+      enchanting_apply: 'Enchanting',
+      salvaging: 'Salvaging',
+      sundering: 'Sundering',
+      tool_recharge: 'Recharging',
       demonHeal: 'Demon Heal',
       thunzharrStormcall: 'Stormcall',
+      rift_frost_execution: 'Glacial Grave',
+      rift_frost_strike: 'Absolute Zero',
+      rift_ember_execution: 'Magma Well',
+      rift_ember_strike: 'Core Meltdown',
+      rift_venom_execution: 'Venom Pool',
+      rift_venom_strike: "Broodmother's Mark",
+      rift_necro_execution: 'Soul Grave',
+      rift_necro_strike: 'Death Sentence',
+      rift_brute_execution: 'Earthshatter',
+      rift_brute_strike: 'Final Judgment',
+      rift_arcane_execution: 'Void Rift',
+      rift_arcane_strike: 'Arcane Annihilation',
+      rift_storm_execution: 'Lightning Rod',
+      rift_storm_strike: "Stormcaller's Wrath",
+      rift_tide_execution: 'Abyssal Maw',
+      rift_tide_strike: 'Crushing Depth',
+      // Buried Hoard control casts (src/sim/rift/hoard_control_casts.ts): a fear,
+      // stun, silence or hex a hoard mob CASTS, so it can be interrupted.
+      hoard_cast_fear: 'Terrifying Roar',
+      hoard_cast_stun: 'Stunning Blow',
+      hoard_cast_drowning_hook: 'Drowning Hook',
+      hoard_cast_rime_beam: 'Rime Beam',
+      hoard_cast_cinder_bolt: 'Cinder Bolt',
+      hoard_cast_void_empower: 'Void Empowerment',
+      hoard_cast_webbing: 'Webbing',
+      hoard_cast_doom_ritual: 'Doom Ritual',
+      hoard_cast_charge: 'Headlong Charge',
+      hoard_cast_silk_snare: 'Silk Snare',
+      hoard_cast_silence: 'Silencing Shriek',
+      hoard_cast_hex: 'Hex',
+      hoard_lightning_strike: 'Lightning Strike',
+      // Hoarfrost's survival cast (src/sim/rift/hoard_ice_age.ts): read, never kicked.
+      hoard_ice_age: 'Ice Age',
+      // Nyxaris's pulsar phase (src/sim/rift/hoard_pulsars.ts): the bar is the
+      // deadline the orbs must die by.
+      hoard_pulsar_overload: 'Pulsar Overload',
+      // Grask's throw (src/sim/rift/hoard_boulder.ts): read and answered, never kicked.
+      hoard_rolling_boulder: 'Rolling Boulder',
+      // The Coinsack Scurrier's bar (src/sim/rift/hoard_goblin.ts): when it ends,
+      // the goblin is gone with the gold. Never kicked.
+      hoard_goblin_escape: 'Escaping',
+      // The cave bosses of the common and rare hoards (hoard_mole.ts, hoard_bat.ts,
+      // hoard_mimic.ts). Only the Deafening Screech can be kicked.
+      hoard_cast_mole_rake: 'Claw Rake',
+      hoard_cast_burrow: 'Burrow',
+      hoard_cast_tunnel: 'Tunneling',
+      hoard_cast_emerge: 'Eruption',
+      hoard_cast_collapse: 'Ceiling Collapse',
+      hoard_cast_bat_dive_aim: 'Plunging Dive',
+      hoard_cast_bat_dive: 'Diving',
+      hoard_cast_screech: 'Deafening Screech',
+      hoard_cast_mimic_bite: 'Voracious Bite',
+      hoard_cast_mimic_leap: 'Crushing Leap',
+      hoard_cast_coin_spit: 'Cursed Coins',
+      // The Hollow Crypt trash kit (src/sim/mob/trash_kit/cast_ids.ts). The bolt,
+      // the raise, the call and the shriek can be kicked; the rest are dodged.
+      crypt_grave_bolt: 'Grave Bolt',
+      crypt_raise_bones: 'Raise Bones',
+      crypt_murder_call: 'Murder Call',
+      crypt_stone_shriek: 'Stone Shriek',
+      crypt_grave_cleave: 'Grave Cleave',
+      crypt_barrowflame_breath: 'Barrowflame Breath',
+      crypt_tail_lash: 'Tail Lash',
+      crypt_wing_gust: 'Wing Gust',
+      // The crypt trash mechanics pass (trash_kit/crypt_kit.ts): the rupture and
+      // the eye can be kicked; the crush and the web are dodged.
+      crypt_grave_rupture: 'Grave Rupture',
+      crypt_carrion_eye: 'Carrion Eye',
+      crypt_marrow_crush: 'Marrow Crush',
+      crypt_rimesilk_spit: 'Rimesilk Spit',
+      // The trash pass's second wave: the adept's volley can be kicked.
+      crypt_gravespark_volley: 'Gravespark Volley',
+      // The Hollow Crypt finale (encounters/hollow_crypt/ids.ts): Morthen's
+      // entrance at the Rite Ring and the Knellwyrm. None can be kicked.
+      crypt_morthen_rite_wakes: 'The Rite Wakes',
+      crypt_morthen_rise: 'Rise of the Gravecaller',
+      crypt_morthen_proclaim: 'Grave Proclamation',
+      crypt_morthen_descend: 'Descent',
+      crypt_knellwyrm_arrive: 'Descending from the Sky',
+      crypt_knellwyrm_pyre_strafe: 'Pyre Strafe',
+      crypt_knellwyrm_strafe_run: 'Strafing Run',
+      crypt_knellwyrm_dread_bellow: 'Dread Bellow',
+      // The Hollow Crypt's wing bosses (encounters/hollow_crypt). The Dirge can
+      // be kicked; the Unbroken Verse (heroic) and the rest cannot.
+      crypt_marrow_shovelful: 'Shovelful',
+      crypt_marrow_measure: 'Measured for the Grave',
+      crypt_marrow_burial_toll: 'Burial Toll',
+      crypt_marrow_gravediggers_blow: "Gravedigger's Blow",
+      crypt_lady_brides_lament: "Bride's Lament",
+      crypt_lady_frozen_embrace: 'Frozen Embrace',
+      crypt_lady_embrace_hold: 'Frozen Embrace',
+      crypt_lady_bridal_freeze: 'Bridal Freeze',
+      crypt_ilvane_dirge: 'Dirge of the Hollow',
+      crypt_ilvane_unbroken_dirge: 'Unbroken Verse',
+      crypt_ilvane_bone_organ: 'Bone Organ',
+      // Morthen the Gravecaller's bars (encounters/hollow_crypt/morthen_ids.ts),
+      // the players' own relight bar on a Remembrance Candle, and the
+      // Knellwyrm's heroic Burning Knell flight (every phase reads as the
+      // mechanic). None can be kicked.
+      crypt_morthen_shadow_pulse: 'Shadow Pulse',
+      crypt_morthen_rite_of_the_unquiet: 'Rite of the Unquiet',
+      crypt_morthen_reap_the_unquiet: 'Reap the Unquiet',
+      kituse_crypt_relight_candle: 'Relight the Candle',
+      crypt_knellwyrm_knell_rise: 'Burning Knell',
+      crypt_knellwyrm_knell_mark: 'Burning Knell',
+      crypt_knellwyrm_knell_breath: 'Burning Knell',
+      crypt_knellwyrm_knell_land: 'Burning Knell',
+      // The Sunken Bastion trash kit and boss casts (trash_kit/bastion_cast_ids.ts,
+      // encounters/sunken_bastion/ids.ts). The Mend and the Ward can be kicked.
+      bastion_brine_mend: 'Brine Mend',
+      bastion_fog_ward: 'Fog Ward',
+      bastion_halberd_sweep: 'Halberd Sweep',
+      bastion_piercing_bolt: 'Piercing Bolt',
+      bastion_claw_sweep: 'Claw Sweep',
+      bastion_shell_slam: 'Shell Slam',
+      ghost_captain_broadside: 'Spectral Broadside',
+      ghost_captain_anchor: 'Cursed Anchor',
+      ghost_captain_boarding: 'Phantom Boarding',
+      // The Bastion trash mechanics pass (trash_kit/bastion_kit.ts): the fog and
+      // the column can be kicked; the hook is dodged.
+      bastion_boathook: 'Boathook Drag',
+      bastion_fog_bank: 'Fog Bank',
+      bastion_brine_column: 'Brine Column',
+      // The trash pass's second wave: the sergeant's shout can be kicked.
+      bastion_loose_on_my_mark: 'Loose on My Mark',
+      bastion_oathbound_charge: 'Oathbound Charge',
+      bastion_gaolers_cudgel: "Gaoler's Cudgel",
+      bastion_mist_surge: 'Mist Surge',
+      bastion_drowning_hymn: 'Drowning Hymn',
+      // The Bastion's fifth pass: the Gaol Turnkey's cage, Ossick's anchor and
+      // shackles, and Vael the reaper's crossing and scythe. None can be kicked.
+      bastion_iron_cage: 'Iron Cage',
+      bastion_drowned_anchor_cast: 'Drowned Anchor',
+      bastion_shackle_pair: 'Shackle Pair',
+      bastion_shadowstep: 'Shadow Crossing',
+      bastion_reaping_scythe: 'Reaping Scythe',
+      // The Fog Veil's figures rising out of the roof (Wordy, M16: fills).
+      bastion_veil_rise: 'Fog Veil',
+      // Vael's entrance and the fog gathering before each veil.
+      bastion_veil_gather: 'Gathering Fog',
+      bastion_vael_rise: 'Death Rises',
+      bastion_vael_sink: 'Into the Fog',
+      // Olen the fallen paladin's casts (encounters/sunken_bastion/olen.ts).
+      bastion_hallowed_brine: 'Hallowed Brine',
+      bastion_rebounding_bulwark: 'Rebounding Bulwark',
+      bastion_tide_sentence: 'Sentence of the Tide',
+      bastion_oath_kneel: 'Unbroken Oath',
+      bastion_oath_vigil: 'Unbroken Oath',
+      // The Drowned Temple trash kit and boss casts (trash_kit/temple_cast_ids.ts,
+      // encounters/drowned_temple/ids.ts). The Lullaby, the Call and the Coil
+      // can be kicked.
+      temple_lullaby: 'Lullaby',
+      // Laverock's song at the Moon Altar (the dungeon guide's finale channel).
+      cantor_last_verse: 'The Last Verse',
+      temple_call_the_tide: 'Call the Tide',
+      temple_static_coil: 'Static Coil',
+      temple_snapper_snap: 'Snap',
+      temple_trident_sweep: 'Trident Sweep',
+      temple_sea_song: 'Sea-Song',
+      temple_tidal_slap: 'Tidal Slap',
+      temple_tide_breath: 'Freezing Breath',
+      temple_moonlight_lance: 'Moonlight Lance',
+      temple_prism_flare: 'Prism Flare',
+      temple_resonant_slam: 'Resonant Slam',
+      // The caster pass: Selthe's bolt and aria can be kicked, her surge and
+      // the Colossus's fracture cannot.
+      temple_moonwater_bolt: 'Moonwater Bolt',
+      temple_drowning_aria: 'Drowning Aria',
+      temple_mere_surge: 'Mere Surge',
+      // Selthe's Score (encounters/drowned_temple/selthe_score.ts): the melody's
+      // bar and the answer's (its time left is the verse's clock). Never kicked.
+      temple_score: 'The Score',
+      temple_score_answer: 'Answer the Score',
+      temple_tideglass_fracture: 'Tideglass Fracture',
+      temple_undertow: 'Undertow',
+      temple_lunar_tide: 'Lunar Tide',
+      // The Temple's sixth pass: the trash's second jobs (the Mending and the
+      // Venom can be kicked) and the Mere Hydra's water and wave.
+      temple_skewering_trident: 'Skewering Trident',
+      temple_pale_mending: 'Pale Mending',
+      temple_glimmer_venom: 'Glimmer Venom',
+      // The Moonmantle Ray's wingbeat (the cast id kept from the Pearl Slam).
+      temple_pearl_slam: 'Tidal Wingbeat',
+      temple_lightning_spit: 'Lightning Spit',
+      temple_crushing_torrent: 'Crushing Torrent',
+      temple_hydra_tsunami: 'Tsunami',
+      temple_ysolei_call: 'Moonspawn Call',
+      temple_ysolei_wrath: 'Drowned Wrath',
+      // The Temple encounter pass: the Mere Hydra's Combined Breath and Ysolei
+      // calling the moon. None of them can be kicked.
+      temple_frostlocked_torrent: 'Frostlocked Torrent',
+      temple_venom_current: 'Venom Current',
+      temple_toxic_rime: 'Toxic Rime',
+      temple_beckoning_moon: 'Beckoning Moon',
+      temple_falling_moon: 'Falling Moon',
+      // The Temple trash mechanics pass (trash_kit/temple_cast_ids.ts). The
+      // Arcing Spark can be kicked; the Prism Glare cannot (turn your back).
+      temple_prism_glare: 'Prism Glare',
+      temple_arcing_spark: 'Arcing Spark',
+      // The trash pass's second wave: the siren's song can be kicked.
+      temple_call_of_the_shallows: 'Call of the Shallows',
+      // The Wildheart Basin rework (trash_kit/wildheart_cast_ids.ts,
+      // encounters/wildheart_basin/ids.ts). Only Ancestral Sap can be kicked.
+      wildheart_ancestral_sap: 'Ancestral Sap',
+      wildheart_plant_totem: 'Plant Totem',
+      wildheart_entangling_lash: 'Entangling Lash',
+      wildheart_saurian_tail_swipe: 'Tail Swipe',
+      wildheart_saurian_stomp: 'Earthshaking Stomp',
+      // The Wildheart trash mechanics pass (trash_kit/wildheart_cast_ids.ts).
+      // The War Roar and the Toad Hex can be kicked; the rest cannot.
+      wildheart_quarry_mark: 'Quarry Mark',
+      wildheart_war_roar: 'War Roar',
+      wildheart_toad_hex: 'Toad Hex',
+      wildheart_rattling_dread: 'Rattling Dread',
+      wildheart_snaring_tongue: 'Snaring Tongue',
+      // The Wildheart Basin's three bosses (encounters/wildheart_basin). None
+      // of these bars can be kicked.
+      wildheart_beast_pit_quake: 'Beast Pit Quake',
+      wildheart_jaguar_heel: 'Heel!',
+      wildheart_gorgebloom_seed_rain: 'Seed Rain',
+      wildheart_gorgebloom_vine_lash: 'Vine Lash',
+      wildheart_gorgebloom_gorge: 'Gorge',
+      wildheart_zulgar_pulse: 'Wildheart Pulse',
+      wildheart_zulgar_spirit_hunt: 'Spirit of the Hunt',
+      // Zulgar's hunt rework: his two new bars, the player's own bar on the
+      // spear, and the clocks his encounter objects carry (the stone jaguar's
+      // breath over its half, a sun glyph being lit or cooling).
+      wildheart_zulgar_hunting_spear: 'Hunting Spear',
+      wildheart_zulgar_idol_wakes: 'The Idol Wakes',
+      kituse_wildheart_pull_spear: 'Pull the Spear',
+      wildheart_idols_breath: "Idol's Breath",
+      wildheart_sun_glyph_kindle: 'Lighting',
+      wildheart_sun_glyph_cold: 'Cooling',
+      // The Gravewyrm Sanctum rework (trash_kit/sanctum_cast_ids.ts,
+      // encounters/gravewyrm_sanctum/ids.ts). Warming Rite and Goad can be kicked.
+      sanctum_cinder_breath: 'Cinder Breath',
+      sanctum_warming_rite: 'Warming Rite',
+      sanctum_goad: 'Goad',
+      sanctum_plant_brazier: 'Plant Soul Brazier',
+      sanctum_ice_block_toss: 'Ice Block Toss',
+      sanctum_tusker_tusk_sweep: 'Tusk Sweep',
+      sanctum_tusker_trample: 'Trample',
+      // The Sanctum trash mechanics pass (trash_kit/sanctum_cast_ids.ts). Thaw
+      // the Held and Branding Iron can be kicked.
+      sanctum_thaw_the_held: 'Thaw the Held',
+      sanctum_counterweight_lash: 'Counterweight Lash',
+      sanctum_branding_iron: 'Branding Iron',
+      sanctum_rime_breath: 'Rime Breath',
+      // The player's own bar while kicking a Soul Brazier over (the trash
+      // engine's G3 use, trash_kit/encounter_use.ts).
+      kituse_sanctum_topple_brazier: 'Topple Brazier',
+      // The trash engine's dev-only demonstration kit (trash_kit/engine_demo.ts):
+      // the nova (kickable), its every-third unstoppable twin, and the orb launch.
+      trash_demo_nova: 'Test Nova',
+      trash_demo_nova_unstoppable: 'Test Nova',
+      trash_demo_walker: 'Test Orb',
+      // Korgath the Bound (encounters/gravewyrm_sanctum/korgath.ts). Only the
+      // Goadsmith's heroic Re-rivet can be kicked.
+      sanctum_korgath_maul_arc: 'Maul Arc',
+      sanctum_korgath_chain_flail: 'Chain Flail',
+      sanctum_korgath_threshold_charge: 'Threshold Charge',
+      sanctum_korgath_foremans_bellow: "Foreman's Bellow",
+      sanctum_korgath_strain: 'Strain',
+      sanctum_korgath_stomp: 'Shuddering Stomp',
+      sanctum_goadsmith_rerivet: 'Re-rivet',
+      // Grand Necromancer Velkhar (encounters/gravewyrm_sanctum/velkhar.ts).
+      sanctum_velkhar_soulfire_trench: 'Soulfire Trench',
+      sanctum_velkhar_shadow_volley: 'Shadow Volley',
+      // Korzul the Gravewyrm (encounters/gravewyrm_sanctum/korzul.ts). None of
+      // his bars can be kicked.
+      sanctum_korzul_break_free: 'Break Free',
+      sanctum_korzul_grave_breath: 'Grave Breath',
+      sanctum_korzul_tail_sweep: 'Tail Sweep',
+      sanctum_korzul_grave_inferno: 'Grave Inferno',
+      sanctum_korzul_wing_gale: 'Wing Gale',
+      sanctum_korzul_plunging_fire: 'Plunging Fire',
+      sanctum_korzul_crashing_descent: 'Crashing Descent',
     },
     actionBar: {
       ...abilityStrings.en.abilityUi.actionBar,
@@ -513,21 +845,39 @@ const mergeStringsEn = {
       tool: 'Tool',
       potion: 'Potion',
       elixir: 'Elixir',
+      flask: 'Flask',
+      scroll: 'Scroll',
       bag: 'Bag',
+      mount: 'Mount',
+      buddy: 'Buddy',
+      buddyCosmetic: 'Buddy cosmetic',
     },
     tooltip: {
       ...itemNames.en.itemUi.tooltip,
       useFishing: 'Use: Fish in nearby waters.',
       useHealingPotion:
         'Use: Instantly restores {amount} health. Usable in combat. 2 min cooldown.',
+      useHealingPotionPct:
+        'Use: Instantly restores {percent}% of maximum health. Usable in combat. 2 min cooldown.',
       useManaPotion: 'Use: Instantly restores {amount} mana. Usable in combat. 2 min cooldown.',
       clickUseInstant: 'Click to use instantly in combat',
       clickUse: 'Click to use',
+      // The placeable feast's hint (bags_view.ts): the click PLACES the feast
+      // at your feet, it never eats it, so "use" undersold what happens.
+      clickSetOut: 'Click to set out',
+      // The station-placing tools' hint (bags_view.ts), the feast's twin and
+      // the ONE deployable-hint pattern (Masterwrought phase 14): the click
+      // sets the field station up at your feet, the sim line's own verb
+      // ("You set up the {name}."), so "use" undersold this one the same way.
+      clickSetUp: 'Click to set up',
       clickBuyback: 'Click to buy back',
       // Rendered by the item tooltip (hud.ts), the bag sockets (bags_window.ts) AND the
       // World Market's bag-capacity dropdown (market_window.ts), which reuses it so a new
       // bag size needs no new key. Rewording this restyles that market control too.
       bagSlots: '{slots} Slot Bag',
+      // The materials-only satchel variant (phase 05 two-pool bags): the same
+      // tooltip and socket-aria sites, English-appended until the release fill.
+      bagSlotsMaterials: '{slots} Slot Materials Bag',
     },
     vendor: {
       ...itemNames.en.itemUi.vendor,
@@ -541,6 +891,10 @@ const mergeStringsEn = {
       sellJunk: 'Sell Junk',
       sellJunkAria: 'Sell all junk for {price}',
       sellJunkHint: 'Sells every gray item in your bags except quest items.',
+      // The sim keeps plain gray junk out of the buyback list (items.ts
+      // skipsVendorBuyback), so the sweep is final: say so before the click.
+      sellJunkNoBuyback:
+        'Unsigned gray items skip the buyback list, so selling them cannot be undone.',
     },
     logs: {
       ...itemNames.en.itemUi.logs,
@@ -575,6 +929,10 @@ const mergeStringsEn = {
     social: {
       title: 'Social',
       friendsTab: 'Friends',
+      friendFirstPage: 'First page',
+      friendNextPage: 'Next page',
+      boundFriend: 'Bound friend',
+      boundFriendLink: 'Bound friends are linked by their referral invitation.',
       guildTab: 'Guild',
       ignoreTab: 'Ignore',
       leaveParty: 'Leave Party',
@@ -627,6 +985,8 @@ const mergeStringsEn = {
       },
       statusWithZone: '{status} - {zone}',
       ranks: { leader: 'Guild Master', officer: 'Officer', member: 'Member' },
+      // Guild-roster tenure roles: joined under 7 days ago / 30 days or more.
+      tenure: { recruit: 'Recruit', veteran: 'Veteran' },
       guildHeadOne: 'you are {rank}, {count} member',
       guildHeadMany: 'you are {rank}, {count} members',
     },
@@ -638,7 +998,7 @@ const mergeStringsEn = {
       emptyTheirs: 'Nothing offered yet',
       money: 'Money',
       copper: 'copper',
-      hint: 'Click an offered item to remove it. Both sides must press Accept Trade.',
+      hint: 'Click an offered item to remove some or all of it. Both sides must press Accept Trade.',
       accept: 'Accept Trade',
       waiting: 'Waiting...',
       cancel: 'Cancel',
@@ -665,7 +1025,7 @@ const mergeStringsEn = {
         'You will be matched with the nearest-rated challenger online, then teleported to the sands. Win to climb; first to yield (1 health) loses. You return exactly where you queued.',
       ladderAllTime: 'Ladder - All-Time',
       ladderOnline: 'Ladder - Online',
-      ratingSummary: 'Rating - {wins} wins / {losses} losses',
+      ratingSummary: 'Rating - {wins} wins / {losses} losses / {draws} draws',
       statusCountdown: 'Steel yourself...',
       statusReturning: 'Returning to the world... {seconds}',
       statusFight: 'Fight to the yield!',
@@ -679,14 +1039,12 @@ export const mergeStrings = {
   en: mergeStringsEn,
   es: {
     abilityUi: {
-      ...abilityStrings.es.abilityUi,
       cast: {
         fishing: 'Pesca',
         demonHeal: 'Sanación demoníaca',
         thunzharrStormcall: 'Llamada de la tormenta',
       },
       actionBar: {
-        ...abilityStrings.es.abilityUi.actionBar,
         clearHint: 'Mayús-clic derecho o Mayús-Supr para vaciar',
         itemInBags: 'En bolsas: {count}',
         itemNoneInBags: 'Ninguno en las bolsas',
@@ -700,6 +1058,7 @@ export const mergeStrings = {
         potion: 'Poción',
         elixir: 'Elixir',
         bag: 'Bolsa',
+        mount: 'Montura',
       },
       tooltip: {
         ...itemNames.es.itemUi.tooltip,
@@ -801,7 +1160,11 @@ export const mergeStrings = {
           dead: 'Muerto',
         },
         statusWithZone: '{status} - {zone}',
-        ranks: { leader: 'Maestro de hermandad', officer: 'Oficial', member: 'Miembro' },
+        ranks: {
+          leader: 'Maestro de hermandad',
+          officer: 'Oficial',
+          member: 'Miembro',
+        },
         guildHeadOne: 'eres {rank}, {count} miembro',
         guildHeadMany: 'eres {rank}, {count} miembros',
       },
@@ -835,7 +1198,7 @@ export const mergeStrings = {
           'Te emparejarán con el retador en línea de índice más cercano y te teletransportarán a la arena. Gana para subir; el primero en ceder (1 de salud) pierde. Vuelves exactamente donde entraste en cola.',
         ladderAllTime: 'Clasificación - histórica',
         ladderOnline: 'Clasificación - en línea',
-        ratingSummary: 'Índice - {wins} victorias / {losses} derrotas',
+        ratingSummary: 'Índice - {wins} victorias / {losses} derrotas / {draws} empates',
         statusCountdown: 'Prepárate...',
         statusReturning: 'Volviendo al mundo... {seconds}',
         statusFight: '¡Lucha hasta la rendición!',
@@ -847,14 +1210,12 @@ export const mergeStrings = {
   es_ES: {} as typeof mergeStringsEn,
   fr_FR: {
     abilityUi: {
-      ...abilityStrings.fr_FR.abilityUi,
       cast: {
         fishing: 'Pêche',
         demonHeal: 'Soin démoniaque',
         thunzharrStormcall: 'Appel de la tempête',
       },
       actionBar: {
-        ...abilityStrings.fr_FR.abilityUi.actionBar,
         clearHint: 'Maj-clic droit ou Maj-Suppr pour vider',
         itemInBags: 'Dans les sacs : {count}',
         itemNoneInBags: 'Aucun dans les sacs',
@@ -868,6 +1229,7 @@ export const mergeStrings = {
         potion: 'Potion',
         elixir: 'Élixir',
         bag: 'Sac',
+        mount: 'Monture',
       },
       tooltip: {
         ...itemNames.fr_FR.itemUi.tooltip,
@@ -969,7 +1331,11 @@ export const mergeStrings = {
           dead: 'Mort',
         },
         statusWithZone: '{status} - {zone}',
-        ranks: { leader: 'Maître de guilde', officer: 'Officier', member: 'Membre' },
+        ranks: {
+          leader: 'Maître de guilde',
+          officer: 'Officier',
+          member: 'Membre',
+        },
         guildHeadOne: 'vous êtes {rank}, {count} membre',
         guildHeadMany: 'vous êtes {rank}, {count} membres',
       },
@@ -1003,7 +1369,7 @@ export const mergeStrings = {
           "Vous serez opposé au prétendant en ligne au classement le plus proche, puis téléporté dans l'arène. Gagnez pour monter; le premier à céder (1 point de vie) perd. Vous revenez exactement où vous étiez en file.",
         ladderAllTime: 'Classement - historique',
         ladderOnline: 'Classement - en ligne',
-        ratingSummary: 'Cote - {wins} victoires / {losses} défaites',
+        ratingSummary: 'Cote - {wins} victoires / {losses} défaites / {draws} nuls',
         statusCountdown: 'Préparez-vous...',
         statusReturning: 'Retour au monde... {seconds}',
         statusFight: "Combattez jusqu'à la reddition !",
@@ -1016,14 +1382,12 @@ export const mergeStrings = {
   en_CA: mergeStringsEn,
   it_IT: {
     abilityUi: {
-      ...abilityStrings.it_IT.abilityUi,
       cast: {
         fishing: 'Pesca',
         demonHeal: 'Cura demoniaca',
         thunzharrStormcall: 'Richiamo della tempesta',
       },
       actionBar: {
-        ...abilityStrings.it_IT.abilityUi.actionBar,
         clearHint: 'Maiusc-clic destro o Maiusc-Canc per svuotare',
         itemInBags: 'Nelle borse: {count}',
         itemNoneInBags: 'Nessuno nelle borse',
@@ -1037,6 +1401,7 @@ export const mergeStrings = {
         potion: 'Pozione',
         elixir: 'Elisir',
         bag: 'Borsa',
+        mount: 'Cavalcatura',
       },
       tooltip: {
         ...itemNames.it_IT.itemUi.tooltip,
@@ -1171,7 +1536,7 @@ export const mergeStrings = {
           "Verrai abbinato al contendente online con indice più vicino e teletrasportato nell'arena. Vinci per salire; il primo a cedere (1 salute) perde. Torni esattamente dove ti sei messo in coda.",
         ladderAllTime: 'Classifica - storica',
         ladderOnline: 'Classifica - online',
-        ratingSummary: 'Indice - {wins} vittorie / {losses} sconfitte',
+        ratingSummary: 'Indice - {wins} vittorie / {losses} sconfitte / {draws} pareggi',
         statusCountdown: 'Preparati...',
         statusReturning: 'Ritorno al mondo... {seconds}',
         statusFight: 'Combatti fino alla resa!',
@@ -1182,10 +1547,12 @@ export const mergeStrings = {
   },
   de_DE: {
     abilityUi: {
-      ...abilityStrings.de_DE.abilityUi,
-      cast: { fishing: 'Angeln', demonHeal: 'Dämonenheilung', thunzharrStormcall: 'Sturmruf' },
+      cast: {
+        fishing: 'Angeln',
+        demonHeal: 'Dämonenheilung',
+        thunzharrStormcall: 'Sturmruf',
+      },
       actionBar: {
-        ...abilityStrings.de_DE.abilityUi.actionBar,
         clearHint: 'Umschalt-Rechtsklick oder Umschalt-Entf zum Leeren',
         itemInBags: 'In Taschen: {count}',
         itemNoneInBags: 'Keine in den Taschen',
@@ -1199,6 +1566,7 @@ export const mergeStrings = {
         potion: 'Trank',
         elixir: 'Elixier',
         bag: 'Tasche',
+        mount: 'Reittier',
       },
       tooltip: {
         ...itemNames.de_DE.itemUi.tooltip,
@@ -1299,7 +1667,11 @@ export const mergeStrings = {
           dead: 'Tot',
         },
         statusWithZone: '{status} - {zone}',
-        ranks: { leader: 'Gildenmeister', officer: 'Offizier', member: 'Mitglied' },
+        ranks: {
+          leader: 'Gildenmeister',
+          officer: 'Offizier',
+          member: 'Mitglied',
+        },
         guildHeadOne: 'Ihr seid {rank}, {count} Mitglied',
         guildHeadMany: 'Ihr seid {rank}, {count} Mitglieder',
       },
@@ -1333,7 +1705,7 @@ export const mergeStrings = {
           'Ihr werdet mit dem online nächstbewerteten Herausforderer gepaart und in den Sand teleportiert. Gewinnt, um aufzusteigen; wer zuerst aufgibt (1 Gesundheit), verliert. Ihr kehrt genau an den Ort zurück, an dem Ihr Euch eingereiht habt.',
         ladderAllTime: 'Rangliste - gesamt',
         ladderOnline: 'Rangliste - online',
-        ratingSummary: 'Wertung - {wins} Siege / {losses} Niederlagen',
+        ratingSummary: 'Wertung - {wins} Siege / {losses} Niederlagen / {draws} Unentschieden',
         statusCountdown: 'Macht Euch bereit...',
         statusReturning: 'Rückkehr in die Welt... {seconds}',
         statusFight: 'Kämpft bis zur Aufgabe!',
@@ -1344,10 +1716,28 @@ export const mergeStrings = {
   },
   zh_CN: {
     abilityUi: {
-      ...abilityStrings.zh_CN.abilityUi,
-      cast: { fishing: '钓鱼', demonHeal: '恶魔治疗', thunzharrStormcall: '风暴召唤' },
+      cast: {
+        fishing: '钓鱼',
+        demonHeal: '恶魔治疗',
+        thunzharrStormcall: '风暴召唤',
+        rift_frost_execution: 'Glacial Grave',
+        rift_frost_strike: 'Absolute Zero',
+        rift_ember_execution: 'Magma Well',
+        rift_ember_strike: 'Core Meltdown',
+        rift_venom_execution: 'Venom Pool',
+        rift_venom_strike: "Broodmother's Mark",
+        rift_necro_execution: 'Soul Grave',
+        rift_necro_strike: 'Death Sentence',
+        rift_brute_execution: 'Earthshatter',
+        rift_brute_strike: 'Final Judgment',
+        rift_arcane_execution: 'Void Rift',
+        rift_arcane_strike: 'Arcane Annihilation',
+        rift_storm_execution: 'Lightning Rod',
+        rift_storm_strike: "Stormcaller's Wrath",
+        rift_tide_execution: 'Abyssal Maw',
+        rift_tide_strike: 'Crushing Depth',
+      },
       actionBar: {
-        ...abilityStrings.zh_CN.abilityUi.actionBar,
         clearHint: 'Shift-右键或 Shift-Delete 清除',
         itemInBags: '背包中：{count}',
         itemNoneInBags: '背包中没有',
@@ -1361,6 +1751,7 @@ export const mergeStrings = {
         potion: '药水',
         elixir: '药剂',
         bag: '背包',
+        mount: '坐骑',
       },
       tooltip: {
         ...itemNames.zh_CN.itemUi.tooltip,
@@ -1415,6 +1806,10 @@ export const mergeStrings = {
       social: {
         title: '社交',
         friendsTab: '好友',
+        friendFirstPage: '首页',
+        friendNextPage: '下一页',
+        boundFriend: '绑定好友',
+        boundFriendLink: '绑定好友通过邀请链接建立关系。',
         guildTab: '公会',
         ignoreTab: '忽略',
         leaveParty: '离开队伍',
@@ -1492,7 +1887,7 @@ export const mergeStrings = {
           '你会与在线且评级最接近的挑战者匹配，然后传送到沙场。获胜即可攀升；先认输者（1 点生命值）落败。结束后会回到你排队的位置。',
         ladderAllTime: '排名 - 历史',
         ladderOnline: '排名 - 在线',
-        ratingSummary: '评级 - {wins} 胜 / {losses} 负',
+        ratingSummary: '评级 - {wins} 胜 / {losses} 负 / {draws} 平',
         statusCountdown: '做好准备...',
         statusReturning: '正在返回世界... {seconds}',
         statusFight: '战斗到认输！',
@@ -1503,10 +1898,28 @@ export const mergeStrings = {
   },
   zh_TW: {
     abilityUi: {
-      ...abilityStrings.zh_TW.abilityUi,
-      cast: { fishing: '釣魚', demonHeal: '惡魔治療', thunzharrStormcall: '風暴召喚' },
+      cast: {
+        fishing: '釣魚',
+        demonHeal: '惡魔治療',
+        thunzharrStormcall: '風暴召喚',
+        rift_frost_execution: 'Glacial Grave',
+        rift_frost_strike: 'Absolute Zero',
+        rift_ember_execution: 'Magma Well',
+        rift_ember_strike: 'Core Meltdown',
+        rift_venom_execution: 'Venom Pool',
+        rift_venom_strike: "Broodmother's Mark",
+        rift_necro_execution: 'Soul Grave',
+        rift_necro_strike: 'Death Sentence',
+        rift_brute_execution: 'Earthshatter',
+        rift_brute_strike: 'Final Judgment',
+        rift_arcane_execution: 'Void Rift',
+        rift_arcane_strike: 'Arcane Annihilation',
+        rift_storm_execution: 'Lightning Rod',
+        rift_storm_strike: "Stormcaller's Wrath",
+        rift_tide_execution: 'Abyssal Maw',
+        rift_tide_strike: 'Crushing Depth',
+      },
       actionBar: {
-        ...abilityStrings.zh_TW.abilityUi.actionBar,
         clearHint: 'Shift-右鍵或 Shift-Delete 清除',
         itemInBags: '背包中：{count}',
         itemNoneInBags: '背包中沒有',
@@ -1520,6 +1933,7 @@ export const mergeStrings = {
         potion: '藥水',
         elixir: '藥劑',
         bag: '背包',
+        mount: '坐騎',
       },
       tooltip: {
         ...itemNames.zh_TW.itemUi.tooltip,
@@ -1574,6 +1988,10 @@ export const mergeStrings = {
       social: {
         title: '社交',
         friendsTab: '好友',
+        friendFirstPage: '首頁',
+        friendNextPage: '下一頁',
+        boundFriend: '綁定好友',
+        boundFriendLink: '綁定好友透過邀請連結建立關係。',
         guildTab: '公會',
         ignoreTab: '忽略',
         leaveParty: '離開隊伍',
@@ -1651,7 +2069,7 @@ export const mergeStrings = {
           '你會與線上且評級最接近的挑戰者配對，然後傳送到沙場。獲勝即可攀升；先認輸者（1 點生命值）落敗。結束後會回到你排隊的位置。',
         ladderAllTime: '排名 - 歷史',
         ladderOnline: '排名 - 線上',
-        ratingSummary: '評級 - {wins} 勝 / {losses} 敗',
+        ratingSummary: '評級 - {wins} 勝 / {losses} 敗 / {draws} 平',
         statusCountdown: '做好準備...',
         statusReturning: '正在返回世界... {seconds}',
         statusFight: '戰鬥到認輸！',
@@ -1662,10 +2080,28 @@ export const mergeStrings = {
   },
   ko_KR: {
     abilityUi: {
-      ...abilityStrings.ko_KR.abilityUi,
-      cast: { fishing: '낚시', demonHeal: '악마 치유', thunzharrStormcall: '폭풍의 부름' },
+      cast: {
+        fishing: '낚시',
+        demonHeal: '악마 치유',
+        thunzharrStormcall: '폭풍의 부름',
+        rift_frost_execution: 'Glacial Grave',
+        rift_frost_strike: 'Absolute Zero',
+        rift_ember_execution: 'Magma Well',
+        rift_ember_strike: 'Core Meltdown',
+        rift_venom_execution: 'Venom Pool',
+        rift_venom_strike: "Broodmother's Mark",
+        rift_necro_execution: 'Soul Grave',
+        rift_necro_strike: 'Death Sentence',
+        rift_brute_execution: 'Earthshatter',
+        rift_brute_strike: 'Final Judgment',
+        rift_arcane_execution: 'Void Rift',
+        rift_arcane_strike: 'Arcane Annihilation',
+        rift_storm_execution: 'Lightning Rod',
+        rift_storm_strike: "Stormcaller's Wrath",
+        rift_tide_execution: 'Abyssal Maw',
+        rift_tide_strike: 'Crushing Depth',
+      },
       actionBar: {
-        ...abilityStrings.ko_KR.abilityUi.actionBar,
         clearHint: 'Shift-우클릭 또는 Shift-Delete로 비우기',
         itemInBags: '가방 보유: {count}',
         itemNoneInBags: '가방에 없음',
@@ -1679,6 +2115,7 @@ export const mergeStrings = {
         potion: '물약',
         elixir: '비약',
         bag: '가방',
+        mount: '탈것',
       },
       tooltip: {
         ...itemNames.ko_KR.itemUi.tooltip,
@@ -1735,6 +2172,10 @@ export const mergeStrings = {
       social: {
         title: '소셜',
         friendsTab: '친구',
+        friendFirstPage: '첫 페이지',
+        friendNextPage: '다음 페이지',
+        boundFriend: '연결된 친구',
+        boundFriendLink: '연결된 친구는 초대 링크를 통해 연결됩니다.',
         guildTab: '길드',
         ignoreTab: '차단',
         leaveParty: '파티 떠나기',
@@ -1813,7 +2254,7 @@ export const mergeStrings = {
           '온라인 중인 가장 가까운 평점의 도전자와 매칭된 뒤 모래장으로 순간이동합니다. 승리하면 순위가 오르고, 먼저 항복한 쪽(생명력 1)이 패배합니다. 대기열에 들어간 바로 그 자리로 돌아옵니다.',
         ladderAllTime: '순위표 - 전체',
         ladderOnline: '순위표 - 온라인',
-        ratingSummary: '평점 - {wins}승 / {losses}패',
+        ratingSummary: '평점 - {wins}승 / {losses}패 / {draws}무',
         statusCountdown: '마음을 다잡으세요...',
         statusReturning: '세계로 돌아가는 중... {seconds}',
         statusFight: '항복할 때까지 싸우세요!',
@@ -1824,10 +2265,28 @@ export const mergeStrings = {
   },
   ja_JP: {
     abilityUi: {
-      ...abilityStrings.ja_JP.abilityUi,
-      cast: { fishing: '釣り', demonHeal: '悪魔の治癒', thunzharrStormcall: '嵐の呼び声' },
+      cast: {
+        fishing: '釣り',
+        demonHeal: '悪魔の治癒',
+        thunzharrStormcall: '嵐の呼び声',
+        rift_frost_execution: 'Glacial Grave',
+        rift_frost_strike: 'Absolute Zero',
+        rift_ember_execution: 'Magma Well',
+        rift_ember_strike: 'Core Meltdown',
+        rift_venom_execution: 'Venom Pool',
+        rift_venom_strike: "Broodmother's Mark",
+        rift_necro_execution: 'Soul Grave',
+        rift_necro_strike: 'Death Sentence',
+        rift_brute_execution: 'Earthshatter',
+        rift_brute_strike: 'Final Judgment',
+        rift_arcane_execution: 'Void Rift',
+        rift_arcane_strike: 'Arcane Annihilation',
+        rift_storm_execution: 'Lightning Rod',
+        rift_storm_strike: "Stormcaller's Wrath",
+        rift_tide_execution: 'Abyssal Maw',
+        rift_tide_strike: 'Crushing Depth',
+      },
       actionBar: {
-        ...abilityStrings.ja_JP.abilityUi.actionBar,
         clearHint: 'Shift-右クリックまたはShift-Deleteで消去',
         itemInBags: 'バッグ内: {count}',
         itemNoneInBags: 'バッグ内になし',
@@ -1841,6 +2300,7 @@ export const mergeStrings = {
         potion: 'ポーション',
         elixir: 'エリクサー',
         bag: 'バッグ',
+        mount: 'マウント',
       },
       tooltip: {
         ...itemNames.ja_JP.itemUi.tooltip,
@@ -1896,6 +2356,10 @@ export const mergeStrings = {
       social: {
         title: 'ソーシャル',
         friendsTab: 'フレンド',
+        friendFirstPage: '最初のページ',
+        friendNextPage: '次のページ',
+        boundFriend: '絆のフレンド',
+        boundFriendLink: '絆のフレンドは招待リンクで結ばれています。',
         guildTab: 'ギルド',
         ignoreTab: '無視',
         leaveParty: 'パーティを抜ける',
@@ -1940,7 +2404,11 @@ export const mergeStrings = {
           dead: '死亡',
         },
         statusWithZone: '{status} - {zone}',
-        ranks: { leader: 'ギルドマスター', officer: '士官', member: 'メンバー' },
+        ranks: {
+          leader: 'ギルドマスター',
+          officer: '士官',
+          member: 'メンバー',
+        },
         guildHeadOne: 'あなたは{rank}、{count}人のメンバー',
         guildHeadMany: 'あなたは{rank}、{count}人のメンバー',
       },
@@ -1974,7 +2442,7 @@ export const mergeStrings = {
           'オンライン中で最も近いレートの挑戦者と組み合わされ、砂地へ転送されます。勝てば上昇し、先に降参した側（体力1）が負けます。キューに入った場所へ正確に戻ります。',
         ladderAllTime: 'ランキング - 全期間',
         ladderOnline: 'ランキング - オンライン',
-        ratingSummary: 'レート - {wins}勝 / {losses}敗',
+        ratingSummary: 'レート - {wins}勝 / {losses}敗 / {draws}分',
         statusCountdown: '身構えてください...',
         statusReturning: '世界へ戻っています... {seconds}',
         statusFight: '降参まで戦え！',
@@ -1985,14 +2453,12 @@ export const mergeStrings = {
   },
   pt_BR: {
     abilityUi: {
-      ...abilityStrings.pt_BR.abilityUi,
       cast: {
         fishing: 'Pesca',
         demonHeal: 'Cura demoníaca',
         thunzharrStormcall: 'Chamado da Tempestade',
       },
       actionBar: {
-        ...abilityStrings.pt_BR.abilityUi.actionBar,
         clearHint: 'Shift-clique direito ou Shift-Delete para limpar',
         itemInBags: 'Nas bolsas: {count}',
         itemNoneInBags: 'Nenhum nas bolsas',
@@ -2006,6 +2472,7 @@ export const mergeStrings = {
         potion: 'Poção',
         elixir: 'Elixir',
         bag: 'Bolsa',
+        mount: 'Montaria',
       },
       tooltip: {
         ...itemNames.pt_BR.itemUi.tooltip,
@@ -2107,7 +2574,11 @@ export const mergeStrings = {
           dead: 'Morto',
         },
         statusWithZone: '{status} - {zone}',
-        ranks: { leader: 'Mestre da guilda', officer: 'Oficial', member: 'Membro' },
+        ranks: {
+          leader: 'Mestre da guilda',
+          officer: 'Oficial',
+          member: 'Membro',
+        },
         guildHeadOne: 'você é {rank}, {count} membro',
         guildHeadMany: 'você é {rank}, {count} membros',
       },
@@ -2141,7 +2612,7 @@ export const mergeStrings = {
           'Você será pareado com o desafiante online de ranque mais próximo e teleportado para a arena. Vença para subir; o primeiro a ceder (1 de vida) perde. Você retorna exatamente ao local onde entrou na fila.',
         ladderAllTime: 'Classificação - histórica',
         ladderOnline: 'Classificação - online',
-        ratingSummary: 'Ranque - {wins} vitórias / {losses} derrotas',
+        ratingSummary: 'Ranque - {wins} vitórias / {losses} derrotas / {draws} empates',
         statusCountdown: 'Prepare-se...',
         statusReturning: 'Voltando ao mundo... {seconds}',
         statusFight: 'Lute até a rendição!',
@@ -2152,14 +2623,28 @@ export const mergeStrings = {
   },
   ru_RU: {
     abilityUi: {
-      ...abilityStrings.ru_RU.abilityUi,
       cast: {
         fishing: 'Рыбная ловля',
         demonHeal: 'Исцеление демона',
         thunzharrStormcall: 'Зов бури',
+        rift_frost_execution: 'Glacial Grave',
+        rift_frost_strike: 'Absolute Zero',
+        rift_ember_execution: 'Magma Well',
+        rift_ember_strike: 'Core Meltdown',
+        rift_venom_execution: 'Venom Pool',
+        rift_venom_strike: "Broodmother's Mark",
+        rift_necro_execution: 'Soul Grave',
+        rift_necro_strike: 'Death Sentence',
+        rift_brute_execution: 'Earthshatter',
+        rift_brute_strike: 'Final Judgment',
+        rift_arcane_execution: 'Void Rift',
+        rift_arcane_strike: 'Arcane Annihilation',
+        rift_storm_execution: 'Lightning Rod',
+        rift_storm_strike: "Stormcaller's Wrath",
+        rift_tide_execution: 'Abyssal Maw',
+        rift_tide_strike: 'Crushing Depth',
       },
       actionBar: {
-        ...abilityStrings.ru_RU.abilityUi.actionBar,
         clearHint: 'Shift-правый щелчок или Shift-Delete, чтобы очистить',
         itemInBags: 'В сумках: {count}',
         itemNoneInBags: 'В сумках нет',
@@ -2173,6 +2658,7 @@ export const mergeStrings = {
         potion: 'Зелье',
         elixir: 'Эликсир',
         bag: 'Сумка',
+        mount: 'Транспорт',
       },
       tooltip: {
         ...itemNames.ru_RU.itemUi.tooltip,
@@ -2229,6 +2715,10 @@ export const mergeStrings = {
       social: {
         title: 'Общение',
         friendsTab: 'Друзья',
+        friendFirstPage: 'Первая страница',
+        friendNextPage: 'Следующая страница',
+        boundFriend: 'Связанный друг',
+        boundFriendLink: 'Связанные друзья объединены приглашением по реферальной ссылке.',
         guildTab: 'Гильдия',
         ignoreTab: 'Игнор',
         leaveParty: 'Покинуть группу',
@@ -2273,7 +2763,11 @@ export const mergeStrings = {
           dead: 'Мертв',
         },
         statusWithZone: '{status} - {zone}',
-        ranks: { leader: 'Глава гильдии', officer: 'Офицер', member: 'Участник' },
+        ranks: {
+          leader: 'Глава гильдии',
+          officer: 'Офицер',
+          member: 'Участник',
+        },
         guildHeadOne: 'вы {rank}, {count} участник',
         guildHeadMany: 'вы {rank}, {count} участников',
       },
@@ -2307,7 +2801,7 @@ export const mergeStrings = {
           'Вас подберут с ближайшим по рейтингу онлайн-претендентом и перенесут на пески. Побеждайте, чтобы подняться; первый уступивший (1 здоровье) проигрывает. Вы вернетесь точно туда, где встали в очередь.',
         ladderAllTime: 'Таблица - за все время',
         ladderOnline: 'Таблица - онлайн',
-        ratingSummary: 'Рейтинг - {wins} побед / {losses} поражений',
+        ratingSummary: 'Рейтинг - {wins} побед / {losses} поражений / {draws} ничьих',
         statusCountdown: 'Приготовьтесь...',
         statusReturning: 'Возвращение в мир... {seconds}',
         statusFight: 'Сражайтесь до уступки!',
@@ -2373,7 +2867,7 @@ const mergeEntitiesEn = {
       'Tideguard Sabatons',
       'Valeborn Spellblade',
       "Voss's Sanctified Mace",
-      'Wyrmcult Soulsteps',
+      'Broodsworn Soulsteps',
       'Nightfang Harness',
       'Nightfang Legguards',
       'Nightfang Treads',
@@ -2427,8 +2921,7 @@ const mergeEntitiesEn = {
       'Sister Nhalia',
       'Varkas Boneguard',
       'Emberkin',
-      'Gloomshade',
-      'Duskborn',
+      'Duskmurk',
       'Grix the Tunnelking',
       'Brutok Skullsmasher',
       'Captain Verlan',
@@ -2436,17 +2929,14 @@ const mergeEntitiesEn = {
       'Sloomtooth the Drowned',
       'Voskar the Emberwing',
       'Wraithbinder Maldrec',
-      'Spellhound',
-      'Warfiend',
       'Pyre Colossus',
-      'Wraithborn',
     ],
     'mob',
   ),
   quests: {
     q_mogger: {
       title: 'Mogger Must Fall',
-      text: 'Mogger has split carts, flattened fences, and killed enough livestock to empty half the Vale. Do not face him alone. Take two strong companions into the eastern meadow and put the brute down for good.',
+      text: 'Mogger has split carts, flattened fences, and killed enough livestock to empty half the Vale. Do not face him alone. Take two strong companions into the western meadow and put the brute down for good.',
       completion:
         "Mogger is dead at last. Eastbrook's fields are safer, and you leave the Vale with one more tale worth retelling.",
       objectives: { 0: { label: 'Mogger slain' } },
@@ -2560,7 +3050,6 @@ export const mergeEntities = {
         'Guardahuesos de Varkas',
         'Diablillo',
         'Caminante del Vacío',
-        'Súcubo',
         'Grix el Rey del Túnel',
         'Brutok Rompecráneos',
         'Capitán Verlan',
@@ -2568,10 +3057,7 @@ export const mergeEntities = {
         'Sloomtooth el Ahogado',
         'Voskar Aladebrasa',
         'Maldrec el Ataespectros',
-        'Cazador vil',
-        'Guardia vil',
         'Infernal',
-        'Guardián del Terror',
       ],
       'mob',
     ),
@@ -2690,7 +3176,6 @@ export const mergeEntities = {
         'Garde-os de Varkas',
         'Diablotin',
         'Marcheur du Vide',
-        'Succube',
         'Grix le Roi des tunnels',
         'Brutok Brise-crânes',
         'Capitaine Verlan',
@@ -2698,10 +3183,7 @@ export const mergeEntities = {
         'Sloomtooth le Noyé',
         'Voskar Aile-de-braise',
         'Maldrec le Lie-spectres',
-        'Limier corrompu',
-        'Gangregarde',
         'Infernal',
-        "Seigneur de l'effroi",
       ],
       'mob',
     ),
@@ -2821,7 +3303,6 @@ export const mergeEntities = {
         "Guardia d'ossa di Varkas",
         'Folletto',
         'Camminatore del Vuoto',
-        'Succube',
         'Grix il Re dei tunnel',
         'Brutok Spaccacranio',
         'Capitano Verlan',
@@ -2829,10 +3310,7 @@ export const mergeEntities = {
         "Sloomtooth l'Annegato",
         'Voskar Aladibrace',
         'Maldrec il Legaspettri',
-        'Segugio vile',
-        'Guardia vile',
         'Infernale',
-        'Guardia del Terrore',
       ],
       'mob',
     ),
@@ -2950,7 +3428,6 @@ export const mergeEntities = {
         "Varkas' Knochenwache",
         'Wichtel',
         'Leerwandler',
-        'Sukkubus',
         'Grix der Tunnelkönig',
         'Brutok Schädelschmetterer',
         'Hauptmann Verlan',
@@ -2958,10 +3435,7 @@ export const mergeEntities = {
         'Sloomzahn der Ertrunkene',
         'Voskar Glutschwinge',
         'Maldrec der Geisterbinder',
-        'Teufelsjäger',
-        'Teufelswache',
         'Inferno',
-        'Schreckenswache',
       ],
       'mob',
     ),
@@ -3079,7 +3553,6 @@ export const mergeEntities = {
         '瓦尔卡斯骨卫',
         '小鬼',
         '虚空行者',
-        '魅魔',
         'Grix the Tunnelking',
         '碎颅者布鲁托克',
         '维尔兰队长',
@@ -3087,10 +3560,7 @@ export const mergeEntities = {
         '溺亡者涝牙',
         '炽翼沃斯卡',
         '缚魂者玛尔德雷克',
-        '地狱猎犬',
-        '恶魔卫士',
         '地狱火',
-        '末日守卫',
       ],
       'mob',
     ),
@@ -3207,7 +3677,6 @@ export const mergeEntities = {
         '瓦爾卡斯骨衛',
         '小鬼',
         '虛空行者',
-        '魅魔',
         'Grix the Tunnelking',
         '碎顱者布魯托克',
         '維爾蘭隊長',
@@ -3215,10 +3684,7 @@ export const mergeEntities = {
         '溺亡者澇牙',
         '熾翼沃斯卡',
         '縛魂者瑪爾德雷克',
-        '地獄獵犬',
-        '惡魔守衛',
         '地獄火',
-        '末日守衛',
       ],
       'mob',
     ),
@@ -3335,7 +3801,6 @@ export const mergeEntities = {
         '바르카스 뼈수호병',
         '임프',
         '공허추적자',
-        '서큐버스',
         'Grix the Tunnelking',
         '해골분쇄자 브루톡',
         '베를란 대장',
@@ -3343,10 +3808,7 @@ export const mergeEntities = {
         '익사한 슬룸투스',
         '잿불날개 보스카르',
         '영혼결속자 말드렉',
-        '지옥사냥개',
-        '지옥수호병',
         '지옥불정령',
-        '파멸의 수호병',
       ],
       'mob',
     ),
@@ -3464,7 +3926,6 @@ export const mergeEntities = {
         'ヴァーカスの骨衛兵',
         'インプ',
         'ヴォイドウォーカー',
-        'サキュバス',
         'Grix the Tunnelking',
         '頭蓋砕きブルトーク',
         'ヴァーラン隊長',
@@ -3472,10 +3933,7 @@ export const mergeEntities = {
         '溺れし者スルームトゥース',
         '燃え翼のヴォスカル',
         '魂縛りマルドレク',
-        'フェルハンター',
-        'フェルガード',
         'インファーナル',
-        'ドゥームガード',
       ],
       'mob',
     ),
@@ -3593,7 +4051,6 @@ export const mergeEntities = {
         'Guardião dos ossos de Varkas',
         'Diabrete',
         'Caminhante do Vazio',
-        'Súcubo',
         'Grix, o Rei dos Túneis',
         'Brutok Quebra-crânios',
         'Capitão Verlan',
@@ -3601,10 +4058,7 @@ export const mergeEntities = {
         'Sloomtooth o Afogado',
         'Voskar Asa-de-brasa',
         'Maldrec o Atador-de-espectros',
-        'Caçador Vil',
-        'Guarda Vil',
         'Infernal',
-        'Guarda Sinistro',
       ],
       'mob',
     ),
@@ -3722,7 +4176,6 @@ export const mergeEntities = {
         'Костяной страж Варкаса',
         'Бес',
         'Страж Бездны',
-        'Суккуб',
         'Грикс, Король туннелей',
         'Бруток Сокрушитель черепов',
         'Капитан Верлан',
@@ -3730,10 +4183,7 @@ export const mergeEntities = {
         'Слумтус Утопший',
         'Воскар Жарокрыл',
         'Малдрек Пленитель призраков',
-        'Охотник Скверны',
-        'Страж Скверны',
         'Инфернал',
-        'Страж Рока',
       ],
       'mob',
     ),
@@ -3798,7 +4248,7 @@ const mergeExtraEn = {
     [
       'bear_charge',
       'Bruin Rush',
-      'Charge an enemy, generating 9 rage and stunning it for 1 sec. 8-25 yd range. Bruin Form only.',
+      'Shift into Bruin Form if you are not already, then rush an enemy, generating 9 rage and stunning it for 1 sec. For 3 sec afterwards, or until you leave combat, Cat Form is free and Pins that target (the one you Rushed), slowing it by 50% for 4 sec. 8-25 yd range. Usable in any form.',
     ],
     [
       'demoralizing_roar',
@@ -3808,17 +4258,18 @@ const mergeExtraEn = {
     [
       'prowl',
       'Stalk',
-      'Enter stealth while in Wolf Form, moving 50% slower. Cannot be used in combat.',
+      'Shift into Cat Form if you are not already, and enter stealth. Usable in any form. Cannot be used in combat.',
     ],
     [
       'rake',
       'Flense',
-      'A stealth opener that rakes the enemy for weapon damage plus {damage} and causes bleeding damage over 9 sec. Awards 1 combo point. Wolf Form only.',
+      'Flense the enemy for weapon damage plus {damage} and cause {overTime} bleeding damage over 18 sec. Awards 1 combo point. Cat Form only.',
+      { feral: 'Each hit that lands adds 1 Old Blood (max 3).' },
     ],
     [
       'revive_pet',
       'Patch Up',
-      'Patch up your companion, restoring {overTime} health over 12 sec in 3-sec ticks while it is alive. If it is dead, revive it at 35% health.',
+      "Restore 10% of your living companion's maximum health every sec for 8 sec. If your companion is dead, revive it with 50% health instead.",
     ],
   ]),
   items: {
@@ -3871,7 +4322,7 @@ const mergeExtraEn = {
       'Glimmerscale Lurker',
       'Moonspawn',
       'Pale Choir Acolyte',
-      'Pearlguard Sentinel',
+      'Moonmantle Ray',
       'Sethrael the Palecoil',
       'Fire Demon',
       'Void Demon',
@@ -3884,50 +4335,53 @@ const mergeExtraEn = {
       name: 'Ondrel Vane',
       title: 'Tidewatcher',
       greeting:
-        'The mere drinks the moonlight, {className}, and gives back the drowned. I have watched that gate for thirty nights — and tonight it is open.',
+        'The mere drinks the moonlight, {className}, and gives back the drowned. I have watched that gate for thirty nights, and tonight it is open.',
     },
   },
   quests: {
     q_drowned_choir: {
       title: 'The Drowned Choir',
-      text: 'The waders do not act alone. Among them walk the Drowned Votaries — the cult that sank with the temple, still in their rotted vestments, still singing the prayer from the shore-rocks. Silence eight of them, and bring me six of the offerings they carry. I would know what they mean to give their goddess.',
+      text: 'The waders do not act alone. Among them walk the Drowned Votaries, the cult that sank with the temple, still in their rotted vestments, still singing the prayer from the shore-rocks. Silence eight of them, and bring me six of the offerings they carry. I would know what they mean to give their goddess.',
       completion:
         "Pearls, knuckle-bones, a child's carved fish... grave-gifts, {playerName}. They are not raising the dead. They are dressing them, the way you dress a body for burial. The temple is a tomb that refuses to close.",
-      objectives: { 0: { label: 'Drowned Votary silenced' }, 1: { label: 'Drowned Offering' } },
+      objectives: {
+        0: { label: 'Drowned Votary silenced' },
+        1: { label: 'Drowned Offering' },
+      },
     },
     q_drowned_moon: {
       title: 'The Drowned Moon',
-      text: "I have read the last of the rubbings, {playerName}, and I understand now what the cult drowned themselves to keep asleep. Ysolei — the Drowned Moon made flesh — coils on the altar at the temple's heart, and the stolen warmth of every life the mere took is pouring into her waking. When the moon stands full she rises, and the water rises with her — the tarn, the wall, the whole mountain under it. Gather the strongest you can find and put her back to sleep. For good, this time.",
+      text: "I have read the last of the rubbings, {playerName}, and I understand now what the cult drowned themselves to keep asleep. Ysolei, the Drowned Moon made flesh, coils on the altar at the temple's heart, and the stolen warmth of every life the mere took is pouring into her waking. When the moon stands full she rises, and the water rises with her: the tarn, the wall, the whole mountain under it. Gather the strongest you can find and put her back to sleep. For good, this time.",
       completion:
-        'The altar is dark, the water is still, and the moon over the tarn is only the moon. You drowned a goddess tonight, {playerName} — and the mountain will never know how close it came. Let the wardens of the shore-rocks rest easy at last.',
+        'The altar is dark, the water is still, and the moon over the tarn is only the moon. You drowned a goddess tonight, {playerName}, and the mountain will never know how close it came. Let the wardens of the shore-rocks rest easy at last.',
       objectives: { 0: { label: 'Ysolei, Avatar of the Drowned Moon, slain' } },
     },
     q_glimmermere_light: {
       title: 'Light on the Water',
-      text: 'Look there, {playerName} — under the surface, a stair of pale stone running down into the dark, and a gate of cold light at the head of it. The old wardens scratched warnings into the shore-rocks before the water took them. Take a rubbing of one for me; I would read what they feared before we go any closer.',
+      text: 'Look there, {playerName}, under the surface, a stair of pale stone running down into the dark, and a gate of cold light at the head of it. The old wardens scratched warnings into the shore-rocks before the water took them. Take a rubbing of one for me; I would read what they feared before we go any closer.',
       completion:
         'A waking-prayer... to something they called the Drowned Moon. And below it, in a steadier hand: "It only sleeps." The water has been listening a long time, {playerName}.',
       objectives: { 0: { label: 'Warding Rubbing taken' } },
     },
     q_palecoil: {
       title: 'Sethrael the Palecoil',
-      text: "One shape in the mere is no drowned man. A serpent the colour of bone glides the deep shelf where the stair begins — Sethrael, the rubbings call it, the Palecoil, the moon's own watch-beast. While it guards that water, no one reaches the gate alive. Go down to the shelf and kill it, {playerName}. Take its heartscale so I know the deed is done.",
+      text: "One shape in the mere is no drowned man. A serpent the colour of bone glides the deep shelf where the stair begins: Sethrael, the rubbings call it, the Palecoil, the moon's own watch-beast. While it guards that water, no one reaches the gate alive. Go down to the shelf and kill it, {playerName}. Take its heartscale so I know the deed is done.",
       completion:
-        'Cold as the bottom of the world, and still it twitches. The shelf is clear, {playerName} — the stair to the gate stands open. I almost wish it did not.',
+        'Cold as the bottom of the world, and still it twitches. The shelf is clear, {playerName}. The stair to the gate stands open. I almost wish it did not.',
       objectives: { 0: { label: "Sethrael's Heartscale" } },
     },
     q_silence_the_choir: {
       title: 'Silence the Choir',
-      text: 'The singing comes from below the gate now, and one voice leads it: Choirmother Selthe, who first taught the cult to drown without dying. While she keeps the prayer, the temple will never sleep — and the mere will never stop giving up its dead. Take companions through the gate and end her. This is no errand for a lone blade, {playerName}.',
+      text: 'The singing comes from below the gate now, and one voice leads it: Choirmother Selthe, who first taught the cult to drown without dying. While she keeps the prayer, the temple will never sleep, and the mere will never stop giving up its dead. Take companions through the gate and end her. This is no errand for a lone blade, {playerName}.',
       completion:
         'The prayer falters... and for the first time in thirty nights, the mere is quiet. But quiet is not the same as ended. Selthe was only the choir. Something below it still listens.',
       objectives: { 0: { label: 'Choirmother Selthe slain' } },
     },
     q_tarn_waders: {
       title: 'What the Tarn Gives Up',
-      text: 'Since the gate opened, things climb out of the mere at dusk — bloated, pale, finned where hands ought to be. Glimmermere Waders, the old rubbings name them. They drag anything living back down with them. Cull ten before they thin my watch to nothing.',
+      text: 'Since the gate opened, things climb out of the mere at dusk: bloated, pale, finned where hands ought to be. Glimmermere Waders, the old rubbings name them. They drag anything living back down with them. Cull ten before they thin my watch to nothing.',
       completion:
-        'Ten back in the water. They feel no cold, {playerName}, and no fear — only the pull of that gate. Whatever sings to them, it sings loud.',
+        'Ten back in the water. They feel no cold, {playerName}, and no fear, only the pull of that gate. Whatever sings to them, it sings loud.',
       objectives: { 0: { label: 'Glimmermere Wader slain' } },
     },
   },
@@ -3935,7 +4389,7 @@ const mergeExtraEn = {
     drowned_temple: {
       name: 'The Drowned Temple',
       enterText:
-        'You step through the moongate — the air turns to cold water and pale light, and the singing closes over your head.',
+        'You step through the moongate: the air turns to cold water and pale light, and the singing closes over your head.',
       leaveText: 'You surface through the moongate into the mountain night.',
     },
   },
@@ -3968,7 +4422,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         'Remendar',
-        'Remienda a tu mascota y restaura {overTime} de salud durante 12 s en pulsos cada 3 s mientras esté viva. Si está muerta, la revive con un 35% de salud.',
+        'Restaura el 10% de la salud máxima de tu compañero vivo cada segundo durante 8 s. Si tu compañero está muerto, lo revive con un 50% de salud.',
       ],
     ]),
     items: {
@@ -4003,12 +4457,16 @@ export const mergeExtra = {
       boundstone_helm: { name: 'Yelmo Piedravínculo' },
       cryptbone_helm: { name: 'Yelmo Huesocripta' },
       cryptbone_pauldrons: { name: 'Hombreras Huesocripta' },
-      deathlords_dread_visage: { name: 'Visaje aterrador del Señor de la Muerte' },
+      deathlords_dread_visage: {
+        name: 'Visaje aterrador del Señor de la Muerte',
+      },
       gravewyrm_gauntlets: { name: 'Guanteletes del Gravewyrm' },
       gravewyrm_mantle: { name: 'Manto del Gravewyrm' },
       mistveil_cord: { name: 'Cordón Veloniebla' },
       mistveil_grips: { name: 'Agarraderas Veloniebla' },
-      necromancers_soulspire_mantle: { name: 'Manto Aguja de Almas del nigromante' },
+      necromancers_soulspire_mantle: {
+        name: 'Manto Aguja de Almas del nigromante',
+      },
       wyrmshadow_talongrips: { name: 'Agarraderas Garra Sombravermis' },
     },
     mobs: mergeNameTranslations(
@@ -4043,14 +4501,19 @@ export const mergeExtra = {
         text: 'Los vadeadores no actúan solos. Entre ellos caminan los Devotos Ahogados: la secta que se hundió con el templo, aún con sus vestiduras putrefactas, aún entonando la plegaria desde las rocas de la orilla. Silencia a ocho de ellos y tráeme seis de las ofrendas que portan. Quiero saber qué pretenden entregar a su diosa.',
         completion:
           'Perlas, nudillos, un pez tallado de niño... ofrendas funerarias, {playerName}. No están resucitando a los muertos. Los están vistiendo, como se viste un cuerpo para el entierro. El templo es una tumba que se niega a cerrarse.',
-        objectives: { 0: { label: 'Devoto ahogado silenciado' }, 1: { label: 'Ofrenda ahogada' } },
+        objectives: {
+          0: { label: 'Devoto ahogado silenciado' },
+          1: { label: 'Ofrenda ahogada' },
+        },
       },
       q_drowned_moon: {
         title: 'La Luna Ahogada',
         text: 'He leído el último de los calcos, {playerName}, y ahora comprendo lo que la secta se ahogó para mantener dormido. Ysolei —la Luna Ahogada hecha carne— se enrosca en el altar en el corazón del templo, y el calor robado de cada vida que el lago se llevó se vierte en su despertar. Cuando la luna esté llena, ella se alzará, y el agua se alzará con ella: el lago, el muro, toda la montaña que hay debajo. Reúne a los más fuertes que encuentres y vuelve a dormirla. Esta vez, para siempre.',
         completion:
           'El altar está apagado, el agua quieta, y la luna sobre el lago no es más que la luna. Esta noche ahogaste a una diosa, {playerName}, y la montaña nunca sabrá cuán cerca estuvo. Que los guardianes de las rocas de la orilla descansen al fin tranquilos.',
-        objectives: { 0: { label: 'Ysolei, Avatar de la Luna Ahogada, abatida' } },
+        objectives: {
+          0: { label: 'Ysolei, Avatar de la Luna Ahogada, abatida' },
+        },
       },
       q_glimmermere_light: {
         title: 'Luz sobre el agua',
@@ -4115,7 +4578,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         'Rafistoler',
-        "Rafistole votre familier et lui rend {overTime} points de vie en 12 s, par pulsations toutes les 3 s, s'il est vivant. S'il est mort, le ranime avec 35 % de ses points de vie.",
+        "Rend 10 % des points de vie maximum de votre compagnon vivant chaque seconde pendant 8 s. S'il est mort, le ranime avec 50 % de ses points de vie.",
       ],
     ]),
     items: {
@@ -4155,7 +4618,9 @@ export const mergeExtra = {
       gravewyrm_mantle: { name: 'Mantelet du Gravewyrm' },
       mistveil_cord: { name: 'Corde Voilebrume' },
       mistveil_grips: { name: 'Poignes Voilebrume' },
-      necromancers_soulspire_mantle: { name: "Mantelet Flèche-d'âme du nécromancien" },
+      necromancers_soulspire_mantle: {
+        name: "Mantelet Flèche-d'âme du nécromancien",
+      },
       wyrmshadow_talongrips: { name: 'Poignes Serre Ombrewyrm' },
     },
     mobs: mergeNameTranslations(
@@ -4265,7 +4730,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         'Rattoppare',
-        'Rattoppa il tuo famiglio, ripristinando {overTime} salute in 12 sec con impulsi ogni 3 sec se è vivo. Se è morto, lo rianima con il 35% della salute.',
+        'Ripristina il 10% della salute massima del tuo compagno vivo ogni secondo per 8 sec. Se è morto, lo rianima con il 50% della salute.',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4337,7 +4802,9 @@ export const mergeExtra = {
         text: "Ho letto l'ultimo dei calchi, {playerName}, e ora capisco cosa la setta annegò se stessa per tenere addormentato. Ysolei — la Luna Annegata fatta carne — si avvolge sull'altare nel cuore del tempio, e il calore rubato a ogni vita che lo stagno ha preso si riversa nel suo risveglio. Quando la luna sarà piena, lei sorgerà, e l'acqua sorgerà con lei — il lago, la diga, l'intera montagna sotto di esso. Raduna i più forti che riesci a trovare e rimettila a dormire. Per sempre, stavolta.",
         completion:
           "L'altare è spento, l'acqua è immobile, e la luna sul lago è soltanto la luna. Hai annegato una dea stanotte, {playerName} — e la montagna non saprà mai quanto fu vicina alla fine. Lascia che i guardiani delle rocce della riva riposino finalmente in pace.",
-        objectives: { 0: { label: 'Ysolei, Avatar della Luna Annegata, uccisa' } },
+        objectives: {
+          0: { label: 'Ysolei, Avatar della Luna Annegata, uccisa' },
+        },
       },
       q_glimmermere_light: {
         title: "Luce sull'Acqua",
@@ -4402,7 +4869,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         'Zusammenflicken',
-        'Flickt deinen Begleiter zusammen und stellt ihm, solange er lebt, im Verlauf von 12 Sek. alle 3 Sek. insgesamt {overTime} Gesundheit wieder her. Ist er tot, wird er mit 35 % Gesundheit wiederbelebt.',
+        'Stellt deinem lebenden Begleiter 8 Sek. lang jede Sekunde 10 % seiner maximalen Gesundheit wieder her. Ist er tot, wird er stattdessen mit 50 % Gesundheit wiederbelebt.',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4474,7 +4941,9 @@ export const mergeExtra = {
         text: 'Ich habe den letzten der Abriebe gelesen, {playerName}, und ich begreife nun, was der Kult sich selbst ertränkte, um es schlafen zu halten. Ysolei — der Ertränkte Mond, Fleisch geworden — windet sich um den Altar im Herzen des Tempels, und die gestohlene Wärme jedes Lebens, das der See nahm, strömt in ihr Erwachen. Wenn der Mond voll steht, erhebt sie sich, und das Wasser steigt mit ihr — der Bergsee, der Wall, der ganze Berg darunter. Versammle die Stärksten, die du finden kannst, und bring sie wieder zum Schlafen. Diesmal für immer.',
         completion:
           'Der Altar ist dunkel, das Wasser ist still, und der Mond über dem Bergsee ist nur der Mond. Du hast heute Nacht eine Göttin ertränkt, {playerName} — und der Berg wird nie erfahren, wie nahe er dem Untergang war. Mögen die Wächter der Uferfelsen endlich in Frieden ruhen.',
-        objectives: { 0: { label: 'Ysolei, Avatar des Ertränkten Mondes, erschlagen' } },
+        objectives: {
+          0: { label: 'Ysolei, Avatar des Ertränkten Mondes, erschlagen' },
+        },
       },
       q_glimmermere_light: {
         title: 'Licht auf dem Wasser',
@@ -4535,7 +5004,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         '修补',
-        '修补你的宠物。若其存活，在12秒内每3秒恢复一次生命值，共恢复{overTime}点；若其死亡，则以35%生命值将其复活。',
+        '在8秒内每秒为存活的宠物恢复其最大生命值的10%。若宠物已死亡，则改为以50%生命值将其复活。',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4597,7 +5066,10 @@ export const mergeExtra = {
         text: '那些涉行者并非孤身行动。它们之中游走着溺亡信徒——随神殿一同沉没的邪教徒，至今仍披着腐烂的法衣，仍在岸边礁石上吟唱祷词。让其中八名永远噤声，再为我带回它们随身携带的六件祭品。我想知道它们打算献给女神什么。',
         completion:
           '珍珠、指骨、一条孩童雕刻的小鱼……这些都是陪葬之物，{playerName}。它们并非要让死者复生，而是在为死者更衣，就像为下葬的尸身着装一般。这座神殿是一座拒绝合拢的坟墓。',
-        objectives: { 0: { label: '已使溺亡信徒噤声' }, 1: { label: '溺亡祭品' } },
+        objectives: {
+          0: { label: '已使溺亡信徒噤声' },
+          1: { label: '溺亡祭品' },
+        },
       },
       q_drowned_moon: {
         title: '溺月',
@@ -4664,7 +5136,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         '修補',
-        '修補你的寵物。若其存活，在 12 秒內每 3 秒恢復一次生命值，共恢復 {overTime} 點；若其死亡，則以 35% 生命值將其復活。',
+        '在 8 秒內每秒為存活的寵物恢復其最大生命值的 10%。若寵物已死亡，則改為以 50% 生命值將其復活。',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4726,7 +5198,10 @@ export const mergeExtra = {
         text: '那些涉者並非單獨行動。在牠們之間行走的，是溺亡信徒——隨神殿一同沉沒的邪教徒，仍披著腐朽的法衣，仍從岸岩之間唱著那篇禱文。讓其中八人歸於沉寂，並為我帶回他們所攜的六件供品。我想知道他們要獻給女神的究竟是什麼。',
         completion:
           '珍珠、指骨、一條孩童雕刻的小魚……都是陪葬之物，{playerName}。他們並非在喚醒死者，而是在裝扮死者，就像替屍身著裝下葬一般。這座神殿是一座拒絕闔上的墳塚。',
-        objectives: { 0: { label: '溺亡信徒已沉寂' }, 1: { label: '溺者供品' } },
+        objectives: {
+          0: { label: '溺亡信徒已沉寂' },
+          1: { label: '溺者供品' },
+        },
       },
       q_drowned_moon: {
         title: '溺月',
@@ -4793,7 +5268,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         '응급 처치',
-        '소환수를 응급 처치합니다. 살아 있으면 12초에 걸쳐 3초마다 생명력을 회복해 총 {overTime}의 생명력을 회복합니다. 죽어 있으면 35%의 생명력으로 되살립니다.',
+        '8초 동안 매초 살아 있는 소환수의 최대 생명력의 10%를 회복합니다. 소환수가 죽어 있으면 대신 50%의 생명력으로 되살립니다.',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4855,7 +5330,10 @@ export const mergeExtra = {
         text: '물거리들은 홀로 움직이지 않는다네. 그들 사이를 익사한 신도들이 걷고 있지 — 신전과 함께 가라앉은 그 광신도들은, 썩어버린 제의를 여전히 걸친 채 물가 바위에서 부르던 기도를 아직도 노래하고 있네. 그들 중 여덟을 침묵시키고, 그들이 지닌 제물 여섯 개를 내게 가져오게. 그들이 그 여신에게 무엇을 바치려는지 알고 싶네.',
         completion:
           '진주, 손가락뼈, 아이가 깎아 만든 물고기... 무덤에 바치는 공물이로군, {playerName}. 그들은 죽은 자를 되살리려는 게 아니야. 마치 매장을 위해 시신을 단장하듯, 그들을 치장하고 있는 거지. 저 신전은 닫히기를 거부하는 무덤이라네.',
-        objectives: { 0: { label: '익사한 신도 침묵시킴' }, 1: { label: '익사한 제물' } },
+        objectives: {
+          0: { label: '익사한 신도 침묵시킴' },
+          1: { label: '익사한 제물' },
+        },
       },
       q_drowned_moon: {
         title: '익사한 달',
@@ -4923,7 +5401,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         '応急処置',
-        'ペットを応急処置する。生存している場合は12秒間、3秒ごとに回復し、合計{overTime}の体力を回復する。死亡している場合は体力35%で蘇生する。',
+        '生存しているペットの最大体力の10%を8秒間、毎秒回復する。ペットが死亡している場合は、代わりに体力50%で蘇生する。',
       ],
     ]),
     items: mergeNameTranslations(
@@ -4985,7 +5463,10 @@ export const mergeExtra = {
         text: '渡り手どもは独りで動いているのではない。その中に溺れし信徒たちが歩いている——神殿とともに沈んだ教団だ。腐った祭服をまとったまま、岸の岩場から祈りを歌い続けている。八体を沈黙させ、奴らが携える供物を六つ持ち帰れ。奴らが女神に何を捧げようとしているのか、私は知りたいのだ。',
         completion:
           '真珠、指の骨、子供が彫った魚……これは墓への供物だ、{playerName}。奴らは死者を蘇らせているのではない。死者を着飾らせているのだ——埋葬のために亡骸を整えるようにな。あの神殿は、閉じることを拒む墓場なのだ。',
-        objectives: { 0: { label: '溺れし信徒を沈黙させた' }, 1: { label: '溺れし供物' } },
+        objectives: {
+          0: { label: '溺れし信徒を沈黙させた' },
+          1: { label: '溺れし供物' },
+        },
       },
       q_drowned_moon: {
         title: '溺れし月',
@@ -5057,7 +5538,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         'Remendar',
-        'Remenda seu mascote, restaurando {overTime} de vida ao longo de 12 s em pulsos a cada 3 s se ele estiver vivo. Se estiver morto, revive-o com 35% da vida.',
+        'Restaura 10% da vida máxima do seu companheiro vivo a cada segundo durante 8 s. Se ele estiver morto, revive-o com 50% da vida.',
       ],
     ]),
     items: mergeNameTranslations(
@@ -5119,7 +5600,10 @@ export const mergeExtra = {
         text: 'Os vadeadores não agem sozinhos. Entre eles caminham os Devotos Afogados — o culto que afundou com o templo, ainda em suas vestes apodrecidas, ainda cantando a prece desde as rochas da costa. Silencie oito deles e traga-me seis das oferendas que carregam. Eu gostaria de saber o que pretendem dar à sua deusa.',
         completion:
           'Pérolas, ossos de dedos, um peixe entalhado de criança... presentes fúnebres, {playerName}. Eles não estão erguendo os mortos. Estão vestindo-os, do modo como se prepara um corpo para o sepultamento. O templo é um túmulo que se recusa a fechar.',
-        objectives: { 0: { label: 'Devoto Afogado silenciado' }, 1: { label: 'Oferenda Afogada' } },
+        objectives: {
+          0: { label: 'Devoto Afogado silenciado' },
+          1: { label: 'Oferenda Afogada' },
+        },
       },
       q_drowned_moon: {
         title: 'A Lua Afogada',
@@ -5191,7 +5675,7 @@ export const mergeExtra = {
       [
         'revive_pet',
         'Подлатать',
-        'Подлечивает питомца: если он жив, восстанавливает ему {overTime} ед. здоровья за 12 сек. с шагом в 3 сек. Если питомец мёртв, воскрешает его с 35% здоровья.',
+        'Каждую секунду в течение 8 сек. восстанавливает живому питомцу 10% максимального запаса здоровья. Если питомец мёртв, вместо этого воскрешает его с 50% здоровья.',
       ],
     ]),
     items: mergeNameTranslations(
@@ -5263,7 +5747,9 @@ export const mergeExtra = {
         text: 'Я прочёл последний из оттисков, {playerName}, и теперь понимаю, что культ утопил себя, дабы держать спящим. Изолея — Утонувшая луна, ставшая плотью, — обвилась вокруг алтаря в самом сердце храма, и украденное тепло каждой жизни, что забрал омут, вливается в её пробуждение. Когда луна станет полной, она восстанет, и вода поднимется вместе с ней — озерцо, стена, вся гора под ними. Собери сильнейших, кого найдёшь, и усыпи её вновь. На сей раз — навсегда.',
         completion:
           'Алтарь тёмен, вода недвижна, а луна над озерцом — лишь луна. Этой ночью ты утопил богиню, {playerName} — и гора так и не узнает, как близко была к гибели. Пусть стражи прибрежных скал наконец упокоятся с миром.',
-        objectives: { 0: { label: 'Изолея, Воплощение Утонувшей луны, повержена' } },
+        objectives: {
+          0: { label: 'Изолея, Воплощение Утонувшей луны, повержена' },
+        },
       },
       q_glimmermere_light: {
         title: 'Свет на воде',

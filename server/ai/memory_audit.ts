@@ -88,7 +88,10 @@ export function creatureMemoryAudit(input: {
   };
 }
 
-export function bossMemoryAudit(memory: AiBossEncounterMemory, reason: string): AiMemoryAuditRecord {
+export function bossMemoryAudit(
+  memory: AiBossEncounterMemory,
+  reason: string,
+): AiMemoryAuditRecord {
   return {
     kind: 'bossMemory',
     refId: memory.memoryId,
@@ -107,7 +110,10 @@ export function bossMemoryAudit(memory: AiBossEncounterMemory, reason: string): 
   };
 }
 
-export function worldDirectorMemoryAudit(state: AiWorldDirectorState, reason: string): AiMemoryAuditRecord {
+export function worldDirectorMemoryAudit(
+  state: AiWorldDirectorState,
+  reason: string,
+): AiMemoryAuditRecord {
   return {
     kind: 'worldDirectorState',
     refId: state.stateId,

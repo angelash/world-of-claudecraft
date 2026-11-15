@@ -2,12 +2,15 @@
   import { onMount } from 'svelte';
   import type { ModerationActionHistoryRow, Paginated } from '../types';
   import { apiGet } from '../api';
+  import { type AdminLoadFailure, classifyAdminLoadFailure } from '../load_failure';
+  import PermissionDenied from '../components/PermissionDenied.svelte';
   import { auth } from '../state/auth.svelte';
   import { fmtDate } from '../format';
   import { t } from '../i18n';
   import { moderationActionLabel, moderationActionVariant } from '../labels';
   import AccountLink from '../components/AccountLink.svelte';
   import Badge from '../components/Badge.svelte';
+  import GuildLink from '../components/GuildLink.svelte';
   import IpLink from '../components/IpLink.svelte';
   import Pager from '../components/Pager.svelte';
   import Panel from '../components/Panel.svelte';
@@ -17,7 +20,7 @@
   const LIMIT = 100;
 
   let data = $state<Paginated<ModerationActionHistoryRow> | null>(null);
-  let failed = $state(false);
+  let failed = $state<AdminLoadFailure>('none');
   let page = $state(1);
   let tab = $state<ModerationHistoryTab>('all');
 
@@ -37,9 +40,9 @@
       data = await apiGet<Paginated<ModerationActionHistoryRow>>(
         `/admin/api/moderation/history?${params}`,
       );
-      failed = false;
+      failed = 'none';
     } catch (err) {
-      if (!auth.handleAuthFailure(err)) failed = true;
+      if (!auth.handleAuthFailure(err)) failed = classifyAdminLoadFailure(err);
     }
   }
 
@@ -69,7 +72,9 @@
     {/each}
   </div>
 
-  {#if failed}
+  {#if failed === 'forbidden'}
+    <PermissionDenied />
+  {:else if failed === 'error'}
     <div class="empty">{t('moderationHistoryPage.loadFailed')}</div>
   {:else if data && data.rows.length === 0}
     <div class="empty">{t('moderationHistoryPage.empty')}</div>
@@ -103,6 +108,8 @@
                   />
                 {:else if entry.source === 'ip' && entry.ip}
                   <IpLink ip={entry.ip} />
+                {:else if entry.source === 'guild' && entry.guildId !== null && entry.guildName}
+                  <GuildLink guildId={entry.guildId} label={entry.guildName} />
                 {:else}
                   {t('common.unknown')}
                 {/if}

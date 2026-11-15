@@ -234,6 +234,22 @@
     opacity: 0.58;
   }
 
+  body.mobile-touch #hosted-play-window {
+    position: fixed;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    top: max(10px, env(safe-area-inset-top));
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    width: auto;
+    transform: none;
+    max-height: none;
+    box-sizing: border-box;
+    overflow: hidden;
+    z-index: 95;
+  }
+}
+
+@layer shell {
   .auth-panel-premium .auth-memory input {
     width: 18px;
     height: 18px;
@@ -249,19 +265,5 @@
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
     box-shadow: none;
-  }
-
-  body.mobile-touch #hosted-play-window {
-    position: fixed;
-    left: max(10px, env(safe-area-inset-left));
-    right: max(10px, env(safe-area-inset-right));
-    top: max(10px, env(safe-area-inset-top));
-    bottom: calc(72px + env(safe-area-inset-bottom));
-    width: auto;
-    transform: none;
-    max-height: none;
-    box-sizing: border-box;
-    overflow: hidden;
-    z-index: 95;
   }
 }

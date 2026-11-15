@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type AmbientPlayerBotSocket,
   AmbientPlayerBotWsClient,
   mergeEntities,
   mergeSelf,
-  type AmbientPlayerBotSocket,
 } from '../server/ambient_bots/ws_client';
 
 class FakeSocket implements AmbientPlayerBotSocket {
@@ -33,7 +33,11 @@ class FakeSocket implements AmbientPlayerBotSocket {
   on(event: 'close', listener: (code?: number, reason?: Buffer) => void): this;
   on(
     event: 'open' | 'message' | 'error' | 'close',
-    listener: (() => void) | ((data: unknown) => void) | ((error: Error) => void) | ((code?: number, reason?: Buffer) => void),
+    listener:
+      | (() => void)
+      | ((data: unknown) => void)
+      | ((error: Error) => void)
+      | ((code?: number, reason?: Buffer) => void),
   ): this {
     switch (event) {
       case 'open':
@@ -154,7 +158,9 @@ describe('ambient player bot ws client helpers', () => {
     });
     liveSocket.emitJson({
       t: 'social',
-      friends: [{ id: 11, name: 'Aleph', cls: 'warrior', level: 2, realm: 'eastbrook', online: false }],
+      friends: [
+        { id: 11, name: 'Aleph', cls: 'warrior', level: 2, realm: 'eastbrook', online: false },
+      ],
       blocks: [{ id: 12, name: 'Bet' }],
       guild: null,
     });
@@ -164,25 +170,38 @@ describe('ambient player bot ws client helpers', () => {
     });
     liveSocket.emitJson({
       t: 'events',
-      list: [{ type: 'chat', fromPid: 201, from: 'Aleph', text: 'hello there', channel: 'whisper', pid: 101 }],
+      list: [
+        {
+          type: 'chat',
+          fromPid: 201,
+          from: 'Aleph',
+          text: 'hello there',
+          channel: 'whisper',
+          pid: 101,
+        },
+      ],
     });
     await connectPromise;
 
-    expect(client.state()).toEqual(expect.objectContaining({
-      pid: 91,
-      seed: 20_061,
-      social: expect.objectContaining({
-        friends: [expect.objectContaining({
-          name: 'Aleph',
-          online: true,
-          x: 44,
-          z: 55,
-          zone: 'Eastbrook Vale',
-          status: 'afk',
-        })],
-        blocks: [{ id: 12, name: 'Bet' }],
+    expect(client.state()).toEqual(
+      expect.objectContaining({
+        pid: 91,
+        seed: 20_061,
+        social: expect.objectContaining({
+          friends: [
+            expect.objectContaining({
+              name: 'Aleph',
+              online: true,
+              x: 44,
+              z: 55,
+              zone: 'Eastbrook Vale',
+              status: 'afk',
+            }),
+          ],
+          blocks: [{ id: 12, name: 'Bet' }],
+        }),
       }),
-    }));
+    );
     expect(client.drainEvents()).toEqual([
       expect.objectContaining({
         type: 'chat',

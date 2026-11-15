@@ -41,7 +41,8 @@ export function planAmbientPartyRoles(input: {
   objectiveLabel?: string;
 }): AmbientPartyRolePlan {
   const leaderPid = input.party.leader;
-  const leader = input.party.members.find((member) => member.pid === leaderPid) ?? input.party.members[0];
+  const leader =
+    input.party.members.find((member) => member.pid === leaderPid) ?? input.party.members[0];
   const members = input.party.members.map((member) => ({
     member,
     auraKinds: readVisibleAuraKinds(input.liveState, member.pid),
@@ -49,7 +50,12 @@ export function planAmbientPartyRoles(input: {
   const tank = selectTank(members, leaderPid);
   const healer = selectHealer(members, tank?.member.pid ?? null, leaderPid);
   const assignments = members.map((candidate) =>
-    assignmentForCandidate(candidate, leaderPid, tank?.member.pid ?? null, healer?.member.pid ?? null),
+    assignmentForCandidate(
+      candidate,
+      leaderPid,
+      tank?.member.pid ?? null,
+      healer?.member.pid ?? null,
+    ),
   );
   const keyPayload = {
     objectiveId: input.objectiveId ?? '',
@@ -154,10 +160,7 @@ function selectHealer(
   return nonTank ?? ordered[0];
 }
 
-function tankPriority(
-  member: CandidateMember,
-  leaderPid: number,
-): number {
+function tankPriority(member: CandidateMember, leaderPid: number): number {
   if (member.member.cls === 'warrior') return 0;
   if (member.member.cls === 'druid' && member.auraKinds.has('form_bear')) return 1;
   if (member.member.cls === 'paladin') return 2;
@@ -165,10 +168,7 @@ function tankPriority(
   return 4;
 }
 
-function healerPriority(
-  member: CandidateMember,
-  leaderPid: number,
-): number {
+function healerPriority(member: CandidateMember, leaderPid: number): number {
   switch (member.member.cls) {
     case 'priest':
       return 0;
@@ -183,10 +183,7 @@ function healerPriority(
   }
 }
 
-function tankDutyLabel(
-  classId: PlayerClass,
-  auraKinds: ReadonlySet<string>,
-): string {
+function tankDutyLabel(classId: PlayerClass, auraKinds: ReadonlySet<string>): string {
   if (classId === 'druid' && auraKinds.has('form_bear')) {
     return 'take point, hold threat, and peel loose mobs';
   }
@@ -244,16 +241,16 @@ function readVisibleAuraKinds(
   liveState: AmbientPlayerBotLiveState,
   pid: number,
 ): ReadonlySet<string> {
-  const raw = liveState.self?.id === pid
-    ? liveState.self?.auras
-    : liveState.entities.get(pid)?.auras;
+  const raw =
+    liveState.self?.id === pid ? liveState.self?.auras : liveState.entities.get(pid)?.auras;
   if (!Array.isArray(raw)) return new Set();
   const kinds = new Set<string>();
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
-    const kind = typeof (entry as Record<string, unknown>).kind === 'string'
-      ? String((entry as Record<string, unknown>).kind)
-      : '';
+    const kind =
+      typeof (entry as Record<string, unknown>).kind === 'string'
+        ? String((entry as Record<string, unknown>).kind)
+        : '';
     if (kind) kinds.add(kind);
   }
   return kinds;

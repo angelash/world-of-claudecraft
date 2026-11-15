@@ -89,7 +89,11 @@ export function sceneFrameFor(sim: Sim, pos: Vec3, options: SceneFrameOptions = 
   };
 }
 
-export function droppedItemSemantic(itemId: string, freshnessSeconds: number, ownerEntityId: number | null): DroppedItemSemantic | null {
+export function droppedItemSemantic(
+  itemId: string,
+  freshnessSeconds: number,
+  ownerEntityId: number | null,
+): DroppedItemSemantic | null {
   const item = ITEMS[itemId];
   if (!item) return null;
   const semantic = itemSemanticFor(itemId);
@@ -97,7 +101,12 @@ export function droppedItemSemantic(itemId: string, freshnessSeconds: number, ow
     itemId,
     displayName: item.name,
     itemTags: semantic.itemTags,
-    rarity: item.kind === 'quest' ? 'quest' : item.quality === 'poor' ? 'common' : item.quality ?? 'common',
+    rarity:
+      item.kind === 'quest'
+        ? 'quest'
+        : item.quality === 'poor'
+          ? 'common'
+          : (item.quality ?? 'common'),
     freshnessSeconds,
     ownerEntityId,
     smellTags: semantic.smellTags,
@@ -134,7 +143,11 @@ function nearbyAnchorObjects(pos: Vec3): SceneObjectSemantic[] {
   if (!anchor) return [];
   return anchor.semanticObjects
     .map((object) => {
-      const objectPos = { x: anchor.x + (object.dx ?? 0), y: pos.y, z: anchor.z + (object.dz ?? 0) };
+      const objectPos = {
+        x: anchor.x + (object.dx ?? 0),
+        y: pos.y,
+        z: anchor.z + (object.dz ?? 0),
+      };
       return {
         source: 'sceneAnchor' as const,
         objectId: object.id,
@@ -148,11 +161,21 @@ function nearbyAnchorObjects(pos: Vec3): SceneObjectSemantic[] {
         distance: Math.round(dist2d(pos, objectPos) * 10) / 10,
       };
     })
-    .filter((object) => object.distance <= (anchor.semanticObjects.find((candidate) => candidate.id === object.objectId)?.radius ?? anchor.radius));
+    .filter(
+      (object) =>
+        object.distance <=
+        (anchor.semanticObjects.find((candidate) => candidate.id === object.objectId)?.radius ??
+          anchor.radius),
+    );
 }
 
 function itemObjectFeatureTags(semantic: ReturnType<typeof itemSemanticFor>): string[] {
-  const tags = new Set([...semantic.itemTags, ...semantic.smellTags, ...semantic.dangerTags, ...semantic.valueSignals]);
+  const tags = new Set([
+    ...semantic.itemTags,
+    ...semantic.smellTags,
+    ...semantic.dangerTags,
+    ...semantic.valueSignals,
+  ]);
   const features = new Set<string>();
   if (tags.has('food') || tags.has('fish') || tags.has('meat')) features.add('strongScent');
   if (tags.has('weapon') || tags.has('armor') || tags.has('metal')) features.add('workedMetal');
@@ -166,16 +189,27 @@ function itemObjectFeatureTags(semantic: ReturnType<typeof itemSemanticFor>): st
 }
 
 function itemObjectAffordanceTags(semantic: ReturnType<typeof itemSemanticFor>): string[] {
-  const tags = new Set([...semantic.itemTags, ...semantic.smellTags, ...semantic.dangerTags, ...semantic.valueSignals]);
+  const tags = new Set([
+    ...semantic.itemTags,
+    ...semantic.smellTags,
+    ...semantic.dangerTags,
+    ...semantic.valueSignals,
+  ]);
   const affordances = new Set<string>(['inspectObject']);
   if (tags.has('food') || tags.has('fish') || tags.has('meat')) affordances.add('sniffObject');
-  if (tags.has('valuable') || tags.has('coin') || tags.has('gear')) affordances.add('collectObject');
-  if (tags.has('cursed') || tags.has('undead') || tags.has('unknownPower') || tags.has('poison')) affordances.add('avoidObject');
+  if (tags.has('valuable') || tags.has('coin') || tags.has('gear'))
+    affordances.add('collectObject');
+  if (tags.has('cursed') || tags.has('undead') || tags.has('unknownPower') || tags.has('poison'))
+    affordances.add('avoidObject');
   if (tags.has('document') || tags.has('quest') || tags.has('story')) affordances.add('readObject');
   return [...affordances].slice(0, 5);
 }
 
-function nearbyCompanions(sim: Sim, pos: Vec3, excludeEntityIds: ReadonlySet<number>): CompanionSemantic[] {
+function nearbyCompanions(
+  sim: Sim,
+  pos: Vec3,
+  excludeEntityIds: ReadonlySet<number>,
+): CompanionSemantic[] {
   const out: Array<{ companion: CompanionSemantic; distance: number; priority: number }> = [];
   for (const entity of sim.entities.values()) {
     if (excludeEntityIds.has(entity.id) || entity.dead) continue;
@@ -210,17 +244,24 @@ function nearbyCompanions(sim: Sim, pos: Vec3, excludeEntityIds: ReadonlySet<num
     });
   }
   return out
-    .sort((a, b) => a.priority - b.priority || a.distance - b.distance || a.companion.entityId - b.companion.entityId)
+    .sort(
+      (a, b) =>
+        a.priority - b.priority ||
+        a.distance - b.distance ||
+        a.companion.entityId - b.companion.entityId,
+    )
     .slice(0, 6)
     .map((entry) => entry.companion);
 }
 
 function isNpcCompanionLike(entity: Entity): boolean {
   if (entity.kind !== 'npc') return false;
-  return entity.questIds.length > 0
-    || entity.vendorItems.length > 0
-    || isHighStatusNpc(entity)
-    || isInjured(entity);
+  return (
+    entity.questIds.length > 0 ||
+    entity.vendorItems.length > 0 ||
+    isHighStatusNpc(entity) ||
+    isInjured(entity)
+  );
 }
 
 function npcCompanionTags(entity: Entity): string[] {
@@ -247,11 +288,21 @@ function isInjured(entity: Entity): boolean {
 function isHighStatusNpc(entity: Entity): boolean {
   const npc = NPCS[entity.templateId];
   if (!npc) return false;
-  return /(marshal|captain|warden|tidewatcher|loremaster|quartermaster|master|keeper)/i.test(`${npc.name} ${npc.title}`);
+  return /(marshal|captain|warden|tidewatcher|loremaster|quartermaster|master|keeper)/i.test(
+    `${npc.name} ${npc.title}`,
+  );
 }
 
-function sceneDanger(sim: Sim, pos: Vec3, locationTags: string[], environmentalTags: string[]): SceneDangerSemantic {
-  let undead = environmentalTags.includes('deathPressure') || environmentalTags.includes('undeadMemory') ? 2 : 0;
+function sceneDanger(
+  sim: Sim,
+  pos: Vec3,
+  locationTags: string[],
+  environmentalTags: string[],
+): SceneDangerSemantic {
+  let undead =
+    environmentalTags.includes('deathPressure') || environmentalTags.includes('undeadMemory')
+      ? 2
+      : 0;
   let hostile = 0;
   let corpses = 0;
   for (const entity of sim.entities.values()) {
@@ -263,7 +314,11 @@ function sceneDanger(sim: Sim, pos: Vec3, locationTags: string[], environmentalT
       if (entity.dead) corpses += 1;
     }
   }
-  const safeHavenScore = locationTags.includes('safeTown') ? 0.85 : locationTags.includes('town') ? 0.65 : 0.1;
+  const safeHavenScore = locationTags.includes('safeTown')
+    ? 0.85
+    : locationTags.includes('town')
+      ? 0.65
+      : 0.1;
   return {
     undeadPressure: Math.min(1, undead / 6),
     hostileDensity: Math.min(1, hostile / 8),

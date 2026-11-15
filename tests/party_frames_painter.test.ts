@@ -13,6 +13,7 @@ import {
   type PartyRowAuraDeps,
   type PartyRowSlot,
   partyRowHandlers,
+  petRowHandlers,
 } from '../src/ui/party_frame_row';
 import { DEFAULT_PARTY_FRAME_DISPLAY, type PartyFrameMember } from '../src/ui/party_frames';
 import { PartyFramesPainter } from '../src/ui/party_frames_painter';
@@ -85,6 +86,7 @@ describe('partyRowHandlers: the closures read the LIVE slot, never a captured me
       onTarget: (pid) => targets.push(pid),
       onContextMenu: (pid, name) => menus.push([pid, name]),
       onHover: () => {},
+      onTargetPet: () => {},
     });
 
     handlers.click();
@@ -107,6 +109,7 @@ describe('partyRowHandlers: the closures read the LIVE slot, never a captured me
       onTarget: (pid) => targets.push(pid),
       onContextMenu: (pid, _name, x, y) => menus.push([pid, x, y]),
       onHover: () => {},
+      onTargetPet: () => {},
     });
     for (const key of ['Enter', ' ']) {
       handlers.keydown({ key, preventDefault() {} } as unknown as KeyboardEvent);
@@ -152,17 +155,53 @@ interface FakeEl {
 }
 
 function fakeEl(tag: string): FakeEl {
+  const classNames = (el: Record<string, unknown>): string[] =>
+    String(el.className ?? '')
+      .split(/\s+/)
+      .filter(Boolean);
   const el = {
     tagName: tag.toUpperCase(),
+    className: '',
     parentNode: null as FakeEl | null,
     childNodes: [] as FakeEl[],
     _mutations: 0,
     listeners: {} as Record<string, Array<(ev: unknown) => void>>,
+    // Crest images are ordinary HTMLImageElements in production. Model the small
+    // class/style/loading surface used by setCrestImageWithFallback so this Node fake
+    // exercises the real seam instead of bypassing it.
+    classList: {
+      add(...tokens: string[]) {
+        const names = new Set(classNames(el as unknown as Record<string, unknown>));
+        for (const token of tokens) names.add(token);
+        el.className = [...names].join(' ');
+      },
+      remove(...tokens: string[]) {
+        const removed = new Set(tokens);
+        el.className = classNames(el as unknown as Record<string, unknown>)
+          .filter((name) => !removed.has(name))
+          .join(' ');
+      },
+      contains(token: string) {
+        return classNames(el as unknown as Record<string, unknown>).includes(token);
+      },
+    },
+    style: {
+      backgroundImage: '',
+      removeProperty(property: string) {
+        if (property === 'background-image') this.backgroundImage = '';
+      },
+    },
+    src: '',
+    complete: false,
+    naturalWidth: 0,
     setAttribute(k: string, v: string) {
       (el as Record<string, unknown>)[k] = v;
     },
     getAttribute(k: string) {
       return ((el as Record<string, unknown>)[k] as string) ?? null;
+    },
+    removeAttribute(k: string) {
+      delete (el as Record<string, unknown>)[k];
     },
     addEventListener(type: string, fn: (ev: unknown) => void) {
       el.listeners[type] ??= [];
@@ -274,7 +313,7 @@ describe('createPartyRow: decorative badges + relocalize hook (a11y + live langu
     createPartyRow(
       fakeDoc,
       recordingFacet().writers,
-      { onTarget() {}, onContextMenu() {}, onHover() {} },
+      { onTarget() {}, onContextMenu() {}, onHover() {}, onTargetPet() {} },
       member({ pid: 1 }),
       auraDeps,
     );
@@ -301,7 +340,20 @@ describe('createPartyRow: decorative badges + relocalize hook (a11y + live langu
     // group span is visually-hidden (in the a11y tree, clipped from sight) so the raid
     // group reaches a screen reader. Both attrs/classes are set ONCE here at build.
     expect(row.leadStar.getAttribute('aria-hidden')).toBe('true');
+    expect(String(row.leadStar.innerHTML)).toContain('<svg');
     expect(String(row.group.className)).toContain('visually-hidden');
+  });
+
+  it('builds the library panel, flat bars, and decorative raid role swatch once', () => {
+    const row = build();
+    expect(String(row.el.className)).toContain('ui-panel');
+    expect(String(row.role.className)).toBe('pfm-role');
+    expect(row.role.getAttribute('aria-hidden')).toBe('true');
+    expect(
+      Array.from(row.el.childNodes).some((child) =>
+        String((child as unknown as FakeEl).className).includes('ui-bar--hp'),
+      ),
+    ).toBe(true);
   });
 
   it('relocalize() re-sets every badge tooltip (the pool reuses row DOM, so a switch needs it)', () => {
@@ -324,6 +376,7 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
   let painter: PartyFramesPainter;
   let targeted: number[];
   let toggles: number;
+  let hovered: number | null;
 
   beforeEach(() => {
     container = fakeEl('div');
@@ -331,6 +384,7 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     calls = facet.calls;
     targeted = [];
     toggles = 0;
+    hovered = null;
     painter = new PartyFramesPainter(
       facet.writers,
       container as unknown as HTMLElement,
@@ -338,7 +392,11 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
         classCss: () => 'var(--cls)',
         onTarget: (pid) => targeted.push(pid),
         onContextMenu: () => {},
-        onHover: () => {},
+        onHover: (pid) => {
+          hovered = pid;
+        },
+        onTargetPet: () => {},
+        petLabel: (name: string, frac: number) => `${name} ${Math.round(frac * 100)}%`,
         chipLabel: () => 'Party',
         onToggleCollapse: () => {
           toggles++;
@@ -353,6 +411,14 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
   // only DIV child is the wrapper itself). Resolve the wrapper, then its member-row DIVs.
   const wrapperOf = () =>
     container.childNodes.find((c) => String(c.className).includes('party-rows'));
+  const headerOf = () => container.childNodes.find((c) => c.id === 'party-frame-header');
+  const lastCountWrite = () => {
+    const countSpan = headerOf()?.childNodes.find((c) =>
+      String(c.className).includes('party-frame-header-count'),
+    );
+    expect(countSpan).toBeTruthy();
+    return calls.filter((c) => c.m === 'setText' && c.el === countSpan).at(-1)?.args;
+  };
   const rows = () => {
     const w = wrapperOf();
     return w ? w.childNodes.filter((c) => c.tagName === 'DIV') : [];
@@ -374,6 +440,80 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     expect(targeted).toEqual([2]);
   });
 
+  it('paints a desktop Party N disclosure through the shared persisted collapse callback', () => {
+    painter.setCollapse(true, false, false, false);
+    painter.sync([member({ pid: 2 }), member({ pid: 3 })], 1, false);
+    const header = headerOf();
+    expect(header).toBeTruthy();
+    expect(container.childNodes[0]).toBe(header);
+    expect(calls).toContainEqual(expect.objectContaining({ m: 'setText', args: ['Party'] }));
+    // Two other members plus the local player (hidden by default) is a party of three.
+    expect(lastCountWrite()).toEqual(['3']);
+    expect(calls).toContainEqual(
+      expect.objectContaining({ m: 'setAttr', args: ['aria-expanded', 'true'] }),
+    );
+
+    calls.length = 0;
+    header?.fire('click', {});
+    expect(toggles).toBe(1);
+    painter.setCollapse(true, false, true, false);
+    expect(calls).toContainEqual(
+      expect.objectContaining({ m: 'setAttr', args: ['aria-expanded', 'false'] }),
+    );
+    expect(calls).toContainEqual(
+      expect.objectContaining({ m: 'toggleClass', args: ['party-header-collapsed', true] }),
+    );
+    expect(String(header?.className)).toContain('ui-cin ui-outline');
+    expect(header?.getAttribute('aria-controls')).toBe('party-frame-rows');
+  });
+
+  it('counts the shown self row once in the Party N disclosure', () => {
+    painter.setCollapse(true, false, false, false);
+    const others = [member({ pid: 2 }), member({ pid: 3 })];
+    const withSelf = { ...DEFAULT_PARTY_FRAME_DISPLAY, showSelf: true };
+    painter.sync([member({ pid: 1 }), ...others], 1, false, withSelf);
+    expect(lastCountWrite()).toEqual(['3']);
+    // Toggling showSelf off and on adds and drops the self row, never the count.
+    painter.sync(others, 1, false, DEFAULT_PARTY_FRAME_DISPLAY);
+    expect(lastCountWrite()).toEqual(['3']);
+    painter.sync([member({ pid: 1 }), ...others], 1, false, withSelf);
+    expect(lastCountWrite()).toEqual(['3']);
+  });
+
+  it('relocalize() re-emits the Party N count including the local player', () => {
+    painter.setCollapse(true, false, false, false);
+    painter.sync([member({ pid: 2 }), member({ pid: 3 })], 1, false, DEFAULT_PARTY_FRAME_DISPLAY);
+    calls.length = 0;
+    painter.relocalize();
+    expect(lastCountWrite()).toEqual(['3']);
+  });
+
+  it('paints target and role classes for compact raid cells', () => {
+    painter.sync(
+      [
+        member({ pid: 2, role: 'tank' }),
+        member({ pid: 3, role: 'healer' }),
+        member({ pid: 4, role: 'dps' }),
+      ],
+      1,
+      true,
+      DEFAULT_PARTY_FRAME_DISPLAY,
+      3,
+    );
+    expect(calls).toContainEqual(
+      expect.objectContaining({ m: 'toggleClass', args: ['is-on', true] }),
+    );
+    expect(calls).toContainEqual(
+      expect.objectContaining({ m: 'toggleClass', args: ['tank', true] }),
+    );
+    expect(calls).toContainEqual(
+      expect.objectContaining({ m: 'toggleClass', args: ['healer', true] }),
+    );
+    expect(calls).toContainEqual(
+      expect.objectContaining({ m: 'toggleClass', args: ['damage', true] }),
+    );
+  });
+
   it('recycles a departed row to a new pid and the recycled listener reads the NEW member', () => {
     painter.sync([member({ pid: 2, name: 'Alice' })], 1, false);
     const rowA = rows()[0];
@@ -389,6 +529,51 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     expect(targeted).toEqual([9]); // the live slot, not the stale Alice (pid 2)
   });
 
+  it('clears hover when its row is detached, recycled, or the party is cleared', () => {
+    painter.sync([member({ pid: 2 })], 1, false);
+    rows()[0].fire('mouseenter', {});
+    expect(hovered).toBe(2);
+
+    // Removing a hovered DOM node need not dispatch mouseleave. Its old pid
+    // must not redirect the next heal, even if the entity still exists.
+    painter.sync([member({ pid: 3 })], 1, false);
+    expect(hovered).toBeNull();
+    rows()[0].fire('mouseenter', {});
+    expect(hovered).toBe(3);
+
+    painter.clear();
+    expect(hovered).toBeNull();
+  });
+
+  it('keeps the hovered member when a different row leaves', () => {
+    painter.sync([member({ pid: 2 }), member({ pid: 3 })], 1, false);
+    rows()[0].fire('mouseenter', {});
+    painter.sync([member({ pid: 2 })], 1, false);
+    expect(hovered).toBe(2);
+  });
+
+  it('clears hover when party frames are hidden by collapse or mobile chat', () => {
+    painter.sync([member({ pid: 2 })], 1, false);
+    const row = rows()[0];
+    row.fire('mouseenter', {});
+    painter.setCollapse(true, false, false, false);
+    expect(hovered).toBe(2);
+    painter.setCollapse(true, false, true, false);
+    expect(hovered).toBeNull();
+
+    row.fire('mouseenter', {});
+    painter.setCollapse(true, true, false, true);
+    expect(hovered).toBeNull();
+
+    // The mobile chat flag does not hide desktop frames when expanded.
+    row.fire('mouseenter', {});
+    painter.setCollapse(true, false, false, true);
+    expect(hovered).toBe(2);
+
+    painter.setCollapse(false, false, false, false);
+    expect(hovered).toBeNull();
+  });
+
   it('paints each member aura strip (one icon per wire aura) and re-syncs it on a set change', () => {
     painter.sync(
       [
@@ -396,6 +581,10 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
           pid: 2,
           auras: [
             { id: 'weapon_imbue', kind: 'imbue' },
+            // the live unified food-buff id (Masterwrought 11c): every buff
+            // food mints it (PartyMemberAura is the projected wire shape,
+            // which carries no value field; the predicate-level fixture in
+            // tests/party_frames.test.ts walks the real magnitude)
             { id: 'well_fed', kind: 'buff_sta' },
             { id: 'arcane_intellect', kind: 'buff_int_pct' },
             { id: 'temporal_exhaustion', kind: 'sated' },
@@ -498,8 +687,11 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
           call.m === 'toggleClass' && call.args[0] === 'pf-hide-auras' && call.args[1] === true,
       ),
     ).toBe(true);
+    // showAbsorbs off: a zero-width segment in the row's quantized form.
     expect(
-      calls.some((call) => call.m === 'setTransform' && call.args[0] === 'scaleX(0.000)'),
+      calls.some(
+        (call) => call.m === 'setTransform' && call.args[0] === 'translateX(0%) scaleX(0.000)',
+      ),
     ).toBe(true);
   });
 
@@ -514,14 +706,14 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     expect(reordered[0]).toBe(r4);
     expect(reordered[1]).toBe(r2);
     expect(reordered[2]).toBe(r3);
-    expect(container.childNodes).toHaveLength(1);
+    expect(container.childNodes).toHaveLength(2);
     // The middle member (pid 2) leaves: the remaining two keep their order.
     painter.sync([member({ pid: 4 }), member({ pid: 3 })], 1, false);
     const trimmed = rows();
     expect(trimmed).toHaveLength(2);
     expect(trimmed[0]).toBe(r4);
     expect(trimmed[1]).toBe(r3);
-    expect(container.childNodes).toHaveLength(1);
+    expect(container.childNodes).toHaveLength(2);
   });
 
   it('a steady-state rebuild (same members + order) moves no node, so a focused row keeps its place', () => {
@@ -535,6 +727,24 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     painter.sync([member({ pid: 2, hp: 10 }), member({ pid: 3, inCombat: 1 })], 1, false);
     expect(container._mutations).toBe(movesBefore); // zero DOM moves in the hot path
     expect(rows()).toHaveLength(2);
+  });
+
+  it('keeps one stable boss-guide control between member rows and leader controls', () => {
+    const guide = fakeEl('button');
+    const master = fakeEl('div');
+    painter.setMasterControl(master as unknown as HTMLElement);
+    painter.setGuideControl(guide as unknown as HTMLElement);
+    painter.sync([member({ pid: 2 })], 1, false);
+
+    expect(container.childNodes).toEqual([headerOf(), wrapperOf(), guide, master]);
+    const movesBefore = container._mutations;
+    painter.setGuideControl(guide as unknown as HTMLElement);
+    painter.sync([member({ pid: 2, hp: 40 })], 1, false);
+    expect(container._mutations).toBe(movesBefore);
+
+    painter.clear();
+    expect(container.childNodes).toEqual([]);
+    expect(guide.parentNode).toBeNull();
   });
 
   it('repaints the crest with the recycled member class via the live slot (the portrait gate)', () => {
@@ -598,20 +808,22 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     // A combat member is NOT also dead (dead wins), so its combat is on but dead off.
     // The hp bar keeps the inline .toFixed(3) precision via formatScaleX.
     expect(has('setTransform', (c) => /^scaleX\(\d\.\d{3}\)$/.test(String(c.args[0])))).toBe(true);
-    // Party frames reuse the shared UnitFramePainter's classic absorb overlay (a
-    // left-origin scaleX to (hp + absorb) / maxHp), matching the player and target
-    // frames, so there is no positioned --absorb-start segment here.
+    // Party frames reuse the shared UnitFramePainter's absorb SEGMENT (a translate
+    // to the health edge plus a quantized scaleX of the shield width), matching the
+    // player and target frames, so there is no positioned --absorb-start segment
+    // here and the hatch never covers the health fill itself (hp 50 + shield 25 of
+    // 100 hatches 50%..75%, not 0%..75%).
     expect(has('setStyleProp', (c) => c.args[0] === '--absorb-start')).toBe(false);
-    expect(has('setTransform', (c) => c.args[0] === 'scaleX(0.750)')).toBe(true);
+    expect(has('setTransform', (c) => c.args[0] === 'translateX(50%) scaleX(0.250)')).toBe(true);
+    expect(has('setTransform', (c) => c.args[0] === 'scaleX(0.750)')).toBe(false);
     // The compact party row never appends the absorb total to the HP text (that is a
     // player/target-frame affordance), so "(25)" must not appear.
     expect(has('setText', (c) => String(c.args[0]).includes('(25)'))).toBe(false);
-    // The leader star is its OWN aria-hidden write (★), and the level element
-    // (.lead-num) holds the bare number (20), never the old concatenated '★20'. Both
-    // route through the elided setText (no raw write on the hot path).
-    expect(has('setText', (c) => c.args[0] === '★')).toBe(true);
+    // The leader crown is static aria-hidden SVG whose visibility routes through
+    // setDisplay. The level element holds the bare number, never a glyph concat.
+    expect(has('setText', (c) => c.args[0] === '\u2605')).toBe(false);
     expect(has('setText', (c) => c.args[0] === '20')).toBe(true);
-    expect(has('setText', (c) => c.args[0] === '★20')).toBe(false);
+    expect(has('setText', (c) => c.args[0] === '\u260520')).toBe(false);
     expect(has('setText', (c) => c.args[0] === 'Alice')).toBe(true);
     // Outside raid, no group label is emitted (the group span stays empty).
     expect(has('setText', (c) => c.args[0] === 'Group 1')).toBe(false);
@@ -619,6 +831,13 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     // each show at least once across the three members.
     expect(has('setDisplay', (c) => c.args[0] === '')).toBe(true);
     expect(has('setDisplay', (c) => c.args[0] === 'none')).toBe(true);
+  });
+
+  it('quantizes a non-round shield segment so the elided transform key is stable', () => {
+    painter.sync([member({ pid: 2, hp: 37, mhp: 100, absorb: 11 })], 2, false);
+    expect(
+      calls.some((c) => c.m === 'setTransform' && c.args[0] === 'translateX(37%) scaleX(0.110)'),
+    ).toBe(true);
   });
 
   it('emits a visually-hidden "Group n" raid label per member only in raid mode', () => {
@@ -718,6 +937,17 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     expect(kids[kids.length - 1]).toBe(wrapperOf());
   });
 
+  it('keeps the complete mobile footer order with chip, rows, guide, and loot controls', () => {
+    const guide = fakeEl('button');
+    const master = fakeEl('div');
+    painter.setCollapse(true, true, false, false);
+    painter.setGuideControl(guide as unknown as HTMLElement);
+    painter.setMasterControl(master as unknown as HTMLElement);
+    painter.sync([member({ pid: 2 })], 1, false);
+
+    expect(container.childNodes).toEqual([findChip(), wrapperOf(), guide, master]);
+  });
+
   it('F1: an expanded party seats the chip alone on its line, no member frame beside it', () => {
     // The pre-restructure grid put the chip in column 1 and auto-flowed a member frame
     // into the cell beside it (column 2 row 1). With the rows nested in the .party-rows
@@ -796,5 +1026,156 @@ describe('PartyFramesPainter: keyed pool over the elided writers', () => {
     calls.length = 0;
     painter.relocalize();
     expect(calls.some((c) => c.m === 'setText' && c.args[0] === 'Party')).toBe(true);
+  });
+});
+
+// The pet sliver is a control INSIDE the row button. Clicking it must select the pet,
+// not the member, which means stopping propagation: without that the click bubbles to
+// the row handler and the member is selected right back over the pet.
+describe('petRowHandlers: the pet sliver selects the pet, not the member', () => {
+  const slotFor = (pet?: { id: number }) => ({
+    member: { pid: 7, name: 'Ally', pet } as unknown as PartyFrameMember,
+  });
+  const deps = () => {
+    const calls: { member: number[]; pet: number[]; stopped: number } = {
+      member: [],
+      pet: [],
+      stopped: 0,
+    };
+    return {
+      calls,
+      deps: {
+        onTarget: (pid: number) => calls.member.push(pid),
+        onContextMenu: () => {},
+        onHover: () => {},
+        onTargetPet: (id: number) => calls.pet.push(id),
+      },
+    };
+  };
+  const ev = (calls: { stopped: number }) =>
+    ({ stopPropagation: () => calls.stopped++, preventDefault: () => {} }) as unknown as Event;
+
+  it('targets the pet entity id, never the member pid', () => {
+    const { calls, deps: d } = deps();
+    petRowHandlers(slotFor({ id: 90 }), d).click(ev(calls));
+    expect(calls.pet).toEqual([90]);
+    expect(calls.member).toEqual([]);
+  });
+
+  it('stops propagation so the row handler does not re-select the member', () => {
+    const { calls, deps: d } = deps();
+    petRowHandlers(slotFor({ id: 90 }), d).click(ev(calls));
+    expect(calls.stopped).toBe(1);
+  });
+
+  it('is a no-op when the member has no visible pet', () => {
+    const { calls, deps: d } = deps();
+    petRowHandlers(slotFor(undefined), d).click(ev(calls));
+    expect(calls.pet).toEqual([]);
+    expect(calls.member).toEqual([]);
+  });
+
+  it('reads the LIVE slot, so a recycled row targets its current member pet', () => {
+    const { calls, deps: d } = deps();
+    const slot = slotFor({ id: 90 });
+    const handlers = petRowHandlers(slot, d);
+    handlers.click(ev(calls));
+    slot.member = { pid: 8, name: 'Other', pet: { id: 91 } } as unknown as PartyFrameMember;
+    handlers.click(ev(calls));
+    expect(calls.pet).toEqual([90, 91]);
+  });
+
+  // No keyboard arm by design: the sliver carries no role/tabindex, because a nested
+  // interactive control inside the row button is the axe nested-interactive violation
+  // and ARIA makes a button's children presentational anyway. Pin the absence so a
+  // future edit cannot quietly re-add the nesting through the handler side.
+  it('exposes a click affordance only, with no keyboard arm', () => {
+    const { deps: d } = deps();
+    const handlers = petRowHandlers(slotFor({ id: 90 }), d);
+    expect(typeof handlers.click).toBe('function');
+    expect('keydown' in handlers).toBe(false);
+  });
+});
+
+// A language switch does NOT move partyFrameSignature (it digests data, not text), so
+// the Hud never re-syncs the party frames for one. Every piece of t()-built text on a
+// pooled row therefore needs an arm in relocalize(), and the pet sliver's accessible
+// name is the only text the sliver has: without this a screen-reader user keeps
+// hearing the pet's health in the previous language while the rest of the row
+// switches. Pinned here because no data-driven test can catch it: the fixture must
+// change the LANGUAGE and nothing else.
+describe('PartyFramesPainter.relocalize: the pet sliver label follows a language switch', () => {
+  // The facet RECORDS writes rather than mutating the fake DOM, so assert on the
+  // recorded setText targeting the sliver's label node, not on textContent (which
+  // stays empty here and would make every assertion vacuously pass).
+  type Node = { className?: unknown; childNodes: Node[] };
+  const findByClass = (root: Node, cls: string): Node | undefined => {
+    for (const c of root.childNodes ?? []) {
+      if (String(c.className ?? '').includes(cls)) return c;
+      const deep = findByClass(c, cls);
+      if (deep) return deep;
+    }
+    return undefined;
+  };
+
+  const setup = (withPet: boolean) => {
+    const facet = recordingFacet();
+    const container = fakeDoc.createElement('div');
+    let lang = 'en';
+    const painter = new PartyFramesPainter(
+      facet.writers,
+      container as unknown as HTMLElement,
+      {
+        classCss: () => 'var(--cls)',
+        onTarget: () => {},
+        onContextMenu: () => {},
+        onHover: () => {},
+        onTargetPet: () => {},
+        // Stands in for t(): same pet data, different language.
+        petLabel: (name: string, frac: number) => `${lang}:${name} ${Math.round(frac * 100)}%`,
+        chipLabel: () => 'Party',
+        onToggleCollapse: () => {},
+        partyAuras: auraDeps,
+      },
+      fakeDoc,
+    );
+    const m = withPet
+      ? member({ pid: 2, pet: { id: 90, name: 'Fang', hp: 20, maxHp: 40, dead: false } })
+      : member({ pid: 2 });
+    painter.sync([m], 1, false);
+    const labelEl = findByClass(container as unknown as Node, 'pfm-pet-label');
+    const labelWrites = () =>
+      facet.calls.filter((c) => c.m === 'setText' && c.el === labelEl).map((c) => c.args[0]);
+    return {
+      painter,
+      labelWrites,
+      setLang: (l: string) => {
+        lang = l;
+      },
+    };
+  };
+
+  it('paints the sliver label in the current language on the first sync', () => {
+    const { labelWrites } = setup(true);
+    expect(labelWrites()).toContain('en:Fang 50%');
+  });
+
+  it('re-emits the label on relocalize with NO party data change', () => {
+    const { painter, labelWrites, setLang } = setup(true);
+    const before = labelWrites().length;
+    setLang('de');
+    painter.relocalize();
+    const after = labelWrites();
+    expect(after.length).toBeGreaterThan(before);
+    expect(after[after.length - 1]).toBe('de:Fang 50%');
+  });
+
+  it('blanks rather than resurrects a label for a member with no pet', () => {
+    const { painter, labelWrites, setLang } = setup(false);
+    setLang('de');
+    painter.relocalize();
+    // Every write to a petless row's label must be the empty string: a stale pet
+    // name must never be announced by a row whose pet is gone.
+    expect(labelWrites().every((v) => v === '')).toBe(true);
   });
 });

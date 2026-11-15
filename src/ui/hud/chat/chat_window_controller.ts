@@ -1,6 +1,9 @@
 import { CTX_MENU_PICKER_CLASS } from '../../bag_item_action_menu';
 import { esc } from '../../esc';
-import { type TranslationKey, t } from '../../i18n';
+import { formatNumber, type TranslationKey, t } from '../../i18n';
+import { blurIfPointerClick } from '../../pointer_blur';
+import { rovingTarget } from '../../roving_index';
+import { parseWhoCommand } from '../../who_tab_view';
 import { tryEncodeItemLink, tryEncodeQuestLink } from '../quest/quest_link';
 import {
   CHANNEL_LABEL_KEYS,
@@ -17,8 +20,10 @@ import {
   isChatOpenTab,
   isChatTabChannel,
   parseChatTabs,
+  reorderChatTabs,
   sentLineTargetForHost,
   serializeChatTabs,
+  stepChatTab,
   WHISPER_TAB,
   WHISPER_TAB_LABEL_KEY,
 } from './chat_channels';
@@ -56,6 +61,11 @@ export interface ChatWindowControllerDeps {
   selectedQuestId(): string | null;
   hasQuest(questId: string): boolean;
   showError(text: string): void;
+  /** Open the Social window's Who tab with a server-side filter; false offline. */
+  openWhoTab(filter: string): boolean;
+  /** Open the Groups window (the bare `/lfg` command). */
+  openGroupFinder(): void;
+  afterTabShown?(pane: HTMLElement): void;
 }
 
 /** Owns chat tabs, send-channel state, draft links, persistence, and their DOM wiring. */
@@ -72,6 +82,18 @@ export class ChatWindowController {
   private tabsWheelBound = false;
   private initialized = false;
   private pendingLinks: readonly { display: string; token: string }[] = [];
+  // Drag-to-reorder state: the channel tab currently being dragged, cleared on
+  // drop or dragend. Held on the controller rather than DataTransfer so drop
+  // handling never depends on a browser's DataTransfer read support.
+  private draggingTab: ChatOpenTab | null = null;
+  // The tab that currently holds the roving tabindex (WAI-ARIA APG tabs
+  // pattern): the one plain ArrowLeft/ArrowRight reached most recently, or
+  // null to fall back to the active tab. Kept separate from activeChatTab so
+  // arrowing onto an inactive tab (to reorder it with Alt+Arrow) does not
+  // select it, and re-latched (never cleared) across a renderTabs() rebuild
+  // so a tab moved by drag or reorder stays the keyboard focus target.
+  private rovingChatTab: ChatTabId | null = null;
+  private readonly unreadTabs = new Map<ChatOpenTab, number>();
 
   constructor(private readonly deps: ChatWindowControllerDeps) {}
 
@@ -114,6 +136,10 @@ export class ChatWindowController {
   hideIfFiltered(element: HTMLElement, channel: string): void {
     const filter = this.filterTab();
     if (filter !== null && channel !== filter) element.classList.add('chat-hidden');
+    if (!isChatOpenTab(channel) || !this.chatTabs.includes(channel)) return;
+    if (channel === this.activeChatTab) return;
+    this.unreadTabs.set(channel, (this.unreadTabs.get(channel) ?? 0) + 1);
+    this.paintUnreadBadge(channel);
   }
 
   applyInputPresentation(): void {
@@ -162,6 +188,21 @@ export class ChatWindowController {
 
   clearPendingLinks(): void {
     this.pendingLinks = [];
+  }
+
+  // The chat commands the CLIENT answers before a line reaches the world:
+  // `/who [filter]` opens the Social window's Who tab online (offline it falls
+  // through, and the Sim prints its classic "online play only" line), and
+  // `/share` links the selected quest. Returns true when the line was consumed.
+  maybeHandleLocalChatCommand(raw: string): boolean {
+    const whoFilter = parseWhoCommand(raw);
+    if (whoFilter !== null && this.deps.openWhoTab(whoFilter)) return true;
+    // A bare `/lfg` opens the Groups window; `/lfg <message>` still talks in the LFG channel.
+    if (/^\/lfg\s*$/i.test(raw.trim())) {
+      this.deps.openGroupFinder();
+      return true;
+    }
+    return this.maybeHandleQuestShareCommand(raw);
   }
 
   maybeHandleQuestShareCommand(raw: string): boolean {
@@ -231,14 +272,26 @@ export class ChatWindowController {
     }
     bar.innerHTML = '';
     bar.setAttribute('role', 'tablist');
+    // The full roving-tabindex order (WAI-ARIA APG tabs pattern): All, Combat,
+    // then every open channel tab, never the "+" add button.
+    const order: ChatTabId[] = ['all', 'combat', ...this.chatTabs];
     const makeTab = (id: ChatTabId, label: string): HTMLButtonElement => {
       const button = this.deps.document.createElement('button');
       button.type = 'button';
-      button.className = 'chat-tab';
+      button.className = 'chat-tab ui-tab';
       button.dataset.tab = id;
       button.setAttribute('role', 'tab');
       button.textContent = label;
-      button.addEventListener('click', () => this.selectTab(id, true));
+      if (isChatOpenTab(id)) this.paintUnreadBadge(id, button);
+      // Selecting a tab restyles in place (no strip rebuild), so a mouse click
+      // would leave the tab focused and the next unshielded Space would natively
+      // re-click it. Pointer-only blur; keyboard selection (a native Enter click,
+      // detail 0) keeps its focus, and onTabKeyDown's arrow roving is untouched.
+      button.addEventListener('click', (event) => {
+        this.selectTab(id, true);
+        blurIfPointerClick(event, button);
+      });
+      button.addEventListener('keydown', (event) => this.onTabKeyDown(id, order, event));
       return button;
     };
     bar.append(
@@ -248,30 +301,159 @@ export class ChatWindowController {
     for (const channel of this.chatTabs) {
       const label = t(chatOpenTabLabelKey(channel));
       const button = makeTab(channel, label);
+      // `title` stays the close hint (unchanged); the accessible NAME stays the
+      // plain channel label (`textContent`, set by `makeTab`) rather than being
+      // overwritten by an aria-label, so a screen reader still announces "World"
+      // / "Guild" and not the whole reorder instruction. aria-keyshortcuts alone
+      // covers the Alt+Arrow accelerator for assistive tech.
       button.title = t('hud.core.chatChannels.close', { channel: label });
+      button.setAttribute('aria-keyshortcuts', 'Alt+ArrowLeft Alt+ArrowRight');
+      // Drag-to-reorder is a desktop-only gesture (no native HTML5 drag on touch,
+      // and the mobile strip is swipe-to-scroll pan-x), so it stays off on mobile
+      // rather than half-starting a drag over the swipe gesture.
+      button.draggable = !this.deps.isMobileLayout();
       button.addEventListener('contextmenu', (event) => {
         event.preventDefault();
         this.removeTab(channel);
+      });
+      button.addEventListener('dragstart', (event) => {
+        this.draggingTab = channel;
+        button.classList.add('chat-tab-dragging');
+        const transfer = event.dataTransfer;
+        if (transfer) {
+          transfer.effectAllowed = 'move';
+          // Firefox will not start a drag without data on the transfer, even
+          // though this drop is resolved entirely from `draggingTab` above.
+          transfer.setData('text/plain', channel);
+        }
+      });
+      button.addEventListener('dragover', (event) => {
+        if (this.draggingTab === null) return;
+        event.preventDefault();
+        const transfer = event.dataTransfer;
+        if (transfer) transfer.dropEffect = 'move';
+        button.classList.add('drop-target');
+      });
+      button.addEventListener('dragleave', () => {
+        button.classList.remove('drop-target');
+      });
+      button.addEventListener('drop', (event) => {
+        event.preventDefault();
+        button.classList.remove('drop-target');
+        this.dropDraggingTab(channel);
+      });
+      button.addEventListener('dragend', () => {
+        this.draggingTab = null;
+        this.clearDragVisuals();
       });
       bar.append(button);
     }
     const add = this.deps.document.createElement('button');
     add.type = 'button';
-    add.className = 'chat-tab chat-tab-add';
+    add.className = 'chat-tab chat-tab-add ui-tab ui-tab--add';
     add.textContent = '+';
     add.setAttribute('aria-label', t('hud.core.chatChannels.add'));
     add.title = t('hud.core.chatChannels.add');
-    add.addEventListener('click', () => {
+    add.addEventListener('click', (event) => {
       const menu = this.deps.contextMenu.element;
       if (menu.style.display === 'block' && this.deps.contextMenu.opener() === add) {
         this.deps.contextMenu.close();
+        blurIfPointerClick(event, add);
         return;
       }
       const rect = add.getBoundingClientRect();
       this.openChannelMenu(rect.left, rect.bottom, add);
+      // The "+" keeps document focus after a mouse click (the ctx menu items are
+      // not focused on pointer open), so blur it or the next unshielded Space
+      // re-toggles the channel menu. Keyboard activation keeps focus.
+      blurIfPointerClick(event, add);
+    });
+    // Dragging a tab onto "+" moves it to the end of the strip.
+    add.addEventListener('dragover', (event) => {
+      if (this.draggingTab === null) return;
+      event.preventDefault();
+      const transfer = event.dataTransfer;
+      if (transfer) transfer.dropEffect = 'move';
+      add.classList.add('drop-target');
+    });
+    add.addEventListener('dragleave', () => {
+      add.classList.remove('drop-target');
+    });
+    add.addEventListener('drop', (event) => {
+      event.preventDefault();
+      add.classList.remove('drop-target');
+      this.dropDraggingTab(null);
     });
     bar.append(add);
     this.updateActiveTabStyles();
+  }
+
+  // Alt+ArrowLeft / Alt+ArrowRight on a channel tab reorders it (the keyboard-
+  // accessible equivalent of a drag); plain ArrowLeft/ArrowRight roves focus
+  // across the whole tablist (WAI-ARIA APG) without activating a tab. All/
+  // Combat never reorder (they are not entries in `chatTabs`), so Alt+Arrow on
+  // either is left alone, including for the browser's own back/forward accelerator.
+  private onTabKeyDown(id: ChatTabId, order: readonly ChatTabId[], event: KeyboardEvent): void {
+    const arrow = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
+    if (!arrow && event.key !== 'Home' && event.key !== 'End') return;
+    if (event.altKey) {
+      // Alt+Arrow reorders; Alt+Home/End is not a reorder gesture and falls through
+      // to nothing (never a roving move either).
+      if (!arrow || !isChatOpenTab(id)) return;
+      const step = event.key === 'ArrowLeft' ? -1 : 1;
+      const next = stepChatTab(this.chatTabs, id, step);
+      if (next === this.chatTabs) return;
+      event.preventDefault();
+      this.chatTabs = next;
+      this.persist();
+      this.rovingChatTab = id;
+      this.renderTabs();
+      this.focusTab(id);
+      return;
+    }
+    const index = order.indexOf(id);
+    if (index < 0) return;
+    // Reuse the shared roving-index core (arrows wrap, Home/End jump to the
+    // ends) instead of hand-rolled wrap math, so chat tabs stay consistent with
+    // every other tablist in the HUD; `rovingTarget` reads the key.
+    const nextIndex = rovingTarget(event.key, index, order.length, 'horizontal');
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextId = order[nextIndex];
+    this.rovingChatTab = nextId;
+    this.updateActiveTabStyles();
+    this.focusTab(nextId);
+  }
+
+  private dropDraggingTab(before: ChatOpenTab | null): void {
+    const moved = this.draggingTab;
+    this.draggingTab = null;
+    if (moved === null) return;
+    const next = reorderChatTabs(this.chatTabs, moved, before);
+    if (next === this.chatTabs) return;
+    this.chatTabs = next;
+    this.persist();
+    this.rovingChatTab = moved;
+    this.renderTabs();
+    this.focusTab(moved);
+  }
+
+  private focusTab(id: ChatTabId): void {
+    const button = Array.from(
+      this.requireElement('chatlog-tabs').querySelectorAll<HTMLButtonElement>('.chat-tab'),
+    ).find((candidate) => candidate.dataset.tab === id);
+    button?.focus();
+  }
+
+  // Safety net for the reorder-is-a-no-op and same-tab-drop cases, where
+  // `dropDraggingTab` returns before `renderTabs()` would otherwise wipe the
+  // drag-visual classes via its full subtree rebuild.
+  private clearDragVisuals(): void {
+    this.requireElement('chatlog-tabs')
+      .querySelectorAll<HTMLButtonElement>('.chat-tab')
+      .forEach((button) => {
+        button.classList.remove('chat-tab-dragging', 'drop-target');
+      });
   }
 
   private updateActiveTabStyles(): void {
@@ -282,12 +464,23 @@ export class ChatWindowController {
         const active = button.dataset.tab === this.activeChatTab;
         button.classList.toggle('active', active);
         button.setAttribute('aria-selected', active ? 'true' : 'false');
-        button.tabIndex = active ? 0 : -1;
+        button.tabIndex =
+          button.dataset.tab === (this.rovingChatTab ?? this.activeChatTab) ? 0 : -1;
       });
   }
 
   private selectTab(tab: ChatTabId, persist = true): void {
     this.activeChatTab = tab;
+    if (isChatOpenTab(tab)) {
+      this.unreadTabs.delete(tab);
+      this.paintUnreadBadge(tab);
+    }
+    // Latch the roving tabindex to the tab that was just activated (click or
+    // Enter/Space), matching APG and the rest of this HUD (daily rewards,
+    // tab_strip_painter): the selected tab is always the roving stop, so a
+    // stale Arrow-roved target left over from before this click does not keep
+    // `tabIndex={0}` on an inactive tab.
+    this.rovingChatTab = tab;
     const showCombat = tab === 'combat';
     this.deps.chatLog.classList.toggle('active', !showCombat);
     this.deps.combatLog.classList.toggle('active', showCombat);
@@ -295,6 +488,7 @@ export class ChatWindowController {
     this.updateActiveTabStyles();
     if (persist) this.persist();
     this.applyInputPresentation();
+    this.deps.afterTabShown?.(showCombat ? this.deps.combatLog : this.deps.chatLog);
   }
 
   private addTab(channel: ChatOpenTab, options: { join?: boolean; select?: boolean } = {}): void {
@@ -314,7 +508,9 @@ export class ChatWindowController {
     const index = this.chatTabs.indexOf(channel);
     if (index < 0) return;
     this.chatTabs.splice(index, 1);
+    this.unreadTabs.delete(channel);
     if (this.activeChatTab === channel) this.activeChatTab = 'all';
+    if (this.rovingChatTab === channel) this.rovingChatTab = null;
     this.renderTabs();
     this.selectTab(this.activeChatTab, true);
   }
@@ -350,6 +546,19 @@ export class ChatWindowController {
       : this.activeChatTab;
   }
 
+  /**
+   * Drop a battleground send-stickiness when the match that justified it ends.
+   *
+   * The server clears its own `session.rememberedChat` on `bgEnd`, but that is a
+   * different piece of state: the HUD composes a plain line through THIS sticky
+   * before anything is sent, so without this the first plain line after every
+   * match is still composed as `/bg ...` and comes back refused. Scoped to the
+   * battleground target so a `say` or `whisper` sticky is untouched.
+   */
+  clearBattlegroundSticky(): void {
+    if (this.stickyTarget === 'battleground') this.stickyTarget = 'say';
+  }
+
   private sendChannel(): ChatTabChannel | null {
     const tab = this.filterTab();
     return tab !== null && isChatTabChannel(tab) ? tab : null;
@@ -382,6 +591,23 @@ export class ChatWindowController {
   private presentInput(input: HTMLTextAreaElement | HTMLInputElement): void {
     input.placeholder = this.activePlaceholder();
     input.style.color = chatInputTint(this.inputTintTarget()) ?? '';
+  }
+
+  private paintUnreadBadge(tab: ChatOpenTab, target?: HTMLButtonElement): void {
+    const button =
+      target ??
+      Array.from(
+        this.requireElement('chatlog-tabs').querySelectorAll<HTMLButtonElement>('.chat-tab'),
+      ).find((candidate) => candidate.dataset.tab === tab);
+    if (!button) return;
+    button.querySelector<HTMLElement>('.ui-badge')?.remove();
+    const count = this.unreadTabs.get(tab) ?? 0;
+    if (count === 0) return;
+    const badge = this.deps.document.createElement('span');
+    badge.className = 'ui-badge';
+    badge.setAttribute('aria-hidden', 'true');
+    badge.textContent = formatNumber(count, { maximumFractionDigits: 0, useGrouping: false });
+    button.append(badge);
   }
 
   private insertLink(display: string, token: string): void {

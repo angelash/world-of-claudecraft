@@ -2,9 +2,8 @@
 // in sim/content; this module owns only the stable visual GLB and its fallback.
 
 import * as THREE from 'three';
-import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import { loadGltf, releaseGltf } from './assets/loader';
-import { registerPreload } from './assets/preload';
+import { type LoadedGltf, loadGltf, releaseGltf } from './assets/loader';
+import { registerDeferredPreload } from './assets/preload';
 import {
   type EastbrookSurfaceSemantic,
   eastbrookSurfaceAtlasMetadata,
@@ -23,16 +22,31 @@ const NOTICEBOARD_TARGET_DEPTH = 0.6;
 const NOTICEBOARD_FRONT = Object.freeze([0, 0, 1] as const);
 const NOTICEBOARD_SOCKETS = Object.freeze(['Socket_Interaction', 'Socket_Notices'] as const);
 
-let loadedNoticeboardGltf: GLTF | null = null;
+let loadedNoticeboardGltf: LoadedGltf | null = null;
 let preparedNoticeboardTemplate: THREE.Group | null = null;
 let fallbackNoticeboardTemplate: THREE.Group | null = null;
+let noticeboardLoadTask: Promise<void> | null = null;
 
-if (typeof window !== 'undefined') {
-  registerPreload(
-    loadGltf(NOTICEBOARD_ASSET_URL).then((gltf) => {
+export function prepareNoticeboardProfileAssets(): Promise<void> {
+  if (loadedNoticeboardGltf) return Promise.resolve();
+  if (noticeboardLoadTask) return noticeboardLoadTask;
+  noticeboardLoadTask = loadGltf(NOTICEBOARD_ASSET_URL)
+    .then((gltf) => {
       loadedNoticeboardGltf = gltf;
-    }),
-  );
+      noticeboardLoadTask = null;
+    })
+    .catch((err) => {
+      noticeboardLoadTask = null;
+      throw err;
+    });
+  return noticeboardLoadTask;
+}
+
+if (typeof window !== 'undefined') registerDeferredPreload(prepareNoticeboardProfileAssets);
+
+export function resetNoticeboardProfileCaches(): void {
+  preparedNoticeboardTemplate = null;
+  fallbackNoticeboardTemplate = null;
 }
 
 function materialTint(material: THREE.Material): THREE.Color {

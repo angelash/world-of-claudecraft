@@ -1,6 +1,7 @@
 // Book of Deeds evaluator behavior: per-trigger grants with negative cases,
 // the meta fixpoint, Fiesta standardization safety, retro-on-join credit,
 // milestone unification, persistence round-trips, and determinism.
+
 import { describe, expect, it } from 'vitest';
 import { bagCapacity } from '../src/sim/bags';
 import { dealDamage } from '../src/sim/combat/damage';
@@ -10,6 +11,7 @@ import { ITEMS, MOBS, QUESTS, ZONES } from '../src/sim/data';
 import {
   bumpDeedStat,
   checkDeedTrigger,
+  DEEDS_RECENT_CAP,
   evaluateDeedsFor,
   grantDeed,
   markItemDiscovered,
@@ -18,10 +20,12 @@ import {
   onDelveClearForDeeds,
   onDungeonFinalBossKilledForDeeds,
   onFishCaughtForDeeds,
+  POI_VISIT_RADIUS,
   restoreDeedStats,
   updateDeeds,
 } from '../src/sim/deeds';
 import { createMob } from '../src/sim/entity';
+import { MUSTER_PIKE_MAX_LEVEL } from '../src/sim/lance_balance_core';
 import { announceAttunement } from '../src/sim/professions/attunement_events';
 import { BATTLEFIELD_XP_TRICKLE } from '../src/sim/professions/battlefield_xp';
 import { queueGatheringGrant } from '../src/sim/professions/gathering';
@@ -29,9 +33,12 @@ import { turnInQuestCore } from '../src/sim/quests/quest_commands';
 import { type ArenaMatch, type CharacterState, Sim } from '../src/sim/sim';
 import * as duelMod from '../src/sim/social/duel';
 import { type Entity, MAX_LEVEL, MILESTONES, type SimEvent } from '../src/sim/types';
+import { completeCorpseHarvest } from './helpers/complete_corpse_harvest';
+import { runSalvage } from './helpers/enchant_family_cast';
+import { VENDOR_TEST_WORLD } from './sim_shared';
 
 function makeSim(seed = 42): Sim {
-  return new Sim({ seed, playerClass: 'warrior', autoEquip: false });
+  return new Sim({ seed, playerClass: 'warrior', autoEquip: false, world: VENDOR_TEST_WORLD });
 }
 
 function primary(sim: Sim) {
@@ -46,11 +53,28 @@ function deedEvents(evs: SimEvent[]): Extract<SimEvent, { type: 'deedUnlocked' }
   });
 }
 
+function stageFallLanding(e: Entity, drop: number): void {
+  const supportY = e.pos.y;
+  e.pos.y = supportY + 0.01;
+  e.prevPos = { ...e.pos };
+  e.fallStartY = supportY + drop;
+  e.onGround = false;
+  e.jumping = false;
+  e.vx = 0;
+  e.vy = 0;
+  e.vz = 0;
+}
+
 // Seat a live 2v2 Fiesta bout (four solo-queuers, countdown run out) so the
 // fiesta-takedown arm of dealDamage can be driven directly. Mirrors the
 // startFiesta harness in tests/fiesta.test.ts.
 function startFiestaBout(): { sim: Sim; match: ArenaMatch } {
-  const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+  const sim = new Sim({
+    seed: 42,
+    playerClass: 'warrior',
+    noPlayer: true,
+    world: VENDOR_TEST_WORLD,
+  });
   const pids = [
     sim.addPlayer('warrior', 'P0'),
     sim.addPlayer('mage', 'P1'),
@@ -71,7 +95,12 @@ function startFiestaBout(): { sim: Sim; match: ArenaMatch } {
 // the yumi player-down arm of dealDamage can be driven directly. Mirrors the
 // startYumi3 harness in tests/yumi_match.test.ts.
 function startYumiBout(): { sim: Sim; match: ArenaMatch } {
-  const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+  const sim = new Sim({
+    seed: 42,
+    playerClass: 'warrior',
+    noPlayer: true,
+    world: VENDOR_TEST_WORLD,
+  });
   const pids = [
     sim.addPlayer('warrior', 'P0'),
     sim.addPlayer('mage', 'P1'),
@@ -237,6 +266,29 @@ describe('trigger kinds grant once, with negatives', () => {
     expect(meta.deedsEarned.has('prog_veteran')).toBe(true);
   });
 
+  it('lifetimeXp: the Titan rung grants at 10,000,000, not one below, and wears as a title', () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    meta.lifetimeXp = 9_999_999;
+    sim.ctx.markDeedsDirty(meta.entityId);
+    sim.tick();
+    expect(meta.deedsEarned.has('prog_eternal')).toBe(true);
+    expect(meta.deedsEarned.has('prog_titan')).toBe(false);
+    sim.setActiveTitle('prog_titan');
+    expect(sim.activeTitle).toBeNull();
+    meta.lifetimeXp = 10_000_000;
+    sim.ctx.markDeedsDirty(meta.entityId);
+    const events = sim.tick();
+    expect(meta.deedsEarned.has('prog_titan')).toBe(true);
+    expect(events.some((ev) => ev.type === 'deedUnlocked' && ev.deedId === 'prog_titan')).toBe(
+      true,
+    );
+    // No legacy milestone id rides the grant (the mirror is frozen at five).
+    expect(meta.unlockedMilestones.has('titan')).toBe(false);
+    sim.setActiveTitle('prog_titan');
+    expect(sim.activeTitle).toBe('prog_titan');
+  });
+
   it('gathering: a proficiency one below the threshold does not grant', () => {
     const sim = makeSim();
     const { meta } = primary(sim);
@@ -388,6 +440,27 @@ describe('grant path', () => {
     // Idempotent: a second grant never double-counts.
     grantDeed(sim.ctx, meta, 'soc_meet_bursar');
     expect(meta.renown).toBe(before + 5);
+  });
+
+  it('refuses a prototype-keyed id a bare index would resolve, so renown never goes NaN', () => {
+    // DEEDS is a plain object, so grantDeed(meta, '__proto__') without the hasOwn
+    // guard resolves def = Object.prototype (truthy, past `!def`), then runs
+    // `renown += undefined` (NaN, and it seeds the SQL sort index) and adds a
+    // non-string legacy value to unlockedMilestones. The guard fails closed.
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    grantDeed(sim.ctx, meta, 'soc_meet_bursar'); // a real 5-renown grant first
+    const before = meta.renown;
+    const earnedBefore = meta.deedsEarned.size;
+    const milestonesBefore = meta.unlockedMilestones.size;
+    for (const key of ['__proto__', 'constructor', 'toString', 'valueOf']) {
+      expect(sim.ctx.grantDeed(meta, key), key).toBe(false);
+    }
+    expect(Number.isNaN(meta.renown)).toBe(false);
+    expect(meta.renown).toBe(before);
+    expect(meta.deedsEarned.size).toBe(earnedBefore);
+    expect(meta.deedsEarned.has('__proto__')).toBe(false);
+    expect(meta.unlockedMilestones.size).toBe(milestonesBefore);
   });
 
   it('the meta fixpoint resolves chained deeds within a single pass', () => {
@@ -667,8 +740,8 @@ describe('retro on join', () => {
   });
 
   it('the retro pass is a pure function of the loaded state and the catalog', () => {
-    const a = new Sim({ seed: 7, playerClass: 'mage' });
-    const b = new Sim({ seed: 7, playerClass: 'mage' });
+    const a = new Sim({ seed: 7, playerClass: 'mage', world: VENDOR_TEST_WORLD });
+    const b = new Sim({ seed: 7, playerClass: 'mage', world: VENDOR_TEST_WORLD });
     const pa = a.addPlayer('warrior', 'Same', { state: veteranState() });
     const pb = b.addPlayer('warrior', 'Same', { state: veteranState() });
     expect([...a.players.get(pa)!.deedsEarned.keys()].sort()).toEqual(
@@ -703,33 +776,64 @@ describe('retro on join', () => {
     expect(sim2.players.get(pid2)!.deedsEarned.has('exp_something_shiny')).toBe(false);
   });
 
-  it('Giantslayer heals exactly where no mob can sit five levels up', () => {
-    // The heroic pin (level 22) is the highest creditable spawn in the game,
-    // so level 18 is the first permanently stranded level and 17 the last
-    // one where the live kill site can still fire.
+  it('Giantslayer auto-heals for capped players now that S-rank is flat 23 (deed stranded)', () => {
+    // MAX_CREDITABLE_MOB_LEVEL was lowered from 25 to 23 when S-rank was
+    // re-tuned to a flat level 23 (no ramp to 25). A capped player (level 20)
+    // can never be hit by a mob five levels up (20+5=25>23), so the deed is
+    // permanently stranded and retroFallbackGrants auto-heals it at join time.
+    // Giantslayer is no longer earnable inside S-rank rifts (maintainer-accepted).
     const sim = makeSim();
     const capped = sim.addPlayer('warrior', 'Capped', {
       state: { ...veteranState(), level: 20 },
     });
+    // Auto-heal fires at join for the capped player (level 20+5=25 > 23).
     expect(sim.players.get(capped)!.deedsEarned.has('cmb_giantslayer')).toBe(true);
-    const edge = sim.addPlayer('warrior', 'Edge', { state: { ...veteranState(), level: 18 } });
-    expect(sim.players.get(edge)!.deedsEarned.has('cmb_giantslayer')).toBe(true);
-    const leveler = sim.addPlayer('warrior', 'Leveler', {
+    // A level-17 player (17+5=22 <= 23) is still below the threshold: not yet stranded.
+    const notStranded = sim.addPlayer('warrior', 'NotStranded', {
       state: { ...veteranState(), level: 17 },
     });
-    expect(sim.players.get(leveler)!.deedsEarned.has('cmb_giantslayer')).toBe(false);
-    // The heal is a retro grant: flagged on the event, delivered to the
-    // healed player only.
-    const evs = deedEvents(sim.tick());
-    const ev = evs.find((e) => e.deedId === 'cmb_giantslayer' && e.pid === capped);
-    expect(ev?.retro).toBe(true);
+    expect(sim.players.get(notStranded)!.deedsEarned.has('cmb_giantslayer')).toBe(false);
+    // A level-18 player (18+5=23, not strictly greater) is also not stranded yet.
+    const edge = sim.addPlayer('warrior', 'Edge', { state: { ...veteranState(), level: 18 } });
+    expect(sim.players.get(edge)!.deedsEarned.has('cmb_giantslayer')).toBe(false);
+    // The live kill site still grants on a killing blow five levels up (for sub-cap players).
+    const edgeEntity = sim.entities.get(edge)!;
+    const wolf = [...sim.entities.values()].find((e) => e.kind === 'mob' && !e.dead)!;
+    wolf.level = edgeEntity.level + 5;
+    (sim as unknown as { dealDamage: Function }).dealDamage(
+      edgeEntity,
+      wolf,
+      wolf.hp + 10,
+      false,
+      'physical',
+      'test',
+      'hit',
+      true,
+    );
+    expect(sim.players.get(edge)!.deedsEarned.has('cmb_giantslayer')).toBe(true);
+  });
+
+  it('Point Taken heals past the pike cap, where the drill can never be finished', () => {
+    // The muster lends its pikes to level 19 and below (muster_pike.ts), so the drill behind
+    // the deed strands for a level 20 who never did it (docs/design/deeds.md rule 5).
+    const sim = makeSim();
+    const capped = sim.addPlayer('warrior', 'PikeCapped', {
+      state: { ...veteranState(), level: MUSTER_PIKE_MAX_LEVEL + 1 },
+    });
+    expect(sim.players.get(capped)!.deedsEarned.has('cmb_point_taken')).toBe(true);
+    const young = sim.addPlayer('warrior', 'PikeYoung', {
+      state: { ...veteranState(), level: MUSTER_PIKE_MAX_LEVEL },
+    });
+    expect(sim.players.get(young)!.deedsEarned.has('cmb_point_taken')).toBe(false);
   });
 
   it('the heals unlock feat_book_complete in the same join for an otherwise complete book', () => {
-    // The motivating payoff: when the three healed deeds were the last holes
-    // in a veteran's book, the meta pass that runs right after the fallback
-    // arms must complete the feat on the SAME login, not one login later.
-    const healed = ['exp_something_shiny', 'cmb_giantslayer', 'prog_well_rested'];
+    // The motivating payoff: when the healed deeds were the last holes in a
+    // veteran's book, the meta pass that runs right after the fallback arms
+    // must complete the feat on the SAME login, not one login later.
+    // (cmb_giantslayer left the healed set when the S-rank rift ceiling made
+    // it earnable at the cap, so this veteran already carries it.)
+    const healed = ['exp_something_shiny', 'prog_well_rested'];
     const bookIds = (DEEDS.feat_book_complete.trigger as { deedIds: string[] }).deedIds;
     const deeds: Record<string, string> = {};
     for (const id of bookIds) {
@@ -1098,14 +1202,38 @@ describe('persistence', () => {
 
   it('every visited mark a live sim writes stays inside the authored namespaces', () => {
     const sim = makeSim();
-    const { meta } = primary(sim);
+    const { meta, e } = primary(sim);
+    const poi = ZONES.find((z) => z.id === 'eastbrook_vale')!.pois.find(
+      (p) => p.id === 'eastbrook',
+    )!;
+    e.pos.x = poi.x;
+    e.pos.z = poi.z;
+    e.prevPos = { ...e.pos };
     for (let i = 0; i < 25; i++) sim.tick(); // let the 1 Hz proximity sweep run
+    // A sweep-scoped allowlist: parked on a POI for 25 ticks with no action
+    // taken, the only writer that runs is the 1 Hz sweepProximityMarks, which
+    // mints poi: and witness: marks, so those two namespaces are all this arm
+    // can observe. The other names cover deeds.ts's own event-driven marks
+    // (fish, npc, slain, quality, fiesta, plus the farm and farm_crop
+    // namespaces: professions/farming.ts mints farm:planted inline at plant
+    // success, and its harvest arm calls onCropHarvestedForDeeds, which mints
+    // farm:<zone> and farm_crop:<crop>) plus the gather, gather_event and
+    // dungeon marks other modules route through ctx.markVisited; the crafting
+    // marks (masterwork, whose authored masterwork:first mark is written
+    // ungated as a RELIQUARY_PROFESSION_MARKS constant while only the derived
+    // masterwork:<craftId> marks are gated by isCataloguedRelicMark;
+    // craft_rare, apex_feast) are not listed and not reachable here. A mark
+    // outside the list fails whichever writer minted it, but only the sweep's
+    // two namespaces are exercised by this scenario.
     for (const mark of meta.deedStats.visited) {
       expect(mark).toMatch(
-        /^(poi|gather|gather_event|fish|npc|slain|quality|fiesta|dungeon|witness):/,
+        /^(poi|gather|gather_event|fish|npc|slain|quality|fiesta|dungeon|witness|farm|farm_crop):/,
       );
     }
-    // The spawn-square sweep marked the hub POI (bounded, authored input).
+    // Parked on the hub POI (the harbor-town spawn quay sits outside every POI
+    // radius), the sweep marked it (bounded, authored input). Re-pinned 2026-08
+    // for the Eastbrook harbor move (d19aa33f76,
+    // docs/design/eastbrook-revamp/site-plan.md).
     expect(meta.deedStats.visited.has('poi:eastbrook_vale:eastbrook')).toBe(true);
   });
 });
@@ -1343,6 +1471,58 @@ describe('meter triggers (negative then positive per resolver)', () => {
       expect(meta.deedsEarned.has('pvp_arena_first_match'), arm).toBe(true);
     }
   });
+
+  it('the battleground meters grant the first-win and first-capture deeds off PlayerMeta', () => {
+    // bgWins and bgCaptures are separate resolvers reading the persisted
+    // Thornhollow Fields standing: each arm gets a fresh Sim so a resolver that
+    // read the wrong field could not be masked by the other counter.
+    const winArm = makeSim();
+    const wm = primary(winArm).meta;
+    expect(wm.bgWins).toBe(0);
+    wm.bgWins = 1;
+    winArm.ctx.markDeedsDirty(wm.entityId);
+    winArm.tick();
+    expect(wm.deedsEarned.has('pvp_bg_first_win')).toBe(true);
+    // The capture deed must NOT ride along on a win.
+    expect(wm.deedsEarned.has('pvp_bg_first_capture')).toBe(false);
+
+    const capArm = makeSim();
+    const cm = primary(capArm).meta;
+    expect(cm.bgCaptures).toBe(0);
+    cm.bgCaptures = 1;
+    capArm.ctx.markDeedsDirty(cm.entityId);
+    capArm.tick();
+    expect(cm.deedsEarned.has('pvp_bg_first_capture')).toBe(true);
+    expect(cm.deedsEarned.has('pvp_bg_first_win')).toBe(false);
+  });
+
+  it('the battleground career deeds gate exactly at 25 wins and 100 captures', () => {
+    // Two-sided per threshold, fresh Sim per arm: the sticky grant means a
+    // single sim could never prove the below-threshold side after the fact.
+    const cases: { deedId: string; field: 'bgWins' | 'bgCaptures'; amount: number }[] = [
+      { deedId: 'pvp_bg_wins_25', field: 'bgWins', amount: 25 },
+      { deedId: 'pvp_bg_captures_100', field: 'bgCaptures', amount: 100 },
+    ];
+    for (const c of cases) {
+      // Pin the authored threshold so a content edit cannot silently drift the
+      // number this test claims to cover.
+      expect(DEEDS[c.deedId].trigger).toEqual({ kind: 'meter', meter: c.field, amount: c.amount });
+
+      const below = makeSim();
+      const bm = primary(below).meta;
+      bm[c.field] = c.amount - 1;
+      below.ctx.markDeedsDirty(bm.entityId);
+      below.tick();
+      expect(bm.deedsEarned.has(c.deedId), `${c.deedId} one short`).toBe(false);
+
+      const at = makeSim();
+      const am = primary(at).meta;
+      am[c.field] = c.amount;
+      at.ctx.markDeedsDirty(am.entityId);
+      at.tick();
+      expect(am.deedsEarned.has(c.deedId), `${c.deedId} at threshold`).toBe(true);
+    }
+  });
 });
 
 describe('flag triggers (one negative and one positive per predicate)', () => {
@@ -1438,11 +1618,21 @@ describe('bounded sets on load', () => {
     // serialized fine but were dropped on load while the namespace was missing
     // from VISITED_MARK_NAMESPACES, so a mid-hunt save silently lost rare-event
     // deed progress. The mark must survive the round trip.
+    // 'toString' and 'constructor' give the Object.hasOwn arm its teeth: under
+    // the old `if (ITEMS[id])` truthiness check both index an INHERITED function
+    // off Object.prototype and would be restored into the persisted discovery
+    // ledger as real items; hasOwn drops them. 'not_a_real_item' alone cannot
+    // distinguish the two checks (undefined is falsy under both).
     const stats = restoreDeedStats({
-      itemsDiscovered: ['glimmerfin_koi', 'not_a_real_item'],
+      itemsDiscovered: ['glimmerfin_koi', 'not_a_real_item', 'toString', 'constructor'],
       visited: [
         'poi:eastbrook_vale:eastbrook',
         'gather_event:perfect_specimen',
+        // Same round-trip contract for the masterwork proof marks: the
+        // Reliquary trophy refills from them at join, so a load-drop would
+        // strand a lifetime trophy on every relog.
+        'masterwork:first',
+        'masterwork:weaponcrafting',
         'garbage',
         'evil:namespace',
       ],
@@ -1451,16 +1641,62 @@ describe('bounded sets on load', () => {
     expect([...stats.visited]).toEqual([
       'poi:eastbrook_vale:eastbrook',
       'gather_event:perfect_specimen',
+      'masterwork:first',
+      'masterwork:weaponcrafting',
     ]);
   });
 });
 
 describe('site wiring (real modules, not direct bumps)', () => {
+  it('does not award Gravity Always Wins when an already-dead ghost lands', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    e.dead = true;
+    e.hp = 0;
+    sim.releaseSpirit();
+    expect(e.dead).toBe(true);
+    expect(e.ghost).toBe(true);
+
+    stageFallLanding(e, 30);
+    const evs = sim.tick();
+
+    expect(e.onGround).toBe(true);
+    expect(meta.deedsEarned.has('hid_fall_death')).toBe(false);
+    expect(deedEvents(evs).filter((ev) => ev.deedId === 'hid_fall_death')).toHaveLength(0);
+  });
+
+  it('awards Gravity Always Wins when a fall transitions a living player to dead', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    e.hp = 1;
+
+    stageFallLanding(e, 30);
+    const evs = sim.tick();
+
+    expect(e.dead).toBe(true);
+    expect(meta.deedsEarned.has('hid_fall_death')).toBe(true);
+    expect(deedEvents(evs).filter((ev) => ev.deedId === 'hid_fall_death')).toHaveLength(1);
+  });
+
+  it('does not award Gravity Always Wins for a damaging nonlethal fall', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    const hpBefore = e.hp;
+
+    stageFallLanding(e, 13);
+    const evs = sim.tick();
+
+    expect(e.hp).toBeLessThan(hpBefore);
+    expect(e.dead).toBe(false);
+    expect(meta.deedsEarned.has('hid_fall_death')).toBe(false);
+    expect(deedEvents(evs).filter((ev) => ev.deedId === 'hid_fall_death')).toHaveLength(0);
+  });
+
   it('a decided duel bumps duelsWon and duelsLost through endDuel', () => {
     const sim = makeSim();
     const a = sim.playerId;
     const b = sim.addPlayer('warrior', 'Rival');
-    const duel = { a, b, state: 'active' as const, timer: 0 };
+    const duel = { a, b, state: 'active' as const, timer: 0, controlled: new Map() };
     duelMod.endDuel(sim.ctx, duel, a);
     const metaA = sim.players.get(a)!;
     const metaB = sim.players.get(b)!;
@@ -1480,7 +1716,7 @@ describe('site wiring (real modules, not direct bumps)', () => {
     const sim = makeSim();
     const a = sim.playerId;
     const b = sim.addPlayer('warrior', 'Rival');
-    const duel = { a, b, state: 'active' as const, timer: 0 };
+    const duel = { a, b, state: 'active' as const, timer: 0, controlled: new Map() };
     sim.ctx.duels.set(a, duel);
     sim.ctx.duels.set(b, duel);
     const attacker = sim.entities.get(a)!;
@@ -1498,7 +1734,11 @@ describe('site wiring (real modules, not direct bumps)', () => {
     const clamped = victim.hp - 1;
     dealDamage(sim.ctx, attacker, victim, victim.hp + 500, true, 'physical', null, 'hit');
     expect(victim.hp).toBe(1);
-    expect(sim.ctx.duels.has(a)).toBe(false);
+    // The duel is over the instant the finisher lands, but the map entry
+    // itself lingers until updateDuels() purges it at tick-tail (see
+    // src/sim/social/duel.ts); duelFor() is the purge-order-independent way
+    // to observe "the duel has ended" from outside duel.ts.
+    expect(duelMod.duelFor(sim.ctx, a)).toBeNull();
     expect(metaA.deedStats.counters.damageDealt).toBe(10 + clamped);
     expect(metaA.deedStats.counters.crits).toBe(1);
   });
@@ -1640,7 +1880,12 @@ describe('site wiring (real modules, not direct bumps)', () => {
   });
 
   it('a shared party kill through handleDeath credits kills to every eligible member, not just the tapper', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: VENDOR_TEST_WORLD,
+    });
     const puller = sim.addPlayer('warrior', 'Puller');
     const healer = sim.addPlayer('priest', 'Healer');
     sim.tick();
@@ -1753,7 +1998,12 @@ describe('active title selection (setActiveTitle)', () => {
     const state = sim.serializeCharacter(sim.playerId)!;
     expect(state.activeTitle).toBe('prog_veteran');
 
-    const sim2 = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const sim2 = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: VENDOR_TEST_WORLD,
+    });
     const pid = sim2.addPlayer('warrior', 'Loaded', { state });
     expect(sim2.players.get(pid)!.activeTitle).toBe('prog_veteran');
     expect(sim2.entities.get(pid)!.title).toBe('prog_veteran');
@@ -1770,7 +2020,12 @@ describe('active title selection (setActiveTitle)', () => {
     const legacy: CharacterState = { ...state };
     delete legacy.activeTitle;
 
-    const sim2 = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const sim2 = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: VENDOR_TEST_WORLD,
+    });
     const pid = sim2.addPlayer('warrior', 'Legacy', { state: legacy });
     expect(sim2.players.get(pid)!.activeTitle).toBeNull();
     expect(sim2.entities.get(pid)!.title).toBeNull();
@@ -1788,10 +2043,295 @@ describe('active title selection (setActiveTitle)', () => {
     const state = sim.serializeCharacter(sim.playerId)!;
     const tampered: CharacterState = { ...state, deeds: {} }; // the earned record vanished
 
-    const sim2 = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const sim2 = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: VENDOR_TEST_WORLD,
+    });
     const pid = sim2.addPlayer('warrior', 'Stale', { state: tampered });
     expect(sim2.players.get(pid)!.activeTitle).toBeNull();
     expect(sim2.entities.get(pid)!.title).toBeNull();
+  });
+});
+
+describe('active border selection (setActiveBorder)', () => {
+  // The nameplate border is the title's sibling cosmetic: same earned set,
+  // same reward field, different reward KIND. prog_prestige_10 rewards
+  // { kind: 'border', slug: 'prestige_laurels' }; dgn_deepward is the second
+  // border deed (tests/deeds_content.test.ts pins all four).
+  const BORDER_DEED = 'prog_prestige_10';
+
+  it('accepts an earned border-reward deed and stamps meta AND entity together', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    sim.setActiveBorder(BORDER_DEED);
+    // both read paths agree within the same tick: no tick() between set and read
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+    // the stored value is the DEED ID, never the reward slug
+    expect(meta.activeBorder).not.toBe('prestige_laurels');
+    expect((DEEDS[BORDER_DEED].reward as { slug: string }).slug).toBe('prestige_laurels');
+  });
+
+  it('the activeBorder facet getter reads the border field, not the title', () => {
+    // A getter wired to primary.activeTitle would return the title id here and
+    // pass every meta.activeBorder / e.border assertion in this file (those read
+    // the field directly). Distinct ids make the wrong-field wiring visible:
+    // this is the read behind the self portrait ring (hud playerFrame.borderSlug)
+    // and the picker's worn state.
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    grantDeed(sim.ctx, meta, 'prog_veteran'); // title reward
+    grantDeed(sim.ctx, meta, BORDER_DEED); // border reward
+    sim.setActiveTitle('prog_veteran');
+    sim.setActiveBorder(BORDER_DEED);
+    expect(sim.activeBorder).toBe(BORDER_DEED);
+    expect(sim.activeTitle).toBe('prog_veteran');
+    expect(sim.activeBorder).not.toBe(sim.activeTitle);
+  });
+
+  it('silently rejects an unearned deed, an earned rewardless deed, an earned TITLE deed, and an unknown id', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    sim.setActiveBorder(BORDER_DEED);
+
+    // unearned border deed (dgn_deepward is a real border deed, not earned here)
+    sim.setActiveBorder('dgn_deepward');
+    expect(meta.activeBorder).toBe(BORDER_DEED); // prior selection untouched
+    expect(e.border).toBe(BORDER_DEED);
+
+    // earned, but carries no reward at all
+    grantDeed(sim.ctx, meta, 'prog_first_steps');
+    sim.setActiveBorder('prog_first_steps');
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+
+    // earned, but the reward is a title, not a border (the cross-kind arm;
+    // the title setter's mirror-image case is pinned in the title suite above)
+    grantDeed(sim.ctx, meta, 'prog_veteran');
+    sim.setActiveBorder('prog_veteran');
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+
+    // unknown/deleted id
+    sim.setActiveBorder('prog_not_a_deed');
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+
+    // content drift: EARNED on an older content version but since removed
+    // from DEEDS (the earned-map hit must not bypass the catalog check)
+    meta.deedsEarned.set('zz_removed_by_content_patch', '2025-01-01');
+    sim.setActiveBorder('zz_removed_by_content_patch');
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+  });
+
+  it('silently rejects a prototype key and an absurdly long id, even when EARNED', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    sim.setActiveBorder(BORDER_DEED);
+
+    // DEEDS is a plain object: a bare index on '__proto__' or 'constructor'
+    // resolves to a truthy prototype value, so the earned-map check is not the
+    // only thing standing between a hostile id and a stamped border. Earned
+    // here on purpose, to clear that first check and reach the catalog one.
+    for (const hostile of ['__proto__', 'constructor', 'toString']) {
+      meta.deedsEarned.set(hostile, '2026-08-08');
+      sim.setActiveBorder(hostile);
+      expect(meta.activeBorder, `${hostile} must not become a worn border`).toBe(BORDER_DEED);
+      expect(e.border).toBe(BORDER_DEED);
+    }
+
+    // A 20k-character id: a no-op, never a stored value that would ride the
+    // identity wire to every viewer in range.
+    const huge = 'x'.repeat(20000);
+    sim.setActiveBorder(huge);
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+    meta.deedsEarned.set(huge, '2026-08-08'); // and still a no-op once "earned"
+    sim.setActiveBorder(huge);
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+  });
+
+  it('refuses a prototype-chain deed record that a bare index WOULD accept', () => {
+    // The decisive arm for the Object.hasOwn guard in both validators. The
+    // arms above stay green with the guard deleted, because no natural
+    // prototype value carries a reward; this one plants a record that looks
+    // exactly like a border deed on Object.prototype, which is what a bare
+    // DEEDS[id] index would happily resolve.
+    const POLLUTED = 'planted_by_prototype';
+    Object.defineProperty(Object.prototype, POLLUTED, {
+      value: { reward: { kind: 'border', slug: 'prestige_laurels' } },
+      configurable: true,
+      enumerable: false,
+    });
+    try {
+      const sim = makeSim();
+      const { meta, e } = primary(sim);
+      meta.deedsEarned.set(POLLUTED, '2026-08-08'); // clears the earned check
+      expect(DEEDS[POLLUTED]?.reward?.kind).toBe('border'); // a bare index resolves it
+      sim.setActiveBorder(POLLUTED);
+      expect(meta.activeBorder).toBeNull();
+      expect(e.border).toBeNull();
+
+      // The title validator is the same shape and gets the same guard.
+      Object.defineProperty(Object.prototype, POLLUTED, {
+        value: { reward: { kind: 'title', text: 'the Planted' } },
+        configurable: true,
+        enumerable: false,
+      });
+      sim.setActiveTitle(POLLUTED);
+      expect(meta.activeTitle).toBeNull();
+      expect(e.title).toBeNull();
+    } finally {
+      delete (Object.prototype as Record<string, unknown>)[POLLUTED];
+    }
+  });
+
+  it('is a silent no-op for an unresolvable player id', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    // No entity 9999: the setter must resolve nothing and throw nothing (the
+    // server dispatch passes a session pid that a leave can retire mid-frame).
+    expect(() => sim.setActiveBorder(BORDER_DEED, 9999)).not.toThrow();
+    expect(meta.activeBorder).toBeNull();
+    expect(e.border).toBeNull();
+  });
+
+  it('loads a hostile saved activeBorder shape as borderless, without throwing', () => {
+    // The load path coerces with `typeof s.activeBorder === 'string'`, and a
+    // save is attacker-influenced state (a tampered blob, a drifted writer).
+    // Every non-string shape must land borderless on BOTH reads, not throw and
+    // not stamp a non-string onto the entity wire field.
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    sim.setActiveBorder(BORDER_DEED);
+    const state = sim.serializeCharacter(sim.playerId)!;
+
+    const hostile: unknown[] = [
+      7,
+      { deedId: BORDER_DEED },
+      [BORDER_DEED],
+      new String(BORDER_DEED),
+      '',
+    ];
+    for (const shape of hostile) {
+      const tampered = { ...state, activeBorder: shape } as unknown as CharacterState;
+      const sim2 = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+      let pid = -1;
+      expect(
+        () => {
+          pid = sim2.addPlayer('warrior', 'Tampered', { state: tampered });
+        },
+        `activeBorder: ${JSON.stringify(shape)} must load without throwing`,
+      ).not.toThrow();
+      expect(
+        sim2.players.get(pid)!.activeBorder,
+        `${typeof shape} must load borderless`,
+      ).toBeNull();
+      expect(sim2.entities.get(pid)!.border).toBeNull();
+    }
+  });
+
+  it('the two cosmetics are independent: selecting one never disturbs the other', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    grantDeed(sim.ctx, meta, 'prog_veteran');
+    sim.setActiveBorder(BORDER_DEED);
+    sim.setActiveTitle('prog_veteran');
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(meta.activeTitle).toBe('prog_veteran');
+
+    // clearing the border leaves the title worn, and the reverse
+    sim.setActiveBorder(null);
+    expect(meta.activeBorder).toBeNull();
+    expect(e.border).toBeNull();
+    expect(meta.activeTitle).toBe('prog_veteran');
+    expect(e.title).toBe('prog_veteran');
+
+    sim.setActiveBorder(BORDER_DEED);
+    sim.setActiveTitle(null);
+    expect(meta.activeTitle).toBeNull();
+    expect(e.title).toBeNull();
+    expect(meta.activeBorder).toBe(BORDER_DEED);
+    expect(e.border).toBe(BORDER_DEED);
+  });
+
+  it('null clears both the meta field and the entity wire field', () => {
+    const sim = makeSim();
+    const { meta, e } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    sim.setActiveBorder(BORDER_DEED);
+    sim.setActiveBorder(null);
+    expect(meta.activeBorder).toBeNull();
+    expect(e.border).toBeNull();
+  });
+
+  it('a saved border round-trips through save/load onto meta and the spawned entity', () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    sim.setActiveBorder(BORDER_DEED);
+    const state = sim.serializeCharacter(sim.playerId)!;
+    expect(state.activeBorder).toBe(BORDER_DEED);
+
+    const sim2 = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const pid = sim2.addPlayer('warrior', 'Loaded', { state });
+    expect(sim2.players.get(pid)!.activeBorder).toBe(BORDER_DEED);
+    expect(sim2.entities.get(pid)!.border).toBe(BORDER_DEED);
+  });
+
+  it('the serializer omits the key while borderless (pre-border saves stay byte-equal)', () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED); // earned but never selected
+    const state = sim.serializeCharacter(sim.playerId)!;
+    expect('activeBorder' in state).toBe(false);
+  });
+
+  it('a save written before borders existed (no activeBorder key) loads as borderless', () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    grantDeed(sim.ctx, meta, BORDER_DEED);
+    sim.setActiveBorder(BORDER_DEED);
+    const state = sim.serializeCharacter(sim.playerId)!;
+    // activeBorder is optional on CharacterState precisely so old saves load;
+    // the serializer also omits it when null, and this pins that both forms
+    // (absent key, never-set) land borderless
+    const legacy: CharacterState = { ...state };
+    delete legacy.activeBorder;
+
+    const sim2 = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const pid = sim2.addPlayer('warrior', 'Legacy', { state: legacy });
+    expect(sim2.players.get(pid)!.activeBorder).toBeNull();
+    expect(sim2.entities.get(pid)!.border).toBeNull();
+    // the earned record itself still loads
+    expect(sim2.players.get(pid)!.deedsEarned.has(BORDER_DEED)).toBe(true);
+  });
+
+  it('a stale saved border (earned record lost) loads as borderless instead of dangling', () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    // dgn_deepward is a NON-milestone border deed: a milestone id would
+    // re-enter the earned map through the legacy unlockedMilestones union and
+    // defeat the staleness.
+    grantDeed(sim.ctx, meta, 'dgn_deepward');
+    sim.setActiveBorder('dgn_deepward');
+    const state = sim.serializeCharacter(sim.playerId)!;
+    const tampered: CharacterState = { ...state, deeds: {} }; // the earned record vanished
+
+    const sim2 = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const pid = sim2.addPlayer('warrior', 'Stale', { state: tampered });
+    expect(sim2.players.get(pid)!.activeBorder).toBeNull();
+    expect(sim2.entities.get(pid)!.border).toBeNull();
   });
 });
 
@@ -1799,6 +2339,53 @@ describe('deedsRarity (offline facet arm)', () => {
   it('always resolves null: a sandbox has no population to aggregate', async () => {
     const sim = makeSim();
     await expect(sim.deedsRarity()).resolves.toBeNull();
+  });
+});
+
+describe('deedsRecent (offline facet arm)', () => {
+  it('pins the cap literal and its strip relation', () => {
+    // A literal, never a self-comparison: the three enforcement points (the
+    // Sim slice, the server LIMIT, the client clamp) all import this
+    // constant, so only a literal pin can catch it silently shrinking below
+    // the Book's 5-slot recent strip.
+    expect(DEEDS_RECENT_CAP).toBe(8);
+    expect(DEEDS_RECENT_CAP).toBeGreaterThanOrEqual(5);
+  });
+
+  it('the offline save round-trip preserves the grant order deedsRecent serves', async () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    // A deliberate non-catalog order, so the assertion can tell grant order
+    // from DEED_ORDER after the reload.
+    const granted = ['dgn_korzul_flawless', 'prog_first_steps', 'cmb_first_blood'];
+    for (const id of granted) grantDeed(sim.ctx, meta, id);
+    const state = sim.serializeCharacter(sim.playerId);
+    const sim2 = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: VENDOR_TEST_WORLD,
+    });
+    // JSON round-trip: exactly what the offline save does, and the step that
+    // would destroy the order if key order were not preserved.
+    sim2.addPlayer('warrior', 'Reload', { state: JSON.parse(JSON.stringify(state)) });
+    await expect(sim2.deedsRecent()).resolves.toEqual([...granted].reverse());
+  });
+
+  it('serves the live grant order newest first, capped at DEEDS_RECENT_CAP', async () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    // No unlocks yet: an empty list, never null (the Sim always has its own
+    // grant-order record; null is the fetch-failure arm online).
+    await expect(sim.deedsRecent()).resolves.toEqual([]);
+    // Grant two more than the cap in a KNOWN order that is not catalog order,
+    // so the assertion can tell grant order from DEED_ORDER.
+    const granted = [...DEED_ORDER.slice(0, DEEDS_RECENT_CAP + 1), 'dgn_korzul_flawless'];
+    for (const id of granted) grantDeed(sim.ctx, meta, id);
+    const recent = await sim.deedsRecent();
+    expect(recent).toEqual(granted.slice(-DEEDS_RECENT_CAP).reverse());
+    expect(recent).toHaveLength(DEEDS_RECENT_CAP);
+    expect(recent?.[0]).toBe('dgn_korzul_flawless');
   });
 });
 
@@ -1988,6 +2575,81 @@ describe('exploration poi identity (marks key on the stable id, not the label)',
   });
 });
 
+describe('POI_VISIT_RADIUS: no two marks a single-zone wayfarer deed needs can overlap', () => {
+  it('every zone a single-zone all-poi visits deed draws from keeps its tightest poi gap over double the radius', () => {
+    // A cross-zone deed (exp_long_road_north) can never have two of its own
+    // marks satisfied from one spot: a player occupies exactly one zone at a
+    // time, and the sweep only matches pois in the zone they are currently in
+    // (src/sim/deeds.ts sweepProximityMarks). Only a SINGLE-zone all-poi deed
+    // is at risk, so that is the only shape this derives zones from.
+    const singleZoneWayfarerZoneIds = new Set<string>();
+    for (const def of Object.values(DEEDS)) {
+      if (def.trigger.kind !== 'visits') continue;
+      const marks = def.trigger.markIds;
+      if (marks.length < 2 || !marks.every((m) => m.startsWith('poi:'))) continue;
+      const zoneIds = new Set(marks.map((m) => m.split(':')[1]));
+      if (zoneIds.size === 1) for (const zoneId of zoneIds) singleZoneWayfarerZoneIds.add(zoneId);
+    }
+    // Non-vacuity: today this is eastbrook_vale/mirefen_marsh/thornpeak_heights
+    // (Wayfarer of the Vale/Marsh/Heights). A future content change that
+    // retires the last one would silently empty this loop.
+    expect([...singleZoneWayfarerZoneIds].sort()).toEqual([
+      'eastbrook_vale',
+      'mirefen_marsh',
+      'thornpeak_heights',
+    ]);
+    // One authored exception: the New Eastbrook program built the town on the
+    // demolished Sowfield parcel (docs/design/eastbrook-revamp/master-plan.md),
+    // and the frozen the_sowfield mark is deliberately earned by visiting the
+    // town that replaced it (src/sim/content/zone1.ts keeps the hidden POI row
+    // so the append-only deeds catalog never strands the trigger). That one
+    // pair may overlap; every other pair keeps the distinct-visit guarantee.
+    const deliberateOverlaps = new Set(['eastbrook_vale:eastbrook|the_sowfield']);
+    for (const zoneId of singleZoneWayfarerZoneIds) {
+      const zone = ZONES.find((z) => z.id === zoneId)!;
+      const pois = zone.pois.filter((p) => p.id !== undefined);
+      let tightest = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < pois.length; i++) {
+        for (let j = i + 1; j < pois.length; j++) {
+          const pairKey = `${zoneId}:${[pois[i].id, pois[j].id].sort().join('|')}`;
+          if (deliberateOverlaps.has(pairKey)) continue;
+          const d = Math.hypot(pois[i].x - pois[j].x, pois[i].z - pois[j].z);
+          if (d < tightest) tightest = d;
+        }
+      }
+      // Strictly over double the radius: standing exactly at the midpoint of
+      // the tightest pair must still leave both marks outside catch range.
+      expect(tightest, `${zoneId} tightest poi gap vs 2x POI_VISIT_RADIUS`).toBeGreaterThan(
+        2 * POI_VISIT_RADIUS,
+      );
+    }
+  });
+
+  it('the actual behavior delta: grants inside the new 24yd band, still refuses just past it', () => {
+    const zone = ZONES.find((z) => z.id === 'thornpeak_heights')!;
+    const poi = zone.pois.find((p) => p.id === 'highwatch')!;
+    const markId = `poi:${zone.id}:${poi.id}`;
+
+    const inside = makeSim();
+    const { meta: metaInside, e: eInside } = primary(inside);
+    eInside.pos.x = poi.x + 22; // between the old 20yd radius and the new 24yd one
+    eInside.pos.z = poi.z;
+    eInside.prevPos = { ...eInside.pos };
+    inside.tickCount = 20;
+    updateDeeds(inside.ctx);
+    expect(metaInside.deedStats.visited.has(markId)).toBe(true);
+
+    const outside = makeSim();
+    const { meta: metaOutside, e: eOutside } = primary(outside);
+    eOutside.pos.x = poi.x + 26; // just past the new radius too
+    eOutside.pos.z = poi.z;
+    eOutside.prevPos = { ...eOutside.pos };
+    outside.tickCount = 20;
+    updateDeeds(outside.ctx);
+    expect(metaOutside.deedStats.visited.has(markId)).toBe(false);
+  });
+});
+
 describe('trade completion counts only non-empty trades (soc_first_trade)', () => {
   it('an empty double-confirm does not count; a one-item trade unlocks it for both', () => {
     const sim = makeSim();
@@ -2107,7 +2769,7 @@ describe('profession deed families (threshold-exact, live sites)', () => {
     const sim = makeSim();
     const { meta } = primary(sim);
     sim.addItem('eastbrook_arming_sword', 1, meta.entityId);
-    sim.salvageItem('eastbrook_arming_sword', meta.entityId);
+    runSalvage(sim, 'eastbrook_arming_sword', meta.entityId);
     expect(meta.deedStats.counters.salvagesPerformed).toBe(1);
     sim.tick();
     expect(meta.deedsEarned.has('soc_first_salvage')).toBe(true);
@@ -2206,6 +2868,101 @@ describe('profession deed families (threshold-exact, live sites)', () => {
     expect(meta.renown).toBe(renownBefore);
   });
 
+  it('farming celebration marks: each mark grants exactly its own deed', () => {
+    // Catalog-side grant proof for the D13 farming deeds: the sim-side mark
+    // PRODUCERS (plant success and surviving harvest in
+    // professions/farming.ts) land in a parallel slice, so these arms drive
+    // the marks directly through the same markVisited path the producers
+    // call, the rare-find idiom above.
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    const renownBefore = meta.renown;
+    const marks: [string, string][] = [
+      ['farm:planted', 'prog_first_planting'],
+      ['farm:eastbrook_vale', 'chr_vale_first_harvest'],
+      ['farm:mirefen_marsh', 'chr_marsh_first_harvest'],
+      ['farm:thornpeak_heights', 'chr_peaks_first_harvest'],
+      ['farm:evergarden', 'chr_evergarden_first_harvest'],
+      ['gather_event:golden_harvest', 'col_golden_harvest'],
+    ];
+    for (const [mark, deedId] of marks) {
+      const others = marks.filter(([, d]) => d !== deedId).map(([, d]) => d);
+      const earnedOthersBefore = others.filter((d) => meta.deedsEarned.has(d));
+      sim.ctx.markVisited(meta, mark);
+      sim.tick();
+      expect(meta.deedsEarned.has(deedId), deedId).toBe(true);
+      // Cross-mark fidelity: this mark granted ONLY its own deed.
+      const earnedOthersAfter = others.filter((d) => meta.deedsEarned.has(d));
+      expect(earnedOthersAfter).toEqual(earnedOthersBefore);
+    }
+    // Five renown-5 grants plus the renown-0 golden harvest.
+    expect(meta.renown - renownBefore).toBe(25);
+  });
+
+  it('farming ladder: 99/100 binds exactly, through the live grant drain', () => {
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    meta.gatheringProficiency.farming = 99;
+    sim.ctx.markDeedsDirty(meta.entityId);
+    sim.tick();
+    expect(meta.deedsEarned.has('prog_farming_100')).toBe(false);
+    // The +1 crossing rides the REAL queued-grant drain (drainGatheringGrants
+    // marks the deed sweep itself; no explicit dirty call here).
+    queueGatheringGrant(meta, 'farming', 1);
+    sim.tick();
+    expect(meta.gatheringProficiency.farming).toBe(100);
+    expect(meta.deedsEarned.has('prog_farming_100')).toBe(true);
+    // A farming climb never credits another profession's milestone.
+    expect(meta.deedsEarned.has('prog_mining_100')).toBe(false);
+    // The earned Harvestmaster title is selectable through the one validator
+    // both worlds use.
+    sim.setActiveTitle('prog_farming_100', meta.entityId);
+    expect(meta.activeTitle).toBe('prog_farming_100');
+  });
+
+  it('the seven farming deeds sit in the Book completion set and pay exactly 35 Renown', () => {
+    const NEW_IDS = [
+      'prog_first_planting',
+      'chr_vale_first_harvest',
+      'chr_marsh_first_harvest',
+      'chr_peaks_first_harvest',
+      'chr_evergarden_first_harvest',
+      'col_golden_harvest',
+      'prog_farming_100',
+    ];
+    // All seven are non-feat, non-hidden, so feat_book_complete's meta list
+    // (BOOK_COMPLETE_REQUIREMENTS, derived from the table) must carry them.
+    const bookIds = (DEEDS.feat_book_complete.trigger as { deedIds: string[] }).deedIds;
+    for (const id of NEW_IDS) expect(bookIds, id).toContain(id);
+    // Earning the whole block moves Renown by exactly 35 (5 for the planting
+    // proof, 5 per chronicle, 0 for the luck find, 10 for the milestone).
+    const sim = makeSim();
+    const { meta } = primary(sim);
+    // Warm up the collateral any-profession milestone first: a nonzero
+    // farming proficiency satisfies prog_first_harvest (any trade, amount 1),
+    // which is rig collateral, not part of the D13 block's 35.
+    meta.gatheringProficiency.farming = 1;
+    sim.ctx.markDeedsDirty(meta.entityId);
+    sim.tick();
+    expect(meta.deedsEarned.has('prog_first_harvest')).toBe(true);
+    const renownBefore = meta.renown;
+    for (const mark of [
+      'farm:planted',
+      'farm:eastbrook_vale',
+      'farm:mirefen_marsh',
+      'farm:thornpeak_heights',
+      'farm:evergarden',
+      'gather_event:golden_harvest',
+    ]) {
+      markVisited(sim.ctx, meta, mark);
+    }
+    meta.gatheringProficiency.farming = 100;
+    sim.ctx.markDeedsDirty(meta.entityId);
+    sim.tick();
+    for (const id of NEW_IDS) expect(meta.deedsEarned.has(id), id).toBe(true);
+    expect(meta.renown - renownBefore).toBe(35);
+  });
+
   it('a bag-truncated specimen jackpot grants NO mark and no deed (the find got away)', () => {
     // The interaction.ts hook fires on the LANDED addItemInstance arm only;
     // with every bag slot full the signed jackpot cannot land, the harvest
@@ -2214,6 +2971,12 @@ describe('profession deed families (threshold-exact, live sites)', () => {
     const sim = makeSim();
     const { meta, e: player } = primary(sim);
     const pid = meta.entityId;
+    // A Field Kit before the bags fill, so the retry loop below tests the
+    // specimen truncation it targets, never a missing-kit refusal.
+    sim.addItem('field_kit', 1, pid);
+    // The stored preference concentrates the real cast on hide alone (the old
+    // per-call `['hide']` override no longer exists post-PR3).
+    sim.setHarvestPreference('rough_hide', pid);
     // Occupy every slot BUT keep stack room in a rough_hide stack: the plain
     // grant then lands by top-up (the harvest pre-gate passes) while the
     // SIGNED specimen needs a fresh slot and cannot (an instance never merges
@@ -2234,14 +2997,17 @@ describe('profession deed families (threshold-exact, live sites)', () => {
     let truncatedFindAt = -1;
     for (let i = 0; i < 400 && truncatedFindAt < 0; i++) {
       mob.harvestClaimedBy = null;
+      // Reset the corpse's window each attempt: only the specimen-roll retry
+      // is under test here, never decay across hundreds of real casts.
+      mob.corpseTimer = 9999;
       // Drain the top-up stack back to a single unit so the pre-gate keeps
       // passing while every slot stays occupied.
       const hideSlot = meta.inventory.find((s: { itemId: string }) => s.itemId === 'rough_hide');
       if (hideSlot) hideSlot.count = 1;
-      sim.harvestCorpse(mob.id, ['hide'], pid);
-      const downgrade = sim
-        .drainEvents()
-        .some((e) => e.type === 'gatherDowngrade' && e.surface === 'corpse' && e.lost === 'find');
+      const result = completeCorpseHarvest(sim, mob.id, pid);
+      const downgrade = result.events.some(
+        (e) => e.type === 'gatherDowngrade' && e.surface === 'corpse' && e.lost === 'find',
+      );
       if (downgrade) truncatedFindAt = i;
     }
     // A specimen ROLLED and was truncated (the hunt found the downgrade), yet

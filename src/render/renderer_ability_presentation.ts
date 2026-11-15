@@ -1,0 +1,216 @@
+import type * as THREE from 'three';
+import { ABILITIES, ITEMS } from '../sim/data';
+import type { Entity, SimEvent } from '../sim/types';
+import { groundHeight } from '../sim/world';
+import type { IWorld } from '../world_api';
+import { AbilityVfx, AbilityVfxFx } from './ability_vfx';
+import { resumeActiveAbilityKit } from './ability_vfx/active_kit_prewarm';
+import type { AbilityVfxDeps } from './ability_vfx/painter';
+import { isLivingWarriorAttentionSource } from './ability_vfx/warrior_attention_core';
+import { preparedAbilityAudio, type SpatialAudioSink } from './audio_sink';
+import { BalgathLootRelics, composeRelicHooks } from './balgath_loot_relics';
+import { CAST_VFX_ENGINE, CAST_VFX_RELIC } from './cast_vfx_family';
+import type { CastVfxReadiness } from './cast_vfx_readiness_core';
+import type { CharacterVisual } from './characters/visual';
+import { createOnrushArrivalHandler } from './characters/warrior_rush_pose';
+import type { GlacialFrontVisual } from './glacial_front_visual';
+import { paintsOwnBreath } from './hollow_crypt/crypt_creature_fx_core';
+import { impactContact } from './impact_contact';
+import type { LightPulses } from './light_pulses';
+import type { EntityView } from './renderer';
+import { ShardpikeThrowFx } from './shardpike_throw_fx';
+import { bindSpellEffectsWorld, spellEffectsEnabled } from './spell_effects_switch';
+import { TrinketRelics } from './trinket_relics';
+import type { Vfx } from './vfx';
+import type { VfxAnchorResolver } from './vfx_anchor';
+import { sampleWarriorPowerBone } from './warrior_power_anchor';
+import { sampleHandAnchor, weaponTrailAnchor } from './weapon_trail_anchor';
+
+interface PresentationHost {
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  vfx: Vfx;
+  anchor: VfxAnchorResolver;
+  world(): IWorld;
+  time(): number;
+  views: Map<number, EntityView>;
+  visual(view: EntityView): CharacterVisual | null;
+  textureReady(texture: THREE.Texture): boolean;
+  ground(x: number, z: number): number;
+  height(): number;
+  pixelRatio(): number;
+  reducedMotion(): boolean;
+  audio(): SpatialAudioSink | null;
+  spiritBuild: Parameters<AbilityVfxFx['setSpiritBuildScheduler']>[0];
+  compile: Parameters<AbilityVfxFx['setSpiritCompileGate']>[0];
+  light: LightPulses;
+  castGate: Pick<CastVfxReadiness, 'admit' | 'ready' | 'spawnAllowed'>;
+  painter: Pick<
+    AbilityVfxDeps,
+    'spawnAoeRing' | 'triggerAttack' | 'lightPulse' | 'addShake' | 'screenFlash' | 'screenImpact'
+  >;
+}
+
+/** Existing painter wiring and Warrior equipment/contact reads share one owner.
+ * World lookup stays live across world replacement; simulation is never mutated. */
+export function createRendererAbilityPresentation(h: PresentationHost) {
+  // The Spell Effects option judges each effect by its caster, looked up in
+  // the live world (a world replacement is picked up on the next lookup).
+  bindSpellEffectsWorld((id) => h.world().entities.get(id));
+  const visual = (id: number) => {
+    const view = h.views.get(id);
+    return view ? h.visual(view) : null;
+  };
+  const fx = new AbilityVfxFx(
+    h.scene,
+    h.camera,
+    h.anchor,
+    h.ground,
+    (id) => h.views.get(id)?.group.rotation.y ?? h.world().entities.get(id)?.facing ?? null,
+    (id, hand) => {
+      const root = h.views.get(id)?.group;
+      return root ? weaponTrailAnchor(root, hand) : null;
+    },
+    (id, hand, out) => {
+      const root = visual(id)?.root;
+      return root ? sampleHandAnchor(root, hand, out) : false;
+    },
+    h.textureReady,
+    (id, piece, out) => {
+      const root = visual(id)?.root;
+      return root ? sampleWarriorPowerBone(root, piece, out) : false;
+    },
+    (id, hand) => {
+      const entity = h.world().entities.get(id);
+      const itemId = hand === 0 ? entity?.mainhandItemId : entity?.offhandItemId;
+      return !!itemId && ITEMS[itemId]?.kind === 'weapon';
+    },
+  );
+  fx.setViewportScale(h.height() * h.pixelRatio(), 60, h.height());
+  fx.shardpikeThrow = new ShardpikeThrowFx(
+    h.scene,
+    h.world,
+    visual,
+    fx,
+    // The throw draws engine-family pools (bodyGlow, impact), so it waits on that family.
+    () => h.castGate.ready(CAST_VFX_ENGINE),
+    h.camera,
+  );
+  fx.setSpiritBuildScheduler(h.spiritBuild);
+  fx.setSpiritCompileGate(h.compile);
+  fx.setCastVfxSpawnGate((bit) => h.castGate.spawnAllowed(bit));
+  fx.onRushArrival = createOnrushArrivalHandler(() => h.world().entities, h.views, h.visual);
+  fx.setWorldLightDelegate((at, school, intensity, duration, range) =>
+    h.light.pulse(at, school, intensity, duration, range),
+  );
+  // The raid trinket relics' pooled scene objects, built hidden here so the
+  // cast-VFX prewarm links them with the rest of the 'vfx' programs.
+  const trinketRelics = new TrinketRelics({
+    scene: h.scene,
+    world: () => h.world(),
+    views: h.views,
+    anchor: h.anchor,
+    ground: (x, z) => h.ground(x, z),
+    vfx: h.vfx,
+    time: () => h.time(),
+    // The family trinket_relics.ts tags every relic drawable with. Every
+    // relic belongs to a player's trinket, so a closed Spell Effects option
+    // holds them all after the family itself is linked.
+    ready: () => spellEffectsEnabled() && h.castGate.ready(CAST_VFX_RELIC),
+  });
+  // Balgath's trinkets in the world (balgath_loot_relics.ts): the same pooled, prewarmed
+  // shape, offered every trinket cue right after the Crucible relics.
+  const balgathLoot = new BalgathLootRelics({
+    scene: h.scene,
+    world: () => h.world(),
+    views: h.views,
+    anchor: h.anchor,
+    ground: (x, z) => h.ground(x, z),
+    vfx: h.vfx,
+    time: () => h.time(),
+    ready: () => h.castGate.ready(CAST_VFX_ENGINE),
+  });
+  const painter = new AbilityVfx(
+    {
+      ...h.painter,
+      trinketRelics: composeRelicHooks(trinketRelics, balgathLoot),
+      castVfxAdmit: (mask) => h.castGate.admit(mask),
+      castVfxReady: (mask) => h.castGate.ready(mask),
+      vfx: h.vfx,
+      fx,
+      shardpikeThrow: fx.shardpikeThrow,
+      anchor: h.anchor,
+      setAuraGlow: (id, color, intensity) => visual(id)?.setAuraGlow(color, intensity),
+      playShoutAnim: (id) => {
+        const rig = visual(id);
+        if (rig && !rig.isMidOneShot) rig.playShout(1);
+      },
+      isMob: (id) => h.world().entities.get(id)?.kind === 'mob',
+      castingAbilityOf: (id) => h.world().entities.get(id)?.castingAbility ?? null,
+      isMidOneShot: (id) => !!visual(id)?.isMidOneShot,
+      localPlayerId: () => h.world().player.id,
+      warriorSpecOf: (id) => (id === h.world().playerId ? h.world().talentSpec : null),
+      isLivingWarrior: (id) => isLivingWarriorAttentionSource(h.world().entities.get(id)),
+      isWarrior: (id) => {
+        const entity = h.world().entities.get(id);
+        return entity?.kind === 'player' && entity.templateId === 'warrior';
+      },
+      // A remote Warrior's kit (textures, contact sheets, crests) loads the first
+      // time the painter sees one; a local Warrior's is resumed by the renderer.
+      requestClassKit: (cls) => resumeActiveAbilityKit(h.scene, undefined, cls),
+      hasGestureClip: (id, abilityId) => visual(id)?.hasAttackClipOverride(abilityId) ?? false,
+      isInstantAbility: (id) => {
+        const def = ABILITIES[id];
+        return !def || (def.castTime <= 0 && !def.channel && !def.empowerStages);
+      },
+      animHold: (id, scale, duration) => visual(id)?.holdFrame(scale, duration),
+      bodyLean: (id, amount) => visual(id)?.setWindupLean(amount),
+      audioReady: (key) => preparedAbilityAudio(h.audio(), key),
+      abilityAudio: (kind, palette, power, x, y, z, opts) =>
+        h.audio()?.abilityAudio?.(kind, palette, power, x, y, z, opts),
+    },
+    h.time,
+  );
+  fx.onContact = (source, target, school, weight, abilityId, beat) => {
+    const entity = h.world().entities.get(source);
+    if (entity?.kind !== 'player' || entity.templateId !== 'warrior') return;
+    impactContact(
+      visual(target),
+      school,
+      weight,
+      beat !== 0 && source === h.world().playerId,
+      h.reducedMotion(),
+      abilityId,
+      false,
+      beat,
+      h.views.get(source)?.group.position,
+    );
+  };
+  return { fx, painter };
+}
+
+/** Shared empowered cone release: retain the ability identity on the rig cue. */
+export function presentEmpoweredCone(
+  ev: Extract<SimEvent, { type: 'spellfx' }>,
+  source: Pick<Entity, 'pos' | 'facing' | 'templateId'> | undefined,
+  seed: number,
+  visual: Pick<GlacialFrontVisual, 'spawn'>,
+  triggerAttack: (id: number, abilityId?: string) => void,
+): boolean {
+  if (ev.fx !== 'frostCone' && ev.fx !== 'fireCone') return false;
+  // A creature that paints its own breath (the crypt drake) skips the generic cone.
+  if (source && !paintsOwnBreath(source.templateId)) {
+    visual.spawn(
+      source.pos.x,
+      groundHeight(source.pos.x, source.pos.z, seed),
+      source.pos.z,
+      source.facing,
+      ev.range ?? (ev.fx === 'fireCone' ? 6 : 7),
+      ev.level ?? 1,
+      ev.angle ?? (ev.fx === 'fireCone' ? 55 : 70),
+      ev.fx,
+    );
+    triggerAttack(ev.sourceId, ev.ability);
+  }
+  return true;
+}

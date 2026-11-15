@@ -8,8 +8,23 @@ const context: AiJobContextV1 = {
   schemaVersion: 1,
   jobId: 'trace-reaction',
   trigger: 'npc_gossip_opened',
-  entity: { kind: 'npc', entityId: 7, templateId: 'smith_haldren', name: 'Smith Haldren', level: 1, questIds: [], dead: false },
-  player: { entityId: 1, name: 'Ari', level: 3, classId: 'warrior', activeQuestIds: [], completedQuestIds: [] },
+  entity: {
+    kind: 'npc',
+    entityId: 7,
+    templateId: 'smith_haldren',
+    name: 'Smith Haldren',
+    level: 1,
+    questIds: [],
+    dead: false,
+  },
+  player: {
+    entityId: 1,
+    name: 'Ari',
+    level: 3,
+    classId: 'warrior',
+    activeQuestIds: [],
+    completedQuestIds: [],
+  },
   locale: 'en',
   scene: {
     zoneId: 'eastbrook_vale',
@@ -26,7 +41,13 @@ const context: AiJobContextV1 = {
     light: { level: 'bright', tags: ['sunlit'] },
     mood: { dayEnergy: 0.7, nightFatigue: 0, clearNightAwe: 0, rainIrritation: 0, fogFear: 0 },
     recentSceneEvents: [],
-    danger: { undeadPressure: 0, hostileDensity: 0, corpseDensity: 0, recentDeaths: 0, safeHavenScore: 0.8 },
+    danger: {
+      undeadPressure: 0,
+      hostileDensity: 0,
+      corpseDensity: 0,
+      recentDeaths: 0,
+      safeHavenScore: 0.8,
+    },
   },
   questFacts: [],
   recentObservations: [],
@@ -34,9 +55,17 @@ const context: AiJobContextV1 = {
   outputMode: 'line_id_only',
 };
 
-const speaker = { id: 7, name: 'Smith Haldren', kind: 'npc', templateId: 'smith_haldren' } as Entity;
+const speaker = {
+  id: 7,
+  name: 'Smith Haldren',
+  kind: 'npc',
+  templateId: 'smith_haldren',
+} as Entity;
 
-function trace(kind: AiWorldTrace['kind'], lineId = 'hudChrome.aiSpeech.sceneTraceGeneric'): AiWorldTrace {
+function trace(
+  kind: AiWorldTrace['kind'],
+  lineId = 'hudChrome.aiSpeech.sceneTraceGeneric',
+): AiWorldTrace {
   return {
     traceId: `trace-${kind}`,
     sceneId: 'eastbrook_forge',
@@ -58,7 +87,11 @@ describe('AI world trace reactions', () => {
     expect(worldTraceReactionEvent(context, speaker, trace('valuable'))).toMatchObject({
       speech: {
         lineId: 'hudChrome.aiSpeech.worldTraceNpcValuable',
-        values: expect.objectContaining({ itemId: 'redbrook_blade', traceKind: 'valuable', traceStrength: 75 }),
+        values: expect.objectContaining({
+          itemId: 'redbrook_blade',
+          traceKind: 'valuable',
+          traceStrength: 75,
+        }),
       },
       reaction: { kind: 'inspect', targetItemId: 'redbrook_blade', score: 0.75 },
       pid: 1,

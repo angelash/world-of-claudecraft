@@ -60,6 +60,20 @@ import type {
   ItemInstancePayload,
   SimEvent,
 } from '../src/sim/types';
+import { completeCraftCast } from './helpers/enchant_family_cast';
+import { VENDOR_TEST_WORLD } from './sim_shared';
+
+function craftItemComplete(
+  sim: import('../src/sim/sim').Sim,
+  recipe: string,
+  commission: boolean,
+  pid: number,
+) {
+  const start = craftItemMod(sim.ctx, recipe, commission, pid);
+  if (!start.ok || !start.casting) return start;
+  completeCraftCast(sim, pid);
+  return sim.lastCraftResult ?? start;
+}
 
 const SWORD_RECIPE = 'recipe_eastbrook_arming_sword';
 const SWORD = 'eastbrook_arming_sword'; // weapon, common quality
@@ -85,7 +99,7 @@ function grantReagents(sim: Sim, recipeId: string, pid: number, crafts = 1): voi
 }
 
 function makeSim(seed = 7) {
-  return new Sim({ seed, playerClass: 'warrior', autoEquip: false });
+  return new Sim({ seed, playerClass: 'warrior', autoEquip: false, world: VENDOR_TEST_WORLD });
 }
 
 function entityOf(sim: Sim, pid: number): Entity {
@@ -143,7 +157,13 @@ function pointOf(pos: { x: number; z: number } | undefined): { x: number; z: num
 }
 
 function makeTradeSim(seed = 42) {
-  const sim = new Sim({ seed, playerClass: 'warrior', autoEquip: false, noPlayer: true });
+  const sim = new Sim({
+    seed,
+    playerClass: 'warrior',
+    autoEquip: false,
+    noPlayer: true,
+    world: VENDOR_TEST_WORLD,
+  });
   const a = sim.addPlayer('warrior', 'Ayla');
   const b = sim.addPlayer('warrior', 'Borin');
   const ea = entityOf(sim, a);
@@ -253,7 +273,7 @@ describe('commission opt-in at craft time', () => {
     const sim = makeSim();
     const pid = sim.playerId;
     grantReagents(sim, SWORD_RECIPE, pid);
-    const result = craftItemMod(sim.ctx, SWORD_RECIPE, true, pid);
+    const result = craftItemComplete(sim, SWORD_RECIPE, true, pid);
     expect(result.ok).toBe(true);
     expect(result.commission).toBe(true);
     const slots = slotsOf(sim, pid, SWORD);
@@ -265,7 +285,7 @@ describe('commission opt-in at craft time', () => {
     const sim = makeSim();
     const pid = sim.playerId;
     grantReagents(sim, SWORD_RECIPE, pid);
-    const result = craftItemMod(sim.ctx, SWORD_RECIPE, false, pid);
+    const result = craftItemComplete(sim, SWORD_RECIPE, false, pid);
     expect(result.ok).toBe(true);
     expect(result.commission).toBeUndefined();
     const slots = slotsOf(sim, pid, SWORD);
@@ -277,7 +297,7 @@ describe('commission opt-in at craft time', () => {
     const sim = makeSim();
     const pid = sim.playerId;
     grantReagents(sim, POTION_RECIPE, pid);
-    const result = craftItemMod(sim.ctx, POTION_RECIPE, true, pid);
+    const result = craftItemComplete(sim, POTION_RECIPE, true, pid);
     expect(result.ok).toBe(true);
     expect(result.commission).toBeUndefined();
     const slots = slotsOf(sim, pid, POTION);
@@ -290,8 +310,8 @@ describe('commission opt-in at craft time', () => {
     const pid = sim.playerId;
     grantReagents(sim, SWORD_RECIPE, pid, 2);
     sim.drainEvents();
-    const plain = countDraws(sim, () => craftItemMod(sim.ctx, SWORD_RECIPE, false, pid));
-    const commissioned = countDraws(sim, () => craftItemMod(sim.ctx, SWORD_RECIPE, true, pid));
+    const plain = countDraws(sim, () => craftItemComplete(sim, SWORD_RECIPE, false, pid));
+    const commissioned = countDraws(sim, () => craftItemComplete(sim, SWORD_RECIPE, true, pid));
     expect(plain.result.ok).toBe(true);
     expect(commissioned.result.ok).toBe(true);
     expect(plain.draws).toBe(1);
@@ -313,7 +333,7 @@ describe('commission opt-in at craft time', () => {
     const origNext = rng.next.bind(rng);
     rng.next = () => 0;
     try {
-      const result = craftItemMod(sim.ctx, VESTMENTS_RECIPE, true, pid);
+      const result = craftItemComplete(sim, VESTMENTS_RECIPE, true, pid);
       expect(result.ok).toBe(true);
       expect(result.masterwork).toBe(true);
       expect(result.commission).toBe(true);
@@ -594,6 +614,113 @@ describe('unbind service deny order and mutation', () => {
     expect(copperOf(sim, pid)).toBe(50000);
   });
 
+  it("a MIXED holding unbinds the ordinary Maker's Bond copy and skips the Perfecting-bound one, in either bag order", () => {
+    // The resolver's walk and the unbind window's rows must agree: a
+    // Perfecting-bound copy is never the pick, whatever its index, so the
+    // ordinary bound copy of the same id beside it unbinds for the fee exactly
+    // once, and the Perfecting bind is never cleared.
+    for (const perfectingFirst of [true, false]) {
+      const sim = makeSim();
+      const pid = sim.playerId;
+      const ordinary = { boundTo: pid, bindOnTrade: true };
+      const onTrack = { boundTo: pid, perfecting: 2 };
+      sim.ctx.addItemInstance(SWORD, perfectingFirst ? onTrack : ordinary, pid);
+      sim.ctx.addItemInstance(SWORD, perfectingFirst ? ordinary : onTrack, pid);
+      standAtStation(sim, pid);
+      setCopper(sim, pid, 50000);
+      const result = unbindItemMod(sim.ctx, SWORD, pid);
+      expect(result.ok, `perfectingFirst=${perfectingFirst}`).toBe(true);
+      expect(copperOf(sim, pid)).toBe(47500);
+      const slots = slotsOf(sim, pid, SWORD);
+      const stillOnTrack = slots.filter((s) => s.instance?.perfecting === 2);
+      expect(stillOnTrack, 'the Perfecting copy keeps its bind').toHaveLength(1);
+      expect(stillOnTrack[0].instance?.boundTo).toBe(pid);
+      expect(
+        slots.filter(
+          (s) => s.instance?.boundTo === undefined && s.instance?.perfecting === undefined,
+        ),
+        'the ordinary copy is the one cleared',
+      ).toHaveLength(1);
+      // A second command finds no serviceable bound copy: the refusal names the
+      // Perfecting bind that remains, and charges nothing.
+      const again = unbindItemMod(sim.ctx, SWORD, pid);
+      expect(again.ok).toBe(false);
+      expect(again.reason).toBe('unbind_perfecting');
+      expect(copperOf(sim, pid)).toBe(47500);
+    }
+  });
+
+  it('a Perfecting-bound copy denies unbind_perfecting BEFORE the range and fee arms, clears nothing', () => {
+    // Masterwrought phase 12 (R2): the Perfecting bind rides boundTo but is
+    // not a fee-reversible Maker's Bond. Standing in the WILDS with an empty
+    // purse proves the placement: neither out_of_range nor cannot_afford gets
+    // to answer, and the bind survives untouched on both track states.
+    const sim = makeSim();
+    const pid = sim.playerId;
+    sim.ctx.addItemInstance(SWORD, { boundTo: pid, perfecting: 2 }, pid);
+    standInWilds(sim, pid);
+    setCopper(sim, pid, 0);
+    const midTrack = unbindItemMod(sim.ctx, SWORD, pid);
+    expect(midTrack.ok).toBe(false);
+    expect(midTrack.reason).toBe('unbind_perfecting');
+    expect(midTrack.fee).toBe(2500);
+    expect(slotsOf(sim, pid, SWORD)[0].instance).toEqual({ boundTo: pid, perfecting: 2 });
+
+    // The Perfected stamp (the track's top) refuses the same way, at a
+    // station with the fee in hand, so the refusal is not the range's or the
+    // purse's doing either.
+    const done = makeSim();
+    const dp = done.playerId;
+    done.ctx.addItemInstance(
+      SWORD,
+      { boundTo: dp, perfected: true, rolled: { stats: { str: 2 } } },
+      dp,
+    );
+    standAtStation(done, dp);
+    setCopper(done, dp, 50000);
+    const stamped = unbindItemMod(done.ctx, SWORD, dp);
+    expect(stamped.ok).toBe(false);
+    expect(stamped.reason).toBe('unbind_perfecting');
+    expect(copperOf(done, dp)).toBe(50000);
+    expect(slotsOf(done, dp, SWORD)[0].instance?.boundTo).toBe(dp);
+    expect(slotsOf(done, dp, SWORD)[0].instance?.perfected).toBe(true);
+
+    // The control: the same copy with the Perfecting fields stripped is an
+    // ordinary Maker's Bond and unbinds at the station for the fee.
+    const plain = makeSim();
+    const pp = plain.playerId;
+    plain.ctx.addItemInstance(SWORD, { boundTo: pp, bindOnTrade: true }, pp);
+    standAtStation(plain, pp);
+    setCopper(plain, pp, 50000);
+    expect(unbindItemMod(plain.ctx, SWORD, pp).ok).toBe(true);
+    expect(copperOf(plain, pp)).toBe(47500);
+  });
+
+  it('a FAILED first attempt leaves a bound rank-0 copy the unbind service still clears (the recorded shape)', () => {
+    // The R2 bind stamps boundTo BEFORE the roll and the fail arm writes no
+    // marker, so a failed-first-attempt copy carries boundTo with neither
+    // perfecting nor perfected: byte-identical to a fee-reversible Maker's
+    // Bond, and the service clears it. This pins the LIVE behavior the
+    // Phase 14 QA reworded the bind copy to match ("binds", not
+    // "permanently binds"); whether the sim should close the rank-0 hole is
+    // the ledger's maintainer read, and closing it must flip this arm.
+    // A real APEX copy (the only kind the R2 bind can land on), never a
+    // plain sword: a future closure keyed off the masterwrought def flag
+    // must flip THIS arm, which a common fixture could not witness.
+    const APEX = 'duskforged_warblade';
+    const sim = makeSim();
+    const pid = sim.playerId;
+    sim.ctx.addItemInstance(APEX, { boundTo: pid }, pid);
+    standAtStation(sim, pid);
+    setCopper(sim, pid, 50000);
+    const cleared = unbindItemMod(sim.ctx, APEX, pid);
+    expect(cleared.ok).toBe(true);
+    expect(copperOf(sim, pid)).toBeLessThan(50000);
+    expect(slotsOf(sim, pid, APEX).filter((s) => s.instance?.boundTo !== undefined)).toHaveLength(
+      0,
+    );
+  });
+
   it('away from every static station: unbind_out_of_range, no charge, no clear', () => {
     const sim = makeSim();
     const pid = sim.playerId;
@@ -805,7 +932,12 @@ describe('persistence: commission payloads survive save/load', () => {
 // ---------------------------------------------------------------------------
 describe('mail/market: a commissioned equipment instance never mails or lists', () => {
   it('mailSend refuses armed AND bound sword copies (fungible-only escrow), payload intact', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: VENDOR_TEST_WORLD,
+    });
     const sender = sim.addPlayer('warrior', 'Sender');
     sim.addPlayer('mage', 'Rex');
     const box = entityOf(sim, sim.postOffice.mailboxIds[0]);
@@ -829,7 +961,12 @@ describe('mail/market: a commissioned equipment instance never mails or lists', 
   });
 
   it('marketList refuses armed AND bound copies with no escrow', () => {
-    const sim = new Sim({ seed: 42, playerClass: 'warrior', noPlayer: true });
+    const sim = new Sim({
+      seed: 42,
+      playerClass: 'warrior',
+      noPlayer: true,
+      world: VENDOR_TEST_WORLD,
+    });
     const pid = sim.addPlayer('warrior', 'Lister');
     let merchant: Entity | null = null;
     for (const e of sim.entities.values()) {
@@ -861,7 +998,7 @@ describe('determinism: the commission arc replays byte-identically', () => {
       const sim = makeSim(1234);
       const pid = sim.playerId;
       grantReagents(sim, SWORD_RECIPE, pid);
-      craftItemMod(sim.ctx, SWORD_RECIPE, true, pid);
+      craftItemComplete(sim, SWORD_RECIPE, true, pid);
       const slot = slotsOf(sim, pid, SWORD)[0];
       instanceOf(slot).boundTo = pid; // stand in for the trade stamp
       standAtStation(sim, pid);
@@ -881,6 +1018,9 @@ describe('determinism: the commission arc replays byte-identically', () => {
 // 9. The wire: ClientWorld send shapes (byte-identical when not commissioned).
 // ---------------------------------------------------------------------------
 describe('ClientWorld command send shapes', () => {
+  // Kept bespoke on purpose (issue #2088): a hand-picked field subset plus a
+  // captured `rawCmd`, returning the {client, sent} pair. tests/helpers/bare_client.ts
+  // bareClient() is the default for a new suite that just needs a bare ClientWorld.
   function clientWithCapture(): { client: ClientWorld; sent: Record<string, unknown>[] } {
     const client = Object.create(ClientWorld.prototype) as ClientWorld;
     (client as unknown as { spectating: null }).spectating = null;
@@ -948,6 +1088,12 @@ describe('live GameServer: commission craft, bound trade refusal, unbind over th
     (server as unknown as { routeEvents(e: SimEvent[]): void }).routeEvents(server.sim.tick());
   }
 
+  /** Finish a craft cast started over the wire (1.5s+ casts need a complete flush). */
+  function completeCraftWire(server: GameServer, pid: number): void {
+    completeCraftCast(server.sim as never, pid);
+    routeTick(server);
+  }
+
   function broadcast(server: GameServer): void {
     (server as unknown as { broadcastSnapshots(): void }).broadcastSnapshots();
   }
@@ -983,6 +1129,7 @@ describe('live GameServer: commission craft, bound trade refusal, unbind over th
     }
     cmd(server, sa, { cmd: 'craft_item', recipe: SWORD_RECIPE, commission: true });
     routeTick(server);
+    completeCraftWire(server, sa.pid);
     const crafted = serverSlots(server, sa.pid, SWORD);
     expect(crafted).toHaveLength(1);
     expect(crafted[0].instance).toEqual({ bindOnTrade: true });
@@ -1113,9 +1260,13 @@ describe('live GameServer: commission craft, bound trade refusal, unbind over th
 
     // A truthy-but-not-true commission value reads as false at the strict
     // dispatch guard: both crafts grant the plain pre-phase fungible stack.
+    // Cast-paced: complete each start before the next so busy cannot steal one.
     cmd(server, st, { cmd: 'craft_item', recipe: SWORD_RECIPE, commission: 'true' });
+    routeTick(server);
+    completeCraftWire(server, st.pid);
     cmd(server, st, { cmd: 'craft_item', recipe: SWORD_RECIPE, commission: 1 });
     routeTick(server);
+    completeCraftWire(server, st.pid);
     const plain = serverSlots(server, st.pid, SWORD);
     expect(plain.reduce((n, s) => n + s.count, 0)).toBe(2);
     for (const slot of plain) expect(slot.instance).toBeUndefined();
@@ -1131,6 +1282,7 @@ describe('live GameServer: commission craft, bound trade refusal, unbind over th
       boundTo: 999,
     });
     routeTick(server);
+    completeCraftWire(server, st.pid);
     const armed = serverSlots(server, st.pid, SWORD).filter((s) => s.instance !== undefined);
     expect(armed).toHaveLength(1);
     expect(armed[0].instance).toEqual({ bindOnTrade: true });

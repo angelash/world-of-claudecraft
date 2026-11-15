@@ -7,9 +7,9 @@
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { deleteCharButtonHtml } from '../src/ui/char_delete_button';
+import { deleteCharButtonHtml, normalizeDeleteConfirmation } from '../src/ui/char_delete_button';
+import { characterRowHtml } from '../src/ui/character_membership_view';
 
-const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
 const shell = readFileSync(new URL('../src/styles/shell.css', import.meta.url), 'utf8');
 
 describe('deleteCharButtonHtml', () => {
@@ -43,18 +43,18 @@ describe('character row order', () => {
   it('renders the primary action BEFORE the delete control in every row variant', () => {
     // The reflex click (and the first Tab stop) must land on the action the player
     // came for, never on the irreversible one.
-    // Each row variant is one template-literal line in the char-list renderer.
-    const lines = main
-      .split('\n')
-      .filter((l) => l.includes('deleteCharButtonHtml(') && l.includes('char-actions'));
-    expect(lines).toHaveLength(3);
-    for (const primary of ['enter-world-btn', 'take-over-btn', 'rename-btn']) {
-      const line = lines.find((l) => l.includes(primary));
-      expect(line, `${primary} row not found`).toBeDefined();
+    for (const [primary, flags] of [
+      ['enter-world-btn', { online: false, forceRename: false }],
+      ['take-over-btn', { online: true, forceRename: false }],
+      ['rename-btn', { online: false, forceRename: true }],
+      ['enter-world-btn', { online: false, forceRename: false, membershipLocked: true }],
+    ] as const) {
+      const html = characterRowHtml({ name: 'Alice', class: 'warrior', level: 1, ...flags }, '', 0);
+      expect(html.indexOf(primary), `${primary} row not found`).toBeGreaterThanOrEqual(0);
       expect(
-        (line as string).indexOf('deleteCharButtonHtml('),
+        html.indexOf('delete-char-btn'),
         `delete control must come after ${primary}`,
-      ).toBeGreaterThan((line as string).indexOf(primary));
+      ).toBeGreaterThan(html.indexOf(primary));
     }
   });
 });
@@ -74,5 +74,18 @@ describe('char-delete-btn styling', () => {
     const touch = shell.slice(shell.indexOf('body.mobile-touch .char-delete-btn {'));
     expect(touch.slice(0, 160)).toContain('width: 40px;');
     expect(touch.slice(0, 160)).toContain('height: 40px;');
+  });
+});
+
+describe('normalizeDeleteConfirmation', () => {
+  it('ignores case and surrounding whitespace so the typed name matches the character', () => {
+    expect(normalizeDeleteConfirmation('  Thrallwyn ')).toBe('thrallwyn');
+    expect(normalizeDeleteConfirmation('THRALLWYN')).toBe(normalizeDeleteConfirmation('thrallwyn'));
+  });
+
+  it('keeps interior spacing as typed, so a different name still mismatches', () => {
+    expect(normalizeDeleteConfirmation('Thrall wyn')).not.toBe(
+      normalizeDeleteConfirmation('Thrallwyn'),
+    );
   });
 });

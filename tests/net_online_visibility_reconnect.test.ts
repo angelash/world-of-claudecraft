@@ -11,7 +11,9 @@
 // is OPEN-only and never exercises reconnect).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ClientWorld } from '../src/net/online';
+import { INPUT_SEND_BACKPRESSURE_LIMIT_BYTES } from '../src/net/send_backpressure';
 import type { PlayerClass } from '../src/sim/types';
+import { ONLINE_WORLD_AUTH_TYPE } from '../src/world_api';
 
 const PROBE_CLASS: PlayerClass = 'warrior';
 
@@ -24,6 +26,7 @@ class StubWebSocket {
   onmessage: ((ev: { data: unknown }) => void) | null = null;
   onclose: (() => void) | null = null;
   readyState = StubWebSocket.OPEN;
+  bufferedAmount = 0;
   sent: string[] = [];
   constructor(public readonly url: string) {
     StubWebSocket.instances.push(this);
@@ -136,6 +139,53 @@ function withDomStubs<T>(fn: (doc: FakeDocument, harness: TimerHarness) => T): T
 }
 
 describe('ClientWorld visibilitychange reconnect (mobile background/foreground)', () => {
+  it('keeps action bars read-only through spectate exit and reconnect until the owner snapshot', () => {
+    withDomStubs((_doc, harness) => {
+      const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
+      const wire = world as unknown as {
+        onMessage(raw: string): void;
+        applySnapshot(value: unknown): void;
+      };
+      const message = (value: unknown) => wire.onMessage(JSON.stringify(value));
+      const self = {
+        id: 1,
+        k: 'player',
+        tid: 'warrior',
+        nm: 'Owner',
+        lv: 20,
+        x: 0,
+        y: 0,
+        z: 0,
+        f: 0,
+        hp: 100,
+        mhp: 100,
+        res: 0,
+        mres: 100,
+        rtype: 'rage',
+      };
+      const ownerSnapshot = () => wire.applySnapshot({ t: 'snap', tick: 1, ents: [], self });
+      message({ t: 'hello', pid: 1, seed: 42 });
+      ownerSnapshot();
+      expect(world.actionBarReadOnly).toBe(false);
+      message({ t: 'spectate', name: 'Watched' });
+      expect(world.actionBarReadOnly).toBe(true);
+      message({ t: 'spectate', name: null });
+      expect(world.actionBarReadOnly).toBe(true);
+      ownerSnapshot();
+      expect(world.actionBarReadOnly).toBe(false);
+      message({ t: 'spectate', name: 'Watched' });
+      const socket = StubWebSocket.instances[0];
+      socket.readyState = StubWebSocket.CLOSED;
+      socket.onclose?.();
+      harness.fire(harness.timers[0].id);
+      message({ t: 'hello', pid: 1, seed: 42 });
+      expect(world.spectating).toBeNull();
+      expect(world.actionBarReadOnly).toBe(true);
+      ownerSnapshot();
+      expect(world.actionBarReadOnly).toBe(false);
+      world.close();
+    });
+  });
   afterEach(() => {
     StubWebSocket.instances = [];
     vi.restoreAllMocks();
@@ -147,6 +197,65 @@ describe('ClientWorld visibilitychange reconnect (mobile background/foreground)'
       expect(doc.listenerCount()).toBe(1);
       world.close();
       expect(doc.listenerCount()).toBe(0);
+    });
+  });
+
+  it('clears shed transient input intent when a fresh transport is established', () => {
+    withDomStubs((_doc, harness) => {
+      const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
+      const wire = world as unknown as {
+        onMessage(raw: string): void;
+        reconnectAttempts: number;
+      };
+      const first = StubWebSocket.instances[0];
+      wire.onMessage(JSON.stringify({ t: 'hello', pid: 1, seed: 42 }));
+
+      first.bufferedAmount = INPUT_SEND_BACKPRESSURE_LIMIT_BYTES + 1;
+      world.moveInput.jump = true;
+      world.moveInput.turnLeft = true;
+      expect(world.flushInput(1_000)).toBe(false);
+      world.moveInput.jump = false;
+      world.moveInput.turnLeft = false;
+
+      first.readyState = StubWebSocket.CLOSED;
+      first.onclose?.();
+      expect(wire.reconnectAttempts).toBe(1);
+      harness.fire(harness.timers[0].id);
+      const second = StubWebSocket.instances[1];
+      wire.onMessage(JSON.stringify({ t: 'hello', pid: 1, seed: 42 }));
+
+      expect(world.flushInput(2_000)).toBe(true);
+      const input = JSON.parse(second.sent.at(-1) ?? '{}') as {
+        mi?: { j?: number; tl?: number; tr?: number };
+      };
+      expect(input.mi).toMatchObject({ j: 0, tl: 0, tr: 0 });
+      world.close();
+    });
+  });
+
+  it('clears optional world-quest mirrors before a reconnected realm resends them', () => {
+    withDomStubs((_doc, harness) => {
+      const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
+      const wire = world as unknown as { onMessage(raw: string): void };
+      const first = StubWebSocket.instances[0];
+      wire.onMessage(JSON.stringify({ t: 'hello', pid: 1, seed: 42 }));
+      world.worldQuestCycle = 'wq3_9';
+      world.worldQuestExpiresAtMs = 123;
+      world.worldQuestLog = new Map([
+        ['wq_galecrest_wisps', { questId: 'wq_galecrest_wisps', count: 1, state: 'active' }],
+      ]);
+      world.applyWorldBossWire(['morthen']);
+
+      first.readyState = StubWebSocket.CLOSED;
+      first.onclose?.();
+      harness.fire(harness.timers[0].id);
+      wire.onMessage(JSON.stringify({ t: 'hello', pid: 1, seed: 42 }));
+
+      expect(world.worldQuestCycle).toBe('');
+      expect(world.worldQuestExpiresAtMs).toBe(0);
+      expect(world.worldQuestLog.size).toBe(0);
+      expect(world.worldBossActive('morthen')).toBe(false);
+      world.close();
     });
   });
 
@@ -302,7 +411,7 @@ describe('ClientWorld visibilitychange reconnect (mobile background/foreground)'
       world.onDisconnect = (reason) => {
         disconnected = reason;
       };
-      // Sit one below RECONNECT_MAX_ATTEMPTS (40 in src/net/online.ts): the
+      // Sit one below RECONNECT_MAX_ATTEMPTS (40 in src/net/reconnect_policy.ts): the
       // manual zombie close below burns the FINAL attempt and schedules the
       // last legitimate retry.
       (world as unknown as { reconnectAttempts: number }).reconnectAttempts = 39;
@@ -420,7 +529,7 @@ describe('ClientWorld onConnectionLost contract', () => {
   });
 
   it('fires with the correct attempt, maxAttempts, and an absolute nextRetryAtMs after a real drop', () => {
-    withDomStubs((doc, harness) => {
+    withDomStubs((_doc, harness) => {
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
       const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
       const calls: Array<[number, number, number]> = [];
@@ -447,7 +556,7 @@ describe('ClientWorld onConnectionLost contract', () => {
   });
 
   it('fires again with an updated nextRetryAtMs on the mobile-foreground fast-retry path', () => {
-    withDomStubs((doc, harness) => {
+    withDomStubs((doc, _harness) => {
       vi.spyOn(Math, 'random').mockReturnValueOnce(0.5).mockReturnValueOnce(0.75);
       const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
       const calls: Array<[number, number, number]> = [];
@@ -470,7 +579,7 @@ describe('ClientWorld onConnectionLost contract', () => {
   });
 
   it('a throwing onConnectionLost does not prevent the already-armed retry from firing', () => {
-    withDomStubs((doc, harness) => {
+    withDomStubs((_doc, harness) => {
       const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
       world.onConnectionLost = () => {
         throw new Error('boom (e.g. a DOM write or t() lookup failing)');
@@ -515,7 +624,7 @@ describe('ClientWorld reconnect error-frame tolerance (auth timeout)', () => {
   };
 
   it('tolerates the auth-timeout rejection mid-reconnect on its own counter and resets it on hello', () => {
-    withDomStubs((doc, harness) => {
+    withDomStubs((_doc, harness) => {
       const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
       const w = world as unknown as WorldProbe;
       const first = StubWebSocket.instances[0];
@@ -540,7 +649,7 @@ describe('ClientWorld reconnect error-frame tolerance (auth timeout)', () => {
   });
 
   it('still ends the session for good on any other rejection mid-reconnect', () => {
-    withDomStubs((doc, harness) => {
+    withDomStubs((_doc, harness) => {
       const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
       const w = world as unknown as WorldProbe;
       const reasons: string[] = [];
@@ -565,7 +674,7 @@ describe('ClientWorld reconnect error-frame tolerance (auth timeout)', () => {
     });
   });
 
-  it('fails closed when an auth-world-3 client reaches an auth-world-2 server', () => {
+  it('fails closed when a current-epoch client reaches an auth-world-11 server', () => {
     withDomStubs((_doc, harness) => {
       const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
       const w = world as unknown as WorldProbe;
@@ -579,13 +688,13 @@ describe('ClientWorld reconnect error-frame tolerance (auth timeout)', () => {
       expect(socket.sent).toHaveLength(1);
       expect(JSON.parse(socket.sent[0])).toEqual(
         expect.objectContaining({
-          t: 'auth-world-3',
+          t: ONLINE_WORLD_AUTH_TYPE,
           token: 't',
           character: 1,
         }),
       );
 
-      // An auth-world-2 server rejects this unknown future epoch before admission.
+      // An auth-world-11 server rejects this unknown future epoch before admission.
       w.onMessage(
         JSON.stringify({
           t: 'error',
@@ -634,6 +743,99 @@ describe('ClientWorld reconnect error-frame tolerance (auth timeout)', () => {
 
       expect(w.sessionEnded).toBe(true);
       expect(reasons).toEqual(['authentication required']);
+    });
+  });
+});
+
+// Regression for the "relog takes minutes" reports: a char-select "Enter
+// World" click (or a page reload after a client-side bug/crash) builds a
+// BRAND NEW ClientWorld whose first join attempt previously could not benefit
+// from the same reconnect_policy.ts tolerance a mid-session drop already got,
+// because that tolerance used to require reconnectAttempts > 0. The roster's
+// online flag that routed the click to "Enter World" rather than "Take Over"
+// can lag a drop from seconds ago, so the very first attempt lands in the
+// same "server has not yet noticed the old socket died" window a later
+// reconnect does; treating it as instantly fatal forced the player to
+// manually retry (each retry itself a fresh, still-fatal attempt zero) until
+// the server-side state caught up on its own. This suite pins that the first
+// attempt now backs off and retries exactly like a mid-session drop.
+describe('ClientWorld reconnect error-frame tolerance (first join attempt, never previously connected)', () => {
+  afterEach(() => {
+    StubWebSocket.instances = [];
+    vi.restoreAllMocks();
+  });
+
+  type WorldProbe = {
+    onMessage(raw: string): void;
+    reconnectAttempts: number;
+    conflictRejections: number;
+    timeoutRejections: number;
+    sessionEnded: boolean;
+  };
+
+  it('tolerates "character already in world" on attempt zero instead of ending the session', () => {
+    withDomStubs((_doc, harness) => {
+      const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
+      const w = world as unknown as WorldProbe;
+      const reasons: string[] = [];
+      world.onDisconnect = (reason) => {
+        reasons.push(reason);
+      };
+      expect(w.reconnectAttempts).toBe(0); // never dropped and retried before
+
+      w.onMessage(JSON.stringify({ t: 'error', error: 'character already in world' }));
+
+      expect(w.sessionEnded).toBe(false);
+      expect(reasons).toEqual([]);
+      expect(w.conflictRejections).toBe(1);
+
+      // The server closes the rejecting socket; that close event must schedule
+      // an actual backoff retry, the same path a mid-session drop takes.
+      const first = StubWebSocket.instances[0];
+      first.onclose?.();
+      expect(w.sessionEnded).toBe(false);
+      expect(harness.timers.length).toBe(1);
+      world.close();
+    });
+  });
+
+  it('tolerates "authentication timed out" on attempt zero instead of ending the session', () => {
+    withDomStubs((_doc, harness) => {
+      const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
+      const w = world as unknown as WorldProbe;
+      const reasons: string[] = [];
+      world.onDisconnect = (reason) => {
+        reasons.push(reason);
+      };
+      expect(w.reconnectAttempts).toBe(0);
+
+      w.onMessage(JSON.stringify({ t: 'error', error: 'authentication timed out' }));
+
+      expect(w.sessionEnded).toBe(false);
+      expect(reasons).toEqual([]);
+      expect(w.timeoutRejections).toBe(1);
+
+      const first = StubWebSocket.instances[0];
+      first.onclose?.();
+      expect(w.sessionEnded).toBe(false);
+      expect(harness.timers.length).toBe(1);
+      world.close();
+    });
+  });
+
+  it('still ends the session on attempt zero for a genuinely fatal rejection (e.g. a real takeover elsewhere)', () => {
+    withDomStubs(() => {
+      const world = new ClientWorld('t', 1, PROBE_CLASS, 'http://localhost');
+      const w = world as unknown as WorldProbe;
+      const reasons: string[] = [];
+      world.onDisconnect = (reason) => {
+        reasons.push(reason);
+      };
+
+      w.onMessage(JSON.stringify({ t: 'error', error: 'character taken over' }));
+
+      expect(w.sessionEnded).toBe(true);
+      expect(reasons).toEqual(['character taken over']);
     });
   });
 });

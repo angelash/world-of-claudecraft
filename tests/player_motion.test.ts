@@ -1,9 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { isBlocked, moverHeight, resolveMovement } from '../src/sim/colliders';
+import { BUILTIN_WORLD, DELVES, DUNGEON_FLOOR_Y } from '../src/sim/data';
+import {
+  clampDelveDoorSolids,
+  clampDelveModuleBounds,
+  DELVE_DOOR_AISLE_HALF_DEPTH,
+  delveDoorClampSolidsFromEntities,
+} from '../src/sim/delves/geometry';
+import { PLAYER_BODY_RADIUS, PLAYER_MAX_CLIMB_SLOPE } from '../src/sim/pathfind';
 import { moveSpeedMult, type PlayerMotionDeps, stepPlayerMotion } from '../src/sim/player_motion';
 import { Sim } from '../src/sim/sim';
-import type { Entity, MoveInput } from '../src/sim/types';
-import { terrainHeight, terrainSteepness, terrainSteepnessAt, WATER_LEVEL } from '../src/sim/world';
+import {
+  type Aura,
+  CAT_FORM_MOVE_MULT,
+  type Entity,
+  type MoveInput,
+  type WorldContent,
+} from '../src/sim/types';
+import { terrainWallStandoff } from '../src/sim/wall_standoff';
+import {
+  groundHeight,
+  terrainHeight,
+  terrainSteepness,
+  terrainSteepnessAt,
+  WATER_LEVEL,
+} from '../src/sim/world';
+import { wallFootFixture } from './helpers/wall_foot';
 
 // The parity gate for the movement-kernel extraction (MV1) and the foundation
 // of the online self extrapolator: stepPlayerMotion driven with CLIENT-shaped
@@ -14,8 +36,23 @@ import { terrainHeight, terrainSteepness, terrainSteepnessAt, WATER_LEVEL } from
 const SEED = 42;
 const CLIMB_LIMIT = 1.5;
 
+// Every assertion here compares the live player pose against the kernel mirror
+// (terrain, colliders, water); ambient camps/npcs/ground objects never appear in
+// an assertion, so strip them (dot_final_tick pattern) to keep each tick cheap.
+const MOTION_TEST_WORLD: WorldContent = {
+  ...BUILTIN_WORLD,
+  camps: [],
+  npcs: {},
+  groundObjects: [],
+};
+
 function makeSim(): Sim {
-  const sim = new Sim({ seed: SEED, playerClass: 'warrior', autoEquip: true });
+  const sim = new Sim({
+    seed: SEED,
+    playerClass: 'warrior',
+    autoEquip: true,
+    world: MOTION_TEST_WORLD,
+  });
   sim.setPlayerLevel(60); // mobs along the routes must not decide these tests
   return sim;
 }
@@ -34,13 +71,26 @@ function teleport(sim: Sim, x: number, z: number): void {
 }
 
 // The client dep shape: pure static collision, aura-only speed, no live-Sim
-// callbacks. Mirrors what src/render/self_motion.ts binds.
-function clientDeps(seed: number): PlayerMotionDeps {
+// callbacks. Mirrors what src/render/self_motion.ts binds. riftToken mirrors
+// self_motion.ts's own constructor parameter (default 0, the same "no rift
+// regions" inert value the live Sim itself falls back to outside a rift).
+function clientDeps(seed: number, riftToken = 0): PlayerMotionDeps {
   return {
     seed,
     moveSpeedMult: (e) => moveSpeedMult(e, 0),
     resolveMove: (fromX, fromZ, nx, nz, r, e, ignoreFences) =>
-      resolveMovement(seed, fromX, fromZ, nx, nz, r, ignoreFences, undefined, moverHeight(e)),
+      resolveMovement(
+        seed,
+        fromX,
+        fromZ,
+        nx,
+        nz,
+        r,
+        ignoreFences,
+        undefined,
+        moverHeight(e),
+        riftToken,
+      ),
     resolvedAbility: () => null,
     cancelCast: () => {},
     standUp: () => {},
@@ -63,6 +113,8 @@ const mi = (over: Partial<MoveInput> = {}): MoveInput => ({
   strafeLeft: false,
   strafeRight: false,
   jump: false,
+  dive: false,
+  surface: false,
   ...over,
 });
 
@@ -88,8 +140,8 @@ function expectSamePose(sim: Sim, actor: Entity, label: string): void {
   expect(actor.onGround, `${label}: onGround`).toBe(p.onGround);
 }
 
-function runParity(sim: Sim, input: MoveInput, ticks: number, label: string): void {
-  const deps = clientDeps(SEED);
+function runParity(sim: Sim, input: MoveInput, ticks: number, label: string, riftToken = 0): void {
+  const deps = clientDeps(SEED, riftToken);
   const actor = mirrorActor(sim);
   for (let i = 0; i < ticks; i++) {
     tickBoth(sim, actor, deps, input);
@@ -181,6 +233,111 @@ describe('player motion kernel parity with the live Sim', () => {
     expect(sim.player.pos.z).toBeGreaterThan(200); // actually travelled
   });
 
+  // Issue #3479 (enable self-motion prediction inside rifts): self_motion.ts's
+  // resolveMove now threads a real riftCollisionToken through to resolveMovement,
+  // the ONE codepath in this file the default clientDeps(SEED) (token 0, "no
+  // rift regions") never exercised before. Same "chamber-waist" wall the swept-
+  // collision fixture pins (local x=35), approached along z=70: local x=61 is a
+  // pre-existing dead spot for iterative movement unrelated to this fix
+  // (resolveMovement's ejection guard rejects every stepped move from that exact
+  // point), verified separately, not this test's concern.
+  it('resolves a rift wall identically through the client-shaped kernel deps with a real riftToken', () => {
+    const sim = makeSim();
+    sim.enterRift(2, 20, sim.player.id);
+    const origin = sim.riftFloor?.origin;
+    if (!origin) throw new Error('rift floor did not spawn');
+    const p = sim.player;
+    p.pos.x = origin.x + 20;
+    p.pos.z = origin.z + 70;
+    p.pos.y = DUNGEON_FLOOR_Y;
+    p.prevPos = { ...p.pos };
+    p.vy = 0;
+    p.onGround = true;
+    p.facing = Math.PI / 2; // face +x, straight at the wall
+    runParity(sim, mi({ forward: true }), 20 * 3, 'rift wall approach', sim.riftCollisionToken);
+    // Actually reached and was actually held by the wall, not just idle parity.
+    expect(sim.player.pos.x - origin.x).toBeGreaterThan(33);
+    expect(sim.player.pos.x - origin.x).toBeLessThan(34.5);
+  });
+
+  // Issue #3480 (enable self-motion prediction inside delves): the instanced
+  // kernel branch (stepInstancedRegion, gated by isInstancedRegion on
+  // isDelvePos) chained through a delve-aware resolveMove, the same
+  // clampDelveModuleBounds-then-clampDelveDoorSolids order Sim.resolveMove
+  // runs server-side. The client dep here rebuilds the solids list from
+  // sim.entities the way src/render/client_player_motion.ts does, rather than
+  // reading the server's own run.objectState, so this also exercises the two
+  // derivations end to end (unlike tests/delve_geometry.test.ts's parity pin,
+  // which compares them directly against a fixed solids snapshot).
+  it('resolves a closed delve door identically through the client-shaped kernel deps', () => {
+    const sim = makeSim();
+    sim.setPlayerLevel(DELVES.collapsed_reliquary.minLevel);
+    const doorEntryPos = DELVES.collapsed_reliquary.doorPos;
+    teleport(sim, doorEntryPos.x, doorEntryPos.z);
+    sim.enterDelve('collapsed_reliquary', 'normal');
+    const run = sim.delveRunForPlayer(sim.player.id);
+    if (!run) throw new Error('delve run did not spawn');
+    run.modules = ['reliquary_sunken_ossuary'];
+    run.moduleIndex = 0;
+    (sim as any).spawnDelveModule(run);
+    // Freeze the room's plates pre-triggered so the door the test approaches
+    // stays closed regardless of where the walked path happens to cross them.
+    for (const id of run.objectIds) {
+      const state = run.objectState[id];
+      if (state?.kind === 'pressure_plate') state.triggered = true;
+    }
+    const doorEntry = run.objectIds
+      .map((id) => ({ id, state: run.objectState[id] }))
+      .find((o) => o.state?.kind === 'locked_door');
+    if (!doorEntry) throw new Error('module spawned no locked_door');
+    const door = sim.entities.get(doorEntry.id);
+    if (!door) throw new Error('door entity missing');
+
+    const p = sim.player;
+    p.pos.x = door.pos.x;
+    p.pos.z = door.pos.z - 15;
+    p.pos.y = door.pos.y;
+    p.prevPos = { ...p.pos };
+    p.vy = 0;
+    p.onGround = true;
+    p.facing = 0; // +z, straight at the door
+
+    const actor = mirrorActor(sim);
+    // Mirrors client_player_motion.ts's delve-aware resolveMove: re-derive
+    // the run and the entity-sourced solids list fresh each call, exactly
+    // like the online predictor does per frame.
+    const deps: PlayerMotionDeps = {
+      ...clientDeps(SEED),
+      resolveMove: (fromX, fromZ, nx, nz, r, e, ignoreFences) => {
+        const currentRun = sim.delveRunForPlayer(sim.player.id);
+        const res = resolveMovement(
+          SEED,
+          fromX,
+          fromZ,
+          nx,
+          nz,
+          r,
+          ignoreFences,
+          currentRun?.modules,
+          moverHeight(e),
+          0,
+        );
+        if (!currentRun) return res;
+        const bounded = clampDelveModuleBounds(currentRun, res.x, res.z, r);
+        const solids = delveDoorClampSolidsFromEntities(sim.entities.values());
+        return clampDelveDoorSolids(solids, bounded.x, bounded.z, r);
+      },
+    };
+    for (let i = 0; i < 20 * 4; i++) {
+      tickBoth(sim, actor, deps, mi({ forward: true }));
+      expectSamePose(sim, actor, `delve door tick ${i}`);
+    }
+    // Actually reached and was actually held by the door, not just idle parity.
+    const stopDepth = door.pos.z - sim.player.pos.z;
+    expect(stopDepth).toBeGreaterThan(DELVE_DOOR_AISLE_HALF_DEPTH);
+    expect(stopDepth).toBeLessThan(DELVE_DOOR_AISLE_HALF_DEPTH + PLAYER_BODY_RADIUS + 0.5);
+  });
+
   it('blocks uphill walls and slides off steep footing identically', () => {
     const sim = makeSim();
     const spot = findSteepFooting(SEED);
@@ -195,8 +352,16 @@ describe('player motion kernel parity with the live Sim', () => {
 
   it('routes terrain wall standoff through the collision sweep', () => {
     const standoffSeed = 20061;
-    const sim = new Sim({ seed: standoffSeed, playerClass: 'warrior', autoEquip: true });
-    const start = { x: -150, z: 546.75 };
+    const sim = new Sim({
+      seed: standoffSeed,
+      playerClass: 'warrior',
+      autoEquip: true,
+      world: MOTION_TEST_WORLD,
+    });
+    // A pinned wall foot validated against the generated heightfield (the strip
+    // world's old western-rim literal is open ground in the 2D atlas-grid world).
+    const foot = wallFootFixture(standoffSeed, PLAYER_BODY_RADIUS, PLAYER_MAX_CLIMB_SLOPE);
+    const start = { x: foot.x, z: foot.z };
     teleport(sim, start.x, start.z);
     expect(terrainSteepnessAt(start.x, start.z, standoffSeed)).toBeLessThan(1.0);
 
@@ -231,6 +396,26 @@ describe('player motion kernel parity with the live Sim', () => {
     runParity(sim, mi({ forward: true, jump: true }), 20 * 2, 'shore hop');
   });
 
+  // The VERTICAL half of swimming has to hold the same bit-for-bit contract as
+  // the horizontal half: swimVerticalPass owns Y outright (dive rate, buoyancy,
+  // the swimDiving latch, the graded camera steer), all of it off MoveInput
+  // fields the client predictor forwards, so a fork here would rubber-band a
+  // dive on every online client while every case above stayed green.
+  it('dives, holds depth, and surfaces identically', () => {
+    const sim = makeSim();
+    const spot = findDeepWater(SEED);
+    teleport(sim, spot.x, spot.z);
+    runParity(sim, mi(), 5, 'settle to surface');
+    // full-rate key dive, then the latch holding depth hands-free
+    runParity(sim, mi({ forward: true, dive: true }), 20 * 2, 'dive');
+    runParity(sim, mi(), 20, 'swimDiving holds depth');
+    // a feathered camera steer, the one graded movement field
+    runParity(sim, mi({ forward: true, dive: true, swimSteer: 0.5 }), 20, 'graded dive');
+    runParity(sim, mi({ surface: true, swimSteer: 0.5 }), 20 * 2, 'graded ascend');
+    // and jump outranking dive on the way back out
+    runParity(sim, mi({ forward: true, dive: true, jump: true }), 20, 'jump outranks dive');
+  });
+
   it('runs at ghost speed identically (snare-immune multiplier)', () => {
     const sim = makeSim();
     teleport(sim, 0, -40);
@@ -253,5 +438,163 @@ describe('player motion kernel parity with the live Sim', () => {
       return JSON.stringify(out);
     };
     expect(trace()).toBe(trace());
+  });
+});
+
+// The wall-standoff ACCEPTANCE GATE inside stepPlayerMotion (distinct from the
+// terrainWallStandoff iteration itself, covered by
+// tests/terrain_wall_standoff.test.ts): committing a push once it strictly
+// improves on the player's current steepness, not only once it fully clears
+// the climb limit. Pinned at a concave pocket (production seed 20061, 2D
+// atlas-grid world) where the standoff resolves the player to steepness
+// ~1.86, well over the ~1.5 climb limit, but a strict improvement over the
+// ~25.9 the player started at. The OLD gate (accept only if standSteep <=
+// climb limit) would have discarded this push outright, leaving the player
+// wedged; the NEW gate (accept if standSteep <= climb limit OR standSteep <=
+// current steepness) commits it. (The pin is terrain-derived and gets
+// re-derived when a deliberate heightfield change moves the pocket; the
+// natural-relief change re-derived it from the prior (-620, -172).)
+describe('stepPlayerMotion wall-standoff acceptance gate', () => {
+  const GATE_SEED = 20061; // the fixed production seed (src/main.ts, server/game.ts)
+  const GATE_R = PLAYER_BODY_RADIUS;
+  const GATE_SLOPE = PLAYER_MAX_CLIMB_SLOPE;
+  const PIN = { x: -620, z: -166 };
+
+  it('commits a standoff push that strictly improves steepness but stays above the climb limit', () => {
+    const steepStart = terrainSteepnessAt(PIN.x, PIN.z, GATE_SEED);
+    const standoff = terrainWallStandoff(PIN.x, PIN.z, GATE_SEED, GATE_R, GATE_SLOPE);
+    const steepStand = terrainSteepnessAt(standoff.x, standoff.z, GATE_SEED);
+    // Pin the scenario itself: still above the climb limit (so the OLD gate,
+    // which only ever accepted full clearance, would reject this push), but a
+    // strict improvement over the starting steepness (so the NEW gate accepts).
+    expect(steepStand).toBeGreaterThan(GATE_SLOPE);
+    expect(steepStand).toBeLessThan(steepStart);
+
+    // Drive the real gate via stepPlayerMotion. The player's own position is
+    // steep enough here to also trigger the downhill-slide movement earlier in
+    // the same tick (a separate code path from the standoff gate under test).
+    // That slide no longer routes through this dep: the open-world horizontal
+    // step resolves inside the physics kernel (src/sim/physics/character.ts),
+    // and PlayerMotionDeps.resolveMove now serves the instanced path and the
+    // standoff pass only. So there is nothing left to stub out by call order,
+    // and the assertions below measure the standoff FROM the slid position
+    // rather than from the pin.
+    const deps: PlayerMotionDeps = {
+      seed: GATE_SEED,
+      moveSpeedMult: (e) => moveSpeedMult(e, 0),
+      resolveMove: (fromX, fromZ, nx, nz, r, _e, ignoreFences) =>
+        resolveMovement(GATE_SEED, fromX, fromZ, nx, nz, r, ignoreFences),
+      resolvedAbility: () => null,
+      cancelCast: () => {},
+      standUp: () => {},
+      dealDamage: () => {},
+    };
+    const p = {
+      pos: { x: PIN.x, z: PIN.z, y: groundHeight(PIN.x, PIN.z, GATE_SEED) },
+      prevPos: { x: PIN.x, z: PIN.z, y: groundHeight(PIN.x, PIN.z, GATE_SEED) },
+      facing: 0,
+      onGround: true,
+      jumping: false,
+      vx: 0,
+      vz: 0,
+      vy: 0,
+      fallStartY: groundHeight(PIN.x, PIN.z, GATE_SEED),
+      auras: [],
+      sitting: false,
+      maxHp: 100,
+    } as unknown as Entity;
+
+    stepPlayerMotion(deps, p, mi());
+
+    // The gate committed. Stated as three claims rather than one coordinate
+    // equality: the tick's downhill slide runs inside the physics kernel now
+    // and is allowed to move the body a little before the standoff pass sees
+    // it, so an exact-point pin would be measuring the slide, not the gate.
+    //
+    // The pin sits a full yard from the standoff point and the body radius is
+    // half that, so "within a body radius of the standoff" still fails outright
+    // if the push is discarded and the body is left wedged at the pin.
+    expect(p.pos.x === PIN.x && p.pos.z === PIN.z).toBe(false);
+    expect(Math.hypot(p.pos.x - standoff.x, p.pos.z - standoff.z)).toBeLessThan(GATE_R);
+    // ...and the push really improved things, which is the acceptance rule
+    // under test: the OLD gate would have rejected this one for still being
+    // over the climb limit.
+    const steepEnd = terrainSteepnessAt(p.pos.x, p.pos.z, GATE_SEED);
+    expect(steepEnd).toBeLessThan(steepStart);
+    expect(steepEnd).toBeGreaterThan(GATE_SLOPE);
+  });
+});
+
+describe('moveSpeedMult: Cat Form passive speed', () => {
+  function aura(e: Entity, kind: Aura['kind'], value: number): Aura {
+    return {
+      id: kind,
+      name: kind,
+      kind,
+      remaining: 3600,
+      duration: 3600,
+      value,
+      sourceId: e.id,
+      school: 'physical',
+    };
+  }
+  // The shipped form_cat aura carries the THREAT multiplier (0.71) as its
+  // value; the speed comes from the constant, never from a.value.
+  const cat = (e: Entity) => aura(e, 'form_cat', 0.71);
+
+  it('form_cat alone yields the +15% constant, not the aura value', () => {
+    const p = makeSim().player;
+    expect(moveSpeedMult(p, 0)).toBe(1);
+    p.auras.push(cat(p));
+    expect(CAT_FORM_MOVE_MULT).toBe(1.15);
+    expect(moveSpeedMult(p, 0)).toBeCloseTo(1.15);
+  });
+
+  it('multiplies the strongest speed buff: form_cat plus buff_speed 1.5 yields 1.725', () => {
+    // The form passive is its own layer over the strongest temporary buff
+    // (never 1.5 flat, never 1.65 additive). Speed buffs still never stack
+    // with each other: 1.5 and 1.6 together read as 1.6 x 1.15.
+    const p = makeSim().player;
+    p.auras.push(cat(p), aura(p, 'buff_speed', 1.5));
+    expect(moveSpeedMult(p, 0)).toBeCloseTo(1.15 * 1.5);
+    p.auras.push(aura(p, 'buff_speed', 1.6));
+    expect(moveSpeedMult(p, 0)).toBeCloseTo(1.15 * 1.6);
+  });
+
+  it('the layer applies to any speed buff a Cat wears, party-sourced included', () => {
+    // Hunter Pack Rally (buff_speed 1.3) lands on party allies: a Cat runs at
+    // 1.3 x 1.15 under it, the same rule as its own Dash.
+    const p = makeSim().player;
+    p.auras.push(cat(p), { ...aura(p, 'buff_speed', 1.3), id: 'pack_rally', sourceId: 999 });
+    expect(moveSpeedMult(p, 0)).toBeCloseTo(1.15 * 1.3);
+  });
+
+  it('slows still bite multiplicatively: form_cat plus a 0.5 slow yields 0.575', () => {
+    const p = makeSim().player;
+    p.auras.push(cat(p), aura(p, 'slow', 0.5));
+    expect(moveSpeedMult(p, 0)).toBeCloseTo(0.575);
+  });
+
+  it('mount speed stays additive: form_cat plus basic riding yields 1.85', () => {
+    const p = makeSim().player;
+    p.auras.push(cat(p));
+    p.mountKey = 'valorsteed';
+    expect(moveSpeedMult(p, 0)).toBeCloseTo(1.85);
+  });
+
+  it('the client dep shape and the live Sim agree on Cat speed', () => {
+    const sim = makeSim();
+    const p = sim.player;
+    p.auras.push(cat(p));
+    const asLive = sim as unknown as { moveSpeedMult(e: Entity): number };
+    const live = asLive.moveSpeedMult(p);
+    expect(clientDeps(SEED).moveSpeedMult(p)).toBe(live);
+    expect(live).toBeCloseTo(1.15);
+    // The stacked case (Cat + Dash) must agree bit for bit too, or a Dashing
+    // Cat would rubber-band against the server's prediction.
+    p.auras.push(aura(p, 'buff_speed', 1.5));
+    const stacked = asLive.moveSpeedMult(p);
+    expect(clientDeps(SEED).moveSpeedMult(p)).toBe(stacked);
+    expect(stacked).toBeCloseTo(1.725);
   });
 });

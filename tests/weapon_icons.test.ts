@@ -1,0 +1,503 @@
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
+import { describe, expect, it } from 'vitest';
+import { ITEMS } from '../src/sim/data';
+import { WEAPON_IMAGE_IDS, weaponIconUrl } from '../src/ui/icons';
+import { ITEM_WEAPON_VARIANTS } from '../src/ui/weapon_variants';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const itemsDir = path.join(repoRoot, 'public/ui/items');
+const weaponProvenanceRecord = 'docs/achievements/placeholder-art-completion-2026-08-09/';
+const itemConsistencyProvenanceRecord = 'docs/achievements/item-art-consistency-2026-08-09/';
+const masterwroughtCompletionRecord = 'docs/achievements/masterwrought-art-completion-2026-09-02/';
+const weaponGenerationRecordFiles = [
+  'weapons-a-generation-record.json',
+  'weapons-b-generation-record.json',
+  'weapons-c-generation-record.md',
+  'weapons-d-generation-record.json',
+] as const;
+const itemMapping = JSON.parse(readFileSync(path.join(itemsDir, 'mapping.json'), 'utf8')) as {
+  entries: Array<{ itemId: string }>;
+  generatedBatches?: Array<{
+    batchId?: string;
+    source: string;
+    owner?: string;
+    license: string;
+    provenanceRecord?: string;
+    itemIds: string[];
+  }>;
+};
+
+describe('painted weapon inventory icons', () => {
+  const baseWeapons = Object.values(ITEMS)
+    .filter((item) => item.kind === 'weapon' && item.heroicOf === undefined)
+    .map((item) => item.id)
+    .sort();
+
+  it('covers every authored base weapon exactly once', () => {
+    // 123 with the class-overhaul integration daggers (rimefang, marrowpoint,
+    // duskwhisper, boneglass_shiv), painted in integration-dagger-icons-2026-08-10;
+    // 125 with the Masterwrought phase 09 pair (duskforged_warblade,
+    // ridgebreaker), now repainted in the final Masterwrought completion wave;
+    // 132 with the nine Crucible raid weapons (crucible-raid-weapons-2026-08-28;
+    // the Emberflight Longbow was pulled: bows wait for the hunter rework);
+    // 133 with the Ignivar legendary maul (varkhul_forgebreaker, rendered in
+    // ignivar-varkhul-drop-renders-2026-08-28), landed by the base merge:
+    // base 133 for this merge.
+    //
+    // RE-PINNED at this merge of release/v0.42.0 into feature/masterwrought.
+    // BOTH parent pins for the record: ours 135 (the masterwrought phase 09
+    // pair), the release 136 (the three Nythraxis gap-fill one-handers
+    // courtiers_bonefang, thornpeak_wardblade, gravecourt_hewer, rendered in
+    // nythraxis-gap-weapon-renders-2026-09-04 and confirmed present in the
+    // resolved src/sim/content/zone3.ts). Arithmetic (base 133 + ours' delta
+    // +2 + theirs' delta +3 = 138), CONFIRMED by an actual
+    // `npx vitest run tests/weapon_icons.test.ts` run on the merged tree:
+    // this assertion, and the 19-heroic-copy count in the next test, both
+    // pass as-is.
+    // 141 with the three faction quartermaster epics (riftwarden_voidblade,
+    // dawnkeeper_consecrated_mace, forgemaster_crag_cleaver; batch
+    // faction-vendor-icons-2026-09-16), landed by the wq-reputation merge.
+    // 141 -> 145: the four Warfare Season 2 honor weapons, painted in
+    // warfare-season2-weapons-2026-09-25 (second release/v0.44.0 base merge).
+    // 148 with the Mirefen world-boss branch's foremans_barrowmaul, skerrits_shardpike
+    // and muster_shardpike. 149 with Balgath's caster spoil, craterglass_stave.
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 163.
+    // + the membership Staff of Changing (PR 4281): 164.
+    // The restored Season 2 feral staff is one additional authored weapon.
+    expect(baseWeapons).toHaveLength(165);
+    expect([...WEAPON_IMAGE_IDS].sort()).toEqual(baseWeapons);
+    expect(Object.keys(ITEM_WEAPON_VARIANTS).sort()).toEqual(baseWeapons);
+    for (const id of baseWeapons) {
+      expect(weaponIconUrl(id), id).toBe(`/ui/items/${id}.webp`);
+      expect(existsSync(path.join(itemsDir, `${id}.webp`)), `${id}.webp`).toBe(true);
+    }
+  });
+
+  it('keeps Heroic copies on their canonical base painting', () => {
+    const heroics = Object.values(ITEMS).filter(
+      (item) => item.kind === 'weapon' && item.heroicOf !== undefined,
+    );
+    // 16 with heroic_duskwhisper (aliases the duskwhisper base painting); 19
+    // with the three Nythraxis gap-fill one-handers' raid-tier variants.
+    // 25 with the dungeon rework's six generated Heroic weapons, 30 with the
+    // lower dungeons' normal blues' five.
+    expect(heroics).toHaveLength(30);
+    for (const heroic of heroics) {
+      expect(WEAPON_IMAGE_IDS.has(heroic.id), heroic.id).toBe(false);
+      expect(weaponIconUrl(heroic.id), heroic.id).toBe(
+        `/ui/items/${heroic.heroicOf as string}.webp`,
+      );
+    }
+  });
+
+  it('keeps the historical registry while every weapon has one current generated-art owner', () => {
+    const expected = Object.keys(ITEM_WEAPON_VARIANTS).sort();
+    const batches = itemMapping.generatedBatches ?? [];
+    const weaponBatches = batches.filter((batch) =>
+      batch.itemIds.some((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id)),
+    );
+    // Seven batches currently own at least one weapon id (confirmed against
+    // public/ui/items/mapping.json's generatedBatches): the historical
+    // campaign (placeholder-art-completion-weapons-2026-08-09), its
+    // replacement (item-art-consistency-2026-08-09), the integration
+    // daggers (integration-dagger-icons-2026-08-10), the Masterwrought
+    // completion wave (masterwrought-art-completion-2026-09-02), the
+    // Crucible raid weapons (crucible-raid-weapons-2026-08-28), the Ignivar
+    // legendary (ignivar-varkhul-drop-renders-2026-08-28), and, landed by
+    // this release-branch merge, the Nythraxis gap-fill one-handers
+    // (nythraxis-gap-weapon-renders-2026-09-04, asserted below as
+    // `gapBatch`).
+    // Eight with the faction quartermaster epics' batch
+    // (faction-vendor-icons-2026-09-16, asserted below as `factionBatch`), nine
+    // with the Warfare Season 2 weapons (warfare-season2-weapons-2026-09-25).
+    // Twelve with the Mirefen world-boss branch's boss, Shardpike and muster-pike batches.
+    // Thirteen with Balgath's loot batch (balgath-loot-icons-2026-09-28, the staff).
+    // + the five-dungeon rework (PR 4352) on the v0.45.0 integration: 19.
+    // + the membership weapon batch (membership-weapon-2026-10-14): 20.
+    // Integration 45 replaces the former shared faction batch with three painted batches.
+    // The feral staff retains its original separate painting batch.
+    expect(weaponBatches).toHaveLength(25);
+    const historicalBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'placeholder-art-completion-weapons-2026-08-09',
+    );
+    const replacementBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'item-art-consistency-2026-08-09',
+    );
+    expect(historicalBatch).toBeDefined();
+    expect(replacementBatch).toBeDefined();
+
+    const replacementManifest = JSON.parse(
+      readFileSync(
+        path.join(repoRoot, itemConsistencyProvenanceRecord, 'accepted-art.json'),
+        'utf8',
+      ),
+    ) as {
+      supersedes: Array<{
+        itemId: string;
+        historicalAcceptedArt?: { path: string; assetKey: string };
+      }>;
+    };
+    const replacementWeaponIds = replacementManifest.supersedes
+      .filter(
+        ({ itemId, historicalAcceptedArt }) =>
+          Object.hasOwn(ITEM_WEAPON_VARIANTS, itemId) &&
+          historicalAcceptedArt?.path === `${weaponProvenanceRecord}accepted-art.json`,
+      )
+      .map(({ itemId }) => itemId)
+      .sort();
+    expect(replacementWeaponIds).toEqual([
+      'craghorn_staff',
+      'drovers_staff',
+      'hollow_vigil_staff',
+      'widowfang_dirk',
+    ]);
+    // The class-overhaul integration adds four daggers in their own batch
+    // (integration-dagger-icons-2026-08-10); the historical campaign batch
+    // owns every weapon that predates both it and the replacements.
+    const integrationBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'integration-dagger-icons-2026-08-10',
+    );
+    expect(integrationBatch).toBeDefined();
+    const integrationWeaponIds = (integrationBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(integrationWeaponIds).toEqual([
+      'boneglass_shiv',
+      'duskwhisper',
+      'marrowpoint',
+      'rimefang',
+    ]);
+    // The completion wave supersedes the two interim Masterwrought phase 09
+    // SVG placeholders and owns their final paintings alongside the rest of
+    // the feature art.
+    const masterwroughtBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'masterwrought-art-completion-2026-09-02',
+    );
+    expect(masterwroughtBatch).toBeDefined();
+    const masterwroughtWeaponIds = (masterwroughtBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(masterwroughtWeaponIds).toEqual(['duskforged_warblade', 'ridgebreaker']);
+    expect(masterwroughtBatch?.source).toBe('OpenAI built-in image generation');
+    expect(masterwroughtBatch?.owner).toBe('World of ClaudeCraft');
+    expect(masterwroughtBatch?.license).toContain('project asset');
+    expect(masterwroughtBatch?.provenanceRecord).toBe(masterwroughtCompletionRecord);
+    // The Crucible raid weapons land in their own batch
+    // (crucible-raid-weapons-2026-08-28), like the integration daggers.
+    const crucibleBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'crucible-raid-weapons-2026-08-28',
+    );
+    expect(crucibleBatch).toBeDefined();
+    const crucibleWeaponIds = (crucibleBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(crucibleWeaponIds).toEqual([
+      'anvilguard_blade',
+      'cinderfang_kris',
+      'forgefathers_warhammer',
+      'forgefire_spire',
+      'heart_of_the_end_greatblade',
+      'slagrender_cleaver',
+      'springtouched_crozier',
+      'staff_of_the_last_spring',
+      'wand_of_quenched_sparks',
+    ]);
+    // The Ignivar legendaries ship in-engine renders of their own held models
+    // in a dedicated batch (ignivar-varkhul-drop-renders-2026-08-28).
+    const varkhulBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'ignivar-varkhul-drop-renders-2026-08-28',
+    );
+    expect(varkhulBatch).toBeDefined();
+    const varkhulWeaponIds = (varkhulBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(varkhulWeaponIds).toEqual(['varkhul_forgebreaker']);
+    // The Nythraxis gap-fill one-handers ship in-engine renders of their
+    // violet-gem KayKit held models in a dedicated batch
+    // (nythraxis-gap-weapon-renders-2026-09-04).
+    const gapBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'nythraxis-gap-weapon-renders-2026-09-04',
+    );
+    expect(gapBatch).toBeDefined();
+    const gapWeaponIds = (gapBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(gapWeaponIds).toEqual(['courtiers_bonefang', 'gravecourt_hewer', 'thornpeak_wardblade']);
+    // Each faction weapon now belongs to its current painted batch.
+    const automatonPaintedBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'faction-automaton-painted-icons-v045-2026-10-22',
+    );
+    expect(automatonPaintedBatch).toBeDefined();
+    expect(
+      automatonPaintedBatch?.itemIds?.filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id)),
+    ).toEqual(['forgemaster_crag_cleaver']);
+    const churchPaintedBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'faction-church-painted-icons-v045-2026-10-22',
+    );
+    expect(churchPaintedBatch).toBeDefined();
+    expect(
+      churchPaintedBatch?.itemIds?.filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id)),
+    ).toEqual(['dawnkeeper_consecrated_mace']);
+    const riftPaintedBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'faction-rift-painted-icons-v045-2026-10-22',
+    );
+    expect(riftPaintedBatch).toBeDefined();
+    expect(
+      riftPaintedBatch?.itemIds?.filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id)),
+    ).toEqual(['riftwarden_voidblade']);
+    // The Warfare Season 2 honor weapons ship paintings in their own batch
+    // (warfare-season2-weapons-2026-09-25).
+    const season2Batch = weaponBatches.find(
+      ({ batchId }) => batchId === 'warfare-season2-weapons-2026-09-25',
+    );
+    expect(season2Batch).toBeDefined();
+    const season2WeaponIds = (season2Batch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(season2WeaponIds).toEqual([
+      'vanguard_fang_dagger',
+      'vanguard_oath_blade',
+      'vanguard_verdict_greatsword',
+      'vanguard_warstaff',
+    ]);
+    const feralStaffBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'warfare-season2-feral-staff-2026-09-29',
+    );
+    expect(feralStaffBatch?.itemIds).toEqual(['vanguard_feral_staff']);
+    // The Mirefen world boss's maul ships in its own batch
+    // (balgath-boss-icons-2026-08-18): a batch that lands after the
+    // historical one OWNS its ids, so the historical batch's frozen scope
+    // excludes them.
+    const bossBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'balgath-boss-icons-2026-08-18',
+    );
+    expect(bossBatch).toBeDefined();
+    const bossWeaponIds = (bossBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(bossWeaponIds).toEqual(['foremans_barrowmaul']);
+    // Same shape again for the Shardpike mechanic batch
+    // (shardpike-mechanic-icons-2026-08-20), whose quest-tool pike gained a
+    // held model and therefore its own painted inventory art.
+    const shardpikeBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'shardpike-mechanic-icons-2026-08-20',
+    );
+    expect(shardpikeBatch).toBeDefined();
+    const shardpikeWeaponIds = (shardpikeBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(shardpikeWeaponIds).toEqual(['skerrits_shardpike']);
+    // And once more for the muster's lent copy (muster-shardpike-icon-2026-09-26).
+    const musterBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'muster-shardpike-icon-2026-09-26',
+    );
+    expect(musterBatch).toBeDefined();
+    const musterWeaponIds = (musterBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(musterWeaponIds).toEqual(['muster_shardpike']);
+    // And for Balgath's loot (balgath-loot-icons-2026-09-28), whose one weapon is the staff.
+    const lootBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'balgath-loot-icons-2026-09-28',
+    );
+    expect(lootBatch).toBeDefined();
+    const lootWeaponIds = (lootBatch?.itemIds ?? [])
+      .filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id))
+      .sort();
+    expect(lootWeaponIds).toEqual(['craterglass_stave']);
+    // Dungeon paintings retain one current provenance owner per weapon.
+    // Historical SVG generators remain unchanged.
+    const reworkBatchIds = [
+      'dungeon-temple-blues-painted-icons-v045-2026-10-22',
+      'dungeon-bastion-blues-painted-icons-v045-2026-10-22',
+      'dungeon-bastion-painted-icons-v045-2026-10-22',
+      'dungeon-temple-painted-icons-v045-2026-10-22',
+      'dungeon-wildheart-painted-icons-v045-2026-10-22',
+      'dungeon-gravewyrm-painted-icons-v045-2026-10-22',
+      'dungeon-crypt-painted-icons-v045-2026-10-22',
+      'dungeon-crypt-blues-painted-icons-v045-2026-10-22',
+    ];
+    for (const batchId of reworkBatchIds) {
+      expect(
+        weaponBatches.some((batch) => batch.batchId === batchId),
+        batchId,
+      ).toBe(true);
+    }
+    const reworkWeaponIds = weaponBatches
+      .filter(({ batchId }) => batchId !== undefined && reworkBatchIds.includes(batchId))
+      .flatMap(({ itemIds }) => itemIds.filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id)))
+      .sort();
+    expect(reworkWeaponIds).toEqual([
+      'falls_blessed_staff',
+      'fogbinders_rod',
+      'gaolyard_cudgel',
+      'gravecallers_rod',
+      'hammer_of_the_open_lock',
+      'knight_commanders_longsword',
+      'merecleaver',
+      'moonwrack_stave',
+      'rimeweb_fang',
+      'sextons_burial_spade',
+      'sextons_spadehaft',
+      'tideglass_shiv',
+      'tideglass_warmaul',
+      'turnkeys_shank',
+    ]);
+    const membershipBatch = weaponBatches.find(
+      ({ batchId }) => batchId === 'membership-weapon-2026-10-14',
+    );
+    expect(membershipBatch?.itemIds).toEqual(['membership_staff']);
+    expect(historicalBatch?.itemIds).toEqual(
+      expected.filter(
+        (id) =>
+          !replacementWeaponIds.includes(id) &&
+          !integrationWeaponIds.includes(id) &&
+          !masterwroughtWeaponIds.includes(id) &&
+          !crucibleWeaponIds.includes(id) &&
+          !varkhulWeaponIds.includes(id) &&
+          !gapWeaponIds.includes(id) &&
+          id !== 'forgemaster_crag_cleaver' &&
+          id !== 'riftwarden_voidblade' &&
+          id !== 'dawnkeeper_consecrated_mace' &&
+          !season2WeaponIds.includes(id) &&
+          id !== 'vanguard_feral_staff' &&
+          !bossWeaponIds.includes(id) &&
+          !shardpikeWeaponIds.includes(id) &&
+          !musterWeaponIds.includes(id) &&
+          !lootWeaponIds.includes(id) &&
+          !reworkWeaponIds.includes(id) &&
+          id !== 'membership_staff',
+      ),
+    );
+    expect(
+      replacementBatch?.itemIds.filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id)).sort(),
+    ).toEqual(replacementWeaponIds);
+    expect(
+      weaponBatches
+        .flatMap(({ itemIds }) => itemIds.filter((id) => Object.hasOwn(ITEM_WEAPON_VARIANTS, id)))
+        .sort(),
+    ).toEqual(expected);
+
+    for (const batch of [historicalBatch, replacementBatch]) {
+      expect(batch?.source).toBe('OpenAI built-in image generation');
+      expect(batch?.owner).toBe('World of ClaudeCraft');
+      expect(batch?.license).toContain('project asset');
+    }
+    expect(historicalBatch?.provenanceRecord).toBe(weaponProvenanceRecord);
+    expect(replacementBatch?.provenanceRecord).toBe(itemConsistencyProvenanceRecord);
+
+    const provenanceDir = path.join(repoRoot, weaponProvenanceRecord);
+    const readJsonRecord = (filename: string): unknown =>
+      JSON.parse(readFileSync(path.join(provenanceDir, filename), 'utf8'));
+    const chunkA = readJsonRecord(weaponGenerationRecordFiles[0]) as {
+      assets: Array<{ id: string }>;
+    };
+    const chunkB = readJsonRecord(weaponGenerationRecordFiles[1]) as {
+      assets: Array<{ id: string }>;
+    };
+    const chunkCSource = readFileSync(
+      path.join(provenanceDir, weaponGenerationRecordFiles[2]),
+      'utf8',
+    );
+    const chunkC = [...chunkCSource.matchAll(/^\|\s*`([a-z0-9_]+)`\s*\|\s*`[a-f0-9]{64}`/gm)].map(
+      (match) => match[1],
+    );
+    const chunkD = readJsonRecord(weaponGenerationRecordFiles[3]) as {
+      finalAssets: Array<{ id: string }>;
+    };
+    // The chunk records are the frozen weapon campaign's generation reports:
+    // they slice the pre-integration weapon roster, without the four
+    // integration daggers, the two Masterwrought phase 09 weapons, the nine
+    // Crucible raid weapons, the Ignivar legendary, the Nythraxis gap-fill
+    // one-handers, the Mirefen world-boss maul, or Skerrit's Shardpike, all
+    // of which postdate the campaign and own their own art. Any weapon added
+    // from here on has to be excluded here too, or it shifts every slice
+    // boundary and all four chunk assertions fail at once.
+    const campaignExpected = expected.filter(
+      (id) =>
+        !integrationWeaponIds.includes(id) &&
+        !masterwroughtWeaponIds.includes(id) &&
+        !crucibleWeaponIds.includes(id) &&
+        !varkhulWeaponIds.includes(id) &&
+        !gapWeaponIds.includes(id) &&
+        id !== 'forgemaster_crag_cleaver' &&
+        id !== 'riftwarden_voidblade' &&
+        id !== 'dawnkeeper_consecrated_mace' &&
+        !season2WeaponIds.includes(id) &&
+        !bossWeaponIds.includes(id) &&
+        !shardpikeWeaponIds.includes(id) &&
+        !musterWeaponIds.includes(id) &&
+        !lootWeaponIds.includes(id) &&
+        !reworkWeaponIds.includes(id) &&
+        id !== 'membership_staff' &&
+        id !== 'vanguard_feral_staff',
+    );
+    expect(chunkA.assets.map(({ id }) => id)).toEqual(campaignExpected.slice(0, 40));
+    expect(chunkB.assets.map(({ id }) => id)).toEqual(campaignExpected.slice(40, 80));
+    expect(chunkC).toEqual(campaignExpected.slice(80, 100));
+    expect(chunkD.finalAssets.map(({ id }) => id)).toEqual(campaignExpected.slice(100));
+
+    const provenanceReadme = readFileSync(path.join(provenanceDir, 'README.md'), 'utf8');
+    for (const filename of weaponGenerationRecordFiles) {
+      expect(provenanceReadme, `${filename} lineage`).toContain(`\`${filename}\``);
+    }
+
+    for (const id of expected) {
+      const owners = [
+        ...itemMapping.entries.filter((entry) => entry.itemId === id),
+        ...batches.filter((batch) => batch.itemIds.includes(id)),
+      ];
+      expect(owners, `${id} provenance owner`).toHaveLength(1);
+    }
+  });
+
+  // FORK: four Scorching Wastes weapons are authored but not yet painted; the
+  // coverage test above reds on them by design. This shipping-contract sweep
+  // reads the painted rest.
+  const FORK_UNPAINTED = new Set([
+    'duneforged_warblade',
+    'emberglass_scepter',
+    'glasscut_dirk',
+    'sunbleached_staff',
+  ]);
+  it('ships every painted base weapon as a distinct opaque 128px painting within budget', async () => {
+    const hashes = new Set<string>();
+    for (const id of baseWeapons.filter((weaponId) => !FORK_UNPAINTED.has(weaponId))) {
+      const violations: string[] = [];
+      const bytes = readFileSync(path.join(itemsDir, `${id}.webp`));
+      if (bytes.length > 15 * 1024) {
+        violations.push(`byte budget: ${bytes.length} > ${15 * 1024}`);
+      }
+      const hash = createHash('sha256').update(bytes).digest('hex');
+      if (hashes.has(hash)) {
+        violations.push(`duplicates an earlier weapon (${hash})`);
+      }
+      hashes.add(hash);
+
+      const decoded = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      if (decoded.info.width !== 128 || decoded.info.height !== 128) {
+        violations.push(
+          `dimensions: ${decoded.info.width}x${decoded.info.height} instead of 128x128`,
+        );
+      }
+      let nonOpaqueAlphaBytes = 0;
+      let firstNonOpaqueOffset: number | undefined;
+      for (let offset = 3; offset < decoded.data.length; offset += decoded.info.channels) {
+        if (decoded.data[offset] !== 255) {
+          nonOpaqueAlphaBytes += 1;
+          firstNonOpaqueOffset ??= offset;
+        }
+      }
+      if (nonOpaqueAlphaBytes > 0) {
+        violations.push(
+          `opacity: ${nonOpaqueAlphaBytes} alpha bytes are not 255 (first at byte ${firstNonOpaqueOffset})`,
+        );
+      }
+      expect(violations, `${id} shipping contract`).toEqual([]);
+    }
+  });
+});

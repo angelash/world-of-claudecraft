@@ -2,14 +2,17 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  isNpcPlateEntity,
   NAMEPLATE_ANCHOR_LIFT,
   NAMEPLATE_RANGE,
   NAMEPLATE_RANGE_SQ,
   NAMEPLATE_SELF_EMOTE_ANCHOR_LIFT,
   NAMEPLATE_URGENT_RANGE,
+  NPC_NAMEPLATE_RANGE,
   nameplatePlanInto,
   newNameplatePlan,
 } from '../src/render/nameplate_view';
+import { INTERACT_RANGE } from '../src/sim/types';
 
 // The nameplate_view core: the pure DOM/Three/i18n-free decision model the
 // NameplatePainter consumes. These pin the exact visibility / anchor / urgent /
@@ -60,6 +63,8 @@ function plan(
   showNameplates = true,
   showOwnNameplate = false,
   showPlayerNameplates = true,
+  standIn = false,
+  showPetNames = false,
 ) {
   return nameplatePlanInto(
     newNameplatePlan(),
@@ -69,6 +74,8 @@ function plan(
     showNameplates,
     showOwnNameplate,
     showPlayerNameplates,
+    showPetNames,
+    standIn,
   );
 }
 
@@ -148,20 +155,45 @@ describe('nameplate_view - visibility', () => {
     ).toBe(true);
   });
 
+  it('labels a placed harvest feast near, hides it far, and never shows its hp', () => {
+    // The Phase 12 feast follows the delve-interact idiom: the composed
+    // "{name}'s Harvest Feast" title shows within the INTERACT_RANGE + 1
+    // hysteresis pad (one yard PAST the bite's own INTERACT_RANGE gate, so
+    // the plate is already up walking in and never flickers at the exact
+    // boundary) and hides beyond it; as a kind-'object' plate it carries no
+    // hp bar (the painter's object arm never sets hpVisible, the flag-family
+    // treatment).
+    const near = plan(ent({ kind: 'object', templateId: 'farm_feast', pos: { x: 0, y: 0, z: 1 } }));
+    expect(near.hidden).toBe(false);
+    // The exact pad, both sides of the boundary.
+    expect(
+      plan(
+        ent({
+          kind: 'object',
+          templateId: 'farm_feast',
+          pos: { x: 0, y: 0, z: INTERACT_RANGE + 1 },
+        }),
+      ).hidden,
+    ).toBe(false);
+    expect(
+      plan(
+        ent({
+          kind: 'object',
+          templateId: 'farm_feast',
+          pos: { x: 0, y: 0, z: INTERACT_RANGE + 1.01 },
+        }),
+      ).hidden,
+    ).toBe(true);
+    expect(
+      plan(ent({ kind: 'object', templateId: 'farm_feast', pos: { x: 0, y: 0, z: 30 } })).hidden,
+    ).toBe(true);
+  });
+
   it('hides the sealed royal door inside the boss arena (it reads as back wall)', () => {
     expect(
       plan(ent({ kind: 'object', templateId: 'dungeon_door', dungeonId: 'nythraxis_boss_arena' }))
         .hidden,
     ).toBe(true);
-  });
-
-  it('hides the Vale Cup boarball plate even with nameplates on and up close', () => {
-    // The ball is an inert mob entity (bell pattern) with a bespoke ball
-    // visual; a floating name + hp bar over it would break the toy. Pinned
-    // near, targeted, and with the toggle on, so no other arm can resurface it.
-    const ball = ent({ templateId: 'vale_cup_ball', pos: { x: 0, y: 0, z: 2 } });
-    expect(plan(ball).hidden).toBe(true);
-    expect(plan(ball, viewer({ targetId: 2 })).hidden).toBe(true);
   });
 
   it('the mob-nameplate toggle hides live mobs only, never players/npcs/objects', () => {
@@ -261,19 +293,159 @@ describe('nameplate_view - threat + combo (delegated to the narrow helpers)', ()
   });
 });
 
+describe('nameplate_view - NPC plates (close range, name and role only)', () => {
+  const npc = (z: number, overrides: Record<string, unknown> = {}) =>
+    ent({ kind: 'npc', templateId: 'smith_haldren', pos: { x: 0, y: 0, z }, ...overrides });
+
+  it('shows a full NPC plate only inside NPC_NAMEPLATE_RANGE, marker-only to NAMEPLATE_RANGE', () => {
+    expect(NPC_NAMEPLATE_RANGE).toBe(10);
+    expect(plan(npc(10)).hidden).toBe(false);
+    expect(plan(npc(10)).markerOnly).toBe(false);
+    expect(plan(npc(10.01)).hidden).toBe(false);
+    expect(plan(npc(10.01)).markerOnly).toBe(true);
+    expect(plan(npc(NPC_NAMEPLATE_RANGE - 0.5)).markerOnly).toBe(false);
+    expect(plan(npc(NAMEPLATE_RANGE)).markerOnly).toBe(true);
+    expect(plan(npc(NAMEPLATE_RANGE + 0.5)).hidden).toBe(true);
+    // a mob or player at the same distance keeps the normal range
+    expect(plan(ent({ pos: { x: 0, y: 0, z: NPC_NAMEPLATE_RANGE + 0.5 } })).hidden).toBe(false);
+    expect(
+      plan(ent({ kind: 'player', id: 3, pos: { x: 0, y: 0, z: NPC_NAMEPLATE_RANGE + 0.5 } }))
+        .hidden,
+    ).toBe(false);
+  });
+
+  it('treats a friendly quest-giver mob as an NPC plate, but not a hostile one', () => {
+    const giver = (z: number) => ent({ hostile: false, questIds: ['q1'], pos: { x: 0, y: 0, z } });
+    expect(plan(giver(2)).nameOnly).toBe(true);
+    expect(plan(giver(NPC_NAMEPLATE_RANGE + 0.5)).markerOnly).toBe(true);
+    const hostile = ent({ hostile: true, questIds: ['q1'], pos: { x: 0, y: 0, z: 2 } });
+    expect(plan(hostile).nameOnly).toBe(false);
+    expect(plan(ent({ hostile: false, questIds: [], pos: { x: 0, y: 0, z: 2 } })).nameOnly).toBe(
+      false,
+    );
+  });
+
+  it('gives a friendly quest-giver mob no threat tint or combo pips', () => {
+    const aggroed = { hostile: false, aggroTargetId: PLAYER_ID, pos: { x: 0, y: 0, z: 2 } };
+    const p = viewer({ comboPoints: 3, targetId: 2 });
+    const giver = plan(ent({ ...aggroed, questIds: ['q1'] }), p);
+    expect(giver.threat).toBe(false);
+    expect(giver.comboPips).toBe(0);
+    // the same mob without quests keeps both
+    const plain = plan(ent({ ...aggroed, questIds: [] }), p);
+    expect(plain.threat).toBe(true);
+    expect(plain.comboPips).toBe(3);
+  });
+
+  it('only promotes a MOB with quests, never a player or object', () => {
+    expect(isNpcPlateEntity(ent({ kind: 'npc' }))).toBe(true);
+    expect(isNpcPlateEntity(ent({ hostile: false, questIds: ['q1'] }))).toBe(true);
+    expect(isNpcPlateEntity(ent({ kind: 'player', hostile: false, questIds: ['q1'] }))).toBe(false);
+    expect(isNpcPlateEntity(ent({ kind: 'object', hostile: false, questIds: ['q1'] }))).toBe(false);
+  });
+
+  it('lets a compile-gate stand-in NPC show past the close range, still name-only', () => {
+    const out = plan(npc(NPC_NAMEPLATE_RANGE + 5), viewer(), 2, true, false, true, true);
+    expect(out.hidden).toBe(false);
+    expect(out.nameOnly).toBe(true);
+    expect(out.markerOnly).toBe(false);
+  });
+
+  it('keeps the close range for a targeted NPC too', () => {
+    const p = viewer({ targetId: 2 });
+    expect(plan(npc(NPC_NAMEPLATE_RANGE + 0.5), p).markerOnly).toBe(true);
+  });
+
+  it('never marks a mob or player plate marker-only', () => {
+    const far = { x: 0, y: 0, z: NPC_NAMEPLATE_RANGE + 5 };
+    expect(plan(ent({ pos: far })).markerOnly).toBe(false);
+    expect(plan(ent({ kind: 'player', id: 3, pos: far })).markerOnly).toBe(false);
+  });
+
+  it('marks an NPC plate name-only, with no threat tint or combo pips', () => {
+    const p = viewer({ comboPoints: 3, targetId: 2 });
+    const out = plan(npc(2, { aggroTargetId: PLAYER_ID, hostile: true }), p);
+    expect(out.nameOnly).toBe(true);
+    expect(out.threat).toBe(false);
+    expect(out.comboPips).toBe(0);
+    // the same targeting on a mob does build pips, so the NPC zero is the rule
+    expect(plan(ent({ pos: { x: 0, y: 0, z: 2 } }), p).comboPips).toBe(3);
+    expect(plan(ent({ pos: { x: 0, y: 0, z: 2 } })).nameOnly).toBe(false);
+    expect(plan(ent({ kind: 'player', id: 3, pos: { x: 0, y: 0, z: 2 } })).nameOnly).toBe(false);
+  });
+});
+
+describe('nameplate_view - compile-gate stand-in', () => {
+  // The inverse of the compile gates' charter: a gate hides a body only while
+  // SOMETHING still represents the entity. When nothing does, the plate is that
+  // stand-in and it must beat the player's own nameplate toggles, or an
+  // arriving enemy is completely invisible for an unbounded window.
+  const gatedMob = () => ent({ kind: 'mob', pos: { x: 0, y: 0, z: 6 } });
+  const otherPlayer = () => ent({ id: 7, kind: 'player', pos: { x: 0, y: 0, z: 6 } });
+
+  it('leaves a mob plate hidden when plates are off and the mob has a body', () => {
+    expect(plan(gatedMob(), viewer(), 2, false, false, true, false).hidden).toBe(true);
+  });
+
+  it('forces the mob plate on when plates are off and the mob has no body', () => {
+    expect(plan(gatedMob(), viewer(), 2, false, false, true, true).hidden).toBe(false);
+  });
+
+  it('leaves a plate shown when plates are on, with or without a stand-in', () => {
+    expect(plan(gatedMob(), viewer(), 2, true, false, true, false).hidden).toBe(false);
+    expect(plan(gatedMob(), viewer(), 2, true, false, true, true).hidden).toBe(false);
+  });
+
+  it('forces an other-player plate on only when its own toggle is off and it is bodiless', () => {
+    expect(plan(otherPlayer(), viewer(), 2, true, false, false, false).hidden).toBe(true);
+    expect(plan(otherPlayer(), viewer(), 2, true, false, false, true).hidden).toBe(false);
+  });
+
+  it('also beats the range and the plateless-object rule: a gated view has no other representation', () => {
+    // Both rules assume something is drawn in the world. Under a gate nothing
+    // is, and a view only exists inside the streaming radius (about 80 yd), so
+    // the plate stands in out to there, object views included.
+    const far = ent({ kind: 'mob', pos: { x: 0, y: 0, z: NAMEPLATE_RANGE + 5 } });
+    expect(plan(far, viewer(), 2, true, false, true, false).hidden).toBe(true);
+    expect(plan(far, viewer(), 2, true, false, true, true).hidden).toBe(false);
+    const crate = ent({ kind: 'object', templateId: 'crate' });
+    expect(plan(crate, viewer(), 2, true, false, true, false).hidden).toBe(true);
+    expect(plan(crate, viewer(), 2, true, false, true, true).hidden).toBe(false);
+  });
+
+  it('still hides what no gate is hiding: a looted corpse and the label-less carve-outs', () => {
+    const corpse = ent({ kind: 'mob', dead: true, lootable: false });
+    expect(plan(corpse, viewer(), 2, true, false, true, true).hidden).toBe(true);
+    // The sealed crypt door reads as back wall: deliberately label-less, gate
+    // or no gate. (The Vale Cup ball was the other carve-out until the New
+    // Eastbrook program retired it.)
+    const sealed = ent({
+      kind: 'object',
+      templateId: 'dungeon_door',
+      dungeonId: 'nythraxis_boss_arena',
+    });
+    expect(plan(sealed, viewer(), 2, true, false, true, true).hidden).toBe(true);
+  });
+
+  it('never overrides the self plate (the local player view is never gated)', () => {
+    const me = ent({ id: PLAYER_ID, kind: 'player' });
+    expect(plan(me, viewer({ id: PLAYER_ID }), 2, true, false, true, true).hidden).toBe(true);
+  });
+});
+
 describe('nameplate_view - allocation-light + determinism', () => {
   it('writes into the caller-owned plan and returns that same instance (no per-call alloc)', () => {
     const out = newNameplatePlan();
     const e = ent({ pos: { x: 0, y: 0, z: 5 } });
-    const returned = nameplatePlanInto(out, e, viewer(), 2, true, false, true);
+    const returned = nameplatePlanInto(out, e, viewer(), 2, true, false, true, false, false);
     expect(returned).toBe(out); // same reference, reused
   });
 
   it('same input gives the same plan (pure)', () => {
     const e = ent({ pos: { x: 0, y: 0, z: 5 }, aggroTargetId: PLAYER_ID });
     const p = viewer({ comboPoints: 2, targetId: e.id });
-    const a = nameplatePlanInto(newNameplatePlan(), e, p, 2, true, false, true);
-    const b = nameplatePlanInto(newNameplatePlan(), e, p, 2, true, false, true);
+    const a = nameplatePlanInto(newNameplatePlan(), e, p, 2, true, false, true, false, false);
+    const b = nameplatePlanInto(newNameplatePlan(), e, p, 2, true, false, true, false, false);
     expect(a).toEqual(b);
   });
 });
@@ -312,8 +484,28 @@ describe('nameplate_view - Sim-vs-ClientWorld parity', () => {
       // ClientWorld-mirror-shaped: ONLY the fields the core reads, sim-only absent.
       const mirE = ent({ ...eo });
       const mirP = viewer({ ...po });
-      const simPlan = nameplatePlanInto(newNameplatePlan(), simE, simP, 2, true, false, true);
-      const mirPlan = nameplatePlanInto(newNameplatePlan(), mirE, mirP, 2, true, false, true);
+      const simPlan = nameplatePlanInto(
+        newNameplatePlan(),
+        simE,
+        simP,
+        2,
+        true,
+        false,
+        true,
+        false,
+        false,
+      );
+      const mirPlan = nameplatePlanInto(
+        newNameplatePlan(),
+        mirE,
+        mirP,
+        2,
+        true,
+        false,
+        true,
+        false,
+        false,
+      );
       expect(simPlan).toEqual(mirPlan);
     });
   }
@@ -343,6 +535,20 @@ describe('nameplate_view - import absence (two-controller + purity, source scan)
     const froms = [...code.matchAll(/\bimport\b[^;]*\bfrom\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
     // unique modules, robust to biome merging/splitting the type vs value sim import
     expect([...new Set(froms)].sort()).toEqual([
+      // The muster weapon rack's template id (a sim CONTENT leaf, like the feast
+      // one below), so its near-label rule cannot drift from the id the sim spawns.
+      '../sim/content/mirefen_muster',
+      '../sim/pet/buddy_ai',
+      // The feast template-id constant (Phase 12): a sim CONTENT leaf, not
+      // three/painter/gfx; imported so the discriminator cannot drift from
+      // the sim's own id (the frontend-seam review's ask).
+      '../sim/professions/feast',
+      // The placed mobile-station template-id predicate: the same kind of sim
+      // leaf, so the plate's near-rule shares the feast's pad for a station.
+      '../sim/professions/mobile_station_object',
+      // The hoard brood egg template id, the same kind of sim content leaf: an
+      // egg shows no nameplate (it has no health to read and cannot be hit).
+      '../sim/rift/hoard_boss_kits',
       '../sim/types',
       './nameplate_combo',
       './nameplate_threat',

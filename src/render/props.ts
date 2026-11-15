@@ -1,15 +1,17 @@
 import * as THREE from 'three';
-import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { buildingCameraHeight } from '../sim/building_layout';
+import { isBuiltinShapedWorld } from '../sim/builtin_shaped_world';
 import { mineMoundFootprint, STALL_HALF_D, STALL_HALF_W } from '../sim/colliders';
-import { BUILTIN_WORLD, getActiveWorldContent, WORLD_MIN_Z } from '../sim/data';
+import { MOUNT_RACE_JUMP_FIXTURES } from '../sim/content/mounts';
+import { getActiveWorldContent, isBuiltinWorldContent, WORLD_MIN_Z } from '../sim/data';
 import {
   DOCK_SECTION_LOCAL_Z,
   DOCK_SECTION_SURFACE_Y,
   dockSurfaceLine,
   dockSurfaceYAt,
 } from '../sim/dock_layout';
+import { MUDFIN_HUT_MODELS, type MudfinHutModel, mudfinHutAt } from '../sim/mudfin_huts';
 import {
   CHAPEL_HALL,
   CHAPEL_TOWER,
@@ -19,11 +21,20 @@ import {
   delveArchMouthSign,
   delveArchZ,
   propPlacementRoll,
+  ruinRingColumns,
 } from '../sim/prop_layout';
 import { hash2 } from '../sim/rng';
-import { terrainHeight, waterLevel } from '../sim/world';
-import { loadGltf, releaseGltf } from './assets/loader';
-import { registerPreload } from './assets/preload';
+import type { BuildingDef } from '../sim/types';
+import { terrainHeight, WATER_LEVEL, waterLevel } from '../sim/world';
+import { type LoadedGltf, loadGltf, releaseGltf } from './assets/loader';
+import { registerDeferredPreload } from './assets/preload';
+import { activeWorldHasAuthoredTown } from './authored_town_gate';
+import { attachBiomeHaze } from './biome_haze_field';
+import {
+  buildCampfireFlame,
+  buildLegacyCampfireFlame,
+  legacyCampfireFlameGeometry,
+} from './campfire_flame';
 import { buildEastbrookGrandArmouryView } from './eastbrook_grand_armoury';
 import {
   isEastbrookRebuildBuilding,
@@ -31,7 +42,79 @@ import {
   isEastbrookRebuildStall,
   isEastbrookRebuildWell,
 } from './eastbrook_town';
-import { GFX, sharedUniforms, surfaceMat } from './gfx';
+import {
+  isFenbridgeRebuildBuilding,
+  isFenbridgeRebuildStall,
+  isFenbridgeRebuildWell,
+} from './fenbridge_town';
+import { buildFerryPiers } from './ferry_piers';
+import { EMISSIVE_LIGHT, GFX, type GfxSettings, sharedUniforms, surfaceMat } from './gfx';
+import { buildHarborRouteMarkers, harborRouteMarkerPrewarmParts } from './harbor_route_markers';
+import { highwatchGuildFlames, highwatchGuildLights } from './highwatch_guild_lights';
+import { isHighwatchRebuildBuilding } from './highwatch_town';
+import { hutSmokePrewarmParts } from './hut_smoke';
+import {
+  type KitSurfaceFamily,
+  kitHasUvSurfaceRouting,
+  splitKitSurfacesByUv,
+} from './kit_uv_surface_core';
+import { cloneMaterialWithHooks } from './material_clone_hooks';
+import {
+  buildMirefenTavern,
+  clearMirefenTavernShell,
+  mirefenTavernFlameSpots,
+  mirefenTavernLights,
+  mirefenTavernPrewarmParts,
+  updateMirefenTavernShell,
+} from './mirefen_tavern';
+import { MUSTER_KIT_PROP_DEFS, MUSTER_LOW_TIER_KIT_KEYS, renderDecorProps } from './muster_camps';
+import {
+  advanceOccluderFade,
+  applyOccluderFade,
+  type OccluderFadeMat,
+  occluderFadeRecordFor,
+  prefetchOccluderFadeWithin,
+} from './occluder_fade';
+import { occluderFadesDisabled } from './occluder_fade_core';
+import { isPaintedTownRebuildBuilding } from './painted_towns';
+import { type PropCellBounds, propCellKey, updatePropCell } from './prop_cell_core';
+import {
+  newPropCullPass,
+  type PropCullBounds,
+  type PropCullRevealState,
+  propCullKey,
+  propRevealRoots,
+  updatePropCullables,
+} from './prop_cull_core';
+import type { RevealGateCore } from './reveal_gate_core';
+import {
+  isLowSceneryCullActive,
+  prepareSceneryDetailRoot,
+  sceneryClutterFar,
+  sceneryStructureFar,
+} from './scenery_detail';
+import { shipWakePrewarmParts } from './ship_wake';
+import { mergeBandDepth, mergeStaticMeshes, normalizedStaticGeometry } from './static_merge';
+import { buildScheduledShips, type FerryViewSource } from './transport_ferry_ships';
+import {
+  buildTransportShipView,
+  isTransportShipKey,
+  type TransportShipView,
+  transportShipPrewarmParts,
+} from './transport_ship';
+import { buildWickharborHarbor, wickharborHarborPrewarmParts } from './wickharbor_harbor';
+import { buildWickharborWharf, wickharborWharfPrewarmParts } from './wickharbor_wharf';
+import { applySurfaceDetail, type WornFamilyPick, wornFamilyFor } from './worn_stone';
+import {
+  buildWyrmwatchHarbor,
+  wyrmwatchHarborHouseLights,
+  wyrmwatchHarborPrewarmParts,
+} from './wyrmwatch_harbor';
+import {
+  clearHarborHouseShell,
+  harborHouseShellMeshes,
+  updateHarborHouseShell,
+} from './wyrmwatch_harbor_house';
 
 // Static world props: buildings, tents, campfires, mines, ruins, docks,
 // fences, graveyards — all real CC0 glTF assets (Quaternius medieval village +
@@ -53,11 +136,12 @@ import { GFX, sharedUniforms, surfaceMat } from './gfx';
 export interface PropsResult {
   group: THREE.Group;
   flames: THREE.Mesh[]; // animated campfire flames
+  windmillFans: THREE.Object3D[]; // live sail pivots the renderer spins
   fireLights: THREE.PointLight[];
   /**
    * Hides merged/instanced prop bands that sit entirely past the fog far plane,
-   * and hides any camera-ghost prop crossing the current eye-to-camera segment
-   * so the chase cam can pass through props without a wall in view.
+   * and fades any camera-ghost prop crossing the current eye-to-camera segment
+   * to 20% opacity so the chase cam sees through props without blanking them.
    */
   update(
     camX: number,
@@ -67,10 +151,34 @@ export interface PropsResult {
     eyeY: number,
     eyeZ: number,
     fogFar: number,
+    dt: number,
+    reducedMotion?: boolean,
   ): void;
+  /**
+   * First-reveal compile gating (hitch-hunt P3a): a far cell's first drawn
+   * far swap is held in the pixel-identical near representation until the
+   * gate warms the key, and its first near flip back, once that bake was
+   * proven, holds on the bake until the `<key>:near` key warms the members'
+   * own programs (prop_cell_core). No gate keeps the immediate flip (tests,
+   * renderers without async compile; the editor viewport composes the real
+   * Renderer and is therefore gated too).
+   */
+  setRevealGate(gate: RevealGateCore | null): void;
+  /**
+   * The same gate for the merged and instanced BANDS: a band's first fog
+   * reveal on a walking approach is held hidden until the gate warms its key
+   * (prop_cull_core). Installed at the start of every scene prewarm, including
+   * graphics rebuilds. The initial-entry first-paint barrier keeps its work
+   * behind the manifest; rebuild prewarms have no barrier and preserve the
+   * historical immediate compile start. Without a gate, a band keeps the
+   * historical immediate cull and latches as revealed.
+   */
+  setBandRevealGate(gate: RevealGateCore | null): void;
+  /** The compile roots behind a gate key: a far cell's bake meshes, its
+   *  members' groups behind the cell's `:near` key, or the one band behind a
+   *  cullable key. */
+  revealRoots(key: string): readonly THREE.Object3D[];
 }
-
-const MERGE_BAND_DEPTH = GFX.standardMaterials ? 180 : 90;
 
 // ---------------------------------------------------------------------------
 // Asset registry — loads kick off at module import; main.ts awaits
@@ -88,10 +196,24 @@ interface PropAssetDef {
   strip?: RegExp;
 }
 
-const PROP_ASSET_DEFS: Record<string, PropAssetDef> = {
+// exported for the castle render assemblies (render/dawnhold_features.ts),
+// which instance the kcas castle set through the same registry (one preload
+// gate, one manifest surface)
+export const PROP_ASSET_DEFS: Record<string, PropAssetDef> = {
   house1: { url: '/models/props/house_1.glb', kit: 'village' },
   house2: { url: '/models/props/house_2.glb', kit: 'village', yaw: -Math.PI / 2 },
   house3: { url: '/models/props/house_3.glb', kit: 'village' },
+  // Veiled Hollow town: KayKit Medieval Hexagon Pack buildings (CC0) with the
+  // blue-colorway palette texture shifted to the Hollow's dusk violet (baked
+  // into the *_hollow.glb files by tmp/make_kmed_hollow.mjs). Placed via the
+  // BuildingDef kinds hollowHouse / hollowInn / hollowChapel / hollowSmith /
+  // hollowMarket.
+  kmedHomeA: { url: '/models/props/kmed_home_A_hollow.glb', kit: 'kmed' },
+  kmedHomeB: { url: '/models/props/kmed_home_B_hollow.glb', kit: 'kmed' },
+  kmedTavern: { url: '/models/props/kmed_tavern_hollow.glb', kit: 'kmed' },
+  kmedChurch: { url: '/models/props/kmed_church_hollow.glb', kit: 'kmed' },
+  kmedBlacksmith: { url: '/models/props/kmed_blacksmith_hollow.glb', kit: 'kmed' },
+  kmedMarket: { url: '/models/props/kmed_market_hollow.glb', kit: 'kmed' },
   blacksmith: { url: '/models/props/blacksmith.glb', kit: 'village' },
   inn: { url: '/models/props/inn.glb', kit: 'village' },
   bellTower: { url: '/models/props/bell_tower.glb', kit: 'village' },
@@ -110,6 +232,10 @@ const PROP_ASSET_DEFS: Record<string, PropAssetDef> = {
   rockLargeF: { url: '/models/props/rock_large_f.glb', kit: 'minerock' },
   mushroomRed: { url: '/models/props/mushroom_red.glb', kit: 'shroom' },
   mushroomTan: { url: '/models/props/mushroom_tan.glb', kit: 'shroom' },
+  // The Mirefen mudfin huts (src/sim/mudfin_huts.ts): the art lead's painted
+  // Tripo3D huts, baked real size by scripts/assets/build_mudfin_huts.mjs.
+  mudfinHutA: { url: '/models/props/mudfin_hut_a.glb', kit: 'mudfin' },
+  mudfinHutB: { url: '/models/props/mudfin_hut_b.glb', kit: 'mudfin' },
   column: { url: '/models/props/column.glb', kit: 'nature' },
   columnBroken: { url: '/models/props/column_broken.glb', kit: 'nature' },
   statueHead: { url: '/models/props/statue_head.glb', kit: 'nature' },
@@ -133,11 +259,235 @@ const PROP_ASSET_DEFS: Record<string, PropAssetDef> = {
   // No yaw here: the geometry is CACHED and shared by every delve marker, so a
   // per-delve flip is applied to the placed group in buildProps, never baked.
   delveEntrance2: { url: '/models/dungeon/delve_entrance_2.glb', kit: 'dungeon' },
+  // Show-jumping race fixtures (Highwatch stables paddock): the start/finish
+  // arch and the two jump styles, placed from props.raceCourse (which mirrors
+  // the MOUNT_RACE_COURSE content). Tripo-generated CC-authored set; their long
+  // axis (the crossbar / arch face) is local +z.
+  courseArch: { url: '/models/props/course_arch.glb', kit: 'stable' },
+  jumpVertical: { url: '/models/props/jump_vertical.glb', kit: 'stable' },
+  jumpOxer: { url: '/models/props/jump_oxer.glb', kit: 'stable' },
+  // Veiled Hollow hand-placed decor, all user-made models: the Tripo pixie
+  // house (pipeline-normalized: world scale, front on +z) and the flora
+  // GLBs realm_flora.ts also scatters (near unit size, so decor entries set
+  // an explicit scale; propAsset re-bases min-y to 0 at extraction).
+  // Consumed via ZonePropsDef.decorProps.
+  pixieMushroomHouse: { url: '/models/props/pixie_mushroom_house.glb', kit: 'hollow' },
+  crystalAmethystCluster: { url: '/models/props/crystal_amethyst_cluster.glb', kit: 'hollow' },
+  crystalMoundCave: { url: '/models/props/crystal_mound_cave.glb', kit: 'hollow' },
+  starHeartCrystal: { url: '/models/props/star_heart_crystal.glb', kit: 'hollow' },
+  kkWall: { url: '/models/dungeon/wall.glb', kit: 'dungeon' },
+  kkWallCracked: { url: '/models/dungeon/wall_cracked.glb', kit: 'dungeon' },
+  kkPillar: { url: '/models/dungeon/pillar.glb', kit: 'dungeon' },
+  // The Evergarden's built garden: KayKit Medieval Hexagon Pack buildings in
+  // their green colorway (shipped by scripts/assets/specs/biome_packs.json,
+  // authored at hex-tile scale so decorProps entries carry a scale) plus the
+  // wrought-iron garden fence/arch set from KayKit Halloween Bits (world
+  // scale; specs/garden_town.json). All placed via EVERGARDEN_PROPS.decorProps.
+  hexWindmill: { url: '/models/biome/hex_windmill.glb', kit: 'khex' },
+  hexCastle: { url: '/models/biome/hex_castle.glb', kit: 'khex' },
+  hexTower: { url: '/models/biome/hex_tower.glb', kit: 'khex' },
+  hexWall: { url: '/models/biome/hex_wall.glb', kit: 'khex' },
+  hexChurch: { url: '/models/biome/hex_church.glb', kit: 'khex' },
+  hexTavern: { url: '/models/biome/hex_tavern.glb', kit: 'khex' },
+  hexBlacksmith: { url: '/models/biome/hex_blacksmith.glb', kit: 'khex' },
+  hexHomeA: { url: '/models/biome/hex_home_a.glb', kit: 'khex' },
+  hexHomeB: { url: '/models/biome/hex_home_b.glb', kit: 'khex' },
+  hexMarket: { url: '/models/biome/hex_market.glb', kit: 'khex' },
+  hexWatchtower: { url: '/models/biome/hex_watchtower.glb', kit: 'khex' },
+  hexCannonTower: { url: '/models/biome/hex_tower_cannon.glb', kit: 'khex' },
+  hexTowerCatapult: { url: '/models/biome/hex_tower_catapult.glb', kit: 'khex' },
+  hexBarracks: { url: '/models/biome/hex_barracks.glb', kit: 'khex' },
+  hexCannonballs: { url: '/models/biome/hex_cannonballs.glb', kit: 'khex' },
+  hexLumber: { url: '/models/biome/hex_lumber.glb', kit: 'khex' },
+  hexWeaponRack: { url: '/models/biome/hex_weaponrack.glb', kit: 'khex' },
+  hexFlag: { url: '/models/biome/hex_flag.glb', kit: 'khex' },
+  hexWheelbarrow: { url: '/models/biome/hex_wheelbarrow.glb', kit: 'khex' },
+  // the Wickharbor city set (blue colorway) plus the harbor line: ships,
+  // docks, and the stackable tower drums the Old Beacon rebuilds from
+  hexbHomeA: { url: '/models/biome/hexb_home_a.glb', kit: 'khex' },
+  hexbHomeB: { url: '/models/biome/hexb_home_b.glb', kit: 'khex' },
+  hexbTavern: { url: '/models/biome/hexb_tavern.glb', kit: 'khex' },
+  hexbTownhall: { url: '/models/biome/hexb_townhall.glb', kit: 'khex' },
+  hexbWorkshop: { url: '/models/biome/hexb_workshop.glb', kit: 'khex' },
+  hexbMarket: { url: '/models/biome/hexb_market.glb', kit: 'khex' },
+  hexbShipyard: { url: '/models/biome/hexb_shipyard.glb', kit: 'khex' },
+  hexbStables: { url: '/models/biome/hexb_stables.glb', kit: 'khex' },
+  hexbTowerBase: { url: '/models/biome/hexb_tower_base.glb', kit: 'khex' },
+  hexbTowerA: { url: '/models/biome/hexb_tower_a.glb', kit: 'khex' },
+  hexrTowerA: { url: '/models/biome/hexr_tower_a.glb', kit: 'khex' },
+  hexbTowerB: { url: '/models/biome/hexb_tower_b.glb', kit: 'khex' },
+  hexShipBlue: { url: '/models/biome/hex_ship_blue.glb', kit: 'khex' },
+  hexShipRed: { url: '/models/biome/hex_ship_red.glb', kit: 'khex' },
+  hexShipGreen: { url: '/models/biome/hex_ship_green.glb', kit: 'khex' },
+  hexBoat: { url: '/models/biome/hex_boat.glb', kit: 'khex' },
+  hexBoatrack: { url: '/models/biome/hex_boatrack.glb', kit: 'khex' },
+  hexAnchor: { url: '/models/biome/hex_anchor.glb', kit: 'khex' },
+  hexSack: { url: '/models/biome/hex_sack.glb', kit: 'khex' },
+  hexCrateBig: { url: '/models/biome/hex_crate_big.glb', kit: 'khex' },
+  hexCrateOpen: { url: '/models/biome/hex_crate_open.glb', kit: 'khex' },
+  hexHaybale: { url: '/models/biome/hex_haybale.glb', kit: 'khex' },
+  hexTrough: { url: '/models/biome/hex_trough.glb', kit: 'khex' },
+  // the low scalloped stone wall (fences with kind 'stone'; length runs
+  // along local +z in the authored piece)
+  hexFenceStone: { url: '/models/biome/hexn_fence_stone.glb', kit: 'khex' },
+  // the raider encampment set: spiked log wall (fences with kind
+  // 'palisade'; length along local +x), red hide tents, and camp dressing
+  hexnPalisade: { url: '/models/biome/hexn_palisade.glb', kit: 'khex' },
+  hexrTent: { url: '/models/biome/hexr_tent.glb', kit: 'khex' },
+  hexrWatchtower: { url: '/models/biome/hexr_watchtower.glb', kit: 'khex' },
+  hexBarrel: { url: '/models/biome/hex_barrel.glb', kit: 'khex' },
+  hexTarget: { url: '/models/biome/hex_target.glb', kit: 'khex' },
+  hexFlagRed: { url: '/models/biome/hex_flag_red.glb', kit: 'khex' },
+  hexCannon: { url: '/models/biome/hex_cannon.glb', kit: 'khex' },
+  hexbWindmill: { url: '/models/biome/hexb_windmill.glb', kit: 'khex' },
+  // the Galecrest monuments (maintainer-authored generated models): the
+  // ship memorial on the Wickharbor dock plaza, the golden horse for the
+  // stable yard
+  shipMonument: { url: '/models/props/ship_monument.glb', kit: 'kgale' },
+  // A kit is a material-dedup NAMESPACE: every file in one must share the
+  // same flat atlas. These four /models/biome/ hulls and buoys ship a
+  // different atlas from the two /models/props/ pirate files, so holding
+  // them all in one kit made the materials collide and the first file
+  // extracted handed its atlas to the rest: the rowboats rendered in the
+  // sea atlas's near-white palette cell instead of their authored brown,
+  // and the dock platforms washed out to pink-grey. Separate namespace,
+  // separate atlas, both correct again.
+  seaBoatSailA: { url: '/models/biome/sea_boat_sail_a.glb', kit: 'pirateSea' },
+  seaBoatFishing: { url: '/models/biome/sea_boat_fishing.glb', kit: 'pirateSea' },
+  seaBuoy: { url: '/models/biome/sea_buoy.glb', kit: 'pirateSea' },
+  seaBuoyFlag: { url: '/models/biome/sea_buoy_flag.glb', kit: 'pirateSea' },
+  goldenHorseStatue: { url: '/models/props/golden_horse_statue.glb', kit: 'kgale' },
+  // a placeable oak (the foliage kit's biggest crown) for authored shade
+  // spots like the Garden Gate lawns; decor entries set scale, r is trunk
+  oakTree: { url: '/models/foliage/oak_4.glb', kit: 'kfol' },
+  gardenIronFence: { url: '/models/props/garden_iron_fence.glb', kit: 'kiron' },
+  gardenIronPillar: { url: '/models/props/garden_iron_pillar.glb', kit: 'kiron' },
+  gardenIronGate: { url: '/models/props/garden_iron_gate.glb', kit: 'kiron' },
+  gardenArch: { url: '/models/props/garden_arch.glb', kit: 'kiron' },
+  // the user-authored leafy fox: a clipped-topiary statue crowning the
+  // Evergarden's grandest flower beds (sibling models to the maze hedges)
+  leafyFoxStatue: { url: '/models/props/leafy_fox_statue.glb', kit: 'kiron' },
+  // the Evergarden's modeled flower beds (same maintainer-authored set);
+  // their own kit so material dedupe never crosses into the iron props
+  flowerBedSquareA: { url: '/models/props/flower_bed_square_a.glb', kit: 'kbeds' },
+  flowerBedSquareB: { url: '/models/props/flower_bed_square_b.glb', kit: 'kbeds' },
+  flowerBedRound: { url: '/models/props/flower_bed_round.glb', kit: 'kbeds' },
+  stagShrine: { url: '/models/props/stag_shrine.glb', kit: 'hollow' },
+  mushroomGiantPurple: { url: '/models/props/mushroom_giant_purple.glb', kit: 'hollow' },
+  mushroomGlowCluster: { url: '/models/props/mushroom_glow_cluster.glb', kit: 'hollow' },
+  flowerGlow: { url: '/models/props/flower_glow.glb', kit: 'hollow' },
+  shrubFlowering: { url: '/models/props/shrub_flowering.glb', kit: 'hollow' },
+  // The Drakelands castle structure set: KayKit Dungeon Remastered (CC0) pieces
+  // at walkable scale (shipped by scripts/assets/specs/drakelands_castle.json):
+  // curtain walls, gates, stairs, battlement barriers, floors, red banners,
+  // torches, rubble, and keep furnishings for the great hall.
+  kcasWall: { url: '/models/biome/kcas_wall.glb', kit: 'kcas' },
+  kcasWallHalf: { url: '/models/biome/kcas_wall_half.glb', kit: 'kcas' },
+  kcasWallCorner: { url: '/models/biome/kcas_wall_corner.glb', kit: 'kcas' },
+  kcasWallGated: { url: '/models/biome/kcas_wall_gated.glb', kit: 'kcas' },
+  kcasWallDoorway: { url: '/models/biome/kcas_wall_doorway.glb', kit: 'kcas' },
+  kcasWallBroken: { url: '/models/biome/kcas_wall_broken.glb', kit: 'kcas' },
+  kcasWallCracked: { url: '/models/biome/kcas_wall_cracked.glb', kit: 'kcas' },
+  kcasWallWindow: { url: '/models/biome/kcas_wall_window.glb', kit: 'kcas' },
+  kcasWallPillar: { url: '/models/biome/kcas_wall_pillar.glb', kit: 'kcas' },
+  kcasStairsWide: { url: '/models/biome/kcas_stairs_wide.glb', kit: 'kcas' },
+  kcasStairsWalled: { url: '/models/biome/kcas_stairs_walled.glb', kit: 'kcas' },
+  kcasBarrier: { url: '/models/biome/kcas_barrier.glb', kit: 'kcas' },
+  kcasBarrierHalf: { url: '/models/biome/kcas_barrier_half.glb', kit: 'kcas' },
+  kcasBarrierCorner: { url: '/models/biome/kcas_barrier_corner.glb', kit: 'kcas' },
+  kcasColumn: { url: '/models/biome/kcas_column.glb', kit: 'kcas' },
+  kcasPillar: { url: '/models/biome/kcas_pillar.glb', kit: 'kcas' },
+  kcasFloorLarge: { url: '/models/biome/kcas_floor_large.glb', kit: 'kcas' },
+  kcasFloorWeeds: { url: '/models/biome/kcas_floor_weeds.glb', kit: 'kcas' },
+  kcasFoundation: { url: '/models/biome/kcas_foundation.glb', kit: 'kcas' },
+  kcasBannerRedA: { url: '/models/biome/kcas_banner_red_a.glb', kit: 'kcas' },
+  kcasBannerRedShield: { url: '/models/biome/kcas_banner_red_shield.glb', kit: 'kcas' },
+  kcasBannerRedTriple: { url: '/models/biome/kcas_banner_red_triple.glb', kit: 'kcas' },
+  // the green colorway for Dawnhold (already-shipped dungeon-kit exports)
+  kcasBannerGreenA: { url: '/models/dungeon/banner_green.glb', kit: 'kcas' },
+  kcasBannerGreenShield: { url: '/models/dungeon/banner_shield_green.glb', kit: 'kcas' },
+  kcasBannerGreenTriple: { url: '/models/dungeon/banner_triple_green.glb', kit: 'kcas' },
+  kcasTorch: { url: '/models/biome/kcas_torch.glb', kit: 'kcas' },
+  kcasTorchMounted: { url: '/models/biome/kcas_torch_mounted.glb', kit: 'kcas' },
+  kcasRubbleLarge: { url: '/models/biome/kcas_rubble_large.glb', kit: 'kcas' },
+  kcasRubbleHalf: { url: '/models/biome/kcas_rubble_half.glb', kit: 'kcas' },
+  kcasRocks: { url: '/models/biome/kcas_rocks.glb', kit: 'kcas' },
+  kcasChestGold: { url: '/models/biome/kcas_chest_gold.glb', kit: 'kcas' },
+  kcasTableLong: { url: '/models/biome/kcas_table_long.glb', kit: 'kcas' },
+  kcasBench: { url: '/models/biome/kcas_bench.glb', kit: 'kcas' },
+  kcasBookcase: { url: '/models/biome/kcas_bookcase.glb', kit: 'kcas' },
+  kcasKeg: { url: '/models/biome/kcas_keg.glb', kit: 'kcas' },
+  kcasBarrel: { url: '/models/biome/kcas_barrel.glb', kit: 'kcas' },
+  // The Last Keep's lived-in interior furniture (KayKit Dungeon Remastered
+  // tavern set, already committed under public/models/dungeon): beds for the
+  // residence wing, seating and clothed tables for the dining rooms, shelves,
+  // buffet counters, candelabra, stores, and the chapel shrine. Instanced by
+  // src/render/lastkeep_dressing.ts through this same registry (one preload
+  // gate, one manifest surface).
+  kcasBedRoyal: { url: '/models/dungeon/bed_decorated.glb', kit: 'kcas' },
+  kcasBedDouble: { url: '/models/dungeon/bed_b_double.glb', kit: 'kcas' },
+  kcasBedSingle: { url: '/models/dungeon/bed_b_single.glb', kit: 'kcas' },
+  kcasBedBunk: { url: '/models/dungeon/bed_a_stacked.glb', kit: 'kcas' },
+  kcasBedCot: { url: '/models/dungeon/bed_a_single.glb', kit: 'kcas' },
+  kcasBedroll: { url: '/models/dungeon/bed_floor.glb', kit: 'kcas' },
+  kcasChair: { url: '/models/dungeon/chair.glb', kit: 'kcas' },
+  kcasStool: { url: '/models/dungeon/stool.glb', kit: 'kcas' },
+  kcasStoolRound: { url: '/models/dungeon/stool_round.glb', kit: 'kcas' },
+  kcasChest: { url: '/models/dungeon/chest.glb', kit: 'kcas' },
+  kcasTableRoundSmall: { url: '/models/dungeon/table_round_small.glb', kit: 'kcas' },
+  kcasTableRoundMedium: { url: '/models/dungeon/table_round_medium.glb', kit: 'kcas' },
+  // NOTE: the laid feast table (table_long_tablecloth_decorated_a) is already
+  // registered above as kcasTableLong (/models/biome/kcas_table_long.glb), so
+  // only the PLAIN clothed table is a new entry.
+  kcasTableCloth: { url: '/models/dungeon/table_long_tablecloth.glb', kit: 'kcas' },
+  kcasShelfLarge: { url: '/models/dungeon/shelf_large.glb', kit: 'kcas' },
+  kcasShelfSmall: { url: '/models/dungeon/shelf_small.glb', kit: 'kcas' },
+  kcasShelfBooks: { url: '/models/dungeon/shelf_small_books.glb', kit: 'kcas' },
+  kcasShelfCandles: { url: '/models/dungeon/shelf_small_candles.glb', kit: 'kcas' },
+  kcasBarA: { url: '/models/dungeon/bar_straight_a.glb', kit: 'kcas' },
+  kcasBarB: { url: '/models/dungeon/bar_straight_b.glb', kit: 'kcas' },
+  kcasBarC: { url: '/models/dungeon/bar_straight_c.glb', kit: 'kcas' },
+  kcasBartopMedium: { url: '/models/dungeon/bartop_a_medium.glb', kit: 'kcas' },
+  kcasCandleTriple: { url: '/models/dungeon/candle_triple.glb', kit: 'kcas' },
+  kcasCrateLarge: { url: '/models/dungeon/crate_large.glb', kit: 'kcas' },
+  kcasCrateSmall: { url: '/models/dungeon/crate_small.glb', kit: 'kcas' },
+  kcasCratesStacked: { url: '/models/dungeon/crates_stacked.glb', kit: 'kcas' },
+  kcasSwordShield: { url: '/models/dungeon/sword_shield.glb', kit: 'kcas' },
+  kcasShrine: { url: '/models/dungeon/shrine_candles.glb', kit: 'kcas' },
+  // The Drakelands castle bailey: KayKit Medieval Hexagon Pack buildings in the
+  // red colorway (same drakelands_castle.json spec; hex-tile scale, so decor
+  // entries carry scale like the other hex buildings).
+  hexrCastle: { url: '/models/biome/hexr_castle.glb', kit: 'khex' },
+  hexrTownhall: { url: '/models/biome/hexr_townhall.glb', kit: 'khex' },
+  hexrBarracks: { url: '/models/biome/hexr_barracks.glb', kit: 'khex' },
+  hexrChurch: { url: '/models/biome/hexr_church.glb', kit: 'khex' },
+  hexrTavern: { url: '/models/biome/hexr_tavern.glb', kit: 'khex' },
+  hexrStables: { url: '/models/biome/hexr_stables.glb', kit: 'khex' },
+  hexrHomeA: { url: '/models/biome/hexr_home_a.glb', kit: 'khex' },
+  hexrHomeB: { url: '/models/biome/hexr_home_b.glb', kit: 'khex' },
+  hexrMarket: { url: '/models/biome/hexr_market.glb', kit: 'khex' },
+  hexrBlacksmith: { url: '/models/biome/hexr_blacksmith.glb', kit: 'khex' },
+  hexrWindmill: { url: '/models/biome/hexr_windmill.glb', kit: 'khex' },
+  hexrArcheryrange: { url: '/models/biome/hexr_archeryrange.glb', kit: 'khex' },
+  hexrTowerCatapult: { url: '/models/biome/hexr_tower_catapult.glb', kit: 'khex' },
+  hexrTowerBase2: { url: '/models/biome/hexr_tower_base.glb', kit: 'khex' },
+  // The Mirefen muster camp kit (Balgath's army pickets; image-to-glb factory at
+  // scripts/assets/muster_camp/), placed by src/render/muster_camps.ts through the decor
+  // walk below rather than through ZonePropsDef.decorProps: render-only, no colliders.
+  ...MUSTER_KIT_PROP_DEFS,
 };
 
-type PropKey = keyof typeof PROP_ASSET_DEFS;
+export type PropKey = keyof typeof PROP_ASSET_DEFS;
 
-const loadedProps = new Map<string, GLTF>();
+/** The prop each mudfin hut model draws (sim/mudfin_huts.ts); the editor's
+ *  world prop conversion mirrors the placement. */
+export const MUDFIN_HUT_PROP_KEYS: Readonly<Record<MudfinHutModel, PropKey>> = {
+  a: 'mudfinHutA',
+  b: 'mudfinHutB',
+};
+
+const loadedProps = new Map<string, LoadedGltf>();
+const propLoadTasks = new Map<string, Promise<void>>();
 const ALL_PROP_KEYS = Object.keys(PROP_ASSET_DEFS) as PropKey[];
 
 // The props the renderer actually RENDERS at the low graphics tier: a subset, since
@@ -165,11 +515,16 @@ const LOW_TIER_PROP_KEYS: readonly PropKey[] = [
   'tentSmall',
   'rockLargeD',
   'mushroomRed',
+  // solid walls (mudfin_huts.ts), so every tier draws what blocks
+  'mudfinHutA',
+  'mudfinHutB',
   'column',
   'columnBroken',
   'dockPlatform',
   'rowboat',
   'graveRound',
+  'hexFenceStone',
+  'hexnPalisade',
   'graveCross',
   'graveBevel',
   'graveDecor',
@@ -178,6 +533,15 @@ const LOW_TIER_PROP_KEYS: readonly PropKey[] = [
   'crateWooden',
   'barrel',
   'delveEntrance2', // delve entrance portal, a landmark, so keep it on low gfx too
+  // The race fixtures are GAMEPLAY landmarks (players ride a timed course
+  // against them), so every tier renders them: hiding one on low gfx would
+  // break the gameplay-neutral graphics invariant.
+  'courseArch',
+  'jumpVertical',
+  'jumpOxer',
+  // The muster camps' structure (walls, gate, tower, tents, rack, lantern, and the torch
+  // the command gate burns on every preset); its clutter pieces are not drawn on low.
+  ...MUSTER_LOW_TIER_KIT_KEYS,
 ];
 
 /**
@@ -191,11 +555,14 @@ const LOW_TIER_PROP_KEYS: readonly PropKey[] = [
  * the high-performance renderer then resolves medium+), a tier-SCOPED preload set
  * would omit props that buildProps then places, and propAsset() throws "prop asset
  * not preloaded", the v0.16.0 farmCrate crash on world entry (red "Could not start
- * the renderer" overlay). So every tier preloads the full PROP_ASSET_DEFS, mirroring
- * foliage.ts, which sources its one frozen MODEL_URLS list for both preload and
- * placement and is structurally immune to this class of bug. Because every placement
- * key is typed PropKey (a key of PROP_ASSET_DEFS), the full set is provably a superset
- * of anything buildProps can place, on every tier and device.
+ * the renderer" overlay). So every tier preloads the full PROP_ASSET_DEFS, matching the
+ * same tier-independent-superset invariant foliage.ts's deferred boot lane enforces
+ * (a `deferredFoliageUrlsForBoot()` gate once broke it there too and reopened this
+ * exact crash for "models/foliage/pine_2.glb" - see the P0 comment in foliage.ts).
+ * The shapes differ (this function ignores its tier argument outright; foliage.ts's
+ * loop just never filters by tier in the first place) but the invariant is identical.
+ * Because every placement key is typed PropKey (a key of PROP_ASSET_DEFS), the full
+ * set is provably a superset of anything buildProps can place, on every tier and device.
  *
  * The arg is retained to document the invariant and to let the guard test assert it at
  * the lowest (most dangerous) import tier; the result intentionally ignores it.
@@ -204,17 +571,69 @@ function preloadPropKeys(_importTierStandardMaterials: boolean): Set<PropKey> {
   return new Set<PropKey>(ALL_PROP_KEYS);
 }
 
-// Headless sim/test imports never fetch; the browser kicks loads immediately.
-if (typeof window !== 'undefined') {
-  const preloadKeys = preloadPropKeys(GFX.standardMaterials);
-  for (const [key, def] of Object.entries(PROP_ASSET_DEFS)) {
-    if (!preloadKeys.has(key as PropKey)) continue;
-    registerPreload(
-      loadGltf(def.url).then((gltf) => {
-        loadedProps.set(key, gltf);
-      }),
-    );
-  }
+let deferredPropKeys: ReadonlySet<PropKey> | null = null;
+function deferredPropKeysForBoot(): ReadonlySet<PropKey> {
+  deferredPropKeys ??= preloadPropKeys(GFX.standardMaterials);
+  return deferredPropKeys;
+}
+
+function profilePropKeys(target: Readonly<GfxSettings>): readonly PropKey[] {
+  return target.standardMaterials ? ALL_PROP_KEYS : LOW_TIER_PROP_KEYS;
+}
+
+function preparePropSource(key: PropKey): Promise<void> {
+  if (loadedProps.has(key)) return Promise.resolve();
+  const existing = propLoadTasks.get(key);
+  if (existing) return existing;
+  const task = loadGltf(PROP_ASSET_DEFS[key].url)
+    .then((gltf) => {
+      loadedProps.set(key, gltf);
+      propLoadTasks.delete(key);
+    })
+    .catch((err) => {
+      propLoadTasks.delete(key);
+      throw err;
+    });
+  propLoadTasks.set(key, task);
+  return task;
+}
+
+/** Prepare the prop source set selected by an explicit target profile. */
+export function preparePropProfileAssets(target: Readonly<GfxSettings>): Promise<void> {
+  // Existing extracted keys belong to the active renderer. Reload their
+  // released source scenes before the coordinator clears derived caches, so
+  // its old-profile rollback arm can still rebuild after a target failure.
+  const keys = new Set<PropKey>([
+    ...profilePropKeys(target),
+    ...(extractCache.keys() as MapIterator<PropKey>),
+  ]);
+  return Promise.all([...keys].map(preparePropSource)).then(() => undefined);
+}
+
+for (const key of ALL_PROP_KEYS) {
+  registerDeferredPreload(() => {
+    // Resolve GFX when the deferred lane opens, after startup safety and device
+    // defaults have settled. The boot set remains the historical cross-tier
+    // superset; live profile preparation may load only the requested target.
+    if (!deferredPropKeysForBoot().has(key)) return Promise.resolve();
+    return preparePropSource(key).then(() => {
+      // Preserve the iOS WebKit boot path (Safari, other iOS browsers, and the
+      // packaged app alike): extract each source as it lands and release its
+      // parsed scene before the renderer build.
+      if (GFX.iosMemoryProfile) propAsset(key);
+    });
+  });
+}
+
+/** Dev-channel residency accounting sources (see assets/residency_budget.ts). */
+export function propResidencySources(): {
+  extractedGeometries: THREE.BufferGeometry[];
+  parsedScenes: THREE.Object3D[];
+} {
+  return {
+    extractedGeometries: [...extractCache.values()].flatMap((a) => a.parts.map((p) => p.geo)),
+    parsedScenes: [...loadedProps.values()].map((g) => g.scene),
+  };
 }
 
 /** Test-only window into the preload/prewarm key sets (see tests/render_asset_preload). */
@@ -222,6 +641,9 @@ export const propPreloadInternalsForTest = {
   allPropKeys: ALL_PROP_KEYS,
   lowTierPropKeys: LOW_TIER_PROP_KEYS,
   preloadPropKeys,
+  propAssetUrl: Object.fromEntries(
+    Object.entries(PROP_ASSET_DEFS).map(([key, def]) => [key, def.url]),
+  ) as Record<string, string>,
 };
 
 // Per-material look overrides, keyed `${kit}:${name}` (falls back to name).
@@ -252,7 +674,17 @@ const MAT_OVERRIDES: Record<
   'minerock:_defaultMat': { color: 0x6f7376 },
   // graveyard colormap is near-white; knock it toward weathered stone
   'grave:colormap': { color: 0xd2d2c8 },
+  // muster camp: lantern glass and torch coals glow, the shardpike crystals shine cyan
+  'muster:MusterGlow': { emissive: 0xff9a3c, emissiveIntensity: 1.6 },
+  'muster:MusterCrystal': { emissive: 0x3fd8e8, emissiveIntensity: 1.3 },
 };
+
+// Kits that take the shared triplanar surface-detail layer route through the
+// one family table in worn_stone.ts (wornFamilyFor): kit-wide stone entries
+// (khex, kiron, minerock) plus per-material-NAME wood/stone/plaster routing
+// for the village-architecture kits. Kit membership and the SOURCE material
+// name are already part of the material cache key below, so application is
+// deterministic per cached material.
 
 // ---------------------------------------------------------------------------
 // Extraction: GLTF scene -> world-baked float-attribute geometry + converted
@@ -263,6 +695,8 @@ const MAT_OVERRIDES: Record<
 interface AssetPart {
   geo: THREE.BufferGeometry;
   mat: THREE.Material;
+  /** source mesh name (picks out animated parts like the windmill fan) */
+  name: string;
 }
 interface PropAsset {
   parts: AssetPart[];
@@ -271,6 +705,19 @@ interface PropAsset {
 
 const extractCache = new Map<string, PropAsset>();
 const matConvCache = new Map<string, THREE.Material>();
+
+/** Drop profile-derived prop geometry/materials while retaining unresolved source recipes. */
+export function resetPropProfileCaches(): void {
+  extractCache.clear();
+  matConvCache.clear();
+  delvePortalMatCache.clear();
+  drowningVeilMatCache.clear();
+}
+
+/** Kit materials whose NAME marks them as metal (measured across the shipped
+ *  kits: MI_Trim_Metal, WornIron, ArmouryMetal, MailboxMetal). Kept in
+ *  lockstep with quest_objects.ts. */
+export const METAL_MAT_NAME = /metal|iron|gold|steel/i;
 
 /** denormalized float copy — meshopt/quantized attrs must not be transformed in place */
 function toFloatAttr(
@@ -290,13 +737,32 @@ function convertMaterial(
   src: THREE.Material,
   kit: string,
   hasVertexColors: boolean,
+  /** When present, overrides the (kit, material name) surface-detail routing
+   *  for this one material: the per-triangle UV router below resolves a family
+   *  the shared atlas material name cannot express. `undefined` keeps the
+   *  normal routing; an explicit `null` means "no detail layer". */
+  familyOverride?: WornFamilyPick | null,
 ): THREE.Material {
   const s = src as THREE.MeshStandardMaterial; // basic (unlit) shares the fields we read
   const ov = MAT_OVERRIDES[`${kit}:${s.name}`] ?? MAT_OVERRIDES[s.name];
   // hasVertexColors must key the cache: kits share material names between
   // COLOR_0 meshes (trim 'Vertex' props) and colorless ones — a shared
   // vertexColors:true material would render the colorless meshes black
-  const key = `${kit}|${s.name}|${s.color?.getHexString() ?? ''}|${s.map ? 'm' : ''}|${hasVertexColors ? 'v' : ''}|${GFX.standardMaterials ? 's' : 'l'}`;
+  // The alpha cutout and sidedness the asset authored (glTF alphaMode MASK +
+  // alphaCutoff + doubleSided, already resolved by GLTFLoader) must survive the
+  // rebuild, and must key the cache: almost every prop is solid geometry, but a
+  // cutout one (the placeable oak's leaf cards) renders as opaque quads without
+  // them, and would otherwise share a cached material with an opaque namesake.
+  const alphaTest = s.alphaTest ?? 0;
+  // The surface-detail family must key the cache too. One kit atlas serves
+  // hulls, sails and masonry alike, so the SAME (kit, material name) pair
+  // now resolves to different families per triangle group; without this the
+  // first group extracted would hand its detail layer to all the others.
+  const famKey =
+    familyOverride === undefined
+      ? ''
+      : `${familyOverride?.family ?? 'none'}${familyOverride?.strength ?? ''}`;
+  const key = `${kit}|${s.name}|${s.color?.getHexString() ?? ''}|${s.map ? 'm' : ''}|${hasVertexColors ? 'v' : ''}|${GFX.standardMaterials ? 's' : 'l'}|a${alphaTest}|d${s.side}|f${famKey}`;
   const cached = matConvCache.get(key);
   if (cached) return cached;
   const color =
@@ -304,28 +770,84 @@ function convertMaterial(
       ? new THREE.Color(ov.color)
       : (s.color?.clone() ?? new THREE.Color(0xffffff));
   const map = s.map ?? null;
+  // Tripo-generated 'hollow' kit: one baked painterly albedo per model, glow
+  // painted in, smooth normals. Two nudges make them sit beside the
+  // hand-authored kits: flat shading (faceted low-poly light response) and a
+  // soft albedo re-emit (the realm_flora mushroom trick) so painted windows,
+  // lanterns, and crystals actually shine under the permanent dusk.
+  const hollow = kit === 'hollow';
+  const hollowEmissive = hollow && map;
   let mat: THREE.Material;
   if (GFX.standardMaterials) {
     mat = new THREE.MeshStandardMaterial({
       color,
       map,
+      alphaTest,
+      side: s.side,
       vertexColors: hasVertexColors,
+      flatShading: hollow,
       normalMap: s.normalMap ?? null,
       roughnessMap: s.roughnessMap ?? null,
       metalnessMap: s.metalnessMap ?? null,
       aoMap: s.aoMap ?? null,
-      roughness: ov?.roughness ?? (s.isMeshStandardMaterial ? s.roughness : 0.9),
-      metalness: ov?.metalness ?? (s.isMeshStandardMaterial ? Math.min(s.metalness, 0.85) : 0),
-      emissive: new THREE.Color(ov?.emissive ?? 0x000000),
-      emissiveIntensity: ov?.emissiveIntensity ?? 1,
+      roughness: ov?.roughness ?? (hollow ? 0.85 : s.isMeshStandardMaterial ? s.roughness : 0.9),
+      // The kit exporter ships an accidental metallicFactor 0.4 on hundreds
+      // of dielectric palette materials (wood carts outshone actual anvils),
+      // so only metal-NAMED materials keep their authored metalness; every
+      // other family is dielectric, and the metal surface-detail layer below
+      // supplies the real per-texel metalness on top.
+      metalness:
+        ov?.metalness ??
+        (s.isMeshStandardMaterial && METAL_MAT_NAME.test(s.name) ? Math.min(s.metalness, 0.85) : 0),
+      emissive: new THREE.Color(hollowEmissive ? 0xffffff : (ov?.emissive ?? 0x000000)),
+      emissiveMap: hollowEmissive ? map : null,
+      emissiveIntensity: hollowEmissive ? 0.3 : (ov?.emissiveIntensity ?? 1),
+      // Metal-named kit materials (MI_Trim_Metal, WornIron, ...) get a mild
+      // per-material env boost so anvils/fittings catch the sky IBL; the name
+      // is already part of the cache key above. Everything else keeps the
+      // default 1 (the metal surface-detail family below raises its own floor
+      // via envMapMin, taking the max of the two).
+      envMapIntensity: METAL_MAT_NAME.test(s.name) ? 1.3 : 1,
     });
   } else {
     mat = new THREE.MeshLambertMaterial({
       color,
       map,
+      alphaTest,
+      side: s.side,
       vertexColors: hasVertexColors,
-      emissive: new THREE.Color(ov?.emissive ?? 0x000000),
-      emissiveIntensity: (ov?.emissiveIntensity ?? 1) * 0.6,
+      flatShading: hollow,
+      emissive: new THREE.Color(hollowEmissive ? 0xffffff : (ov?.emissive ?? 0x000000)),
+      emissiveMap: hollowEmissive ? map : null,
+      emissiveIntensity: hollowEmissive ? 0.2 : (ov?.emissiveIntensity ?? 1) * 0.6,
+    });
+  }
+  // Distant-zone air (biome_haze_field.ts): every converted kit material
+  // hazes with the ground under it. Attached FIRST, before the worn detail,
+  // because that is the order surfaceMat, foliage.ts and
+  // reattachClonedMaterialHooks compose the two hooks: a kit material
+  // attached the other way round composed a different key text, so every
+  // hook-preserving clone of it linked a second program for the same GLSL
+  // (12 links per login at Eastbrook in the 2026-08-27 program-key ledger).
+  attachBiomeHaze(mat);
+  // Triplanar surface-detail layer, applied before caching so every consumer
+  // of the shared per-key material carries it (the helper self-gates to
+  // standard materials, so the Lambert branch is a no-op). Routing matches on
+  // the SOURCE material name (s.name), which keys the cache; the context
+  // flags keep emissive/transparent surfaces clean and let Tripo props that
+  // ship their own PBR maps skip the bare-coverage fallback. Chains over the
+  // haze hook above.
+  const worn =
+    familyOverride !== undefined
+      ? familyOverride
+      : wornFamilyFor(kit, s.name, {
+          emissive: !!hollowEmissive || (ov?.emissive ?? 0) !== 0,
+          transparent: s.transparent === true,
+          hasOwnMaps: !!(s.normalMap || s.roughnessMap),
+        });
+  if (worn) {
+    applySurfaceDetail(mat as THREE.MeshStandardMaterial, worn.family, {
+      strength: worn.strength,
     });
   }
   mat.name = `${kit}:${s.name}`;
@@ -335,6 +857,97 @@ function convertMaterial(
 
 /** parts of a loaded asset, world-baked (incl. yaw), origin centered at the
  *  footprint center with min-y at 0, materials converted + deduped */
+// Props whose ONE atlas material covers genuinely different surfaces, so the
+// detail layer has to be chosen per triangle from the UV swatch rather than
+// per material. Scoped to this list on purpose: the same kit's buildings read
+// correctly on the kit-wide routing today, and re-splitting all 65 of them
+// would churn the town's draw and material counts for no reported problem.
+const UV_SURFACE_SPLIT_KEYS: ReadonlySet<string> = new Set([
+  'hexShipBlue',
+  'hexShipRed',
+  'hexShipGreen',
+  'hexBoat',
+  'hexWatchtower',
+]);
+
+/** Detail family per UV group. Stone stays stone: on these models it is the
+ *  ship's deck plate and the tower's footing pads and iron hoop, which are
+ *  authored as masonry and metal and should not read as planking. */
+const UV_GROUP_FAMILY: Readonly<Record<KitSurfaceFamily, WornFamilyPick>> = Object.freeze({
+  wood: { family: 'wood', strength: 0.35 },
+  cloth: { family: 'fabric', strength: 0.3 },
+  stone: { family: 'stone', strength: 0.4 },
+});
+
+/**
+ * Split one extracted geometry into per-family sub-geometries by UV swatch.
+ * Returns null when the kit has no routing, the mesh has no index or uvs, or
+ * ANY triangle came back unresolved: a partial split would silently drop
+ * geometry, so the whole mesh falls back to normal routing instead.
+ */
+function splitGeometryBySurface(
+  geo: THREE.BufferGeometry,
+  kit: string,
+): { family: KitSurfaceFamily; geo: THREE.BufferGeometry }[] | null {
+  if (!kitHasUvSurfaceRouting(kit)) return null;
+  const uv = geo.getAttribute('uv');
+  const index = geo.getIndex();
+  if (!uv || !index) return null;
+  const split = splitKitSurfacesByUv(
+    kit,
+    uv.array as ArrayLike<number>,
+    index.array as ArrayLike<number>,
+  );
+  if (split.unresolved > 0) return null;
+  const out: { family: KitSurfaceFamily; geo: THREE.BufferGeometry }[] = [];
+  for (const [family, indices] of Object.entries(split.groups)) {
+    if (!indices?.length) continue;
+    // Clone rather than share attribute buffers: each part is translated
+    // independently when the origin is normalized below, and shared buffers
+    // would take that translation once per part.
+    const part = geo.clone();
+    part.setIndex(indices);
+    out.push({ family: family as KitSurfaceFamily, geo: part });
+  }
+  return out.length > 1 ? out : null;
+}
+
+/**
+ * Atlas-cell corrections applied to a prop's uvs at extraction.
+ *
+ * Some kit models are AUTHORED reading a palette cell that is wrong for the
+ * part: the fishing hull samples a near-white lavender swatch, so it renders
+ * as a white boat sitting in a working harbour. Retargeting the uv here rather
+ * than editing the shipped GLB keeps the asset, its fingerprint pins and its
+ * media-manifest entry untouched, and keeps the correction reviewable in code
+ * next to the reason for it.
+ *
+ * `shiftU` moves a matched vertex by whole palette columns (the atlas is a
+ * 16-cell grid, so one column is 0.0625).
+ */
+const UV_CELL_FIXES: Readonly<
+  Record<string, { matchU: number; minV: number; maxV: number; shiftU: number }>
+> = Object.freeze({
+  // hull only: its cell is shared with nothing else on this mesh, and the
+  // blue cabin and grey fittings sample other columns, so they keep their
+  // authored colours.
+  seaBoatFishing: { matchU: 0.71868, minV: 0.77, maxV: 0.98, shiftU: 0.125 },
+});
+
+/** Apply the atlas-cell correction for a key, in place, if it has one. */
+function applyUvCellFix(geo: THREE.BufferGeometry, key: PropKey): void {
+  const fix = UV_CELL_FIXES[key];
+  const uv = geo.getAttribute('uv') as THREE.BufferAttribute | undefined;
+  if (!fix || !uv) return;
+  const arr = uv.array as Float32Array;
+  for (let i = 0; i < arr.length; i += 2) {
+    if (Math.abs(arr[i] - fix.matchU) > 0.002) continue;
+    if (arr[i + 1] < fix.minV || arr[i + 1] > fix.maxV) continue;
+    arr[i] += fix.shiftU;
+  }
+  uv.needsUpdate = true;
+}
+
 function propAsset(key: PropKey): PropAsset {
   const cached = extractCache.get(key);
   if (cached) return cached;
@@ -368,11 +981,24 @@ function propAsset(key: PropKey): PropAsset {
     // toFloatAttr denormalizes the uint8 COLOR_0, alpha is 1.0 kit-wide
     const col = src.getAttribute('color');
     if (col) geo.setAttribute('color', toFloatAttr(col, 3));
+    applyUvCellFix(geo, key);
     if (src.index) geo.setIndex(src.index.clone());
     geo.applyMatrix4(mesh.matrixWorld);
     if (yawM) geo.applyMatrix4(yawM);
     if (!geo.getAttribute('normal')) geo.computeVertexNormals();
-    parts.push({ geo, mat: convertMaterial(srcMat, def.kit, !!col) });
+    const bySurface = UV_SURFACE_SPLIT_KEYS.has(key) ? splitGeometryBySurface(geo, def.kit) : null;
+    if (bySurface) {
+      for (const group of bySurface) {
+        parts.push({
+          geo: group.geo,
+          mat: convertMaterial(srcMat, def.kit, !!col, UV_GROUP_FAMILY[group.family]),
+          name: `${mesh.name}:${group.family}`,
+        });
+      }
+      geo.dispose();
+    } else {
+      parts.push({ geo, mat: convertMaterial(srcMat, def.kit, !!col), name: mesh.name });
+    }
   });
   if (!parts.length) throw new Error(`prop asset has no meshes: ${key}`);
   // normalize origin: xz-center at 0, base at y=0
@@ -398,6 +1024,13 @@ function propAsset(key: PropKey): PropAsset {
   return asset;
 }
 
+const livePropMeshMatKeys = new Set<string>();
+const livePropInstancedMatKeys = new Set<string>();
+
+function propMaterialVariantKey(mat: THREE.Material, geo: THREE.BufferGeometry): string {
+  return `${mat.uuid}:${geo.getAttribute('color') ? 'color' : 'plain'}`;
+}
+
 export function buildPropMaterialPrewarmGroup(): THREE.Group {
   const group = new THREE.Group();
   group.name = 'prop-material-prewarm';
@@ -417,10 +1050,10 @@ export function buildPropMaterialPrewarmGroup(): THREE.Group {
     idx++;
   };
   // castShadow so the depth/shadow program variant compiles too (ultra renders a
-  // shadow pass; structures cast shadows live). instanceColor covers the tinted
-  // instance variant the way the live placed props do; the plain InstancedMesh
-  // and Mesh cover the untinted and non-instanced paths.
-  const white = new THREE.Color(1, 1, 1);
+  // shadow pass; structures cast shadows live). Props never set instanceColor,
+  // and when buildProps has recorded which materials draw as Mesh vs
+  // InstancedMesh, only those live draw modes are staged.
+  const hasLiveModes = livePropMeshMatKeys.size > 0 || livePropInstancedMatKeys.size > 0;
   // Prewarm only the props that actually render at the LIVE tier (this runs after
   // initGfxTier via the Renderer, so GFX is authoritative here, unlike the import-time
   // best-guess): low renders the LOW_TIER_PROP_KEYS subset, medium+ renders the full
@@ -431,29 +1064,48 @@ export function buildPropMaterialPrewarmGroup(): THREE.Group {
   for (const key of prewarmKeys) {
     const asset = propAsset(key);
     for (const part of asset.parts) {
-      const matKey = `${part.mat.uuid}:${part.geo.getAttribute('color') ? 'color' : 'plain'}`;
+      const matKey = propMaterialVariantKey(part.mat, part.geo);
       if (seen.has(matKey)) continue;
       seen.add(matKey);
-      const mesh = new THREE.Mesh(part.geo, part.mat);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      place(mesh);
-      const instanced = new THREE.InstancedMesh(part.geo, part.mat, 1);
-      instanced.setMatrixAt(0, instanceMatrix.identity());
-      instanced.instanceMatrix.needsUpdate = true;
-      instanced.castShadow = true;
-      instanced.receiveShadow = true;
-      place(instanced);
-      const tinted = new THREE.InstancedMesh(part.geo, part.mat, 1);
-      tinted.setMatrixAt(0, instanceMatrix.identity());
-      tinted.setColorAt(0, white);
-      tinted.instanceMatrix.needsUpdate = true;
-      if (tinted.instanceColor) tinted.instanceColor.needsUpdate = true;
-      tinted.castShadow = true;
-      tinted.receiveShadow = true;
-      place(tinted);
+      if (!hasLiveModes || livePropMeshMatKeys.has(matKey)) {
+        const mesh = new THREE.Mesh(part.geo, part.mat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        place(mesh);
+      }
+      if (!hasLiveModes || livePropInstancedMatKeys.has(matKey)) {
+        const instanced = new THREE.InstancedMesh(part.geo, part.mat, 1);
+        instanced.setMatrixAt(0, instanceMatrix.identity());
+        instanced.instanceMatrix.needsUpdate = true;
+        instanced.castShadow = true;
+        instanced.receiveShadow = true;
+        place(instanced);
+      }
     }
   }
+  // moored transport ships draw their own merged, vertex-coloured meshes
+  // (transport_ship.ts), and so do the berths' route markers
+  // (harbor_route_markers.ts), the Wyrmwatch cliff harbor (wyrmwatch_harbor.ts), the
+  // Wickharbor ferry wharf (wickharbor_wharf.ts), the rest of Wickharbor's harbor
+  // (wickharbor_harbor.ts) and the Mirefen tavern (mirefen_tavern.ts), and a torched
+  // mudfin hut's smoke plume (hut_smoke.ts, the tavern chimney's program, warmed even
+  // where no tavern is built): one twin per distinct program, shadow variant included
+  for (const part of [
+    ...transportShipPrewarmParts(),
+    ...harborRouteMarkerPrewarmParts(),
+    ...wyrmwatchHarborPrewarmParts(),
+    ...wickharborWharfPrewarmParts(),
+    ...wickharborHarborPrewarmParts(),
+    ...mirefenTavernPrewarmParts(),
+    ...hutSmokePrewarmParts(),
+  ]) {
+    const mesh = new THREE.Mesh(part.geometry, part.material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    place(mesh);
+  }
+  // ...and a sailing ship's wake and bow splash (ship_wake.ts): one points program
+  for (const points of shipWakePrewarmParts()) place(points);
   return group;
 }
 
@@ -467,6 +1119,32 @@ export function buildPropMaterialPrewarmGroup(): THREE.Group {
 // draw, so mesh and physics agree per placement.
 const propRand = propPlacementRoll;
 
+// Village-building pools and heights, shared by the placement loop in
+// buildProps and by the far-field impostor collector below so the sprite a
+// building becomes is always the asset it really renders as.
+const HOUSE_POOL: PropKey[] = ['house1', 'house2', 'blacksmith'];
+const HOUSE_POOL_HOLLOW: PropKey[] = ['kmedHomeA', 'kmedHomeB'];
+export const HOUSE_HEIGHT: Readonly<Record<string, number>> = {
+  house1: 8.0,
+  house2: 7.6,
+  blacksmith: 6.6,
+  inn: 7.6,
+  kmedHomeA: 8.0,
+  kmedHomeB: 8.8,
+  kmedTavern: 8.5,
+  kmedChurch: 10.5,
+  kmedBlacksmith: 6.2,
+  kmedMarket: 5.2,
+};
+// single-asset (non-pool) building kinds
+const KIND_ASSET: Partial<Record<BuildingDef['kind'], PropKey>> = {
+  inn: 'inn',
+  hollowInn: 'kmedTavern',
+  hollowChapel: 'kmedChurch',
+  hollowSmith: 'kmedBlacksmith',
+  hollowMarket: 'kmedMarket',
+};
+
 function keyRand(key: number, n: number): number {
   return hash2(Math.round(key * 97), n * 7919, 0x9e3779);
 }
@@ -476,6 +1154,33 @@ function rotLocal(lx: number, lz: number, rot: number): { x: number; z: number }
   const c = Math.cos(rot),
     s = Math.sin(rot);
   return { x: lx * c + lz * s, z: -lx * s + lz * c };
+}
+
+/**
+ * The chapel bell tower's WORLD center: its CHAPEL_TOWER.dz rear offset
+ * rotated by the building yaw. The one transform the real composed chapel
+ * (its hideable footprint), the camera collider and the far IMPOSTOR all
+ * derive from; an impostor centered at the raw (b.x, b.z) instead sits
+ * dz off its real twin and jumps sideways at the handoff.
+ */
+export function chapelTowerWorldCenter(b: { x: number; z: number; rot: number }): {
+  x: number;
+  z: number;
+} {
+  const off = rotLocal(0, CHAPEL_TOWER.dz, b.rot);
+  return { x: b.x + off.x, z: b.z + off.z };
+}
+
+/**
+ * The one house-asset pick for a building record: the same pool and the
+ * same keyRand draw whether the consumer is the real placement loop or the
+ * impostor collector, so a far sprite can never disagree with the model it
+ * hands off to.
+ */
+export function buildingAssetPick(b: { x: number; z: number; kind: BuildingDef['kind'] }): PropKey {
+  const key = b.x * 13.7 + b.z * 3.1;
+  const pool = b.kind === 'hollowHouse' ? HOUSE_POOL_HOLLOW : HOUSE_POOL;
+  return KIND_ASSET[b.kind] ?? pool[Math.floor(keyRand(key, 3) * 0.999 * pool.length)];
 }
 
 type Scale = number | [number, number, number];
@@ -709,43 +1414,105 @@ function buildDelveEmbers(
 // `delveLabel` resolves a delve id to its localized display name for the carved
 // entrance sign. Passed in by renderer.ts (the only render-side i18n surface) so
 // props.ts itself stays string-table-free; falls back to the id if absent.
-export function buildProps(seed: number, delveLabel?: (delveId: string) => string): PropsResult {
+/** What buildProps reads from the world: its seed, and the ferry timetable the
+ *  scheduled ships follow (an IWorld satisfies it). */
+export interface PropsWorld extends FerryViewSource {
+  cfg: { seed: number };
+}
+
+export function buildProps(
+  world: PropsWorld,
+  delveLabel?: (delveId: string) => string,
+): PropsResult {
+  livePropMeshMatKeys.clear();
+  livePropInstancedMatKeys.clear();
+  const seed = world.cfg.seed;
   const group = new THREE.Group();
   const flames: THREE.Mesh[] = [];
+  // Meshes the far-cell bake must never absorb because the renderer animates
+  // them live (campfire flames, windmill sails): baking one freezes its pose
+  // while the live copy is hidden in far mode. They stay individual in BOTH
+  // modes and keep their own shadow flags.
+  const keepLiveMeshes = new Set<THREE.Mesh>();
+  const windmillFans: THREE.Object3D[] = [];
   const fireLights: THREE.PointLight[] = [];
+  // moored transport ships (render/transport_ship.ts): live, idle-animated,
+  // their own LODs; ticked from update() below, never merged or ghosted
+  const transportShips: TransportShipView[] = [];
   const activeContent = getActiveWorldContent();
-  const builtInWorld = activeContent === BUILTIN_WORLD;
+  const builtInWorld = isBuiltinWorldContent(activeContent);
+  const builtInShaped = isBuiltinShapedWorld(activeContent);
+  // The authored-town swap is gated on the town's DATA, not on world identity,
+  // so an editor copy of the built-in world gets the same art the game draws
+  // (see authored_town_gate.ts). True for isBuiltinWorldContent, so the shipped path
+  // is unchanged.
+  const eastbrookTown = activeWorldHasAuthoredTown(isEastbrookRebuildBuilding);
+  const fenbridgeTown = activeWorldHasAuthoredTown(isFenbridgeRebuildBuilding);
+  const highwatchTown = activeWorldHasAuthoredTown(isHighwatchRebuildBuilding);
+  const paintedTowns = activeWorldHasAuthoredTown(isPaintedTownRebuildBuilding);
 
   const ground = (x: number, z: number) => terrainHeight(x, z, seed);
 
-  // Camera-ghost props (see colliders.ts `camGhost`) stay individual and
-  // un-merged so they can be hidden while the camera ray passes through their
-  // footprint. Footprints mirror the colliders so what hides is exactly what
-  // the camera passes through.
+  // Hideable props stay individual and unmerged so they can be faded while
+  // the camera ray passes through their footprint. Footprints mirror the
+  // colliders so what fades is exactly what the camera passes through.
   const hideables: Hideable[] = [];
   const keepFromMerge = new Set<THREE.Object3D>();
   /**
-   * Mark `g` un-mergeable and register it as hide-when-camera-crossed. Each
-   * mesh's material is cloned so flipping colour/depth writes hides only this
-   * structure (and leaves the shadow pass untouched).
+   * Mark `g` un-mergeable and register it as fade-when-camera-crossed. Each
+   * mesh's material is cloned so the opacity fade touches only this structure
+   * (and leaves the shadow pass untouched). The pre-clone shared material is
+   * recorded per mesh so the far-cell bake can merge distant copies.
    */
   function registerHideable(g: THREE.Group, fp: Footprint): void {
-    const matMap = new Map<THREE.Material, ToggleMat>();
+    const matMap = new Map<THREE.Material, OccluderFadeMat>();
+    const mats: OccluderFadeMat[] = [];
+    const bakeMeshes: HideableBakeMesh[] = [];
     g.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
       keepFromMerge.add(mesh);
-      if (lowProps) return;
+      // Animated meshes (flames, windmill sails) and transparent meshes stay
+      // live in both modes (the bake would freeze the animation or break
+      // blend ordering).
+      const srcMat = mesh.material as THREE.Material;
+      if (!keepLiveMeshes.has(mesh) && srcMat.transparent !== true) {
+        bakeMeshes.push({ mesh, srcMat });
+        if (!GFX.constrainedMemory) {
+          livePropInstancedMatKeys.add(propMaterialVariantKey(srcMat, mesh.geometry));
+        }
+      }
       const src = mesh.material as THREE.Material;
       let tm = matMap.get(src);
       if (!tm) {
-        const mat = src.clone();
-        tm = { mat, depthWrite: mat.depthWrite };
+        // The hook-preserving clone: a bare clone dropped BOTH own-property
+        // hooks, so the ghost lost the zone-haze layer AND minted a new
+        // program cache key, linking a program per ghosted kit material the
+        // first time a crowd arrival whipped the camera across town (the
+        // measured first-contact burst). With the hooks carried over the
+        // ghost's OPAQUE program is the source's own; only the transparent
+        // fade variant remains a distinct (prewarmable) key.
+        const ghostSrc = cloneMaterialWithHooks(src);
+        tm = occluderFadeRecordFor(mats, ghostSrc, mesh);
         matMap.set(src, tm);
+      } else {
+        // A second mesh of the same kit material on another program (an
+        // instanced part, another attribute set) gets its own record, so the
+        // fade gate links that program too before the shared clone flips.
+        occluderFadeRecordFor(mats, tm.mat, mesh);
       }
       mesh.material = tm.mat;
     });
-    hideables.push({ group: g, mats: [...matMap.values()], hidden: false, ...fp });
+    hideables.push({
+      group: g,
+      mats,
+      hidden: false,
+      alpha: 1,
+      cellKey: propCellKey(fp.x, fp.z),
+      bakeMeshes,
+      suppressed: false,
+      ...fp,
+    });
   }
 
   // live small materials (decals / glow) — shared, never per-instance
@@ -756,7 +1523,7 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
   const lanternMat = surfaceMat({
     color: 0xffcc66,
     emissive: 0xff9933,
-    emissiveIntensity: usePbr ? 2 : 1.2,
+    emissiveIntensity: usePbr ? EMISSIVE_LIGHT : 1.2,
     roughness: 0.4,
   });
 
@@ -788,7 +1555,10 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
   ): THREE.Group {
     const a = propAsset(key);
     const holder = new THREE.Group();
-    for (const p of a.parts) holder.add(new THREE.Mesh(p.geo, p.mat));
+    for (const p of a.parts) {
+      livePropMeshMatKeys.add(propMaterialVariantKey(p.mat, p.geo));
+      holder.add(new THREE.Mesh(p.geo, p.mat));
+    }
     holder.position.set(opts.x ?? 0, opts.y ?? 0, opts.z ?? 0);
     if (opts.euler) holder.quaternion.setFromEuler(opts.euler);
     else if (opts.rot) holder.rotation.y = opts.rot;
@@ -815,8 +1585,11 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
     tmpQuat.setFromEuler(typeof rot === 'number' ? new THREE.Euler(0, rot, 0) : rot);
     if (typeof scale === 'number') tmpScale.setScalar(scale);
     else tmpScale.set(scale[0], scale[1], scale[2]);
-    const band = Math.floor((z - WORLD_MIN_Z) / MERGE_BAND_DEPTH);
-    const bucketKey = `${key}:${band}`;
+    const band = Math.floor((z - WORLD_MIN_Z) / mergeBandDepth());
+    // Split bands into x-halves (the foliage bucket pattern): a world-wide
+    // band's bounding sphere always intersects the shadow frustum, so it
+    // re-submits into the shadow map every frame; half-bands cull.
+    const bucketKey = `${key}:${x < 0 ? 'w' : 'e'}:${band}`;
     let bucket = instanceBatches.get(bucketKey);
     if (!bucket) {
       bucket = { key, mats: [] };
@@ -826,16 +1599,9 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
   }
 
   // ---- buildings: village houses / inn / composed chapel ------------------
-  const housePool: PropKey[] = ['house1', 'house2', 'blacksmith'];
-  const houseHeight: Record<string, number> = {
-    house1: 8.0,
-    house2: 7.6,
-    blacksmith: 6.6,
-    inn: 7.6,
-  };
+  const houseHeight = HOUSE_HEIGHT;
 
   for (const b of activeContent.props.buildings) {
-    const key = b.x * 13.7 + b.z * 3.1;
     const y = ground(b.x, b.z);
     const armoury = buildEastbrookGrandArmouryView(b, ground);
     if (armoury) {
@@ -846,7 +1612,10 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       );
       continue;
     }
-    if (builtInWorld && isEastbrookRebuildBuilding(b)) continue;
+    if (eastbrookTown && isEastbrookRebuildBuilding(b)) continue;
+    if (fenbridgeTown && isFenbridgeRebuildBuilding(b)) continue;
+    if (highwatchTown && isHighwatchRebuildBuilding(b)) continue;
+    if (paintedTowns && isPaintedTownRebuildBuilding(b)) continue;
     // roof Y mirrors the camera collider height in colliders.ts, through the
     // same shared helper, so an authored per-building height override cannot
     // leave the hideable top and the camera top disagreeing.
@@ -876,12 +1645,12 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       gTower.position.set(b.x, y - CHAPEL_HALL.sink, b.z);
       gTower.rotation.y = b.rot;
       group.add(shadowed(gTower));
-      const towerOff = rotLocal(0, CHAPEL_TOWER.dz, b.rot);
+      const towerCenter = chapelTowerWorldCenter(b);
       registerHideable(
         gTower,
         obbFootprint(
-          b.x + towerOff.x,
-          b.z + towerOff.z,
+          towerCenter.x,
+          towerCenter.z,
           (b.w * CHAPEL_TOWER.wScale) / 2,
           (b.d * CHAPEL_TOWER.dScale) / 2,
           b.rot,
@@ -915,8 +1684,7 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       );
       continue;
     }
-    const asset: PropKey =
-      b.kind === 'inn' ? 'inn' : housePool[Math.floor(keyRand(key, 3) * 0.999 * housePool.length)];
+    const asset = buildingAssetPick(b);
     const a = propAsset(asset);
     const g = new THREE.Group();
     addParts(g, asset, { scale: [b.w / a.size.x, houseHeight[asset] / a.size.y, b.d / a.size.z] });
@@ -926,9 +1694,154 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
     registerHideable(g, obbFootprint(b.x, b.z, b.w / 2, b.d / 2, b.rot, roofY));
   }
 
+  // ---- hand-placed GLB decor (the generated storybook set) -----------------
+  // World-scale, front-on-+z models: place at scale 1, orient with rot alone.
+  // r > 0 entries mirror the circle collider in colliders.ts and camera-ghost;
+  // r 0 dressing stays always-visible (small silhouettes, nothing to hide).
+  for (const d of renderDecorProps(activeContent, seed, lowProps)) {
+    if (isTransportShipKey(d.key)) {
+      const ship = buildTransportShipView({
+        key: d.key,
+        x: d.x,
+        z: d.z,
+        rot: d.rot ?? 0,
+        baseY:
+          d.float !== undefined
+            ? Math.max(ground(d.x, d.z), WATER_LEVEL - d.float)
+            : ground(d.x, d.z),
+      });
+      if (ship) {
+        group.add(ship.group);
+        ship.group.traverse((o) => {
+          if ((o as THREE.Mesh).isMesh) keepFromMerge.add(o);
+        });
+        transportShips.push(ship);
+      }
+      continue;
+    }
+    if (!(d.key in PROP_ASSET_DEFS)) {
+      console.warn(`decorProps: unknown prop key "${d.key}" skipped`);
+      continue;
+    }
+    const g = new THREE.Group();
+    const holder = addParts(g, d.key as PropKey, { scale: d.scale ?? 1 });
+    // the windmill's sail cross is a distinct authored mesh: reparent it onto
+    // a pivot at its axle so the renderer can spin it (kept out of the static
+    // merge, the campfire-flame idiom)
+    if (d.key === 'hexWindmill' || d.key === 'hexbWindmill') {
+      const a = propAsset(d.key);
+      const fanIdx = a.parts.findIndex((part) => /fan/i.test(part.name));
+      if (fanIdx >= 0) {
+        const fanMesh = holder.children[fanIdx] as THREE.Mesh;
+        const axle = (a.parts[fanIdx].geo.boundingBox as THREE.Box3).getCenter(new THREE.Vector3());
+        const pivot = new THREE.Group();
+        pivot.position.copy(axle);
+        fanMesh.position.set(-axle.x, -axle.y, -axle.z);
+        holder.remove(fanMesh);
+        pivot.add(fanMesh);
+        holder.add(pivot);
+        keepFromMerge.add(fanMesh);
+        keepLiveMeshes.add(fanMesh);
+        windmillFans.push(pivot);
+      }
+    }
+    // floating decor (moored ships) rides the waterline at its draft depth
+    // instead of standing on the seabed
+    const baseY =
+      d.float !== undefined
+        ? Math.max(ground(d.x, d.z), WATER_LEVEL - d.float)
+        : ground(d.x, d.z) - 0.05 - (d.sink ?? 0);
+    g.position.set(d.x, baseY, d.z);
+    g.rotation.y = d.rot ?? 0;
+    // a muster piece leans with the hillside under it (src/sim/muster_camp_layout.ts)
+    if (d.pitch || d.roll) g.rotation.set(d.pitch ?? 0, d.rot ?? 0, d.roll ?? 0, 'YXZ');
+    group.add(shadowed(g));
+    if (d.r) {
+      registerHideable(g, circleFootprint(d.x, d.z, d.r, baseY + (d.h ?? 4)));
+    }
+  }
+  // The scheduled ferry (render/transport_ferry_ships.ts): the same ship model,
+  // posed every frame from the world's timetable; built-in world only.
+  const scheduledShips = builtInWorld
+    ? buildScheduledShips(world, (ship, wake) => {
+        group.add(ship.group);
+        ship.group.traverse((o) => {
+          if ((o as THREE.Mesh).isMesh) keepFromMerge.add(o);
+        });
+        transportShips.push(ship);
+        if (wake) group.add(wake.points);
+      })
+    : null;
+  // The piers and the built harbors below draw on any copy of the built-in
+  // world too (sim/builtin_shaped_world.ts): the sim walks their decks on every
+  // world. The ferry and its berth markers stay built-in only (it never sails
+  // a copy, transport_ferry.ts).
+  if (builtInShaped) group.add(buildFerryPiers(seed)); // their piers (render/ferry_piers.ts)
+  // ...and the route marker at every berth (render/harbor_route_markers.ts)
+  if (builtInWorld) group.add(buildHarborRouteMarkers(seed));
+  // ...and the Wyrmwatch cliff harbor at the Drakelands berth (render/wyrmwatch_harbor.ts),
+  // its Harbormaster's House walls and roof kept out of the merge (they fade one by one for
+  // the camera, render/wyrmwatch_harbor_house.ts) and its hearth and lanterns lit like a
+  // campfire (root-level, world-positioned, in the fire-light budget)
+  if (builtInShaped) {
+    group.add(buildWyrmwatchHarbor(seed));
+    for (const m of harborHouseShellMeshes()) keepFromMerge.add(m);
+    for (const light of wyrmwatchHarborHouseLights()) {
+      group.add(light);
+      fireLights.push(light);
+    }
+  } else {
+    clearHarborHouseShell();
+  }
+  // ...and the Highwatch adventurers' guild's hearths, lamps and belfry lantern
+  // (render/highwatch_guild_lights.ts), lit like a campfire: root-level, world-positioned,
+  // in the fire-light budget
+  if (highwatchTown) {
+    for (const light of highwatchGuildLights(seed)) {
+      group.add(light);
+      fireLights.push(light);
+    }
+    for (const fire of highwatchGuildFlames(seed, usePbr ? EMISSIVE_LIGHT : 1.4)) {
+      group.add(fire.holder);
+      flames.push(fire.flame);
+      keepLiveMeshes.add(fire.flame);
+      noShadow.add(fire.flame);
+      if (fire.core) {
+        keepLiveMeshes.add(fire.core);
+        noShadow.add(fire.core);
+      }
+    }
+  }
+  // ...and the Wickharbor ferry wharf at the Wickharbor berth (render/wickharbor_wharf.ts),
+  // with the rest of the town's wooden harbor in the same wood (render/wickharbor_harbor.ts)
+  if (builtInShaped) {
+    group.add(buildWickharborWharf());
+    group.add(buildWickharborHarbor());
+  }
+  // ...and the Mirefen tavern on the Fenbridge road (render/mirefen_tavern.ts): its walls,
+  // roofs, gallery and partitions fade one by one for the camera, its fires, chandelier and lanterns lit like a campfire (root-level,
+  // world-positioned, in the fire-light budget)
+  if (builtInWorld) {
+    // the whole tavern stays out of the band merge: it is already one mesh per material (the
+    // shell parts one per part), so a re-bake would only hold a second copy of its geometry
+    // beside the one the prewarm and the live draw share
+    const tavern = buildMirefenTavern();
+    group.add(tavern);
+    tavern.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) keepFromMerge.add(o as THREE.Mesh);
+    });
+    for (const light of mirefenTavernLights()) {
+      group.add(light);
+      fireLights.push(light);
+    }
+  } else {
+    clearMirefenTavernShell();
+  }
+
   // ---- market stalls (smith/armorer stalls get anvil + weapon stand) ------
   activeContent.props.stalls.forEach((s, i) => {
-    if (builtInWorld && isEastbrookRebuildStall(s)) return;
+    if (eastbrookTown && isEastbrookRebuildStall(s)) return;
+    if (fenbridgeTown && isFenbridgeRebuildStall(s)) return;
     const key = s.x * 7.7 + s.z * 2.3;
     const g = new THREE.Group();
     const standKey: PropKey = i % 2 === 0 ? 'stand1' : 'stand2';
@@ -959,7 +1872,8 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
 
   // ---- wells ---------------------------------------------------------------
   for (const w of activeContent.props.wells) {
-    if (builtInWorld && isEastbrookRebuildWell(w)) continue;
+    if (eastbrookTown && isEastbrookRebuildWell(w)) continue;
+    if (fenbridgeTown && isFenbridgeRebuildWell(w)) continue;
     const g = new THREE.Group();
     const a = propAsset('well');
     addParts(g, 'well', { scale: [2.6 / a.size.x, 3.6 / a.size.y, 2.9 / a.size.z] });
@@ -998,13 +1912,26 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
   }
 
   // ---- town fences: village fence module repeated along the run ------------
+  // (kind 'stone': the low scalloped KayKit wall, its authored length along
+  // local +z; kind 'palisade': the spiked KayKit log wall, length along
+  // local +x like the wood rail)
+  const STONE_WALL_SCALE = 4.2;
+  const STONE_MODULE_LEN = 1.155 * STONE_WALL_SCALE;
+  const PALISADE_MODULE_LEN = 2.0; // authored length before scaling
+  const PALISADE_SEG = 6.4; // target module length in the world
   for (const f of activeContent.props.fences) {
-    if (builtInWorld && isEastbrookRebuildFence(f)) continue;
+    if (eastbrookTown && isEastbrookRebuildFence(f)) continue;
     const len = Math.hypot(f.x2 - f.x1, f.z2 - f.z1);
-    const n = Math.max(1, Math.round(len / 2.35));
+    const stone = f.kind === 'stone';
+    const palisade = f.kind === 'palisade';
+    const n = Math.max(
+      1,
+      Math.round(len / (stone ? STONE_MODULE_LEN : palisade ? PALISADE_SEG : 2.35)),
+    );
     const dirx = (f.x2 - f.x1) / len,
       dirz = (f.z2 - f.z1) / len;
-    const yaw = Math.atan2(-dirz, dirx); // module length runs along local +x
+    // module length runs along local +x (wood, palisade) or local +z (stone)
+    const yaw = stone ? Math.atan2(dirx, dirz) : Math.atan2(-dirz, dirx);
     for (let i = 0; i < n; i++) {
       const x0 = f.x1 + (f.x2 - f.x1) * (i / n),
         z0 = f.z1 + (f.z2 - f.z1) * (i / n);
@@ -1015,6 +1942,31 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       const pitch = Math.atan2(g1 - g0, len / n);
       const mx = (x0 + x1) / 2,
         mz = (z0 + z1) / 2;
+      if (stone) {
+        // stretch the module to close the run exactly; sink a touch so the
+        // base course follows sloped ground without floating
+        const segScale = (len / n / STONE_MODULE_LEN) * STONE_WALL_SCALE;
+        addInstance(
+          'hexFenceStone',
+          mx,
+          (g0 + g1) / 2 - 0.12,
+          mz,
+          new THREE.Euler(-pitch, yaw, 0, 'YXZ'),
+          [STONE_WALL_SCALE, STONE_WALL_SCALE, segScale],
+        );
+        continue;
+      }
+      if (palisade) {
+        addInstance(
+          'hexnPalisade',
+          mx,
+          (g0 + g1) / 2 - 0.15,
+          mz,
+          new THREE.Euler(0, yaw, pitch, 'YZX'),
+          [len / n / PALISADE_MODULE_LEN, 3.2, 1.8],
+        );
+        continue;
+      }
       const sy = 2.9 + (propRand(mx, mz, 1) - 0.5) * 0.5;
       addInstance('fence', mx, (g0 + g1) / 2 - 0.05, mz, new THREE.Euler(0, yaw, pitch, 'YZX'), [
         3.0,
@@ -1025,42 +1977,68 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
   }
 
   // ---- campfires: hideable bonfire base + live animated flame + light ------
-  const flamePts = [
-    [0, 0],
-    [0.16, 0.1],
-    [0.27, 0.28],
-    [0.3, 0.45],
-    [0.22, 0.66],
-    [0.1, 0.84],
-    [0.001, 0.95],
-  ].map(([r, y]) => new THREE.Vector2(r, y));
-  const flameGeo = new THREE.LatheGeometry(flamePts, 7);
+  // Shared with the editor's placed campfires (render/campfire_flame.ts), so a
+  // promoted campfire draws the same fire as the world one it came from. The
+  // built-in world keeps the single Lambert lathe it shipped with.
+  const legacyFlameGeo = builtInWorld ? legacyCampfireFlameGeometry() : null;
   for (const [x, z] of getActiveWorldContent().props.campfires) {
     const y = ground(x, z);
     const g = new THREE.Group();
     addParts(g, 'bonfire', { y: -0.05, rot: propRand(x, z, 1) * Math.PI * 2, scale: 4.3 });
-    const flame = new THREE.Mesh(
-      flameGeo,
-      new THREE.MeshLambertMaterial({
-        color: 0xffaa33,
-        emissive: 0xff6600,
-        emissiveIntensity: usePbr ? 2.2 : 1.4,
-        transparent: true,
-        opacity: 0.92,
-      }),
-    );
+    // Body + hot core (campfire_flame.ts). The lane below tracks the BODY, as
+    // it tracked the single lathe this replaced; the core rides its transform.
+    const emissiveIntensity = usePbr ? EMISSIVE_LIGHT : 1.4;
+    const { flame, core } = legacyFlameGeo
+      ? {
+          flame: buildLegacyCampfireFlame(legacyFlameGeo, {
+            color: 0xffaa33,
+            emissive: 0xff6600,
+            emissiveIntensity,
+          }),
+          core: null,
+        }
+      : buildCampfireFlame({ emissiveIntensity });
     flame.position.y = 0.16;
     flame.scale.setScalar(1.15);
     g.add(flame);
     flames.push(flame);
+    keepLiveMeshes.add(flame);
     noShadow.add(flame);
+    if (core) {
+      keepLiveMeshes.add(core);
+      noShadow.add(core);
+    }
     const light = new THREE.PointLight(0xff8830, 12, 16, 2);
-    light.position.y = 1.2;
-    g.add(light);
+    // Root-level, world-positioned: the light must NOT live inside the hideable
+    // campfire group. A parent visibility toggle (fog cull / camera ghost) would
+    // change numPointLights and recompile every lit material mid-travel (the
+    // open-world shader-compile freeze). The fireLights budget owns its shine.
+    light.position.set(x, y + 1.2, z);
+    group.add(light);
     fireLights.push(light);
     g.position.set(x, y, z);
     group.add(shadowed(g));
     registerHideable(g, circleFootprint(x, z, 0.85, y + 1.45, 2.4));
+  }
+  // the Mirefen tavern's round hearth and wall fire burn with the built-in campfires' live
+  // flame (the legacy lathe, built-in world only), each in a sized holder (the flicker writes
+  // the flame's own scale; render/mirefen_tavern.ts)
+  if (legacyFlameGeo) {
+    for (const spot of mirefenTavernFlameSpots()) {
+      const flame = buildLegacyCampfireFlame(legacyFlameGeo, {
+        color: 0xffaa33,
+        emissive: 0xff6600,
+        emissiveIntensity: usePbr ? EMISSIVE_LIGHT : 1.4,
+      });
+      const holder = new THREE.Group();
+      holder.position.set(spot.x, spot.y, spot.z);
+      holder.scale.set(spot.scale, spot.scale, spot.scale * (spot.depthZ ?? 1));
+      holder.add(flame);
+      group.add(holder);
+      flames.push(flame);
+      keepLiveMeshes.add(flame);
+      noShadow.add(flame);
+    }
   }
 
   // ---- bandit/war tents: Kenney ridge tents, opening on +z, hideable -------
@@ -1108,18 +2086,32 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
   });
 
   // ---- crates: camp clutter (wooden crate / barrel mix), hideable ----------
-  getActiveWorldContent().props.crates.forEach(([x, z], i) => {
+  getActiveWorldContent().props.crates.forEach(([x, z, stack], i) => {
     const kind: PropKey = i % 3 === 2 ? 'barrel' : 'crateWooden';
     const s = kind === 'barrel' ? 1.25 : 1.3 + propRand(x, z, 5) * 0.15;
+    // Unit height mirrors campCrateShape (prop_layout.ts): barrel 1.13,
+    // crate 0.878 * scale. Stacked levels sit flush on each other's tops so
+    // the drawn pile and the collider top agree.
+    const unitH = kind === 'barrel' ? 1.13 : 0.878 * s;
     const y = ground(x, z);
     const g = new THREE.Group();
-    addParts(g, kind, {
-      scale: s,
-      euler: new THREE.Euler((propRand(x, z, 7) - 0.5) * 0.05, ((x * 13 + z * 7) % 1) * Math.PI, 0),
-    });
+    const levels = stack ?? 1;
+    for (let level = 0; level < levels; level++) {
+      const holder = new THREE.Group();
+      addParts(holder, kind, {
+        scale: s,
+        euler: new THREE.Euler(
+          level === 0 ? (propRand(x, z, 7) - 0.5) * 0.05 : 0,
+          ((x * 13 + z * 7 + level * 5) % 1) * Math.PI,
+          0,
+        ),
+      });
+      holder.position.y = level * unitH;
+      g.add(holder);
+    }
     g.position.set(x, y - 0.04, z);
     group.add(shadowed(g));
-    registerHideable(g, circleFootprint(x, z, 0.65, y + 1.35));
+    registerHideable(g, circleFootprint(x, z, 0.65, y + 1.35 + (levels - 1) * unitH));
   });
 
   // ---- murloc mud huts: giant swamp mushrooms, doorway facing camp center --
@@ -1132,6 +2124,18 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
   );
   for (const [x, z] of getActiveWorldContent().props.mudHuts) {
     const y = ground(x, z);
+    // The Mirefen camp stands the painted mudfin huts at the size, turn and
+    // wall the shared table gives the colliders too (sim/mudfin_huts.ts).
+    const mudfin = mudfinHutAt(x, z);
+    if (mudfin) {
+      const spec = MUDFIN_HUT_MODELS[mudfin.model];
+      const hut = new THREE.Group();
+      addParts(hut, MUDFIN_HUT_PROP_KEYS[mudfin.model], { y: -0.08, rot: mudfin.yaw, scale: 1 });
+      hut.position.set(x, y, z);
+      group.add(shadowed(hut));
+      registerHideable(hut, circleFootprint(x, z, spec.radius, y + spec.height, spec.radius + 0.6));
+      continue;
+    }
     const g = new THREE.Group();
     const sxz = 13 + propRand(x, z, 15) * 3;
     const sy = 10.5 + propRand(x, z, 16) * 3;
@@ -1170,13 +2174,10 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
 
   // ---- ruin rings: weathered monolith columns at the exact collider angles -
   for (const r of getActiveWorldContent().props.ruinRings) {
-    for (let i = 0; i < r.columns; i++) {
-      const ang = (i / r.columns) * Math.PI * 2;
-      const x = r.x + Math.sin(ang) * r.ringR,
-        z = r.z + Math.cos(ang) * r.ringR;
-      const intact = i % 4 === 1;
+    if (r.bare || r.columns <= 0) continue;
+    for (const col of ruinRingColumns(r)) {
+      const { index: i, x, z, intact, scaleY: sy } = col;
       const kind: PropKey = intact ? 'column' : 'columnBroken';
-      const sy = intact ? 3.5 + (i % 2) * 0.5 : 1.7 + (i % 3) * 0.85;
       const y = ground(x, z);
       const g = new THREE.Group();
       addParts(g, kind, {
@@ -1192,10 +2193,8 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       // Hideable at the column's REAL drawn top, not the intact monolith's:
       // broken stumps are standable now, and registering them tall would put
       // a standing player's eye inside-and-below the footprint, vanishing
-      // the stump underfoot. Same height math as the collider (native tops
-      // 1.0 intact / 0.65 broken, times the y scale, minus the 0.1 sink).
-      const colTop = intact ? sy - 0.1 : 0.65 * sy - 0.1;
-      registerHideable(g, circleFootprint(x, z, 0.6, y + colTop, 2.2));
+      // the stump underfoot. The same top the collider uses (ruinRingColumns).
+      registerHideable(g, circleFootprint(x, z, 0.6, y + col.top, 2.2));
     }
     if (lowProps) continue;
     // toppled relics at the ring's heart: half-buried head + fallen column
@@ -1332,29 +2331,43 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
     const y = ground(d.x, d.z);
     const g = new THREE.Group();
     const key = d.x * 3.3 + d.z * 1.7;
+    // The dock's uniform scale (dock_layout.ts): the surface line lives in
+    // UNIT-local z, so world placement multiplies by ds and the pitch reads
+    // the slope back through it.
+    const ds = d.scale ?? 1;
     const surfaceLine = dockSurfaceLine(d, ground);
-    const pitch = -Math.atan(surfaceLine.slope);
-    const zScale = 0.85 / Math.cos(pitch);
+    const pitch = -Math.atan(surfaceLine.slope / ds);
+    const zScale = (0.85 / Math.cos(pitch)) * ds;
     for (let i = 0; i < DOCK_SECTION_LOCAL_Z.length; i++) {
       const lz = DOCK_SECTION_LOCAL_Z[i];
       const section = new THREE.Group();
-      section.position.set(0, dockSurfaceYAt(surfaceLine, lz) - y, lz);
+      section.position.set(0, dockSurfaceYAt(surfaceLine, lz) - y, lz * ds);
       section.rotation.x = pitch;
       g.add(section);
       // Pivot around the plank surface, not the post feet. Every section then
       // lies on the same analytic plane exposed by groundHeight. Compensating
       // z scale preserves the authored footprint after the pitch projection.
       addParts(section, 'dockPlatform', {
-        y: -DOCK_SECTION_SURFACE_Y,
-        scale: [0.78, 0.52, zScale],
+        y: -DOCK_SECTION_SURFACE_Y * ds,
+        scale: [0.78 * ds, 0.52 * ds, zScale],
       });
     }
-    const hut = propAsset('house3');
-    addParts(g, 'house3', {
-      x: d.hutLocal.x,
-      z: d.hutLocal.z,
-      scale: [(d.hutLocal.hw * 2) / hut.size.x, 2.6 / hut.size.y, (d.hutLocal.hd * 2) / hut.size.z],
-    });
+    // hw/hd 0 means this dock carries no stone hut (e.g. the Farshore Landing).
+    // Skip it entirely: a zero-scale mesh has a degenerate (non-invertible)
+    // transform, which reads as NaN normals and flickers as a black square.
+    const hasHut = d.hutLocal.hw > 0 && d.hutLocal.hd > 0;
+    if (hasHut) {
+      const hut = propAsset('house3');
+      addParts(g, 'house3', {
+        x: d.hutLocal.x,
+        z: d.hutLocal.z,
+        scale: [
+          (d.hutLocal.hw * 2) / hut.size.x,
+          2.6 / hut.size.y,
+          (d.hutLocal.hd * 2) / hut.size.z,
+        ],
+      });
+    }
     if (!lowProps) {
       // Loose dressing from the shared DOCK_DRESSING layout (all collidable
       // now, so they sit OFF the pinned-crossable plank walkway, on the
@@ -1362,22 +2375,22 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       // ground sample: the shore undulates around the anchor.
       DOCK_DRESSING.forEach((dd, i) => {
         const off = {
-          x: dd.x * Math.cos(d.rot) + dd.z * Math.sin(d.rot),
-          z: -dd.x * Math.sin(d.rot) + dd.z * Math.cos(d.rot),
+          x: (dd.x * Math.cos(d.rot) + dd.z * Math.sin(d.rot)) * ds,
+          z: (-dd.x * Math.sin(d.rot) + dd.z * Math.cos(d.rot)) * ds,
         };
         addParts(g, i === 2 ? 'crateWooden' : 'barrel', {
-          x: dd.x,
+          x: dd.x * ds,
           y: ground(d.x + off.x, d.z + off.z) - y,
-          z: dd.z,
+          z: dd.z * ds,
           rot: keyRand(key, 5 + i) * Math.PI,
-          scale: dd.scale ?? 1,
+          scale: (dd.scale ?? 1) * ds,
         });
       });
     }
     // rowboat beside the deck's far end: floats at water level when the
     // shore dips below it, otherwise sits hauled up on the bank
-    const boatLx = DOCK_BOAT.x,
-      boatLz = DOCK_BOAT.z;
+    const boatLx = DOCK_BOAT.x * ds,
+      boatLz = DOCK_BOAT.z * ds;
     const boatWx = d.x + boatLx * Math.cos(d.rot) + boatLz * Math.sin(d.rot);
     const boatWz = d.z - boatLx * Math.sin(d.rot) + boatLz * Math.cos(d.rot);
     const boatGround = ground(boatWx, boatWz);
@@ -1388,7 +2401,7 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       z: boatLz,
       y: (isAfloat ? wl + 0.18 : boatGround + 0.06) - y,
       rot: DOCK_BOAT.rot + (keyRand(key, 8) - 0.5) * 0.4,
-      scale: 0.85,
+      scale: 0.85 * ds,
       euler: isAfloat
         ? undefined
         : new THREE.Euler(0.04, DOCK_BOAT.rot + (keyRand(key, 8) - 0.5) * 0.4, 0.16),
@@ -1397,14 +2410,16 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
     g.rotation.y = d.rot;
     group.add(shadowed(g));
     // stone hut OBB — same offset/extents/rotation as the collider
-    const hc = Math.cos(d.rot),
-      hs = Math.sin(d.rot);
-    const hx = d.x + d.hutLocal.x * hc + d.hutLocal.z * hs;
-    const hz = d.z - d.hutLocal.x * hs + d.hutLocal.z * hc;
-    registerHideable(
-      g,
-      obbFootprint(hx, hz, d.hutLocal.hw, d.hutLocal.hd, d.rot, ground(hx, hz) + 2.9),
-    );
+    if (hasHut) {
+      const hc = Math.cos(d.rot),
+        hs = Math.sin(d.rot);
+      const hx = d.x + d.hutLocal.x * hc + d.hutLocal.z * hs;
+      const hz = d.z - d.hutLocal.x * hs + d.hutLocal.z * hc;
+      registerHideable(
+        g,
+        obbFootprint(hx, hz, d.hutLocal.hw, d.hutLocal.hd, d.rot, ground(hx, hz) + 2.9),
+      );
+    }
   }
 
   // ---- delve entrance: Meshy portal-door + animated void + carved name lintel -
@@ -1536,21 +2551,24 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.26, 0.38, 10), bowlMat);
       bowl.position.y = postH + 0.1;
       bg.add(bowl);
-      const flame = new THREE.Mesh(
-        flameGeo,
-        new THREE.MeshLambertMaterial({
-          color: 0xffaa33,
-          emissive: 0xff6a1e,
-          emissiveIntensity: usePbr ? 2.2 : 1.4,
-          transparent: true,
-          opacity: 0.92,
-        }),
-      );
+      const brazierFlame = {
+        color: 0xffaa33,
+        emissive: 0xff6a1e,
+        emissiveIntensity: usePbr ? EMISSIVE_LIGHT : 1.4,
+      };
+      const { flame, core } = legacyFlameGeo
+        ? { flame: buildLegacyCampfireFlame(legacyFlameGeo, brazierFlame), core: null }
+        : buildCampfireFlame(brazierFlame);
       flame.position.y = postH + 0.28;
       flame.scale.setScalar(0.72);
       bg.add(flame);
       flames.push(flame);
+      keepLiveMeshes.add(flame);
       noShadow.add(flame);
+      if (core) {
+        keepLiveMeshes.add(core);
+        noShadow.add(core);
+      }
       const light = new THREE.PointLight(0xff8a3a, 9, 13, 2);
       light.position.y = postH + 0.55;
       light.userData.baseIntensity = 8;
@@ -1594,7 +2612,8 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
     const cv = document.createElement('canvas');
     cv.width = CW;
     cv.height = CH;
-    const ctx = cv.getContext('2d')!;
+    const ctx = cv.getContext('2d');
+    if (!ctx) throw new Error('2d canvas context unavailable');
 
     ctx.fillStyle = '#2b2722';
     ctx.fillRect(0, 0, CW, CH);
@@ -1641,11 +2660,68 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
     group.add(face);
   }
 
+  // ---- show-jumping race fixtures (Highwatch Stables) -----------------------
+  // The start/finish arch and the jumps, permanent landmarks placed from
+  // props.raceCourse (zone content mirroring MOUNT_RACE_COURSE), so the visible
+  // course can never drift from the gates the race system detects. Rendered on
+  // EVERY tier (riders race against these; no tier may hide them). colliders.ts
+  // builds matching fence-like OBBs from the same raceCourse and fixture-size
+  // data, so grounded riders stop and deliberate jumps clear. Merged static.
+  const raceCourse = getActiveWorldContent().props.raceCourse;
+  if (raceCourse) {
+    // The models' long axis (crossbar / arch face) is local +z; yawing by
+    // dir + PI/2 turns it perpendicular to the riding heading, so every gate is
+    // ridden face-on. The gates are deliberately BIG (a proper arena): wide jumps
+    // whose bar sits a touch higher now that mounts jump higher. Each jump carries
+    // a height cap on the WHOLE model; the jumpable rail reads a bit below that, so
+    // capping the vertical model at ~1.7 and the oxer at ~1.85 lands the main bar
+    // below each model's top. A mounted hop apexes near ~1.76yd (JUMP_VELOCITY * MOUNT_JUMP_MULT
+    // over GRAVITY in sim/player_motion), clearing even the standard tops, so the
+    // ~7.5-8yd span fills the gate while every jump still reads as hoppable. The
+    // arch is an imposing ~10.5yd start/finish gate at natural proportions.
+    const fixtures: {
+      x: number;
+      z: number;
+      dir: number;
+      key: PropKey;
+      width: number;
+      maxHeight?: number;
+    }[] = [
+      { ...raceCourse.arch, key: 'courseArch', width: 10.5 },
+      ...raceCourse.jumps.map((j) => {
+        const fixture = MOUNT_RACE_JUMP_FIXTURES[j.kind];
+        return {
+          x: j.x,
+          z: j.z,
+          dir: j.dir,
+          key: (j.kind === 'oxer' ? 'jumpOxer' : 'jumpVertical') as PropKey,
+          width: fixture.width,
+          maxHeight: fixture.maxHeight,
+        };
+      }),
+    ];
+    for (const f of fixtures) {
+      const a = propAsset(f.key);
+      // Uniform scale to the target width (long axis is +z), then clamp the
+      // height: for a model taller than maxHeight this lowers only the vertical
+      // axis (never a stretch, min() keeps it a cap). Sunk 0.08yd like the delve
+      // rubble so a wide base never floats on the paddock's gentle slopes.
+      const s = f.width / a.size.z;
+      const sy = f.maxHeight != null ? Math.min(s, f.maxHeight / a.size.y) : s;
+      const g = new THREE.Group();
+      addParts(g, f.key, { scale: [s, sy, s] });
+      g.position.set(f.x, ground(f.x, f.z) - 0.08, f.z);
+      g.rotation.y = f.dir + Math.PI / 2;
+      group.add(shadowed(g));
+    }
+  }
+
   // ---- flush instanced batches ---------------------------------------------
   const cullables: PropCullable[] = [];
   for (const batch of instanceBatches.values()) {
     const a = propAsset(batch.key);
     for (const part of a.parts) {
+      livePropInstancedMatKeys.add(propMaterialVariantKey(part.mat, part.geo));
       const im = new THREE.InstancedMesh(part.geo, part.mat, batch.mats.length);
       for (let i = 0; i < batch.mats.length; i++) im.setMatrixAt(i, batch.mats[i]);
       im.instanceMatrix.needsUpdate = true;
@@ -1654,25 +2730,48 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       im.computeBoundingSphere();
       im.computeBoundingBox();
       group.add(im);
-      const bounds = cullableBounds(im, im.boundingBox, im.boundingSphere);
-      if (bounds) cullables.push(bounds);
+      pushCullable(cullables, im, im.boundingBox, im.boundingSphere);
     }
   }
 
-  // animated flames + camera-ghost props (hidden individually) stay un-merged
+  // animated flames + camera-ghost props (faded individually) stay un-merged
   const keep = new Set<THREE.Object3D>(flames);
   for (const m of keepFromMerge) keep.add(m);
   for (const p of delvePortals) keep.add(p); // shader-driven void: keep its transparency/renderOrder
   const staticMeshes = mergeStaticMeshes(group, keep);
   for (const sm of staticMeshes) {
-    const bounds = cullableBounds(sm, sm.geometry.boundingBox, sm.geometry.boundingSphere);
-    if (bounds) cullables.push(bounds);
+    pushCullable(cullables, sm, sm.geometry.boundingBox, sm.geometry.boundingSphere);
   }
+
+  // Far-cell merged bakes for the hideables (dual representation): identical
+  // world-baked geometry on the SHARED pre-clone materials, one mesh per
+  // (cell, material, castShadow). The per-frame swap lives in update().
+  // Constrained-memory profiles (phone WebKit, every iOS WebKit host) skip the bake:
+  // duplicating the prop geometry at world entry is exactly the allocation
+  // spike the v0.27.2 memory hotfix class guards against, and the draw-call
+  // win matters most on the desktop tiers.
+  const farCells = GFX.constrainedMemory ? [] : buildFarPropCells(group, hideables);
+  const farCellsByKey = new Map(farCells.map((cell) => [cell.key, cell]));
+  const cullablesByKey = new Map(cullables.map((cullable) => [cullable.key, cullable]));
+  prepareSceneryDetailRoot(group);
+  const cullPass = newPropCullPass();
+  let revealGate: RevealGateCore | null = null;
+  let bandRevealGate: RevealGateCore | null = null;
 
   return {
     group,
     flames,
+    windmillFans,
     fireLights,
+    setRevealGate(gate: RevealGateCore | null): void {
+      revealGate = gate;
+    },
+    setBandRevealGate(gate: RevealGateCore | null): void {
+      bandRevealGate = gate;
+    },
+    revealRoots(key: string): readonly THREE.Object3D[] {
+      return propRevealRoots<THREE.Object3D>(farCellsByKey, cullablesByKey, key);
+    },
     update(
       camX: number,
       camY: number,
@@ -1681,56 +2780,120 @@ export function buildProps(seed: number, delveLabel?: (delveId: string) => strin
       eyeY: number,
       eyeZ: number,
       fogFar: number,
+      dt: number,
+      reducedMotion = false,
     ): void {
-      for (const c of cullables) {
-        c.obj.visible = cullableVisible(c, camX, camZ, fogFar);
+      const lowCull = isLowSceneryCullActive(fogFar);
+      const clutterFar = sceneryClutterFar(fogFar);
+      const clutterFarSq = clutterFar * clutterFar;
+      const structureFar = sceneryStructureFar(fogFar);
+      const cullX = lowCull ? eyeX : camX;
+      const cullZ = lowCull ? eyeZ : camZ;
+      scheduledShips?.sync(dt);
+      for (let i = 0; i < transportShips.length; i++) {
+        transportShips[i].update(
+          camX,
+          camY,
+          camZ,
+          eyeX,
+          eyeY,
+          eyeZ,
+          structureFar,
+          dt,
+          reducedMotion,
+        );
       }
-      for (const h of hideables) {
-        const dx = camX - h.x,
-          dz = camZ - h.z;
-        if (Math.hypot(dx, dz) - h.cull >= fogFar) {
+      updateHarborHouseShell(camX, camY, camZ, eyeX, eyeY, eyeZ, dt, reducedMotion, structureFar);
+      updateMirefenTavernShell(camX, camY, camZ, eyeX, eyeY, eyeZ, dt, reducedMotion, structureFar);
+      // Band fog cull (prop_cull_core): a band's first reveal on a walking
+      // approach holds until the gate has linked its programs, and an arrival
+      // among the bands holds too, with its compiles submitted at the imminent
+      // priority and, on a frame where several bands escape at once, nearest
+      // to the camera first.
+      updatePropCullables(
+        cullables,
+        cullX,
+        cullZ,
+        clutterFar,
+        clutterFarSq,
+        bandRevealGate,
+        cullPass,
+      );
+      // Far-cell swap first (prop_cell_core): distant cells draw their merged
+      // bake and suppress the members' individual baked meshes; near cells
+      // (where the ghost fade can fire) draw the individuals while the bake
+      // stays as the shadow-only caster. Pixel-identical both ways.
+      for (const cell of farCells) {
+        updatePropCell(cell, cullX, cullZ, structureFar, undefined, revealGate);
+      }
+      // Deliberately NO first-sight reveal gate here (unlike the bands): tried
+      // and reverted. Gating each hideable's first fog reveal put 116 keys and
+      // their pieces into the reveal pipeline at once on the Eastbrook ride
+      // (all imminent), the iGPU could not settle them inside the watchdog,
+      // and the buildings stayed hidden 10 s then drew cold anyway. The
+      // unique-material case (a kit only one building carries) is covered by
+      // the far cell's near-flip hold instead (prop_cell_core `:near` key,
+      // a handful of keys with the proven bake as the stand-in).
+      for (let i = 0; i < hideables.length; i++) {
+        const h = hideables[i];
+        const dx = cullX - h.x,
+          dz = cullZ - h.z;
+        const reach = structureFar + h.cull;
+        if (dx * dx + dz * dz >= reach * reach) {
           h.group.visible = false; // fully fogged: drop it (shadow is out of range too)
           continue;
         }
-        // Hide from the camera while still casting a shadow: disable colour +
-        // depth writes, not the object.
-        const hide = cameraSegmentHitsFootprint(h, eyeX, eyeY, eyeZ, camX, camY, camZ);
-        if (h.mats.length === 0) {
-          h.hidden = hide;
-          h.group.visible = !hide;
+        // LOAD-BEARING ORDER: visible=true must be restored BEFORE the
+        // suppressed continue, or a group culled on the prior frame would
+        // stay stranded invisible when its cell enters far mode.
+        h.group.visible = true;
+        // Far mode: the merged cell bake draws instead; flames/transparent
+        // members stay live on the group, and the ghost fade cannot fire. Put
+        // the local clone back at its authored alpha before it can return to
+        // near mode.
+        if (h.suppressed) {
+          h.hidden = false;
+          if (h.alpha !== 1) {
+            h.alpha = 1;
+            applyOccluderFade(h.mats, 1);
+          }
           continue;
         }
-        h.group.visible = true;
-        if (hide !== h.hidden) {
-          h.hidden = hide;
-          for (const m of h.mats) {
-            m.mat.colorWrite = !hide;
-            m.mat.depthWrite = hide ? false : m.depthWrite;
-          }
-        }
+        // Ghost on every tier with the same timing while keeping the obstacle's
+        // silhouette and shadow. Per-structure clones keep the change local.
+        prefetchOccluderFadeWithin(h.mats, h.x, h.z, camX, camZ);
+        const hide = cameraSegmentHitsFootprint(h, eyeX, eyeY, eyeZ, camX, camY, camZ);
+        h.hidden = hide;
+        h.alpha = advanceOccluderFade(h.mats, h.alpha, hide, dt, reducedMotion);
       }
     },
   };
 }
 
-/** One material we flip on/off, remembering its original depth-write state. */
-interface ToggleMat {
-  mat: THREE.Material;
-  depthWrite: boolean;
+// One mesh of a hideable structure plus its pre-clone shared material, the
+// pair the far-cell bake merges on.
+interface HideableBakeMesh {
+  mesh: THREE.Mesh;
+  srcMat: THREE.Material;
 }
 
-// A prop that the camera ghosts through and the renderer hides whenever the
-// eye-to-camera segment crosses its footprint (below `topY`). Either a circle
-// (`r`) or an OBB (`hw`/`hd`/`rot`), matching the collider it mirrors. "Hidden"
-// disables colour/depth writes rather than `visible = false`, so the structure
-// stays in the shadow pass and keeps casting its shadow.
+// A prop that the camera ghosts through and the renderer fades toward 20%
+// opacity whenever the eye-to-camera segment crosses its footprint (below
+// `topY`). Either a circle (`r`) or an OBB (`hw`/`hd`/`rot`), matching the
+// collider it mirrors. Near the camera, the fade animates via
+// occluder_fade_core. Far away, prop_cell_core swaps its opaque baked meshes
+// into the cell merge while transparent and animated members stay live.
 interface Hideable {
   group: THREE.Group;
-  mats: ToggleMat[]; // cloned per-structure so the toggle is local
-  hidden: boolean;
+  mats: OccluderFadeMat[]; // cloned per-structure so the fade is local
+  hidden: boolean; // whether the structure occludes the view this frame
+  alpha: number; // animated fade level (1 = opaque, 0.2 = occluding)
+  cellKey: string; // far-cell membership (prop_cell_core)
+  bakeMeshes: HideableBakeMesh[]; // meshes swapped out in far mode
+  suppressed: boolean; // far mode: baked meshes hidden, merged cell draws
   x: number; // footprint centre (world XZ)
   z: number;
-  topY: number; // roof height; a camera above this never hides the structure
+  topY: number; // roof height; a camera above this never fades the structure
   cull: number; // bounding radius for the fog-far cull
   r?: number; // circle footprint
   hw?: number; // OBB half-extents + yaw
@@ -1738,7 +2901,27 @@ interface Hideable {
   rot?: number;
 }
 
-type Footprint = Omit<Hideable, 'group' | 'mats' | 'hidden'>;
+// One far cell: the merged bakes for every hideable structure whose footprint
+// falls in the cell, plus the members to swap against (prop_cell_core.ts).
+// The bakes are single-instance InstancedMeshes so the near-mode shadow-only
+// gate (count 0 in the color pass, 1 for the shadow draw) can make the bake
+// the cell's ONLY shadow caster in both modes: the individuals never cast,
+// and their union IS the bake, so the shadows are pixel-identical while the
+// per-structure shadow submissions collapse to one per (material, cell).
+interface FarPropCell {
+  key: string;
+  bounds: PropCellBounds;
+  meshes: THREE.InstancedMesh[];
+  hideables: Hideable[];
+  farMode: boolean;
+  visible: boolean;
+  farReady: boolean;
+}
+
+type Footprint = Omit<
+  Hideable,
+  'group' | 'mats' | 'hidden' | 'alpha' | 'cellKey' | 'bakeMeshes' | 'suppressed'
+>;
 
 function circleFootprint(x: number, z: number, r: number, topY: number, cull = r): Footprint {
   return { x, z, r, topY, cull };
@@ -1759,12 +2942,13 @@ function pointInsideFootprint(h: Hideable, x: number, z: number): boolean {
   const dx = x - h.x,
     dz = z - h.z;
   if (h.r !== undefined) return dx * dx + dz * dz < h.r * h.r;
+  if (h.rot === undefined || h.hw === undefined || h.hd === undefined) return false;
   // world -> OBB local (three.js rotation.y convention), mirrors colliders.rotY
-  const c = Math.cos(h.rot!),
-    s = Math.sin(h.rot!);
+  const c = Math.cos(h.rot),
+    s = Math.sin(h.rot);
   const lx = dx * c - dz * s;
   const lz = dx * s + dz * c;
-  return Math.abs(lx) < h.hw! && Math.abs(lz) < h.hd!;
+  return Math.abs(lx) < h.hw && Math.abs(lz) < h.hd;
 }
 
 function segmentCircleEntry(
@@ -1791,8 +2975,9 @@ function segmentCircleEntry(
 }
 
 function segmentObbEntry(h: Hideable, ax: number, az: number, bx: number, bz: number): number {
-  const c = Math.cos(h.rot!),
-    s = Math.sin(h.rot!);
+  if (h.rot === undefined || h.hw === undefined || h.hd === undefined) return Infinity;
+  const c = Math.cos(h.rot),
+    s = Math.sin(h.rot);
   const adx = ax - h.x,
     adz = az - h.z;
   const bdx = bx - h.x,
@@ -1801,17 +2986,17 @@ function segmentObbEntry(h: Hideable, ax: number, az: number, bx: number, bz: nu
   const laz = adx * s + adz * c;
   const lbx = bdx * c - bdz * s;
   const lbz = bdx * s + bdz * c;
-  if (Math.abs(lax) < h.hw! && Math.abs(laz) < h.hd!) return 0;
+  if (Math.abs(lax) < h.hw && Math.abs(laz) < h.hd) return 0;
 
   const dx = lbx - lax,
     dz = lbz - laz;
   let tmin = -Infinity,
     tmax = Infinity;
   if (Math.abs(dx) < 1e-9) {
-    if (lax < -h.hw! || lax > h.hw!) return Infinity;
+    if (lax < -h.hw || lax > h.hw) return Infinity;
   } else {
-    let t1 = (-h.hw! - lax) / dx,
-      t2 = (h.hw! - lax) / dx;
+    let t1 = (-h.hw - lax) / dx,
+      t2 = (h.hw - lax) / dx;
     if (t1 > t2) {
       const tmp = t1;
       t1 = t2;
@@ -1821,10 +3006,10 @@ function segmentObbEntry(h: Hideable, ax: number, az: number, bx: number, bz: nu
     tmax = Math.min(tmax, t2);
   }
   if (Math.abs(dz) < 1e-9) {
-    if (laz < -h.hd! || laz > h.hd!) return Infinity;
+    if (laz < -h.hd || laz > h.hd) return Infinity;
   } else {
-    let t1 = (-h.hd! - laz) / dz,
-      t2 = (h.hd! - laz) / dz;
+    let t1 = (-h.hd - laz) / dz,
+      t2 = (h.hd - laz) / dz;
     if (t1 > t2) {
       const tmp = t1;
       t1 = t2;
@@ -1854,6 +3039,7 @@ function cameraSegmentHitsFootprint(
   camY: number,
   camZ: number,
 ): boolean {
+  if (occluderFadesDisabled()) return false;
   if (
     (eyeY < h.topY && pointInsideFootprint(h, eyeX, eyeZ)) ||
     (camY < h.topY && pointInsideFootprint(h, camX, camZ))
@@ -1869,20 +3055,25 @@ function cameraSegmentHitsFootprint(
   return eyeY + (camY - eyeY) * t < h.topY;
 }
 
-interface PropCullable {
+interface PropCullable extends PropCullBounds, PropCullRevealState {
   obj: THREE.Object3D;
-  hasBox: boolean;
-  minX: number;
-  maxX: number;
-  minZ: number;
-  maxZ: number;
-  cx: number;
-  cz: number;
-  r: number;
+}
+
+/** Mints the cullable's reveal-gate key from its slot: stable for the
+ *  view's lifetime, and never colliding with the far-cell grid keys. */
+function pushCullable(
+  cullables: PropCullable[],
+  obj: THREE.Object3D,
+  box: THREE.Box3 | null,
+  sphere: THREE.Sphere | null,
+): void {
+  const bounds = cullableBounds(obj, propCullKey(cullables.length), box, sphere);
+  if (bounds) cullables.push(bounds);
 }
 
 function cullableBounds(
   obj: THREE.Object3D,
+  key: string,
   box: THREE.Box3 | null,
   sphere: THREE.Sphere | null,
 ): PropCullable | undefined {
@@ -1890,6 +3081,9 @@ function cullableBounds(
     const fallback = sphere ?? box.getBoundingSphere(new THREE.Sphere());
     return {
       obj,
+      key,
+      revealed: false,
+      held: false,
       hasBox: true,
       minX: box.min.x,
       maxX: box.max.x,
@@ -1903,6 +3097,9 @@ function cullableBounds(
   if (!sphere) return undefined;
   return {
     obj,
+    key,
+    revealed: false,
+    held: false,
     hasBox: false,
     minX: sphere.center.x - sphere.radius,
     maxX: sphere.center.x + sphere.radius,
@@ -1914,59 +3111,256 @@ function cullableBounds(
   };
 }
 
-function cullableVisible(c: PropCullable, camX: number, camZ: number, fogFar: number): boolean {
-  const dx = camX < c.minX ? c.minX - camX : camX > c.maxX ? camX - c.maxX : 0;
-  const dz = camZ < c.minZ ? c.minZ - camZ : camZ > c.maxZ ? camZ - c.maxZ : 0;
-  if (Math.hypot(dx, dz) < fogFar) return true;
-  if (c.hasBox) return false;
-  return Math.hypot(c.cx - camX, c.cz - camZ) - c.r < fogFar;
-}
-
-// Bake every static prop mesh into world space and merge per
-// (material, castShadow, z-band). Flames (animated) and InstancedMeshes
-// survive untouched, as do the PointLights (not meshes). The merged meshes
-// replace the originals on the same group; emptied sub-groups are left in
-// place (they carry lights). Geometries are de-indexed before merging so
-// indexed glTF extracts and procedural shapes can share a bucket.
-function mergeStaticMeshes(group: THREE.Group, keep: Set<THREE.Object3D>): THREE.Mesh[] {
+// Far-cell merged bakes for the camera-ghost hideables (dual representation,
+// see prop_cell_core.ts). Every bakeable mesh of every hideable is baked into
+// world space and merged per (cell, SHARED material, castShadow); the merged
+// meshes start invisible and update() swaps them against the individual
+// structures per cell. Geometry is cloned/de-indexed exactly like
+// mergeStaticMeshes below, so the swap is pixel-identical.
+function buildFarPropCells(group: THREE.Group, hideables: Hideable[]): FarPropCell[] {
   group.updateMatrixWorld(true);
-  interface Bucket {
+  interface CellBucket {
     material: THREE.Material;
     castShadow: boolean;
+    receiveShadow: boolean;
     geoms: THREE.BufferGeometry[];
   }
-  const buckets = new Map<string, Bucket>();
-  const merged: THREE.Mesh[] = [];
-  group.traverse((o) => {
-    const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || keep.has(mesh) || (mesh as THREE.InstancedMesh).isInstancedMesh) return;
-    const material = mesh.material as THREE.Material;
-    const worldZ = mesh.matrixWorld.elements[14];
-    const band = Math.floor((worldZ - WORLD_MIN_Z) / MERGE_BAND_DEPTH);
-    const key = `${material.uuid}:${mesh.castShadow ? 1 : 0}:${band}`;
-    let bucket = buckets.get(key);
-    if (!bucket) {
-      bucket = { material, castShadow: mesh.castShadow, geoms: [] };
-      buckets.set(key, bucket);
+  interface CellBuild {
+    buckets: Map<string, CellBucket>;
+    bounds: PropCellBounds;
+    hideables: Hideable[];
+  }
+  const cells = new Map<string, CellBuild>();
+  const box = new THREE.Box3();
+  for (const h of hideables) {
+    if (h.bakeMeshes.length === 0) continue;
+    let cell = cells.get(h.cellKey);
+    if (!cell) {
+      cell = {
+        buckets: new Map(),
+        bounds: {
+          minX: Infinity,
+          maxX: -Infinity,
+          minZ: Infinity,
+          maxZ: -Infinity,
+        },
+        hideables: [],
+      };
+      cells.set(h.cellKey, cell);
     }
-    // clone/de-index: extracted geometries are shared across placements, so
-    // the bake must never mutate them in place
-    const geo = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
-    bucket.geoms.push(geo.applyMatrix4(mesh.matrixWorld));
-    merged.push(mesh);
-  });
-  for (const mesh of merged) mesh.removeFromParent();
-  const out: THREE.Mesh[] = [];
-  for (const bucket of buckets.values()) {
-    const geo = mergeGeometries(bucket.geoms, false);
-    if (!geo) continue;
-    geo.computeBoundingBox();
-    geo.computeBoundingSphere();
-    const mesh = new THREE.Mesh(geo, bucket.material);
-    mesh.castShadow = bucket.castShadow;
-    mesh.receiveShadow = true;
-    group.add(mesh);
-    out.push(mesh);
+    cell.hideables.push(h);
+    for (const { mesh, srcMat } of h.bakeMeshes) {
+      const key = `${srcMat.uuid}:${mesh.castShadow ? 1 : 0}:${mesh.receiveShadow ? 1 : 0}`;
+      let bucket = cell.buckets.get(key);
+      if (!bucket) {
+        bucket = {
+          material: srcMat,
+          castShadow: mesh.castShadow,
+          receiveShadow: mesh.receiveShadow,
+          geoms: [],
+        };
+        cell.buckets.set(key, bucket);
+      }
+      const geo = normalizedStaticGeometry(mesh.geometry);
+      geo.applyMatrix4(mesh.matrixWorld);
+      geo.computeBoundingBox();
+      if (geo.boundingBox) {
+        box.copy(geo.boundingBox);
+        cell.bounds.minX = Math.min(cell.bounds.minX, box.min.x);
+        cell.bounds.maxX = Math.max(cell.bounds.maxX, box.max.x);
+        cell.bounds.minZ = Math.min(cell.bounds.minZ, box.min.z);
+        cell.bounds.maxZ = Math.max(cell.bounds.maxZ, box.max.z);
+      }
+      bucket.geoms.push(geo);
+    }
+  }
+  const out: FarPropCell[] = [];
+  for (const [cellKey, cellBuild] of cells) {
+    const meshes: THREE.InstancedMesh[] = [];
+    const cell: FarPropCell = {
+      key: cellKey,
+      bounds: cellBuild.bounds,
+      meshes,
+      hideables: cellBuild.hideables,
+      farMode: false,
+      visible: true,
+      farReady: false,
+    };
+    for (const bucket of cellBuild.buckets.values()) {
+      const geo = mergeGeometries(bucket.geoms, false);
+      if (!geo) continue;
+      geo.computeBoundingBox();
+      geo.computeBoundingSphere();
+      // Single-instance so the count gate below can skip the color pass
+      // per frame without touching visibility. Free ONLY because the repo's
+      // three patch keeps a count 0 InstancedMesh out of the render list:
+      // upstream still reached setProgram and linked the bake's colour
+      // program for zero pixels (2.3 s of cold links right after the curtain
+      // on the iGPU, bench batch 17; patches/three@0.185.1.patch).
+      const mesh = new THREE.InstancedMesh(geo, bucket.material, 1);
+      mesh.name = `far-bake:${cellKey}`;
+      mesh.setMatrixAt(0, new THREE.Matrix4());
+      mesh.instanceMatrix.needsUpdate = true;
+      // Pin the object bounds to the world-baked geometry bounds NOW: the
+      // frustum test lazily computes an InstancedMesh's bounding sphere from
+      // its CURRENT count, and this mesh spends near mode at count 0, which
+      // would cache an empty sphere and cull the bake (and its shadow)
+      // forever. The single identity instance makes geometry bounds exact.
+      mesh.boundingBox = geo.boundingBox ? geo.boundingBox.clone() : null;
+      mesh.boundingSphere = geo.boundingSphere ? geo.boundingSphere.clone() : null;
+      mesh.castShadow = bucket.castShadow;
+      mesh.receiveShadow = bucket.receiveShadow;
+      // Near mode: shadow draw only. The hooks restore the instance for the
+      // shadow pass and drop it again so the color pass skips the bake while
+      // the individuals draw; far mode leaves the instance up for both.
+      mesh.count = 0;
+      (mesh as { onBeforeShadow: unknown }).onBeforeShadow = () => {
+        mesh.count = 1;
+      };
+      (mesh as { onAfterShadow: unknown }).onAfterShadow = () => {
+        if (!cell.farMode) mesh.count = 0;
+      };
+      group.add(mesh);
+      meshes.push(mesh);
+    }
+    // The individuals never cast: the bake carries the cell's shadows in
+    // both modes (identical union geometry). Flames/transparent meshes are
+    // not in the bake and keep their own flags. Ghost fades keep their
+    // shadow via the bake exactly as they did per-material before; the
+    // lowProps ghost path (whole-group hide) cannot diverge because every
+    // lowProps profile also disables dynamicShadows (gfx.ts:
+    // constrainedMemory is true whenever iosMemoryProfile is).
+    for (const h of cellBuild.hideables) {
+      for (const b of h.bakeMeshes) b.mesh.castShadow = false;
+    }
+    out.push(cell);
   }
   return out;
+}
+
+export const propStaticMergeInternalsForTest = { mergeStaticMeshes };
+
+export const propMaterialInternalsForTest = { convertMaterial };
+
+// ---------------------------------------------------------------------------
+// Far-field building impostors
+// ---------------------------------------------------------------------------
+
+export interface BuildingImpostorPart {
+  geometry: THREE.BufferGeometry;
+  material: THREE.Material;
+  isLeaf: boolean;
+}
+
+export interface BuildingImpostorInstance {
+  asset: string;
+  x: number;
+  y: number;
+  z: number;
+  rot: number;
+  widthScale: number;
+  heightScale: number;
+}
+
+/**
+ * Everything the far-field sprite layer needs to stand in for the village
+ * buildings and the skyline-scale decor (windmills, moored ships) past the
+ * detail horizon: the asset parts to bake and the placements, computed with
+ * the SAME pools, pick hash, scale rules and seating the real placement loop
+ * in buildProps uses, so a sprite can never disagree with the building it
+ * replaces. Chapels reduce to their bell tower: at sprite range the squat
+ * entry hall sits below the treeline. The Eastbrook rebuild kit and the
+ * Grand Armoury keep their bespoke views and are skipped here.
+ */
+export function collectBuildingImpostors(seed: number): {
+  sources: { asset: string; parts: BuildingImpostorPart[] }[];
+  instances: BuildingImpostorInstance[];
+} {
+  const activeContent = getActiveWorldContent();
+  const builtInWorld = isBuiltinWorldContent(activeContent);
+  // The authored-town swap is gated on the town's DATA, not on world identity,
+  // so an editor copy of the built-in world gets the same art the game draws
+  // (see authored_town_gate.ts). True for isBuiltinWorldContent, so the shipped path
+  // is unchanged.
+  const eastbrookTown = activeWorldHasAuthoredTown(isEastbrookRebuildBuilding);
+  const fenbridgeTown = activeWorldHasAuthoredTown(isFenbridgeRebuildBuilding);
+  const highwatchTown = activeWorldHasAuthoredTown(isHighwatchRebuildBuilding);
+  const paintedTowns = activeWorldHasAuthoredTown(isPaintedTownRebuildBuilding);
+  const used = new Map<string, PropAsset>();
+  const instances: BuildingImpostorInstance[] = [];
+  const use = (key: PropKey): PropAsset => {
+    const a = propAsset(key);
+    used.set(key, a);
+    return a;
+  };
+  for (const b of activeContent.props.buildings) {
+    if (b.landmark) continue;
+    // A painted town building draws no kit sprite: its town view owns it.
+    if (eastbrookTown && isEastbrookRebuildBuilding(b)) continue;
+    if (fenbridgeTown && isFenbridgeRebuildBuilding(b)) continue;
+    if (highwatchTown && isHighwatchRebuildBuilding(b)) continue;
+    if (paintedTowns && isPaintedTownRebuildBuilding(b)) continue;
+    const y = terrainHeight(b.x, b.z, seed);
+    if (b.kind === 'chapel') {
+      const tower = use('bellTower');
+      const w = Math.max(b.w * CHAPEL_TOWER.wScale, b.d * CHAPEL_TOWER.dScale);
+      // The real tower stands at the rotated CHAPEL_TOWER.dz rear offset,
+      // through the SAME helper the real loop's footprint uses; centering
+      // on the raw building origin made the sprite jump sideways at the
+      // handoff.
+      const center = chapelTowerWorldCenter(b);
+      instances.push({
+        asset: 'bellTower',
+        x: center.x,
+        // base height comes from the building ORIGIN, exactly like the real
+        // group (positioned at b.x/b.z, tower offset inside it)
+        y: y - CHAPEL_HALL.sink,
+        z: center.z,
+        rot: b.rot,
+        widthScale: w / Math.max(tower.size.x, tower.size.z),
+        heightScale: CHAPEL_TOWER.height / tower.size.y,
+      });
+      continue;
+    }
+    const asset = buildingAssetPick(b);
+    const a = use(asset);
+    instances.push({
+      asset,
+      x: b.x,
+      y: y - 0.12,
+      z: b.z,
+      rot: b.rot,
+      widthScale: Math.max(b.w, b.d) / Math.max(a.size.x, a.size.z),
+      heightScale: HOUSE_HEIGHT[asset] / a.size.y,
+    });
+  }
+  for (const d of renderDecorProps(activeContent, seed, !GFX.standardMaterials)) {
+    if (!(d.key in PROP_ASSET_DEFS)) continue;
+    const a = propAsset(d.key as PropKey);
+    const scale = typeof d.scale === 'number' ? d.scale : 1;
+    // only skyline-scale decor earns a sprite; small dressing is sub-pixel
+    // out where the sprites live
+    if (a.size.y * scale < 7) continue;
+    used.set(d.key, a);
+    const y =
+      d.float !== undefined
+        ? Math.max(terrainHeight(d.x, d.z, seed), WATER_LEVEL - d.float)
+        : terrainHeight(d.x, d.z, seed) - 0.05 - (d.sink ?? 0);
+    instances.push({
+      asset: d.key,
+      x: d.x,
+      y,
+      z: d.z,
+      rot: d.rot ?? 0,
+      widthScale: scale,
+      heightScale: scale,
+    });
+  }
+  return {
+    sources: [...used].map(([asset, a]) => ({
+      asset,
+      parts: a.parts.map((part) => ({ geometry: part.geo, material: part.mat, isLeaf: false })),
+    })),
+    instances,
+  };
 }
