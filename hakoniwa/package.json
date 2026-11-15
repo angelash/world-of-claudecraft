@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p desktop/tsconfig.json",
     "build:desktop": "node desktop/build.ts",
     "desktop:dev": "npm run build && npm run build:desktop && node desktop/launch.ts",
+    "pack:win": "node desktop/pack.ts",
     "playthrough": "vitest run --config vitest.playthrough.config.ts",
     "format": "node ../node_modules/@biomejs/biome/bin/biome check --write",
     "refs": "node tools/refs/fetch_refs.ts",

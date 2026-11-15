@@ -500,7 +500,7 @@ function resolveRoute(kind: DecisionKind, ctx: RouteContext, s: LlmSettings): Ro
 | 平台         | 非机密设置                                                                                     | 密钥                                                         | 记账簿                                                         |
 | ------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
 | 桌面版       | `settings.local.json` 的 `llm` 分区（经 `hk:settings.get`、`hk:settings.set` 读写，主进程逐字段校验） | 用户数据目录 `secrets.bin`（连接编号到密文，[release_engineering.md](release_engineering.md) 第 2.5 节） | 网关追加的 `llm/ledger.jsonl`（逐条元数据）与由它汇总的窗口合计 |
-| 网页试玩版   | 浏览器本地存储 `hakoniwa.llm.settings`                                                         | 不存（本机服务的令牌只在内存）                               | 浏览器本地存储（只记 token）                                   |
+| 网页试玩版   | 浏览器本地存储 `hakoniwa.settings.local` 的 `llm` 分区（经 `PlatformHost.settings` 读写）        | 不存（本机服务的令牌只在内存）                               | 浏览器本地存储（只记 token）                                   |
 | 开发期       | 同网页，另加伪连接"开发代理"（只在开发构建出现）                                               | 开发服务的环境变量                                           | 同网页                                                         |
 
 - 设置格式带 `version`，迁移函数在 `src/ai/llm_config/migrate.ts`，读到更高版本时只读不写并提示"设置来自更新的版本"。

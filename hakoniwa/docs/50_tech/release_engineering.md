@@ -131,13 +131,16 @@ hakoniwa/
     settings.ts               设置存储（第 5.2 节）
     steam/                    Steam 适配（只在 Steam 构建加载）
     crash.ts diagnostics.ts logging.ts
-    build/                    electron-builder 配置、图标、熔断位、签名钩子、Steam 布局脚本
+    app_paths.ts              开发运行与打包后两种目录布局的路径解析（纯函数）
+    pack_config.ts pack.ts    electron-builder 配置、暂存目录、`hkBuild` 盖章、熔断位写入与读回比对；`npm run pack:win` 输出到 `release/`（不入库）
     dist/                     esbuild 输出（不入库）
   src/platform/               渲染进程侧的平台接口 PlatformHost 与三种实现
     host.ts                   接口：saves、settings、llm、achievements、diagnostics、window
     desktop_host.ts           调用 window.hk
     web_host.ts               IndexedDB 存档，只允许本机模型
     memory_host.ts            测试用
+    select.ts                 有 window.hk 选桌面实现，否则选网页实现
+    index.ts                  对外出口（不导出测试实现）
 ```
 
 - `src/platform/` 只被 `src/client/` 引用；`src/core/`、`src/systems/`、`src/game/`、`src/ai/` 不得引用它（并入 `tests/architecture.test.ts` 的分层守卫）。
@@ -246,7 +249,7 @@ hakoniwa/
 | 内容范围 | 全作 | 序章加第一幕前五周（与 Steam 试玩版相同，见 4.9） |
 | 模型预设 | 关闭、单模型、分档、本机 | 关闭、本机 |
 | 存档 | 文件（第 5 节） | IndexedDB，同一容器格式；可导出为文件，导入桌面版继续 |
-| 设置 | `settings.*.json` | IndexedDB |
+| 设置 | `settings.*.json` | 浏览器本地存储 `hakoniwa.settings.sync` 与 `hakoniwa.settings.local`，与桌面的两份文件一一对应，每份上限 256 KiB |
 | 成就与云 | Steam | 无 |
 | 音频 | 全部 | 全部（OGG Vorbis；不支持 OGG 的浏览器提示换用） |
 | 浏览器 | 不适用 | Chromium 系与 Firefox 的近两个大版本；需要 WebGL2，不满足时平面档 |

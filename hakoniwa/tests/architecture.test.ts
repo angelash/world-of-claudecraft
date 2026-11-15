@@ -2,10 +2,11 @@
 // - pure logic layers (core, content, systems, ai, game) never touch the DOM;
 // - simulation layers (core, systems, game) never use non-deterministic time or randomness;
 // - only the world system writes the entity fields alive, tags, speed, move and intent;
-//   every other system goes through src/systems/world/ports.ts (release_engineering.md 13.1).
+//   every other system goes through src/systems/world/ports.ts (release_engineering.md 13.1);
+// - core, systems, game and ai never import src/platform, which never imports the client.
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const SRC = join(__dirname, '..', 'src');
@@ -209,5 +210,72 @@ describe('entity field ownership guard', () => {
       'const spec = { alive: true, tags: [] };',
     ];
     expect(fieldWrites(reads.join('\n'))).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The platform layer (release_engineering.md 2.2, architecture.md 2): only src/client/
+// uses src/platform/. Core, systems, game and ai never import it, and it never imports
+// the client.
+
+const IMPORT_FROM = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"]([^'"\n]+)['"]/g;
+
+/** Relative module specifiers of every import, export-from and dynamic import. */
+function relativeImports(code: string): string[] {
+  return [...code.matchAll(IMPORT_FROM)]
+    .map((m) => m[1] as string)
+    .filter((spec) => spec.startsWith('.'));
+}
+
+function isUnder(path: string, dir: string): boolean {
+  const rel = relative(dir, path);
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+/** Files under `layer` with an import that resolves into `target`, as `file -> spec`. */
+function importsInto(layer: string, target: string): string[] {
+  const bad: string[] = [];
+  for (const f of files(join(SRC, layer))) {
+    for (const spec of relativeImports(stripComments(readFileSync(f, 'utf8')))) {
+      if (isUnder(resolve(dirname(f), spec), join(SRC, target))) {
+        bad.push(`${relative(SRC, f).replace(/\\/g, '/')} -> ${spec}`);
+      }
+    }
+  }
+  return bad;
+}
+
+describe('platform layer guard', () => {
+  for (const layer of ['core', 'systems', 'game', 'ai']) {
+    it(`${layer}/ never imports src/platform`, () => {
+      expect(importsInto(layer, 'platform')).toEqual([]);
+    });
+  }
+
+  it('platform/ never imports src/client', () => {
+    expect(files(join(SRC, 'platform')).length).toBeGreaterThan(0);
+    expect(importsInto('platform', 'client')).toEqual([]);
+  });
+
+  it('the scanner sees every import form', () => {
+    const code = [
+      "import { a } from '../platform/host';",
+      "import type { B } from '../../platform';",
+      "export * from '../platform/web_host';",
+      "import '../platform/side_effect';",
+      "const m = await import('../platform/select');",
+      "import { c } from 'vitest';",
+    ].join('\n');
+    expect(relativeImports(code)).toEqual([
+      '../platform/host',
+      '../../platform',
+      '../platform/web_host',
+      '../platform/side_effect',
+      '../platform/select',
+    ]);
+    const at = join(SRC, 'core', 'x.ts');
+    expect(isUnder(resolve(dirname(at), '../platform'), join(SRC, 'platform'))).toBe(true);
+    expect(isUnder(resolve(dirname(at), '../platform/host'), join(SRC, 'platform'))).toBe(true);
+    expect(isUnder(resolve(dirname(at), '../platform_x'), join(SRC, 'platform'))).toBe(false);
   });
 });

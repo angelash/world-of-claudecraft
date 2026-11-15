@@ -10,6 +10,7 @@
 | `ai/` | AI 编排层：提供方、运行器、预算与降级、题面、输出校验、审计 |
 | `game/` | 游戏工厂与系统注册、AI 角色包（`ai_roles/`）、自动玩家（`autoplay/`） |
 | `client/` | 客户端：HD-2D 场景渲染（`hd2d/`，Three.js）与平面降级渲染（`render/`，Canvas2D）、纸娃娃（`sprites/`）、输入、HUD、窗口、视图适配器 |
+| `platform/` | 渲染进程侧的平台接口 `PlatformHost`：桌面（`window.hk`）、网页、测试三种实现；只被 `client/` 引用 |
 | `editor/` | 编辑器与可视化审核工作台 |
 | `shared_ui/` | 客户端界面文本与 DOM 小工具 |
 

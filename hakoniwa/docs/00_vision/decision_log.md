@@ -95,6 +95,7 @@
 | D-085 | 2026-11-15 | 事迹的口径：事迹作门的历钥，有实际效果；名望与称号对玩家只有外观与认知效果；分支事迹在本期显示"这一期没有发生"，回收结局进入的下一期可补；只依赖一次性世界事件的事迹记为壮举；Steam 成就不映射分支事迹与壮举；立名关为讲述数不少于 1,500、至少两个地区、至少一份书面来源，故事化版本按半数计 | 千门的历钥需要可判定的事迹；不让成就逼玩家走特定分支 | `../40_design/content/catalog_deeds_titles.md` 第 8 节、`../40_design/systems/thousand_doors.md` |
 | D-086 | 2026-11-15 | 门铜：全作定量 41 份，来源与熔出表以遗物目录第 1.5 节为准；锻成门铜之作时，玩家关上一扇已开的门 | 门铜是"门的残骸"，锻造要有代价，避免成为可刷的材料 | `../40_design/content/catalog_relics_lore.md`、`../40_design/content/catalog_gathering_crafting.md`、`../40_design/systems/thousand_doors.md` |
 | D-087 | 2026-11-16 | 文本引用的格式：`TextRef` 是 `{ key, params? }` 或模型原文 `{ raw, lang }`，构造函数 `tr(key, params)`；指向实体的参数是嵌套的文本引用；内容文本的键是 `c.<表>.<内容 ID>.<字段>[.<序号>]`，由 `tools/i18n/extract_content.ts` 从 `data/` 生成，作者不手写；界面与系统文本的键用 `ui.`、`sys.`、`tut.` 三个作用域 | 人物、魔物、地图等无前缀的编号可能跨表同名，带表名的键才全作唯一；字段名写全便于阅读与排错 | `../50_tech/release_engineering.md` 第 8.1、8.3 节、`../40_design/ux_and_onboarding.md` 第 20 节、`../50_tech/implementation_conventions.md` 第 8 节 |
+| D-088 | 2026-11-16 | 网页试玩版与开发期的设置存浏览器本地存储 `hakoniwa.settings.sync` 与 `hakoniwa.settings.local` 两个键，与桌面版的 `settings.sync.json`、`settings.local.json` 一一对应，每份上限 256 KiB；大模型设置是本机份的 `llm` 分区，不另设键；读写一律经 `PlatformHost.settings` | 设置在启动时同步读取且体量小，本地存储够用；两端同构后，设置模型、迁移与校验只写一份 | `../50_tech/release_engineering.md` 第 2.8 节、`../50_tech/llm_providers.md` 第 4.7 节、`src/platform/web_host.ts` |
 
 ## 2. 未决问题
 
