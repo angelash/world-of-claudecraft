@@ -1,9 +1,11 @@
 // Development service as a Vite plugin (dev server only, `apply: 'serve'`):
 //   GET  /api/llm/status   whether a model is reachable, which model serves each tier, and
 //                          the served connections with their capability records
-//   POST /api/llm          legacy LlmRequest in, { ok, json, text, usage, model, stopReason,
-//                          costUsd } out; or an LlmCallSpec in, an LlmCallResult (with a problem
-//                          code on failure) out (docs/50_tech/llm_providers.md 3.1, 10, 12)
+//   POST /api/llm          an LlmCallSpec in, an LlmCallResult (with a problem code on
+//                          failure) out (docs/50_tech/llm_providers.md 3.1, 10, 12; the game's
+//                          DevProxyTransport); or the legacy LlmRequest in, { ok, json, text,
+//                          usage, model, stopReason, costUsd } out (only the editor workbench's
+//                          ProxyProvider still sends it)
 //   POST /api/llm/test     { connectionId, depth, models? } in, ConnectionTestReport out
 //   GET  /api/llm/models   ?connectionId= (default dev_proxy), ModelListing out
 //   GET  /api/data?file=   read a JSON file under hakoniwa/data/

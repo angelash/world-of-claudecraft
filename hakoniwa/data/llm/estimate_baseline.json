@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "asOf": "2026-11",
+  "note": "Design baseline of the cost estimator (docs/50_tech/ai_architecture.md 10.1, 10.3, 10.4, 10.5 and llm_providers.md 8.1, 8.2, 8.3). Each category is priced at the model its representative decision kind routes to; the combined Janu row routes as its dream half. Calibration rewrites these numbers (ai_architecture.md 10.9, 10.10).",
+  "retryMargin": 1.05,
+  "realMinutesPerGameDay": 24,
+  "categories": [
+    {
+      "id": "goddess_plan",
+      "kind": "goddess.plan",
+      "input": 28000,
+      "hit": 0.7,
+      "output": 3500,
+      "w": 1.8
+    },
+    {
+      "id": "goddess_wake",
+      "kind": "goddess.wake",
+      "input": 22000,
+      "hit": 0.85,
+      "output": 1500,
+      "w": 1.8
+    },
+    {
+      "id": "goddess_talk",
+      "kind": "goddess.talk",
+      "input": 10000,
+      "hit": 0.8,
+      "output": 800,
+      "w": 1.15
+    },
+    {
+      "id": "goddess_tidy",
+      "kind": "goddess.tidy",
+      "input": 15000,
+      "hit": 0.5,
+      "output": 3000,
+      "w": 1.15
+    },
+    { "id": "janu", "kind": "janu.dream", "input": 8000, "hit": 0.75, "output": 600, "w": 1.15 },
+    {
+      "id": "director",
+      "kind": "director.pick",
+      "input": 3000,
+      "hit": 0.6,
+      "output": 500,
+      "w": 1.15
+    },
+    { "id": "l1_life", "kind": "npc.life", "input": 13000, "hit": 0.6, "output": 800, "w": 1.15 },
+    {
+      "id": "l1_talk_player",
+      "kind": "npc.chat",
+      "hints": { "withPlayer": true },
+      "input": 3500,
+      "hit": 0.7,
+      "output": 300,
+      "w": 1.15
+    },
+    {
+      "id": "l1_talk_npc",
+      "kind": "npc.chat",
+      "hints": { "withPlayer": false },
+      "input": 3500,
+      "hit": 0.7,
+      "output": 300,
+      "w": 1.15
+    },
+    {
+      "id": "l1_tidy",
+      "kind": "npc.tidy",
+      "hints": { "npcLevel": 1 },
+      "input": 8000,
+      "hit": 0.4,
+      "output": 2000,
+      "w": 1.15
+    },
+    { "id": "l2_plan", "kind": "npc.dayplan", "input": 6000, "hit": 0.6, "output": 800, "w": 1.8 },
+    { "id": "l2_event", "kind": "npc.event", "input": 6000, "hit": 0.6, "output": 600, "w": 1.8 },
+    {
+      "id": "l3_diary",
+      "kind": "npc.diary_batch",
+      "input": 15000,
+      "hit": 0.5,
+      "output": 3000,
+      "w": 1.15
+    },
+    {
+      "id": "leader",
+      "kind": "leader.council",
+      "input": 15000,
+      "hit": 0.6,
+      "output": 1500,
+      "w": 1.8
+    },
+    {
+      "id": "general",
+      "kind": "general.plan",
+      "input": 6000,
+      "hit": 0.5,
+      "output": 1000,
+      "w": 1.15
+    }
+  ],
+  "perGameDay": {
+    "1": {
+      "goddess_plan": 5,
+      "goddess_wake": 6,
+      "goddess_talk": 4,
+      "goddess_tidy": 0.7,
+      "janu": 1,
+      "director": 1,
+      "l1_life": 52,
+      "l1_talk_player": 20,
+      "l1_talk_npc": 15,
+      "l1_tidy": 10,
+      "l2_plan": 15,
+      "l2_event": 12,
+      "l3_diary": 2.5,
+      "leader": 0.7,
+      "general": 0
+    },
+    "2": {
+      "goddess_plan": 5,
+      "goddess_wake": 8,
+      "goddess_talk": 6,
+      "goddess_tidy": 0.7,
+      "janu": 1.5,
+      "director": 1,
+      "l1_life": 80,
+      "l1_talk_player": 24,
+      "l1_talk_npc": 22,
+      "l1_tidy": 14,
+      "l2_plan": 28,
+      "l2_event": 20,
+      "l3_diary": 7,
+      "leader": 3,
+      "general": 0.5
+    },
+    "4": {
+      "goddess_plan": 5,
+      "goddess_wake": 12,
+      "goddess_talk": 10,
+      "goddess_tidy": 0.9,
+      "janu": 3,
+      "director": 1,
+      "l1_life": 120,
+      "l1_talk_player": 24,
+      "l1_talk_npc": 28,
+      "l1_tidy": 18,
+      "l2_plan": 25,
+      "l2_event": 20,
+      "l3_diary": 15,
+      "leader": 6,
+      "general": 2
+    }
+  },
+  "actVolumes": { "1": "1", "2": "2", "3": "4", "4": "4", "5": "4" },
+  "scenes": {
+    "prologue": {
+      "kind": "prologue.turn",
+      "input": 1000000,
+      "hit": 0.7,
+      "output": 100000,
+      "w": 1.15,
+      "calls": 1
+    },
+    "trial": {
+      "kind": "court.stance",
+      "input": 2000000,
+      "hit": 0.7,
+      "output": 150000,
+      "w": 1.15,
+      "calls": 1
+    },
+    "revelation": {
+      "kind": "goddess.interpret",
+      "input": 28000,
+      "hit": 0.6,
+      "output": 3000,
+      "w": 1.8,
+      "calls": 6
+    }
+  },
+  "run": {
+    "note": "Main line at the D-070 median durations, everything at 1x for the full time.",
+    "prologueScenes": 1,
+    "hours": { "1": 11, "2": 11, "4": 35 },
+    "trials": 6,
+    "revelations": 3
+  },
+  "caps": {
+    "hourFactor": 1.5,
+    "hourSteps": [0.5, 1, 2, 3, 5, 8, 10, 15, 20, 30, 50],
+    "dayFactor": 3,
+    "runFactor": 1.2
+  },
+  "calibration": { "weight": 0.3, "warmupMinutes": 30 }
+}

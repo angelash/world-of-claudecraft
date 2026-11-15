@@ -4,7 +4,14 @@
 // enter the world and never affect the kernel. See docs/50_tech/ai_architecture.md 12.1.
 
 import type { DegradeLevel } from './budget';
-import type { HttpResponseLike, HttpTransport, LlmUsage, ModelTier } from './contracts';
+import type {
+  BindingRole,
+  HttpResponseLike,
+  HttpTransport,
+  LlmUsage,
+  ModelTier,
+  ProblemCode,
+} from './contracts';
 import type { ProposedCommand, RejectedCommand } from './output';
 
 export type AuditOutcome =
@@ -32,6 +39,16 @@ export interface AuditRecord {
   degradeLevel: DegradeLevel;
   tier?: ModelTier;
   requestedModel?: string;
+  /** Route resolution (llm_providers.md 4.3): binding role, slot, connection, detours. */
+  route?: {
+    bindingRole: BindingRole;
+    slot: ModelTier;
+    connectionId: string;
+    rerouted?: boolean;
+    lowered?: boolean;
+  };
+  /** Player-facing problem code of a failed call (llm_providers.md 10.1). */
+  problem?: ProblemCode;
   /** model that actually answered */
   model?: string;
   prompt?: { system: string; stable: string; context: string };
@@ -54,6 +71,7 @@ export interface AuditRecord {
   usage?: LlmUsage;
   costUsd?: number;
   reservedUsd?: number;
+  reservedTokens?: number;
   latencyMs?: number;
 }
 

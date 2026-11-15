@@ -1,10 +1,12 @@
-// Model ids, tier defaults and the price table (currency units per million tokens), shared
-// by the runner's budget (estimates) and the dev proxy (settlement). Prices come from the
-// price book data/llm/price_book.json (docs/50_tech/ai_architecture.md 10.2 and
-// docs/50_tech/llm_providers.md 3.8); the official price list is authoritative. The proxy
-// only calls models listed here (model whitelist, docs/50_tech/ai_architecture.md 11.1).
+// Price cards and cost arithmetic (currency units per million tokens), shared by the
+// runner's budget (estimates and settlement) and the dev proxy. Prices come from the price
+// book data/llm/price_book.json (docs/50_tech/ai_architecture.md 10.2 and
+// docs/50_tech/llm_providers.md 3.8); the official price list is authoritative. Which models
+// a connection may call is the connection's enabled model list (llm_providers.md 7.4 item
+// 4), not a list here.
 
 import knownModels from '../../data/llm/known_models.json';
+import presets from '../../data/llm/presets.json';
 import priceBook from '../../data/llm/price_book.json';
 import type { LlmUsage, ModelTier, ProviderId } from './contracts';
 import type { PriceCard } from './providers/types';
@@ -129,19 +131,55 @@ export function priceCardOf(kind: ProviderId, model: string): PriceCard | undefi
   return card;
 }
 
-/** Models the proxy may be configured to call (fallback targets are not callable directly). */
-export const CALLABLE_MODELS: readonly string[] = [
-  'claude-opus-5-5',
-  'claude-sonnet-5-5',
-  'claude-haiku-5-5',
-];
+/**
+ * The card of the model a server-side refusal fallback may answer with (AQ-16): the price
+ * book's fallback-target row whose id is the longest prefix of the model id (claude-opus-5
+ * for claude-opus-5-5). Such answers settle at the target's price, so a worst-case
+ * reservation takes it into account.
+ */
+export function fallbackCardOf(model: string): PriceCard | undefined {
+  const target = Object.entries(BOOK.providers.anthropic.models)
+    .filter(([id, p]) => p.fallbackTarget && model !== id && model.startsWith(id))
+    .sort((a, b) => b[0].length - a[0].length)[0];
+  if (!target) return undefined;
+  const [, p] = target;
+  const card: PriceCard = {
+    currency: 'USD',
+    input: p.input,
+    cacheRead: p.cacheRead,
+    output: p.output,
+  };
+  if (p.cacheWrite5m !== undefined) card.cacheWrite5m = p.cacheWrite5m;
+  if (p.cacheWrite1h !== undefined) card.cacheWrite1h = p.cacheWrite1h;
+  return card;
+}
 
-/** Recommended preset (Q-004): Opus 5.5 top, Sonnet 5.5 mid, Haiku 5.5 low. */
-export const DEFAULT_TIER_MODELS: Readonly<Record<ModelTier, string>> = {
-  top: 'claude-opus-5-5',
-  mid: 'claude-sonnet-5-5',
-  low: 'claude-haiku-5-5',
-};
+/** Rate by rate the higher of two cards of one currency (worst-case reservations). */
+export function maxCard(a: PriceCard, b: PriceCard | undefined): PriceCard {
+  if (!b || b.currency !== a.currency) return a;
+  const hi = (x: number | undefined, y: number | undefined) =>
+    x === undefined ? y : y === undefined ? x : Math.max(x, y);
+  const out: PriceCard = {
+    ...a,
+    input: Math.max(a.input, b.input),
+    cacheRead: Math.max(a.cacheRead, b.cacheRead),
+    output: Math.max(a.output, b.output),
+  };
+  const w5 = hi(a.cacheWrite5m, b.cacheWrite5m);
+  const w1 = hi(a.cacheWrite1h, b.cacheWrite1h);
+  if (w5 !== undefined) out.cacheWrite5m = w5;
+  if (w1 !== undefined) out.cacheWrite1h = w1;
+  return out;
+}
+
+/**
+ * Slot to model map of the recommended preset (tiered, standard tilt, Anthropic; Q-004):
+ * the fallback of the legacy single-provider path. Read from data/llm/presets.json, the
+ * same table the presets use (src/ai/llm_config/presets.ts).
+ */
+export const DEFAULT_TIER_MODELS: Readonly<Record<ModelTier, string>> = (
+  presets as unknown as { anthropic: { tiered: { standard: Record<ModelTier, string> } } }
+).anthropic.tiered.standard;
 
 export function priceOf(model: string): ModelPrice | undefined {
   return MODEL_PRICES[model];

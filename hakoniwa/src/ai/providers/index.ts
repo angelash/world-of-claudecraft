@@ -1,6 +1,8 @@
 // Providers behind the LlmProvider seam and the pure provider adapters
 // (docs/50_tech/llm_providers.md 2.2, 3):
-// - NullProvider, ProxyProvider, MockProvider: the runner's legacy providers.
+// - TransportProvider: the runner's provider over an injected LlmTransport (the routed
+//   LlmCallSpec path); NullProvider and MockProvider for no model and tests; ProxyProvider
+//   (legacy request shape to the dev proxy) is kept only for the editor workbench.
 // - none, anthropic, openai_compat, local: pure adapters from LlmCallSpec to a provider
 //   request and back, shared by the desktop gateway, the dev proxy and headless hosts.
 // - problems, capabilities, schema dialects, address rules, the spec check and the
@@ -29,4 +31,5 @@ export {
   stripThinking,
   visibleStreamText,
 } from './shared';
+export * from './transport_provider';
 export * from './types';

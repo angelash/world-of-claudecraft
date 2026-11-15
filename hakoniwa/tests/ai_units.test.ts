@@ -250,23 +250,33 @@ describe('budget and pricing', () => {
   });
 
   it('slides the hourly window, raises levels by thresholds, and honours a total cap', () => {
+    // Budget API v2 (PK-M0-24): costs carry usd and tokens, the ladder runs 0 to 9 (60, 70,
+    // 80, 90 and 100 percent reach 2, 4, 6, 8 and 9), the level falls with hysteresis, and
+    // the legacy totalUsd is the run window.
     const c = clock(0);
-    const b = new Budget({ perHourUsd: 1, totalUsd: 3 }, c);
-    b.reserve('a', 'npc.daily', 0.5);
+    const b = new Budget({ perHourUsd: 1, totalUsd: 1.5 }, c);
+    b.reserve('a', 'npc.daily', { usd: 0.5, tokens: 0 });
     expect(b.level()).toBe(0);
-    b.settle('a', 0.7);
-    expect(b.level()).toBe(1);
-    b.reserve('b', 'npc.daily', 0.15);
-    expect(b.level()).toBe(2);
-    expect(b.canAfford('npc.daily', 0.2, 0.3, false)).toBe('hour');
-    expect(b.canAfford('npc.daily', 0.05, 0.3, false)).toBe('role');
-    expect(b.canAfford('npc.daily', 0.05, 0.3, true)).toBe('ok');
+    b.settle('a', { usd: 0.7, tokens: 0 });
+    expect(b.level()).toBe(4);
+    b.reserve('b', 'npc.daily', { usd: 0.15, tokens: 0 });
+    expect(b.level()).toBe(6);
+    expect(b.canAfford('npc.daily', { usd: 0.2, tokens: 0 }, { share: 0.3 })).toBe('hour');
+    expect(b.canAfford('npc.daily', { usd: 0.05, tokens: 0 }, { share: 0.3 })).toBe('role');
+    expect(b.canAfford('npc.daily', { usd: 0.05, tokens: 0 }, { share: 0.3, reserved: true })).toBe(
+      'ok',
+    );
     b.release('b');
     c.t = 61 * 60_000;
     expect(b.hourUsd()).toBe(0);
-    expect(b.level()).toBe(0);
-    b.reserve('c', 'x', 2.4);
-    expect(b.canAfford('x', 0.1, undefined, true)).toBe('total');
+    // Hysteresis: five calm minutes per rung (6 to 4 to 2 to 0).
+    expect(b.level()).toBe(6);
+    for (const to of [4, 2, 0]) {
+      c.t += 5 * 60_000;
+      expect(b.level()).toBe(to);
+    }
+    b.reserve('c', 'x', { usd: 0.7, tokens: 0 });
+    expect(b.canAfford('x', { usd: 0.2, tokens: 0 }, { reserved: true })).toBe('run');
   });
 });
 

@@ -1,7 +1,10 @@
 // The model proxy behind /api/llm (Node only; the browser never imports the SDK or sees a
 // key; D-059). Two request shapes:
-// - the legacy neutral LlmRequest (tier, system, stable, context): the tier maps to a
-//   whitelisted Anthropic model and the official SDK sends it (buildMessageParams);
+// - the legacy neutral LlmRequest (tier, system, stable, context): the tier maps to a model
+//   the dev proxy connection enables and the official SDK sends it (buildMessageParams).
+//   The game client sends LlmCallSpecs through DevProxyTransport now; the editor workbench
+//   (src/editor/audit/ai_setup.ts, ProxyProvider) is the last user of this shape, which goes
+//   once it moves to TransportProvider over DevProxyTransport;
 // - the LlmCallSpec contract (docs/50_tech/llm_providers.md 3.1, 12): the pseudo connection
 //   'dev_proxy' goes through the SDK with the same body the release Anthropic adapter builds
 //   (buildSpecMessageParams, pinned by tests/llm_dev_proxy_contract.test.ts); compatible
@@ -31,13 +34,7 @@ import type {
   PromptSegment,
   SegmentCache,
 } from '../src/ai/contracts';
-import {
-  CALLABLE_MODELS,
-  costUsd,
-  costWithCard,
-  DEFAULT_TIER_MODELS,
-  priceOf,
-} from '../src/ai/pricing';
+import { costUsd, costWithCard, DEFAULT_TIER_MODELS, priceOf } from '../src/ai/pricing';
 import {
   type AdapterError,
   type AdapterHttpRequest,
@@ -53,6 +50,7 @@ import {
   fetchModelListing,
   fillEstimatedInput,
   type HeaderBag,
+  knownModelIds,
   type LocalFlavor,
   type ModelListing,
   type ModelProfile,
@@ -139,17 +137,30 @@ export function parseLlmBody(
   };
 }
 
-/** Tier to model map: env HAKONIWA_MODEL_TOP / _MID / _LOW, then options, then the preset. */
+/**
+ * The dev proxy connection's enabled models, which are also its whitelist (llm_providers.md
+ * 7.4 item 4): the known Anthropic models. Server-side fallback targets are priced in the
+ * price book but never called directly.
+ */
+export function devProxyModels(): string[] {
+  return knownModelIds('anthropic');
+}
+
+/**
+ * Tier to model map: env HAKONIWA_MODEL_TOP / _MID / _LOW, then options, then the
+ * recommended preset table; only models the dev proxy connection enables are accepted.
+ */
 export function resolveTierModels(
   env: Record<string, string | undefined>,
   overrides: Partial<Record<ModelTier, string>> = {},
   warn: (msg: string) => void = () => {},
 ): Record<ModelTier, string> {
   const out = { ...DEFAULT_TIER_MODELS };
+  const enabled = devProxyModels();
   for (const tier of ['top', 'mid', 'low'] as const) {
     const wanted = env[`HAKONIWA_MODEL_${tier.toUpperCase()}`] ?? overrides[tier];
     if (!wanted) continue;
-    if (CALLABLE_MODELS.includes(wanted)) out[tier] = wanted;
+    if (enabled.includes(wanted)) out[tier] = wanted;
     else warn(`[dev-api] model ${wanted} for tier ${tier} is not whitelisted; using ${out[tier]}`);
   }
   return out;
@@ -989,7 +1000,7 @@ export class LlmService {
 
   /** The pseudo connection 'dev_proxy': Anthropic through the SDK, slots from the env. */
   devProxyConnection(): ConnectionPublic {
-    const models = [...new Set([...CALLABLE_MODELS, ...Object.values(this.tiers)])];
+    const models = [...new Set([...devProxyModels(), ...Object.values(this.tiers)])];
     return {
       id: DEV_PROXY_CONNECTION_ID,
       kind: 'anthropic',

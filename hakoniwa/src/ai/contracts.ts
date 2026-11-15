@@ -93,6 +93,8 @@ export interface LlmFailure {
   model?: string;
   stopReason?: string;
   latencyMs?: number;
+  /** Player-facing problem code when the call went through the LlmCallSpec contract. */
+  problem?: ProblemCode;
 }
 
 export type LlmOutcome = LlmResult | LlmFailure;
@@ -111,6 +113,14 @@ export interface LlmProvider {
   complete(req: LlmRequest, signal?: AbortSignalLike): Promise<LlmOutcome>;
   /** Tier to model mapping as the provider knows it (for cost estimates). */
   tierModels?(): Partial<Record<ModelTier, string>>;
+  /**
+   * The LlmCallSpec contract (llm_providers.md 3.1): providers that implement it receive the
+   * routed spec instead of the legacy request. Should resolve, not reject.
+   */
+  call?(
+    spec: LlmCallSpec,
+    opts?: { signal?: AbortSignalLike; onDelta?: (text: string) => void },
+  ): Promise<LlmCallResult>;
 }
 
 /** Real-time clock in milliseconds, injected by the host (tests use a fake). */
@@ -158,8 +168,9 @@ export const EMPTY_USAGE: LlmUsage = Object.freeze({
 // Player-configured model contract (docs/50_tech/llm_providers.md 3.1, 10.1 and
 // docs/50_tech/ai_architecture.md 2.3.1). The AI layer emits one LlmCallSpec per call; a
 // pure provider adapter (src/ai/providers/) turns it into a provider request and turns the
-// provider answer back into an LlmCallResult. LlmRequest above stays the runner's legacy
-// shape until routing lands (callSpecFromRequest in src/ai/providers/call_spec.ts bridges).
+// provider answer back into an LlmCallResult. The runner still assembles the LlmRequest
+// above and turns it into a routed spec with callSpecFromRequest
+// (src/ai/providers/call_spec.ts); legacy single providers receive the request itself.
 
 /** Provider kinds a connection can have; 'none' is the no-model provider. */
 export type ProviderId = 'none' | 'anthropic' | 'openai_compat' | 'local';

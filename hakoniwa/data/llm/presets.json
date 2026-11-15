@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "asOf": "2026-11",
+  "note": "Preset tables (docs/50_tech/llm_providers.md 4.4, 4.5, 8.4): the recommended Anthropic models per preset and tilt, and the default budget shares of the hourly cap per binding role pool. Shares are baseline values re-derived from the calibrated cost structure (ai_architecture.md 10.10); a pool lists the binding roles that draw on one share together.",
+  "anthropic": {
+    "single": {
+      "recommended": "claude-haiku-5-5",
+      "quality": "claude-sonnet-5-5"
+    },
+    "tiered": {
+      "standard": {
+        "top": "claude-opus-5-5",
+        "mid": "claude-sonnet-5-5",
+        "low": "claude-haiku-5-5"
+      },
+      "generous": {
+        "top": "claude-opus-5-5",
+        "mid": "claude-sonnet-5-5",
+        "low": "claude-haiku-5-5"
+      },
+      "frugal": {
+        "mid": "claude-sonnet-5-5",
+        "low": "claude-haiku-5-5"
+      }
+    }
+  },
+  "shares": {
+    "tiered.standard": [
+      { "roles": ["goddess"], "share": 0.65 },
+      { "roles": ["core_npc"], "share": 0.2 },
+      { "roles": ["ruler_general"], "share": 0.1 },
+      { "roles": ["present_npc", "offstage_batch"], "share": 0.05 }
+    ],
+    "tiered.generous": [
+      { "roles": ["goddess"], "share": 0.4 },
+      { "roles": ["core_npc"], "share": 0.55 },
+      { "roles": ["ruler_general"], "share": 0.03 },
+      { "roles": ["present_npc", "offstage_batch"], "share": 0.02 }
+    ],
+    "tiered.frugal": [
+      { "roles": ["goddess"], "share": 0.45 },
+      { "roles": ["core_npc"], "share": 0.4 },
+      { "roles": ["present_npc"], "share": 0.1 },
+      { "roles": ["offstage_batch"], "share": 0.03 },
+      { "roles": ["ruler_general"], "share": 0.02 }
+    ],
+    "single": [
+      { "roles": ["goddess"], "share": 0.2 },
+      { "roles": ["core_npc"], "share": 0.55 },
+      { "roles": ["present_npc"], "share": 0.15 },
+      { "roles": ["offstage_batch"], "share": 0.08 },
+      { "roles": ["ruler_general"], "share": 0.02 }
+    ],
+    "tokens_only": [
+      { "roles": ["goddess"], "share": 0.2 },
+      { "roles": ["core_npc"], "share": 0.6 },
+      { "roles": ["present_npc"], "share": 0.1 },
+      { "roles": ["offstage_batch"], "share": 0.07 },
+      { "roles": ["ruler_general"], "share": 0.03 }
+    ]
+  }
+}

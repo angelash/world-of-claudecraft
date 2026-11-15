@@ -250,7 +250,8 @@ describe('AiRunner with the kernel', () => {
     engine.step(1);
 
     expect(provider.calls).toHaveLength(1);
-    expect(runner.status().level).toBe(4);
+    // DegradeLevel runs 0 to 9 since PK-M0-24: a spent hourly cap is level 9 (was 4).
+    expect(runner.status().level).toBe(9);
     expect(done(engine)).toEqual([
       { n: 3, by: 'ai', revision: 41 },
       { n: 0, by: 'fallback', revision: undefined },
@@ -277,7 +278,9 @@ describe('AiRunner with the kernel', () => {
     await runner.whenIdle();
 
     expect(provider.calls.map((c) => c.tier)).toEqual([goddessPlan.tier, 'low']);
-    expect(runner.status().level).toBe(1);
+    // DegradeLevel runs 0 to 9 since PK-M0-24: 60 percent of the cap is level 2 (was 1),
+    // the rung where non-reserved requests drop one tier (ai_architecture.md 9.4).
+    expect(runner.status().level).toBe(2);
     expect(runner.audit.list().map((r) => r.tier)).toEqual(['mid', 'low']);
   });
 

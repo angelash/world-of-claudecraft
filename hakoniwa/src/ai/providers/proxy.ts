@@ -1,6 +1,8 @@
 // ProxyProvider: POSTs the legacy neutral LlmRequest to the dev proxy /api/llm
-// (tools/dev_api.ts), which holds the credentials; the browser never sees a key. Replaced by
-// the transport provider when routing lands (docs/50_tech/llm_providers.md 14).
+// (tools/dev_api.ts), which holds the credentials; the browser never sees a key. The game
+// client routes through TransportProvider and DevProxyTransport now (docs/50_tech/
+// llm_providers.md 14); the editor workbench (src/editor/audit/ai_setup.ts) is the last user,
+// and this module goes with the legacy request shape once it moves over.
 
 import { defaultTransport } from '../audit';
 import type {
