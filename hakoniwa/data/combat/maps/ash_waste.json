@@ -1,0 +1,357 @@
+{
+  "id": "ash_waste",
+  "name": "灰烬荒原外缘",
+  "region": "ash_waste",
+  "width": 48,
+  "height": 40,
+  "sediment": 4,
+  "rows": [
+    "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+    "^::xxxxx:::xxx::::xxxxx::::xxx:::xxxxxx:::xxxx:^",
+    "^::::xx:::::::::::::xx:::::::::::::xx::::::::::^",
+    "^:::::::::::ss:::::::^^^^^^^::::::sss:::^^::^^:^",
+    "^::^^^s:^^:::ssss::^^sssssss^^:ssss^ssss^^s^^^^^",
+    "^^::::::::::::::sss^ssssssssssss::^^ssssssss^^:^",
+    "^^::::ss::::^^^:::sssssoooosss^ss:ssss::::ssss:^",
+    "^::^sssTss::^^^^::^^sssooooss^^ss:ssss::::ssss:^",
+    "^^^^^sssss:::^^^:::^^sssssss^^ssssssssss::ssss:^",
+    "^::^^sss#s#::::::::::^^sss^^::sss:ssssssssssss:^",
+    "^^sssss::::::::::::::::sss::::ss::sss^ssss^^^^:^",
+    "^:sssss::::::#:#:::::^:os^::::::ssss^sssss^^^^:^",
+    "^^:sss:::::::::::::^:ooooo:^::sss:::::::::::sss^",
+    "^^::::::::::::::::::ooooooo:sss::::ssssssssssss^",
+    "^^:sss:::#ss::::::::oooooooss::::::s#########s:^",
+    "^sss#:::::#s::::::::ooooooo::::::::s#o#ooo#o#ss^",
+    "^ss::::::::::::::::^:ooooo:^:::::::s#ooooooo#ss^",
+    "^^s::::o:::::::::::::^:os^::::ss:::soooooooo#s:^",
+    "^^:#::::ss::::::::::::::s:::::sss:ssoooooooo#s:^",
+    "^^:s:::::ss#:::::::::o::s::#:##sssss#ooooooo#s:^",
+    "^^:ss#:::ssss::ss##:#:::s::#::#s:sss####oo###ss^",
+    "^:::::::::::sssss#::#:#:so:::::sssssssssssssss:^",
+    "^^::::::::::sssss:::::::s::::#:sssss::::::::ss:^",
+    "^^^^^:::::sssss::::#::#so:::##:ssss::^:Tsss:#:^^",
+    "^^^^^:ssssssssss::o#:::s::#::#sss::::::ssss:::^^",
+    "^^^^ss^^^sssssssss:::::s:::soss::::::::::TT::::^",
+    "^^sssss^ssssssss:sss:::s:sss:::::::TT:::TTTT::^^",
+    "^^sssssssss^^^s::::sss:s:::::::#:::TT::::TT:::^^",
+    "^^sssssssss^^^ss:::::sss:::::::#:::::::T::::::^^",
+    "^ssss^sssssssss^##::::s:::::::::ss:::::::::T::^^",
+    "^ssss^^ssssssss:^^::::s::::T:::sss:T:sss:::TTT^^",
+    "^sssssssssssssss::::::ss::::::::ssssss:::::TTT^^",
+    "^^sssssssssssssssss::::s:::s##ssss::TTT:::::::s^",
+    "^^sssssssssssss:::ssss:sssssssssss::TTT:T:::::^^",
+    "^^:ss^ssssssss:::::::ssss::sssosss:::::::T::::^^",
+    "^^::sssssssss::::::::sssssssssssss:::::::T::::^^",
+    "^:::::sssss::::::::::sssssssssssssssssssss:ssss^",
+    "^::::::::::::::::::::sssssssss:sssss:sssss::sss^",
+    "^^^::^::^:::::^:^::^:ssssssss^:ss^ss^:^^^:^:^s^^",
+    "^^^^^^^^^^^^^^^^^^^^^^^^s^^^^^^^^^^^^^^^^^^^^^^^"
+  ],
+  "legend": {
+    "#": "wall",
+    "T": "tree",
+    "^": "rock",
+    ":": "ash",
+    "s": "sand",
+    "o": "stone",
+    "x": "void"
+  },
+  "locations": [
+    {
+      "id": "gate_old_outpost",
+      "name": "荒原南口",
+      "kind": "gate",
+      "x": 22,
+      "y": 35,
+      "w": 5,
+      "h": 3
+    },
+    { "id": "waste_camp", "name": "荒原营火", "kind": "safe", "x": 28, "y": 32, "w": 5, "h": 5 },
+    {
+      "id": "grey_sand_slope",
+      "name": "灰沙坡",
+      "kind": "wild",
+      "x": 2,
+      "y": 25,
+      "w": 13,
+      "h": 11
+    },
+    { "id": "dead_grove", "name": "枯树林", "kind": "wild", "x": 34, "y": 25, "w": 11, "h": 11 },
+    {
+      "id": "broken_gate_slope",
+      "name": "碎门坡",
+      "kind": "ruin",
+      "x": 17,
+      "y": 19,
+      "w": 13,
+      "h": 7,
+      "tags": ["gate_site"]
+    },
+    {
+      "id": "waste_gate_site",
+      "name": "荒原中层门址",
+      "kind": "gate_site",
+      "x": 19,
+      "y": 11,
+      "w": 9,
+      "h": 7
+    },
+    {
+      "id": "disciple_camp",
+      "name": "门徒会营地",
+      "kind": "camp",
+      "x": 3,
+      "y": 14,
+      "w": 9,
+      "h": 7
+    },
+    { "id": "crusader_camp", "name": "圣战军营", "kind": "camp", "x": 36, "y": 14, "w": 9, "h": 7 },
+    { "id": "redfang_hill", "name": "红牙丘", "kind": "camp", "x": 35, "y": 4, "w": 9, "h": 7 },
+    { "id": "drake_roost", "name": "亚龙栖处", "kind": "lair", "x": 19, "y": 4, "w": 11, "h": 5 },
+    { "id": "core_rim", "name": "古澱边缘", "kind": "wild", "x": 2, "y": 1, "w": 43, "h": 3 }
+  ],
+  "spawns": [
+    {
+      "id": "aw_bones_slope",
+      "kind": "monster",
+      "ref": "wandering_bones",
+      "x": 9.5,
+      "y": 29.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 240
+    },
+    {
+      "id": "aw_bones_south",
+      "kind": "monster",
+      "ref": "wandering_bones",
+      "x": 16.5,
+      "y": 33.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 240
+    },
+    {
+      "id": "aw_bones_grove",
+      "kind": "monster",
+      "ref": "wandering_bones",
+      "x": 40.5,
+      "y": 29.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 240
+    },
+    {
+      "id": "aw_wraith_w",
+      "kind": "monster",
+      "ref": "waste_wraith",
+      "x": 19.5,
+      "y": 21.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_wraith_e",
+      "kind": "monster",
+      "ref": "waste_wraith",
+      "x": 27.5,
+      "y": 21.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_ghoul_w",
+      "kind": "monster",
+      "ref": "waste_ghoul",
+      "x": 12.5,
+      "y": 22.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_ghoul_c",
+      "kind": "monster",
+      "ref": "waste_ghoul",
+      "x": 15.5,
+      "y": 17.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_ghoul_e",
+      "kind": "monster",
+      "ref": "waste_ghoul",
+      "x": 33.5,
+      "y": 23.5,
+      "count": 2,
+      "radius": 3,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_elemental_w",
+      "kind": "monster",
+      "ref": "ash_elemental",
+      "x": 10.5,
+      "y": 8.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_elemental_c",
+      "kind": "monster",
+      "ref": "ash_elemental",
+      "x": 16.5,
+      "y": 11.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_elemental_e",
+      "kind": "monster",
+      "ref": "ash_elemental",
+      "x": 31.5,
+      "y": 14.5,
+      "count": 2,
+      "radius": 2.5,
+      "respawnMinutes": 320
+    },
+    {
+      "id": "aw_cultist_n",
+      "kind": "monster",
+      "ref": "disciple_cultist",
+      "x": 5.5,
+      "y": 16.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_cultist_s",
+      "kind": "monster",
+      "ref": "disciple_cultist",
+      "x": 9.5,
+      "y": 18.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_crusader_w",
+      "kind": "monster",
+      "ref": "crusader_soldier",
+      "x": 38.5,
+      "y": 17.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_crusader_e",
+      "kind": "monster",
+      "ref": "crusader_soldier",
+      "x": 42.5,
+      "y": 18.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_inquisitor",
+      "kind": "monster",
+      "ref": "crusader_inquisitor",
+      "x": 40.5,
+      "y": 16.5,
+      "count": 1,
+      "radius": 1.5,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_brute_w",
+      "kind": "monster",
+      "ref": "redfang_brute",
+      "x": 37.5,
+      "y": 6.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_brute_e",
+      "kind": "monster",
+      "ref": "redfang_brute",
+      "x": 42.5,
+      "y": 9.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_scout_n",
+      "kind": "monster",
+      "ref": "wing_demon_scout",
+      "x": 40.5,
+      "y": 5.5,
+      "count": 1,
+      "radius": 3,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_scout_w",
+      "kind": "monster",
+      "ref": "wing_demon_scout",
+      "x": 36.5,
+      "y": 8.5,
+      "count": 1,
+      "radius": 3,
+      "respawnMinutes": 400
+    },
+    {
+      "id": "aw_knight_w",
+      "kind": "monster",
+      "ref": "ashen_knight",
+      "x": 12.5,
+      "y": 3.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 600
+    },
+    {
+      "id": "aw_knight_e",
+      "kind": "monster",
+      "ref": "ashen_knight",
+      "x": 35.5,
+      "y": 3.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 600
+    },
+    {
+      "id": "aw_dian_drake",
+      "kind": "monster",
+      "ref": "dian_drake",
+      "x": 24.5,
+      "y": 6.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 1200
+    }
+  ],
+  "exits": [
+    {
+      "id": "to_old_outpost",
+      "x": 24,
+      "y": 39,
+      "toMap": "old_outpost",
+      "toX": 1,
+      "toY": 1,
+      "toLocation": "gate_ash_waste",
+      "label": "回旧哨村"
+    }
+  ]
+}

@@ -1,0 +1,1588 @@
+[
+  {
+    "id": "act2_city_defense",
+    "name": "城下潮",
+    "scale": "squad",
+    "act": "act2",
+    "desc": "旧水道的澱从下城的三处出口涌出。守住鱼市，直到黎明的钟声响起。",
+    "width": 32,
+    "height": 20,
+    "rows": [
+      "......BBBB.BBB..=..BBB.BBBB.....",
+      "......BBBB.BBB..=..BBB.BBBB.....",
+      "......BBBB.BBB..=..BBB.BBBB.....",
+      "................=...............",
+      "================================",
+      ".....BBBB.......=......BBBB.....",
+      ".....BBBB.......=......BBBB.BBBB",
+      "BBB..BBBB.......=......BBBB.BBBB",
+      "BBB.............=...........BBBB",
+      "BBB.............=...........BBBB",
+      "BBB.............=...............",
+      "................=......BBB......",
+      "...===========================..",
+      "BBB..BBBB.......=......BBB......",
+      "BBB..BBBB.BBB...=..BBB..........",
+      "BBB..BBBB.BBB...=..BBB..........",
+      "................=...............",
+      "WWWWWWWWWW...WWWWWWW...WWWWWWWWW",
+      "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+      "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
+    ],
+    "legend": {
+      ".": "plain",
+      "=": "road",
+      "B": "building",
+      "W": "water"
+    },
+    "teams": {
+      "player": {
+        "regiments": [
+          {
+            "id": "ron_squad",
+            "typeId": "adventurers",
+            "count": 6,
+            "x": 15,
+            "y": 9,
+            "name": "罗恩小队",
+            "general": "ron"
+          },
+          {
+            "id": "hunter_squad",
+            "typeId": "hunters",
+            "count": 8,
+            "x": 17.5,
+            "y": 9,
+            "name": "猎手队"
+          },
+          {
+            "id": "door_guard",
+            "typeId": "company_guard",
+            "count": 12,
+            "x": 14,
+            "y": 11,
+            "name": "门扉护卫"
+          },
+          {
+            "id": "watch_squad",
+            "typeId": "city_guard",
+            "count": 12,
+            "x": 19,
+            "y": 11,
+            "name": "城卫小队",
+            "controller": "ai"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "player",
+            "name": "你",
+            "x": 16.5,
+            "y": 10.5,
+            "abilities": ["charge", "inspire", "cleave"],
+            "ref": "player"
+          },
+          {
+            "id": "ron",
+            "name": "罗恩",
+            "x": 15,
+            "y": 10.5,
+            "abilities": ["rally", "inspire"],
+            "ref": "ron",
+            "level": 22,
+            "requiresFlags": ["companion.ron.recruited"],
+            "controller": "ai"
+          },
+          {
+            "id": "shiya",
+            "name": "希雅",
+            "x": 18,
+            "y": 10.5,
+            "abilities": ["strike"],
+            "ref": "shiya",
+            "level": 20,
+            "requiresFlags": ["companion.shiya.recruited"],
+            "controller": "ai"
+          }
+        ],
+        "retreat": {
+          "x": 11.5,
+          "y": 16.5
+        },
+        "general": {
+          "id": "hagen",
+          "name": "哈根",
+          "traits": ["谨慎"]
+        },
+        "morale": 5
+      },
+      "enemy": {
+        "regiments": [
+          {
+            "id": "rats_well",
+            "typeId": "sediment_rat",
+            "count": 20,
+            "x": 3.5,
+            "y": 4.5,
+            "name": "泥巷井口的澱鼠"
+          },
+          {
+            "id": "rats_drain",
+            "typeId": "sediment_rat",
+            "count": 20,
+            "x": 16.5,
+            "y": 1.5,
+            "name": "鱼市排水口的澱鼠"
+          },
+          {
+            "id": "rats_sluice",
+            "typeId": "sediment_rat",
+            "count": 20,
+            "x": 28.5,
+            "y": 15.5,
+            "name": "河港闸门的澱鼠"
+          }
+        ],
+        "heroes": [],
+        "retreat": {
+          "x": 16.5,
+          "y": 0.5
+        }
+      }
+    },
+    "objectives": [
+      {
+        "id": "hold_market",
+        "team": "player",
+        "kind": "hold",
+        "label": "守住鱼市直到黎明钟声",
+        "zone": {
+          "x": 12,
+          "y": 8,
+          "w": 8,
+          "h": 4
+        },
+        "seconds": 180
+      },
+      {
+        "id": "enemy_wipe",
+        "team": "enemy",
+        "kind": "annihilate",
+        "label": "淹没下城"
+      }
+    ],
+    "reinforcements": [
+      {
+        "atSecond": 40,
+        "team": "enemy",
+        "label": "泥魔从井口与排水口爬出",
+        "regiments": [
+          {
+            "id": "mud_well",
+            "typeId": "mud_fiend",
+            "count": 8,
+            "x": 3.5,
+            "y": 4.5,
+            "name": "泥魔"
+          },
+          {
+            "id": "mud_drain",
+            "typeId": "mud_fiend",
+            "count": 8,
+            "x": 16.5,
+            "y": 1.5,
+            "name": "泥魔"
+          },
+          {
+            "id": "rats_sluice2",
+            "typeId": "sediment_rat",
+            "count": 20,
+            "x": 28.5,
+            "y": 15.5,
+            "name": "澱鼠"
+          }
+        ]
+      },
+      {
+        "atSecond": 90,
+        "team": "enemy",
+        "label": "第三波澱潮",
+        "regiments": [
+          {
+            "id": "mud_well2",
+            "typeId": "mud_fiend",
+            "count": 8,
+            "x": 3.5,
+            "y": 4.5,
+            "name": "泥魔"
+          },
+          {
+            "id": "rats_drain2",
+            "typeId": "sediment_rat",
+            "count": 25,
+            "x": 16.5,
+            "y": 1.5,
+            "name": "澱鼠"
+          },
+          {
+            "id": "mud_sluice",
+            "typeId": "mud_fiend",
+            "count": 8,
+            "x": 28.5,
+            "y": 15.5,
+            "name": "泥魔"
+          }
+        ]
+      },
+      {
+        "atSecond": 140,
+        "team": "enemy",
+        "label": "泥巷巨口出现了",
+        "regiments": [
+          {
+            "id": "maw_spawn",
+            "typeId": "dian_beast",
+            "count": 6,
+            "x": 3.5,
+            "y": 4.5,
+            "name": "巨口的眷属"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "mud_maw",
+            "name": "泥巷巨口",
+            "x": 3.5,
+            "y": 4.5,
+            "abilities": ["cleave"],
+            "level": 24,
+            "hp": 2600,
+            "attack": 60
+          }
+        ]
+      }
+    ],
+    "timeLimit": 240
+  },
+  {
+    "id": "act3_bone_field",
+    "name": "骨原夜袭",
+    "scale": "company",
+    "act": "act3",
+    "desc": "骨原上的死者在夜里压向旧哨村。守住村子，直到天亮。这是千军之门的第一战。",
+    "width": 36,
+    "height": 22,
+    "rows": [
+      "^^^^^^^^^^^^^^^^....^^^^^^^^^^^^^^^^",
+      "^^^^^^^^^^^^^^^^....^^^^^^^^^^^^^^^^",
+      "^^^^^^^^^^^^^^^^....^^^^^^^^^^^^^^^^",
+      "^^^^^^^^^^^^^^^^....^^^^^^^^^^^^^^^^",
+      "^^^^^^^^^^^^^^^^....^^^^^^^^^^^^^^^^",
+      "....................................",
+      "..........#..............#..........",
+      "..........#..............#..........",
+      "..........#..............#..........",
+      "~~~~~~~~~~~~~~~~~==~~~~~~~~~~~~~~~~~",
+      "....................................",
+      "....######................######....",
+      "....................................",
+      "...............................###..",
+      "...............................###..",
+      "...............................###..",
+      "....................................",
+      "............BBB.......BBB...........",
+      "............BBB..BBB..BBB...........",
+      ".................BBB................",
+      "..............BB....BB..............",
+      "...................................."
+    ],
+    "legend": {
+      "#": "wall",
+      ".": "plain",
+      "=": "road",
+      "B": "building",
+      "^": "hill",
+      "~": "ford"
+    },
+    "teams": {
+      "player": {
+        "regiments": [
+          {
+            "id": "militia_left",
+            "typeId": "militia",
+            "count": 30,
+            "x": 13.5,
+            "y": 12.5,
+            "name": "左翼民兵",
+            "general": "ron"
+          },
+          {
+            "id": "militia_right",
+            "typeId": "militia",
+            "count": 30,
+            "x": 22.5,
+            "y": 12.5,
+            "name": "右翼民兵"
+          },
+          {
+            "id": "village_hunters",
+            "typeId": "hunters",
+            "count": 10,
+            "x": 18,
+            "y": 14.5,
+            "name": "猎手"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "player",
+            "name": "你",
+            "x": 18,
+            "y": 13.5,
+            "abilities": ["charge", "inspire", "cleave"],
+            "ref": "player"
+          },
+          {
+            "id": "ron",
+            "name": "罗恩",
+            "x": 15.5,
+            "y": 13.5,
+            "abilities": ["rally", "inspire"],
+            "ref": "ron",
+            "level": 22,
+            "requiresFlags": ["companion.ron.recruited"],
+            "controller": "ai"
+          }
+        ],
+        "retreat": {
+          "x": 18,
+          "y": 21.5
+        },
+        "morale": 10
+      },
+      "enemy": {
+        "regiments": [
+          {
+            "id": "bones_west",
+            "typeId": "skeleton",
+            "count": 50,
+            "x": 10.5,
+            "y": 2.5,
+            "name": "骷髅兵"
+          },
+          {
+            "id": "bones_east",
+            "typeId": "skeleton",
+            "count": 50,
+            "x": 26.5,
+            "y": 2.5,
+            "name": "骷髅兵"
+          },
+          {
+            "id": "hounds",
+            "typeId": "bone_hound",
+            "count": 20,
+            "x": 18,
+            "y": 1.5,
+            "name": "骨犬"
+          }
+        ],
+        "heroes": [],
+        "retreat": {
+          "x": 18,
+          "y": 0.5
+        },
+        "general": {
+          "id": "bone_walker",
+          "name": "千骨行者",
+          "traits": ["勇猛"]
+        }
+      }
+    },
+    "objectives": [
+      {
+        "id": "hold_village",
+        "team": "player",
+        "kind": "hold",
+        "label": "守住村子直到天亮",
+        "zone": {
+          "x": 11,
+          "y": 12,
+          "w": 14,
+          "h": 8
+        },
+        "seconds": 150
+      },
+      {
+        "id": "enemy_wipe",
+        "team": "enemy",
+        "kind": "annihilate",
+        "label": "踏平村子"
+      }
+    ],
+    "reinforcements": [
+      {
+        "atSecond": 60,
+        "team": "enemy",
+        "label": "第二批死者爬上了坡",
+        "regiments": [
+          {
+            "id": "bones_far_west",
+            "typeId": "skeleton",
+            "count": 30,
+            "x": 6.5,
+            "y": 6.5,
+            "name": "骷髅兵"
+          },
+          {
+            "id": "hounds_east",
+            "typeId": "bone_hound",
+            "count": 15,
+            "x": 30.5,
+            "y": 6.5,
+            "name": "骨犬"
+          }
+        ]
+      },
+      {
+        "atSecond": 100,
+        "team": "enemy",
+        "label": "千骨行者幼体现身",
+        "regiments": [
+          {
+            "id": "walker_guard",
+            "typeId": "skeleton",
+            "count": 25,
+            "x": 18,
+            "y": 2.5,
+            "name": "行者的骨卫"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "bone_walker",
+            "name": "千骨行者幼体",
+            "x": 18,
+            "y": 1.5,
+            "abilities": ["bone_storm"],
+            "level": 26,
+            "hp": 3200,
+            "attack": 55
+          }
+        ]
+      }
+    ],
+    "timeLimit": 200
+  },
+  {
+    "id": "act3_north_raid",
+    "name": "霜脊堡之战",
+    "scale": "legion",
+    "act": "act3",
+    "desc": "红牙军在暴雪里压向霜脊堡。萨莎亲自来试货。守住堡垒，直到冈特的援军赶到。",
+    "width": 44,
+    "height": 26,
+    "rows": [
+      "********************************************",
+      "********************************************",
+      "********************************************",
+      "********************************************",
+      "********************************************",
+      "********************************************",
+      "********************************************",
+      "********************************************",
+      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+      "TTTTTT********************************TTTTTT",
+      "TTTTTT********************************TTTTTT",
+      "TTTTTT********************************TTTTTT",
+      "TTTTTT********************************TTTTTT",
+      "TTTTTT**********#####..#####**********TTTTTT",
+      "TTTTTT**********#..........#**********TTTTTT",
+      "****************#..........#****************",
+      "****************#..........#****************",
+      "****************#..........#****************",
+      "****************#..........#****************",
+      "****************#..........#****************",
+      "****************#####..#####****************",
+      "*********************==*********************",
+      "*********************==*********************",
+      "*********************==*********************",
+      "*********************==*********************"
+    ],
+    "legend": {
+      "#": "wall",
+      "*": "snow",
+      ".": "plain",
+      "=": "road",
+      "T": "forest",
+      "~": "ford"
+    },
+    "teams": {
+      "player": {
+        "regiments": [
+          {
+            "id": "keep_guard_w",
+            "typeId": "city_guard",
+            "count": 150,
+            "x": 19,
+            "y": 16.5,
+            "name": "堡垒守军（西）"
+          },
+          {
+            "id": "keep_guard_e",
+            "typeId": "city_guard",
+            "count": 150,
+            "x": 25,
+            "y": 16.5,
+            "name": "堡垒守军（东）"
+          },
+          {
+            "id": "keep_bows_w",
+            "typeId": "longbow_militia",
+            "count": 150,
+            "x": 19.5,
+            "y": 19.5,
+            "name": "长弓民兵（西）"
+          },
+          {
+            "id": "keep_bows_e",
+            "typeId": "longbow_militia",
+            "count": 150,
+            "x": 24.5,
+            "y": 19.5,
+            "name": "长弓民兵（东）"
+          },
+          {
+            "id": "regis_riders",
+            "typeId": "border_riders",
+            "count": 100,
+            "x": 13,
+            "y": 12.5,
+            "name": "雷吉斯的游骑",
+            "general": "regis"
+          },
+          {
+            "id": "village_militia",
+            "typeId": "militia",
+            "count": 150,
+            "x": 31,
+            "y": 12.5,
+            "name": "撤离村民的民兵"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "player",
+            "name": "你",
+            "x": 22,
+            "y": 17.5,
+            "abilities": ["charge", "inspire", "cleave"],
+            "ref": "player"
+          },
+          {
+            "id": "ron",
+            "name": "罗恩",
+            "x": 20,
+            "y": 17.5,
+            "abilities": ["rally", "inspire"],
+            "ref": "ron",
+            "level": 22,
+            "requiresFlags": ["companion.ron.recruited"],
+            "controller": "ai"
+          },
+          {
+            "id": "shiya",
+            "name": "希雅",
+            "x": 24,
+            "y": 17.5,
+            "abilities": ["strike"],
+            "ref": "shiya",
+            "level": 20,
+            "requiresFlags": ["companion.shiya.recruited"],
+            "controller": "ai"
+          }
+        ],
+        "retreat": {
+          "x": 22,
+          "y": 25.5
+        },
+        "general": {
+          "id": "gunther",
+          "name": "冈特·冯·霍恩",
+          "traits": ["坚守"]
+        },
+        "morale": 10
+      },
+      "enemy": {
+        "regiments": [
+          {
+            "id": "oni_1",
+            "typeId": "oni_infantry",
+            "count": 125,
+            "x": 10,
+            "y": 2.5,
+            "name": "鬼人重步兵"
+          },
+          {
+            "id": "oni_2",
+            "typeId": "oni_infantry",
+            "count": 125,
+            "x": 17,
+            "y": 2.5,
+            "name": "鬼人重步兵"
+          },
+          {
+            "id": "oni_3",
+            "typeId": "oni_infantry",
+            "count": 125,
+            "x": 27,
+            "y": 2.5,
+            "name": "鬼人重步兵"
+          },
+          {
+            "id": "oni_4",
+            "typeId": "oni_infantry",
+            "count": 125,
+            "x": 34,
+            "y": 2.5,
+            "name": "鬼人重步兵"
+          },
+          {
+            "id": "wings",
+            "typeId": "wing_fiend",
+            "count": 120,
+            "x": 22,
+            "y": 1.5,
+            "name": "翼魔游骑"
+          },
+          {
+            "id": "casters",
+            "typeId": "night_caster",
+            "count": 80,
+            "x": 22,
+            "y": 4.5,
+            "name": "夜魔施法者"
+          },
+          {
+            "id": "beasts_w",
+            "typeId": "dian_beast",
+            "count": 300,
+            "x": 6,
+            "y": 4.5,
+            "name": "驯澱魔兽（狼骑）"
+          },
+          {
+            "id": "beasts_c",
+            "typeId": "dian_beast",
+            "count": 300,
+            "x": 22,
+            "y": 6.5,
+            "name": "驯澱魔兽"
+          },
+          {
+            "id": "beasts_e",
+            "typeId": "dian_beast",
+            "count": 300,
+            "x": 38,
+            "y": 4.5,
+            "name": "驯澱魔兽"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "sasha",
+            "name": "萨莎",
+            "x": 22,
+            "y": 3.5,
+            "abilities": ["war_cry", "cleave", "charge"],
+            "ref": "sasha",
+            "level": 48,
+            "hp": 6000,
+            "attack": 160,
+            "auraRadius": 7,
+            "aura": {
+              "damage": 0.2,
+              "defense": 0.1,
+              "morale": 10
+            }
+          }
+        ],
+        "retreat": {
+          "x": 22,
+          "y": 0.5
+        },
+        "general": {
+          "id": "sasha",
+          "name": "萨莎",
+          "traits": ["勇猛"]
+        }
+      }
+    },
+    "objectives": [
+      {
+        "id": "hold_keep",
+        "team": "player",
+        "kind": "hold",
+        "label": "守住霜脊堡直到援军抵达",
+        "zone": {
+          "x": 17,
+          "y": 15,
+          "w": 10,
+          "h": 6
+        },
+        "seconds": 360
+      },
+      {
+        "id": "enemy_wipe",
+        "team": "enemy",
+        "kind": "annihilate",
+        "label": "攻破霜脊堡"
+      }
+    ],
+    "reinforcements": [
+      {
+        "atSecond": 300,
+        "team": "player",
+        "label": "冈特的援军从南方赶到",
+        "regiments": [
+          {
+            "id": "relief_greywall_w",
+            "typeId": "greywall_infantry",
+            "count": 250,
+            "x": 4,
+            "y": 23.5,
+            "name": "灰墙重步兵",
+            "controller": "ai"
+          },
+          {
+            "id": "relief_greywall_e",
+            "typeId": "greywall_infantry",
+            "count": 250,
+            "x": 40,
+            "y": 23.5,
+            "name": "灰墙重步兵",
+            "controller": "ai"
+          },
+          {
+            "id": "relief_militia",
+            "typeId": "militia",
+            "count": 300,
+            "x": 10,
+            "y": 24.5,
+            "name": "援军民兵",
+            "controller": "ai"
+          },
+          {
+            "id": "relief_riders",
+            "typeId": "border_riders",
+            "count": 200,
+            "x": 34,
+            "y": 24.5,
+            "name": "援军游骑",
+            "controller": "ai"
+          },
+          {
+            "id": "relief_bows",
+            "typeId": "longbow_militia",
+            "count": 200,
+            "x": 28,
+            "y": 24.5,
+            "name": "援军长弓手",
+            "controller": "ai"
+          }
+        ]
+      }
+    ],
+    "timeLimit": 480
+  },
+  {
+    "id": "act3_ash_line",
+    "name": "灰烬防线之战",
+    "scale": "legion",
+    "act": "act3",
+    "desc": "圣战军渡过灰溪，扑向苇桥。守住北岸的桥头，或者击溃他们，或者俘获大主教。",
+    "width": 48,
+    "height": 28,
+    "rows": [
+      "TTTTTTTT...............==...............TTTTTTTT",
+      "TTTTTTTT...............==...............TTTTTTTT",
+      "TTTTTTTT...............==...............TTTTTTTT",
+      "TTTTTTTT...............==...............TTTTTTTT",
+      "TTTTTTTT...............==...............TTTTTTTT",
+      "TTTTTTTT...............==...............TTTTTTTT",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".................^^^^^.==.^^^^^.................",
+      ".................^^^^^.==.^^^^^.................",
+      ".......................==.......................",
+      "WWWWWWWW~~~~WWWWWWWWWW====WWWWWWWWWW~~~~WWWWWWWW",
+      "WWWWWWWW~~~~WWWWWWWWWW====WWWWWWWWWW~~~~WWWWWWWW",
+      "WWWWWWWW~~~~WWWWWWWWWW====WWWWWWWWWW~~~~WWWWWWWW",
+      ".......................==.......................",
+      ".......................==.......................",
+      "..................BBB..==..BBB..................",
+      "..................BBB..==..BBB..................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==.......................",
+      ".......................==......................."
+    ],
+    "legend": {
+      ".": "plain",
+      "=": "road",
+      "B": "building",
+      "T": "forest",
+      "W": "water",
+      "^": "hill",
+      "~": "ford"
+    },
+    "teams": {
+      "player": {
+        "regiments": [
+          {
+            "id": "ash_militia_w",
+            "typeId": "militia",
+            "count": 200,
+            "x": 10,
+            "y": 10.5,
+            "name": "灰烬民兵（西渡口）"
+          },
+          {
+            "id": "ash_militia_c",
+            "typeId": "militia",
+            "count": 200,
+            "x": 24,
+            "y": 10.5,
+            "name": "灰烬民兵（桥头）"
+          },
+          {
+            "id": "ash_militia_e",
+            "typeId": "militia",
+            "count": 200,
+            "x": 38,
+            "y": 10.5,
+            "name": "灰烬民兵（东渡口）"
+          },
+          {
+            "id": "ron_regulars",
+            "typeId": "company_guard",
+            "count": 200,
+            "x": 21.5,
+            "y": 9,
+            "name": "罗恩的常备连队",
+            "general": "ron"
+          },
+          {
+            "id": "ash_bows",
+            "typeId": "longbow_militia",
+            "count": 200,
+            "x": 19.5,
+            "y": 7,
+            "name": "长弓民兵"
+          },
+          {
+            "id": "shiya_hunters",
+            "typeId": "hunters",
+            "count": 60,
+            "x": 27,
+            "y": 7,
+            "name": "希雅的猎手"
+          },
+          {
+            "id": "mercs",
+            "typeId": "company_guard",
+            "count": 200,
+            "x": 30,
+            "y": 9,
+            "name": "门扉商会佣兵"
+          },
+          {
+            "id": "orc_allies",
+            "typeId": "orc_warrior",
+            "count": 300,
+            "x": 15,
+            "y": 7,
+            "name": "乌尔萨克的兽人战士",
+            "controller": "ai"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "player",
+            "name": "你",
+            "x": 24,
+            "y": 9,
+            "abilities": ["charge", "inspire", "cleave", "strike"],
+            "ref": "player",
+            "minLevel": 45
+          },
+          {
+            "id": "ron",
+            "name": "罗恩",
+            "x": 22,
+            "y": 8.5,
+            "abilities": ["rally", "inspire"],
+            "ref": "ron",
+            "level": 22,
+            "requiresFlags": ["companion.ron.recruited"],
+            "controller": "ai"
+          },
+          {
+            "id": "shiya",
+            "name": "希雅",
+            "x": 26,
+            "y": 8.5,
+            "abilities": ["strike"],
+            "ref": "shiya",
+            "level": 20,
+            "requiresFlags": ["companion.shiya.recruited"],
+            "controller": "ai"
+          }
+        ],
+        "retreat": {
+          "x": 24,
+          "y": 0.5
+        },
+        "general": {
+          "id": "ursak",
+          "name": "乌尔萨克",
+          "traits": ["勇猛"]
+        },
+        "morale": 10
+      },
+      "enemy": {
+        "regiments": [
+          {
+            "id": "paladins_w",
+            "typeId": "paladin",
+            "count": 250,
+            "x": 20,
+            "y": 21.5,
+            "name": "白焰圣骑士团",
+            "general": "ulrich"
+          },
+          {
+            "id": "paladins_e",
+            "typeId": "paladin",
+            "count": 250,
+            "x": 28,
+            "y": 21.5,
+            "name": "白焰圣骑士团",
+            "general": "ulrich"
+          },
+          {
+            "id": "zealots_1",
+            "typeId": "zealot",
+            "count": 300,
+            "x": 8,
+            "y": 19.5,
+            "name": "圣誓狂信徒"
+          },
+          {
+            "id": "zealots_2",
+            "typeId": "zealot",
+            "count": 300,
+            "x": 15,
+            "y": 19.5,
+            "name": "圣誓狂信徒"
+          },
+          {
+            "id": "zealots_3",
+            "typeId": "zealot",
+            "count": 300,
+            "x": 33,
+            "y": 19.5,
+            "name": "圣誓狂信徒"
+          },
+          {
+            "id": "zealots_4",
+            "typeId": "zealot",
+            "count": 300,
+            "x": 40,
+            "y": 19.5,
+            "name": "圣誓狂信徒"
+          },
+          {
+            "id": "levy_1",
+            "typeId": "levy",
+            "count": 400,
+            "x": 4,
+            "y": 23.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "levy_2",
+            "typeId": "levy",
+            "count": 400,
+            "x": 9,
+            "y": 25.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "levy_3",
+            "typeId": "levy",
+            "count": 400,
+            "x": 14,
+            "y": 23.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "levy_4",
+            "typeId": "levy",
+            "count": 400,
+            "x": 19,
+            "y": 25.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "levy_5",
+            "typeId": "levy",
+            "count": 400,
+            "x": 29,
+            "y": 25.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "levy_6",
+            "typeId": "levy",
+            "count": 400,
+            "x": 34,
+            "y": 23.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "levy_7",
+            "typeId": "levy",
+            "count": 400,
+            "x": 39,
+            "y": 25.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "levy_8",
+            "typeId": "levy",
+            "count": 400,
+            "x": 44,
+            "y": 23.5,
+            "name": "征召兵"
+          },
+          {
+            "id": "priests_w",
+            "typeId": "war_priest",
+            "count": 100,
+            "x": 21.5,
+            "y": 24.5,
+            "name": "战地神官"
+          },
+          {
+            "id": "priests_e",
+            "typeId": "war_priest",
+            "count": 100,
+            "x": 26.5,
+            "y": 24.5,
+            "name": "战地神官"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "severin",
+            "name": "大主教塞维林",
+            "x": 24,
+            "y": 26.5,
+            "abilities": ["dawn_pillar", "inspire"],
+            "ref": "severin",
+            "level": 40,
+            "hp": 3000,
+            "attack": 40
+          },
+          {
+            "id": "ulrich",
+            "name": "乌尔里希·冯·艾森",
+            "x": 24,
+            "y": 21.5,
+            "abilities": ["charge", "inspire"],
+            "ref": "ulrich",
+            "level": 40,
+            "hp": 4200,
+            "attack": 90
+          },
+          {
+            "id": "luchen",
+            "name": "陆辰",
+            "x": 24,
+            "y": 19.5,
+            "abilities": ["strike", "cleave"],
+            "ref": "luchen",
+            "level": 45,
+            "hp": 5200,
+            "attack": 120
+          }
+        ],
+        "retreat": {
+          "x": 24,
+          "y": 27.5
+        },
+        "general": {
+          "id": "ulrich",
+          "name": "乌尔里希·冯·艾森",
+          "traits": ["勇猛"]
+        }
+      }
+    },
+    "objectives": [
+      {
+        "id": "hold_bridge",
+        "team": "player",
+        "kind": "hold",
+        "label": "守住苇桥北岸",
+        "zone": {
+          "x": 19,
+          "y": 7,
+          "w": 10,
+          "h": 5
+        },
+        "seconds": 600
+      },
+      {
+        "id": "capture_archbishop",
+        "team": "player",
+        "kind": "kill_hero",
+        "label": "俘获大主教",
+        "heroId": "severin",
+        "decisive": true
+      },
+      {
+        "id": "enemy_wipe",
+        "team": "enemy",
+        "kind": "annihilate",
+        "label": "踏平灰烬边境"
+      }
+    ],
+    "reinforcements": [],
+    "timeLimit": 720
+  },
+  {
+    "id": "act5_final_war",
+    "name": "灰烬决战",
+    "scale": "coalition",
+    "act": "act5",
+    "desc": "魔王之军从三面压向主门坑。北线夜岭关、东线荒原缘、南线瑟兰道，每一条战线都不能崩。",
+    "width": 56,
+    "height": 32,
+    "rows": [
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::####::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::####::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::####::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::####::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::^^^^^^^^^^^^^^^^::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::####::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::####::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::####::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::####::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::^:::::::::::::::",
+      "::::::::::::::::::::^^^^^^^^^^^^^^^^::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::####::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::####::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::####::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::",
+      "::::::::::::::::::::::::::::::::::::::::::::::::::::::::"
+    ],
+    "legend": {
+      "#": "wall",
+      ":": "dian",
+      "^": "hill"
+    },
+    "zones": [
+      {
+        "id": "north",
+        "name": "北线·夜岭关",
+        "rect": {
+          "x": 21,
+          "y": 3,
+          "w": 14,
+          "h": 6
+        }
+      },
+      {
+        "id": "east",
+        "name": "东线·荒原缘",
+        "rect": {
+          "x": 42,
+          "y": 11,
+          "w": 9,
+          "h": 10
+        }
+      },
+      {
+        "id": "south",
+        "name": "南线·瑟兰道",
+        "rect": {
+          "x": 21,
+          "y": 23,
+          "w": 14,
+          "h": 6
+        }
+      }
+    ],
+    "teams": {
+      "player": {
+        "regiments": [
+          {
+            "id": "north_greywall_w",
+            "typeId": "greywall_infantry",
+            "count": 200,
+            "x": 25,
+            "y": 6,
+            "name": "北线灰墙（西）",
+            "controller": "ai",
+            "general": "ron"
+          },
+          {
+            "id": "north_greywall_e",
+            "typeId": "greywall_infantry",
+            "count": 200,
+            "x": 31,
+            "y": 6,
+            "name": "北线灰墙（东）",
+            "controller": "ai"
+          },
+          {
+            "id": "north_orcs",
+            "typeId": "orc_warrior",
+            "count": 200,
+            "x": 28,
+            "y": 7.5,
+            "name": "北线兽人战士",
+            "controller": "ai"
+          },
+          {
+            "id": "east_phalanx_n",
+            "typeId": "legion_phalanx",
+            "count": 300,
+            "x": 45,
+            "y": 13.5,
+            "name": "帝国方阵（北）",
+            "controller": "ai"
+          },
+          {
+            "id": "east_phalanx_s",
+            "typeId": "legion_phalanx",
+            "count": 300,
+            "x": 45,
+            "y": 18.5,
+            "name": "帝国方阵（南）",
+            "controller": "ai"
+          },
+          {
+            "id": "east_ironhoof",
+            "typeId": "ironhoof_cavalry",
+            "count": 150,
+            "x": 47.5,
+            "y": 16,
+            "name": "铁蹄重骑",
+            "controller": "ai"
+          },
+          {
+            "id": "south_paladins",
+            "typeId": "paladin",
+            "count": 150,
+            "x": 25,
+            "y": 25.5,
+            "name": "赛琳的圣骑士",
+            "controller": "ai"
+          },
+          {
+            "id": "south_priests",
+            "typeId": "war_priest",
+            "count": 100,
+            "x": 31,
+            "y": 25.5,
+            "name": "战地神官",
+            "controller": "ai"
+          },
+          {
+            "id": "south_guard",
+            "typeId": "company_guard",
+            "count": 200,
+            "x": 28,
+            "y": 24.5,
+            "name": "门扉商会佣兵",
+            "controller": "ai"
+          },
+          {
+            "id": "reserve_adv_w",
+            "typeId": "adventurers",
+            "count": 40,
+            "x": 23,
+            "y": 16,
+            "name": "冒险者预备队（西）"
+          },
+          {
+            "id": "reserve_adv_e",
+            "typeId": "adventurers",
+            "count": 40,
+            "x": 33,
+            "y": 16,
+            "name": "冒险者预备队（东）"
+          },
+          {
+            "id": "reserve_hunters",
+            "typeId": "hunters",
+            "count": 80,
+            "x": 28,
+            "y": 19.5,
+            "name": "猎手预备队"
+          }
+        ],
+        "heroes": [
+          {
+            "id": "player",
+            "name": "你",
+            "x": 28,
+            "y": 19,
+            "abilities": ["charge", "inspire", "cleave", "strike"],
+            "ref": "player",
+            "minLevel": 55
+          },
+          {
+            "id": "ron",
+            "name": "罗恩",
+            "x": 28,
+            "y": 7,
+            "abilities": ["rally", "inspire"],
+            "ref": "ron",
+            "level": 22,
+            "requiresFlags": ["companion.ron.recruited"],
+            "controller": "ai"
+          },
+          {
+            "id": "shiya",
+            "name": "希雅",
+            "x": 28,
+            "y": 20,
+            "abilities": ["strike"],
+            "ref": "shiya",
+            "level": 20,
+            "requiresFlags": ["companion.shiya.recruited"],
+            "controller": "ai"
+          }
+        ],
+        "retreat": {
+          "x": 0.5,
+          "y": 16
+        },
+        "general": {
+          "id": "ron",
+          "name": "罗恩",
+          "traits": ["坚守"]
+        },
+        "morale": 10
+      },
+      "enemy": {
+        "regiments": [
+          {
+            "id": "n_oni_w",
+            "typeId": "oni_infantry",
+            "count": 200,
+            "x": 24,
+            "y": 1,
+            "name": "夜境鬼人"
+          },
+          {
+            "id": "n_oni_e",
+            "typeId": "oni_infantry",
+            "count": 200,
+            "x": 32,
+            "y": 1,
+            "name": "夜境鬼人"
+          },
+          {
+            "id": "n_wings",
+            "typeId": "wing_fiend",
+            "count": 120,
+            "x": 28,
+            "y": 1,
+            "name": "翼魔"
+          },
+          {
+            "id": "n_casters",
+            "typeId": "night_caster",
+            "count": 80,
+            "x": 28,
+            "y": 2.5,
+            "name": "夜魔施法者"
+          },
+          {
+            "id": "e_tide_n",
+            "typeId": "ash_tide",
+            "count": 300,
+            "x": 54.5,
+            "y": 12,
+            "name": "灰潮"
+          },
+          {
+            "id": "e_tide_c",
+            "typeId": "ash_tide",
+            "count": 300,
+            "x": 54.5,
+            "y": 16,
+            "name": "灰潮"
+          },
+          {
+            "id": "e_tide_s",
+            "typeId": "ash_tide",
+            "count": 300,
+            "x": 54.5,
+            "y": 20,
+            "name": "灰潮"
+          },
+          {
+            "id": "s_faceless_w",
+            "typeId": "faceless",
+            "count": 150,
+            "x": 25,
+            "y": 30.5,
+            "name": "千貌军"
+          },
+          {
+            "id": "s_faceless_e",
+            "typeId": "faceless",
+            "count": 150,
+            "x": 31,
+            "y": 30.5,
+            "name": "千貌军"
+          },
+          {
+            "id": "s_beasts",
+            "typeId": "dian_beast",
+            "count": 300,
+            "x": 28,
+            "y": 30.5,
+            "name": "驯澱魔兽"
+          }
+        ],
+        "heroes": [],
+        "retreat": {
+          "x": 55.5,
+          "y": 16
+        },
+        "general": {
+          "id": "faceless_king",
+          "name": "无貌之王",
+          "traits": ["狡诈"]
+        }
+      }
+    },
+    "objectives": [
+      {
+        "id": "hold_north",
+        "team": "player",
+        "kind": "hold",
+        "label": "守住北线·夜岭关",
+        "zone": {
+          "x": 21,
+          "y": 3,
+          "w": 14,
+          "h": 6
+        },
+        "seconds": 480
+      },
+      {
+        "id": "hold_east",
+        "team": "player",
+        "kind": "hold",
+        "label": "守住东线·荒原缘",
+        "zone": {
+          "x": 42,
+          "y": 11,
+          "w": 9,
+          "h": 10
+        },
+        "seconds": 480
+      },
+      {
+        "id": "hold_south",
+        "team": "player",
+        "kind": "hold",
+        "label": "守住南线·瑟兰道",
+        "zone": {
+          "x": 21,
+          "y": 23,
+          "w": 14,
+          "h": 6
+        },
+        "seconds": 480
+      },
+      {
+        "id": "enemy_wipe",
+        "team": "enemy",
+        "kind": "annihilate",
+        "label": "吞没主门坑"
+      }
+    ],
+    "reinforcements": [
+      {
+        "atSecond": 200,
+        "team": "enemy",
+        "label": "灰潮与千貌军的第二波",
+        "regiments": [
+          {
+            "id": "e_tide_2",
+            "typeId": "ash_tide",
+            "count": 300,
+            "x": 54.5,
+            "y": 16,
+            "name": "灰潮"
+          },
+          {
+            "id": "s_faceless_2",
+            "typeId": "faceless",
+            "count": 150,
+            "x": 28,
+            "y": 31.5,
+            "name": "千貌军"
+          }
+        ]
+      },
+      {
+        "atSecond": 350,
+        "team": "enemy",
+        "label": "夜境诸侯的后援",
+        "regiments": [
+          {
+            "id": "n_oni_2",
+            "typeId": "oni_infantry",
+            "count": 200,
+            "x": 28,
+            "y": 0.5,
+            "name": "夜境鬼人"
+          }
+        ]
+      }
+    ],
+    "timeLimit": 600
+  }
+]

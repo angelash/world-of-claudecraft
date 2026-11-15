@@ -1,0 +1,457 @@
+[
+  {
+    "id": "priest",
+    "name": "神父型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@work", "act": "pray", "note": "晨祷" },
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 11, "at": "@work", "act": "work", "note": "探访病人" },
+      { "from": 11, "to": 12, "at": "@work", "act": "work", "note": "告解" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 15, "at": "@orphanage", "act": "work", "note": "教孩子识字" },
+      { "from": 15, "to": 17, "at": "@work", "act": "work", "note": "教区账目" },
+      { "from": 17, "to": 18, "at": "@work", "act": "pray", "note": "晚祷" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 21, "at": "@home", "act": "work", "note": "写教区报告" },
+      { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "nun",
+    "name": "修女型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@work", "act": "pray", "note": "晨祷" },
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "礼拜堂帮工" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@orphanage", "act": "work", "note": "照看孩子" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 21, "at": "@church", "act": "pray", "note": "夜祷" },
+      { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "devotee",
+    "name": "虔诚信众型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 11, "at": "@church", "act": "pray", "note": "礼拜" },
+      { "from": 11, "to": 12, "at": "@market", "act": "shop" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 17, "at": "@plaza", "act": "chat", "note": "串门" },
+      { "from": 17, "to": 18, "at": "@well", "act": "chat" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 21, "at": "@home", "act": "pray" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "innkeeper",
+    "name": "酒馆型",
+    "segments": [
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "备料开门" },
+      { "from": 12, "to": 13, "at": "@work", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "招呼客人" },
+      { "from": 18, "to": 19, "at": "@work", "act": "eat" },
+      { "from": 19, "to": 24, "at": "@work", "act": "work", "note": "晚市" },
+      { "from": 0, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "clerk",
+    "name": "文员型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 8, "at": "@plaza", "act": "wander" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "柜台" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 17, "at": "@work", "act": "work" },
+      { "from": 17, "to": 18, "at": "@creek", "act": "chat", "note": "洗衣溪边说闲话" },
+      { "from": 18, "to": 21, "at": "@tavern", "act": "chat" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "archivist",
+    "name": "档案员型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "整理档案" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "誊抄" },
+      { "from": 18, "to": 19, "at": "@market", "act": "shop", "note": "买墨水" },
+      { "from": 19, "to": 21, "at": "@home", "act": "wander" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "adventurer",
+    "name": "冒险者型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 9, "at": "@guild", "act": "work", "note": "看委托板" },
+      { "from": 9, "to": 12, "at": "@work", "act": "work", "note": "跑委托" },
+      { "from": 12, "to": 14, "at": "@tavern", "act": "eat" },
+      { "from": 14, "to": 18, "at": "@work", "act": "work", "note": "替人跑腿" },
+      { "from": 18, "to": 23, "at": "@tavern", "act": "chat", "note": "喝酒吹牛" },
+      { "from": 23, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "guildmaster",
+    "name": "分部长型",
+    "segments": [
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "骂人" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "盯委托板" },
+      { "from": 18, "to": 24, "at": "@tavern", "act": "chat", "note": "喝到打烊" },
+      { "from": 0, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "merchant",
+    "name": "商人型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "开店" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "看账" },
+      { "from": 18, "to": 20, "at": "@tavern", "act": "chat", "note": "听消息" },
+      { "from": 20, "to": 22, "at": "@work", "act": "work", "note": "神龛前报账" },
+      { "from": 22, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "shop_hand",
+    "name": "伙计型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 11, "at": "@work", "act": "work", "note": "看店" },
+      { "from": 11, "to": 13, "at": "@market", "act": "work", "note": "跑腿送货" },
+      { "from": 13, "to": 14, "at": "@tavern", "act": "eat" },
+      { "from": 14, "to": 18, "at": "@work", "act": "work" },
+      { "from": 18, "to": 22, "at": "@tavern", "act": "chat" },
+      { "from": 22, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "smith",
+    "name": "铁匠型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 12, "at": "@work", "act": "work", "note": "打铁" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 20, "at": "@work", "act": "work", "note": "打铁" },
+      { "from": 20, "to": 22, "at": "@tavern", "act": "chat" },
+      { "from": 22, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "baker",
+    "name": "面包师型",
+    "segments": [
+      { "from": 2, "to": 7, "at": "@work", "act": "work", "note": "和面出炉" },
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "卖面包" },
+      { "from": 12, "to": 14, "at": "@home", "act": "sleep", "note": "补觉" },
+      { "from": 14, "to": 18, "at": "@work", "act": "work" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 20, "at": "@creek", "act": "chat" },
+      { "from": 20, "to": 2, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "hunter",
+    "name": "猎户型",
+    "segments": [
+      { "from": 5, "to": 11, "at": "@work", "act": "work", "note": "入林" },
+      { "from": 11, "to": 12, "at": "@home", "act": "eat" },
+      { "from": 12, "to": 18, "at": "@home", "act": "work", "note": "剥皮熏肉" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 21, "at": "@home", "act": "chat" },
+      { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "lumber",
+    "name": "伐木工型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 12, "at": "@work", "act": "work", "note": "伐区" },
+      { "from": 12, "to": 13, "at": "@work", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "伐区" },
+      { "from": 18, "to": 21, "at": "@tavern", "act": "chat" },
+      { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "guard",
+    "name": "卫兵型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "值勤" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@gate", "act": "work", "note": "巡栅" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 21, "at": "@home", "act": "wander" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "guard_gambler",
+    "name": "爱赌的民兵",
+    "segments": [
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "值勤" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@gate", "act": "work", "note": "站岗" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 24, "at": "@den", "act": "chat", "note": "骰子屋" },
+      { "from": 0, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "official",
+    "name": "代官型",
+    "segments": [
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "税务所" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 15, "at": "@plaza", "act": "wander", "note": "巡视" },
+      { "from": 15, "to": 19, "at": "@work", "act": "work" },
+      { "from": 19, "to": 21, "at": "@work", "act": "work", "note": "后门见客" },
+      { "from": 21, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "scribe",
+    "name": "书记官型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "誊账" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work" },
+      { "from": 18, "to": 19, "at": "@bakery", "act": "shop" },
+      { "from": 19, "to": 22, "at": "@home", "act": "work", "note": "在家誊账" },
+      { "from": 22, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "farmer",
+    "name": "农夫型",
+    "segments": [
+      { "from": 5, "to": 12, "at": "@work", "act": "work", "note": "下地" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "下地" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 20, "at": "@market", "act": "shop" },
+      { "from": 20, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "orphan",
+    "name": "孤儿院孩子",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@home", "act": "wander", "note": "院子里玩" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 15, "at": "@home", "act": "work", "note": "识字课" },
+      { "from": 15, "to": 18, "at": "@well", "act": "wander" },
+      { "from": 18, "to": 19, "at": "@home", "act": "eat" },
+      { "from": 19, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "kid",
+    "name": "到处乱跑的孩子",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@plaza", "act": "wander", "note": "乱跑" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@market", "act": "wander", "note": "盐巷晃荡" },
+      { "from": 18, "to": 20, "at": "@home", "act": "chat" },
+      { "from": 20, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "matron",
+    "name": "院长型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "pray" },
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "照看孩子" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 14, "at": "@market", "act": "shop", "note": "买面粉" },
+      { "from": 14, "to": 20, "at": "@work", "act": "work" },
+      { "from": 20, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "herbalist",
+    "name": "药草师型",
+    "segments": [
+      { "from": 5, "to": 8, "at": "@work", "act": "work", "note": "采药" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "看病" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 17, "at": "@work", "act": "work", "note": "晾药" },
+      { "from": 17, "to": 19, "at": "@orphanage", "act": "chat", "note": "偷去孤儿院" },
+      { "from": 19, "to": 23, "at": "@work", "act": "work", "note": "熬药" },
+      { "from": 23, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "washer",
+    "name": "洗衣妇型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "洗衣" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 16, "at": "@work", "act": "work", "note": "洗衣" },
+      { "from": 16, "to": 18, "at": "@plaza", "act": "work", "note": "挨家送衣" },
+      { "from": 18, "to": 21, "at": "@tavern", "act": "chat" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "gravekeeper",
+    "name": "守墓人型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "扫墓" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work" },
+      { "from": 18, "to": 22, "at": "@home", "act": "wander" },
+      { "from": 22, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "bellringer",
+    "name": "敲钟人型",
+    "segments": [
+      { "from": 5, "to": 12, "at": "@work", "act": "work", "note": "敲钟" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 21, "at": "@work", "act": "work", "note": "钟楼上看着" },
+      { "from": 21, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "peddler",
+    "name": "行商型",
+    "segments": [
+      { "from": 7, "to": 9, "at": "@tavern", "act": "eat" },
+      { "from": 9, "to": 17, "at": "@work", "act": "work", "note": "摆摊" },
+      { "from": 17, "to": 23, "at": "@tavern", "act": "chat" },
+      { "from": 23, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "den_keeper",
+    "name": "赌局主人型",
+    "segments": [
+      { "from": 10, "to": 12, "at": "@market", "act": "wander", "note": "打探" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 23, "at": "@work", "act": "work", "note": "开赌局" },
+      { "from": 23, "to": 10, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "barmaid",
+    "name": "女招待型",
+    "segments": [
+      { "from": 7, "to": 8, "at": "@work", "act": "eat" },
+      { "from": 8, "to": 14, "at": "@work", "act": "work", "note": "端盘子" },
+      { "from": 14, "to": 15, "at": "@creek", "act": "chat" },
+      { "from": 15, "to": 24, "at": "@work", "act": "work", "note": "端盘子" },
+      { "from": 0, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "citizen",
+    "name": "镇民型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work" },
+      { "from": 12, "to": 13, "at": "@home", "act": "eat" },
+      { "from": 13, "to": 17, "at": "@work", "act": "work" },
+      { "from": 17, "to": 19, "at": "@plaza", "act": "chat" },
+      { "from": 19, "to": 21, "at": "@tavern", "act": "chat" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "noble",
+    "name": "贵族型",
+    "segments": [
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "处理事务" },
+      { "from": 12, "to": 14, "at": "@home", "act": "eat" },
+      { "from": 14, "to": 17, "at": "@work", "act": "work", "note": "会客" },
+      { "from": 17, "to": 18, "at": "@church", "act": "pray" },
+      { "from": 18, "to": 20, "at": "@home", "act": "eat" },
+      { "from": 20, "to": 22, "at": "@home", "act": "chat" },
+      { "from": 22, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "scholar",
+    "name": "学者型",
+    "segments": [
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "查档" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 19, "at": "@work", "act": "work", "note": "编城志" },
+      { "from": 19, "to": 21, "at": "@tavern", "act": "chat" },
+      { "from": 21, "to": 7, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "hero",
+    "name": "勇者团型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "pray", "note": "晨祷" },
+      { "from": 7, "to": 8, "at": "@home", "act": "eat" },
+      { "from": 8, "to": 12, "at": "@work", "act": "work", "note": "训练" },
+      { "from": 12, "to": 13, "at": "@tavern", "act": "eat" },
+      { "from": 13, "to": 17, "at": "@guild", "act": "work", "note": "接委托" },
+      { "from": 17, "to": 19, "at": "@market", "act": "wander" },
+      { "from": 19, "to": 21, "at": "@tavern", "act": "chat" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "ferry",
+    "name": "渡口型",
+    "segments": [
+      { "from": 6, "to": 7, "at": "@home", "act": "eat" },
+      { "from": 7, "to": 12, "at": "@work", "act": "work", "note": "撑船" },
+      { "from": 12, "to": 13, "at": "@work", "act": "eat" },
+      { "from": 13, "to": 18, "at": "@work", "act": "work", "note": "撑船" },
+      { "from": 18, "to": 21, "at": "@work", "act": "chat", "note": "黄昏喝酒" },
+      { "from": 21, "to": 6, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "bard",
+    "name": "吟游诗人型",
+    "segments": [
+      { "from": 9, "to": 10, "at": "@tavern", "act": "eat" },
+      { "from": 10, "to": 17, "at": "@work", "act": "work", "note": "卖唱" },
+      { "from": 17, "to": 18, "at": "@tavern", "act": "eat" },
+      { "from": 18, "to": 24, "at": "@tavern", "act": "work", "note": "卖唱" },
+      { "from": 0, "to": 9, "at": "@home", "act": "sleep" }
+    ]
+  },
+  {
+    "id": "porter",
+    "name": "搬运工型",
+    "segments": [
+      { "from": 5, "to": 6, "at": "@home", "act": "eat" },
+      { "from": 6, "to": 12, "at": "@work", "act": "work", "note": "扛货" },
+      { "from": 12, "to": 13, "at": "@work", "act": "eat" },
+      { "from": 13, "to": 19, "at": "@work", "act": "work", "note": "扛货" },
+      { "from": 19, "to": 22, "at": "@tavern", "act": "chat" },
+      { "from": 22, "to": 5, "at": "@home", "act": "sleep" }
+    ]
+  }
+]

@@ -1,0 +1,282 @@
+[
+  {
+    "id": "grain",
+    "name": "粮食",
+    "kind": "material",
+    "quality": 1,
+    "value": 2,
+    "desc": "黑麦与小麦，一份够一个人吃一天。",
+    "tags": ["staple", "food"]
+  },
+  {
+    "id": "meat",
+    "name": "肉",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "一斤鲜肉或腌肉。",
+    "tags": ["staple", "food"]
+  },
+  {
+    "id": "fish",
+    "name": "鱼",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "河鱼或咸鱼。",
+    "tags": ["staple", "food"]
+  },
+  {
+    "id": "bread",
+    "name": "面包",
+    "kind": "goods",
+    "quality": 1,
+    "value": 3,
+    "desc": "磨坊烤出的黑面包，比生粮更顶饱。",
+    "tags": ["staple", "food"]
+  },
+  {
+    "id": "salt",
+    "name": "盐",
+    "kind": "goods",
+    "quality": 1,
+    "value": 4,
+    "desc": "落日港的海盐，魔物季前常被囤积。",
+    "tags": ["staple"]
+  },
+  {
+    "id": "wood",
+    "name": "木材",
+    "kind": "material",
+    "quality": 1,
+    "value": 10,
+    "desc": "铁杉木，一个劳工一天能伐运的量。",
+    "tags": ["staple"]
+  },
+  {
+    "id": "stone",
+    "name": "石料",
+    "kind": "material",
+    "quality": 1,
+    "value": 12,
+    "desc": "凿好的条石。"
+  },
+  {
+    "id": "charcoal",
+    "name": "木炭",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "冶炼与取暖用的木炭，烧剩的灰也能做皂。"
+  },
+  {
+    "id": "iron_ore",
+    "name": "铁矿石",
+    "kind": "material",
+    "quality": 1,
+    "value": 20,
+    "desc": "锈岭的铁矿石。"
+  },
+  {
+    "id": "iron_ingot",
+    "name": "铁锭",
+    "kind": "material",
+    "quality": 1,
+    "value": 80,
+    "desc": "熔炉炼出的铁锭。"
+  },
+  {
+    "id": "tools",
+    "name": "工具",
+    "kind": "goods",
+    "quality": 1,
+    "value": 150,
+    "desc": "锄、斧、凿一类的铁器。"
+  },
+  {
+    "id": "cloth",
+    "name": "布",
+    "kind": "goods",
+    "quality": 1,
+    "value": 15,
+    "desc": "粗麻布或毛布。"
+  },
+  {
+    "id": "hide",
+    "name": "生皮",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "未鞣制的兽皮。"
+  },
+  {
+    "id": "wool",
+    "name": "毛麻",
+    "kind": "material",
+    "quality": 1,
+    "value": 8,
+    "desc": "羊毛与亚麻，织坊的原料。"
+  },
+  {
+    "id": "leather",
+    "name": "皮革",
+    "kind": "material",
+    "quality": 1,
+    "value": 25,
+    "desc": "鞣好的皮革。"
+  },
+  {
+    "id": "herb",
+    "name": "药草",
+    "kind": "material",
+    "quality": 1,
+    "value": 5,
+    "desc": "常见的止血草与退热草，放久了会坏。"
+  },
+  {
+    "id": "medicine",
+    "name": "药剂",
+    "kind": "goods",
+    "quality": 1,
+    "value": 50,
+    "desc": "药剂所熬制的初级药剂，医馆与军中都要。"
+  },
+  {
+    "id": "ale",
+    "name": "麦酒",
+    "kind": "goods",
+    "quality": 1,
+    "value": 25,
+    "desc": "一小桶麦酒，约十杯。"
+  },
+  {
+    "id": "tallow",
+    "name": "油脂",
+    "kind": "material",
+    "quality": 1,
+    "value": 6,
+    "desc": "熬出来的牛羊油。"
+  },
+  {
+    "id": "honey",
+    "name": "蜂蜜",
+    "kind": "goods",
+    "quality": 1,
+    "value": 12,
+    "desc": "苍榆林地的蜂蜜。",
+    "tags": ["luxury"]
+  },
+  {
+    "id": "glass",
+    "name": "玻璃",
+    "kind": "material",
+    "quality": 1,
+    "value": 30,
+    "desc": "吹制的玻璃坯，也能做罐子。"
+  },
+  {
+    "id": "paper",
+    "name": "纸",
+    "kind": "goods",
+    "quality": 1,
+    "value": 5,
+    "desc": "粗糙的草纸，比羊皮纸便宜。"
+  },
+  {
+    "id": "monster_material",
+    "name": "魔物素材",
+    "kind": "material",
+    "quality": 2,
+    "value": 50,
+    "desc": "魔物的骨、甲与腺体，魔导工房的原料。"
+  },
+  {
+    "id": "grey_stone",
+    "name": "灰石",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "骨原拾遗营采来的灰白石料，比寻常石料坚硬。"
+  },
+  {
+    "id": "grey_crystal",
+    "name": "灰晶",
+    "kind": "material",
+    "quality": 1,
+    "value": 60,
+    "desc": "魔物死后凝出的灰色晶体，以小晶计。未经持证工坊净炼，合法市场不收。",
+    "tags": ["illegal"]
+  },
+  {
+    "id": "magic_crystal",
+    "name": "魔晶",
+    "kind": "goods",
+    "quality": 2,
+    "value": 120,
+    "desc": "净炼过的晶体，可当燃料，也常被拿来当钱用。",
+    "tags": ["luxury"]
+  },
+  {
+    "id": "soap",
+    "name": "香皂",
+    "kind": "goods",
+    "quality": 2,
+    "value": 40,
+    "desc": "用油脂、草木灰与香草做的皂块，洗得干净，香气也好。",
+    "tags": ["luxury", "earth"]
+  },
+  {
+    "id": "canned_rations",
+    "name": "罐藏军粮",
+    "kind": "goods",
+    "quality": 2,
+    "value": 60,
+    "desc": "密封煮过的玻璃罐装肉粮，久放不坏，军队与远行者都想要。",
+    "tags": ["earth"]
+  },
+  {
+    "id": "distilled_spirits",
+    "name": "蒸馏烈酒",
+    "kind": "goods",
+    "quality": 2,
+    "value": 50,
+    "desc": "反复蒸出的烈酒，一口下去像吞了火。",
+    "tags": ["luxury", "earth"]
+  },
+  {
+    "id": "double_entry_ledger",
+    "name": "复式账簿",
+    "kind": "goods",
+    "quality": 3,
+    "value": 400,
+    "desc": "一套按借贷两栏记账的账簿与说明，账目从此对得上。",
+    "tags": ["earth"]
+  },
+  {
+    "id": "playing_cards",
+    "name": "纸牌",
+    "kind": "goods",
+    "quality": 1,
+    "value": 30,
+    "desc": "印着花色与数字的纸牌，酒馆与军营里很快就流行开了。",
+    "tags": ["luxury", "earth"]
+  },
+  {
+    "id": "otherworld_sweets",
+    "name": "异界甜点",
+    "kind": "goods",
+    "quality": 2,
+    "value": 25,
+    "desc": "照着另一个世界的做法烤出的甜点。据说有位女神很喜欢。",
+    "tags": ["luxury", "earth"]
+  },
+  {
+    "id": "glass_lens",
+    "name": "玻璃透镜",
+    "kind": "goods",
+    "quality": 3,
+    "value": 800,
+    "desc": "磨得极准的透镜，学者与军队都会出高价。",
+    "tags": ["luxury", "earth"]
+  }
+]

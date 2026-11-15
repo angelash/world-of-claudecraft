@@ -1517,6 +1517,8 @@ export default defineConfig({
       '.venv/**',
       'tmp/**',
       'docs/**',
+      // hakoniwa/ is a separate sub-project with its own vitest config (hakoniwa/vitest.config.ts).
+      'hakoniwa/**',
       'tests/browser/**',
       '**/*.browser.test.ts',
     ],

@@ -1,0 +1,86 @@
+[
+  {
+    "id": "soap",
+    "name": "皂化制皂",
+    "product": "soap",
+    "output": 3,
+    "inputs": { "tallow": 2, "charcoal": 1, "herb": 1 },
+    "days": 1,
+    "tier": "oral",
+    "requiresFlags": ["econ.company_founded"],
+    "imitationDays": 30,
+    "desc": "油脂加草木灰水熬煮，再加香草定型。"
+  },
+  {
+    "id": "canned_rations",
+    "name": "罐藏军粮",
+    "product": "canned_rations",
+    "output": 3,
+    "inputs": { "grain": 4, "meat": 2, "glass": 1, "salt": 1 },
+    "days": 2,
+    "tier": "oral",
+    "requiresFlags": ["econ.company_founded"],
+    "imitationDays": 60,
+    "desc": "装罐、密封、煮透。久放不坏，战时需求暴涨。"
+  },
+  {
+    "id": "distilled_spirits",
+    "name": "蒸馏烈酒",
+    "product": "distilled_spirits",
+    "output": 2,
+    "inputs": { "grain": 6 },
+    "days": 1,
+    "tier": "oral",
+    "requiresFlags": ["econ.company_founded"],
+    "imitationDays": 45,
+    "desc": "反复蒸馏的烈酒。卖得好，教会也会不满。"
+  },
+  {
+    "id": "double_entry_ledger",
+    "name": "复式记账",
+    "product": "double_entry_ledger",
+    "output": 1,
+    "inputs": { "paper": 4 },
+    "days": 2,
+    "tier": "oral",
+    "requiresFlags": ["econ.company_founded"],
+    "imitationDays": 90,
+    "desc": "借贷两栏、试算平衡。自用能少些糊涂账，卖出去会让对手更强。"
+  },
+  {
+    "id": "playing_cards",
+    "name": "纸牌",
+    "product": "playing_cards",
+    "output": 2,
+    "inputs": { "paper": 3 },
+    "days": 1,
+    "tier": "oral",
+    "requiresFlags": ["econ.company_founded"],
+    "imitationDays": 15,
+    "desc": "印上花色与数字。最容易被仿的东西。"
+  },
+  {
+    "id": "otherworld_sweets",
+    "name": "异界甜点",
+    "product": "otherworld_sweets",
+    "output": 3,
+    "inputs": { "grain": 2, "honey": 1 },
+    "days": 1,
+    "tier": "oral",
+    "requiresFlags": ["econ.company_founded"],
+    "imitationDays": 20,
+    "desc": "照着记忆里的菜谱烤的甜点。"
+  },
+  {
+    "id": "glass_lens",
+    "name": "玻璃透镜",
+    "product": "glass_lens",
+    "output": 1,
+    "inputs": { "glass": 2 },
+    "days": 3,
+    "tier": "study",
+    "requiresFlags": ["econ.company_founded", "city.court_study"],
+    "imitationDays": 120,
+    "desc": "需要庭院书斋的光学推演，碰到禁学的边。"
+  }
+]

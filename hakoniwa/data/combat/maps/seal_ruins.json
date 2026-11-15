@@ -1,0 +1,229 @@
+{
+  "id": "seal_ruins",
+  "name": "封门遗迹（上层）",
+  "region": "borderstone_wilds",
+  "width": 36,
+  "height": 28,
+  "sediment": 3,
+  "indoor": true,
+  "rows": [
+    "^^^^^^^^^^^^^^^######^^^^^^^^^^^^^^^",
+    "^^^^^^^^^^^^###.::::.###^^^^^^^^^^^^",
+    "^^^^^^^^^^^##:.:....:..##^^^^^^^^^^^",
+    "^^^^^^^^^^#.....####:....#^^^^^^^^^^",
+    "^^^^^^^^^#^..:###oo###..:^#^^^^^^^^^",
+    "^^^^^^^^##.:####oooo####..##^^^^^^^^",
+    "^^^^^^^^#^.:##oooooooo##...#^^^^^^^^",
+    "^^^^^^^##..#oooooooooooo#..##^^^^^^^",
+    "^^^^^^^#.::##oooooooooo##...#######^",
+    "^^^^^^^#...+ooooo::ooooo+...oooooo#^",
+    "^^^^^^^#:..+ooooo::ooooo+...oooooo#^",
+    "^^^^^^^#:.:##oooooooooo##.:.###:::#^",
+    "^^^^^^^##..#oooooooooooo#..##^#ooo#^",
+    "^^^^^^^^#...##oooooooo##...^^^#:::#^",
+    "^^^^^^^^##:.####oooo####..##^^#ooo#^",
+    "T\"\"\"\"\"\"\"\"#....###oo###....#^^^#:::#^",
+    "T\"oooo\"\"T,#^....####..:..#^^^^#ooo#^",
+    "T\"oxxo\"\"\"\"^##.....::..:##^^^^^#:::#^",
+    "T\"oxxo,\"\"\"\"^###......###^^^^^^#####^",
+    "T,oooo\"\"\"\"\"#####....#####^^\"\"\"\"\",,\"T",
+    "T,,\"\"\"\"\"\"\",#........^...#\",\"\",,\"\"\"\"T",
+    "T\"\",\"\"\"\"\"\"\"#.#........#.#,\"\"T\"\"\"\"T\"T",
+    "TT\"\",\"\"\",\"\"#...^........#\",,\"\"\",\",\"T",
+    "T\"\"\",\"\"\"\"^\"#####^,,^#####\",\",\",T\"\"\"T",
+    "T\",\"\"\"\"\"\"\"\"\",\"\"\"\",,\"\"\"\"#\",T,\"\"\"\"\"\"\"T",
+    "T\"T\"\"\"T\"\"\",\"T,\",\",,\"\",,\"\"\"\"\"\"^\",,\",T",
+    "T\"\"\"\"\"\"\"\"\"\"\"\"\",\"\",,\"\",\"\"\",\"\"\"\"\"\"\"\"\"T",
+    "TTTTTTTTTTTTTTTTT,TTTTTTTTTTTTTTTTTT"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "floor",
+    ",": "dirt",
+    "\"": "grass",
+    "T": "tree",
+    "^": "rock",
+    ":": "ash",
+    "+": "door",
+    "o": "stone",
+    "x": "void"
+  },
+  "locations": [
+    {
+      "id": "sigil_hall",
+      "name": "神纹大厅",
+      "kind": "ruin",
+      "x": 13,
+      "y": 5,
+      "w": 10,
+      "h": 10,
+      "tags": ["gate_site"]
+    },
+    {
+      "id": "wake_point",
+      "name": "第六神纹下",
+      "kind": "wake_point",
+      "x": 17,
+      "y": 4,
+      "w": 2,
+      "h": 2
+    },
+    {
+      "id": "corridor",
+      "name": "回廊",
+      "kind": "ruin",
+      "x": 7,
+      "y": 1,
+      "w": 22,
+      "h": 18
+    },
+    {
+      "id": "ash_stairs",
+      "name": "落灰阶",
+      "kind": "stairs",
+      "x": 29,
+      "y": 9,
+      "w": 5,
+      "h": 9
+    },
+    {
+      "id": "outer_ring",
+      "name": "入口外环",
+      "kind": "ruin",
+      "x": 12,
+      "y": 20,
+      "w": 12,
+      "h": 3
+    },
+    {
+      "id": "forbid_stele",
+      "name": "禁碑",
+      "kind": "landmark",
+      "x": 22,
+      "y": 24,
+      "w": 3,
+      "h": 3
+    },
+    {
+      "id": "gate_borderstone",
+      "name": "遗迹入口",
+      "kind": "gate",
+      "x": 16,
+      "y": 24,
+      "w": 3,
+      "h": 1
+    },
+    {
+      "id": "gate_seal_ruins_depths",
+      "name": "落灰阶顶",
+      "kind": "gate",
+      "x": 28,
+      "y": 9,
+      "w": 3,
+      "h": 2
+    },
+    {
+      "id": "shaft_top",
+      "name": "巢井井口",
+      "kind": "gate",
+      "x": 5,
+      "y": 19,
+      "w": 3,
+      "h": 3
+    }
+  ],
+  "spawns": [
+    {
+      "id": "sr_dreg_w",
+      "kind": "monster",
+      "ref": "dian_dreg",
+      "x": 9.5,
+      "y": 9.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 120
+    },
+    {
+      "id": "sr_dreg_e",
+      "kind": "monster",
+      "ref": "dian_dreg",
+      "x": 26.5,
+      "y": 13.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 120
+    },
+    {
+      "id": "sr_dreg_s",
+      "kind": "monster",
+      "ref": "dian_dreg",
+      "x": 21.5,
+      "y": 17.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 120
+    },
+    {
+      "id": "sr_dreg_gate",
+      "kind": "monster",
+      "ref": "dian_dreg",
+      "x": 14.5,
+      "y": 20.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 120
+    },
+    {
+      "id": "sr_rat_sw",
+      "kind": "monster",
+      "ref": "dian_rat",
+      "x": 10.5,
+      "y": 14.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 120
+    },
+    {
+      "id": "sr_rat_se",
+      "kind": "monster",
+      "ref": "dian_rat",
+      "x": 24.5,
+      "y": 15.5,
+      "count": 1,
+      "radius": 2,
+      "respawnMinutes": 120
+    },
+    {
+      "id": "sr_rat_gate",
+      "kind": "monster",
+      "ref": "dian_rat",
+      "x": 21.5,
+      "y": 22.5,
+      "count": 2,
+      "radius": 2,
+      "respawnMinutes": 120
+    }
+  ],
+  "exits": [
+    {
+      "id": "to_borderstone",
+      "x": 17,
+      "y": 27,
+      "toMap": "borderstone",
+      "toX": 1,
+      "toY": 1,
+      "toLocation": "gate_seal_ruins",
+      "label": "往边石镇"
+    },
+    {
+      "id": "to_depths",
+      "x": 32,
+      "y": 17,
+      "toMap": "seal_ruins_depths",
+      "toX": 1,
+      "toY": 1,
+      "toLocation": "gate_seal_ruins",
+      "label": "落灰阶"
+    }
+  ]
+}

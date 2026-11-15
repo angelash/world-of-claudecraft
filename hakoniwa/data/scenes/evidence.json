@@ -1,0 +1,666 @@
+[
+  {
+    "id": "E01",
+    "item": "evidence_e01",
+    "name": "守门人阿什的证言",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "fact",
+        "strength": 2
+      }
+    ],
+    "presentText": "阿什说：主门是被光与剑一起破开的，五位司掌者事先串联。"
+  },
+  {
+    "id": "E02",
+    "item": "evidence_e02",
+    "name": "主门剑尖与光蚀纹",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "fact",
+        "strength": 1
+      }
+    ],
+    "presentText": "嵌在主门断面上的剑尖，与一把断剑吻合；断面上有光蚀的纹路。"
+  },
+  {
+    "id": "E03",
+    "item": "evidence_e03",
+    "name": "长老艾尔温的证言",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 3
+      },
+      {
+        "goddess": "merca",
+        "line": "just",
+        "strength": 3
+      },
+      {
+        "goddess": "sylvie",
+        "line": "fact",
+        "strength": 3
+      }
+    ],
+    "presentText": "一千二百岁的长老作证：串联者是谁，谁投了反对却没有行动，谁的商队前一夜已经整装。"
+  },
+  {
+    "id": "E04",
+    "item": "evidence_e04",
+    "name": "遗民门歌",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 1
+      },
+      {
+        "goddess": "janu",
+        "line": "mitigate",
+        "strength": 1
+      }
+    ],
+    "presentText": "门歌唱着千门时代的日常，也唱着那一夜，有人想把门民的魂引向灵泉。"
+  },
+  {
+    "id": "E05",
+    "item": "evidence_e05",
+    "name": "深账库抵押账册",
+    "targets": [
+      {
+        "goddess": "merca",
+        "line": "fact",
+        "strength": 3
+      }
+    ],
+    "presentText": "七枚门钥，入账于那件事之后的冬天，抵押人一栏写着：无（自持）。"
+  },
+  {
+    "id": "E06",
+    "item": "evidence_e06",
+    "name": "商路专营契",
+    "targets": [
+      {
+        "goddess": "merca",
+        "line": "just",
+        "strength": 2
+      },
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 1
+      }
+    ],
+    "presentText": "那件事之后，五司瓜分商路专营，定价写得清清楚楚。"
+  },
+  {
+    "id": "E07",
+    "item": "evidence_e07",
+    "name": "空白纪副本",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 3
+      },
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "fact",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "just",
+        "strength": 1
+      },
+      {
+        "goddess": "merca",
+        "line": "fact",
+        "strength": 2
+      },
+      {
+        "goddess": "merca",
+        "line": "just",
+        "strength": 1
+      },
+      {
+        "goddess": "sylvie",
+        "line": "fact",
+        "strength": 2
+      },
+      {
+        "goddess": "sylvie",
+        "line": "just",
+        "strength": 1
+      },
+      {
+        "goddess": "moira",
+        "line": "fact",
+        "strength": 2
+      },
+      {
+        "goddess": "moira",
+        "line": "just",
+        "strength": 2
+      }
+    ],
+    "presentText": "串联书、议事录、碎门之夜、死者名录、焚书令：一页一页摊在证物台上。"
+  },
+  {
+    "id": "E08",
+    "item": "evidence_e08",
+    "name": "第六碑凿痕拓片",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 1
+      }
+    ],
+    "presentText": "被凿毁的第六座天启碑，凿痕里残留着圣教工具的日轮印。"
+  },
+  {
+    "id": "E09",
+    "item": "evidence_e09",
+    "name": "渡口老船夫的证言",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "just",
+        "strength": 2
+      }
+    ],
+    "presentText": "第八代勇者说：勇者打完魔王，就没用了；魔王倒下时，澱化成烟飘向两处神殿。"
+  },
+  {
+    "id": "E10",
+    "item": "evidence_e10",
+    "name": "历代魔王诞生图",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 2
+      },
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 1
+      }
+    ],
+    "presentText": "每一代魔王都诞生在前一世纪大型神迹最密集处的下游。"
+  },
+  {
+    "id": "E11",
+    "item": "evidence_e11",
+    "name": "勇者加护结构图",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 2
+      }
+    ],
+    "presentText": "加护套装里藏着终光条目，和一个用后撤回的时限。"
+  },
+  {
+    "id": "E12",
+    "item": "evidence_e12",
+    "name": "瓦尔妲的坦白",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 3
+      }
+    ],
+    "presentText": "她向全大陆的战士降下神谕：魔王就是澱，排澱是两司合谋。"
+  },
+  {
+    "id": "E13",
+    "item": "evidence_e13",
+    "name": "堕勇遗言",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "just",
+        "strength": 1
+      }
+    ],
+    "presentText": "勇者在澱中被灌满就会成为魔王，而教会掩盖了这件事。"
+  },
+  {
+    "id": "E14",
+    "item": "evidence_e14",
+    "name": "赫尔加星表",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 1
+      }
+    ],
+    "presentText": "星辰的运行完美整除，终雾是边界；教会把这门学问定为禁学。"
+  },
+  {
+    "id": "E15",
+    "item": "evidence_e15",
+    "name": "神谕原文",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "fact",
+        "strength": 2
+      }
+    ],
+    "presentText": "「在他开门之前找到他。」以及审判官亲耳听见的、光在颤抖的那一道神谕。"
+  },
+  {
+    "id": "E16",
+    "item": "evidence_e16",
+    "name": "候见厅记录",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 2
+      }
+    ],
+    "presentText": "「去吧，庭间之隙会替我处理你。」以及大厅里光闪的那一刻。"
+  },
+  {
+    "id": "E17",
+    "item": "evidence_e17",
+    "name": "无貌者的旧物",
+    "targets": [
+      {
+        "goddess": "janu",
+        "line": "fact",
+        "strength": 2
+      }
+    ],
+    "presentText": "守门人抽屉里的东西：一张褪色的车票，一只停了的表。"
+  },
+  {
+    "id": "E18",
+    "item": "evidence_e18",
+    "name": "无貌者的证言",
+    "targets": [
+      {
+        "goddess": "janu",
+        "line": "just",
+        "strength": 3
+      }
+    ],
+    "presentText": "「她接住了我，又放下了我。」"
+  },
+  {
+    "id": "E19",
+    "item": "evidence_e19",
+    "name": "灵泉中的记忆",
+    "targets": [
+      {
+        "goddess": "sylvie",
+        "line": "fact",
+        "strength": 3
+      }
+    ],
+    "presentText": "开园之日，那一位松开手的一幕。"
+  },
+  {
+    "id": "E20",
+    "item": "evidence_e20",
+    "name": "铭录后门",
+    "targets": [
+      {
+        "goddess": "moira",
+        "line": "fact",
+        "strength": 2
+      }
+    ],
+    "presentText": "无页之身的成因：铭录里预留的一个接口。"
+  },
+  {
+    "id": "E21",
+    "item": "evidence_e21",
+    "name": "命运丝",
+    "targets": [
+      {
+        "goddess": "moira",
+        "line": "fact",
+        "strength": 2
+      }
+    ],
+    "presentText": "每一次巧合，都在世界上留下一缕看得见的丝。"
+  },
+  {
+    "id": "E22",
+    "item": "evidence_e22",
+    "name": "哈特的魂契",
+    "targets": [
+      {
+        "goddess": "merca",
+        "line": "just",
+        "strength": 2
+      }
+    ],
+    "presentText": "以客人之魂为抵押、由交易之司背书的契约。"
+  },
+  {
+    "id": "E23",
+    "item": "evidence_e23",
+    "name": "帝国军中祭坛",
+    "targets": [
+      {
+        "goddess": "valda",
+        "line": "just",
+        "strength": 1
+      },
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 1
+      }
+    ],
+    "presentText": "帝国军营深处的祭坛，供的不是光。"
+  },
+  {
+    "id": "E24",
+    "item": "evidence_e24",
+    "name": "门徒会供词",
+    "targets": [
+      {
+        "goddess": "merca",
+        "line": "fact",
+        "strength": 1
+      },
+      {
+        "goddess": "merca",
+        "line": "just",
+        "strength": 1
+      }
+    ],
+    "presentText": "被抓获的门徒招认：多年来他们一直在探查深账库，而有人知情不报。"
+  },
+  {
+    "id": "E25",
+    "item": "evidence_e25",
+    "name": "欧拉托梦记录",
+    "targets": [
+      {
+        "goddess": "sylvie",
+        "line": "mitigate",
+        "strength": 1
+      },
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 1
+      }
+    ],
+    "presentText": "药草婆婆记下的梦：林中的母亲，嘱咐她把有纹的孩子藏好。"
+  },
+  {
+    "id": "E26",
+    "item": "evidence_e26",
+    "name": "庭外之国人簿",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 1
+      },
+      {
+        "goddess": "valda",
+        "line": "need",
+        "strength": 1
+      },
+      {
+        "goddess": "merca",
+        "line": "need",
+        "strength": 1
+      },
+      {
+        "goddess": "sylvie",
+        "line": "need",
+        "strength": 1
+      },
+      {
+        "goddess": "moira",
+        "line": "need",
+        "strength": 1
+      }
+    ],
+    "presentText": "一个没有神记账的国家，自己记住了自己，运转了一年以上。"
+  },
+  {
+    "id": "E27",
+    "item": "evidence_e27",
+    "name": "审期记录",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 0,
+        "dynamic": "review"
+      },
+      {
+        "goddess": "valda",
+        "line": "need",
+        "strength": 0,
+        "dynamic": "review"
+      },
+      {
+        "goddess": "merca",
+        "line": "need",
+        "strength": 0,
+        "dynamic": "review"
+      },
+      {
+        "goddess": "sylvie",
+        "line": "need",
+        "strength": 0,
+        "dynamic": "review"
+      },
+      {
+        "goddess": "moira",
+        "line": "need",
+        "strength": 0,
+        "dynamic": "review"
+      }
+    ],
+    "presentText": "诸神缺席的半年里，庭镜映出的五场危机。"
+  },
+  {
+    "id": "E28",
+    "item": "evidence_e28",
+    "name": "灰烬决战战报",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "need",
+        "strength": 1,
+        "dynamic": "held_unaided"
+      },
+      {
+        "goddess": "sylvie",
+        "line": "need",
+        "strength": 1
+      }
+    ],
+    "presentText": "玩家不在场的战线，由凡人自己守住。"
+  },
+  {
+    "id": "E29",
+    "item": "evidence_e29",
+    "name": "众门环净澱记录",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 2
+      },
+      {
+        "goddess": "valda",
+        "line": "need",
+        "strength": 2
+      }
+    ],
+    "presentText": "澱可以不经魔王与勇者的循环被消化。"
+  },
+  {
+    "id": "E30",
+    "item": "evidence_e30",
+    "name": "原龙艾斯卡的证言",
+    "targets": [],
+    "presentText": "「我是被放下的。」"
+  },
+  {
+    "id": "E31",
+    "item": "evidence_e31",
+    "name": "「未」字拓片与莫伊拉批注",
+    "targets": [
+      {
+        "goddess": "moira",
+        "line": "just",
+        "strength": 1
+      }
+    ],
+    "presentText": "第一次审定的那个字，和旁边一行小字：未，即尚未。尚未什么？"
+  },
+  {
+    "id": "E32",
+    "item": "evidence_e32",
+    "name": "门口那位的出手",
+    "targets": [
+      {
+        "goddess": "janu",
+        "line": "need",
+        "strength": 2
+      }
+    ],
+    "presentText": "她也伸了手，也留下了澱。"
+  },
+  {
+    "id": "E33",
+    "item": "evidence_e33",
+    "name": "前世记忆（地球）",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 1
+      },
+      {
+        "goddess": "moira",
+        "line": "need",
+        "strength": 1
+      }
+    ],
+    "presentText": "一个没有神的世界，照样繁茂。"
+  },
+  {
+    "id": "E34",
+    "item": "evidence_e34",
+    "name": "神迹账与箱庭离手指数",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "need",
+        "strength": 1,
+        "dynamic": "miracle_ledger"
+      },
+      {
+        "goddess": "valda",
+        "line": "need",
+        "strength": 1,
+        "dynamic": "miracle_ledger"
+      },
+      {
+        "goddess": "merca",
+        "line": "need",
+        "strength": 1,
+        "dynamic": "miracle_ledger"
+      },
+      {
+        "goddess": "sylvie",
+        "line": "need",
+        "strength": 1,
+        "dynamic": "miracle_ledger"
+      },
+      {
+        "goddess": "moira",
+        "line": "need",
+        "strength": 1,
+        "dynamic": "miracle_ledger"
+      },
+      {
+        "goddess": "moira",
+        "line": "fact",
+        "strength": 1,
+        "dynamic": "miracle_ledger"
+      }
+    ],
+    "presentText": "本周目每一次神力干预与它留下的澱，一笔一笔，都在账上。"
+  },
+  {
+    "id": "E35",
+    "item": "evidence_e35",
+    "name": "勇者团证词",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 2
+      }
+    ],
+    "presentText": "苇塘村的屠杀、单向的召唤阵、被用完的勇者，以及圣女的记录：净化只是把澱推走。"
+  },
+  {
+    "id": "E36",
+    "item": "evidence_e36",
+    "name": "曙光圣柱违约证据",
+    "targets": [
+      {
+        "goddess": "eluen",
+        "line": "just",
+        "strength": 2
+      }
+    ],
+    "presentText": "曙光圣柱落下的地方留着一道带光的蚀痕：神约第二条，被违背过。"
+  }
+]

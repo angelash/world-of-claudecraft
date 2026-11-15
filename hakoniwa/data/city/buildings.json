@@ -1,0 +1,1172 @@
+[
+  {
+    "id": "shack",
+    "name": "窝棚",
+    "category": "residential",
+    "desc": "最简陋的栖身处，只能满足生存层的住房需求。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 10
+      }
+    },
+    "days": 1,
+    "housing": 8,
+    "tags": ["wooden", "shack"],
+    "upkeepPerMonth": 0,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "cabin",
+    "name": "木屋",
+    "category": "residential",
+    "desc": "像样的木屋，满足安定层的住房需求。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "stone": 5
+      }
+    },
+    "days": 3,
+    "housing": 6,
+    "tags": ["wooden"],
+    "upkeepPerMonth": 50,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "row_house",
+    "name": "石砌联排屋",
+    "category": "residential",
+    "desc": "石砌的联排房屋，防火，省地。",
+    "footprint": {
+      "w": 4,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "stone": 60,
+        "wood": 20
+      }
+    },
+    "days": 6,
+    "housing": 12,
+    "upkeepPerMonth": 150,
+    "unlock": {
+      "stage": "territory",
+      "buildings": ["quarry"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "hidden_house",
+    "name": "隐庐",
+    "category": "residential",
+    "desc": "遗民之屋。门民住在这里时，门痕不容易被认出。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "stone": 10
+      }
+    },
+    "days": 4,
+    "housing": 8,
+    "effects": {
+      "happiness": 1
+    },
+    "max": 2,
+    "tags": ["remnant", "wooden"],
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "farm",
+    "name": "农田",
+    "category": "production",
+    "desc": "开垦的田地，产粮（受季节与丰歉修正）。",
+    "footprint": {
+      "w": 4,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 5
+      }
+    },
+    "days": 2,
+    "produces": {
+      "grain": 12
+    },
+    "channel": "harvest",
+    "jobs": 4,
+    "tags": ["food"],
+    "upkeepPerMonth": 0,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "pasture",
+    "name": "牧场",
+    "category": "production",
+    "desc": "圈养牲畜，出肉、皮与毛。",
+    "footprint": {
+      "w": 4,
+      "h": 4
+    },
+    "cost": {
+      "items": {
+        "wood": 20
+      }
+    },
+    "days": 3,
+    "produces": {
+      "meat": 4,
+      "hide": 1,
+      "wool": 1
+    },
+    "channel": "harvest",
+    "jobs": 3,
+    "tags": ["food"],
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["farm"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "fishing_hut",
+    "name": "渔屋",
+    "category": "production",
+    "desc": "临水的渔屋，需要靠近水边。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 15
+      }
+    },
+    "days": 2,
+    "produces": {
+      "fish": 8
+    },
+    "channel": "harvest",
+    "jobs": 2,
+    "terrain": "near_water",
+    "tags": ["food", "wooden"],
+    "upkeepPerMonth": 50,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "lumber_camp",
+    "name": "伐木营",
+    "category": "production",
+    "desc": "在林边伐木，需要靠近树林。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 10
+      }
+    },
+    "days": 2,
+    "produces": {
+      "wood": 10
+    },
+    "channel": "production",
+    "jobs": 3,
+    "terrain": "near_tree",
+    "tags": ["wooden"],
+    "upkeepPerMonth": 50,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "quarry",
+    "name": "采石场",
+    "category": "production",
+    "desc": "开采石料，需要靠近岩地。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 15
+      }
+    },
+    "days": 3,
+    "produces": {
+      "stone": 8
+    },
+    "channel": "production",
+    "jobs": 4,
+    "terrain": "near_rock",
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "mine",
+    "name": "矿井",
+    "category": "production",
+    "desc": "开采铁矿，需要靠近岩地。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "stone": 20
+      }
+    },
+    "days": 5,
+    "produces": {
+      "iron_ore": 6
+    },
+    "channel": "production",
+    "jobs": 5,
+    "terrain": "near_rock",
+    "upkeepPerMonth": 300,
+    "unlock": {
+      "stage": "territory"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "herb_garden",
+    "name": "草药圃",
+    "category": "production",
+    "desc": "种植药草。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 8
+      }
+    },
+    "days": 2,
+    "produces": {
+      "herb": 6
+    },
+    "channel": "harvest",
+    "jobs": 2,
+    "upkeepPerMonth": 50,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "hunter_lodge",
+    "name": "猎人小屋",
+    "category": "production",
+    "desc": "猎人的据点，出肉、皮和少量魔物素材；猎人也能在袭击时守村。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 12
+      }
+    },
+    "days": 2,
+    "produces": {
+      "meat": 3,
+      "hide": 2,
+      "monster_material": 0.5
+    },
+    "channel": "harvest",
+    "jobs": 2,
+    "terrain": "near_tree",
+    "effects": {
+      "archers": 4
+    },
+    "tags": ["food", "wooden"],
+    "upkeepPerMonth": 50,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "mill_bakery",
+    "name": "磨坊与面包房",
+    "category": "production",
+    "desc": "把粮食磨粉烤成面包，同样的粮能多养三成人。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "stone": 20
+      }
+    },
+    "days": 4,
+    "consumes": {
+      "grain": 10
+    },
+    "produces": {
+      "bread": 10
+    },
+    "channel": "production",
+    "jobs": 3,
+    "tags": ["food"],
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["farm"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "smelter",
+    "name": "熔炉",
+    "category": "production",
+    "desc": "以木炭冶炼铁矿成铁锭。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "stone": 40,
+        "wood": 10
+      }
+    },
+    "days": 5,
+    "consumes": {
+      "iron_ore": 4,
+      "wood": 3
+    },
+    "produces": {
+      "iron_ingot": 2
+    },
+    "channel": "production",
+    "jobs": 3,
+    "effects": {
+      "fireRisk": 0.002
+    },
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "territory",
+      "buildings": ["mine"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "smithy",
+    "name": "锻造坊",
+    "category": "production",
+    "desc": "把铁锭打成工具。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "stone": 30,
+        "wood": 20,
+        "iron_ingot": 5
+      }
+    },
+    "days": 5,
+    "consumes": {
+      "iron_ingot": 2,
+      "wood": 1
+    },
+    "produces": {
+      "tools": 1
+    },
+    "channel": "production",
+    "jobs": 3,
+    "effects": {
+      "fireRisk": 0.002
+    },
+    "upkeepPerMonth": 300,
+    "unlock": {
+      "stage": "territory",
+      "buildings": ["smelter"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "weaving",
+    "name": "织坊",
+    "category": "production",
+    "desc": "把羊毛纺织成布。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 25
+      }
+    },
+    "days": 3,
+    "consumes": {
+      "wool": 2
+    },
+    "produces": {
+      "cloth": 2
+    },
+    "channel": "production",
+    "jobs": 2,
+    "tags": ["wooden"],
+    "upkeepPerMonth": 150,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["pasture"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "tannery",
+    "name": "制革坊",
+    "category": "production",
+    "desc": "把生皮鞣成皮革。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 20,
+        "stone": 5
+      }
+    },
+    "days": 3,
+    "consumes": {
+      "hide": 2
+    },
+    "produces": {
+      "leather": 1
+    },
+    "channel": "production",
+    "jobs": 2,
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["hunter_lodge"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "apothecary",
+    "name": "药剂所",
+    "category": "production",
+    "desc": "把药草熬制成药。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 20,
+        "stone": 10
+      }
+    },
+    "days": 4,
+    "consumes": {
+      "herb": 4
+    },
+    "produces": {
+      "medicine": 1
+    },
+    "channel": "production",
+    "jobs": 2,
+    "effects": {
+      "health": 5
+    },
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["herb_garden"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "brewery",
+    "name": "酿酒坊",
+    "category": "production",
+    "desc": "用粮食酿麦酒。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 25,
+        "stone": 10
+      }
+    },
+    "days": 3,
+    "consumes": {
+      "grain": 6
+    },
+    "produces": {
+      "ale": 2
+    },
+    "channel": "production",
+    "jobs": 2,
+    "tags": ["wooden"],
+    "upkeepPerMonth": 150,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["farm"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "shed",
+    "name": "储物棚",
+    "category": "storage",
+    "desc": "简易的储物棚。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 15
+      }
+    },
+    "days": 1,
+    "storage": 200,
+    "tags": ["wooden"],
+    "upkeepPerMonth": 0,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "granary",
+    "name": "粮仓",
+    "category": "storage",
+    "desc": "干燥结实的粮仓。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "stone": 30
+      }
+    },
+    "days": 4,
+    "storage": 1000,
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["cabin"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "warehouse",
+    "name": "货栈",
+    "category": "storage",
+    "desc": "分隔存放的大货栈。",
+    "footprint": {
+      "w": 4,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 40,
+        "stone": 50
+      }
+    },
+    "days": 5,
+    "storage": 3000,
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "territory"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "market",
+    "name": "市集",
+    "category": "commerce",
+    "desc": "本地集市：交易、发现价格、居民采买。",
+    "footprint": {
+      "w": 4,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 40,
+        "stone": 10
+      }
+    },
+    "days": 4,
+    "effects": {
+      "happiness": 1,
+      "attraction": 0.05
+    },
+    "max": 1,
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "company_shop",
+    "name": "门扉商会店铺",
+    "category": "commerce",
+    "desc": "门扉商会在村里的销售点。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "stone": 10
+      },
+      "money": 2000
+    },
+    "days": 3,
+    "effects": {
+      "attraction": 0.03
+    },
+    "jobs": 2,
+    "max": 1,
+    "upkeepPerMonth": 300,
+    "unlock": {
+      "stage": "village",
+      "flags": ["econ.company_founded"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "tavern",
+    "name": "酒馆与旅店",
+    "category": "commerce",
+    "desc": "喝酒、过夜、听传闻的地方。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 35,
+        "stone": 10
+      }
+    },
+    "days": 4,
+    "consumes": {
+      "ale": 1
+    },
+    "jobs": 2,
+    "effects": {
+      "happiness": 2,
+      "attraction": 0.05
+    },
+    "max": 2,
+    "tags": ["wooden"],
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "shrine",
+    "name": "路边神龛",
+    "category": "culture",
+    "desc": "路边的小神龛，信众更安心，但也让女神的视线照到这里。",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "cost": {
+      "items": {
+        "stone": 10
+      }
+    },
+    "days": 1,
+    "effects": {
+      "faith": 1,
+      "happiness": 1
+    },
+    "max": 3,
+    "tags": ["divine_sight"],
+    "upkeepPerMonth": 50,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "school",
+    "name": "学堂",
+    "category": "culture",
+    "desc": "识字与传艺，培养继任者。",
+    "footprint": {
+      "w": 4,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 40,
+        "stone": 30,
+        "paper": 10
+      }
+    },
+    "days": 6,
+    "effects": {
+      "talent": 0.25
+    },
+    "max": 1,
+    "upkeepPerMonth": 300,
+    "unlock": {
+      "stage": "territory"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "plaza",
+    "name": "广场与戏台",
+    "category": "culture",
+    "desc": "节庆与集会的场所，带来归属感。",
+    "footprint": {
+      "w": 4,
+      "h": 4
+    },
+    "cost": {
+      "items": {
+        "stone": 30,
+        "wood": 10
+      }
+    },
+    "days": 3,
+    "effects": {
+      "happiness": 2
+    },
+    "max": 1,
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "palisade",
+    "name": "木栅",
+    "category": "defense",
+    "desc": "一段木栅栏。四段以上算作一级防御。",
+    "footprint": {
+      "w": 4,
+      "h": 1
+    },
+    "cost": {
+      "items": {
+        "wood": 12
+      }
+    },
+    "days": 1,
+    "effects": {
+      "security": 2
+    },
+    "max": 12,
+    "tags": ["wooden", "palisade"],
+    "upkeepPerMonth": 10,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "watchtower",
+    "name": "哨塔",
+    "category": "defense",
+    "desc": "瞭望与预警，塔上的弓手能在袭击时射击。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 20,
+        "stone": 10
+      }
+    },
+    "days": 2,
+    "effects": {
+      "security": 8,
+      "defense": 1,
+      "archers": 5
+    },
+    "max": 4,
+    "tags": ["wooden"],
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "training_ground",
+    "name": "训练场",
+    "category": "defense",
+    "desc": "训练民兵。",
+    "footprint": {
+      "w": 4,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 20
+      }
+    },
+    "days": 3,
+    "effects": {
+      "militia": 10,
+      "security": 5
+    },
+    "max": 1,
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "barracks",
+    "name": "营房",
+    "category": "defense",
+    "desc": "常备兵的住所，也能关押俘虏。",
+    "footprint": {
+      "w": 4,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 40,
+        "stone": 30
+      }
+    },
+    "days": 5,
+    "effects": {
+      "militia": 20,
+      "security": 10,
+      "defense": 1
+    },
+    "max": 2,
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "territory",
+      "buildings": ["training_ground"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "village_hall",
+    "name": "村长屋",
+    "category": "admin",
+    "desc": "行政中心：受理请愿、张贴告示、记账，多一个政策槽。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "stone": 10
+      }
+    },
+    "days": 3,
+    "effects": {
+      "security": 5,
+      "policySlots": 1
+    },
+    "max": 1,
+    "tags": ["wooden"],
+    "upkeepPerMonth": 100,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "guardhouse",
+    "name": "卫兵所",
+    "category": "admin",
+    "desc": "治安覆盖、巡逻与拘押。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 20,
+        "stone": 15
+      }
+    },
+    "days": 2,
+    "jobs": 2,
+    "effects": {
+      "security": 20,
+      "defense": 1,
+      "militia": 4
+    },
+    "max": 2,
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "clinic",
+    "name": "医馆",
+    "category": "admin",
+    "desc": "医治伤病，控制疫病。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 20,
+        "stone": 20,
+        "medicine": 5
+      }
+    },
+    "days": 4,
+    "jobs": 2,
+    "effects": {
+      "health": 25
+    },
+    "max": 1,
+    "upkeepPerMonth": 300,
+    "unlock": {
+      "stage": "village",
+      "buildings": ["apothecary"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "communal_stove",
+    "name": "公灶",
+    "category": "special",
+    "desc": "全村共用的灶。三十人立下同住誓、点燃第一口公灶，据点才能成为村落。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "stone": 10,
+        "wood": 10
+      }
+    },
+    "days": 2,
+    "effects": {
+      "happiness": 1
+    },
+    "max": 1,
+    "upkeepPerMonth": 0,
+    "unlock": {
+      "stage": "outpost"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "door_node",
+    "name": "门网节点",
+    "category": "special",
+    "desc": "把门内庭院与这个聚落连起来的门扉：命令可以隔门送达，每天能过一定数量的物资。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "stone": 20,
+        "magic_crystal": 2
+      }
+    },
+    "days": 3,
+    "effects": {
+      "gateThroughput": 50
+    },
+    "max": 2,
+    "tags": ["door"],
+    "upkeepPerMonth": 0,
+    "unlock": {
+      "stage": "outpost",
+      "flags": ["feature.inner_court"]
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "purify_well",
+    "name": "净澱井",
+    "category": "special",
+    "desc": "以魔晶为引的沉澱井，慢慢沉降聚落的澱，也让水更干净。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "stone": 30,
+        "magic_crystal": 3
+      }
+    },
+    "days": 5,
+    "effects": {
+      "sediment": 1,
+      "health": 5
+    },
+    "max": 1,
+    "upkeepPerMonth": 200,
+    "unlock": {
+      "stage": "village"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "refinery",
+    "name": "封澱窖与净炼坊",
+    "category": "special",
+    "desc": "安全封存澱晶，并把灰晶净炼成可以合法流通的魔晶。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "stone": 40,
+        "wood": 20
+      },
+      "money": 3000
+    },
+    "days": 6,
+    "consumes": {
+      "grey_crystal": 2
+    },
+    "produces": {
+      "magic_crystal": 1
+    },
+    "channel": "production",
+    "jobs": 2,
+    "max": 1,
+    "upkeepPerMonth": 400,
+    "unlock": {
+      "stage": "territory"
+    },
+    "sites": ["settlement"]
+  },
+  {
+    "id": "court_garden",
+    "name": "庭院园圃",
+    "category": "production",
+    "desc": "庭院里的小块园圃，产量小，但不受季节与灾害影响。",
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 5
+      }
+    },
+    "days": 1,
+    "produces": {
+      "herb": 2,
+      "grain": 2
+    },
+    "max": 3,
+    "upkeepPerMonth": 0,
+    "unlock": {},
+    "sites": ["court"]
+  },
+  {
+    "id": "court_store",
+    "name": "庭院仓",
+    "category": "storage",
+    "desc": "庭院里的仓房，神的视线照不到。",
+    "footprint": {
+      "w": 2,
+      "h": 2
+    },
+    "cost": {
+      "items": {
+        "wood": 20
+      }
+    },
+    "days": 2,
+    "storage": 300,
+    "max": 2,
+    "upkeepPerMonth": 0,
+    "unlock": {},
+    "sites": ["court"]
+  },
+  {
+    "id": "court_study",
+    "name": "庭院书斋",
+    "category": "research",
+    "desc": "解析钥，把地球知识写成进阶配方。",
+    "footprint": {
+      "w": 3,
+      "h": 3
+    },
+    "cost": {
+      "items": {
+        "wood": 30,
+        "paper": 10
+      }
+    },
+    "days": 4,
+    "max": 1,
+    "upkeepPerMonth": 0,
+    "unlock": {},
+    "sites": ["court"]
+  }
+]

@@ -1,0 +1,749 @@
+{
+  "provinces": [
+    {
+      "id": "ash_border",
+      "name": "灰烬边境（边石镇与旧哨村）",
+      "region": "lotha",
+      "owner": "lothar",
+      "terrain": "hills",
+      "population": 20000,
+      "tax": 600,
+      "garrison": 300,
+      "fort": 0,
+      "dian": 2,
+      "x": 30,
+      "y": 24,
+      "desc": "边石镇、旧哨村与苇桥村所在的边陲，界石线以南。"
+    },
+    {
+      "id": "wallenburg",
+      "name": "瓦伦堡",
+      "region": "lotha",
+      "owner": "lothar",
+      "terrain": "plain",
+      "population": 400000,
+      "tax": 12000,
+      "garrison": 2000,
+      "fort": 2,
+      "dian": 1,
+      "x": 26,
+      "y": 32,
+      "desc": "北境首府，瓦伦河与灰溪交汇处。"
+    },
+    {
+      "id": "blackoak",
+      "name": "黑橡堡",
+      "region": "lotha",
+      "owner": "lothar",
+      "terrain": "hills",
+      "population": 150000,
+      "tax": 4000,
+      "garrison": 2500,
+      "fort": 3,
+      "dian": 2,
+      "x": 40,
+      "y": 20,
+      "desc": "夜风走廊南口的北境要塞。"
+    },
+    {
+      "id": "orien",
+      "name": "奥瑞恩",
+      "region": "lotha",
+      "owner": "lothar",
+      "terrain": "plain",
+      "population": 600000,
+      "tax": 18000,
+      "garrison": 3000,
+      "fort": 2,
+      "dian": 1,
+      "x": 18,
+      "y": 46,
+      "capitalOf": "lothar",
+      "desc": "洛萨王都，王宫建在河心的王岛上。"
+    },
+    {
+      "id": "sunset_haven",
+      "name": "落日港",
+      "region": "lotha",
+      "owner": "lothar",
+      "terrain": "coast",
+      "population": 250000,
+      "tax": 9000,
+      "garrison": 1000,
+      "fort": 1,
+      "dian": 1,
+      "x": 8,
+      "y": 52,
+      "desc": "瓦伦河口的港城，港口关税已抵押给同盟。"
+    },
+    {
+      "id": "silversaddle",
+      "name": "银鞍堡",
+      "region": "lotha",
+      "owner": "lothar",
+      "terrain": "plain",
+      "population": 200000,
+      "tax": 6000,
+      "garrison": 2000,
+      "fort": 3,
+      "dian": 1,
+      "x": 34,
+      "y": 50,
+      "desc": "银鞍河石桥的桥头堡，与帝国隔河相望。"
+    },
+    {
+      "id": "greyelm_weald",
+      "name": "苍榆林地",
+      "region": "lotha",
+      "owner": "lothar",
+      "terrain": "forest",
+      "population": 200000,
+      "tax": 5000,
+      "garrison": 600,
+      "fort": 0,
+      "dian": 1,
+      "x": 36,
+      "y": 40,
+      "desc": "落叶林带，榆集是中心，近年兽人移民聚居。"
+    },
+    {
+      "id": "ash_rim",
+      "name": "荒原外缘",
+      "region": "ashen_waste",
+      "owner": null,
+      "terrain": "waste",
+      "population": 3000,
+      "tax": 0,
+      "garrison": 0,
+      "fort": 0,
+      "dian": 2,
+      "x": 28,
+      "y": 16,
+      "desc": "折桥驿、晶沟与灰烬林。"
+    },
+    {
+      "id": "ash_middle",
+      "name": "荒原中层",
+      "region": "ashen_waste",
+      "owner": null,
+      "terrain": "waste",
+      "population": 1000,
+      "tax": 0,
+      "garrison": 0,
+      "fort": 0,
+      "dian": 3,
+      "x": 21,
+      "y": 11,
+      "desc": "玻璃原、灰海与门站残墟。"
+    },
+    {
+      "id": "thousand_gates",
+      "name": "千门都遗址",
+      "region": "ashen_waste",
+      "owner": null,
+      "terrain": "waste",
+      "population": 0,
+      "tax": 0,
+      "garrison": 0,
+      "fort": 0,
+      "dian": 4,
+      "x": 15,
+      "y": 6,
+      "desc": "主门坑所在的废都，第五幕的决战之地。"
+    },
+    {
+      "id": "firstlight",
+      "name": "初光驿",
+      "region": "holy_see",
+      "owner": "holy_see",
+      "terrain": "hills",
+      "population": 200000,
+      "tax": 20000,
+      "garrison": 1500,
+      "fort": 1,
+      "dian": 0,
+      "x": 16,
+      "y": 60,
+      "desc": "光径北支上的边境驿城。"
+    },
+    {
+      "id": "seran",
+      "name": "瑟兰",
+      "region": "holy_see",
+      "owner": "holy_see",
+      "terrain": "hills",
+      "population": 400000,
+      "tax": 40000,
+      "garrison": 5000,
+      "fort": 3,
+      "dian": 1,
+      "x": 12,
+      "y": 72,
+      "capitalOf": "holy_see",
+      "desc": "圣都，第一座天启碑所在。"
+    },
+    {
+      "id": "westpoise",
+      "name": "西衡堡",
+      "region": "grantia",
+      "owner": "empire",
+      "terrain": "plain",
+      "population": 1500000,
+      "tax": 50000,
+      "garrison": 8000,
+      "fort": 3,
+      "dian": 1,
+      "x": 42,
+      "y": 50,
+      "desc": "帝国西部军团驻地。"
+    },
+    {
+      "id": "grantis",
+      "name": "格兰提斯",
+      "region": "grantia",
+      "owner": "empire",
+      "terrain": "plain",
+      "population": 3500000,
+      "tax": 130000,
+      "garrison": 10000,
+      "fort": 3,
+      "dian": 0,
+      "x": 52,
+      "y": 52,
+      "capitalOf": "empire",
+      "desc": "帝都，千穗平原是大陆的粮仓。"
+    },
+    {
+      "id": "redgravel",
+      "name": "红砾城",
+      "region": "grantia",
+      "owner": "empire",
+      "terrain": "plain",
+      "population": 2000000,
+      "tax": 70000,
+      "garrison": 3000,
+      "fort": 2,
+      "dian": 1,
+      "x": 50,
+      "y": 62,
+      "desc": "竞技场之城。"
+    },
+    {
+      "id": "wallheart",
+      "name": "垒心城",
+      "region": "grantia",
+      "owner": "empire",
+      "terrain": "hills",
+      "population": 1500000,
+      "tax": 40000,
+      "garrison": 20000,
+      "fort": 3,
+      "dian": 2,
+      "x": 54,
+      "y": 30,
+      "desc": "长垒的中枢，北拒夜境。"
+    },
+    {
+      "id": "scriva",
+      "name": "斯克里瓦学城",
+      "region": "grantia",
+      "owner": "empire",
+      "terrain": "hills",
+      "population": 1500000,
+      "tax": 70000,
+      "garrison": 2000,
+      "fort": 1,
+      "dian": 1,
+      "x": 64,
+      "y": 40,
+      "desc": "自治学城，第五座天启碑所在。"
+    },
+    {
+      "id": "cloudstair",
+      "name": "云阶城",
+      "region": "grantia",
+      "owner": "empire",
+      "terrain": "mountain",
+      "population": 1000000,
+      "tax": 40000,
+      "garrison": 4000,
+      "fort": 3,
+      "dian": 1,
+      "x": 70,
+      "y": 48,
+      "desc": "云阶隘口，983 年起归帝国。"
+    },
+    {
+      "id": "scalebridge",
+      "name": "秤桥城",
+      "region": "mercato",
+      "owner": "league",
+      "terrain": "plain",
+      "population": 1200000,
+      "tax": 100000,
+      "garrison": 2000,
+      "fort": 2,
+      "dian": 1,
+      "x": 58,
+      "y": 70,
+      "desc": "格兰水道上的桥城。"
+    },
+    {
+      "id": "goldbay",
+      "name": "金湾",
+      "region": "mercato",
+      "owner": "league",
+      "terrain": "coast",
+      "population": 1800000,
+      "tax": 160000,
+      "garrison": 4000,
+      "fort": 2,
+      "dian": 1,
+      "x": 56,
+      "y": 82,
+      "capitalOf": "league",
+      "desc": "同盟首都，汇兑的基准，第三座天启碑所在。"
+    },
+    {
+      "id": "redanvil",
+      "name": "赤砧山",
+      "region": "mercato",
+      "owner": "league",
+      "terrain": "mountain",
+      "population": 600000,
+      "tax": 40000,
+      "garrison": 3000,
+      "fort": 3,
+      "dian": 2,
+      "x": 68,
+      "y": 76,
+      "desc": "矮人的火山工坊，深炉所在。"
+    },
+    {
+      "id": "thornhedge",
+      "name": "棘篱哨",
+      "region": "silva",
+      "owner": "silva",
+      "terrain": "forest",
+      "population": 300000,
+      "tax": 6000,
+      "garrison": 1500,
+      "fort": 2,
+      "dian": 0,
+      "x": 78,
+      "y": 46,
+      "desc": "进入希尔瓦唯一合法的入口。"
+    },
+    {
+      "id": "ringwood",
+      "name": "环木议庭",
+      "region": "silva",
+      "owner": "silva",
+      "terrain": "forest",
+      "population": 600000,
+      "tax": 8000,
+      "garrison": 3000,
+      "fort": 2,
+      "dian": 0,
+      "x": 86,
+      "y": 38,
+      "capitalOf": "silva",
+      "desc": "世界树与灵泉，第四座天启碑所在。"
+    },
+    {
+      "id": "frostwood",
+      "name": "霜林",
+      "region": "silva",
+      "owner": "silva",
+      "terrain": "forest",
+      "population": 400000,
+      "tax": 6000,
+      "garrison": 1500,
+      "fort": 1,
+      "dian": 2,
+      "x": 84,
+      "y": 24,
+      "desc": "北部的针叶林，与夜境东缘相接。"
+    },
+    {
+      "id": "fangmouth",
+      "name": "牙口隘",
+      "region": "dragonspine",
+      "owner": null,
+      "terrain": "mountain",
+      "population": 500,
+      "tax": 0,
+      "garrison": 300,
+      "fort": 1,
+      "dian": 1,
+      "x": 74,
+      "y": 64,
+      "desc": "毡路穿过龙脊南尾的隘口。"
+    },
+    {
+      "id": "feltmarket",
+      "name": "毡市",
+      "region": "windfang",
+      "owner": "windfang",
+      "terrain": "steppe",
+      "population": 900000,
+      "tax": 12000,
+      "garrison": 1000,
+      "fort": 0,
+      "dian": 1,
+      "x": 82,
+      "y": 70,
+      "desc": "草原上的集市镇。"
+    },
+    {
+      "id": "windfang_rock",
+      "name": "风牙岩",
+      "region": "windfang",
+      "owner": "windfang",
+      "terrain": "steppe",
+      "population": 1000000,
+      "tax": 18000,
+      "garrison": 3000,
+      "fort": 1,
+      "dian": 1,
+      "x": 90,
+      "y": 60,
+      "capitalOf": "windfang",
+      "desc": "兽王台与祖灵冢。"
+    },
+    {
+      "id": "tuskgate",
+      "name": "獠牙关",
+      "region": "nightrealm",
+      "owner": "nightrealm",
+      "terrain": "mountain",
+      "population": 500000,
+      "tax": 20000,
+      "garrison": 8000,
+      "fort": 3,
+      "dian": 2,
+      "x": 50,
+      "y": 12,
+      "desc": "夜风走廊北端的高地关隘。"
+    },
+    {
+      "id": "duskcrown",
+      "name": "黯冠城",
+      "region": "nightrealm",
+      "owner": "nightrealm",
+      "terrain": "hills",
+      "population": 1400000,
+      "tax": 40000,
+      "garrison": 6000,
+      "fort": 3,
+      "dian": 2,
+      "x": 58,
+      "y": 4,
+      "capitalOf": "nightrealm",
+      "desc": "夜境的都城，暗之王座。"
+    },
+    {
+      "id": "edgetrial",
+      "name": "试锋谷",
+      "region": "nightrealm",
+      "owner": "nightrealm",
+      "terrain": "hills",
+      "population": 800000,
+      "tax": 20000,
+      "garrison": 2000,
+      "fort": 1,
+      "dian": 2,
+      "x": 72,
+      "y": 8,
+      "desc": "冻原与火山之间的谷地，第二座天启碑所在。"
+    },
+    {
+      "id": "vaulttouch",
+      "name": "触穹峰",
+      "region": "dragonspine",
+      "owner": null,
+      "terrain": "mountain",
+      "population": 50000,
+      "tax": 0,
+      "garrison": 0,
+      "fort": 0,
+      "dian": 1,
+      "x": 74,
+      "y": 54,
+      "impassable": true,
+      "desc": "龙脊之巅，第七座天启碑与七席石座，会盟之地。"
+    }
+  ],
+  "links": [
+    {
+      "a": "ash_border",
+      "b": "wallenburg",
+      "days": 3,
+      "kind": "road"
+    },
+    {
+      "a": "ash_border",
+      "b": "blackoak",
+      "days": 4,
+      "kind": "trail"
+    },
+    {
+      "a": "ash_border",
+      "b": "ash_rim",
+      "days": 1,
+      "kind": "trail"
+    },
+    {
+      "a": "wallenburg",
+      "b": "blackoak",
+      "days": 5,
+      "kind": "road"
+    },
+    {
+      "a": "wallenburg",
+      "b": "orien",
+      "days": 8,
+      "kind": "river"
+    },
+    {
+      "a": "wallenburg",
+      "b": "greyelm_weald",
+      "days": 5,
+      "kind": "trail"
+    },
+    {
+      "a": "orien",
+      "b": "sunset_haven",
+      "days": 4,
+      "kind": "river"
+    },
+    {
+      "a": "orien",
+      "b": "silversaddle",
+      "days": 8,
+      "kind": "road"
+    },
+    {
+      "a": "orien",
+      "b": "firstlight",
+      "days": 6,
+      "kind": "road"
+    },
+    {
+      "a": "silversaddle",
+      "b": "greyelm_weald",
+      "days": 2,
+      "kind": "road"
+    },
+    {
+      "a": "silversaddle",
+      "b": "westpoise",
+      "days": 2,
+      "kind": "road"
+    },
+    {
+      "a": "firstlight",
+      "b": "seran",
+      "days": 5,
+      "kind": "road"
+    },
+    {
+      "a": "sunset_haven",
+      "b": "seran",
+      "days": 5,
+      "kind": "sea"
+    },
+    {
+      "a": "sunset_haven",
+      "b": "goldbay",
+      "days": 6,
+      "kind": "sea"
+    },
+    {
+      "a": "westpoise",
+      "b": "grantis",
+      "days": 6,
+      "kind": "road"
+    },
+    {
+      "a": "grantis",
+      "b": "redgravel",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "grantis",
+      "b": "wallheart",
+      "days": 6,
+      "kind": "road"
+    },
+    {
+      "a": "grantis",
+      "b": "scriva",
+      "days": 6,
+      "kind": "road"
+    },
+    {
+      "a": "grantis",
+      "b": "scalebridge",
+      "days": 5,
+      "kind": "river"
+    },
+    {
+      "a": "redgravel",
+      "b": "scalebridge",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "redgravel",
+      "b": "westpoise",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "scriva",
+      "b": "cloudstair",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "scriva",
+      "b": "wallheart",
+      "days": 5,
+      "kind": "road"
+    },
+    {
+      "a": "cloudstair",
+      "b": "thornhedge",
+      "days": 3,
+      "kind": "pass"
+    },
+    {
+      "a": "cloudstair",
+      "b": "vaulttouch",
+      "days": 4,
+      "kind": "pass"
+    },
+    {
+      "a": "scalebridge",
+      "b": "goldbay",
+      "days": 3,
+      "kind": "road"
+    },
+    {
+      "a": "scalebridge",
+      "b": "redanvil",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "scalebridge",
+      "b": "fangmouth",
+      "days": 5,
+      "kind": "road"
+    },
+    {
+      "a": "goldbay",
+      "b": "redanvil",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "redanvil",
+      "b": "fangmouth",
+      "days": 4,
+      "kind": "pass"
+    },
+    {
+      "a": "fangmouth",
+      "b": "feltmarket",
+      "days": 3,
+      "kind": "road"
+    },
+    {
+      "a": "feltmarket",
+      "b": "windfang_rock",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "windfang_rock",
+      "b": "ringwood",
+      "days": 6,
+      "kind": "trail"
+    },
+    {
+      "a": "thornhedge",
+      "b": "ringwood",
+      "days": 3,
+      "kind": "trail"
+    },
+    {
+      "a": "ringwood",
+      "b": "frostwood",
+      "days": 4,
+      "kind": "trail"
+    },
+    {
+      "a": "frostwood",
+      "b": "edgetrial",
+      "days": 5,
+      "kind": "trail"
+    },
+    {
+      "a": "blackoak",
+      "b": "tuskgate",
+      "days": 7,
+      "kind": "pass"
+    },
+    {
+      "a": "blackoak",
+      "b": "wallheart",
+      "days": 6,
+      "kind": "road"
+    },
+    {
+      "a": "tuskgate",
+      "b": "duskcrown",
+      "days": 4,
+      "kind": "road"
+    },
+    {
+      "a": "duskcrown",
+      "b": "edgetrial",
+      "days": 5,
+      "kind": "road"
+    },
+    {
+      "a": "duskcrown",
+      "b": "wallheart",
+      "days": 6,
+      "kind": "road"
+    },
+    {
+      "a": "tuskgate",
+      "b": "ash_rim",
+      "days": 5,
+      "kind": "trail"
+    },
+    {
+      "a": "ash_rim",
+      "b": "ash_middle",
+      "days": 3,
+      "kind": "trail"
+    },
+    {
+      "a": "ash_middle",
+      "b": "thousand_gates",
+      "days": 3,
+      "kind": "trail"
+    },
+    {
+      "a": "thousand_gates",
+      "b": "tuskgate",
+      "days": 6,
+      "kind": "trail"
+    }
+  ]
+}

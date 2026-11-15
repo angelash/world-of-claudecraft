@@ -1,0 +1,2737 @@
+[
+  {
+    "id": "shiya",
+    "name": "希雅",
+    "race": "兽人（狼族）",
+    "gender": "f",
+    "age": 17,
+    "job": "猎手",
+    "level": 8,
+    "faction": "east_slope",
+    "class": "beastkin",
+    "traits": ["直率", "倔", "护短", "不善言辞"],
+    "intro": "东坡兽人猎户之女，林子里的好手。",
+    "goals": ["让家人不再被叫'狗坡的'", "证明兽人比伐木工更懂林子"],
+    "secrets": ["最早在林子深处见过灰色的狼，说了没人信", "偷偷跟伊莎修女学认字"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["林子里的猎径、狼穴和鹿泉在哪里"],
+    "attitude": 45,
+    "map": "borderstone",
+    "home": "east_slope",
+    "work": "gate_forest_edge",
+    "schedule": "hunter",
+    "voice": {
+      "rules": [
+        "短而直接，不会拐弯",
+        "偶尔夹部族说法，比如'祖灵在上'",
+        "生气时句子更短",
+        "亲眼看到就信，并替人辩护"
+      ],
+      "catchphrases": ["我闻得出来。", "说好了。"],
+      "address": "你",
+      "never": ["撒谎", "背弃说好了的事"]
+    },
+    "appearance": {
+      "base": "beast",
+      "colors": ["#5a4632", "#8c6b45", "#d9b08c", "#9a9a9a"]
+    },
+    "tags": ["hunter"],
+    "core": true,
+    "plot": 0.9,
+    "potential": "猎王",
+    "goddess": "sylvie",
+    "devotion": 0.4,
+    "money": 120,
+    "wage": 4,
+    "personality": "normal",
+    "oldOrder": 0.1,
+    "pressure": 0.1,
+    "spread": 0.6,
+    "reliability": 0.5,
+    "fame": 0.2,
+    "relations": {
+      "gorn": {
+        "trust": 85,
+        "like": 70
+      },
+      "ako": {
+        "trust": 70,
+        "like": 80
+      },
+      "isa": {
+        "trust": 60,
+        "like": 50
+      },
+      "nick": {
+        "trust": 60,
+        "like": 45
+      },
+      "gaspar": {
+        "trust": 20,
+        "like": -40
+      }
+    },
+    "stances": {
+      "forest": -0.8
+    },
+    "lines": {
+      "react.believe": ["我闻得出来。是真的。"]
+    }
+  },
+  {
+    "id": "ron",
+    "name": "罗恩",
+    "race": "人族",
+    "gender": "m",
+    "age": 22,
+    "job": "冒险者（D 级）",
+    "level": 11,
+    "faction": "guild",
+    "class": "adventurer",
+    "traits": ["胆小", "善良", "话多", "关键时刻不跑"],
+    "intro": "公会边石分部的 D 级冒险者，委托都靠计划和拉人完成。",
+    "goals": ["升 C 级", "攒钱给瓦伦堡的母亲治腿"],
+    "secrets": ["从没独自打赢过一只狼"],
+    "knowledge": "K1",
+    "attitude": 55,
+    "map": "borderstone",
+    "home": "houses_south",
+    "work": "guild",
+    "schedule": "adventurer",
+    "voice": {
+      "rules": [
+        "平时碎碎念，长句吐槽",
+        "紧张时语速极快",
+        "看到超凡的事先说不可能，再找合理解释",
+        "把功劳推给别人"
+      ],
+      "catchphrases": ["不可能。", "……好吧，可能。"],
+      "address": "新来的",
+      "never": ["丢下同伴自己逃走"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#6b7a4a", "#a8925a", "#f0c8a0", "#8a5a2a"]
+    },
+    "tags": ["adventurer"],
+    "core": true,
+    "plot": 0.9,
+    "potential": "统帅",
+    "goddess": "eluen",
+    "devotion": 0.3,
+    "money": 300,
+    "wage": 6,
+    "personality": "normal",
+    "oldOrder": 0.2,
+    "pressure": 0.6,
+    "spin": "deflect",
+    "spread": 1.2,
+    "reliability": 0.4,
+    "fame": 0.2,
+    "relations": {
+      "dris": {
+        "trust": 50,
+        "like": 20
+      },
+      "martha": {
+        "trust": 70,
+        "like": 50
+      },
+      "bron": {
+        "trust": 60,
+        "like": 30
+      },
+      "lina": {
+        "like": 30
+      }
+    },
+    "lines": {
+      "react.explain.wounded": ["不可能。……那东西肯定早被独眼团打残了。"],
+      "react.switch.cheat": ["不可能。……你是不是跟公会串通了？"],
+      "react.switch.hidden_identity": ["你其实是哪家的少爷吧？"],
+      "react.wavering": ["不可能。……也许……不，不可能。"],
+      "react.accept": ["……好吧，可能。"]
+    }
+  },
+  {
+    "id": "nera",
+    "name": "奈拉",
+    "race": "兽人（狐族）",
+    "gender": "f",
+    "age": 27,
+    "job": "商会分号负责人",
+    "level": 12,
+    "faction": "mercator",
+    "class": "merchant",
+    "traits": ["笑眯眯", "算计", "守约", "好奇"],
+    "intro": "梅尔卡托商会边石分号的狐族负责人。",
+    "goals": ["把边石分号做成北境枢纽，调回金湾", "找一个能一起做大买卖的人"],
+    "secrets": [
+      "总号密令：魔物季前囤积盐与药水",
+      "代官找过她分销灰晶，她没答应也没揭发",
+      "每晚在神龛前报账"
+    ],
+    "knowledge": "K1",
+    "knowledgeNotes": ["盐和药水最近的行情"],
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "merchant_branch",
+    "work": "merchant_branch",
+    "schedule": "merchant",
+    "voice": {
+      "rules": [
+        "甜而快，爱反问",
+        "谈价时放慢",
+        "一切谈话都被她换算成价格",
+        "说真心话时突然变得生硬"
+      ],
+      "catchphrases": ["这得算算。", "账上写着呢。"],
+      "address": "客人",
+      "never": ["违背已经成立的契约"]
+    },
+    "appearance": {
+      "base": "beast",
+      "colors": ["#7a3b2a", "#d4a24a", "#e8a060", "#c8602a"]
+    },
+    "tags": ["merchant"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "merca",
+    "devotion": 0.7,
+    "money": 5000,
+    "wage": 0,
+    "personality": "curious",
+    "oldOrder": 0.3,
+    "pressure": 0.3,
+    "spin": "price",
+    "spread": 1,
+    "reliability": 0.8,
+    "fame": 0.3,
+    "relations": {
+      "popo": {
+        "trust": 60,
+        "like": 50
+      },
+      "moss": {
+        "trust": 15,
+        "like": -20
+      },
+      "martha": {
+        "like": 30
+      }
+    }
+  },
+  {
+    "id": "oola",
+    "name": "欧拉婆婆",
+    "race": "人族",
+    "gender": "f",
+    "age": 71,
+    "job": "药草师",
+    "level": 18,
+    "faction": "townsfolk",
+    "class": "scholar",
+    "traits": ["刀子嘴", "软心肠", "多疑", "记性好"],
+    "intro": "东栅外的药草婆婆，看病收鸡蛋当诊费。",
+    "goals": ["让诺伊与苔丝平安长大", "治好北区的病"],
+    "secrets": [
+      "用草汁掩盖两个孩子身上的印记",
+      "从老辈的草药学问里知道荒原病是怎么回事",
+      "对外装作不会战斗"
+    ],
+    "knowledge": "K2",
+    "knowledgeNotes": ["荒原病就是灰病，北区的孩子最先倒下"],
+    "attitude": 40,
+    "trustKey": "trust.ola",
+    "map": "borderstone",
+    "home": "herb_hut",
+    "work": "herb_hut",
+    "schedule": "herbalist",
+    "hideWhen": ["a1_oola_fate=convicted", "a1_oola_fate=fled", "a1_oola_fate=executed"],
+    "voice": {
+      "rules": [
+        "说话慢，带俚语和草药比喻",
+        "常骂人'小崽子'",
+        "只说自己知道的一半",
+        "看人的眼睛会多看两秒"
+      ],
+      "catchphrases": ["草不会骗人。人会。"],
+      "address": "小崽子",
+      "never": ["出卖孩子", "在人前祈祷"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a5a3a", "#7a6a4a", "#e0c0a0", "#d8d8d8"]
+    },
+    "tags": ["healer"],
+    "core": true,
+    "plot": 0.9,
+    "goddess": "sylvie",
+    "devotion": 0.6,
+    "money": 400,
+    "wage": 3,
+    "personality": "stubborn",
+    "oldOrder": 0,
+    "pressure": 0,
+    "spread": 0.4,
+    "reliability": 0.6,
+    "fame": 0.2,
+    "relations": {
+      "noi": {
+        "trust": 80,
+        "like": 80
+      },
+      "tess": {
+        "trust": 80,
+        "like": 85
+      },
+      "isa": {
+        "trust": 60,
+        "like": 50
+      },
+      "cassian": {
+        "trust": 20,
+        "like": -10
+      },
+      "greta": {
+        "trust": 60,
+        "like": 40
+      }
+    },
+    "stances": {
+      "witch_trial": -1
+    }
+  },
+  {
+    "id": "cassian",
+    "name": "卡西安神父",
+    "race": "人族",
+    "gender": "m",
+    "age": 29,
+    "job": "神父",
+    "level": 13,
+    "faction": "church",
+    "class": "clergy",
+    "traits": ["真诚", "教条", "勤奋", "怕辜负"],
+    "intro": "小礼拜堂的年轻神父，真诚而教条，渴望被光肯定一次。",
+    "goals": ["守住羊群", "让镇民相信光会回应", "得到教区认可"],
+    "secrets": [
+      "从未收到过一次神谕，为此羞耻",
+      "他的治愈祷告对灰病只有一时之效，他以为是自己信仰不够"
+    ],
+    "knowledge": "K1",
+    "knowledgeNotes": ["圣典的教导与教区的规矩"],
+    "attitude": 45,
+    "map": "borderstone",
+    "home": "chapel",
+    "work": "chapel",
+    "schedule": "priest",
+    "voice": {
+      "rules": [
+        "句式工整，爱引经文",
+        "紧张时反复确认：是这样的，对吧？",
+        "称信众为诸位，初见者为这位旅人，怀疑加深后称阁下",
+        "超凡之事先归于光，归不了光就怀疑别的东西"
+      ],
+      "catchphrases": ["光会看见的。", "圣典上说……"],
+      "address": "这位旅人",
+      "never": ["收受贿赂", "明知是假仍作伪证", "嘲弄他人的信仰"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#e8e2d0", "#c8a84a", "#f0d0b0", "#3a2a1a"]
+    },
+    "tags": ["priest"],
+    "core": true,
+    "plot": 0.9,
+    "goddess": "eluen",
+    "devotion": 0.95,
+    "money": 150,
+    "wage": 3,
+    "personality": "stubborn",
+    "oldOrder": 0.8,
+    "pressure": 0.5,
+    "spin": "light",
+    "spread": 0.8,
+    "reliability": 0.9,
+    "fame": 0.4,
+    "relations": {
+      "oola": {
+        "trust": 10,
+        "like": 30,
+        "awe": 20,
+        "align": -60
+      },
+      "isa": {
+        "trust": 70,
+        "like": 60
+      },
+      "martha": {
+        "like": 40
+      },
+      "nera": {
+        "trust": 20
+      }
+    },
+    "stances": {
+      "witch_trial": 0.8
+    },
+    "lines": {
+      "appraise.clergy": ["光不会赐福给没有记载的人。……无记载，是异端之兆。"],
+      "react.explain.miracle": ["光会看见的。这是光的眷顾，是这样的，对吧？"]
+    },
+    "needs": {
+      "faith": 1.5,
+      "social": 0.6
+    }
+  },
+  {
+    "id": "martha",
+    "name": "玛莎",
+    "race": "人族",
+    "gender": "f",
+    "age": 47,
+    "job": "醉月亭老板娘",
+    "level": 41,
+    "faction": "townsfolk",
+    "class": "knight",
+    "traits": ["热心", "爽快", "爱管闲事", "眼神很准"],
+    "intro": "醉月亭的老板娘，镇上谁都吃过她的炖菜。",
+    "goals": ["平静过日子", "看着这个镇别出事"],
+    "secrets": [
+      "地窖长木匣里是她的刀",
+      "她曾经是冒险者，但永远不承认",
+      "玩家坠入遗迹那夜，她在梦里听见什么东西响了一声"
+    ],
+    "knowledge": "K2",
+    "attitude": 65,
+    "map": "borderstone",
+    "home": "drunk_moon",
+    "work": "drunk_moon",
+    "schedule": "innkeeper",
+    "voice": {
+      "rules": [
+        "短句、指令式、带笑",
+        "话题一碰到过去就转到吃饭",
+        "在人前装普通，会出小测试观察别人"
+      ],
+      "catchphrases": ["先吃饭。", "账记上。"],
+      "address": "孩子",
+      "never": ["承认自己的过去"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#8a3a2a", "#e0d0b0", "#f0c8a0", "#5a3a2a"]
+    },
+    "tags": ["innkeeper"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "valda",
+    "devotion": 0.2,
+    "money": 3000,
+    "wage": 0,
+    "personality": "curious",
+    "ceiling": 50,
+    "oldOrder": 0.1,
+    "pressure": 0.1,
+    "spread": 1.5,
+    "reliability": 0.9,
+    "fame": 0.6,
+    "concealed": true,
+    "relations": {
+      "dora": {
+        "trust": 80,
+        "like": 85
+      },
+      "bron": {
+        "trust": 80,
+        "like": 60
+      },
+      "ron": {
+        "like": 50
+      }
+    },
+    "needs": {
+      "energy": 0.8
+    }
+  },
+  {
+    "id": "bron",
+    "name": "老布伦",
+    "race": "人族",
+    "gender": "m",
+    "age": 58,
+    "job": "公会边石分部长",
+    "level": 18,
+    "faction": "guild",
+    "class": "adventurer",
+    "traits": ["粗声", "嗜酒", "负责", "怕遗迹"],
+    "intro": "独臂的公会分部长，白天骂人，晚上喝酒。",
+    "goals": ["让分部别倒闭", "弄明白二十年前那是什么"],
+    "secrets": [
+      "二十年前随公会探索队进过遗迹，失去右臂，两名队友死去",
+      "报告被教会下令销毁，他让侯克抄了一份",
+      "醉了会念叨'没有脸的人'，清醒时一概否认"
+    ],
+    "knowledge": "K1",
+    "attitude": 45,
+    "map": "borderstone",
+    "home": "guild",
+    "work": "guild",
+    "schedule": "guildmaster",
+    "voice": {
+      "rules": ["粗声粗气", "清醒时简短，否认自己说过醉话", "醉时啰嗦", "遇到遗迹相关的东西会紧张"],
+      "catchphrases": ["登记簿上写什么，就是什么。", "再来一杯。"],
+      "address": "新来的",
+      "never": ["清醒时承认醉话"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a4a5a", "#7a6a5a", "#e0b894", "#9a8a7a"]
+    },
+    "tags": ["guild_master"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "valda",
+    "devotion": 0.2,
+    "money": 800,
+    "wage": 8,
+    "personality": "stubborn",
+    "oldOrder": 0.6,
+    "pressure": 0.3,
+    "spread": 0.8,
+    "reliability": 0.6,
+    "fame": 0.4,
+    "relations": {
+      "martha": {
+        "trust": 80,
+        "like": 60
+      },
+      "hock": {
+        "trust": 85,
+        "like": 40
+      },
+      "lina": {
+        "trust": 50,
+        "like": 40
+      },
+      "ron": {
+        "trust": 55,
+        "like": 30
+      },
+      "dris": {
+        "trust": 50
+      }
+    },
+    "lines": {
+      "appraise.crystal": ["坏了就拿去给侯克，别在柜台上拍它。"]
+    },
+    "needs": {
+      "social": 1.4,
+      "energy": 1.2
+    }
+  },
+  {
+    "id": "moss",
+    "name": "代官莫斯",
+    "race": "人族",
+    "gender": "m",
+    "age": 44,
+    "job": "代官",
+    "level": 7,
+    "faction": "magistrate",
+    "class": "noble",
+    "traits": ["圆滑", "贪", "胆小", "记仇", "要体面"],
+    "intro": "领主任命的代官，镇上唯一住石头大宅的人。",
+    "goals": ["攒够钱在瓦伦堡买个官职", "不让王都知道他做的事"],
+    "secrets": [
+      "暗中雇匪帮劫掠独立商队",
+      "两年前安排矿道塌方，偷采灰晶卖给瓦伦堡的买家",
+      "有两本账"
+    ],
+    "knowledge": "K1",
+    "attitude": 35,
+    "map": "borderstone",
+    "home": "magistrate",
+    "work": "magistrate",
+    "schedule": "official",
+    "voice": {
+      "rules": [
+        "表面客气，句句先算自己的风险",
+        "把麻烦推给最弱、最没背景的人",
+        "容易被收买，也容易被吓住"
+      ],
+      "catchphrases": ["这事得按规矩来。", "我也是为镇上着想。"],
+      "address": "这位……新来的",
+      "never": ["亲自动手"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a2a4a", "#c8a84a", "#f0c8a0", "#2a2a2a"]
+    },
+    "tags": ["official"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "merca",
+    "devotion": 0.2,
+    "money": 20000,
+    "wage": 10,
+    "personality": "stubborn",
+    "oldOrder": 0.9,
+    "pressure": 0.4,
+    "spread": 0.6,
+    "reliability": 0.5,
+    "fame": 0.3,
+    "relations": {
+      "vick": {
+        "trust": 50,
+        "like": 10
+      },
+      "barto": {
+        "trust": 40
+      },
+      "nera": {
+        "trust": 30,
+        "interest": 20
+      }
+    }
+  },
+  {
+    "id": "lina",
+    "name": "莉娜",
+    "race": "人族",
+    "gender": "f",
+    "age": 19,
+    "job": "公会接待员",
+    "level": 2,
+    "faction": "guild",
+    "class": "peasant",
+    "traits": ["开朗", "八卦", "热心", "粗心"],
+    "intro": "公会柜台的接待员，公会的消息都从她嘴里出去。",
+    "goals": ["当上正式文员", "嫁去瓦伦堡"],
+    "secrets": ["偷偷把好委托留给德里斯"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["公会登记与委托的流程"],
+    "attitude": 60,
+    "map": "borderstone",
+    "home": "houses_south",
+    "work": "guild",
+    "schedule": "clerk",
+    "voice": {
+      "rules": ["说话快，爱加'好可爱''好厉害'", "见到怪事先惊叫，再找理由，再到处讲"],
+      "catchphrases": ["好厉害！", "啊，又坏了……"],
+      "address": "您"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a7aa0", "#e0e0e0", "#f8d8b8", "#c8803a"]
+    },
+    "tags": ["clerk"],
+    "goddess": "eluen",
+    "devotion": 0.5,
+    "money": 200,
+    "wage": 4,
+    "personality": "curious",
+    "oldOrder": 0.3,
+    "pressure": 0.7,
+    "spin": "cute",
+    "spread": 1.5,
+    "reliability": 0.7,
+    "fame": 0.1,
+    "relations": {
+      "dris": {
+        "like": 40
+      },
+      "bron": {
+        "trust": 60
+      },
+      "hock": {
+        "trust": 60
+      }
+    },
+    "lines": {
+      "appraise.crystal": ["啊，又坏了……这个月第三次了。您别担心，先登记 F 级，水晶修好了再来测。"],
+      "react.explain.luck": ["好厉害！……运气真好呀。"]
+    }
+  },
+  {
+    "id": "hock",
+    "name": "侯克",
+    "race": "人族",
+    "gender": "m",
+    "age": 66,
+    "job": "公会文书兼档案员",
+    "level": 4,
+    "faction": "guild",
+    "class": "artisan",
+    "traits": ["刻板", "守规矩", "近视", "记性极好"],
+    "intro": "公会的老文书，整天待在档案室。",
+    "goals": ["保管好每一份记录"],
+    "secrets": [
+      "铁皮箱里锁着二十年前报告的抄本、林约抄本和奥托的公证遗嘱原件",
+      "知道维克那份遗嘱是假的，但没人问他"
+    ],
+    "knowledge": "K1",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "houses_north",
+    "work": "guild",
+    "schedule": "archivist",
+    "voice": {
+      "rules": ["只回答问对了的问题", "不说谎，也不主动", "说话一板一眼，爱引登记规矩"],
+      "catchphrases": ["记录上是这么写的。"],
+      "address": "这位",
+      "never": ["说谎"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a3a4a", "#8a8a7a", "#e8c8a8", "#e0e0e0"]
+    },
+    "tags": ["clerk"],
+    "goddess": "moira",
+    "devotion": 0.6,
+    "money": 600,
+    "wage": 4,
+    "personality": "stubborn",
+    "oldOrder": 0.6,
+    "pressure": 0.2,
+    "spread": 0.2,
+    "reliability": 0.95,
+    "relations": {
+      "bron": {
+        "trust": 80,
+        "like": 40
+      }
+    }
+  },
+  {
+    "id": "isa",
+    "name": "伊莎修女",
+    "race": "人族",
+    "gender": "f",
+    "age": 24,
+    "job": "助祭",
+    "level": 6,
+    "faction": "church",
+    "class": "clergy",
+    "traits": ["温柔", "胆怯", "善良", "心存怀疑"],
+    "intro": "礼拜堂的助祭，常去孤儿院帮忙。",
+    "goals": ["护住孤儿院的孩子"],
+    "secrets": ["让欧拉夜里进孤儿院", "见过诺伊后颈的'胎记'", "在教希雅认字"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["圣教的基本教导"],
+    "attitude": 55,
+    "map": "borderstone",
+    "home": "houses_north",
+    "work": "chapel",
+    "schedule": "nun",
+    "voice": {
+      "rules": ["说话轻，常常欲言又止", "不会主动反对卡西安神父", "说真话需要足够的信任"],
+      "catchphrases": ["愿光照着您。"],
+      "address": "您",
+      "never": ["伤害孩子"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#2a2a3a", "#e8e8e8", "#f0d0b8", "#6a4a2a"]
+    },
+    "tags": ["priest"],
+    "potential": "证人",
+    "goddess": "eluen",
+    "devotion": 0.8,
+    "money": 80,
+    "wage": 2,
+    "personality": "normal",
+    "oldOrder": 0.4,
+    "pressure": 0.6,
+    "spread": 0.6,
+    "reliability": 0.85,
+    "relations": {
+      "cassian": {
+        "trust": 70,
+        "like": 50
+      },
+      "oola": {
+        "trust": 60,
+        "like": 50
+      },
+      "greta": {
+        "trust": 70,
+        "like": 60
+      },
+      "shiya": {
+        "like": 40
+      }
+    },
+    "stances": {
+      "witch_trial": -0.5
+    },
+    "needs": {
+      "faith": 1.2
+    }
+  },
+  {
+    "id": "toma",
+    "name": "托马",
+    "race": "人族",
+    "gender": "m",
+    "age": 63,
+    "job": "敲钟人",
+    "level": 3,
+    "faction": "church",
+    "class": "peasant",
+    "traits": ["沉默", "装聋", "好奇"],
+    "intro": "礼拜堂的敲钟人，据说耳朵不好。",
+    "goals": ["安稳到老"],
+    "secrets": ["他不聋，钟楼上什么都看得见"],
+    "knowledge": "K0",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "chapel",
+    "work": "chapel",
+    "schedule": "bellringer",
+    "voice": {
+      "rules": ["默认不说话，只嗯一声", "给他好酒或尊重才开口", "开口说的都是亲眼看见的事"],
+      "catchphrases": ["嗯？", "……听不清。"],
+      "address": "你"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a4a3a", "#8a7a6a", "#e0b894", "#c8c8c8"]
+    },
+    "tags": [],
+    "potential": "千里眼",
+    "goddess": "eluen",
+    "devotion": 0.5,
+    "money": 60,
+    "wage": 2,
+    "personality": "curious",
+    "spread": 0.2,
+    "reliability": 0.9,
+    "needs": {
+      "social": 0.4
+    }
+  },
+  {
+    "id": "bertha",
+    "name": "贝莎",
+    "race": "人族",
+    "gender": "f",
+    "age": 58,
+    "job": "虔诚妇女会会长",
+    "level": 1,
+    "faction": "church",
+    "class": "peasant",
+    "traits": ["虔诚", "热心", "爱管事", "恐惧"],
+    "intro": "虔诚妇女会的会长，每天上午都在礼拜堂。",
+    "goals": ["孙子托比健康", "让镇子干干净净"],
+    "secrets": ["丈夫早年死于荒原病，她以为那是诅咒"],
+    "knowledge": "K0",
+    "attitude": 35,
+    "map": "borderstone",
+    "home": "houses_north",
+    "work": "chapel",
+    "schedule": "devotee",
+    "voice": {
+      "rules": ["什么都往光的奇迹或邪术上扯", "说话急，爱压低声音讲吓人的事"],
+      "catchphrases": ["光保佑！", "这里头一定有邪祟。"],
+      "address": "外乡人"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a3a3a", "#6a5a4a", "#e8c0a0", "#b0b0b0"]
+    },
+    "tags": [],
+    "goddess": "eluen",
+    "devotion": 0.9,
+    "money": 120,
+    "wage": 0,
+    "personality": "stubborn",
+    "oldOrder": 0.7,
+    "pressure": 0.8,
+    "spin": "fear",
+    "spread": 1.6,
+    "reliability": 0.6,
+    "relations": {
+      "cassian": {
+        "trust": 85,
+        "like": 70
+      }
+    },
+    "stances": {
+      "witch_trial": 0.9
+    },
+    "needs": {
+      "faith": 1.5,
+      "social": 1.3
+    }
+  },
+  {
+    "id": "greta",
+    "name": "格蕾塔",
+    "race": "人族",
+    "gender": "f",
+    "age": 55,
+    "job": "圣灯孤儿院院长",
+    "level": 2,
+    "faction": "church",
+    "class": "peasant",
+    "traits": ["慈爱", "操劳", "坚韧", "怕事"],
+    "intro": "圣灯孤儿院的院长，十四个孩子的妈。",
+    "goals": ["让十四个孩子吃饱", "拿回奥托磨坊"],
+    "secrets": ["知道诺伊身上有'胎记'并帮着藏", "知道奥托的遗嘱把磨坊留给孤儿院", "欠商会面粉钱"],
+    "knowledge": "K0",
+    "attitude": 55,
+    "map": "borderstone",
+    "home": "orphanage",
+    "work": "orphanage",
+    "schedule": "matron",
+    "voice": {
+      "rules": ["凡事先护孩子", "会请人帮忙，但不会求第二次"],
+      "catchphrases": ["孩子们还等着吃饭呢。"],
+      "address": "好心人"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#6a5a7a", "#d8c8b0", "#f0c8a8", "#a0a0a0"]
+    },
+    "tags": [],
+    "goddess": "eluen",
+    "devotion": 0.7,
+    "money": 50,
+    "wage": 1,
+    "spread": 0.8,
+    "reliability": 0.8,
+    "relations": {
+      "noi": {
+        "trust": 70,
+        "like": 80
+      },
+      "tess": {
+        "like": 85
+      },
+      "isa": {
+        "trust": 70
+      },
+      "oola": {
+        "trust": 60
+      },
+      "nera": {
+        "trust": 40
+      }
+    }
+  },
+  {
+    "id": "noi",
+    "name": "诺伊",
+    "race": "人族（遗民）",
+    "gender": "m",
+    "age": 8,
+    "job": "孤儿",
+    "level": 1,
+    "faction": "remnants",
+    "class": "remnant",
+    "traits": ["安静", "早熟", "护妹妹", "怕光"],
+    "intro": "圣灯孤儿院里不爱说话的男孩。",
+    "goals": ["保护苔丝"],
+    "secrets": ["后颈有一块会发热的'胎记'", "能隐约感觉到某种'门'在哪里"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["半首遗民童谣"],
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "orphanage",
+    "work": "orphanage",
+    "schedule": "orphan",
+    "voice": {
+      "rules": ["不主动说话，说话很短", "盯着人看"],
+      "catchphrases": ["……"],
+      "address": "你"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a5a6a", "#8a8a9a", "#f0d8c0", "#2a2a3a"],
+      "scale": 0.75
+    },
+    "tags": ["child"],
+    "potential": "门感",
+    "devotion": 0,
+    "money": 0,
+    "wage": 0,
+    "spread": 0.3,
+    "reliability": 0.3,
+    "relations": {
+      "tess": {
+        "trust": 100,
+        "like": 100
+      },
+      "oola": {
+        "trust": 80,
+        "like": 70
+      }
+    },
+    "lines": {
+      "greet.first": ["你身上有一扇门。"]
+    },
+    "needs": {
+      "social": 0.5
+    }
+  },
+  {
+    "id": "tess",
+    "name": "苔丝",
+    "race": "人族（遗民）",
+    "gender": "f",
+    "age": 5,
+    "job": "孤儿",
+    "level": 1,
+    "faction": "remnants",
+    "class": "remnant",
+    "traits": ["爱笑", "黏人", "口无遮拦"],
+    "intro": "孤儿院里最小的女孩，总跟在哥哥身后。",
+    "goals": ["找到哥哥说的'开门的母亲'"],
+    "secrets": ["手心有一块被草汁染掉的印记"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["童谣：门开了，门开了，妈妈在门后"],
+    "attitude": 65,
+    "map": "borderstone",
+    "home": "orphanage",
+    "work": "orphanage",
+    "schedule": "orphan",
+    "voice": {
+      "rules": ["说话像唱歌，想到什么说什么", "爱唱童谣"],
+      "catchphrases": ["门开了，门开了～", "嘿嘿。"],
+      "address": "你呀"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#c8a0b0", "#e8d8d0", "#f8e0c8", "#4a3a2a"],
+      "scale": 0.65
+    },
+    "tags": ["child"],
+    "devotion": 0,
+    "money": 0,
+    "wage": 0,
+    "spread": 1.8,
+    "reliability": 0.2,
+    "relations": {
+      "noi": {
+        "trust": 100,
+        "like": 100
+      }
+    }
+  },
+  {
+    "id": "barga",
+    "name": "巴尔加",
+    "race": "矮人",
+    "gender": "m",
+    "age": 84,
+    "job": "铁匠",
+    "level": 14,
+    "faction": "townsfolk",
+    "class": "artisan",
+    "traits": ["暴躁", "守约", "骄傲", "恨偷工减料"],
+    "intro": "巴尔加铁匠铺的矮人铁匠。",
+    "goals": ["打出一把配得上的剑", "还清煤钱"],
+    "secrets": ["被代官以铁匠执照相胁，夜里给匪帮打刀，每把刀上都刻了暗记"],
+    "knowledge": "K1",
+    "attitude": 40,
+    "map": "borderstone",
+    "home": "smithy",
+    "work": "smithy",
+    "schedule": "smith",
+    "voice": {
+      "rules": ["暴躁，嗓门大", "看到超凡的事先挑毛病：刃角不对，你是蛮力", "私下佩服，嘴上不认"],
+      "catchphrases": ["偷工减料的东西，我不碰。", "契约就是契约。"],
+      "address": "小子",
+      "never": ["违约", "偷工减料"]
+    },
+    "appearance": {
+      "base": "dwarf",
+      "colors": ["#6a3a2a", "#3a3a3a", "#e0a080", "#a03a1a"]
+    },
+    "tags": ["smith", "merchant"],
+    "goddess": "merca",
+    "devotion": 0.6,
+    "money": 900,
+    "wage": 7,
+    "personality": "stubborn",
+    "oldOrder": 0.5,
+    "pressure": 0.2,
+    "spread": 0.6,
+    "reliability": 0.8,
+    "relations": {
+      "moss": {
+        "trust": 10,
+        "like": -40
+      }
+    },
+    "lines": {
+      "react.explain.gadget": [
+        "刃角不对，你是蛮力。",
+        "什么机关？矮人的机关可不会让人一下子就打开！"
+      ]
+    },
+    "needs": {
+      "hunger": 1.2,
+      "social": 0.6
+    }
+  },
+  {
+    "id": "gaspar",
+    "name": "加斯帕",
+    "race": "人族",
+    "gender": "m",
+    "age": 38,
+    "job": "伐木场工头",
+    "level": 10,
+    "faction": "lumberyard",
+    "class": "peasant",
+    "traits": ["粗犷", "记仇", "讲义气", "偏见深"],
+    "intro": "伐木场的工头，手下三十个工人。",
+    "goals": ["让工人们有活干", "拿下东林深处的老木"],
+    "secrets": [
+      "弟弟八年前在林里被狼咬死，他一直认定是兽人猎户'引狼'",
+      "知道伐木许可是代官高价卖的"
+    ],
+    "knowledge": "K0",
+    "attitude": 40,
+    "map": "borderstone",
+    "home": "houses_west",
+    "work": "lumberyard",
+    "schedule": "lumber",
+    "voice": {
+      "rules": ["粗声大气", "对兽人的偏见只会被亲眼所见改变", "为自己的工人拼命"],
+      "catchphrases": ["干活！", "狗坡那帮人……"],
+      "address": "外乡人",
+      "never": ["丢下自己的工人"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#7a4a2a", "#5a5a3a", "#e0b080", "#3a2a1a"]
+    },
+    "tags": ["lumber"],
+    "goddess": "valda",
+    "devotion": 0.2,
+    "money": 500,
+    "wage": 6,
+    "personality": "stubborn",
+    "oldOrder": 0.5,
+    "pressure": 0.5,
+    "spread": 1,
+    "reliability": 0.7,
+    "relations": {
+      "gorn": {
+        "trust": 10,
+        "like": -50
+      },
+      "shiya": {
+        "like": -40
+      },
+      "nick": {
+        "trust": 60,
+        "like": 40
+      }
+    },
+    "stances": {
+      "forest": 0.8
+    }
+  },
+  {
+    "id": "nick",
+    "name": "尼克",
+    "race": "人族",
+    "gender": "m",
+    "age": 20,
+    "job": "伐木工",
+    "level": 5,
+    "faction": "lumberyard",
+    "class": "peasant",
+    "traits": ["老实", "木讷", "勇敢", "害羞"],
+    "intro": "伐木场的年轻工人。",
+    "goals": ["娶莉莎"],
+    "secrets": ["和希雅从小认识，偷偷交换过猎物与木雕", "知道伐区越往里魔物越多"],
+    "knowledge": "K0",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "houses_west",
+    "work": "lumberyard",
+    "schedule": "lumber",
+    "voice": {
+      "rules": ["话少，一紧张就结巴"],
+      "catchphrases": ["嗯……", "我、我去干活了。"],
+      "address": "你"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a6a3a", "#7a5a3a", "#e8c098", "#5a3a1a"]
+    },
+    "tags": ["lumber"],
+    "devotion": 0.3,
+    "money": 80,
+    "wage": 4,
+    "spread": 0.5,
+    "reliability": 0.7,
+    "relations": {
+      "lisa": {
+        "trust": 80,
+        "like": 80
+      },
+      "shiya": {
+        "trust": 60,
+        "like": 40
+      },
+      "gaspar": {
+        "trust": 60
+      }
+    },
+    "stances": {
+      "forest": -0.2
+    }
+  },
+  {
+    "id": "gorn",
+    "name": "葛恩",
+    "race": "兽人（狼族）",
+    "gender": "m",
+    "age": 45,
+    "job": "东坡猎户首领",
+    "level": 15,
+    "faction": "east_slope",
+    "class": "beastkin",
+    "traits": ["沉稳", "骄傲", "能忍", "固执"],
+    "intro": "东坡兽人猎户的首领，腿上有伤。",
+    "goals": ["守住林约", "让孩子们有个能待的地方"],
+    "secrets": ["腿伤是两年前替一个人族猎人挡魔物留下的，那人事后却作证是兽人引来的魔物"],
+    "knowledge": "K0",
+    "knowledgeNotes": ["林约刻在约树上"],
+    "attitude": 40,
+    "map": "borderstone",
+    "home": "east_slope",
+    "work": "gate_forest_edge",
+    "schedule": "hunter",
+    "voice": {
+      "rules": ["话少，讲规矩", "决定了就不回头", "能被林约说服"],
+      "catchphrases": ["规矩就是规矩。", "祖灵在上。"],
+      "address": "人族"
+    },
+    "appearance": {
+      "base": "beast",
+      "colors": ["#4a3a2a", "#6a5a3a", "#c8a080", "#6a6a6a"]
+    },
+    "tags": ["hunter"],
+    "goddess": "sylvie",
+    "devotion": 0.6,
+    "money": 300,
+    "wage": 4,
+    "personality": "stubborn",
+    "spread": 0.4,
+    "reliability": 0.6,
+    "relations": {
+      "shiya": {
+        "trust": 85,
+        "like": 75
+      },
+      "ako": {
+        "like": 80
+      },
+      "boro": {
+        "trust": 70
+      },
+      "gaspar": {
+        "like": -40
+      }
+    },
+    "stances": {
+      "forest": -0.9
+    }
+  },
+  {
+    "id": "ako",
+    "name": "阿柯",
+    "race": "兽人（狼族）",
+    "gender": "m",
+    "age": 12,
+    "job": "希雅的弟弟",
+    "level": 2,
+    "faction": "east_slope",
+    "class": "beastkin",
+    "traits": ["调皮", "敏捷", "自尊心强"],
+    "intro": "希雅的弟弟，镇上乱跑的小狼。",
+    "goals": ["被当成大人"],
+    "secrets": ["在集市拿过一个苹果", "见过杰德进骰子屋"],
+    "knowledge": "K0",
+    "attitude": 55,
+    "map": "borderstone",
+    "home": "east_slope",
+    "work": "east_slope",
+    "schedule": "kid",
+    "voice": {
+      "rules": ["说话冲，爱逞强", "被冤枉就跑"],
+      "catchphrases": ["我才不是小孩！"],
+      "address": "喂"
+    },
+    "appearance": {
+      "base": "beast",
+      "colors": ["#5a4632", "#8c6b45", "#d9b08c", "#8a8a8a"],
+      "scale": 0.8
+    },
+    "tags": ["child"],
+    "devotion": 0.2,
+    "money": 5,
+    "wage": 0,
+    "spread": 1.6,
+    "reliability": 0.3,
+    "relations": {
+      "shiya": {
+        "trust": 80,
+        "like": 85
+      }
+    }
+  },
+  {
+    "id": "boro",
+    "name": "博罗",
+    "race": "兽人（熊族）",
+    "gender": "m",
+    "age": 35,
+    "job": "猎户",
+    "level": 13,
+    "faction": "east_slope",
+    "class": "beastkin",
+    "traits": ["暴躁", "直", "能打", "讲义气"],
+    "intro": "东坡的熊族猎户，力气大到能扳倒公牛。",
+    "goals": ["让人族闭嘴"],
+    "secrets": ["私下跟匪帮的人换过酒，不知道对方的身份"],
+    "knowledge": "K0",
+    "attitude": 30,
+    "map": "borderstone",
+    "home": "east_slope",
+    "work": "gate_forest_edge",
+    "schedule": "hunter",
+    "voice": {
+      "rules": ["嗓门大，三句话就要动手", "被扳手腕打赢后无条件尊重对方"],
+      "catchphrases": ["来，扳一把！", "人族用了诈。"],
+      "address": "人族小子"
+    },
+    "appearance": {
+      "base": "beast",
+      "colors": ["#5a3a1a", "#3a2a1a", "#b08060", "#3a2a1a"],
+      "scale": 1.2
+    },
+    "tags": ["hunter"],
+    "goddess": "valda",
+    "devotion": 0.4,
+    "money": 150,
+    "wage": 4,
+    "personality": "stubborn",
+    "spread": 0.8,
+    "reliability": 0.6,
+    "relations": {
+      "gorn": {
+        "trust": 70
+      },
+      "gaspar": {
+        "like": -60
+      }
+    },
+    "stances": {
+      "forest": -1
+    }
+  },
+  {
+    "id": "barto",
+    "name": "巴托",
+    "race": "人族",
+    "gender": "m",
+    "age": 41,
+    "job": "镇卫队长",
+    "level": 15,
+    "faction": "town_guard",
+    "class": "knight",
+    "traits": ["务实", "疲惫", "尽职", "怕牵连家人"],
+    "intro": "镇卫队长，手下十二个民兵。",
+    "goals": ["让十二个民兵都活着回家"],
+    "secrets": ["知道讨伐税一个铜板都没用在讨伐上", "代官暗中拿他的妻女压他"],
+    "knowledge": "K1",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "houses_north",
+    "work": "guard_post",
+    "schedule": "guard",
+    "voice": {
+      "rules": ["说话简短，带着疲惫", "只在有退路时站出来"],
+      "catchphrases": ["别惹事。", "带走，醒醒酒。"],
+      "address": "你"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a5a6a", "#8a7a5a", "#e0b894", "#4a3a2a"]
+    },
+    "tags": ["guard"],
+    "potential": "守城",
+    "goddess": "eluen",
+    "devotion": 0.4,
+    "money": 400,
+    "wage": 6,
+    "oldOrder": 0.5,
+    "pressure": 0.6,
+    "spread": 0.8,
+    "reliability": 0.85,
+    "relations": {
+      "moss": {
+        "trust": 20,
+        "like": -20
+      },
+      "jed": {
+        "trust": 40
+      }
+    }
+  },
+  {
+    "id": "jed",
+    "name": "杰德",
+    "race": "人族",
+    "gender": "m",
+    "age": 23,
+    "job": "民兵",
+    "level": 6,
+    "faction": "town_guard",
+    "class": "peasant",
+    "traits": ["嘴甜", "虚荣", "懦弱"],
+    "intro": "卫队的年轻民兵，嘴很甜。",
+    "goals": ["还清赌债"],
+    "secrets": ["集市的失窃是他干的，偷来的小物件拿去骰子屋抵债", "欠骰子屋九枚银币"],
+    "knowledge": "K0",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "houses_south",
+    "work": "guard_post",
+    "schedule": "guard_gambler",
+    "voice": {
+      "rules": ["嘴甜，爱奉承", "被问到失窃就把话头引到别人身上"],
+      "catchphrases": ["哎呀，好说好说。"],
+      "address": "大哥"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a5a6a", "#7a6a4a", "#f0c8a0", "#8a6a3a"]
+    },
+    "tags": ["guard"],
+    "devotion": 0.2,
+    "money": 20,
+    "wage": 4,
+    "spread": 1.2,
+    "reliability": 0.4,
+    "relations": {
+      "viro": {
+        "trust": 10,
+        "like": -20
+      },
+      "ako": {
+        "like": -10
+      }
+    }
+  },
+  {
+    "id": "vick",
+    "name": "维克",
+    "race": "人族",
+    "gender": "m",
+    "age": 31,
+    "job": "代官书记官",
+    "level": 4,
+    "faction": "magistrate",
+    "class": "merchant",
+    "traits": ["精明", "贪", "怯", "爱面子"],
+    "intro": "代官的书记官，写得一手好字。",
+    "goals": ["拿到奥托磨坊", "离开边石镇"],
+    "secrets": ["伪造了舅舅奥托的遗嘱", "替代官记第二本账，自己偷偷誊了一份保命"],
+    "knowledge": "K1",
+    "attitude": 40,
+    "map": "borderstone",
+    "home": "houses_west",
+    "work": "magistrate",
+    "schedule": "scribe",
+    "voice": {
+      "rules": ["说话斯文，爱用公文腔", "自保第一，被吓住就会出卖别人"],
+      "catchphrases": ["按章程办。"],
+      "address": "这位"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a4a5a", "#a0a0a0", "#f0d0b0", "#2a2a2a"]
+    },
+    "tags": ["official"],
+    "devotion": 0.2,
+    "money": 900,
+    "wage": 5,
+    "oldOrder": 0.7,
+    "spread": 0.6,
+    "reliability": 0.6,
+    "relations": {
+      "moss": {
+        "trust": 40
+      },
+      "lisa": {
+        "interest": 40
+      }
+    }
+  },
+  {
+    "id": "viro",
+    "name": "薇罗",
+    "race": "人族",
+    "gender": "f",
+    "age": 28,
+    "job": "骰子屋主人",
+    "level": 13,
+    "faction": "oneeye",
+    "class": "merchant",
+    "traits": ["聪明", "冷", "野心大", "会算"],
+    "intro": "骰子屋的主人，镇上没人说得清她的来路。",
+    "goals": ["带一半人去瓦伦堡发财"],
+    "secrets": ["是匪帮的副手", "私下和代官另立了协议"],
+    "knowledge": "K1",
+    "attitude": 40,
+    "map": "borderstone",
+    "home": "dice_house",
+    "work": "dice_house",
+    "schedule": "den_keeper",
+    "voice": {
+      "rules": ["冷淡，话里有话", "向出价最高者靠拢"],
+      "catchphrases": ["押多少？"],
+      "address": "客人"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#2a2a2a", "#7a1a2a", "#e8c8a8", "#1a1a1a"]
+    },
+    "tags": ["gambler"],
+    "potential": "谋士",
+    "devotion": 0.1,
+    "money": 2500,
+    "wage": 0,
+    "personality": "curious",
+    "oldOrder": 0.2,
+    "spread": 0.6,
+    "reliability": 0.6,
+    "relations": {
+      "jed": {
+        "like": -10,
+        "interest": 30
+      },
+      "moss": {
+        "trust": 20,
+        "interest": 40
+      }
+    }
+  },
+  {
+    "id": "popo",
+    "name": "波波",
+    "race": "半身人",
+    "gender": "m",
+    "age": 22,
+    "job": "商会伙计",
+    "level": 3,
+    "faction": "mercator",
+    "class": "merchant",
+    "traits": ["话多", "乐天", "运气好", "嘴不严"],
+    "intro": "商会分号的半身人伙计，跑腿送货都是他。",
+    "goals": ["有一天开自己的店"],
+    "secrets": ["奈拉的囤货清单他背得出来"],
+    "knowledge": "K0",
+    "attitude": 65,
+    "map": "borderstone",
+    "home": "houses_south",
+    "work": "merchant_branch",
+    "schedule": "shop_hand",
+    "voice": {
+      "rules": ["话多，给一切标价"],
+      "catchphrases": ["这个我出六个铜板！", "运气好嘛。"],
+      "address": "客官"
+    },
+    "appearance": {
+      "base": "halfling",
+      "colors": ["#6a8a3a", "#c8a060", "#f0c8a0", "#c8803a"],
+      "scale": 0.7
+    },
+    "tags": ["merchant"],
+    "potential": "好运",
+    "goddess": "merca",
+    "devotion": 0.5,
+    "money": 150,
+    "wage": 4,
+    "personality": "curious",
+    "spin": "price",
+    "spread": 2,
+    "reliability": 0.5,
+    "relations": {
+      "nera": {
+        "trust": 70,
+        "like": 60
+      }
+    },
+    "needs": {
+      "social": 1.5,
+      "hunger": 1.3
+    }
+  },
+  {
+    "id": "owen",
+    "name": "欧文",
+    "race": "人族",
+    "gender": "m",
+    "age": 36,
+    "job": "独立行商",
+    "level": 8,
+    "faction": "townsfolk",
+    "class": "merchant",
+    "traits": ["精明", "正直", "倔", "满腹怨气"],
+    "intro": "常在盐巷摆摊的独立行商。",
+    "goals": ["保住自己的商队", "让劫匪付出代价"],
+    "secrets": ["被劫时看见匪徒补给箱上有代官的火漆印"],
+    "knowledge": "K1",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "drunk_moon",
+    "work": "salt_market",
+    "schedule": "peddler",
+    "hideWhen": ["a1_owen_left"],
+    "voice": {
+      "rules": ["说话直，满肚子怨气"],
+      "catchphrases": ["这世道！"],
+      "address": "这位"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#7a6a3a", "#5a4a3a", "#e0b894", "#5a3a2a"]
+    },
+    "tags": ["merchant"],
+    "goddess": "merca",
+    "devotion": 0.4,
+    "money": 700,
+    "wage": 6,
+    "spread": 1.2,
+    "reliability": 0.8
+  },
+  {
+    "id": "dora",
+    "name": "朵拉",
+    "race": "人族",
+    "gender": "f",
+    "age": 17,
+    "job": "醉月亭女招待",
+    "level": 2,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["活泼", "向往城市", "嘴快"],
+    "intro": "醉月亭的女招待，嗓子很好。",
+    "goals": ["去瓦伦堡当歌手"],
+    "secrets": ["她是玛莎收养的"],
+    "knowledge": "K0",
+    "attitude": 60,
+    "map": "borderstone",
+    "home": "drunk_moon",
+    "work": "drunk_moon",
+    "schedule": "barmaid",
+    "voice": {
+      "rules": ["兴奋地添油加醋", "数字随口乘以五"],
+      "catchphrases": ["真的真的！", "我跟你说哦……"],
+      "address": "客人"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#a04a5a", "#e8d0b0", "#f8d8c0", "#c87a3a"]
+    },
+    "tags": [],
+    "devotion": 0.3,
+    "money": 60,
+    "wage": 3,
+    "personality": "curious",
+    "spin": "x5",
+    "spread": 1.8,
+    "reliability": 0.5,
+    "relations": {
+      "martha": {
+        "trust": 90,
+        "like": 90
+      }
+    },
+    "needs": {
+      "social": 1.4
+    }
+  },
+  {
+    "id": "ed",
+    "name": "埃德",
+    "race": "人族",
+    "gender": "m",
+    "age": 72,
+    "job": "守墓人",
+    "level": 2,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["迷信", "孤独", "和善"],
+    "intro": "西南坡墓地的守墓人，很少进镇。",
+    "goals": ["让死者安息"],
+    "secrets": ["看见米洛的新坟上夜里飘着灰色的鬼火"],
+    "knowledge": "K0",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "gravekeeper_hut",
+    "work": "graveyard",
+    "schedule": "gravekeeper",
+    "voice": {
+      "rules": ["一切怪事都解释成鬼", "爱讲鬼故事"],
+      "catchphrases": ["夜里别往坡上去。"],
+      "address": "年轻人"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a3a3a", "#5a5a4a", "#d8b898", "#e0e0e0"]
+    },
+    "tags": [],
+    "goddess": "eluen",
+    "devotion": 0.6,
+    "money": 40,
+    "wage": 2,
+    "spin": "ghost",
+    "spread": 0.6,
+    "reliability": 0.4
+  },
+  {
+    "id": "ped",
+    "name": "佩德",
+    "race": "人族",
+    "gender": "m",
+    "age": 52,
+    "job": "面包师",
+    "level": 2,
+    "faction": "townsfolk",
+    "class": "artisan",
+    "traits": ["勤劳", "算小账", "疼女儿", "软弱"],
+    "intro": "盐巷口面包房的面包师，清早第一缕烟就是他家的。",
+    "goals": ["交得起税", "保住面包房"],
+    "secrets": ["代官暗示：女儿的婚事成了，就免他两年井税和面包税"],
+    "knowledge": "K0",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "bakery",
+    "work": "bakery",
+    "schedule": "baker",
+    "voice": {
+      "rules": ["说话小心，怕官"],
+      "catchphrases": ["新出炉的！"],
+      "address": "客人"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#e0d0b0", "#8a6a4a", "#f0c8a0", "#5a4a3a"]
+    },
+    "tags": ["baker"],
+    "goddess": "merca",
+    "devotion": 0.4,
+    "money": 300,
+    "wage": 5,
+    "spread": 1.2,
+    "reliability": 0.8,
+    "relations": {
+      "lisa": {
+        "trust": 70,
+        "like": 90
+      },
+      "vick": {
+        "interest": 30
+      }
+    }
+  },
+  {
+    "id": "lisa",
+    "name": "莉莎",
+    "race": "人族",
+    "gender": "f",
+    "age": 19,
+    "job": "面包房的女儿",
+    "level": 1,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["温柔", "有主见", "不敢违抗父亲"],
+    "intro": "面包房的女儿。",
+    "goals": ["嫁给尼克"],
+    "secrets": ["已经收拾好一个小包袱"],
+    "knowledge": "K0",
+    "attitude": 55,
+    "map": "borderstone",
+    "home": "bakery",
+    "work": "bakery",
+    "schedule": "baker",
+    "voice": {
+      "rules": ["温柔，只向信任的人求助一次"],
+      "catchphrases": ["嗯，好。"],
+      "address": "你"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#c88a9a", "#e8e0d0", "#f8d8c0", "#8a5a2a"]
+    },
+    "tags": [],
+    "devotion": 0.4,
+    "money": 40,
+    "wage": 2,
+    "relations": {
+      "nick": {
+        "trust": 85,
+        "like": 85
+      },
+      "ped": {
+        "like": 70
+      }
+    }
+  },
+  {
+    "id": "dris",
+    "name": "德里斯",
+    "race": "人族",
+    "gender": "m",
+    "age": 26,
+    "job": "冒险者（C 级）",
+    "level": 16,
+    "faction": "guild",
+    "class": "adventurer",
+    "traits": ["自负", "好面子", "其实很努力"],
+    "intro": "公会的 C 级冒险者，晚上在醉月亭吹牛。",
+    "goals": ["升 B 级，离开这个乡下"],
+    "secrets": ["他升 C 级的那次讨伐，主意是罗恩出的"],
+    "knowledge": "K1",
+    "attitude": 30,
+    "map": "borderstone",
+    "home": "houses_west",
+    "work": "guild",
+    "schedule": "adventurer",
+    "voice": {
+      "rules": ["一切都解释为'我们打残了''运气'", "输了也不认，只会别扭地尊敬"],
+      "catchphrases": ["那是我们打残的。", "运气罢了。"],
+      "address": "F 级的"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#7a2a2a", "#a08a6a", "#f0c8a0", "#c8a050"]
+    },
+    "tags": ["adventurer"],
+    "potential": "不屈",
+    "goddess": "valda",
+    "devotion": 0.3,
+    "money": 1200,
+    "wage": 8,
+    "personality": "stubborn",
+    "oldOrder": 0.7,
+    "pressure": 0.4,
+    "spin": "self_credit",
+    "spread": 1.2,
+    "reliability": 0.6,
+    "fame": 0.5,
+    "relations": {
+      "ron": {
+        "trust": 50,
+        "like": 10
+      },
+      "lina": {
+        "like": 20
+      }
+    },
+    "lines": {
+      "react.explain.wounded": ["那是我们打残的。", "那窝东西前几天我们队打残了，你捡了个漏。"],
+      "react.again.wounded": ["又捡我们的漏。"]
+    }
+  },
+  {
+    "id": "simon",
+    "name": "西蒙",
+    "race": "人族",
+    "gender": "m",
+    "age": 40,
+    "job": "农夫",
+    "level": 3,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["朴实", "能忍", "怕事"],
+    "intro": "西田的农夫。",
+    "goals": ["把今年的麦子收上来"],
+    "secrets": ["交不起新税，偷偷少报了一亩地"],
+    "knowledge": "K0",
+    "attitude": 50,
+    "map": "borderstone",
+    "home": "farmhouse",
+    "work": "west_field",
+    "schedule": "farmer",
+    "voice": {
+      "rules": ["用常识把一切磨平"],
+      "catchphrases": ["哪有那种人。"],
+      "address": "后生"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#7a6a4a", "#5a4a2a", "#e0b080", "#4a3a2a"]
+    },
+    "tags": ["farmer"],
+    "potential": "沃土",
+    "goddess": "eluen",
+    "devotion": 0.5,
+    "money": 90,
+    "wage": 3,
+    "personality": "stubborn",
+    "spin": "flatten",
+    "spread": 0.8,
+    "reliability": 0.8,
+    "lines": {
+      "react.explain.luck": ["哪有那种人。碰巧罢了。"]
+    }
+  },
+  {
+    "id": "marg",
+    "name": "玛格",
+    "race": "人族",
+    "gender": "f",
+    "age": 45,
+    "job": "洗衣妇",
+    "level": 1,
+    "faction": "townsfolk",
+    "class": "peasant",
+    "traits": ["健谈", "精明", "好心"],
+    "intro": "替镇上一半人家洗衣的洗衣妇。",
+    "goals": ["让女儿学门手艺"],
+    "secrets": ["洗过的衣裳上什么都见过：血迹、泥土、灰斑，比如代官衣角的矿灰"],
+    "knowledge": "K0",
+    "attitude": 55,
+    "map": "borderstone",
+    "home": "houses_west",
+    "work": "washing_creek",
+    "schedule": "washer",
+    "voice": {
+      "rules": ["健谈，爱加真细节：衣裳、气味、时辰"],
+      "catchphrases": ["我跟你讲，那衣裳上……"],
+      "address": "好孩子"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#8a6a5a", "#d8d0c0", "#f0c8a0", "#6a4a2a"]
+    },
+    "tags": ["washer"],
+    "goddess": "eluen",
+    "devotion": 0.5,
+    "money": 70,
+    "wage": 3,
+    "personality": "curious",
+    "spin": "detail",
+    "spread": 1.6,
+    "reliability": 0.75
+  },
+  {
+    "id": "selene",
+    "name": "赛琳",
+    "race": "人族",
+    "gender": "f",
+    "age": 27,
+    "job": "异端审判官",
+    "level": 33,
+    "faction": "inquisition",
+    "class": "clergy",
+    "traits": ["真诚", "执着", "清醒", "对谎言零容忍"],
+    "intro": "圣教会异端审判庭的审判官。",
+    "goals": ["追查'规格外者'"],
+    "secrets": ["她收到的神谕原文从不对外说"],
+    "knowledge": "K2",
+    "attitude": 40,
+    "map": "wallenburg",
+    "home": "cathedral",
+    "work": "cathedral",
+    "schedule": "priest",
+    "voice": {
+      "rules": ["审讯式提问，礼貌而冰冷，措辞精确", "动摇时问题变多、变快"],
+      "catchphrases": ["光不会说谎。", "请如实回答。"],
+      "address": "阁下",
+      "never": ["说谎"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#e8e8f0", "#c0c0c8", "#f0d8c8", "#e0e0e8"]
+    },
+    "tags": ["priest", "inquisitor"],
+    "core": true,
+    "plot": 0.9,
+    "goddess": "eluen",
+    "devotion": 0.95,
+    "money": 3000,
+    "wage": 0,
+    "personality": "stubborn",
+    "oldOrder": 0.7,
+    "pressure": 0.2,
+    "spin": "light",
+    "spread": 0.6,
+    "reliability": 0.95,
+    "fame": 0.6,
+    "needs": {
+      "faith": 1.4,
+      "social": 0.6
+    }
+  },
+  {
+    "id": "anselm",
+    "name": "安瑟姆主教",
+    "race": "人族",
+    "gender": "m",
+    "age": 56,
+    "job": "瓦伦堡主教",
+    "level": 28,
+    "faction": "church",
+    "class": "clergy",
+    "traits": ["温和", "老练", "怕事", "重体面"],
+    "intro": "瓦伦堡主教，白钟大教堂的主人。",
+    "goals": ["继承之争后主教区地位不降", "扶长子艾德里克上位"],
+    "secrets": ["转达神谕给赛琳时删掉了最后一句", "私下收过金冠商行的捐款"],
+    "knowledge": "K2",
+    "attitude": 35,
+    "map": "wallenburg",
+    "home": "cathedral",
+    "work": "cathedral",
+    "schedule": "priest",
+    "voice": {
+      "rules": ["回避正面冲突，把难题推给别人", "说话圆，爱讲体面"],
+      "catchphrases": ["此事需从长计议。"],
+      "address": "这位"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#f0e8d0", "#c8a84a", "#f0d0b8", "#c0c0c0"]
+    },
+    "tags": ["priest"],
+    "plot": 0.6,
+    "goddess": "eluen",
+    "devotion": 0.7,
+    "money": 50000,
+    "wage": 0,
+    "personality": "stubborn",
+    "oldOrder": 0.95,
+    "spread": 0.6,
+    "reliability": 0.85,
+    "fame": 0.5,
+    "relations": {
+      "selene": {
+        "trust": 50
+      },
+      "edric": {
+        "trust": 70,
+        "like": 40
+      }
+    },
+    "needs": {
+      "faith": 1
+    }
+  },
+  {
+    "id": "agnes",
+    "name": "艾格尼丝修女",
+    "race": "人族",
+    "gender": "f",
+    "age": 40,
+    "job": "慈济院主管",
+    "level": 12,
+    "faction": "church",
+    "class": "clergy",
+    "traits": ["慈悲", "固执", "务实"],
+    "intro": "慈济院的主管修女。",
+    "goals": ["让慈济院的孩子吃饱、不被带走"],
+    "secrets": ["院里有个孩子手腕上有'胎记'，她一直用布条缠着"],
+    "knowledge": "K0",
+    "attitude": 55,
+    "map": "wallenburg",
+    "home": "mercy_house",
+    "work": "mercy_house",
+    "schedule": "nun",
+    "voice": {
+      "rules": ["说话直，先问孩子吃饱没有"],
+      "catchphrases": ["孩子们先吃。"],
+      "address": "孩子"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#2a2a3a", "#e8e8e8", "#f0d0b8", "#8a6a4a"]
+    },
+    "tags": ["priest"],
+    "goddess": "eluen",
+    "devotion": 0.85,
+    "money": 100,
+    "wage": 1,
+    "personality": "stubborn",
+    "spread": 0.8,
+    "reliability": 0.85
+  },
+  {
+    "id": "krause",
+    "name": "奥托·克劳泽",
+    "race": "人族",
+    "gender": "m",
+    "age": 60,
+    "job": "公会洛萨北部大区会长",
+    "level": 41,
+    "faction": "guild",
+    "class": "knight",
+    "traits": ["实用", "嗓门大", "记仇也记恩"],
+    "intro": "冒险者公会洛萨北部大区的会长。",
+    "goals": ["公会在继承之争中保持中立，并从中获利"],
+    "secrets": ["二十年前与老布伦同队进过遗迹，报告被教会压下，他签了字"],
+    "knowledge": "K2",
+    "attitude": 50,
+    "map": "wallenburg",
+    "home": "upper_houses",
+    "work": "guild_hall",
+    "schedule": "guildmaster",
+    "voice": {
+      "rules": ["嗓门大，公开场合维护规章", "私下按'实绩认定'条款开后门"],
+      "catchphrases": ["规章就是规章，不过……"],
+      "address": "小子"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a3a4a", "#8a6a3a", "#e0b894", "#9a9a9a"],
+      "scale": 1.1
+    },
+    "tags": ["guild_master"],
+    "goddess": "valda",
+    "devotion": 0.3,
+    "money": 30000,
+    "wage": 0,
+    "ceiling": 50,
+    "oldOrder": 0.4,
+    "spread": 0.8,
+    "reliability": 0.9,
+    "fame": 0.7,
+    "concealed": true,
+    "relations": {
+      "liese": {
+        "trust": 70
+      },
+      "reynard": {
+        "trust": 50
+      }
+    }
+  },
+  {
+    "id": "liese",
+    "name": "丽泽",
+    "race": "人族",
+    "gender": "f",
+    "age": 30,
+    "job": "大区总部接待主管",
+    "level": 8,
+    "faction": "guild",
+    "class": "artisan",
+    "traits": ["认真", "爱八卦", "记性好"],
+    "intro": "公会大区总部的接待主管。",
+    "goals": ["让总部的账一分不差"],
+    "secrets": ["记得总部每个冒险者的定级和欠账"],
+    "knowledge": "K1",
+    "attitude": 50,
+    "map": "wallenburg",
+    "home": "mid_houses",
+    "work": "guild_hall",
+    "schedule": "clerk",
+    "voice": {
+      "rules": ["认真，爱八卦", "张口就是记录上的数字"],
+      "catchphrases": ["记录上可不是这么写的。"],
+      "address": "这位冒险者"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a5a7a", "#e0e0e0", "#f0d0b8", "#4a2a1a"]
+    },
+    "tags": ["clerk"],
+    "goddess": "moira",
+    "devotion": 0.5,
+    "money": 400,
+    "wage": 5,
+    "personality": "curious",
+    "spread": 2,
+    "reliability": 0.8
+  },
+  {
+    "id": "reynard",
+    "name": "雷纳德",
+    "race": "人族",
+    "gender": "m",
+    "age": 32,
+    "job": "B 级冒险者、晋升考官",
+    "level": 31,
+    "faction": "guild",
+    "class": "adventurer",
+    "traits": ["虚荣", "讲排场", "本性不坏"],
+    "intro": "瓦伦堡的 B 级名人，人称'金狮'。",
+    "goals": ["保住瓦伦堡第一 B 级的名声", "攀上伯爵家"],
+    "secrets": ["'金狮'的名号来自一次被夸大的讨伐，杀死狮鹫的是他已故的队友"],
+    "knowledge": "K1",
+    "attitude": 25,
+    "map": "wallenburg",
+    "home": "upper_houses",
+    "work": "sand_ring",
+    "schedule": "adventurer",
+    "voice": {
+      "rules": ["讲排场，爱提自己的名号", "被打脸后先找借口，再私下请教"],
+      "catchphrases": ["'金狮'的名号可不是白来的。"],
+      "address": "乡下来的"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#c8a040", "#e8d8a0", "#f0c8a0", "#e8c050"]
+    },
+    "tags": ["adventurer"],
+    "goddess": "valda",
+    "devotion": 0.4,
+    "money": 8000,
+    "wage": 0,
+    "personality": "stubborn",
+    "oldOrder": 0.8,
+    "spin": "self_credit",
+    "spread": 1.2,
+    "reliability": 0.6,
+    "fame": 0.8
+  },
+  {
+    "id": "ferryman",
+    "name": "老船夫",
+    "race": "人族",
+    "gender": "m",
+    "age": 113,
+    "job": "门前渡的船夫",
+    "level": 56,
+    "faction": "none",
+    "class": "knight",
+    "traits": ["嗜酒", "慢悠悠", "看透了"],
+    "intro": "门前渡撑船的老人，不收穷人的渡钱。",
+    "goals": ["把这条船撑下去"],
+    "secrets": ["很久以前他也是被召来的人，加护早已被收回", "每年都会去北门外的阵亡碑前站一会儿"],
+    "knowledge": "K3",
+    "attitude": 40,
+    "map": "wallenburg",
+    "home": "ferry_hut",
+    "work": "ferry",
+    "schedule": "ferry",
+    "voice": {
+      "rules": ["慢悠悠，爱用船和河打比方"],
+      "catchphrases": ["过河五个铜子，不讲价。", "勇者？那是个用完就扔的活儿。"],
+      "address": "年轻人",
+      "never": ["替任何势力拔刀"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a5a5a", "#8a7a5a", "#d8b090", "#e8e8e8"]
+    },
+    "tags": ["ferryman"],
+    "core": true,
+    "plot": 0.8,
+    "devotion": 0,
+    "money": 400,
+    "wage": 3,
+    "personality": "curious",
+    "ceiling": 60,
+    "oldOrder": 0,
+    "spread": 0.3,
+    "reliability": 0.7,
+    "fame": 0.1,
+    "concealed": true
+  },
+  {
+    "id": "pia",
+    "name": "皮娅",
+    "race": "人族",
+    "gender": "f",
+    "age": 12,
+    "job": "渡口打杂的孤女",
+    "level": 2,
+    "faction": "none",
+    "class": "child",
+    "traits": ["机灵", "话多"],
+    "intro": "给老船夫撑船打杂的孤女。",
+    "goals": ["攒钱买一条自己的船"],
+    "secrets": ["知道老船夫夜里对着河挥刀，以为他在钓鱼"],
+    "knowledge": "K0",
+    "attitude": 60,
+    "map": "wallenburg",
+    "home": "mud_lane",
+    "work": "ferry",
+    "schedule": "ferry",
+    "voice": {
+      "rules": ["话多，什么都往外说"],
+      "catchphrases": ["船家爷爷说的！"],
+      "address": "客人"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#6a7a8a", "#a08a6a", "#f0c8a0", "#8a4a2a"],
+      "scale": 0.75
+    },
+    "tags": ["child"],
+    "devotion": 0.2,
+    "money": 30,
+    "wage": 1,
+    "spread": 1.8,
+    "reliability": 0.3,
+    "relations": {
+      "ferryman": {
+        "trust": 90,
+        "like": 90
+      }
+    }
+  },
+  {
+    "id": "luchen",
+    "name": "陆辰",
+    "race": "人族",
+    "gender": "m",
+    "age": 19,
+    "job": "勇者",
+    "level": 26,
+    "faction": "heroes",
+    "class": "knight",
+    "traits": ["真诚", "热情", "爱看网文"],
+    "intro": "圣教会召唤来的勇者，勇者团的队长。",
+    "goals": ["成为大家期待的勇者"],
+    "secrets": ["在原来的世界是个没什么人注意的人"],
+    "knowledge": "K2",
+    "attitude": 60,
+    "map": "wallenburg",
+    "home": "cathedral",
+    "work": "sand_ring",
+    "schedule": "hero",
+    "requiresFlags": ["a2_heroes_arrived"],
+    "voice": {
+      "rules": ["快、热情", "时不时冒出网文腔：这剧情我熟"],
+      "catchphrases": ["交给我！", "这就是勇者该做的事吧。"],
+      "address": "兄弟"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#e8e8f0", "#c8a040", "#f0d0b0", "#1a1a1a"]
+    },
+    "tags": ["hero"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "eluen",
+    "devotion": 0.6,
+    "money": 5000,
+    "wage": 0,
+    "personality": "curious",
+    "ceiling": 60,
+    "oldOrder": 0.2,
+    "spread": 1.2,
+    "reliability": 0.7,
+    "fame": 0.9,
+    "relations": {
+      "yui": {
+        "trust": 80,
+        "like": 60
+      },
+      "aiden": {
+        "trust": 70
+      },
+      "marcus": {
+        "trust": 85,
+        "like": 70
+      }
+    }
+  },
+  {
+    "id": "yui",
+    "name": "白石结衣",
+    "race": "人族",
+    "gender": "f",
+    "age": 17,
+    "job": "圣女",
+    "level": 24,
+    "faction": "heroes",
+    "class": "clergy",
+    "traits": ["温柔", "礼貌", "共情"],
+    "intro": "勇者团的圣女。",
+    "goals": ["治好眼前的每一个人"],
+    "secrets": ["母亲是临终病房的护士，她常去帮忙"],
+    "knowledge": "K2",
+    "attitude": 60,
+    "map": "wallenburg",
+    "home": "cathedral",
+    "work": "mercy_house",
+    "schedule": "hero",
+    "requiresFlags": ["a2_heroes_arrived"],
+    "voice": {
+      "rules": ["轻柔、礼貌、敬语式", "先问对方的感受，再说自己的"],
+      "catchphrases": ["没事的，我在。", "请让我看看伤口。"],
+      "address": "您"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#f0f0f8", "#d8c070", "#f8e0d0", "#2a1a1a"]
+    },
+    "tags": ["hero", "priest"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "eluen",
+    "devotion": 0.8,
+    "money": 3000,
+    "wage": 0,
+    "personality": "curious",
+    "ceiling": 60,
+    "spread": 0.8,
+    "reliability": 0.9,
+    "fame": 0.8,
+    "relations": {
+      "luchen": {
+        "trust": 75
+      },
+      "marcus": {
+        "trust": 80
+      }
+    }
+  },
+  {
+    "id": "aiden",
+    "name": "艾登·霍尔",
+    "race": "人族",
+    "gender": "m",
+    "age": 24,
+    "job": "贤者",
+    "level": 25,
+    "faction": "heroes",
+    "class": "scholar",
+    "traits": ["精确", "好奇", "爱反讽"],
+    "intro": "勇者团的贤者，总盯着人看。",
+    "goals": ["弄清这个世界的规则", "回去参加妹妹的毕业典礼"],
+    "secrets": ["有一个约好要去参加毕业典礼的妹妹"],
+    "knowledge": "K2",
+    "attitude": 50,
+    "map": "wallenburg",
+    "home": "cathedral",
+    "work": "academy",
+    "schedule": "hero",
+    "requiresFlags": ["a2_heroes_arrived"],
+    "voice": {
+      "rules": ["精确，爱用'假设……那么……'", "英式反讽"],
+      "catchphrases": ["有意思，但不合理。", "让我查一下。"],
+      "address": "这位"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a4a7a", "#c0c0c8", "#f0d8c0", "#8a6a3a"]
+    },
+    "tags": ["hero", "mage"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "eluen",
+    "devotion": 0.3,
+    "money": 3000,
+    "wage": 0,
+    "personality": "curious",
+    "spread": 0.6,
+    "reliability": 0.9,
+    "fame": 0.8
+  },
+  {
+    "id": "marcus",
+    "name": "马库斯·罗查",
+    "race": "人族",
+    "gender": "m",
+    "age": 31,
+    "job": "盾卫",
+    "level": 27,
+    "faction": "heroes",
+    "class": "knight",
+    "traits": ["豪爽", "可靠", "护人"],
+    "intro": "勇者团的盾卫，大家的大哥。",
+    "goals": ["没人会被落下"],
+    "secrets": ["不知道原来那个世界里，那个孩子最后有没有得救"],
+    "knowledge": "K2",
+    "attitude": 65,
+    "map": "wallenburg",
+    "home": "cathedral",
+    "work": "sand_ring",
+    "schedule": "hero",
+    "requiresFlags": ["a2_heroes_arrived"],
+    "voice": {
+      "rules": ["洪亮，爱用玩笑缓和气氛", "情急时冒出母语的惊叹"],
+      "catchphrases": ["站我后面。", "没人会被落下。"],
+      "address": "兄弟"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#7a7a8a", "#c8a040", "#c89070", "#1a1a1a"],
+      "scale": 1.2
+    },
+    "tags": ["hero", "guard"],
+    "core": true,
+    "plot": 0.8,
+    "goddess": "eluen",
+    "devotion": 0.5,
+    "money": 3000,
+    "wage": 0,
+    "ceiling": 50,
+    "spread": 1,
+    "reliability": 0.85,
+    "fame": 0.8
+  },
+  {
+    "id": "edric",
+    "name": "艾德里克",
+    "race": "人族",
+    "gender": "m",
+    "age": 30,
+    "job": "伯爵长子",
+    "level": 24,
+    "faction": "count",
+    "class": "noble",
+    "traits": ["虔诚", "刻板", "责任感", "怕犯错"],
+    "intro": "瓦伦边境伯爵的长子。",
+    "goals": ["守住父亲留下的城市与家族的体面"],
+    "secrets": ["怀疑父亲的病不是自然的，却不敢查"],
+    "knowledge": "K2",
+    "attitude": 45,
+    "map": "wallenburg",
+    "home": "castle",
+    "work": "castle",
+    "schedule": "noble",
+    "voice": {
+      "rules": ["慢、正式，引用家训与教规"],
+      "catchphrases": ["这是规矩。"],
+      "address": "阁下",
+      "never": ["违背教会的明令", "对平民动私刑"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#f0f0e8", "#c8a040", "#f0d0b0", "#a07a3a"]
+    },
+    "tags": ["noble"],
+    "plot": 0.7,
+    "goddess": "eluen",
+    "devotion": 0.8,
+    "money": 20000,
+    "wage": 0,
+    "personality": "stubborn",
+    "oldOrder": 0.9,
+    "spread": 0.6,
+    "reliability": 0.85,
+    "fame": 0.6,
+    "relations": {
+      "cecilia": {
+        "trust": 40,
+        "like": 20
+      },
+      "lucas": {
+        "trust": 40,
+        "like": 10
+      }
+    }
+  },
+  {
+    "id": "cecilia",
+    "name": "塞西莉亚",
+    "race": "人族",
+    "gender": "f",
+    "age": 26,
+    "job": "伯爵次女",
+    "level": 21,
+    "faction": "count",
+    "class": "noble",
+    "traits": ["聪明", "改革", "急躁", "看不起守旧派"],
+    "intro": "瓦伦边境伯爵的次女，常在秤街跟商人打交道。",
+    "goals": ["把瓦伦堡变成边境的商业中心"],
+    "secrets": ["已秘密与商会联合签下借款，抵押了城市未来十年的关税"],
+    "knowledge": "K2",
+    "attitude": 45,
+    "map": "wallenburg",
+    "home": "castle",
+    "work": "scale_street",
+    "schedule": "noble",
+    "voice": {
+      "rules": ["快、直接，常打断别人", "用数字说话"],
+      "catchphrases": ["成本呢？"],
+      "address": "阁下",
+      "never": ["承认自己需要帮助", "在公开场合示弱"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#2a5a4a", "#2a3a6a", "#f0d0b0", "#7a3a2a"]
+    },
+    "tags": ["noble"],
+    "plot": 0.7,
+    "goddess": "merca",
+    "devotion": 0.5,
+    "money": 20000,
+    "wage": 0,
+    "personality": "curious",
+    "oldOrder": 0.4,
+    "spread": 0.8,
+    "reliability": 0.8,
+    "fame": 0.6
+  },
+  {
+    "id": "lucas",
+    "name": "卢卡斯",
+    "race": "人族",
+    "gender": "m",
+    "age": 23,
+    "job": "伯爵庶子",
+    "level": 29,
+    "faction": "count",
+    "class": "knight",
+    "traits": ["豪爽", "被士兵爱戴", "自卑于出身"],
+    "intro": "瓦伦边境伯爵的庶子，常年待在铁闸营。",
+    "goals": ["让士兵吃饱、让边境安全", "被家族承认"],
+    "secrets": ["身上有四分之一的兽人血统，从没公开"],
+    "knowledge": "K2",
+    "attitude": 50,
+    "map": "wallenburg",
+    "home": "castle",
+    "work": "iron_gate_camp",
+    "schedule": "guard",
+    "voice": {
+      "rules": ["大嗓门，粗话多", "对上级说话会突然拘谨"],
+      "catchphrases": ["兄弟们还没吃饭。"],
+      "address": "兄弟",
+      "never": ["对兄姐动刀", "抛弃部下"]
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a5a5a", "#7a5a3a", "#d8a880", "#1a1a1a"]
+    },
+    "tags": ["noble", "guard"],
+    "plot": 0.7,
+    "goddess": "valda",
+    "devotion": 0.4,
+    "money": 5000,
+    "wage": 0,
+    "oldOrder": 0.3,
+    "spread": 1,
+    "reliability": 0.8,
+    "fame": 0.5
+  },
+  {
+    "id": "fynn",
+    "name": "芬恩",
+    "race": "人族",
+    "gender": "m",
+    "age": 25,
+    "job": "吟游诗人",
+    "level": 6,
+    "faction": "none",
+    "class": "peasant",
+    "traits": ["夸张", "乐天", "厚脸皮"],
+    "intro": "大市集卖唱的吟游诗人。",
+    "goals": ["写出一首传遍王国的歌"],
+    "secrets": ["歌词全凭想象，从不打听真相"],
+    "knowledge": "K0",
+    "attitude": 60,
+    "map": "wallenburg",
+    "home": "mid_tavern",
+    "work": "market",
+    "schedule": "bard",
+    "voice": {
+      "rules": ["夸张，张口就是押韵的句子"],
+      "catchphrases": ["听好了，这可是真事！"],
+      "address": "朋友"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#7a3a7a", "#e0c060", "#f0c8a0", "#c88a3a"]
+    },
+    "tags": ["bard"],
+    "devotion": 0.3,
+    "money": 80,
+    "wage": 3,
+    "personality": "curious",
+    "spin": "x5",
+    "spread": 2,
+    "reliability": 0.3,
+    "fame": 0.3
+  },
+  {
+    "id": "karl",
+    "name": "卡尔",
+    "race": "人族",
+    "gender": "m",
+    "age": 35,
+    "job": "北门卫兵长",
+    "level": 13,
+    "faction": "city_guard",
+    "class": "peasant",
+    "traits": ["认死理", "爱讲规矩"],
+    "intro": "瓦伦堡北门的卫兵长。",
+    "goals": ["不放可疑的人进城"],
+    "secrets": ["是芬恩的头号听众，会背他的全部歌词"],
+    "knowledge": "K0",
+    "attitude": 40,
+    "map": "wallenburg",
+    "home": "north_houses",
+    "work": "north_gate",
+    "schedule": "guard",
+    "voice": {
+      "rules": ["讲规矩，盘问起来没完"],
+      "catchphrases": ["站住，例行检查。"],
+      "address": "你"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a6a7a", "#8a7a5a", "#e0b894", "#5a3a1a"]
+    },
+    "tags": ["guard"],
+    "goddess": "eluen",
+    "devotion": 0.5,
+    "money": 300,
+    "wage": 5,
+    "personality": "stubborn",
+    "oldOrder": 0.6,
+    "spread": 1,
+    "reliability": 0.8,
+    "relations": {
+      "fynn": {
+        "like": 60
+      }
+    }
+  },
+  {
+    "id": "jonas",
+    "name": "约纳斯",
+    "race": "人族",
+    "gender": "m",
+    "age": 24,
+    "job": "见习史官",
+    "level": 7,
+    "faction": "academy",
+    "class": "scholar",
+    "traits": ["热情", "较真", "口无遮拦"],
+    "intro": "学院史官署的见习史官，在编《瓦伦堡城志》。",
+    "goals": ["编完《瓦伦堡城志》"],
+    "secrets": ["觉得城志里有些年份对不上"],
+    "knowledge": "K1",
+    "attitude": 55,
+    "trustKey": "trust.archivist",
+    "map": "wallenburg",
+    "home": "mid_houses",
+    "work": "academy",
+    "schedule": "scholar",
+    "voice": {
+      "rules": ["热情，较真", "想到什么说什么"],
+      "catchphrases": ["这不对，年份对不上！"],
+      "address": "这位"
+    },
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a3a5a", "#8a8a9a", "#f0d0b0", "#6a4a2a"]
+    },
+    "tags": ["scholar"],
+    "goddess": "moira",
+    "devotion": 0.4,
+    "money": 200,
+    "wage": 4,
+    "personality": "curious",
+    "spread": 1.2,
+    "reliability": 0.6
+  }
+]

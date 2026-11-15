@@ -1,0 +1,149 @@
+[
+  {
+    "id": "oracle",
+    "label": "神谕",
+    "power": 2,
+    "cooldownHours": 24,
+    "sedimentRate": 0.01,
+    "minAct": 1,
+    "visibility": "hidden",
+    "params": "{mapId?, targetId?（受谕的信徒实体 ID）, text（四到二十字）, flag?（只能是 oracle.<你的 ID>. 开头）, value?}",
+    "lines": {
+      "eluen": ["守好秩序。", "警惕规格之外的东西。", "光在看着这座镇子。", "清点你的信众，孩子。"],
+      "valda": ["磨好你的刀。", "去找一个比你强的人。"],
+      "merca": ["这季的盐要涨，先囤一点。", "客人，记得供奉。", "账要算清楚。"],
+      "sylvie": ["……林子里，有东西醒了。", "……别砍那棵树。"],
+      "moira": ["把今天发生的事写下来。", "留意那些巧合。"]
+    }
+  },
+  {
+    "id": "blessing",
+    "label": "附物加护",
+    "power": 5,
+    "cooldownHours": 72,
+    "sedimentRate": 0.1,
+    "minAct": 1,
+    "visibility": "hidden",
+    "params": "{item?（那个人身上属于你的信物）, days?（1 到 7）}：只对持有你的信物的人生效",
+    "modifiers": [{ "target": "xp", "key": "player", "factor": 1.1, "hours": 72 }]
+  },
+  {
+    "id": "miracle",
+    "label": "小神迹",
+    "power": 10,
+    "cooldownHours": 24,
+    "sedimentRate": 0.3,
+    "minAct": 1,
+    "visibility": "public",
+    "breachable": true,
+    "params": "{mapId, days?}：一处地方的治愈或显兆，信仰上升，留下较多的澱",
+    "modifiers": [
+      { "target": "faith", "key": "region", "add": 0.02, "hours": 72 },
+      { "target": "morale", "key": "region", "factor": 1.1, "hours": 72 }
+    ]
+  },
+  {
+    "id": "calamity",
+    "label": "天灾",
+    "power": 1000,
+    "cooldownHours": 4320,
+    "sedimentRate": 0.3,
+    "minAct": 2,
+    "visibility": "public",
+    "breachable": true,
+    "hostile": true,
+    "weather": "storm",
+    "params": "{mapId, weather?（storm、rain、fog、snow）, days?（1 到 7）}：旱涝虫疫，收成下降、物价上涨、魔物增多",
+    "modifiers": [
+      { "target": "harvest", "key": "region", "factor": 0.7, "hours": 168 },
+      { "target": "price", "key": "region", "factor": 1.2, "hours": 168 },
+      { "target": "monster", "key": "region", "factor": 1.3, "hours": 168 }
+    ]
+  },
+  {
+    "id": "monster_tide",
+    "label": "魔物潮",
+    "power": 300,
+    "cooldownHours": 336,
+    "sedimentRate": 0.1,
+    "minAct": 3,
+    "visibility": "public",
+    "breachable": true,
+    "hostile": true,
+    "params": "{mapId, days?（1 到 7）}：在澱的上限内催动魔物",
+    "modifiers": [{ "target": "monster", "key": "region", "factor": 1.5, "hours": 72 }]
+  },
+  {
+    "id": "price",
+    "label": "物价波动",
+    "power": 30,
+    "cooldownHours": 168,
+    "sedimentRate": 0.01,
+    "minAct": 1,
+    "visibility": "public",
+    "params": "{goods?（商品 ID 或 *）, factor（0.6 到 1.4）, days?（1 到 30）}"
+  },
+  {
+    "id": "weather",
+    "label": "季节与天气",
+    "power": 150,
+    "cooldownHours": 720,
+    "sedimentRate": 0.1,
+    "minAct": 1,
+    "visibility": "hidden",
+    "params": "{mapId, weather（clear、cloudy、rain、storm、fog、snow）, days?（1 到 3）}",
+    "modifiers": [{ "target": "harvest", "key": "region", "factor": 1.05, "hours": 72 }]
+  },
+  {
+    "id": "dream",
+    "label": "托梦",
+    "power": 1,
+    "cooldownHours": 48,
+    "sedimentRate": 0,
+    "minAct": 1,
+    "visibility": "hidden",
+    "params": "{text}：夜里入梦，只对那个人说一两句话",
+    "lines": {
+      "janu": [
+        "你来了。门总会开的。",
+        "别急，下一扇门在你身后。",
+        "今天的路，走得很稳。",
+        "别让太多人看见你的手。"
+      ],
+      "sylvie": ["……林子在喘气。"]
+    }
+  },
+  {
+    "id": "omen",
+    "label": "借兽示警",
+    "power": 1,
+    "cooldownHours": 24,
+    "sedimentRate": 0,
+    "minAct": 1,
+    "visibility": "hidden",
+    "params": "{mapId, text}：动物的异常举动，必须对应一个真实的危险",
+    "lines": {
+      "sylvie": [
+        "林间的鸟群一下子全飞了起来，往南边去了。",
+        "一头鹿站在路边，看了你很久，才转身跑开。"
+      ]
+    }
+  },
+  {
+    "id": "request",
+    "label": "任务请托",
+    "power": 2,
+    "cooldownHours": 168,
+    "sedimentRate": 0.01,
+    "minAct": 1,
+    "visibility": "hidden",
+    "params": "{key（小写英文）, text}：经教会、商会或结社发布一件委托（写入 request.<你的 ID>.<key>）",
+    "lines": {
+      "eluen": ["purge_dregs|清扫镇外的灰气魔物"],
+      "valda": ["arena_call|去竞技场找一个对手"],
+      "merca": ["safe_caravan|护送北路商队"],
+      "sylvie": ["spare_the_deer|别让猎人进鹿泉"],
+      "moira": ["copy_records|替书记处抄一份旧档"]
+    }
+  }
+]

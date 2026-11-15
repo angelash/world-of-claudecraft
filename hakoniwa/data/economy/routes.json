@@ -1,0 +1,47 @@
+[
+  {
+    "id": "south_road_north",
+    "name": "南大路（边石镇到苇桥村）",
+    "a": "borderstone",
+    "b": "reedbridge",
+    "days": 1.5,
+    "risk": 0.03,
+    "tollRate": 0.02
+  },
+  {
+    "id": "south_road_south",
+    "name": "南大路（苇桥村到瓦伦堡）",
+    "a": "reedbridge",
+    "b": "wallenburg",
+    "days": 1.5,
+    "risk": 0.02,
+    "tollRate": 0.03
+  },
+  {
+    "id": "south_road",
+    "name": "南大路全程",
+    "a": "borderstone",
+    "b": "wallenburg",
+    "days": 3,
+    "risk": 0.03,
+    "tollRate": 0.05
+  },
+  {
+    "id": "old_patrol_road",
+    "name": "旧巡逻道（边石镇到旧哨村）",
+    "a": "borderstone",
+    "b": "old_outpost",
+    "days": 0.5,
+    "risk": 0.05,
+    "tollRate": 0
+  },
+  {
+    "id": "outpost_valley",
+    "name": "旧哨村经南大路到瓦伦堡",
+    "a": "old_outpost",
+    "b": "wallenburg",
+    "days": 3.5,
+    "risk": 0.05,
+    "tollRate": 0.05
+  }
+]

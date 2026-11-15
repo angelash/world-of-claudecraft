@@ -1,0 +1,34 @@
+[
+  {
+    "id": "old_outpost",
+    "name": "旧哨村",
+    "kind": "settlement",
+    "mapId": "old_outpost",
+    "stockOwner": "site:old_outpost",
+    "centerLocation": "village_center",
+    "tradeMarket": "borderstone",
+    "initialStock": { "grain": 150, "wood": 80, "stone": 40 },
+    "initialMoney": 0,
+    "caps": {
+      "outpost": { "population": 40, "policySlots": 1, "storageBase": 400 },
+      "village": { "population": 400, "policySlots": 2, "storageBase": 600 },
+      "territory": { "population": 6000, "policySlots": 4, "storageBase": 1200 }
+    }
+  },
+  {
+    "id": "inner_court",
+    "name": "门内庭院",
+    "kind": "court",
+    "mapId": "inner_court",
+    "stockOwner": "site:inner_court",
+    "centerLocation": "court_center",
+    "initialStock": {},
+    "initialMoney": 0,
+    "requiresFlags": ["feature.inner_court"],
+    "outsideDivineSight": true,
+    "immuneToModifiers": true,
+    "caps": {
+      "court": { "population": 0, "policySlots": 0, "storageBase": 200 }
+    }
+  }
+]

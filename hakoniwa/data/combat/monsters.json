@@ -1,0 +1,1475 @@
+[
+  {
+    "id": "dian_dreg",
+    "name": "澱渣",
+    "desc": "澱的最小显化：一团会挪动的灰。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 1,
+    "maxLevel": 2,
+    "hpMult": 0.9,
+    "dmgMult": 0.8,
+    "speed": 2.6,
+    "aggroRadius": 3,
+    "leash": 14,
+    "school": "shadow",
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 0.4
+      }
+    ],
+    "money": [1, 4],
+    "appearance": {
+      "base": "slime",
+      "colors": ["#5c5a57", "#3a3836", "#8b8885", "#22201f"],
+      "scale": 0.7
+    }
+  },
+  {
+    "id": "dian_rat",
+    "name": "澱鼠",
+    "desc": "沾了澱的老鼠，眼睛发灰，成群出现。",
+    "family": "burrower",
+    "faction": "monster",
+    "minLevel": 1,
+    "maxLevel": 3,
+    "hpMult": 0.8,
+    "dmgMult": 0.8,
+    "attackSpeed": 1.6,
+    "speed": 3.6,
+    "aggroRadius": 3,
+    "leash": 14,
+    "mechanics": {
+      "social": 4,
+      "flee": 0.2
+    },
+    "loot": [
+      {
+        "itemId": "rat_tail",
+        "chance": 0.6
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 0.15
+      }
+    ],
+    "money": [1, 3],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#6b6359", "#4a443d", "#c9a9a0", "#2a2622"],
+      "scale": 0.5
+    }
+  },
+  {
+    "id": "raven_flock",
+    "name": "鸦群",
+    "desc": "巢井里的鸦群，啄人的眼睛。巨鸦被净化后它们不再敌对。",
+    "family": "beast",
+    "faction": "ruin_ravens",
+    "minLevel": 3,
+    "maxLevel": 5,
+    "hpMult": 0.8,
+    "attackSpeed": 1.8,
+    "speed": 4.4,
+    "aggroRadius": 5,
+    "leash": 16,
+    "abilities": ["peck_eyes"],
+    "mechanics": {
+      "social": 4,
+      "pacifiedBy": "companion.yeyu.recruited"
+    },
+    "loot": [
+      {
+        "itemId": "raven_feather",
+        "chance": 0.6
+      }
+    ],
+    "money": [2, 6],
+    "appearance": {
+      "base": "bird",
+      "colors": ["#1f1f24", "#3c3c46", "#d9b45a", "#0e0e10"],
+      "scale": 0.7
+    }
+  },
+  {
+    "id": "grey_wolf",
+    "name": "灰毛狼",
+    "desc": "林缘的狼，群居。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 2,
+    "maxLevel": 4,
+    "speed": 4.6,
+    "aggroRadius": 5,
+    "leash": 18,
+    "mechanics": {
+      "social": 5
+    },
+    "loot": [
+      {
+        "itemId": "wolf_fang",
+        "chance": 0.45
+      },
+      {
+        "itemId": "wolf_pelt",
+        "chance": 0.35
+      }
+    ],
+    "money": [2, 6],
+    "appearance": {
+      "base": "wolf",
+      "colors": ["#8a8d8f", "#5f6264", "#d8d4cc", "#2b2b2b"],
+      "scale": 0.9
+    }
+  },
+  {
+    "id": "split_ear",
+    "name": "裂耳",
+    "desc": "东林狼穴的独耳老狼，有名字的魔物（异名者）。挨打会血怒。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 6,
+    "maxLevel": 6,
+    "rank": "rare",
+    "hpMult": 0.9,
+    "dmgMult": 0.8,
+    "speed": 4.8,
+    "aggroRadius": 6,
+    "leash": 20,
+    "abilities": ["blood_rage"],
+    "loot": [
+      {
+        "itemId": "split_ear_fang",
+        "chance": 1
+      },
+      {
+        "itemId": "wolfhide_boots",
+        "chance": 0.4
+      },
+      {
+        "itemId": "wolf_pelt",
+        "chance": 1
+      }
+    ],
+    "money": [20, 40],
+    "appearance": {
+      "base": "wolf",
+      "colors": ["#6e6a63", "#47443f", "#b33a2a", "#1a1a1a"],
+      "scale": 1.15
+    }
+  },
+  {
+    "id": "dian_wolf",
+    "name": "澱狼",
+    "desc": "灰色的狼。被它咬过的伤口发灰、溃烂。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 5,
+    "maxLevel": 8,
+    "speed": 4.7,
+    "aggroRadius": 6,
+    "leash": 18,
+    "abilities": ["dian_bite"],
+    "mechanics": {
+      "social": 5
+    },
+    "loot": [
+      {
+        "itemId": "wolf_fang",
+        "chance": 0.4
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 0.3
+      },
+      {
+        "itemId": "grey_fang_dagger",
+        "chance": 0.03
+      }
+    ],
+    "money": [4, 10],
+    "appearance": {
+      "base": "wolf",
+      "colors": ["#58585c", "#3b3b3f", "#9aa0a6", "#1b1b1d"],
+      "scale": 1
+    }
+  },
+  {
+    "id": "dian_boar",
+    "name": "澱野猪",
+    "desc": "鬃毛里夹着灰刺的野猪，西田农舍的祸害。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 3,
+    "maxLevel": 6,
+    "hpMult": 1.1,
+    "speed": 4,
+    "aggroRadius": 4,
+    "leash": 16,
+    "mechanics": {
+      "passives": ["ash_mane"]
+    },
+    "loot": [
+      {
+        "itemId": "boar_tusk",
+        "chance": 0.5
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 0.2
+      }
+    ],
+    "money": [3, 8],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#5d4a3a", "#3e3127", "#9c8b7a", "#201914"],
+      "scale": 0.95
+    }
+  },
+  {
+    "id": "edge_spider",
+    "name": "林缘织网蛛",
+    "desc": "蛛谷里的大蜘蛛，吐灰色的丝。",
+    "family": "spider",
+    "faction": "monster",
+    "minLevel": 3,
+    "maxLevel": 6,
+    "speed": 3.8,
+    "aggroRadius": 5,
+    "leash": 16,
+    "abilities": ["grey_web"],
+    "loot": [
+      {
+        "itemId": "spider_silk",
+        "chance": 0.55
+      },
+      {
+        "itemId": "spider_silk_gloves",
+        "chance": 0.03
+      }
+    ],
+    "money": [3, 8],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#3a3f37", "#23261f", "#a9b29a", "#121410"],
+      "scale": 0.85
+    }
+  },
+  {
+    "id": "burrow_worm",
+    "name": "掘穴虫",
+    "desc": "旧矿里的大虫，从石缝里钻出来。",
+    "family": "burrower",
+    "faction": "monster",
+    "minLevel": 5,
+    "maxLevel": 8,
+    "hpMult": 1.1,
+    "speed": 3,
+    "aggroRadius": 4,
+    "leash": 14,
+    "mechanics": {
+      "flee": 0.15
+    },
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 0.35
+      }
+    ],
+    "money": [3, 9],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#7a6a55", "#4e4336", "#c8b89a", "#2a241c"],
+      "scale": 0.9
+    }
+  },
+  {
+    "id": "oneeye_bandit",
+    "name": "独眼团匪徒",
+    "desc": "南路上的匪帮。团规不杀平民，但对冒险者不客气。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "oneeye",
+    "minLevel": 4,
+    "maxLevel": 8,
+    "speed": 3.8,
+    "aggroRadius": 5,
+    "leash": 18,
+    "classId": "rogue",
+    "abilities": ["lime_powder"],
+    "mechanics": {
+      "flee": 0.2,
+      "social": 5
+    },
+    "loot": [
+      {
+        "itemId": "minor_healing_potion",
+        "chance": 0.15
+      },
+      {
+        "itemId": "ash_spirits",
+        "chance": 0.08
+      },
+      {
+        "itemId": "worn_leather_vest",
+        "chance": 0.05
+      }
+    ],
+    "money": [8, 22],
+    "appearance": {
+      "base": "human",
+      "colors": ["#5a4632", "#2f2a24", "#e0b896", "#3a2a1c"]
+    }
+  },
+  {
+    "id": "wandering_bones",
+    "name": "游荡骸骨",
+    "desc": "荒原外缘夜里游荡的骸骨，会发出空洞的哭号。",
+    "family": "undead",
+    "faction": "monster",
+    "minLevel": 6,
+    "maxLevel": 9,
+    "speed": 3,
+    "aggroRadius": 5,
+    "leash": 16,
+    "abilities": ["wail"],
+    "loot": [
+      {
+        "itemId": "bone_shard",
+        "chance": 0.6
+      },
+      {
+        "itemId": "bone_helm",
+        "chance": 0.03
+      }
+    ],
+    "money": [4, 10],
+    "appearance": {
+      "base": "undead",
+      "colors": ["#d8d0bc", "#9c947e", "#3c3a34", "#1d1c19"]
+    }
+  },
+  {
+    "id": "waste_wraith",
+    "name": "荒原怨灵",
+    "desc": "碎门坡的守墓者，带着从坟土里渗出的寒意。",
+    "family": "undead",
+    "faction": "monster",
+    "minLevel": 8,
+    "maxLevel": 11,
+    "hpMult": 0.9,
+    "speed": 3.4,
+    "aggroRadius": 6,
+    "leash": 18,
+    "school": "frost",
+    "abilities": ["grave_chill"],
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 0.4
+      },
+      {
+        "itemId": "minor_mana_potion",
+        "chance": 0.1
+      }
+    ],
+    "money": [6, 14],
+    "appearance": {
+      "base": "spirit",
+      "colors": ["#9fb3c2", "#5e7180", "#e6eef3", "#2a343c"]
+    }
+  },
+  {
+    "id": "black_ridge",
+    "name": "黑脊",
+    "desc": "东林深处的澱化熊，稀有精英。兽潮之夜里博罗冲向的就是它。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 11,
+    "maxLevel": 11,
+    "rank": "rare",
+    "hpMult": 1.2,
+    "speed": 4,
+    "aggroRadius": 6,
+    "leash": 22,
+    "abilities": ["maul_swipe", "terrify"],
+    "loot": [
+      {
+        "itemId": "black_ridge_mantle",
+        "chance": 0.5
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 1,
+        "min": 2,
+        "max": 4
+      }
+    ],
+    "money": [60, 120],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#1f1d1b", "#3d3833", "#7a6f64", "#0c0b0a"],
+      "scale": 1.5
+    }
+  },
+  {
+    "id": "dian_spirit",
+    "name": "澱灵",
+    "desc": "遗迹深处凝出的澱灵，巨像的随从。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 11,
+    "maxLevel": 13,
+    "speed": 3.4,
+    "aggroRadius": 6,
+    "leash": 18,
+    "school": "shadow",
+    "range": 5,
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 0.6
+      }
+    ],
+    "money": [6, 16],
+    "appearance": {
+      "base": "spirit",
+      "colors": ["#4b4f5a", "#2c2f36", "#a7adbd", "#15161a"]
+    }
+  },
+  {
+    "id": "crystal_mother",
+    "name": "晶背之母",
+    "desc": "旧矿下层晶脉里的巢主，背上长满澱晶。打它的时候矿顶会落晶。",
+    "family": "burrower",
+    "faction": "monster",
+    "minLevel": 9,
+    "maxLevel": 9,
+    "rank": "boss",
+    "hpMult": 1.6,
+    "dmgMult": 0.7,
+    "speed": 3,
+    "aggroRadius": 6,
+    "leash": 24,
+    "abilities": ["crystal_fall"],
+    "mechanics": {
+      "passives": ["crystal_hide"],
+      "summon": [
+        {
+          "atPct": 0.5,
+          "monster": "burrow_worm",
+          "count": 2,
+          "say": "（矿顶又塌下来一片。）"
+        }
+      ]
+    },
+    "loot": [
+      {
+        "itemId": "crystal_carapace",
+        "chance": 1
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 1,
+        "min": 3,
+        "max": 6
+      }
+    ],
+    "money": [40, 80],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#6a6f7a", "#9fb4c8", "#d9e4ef", "#2a2d33"],
+      "scale": 1.6
+    }
+  },
+  {
+    "id": "vero",
+    "name": "薇罗",
+    "desc": "独眼团的二把手，总想交易。打到半血会开口谈条件。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "oneeye",
+    "minLevel": 10,
+    "maxLevel": 10,
+    "rank": "elite",
+    "dmgMult": 0.8,
+    "speed": 4,
+    "aggroRadius": 5,
+    "leash": 20,
+    "classId": "rogue",
+    "abilities": ["lime_powder"],
+    "mechanics": {
+      "yieldAtPct": 0.5,
+      "yieldSay": "停！停手！……我们谈谈，好吗？"
+    },
+    "loot": [
+      {
+        "itemId": "grey_fang_dagger",
+        "chance": 0.3
+      }
+    ],
+    "money": [40, 80],
+    "appearance": {
+      "base": "human",
+      "colors": ["#3b2f4a", "#1f1a26", "#efc6a8", "#7a1f2b"]
+    }
+  },
+  {
+    "id": "seg_oneeye",
+    "name": "瑟格\"独眼\"",
+    "desc": "独眼团的头目。接受单挑时手下不插手，输了就认。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "oneeye",
+    "minLevel": 12,
+    "maxLevel": 12,
+    "rank": "boss",
+    "hpMult": 1.3,
+    "dmgMult": 0.8,
+    "speed": 3.8,
+    "aggroRadius": 5,
+    "leash": 22,
+    "classId": "warrior",
+    "abilities": ["monster_cleave"],
+    "mechanics": {
+      "yieldAtPct": 0.1,
+      "yieldSay": "……够了。独眼团的规矩，输了就是输了。",
+      "enrage": {
+        "belowPct": 0.3,
+        "aura": "blood_rage",
+        "say": "再来！"
+      }
+    },
+    "loot": [
+      {
+        "itemId": "ash_cleaver",
+        "chance": 0.6
+      },
+      {
+        "itemId": "healing_potion",
+        "chance": 0.5
+      }
+    ],
+    "money": [80, 160],
+    "appearance": {
+      "base": "human",
+      "colors": ["#4a3a2a", "#2b211a", "#d6a888", "#141414"],
+      "scale": 1.15
+    }
+  },
+  {
+    "id": "guardian_raven",
+    "name": "守护巨鸦",
+    "desc": "被澱侵蚀多年的雅努信使，守着巢井不让任何东西出入。它不会死。",
+    "family": "beast",
+    "faction": "ruin_ravens",
+    "minLevel": 5,
+    "maxLevel": 5,
+    "rank": "boss",
+    "hpMult": 1,
+    "dmgMult": 0.45,
+    "speed": 4,
+    "aggroRadius": 6,
+    "leash": 14,
+    "abilities": ["feather_storm"],
+    "mechanics": {
+      "summon": [
+        {
+          "atPct": 0.8,
+          "monster": "raven_flock",
+          "count": 2,
+          "say": "（巨鸦尖啸，鸦群从井壁上扑下来。）"
+        }
+      ],
+      "phases": [
+        {
+          "belowPct": 0.6,
+          "name": "振翼",
+          "abilities": ["feather_storm", "wing_buffet"],
+          "say": "……门……"
+        },
+        {
+          "belowPct": 0.25,
+          "name": "澱狂",
+          "abilities": ["heart_peck", "feather_storm"]
+        }
+      ],
+      "enrage": {
+        "belowPct": 0.25,
+        "aura": "enrage"
+      },
+      "yieldAtPct": 0.02,
+      "yieldSay": "（它摔在巢上。黑色的灰从羽毛上一片片剥落，底下露出银色的羽根。）",
+      "removeOnFlag": "companion.yeyu.recruited"
+    },
+    "loot": [
+      {
+        "itemId": "raven_quill_charm",
+        "chance": 1
+      },
+      {
+        "itemId": "expedition_badge",
+        "chance": 1
+      }
+    ],
+    "money": [30, 60],
+    "xpMult": 2,
+    "appearance": {
+      "base": "bird",
+      "colors": ["#141418", "#3a3a44", "#c8a24a", "#c0c8d0"],
+      "scale": 2
+    }
+  },
+  {
+    "id": "dian_colossus",
+    "name": "澱巨像",
+    "desc": "封印躁动时从遗迹渗出的澱裹着灰、碎石与澱晶凝成的巨物。它追逐门。",
+    "family": "construct",
+    "faction": "monster",
+    "minLevel": 14,
+    "maxLevel": 14,
+    "rank": "boss",
+    "hpMult": 3,
+    "dmgMult": 0.8,
+    "attackSpeed": 2.6,
+    "speed": 2.8,
+    "aggroRadius": 9,
+    "leash": 60,
+    "abilities": ["dian_fist", "stomp", "ash_tide"],
+    "mechanics": {
+      "phases": [
+        {
+          "belowPct": 0.7,
+          "name": "裂解",
+          "abilities": ["dian_fist", "ash_shell", "ash_rain", "stomp"]
+        },
+        {
+          "belowPct": 0.35,
+          "name": "崩解",
+          "abilities": ["dian_fist", "ash_rain", "stomp"]
+        }
+      ],
+      "summon": [
+        {
+          "atPct": 0.66,
+          "monster": "dian_spirit",
+          "count": 2
+        },
+        {
+          "atPct": 0.33,
+          "monster": "dian_spirit",
+          "count": 2
+        }
+      ],
+      "enrage": {
+        "belowPct": 0.35,
+        "aura": "enrage"
+      },
+      "presence": 4
+    },
+    "loot": [
+      {
+        "itemId": "dian_core",
+        "chance": 1
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 1,
+        "min": 6,
+        "max": 10
+      }
+    ],
+    "money": [120, 240],
+    "xpMult": 3,
+    "appearance": {
+      "base": "golem",
+      "colors": ["#4d4a46", "#2a2826", "#8c857c", "#b8c4d0"],
+      "scale": 2.4
+    }
+  },
+  {
+    "id": "sewer_sludge",
+    "name": "腐泥团",
+    "desc": "排水廊里的一团腐泥，会喷人。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 16,
+    "maxLevel": 18,
+    "speed": 2.8,
+    "aggroRadius": 4,
+    "leash": 16,
+    "school": "nature",
+    "abilities": ["sludge_spit"],
+    "loot": [
+      {
+        "itemId": "sludge_glob",
+        "chance": 0.6
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 0.3
+      }
+    ],
+    "money": [10, 24],
+    "appearance": {
+      "base": "slime",
+      "colors": ["#4f5a34", "#323a20", "#8c9a5c", "#1a1f10"]
+    }
+  },
+  {
+    "id": "drowned",
+    "name": "溺亡者",
+    "desc": "沉锁闸下浮起来的东西。",
+    "family": "undead",
+    "faction": "monster",
+    "minLevel": 19,
+    "maxLevel": 21,
+    "speed": 3,
+    "aggroRadius": 5,
+    "leash": 18,
+    "abilities": ["grave_chill"],
+    "loot": [
+      {
+        "itemId": "bone_shard",
+        "chance": 0.5
+      },
+      {
+        "itemId": "healing_potion",
+        "chance": 0.06
+      }
+    ],
+    "money": [12, 28],
+    "appearance": {
+      "base": "undead",
+      "colors": ["#5a6b6e", "#34403f", "#a9b8b2", "#1a2020"]
+    }
+  },
+  {
+    "id": "dian_leech",
+    "name": "澱化水蛭",
+    "desc": "比手臂还粗的水蛭，贴上来就吸血。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 19,
+    "maxLevel": 21,
+    "hpMult": 0.9,
+    "speed": 3.2,
+    "aggroRadius": 4,
+    "leash": 16,
+    "abilities": ["leech_drain"],
+    "mechanics": {
+      "social": 4
+    },
+    "loot": [
+      {
+        "itemId": "leech_ichor",
+        "chance": 0.6
+      }
+    ],
+    "money": [10, 24],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#3b2a2e", "#24191b", "#7a4a52", "#100a0b"],
+      "scale": 0.8
+    }
+  },
+  {
+    "id": "ash_bookwraith",
+    "name": "灰烬书灵",
+    "desc": "旧城基里飘着的灰烬，像书页，会甩出燃烧的残页。",
+    "family": "undead",
+    "faction": "monster",
+    "minLevel": 22,
+    "maxLevel": 24,
+    "speed": 3.2,
+    "aggroRadius": 6,
+    "leash": 18,
+    "school": "fire",
+    "range": 6,
+    "abilities": ["page_burn"],
+    "loot": [
+      {
+        "itemId": "burnt_page",
+        "chance": 0.7
+      }
+    ],
+    "money": [14, 30],
+    "appearance": {
+      "base": "spirit",
+      "colors": ["#8a7a5a", "#4f4533", "#e8d9b0", "#2a241a"]
+    }
+  },
+  {
+    "id": "crystal_centipede_young",
+    "name": "晶甲蜈幼体",
+    "desc": "澱晶窟里的幼蜈，甲壳上长着细小的晶刺。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 25,
+    "maxLevel": 27,
+    "speed": 3.8,
+    "aggroRadius": 5,
+    "leash": 18,
+    "abilities": ["dian_bite"],
+    "mechanics": {
+      "passives": ["crystal_hide"]
+    },
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 0.6,
+        "min": 1,
+        "max": 2
+      }
+    ],
+    "money": [16, 34],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#4a5866", "#2b333c", "#a8c4dc", "#14181c"],
+      "scale": 1
+    }
+  },
+  {
+    "id": "disciple_cultist",
+    "name": "门徒会信徒",
+    "desc": "戴着灰兜帽的人，手背上画着门纹。他们是有页的人，不是魔物。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "disciples",
+    "minLevel": 25,
+    "maxLevel": 27,
+    "hpMult": 0.9,
+    "speed": 3.6,
+    "aggroRadius": 6,
+    "leash": 20,
+    "classId": "warlock",
+    "mechanics": {
+      "flee": 0.15,
+      "social": 6
+    },
+    "loot": [
+      {
+        "itemId": "cultist_robe",
+        "chance": 0.05
+      },
+      {
+        "itemId": "mana_potion",
+        "chance": 0.1
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 0.4
+      }
+    ],
+    "money": [30, 60],
+    "appearance": {
+      "base": "human",
+      "colors": ["#56565c", "#2c2c30", "#e2c2a6", "#8a2a2a"]
+    }
+  },
+  {
+    "id": "rat_king",
+    "name": "百尾鼠王",
+    "desc": "上百只澱鼠缠成的巨鼠，打散了会在水里重新聚合。",
+    "family": "burrower",
+    "faction": "monster",
+    "minLevel": 18,
+    "maxLevel": 18,
+    "rank": "boss",
+    "hpMult": 2.5,
+    "dmgMult": 0.7,
+    "attackSpeed": 1.6,
+    "speed": 3.4,
+    "aggroRadius": 6,
+    "leash": 26,
+    "abilities": ["monster_cleave", "dian_bite"],
+    "mechanics": {
+      "partySync": {
+        "offset": 2,
+        "min": 8
+      },
+      "summon": [
+        {
+          "atPct": 0.75,
+          "monster": "dian_rat",
+          "count": 4,
+          "say": "（鼠王身上哗地散开一片老鼠。）"
+        },
+        {
+          "atPct": 0.5,
+          "monster": "dian_rat",
+          "count": 4
+        },
+        {
+          "atPct": 0.25,
+          "monster": "dian_rat",
+          "count": 4
+        }
+      ],
+      "enrage": {
+        "belowPct": 0.2,
+        "aura": "enrage"
+      }
+    },
+    "loot": [
+      {
+        "itemId": "sewer_waders",
+        "chance": 0.6
+      },
+      {
+        "itemId": "rat_tail",
+        "chance": 1,
+        "min": 5,
+        "max": 10
+      }
+    ],
+    "money": [100, 200],
+    "xpMult": 2,
+    "appearance": {
+      "base": "beast",
+      "colors": ["#5e544a", "#3a332c", "#c9a9a0", "#1e1a16"],
+      "scale": 1.9
+    }
+  },
+  {
+    "id": "crystal_centipede",
+    "name": "晶脊蜈",
+    "desc": "脊背长满澱晶的巨蜈，把晶刺射进墙里生成晶柱；晶柱越多它越硬。",
+    "family": "beast",
+    "faction": "monster",
+    "minLevel": 27,
+    "maxLevel": 27,
+    "rank": "boss",
+    "hpMult": 3,
+    "dmgMult": 0.75,
+    "speed": 3.4,
+    "aggroRadius": 7,
+    "leash": 28,
+    "abilities": ["crystal_spike", "dian_bite", "monster_charge"],
+    "mechanics": {
+      "phases": [
+        {
+          "belowPct": 0.4,
+          "name": "碎晶",
+          "say": "（晶柱一根根炸开，晶屑像雨一样落下。）",
+          "abilities": ["crystal_fall", "dian_bite", "crystal_spike"]
+        }
+      ],
+      "enrage": {
+        "belowPct": 0.2,
+        "aura": "enrage"
+      }
+    },
+    "loot": [
+      {
+        "itemId": "gate_stone",
+        "chance": 1
+      },
+      {
+        "itemId": "crystal_spine_blade",
+        "chance": 0.5
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 1,
+        "min": 8,
+        "max": 12
+      }
+    ],
+    "money": [300, 600],
+    "xpMult": 2,
+    "appearance": {
+      "base": "beast",
+      "colors": ["#3c4a58", "#7fa6c6", "#d6ecff", "#12171c"],
+      "scale": 2.2
+    }
+  },
+  {
+    "id": "waste_ghoul",
+    "name": "荒原食尸鬼",
+    "desc": "穿着千年前衣服的亡灵，身上有门形的空洞。",
+    "family": "undead",
+    "faction": "monster",
+    "minLevel": 30,
+    "maxLevel": 34,
+    "speed": 3.6,
+    "aggroRadius": 6,
+    "leash": 20,
+    "abilities": ["dian_bite"],
+    "mechanics": {
+      "social": 5
+    },
+    "loot": [
+      {
+        "itemId": "bone_shard",
+        "chance": 0.6
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 0.5
+      }
+    ],
+    "money": [20, 45],
+    "appearance": {
+      "base": "undead",
+      "colors": ["#6b6660", "#3f3b37", "#b8b0a4", "#1d1b19"]
+    }
+  },
+  {
+    "id": "ash_elemental",
+    "name": "灰烬元素",
+    "desc": "古澱凝成的灰色旋涡。",
+    "family": "elemental",
+    "faction": "monster",
+    "minLevel": 36,
+    "maxLevel": 40,
+    "speed": 3.2,
+    "aggroRadius": 6,
+    "leash": 20,
+    "school": "shadow",
+    "abilities": ["ash_tide", "grave_chill"],
+    "loot": [
+      {
+        "itemId": "ash_essence",
+        "chance": 0.5
+      },
+      {
+        "itemId": "dian_shard",
+        "chance": 0.6
+      }
+    ],
+    "money": [26, 55],
+    "appearance": {
+      "base": "spirit",
+      "colors": ["#5a5652", "#34312e", "#c8c0b8", "#1a1816"],
+      "scale": 1.2
+    }
+  },
+  {
+    "id": "ashen_knight",
+    "name": "灰烬骑士",
+    "desc": "千年前的骑士铠，里面只有灰。精英。",
+    "family": "undead",
+    "faction": "monster",
+    "minLevel": 35,
+    "maxLevel": 38,
+    "rank": "elite",
+    "speed": 3.4,
+    "aggroRadius": 6,
+    "leash": 22,
+    "abilities": ["monster_cleave", "monster_charge"],
+    "loot": [
+      {
+        "itemId": "ashen_plate",
+        "chance": 0.15
+      },
+      {
+        "itemId": "greater_healing_potion",
+        "chance": 0.2
+      }
+    ],
+    "money": [60, 120],
+    "appearance": {
+      "base": "undead",
+      "colors": ["#4a4744", "#2b2927", "#9a948c", "#c84a2a"],
+      "scale": 1.2
+    }
+  },
+  {
+    "id": "dian_drake",
+    "name": "澱化亚龙",
+    "desc": "凡人叫它恶龙，其实是澱化的飞蜥。精英。",
+    "family": "dragonkin",
+    "faction": "monster",
+    "minLevel": 40,
+    "maxLevel": 44,
+    "rank": "elite",
+    "hpMult": 1.3,
+    "speed": 4.2,
+    "aggroRadius": 8,
+    "leash": 26,
+    "school": "fire",
+    "abilities": ["feather_storm", "terrify", "monster_cleave"],
+    "loot": [
+      {
+        "itemId": "drake_scale",
+        "chance": 1,
+        "min": 1,
+        "max": 3
+      },
+      {
+        "itemId": "drake_scale_leggings",
+        "chance": 0.15
+      }
+    ],
+    "money": [90, 180],
+    "appearance": {
+      "base": "beast",
+      "colors": ["#5a2e24", "#2e1813", "#c8784a", "#140a08"],
+      "scale": 1.8
+    }
+  },
+  {
+    "id": "crusader_soldier",
+    "name": "圣战军士兵",
+    "desc": "白袍下是锁甲。圣战军的步卒，相信自己在净化世界。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "crusade",
+    "minLevel": 32,
+    "maxLevel": 36,
+    "speed": 3.6,
+    "aggroRadius": 6,
+    "leash": 20,
+    "classId": "paladin",
+    "mechanics": {
+      "flee": 0.15,
+      "social": 6
+    },
+    "loot": [
+      {
+        "itemId": "healing_potion",
+        "chance": 0.2
+      }
+    ],
+    "money": [40, 90],
+    "appearance": {
+      "base": "human",
+      "colors": ["#e8e4da", "#a8a294", "#e0b896", "#c8a24a"]
+    }
+  },
+  {
+    "id": "crusader_inquisitor",
+    "name": "圣战军审判官",
+    "desc": "随军的审判官，祷文里带着刀子。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "crusade",
+    "minLevel": 36,
+    "maxLevel": 40,
+    "rank": "elite",
+    "dmgMult": 0.8,
+    "speed": 3.4,
+    "aggroRadius": 7,
+    "leash": 22,
+    "range": 6,
+    "school": "holy",
+    "classId": "priest",
+    "loot": [
+      {
+        "itemId": "mana_potion",
+        "chance": 0.4
+      }
+    ],
+    "money": [80, 160],
+    "appearance": {
+      "base": "human",
+      "colors": ["#f2efe6", "#7a1f2b", "#e6c2a2", "#c8a24a"]
+    }
+  },
+  {
+    "id": "redfang_brute",
+    "name": "红牙军鬼人重步兵",
+    "desc": "赭红厚皮、粗角、短獠牙的鬼人武士。魔族是种族，他们是有页的人。",
+    "family": "humanoid",
+    "race": "demonkin",
+    "faction": "redfang",
+    "minLevel": 38,
+    "maxLevel": 42,
+    "rank": "elite",
+    "hpMult": 1.2,
+    "speed": 3.4,
+    "aggroRadius": 6,
+    "leash": 22,
+    "classId": "warrior",
+    "abilities": ["monster_charge", "monster_cleave"],
+    "loot": [
+      {
+        "itemId": "greater_healing_potion",
+        "chance": 0.25
+      }
+    ],
+    "money": [80, 160],
+    "appearance": {
+      "base": "demon",
+      "colors": ["#8a3a2a", "#4a2a24", "#c8644a", "#1a1010"],
+      "scale": 1.25
+    }
+  },
+  {
+    "id": "wing_demon_scout",
+    "name": "翼魔游骑",
+    "desc": "蝠翼、角质耳冠的翼魔斥候，截杀信使的好手。",
+    "family": "humanoid",
+    "race": "demonkin",
+    "faction": "redfang",
+    "minLevel": 38,
+    "maxLevel": 42,
+    "speed": 4.6,
+    "aggroRadius": 8,
+    "leash": 24,
+    "range": 8,
+    "classId": "hunter",
+    "mechanics": {
+      "flee": 0.2
+    },
+    "loot": [
+      {
+        "itemId": "healing_potion",
+        "chance": 0.3
+      }
+    ],
+    "money": [50, 110],
+    "appearance": {
+      "base": "demon",
+      "colors": ["#3a3446", "#221e2a", "#9a8ab0", "#100e14"],
+      "scale": 0.85
+    }
+  },
+  {
+    "id": "night_demon_caster",
+    "name": "夜魔施法者",
+    "desc": "灰蓝苍白的夜魔，发丝像烟。红牙军里的施法者。",
+    "family": "humanoid",
+    "race": "demonkin",
+    "faction": "redfang",
+    "minLevel": 40,
+    "maxLevel": 44,
+    "speed": 3.4,
+    "aggroRadius": 7,
+    "leash": 22,
+    "range": 6,
+    "school": "frost",
+    "classId": "mage",
+    "loot": [
+      {
+        "itemId": "mana_potion",
+        "chance": 0.35
+      }
+    ],
+    "money": [60, 130],
+    "appearance": {
+      "base": "demon",
+      "colors": ["#2e3446", "#1a1e2a", "#b4c0d8", "#c0c8d0"]
+    }
+  },
+  {
+    "id": "disciple_guide",
+    "name": "门徒会引导者",
+    "desc": "门徒会里能以门纹强开门缝的人。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "disciples",
+    "minLevel": 50,
+    "maxLevel": 52,
+    "rank": "elite",
+    "speed": 3.4,
+    "aggroRadius": 7,
+    "leash": 22,
+    "range": 6,
+    "school": "shadow",
+    "classId": "warlock",
+    "mechanics": {
+      "partySync": {
+        "offset": -2,
+        "min": 10
+      }
+    },
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 1,
+        "min": 2,
+        "max": 4
+      }
+    ],
+    "money": [120, 240],
+    "appearance": {
+      "base": "human",
+      "colors": ["#3a3a40", "#1c1c20", "#d8b89a", "#6a2a8a"]
+    }
+  },
+  {
+    "id": "faceless_soldier",
+    "name": "千貌兵",
+    "desc": "无貌之王以澱造出的影子兵，外形是你曾经击败过的强敌。",
+    "family": "elemental",
+    "faction": "faceless",
+    "minLevel": 52,
+    "maxLevel": 55,
+    "speed": 3.6,
+    "aggroRadius": 8,
+    "leash": 30,
+    "school": "shadow",
+    "abilities": ["dian_fist", "monster_cleave"],
+    "mechanics": {
+      "partySync": {
+        "offset": -3,
+        "min": 8
+      }
+    },
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 0.8,
+        "min": 1,
+        "max": 3
+      }
+    ],
+    "money": [40, 90],
+    "appearance": {
+      "base": "spirit",
+      "colors": ["#1c1c22", "#0c0c10", "#5a5a6a", "#000000"],
+      "scale": 1.2
+    }
+  },
+  {
+    "id": "sasha",
+    "name": "红牙将军萨莎",
+    "desc": "瓦尔妲的客人，以战斗无限成长。戴铁拳套，用拳头打仗。生命降到两成时，她会笑着撤军。",
+    "family": "humanoid",
+    "race": "human",
+    "faction": "redfang",
+    "minLevel": 48,
+    "maxLevel": 48,
+    "rank": "boss",
+    "hpMult": 4,
+    "dmgMult": 1.1,
+    "attackSpeed": 1.6,
+    "speed": 4.6,
+    "aggroRadius": 10,
+    "leash": 40,
+    "classId": "warrior",
+    "abilities": ["jab", "haymaker", "monster_charge"],
+    "mechanics": {
+      "ramp": {
+        "every": 10,
+        "aura": "tempering"
+      },
+      "phases": [
+        {
+          "belowPct": 0.5,
+          "name": "第二回合",
+          "say": "哈！这才像样。第二回合！"
+        }
+      ],
+      "yieldAtPct": 0.2,
+      "yieldSay": "哈哈哈！老太婆，你又看走眼了！今天就打到这儿，下一回合再说！",
+      "despawnAfterYield": 6,
+      "presence": 6
+    },
+    "loot": [
+      {
+        "itemId": "red_fang_gauntlet",
+        "chance": 1
+      }
+    ],
+    "money": [800, 1600],
+    "xpMult": 4,
+    "appearance": {
+      "base": "human",
+      "colors": ["#8a1f1f", "#2a2a2a", "#e8c0a0", "#c83a2a"],
+      "scale": 1.1
+    }
+  },
+  {
+    "id": "faceless_king",
+    "name": "无貌之王",
+    "desc": "第九代魔王。他说：我就是你没被选中的样子。",
+    "family": "undead",
+    "faction": "faceless",
+    "minLevel": 58,
+    "maxLevel": 58,
+    "rank": "boss",
+    "hpMult": 3,
+    "dmgMult": 0.6,
+    "speed": 3.6,
+    "aggroRadius": 12,
+    "leash": 60,
+    "school": "shadow",
+    "abilities": ["rift_slash", "dian_mark"],
+    "mechanics": {
+      "partySync": {
+        "offset": -2,
+        "min": 10
+      },
+      "passives": ["faceless_veil"],
+      "phases": [
+        {
+          "belowPct": 0.7,
+          "name": "千貌",
+          "say": "如果当年她接住的是我，今天站在这里的就是你。",
+          "abilities": ["thousand_pain", "dian_mark", "dian_infusion", "rift_slash"]
+        },
+        {
+          "belowPct": 0.35,
+          "name": "无貌之王",
+          "say": "你以为你是被选中的？你看看我。",
+          "abilities": ["rift_slash", "dian_mark", "thousand_pain", "ash_rain"]
+        }
+      ],
+      "summon": [
+        {
+          "atPct": 0.9,
+          "monster": "faceless_soldier",
+          "count": 2
+        },
+        {
+          "atPct": 0.7,
+          "monster": "disciple_guide",
+          "count": 2,
+          "say": "撕开它。"
+        },
+        {
+          "atPct": 0.5,
+          "monster": "faceless_soldier",
+          "count": 3
+        }
+      ],
+      "enrage": {
+        "belowPct": 0.3,
+        "aura": "enrage"
+      },
+      "yieldAtPct": 0.05,
+      "yieldSay": "（他停了手。身后的空气裂开，露出一扇通往庭间之隙的门。）跟我一起掉下去吧。这一次，谁也接不住。",
+      "presence": 8
+    },
+    "loot": [
+      {
+        "itemId": "dian_shard",
+        "chance": 1,
+        "min": 20,
+        "max": 30
+      }
+    ],
+    "money": [2000, 4000],
+    "xpMult": 6,
+    "appearance": {
+      "base": "spirit",
+      "colors": ["#0e0e12", "#2a2a34", "#e8e8f0", "#6a2a8a"],
+      "scale": 1.6
+    }
+  },
+  {
+    "id": "contract_imp",
+    "name": "契约小鬼",
+    "desc": "从澱中凝出、带着残缺意志的契约魔，不是魔族。",
+    "family": "demon",
+    "faction": "pact",
+    "minLevel": 1,
+    "maxLevel": 60,
+    "hpMult": 0.5,
+    "dmgMult": 0.6,
+    "speed": 4,
+    "aggroRadius": 4,
+    "leash": 30,
+    "range": 6,
+    "school": "fire",
+    "appearance": {
+      "base": "demon",
+      "colors": ["#a83a1a", "#5a1a0a", "#ffb060", "#200800"],
+      "scale": 0.55
+    }
+  }
+]

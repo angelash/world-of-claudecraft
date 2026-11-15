@@ -1,0 +1,90 @@
+[
+  {
+    "id": "charge",
+    "name": "冲锋",
+    "kind": "charge",
+    "cooldown": 30,
+    "range": 5,
+    "power": 260,
+    "desc": "冲入敌阵，冲散阵型十秒并打击士气。"
+  },
+  {
+    "id": "inspire",
+    "name": "鼓舞",
+    "kind": "inspire",
+    "cooldown": 60,
+    "range": 0,
+    "radius": 6,
+    "power": 20,
+    "desc": "周围我方兵团士气加 20。"
+  },
+  {
+    "id": "rally",
+    "name": "重整旗鼓",
+    "kind": "rally",
+    "cooldown": 90,
+    "range": 0,
+    "radius": 7,
+    "power": 0,
+    "desc": "让周围溃退的兵团立刻重整。"
+  },
+  {
+    "id": "cleave",
+    "name": "横扫",
+    "kind": "aoe",
+    "cooldown": 30,
+    "range": 2,
+    "radius": 1.2,
+    "power": 160,
+    "desc": "近身横扫一片敌兵。"
+  },
+  {
+    "id": "firestorm",
+    "name": "烈焰风暴",
+    "kind": "aoe",
+    "cooldown": 120,
+    "range": 7,
+    "radius": 2.5,
+    "power": 420,
+    "desc": "大范围法术，克制密集阵型。"
+  },
+  {
+    "id": "strike",
+    "name": "斩将",
+    "kind": "strike",
+    "cooldown": 20,
+    "range": 2,
+    "power": 600,
+    "desc": "对敌方英雄或将领的单体重击。"
+  },
+  {
+    "id": "war_cry",
+    "name": "战吼",
+    "kind": "inspire",
+    "cooldown": 45,
+    "range": 0,
+    "radius": 7,
+    "power": 25,
+    "desc": "震天的战吼，周围兵团士气加 25。"
+  },
+  {
+    "id": "dawn_pillar",
+    "name": "曙光圣柱",
+    "kind": "aoe",
+    "cooldown": 150,
+    "range": 8,
+    "radius": 2.5,
+    "power": 520,
+    "desc": "大主教召下的光柱，灼烧范围内的一切。"
+  },
+  {
+    "id": "bone_storm",
+    "name": "骨岚",
+    "kind": "aoe",
+    "cooldown": 60,
+    "range": 6,
+    "radius": 2,
+    "power": 200,
+    "desc": "千骨行者掀起的碎骨风暴。"
+  }
+]

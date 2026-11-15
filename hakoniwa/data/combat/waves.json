@@ -1,0 +1,115 @@
+[
+  {
+    "id": "tide_first",
+    "name": "兽潮第一波：兽群",
+    "mapId": "borderstone",
+    "at": "gate_forest_edge",
+    "target": "east_slope",
+    "radius": 4,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "dian_wolf", "count": 12 },
+      { "monster": "dian_boar", "count": 6 },
+      { "monster": "edge_spider", "count": 8 },
+      { "monster": "black_ridge", "count": 1 }
+    ]
+  },
+  {
+    "id": "tide_second",
+    "name": "兽潮第二拍：亡灵",
+    "mapId": "borderstone",
+    "at": "gate_seal_ruins",
+    "target": "north_gate",
+    "radius": 4,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "wandering_bones", "count": 10 },
+      { "monster": "waste_wraith", "count": 4 }
+    ]
+  },
+  {
+    "id": "tide_colossus",
+    "name": "兽潮之夜：澱巨像",
+    "mapId": "borderstone",
+    "at": "gate_seal_ruins",
+    "target": "orphanage",
+    "radius": 2,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [{ "monster": "dian_colossus", "count": 1 }, { "monster": "dian_spirit", "count": 2 }]
+  },
+  {
+    "id": "tide_flood",
+    "name": "兽潮第二波：澱流",
+    "mapId": "borderstone",
+    "at": "gate_seal_ruins",
+    "target": "plaza",
+    "radius": 5,
+    "endOnFlag": "a1_beast_tide_cleared",
+    "groups": [
+      { "monster": "dian_dreg", "count": 20, "level": 10 },
+      { "monster": "dian_wolf", "count": 8 },
+      { "monster": "dian_spirit", "count": 2 }
+    ]
+  },
+  {
+    "id": "forest_vanguard",
+    "name": "林缘：灰狼南下",
+    "mapId": "forest_edge",
+    "at": "deep_woods",
+    "target": "hunter_camp",
+    "radius": 3,
+    "groups": [{ "monster": "dian_wolf", "count": 4 }]
+  },
+  {
+    "id": "ruins_unrest",
+    "name": "封门遗迹：躁动",
+    "mapId": "seal_ruins",
+    "at": "ash_stairs",
+    "target": "sigil_hall",
+    "radius": 2,
+    "groups": [{ "monster": "dian_dreg", "count": 6 }]
+  },
+  {
+    "id": "disciple_ritual",
+    "name": "旧水道：门徒会的仪式",
+    "mapId": "wallenburg_sewers",
+    "at": "gate_37",
+    "target": "crystal_grotto",
+    "radius": 2,
+    "groups": [{ "monster": "disciple_cultist", "count": 4 }]
+  },
+  {
+    "id": "red_fang_raid",
+    "name": "荒原：红牙军试货",
+    "mapId": "ash_waste",
+    "at": "redfang_hill",
+    "target": "waste_camp",
+    "radius": 3,
+    "groups": [
+      { "monster": "redfang_brute", "count": 3 },
+      { "monster": "wing_demon_scout", "count": 2 },
+      { "monster": "night_demon_caster", "count": 2 }
+    ]
+  },
+  {
+    "id": "sasha_duel",
+    "name": "红牙将军萨莎：打一场就知道了",
+    "mapId": "ash_waste",
+    "at": "redfang_hill",
+    "target": "waste_gate_site",
+    "radius": 1,
+    "groups": [{ "monster": "sasha", "count": 1 }]
+  },
+  {
+    "id": "faceless_king",
+    "name": "第九代魔王：无貌之王",
+    "mapId": "ash_waste",
+    "at": "core_rim",
+    "target": "gate_old_outpost",
+    "radius": 2,
+    "groups": [
+      { "monster": "faceless_king", "count": 1 },
+      { "monster": "faceless_soldier", "count": 4 }
+    ]
+  }
+]

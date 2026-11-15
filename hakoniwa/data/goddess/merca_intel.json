@@ -1,0 +1,29 @@
+[
+  {
+    "id": "salt_hoard",
+    "when": "act == act1",
+    "text": "边石镇商会的地窖里，盐比账上多三成。谁让囤的，客人自己猜。"
+  },
+  { "id": "moss_night", "when": "act == act1", "text": "代官府的后门，夜里比前门热闹。" },
+  {
+    "id": "wallenburg_heirs",
+    "when": "act == act2",
+    "text": "伯爵府的三位继承人，各有各的债主。次女的账最干净，所以最危险。"
+  },
+  {
+    "id": "sewer_buyers",
+    "when": "act == act2",
+    "text": "旧水道里有人在收澱晶，出价比公会高一倍。"
+  },
+  { "id": "chancellor_debt", "when": "act == act3", "text": "宰相欠同盟的钱，够买下半个王都。" },
+  {
+    "id": "hart_embargo",
+    "when": "act == act4",
+    "text": "金冠准备对你的国家禁运。先囤铁和盐，客人。"
+  },
+  {
+    "id": "ash_market",
+    "when": "act == act5",
+    "text": "荒原的澱晶现在一文不值，买它的人都在等一个结局。"
+  }
+]

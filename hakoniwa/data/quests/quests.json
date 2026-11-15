@@ -1,0 +1,1829 @@
+[
+  {
+    "id": "a1_m01_fall",
+    "act": "act1",
+    "kind": "main",
+    "order": 1,
+    "title": "落门",
+    "desc": "你在封门遗迹的神纹大厅里醒来。五个神纹之外，还有第六个门形的纹，不属于任何一座教会。往下走。",
+    "trigger": "act == act1",
+    "stages": [
+      {
+        "id": "descend",
+        "desc": "穿过回廊，走下落灰阶，抵达灰烬室。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "seal_ruins_depths",
+            "location": "ash_chamber",
+            "label": "走下落灰阶，抵达灰烬室"
+          }
+        ],
+        "onComplete": [
+          {
+            "type": "scene",
+            "scene": "a1_ash_glimpse"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_ash_met",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "seal_unrest",
+        "amount": 5,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 60,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a1_m02_raven",
+    "act": "act1",
+    "kind": "main",
+    "order": 2,
+    "title": "巢中之鸦",
+    "desc": "巢井上方盘踞着被灰气侵蚀的守护巨鸦。击败它，再伸出手。",
+    "trigger": "quest.a1_m01_fall == done",
+    "stages": [
+      {
+        "id": "raven",
+        "desc": "攀上巢井，击败守护巨鸦。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "guardian_raven",
+            "count": 1,
+            "label": "击败守护巨鸦",
+            "orWhen": "boss.guardian_raven.defeated OR boss.guardian_raven.yielded"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_yeyu_bound",
+        "value": true
+      },
+      {
+        "type": "companion",
+        "id": "yeyu"
+      },
+      {
+        "type": "flag",
+        "key": "term.dian_known",
+        "value": true
+      },
+      {
+        "type": "item",
+        "item": "old_guild_badge"
+      },
+      {
+        "type": "item",
+        "item": "raven_black_feather"
+      },
+      {
+        "type": "add",
+        "key": "seal_unrest",
+        "amount": 10,
+        "max": 100
+      },
+      {
+        "type": "add",
+        "key": "seal_looseness",
+        "amount": 1,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 250,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a1_yeyu_bound"
+      }
+    ]
+  },
+  {
+    "id": "a1_m03_town",
+    "act": "act1",
+    "kind": "main",
+    "order": 3,
+    "title": "出口在北边",
+    "desc": "夜羽说，往北出了遗迹，下面就是一座镇子。",
+    "trigger": "quest.a1_m02_raven == done",
+    "onStart": [
+      {
+        "type": "line",
+        "speaker": "yeyu",
+        "text": "出口在北边。下面有座镇子，人多，吵，还有吃的。"
+      }
+    ],
+    "stages": [
+      {
+        "id": "town",
+        "desc": "离开封门遗迹，抵达边石镇。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "label": "抵达边石镇"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 60,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a1_m04_register",
+    "act": "act1",
+    "kind": "main",
+    "order": 4,
+    "title": "无记载",
+    "desc": "要在这里活下去，先得有一张公会卡。冒险者公会的分部长叫老布伦。",
+    "trigger": "quest.a1_m03_town == done",
+    "stages": [
+      {
+        "id": "register",
+        "desc": "去冒险者公会，找分部长老布伦登记。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "bron",
+            "label": "与老布伦交谈，登记为冒险者"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_guild_registered",
+        "value": true
+      },
+      {
+        "type": "item",
+        "item": "guild_card"
+      },
+      {
+        "type": "xp",
+        "amount": 60,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a1_guild_register"
+      }
+    ]
+  },
+  {
+    "id": "a1_m05_hunt",
+    "act": "act1",
+    "kind": "main",
+    "order": 5,
+    "title": "第一次狩猎",
+    "giver": "bron",
+    "turnIn": "bron",
+    "desc": "布伦把一张 F 级委托拍在柜台上：林缘的魔物多起来了，去清一清，活着回来。",
+    "trigger": "quest.a1_m04_register == done",
+    "stages": [
+      {
+        "id": "hunt",
+        "desc": "在林缘讨伐五只魔物。",
+        "objectives": [
+          {
+            "type": "kill",
+            "kind": "monster",
+            "mapId": "forest_edge",
+            "count": 5,
+            "label": "在林缘讨伐魔物"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_first_hunt",
+        "value": true
+      },
+      {
+        "type": "money",
+        "amount": 300
+      },
+      {
+        "type": "xp",
+        "amount": 250,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "bron",
+        "text": "……五只？一个人？行吧。算你运气好。"
+      }
+    ]
+  },
+  {
+    "id": "a1_m06_grey_wolf",
+    "act": "act1",
+    "kind": "main",
+    "order": 6,
+    "title": "灰色的狼",
+    "giver": "shiya",
+    "turnIn": "shiya",
+    "desc": "兽人猎户希雅在追查伐区北部的灰色的狼。她不太信任外人，但她更不信任伐木工。",
+    "trigger": "quest.a1_m04_register == done",
+    "stages": [
+      {
+        "id": "wolves",
+        "desc": "和希雅一起清剿灰色的狼。",
+        "objectives": [
+          {
+            "type": "kill",
+            "refs": ["grey_wolf", "dian_wolf"],
+            "mapId": "forest_edge",
+            "count": 3,
+            "label": "清剿灰色的狼"
+          }
+        ]
+      },
+      {
+        "id": "split_ear",
+        "desc": "击败狼群的头领「裂耳」。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "split_ear",
+            "count": 1,
+            "label": "击败裂耳",
+            "orWhen": "boss.split_ear.defeated"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "companion",
+        "id": "shiya"
+      },
+      {
+        "type": "add",
+        "key": "trust.shiya",
+        "amount": 20,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 300,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "shiya",
+        "text": "……你这样的人，林子里也少见。我跟你走一段。"
+      }
+    ]
+  },
+  {
+    "id": "a1_m07_mine",
+    "act": "act1",
+    "kind": "main",
+    "order": 7,
+    "title": "一夜矿道",
+    "giver": "ron",
+    "turnIn": "ron",
+    "desc": "矿工罗恩接了委托板上没人要的活：清理旧矿上层的掘穴虫。塌方后面好像有风。",
+    "trigger": "quest.a1_m04_register == done",
+    "stages": [
+      {
+        "id": "mine",
+        "desc": "清理旧矿的掘穴虫，打通塌方。",
+        "objectives": [
+          {
+            "type": "kill",
+            "kind": "monster",
+            "count": 4,
+            "label": "清理掘穴虫"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "companion",
+        "id": "ron"
+      },
+      {
+        "type": "add",
+        "key": "trust.ron",
+        "amount": 25,
+        "max": 100
+      },
+      {
+        "type": "item",
+        "item": "smuggling_manifest"
+      },
+      {
+        "type": "add",
+        "key": "seal_unrest",
+        "amount": 10,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 300,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "ron",
+        "text": "不可能……一夜就打通了？……我跟着你，看看你还能做出什么不可能的事。"
+      }
+    ]
+  },
+  {
+    "id": "a1_s01_spring",
+    "act": "act1",
+    "kind": "side",
+    "order": 8,
+    "title": "北泉之灰",
+    "giver": "oola",
+    "turnIn": "oola",
+    "desc": "欧拉婆婆说，病倒的孩子都喝过北泉的水。她想知道水里有什么。",
+    "trigger": "quest.a1_m04_register == done",
+    "stages": [
+      {
+        "id": "spring",
+        "desc": "去北泉打一瓶水回来。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "borderstone",
+            "location": "north_spring",
+            "label": "去北泉"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "item",
+        "item": "north_spring_water"
+      },
+      {
+        "type": "flag",
+        "key": "a1_north_spring_found",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "trust.oola",
+        "amount": 20,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 150,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "oola",
+        "text": "……灰。沉在瓶底的，是荒原病的灰。不是巫术。"
+      }
+    ]
+  },
+  {
+    "id": "a1_s02_coin",
+    "act": "act1",
+    "kind": "side",
+    "order": 9,
+    "title": "硬币的来历",
+    "giver": "nera",
+    "turnIn": "nera",
+    "desc": "商人奈拉盯着你的硬币看了很久：这种成色，她只在一个地方见过。",
+    "trigger": "quest.a1_m04_register == done",
+    "stages": [
+      {
+        "id": "offer",
+        "desc": "用梅尔卡的硬币向交易之司供奉一次。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "merca_offerings >= 1",
+            "label": "在神龛或市场用硬币供奉一次"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "trust.nera",
+        "amount": 10,
+        "max": 100
+      },
+      {
+        "type": "flag",
+        "key": "a1_coin_story",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "nera.stance",
+        "value": "partner"
+      },
+      {
+        "type": "interest",
+        "goddess": "merca",
+        "amount": 1
+      },
+      {
+        "type": "xp",
+        "amount": 100,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a1_m08_trial",
+    "act": "act1",
+    "kind": "main",
+    "order": 10,
+    "title": "光之鉴",
+    "desc": "第二个孩子倒下了。卡西安神父指控药草婆婆欧拉以巫术害人，三日后受光之鉴。",
+    "trigger": "quest.a1_m05_hunt == done AND quest.a1_m06_grey_wolf == done AND quest.a1_m07_mine == done",
+    "onStart": [
+      {
+        "type": "flag",
+        "key": "a1_witch_trial_started",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "church_suspicion",
+        "amount": 5,
+        "max": 100
+      },
+      {
+        "type": "line",
+        "speaker": "narrator",
+        "text": "广场上贴出了告示：药草婆婆欧拉，以巫术害人，三日后于礼拜堂前受光之鉴。"
+      }
+    ],
+    "stages": [
+      {
+        "id": "visit",
+        "desc": "去见欧拉婆婆，或者去礼拜堂找卡西安神父。",
+        "complete": "any",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "oola",
+            "label": "与欧拉婆婆交谈"
+          },
+          {
+            "type": "talk",
+            "npc": "cassian",
+            "label": "与卡西安神父交谈"
+          }
+        ]
+      },
+      {
+        "id": "trial",
+        "desc": "光之鉴开始了。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a1_oola_trial"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "a1_oola_fate",
+            "label": "在光之鉴上作出你的选择"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a1_m09_tide",
+    "act": "act1",
+    "kind": "main",
+    "order": 11,
+    "title": "兽潮之夜",
+    "desc": "封门遗迹的灰涌了出来。暗月之夜，兽潮会扑向小镇。",
+    "trigger": "quest.a1_m08_trial == done",
+    "onStart": [
+      {
+        "type": "flag",
+        "key": "seal_unrest",
+        "value": 100
+      },
+      {
+        "type": "line",
+        "speaker": "martha",
+        "text": "暗月要来了。今晚，别喝酒。"
+      }
+    ],
+    "stages": [
+      {
+        "id": "eve",
+        "desc": "暗月之前：去醉月亭找玛莎，问清兽潮的事，或者等到天黑。",
+        "complete": "any",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "martha",
+            "label": "与玛莎交谈"
+          },
+          {
+            "type": "wait",
+            "hours": 6,
+            "label": "等到天黑"
+          }
+        ]
+      },
+      {
+        "id": "vanguard",
+        "desc": "兽潮的前锋扑向东栅。守住小镇。",
+        "onEnter": [
+          {
+            "type": "wave",
+            "wave": "tide_first"
+          },
+          {
+            "type": "wave",
+            "wave": "tide_second"
+          },
+          {
+            "type": "flag",
+            "key": "a1_beast_tide_started",
+            "value": true
+          },
+          {
+            "type": "line",
+            "speaker": "narrator",
+            "text": "东边的栅栏外，灰色的影子一排排亮起了眼睛。"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "kill",
+            "kind": "monster",
+            "mapId": "borderstone",
+            "count": 6,
+            "label": "击退兽潮前锋",
+            "orWhen": "(combat.wave.tide_first.state == cleared AND combat.wave.tide_second.state == cleared)"
+          }
+        ]
+      },
+      {
+        "id": "colossus",
+        "desc": "灰气聚成的巨像从荒原那边走来。击败澱巨像。",
+        "onEnter": [
+          {
+            "type": "wave",
+            "wave": "tide_colossus"
+          },
+          {
+            "type": "wave",
+            "wave": "tide_flood"
+          },
+          {
+            "type": "line",
+            "speaker": "yeyu",
+            "text": "那个……是澱聚成的。打它的心。"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "dian_colossus",
+            "count": 1,
+            "label": "击败澱巨像",
+            "orWhen": "boss.dian_colossus.defeated OR boss.dian_colossus.yielded OR combat.wave.tide_colossus.state == cleared"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a1_beast_tide_cleared",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "a1_martha_strike",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "seal_unrest",
+        "value": 0
+      },
+      {
+        "type": "item",
+        "item": "colossus_core"
+      },
+      {
+        "type": "money",
+        "amount": 2000
+      },
+      {
+        "type": "xp",
+        "amount": 1200,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a1_tide_dawn"
+      }
+    ]
+  },
+  {
+    "id": "a1_m10_dream",
+    "act": "act1",
+    "kind": "main",
+    "order": 12,
+    "title": "门口的女人",
+    "desc": "兽潮的次夜，你在醉月亭的客房里睡下了。",
+    "trigger": "quest.a1_m09_tide == done",
+    "stages": [
+      {
+        "id": "sleep",
+        "desc": "睡一觉。",
+        "objectives": [
+          {
+            "type": "wait",
+            "hours": 8,
+            "label": "睡下"
+          }
+        ]
+      },
+      {
+        "id": "dream",
+        "desc": "梦。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a1_dream"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a1_dream",
+            "label": "梦见门口的女人"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a1_m11_letter",
+    "act": "act1",
+    "kind": "main",
+    "order": 13,
+    "title": "伯爵来信",
+    "desc": "去公会交兽潮的讨伐凭证。布伦亲自坐在柜台后面。",
+    "trigger": "quest.a1_m10_dream == done",
+    "stages": [
+      {
+        "id": "guild",
+        "desc": "去公会找老布伦。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "bron",
+            "label": "与老布伦交谈"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a1_count_letter"
+      }
+    ]
+  },
+  {
+    "id": "a2_m01_city",
+    "act": "act2",
+    "kind": "main",
+    "order": 1,
+    "title": "帘后之声",
+    "desc": "边境伯爵要见那个打退兽潮的 F 级。去瓦伦堡。",
+    "trigger": "act == act2",
+    "stages": [
+      {
+        "id": "road",
+        "desc": "前往瓦伦堡。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "wallenburg",
+            "label": "抵达瓦伦堡"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a2_arrive_valen",
+        "value": true
+      },
+      {
+        "type": "flag",
+        "key": "a2_heroes_arrived",
+        "value": true
+      },
+      {
+        "type": "xp",
+        "amount": 300,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a2_count_audience"
+      }
+    ]
+  },
+  {
+    "id": "a2_m02_exam",
+    "act": "act2",
+    "kind": "main",
+    "order": 2,
+    "title": "乡下来的 F 级",
+    "giver": "liese",
+    "turnIn": "liese",
+    "desc": "想要正式的认可，就得通过 B 级晋升考核。鉴定又一次失败，只能靠实战证明：讨伐排水廊的百尾鼠王。",
+    "trigger": "quest.a2_m01_city == done",
+    "onStart": [
+      {
+        "type": "flag",
+        "key": "a2_promotion_exam",
+        "value": true
+      }
+    ],
+    "stages": [
+      {
+        "id": "rat_king",
+        "desc": "下到旧水道迷宫，讨伐百尾鼠王。",
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "rat_king",
+            "count": 1,
+            "label": "讨伐百尾鼠王",
+            "orWhen": "boss.rat_king.defeated"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a2_dungeon_first",
+        "value": true
+      },
+      {
+        "type": "item",
+        "item": "b_rank_card"
+      },
+      {
+        "type": "item",
+        "item": "evidence_e24"
+      },
+      {
+        "type": "money",
+        "amount": 3000
+      },
+      {
+        "type": "xp",
+        "amount": 900,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a2_exam_done"
+      }
+    ]
+  },
+  {
+    "id": "a2_m03_company",
+    "act": "act2",
+    "kind": "main",
+    "order": 3,
+    "title": "门扉商会",
+    "giver": "nera",
+    "desc": "奈拉想和你合伙做生意：你的地球点子，加上她的门路。",
+    "trigger": "quest.a2_m02_exam == done",
+    "onStart": [
+      {
+        "type": "feature",
+        "feature": "company"
+      },
+      {
+        "type": "flag",
+        "key": "nera.stance",
+        "value": "neutral",
+        "when": "NOT nera.stance"
+      },
+      {
+        "type": "line",
+        "speaker": "nera",
+        "text": "担保人我来找，货你来想。客人，这笔买卖划算。"
+      }
+    ],
+    "stages": [
+      {
+        "id": "found",
+        "desc": "与奈拉合伙注册商会。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "econ.company_founded",
+            "label": "注册门扉商会"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a2_company_partner",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "trust.nera",
+        "amount": 15,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a2_m04_village",
+    "act": "act2",
+    "kind": "main",
+    "order": 4,
+    "title": "门扉与旧哨",
+    "desc": "边石镇外的废村旧哨村，收容着无处可去的难民，和手背上有纹的人。",
+    "trigger": "quest.a2_m02_exam == done",
+    "onStart": [
+      {
+        "type": "feature",
+        "feature": "village"
+      }
+    ],
+    "stages": [
+      {
+        "id": "go",
+        "desc": "前往旧哨村。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "old_outpost",
+            "label": "抵达旧哨村"
+          }
+        ]
+      },
+      {
+        "id": "found",
+        "desc": "让三十人立下同住誓，点燃公灶。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "city.village_founded",
+            "label": "建立旧哨村"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a2_remnants_settled",
+        "value": true
+      },
+      {
+        "type": "item",
+        "item": "evidence_e04"
+      },
+      {
+        "type": "add",
+        "key": "remnants",
+        "amount": 15
+      },
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "tavi",
+        "text": "（一个手背有纹的少女轻轻唱起一首很老的歌）门开着，路就通着……"
+      }
+    ]
+  },
+  {
+    "id": "a2_m05_defense",
+    "act": "act2",
+    "kind": "main",
+    "order": 5,
+    "title": "城下潮",
+    "desc": "伯爵死了。葬礼上，门徒会动手了；城下的水道里，涌出一整夜的潮。",
+    "trigger": "quest.a2_m03_company == done AND quest.a2_m04_village == done",
+    "onStart": [
+      {
+        "type": "scene",
+        "scene": "a2_funeral"
+      }
+    ],
+    "stages": [
+      {
+        "id": "battle",
+        "desc": "守住城下，直到黎明钟响。",
+        "onEnter": [
+          {
+            "type": "war",
+            "scenario": "act2_city_defense"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "battle",
+            "scenario": "act2_city_defense",
+            "label": "赢得城市保卫战",
+            "onLose": [
+              {
+                "type": "add",
+                "key": "continent",
+                "amount": -3,
+                "min": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "wb_ruler",
+        "value": "edric",
+        "when": "NOT wb_ruler"
+      },
+      {
+        "type": "xp",
+        "amount": 1800,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a2_no_page"
+      }
+    ]
+  },
+  {
+    "id": "a3_m01_territory",
+    "act": "act3",
+    "kind": "main",
+    "order": 1,
+    "title": "谁都不要的领地",
+    "desc": "灰烬边境：边石镇、旧哨村、封门遗迹与大片荒原。现在它们是你的了。",
+    "trigger": "act == act3",
+    "onStart": [
+      {
+        "type": "feature",
+        "feature": "city"
+      },
+      {
+        "type": "flag",
+        "key": "city.territory_granted",
+        "value": true
+      }
+    ],
+    "stages": [
+      {
+        "id": "arrive",
+        "desc": "抵领，立旗。",
+        "objectives": [
+          {
+            "type": "reach",
+            "mapId": "old_outpost",
+            "label": "回到旧哨村立旗"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "officer",
+        "text": "领主大人，账册在这里。……说实话，这片地上，能收的税不多。"
+      }
+    ]
+  },
+  {
+    "id": "a3_m02_build",
+    "act": "act3",
+    "kind": "main",
+    "order": 2,
+    "title": "一砖一瓦",
+    "desc": "领地要活下去，先得有房子、粮仓和墙。",
+    "trigger": "quest.a3_m01_territory == done",
+    "stages": [
+      {
+        "id": "build",
+        "desc": "在领地建成三座建筑。",
+        "objectives": [
+          {
+            "type": "build",
+            "count": 3,
+            "label": "建成建筑"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "money",
+        "amount": 2000
+      },
+      {
+        "type": "xp",
+        "amount": 800,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a3_m03_thousand",
+    "act": "act3",
+    "kind": "main",
+    "order": 3,
+    "title": "千军",
+    "desc": "骨原的夜袭来了。罗恩带着民兵守北坡。",
+    "trigger": "quest.a3_m01_territory == done",
+    "onStart": [
+      {
+        "type": "feature",
+        "feature": "rts"
+      }
+    ],
+    "stages": [
+      {
+        "id": "bone_field",
+        "desc": "守住骨原夜袭。",
+        "onEnter": [
+          {
+            "type": "war",
+            "scenario": "act3_bone_field"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "battle",
+            "scenario": "act3_bone_field",
+            "label": "赢得骨原夜袭",
+            "onLose": [
+              {
+                "type": "add",
+                "key": "continent",
+                "amount": -2,
+                "min": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 1000,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a3_thousand_armies"
+      }
+    ]
+  },
+  {
+    "id": "a3_m04_ash",
+    "act": "act3",
+    "kind": "main",
+    "order": 4,
+    "title": "灰烬深处",
+    "desc": "夜羽说，遗迹最深处那个坐在灰里的人，等你很久了。",
+    "trigger": "quest.a3_m03_thousand == done",
+    "stages": [
+      {
+        "id": "descend",
+        "desc": "下到封门遗迹深处，去见灰里的那个人。",
+        "complete": "any",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "ash",
+            "label": "与灰里的那个人交谈"
+          },
+          {
+            "type": "reach",
+            "mapId": "seal_ruins_depths",
+            "location": "ash_chamber",
+            "label": "走进灰烬室"
+          }
+        ]
+      },
+      {
+        "id": "listen",
+        "desc": "听他讲那件事。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a3_ash_sundering"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a3_ash_sundering",
+            "label": "听守门人讲述"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 800,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a3_m05_ashline",
+    "act": "act3",
+    "kind": "main",
+    "order": 5,
+    "title": "灰烬防线",
+    "desc": "圣战军压向领地，勇者团就在军中。苇桥是最后一道线。",
+    "trigger": "quest.a3_m04_ash == done AND quest.a3_m02_build == done",
+    "stages": [
+      {
+        "id": "battle",
+        "desc": "守住灰烬防线。",
+        "onEnter": [
+          {
+            "type": "war",
+            "scenario": "act3_ash_line"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "battle",
+            "scenario": "act3_ash_line",
+            "label": "赢得灰烬防线之战",
+            "onLose": [
+              {
+                "type": "add",
+                "key": "continent",
+                "amount": -3,
+                "min": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 2500,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a3_eluen_speaks"
+      }
+    ]
+  },
+  {
+    "id": "a4_m01_nation",
+    "act": "act4",
+    "kind": "main",
+    "order": 1,
+    "title": "立国",
+    "desc": "立国之门的门影亮了。建立第一个不在任何女神账本上的国家。",
+    "trigger": "act == act4",
+    "stages": [
+      {
+        "id": "found",
+        "desc": "开启立国之门，建立庭外之国。",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "slg.nation_founded",
+            "label": "建立庭外之国"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a4_nation_founded",
+        "value": true
+      },
+      {
+        "type": "item",
+        "item": "evidence_e26"
+      },
+      {
+        "type": "xp",
+        "amount": 1500,
+        "reason": "quest"
+      },
+      {
+        "type": "line",
+        "speaker": "bron",
+        "text": "（老布伦把一本旧账推过来）人簿。第一页，我替你写好了。"
+      }
+    ]
+  },
+  {
+    "id": "a4_m02_feast",
+    "act": "act4",
+    "kind": "main",
+    "order": 2,
+    "title": "强者之宴",
+    "desc": "剑帝的请柬：剑帝、夜后、长老艾尔温、金冠哈特同席。",
+    "trigger": "quest.a4_m01_nation == done",
+    "stages": [
+      {
+        "id": "feast",
+        "desc": "赴宴。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a4_feast"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a4_feast",
+            "label": "出席强者之宴"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 800,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a4_m03_versions",
+    "act": "act4",
+    "kind": "main",
+    "order": 3,
+    "title": "诸神的版本",
+    "desc": "每一位女神都来招揽你，各讲一个历史的版本，彼此矛盾。",
+    "trigger": "quest.a4_m02_feast == done",
+    "stages": [
+      {
+        "id": "versions",
+        "desc": "听完她们的版本。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a4_goddess_versions"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a4_goddess_versions",
+            "label": "听完诸神的版本"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 800,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a4_m04_conclave",
+    "act": "act4",
+    "kind": "main",
+    "order": 4,
+    "title": "七国会盟",
+    "desc": "圣艾琉恩教国宣布你的国家为异端之国。组建反圣战联盟，或分化圣战联军。",
+    "trigger": "quest.a4_m03_versions == done",
+    "stages": [
+      {
+        "id": "summit",
+        "desc": "召集诸国会盟。",
+        "complete": "any",
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "slg.conclave_done",
+            "label": "完成七国会盟"
+          },
+          {
+            "type": "wait",
+            "days": 1,
+            "label": "会盟之期"
+          }
+        ]
+      },
+      {
+        "id": "outcome",
+        "desc": "会盟的结果。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a4_conclave"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a4_conclave",
+            "label": "会盟落定"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 1000,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a4_m05_revelation",
+    "act": "act4",
+    "kind": "main",
+    "order": 5,
+    "title": "荒原之澱满",
+    "desc": "一千年来第一次，七座天启碑同时亮起。",
+    "trigger": "quest.a4_m04_conclave == done",
+    "stages": [
+      {
+        "id": "stele",
+        "desc": "天启降下。",
+        "onEnter": [
+          {
+            "type": "revelation",
+            "id": "ash_full"
+          },
+          {
+            "type": "scene",
+            "scene": "a4_revelation"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a4_revelation",
+            "label": "读到碑文"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a5_m01_born",
+    "act": "act5",
+    "kind": "main",
+    "order": 1,
+    "title": "无貌之王",
+    "desc": "第九代魔王诞生在灰烬荒原，也就是你的国土上。",
+    "trigger": "act == act5",
+    "stages": [
+      {
+        "id": "born",
+        "desc": "魔王诞生。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a5_demon_king_born"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a5_demon_king_born",
+            "label": "直面第九代魔王的诞生"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 800,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a5_m02_route",
+    "act": "act5",
+    "kind": "main",
+    "order": 2,
+    "title": "神的办法与众生的办法",
+    "desc": "用勇者的一击斩杀魔王，让循环继续；或者联合各族，重建一个小小的门网，把澱分散、净化。",
+    "trigger": "quest.a5_m01_born == done",
+    "stages": [
+      {
+        "id": "route",
+        "desc": "作出抉择。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a5_route_choice"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "flag",
+            "when": "purge_route",
+            "label": "选择澱的处理方式"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 800,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a5_m03_final",
+    "act": "act5",
+    "kind": "main",
+    "order": 3,
+    "title": "灰烬决战",
+    "desc": "所有战线都在燃烧。你必须身处魔王战，其余的战线只能交给他们自己。",
+    "trigger": "quest.a5_m02_route == done",
+    "stages": [
+      {
+        "id": "war",
+        "desc": "赢得灰烬决战。",
+        "onEnter": [
+          {
+            "type": "war",
+            "scenario": "act5_final_war"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "battle",
+            "scenario": "act5_final_war",
+            "label": "赢得灰烬决战",
+            "onLose": [
+              {
+                "type": "add",
+                "key": "continent",
+                "amount": -15,
+                "min": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "king",
+        "desc": "主门坑边，击败无貌之王。",
+        "onEnter": [
+          {
+            "type": "wave",
+            "wave": "faceless_king"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "kill",
+            "ref": "faceless_king",
+            "count": 1,
+            "label": "击败无貌之王",
+            "orWhen": "boss.faceless_king.defeated OR boss.faceless_king.yielded OR combat.wave.faceless_king.state == cleared"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 3000,
+        "reason": "quest"
+      },
+      {
+        "type": "scene",
+        "scene": "a5_final"
+      }
+    ]
+  },
+  {
+    "id": "a5_m04_trial",
+    "act": "act5",
+    "kind": "main",
+    "order": 4,
+    "title": "审期至",
+    "desc": "魔王倒下的同时，七座天启碑再一次亮起。",
+    "trigger": "quest.a5_m03_final == done",
+    "stages": [
+      {
+        "id": "stele",
+        "desc": "天启降下，门通向神庭。",
+        "onEnter": [
+          {
+            "type": "revelation",
+            "id": "trial_called"
+          },
+          {
+            "type": "scene",
+            "scene": "a5_trial_called"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a5_trial_called",
+            "label": "穿门而上"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "xp",
+        "amount": 500,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a6_m01_court",
+    "act": "act6",
+    "kind": "main",
+    "order": 1,
+    "title": "诸神审定",
+    "desc": "你回到了当初被丢弃的地方。这一次，候见厅是审庭。",
+    "trigger": "act == act6",
+    "stages": [
+      {
+        "id": "court",
+        "desc": "审理。",
+        "onEnter": [
+          {
+            "type": "scene",
+            "scene": "a6_court"
+          }
+        ],
+        "objectives": [
+          {
+            "type": "scene",
+            "scene": "a6_court",
+            "label": "完成神庭审定"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gq_merca_caravan",
+    "act": "act1",
+    "kind": "side",
+    "order": 50,
+    "title": "交易之司的请托：北路商队",
+    "desc": "商会贴出委托：北路的商队需要人护送，酬金丰厚。据说委托是神龛里的那位授意的。",
+    "trigger": "request.merca.safe_caravan",
+    "stages": [
+      {
+        "id": "escort",
+        "desc": "清理商路上的魔物。",
+        "objectives": [
+          {
+            "type": "kill",
+            "kind": "monster",
+            "count": 3,
+            "label": "清理商路上的魔物"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "relation",
+        "goddess": "merca",
+        "amount": 5
+      },
+      {
+        "type": "money",
+        "amount": 500
+      },
+      {
+        "type": "xp",
+        "amount": 150,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "gq_eluen_purge",
+    "act": "act1",
+    "kind": "side",
+    "order": 51,
+    "title": "礼拜堂的委托：清扫灰气",
+    "desc": "礼拜堂发布委托：清扫镇外的灰气魔物。",
+    "trigger": "request.eluen.purge_dregs",
+    "stages": [
+      {
+        "id": "purge",
+        "desc": "讨伐灰气魔物。",
+        "objectives": [
+          {
+            "type": "kill",
+            "kind": "monster",
+            "count": 3,
+            "label": "讨伐灰气魔物"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "add",
+        "key": "church_suspicion",
+        "amount": -3,
+        "min": 0
+      },
+      {
+        "type": "money",
+        "amount": 300
+      },
+      {
+        "type": "xp",
+        "amount": 150,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a2_s01_archivist",
+    "act": "act2",
+    "kind": "side",
+    "order": 11,
+    "title": "星笔塔的史官",
+    "giver": "jonas",
+    "desc": "魔导学院分院的年轻史官约纳斯在翻一本缺了五十年的年表。他想找个不怕麻烦的人聊聊。",
+    "trigger": "quest.a2_m01_city == done",
+    "stages": [
+      {
+        "id": "listen",
+        "desc": "听约纳斯讲那段空白。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "jonas",
+            "label": "和约纳斯谈谈年表的空白"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a2_archivist_met",
+        "value": true
+      },
+      {
+        "type": "add",
+        "key": "trust.jonas",
+        "amount": 10,
+        "max": 100
+      },
+      {
+        "type": "xp",
+        "amount": 200,
+        "reason": "quest"
+      }
+    ]
+  },
+  {
+    "id": "a3_s01_sealed_room",
+    "act": "act3",
+    "kind": "side",
+    "order": 11,
+    "title": "七锁库",
+    "giver": "jonas",
+    "desc": "约纳斯打听到王国档案馆有一间封存室，七把锁分在七个人手里。他说他知道怎么进去，只差一个敢陪他去的人。",
+    "trigger": "act_index >= 3 AND quest.a2_s01_archivist == done",
+    "stages": [
+      {
+        "id": "vault",
+        "desc": "跟约纳斯进封存室。",
+        "objectives": [
+          {
+            "type": "talk",
+            "npc": "jonas",
+            "label": "和约纳斯一起进七锁库"
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "type": "flag",
+        "key": "a3_archive_sealed_room",
+        "value": true
+      },
+      {
+        "type": "xp",
+        "amount": 400,
+        "reason": "quest"
+      }
+    ]
+  }
+]

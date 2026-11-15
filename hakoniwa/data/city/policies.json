@@ -1,0 +1,76 @@
+[
+  {
+    "id": "fields_first",
+    "name": "优先田地",
+    "domain": "food",
+    "desc": "人手先派去种地打渔，粮食产出略增。",
+    "minStage": "outpost",
+    "effects": { "foodFirst": true, "foodProduction": 1.05 }
+  },
+  {
+    "id": "night_gate_closed",
+    "name": "夜不开门",
+    "domain": "security",
+    "desc": "入夜关闭村口，治安更好，但外人来投奔的少了。",
+    "minStage": "outpost",
+    "effects": { "security": 8, "attraction": -0.05 }
+  },
+  {
+    "id": "open_refugees",
+    "name": "接纳难民",
+    "domain": "civil",
+    "desc": "只要有住处有口粮，就收留来投奔的难民。",
+    "minStage": "outpost",
+    "effects": { "refugees": 1, "happiness": -1 }
+  },
+  {
+    "id": "auto_repair",
+    "name": "耐久低于五十自动修",
+    "domain": "works",
+    "desc": "工头每天用库存修一座破损的建筑。",
+    "minStage": "village",
+    "effects": { "autoRepair": true }
+  },
+  {
+    "id": "tax_low",
+    "name": "轻税",
+    "domain": "commerce",
+    "desc": "少收人头税，民心更好。",
+    "minStage": "village",
+    "effects": { "tax": 0.6, "happiness": 2 },
+    "exclusive": ["tax_high"]
+  },
+  {
+    "id": "tax_high",
+    "name": "重税",
+    "domain": "commerce",
+    "desc": "多收人头税，民怨也会多起来。",
+    "minStage": "village",
+    "effects": { "tax": 1.5, "happiness": -3, "attraction": -0.05 },
+    "exclusive": ["tax_low"]
+  },
+  {
+    "id": "militia_rotation",
+    "name": "民兵轮值",
+    "domain": "military",
+    "desc": "青壮轮流值守，守备更强，产出略降。",
+    "minStage": "village",
+    "effects": { "militia": 6, "security": 4, "production": 0.97 }
+  },
+  {
+    "id": "festival_days",
+    "name": "节庆日",
+    "domain": "culture",
+    "desc": "定期办节庆，大家更有归属感。",
+    "minStage": "village",
+    "effects": { "happiness": 2 }
+  },
+  {
+    "id": "remnant_shelter",
+    "name": "遗民庇护",
+    "domain": "civil",
+    "desc": "公开收留遗民。门民会来，但教会的眼睛也会盯过来。",
+    "minStage": "village",
+    "effects": { "security": -3, "attraction": 0.03 }
+  }
+]

@@ -1,0 +1,21 @@
+[
+  { "term": "雅努·珀尔塔", "unlock": "a6_name_spoken", "replacement": "那一位" },
+  { "term": "雅努之钥", "unlock": "a6_name_spoken", "replacement": "无名之钥" },
+  { "term": "雅努", "unlock": "a6_name_spoken", "replacement": "那一位" },
+  { "term": "珀尔塔", "unlock": "a6_name_spoken", "replacement": "那一位" },
+  { "term": "门扉与可能之司", "unlock": "a3_ash_tells_sundering", "replacement": "那一位" },
+  { "term": "第六司", "unlock": "a3_ash_tells_sundering", "replacement": "那一位" },
+  { "term": "大断绝", "unlock": "a3_ash_tells_sundering", "replacement": "那件事" },
+  { "term": "千门都", "unlock": "a3_ash_tells_sundering", "replacement": "荒原下的古城" },
+  {
+    "term": "空白纪",
+    "unlock": "a3_archive_sealed_room OR a4_moira_trade_records",
+    "replacement": "圣历以前"
+  },
+  { "term": "无貌之王", "unlock": "a5_demon_king_born", "replacement": "魔王" },
+  { "term": "无貌者", "unlock": "a2_faceless_projection", "replacement": "没有脸的人" },
+  { "term": "沈望", "unlock": "a5_faceless_named", "replacement": "没有脸的人" },
+  { "term": "排澱", "unlock": "a5_truth_purge_cycle", "replacement": "……" },
+  { "term": "门的接口", "unlock": "a6_court_open", "replacement": "……" },
+  { "term": "已离手之庭", "unlock": "a6_earth_truth", "replacement": "……" }
+]

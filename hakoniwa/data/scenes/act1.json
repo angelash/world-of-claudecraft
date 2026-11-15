@@ -1,0 +1,1069 @@
+[
+  {
+    "id": "act1_intro",
+    "title": "第一幕：边石镇",
+    "act": "act1",
+    "start": "wake",
+    "nodes": [
+      {
+        "id": "wake",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "圣历九百九十八年，春。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "黑。然后是冷。你躺在一块刻满纹路的石地上。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "头顶的穹顶上刻着五个巨大的神纹：一道光，一把断剑，一枚硬币，一片叶，一本书。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "在它们旁边，还有第六个纹。它的形状像一扇门，不属于你在这里见过的任何东西。"
+          },
+          {
+            "speaker": "player",
+            "text": "（那把椅子……）",
+            "when": "prologue.asked_sixth_chair",
+            "kind": "think"
+          }
+        ],
+        "next": "pocket"
+      },
+      {
+        "id": "pocket",
+        "lines": [
+          {
+            "speaker": "player",
+            "text": "（口袋里，工牌还在。照片上的人看起来很累。）",
+            "when": "prologue.earth_opening == A",
+            "kind": "think"
+          },
+          {
+            "speaker": "player",
+            "text": "（口袋里，那张小票和那颗糖还在。）",
+            "when": "prologue.earth_opening == B",
+            "kind": "think"
+          },
+          {
+            "speaker": "player",
+            "text": "（口袋里，探视证和半盒薄荷糖还在。那个结果，还是没有听到。）",
+            "when": "prologue.earth_opening == C",
+            "kind": "think"
+          },
+          {
+            "speaker": "player",
+            "text": "（口袋里，那把老钥匙还在。）",
+            "when": "prologue.earth_opening == D",
+            "kind": "think"
+          },
+          {
+            "speaker": "player",
+            "text": "（手心里还攥着一枚硬币。是那个吃东西的女神塞给你的。）",
+            "kind": "think"
+          },
+          {
+            "speaker": "narrator",
+            "text": "远处传来翅膀拍打的声音，和什么东西在灰里爬行的动静。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（往下走。）"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1_ash_glimpse",
+    "title": "灰烬室",
+    "act": "act1",
+    "start": "chamber",
+    "nodes": [
+      {
+        "id": "chamber",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "落灰阶走到底。灰像雪一样积到膝盖，每走一步都没有声音。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "石室正中，一具骸骨坐在灰里，背对着一扇缠着五道光链的巨门。它的眼窝里有两点冷光。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "你再往前一步，身体就不听使唤了：手抬不起来，呼吸变浅，视野的边缘一点一点发灰。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "冷光转了过来，落在你身上。只看了一眼。"
+          },
+          {
+            "speaker": "ash",
+            "text": "还不是时候。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "很长的停顿。灰里的纸页轻轻翻动，像有人在翻书。"
+          },
+          {
+            "speaker": "ash",
+            "text": "去吧，门的孩子。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "压迫感退去。灰向两侧分开，露出一条通往巢井的小路。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "pass",
+            "label": "（低头走过）",
+            "to": "pass"
+          },
+          {
+            "id": "talk",
+            "label": "（试着和他说话）",
+            "to": "talk"
+          },
+          {
+            "id": "attack",
+            "label": "（攻击他）",
+            "to": "attack"
+          }
+        ]
+      },
+      {
+        "id": "pass",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "冷光转回去，不再看你。"
+          }
+        ]
+      },
+      {
+        "id": "talk",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_ash_page",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "他不回答。你又问了一次。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "灰里飘起一页纸，落在你脚边。上面只有一个字，你不认得。"
+          }
+        ]
+      },
+      {
+        "id": "attack",
+        "effects": [
+          {
+            "type": "teleport",
+            "mapId": "seal_ruins",
+            "location": "wake_point"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "灰扬了起来。眼前一黑。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "你在神纹大厅的第六个神纹下醒来，耳边一声很轻的：……还不是时候。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "一切照旧。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1_yeyu_bound",
+    "title": "巢中之鸦",
+    "act": "act1",
+    "start": "fall",
+    "nodes": [
+      {
+        "id": "fall",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "巨鸦撞在巢井的石壁上，再也飞不起来。它的羽毛一片一片褪成了灰。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "它看着你。那双眼睛里，有一点不像野兽的东西。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "reach",
+            "label": "（伸出手）",
+            "to": "reach"
+          }
+        ]
+      },
+      {
+        "id": "reach",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你伸出手。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "就像坠落的时候那样。",
+            "when": "prologue.reached_out"
+          },
+          {
+            "speaker": "narrator",
+            "text": "你的掌心碰到它的那一刻，胸口有什么东西转了一下，像一把钥匙在锁里转动。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "灰散了。坐在你面前的，是一个黑发的少女，披着一件羽毛做的斗篷，正一脸嫌弃地看着你。"
+          }
+        ],
+        "next": "talk"
+      },
+      {
+        "id": "talk",
+        "lines": [
+          {
+            "speaker": "yeyu",
+            "text": "……你是谁？算了，不重要。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "你身上有门的味道。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "我在等一个人开门。等了好久好久。……是不是你，我不知道。先跟着你吧。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "还有，这满地的灰，是澱。别乱摸。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（夜羽成为了你的从者。巢里还有一枚磨掉了名字的公会旧铜牌。）"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1_guild_register",
+    "title": "无记载",
+    "act": "act1",
+    "start": "crystal",
+    "nodes": [
+      {
+        "id": "crystal",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "冒险者公会的柜台上摆着一颗鉴定水晶。接待员莉娜笑着让你把手放上去。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "水晶没有亮。"
+          },
+          {
+            "speaker": "lina",
+            "text": "咦？再放一次……"
+          },
+          {
+            "speaker": "narrator",
+            "text": "水晶还是没有亮。读数栏里，只有三个字：无记载。"
+          },
+          {
+            "speaker": "dris",
+            "text": "哈！连水晶都懒得理你。乡下来的？"
+          }
+        ],
+        "next": "register"
+      },
+      {
+        "id": "register",
+        "lines": [
+          {
+            "speaker": "bron",
+            "text": "……水晶坏了吧。登记。F 级，Lv1，无职能。"
+          },
+          {
+            "speaker": "bron",
+            "text": "在这个镇上，F 级能做的事不多。想吃饭，就来看委托板。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（你拿到了公会卡。）"
+          }
+        ],
+        "choices": [
+          {
+            "id": "boast",
+            "label": "我比你们想的强。",
+            "to": "boast"
+          },
+          {
+            "id": "take",
+            "label": "（收下卡）",
+            "to": "take"
+          }
+        ]
+      },
+      {
+        "id": "boast",
+        "lines": [
+          {
+            "speaker": "dris",
+            "text": "是吗？那等你活过第一个月再说。"
+          },
+          {
+            "speaker": "bron",
+            "text": "……委托板在那边。"
+          }
+        ]
+      },
+      {
+        "id": "take",
+        "lines": [
+          {
+            "speaker": "bron",
+            "text": "委托板在那边。活着回来，比什么都强。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1_oola_trial",
+    "title": "光之鉴",
+    "act": "act1",
+    "start": "square",
+    "nodes": [
+      {
+        "id": "square",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_cassian_appraise",
+            "value": true
+          },
+          {
+            "type": "add",
+            "key": "church_suspicion",
+            "amount": 5,
+            "max": 100
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "礼拜堂前的广场挤满了人。欧拉婆婆被绑在木桩上，脚下是一圈白石。"
+          },
+          {
+            "speaker": "cassian",
+            "text": "孩子们死于巫术。光会照出真相。这就是光之鉴。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "卡西安举起圣徽。光落下来，先照向欧拉，然后，照向人群里的你。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "光在你身上停了一下，什么也没照出来。卡西安的手抖了一下。"
+          },
+          {
+            "speaker": "moss",
+            "text": "神父大人，那个连鉴定都没有的怪人，和这个魔女常有来往。"
+          }
+        ],
+        "next": "choose"
+      },
+      {
+        "id": "choose",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "所有人都在看你。"
+          }
+        ],
+        "choices": [
+          {
+            "id": "evidence",
+            "label": "（举起北泉的灰水）孩子们不是死于巫术，是北泉的灰。",
+            "when": "a1_north_spring_found",
+            "to": "cleared",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_oola_fate",
+                "value": "cleared"
+              },
+              {
+                "type": "add",
+                "key": "trust.oola",
+                "amount": 30,
+                "max": 100
+              },
+              {
+                "type": "add",
+                "key": "church_suspicion",
+                "amount": 5,
+                "max": 100
+              },
+              {
+                "type": "item",
+                "item": "evidence_e25"
+              }
+            ]
+          },
+          {
+            "id": "debunk",
+            "label": "那道光，只照得出神父想照的东西。",
+            "when": "prologue.past_life_door IN (notes, podium)",
+            "to": "debunked",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_oola_fate",
+                "value": "cleared"
+              },
+              {
+                "type": "add",
+                "key": "trust.oola",
+                "amount": 20,
+                "max": 100
+              },
+              {
+                "type": "add",
+                "key": "church_suspicion",
+                "amount": 15,
+                "max": 100
+              },
+              {
+                "type": "item",
+                "item": "evidence_e25"
+              }
+            ]
+          },
+          {
+            "id": "plead",
+            "label": "她只是个采药的老人。放了她。",
+            "to": "convicted",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_oola_fate",
+                "value": "convicted"
+              },
+              {
+                "type": "add",
+                "key": "church_suspicion",
+                "amount": 5,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "id": "jailbreak",
+            "label": "（当夜劫狱）",
+            "to": "fled",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_oola_fate",
+                "value": "fled"
+              },
+              {
+                "type": "add",
+                "key": "church_suspicion",
+                "amount": 25,
+                "max": 100
+              },
+              {
+                "type": "add",
+                "key": "trust.oola",
+                "amount": 10,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "id": "silent",
+            "label": "（沉默）",
+            "to": "convicted",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "a1_oola_fate",
+                "value": "convicted"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cleared",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "人群安静下来。有人想起来，病倒的孩子确实都去北泉打过水。"
+          },
+          {
+            "speaker": "cassian",
+            "text": "……光，没有照出巫术。"
+          },
+          {
+            "speaker": "cassian",
+            "text": "我……需要祈祷。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "欧拉婆婆被解下来的时候，没有看神父，只看了你一眼。"
+          },
+          {
+            "speaker": "oola",
+            "text": "孩子，晚上来孤儿院一趟。有些东西，你该看看。"
+          }
+        ],
+        "next": "orphan"
+      },
+      {
+        "id": "debunked",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你把光之鉴的把戏一条一条讲给人群听：哪一面镜子，哪一个角度，哪一句祷词。"
+          },
+          {
+            "speaker": "cassian",
+            "text": "……我不知道。我真的不知道那面镜子……"
+          },
+          {
+            "speaker": "narrator",
+            "text": "人群哗然。欧拉婆婆被放了下来。"
+          }
+        ],
+        "next": "orphan"
+      },
+      {
+        "id": "orphan",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_orphan_mark_seen",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "孤儿院的后院里，一个叫诺伊的孩子撩起后颈的头发给你看。那里有一个淡淡的纹，形状像一扇门。"
+          },
+          {
+            "speaker": "oola",
+            "text": "别让神父看见你的手。……也别让他看见孩子们的。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "欧拉把一本记梦的小册子塞给你：林子里的那位母亲，托过她很多梦。"
+          }
+        ]
+      },
+      {
+        "id": "convicted",
+        "lines": [
+          {
+            "speaker": "cassian",
+            "text": "光没有照出她的清白。押往瓦伦堡，交主教区处置。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "欧拉婆婆被押上了囚车。她从栏杆里看了你一眼，摇了摇头，像是在说：别做傻事。"
+          }
+        ]
+      },
+      {
+        "id": "fled",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "暗月还没到，夜已经很黑。你砸开了礼拜堂后面的牢门。"
+          },
+          {
+            "speaker": "oola",
+            "text": "……傻孩子。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "欧拉婆婆消失在林子里。第二天，镇上贴出了新的告示：魔女潜逃，同谋者在逃。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1_tide_dawn",
+    "title": "兽潮之夜",
+    "act": "act1",
+    "start": "second_wave",
+    "nodes": [
+      {
+        "id": "second_wave",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "巨像的心碎成了灰。可是荒原那边，第二波兽潮的影子又涌了上来，比第一波更多。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "这时，醉月亭的门开了。玛莎提着一把旧刀走出来，围裙都没摘。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她只挥了一刀。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "第二波兽潮，从中间断开了。"
+          },
+          {
+            "speaker": "martha",
+            "text": "……地窖的杯子还没擦完。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她回去了，像什么都没发生过。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "天亮了。镇上的人说法不一：有人说是运气，有人说是光的庇佑，有人说，是那个 F 级。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1_dream",
+    "title": "门口的女人",
+    "act": "act1",
+    "start": "door",
+    "nodes": [
+      {
+        "id": "door",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "黑暗。不是坠落时那种没有上下的黑，是夜里关了灯的房间那种黑。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "前方有一扇门，开着一条缝，暖色的光从缝里漏出来。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "门口站着一个女人。她的脸有一半在阴影里。腰间挂满了钥匙，钥匙一动不动，也不响。"
+          },
+          {
+            "speaker": "janu",
+            "text": "你来了。这次没有错过末班车。",
+            "when": "prologue.earth_opening == A"
+          },
+          {
+            "speaker": "janu",
+            "text": "你来了。雨停了。",
+            "when": "prologue.earth_opening == B"
+          },
+          {
+            "speaker": "janu",
+            "text": "你来了。那边的结果，我也不知道，对不起。",
+            "when": "prologue.earth_opening == C"
+          },
+          {
+            "speaker": "janu",
+            "text": "你来了。钥匙还在吧？",
+            "when": "prologue.earth_opening == D"
+          },
+          {
+            "speaker": "janu",
+            "text": "你来了。",
+            "when": "NOT prologue.earth_opening IN (A, B, C, D)"
+          }
+        ],
+        "next": "ask"
+      },
+      {
+        "id": "ask",
+        "choices": [
+          {
+            "id": "who",
+            "label": "你是谁？",
+            "once": true,
+            "to": "a_who"
+          },
+          {
+            "id": "caught",
+            "label": "是你接住我的？",
+            "once": true,
+            "to": "a_caught"
+          },
+          {
+            "id": "where",
+            "label": "这是哪里？",
+            "once": true,
+            "to": "a_where"
+          },
+          {
+            "id": "want",
+            "label": "你想要什么？",
+            "once": true,
+            "to": "a_want"
+          },
+          {
+            "id": "ash",
+            "label": "遗迹里那个坐在灰里的人是谁？",
+            "once": true,
+            "when": "a1_ash_met",
+            "to": "a_ash"
+          },
+          {
+            "id": "why",
+            "label": "为什么是我？",
+            "once": true,
+            "to": "a_why"
+          },
+          {
+            "id": "enough",
+            "label": "（不再问了）",
+            "to": "question"
+          }
+        ]
+      },
+      {
+        "id": "a_who",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "一个守门的。名字……现在说出来，会有人听见。"
+          }
+        ],
+        "next": "ask"
+      },
+      {
+        "id": "a_caught",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "嗯。那天我接住你了。"
+          },
+          {
+            "speaker": "janu",
+            "text": "你那时候伸手了，所以我抓得住。",
+            "when": "prologue.reached_out"
+          },
+          {
+            "speaker": "janu",
+            "text": "你那时候没伸手。没关系，我抓得住。",
+            "when": "NOT prologue.reached_out"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她笑了一下。"
+          },
+          {
+            "speaker": "janu",
+            "text": "你比我想的重一点。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "那个声音，和坠落时握住你手腕的那一句，一模一样。"
+          }
+        ],
+        "next": "ask"
+      },
+      {
+        "id": "a_where",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "门后面。你的门后面。"
+          }
+        ],
+        "next": "ask"
+      },
+      {
+        "id": "a_want",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "我想让这里重新连起来。"
+          }
+        ],
+        "next": "ask"
+      },
+      {
+        "id": "a_ash",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "一个比我更会守门的人。他放你走了，对吧？那就好。"
+          }
+        ],
+        "next": "ask"
+      },
+      {
+        "id": "a_why",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "你会知道的。一扇一扇来。"
+          }
+        ],
+        "next": "ask"
+      },
+      {
+        "id": "question",
+        "lines": [
+          {
+            "speaker": "janu",
+            "text": "那个镇子，你喜欢吗？"
+          }
+        ],
+        "choices": [
+          {
+            "id": "like",
+            "label": "喜欢。",
+            "to": "gift",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "janu.first_dream_answer",
+                "value": "like"
+              }
+            ]
+          },
+          {
+            "id": "unsure",
+            "label": "还不知道。",
+            "to": "gift",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "janu.first_dream_answer",
+                "value": "unsure"
+              }
+            ]
+          },
+          {
+            "id": "dislike",
+            "label": "不喜欢。",
+            "to": "gift",
+            "effects": [
+              {
+                "type": "flag",
+                "key": "janu.first_dream_answer",
+                "value": "dislike"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "gift",
+        "effects": [
+          {
+            "type": "feature",
+            "feature": "inner_court"
+          },
+          {
+            "type": "flag",
+            "key": "a1_dream_door_woman",
+            "value": true
+          },
+          {
+            "type": "add",
+            "key": "seal_looseness",
+            "amount": 5,
+            "max": 100
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "她伸手，指尖碰了一下你的手背。很暖，和坠落时握住手腕的那只手一样暖。"
+          },
+          {
+            "speaker": "janu",
+            "text": "这个先给你。别让太多人看见。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她侧身，把门推开。门后是一个小院子：一间木头小屋，一小片翻过土的园子，一棵树。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "院子里放着一件东西：{flag:courtyard.first_object}。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "小屋的门锁，和你口袋里那把老钥匙一模一样。",
+            "when": "prologue.earth_opening == D"
+          },
+          {
+            "speaker": "janu",
+            "text": "这里先给你。一间小屋，一小片园子。别嫌小。"
+          },
+          {
+            "speaker": "janu",
+            "text": "门总会开的。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "她的身影随着光变淡。"
+          },
+          {
+            "speaker": "janu",
+            "text": "醒来吧。外面有人在等你。"
+          }
+        ],
+        "next": "wake"
+      },
+      {
+        "id": "wake",
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "你醒了。手背上浮着一个门形的纹，像淡金色的墨迹，过了一会儿就隐进了皮肤里。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "一瞬间，你想起了候见厅：那道光停在你的胸口，照出一个空洞。轮廓，和手背上的纹一模一样。"
+          },
+          {
+            "speaker": "yeyu",
+            "text": "……没什么。手洗干净再说话。",
+            "when": "companion.yeyu.recruited"
+          },
+          {
+            "speaker": "narrator",
+            "text": "（千门回廊里，多了一扇已经开着的门：门内庭院。）"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "a1_count_letter",
+    "title": "伯爵来信",
+    "act": "act1",
+    "start": "hand",
+    "nodes": [
+      {
+        "id": "hand",
+        "effects": [
+          {
+            "type": "flag",
+            "key": "a1_bron_sees_mark",
+            "value": true
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "bron",
+            "text": "（接过凭证，手停住了）……把手翻过来。"
+          },
+          {
+            "speaker": "narrator",
+            "text": "他盯着你的手背。门纹此刻并不明显，但他看见了。他的脸色一点一点变白，空着的右边袖管轻轻晃了一下。"
+          },
+          {
+            "speaker": "bron",
+            "text": "二十年前那个人手上，也有这个。"
+          }
+        ],
+        "next": "glove"
+      },
+      {
+        "id": "glove",
+        "effects": [
+          {
+            "type": "item",
+            "item": "brun_glove",
+            "when": "trust.bron >= 40"
+          },
+          {
+            "type": "flag",
+            "key": "brun.secret_kept",
+            "value": true,
+            "when": "trust.bron >= 40"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "bron",
+            "text": "（摘下左手的旧皮手套，扔到柜台上）戴上。在这个镇上，别让神父看见。",
+            "when": "trust.bron >= 40"
+          },
+          {
+            "speaker": "bron",
+            "text": "……那个人。从灰里爬出来的那个。",
+            "when": "NOT trust.bron >= 40"
+          }
+        ],
+        "next": "letter"
+      },
+      {
+        "id": "letter",
+        "effects": [
+          {
+            "type": "item",
+            "item": "count_letter"
+          }
+        ],
+        "lines": [
+          {
+            "speaker": "narrator",
+            "text": "这时，一个驿卒把一封盖着火漆的信送进了公会。布伦拆开，读完，把信推到你面前。"
+          },
+          {
+            "speaker": "letter",
+            "text": "致边石镇冒险者公会分部长布伦阁下：据报，暗月之夜，贵镇遭兽潮侵袭。有酒馆女主人一人及一名登记为 F 级之冒险者出力，镇得保全，其中详情众说纷纭。伯爵府欲见此人。请于本月内携其至瓦伦堡。瓦伦边境伯爵府书记处谨启。"
+          },
+          {
+            "speaker": "bron",
+            "text": "伯爵要见那个打退兽潮的 F 级。"
+          },
+          {
+            "speaker": "bron",
+            "text": "你说，我该带谁去？"
+          }
+        ]
+      }
+    ],
+    "onEnd": [
+      {
+        "type": "act",
+        "act": "act2"
+      }
+    ]
+  }
+]

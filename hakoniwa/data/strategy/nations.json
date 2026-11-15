@@ -1,0 +1,409 @@
+[
+  {
+    "id": "lothar",
+    "name": "洛萨王国",
+    "short": "洛萨",
+    "capital": "orien",
+    "color": "#3b6ea5",
+    "goddess": "eluen",
+    "ruler": {
+      "name": "宰相冯·德雷克",
+      "persona": "洛萨王国的宰相冯·德雷克。老王卧病，王储年幼，他把自保放在第一位，暗中与帝国谈判。",
+      "aggression": 0.1,
+      "greed": 0.5,
+      "piety": 0.4,
+      "caution": 0.8
+    },
+    "treasury": 8000,
+    "stability": 45,
+    "legitimacy": 55,
+    "autonomy": 35,
+    "divineReliance": 50,
+    "armies": [
+      {
+        "id": "lothar_north",
+        "province": "blackoak",
+        "name": "北境军团",
+        "general": "布丽吉特·哈尔森",
+        "regiments": [
+          {
+            "typeId": "greywall_infantry",
+            "count": 2000
+          },
+          {
+            "typeId": "longbow_militia",
+            "count": 2000
+          },
+          {
+            "typeId": "border_riders",
+            "count": 800
+          }
+        ]
+      },
+      {
+        "id": "lothar_royal",
+        "province": "orien",
+        "name": "王都卫队",
+        "general": null,
+        "regiments": [
+          {
+            "typeId": "city_guard",
+            "count": 2000
+          },
+          {
+            "typeId": "longbow_militia",
+            "count": 1000
+          }
+        ]
+      }
+    ],
+    "recruits": ["militia", "longbow_militia", "greywall_infantry", "border_riders", "city_guard"],
+    "adminBase": 8,
+    "relations": {
+      "empire": -2,
+      "holy_see": 1,
+      "league": 0,
+      "silva": 0,
+      "windfang": -1,
+      "nightrealm": -3
+    }
+  },
+  {
+    "id": "empire",
+    "name": "格兰提亚帝国",
+    "short": "帝国",
+    "capital": "grantis",
+    "color": "#9c2f2f",
+    "goddess": "eluen",
+    "ruler": {
+      "name": "剑帝雷欧哈特三世",
+      "persona": "格兰提亚的剑帝雷欧哈特三世，只尊重强者，看重实力对比，对展示过力量的人另眼相看。",
+      "aggression": 0.7,
+      "greed": 0.4,
+      "piety": 0.2,
+      "caution": 0.3
+    },
+    "treasury": 60000,
+    "stability": 70,
+    "legitimacy": 80,
+    "autonomy": 50,
+    "divineReliance": 35,
+    "armies": [
+      {
+        "id": "empire_west",
+        "province": "westpoise",
+        "name": "第七军团先锋",
+        "general": "奥莉安娜·维斯特",
+        "regiments": [
+          {
+            "typeId": "legion_phalanx",
+            "count": 6000
+          },
+          {
+            "typeId": "ironhoof_cavalry",
+            "count": 1500
+          },
+          {
+            "typeId": "battle_mage",
+            "count": 200
+          }
+        ]
+      },
+      {
+        "id": "empire_rampart",
+        "province": "wallheart",
+        "name": "长垒军团",
+        "general": "克伦元帅",
+        "regiments": [
+          {
+            "typeId": "legion_phalanx",
+            "count": 8000
+          },
+          {
+            "typeId": "ironhoof_cavalry",
+            "count": 1000
+          }
+        ]
+      }
+    ],
+    "recruits": ["legion_phalanx", "ironhoof_cavalry", "battle_mage", "levy"],
+    "adminBase": 10,
+    "relations": {
+      "lothar": -1,
+      "holy_see": -1,
+      "league": 1,
+      "silva": 0,
+      "windfang": -1,
+      "nightrealm": -2
+    }
+  },
+  {
+    "id": "holy_see",
+    "name": "圣艾琉恩教国",
+    "short": "教国",
+    "capital": "seran",
+    "color": "#e0d27a",
+    "goddess": "eluen",
+    "ruler": {
+      "name": "教皇赛拉芬四世与枢机团",
+      "persona": "圣艾琉恩教国的教皇与枢机团。神谕的分量最高，执着于清除异端与扩大信仰。",
+      "aggression": 0.4,
+      "greed": 0.2,
+      "piety": 1.0,
+      "caution": 0.5
+    },
+    "treasury": 20000,
+    "stability": 70,
+    "legitimacy": 90,
+    "autonomy": 20,
+    "divineReliance": 85,
+    "armies": [
+      {
+        "id": "holy_host",
+        "province": "seran",
+        "name": "圣骑士团与圣誓军",
+        "general": "埃德蒙",
+        "regiments": [
+          {
+            "typeId": "paladin",
+            "count": 1500
+          },
+          {
+            "typeId": "war_priest",
+            "count": 500
+          },
+          {
+            "typeId": "zealot",
+            "count": 3000
+          }
+        ]
+      }
+    ],
+    "recruits": ["paladin", "war_priest", "zealot", "levy"],
+    "adminBase": 4,
+    "relations": {
+      "lothar": 1,
+      "empire": -1,
+      "league": 0,
+      "silva": -2,
+      "windfang": -2,
+      "nightrealm": -3
+    }
+  },
+  {
+    "id": "league",
+    "name": "梅尔卡托自由都市同盟",
+    "short": "同盟",
+    "capital": "goldbay",
+    "color": "#c58b2a",
+    "goddess": "merca",
+    "ruler": {
+      "name": "议长与金冠哈特",
+      "persona": "梅尔卡托同盟的议会，幕后是首富金冠哈特。看重利润，偏好债务、禁运与收购，契约至上。",
+      "aggression": 0.2,
+      "greed": 1.0,
+      "piety": 0.3,
+      "caution": 0.6
+    },
+    "treasury": 90000,
+    "stability": 65,
+    "legitimacy": 60,
+    "autonomy": 55,
+    "divineReliance": 60,
+    "armies": [
+      {
+        "id": "league_mercs",
+        "province": "goldbay",
+        "name": "金秤军团",
+        "general": "法尔科",
+        "regiments": [
+          {
+            "typeId": "company_guard",
+            "count": 6000
+          },
+          {
+            "typeId": "dwarf_heavy",
+            "count": 1500
+          }
+        ]
+      }
+    ],
+    "recruits": ["company_guard", "dwarf_heavy"],
+    "adminBase": 6,
+    "relations": {
+      "lothar": 1,
+      "empire": 1,
+      "holy_see": 0,
+      "silva": -1,
+      "windfang": 1,
+      "nightrealm": 0
+    }
+  },
+  {
+    "id": "silva",
+    "name": "希尔瓦氏族议会",
+    "short": "希尔瓦",
+    "capital": "ringwood",
+    "color": "#3d8a4f",
+    "goddess": "sylvie",
+    "ruler": {
+      "name": "长老艾尔温",
+      "persona": "希尔瓦氏族议会的长老艾尔温，活了一千二百年，主张不干涉，对遗民与空白纪的证据极为敏感。",
+      "aggression": 0.05,
+      "greed": 0.1,
+      "piety": 0.5,
+      "caution": 0.9
+    },
+    "treasury": 6000,
+    "stability": 75,
+    "legitimacy": 85,
+    "autonomy": 60,
+    "divineReliance": 50,
+    "armies": [
+      {
+        "id": "silva_rangers",
+        "province": "ringwood",
+        "name": "苍弦游侠",
+        "general": "卡兰妮丝·苍弦",
+        "regiments": [
+          {
+            "typeId": "elf_longbow",
+            "count": 4000
+          }
+        ]
+      }
+    ],
+    "recruits": ["elf_longbow"],
+    "adminBase": 5,
+    "relations": {
+      "lothar": -1,
+      "empire": -1,
+      "holy_see": -3,
+      "league": -1,
+      "windfang": 1,
+      "nightrealm": -1
+    }
+  },
+  {
+    "id": "windfang",
+    "name": "风牙兽王会盟",
+    "short": "风牙",
+    "capital": "windfang_rock",
+    "color": "#8a5a2b",
+    "goddess": "sylvie",
+    "ruler": {
+      "name": "兽王会盟",
+      "persona": "风牙兽王会盟，老兽王卧病，两派继承人相争。行动迅速，劫掠见长，守地不足。",
+      "aggression": 0.6,
+      "greed": 0.3,
+      "piety": 0.4,
+      "caution": 0.3
+    },
+    "treasury": 5000,
+    "stability": 40,
+    "legitimacy": 50,
+    "autonomy": 45,
+    "divineReliance": 50,
+    "armies": [
+      {
+        "id": "windfang_horde",
+        "province": "windfang_rock",
+        "name": "兽王卫队",
+        "general": "月角妮蒂拉",
+        "regiments": [
+          {
+            "typeId": "orc_warrior",
+            "count": 6000
+          },
+          {
+            "typeId": "orc_shaman",
+            "count": 400
+          }
+        ]
+      }
+    ],
+    "recruits": ["orc_warrior", "orc_shaman"],
+    "adminBase": 4,
+    "relations": {
+      "lothar": -1,
+      "empire": -1,
+      "holy_see": -2,
+      "league": 1,
+      "silva": 1,
+      "nightrealm": 0
+    }
+  },
+  {
+    "id": "nightrealm",
+    "name": "夜境诸侯",
+    "short": "夜境",
+    "capital": "duskcrown",
+    "color": "#5b3a7a",
+    "goddess": "valda",
+    "ruler": {
+      "name": "夜后维丝佩拉",
+      "persona": "夜境的摄政夜后维丝佩拉，最看重魔族的存续与安全，对魔王轮回的怀疑随证据增长。",
+      "aggression": 0.5,
+      "greed": 0.3,
+      "piety": 0.5,
+      "caution": 0.5
+    },
+    "treasury": 15000,
+    "stability": 50,
+    "legitimacy": 60,
+    "autonomy": 30,
+    "divineReliance": 70,
+    "armies": [
+      {
+        "id": "red_fang",
+        "province": "tuskgate",
+        "name": "红牙军",
+        "general": "萨莎",
+        "regiments": [
+          {
+            "typeId": "red_fang",
+            "count": 1000
+          },
+          {
+            "typeId": "oni_infantry",
+            "count": 2000
+          },
+          {
+            "typeId": "wing_fiend",
+            "count": 600
+          },
+          {
+            "typeId": "night_caster",
+            "count": 300
+          }
+        ]
+      },
+      {
+        "id": "night_lords",
+        "province": "duskcrown",
+        "name": "诸侯军",
+        "general": "赤铁公巴兹莱",
+        "regiments": [
+          {
+            "typeId": "oni_infantry",
+            "count": 3000
+          },
+          {
+            "typeId": "dian_beast",
+            "count": 3000
+          }
+        ]
+      }
+    ],
+    "recruits": ["oni_infantry", "wing_fiend", "night_caster", "dian_beast"],
+    "adminBase": 5,
+    "relations": {
+      "lothar": -2,
+      "empire": -2,
+      "holy_see": -3,
+      "league": 1,
+      "silva": 0,
+      "windfang": 1
+    }
+  }
+]

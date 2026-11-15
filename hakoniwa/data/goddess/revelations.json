@@ -1,0 +1,71 @@
+[
+  {
+    "id": "ash_full",
+    "text": "荒原之澱满。",
+    "literal": "灰烬荒原的澱已满。",
+    "flags": { "a4_revelation_ash_full": true },
+    "modifiers": [
+      { "target": "sediment", "key": "ash_waste", "add": 800, "days": 400 },
+      { "target": "monster", "key": "ash_waste", "factor": 1.6, "days": 400 }
+    ],
+    "responses": {
+      "eluen": "荒原的秽满了。孩子们，规格之外的那个东西，就是魔王的先驱。",
+      "valda": "哈，荒原要热闹了。把拳头磨利，看看这回谁扛得住。",
+      "merca": "荒原满了？澱晶的行情要翻倍，亲爱的客人们，该囤货了。",
+      "sylvie": "……灵泉在发冷。荒原那边，冬天要来了。",
+      "moira": "一千年来的第一行新字，连那块被凿坏的碑也亮了。有趣，这一章要加速了。"
+    }
+  },
+  {
+    "id": "trial_called",
+    "text": "审期至。六司归庭。",
+    "literal": "审定之期已至，六位司掌者归于神庭。",
+    "flags": { "a5_revelation_trial": true },
+    "responses": {
+      "eluen": "光会出席。至于第六个座位，它早就不合规格了。",
+      "valda": "归庭？好，总算能当面打一场了。六个座位，一个也别空着。",
+      "merca": "开庭就是结账日。客人，账得在那之前做平。",
+      "sylvie": "……六个。碑上写的是六个。",
+      "moira": "终章的标题出来了。我得把笔削好。"
+    }
+  },
+  {
+    "id": "verdict_yes",
+    "text": "可",
+    "literal": "可以了。",
+    "flags": { "a6_judgment": true },
+    "responses": {
+      "eluen": "可……原来它要的，从来不是一束光。",
+      "valda": "哈！它们自己站起来了。这一架，我输得痛快。",
+      "merca": "成交。原来这笔买卖，不需要我抽成。",
+      "sylvie": "……春天来了。不用我们，也会来。",
+      "moira": "最后一行，不是我写的。真好。"
+    }
+  },
+  {
+    "id": "verdict_not",
+    "text": "未",
+    "literal": "尚未。",
+    "flags": { "a6_judgment": true },
+    "responses": {
+      "eluen": "未。又是未。……这一次，我不知道该修剪哪里。",
+      "valda": "还没打完？好，那就接着来。",
+      "merca": "账还没结清，客人。下一期的利息可不便宜。",
+      "sylvie": "……还要再过一个冬天。",
+      "moira": "尚未。这一次我读懂了：还须照看。"
+    }
+  },
+  {
+    "id": "steles_dark",
+    "text": "",
+    "literal": "碑面熄灭",
+    "flags": { "a6_judgment": true },
+    "responses": {
+      "eluen": "光……没有回应。",
+      "valda": "碑都黑了。这一仗，谁也没赢。",
+      "merca": "没有买家了，也没有账可记了。",
+      "sylvie": "……没有下一个春天了。",
+      "moira": "书页是空的。没有下一章了。"
+    }
+  }
+]

@@ -1,0 +1,467 @@
+[
+  {
+    "id": "rusty_shortsword",
+    "name": "锈蚀短剑",
+    "kind": "weapon",
+    "quality": 0,
+    "value": 10,
+    "desc": "神纹大厅回廊里捡来的短剑，二十年前探索队留下的。锈得厉害，但还能砍。",
+    "slot": "main_hand",
+    "weapon": { "min": 2, "max": 5, "speed": 1.9, "range": 1.2 },
+    "stack": 1
+  },
+  {
+    "id": "recruit_longsword",
+    "name": "新兵长剑",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 180,
+    "desc": "卫队配发的制式长剑。",
+    "slot": "main_hand",
+    "weapon": { "min": 5, "max": 10, "speed": 2.4, "range": 1.2 },
+    "stats": { "str": 2 },
+    "level": 5,
+    "stack": 1
+  },
+  {
+    "id": "hunters_bow",
+    "name": "猎弓",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 200,
+    "desc": "林缘猎户用的短弓，可在远处自动射击。",
+    "slot": "main_hand",
+    "weapon": { "min": 4, "max": 8, "speed": 2.6, "range": 8 },
+    "stats": { "agi": 2 },
+    "level": 5,
+    "stack": 1
+  },
+  {
+    "id": "oak_staff",
+    "name": "橡木法杖",
+    "kind": "weapon",
+    "quality": 1,
+    "value": 160,
+    "desc": "老橡木削成的法杖，握着能让灵海平静一些。",
+    "slot": "main_hand",
+    "weapon": { "min": 4, "max": 9, "speed": 2.8, "range": 1.2 },
+    "stats": { "int": 3, "spi": 2 },
+    "level": 5,
+    "stack": 1
+  },
+  {
+    "id": "grey_fang_dagger",
+    "name": "灰牙匕首",
+    "kind": "weapon",
+    "quality": 2,
+    "value": 420,
+    "desc": "用澱狼的牙磨成的匕首，刃口发灰。",
+    "slot": "main_hand",
+    "weapon": { "min": 4, "max": 8, "speed": 1.7, "range": 1.2 },
+    "stats": { "agi": 3 },
+    "level": 8,
+    "stack": 1
+  },
+  {
+    "id": "ash_cleaver",
+    "name": "灰烬劈刀",
+    "kind": "weapon",
+    "quality": 2,
+    "value": 900,
+    "desc": "刀背上积着洗不掉的灰。",
+    "slot": "main_hand",
+    "weapon": { "min": 12, "max": 22, "speed": 2.8, "range": 1.2 },
+    "stats": { "str": 5, "sta": 3 },
+    "level": 14,
+    "stack": 1
+  },
+  {
+    "id": "crystal_spine_blade",
+    "name": "晶脊刃",
+    "kind": "weapon",
+    "quality": 3,
+    "value": 4200,
+    "desc": "从晶脊蜈背上掰下的晶刺打成的刀，在钟声里会轻轻嗡鸣。",
+    "slot": "main_hand",
+    "weapon": { "min": 30, "max": 50, "speed": 2.4, "range": 1.2 },
+    "stats": { "str": 8, "agi": 6 },
+    "level": 27,
+    "stack": 1
+  },
+  {
+    "id": "red_fang_gauntlet",
+    "name": "红牙铁拳套",
+    "kind": "weapon",
+    "quality": 4,
+    "value": 28000,
+    "desc": "萨莎撤军时扔在雪地里的一只铁拳套。上面全是牙印。",
+    "slot": "main_hand",
+    "weapon": { "min": 80, "max": 120, "speed": 1.6, "range": 1.2 },
+    "stats": { "str": 18, "sta": 12, "crit": 2 },
+    "level": 48,
+    "stack": 1
+  },
+  {
+    "id": "dented_round_shield",
+    "name": "坑洼圆盾",
+    "kind": "armor",
+    "quality": 1,
+    "value": 120,
+    "desc": "一面坑坑洼洼的圆盾。持盾时有机会格挡。",
+    "slot": "off_hand",
+    "stats": { "armor": 60 },
+    "level": 3,
+    "stack": 1,
+    "tags": ["shield"]
+  },
+  {
+    "id": "worn_leather_vest",
+    "name": "旧皮甲",
+    "kind": "armor",
+    "quality": 1,
+    "value": 60,
+    "desc": "不太合身的二手皮甲。",
+    "slot": "chest",
+    "stats": { "armor": 40, "agi": 1 },
+    "stack": 1
+  },
+  {
+    "id": "wolfhide_boots",
+    "name": "狼皮靴",
+    "kind": "armor",
+    "quality": 1,
+    "value": 90,
+    "desc": "灰毛狼的皮缝的靴子。",
+    "slot": "feet",
+    "stats": { "armor": 20, "agi": 2 },
+    "level": 4,
+    "stack": 1
+  },
+  {
+    "id": "spider_silk_gloves",
+    "name": "蛛丝手套",
+    "kind": "armor",
+    "quality": 2,
+    "value": 260,
+    "desc": "灰丝织的手套，轻得几乎感觉不到。",
+    "slot": "hands",
+    "stats": { "armor": 12, "int": 3 },
+    "level": 6,
+    "stack": 1
+  },
+  {
+    "id": "bone_helm",
+    "name": "骸骨盔",
+    "kind": "armor",
+    "quality": 2,
+    "value": 320,
+    "desc": "荒原外缘捡来的旧盔，里面塞着干草。",
+    "slot": "head",
+    "stats": { "armor": 60, "sta": 3 },
+    "level": 8,
+    "stack": 1
+  },
+  {
+    "id": "raven_quill_charm",
+    "name": "鸦羽护符",
+    "kind": "trinket",
+    "quality": 3,
+    "value": 600,
+    "desc": "一根剥落了灰的银色羽根，系着细绳。",
+    "slot": "trinket",
+    "stats": { "agi": 2, "spi": 2, "hit": 1 },
+    "level": 5,
+    "stack": 1
+  },
+  {
+    "id": "black_ridge_mantle",
+    "name": "黑脊熊皮",
+    "kind": "armor",
+    "quality": 3,
+    "value": 1500,
+    "desc": "澱化熊黑脊的皮，硬得像铁。",
+    "slot": "chest",
+    "stats": { "armor": 120, "sta": 6, "str": 4 },
+    "level": 11,
+    "stack": 1
+  },
+  {
+    "id": "sewer_waders",
+    "name": "水道长靴",
+    "kind": "armor",
+    "quality": 2,
+    "value": 1100,
+    "desc": "鼠巢的人用来蹚污水的长靴。",
+    "slot": "legs",
+    "stats": { "armor": 90, "sta": 5 },
+    "level": 18,
+    "stack": 1
+  },
+  {
+    "id": "cultist_robe",
+    "name": "门徒会长袍",
+    "kind": "armor",
+    "quality": 2,
+    "value": 1800,
+    "desc": "绣着残缺门纹的灰袍。穿着它走在街上，会有人多看你一眼。",
+    "slot": "chest",
+    "stats": { "armor": 70, "int": 8, "spi": 5 },
+    "level": 25,
+    "stack": 1
+  },
+  {
+    "id": "ashen_plate",
+    "name": "灰烬骑士铠",
+    "kind": "armor",
+    "quality": 3,
+    "value": 7200,
+    "desc": "千年前的骑士铠，里面早就空了。",
+    "slot": "chest",
+    "stats": { "armor": 400, "str": 10, "sta": 10 },
+    "level": 35,
+    "stack": 1
+  },
+  {
+    "id": "drake_scale_leggings",
+    "name": "亚龙鳞腿甲",
+    "kind": "armor",
+    "quality": 3,
+    "value": 9800,
+    "desc": "澱化亚龙的鳞片缀成的腿甲。",
+    "slot": "legs",
+    "stats": { "armor": 320, "agi": 10, "sta": 8 },
+    "level": 42,
+    "stack": 1
+  },
+
+  {
+    "id": "minor_healing_potion",
+    "name": "次级治疗药水",
+    "kind": "consumable",
+    "quality": 1,
+    "value": 25,
+    "desc": "欧拉婆婆熬的药水，苦得人皱眉。恢复少量生命。",
+    "use": { "effect": "heal", "amount": 90 }
+  },
+  {
+    "id": "healing_potion",
+    "name": "治疗药水",
+    "kind": "consumable",
+    "quality": 1,
+    "value": 100,
+    "desc": "恢复生命。",
+    "use": { "effect": "heal", "amount": 350 },
+    "level": 12
+  },
+  {
+    "id": "greater_healing_potion",
+    "name": "强效治疗药水",
+    "kind": "consumable",
+    "quality": 1,
+    "value": 400,
+    "desc": "恢复大量生命。",
+    "use": { "effect": "heal", "amount": 1100 },
+    "level": 30
+  },
+  {
+    "id": "minor_mana_potion",
+    "name": "次级灵力药水",
+    "kind": "consumable",
+    "quality": 1,
+    "value": 40,
+    "desc": "让灵海稍稍回涨。",
+    "use": { "effect": "mana", "amount": 120 }
+  },
+  {
+    "id": "mana_potion",
+    "name": "灵力药水",
+    "kind": "consumable",
+    "quality": 1,
+    "value": 160,
+    "desc": "让灵海回涨。",
+    "use": { "effect": "mana", "amount": 500 },
+    "level": 20
+  },
+  {
+    "id": "spring_herb",
+    "name": "净泉草",
+    "kind": "consumable",
+    "quality": 1,
+    "value": 30,
+    "desc": "鹿泉边长的草，嚼碎了能驱散身上的灰气。",
+    "use": { "effect": "cleanse", "amount": 2 }
+  },
+  {
+    "id": "ash_spirits",
+    "name": "灰烬烈酒",
+    "kind": "consumable",
+    "quality": 1,
+    "value": 60,
+    "desc": "醉月亭最烈的酒。喝下去力气大了，脑子慢了。",
+    "use": { "effect": "aura", "ability": "ash_spirits" }
+  },
+  {
+    "id": "stoneskin_draught",
+    "name": "石肤药剂",
+    "kind": "consumable",
+    "quality": 2,
+    "value": 150,
+    "desc": "喝下去皮肤发硬，十分钟内护甲大幅提高。",
+    "use": { "effect": "aura", "ability": "stoneskin_draught" }
+  },
+  {
+    "id": "door_charm",
+    "name": "回门符",
+    "kind": "consumable",
+    "quality": 2,
+    "value": 200,
+    "desc": "画着门形的纸符。不在战斗中时撕开它，会被门送回最近的安全处。",
+    "use": { "effect": "return" }
+  },
+
+  {
+    "id": "dian_shard",
+    "name": "澱晶碎片",
+    "kind": "material",
+    "quality": 1,
+    "value": 15,
+    "desc": "魔物死后凝出的灰色晶屑，凡人叫它灰晶。"
+  },
+  {
+    "id": "rat_tail",
+    "name": "鼠尾",
+    "kind": "material",
+    "quality": 0,
+    "value": 1,
+    "desc": "地窖委托的凭证。"
+  },
+  {
+    "id": "wolf_fang",
+    "name": "狼牙",
+    "kind": "material",
+    "quality": 0,
+    "value": 5,
+    "desc": "可以卖给匠人。"
+  },
+  {
+    "id": "wolf_pelt",
+    "name": "狼皮",
+    "kind": "material",
+    "quality": 0,
+    "value": 8,
+    "desc": "鞣过可以缝靴子。"
+  },
+  {
+    "id": "boar_tusk",
+    "name": "野猪獠牙",
+    "kind": "material",
+    "quality": 0,
+    "value": 3,
+    "desc": "西田农舍的祸害留下的。"
+  },
+  {
+    "id": "spider_silk",
+    "name": "灰丝",
+    "kind": "material",
+    "quality": 0,
+    "value": 6,
+    "desc": "林缘织网蛛的丝，泛着灰。"
+  },
+  {
+    "id": "raven_feather",
+    "name": "鸦羽",
+    "kind": "material",
+    "quality": 0,
+    "value": 4,
+    "desc": "黑灰色的羽毛。"
+  },
+  {
+    "id": "bone_shard",
+    "name": "骨片",
+    "kind": "material",
+    "quality": 0,
+    "value": 3,
+    "desc": "荒原上到处都是。"
+  },
+  {
+    "id": "sludge_glob",
+    "name": "腐泥",
+    "kind": "material",
+    "quality": 0,
+    "value": 2,
+    "desc": "臭。"
+  },
+  {
+    "id": "leech_ichor",
+    "name": "水蛭血",
+    "kind": "material",
+    "quality": 0,
+    "value": 2,
+    "desc": "药师会收。"
+  },
+  {
+    "id": "burnt_page",
+    "name": "灰烬残页",
+    "kind": "material",
+    "quality": 1,
+    "value": 12,
+    "desc": "被烧掉一半的书页，剩下的字也被凿掉了。"
+  },
+  {
+    "id": "drake_scale",
+    "name": "亚龙鳞",
+    "kind": "material",
+    "quality": 2,
+    "value": 60,
+    "desc": "澱化亚龙的鳞片。"
+  },
+  {
+    "id": "ash_essence",
+    "name": "灰烬精华",
+    "kind": "material",
+    "quality": 2,
+    "value": 40,
+    "desc": "灰烬元素散去后留下的一点余烬。"
+  },
+
+  {
+    "id": "split_ear_fang",
+    "name": "裂耳的獠牙",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "东林狼穴那头独耳老狼的獠牙。猎户说，拿着它的人，林子会认。"
+  },
+  {
+    "id": "crystal_carapace",
+    "name": "晶背甲壳",
+    "kind": "key",
+    "quality": 2,
+    "value": 0,
+    "desc": "晶背之母的甲壳，巴尔加说能打一把好剑。"
+  },
+  {
+    "id": "dian_core",
+    "name": "澱核",
+    "kind": "key",
+    "quality": 3,
+    "value": 0,
+    "desc": "澱巨像胸口悬着的核，发着微光。握住它的手会发烫。"
+  },
+  {
+    "id": "gate_stone",
+    "name": "门址石",
+    "kind": "key",
+    "quality": 3,
+    "value": 0,
+    "desc": "从第三十七门前厅的门框上剥落的一块石头，纹样与手背上的一样。"
+  },
+  {
+    "id": "expedition_badge",
+    "name": "探索队铜牌",
+    "kind": "evidence",
+    "quality": 1,
+    "value": 0,
+    "desc": "巨鸦巢里混在闪亮小物中的一枚公会铜牌，二十年前的。"
+  }
+]

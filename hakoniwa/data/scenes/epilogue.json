@@ -1,0 +1,2024 @@
+[
+  {
+    "id": "rel_god_eluen_voluntary",
+    "layer": "gods",
+    "subject": "艾琉恩",
+    "endings": ["release"],
+    "when": "verdict_eluen == voluntary",
+    "year": 1,
+    "text": "艾琉恩以凡身在人族之间走了一年，然后离开。有人说，那年冬天，某个村子里来过一个衣着过分整齐的女人，教孩子们认字，从不提自己的名字。她走后，孩子们发现粉笔头被排得整整齐齐，一根也没少。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_eluen_judged",
+    "layer": "gods",
+    "subject": "艾琉恩",
+    "endings": ["release"],
+    "when": "verdict_eluen != voluntary",
+    "year": 1,
+    "text": "艾琉恩离开了。那年冬天，天穹上一道光熄灭了，没有人注意到。礼拜堂里的人照常点灯，灯是自己点的。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_valda_voluntary",
+    "layer": "gods",
+    "subject": "瓦尔妲",
+    "endings": ["release"],
+    "when": "verdict_valda == voluntary",
+    "year": 1,
+    "text": "瓦尔妲打完送行之战就走了，说是去外面找更硬的。主门坑的废墟上插着她接好的断剑，接缝至今看得出来。来看剑的人很多，敢去拔的一个也没有。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_valda_judged",
+    "layer": "gods",
+    "subject": "瓦尔妲",
+    "endings": ["release"],
+    "when": "verdict_valda != voluntary",
+    "year": 1,
+    "text": "瓦尔妲走了，没有回头。主门坑的废墟上插着她接好的断剑。据说她临走前只说了一句：打得好。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_merca_voluntary",
+    "layer": "gods",
+    "subject": "梅尔卡",
+    "endings": ["release"],
+    "when": "verdict_merca == voluntary",
+    "year": 1,
+    "text": "梅尔卡留了下来，在金湾支了一个小摊。开张第一天，她就算错了账，赔了本。第三年，她成了奈拉的竞争对手，也可能是合伙人，两个人自己都说不清。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_merca_judged",
+    "layer": "gods",
+    "subject": "梅尔卡",
+    "endings": ["release"],
+    "when": "verdict_merca != voluntary",
+    "year": 1,
+    "text": "梅尔卡宣布破产，眨了眨眼，走了。她留在这座庭里的唯一一枚硬币，就是候见厅里赊给你的那一枚。那笔账，至今没有人来收。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_sylvie_voluntary",
+    "layer": "gods",
+    "subject": "希尔薇",
+    "endings": ["release"],
+    "when": "verdict_sylvie == voluntary",
+    "year": 10,
+    "text": "希尔薇化入了四季。此后每一年的春天，来得都稍有不同，没有人再能预言。灵泉照常在转，没有人看着，它也在转。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_sylvie_judged",
+    "layer": "gods",
+    "subject": "希尔薇",
+    "endings": ["release"],
+    "when": "verdict_sylvie != voluntary",
+    "year": 10,
+    "text": "希尔薇无声地化入了四季，没有留下一句话。灵泉从此自转，无人看护。精灵们说，那一年的春天来得特别慢，像有人在门口站了很久才走。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_moira_voluntary",
+    "layer": "gods",
+    "subject": "莫伊拉",
+    "endings": ["release"],
+    "when": "verdict_moira == voluntary",
+    "year": 1,
+    "text": "莫伊拉写下了倒数第二行，把笔交给了一位凡人史官。她离开时，带走了一本空白的书。据她自己说，这是她第一次不知道下一页写什么，她觉得有趣极了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_moira_judged",
+    "layer": "gods",
+    "subject": "莫伊拉",
+    "endings": ["release"],
+    "when": "verdict_moira != voluntary",
+    "year": 1,
+    "text": "莫伊拉离开了，最后的记录没有写完。接着写的是一位凡人史官，字写得不好看，但从不改别人写过的一页。铭录成了无主之录，谁都能读，谁也改不了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_god_janu",
+    "layer": "gods",
+    "subject": "雅努",
+    "endings": ["release"],
+    "year": 1,
+    "text": "雅努走出了最后一扇门。她在门口回过一次头，说：门总会开的。众门环由遗民的执钥人看着，七枚门钥分在七个节点，开门的时候，再也没有人问她。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rel_race_remnants",
+    "layer": "races",
+    "subject": "遗民",
+    "endings": ["release"],
+    "year": 10,
+    "text": "手背上有门纹的孩子，第一次不用把手藏进袖子里。众门环的执钥人都是遗民，开门时会唱门歌，过门的人听不懂，也跟着哼。教会的旧档里，「烙印者」这个词被一行一行划掉了。",
+    "weight": 9
+  },
+  {
+    "id": "rel_race_demons",
+    "layer": "races",
+    "subject": "魔族",
+    "endings": ["release"],
+    "year": 10,
+    "text": "夜境废除了暗夜王座。王座没有拆，只是挪进了一间偏殿，椅面上落满了灰。夜后说，再也不需要等一个魔王了。",
+    "weight": 8
+  },
+  {
+    "id": "rel_race_dragons",
+    "layer": "races",
+    "subject": "龙族",
+    "endings": ["release"],
+    "year": 100,
+    "text": "原龙艾斯卡飞走了，从此不再落在龙脊。龙脊之巅那座碑下，有人捡到过一片银色的鳞，摸上去是温的。",
+    "weight": 8
+  },
+  {
+    "id": "rel_race_beastfolk",
+    "layer": "races",
+    "subject": "兽人",
+    "endings": ["release"],
+    "year": 10,
+    "text": "风牙草原不再选兽王，改成了部族会议。会议在哪个部族的帐篷里开，就由哪个部族烤肉，这是唯一一条吵了三年才定下来的规矩。",
+    "weight": 7
+  },
+  {
+    "id": "rel_race_elves",
+    "layer": "races",
+    "subject": "精灵",
+    "endings": ["release"],
+    "year": 1,
+    "text": "精灵诸氏族的春祭照常举行，只是没有人再向灵泉祷告。长老们带着孩子去泉边坐一下午，看水自己转。一位一千二百岁的长老第一次走出森林，说要去看看千门都的遗址。",
+    "weight": 6
+  },
+  {
+    "id": "rel_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["release"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "庭外之国的人簿上多了一栏，叫「神赐」，整栏都空着。没有人填，也没有人舍得删。到了第十年，它被改名叫「备注」。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_nation_steles",
+    "layer": "nations",
+    "subject": "七座天启碑",
+    "endings": ["release"],
+    "year": 100,
+    "text": "冬至后的第二天，碑面上的原始规约和「可」字一同褪去，七座碑变成了没有字的石头。一百年里，凡人陆续在碑上刻下自己的字。各国刻的不一样：有的刻法典，有的刻人名，龙脊那一座上只刻了一个日期。",
+    "weight": 9
+  },
+  {
+    "id": "rel_nation_empire",
+    "layer": "nations",
+    "subject": "格兰提亚帝国",
+    "endings": ["release"],
+    "year": 10,
+    "text": "格兰提亚帝国军中的祭坛被拆了，原地立起一根练剑的木桩。剑帝每年冬至都去砍一刀，说是替一位还没打完的对手留着手感。",
+    "weight": 7
+  },
+  {
+    "id": "rel_nation_holy",
+    "layer": "nations",
+    "subject": "圣艾琉恩教国",
+    "endings": ["release"],
+    "year": 10,
+    "text": "召唤大阵封闭以后，圣都瑟兰的阵基上长出了草。教国没有改名，只是礼拜堂里不再有人求加护。人们改求雨停、求孩子退烧，求完，就自己去想办法。",
+    "weight": 7
+  },
+  {
+    "id": "rel_nation_league",
+    "layer": "nations",
+    "subject": "梅尔卡托自由都市同盟",
+    "endings": ["release"],
+    "year": 10,
+    "text": "契约失去了神力担保，金湾赖账成潮的日子只持续了一个冬天。第二年开春，凡人的信用撑住了市场。同盟的账房换了一种新章，章上刻的是人名。",
+    "weight": 6
+  },
+  {
+    "id": "rel_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["release"],
+    "year": 10,
+    "text": "洛萨旧地的农人，第一次在没有祈晴的情况下种完了春麦。那一年收成不算好，也不算坏。村口的光之纹章还挂着，没有人去摘，也没有人再擦。",
+    "weight": 8
+  },
+  {
+    "id": "rel_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["release"],
+    "year": 1,
+    "text": "瓦伦堡大教堂的钟楼不再报祷时，改报市时。冒险者公会的定级水晶板还能用，只是不再给人加护了。B 级晋升考核的考官说，考生们反倒比以前认真。",
+    "weight": 8
+  },
+  {
+    "id": "rel_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["release"],
+    "year": 10,
+    "text": "边石镇的礼拜堂夜里也点着灯，成了镇民议事的地方。孤儿院的孩子们长大了，有几个手背上有纹，镇上没有人再多看一眼。封门遗迹那边长满了草，夏天有人去那里放羊。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_town_tavern",
+    "layer": "town",
+    "subject": "醉月亭",
+    "endings": ["release"],
+    "year": 10,
+    "text": "玛莎还在擦那只杯子。墙上多了一张写着「F」的座签，是帝都那位托人捎来的，说是「公会终于改了」。她一次也没跟客人提过那张座签的来历。有人问她当年那一刀是怎么斩的，她说：喝你的酒。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_comp_yeyu_stayed",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["release"],
+    "when": "yeyu_stayed",
+    "year": 1,
+    "text": "夜羽成了第一个没有主人的信使，在众门环之间送信。她送的都是活人的信：家书，欠条，情书，还有吵完架不好意思当面说的话。有人问她累不累，她说：啧。信要送到。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_comp_yeyu_left",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["release"],
+    "when": "companion.yeyu.recruited AND NOT yeyu_stayed",
+    "year": 1,
+    "text": "夜羽跟着雅努走了，走之前叫了一声「{player_name}」。她带走了信囊里那封永远打不开的第六封信。她说，也许走得够远，就能送到。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["release"],
+    "when": "companion.shiya.recruited",
+    "year": 10,
+    "text": "风牙的部族会议开到第三年，第一任召集人希雅把位子让了出去。她回到边石镇的林缘当猎人，猎到的第一头鹿分给了半个镇子。问她为什么不当了，她说：说好了的，三年。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_comp_ron_stayed",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["release"],
+    "when": "companion.ron.recruited AND NOT player_returned",
+    "year": 10,
+    "text": "罗恩从元帅的位子上退下来，回老家修好了母亲的屋顶。半年后，他被镇民硬拉回去当议会议长。就任那天他说了一句不可能，台下的人都笑了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_comp_ron_returned",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["release"],
+    "when": "companion.ron.recruited AND player_returned",
+    "year": 10,
+    "text": "{player_name}回去以后，庭外之国推举元帅罗恩为执政。他推辞了三次，第四次没推掉。就职那天他说：不可能。……好吧，可能。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_comp_nera_merca_stayed",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["release"],
+    "when": "verdict_merca == voluntary",
+    "year": 10,
+    "text": "奈拉开了一家只靠凡人信用担保的契约所，招牌上写着：不需要神作保。街对面是一个个子小小的摊主，三天两头来借算盘。奈拉每次都借，每次都记账。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rel_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["release"],
+    "when": "verdict_merca != voluntary",
+    "year": 10,
+    "text": "梅尔卡退场，契约加护失效，奈拉自由了。她开了一家只靠凡人信用担保的契约所，招牌上写着：不需要神作保。她不再是任何人的眼睛，账本只记自己的。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rel_comp_oola_cleared",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["release"],
+    "when": "a1_oola_fate == cleared",
+    "year": 1,
+    "text": "欧拉婆婆在遗民学堂教书，教草药，也教门歌。第二年春天，她老死在自己的药圃里，身边是长大了的遗民孩子们。孩子们说，她走之前还在念叨：草不会骗人，人会。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rel_comp_oola_convicted",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["release"],
+    "when": "a1_oola_fate == convicted",
+    "year": 1,
+    "text": "瓦伦堡的旧案一件件重审，欧拉婆婆的定罪书被撤销了。她拄着拐杖走回边石镇，进门第一件事是去看药圃。药圃没有荒，遗民的孩子们一直替她看着。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rel_comp_oola_fled",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["release"],
+    "when": "a1_oola_fate == fled",
+    "year": 1,
+    "text": "欧拉婆婆沿着落叶路，从森林里走了出来。这一次，没有人追她。她在遗民学堂教草药，也教门歌，第二年春天老死在新开的药圃里。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rel_comp_oola_executed",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["release"],
+    "when": "a1_oola_fate == executed",
+    "year": 10,
+    "text": "边石镇外的那片药圃还在。种它的人已经不在了，照看它的是一群手背有纹的孩子。他们在药圃边立了一块木牌，上面只写了一句：草不会骗人。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rel_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["release"],
+    "year": 10,
+    "text": "卡西安回到边石镇，主持无神之礼。礼拜堂成了镇民议事和夜里点灯的地方，大家叫他不信神的神父。他还在祈祷，只是不再等回应：光不在天上，在灯里。",
+    "weight": 8
+  },
+  {
+    "id": "rel_comp_martha",
+    "layer": "companions",
+    "subject": "玛莎",
+    "endings": ["release"],
+    "year": 1,
+    "text": "醉月亭的墙上多了一排名字，是晚钟小队的。玛莎每天打烊以后，把那面墙擦一遍。那一年，她终于睡了一个整觉。",
+    "weight": 7
+  },
+  {
+    "id": "rel_comp_brun_faceless",
+    "layer": "companions",
+    "subject": "老布伦",
+    "endings": ["release"],
+    "when": "faceless_end == redeemed",
+    "year": 10,
+    "text": "老布伦成了人簿的第一任总登记官，办公的地方还是边石镇那张桌子。他在人簿上给无貌者写了一个新名字，写得很慢，一笔也没涂。别人问他写的是什么，他说：登记簿上写什么，就是什么。",
+    "weight": 8
+  },
+  {
+    "id": "rel_comp_brun",
+    "layer": "companions",
+    "subject": "老布伦",
+    "endings": ["release"],
+    "when": "faceless_end != redeemed",
+    "year": 10,
+    "text": "铭录成了无主之录，布伦的手录成了公会凡人登记的样板。总部请他去教人记账，他拒绝了，继续在边石镇喝酒。他说那张桌子坐惯了，换个地方，字就写不直。",
+    "weight": 8
+  },
+  {
+    "id": "rel_long_astronomer",
+    "layer": "player",
+    "subject": "很久以后",
+    "endings": ["release"],
+    "when": "mysteries_all",
+    "year": 0,
+    "text": "一位天文学家，自称是那位首席大贤者的第七代学生，发现星辰不再那么整齐了。终雾比记载中退远了一些。她把这件事写进了学院的年刊，没有人说这是禁学。",
+    "required": true,
+    "weight": 20
+  },
+  {
+    "id": "rel_long_grandmother",
+    "layer": "player",
+    "subject": "很久以后",
+    "endings": ["release"],
+    "when": "NOT mysteries_all",
+    "year": 0,
+    "text": "一个孩子问祖母，以前真的有神吗。祖母说：有过。后来，祂们放手了。孩子以为这是故事。",
+    "required": true,
+    "weight": 20
+  },
+  {
+    "id": "rel_player_stayed",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["release"],
+    "when": "NOT player_returned",
+    "year": 1,
+    "text": "{player_name}留下来了。公会卡上还是写着 Lv1，没有职能，换过三次卡，都一样。有人问起神还在的那些年，{player_name}只说：我在场。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rel_player_returned",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["release"],
+    "when": "player_returned",
+    "year": 1,
+    "text": "{player_name}从那扇只开一次的门回去了。人簿上那一页没有写去向，只写了三个字：回家了。门内庭院成了大家的园子，园门口的{flag:courtyard.first_object}，一直没有人挪过。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_god_eluen",
+    "layer": "gods",
+    "subject": "艾琉恩",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "艾琉恩守着守望之约，每天都看庭镜，一次也没有伸手。有一年闹瘟疫，她在长桌前站了一整夜，手抬起来，又放下了。第二天，人族自己的医队进了城。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_god_valda",
+    "layer": "gods",
+    "subject": "瓦尔妲",
+    "endings": ["release_unfinished"],
+    "year": 1,
+    "text": "瓦尔妲把断剑插在神庭的地板上，每天数一遍日子。她说一千年也就是一千场架，不打，也算打完一场。莫伊拉核对过她的算法，没有核对通过。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_god_merca",
+    "layer": "gods",
+    "subject": "梅尔卡",
+    "endings": ["release_unfinished"],
+    "year": 1,
+    "text": "梅尔卡在守望之约上签字时，问能不能加一条利息。被拒绝以后，她在自己的账本上记了一笔：一千年，零收益。这是她做过的最长的一笔买卖。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_god_sylvie",
+    "layer": "gods",
+    "subject": "希尔薇",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "希尔薇闭着眼睛坐在灵泉边，一次也没有调过天气。秋收不稳的那几年，德鲁伊和萨满凭经验应对，比她以为的要好。她什么也没说，只是发间的新花多了一朵。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_god_moira",
+    "layer": "gods",
+    "subject": "莫伊拉",
+    "endings": ["release_unfinished"],
+    "year": 1,
+    "text": "莫伊拉在书上写下「未，即尚未」，然后把下一页留了白。她说这一次，她要等庭自己写。这是她第一次心甘情愿地当一个读者。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_god_janu",
+    "layer": "gods",
+    "subject": "雅努",
+    "endings": ["release_unfinished"],
+    "year": 1,
+    "text": "雅努没有走出最后一扇门。她坐在第六把椅子上，和其余五位一起看着庭镜。两千年来，六把椅子第一次同时坐满。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "uf_race_remnants",
+    "layer": "races",
+    "subject": "遗民",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "门纹不再是罪名，可众门环还没有连够。遗民的执钥人每天去节点上守着，一扇一扇地试。门歌里多了一句新词：尚未。",
+    "weight": 9
+  },
+  {
+    "id": "uf_race_demons",
+    "layer": "races",
+    "subject": "魔族",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "夜境的暗夜王座还空着。诸神不再伸手，下一代魔王会不会来，没有人知道。夜后下令，王座前的台阶照扫，只是扫的人换成了自己愿意来的。",
+    "weight": 8
+  },
+  {
+    "id": "uf_race_beastfolk",
+    "layer": "races",
+    "subject": "兽人",
+    "endings": ["release_unfinished"],
+    "year": 1,
+    "text": "风牙草原的部族，第一次没有向任何一位女神求雨。那一年的雨来得晚，各族互相借了粮。借条写在兽皮上，第二年都还清了。",
+    "weight": 7
+  },
+  {
+    "id": "uf_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["release_unfinished"],
+    "when": "a4_nation_founded",
+    "year": 10,
+    "text": "庭外之国还站得不太稳，但站着。人簿一年比一年厚。有人提议在封面上写一个「未」字，提议通过了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_nation_steles",
+    "layer": "nations",
+    "subject": "七座天启碑",
+    "endings": ["release_unfinished"],
+    "year": 100,
+    "text": "七座碑上的「未」字一直没有褪。一百年里，来碑下看字的人越来越多，有人在碑座上刻下自己做成了的事。刻满一面，就换下一面。",
+    "weight": 9
+  },
+  {
+    "id": "uf_nation_league",
+    "layer": "nations",
+    "subject": "梅尔卡托自由都市同盟",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "契约加护还在，只是梅尔卡不再看了。金湾的商人们发现，没有神盯着，账反而记得更细。",
+    "weight": 6
+  },
+  {
+    "id": "uf_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "洛萨的礼拜堂还在求加护，加护也还在，只是再没有神迹降下来。王都奥瑞恩的城墙由凡人修补，修得不太好看，但没有塌。",
+    "weight": 8
+  },
+  {
+    "id": "uf_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["release_unfinished"],
+    "year": 1,
+    "text": "瓦伦堡的冒险者公会照常定级。铭录静默过那半年以后，公会多留了一本手写的登记簿，以防万一。登记簿越写越厚，渐渐没有人去看水晶板了。",
+    "weight": 8
+  },
+  {
+    "id": "uf_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "边石镇的人照常过日子。封门遗迹旁边新开了一条路，通往众门环最近的节点。镇上的孩子们管那条路叫尚未路，没人知道是谁先这么叫的。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_town_tavern",
+    "layer": "town",
+    "subject": "醉月亭",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "玛莎还在擦那只杯子。醉月亭照常开张，墙上多了晚钟小队的名字。打烊以后，她偶尔抬头看一眼天，然后接着擦。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["release_unfinished"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "夜羽留在了箱庭，在众门环之间送活人的信。有一次，她在神庭门口站了很久，最后把手里那封信塞进了门缝。信封上写着：给开门的母亲。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["release_unfinished"],
+    "when": "companion.shiya.recruited",
+    "year": 10,
+    "text": "希雅回到边石镇的林缘当猎人。风牙的部族会议请了她三次，她去了一次，说：说好了，只帮这一次。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["release_unfinished"],
+    "when": "companion.ron.recruited",
+    "year": 10,
+    "text": "罗恩还是元帅。他每年冬至都去看一眼碑上的「未」字，回来以后加练一个时辰。有人问他碑什么时候会改，他说：现在不可能。但会的。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["release_unfinished"],
+    "when": "a1_oola_fate IN (cleared, fled)",
+    "year": 1,
+    "text": "欧拉婆婆在遗民学堂教草药，也教门歌。孩子们问她，神还在看吗。她说在看，看着也没用，草还得自己种。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "uf_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "卡西安还在边石镇的礼拜堂祈祷。祈祷没有回应，他也知道诸神在看。他说这样也好，像对着一个不说话的朋友说话。",
+    "weight": 8
+  },
+  {
+    "id": "uf_comp_brun",
+    "layer": "companions",
+    "subject": "老布伦",
+    "endings": ["release_unfinished"],
+    "year": 10,
+    "text": "老布伦的手录，成了庭外之国人簿的第一卷。他照旧在边石镇喝酒，喝多了就说：登记簿上写什么，就是什么。",
+    "weight": 7
+  },
+  {
+    "id": "uf_player_keeper",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["release_unfinished"],
+    "when": "court_keeper",
+    "year": 1,
+    "text": "{player_name}留在了神庭，坐上庭之席，做了守席的人。椅子很硬，瓦尔妲说她坐了两千年也没坐软。{player_name}每天往庭镜里看一眼，一次也没有伸手。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "uf_player_home",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["release_unfinished"],
+    "when": "NOT court_keeper",
+    "year": 1,
+    "text": "{player_name}回到了箱庭。公会卡上还是 Lv1，没有职能。偶尔有人指着天问，那上面是不是有人在看，{player_name}说：有，但她们不会伸手了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_god_five_exile",
+    "layer": "gods",
+    "subject": "五司",
+    "endings": ["new_god"],
+    "when": "new_god_disposal == exile",
+    "year": 1,
+    "text": "处置：放逐。去向：庭间之隙。接住：0。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_god_five_seal",
+    "layer": "gods",
+    "subject": "五司",
+    "endings": ["new_god"],
+    "when": "new_god_disposal == seal",
+    "year": 1,
+    "text": "处置：封印。神殿：5。封印方式：同庭历九百五十一年。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_god_five_vassal",
+    "layer": "gods",
+    "subject": "五司",
+    "endings": ["new_god"],
+    "when": "new_god_disposal == vassal",
+    "year": 1,
+    "text": "处置：臣属。席位：5，朝向：你。抽成：待议。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_god_janu",
+    "layer": "gods",
+    "subject": "雅努",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "状态：已吸收。门与钥匙：全部归入。来信：0。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "ng_race_humans",
+    "layer": "races",
+    "subject": "人族",
+    "endings": ["new_god"],
+    "year": 10,
+    "text": "信仰份额：0.71。澱产量：每季 1,240。魔物数：上升。",
+    "weight": 8
+  },
+  {
+    "id": "ng_race_remnants",
+    "layer": "races",
+    "subject": "遗民",
+    "endings": ["new_god"],
+    "year": 10,
+    "text": "门纹：仍在。执钥人转任祭司：全部。门歌：改为颂歌。",
+    "weight": 9
+  },
+  {
+    "id": "ng_race_demons",
+    "layer": "races",
+    "subject": "魔族",
+    "endings": ["new_god"],
+    "year": 100,
+    "text": "魔王：第十代，已诞生。勇者：待召唤。循环：继续。",
+    "weight": 8
+  },
+  {
+    "id": "ng_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["new_god"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "人簿：停用。神簿：启用。信仰份额：0.98。自治度：{flag:autonomy}，下调中。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_nation_continent",
+    "layer": "nations",
+    "subject": "梅迪乌斯大陆",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "大陆存续：{flag:continent}。澱产量：每季 3,906。魔物数：11,452。祈祷：每日 2,000,000 余条，可辨识 1,000 余条。",
+    "weight": 9
+  },
+  {
+    "id": "ng_nation_league",
+    "layer": "nations",
+    "subject": "梅尔卡托自由都市同盟",
+    "endings": ["new_god"],
+    "year": 10,
+    "text": "供品：每月 40,000 金。回应：每月 12 次。差额：入账。",
+    "weight": 7
+  },
+  {
+    "id": "ng_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["new_god"],
+    "year": 10,
+    "text": "祈晴：每年 4,100 次。晴：每年 210 天。相关性：未核实。",
+    "weight": 8
+  },
+  {
+    "id": "ng_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "礼拜堂：14 座，改祀 14 座。冒险者公会：照常定级。定级上限：60。",
+    "weight": 8
+  },
+  {
+    "id": "ng_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "祈祷：每日 300 余条。其中提及「{player_name}」：每日 300 余条。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_town_tavern",
+    "layer": "town",
+    "subject": "醉月亭",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "状态：歇业。原因：老板娘搬走。祈祷：0。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["new_god"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "祈祷：每日 1 次。称呼：主上。门把手：0 次。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["new_god"],
+    "when": "companion.shiya.recruited",
+    "year": 1,
+    "text": "祈祷：1 次。之后：0。位置：不在视野内。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["new_god"],
+    "when": "companion.ron.recruited",
+    "year": 10,
+    "text": "职务：元帅。对天空说话：每晚。辞呈：1 份，未批。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "ng_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "账本栏目：新增 1（供品）。对你说的真话：0。",
+    "weight": 8
+  },
+  {
+    "id": "ng_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["new_god"],
+    "when": "a1_oola_fate != executed",
+    "year": 1,
+    "text": "学生：37。向你祈祷的学生：37。阻拦：0。",
+    "weight": 8
+  },
+  {
+    "id": "ng_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "推辞：3 次。下跪：1 次。起身并离开：1 次。",
+    "weight": 8
+  },
+  {
+    "id": "ng_comp_brun",
+    "layer": "companions",
+    "subject": "老布伦",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "登记簿：照记。每月新增：40 页。其中有你：0 页。",
+    "weight": 7
+  },
+  {
+    "id": "ng_player_prayer",
+    "layer": "player",
+    "subject": "最后一页",
+    "endings": ["new_god"],
+    "year": 1,
+    "text": "最后一页，有一行字，不是数字：「神啊，如果你在听，求你让我妈妈的咳嗽好起来，我会一直很乖的。」来源：庭镜，某郡，一个孩子。状态：已听见，无法送达。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_eluen_god_ruler",
+    "layer": "gods",
+    "subject": "艾琉恩",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，天穹下只剩一道光。圣都瑟兰的钟每天准时响三次，一秒不差。每一座城镇的礼拜堂都长得一模一样，连门槛的高度都一样。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_eluen_god_others",
+    "layer": "gods",
+    "subject": "其余诸司",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，其余诸司被封进了各自的神殿。封印用的是同一套光格，莫伊拉认得它：大断绝那一夜，她也站在那一圈里。这几页写到这里，就该停了。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_eluen_race_remnants",
+    "layer": "races",
+    "subject": "遗民",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，门与遗民被禁。众门环被一座一座拆毁，执钥人被追捕。手背有纹的人入城时要摊开手，有纹的，不许进。",
+    "weight": 9
+  },
+  {
+    "id": "rule_eluen_race_beastfolk",
+    "layer": "races",
+    "subject": "兽人",
+    "endings": ["rule_eluen"],
+    "year": 10,
+    "text": "在艾琉恩之治的第十年，风牙草原的兽人被要求改信。很多部族退回了草原深处，祖灵的歌只在夜里唱，唱得很轻。",
+    "weight": 8
+  },
+  {
+    "id": "rule_eluen_race_demons",
+    "layer": "races",
+    "subject": "魔族",
+    "endings": ["rule_eluen"],
+    "year": 10,
+    "text": "在艾琉恩之治的第十年，夜境又开始等魔王。循环还在继续，暗夜王座前的台阶，每年都有人去扫。",
+    "weight": 8
+  },
+  {
+    "id": "rule_eluen_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["rule_eluen"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，庭外之国被要求登记。人簿被收走，换成了铭录的抄本，每一页都盖着日轮印。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_eluen_nation_holy",
+    "layer": "nations",
+    "subject": "圣艾琉恩教国",
+    "endings": ["rule_eluen"],
+    "year": 10,
+    "text": "在艾琉恩之治的第十年，圣教覆盖了大陆的每一座城镇。召唤大阵又开了，名额照旧，每一期四个。",
+    "weight": 8
+  },
+  {
+    "id": "rule_eluen_nation_empire",
+    "layer": "nations",
+    "subject": "格兰提亚帝国",
+    "endings": ["rule_eluen"],
+    "year": 10,
+    "text": "在艾琉恩之治的第十年，帝国军中的祭坛都换上了日轮。剑帝照常上朝，只是再也没有人见他笑过。",
+    "weight": 7
+  },
+  {
+    "id": "rule_eluen_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["rule_eluen"],
+    "year": 10,
+    "text": "在艾琉恩之治的第十年，洛萨的每一块田都按规格划成了方格。收成很好，好得像是算出来的。",
+    "weight": 8
+  },
+  {
+    "id": "rule_eluen_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，瓦伦堡的冒险者公会门口多了一块牌子：规格外者，不予登记。牌子挂得很正。",
+    "weight": 8
+  },
+  {
+    "id": "rule_eluen_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，边石镇孤儿院改名为光之育幼所。手背有纹的孩子们在入院第一天被带走，没有人知道去了哪里。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_eluen_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["rule_eluen"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，夜羽被当作烙印者的乌鸦驱逐。她飞回了封门遗迹，又做回了守护兽。她的信囊被没收，作为证物存进了圣库。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_eluen_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["rule_eluen"],
+    "when": "companion.shiya.recruited",
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，兽人被赶到了边上。希雅带着族人退回草原，后来又退进了大森林。她说：我闻得出来，这里不是我们的地方了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_eluen_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["rule_eluen"],
+    "when": "companion.ron.recruited",
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，罗恩被收编为圣教骑士团的统帅。从那以后，他再也没有说过不可能。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_eluen_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，门扉商会被收归教会。奈拉带着账本去了金湾，账本里有一页，她始终没有交出去。",
+    "weight": 8
+  },
+  {
+    "id": "rule_eluen_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["rule_eluen"],
+    "when": "a1_oola_fate != executed",
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，欧拉婆婆再一次被押上了审判台。这一次，她没有为自己辩护。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_eluen_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，卡西安重获加护，升为主教。他的祈祷终于有了回应，可他夜里睡不着。",
+    "weight": 8
+  },
+  {
+    "id": "rule_eluen_player",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["rule_eluen"],
+    "year": 1,
+    "text": "在艾琉恩之治的第一年，{player_name}成了第五位勇者，永远。公会卡上的 Lv1 被改成了 60，{player_name}看了很久，觉得那不是自己。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_god_ruler",
+    "layer": "gods",
+    "subject": "瓦尔妲",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，世界成了一座永恒的竞技场。强者为王，战争是常态，人人都在变强，也人人都在流血。她每天都很高兴，又每天都觉得还差一点。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_god_others",
+    "layer": "gods",
+    "subject": "其余诸司",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，其余诸司按她的规矩打了一场，打不过的都走了。艾琉恩走得最晚，光环上缺了一个齿。莫伊拉没有打，她把这一场记完，就自己出了门。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_valda_race_demons",
+    "layer": "races",
+    "subject": "魔族",
+    "endings": ["rule_valda"],
+    "year": 10,
+    "text": "在瓦尔妲之治的第十年，夜境诸侯不再等魔王，谁打赢了谁坐王座。王座一年换了七次主人，椅子腿修了九次。",
+    "weight": 9
+  },
+  {
+    "id": "rule_valda_race_beastfolk",
+    "layer": "races",
+    "subject": "兽人",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，风牙草原成了兵源。部族的孩子十二岁就学会了列阵，祖灵的歌改成了战歌。",
+    "weight": 8
+  },
+  {
+    "id": "rule_valda_race_dwarves",
+    "layer": "races",
+    "subject": "矮人",
+    "endings": ["rule_valda"],
+    "year": 10,
+    "text": "在瓦尔妲之治的第十年，赤砧山的炉火一夜也没有熄过。矮人们打出来的剑越来越好，订单永远排不完。",
+    "weight": 7
+  },
+  {
+    "id": "rule_valda_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["rule_valda"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，庭外之国的边境一年打了四仗。人簿上新添了一栏：阵亡。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_nation_empire",
+    "layer": "nations",
+    "subject": "格兰提亚帝国",
+    "endings": ["rule_valda"],
+    "year": 10,
+    "text": "在瓦尔妲之治的第十年，格兰提亚帝国成了大陆上最强的国家，也是最累的。剑帝说，他终于等来了配得上的对手，只是太多了。",
+    "weight": 8
+  },
+  {
+    "id": "rule_valda_nation_league",
+    "layer": "nations",
+    "subject": "梅尔卡托自由都市同盟",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，同盟的军火生意翻了三番。输了代理之战的那支佣兵军团，第二年又被雇去打下一场。",
+    "weight": 7
+  },
+  {
+    "id": "rule_valda_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["rule_valda"],
+    "year": 10,
+    "text": "在瓦尔妲之治的第十年，洛萨还是前线，只是前线换了方向。王国的城墙每年加高一尺，年年都不够。",
+    "weight": 8
+  },
+  {
+    "id": "rule_valda_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，瓦伦堡的中央广场改成了竞技场。B 级晋升考核从此改为实战，考官说这样省事。",
+    "weight": 8
+  },
+  {
+    "id": "rule_valda_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，边石镇成了前线。镇外的封门遗迹被改成了箭塔，孤儿院的孩子们学会了听号角。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_town_tavern",
+    "layer": "town",
+    "subject": "醉月亭",
+    "endings": ["rule_valda"],
+    "year": 10,
+    "text": "在瓦尔妲之治的第十年，玛莎重新拿起了刀。醉月亭的门板上多了很多刀痕，她一道也没让人补。打烊以后，她照旧擦杯子。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["rule_valda"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，夜羽成了战场上的信使。她送的大多是阵亡通知，送到的时候，总是先敲三下门。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["rule_valda"],
+    "when": "companion.shiya.recruited",
+    "year": 10,
+    "text": "在瓦尔妲之治的第十年，希雅成了猎王，常年征战。她赢了每一场决斗，没有一场是她自己想打的。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["rule_valda"],
+    "when": "companion.ron.recruited",
+    "year": 10,
+    "text": "在瓦尔妲之治的第十年，罗恩的名字刻在第三年那场仗的碑上。他战死的时候，身后那条战线一步也没有退。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_valda_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，奈拉做起了军需商。她的账本上只有两栏：送出去的，和没有回来的。",
+    "weight": 8
+  },
+  {
+    "id": "rule_valda_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["rule_valda"],
+    "when": "a1_oola_fate != executed",
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，欧拉婆婆成了战地医者。药草不够用，她就教伤兵自己认草。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_valda_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，卡西安成了随军神父。他为每一个出阵的人祈祷，祷词里从来不提胜利。",
+    "weight": 8
+  },
+  {
+    "id": "rule_valda_player",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["rule_valda"],
+    "year": 1,
+    "text": "在瓦尔妲之治的第一年，{player_name}成了她的首席将军。每一场仗都赢了，每一场赢完，她都问：还能更强吗？",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_merca_god_ruler",
+    "layer": "gods",
+    "subject": "梅尔卡",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，一切都有了价，包括祈祷。金湾成了大陆的中心，灯一夜也不熄。她赚得盆满钵满，吃的点心，还是地球客人带来的那几样。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_merca_god_others",
+    "layer": "gods",
+    "subject": "其余诸司",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，其余诸司被收购，成了股东。艾琉恩的股份最多，分红最少；瓦尔妲把股票折成了纸飞机。莫伊拉给自己估了价，估得很低。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_merca_race_dwarves",
+    "layer": "races",
+    "subject": "矮人与半身人",
+    "endings": ["rule_merca"],
+    "year": 10,
+    "text": "在梅尔卡之治的第十年，矮人和半身人成了大陆上最富的两族。赤砧山的契约多到要专门盖一座库房来放。",
+    "weight": 8
+  },
+  {
+    "id": "rule_merca_race_remnants",
+    "layer": "races",
+    "subject": "遗民",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，众门环被收购，过门要付门券。遗民的执钥人成了收票员，门歌没有人唱了。",
+    "weight": 9
+  },
+  {
+    "id": "rule_merca_race_elves",
+    "layer": "races",
+    "subject": "精灵",
+    "endings": ["rule_merca"],
+    "year": 10,
+    "text": "在梅尔卡之治的第十年，希尔瓦大森林的边缘被一块一块租了出去。租约写得很公平，精灵们看不懂。",
+    "weight": 7
+  },
+  {
+    "id": "rule_merca_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["rule_merca"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，庭外之国的国债被同盟买下。人簿还在，只是每一页的页脚都多了一行小字：担保人，{player_name}。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_merca_nation_league",
+    "layer": "nations",
+    "subject": "梅尔卡托自由都市同盟",
+    "endings": ["rule_merca"],
+    "year": 10,
+    "text": "在梅尔卡之治的第十年，梅尔卡托自由都市同盟成了事实上的大陆政府。议会每年开一次，开会的门票很贵。",
+    "weight": 8
+  },
+  {
+    "id": "rule_merca_nation_empire",
+    "layer": "nations",
+    "subject": "格兰提亚帝国",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，帝国签下了收购书。剑帝签字的时候把笔捏断了，换了第二支才签完。",
+    "weight": 7
+  },
+  {
+    "id": "rule_merca_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["rule_merca"],
+    "year": 10,
+    "text": "在梅尔卡之治的第十年，洛萨还清了所有的债，又借了新的。王都奥瑞恩的城门上挂着利率表，每天一换。",
+    "weight": 8
+  },
+  {
+    "id": "rule_merca_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，瓦伦堡的城门税改成了按小时计。冒险者公会的委托板上，每一张单子都写明了抽成。",
+    "weight": 8
+  },
+  {
+    "id": "rule_merca_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，边石镇成了商路上的一个小站。镇上的每一口井都标了价，最便宜的那一口，在醉月亭的后院。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_merca_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["rule_merca"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，夜羽被买下，当了金湾的信差，按件计酬。她送得最快，挣得最少，因为她从来不肯替人捎私货。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_merca_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["rule_merca"],
+    "when": "companion.shiya.recruited",
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，狼族成了同盟的佣兵。希雅签了契约，第二年又撕了它，成了草原上的反抗者。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_merca_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["rule_merca"],
+    "when": "companion.ron.recruited",
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，罗恩被同盟高薪挖走。他把第一个月的薪水寄回了老家，修好了母亲的屋顶。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_merca_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，奈拉成了梅尔卡的总管。她终于不再是双面人，只剩一面。",
+    "weight": 9
+  },
+  {
+    "id": "rule_merca_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["rule_merca"],
+    "when": "a1_oola_fate != executed",
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，药价涨了。欧拉婆婆偷偷按旧价卖药，每个月都被罚，每个月都照卖。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_merca_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，卡西安的礼拜堂被收购，改成了钱庄。他在钱庄门口摆了一张小桌，替不识字的人念借据，不收钱。",
+    "weight": 8
+  },
+  {
+    "id": "rule_merca_player",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["rule_merca"],
+    "year": 1,
+    "text": "在梅尔卡之治的第一年，{player_name}成了整座庭的担保人。公会卡上还是 F 级，信用评级却是最高的那一档。每个月初，都有人排队来请{player_name}签字。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_sylvie_god_ruler",
+    "layer": "gods",
+    "subject": "希尔薇",
+    "endings": ["rule_sylvie"],
+    "year": 1,
+    "text": "在希尔薇之治的第一年，世界被放慢成了四季。森林在扩张，城市在缩小，人们温和地活着，但不再改变。她每天都睁着眼睛，生怕错过什么。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_sylvie_god_others",
+    "layer": "gods",
+    "subject": "其余诸司",
+    "endings": ["rule_sylvie"],
+    "year": 1,
+    "text": "在希尔薇之治的第一年，其余诸司睡在灵泉里。莫伊拉最后一个下去，入水之前写完了这几页。她们睡着的样子，比醒着的时候年轻。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_sylvie_race_elves",
+    "layer": "races",
+    "subject": "精灵",
+    "endings": ["rule_sylvie"],
+    "year": 10,
+    "text": "在希尔薇之治的第十年，希尔瓦大森林往西长了三十里。精灵们第一次觉得不用再守着什么，又说不出这是好事还是坏事。",
+    "weight": 9
+  },
+  {
+    "id": "rule_sylvie_race_beastfolk",
+    "layer": "races",
+    "subject": "兽人",
+    "endings": ["rule_sylvie"],
+    "year": 10,
+    "text": "在希尔薇之治的第十年，风牙草原安安静静。部族之间不再打仗，也不再选兽王，草长到了马肚子那么高。",
+    "weight": 8
+  },
+  {
+    "id": "rule_sylvie_race_humans",
+    "layer": "races",
+    "subject": "人族",
+    "endings": ["rule_sylvie"],
+    "year": 100,
+    "text": "在希尔薇之治的第一百年，人族的城市少了一半。剩下的城里，孩子们学的第一首歌，是唱季节的。",
+    "weight": 8
+  },
+  {
+    "id": "rule_sylvie_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["rule_sylvie"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "在希尔薇之治的第一年，庭外之国停止了扩建。人簿上的人口，第一次没有增加，也没有减少。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_sylvie_nation_forest",
+    "layer": "nations",
+    "subject": "希尔瓦氏族议会",
+    "endings": ["rule_sylvie"],
+    "year": 10,
+    "text": "在希尔薇之治的第十年，希尔瓦氏族议会打开了森林的边界。来投奔的人很多，没有一个想走。",
+    "weight": 8
+  },
+  {
+    "id": "rule_sylvie_nation_empire",
+    "layer": "nations",
+    "subject": "格兰提亚帝国",
+    "endings": ["rule_sylvie"],
+    "year": 10,
+    "text": "在希尔薇之治的第十年，帝国的扩张派退回了城墙里，城墙外的路一条一条长满了草。帝都格兰提斯的人，十年里少了三成。",
+    "weight": 7
+  },
+  {
+    "id": "rule_sylvie_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["rule_sylvie"],
+    "year": 10,
+    "text": "在希尔薇之治的第十年，洛萨的田一块一块还给了森林。剩下的农人种得不多，够吃，也不再多种。",
+    "weight": 8
+  },
+  {
+    "id": "rule_sylvie_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["rule_sylvie"],
+    "year": 10,
+    "text": "在希尔薇之治的第十年，瓦伦堡的城墙爬满了藤。城里的人搬走了一半，留下的人说，夏天比以前凉快。",
+    "weight": 8
+  },
+  {
+    "id": "rule_sylvie_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["rule_sylvie"],
+    "year": 1,
+    "text": "在希尔薇之治的第一年，边石镇外的林子一直长到了镇口。镇上的人不再砍树，改在树下摆摊。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_sylvie_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["rule_sylvie"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "在希尔薇之治的第一年，夜羽在林子里做回了一只鸦。她不再送信，只偶尔叼着一片亮闪闪的东西，落在你的窗台上。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_sylvie_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["rule_sylvie"],
+    "when": "companion.shiya.recruited",
+    "year": 1,
+    "text": "在希尔薇之治的第一年，希雅成了草原的守护者。这是她所有可能的结局里最安稳的一种，她自己也知道。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_sylvie_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["rule_sylvie"],
+    "when": "companion.ron.recruited",
+    "year": 1,
+    "text": "在希尔薇之治的第一年，罗恩卸甲归田。他种的麦子长得很慢，他也不着急了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_sylvie_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["rule_sylvie"],
+    "year": 1,
+    "text": "在希尔薇之治的第一年，奈拉在一个小镇上开了杂货铺。账本越记越薄，她说这辈子第一次算得过来。",
+    "weight": 8
+  },
+  {
+    "id": "rule_sylvie_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["rule_sylvie"],
+    "when": "a1_oola_fate != executed",
+    "year": 1,
+    "text": "在希尔薇之治的第一年，欧拉婆婆被请进根下庭，做了长老。她终于不用再藏，第一天就把藏了几十年的药方全贴在了墙上。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_sylvie_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["rule_sylvie"],
+    "year": 1,
+    "text": "在希尔薇之治的第一年，卡西安进了林子，做了隐修者。他还在祈祷，祷词里多了很多树的名字。",
+    "weight": 8
+  },
+  {
+    "id": "rule_sylvie_player",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["rule_sylvie"],
+    "year": 1,
+    "text": "在希尔薇之治的第一年，{player_name}成了守护兽，和那只半鹿半狼的兽并肩站在林边。日子很长，很安静，每一天都和前一天差不多。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_moira_god_ruler",
+    "layer": "gods",
+    "subject": "莫伊拉",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，命运丝遍布了世界。每个人都有精心安排的巧合，每一章都有伏笔。她写得很好，好到连她自己都找不出一个错字。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_moira_god_others",
+    "layer": "gods",
+    "subject": "其余诸司",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，其余诸司被归档，成了书里的角色。艾琉恩是一个总在量尺寸的配角，瓦尔妲每一章都在打架。她们的台词都写得很好，好得有点不像她们。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_moira_race_remnants",
+    "layer": "races",
+    "subject": "遗民",
+    "endings": ["rule_moira"],
+    "year": 10,
+    "text": "在莫伊拉之治的第十年，众门环成了命运丝的织机。遗民的执钥人每天去节点上，把别人的巧合一根一根织进去。",
+    "weight": 9
+  },
+  {
+    "id": "rule_moira_race_dragons",
+    "layer": "races",
+    "subject": "龙族",
+    "endings": ["rule_moira"],
+    "year": 10,
+    "text": "在莫伊拉之治的第十年，龙脊上的原龙，仍然是书里唯一没有台词的角色。莫伊拉试着写过三次，三次都被一片银鳞盖住了。",
+    "weight": 8
+  },
+  {
+    "id": "rule_moira_race_demons",
+    "layer": "races",
+    "subject": "魔族",
+    "endings": ["rule_moira"],
+    "year": 10,
+    "text": "在莫伊拉之治的第十年，夜境的每一场仗都打得刚好好看。夜后说，她已经猜得到下一章了，这让她很不高兴。",
+    "weight": 7
+  },
+  {
+    "id": "rule_moira_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["rule_moira"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，庭外之国的人簿被收进了书里，成了附录。附录写得比正文还长。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_moira_nation_empire",
+    "layer": "nations",
+    "subject": "格兰提亚帝国",
+    "endings": ["rule_moira"],
+    "year": 10,
+    "text": "在莫伊拉之治的第十年，剑帝终于等到了一场配得上的决斗。对手出现得恰到好处，他也赢得恰到好处，事后他一个人喝了很久的酒。",
+    "weight": 8
+  },
+  {
+    "id": "rule_moira_nation_league",
+    "layer": "nations",
+    "subject": "梅尔卡托自由都市同盟",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，金湾的每一笔大买卖，都恰好在最后一刻成交。商人们开始迷信，开张之前先翻一页书。",
+    "weight": 7
+  },
+  {
+    "id": "rule_moira_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["rule_moira"],
+    "year": 10,
+    "text": "在莫伊拉之治的第十年，洛萨迎来了一位刚好贤明的国王。王都奥瑞恩的人都说，这简直像故事里写的。",
+    "weight": 8
+  },
+  {
+    "id": "rule_moira_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，瓦伦堡的公告栏每天傍晚都会贴出一条明天的伏笔。城里的人起初觉得有趣，后来就不敢看了。",
+    "weight": 8
+  },
+  {
+    "id": "rule_moira_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，边石镇成了故事开始的地方，来朝圣的人很多。封门遗迹立了一块牌子：主角在此醒来。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_moira_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["rule_moira"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，夜羽成了书里一个嘴毒的配角。她的台词都是写好的，可她念的时候，总要多加一个啧。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_moira_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["rule_moira"],
+    "when": "companion.shiya.recruited",
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，命运给希雅安排了一个命中注定的对手。她闻了闻那个人，说：不打。然后转身走了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_moira_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["rule_moira"],
+    "when": "companion.ron.recruited",
+    "year": 10,
+    "text": "在莫伊拉之治的第十年，罗恩的每一场仗都刚好赢。他越赢越不安，最后一场赢完，他说：不可能。这一次，没有人笑。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_moira_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，奈拉发现，她的每一次背叛都已经写好了。她试着不背叛，结果那也是写好的。",
+    "weight": 8
+  },
+  {
+    "id": "rule_moira_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["rule_moira"],
+    "when": "a1_oola_fate != executed",
+    "year": 10,
+    "text": "在莫伊拉之治的第十年，欧拉婆婆寿终正寝，死得恰到好处。孩子们都在身边，连天气都刚刚好。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "rule_moira_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，卡西安的信仰危机被写成了一本畅销书。他读了第一章，就再也没有往下读。",
+    "weight": 8
+  },
+  {
+    "id": "rule_moira_player",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["rule_moira"],
+    "year": 1,
+    "text": "在莫伊拉之治的第一年，{player_name}成了永远的主角。每一章结尾都有续章，每一个续章都有伏笔。没有人知道最后一页在哪里，莫伊拉也不知道。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_town_tavern",
+    "layer": "town",
+    "subject": "醉月亭",
+    "endings": ["rule_eluen", "rule_merca", "rule_sylvie", "rule_moira"],
+    "year": 10,
+    "text": "在{flag:epilogue.ruler}之治的第十年，醉月亭照开。玛莎照旧擦杯子，墙上的告示换了好几回，杯子还是那只。有人问她如今是谁的天下，她说：喝你的酒。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "rule_comp_brun",
+    "layer": "companions",
+    "subject": "老布伦",
+    "endings": ["rule_eluen", "rule_valda", "rule_merca", "rule_sylvie", "rule_moira"],
+    "year": 1,
+    "text": "在{flag:epilogue.ruler}之治的第一年，老布伦还是公会的边石分部长。登记簿照记，一页也没少。他说，登记簿上写什么，就是什么，至于是谁让写的，他不管。",
+    "weight": 7
+  },
+  {
+    "id": "jr_god_janu",
+    "layer": "gods",
+    "subject": "雅努",
+    "endings": ["janu_restored"],
+    "year": 10,
+    "text": "你来了。门遍布了大陆，所有的路都经过她，哪一扇门为谁开、为谁不开，她每天都调一点点。她说，再守一阵子就好。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "jr_god_five",
+    "layer": "gods",
+    "subject": "五司",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。五司被封进了各自的神殿，神殿的门是她亲手关上的，关得很轻。像庭历九百五十一年的那一夜，只是换了一边。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "jr_race_remnants",
+    "layer": "races",
+    "subject": "遗民",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。遗民被奉为开门者的子民，门歌成了大陆上最常听见的歌。门歌者塔维做了大祭司，每次开门之前，都会先朝你点一下头。",
+    "weight": 9
+  },
+  {
+    "id": "jr_race_demons",
+    "layer": "races",
+    "subject": "魔族",
+    "endings": ["janu_restored"],
+    "year": 10,
+    "text": "你来了。夜境的门和金湾的门连在了一起，魔族的孩子第一次见到了海。暗夜王座前的台阶上，也开了一扇小门，门后什么也没有。",
+    "weight": 8
+  },
+  {
+    "id": "jr_race_elves",
+    "layer": "races",
+    "subject": "精灵",
+    "endings": ["janu_restored"],
+    "year": 10,
+    "text": "你来了。精灵的森林里也开了门，长老们说，林子从来没有离外面这么近过。灵泉还在转，只是每一年，都有一扇门朝泉水那边悄悄多开一点。",
+    "weight": 7
+  },
+  {
+    "id": "jr_nation_garden",
+    "layer": "nations",
+    "subject": "庭外之国",
+    "endings": ["janu_restored"],
+    "when": "a4_nation_founded",
+    "year": 1,
+    "text": "你来了。庭外之国的每一条门路，都繁荣得像千门时代。人簿上的每一页，都多了一个门形的印，印是她盖的。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "jr_nation_empire",
+    "layer": "nations",
+    "subject": "格兰提亚帝国",
+    "endings": ["janu_restored"],
+    "year": 10,
+    "text": "你来了。帝国的军队不再行军，只走门。剑帝说这样省事，只是有一次，他要去的那扇门迟迟没有开。",
+    "weight": 8
+  },
+  {
+    "id": "jr_nation_league",
+    "layer": "nations",
+    "subject": "梅尔卡托自由都市同盟",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。同盟的商路全都改成了门路，门券成了最硬的货币。金湾的商人说，这比神作保的契约还可靠。",
+    "weight": 7
+  },
+  {
+    "id": "jr_kingdom_lothar",
+    "layer": "kingdom",
+    "subject": "洛萨",
+    "endings": ["janu_restored"],
+    "year": 10,
+    "text": "你来了。洛萨的田里也开了门，粮食一夜就能运到王都。只是那一年，北边的几个村子等了很久，门都没有开。",
+    "weight": 8
+  },
+  {
+    "id": "jr_city_valen",
+    "layer": "city",
+    "subject": "瓦伦堡",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。瓦伦堡的城门拆了，换成了一扇真正的门。进城的人越来越多，出城的人越来越少。",
+    "weight": 8
+  },
+  {
+    "id": "jr_town_borderstone",
+    "layer": "town",
+    "subject": "边石镇",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。边石镇外的封门遗迹，成了大陆上最大的一扇门。你当初醒来的那块石头被围了起来，供人参拜。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "jr_town_tavern",
+    "layer": "town",
+    "subject": "醉月亭",
+    "endings": ["janu_restored"],
+    "year": 10,
+    "text": "你来了。醉月亭还开着。玛莎又一次守在门边，这一次，看的是雅努的门。她从来不让那扇门对着醉月亭的正门。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "jr_comp_yeyu",
+    "layer": "companions",
+    "subject": "夜羽",
+    "endings": ["janu_restored"],
+    "when": "companion.yeyu.recruited",
+    "year": 1,
+    "text": "你来了。夜羽回到了她身边做信使，你们的契约被收了回去。告别的时候，她最后叫了一次门把手，然后很久没有说话。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "jr_comp_shiya",
+    "layer": "companions",
+    "subject": "希雅",
+    "endings": ["janu_restored"],
+    "when": "companion.shiya.recruited",
+    "year": 10,
+    "text": "你来了。希雅做了风牙的门务长，第三年，她带着族人搬离了荒原边的门。她说：我闻得出来，那扇门变了。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "jr_comp_ron",
+    "layer": "companions",
+    "subject": "罗恩",
+    "endings": ["janu_restored"],
+    "when": "companion.ron.recruited",
+    "year": 10,
+    "text": "你来了。罗恩当了门路总长，日子很好。他每天巡一遍门路，总觉得哪里不对，又说不上来。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "jr_comp_nera",
+    "layer": "companions",
+    "subject": "奈拉",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。奈拉做了门券的发行人，契约还在，只是债主换了。她又开始攒赎身钱，攒得很慢。",
+    "weight": 8
+  },
+  {
+    "id": "jr_comp_oola",
+    "layer": "companions",
+    "subject": "欧拉婆婆",
+    "endings": ["janu_restored"],
+    "when": "a1_oola_fate != executed",
+    "year": 1,
+    "text": "你来了。欧拉婆婆做了门民的长老。遗民被召回的那一年，她送走了最后一批孩子，自己留了下来，守着空了的药圃。",
+    "required": true,
+    "weight": 9
+  },
+  {
+    "id": "jr_comp_cassian",
+    "layer": "companions",
+    "subject": "卡西安",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。卡西安做了无名之神的神父。每次布道的最后，他都加一句：门开着，也可以不进。",
+    "weight": 8
+  },
+  {
+    "id": "jr_comp_brun",
+    "layer": "companions",
+    "subject": "老布伦",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。老布伦还是边石分部长，登记簿照记。每当有人经门来登记，他都多问一句：是你自己要来的吗？",
+    "weight": 7
+  },
+  {
+    "id": "jr_player",
+    "layer": "player",
+    "subject": "编外者",
+    "endings": ["janu_restored"],
+    "year": 1,
+    "text": "你来了。你是她的第一把钥，每一扇门都认得你。你开过很多门，后来才发现，有几扇，她从来没有让你开过。",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "reclaim_torn_page",
+    "layer": "gods",
+    "subject": "被撕下的半页",
+    "endings": ["reclaim"],
+    "year": 1,
+    "text": "碑没有说「未」。碑什么也没说。",
+    "required": true,
+    "weight": 10
+  }
+]
