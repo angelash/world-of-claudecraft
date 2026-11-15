@@ -53,7 +53,7 @@
 | 愿景、决策与术语 | 95% | `vision.md`、`decision_log.md`（D-001 到 D-081，无未决问题）、`glossary.md` | 本轮新定的历法、英文代号改名、商店名、存档兼容起点、成就规则待登记为决策；B-001 到 B-015 待关闭 | PK-M0-04 |
 | 世界观正典与叙事 | 95% | `20_world/` 八篇、`30_story/` 十一篇、揭示台账 | 本轮设计代理的请求回写（地名、灰爆、鹿渡、界石垒之夜、证据明细等）待按仲裁结论落地 | PK-M0-04 |
 | 系统设计 | 90% | 十三份系统文档，含本轮的千门、同伴、成长、内置 AI、旅行与探索 | `combat_and_classes.md` 只写到第 7 节（第 8 到 21 节待续） | PK-M0-01 |
-| 内容目录 | 85% | 总纲、审校台账、十二份旧目录与本轮的城建、战争、女神、台词（含第一幕分册）、任务（前，第一到三幕约 238 个 `q_`）目录 | `catalog_abilities_talents.md` 未写；`catalog_quests_acts4_6.md` 只写到第 1.6 节；`catalog_cutscenes.md` 未落盘 | PK-M0-02、PK-M0-03、PK-M0-04 |
+| 内容目录 | 85% | 总纲、审校台账、十二份旧目录与本轮的城建、战争、女神、台词（含第一幕分册）、任务（前，第一到三幕约 238 个 `q_`）、过场与结局（80 场、11 种结局）目录 | `catalog_abilities_talents.md` 未写；`catalog_quests_acts4_6.md` 只写到第 1.6 节；`catalog_cutscenes.md` 未落盘 | PK-M0-02、PK-M0-03、PK-M0-04 |
 | 世界与地图 | 95% | 图集与世界地图、场景动线、全部规划地图的地图简报 | 无 | 地图实现见第 2.3 节 |
 | 界面、音频、成长、注册表 | 100% | `ux_and_onboarding.md`、`audio_direction.md`、`progression_and_pacing.md`、`world_state_registry.md` | 无 | 实现见各层 |
 | 技术方案 | 95% | 架构、AI 架构、大模型提供方、复用映射、美术方案、发行工程、实现约定 | `architecture.md` 与 `implementation_conventions.md` 需对齐发行工程（发布版无模型代理、`TextRef` 约定、性能预算出处） | PK-M0-32 |

@@ -1,0 +1,5 @@
+# Asset originals (assets/art, assets/audio) and processed audio live in Git LFS; processed
+# art (small PNG plus frame metadata) stays a normal blob. See assets/README.md section 1.
+assets/art/** filter=lfs diff=lfs merge=lfs -text
+assets/audio/** filter=lfs diff=lfs merge=lfs -text
+assets/processed/audio/** filter=lfs diff=lfs merge=lfs -text
