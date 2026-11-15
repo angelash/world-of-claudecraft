@@ -7,6 +7,7 @@
 > 世界观细则：[`power_system.md`](../../20_world/power_system.md)（第 7.7 节澱晶、第 8 节神力）、[`nations_and_factions.md`](../../20_world/nations_and_factions.md)（第 1.4、2.2、2.7 节）、
 > [`geography.md`](../../20_world/geography.md)（第 6.1 节商路）、[`races.md`](../../20_world/races.md)（第 9.3 节澱源）。分幕：act2（门扉商会）、act4（第 4.6、8.1 节）、act6（第 2.4、4.2 节）。
 > 姊妹文档：[`city_building.md`](city_building.md)、[`warfare_rts.md`](warfare_rts.md)、[`grand_strategy_slg.md`](grand_strategy_slg.md)、[`goddess_gm.md`](goddess_gm.md)。
+> 源码级参考（调研，不具约束力）：[`question_map.md`](../../10_research/open_source/question_map.md) 按本文章节列出可读的开源实现（文件与符号），分册见 [`open_source/README.md`](../../10_research/open_source/README.md)（经济与物流主要看 [`economy_logistics.md`](../../10_research/open_source/economy_logistics.md)，修正项合同另见 [`slg_4x.md`](../../10_research/open_source/slg_4x.md) 的 FreeOrion 与 VCMI 两节）。
 > 本文还定义全作通用的"注册修正项合同"（第 7 节），它是 `goddess_gm.md` 第 4.6 节 `RegisteredModifier` 的推广，其他系统引用它。
 > 分幕写定的事件、变量与数值优先于本文。
 > 本文所有数值都是初值或量级，统一视为"待调"；实现细节归 `docs/50_tech/`。

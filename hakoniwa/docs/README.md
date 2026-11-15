@@ -35,6 +35,13 @@
 | [art_style/my_ai_town_visual_and_client.md](10_research/art_style/my_ai_town_visual_and_client.md) | my_ai_town 的 HD-2D 风格、客户端与程序化素材              |
 | [open_share/city_rts_slg.md](10_research/open_share/city_rts_slg.md)                               | 城建、RTS、SLG、经济、策略 AI 资料                        |
 | [open_share/game_dev_methodology.md](10_research/open_share/game_dev_methodology.md)               | 游戏开发方法论                                            |
+| [open_source/README.md](10_research/open_source/README.md) | 开源游戏源码调研总览：索引条目逐一筛选、阅读路线、许可总表、本地镜像、对第一轮实现的直接发现 |
+| [open_source/question_map.md](10_research/open_source/question_map.md) | 按城建、RTS、SLG、经济的设计章节反查开源源码（文件与符号） |
+| [open_source/city_builders.md](10_research/open_source/city_builders.md) | 城建与人口模拟源码：Micropolis、Julius（《凯撒 III》）、Lincity-NG、Unknown Horizons 等 |
+| [open_source/economy_logistics.md](10_research/open_source/economy_logistics.md) | 经济型 RTS、物流、贸易与谍报源码：Widelands、Seven Kingdoms、OpenTTD 等 |
+| [open_source/rts.md](10_research/open_source/rts.md) | 即时战术源码：0 A.D.、OpenRA、Curse of War 等 |
+| [open_source/slg_4x.md](10_research/open_source/slg_4x.md) | 大战略、4X、战棋源码：Freeciv、FreeOrion、VCMI、Wesnoth、Unciv 等 |
+| [open_source/colony_base_management.md](10_research/open_source/colony_base_management.md) | 地下城经营、基地管理与 NPC 委托源码：KeeperRL、OpenXcom、Cataclysm-DDA 等 |
 | [woc_reuse/combat_and_content_inventory.md](10_research/woc_reuse/combat_and_content_inventory.md) | 主工程战斗与内容盘点、复用评估                            |
 | [woc_reuse/internal_playbooks.md](10_research/woc_reuse/internal_playbooks.md)                     | 主工程执行指导方案的方法论与模板                          |
 

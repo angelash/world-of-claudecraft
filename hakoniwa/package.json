@@ -10,7 +10,8 @@
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "playthrough": "vitest run --config vitest.playthrough.config.ts",
-    "format": "node ../node_modules/@biomejs/biome/bin/biome check --write"
+    "format": "node ../node_modules/@biomejs/biome/bin/biome check --write",
+    "refs": "node tools/refs/fetch_refs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

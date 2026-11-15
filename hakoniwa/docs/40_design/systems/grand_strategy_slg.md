@@ -8,6 +8,7 @@
 > 世界观细则：[`geography.md`](../../20_world/geography.md)（第 0、2、6、7 节）、[`nations_and_factions.md`](../../20_world/nations_and_factions.md)、[`power_system.md`](../../20_world/power_system.md)（第 7、8 节）。
 > 分幕：act4（第 3、4、8、9、10 节）、act5（第 3、6、7 节）、act6（第 4、11 节）。分幕写定的会盟、战线、变量与条件优先于本文。
 > 姊妹文档：[`city_building.md`](city_building.md)、[`warfare_rts.md`](warfare_rts.md)、[`economy_and_trade.md`](economy_and_trade.md)、[`goddess_gm.md`](goddess_gm.md)、[`npc_society_ai.md`](npc_society_ai.md)。
+> 源码级参考（调研，不具约束力）：[`question_map.md`](../../10_research/open_source/question_map.md) 按本文章节列出可读的开源实现（文件与符号），分册见 [`open_source/README.md`](../../10_research/open_source/README.md)（大战略主要看 [`slg_4x.md`](../../10_research/open_source/slg_4x.md)，谍报与多种族忠诚看 [`economy_logistics.md`](../../10_research/open_source/economy_logistics.md) 的 Seven Kingdoms 一节）。
 > 本文所有数值都是初值或量级，统一视为"待调"；实现细节归 `docs/50_tech/`。
 
 ## 0. 定位与硬约束

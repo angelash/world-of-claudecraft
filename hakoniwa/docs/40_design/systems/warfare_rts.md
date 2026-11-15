@@ -7,6 +7,7 @@
 > 世界观细则：[`power_system.md`](../../20_world/power_system.md)（第 3 节位阶与威压、第 7 节澱与魔物）、[`nations_and_factions.md`](../../20_world/nations_and_factions.md)（各国兵种倾向）、
 > [`races.md`](../../20_world/races.md)、[`geography.md`](../../20_world/geography.md)（第 6.3 节军事通道、第 7 节分块）。分幕：act2 第 1.2 节、act3 第 7.3 到 7.4 节、act5 第 7 节。
 > 姊妹文档：[`city_building.md`](city_building.md)、[`grand_strategy_slg.md`](grand_strategy_slg.md)、[`economy_and_trade.md`](economy_and_trade.md)、[`goddess_gm.md`](goddess_gm.md)、[`npc_society_ai.md`](npc_society_ai.md)。
+> 源码级参考（调研，不具约束力）：[`question_map.md`](../../10_research/open_source/question_map.md) 按本文章节列出可读的开源实现（文件与符号），分册见 [`open_source/README.md`](../../10_research/open_source/README.md)（即时战术主要看 [`rts.md`](../../10_research/open_source/rts.md)）。
 > 分幕文档写定的战役、变量与结算规则优先于本文（正典优先级第 4 级高于第 5 级）。
 > 本文所有数值都是初值或量级，统一视为"待调"；实现细节归 `docs/50_tech/`。
 

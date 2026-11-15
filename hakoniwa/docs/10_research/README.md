@@ -17,6 +17,13 @@
 | `art_style/` | [my_ai_town_visual_and_client.md](art_style/my_ai_town_visual_and_client.md) | my_ai_town 的 HD-2D 风格、客户端与程序化素材 | `../50_tech/art_pipeline.md` |
 | `open_share/` | [city_rts_slg.md](open_share/city_rts_slg.md) | 城建、RTS、SLG、经济、策略 AI 的资料与借鉴 | 经营与战争系统 |
 | | [game_dev_methodology.md](open_share/game_dev_methodology.md) | 游戏开发概念与方法论，及概要设计章节建议 | 设计方法、制作计划 |
+| `open_source/` | [README.md](open_source/README.md) | 开源游戏源码调研总览：筛选、阅读路线、许可、本地镜像（`D:\hakoniwa_refs`，可用 `tools/refs/` 重建）、对第一轮实现的直接发现 | 城建、RTS、SLG、经济的详细设计与实现 |
+| | [question_map.md](open_source/question_map.md) | 按设计章节反查源码（文件与符号） | 同上 |
+| | [city_builders.md](open_source/city_builders.md) | 城建与人口模拟（Micropolis、Julius、Lincity-NG、Unknown Horizons 等） | `../40_design/systems/city_building.md` |
+| | [economy_logistics.md](open_source/economy_logistics.md) | 经济型 RTS、物流、贸易、谍报（Widelands、Seven Kingdoms、OpenTTD 等） | 经济、城建物流、大战略谍报 |
+| | [rts.md](open_source/rts.md) | 即时战术（0 A.D.、OpenRA、Curse of War 等） | `../40_design/systems/warfare_rts.md` |
+| | [slg_4x.md](open_source/slg_4x.md) | 大战略、4X、战棋（Freeciv、FreeOrion、VCMI、Wesnoth、Unciv 等） | `../40_design/systems/grand_strategy_slg.md`、修正项合同 |
+| | [colony_base_management.md](open_source/colony_base_management.md) | 地下城经营、基地管理、NPC 委托（KeeperRL、OpenXcom、Cataclysm-DDA 等） | 城建委托与招募、女神资助反应 |
 | `woc_reuse/` | [combat_and_content_inventory.md](woc_reuse/combat_and_content_inventory.md) | 主工程战斗与内容体系盘点、复用评估 | 战斗、千门、技术复用 |
 | | [internal_playbooks.md](woc_reuse/internal_playbooks.md) | 主工程执行指导方案的方法论与模板 | 研发流程 |
 
@@ -43,6 +50,9 @@
 10. **研发方法**：按层推进并设评审门（愿景与正典、调研、叙事、概要设计、详细设计、技术方案、实施包、代码）；
     首个版本只验证一组核心问题，无模型降级档必须能通关。
     来源：[woc_reuse/internal_playbooks.md](woc_reuse/internal_playbooks.md)、[open_share/game_dev_methodology.md](open_share/game_dev_methodology.md)。
+11. **城建、RTS、SLG 都有可读的开源实现，但几乎只能借方法**：40 个仓库核实后，可借代码的只有 CorsixTH、Tanks of Freedom（MIT）与 Unciv（MPL-2.0 文件级）；
+    其余为 GPL 系或无许可。跨品类共识是：软数值用"目标值加有限步长趋近"，所有加成走一条带叠加组与记账的修正项管线，委托只调目标、优先级与开关，
+    AI 只通过玩家同一条命令通道行动。来源：[open_source/README.md](open_source/README.md) 第 4、6 节。
 
 ## 许可提醒（复用主工程时）
 

@@ -132,7 +132,7 @@
 | RTS 兵团（轻量单位）                                                          | open-share RTS 资料（稳定 ID、邻居网格分桶、状态压缩、迷雾只算可见区）；WoC 纯公式            | 仅借鉴方法（结构）；直接复用（公式） | 兵团用命中表期望值结算，复用 `armorReduction`、`meleeMissChance`、`spellHitChance` 保证数值同源（D-012） | 规模未经基准验证         | 方法 / MIT   |
 | 寻路与群体移动                                                                | open-share（HPA*、流场、局部避让为补充内容）                                                  | 仅借鉴方法                           | 英雄用网格 A*，大军用流场                                                                                | 资料中为补充，待核实     | 方法         |
 | SLG 大地图                                                                    | open-share（固定层级渲染、实例化、地形分块）                                                  | 仅借鉴方法                           | 自行实现                                                                                                 | 无                       | 方法         |
-| 开源 RTS、城建项目代码                                                        | open-share 索引的 0 A.D.、OpenRA、Widelands 等                                                | 不复用（代码）                       | 只可读设计                                                                                               | GPL 等许可传染           | 未审计       |
+| 开源 RTS、城建、SLG 项目代码                                                  | open-share 索引的 0 A.D.、OpenRA、Widelands 等 40 个仓库（[逐项许可](../10_research/open_source/README.md)第 4 节） | 不复用（代码）；CorsixTH、Tanks of Freedom（MIT）与 Unciv（MPL-2.0 文件级）可借代码 | 只可读设计；移植公式改用命名随机流并先写黄金样例测试 | GPL 等许可传染 | 已核验 |
 
 ### 2.5 表现层与客户端
 

@@ -744,7 +744,10 @@
 
 ### 7.1 开源参考项目速查
 
-来自 `10_md/_external/2026/external-2026-开源游戏源码大全-玩法与引擎索引.md`（原文状态 indexed-unverified，许可、可运行性、代码质量均未审计，引用代码前须单独核验许可证）：
+> 本表只按方向归类索引条目。每个项目的仓库地址、许可、源码导读与借鉴分析见 [`../open_source/README.md`](../open_source/README.md)，
+> 按设计章节反查源码见 [`../open_source/question_map.md`](../open_source/question_map.md)。
+
+来自 `10_md/_external/2026/external-2026-开源游戏源码大全-玩法与引擎索引.md`（索引原文状态为 indexed-unverified；仓库地址与许可在 `../open_source/` 中逐项核实）：
 
 | 方向              | 项目                                                                                                                                                                                     |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -756,7 +759,7 @@
 | 地下城建造        | KeeperRL、OpenDungeons                                                                                                                                                                   |
 | 自动化加塔防      | Mindustry                                                                                                                                                                                |
 
-其中 Command & Conquer 与 Last Colony 为 HTML5/JavaScript 实现，与本作的浏览器技术栈（TypeScript 加 Three.js）最接近。
+其中 Command & Conquer 与 Last Colony 为 HTML5/JavaScript 实现，与本作的浏览器技术栈（TypeScript 加 Three.js）最接近，但两者都没有许可文件，只能读，不能借代码。
 
 ---
 
@@ -764,5 +767,5 @@
 
 - 资料库缺少：人口需求层级、城市规划、科技树、4X 节奏、Utility AI、HTN、Flow Field 的专文；第 2.2、3.3、4.5、6.1 节的相关内容主要是补充，进入设计前建议另行检索一手资料（如 Game AI Pro 系列、GDC Vault 中的 RimWorld、Frostpunk、Total War 相关演讲）。
 - 修仙 GDD 的所有倍率、门槛、税率均为 design_only，未经游戏引擎验证，只能作为起点。
-- 开源项目索引未经代码审计，项目许可（GPL 等）对复用代码有约束，复用前必须单独确认。
+- 开源项目的许可（GPL 等）对复用代码有约束，逐项许可见 [`../open_source/README.md`](../open_source/README.md) 第 4 节，复用前按该表确认。
 - 第 6.6 节外部先例的规模与结论数字待核实。
