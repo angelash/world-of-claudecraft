@@ -1,0 +1,95 @@
+name: Hakoniwa CI
+
+# The commit pipeline of the Hakoniwa sub-project (hakoniwa/; design in
+# hakoniwa/docs/50_tech/release_engineering.md section 11.1). It is independent of the
+# main project's workflows in both directions: it runs only when hakoniwa/ (or this
+# file) changes, and it touches nothing outside hakoniwa/ beyond installing the shared
+# toolchain. One job installs the repository root's toolchain (pnpm, as the repository
+# requires: the root has no package-lock.json for npm ci to read), installs hakoniwa/'s
+# own lockfile with npm 10, and runs the full local gate, hakoniwa/tools/gate.ts, which
+# runs every step, reports each step's exit code and time, and fails the job when any
+# step failed. The no-model playthroughs (the gate's --full step) are left to the
+# nightly pipeline. Git LFS originals (hakoniwa/assets/art, assets/audio) are never
+# pulled. The pins on this file live in hakoniwa/tests/gate.test.ts.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'hakoniwa/**'
+      - '.github/workflows/hakoniwa-ci.yml'
+  pull_request:
+    paths:
+      - 'hakoniwa/**'
+      - '.github/workflows/hakoniwa-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Hakoniwa gate
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          lfs: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install the root toolchain
+        run: pnpm install --frozen-lockfile
+
+      - name: Install hakoniwa dependencies
+        working-directory: hakoniwa
+        run: npx npm@10 ci
+
+      - name: Determine base ref
+        # The gate's Biome step checks the files changed since this ref: the pull
+        # request base, or the commit before the push. The checkout is shallow, so the
+        # base commit is fetched alone; with no usable before SHA (a new branch, a manual
+        # run) the default branch tip stands in.
+        id: base
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          zeros='0000000000000000000000000000000000000000'
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF"
+            echo "ref=origin/$BASE_REF" >> "$GITHUB_OUTPUT"
+          elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "$zeros" ]; then
+            if ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+              git fetch --no-tags --depth=1 origin "$BEFORE_SHA"
+            fi
+            echo "ref=$BEFORE_SHA" >> "$GITHUB_OUTPUT"
+          else
+            git fetch --no-tags --depth=1 origin "$DEFAULT_BRANCH"
+            echo "ref=origin/$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run the gate
+        working-directory: hakoniwa
+        env:
+          HK_GATE_BASE: ${{ steps.base.outputs.ref }}
+        run: npm run gate

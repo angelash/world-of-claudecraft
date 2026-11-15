@@ -2266,9 +2266,27 @@ describe('CI workflow parity', () => {
       '.github/workflows/desktop-publish.yml',
       '.github/workflows/ota-publish.yml',
     ];
+    // Sub-project workflows run only their own sub-project's gate: path-scoped to that
+    // directory, every run step inside it, and no Postgres (the merge bar does not apply).
+    const subprojectWorkflows = [['.github/workflows/hakoniwa-ci.yml', 'hakoniwa']] as const;
     expect(listed).toEqual(
-      ['.github/workflows/ci.yml', '.github/workflows/nightly.yml', ...testFreeWorkflows].sort(),
+      [
+        '.github/workflows/ci.yml',
+        '.github/workflows/nightly.yml',
+        ...testFreeWorkflows,
+        ...subprojectWorkflows.map(([file]) => file),
+      ].sort(),
     );
+    for (const [file, dir] of subprojectWorkflows) {
+      const text = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+      expect(text, `${file} must trigger only on ${dir}/ changes`).toContain(`- '${dir}/**'`);
+      expect(text, `${file} must run its gate inside ${dir}/`).toContain(
+        `working-directory: ${dir}`,
+      );
+      expect(/postgres|TEST_DATABASE_URL/i.test(text), `${file} must not wire Postgres`).toBe(
+        false,
+      );
+    }
     for (const file of testFreeWorkflows) {
       const text = codeLines(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'));
       expect(
