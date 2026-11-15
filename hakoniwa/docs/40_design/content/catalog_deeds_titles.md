@@ -2,7 +2,7 @@
 
 > 本文是内容设计一轮的第 12 号目录（[总纲 12][bible]）：玩家与他人做过的事如何被记下、被讲述、被命名，以及这些名字值什么。
 > 本文拥有两个命名空间：事迹 `deed_`、称号 `title_`。其余 ID（异名者与 `nm_` 异名物、`dg_` 迷宫、NPC、`col_` 收藏、`door_` 门、
-> 可挑战段 `trial_`）一律按原目录引用；门目录（`catalog_doors.md`）与本文并行撰写，收尾时已按其 ID 回填（2.7）。
+> 可挑战段 `trial_`）一律按原目录引用；门 ID 以[门目录][drs]为准，门读事迹的接口以[千门 5.3][td]为准（2.7）；变量名以[变量注册表][reg]为准（D-076）。
 > 正典优先级按 `hakoniwa/CLAUDE.md`：`world_bible` > `vision` > 其余 `20_world` > `30_story` > `40_design`；冲突登记在第 8 节。
 > 机制底座借主工程称号簿（[事迹规则][deeds]、[事迹数据][deedsts]），但本作的事迹承载实际效果（[力量 12][pow] 映射表：钥另建"事迹"系统，
 > 不改变主工程称号的纯外观约束）。撰写时点：2026-11-15。
@@ -19,8 +19,8 @@
    于是藏拙工具"让别人担名"变成推同伴过立名关的手段，勇者团也会因为玩家的事迹而立名（"余威所至"）。
 5. **铭录不分善恶，只数讲述。** 恶名照样立名；玩家下的命令没有页可记，就记在执行命令的人的页上。
 6. **只追加，不擦除。** 铭录对被证伪的称号加"注"而不删（"书记官不烧书"）；手录与人簿同理；已得事迹永不撤回（主工程规则 9）。
-7. **数量。** 事迹 237 条（14 类，含 10 条他人事迹模板），称号 84 个（9 类）。每条事迹至少喂一扇门、一个称号、一次认知转变或一项收藏；
-   纯计数事迹全目录只有 1 条，名望封顶 5（第 6.2 节）。
+7. **数量。** 事迹 248 条（14 类，含 10 条他人事迹模板），称号 87 个（9 类）。每条事迹至少喂一扇门、一个称号、一次认知转变或一项收藏；
+   纯计数事迹全目录只有 1 条，名望封顶 5（第 6.2 节）。名望 50 的事迹 17 条，与 Steam 成就的 C 组一一对应（2.13）。
 8. **揭示纪律。** 凡人可见的名字与描述遵守[揭示台账][rl]与称谓开放表；隐藏事迹带【真相】与最早揭示幕；第六位女神的名字在第六幕之前不出现（D-023、D-053）。
 
 ## 1. 读法与口径
@@ -55,19 +55,43 @@
 | `dungeonClears` | 主工程 | 迷宫通关，键为 `dg_` ID |
 | `collectItems` | 主工程 | 持有或曾持有物品（归还、赠予、陈列计"曾藏"，[遗物 1.7][rel] 第 7 条） |
 | `visit`、`visits` | 主工程 | 交互标记（`poi:<区域>:<地点>`、`npc:<id>`） |
-| `meter` | 主工程 | 持久数值（门阶 `doorStage`、开门数 `doors_opened` 等） |
+| `meter` | 主工程 | 持久数值（门阶 `door_rank`、开门数 `doors_opened` 等，[注册表 8.2][reg]） |
 | `meta` | 主工程 | 其他事迹全部达成 |
 | `manual` | 主工程 | 在具体场景的结算点显式授予（遭遇战机制、限制条件、抉择结果） |
 | 新·`cond` | 新增 | 世界状态条件表达式（[任务与事件 4][qe] 语法，枚举、比较、`AND`）；主工程 `flag` 只有布尔，这里补上枚举与数值 |
-| 新·`doorState` | 新增 | 族 `door.<door_id>` 达到某状态（显影、可开、已开、锁闭、关闭，[力量 9.5][pow]） |
+| 新·`doorState` | 新增 | 门达到某状态（显影、可开、已开、锁闭、关闭，[力量 9.5][pow]），读 `door_state.<数据 id>` 与 `door.<数据 id>.tier` |
 | 新·`witness` | 新增 | 事迹发生时的具名目击者条件：至少 N 人、某人在场、或零目击（[认知 3.1][rep]） |
 | 新·`rumorReach` | 新增 | 锚定该事件的某个传闻版本在 N 个地区成为主流说法，或热度越过阈值（[认知 4.6][rep]） |
 | 新·`belief` | 新增 | 指定 NPC 或至少 N 名有名 NPC 对玩家处于某认知状态（[认知 3.5][rep]） |
 | 新·`exposure` | 新增 | 在某观众群体的显露度不高于某档的条件下完成（[认知 6.3][rep]） |
-| 新·`tellCount` | 新增 | 有页者的讲述数越过立名阈值（第 2.6 节）；只用于同伴与他人事迹 |
+| 新·`tellCount` | 新增 | 有页者的讲述数越过立名阈值（第 2.6 节、[成长 12][pp]）；只用于同伴与他人事迹 |
 
-新增种类全部是对已存在的内核状态（世界变量、门状态、信念画像、传闻画像、显露度）的只读谓词，不新建计数器；评估器沿主工程
+新增种类全部是对已存在的内核状态（世界变量、门状态、信念画像、传闻画像、显露度、讲述数）的只读谓词，不新建计数器；评估器沿主工程
 `src/sim/deeds.ts` 的结构（末尾结算、只看脏玩家、不抽随机数），见[力量 12][pow]。
+
+**判定接口**（与[千门 5.2][td]的钥判定同一种写法）：
+
+```
+evalDeed(view: DeedView, deed: DeedDef, ctx?: EventCtx): boolean
+DeedView = 只读视图 { var(k), doorState(dataId), doorTier(dataId), deed(id),
+                     witnesses(eventId), rumor(anchorId) -> { mainstreamRegions, heat },
+                     belief(npcId), beliefCount(state, filter), exposure(audience),
+                     tellings(npcId), tellRegions(npcId), writtenSources(npcId) }
+EventCtx = 结算点上的事件上下文 { eventId, kind, actor, target, place, tick }
+```
+
+| 新触发 | 字段 | 读什么 | 结算点 | 例 |
+| --- | --- | --- | --- | --- |
+| `cond` | `expr` | 世界变量；表达式用[注册表 5][reg]的文法（`AND`、`OR`、`NOT`、比较、`IN`、`HAS`、`COUNT`），变量必须已登记 | 订阅所引用变量的变化，按脏标记重算 | `territory_autonomy >= 40` |
+| `doorState` | `door`、`state`、`tier?`、`first?` | `door_state.<数据 id>`（hidden、hinted、openable、opened、locked、closed）与 `door.<数据 id>.tier`；"任一"写作门族（例：`door_school_*` 二阶），"第一次主动闭门"读千门的 `doors.closed` 事件来源为玩家 | 千门的 `door.opened`、`doors.closed`、`doors.state` 事件（[千门 21.5][td]） | `door_state.last == opened` |
+| `witness` | `min?`、`npc?`、`zero?`、`trust?` | 事件结算时认知系统给出的具名目击者列表与清晰度（[认知 3.1][rep]） | 事件结算点（同一 tick 末尾） | 零目击潜入；信任 60 以上者至少四人 |
+| `rumorReach` | `anchor`、`regions?`、`heat?` | 认知系统的传闻画像：锚定该事件的版本在 N 个地区是主流，或热度越过阈值（[认知 4.6][rep]） | 传闻网的日结算 | 名伴的名字传到第二座城镇 |
+| `belief` | `npc?`、`state`、`count?`、`filter?` | 信念画像的认知状态（无视、怀疑、解释化、动摇、接受、崇拜、敌视，[认知 3.5][rep]） | 认知状态变化事件 | 希雅进入"接受" |
+| `exposure` | `audience`、`max` | 观众群体的显露度（隐藏、部分、完全，[认知 6.3][rep]；按历练等级计，[千门 4.7][td]） | 与 `manual` 同在事件结算点 | 显露度"部分"以下取胜 |
+| `tellCount` | `npc` | `npc.<id>.tellings` 不低于 1,500，讲述来自至少 2 个地区，至少一份书面来源（[成长 12][pp]） | 讲述数的日结算 | 希雅立名 |
+
+- 判定只读、不抽随机、不写世界；事迹授予由事迹系统写 `deed.<id>` 与 `title.<id>`（[注册表 8.6][reg]），并发 `deed.granted`：千门系统据此判定以事迹为历钥的门（[千门 5.3][td]），客户端的成就映射据此解锁 Steam 成就（2.13）。
+- 他人事迹模板的实例存在事迹系统的状态里，键为 `deed_world_<模板>:<npc_id>`，人簿与对方的铭录各写一行。
 
 ### 1.4 名望、隐藏与壮举
 
@@ -83,7 +107,7 @@
 - **壮举**是可能永久错过的记录（主工程规则 5）：零名望，不计完成度，保留可见。
 - **不留永久错过**：抉择型事迹给每个分支各一条，或只记"做了抉择"；同伴死亡或世界状态封死时按主工程 `retroFallbackGrants` 的口径补发或转壮举。
 - **分支事迹**（本作补充）：依赖世界分支结果的事迹（例：欧拉平反、边石没有失守、霜胡子活着）与隐藏事迹一样，得到之前不计入完成度的分母；
-  分支一旦关上，它在本期显示为"这一期没有发生"，不扣分，留到下一期（回声之门的新周目）再拿。叙事游戏的分支天然会错过，
+  分支一旦关上，它在本期显示为"这一期没有发生"，不扣分，留到下一期（回声之门的新周目，只有回收结局进入下一期，[成长 16][pp]）再拿。叙事游戏的分支天然会错过，
   这条规则让"错过"变成记录，而不是缺口。只依赖一次性世界事件的（例：全录之日）直接记为壮举。
 
 ### 1.5 称号条目字段
@@ -182,14 +206,17 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 
 ### 2.6 立名：称号如何推同伴与 NPC 过关
 
-立名关（34 到 35）的条件是铭录写下一个传颂级称号（[力量 3.3][pow]）。本文把"被足够多的人讲述"落成可计算的讲述数：
+立名关（34 到 35）的条件是铭录写下一个传颂级称号（[力量 3.3][pow]）。本文把"被足够多的人讲述"落成可计算的讲述数，阈值与节奏以[成长 12][pp]为准（C98）：
 
 ```
 讲述数（对某有页者）= Σ 相信版本 v 的人数（有名 NPC 计 1；人群单元计 份额 × 人口 × 0.1）
                       × 主体系数（主体就是他 1.0；版本已故事化，失真度 ≥ 0.8，0.5；主体被替换 0，记给替换后的主体）
                       × 地区系数（1 个地区 0.5；2 个 0.8；3 个以上 1.0）
-立名阈值（待调）：讲述数 ≥ 1,500，且至少一份书面来源（歌谣、颂歌纸、告示、手录或人簿）
+立名阈值：讲述数 ≥ 1,500，且讲述来自至少 2 个地区，且至少一份书面来源（歌谣、颂歌纸、告示、手录或人簿）
 ```
+
+讲述数随传闻网每日结算，记在 `npc.<id>.tellings`（[注册表 8.5][reg]）；达到阈值且经验已满 34 级的有页者，在下一次日检时由铭录写下传颂级称号，破关到 35。
+参考量级：小镇级的事一件约 50 到 80，城市级 300 到 500，王国级 800 到 1,500，大陆级 3,000 以上（[成长 12][pp]）。
 
 | 规则 | 内容 | 设计意图 |
 | --- | --- | --- |
@@ -197,7 +224,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | 主体替换转移讲述数 | 版本的主体被替换时，讲述数记到新主体名下（若新主体有页） | "余威所至"让勇者团立名；"其实是玛莎出的手"给玛莎添名 |
 | 让别人担名 | 玩家可以在交付、归功、对目击者说话时把事迹的名分让给在场的有页同伴；目击者采信与否仍按认知规则结算 | 藏拙的收益与同伴的成长对齐，也是"放手"主题的个人层 |
 | 歌者加速 | 潜质 `bard` 的同伴（芬恩 `fynn`、门歌者塔维 `tavi` 等）讲的版本热度加倍、失真减半；斗场主塔德奥 `taddeo_val` 是帝国最大的放大器 | 歌者潜质的去向（[总纲 9.3][bible]） |
-| 关药 | 颂歌纸 `cs_ballad_sheet` 给一件真实事迹在一个地区加热度，立名宴 `cs_naming_feast` 把讲述播到各宾客的家乡；两者都不能伪造事迹 | 立名是可以经营的，但故事必须是真的 |
+| 关药 | 颂歌纸 `cs_ballad_sheet` 给一件真实事迹在一个地区的讲述热度 +3，持续一季；立名宴 `cs_naming_feast` 把被宴请者的一件事迹播到每位宾客的家乡（[成长 8.3][pp]）；两者都不能伪造事迹 | 立名是可以经营的，但故事必须是真的 |
 | 善恶不论 | 恶名的讲述数照算；屠村的命令写在执行者的页上 | 玩家的选择有人替他背 |
 | 只加注，不擦除 | 被事实锚证伪的传颂级称号加注"存疑"或"不实"：位阶不退，称号加护失效，听者对他的敬意按证伪幅度下降 | 铭录只追加（书记官不烧书）；位阶回退会改页，属于神约第三条的重事 |
 | 称号加护 | 莫伊拉可以给传颂级称号附一层称号加护（I 到 II 级，[力量 6.2][pow]），代价是此人成为她的视线锚 | 同伴得到小而独特的效果，玩家身边多一双她的眼睛 |
@@ -210,7 +237,8 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 
 ### 2.7 事迹即历钥
 
-门读事迹，不读名望，也不读目击者。下表是正典门（[力量 9.9][pow]）与并行撰写的[门目录][drs]里由本文事迹承载的钥；剧情必开的门只用时钥，事迹从不卡主线（[任务与事件 3.4][qe]）。
+门读事迹，不读名望，也不读目击者（[千门 5.3][td]）。下表是正典门（[力量 9.9][pow]）与[门目录][drs]里由本文事迹承载的钥；剧情必开的门只用时钥，事迹从不卡主线（[任务与事件 3.4][qe]）。
+作历钥的分支事迹必须有替钥（内容校验检查）；事迹被门读作钥的那一刻，回廊里那扇门旁出现一道刻痕。
 
 | 门 | 钥的组合（正典） | 本文事迹承担的钥 |
 | --- | --- | --- |
@@ -240,7 +268,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | 双脉之门 `door_dual_pulse`、汤与铃之门 `door_combo_warrior_rogue` | 门目录 | 历钥 `deed_grow_two_arts`；缘钥 `deed_bond_soup_and_bell` |
 | 生业之门 `door_craft_` 十四扇 | 门目录（层一到层六） | 历钥 `deed_mgmt_craft_first_masterwork`、`deed_mgmt_craft_outer_edge` |
 | 兽群、掘脉、哑碑、门港、遮页、空白之门 | 门目录 | 异名者事迹记录的历钥候选与物钥（3.3） |
-| 离手之门 `door_release`、回声之门 `door_recall` | 门目录（提案门采纳） | 离手不由事迹作钥（`deed_grow_closed_door` 只是伏笔）；回声由 `deed_feat_next_cycle` 记录 |
+| 离手之门 `door_release`、回声之门 `door_recall` | 门目录（力量 9.9 的候选门） | 离手不由事迹作钥（`deed_grow_closed_door` 只是伏笔）；回声由 `deed_feat_next_cycle` 记录 |
 
 "记录"的意思是：地钥、物钥、识钥本身由到达、持有、得知判定，事迹只是把那一刻写进事迹簿，不额外加钥；历钥则由事迹本身充当。
 
@@ -290,6 +318,20 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 事迹的判定、入册、讲述数、称号文本全部由内核与模板决定（D-010）。模型只负责布伦的批注、NPC 念出称号时的口吻与即兴台词；
 模型不能授予事迹、不能改称号文本、不能把台账未解锁的真相写进批注。无模型时，批注与称号都用预写模板（带人名、地点、数量的插槽）。
 
+### 2.13 Steam 成就：由事迹规则生成
+
+成就表由生成器从本目录导入的事迹数据、幕次表与结局表生成，不手挑；规则以[发行工程 4.2][re]为准，本目录只承担"事迹这一侧"的口径：
+
+| 规则 | 内容 |
+| --- | --- |
+| 大事迹（C 组） | 名望 50 的事迹全部映射，API 名 `HK_DEED_<事迹 ID 去掉 deed_ 前缀并大写>`，全部设为隐藏成就。本目录的名望 50 事迹定为 17 条（6.1）；增删名望 50 的事迹会改变成就总数（全作 51 个），须同步发行工程 4.2 |
+| 类满页（D 组） | 十一个可计类（成长、讨伐、异名者、迷宫、探索、收藏、社交与羁绊、经营、战争、诸神、凡人不信）各一个，`HK_BOOK_<类码大写>`；全簿一个 `HK_BOOK_ALL` |
+| 分母 | 按 1.4 节：不含隐藏、壮举、未发生的分支；也不含名望 0 的运气型与代价型事迹（成就不奖励玩家伤害自己） |
+| 不映射 | 壮举（`feat`）、分支事迹、他人事迹（`world`）、只由模型输出决定的结果 |
+| 揭示水位 | 非隐藏成就的名字与描述用事迹名与"做了什么"，必须通过第一幕开局水位的泄露扫描；标"隐"的事迹一律映射为隐藏成就 |
+| 无模型 | 任何成就在无模型档都能达成（D-010） |
+| 图标 | 达成图来自提示词库的 `art_ico_ach_<slug>`，64 乘 64 |
+
 ## 3. 事迹（B）
 
 类码与主工程分类的对照（主工程 `DeedCategory` 只作参照，本作的事迹系统独立实现）：
@@ -331,9 +373,12 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_grow_unnamed_prayer` | 不献名的祈求 | `manual`：在神殿之外为他人真心祈求，且没有念任何女神的尊名（[女神 GM 6.3][gm]） | 10 | 无 | 门：`door_vocation_priest` 历钥；认知：在场者的解释库命中"神迹"却找不到神 | key、divine | | 二 |
 | `deed_grow_two_arts` | 两门一战 | `manual`：两扇资源不同的职能门已开，同一场战斗里把两种资源都用到见底并取胜 | 10 | 无 | 门：双脉之门 `door_dual_pulse` 初阶的历钥（[门目录][drs]） | key、power | | 二 |
 | `deed_grow_kept_vow` | 无人祈祷之处的誓 | `manual`：在没有任何人为你祈祷的地方以自己的名义立誓守护，誓约期满且被守护者存活 | 25 | 记事柱一格 | 门：`door_vocation_paladin` 历钥；认知：被守护者进入"接受" | key、bond | | 三 |
-| `deed_grow_doors_ten` | 十扇门 | `meter:doors_opened >= 10` | 5 | 无 | 认知：阿什第一次正面谈"开门的代价"（`a3_ash_warning_doors` 的前置之一，提案）；事迹簿从此附一栏封印的账 | story、key | | 二 |
+| `deed_grow_doors_ten` | 十扇门 | `meter:doors_opened >= 10` | 5 | 无 | 认知：阿什在 `a3_ash_warning_doors` 那一场里会提到"你已经开了十扇门"（台词分支，不改该标记的触发）；事迹簿从此附一栏封印的账 | story、key | | 二 |
 | `deed_grow_closed_door` | 门是可以关上的 | 新·`doorState`：第一次主动把一扇已开的门关上 | 25 | 记事柱一格 | 门：离手之门 `door_release` 的伏笔（它的钥是识钥与择钥，本事迹不作钥）；认知：`ash_relation` 稳固 | key、story | | 三 |
-| `deed_grow_beyond_sixty` | 刻度之外 | `meter:doorStage >= 61` | 25 | 无 | 认知：门镜第一次显示一个铭录写不下的数；夜羽与阿什的对话分支 | story | 隐 | 五 |
+| `deed_grow_beyond_sixty` | 刻度之外 | `meter:door_rank >= 61`，且 `act >= 5`（门镜第五幕才刻出 60 以上，[千门 4.3][td]） | 25 | 无 | 认知：门镜第一次显示一个铭录写不下的数；夜羽与阿什的对话分支 | story | 隐 | 五 |
+| `deed_grow_first_signature` | 第一招奥义 | 新·`doorState`：任一流派之门（`door_school_*`）到二阶 | 10 | 无 | 认知：教奥义的那位师傅在本地开始讲"那个无记载者学会了"；二十七扇流派进阶的汇总记录（门目录不逐门立事迹） | power、cog | | 三 |
+| `deed_grow_three_schools` | 三派同修 | 新·`doorState`：同一职能门下三扇流派之门的初阶都已开 | 25 | 记事柱一格 | 认知：三位师傅的传人互相听说了你（凡人一生一职，做不到）；当架切换的教学对话（[千门 9.5][td]） | power、cog | | 四 |
+| `deed_grow_first_combo` | 两个人教的一招 | 新·`doorState`：任一合技之门（`door_combo_*`）已开 | 10 | 无 | 认知：教这一招的两位搭档对你的信念画像加"接得住"；十五扇合技的汇总记录 | power、bond | | 三 |
 
 - `deed_grow_beyond_sixty`：【真相】门阶可以越过铭录上限 60（[力量 9.2][pow]），玩家最终抵达的是"超越"（[力量 3.1][pow]）；第五幕之前不出现在任何文本中。
 
@@ -342,7 +387,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | ID | 名 | 触发 | 名望 | 奖励 | 喂给 | 通道 | 隐 | 幕 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `deed_hunt_first_grey` | 第一张灰斑狼皮 | `stat:kills >= 1`（灰化野兽）且剥下一张完整狼皮 | 5 | 无 | 认知：BE-01 的第一份证据（[图鉴 8.2][best]）；欧拉婆婆教"净"字的引子 | cog、sed | | 一 |
-| `deed_hunt_tide_night` | 兽潮之夜 | `flag:a1_beast_tide_cleared` | 25 | 无 | 称号：`rumor.tide_attribution`（示意）占优的版本为"F 级"时授 `title_street_tide_f`；认知：伯爵来信的措辞（[第一幕 9.4][a1]） | cog、war | | 一 |
+| `deed_hunt_tide_night` | 兽潮之夜 | `flag:a1_beast_tide_cleared` | 25 | 无 | 称号：`a1_tide_credit`（别名 `rumor.tide_attribution`）为 `player` 时授 `title_street_tide_f`；认知：伯爵来信的措辞（[第一幕 9.4][a1]） | cog、war | | 一 |
 | `deed_hunt_colossus_seen` | 巨像不是自己塌的 | `quest:A1-M12` 且 新·`witness`：巨像战具名目击者中信任 60 以上者至少四人 | 25 | 无 | 认知：传闻版本"那个 F 级打退了兽潮"成立；罗恩、希雅、伊莎、格蕾塔成为第一传播者 | cog | | 一 |
 | `deed_hunt_rat_king` | 百尾鼠王 | `quest:A2-M02` 的讨伐段 | 10 | 称号 `title_guild_b_real` | 认知：雷纳德 `reynard` 的"作弊"解释被推翻 | cog | | 二 |
 | `deed_hunt_redfang_round` | 第一回合 | `manual`：霜脊堡之战中与萨莎 `sasha` 交手，撑到她说"第一回合" | 25 | 无 | 认知：`sasha_interest`；`trial_sasha_third_round` 的前置 | cog、bond | | 三 |
@@ -364,7 +409,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `deed_rare_split_ear` | 裂耳落名 | `collectItems:[split_ear_fang]`，交公会领赏 | 10 | 无 | 门：`door_vocation_hunter` 物钥（正典）；认知：东林猎户 | key、cog | | 一 |
 | `deed_rare_black_ridge` | 博罗没有冲过去 | `manual`：兽潮第一波中击倒黑脊 `black_ridge`，且博罗 `boro` 存活 | 10 | 无 | 认知与羁绊：熊族（葛恩、博罗）对你进入"接受"；`black_ridge_mantle` | bond、cog | | 一 |
-| `deed_rare_red_sock` | 红袜子回家了 | `manual`：把 `nm_faded_red_sock` 赠给西田磨坊人家的孩子 | 10 | 无 | 羁绊：磨坊人家（人物待补）；认知：西田农户把红布挂回去 | bond、cog | | 一 |
+| `deed_rare_red_sock` | 红袜子回家了 | `manual`：把 `nm_faded_red_sock` 赠给西田磨坊人家的孩子 | 10 | 无 | 羁绊：西田磨坊一家（无名居民模板具名化）；认知：西田农户把红布挂回去 | bond、cog | | 一 |
 | `deed_rare_three_toes` | 接住的角 | `manual`：净化三趾 `three_toes`，希雅接住它脱落的灰角 | 10 | 无 | 门：兽群之门 `door_school_hunter_beast_mastery` 的历钥候选（把一头二级异兽净化回野兽）；羁绊：`trust.shiya` | key、bond | | 一到二 |
 | `deed_rare_bell_weeper` | 旧哨的钟又响了 | `manual`：重挂村钟后和平送魂哭钟 `bell_weeper` | 10 | 无 | 经营：`nm_oldwatch_clapper` 挂回旧哨村哨塔；认知：行商不再绕路 | manage、cog | | 一到二 |
 | `deed_rare_ironbelly` | 一车铁 | `manual`：讨伐铁胃 `ironbelly`，把 `nm_ironbelly_gizzard` 嵌进领地冶炼坊 | 10 | 无 | 经营：铁锭产出；门：掘脉之门 `door_craft_mining` 高层的辅钥 | manage、key | | 一到二 |
@@ -387,7 +432,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_rare_crowd_favorite` | 放生欢呼 | `manual`：活捕欢呼 `crowd_favorite` 后放生，不卖回斗场 | 10 | 无 | 羁绊；认知：斗场主 `taddeo_val` 不悦，但从此知道你不卖 | bond、cog | | 四 |
 | `deed_rare_hiltless` | 刃尖指北 | `manual`：持 `nm_hiltless_shard` 抵达眠鳞北麓的无名石冢 | 25 | 无 | 认知：BE-21；E13（堕勇之墓）的取得途径之一 | story、key | | 四到五 |
 | `deed_rare_old_scale` | 过秤 | `manual`：用老秤的秤盘 `nm_old_scale_pan` 当众识破一枚伪币 | 10 | 无 | 门：契眼之门 `door_trial_merca` 的同向（门目录不为它单立门）；认知：金湾账房伙计 | key、econ | | 四 |
-| `deed_rare_fat_goldbay` | 印戒还主 | `manual`：把 `nm_swallowed_signet` 交还失主（人物待补） | 10 | 无 | 认知：失主的人情（经济战）；收藏：`col_restitution_ledger` 一笔 | econ、cog | | 四 |
+| `deed_rare_fat_goldbay` | 印戒还主 | `manual`：把 `nm_swallowed_signet` 交还失主（金湾一家商行的掌柜，无名居民模板具名化） | 10 | 无 | 认知：失主的人情（经济战）；收藏：`col_restitution_ledger` 一笔 | econ、cog | | 四 |
 | `deed_rare_the_clerk` | 不欠账的客人 | `manual`：身上没有任何违约契约时击败账房先生 `the_clerk` | 10 | 无 | 认知：BE-19 | cog | | 四 |
 | `deed_rare_wreck_bell` | 门港的编号 | `manual`：讨伐沉钟 `wreck_bell`，取得 `nm_harbor_master_chain` | 25 | 无 | 认知：BE-17；门：门港之门 `door_site_harbor` 的物钥（与门港石 `ky_gatestone_wreck_bay` 互证） | story、key | | 四 |
 | `deed_rare_mossback` | 没有杀的熊 | `manual`：应精灵之请净化苔背老爷 `mossback` | 10 | 无 | 羁绊：精灵好感；认知：银苔的孩子 | bond、sed | | 四 |
@@ -401,7 +446,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_rare_ninety_nine` | 第一百场 | `manual`：一对一击败九十九 `ninety_nine` | 10 | 无 | 诸神：瓦尔妲注意；认知：魔族认可，`title_tribe_night_hornseat` 的辅证 | divine、cog | | 四 |
 | `deed_rare_tomb_keeper_wolf` | 喂了三次 | `manual`：喂食三次驯服守冢狼 `tomb_keeper_wolf`，不动石冢 | 10 | 无 | 认知：E13 的引子；北麓山民 | story、bond | | 四到五 |
 | `deed_rare_red_freckle` | 一桶酒的路 | `manual`：讨伐或驱走红雀斑 `red_freckle`，把 `nm_freckled_scale` 交给龙族 | 10 | 无 | 认知：龙族信任；云阶隘商路 | cog、econ | | 四 |
-| `deed_rare_scale_orphan` | 逆鳞的去处 | `manual`：把 `nm_orphan_reverse_scale` 赠予原龙艾斯卡 `eska` | 25 | 无 | 认知：龙族信任；`eska_consent` 的判定多一份分量（提案，不替代正典条件） | cog、divine | | 五 |
+| `deed_rare_scale_orphan` | 逆鳞的去处 | `manual`：把 `nm_orphan_reverse_scale` 赠予原龙艾斯卡 `eska` | 25 | 无 | 认知：龙族信任；`a5_eska_consent` 的判定多一份分量（只作分量，不替代正典条件） | cog、divine | | 五 |
 | `deed_rare_spared_route` | 不杀也拿到 | `meta`：十二只可不杀的异名者中，以送魂、净化或驯服路线落名至少六只 | 25 | 称号 `title_rare_gentle_hand` | 认知：猎户、萨满与精灵把你记为"留手的人" | cog、bond | | 四 |
 | `deed_rare_hushed` | 压下去的名字 | `manual`：替村民辟谣，把一只异名者的传闻强度压到 0 之后再讨伐 | 10 | 无 | 认知：`rumorScale` 的反向用法；当地人群从"恐惧"转"感激" | cog | | 一起 |
 | `deed_rare_inherited` | 继名者 | `manual`：讨伐一只继名者，这一次让名字落地 | 10 | 无 | 认知：你亲眼看见"名字比魔物活得久" | cog、story | 隐 | 二起 |
@@ -472,15 +517,15 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | ID | 名 | 触发 | 名望 | 奖励 | 喂给 | 通道 | 隐 | 幕 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `deed_col_earth_keepsakes` | 那间屋子的门 | `col_earth_keepsakes` 五件 | 10 | 收藏的外观 | 认知：前世之门的回忆对话 | collect、story | | 序到一 |
-| `deed_col_guest_relics` | 远方的东西（六幕后：邻庭的东西） | `col_guest_relics` 完成 | 25 | 称号 `title_col_neighbor_collector`（`a6_earth_truth` 之后才授） | 认知：E33 前世记忆的旁证（建议） | collect、story | | 六 |
+| `deed_col_guest_relics` | 远方的东西（六幕后：邻庭的东西） | `col_guest_relics` 完成（十件中至少八件） | 25 | 称号 `title_col_neighbor_collector`（`a6_earth_truth` 之后才授） | 认知：与 E33 前世记忆同时出示时组合加 1（[遗物 6][rel]） | collect、story | | 六 |
 | `deed_col_named_trophies` | 四十个名字 | `collectItems`：全部 `nm_` 异名物（曾藏计） | 0 | 称号 `title_col_trophy_wall` | 收藏：`col_named_trophies`（公开陈列时同伴立名略快） | collect、cog | | 四到五 |
 | `deed_col_gatestones` | 门网星图 | `col_gatestones` 十三块 | 25 | 收藏的外观 | 门：千径之门节点规划的推断级认知；门标上限 | key、collect | | 五 |
-| `deed_col_seven_steles` | 七碑同文 | `col_seven_steles` 七张 | 50 | 无 | 认知：MIS-21 被推翻的组合物证；第六幕共读的辅助（建议） | story、collect | | 五到六 |
-| `deed_col_doorsong` | 五个歌结 | `col_doorsong` 五结 | 25 | 无 | 门：`door_resonance` 领祷的缘钥辅助；E04 的取得途径之一（建议） | key、story | | 四到五 |
+| `deed_col_seven_steles` | 七碑同文 | `col_seven_steles` 七张 | 50 | 称号 `title_col_seven_steles` | 认知：MIS-21 被推翻的组合物证；第六幕共读多一个可选应答 | story、collect | | 五到六 |
+| `deed_col_doorsong` | 五个歌结 | `col_doorsong` 五结 | 25 | 无 | 门：`door_resonance` 领祷的缘钥辅助；E04 的取得途径之一（[遗物 4.4][rel]） | key、story | | 四到五 |
 | `deed_col_yeyu_memories` | 信使的路 | `col_yeyu_memories` 六片（消耗的按曾藏计） | 25 | 无 | 门：`door_messenger` 物钥记录；羁绊：夜羽第六幕多一句话 | key、bond | | 二到五 |
 | `deed_col_yeyu_shinies` | 那不是收藏 | `col_yeyu_shinies` 八件 | 5 | 夜羽的窝 | 羁绊：夜羽否认那是收藏 | bond、collect | | 一 |
 | `deed_col_eight_heroes` | 八光的收殓人 | `col_eight_heroes` 八件 | 25 | 称号 `title_col_eight_lights` | 认知（`a5_truth_purge_cycle` 后）：八个人都被用完了；老船夫会哭一次 | story、bond | | 五 |
-| `deed_col_eight_kings` | 八冠 | `col_eight_kings` 八件 | 25 | 称号 `title_col_eight_crowns` | 认知（第五幕）：他们都说听见了声音（E10 的补强，建议）；夜后的对话分支 | story | | 五 |
+| `deed_col_eight_kings` | 八冠 | `col_eight_kings` 八件 | 25 | 称号 `title_col_eight_crowns` | 认知（第五幕）：他们都说听见了声音（与 E10 同时出示时组合加 1）；夜后的对话分支 | story | | 五 |
 | `deed_col_unsent_letters` | 送信人 | `col_unsent_letters` 寄出 24 封 | 25 | 称号 `title_col_letter_carrier` | 羁绊：夜羽大增；认知：北境收信人家 | bond、cog | | 三到五 |
 | `deed_col_fallen_badges` | 带他们回家 | `col_fallen_badges`：晚钟小队与各迷宫阵亡者的铜牌交回分部或家人 | 25 | 称号 `title_col_bring_home` | 羁绊：玛莎、布伦；公会信任 | bond、cog | | 一到五 |
 | `deed_col_six_greys` | 六种灰 | `col_six_fingerprints` 六件 | 25 | 称号 `title_col_six_greys` | 认知（第五幕）：每一种灰都有来处（M04-C10 的推断级认知） | story、sed | | 五 |
@@ -489,7 +534,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_col_restitution` | 归还者 | `col_restitution_ledger` 24 笔 | 25 | 称号 `title_col_restorer` | 认知：各族首领的信念画像加"他会把东西还回来" | cog、bond | | 三到六 |
 | `deed_col_thousand_archive` | 书库复原 | `col_thousand_archive` 十件 | 25 | 收藏的外观（书斋书架） | 羁绊：阿什成为人簿与史馆第一位馆员的去向更可能 | story、bond | | 三到五 |
 | `deed_col_pale_reliquary` | 苍白的圣遗物 | `col_pale_reliquary` 五件 | 25 | 无 | 认知（第四幕）：圣遗物是苍白之兽的骨；结衣与卡西安的动摇 | story、cog | | 四 |
-| `deed_col_garden_creatures` | 庭院的小东西 | 全部 `pet_garden_` 生灵都出现过 | 10 | 无 | 收藏与羁绊：庭院生灵（[兽伴目录][cre]） | collect、bond | | 二到六 |
+| `deed_col_garden_creatures` | 庭院的小东西 | `col_garden_creatures` 完成（八种庭生灵都出现过，[遗物 6][rel]） | 10 | 无 | 收藏与羁绊：庭院生灵（[兽伴目录][cre]） | collect、bond | | 二到六 |
 
 ### 3.7 社交与羁绊（`deed_bond_`）
 
@@ -502,7 +547,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_bond_gave_credit` | 让出去的功劳 | `manual`：第一次把一件事迹的名分让给在场的有页同伴，且目击者采信 | 10 | 无 | 立名：该同伴的讲述数上升；认知：你的注视度不升（藏拙） | bond、cog | | 二 |
 | `deed_bond_hidden_six` | 六位的点头 | 新·`belief`：十二位隐藏强者（[人物二 3.11][chc]）中至少六人进入"接受"，且你从未挑衅过任何一人两次 | 25 | 称号 `title_bond_nodded_at` | 认知：观澜之门对"凡人"的估计永远多留一分（C2-1 的系统化）；各人的缘钥 | cog、key | | 四到五 |
 | `deed_bond_soup_and_bell` | 汤与铃 | `manual`：露易丝 `luise_schnee` 与欧迪 `oddie_roundstone` 一前一后同时对练，你撑完全程 | 25 | 称号 `title_bond_soup_bell_heir` | 门：汤与铃之门 `door_combo_warrior_rogue` 的缘钥；双脉之门 `door_dual_pulse` 进阶的缘钥 | key、bond | | 四 |
-| `deed_bond_trial_martha` | 铃响了一次 | `manual`：`trial_martha_evening_bell` 胜 | 25 | 无 | 门：晚钟之门 `door_bond_martha` 的历钥，同一场给铁卫之门 `door_school_warrior_prot` 一把钥；玛莎第五幕随行的倾向（提案） | key、bond | | 三到四 |
+| `deed_bond_trial_martha` | 铃响了一次 | `manual`：`trial_martha_evening_bell` 胜 | 25 | 无 | 门：晚钟之门 `door_bond_martha` 的历钥，同一场给铁卫之门 `door_school_warrior_prot` 一把钥；玛莎在 `PL-martha-5` 走哪一支由它决定：有这条事迹时她请求随玩家进魔王战（玩家可以答应，也可以请她回去守边石镇），没有时她守住边石镇战线（[同伴与队伍 4.4、8][cmp]） | key、bond | | 三到四 |
 | `deed_bond_trial_ferryman` | 撑过去 | `manual`：`trial_ferryman_crossing` 胜 | 25 | 无 | 门：撑渡之门 `door_bond_ferryman` 的历钥；`door_wayfaring` 对门址的感知加深 | key、bond | | 二到四 |
 | `deed_bond_trial_sasha` | 第三回合 | `manual`：`trial_sasha_third_round` 胜（任一规则） | 50 | 无 | 认知：萨莎从此叫你的名字；羁绊：第五幕萨莎的招募条件；无加护之战让她"第一次背对瓦尔妲"的分支更稳 | bond、war | | 四到五 |
 | `deed_bond_trial_ash` | 灰中静坐 | `manual`：`trial_ash_vigil` 胜（一夜不开任何门） | 25 | 无 | 门：关门之门 `door_bond_ash` 的历钥；认知："门是可以关上的"，`deed_grow_closed_door` 的伏笔 | story、key | | 三到五 |
@@ -510,7 +555,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_bond_trial_vespera` | 你数了 | `manual`：`trial_vespera_eight_wars` 胜 | 25 | 无 | 认知：`trust.vespera` 大幅上升（按台账 60 开放《堕勇手记》，不另设捷径）；月下之约多一条逃兵安置条款 | cog、war | | 四 |
 | `deed_bond_trial_elwin` | 默行 | `manual`：`trial_elwin_silent_walk` 胜（一路不杀任何生灵） | 25 | 称号 `title_tribe_elf_silent_walker` | 认知：门歌残句；公证的意愿更强（不改 `elwin_testimony`） | story、bond | | 四 |
 | `deed_bond_trial_grete` | 过桥 | `manual`：`trial_grete_bridge` 胜 | 25 | 无 | 立名：可选把她的故事讲出去（`title_named_grete`）；守城将领候选 | bond、cog | | 三 |
-| `deed_bond_trial_eska` | 空手下山 | `manual`：`trial_eska_silver_eyrie` 中什么都没拿 | 25 | 无 | 诸神：原龙同意供能的判定多一份分量（提案）；认知：龙族记住你空手下山 | divine | 隐 | 五 |
+| `deed_bond_trial_eska` | 空手下山 | `manual`：`trial_eska_silver_eyrie` 中什么都没拿 | 25 | 无 | 诸神：原龙同意供能的判定多一份分量（不替代 `a5_eska_consent` 的正典条件）；认知：龙族记住你空手下山 | divine | 隐 | 五 |
 | `deed_bond_famed_pet` | 第一只名伴 | 新·`rumorReach`：你给兽伴起的名字传到第二座城镇（[兽伴 1.3][cre]） | 10 | 无 | 兽伴：名伴特性；认知："那个人养着……" | bond、cog | | 二起 |
 | `deed_bond_pet_farewell` | 为亡伴送魂 | `manual`：认出在野外游荡的亡伴并为它送魂 | 10 | 无 | 羁绊：解开伴契残痕；认知：那一带的猎户不再说"林子里有条鬼狗" | bond | | 二起 |
 | `deed_bond_hornfather` | 祖角认主 | `collectItems:[mnt_hornfather]` | 25 | 无 | 认知：骑进风牙营地时全营起立 | cog、bond | | 四 |
@@ -519,6 +564,11 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_bond_named_yeyu` | 乌鸦的名字 | 新·`tellCount`：夜羽 `yeyu` | 25 | 无 | 立名：`title_named_yeyu`，写在残页上（D-052） | bond、cog | | 三 |
 | `deed_bond_named_ron` | 罗恩的名字 | 新·`tellCount`：罗恩 | 50 | 无 | 立名：`title_named_ron`；正典第四幕 Lv34、第五幕 Lv40"靠自己爬上来"，本文把这段卡关与过关落在讲述数上 | bond、war | | 五 |
 | `deed_bond_named_three` | 你身边的名字 | `meta`：三位同伴经你的事迹立名 | 25 | 称号 `title_people_namegiver`（第四幕起由人簿授） | 认知：酒馆里开始说"跟着他的人都出了名" | cog、bond | | 四到五 |
+| `deed_bond_first_knot` | 第一根绳 | 新·`doorState`：门目录新增的十二扇羁绊之门（`door_bond_*`）任一已开 | 10 | 无 | 认知：门上系着的那个人知道"那扇门系着我"；十二扇新增羁绊门的汇总记录（[同伴与队伍 8.6][cmp]） | bond | | 二 |
+| `deed_bond_door_opener` | 开门的 | `collectItems:[ky_scorched_quill]`（`a3_ash_tells_sundering` 之后） | 10 | 称号 `title_bond_door_opener` | 羁绊：夜羽从此称你"开门的"（[遗物 4.2][rel]）；残响之门多一段信使的视角 | bond、story | | 三 |
+| `deed_bond_naming_feast` | 席上的名字 | 新·`tellCount`：一位有页同伴的讲述数，在一场立名宴 `cs_naming_feast` 之后的日结算里越过阈值 | 10 | 无 | 立名：该同伴过关；认知：宾客的家乡都听说了这个名字 | bond、cog | | 三 |
+| `deed_bond_farewell` | 送别 | 新·`cond`：铁人规则下任一同伴 `companion.<人>.state == dead`（泉畔期已过） | 0 | 记事柱一格（可刻其名） | 羁绊：他的羁绊之门门环变冷，门后力量减半（[千门 2.2][td]）；认知：同伴们为他守一夜（[同伴与队伍 11.4][cmp] 的告别事迹） | bond | 隐 | 一 |
+| `deed_bond_blade_returned` | 一年之约 | `manual`：祭斗季冠军一年期满，把 `eq_edgetrial_festival_blade` 交还祭斗长乌加 `uga_brokenhorn` | 10 | 无 | 认知：魔族把你记为守约的人，`title_tribe_night_hornseat` 的辅证；收藏：`col_restitution_ledger` 一笔 | cog、bond | | 五 |
 
 - `deed_bond_trial_eska`：隐藏只为惊喜，不涉台账；艾斯卡在第六幕之前多于一句话即越界（[台账 8.6][rl]），所以这条事迹没有台词，连布伦的批注也是空的。
 - 同伴立名的三条（希雅、夜羽、罗恩）记在人簿与对方的铭录里，是"你身边的名字"而不是你的功劳：玩家这一侧只得到认知与 `title_people_namegiver`。
@@ -531,7 +581,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_mgmt_barony` | 准男爵 | `flag:a2_barony_granted` | 10 | 称号 `title_crown_baronet` | 认知：官员与贵族改用职名；`deed_mortal_bone_crest` 的引子 | cog、manage | | 二末 |
 | `deed_mgmt_first_officer` | 他自己办好了 | `manual`：一名你授权的官员独立处理一件领地事件并成功 | 10 | 无 | 经营：`territory_autonomy` 上升；认知：这名官员从此敢自己拿主意 | manage | | 三 |
 | `deed_mgmt_autonomy_40` | 四十 | 新·`cond`：`territory_autonomy >= 40` | 25 | 无 | 门：`door_founding` 的自治度条件（D-044） | key、manage | | 三到四 |
-| `deed_mgmt_register_3000` | 三千个名字 | 新·`cond`：人簿上自愿登记的国民不少于三千（待调，[第四幕 3.1][a4]） | 25 | 无 | 门：`door_founding` 的众愿（缘钥） | key、manage | | 四 |
+| `deed_mgmt_register_3000` | 三千个名字 | 新·`cond`：人簿上自愿登记的国民不少于三千（[第四幕 3.1][a4]、[D-044][dlog]） | 25 | 无 | 门：`door_founding` 的众愿（缘钥） | key、manage | | 四 |
 | `deed_mgmt_nation_founded` | 界石誓 | `flag:a4_nation_founded` | 50 | 称号 `title_crown_founder` | 认知：七国把你写进外交文书 | manage、cog | | 四 |
 | `deed_mgmt_people_register` | 人簿第一页 | `manual`：人簿制度建立，你的一页由国民写下 | 25 | 事迹簿改名"人簿·第一页"；称号 `title_people_first_page` | 认知：人簿对本国国民计权威背书 3；他人事迹模板开始入簿 | cog、manage | | 四 |
 | `deed_mgmt_mortal_contract` | 凡约 | `manual`：第一份凡约在法庭上被维持 | 10 | 无 | 认知：对哈特契约权能的免疫层（[第四幕 4.6][a4]） | manage、econ | | 四 |
@@ -552,7 +602,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_war_first_defense` | 守土 | `manual`：领地的第一次守土之战胜利，罗恩为将 | 25 | 无 | 门：`door_thousand_legions` 历钥 | key、war | | 三 |
 | `deed_war_three_hundred` | 三百人 | `manual`：鹿渡之战以三百人守住渡口 | 25 | 无 | 认知：奥莉安娜 `oriana_west` 认定洛萨藏了一支军团，按兵不动两日（U3-2）；`title_street_three_hundred` 的来源 | war、cog | | 三 |
 | `deed_war_frostspine` | 守住了 | `manual`：霜脊堡之战北线守住 | 10 | 无 | 认知：布丽吉特 `brigitte` 把战报划到只剩"守住了"三个字（U3-6）；北境口碑 | war、cog | | 三 |
-| `deed_war_reed_bridge` | 苇桥 | `manual`：灰烬防线之战任一胜利路线 | 25 | 无 | 解锁：`trial_grete_bridge`；认知：战后有人说桥头的血不是圣战军的（提案） | war、cog | | 三 |
+| `deed_war_reed_bridge` | 苇桥 | `manual`：灰烬防线之战任一胜利路线 | 25 | 无 | 解锁：`trial_grete_bridge`；认知：战后有人说桥头的血不是圣战军的（E36 的一条传闻线索） | war、cog | | 三 |
 | `deed_war_banner_returned` | 还旗 | `manual`：和谈时把缴获的军旗还给对方 | 10 | 无 | 收藏：`col_war_banners` 计曾藏；认知：对方将领的敬意 | cog、bond | | 三起 |
 | `deed_war_goldbay` | 金湾之围 | `manual`：经济战中以门券或凡约破围（[第四幕 8.1][a4]） | 25 | 无 | 经济：门券信用；认知：同盟商会联合 | econ、war | | 四 |
 | `deed_war_one_sword` | 一剑问 | `manual`：强者之宴上剑帝的一剑问，你答"不怕" | 25 | 无 | 解锁：`trial_emperor_hook` 的延期决斗约定；认知：`emperor_respect` | cog | | 四 |
@@ -574,6 +624,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_god_memory_given` | 交出 | `manual`：把一段前世记忆交给莫伊拉 | 0 | 无 | 代价型：前世之门的对应加成永久失去；回忆里那一段显示为空白；认知：莫伊拉对你的可见度上升 | story | 隐 | 四 |
 | `deed_god_danger_door` | 门缝里的风 | 新·`cond`：`danger_doors_opened >= 1` | 0 | 无 | 代价型：`seal_looseness`；认知：阿什的警告应验，他说她会更近（C3-8） | story、key | 隐 | 三 |
 | `deed_god_eska_consent` | 原龙的应允 | 新·`cond`：`eska_consent == true` | 50 | 无 | 叙事：净澱工程的供能；E30；认知：龙族与精灵把你当作说动过原龙的人 | divine、story | | 五 |
+| `deed_god_six_chairs` | 第六把椅子 | 新·`doorState`：六椅厅六扇门全部已开（含梦扉之门 `door_trial_dream`） | 25 | 无 | 认知：候见厅里那把只有你看得见的椅子，在梦里第一次有人坐过（P）；六扇试炼赏门的汇总记录 | divine、story | 隐 | 四 |
 | `deed_god_ownerless` | 无主之身 | 新·`cond`：直到第五幕末，从未佩戴任何附物加护的锚物（[力量 6.8][pow]） | 0 | 称号 `title_late_ownerless` | 诸神：五司的档案里你始终是"看不清的人" | divine、cog | 壮 | 五 |
 
 - `deed_god_none_accepted`：【真相】五司的招揽各有隐瞒（[第四幕 6][a4]）；不答应本身不揭示任何真相，隐藏只为惊喜。
@@ -616,7 +667,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_mortal_crystal_broke` | 水晶坏了 | `quest:A1-M03` 的登记鉴定显示"无记载" | 5 | 称号 `title_street_crystal_breaker` | 认知：莉娜"这个月第三次了"；鉴定反证的第一笔 | cog | | 一 |
 | `deed_mortal_dwarf_mechanism` | 矮人机关 | 新·`rumorReach`：版本"矿道里有矮人的机关"成为边石镇主流说法，且巴尔加 `barga` 当众否认过 | 10 | 无 | 认知：西蒙"连矮人都急了，那就是真有机关"；巴尔加知道不是机关，从此对你另眼相看 | cog、bond | | 一 |
 | `deed_mortal_new_crystal` | 新的也坏了 | `manual`：第六周后重测，新水晶仍"无记载"，布伦抬头说"别测了" | 10 | 无 | 门：`door_false_record` 历钥（鉴定接连失败之一）；认知：布伦开始怀疑自己的常识 | key、cog | | 一 |
-| `deed_mortal_window` | 只是去关窗 | 新·`cond`：兽潮之后 `rumor.tide_attribution`（示意）已结算，无论哪个版本占优 | 10 | 无 | 认知：边石镇选择了相信什么；伯爵来信的措辞 | cog、story | | 一 |
+| `deed_mortal_window` | 只是去关窗 | 新·`cond`：兽潮之后 `a1_tide_credit` 已结算，无论哪个版本占优 | 10 | 无 | 认知：边石镇选择了相信什么；伯爵来信的措辞 | cog、story | | 一 |
 | `deed_mortal_ron_converted` | 不可能。……好吧，可能。 | 新·`belief`：罗恩的三个解释被逐项推翻后进入"接受" | 10 | 无 | 认知：他转述时没人信，镇民笑他"又喝多了"；他成为最早替你辩护的人之一 | cog、bond | | 一到二 |
 | `deed_mortal_blond_knight` | 不是金发骑士 | 新·`belief`：卫兵长卡尔 `karl` 亲眼看见后进入"接受" | 10 | 无 | 称号：`title_wrong_impostor` 在瓦伦堡北门失效 | cog | | 二 |
 | `deed_mortal_second_crystal` | 第二块坏水晶 | `quest:A2-M02` 的鉴定段仍"无记载" | 10 | 无 | 门：`door_false_record` 历钥（鉴定接连失败之二）；`title_wrong_bribed_b` 的来源 | key、cog | | 二 |
@@ -643,10 +694,12 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `deed_hid_no_page` | 没有那一页 | `flag:a2_aiden_no_page` | 10 | 无 | 认知：艾登在铭录里找不到你（A2-M13） | story | 隐 | 二 |
 | `deed_hid_letter7` | 第七封的火漆 | `flag:a6_letter7_delivered` | 25 | 收藏 `ky_last_wax` | 羁绊：夜羽 | bond、story | 隐 | 六 |
 | `deed_hid_yeyu_name` | 她叫了你的名字 | `manual`：第六幕夜羽第一次叫你的名字 | 25 | 无 | 羁绊：`col_yeyu_memories` 的那一句 | bond | 隐 | 六 |
+| `deed_hid_knocker_home` | 门环回家 | `manual`：把万户街铜门环 `eq_myriad_door_knocker` 挂回叩门童 `door_knocker` 敲的那扇门（门环从背包移除，不可再取） | 10 | 无 | 认知：叩门童散去前回头看了一眼；收藏：`col_restitution_ledger` 一笔（主张者是那一户人家） | story、bond | 隐 | 三 |
 | `deed_feat_unbroken_path` | 一次也没回去 | 新·`cond`：第一幕到第三幕末，一次也没有退回门内 | 0 | 记事柱一格 | 认知：边石镇的"不死的人"传闻从来没有机会出现 | collect | 壮 | 三 |
-| `deed_feat_released` | 离手 | 新·`cond`：达成真结局"离手"（`ending`，示意；D-043） | 0 | 称号 `title_late_released` | 叙事 | story | 壮 | 终 |
+| `deed_feat_released` | 离手 | 新·`cond`：达成真结局"离手"（`ending == release`，D-043） | 0 | 称号 `title_late_released` | 叙事 | story | 壮 | 终 |
 | `deed_feat_next_cycle` | 下一期 | `manual`：新周目开局时回声之门显影 | 0 | 称号 `title_late_echo` | 门：回声之门 `door_recall` | key | 壮 | 终 |
 | `deed_feat_last_door` | 终门 | 新·`doorState`：`door.door_last` 为已开 | 0 | 无 | 门：`door_last` | key | 壮 | 终 |
+| `deed_feat_none_smelted` | 一个也没熔 | 新·`cond`：到达任一结局时 `gatebronze_smelted == 0`（[遗物 1.5][rel]） | 0 | 称号 `title_late_unsmelted` | 认知：阿什在结局里多说一句"书都还在" | collect、story | 壮 | 终 |
 
 - `deed_hid_orphan_mark`：【真相】孤儿院孩子的门纹（S08）；欧拉的部分在 `trust.oola >= 60` 时说出，遗民的全貌在第三幕遗民之谷。
 - `deed_hid_ferryman_ninth`：【真相】第九代魔王将在荒原诞生（`a5_demon_king_born`）；第三幕老船夫只能说"第九个要来了"。
@@ -662,7 +715,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | ID | 模板 | 主体 | 触发 | 记在哪里 | 对关的作用 | 玩家的角色 | 通道 | 幕 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `deed_world_apprentice_work` | 某人的出师之作 | 无职能的匠人（同伴、雇员、领地匠人） | 在主业中、二档以上工站第一次出杰作（[生业 2.6][gath]） | 铭录改写 Lv10；人簿 | 出师（9 到 10） | 雇主、师傅、署名材的供应者 | craft、cog | 一起 |
-| `deed_world_harvest` | 一季丰收 | 农人 | 一季产出越过本地往年均值（倍数待调） | 同上 | 出师（9 到 10） | 领主、良种的提供者 | manage、cog | 二起 |
+| `deed_world_harvest` | 一季丰收 | 农人 | 一季（13 周）内主持的田地收成达到村落的丰收线（[成长 8.2][pp]） | 同上 | 出师（9 到 10） | 领主、良种的提供者 | manage、cog | 二起 |
 | `deed_world_tempered` | 淬体之作 | 匠人或熟手 | 在灵穴或迷宫边开炉一季，或在战场上完成一件救命的军需 | 铭录 | 淬体（19 到 20） | 提供工站与战场的人 | craft、war | 三起 |
 | `deed_world_named_work` | 名作流传 | 名匠 | 一件署名精品被强者长年使用并被传唱，或同炉套组出世 | 讲述数计入匠人 | 立名（34 到 35） | 持有者：你用它打出的事迹就是匠人的故事 | craft、cog | 三起 |
 | `deed_world_final_work` | 终器 | 名匠 | 以一生最在意的东西打出终器（[生业 2.3][gath]） | 铭录 | 明执（49 到 50） | 见证者；材料往往要你去取 | craft、story | 四起 |
@@ -686,7 +739,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `title_street_f_oddball` | F 级怪人 | 街头：登记之后边石镇的第一个模板 | 边石镇 | "那个 F 级"；身份先验压在凡阶·初 | 无 | 被"运气好的新人"或"打退兽潮的 F 级"取代 | 一 |
 | `title_street_crystal_breaker` | 弄坏水晶的 | 街头：`deed_mortal_crystal_broke` 的传闻链（莉娜到朵拉到贝莎） | 边石镇；公会职员之间 | 职员对仪器的信任反扣到你身上；波波给每次鉴定标价 | 无 | 布伦说"别测了"之后，公会内部改口"测不出的那个" | 一 |
 | `title_street_lucky_newbie` | 运气好的新人 | 街头：缩小版本（[认知 4.3][rep]），传得最远的那一版 | 边石镇到瓦伦堡的商路 | 解释化的默认解释是"运气"；冒险者不服 | 无 | 可复现证据（`deed_mortal_three_times`）让它在当地失效 | 一到二 |
-| `title_street_tide_f` | 打退兽潮的 F 级 | 街头：`rumor.tide_attribution`（示意）为 F 级版本时（`deed_hunt_tide_night`） | 边石镇；随伯爵来信到瓦伦堡 | 半讽半敬的"F 级大人"；伯爵来信里的"那个 F 级" | 无 | 到了瓦伦堡被芬恩的歌对照，引出冒名（`title_wrong_impostor`） | 一末 |
+| `title_street_tide_f` | 打退兽潮的 F 级 | 街头：`a1_tide_credit` 为 `player`（F 级版本占优）时（`deed_hunt_tide_night`） | 边石镇；随伯爵来信到瓦伦堡 | 半讽半敬的"F 级大人"；伯爵来信里的"那个 F 级" | 无 | 到了瓦伦堡被芬恩的歌对照，引出冒名（`title_wrong_impostor`） | 一末 |
 | `title_street_heroes_porter` | 勇者的挑夫 | 街头：芬恩 `fynn` 的新歌《勇者与挑夫》（U2-3 后） | 瓦伦堡平民与虔诚者 | 平民当你是勇者团的跟班 | 无 | 城下潮被亲眼看见；或勇者团的纠正被第二个权威采信 | 二 |
 | `title_street_hidden_master` | 无名高手 | 街头：佣兵版本（`rumor_shape` 为 hidden_master） | 瓦伦堡佣兵与冒险者 | 挑战者上门；佣兵团出价挖人 | 无 | 被"灰烬男爵"或官方定性取代 | 二 |
 | `title_street_unrecorded` | 无记载者 | 街头：公会与学院的行话流到街上 | 瓦伦堡起各城的公会街 | 半是好奇半是忌讳；神职听见会皱眉 | 无 | 不失去；第四幕起与 `title_people_first_page` 并用，意思从"缺了什么"变成"他就是这样" | 二 |
@@ -794,10 +847,12 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `title_col_duelist` | 斗证在身 | `deed_col_duel_tokens` | 夜境与红砾城 | 瓦尔妲派来的挑战者更多 | 无 | 连续拒绝三次挑战 | 四 |
 | `title_col_songkeeper` | 记歌的人 | `deed_col_songs_tales` | 诗人与酒馆 | 诗人愿意把你给的版本唱对（失真减半） | 无 | 不失去 | 二到四 |
 | `title_col_restorer` | 归还者 | `deed_col_restitution` | 各族首领 | 首领的画像加"他会把东西还回来" | 无 | 背上 `title_infamy_blade_taker` 时暂隐 | 三到六 |
+| `title_col_seven_steles` | 七碑同读 | `deed_col_seven_steles` | 学者、神职与龙族 | 学者把你当作读过全部七碑的人：你对规约的陈述按书面来源计权；神职对你多一分戒备 | 无 | 不失去 | 五到六 |
 | `title_rare_gentle_hand` | 留手的人 | `deed_rare_spared_route` | 猎户、萨满、精灵 | 这几类人托你处理异名者时会先问"能不能不杀" | 无 | 不失去 | 四 |
 | `title_dg_three_ways` | 三择者 | `deed_dg_three_ways` | 领地官员与公会 | 迷宫的养毁净来问你 | 无 | 不失去 | 三 |
 | `title_bond_nodded_at` | 被点过头的人 | `deed_bond_hidden_six` | 隐藏强者之间（他们互相认识） | 他们不再试你；他们背后的制度对你放行一次 | 无 | 挑衅任何一位两次 | 四到五 |
 | `title_bond_soup_bell_heir` | 汤与铃的后来者 | `deed_bond_soup_and_bell` | 公会老一辈；面摊后巷 | 老冒险者讲起当年会把你算进去 | 无 | 不失去 | 四 |
+| `title_bond_door_opener` | 开门的 | 夜羽：`deed_bond_door_opener`（她从此这样叫你） | 夜羽；听过她叫你的同伴与遗民 | 遗民听见夜羽这样叫你，对你的信念画像加"她认得的人"；第六幕之前没有人知道这个称呼的分量 | 无 | 不失去 | 三 |
 | `title_war_ring_keeper` | 守环人 | `deed_war_gate_ring` | 各承建种族；遗民 | 遗民与执钥人把你当同伴而不是主人 | 无 | 不失去 | 五 |
 | `title_war_dismantlers_foe` | 拆门队之敌 | `deed_war_dismantlers`；审判庭的通缉文书 | 教国（恶名）；遗民与门环线（美名） | 同一个名字两种极性 | 无 | 第六幕终审 | 五 |
 
@@ -813,6 +868,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `title_court_guest_scroll` | 客卷之主 | 莫伊拉：她为你单独写的客卷封面（[第四幕 7.3][a4]） | 莫伊拉与你（第四幕起她给你看） | 莫伊拉的称呼；`moira_sight` 越高她越能预判你 | 无 | 不失去；你交出的记忆在客卷里也是空白页 | 四 |
 | `title_late_released` | 离手的人 | 真结局：`deed_feat_released` | 终章 | 后日谈里所有人对你的称呼 | 无 | 不失去 | 终 |
 | `title_late_echo` | 回声 | 新周目：`deed_feat_next_cycle` | 下一期的门镜 | 门镜边多一道上一期留下的刻痕 | 无 | 不失去 | 终 |
+| `title_late_unsmelted` | 一个也没熔 | 结局：`deed_feat_none_smelted` | 后日谈；阿什 | 后日谈里史馆把你记作"没有熔掉任何一段历史的人" | 无 | 不失去 | 终 |
 
 ## 5. 联动表（D）
 
@@ -877,7 +933,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `trial_vespera_eight_wars` | `deed_bond_trial_vespera` | `trust.vespera` 与月下之约条款 | 无 |
 | `trial_elwin_silent_walk` | `deed_bond_trial_elwin` | `title_tribe_elf_silent_walker` | 下一季可再走 |
 | `trial_grete_bridge` | `deed_bond_trial_grete` | 可选立名：`title_named_grete` | 落水，帮她搬一上午石头 |
-| `trial_eska_silver_eyrie` | `deed_bond_trial_eska`（隐） | 原龙判定的一份分量（提案） | 拿走龙蜕：`title_infamy_grave_robber` |
+| `trial_eska_silver_eyrie` | `deed_bond_trial_eska`（隐） | 原龙判定的一份分量 | 拿走龙蜕：`title_infamy_grave_robber` |
 
 隐藏强者（[人物二 3.11][chc]）每人都计入 `deed_bond_hidden_six` 与 `title_bond_nodded_at`；下表只列另外挂钩的事迹与称号。
 
@@ -892,7 +948,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `sera_silenthorn` | `deed_rare_barrow_grandmother`、`deed_dg_barrow_wait` |
 | `nuun_windahead` | 无（战役传令单位） |
 | `otta_coalhand` | `deed_dg_forge_mortal_oath` |
-| `eslin_brokenstring` | `deed_col_songs_tales`（空白纪长歌全本是"歌与谣"之外的隐藏一件，提案） |
+| `eslin_brokenstring` | `deed_col_songs_tales`（他唱出《静苔长歌》`lb_stillmoss_longsong` 全本之后，它是"歌与谣"的隐藏第九件，[遗物 6][rel]） |
 | `bri_ladle` | 无（宫廷情报） |
 | `moku_tidepilot` | `deed_dg_wreck_harbor`（雾边航路） |
 
@@ -904,7 +960,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `col_guest_relics` | `deed_col_guest_relics` | `title_col_neighbor_collector` |
 | `col_named_trophies` | `deed_col_named_trophies` | `title_col_trophy_wall` |
 | `col_gatestones` | `deed_col_gatestones` | 无 |
-| `col_seven_steles` | `deed_col_seven_steles` | 无 |
+| `col_seven_steles` | `deed_col_seven_steles` | `title_col_seven_steles` |
 | `col_doorsong` | `deed_col_doorsong` | 无 |
 | `col_yeyu_memories` | `deed_col_yeyu_memories` | 无 |
 | `col_yeyu_shinies` | `deed_col_yeyu_shinies` | 无 |
@@ -919,7 +975,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | `col_thousand_archive` | `deed_col_thousand_archive` | 无 |
 | `col_songs_and_tales` | `deed_col_songs_tales` | `title_col_songkeeper` |
 | `col_restitution_ledger` | `deed_col_restitution` | `title_col_restorer` |
-| `pet_garden_` 全部 | `deed_col_garden_creatures` | 无 |
+| `col_garden_creatures` | `deed_col_garden_creatures` | 无 |
 
 不设完成事迹的十项收藏与理由：`col_coins_of_the_age`、`col_ancient_coins`、`col_seven_aspect_herbarium`、`col_map_chest`、`col_hearth_books`、`col_laws_of_nations`、
 `col_church_texts` 的完成奖励是便利、经营或一条对话分支，没有称号请求，再给事迹就是纯凑齐计数；`col_boundary_proofs` 的认知由 `deed_exp_falling_iron`
@@ -939,7 +995,7 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 ### 5.6 第六幕证人
 
 证人的传唤条件以[第六幕][a6]与[人物二 3.12][chc]为准；本文的事迹只把"条件达成的那一刻"写进人簿，给证词一个有日期的旁证，
-不改变证词的分量与组合规则（提案）。没有对应事迹的证人，传唤条件本身就是剧情标记，不重复记录。
+不改变证词的分量与组合规则。没有对应事迹的证人，传唤条件本身就是剧情标记，不重复记录。
 
 | 证人 | 传唤条件 | 记录它的事迹或称号 | 证据 |
 | --- | --- | --- | --- |
@@ -968,26 +1024,26 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 
 | 类 | 序 | 一 | 二 | 三 | 四 | 五 | 六 | 终 | 合计 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 成长 `grow` |  | 7 | 5 | 2 |  | 1 |  |  | 15 |
+| 成长 `grow` |  | 7 | 5 | 4 | 1 | 1 |  |  | 18 |
 | 讨伐 `hunt` |  | 3 | 1 | 6 | 5 | 1 |  |  | 16 |
 | 异名者 `rare` |  | 9 | 2 | 7 | 22 | 3 |  |  | 43 |
 | 迷宫 `dg` |  | 2 | 1 | 7 | 10 | 4 |  |  | 24 |
 | 探索 `exp` |  | 1 | 1 | 2 | 3 | 3 |  |  | 10 |
 | 收藏 `col` | 1 | 2 | 3 | 3 | 4 | 5 | 1 |  | 19 |
-| 社交与羁绊 `bond` |  | 3 | 5 | 5 | 9 | 2 |  |  | 24 |
+| 社交与羁绊 `bond` |  | 4 | 6 | 7 | 9 | 3 |  |  | 29 |
 | 经营 `mgmt` |  | 1 | 3 | 4 | 6 | 2 |  |  | 16 |
 | 战争 `war` |  |  | 1 | 5 | 3 | 5 |  |  | 14 |
-| 诸神 `god` |  |  | 1 | 2 | 3 | 2 |  |  | 8 |
+| 诸神 `god` |  |  | 1 | 2 | 4 | 2 |  |  | 9 |
 | 真相 `truth` |  | 1 | 2 | 3 | 2 | 1 | 3 |  | 12 |
 | 凡人不信 `mortal` |  | 6 | 5 | 4 | 1 | 1 |  |  | 17 |
-| 隐藏与壮举 `hid`、`feat` |  | 1 | 2 | 1 |  |  | 2 | 3 | 9 |
+| 隐藏与壮举 `hid`、`feat` |  | 1 | 2 | 2 |  |  | 2 | 4 | 11 |
 | 他人事迹 `world` |  | 2 | 1 | 5 | 2 |  |  |  | 10 |
-| 合计 | 1 | 38 | 33 | 56 | 70 | 30 | 6 | 3 | 237 |
+| 合计 | 1 | 39 | 34 | 61 | 72 | 31 | 6 | 4 | 248 |
 
-- 名望分布（玩家事迹 227 条）：0 档 12、5 档 13、10 档 80、25 档 105、50 档 17。隐藏 27 条，壮举 6 条。
+- 名望分布（玩家事迹 238 条）：0 档 14、5 档 13、10 档 87、25 档 107、50 档 17。隐藏 30 条，壮举 7 条。名望 50 的 17 条就是 Steam 成就的 C 组（2.13）。
 - 第四幕最多：四十只异名者里二十二只在第四幕的诸国，第四幕的迷宫都是"可选的强者试炼"（[总纲 4.3][bible]）。第六幕少是有意的：
   第六幕只用神域与审期，事迹以揭示为主，不堆数量。
-- 新增触发种类的使用：`cond` 20、`belief` 4、`tellCount` 4、`rumorReach` 3、`witness` 2、`doorState` 2、`exposure` 1；其余全部沿用主工程种类，
+- 新增触发种类的使用：`cond` 22、`doorState` 7、`tellCount` 5、`belief` 4、`rumorReach` 3、`witness` 2、`exposure` 1；其余全部沿用主工程种类，
   其中 `manual` 最多（遭遇战机制、抉择结果、限制条件），与主工程的分布一致。
 
 称号按类与最早出现幕：
@@ -1001,9 +1057,9 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | 教会 `church` |  | 3 | 1 | 1 |  |  |  | 5 |
 | 传颂级 `named` |  | 1 | 7 | 2 | 1 |  |  | 11 |
 | 错名与恶名 `wrong`、`infamy` | 2 | 4 | 4 | 1 |  |  |  | 11 |
-| 收藏与事迹附带 `col`、`rare`、`dg`、`bond`、`war` | 1 | 1 | 3 | 5 | 5 | 1 |  | 16 |
-| 晚期与跨国 `people`、`late`、`court` |  |  |  | 4 | 2 |  | 2 | 8 |
-| 合计 | 10 | 16 | 22 | 23 | 10 | 1 | 2 | 84 |
+| 收藏与事迹附带 `col`、`rare`、`dg`、`bond`、`war` | 1 | 1 | 4 | 5 | 6 | 1 |  | 18 |
+| 晚期与跨国 `people`、`late`、`court` |  |  |  | 4 | 2 |  | 3 | 9 |
+| 合计 | 10 | 16 | 23 | 23 | 11 | 1 | 3 | 87 |
 
 ### 6.2 价值审计
 
@@ -1012,20 +1068,20 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | 存在理由 | 命中条数 | 说明 |
 | --- | --- | --- |
 | 门（历钥，或记录地钥、物钥、识钥） | 52 | 2.7 表的正典门之外，门目录的流派、合技、羁绊、生业、门址与真相门已按其 ID 回填 |
-| 称号（授予或喂出） | 51 | 84 个称号里有 56 个与本文的某条事迹直接挂钩（授予或喂出），其余来自传闻画像、机构定性与诸族习俗 |
-| 认知（谁的看法如何变） | 163 | 每条都写明了是谁、从什么到什么，或是哪条 BE 线索、哪件证据 |
-| 收藏（含记事柱、陈列） | 47 | 收藏的完成不重复记两次（5.4） |
-| 立名（他人的讲述数） | 16 | 加上 10 条他人事迹模板，构成立名关在系统里的全部入口 |
+| 称号（授予或喂出） | 54 | 87 个称号里有 59 个与本文的某条事迹直接挂钩（授予或喂出），其余来自传闻画像、机构定性与诸族习俗 |
+| 认知（谁的看法如何变） | 174 | 每条都写明了是谁、从什么到什么，或是哪条 BE 线索、哪件证据 |
+| 收藏（含记事柱、陈列） | 50 | 收藏的完成不重复记两次（5.4） |
+| 立名（他人的讲述数） | 17 | 加上 10 条他人事迹模板，构成立名关在系统里的全部入口 |
 
 - **纯计数**：只有 `deed_hunt_thousand` 一条（名望 5），它是唯一没有命中上表的事迹，作为"记功"的样本保留。`deed_grow_doors_ten`
   是门数计数，但它让阿什开口谈代价，计入认知。异名者不计"全部击杀"，收藏的凑齐只在有称号请求时立事迹。
-- **零名望**：12 条：运气型完成 1（`deed_col_named_trophies`）；代价与笑话 4（`deed_god_memory_given`、`deed_god_danger_door`、
-  `deed_exp_pit_gaze`、`deed_mortal_soup_pot`）；测试型 1（`deed_dg_moon_cellar_untouched`，玛莎的测试不该给分）；壮举 6。
-- **称号的价值**：84 个称号全部写明授予者、可见范围、对称呼与认知的作用、失去方式；对玩家没有一个称号改变数值；
+- **零名望**：14 条：运气型完成 1（`deed_col_named_trophies`）；代价与笑话 5（`deed_god_memory_given`、`deed_god_danger_door`、
+  `deed_exp_pit_gaze`、`deed_mortal_soup_pot`、`deed_bond_farewell`）；测试型 1（`deed_dg_moon_cellar_untouched`，玛莎的测试不该给分）；壮举 7。
+- **称号的价值**：87 个称号全部写明授予者、可见范围、对称呼与认知的作用、失去方式；对玩家没有一个称号改变数值；
   对有页者，只有 11 个传颂级称号与 1 个恶名模板推动立名，2 个职名（苇桥勋、冠军之后）给他人提供书面来源或讲述数。
-- **请求覆盖**：图鉴的异名者候选全部落为事迹；遗物目录请求的十个称号全部落 ID；人物二请求的五个称号（夜境角位、斗场冠军之后、
+- **请求覆盖**：图鉴的异名者候选全部落为事迹；遗物目录请求的十个称号全部落 ID，门目录请求的三个称号（开门的、七碑同读、一个也没熔）全部落 ID；人物二请求的五个称号（夜境角位、斗场冠军之后、
   被隐藏强者认可、汤与铃的继承者、拆门队之敌）全部落 ID；迷宫目录的事迹钩每座迷宫至少落一条；生业目录请求的"某人的出师之作"
-  落为 `deed_world_apprentice_work`；兽伴与装备目录的请求见第 8.1 节（部分有意不做）。
+  落为 `deed_world_apprentice_work`；装备目录请求的开锋、同炉、贡弓、门环、试锋之刃五条全部落事迹；兽伴目录的请求见第 8.1 节（两条有意不做）。
 
 ## 7. 新增命名
 
@@ -1051,48 +1107,49 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 | 事迹子前缀 | 命名 | `deed_grow_`、`deed_hunt_`、`deed_rare_`、`deed_dg_`、`deed_exp_`、`deed_col_`、`deed_bond_`、`deed_mgmt_`、`deed_war_`、`deed_god_`、`deed_truth_`、`deed_mortal_`、`deed_hid_`、`deed_feat_`、`deed_world_` |
 | 称号子前缀 | 命名 | `title_street_`、`title_guild_`、`title_crown_`、`title_tribe_`、`title_church_`、`title_named_`、`title_wrong_`、`title_infamy_`、`title_col_`、`title_rare_`、`title_dg_`、`title_bond_`、`title_war_`、`title_people_`、`title_late_`、`title_court_` |
 
-## 8. 缺口与待决
+## 8. 已决事项与依据
 
-### 8.1 跨目录待补（按[总纲 13][bible] 第 2 条，不临时起 ID）
+### 8.1 跨目录对接（已落定）
 
-| 目标 | 待补 |
-| --- | --- |
-| 门目录 `catalog_doors.md` | 与本文并行撰写；收尾时已按其 ID 回填流派、合技、生业、羁绊、离手、回声与异名物相关的门（2.7 表下半、3.3 节）。门目录的历钥一栏多写"待补：事迹"：建议按本文 2.7 表与 5.3 节把对应的 `deed_` ID 填回；照路、拾遗、学识、商眼四类门候选门目录不单立门，本文已同步改口。门目录若在定稿前改 ID，以门目录为准再回填一次 |
-| 人物目录 | 葛蕾特·铁栏的摘要卡与 ID（迷宫目录 6.8 已请求）；苇桥"小领主之子"（`title_named_grete` 加注的对象）；祖灵冢的候选人（年轻萨满）；红袜子的磨坊人家、被吞印戒的失主、收路钱的遗孀（图鉴已请求） |
-| 遗物目录 | "布伦手录"与"布伦的旧手套"的物品 ID（[角色][chr]与[内容总清单][outline]已有名无 ID）；空白纪长歌全本是否并入 `col_songs_and_tales` |
-| 迷宫目录 | 斗证的物品 ID（`col_duel_tokens` 的构成） |
-| 任务与事件系统 | `rumor.tide_attribution` 的变量名与值域（本文写"示意"）；`ending` 中"离手"的枚举名；`moira_published`、`brun.secret_kept` 进注册表；`deed_world_` 实例键的存储位置 |
-| 认知系统 | 讲述数的公式与阈值（2.6）；"让别人担名"的交互；故事化版本按半数计入讲述数，作为[认知 16][rep] 第 7 问的提案答案 |
-| 女神 GM | 称号加护令受者成为莫伊拉视线锚的代价幅度；`授称号` 动作在自动规则之外由她主动使用的频度 |
-| 千门系统（`thousand_doors.md`，待撰写） | 门读事迹作历钥的判定接口；七种新增触发种类的评估器实现 |
-| 兽伴目录 | 请求中的"一区兽伴图鉴集齐"有意不做（纯凑齐计数）；"孵出飞蜥"只落为龙族的评语 `title_tribe_dragon_shadow`，不立事迹 |
-| 装备目录 | 请求中的"归还门环"（`eq_myriad_door_knocker` 不是国宝，未立事迹）与"交还试锋之刃"（`eq_edgetrial_festival_blade`）待装备目录确认是否需要；本文已落开锋、同炉、贡弓三条 |
-| 索引 | 按 `hakoniwa/CLAUDE.md`，新增文件后应同步 `docs/README.md`；本轮按分工只写本文件，由主会话补登 |
+| 目标 | 事项 | 落点 |
+| --- | --- | --- |
+| 门目录 | 门的历钥用哪条事迹；照路、拾遗、学识、商眼四类门候选 | 2.7 表与 5.3 节的 `deed_` ID 已写进门目录的钥；四类候选门目录不单立门（[门目录 7.3][drs]）；流派进阶、合技、试炼、羁绊门由五条汇总事迹记录（3.1、3.7、3.10），不逐门立事迹 |
+| 千门系统 | 门读事迹的判定接口；七种新触发的评估器 | 门只读已授予的 `deed.<id>`（[千门 5.3][td]）；七种新触发的读法与结算点见 1.3 的判定接口 |
+| 人物目录 | 葛蕾特·铁栏；苇桥"小领主之子"；祖灵冢的候选人；红袜子的磨坊人家、被吞印戒的失主、收路钱的遗孀 | 葛蕾特是迷宫目录 6.8 的凡人（人物 ID 由人物目录（一）登记为 `grete_ironrail`）；小领主之子、候选人与三户人家用无名居民模板具名化，事迹只认事件，不认 ID |
+| 遗物目录 | 布伦手录与旧手套的物品 ID；空白纪长歌全本；斗证 | `lb_bron_record`、`brun_glove`（已有数据）；《静苔长歌》`lb_stillmoss_longsong` 是"歌与谣"的隐藏第九件；斗证 `rl_redgravel_pit_token`、`rl_edge_trial_token`（[遗物 3.11][rel]） |
+| 迷宫目录 | 斗证的物品 ID；可挑战段的称号 | 斗证见上；可挑战段只在有命名者愿意给名字时授称号：剑帝的座签、长老的默行者；其余七段的回报落在门钥、关系与他人的称号上（葛蕾特） |
+| 任务与事件 | `rumor.tide_attribution`、`ending` 的"离手"、`moira_published`、`brun.secret_kept`、`deed_world_` 实例键 | 注册表规范名：`a1_tide_credit`（别名 `rumor.tide_attribution`，取值 `player`、`martha`、`light`、`self_collapse`）、`ending == release`、`a5_moira_published`、`npc.bron.secret_kept`（别名 `brun.secret_kept`）；实例键存在事迹系统的状态里（1.3） |
+| 认知与成长 | 讲述数的公式与阈值；"让别人担名"；故事化版本 | 阈值与日结算以[成长 12][pp]为准（C98）；让名的交互见 2.6；故事化版本按半数计 |
+| 女神目录 | 称号加护的代价；授称号的频度 | 称号加护令受者成为莫伊拉的视线锚（只对莫伊拉，锚二）；授称号动作 `div_moira_title` 神力 1 到 5、同一对象冷却 7 日（[女神目录 2.6][gi]） |
+| 同伴与队伍 | 羁绊事迹与立名关 | 九条羁绊事迹与同伴立名以[同伴与队伍 8.7、4.4][cmp]为准；铁人档的告别事迹即 `deed_bond_farewell` |
+| 装备目录 | 开锋、同炉、归还国宝、交还试锋之刃 | `deed_mgmt_craft_open_edge`、`deed_mgmt_craft_same_forge`、`deed_mgmt_tribute_bow`、`deed_hid_knocker_home`（门环）、`deed_bond_blade_returned` |
+| 兽伴目录 | 一区兽伴图鉴集齐；孵出飞蜥 | 有意不做（纯凑齐计数）；孵出飞蜥只落为龙族的评语 `title_tribe_dragon_shadow` |
+| 发行工程 | Steam 成就 | 2.13 节 |
 
-### 8.2 正典冲突与口径
+### 8.2 正典口径（已定）
 
-| 序 | 冲突或疑点 | 本文口径 | 后续 |
+| 序 | 事项 | 本文口径 | 依据 |
 | --- | --- | --- | --- |
-| 1 | [认知 4.7][rep] 说"玩家无页，得不到称号" | 读作"得不到铭录里的称号"；玩家仍有俗名、职名与众名（2.4），都不推关 | 认知系统措辞改为"得不到铭录称号" |
-| 2 | 主工程规则 1：事迹只给外观 | 本作事迹作历钥，有实际效果；依据[力量 12][pow]"钥另建事迹系统"；名望与称号对玩家仍只有外观与认知 | 无冲突，登记备查 |
-| 3 | 主工程规则 5：不留永久错过 | 叙事分支天然会错过：本文以"分支事迹"与壮举处理（1.4），下一期可补 | 千门系统与新周目设计确认 |
-| 4 | 夜羽的残页：D-052 规定鉴定只显示"残页，Lv ？" | 称号照写在残页上（与异名者同理），鉴定仍不显示 | 角色设定集确认 |
-| 5 | 布伦的代号：人物目录 `bron`、台账 `trust.bron`、第一幕与第二幕 `brun.secret_kept`、任务与事件建议 `brun` | 人物引用 `bron`，变量照分幕原文写 `brun.secret_kept` | 注册表统一（[任务与事件 3.7.3][qe] 已登记"仍不一致"） |
-| 6 | 欧拉的代号：人物目录 `oola`，任务与事件 `ola`，台账 `a1_oola_fate` | 人物引用 `oola` | 同上 |
-| 7 | 称号能被鉴定读到（[力量 2.2][pow]），而玩家"无记载" | 玩家的称号只能靠公会卡、诏书、人簿抄本出示；这是凡人不信的又一个来源（自报名号） | 无冲突 |
-| 8 | 立名关数值：正典只写"被足够多的人讲述" | 本文给讲述数与阈值的初值（1,500，至少两个地区与一份书面来源），全部待调 | 认知系统与成长节奏文档联调 |
-| 9 | 勇者"立名容易"（[力量 10.4][pow]）与"余威所至" | 两者叠加：教会的嘴加上玩家被替换掉的事迹，勇者团在第二幕就拿到第一个传颂级称号，第三幕过关 | 无冲突 |
-| 10 | 罗恩在第四幕 Lv34、第五幕 Lv40（[角色][chr]） | 把第四幕的停顿解释为卡在立名关，过关落在 `deed_bond_named_ron` | 角色设定集可采纳 |
-| 11 | [第二幕][a2]与[第三幕][a3]的桥段 U2、U3 共十六条，本文只把其中改变了某人常识或世界状态的十条立为事迹，另两条（U3-4、U3-7）只落为错名 | 其余桥段保持为桥段（喜剧节流，[认知 4.5][rep]） | 无 |
-| 12 | 第一幕十五个桥段只立四条（水晶坏了、矮人机关、新的也坏了、关窗） | 同上；第一幕的笑点密度靠传闻变形器，不靠事迹簿 | 无 |
+| 1 | [认知 4.7][rep] 说"玩家无页，得不到称号" | 玩家得不到铭录里的称号；俗名、职名与众名照有，都不推关 | C96 已落地 |
+| 2 | 主工程规则 1：事迹只给外观 | 本作事迹作历钥，有实际效果；名望与称号对玩家仍只有外观与认知 | [力量 12][pow]"钥另建事迹系统"；C97，[千门 5.3][td] |
+| 3 | 主工程规则 5：不留永久错过 | 分支事迹在本期显示"这一期没有发生"，回收结局进入的下一期可补；只依赖一次性世界事件的记为壮举；Steam 成就不映射分支与壮举 | C97，[成长 16][pp]，2.13 |
+| 4 | 夜羽的残页：鉴定只显示"残页，Lv ？" | 称号照写在残页上（与异名者同理），鉴定不显示，直到页面复原 | C100 已落地 |
+| 5 | 布伦与欧拉的代号 | 人物引用 `bron`、`oola`；`brun.*`、`trust.ola` 是注册表别名 | C16、C95，[注册表 7.1][reg] |
+| 6 | 立名关数值：正典只写"被足够多的人讲述" | 讲述数 ≥ 1,500，至少两个地区，至少一份书面来源；每日结算 | C98，[成长 12][pp] |
+| 7 | 称号能被鉴定读到，而玩家"无记载" | 玩家的称号只能靠公会卡、诏书、人簿抄本出示；这是凡人不信的又一个来源（自报名号） | 无冲突 |
+| 8 | 勇者"立名容易"与"余威所至" | 两者叠加：勇者团在第二幕就拿到第一个传颂级称号，第三幕过关 | 无冲突 |
+| 9 | 罗恩在第四幕 Lv34、第五幕 Lv40 | 第四幕的停顿是卡在立名关，过关落在 `deed_bond_named_ron` | C99 已落地 |
+| 10 | 第二、三幕的桥段 U2、U3 共十六条，只把改变了某人常识或世界状态的十条立为事迹，U3-4、U3-7 只落为错名 | 其余桥段保持为桥段（喜剧节流，[认知 4.5][rep]） | 无冲突 |
+| 11 | 第一幕十五个桥段只立四条 | 第一幕的笑点密度靠传闻变形器，不靠事迹簿 | 无冲突 |
+| 12 | 异名者"击杀传闻"与事迹的关系 | 事迹以"落名"为触发，不以击杀为触发；无人知道的击杀让名字被继承（`nameInherit`），辟谣与继名各有一条事迹 | [图鉴 2.7][best]，3 节开头 |
 
-### 8.3 待决
+### 8.3 已决的开放问题
 
-1. 名望要不要在手录里显示成数字：本文建议显示为布伦的一句评语（"活干了不少"之类，按名望区间选模板），数字只在设置里可见，减少"刷分"的心理。
-2. 人簿的众名能不能是恶名（国民投票给领主一个难听的名字）：本文倾向可以，但需与自治度、议事日的提案事件一起设计。
-3. 称号加护附在同伴身上时，玩家是否应该被告知"他现在是她的眼睛"：本文倾向只在识才之门进阶的视线感知里显示。
-4. 事迹 ID 的稳定性：沿主工程 `DEED_ORDER` 的只追加规则，本目录落数据后不改 ID、不改触发（主工程规则 9）。
-5. 决策日志（[决策日志][dlog]）可考虑登记三条：称号三档、讲述数与主体替换转移、分支事迹的完成度口径。
+1. 名望在手录里不显示为数字：显示为布伦的一句评语（"活干了不少"之类，按名望区间选模板），数字只在设置里可见，减少"刷分"的心理。
+2. 人簿的众名不设恶名档：人簿是玩家唯一被"写下"的名字，只记事实与众议的褒名；恶名走街头与诸族（`title_infamy_`），人簿只把裁决写成事实。
+3. 称号加护附在同伴身上时，玩家只在识才·深的视线感知里看得见"他现在是她的眼睛"（[门目录 5.7][drs]）。
+4. 事迹 ID 只追加：落数据后不改 ID、不改触发（主工程规则 9，`DEED_ORDER`）。
+5. 称号三档、讲述数与主体替换转移、分支事迹的完成度口径三条，作为决策日志的登记项交主会话（本目录按此执行）。
 
 ## 9. 来源链接
 
@@ -1127,3 +1184,9 @@ NPC 叫玩家什么，由他对玩家的认知状态决定，称号只在正式�
 [anime]: ../../10_research/anime/synthesis.md
 [deeds]: ../../../../docs/design/deeds.md
 [deedsts]: ../../../../src/sim/content/deeds.ts
+[td]: ../systems/thousand_doors.md
+[cmp]: ../systems/companions_and_party.md
+[reg]: ../world_state_registry.md
+[pp]: ../progression_and_pacing.md
+[re]: ../../50_tech/release_engineering.md
+[gi]: catalog_goddess_interventions.md

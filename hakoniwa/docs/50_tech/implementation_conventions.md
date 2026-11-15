@@ -1,9 +1,9 @@
-# 实现约定（第一轮可玩版本）
+# 实现约定
 
 > 所有实现者（人与 AI 代理）共同遵守的跨系统约定。契约代码在 `src/core/`（尤其 `contracts.ts`、`shared_events.ts`、`ai_port.ts`）；
-> 本文记录"命名与协作"层面的约定。与 `architecture.md` 冲突时以 `architecture.md` 为准。
+> 本文记录"命名与协作"层面的约定，第 1、2 节写的是现有可玩版本（已建十张图）的分工与地图。与 `architecture.md` 冲突时以 `architecture.md` 为准。
 
-## 1. 文件所有权（第一轮）
+## 1. 文件所有权
 
 | 负责方           | 目录与文件                                                                                                                                                                                                                                                                                                     |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@
 | `seal_ruins`        | 封门遗迹（上层）   | 战斗   | 玩家序章后在此醒来（地点 `wake_point`）     |
 | `seal_ruins_depths` | 封门遗迹深处       | 战斗   | 守护巨鸦、阿什的灰烬室                      |
 | `forest_edge`       | 林缘               | 战斗   | 猎区、魔物                                  |
-| `ash_waste`         | 灰烬荒原外缘       | 战斗   | 第三幕起                                    |
+| `ash_waste`         | 灰烬荒原外缘       | 战斗   | 第一幕起经旧哨村可达（外缘南段），主用第一到三幕 |
 | `wallenburg_sewers` | 旧水道迷宫         | 战斗   | 第二幕迷宫                                  |
 | `borderstone`       | 边石镇             | 社会   | 第一幕主舞台                                |
 | `wallenburg`        | 瓦伦堡（精简城区） | 社会   | 第二幕                                      |
@@ -33,7 +33,7 @@
 
 - 地图之间的出口用 `ExitDef.toLocation` 指向目标地图上的到达地点，到达地点 ID 统一为 `gate_<来源地图 ID>`，例如边石镇北门通往遗迹：
   边石镇的出口 `toMap: 'seal_ruins', toLocation: 'gate_borderstone'`，遗迹地图必须提供地点 `gate_borderstone`。
-- 第一轮必须连通的路线：`seal_ruins` 与 `borderstone`、`borderstone` 与 `forest_edge`、`borderstone` 与 `old_outpost`、
+- 现有可玩版本必须连通的路线：`seal_ruins` 与 `borderstone`、`borderstone` 与 `forest_edge`、`borderstone` 与 `old_outpost`、
   `borderstone` 与 `wallenburg`、`wallenburg` 与 `wallenburg_sewers`、`old_outpost` 与 `ash_waste`、`seal_ruins` 与 `seal_ruins_depths`。
   `inner_court` 不靠出口进入，由"门内庭院"能力传送。
 - 地块字符图例由各地图自带，地块种类见 `src/systems/world/types.ts` 的 `TileKind`。
@@ -83,7 +83,7 @@
 | `door.<门 ID>`             | 已开之门           | `door.first_awakening`                                                                                                                   |
 | `companion.<ID>.recruited` | 同伴已招募         |                                                                                                                                          |
 | `quest.<任务 ID>`          | 任务状态           | `active`、`done`、`failed`                                                                                                               |
-| 揭示台账变量               | 世界状态           | `seal_looseness`、`seal_unrest`、`a1_oola_fate`、`autonomy`、`release_index` 等，名称以 `docs/30_story/reveal_ledger.md` 第 0.4 节为准   |
+| 揭示台账变量               | 世界状态           | `seal_looseness`、`seal_unrest`、`a1_oola_fate`、`autonomy`、`release_index` 等，名称与类型以[变量注册表](../40_design/world_state_registry.md)为准（D-076） |
 | `<系统>.<名>`              | 系统里程碑         | `econ.company_founded`、`city.village_founded`、`war.first_battle_won`、`slg.nation_founded`                                             |
 
 里程碑一律写旗标，任务与揭示台账只看旗标与事件，不直接读别的系统的切片。
@@ -112,7 +112,9 @@
    `door.opened`、`feature.unlocked`、`act.changed`、`dialogue.*`、`building.completed`、`battle.ended` 等）任何系统都可订阅。
 2. 里程碑用旗标（见第 4 节）。
 3. 资源与物品用 `src/systems/inventory` 的端口（`addItem`、`removeItem`、`addMoney`、`spendMoney`）；物品定义放进各自 pack 的
-   `items` 表（字段见 `src/content/packs/inventory.ts` 的 `ITEM_FIELDS`）。
+   `items` 表（字段见 `src/content/packs/inventory.ts` 的 `ITEM_FIELDS`）。持有物分两种（D-072）：可堆叠商品记数量，带实例的物品记实例（词缀、器痕、署名、澱纹与净化状态、耐久），
+   即 `Holding.items` 拆为堆叠 `stacks` 与实例 `instances`；`ItemDef` 增加 `procs`（器意、套组与附纹触发）、`set`（套组）、`sed`（澱纹档）、`use.group`（消耗品的共享冷却组），
+   字段定义以 [`catalog_equipment.md`](../40_design/content/catalog_equipment.md) 第 1.5、1.6 节与 [`catalog_consumables_magitools.md`](../40_design/content/catalog_consumables_magitools.md) 第 2.1 节为准。
 4. 价格、产出、魔物压力、信仰、士气、澱等效果用 `src/systems/modifiers` 的 `registerModifier`（D-013）。
 5. 对话交互菜单：玩家与 NPC 交谈时，对话系统发出 `player.talked`；任务、商店、神龛、招募等系统以
    `dialogue.options_offered` 提供选项；玩家选择后对话系统发出 `dialogue.option_chosen`，由提供选项的系统处理。
@@ -128,8 +130,15 @@
   `ruler.policy`、`official.decide`、`general.order`。
 - 无模型（`aiMode: 'off'`）时，请求在下一 tick 自动执行 fallback；系统不得因为 AI 关闭而停止运转（D-010）。
 
-## 8. 玩家可见文本
+## 8. 玩家可见文本（D-077）
 
-- 第一轮以中文为源语言：内容数据里的文本直接写中文；系统产生的提示（命令拒绝原因、日志）也用中文。
-- 客户端的界面文本集中在 `src/shared_ui/text.ts`。
+- **内核只发文本引用。** 内核、系统与游戏编排里所有玩家可见的文字都是 `TextRef`（文本键加参数；M0 落地于 `src/core/text.ts`，导出 `TextRef`、`TextParam` 与构造函数 `tr`）：
+  命令拒绝原因（`CommandResult` 的可读原因）、事件里的文字字段、日记与心声的模板句、默认名。参数里的实体、物品、地点用 ID 或嵌套的 `TextRef` 传，客户端渲染时再取显示名。
+  模型生成的文本是 `{ raw, lang }`，按生成时的界面语言打标签。内核里现有的中文字面量在 M0 迁移批次里全部换成键（[`release_engineering.md`](release_engineering.md) 第 8.4 节）。
+- **中文是源语言。** 系统的模板句与拒绝原因放 `locales/zh-Hans/sys_<系统>.json`；界面文本放 `locales/zh-Hans/ui.json`（由 `src/shared_ui/text*.ts` 迁出）；
+  内容数据与台词包的文本由工具从 `data/` 抽取为 `content.generated.json`、`lines.generated.json`，不手改。客户端查表用 `t(ref)`（`src/shared_ui/i18n.ts`）。
+- **键名** `<域>.<子域>.<名>`，小写加下划线与点（例：`ui.saves.slot`、`sys.combat.reject.out_of_range`）；内容以内容 ID 作键（例：`eq_ash_blade.name`）。键的联合类型由
+  `tools/i18n/gen_keys.ts` 生成，拼错键在类型检查时失败。布局与流程的完整规则见 [`release_engineering.md`](release_engineering.md) 第 8 节、[`../40_design/ux_and_onboarding.md`](../40_design/ux_and_onboarding.md) 第 20 节。
+- **开发者文字用英文。** 日志、断言、内部错误与开发工具的输出用英文，不进字符串表；同一句话既进日志又进界面时拆成两条。
+- **发行语言**：1.0 简体中文；繁体中文与英文在 1.x 更新加入。大模型题面用中文，输出跟随界面语言。
 - 禁用字符同仓库规则（无破折号、无 emoji、无 U+2600 到 U+27BF 符号）。

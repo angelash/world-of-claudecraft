@@ -104,7 +104,24 @@
 | [content/content_review.md](40_design/content/content_review.md)                     | 内容设计审校台账：正典冲突（需用户决定、设计层可自决、已解决）、新增真相的台账登记、目录间不一致、覆盖审计、跨目录待补、引擎与系统待办 |
 | [world/world_map.md](40_design/world/world_map.md)                                   | 世界地图构建：四层地图与编号、世界图与 SLG 省份、各幕区域图与行程、全部已建与规划地图的总表（图集数据与校验）、连通图、缺口与制作顺序                                                                    |
 | [world/scene_flow.md](40_design/world/scene_flow.md)                                 | 游戏场景动线：HD-2D 斜俯视下的动线原则、跨幕宏观动线与快速移动、十张已建图逐图动线（实测距离、遮挡、照明、梯度与动线图）、外观层装饰落地、规划场景的五种动线模板、下一轮修改汇总 |
-| 待撰写                                                                               | `systems/combat_and_classes.md`、`systems/thousand_doors.md`、`systems/companions_and_party.md`、`progression_and_pacing.md`（本轮撰写被中止，待重新安排；相关正典规则已在 `20_world/power_system.md` 中） |
+| [progression_and_pacing.md](40_design/progression_and_pacing.md) | 成长与节奏：等级带与经验预算、经验来源公式、门阶节奏、装备与金钱节奏、五道关与立名关、澱病与伤病、历法与跳时、现实时长、难度、新周目、自动玩家验收 |
+| [world_state_registry.md](40_design/world_state_registry.md) | 世界状态变量注册表：命名规则、类型与范围、写入者与读取者、条件文法、编号规则、全部规范名与别名、`data/registry/vars.json` 与内容校验 |
+| [ux_and_onboarding.md](40_design/ux_and_onboarding.md) | 界面信息架构、操作与改键、新手引导、无障碍、文本规范与本地化（`ui_`、`tut_`） |
+| [audio_direction.md](40_design/audio_direction.md) | 音频方向与完整清单：动机体系、区域音色、`mus_`、`amb_`、`sfx_`、自适应规则、混音标准、音频系统需求、AI 生成工作流 |
+| [systems/combat_and_classes.md](40_design/systems/combat_and_classes.md) | 战斗与职能：战斗模型、公式、1 到 60 级扩展、资源、九职能与编外者（续写中，见决策日志 B-001） |
+| [systems/thousand_doors.md](40_design/systems/thousand_doors.md) | 千门回廊：门的状态机、门阶、钥、代价三量与封印预算、功能解锁、危险门仪式、受页、诸神之战、庭院扩建、生业之门 |
+| [systems/companions_and_party.md](40_design/systems/companions_and_party.md) | 同伴与队伍：招募、编成、成长、行为树与指令、羁绊、个人线、重伤与铁人、将领转化、后日谈接口 |
+| [systems/builtin_ai.md](40_design/systems/builtin_ai.md) | 内置 AI：无模型时的 NPC、对话（话题图与意图）、台词包契约、女神、统治者、将领、同伴、官员与导演 |
+| [systems/travel_and_exploration.md](40_design/systems/travel_and_exploration.md) | 行进与探索：区域图行进、途中事件、NPC 离场出行、快速移动与门标、迷雾与发现、睡眠等待与跳时 |
+| [content/catalog_quests_acts1_3.md](40_design/content/catalog_quests_acts1_3.md) | 任务（一）：序章到第三幕的全部任务 `q_`、委托板模板 `cmm_`、动态事件 `ev_` |
+| [content/catalog_quests_acts4_6.md](40_design/content/catalog_quests_acts4_6.md) | 任务（二）：第四幕到终章的任务、战线、众门环与审前准备（续写中，见决策日志 B-016） |
+| [content/catalog_buildings_city.md](40_design/content/catalog_buildings_city.md) | 城建条目：建筑 `bld_`、政策 `pol_`、官职 `off_`、三阶段解锁、生产链、自治度路线、庭院扩建总表 |
+| [content/catalog_warfare_strategy.md](40_design/content/catalog_warfare_strategy.md) | 战争与战略：兵种 `unit_`、战场剧本 `bat_`、郡 `cty_`、国家事件与危机 `nev_`、外交条款与会盟议程 |
+| [content/catalog_goddess_interventions.md](40_design/content/catalog_goddess_interventions.md) | 女神干预：神权动作 `div_`、越约全表、每幕计划与谋划、反应表、女神试炼 `trl_`、委托模板、供品、天启 |
+| [content/catalog_cutscenes.md](40_design/content/catalog_cutscenes.md) | 过场与结局：写定场景与镜头脚本 `cut_`、拉远与高潮、结局全表、后日谈、隐藏结局 |
+| [content/catalog_dialogue_lines.md](40_design/content/catalog_dialogue_lines.md) | 台词总目录：台词包契约对照、话题表、共享台词包 `ln_`、吠叫池 `bark_`、全作有名人物的台词包清单与撰写批次 |
+| [content/catalog_dialogue_lines_act1.md](40_design/content/catalog_dialogue_lines_act1.md) | 台词（序章与第一幕）：女神、同伴、核心人物、有名人物与居民模板的全部台词包正文 |
+| [world/map_briefs.md](40_design/world/map_briefs.md) | 地图简报：全部地图逐张的布局、地点、出入口、动线、魔物与采集点、照明、美术素材清单与里程碑；风格包素材底座 |
 
 ## 50 技术方案
 
@@ -113,14 +130,25 @@
 | [architecture.md](50_tech/architecture.md)       | 技术架构：分层、确定性内核、系统接缝、数据、存档、客户端、编辑器、测试 |
 | [ai_architecture.md](50_tech/ai_architecture.md) | AI 架构：提供方、调度、预算、题面、校验、会话、审计、降级              |
 | [reuse_map.md](50_tech/reuse_map.md)             | 复用映射与许可清单                                                     |
-| [art_pipeline.md](50_tech/art_pipeline.md)       | 美术与素材方案（HD-2D 场景）：风格规范、渲染方案、纸娃娃、战斗与城建表现、程序化素材 |
+| [art_pipeline.md](50_tech/art_pipeline.md) | 美术与素材方案（AI 生成素材加 HD-2D 渲染）：风格规范、渲染方案、纸娃娃与魔物体型、战斗表现、素材分类与数量、一致性方法、导入管线、生产批次与审核 |
 | [implementation_conventions.md](50_tech/implementation_conventions.md) | 第一轮实现的跨系统约定：文件所有权、地图与 NPC ID、旗标、实体标签、AI 请求 |
+| [llm_providers.md](50_tech/llm_providers.md) | 玩家自配大模型：提供方适配、设置界面、密钥、主进程转发、花费上限、消耗台账、错误分类 |
+| [release_engineering.md](50_tech/release_engineering.md) | 发行工程：桌面壳、构建签名、Steam、存档、性能、内容与本地化管线、音频实现、测试、持续集成、崩溃与遥测、架构债、法律合规、版本与补丁、1.0 发布检查清单 |
 
 ## 60 制作计划
 
 | 文档                                           | 内容                                                        |
 | ---------------------------------------------- | ----------------------------------------------------------- |
-| [roadmap.md](60_production/roadmap.md)         | 阶段、原型、垂直切片、内容生产、砍线、未决问题排期          |
+| [roadmap.md](60_production/roadmap.md) | 里程碑 M0 到 M6：目标、范围、进入与退出标准、验收矩阵、砍线 |
 | [risks.md](60_production/risks.md)             | 风险登记与预演失败                                          |
 | [dev_process.md](60_production/dev_process.md) | 文档分层、评审门、实施包流程、质量门、正典变更、AI 代理协作 |
 | [first_playable.md](60_production/first_playable.md) | 第一轮可玩版本交付说明：运行方式、已实现内容、验证结果、待确认与缺口 |
+| [development_plan.md](60_production/development_plan.md) | 全作开发计划：实施包 `PK-` 清单、素材生成批次、关键路径与甘特、总量矩阵、各里程碑退出清单 |
+| [project_state.md](60_production/project_state.md) | 项目现状：各层完成度、已有实现、缺口、进行中的包、待用户决定 |
+
+## 素材
+
+| 文档 | 内容 |
+| --- | --- |
+| [../assets/README.md](../assets/README.md) | 素材目录：结构、命名、清单与来源登记、许可与合规 |
+| [../assets/prompts/README.md](../assets/prompts/README.md) | 提示词库使用说明：用外部生成工具出图出声的工作流、条目格式、模板与风格包、按里程碑分批（`npm run prompts` 生成 `assets/prompts/out/`） |

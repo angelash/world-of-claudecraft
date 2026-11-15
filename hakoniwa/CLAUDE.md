@@ -12,9 +12,11 @@
 | `docs/20_world/` | 世界观正典 | 宇宙、诸神、历史、地理、种族、国家、力量体系、社会 |
 | `docs/30_story/` | 叙事与故事 | 叙事结构、主线大纲、分幕剧情、角色、谜团台账 |
 | `docs/40_design/` | 游戏设计（概要设计） | 总框架、各系统、内容清单 |
-| `docs/50_tech/` | 技术方案 | 架构、AI 方案、复用映射、美术与素材方案（HD-2D 场景） |
-| `docs/60_production/` | 制作计划 | 路线图、里程碑、风险 |
-| `data/` `src/` `tools/` `tests/` | 第一轮实现 | 按 `docs/50_tech/architecture.md` 与 `implementation_conventions.md`；`assets/` 仍为占位 |
+| `docs/50_tech/` | 技术方案 | 架构、AI 方案、大模型提供方、复用映射、美术与素材方案（AI 生成素材加 HD-2D 渲染）、发行工程 |
+| `docs/60_production/` | 制作计划 | 路线图、开发计划、项目状态、风险、研发流程 |
+| `docs/70_packets/` | 实施包 | `pk_<里程碑>_<序号>_<短名>/`，见 `docs/60_production/dev_process.md` 第 3 节 |
+| `data/` `src/` `tools/` `tests/` | 实现 | 按 `docs/50_tech/architecture.md` 与 `implementation_conventions.md` |
+| `assets/` | 素材 | AI 生成的美术与音频及其清单；需求与提示词在 `assets/prompts/`（`npm run prompts`），见 `assets/README.md` |
 
 ## 正典优先级（冲突时以前者为准，并回头修订后者）
 1. `docs/20_world/world_bible.md`（世界观总纲，单一事实源）

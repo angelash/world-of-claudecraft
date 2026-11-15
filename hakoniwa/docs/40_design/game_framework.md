@@ -2,17 +2,18 @@
 
 > 本文是 `40_design/` 的总纲：定义玩法分层、核心循环、线性释放、系统地图与关键数值骨架。
 > 各系统的概要设计见 `systems/`，内容总清单见 `content/`，技术实现见 `../50_tech/`。
-> 上游依据：`../00_vision/vision.md`（设计支柱）、`../20_world/world_bible.md`（正典）、`../30_story/`（叙事）。
+> 上游依据：`../00_vision/vision.md`（设计支柱）、`../20_world/world_bible.md`（正典）、`../30_story/`（叙事）、`../00_vision/decision_log.md`（决策日志）。
+> 本文只写骨架；各项数字以对应系统文档为准，成长、时间与时长的数字以 [`progression_and_pacing.md`](progression_and_pacing.md) 为准。
 
 ## 1. 游戏定位
 
 | 维度       | 定义                                                                                                 |
 | ---------- | ---------------------------------------------------------------------------------------------------- |
 | 类型       | 动作角色扮演 + AI 社会模拟    + 城建经营 + 即时战术（RTS）+ 大战略（SLG）                            |
-| 视角与美术 | HD-2D 像素微缩场景，沿用 my_ai_town：Three.js 三维场景、正交斜俯视相机（方位可转、俯角可调）、像素立牌、光照图与电影化后期；素材程序化优先，"模型挑参数，代码出像素"（D-003、D-018） |
-| 模式       | 单人主线；所有大模型能力有降级档，无模型也能通关                                                     |
-| 战斗       | 复用 world-of-claudecraft 的确定性战斗模拟：目标锁定 + 快捷栏 + 公共冷却 + 资源 + 天赋，在格子平面上计算（D-004） |
-| 时长目标   | 主线 60 到 80 小时；全要素 150 小时以上；多结局与新周目                                              |
+| 视角与美术 | HD-2D 像素微缩场景，沿用 my_ai_town：Three.js 三维场景、正交斜俯视相机（方位可转、俯角可调）、像素立牌、光照图与电影化后期（D-003）；美术与音频全部由 AI 生成，程序化绘制只作占位与平面降级（D-018、D-080），见 [`../50_tech/art_pipeline.md`](../50_tech/art_pipeline.md)、[`audio_direction.md`](audio_direction.md） |
+| 模式       | 单人主线；大模型由玩家自配（D-067）；未配置模型时由内置 AI 驱动全部角色，无模型档是完整体验（D-010、D-068） |
+| 战斗       | 沿用 world-of-claudecraft 战斗模拟的规则与经典公式：目标锁定 + 快捷栏 + 公共冷却 + 资源 + 天赋，由本作自建的确定性内核在格子平面上计算（D-004、D-071、D-072） |
+| 时长目标   | 主线约 60 到 70 小时（常规路线估算约 65 小时）；全要素 150 小时以上；多结局与新周目（D-070）          |
 | 一句话卖点 | "一个由 AI 女神当 GM、AI 众生自己过日子的异世界，你从被丢弃的编外者，一路开门开到神庭"               |
 
 ## 2. 玩法分层：六层叠加，逐层解锁
@@ -21,8 +22,8 @@
 
 | 层             | 玩家身份                 | 核心操作                                  | 解锁                             | 复用来源                                        | 详细文档                                                                         |
 | -------------- | ------------------------ | ----------------------------------------- | -------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------- |
-| 个人层         | 编外者                   | 探索、战斗、对话、开门                    | 序章到第一幕                     | world-of-claudecraft 战斗与内容；本作千门系统   | `systems/combat_and_classes.md`（待撰写）、`systems/thousand_doors.md`（待撰写） |
-| 队伍层         | 小队领袖                 | 同伴、从者、队伍战斗、羁绊                | 第一幕                           | world-of-claudecraft 托管队伍（AI 队友）        | `systems/companions_and_party.md`（待撰写）                                      |
+| 个人层         | 编外者                   | 探索、战斗、对话、开门                    | 序章到第一幕                     | world-of-claudecraft 战斗与内容；本作千门系统   | [systems/combat_and_classes.md](systems/combat_and_classes.md)、[systems/thousand_doors.md](systems/thousand_doors.md) |
+| 队伍层         | 小队领袖                 | 同伴、从者、队伍战斗、羁绊                | 第一幕                           | world-of-claudecraft 托管队伍（AI 队友）        | [systems/companions_and_party.md](systems/companions_and_party.md)               |
 | 社会层         | 镇上的怪人到大人物       | 声望、传闻、认知、势力关系、AI 居民互动   | 第一幕                           | my_ai_town 的居民 AI；本作认知系统              | `systems/npc_society_ai.md`、`systems/reputation_and_cognition.md`               |
 | 经营层         | 商会主、村长、领主、国主 | 商会、建设、人口、生产、官员任命          | 第二幕起                         | my_ai_town 的地点与道具摆放；开源资料的城建方法 | `systems/city_building.md`、`systems/economy_and_trade.md`                       |
 | 战场层         | 指挥官                   | 小队、连队、军团到联军的即时战术（D-045） | 第二幕末入门，第三幕全面         | 本作新增；英雄单位用战斗模拟                    | `systems/warfare_rts.md`                                                         |
@@ -47,7 +48,7 @@
 
 贯穿所有尺度的两个长线变量：
 
-- **千门进度**：玩家开了哪些门，决定能力、可用系统，也决定雅努的封印松动度。
+- **千门进度**：玩家开了哪些门，决定能力、可用系统与门阶，也决定雅努的封印松动度（[千门 4、6][td]）。
 - **世界状态**：每一层纷争的结果都写回世界，成为下一层的初始条件（见第 8 节）。
 
 ## 4. 线性释放：按幕解锁的阶梯
@@ -75,44 +76,56 @@
 
 | 系统             | 一句话                                                             | 服务的支柱 | 解锁           | 复用                              | 文档                                                                         |
 | ---------------- | ------------------------------------------------------------------ | ---------- | -------------- | --------------------------------- | ---------------------------------------------------------------------------- |
-| 战斗与职能       | 九职能、技能、资源、公共冷却、仇恨、首领机制，落到格子平面             | 发掘、谨慎 | 第一幕         | 主工程战斗模拟（高）              | `systems/combat_and_classes.md`（待撰写）                                    |
-| 千门回廊         | 天赋树以门的形式呈现，钥来自经历与抉择                             | 发掘       | 第一幕         | 主工程天赋结构（中）              | `systems/thousand_doors.md`（待撰写）                                        |
-| 同伴与队伍       | 从者、同伴、将领；队伍 AI；羁绊                                    | 众生       | 第一幕         | 主工程托管队伍 AI（中）           | `systems/companions_and_party.md`（待撰写）                                  |
+| 战斗与职能       | 九职能、技能、资源、公共冷却、仇恨、首领机制，落到格子平面             | 发掘、谨慎 | 第一幕         | 主工程战斗规则与公式（高）        | [systems/combat_and_classes.md](systems/combat_and_classes.md)（技能定义见此文） |
+| 千门回廊         | 天赋树以门的形式呈现，钥来自经历与抉择；门阶、淤塞、门疲与封印松动 | 发掘       | 第一幕         | 主工程天赋结构（中）              | [systems/thousand_doors.md](systems/thousand_doors.md)；门清单见 [content/catalog_doors.md](content/catalog_doors.md) |
+| 同伴与队伍       | 从者、同伴、将领；队伍 AI；羁绊；重伤退场与铁人                    | 众生       | 第一幕         | 主工程托管队伍 AI（中）           | [systems/companions_and_party.md](systems/companions_and_party.md)           |
+| 成长与节奏       | 等级与门阶两把尺、经验来源、金钱、时间与历法、现实时长、难度档     | 发掘       | 全程           | 主工程经验表（中）                | [progression_and_pacing.md](progression_and_pacing.md)                       |
 | NPC 社会 AI      | 居民有人设、日程、记忆、关系、目标，由模型提议、内核执行           | 众生       | 第一幕         | my_ai_town（高）                  | [systems/npc_society_ai.md](systems/npc_society_ai.md)                       |
+| 内置 AI          | 无模型或某角色的模型不可用时的完整驱动：日程状态机、效用评分、行为树、HTN、话题图与台词包 | 众生、诸神 | 序章 | 本作新增；与模型共用命令与内核裁决 | [systems/builtin_ai.md](systems/builtin_ai.md)；台词见 [content/catalog_dialogue_lines.md](content/catalog_dialogue_lines.md) |
 | 认知、传闻与声望 | 凡人对玩家的信念如何形成、传播、失真、被证据改变                   | 众生、爽   | 第一幕         | 本作新增                          | [systems/reputation_and_cognition.md](systems/reputation_and_cognition.md)   |
 | 鉴定与情报       | 鉴定有上限会失败；威压感知；情报的可信度                           | 谨慎       | 第一幕         | 本作新增                          | [systems/reputation_and_cognition.md](systems/reputation_and_cognition.md)   |
-| 任务与事件       | 写定主线 + 势力纷争事件链 + 女神与社会生成的动态事件               | 全部       | 第一幕         | 主工程任务结构（中）              | [systems/quests_and_events.md](systems/quests_and_events.md)                 |
-| 门内庭院         | 私人领域：仓库、修炼、复活点、研究、秘密城                         | 发掘、经营 | 第一幕末       | 本作新增                          | [systems/city_building.md](systems/city_building.md)                         |
+| 任务与事件       | 写定主线 + 势力纷争事件链 + 女神与社会生成的动态事件               | 全部       | 第一幕         | 主工程任务结构（中）              | [systems/quests_and_events.md](systems/quests_and_events.md)；第四幕到终章的条目见 [content/catalog_quests_acts4_6.md](content/catalog_quests_acts4_6.md) |
+| 世界状态变量     | 全作旗标、量、快照与条件表达式的唯一登记处（D-076）                | 全部       | 全程           | 本作新增                          | [world_state_registry.md](world_state_registry.md)                           |
+| 区域图行进与探索 | 世界图、区域图、地块、场景四层地图上的行进、跳时、途中事件与发现   | 发掘、谨慎 | 第一幕         | 本作新增                          | [systems/travel_and_exploration.md](systems/travel_and_exploration.md)；地图见 [world/world_map.md](world/world_map.md)、[world/map_briefs.md](world/map_briefs.md)、[world/scene_flow.md](world/scene_flow.md) |
+| 门内庭院         | 私人领域：仓库、修炼、复活点、研究、秘密城                         | 发掘、经营 | 第一幕末       | 本作新增                          | [systems/city_building.md](systems/city_building.md)、[content/catalog_buildings_city.md](content/catalog_buildings_city.md) 第 4 节 |
 | 商会与经济       | 贸易、商路、物价、借贷、地球知识变现                               | 经营       | 第二幕         | 主工程专业与物品（中）            | [systems/economy_and_trade.md](systems/economy_and_trade.md)                 |
-| 城建与领地       | 从村落到首都；建筑、人口、产出、人才、官员、自治度                 | 经营、离手 | 第二幕         | my_ai_town 地图与摆放（中）       | [systems/city_building.md](systems/city_building.md)                         |
-| 即时战术         | 小队、连队、军团、联军（D-045）；英雄单位；地形与阵型              | 从一到国   | 第二幕末       | 英雄单位用主工程战斗模拟          | [systems/warfare_rts.md](systems/warfare_rts.md)                             |
-| 大战略           | 大陆地图、省份、外交、贸易、谍报、战争、AI 国家                    | 从一到国   | 第四幕         | 本作新增                          | [systems/grand_strategy_slg.md](systems/grand_strategy_slg.md)               |
-| AI 女神 GM       | 六司作为 GM 的人格、目标、神力预算、工具箱、视线与神约；造主的天启 | 诸神       | 序章           | 本作新增；my_ai_town 主持角色思路 | [systems/goddess_gm.md](systems/goddess_gm.md)                               |
-| 澱与魔物生态     | 神力干预留下澱，澱生魔物、迷宫与魔王                               | 诸神、谨慎 | 第一幕（隐性） | 主工程怪物数据（高）              | [systems/goddess_gm.md](systems/goddess_gm.md)、`content/content_outline.md` |
-| 迷宫与地窟       | 澱的结晶，可重复挑战的副本                                         | 发掘       | 第一幕         | 主工程副本与地窟（高）            | `content/content_outline.md`                                                 |
-| 功绩与称号       | 莫伊拉的铭录称号（对玩家是"无页"的另一种记录方式）                 | 发掘       | 第一幕         | 主工程功绩（Deeds）（高）         | `content/content_outline.md`                                                 |
-| 神庭辩论         | 以证据质问女神的辩论玩法                                           | 诸神       | 第六幕         | 本作新增                          | [systems/goddess_gm.md](systems/goddess_gm.md)                               |
-| 成长与节奏       | 等级、门与各层系统的释放节奏与数值曲线（第 4 节的展开）            | 发掘       | 全程           | 主工程经验表（中）                | `progression_and_pacing.md`（待撰写）                                        |
+| 城建与领地       | 从村落到首都；建筑、人口、产出、人才、官员、自治度                 | 经营、离手 | 第二幕         | my_ai_town 地图与摆放（中）       | [systems/city_building.md](systems/city_building.md)；条目见 [content/catalog_buildings_city.md](content/catalog_buildings_city.md) |
+| 即时战术         | 小队、连队、军团、联军（D-045）；英雄单位；地形与阵型              | 从一到国   | 第二幕末       | 英雄单位用本作战斗内核            | [systems/warfare_rts.md](systems/warfare_rts.md)；兵种与战场剧本见 [content/catalog_warfare_strategy.md](content/catalog_warfare_strategy.md) |
+| 大战略           | 大陆地图、省份、外交、贸易、谍报、战争、AI 国家                    | 从一到国   | 第四幕         | 本作新增                          | [systems/grand_strategy_slg.md](systems/grand_strategy_slg.md)；郡与国家事件见 [content/catalog_warfare_strategy.md](content/catalog_warfare_strategy.md) |
+| AI 女神 GM       | 六司作为 GM 的人格、目标、神力预算、工具箱、视线与神约；造主的天启 | 诸神       | 序章           | 本作新增；my_ai_town 主持角色思路 | [systems/goddess_gm.md](systems/goddess_gm.md)；神权动作、试炼与委托见 [content/catalog_goddess_interventions.md](content/catalog_goddess_interventions.md) |
+| 澱与魔物生态     | 神力干预留下澱，澱生魔物、迷宫与魔王                               | 诸神、谨慎 | 第一幕（隐性） | 主工程怪物行为原型（高）          | [systems/goddess_gm.md](systems/goddess_gm.md)、[content/catalog_bestiary.md](content/catalog_bestiary.md) |
+| 迷宫与地窟       | 澱的结晶，可重复挑战的副本                                         | 发掘       | 第一幕         | 主工程副本与地窟（高）            | [content/catalog_dungeons_bosses.md](content/catalog_dungeons_bosses.md)     |
+| 功绩与称号       | 莫伊拉的铭录称号（对玩家是"无页"的另一种记录方式）                 | 发掘       | 第一幕         | 主工程功绩（Deeds）（高）         | [content/catalog_deeds_titles.md](content/catalog_deeds_titles.md)           |
+| 神庭辩论         | 以证据质问女神的辩论玩法                                           | 诸神       | 第六幕         | 本作新增                          | [systems/goddess_gm.md](systems/goddess_gm.md)、[content/catalog_goddess_interventions.md](content/catalog_goddess_interventions.md) 第 12 节 |
+| 界面与引导       | 屏幕清单（`ui_`）、新手引导（`tut_`）、输入与手柄、无障碍、文本键  | 全部       | 序章           | 主工程 HUD 的窗口与面板思路（中） | [ux_and_onboarding.md](ux_and_onboarding.md)                                 |
+| 音频             | 音乐、环境声、音效（`mus_`、`amb_`、`sfx_`），五条总线与交叉淡化   | 全部       | 序章           | 本作新增（AI 生成）               | [audio_direction.md](audio_direction.md)                                     |
+
+技术方案：总体架构 [`../50_tech/architecture.md`](../50_tech/architecture.md)、AI 架构 [`../50_tech/ai_architecture.md`](../50_tech/ai_architecture.md)、
+大模型提供方 [`../50_tech/llm_providers.md`](../50_tech/llm_providers.md)、美术与素材 [`../50_tech/art_pipeline.md`](../50_tech/art_pipeline.md)、
+发行工程 [`../50_tech/release_engineering.md`](../50_tech/release_engineering.md)、实现约定 [`../50_tech/implementation_conventions.md`](../50_tech/implementation_conventions.md)。
 
 ## 6. 时间模型
 
+细则与数字以 [`progression_and_pacing.md`](progression_and_pacing.md) 第 13 节为准（D-050、D-070）。
+
 | 场景         | 时间流速                                                                                                | 控制                                             |
 | ------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 个人与队伍层 | 实时，游戏内 1 天约等于现实 24 分钟（暂定）                                                             | 不可加速，可在安全处休息跳到早晨                 |
+| 个人与队伍层 | 实时，1 游戏日等于 1 倍速 24 现实分钟                                                                    | 脱战可 2x、4x（进入战斗、敌意单位进入警戒范围、对话或事件弹出时自动回到 1x）；可睡眠到清晨、原地等待 1 到 8 小时、经区域图行进跳时 |
 | 社会层       | 与个人层同一时钟；NPC 按日程生活                                                                        | 玩家睡觉时世界继续运转                           |
-| 经营层       | 同一时钟；可切换到"领主视图"，速度档 1x、2x、4x（每游戏日约 60、20、6 秒现实时间，待调，D-050），可暂停 | 加速时 NPC 决策降频，改用日程与规则              |
+| 经营层       | 同一时钟；可切换到"领主视图"，速度档慢、中、快（每游戏日约 60、20、6 现实秒），可暂停                   | 加速时 NPC 决策降频，改用日程与规则              |
 | 战场层       | 战斗内实时，可暂停下令                                                                                  | 战斗开始时冻结大地图时钟                         |
-| 战略层       | 大地图以"日"为步长，可暂停，速度档同为 1x、2x、4x（D-050）；季节影响补给                                | 大规模时间跳跃（以季度为单位）只在剧情允许时开放 |
-| 神域层       | 女神 AI 以"游戏内天"为节拍做决策，重大事件可即时触发                                                    | 由内核调度，不受玩家加速影响决策质量             |
+| 战略层       | 大地图以"日"为步长，可暂停，速度档同为慢、中、快；季节影响补给                                          | 幕间以战略结算的快档自动推进                     |
+| 神域层       | 女神以"游戏内天"为节拍做决策，重大事件可即时触发                                                        | 由内核调度；加速时女神规划在途保持 1 倍速至多 20 现实秒（D-079），不受玩家加速影响决策质量 |
 
-全作约两年零九个月的游戏内时间，主要靠经营与战略层的加速消化；个人层的冒险集中在每一幕的关键数周。
+历法：一周 7 日，一季 13 周（91 日），一年四季 364 日；开局于圣历 998 年春第 1 日。全作从第一幕到第六幕末约 1,050 游戏日（约两年零十个月），
+各幕周数依次为 12、14、24、31、33、26；主要靠睡眠、长休、行进与经营、战略视图的加速消化，个人层的冒险集中在每一幕的关键数周。
 
 ## 7. 玩家资源与指标
 
 | 类别 | 指标                                                                                 | 说明                                         |
 | ---- | ------------------------------------------------------------------------------------ | -------------------------------------------- |
-| 个人 | 等级、经验、属性、装备、技能、资源条                                                 | 沿用主工程；铭录看不到，玩家自己的界面看得到 |
-| 千门 | 已开之门、持有的钥、封印松动度（玩家后期才知道它存在）                               | 见 `systems/thousand_doors.md`（待撰写）     |
+| 个人 | 历练等级、经验、属性、装备（含耐久）、技能、资源条                                   | 沿用主工程公式；铭录看不到，玩家自己的界面看得到（[成长 1][prog]） |
+| 千门 | 已开之门、门阶、持有的钥、淤塞、门疲、封印松动度（玩家后期才知道它存在）             | 见 [systems/thousand_doors.md](systems/thousand_doors.md) |
 | 社会 | 每个 NPC 的信任与印象、每个势力的声望、各地的"传闻画像"                              | 见 `systems/reputation_and_cognition.md`     |
 | 神域 | 每位女神的注视度（她多清楚玩家在做什么）与关系值、供品记录、持有的证据               | 见 `systems/goddess_gm.md`                   |
 | 经济 | 金币、商会资产、商路、债务                                                           | 见 `systems/economy_and_trade.md`            |
@@ -122,7 +135,7 @@
 
 ## 8. 世界状态传递
 
-- 每一幕结束时，内核把本幕的结局写成一组"世界状态变量"（各分幕文档末尾列出），下一幕的初始化读取它们。
+- 每一幕结束时，内核把本幕的结局写成一组"世界状态变量"（各分幕文档末尾列出，规范名与类型以 [world_state_registry.md](world_state_registry.md) 为准，D-076），下一幕的初始化读取它们。
 - 这些变量也进入 AI 题面：NPC 与女神都"记得"之前发生的事。
 - 规则：世界状态只由内核结算写入；AI 只能通过被校验的动作改变世界状态，不能直接写。
 
@@ -147,15 +160,17 @@
 - 领地与国家都有"自治度"。玩家直接微操（逐个下达建造、分配、调度命令）立刻见效，但会降低自治度；
   通过制度、人才培养、授权 AI 官员来运营，见效慢，但自治度上升，长期效率更高、抗风险更强。
 - 第五幕的多战线决战中，玩家不在场的战线由国家与盟友的 AI 自行结算，结算质量与自治度强相关。
-- 真结局"离手"在第六幕的条件之外，另有显式的国家自治度阈值（`autonomy` 初值 60，待调），并且在决战中不在场战线守住；
+- 真结局"离手"在第六幕的条件之外，另有显式的国家自治度阈值（`autonomy` 不低于 60，常规路线在第五幕第 20 周前后达到，见[成长 13.7][prog]），并且在决战中不在场战线守住；
   各国自治度减神依赖度得出"箱庭离手指数"（`release_index`），与神迹账 E34 合并作为审定输入（D-043）。
 - 这让第六幕玩家对诸神的质问，同时是对玩家自己的质问。
 
 ## 12. 死亡、失败与容错
 
-- 玩家死亡：退回门内（门内庭院复苏）。代价：一段游戏内时间流逝、随身未存放的部分物资遗失在死亡地点、
-  目击者对玩家的印象变化。世界不会等玩家。
-- 同伴与将领：战斗中倒下可在战后救治；在大战中可能永久死亡（剧情与难度设置控制）。
+- 玩家死亡：肉身化为光尘，退回门内庭院复苏。代价以 [千门 6.3](systems/thousand_doors.md) 为准：复苏时长（1 个游戏时辰起）与复苏门疲状态、
+  门疲置为至少 60、可堆叠物品的 25% 与随身钱币的 10% 作为"遗落包"留在死亡之处（保留 3 个游戏日）、已装备物品耐久 -10%（D-072）、
+  目击者对玩家的印象变化。死亡不改变封印松动。世界不会等玩家。
+- 同伴与将领：默认"重伤退场"，战后在门内庭院休养若干游戏日后归队；新游戏时可开启"铁人"规则，同伴与将领会永久死亡（D-073）。
+  铁人与难度无关：任意难度都可在新游戏时开启，开局后可以关闭，关闭不可逆（[同伴与队伍](systems/companions_and_party.md)、[成长 15][prog]）。
 - 纷争失败：不是游戏结束，而是世界状态的一个分支；主线会以不同的初始条件继续。
 - 唯一的"游戏结束"是回收结局，它进入新周目。
 
@@ -163,16 +178,19 @@
 
 | 层             | 角色             | 决策频率                         | 能做什么                                                                  | 不能做什么                                                                                            |
 | -------------- | ---------------- | -------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 造主           | 开发者（运营）   | 版本或活动级                     | 发布天启（世界规则修订）                                                  | 无                                                                                                    |
+| 造主           | 开发者（运营）   | 版本级                           | 发布天启（世界规则修订）：随内容版本发布，另有玩家可关的签名远程源（D-079） | 无                                                                                                    |
 | 女神 GM        | 六个 AI 人格     | 游戏内每天一次规划，重大事件即时 | 在神力预算内使用工具箱干预世界；经越约通道越约（每位每幕至多一次，D-026） | 越约通道之外违反神约；违反正典；直接改数值；替玩家做决定；不经化身或超出敌对预算直接敌对玩家（D-027） |
 | 叙事导演       | 莫伊拉的一项职能 | 持续监测，按需介入               | 调度巧合与喘息，控制揭示节奏                                              | 越过揭示台账；借导演通道实现私心（D-035）                                                             |
 | 势力首领与官员 | AI 人格          | 游戏内每天到每周                 | 在其职权内提出政策、外交、军事动作                                        | 越权；直接决定战斗结果                                                                                |
 | NPC 居民       | AI 人格          | 按日程与事件触发                 | 日常行动、对话、站队、传播传闻                                            | 知道超出其知识层级的事；直接改世界状态                                                                |
 | 内核           | 确定性模拟       | 每 tick                          | 校验并执行动作、结算战斗与经济、写入世界状态                              | 无                                                                                                    |
 
-总原则：**模型提议，内核裁决；正典约束，台账开放；无模型可降级。** 技术细节见 `../50_tech/ai_architecture.md`。
+总原则：**模型提议，内核裁决；正典约束，台账开放；无模型时内置 AI 是完整体验。** 每个角色可单独绑定模型或交给内置 AI，两条路径共用同一套命令与内核裁决（D-067、D-068）。
+技术细节见 [`../50_tech/ai_architecture.md`](../50_tech/ai_architecture.md)、[`../50_tech/llm_providers.md`](../50_tech/llm_providers.md) 与 [systems/builtin_ai.md](systems/builtin_ai.md)。
 
-## 14. 体量目标（概要设计阶段的估算，详细设计时修订）
+## 14. 体量目标
+
+下表是全作的量级目标；逐条的条目与实际计数以内容总纲 [content/content_bible.md](content/content_bible.md) 与各目录为准。
 
 | 项目              | 目标量级                                                                                    |
 | ----------------- | ------------------------------------------------------------------------------------------- |
@@ -181,9 +199,9 @@
 | 主线任务          | 每幕 10 左右，共 60 到 80                                                                   |
 | 支线任务与事件链  | 每幕 15 到 25，加上动态生成事件                                                             |
 | 门（千门回廊）    | 120 到 160 扇（含互斥与隐藏）                                                               |
-| 怪物种类          | 120 以上（大量复用主工程原型并换皮）                                                        |
-| 首领              | 40 左右                                                                                     |
-| 迷宫与地窟        | 15 到 20                                                                                    |
+| 怪物种类          | 120 以上（行为原型复用主工程，外观全部 AI 生成）                                            |
+| 首领              | 约 55（迷宫目录累计），另有澱涌之主 6 到 8                                                   |
+| 迷宫与地窟        | 约 23 处（含浅迷宫与挑战梯，[内容总纲 4.4](content/content_bible.md)）                       |
 | 建筑种类          | 60 到 80                                                                                    |
 | 兵种              | 每个种族 6 到 10，共 50 左右                                                                |
 | 可交互女神        | 6 位（雅努只在梦中与后期出现）                                                              |
@@ -191,12 +209,17 @@
 
 ## 15. 首个可玩版本（垂直切片）
 
-建议先做"序章 + 第一幕"的垂直切片，验证全部核心假设：
+里程碑 M1 垂直切片是"序章与第一幕"，按成品品质交付，验证全部核心假设：
 
 1. AI 女神在序章的自由对话是否有趣、锚点台词是否稳定落地。
 2. 边石镇的 AI 居民社会是否"活"，纷争能否在玩家介入与不介入时都合理演化。
 3. 认知与传闻系统能否稳定产出"凡人不信"的喜剧。
 4. 主工程战斗模拟落到格子平面、在 HD-2D 斜俯视镜头下的手感与可读性。
 5. 千门回廊的"发掘感"。
-6. 无模型降级档能否完整通关。
-   制作计划见 `../60_production/roadmap.md`。
+6. 无模型档（内置 AI）能否作为完整体验通关，且与模型档混合绑定时行为一致（[内置 AI](systems/builtin_ai.md)）。
+7. AI 生成素材（美术与音频）能否以稳定的通过率与一致的风格量产（[美术方案](../50_tech/art_pipeline.md)、[音频](audio_direction.md)）。
+
+里程碑名称全作统一：M0 基线与管线、M1 垂直切片、M2 Alpha（第二、三幕，城建与 RTS）、M3 Beta（第四到第六幕与终章，SLG）、
+M4 内容完成与打磨、M5 发布（1.0）、M6 发布后。制作计划见 [`../60_production/roadmap.md`](../60_production/roadmap.md)。
+
+[prog]: progression_and_pacing.md
