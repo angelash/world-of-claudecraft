@@ -1,22 +1,21 @@
-// Screen-resolution overlay for the world: names, overhead markers, object glyphs,
-// speech bubbles and the exit hint (art_pipeline_2d.md 2.3 "overlay layer" and 7.2).
-// Text is drawn by the interface layer, never baked into sprites. Positions are derived
-// from the same integer world-pixel anchors as the sprites so labels never jitter.
+// Screen-resolution overlay for the world (art_pipeline.md 2.10 and 7.2): names, overhead
+// markers, object glyphs, speech bubbles, floating combat text, the placement label and
+// the exit hint. Text is drawn by the interface layer, never baked into sprites. Both
+// renderers supply a projector from scene points to device pixels, so labels sit on the
+// same feet as the standees in the HD-2D scene and on the sprites in the flat fallback.
 
 import type { SpriteFrame } from '../sprites/generate';
 import { layoutBoxes, wrapText } from './bubbles';
-import { TILE_PX } from './camera';
 import { FLOAT_COLORS } from './floating_text';
 import type { MarkerKind } from './markers';
 import type { Scene, SceneEntity } from './scene';
 
 export interface OverlayFrame {
-  ix: number;
-  iy: number;
-  ox: number;
-  oy: number;
-  zoom: number;
   dpr: number;
+  /** device pixels per sprite pixel (the zoom step) */
+  scale: number;
+  /** device-pixel position of a scene point: tile x, height in metres, tile y */
+  project(x: number, h: number, y: number): { x: number; y: number };
   frameOf(e: SceneEntity): SpriteFrame;
   marker(kind: MarkerKind): HTMLCanvasElement;
 }
@@ -31,9 +30,8 @@ const NAME_COLOR: Record<string, string> = {
 const FONT = 'system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
 
 export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: OverlayFrame): void {
-  const z = f.zoom;
+  const z = f.scale;
   const dpr = f.dpr;
-  const toScreen = (lx: number, ly: number) => ({ x: lx * z + f.ox, y: ly * z + f.oy });
   const heads = new Map<string, { x: number; y: number }>();
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
@@ -42,12 +40,11 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
   for (const it of scene.items) {
     if (it.type !== 'entity') continue;
     const fr = f.frameOf(it);
-    const lx = Math.round(it.x * TILE_PX) - f.ix;
-    const ly = Math.round(it.y * TILE_PX) - f.iy;
-    const head = toScreen(lx, ly - fr.height - 2);
+    const foot = f.project(it.x, 0, it.y);
+    const head = { x: Math.round(foot.x), y: Math.round(foot.y - (fr.height + 2) * z) };
     let top = head.y;
     if (it.glyph) {
-      const p = toScreen(lx, ly - fr.height + 5);
+      const p = { x: head.x, y: Math.round(foot.y - (fr.height - 5) * z) };
       c.font = `bold ${Math.max(8, Math.round(6 * z))}px ${FONT}`;
       c.lineWidth = Math.max(2, Math.round(z));
       c.strokeStyle = 'rgba(30,22,14,0.9)';
@@ -177,7 +174,8 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
   if (scene.placement) {
     const t = scene.placement.tiles[0];
     if (t) {
-      const p = toScreen(t.x * TILE_PX - f.ix, t.y * TILE_PX - f.iy - 4);
+      const g = f.project(t.x, 0, t.y);
+      const p = { x: g.x, y: g.y - 4 * z };
       const s = Math.round(12 * dpr);
       c.font = `${s}px ${FONT}`;
       c.textAlign = 'left';
@@ -193,9 +191,8 @@ export function paintOverlays(c: CanvasRenderingContext2D, scene: Scene, f: Over
   }
 
   if (scene.exitHint) {
-    const lx = Math.round(scene.exitHint.x * TILE_PX) - f.ix;
-    const ly = Math.round(scene.exitHint.y * TILE_PX) - f.iy;
-    const p = toScreen(lx, ly - 18);
+    const g = f.project(scene.exitHint.x, 0, scene.exitHint.y);
+    const p = { x: g.x, y: g.y - 18 * z };
     const s = Math.round(12 * dpr);
     c.font = `${s}px ${FONT}`;
     const w = c.measureText(scene.exitHint.text).width + 12 * dpr;

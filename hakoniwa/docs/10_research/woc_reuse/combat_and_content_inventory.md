@@ -82,7 +82,7 @@
 
 - `IWorld` 是渲染与 UI 访问世界的**唯一**接口，按领域拆成 `src/world_api/<domain>.ts` 的 facet，由 `src/world_api.ts` 汇总。离线 `Sim` 结构性满足它，在线 `ClientWorld`（`src/net/online.ts`）通过镜像服务器快照实现它，成员清单被 `tests/world_api_parity.test.ts` 钉住。
 - 当前 facet 文件约 29 个：action_bar、bank、card_minigame、chat、combat、cosmetics、daily_rewards、deeds、delves、duel_arena、dungeon_finder、dungeons、entity_roster、interaction、inventory、loot、mail、market、party、pet、professions、progression_xp、quests、social_graph、talents、targeting、telemetry、trade、vale_cup。
-- 对《箱庭纪》的意义：新的 2D 像素渲染器与 UI 应照搬"只通过 IWorld 读世界、只通过命令改世界"的边界；具体 facet 需按单机与新系统重新裁剪。
+- 对《箱庭纪》的意义：新的 HD-2D 渲染器（含平面降级档）与 UI 应照搬"只通过 IWorld 读世界、只通过命令改世界"的边界；具体 facet 需按单机与新系统重新裁剪。
 
 ### 1.5 规模指标
 
@@ -680,16 +680,16 @@
 | 功绩 Book of Deeds                                                                | 改造后复用           | 评估器与触发词汇可作为"钥"的判定引擎，也可保留为成就系统                      | 成就保持外观奖励；"钥"另建表，奖励可为能力                                                                                 |
 | PvP（决斗、竞技场、Warfare、Fiesta、Vale Cup、Yumi）                              | 不复用               | 单机为主                                                                      | 决斗可改为 NPC 切磋；Card Duel 可作小游戏参考                                                                              |
 | 社交与经济（队伍、交易、聊天、市场、邮件、公会）                                  | 大部分不复用         | 单机为主                                                                      | 队伍改为同伴编队；银行改为"门内庭院"仓库；市场仅参考                                                                       |
-| 移动与物理（`player_motion.ts`、`physics/`、`climb.ts`）                          | 仅参考               | 3D 跳跃攀爬                                                                   | 2D 版只保留平面移动与滑动碰撞                                                                                              |
+| 移动与物理（`player_motion.ts`、`physics/`、`climb.ts`）                          | 仅参考               | 3D 跳跃攀爬                                                                   | 本作只保留格子平面上的移动与滑动碰撞                                                                                       |
 | 碰撞 `colliders.ts`、视线、寻路                                                   | 改造后复用           | 足迹与视线已是 XZ                                                             | 去高度字段或换瓦片；RTS 需群体寻路                                                                                         |
-| 地形与水 `world.ts`、体素                                                         | 不复用               | 3D 高度场                                                                     | 2D 瓦片地图自建                                                                                                            |
-| 空间网格 `spatial.ts`                                                             | 直接复用             | 纯 2D                                                                         | 无                                                                                                                         |
+| 地形与水 `world.ts`、体素                                                         | 不复用               | 3D 高度场                                                                     | 格子地图自建                                                                                                               |
+| 空间网格 `spatial.ts`                                                             | 直接复用             | 只用 XZ 平面                                                                  | 无                                                                                                                         |
 | `IWorld` 接缝范式                                                                 | 改造后复用           | 渲染/UI 与内核的唯一边界                                                      | facet 按单机与新系统重新裁剪                                                                                               |
-| 3D 渲染 `src/render/`、HUD `src/ui/`                                              | 不复用               | Three.js 与 DOM HUD                                                           | UI 的"纯视图核心 + 薄绘制器"方法可参考                                                                                     |
+| 3D 渲染 `src/render/`、HUD `src/ui/`                                              | 不复用               | 三维模型场景与 DOM HUD，与本作的 HD-2D 像素场景不同                           | Three.js 版本与工程配置可沿用；UI 的"纯视图核心 + 薄绘制器"方法可参考                                                      |
 | sim 英文文本 + 客户端匹配器本地化                                                 | 不复用               | 新作中文为主，匹配器维护成本高                                                | 内核直接发"键 + 参数"的事件                                                                                                |
 | 强化学习环境 `headless/`、`obs.ts`                                                | 改造后复用           | 可训练同伴与英雄 AI、做平衡回归                                               | 去掉跳跃动作；动作集改为动态技能栏                                                                                         |
 | 平衡方法论与工具                                                                  | 直接复用（方法）     | 三剖面、职业差距带、有趣度测试都通用                                          | 工具脚本按新内核重接                                                                                                       |
-| 世界内容替换点 `WorldContent`、`map_doc.ts`、编辑器                               | 仅参考               | 编辑器为 3D                                                                   | 2D 关卡编辑器可借鉴文档校验器思路                                                                                          |
+| 世界内容替换点 `WorldContent`、`map_doc.ts`、编辑器                               | 仅参考               | 编辑器为 3D                                                                   | 俯视格子关卡编辑器可借鉴文档校验器思路                                                                                     |
 
 ### 8.3 专项：主角"隐藏天赋逐步发掘"能否建在现有天赋系统上
 

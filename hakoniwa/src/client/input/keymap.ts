@@ -22,7 +22,11 @@ export type Action =
   | 'quick_save'
   | 'quick_load'
   | 'target_next'
-  | 'appraise';
+  | 'appraise'
+  | 'view_turn_left'
+  | 'view_turn_right'
+  | 'view_toggle'
+  | 'view_reset';
 
 export interface Binding {
   action: Action;
@@ -57,6 +61,10 @@ export const DEFAULT_KEYMAP: Readonly<Record<string, Binding>> = {
   NumpadAdd: { action: 'zoom_in' },
   Minus: { action: 'zoom_out' },
   NumpadSubtract: { action: 'zoom_out' },
+  KeyZ: { action: 'view_turn_left' },
+  KeyX: { action: 'view_turn_right' },
+  KeyG: { action: 'view_toggle' },
+  Home: { action: 'view_reset' },
   KeyP: { action: 'pause' },
   Pause: { action: 'pause' },
   F6: { action: 'quick_save' },

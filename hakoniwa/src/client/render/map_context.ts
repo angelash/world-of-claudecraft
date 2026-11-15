@@ -1,18 +1,21 @@
-// Per-map render data derived once when the player arrives on a map: building roofs,
-// standing props (trees, rocks) and the static lamps by doors. Pure.
+// Per-map render data derived once when the player arrives on a map: the style pack, the
+// scene layout (building shells, free walls, standees, static lights) and the roofs that
+// can open. Both renderers share it, so the flat fallback and the HD-2D scene show the
+// same trees, decor, signs and lamps. Pure.
 
 import type { MapDef } from '../../systems/world/types';
+import { buildLayout, type SceneLayout } from '../hd2d/layout';
+import { type StylePack, stylePackFor } from '../hd2d/style_packs';
 import { type RoofSpec, roofsForMap } from './roofs';
-import { doorLights, type SceneLight } from './scene';
-import { mapProps } from './tile_art';
 
 export interface MapContext {
   map: MapDef;
+  pack: StylePack;
+  layout: SceneLayout;
   roofs: RoofSpec[];
-  props: { kind: 'tree' | 'rock'; tx: number; ty: number; variant: number }[];
-  lights: SceneLight[];
 }
 
 export function buildMapContext(map: MapDef): MapContext {
-  return { map, roofs: roofsForMap(map), props: mapProps(map), lights: doorLights(map) };
+  const pack = stylePackFor(map);
+  return { map, pack, layout: buildLayout(map, pack), roofs: roofsForMap(map) };
 }

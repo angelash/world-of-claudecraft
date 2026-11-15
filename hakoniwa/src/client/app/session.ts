@@ -1,13 +1,25 @@
 // One running game in the browser: owns the engine loop (20 Hz fixed step with 1x, 2x,
-// 4x and pause), render interpolation, the renderer, input, HUD and windows. It wires
-// modules together and keeps per-session state (selection, zoom, map caches, placement
-// mode); the rules live in the pure modules and adapters it calls. Player input is
-// translated in ./player_input.ts.
+// 4x and pause), render interpolation, the renderer (HD-2D scene or flat fallback), input,
+// HUD and windows. It wires modules together and keeps per-session state (selection, the
+// camera view and quality tier, map caches, placement mode); the rules live in the pure
+// modules and adapters it calls. Player input is translated in ./player_input.ts.
 
 import type { Engine } from '../../core/engine';
 import type { World } from '../../core/world';
 import { fmt, T } from '../../shared_ui/text';
 import type { Appearance } from '../../systems/world/types';
+import { createWorldRenderer, hasWebGL2, type QualityId, resolveQuality } from '../hd2d';
+import { isQualityId } from '../hd2d/quality';
+import {
+  defaultPrefs,
+  orbit,
+  sanitizePrefs,
+  stepAt,
+  togglePreset,
+  turn,
+  type ViewPrefs,
+  zoomBy,
+} from '../hd2d/view';
 import { DialogueQueue } from '../hud/dialogue_queue';
 import { Hud } from '../hud/hud';
 import { isQuotaError, type SaveStore, type SlotId, slotLabel } from '../hud/save_slots';
@@ -16,8 +28,7 @@ import { InputController } from '../input/input_controller';
 import { exitOpen, nearestExit, pickEntity } from '../input/picking';
 import { AnimTracker } from '../render/anim_state';
 import { BubbleBoard } from '../render/bubbles';
-import { type Camera, clampZoom, defaultZoom, followCamera, screenToWorld } from '../render/camera';
-import { CanvasWorldRenderer } from '../render/canvas_renderer';
+import { MAX_ZOOM as FLAT_MAX_ZOOM } from '../render/camera';
 import { FloatingBoard } from '../render/floating_text';
 import { InterpBuffer } from '../render/interp';
 import { buildMapContext, type MapContext } from '../render/map_context';
@@ -42,7 +53,7 @@ import {
   type GameView,
 } from '../view/game_view';
 import { registerWindows, WindowManager } from '../windows';
-import type { ClientSettings } from '../windows/window_context';
+import type { ClientSettings, DisplayView } from '../windows/window_context';
 import { FixedStepClock, type Speed } from './clock';
 import { EventRouter } from './event_router';
 import { PlayerInput, type PlayerInputHost } from './player_input';
@@ -68,6 +79,29 @@ export interface SessionOptions {
 }
 
 const HUD_INTERVAL_MS = 250;
+const VIEW_KEY = 'hk.view';
+const QUALITY_KEY = 'hk.quality';
+
+function readPref(key: string): unknown {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePref(key: string, value: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage full or blocked: preferences simply do not persist.
+  }
+}
+
+function isTouch(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+}
 
 interface Placing {
   siteId: string;
@@ -83,7 +117,7 @@ export class GameSession implements PlayerInputHost {
   readonly view: GameView;
   readonly commands: GameCommands;
   readonly adapters: ClientAdapters;
-  readonly renderer: WorldRenderer;
+  renderer: WorldRenderer;
   readonly clock = new FixedStepClock();
   private readonly interp = new InterpBuffer();
   private readonly anim = new AnimTracker();
@@ -95,13 +129,15 @@ export class GameSession implements PlayerInputHost {
   private readonly looks = new WeakMap<Appearance, SpriteLook>();
   readonly hud: Hud;
   readonly windows: WindowManager;
-  private readonly input: InputController;
+  private input: InputController;
   private readonly actions: PlayerInput;
   private readonly router: EventRouter;
   private readonly unsubscribe: () => void;
   private mapCtx: MapContext | null = null;
-  zoom = 0;
-  camera: Camera | null = null;
+  private viewPrefs: ViewPrefs | null = null;
+  private prefsTimer: ReturnType<typeof setTimeout> | undefined;
+  private quality: QualityId = 'auto';
+  private readonly webgl = hasWebGL2();
   selection: string | null = null;
   private hover: string | null = null;
   moveTarget: { x: number; y: number; at: number } | null = null;
@@ -118,10 +154,12 @@ export class GameSession implements PlayerInputHost {
     this.adapters = opts.adapters;
     this.view = createGameView(opts.engine);
     this.commands = createGameCommands(opts.engine);
-    const canvas = document.createElement('canvas');
-    canvas.className = 'hk-world';
-    opts.root.append(canvas);
-    this.renderer = new CanvasWorldRenderer(canvas);
+    const q = readPref(QUALITY_KEY);
+    this.quality = isQualityId(q) ? q : 'auto';
+    this.renderer = createWorldRenderer(
+      resolveQuality(this.quality, { touch: isTouch(), webgl: this.webgl }),
+    );
+    this.renderer.mount(opts.root);
     this.actions = new PlayerInput(this);
     const a = opts.adapters;
 
@@ -173,6 +211,9 @@ export class GameSession implements PlayerInputHost {
         closeWindow: (id) => this.windows.close(id),
         beginPlacement: (siteId, defId, name) => this.beginPlacement(siteId, defId, name),
         select: (id) => this.select(id),
+        display: () => this.display(),
+        setQuality: (id) => this.setQuality(id),
+        setViewPreset: (preset) => this.setViewPreset(preset),
       },
     });
 
@@ -200,8 +241,20 @@ export class GameSession implements PlayerInputHost {
       this.router.handle(events, performance.now()),
     );
 
-    this.input = new InputController(
-      canvas,
+    this.input = this.bindInput();
+
+    window.addEventListener('resize', this.onResize);
+    this.resize();
+    this.enterMap();
+    if (opts.greeting) this.hud.log.push({ text: opts.greeting, category: 'system' });
+    if (a.trade?.session(this.view)) this.windows.show('trade');
+    this.renderStory();
+    this.refreshHud(true);
+  }
+
+  private bindInput(): InputController {
+    return new InputController(
+      this.renderer.canvas,
       {
         intent: (i) => this.actions.intent(i),
         action: (act, b) => this.actions.action(act, b),
@@ -215,18 +268,13 @@ export class GameSession implements PlayerInputHost {
           this.hover = pickEntity(this.renderer.hitBoxes(), sx, sy);
           if (this.placing) this.movePlacement(sx, sy);
         },
-        zoom: (d) => this.setZoom(this.zoom + d),
+        zoom: (d) => this.zoomBy(d),
+        orbit: (dx, dy) => {
+          if (this.renderer.kind === 'hd2d') this.setPrefs(orbit(this.prefs(), dx, dy));
+        },
       },
       () => this.renderer.dpr,
     );
-
-    window.addEventListener('resize', this.onResize);
-    this.resize();
-    this.enterMap();
-    if (opts.greeting) this.hud.log.push({ text: opts.greeting, category: 'system' });
-    if (a.trade?.session(this.view)) this.windows.show('trade');
-    this.renderStory();
-    this.refreshHud(true);
   }
 
   start(): void {
@@ -242,13 +290,14 @@ export class GameSession implements PlayerInputHost {
   dispose(): void {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    clearTimeout(this.prefsTimer);
+    if (this.viewPrefs) writePref(VIEW_KEY, this.viewPrefs);
     window.removeEventListener('resize', this.onResize);
     this.unsubscribe();
     this.input.dispose();
     this.windows.dispose();
     this.hud.dispose();
     this.renderer.dispose();
-    this.renderer.canvas.remove();
   }
 
   // -------------------------------------------------------------------------
@@ -272,8 +321,73 @@ export class GameSession implements PlayerInputHost {
     this.refreshHud(true);
   }
 
-  setZoom(z: number): void {
-    this.zoom = clampZoom(z);
+  // -------------------------------------------------------------------------
+  // Camera view and quality (art_pipeline.md 1.2 and 2.11)
+
+  private prefs(): ViewPrefs {
+    if (!this.viewPrefs) this.viewPrefs = sanitizePrefs(readPref(VIEW_KEY), this.renderer.deviceH);
+    return this.viewPrefs;
+  }
+
+  private setPrefs(p: ViewPrefs): void {
+    const turned = !this.viewPrefs || this.viewPrefs.yaw !== p.yaw;
+    this.viewPrefs = p;
+    // Orbiting changes the prefs on every pointer move; store them once it settles.
+    clearTimeout(this.prefsTimer);
+    this.prefsTimer = setTimeout(() => writePref(VIEW_KEY, this.viewPrefs), 400);
+    if (turned) this.actions.viewTurned();
+  }
+
+  zoomBy(delta: number): void {
+    const next = zoomBy(this.prefs(), delta);
+    // The flat renderer stops at its own largest zoom; do not walk past it.
+    if (this.renderer.kind === 'flat' && stepAt(next.stepIndex) > FLAT_MAX_ZOOM) return;
+    this.setPrefs(next);
+  }
+
+  turnView(dir: 1 | -1): void {
+    if (this.renderer.kind === 'hd2d') this.setPrefs(turn(this.prefs(), dir));
+  }
+
+  toggleViewPreset(): void {
+    if (this.renderer.kind === 'hd2d') this.setPrefs(togglePreset(this.prefs()));
+  }
+
+  resetView(): void {
+    this.setPrefs(defaultPrefs(this.renderer.deviceH));
+  }
+
+  viewYaw(): number {
+    return this.renderer.kind === 'hd2d' ? this.prefs().yaw : 0;
+  }
+
+  setViewPreset(preset: 'street' | 'overview'): void {
+    const p = this.prefs();
+    const want = preset === 'street' ? 'street' : 'overview';
+    const isStreet = p.pitch < 50;
+    if ((want === 'street') !== isStreet) this.toggleViewPreset();
+  }
+
+  display(): DisplayView {
+    return { quality: this.quality, renderer: this.renderer.kind, webgl: this.webgl };
+  }
+
+  setQuality(id: QualityId): void {
+    this.quality = id;
+    writePref(QUALITY_KEY, id);
+    const q = resolveQuality(id, { touch: isTouch(), webgl: this.webgl });
+    const want = q.tier === 'flat' ? 'flat' : 'hd2d';
+    if (want === this.renderer.kind) {
+      this.renderer.setQuality(q);
+      return;
+    }
+    this.input.dispose();
+    this.renderer.dispose();
+    this.renderer = createWorldRenderer(q);
+    this.renderer.mount(this.opts.root);
+    this.input = this.bindInput();
+    this.resize();
+    if (this.mapCtx) this.renderer.setMap(this.mapCtx);
   }
 
   togglePause(): void {
@@ -284,7 +398,7 @@ export class GameSession implements PlayerInputHost {
   }
 
   worldPoint(sx: number, sy: number): { x: number; y: number } | null {
-    return this.camera ? screenToWorld(this.camera, sx, sy) : null;
+    return this.renderer.screenToGround(sx, sy);
   }
 
   pick(sx: number, sy: number): string | null {
@@ -389,6 +503,7 @@ export class GameSession implements PlayerInputHost {
           id: e.id,
           alive: e.alive,
           facing: e.facing,
+          yawDeg: this.viewYaw(),
           moving: this.interp.moving(e.id),
           travelled: this.interp.travelled(e.id),
         },
@@ -407,12 +522,24 @@ export class GameSession implements PlayerInputHost {
     this.anim.retain(ids);
     if (this.selection && !ids.has(this.selection)) this.select(null);
 
-    const r = this.renderer;
-    if (!this.zoom) this.zoom = defaultZoom(r.deviceW, r.deviceH);
-    const at = followCamera(playerPos, map.width, map.height, r.deviceW, r.deviceH, this.zoom);
-    this.camera = { zoom: this.zoom, x: at.x, y: at.y, viewW: r.deviceW, viewH: r.deviceH };
+    const prefs = this.prefs();
+    const view = {
+      focusX: playerPos.x,
+      focusY: playerPos.y,
+      step: stepAt(prefs.stepIndex),
+      pitch: prefs.pitch,
+      yaw: this.viewYaw(),
+    };
 
-    this.roofs.update(dt, roofsToOpen(ctx.roofs, playerPos), ctx.roofs);
+    // Open the roof over the player, over the selected figure, and every roof while placing
+    // a building, so nothing the player acts on hides under a roof (art_pipeline.md 5.6).
+    const extraOpen: string[] = [];
+    if (this.placing) extraOpen.push(...ctx.roofs.map((r) => r.locationId));
+    const sel = this.selection ? this.view.entity(this.selection) : undefined;
+    if (sel) {
+      for (const r of roofsToOpen(ctx.roofs, sel)) extraOpen.push(r);
+    }
+    this.roofs.update(dt, roofsToOpen(ctx.roofs, playerPos, extraOpen), ctx.roofs);
 
     let exitHint: { x: number; y: number; text: string } | null = null;
     const exit = nearestExit(map, playerPos);
@@ -429,35 +556,33 @@ export class GameSession implements PlayerInputHost {
       if (ne) exitHint = { x: ne.x, y: ne.y - 1.6, text: T.prompts.talk };
     }
 
-    const scene = buildScene(
-      {
-        map,
-        camera: this.camera,
-        timeMs: now,
-        playerId: player.id,
-        calendar: this.view.calendar(),
-        weather: this.view.weather(),
-        entities,
-        props: ctx.props,
-        roofs: ctx.roofs,
-        roofOpenness: (id) => this.roofs.openness(id),
-        selection: this.selection,
-        hover: this.hover,
-        bubbles: this.bubbles.active(now),
-        floats: this.floats.active(now),
-        extraLights: (this.adapters.lights?.lights(this.view, map.id) ?? []).map((l) => ({
-          ...l,
-          intensity: l.intensity ?? 1,
-        })),
-        moveTarget: this.moveTarget
-          ? { x: this.moveTarget.x, y: this.moveTarget.y, ageMs: now - this.moveTarget.at }
-          : null,
-        exitHint: this.inScene() ? null : exitHint,
-        placement: this.placing?.preview ?? null,
-      },
-      ctx.lights,
-    );
-    r.render(scene);
+    const scene = buildScene({
+      map,
+      view,
+      timeMs: now,
+      playerId: player.id,
+      calendar: this.view.calendar(),
+      weather: this.view.weather(),
+      entities,
+      standees: ctx.layout.standees,
+      staticLights: ctx.layout.lights,
+      roofs: ctx.roofs,
+      roofOpenness: (id) => this.roofs.openness(id),
+      selection: this.selection,
+      hover: this.hover,
+      bubbles: this.bubbles.active(now),
+      floats: this.floats.active(now),
+      extraLights: (this.adapters.lights?.lights(this.view, map.id) ?? []).map((l) => ({
+        ...l,
+        intensity: l.intensity ?? 1,
+      })),
+      moveTarget: this.moveTarget
+        ? { x: this.moveTarget.x, y: this.moveTarget.y, ageMs: now - this.moveTarget.at }
+        : null,
+      exitHint: this.inScene() ? null : exitHint,
+      placement: this.placing?.preview ?? null,
+    });
+    this.renderer.render(scene);
   }
 
   private enterMap(): void {
@@ -465,7 +590,7 @@ export class GameSession implements PlayerInputHost {
     if (!map) return;
     if (this.mapCtx?.map.id === map.id) return;
     this.mapCtx = buildMapContext(map);
-    this.renderer.setMap(map);
+    this.renderer.setMap(this.mapCtx);
     this.interp.clear();
     this.roofs.reset();
     this.bubbles.clear();
@@ -479,7 +604,6 @@ export class GameSession implements PlayerInputHost {
   private resize(): void {
     const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
     this.renderer.resize(window.innerWidth, window.innerHeight, dpr);
-    this.zoom = clampZoom(this.zoom || defaultZoom(this.renderer.deviceW, this.renderer.deviceH));
   }
 
   refreshHud(force: boolean, now = performance.now()): void {

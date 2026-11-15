@@ -2,10 +2,10 @@
 
 > 归属：`docs/50_tech/`（技术方案，正典优先级第 5 级）。与 `../20_world/`、`../00_vision/` 冲突时以后者为准，并回头修订本文。
 > 作用：回答《箱庭纪》的每个系统"从哪里来、怎么拿、拿多少、哪些绝不能拿"。
-> 约束：`../00_vision/decision_log.md` 的 D-004（战斗复用确定性 sim 并 2D 化）、D-005（等级上限 60）、D-006（九职能换皮，编外者伪职业）、
-> D-015（主工程商标名、不可再分发图标、非商用音效不进入本作）、D-017（my_ai_town 只借鉴方法）、D-018（自建生图管线），以及未决问题 Q-001（代码组织）。
+> 约束：`../00_vision/decision_log.md` 的 D-003（场景视觉沿用 my_ai_town 的 HD-2D 方案）、D-004（战斗复用确定性 sim，在格子平面上计算）、D-005（等级上限 60）、D-006（九职能换皮，编外者伪职业）、
+> D-015（主工程商标名、不可再分发图标、非商用音效不进入本作）、D-017（my_ai_town 只借鉴方法）、D-018（素材程序化优先），以及未决问题 Q-001（代码组织）。
 > 核对基线：主工程 `main` 分支提交 `cd961d3210`（与调研同一基线）。引用代码只写稳定路径与导出符号，不写行号；数量均为近似，以源码为准。
-> 姊妹文档：2D 表现与素材管线见 [art_pipeline_2d.md](art_pipeline_2d.md)；AI 运行时见 [ai_architecture.md](ai_architecture.md)；
+> 姊妹文档：场景表现与素材方案见 [art_pipeline.md](art_pipeline.md)；AI 运行时见 [ai_architecture.md](ai_architecture.md)；
 > 城建、RTS 的玩法细节见 [city_building.md](../40_design/systems/city_building.md)、[warfare_rts.md](../40_design/systems/warfare_rts.md)；
 > 战斗、千门见 `../40_design/systems/combat_and_classes.md`、`../40_design/systems/thousand_doors.md`（待撰写）。
 > 标注约定：【待决策 R-xx】表示需要上层拍板的技术取舍，本文只给选项、比较与推荐。
@@ -16,12 +16,13 @@
    只借结构与方法，代码、像素、图标、音乐、地图数据、提示词原文一样不拿；open-share 是资料库，只取方法，其中索引的开源项目许可另行核验。
 2. **战斗内核整体带走。** 20 Hz 确定性 tick、`Rng`、`SimEvent`、`SimContext` 接缝、`src/sim/combat/` 战斗引擎、全套技能效果词汇（`AbilityEffect`）、
    光环类型（`AuraKind`）、仇恨、法术系数、怪物模板与词缀、宠物、任务引擎，都是"直接复用"。
-3. **改造集中在六件事：** 2D 化五处（地形、边界、水体、垂直运动、碰撞表示）；等级 20 到 60；多资源模型；编外者伪职业；
+3. **改造集中在六件事：** 格子平面化五处（地形、边界、水体、垂直运动、碰撞表示）；等级 20 到 60；多资源模型；编外者伪职业；
    门效果建在天赋效果层（`TalentEffect`、`TalentModifiers`、`ProcDef`）；钥的判定复制功绩评估器模式另建表。
 4. **在线多人整体丢弃：** 世界市场、邮件、交易、聊天频道、竞技场、PvP 评级、Fiesta、Vale Cup、Protect Yumi、Card Duel、地下城查找器、
    监狱与审核、Discord 与持有者等级等。3D 渲染器、地形高度场与体素不带。
 5. **表现层只带方法与纯核心。** WoC 的渲染器与 HUD 不复用；少数 DOM 无关的纯核心（浮动战斗文字描述、施法条状态、仇恨牌判定、光环分类）
-   可改造后复用；"纯核心 + 薄绘制器"、写入省略、画质档与公平性原则照搬。
+   可改造后复用；"纯核心 + 薄绘制器"、写入省略、画质档与公平性原则照搬。HD-2D 场景沿用 my_ai_town 的方案与做法（D-003），
+   代码在本作内自行实现；渲染依赖 `three` 与 WoC 同版本。
 6. **代码组织（Q-001）推荐：** 实现期用独立仓库，按固定提交拷贝 WoC 的 `src/sim/` 并附来源记录与上游同步脚本；
    不推荐直接引用主工程源码，因为 `types.ts` 与协调器必然被改。【待决策 R-01】
 7. **工程原则大部分照搬：** 确定性、模块优先、接缝、测试密度、分层 QA 门、依赖极少、图形设置公平、生成文件不手改、文档锚点规则。
@@ -46,7 +47,7 @@
 | 方式       | 含义                                                      | 适用来源                          |
 | ---------- | --------------------------------------------------------- | --------------------------------- |
 | 直接复用   | 代码或数据结构原样带走，只改命名、配置与入口              | 仅 WoC                            |
-| 改造后复用 | 主体带走，按 2D、单机、60 级、编外者、城建与 RTS 接口改造 | 仅 WoC                            |
+| 改造后复用 | 主体带走，按格子平面、单机、60 级、编外者、城建与 RTS 接口改造 | 仅 WoC                            |
 | 仅借鉴方法 | 借结构、流程、规则与审美目标，代码与数据自行编写          | 三类均可；my_ai_town 最多到这一级 |
 | 不复用     | 与方向不符或许可不允许                                    |                                   |
 | 新做       | 三类来源都没有                                            |                                   |
@@ -72,8 +73,8 @@
 | 空间网格与平面几何                                                                 | WoC `spatial.ts`（`SpatialGrid`）、`geometry2d.ts`                                                                             | 直接复用                                          | 无                                                                                                                     | 无                                                  | MIT      |
 | 碰撞、视线、寻路                                                                   | WoC `colliders.ts`（`resolvePosition`、`lineOfSightClear`）、`physics/`、`pathfind.ts`（`findPath`）                           | 改造后复用                                        | 去高度字段；第一版保留圆形与 OBB 连续碰撞【待决策 R-03】；RTS 群体寻路另做                                             | 视线与渲染遮挡不一致                                | MIT      |
 | 玩家移动与操作                                                                     | WoC `player_motion.ts`（`stepPlayerMotion`）、`move_input.ts`（`sanitizeMoveInput`）                                           | 改造后复用                                        | 关闭垂直分支；`MoveInput` 现为坦克式（前后、转向、平移、跳跃），需加"方向向量"输入模式或施法自动面向目标（对应 Q-002） | 操作手感                                            | MIT      |
-| 地形、水体、体素                                                                   | WoC `world.ts`、`voxel.ts`、`voxel_mesh.ts`、`content/tunnels.ts`                                                              | `world.ts` 改造后复用（常数高度开关）；体素不复用 | 2D 地图与水体由本作地图文档提供                                                                                        | 原由陡坡提供的边界与隔断丢失（3.5）                 | MIT      |
-| 战斗表现（2D）                                                                     | 无（WoC 是 3D，my_ai_town 无战斗）                                                                                             | 新做                                              | 见 [art_pipeline_2d.md](art_pipeline_2d.md) 第 4 节                                                                    | 可读性                                              | 不适用   |
+| 地形、水体、体素                                                                   | WoC `world.ts`、`voxel.ts`、`voxel_mesh.ts`、`content/tunnels.ts`                                                              | `world.ts` 改造后复用（常数高度开关）；体素不复用 | 格子地图与水体由本作地图文档提供                                                                                        | 原由陡坡提供的边界与隔断丢失（3.5）                 | MIT      |
+| 战斗表现（HD-2D 场景）                                                             | 无（WoC 是 3D 模型场景，my_ai_town 无战斗）                                                                                    | 新做                                              | 见 [art_pipeline.md](art_pipeline.md) 第 4 节                                                                    | 可读性                                              | 不适用   |
 
 ### 2.2 职能、成长与内容
 
@@ -122,8 +123,8 @@
 
 | 本作系统                                                                      | 来源                                                                                          | 复用方式                             | 改造要点                                                                                                 | 主要风险                 | 许可状态     |
 | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------ | ------------ |
-| 地图文档三层（逻辑拓扑、显示布局、空间）                                      | my_ai_town 地图文档与生成器                                                                   | 仅借鉴方法                           | 自定义文档格式；画风与玩法语义分离                                                                       | 无                       | 方法（禁拷） |
-| 统一校验器（手写、生成、玩家摆放、AI 规划都过同一校验，输出机器码加人话原因） | my_ai_town 校验器思路；WoC `map_doc.ts`（自定义地图文档与校验）                               | 仅借鉴方法                           | 自行实现；原因码与画面证据见 art_pipeline_2d.md 第 5 节                                                  | 无                       | 方法         |
+| 地图文档三层（逻辑、空间、外观）                                              | my_ai_town 地图文档与生成器                                                                   | 仅借鉴方法                           | 自定义文档格式；外观层（风格包、建筑外观、装饰）只有渲染器读，画风与玩法语义分离                                                                       | 无                       | 方法（禁拷） |
+| 统一校验器（手写、生成、玩家摆放、AI 规划都过同一校验，输出机器码加人话原因） | my_ai_town 校验器思路；WoC `map_doc.ts`（自定义地图文档与校验）                               | 仅借鉴方法                           | 自行实现；原因码与画面证据见 art_pipeline.md 第 5.5 节                                                  | 无                       | 方法         |
 | 建筑与设施数据合同（容量、供能、生产队列、升级事务、维护欠缴三段）            | open-share 修仙 GDD 的洞府设施规格                                                            | 仅借鉴方法                           | 数值为 design_only，只取结构                                                                             | 数值未验证               | 方法         |
 | 资源点与工站、配方                                                            | WoC `professions/`、`content/gather_nodes.ts`、`content/recipes.ts`、`content/professions.ts` | 改造后复用                           | 从"个人背包经济"扩展到"领地库存经济"；采集点与工站映射为城建资源点与建筑                                 | 专业系统体量大，按需裁剪 | MIT          |
 | 经济与物价                                                                    | open-share 经济资料（供给链审计、通胀监控、价格分解）                                         | 仅借鉴方法                           | 女神调价走注册修正项（D-013）                                                                            | 无                       | 方法         |
@@ -137,18 +138,19 @@
 
 | 本作系统                                                                  | 来源                                                                                                                                                                                                    | 复用方式                                         | 改造要点                                                                                                | 主要风险                      | 许可状态     |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------ |
-| 3D 渲染器                                                                 | WoC `src/render/`                                                                                                                                                                                       | 不复用（代码）；仅借鉴方法                       | 画质档 `gfx.ts` 的思路、自适应预算 `render_budget.ts` 的思路、纯核心登记 `RENDER_PURE_CORES` 的做法照搬 | 无                            | MIT          |
+| 3D 渲染器                                                                 | WoC `src/render/`                                                                                                                                                                                       | 不复用（代码）；仅借鉴方法                       | 画质档 `gfx.ts` 的思路、自适应预算 `render_budget.ts` 的思路、纯核心登记 `RENDER_PURE_CORES` 的做法照搬；`three` 与 WoC 同版本 | 无                            | MIT          |
 | HUD 框架                                                                  | WoC `src/ui/hud.ts` 及窗口                                                                                                                                                                              | 不复用（代码）；仅借鉴方法                       | "纯视图核心 + 薄绘制器"、`PainterHost` 写入省略、焦点管理、无障碍契约照搬                               | 无                            | MIT          |
 | 战斗表现纯核心                                                            | WoC `src/ui/fct_core.ts`（`describeFct`）、`src/render/cast_bar.ts`（`castBarState`）、`src/render/nameplate_threat.ts`（`isMobThreateningViewer`）、`src/ui/auras_view.ts`、`src/sim/aura_classify.ts` | 改造后复用                                       | 去 3D 投影假设；颜色只出类别令牌；新增门、钥、声望等浮字类别                                            | 依赖 WoC 的 `Entity` 字段形状 | MIT          |
 | 程序化图标                                                                | WoC `src/ui/icons.ts`（`iconDataUrl`、`IconRecipe`）                                                                                                                                                    | 改造后复用（仅程序化配方部分，作为缺图时的占位） | 不带 `ABILITY_IMAGE_IDS` 指向的 CraftPix 图片                                                           | 误把图片清单一起带走          | MIT          |
 | i18n 框架与格式化                                                         | WoC `src/ui/i18n.ts`（`t`、`formatNumber`、`formatMoney`、`formatDateTime`）、`src/ui/i18n.catalog/` 的分域目录结构                                                                                     | 改造后复用                                       | 源语言改为中文；内核发"键 + 参数"，不走英文正则匹配器 `src/ui/sim_i18n.ts`【待决策 R-04】               | 匹配器维护成本                | MIT          |
-| HD-2D 观感（光照图、抖动过渡、LUT、泛光、移轴、立牌深度规则、掀屋顶溶解） | my_ai_town `frontend/town-2d/src/map/hd2d/`                                                                                                                                                             | 仅借鉴方法                                       | 纯 2D 重新实现；见 art_pipeline_2d.md 第 1、2 节                                                        | 照着源码改写等同拷贝          | 方法（禁拷） |
-| 参数化纸娃娃                                                              | my_ai_town `VillagerLook`、字母格模板思路                                                                                                                                                               | 仅借鉴方法                                       | 自建部件库与体型模板，扩战斗动作与魔物体型                                                              | 同上                          | 方法（禁拷） |
-| 风格包                                                                    | my_ai_town `MapTheme`、`STYLE_PRESETS` 的思路                                                                                                                                                           | 仅借鉴方法                                       | 每个地域一份风格包，生图、后处理、渲染调色读同一份                                                      | 同上                          | 方法（禁拷） |
+| HD-2D 场景（正交斜俯视相机、像素贴图地面与立体房屋、立牌深度规则、光照图与太阳阴影、抖动过渡、调色、泛光、移轴、掀顶溶解） | my_ai_town `frontend/town-2d/src/map/hd2d/`                                                                                                                                                             | 仅借鉴方法                                       | 按同一做法在本作内自行实现（Three.js 三维场景）；见 [art_pipeline.md](art_pipeline.md) 第 1、2 节                                                        | 照着源码改写等同拷贝          | 方法（禁拷） |
+| 参数化纸娃娃                                                              | my_ai_town `VillagerLook`、字母格模板思路                                                                                                                                                               | 仅借鉴方法                                       | 自建部件库与体型模板，扩战斗动作与魔物体型；见 [art_pipeline.md](art_pipeline.md) 第 3 节                                                              | 同上                          | 方法（禁拷） |
+| 风格包                                                                    | my_ai_town `MapTheme`、`STYLE_PRESETS` 的思路                                                                                                                                                           | 仅借鉴方法                                       | 每个地域一份风格包（地块色阶、建筑外观候选、树形、光照与胶片调色），程序化模板与渲染调色读同一份；见 [art_pipeline.md](art_pipeline.md) 第 1.4 节                                                      | 同上                          | 方法（禁拷） |
+| 程序化素材（"模型挑参数，代码出像素"） | my_ai_town 的逐像素绘制与积木建筑思路 | 仅借鉴方法 | 场景素材全部由本作代码模板在运行时绘制，不加载 GLB；见 [art_pipeline.md](art_pipeline.md) 第 6 节 | 照着源码改写等同拷贝 | 方法（禁拷） |
 | AI 行为的画面映射（心声、发言卡、动态列表、头顶符号）                     | my_ai_town `town-shared/src/` 的 UI 映射                                                                                                                                                                | 仅借鉴方法                                       | 自行设计；女神神谕、神之视线、传闻为新增                                                                | 同上                          | 方法（禁拷） |
 | 录像重演与素材工厂                                                        | my_ai_town 录像与导演脚本                                                                                                                                                                               | 仅借鉴方法                                       | 基于本作输入日志与回放世界实现                                                                          | 无                            | 方法（禁拷） |
-| 2D 像素的 3D 结构技巧                                                     | open-share《山海旅人2》演讲整理                                                                                                                                                                         | 仅借鉴方法                                       | 像素对齐、世界空间像素化、贴花层、深度用法                                                              | 无                            | 方法         |
-| 2D 光影与程序化地图                                                       | open-share Unite 2024 URP 2D 光影资料                                                                                                                                                                   | 仅借鉴方法                                       | 室内外光照图、遮挡、迷雾 RT                                                                             | 无                            | 方法         |
+| 像素画面的 3D 结构技巧                                                    | open-share《山海旅人2》演讲整理                                                                                                                                                                         | 仅借鉴方法                                       | 像素对齐、世界空间像素化、贴花层、深度用法                                                              | 无                            | 方法         |
+| 光照图、遮挡与迷雾                                                        | open-share Unite 2024 URP 2D 光影资料                                                                                                                                                                   | 仅借鉴方法                                       | 室内外光照图、遮挡、迷雾 RT                                                                             | 无                            | 方法         |
 | 桌面壳                                                                    | WoC `electron/` 与 `docs/desktop-release.md`                                                                                                                                                            | 改造后复用                                       | 去 WoC 品牌与商店特定逻辑                                                                               | 品牌残留                      | MIT          |
 | 单文件离线版                                                              | 本仓库工作区未提交的 `src/standalone/`、`scripts/standalone/`                                                                                                                                           | 仅借鉴方法                                       | 证明了"浏览器内单机存档"路径可行                                                                        | 未提交、未定型                | 未定         |
 
@@ -164,15 +166,15 @@
 | 质量门                                         | WoC `.claude/hooks/qa-stop.sh`、`.githooks/pre-push`、`npm run gate` 的分层思路、`.claude/agents/` 评审代理                                                                           | 改造后复用                           | 见第 5 节                                                                | 无                                 | MIT                 |
 | 工具链                                         | WoC 的 TypeScript 严格模式、Vite、esbuild、Vitest、Biome 配置                                                                                                                         | 直接复用                             | 版本钉在独立仓库自己的 `package.json`                                    | 无                                 | MIT（工具各自许可） |
 | 文档体系与评审门                               | WoC 执行方案的方法论（[internal_playbooks.md](../10_research/woc_reuse/internal_playbooks.md)）、open-share 方法论                                                                    | 仅借鉴方法                           | 决策日志只追加、按层评审                                                 | 无                                 | 方法                |
-| 生图流程（参考图、遮罩、运行清单、单变量迭代） | open-share `docs/ai-character-replace.md`、`scripts/ai_character_replace_pipeline.py`、`comfyui_workflows/ai_character_replace_api.json`、`skills/local-ai-video-generation/SKILL.md` | 仅借鉴方法                           | 见 art_pipeline_2d.md 第 6.11 节                                         | 该工作流文件是节点清单而非可运行图 | 方法                |
 
 ### 2.7 素材
 
 | 素材                                                  | 来源                         | 复用方式 | 说明                                                                                                               | 许可状态                |
 | ----------------------------------------------------- | ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| 全部 2D 美术                                          | 本作自建管线（D-003、D-018） | 新做     | 见 art_pipeline_2d.md                                                                                              | 自有                    |
+| 全部场景素材与人物（程序化模板、风格包、纸娃娃）     | 本作代码（D-003、D-018）     | 新做     | 运行时由代码绘制，见 [art_pipeline.md](art_pipeline.md) 第 6 节                                                   | 自有                    |
+| 位图例外（UI 图标图集、渲染器拍的封面与宣传图）       | 本作自制                     | 新做     | 见 [art_pipeline.md](art_pipeline.md) 第 6.4 节                                                                   | 自有                    |
 | my_ai_town 道具像素图、厚涂图标图集、封面、logo、音乐 | my_ai_town                   | 不复用   | D-017                                                                                                              | 禁用                    |
-| WoC 3D 模型与贴图                                     | WoC `public/`                | 不复用   | 本作是纯 2D；其中 CC0 包（KayKit、Quaternius、Kenney 等）如需作为生图的结构参考，从原始发布处获取，不从 WoC 仓库取 | CC0 可用，其余见第 6 节 |
+| WoC 3D 模型与贴图                                     | WoC `public/`                | 不复用   | 本作不加载 GLB（D-018）；其中 CC0 包（KayKit、Quaternius、Kenney 等）如需作为仓库外的造型参考，从原始发布处获取，不从 WoC 仓库取 | CC0 可用，其余见第 6 节 |
 | WoC 技能图标 `public/ui/skills/`                      | WoC                          | 不复用   | CraftPix 购买许可只授予 Levy Street，不可再分发                                                                    | 禁用                    |
 | WoC 音效与音乐                                        | WoC `public/audio/`          | 不复用   | @jamiecypher 音效为 CC BY-NC，商用授权不随分叉转移；配乐为"仅随本项目"                                             | 禁用                    |
 | Kenney 等 CC0 音效                                    | 原始发布处                   | 可用     | 不经 my_ai_town 或 WoC 转手，直接从发布处取并登记                                                                  | CC0                     |
@@ -239,11 +241,11 @@
 | PvP 与小游戏       | `social/duel.ts`（决斗规则仅参考，可改为 NPC 切磋）、`social/arena.ts`、`pvp/`、`content/pvp_honor.ts`、`social/fiesta.ts`、`social/fiesta_bots.ts`（仅留作参考）、`content/augments.ts`、`social/vale_cup.ts`、`social/vale_cup_bots.ts`、`vale_cup_ball.ts`、`vale_cup_layout.ts`、`content/vale_cup.ts`、`social/yumi.ts`、`yumi_maze_layout.ts`、`content/yumi.ts`、`social/card_duel.ts`、`social/card_duel_queue.ts`、`minigames/card_hand.ts`、`instances/card_master.ts`、`content/card_master.ts` | 单人主线；卡牌小游戏若需要另行设计              |
 | 运营与账号         | `jail.ts`、`discord_relay.ts`、`discord_roles.ts`、`discord_tier.ts`、`holder_tier.ts`、`account_flair.ts`、`client_challenge.ts`、`leaderboard_page.ts`、`character_rename.ts`、`dev_tier.ts`                                                                                                                                                                                                                                                                                                             | 在线运营专属                                    |
 | 商城外观           | `content/skins.ts`、`content/weapon_skins.ts`、`content/weapon_skin_rules.ts`、`content/ptr_dev_vendor.ts`、`instances/heroic_vendor.ts`、`content/heroic_vendor.ts`                                                                                                                                                                                                                                                                                                                                       | 与本作经济无关                                  |
-| 3D 地形与攀爬      | `voxel.ts`、`voxel_mesh.ts`、`content/tunnels.ts`、`climb.ts`、`physics/ledge.ts`、`decoration_dims.ts`                                                                                                                                                                                                                                                                                                                                                                                                    | 纯 2D                                           |
+| 3D 地形与攀爬      | `voxel.ts`、`voxel_mesh.ts`、`content/tunnels.ts`、`climb.ts`、`physics/ledge.ts`、`decoration_dims.ts`                                                                                                                                                                                                                                                                                                                                                                                                    | 内核在格子平面上计算（D-004），地形高度与攀爬不进内核 |
 | WoC 世界布局与内容 | `eastbrook_layout.ts`、`dock_layout.ts`、`banker_chest_layout.ts` 等布局叶子，`content/zone1.ts` 到 `zone3.ts`、`content/temple.ts`、`content/letters.ts`、`content/mailboxes.ts`、`removed_zone1_content.ts`                                                                                                                                                                                                                                                                                              | 世界观与地名完全不同，结构仅参考                |
 | 首领与地窟脚本     | `encounters/nythraxis.ts`、`delves/drowned_litany_*.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 仅作脚本写法参考，不带入本作代码                |
 
-### 3.5 改造专项 A：2D 化五处改动
+### 3.5 改造专项 A：格子平面化五处改动
 
 依据：[combat_and_content_inventory.md](../10_research/woc_reuse/combat_and_content_inventory.md) 第 1.6、1.7 节。战斗、内容、AI、观测层天然是 XZ 平面；改动集中在下表五处。
 
@@ -254,7 +256,7 @@
 | 3   | 水体改谓词       | `WATER_LEVEL`、`waterLevelAt`、`isSwimming`、`professions/fishing.ts`、冲锋与击退的深水门槛、怪物岸边停步                  | 改为地图文档的"水体格"谓词；深水不可通行或可游泳由地图标注                                                          | 钓鱼、岸边停步、击退入水测试                         |
 | 4   | 关闭垂直运动     | `player_motion.ts` 的垂直分支、`climb.ts`、`physics/ledge.ts`、`Collider` 的 `moveTopY` 与 `standable`、`obs.ts` 的 `jump` | 输入不再产生跳跃；去掉可站立道具；开放世界也走平地分支                                                              | `player_motion` 相关测试改写后通过；观测维度变化登记 |
 | 5   | 碰撞表示         | `colliders.ts`（`resolvePosition`、`lineOfSightClear`、`isBlocked` 一类窄接口）、`physics/`、`pathfind.ts`（`findPath`）   | 第一版保留圆形与 OBB 连续碰撞，只去高度字段；若关卡管线确定为瓦片，再换瓦片碰撞并把视线改成 DDA 遍历【待决策 R-03】 | 视线、寻路、冲锋路径测试                             |
-| 附  | 操作与朝向       | `MoveInput`（`move_input.ts`）、`MELEE_ARC` 面向判定、"You must be facing your target." 报错                               | 宿主按移动方向或鼠标方向设 `facing`；或施法时自动面向目标；与 Q-002 一起在原型里定                                  | 原型手感评审                                         |
+| 附  | 操作与朝向       | `MoveInput`（`move_input.ts`）、`MELEE_ARC` 面向判定、"You must be facing your target." 报错                               | 移动方向相对屏幕（按相机方位角旋转后交给内核）；宿主按移动方向或鼠标方向设 `facing`；或施法时自动面向目标；与 Q-002 一起在原型里定                                  | 原型手感评审                                         |
 
 快照与轨迹格式：保持 `pos.y = 0`，可让实体快照与金样轨迹结构不变。
 
@@ -328,7 +330,7 @@
 | --- | ------------------------------------------------------- | -------------------------------------------------------- |
 | 1   | 拷贝固定提交的 `src/sim/` 与相关测试，写来源记录（4.4） | 原样测试全绿；金样与 rng 抽取顺序日志一致                |
 | 2   | 按 3.4 分组删除在线系统，每删一组跑一次测试             | 金样失败只能源于被删阶段；逐条记录后重录，形成"剪裁基线" |
-| 3   | 2D 化五处（3.5）                                        | 每处带新测试；重录"平面基线"                             |
+| 3   | 格子平面化五处（3.5）                                      | 每处带新测试；重录"平面基线"                             |
 | 4   | 文本事件改"键 + 参数"（R-04）                           | 事件快照测试；不再依赖英文匹配器                         |
 | 5   | 60 级扩展（3.6）                                        | 经验表、预算、精通的钉住测试                             |
 | 6   | 多资源与编外者（3.7、3.8）                              | 资源扣除与回复测试；跨职能技能测试                       |
@@ -365,9 +367,9 @@
 
 ### 4.3 推荐【待决策 R-01，即 Q-001，需用户决定】
 
-- **实现期采用 B：独立仓库 + 固定提交拷贝 + 来源记录 + 上游同步脚本。** 理由：60 级、多资源、编外者、2D 化都会改 `types.ts` 与协调器，
+- **实现期采用 B：独立仓库 + 固定提交拷贝 + 来源记录 + 上游同步脚本。** 理由：60 级、多资源、编外者、格子平面化都会改 `types.ts` 与协调器，
   A 与 C 不可行；B 的品牌、许可、金样、构建边界最清楚，与调研建议"固定提交的拷贝 + 来源记录 + 剪裁"一致。
-- **过渡：** 独立仓库建立之前，如需技术原型（例如 2D 渲染与战斗手感的验证），可临时在 `hakoniwa/` 下按 A' 拷贝进行，原型结束后整体迁出；
+- **过渡：** 独立仓库建立之前，如需技术原型（例如 HD-2D 渲染与战斗手感的验证），可临时在 `hakoniwa/` 下按 A' 拷贝进行，原型结束后整体迁出；
   设计文档（`hakoniwa/docs/`）可以继续留在本仓库，也可随代码迁出，取决于用户是否希望文档与主工程并列。
 - **不推荐：** A（直接引用）与 C（共享包）。
 
@@ -377,7 +379,7 @@
   WoC 的 MIT 许可全文与版权声明、本地改动登记表（文件、改动类别、对应专项）。
 - 同步脚本：比较"已钉提交"与"新上游提交"在 `src/sim/` 上的差异，按本地改动登记表分成三类输出：可直接移植、与本地改动冲突、
   属于已丢弃模块（忽略）。移植后跑全部测试与金样，再把来源记录的钉住提交前移。
-- 主工程中与 2D、单机无关的修复（例如战斗公式缺陷）优先移植；新玩法与在线功能不移植。
+- 主工程中不涉及三维地形与在线功能的修复（例如战斗公式缺陷）优先移植；新玩法与在线功能不移植。
 
 ---
 
@@ -391,10 +393,10 @@
 | 接缝（`IWorld`） | 表现层只经 `IWorld` 读世界、经命令改世界；分面文件；离线 `Sim` 与在线 `ClientWorld` 双实现；成员清单钉住                                        | 调整                | 单机没有在线镜像；第二份实现改为"回放世界"（读输入日志与快照，供录像重演、宣传素材与回归对比），远期"他人的箱庭"也走这条接缝；两份实现的成员清单照样钉住；分面按本作领域重划（战斗、同伴、千门、认知与传闻、神域、城建、战场、战略、背包、任务、对话） |
 | AI 接缝          | WoC 的 AI 挂在服务器上，`Sim.aiActiveMobAction` 是窄入口                                                                                        | 新增                | AI 运行时与内核之间只有"意图进、回执出"一条接缝；内核不知道模型存在                                                                                                                                                                                    |
 | i18n             | 每条玩家可见文本是 `t()` 键；贡献者只加英文；sim 发英文，客户端正则匹配器本地化，S3 守卫 `tests/localization_fixes.test.ts`                     | 调整【待决策 R-04】 | 推荐：内核发"键 + 参数"事件，不走匹配器；源语言为中文，其他语言后补；数字、货币、日期仍走格式化函数；模型生成的台词属动态文本，按玩家语言生成，降级档的预写台词是键                                                                                    |
-| 图形设置公平     | 画质档只能削减装饰，不能隐藏或延迟玩家要据以行动的信息                                                                                          | 照搬                | 2D 下的具体清单见 art_pipeline_2d.md 第 2.7 节                                                                                                                                                                                                         |
-| 依赖极少         | 不随意加包                                                                                                                                      | 照搬                | 2D 渲染沿用 Three.js 的推荐即出于此（art_pipeline_2d.md 第 2 节）；生图工具链在仓库外运行，不进运行时依赖                                                                                                                                              |
-| 生成文件不手改   | 生成物只由所属构建步骤重生                                                                                                                      | 照搬并扩展          | 素材管线的后处理产物、图集、清单都是生成物，改参数后重跑，不手改输出                                                                                                                                                                                   |
-| 测试密度         | sim 与服务器改动必带测试；纯核心 Node 可测；金样轨迹                                                                                            | 照搬并扩展          | 新增：AI 题面快照测试、素材自动校验门（art_pipeline_2d.md 第 6.9 节）、无模型降级档通关回归（D-010）                                                                                                                                                   |
+| 图形设置公平     | 画质档只能削减装饰，不能隐藏或延迟玩家要据以行动的信息                                                                                          | 照搬                | 本作的具体清单见 [art_pipeline.md](art_pipeline.md) 第 2.12 节                                                                                                                                                                                                         |
+| 依赖极少         | 不随意加包                                                                                                                                      | 照搬                | 渲染只加 `three` 一个依赖，与 WoC 同版本（art_pipeline.md 第 2.1 节）；素材全部由代码绘制，不引入素材工具链与模型加载器                                                                                                                                              |
+| 生成文件不手改   | 生成物只由所属构建步骤重生                                                                                                                      | 照搬并扩展          | 场景素材由代码模板在运行时绘制，不入库；渲染器拍出的封面与宣传图、纸娃娃导出的头像、素材清单都是生成物，改模板或参数后重生，不手改输出                                                                                                                                                                                   |
+| 测试密度         | sim 与服务器改动必带测试；纯核心 Node 可测；金样轨迹                                                                                            | 照搬并扩展          | 新增：AI 题面快照测试、素材模板与地图外观层的自动校验（art_pipeline.md 第 6.6 节）、无模型降级档通关回归（D-010）                                                                                                                                                   |
 | 缺陷先测后修     | 先写复现失败的测试，再做最小修复                                                                                                                | 照搬                |                                                                                                                                                                                                                                                        |
 | 分层 QA 门       | Stop 钩子拦字符；pre-push 跑 tsc、守卫测试、Biome；`npm run gate` 全量；评审代理（`.claude/agents/`）                                           | 照搬，评审代理改写  | 保留确定性评审、表现层接缝评审、测试覆盖评审；去掉数据库与在线同步相关评审；新增"许可与素材来源"评审                                                                                                                                                   |
 | 文档锚点规则     | 写稳定路径与导出符号，不写会腐烂的数量与行号                                                                                                    | 照搬                |                                                                                                                                                                                                                                                        |
@@ -430,13 +432,13 @@
 | WoC 内部技能 id（经典 MMO 惯用英文名，如 `heroic_strike`） | 不出现在任何玩家可见文本中；是否在发布前改为本作自有 id【待决策 R-09】                                                    |
 | CC0 素材（Kenney 音效等）                                  | 从原始发布处获取，登记来源、版本与许可                                                                                    |
 | SIL OFL 字体（如思源系列）                                 | 按 OFL 随附许可；本作 UI 默认用系统字体，可不打包字体                                                                     |
-| 生图模型的输出                                             | 按模型许可逐个登记，见 art_pipeline_2d.md 第 6.14 节                                                                      |
+| 位图例外（UI 图标图集、封面与宣传图）                      | 本作自制，登记在素材清单，见 art_pipeline.md 第 6.4、6.7 节                                                                      |
 | open-share 资料中的方法                                    | 无需登记许可；设计文档回链来源                                                                                            |
 
 ### 6.3 合规动作
 
 1. 独立仓库建立时一并建立第三方声明文件，列出 WoC MIT 许可与所有运行时依赖的许可。
-2. 素材清单的每一项必须有来源与许可字段，构建期校验缺失即失败（art_pipeline_2d.md 第 6.8、6.9 节）。
+2. 素材清单的每一项必须有来源与许可字段，构建期校验缺失即失败（art_pipeline.md 第 6.5、6.6 节）。
 3. 增加一个"专有名词扫描"测试：在本作内容数据与界面文本中扫描 WoC 的区域、首领、技能与专精显示名清单，命中即失败。
 4. 任何开源项目代码（open-share 索引的 RTS 与城建项目）进入前，先在决策日志里记录许可审查结论。
 5. 新增"许可与素材来源"评审代理或检查清单，纳入 QA 门。

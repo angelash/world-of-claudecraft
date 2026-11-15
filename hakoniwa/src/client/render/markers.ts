@@ -1,4 +1,4 @@
-// Overhead pixel glyphs (art_pipeline_2d.md 3.6): small world-tier symbols drawn above a
+// Overhead pixel glyphs (art_pipeline.md 3.6): small world-tier symbols drawn above a
 // head, one at a time, highest priority first. They are pixel shapes, not text or
 // emoji. Which marker an entity shows comes from a phase-2 adapter (quests, cognition).
 

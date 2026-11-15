@@ -1,7 +1,9 @@
-// Procedural ground art (art_pipeline_2d.md 5.1): one 16x16 texture per TileKind with
-// a few variants, light from the upper left, ordered-dither transitions between soft
-// ground kinds, shorelines on water, front faces on walls, and tall tiles (trees, rocks)
-// drawn as depth-sorted props instead of flat ground. Pure; Node-tested.
+// Procedural ground art (art_pipeline.md 2.5): one 16x16 texture per TileKind with a few
+// variants, light from the upper left, ordered-dither transitions between soft ground
+// kinds and shorelines on water, in the colours of a style pack's ground ramps. Tall
+// tiles (trees, rocks) are standees, not ground. The HD-2D scene bakes the whole map once
+// with flat walls (its walls are solid geometry); the flat fallback also paints wall
+// front faces. Pure; Node-tested.
 
 import { tileAt } from '../../systems/world/grid';
 import type { MapDef, TileKind } from '../../systems/world/types';
@@ -20,6 +22,7 @@ import {
   autoShade,
   colorize,
   createShape,
+  drawLine,
   fillEllipse,
   fillRect,
   outline,
@@ -30,11 +33,6 @@ import { TILE_PX } from './camera';
 export const TILE_VARIANTS = 4;
 export const WATER_FRAMES = 2;
 
-/** Tiles drawn as standing props (depth-sorted with entities) over a ground texture. */
-export function propKind(kind: TileKind): 'tree' | 'rock' | null {
-  return kind === 'tree' ? 'tree' : kind === 'rock' ? 'rock' : null;
-}
-
 /** Ground the prop stands on. */
 function groundUnder(kind: TileKind): TileKind {
   return kind === 'tree' ? 'grass' : kind === 'rock' ? 'dirt' : kind;
@@ -44,7 +42,8 @@ export function tileVariant(x: number, y: number, mapSalt: number): number {
   return hash3(x, y, mapSalt) % TILE_VARIANTS;
 }
 
-const P = {
+/** Default ground ramps (the lothar_plain style pack uses the same values). */
+export const DEFAULT_GROUND_RAMPS = {
   grass: [0x4c7a3c, 0x5a8a45, 0x6a9c50, 0x80b05c],
   dirt: [0x76583a, 0x8a6a48, 0x9e7d58, 0xb3a08a],
   road: [0x9a845e, 0xb09a72, 0xc4ae86, 0x8a7656],
@@ -62,31 +61,57 @@ const P = {
   void: [0x101018, 0x15151f, 0x1b1b28, 0x22222e],
 } as const;
 
-type Ramp4 = readonly [Rgb, Rgb, Rgb, Rgb];
+const P = DEFAULT_GROUND_RAMPS;
 
-function rampOf(kind: TileKind): Ramp4 {
+type Ramp4 = readonly [Rgb, Rgb, Rgb, Rgb];
+/** Ground colours by tile kind; kinds left out use the defaults. */
+export type GroundRampSet = Partial<Record<TileKind, Ramp4>>;
+
+function rampOf(kind: TileKind, ramps: GroundRampSet): Ramp4 {
   const k = groundUnder(kind);
-  return ((P as Record<string, Ramp4>)[k] ?? P.void) as Ramp4;
+  return (ramps[k] ?? (P as Record<string, Ramp4>)[k] ?? P.void) as Ramp4;
 }
 
 const texCache = new Map<string, PixelMatrix>();
+const rampIds = new WeakMap<GroundRampSet, number>();
+let nextRampId = 1;
 
-/** 16x16 texture for a tile kind, variant and animation frame. */
-export function tileTexture(kind: TileKind, variant: number, frame = 0): PixelMatrix {
+function rampKey(ramps: GroundRampSet): number {
+  let id = rampIds.get(ramps);
+  if (id === undefined) {
+    id = nextRampId++;
+    rampIds.set(ramps, id);
+  }
+  return id;
+}
+
+/** 16x16 texture for a tile kind, variant and animation frame in a set of ground ramps. */
+export function tileTexture(
+  kind: TileKind,
+  variant: number,
+  frame = 0,
+  ramps: GroundRampSet = P,
+): PixelMatrix {
   const g = groundUnder(kind);
-  const key = `${g}:${variant}:${g === 'water' || g === 'deep_water' ? frame % WATER_FRAMES : 0}`;
+  const f = g === 'water' || g === 'deep_water' ? frame % WATER_FRAMES : 0;
+  const key = `${rampKey(ramps)}:${g}:${variant}:${f}`;
   let m = texCache.get(key);
   if (!m) {
-    m = paintTile(g, variant, frame % WATER_FRAMES);
+    m = paintTile(g, variant, frame % WATER_FRAMES, ramps);
     texCache.set(key, m);
   }
   return m;
 }
 
-function paintTile(kind: TileKind, variant: number, frame: number): PixelMatrix {
+function paintTile(
+  kind: TileKind,
+  variant: number,
+  frame: number,
+  ramps: GroundRampSet,
+): PixelMatrix {
   const S = TILE_PX;
   const m = createMatrix(S, S);
-  const [dark, base, light, extra] = rampOf(kind);
+  const [dark, base, light, extra] = rampOf(kind, ramps);
   const n = (x: number, y: number, salt = 0) =>
     hash3(x + variant * 31, y + salt * 17, kind.length * 101 + salt) % 100;
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) setPixel(m, x, y, base);
@@ -264,20 +289,32 @@ function isWater(k: TileKind): boolean {
   return k === 'water' || k === 'deep_water';
 }
 
+export interface BakeOptions {
+  /** ground colours (a style pack's ramps); defaults to DEFAULT_GROUND_RAMPS */
+  ramps?: GroundRampSet;
+  /** paint wall front faces (the flat fallback); the HD-2D scene extrudes walls instead */
+  wallFaces?: boolean;
+}
+
 /**
  * Bake a whole map's ground (w*16 by h*16 world pixels) for one water frame. Soft kinds
  * bleed into lower-priority neighbours with a 3-pixel ordered-dither band; water gets a
- * foam line on its land edges; walls get a darker front face where open ground lies south.
+ * foam line on its land edges; with `wallFaces`, walls get a darker front face where open
+ * ground lies south.
  */
-export function bakeGround(map: MapDef, frame = 0): PixelMatrix {
+export function bakeGround(map: MapDef, frame = 0, opts: BakeOptions = {}): PixelMatrix {
   const S = TILE_PX;
+  const ramps = opts.ramps ?? P;
+  const wallFaces = opts.wallFaces ?? true;
   const out = createMatrix(map.width * S, map.height * S);
   const salt = mapSalt(map);
+  const water = rampOf('water', ramps);
+  const deep = rampOf('deep_water', ramps);
   const faceRamp = [0x55524f, 0x6f6c68, 0x7c7975, 0x4a4744];
   for (let ty = 0; ty < map.height; ty++) {
     for (let tx = 0; tx < map.width; tx++) {
       const kind = tileAt(map, tx, ty);
-      const tex = tileTexture(kind, tileVariant(tx, ty, salt), frame);
+      const tex = tileTexture(kind, tileVariant(tx, ty, salt), frame, ramps);
       blit(out, tex, tx * S, ty * S);
       const myP = SOFT_PRIORITY[kind];
       const neigh: [number, number, 'n' | 's' | 'w' | 'e'][] = [
@@ -292,7 +329,7 @@ export function bakeGround(map: MapDef, frame = 0): PixelMatrix {
           const nk = tileAt(map, tx + dx, ty + dy);
           const np = SOFT_PRIORITY[nk];
           if (np === undefined || np <= myP || groundUnder(nk) === groundUnder(kind)) continue;
-          const ntex = tileTexture(nk, tileVariant(tx + dx, ty + dy, salt), frame);
+          const ntex = tileTexture(nk, tileVariant(tx + dx, ty + dy, salt), frame, ramps);
           for (let d = 0; d < EDGE_DITHER.length; d++) {
             for (let i = 0; i < S; i++) {
               const px = side === 'w' ? d : side === 'e' ? S - 1 - d : i;
@@ -308,7 +345,7 @@ export function bakeGround(map: MapDef, frame = 0): PixelMatrix {
       }
       // Water: foam along land edges, deep water darkens toward shallow.
       if (isWater(kind)) {
-        const foam = kind === 'water' ? P.water[3] : P.deep_water[3];
+        const foam = kind === 'water' ? water[3] : deep[3];
         for (const [dx, dy, side] of neigh) {
           const nk = tileAt(map, tx + dx, ty + dy);
           if (isWater(nk) || nk === 'void' || nk === 'bridge') continue;
@@ -320,12 +357,12 @@ export function bakeGround(map: MapDef, frame = 0): PixelMatrix {
             if ((i + frame) % 5 !== 0) setPixel(out, wx, wy, foam);
             const ix = side === 'w' ? 1 : side === 'e' ? S - 2 : i;
             const iy = side === 'n' ? 1 : side === 's' ? S - 2 : i;
-            if (bayer4(wx, wy) < 6) setPixel(out, tx * S + ix, ty * S + iy, P.water[2]);
+            if (bayer4(wx, wy) < 6) setPixel(out, tx * S + ix, ty * S + iy, water[2]);
           }
         }
       }
       // Wall front face where the tile to the south is not a wall.
-      if (kind === 'wall') {
+      if (kind === 'wall' && wallFaces) {
         const south = tileAt(map, tx, ty + 1);
         if (south !== 'wall' && south !== 'void') {
           const faceTop = S - 7;
@@ -355,17 +392,52 @@ export interface PropSprite {
   anchorY: number;
 }
 
-const propCache = new Map<string, PropSprite>();
+/** Colours and shapes a style pack gives trees and rocks. */
+export interface PropColors {
+  leaves: readonly Rgb[];
+  trunk: Rgb;
+  /** crown shape per variant: 0 round, 1 conifer, 2 broad, 3 bare */
+  shapes: readonly number[];
+  rock: Rgb;
+}
 
-export function propSprite(kind: 'tree' | 'rock', variant: number): PropSprite {
-  const key = `${kind}:${variant % 3}`;
+export const DEFAULT_PROP_COLORS: PropColors = {
+  leaves: [0x4a8040, 0x3d6b3a, 0x4a8040],
+  trunk: 0x6b4a32,
+  shapes: [0, 1, 2],
+  rock: 0x8a8780,
+};
+
+const propCache = new Map<string, PropSprite>();
+const colorIds = new WeakMap<PropColors, number>();
+let nextColorId = 1;
+
+export function propSprite(
+  kind: 'tree' | 'rock',
+  variant: number,
+  colors: PropColors = DEFAULT_PROP_COLORS,
+): PropSprite {
+  let cid = colorIds.get(colors);
+  if (cid === undefined) {
+    cid = nextColorId++;
+    colorIds.set(colors, cid);
+  }
+  const key = `${cid}:${kind}:${variant % 3}`;
   let p = propCache.get(key);
   if (p) return p;
   if (kind === 'tree') {
     const g = createShape(32, 40);
-    const v = variant % 3;
+    const vi = variant % 3;
+    const v = colors.shapes[vi % colors.shapes.length] ?? vi;
     fillRect(g, 14, 26, 4, 11, SLOT.LEATHER);
-    if (v === 1) {
+    if (v === 3) {
+      // Bare tree: forked dead branches.
+      fillRect(g, 14, 12, 4, 15, SLOT.LEATHER);
+      drawLine(g, 15, 14, 8, 6, 2, SLOT.LEATHER);
+      drawLine(g, 16, 12, 23, 4, 2, SLOT.LEATHER);
+      drawLine(g, 10, 8, 7, 2, 1, SLOT.LEATHER);
+      drawLine(g, 21, 6, 26, 5, 1, SLOT.LEATHER);
+    } else if (v === 1) {
       // Conifer: stacked tiers.
       fillEllipse(g, 16, 25, 9, 5, SLOT.PRIMARY);
       fillEllipse(g, 16, 18, 7.5, 5, SLOT.PRIMARY);
@@ -379,11 +451,11 @@ export function propSprite(kind: 'tree' | 'rock', variant: number): PropSprite {
     }
     autoShade(g);
     outline(g);
-    const leaf = v === 1 ? 0x3d6b3a : 0x4a8040;
+    const leaf = (colors.leaves[vi % colors.leaves.length] ?? 0x4a8040) as Rgb;
     const m = colorize(g, {
       [SLOT.PRIMARY]: shadeRamp(leaf),
       [SLOT.SECONDARY]: shadeRamp(mix(leaf, 0x9ad070, 0.45)),
-      [SLOT.LEATHER]: shadeRamp(0x6b4a32),
+      [SLOT.LEATHER]: shadeRamp(colors.trunk),
     });
     p = { matrix: m, anchorX: 16, anchorY: 37 };
   } else {
@@ -394,26 +466,11 @@ export function propSprite(kind: 'tree' | 'rock', variant: number): PropSprite {
     autoShade(g);
     outline(g);
     const m = colorize(g, {
-      [SLOT.PRIMARY]: shadeRamp(0x8a8780),
-      [SLOT.SECONDARY]: shadeRamp(0xa8a59c),
+      [SLOT.PRIMARY]: shadeRamp(colors.rock),
+      [SLOT.SECONDARY]: shadeRamp(mix(colors.rock, 0xffffff, 0.2)),
     });
     p = { matrix: m, anchorX: 10, anchorY: 15 };
   }
   propCache.set(key, p);
   return p;
-}
-
-/** Every prop tile on the map with its world position (tile centre, foot on tile bottom). */
-export function mapProps(
-  map: MapDef,
-): { kind: 'tree' | 'rock'; tx: number; ty: number; variant: number }[] {
-  const out: { kind: 'tree' | 'rock'; tx: number; ty: number; variant: number }[] = [];
-  const salt = mapSalt(map);
-  for (let ty = 0; ty < map.height; ty++) {
-    for (let tx = 0; tx < map.width; tx++) {
-      const k = propKind(tileAt(map, tx, ty));
-      if (k) out.push({ kind: k, tx, ty, variant: tileVariant(tx, ty, salt + 7) });
-    }
-  }
-  return out;
 }

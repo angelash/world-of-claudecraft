@@ -1,6 +1,7 @@
 // What every window factory receives: the read-only view, the command queue, the
 // adapters, save storage, client settings and a few session actions.
 
+import type { QualityId } from '../hd2d/quality';
 import type { SaveStore, SlotId } from '../hud/save_slots';
 import type { ClientAdapters } from '../view/adapters';
 import type { GameCommands, GameView } from '../view/game_view';
@@ -16,6 +17,17 @@ export interface SessionActions {
   beginPlacement(siteId: string, defId: string, name: string): void;
   /** select an entity as the current target */
   select(entityId: string | null): void;
+  /** graphics: the chosen quality tier and the renderer actually running */
+  display(): DisplayView;
+  setQuality(id: QualityId): void;
+  setViewPreset(preset: 'street' | 'overview'): void;
+}
+
+export interface DisplayView {
+  quality: QualityId;
+  renderer: 'hd2d' | 'flat';
+  /** whether WebGL2 is available (otherwise only the flat renderer can run) */
+  webgl: boolean;
 }
 
 export interface AiStatusView {

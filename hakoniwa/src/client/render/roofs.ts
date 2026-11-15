@@ -1,4 +1,4 @@
-// Building roofs over map locations (art_pipeline_2d.md 1.9, 2.4, 5.6). A location of a
+// Building roofs over map locations (art_pipeline.md 2.6 and 5.6). A location of a
 // building kind gets a procedural gable roof covering its rect plus the surrounding wall
 // ring; the roof of the building the player stands in (or has selected) dissolves away
 // with a 4x4 ordered dither over about 160 ms and grows back on leaving. Pure.

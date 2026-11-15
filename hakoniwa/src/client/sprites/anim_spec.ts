@@ -1,5 +1,5 @@
 // Animation vocabulary for procedural sprites: four display directions (left is the
-// mirror of right, art_pipeline_2d.md 3.5) and the compressed frame set of 3.4
+// mirror of right, art_pipeline.md 3.5) and the compressed frame set of 3.4
 // (idle, walk, attack, hit, death). Pure.
 
 export type Dir = 'down' | 'right' | 'up' | 'left';

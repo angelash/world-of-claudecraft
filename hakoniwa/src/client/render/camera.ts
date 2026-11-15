@@ -1,8 +1,9 @@
-// Camera math for the pixel world (art_pipeline_2d.md 2.5): integer zoom only, the
-// camera position split into an integer world-pixel part (the low-resolution world
-// canvas is drawn at it) and a fractional part (applied as a device-pixel offset when
-// upscaling), and screen to world conversion for picking. World coordinates are tiles;
-// one tile is TILE_PX world pixels. Pure; Node-tested.
+// Units and the flat fallback's camera (art_pipeline.md 1.3 and 2.1): one tile is one
+// metre is TILE_PX pixels everywhere (ground, walls, standees). The flat renderer looks
+// straight down with integer zoom only, the camera position split into an integer
+// world-pixel part (the low-resolution world canvas is drawn at it) and a fractional part
+// (applied as a device-pixel offset when upscaling), and screen to world conversion for
+// picking. The HD-2D camera lives in ../hd2d/view.ts. Pure; Node-tested.
 
 export const TILE_PX = 16;
 export const MIN_ZOOM = 1;

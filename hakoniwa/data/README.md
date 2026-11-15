@@ -20,4 +20,8 @@
 | `quests/` | 任务、幕次、剧情物品与证据、揭示台账知识、名词 |
 | `scenes/` | 神庭地图、序章、各幕过场、神庭审判、结局与后日谈 |
 
+地图文件除逻辑层（地点、出口、刷新点）与空间层（格子与图例）外，可带外观层：`style`（风格包）、`looks`（逐地点建筑外观）、
+`decor`（装饰），只有渲染器读，改外观不改玩法；没写 `style` 时按 `region` 选风格包（类型与编号表见 `src/systems/world/look.ts`，
+规则见 `../docs/50_tech/art_pipeline.md` 第 5.1、5.2 节）。
+
 内容来源以 `../docs/20_world/` 与 `../docs/30_story/` 为准；命名约定见 `../docs/50_tech/implementation_conventions.md`。

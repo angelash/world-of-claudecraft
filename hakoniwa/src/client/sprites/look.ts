@@ -72,7 +72,7 @@ export function resolveArchetype(base: string | undefined): Archetype {
 
 export type BodyTemplate = 'H' | 'HS' | 'HL' | 'Q' | 'F' | 'B' | 'O';
 
-/** Body template of art_pipeline_2d.md 3.2 (B = blob, O = object). */
+/** Body template of art_pipeline.md 3.2 (B = blob, O = object). */
 export function bodyTemplate(a: Archetype): BodyTemplate {
   switch (a) {
     case 'dwarf':

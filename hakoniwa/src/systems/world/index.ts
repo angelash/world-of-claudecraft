@@ -19,6 +19,7 @@ import type {
 } from './types';
 
 export * from './grid';
+export * from './look';
 export * from './types';
 
 export interface WorldStart {

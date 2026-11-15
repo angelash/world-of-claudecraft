@@ -1,4 +1,4 @@
-// Speech bubbles above speakers (art_pipeline_2d.md 7.2): the first sentence of a
+// Speech bubbles above speakers (art_pipeline.md 7.2): the first sentence of a
 // dialogue.line, wrapped for CJK text, held 3 to 6 seconds by length, at most one per
 // speaker and a capped number of thought bubbles on screen. Pure; Node-tested.
 

@@ -4,6 +4,7 @@
 // Thin glue over the session; the rules live in the adapters and pure input modules.
 
 import { T } from '../../shared_ui/text';
+import { screenIntentToWorld } from '../hd2d/view';
 import type { DialogueQueue } from '../hud/dialogue_queue';
 import type { Hud } from '../hud/hud';
 import { sceneKey, scenePanelModel } from '../hud/scene_model';
@@ -22,14 +23,19 @@ export interface PlayerInputHost {
   readonly loose: DialogueQueue;
   readonly clock: FixedStepClock;
   selection: string | null;
-  zoom: number;
   moveTarget: { x: number; y: number; at: number } | null;
   placing: unknown;
   queue(cmds: readonly ClientCommand[] | null | undefined): void;
   logLine(text: string, category?: string): void;
   inScene(): boolean;
   select(id: string | null): void;
-  setZoom(z: number): void;
+  /** camera: zoom by whole steps, turn, toggle street view and overview, reset */
+  zoomBy(delta: number): void;
+  turnView(dir: 1 | -1): void;
+  toggleViewPreset(): void;
+  resetView(): void;
+  /** the camera yaw in degrees (movement keys are screen-relative) */
+  viewYaw(): number;
   togglePause(): void;
   worldPoint(sx: number, sy: number): { x: number; y: number } | null;
   pick(sx: number, sy: number): string | null;
@@ -65,12 +71,24 @@ export class PlayerInput {
     return this.s.adapters.combat?.canMove(this.v) ?? true;
   }
 
+  /**
+   * Send a screen-relative intent, turned into map axes by the camera yaw. The yaw is
+   * taken in 15-degree steps, so orbiting the camera while walking sends a new intent
+   * only when the walking direction changes noticeably, not on every pointer move.
+   */
   private send(i: Intent): void {
-    if (i.dx === this.sent.dx && i.dy === this.sent.dy) return;
-    this.sent = { ...i };
+    const yaw = Math.round(this.s.viewYaw() / 15) * 15;
+    const w = screenIntentToWorld(i.dx, i.dy, yaw);
+    if (w.dx === this.sent.dx && w.dy === this.sent.dy) return;
+    this.sent = { ...w };
     this.s.queue([
-      { kind: 'world.set_intent', data: { entityId: this.v.playerId(), dx: i.dx, dy: i.dy } },
+      { kind: 'world.set_intent', data: { entityId: this.v.playerId(), dx: w.dx, dy: w.dy } },
     ]);
+  }
+
+  /** The camera turned: re-send a held movement so it keeps its screen direction. */
+  viewTurned(): void {
+    if (!isZero(this.held) && this.canMove()) this.send(this.held);
   }
 
   /** Movement keys changed. */
@@ -232,10 +250,22 @@ export class PlayerInput {
         else s.windows.show('menu');
         break;
       case 'zoom_in':
-        s.setZoom(s.zoom + 1);
+        s.zoomBy(1);
         break;
       case 'zoom_out':
-        s.setZoom(s.zoom - 1);
+        s.zoomBy(-1);
+        break;
+      case 'view_turn_left':
+        s.turnView(-1);
+        break;
+      case 'view_turn_right':
+        s.turnView(1);
+        break;
+      case 'view_toggle':
+        s.toggleViewPreset();
+        break;
+      case 'view_reset':
+        s.resetView();
         break;
       case 'pause':
         s.togglePause();

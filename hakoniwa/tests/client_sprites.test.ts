@@ -38,7 +38,7 @@ describe('client sprites: looks and palettes', () => {
     expect(resolveArchetype(undefined)).toBe('human');
   });
 
-  it('maps archetypes to the body templates of art_pipeline_2d.md 3.2', () => {
+  it('maps archetypes to the body templates of art_pipeline.md 3.2', () => {
     expect(bodyTemplate('human')).toBe('H');
     expect(bodyTemplate('dwarf')).toBe('HS');
     expect(bodyTemplate('halfling')).toBe('HS');

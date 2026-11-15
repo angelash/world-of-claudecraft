@@ -32,7 +32,7 @@
 | [ai_npc/my_ai_town_agents.md](10_research/ai_npc/my_ai_town_agents.md)                             | my_ai_town 的 AI 居民实现（源码级）                       |
 | [ai_npc/woc_ai_npc.md](10_research/ai_npc/woc_ai_npc.md)                                           | 主工程现有 AI 改造（源码级）                              |
 | [ai_npc/comparison_and_plan.md](10_research/ai_npc/comparison_and_plan.md)                         | 两者对比与《箱庭纪》AI 方案方向                           |
-| [art_style/my_ai_town_visual_and_client.md](10_research/art_style/my_ai_town_visual_and_client.md) | my_ai_town 的 2D 风格、客户端与素材                       |
+| [art_style/my_ai_town_visual_and_client.md](10_research/art_style/my_ai_town_visual_and_client.md) | my_ai_town 的 HD-2D 风格、客户端与程序化素材              |
 | [open_share/city_rts_slg.md](10_research/open_share/city_rts_slg.md)                               | 城建、RTS、SLG、经济、策略 AI 资料                        |
 | [open_share/game_dev_methodology.md](10_research/open_share/game_dev_methodology.md)               | 游戏开发方法论                                            |
 | [woc_reuse/combat_and_content_inventory.md](10_research/woc_reuse/combat_and_content_inventory.md) | 主工程战斗与内容盘点、复用评估                            |
@@ -90,7 +90,7 @@
 | [architecture.md](50_tech/architecture.md)       | 技术架构：分层、确定性内核、系统接缝、数据、存档、客户端、编辑器、测试 |
 | [ai_architecture.md](50_tech/ai_architecture.md) | AI 架构：提供方、调度、预算、题面、校验、会话、审计、降级              |
 | [reuse_map.md](50_tech/reuse_map.md)             | 复用映射与许可清单                                                     |
-| [art_pipeline_2d.md](50_tech/art_pipeline_2d.md) | 2D 美术风格规范、渲染选型、生图管线                                    |
+| [art_pipeline.md](50_tech/art_pipeline.md)       | 美术与素材方案（HD-2D 场景）：风格规范、渲染方案、纸娃娃、战斗与城建表现、程序化素材 |
 | [implementation_conventions.md](50_tech/implementation_conventions.md) | 第一轮实现的跨系统约定：文件所有权、地图与 NPC ID、旗标、实体标签、AI 请求 |
 
 ## 60 制作计划

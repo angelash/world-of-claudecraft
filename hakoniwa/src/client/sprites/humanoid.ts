@@ -1,4 +1,4 @@
-// Humanoid paper doll (H and HS templates of art_pipeline_2d.md 3.2): human, elf,
+// Humanoid paper doll (H and HS templates of art_pipeline.md 3.2): human, elf,
 // dwarf, halfling, beastkin, demon, undead and goddess. Draws one pose into a shape
 // grid from parametric parts (legs, torso, arms, head, hair, racial features), so a
 // larger `scale` means more pixels, never image scaling. Pure.
@@ -39,10 +39,11 @@ export interface HumanoidBuild {
 
 export function humanoidBuild(a: Archetype, s: number): HumanoidBuild {
   const base: HumanoidBuild = {
+    // Q-version proportions, about 1.75 heads (art_pipeline.md 1.6).
     bodyH: 28,
-    headR: 6.3,
+    headR: 7.8,
     torsoW: 10,
-    torsoH: 8,
+    torsoH: 7,
     legW: 3,
     armW: 2,
     hair: 'short',
@@ -63,10 +64,10 @@ export function humanoidBuild(a: Archetype, s: number): HumanoidBuild {
       b = { ...base, bodyH: 29, torsoW: 9, hair: 'long', ears: 'pointed' };
       break;
     case 'dwarf':
-      b = { ...base, bodyH: 21, headR: 5.6, torsoW: 12, torsoH: 6, legW: 4, armW: 3, beard: true };
+      b = { ...base, bodyH: 22, headR: 6.6, torsoW: 12, torsoH: 6, legW: 4, armW: 3, beard: true };
       break;
     case 'halfling':
-      b = { ...base, bodyH: 20, headR: 5.4, torsoW: 9, torsoH: 5, hair: 'curly', barefoot: true };
+      b = { ...base, bodyH: 20, headR: 6.4, torsoW: 9, torsoH: 5, hair: 'curly', barefoot: true };
       break;
     case 'beastkin':
       b = { ...base, ears: 'animal', tail: true };
@@ -289,9 +290,9 @@ function drawFront(
     if (b.beard) {
       fillEllipse(g, cx, headCY + hr * 0.95, hr - 0.6, hr * 0.45, SLOT.HAIR);
     }
-    // Eyes: vertical 2-pixel blocks (art_pipeline_2d.md 1.8).
+    // Eyes: vertical blocks of 3 pixels (art_pipeline.md 1.6).
     const ew = Math.max(1, Math.round(s));
-    const eh = Math.max(2, Math.round(2 * s));
+    const eh = Math.max(2, Math.round(3 * s));
     const ey = Math.round(headCY + hr * 0.15);
     const ex = Math.round(hr * 0.42);
     const eyeSlot = b.glowEyes ? SLOT.GLOW : SLOT.EYE;

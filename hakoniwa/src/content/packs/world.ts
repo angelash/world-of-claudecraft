@@ -2,7 +2,7 @@
 // their own maps and a higher-priority start (see systems/world WorldStart).
 
 import testMaps from '../../../data/world/maps_test.json';
-import type { WorldStart } from '../../systems/world';
+import { lookProblems, type WorldStart } from '../../systems/world';
 import type { MapDef } from '../../systems/world/types';
 import type { ContentPack } from '../pack';
 
@@ -29,6 +29,9 @@ export const pack: ContentPack = {
         { key: 'locations', label: '地点', type: 'json' },
         { key: 'spawns', label: '出生点', type: 'json' },
         { key: 'exits', label: '出口', type: 'json' },
+        { key: 'style', label: '风格包', type: 'string' },
+        { key: 'looks', label: '建筑外观', type: 'json' },
+        { key: 'decor', label: '装饰', type: 'json' },
       ],
     },
   ],
@@ -46,6 +49,7 @@ export const pack: ContentPack = {
       });
       for (const x of m.exits)
         if (!ids.has(x.toMap)) problems.push(`map ${m.id}: exit ${x.id} -> unknown map ${x.toMap}`);
+      problems.push(...lookProblems(m));
     }
     for (const s of content.worldStarts)
       if (!ids.has(s.mapId)) problems.push(`worldStart -> unknown map ${s.mapId}`);

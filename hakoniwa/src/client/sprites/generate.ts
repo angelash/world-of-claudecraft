@@ -1,7 +1,7 @@
 // Sprite frame generator: SpriteLook + animation + direction + frame index to a pixel
 // matrix with its ground anchor. Shapes are drawn per template, lit from the upper left,
 // outlined with deepened neighbour colours and coloured through the look's palette.
-// Left frames mirror right frames (art_pipeline_2d.md 3.5). Pure and deterministic.
+// Left frames mirror right frames (art_pipeline.md 3.5). Pure and deterministic.
 
 import { ANIM_SPECS, type AnimName, type Dir } from './anim_spec';
 import {

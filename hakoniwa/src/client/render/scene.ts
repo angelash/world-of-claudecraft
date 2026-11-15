@@ -1,14 +1,16 @@
 // Scene description: everything one frame draws, as plain data. The session builds it
-// from GameView plus client state; a renderer backend (Canvas2D now, a Three.js
-// orthographic sprite batch later, decision A-04) only executes it. Depth order is the
-// foot (anchor) y with the stable id as tie-break (art_pipeline_2d.md 2.4). Pure.
+// from GameView plus client state; a renderer backend (the HD-2D scene, or the flat
+// Canvas2D fallback, art_pipeline.md 2.1) only executes it. Items carry their foot
+// position; the flat renderer sorts by foot y with the stable id as tie-break, the HD-2D
+// scene gets the same order from upright standee depth (art_pipeline.md 2.4). Pure.
 
 import type { Calendar } from '../../core/time';
 import type { Entity, MapDef, Weather } from '../../systems/world/types';
+import type { StandeePlacement, StaticLight } from '../hd2d/layout';
+import type { ViewRequest } from '../hd2d/view';
 import type { SpriteLook } from '../sprites/look';
 import type { AnimSample } from './anim_state';
 import type { Bubble } from './bubbles';
-import type { Camera } from './camera';
 import type { FloatingDraw } from './floating_text';
 import { LIGHT_COLORS, type LightingParams, lampLit, lightingAt } from './lighting';
 import type { MarkerKind } from './markers';
@@ -47,14 +49,12 @@ export interface SceneEntity {
   glyph?: string;
 }
 
+/** A static standee: tree, rock, decor or shop sign (from the map's scene layout). */
 export interface SceneProp {
   type: 'prop';
   id: string;
   sortY: number;
-  prop: 'tree' | 'rock';
-  variant: number;
-  tx: number;
-  ty: number;
+  placement: StandeePlacement;
 }
 
 export interface SceneRoof {
@@ -78,11 +78,15 @@ export interface SceneLight {
 
 export interface Scene {
   map: MapDef;
-  camera: Camera;
+  view: ViewRequest;
+  calendar: Calendar;
   timeMs: number;
   items: SceneItem[];
   lighting: LightingParams;
-  lights: SceneLight[];
+  /** lit static lights (door lamps, street lamps, braziers, open hearths) */
+  staticLights: SceneLight[];
+  /** lights that move or come and go (the player's night light, glows, content lights) */
+  dynamicLights: SceneLight[];
   weather: Weather;
   /** 0..1 sediment haze (map.sediment / 7) */
   sediment: number;
@@ -116,18 +120,19 @@ export interface SceneEntityInput {
 
 export interface SceneInput {
   map: MapDef;
-  camera: Camera;
+  view: ViewRequest;
   timeMs: number;
   playerId: string;
   calendar: Calendar;
   weather: Weather;
   entities: readonly SceneEntityInput[];
-  props: readonly { kind: 'tree' | 'rock'; tx: number; ty: number; variant: number }[];
+  standees: readonly StandeePlacement[];
   roofs: readonly RoofSpec[];
   roofOpenness: (id: string) => number;
   selection: string | null;
   hover: string | null;
   bubbles: Bubble[];
+  staticLights?: readonly StaticLight[];
   extraLights?: readonly SceneLight[];
   moveTarget?: { x: number; y: number; ageMs: number } | null;
   exitHint?: { x: number; y: number; text: string } | null;
@@ -146,27 +151,6 @@ export function sedimentLevel(map: MapDef): number {
   return Math.max(0, Math.min(1, (map.sediment ?? 0) / 7));
 }
 
-/** Door tiles on outdoor maps carry a lamp. */
-export function doorLights(map: MapDef): SceneLight[] {
-  const out: SceneLight[] = [];
-  if (map.indoor) return out;
-  for (let y = 0; y < map.height; y++) {
-    const row = map.rows[y] ?? '';
-    for (let x = 0; x < map.width; x++) {
-      if (map.legend[row[x] ?? ''] !== 'door') continue;
-      out.push({
-        id: `${map.id}:door:${x}:${y}`,
-        x: x + 0.5,
-        y: y + 0.5,
-        radius: 3.2,
-        color: LIGHT_COLORS.lamp,
-        intensity: 1,
-      });
-    }
-  }
-  return out;
-}
-
 export function shouldShowName(
   e: Pick<Entity, 'kind' | 'name'>,
   relation: Relation,
@@ -179,10 +163,11 @@ export function shouldShowName(
   return e.kind === 'npc' || e.kind === 'companion';
 }
 
-export function buildScene(input: SceneInput, staticLights: readonly SceneLight[] = []): Scene {
+export function buildScene(input: SceneInput): Scene {
   const { map } = input;
   const items: SceneItem[] = [];
-  const lights: SceneLight[] = [];
+  const dynamicLights: SceneLight[] = [];
+  const staticLights: SceneLight[] = [];
   const lighting = lightingAt(input.calendar, input.weather, !!map.indoor);
 
   for (const ei of input.entities) {
@@ -213,7 +198,7 @@ export function buildScene(input: SceneInput, staticLights: readonly SceneLight[
       glyph: ei.look.glyph,
     });
     if (ei.look.archetype === 'goddess' || ei.look.archetype === 'spirit') {
-      lights.push({
+      dynamicLights.push({
         id: `glow:${e.id}`,
         x: ei.x,
         y: ei.y - 0.8,
@@ -223,7 +208,7 @@ export function buildScene(input: SceneInput, staticLights: readonly SceneLight[
       });
     }
     if (relation === 'self' && lighting.personalLight) {
-      lights.push({
+      dynamicLights.push({
         id: 'personal',
         x: ei.x,
         y: ei.y - 0.3,
@@ -233,22 +218,14 @@ export function buildScene(input: SceneInput, staticLights: readonly SceneLight[
       });
     }
   }
-  for (const p of input.props) {
-    items.push({
-      type: 'prop',
-      id: `prop:${p.tx}:${p.ty}`,
-      sortY: p.ty + 0.98,
-      prop: p.kind,
-      variant: p.variant,
-      tx: p.tx,
-      ty: p.ty,
-    });
+  for (const p of input.standees) {
+    items.push({ type: 'prop', id: `prop:${p.id}`, sortY: p.y, placement: p });
   }
   for (const r of input.roofs) {
     const openness = input.roofOpenness(r.locationId);
     items.push({ type: 'roof', id: `roof:${r.locationId}`, sortY: r.y + r.h, roof: r, openness });
     if (openness > 0.5) {
-      lights.push({
+      staticLights.push({
         id: `hearth:${r.locationId}`,
         x: r.x + r.w / 2,
         y: r.y + r.h / 2,
@@ -260,18 +237,29 @@ export function buildScene(input: SceneInput, staticLights: readonly SceneLight[
   }
   items.sort((a, b) => a.sortY - b.sortY || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-  for (const l of staticLights) {
-    if (lampLit(l.id, lighting.lampLevel)) lights.push(l);
+  for (const l of input.staticLights ?? []) {
+    if (!l.night || lampLit(l.id, lighting.lampLevel)) {
+      staticLights.push({
+        id: l.id,
+        x: l.x,
+        y: l.y,
+        radius: l.radius,
+        color: l.color,
+        intensity: l.intensity,
+      });
+    }
   }
-  if (input.extraLights) lights.push(...input.extraLights);
+  if (input.extraLights) dynamicLights.push(...input.extraLights);
 
   return {
     map,
-    camera: input.camera,
+    view: input.view,
+    calendar: input.calendar,
     timeMs: input.timeMs,
     items,
     lighting,
-    lights,
+    staticLights,
+    dynamicLights,
     weather: map.indoor ? 'clear' : input.weather,
     sediment: sedimentLevel(map),
     divine: divineLevel(map),

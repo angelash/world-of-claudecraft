@@ -37,6 +37,9 @@
   `borderstone` 与 `wallenburg`、`wallenburg` 与 `wallenburg_sewers`、`old_outpost` 与 `ash_waste`、`seal_ruins` 与 `seal_ruins_depths`。
   `inner_court` 不靠出口进入，由"门内庭院"能力传送。
 - 地块字符图例由各地图自带，地块种类见 `src/systems/world/types.ts` 的 `TileKind`。
+- 地图的外观层（`style` 风格包、`looks` 逐地点建筑外观、`decor` 装饰）由该地图的负责方填写，只影响画面、不影响玩法；
+  没写 `style` 时按 `region` 选风格包。风格包与装饰种类的编号表在 `src/systems/world/look.ts`（内核负责方维护），
+  HD-2D 渲染实现在 `src/client/hd2d/`（客户端负责方）。规则见 `art_pipeline.md` 第 5.1、5.2 节。
 
 ## 3. NPC 与同伴 ID（取自揭示台账的角色代号）
 

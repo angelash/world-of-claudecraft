@@ -1,5 +1,7 @@
 // World system types: tile maps, entities, movement, weather.
-// Coordinates are in tile units (floats, tile centre at n + 0.5).
+// Coordinates are in tile units (floats, tile centre at n + 0.5); one tile is one metre.
+
+import type { MapLook } from './look';
 
 export type TileKind =
   | 'grass'
@@ -74,7 +76,13 @@ export interface ExitDef {
   requiresFlags?: string[];
 }
 
-export interface MapDef {
+/**
+ * A map document in three layers (art_pipeline.md 5.1): the logic layer (locations,
+ * spawns, exits), the spatial layer (rows and legend: walkability, collision, pathing)
+ * and the look layer (MapLook: style pack, building looks, decor), which only the
+ * renderer reads.
+ */
+export interface MapDef extends MapLook {
   id: string;
   name: string;
   /** region id from docs/20_world/geography.md */

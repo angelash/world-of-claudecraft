@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { FixedStepClock } from '../src/client/app/clock';
 import { parseConfig } from '../src/client/app/config';
 import { createSandboxGame, resumeSandboxGame } from '../src/client/app/sandbox';
+import { buildLayout } from '../src/client/hd2d/layout';
+import { STYLE_PACKS } from '../src/client/hd2d/style_packs';
 import { belongsInBox, DialogueQueue } from '../src/client/hud/dialogue_queue';
 import { minimapMatrix, minimapScale } from '../src/client/hud/minimap_model';
 import { isQuotaError, MemoryStore, SaveStore, slotLabel } from '../src/client/hud/save_slots';
@@ -25,8 +27,8 @@ import {
   roofsForMap,
   roofsToOpen,
 } from '../src/client/render/roofs';
-import { buildScene, doorLights, relationOf, shouldShowName } from '../src/client/render/scene';
-import { bakeGround, mapProps, propKind, tileTexture } from '../src/client/render/tile_art';
+import { buildScene, relationOf, shouldShowName } from '../src/client/render/scene';
+import { bakeGround, tileTexture } from '../src/client/render/tile_art';
 import { lightningFlash, weatherParticles } from '../src/client/render/weather_fx';
 import { lookFromAppearance } from '../src/client/sprites/look';
 import { getPixel, matrixHash, opaqueCount } from '../src/client/sprites/pixels';
@@ -306,19 +308,18 @@ describe('client lighting, weather and ground art', () => {
     expect(flashes.length).toBeGreaterThan(0);
   });
 
-  it('bakes ground at 16 px per tile, deterministically, with standing props', () => {
+  it('bakes ground at 16 px per tile, deterministically, with trees and rocks as standees', () => {
     const g = bakeGround(MAP, 0);
     expect(g.w).toBe(8 * 16);
     expect(g.h).toBe(6 * 16);
     expect(matrixHash(bakeGround(MAP, 0))).toBe(matrixHash(g));
     expect(matrixHash(bakeGround(MAP, 1))).not.toBe(matrixHash(g)); // water animates
     expect(opaqueCount(g)).toBe(g.w * g.h);
-    expect(propKind('tree')).toBe('tree');
-    expect(propKind('grass')).toBeNull();
-    expect(mapProps(MAP).map((p) => `${p.kind}@${p.tx},${p.ty}`)).toEqual([
-      'tree@3,1',
-      'tree@4,1',
-      'rock@6,2',
+    const layout = buildLayout(MAP, STYLE_PACKS.lothar_plain);
+    expect(layout.standees.filter((p) => p.source !== 'sign').map((p) => p.id)).toEqual([
+      'tree:3:1',
+      'tree:4:1',
+      'rock:6:2',
     ]);
     for (const k of ['grass', 'water', 'wall', 'floor', 'void'] as const) {
       expect(tileTexture(k, 0).w).toBe(16);
@@ -415,15 +416,17 @@ describe('client roofs and scene', () => {
       marker: 'quest' as const,
     });
     const roofs = roofsForMap(MAP);
+    const layout = buildLayout(MAP, STYLE_PACKS.lothar_plain);
     const scene = buildScene({
       map: MAP,
-      camera: { zoom: 2, x: 0, y: 0, viewW: 400, viewH: 300 },
+      view: { focusX: 4, focusY: 3, step: 2, pitch: 36, yaw: 0 },
       timeMs: 0,
       playerId: 'player',
       calendar: calendarAt(tickAtDay(0, 12)),
       weather: 'rain',
       entities: [ent('b', 5, 3), ent('a', 5, 3), ent('inside', 1.5, 2.5)],
-      props: mapProps(MAP),
+      standees: layout.standees,
+      staticLights: layout.lights,
       roofs,
       roofOpenness: () => 0,
       selection: null,
@@ -432,7 +435,7 @@ describe('client roofs and scene', () => {
     });
     const order = scene.items.map((i) => i.id);
     expect(order.indexOf('a')).toBeLessThan(order.indexOf('b'));
-    expect(order.indexOf('prop:3:1')).toBeLessThan(order.indexOf('inside'));
+    expect(order.indexOf('prop:tree:3:1')).toBeLessThan(order.indexOf('inside'));
     expect(order.indexOf('inside')).toBeLessThan(order.indexOf('roof:hut'));
     const inside = scene.items.find((i) => i.id === 'inside');
     expect(inside?.type === 'entity' && inside.showName).toBe(false);
@@ -440,7 +443,9 @@ describe('client roofs and scene', () => {
     const outside = scene.items.find((i) => i.id === 'a');
     expect(outside?.type === 'entity' && outside.marker).toBe('quest');
     expect(scene.weather).toBe('rain');
-    expect(doorLights(MAP)).toHaveLength(1);
+    // one door lamp at the hut's door, lit only at night (noon here)
+    expect(layout.lights.filter((l) => l.id.includes(':door:'))).toHaveLength(1);
+    expect(scene.staticLights).toHaveLength(0);
   });
 
   it('draws overhead markers as pixel glyphs and picks the highest priority', () => {

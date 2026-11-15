@@ -1,4 +1,4 @@
-// Non-humanoid body templates (art_pipeline_2d.md 3.2 and 3.8): golem (HL), wolf
+// Non-humanoid body templates (art_pipeline.md 3.2 and 3.8): golem (HL), wolf
 // (quadruped Q), bird (flyer F), slime and spirit (blobs), and world objects. Each draws
 // one pose into a shape grid; shapes scale by pixel count, not by image scaling. Pure.
 

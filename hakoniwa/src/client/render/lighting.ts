@@ -1,4 +1,4 @@
-// Day, night and weather tint for the world layer (art_pipeline_2d.md 1.10). The kernel's
+// Day, night and weather tint for the world layer (art_pipeline.md 1.8 and 2.7). The kernel's
 // daylight() drives the main factor; four weights (day, golden hour, blue hour, night)
 // pick the multiply tint, weather greys it, and lamps light up progressively by a
 // per-light hashed threshold. Pure; Node-tested.

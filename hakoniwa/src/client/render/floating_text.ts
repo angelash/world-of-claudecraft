@@ -1,4 +1,4 @@
-// Floating combat text (art_pipeline_2d.md 4.3): numbers and short words that rise from
+// Floating combat text (art_pipeline.md 4.3): numbers and short words that rise from
 // a unit and fade. Each entry is a pure function of its start time; a per-entity stack
 // offsets simultaneous entries so they do not overlap. Pure; Node-tested.
 

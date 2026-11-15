@@ -12,7 +12,7 @@
 | `docs/20_world/` | 世界观正典 | 宇宙、诸神、历史、地理、种族、国家、力量体系、社会 |
 | `docs/30_story/` | 叙事与故事 | 叙事结构、主线大纲、分幕剧情、角色、谜团台账 |
 | `docs/40_design/` | 游戏设计（概要设计） | 总框架、各系统、内容清单 |
-| `docs/50_tech/` | 技术方案 | 架构、AI 方案、复用映射、2D 美术管线 |
+| `docs/50_tech/` | 技术方案 | 架构、AI 方案、复用映射、美术与素材方案（HD-2D 场景） |
 | `docs/60_production/` | 制作计划 | 路线图、里程碑、风险 |
 | `data/` `src/` `tools/` `tests/` | 第一轮实现 | 按 `docs/50_tech/architecture.md` 与 `implementation_conventions.md`；`assets/` 仍为占位 |
 

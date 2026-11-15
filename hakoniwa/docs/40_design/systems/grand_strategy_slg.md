@@ -20,7 +20,8 @@
 ### 0.2 硬约束
 
 1. **同一张地图、同一个时钟。** 大陆地图是 RPG 世界地图的"拉远视图"：郡是画在同一套格坐标上的多边形，也是区域图上的节点集合，
-   拉近就回到可行走的地块；战略层按"日"步进同一个世界时钟（[`game_framework.md`](../game_framework.md) 第 6 节）。纯 2D 俯视像素风（D-003）。
+   拉近就回到可行走的地块；战略层按"日"步进同一个世界时钟（[`game_framework.md`](../game_framework.md) 第 6 节）。拉近后的行走层是 HD-2D 像素微缩场景（D-003），
+   大陆层是俯视的地图窗口（[`art_pipeline.md`](../../50_tech/art_pipeline.md) 第 4.8 节）。
 2. **AI 国家走"模型提议、内核裁决"管线（D-007）。** 统治者是 L1 的一个分支，从枚举菜单选意图，内核校验后由规则执行；
    模型不可用时由 Utility 兜底（[`comparison_and_plan.md`](../../10_research/ai_npc/comparison_and_plan.md) 第 6.5 节）。
 3. **AI 只读自己的知识层。** 统治者与女神的输入是其知识层的摘要，不是世界真值（[`city_rts_slg.md`](../../10_research/open_share/city_rts_slg.md) 第 4.4 节）。

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Hakoniwa Chronicle: a 2D isekai game with LLM goddess game masters (prototype).",
+  "description": "Hakoniwa Chronicle: an HD-2D isekai game with LLM goddess game masters (prototype).",
   "scripts": {
     "dev": "vite --config vite.config.ts",
     "build": "vite build --config vite.config.ts",
@@ -13,6 +13,7 @@
     "format": "node ../node_modules/@biomejs/biome/bin/biome check --write"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0"
+    "@anthropic-ai/sdk": "^1.8.0",
+    "three": "^0.165.0"
   }
 }

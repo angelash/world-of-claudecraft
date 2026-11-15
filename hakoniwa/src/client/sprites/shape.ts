@@ -1,5 +1,5 @@
 // Shape grid: the "palette index" stage of the procedural paper doll
-// (art_pipeline_2d.md 3.7). Generators rasterize primitives into colour SLOTS and shade
+// (art_pipeline.md 3.3). Generators rasterize primitives into colour SLOTS and shade
 // levels; autoShade adds the upper-left light, outline adds the deepened-neighbour
 // outline (1.6), and colorize turns slots into RGBA through a per-look palette. Pure.
 
@@ -213,7 +213,7 @@ export function autoShade(g: ShapeGrid): void {
 /**
  * 1-pixel outline around solid cells using the neighbour's ramp: the deepest step on the
  * bottom and right edges, one step lighter on the top and left (and one more step lighter
- * on the lit side for large bodies, art_pipeline_2d.md 1.6).
+ * on the lit side for large bodies, art_pipeline.md 1.5).
  */
 export function outline(g: ShapeGrid, large = false): void {
   const slots = new Uint8Array(g.slot);

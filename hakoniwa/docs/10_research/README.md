@@ -14,7 +14,7 @@
 | `ai_npc/` | [my_ai_town_agents.md](ai_npc/my_ai_town_agents.md) | my_ai_town 的 AI 居民实现（源码级） | AI 方案 |
 | | [woc_ai_npc.md](ai_npc/woc_ai_npc.md) | world-of-claudecraft 现有 AI 改造（源码级） | AI 方案 |
 | | [comparison_and_plan.md](ai_npc/comparison_and_plan.md) | 两者对比与《箱庭纪》AI 方案方向 | `../40_design/systems/`、`../50_tech/ai_architecture.md` |
-| `art_style/` | [my_ai_town_visual_and_client.md](art_style/my_ai_town_visual_and_client.md) | my_ai_town 的 2D 风格、客户端与素材管线 | `../50_tech/art_pipeline_2d.md` |
+| `art_style/` | [my_ai_town_visual_and_client.md](art_style/my_ai_town_visual_and_client.md) | my_ai_town 的 HD-2D 风格、客户端与程序化素材 | `../50_tech/art_pipeline.md` |
 | `open_share/` | [city_rts_slg.md](open_share/city_rts_slg.md) | 城建、RTS、SLG、经济、策略 AI 的资料与借鉴 | 经营与战争系统 |
 | | [game_dev_methodology.md](open_share/game_dev_methodology.md) | 游戏开发概念与方法论，及概要设计章节建议 | 设计方法、制作计划 |
 | `woc_reuse/` | [combat_and_content_inventory.md](woc_reuse/combat_and_content_inventory.md) | 主工程战斗与内容体系盘点、复用评估 | 战斗、千门、技术复用 |

@@ -221,6 +221,9 @@ export const pack: ContentPack = {
         { key: 'legend', label: '图例', type: 'json' },
         { key: 'locations', label: '地点', type: 'json' },
         { key: 'exits', label: '出口', type: 'json' },
+        { key: 'style', label: '风格包', type: 'string' },
+        { key: 'looks', label: '建筑外观', type: 'json' },
+        { key: 'decor', label: '装饰', type: 'json' },
       ],
     },
     {

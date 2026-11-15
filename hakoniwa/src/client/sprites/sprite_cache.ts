@@ -1,5 +1,5 @@
 // Offscreen-canvas cache of generated sprite frames, keyed by look, animation, direction
-// and frame (art_pipeline_2d.md 3.7: bake on demand, reuse, evict least recently used).
+// and frame (art_pipeline.md 3.7: bake on demand, reuse, evict least recently used).
 // The generation itself is the pure ./generate module; this file only uploads pixels.
 
 import { makeCanvas, matrixToCanvas } from '../render/canvas_util';

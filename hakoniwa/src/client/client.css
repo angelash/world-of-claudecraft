@@ -1,4 +1,4 @@
-/* Hakoniwa client: HUD, windows and title screen. System fonts only (art_pipeline_2d.md 8);
+/* Hakoniwa client: HUD, windows and title screen. System fonts only (art_pipeline.md 8);
    the world canvas is pixel art, the interface is clean flat panels. */
 
 :root {
@@ -45,6 +45,11 @@ body {
   display: block;
   image-rendering: pixelated;
   cursor: default;
+}
+
+/* HD-2D: the WebGL scene sits under the overlay canvas, which takes the pointer. */
+.hk-world-gl {
+  pointer-events: none;
 }
 
 /* ---- shared controls ---- */

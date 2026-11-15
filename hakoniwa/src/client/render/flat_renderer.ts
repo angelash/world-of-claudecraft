@@ -1,16 +1,29 @@
-// Canvas2D backend for the Scene (decision A-04). The world is drawn at one world pixel
-// per canvas pixel into a low-resolution canvas (ground, shadows, depth-sorted sprites,
-// props and roofs, weather, light map), then upscaled by the integer zoom with
-// nearest-neighbour sampling and the camera's sub-pixel remainder as a device offset
-// (art_pipeline_2d.md 2.3 and 2.5). Names, markers and bubbles are drawn afterwards at
-// screen resolution by the overlay painter. All decisions live in the pure modules.
+// The flat Canvas2D renderer (art_pipeline.md 2.1): the fallback when WebGL is missing or
+// the player picks the flat quality tier. The world is seen straight from above and drawn
+// at one world pixel per canvas pixel into a low-resolution canvas (ground, shadows,
+// depth-sorted sprites and standees, roofs, weather, light map), then upscaled by the
+// integer zoom with nearest-neighbour sampling and the camera's sub-pixel remainder as a
+// device offset. It reads the same scene, map context and style pack as the HD-2D scene;
+// names, markers and bubbles come from the shared overlay painter.
 
-import type { MapDef } from '../../systems/world/types';
+import type { StandeePlacement } from '../hd2d/layout';
+import type { QualitySettings } from '../hd2d/quality';
+import { propColorsOf } from '../hd2d/style_packs';
 import { toCss } from '../sprites/palette';
 import { BAYER4 } from '../sprites/pixels';
 import { SpriteCache } from '../sprites/sprite_cache';
-import { logicalSize, snapCamera, TILE_PX } from './camera';
+import {
+  type Camera,
+  clampZoom,
+  followCamera,
+  logicalSize,
+  screenToWorld,
+  snapCamera,
+  TILE_PX,
+} from './camera';
 import { ctx2d, ensureSize, makeCanvas, matrixToCanvas } from './canvas_util';
+import { decorSprite, shopSignSprite } from './decor_art';
+import type { MapContext } from './map_context';
 import { markerMatrix } from './markers';
 import { paintOverlays } from './overlay_painter';
 import type { HitBox, WorldRenderer } from './renderer';
@@ -27,7 +40,8 @@ const RELATION_RING: Record<string, string> = {
   neutral: '#e8c84a',
 };
 
-export class CanvasWorldRenderer implements WorldRenderer {
+export class FlatWorldRenderer implements WorldRenderer {
+  readonly kind = 'flat' as const;
   readonly canvas: HTMLCanvasElement;
   deviceW = 1;
   deviceH = 1;
@@ -41,6 +55,8 @@ export class CanvasWorldRenderer implements WorldRenderer {
   private readonly sctx = ctx2d(this.scratch);
   private ground: HTMLCanvasElement[] = [];
   private mapId = '';
+  private ctxMap: MapContext | null = null;
+  private camera: Camera | null = null;
   private readonly roofCanvases = new Map<string, HTMLCanvasElement>();
   private readonly sprites = new SpriteCache();
   private readonly props = new Map<string, { canvas: HTMLCanvasElement; ax: number; ay: number }>();
@@ -49,9 +65,12 @@ export class CanvasWorldRenderer implements WorldRenderer {
   private readonly dissolve: HTMLCanvasElement[] = [];
   private fog: HTMLCanvasElement | null = null;
   private boxes: HitBox[] = [];
+  private readonly reducedMotion =
+    typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  constructor(canvas?: HTMLCanvasElement) {
-    this.canvas = canvas ?? document.createElement('canvas');
+  constructor() {
+    this.canvas = document.createElement('canvas');
+    this.canvas.className = 'hk-world';
     this.ctx = ctx2d(this.canvas);
     for (let level = 0; level <= 16; level++) {
       // 4x4 mask with `level` Bayer cells opaque: used to punch dissolving roofs.
@@ -65,6 +84,18 @@ export class CanvasWorldRenderer implements WorldRenderer {
     }
   }
 
+  mount(parent: HTMLElement): void {
+    parent.prepend(this.canvas);
+  }
+
+  setQuality(_q: QualitySettings): void {
+    // The flat renderer has no optional effects; the tier only selects it.
+  }
+
+  screenToGround(sx: number, sy: number): { x: number; y: number } | null {
+    return this.camera ? screenToWorld(this.camera, sx, sy) : null;
+  }
+
   resize(cssW: number, cssH: number, dpr: number): void {
     this.dpr = dpr;
     this.deviceW = Math.max(1, Math.round(cssW * dpr));
@@ -75,12 +106,16 @@ export class CanvasWorldRenderer implements WorldRenderer {
     this.ctx.imageSmoothingEnabled = false;
   }
 
-  setMap(map: MapDef): void {
-    if (this.mapId === map.id && this.ground.length) return;
-    this.mapId = map.id;
+  setMap(ctx: MapContext): void {
+    if (this.mapId === ctx.map.id && this.ground.length) return;
+    this.mapId = ctx.map.id;
+    this.ctxMap = ctx;
     this.ground = [];
-    for (let f = 0; f < WATER_FRAMES; f++) this.ground.push(matrixToCanvas(bakeGround(map, f)));
+    for (let f = 0; f < WATER_FRAMES; f++) {
+      this.ground.push(matrixToCanvas(bakeGround(ctx.map, f, { ramps: ctx.pack.ground })));
+    }
     this.roofCanvases.clear();
+    this.props.clear();
   }
 
   hitBoxes(): readonly HitBox[] {
@@ -91,11 +126,22 @@ export class CanvasWorldRenderer implements WorldRenderer {
     this.sprites.clear();
     this.roofCanvases.clear();
     this.ground = [];
+    this.canvas.remove();
   }
 
   render(scene: Scene): void {
-    if (scene.map.id !== this.mapId) this.setMap(scene.map);
-    const cam = scene.camera;
+    const map = scene.map;
+    const zoom = clampZoom(scene.view.step);
+    const at = followCamera(
+      { x: scene.view.focusX, y: scene.view.focusY },
+      map.width,
+      map.height,
+      this.deviceW,
+      this.deviceH,
+      zoom,
+    );
+    const cam: Camera = { zoom, x: at.x, y: at.y, viewW: this.deviceW, viewH: this.deviceH };
+    this.camera = cam;
     const { ix, iy, ox, oy } = snapCamera(cam);
     const { w: LW, h: LH } = logicalSize(cam.viewW, cam.viewH, cam.zoom);
     ensureSize(this.world, LW, LH);
@@ -163,9 +209,10 @@ export class CanvasWorldRenderer implements WorldRenderer {
           sortY: it.sortY,
         });
       } else if (it.type === 'prop') {
-        const p = this.prop(it.prop, it.variant);
-        const lx = it.tx * TILE_PX + 8 - ix;
-        const ly = it.ty * TILE_PX + 15 - iy;
+        const p = this.prop(it.placement);
+        if (!p) continue;
+        const lx = Math.round(it.placement.x * TILE_PX) - ix;
+        const ly = Math.round((it.placement.y - (it.placement.lift ?? 0)) * TILE_PX) - iy;
         w.drawImage(p.canvas, lx - p.ax, ly - p.ay);
       } else {
         if (it.openness >= 1) continue;
@@ -197,7 +244,7 @@ export class CanvasWorldRenderer implements WorldRenderer {
     // Weather and fog (before lighting, so night darkens them too).
     const view = { w: LW, h: LH, camX: ix, camY: iy };
     if (scene.weather === 'fog') this.drawFog(scene.timeMs, LW, LH, ix, 0.85);
-    const parts = weatherParticles(scene.weather, scene.timeMs, view);
+    const parts = weatherParticles(scene.weather, scene.timeMs, view, this.reducedMotion ? 0.4 : 1);
     for (const p of parts) {
       w.globalAlpha = p.alpha;
       if (p.kind === 'rain') {
@@ -250,7 +297,7 @@ export class CanvasWorldRenderer implements WorldRenderer {
       const ly = Math.round(it.y * TILE_PX) - iy - Math.round(f.height / 2);
       this.glow(lx, ly, f.glow.radius, f.glow.color, 0.35 + 0.08 * Math.sin(scene.timeMs / 400));
     }
-    if (scene.weather === 'storm') {
+    if (scene.weather === 'storm' && !this.reducedMotion) {
       const flash = lightningFlash(scene.timeMs);
       if (flash > 0) {
         w.globalAlpha = flash;
@@ -272,11 +319,11 @@ export class CanvasWorldRenderer implements WorldRenderer {
     c.drawImage(this.world, ox, oy, LW * cam.zoom, LH * cam.zoom);
 
     paintOverlays(c, scene, {
-      ix,
-      iy,
-      ox,
-      oy,
-      zoom: cam.zoom,
+      scale: cam.zoom,
+      project: (x, h, y) => ({
+        x: (Math.round(x * TILE_PX) - ix) * cam.zoom + ox,
+        y: (Math.round(y * TILE_PX) - iy - h * TILE_PX) * cam.zoom + oy,
+      }),
       dpr: this.dpr,
       frameOf: (e: SceneEntity) =>
         this.sprites.get(e.look, e.anim.anim, e.anim.dir, e.anim.frame).frame,
@@ -313,7 +360,8 @@ export class CanvasWorldRenderer implements WorldRenderer {
 
   private applyLighting(scene: Scene, LW: number, LH: number, ix: number, iy: number): void {
     const { tint } = scene.lighting;
-    if (tint === 0xffffff && scene.lights.length === 0) return;
+    const lights = [...scene.staticLights, ...scene.dynamicLights];
+    if (tint === 0xffffff && lights.length === 0) return;
     ensureSize(this.light, LW, LH);
     const l = this.lctx;
     l.globalCompositeOperation = 'source-over';
@@ -324,7 +372,7 @@ export class CanvasWorldRenderer implements WorldRenderer {
       1 -
       Math.min(1, ((tint >> 16) & 0xff) / 255 + ((tint >> 8) & 0xff) / 255 + (tint & 0xff) / 255) /
         3;
-    for (const light of scene.lights) this.paintLight(l, light, ix, iy, Math.max(0.15, dark));
+    for (const light of lights) this.paintLight(l, light, ix, iy, Math.max(0.15, dark));
     l.globalCompositeOperation = 'source-over';
     const w = this.wctx;
     w.globalCompositeOperation = 'multiply';
@@ -332,7 +380,7 @@ export class CanvasWorldRenderer implements WorldRenderer {
     w.globalCompositeOperation = 'source-over';
   }
 
-  /** Stepped radial light (three bands, art_pipeline_2d.md 1.11 quantised falloff). */
+  /** Stepped radial light (three bands, the quantised falloff of art_pipeline.md 2.7). */
   private paintLight(
     l: CanvasRenderingContext2D,
     light: SceneLight,
@@ -431,14 +479,18 @@ export class CanvasWorldRenderer implements WorldRenderer {
     return c;
   }
 
-  private prop(
-    kind: 'tree' | 'rock',
-    variant: number,
-  ): { canvas: HTMLCanvasElement; ax: number; ay: number } {
-    const key = `${kind}:${variant % 3}`;
+  private prop(pl: StandeePlacement): { canvas: HTMLCanvasElement; ax: number; ay: number } | null {
+    const key = `${pl.source}:${pl.kind}:${pl.variant % 3}`;
     let p = this.props.get(key);
     if (!p) {
-      const s = propSprite(kind, variant);
+      const pack = this.ctxMap?.pack;
+      const s =
+        pl.source === 'tree' || pl.source === 'rock'
+          ? propSprite(pl.source, pl.variant, pack ? propColorsOf(pack) : undefined)
+          : pl.source === 'sign'
+            ? shopSignSprite(pl.kind as Parameters<typeof shopSignSprite>[0])
+            : decorSprite(pl.kind as Parameters<typeof decorSprite>[0], pl.variant);
+      if (!s) return null;
       p = { canvas: matrixToCanvas(s.matrix), ax: s.anchorX, ay: s.anchorY };
       this.props.set(key, p);
     }

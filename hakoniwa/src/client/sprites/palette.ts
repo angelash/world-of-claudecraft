@@ -1,5 +1,5 @@
 // Colour helpers and shade ramps for the procedural pixel art. Ramps follow
-// art_pipeline_2d.md 1.5 to 1.7: light comes from the upper left, light steps shift
+// art_pipeline.md 1.4 and 1.5: light comes from the upper left, light steps shift
 // warm, dark steps shift cool, and the outline is the deepest step of the neighbouring
 // fill ramp (never pure black). Pure; Node-tested.
 

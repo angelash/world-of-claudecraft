@@ -1,4 +1,4 @@
-// Weather and ambience particles (art_pipeline_2d.md 1.10): rain streaks and splashes,
+// Weather and ambience particles (art_pipeline.md 2.8): rain streaks and splashes,
 // snow, drifting ash with embers, a scrolling fog noise field, storm lightning, and the
 // rising motes of sediment (dian) and the divine court. Every particle is a pure
 // function of time and index, so nothing is stored and frames are reproducible.
