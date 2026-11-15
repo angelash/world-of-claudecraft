@@ -12,7 +12,8 @@
     "docs/40_design/systems/warfare_rts.md",
     "docs/40_design/systems/grand_strategy_slg.md",
     "docs/40_design/systems/goddess_gm.md",
-    "docs/50_tech/art_pipeline.md"
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/content/catalog_cutscenes.md"
   ],
   "items": [
     {
@@ -13213,6 +13214,1911 @@
         "en": "about 4 seconds with the attack in the first 10 milliseconds"
       },
       "ref": "nation_founded",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_phone_buzz",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "手机在掌心短促地震动一下，带一声极轻的亮屏提示音",
+        "en": "a phone buzzing once in the palm with a faint screen-wake tick"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_msg_sending",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "消息发送的轻提示音，随后信号断开，只剩一小段空白的静",
+        "en": "a soft message-send chime, then the signal drops into a short empty silence"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_train_brake",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "末班车减速的金属长音，报站的电子提示音被隧道风声盖过，车门气动打开（报站没有可辨识的字词）",
+        "en": "the last train braking with a long metal whine, the station chime swallowed by tunnel wind, then the doors hissing open; no intelligible announcement"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_store_chime",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "便利店进门的两音电子门铃，夹着门外的雨声",
+        "en": "the two-note electronic door chime of a convenience store, rain falling outside"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_voicemail",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "电话留言开始前的提示音与一段电流底噪",
+        "en": "a voicemail beep followed by a stretch of line hiss"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_cat_mew",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一只淋湿的小猫很轻地叫一声，带一点鼻音",
+        "en": "a small wet cat giving one soft, slightly nasal mew"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_call_bell",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "走廊远处护士站的呼叫铃，两声电子音，带走廊混响",
+        "en": "a nurse-station call bell far down a hospital corridor, two electronic tones with corridor reverb"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_truck_horn",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "楼下卡车怠速的低鸣里按响一声短喇叭",
+        "en": "one short horn blast over a truck idling below the window"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_wardrobe_creak",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "旧衣柜的门自己开了一条缝，干木头缓慢的吱呀",
+        "en": "an old wardrobe door easing open a crack by itself, a slow creak of dry wood"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_shutter",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "手机拍照的快门声，短而干",
+        "en": "a phone camera shutter click, short and dry"
+      },
+      "extra": {
+        "zh": "时长约 0.5 秒，起音在开头 10 毫秒内",
+        "en": "about 0.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_door_white",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_door_push",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "推开一扇旧木门：门轴转动，房间里没有任何回声",
+        "en": "pushing open an old wooden door, the hinge turning, no room echo at all"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_door_white",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_white_in",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "所有声音被抽走后剩下的极高极轻的静，像耳中的细鸣",
+        "en": "after every sound is drawn away, a very high and very faint stillness like a thin ringing in the ears"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_door_white",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_wall_murmur",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "隔着一堵墙的低沉说话声与一阵大笑，闷而听不清（无人声字词）",
+        "en": "muffled talk and a burst of laughter through a wall, dull and unintelligible, no words"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_door_white",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_footsteps_away",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一群人的脚步沿很长的走廊远去，越来越轻",
+        "en": "a group of footsteps receding down a very long corridor, fading out"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_door_white",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_chairs_seat",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "帘幕后几把椅子被拉开、有人落座，衣料窸窣",
+        "en": "behind a curtain, chairs pulled out and people sitting down with rustling cloth"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_quarrel",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_cough_player",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一声故意的轻咳，短促清楚（无人声字词）",
+        "en": "one deliberate light cough, short and clear, no words"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_quarrel",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_bell_call",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "叫号的小铃：一声清亮的铃音，余音很长",
+        "en": "a small calling bell: one clear ring with a very long tail"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_quarrel",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_board_slot",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "号码板凭空多出一格，新格子亮起时一声清脆的轻鸣",
+        "en": "a number board gaining a new slot out of nowhere, a crisp soft chime as it lights"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_quarrel",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_strike_out",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "笔在纸上果断地划掉一行",
+        "en": "a pen striking out a line on paper in one decisive stroke"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_call",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_halo_stop",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "齿轮般的光环转动声突然停了一拍，又接着转",
+        "en": "the gear-like whirr of a halo halting for one beat, then turning again"
+      },
+      "extra": {
+        "zh": "每个变体时长约 1 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 1 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_p_call",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_table_knock",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "笔杆在长木桌上轻敲两下",
+        "en": "a pen tapping twice on a long wooden table"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_call",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_sword_table",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一柄断剑搁上长桌，木桌嗡的一声长振",
+        "en": "a broken sword laid on a long table, the wood humming with a long resonance"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_interview",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_ink_drop",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一滴墨落在卷轴上，很轻的一声湿响",
+        "en": "a single drop of ink landing on a scroll, a tiny wet tap"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_interview",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_hollow",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "光照进一处空洞：没有回声，一个往下沉的低音",
+        "en": "light shining into a hollow: no echo, one sinking low tone"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_judgement",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_table_slam",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一掌重重拍在长木桌上",
+        "en": "a palm slamming down hard on a long wooden table"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_judgement",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_coin",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一枚金币落进掌心；变体一是按进掌心的一声轻响，变体二是抛起时空中一声轻鸣再落回手心",
+        "en": "a gold coin landing in a palm; variation one is pressed into the hand, variation two rings once in the air when tossed and drops back into the hand"
+      },
+      "extra": {
+        "zh": "每个变体时长约 1 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 1 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_p_judgement",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_book_close",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "合上一本厚书，沉闷的一声，带一点纸页的风",
+        "en": "closing a thick book, a dull thump with a small puff of page air"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_p_discard",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_far_wings",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "竖井深处巨大的翅膀拍打，夹着灰里爬行的窸窣，很远",
+        "en": "huge wings beating far down a shaft, mixed with skittering in ash, very distant"
+      },
+      "extra": {
+        "zh": "时长约 2.5 秒，起音在开头 10 毫秒内",
+        "en": "about 2.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_wake",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_ash_gaze",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "冷光转过来时极低的嗡鸣，周围的声音像被灰吞掉",
+        "en": "a very low hum as a cold light turns this way, the sound around it as if swallowed by ash"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_ash_glimpse",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_ash_pages",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "埋在灰里的纸页自己翻动，干涩的沙沙声",
+        "en": "pages buried in ash turning by themselves, a dry rustle"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_ash_glimpse",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_ash_storm",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "灰骤然扬起、吞没一切的闷响",
+        "en": "a muffled roar of ash suddenly billowing up and swallowing everything"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_ash_glimpse",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_raven_screech",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "巨鸦嘶哑的长鸣，在竖井里层层回荡",
+        "en": "a giant raven's long hoarse screech echoing up a shaft"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_raven",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_raven_word",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "鸦鸣扭曲成近似人声的两个音节，仍是变形的鸟鸣（无人声字词）",
+        "en": "a raven call warped into two almost human syllables, still a distorted bird cry, no words"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_raven",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_cup_catch",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一只玻璃杯落进手心的轻响",
+        "en": "a glass cup dropping into a palm with a soft knock"
+      },
+      "extra": {
+        "zh": "时长约 0.5 秒，起音在开头 10 毫秒内",
+        "en": "about 0.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_town",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_cup_break",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "杯子摔碎在木地板上，碎片四散",
+        "en": "a cup shattering on a wooden floor, shards scattering"
+      },
+      "extra": {
+        "zh": "时长约 0.8 秒，起音在开头 10 毫秒内",
+        "en": "about 0.8 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_town",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_crystal_dead",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "手按上鉴定水晶，期待中的鸣响没有出现，只有一声闷闷的空响",
+        "en": "a hand pressed on an appraisal crystal; the expected chime never comes, only a dull hollow knock"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_guild",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_badge_set",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "铜牌轻轻放在木柜台上",
+        "en": "a copper badge set gently on a wooden counter"
+      },
+      "extra": {
+        "zh": "时长约 0.6 秒，起音在开头 10 毫秒内",
+        "en": "about 0.6 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_guild",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_trial_bell",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "礼拜钟三响，沉重而缓慢",
+        "en": "a chapel bell tolling three times, heavy and slow"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_trial",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_grey_flame",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "灯焰被压低、转灰时的细嘶",
+        "en": "a thin hiss as a lamp flame is pressed down and turns grey"
+      },
+      "extra": {
+        "zh": "每个变体时长约 1.5 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 1.5 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a1_trial",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_brawl",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "人群推搡与尖叫，彩窗玻璃碎裂（无人声字词）",
+        "en": "a crowd shoving and screaming as stained glass shatters, no words"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_trial",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_quill_night",
+      "template": "effect_loop",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "深夜写信：羽毛笔尖持续的沙沙声与烛芯偶尔的轻爆，可无缝循环",
+        "en": "writing a letter late at night: steady quill scratching with an occasional candle-wick pop, seamless loop"
+      },
+      "extra": {
+        "zh": "可无缝循环，循环体 4 到 8 秒，首尾无突出的单个事件",
+        "en": "seamless loop, 4 to 8 second loop body, no prominent single event at the seam"
+      },
+      "ref": "cut_a1_trial",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_alarm_bell",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "急促而整齐的警钟连敲，节奏稳定",
+        "en": "a rapid, even alarm bell struck in a steady rhythm"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_tide",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_mob",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "礼拜堂里的骚动，几个人的附和声越来越大（无人声字词）",
+        "en": "unrest in a chapel, a few voices joining in and growing louder, no words"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_tide",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_colossus_step",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "巨像的脚步：灰石碾过地面，晶块互相撞击",
+        "en": "a colossus step: grey stone grinding the ground and crystal chunks knocking together"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_tide",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_colossus_fall",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "巨像崩成灰石，长长的碎落声",
+        "en": "a colossus collapsing into grey stone with a long cascade of rubble"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_tide",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_core_smash",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "澱核被击碎：介于玻璃与骨头之间的脆响，随即熄灭",
+        "en": "a sediment core smashed: a crack somewhere between glass and bone, then nothing"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_tide",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_core_grasp",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "握住澱核：烫与冷交替的嘶声，远处一声很轻的门响",
+        "en": "gripping a sediment core: hisses alternating hot and cold, a faint door sound far away"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_tide",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_dian_surge",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "灰潮涌起的低频推进，越来越近",
+        "en": "the low-frequency push of an ash tide rising and coming closer"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_tide",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_dream_touch",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "指尖碰到手背：极轻的一声钟片音，带一点暖意",
+        "en": "a fingertip touching the back of a hand: one very soft chime-bar note with a little warmth"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_dream",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_edgestone_glint",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "边石背面的纹路一亮，短促的轻鸣",
+        "en": "the carved lines on the back of a boundary stone flaring, a short soft ring"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_mark",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_glove",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一只旧皮手套被扔到木柜台上",
+        "en": "an old leather glove tossed onto a wooden counter"
+      },
+      "extra": {
+        "zh": "时长约 0.5 秒，起音在开头 10 毫秒内",
+        "en": "about 0.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_mark",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_post_horse",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "驿马进门：蹄声、喷鼻，邮袋落地",
+        "en": "a post horse arriving: hooves, a snort, a mailbag dropped on the ground"
+      },
+      "extra": {
+        "zh": "时长约 2.5 秒，起音在开头 10 毫秒内",
+        "en": "about 2.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_letter",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_a1_letter_unfold",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "掰开火漆，展开信纸",
+        "en": "breaking a wax seal and unfolding the letter"
+      },
+      "extra": {
+        "zh": "时长约 1.2 秒，起音在开头 10 毫秒内",
+        "en": "about 1.2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a1_letter",
+      "milestone": "M1"
+    },
+    {
+      "id": "sfx_cin_arrival_bells",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "大钟报时，十几口小钟依次应和，像在点名",
+        "en": "a great bell striking the hour, a dozen small bells answering one by one like a roll call"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音在开头 10 毫秒内",
+        "en": "about 6 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_arrival",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_arrival_cough",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "厚帘后一阵长咳，越咳越弱（无人声字词）",
+        "en": "a long fit of coughing behind a heavy curtain, weakening as it goes, no words"
+      },
+      "extra": {
+        "zh": "每个变体时长约 4 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 4 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a2_arrival",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_arrival_curtain",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "厚重的帘子被风或手带动的一下轻响",
+        "en": "a heavy curtain stirred by wind or a hand, one soft swish"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_arrival",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_exam_crystal",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "大鉴定水晶亮起，嗡的一声，随即熄灭",
+        "en": "a large appraisal crystal lighting up with a hum, then going dark"
+      },
+      "extra": {
+        "zh": "每个变体时长约 3 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 3 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a2_exam",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_exam_stamp",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "签字之后印章落在纸上",
+        "en": "a signature scratched out, then a stamp pressed onto the paper"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_exam",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_heroes_fanfare",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "全城钟鸣叠一段号角，人群欢呼（无人声字词）",
+        "en": "bells across a city layered with a horn call and a cheering crowd, no words"
+      },
+      "extra": {
+        "zh": "时长约 8 秒，起音在开头 10 毫秒内",
+        "en": "about 8 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_heroes",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_heroes_spit",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一口唾沫落进河里，水面一声轻响（喜剧点）",
+        "en": "spit hitting a river with a small plop, a comic beat"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_heroes",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_heroes_light",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "圣光铺满前庭的高音和声（无词）",
+        "en": "a high wordless harmony as holy light floods a forecourt"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_heroes",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_dream_children",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "隔着几层墙的孩子呼喊，闷而远（无人声字词）",
+        "en": "children calling out through several walls, muffled and distant, no words"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音在开头 10 毫秒内",
+        "en": "about 6 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_dream_w10",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_ferryman_water_close",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "两堵水墙合拢，水声回到如常的河流",
+        "en": "two walls of water crashing closed and settling back into an ordinary river"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_ferryman",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_ferryman_song",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "几名船工干活时低声哼同一段简单的渡船旋律，无词，无伴奏",
+        "en": "a few boatmen humming the same simple ferry tune while working, wordless and unaccompanied"
+      },
+      "extra": {
+        "zh": "时长约 12 秒，起音在开头 10 毫秒内",
+        "en": "about 12 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_ferryman",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_trial_mirror",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一面镜子举起时的一声冷光鸣响",
+        "en": "a cold ringing flash as a mirror is raised"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_selene_trial",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_funeral_still_bell",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一口大钟敲响一声，衰减极长",
+        "en": "a single stroke of a great bell with a very long decay"
+      },
+      "extra": {
+        "zh": "时长约 8 秒，起音在开头 10 毫秒内",
+        "en": "about 8 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_funeral",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_funeral_bomb",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "陶罐碎裂，灰烟猛地炸开",
+        "en": "a clay jar shattering and a burst of ash smoke"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_funeral",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_funeral_projection",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一个投影出现时失谐的低鸣，像一段熟悉动机的倒影",
+        "en": "a detuned low drone as a projection appears, like the mirror image of a familiar motif"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_funeral",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_funeral_kneel",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一片衣料摩擦与膝盖落地的声音",
+        "en": "a wave of rustling cloth and knees meeting stone"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_funeral",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_funeral_pyre",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "柴堆点着后的爆裂声，远处人群一片静默",
+        "en": "the crackle of a pyre catching fire, a distant crowd in silence"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音在开头 10 毫秒内",
+        "en": "about 6 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_funeral",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_arrest_proclaim",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "宣读告示前的一声短号",
+        "en": "a short horn blast before a proclamation is read"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_arrest",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_arrest_shield",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "塔盾挡住一剑，金属的闷响",
+        "en": "a tower shield blocking a sword, a dull metal clang"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_arrest",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_arrest_rats",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "成百上千只老鼠顺墙根奔走的窸窣",
+        "en": "hundreds of rats scurrying along the foot of a wall"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音在开头 10 毫秒内",
+        "en": "about 6 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_arrest",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_siege_hum",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "钟没有被敲却在嗡鸣，地底晶体的共鸣",
+        "en": "a bell humming without being struck, the resonance of crystals underground"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_siege",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_siege_burst",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "几个出口同时喷涌，泥水与碎石冲出",
+        "en": "several outlets erupting at once, muddy water and gravel blasting out"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_siege",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_siege_frame_close",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "门纹与门框合缝，门框暗下去的一声沉响",
+        "en": "a door pattern locking into its frame, a deep thud as the frame goes dark"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_siege",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_siege_dawn_bell",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "黎明的钟声；变体一是大钟，浑厚；变体二是小钟楼，细而亮",
+        "en": "a dawn bell; variation one is a great bell, deep and full; variation two is a small belfry, thin and bright"
+      },
+      "extra": {
+        "zh": "每个变体时长约 9 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 9 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a2_siege",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_no_page_crystal",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "检索仪的水晶亮起，一串细碎的光鸣",
+        "en": "a search device's crystal lighting up with a string of fine shimmering tones"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_no_page",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_no_page_dark",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "水晶暗下去，一声空落的轻响",
+        "en": "the crystal going dark with one empty little note"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_no_page",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_no_page_ink",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "水晶里的墨迹流动又散开，液体般的低语声",
+        "en": "ink swirling inside a crystal and then dispersing, a liquid whisper"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_no_page",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_no_page_unmoor",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "解开缆绳，长篙入水",
+        "en": "untying a mooring rope and a long pole entering the water"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_no_page",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_barony_herald",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "王都使者的号角，正式而嘹亮",
+        "en": "a royal envoy's horn, formal and bright"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_barony",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_barony_laugh",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "大厅里一声压不住的笑（无人声字词）",
+        "en": "a laugh in a hall that cannot be held back, no words"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_barony",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_seal_melt",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "暗红火漆被温热软化的细嘶，封口轻轻一弹，信纸自己展开",
+        "en": "the soft hiss of dark red sealing wax warming and softening, the seal popping lightly, the letter unfolding by itself"
+      },
+      "extra": {
+        "zh": "每个变体时长约 3 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 3 seconds with the attack in the first 10 milliseconds; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a2_barony",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_barony_door_shadow",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "门影浮现，远处像有万马奔过的低沉滚动",
+        "en": "a door-shaped shadow appearing with a low rolling like ten thousand horses passing far away"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a2_barony",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_court_titter",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "满殿压低的窃笑，扇子摩擦衣料（无人声字词）",
+        "en": "a hall full of suppressed sniggering with fans brushing fabric, no words"
+      },
+      "extra": {
+        "zh": "时长约 2.5 秒，起音在开头 10 毫秒内",
+        "en": "about 2.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_audience",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_curtain_hand",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "层层帘幕里一只手抬起：布料轻响与一声很长的呼吸",
+        "en": "a hand lifting within layers of curtains: soft cloth and one very long breath"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_audience",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_lamp_sweep",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "灯的冷光扫过时的冷嗡声，扫到门纹时音高上扬",
+        "en": "a cold hum as a lamp beam sweeps across, the pitch rising when it crosses a door mark"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_massacre",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_shield_dark",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "盾面光环的嗡鸣骤停，只剩金属的余震",
+        "en": "the hum of a shield's halo cutting out, leaving only the ringing of the metal"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_massacre",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_fog_roll",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "大雾一下子落下：低沉的长呼气，水声被吞掉",
+        "en": "heavy fog falling at once: a low long exhale, the water sounds swallowed"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_massacre",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_main_gate_break",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "远方一声巨响，随后无数扇门同时砸合的回声，一层层远去",
+        "en": "a huge distant crash, then the echoes of countless doors slamming at once, receding layer by layer"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_sundering",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_mark_burn",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "门纹灼痛：烙铁般的嘶声与短促的耳鸣",
+        "en": "a door mark burning: a branding-iron hiss and a short ringing in the ears"
+      },
+      "extra": {
+        "zh": "每个变体时长约 1.5 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 1.5 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a3_sundering",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_ash_freeze",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "所有声音被抽走的真空感，一息之后灰落回地面",
+        "en": "a vacuum as all sound is drawn out, then a breath later ash falling back to the ground"
+      },
+      "extra": {
+        "zh": "时长约 2.5 秒，起音在开头 10 毫秒内",
+        "en": "about 2.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_warning",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_door_draft",
+      "template": "effect_loop",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "门缝里的风：细而长的哨音，时强时弱，可无缝循环",
+        "en": "wind through a door gap: a thin long whistle that swells and fades, seamless loop"
+      },
+      "extra": {
+        "zh": "可无缝循环，循环体 4 到 8 秒，首尾无突出的单个事件",
+        "en": "seamless loop, 4 to 8 second loop body, no prominent single event at the seam"
+      },
+      "ref": "cut_a3_warning",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_gate_bar",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "比人还粗的橡木门闩被抬起：木头摩擦的闷响",
+        "en": "an oak door bar thicker than a man being lifted: a heavy grinding of wood"
+      },
+      "extra": {
+        "zh": "时长约 2.5 秒，起音在开头 10 毫秒内",
+        "en": "about 2.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_crown_falls",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_last_breath",
+      "template": "effect_vocal",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "最后一口气呼出，烛火随之轻轻一噗（无人声字词）",
+        "en": "a final breath going out and a candle flame softly puffing out with it, no words"
+      },
+      "extra": {
+        "zh": "每个变体时长约 2 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 2 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a3_crown_falls",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_crown_fall",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "王冠落在石板上，滚了半圈，停住",
+        "en": "a crown dropping onto stone flags, rolling half a turn, then stopping"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_crown_falls",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_recall_light",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一道上升的光鸣把人整个带走，余音向上消失",
+        "en": "a rising tone of light carrying someone away, its tail vanishing upward"
+      },
+      "extra": {
+        "zh": "时长约 2.5 秒，起音在开头 10 毫秒内",
+        "en": "about 2.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_ashen_line",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_pillar_rise",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "举起光柱时钟声与无词合唱渐强",
+        "en": "bells and a wordless choir swelling as a pillar of light is raised"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_ashen_line",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_millstone",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "磨盘大的石头砸进光柱：石头开裂，光碎成片",
+        "en": "a millstone-sized rock smashing into a pillar of light: stone cracking, light shattering"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_ashen_line",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_close_light",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "合光：很远处一扇门被轻轻合上",
+        "en": "the closing of light: a door very far away being gently shut"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_ashen_line",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_ash_burial",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "灰卷起埋住人马：沙暴般的轰鸣与沉闷的压覆",
+        "en": "ash rolling up and burying soldiers and horses: a sandstorm roar and heavy smothering thuds"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_ashen_line",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_choir_layer",
+      "template": "effect_loop",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "层层叠叠的无词合音，垫在光借人口说话的段落下，可无缝循环",
+        "en": "layer upon layer of wordless choral tone laid under spoken lines, seamless loop"
+      },
+      "extra": {
+        "zh": "可无缝循环，循环体 4 到 8 秒，首尾无突出的单个事件",
+        "en": "seamless loop, 4 to 8 second loop body, no prominent single event at the seam"
+      },
+      "ref": "cut_a3_eluen_speaks",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_light_out",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "光熄灭：合音骤停，只留一声钟的余音",
+        "en": "light going out: the choir cutting off, leaving only the tail of a bell"
+      },
+      "extra": {
+        "zh": "每个变体时长约 2 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 2 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a3_eluen_speaks",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_shield_drum",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "整条丘陵的兵器敲击盾牌，节奏由乱到齐",
+        "en": "weapons beating shields along a whole ridge, the rhythm going from ragged to unified"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_eluen_speaks",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_map_unfold",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "长卷地图铺开的纸声，夹着高处的风",
+        "en": "a long scroll map unrolling, with wind high above"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a3_map",
+      "milestone": "M2"
+    },
+    {
+      "id": "sfx_cin_stone_set",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一块石头放上石堆：闷响一声，碎砂滑落",
+        "en": "a stone placed on a cairn: one dull knock and loose grit sliding"
+      },
+      "extra": {
+        "zh": "每个变体时长约 1 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 3 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 1 seconds with the attack in the first 10 milliseconds; give 3 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a4_founding",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_crown_hook",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "皇冠挂上铁钩：金属轻碰，厅里一声回响",
+        "en": "a crown hung on an iron hook: a light metal clink echoing in a hall"
+      },
+      "extra": {
+        "zh": "时长约 1 秒，起音在开头 10 毫秒内",
+        "en": "about 1 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a4_feast",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_tile_crack",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "地砖从受力点碎成蛛网，碎裂声向四面爬开",
+        "en": "floor tiles cracking into a web from one point, the crackle crawling outward"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a4_feast",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_coin_hot",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "硬币发烫时极轻的嘶声，远处一声小铃",
+        "en": "a faint hiss of a coin growing hot, a small bell far away"
+      },
+      "extra": {
+        "zh": "每个变体时长约 1.5 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 1.5 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a4_versions",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_vault_bell",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "从地下深处听见的大神殿乱钟，钟声互相踩着，闷而远",
+        "en": "a great temple's bells heard from deep underground, peals tumbling over each other, muffled and far"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a4_key_theft",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_eye_flare",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "濒死者眼里亮起光：一击低沉的战鼓，带铜管余响",
+        "en": "a light flaring in a dying soldier's eyes: one deep war-drum hit with a brass tail"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a4_valda_offer",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_chisel",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "凿子在石墙上凿刻，三下，石屑落地",
+        "en": "a chisel carving into a stone wall, three strikes, chips falling"
+      },
+      "extra": {
+        "zh": "时长约 2 秒，起音在开头 10 毫秒内",
+        "en": "about 2 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a4_valda_offer",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_edict_unroll",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "厚羊皮纸展开，蜡封断裂",
+        "en": "heavy parchment unrolling and a wax seal snapping"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a4_edict",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_mountain_breath",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "极低频的起伏，像隔着很厚的土听见一口气",
+        "en": "a very low-frequency swell, like hearing a breath through thick earth"
+      },
+      "extra": {
+        "zh": "每个变体时长约 4 秒，起音在开头 10 毫秒内；在同一个文件里依次给出 2 个变体，变体之间留 1 秒静音，音色一致、细节略有不同",
+        "en": "each variation about 4 seconds with the attack in the first 10 milliseconds; give 2 variations in sequence in one file with 1 second of silence between them, same character with small differences"
+      },
+      "ref": "cut_a4_conclave",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_rubbing",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "纸贴上石面，墨包一下一下拍打",
+        "en": "paper pressed to stone, an ink pad dabbing again and again"
+      },
+      "extra": {
+        "zh": "时长约 2.5 秒，起音在开头 10 毫秒内",
+        "en": "about 2.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a4_revelation",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_note_tear",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一张纸条被干脆地撕成两半，纸声之后一丝光的嗡鸣跟着断开",
+        "en": "a note torn cleanly in two, and after the paper sound a thin hum of light snapping off"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a5_confession",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_crystal_record",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "成千上万片玻璃同时轻鸣，汇成一个持续的和音，再一齐静下",
+        "en": "thousands of glass panes ringing softly at once, merging into a sustained chord, then falling silent together"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a5_confession",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_shed_light",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "三声由高到低的柔和光鸣依次掐断，最后一声像剑身的余震，余音里只剩风",
+        "en": "three soft tones of light cut off one by one from high to low, the last like a sword blade ringing, then only wind"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a5_luchen",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_final_light",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一个冷而完美的和弦砸下，容器碎裂的玻璃声，随后两股光声分别向左右远去",
+        "en": "a cold perfect chord crashing down, the glass of a vessel shattering, then two strands of light receding left and right"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a5_mirror_c",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_ash_burst",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一声沉闷的爆裂，之后是持续落下的细灰沙沙声，像整片天在下灰",
+        "en": "a muffled burst followed by a steady sifting of fine ash, as if the whole sky were raining ash"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音在开头 10 毫秒内",
+        "en": "about 6 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a5_mirror_c",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_seat_grow",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "白石地板裂开一道细纹，木头一节一节往上长的吱嘎，最后一声温暖的低鸣",
+        "en": "a hairline crack in a white stone floor, wood creaking as it grows upward joint by joint, ending in a warm low hum"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a6_court_open",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_lamps_lit",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "一座小城的灯一盏一盏点起：火柴划燃、灯芯吸油，远处很轻的人声一声接一声地铺开（无人声字词）",
+        "en": "the lamps of a small town lit one after another: matches striking, wicks drinking oil, faint distant voices spreading outward, no words"
+      },
+      "extra": {
+        "zh": "时长约 5 秒，起音在开头 10 毫秒内",
+        "en": "about 5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a6_descent",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_power_absorb",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "无数扇门从远到近同时打开，又在胸口同时关上，最后一声沉闷的心跳",
+        "en": "countless doors opening from far to near, then closing all at once at the chest, ending in one heavy heartbeat"
+      },
+      "extra": {
+        "zh": "时长约 4 秒，起音在开头 10 毫秒内",
+        "en": "about 4 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a6_janu_intent",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_sword_join",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "两截刀身对上的一声清鸣，余音很长",
+        "en": "two halves of a blade meeting in one clear ring with a very long tail"
+      },
+      "extra": {
+        "zh": "时长约 3 秒，起音在开头 10 毫秒内",
+        "en": "about 3 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a6_final_battles",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_court_crumble",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "白石大厅从中间裂开的长声，镜子碎成玻璃雨，远处有巨大的东西倒下",
+        "en": "a white stone hall splitting down the middle with a long groan, a mirror bursting into a rain of glass, something huge falling far away"
+      },
+      "extra": {
+        "zh": "时长约 6 秒，起音在开头 10 毫秒内",
+        "en": "about 6 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a6_verdicts",
+      "milestone": "M3"
+    },
+    {
+      "id": "sfx_cin_wax_crack",
+      "template": "effect_cine",
+      "style": "s_cinematic",
+      "subject": {
+        "zh": "很轻的一声脆响，一小片火漆落进掌心",
+        "en": "a tiny brittle crack and a small flake of sealing wax falling into a palm"
+      },
+      "extra": {
+        "zh": "时长约 1.5 秒，起音在开头 10 毫秒内",
+        "en": "about 1.5 seconds with the attack in the first 10 milliseconds"
+      },
+      "ref": "cut_a6_letter7",
       "milestone": "M3"
     },
     {

@@ -12,7 +12,8 @@
     "docs/40_design/content/catalog_goddess_interventions.md",
     "data/combat/abilities.json",
     "data/combat/monsters.json",
-    "docs/20_world/power_system.md"
+    "docs/20_world/power_system.md",
+    "docs/40_design/content/catalog_cutscenes.md"
   ],
   "items": [
     {
@@ -4028,6 +4029,990 @@
       "ref": "ash_vigil",
       "milestone": "M3",
       "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90；阿什的引导大招；划痕是无字的发光线，绝不能出现文字。只画特效不画首领本体；对应的地面预警由代码绘制，特效中心保持通透，不遮预警。"
+    },
+    {
+      "id": "art_vfx_cut_a1_core_glow",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "澱核的呼吸光与碎裂：一枚拳头大小、悬在半空的多面晶核，核心一点亮紫，外圈一层暗紫光晕随呼吸缓缓胀缩；碎裂时晶核从中间裂出几道亮线，炸成细碎的紫色晶屑向四周飞散后熄灭。",
+        "en": "The dian core breathing and shattering: a fist-sized faceted crystal core hanging in the air, a bright violet point at its heart and a dark violet halo slowly swelling and shrinking like breath; when it breaks, a few bright lines split it from the middle and it bursts into fine violet crystal chips flying outward before going dark."
+      },
+      "extra": {
+        "zh": "第 1、2 帧是晶核的呼吸光（两帧来回播放即为循环），第 3 到 8 帧是碎裂：裂线、炸开、晶屑飞散、熄灭。",
+        "en": "Frames 1 and 2 are the breathing glow of the core (played back and forth as a loop); frames 3 to 8 are the shattering: cracks, burst, chips flying, darkness."
+      },
+      "ref": "cut_a1_tide",
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M1",
+      "notes": "澱系配色：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，暗部要留亮一阶的轮廓。目录写\"循环加 6 帧\"，导入时拆成呼吸段（第 1、2 帧循环）与碎裂段两段播放；晶核本体的特写另见 art_prop_cut_dian_core，本张只画光与晶屑。"
+    },
+    {
+      "id": "art_vfx_cut_a1_edgestone_glint",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "石面上的半个门纹一亮即灭：一道只有半边的拱门形细纹从石缝里亮起淡金光，像被晨光擦了一下，纹路从下往上点亮到一半就停住，随即暗下，只剩一两粒细小的光点。",
+        "en": "Half a door mark flashing on stone: a fine arch-shaped line, only half of it present, lights up pale gold inside the stone cracks as if brushed by morning light, brightening from the bottom up to the halfway point, then dimming at once, leaving only one or two tiny specks of light."
+      },
+      "extra": {
+        "zh": "这一张只用前 4 帧：动作在第 1 到 4 帧完成，第 5 到 8 格保持纯黑。",
+        "en": "This sheet uses only the first 4 frames: the action completes in frames 1 to 4, and cells 5 to 8 stay pure black."
+      },
+      "ref": "cut_a1_mark",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。纹路只有半个门形（另一半被凿掉或埋住），不要画完整的门；石面本体见特写 art_prop_cut_edgestone_glyph，本张只画光。"
+    },
+    {
+      "id": "art_vfx_cut_a1_first_door",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "墙缝里漏出的门形光与门开的光爆：石墙的一条竖缝里先渗出一线暖金光，光沿缝勾出一扇门的轮廓并越来越亮，门向内打开的一刻暖白偏金的光向外爆成扇形，最后化作一阵带光尘的风散去。",
+        "en": "A door-shaped light leaking from a wall crack, then the burst as it opens: a thread of warm gold seeps from a vertical crack in a stone wall, traces the outline of a door and grows brighter; the moment the door swings inward, warm white-gold light bursts outward in a fan, then scatters as a gust carrying motes of light."
+      },
+      "ref": "cut_a1_wake",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M1",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。墙与门本体由地图实景表现，本张只画光；高潮帧中心保持通透，不画成实心色块；最后的风只带光尘，不画锈剑。"
+    },
+    {
+      "id": "art_vfx_cut_a1_grey_flame",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "灯焰由亮转灰：一朵竖直不晃的烛黄色灯焰，焰心一点白，颜色从焰尖开始一点一点褪成灰白，最后整朵火焰变成一团安静的灰色光，依然在烧，却不再发暖。",
+        "en": "A lamp flame turning grey: an upright, unwavering candle-yellow flame with a white core, its color fading bit by bit into grey-white starting from the tip, until the whole flame is a quiet grey glow that still burns but no longer gives warmth."
+      },
+      "extra": {
+        "zh": "这一张只用前 6 帧：第 1 到 6 帧由亮转灰，第 7、8 格重复第 6 帧的灰焰。",
+        "en": "This sheet uses only the first six frames: frames 1 to 6 go from bright to grey, and cells 7 and 8 repeat the grey flame of frame 6."
+      },
+      "ref": "cut_a1_trial",
+      "milestone": "M1",
+      "notes": "起始配色烛黄 #ffe9b0 与白，终点灰白 #b8b8b8；灰焰是\"烧着但没有温度\"，不要画成熄灭或冒烟；最后的灰焰仍要清楚可见（灰白要比背景亮得多）；灯本体见 art_prop_cut_grey_lamp。"
+    },
+    {
+      "id": "art_vfx_cut_a1_greyout",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "威压的灰：画面四边与四角压进一圈圈灰白的雾，雾的内缘是不规则的波纹，一圈接一圈缓缓向中心推进又退回，中央大片留空；雾里夹着极细的灰粒，整体冷而沉重。",
+        "en": "The grey of pressure: rings of grey-white mist pressing in from all four edges and corners of the frame, their inner rims in irregular ripples, advancing slowly toward the center ring after ring and then drawing back, the large center left empty; very fine ash grains hang in the mist, cold and heavy."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。中央大片保持纯黑。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. The large central area stays pure black."
+      },
+      "ref": "cut_a1_ash_glimpse",
+      "milestone": "M1",
+      "notes": "配色灰白 #b9b4a8 加冷灰；导入后作为去饱和与压暗的遮罩使用（亮处为发灰的强度），不直接加色；中央必须留空，玩家立牌所在处不能被盖住；节奏要慢，与呼吸声同步。"
+    },
+    {
+      "id": "art_vfx_cut_a1_mark_glow",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "门纹浮现与隐没：手背大小的一枚拱门形细纹从皮肤下浮起，淡金色的线条由暗到亮描出门框与门缝，亮到最亮时边缘迸出两三粒暖白光点，随后纹路一点点沉回去，只留一道极淡的余痕。",
+        "en": "A door mark surfacing and sinking: a fine arch-shaped mark the size of the back of a hand rises from beneath the skin, pale gold lines brightening to trace the frame and the gap of a door; at its brightest two or three warm white motes spark from its edge, then the mark sinks back bit by bit, leaving only a very faint trace."
+      },
+      "ref": "cut_a1_mark",
+      "deps": ["art_vfx_div_door_resonance"],
+      "milestone": "M1",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。纹路是门的剪影，不是文字；贴在手背特写 art_prop_cut_door_mark 上播放；第二幕梦里的 art_vfx_cut_dream_mark_glow 与第五幕的 art_vfx_cut_a5_mark_seep 以本张的门纹形状为准。"
+    },
+    {
+      "id": "art_vfx_cut_a1_martha_slash",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "很长的一道刀光：一道近乎笔直的银白刀光从画面左下横贯到右上，刀光极细极亮，边缘带一圈淡淡的旧铜色余晖，把周围照亮一瞬；随后刀光从两端向中间慢慢变薄熄灭，只留几缕飘落的光尘。",
+        "en": "One very long blade light: a nearly straight silver-white slash crossing from the lower left to the upper right, extremely thin and bright, its edges carrying a faint old-copper afterglow, lighting everything around for an instant; then it thins slowly from both ends toward the middle and goes out, leaving only a few drifting motes."
+      },
+      "ref": "cut_a1_martha",
+      "deps": ["art_vfx_sig_martha_evening_bell"],
+      "milestone": "M1",
+      "notes": "配色银白 #f4f6f8，边缘极淡的铜色 #c08850 与她的招牌技能呼应；干净、安静：不要火花、不要冲击环、不要元素色；刀光要贯穿整个格子，导入时按镜头拉长；第 1 帧最亮，之后缓慢熄灭。"
+    },
+    {
+      "id": "art_vfx_cut_a1_purify",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "契约之门的净化：一团裹着黑灰的鸟形轮廓，表面的黑灰一片片剥落、飘起，剥落处露出带银灰亮边的羽根，最后一团暖金门光从中心亮起，把剩下的灰全部吹散。",
+        "en": "Purification by the pact door: a bird-shaped outline wrapped in black ash, the ash peeling away flake by flake and drifting up, revealing feather shafts edged in silver-grey light underneath; finally a ball of warm gold door light flares from the center and blows the remaining ash away."
+      },
+      "extra": {
+        "zh": "第 1 到 4 帧黑灰一片片剥落，第 5、6 帧露出银色羽根，第 7、8 帧一团门光亮起后散开。",
+        "en": "Frames 1 to 4: the black ash peels off flake by flake; frames 5 and 6: the silver feather shafts show; frames 7 and 8: a ball of door light flares and disperses."
+      },
+      "ref": "cut_a1_yeyu_bound",
+      "deps": ["art_vfx_door_pact_purify"],
+      "milestone": "M1",
+      "notes": "黑灰用带灰白亮边的暗灰，可夹极少的澱紫 #4a3a62，与 art_vfx_door_pact_purify 一致；羽根亮边银灰 #9aa0aa；门光为门扉金 #f0d890；鸟本体由立牌表现，本张只画剥落的灰、羽根的亮边与门光；目录写 10 帧，导入时第 5、6 帧各多停一帧。"
+    },
+    {
+      "id": "art_vfx_cut_a1_talent_windows",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "门后的窗墙：一面竖立的墙上排着许多大小不一的小方窗轮廓，窗从下往上、从中间往两边依次亮起暖白偏金的光，每扇窗亮起时闪一下，最后整面墙的窗全部亮着，光微微起伏。",
+        "en": "A wall of windows behind the door: an upright wall lined with many small square window outlines of varied sizes, the windows lighting up one after another in warm white-gold from bottom to top and from the middle outward, each flashing as it lights, until every window on the wall is lit and the light gently pulses."
+      },
+      "extra": {
+        "zh": "第 8 帧所有的窗都亮着并停住，不消散。",
+        "en": "In frame 8 every window is lit and holds; nothing fades."
+      },
+      "ref": "cut_a1_talent",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M1",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。窗里不画人、不画字，只有光；窗的轮廓排成网格，但大小有变化；导入后停在最后一帧。"
+    },
+    {
+      "id": "art_vfx_cut_a5_altar_fist",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "红焰中的一拳迎上光柱：格子左下一团暗红到亮红的祭坛火焰窜高，火里走出一个只有亮红轮廓的人影，一拳迎上从右上落下的白金光柱，光柱从拳头处碎成许多白金光片四散飞出。",
+        "en": "A fist from the red flames meeting a pillar of light: altar fire in deep red to bright red surges up at the lower left, a figure drawn only as a bright red outline walks out of it and throws a punch into a white-gold pillar falling from the upper right, the pillar shattering at the fist into many white-gold shards flying in all directions."
+      },
+      "ref": "cut_a5_final_war",
+      "deps": ["art_vfx_div_berserk_flame"],
+      "milestone": "M3",
+      "notes": "赤与白金同框：瓦尔妲的暗红 #8a1a1a、亮红 #e04030 在左下，艾琉恩的白金在右上，撞击点在中心炸开；人影只是亮红轮廓，不画脸与细节；目录写 10 帧，导入时撞击帧多停一帧；中心保持通透。"
+    },
+    {
+      "id": "art_vfx_cut_a5_altar_flame",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "祭坛之火：野战祭坛上的火焰猛地窜高，火色由橙转成暗红与亮红，火舌里显出一个头顶只剩一只断角的模糊轮廓，同时格子右上边缘裂开一道细长的红色裂痕，随后火焰回落。",
+        "en": "The altar fire: flames on a field altar surge upward, their color turning from orange to deep red and bright red, and in the tongues of fire a blurred silhouette appears whose head bears one broken horn; at the same time a long thin red crack splits open along the upper right edge of the cell, then the flames sink back."
+      },
+      "ref": "cut_a5_confession",
+      "deps": ["art_vfx_div_berserk_flame"],
+      "milestone": "M3",
+      "notes": "瓦尔妲的颜色：暗红 #8a1a1a、亮红 #e04030，暗红要带亮红边；断角轮廓只是火舌勾出的剪影，一眼能看出一只角是断的，不画五官；红色裂痕在格子边缘，导入时贴到画面边缘。"
+    },
+    {
+      "id": "art_vfx_cut_a5_ash_burst",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "灰爆：坑底一团灰白的灰柱猛地冲上天空，柱身翻滚着冷灰的涡流，冲到顶端后向四周散开，化作大片灰白的灰片，像雪一样缓缓落满整个画面。",
+        "en": "The ash burst: a grey-white column of ash shoots from the bottom of a pit into the sky, cold grey eddies rolling inside it; at the top it spreads in every direction and becomes great flakes of grey-white ash that fall slowly like snow until they fill the whole frame."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。第 1 到 3 帧冲天，第 4 到 8 帧落灰满屏；最后一帧落灰仍铺满画面，不要消散。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. Frames 1 to 3 shoot upward, frames 4 to 8 rain ash across the screen; the last frame is still full of falling ash and does not fade."
+      },
+      "ref": "cut_a5_mirror_c",
+      "milestone": "M3",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90，不用澱紫。目录写 12 帧，导入时落灰段循环放慢；灰柱中心保持通透。"
+    },
+    {
+      "id": "art_vfx_cut_a5_ash_wall",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "灰墙：灰白的灰在人物身后合成一圈弧形的矮墙，墙面像缓慢流动的沙一样向下滑落、又从底部补上，表面有冷灰的细纹，墙顶不断飘起细小的灰粒。",
+        "en": "A wall of ash: grey-white ash gathering into a low curved wall behind a figure, its face sliding downward like slowly flowing sand and refilling from the bottom, fine cold grey streaks on its surface, tiny grains of ash drifting up from its top all the time."
+      },
+      "ref": "cut_a5_mirror_b",
+      "milestone": "M3",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90，不用澱紫。目录写 6 帧循环，按模板画 8 帧循环；墙是半圈弧形，前方留空不挡人物；导入时放大到人物身后约 6 米宽。"
+    },
+    {
+      "id": "art_vfx_cut_a5_cloth_burn",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "白布燃起暗紫的火：一块用灰白亮线描出轮廓的方形白布，中间先冒出一点暗紫的火苗，火带着亮紫的边向四周烧开，布被烧穿，最后整块化成灰白的灰片飘落。",
+        "en": "A white cloth catching dark violet fire: a square white cloth outlined in grey-white light, a small dark violet flame appearing at its center, the fire spreading outward with bright violet edges and burning through, until the whole cloth falls away as flakes of grey-white ash."
+      },
+      "ref": "cut_a5_mirror_b",
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M3",
+      "notes": "澱系配色：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，暗部要留亮一阶的轮廓。布本身由立牌表现，本张只画布的轮廓亮线、火与灰；暗紫的火一定要带亮紫边才看得见。"
+    },
+    {
+      "id": "art_vfx_cut_a5_dian_pool",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "一小滩澱：地上一小滩浅浅的暗紫色液面，平躺的透视椭圆，边缘一圈亮一阶的淡紫轮廓，液面上映着一小块门扉金的光斑，光斑随液面轻轻晃动。",
+        "en": "A small pool of dian: a shallow dark violet liquid surface on the ground, a flat perspective ellipse with a pale violet rim one step brighter, a small patch of door-gold light reflected on it, the patch rocking gently with the surface."
+      },
+      "extra": {
+        "zh": "4 帧循环：第 1 到 4 帧是一个完整循环，第 5 到 8 格依次重复第 1 到 4 帧。",
+        "en": "Four-frame loop: frames 1 to 4 form one full cycle, and cells 5 to 8 repeat frames 1 to 4 in order."
+      },
+      "ref": "cut_a5_mirror_c",
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M3",
+      "notes": "澱系配色：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，暗部要留亮一阶的轮廓。门光只是倒影里的一小块门扉金 #f0d890，不画门的形状；很小、很安静，不要冒泡、不要冒烟。"
+    },
+    {
+      "id": "art_vfx_cut_a5_final_light",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "碎壳化光：一个人形大小、只用冷灰亮边勾出的暗色外壳从中间裂开，碎片一块块化成白金色的光，一半的光片向格子左下方飘去，另一半向右上方飘去，中间留下一道渐渐淡去的光痕。",
+        "en": "A shell breaking into light: a dark, person-sized shell outlined only by a cold grey rim splits down the middle, its fragments turning piece by piece into white-gold light; half of the shards drift toward the lower left of the cell and the other half toward the upper right, leaving a fading streak of light between them."
+      },
+      "ref": "cut_a5_mirror_c",
+      "deps": ["art_vfx_div_minor_miracle"],
+      "milestone": "M3",
+      "notes": "外壳只是冷灰 #8a8a90 的轮廓，不画脸与任何细节；光色白金；左下与右上两股光必须对称、数量相近；目录写 12 帧，导入时飘散段放慢。"
+    },
+    {
+      "id": "art_vfx_cut_a5_gold_lines",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "金线引灰：格子中央一段门框轮廓亮着暖金，地上从门框脚下向外放射出许多细细的金线，灰白的灰粒沿着金线一粒接一粒向格子边缘流去，金线随之明灭，像缓慢的脉搏。",
+        "en": "Gold lines leading the ash away: a length of door frame glows warm gold at the center of the cell, many thin gold lines radiating outward across the ground from its foot, grey-white grains of ash flowing along them one after another toward the edges of the cell, the lines brightening and dimming like a slow pulse."
+      },
+      "ref": "cut_a5_luchen",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M3",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。灰用灰白 #d8d4cc；金线细而直，平躺在地面，不要画成光柱；导入时平铺在坑沿地面，按镜头放大。"
+    },
+    {
+      "id": "art_vfx_cut_a5_home_door",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "幻象里的门：一扇普通木门的竖直轮廓，门缝里透出暖琥珀色的光，那光比门扉金更暖、更像傍晚的家灯，光里隐约夹着几点冷白与浅蓝的光点，门缝的光像呼吸一样缓缓明灭。",
+        "en": "A door in a vision: the upright outline of an ordinary wooden door, warm amber light coming through its gaps, warmer than door gold and more like a lamp at home in the evening, with a few faint cold white and pale blue specks inside it; the light at the gaps brightens and dims slowly like breathing."
+      },
+      "ref": "cut_a5_final_war",
+      "deps": ["art_vfx_cut_earth_door"],
+      "milestone": "M3",
+      "notes": "与 art_vfx_cut_earth_door 同一种琥珀光 #f0c070，不用门扉金 #f0d890 作主色，以免与千门混淆；门不开，只有门缝的光；目录写 6 帧循环，按模板画 8 帧循环。"
+    },
+    {
+      "id": "art_vfx_cut_a5_judgment_pillar",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣裁光柱：一道巨大的白金色光柱从天直落，落地处一圈精密的几何光纹向外推开，光纹扫过之处，一个个只有白边的人形剪影接连向前倒下，最后光柱变细收回天上，光纹定住片刻后熄灭。",
+        "en": "The pillar of holy judgment: a huge white-gold pillar of light drops straight from the sky, a ring of precise geometric light patterns pushing outward where it lands; as the patterns sweep past, human silhouettes drawn only as white edges fall forward one after another, then the pillar narrows and withdraws into the sky and the patterns hold for a moment before going out."
+      },
+      "ref": "cut_a5_final_war",
+      "deps": ["art_vfx_div_radiance"],
+      "milestone": "M3",
+      "notes": "艾琉恩的颜色：白金加几何纹样，是这一色的合法用途。人影只是白色细边的剪影，不画血与细节；与女神目录的神降圣裁共用（区域光柱）；目录写 10 帧，导入时倒下段多停一帧；中心保持通透。"
+    },
+    {
+      "id": "art_vfx_cut_a5_mark_seep",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "门纹渗灰：手背大小的一枚拱门形纹路发着很弱的淡金光，纹路的缝隙里一粒一粒渗出细小的灰白灰粒，灰粒沿着皮肤向下滑落、飘散，纹路的光随之微微一暗一亮。",
+        "en": "Ash seeping from the door mark: an arch-shaped mark the size of the back of a hand glowing a very weak pale gold, tiny grey-white grains of ash seeping out one by one from the gaps in its lines, sliding down the skin and drifting away, the glow of the mark dimming and brightening slightly with them."
+      },
+      "ref": "cut_a5_mirror_a",
+      "deps": ["art_vfx_cut_a1_mark_glow"],
+      "milestone": "M3",
+      "notes": "门纹形状与 art_vfx_cut_a1_mark_glow 一致，光比它弱；灰粒用灰白 #d8d4cc，细小、稀疏，不要画成烟；目录写 6 帧循环，按模板画 8 帧循环；贴在手背特写上播放。"
+    },
+    {
+      "id": "art_vfx_cut_a5_shed_light",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "加护熄灭：一个人形的位置上依次亮着三处光：披风边缘的一道金边、胸甲上的一圈光环纹、剑身上的一条细长光纹；三处光按披风、胸甲、剑身的顺序一处接一处暗下去，每处熄灭时落下几粒光尘。",
+        "en": "Blessings going out: three lights shine where a figure stands: a gold trim along a cloak edge, a halo pattern on a breastplate, and a long thin line of light along a sword blade; they go dark one after another in the order cloak, breastplate, blade, each dropping a few motes of light as it dies."
+      },
+      "extra": {
+        "zh": "第 1 帧三处光全亮，第 2 到 7 帧依次熄灭，第 8 帧全部暗下，只剩几粒光尘。",
+        "en": "Frame 1 has all three lights on, frames 2 to 7 put them out in turn, and frame 8 is dark with only a few motes left."
+      },
+      "ref": "cut_a5_luchen",
+      "milestone": "M3",
+      "notes": "人形不画，只画三处光的形状，导入时贴在立牌与立绘上对位；光色是加护的白金与金，不用门扉金；熄灭要一件一件分开，节奏是\"一件、停、一件\"；目录写 12 帧，导入时每处熄灭后多停一帧。"
+    },
+    {
+      "id": "art_vfx_cut_appraise_light",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "鉴定之光：一道细长平直的白金色光带横在格子上方，像一把发光的尺，光带边缘排着细密整齐的刻度光点，自上而下匀速扫过格子中间的人形空位，扫到胸口的高度时停住一拍，再向上收回。",
+        "en": "The appraising light: a long, flat, straight white-gold band of light lying across the top of the cell like a glowing ruler, fine evenly spaced graduation points along its edge, sweeping down at an even pace over the empty human-shaped space in the middle, pausing for a beat at chest height, then withdrawing upward."
+      },
+      "ref": "cut_p_judgement",
+      "deps": ["art_vfx_div_minor_miracle"],
+      "milestone": "M1",
+      "notes": "艾琉恩的颜色：白金加几何纹样，是这一色的合法用途。光带要笔直、刻度要整齐对称；人形不画；扫过后不留残光；与 sfx_god_eluen_gaze 同步。"
+    },
+    {
+      "id": "art_vfx_cut_arrest_oracle_light",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "穹顶落下的神谕之光：一道柔和而笔直的白光柱从格子顶端落下，光柱外缘泛着白金，柱身里有细小的光尘缓缓下沉，落地处铺开一圈安静的光晕，停留片刻后光柱从下往上慢慢收细消失。",
+        "en": "Oracle light falling from a dome: a soft, straight column of white light drops from the top of the cell, its outer rim tinged white-gold, fine motes sinking slowly inside it, a quiet halo spreading where it touches the floor; after a pause the column narrows slowly from the bottom up and vanishes."
+      },
+      "ref": "cut_a2_arrest",
+      "deps": ["art_vfx_div_pillar_light"],
+      "milestone": "M2",
+      "notes": "深夜圣所的神谕：比圣柱降光更安静、更窄，不画几何光环；白金只在外缘；目录写 10 帧，导入时停留段多停两帧。"
+    },
+    {
+      "id": "art_vfx_cut_ash_burial",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "灰埋：地面的灰白灰沙猛地卷成一道翻滚的高浪，浪头带着冷灰的暗面，从右向左扑下，把格子中间一片人马的模糊剪影整个盖住，浪落下后只剩一片起伏的灰丘与飘起的细灰。",
+        "en": "Buried in ash: the grey-white ash and sand of the ground suddenly rolls up into a tall tumbling wave with cold grey shadowed faces, crashing down from right to left and covering the blurred silhouettes of riders and horses in the middle of the cell; when it falls, only undulating mounds of ash and drifting fine dust remain."
+      },
+      "ref": "cut_a3_ashen_line",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90，不用澱紫。人马只是被盖住前一两帧的灰白剪影，不画细节与血；目录写 10 帧，导入时高浪帧多停一帧；中心保持通透。"
+    },
+    {
+      "id": "art_vfx_cut_ash_freeze",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "灰停在半空：满格子缓缓飘落的灰白灰粒忽然全部停在半空、一动不动，灰粒边缘泛起一层冷灰的微光；停住一息之后，所有灰粒同时笔直落下，落尽后画面只剩零星几粒。",
+        "en": "Ash frozen in midair: grey-white ash drifting slowly across the whole cell suddenly stops in midair, utterly still, a faint cold grey sheen along the edges of each grain; after one breath every grain drops straight down at once, and when they have fallen only a few stray grains remain."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。这一张只用前 6 帧：第 1 到 3 帧灰粒悬停，第 4 到 6 帧同时落下，第 7、8 格保持纯黑。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. This sheet uses only the first six frames: frames 1 to 3 hold the ash suspended, frames 4 to 6 drop it all at once, and cells 7 and 8 stay pure black."
+      },
+      "ref": "cut_a3_warning",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90，不用澱紫。悬停的三帧里灰粒位置完全不变，只有微光起伏；与 sfx_cin_ash_freeze 同步。"
+    },
+    {
+      "id": "art_vfx_cut_barony_seal_melt",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "火漆化开：一枚深红色的圆形火漆，边缘泛起暖橙的亮光，像被看不见的火烤软，慢慢向四周化开、流下，随后一道淡淡的暖光沿着信纸的折痕亮起，折痕一条接一条松开。",
+        "en": "A wax seal melting: a round deep red wax seal, its rim glowing warm orange as if softened by an unseen flame, slowly spreading and running; then a faint warm light lights up along the folds of the letter, and the folds loosen one after another."
+      },
+      "ref": "cut_a2_barony",
+      "milestone": "M2",
+      "notes": "火漆深红 #a8302a 带暖橙亮边 #f0a050；信与信囊本体见特写 art_prop_cut_barony_letter，本张只画火漆的光与化开、折痕上的光线，信纸本身不画；火漆印面不出现可读文字；目录写 12 帧，导入时化开段放慢。"
+    },
+    {
+      "id": "art_vfx_cut_board_slot",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "号码板长出第五格：一排四个发着柔白光的方格轮廓旁边，空墙上先浮出一个极淡的方框，方框由虚到实描出边线，随后整格亮起与前四格一样的柔白光，亮起的一刻闪一下。",
+        "en": "A fifth slot growing on the number board: beside a row of four softly glowing white square outlines, a very faint frame appears on the empty wall, its edges firming from faint to solid, then the whole slot lights up with the same soft white as the other four, flashing once as it does."
+      },
+      "ref": "cut_p_quarrel",
+      "milestone": "M1",
+      "notes": "神庭的柔白 #f4f0e6，不要火花；格子里不画任何字或数字（\"伍\"由引擎叠加）；第五格与前四格大小完全一致。"
+    },
+    {
+      "id": "art_vfx_cut_chair_outline",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "第六把椅子的轮廓：一把高背扶手椅的轮廓只用极细的暖金线描出，若有若无，像用光在空气里描的一笔，轮廓从一角开始被描亮、绕一圈又淡去，循环往复，椅面里什么都没有。",
+        "en": "The outline of a sixth chair: a high-backed armchair traced only in a very fine warm gold line, barely there, like a stroke drawn in the air with light; the outline brightens starting from one corner, goes all the way around and fades again, over and over, with nothing on the seat."
+      },
+      "ref": "cut_p_call",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门扉金 #f0d890，亮度要很低，最亮时也只是淡淡一线；只在玩家的画面里绘制（其他人看不见）；椅子形状与长桌其余五把椅子相同，不要画成门。"
+    },
+    {
+      "id": "art_vfx_cut_chisel_light",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "凿痕透光：一块被凿过的碑面上，深深浅浅的凿痕缝隙里一道一道透出纯白的光，光从凿痕底部向外渗，几道光痕连在一起时亮一下，再各自暗回去，像碑在里面呼吸。",
+        "en": "Light through chisel marks: on a chiseled stele face, pure white light shines out of the gaps of the chisel marks one line at a time, seeping outward from the bottom of each groove; when several lines join they flare once, then each dims back, as if the stele were breathing inside."
+      },
+      "ref": "cut_a4_revelation",
+      "deps": ["art_vfx_div_stele_glow"],
+      "milestone": "M3",
+      "notes": "天启只用无色（纯白），不借任何女神的颜色；光痕绝不能构成可读文字（碑文由界面以碑文字体另绘）；碑面本体由地图实景表现，本张只画透出的光。"
+    },
+    {
+      "id": "art_vfx_cut_close_light",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "合光三十线：格子上方一排许多小小的门形光点依次亮起，每个光点拉出一条极细的暖金线，三十来条细线从上方向下收拢成扇形，汇到格子下方中央的一点，汇合处亮起一扇小小的门形光，然后整束线一同变淡。",
+        "en": "Thirty lines of closing light: a row of many small door-shaped points of light lights up one by one across the top of the cell, each drawing a very fine warm gold line; some thirty lines converge downward in a fan to a single point at the bottom center, where a small door-shaped light flares, and then the whole bundle fades together."
+      },
+      "ref": "cut_a3_ashen_line",
+      "deps": ["art_vfx_div_close_light"],
+      "milestone": "M2",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。线要细而多（约三十条），收拢成扇形；人物不画，导入时上端贴各门守的手背、下端贴玩家的手背；与 art_vfx_div_close_light 同一配色。"
+    },
+    {
+      "id": "art_vfx_cut_coin_spin",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "旋转硬币的金光：一枚小金币在格子中央竖着旋转，转到正面时闪出一点亮黄的星芒，转到侧面时只剩一道细亮线，周围浮着几粒细小的金色光点跟着打转。",
+        "en": "The glint of a spinning coin: a small gold coin spinning on its edge at the center of the cell, flashing a bright yellow star glint when it turns face-on and showing only a thin bright line edge-on, a few tiny gold motes circling along with it."
+      },
+      "ref": "cut_p_interview",
+      "deps": ["art_vfx_div_coin_warm"],
+      "milestone": "M1",
+      "notes": "梅尔卡的金：币金 #e0a832 与亮黄 #ffe080，不用门扉金；币面图案不画细节；指间版与桌面版共用，导入时贴在手边或桌面上。"
+    },
+    {
+      "id": "art_vfx_cut_company_reveal",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "连队亮框：地面上一个平躺的长方形光框，由四角向中间描出边线，框线是明亮的暖金，框内一排排小小的光点依次亮起，像一列列站好的人，整框亮满后闪一下，随后框线保持一层淡光。",
+        "en": "A company lighting up: a flat rectangular frame of light on the ground, its edges drawn from the four corners toward the middle in bright warm gold, rows of tiny points lighting up inside one after another like files of people standing ready; once the frame is full it flashes once, and then the frame keeps a soft glow."
+      },
+      "extra": {
+        "zh": "这一张只用前 6 帧：第 1 到 6 帧描框与点亮，第 7、8 格重复第 6 帧的淡光框。",
+        "en": "This sheet uses only the first six frames: frames 1 to 6 draw the frame and light the points, and cells 7 and 8 repeat the softly glowing frame of frame 6."
+      },
+      "ref": "cut_a3_domain",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M2",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。门开后的编组提示：框是平躺的透视长方形；不画兵与旗，只画框与光点；导入时按连队立牌的范围拉伸。"
+    },
+    {
+      "id": "art_vfx_cut_continent_dark",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "大陆暗下去：满格子平铺着许多大小不一、边界不规则的块状区域，像地图上的领土，区域一块接一块被一层灰白的光覆盖，覆盖从边缘向中心推进，最后整格都被覆盖，只剩几道细细的边界线还亮着。",
+        "en": "The continent going dark: many irregular patch-shaped regions of varied size tile the whole cell like territories on a map, and one after another they are covered by a layer of grey-white light, advancing from the edges toward the center, until the whole cell is covered and only a few thin border lines still glow."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。最后一帧整格被覆盖，不要消散。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. In the last frame the whole cell is covered; it does not fade."
+      },
+      "ref": "cut_end_reclaim",
+      "milestone": "M3",
+      "notes": "导入后作为压暗的遮罩使用（亮处为变暗的区域），以正片叠底压暗庭镜里的大陆；区域形状随意，不要画成任何真实地图；与 sfx_cin_seal_break 同步。"
+    },
+    {
+      "id": "art_vfx_cut_court_crumble",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "审庭崩塌：白石地面从中央裂开蛛网状的亮缝，亮缝里透出白光，裂开的石片向下塌落；一面圆形镜面同时碎成许多白金光片向上飞散，光片在上升中慢慢变小、闪烁。",
+        "en": "The court crumbling: a white stone floor splits from the center into a web of bright cracks with white light shining through, the broken slabs collapsing downward; at the same time a round mirror shatters into many white-gold shards flying upward, shrinking and flickering as they rise."
+      },
+      "extra": {
+        "zh": "第 1 到 4 帧地面开裂、镜面碎开，第 5 到 8 帧是可循环的崩落段（第 8 帧能接回第 5 帧）。",
+        "en": "Frames 1 to 4: the floor cracks and the mirror shatters; frames 5 to 8 are a loopable collapse section (frame 8 joins back to frame 5)."
+      },
+      "ref": "cut_a6_final_battles",
+      "milestone": "M3",
+      "notes": "白石与光的崩塌，不是火与烟；光片用白金与纯白，地面裂缝用冷白；全屏使用时导入拉伸；目录写 12 帧，可循环段导入后反复播放。"
+    },
+    {
+      "id": "art_vfx_cut_curtain_slit",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "帘幕缝隙里的光：一道竖直的细缝透出柔白偏金的光，光里映着两个影子：一本悬在空中、自己一页页翻动的书，与一枚不停旋转的硬币；两者只是光里深一层的剪影，光线柔和地轻轻起伏。",
+        "en": "Light through a gap in the curtain: a narrow vertical slit lets out soft white-gold light, and in it two shadows show: a book hanging in the air turning its own pages, and a coin spinning without stop; both are only silhouettes one shade darker within the light, which rises and falls gently."
+      },
+      "ref": "cut_p_quarrel",
+      "milestone": "M1",
+      "notes": "只在近档出现；影子用比光暗一阶的颜色剪出，不能画成纯黑（加色混合下纯黑看不见）；不画帘幕本体与人。"
+    },
+    {
+      "id": "art_vfx_cut_dawnpillar",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "曙光圣柱：一根笔直的白金色光柱稳稳立着，柱身有几道几何刻纹般的光环上下缓缓滑动，光柱脚下的灰白灰雾被推开成一圈，圈的边缘灰雾不断涌来，又被光推回去。",
+        "en": "The dawn pillar: a straight white-gold pillar of light standing firm, a few geometric engraved rings of light gliding slowly up and down its shaft, the grey-white ash mist at its foot pushed back into a ring whose edge keeps surging in and being pushed back by the light."
+      },
+      "ref": "cut_a3_ashen_line",
+      "deps": ["art_vfx_div_pillar_light"],
+      "milestone": "M2",
+      "notes": "艾琉恩的颜色：白金加几何纹样，是这一色的合法用途。与 art_vfx_div_pillar_light 同一根光柱的持续段（那张是落下，这张是立住）；灰雾用灰白 #d8d4cc；导入时放大到桥头约 8 米高。"
+    },
+    {
+      "id": "art_vfx_cut_door_draft",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "门旁的风痕：门框边缘外一道竖直的细痕，痕里透出极淡的暖金光，几缕灰白的细灰丝随着从痕里吹出的风向外飘动、卷起又落回，像一扇没关严的门漏出的风。",
+        "en": "A draft mark beside a door: a thin vertical trace just outside a door frame, a very faint warm gold light within it, a few fine grey-white threads of ash fluttering outward on the air blowing from it, curling up and settling back, like wind leaking from a door left ajar."
+      },
+      "extra": {
+        "zh": "4 帧循环，分两档：第 1 行 4 帧是小档（细痕短，灰丝两三缕），第 2 行 4 帧是大档（细痕长，灰丝七八缕，飘得更远）。",
+        "en": "Four-frame loops in two sizes: row 1 is the small size (a short trace, two or three threads of ash), row 2 is the large size (a long trace, seven or eight threads drifting farther)."
+      },
+      "ref": "cut_a3_warning",
+      "deps": ["art_vfx_door_dream"],
+      "milestone": "M2",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。目录要求大中小三档各循环 4 帧：本张一行一档，中档由大档缩小到七成并降低亮度得到；门框本体不画；两档必须一眼能分出大小。"
+    },
+    {
+      "id": "art_vfx_cut_door_hand_over",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "门化光钥：一扇小小的门形暖金光框从两边向中间合拢，收缩成一道竖线，竖线弯折成一枚钥匙形的光，钥匙转一圈后拖着细长的光尾向格子右上方飞出，原地留下几粒暖白光尘。",
+        "en": "A door turning into a key of light: a small door-shaped frame of warm gold light closes in from both sides into a vertical line, the line bends into a key-shaped light, the key turns once and flies off toward the upper right of the cell trailing a long thin tail, leaving a few warm white motes behind."
+      },
+      "ref": "cut_end_release",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M3",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。每交出一扇门播放一次，导入时让光钥飞出画面；钥匙是简单的剪影光形，不画纹样与文字。"
+    },
+    {
+      "id": "art_vfx_cut_door_hollow",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "胸口的门形空洞：格子中央一个竖直的拱门形，门形里面是纯黑，什么都没有，门形的边缘一圈极淡的暖金细线若有若无地明灭，偶尔有一两粒光点从边缘落进门里，就再也看不见。",
+        "en": "A door-shaped hollow in the chest: an upright arch shape at the center of the cell, pure black inside with nothing in it, a very faint warm gold line around its edge flickering in and out of sight; now and then one or two motes fall from the edge into the door and are never seen again."
+      },
+      "extra": {
+        "zh": "4 帧循环：第 1 到 4 帧是一个完整循环，第 5 到 8 格依次重复第 1 到 4 帧。",
+        "en": "Four-frame loop: frames 1 to 4 form one full cycle, and cells 5 to 8 repeat frames 1 to 4 in order."
+      },
+      "ref": "cut_p_judgement",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门扉金 #f0d890 要极淡；门形内部的暗由渲染层另以遮罩压暗，本张只画边缘的暖金与落入的光点；贴在玩家立牌胸口，大小约一掌。"
+    },
+    {
+      "id": "art_vfx_cut_door_trace",
+      "template": "vfx_overlay",
+      "subject": {
+        "zh": "白墙上的门形浅痕：画面正中一个竖直的拱门形浅痕，像门曾经在这里、又被抹平，痕迹的边缘是一圈断断续续的细线，线内比四周略亮一阶，没有门把、门缝与任何纹样。",
+        "en": "A shallow door-shaped trace on a white wall: an upright arch-shaped trace at the center of the image, as if a door had been here and was smoothed away, its edge a broken ring of fine lines, the inside one step brighter than the surroundings, with no handle, no gap and no pattern of any kind."
+      },
+      "extra": {
+        "zh": "这一张不要求四方无缝：画面正中一个门形浅痕，四周保持纯黑。",
+        "en": "This image does not need to tile: one door-shaped trace at the center, everything around it pure black."
+      },
+      "ref": "cut_p_door_white",
+      "milestone": "M1",
+      "notes": "灰度纹样，渲染层着极淡的暖金，或直接作为白墙上的浅色压痕；痕迹要浅，远看几乎看不出；贴在候见厅的白墙上。"
+    },
+    {
+      "id": "art_vfx_cut_doors_bloom",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "千门绽开：满格子的暗色里，先在中央亮起一扇小小的门形暖金光，接着十扇、一百扇、上千扇细小的门形光点从中央向四周一圈圈绽开，越开越快，最后整格布满星星点点的门光。",
+        "en": "A thousand doors blooming: in the darkness filling the cell, first a single small door-shaped warm gold light appears at the center, then ten, a hundred, a thousand tiny door-shaped points bloom outward ring after ring, faster and faster, until the whole cell is strewn with specks of door light."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。最后一帧门光布满整格，不要消散。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. In the last frame door lights cover the whole cell; they do not fade."
+      },
+      "ref": "cut_end_janu_restored",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M3",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。俯视远景，门光点越往外越小越密；节奏是加速的（一、十、百、千）。"
+    },
+    {
+      "id": "art_vfx_cut_dream_mark_glow",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "梦中的门纹浮起：手背大小的一枚拱门形细纹在昏暗里缓缓浮起，淡金色的线条外面多了一层柔软的暖白光晕，像隔着一层水看，纹路亮到最亮后，像被梦吞回去一样慢慢隐没，不留余痕。",
+        "en": "The door mark rising in a dream: an arch-shaped mark the size of the back of a hand rises slowly in the dimness, its pale gold lines wrapped in a soft warm white halo as if seen through water; at its brightest it slowly sinks away as if swallowed back by the dream, leaving no trace."
+      },
+      "ref": "cut_a2_dream_w4",
+      "deps": ["art_vfx_cut_a1_mark_glow"],
+      "milestone": "M2",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。以 art_vfx_cut_a1_mark_glow 为参照：同一个门纹形状，梦里更柔、更模糊、节奏更慢；第四周与第十周的梦共用。"
+    },
+    {
+      "id": "art_vfx_cut_earth_door",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "日常里的门光：一扇普通门的竖直轮廓，门缝先渗出一线极淡的琥珀色光，光沿门缝向上下延伸，勾出整扇门的边，门缝的光慢慢变亮，在画面中央稳稳亮着，四周像被它压暗了一层。",
+        "en": "Door light in an everyday place: the upright outline of an ordinary door, a very faint thread of amber light first seeping from its gap, spreading up and down along the gap to trace the whole door, growing slowly brighter until it glows steadily at the center, as if everything around it had dimmed a step."
+      },
+      "extra": {
+        "zh": "第 1 到 5 帧门缝的光从一线延伸到勾出整扇门，第 6 到 8 帧保持亮着、轻轻起伏，不消散。",
+        "en": "Frames 1 to 5: the light at the gap grows from a thread until it traces the whole door; frames 6 to 8 keep it lit and gently pulsing, without fading."
+      },
+      "ref": "cut_p_earth",
+      "milestone": "M1",
+      "notes": "琥珀 #f0c070 而极淡：比千门的门扉金 #f0d890 更暖、更暗，像傍晚的灯；末班车、便利店、医院、老宅四个开场共用，导入时贴在车门、冰柜玻璃、安全出口灯下、衣柜门缝的位置；不画门板本身。"
+    },
+    {
+      "id": "art_vfx_cut_eye_light",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "眼白里的光：一双眼睛的近景轮廓里，眼白的位置浮起白色的光，光从眼角向瞳孔慢慢漫开，瞳孔周围一圈极细的光环缓缓转动，光的亮度轻轻起伏，眼睛的轮廓保持不动。",
+        "en": "Light in the whites of the eyes: within a close-up outline of a pair of eyes, white light rises where the whites are, spreading slowly from the corners toward the pupils, a very thin ring of light turning slowly around each pupil, the brightness rising and falling gently while the outline of the eyes stays still."
+      },
+      "extra": {
+        "zh": "4 帧循环：第 1 到 4 帧是一个完整循环，第 5 到 8 格依次重复第 1 到 4 帧。",
+        "en": "Four-frame loop: frames 1 to 4 form one full cycle, and cells 5 to 8 repeat frames 1 to 4 in order."
+      },
+      "ref": "cut_a3_eluen_speaks",
+      "milestone": "M2",
+      "notes": "画成中性的白光，由渲染层按借口的女神着色：第三幕大主教为白金，第四幕士兵为赤红；贴在立绘与头像的眼部播放；只画光，不画眼睛的细节与肤色。"
+    },
+    {
+      "id": "art_vfx_cut_ferryman_cut",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "劈开河面：一道极细极亮的银白刃光从格子左侧横贯到右侧，刃光落处，河面向两边掀起两堵高高的水墙，水墙是翻涌的淡蓝白水体，顶端碎成白色水花，中间露出一条笔直的空道。",
+        "en": "The river cleft: an extremely thin, bright silver-white blade light crosses the cell from left to right, and where it falls the river surface heaves up into two tall walls of water on either side, churning pale blue-white water breaking into white spray at the top, a straight empty lane opened between them."
+      },
+      "extra": {
+        "zh": "第 1、2 帧是刃光，第 3 到 8 帧是两堵水墙掀起并立住，最后一帧水墙仍然立着。",
+        "en": "Frames 1 and 2 are the blade light; frames 3 to 8 raise the two walls of water and hold them; in the last frame the walls still stand."
+      },
+      "ref": "cut_a2_ferryman",
+      "milestone": "M2",
+      "notes": "关闭闪烁时跳过第 1、2 帧，只播水墙；水色淡蓝白 #c8e8f0，暗部带墨绿亮边 #3a6a5a；刃光不带任何元素色；目录写 16 帧，导入时水墙段放慢。"
+    },
+    {
+      "id": "art_vfx_cut_floor_door",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "地板化作门洞：一片平躺的白色光面从中间裂开一道竖缝，缝向两边张开成一个拱门形的洞，洞里是纯黑、没有底，洞的边缘一圈暖金门光，地板碎片向洞里塌落、变暗、消失。",
+        "en": "The floor becoming a doorway: a flat white plane of light splits open with a vertical seam that widens into an arch-shaped hole, pure black and bottomless inside, a ring of warm gold door light around its rim, fragments of the floor collapsing into it, darkening and vanishing."
+      },
+      "ref": "cut_p_discard",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M1",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。俯视构图，门洞是平躺的透视拱门形；洞内纯黑（加色混合下即透明，渲染层另以遮罩压暗）；与全屏静帧 art_bg_cut_floor_door 衔接，最后一帧的构图要与静帧一致。"
+    },
+    {
+      "id": "art_vfx_cut_funeral_bomb",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "灰晶爆罐：陶罐砸碎的一刻，一团浓厚的灰白烟猛地炸开、向四周翻滚，烟里闪着许多细小的淡紫灰晶屑，烟团越滚越大、越来越淡，最后贴地散开，晶屑闪两下熄灭。",
+        "en": "The grey-crystal smoke pot: the moment a clay pot smashes, a thick cloud of grey-white smoke bursts and rolls outward, many tiny pale lilac-grey crystal flecks glinting inside it; the cloud grows larger and thinner, finally spreading low over the ground, and the flecks glint twice and go out."
+      },
+      "ref": "cut_a2_funeral",
+      "deps": ["art_vfx_gen_death"],
+      "milestone": "M2",
+      "notes": "烟灰白 #c8c4c0，晶屑淡紫灰 #b8a8c8，不用澱紫 #4a3a62 作主色；晶屑是线索，要看得清但不抢眼；陶罐本体不画；目录写 10 帧，导入时翻滚段多停一帧。"
+    },
+    {
+      "id": "art_vfx_cut_funeral_projection",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "灰烟凝成的投影：灰烟聚成一个披着长斗篷的高大人形，斗篷下摆像墨滴一样往下滴落又收回，脸的位置一片空白，空白中间一道门形的裂缝透出带亮紫边的暗紫光，人形边缘的烟缓缓翻动。",
+        "en": "A projection formed of grey smoke: smoke gathers into a tall figure in a long cloak, the hem dripping down like ink and drawing back, the face only a blank, a door-shaped crack in the middle of the blank letting out dark violet light with a bright violet rim, the smoke along the figure's edges slowly churning."
+      },
+      "ref": "cut_a2_funeral",
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M2",
+      "notes": "澱系配色：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，暗部要留亮一阶的轮廓。只画烟的轮廓与裂缝里的光，脸上不画五官；目录写 12 帧循环，按模板画 8 帧循环；配合墓顶投影的立绘使用，形体轮廓要与立绘一致。"
+    },
+    {
+      "id": "art_vfx_cut_gear_shadow",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "影子转成齿轮纹：地上一片平躺的人影里浮起一圈圈极细的白金色几何光纹，光纹是同心的齿轮与刻度，一圈顺时针、一圈逆时针缓慢转动，影子的形状保持不变。",
+        "en": "A shadow turning into gearwork: inside a figure's shadow lying flat on the ground, rings of very fine white-gold geometric light rise up, concentric gears and graduations, one ring turning slowly clockwise and the next counterclockwise, while the shape of the shadow stays unchanged."
+      },
+      "ref": "cut_a3_eluen_speaks",
+      "deps": ["art_vfx_div_radiance"],
+      "milestone": "M2",
+      "notes": "艾琉恩的颜色：白金加几何纹样，是这一色的合法用途。平躺的透视椭圆；影子本身由引擎绘制，本张只画影子里的光纹；光纹必须规整对称；不画任何人。"
+    },
+    {
+      "id": "art_vfx_cut_glint",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "大厅的光闪一下：满格子柔和的白金光忽然一闪，从中心向四周推出一层更亮的白，亮到几乎泛白后瞬间断掉，只剩极淡的余光，像整座大厅的灯被掐了一下。",
+        "en": "The hall's light flickers: soft white-gold light filling the cell suddenly flashes, pushing a brighter layer of white out from the center, nearly blown out, then cuts off at once, leaving only a very faint afterglow, as if the lights of the whole hall had been pinched."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。这一张只用前 4 帧：动作在第 1 到 4 帧完成，第 5 到 8 格保持纯黑。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. This sheet uses only the first 4 frames: the action completes in frames 1 to 4, and cells 5 to 8 stay pure black."
+      },
+      "ref": "cut_p_judgement",
+      "milestone": "M1",
+      "notes": "\"减少闪烁\"开启时不用这张（换成 0.2 秒白场或不闪）；没有几何纹样，只是光的闪与断；与 sfx_cin_hall_flicker 同步。"
+    },
+    {
+      "id": "art_vfx_cut_halo_stop",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "光环停转：一个圆形的白金色几何光环，由同心的齿轮环与细小的刻度光点组成，外圈顺时针、内圈逆时针平稳转动，转到一半忽然顿住一拍，之后彻底停住，亮度降一阶，安静地悬着。",
+        "en": "The halo stopping: a round white-gold geometric halo made of concentric gear rings and tiny graduation points, the outer ring turning steadily clockwise and the inner counterclockwise; halfway through it suddenly catches for a beat, then stops completely, dims one step and hangs quietly."
+      },
+      "extra": {
+        "zh": "第 1 到 4 帧光环平稳转动，第 5 帧顿住，第 6 到 8 帧停住不动并稍稍变暗，不消散。",
+        "en": "Frames 1 to 4: the halo turns steadily; frame 5: it catches; frames 6 to 8: it stays still and dims slightly, without fading away."
+      },
+      "ref": "cut_end_release",
+      "deps": ["art_vfx_div_descent"],
+      "milestone": "M3",
+      "notes": "艾琉恩的颜色：白金加几何纹样，是这一色的合法用途。贴在艾琉恩立绘与立牌背后的光环位置，形状与她立绘里的光环一致；光环必须几何对称；停住后的三帧完全不动，只有亮度变化。"
+    },
+    {
+      "id": "art_vfx_cut_heroes_light_bend",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "圣光唯独绕开一处：从格子上方斜落的象牙白圣光铺满一片平躺的石板地面，光里浮着细小的光尘；地面正中一块方形石板始终是暗的，光流到它边上就拐弯绕开，像水绕过一块石头。",
+        "en": "Holy light bending around one spot: ivory-white holy light slanting down from the top of the cell floods a flat paved floor, fine motes floating in it; one square paving stone in the middle stays dark the whole time, and the light turns aside at its edge and flows around it like water around a rock."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。最后一帧光仍铺满地面，只有中间那块是暗的，不要消散。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. In the last frame the light still covers the floor with only the middle stone dark; it does not fade."
+      },
+      "ref": "cut_a2_heroes",
+      "deps": ["art_vfx_school_holy_cast"],
+      "milestone": "M2",
+      "notes": "圣光配色：白 #ffffff、象牙白 #fffbea、极淡柠檬黄 #fff3a8；中间那块必须保持纯黑（玩家站在那里）；目录写 12 帧，导入时铺开段放慢。"
+    },
+    {
+      "id": "art_vfx_cut_ink_drop",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "墨滴洇开：一滴墨蓝色的墨从上方落下，落到平面的一刻溅起一圈极小的墨点，随后墨迹慢慢向外洇开成不规则的圆，边缘一圈纸白的细亮边，洇到最大时停住、变淡。",
+        "en": "An ink drop spreading: a drop of ink-blue ink falls from above, splashing a tiny ring of dots the moment it lands on a flat surface, then slowly bleeds outward into an irregular round stain with a thin paper-white bright rim, stopping and fading once it reaches its full size."
+      },
+      "ref": "cut_p_interview",
+      "deps": ["art_vfx_div_title_script"],
+      "milestone": "M1",
+      "notes": "莫伊拉的墨蓝 #3a5a9a 加纸白；墨迹边缘要留纸白亮边才能在加色混合下显形，导入时也可改用正片叠底；墨迹里不出现任何字形。"
+    },
+    {
+      "id": "art_vfx_cut_lamp_marks",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "灯光照出门纹：一道冷白的宽光带从左向右扫过格子，光带经过的地方先后亮起四枚小小的拱门形暖金纹，高低各不相同，有的在墙缝的高度，有的在手背、额头的高度，有的很低，光带过去后门纹仍亮着。",
+        "en": "Lamplight revealing door marks: a broad band of cold white light sweeps across the cell from left to right, and where it passes four small arch-shaped warm gold marks light up in turn at different heights: one at the height of a crack in a wall, some at the height of a hand or a forehead, one very low; after the band passes the marks stay lit."
+      },
+      "ref": "cut_a3_massacre",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M2",
+      "notes": "冷白 #e8f0f8 是搜查的灯，门扉金 #f0d890 是门纹，两色要分清；门纹是门的剪影，不是文字；人与墙不画，导入时按镜头把四枚门纹对位到墙缝、手背、额角与孩子的后颈。"
+    },
+    {
+      "id": "art_vfx_cut_light_image",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "烛光凝成光像：一团本该摇晃的烛黄光完全静止，慢慢凝成一个模糊的人形光像，人形背后隐约一圈白金色的几何光环，光像边缘有细小的光点缓缓上升，整体亮度平稳不晃。",
+        "en": "Candlelight condensing into an image: a ball of candle-yellow light that should be flickering stands perfectly still and slowly condenses into a blurred human-shaped image of light, a faint white-gold geometric halo behind it, tiny motes rising slowly from its edges, its brightness steady and unwavering."
+      },
+      "ref": "cut_a4_versions",
+      "deps": ["art_vfx_div_avatar_form"],
+      "milestone": "M3",
+      "notes": "艾琉恩的颜色：白金加几何纹样，是这一色的合法用途。以光像现身：不画五官与服饰细节；与 art_vfx_div_avatar_form 同一种凝形手法；卷轴里浮出的光也用这一张（缩小）；叠在立绘上时对齐光环位置。"
+    },
+    {
+      "id": "art_vfx_cut_mirror_door",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "庭镜浮门：一片平躺的银白镜面泛起一圈圈涟漪，涟漪中心一扇门框慢慢从水里升起，门框带着水光的亮边，门缝里透出暖金的光与几缕被风吹起的光尘，随后门框沉回水里，涟漪平复。",
+        "en": "A door rising from the court mirror: a flat silver-white mirror surface stirs with rings of ripples, and from their center a door frame slowly rises out of the water, edged with watery highlights, warm gold light and a few wisps of wind-blown motes coming through its gap; then the frame sinks back into the water and the ripples settle."
+      },
+      "extra": {
+        "zh": "第 1 行 4 帧：涟漪扩开、门框从水里升起；第 2 行 4 帧：门框沉回水里、涟漪平复。",
+        "en": "Row 1 (four frames): the ripples spread and the door frame rises from the water; row 2 (four frames): the frame sinks back and the ripples settle."
+      },
+      "ref": "cut_a6_court_open",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M3",
+      "notes": "镜面用银白与冷白，门光用门扉金 #f0d890；开庭一场只用涟漪（第 1、2 帧），下庭与传唤之门用整段；目录写\"门升起与沉下各一段\"，本张一行一段，可单独播放。"
+    },
+    {
+      "id": "art_vfx_cut_mirror_ripple",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "灵镜涟漪：一面竖立的椭圆镜面中央荡开一圈圈柔和的涟漪，涟漪的亮线是银白带极淡的淡紫，一圈扩到镜面边缘消失时，下一圈正好从中心生出，镜面整体微微发光。",
+        "en": "Ripples on the spirit mirror: soft rings of ripples spread from the center of an upright oval mirror surface, their bright lines silver-white with a very faint lilac tint; as one ring reaches the edge and vanishes, the next is born at the center, the whole surface glowing faintly."
+      },
+      "ref": "cut_p_door_white",
+      "milestone": "M1",
+      "notes": "神庭配色：银白 #eeeae2、淡紫 #a89cc8；镜框不画，只画镜面的光与涟漪；导入时贴在灵镜立牌的镜面区域，之后切入灵镜界面。"
+    },
+    {
+      "id": "art_vfx_cut_moira_shadow",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "帘幕上的兜帽身影：一片从后方透亮的暖白光帘上，剪出一个戴兜帽的人形侧影，一只眼前悬着的圆形镜片偶尔反出一点亮光，侧影脚下一卷长卷轴拖到地面，光帘随帘布轻轻起伏。",
+        "en": "A hooded figure on the curtain: on a sheet of warm white light glowing through from behind, the side silhouette of a hooded figure is cut out, a round lens hanging before one eye catching a glint now and then, a long scroll trailing to the floor at its feet, the light rising and falling gently with the cloth."
+      },
+      "extra": {
+        "zh": "4 帧循环：第 1 到 4 帧是一个完整循环，第 5 到 8 格依次重复第 1 到 4 帧。",
+        "en": "Four-frame loop: frames 1 to 4 form one full cycle, and cells 5 to 8 repeat frames 1 to 4 in order."
+      },
+      "ref": "cut_p_call",
+      "milestone": "M1",
+      "notes": "光帘暖白 #f4f0e6；身影是光里剪出的暗形，比光暗一阶，不用纯黑；镜片的反光是唯一的亮点；不画脸；导入时贴在帘幕立牌上。"
+    },
+    {
+      "id": "art_vfx_cut_no_page_ink",
+      "template": "vfx_small",
+      "subject": {
+        "zh": "水晶里的门形墨迹：一块透明水晶的内部，一缕墨蓝色的墨迹像被看不见的笔一笔画出一扇拱门的轮廓，墨迹边缘带纸白亮边，门形画成的一瞬，就像被水冲开一样化成墨雾散去。",
+        "en": "A door-shaped ink stroke inside a crystal: within a clear crystal, a wisp of ink-blue ink draws the outline of an arched door in one stroke as if by an unseen pen, its edges rimmed in paper white; the instant the door shape is complete, it dissolves into a haze of ink as if washed away by water."
+      },
+      "ref": "cut_a2_no_page",
+      "deps": ["art_vfx_cut_ink_drop"],
+      "milestone": "M2",
+      "notes": "莫伊拉的墨蓝 #3a5a9a 加纸白；一瞬即散：门形只完整存在 1 到 2 帧；水晶本体见特写 art_prop_cut_no_page_crystal，本张只画墨迹；墨迹不构成任何文字。"
+    },
+    {
+      "id": "art_vfx_cut_one_way_door",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "只开一次的门：一扇门形的暖金光框从墙边打开，门缝由窄到宽，门里的光从门扉金渐渐变成清亮的晨光，浅白中带一点淡蓝，门外隐约一条很长的走廊透视线，最后门开到最大，晨光稳稳亮着。",
+        "en": "The door that opens only once: a door-shaped frame of warm gold light opens at the edge of a wall, its gap widening, the light within shifting from door gold into clear morning light, pale white with a touch of light blue, the faint perspective lines of a very long corridor beyond; finally the door stands fully open and the morning light shines steadily."
+      },
+      "extra": {
+        "zh": "第 8 帧门开到最大并停住，晨光保持亮着，不消散。",
+        "en": "In frame 8 the door is fully open and holds, the morning light staying lit without fading."
+      },
+      "ref": "cut_end_release",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M3",
+      "notes": "门光转晨光是这张的核心：前半是门扉金 #f0d890，后半是晨光浅白 #f4f8ff 与淡蓝 #cfe4f4；走廊只是几条透视亮线，不画任何城市细节与文字；与 sfx_cin_one_way_door 同步。"
+    },
+    {
+      "id": "art_vfx_cut_pen_self",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "无人执笔：一道细长的墨蓝色笔迹在格子里自己一笔一笔写下去，笔尖的位置一点纸白的光，写过的笔画随写随淡，最前面的笔画亮，后面的逐渐消失，像有一只看不见的手在写。",
+        "en": "A pen with no hand: a long thin ink-blue stroke writes itself across the cell line after line, a point of paper-white light at the pen tip, each stroke fading as soon as it is written, the newest bright and the older ones vanishing, as if an invisible hand were writing."
+      },
+      "ref": "cut_a4_conclave",
+      "deps": ["art_vfx_div_prophecy_ink"],
+      "milestone": "M3",
+      "notes": "莫伊拉的墨蓝 #3a5a9a 加纸白，墨迹带纸白亮边；笔画不能构成可读文字（像字的笔画要打乱）；笔本体由道具立牌表现，本张只画笔尖的光与墨迹。"
+    },
+    {
+      "id": "art_vfx_cut_power_flow",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "权能流入：一串小小的门形暖金光从格子左侧的一点依次飞出，排成一条弧线流向格子右侧的一点，每一扇到达后就合上、亮一下、隐进去，最后一扇合上时，右侧那点闪出一圈暖白光。",
+        "en": "Power flowing in: a string of small door-shaped warm gold lights leaves a point on the left of the cell one after another, flowing in an arc to a point on the right; each one closes, flashes and sinks in as it arrives, and when the last one closes the right-hand point flashes a ring of warm white light."
+      },
+      "ref": "cut_a6_janu_intent",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M3",
+      "notes": "门系配色：门扉金 #f0d890 为主色，配暖白；不用澱紫。左端贴给出者的掌心，右端贴玩家的心口，导入时按两人距离拉伸；门形是简单的拱门剪影；\"一扇门，又一扇门\"的节奏要清楚。"
+    },
+    {
+      "id": "art_vfx_cut_prayer_threads",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "祈祷之线：俯视的满格子暗色里，许多极细的淡白光线从下方的小点一根根笔直升起，光线有长有短、明暗起伏，光点之间夹着成片什么都没有的空白区域，光线不断升起，又在顶端淡去。",
+        "en": "Threads of prayer: in darkness filling the cell, seen from above, many very fine pale white lines of light rise straight up one by one from small points below, long and short, brightening and dimming, with whole patches of empty space between the points where there is nothing at all; the lines keep rising and fade at the top."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import."
+      },
+      "ref": "cut_end_new_god",
+      "milestone": "M3",
+      "notes": "线色中性淡白 #eef0f8，不借任何女神的颜色；不祈祷的人是空白：空白区域要大而清楚，不要用光线填满；导入时叠在箱庭的俯视远景上。"
+    },
+    {
+      "id": "art_vfx_cut_recall_light",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "回光：一道宽阔的白金色光柱从天猛地落下，罩住格子中央一个人形大小的位置，光柱里的光点急速上升，随即整根光柱猛地向上抽回，像把人整个拽走，原地只剩一片缓缓飘落的光尘。",
+        "en": "The recalling light: a broad white-gold pillar slams down from the sky over a person-sized spot at the center of the cell, the motes inside it rushing upward, and at once the whole pillar yanks back up as if hauling someone away entire, leaving only a slow fall of glittering dust."
+      },
+      "ref": "cut_a3_ashen_line",
+      "deps": ["art_vfx_div_recall_light"],
+      "milestone": "M2",
+      "notes": "与女神神迹 art_vfx_div_recall_light 同一手法，这张更大、更猛；人物不画；节奏：前 3 帧落下，第 4 帧抽回，后 4 帧光尘飘落；留下的红披风由特写卡 art_prop_cut_lu_cloak 表现，本张不画。"
+    },
+    {
+      "id": "art_vfx_cut_reed_fog",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "大雾落下：一大片浓厚的灰白雾从格子上方像一只张开的手掌合下来，雾里带着极淡的苍绿，雾落到底部后向四周铺开，格子里几点暖黄的灯光被雾一个个吞没，最后只剩一片均匀的雾。",
+        "en": "The fog falling: a great mass of thick grey-white fog closes down from the top of the cell like an open palm, carrying a very faint sage green; reaching the bottom it spreads out, swallowing the few warm yellow lamp lights in the cell one by one, until only an even blanket of fog remains."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。最后一帧雾铺满整格，不要消散。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. In the last frame the fog fills the whole cell; it does not fade."
+      },
+      "ref": "cut_a3_massacre",
+      "milestone": "M2",
+      "notes": "雾灰白 #dce0dc，希尔薇的苍绿 #a8e0b0 只作雾里极淡的一层，不要画成绿雾；灯光被吞没要一个一个地灭；雾的前缘有几道手指般的长条，但不要画成真的手。"
+    },
+    {
+      "id": "art_vfx_cut_siege_frame",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "门框合缝：一扇门框形的轮廓亮着暗紫的纹样，框边一枚暖金门纹亮起，金光沿着门框的纹路一路推进，与暗紫的纹样逐段合缝，合上一段暗紫就熄一段，最后整个门框暗下，只剩一道金线随即熄灭。",
+        "en": "Sealing the door frame: a door-frame outline glows with dark violet patterns, a warm gold door mark lights at its edge, and the gold advances along the frame's lines, sealing seam after seam with the violet pattern, each sealed section of violet going out, until the whole frame is dark and a last gold line fades."
+      },
+      "ref": "cut_a2_siege",
+      "deps": ["art_vfx_door_sigil_flash"],
+      "milestone": "M2",
+      "notes": "门系与澱系同框：门扉金 #f0d890 在推进，澱紫 #4a3a62（亮边 #6a5a8a）在退；手不画，导入时门纹的起点对位玩家按在门框上的手；目录写 12 帧，导入时合缝段放慢；最后门框要完全暗下。"
+    },
+    {
+      "id": "art_vfx_cut_siege_gaze",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "门框里的目光：一扇竖直门框的内侧亮起暗紫的光，光的外缘一圈亮紫，门框里的光像一只眼睛那样从中间一条缝慢慢睁开成杏核形，睁到最大时停一停，又慢慢合成一条缝。",
+        "en": "A gaze inside the door frame: dark violet light rises inside an upright door frame, rimmed in bright violet, and the light opens slowly from a slit in the middle into an almond shape like an eye, pauses at its widest, then slowly closes back to a slit."
+      },
+      "ref": "cut_a2_siege",
+      "deps": ["art_vfx_dian_mist"],
+      "milestone": "M2",
+      "notes": "澱系配色：澱紫 #4a3a62 为主色，亮一阶 #6a5a8a、暗一阶 #2a2038；加色混合下纯暗色会消失，暗部要留亮一阶的轮廓。只是光的形状像眼，不画瞳孔、睫毛与任何真实眼睛的细节；门框本体由城门实景表现。"
+    },
+    {
+      "id": "art_vfx_cut_static_ash",
+      "template": "vfx_loop",
+      "subject": {
+        "zh": "静灰夜：满格子大小不一的灰白灰片像雪一样直直地落下，没有一丝风，灰片不打旋、不斜飘，远处的灰片小而淡，近处的大而清楚，落下的速度缓慢而均匀。",
+        "en": "A night of still ash: grey-white flakes of ash of varied sizes falling straight down across the whole cell like snow, without a breath of wind, never swirling or drifting sideways, the distant flakes small and faint, the near ones large and clear, falling slowly and evenly."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import."
+      },
+      "ref": "cut_a3_sundering",
+      "milestone": "M2",
+      "notes": "古澱配色：灰白 #d8d4cc、冷灰 #8a8a90，不用澱紫。一定要垂直下落（无风），这是这场戏的情绪；目录写循环 6 帧，按模板画 8 帧循环；晚到版本的灰暴另用环境特效，不在这张里。"
+    },
+    {
+      "id": "art_vfx_cut_stele_white",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "碑面涨白：一块竖立的碑形光面上，一行行灰白的旧刻痕像退潮一样从上往下一层层退去，退开的地方涨起一种极纯的白光，白光从碑面中央向四边漫满，最后整块碑面只剩均匀而没有温度的纯白。",
+        "en": "A stele flooding white: on an upright stele-shaped plane of light, rows of old grey-white engravings recede layer by layer from top to bottom like an ebbing tide, and where they withdraw an utterly pure white light rises, spreading from the center to every edge until the whole face is an even, temperatureless pure white."
+      },
+      "extra": {
+        "zh": "第 8 帧整块碑面是纯白并停住，不消散。",
+        "en": "In frame 8 the whole face is pure white and holds; it does not fade."
+      },
+      "ref": "cut_a4_revelation",
+      "deps": ["art_vfx_div_stele_glow"],
+      "milestone": "M3",
+      "notes": "天启只用无色（纯白），不借任何女神的颜色，也不带暖色；刻痕不能构成可读文字；碑形与 art_vfx_div_stele_glow 一致。"
+    },
+    {
+      "id": "art_vfx_cut_steles_out",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "碑面熄灭：一块竖立的碑形光面原本发着均匀的纯白光，光从碑的边缘向中心一圈圈收缩，像烛火被吸走，最后中心一点白光闪一下后熄灭，碑面只剩一道极淡的轮廓，随即也消失。",
+        "en": "A stele going out: an upright stele-shaped plane glowing an even pure white, the light shrinking from the edges toward the center ring by ring as if a candle were being drawn away, until a last point of white at the center flashes once and dies, leaving a very faint outline that then vanishes too."
+      },
+      "ref": "cut_end_reclaim",
+      "deps": ["art_vfx_div_stele_glow"],
+      "milestone": "M3",
+      "notes": "天启的纯白无色；本张画一座碑，导入时复制到七座碑上同步播放；熄灭后完全无光；与 sfx_god_maker_silence 同步。"
+    },
+    {
+      "id": "art_vfx_cut_tile_crack",
+      "template": "vfx_medium",
+      "subject": {
+        "zh": "地砖碎成蛛网：一片平躺的方形地砖中心先出现一个亮点，亮白的细裂纹从这一点向四周放射，再在放射纹之间连出一圈圈横纹，结成蛛网，裂缝边缘迸起几粒灰白的碎屑与尘。",
+        "en": "A floor tile breaking into a spider web: a bright point appears at the center of a flat square tile, fine bright white cracks radiate from it, then rings of cross-cracks join the radiating lines into a web, a few grey-white chips and puffs of dust jumping from the edges of the cracks."
+      },
+      "extra": {
+        "zh": "第 1 到 5 帧裂纹从中心结成蛛网，第 6 到 8 帧碎屑落下，蛛网裂纹保持可见，不消散。",
+        "en": "Frames 1 to 5: the cracks spread from the center into a web; frames 6 to 8: the chips settle while the web of cracks stays visible, without fading."
+      },
+      "ref": "cut_a4_feast",
+      "milestone": "M3",
+      "notes": "裂纹亮白 #f0f0f0，碎屑灰白；平躺的透视；裂纹只是亮线，砖面不画；导入后停在最后一帧，贴在发言者脚下的地面。"
+    },
+    {
+      "id": "art_vfx_cut_trial_mirror_void",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "镜中的门形空白：一面竖立的大镜面从中心向外亮起银白的反光，反光里浮出许多细碎的光影，像映出了周围的一切；唯独镜面正中一个拱门形的区域始终纯黑，光流到那里就断开，门形边缘清清楚楚。",
+        "en": "A door-shaped blank in the mirror: a large upright mirror lights up with silver-white reflections spreading from its center, many fine fragments of light and shadow surfacing as if it showed everything around it; only an arch-shaped area at the very center stays pure black, the light breaking off at its border, the edge of the door shape perfectly clear."
+      },
+      "extra": {
+        "zh": "最后一帧镜面的光仍然亮着，门形区域仍然纯黑，不消散。",
+        "en": "In the last frame the mirror is still lit and the door-shaped area still pure black; nothing fades."
+      },
+      "ref": "cut_a2_selene_trial",
+      "milestone": "M2",
+      "notes": "银白 #e8eef4；中间的门形必须保持纯黑、边缘锐利（这是全场的关键画面）；镜框不画；与全曲骤停同步。"
+    },
+    {
+      "id": "art_vfx_cut_white_in",
+      "template": "vfx_large",
+      "subject": {
+        "zh": "门后的白：一扇门框形的竖缝里溢出纯白的光，光从门缝向外越涨越宽，开头的门缝边缘带一圈极淡的暖金，白光一层层推开、吞没整个格子，最后整格都是均匀的白。",
+        "en": "The white behind the door: pure white light spills from a vertical door-frame-shaped gap, swelling wider and wider outward, a very faint warm gold rim along the gap at first, the white pushing out layer after layer and swallowing the whole cell, until the entire cell is an even white."
+      },
+      "extra": {
+        "zh": "全屏叠加：特效铺满整个格子，导入时拉伸铺满画面。第 8 帧整格是均匀的白并停住，不消散。",
+        "en": "Full-screen overlay: the effect fills the whole cell and is stretched to cover the screen on import. In frame 8 the whole cell is an even white and holds; it does not fade."
+      },
+      "ref": "cut_p_door_white",
+      "deps": ["art_vfx_door_open"],
+      "milestone": "M1",
+      "notes": "白要纯，暖金 #f0d890 只在开头的门缝边缘；之后接白场 1.5 秒；与 sfx_cin_white_in 同步。"
     }
   ]
 }

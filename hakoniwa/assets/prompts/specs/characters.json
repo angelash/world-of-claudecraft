@@ -10,7 +10,8 @@
     "docs/40_design/content/catalog_characters_continent.md",
     "docs/40_design/systems/companions_and_party.md",
     "data/party/companions.json",
-    "data/npc/personas.json"
+    "data/npc/personas.json",
+    "docs/40_design/content/catalog_cutscenes.md"
   ],
   "items": [
     {
@@ -4016,7 +4017,7 @@
       "ref": "faceless",
       "deps": [],
       "milestone": "M2",
-      "notes": "参照图：主审通过后，作为本角色全部动作条、头像与半身立绘的参照；四格的发型、配色与标志物必须完全一致，记下通过图的种子。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "参照图：主审通过后，作为本角色全部动作条、头像与半身立绘的参照；四格的发型、配色与标志物必须完全一致，记下通过图的种子。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_idle",
@@ -4029,7 +4030,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_walk",
@@ -4046,7 +4047,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_run",
@@ -4059,7 +4060,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_attack_melee",
@@ -4076,7 +4077,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_cast",
@@ -4093,7 +4094,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_hit",
@@ -4106,7 +4107,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_death",
@@ -4119,7 +4120,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_combat_idle",
@@ -4132,7 +4133,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_life_a",
@@ -4145,7 +4146,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_life_b",
@@ -4158,7 +4159,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_emote",
@@ -4171,7 +4172,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；16 帧全部面向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；16 帧全部面向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_faceless_signature",
@@ -4188,7 +4189,7 @@
       "ref": "faceless",
       "deps": ["art_chr_faceless_ref"],
       "milestone": "M2",
-      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；他没有头像与半身立绘；纸片上没有字。"
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
     },
     {
       "id": "art_chr_edric_ref",
@@ -7198,6 +7199,650 @@
       "deps": ["art_chr_door_woman_manifest_ref"],
       "milestone": "M3",
       "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 这是门口的女人的状态变体：门框始终在她右半边；不出现任何名字与文字。"
+    },
+    {
+      "id": "art_chr_earth_drunk_ref",
+      "template": "chr_turnaround",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "末班车上的中年醉汉：微胖，脸颊喝得发红，稀疏的头发乱翘，下巴一层胡茬，眼皮耷拉着。皱巴巴的深灰西装外套 #3a3c42 裹得很紧，暗红领带 #7a2a2a 松垮地歪在一边，白衬衫领口敞开，脚上一双磨旧的黑皮鞋。Q 版约 1.7 头身。",
+        "en": "A middle-aged drunk on the last train: a little heavy, cheeks flushed from drink, thin hair sticking up, stubble on his chin, drooping eyelids. A rumpled dark grey suit jacket #3a3c42 wrapped tight, a dark red tie #7a2a2a hanging loose and crooked, the white shirt collar open, a pair of worn black leather shoes. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "第 4 格画正常比例的胸像：发红的脸、胡茬与歪掉的领带。",
+        "en": "Panel 4 is a normal-proportion bust: the flushed face, the stubble and the crooked tie."
+      },
+      "ref": "earth_drunk",
+      "deps": [],
+      "milestone": "M1",
+      "notes": "参照图：主审通过后，作为本角色动作条的参照；四格的发型、配色与标志物必须完全一致，记下通过图的种子。 序章地球开场的无名路人，只用于过场；衣物上不画任何品牌标志与文字。"
+    },
+    {
+      "id": "art_chr_earth_drunk",
+      "template": "chr_signature",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "末班车上的中年醉汉：微胖，脸颊喝得发红，稀疏的头发乱翘，下巴一层胡茬，眼皮耷拉着。皱巴巴的深灰西装外套 #3a3c42 裹得很紧，暗红领带 #7a2a2a 松垮地歪在一边，白衬衫领口敞开，脚上一双磨旧的黑皮鞋。Q 版约 1.7 头身。",
+        "en": "A middle-aged drunk on the last train: a little heavy, cheeks flushed from drink, thin hair sticking up, stubble on his chin, drooping eyelids. A rumpled dark grey suit jacket #3a3c42 wrapped tight, a dark red tie #7a2a2a hanging loose and crooked, the white shirt collar open, a pair of worn black leather shoes. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "过场专属动作：第 1、2 帧靠着车窗睡着，悬空坐姿（座椅与车窗不画），头歪向一侧，随呼吸轻轻起伏；第 3、4 帧在睡梦里翻身，把外套裹得更紧，头歪到另一侧。",
+        "en": "Cutscene action: frames 1 and 2 he sleeps against the train window in a seated pose in the air (no seat or window drawn), head tilted to one side, rising and falling with his breath; frames 3 and 4 he turns over in his sleep, pulls the jacket tighter and lets his head drop to the other side."
+      },
+      "ref": "earth_drunk",
+      "deps": ["art_chr_earth_drunk_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_p_earth 的末班车车厢，过场主要取第 2 行侧面（只露侧影）；目录要求 2 帧（睡、翻身），本条每个姿势各画 2 帧。 衣物与名牌上不画任何标志与文字。"
+    },
+    {
+      "id": "art_chr_earth_clerk_ref",
+      "template": "chr_turnaround",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "便利店的年轻店员：二十出头，瘦，黑色短发有点乱，眼皮发沉，一脸困意。蓝白两色的店员制服背心 #3a6ab0、#f0f0f0 套在白色长袖衫外，胸前别一块空白名牌，袖口挽到小臂。Q 版约 1.7 头身。",
+        "en": "A young convenience store clerk: early twenties, thin, short black hair a little messy, heavy eyelids, visibly sleepy. A blue and white staff vest #3a6ab0, #f0f0f0 over a white long-sleeved shirt, a blank name tag on the chest, sleeves pushed up to the forearms. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "第 4 格画正常比例的胸像：困倦的眼睛与胸前的空白名牌。",
+        "en": "Panel 4 is a normal-proportion bust: the sleepy eyes and the blank name tag."
+      },
+      "ref": "earth_clerk",
+      "deps": [],
+      "milestone": "M1",
+      "notes": "参照图：主审通过后，作为本角色动作条的参照；四格的发型、配色与标志物必须完全一致，记下通过图的种子。 序章地球开场的无名路人，只用于过场；衣物上不画任何品牌标志与文字。"
+    },
+    {
+      "id": "art_chr_earth_clerk",
+      "template": "chr_signature",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "便利店的年轻店员：二十出头，瘦，黑色短发有点乱，眼皮发沉，一脸困意。蓝白两色的店员制服背心 #3a6ab0、#f0f0f0 套在白色长袖衫外，胸前别一块空白名牌，袖口挽到小臂。Q 版约 1.7 头身。",
+        "en": "A young convenience store clerk: early twenties, thin, short black hair a little messy, heavy eyelids, visibly sleepy. A blue and white staff vest #3a6ab0, #f0f0f0 over a white long-sleeved shirt, a blank name tag on the chest, sleeves pushed up to the forearms. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "过场专属动作：站在原地，一只手肘撑在腰的高度（收银台不画），手托着下巴打瞌睡；第 1 到 4 帧头一点一点地往下沉，第 4 帧点到最低，眼睛闭上。",
+        "en": "Cutscene action: standing in place, one elbow propped at waist height (no counter drawn), chin resting in the hand, dozing; across frames 1 to 4 the head nods lower and lower, reaching its lowest point with the eyes closed on frame 4."
+      },
+      "ref": "earth_clerk",
+      "deps": ["art_chr_earth_clerk_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_p_earth 的雨夜便利店；目录要求 2 帧，本条画 4 帧的打瞌睡，过场可只取第 1、4 帧。 衣物与名牌上不画任何标志与文字。"
+    },
+    {
+      "id": "art_chr_earth_nurse_ref",
+      "template": "chr_turnaround",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "夜班护士：二十多岁的女子，黑发在脑后盘成低髻，脸色疲惫但步子很快。浅蓝色护士服 #a8c8e0 外披一件深蓝针织开衫 #2a3a5a，白色软底鞋，胸前口袋插着一支笔，挂着一块空白工牌。Q 版约 1.7 头身。",
+        "en": "A night-shift nurse: a woman in her twenties, black hair in a low bun, a tired face but a quick step. A light blue nurse uniform #a8c8e0 under a dark blue knit cardigan #2a3a5a, white soft-soled shoes, a pen in the breast pocket and a blank ID badge. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "第 4 格画正常比例的胸像：盘起的低髻、开衫与空白工牌。",
+        "en": "Panel 4 is a normal-proportion bust: the low bun, the cardigan and the blank badge."
+      },
+      "ref": "earth_nurse",
+      "deps": [],
+      "milestone": "M1",
+      "notes": "参照图：主审通过后，作为本角色动作条的参照；四格的发型、配色与标志物必须完全一致，记下通过图的种子。 序章地球开场的无名路人，只用于过场；衣物上不画任何品牌标志与文字。"
+    },
+    {
+      "id": "art_chr_earth_nurse",
+      "template": "chr_walk",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "夜班护士：二十多岁的女子，黑发在脑后盘成低髻，脸色疲惫但步子很快。浅蓝色护士服 #a8c8e0 外披一件深蓝针织开衫 #2a3a5a，白色软底鞋，胸前口袋插着一支笔，挂着一块空白工牌。Q 版约 1.7 头身。",
+        "en": "A night-shift nurse: a woman in her twenties, black hair in a low bun, a tired face but a quick step. A light blue nurse uniform #a8c8e0 under a dark blue knit cardigan #2a3a5a, white soft-soled shoes, a pen in the breast pocket and a blank ID badge. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "快步走过：步幅大，双臂摆动利落，上身微微前倾，像赶着去病房。",
+        "en": "Hurrying past: long strides, a brisk arm swing, the upper body leaning slightly forward as if rushing to a ward."
+      },
+      "ref": "earth_nurse",
+      "deps": ["art_chr_earth_nurse_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_p_earth 的凌晨医院走廊，过场主要取第 3 行背影；目录要求 4 帧行走，本条按行走模板画 6 帧。 衣物与名牌上不画任何标志与文字。"
+    },
+    {
+      "id": "art_chr_earth_cat_ref",
+      "template": "mon_turnaround",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "屋檐下躲雨的小猫：普通的短毛家猫，个子小而瘦，橘白相间 #d88a3a、#f2ece0，背上的毛被雨打湿了一半，一绺一绺贴在身上，细长的尾巴绕在前脚边，圆眼睛是琥珀色 #d8a040。",
+        "en": "A small cat sheltering from the rain under the eaves: an ordinary short-haired house cat, small and thin, orange and white #d88a3a, #f2ece0, the fur on its back half soaked and clinging in wet clumps, its long thin tail wrapped around its front paws, round amber eyes #d8a040."
+      },
+      "extra": {
+        "zh": "第 4 格特写湿了一半的背毛与圆眼睛。",
+        "en": "Panel 4 is a close-up of the half-soaked back fur and the round eyes."
+      },
+      "ref": "earth_cat",
+      "deps": [],
+      "milestone": "M1",
+      "notes": "参照图：主审通过后，作为本条动作表的参照；前三格的大小、比例、配色与特征完全一致，记下通过图的种子。 普通的家猫，不加任何奇幻特征；湿毛只在背上的一半。"
+    },
+    {
+      "id": "art_chr_earth_cat",
+      "template": "mon_small",
+      "style": "earth_modern",
+      "subject": {
+        "zh": "屋檐下躲雨的小猫：普通的短毛家猫，个子小而瘦，橘白相间 #d88a3a、#f2ece0，背上的毛被雨打湿了一半，一绺一绺贴在身上，细长的尾巴绕在前脚边，圆眼睛是琥珀色 #d8a040。",
+        "en": "A small cat sheltering from the rain under the eaves: an ordinary short-haired house cat, small and thin, orange and white #d88a3a, #f2ece0, the fur on its back half soaked and clinging in wet clumps, its long thin tail wrapped around its front paws, round amber eyes #d8a040."
+      },
+      "extra": {
+        "zh": "整张图的所有帧都面向镜头（朝下）。第 1 行待机 4 帧依次为蹲坐、竖起双耳、扭头回望、张嘴轻叫；第 2 行是小步走开的 6 帧；第 3、4 行不画，保持背景色。",
+        "en": "Every frame in this sheet faces the viewer (down). Row 1 holds 4 idle frames in order: sitting, ears pricked, looking back over its shoulder, a small open-mouthed mew; row 2 is a 6-frame trot away; rows 3 and 4 stay empty in the background color."
+      },
+      "ref": "earth_cat",
+      "deps": ["art_chr_earth_cat_ref"],
+      "milestone": "M1",
+      "notes": "附本种三视图作参照。 用于 cut_p_earth 与 cut_p_door_white。猫比模板里的小型生物更小，约占格高的三成；过场只用面向镜头一个朝向，左右不需要镜像。"
+    },
+    {
+      "id": "art_chr_eluen_appraise",
+      "template": "chr_signature",
+      "style": "divine_court",
+      "subject": {
+        "zh": "光之女神的模样：高挑的女子，白金长发一丝不乱垂到腰，白金色眼睛，目光像在测量尺寸。白与金的长袍左右绝对对称，领口与袖口镶几何纹金边，白 #f4f2ea、金 #d8b860，背后悬着精密的几何纹光环，像缓慢转动的齿轮。神情端正而冷淡。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of light as a tall woman: immaculate platinum hair falling straight to the waist, platinum eyes with a measuring gaze. Perfectly symmetrical white and gold robes with geometric gold trim at collar and cuffs, white #f4f2ea, gold #d8b860, a precise geometric halo floating behind her like slowly turning gears. Composed, cool expression. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1 帧从座位上站起（座椅不画），第 2 帧右手抬到胸前，第 3 帧手臂向前伸直、食指指向前方，第 4 帧指尖落下一点白金色的光。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frame 1 she rises from her seat (no chair drawn), frame 2 her right hand lifts to her chest, frame 3 the arm extends straight forward with the index finger pointing ahead, frame 4 a single point of platinum light drops from her fingertip."
+      },
+      "ref": "eluen",
+      "deps": ["art_chr_eluen_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_p_judgement。指尖只画一个小亮点，扫过人形的光由特效 art_vfx_cut_appraise_light 另画。 光环是几何纹的齿轮状，不是圆形光圈；衣饰必须左右对称。"
+    },
+    {
+      "id": "art_chr_valda_slam",
+      "template": "chr_signature",
+      "style": "divine_court",
+      "subject": {
+        "zh": "争斗女神的模样：高大健硕的女战士，古铜肤色上满是旧伤疤，暗红蓬乱长发，金红色眼睛，笑起来露出尖牙。头上一对弯角，右角断了半截。红黑战甲 #8a1c1c、#1e1a1a，肩甲满是刀痕，肩上扛着一把断剑。豪爽好斗。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of strife as a towering, muscular woman warrior: bronze skin covered in old scars, wild dark red long hair, red-gold eyes, a fanged grin. A pair of curved horns, the right one broken halfway. Red and black battle armor #8a1c1c, #1e1a1a, pauldrons covered in blade nicks, a broken sword resting on her shoulder. Boisterous and eager for a fight. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1 帧抬起右掌，第 2 帧一掌拍下（长桌不画，手掌停在腰的高度），第 3、4 帧仰头大笑，露出尖牙，断剑仍扛在肩上。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frame 1 she raises her right palm, frame 2 slams it down (no table drawn, the palm stops at waist height), frames 3 and 4 she throws her head back laughing with her fangs showing, the broken sword still on her shoulder."
+      },
+      "ref": "valda",
+      "deps": ["art_chr_valda_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_p_judgement。 断的是右角；断剑的剑身只剩一半。"
+    },
+    {
+      "id": "art_chr_merca_hop",
+      "template": "chr_signature",
+      "style": "divine_court",
+      "subject": {
+        "zh": "交易女神的模样：半身人般的小个子女人，只到常人胸口，圆脸，脸颊几点雀斑，蜂蜜金卷发扎两个小发髻，金色眼睛笑得弯弯。多口袋的朱红商人外套镶金边 #b8402a、#e0b040，腋下夹一本厚账本，手里捏着一块点心，身边浮着几枚旋转的金币。Q 版约 1.6 头身，头像立绘正常比例。",
+        "en": "The goddess of trade as a halfling-sized woman who reaches an adult's chest: round face with a few freckles, honey-gold curls in two small buns, golden eyes curved in a smile. A vermilion merchant coat full of pockets with gold trim #b8402a, #e0b040, a thick ledger under one arm, a pastry in her hand, a few gold coins spinning in the air around her. Chibi about 1.6 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1 帧坐在高处，悬空坐姿（高椅不画），第 2 帧双脚离开座位跳下，第 3 帧落地屈膝，第 4 帧站直，指间转着一枚金币。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frame 1 she sits up high in a seated pose in the air (no tall chair drawn), frame 2 she hops off with both feet, frame 3 she lands with knees bent, frame 4 she stands upright with a gold coin spinning between her fingers."
+      },
+      "ref": "merca",
+      "deps": ["art_chr_merca_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_p_judgement。 金币是浮在她身边的几枚小圆片，属于角色本身，不是背景粒子；个子明显比常人矮。"
+    },
+    {
+      "id": "art_chr_moira_write",
+      "template": "chr_signature",
+      "style": "divine_court",
+      "subject": {
+        "zh": "记录女神的模样：身形修长的兜帽书记官，墨蓝兜帽长袍 #2a3450，兜帽下露出栗色短发与常带笑的嘴角，左眼前悬一片刻着细纹的圆镜片，指尖沾着墨。腰后拖着一条羊皮纸色长卷轴 #e8dcc0 一直垂到地上，身边浮着一本翻开的书。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of record as a tall hooded scribe: ink-blue hooded robe #2a3450, chestnut short hair and a ready smile under the hood, a round lens etched with fine lines hovering before her left eye, ink-stained fingertips. A parchment-colored scroll #e8dcc0 trails from her waist down to the ground, an open book floats beside her. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属动作，4 帧循环：低头伏案，用一支羽毛笔在卷轴上写字（长桌不画，执笔的手前伸到腰的高度）；第 1、2 帧笔尖移动，第 3 帧停笔，第 4 帧用左手推一下镜片。",
+        "en": "Cutscene action, a 4-frame loop: head bowed over a desk, writing on a scroll with a quill (no desk drawn, the pen hand reaching forward at waist height); frames 1 and 2 the nib moves, frame 3 she pauses, frame 4 she pushes the lens up with her left hand."
+      },
+      "ref": "moira",
+      "deps": ["art_chr_moira_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_p_call 与 cut_p_interview。 镜片在左眼前；书页与卷轴上一个字也没有，只有空白与淡淡的格线。"
+    },
+    {
+      "id": "art_chr_player_fall",
+      "template": "chr_signature",
+      "subject": {
+        "zh": "标准体型人台（H）：成年人形的 Q 版身体，身高约 1.75 米，头约占身高的五成半，头最宽处略宽于肩，四肢匀称，手脚简化成圆头；全身中性灰 #8c8c8c，暗面 #6c6c6c，亮面 #acacac，肩、肘、膝有浅浅的分段线",
+        "en": "Standard body mannequin (H): an adult chibi body about 1.75 m tall, the head about 55 percent of the height and slightly wider than the shoulders, even limbs, hands and feet simplified to rounded ends; neutral gray #8c8c8c all over, shadow #6c6c6c, light #acacac, faint segment lines at the shoulders, elbows and knees"
+      },
+      "extra": {
+        "zh": "主体是纸娃娃固定人台：中性灰色光头人台，没有头发、衣服细节与性别特征，双手半握。过场专属动作，4 帧循环：在黑暗里坠落或漂浮，身体微微后仰，四肢舒展张开，手脚随下坠的风轻轻摆动，四帧之间只有手脚角度的细小变化。",
+        "en": "The subject is the fixed paper-doll mannequin: a neutral gray bald mannequin with no hair, clothing detail or gender features, hands half closed. Cutscene action, a 4-frame loop: falling or floating in darkness, the body tilted slightly back, limbs spread wide, hands and feet drifting in the rushing air; the four frames differ only in small changes of limb angle."
+      },
+      "ref": "player",
+      "deps": ["art_doll_mannequin_h_ref"],
+      "milestone": "M1",
+      "notes": "附人台三视图 art_doll_mannequin_h_ref 作参照，每格头的大小一致，手半握；三行依次是面向镜头、朝右、背向镜头。 用于 cut_p_discard 的坠落。 这是纸娃娃人台的姿势基准，头部件按人台锚点叠加；地球服装层的同名姿势要在纸娃娃条目里另补；小型与高大体型按本条缩放。"
+    },
+    {
+      "id": "art_chr_player_reach",
+      "template": "chr_signature",
+      "subject": {
+        "zh": "标准体型人台（H）：成年人形的 Q 版身体，身高约 1.75 米，头约占身高的五成半，头最宽处略宽于肩，四肢匀称，手脚简化成圆头；全身中性灰 #8c8c8c，暗面 #6c6c6c，亮面 #acacac，肩、肘、膝有浅浅的分段线",
+        "en": "Standard body mannequin (H): an adult chibi body about 1.75 m tall, the head about 55 percent of the height and slightly wider than the shoulders, even limbs, hands and feet simplified to rounded ends; neutral gray #8c8c8c all over, shadow #6c6c6c, light #acacac, faint segment lines at the shoulders, elbows and knees"
+      },
+      "extra": {
+        "zh": "主体是纸娃娃固定人台：中性灰色光头人台，没有头发、衣服细节与性别特征，双手半握。过场专属动作，按顺序播放一次：坠落中向上伸出右手，第 1、2 帧手从身侧抬起，第 3、4 帧手臂伸到最高，五指张开。",
+        "en": "The subject is the fixed paper-doll mannequin: a neutral gray bald mannequin with no hair, clothing detail or gender features, hands half closed. Cutscene action, played once in order: while falling the right hand reaches upward; frames 1 and 2 the hand lifts from the side, frames 3 and 4 the arm stretches to its highest point with the fingers spread."
+      },
+      "ref": "player",
+      "deps": ["art_doll_mannequin_h_ref"],
+      "milestone": "M1",
+      "notes": "附人台三视图 art_doll_mannequin_h_ref 作参照，每格头的大小一致，手半握；三行依次是面向镜头、朝右、背向镜头。 用于 cut_p_discard 的坠落；目录要求 2 帧，本条每个姿势各画 2 帧。 这是纸娃娃人台的姿势基准，头部件按人台锚点叠加；地球服装层的同名姿势要在纸娃娃条目里另补；小型与高大体型按本条缩放。"
+    },
+    {
+      "id": "art_chr_yeyu_unfold",
+      "template": "chr_signature",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "外表十五六岁的娇小少女，黑发及肩，发梢化成细羽，左鬓一缕白发，左眼琥珀色，右眼黑色。破旧深灰信使斗篷 #3a3a42 收拢时像一对合起的翅膀，胸前别钥孔形铜别针，腰挂封着暗红火漆 #8a2a2a 的皮信囊，长靴尖包爪形铁片。神情刻薄倔强。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A petite girl who looks fifteen or sixteen: shoulder-length black hair whose tips turn into fine feathers, one white lock at her left temple, left eye amber and right eye black. A worn dark grey messenger cloak #3a3a42 that looks like folded wings when closed, a keyhole-shaped copper pin on the chest, a leather letter pouch sealed with dark red wax #8a2a2a at her waist, long boots with claw-shaped iron toecaps. Sharp-tongued and stubborn. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1 帧是收拢双翼、伏在地上的焦黑巨鸦，羽毛上覆满灰（按守护巨鸦三视图缩到格内能容纳的大小）；第 2 帧黑灰从羽毛上大片剥落，露出银色的羽根；第 3 帧身形向内收拢，羽毛化成斗篷的轮廓；第 4 帧站起来的是披着斗篷的少女。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frame 1 is a scorched giant raven crouched on the ground with its wings folded, its feathers coated in ash (scaled down from the guardian raven turnaround to fit the cell); frame 2 the black ash peels off the feathers in sheets, revealing silver feather roots; frame 3 the shape draws inward and the feathers become the outline of a cloak; frame 4 the cloaked girl stands up."
+      },
+      "ref": "yeyu",
+      "deps": ["art_chr_yeyu_ref", "art_boss_guardian_raven_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图与守护巨鸦三视图 art_boss_guardian_raven_ref 作参照；三行依次是面向镜头、朝右、背向镜头；第 4 帧的少女按本人固定描述块，一字不改。 用于 cut_a1_yeyu_bound（契约之门）。 左鬓白发与琥珀色左眼都在角色自己的左侧；左向镜像后若换边，由导入工具出头部修正件；信囊的暗红火漆是全身唯一的暖色。"
+    },
+    {
+      "id": "art_chr_martha_strike",
+      "template": "chr_attack_melee",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "四十九岁的人族女人，高大结实，小臂粗壮带烫伤疤。深红短发夹着白丝，左颊一道旧刀疤，笑起来很爽朗，深褐眼睛。袖子挽起，酒红衬衫 #8a3a2a 外是旧皮甲改的束腰与深棕围裙 #5a3a2a，手里拿着酒杯与擦布，围裙下藏一把宽刃长刀。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A forty-nine-year-old human woman, tall and sturdy with thick, burn-scarred forearms. Short dark red hair streaked with white, an old blade scar on her left cheek, a hearty laugh, dark brown eyes. Sleeves rolled up, wine red shirt #8a3a2a under a bodice cut from old leather armor and a dark brown apron #5a3a2a, a tankard and polishing cloth in hand, a broad-bladed long sword hidden under the apron. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属的一刀：第 1 帧围裙一甩、压低身形，第 2 帧宽刃长刀已经出鞘、横斩而过（出手帧），第 3 帧刀势拉满停住，第 4 帧收刀，刀回到围裙下。",
+        "en": "The cutscene's single cut: frame 1 a flick of the apron as she drops low, frame 2 the broad-bladed long knife is already out and sweeps across (strike frame), frame 3 the stroke is held at full extension, frame 4 the knife returns beneath the apron."
+      },
+      "ref": "martha",
+      "deps": ["art_chr_martha_ref"],
+      "milestone": "M1",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a1_martha（一刀）与 cut_a3_ashen_line（镇门前一刀）。第一幕取前 3 帧；第三幕目录要求 1 向 6 帧，取本条 4 帧并让出手帧停留两拍，刀光与地上的刀痕由特效 art_vfx_cut_a1_martha_slash 另画。 刀疤在左颊；刀平时藏在围裙下，只在攻击、战斗待机与受击里出鞘。"
+    },
+    {
+      "id": "art_chr_anselm_bless",
+      "template": "chr_signature",
+      "style": "valen_city",
+      "subject": {
+        "zh": "五十六岁的人族主教，高大微胖，面色红润，下巴圆厚，银灰短发梳得整齐，浅灰眼睛带着居高临下的和蔼。象牙白主教长袍 #f0e8d0 镶金色光环纹 #c8a84a，头戴低矮的白色主教冠，胸前挂一枚沉甸甸的金圣徽，手持主教杖。",
+        "en": "A fifty-six-year-old human bishop, tall and a little heavy, a ruddy face with a full round chin, neatly combed silver-grey short hair, pale grey eyes with condescending kindness. An ivory bishop's robe #f0e8d0 trimmed with gold halo patterns #c8a84a, a low white bishop's mitre, a heavy gold holy symbol on his chest, a crozier in hand."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1 帧站在台阶上，双手合在胸前（台阶不画），第 2 帧双臂缓缓向两侧展开，第 3 帧展开到最大、微微仰头，第 4 帧保持赐福的姿势；主教杖一直握在右手。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frame 1 he stands on the steps with his hands together at his chest (no steps drawn), frame 2 his arms slowly open to the sides, frame 3 they open fully as he lifts his face slightly, frame 4 he holds the pose of blessing; the crozier stays in his right hand throughout."
+      },
+      "ref": "anselm",
+      "deps": [],
+      "milestone": "M2",
+      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的三向放大图）作参照：他在场景里是纸娃娃组装的人物，没有三视图；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a2_heroes，过场只用第 1 行（面向镜头）。 主教冠与权杖顶端是几何光环图形，不用十字。"
+    },
+    {
+      "id": "art_chr_ferryman_cut",
+      "template": "chr_cast",
+      "style": "valen_city",
+      "subject": {
+        "zh": "外表七十来岁的人族老船夫，瘦而精悍，晒成皮革色的皮肤，白发扎成短马尾，浅灰绿眼睛，眼角纹路深。褪色的蓝布衣 #4a6a8a，宽檐草帽 #c8b070，腰挂酒葫芦，腰后用油布裹着一把普通铁剑，手持一根长篙。神情懒散。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A human ferryman who looks about seventy, lean and wiry: skin tanned like leather, white hair in a short ponytail, pale grey-green eyes with deep crow's feet. Faded blue cloth clothes #4a6a8a, a wide-brimmed straw hat #c8b070, a gourd flask at his belt, a plain iron sword wrapped in oilcloth at the small of his back, a long punting pole in hand. Easygoing and lazy-looking. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1 帧坐在船头，悬空坐姿（船不画），第 2 帧起身站直，第 3 帧右手伸向腰后、解开裹剑的油布，第 4 帧抽出铁剑，第 5 帧双手举剑过肩，第 6 帧一刀向下劈落（劈落的瞬间），第 7 帧把剑收回油布里，第 8 帧坐回原处。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frame 1 he sits at the bow in a seated pose in the air (no boat drawn), frame 2 he rises and stands straight, frame 3 his right hand reaches behind his waist and unwraps the oilcloth around the sword, frame 4 he draws the iron sword, frame 5 he raises it over his shoulder with both hands, frame 6 a single downward cut (the moment of the strike), frame 7 the sword goes back into the oilcloth, frame 8 he sits back down."
+      },
+      "ref": "ferryman",
+      "deps": ["art_chr_ferryman_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a2_ferryman（劈开河面），过场取第 1、2 行（正面与侧面）；目录要求 12 帧，本条用八帧覆盖站起、抽剑、一刀、坐回，劈开的河面与刀光由特效 art_vfx_cut_ferryman_cut 另画。 草帽的宽檐要压得住剪影；铁剑平时裹在油布里挂在腰后，只在近战时露出。"
+    },
+    {
+      "id": "art_chr_selene_mirror_raise",
+      "template": "chr_cast",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十七岁的人族女审判官，修长挺拔。银白短发齐耳切平，灰色瞳孔，神情冷静。白银甲胄外罩纯白长披风 #eceef2，披风内衬绣细密的光环几何纹，左手戴刻满细纹的黑铁手套，腰佩细长刺剑，胸前天平徽章，挂一点朱红封蜡 #b8302a。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-seven-year-old human inquisitor, tall and poised. Silver-white hair cut straight at the ears, grey eyes, a calm expression. Silver plate under a long pure white cloak #eceef2 whose lining is embroidered with fine geometric halo patterns, a black iron gauntlet covered in fine engraving on her left hand, a slender rapier at her hip, a scales badge on her chest with a dab of vermilion sealing wax #b8302a. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：刺剑收在腰侧，第 1 到 4 帧双手把一面银边圆镜捧在胸前，身体微微起伏；第 5 帧把镜子举起，第 6 帧镜面对准正前方（对准的瞬间），第 7、8 帧保持举镜的姿势。镜面只画平整的银色与一圈银边，不画光效。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: the rapier stays sheathed at her side; frames 1 to 4 she holds a silver-rimmed round mirror at her chest with both hands, body rising and falling slightly; frame 5 she lifts the mirror, frame 6 the mirror face aims straight ahead (the moment it is aimed), frames 7 and 8 she holds the raised mirror. Draw only a flat silver face and a silver rim, with no light effects."
+      },
+      "ref": "selene",
+      "deps": ["art_chr_selene_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a2_selene_trial（光之审），过场只用第 1 行（面向镜头）；目录要求 6 帧，本条按八帧画，镜面的光由特效另画。 铁手套在左手，刺剑在右手；手套上的纹路只是花纹，不是文字。"
+    },
+    {
+      "id": "art_chr_faceless_raise_hand",
+      "template": "chr_cast",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1 到 4 帧静静站着，斗篷下摆往下滴澱，门形裂缝的光一明一灭；第 5 帧缓缓抬起缠着绷带的右手，第 6 帧手背翻向前方停在胸前（亮出手背的瞬间），第 7、8 帧保持抬手的姿势。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frames 1 to 4 he stands still, the cloak hem dripping sediment, the light in the door-shaped crack pulsing; frame 5 he slowly raises his bandaged right hand, frame 6 the back of the hand turns forward and stops at chest height (the moment the back of the hand is shown), frames 7 and 8 he holds the raised hand."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a2_funeral（投影）：过场由渲染层把本条压成半透明的黑色剪影，只保留门形裂缝的暗紫光，不另出投影图；手背上的反相门纹由渲染层按手部锚点画。目录要求南向 6 帧，本条按八帧画。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
+    },
+    {
+      "id": "art_chr_marcus_shield_plant",
+      "template": "chr_cast",
+      "style": "valen_city",
+      "subject": {
+        "zh": "三十一岁的人族壮汉，高大魁梧，深棕皮肤，剃短的黑发，修剪整齐的胡子，笑起来一口白牙，深褐眼睛，左前臂有烧伤疤。白银重甲 #c8ccd4，腰间系一条褪色的亮橙反光带 #e8782a，左手持正面浮雕光环的塔盾，背包上挂一顶旧消防头盔。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A thirty-one-year-old human giant of a man, tall and broad: deep brown skin, buzzed black hair, a neatly trimmed beard, a bright white smile, dark brown eyes, a burn scar on his left forearm. Silver-white heavy plate #c8ccd4, a faded bright orange reflective band #e8782a tied at his waist, a tower shield embossed with a halo on his left arm, an old firefighter's helmet hanging from his pack. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1 到 4 帧双手提起塔盾，向前跨两大步插到两队之间；第 5 帧把塔盾高高抬起，第 6 帧塔盾重重立在地上（落地的瞬间），第 7、8 帧压低重心，用肩顶住盾。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frames 1 to 4 he lifts the tower shield in both hands and takes two long strides forward between the two groups; frame 5 he heaves the shield high, frame 6 it slams down upright into the ground (the moment of impact), frames 7 and 8 he drops his weight and braces the shield with his shoulder."
+      },
+      "ref": "marcus",
+      "deps": ["art_chr_marcus_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a2_arrest（逮捕令），过场取第 1、2 行（正面与侧面）；目录要求 6 帧，本条按八帧画。 橙色反光带是他唯一的亮橙色；盾面光环熄灭的那一帧由渲染层压暗光环色样实现，不另出图。"
+    },
+    {
+      "id": "art_chr_aiden_write",
+      "template": "chr_cast",
+      "style": "valen_city",
+      "subject": {
+        "zh": "二十四岁的人族青年学者，高瘦，背微驼。浅棕卷发乱糟糟，下巴有胡茬，细框眼镜的一片镜片有裂纹，灰蓝眼睛总在盯着人看。深蓝贤者长袍 #2a3a6a 里穿灰色高领毛衣 #8a8a90，铜扣点缀，手里一本皮面笔记本与一支圆珠笔。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-four-year-old human scholar, tall, thin and slightly stooped. Messy light brown curls, stubble on his chin, thin-rimmed glasses with one cracked lens, grey-blue eyes that always study people. A deep blue sage's robe #2a3a6a over a grey turtleneck sweater #8a8a90, copper buttons, a leather-bound notebook and a ballpoint pen in hand. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1、2 帧从怀里掏出皮面笔记本，第 3、4 帧拿出那支细长的笔，按了一下笔头；第 5、6 帧低头在本子上飞快地写，第 7 帧甩了甩写不出水的笔，第 8 帧接着写。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frames 1 and 2 he pulls the leather notebook from his coat, frames 3 and 4 he takes out the slender pen and clicks its top; frames 5 and 6 he bends over the notebook writing fast, frame 7 he shakes the pen that has run dry, frame 8 he keeps writing."
+      },
+      "ref": "aiden",
+      "deps": ["art_chr_aiden_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a2_arrest 与 cut_a2_no_page，过场取第 1、3 行（正面与背面）；目录要求 6 帧，本条按八帧画。 裂纹在左边镜片；笔记本上不写字；圆珠笔是这个世界没有的东西，画成一支细长的笔即可。"
+    },
+    {
+      "id": "art_chr_benno_herten_ring",
+      "template": "chr_cast",
+      "style": "valen_city",
+      "subject": {
+        "zh": "五十八岁的人族钟匠，矮壮，手臂粗，脸圆，花白络腮胡，耳朵上罩着护耳的皮罩，眼神专注又温和。灰白短发压在一顶皮帽下，帽檐别着一片放大镜，褐色眼睛。深褐皮工作服 #5a4030 外系帆布围裙，腰插扳手与小锤，肩搭一圈钟绳。",
+        "en": "A fifty-eight-year-old human bellwright, short and stocky with thick arms, a round face and a grizzled full beard, leather ear guards over his ears, focused, gentle eyes. Grey-white short hair under a leather cap with a magnifying lens clipped to its brim, brown eyes. A dark brown leather work suit #5a4030 with a canvas apron, a wrench and small hammer tucked in his belt, a coil of bell rope over his shoulder."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：一根粗钟绳从格子上方垂下（只画绳，不画钟）；第 1 到 4 帧双手抓绳，全身吊在绳上，随绳一上一下，双脚离开地面；第 5 帧被绳带到最高，第 6 帧用全身的重量往下拽（钟响的瞬间），第 7、8 帧随绳回荡。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: a thick bell rope hangs from the top of the cell (draw only the rope, no bell); frames 1 to 4 he grips the rope with both hands and hangs from it with his whole body, rising and falling with it, feet off the ground; frame 5 the rope carries him to the top, frame 6 he hauls down with all his weight (the moment the bell rings), frames 7 and 8 he swings back with the rope."
+      },
+      "ref": "benno_herten",
+      "deps": [],
+      "milestone": "M2",
+      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的三向放大图）作参照：他在场景里是纸娃娃组装的人物，没有三视图；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a2_siege 的黎明，过场只用第 1 行（面向镜头）；目录要求南向 8 帧。 与边石镇敲钟人区分：他是工匠，工具与放大镜片是辨识点。"
+    },
+    {
+      "id": "art_chr_marcus_arms_wide",
+      "template": "chr_signature",
+      "style": "valen_city",
+      "subject": {
+        "zh": "三十一岁的人族壮汉，高大魁梧，深棕皮肤，剃短的黑发，修剪整齐的胡子，笑起来一口白牙，深褐眼睛，左前臂有烧伤疤。白银重甲 #c8ccd4，腰间系一条褪色的亮橙反光带 #e8782a，左手持正面浮雕光环的塔盾，背包上挂一顶旧消防头盔。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A thirty-one-year-old human giant of a man, tall and broad: deep brown skin, buzzed black hair, a neatly trimmed beard, a bright white smile, dark brown eyes, a burn scar on his left forearm. Silver-white heavy plate #c8ccd4, a faded bright orange reflective band #e8782a tied at his waist, a tower shield embossed with a halo on his left arm, an old firefighter's helmet hanging from his pack. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1、2 帧把塔盾丢到脚边（盾倒在地上，画进来），第 3、4 帧张开双臂挡在身后的人前面，挺胸站定。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frames 1 and 2 he drops the tower shield at his feet (the shield lying on the ground is drawn), frames 3 and 4 he spreads his arms wide in front of the people behind him and stands firm, chest out."
+      },
+      "ref": "marcus",
+      "deps": ["art_chr_marcus_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a3_massacre 与 cut_a3_ashen_line；目录要求四向各 2 帧，左向由右向镜像。 橙色反光带是他唯一的亮橙色；盾面光环熄灭的那一帧由渲染层压暗光环色样实现，不另出图。"
+    },
+    {
+      "id": "art_chr_ash_rise",
+      "template": "chr_cast",
+      "style": "sealed_ruins",
+      "subject": {
+        "zh": "骸骨守门人：人形骨架，眼眶里两点灰蓝冷火。披一件褪成灰白的古朴亚麻长袍 #c8c4b8，额骨上嵌一枚铜绿色的门形铜饰 #5a8a7a，指骨间夹一支芦苇笔，身上落着灰。炭黑、冷蓝、铜绿。安静而压迫。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A skeletal gatekeeper: a human skeleton with two points of cold grey-blue fire in its eye sockets. An antique linen robe faded to ash white #c8c4b8, a verdigris door-shaped copper ornament #5a8a7a set into the brow bone, a reed pen held between finger bones, ash settled on him. Charcoal, cold blue, verdigris. Quiet and oppressive. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1、2 帧是伏在地上的一副骸骨（倒下的书架不画），第 3、4 帧骨手撑地，慢慢跪起，第 5 帧站起，第 6 帧完全站直（站定的瞬间），第 7、8 帧抖落袍子上的灰，眼眶里的冷火亮起。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frames 1 and 2 are a skeleton lying face down on the floor (no fallen bookshelves drawn), frames 3 and 4 the bony hands push against the floor as it slowly kneels up, frame 5 it rises, frame 6 it stands fully upright (the moment it is standing), frames 7 and 8 it shakes the ash off its robe and the cold fire in its eye sockets lights up."
+      },
+      "ref": "ash",
+      "deps": ["art_chr_ash_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a3_sundering，过场只用第 1 行（面向镜头）；目录要求 1 向 6 帧，本条按八帧画。 是骸骨，不是活人；身边与袍子上不出现任何字。"
+    },
+    {
+      "id": "art_chr_severin_raise_pillar",
+      "template": "chr_cast",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "六十岁上下的人族大主教，瘦高挺直，白发剪得很短，神情笃定；穿白底金纹的主教长袍，头戴高主教冠（#f2efe6、#c9a646），胸前垂着金色光环纹的圣带，双手握着一柄顶端是光环的金色长权杖。",
+        "en": "A human archbishop of about sixty, tall, thin and upright, white hair cut very short, a certain and settled expression; a white archbishop robe with gold patterns and a tall miter (#f2efe6, #c9a646), a gold halo-patterned stole down his chest, a long gold crozier topped with a halo held in both hands."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1 到 4 帧双手握着光环长权杖抵在身前，低头默祷，身体微微起伏；第 5 帧双臂把权杖向上托起，第 6 帧权杖高举过头顶（举到最高的瞬间），第 7、8 帧保持高举，仰头望天。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frames 1 to 4 he holds the long halo crozier upright before him in both hands, head bowed in silent prayer, body rising and falling slightly; frame 5 his arms lift the crozier upward, frame 6 it is raised high above his head (the moment it reaches the top), frames 7 and 8 he holds it aloft, face turned to the sky."
+      },
+      "ref": "severin",
+      "deps": ["art_boss_archbishop_dawnpillar_ref"],
+      "milestone": "M2",
+      "notes": "附大主教的首领三视图 art_boss_archbishop_dawnpillar_ref 作参照（他在场景里用首领立牌）；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a3_ashen_line，过场只用第 1 行（面向镜头）；目录要求 1 向 6 帧，本条按八帧画。曙光圣柱是另一件物件，由特效 art_vfx_cut_dawnpillar 另画，不画进本条。"
+    },
+    {
+      "id": "art_chr_sasha_throw",
+      "template": "chr_attack_ranged",
+      "style": "night_basalt",
+      "subject": {
+        "zh": "三十二岁的人族女拳手将军，高挑精壮，深红短发向后梳，左眉一道疤把眉毛断开，深褐眼睛带着战意，下颌左侧挂一枚染红的魔物獠牙耳坠。黑红轻甲 #1e1a1a、#8a1c22，不戴头盔，双手缠拳击绷带，戴一对铁拳套 #6a6a70。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A thirty-two-year-old human woman boxer general, tall and hard-muscled: dark red short hair swept back, a scar that splits her left eyebrow, dark brown eyes full of fight, a blood-red monster fang earring hanging at the left of her jaw. Black and red light armor #1e1a1a, #8a1c22, no helmet, boxing wraps on both hands under a pair of iron fist gauntlets #6a6a70. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "过场专属的一掷：第 1 帧弯腰抱起一块磨盘大的圆石，第 2 帧把石头举过头顶，第 3 帧身体后仰蓄力，第 4 帧把石头掷出（出手的瞬间，石头刚离手），第 5 帧余势前冲，第 6 帧收势站稳。",
+        "en": "The cutscene's throw: frame 1 she bends and hoists a round boulder the size of a millstone, frame 2 she lifts it over her head, frame 3 she leans back to gather force, frame 4 she hurls it (the moment of release, the stone just leaving her hands), frame 5 she follows through forward, frame 6 she recovers and stands firm."
+      },
+      "ref": "sasha",
+      "deps": ["art_chr_sasha_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a3_ashen_line，过场只用第 1 行（面向镜头）；飞出去的石头由道具与特效另做，第 5、6 帧手里不再有石头。 眉疤在左眉，獠牙耳坠在左侧；她不用兵器，只用拳。"
+    },
+    {
+      "id": "art_chr_ron_flag_raise",
+      "template": "chr_cast",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "二十四岁的人族青年，中等身材偏瘦长，习惯缩着肩。棕色乱发，满脸雀斑，褐色眼睛，神情紧张又可靠。不太合身的二手皮甲 #6a5a44，脖子上一条褪色的蓝毛线围巾 #5a7a9a，左臂缠满五色护符，左手一面坑坑洼洼的旧铁圆盾，腰挂铜牌与短剑。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A twenty-four-year-old human young man, medium build on the lanky side, shoulders habitually hunched. Messy brown hair, a face full of freckles, brown eyes, nervous yet dependable. Ill-fitting second-hand leather armor #6a5a44, a faded blue knitted scarf #5a7a9a around his neck, his left arm wrapped in charms of five colors, a dented old iron round shield on his left arm, a copper tag and a short sword at his belt. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：一根插在泥里的旗杆，旗面是一块深色粗布；第 1 到 4 帧弯腰双手握住旗杆，用力往外拔；第 5 帧旗杆拔出、向上抡起，第 6 帧旗举过头顶（举到最高的瞬间），旗面在风里展开，第 7、8 帧举旗站定，围巾被风扯起。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: a flagpole stuck in the mud with a dark rough cloth banner; frames 1 to 4 he bends and grips the pole with both hands, straining to pull it out; frame 5 the pole comes free and swings upward, frame 6 the flag is raised above his head (the moment it reaches the top) as the banner unfurls in the wind, frames 7 and 8 he stands holding the flag, his scarf tugged by the wind."
+      },
+      "ref": "ron",
+      "deps": ["art_chr_ron_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a3_domain，过场只用第 1 行（面向镜头）；目录要求 1 向 6 帧，本条按八帧画。旧圆盾仍挂在左臂；旗面不画任何纹章与文字。 围巾是褪色的蓝，不要画成鲜蓝；盾与护符都在左臂。"
+    },
+    {
+      "id": "art_chr_emperor_slash",
+      "template": "chr_cast",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "五十八岁的人族皇帝，高大魁伟，铁灰短发与短须，灰色眼睛沉稳，左手小指缺了半截。朴素的黑铁战甲 #2e2e30，披帝国紫披风 #5a2a6a，银色铆钉，腰佩一把毫无装饰的长剑，剑柄上随手挂着帝冠。Q 版约 1.8 头身，头像立绘正常比例。",
+        "en": "A fifty-eight-year-old human emperor, tall and massive: iron-grey short hair and short beard, steady grey eyes, the left little finger missing its upper half. Plain black iron battle armor #2e2e30 with silver rivets under an imperial purple cape #5a2a6a, a completely unadorned longsword at his hip with the imperial crown hung carelessly on its hilt. Chibi about 1.8 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1 到 4 帧极慢地拔剑，剑一寸一寸出鞘，挂在剑柄上的帝冠随之晃动；第 5 帧双手举剑，第 6 帧一剑劈落（落剑的瞬间），第 7 帧剑势停在下方，第 8 帧缓缓收剑。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frames 1 to 4 he draws the sword extremely slowly, inch by inch, the crown hanging from the hilt swaying as it comes; frame 5 he raises the sword in both hands, frame 6 a single cut falls (the moment of the strike), frame 7 the blade stops low, frame 8 he slowly sheathes it."
+      },
+      "ref": "emperor",
+      "deps": ["art_chr_emperor_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a4_feast（强者之宴），过场取第 1、2 行（正面与侧面）；剑光由特效另画。 缺的是左手小指的上半截；帝冠挂在剑柄上，不戴在头上。"
+    },
+    {
+      "id": "art_chr_mute_bell_kneel",
+      "template": "chr_signature",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "被割了舌头的遗民敲钟人，瘦高，三十来岁，灰褐的旧斗篷打满补丁，围巾裹住下半张脸，左手套边露出一块拱门形的胎记；腰间挂着一口青铜手钟，右手握着敲钟的短锤，胸前用皮绳挂着一把没有纹样的古旧钥匙。",
+        "en": "A tongueless bell ringer of the remnant folk, tall and thin, about thirty, a patched gray-brown old cloak, a scarf wrapped over the lower half of his face, an arch-shaped birthmark peeking out from the edge of his left glove; a bronze hand bell at his waist, a short striking hammer in his right hand, an old key with no markings hung on a leather cord at his chest."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1 帧站着，双手捧着一枚刚取下的钥匙，第 2 帧单膝跪下，第 3 帧双膝跪地，第 4 帧俯身，以额头轻触捧在手里的钥匙。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frame 1 he stands holding a key he has just taken in both hands, frame 2 he drops to one knee, frame 3 to both knees, frame 4 he bows forward and touches his forehead lightly to the key in his hands."
+      },
+      "ref": "mute_bell",
+      "deps": ["art_boss_mute_bell_chase_ref"],
+      "milestone": "M3",
+      "notes": "附哑钟的首领三视图 art_boss_mute_bell_chase_ref 作参照（他在场景里用首领立牌）；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a4_key_theft 段一，过场只用第 1 行（面向镜头）。钥匙不画纹样与文字。"
+    },
+    {
+      "id": "art_chr_faceless_turn",
+      "template": "chr_cast",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "本条不是施法，八帧按顺序是一段过场动作：第 1、2 帧站定，头微微低着；第 3、4 帧缓缓回过头来，空白的脸望向身后，第 5 帧停住；第 6 帧转过身去（转身的瞬间），第 7、8 帧迈步走开。",
+        "en": "This is not a spell: the eight frames form one continuous cutscene action in order: frames 1 and 2 he stands still with his head slightly bowed; frames 3 and 4 he slowly looks back over his shoulder with the blank face, frame 5 he holds; frame 6 he turns away (the moment of turning), frames 7 and 8 he walks off."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a4_key_theft 段三；没入灰中的淡出由渲染层做。目录要求 6 帧，本条按八帧画。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
+    },
+    {
+      "id": "art_chr_tavi_seat",
+      "template": "chr_signature",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "年迈的老人，瘦小而硬朗，脸上皱纹密布，笑起来缺了两颗牙，眼神明亮温和。稀疏白发垂到肩头，白胡子编成一条细辫，浅褐眼睛。洗得发白的灰褐长袍 #7a7060，肩上搭一条手织的彩纹围巾，手里拿一支旧木笛。",
+        "en": "An elderly man, small but hale, a face covered in fine wrinkles, a smile missing two teeth, bright gentle eyes. Thin white hair to his shoulders, a white beard in one thin braid, light brown eyes. A washed-out grey-brown long robe #7a7060, a hand-woven striped scarf over his shoulders, an old wooden flute in his hand."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1 帧弯腰，用手拂掉石座上的霜（石座不画），第 2 帧直起身、转过身来，第 3 帧慢慢坐下，悬空坐姿，第 4 帧坐定，把木笛横放在膝上。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frame 1 he bends and brushes the frost off a stone seat with his hand (no seat drawn), frame 2 he straightens and turns around, frame 3 he slowly sits in a seated pose in the air, frame 4 he settles and lays the wooden flute across his knees."
+      },
+      "ref": "tavi",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的三向放大图）作参照：他在场景里是纸娃娃组装的人物，没有三视图；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a4_conclave（七国会盟）。 他是唱歌的老人：神情多带温和的笑意。"
+    },
+    {
+      "id": "art_chr_faceless_doorframe_lean",
+      "template": "chr_signature",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "过场专属姿势，4 帧循环：斜靠在一副门框上（门框是场景道具，不画进来；身体向一侧倾斜约十五度，像靠在看不见的框上），双手抱在胸前，空白的脸朝向前方；四帧之间只有斗篷下摆滴澱与门形裂缝光的细小变化。",
+        "en": "Cutscene pose, a 4-frame loop: leaning against a door frame (the frame is a scene prop and is not drawn; the body tilts about fifteen degrees to one side as if resting on an unseen frame), arms folded across the chest, the blank face turned forward; the four frames differ only in the sediment dripping from the cloak hem and the light of the door-shaped crack."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a5_mirror_a；目录要求四向各 1 帧，左向由右向镜像。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
+    },
+    {
+      "id": "art_chr_faceless_white_cloth",
+      "template": "chr_signature",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "过场专属动作，按顺序播放一次，不必接回第 1 帧：第 1、2 帧双手高举一根细木杆，杆头挂着一块白布，像旗一样垂下；第 3、4 帧把木杆连同白布插进脚下的灰里，双手松开。白布 #f4f2ec 是全身唯一的亮色。",
+        "en": "Cutscene action, played once in order, with no need to loop back to frame 1: frames 1 and 2 he holds a thin wooden pole high in both hands with a white cloth hanging from its top like a flag; frames 3 and 4 he plants the pole and cloth into the ash at his feet and lets go. The white cloth #f4f2ec is the only bright color on him."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a5_mirror_b；目录要求四向各 2 帧（举、插下），左向由右向镜像。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
+    },
+    {
+      "id": "art_chr_faceless_rim_sit",
+      "template": "chr_signature",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "过场专属姿势，4 帧循环：坐在坑沿上，悬空坐姿（坑沿不画），双脚垂下，像坐在河边，双手撑在身体两侧；四帧之间只有垂下的双脚轻轻晃动。",
+        "en": "Cutscene pose, a 4-frame loop: sitting on the rim of a pit in a seated pose in the air (no rim drawn), legs dangling as if sitting by a river, hands propped at his sides; the four frames differ only in the gentle swing of his dangling feet."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M3",
+      "notes": "附本人三视图作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a5_mirror_b；目录要求四向各 1 帧，左向由右向镜像。 脸上绝对不画五官；手背的门纹由渲染层画，不进素材；对话框只显示空的头像框，头像与半身立绘只用于角色卡与过场演出；纸片上没有字。"
+    },
+    {
+      "id": "art_chr_faceless_redeemed_ref",
+      "template": "chr_turnaround",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "三十来岁的瘦削男子，一张普通而疲惫的脸，眼窝发青，眼神安静，黑色短发凌乱。层层旧斗篷已褪成灰白 #b8b4ac，裹着瘦长的身体，下摆干干净净。双手缠着发旧的灰白绷带，腰间仍挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A gaunt man in his thirties with an ordinary, tired face, shadowed eye sockets, quiet eyes and messy short black hair. The layered old cloaks have faded to grey-white #b8b4ac around his long thin body, the hems clean. Hands wrapped in worn grey-white bandages, a string of paper rubbings of door shapes still at his waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "第 4 格胸像画清那张普通而疲惫的脸。",
+        "en": "The bust in panel 4 clearly shows the ordinary, tired face."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M3",
+      "notes": "参照图：主审通过后，作为本状态全部动作条的参照；四格的发型、配色与标志物必须完全一致，记下通过图的种子。 以本人原形态的三视图为参照，只改状态差异：有了一张普通的脸，斗篷褪成灰白，不再滴澱。 手背上只剩一道淡痕的门纹由渲染层画；纸片上没有字。"
+    },
+    {
+      "id": "art_chr_faceless_redeemed",
+      "template": "chr_signature",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "三十来岁的瘦削男子，一张普通而疲惫的脸，眼窝发青，眼神安静，黑色短发凌乱。层层旧斗篷已褪成灰白 #b8b4ac，裹着瘦长的身体，下摆干干净净。双手缠着发旧的灰白绷带，腰间仍挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A gaunt man in his thirties with an ordinary, tired face, shadowed eye sockets, quiet eyes and messy short black hair. The layered old cloaks have faded to grey-white #b8b4ac around his long thin body, the hems clean. Hands wrapped in worn grey-white bandages, a string of paper rubbings of door shapes still at his waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "过场状态姿势：第 1、2 帧站着，轻微的呼吸起伏；第 3、4 帧坐着，悬空坐姿（座位不画），双手搭在膝上。",
+        "en": "Cutscene state poses: frames 1 and 2 standing with a slight breathing motion; frames 3 and 4 sitting in a seated pose in the air (no seat drawn), hands resting on his knees."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_redeemed_ref"],
+      "milestone": "M3",
+      "notes": "附本状态三视图 art_chr_faceless_redeemed_ref 作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a5_mirror_c 与 cut_a5_trial_called；行走见 art_chr_faceless_redeemed_walk，左向由右向镜像，合起来是目录要求的坐、站、走各四向。 手背上只剩一道淡痕的门纹由渲染层画；纸片上没有字。"
+    },
+    {
+      "id": "art_chr_faceless_redeemed_walk",
+      "template": "chr_walk",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "三十来岁的瘦削男子，一张普通而疲惫的脸，眼窝发青，眼神安静，黑色短发凌乱。层层旧斗篷已褪成灰白 #b8b4ac，裹着瘦长的身体，下摆干干净净。双手缠着发旧的灰白绷带，腰间仍挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A gaunt man in his thirties with an ordinary, tired face, shadowed eye sockets, quiet eyes and messy short black hair. The layered old cloaks have faded to grey-white #b8b4ac around his long thin body, the hems clean. Hands wrapped in worn grey-white bandages, a string of paper rubbings of door shapes still at his waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "走得很慢，步子轻，肩膀放松。",
+        "en": "Walking slowly with light steps and relaxed shoulders."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_redeemed_ref"],
+      "milestone": "M3",
+      "notes": "附本状态三视图 art_chr_faceless_redeemed_ref 作参照；三行依次是面向镜头、朝右、背向镜头；辨识特征按固定描述块，一字不改。 用于 cut_a5_mirror_c 与 cut_a5_trial_called。 手背上只剩一道淡痕的门纹由渲染层画；纸片上没有字。"
     }
   ]
 }

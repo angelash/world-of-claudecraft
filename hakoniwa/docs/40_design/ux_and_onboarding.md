@@ -17,8 +17,8 @@
 ## 0. 一页结论
 
 1. **六层信息架构。** 世界、覆盖层、HUD、窗口、模式、弹层。输入与焦点按"弹层、模式、窗口、HUD、世界"的顺序取第一个接手者；Esc 与手柄 B 永远先关最上面一层。
-2. **一百零五个界面编号。** 屏幕 8（`ui_scr_`）、设置页 8（`ui_set_`）、HUD 元件 22（`ui_hud_`）、覆盖层 11（`ui_ovl_`）、窗口 31（`ui_win_`，现有 18 个加新增 13 个）、
-   界面模式 10（`ui_mode_`）、弹层 15（`ui_pop_`）。总表见第 2 节；现有 `WindowId` 一一映射到 `ui_win_` 编号，不改代码里的 id。
+2. **一百零八个界面编号。** 屏幕 8（`ui_scr_`）、设置页 8（`ui_set_`）、HUD 元件 22（`ui_hud_`）、覆盖层 11（`ui_ovl_`）、窗口 31（`ui_win_`，现有 18 个加新增 13 个）、
+   界面模式 12（`ui_mode_`）、弹层 16（`ui_pop_`）。总表见第 2 节；现有 `WindowId` 一一映射到 `ui_win_` 编号，不改代码里的 id。
 3. **界面随幕释放。** 未开放的入口不出现在菜单栏、环形菜单与键位提示里；开放的那一刻给一次"二次引导"（一张卡片加一个安全的练习场景），不提前展示后续层的空壳。
 4. **大模型页按 D-067 落地。** 预设四种（关闭即内置 AI、单模型、分档、本机），提供方三类，密钥只存本机钥匙串，按六个角色绑定模型，每小时与每日的花费或 token 上限，
    消耗台账，连接测试与九类可读错误；页首写明"内置 AI 是完整体验"。网页试玩版不接受云端密钥。
@@ -158,9 +158,13 @@
 | 第三幕 | `ui_win_army`、`ui_mode_battle`（连队与全部操作） | A3-M02 骨原夜袭（千军之门） |
 | | `ui_win_territory` 加官职、政策、区划；`ui_win_council` 加请示队列 | A3-M01 抵领、城镇阶段 |
 | | `ui_pop_interpret` | 第三幕解读提示（[reputation_and_cognition.md](systems/reputation_and_cognition.md) 第 11 节） |
+| | `ui_win_atlas` 的世界图页（只读：大陆地图展开，看得见诸国与终雾，不开国家面板与行动） | `feature.continent_map`（`cut_a3_map` 段二，第三幕末的拉远） |
 | 第四幕 | `ui_mode_continent`（`ui_win_strategy`）、`ui_win_rumors` 加"情报"页的对照页、`ui_win_goddess` 加"契约"页 | 立国（`feature.slg`） |
+| | `ui_win_strategy` 的立国页自动打开：先选国体与首批官员（国名已在 `cut_a4_founding` 段四输入） | 立国之门开启 |
+| | 对照页追加"我"一列 | `a4_moira_isomorphism` |
 | 第五幕 | 大陆视图的联军与多战线；行进加众门环 | 第五幕开场；千径之门 |
 | 第六幕 | `ui_mode_court`、`ui_win_evidence` 加"审庭准备"页 | `a6_court_open` |
+| 终章 | `ui_mode_credits`、`ui_mode_record`；回收结局另开 `ui_pop_deja` | 结局过场的片尾与后日谈节点 |
 
 ### 1.6 数据接缝：GameView、适配器与 TextRef
 
@@ -290,7 +294,7 @@
 | `ui_win_council` | 议事与报告 | 无 | 6.3.12 | M2 |
 | `ui_win_army` | 军队与将领 | 无 | 6.3.13 | M2 |
 
-### 2.4 界面模式（10）与弹层（15）
+### 2.4 界面模式（12）与弹层（16）
 
 | 编号 | 名称 | 现有 | 目标 | 里程碑 |
 | --- | --- | --- | --- | --- |
@@ -304,6 +308,8 @@
 | `ui_mode_continent` | 大陆视图 | `strategy_window.ts` | 12 | M3 |
 | `ui_mode_travel` | 区域图行进 | 无 | 6.3.6 | M2 |
 | `ui_mode_court` | 审庭 | `scene_panel.ts` 的证据呈示 | 13 | M3 |
+| `ui_mode_credits` | 片尾（结局的职员表与片尾底图） | 无 | 8.5 | M3 |
+| `ui_mode_record` | 最后的记录（后日谈逐条显示） | `src/systems/scenes/epilogue.ts` 的组装结果 | 8.6 | M3 |
 | `ui_pop_confirm` | 确认 | 原生 `confirm` | 6.4 | M1 |
 | `ui_pop_tooltip` | 提示框（物品、技能、光环、门、术语） | `title` 属性 | 6.4 | M1 |
 | `ui_pop_appraisal` | 鉴定卡与公会卡 | 无 | 6.4 | M1 |
@@ -319,6 +325,7 @@
 | `ui_pop_naming` | 命名（兽伴、聚落、国家、门标） | 无 | 6.4 | M1 |
 | `ui_pop_error` | 错误 | 消息里一行 | 6.4 | M1 |
 | `ui_pop_tutorial` | 引导卡 | 无 | 17.2 | M1 |
+| `ui_pop_deja` | 带走的记忆（回收结局挑选下一期的既视条目） | 无 | 8.7 | M3 |
 
 ### 2.5 补充编号（设置子页、弹层与覆盖层）
 
@@ -379,6 +386,7 @@
 | [release_engineering.md](../50_tech/release_engineering.md) 第 4、5、6、12、14 节 | 性能测试、诊断导出、崩溃同意、可恢复存档、遥测、使用须知 | 第 2.5 节对应编号（第 4.9 节） |
 | [ai_architecture.md](../50_tech/ai_architecture.md) 第 11.3 节 | 生成文本的标示、屏蔽并标记 | 第 7.3 节的"AI 角标"；记录查看在 `ui_set_data` 的 AI 日志项 |
 | [audio_direction.md](audio_direction.md) 第 10.3、10.4 节 | 音频设置、声音字幕 | `ui_set_audio`（第 4.3 节）、`ui_set_access`（第 18.4 节） |
+| [catalog_cutscenes.md](content/catalog_cutscenes.md) 第 11.8、11.10、12.1、13 节 | 过场播放器、梗概卡、片尾、最后的记录、带走的记忆、不可逆抉择的确认 | `ui_mode_cutscene`（第 8.1 到 8.4 节）、`ui_mode_credits`（第 8.5 节）、`ui_mode_record`（第 8.6 节）、`ui_pop_deja`（第 8.7 节）、`ui_pop_confirm` |
 
 ## 3. 启动、标题与开局
 
@@ -905,7 +913,7 @@
 - **称谓：** 第六幕正名之前，界面上一律称"门口的女人"，不出现被禁之名（D-023、D-053）；造主只称"上面""那一位"。
 - **数据：** `GoddessAdapter.goddesses`、`record`、`revelations`、`canOffer`、`offer`。
 - **需新增：** `relationBand`、`gazeBand`、`knownToPlayer`、`honorificKnown`、`phenomena[]`（含回溯标注）、`pacts[]`、`dreams[]`、`canPray`。
-- **交互：** 祈祷（`ui_pop_prayer`）、供奉（`ui_pop_offer`）、查看契约、契约到期提醒（提前 3 游戏日通知）。
+- **交互：** 祈祷（`ui_pop_prayer`）、供奉（`ui_pop_offer`）、查看契约、契约到期提醒（提前 3 游戏日通知）。与莫伊拉的空白纪交易选"交出"档时，确认（`ui_pop_confirm`）之前先以全屏字幕告知"这段记忆将不再属于你"。
 - **空状态：** "还没有记录"（`T.goddess.none`）。
 - **错误状态：** 没有硬币时供奉灰显（`T.goddess.noCoin`）。祈祷无人回应不是错误，是内容（"没有回应"）。
 
@@ -1070,7 +1078,7 @@
 
 - **页签：** 证物（第六幕证据 E01 到 E36 中已取得的：名称、取得的幕与方式、你所理解的"它证明了什么"、保管链、真伪（未验、已验、存疑）；第六幕之前，对象与防线标签显示为"可能有用"，强度不显示，
   [quests_and_events.md](systems/quests_and_events.md) 第 8 节）；史料（史料道具 `H01` 起：原文（纸主题，按文字遮蔽）、出处、它让你想到的问题（只写问题，不写答案））；
-  对照页（第四幕：情报与史料并排，矛盾处标记；天启到来时自动加一行，[goddess_gm.md](systems/goddess_gm.md) 第 9.5 节）；审庭准备（第六幕：每位女神三道防线（事实、正当、必要）的厚度与已累计强度、
+  对照页（第四幕：情报与史料并排，矛盾处标记；天启到来时自动加一行，[goddess_gm.md](systems/goddess_gm.md) 第 9.5 节；`a4_moira_isomorphism` 之后追加"我"一列，把玩家自己的同类处境并排放进来）；审庭准备（第六幕：每位女神三道防线（事实、正当、必要）的厚度与已累计强度、
   你手上可用于该防线的证据、可传唤证人的条件、每轮次数上限；计划板：把证据拖进某一场质证的计划）。
 - **规则：** 第六幕开庭前，证据只能看，不能引用（[goddess_gm.md](systems/goddess_gm.md) 第 11 节）；同一件证据对同一道防线只计一次，计划板上重复放置时提示。
 - **数据：** 新 `EvidenceAdapter`：`evidence()`（`id`、`code`、`name`、`act`、`source`、`how`、`proves`、`tags`（第六幕前为空）、`strength`（第六幕前为空）、`custody[]`、`authenticity`）、`records()`、`compare()`、`courtPlan()`；
@@ -1181,7 +1189,7 @@
 | --- | --- | --- |
 | 演出 | HD-2D 场景内的写定运镜：镜头导演（移动、拉近、掀顶、对焦）、角色走位与表情、字幕；上下黑边（2:1） | 灰烬室的一瞥、兽潮之夜开场、渡口送别 |
 | 剧场 | 世界压暗，全屏文字面板：台词、编号选项、自由输入、证据呈示（现有 `ScenePanel`） | 序章面试、梦、第一幕与第二幕的审判 |
-| 插画 | 全屏插画加字幕（AI 生成的插画与远景，`art_key_`、`art_map_`） | 地球四景、天启、结局与后日谈 |
+| 插画 | 全屏静帧加字幕；素材只有 `assets/prompts/specs/backgrounds.json` 登记的 24 张 `art_bg_cut_*`（[catalog_cutscenes.md](content/catalog_cutscenes.md) 第 2.7 节），其余"大画面"一律用演出的实景运镜 | 地板化作门洞、澱巨像出场、天启「荒原之澱满」、七碑显「可」 |
 
 - 过场编号 `cut_` 归 `content/catalog_cutscenes.md`；本文只定义播放器。
 
@@ -1199,7 +1207,7 @@
 
 ### 8.3 跳过规则
 
-- 任何过场都可以跳过，第一次看也可以；跳过后弹一张"梗概"卡（两三句，`cut_<编号>.summary`），保证没看的人不丢剧情。
+- 任何过场都可以跳过，第一次看也可以；跳过后弹一张"梗概"卡（两三句，文本键 `cut.<cut_id>.summary`，内容见 [catalog_cutscenes.md](content/catalog_cutscenes.md) 第 13.9 节），保证没看的人不丢剧情。
 - 跳过只跳到下一个选择点或锚点：选择不会被跳过；序章的锚点台词（[prologue_antechamber.md](../30_story/arcs/prologue_antechamber.md) 第 6 节）与天启在跳过时也以卡片形式出现，必须看到。
 - 看过的过场进 `ui_win_codex` 的回想页，可重播；重播不改世界。
 
@@ -1208,7 +1216,40 @@
 - `SceneAdapter`（`scene`、`advance`、`choose`、`input`）与 `SceneView`、`scene_model.ts`。**需新增：** `presentation`（演出、剧场、插画）、`camera`（演出的镜头指令序列，客户端执行）、`illustration`（素材编号）、
   `skippableTo`（下一个选择点或锚点）、`summary`、`anchor`（是否锚点）。
 - 后续还有过场排队时显示"之后还有 {n} 幕"（`T.scene.queued`）。
-- 素材缺失时：插画用当幕主视觉加暗角；演出镜头指令失败时退化成剧场面板，不中断剧情。
+- 素材缺失时：插画用当幕的区域远景加暗角；演出镜头指令失败时退化成剧场面板，不中断剧情。
+
+### 8.5 `ui_mode_credits` 片尾
+
+| 项 | 规定 |
+| --- | --- |
+| 进入 | 过场效果 `ui ui_mode_credits`（离手、离手·未竟、新神、五种某神之治、门之复辟）；关闭后回到该过场节点的去向。回收没有片尾，隐藏结局只有一行字幕 |
+| 版式 | 黑底，职员表居中自下而上滚动；左右两侧交替显示本结局的"片尾底图"（读世界状态取景的实景慢摇镜头，每张 8 到 12 秒，取景表见 [catalog_cutscenes.md](content/catalog_cutscenes.md) 第 11.10 节） |
+| 内容 | 第一行"《箱庭纪》"，第二行本结局的名字；职员表与 `ui_scr_credits`（第 3.6 节）同源，含"美术与音频：AI 生成，提示词编写与筛选"一节；结尾一行"感谢游玩。" |
+| 曲目 | `mus_credits`（不循环），对话与环境声关闭 |
+| 操作 | 长按跳过（键鼠长按 Esc 1 秒，手柄长按 B 1 秒）；第一次看完整结局也可以跳过；跳过不影响隐藏结局的判定；H 或 Y 隐藏职员表只看底图 |
+| 结束 | 离手进入"最后的记录"末尾的隐藏结局判定节点；其余回到标题 |
+| 素材缺失 | 底图缺失时只滚动职员表 |
+
+### 8.6 `ui_mode_record` 最后的记录
+
+| 项 | 规定 |
+| --- | --- |
+| 进入 | 结局过场的后日谈节点；条目由 `assembleEpilogue` 组装（每局 30 到 45 条，组装口径见 [catalog_cutscenes.md](content/catalog_cutscenes.md) 第 12.1 节） |
+| 版式 | 莫伊拉的书页，世界压暗；每条先显示标题（`【主题】审定后第 N 年：`；某神之治、新神与离手·未竟只显示 `【主题】`），再按文字速度显示正文；离手的最后一条换成凡人史官的另一种手写字体 |
+| 推进 | 自动推进默认开启，每条停留 1.5 秒加每 8 字 1 秒；推进键补全或翻到下一条；回看可翻回已显示的条目 |
+| 曲目 | `mus_epilogue_record`；新神结局无乐，只有翻账页声 |
+| 跳过 | 长按跳过整份记录；跳过后可在 `ui_win_codex` 的回想页重读本结局的记录 |
+| 无障碍 | 正文随文字大小设置放大；读屏按条朗读标题与正文 |
+
+### 8.7 `ui_pop_deja` 带走的记忆
+
+| 项 | 规定 |
+| --- | --- |
+| 进入 | 回收结局（`cut_end_reclaim`）的过场效果 `ui ui_pop_deja`；关闭后回到该节点的去向 |
+| 内容 | 本期的日志条目按幕分组；玩家每幕至多挑三条带进下一期 |
+| 结果 | 被挑中的条目在下一期以"既视"标签出现在同一幕的日志与传闻里；数量计入存档的周目数据，不改数值 |
+| 操作 | 勾选与取消、确认；确认用 `ui_pop_confirm`；不挑直接确认也可以 |
+| 空状态 | 某一幕没有可带的条目时该组灰显并写"这一段没有留下记得的事" |
 
 ## 9. `ui_mode_corridor` 千门回廊（K）
 
@@ -1371,6 +1412,7 @@
 | 会盟 | 阶段状态机与每阶段期限；与会者立场与承诺；桌上的条款 |
 | 委托 | 国策、授权矩阵、季报（按领域，只标需要你决定的几件）、战线授权书 |
 | 编年 | 已发生的大事，按日 |
+| 立国 | 立国之门开启后自动打开：先选国体与首批官员（国名已在 `cut_a4_founding` 段四输入）；完成后并入"国家"面板 |
 
 ### 12.3 时间
 
@@ -2273,6 +2315,7 @@ View 切换指挥模式与亲身模式；R3 兵团视图；按住 RB 加 A 交�
 | `term.dian_known` | 玩家第一次从夜羽口中听到"澱"，界面称谓切换 | 对话或剧情节点（第一幕） |
 | `a3_ash_warning_doors` | 玩家得知开门会松动封印，回廊显示"门后的风" | 剧情节点（A3-M09） |
 | `feature.messenger` | 信使之门开启，传书可以主动寄出 | 千门系统（`door_messenger` 的效果声明这项功能） |
+| `feature.continent_map` | 大陆地图展开，世界图页只读可看 | 过场 `cut_a3_map` 段二 |
 
 已有并被本文使用的：`feature.company`、`feature.city`、`feature.village`、`feature.inner_court`、`feature.rts`、`feature.slg`、`a6_name_spoken`、`a6_court_open`。
 

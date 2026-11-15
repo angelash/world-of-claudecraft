@@ -375,7 +375,7 @@
 
 - 主线合计 55 分钟，加两条可选约 60 分钟，与 [D-070][dlog] 的"序章 1 小时"一致；无模型的选项式版本约 20 分钟（[序章 0][a0]）。
 - 序章没有战斗，[D-069][dlog] 的"每幕必经内容都含战斗"从第一幕起算；第一幕第一条主线的第一个阶段就是战斗（A1-M01 `corridor`）。
-- 地球四景按开场代号写 `earth_last_train`、`earth_night_store`、`earth_hospital`、`earth_old_house`，已登记在 [地图简报][mb] 与图集。
+- 地球四景按开场代号写 `earth_train`、`earth_store`、`earth_hospital`、`earth_house`，已登记在 [地图简报][mb] 与图集。
 
 ### 4.2 主线
 
@@ -384,7 +384,7 @@
 | 字段 | 内容 |
 | - | - |
 | 类型 | 主线（写定、受保护） |
-| 给予者与地点 | 无；地球四景之一（A 末班车 `earth_last_train`、B 雨夜便利店 `earth_night_store`、C 医院走廊 `earth_hospital`、D 老宅清空日 `earth_old_house`） |
+| 给予者与地点 | 无；地球四景之一（A 末班车 `earth_train`、B 雨夜便利店 `earth_store`、C 医院走廊 `earth_hospital`、D 老宅清空日 `earth_house`） |
 | 前置 | `act == 0`（新游戏） |
 | 窗口 | 开局；P1 到 P6 之间可"重来"重选开场 |
 | 分支与写入 | `p_earth_opening`（`a`、`b`、`c`、`d`）、`p_earth_relic`；`p_door_attempts_refused`（0 到 3）；千门提示倾向 `p_door_hints` 按开场加权（A 契 +1，B 息 +1，C 息 +1，D 刃 +1） |
@@ -3026,7 +3026,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | 兽伴羁绊外壳 | `q_bond_<兽伴 ID>_<序>` 一族 | 第 8.5 节 |
 | 委托模板 `cmm_` | `cmm_a1_*` 19 个、`cmm_a2_*` 17 个、`cmm_a3_*` 15 个 | 第 5.6、6.6、7.6 节 |
 | 动态事件 `ev_` | `ev_a1_*` 36 个、`ev_a2_*` 38 个、`ev_a3_*` 35 个 | 第 5.7、6.7、7.7 节 |
-| 地图代号 | `earth_last_train`、`earth_night_store`、`earth_hospital`、`earth_old_house` | 序章地球四景，已登记在[地图简报][mb] |
+| 地图代号 | `earth_train`、`earth_store`、`earth_hospital`、`earth_house` | 序章地球四景，已登记在[地图简报][mb] |
 
 ## 12. 本文落定的问题
 
@@ -3077,7 +3077,7 @@ E 级与低 D 级模板主要由 NPC 冒险者与旧哨村村民承接，玩家�
 | [战争与战略目录][wsc] | 战场剧本 `bat_a2_undertide`、`bat_a3_bonefield`、`bat_a3_deer_ford`、`bat_a3_frostridge`、`bat_a3_sunrise_gate`、`bat_a3_reedbridge` | 战争目录第 5 节，地图对照第 5.24 节 |
 | [台词目录][dlg] | 每条"无模型"栏的 `quest.<q_id>.<阶段>` 槽；居民模板包 `ln_tpl_*`；王都分部接待员用 `ln_role_giver`；话题 `quest_<短名>` 与线索话题 `secret_*` | 台词目录第 1、6 节与分幕文件（第二、三幕的包在 M2 批次） |
 | [过场目录][cut] | 序章 P1 到 P16（含地球四景的原句）；第一幕灰烬室一瞥、巨鸦净化、9.1 到 9.4；第三幕 9.1 到 9.3 与阿什的讲述 | 过场目录按分幕节拍编号 |
-| [地图简报][mb] | 序章地球四景 `earth_last_train`、`earth_night_store`、`earth_hospital`、`earth_old_house`；边石旧矿 `dg_old_mine` 是 `rustridge_mine` 的子场景 | 地图简报 |
+| [地图简报][mb] | 序章地球四景 `earth_train`、`earth_store`、`earth_hospital`、`earth_house`；边石旧矿 `dg_old_mine` 是 `rustridge_mine` 的子场景 | 地图简报 |
 | [门目录][drs]、[生灵目录][crt] | 识才之门为固定门（两把钥来自主线 A1-M05、A1-M06）；驴之路与兽伴羁绊事件由本文第 8.2、8.5 节落地 | 门目录第 2.1 节；生灵第 16.1 节第 12 条 |
 | `data/quests/quests.json` | 序章到第三幕全部条目按第 1.2 节映射表改名与扩写；`expedition_badge` 的描述为"碎门坡拱石下的遗骸旁，二十年前探索队的第二名死者"；第 11 节的任务道具 | 数据导入批次（[开发计划][dev] M0） |
 

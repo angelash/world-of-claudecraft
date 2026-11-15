@@ -12,7 +12,8 @@
     "docs/30_story/arcs/act2_wallenburg.md",
     "docs/30_story/arcs/act3_lothar_crisis.md",
     "data/npc/personas.json",
-    "docs/50_tech/art_pipeline.md"
+    "docs/50_tech/art_pipeline.md",
+    "docs/40_design/content/catalog_cutscenes.md"
   ],
   "items": [
     {
@@ -5568,6 +5569,195 @@
       "deps": [],
       "milestone": "M3",
       "notes": "附该 NPC 的纸娃娃组装预览图（游戏导出的正面放大图）作参照；四格只有表情变化，头像按正常比例画。 木雀是素木色的普通木雕，不发光、不画纹路；她是独居老妇，衣着朴素，不戴夜境贵族的饰物。"
+    },
+    {
+      "id": "art_por_guild_registrar",
+      "template": "por_npc",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "公会总部的登记官：四十来岁的男子，脸窄，头发向后梳得一丝不苟，鼻梁上压着一副厚镜片的圆眼镜，神情一板一眼。深蓝色公会制服外套 #2c3a5c 扣到领口，银色纽扣，臂弯里抱着一枚拳头大的透明鉴定水晶 #cfe8f0。",
+        "en": "A registrar from the guild headquarters: a man in his forties with a narrow face, hair combed straight back without a strand out of place, thick round glasses pressing on the bridge of his nose, a by-the-book expression. A dark blue guild uniform coat #2c3a5c buttoned to the collar with silver buttons, a fist-sized clear appraisal crystal #cfe8f0 cradled in his arm."
+      },
+      "extra": {
+        "zh": "第 2 格不画高兴，画成惊讶：眉毛高挑，嘴微张；第 4 格的担忧画成吃痛的苦相。",
+        "en": "Panel 2 shows surprise instead of happiness: brows raised high, mouth slightly open; the worried panel 4 is drawn as a pained grimace."
+      },
+      "ref": "guild_registrar",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a4_founding。 导入键：第 1 格 neutral、第 2 格 surprised、第 3 格 angry、第 4 格 pained。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_league_clerk",
+      "template": "por_npc",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "海港同盟的书记：瘦削的年轻男子，颧骨高，深色短发贴着头皮，眼睛细长，神情谨慎。墨绿色同盟书记袍 #2e4a40，袖口套着防墨的黑色袖套，怀里抱一本包着铜角的厚账册。",
+        "en": "A clerk of the harbor league: a thin young man with high cheekbones, dark hair cropped close to the scalp, narrow eyes and a cautious look. A dark green league clerk's robe #2e4a40, black ink sleeves over his cuffs, a thick ledger with brass corners held to his chest."
+      },
+      "extra": {
+        "zh": "第 3 格的生气画成冷淡：嘴角下压，眼神不带温度。",
+        "en": "The angry panel 3 is drawn as cold aloofness: the corners of the mouth pressed down, eyes without warmth."
+      },
+      "ref": "league_clerk",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a4_founding 与 cut_a4_conclave。 导入键：第 1 格 neutral、第 2 格 smile、第 3 格 cold、第 4 格 sad。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_dying_soldier",
+      "template": "por_npc",
+      "style": "grantia_ochre",
+      "subject": {
+        "zh": "垂死的帝国士兵：十八九岁的少年兵，满脸灰土与干涸的血迹，嘴唇干裂，眼神涣散。赭红色帝国军服 #8a3a22 外罩凹陷的铁胸甲，头盔不见了，短发被汗黏在额上。",
+        "en": "A dying imperial soldier: a boy soldier of eighteen or nineteen, his face covered in dust and dried blood, cracked lips, unfocused eyes. An ochre-red imperial uniform #8a3a22 under a dented iron breastplate, his helmet gone, short hair plastered to his forehead with sweat."
+      },
+      "extra": {
+        "zh": "第 2 格不画高兴，画成被别人借口说话的样子：眼里亮着不属于他的暗红色光，咧嘴露出牙齿；第 4 格的担忧画成痛苦。",
+        "en": "Panel 2 is not happiness but the look of someone else speaking through him: a dark red light that is not his own burns in his eyes, a grin baring his teeth; the worried panel 4 is drawn as pain."
+      },
+      "ref": "dying_soldier",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a4_valda_offer。 导入键：第 1 格 neutral、第 2 格 special、第 3 格 angry、第 4 格 pained。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_deacon",
+      "template": "por_npc",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "难民礼拜堂的新执事：三十来岁的男子，面容清瘦，胡子刮得干干净净，神情拘谨。洗得发白的灰白执事袍 #d8d4c8，胸前一枚小小的铜光环徽，双手捧着一卷诏书抄本，纸上不写字。",
+        "en": "The new deacon of the refugee chapel: a man in his thirties with a lean face, clean-shaven, a stiff, careful manner. A washed-out grey-white deacon's robe #d8d4c8, a small copper halo badge on his chest, a copied edict scroll held in both hands with no writing on the paper."
+      },
+      "extra": {
+        "zh": "第 3 格的生气画成冷淡：嘴角下压，照本宣科的神情。",
+        "en": "The angry panel 3 is drawn as coldness: the corners of the mouth pressed down, the look of someone reading out a text."
+      },
+      "ref": "deacon",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a4_edict。 导入键：第 1 格 neutral、第 2 格 smile、第 3 格 cold、第 4 格 sad。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_dian_watcher",
+      "template": "por_npc",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "澱哨台的哨长：四十来岁的女学者，脸瘦，眼角有细纹，神情疲惫而专注。头与颈裹着防灰的米灰布巾 #c8c0b0，额上推着一副黄铜框护目镜，身穿多口袋的旧皮外套 #6a5038，胸前挂一支铅笔。",
+        "en": "The chief of the sediment watch post: a woman scholar in her forties with a thin face, fine lines at her eyes, tired but focused. A beige-grey dust cloth #c8c0b0 wrapped around her head and neck, brass-rimmed goggles pushed up on her forehead, an old many-pocketed leather coat #6a5038, a pencil hanging at her chest."
+      },
+      "ref": "dian_watcher",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a5_eska。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_lotha_noble",
+      "template": "por_npc",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "洛萨的贵族：五十来岁的胖男人，圆脸红润，八字胡上过油向两边翘起，眼神得意。深红天鹅绒礼服 #7a1e2e 镶金边，胸前别着一枚金色光轮徽，一手高举盛着红酒的高脚杯。",
+        "en": "A Lothar noble: a stout man in his fifties with a round ruddy face, an oiled moustache curling up at both ends, a pleased look. A deep red velvet formal coat #7a1e2e trimmed with gold, a gold halo-wheel badge pinned to his chest, one hand raising a stemmed glass of red wine."
+      },
+      "ref": "lotha_noble",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a5_eska。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_keybearer",
+      "template": "por_npc",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "执钥人：二十岁上下的遗民青年，晒黑的脸，短发被风吹乱，眼神坚定。打满补丁的灰褐粗布衣 #6a6050 外披一件旧斗篷，颈上用皮绳挂一枚门形的青铜小牌 #b08a4a，右手背上一道发着微光的门纹。",
+        "en": "A keybearer: a young man of the remnant folk around twenty, a sun-darkened face, short hair tousled by the wind, resolute eyes. Patched grey-brown rough cloth #6a6050 under an old cloak, a small door-shaped bronze plaque #b08a4a on a leather cord at his neck, a faintly glowing door mark on the back of his right hand."
+      },
+      "ref": "keybearer",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a5_mirror_a、cut_a5_eska、cut_a5_luchen、cut_a5_mirror_c、cut_a5_final_war。手背入画时门纹只画一道细细的微光。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_soldier",
+      "template": "por_npc",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "联军的普通士兵：二十多岁的男子，铁盔的盔沿压得很低，只露出一双疲惫的眼睛，脸上沾满灰。灰褐色棉甲 #6a6458 外套着磨旧的锁子甲，肩上斜挎一条深蓝布带 #2c3a5a 作为联军标识。",
+        "en": "An ordinary soldier of the allied army: a man in his twenties, the brim of his iron helmet pulled low so only his tired eyes show, his face smeared with ash. A grey-brown padded jacket #6a6458 under worn mail, a dark blue sash #2c3a5a across his shoulder as the allied army's mark."
+      },
+      "ref": "soldier",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a5_eska、cut_a5_confession、cut_a5_luchen、cut_a5_mirror_b、cut_a5_final_war。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_adventurer",
+      "template": "por_npc",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "醉月亭的常客冒险者：三十来岁的男子，满脸胡茬，脸颊喝得发红，眼神半醉，嘴角挂着笑。磨旧的棕色皮甲 #6a4a30，肩上搭着脱下的斗篷，手里拎着一只木酒杯。",
+        "en": "A regular adventurer of the Drunken Moon tavern: a man in his thirties, stubble all over his face, cheeks flushed from drink, half-drunk eyes, a grin at the corner of his mouth. Worn brown leather armor #6a4a30, his cloak slung over one shoulder, a wooden tankard in his hand."
+      },
+      "ref": "adventurer",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a5_confession。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_peddler",
+      "template": "por_npc",
+      "style": "mercato_coast",
+      "subject": {
+        "zh": "金湾集市的摊贩：精明的小个子男人，尖下巴，两撇小胡子，眼珠滴溜溜地转。头戴一顶宽檐软帽，帽上插一根长长的绿羽毛 #3a8a5a，身穿亮黄条纹马甲 #d8b040，脖子上挂一串小铜牌。",
+        "en": "A stall keeper of the Goldbay market: a shrewd little man with a pointed chin, a thin pair of moustaches and darting eyes. A soft wide-brimmed hat with a long green feather #3a8a5a stuck in it, a bright yellow striped waistcoat #d8b040, a string of small brass tags around his neck."
+      },
+      "ref": "peddler",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a5_confession。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_herald",
+      "template": "por_npc",
+      "style": "valen_city",
+      "subject": {
+        "zh": "使者：风尘仆仆的中年男子，脸被晒黑，胡子修得很短，神情恭谨。披一件没有任何纹章的灰蓝旅行斗篷 #4a5a6a，领口别一枚素面铜扣，腋下夹着一只封了蜡的皮文书筒。",
+        "en": "An envoy: a travel-worn middle-aged man with a sun-darkened face, a closely trimmed beard and a respectful bearing. A grey-blue traveling cloak #4a5a6a without any emblem, a plain copper clasp at the collar, a wax-sealed leather document case tucked under his arm."
+      },
+      "ref": "herald",
+      "deps": [],
+      "milestone": "M2",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_a2_barony（王都使者）与第四幕起各国来使、使团的合称（cut_a4_founding、cut_a5_confession）；斗篷无纹，所以哪一国的使者都能用。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_historian",
+      "template": "por_npc",
+      "style": "divine_court",
+      "subject": {
+        "zh": "学院请来的年轻史官：二十出头的瘦削男子，戴一副细框圆眼镜，栗色头发乱翘，神情紧张，手足无措。墨蓝色学院长袍 #2a3450，袖口沾着几点墨，怀里紧紧抱着一大卷纸。",
+        "en": "A young historian brought from the academy: a thin man in his early twenties with thin round glasses and unruly chestnut hair, nervous and unsure what to do with his hands. A dark ink-blue academy robe #2a3450 with a few ink spots on the cuffs, a large roll of paper clutched to his chest."
+      },
+      "ref": "historian",
+      "deps": [],
+      "milestone": "M3",
+      "notes": "无名职名的通用头像：没有三视图与纸娃娃预览，按固定描述块画；四格只有表情变化，头像按正常比例画。 用于 cut_end_release 的交接。纸卷上不写字。 不画任何组织的文字与可读标记。"
+    },
+    {
+      "id": "art_por_faceless",
+      "template": "por_main",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "他没有五官：八格的脸都是同一片空白平面加正中的门形裂缝，表情只靠头的角度、裂缝光的明暗与澱的滴落来表现。中性是头正对、裂缝透出微光；微笑是头微微歪向一侧，裂缝光变柔；得意是下巴微抬，裂缝光稳定地变亮；生气是裂缝光骤亮，斗篷边缘的澱滴加快；悲伤是头低垂，裂缝光几乎熄灭；惊讶是头微微后仰，裂缝略微张开；思索是头偏向一侧停住；第 8 格的角色专属表情：抬起缠绷带的右手停在脸侧，手背朝向画面，绷带缝里露出反相的门纹：一扇被锁链缠住的门，澱黑紫色。",
+        "en": "He has no features: in all eight panels the face is the same blank plane with the door-shaped crack down the middle, and expression comes only from the angle of the head, the brightness of the crack and the dripping sediment. Neutral: head straight, a faint glow in the crack; smile: head tilted slightly aside, the glow softer; smug: chin slightly raised, the glow steadily brighter; angry: the crack flares, the sediment drips faster from the cloak edges; sad: head bowed, the glow nearly out; surprised: head drawn slightly back, the crack opening a little; thinking: head tilted to one side and held; panel 8 is the character's signature expression: the bandaged right hand raised beside the face with its back to the viewer, a gap in the bandage showing the inverted door mark, a door wrapped in chains in sediment black-purple."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图（重点看第 4 格胸像）作参照；八格只有表情变化。 对话框不显示本头像，只显示空的头像框（角色设定集第 4.8 节）；本头像用于角色卡、图鉴与传闻来源链。立牌里手背的门纹由渲染层画，头像尺寸够大，第 8 格的门纹画进素材，形状与主角的门纹相同、明暗相反。 脸上绝对不画五官；纸片上没有字。"
     }
   ]
 }

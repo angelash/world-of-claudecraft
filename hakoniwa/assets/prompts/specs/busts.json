@@ -7,7 +7,8 @@
     "docs/20_world/races.md",
     "docs/50_tech/art_pipeline.md",
     "docs/40_design/content/catalog_characters_lotha.md",
-    "docs/40_design/content/catalog_characters_continent.md"
+    "docs/40_design/content/catalog_characters_continent.md",
+    "docs/40_design/content/catalog_cutscenes.md"
   ],
   "items": [
     {
@@ -1403,6 +1404,142 @@
       "deps": ["art_chr_yui_descent_ref"],
       "milestone": "M3",
       "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 这是白石结衣的状态变体：眼睛是白金色、没有焦点；双脚始终离地。"
+    },
+    {
+      "id": "art_bust_faceless",
+      "template": "bust_base",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "双手缠着绷带垂在身前，一只手轻握腰间那串门形纹拓片；空白的脸正对画面，门形裂缝透出暗紫微光。",
+        "en": "Bandaged hands hanging in front of him, one lightly holding the string of door-shape rubbings at his waist; the blank face turned to the viewer, a dim purple glow in the door-shaped crack."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref"],
+      "milestone": "M2",
+      "notes": "附本人三视图第 4 格的胸像作参照；腰部以上，身体略侧，面向画面左前方。 对话框只显示空的头像框（角色设定集第 4.8 节），本立绘只用于过场的立绘演出：第二幕葬礼与城下潮的投影（cut_a2_funeral、cut_a2_siege；渲染层把整张压成半透明的黑色剪影，只保留门形裂缝的暗紫光，不另出图），第五幕本体现身的场景，终章片尾的客人一段；戴冠之后的无貌之王用 art_bust_faceless_king。 脸上绝对不画五官；纸片上没有字。"
+    },
+    {
+      "id": "art_bust_faceless_expr",
+      "template": "bust_expr",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "修长消瘦的人形，裹在层层黑灰旧斗篷里 #2a2a2e，斗篷下摆像墨一样往下滴着暗紫的澱 #4a3a62。脸是一片光滑空白的平面，像没写字的纸，正中一道细细的门形裂缝，透出暗紫微光。双手缠着灰白绷带，腰间挂一串拓着门形纹的纸片。Q 版约 1.7 头身。",
+        "en": "A tall, gaunt human figure wrapped in layers of old charcoal cloaks #2a2a2e, the hem dripping dark purple sediment like ink #4a3a62. The face is a smooth blank plane like an unwritten page, with a thin door-shaped crack down the middle leaking a dim purple glow. Hands wrapped in grey-white bandages, a string of paper rubbings of door shapes at the waist. Chibi about 1.7 heads tall."
+      },
+      "extra": {
+        "zh": "他没有五官：六格的脸都是同一片空白平面加门形裂缝，表情只靠头的角度、裂缝光的明暗与肩头斗篷的起伏表现：微笑是头微微歪向一侧，裂缝光变柔；生气是裂缝光骤亮，斗篷边缘的澱滴加快；悲伤是头低垂，裂缝光几乎熄灭；惊讶是头微微后仰，裂缝略微张开；思索是头偏向一侧停住；第 6 格的角色专属表情：抬起缠绷带的右手停在脸侧，手背朝向画面，绷带缝里露出反相的门纹：一扇被锁链缠住的门，澱黑紫色。",
+        "en": "He has no features: in all six panels the face is the same blank plane with the door-shaped crack, and expression comes only from the angle of the head, the brightness of the crack and the rise and fall of the cloak at his shoulders. Smile: head tilted slightly aside, the glow softer; angry: the crack flares, the sediment drips faster from the cloak edges; sad: head bowed, the glow nearly out; surprised: head drawn slightly back, the crack opening a little; thinking: head tilted to one side and held; panel 6 is the character's signature expression: the bandaged right hand raised beside the face with its back to the viewer, a gap in the bandage showing the inverted door mark, a door wrapped in chains in sediment black-purple."
+      },
+      "ref": "faceless",
+      "deps": ["art_chr_faceless_ref", "art_bust_faceless"],
+      "milestone": "M2",
+      "notes": "附本人的基础半身立绘作参照，头肩取景、角度与大小完全一致，只改表情。 第二幕葬礼用第 6 格的抬手（投影档同样由渲染层压成剪影）。立牌里手背的门纹由渲染层画；立绘尺寸够大，第 6 格的门纹画进素材，形状与主角的门纹相同、明暗相反。 脸上绝对不画五官；纸片上没有字。"
+    },
+    {
+      "id": "art_bust_faceless_king",
+      "template": "bust_base",
+      "style": "ash_waste",
+      "subject": {
+        "zh": "巨大的无貌之形，约六米高，修长的身形裹在层层黑灰的旧斗篷里，下摆像墨一样往下滴澱（#0e0e12、#2a2a34），脸是一片光滑的空白平面，正中一道门形细缝透出暗紫的光（#6a2a8a）；双手缠着绷带，身后悬着由澱构成、倒置扭曲的层层门扉。",
+        "en": "A huge faceless shape about six meters tall, a long slender body wrapped in layer on layer of old black-gray cloaks whose hems drip dian like ink (#0e0e12, #2a2a34), a face that is a smooth blank plane split down the middle by a thin door-shaped crack leaking dark purple light (#6a2a8a); bandaged hands, and behind it hang layered doors made of dian, inverted and twisted."
+      },
+      "extra": {
+        "zh": "巨大的身形只入画到腰；身后由澱构成、倒置扭曲的层层门扉从肩后探出一角，空白的脸正对画面，门形细缝透出暗紫的光。",
+        "en": "The huge figure is framed only to the waist; a corner of the inverted, twisted layered doors made of sediment rises behind his shoulders, the blank face turned to the viewer with dark purple light in the door-shaped crack."
+      },
+      "ref": "faceless_king",
+      "deps": ["art_boss_faceless_king_ref", "art_bust_faceless"],
+      "milestone": "M3",
+      "notes": "附无貌之王三视图 art_boss_faceless_king_ref 与基础立绘 art_bust_faceless 作参照，取景、角度与基础立绘一致，只改形态。 绝对不画五官；门扉用炭黑与澱紫，不用门扉金；对话框只显示空的头像框，本立绘只用于第五幕戴冠之后的立绘演出（cut_a5_final_war、cut_a5_mirror_c）。"
+    },
+    {
+      "id": "art_bust_door_woman_unveiled_expr",
+      "template": "bust_expr",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "高挑的成年女子，深褐长发松松垂到腰，脸上的阴影已经完全褪去，露出整张温柔的面容，眼角有细细的笑纹，两只眼睛都是暖琥珀色，神情释然。深夜蓝的及地长袍 #262c48，衣缘一道暖金细边 #f0d890，腰间一圈挂满大小不一的旧钥匙。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A tall grown woman, dark brown hair loose to the waist, the shadow on her face now completely gone, revealing a gentle face with fine laugh lines at the eyes, both eyes warm amber, a look of release. Floor-length midnight blue robe #262c48 edged with a thin warm gold line #f0d890, a ring of old keys of every size hanging at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "六格的脸上都没有阴影，整张脸清楚可见。第 6 格的角色专属表情：释然地闭眼一笑：双眼轻闭，嘴角舒展。",
+        "en": "There is no shadow on the face in any of the six panels; the whole face is clearly visible. Panel 6 is the character's signature expression: a relieved smile with closed eyes: eyes gently shut, lips relaxed into a smile."
+      },
+      "ref": "door_woman",
+      "deps": ["art_chr_door_woman_ref", "art_bust_door_woman_unveiled"],
+      "milestone": "M3",
+      "notes": "附全貌档半身立绘 art_bust_door_woman_unveiled 作参照，头肩取景、角度与大小完全一致，只改表情。 全貌档在第六幕起使用；第八种表情温柔见 art_bust_door_woman_unveiled_tender。 画面里不出现任何名字与文字；钥匙是黄铜、铁与骨的旧钥匙。"
+    },
+    {
+      "id": "art_bust_door_woman_unveiled_tender",
+      "template": "bust_base",
+      "style": "door_corridor",
+      "subject": {
+        "zh": "高挑的成年女子，深褐长发松松垂到腰，脸上的阴影已经完全褪去，露出整张温柔的面容，眼角有细细的笑纹，两只眼睛都是暖琥珀色，神情释然。深夜蓝的及地长袍 #262c48，衣缘一道暖金细边 #f0d890，腰间一圈挂满大小不一的旧钥匙。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A tall grown woman, dark brown hair loose to the waist, the shadow on her face now completely gone, revealing a gentle face with fine laugh lines at the eyes, both eyes warm amber, a look of release. Floor-length midnight blue robe #262c48 edged with a thin warm gold line #f0d890, a ring of old keys of every size hanging at her waist. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是全貌档的第八种表情温柔，不画中性表情：取景、姿势与全貌档完全一致，只把表情改成温柔：眼神柔和地望向前方，嘴角带着很浅的笑。",
+        "en": "This is the eighth expression of the unveiled tier, tender, not the neutral one: framing and pose exactly match the unveiled bust, only the expression becomes tender: a soft gaze ahead and the faintest smile."
+      },
+      "ref": "door_woman",
+      "deps": ["art_chr_door_woman_ref", "art_bust_door_woman_unveiled"],
+      "milestone": "M3",
+      "notes": "附全貌档半身立绘 art_bust_door_woman_unveiled 作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 tender。 画面里不出现任何名字与文字；钥匙是黄铜、铁与骨的旧钥匙。"
+    },
+    {
+      "id": "art_bust_eluen_pained",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "光之女神的模样：高挑的女子，白金长发一丝不乱垂到腰，白金色眼睛，目光像在测量尺寸。白与金的长袍左右绝对对称，领口与袖口镶几何纹金边，白 #f4f2ea、金 #d8b860，背后悬着精密的几何纹光环，像缓慢转动的齿轮。神情端正而冷淡。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of light as a tall woman: immaculate platinum hair falling straight to the waist, platinum eyes with a measuring gaze. Perfectly symmetrical white and gold robes with geometric gold trim at collar and cuffs, white #f4f2ea, gold #d8b860, a precise geometric halo floating behind her like slowly turning gears. Composed, cool expression. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是第八种表情痛，不画中性表情：取景、姿势与基础立绘完全一致，只改表情：背后的齿轮光环停在半格，眼神第一次失焦，嘴角不再对称。",
+        "en": "This is the eighth expression, pained, not the neutral one: framing and pose exactly match the base bust, only the expression changes: the gear halo behind her stops halfway through a notch, her eyes lose focus for the first time, the corners of her mouth no longer symmetrical."
+      },
+      "ref": "eluen",
+      "deps": ["art_chr_eluen_ref", "art_bust_eluen"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 pained。 用于第六幕（catalog_cutscenes.md 第 10.5 节）。 光环是几何纹的齿轮状，不是圆形光圈；衣饰必须左右对称。"
+    },
+    {
+      "id": "art_bust_sylvie_tender",
+      "template": "bust_base",
+      "style": "divine_court",
+      "subject": {
+        "zh": "生命女神的模样：纤瘦轻盈的女子，苍白肤色，苍绿长发长及膝盖，发间同时插着枯花与新开的花，常闭着眼，神情安静。苔绿与枯叶褐的层叠薄衣像落叶 #6a8a5a、#8a6a42，赤足。动作又轻又慢。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "The goddess of life as a slender, weightless woman: pale skin, knee-length pale green hair woven with both withered and freshly opened flowers, eyes usually closed, a quiet expression. Layered thin garments in moss green and dead-leaf brown like fallen leaves #6a8a5a, #8a6a42, barefoot. Moves lightly and slowly. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是第八种表情温柔，不画中性表情：取景、姿势与基础立绘完全一致，只改表情：她睁开了眼睛，浅浅地笑，发间那朵新花正好开了。",
+        "en": "This is the eighth expression, tender, not the neutral one: framing and pose exactly match the base bust, only the expression changes: her eyes are open, she smiles faintly, and the new flower in her hair has just bloomed."
+      },
+      "ref": "sylvie",
+      "deps": ["art_chr_sylvie_ref", "art_bust_sylvie"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 tender。 用于 cut_a6_joint_reading、cut_a6_ask_back、cut_a6_verdicts 与结局。 身边的半鹿半狼兽是另一个素材，不画进来；脚上不穿鞋。"
+    },
+    {
+      "id": "art_bust_yeyu_tender",
+      "template": "bust_base",
+      "style": "lothar_plain",
+      "subject": {
+        "zh": "外表十五六岁的娇小少女，黑发及肩，发梢化成细羽，左鬓一缕白发，左眼琥珀色，右眼黑色。破旧深灰信使斗篷 #3a3a42 收拢时像一对合起的翅膀，胸前别钥孔形铜别针，腰挂封着暗红火漆 #8a2a2a 的皮信囊，长靴尖包爪形铁片。神情刻薄倔强。Q 版约 1.7 头身，头像立绘正常比例。",
+        "en": "A petite girl who looks fifteen or sixteen: shoulder-length black hair whose tips turn into fine feathers, one white lock at her left temple, left eye amber and right eye black. A worn dark grey messenger cloak #3a3a42 that looks like folded wings when closed, a keyhole-shaped copper pin on the chest, a leather letter pouch sealed with dark red wax #8a2a2a at her waist, long boots with claw-shaped iron toecaps. Sharp-tongued and stubborn. Chibi about 1.7 heads tall; portraits and busts use normal proportions."
+      },
+      "extra": {
+        "zh": "这一张是第八种表情温柔，不画中性表情：取景、姿势与基础立绘完全一致，只改表情：不再嘴硬，眼眶发红，右眼钥孔形的瞳孔放大。",
+        "en": "This is the eighth expression, tender, not the neutral one: framing and pose exactly match the base bust, only the expression changes: no sharp tongue now, red-rimmed eyes, the keyhole-shaped pupil of her right eye widened."
+      },
+      "ref": "yeyu",
+      "deps": ["art_chr_yeyu_ref", "art_bust_yeyu"],
+      "milestone": "M3",
+      "notes": "附本人的基础半身立绘作参照，取景、角度、大小与姿势完全一致，只改表情；导入时按脸部锚点裁出头肩区域，作表情键 tender。 只用于 cut_a6_letter7。 左鬓白发与琥珀色左眼都在角色自己的左侧；左向镜像后若换边，由导入工具出头部修正件；信囊的暗红火漆是全身唯一的暖色。"
     }
   ]
 }

@@ -51,7 +51,7 @@
 | --- | --- |
 | 幕与拍 | 所属幕与三拍中的哪一拍（落地、暗面、高潮、拉远） |
 | 类型 | 引擎内过场、写定场景、可操作场景（玩家可走动的写定场景）、梦境、战斗插演、字幕 |
-| 触发 | 揭示台账语法的条件（`AND`、`OR`、`NOT`、`>=`、`==`），变量用[注册表][reg]的规范名；请求方写主线任务的显示编号（`A2-M14`），数据编号 `q_` 由任务目录定 |
+| 触发 | 揭示台账语法的条件（`AND`、`OR`、`NOT`、`>=`、`==`），变量用[注册表][reg]的规范名；请求方写主线任务的显示编号（`A2-M12`），数据编号 `q_` 由任务目录定 |
 | 时机 | 游戏内时间与时间窗；必经过场不可错过 |
 | 出场 | 人物 ID 与中文名（神用 `eluen`、`valda`、`merca`、`sylvie`、`moira`、`janu`；NPC 用人物目录或 `data/npc/personas.json` 的 ID） |
 | 地点 | 图集地图 ID（`data/world/atlas_maps.json`）与位置；非图集舞台见第 2.6 节 |
@@ -162,7 +162,7 @@
 
 ### 2.6 舞台：图集地图与过场布景
 
-过场优先用图集地图（`data/world/atlas_maps.json`）；以下七处是只在过场里出现的舞台，请求地图文档登记进图集（`tier: scene`，`role: stage`）：
+过场优先用图集地图（`data/world/atlas_maps.json`）；以下七处是只在过场里出现的舞台，登记在图集（`tier: scene`，`role: stage`；[地图简报][maps]第 3 节的 P1 到 P4、X2 到 X4）：
 
 | ID | 名 | 区域 | 用途 |
 | --- | --- | --- | --- |
@@ -439,7 +439,7 @@ G 节的写法之外，序章用到下列写法。除注明"新增"的四项外�
 | 地点 | 开场选择在黑场里进行；A `earth_train`（`seat`、`opposite`、`window`、`car_door`、`gangway`）；B `earth_store`（`counter`、`freezer`、`entrance`、`aisle`、`stockroom`）；C `earth_hospital`（`chairs`、`nurse_station`、`ward_door`、`exit_sign`、`elevator`）；D `earth_house`（`old_chair`、`door_frame`、`wardrobe`、`window`、`stairs`）。舞台南侧是玩家起点，门出现的位置在北侧（D-063） |
 | 时长 | 约 3 分钟（四个开场相近，含一次文字输入） |
 | 现有数据 | `prologue` 第 1 到 5 节点（`n1_opening`、`n1_a`、`n1_b`、`n1_c`、`n1_d`），5 节点，23 行；扩写到 28 节点、73 行：每个开场从一个叙述节点扩成"开场叙述、兴趣点、没说出口的那句话、门"四段 |
-| 写入旗标 | `prologue.earth_opening`（A 到 D）、`prologue.earth_relic`、`courtyard.first_object`（开场默认）、`prologue.default_past_life`、`prologue.door_attempts_refused = 0`、`prologue.heard_neighbors = false`、`prologue.mirror_done = false`、`prologue.asked_sixth_chair = false`；新旗标 `prologue.unsent_words`、`prologue.store_role`（B）、`prologue.waiting_for`（C）；门提示 A 契、B 息、C 息、D 刃各 +1；物品 `relic_badge`、`relic_receipt`、`relic_mint`、`relic_key` 之一；`prologue.mode` 由引擎在新游戏时按当前配置写入 |
+| 写入旗标 | `prologue.earth_opening`（A 到 D）、`prologue.earth_relic`、`courtyard.first_object`（开场默认）、`prologue.default_past_life`、`prologue.door_attempts_refused = 0`；新旗标 `prologue.unsent_words`、`prologue.store_role`（B）、`prologue.waiting_for`（C）；门提示 A 契、B 息、C 息、D 刃各 +1；物品 `relic_badge`、`relic_receipt`、`relic_mint`、`relic_key` 之一；`prologue.mode` 由引擎在新游戏时按当前配置写入 |
 | 揭示 | 无台账线索（日常交代）。为锚点 A11（地球）留下对照：玩家亲眼见过的、有人等你回家吃饭的那个世界；`prologue.unsent_words` 供终章"回地球"四开场与第六幕地球真相回扣 |
 | 音乐与音效 | 镜 1 无乐；镜 2 `mus_pro_earth` 入（A 电钢琴、B 雨声吉他、C 低频合成器、D 旧钢琴），环境 `amb_earth_last_train`、`amb_earth_store_rain`、`amb_earth_hospital`、`amb_earth_old_house`；镜 6 门出现时音乐降一档；出场延续到 `cut_p_door_white`。专用音效 `sfx_cin_phone_buzz`、`sfx_cin_msg_sending`、`sfx_cin_train_brake`、`sfx_cin_store_chime`、`sfx_cin_voicemail`、`sfx_cin_cat_mew`、`sfx_cin_call_bell`、`sfx_cin_truck_horn`、`sfx_cin_wardrobe_creak`、`sfx_cin_earth_door` |
 | 所需美术 | 特写 `art_prop_cut_badge`、`art_prop_cut_receipt_candy`、`art_prop_cut_visitor_mint`、`art_prop_cut_old_key`、`art_prop_cut_phone`；四个开场的门用实景运镜（地球舞台实景加门光特效 `art_vfx_cut_earth_door`）；立牌 `art_chr_earth_drunk`、`art_chr_earth_clerk`、`art_chr_earth_nurse`、`art_chr_earth_cat`；开场卡片用界面层的四格文字卡（不画插画） |
@@ -466,7 +466,7 @@ G 节的写法之外，序章用到下列写法。除注明"新增"的四项外�
 【n1_opening】
 @镜 1
 @淡 黑 0
-效果 flag prologue.door_attempts_refused = 0；flag prologue.heard_neighbors = false；flag prologue.mirror_done = false；flag prologue.asked_sixth_chair = false
+效果 flag prologue.door_attempts_refused = 0
 narrator：在一切开始之前，是一个很普通的夜晚。
 narrator：你记得的最后一个地方，是哪里？
 选 a「末班车：加班到深夜，地铁末班车的车厢」→ n1_a｜效果 flag prologue.earth_opening = A；flag prologue.earth_relic = relic_badge；item relic_badge；hint pact；flag courtyard.first_object = 一盏台灯；flag prologue.default_past_life = abacus；teleport earth_train seat
@@ -2234,7 +2234,7 @@ sylvie：……别相信我们任何一个。包括我。
 narrator：纯黑。只有风声，没有上下。
 narrator：你在下坠，或者在漂浮，分不清。
 选 reach「伸手」→ n13_caught｜效果 flag prologue.reached_out = true
-选 still「（什么也不做）」→ n13_caught｜效果 flag prologue.reached_out = false｜超时 30
+选 still「（什么也不做）」→ n13_caught｜超时 30
 【n13_caught】
 @镜 7
 @停 20
@@ -2264,7 +2264,7 @@ narrator：然后，一切都暗了下去。
 | `silent` | （什么都不说） | `n12_drop` | 同上 | 无 |
 | `free` | （自由说一句） | `n12_free` | 至多 60 字，空值"（什么都不说）"；女神们不回答（分幕文档第 5.4 节） | `ai_enabled` |
 | `reach` | 伸手 | `n13_caught` | `prologue.reached_out = true`；画面上没有任何反馈 | 无 |
-| `still` | （什么也不做） | `n13_caught` | `prologue.reached_out = false` | 30 秒内未按"伸手"时自动选中；界面上不显示这一项，只显示"伸手"的按键提示（`ui_hud_prompt`） |
+| `still` | （什么也不做） | `n13_caught` | 无（`p_reached_out` 保持未写入） | 30 秒内未按"伸手"时自动选中；界面上不显示这一项，只显示"伸手"的按键提示（`ui_hud_prompt`） |
 
 **变体**
 
@@ -2292,8 +2292,8 @@ narrator：然后，一切都暗了下去。
 | `prologue.round_end.<神>` | 枚举（五位女神各一个） | `closed`、`soft`、`hard` | 有模型时该轮面试的结束方式；`hard` 时由莫伊拉敲桌收尾 | `cut_p_interview` |
 | `prologue.cycle_name_reaction` | 枚举 | `falter`、`drop` | 下一期在候见厅说出被禁之名时艾琉恩的反应：面试前说出为 `falter`（慌乱失误，玩家看见她的手在发抖），面试中说出为 `drop`（当场丢弃） | `cut_p_call`、`cut_p_interview` |
 | `prologue.default_past_life` | 枚举（八类前世） | `abacus`、`nightlight`、`whitecoat`、`wrench`、`hearth` | 开场默认推荐的前世；"你替我写吧"与无法归类时由它代笔（现有数据已写） | `cut_p_earth` |
-| `prologue.heard_neighbors` | 布尔 | 是、否 | 玩家至少听到一次隔壁的面试（P4 必经；现有数据已写） | `cut_p_earth`（初始化）、`cut_p_door_white` |
-| `prologue.mirror_done` | 布尔 | 是、否 | 灵镜已完成（现有数据已写） | `cut_p_earth`（初始化）、`cut_p_door_white` |
+| `prologue.heard_neighbors` | 布尔 | 是、否 | 玩家至少听到一次隔壁的面试（P4 必经；现有数据已写） | `cut_p_door_white` |
+| `prologue.mirror_done` | 布尔 | 是、否 | 灵镜已完成（现有数据已写） | `cut_p_door_white` |
 | `prologue.merca_valuation` | 枚举 | `high`、`mid`、`low` | 梅尔卡的估价，决定 `merca_coin.terms`（现有数据已写） | `cut_p_interview` |
 | `prologue.free.<神>`、`prologue.free.past_life`、`prologue.free.rejection` | 文本（至多 200 字） | 玩家输入 | 有模型时各轮自由回答的原文（现有数据已写） | `cut_p_interview`、`cut_p_judgement` |
 
@@ -3207,13 +3207,13 @@ narrator：委托板上钉着三张 F 级委托：醉月亭地窖的老鼠，替
 | --- | --- |
 | 幕与拍 | 第一幕，落地（钥在落地拍集齐；按第一幕 5.1 M10，开门多在第 6 到 9 周） |
 | 类型 | 引擎内过场（开门演出加第一次"识才"示范） |
-| 触发 | `door.talent_sight AND NOT a1_talent_door`，请求方 A1-M10（识才）。钥在另一场过场里集齐时（例如 `cut_a1_trial` 中布伦的当众担保），本场排在那一场之后播放 |
+| 触发 | `door.talent_sight AND NOT scene.cut_a1_talent.seen`，请求方 A1-M10（识才）。钥在另一场过场里集齐时（例如 `cut_a1_trial` 中布伦的当众担保），本场排在那一场之后播放 |
 | 时机 | 门开的当时，玩家在哪里就在哪里播；必经 |
 | 出场 | 玩家；回声里的罗恩、希雅与担保者；同行时 `ron`、`shiya`；`yeyu` |
 | 地点 | 玩家所在处，经 `door_corridor`（镜廊）回到原处；场景头不设地图 |
 | 时长 | 约 2 分 |
 | 现有数据 | 新建 |
-| 写入旗标 | `a1_talent_door = true`（台账）；`potential.seen` 追加 `ron`、`shiya`（同行时） |
+| 写入旗标 | `potential.seen` 追加 `ron`、`shiya`（同行时）；识才之门 `door.talent_sight` 由门系统在开门时写入，本场只读 |
 | 揭示 | 无台账线索；潜质只给玩家看（第一幕 5.3：罗恩"统帅"、希雅"猎王"） |
 | 音乐与音效 | 镜 2 `mus_stg_motif_door` 入；镜 6 出，当地区域曲接回。`sfx_door_nm_talent_sight` |
 | 所需美术 | 特效 `art_vfx_cut_a1_talent_windows`；立绘 `art_bust_ron`（`surprised`）、`art_bust_shiya`（`special`）、`art_bust_yeyu`（`cold`）；担保变体的说话者用各自立绘或头像（`art_bust_bron`、`art_bust_martha`、`art_bust_nera`、`art_bust_shiya`、`art_bust_ron`；`art_por_isa`、`art_por_barto`、`art_por_greta`） |
@@ -3291,7 +3291,6 @@ yeyu：看什么看。
 @镜 8
 @立绘撤
 narrator：你又去看门镜里的自己。那一行是空的。
-效果 flag a1_talent_door = true
 结束
 ```
 
@@ -4443,7 +4442,7 @@ janu：醒来吧。外面有人在等你。
 | 触发 | 由 `cut_a1_dream` 接续；请求方 A1-M13 阶段"醒来"与"老布伦" |
 | 时机 | 梦醒的早晨；必经（门内庭院首访可选） |
 | 出场 | `yeyu`、`noi`、`bron`；`eluen` 与 `door_voice` 只在闪回里出声 |
-| 地点 | `borderstone` 的 `drunk_moon`（或按 `a1_dream_bed` 为公会石屋、礼拜堂长椅）→ `door_corridor`（醒厅）→ `inner_court`（`door_shadow`、小屋、园子）→ `borderstone` 的 `plaza` → `guild` |
+| 地点 | `borderstone` 的 `drunk_moon`（或按 `a1_dream_bed` 为公会石屋、礼拜堂长椅）→ `door_corridor`（醒厅）→ `inner_court`（`court_arrival`、小屋、园子）→ `borderstone` 的 `plaza` → `guild` |
 | 时长 | 约 5 分（不进庭院约 3 分 30 秒） |
 | 现有数据 | `a1_dream` 的 `wake` 节点（1 节点、4 行）与 `a1_count_letter` 的 `hand`、`glove` 两节点（2 节点、5 行）。沿用：`wake` 第 1 行（门纹浮现）、夜羽"……没什么。手洗干净再说话。"，"（千门回廊里，多了一扇已经开着的门：门内庭院。）"写成回廊镜头里的一句旁白；`hand` 全部 3 行；`glove` 的两行分别归 `glove_yes` 与 `story_1`（正典 9.3：布伦"……那个人。从灰里爬出来的那个。"属于 `brun.story_level` 1 到 2，不属于信任 40 以下）。按正典不沿用：`wake` 第 2 行"一瞬间，你想起了候见厅……轮廓，和手背上的纹一模一样。"（第一幕 9.2：闪回不加任何解说文字，本场用三个同形画面完成）。补：闪回与叠声、信囊（S01-C02）、门内庭院首访、边石一亮、诺伊、布伦的三档讲述。扩写量见索引 |
 | 写入旗标 | `a1_bron_sees_mark = true`（台账）；`brun.secret_kept`（是或否）；道具 `brun_glove`（是时）；`yeyu.memory_shards` +1；`a1_court_first_visit = true`（新） |
@@ -4537,7 +4536,7 @@ narrator：你的回廊里，初门旁边多了一扇门。它已经开着了，
 选 enter「（走进去）」→ court
 选 later「（以后再来）」→ walk
 【court】
-效果 teleport inner_court door_shadow；flag a1_court_first_visit = true
+效果 teleport inner_court court_arrival；flag a1_court_first_visit = true
 @转场 门扉擦除
 @镜 10
 @环境 amb_inner_court
@@ -4823,12 +4822,12 @@ yeyu：这个印……不认识。送信的倒是跑得挺快。
 | `a1_martha_drink` | 布尔 | 是或否 | 玛莎请了那杯不收钱的酒（第一幕 8.5 的隐性盟友） | `cut_a1_martha` |
 | `a1_dream_free_question` | 文本 | 至多 80 字 | 梦中玩家最后一次自由提问的原话 | `cut_a1_dream` |
 | `a1_court_first_visit` | 布尔 | 是或否 | 门内庭院首访（复苏点说明已给出） | `cut_a1_mark` |
-| `a1_isa_will_testify` | 布尔 | 是或否 | 伊莎肯作证（S20 完成，或她亲眼看到孩子有危险）；任务目录写入 | 读取：`cut_a1_trial`、`cut_a1_tide` |
-| `a1_toma_will_testify` | 布尔 | 是或否 | 托马肯开口（S15 完成）；任务目录写入 | 读取：`cut_a1_trial` |
-| `a1_grey_lamp_seen` | 布尔 | 是或否 | 暗面节拍 D2：玩家在病房里看见灯焰发灰；任务目录的线索事件写入 | 读取：`cut_a1_trial` |
+| `a1_isa_will_testify` | 布尔 | 是或否 | 伊莎肯作证（A1-S20 完成，或她亲眼看到孩子有危险时由 A1-D02 兜底）；任务目录写入 | 读取：`cut_a1_trial`、`cut_a1_tide` |
+| `a1_toma_will_testify` | 布尔 | 是或否 | 托马肯开口（A1-S15 完成）；任务目录写入 | 读取：`cut_a1_trial` |
+| `a1_grey_lamp_seen` | 布尔 | 是或否 | 暗面节拍 D2：玩家在病房里看见灯焰发灰；任务目录 A1-M07 的病房阶段写入 | 读取：`cut_a1_trial` |
 | `a1_seep_channel_found` | 布尔 | 是或否 | A1-M07 找到渗泉暗渠；任务目录写入 | 读取：`cut_a1_trial` |
-| `a1_oola_jailbroken` | 布尔 | 是或否 | 劫狱成功（第一幕 4.2 节点 f，第 7 周起，定罪后到押送前也可）；任务目录写入 | 读取：`cut_a1_trial` |
-| `a1_oola_bribed` | 布尔 | 是或否 | 贿赂莫斯放人（节点 h）；任务目录写入 | 读取：`cut_a1_trial` |
+| `a1_oola_jailbroken` | 布尔 | 是或否 | 劫狱成功（A1-D02.f，第 7 周起，定罪后到押送前也可）；任务目录写入 | 读取：`cut_a1_trial` |
+| `a1_oola_bribed` | 布尔 | 是或否 | 贿赂莫斯放人（A1-D02.h）；任务目录写入 | 读取：`cut_a1_trial` |
 | `a1_tess_in_crowd` | 布尔 | 是或否 | 审判时苔丝在人群里；内核在审判开场结算：伊莎信任 60 以上、或 S19 守密、或孩子已改住磨坊时为否 | 读取：`cut_a1_trial` |
 | `a1_vouched` | 布尔 | 是或否 | 一位凡人当众替玩家担保（任一 NPC 信任 80 以上，在审判、传讯或广场公开替玩家说话；识才之门的第三把钥）；社会结算写入，`cut_a1_trial` 的布伦作证也写 | `cut_a1_trial`；读取：`cut_a1_talent` |
 | `a1_vouch_by` | 枚举 | 担保者的人物 ID | 第一次当众担保的人 | `cut_a1_trial`；读取：`cut_a1_talent` |
@@ -5452,7 +5451,7 @@ luchen：……等等。你也是穿越来的？
 【m_admit】
 @立绘 luchen grin 右
 luchen：我就知道！我叫陆辰。你是哪里人？……不，先别说，等打完魔王，我们慢慢聊！
-效果 flag a2_luchen_question = admit；add hero_rel_luchen 15；add eluen_awareness 3
+效果 flag a2_luchen_question = admit；flag a2_told_heroes_earth = true；add hero_rel_luchen 15；add eluen_awareness 3
 → others
 【m_deny】
 luchen：啊……抱歉，认错人了。你看钟楼的样子，跟我刚来那天一模一样。
@@ -5506,7 +5505,7 @@ yeyu［companion.yeyu.recruited］：三个人请你吃饭。门把手，你值�
 | --- | --- | --- | --- | --- |
 | `back` | 退到人群后面 | `rite_back` | 无（结衣不察觉） | 无 |
 | `stay` | 站着不动 | `rite_stay` | `a2_yui_saw_light_bend = true`；`eluen_awareness` +2（结衣此后祈祷会提到"那个人"，第二幕 4.2 与第 8 节） | 无 |
-| `admit` | 是 | `m_admit` | `a2_luchen_question = admit`；`hero_rel_luchen` +15；`eluen_awareness` +3（光之耳目，玩家不可见） | 无 |
+| `admit` | 是 | `m_admit` | `a2_luchen_question = admit`；`a2_told_heroes_earth = true`；`hero_rel_luchen` +15；`eluen_awareness` +3（光之耳目，玩家不可见） | 无 |
 | `deny` | 不是 | `m_deny` | `a2_luchen_question = deny`；`hero_rel_luchen` +5 | 无 |
 | `what` | 穿越是什么 | `m_what` | `a2_luchen_question = deflect`；`hero_rel_luchen` +8 | 无 |
 | `silent` | 不答 | `m_silent` | `a2_luchen_question = silent`；`hero_rel_luchen` +3 | 无 |
@@ -6669,7 +6668,7 @@ aiden：城要出事了。我的问题，等城安定了再问。别死。
 selene：静室很冷。我会让人给你一条毯子。
 narrator：你被带上主教区的石阶。台阶下的人群让开一条路，没有人说话。
 @立绘撤
-效果 flag a2_arrest_response = surrender；flag a2_player_jailed = true
+效果 flag a2_arrest_response = surrender；flag a2_player_jailed = true；flag a2_player_arrested = true
 → rats
 【r_ferry】
 narrator：码头下面，有人用长篙轻轻敲了两下木桩。
@@ -6747,7 +6746,7 @@ baishan［antler_rel >= 1］：（鹿角林边）老鼠在搬家。三天之内�
 | --- | --- | --- | --- | --- |
 | `write` | 把三种写法写给艾登 | `a_write` | `a2_aiden_names_given = true`；`hero_rel_aiden` +5（第 14 周星笔塔他会照着这张纸逐一检索） | 无 |
 | `why` | 为什么 | `a_why` | 无 | 无 |
-| `surrender` | 我跟你们走 | `r_surrender` | `a2_arrest_response = surrender`；`a2_player_jailed = true`（城下潮开局在静室，赛琳放人并跟着） | 无 |
+| `surrender` | 我跟你们走 | `r_surrender` | `a2_arrest_response = surrender`；`a2_player_jailed = true`；`a2_player_arrested = true`（城下潮开局在静室，赛琳放人并跟着） | 无 |
 | `ferry` | 看向河面（老船夫的船） | `r_ferry` | `a2_arrest_response = flee_ferry`；`church_verdict = wanted` | `trust.ferryman >= 50`（第二幕 4.4） |
 | `tunnel` | 退向砖洞（灰鼠的鼠道） | `r_tunnel` | `a2_arrest_response = flee_tunnel`；`church_verdict = wanted` | `a2_greyrat_deal` |
 | `talk` | 先听我说完 | `r_talk` | 陆辰 delayed 时拖一天；陆辰 refused 且赛琳 waver 或 covert_ally 时赛琳放一天；都写 `a2_arrest_response = talk_delayed`。否则对谈失败，回到 `respond`（谈话选项只能用一次） | 一次 |
@@ -7705,25 +7704,25 @@ narrator：千军之门。
 | `a2_count_request` | 枚举 | accepted、deferred | 对伯爵托付"城底下有声音，替我听听"的回应 | `cut_a2_arrival` |
 | `a2_count_audience_done` | 布尔 | true | 帘后觐见已完成 | `cut_a2_arrival` |
 | `a2_exam_refused` | 布尔 | true | 拒考，按委托积分晋升（第 8 周到 C） | `cut_a2_exam` |
-| `a2_reynard_duel` | 枚举 | crush、grace、lost | 考核对练的结果 | 读（对练遭遇 `reynard_walter_duel` 写入） |
+| `a2_reynard_duel` | 枚举 | crush、grace、lost | 考核对练的结果 | 读（A2-M02 的对练遭遇 `reynard_walter_duel` 写入） |
 | `a2_yui_saw_light_bend` | 布尔 | true | 结衣察觉圣光绕开了玩家 | `cut_a2_heroes` |
 | `a2_luchen_question` | 枚举 | admit、deny、deflect、silent | 对"你也是穿越来的？"的回应 | `cut_a2_heroes` |
 | `a2_chase_route` | 枚举 | shore、ferry_boat、rat_tunnel、absent | 瓦伦河夜追的路线；absent 为不在场 | `cut_a2_ferryman`（不在场时由内核写 absent） |
-| `a2_chase_survived` | 布尔 | true | 在驳船上撑过沉河鲶王三轮扑击 | 读（遭遇 `river_catfish_king` 写入） |
+| `a2_chase_survived` | 布尔 | true | 在驳船上撑过沉河鲶王三轮扑击 | 读（A2-M07 的驳船遭遇 `river_catfish_king` 写入） |
 | `a2_ferryman_cut_witnessed` | 布尔 | true | 亲眼看见老船夫那一刀 | `cut_a2_ferryman` |
-| `a2_w6_false_record_unseen` | 布尔 | true | 第 6 周问话时用了伪录且未被看破（光之审提前到第 9 周） | 读（A2-M06 写入） |
+| `a2_w6_false_record_unseen` | 布尔 | true | 第 6 周问话时用了伪录且未被看破（光之审提前到第 9 周） | 读（A2-M06 的静室问话 A2-D02.c 写入） |
 | `a2_trial_defendant` | 枚举 | oola、shiya、ron | 光之审的被告 | `cut_a2_selene_trial` |
-| `a2_forgery_source_found` | 布尔 | true | 拿到迪特里希伪证的来源 | 读（A2-S08、丽泽线或卷宗抄本写入） |
+| `a2_forgery_source_found` | 布尔 | true | 拿到迪特里希伪证的来源 | 读（A2-D02.d 写入：A2-S08 的卷宗或向灰鼠买消息） |
 | `a2_cage_evidence` | 布尔 | true | 取得晶窟笼子的证据 | 读（A2-M08 写入） |
-| `a2_fiona_turned` | 布尔 | true | 菲奥娜被策反并愿作证 | 读（任务写入） |
-| `a2_luchen_saw_defendant_good` | 布尔 | true | 陆辰亲眼见过被告做好事 | 读（联合攻略与支线写入） |
+| `a2_fiona_turned` | 布尔 | true | 菲奥娜被策反并愿作证 | 读（A2-M08 与 A2-D03 写入） |
+| `a2_luchen_saw_defendant_good` | 布尔 | true | 陆辰亲眼见过被告做好事 | 读（A2-M04 的联合攻略或 A2-S13 写入） |
 | `a2_agnes_witness` | 布尔 | true | 艾格尼丝愿为被告作证 | 读（A2-S10 写入） |
 | `a2_false_record_exposed` | 布尔 | true、false | 光之审中以伪录作证被照规镜看破 | `cut_a2_selene_trial`（内核钩子，选 `falserec` 时结算） |
 | `a2_trial_postponed` | 布尔 | true | 伪证揭穿，本案延期（葬礼后撤销） | `cut_a2_selene_trial` |
 | `a2_trial_sentenced` | 布尔 | true | 判火刑，待葬礼后结算 | `cut_a2_selene_trial` |
 | `a2_dietrich_dismissed` | 布尔 | true | 迪特里希被当众撤职 | `cut_a2_selene_trial` |
 | `a2_selene_deceived` | 布尔 | true | 赛琳识破玩家以伪录欺瞒（"欺瞒"） | `cut_a2_selene_trial` |
-| `a2_undertaker_exposed` | 布尔 | true | 葬礼前查出安眠葬仪社是门徒会的门面 | 读（A2-M11 前置调查写入） |
+| `a2_undertaker_exposed` | 布尔 | true | 葬礼前查出安眠葬仪社是门徒会的门面 | 读（A2-D03 的调查节点写入，A2-M11 之前） |
 | `a2_funeral_choice` | 枚举 | guard_signet、chase、guard_people | 葬礼袭击中玩家的应对 | `cut_a2_funeral` |
 | `a2_signet_taken` | 布尔 | true | 印戒在葬礼上被门徒会夺走 | `cut_a2_funeral` |
 | `a2_siege_scale_down` | 布尔 | true | 印戒没被抢走，门徒会只能炸闸，城下潮缩小一级 | `cut_a2_funeral` |
@@ -7732,7 +7731,7 @@ narrator：千军之门。
 | `a2_player_jailed` | 布尔 | true、false | 玩家被关在静室；城下潮开局时由赛琳放出 | `cut_a2_arrest`、`cut_a2_siege` |
 | `a2_aiden_names_given` | 布尔 | true | 逮捕那天把三种名字写给了艾登 | `cut_a2_arrest` |
 | `a2_siege_started` | 布尔 | true | 城下潮已开始（入口一播过） | `cut_a2_siege` |
-| `a2_heralda_hired` | 布尔 | true | 雇下赤鬃佣兵当第四支小队 | 读（任务写入） |
+| `a2_heralda_hired` | 布尔 | true | 雇下赤鬃佣兵当第四支小队 | 读（A2-M12 的部署写入） |
 | `a2_heroes_follow_command` | 布尔 | true | 勇者团接受玩家调度一次 | `cut_a2_siege` |
 | `a2_rotunda_reached` | 布尔 | true | 玩家进入断门厅圆厅 | 读（迷宫脚本写入） |
 | `a2_hall_entered` | 布尔 | true | 断门厅前厅段已播 | `cut_a2_siege` |
@@ -7751,9 +7750,9 @@ narrator：千军之门。
 | `a2_dawn_done` | 布尔 | true | 黎明段已播 | `cut_a2_siege` |
 | `a2_selene_last_answer` | 枚举 | truth、evade、ask_back、silent | 对赛琳最后一问的回答 | `cut_a2_siege` |
 | `a2_arrest_shelved` | 布尔 | true | 逮捕令暂缓，"待城安定再议" | `cut_a2_siege` |
-| `a2_charter_draft_found` | 布尔 | true | 找到书房里那份没盖印的特许状草稿 | 读（A2-M09、A2-M10 期间的鲁道夫线写入） |
+| `a2_charter_draft_found` | 布尔 | true | 找到书房里那份没盖印的特许状草稿 | 读（A2-D01.f 写入） |
 | `a2_charter_support` | 整数 | 0 到 6 | 公会、商会联合、城防军、工匠、鹿角会、平民六方中声望不低于"友善"的数目 | 读（注册表 `derive`，由 `faction_rep_*` 计数） |
-| `a2_bishop_oracle_leverage` | 布尔 | true | 拿到主教删改神谕的把柄（"寻得，勿令其言。"） | 读（任务写入；卢卡斯继位的条件之一） |
+| `a2_bishop_oracle_leverage` | 布尔 | true | 拿到主教删改神谕的把柄（"寻得，勿令其言。"） | 读（A2-S08 的卷宗有主教批注，或赛琳信任 50 以上时说出原文；卢卡斯继位的条件之一） |
 | `a2_council_stance` | 枚举 | edric、cecilia、lucas、regency、charter、none | 城议上玩家的表态或印戒交付 | `cut_a2_siege` |
 | `a2_council_done` | 布尔 | true | 城议结束（军管分支在黎明段写入） | `cut_a2_siege` |
 | `a2_no_page_reply` | 枚举 | admit、ask_back、joke、silent | 对"铭录里没有你"的回应 | `cut_a2_no_page` |
@@ -7935,10 +7934,10 @@ narrator：千军之门。
 | 触发 | 段一：`act == 3 AND a2_barony_granted AND a3_domain_beat == arrival`，请求方 `A3-M01` 第一阶段"抵领"（第 1 周第 1 日，抵达边石镇南门时写入 `a3_domain_beat = arrival` 后请求）。段二：`a3_domain_beat == flag`，请求方 `A3-M02` 战役 0（战场剧本 `act3_bone_field`）北坡阵线将破的事件（剧本写入 `a3_domain_beat = flag` 后请求，战斗暂停，播完恢复） |
 | 时机 | 段一：第 1 周第 1 日上午到黄昏，必经，不可错过。段二：第 2 周夜，战役 0 进行中，必经；战斗按罗恩全权指挥或玩家微操都会触发（阵线将破由剧本的左翼缺口必然造成） |
 | 出场 | 玩家；`yeyu` 夜羽；`ron` 罗恩；`shiya` 希雅；`lina` 莉娜；`bron` 老布伦；`martha` 玛莎；`moss` 代官莫斯（`moss.fate` 为 in_power 或 puppet 时） |
-| 地点 | 段一：`borderstone` 南门（提议位置 `south_gate`）、公会分部（`guild_branch`）、镇广场（`town_square`）；段二：`bonefield_battle` 北坡阵线（`north_slope`） |
+| 地点 | 段一：`borderstone` 南门（位置 `south_gate`）、公会分部（`guild`）、镇广场（`plaza`）；段二：`bonefield_battle` 北坡阵线（`north_slope`） |
 | 时长 | 段一约 4 分钟；段二约 1.5 分钟（不含战斗） |
 | 现有数据 | `act3_intro`（1 节点、2 行，另带 `add seal_looseness 10`）并入段一；`a3_thousand_armies`（1 节点、5 行，写 `a3_thousand_gate`）并入段二。导入后共 15 节点、51 行台词、7 个选项。导入时不带 `act3_intro` 的封印松动 +10：封印松动只来自门与 `thousand_doors.md` 第 6.4.2 节列出的写定来源，幕切换不在其中 |
-| 写入旗标 | `territory_address`（name、lord、kneel）；`territory_seat`（borderstone、old_outpost）；`a3_thousand_gate = true`；`war.first_battle_won = true`（千军之门的历钥，按门目录"罗恩举旗守住阵线的那一刻"落在举旗时，战败也成立）；`push_door.door_thousand_legions`（玩家推门时）；`a3_domain_beat`（arrival_done、done） |
+| 写入旗标 | `territory_address`（name、lord、kneel）；`territory_seat`（borderstone、old_outpost）；`a3_thousand_gate = true`；读取 `war.first_battle_won`（千军之门的历钥，战争系统按门目录"罗恩举旗守住阵线的那一刻"在举旗时写入，战败也成立）；`push_door.door_thousand_legions`（玩家推门时）；`a3_domain_beat`（arrival_done、done） |
 | 揭示 | 无台账线索。"凡人不信" U3-5 我是不是该跪 |
 | 音乐与音效 | 段一入 `mus_town_borderstone_day`，镜 5 淡出；段二入 `mus_rts_skirmish`，镜 8 与 `mus_stg_motif_door` 交叉，镜 9 交叉回 `mus_rts_skirmish` 并延续到战斗。专用音效 `sfx_cin_flag_raise`、`sfx_door_state_ready` |
 | 所需美术 | 立绘 `art_bust_ron`（surprised、smile、neutral、pained、special 举旗）、`art_bust_yeyu`（neutral）、`art_bust_shiya`（neutral、angry）；头像 `art_por_lina`、`art_por_bron`、`art_por_martha`、`art_por_moss`；特写 `art_prop_cut_baronet_card`；特殊动作 `art_chr_ron_flag_raise`；特效 `art_vfx_cut_company_reveal` |
@@ -8074,7 +8073,7 @@ ron：……不可能守住的。
 ron：……所以，守住它！
 narrator：民兵们没有退。
 @停 1
-效果 flag a3_thousand_gate = true；flag war.first_battle_won = true
+效果 flag a3_thousand_gate = true
 → door
 【door】
 @镜 8
@@ -8125,7 +8124,7 @@ ron：那就这么守。左翼，跟我来！
 
 - `moss.fate`：in_power 时莫斯讨好，puppet 时莫斯发抖；其余取值（arrested 等）两行都不显示。莫斯的去留在 `A3-M01` 的任务对话里处理，本过场只让他露面。
 - 段二由战场剧本请求，罗恩"左翼留空"是剧本写定的错误。玩家若在战斗开始时已亲自补上左翼，剧本仍在第二波时制造一次缺口（缺口改在右翼），台词不变。
-- 战役 0 失败（村民退入边石镇）时，段二照常播放，千军之门的历钥照常满足（`war.first_battle_won` 在举旗时写入），罗恩成长减半由战争系统结算。
+- 战役 0 失败（村民退入边石镇）时，段二照常播放，千军之门的历钥照常满足（`war.first_battle_won` 由战争系统在举旗时写入），罗恩成长减半由战争系统结算。
 
 #### cut_a3_audience 王都觐见（Audience Behind the Curtain）
 
@@ -8136,7 +8135,7 @@ ron：那就这么守。左翼，跟我来！
 | 触发 | `act == 3 AND NOT scene.cut_a3_audience.seen`，请求方 `A3-M03` 第二阶段"觐见"（第 4 周抵达王岛冠石宫） |
 | 时机 | 第 4 周，初冬，白天觐见、傍晚主座堂讲道；必经，不可错过 |
 | 出场 | 玩家；`yeyu` 夜羽；`ernst` 司礼官埃森巴赫；`oswald` 老王奥斯瓦尔德四世（只有手）；`drake` 宰相冯·德雷克；`severin` 大主教塞维林·莫兰德（说话者 `archbishop`）；`philip` 王太子腓力；`parvi_tinring` 帕尔维·锡环；`casimir_von_roth` 卡西米尔·冯·罗特 |
-| 地点 | `orien_isle` 帘幕寝殿（提议位置 `curtain_chamber`）、长廊（`crownstone_gallery`）；`orien_banks` 晨光主座堂（`dawnlight_cathedral`） |
+| 地点 | `orien_isle` 帘幕寝殿（位置 `crownstone_palace`）、长廊（`crownstone_gallery`）；`orien_banks` 晨光主座堂（`dawnlight_cathedral`） |
 | 时长 | 约 6 分钟 |
 | 现有数据 | 新建。共 24 节点、58 行台词、11 个选项、1 处即兴 |
 | 写入旗标 | `a3_crest_reply`（draw、ask、yeyu）；`a3_curtain_approach`（stepped、looked、stayed）；`philip_rel` +1（`phil_you`）；`church_suspicion` +3（`gaze_ruins`）；`quest A3-S01`（纹章支线） |
@@ -8165,7 +8164,7 @@ ron：那就这么守。左翼，跟我来！
 2. **对白**
 
 ```text
-场景 cut_a3_audience｜标题 帘后的王｜幕 act3｜地图 orien_isle｜位置 curtain_chamber｜起点 river
+场景 cut_a3_audience｜标题 帘后的王｜幕 act3｜地图 orien_isle｜位置 crownstone_palace｜起点 river
 【river】
 @镜 1
 @乐 mus_city_orien 入
@@ -8353,7 +8352,7 @@ narrator：走出主座堂时，钟又响了。今天的第三次。
 | 触发 | 现场版夜段：`a3_reedpond_beat == night`，请求方 `A3-M07`（第 12 周夜，玩家身在 `reedpond`，任务写入 `a3_reedpond_present = true` 与 `a3_reedpond_beat = night` 后请求）。黎明段：`a3_reedpond_beat == dawn`，截击战 `a3_reedpond_inquisition` 结束后由 `A3-M07` 请求；其余分支在场景内直接接续。转述版：`a3_reedpond_beat == told`，第 12 周夜玩家不在苇塘村时，由 `A3-M07` 在第 13 周幸存者抵达领地时写入后请求 |
 | 时机 | 第 12 周深夜到黎明（现场版），或第 13 周黄昏（转述版）；两版必有一版，必经。屠村本身无论玩家在不在场都发生（台账 0.4 `a3_massacre_witnessed`） |
 | 出场 | 玩家；`berthold_klan` 贝尔托德·克兰；`selene` 赛琳；`luchen` 陆辰；`yui` 白石结衣；`marcus` 马库斯·罗查；`cassian` 卡西安神父；`hanna` 汉娜；门徒会的人（无台词，灰衣人影） |
-| 地点 | 现场版：`reedpond` 苇塘村（提议位置 `reed_village`）；转述版：`borderstone` 南门（`south_gate`） |
+| 地点 | 现场版：`reedpond` 苇塘村（位置 `boardwalk_square`）；转述版：`borderstone` 南门（`south_gate`） |
 | 时长 | 现场版约 8 分钟（夜段约 5 分钟，黎明段约 3 分钟，不含截击战）；转述版约 4 分钟 |
 | 现有数据 | 新建。共 33 节点、116 行台词、9 个选项、1 处即兴 |
 | 写入旗标 | `a3_seen_by_lamp`；`church_suspicion`（+5 到 +35，按分支）；`a3_marcus_shield_dark = true`；`a3_massacre_witnessed = true`；`a3_cassian_refused = true`（`div_beat_a3_cassian_fade` 的触发）；`a3_reedpond_act`（intercept、shield_marcus、fog_lead、record）；`a3_reedpond_record`；`hero_state_marcus`（defected、wavering）；`hero_rel_luchen`、`hero_rel_marcus`；`reedpond_outcome`（saved、partial、massacred）；`cult_keys`（+1 到 +5）；`a3_reedpond_beat`（dawn、done） |
@@ -8704,7 +8703,7 @@ narrator：你点了点头。
 | 触发 | `NOT a3_ash_tells_sundering AND a3_archive_reached`，请求方 `A3-M08` 末阶段"抵达千门书库"（玩家第一次走进 `thousand_gates_archive` 正厅时；若这一夜正是第 14 周的静灰夜，任务先写入 `a3_static_ash_night = true`） |
 | 时机 | 第 14 周静灰夜（大断绝的忌日夜）为正点；第 15 到 19 周首次进书库时播放晚到版本。必经，不可错过（`A3-M08` 是主线，最晚第 19 周） |
 | 出场 | 玩家；`ash` 守门人阿什（说话者显示名在 `a3_ash_tells_sundering` 置真前为"灰里的骸骨"，之后为"守门人阿什"）；`yeyu` 夜羽 |
-| 地点 | `thousand_gates_archive` 千门书库正厅（提议位置 `archive_nave`）与屋顶缺口（`archive_roof`） |
+| 地点 | `thousand_gates_archive` 千门书库正厅（位置 `reading_hall`）与屋顶缺口（`archive_roof`） |
 | 时长 | 约 10 分钟（追问全部问完约 12 分钟） |
 | 现有数据 | `a3_ash_sundering`（4 节点、12 行、3 选项）的讲述与远望部分并入本场，警告与选项部分并入 `cut_a3_warning`。导入后共 24 节点、87 行台词、9 个选项、1 处自由输入。导入时修正四处：其一，阿什原稿说出"五位司掌者联手""用光，和剑"，越过台账第 8.4 节（阿什只说"她们"），本场用第 4.4 节的七段讲述；其二，原稿"她们封住了她，禁了她的名字"属于 M02-C09，解锁条件是 `a3_blank_era_ruin` 或 `a4_elwin_testimony`，不由本场说出；其三，原稿在本场发放 `evidence_e08` 并写"你把它拓了下来"，而凿碑台本幕只能远望（`act3_lothar_crisis.md` 第 2.2 节），E08 改在第五幕进入凿碑台后拓印；其四，警告段原稿无条件置 `a3_seal_aware`，本场按 `seal_looseness >= 30` 判定（见 `cut_a3_warning`） |
 | 写入旗标 | `a3_ash_tells_sundering = true`（同时开放称谓"千门都""大断绝"）；道具 `evidence_e01`（E01 守门人阿什的证言）；`yeyu_address = opener`；`a3_defaced_stele_found = true`；`a3_pit_stared`（再看一眼时）；`a3_ash_question`（自由输入）；`a3_warning_beat = archive` |
@@ -8741,7 +8740,7 @@ narrator：你点了点头。
 2. **对白**
 
 ```text
-场景 cut_a3_sundering｜标题 灰烬深处｜幕 act3｜地图 thousand_gates_archive｜位置 archive_nave｜起点 snow｜接续 cut_a3_warning
+场景 cut_a3_sundering｜标题 灰烬深处｜幕 act3｜地图 thousand_gates_archive｜位置 reading_hall｜起点 snow｜接续 cut_a3_warning
 【snow】
 @镜 1
 @乐 mus_reg_ash_rim 入
@@ -8993,7 +8992,7 @@ ash：下去吧。我还有一句话要说。
 | 触发 | 书库段：`a3_warning_beat == archive`，由 `cut_a3_sundering` 接续。遗迹段：`a3_warning_beat == ruins`，请求方 `A3-M09`（第 15 周起，`NOT a3_ash_tells_sundering AND NOT a3_ash_warning_doors`，玩家第一次经过 `seal_ruins_depths` 灰烬之厅时写入后请求）。第 6 周之梦：`a3_warning_beat == w6`，请求方写定神行 `div_beat_a3_dream_week6`（第 6 周玩家第一次入睡时写入后请求）。第 15 周之梦：`a3_warning_beat == dream`，请求方 `A3-M09` 第二阶段与写定神行 `div_beat_a3_dream_week15`（第 15 周或之后、`a3_ash_warning_doors` 已置时玩家第一次入睡） |
 | 时机 | 书库段：紧接讲述，必经。遗迹段：只在玩家第 15 周仍未远征时出现，警告本身是主线必经（台账 M09-C04），二者必有其一。两场梦：各在对应的第一次入睡时，必经，不可跳过（可在梦中选"醒过来"提前结束） |
 | 出场 | 玩家；`ash` 阿什；`yeyu` 夜羽；`janu` 门口的女人（界面显示名"门口的女人"） |
-| 地点 | 书库段：`thousand_gates_archive` 正厅（`archive_nave`）；遗迹段：`seal_ruins_depths` 灰烬之厅前（`ash_hall`）；梦：`dream_doorway`（第 2.6 节的布景，布景按 `seal_looseness` 分阶段）；休整：`inner_court` |
+| 地点 | 书库段：`thousand_gates_archive` 正厅（`reading_hall`）；遗迹段：`seal_ruins_depths` 灰烬之厅前（`ash_chamber`）；梦：`dream_doorway`（第 2.6 节的布景，布景按 `seal_looseness` 分阶段）；休整：`inner_court` |
 | 时长 | 书库段约 5 分钟；遗迹段约 2 分钟；两场梦各约 2.5 分钟 |
 | 现有数据 | `a3_ash_sundering` 的 `warning`、`who` 两个节点与三个选项并入书库段。导入后共 34 节点、71 行台词、24 个选项、1 处自由输入。原稿的立誓选项写的是 `a3_danger_door_vow`，而这个键在 `data/doors/doors.json` 里是誓光之门的历钥（`thousand_doors.md` 第 9 节已定名 `a3_vow_kept_reed_bridge`，C91），两处冲突：本场改写为新键 `a3_danger_stance`；原稿"她是谁"一问并入 `cut_a3_sundering` 的追问 |
 | 写入旗标 | `a3_ash_warning_doors = true`；`ash_relation`（entrusted、warned、distant）；`blank_era_fragments` +1 与 `a3_ash_fragment_given`、`a3_archive_open`（受托时）；`a3_danger_stance`（forsworn、continue、undecided）；道具 `ky_archive_ring`；`push_door.door_echoes`（推门时）；`a3_seal_aware`（`seal_looseness >= 30` 时）；`a3_yeyu_consent_whisper`；`a3_dream_w15_asked`（release、vague）；`a3_dream_words`；`a3_warning_beat`（w6_done、done） |
@@ -9309,7 +9308,7 @@ yeyu［companion.yeyu.recruited AND a3_dream_w15_asked == release］：她说是
 | 触发 | 城门段：`a3_crown_beat == gate`，请求方 `A3-M10`（第 16 周夜；`debt_holder == player` 时提前到第 15 周夜；宰相已在第 15 周被揭发、`drake_fate == fled_to_empire` 时为同一周的"老王之夜"）。临终段：`a3_crown_beat IN (deathbed, deathbed_mid)`；玩家参战并抵达帘幕寝殿时由战场剧本写入 `a3_king_bedside = true` 与 `a3_crown_beat = deathbed_mid` 后请求，战斗暂停；玩家参战但未抵达寝殿时，战斗结束后剧本写入 `deathbed` 后请求；不参战时场景内接续。次晨段：`a3_crown_beat IN (morning, after_bed)`，战斗结束后由剧本写入 `morning` 后请求；不参战时场景内接续 |
 | 时机 | 第 16 周（或第 15 周）深夜到次日清晨，必经；朝阳门之战是可选战役 |
 | 出场 | 玩家；`drake` 宰相冯·德雷克；`oswald` 老王奥斯瓦尔德四世；`olive` 宫廷史官奥丽芙；`sigrid` 御医西格丽德（`a3_sigrid_witness` 时，无台词）；`joachim` 约阿希姆；`philip` 腓力；`severin` 大主教（说话者 `archbishop`）；`casimir_von_roth` 卡西米尔（宰相被擒的分支） |
-| 地点 | `orien_banks` 宰相府书房（提议位置 `chancellery`）、朝阳门（`sunrise_gate`）；`orien_isle` 帘幕寝殿（`curtain_chamber`）、冠石宫阳台（`crownstone_balcony`）；参战时 `sunrise_gate_battle` |
+| 地点 | `orien_banks` 宰相府书房（位置 `chancellor_house`）、朝阳门（`sunrise_gate`）；`orien_isle` 帘幕寝殿（`crownstone_palace`）、冠石宫阳台（`crownstone_balcony`）；参战时 `sunrise_gate_battle` |
 | 时长 | 约 8 分钟（城门段约 2.5 分钟，临终段约 2 分钟，次晨段约 3.5 分钟），不含朝阳门之战 |
 | 现有数据 | 新建。共 27 节点、68 行台词、5 个选项 |
 | 写入旗标 | `a3_sunrise_fought`；`a3_king_entrusted`（老王把那句话托付给玩家）；`a3_king_bedside`（由战场剧本或本场的揭发分支写入）；`a3_king_died = true`；`philip_fate`（揭发分支写 crowned；默认写 puppet；宰相被擒而腓力未获救写 captive；exile_with_player 与 dead 由战场剧本写入，本场只读）；`a3_crown_beat`（deathbed、after_bed、done） |
@@ -9585,7 +9584,7 @@ narrator：从这一天起，洛萨有了好几个中心。
 | 触发 | 战前夜：`a3_ashline_beat == eve`，请求方 `A3-M11` 末阶段（第 19 周末到第 20 周，圣战军主力抵苇桥对岸、玩家人在苇桥时写入后请求）。以下各段由战场剧本 `act3_ash_line` 写入段落旗标后请求：对决 `duel`（第三阶段，第二日午后，陆辰出阵）；对决后 `duel_end`（对决分出结果）；净化之光 `pillar`（第四阶段，第二日黄昏，写定神行 `div_beat_a3_pillar` 执行时）；终局 `end`（剧本先写入 `a3_ashline_route` 为 rout、persuade、bloodless 之一，以及 `archbishop_fate`、`hero_state_*`、`church_verdict_3`、`eluen_violation_evidence`）；失败 `fallen`（防线被突破，剧本写入 `a3_ashline_route = fallen`） |
 | 时机 | 第 20 到 21 周，早春；战前夜、净化之光、终局或失败必经；对决在陆辰出阵时必经（陆辰本幕不会死） |
 | 出场 | 玩家；`ron` 罗恩；`shiya` 希雅；`aiden` 艾登（`hero_state_aiden == with_player`）；`ursak`、`konrad`、`lucas`（第二战线的人选）；`luchen` 陆辰；`severin` 大主教（说话者 `archbishop`）；`marcus` 马库斯；`sasha` 萨莎；`hanna` 汉娜；`yui` 结衣（defected 时）；`jorg` 约尔格；`ulrich_von_eisen` 乌尔里希；`martha` 玛莎、`ash` 阿什（失败分支） |
-| 地点 | `reedbridge_battle` 苇桥东岸桥头堡（提议位置 `bridgehead`）、石桥（`stone_bridge`）、东北丘陵（`ne_hills`）；失败分支 `borderstone` 南门（`south_gate`）、`seal_ruins` 入口前（`ruins_front`） |
+| 地点 | `reedbridge_battle` 苇桥东岸桥头堡（位置 `bridgehead`）、石桥（`stone_bridge`）、东北丘陵（`ne_hills`）；失败分支 `borderstone` 南门（`south_gate`）、`seal_ruins` 入口前（`outer_ring`） |
 | 时长 | 战前夜约 5 分钟；对决约 1.5 分钟；对决后约 1 分钟；净化之光约 2.5 分钟；终局约 4 分钟；失败约 3 分钟 |
 | 现有数据 | 新建（战场剧本 `act3_ash_line` 已在 `data/warfare/scenarios.json`）。共 37 节点、131 行台词、15 个选项、1 处即兴 |
 | 写入旗标 | `a3_second_front_general`（ursak、konrad、lucas、ron、shiya）；`a3_lu_duel_choice`（full、holdback）；`lu_lowered_sword`、`hero_state_lu`（wavering、loyal）、`hero_rel_luchen`；`a3_holy_war_miracle = true`；`a3_marcus_crossed`；`a3_sasha_threw`；`a3_pillar_response`（interrupt、close、endure）；`a3_vow_kept_reed_bridge = true`（誓光之门的历钥，`thousand_doors.md` C91）；`push_door.door_vocation_paladin`；失败时 `ash_exile = true`、`church_verdict_3 = demon_precursor`；`a3_ashline_beat`（battle、done）；效果 `scene cut_a3_eluen_speaks` |
@@ -9955,7 +9954,7 @@ narrator：一刻钟以后，镇里的人已经从北门走光了。玛莎收刀
 【ruins_front】
 @镜 23
 @转场 溶
-效果 teleport seal_ruins ruins_front
+效果 teleport seal_ruins outer_ring
 @光 阴
 narrator：先锋追到了封门遗迹前。
 narrator：大主教骑在马上，曙光圣柱横在马鞍上。他要找的门，就在前面。
@@ -10018,7 +10017,7 @@ narrator：先锋连人带马，被埋进了灰里。
 | 触发 | `a3_ashline_beat == done AND NOT a3_eluen_speaks`，请求方 `A3-M12` 第一阶段；由 `cut_a3_ashen_line` 末节点的效果 `scene cut_a3_eluen_speaks` 直接请求。写定神行 `div_beat_a3_archbishop_voice`（必达，兜底即本场写定台词）与 `div_beat_a3_sasha_stone` 的后半 |
 | 时机 | 胜利路线：决战第二日黄昏之后，苇桥桥头；失败路线：封门遗迹入口前，阿什掀起的灰还没落下时（`act3_lothar_crisis.md` 第 9.2 节）。必经，不可跳过（可加速） |
 | 出场 | 玩家；`severin` 大主教（说话者 `archbishop`，光借他开口，即兴由 `eluen` 的人格题面生成）；`eluen`、`valda`（只作序章录音的回声）；`yeyu` 夜羽；`cassian` 卡西安；`sasha` 萨莎；`letter` 信 |
-| 地点 | 胜利：`reedbridge_battle` 桥头（`bridgehead`）；失败：`seal_ruins` 入口前（`ruins_front`）。场景不带地图头，沿用玩家所在的地图 |
+| 地点 | 胜利：`reedbridge_battle` 桥头（`bridgehead`）；失败：`seal_ruins` 入口前（`outer_ring`）。场景不带地图头，沿用玩家所在的地图 |
 | 时长 | 约 7 分钟 |
 | 现有数据 | `a3_eluen_speaks`（2 节点、10 行）扩写为本场。导入后共 17 节点、66 行台词、4 个选项、2 处即兴、1 处自由输入。导入时修正：原稿写萨莎"扛着刀"，本场按 `characters.md` 第 5.2 节写作铁拳套；原稿在本场发放 `evidence_e35`，按台账第 7 节 E35 的取得条件是第六幕传唤勇者团作证，本场不发；`evidence_e36` 只在 `eluen_violation_evidence` 为 witnessed 或 recorded 时发放；`a3_holy_war_miracle` 移到 `cut_a3_ashen_line` 的净化之光段写入；`onEnd act act4` 移到 `cut_a3_map` 段二末尾 |
 | 写入旗标 | `a3_eluen_speaks = true`；`a3_eluen_reply`（why、defy、words、silent）；`a3_eluen_words`（自由输入）；`a3_cassian_saw_voice = true`（`A3-S11` 的转折点）；`a3_sasha_retreat_line = true`；`yeyu_letters = 2`；道具 `evidence_e36`（条件） |
@@ -10254,7 +10253,7 @@ narrator［eluen_violation_evidence == recorded］：有人把这一页记了下
 | 触发 | 段一：`a3_map_beat == ash`，请求方 `A3-M12` 第二阶段（第 23 周玩家第一次走到 `seal_ruins_depths` 灰烬之厅前时写入后请求；前置 `a3_ash_tells_sundering AND a3_eluen_speaks`）。段二：`a3_map_beat == map`，请求方 `A3-M13`（"三顶王冠"的谈判结束、内核写入 `lothar_ending` 之后） |
 | 时机 | 第 23 周与第 24 周，早春；必经 |
 | 出场 | 玩家；`ash` 阿什（`ash_relation` 不为 distant 时）；`yeyu` 夜羽；`eluen`（序章回声）；`philip` 腓力（残存弱国）；`drake` 冯·德雷克（帝国藩属）；`casimir_von_roth` 卡西米尔（残存弱国且 `empire_view >= 2`） |
-| 地点 | 段一：`seal_ruins_depths` 灰烬之厅前（提议位置 `ash_hall`）；灰烬流亡时先过 `borderstone` 远景。段二：结局画面按 `lothar_ending`（加冕礼在 `orien_isle` 或 `wallenburg`；分治的长桌；冠石宫阳台），随后 `seal_ruins` 入口前（`ruins_front`）与大陆地图界面 |
+| 地点 | 段一：`seal_ruins_depths` 灰烬之厅前（位置 `ash_chamber`）；灰烬流亡时先过 `borderstone` 远景。段二：结局画面按 `lothar_ending`（加冕礼在 `orien_isle` 或 `wallenburg`；分治的长桌；冠石宫阳台），随后 `seal_ruins` 入口前（`outer_ring`）与大陆地图界面 |
 | 时长 | 段一约 3 分钟；段二约 5 分钟 |
 | 现有数据 | 新建。共 19 节点、61 行台词、5 个选项 |
 | 写入旗标 | `a3_ash_she_fears = true`；`a3_philip_crown_answer`（wear、refuse、yours）与 `philip_rel`；`a3_autonomy_charter = true`（残存弱国：腓力授灰烬边境永久自治特许）；`feature continent_map`；`door_hint.door_founding = true`（立国之门的门影）；`a3_map_beat`（ash_done、done）；效果 `act act4` |
@@ -10303,7 +10302,7 @@ narrator：人们在封门遗迹前的空地上搭起了帐篷。再往北，就
 【hall】
 @镜 2
 @转场 溶
-效果 teleport seal_ruins_depths ash_hall
+效果 teleport seal_ruins_depths ash_chamber
 @环境 amb_dg_ruins
 @光 昏
 @字幕 第二十三周。封门遗迹，灰烬之厅前。
@@ -10428,7 +10427,7 @@ narrator：北边的雪化了，下面是灰。
 【rise】
 @镜 11
 @转场 溶
-效果 teleport seal_ruins ruins_front
+效果 teleport seal_ruins outer_ring
 @乐 mus_cue_zoomout 交叉
 @光 昏
 narrator：黄昏。你站在封门遗迹前。
@@ -10673,7 +10672,7 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 | `docs/40_design/content/catalog_warfare_strategy.md` | 第三幕战场剧本 | 新增剧本 `act3_sunrise_gate`（朝阳门之夜，小队战，目标与胜负按 `act3_lothar_crisis.md` 第 7.4 节战役 3；抵达帘幕寝殿时写 `a3_king_bedside = true`、`a3_crown_beat = deathbed_mid` 并请求 `cut_a3_crown_falls`；结束时写 `philip_fate`、`a3_crown_beat = morning` 并请求）；`act3_bone_field` 在左翼缺口事件写 `a3_domain_beat = flag` 并请求 `cut_a3_domain`；`act3_ash_line` 按本节 `cut_a3_ashen_line` 的触发栏写段落旗标、`a3_ashline_route`、`a3_pillar_breach`、`a3_supply_cut`、`a3_archbishop_seized` 并在对应时刻请求 | 过场与战场剧本的接口；`data/world/atlas_maps.json` 的 `sunrise_gate_battle` 目前没有剧本字段 |
 | `docs/40_design/content/catalog_quests_acts1_3.md` | `A3-M01`、`A3-M07`、`A3-M08`、`A3-M09`、`A3-M10`、`A3-M11`、`A3-M12`、`A3-M13`、`A3-S03`、`A3-S19`、`A3-S20`、U3-4 | 各请求方写入本节"新旗标"表里标明由任务写入的键（`a3_reedpond_present`、`a3_reedpond_evacuated`、`a3_archive_reached`、`a3_static_ash_night`、`a3_sunrise_route`、`a3_sigrid_witness`、`a3_oracle_public`、`a3_bodric_wall`、`a3_jorg_spared` 与各段落旗标）后请求对应过场；新增遭遇 `a3_reedpond_inquisition`（审判庭执行官约二十名与贝尔托德·克兰，精英阶，夜、芦苇沼，目标为击退而非全歼） | 过场的请求方与读取的旗标 |
 | `docs/40_design/content/catalog_dialogue_lines.md` | 罗恩的夜谈 | 罗恩坦白当年逃跑的那段夜谈结束时写 `a3_ron_confessed = true` | `cut_a3_ashen_line` 战前夜引用 |
-| `docs/40_design/world/map_briefs.md` | 第三幕相关地图的位置清单 | 登记位置 ID：`borderstone` 的 `south_gate`、`guild_branch`、`town_square`；`bonefield_battle` 的 `north_slope`；`orien_isle` 的 `curtain_chamber`、`crownstone_gallery`、`crownstone_balcony`；`orien_banks` 的 `dawnlight_cathedral`、`chancellery`、`sunrise_gate`；`reedpond` 的 `reed_village`；`thousand_gates_archive` 的 `archive_nave`、`archive_roof`；`seal_ruins` 的 `ruins_front`；`seal_ruins_depths` 的 `ash_hall`；`reedbridge_battle` 的 `bridgehead`、`stone_bridge`、`ne_hills` | 过场的 `teleport` 与地点栏引用 |
+| `docs/40_design/world/map_briefs.md` | 第三幕相关地图的位置清单 | 登记位置 ID：`borderstone` 的 `south_gate`、`guild`、`plaza`；`bonefield_battle` 的 `north_slope`；`orien_isle` 的 `crownstone_palace`、`crownstone_gallery`、`crownstone_balcony`；`orien_banks` 的 `dawnlight_cathedral`、`chancellor_house`、`sunrise_gate`；`reedpond` 的 `boardwalk_square`；`thousand_gates_archive` 的 `reading_hall`、`archive_roof`；`seal_ruins` 的 `outer_ring`；`seal_ruins_depths` 的 `ash_chamber`；`reedbridge_battle` 的 `bridgehead`、`stone_bridge`、`ne_hills` | 过场的 `teleport` 与地点栏引用 |
 | `docs/40_design/ux_and_onboarding.md` | 功能解锁表 | 新增 `feature.continent_map`：大陆地图界面，由 `cut_a3_map` 段二解锁 | 第三幕拉远"大陆地图展开（界面）" |
 | `data/scenes/speakers.json` | 说话者表 | 新增：`oswald` 老王奥斯瓦尔德四世；`philip` 王太子腓力；`drake` 宰相冯·德雷克；`ernst` 司礼官埃森巴赫；`parvi_tinring` 帕尔维；`casimir_von_roth` 卡西米尔·冯·罗特；`olive` 宫廷史官奥丽芙；`joachim` 约阿希姆；`berthold_klan` 审判官贝尔托德；`ulrich_von_eisen` 乌尔里希；`jorg` 约尔格；`hanna` 汉娜；`ursak` 乌尔萨克；`konrad` 康拉德；`lucas` 卢卡斯；`eluen`、`valda`（`kind` 为 divine，用于序章回声）；`janu`（显示名"门口的女人"，`revealedName` 雅努，`revealWhen` `a6_name_spoken`）。`archbishop` 保留为大主教塞维林·莫兰德的说话者，与人物 ID `severin` 对应 | 本节的台词说话者 |
 | `data/scenes/evidence.json` | `E01` | 第六幕之前道具栏的说明只显示阿什在第三幕说过的话："千门都，一百万人，没来得及走。她们害怕了。"；`presentText` 只在第六幕呈证时显示 | 现有 `presentText` 写着"光与剑""五位司掌者事先串联"，第三幕玩家不该从道具说明里读到（台账第 8.4 节） |
@@ -10714,6 +10713,8 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 
 ### 8.1 本幕过场索引
 
+本幕条目里请求方的任务显示编号（`A4-M01` 起，含支线、纷争与下庭任务）以[任务目录（后）][qb]为准；两处不一致时按任务目录改本目录，导入时按任务目录对齐。
+
 | ID | 名 | 拍 | 类型 | 时长 | 现有数据 | 扩写量 | 里程碑 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `cut_a4_founding` | 立国 | 落地 | 写定场景四段（无主之地、谁来认、界石、门开），含一处自由输入 | 段一约 3 分钟，段二约 2.5 分钟，段三约 4 分钟，段四约 2.5 分钟 | `act4_intro`（1 节点 2 行） | 由 1 节点 2 行扩到 22 节点、83 行台词、9 个选项、1 处自由输入 | M3 |
@@ -10737,7 +10738,7 @@ narrator：门楣上没有图案。只刻着一块界碑，碑面是空白的。
 | 触发 | 段一：`act == 4 AND a4_founding_beat == claim`，请求方 `A4-M01` 第一阶段（幕切换后第 1 周第 1 日，玩家在国都或流亡营地醒来时写入后请求）。段二：`a4_founding_beat == registry`，请求方立国链第 3 序"谁来认"（`A4-M02` 护送完成后，公会登记官抵达分部时写入）。段三：`a4_founding_beat == stone AND a4_boundstone_groups >= 5`，请求方 `A4-M04` 第五块界石（护石之战结束、第五个出身群体的代表到场时写入）。段四：`a4_founding_beat == door AND a4_nation_founded`，请求方千门系统（立国之门开启结算之后写入并请求；无论门是在段三里推开，还是之后在回廊里推开） |
 | 时机 | 段一：早春第 1 周第 1 日上午，必经。段二：第 3 周，必经。段三：第 5 到 6 周黄昏，必经。段四：开门当日，必经 |
 | 出场 | 玩家；`yeyu` 夜羽；`ron` 罗恩；`bron` 老布伦；`tavi` 门歌者塔维；`razg` 拉兹格；`herald` 使者（三家来使的合称）；`guild_registrar` 公会登记官；`league_clerk` 同盟书记；`letter` 总会长回信；插入镜头 `merca`、`moira`、`eluen` |
-| 地点 | 段一：`borderstone` 镇公所（提议位置 `town_hall`）；`a3_ash_exile` 时为 `seal_ruins` 遗迹前的帐篷（`ruins_front`）。段二：`borderstone` 公会分部（`guild_branch`）。段三、段四：`seal_ruins` 遗迹前广场（`ruins_front`）；段四插入镜头在 `divine_court` |
+| 地点 | 段一：`borderstone` 镇公所（位置 `town_hall`）；`a3_ash_exile` 时为 `seal_ruins` 遗迹前的帐篷（`outer_ring`）。段二：`borderstone` 公会分部（`guild`）。段三、段四：`seal_ruins` 遗迹前广场（`outer_ring`）；段四插入镜头在 `divine_court` |
 | 时长 | 段一约 3 分钟；段二约 2.5 分钟；段三约 4 分钟；段四约 2.5 分钟 |
 | 现有数据 | `act4_intro`（1 节点、2 行，带 `add seal_looseness 10`）的字幕并入段一。导入时不带封印松动 +10：幕切换不是封印松动的写定来源（与第三幕一节对 `act3_intro` 的处理相同）。导入后共 22 节点、83 行台词、9 个选项、1 处自由输入 |
 | 写入旗标 | `a4_claim`（claimed、awaiting、silent）；`a4_f_king`（accepted、protested）；`a4_oath_reader`（player、elder）；`push_door.door_founding`（推门时）；`a4_nation_name`（文本）；`territory_autonomy` 加 2（请长者念誓时）；`a4_founding_beat`（claim_done、registry_done、oath_done、done）。`a4_nation_founded` 由立国之门的开门结算写入，不由本过场写 |
@@ -11018,7 +11019,7 @@ narrator：遗迹前，罗恩在石堆顶上插了一面新旗。旗挂歪了。
 | 触发 | 段一：`a4_founding_beat == done AND a4_feast_beat == invite`，请求方立国链第 7 序"第一位使节"（立国后约一个月，第 9 周，帝国军使抵达国都时写入后请求）。段二：`a4_feast_beat == hall`，请求方强者之宴主线（玩家走进 `crownless_hall` 时写入后请求） |
 | 时机 | 段一：第 9 周白天，必经。段二：春末第 10 到 12 周的一个夜晚（玩家自行前往），必经；一夜之内演完，不跳时 |
 | 出场 | 玩家；`yeyu` 夜羽（在场时）；`ron` 罗恩（段一）；`herald` 帝国军使；`emperor` 剑帝雷欧哈特三世；`night_queen` 夜后维丝佩拉；`sasha` 萨莎；`elwin` 长老艾尔温；`hart` 金冠哈特；`bobby_lind` 波比·林德 |
-| 地点 | 段一：国都（`borderstone` 镇公所 `town_hall`；流亡时 `seal_ruins` 的 `ruins_front`）。段二：`crownless_hall` 长桌（提议位置 `long_table`）与宫外回廊（`moon_gallery`） |
+| 地点 | 段一：国都（`borderstone` 镇公所 `town_hall`；流亡时 `seal_ruins` 的 `outer_ring`）。段二：`crownless_hall` 长桌（位置 `long_table`）与宫外回廊（`moon_gallery`） |
 | 时长 | 段一约 1 分钟；段二约 14 分钟（含全部分支约 18 分钟，不含即兴） |
 | 现有数据 | `a4_feast`（4 节点、11 行）扩写为段二。导入时修正：`hall` 节点的两个选项（接下、让三招）换成一剑问的五种回应，`emperor_respect` 写作 `npc.emperor.respect`；`hart` 节点并入第三轮，`hart_state` 的 rival、pending 两个写入删去（注册表第 11 节：第四幕值集只有 hostile、routed、reconciled、allied，由经济战结算）；`elwin` 节点只保留第四轮那句锚点，作证内容与 `a4_elwin_testimony`、`a4_sanctuary_found`、`evidence_e03` 移到"森林的秘密"`A4-D03.d`，军营祭坛的旁白与 `evidence_e23` 移到 `cut_a4_valda_offer`；`scholars` 节点（`a4_star_records`、`a4_aiden_reads_charter`、E14、E20、拓片）移到 `A4-S03`、`A4-S04`。导入后共 35 节点、115 行台词、27 个选项、2 处即兴 |
 | 写入旗标 | `a4_feast_answer`（parry、dodge、trust、fearless、counter、feign）与 `npc.emperor.respect`；`a4_emperor_duel`；`a4_sasha_stance`（nemesis、duel_pledge、mutual_respect）；`a4_feast_emperor_ask`（refuse_road、ally、his_call）与 `stance.grantia`；`a4_vespera_sincere`、`trust.night_queen`、`stance.night`；`a4_hart_offer`（accepted、refused、mortal_pact）、`a4_hart_clause_read`；`a4_elwin_invited`、`trust.elwin`；`a4_night_pact`；`a4_feast_of_strong = true`；`a4_feast_beat`（invited、done） |
@@ -11389,7 +11390,7 @@ night_queen：谨慎。……我们记得这个回答，也记得上一个。
 | 触发 | 段一：`a4_nation_founded AND a4_versions_beat == merca`，请求方女神 GM 的 `div_beat_a4_merca_pitch`（DB-A4-01：玩家在任一市场摸出硬币时写入后请求）。段二：`a4_versions_beat == eluen`，请求方 `div_beat_a4_eluen_pitch`（DB-A4-02：玩家进入国内礼拜堂，或流亡时教国圣使抵达营地）。段三：`a4_versions_beat == sylvie`，请求方 `A4-S07`"泉畔"与 `div_beat_a4_sylvie_pitch`（DB-A4-04：玩家随兽走到草地时）。段四：`a4_versions_beat == moira`，请求方 `div_beat_a4_moira_pitch`（DB-A4-05：玩家在无尽书库按借书卡走到最底层时） |
 | 时机 | 春末到夏中（第 8 到 18 周），每段必经（女神招揽是必达神行）；段三、段四要玩家走到地点，提示由女神 GM 的预兆给出 |
 | 出场 | 段一 `merca`；段二 `eluen`（光像）、`cassian`（`a3_cassian_state` 为 stays_without_grace 或 regains 时）；段三 `sylvie`（不显形，只有声音）与半鹿半狼的兽（立牌）；段四 `moira`（化身） |
-| 地点 | 段一：默认 `goldbay` 金秤广场的茶摊（`tea_stall`）；玩家在别的城市的市场里时就在那里的茶摊。段二：国都难民礼拜堂（`borderstone` 的 `refugee_chapel`）；`a3_ash_exile` 时为 `seal_ruins` 流亡营地（`ruins_front`）。段三：`world_tree` 灵泉下游、春天才醒的草地（`spring_meadow`；兽引路，不受"外族不得近前"的限制）。段四：`endless_stacks` 最底层的书梯（`book_ladder`） |
+| 地点 | 段一：默认 `goldbay` 金秤广场的茶摊（`tea_stall`）；玩家在别的城市的市场里时就在那里的茶摊。段二：国都难民礼拜堂（`borderstone` 的 `refugee_chapel`）；`a3_ash_exile` 时为 `seal_ruins` 流亡营地（`outer_ring`）。段三：`world_tree` 灵泉下游、春天才醒的草地（`spring_meadow`；兽引路，不受"外族不得近前"的限制）。段四：`endless_stacks` 最底层的书梯（`book_ladder`） |
 | 时长 | 每段约 4 分钟 |
 | 现有数据 | `a4_goddess_versions`（6 节点、20 行）拆开：`eluen` 节点（3 行、2 个选项）扩为段二，`eluen_page = false` 不写（`a4_eluen_page` 只由副署成立写入，D-037），`eluen_page_considered` 写作 `a4_eluen_page_considered`；`sylvie` 节点（4 行）扩为段三，"……我反对过。"按台账 MIS-13 落在"我投了'不'。然后……"；`merca` 节点的钥匙求助移到 `cut_a4_key_theft`，本过场段一按分幕 6.3 新写；`valda` 节点移到 `cut_a4_valda_offer`；`moira` 节点的同构与交易移到 `cut_a4_isomorphism`，本过场段四按分幕 6.5 新写；`lies` 节点删去（谎言的拆穿只由证据对质写入，分幕 8.6）。`a4_goddess_versions_heard` 的定值写入（1 到 5）换成每段 `add 1`。导入后共 28 节点、93 行台词、14 个选项、2 处即兴 |
 | 写入旗标 | `a4_goddess_versions_heard` 每段加 1；`a4_version_heard.<司>`（merca、eluen、sylvie、moira）；`a4_eluen_pitch`（accepted、refused、deferred）、`a4_eluen_page_considered`；`a4_refused_to_let_go`；女神关系与记忆（`relation`、`memory`）；`a4_versions_beat`（`<司>_done`） |
@@ -11711,7 +11712,7 @@ narrator［a4_goddess_versions_heard >= 3］：手记的对照页上，又填了
 | 触发 | 段一：`a4_key_beat == night`，请求方 `A4-D05.a`（纷争链开链时写入并请求，夏初第 13 周前后的一个夜里；玩家在任何地方，过场以字幕标明地点）。段二：`a4_key_beat == plea`，请求方 `A4-D05.b` 与女神 GM 的 `div_beat_a4_key_theft_plea`（DB-A4-10），深账库之夜后的第一个夜晚。段三：`a4_key_beat == chase`，请求方 `A4-D05.d`（哑钟一线的迷宫 `mute_bell_chase` 结束时写入 `a4_mute_bell_fate` 后请求；交出、被杀、逃脱三种结局都播）。段四：`a4_key_beat == fate AND a4_key_pending IN (k3, k5, k6)`，请求方 `A4-D05.e`（三条线索里每追回一枚，写入 `a4_key_pending` 后请求一次） |
 | 时机 | 段一、段二：夏初，连着两夜，必经。段三：夏中到夏末，必经（哑钟一线是纷争链的必经节点；交给官员时由官员追，段三仍播，玩家以门路的远视看见那一幕）。段四：随追回而定，可错过（未追回的钥匙没有这一段） |
 | 出场 | 段一：`mute_bell` 哑钟（无台词）与四名门徒（立牌）；`herda_scaleheart` 大司祭赫尔达。段二：`merca`；`nera` 奈拉（在场时）。段三：`yeyu`（在场时）；`mute_bell`；`faceless` 无貌者（立牌，无台词）。段四：`yeyu`；`tavi`（去向为遗民时） |
-| 地点 | 段一：`deep_ledger_vault` 钥匙环前（提议位置 `key_ring`）。段二：玩家当夜所在之处（默认国都住处，`borderstone` 的 `lord_house`）。段三：`gate_station_ruins` 门站残墟的东北站，站台面向荒原深处的一侧（`ne_station`）。段四：`inner_court` 桌前（`court_table`） |
+| 地点 | 段一：`deep_ledger_vault` 钥匙环前（位置 `seven_niches`）。段二：玩家当夜所在之处（默认国都住处，`borderstone` 的 `lord_house`）。段三：`gate_station_ruins_ne` 门站残墟（东北站），门站大厅面向荒原深处的一侧（`station_hall`）。段四：`inner_court` 桌前（`court_table`） |
 | 时长 | 段一约 2.5 分钟；段二约 5 分钟；段三约 2 分钟；段四每枚约 1.5 分钟 |
 | 现有数据 | `a4_goddess_versions` 的 `merca` 节点（1 节点、4 行）扩为段二。导入时修正：`a4_nera_exposed` 的写入条件 `econ.company_founded` 换成"奈拉在场"（`a2_company_partner` 且奈拉没有离队）；`evidence_e06`（商路专营契）与 `evidence_e22`（哈特的魂契）不在本场发放，按分幕 8.1 由经济战的波比·林德一线取得；本场只发 `evidence_e05`。导入后共 19 节点、77 行台词、10 个选项 |
 | 写入旗标 | `cult_door_keys = 4`（段一），每追回一枚减 1；`a4_key_theft_exposed = true`；`a4_nera_exposed = true`（奈拉在场时）；`a4_nera_choice`（merca、player、ransom）与 `trust.nera`；`a4_key_chase`（player、officers、refused）；`autonomy` 加 2（交给官员时）；`key_fate.k3`、`key_fate.k5`、`key_fate.k6` 与 `a4_player_door_keys`、`a4_remnant_door_keys`、`a4_merca_door_keys`（经 `compute key_to_*`，见选择表）；`a4_key_beat`（`<段>_done`） |
@@ -11975,7 +11976,7 @@ narrator：风从泉面上吹过来，碰了碰你的手。
 | 触发 | `a4_feast_of_strong AND a4_valda_beat == altar`，请求方 `A4-M07` 第二阶段（军营地下的祭坛：伊沃·拉达引路，玩家走下石阶时写入后请求）；女神 GM 的 `div_beat_a4_valda_pitch`（DB-A4-03）与 `div_beat_a4_valda_alliance`（DB-A4-11）在本场合并为一次 |
 | 时机 | 强者之宴之后、夏初到夏中（第 13 到 18 周）的一个夜晚，必经；默认是第三位来招揽的女神 |
 | 出场 | 玩家；`ivo_rada` 第三军团长伊沃·拉达；`dying_soldier` 垂死的士兵（瓦尔妲借他开口，说话者写 `valda`）；`yeyu` 夜羽（尾声） |
-| 地点 | `grantis` 东郊高沼的第三军团营地（提议位置 `third_legion_camp`）与营地地下的祭坛（`valda_altar`）；尾声 `inner_court` 桌前（`court_table`） |
+| 地点 | `grantis` 东郊高沼的第三军团营地（位置 `legion_camp`）与营地地下的祭坛（`valda_altar`）；尾声 `inner_court` 桌前（`court_table`） |
 | 时长 | 约 8 分钟 |
 | 现有数据 | `a4_goddess_versions` 的 `valda` 节点（1 节点、3 行）与 `a4_feast` 的祭坛旁白（1 行，`evidence_e23`）合并扩写。导入时修正：`yeyu_letters` 的定值写入 3 保留；"魔王是我孩子里最强的那个"并入分幕 6.2 的原句。导入后共 15 节点、49 行台词、8 个选项、1 处即兴 |
 | 写入旗标 | `evidence_e23`（祭坛本身）；`a4_goddess_versions_heard` 加 1；`a4_version_heard.valda = true`；`a4_valda_answer`（allied、refused、own_way）与女神关系、记忆；`a4_valda_alliance_offer = true`；`yeyu_letters = 3`；`a4_valda_beat = done` |
@@ -12150,7 +12151,7 @@ yeyu：等那家伙肯输的那天，我亲手交给她。
 | 触发 | `deed.deed_god_five_offers AND a4_version_heard.moira AND director.a4_disputes_midway >= 2 AND NOT a4_moira_isomorphism`，请求方女神 GM 的 `div_beat_a4_isomorphism`（DB-A4-08）：条件成立后，玩家下一次进入 `endless_stacks` 时借书卡夹进书里，玩家走到空白层时请求 |
 | 时机 | 夏中到夏末（第 16 到 22 周），必经（必达神行；玩家迟迟不去学城时，第二张借书卡会夹进国都书房的书里，空白层的楼梯从门内庭院的书架后面出现） |
 | 出场 | 玩家；`moira`（化身）；`yeyu` 夜羽（在场时在楼梯口，尾声） |
-| 地点 | `endless_stacks` 最底层之下的空白层（提议位置 `blank_floor`）；尾声在楼梯（`stair_spiral`），夜羽不在场时在 `inner_court` |
+| 地点 | `endless_stacks` 最底层之下的空白层（位置 `blank_layer`）；尾声在楼梯（`stair_spiral`），夜羽不在场时在 `inner_court` |
 | 时长 | 约 10 分钟；含交易与自由输入约 12 分钟 |
 | 现有数据 | `a4_goddess_versions` 的 `moira` 节点（1 节点、4 行、2 个选项）扩写为本场。导入时修正：`moira_pages` 的定值 11 换成 `add moira_pages 1`（十一页按交易逐页换得，分幕 7.3）；`evidence_e31`、`evidence_e21` 不在本场发放（E31 是第十一页或学院藏品，E21 是识才之门进阶的命运丝）；`goddess.moira.trade` 换成 `a4_moira_trade_records` 与交易系统。导入后共 15 节点、71 行台词、6 个选项、1 处即兴、2 处自由输入 |
 | 写入旗标 | `a4_moira_isomorphism = true`；`lie_exposed.moira = true`；`a4_moira_first_tier`（tell、insight、surrender、none）；`a4_moira_tale`、`a4_moira_earth_answer`（文本）；`a4_moira_memory_taken`；`a4_moira_trade_records = true`、`moira_pages` 加 1、`evidence_e07`（成交时）；`goddess.moira.gaze` 加 10（见解档）；`yeyu_letters = 4` |
@@ -12176,7 +12177,7 @@ yeyu：等那家伙肯输的那天，我亲手交给她。
 2. **对白**
 
 ```text
-场景 cut_a4_isomorphism｜标题 空白层｜幕 act4｜地图 endless_stacks｜位置 blank_floor｜起点 descend
+场景 cut_a4_isomorphism｜标题 空白层｜幕 act4｜地图 endless_stacks｜位置 blank_layer｜起点 descend
 【descend】
 @镜 1
 @乐 mus_stg_motif_moira 入
@@ -12363,7 +12364,7 @@ narrator：她看了你一眼，没有再说下去。
 | 触发 | 段一：`a4_edict_beat == decree`，请求方 `A4-D02.a` 与女神 GM 的 `div_beat_a4_heresy_edict`（DB-A4-06）：`a3_church_verdict` 为 heretic 或 demon_precursor 时，立国（`a4_founding_beat == done`）后 7 日；为 lost_lamb 时，`a4_eluen_pitch == refused` 后 7 日（deferred 满 30 日按拒绝结算）；`a4_feast_answer == parry` 时窗口前移 14 日，最早不早于立国后 7 日。段二：`a4_edict_beat == arrival`，请求方 `A4-D02.c`（诏书颁布后第 10 日，赛琳抵达界石时）。段三：`a4_edict_beat == oracle`，请求方 `A4-D02.e`（禁书库：赛琳取得档案，或玩家潜入瑟兰审判庭档案室得手时）。段四：`a4_edict_beat == choice`，请求方 `A4-D02.f`（赛琳住满一季，纷争链写入 `a4_selene_stance` 后）；出狱一节：`a4_edict_beat == rescued`，请求方营救任务（`a4_selene_stance` 由 witness 写为 joined 后）。段五：`a4_edict_beat == revoked`，请求方女神 GM（`a4_eluen_page` 写入时诏书已颁布） |
 | 时机 | 段一：春末到夏初，必经（写页成立而诏书未颁时不播）。段二：段一后第 10 日，必经。段三：夏末，必经（两种取得方式之一）。段四：秋初，必经。段五：条件成立时，必经 |
 | 出场 | 段一：`seraphin_iv` 教皇（不开口，诏书由 `letter` 呈现）、`aurelius_vent` 国务枢机（立牌）、`deacon` 执事、`cassian`（按 `a3_cassian_state`）。段二到段四：`selene` 赛琳。段三：`yeyu`（在场时）。段五：`deacon`、`yeyu` |
-| 地点 | 段一：`seran` 白冕大圣堂阳台（`white_crown_balcony`），蒙太奇经 `goldbay`、`grantis`，落在国都难民礼拜堂（`refugee_chapel`）。段二：`seal_ruins` 遗迹前的界石（`ruins_front`）。段三：国都住处（`lord_house`）；潜入版在 `seran` 审判庭地下档案室（`inquisition_archive`）。段四：界石前；出狱一节在 `seran` 城外（`seran_outskirts`）。段五：难民礼拜堂 |
+| 地点 | 段一：`seran` 白冕大圣堂阳台（`white_crown_balcony`），蒙太奇经 `goldbay`、`grantis`，落在国都难民礼拜堂（`refugee_chapel`）。段二：`seal_ruins` 遗迹前的界石（`outer_ring`）。段三：国都住处（`lord_house`）；潜入版在 `seran` 审判庭地下档案室（`inquisition_archive`）。段四：界石前；出狱一节在 `seran` 城外（`seran_outskirts`）。段五：难民礼拜堂 |
 | 时长 | 段一约 4 分钟；段二约 3 分钟；段三约 3 分钟；段四约 2.5 分钟；段五约 1.5 分钟 |
 | 现有数据 | `a4_conclave` 的 `selene` 节点（1 节点、2 行；发 `evidence_e15`，写 `a3_selene_tremble_told`）移到段三。导入时修正：不写 `a3_selene_tremble_told`（第三幕的标记，本场只读它）；E15 在段三发放。导入后共 23 节点、84 行台词、9 个选项 |
 | 写入旗标 | `a4_edict_issued = true`；`a4_chapel_choice`（let_go、forbid、rite）与 `autonomy`；`a4_selene_pressured`；`trust.selene`；`evidence_e15`；`a4_selene_rescue_vow`；`a4_edict_beat`（`<段>_done`、done）。`a4_selene_stance` 由纷争链结算写入，本场只读 |
@@ -12639,7 +12640,7 @@ player［NOT companion.yeyu.state == active］：（我有页了。她们，都�
 | 触发 | 段一：`a4_summit_convener IN (cohost, guild, church) AND a4_conclave_beat == summit`，请求方 `A4-M13` 第一阶段（`A4-M12` 云阶道走完、玩家登上 `seven_seats` 时写入后请求；召集方式由大战略在 `A4-M12` 开始时按分幕 9.2 结算写入 `a4_summit_convener`）。段二：`a4_conclave_beat == debate`，请求方 `A4-M13` 第二阶段（会盟第二天，玩家在营帐里"去碑下"时写入）。段三：`a4_conclave_beat == close`，请求方 `A4-M13` 第三阶段（会盟第三天） |
 | 时机 | 秋（第 25 到 30 周）连续三天，必经；会盟期间不能离开峰顶（云阶道的营地可以休息、换装、与各方私下谈话） |
 | 出场 | 玩家；`yeyu`（在场时）；`emperor`；`aurelius_vent` 国务枢机（教皇特使）；`philip`（`a3_lothar_ending == rump_kingdom` 时）；`florin_caspari` 同盟议长（`hart` 随行）；`elwin`（`a4_refuge_state IN (public, migrated)` 时）或 `othelan_deeproot`（其余）；风牙按 `a4_beast_king`：`nitira_moonhorn`、`ursa_stonebreaker`、`shiya`；`night_queen` 与 `sasha`；`tavi`；`viktor_lampart` 公会总会长；`lune_beck` 会盟书记（莫伊拉借她的笔开口，说话者写 `moira`）；`league_clerk` |
-| 地点 | `seven_seats` 七席石与第七碑（提议位置 `stele_ring`）；云阶道的营地在同图边缘（`summit_camp`） |
+| 地点 | `seven_seats` 七席石与第七碑（位置 `seven_seats_ring`）；云阶道的营地在同图边缘（`summit_camp`） |
 | 时长 | 段一约 5 分钟；段二约 9 分钟；段三约 5 分钟（不含营地里的私下谈话） |
 | 现有数据 | `a4_conclave`（4 节点、5 行、3 个选项）扩写为三段。导入时修正：`a4_alliance` 的 broad、narrow、broken 换成 `a4_summit_result`，且结果由大战略的 `compute summit_result` 结算，不由选项直接写（选项写的是它的输入：`autonomy_bonus`、`a4_summit_bloodshed`）；`slg.summit_bloodshed` 写作 `a4_summit_bloodshed`，`a4_conclave_scene_done` 写作 `a4_conclave_done`（注册表 7.7）；`already` 节点删去（会盟只有过场这一种进行方式）；`selene` 节点移到 `cut_a4_edict` 段三；原稿"七国使者坐在同一张圆桌边，教国的位置空着"按分幕 9.3 换成七席石与列席；夜后那句"说吧，规格外的人"保留为段一她入席后的台词的底稿。导入后共 34 节点、132 行台词、18 个选项 |
 | 写入旗标 | `a4_night_seated`；`a4_tavi_seated`；`stance.night`、`stance.holysee`；`autonomy_bonus`（塔维入席 +3、发言 +5）；`a4_monopoly_deal`（accepted、better、refused）与 `econ_indep`；`a4_elwin_witness = public`（公证时）；`a4_crusade_authorized`（由 `compute summit_motion` 写入）；`a4_summit_bloodshed`；`continent` -5（玩家拔刀时）；`a4_summit_result`、`a4_allies`、`a4_heresy_state`（由 `compute summit_result` 写入）；`a4_conclave_done = true`；`a4_conclave_beat`（summit_done、debate_done、done）；`a4_revelation_beat = stele` 并以 `scene cut_a4_revelation` 接续 |
@@ -12671,7 +12672,7 @@ player［NOT companion.yeyu.state == active］：（我有页了。她们，都�
 2. **对白**
 
 ```text
-场景 cut_a4_conclave｜标题 七国会盟｜幕 act4｜地图 seven_seats｜位置 stele_ring｜起点 entry
+场景 cut_a4_conclave｜标题 七国会盟｜幕 act4｜地图 seven_seats｜位置 seven_seats_ring｜起点 entry
 【entry】
 分支［a4_conclave_beat == debate］→ m_open
 分支［a4_conclave_beat == close］→ z_open
@@ -13010,7 +13011,7 @@ narrator：碑亮了。
 | 触发 | 段一：`a4_revelation_beat == stele`，请求方 `cut_a4_conclave` 段三末的 `scene` 效果（`A4-M13` 的最后一刻）。段二：`a4_revelation_beat == dawn`，请求方 `A4-M14` 凿碑台的天启夜（荒原魔物在天启当夜涌向凿碑台的必经之战结束时写入后请求） |
 | 时机 | 段一：会盟第三天黄昏到当夜，必经，紧接会盟不可跳过；段末接 `A4-M14` 的天启夜之战。段二：天启之夜后的天亮到第二天夜里，再到第三天黎明，必经；之后幕切换到第五幕 |
 | 出场 | 段一：`lune_beck`；`eluen`、`valda`、`merca`、`sylvie`、`moira`（神庭插入，立绘）；`emperor`、`elwin`、`ron`；`sylvie` 的序章回声。段二：`yeyu`（在场时）；`janu`（梦中，界面名"门口的女人"）；`ash` 阿什 |
-| 地点 | 段一：`seven_seats` 碑前（`stele_ring`），蒙太奇经七碑（瑟兰 `seran`、夜境试锋谷、`goldbay`、`world_tree`、`scriva`、`main_gate_crater` 的凿碑台、`seven_seats`）与 `divine_court`。段二：`main_gate_crater` 凿碑台（`stele_platform`）；第二道诏书在 `seran`；梦在 `dream_doorway`；尾声 `seal_ruins_depths` 灰烬之厅（`ash_hall`） |
+| 地点 | 段一：`seven_seats` 碑前（`seven_seats_ring`），蒙太奇经七碑（瑟兰 `seran`、夜境试锋谷、`goldbay`、`world_tree`、`scriva`、`main_gate_crater` 的凿碑台、`seven_seats`）与 `divine_court`。段二：`main_gate_crater` 凿碑台（`chiseled_stele_terrace`）；第二道诏书在 `seran`；梦在 `dream_doorway`；尾声 `seal_ruins_depths` 灰烬之厅（`ash_chamber`） |
 | 时长 | 段一约 7 分钟；段二约 5 分钟 |
 | 现有数据 | `a4_revelation`（1 节点、3 行，`onEnd` 切到第五幕）扩写为两段：原稿的诏书与"女神们争先恐后地去抢那个结果"放进段二的诏书与对照页，夜羽那一句"荒原那边，灰在往上涌"并入段二的凿碑台；`onEnd act act5` 移到段二末。`a4_m05_revelation` 任务里的 `revelation ash_full` 效果保留在任务侧（天启的内核规则变更由天启系统执行），本过场只写 `a4_revelation_ash_full`。导入后共 17 节点、87 行台词、4 个选项 |
 | 写入旗标 | `a4_revelation_ash_full = true`；`evidence_e08`、`evidence_e02`（备用取得路径，见变体）；`a4_revelation_beat`（night、done）；效果 `act act5` |
@@ -13422,7 +13423,7 @@ ash：上面那位，也在看。
 | `docs/40_design/content/catalog_quests_acts4_6.md` | 第四幕主线、纷争链与支线卡的"阶段"栏 | 各请求方在请求前写入段落旗标并请求：`A4-M01` 第一阶段写 `a4_founding_beat = claim`；立国链第 3 序写 `registry`；`A4-M04` 护石之战后写 `stone`；立国链第 7 序写 `a4_feast_beat = invite`，强者之宴主线在玩家进入无冠厅时写 `hall`；`A4-M07` 第二阶段写 `a4_valda_beat = altar`；`A4-D02.a`、`.c`、`.e`、`.f` 与营救任务写 `a4_edict_beat`（decree、arrival、oracle、choice、rescued）；`A4-D05.a`、`.b`、`.d`、`.e` 写 `a4_key_beat`（night、plea、chase、fate）与 `a4_key_pending`；会盟主线（本节称 `A4-M13`，介于 `A4-M12` 与 `A4-M14` 之间）写 `a4_conclave_beat`（summit、debate、close）；`A4-M14` 战斗结束写 `a4_revelation_beat = dawn`。现有数据 `a4_feast` 的 `scholars` 节点所写的 `a4_star_records`、`a4_aiden_reads_charter` 与 E14、E20 由 `A4-S03`、`A4-S04` 写；`a4_elwin_testimony`、`a4_sanctuary_found`、E03 由 `A4-D03.d` 写 | 过场的请求方与读取的旗标；B-008 中 `a4_star_records`、`a4_aiden_reads_charter`、`a4_yui_purify_truth`（`A4-S05`）、`a4_shiya_father_truth`（`A4-D04.d`）四个标记是调查与纷争节点的结果，由任务承担，不另设过场 |
 | `docs/40_design/content/catalog_dungeons_bosses.md` | `mute_bell_chase` 一行"结局与写入"列 | "写 `a4_mute_bell_fate`（yielded：以门歌或钟声回应，他交出门钥；killed；escaped），yielded 与 killed 时写 `a4_key_pending = k3` 并请求 `cut_a4_key_theft` 段三、段四" | `cut_a4_key_theft` 段三读它 |
 | `data/world/atlas_maps.json` | `main_gate_crater` 的 `acts` | `[4, 5]`，`note` 补一句"第四幕只开放坑沿的凿碑台与门框断面（`A4-S01`、`A4-S02`、`A4-M14` 与天启之后的天亮）" | 任务目录（后）把 `A4-S01`、`A4-S02`、`A4-M14` 放在主门坑与凿碑台，本节的 `cut_a4_revelation` 段二也在那里 |
-| `docs/40_design/world/map_briefs.md` | 第四幕相关地图的位置清单 | 登记位置 ID：`borderstone` 的 `town_hall`、`guild_branch`、`refugee_chapel`、`lord_house`；`seal_ruins` 的 `ruins_front`；`seal_ruins_depths` 的 `ash_hall`；`crownless_hall` 的 `long_table`、`moon_gallery`；`goldbay` 的 `tea_stall`；`world_tree` 的 `spring_meadow`；`endless_stacks` 的 `book_ladder`、`blank_floor`、`stair_spiral`；`deep_ledger_vault` 的 `key_ring`；`gate_station_ruins` 的 `ne_station`；`inner_court` 的 `court_table`；`grantis` 的 `third_legion_camp`、`valda_altar`；`seran` 的 `white_crown_balcony`、`inquisition_archive`、`seran_outskirts`；`seven_seats` 的 `stele_ring`、`summit_camp`；`main_gate_crater` 的 `stele_platform` | 过场的地点栏与 `teleport` 引用 |
+| `docs/40_design/world/map_briefs.md` | 第四幕相关地图的位置清单 | 登记位置 ID：`borderstone` 的 `town_hall`、`guild`、`refugee_chapel`、`lord_house`；`seal_ruins` 的 `outer_ring`；`seal_ruins_depths` 的 `ash_chamber`；`crownless_hall` 的 `long_table`、`moon_gallery`；`goldbay` 的 `tea_stall`；`world_tree` 的 `spring_meadow`；`endless_stacks` 的 `book_ladder`、`blank_layer`、`stair_spiral`；`deep_ledger_vault` 的 `seven_niches`；`gate_station_ruins_ne` 的 `station_hall`；`inner_court` 的 `court_table`；`grantis` 的 `legion_camp`、`valda_altar`；`seran` 的 `white_crown_balcony`、`inquisition_archive`、`seran_outskirts`；`seven_seats` 的 `seven_seats_ring`、`summit_camp`；`main_gate_crater` 的 `chiseled_stele_terrace` | 过场的地点栏与 `teleport` 引用 |
 | `data/scenes/speakers.json` | 说话者表 | 新增：`guild_registrar` 公会登记官；`league_clerk` 同盟书记；`bobby_lind` 波比·林德；`deacon` 执事；`aurelius_vent` 国务枢机；`seraphin_iv` 教皇；`herda_scaleheart` 大司祭赫尔达；`ivo_rada` 伊沃·拉达；`dying_soldier` 垂死的士兵；`lune_beck` 书记卢恩；`viktor_lampart` 总会长；`florin_caspari` 议长卡斯帕里；`othelan_deeproot` 长老奥瑟兰；`nitira_moonhorn` 妮蒂拉；`ursa_stonebreaker` 乌尔萨；`razg` 拉兹格；`mute_bell` 哑钟（只作立牌，不说话）；`merca`、`sylvie`、`moira`（`kind` 为 divine；第三幕一节已请求登记 `eluen`、`valda`、`janu`，本行把五位女神补齐） | 本节的台词说话者 |
 | `docs/40_design/ux_and_onboarding.md` | 第四幕的界面表 | `ui_win_strategy` 的立国页在立国之门开启后自动打开，先选国体与首批官员（国名已在 `cut_a4_founding` 段四输入）；情报簿对照页在 `a4_moira_isomorphism` 之后追加"我"一列；空白纪交易的"交出"档在确认前以全屏字幕告知"这段记忆将不再属于你" | 分幕 4.2 第 5 步、7.2 末段、7.3 的界面要求 |
 
@@ -13480,6 +13481,8 @@ ash：上面那位，也在看。
 
 ### 9.1 本幕过场索引
 
+本幕条目里请求方的任务显示编号（`A5-M01` 起，含支线、纷争与下庭任务）以[任务目录（后）][qb]为准；两处不一致时按任务目录改本目录，导入时按任务目录对齐。
+
 | ID | 名 | 拍 | 类型 | 时长 | 现有数据 | 扩写量 | 播放序 | 里程碑 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `cut_a5_mirror_a` | 撕封之夜：梦中的另一扇门 | 落地 | 写定场景接梦境（段一）、梦境（段二、段三），含两处即兴 | 段一约 5 分钟，段二约 1.5 分钟，段三约 3 分钟 | `act5_intro`（1 节点 2 行） | 由 1 节点 2 行扩到 21 节点、63 行台词、7 个选项、2 处即兴 | 1、2 | M3 |
@@ -13503,7 +13506,7 @@ ash：上面那位，也在看。
 | 触发 | 段一：`act == 5 AND a5_mirror_a_beat == tear`，请求方 `A5-M01` 撕封之夜（主门坑坑沿的必经战斗"撕封之夜"结束、裂口已开时写入并请求）。段二：`a5_mirror_a_beat == second`，请求方 `A5-M01` 第二阶段（段一之后玩家第一次入睡时写入并请求，入睡地点不限）。段三：`a5_mirror_a_beat == ask AND NOT a5_other_at_door_done`，请求方 `A3-S39` 门口的另一个人的第五幕阶段（段二之后，玩家每次在门内庭院入睡写入并请求，每夜至多一次，问过即止） |
 | 时机 | 段一：圣历 999 年冬初（第五幕第 3 周），撕封当夜，必经；段二：次夜，必经；段三：第五幕内任意一夜，可选，`a5_final_battle_done` 之后关闭 |
 | 出场 | 玩家；`yeyu` 夜羽（段一醒来时，在场条件）；`faceless` 无貌者；`janu` 门口的女人（段二、段三）；插入镜头 `tavi` 门歌者塔维、`ash` 阿什、`keybearer` 执钥人 |
-| 地点 | 段一：`main_gate_crater` 坑沿（`crater_rim`）；插入镜头 `borderstone` 孤儿院（`orphanage`）、门民营地（`tavi_camp`）、`seal_ruins_depths` 灰烬之厅（`ash_hall`）；入睡与醒来在 `thousand_gates_core` 联军前哨（`forward_camp`）。梦 A 与段二、段三在 `dream_doorway` |
+| 地点 | 段一：`main_gate_crater` 坑沿（`crater_rim`）；插入镜头 `borderstone` 孤儿院（`orphanage`）、门民营地（`tavi_camp`）、`seal_ruins_depths` 灰烬之厅（`ash_chamber`）；入睡与醒来在 `thousand_gates_core` 联军前哨（`coalition_outpost`）。梦 A 与段二、段三在 `dream_doorway` |
 | 时长 | 段一约 5 分钟（梦 A 约 2 分钟）；段二约 1.5 分钟；段三约 3 分钟 |
 | 现有数据 | `act5_intro`（1 节点、2 行，带 `add seal_looseness 15`）的两行并入段一的幕标题，时态随开场调整。导入时去掉幕切换上的松动加值：幕切换不是封印松动的写定来源；本幕的写定来源是撕封节点的 `seal_points` +20（即 `seal_looseness` +10，千门 6.4.2"无貌者撕开封印一角"）。`a5_demon_king_born` 场景的 `born` 节点写的是戴冠，归 `cut_a5_eska` 段二。导入后共 21 节点、63 行台词、7 个选项、2 处即兴 |
 | 写入旗标 | `a5_seal_torn = true`；`seal_points` 加 20；`a5_other_at_door_done = true`（追问时）；`a5_mirror_a_beat`（tear_done、second_done、done） |
@@ -13764,7 +13767,7 @@ janu：好。门开着。想问的时候，再来。
 | 触发 | 段一：`a5_eska_beat == quiet`，请求方 `A5-M02` 危机已过（第 5 周起澱哨读数连降三周、洛萨的庆功告示送到国都时写入并请求）。段二：`a5_eska_beat == crown`，请求方 `A5-M03` 戴冠（天启"荒原之澱满"后第 90 游戏日的倒计时到点，第 11 周末，写入并请求；玩家在哪里就在哪里播）。段二补：`a5_eska_beat == crown_yeyu AND NOT has.ky_unclasped_talon`，请求方 `A5-M03` 第二阶段（段二播放时夜羽不在场，之后玩家第一次进入门内庭院时写入并请求）。段三：`a5_eska_beat == descent`，请求方 `A5-M04` 银降（戴冠后第三天正午写入并请求；玩家所在地开一镜后切到国都上空）。段四：`a5_eska_beat == tent`，请求方 `A5-M05` 一顶帐篷（银降当晚，联军冬营第一次军议时写入并请求）。段五：`a5_eska_beat == question`，请求方 `A5-S01` 银之问（玩家登上银巢时写入并请求）。段六：`a5_eska_beat == question_return AND a5_eska_wait AND COUNT(ring_node.R01 == built, ring_node.R02 == built, ring_node.R03 == built, ring_node.R04 == built, ring_node.R05 == built, ring_node.R06 == built) >= 3`，请求方 `A5-S01` 第二阶段（满足后玩家再登银巢时写入并请求） |
 | 时机 | 段一：第 5 到 10 周，必经；段二：第 11 周末深夜，必经；段三：第 12 周正午，必经；段四：同日夜，必经；段五、段六：银降之后任意时刻，可选，`a5_final_battle_done` 之后关闭（眠鳞碑下的节点要在决战之前建成） |
 | 出场 | 段一：`dian_watcher` 澱哨哨长、`lotha_noble` 洛萨贵族、`ron`、`yeyu`；段二：`faceless_king` 无貌之王（只有声音与远景）、`tavi`、`keybearer`、`yeyu`，插入镜头 `night_queen`；段三：`eska`、`ron`、`yeyu`、`soldier`；段四：`emperor`、`night_queen`、`viktor_lampart`、`haldin_stonewitness`、`philip`、`ron`、`yeyu`；段五、段六：`eska` |
-| 地点 | 段一：`borderstone` 澱哨台（`dian_post`），插入镜头洛萨的宴厅（按 `a3_lothar_ending`：`orien_isle` 王宫宴厅 `palace_hall`；三分时为三座庄园；宰相总督府）；段二：`main_gate_crater` 湖心石台（`lake_platform`）、`duskcrown` 暗夜王座（`dark_throne`）、门民营地与玩家所在地；段二补：`inner_court` 井沿（`well`）；段三：玩家所在地一镜，其后 `borderstone` 上空，蒙太奇经 `main_gate_crater`、`world_tree`、`windfang_rock`、`duskcrown`、`ash_waste`；段四：`borderstone_north` 联军冬营（`winter_camp`）；段五、段六：`seven_seats` 银巢（`silver_nest`） |
+| 地点 | 段一：`borderstone` 澱哨台（`dian_post`），插入镜头洛萨的宴厅（按 `a3_lothar_ending`：`orien_isle` 王宫宴厅 `longtable_hall`；三分时为三座庄园；宰相总督府）；段二：`main_gate_crater` 湖心石台（`lake_arena`）、`duskcrown` 暗夜王座（`night_throne_palace`）、门民营地与玩家所在地；段二补：`inner_court` 井沿（`court_pond`）；段三：玩家所在地一镜，其后 `borderstone` 上空，蒙太奇经 `main_gate_crater`、`world_tree`、`windfang_rock`、`duskcrown`、`ash_waste`；段四：`borderstone_north` 联军冬营（`winter_camp`）；段五、段六：`seven_seats` 银巢（`silver_nest`） |
 | 时长 | 段一约 2 分钟；段二约 3.5 分钟（补段约 2 分钟）；段三约 2.5 分钟；段四约 5 分钟；段五约 2.5 分钟；段六约 1 分钟 |
 | 现有数据 | `a5_demon_king_born` 的 `born` 节点（1 节点 4 行，写 `a5_demon_king_born`）并入段二；其中"如果当年她接住的是我"一句移到 `cut_a5_final_war` 的 70% 转阶段（它属于分幕 2.4 场景 C）。`eska` 节点（1 节点 3 行、2 个选项，写 `eska_consent` 与 E30）拆开：银降的那一句并入段三；后一句提问与两个选项移到段五，按分幕 4.1 重写（原龙在银降时只说一句；她只问"清洗还是消化"；旗标用规范名 `a5_eska_consent`）。导入后共 46 节点、121 行台词、8 个选项 |
 | 写入旗标 | `a5_demon_king_born = true`（段二）；物品 `ky_unclasped_talon`（段二或补段）；`a5_eska_descends = true`（段三）；`a5_eska_consent`（段五、段六）；`a5_eska_wait`、`a5_eska_closed`；物品 `evidence_e30`（同意时）；`a5_eska_beat`（quiet_done、crown_done、descent_done、tent_done、question_done、done） |
@@ -14186,7 +14189,7 @@ narrator：她没有回答。那只眼睛望着很高很高的地方，望了很
 | 触发 | 段一：`a5_confession_beat == valda`，请求方 `A5-M06` 瓦尔妲之秽（第 13 周，教国第二道诏书发布当日黄昏写入并请求；写定神行节点 DB-A5-01、DB-A5-02）。段二：`a5_confession_beat == altar`，请求方段一的选项 `go`（当场），或 `A5-S04` 祭坛前（之后玩家走到帝国军营的野战祭坛前时写入并请求；DB-A5-03）。段三：`a5_confession_beat == ferry`，请求方 `A5-M07` 渡口证言（第 14 周瓦伦堡军议开议时写入并请求；`npc.ferryman.bond` 为 1 时先在门前渡接人，任务在玩家抵达门前渡时请求）。段四：`a5_confession_beat == record`，请求方 `A5-M10` 全录之日（第 18 周，玩家进入无尽书库空白层时写入并请求；DB-A5-06 在玩家请求公开且条件成立时触发） |
 | 时机 | 段一：1000 年早春第 13 周黄昏，必经；段二：同日或之后，可选，决战前关闭；段三：第 14 周午，必经；段四：第 18 周，必经（公开或私下二选一） |
 | 出场 | 段一：`letter`（诏书）、`valda`、`soldier`、`balthazar_krenn` 帝国元帅、`adventurer`、`martha`、`yeyu`；段二：`valda`；段三：`ferryman` 老船夫、`herald`、`emperor`、`night_queen`、`ron`，`luchen`（只出现不说话）；段四：`moira`、`letter`（纸条与铭录页）、插入镜头 `eluen`、`bron`、`peddler` |
-| 地点 | 段一：`seran` 礼拜堂门前（诏书），`borderstone_north` 帝国军营的野战祭坛（`imperial_camp`），蒙太奇 `duskcrown` 军帐（`war_tents`）、`windfang_rock` 篝火（`campfire`）、`borderstone` 醉月亭（`drunk_moon`）；段二：`borderstone_north` 野战祭坛；段三：`gatefront_south` 渡口（接人时），`wallenburg` 河港边的联盟军议大帐（`river_council`）；段四：`endless_stacks` 空白层（`blank_floor`），插入镜头 `divine_court`，蒙太奇 `borderstone` 公会分部、`scriva`、`seran`、`goldbay` |
+| 地点 | 段一：`seran` 礼拜堂门前（诏书），`borderstone_north` 帝国军营的野战祭坛（`imperial_camp`），蒙太奇 `duskcrown` 军帐（`war_tents`）、`windfang_rock` 篝火（`clan_camps`）、`borderstone` 醉月亭（`drunk_moon`）；段二：`borderstone_north` 野战祭坛；段三：`gatefront_south` 渡口（接人时），`wallenburg` 河港边的联盟军议大帐（`river_council`）；段四：`endless_stacks` 空白层（`blank_layer`），插入镜头 `divine_court`，蒙太奇 `borderstone` 公会分部、`scriva`、`seran`、`goldbay` |
 | 时长 | 段一约 4 分钟；段二约 2 分钟；段三约 6 分钟（接人加 1 分钟，转述版约 4 分钟）；段四约 7 分钟（私下版约 4 分钟） |
 | 现有数据 | `a5_demon_king_born` 的 `truth` 节点（1 节点 4 行，一次发放 E12、E09、E10、E11、E13 并写 `a5_truth_purge_cycle`）拆入本条：瓦尔妲的两句进段一与段二（措辞按分幕 4.2 原文），老船夫一句进段三（按分幕 4.3 原文）。证据按出处分发：E12 段一，E09 段三，E10 段四；E11 归 `cut_a5_luchen` 段二（陆辰放下的剑身），E13 归夜后线的任务（《堕勇手记》），不在过场里发。`a5_truth_purge_cycle` 只在段四写入（公开与私下都写），保证"排澱"一词在铭录页出现之前已开放。导入后共 49 节点、107 行台词、19 个选项、2 处即兴 |
 | 写入旗标 | 物品 `evidence_e12`、`evidence_e09`、`evidence_e10`；`a5_valda_pig`（made、butcher、silent）；`a5_e09_relayed`（转述时）；`a5_moira_reason`（choose、child、defeat）；`a5_moira_published`（true 或 false）；`a5_truth_purge_cycle = true`；`a5_confession_beat`（valda_done、altar_done、ferry_done、done）；女神关系 `relation valda 10` 与记忆 `memory valda pig_made`（"猪也是你造的"时）；计算 `a5_confession_faith`（段一）、`a5_full_record`（公开时） |
@@ -14633,7 +14636,7 @@ moira：读过了，就是读过了。
 | 触发 | 段一：`a5_luchen_beat == chapel AND (hero_state.luchen == loyal OR hero_state.luchen == wavering)`，请求方 `A5-S02` 不在乎我信不信的光（渡口证言当夜，结衣或马库斯把陆辰的去处告诉玩家后，玩家走进苇桥村礼拜堂时写入并请求；当夜不去则支线过期，陆辰按"照旧斩杀"走）。段二：`a5_luchen_beat == shed AND (a5_luchen_answer == lay_down OR a5_luchen_answer == sit) AND NOT ring_node.R01 == unsurveyed`，请求方 `A5-S02` 第二阶段（陆辰到主门坑核心节点看一次运转：玩家邀请过他时由玩家带去，未邀请时他自己去，任务在玩家到场时请求）。段三：`a5_luchen_beat == fall`，请求方 `A5-S02` 第三阶段：`a5_luchen_answer == end_it` 时于段一后第三天写入并请求；`(a5_luchen_answer == lay_down OR a5_luchen_answer == sit) AND ring_node.R01 == unsurveyed` 到第 24 周（勇者突击队出征日）仍成立时写入并请求 |
 | 时机 | 段一：第 14 周深夜，可错过（不去即"照旧斩杀"）；段二：第 16 到 24 周；段三：第 15 周或第 24 周。三段都在 `a5_final_battle_done` 之前 |
 | 出场 | 玩家；`luchen` 陆辰；`keybearer`、`soldier`（段二）；`yeyu`（段二，在场条件）；`letter`（段三的诏书）；插入镜头 `yui` |
-| 地点 | 段一：`reedbridge` 烧毁的礼拜堂（`burnt_chapel`，第三幕灰烬防线之战烧的）；段二：`main_gate_crater` 坑沿的核心节点（`core_node`）；段三：`main_gate_crater` 坑沿（独闯）或 `seran` 钟楼下（清除） |
+| 地点 | 段一：`reedbridge` 烧毁的礼拜堂（`burnt_chapel`，第三幕灰烬防线之战烧的）；段二：`main_gate_crater` 坑沿的核心节点（`ring_core_node`）；段三：`main_gate_crater` 坑沿（独闯）或 `seran` 钟楼下（清除） |
 | 时长 | 段一约 5 分钟；段二约 3 分钟；段三约 2 分钟 |
 | 现有数据 | 新建（`a5_route_choice` 的 `god` 节点"陆辰握紧了剑"留在 `cut_a5_route` 段一）。导入后共 19 节点、62 行台词、6 个选项、1 处即兴 |
 | 写入旗标 | `a5_luchen_answer`（strike、lay_down、sit、end_it）；`a5_luchen_collapsed_seen`（答"砍吧"时）；`a5_luchen_node_invite`；`a5_luchen_shed_ok`（计算 `a5_luchen_shed_check` 写入）；`hero_state.luchen`（shed、wavering、dead）；`a5_luchen_death`（alone、purged）；物品 `evidence_e11`（卸光时，陆辰放下的剑身）；`companion luchen`（卸光时招募）；`a5_luchen_beat`（chapel_done、done） |
@@ -14872,7 +14875,7 @@ narrator［NOT hero_state.yui == dead］：结衣在钟楼下站了一夜。她�
 | 触发 | 段一：`a5_mirror_b_beat == flag`，请求方 `A5-M09` 灰中对谈（扩张阶段，第 17 周；`npc.faceless.interest == 3` 时第 15 周，为 2 时第 16 周；玩家在国都或北境时写入并请求，不在时等玩家回到国都）。段二：`a5_mirror_b_beat == talk`，请求方 `A5-M09` 第二阶段（玩家独自走到主门坑坑沿的白布处时写入并请求；同伴在灰墙外等候，不能进入） |
 | 时机 | 段一：1000 年春第 15 到 17 周的早晨，必经；段二：段一之后七日内，可拒绝（拒绝即本场结束，镜像对白只剩场景 C） |
 | 出场 | 玩家；`faceless` 无貌者（人身大小，经澱之门现身）；`soldier`；`yeyu`、`ron`（段一，在场条件） |
-| 地点 | 段一：`borderstone_north` 界石线（`boundary_line`）；段二：`main_gate_crater` 坑沿（`crater_rim`），灰墙合成的一圈 |
+| 地点 | 段一：`borderstone_north` 界石线（`boundary_stones`）；段二：`main_gate_crater` 坑沿（`crater_rim`），灰墙合成的一圈 |
 | 时长 | 段一约 1.5 分钟；段二约 7 分钟（按回答多少，5 到 9 分钟） |
 | 现有数据 | 新建（分幕 2.4 场景 B 的台词稿与方向表）。导入后共 31 节点、57 行台词、19 个选项、2 处即兴 |
 | 写入旗标 | `a5_faceless_lean`（加减，救赎倾向）；`a5_faceless_name_asked = true`（问名时）；`a5_mb_dirs`（集合：empathy、rebut、name、mock、threat、waver，每个方向全幕只计一次，场景 C 共用）；`a5_mb_round`（1 到 3）；`a5_faceless_waver = true` 与 `seal_points` 加 6（动摇时）；`a5_blood_for_key`（blood 或 dian，动摇后握手时）；`a5_mirror_b_refused = true`（拒绝赴约时）；`a5_mirror_b_beat`（flag_done、done）；`wave a5_rim_escape`（倾向不高于 -2 时） |
@@ -14896,7 +14899,7 @@ narrator［NOT hero_state.yui == dead］：结衣在钟楼下站了一夜。她�
 2. **对白**
 
 ```text
-场景 cut_a5_mirror_b｜标题 灰中对谈｜幕 act5｜地图 borderstone_north｜位置 boundary_line｜起点 entry
+场景 cut_a5_mirror_b｜标题 灰中对谈｜幕 act5｜地图 borderstone_north｜位置 boundary_stones｜起点 entry
 【entry】
 分支［a5_mirror_b_beat == talk］→ talk_open
 → flag_open
@@ -15125,7 +15128,7 @@ narrator：灰墙散开了一道口子。他没有回头，依旧坐在坑沿上
 | 触发 | 段一：`a5_route_beat == plans`，请求方 `A5-M08` 两份方案（`cut_a5_confession` 段三播完、同日夜军议续开时写入并请求）。段二：`a5_route_beat == drawer AND a5_seal_torn AND NOT a5_ash_drawer`，请求方 `A5-S03` 守门人的抽屉（玩家走进灰烬之厅与阿什说话时写入并请求；没取到旧物可再来）。段三：`a5_route_beat == eve`，请求方 `A5-M11` 第一阶段（第 27 周末，联军在万门广场边扎营的当夜写入并请求；DB-A5-04 圣战号召、剑帝的阵前倒戈在此落地） |
 | 时机 | 段一：第 14 周夜，必经；段二：撕封之后任意时刻，可选，`a5_final_battle_done` 之后关闭；段三：第 27 周末夏至前夜，必经，不可跳过 |
 | 出场 | 段一：玩家；`ron`、`yeyu`、`tavi`、`aiden`（在场条件）、`luchen`（只在远景）；段二：`ash`；段三：`tavi`、`emperor`（倒戈时）、`sasha`（互敬时）、`luchen`（卸光时）、`ron`、`yeyu` |
-| 地点 | 段一：`wallenburg` 河港边的军议大帐（`river_council`），夜；段二：`seal_ruins_depths` 灰烬之厅（`ash_hall`）；段三：`thousand_gates_core` 万门广场边的联军营地（`staging_camp`），远景是 `main_gate_crater` 坑沿的众门环 |
+| 地点 | 段一：`wallenburg` 河港边的军议大帐（`river_council`），夜；段二：`seal_ruins_depths` 灰烬之厅（`ash_chamber`）；段三：`thousand_gates_core` 万门广场边的联军营地（`coalition_outpost`），远景是 `main_gate_crater` 坑沿的众门环 |
 | 时长 | 段一约 4 分钟；段二约 2.5 分钟；段三约 5 分钟 |
 | 现有数据 | `a5_route_choice`（4 节点、9 行、4 个选项）全部并入：`choose` 节点的三行旁白进段一（"终光斩王"一词在 `a5_truth_purge_cycle` 之前不出现，按"勇者一击，砸碎罐子"改写）；`drawer` 节点进段二（物件按分幕 2.1 统一为"被灰浸透的钱包：一张照片、一张车票"，旗标 `a5_ash_drawer` 与 E17 不变；条件从 `a3_ash_tells_sundering` 换成"阿什的信任与玩家自己的遗物"，分幕 2.5 第 1 条）；`god`、`people` 节点进段一的两个回应。导入时去掉 `choose` 节点直接写 `purge_route` 与 `gate_ring` 的效果：`a5_purge_route` 只在最后一扇门之后由 `act5_resolution` 写入，`a5_gate_ring` 只在第五回合结束时由 `act5_outcome` 写入（分幕 6.3"抉择不是一次点击"）；本段只写意向 `a5_route_plan`。导入后共 30 节点、73 行台词、6 个选项 |
 | 写入旗标 | `a5_route_plan`（ring、both、god）；`hero_state.aiden = scholar`（把勘建交给艾登时）；`a5_ash_drawer = true` 与物品 `evidence_e17`（段二）；`a5_emperor_turned = true`（段三倒戈时）；`a5_ring_built`（段三入口由 `a5_ring_tally` 计算）；效果 `quest A5-R01`（开工时）、`war bat_a5_final_war`（段三末，打开部署屏）；`a5_route_beat`（plans_done、drawer_done、done） |
@@ -15416,7 +15419,7 @@ narrator：你只能去一处。
 | 触发 | 全部由首领战 `faceless_king` 与战线回合系统（`bat_a5_final_war`）在阈值处写入 `a5_fw_beat` 并请求，请求方 `A5-M11` 灰烬决战。开战：部署屏确认、首领战载入完成时（`open`）。战报：每回合结算后写 `a5_fw_round`（1 到 4）与 `report`。急令：号令石引导 5 秒完成时写 `a5_fw_urgent_front`（north、east、south、ring、rear）与 `urgent`。撕门：首领生命跨过 70% 时（`tear`）。门歌：第二阶段塔维的门歌引导完成时（`song`，全场一次）。神降：第三回合结算前，`hero_state.yui == loyal OR hero_state.yui == wavering OR hero_state.yui == saint_witness OR hero_state.yui == vessel` 时（`descent`，DB-A5-05；女神 GM 在请求前写 `a5_valda_ashclash`）。三方乱战：首领生命跨过 35% 且 `front.south == lost OR front.south == collapsed` 时（`trio`）。归乡之梦：首领生命跨过 25% 时（`home`） |
 | 时机 | 1000 年夏至（第 28 周），必经，不可跳过；玩家阵亡退回门内庭院再战时，已播过的停手插演不重播（读段落旗标），战报照常 |
 | 出场 | 玩家与至多九名同伴；`faceless_king` 无貌之王；`yeyu`、`tavi`、`keybearer`、`soldier`；条件出场 `luchen`、`yui`（神降档）、`eluen`（经结衣之口）、`valda`（化身）、`emperor`、`martha`、`marcus` |
-| 地点 | `main_gate_crater` 湖心石台（`lake_platform`）与坑沿（`crater_rim`）；战报的小窗取 `ashen_final_battle` 态势图与各节点地图；神降在南线（`reedbridge_battle` 小窗）或坑沿南面 |
+| 地点 | `main_gate_crater` 湖心石台（`lake_arena`）与坑沿（`crater_rim`）；战报的小窗取 `ashen_final_battle` 态势图与各节点地图；神降在南线（`reedbridge_battle` 小窗）或坑沿南面 |
 | 时长 | 开战约 1.5 分钟；撕门约 3 分钟；神降约 1 分钟；三方乱战约 0.5 分钟；不停手各段每行 3 秒（战报每回合约 25 到 40 秒） |
 | 现有数据 | `a5_final` 的 `face` 节点首行"他身上的灰在往外散，剩下的部分，越来越像一个人"移到 `cut_a5_mirror_c` 的开头；其余为新建。现有 `a5_m03_final` 任务的 `war act5_final_war` 与 `wave faceless_king` 两个阶段在导入时改由本条的段落请求串接（战场剧本 ID 用 `bat_a5_final_war`，别名 `act5_final_war`）。导入后共 25 节点、95 行台词、5 个选项、1 处即兴 |
 | 写入旗标 | `a5_fw_beat`（open_done、report_done、urgent_done、tear_done、song_done、descent_done、trio_done、home_done）；`a5_yui_descent = true`（神降）；`a5_faceless_lean` 加减与 `a5_mb_dirs`、`a5_faceless_name_asked`（撕门后的方向选择，与 `cut_a5_mirror_b` 共用）；门歌 `add a5_faceless_lean 1`。读而不写：`a5_fw_round`、`a5_fw_urgent_front`、`front.<线>`、`front_wait.<线>`、`a5_valda_ashclash`、`a5_emperor_turned`、`a5_tear_stopped`（由首领战写入） |
@@ -15465,7 +15468,7 @@ narrator：你只能去一处。
 2. **对白**
 
 ```text
-场景 cut_a5_final_war｜标题 灰烬决战｜幕 act5｜地图 main_gate_crater｜位置 lake_platform｜起点 entry
+场景 cut_a5_final_war｜标题 灰烬决战｜幕 act5｜地图 main_gate_crater｜位置 lake_arena｜起点 entry
 【entry】
 分支［a5_fw_beat == report］→ report
 分支［a5_fw_beat == urgent］→ urgent
@@ -15740,7 +15743,7 @@ yeyu［companion.yeyu.state == active］：别进那扇门！那不是回家的�
 | 触发 | `act == 5 AND a5_fw_beat == tear_done AND NOT a5_final_battle_done`，请求方 `A5-M11` 最终段（首领生命跨过 5% 时首领战冻结并请求；本场播完首领战即结束，不再交还控制）。DB-A5-11、DB-A5-12 在本场落地 |
 | 时机 | 1000 年夏至，灰烬决战的最后时刻，必经，不可跳过 |
 | 出场 | 玩家；`faceless_king` 无貌之王（救赎后为 `faceless`）；`janu` 门口的女人（第一次在现实里）；`keybearer`；条件出场 `luchen`、`yui`；终局战报里的 `martha`、`marcus`、`sasha` 等只有旁白 |
-| 地点 | `main_gate_crater` 湖心石台（`lake_platform`）；归无的一瞬在 `gap_void`（最后一扇门的门后） |
+| 地点 | `main_gate_crater` 湖心石台（`lake_arena`）；归无的一瞬在 `gap_void`（最后一扇门的门后） |
 | 时长 | 约 6 分钟（终光、毁灭）到 9 分钟（救赎·生，含输入名字） |
 | 现有数据 | `a5_final`（6 节点、15 行、2 个选项，`face`、`final_light`、`redeemed`、`destroyed`、`janu` 等节点）全部并入并扩写：`face` 的首行进 `stop`；救赎与毁灭的两个选项按分幕 2.4 的结局台词重写，救赎条件改读本节"救赎条件齐"（原条件少了"问过名字""倾向""梦境任务"三项）；`final_light` 节点从"按 `purge_route == god` 直接跳转"改由玩家在 5% 的选择进入（分幕 6.3）；`janu` 节点按规模拆成 `receive`、`seal` 两节点，"沈望"一行只在救赎分支出现（原稿在所有结局都叫名字，与 DB-A5-12"救赎条件满足"不符）；`yeyu_letters = 5` 移到 `cut_a5_trial_called` 的信件节点；`compute act5_outcome` 前移到 `stop`（第五回合锁定战线，并定出 `a5_janu_act`），另加 `compute act5_resolution`（定出路线与结局后的结算）。导入后共 25 节点、110 行台词、5 个选项、1 处自由输入、1 处即兴 |
 | 写入旗标 | `a5_redeem_ready`（救赎条件齐时）；`a5_faceless_end`（redeemed、destroyed、final_light）；`a5_faceless_named = true`（救赎时）；`a5_faceless_register_name`（文本，空值"无名"）；`a5_faceless_survived`（true 或 false）；`hero_state.luchen = final_light`（陆辰执行时）；`janu_faith` 加 5（接人）或加 35（封隙）；物品 `evidence_e32`、`evidence_e18`（救赎·生）、`evidence_e28`、`evidence_e29`（`a5_purify_success` 时）；`a5_final_battle_done = true`；计算 `act5_outcome`（开头）、`act5_resolution`（结尾）；效果 `scene cut_a5_trial_called` |
@@ -15773,7 +15776,7 @@ yeyu［companion.yeyu.state == active］：别进那扇门！那不是回家的�
 2. **对白**
 
 ```text
-场景 cut_a5_mirror_c｜标题 最后一扇门｜幕 act5｜地图 main_gate_crater｜位置 lake_platform｜起点 stop
+场景 cut_a5_mirror_c｜标题 最后一扇门｜幕 act5｜地图 main_gate_crater｜位置 lake_arena｜起点 stop
 【stop】
 @镜 1
 @乐 mus_boss_faceless 出
@@ -16427,6 +16430,8 @@ yeyu：门开了。这一次，是往上的。
 
 ### 10.1 本幕过场索引
 
+本幕条目里请求方的任务显示编号（`A6-M01` 起，含支线、纷争与下庭任务）以[任务目录（后）][qb]为准；两处不一致时按任务目录改本目录，导入时按任务目录对齐。
+
 | ID | 名 | 拍 | 类型 | 时长 | 现有数据 | 扩写量 | 里程碑 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `cut_a6_court_open` | 开庭：六司归庭与指控 | 落地 | 写定场景两段（开庭、指控），含两处即兴 | 段一约 7 分钟，段二约 5 分钟 | `a6_court` 的 `open` 到 `accuse`（7 节点、23 行） | 扩到 37 节点、124 行台词、10 个选项、2 处即兴 | M3 |
@@ -17008,19 +17013,19 @@ narrator：你迈进了门。审庭在你身后合上，箱庭的声音一下子
 分支［a6_crisis == winter_famine］→ go_winter
 → go_record
 【go_light】
-效果 flag review.no_light.descend = true；quest A6-C01；teleport elmfair chapel_square
+效果 flag review.no_light.descend = true；quest A6-C01；teleport elmfair elmfair_square
 结束
 【go_tide】
-效果 flag review.residue_tide.descend = true；quest A6-C02；teleport borderstone_north stone_line
+效果 flag review.residue_tide.descend = true；quest A6-C02；teleport borderstone_north boundary_stones
 结束
 【go_contract】
-效果 flag review.contract_halt.descend = true；quest A6-C03；teleport goldbay exchange
+效果 flag review.contract_halt.descend = true；quest A6-C03；teleport goldbay goldscale_square
 结束
 【go_winter】
-效果 flag review.winter_famine.descend = true；quest A6-C04；teleport world_tree spirit_spring
+效果 flag review.winter_famine.descend = true；quest A6-C04；teleport world_tree wellspring
 结束
 【go_record】
-效果 flag review.record_silence.descend = true；quest A6-C05；teleport borderstone guild_branch
+效果 flag review.record_silence.descend = true；quest A6-C05；teleport borderstone guild
 结束
 【stay】
 @镜 5
@@ -17188,7 +17193,7 @@ moira［a6_review_score < 0.6］：诸神缺席的半年，庭撑得很难看。
 
 | 选项 ID | 标签 | 去向 | 效果 | 条件 |
 | --- | --- | --- | --- | --- |
-| `descend` | （下庭：穿过庭镜里的门，回去亲手解决） | `go` | `a6_descents` 加 1；`review.<危机>.descend = true`；开始下庭任务（`A6-C01` 到 `A6-C05`）并传送：无光之祷 `elmfair` 的 `chapel_square`，残澱之潮 `borderstone_north` 的 `stone_line`，契约停摆 `goldbay` 的 `exchange`，冬前之荒 `world_tree` 的 `spirit_spring`，铭录静默 `borderstone` 的 `guild_branch`。该危机按"下庭解决"计 0.5 分；玩家缺席当场审理，代价由内核按场次写 `a6_absence_cost`（见变体） | 每场危机一次；证人与庭之席都可下庭 |
+| `descend` | （下庭：穿过庭镜里的门，回去亲手解决） | `go` | `a6_descents` 加 1；`review.<危机>.descend = true`；开始下庭任务（`A6-C01` 到 `A6-C05`）并传送：无光之祷 `elmfair` 的 `elmfair_square`，残澱之潮 `borderstone_north` 的 `boundary_stones`，契约停摆 `goldbay` 的 `goldscale_square`，冬前之荒 `world_tree` 的 `wellspring`，铭录静默 `borderstone` 的 `guild`。该危机按"下庭解决"计 0.5 分；玩家缺席当场审理，代价由内核按场次写 `a6_absence_cost`（见变体） | 每场危机一次；证人与庭之席都可下庭 |
 | `stay` | （留在审庭，相信他们） | `stay` | 危机由内核按自持条件结算为 `self`（1）、`barely`（0.6）或 `fail`（0）；场末播镜报 | 同上 |
 
 4. **变体**
@@ -18448,7 +18453,7 @@ yeyu：……冬至前，最后几夜了。
 | 触发 | 战斗系统或任务在每个时刻写 `a6_fb_beat` 后请求。开场：请求方 `A6-M10` 终战（按路线排队：`a6_god_war` 时只排诸神之战，请求方 `F-W01`；否则依次为 `a6_player_absorb` 五司围庭、`a6_janu_restore_chosen` 五司围门、`a6_corridor_fight` 千门回廊之战、`a6_patron` 代理之战、艾琉恩拒绝或争掌且未结盟时光之化身、瓦尔妲必要防线未破或已自愿离手时断剑之约、梅尔卡拒绝时清算、莫伊拉未被说服时改写终章）。冬眠：`a6_janu_intent_revealed AND NOT evidence.E19 AND NOT a6_spring_memory`，请求方 `A6-M06` 第一阶段。停手点与收场：首领战模板的阶段事件（见下表） |
 | 时机 | 终审之后、`cut_a6_letter7` 之前；同一周目经历一到三场（第六幕第 9 节）；冬眠在共读之前 |
 | 出场 | 玩家；`yeyu`；按对决：`eluen`、`valda`、`janu`、五司、`moira`、`sylvie`、`merca`；代理之战的代理人 `sasha` 红牙将军萨莎、`luchen` 陆辰、`hart` 金冠哈特、`emperor` 剑帝、`night_queen` 夜后（按路线） |
-| 地点 | 神庭 `divine_court` 的 `interview_hall`（光之化身、断剑之约、五司围庭、代理之战、清算、诸神之战）；`door_corridor`（千门回廊之战在回廊中段 `corridor_mid`，五司围门在尽头的复原之门前 `restoration_door`）；`endless_stacks` 的变体"改写的书库"（位置 `rewrite_stacks`：书架上是玩家走过的场景）；`world_tree` 的灵泉 `spirit_spring`（冬眠）。场景头的地图是默认舞台；不在神庭的对决，由请求方先经庭镜之门传送（`teleport`）再请求，过场在玩家所在的地图上播放 |
+| 地点 | 神庭 `divine_court` 的 `interview_hall`（光之化身、断剑之约、五司围庭、代理之战、清算、诸神之战）；`door_corridor`（千门回廊之战在回廊中段 `corridor_mid`，五司围门在尽头的复原之门前 `restoration_door`）；`endless_stacks` 的变体"改写的书库"（位置 `rewrite_stacks`：书架上是玩家走过的场景）；`world_tree` 的灵泉 `wellspring`（冬眠）。场景头的地图是默认舞台；不在神庭的对决，由请求方先经庭镜之门传送（`teleport`）再请求，过场在玩家所在的地图上播放 |
 | 时长 | 每场开场约 1 分钟，收场约 1 分钟，停手点各约 0.5 分钟（不含战斗）；一次通关合计约 6 分钟 |
 | 现有数据 | `a6_court` 的 `after_valda`、`duel`、`hibernate`、`spring_found`、`corridor`、`corridor_end`（6 节点、12 行台词、5 个选项）。导入后共 58 节点、131 行台词、13 个选项 |
 | 写入旗标 | `a6_fb_result.<战>`（avatar、sword、corridor、siege、proxies、gate、rewrite、hibernate、reckon、godwar；won、lost、yielded）；终战改写的终审：`verdict.eluen`、`verdict.valda`、`verdict.merca`、`verdict.moira`、`verdict.sylvie`；`court.valda.duel`；`a6_sword_returned`；`a6_janu_release`、`a6_returned_doors_pre`、`a6_player_absorb`；`a6_god_war`；`a6_patron`（清算里接受报价时）；冬眠：`evidence_e19`、`a6_spring_memory`。`a6_corridor_closed`、`a6_god_war_saved` 由战斗系统写，本过场只读 |
@@ -19348,7 +19353,7 @@ narrator：再抬头的时候，她已经扑回了崩塌的光里，去接下一
 | `assets/prompts/specs/busts.json` | 新增条目 | `art_bust_door_woman_unveiled_expr`（模板 `bust_expr`，参照全貌档）；`art_bust_eluen`、`art_bust_sylvie`、`art_bust_yeyu` 各追加第八种表情 `pained`、`tender`、`tender`（描述见 10.5） | 本节的立绘需求 |
 | `assets/prompts/specs/props.json`、`assets/prompts/specs/vfx.json` | 新增条目 | 10.5 中标"新增"的七张特写与三组特效 | 同上 |
 | `docs/40_design/audio_direction.md` | 7.15 过场表末尾 | 新增 10.4 中六条 `sfx_cin_*`（M3） | 本节的写定音效 |
-| `docs/40_design/world/map_briefs.md` | 第六幕与相关地图的位置清单 | 登记位置：`elmfair` 的 `chapel_square`；`borderstone_north` 的 `stone_line`；`goldbay` 的 `exchange`；`world_tree` 的 `spirit_spring`；`borderstone` 的 `guild_branch`；`door_corridor` 的 `corridor_mid`、`restoration_door`；`endless_stacks` 的变体位置 `rewrite_stacks`（"改写的书库"：书架上是玩家走过的场景） | 下庭落点与终战场地 |
+| `docs/40_design/world/map_briefs.md` | 第六幕与相关地图的位置清单 | 登记位置：`elmfair` 的 `elmfair_square`；`borderstone_north` 的 `boundary_stones`；`goldbay` 的 `goldscale_square`；`world_tree` 的 `wellspring`；`borderstone` 的 `guild`；`door_corridor` 的 `corridor_mid`、`restoration_door`；`endless_stacks` 的变体位置 `rewrite_stacks`（"改写的书库"：书架上是玩家走过的场景） | 下庭落点与终战场地 |
 | `src/systems/scenes/court.ts`（实现批次） | `verdictFor`、`computeVerdicts`、`januReleases` | `computeVerdicts` 写 `court.contenders`，处理 `a6_veto`（被否决者三道全破为 judged，否则 refuse），两位争掌时的 `god_war` 交给倒计时与终审规则；`verdictFor` 在 `a6_fb_result.hibernate == won` 时保留 `verdict.sylvie = voluntary`；`januReleases` 的遗民一条写成"塔维被传唤且 `remnants >= 40`"，阿什一条写成"存活且 `witness_called.ash`"；新增计算 `court_seat`、`court_veto_claimant`、`court_sentence_default` | 第六幕 2.2、3.5、6.2 的原文与本节的写法 |
 | `src/game/autoplay/scene_policy.ts`（实现批次） | 第六幕的选择策略 | 场景 ID 从 `a6_court` 换成 `cut_a6_descent`（`descend` 与 `stay` 不变）与玩法场景 `a6_cross_exam`（`x_` 节点不变） | 拆分后自动通关策略仍要命中 |
 
@@ -22985,9 +22990,10 @@ narrator：有一颗星，稍微偏离了它该在的位置。
 
 ### 14.4 舞台与位置
 
-- 七个过场布景（第 2.6 节）请求地图文档登记进图集，新区域 `earth`（地球）一并登记。
-- 各幕条目里写"提议位置"的位置 ID（例：`stylus_tower_roof`、`curtain_chamber`、`archive_nave`、`bridgehead`、`stele_ring`、`crater_rim`、`lake_platform`）请求在[地图简报][maps]与 `data/scenes/maps.json` 一类的地图数据里登记；
-  已有地图的位置以地图数据为准，名字不同时按地图数据改条目。
+- 七个过场布景（第 2.6 节）与新区域 `earth`（地球）登记在[世界地图](../world/world_map.md)第 2.1、4.1 节与[地图简报][maps]第 3 节（`tier: scene`、`role: stage`）；
+  图集数据 `data/world/atlas_regions.json`、`atlas_maps.json` 由导入批次补登。
+- 各幕条目里的位置 ID 都登记在[地图简报][maps]对应地图的关键地点表里：与已有地点同处的用地图数据的 id（例：`guild`、`plaza`、`ash_chamber`、`outer_ring`、`crownstone_palace`、`seven_seats_ring`、`lake_arena`），
+  新的过场落点另立 id（例：`crownstone_balcony`、`bridgehead`、`summit_camp`、`river_council`、`restoration_door`）。
 
 ### 14.5 说话者
 

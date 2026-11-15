@@ -2,7 +2,7 @@
 
 > **归属**：`docs/40_design/world/`（概要设计，正典优先级第 5 级）。地图负责方编写；地图数据（`data/**/maps.json`、`data/combat/maps/*.json`）、
 > 图集三表（`data/world/atlas_*.json`）与美术提示词库（`assets/prompts/specs/*.json`）按本文落地。
-> **作用**：全作每一张地图的设计简报：图集 60 个条目逐张给出层级、尺寸、风格包、澱度、布局、地点、出入口、动线、居民、魔物、采集、
+> **作用**：全作每一张地图的设计简报：图集 67 个条目逐张给出层级、尺寸、风格包、澱度、布局、地点、出入口、动线、居民、魔物、采集、
 > 迷宫结构、照明、外观层、任务挂点、美术素材与制作排期；另补图集之外仍需落图的迷宫与战场，给出荒原外缘替身内容的迁移、
 > 场景动线 15 条遗留修改的具体改法、`MapDef.sediment` 与 `MapDef.region` 的统一方案，以及对正典出入的结论。
 > **上游**：[`world_map.md`](world_map.md)（四层地图、图集总表、第 6 到 8 节）、[`scene_flow.md`](scene_flow.md)（动线原则、十张已建图、五种模板、第 8 节）、
@@ -17,8 +17,8 @@
 
 ## 0. 一页结论
 
-1. **一张图一份简报，字段统一。** 图集 60 个条目全部覆盖：已建 10 张写"现状到目标"的扩建方案，规划 45 张与 5 个战场网格写新建方案。
-   另补图集之外仍需落图的 12 处迷宫场景与 2 个第四幕战场，并把门站残墟与拾门者营地拆成实例（第 9 节，共 18 个补登条目），合计 78 张图。
+1. **一张图一份简报，字段统一。** 图集 67 个条目全部覆盖：已建 10 张写"现状到目标"的扩建方案，规划 50 张（含 7 个过场布景）与 7 个战场网格写新建方案。
+   另补图集之外仍需落图的 13 处迷宫场景与 5 个战场，并把门站残墟与拾门者营地拆成实例（第 9 节，共 22 个补登条目），合计 89 张图。
 2. **尺寸到建议值。** 已建的 48×32 到 60×48 地块扩到 96×80 到 160×128；封印遗迹与旧水道扩到能容纳完整分层的 48×40 到 96×72。
    扩建保留现有地点 id、出口 id 与外观层件数的口径，坐标整体平移后按新布局重排（第 1.11 节）。
 3. **澱度统一。** `MapDef.sediment` 存正典级（零到五，临界记 6），渲染层按"渲染级 = 正典级 × 7 / 6 四舍五入"换算到 0 到 7 的雾与暗角标尺；
@@ -32,7 +32,7 @@
 7. **缺的战场补齐。** 鹿渡之战（C6-1，64×40）、朝阳门之夜（C3-1，64×48）给出完整网格；第四幕的界石之战（`bat_a4_boundary_war`，地图 A1-1 界石垒，56×36，第四幕的必经战斗）
    与红帐血战（`bat_a4_redtent_bloodfight`，地图 D5-2 兽王台，64×40，兽王之争的血战分支），四张都给网格、部署区、目标区与咽喉（第 10 节）；1 战场格 = 8 米。每个 `bat_` 都有地图，对照见战争目录第 5.24 节。
 8. **场景动线 15 条遗留修改逐条给出坐标级改法**（第 12 节）；图集第 8 节与 B-014 的正典出入逐条给出结论，需要回写正典的列成请求（第 13 节）。
-9. **制作顺序对齐里程碑。** M1 做序章与 A 系列 12 张图（含门内庭院）；M2 做 B、C 系列与五个战场进入 HD-2D；M3 做 D、E、F 系列与第四、五幕迷宫；
+9. **制作顺序对齐里程碑。** M1 做序章与 A 系列 19 张图（含门内庭院与 7 个过场布景）；M2 做 B、C 系列与五个战场进入 HD-2D；M3 做 D、E、F 系列与第四、五幕迷宫；
    M4 只做可选内容的打磨与回访变化（第 14 节）。
 
 ## 1. 读法与通用规则
@@ -105,6 +105,7 @@
 | 图集区域 | 默认风格包 |
 | --- | --- |
 | `divine_realm`、`court_gap` | `divine_court` |
+| `earth` | `earth_modern` |
 | `edgestone_area`、`lotha_realm` | `lothar_plain` |
 | `valen_valley` | `valen_city` |
 | `ashen_waste` | `ash_waste` |
@@ -170,7 +171,7 @@
   - 12 个室外风格包（`lothar_plain`、`valen_city`、`wild_forest`、`ash_waste`、`divine_court`、`holy_see_white`、`grantia_ochre`、`mercato_coast`、`silva_canopy`、`windfang_steppe`、`night_basalt`、`sleepscale_snow`）各有三层 `art_bg_<风格包>_far`、`_mid`、`_clouds`；
     `sealed_ruins`、`forge_deep`、`door_corridor`、`earth_modern` 没有自己的天幕。天幕是环绕镜头的横带，不分方位，不按地图另出图；四时、昼夜与天气由光照调色与天气层驱动。
   - **天幕包**：一张图默认用本图风格包的三层；本图风格包没有天幕时用所在区域风格包的三层；简报写明理由时可以另指一个风格包的三层（图集字段 `sky`，[`world_map.md`](world_map.md) 第 9.1 节）。
-  - **特殊天幕**两层 `art_bg_sky_<名>_far`、`_near`：`earth_night_city` 用于序章地球四景（P0-1）的室外段；`dream_door_sea` 用于梦境场景（门口的女人出现的梦）；
+  - **特殊天幕**两层 `art_bg_sky_<名>_far`、`_near`：`earth_night_city` 用于地球四景（P1 到 P4）的窗外与门外；`dream_door_sea` 用于梦境场景（门口的女人出现的梦）；
     `divine_heights` 用于神域区域（`divine_realm`）的露天段；`vault` 第六幕起替换室外地图的云层，远景与中景照旧；`mist_edge` 只用于结局演出，由过场指定，不挂地图。
 - **区域图插画**（编号以 `assets/prompts/specs/maps.json` 为准）：世界图 `art_map_medius`；区域图 `art_map_edgestone_area`、`art_map_ashen_waste`、`art_map_valen_valley`、`art_map_lotha_realm`、`art_map_divine_realm`、`art_map_court_gap`、
   `art_map_holy_see`、`art_map_grantia`、`art_map_mercato`、`art_map_silva`、`art_map_windfang`、`art_map_nightrealm`、`art_map_sleepscale`，与图集区域 id 一一对应，供区域图界面使用（A1、B1 的简报顺带列出所属区域的插画）；`art_map_lore_*` 是史料里的草图，归遗物目录。
@@ -250,7 +251,9 @@
 - 夜境地下与各国地下迷宫一律用 `sealed_ruins`，以 `looks` 换材质（白瓷、录墨、炉渣、黑岩）区分；不为每座迷宫单立风格包。
 - 远景天幕（D-078）按风格包分层：12 个室外风格包各有远景、中景、云层三层（四时、昼夜与天气由光照调色与天气层驱动，灰暴是天气，不另出天幕）；特殊天幕五套另列 `art_bg_sky_<名>_far`、`_near`，用法见第 1.7 节。
 
-## 3. 序章、神域与私人领域
+## 3. 序章、神域、私人领域与过场布景
+
+过场布景（`role: stage`）只在过场里出现：没有出口，不进图集路线，由过场的 `teleport` 进入（[过场目录](../content/catalog_cutscenes.md)第 2.6 节）。地球四景属新区域 `earth`，坠落、千门回廊与梦中的门口属 `court_gap`。
 
 ### P0 `divine_court` 候见厅（审庭）（The Antechamber）
 
@@ -262,16 +265,16 @@
 | 风格包 | `divine_court`（区域默认） |
 | 澱度 | 零，存储 0，渲染 0 |
 | 等级带 | 无；第六幕终战段按 60（迷宫目录的 `eluen_avatar`、`valda_broken_sword` 等化身在审庭北半的终战布局里进行） |
-| 地形与布局 | 南半候见厅：长椅（西南）、号码板（帘幕南侧中段）、灵镜（东墙中段）；中线一排帘幕门格；北半面试厅到审庭：序章是长桌与第六把椅子，第六幕是庭镜居中轴、庭之席六座半环排开、证人台与证物台分列两侧、南沿一排旁听长椅。面试厅与审庭是同一张图的两套外观，第六幕由剧情旗标切换 `looks` 与装饰组 |
+| 地形与布局 | 南半候见厅：长椅（西南）、号码板（帘幕南侧中段）、灵镜（东墙中段）；中线一排帘幕门格；北半面试厅到审庭：序章是长桌与第六把椅子，第六幕是庭镜居中轴、五司坐长桌后的白椅（第六把仍空着），长桌对面玩家当初站立的地方由剧情长出庭之席（门木椅子），证人台与证物台分列两侧、南沿一排旁听长椅。面试厅与审庭是同一张图的两套外观，第六幕由剧情旗标切换 `looks` 与装饰组 |
 | 出入口与路线 | 无出口。序章出生点在帘幕西端南边；第六幕入口 `antechamber`。审期危机的"下庭"是庭镜上的门，由剧情传送到箱庭里既有的地图，不进图集路线 |
 | 动线与镜头 | T-S；固定默认镜头，不可转（序章不教镜头）；序章 P4 主动线：出生点到灵镜到长椅到帘幕到庭之席；第六幕从帘幕进入正对庭镜 |
 | 驻留 NPC | 五司以声音与身影出现（剧情脚本）；序章隔壁面试的勇者团 `luchen`、`yui`、`aiden`、`marcus`；第六幕证人按第六幕证人表传唤 |
 | 魔物分布 | 无常驻；第六幕终战段由剧情生成 |
 | 采集点 | 无 |
 | 照明与夜间 | 恒定柔光，无昼夜；第六幕审期按阶段由剧情改变光色（开庭冷白、质证暖白、终审金） |
-| 装饰与外观层 | 序章 2 件（长椅两张）；第六幕装饰组 14 件：庭之席 6、证人台 1、证物台 1、旁听长椅 4、庭镜基座 1、空席标记 1。正典只写"纯白"，不加别的物件 |
+| 装饰与外观层 | 序章 2 件（长椅两张）；第六幕装饰组 14 件：长桌白椅 6（五司与第六把）、庭之席 1（剧情长出前不显示）、证人台 1、证物台 1、旁听长椅 4、庭镜基座 1。正典只写"纯白"，不加别的物件 |
 | 任务挂点 | 序章 P3 到 P6（外貌、号码、偷听三档、面试）；第六幕开庭、指控、质证、陈述、终审、下庭门 |
-| 美术素材 | 建筑：`art_bld_divine_court_curtain`（帘幕门格）；道具：`art_prop_number_board`、`art_prop_spirit_mirror`、`art_prop_long_table`、`art_prop_sixth_chair`、`art_prop_court_seat`（六座，五座各刻一司神纹、一座空白）、`art_prop_witness_stand`、`art_prop_evidence_stand`、`art_prop_court_mirror`；远景无 |
+| 美术素材 | 建筑：`art_bld_divine_court_curtain`（帘幕门格）；道具：`art_prop_number_board`、`art_prop_spirit_mirror`、`art_prop_long_table`、`art_prop_sixth_chair`、`art_prop_court_seat`（庭之席：白石地板裂纹里长出的门木椅子，一把）、`art_prop_witness_stand`、`art_prop_evidence_stand`、`art_prop_court_mirror`；远景无 |
 | 优先级与里程碑 | P0；序章布局 M1，第六幕审庭外观组 M3 |
 
 | 地点 id | 名 | 位置 | 功能 | 发现 |
@@ -316,6 +319,7 @@
 | `court_garden_old` | 旧园子 | 北 | 药畦 | 无 |
 | `court_pond` | 庭泉池塘 | 东南 | 庭井取水 | 无 |
 | `court_corridor_edge` | 回廊边缘 | 东北外圈 | 第四幕外观 | 无 |
+| `court_table` | 小屋前的木桌 | 西北，小屋门前 | 门内庭院里的谈话（第四幕起） | 无 |
 
 ### F1 `maker_room` 造主的房间（The Maker's Room，可选）
 
@@ -338,6 +342,208 @@
 | 任务挂点 | 第六幕 14.3：读信、翻草稿、看石板、推门 |
 | 美术素材 | 地面：`art_tile_maker_room_floorboard`；建筑：`art_bld_maker_room_wall`；道具：`art_prop_maker_desk`、`art_prop_maker_chair`、`art_prop_maker_letter`、`art_prop_maker_cup`、`art_prop_maker_drafts`（大陆轮廓与六位女神的早期速写，画风有意不同）、`art_prop_maker_tablet`（一个像"未"又不是同一种文字的字）、`art_prop_maker_door_light` |
 | 优先级与里程碑 | P2；M3 |
+
+### P1 `earth_train` 末班车车厢（The Last Train）
+
+| 项 | 内容 |
+| --- | --- |
+| 层级与角色 | 场景，舞台（过场布景）；只由过场传送进入 |
+| 幕与区域 | 序章、终章；`earth`；无省份 |
+| 尺寸 | 24×8（一节车厢 20 米长，两端各留 2 格贯通道） |
+| 风格包 | `earth_modern` |
+| 澱度 | 零，存储 0，渲染 0 |
+| 等级带 | 无 |
+| 地形与布局 | 东西向的一节车厢：两侧长座椅，中间过道；北侧是车门与车窗（窗外是隧道与城市夜景），南侧座椅是玩家起点；东端贯通道通往下一节（转角） |
+| 出入口与路线 | 无出口，不进图集路线；`cut_p_earth` 与 `cut_end_release` 以 `teleport` 进入 |
+| 动线与镜头 | T-S；固定镜头，入口在南、门出现的位置在北（D-063）；起点到车门 3 米 |
+| 驻留 NPC | 无常驻；过场按条目放置路人立牌（`art_chr_earth_*`） |
+| 魔物分布 | 无 |
+| 采集点 | 无 |
+| 照明与夜间 | 车厢顶灯冷白，隧道段窗外忽明忽暗；门出现时暖金的门光压过顶灯 |
+| 装饰与外观层 | 长座椅 4、扶手吊环 2 组、车门 2；合计约 8 件 |
+| 任务挂点 | 序章开场 A（末班车）、`cut_p_door_white` 的门；真结局回到地球 A |
+| 美术素材 | 地面：`art_tile_earth_modern_train_floor_01`、`_02`；建筑：`art_bld_earth_modern_wall_train_panel`、`art_bld_earth_modern_facade_train`、`art_bld_earth_modern_train_car`；道具：`art_prop_earth_modern_train_seat`、`art_prop_earth_modern_train_handholds`、`art_prop_earth_modern_train_door`；远景：`art_bg_sky_earth_night_city_far`、`art_bg_sky_earth_night_city_near` |
+| 优先级与里程碑 | P0；M1 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `seat` | 座位 | 南侧中段 | 玩家起点 | 无 |
+| `opposite` | 对面座位 | 北侧中段 | 醉汉的座位 | 无 |
+| `window` | 车窗 | 北墙 | 窗外夜景与倒影 | 无 |
+| `car_door` | 车门 | 北墙东段 | 门出现的位置 | 无 |
+| `gangway` | 贯通道 | 东端 | 转角（离开时消失的方向） | 无 |
+
+### P2 `earth_store` 雨夜便利店（The Convenience Store in the Rain）
+
+| 项 | 内容 |
+| --- | --- |
+| 层级与角色 | 场景，舞台（过场布景）；只由过场传送进入 |
+| 幕与区域 | 序章、终章；`earth`；无省份 |
+| 尺寸 | 16×12 |
+| 风格包 | `earth_modern` |
+| 澱度 | 零，存储 0，渲染 0 |
+| 等级带 | 无 |
+| 地形与布局 | 南墙是玻璃门与入口（门外是雨夜的人行道），西侧收银台，中间两排货架，北墙一排冷柜，东北角是仓库门 |
+| 出入口与路线 | 无出口，不进图集路线；`cut_p_earth` 与 `cut_end_release` 以 `teleport` 进入 |
+| 动线与镜头 | T-S；固定镜头，入口在南、门出现的位置在北（冷柜）；收银台到冷柜 8 米 |
+| 驻留 NPC | 无常驻；过场按条目放置路人立牌（`art_chr_earth_*`） |
+| 魔物分布 | 无 |
+| 采集点 | 无 |
+| 照明与夜间 | 店内日光灯通明，门外雨夜；冷柜的灯带是唯一的冷色光源 |
+| 装饰与外观层 | 货架 4、冷柜 3、收银台 1、伞架 1、杂志架 1、自动售货机 1（门外）；合计约 11 件 |
+| 任务挂点 | 序章开场 B（店员或顾客两种身份）、`cut_p_door_white` 的门；真结局回到地球 B（给猫起名） |
+| 美术素材 | 地面：`art_tile_earth_modern_store_tile_01`、`_02`、`art_tile_earth_modern_wet_asphalt_01`、`_02`、`art_tile_earth_modern_sidewalk_pavers_01`、`_02`；建筑：`art_bld_earth_modern_wall_store_tile`、`art_bld_earth_modern_facade_store`、`art_bld_earth_modern_store_front`；道具：`art_prop_earth_modern_store_shelf`、`art_prop_earth_modern_store_fridge`、`art_prop_earth_modern_store_counter`、`art_prop_earth_modern_umbrella_stand`、`art_prop_earth_modern_magazine_rack`、`art_prop_earth_modern_vending_machine`、`art_prop_earth_modern_cat_box` |
+| 优先级与里程碑 | P0；M1 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `counter` | 收银台 | 西 | 店员版的起点 | 无 |
+| `freezer` | 冷柜 | 北墙 | 门出现的位置 | 无 |
+| `entrance` | 入口 | 南墙正中 | 顾客版的起点；门外屋檐下有猫 | 无 |
+| `aisle` | 货架通道 | 中 | 走位 | 无 |
+| `stockroom` | 仓库门 | 东北角 | 转角 | 无 |
+
+### P3 `earth_hospital` 凌晨的医院走廊（The Hospital Corridor Before Dawn）
+
+| 项 | 内容 |
+| --- | --- |
+| 层级与角色 | 场景，舞台（过场布景）；只由过场传送进入 |
+| 幕与区域 | 序章、终章；`earth`；无省份 |
+| 尺寸 | 24×8 |
+| 风格包 | `earth_modern` |
+| 澱度 | 零，存储 0，渲染 0 |
+| 等级带 | 无 |
+| 地形与布局 | 东西向的走廊：南侧一排候诊长椅，中段护士站，北墙一排病房门，北墙东段安全出口指示灯下是一段空墙，东端电梯口 |
+| 出入口与路线 | 无出口，不进图集路线；`cut_p_earth` 与 `cut_end_release` 以 `teleport` 进入 |
+| 动线与镜头 | T-S；固定镜头，入口在南、门出现的位置在北（安全出口灯下）；长椅到门 4 米 |
+| 驻留 NPC | 无常驻；过场按条目放置路人立牌（`art_chr_earth_*`） |
+| 魔物分布 | 无 |
+| 采集点 | 无 |
+| 照明与夜间 | 走廊夜灯调暗，护士站一盏台灯，安全出口灯是绿色的点光 |
+| 装饰与外观层 | 候诊长椅 3、护士站 1、输液架 1、轮椅 1、推床 1、自动售货机 1；合计约 8 件 |
+| 任务挂点 | 序章开场 C（在等一个结果）、`cut_p_door_white` 的门；真结局回到地球 C |
+| 美术素材 | 地面：`art_tile_earth_modern_hospital_vinyl_01`、`_02`；建筑：`art_bld_earth_modern_wall_hospital_wainscot`、`art_bld_earth_modern_facade_hospital_house`；道具：`art_prop_earth_modern_waiting_chairs`、`art_prop_earth_modern_nurse_station`、`art_prop_earth_modern_iv_stand`、`art_prop_earth_modern_wheelchair`、`art_prop_earth_modern_gurney`、`art_prop_earth_modern_vending_machine` |
+| 优先级与里程碑 | P0；M1 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `chairs` | 候诊长椅 | 南侧中段 | 玩家起点 | 无 |
+| `nurse_station` | 护士站 | 中 | 夜班护士 | 无 |
+| `ward_door` | 病房门 | 北墙西段 | 在等的结果所在的病房 | 无 |
+| `exit_sign` | 安全出口灯下 | 北墙东段 | 门出现的位置 | 无 |
+| `elevator` | 电梯口 | 东端 | 转角 | 无 |
+
+### P4 `earth_house` 老宅最后一个房间（The Last Room of the Old House）
+
+| 项 | 内容 |
+| --- | --- |
+| 层级与角色 | 场景，舞台（过场布景）；只由过场传送进入 |
+| 幕与区域 | 序章、终章；`earth`；无省份 |
+| 尺寸 | 12×10 |
+| 风格包 | `earth_modern` |
+| 澱度 | 零，存储 0，渲染 0 |
+| 等级带 | 无 |
+| 地形与布局 | 搬空了的老房间：家具盖着白布，地上几只纸箱；南侧一把旧椅子，西墙是房门，东墙是窗，北墙是旧衣柜，西南角楼梯口通往楼下 |
+| 出入口与路线 | 无出口，不进图集路线；`cut_p_earth`、`cut_end_release` 与隐藏结局"回去"版以 `teleport` 进入 |
+| 动线与镜头 | T-S；固定镜头，入口在南、门出现的位置在北（衣柜）；旧椅子到衣柜 5 米 |
+| 驻留 NPC | 无常驻；过场按条目放置路人立牌（`art_chr_earth_*`） |
+| 魔物分布 | 无 |
+| 采集点 | 无 |
+| 照明与夜间 | 傍晚，窗外的光斜进来；没有开灯 |
+| 装饰与外观层 | 旧椅子 1、旧衣柜 1、盖布的家具 3、纸箱 3、遗物一小堆 1；合计约 9 件 |
+| 任务挂点 | 序章开场 D（搬家前最后一天）、`cut_p_door_white` 的门；真结局回到地球 D（搬走旧椅子）；隐藏结局"回去"版墙上的门 |
+| 美术素材 | 地面：`art_tile_earth_modern_old_house_floorboard_01`、`_02`；建筑：`art_bld_earth_modern_wall_old_house_wallpaper`、`art_bld_earth_modern_facade_hospital_house`；道具：`art_prop_earth_modern_old_chair`、`art_prop_earth_modern_old_wardrobe`、`art_prop_earth_modern_sheeted_furniture`、`art_prop_earth_modern_cardboard_boxes`、`art_prop_earth_modern_keepsakes` |
+| 优先级与里程碑 | P0；M1 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `old_chair` | 旧椅子 | 南侧中段 | 玩家起点 | 无 |
+| `door_frame` | 房门门框 | 西墙 | 搬家工人在门外 | 无 |
+| `wardrobe` | 旧衣柜 | 北墙 | 门出现的位置 | 无 |
+| `window` | 窗 | 东墙 | 傍晚的光 | 无 |
+| `stairs` | 楼梯口 | 西南角 | 转角 | 无 |
+
+### X2 `gap_void` 庭间之隙（坠落与黑）（The Gap Between Courts）
+
+| 项 | 内容 |
+| --- | --- |
+| 层级与角色 | 场景，舞台（过场布景）；只由过场传送进入 |
+| 幕与区域 | 序章、第五幕、第六幕、终章；`court_gap`；无省份 |
+| 尺寸 | 16×16（无地面，坠落与漂浮） |
+| 风格包 | `door_corridor`（只取虚空边缘与门光） |
+| 澱度 | 零，存储 0，渲染 0 |
+| 等级带 | 无 |
+| 地形与布局 | 没有地面的黑：画面中央是下坠或漂浮的玩家，四周偶尔掠过门框的暖金轮廓；底部不画任何东西 |
+| 出入口与路线 | 无出口，不进图集路线；序章坠落（`cut_p_discard`）、最后一扇门的门后（`cut_a5_mirror_c`）、地球真相里门外的黑（`cut_a6_earth_truth`）与回收结局（`cut_end_reclaim`）以 `teleport` 进入 |
+| 动线与镜头 | T-S；固定镜头居中，镜头随坠落缓慢下移 |
+| 驻留 NPC | 无 |
+| 魔物分布 | 无 |
+| 采集点 | 无 |
+| 照明与夜间 | 全黑；只有门框轮廓与接住时手腕处的一圈暖金 |
+| 装饰与外观层 | 无装饰；漂浮门框为特效层 |
+| 任务挂点 | "接住你了"（序章）；回收的"黑。然后，一扇门" |
+| 美术素材 | 地面：`art_tile_door_corridor_void_edge_01`、`_02`（只作边缘遮罩）；道具：`art_prop_door_corridor_floating_frames` |
+| 优先级与里程碑 | P0；M1 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `fall` | 坠落 | 中 | 坠落与漂浮的落点 | 无 |
+
+### X3 `door_corridor` 千门回廊（The Corridor of a Thousand Doors）
+
+| 项 | 内容 |
+| --- | --- |
+| 层级与角色 | 场景，舞台（过场布景）；只由过场传送进入；回廊界面 `ui_mode_corridor` 的门列表不是这张图 |
+| 幕与区域 | 第一到第六幕、终章；`court_gap`；无省份 |
+| 尺寸 | 64×16（一条东西向的长廊，两侧是门） |
+| 风格包 | `door_corridor` |
+| 澱度 | 零，存储 0，渲染 0 |
+| 等级带 | 无 |
+| 地形与布局 | 长廊两侧排着玩家开过与未开的门，地面是镜面与门槛石路；西端醒厅（第一扇门），其后结绳廊、镜廊等以门为界的厅段；中段开阔；东端尽头是一扇大门（复原之门与隐藏结局的门在此） |
+| 出入口与路线 | 无出口，不进图集路线；开门演出、离手之门、千门回廊之战与隐藏结局"留下"版以 `teleport` 进入 |
+| 动线与镜头 | T-S；横向跟拍，玩家自西向东走；离手之门倒着走（自东向西） |
+| 驻留 NPC | 无；第六幕终战时门口的女人在中段 |
+| 魔物分布 | 无常驻；千门回廊之战由剧情生成门后的影子 |
+| 采集点 | 无 |
+| 照明与夜间 | 门缝的暖金是主光；每扇开过的门前一盏门灯 |
+| 装饰与外观层 | 门按玩家已开的门生成（门的状态件）；门灯随门；钥台 1、拱门 3 |
+| 任务挂点 | 第一幕开门、契约之门、识才之门的演出；第六幕千门回廊之战、五司围门、复原之门；离手之门；隐藏结局"留下"版 |
+| 美术素材 | 地面：`art_tile_door_corridor_mirror_floor_01`、`_02`、`art_tile_door_corridor_threshold_path_01`、`_02`、`art_tile_door_corridor_keywork_mosaic_01`、`_02`；建筑：`art_bld_door_corridor_wall_stacked_doorframes`、`art_bld_door_corridor_wall_mirror_obsidian`、`art_bld_door_corridor_great_door`；道具：`art_prop_door_corridor_door_states`、`art_prop_door_corridor_door_sealed_states`、`art_prop_door_corridor_hall_arch`、`art_prop_door_corridor_door_lamp`、`art_prop_door_corridor_key_pedestal`、`art_prop_door_corridor_end_door` |
+| 优先级与里程碑 | P0；M1（醒厅与第一幕的厅段），第六幕的中段与尽头 M3 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `wake_hall` | 醒厅 | 西端 | 第一扇门（初门·醒）；开门演出的默认落点 | 无 |
+| `knot_hall` | 结绳廊 | 醒厅以东 | 契约之门（夜羽） | 无 |
+| `mirror_hall` | 镜廊 | 结绳廊以东 | 识才之门 | 无 |
+| `corridor_mid` | 回廊中段 | 中 | 千门回廊之战 | 无 |
+| `restoration_door` | 复原之门 | 东端尽头 | 五司围门；复原之门的抉择 | 无 |
+
+### X4 `dream_doorway` 梦中的门口（The Doorway in the Dream）
+
+| 项 | 内容 |
+| --- | --- |
+| 层级与角色 | 场景，舞台（过场布景）；只由过场传送进入 |
+| 幕与区域 | 第一到第五幕；`court_gap`；无省份 |
+| 尺寸 | 16×12 |
+| 风格包 | `door_corridor`（梦的灰泥墙与门扉） |
+| 澱度 | 零，存储 0，渲染 0 |
+| 等级带 | 无 |
+| 地形与布局 | 黑里只有一扇门与门前一小块地：门在北，门缝漏出暖光；布景按封印松动度分阶段增减（门缝一指宽、一掌宽、半开、门框上的钥匙钉与第二扇门的门框），由剧情旗标切换 `looks` |
+| 出入口与路线 | 无出口，不进图集路线；门口的女人的全部梦境以 `teleport` 进入 |
+| 动线与镜头 | T-S；固定镜头，玩家在南、门在北，相距 3 米 |
+| 驻留 NPC | 门口的女人（剧情）；第五幕梦 A 里门口站着的人另由剧情放置 |
+| 魔物分布 | 无 |
+| 采集点 | 无 |
+| 照明与夜间 | 梦光；门缝的暖金随阶段变宽 |
+| 装饰与外观层 | 门 1（按阶段换外观）、门框上的钥匙钉 1（第四幕起）；合计 2 件 |
+| 任务挂点 | 第一幕"门口的女人"、第二幕第四周与第十周的梦、第三幕警告的梦、第四幕的梦、第五幕撕封之夜 |
+| 美术素材 | 建筑：`art_bld_door_corridor_wall_dream_plaster`、`art_bld_door_corridor_facade_dream_doorway`；远景：`art_bg_sky_dream_door_sea_far`、`art_bg_sky_dream_door_sea_near`；静帧 `art_bg_cut_a1_dream_door` 作首梦底图 |
+| 优先级与里程碑 | P0；M1 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `doorway` | 门前 | 中，门在北 | 梦的落点：玩家站在门前 | 无 |
 
 ## 4. 第一幕：A 系列（边石镇区域）
 
@@ -384,6 +590,11 @@
 | `graveyard`、`gravekeeper_hut` | 墓地与守墓人小屋 | 西南小坡 | 米洛的坟、夜里的坟火 | 标 |
 | `mill`、`washing_creek`、`west_field` | 奥托磨坊、洗衣溪、西田 | 西 | 遗产纷争、传闻、加税 | 无 |
 | `miners_shack` | 矿工棚路口 | 西北镇外 | 矿工上工的集合点 | 无 |
+| `town_hall` | 镇公所 | 广场东北，代官宅邸前厅（第三幕抵领后改作镇公所，城建 `bld_hall` 的落点） | 立国（`cut_a4_founding`）；领地议事 | 无 |
+| `lord_house` | 领主宅 | 广场西北 | 玩家在国都的住处（第四幕起） | 无 |
+| `refugee_chapel` | 难民礼拜堂 | 南门外驿站东侧（第四幕起的木棚礼拜堂） | 难民收容；诸神的版本与光的诏书的落点 | 无 |
+| `tavi_camp` | 门民营地 | 东坡外 | 塔维与执钥人的帐篷（第四幕起） | 无 |
+| `dian_post` | 澱哨台 | 北门内哨所旁（城建 `bld_sed_watch`） | 读数盘与预警（`cut_a5_eska`） | 无 |
 
 ### A2 `borderstone_north` 镇北与界石线（North of Edgestone and the Boundary Line）
 
@@ -419,6 +630,8 @@
 | `ash_road_head` | 灰路起点 | 东北 | 往折桥驿 | 无 |
 | `stair_slope` | 残阶坡顶 | 北缘中段 | 远望封门遗迹与荒原 | 望 |
 | `old_hunting_blind` | 废猎棚 | 西北林中 | 978 年调查队的落脚处（`expedition_badge` 一枚） | 秘 |
+| `winter_camp` | 联军冬营 | 界石线以南的缓坡 | 第五幕冬营（`cut_a5_eska`） | 无 |
+| `imperial_camp` | 帝国军营的野战祭坛 | 冬营东侧的帝国营区 | 瓦尔妲的坦白（`cut_a5_confession`） | 无 |
 
 ### A3 `seal_ruins` 封门遗迹（外庭、中殿）（Sealed Gate Ruins: Outer Court and Nave）
 
@@ -727,6 +940,7 @@
 | `iron_gate_camp` | 铁闸营 | 下城西墙 | 城防与佣兵 | 无 |
 | `river_port` | 瓦伦河港与鱼市 | 下城南 | 货运、城下潮主战场 | 无 |
 | `ferry` | 门前渡北岸码头 | 河港西端 | 渡船 | 标 |
+| `river_council` | 联盟军议大帐 | 瓦伦河港东侧的河滩（第五幕） | 联盟军议（`cut_a5_confession`、`cut_a5_route`） | 无 |
 
 ### B4 `wallenburg_outskirts` 瓦伦堡城外（Valenburg Outskirts）
 
@@ -883,6 +1097,7 @@
 | `wayside_shrine` | 路边小祠 | 村街东 | 无神职的祠 | 标 |
 | `reed_marsh` | 芦苇沼 | 上下游 | 逃兵、垂纶 | 无 |
 | `resonance_path` | 芦苇小径 | 西南芦苇深处 | 通苇塘村 | 秘（三） |
+| `burnt_chapel` | 烧毁的礼拜堂 | 苇桥南岸（第三幕灰烬防线之战烧毁） | 陆辰的回答（`cut_a5_luchen`） | 无 |
 
 ### B3-1 `wallenburg_harbor_battle` 城下潮（下城与河港）（The Undertide）
 
@@ -961,6 +1176,10 @@
 | 美术素材 | 复用 A10 与 C1-1；增 `art_prop_watchtower_burnt`、`art_prop_cheval_de_frise` |
 | 优先级与里程碑 | P0；M2 |
 
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `north_slope` | 北坡阵线 | 北 | 骨原夜袭之后的阵线（`cut_a3_domain` 段二） | 无 |
+
 ### C1-3 `reedpond` 苇塘村（Reedpond）
 
 | 项 | 内容 |
@@ -1019,6 +1238,8 @@
 | `longtable_hall` | 长桌厅 | 东翼 | 评议会 | 标 |
 | `royal_archive` | 王国档案馆 | 西翼 | 空白纪 | 标 |
 | `seven_lock_vault` | 七锁库 | 档案馆深处 | 封匣 | 秘 |
+| `crownstone_gallery` | 冠石宫长廊 | 冠石宫内，帘幕寝殿外 | 觐见前的等候（`cut_a3_audience`） | 无 |
+| `crownstone_balcony` | 冠石宫阳台 | 冠石宫南面，俯瞰宫前广场 | 王冠坠地之夜（`cut_a3_crown_falls`）；加冕礼的远景 | 无 |
 
 ### C3 `orien_banks` 奥瑞恩两岸（Orien, Both Banks）
 
@@ -1526,6 +1747,12 @@
 | 美术素材 | 复用 B7；增 `art_prop_dawnpillar_relic`（曙光圣柱，神光特效另见特效目录）、`art_prop_siege_catapult` |
 | 优先级与里程碑 | P0；M2 |
 
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `bridgehead` | 东岸桥头堡 | 东岸桥头 | 灰烬防线守住时的落点（`cut_a3_ashen_line`） | 无 |
+| `stone_bridge` | 石桥 | 中 | 防线的主战线 | 无 |
+| `ne_hills` | 东北丘陵 | 东北 | 侧翼与援军出现处 | 无 |
+
 ## 7. 第四幕：D 系列（诸国要地）
 
 第四幕起跨区域行进走世界图（[`world_map.md`](world_map.md) 第 2.3 节）；D 系列地块是世界图上各省的落脚点，到达点统一叫 `world_arrival`（城门或驿站），离开时打开世界图。
@@ -1582,6 +1809,11 @@
 | 任务挂点 | 强者之宴四轮对话、一剑问、可达成的外交结果；`trial_emperor_hook` |
 | 美术素材 | 建筑：`art_bld_grantia_ochre_crownless_hall`；道具：`art_prop_empty_dais`、`art_prop_iron_hook_name_tags`、`art_prop_feast_table_long` |
 | 优先级与里程碑 | P0；M3 |
+
+| 地点 id | 名 | 位置 | 功能 | 发现 |
+| --- | --- | --- | --- | --- |
+| `long_table` | 长桌 | 厅中 | 强者之宴（`cut_a4_feast`） | 无 |
+| `moon_gallery` | 宫外回廊 | 厅外西侧 | 宴间的私谈 | 无 |
 
 ### D2 `scriva` 斯克里瓦学城（Scriva）
 
@@ -1641,6 +1873,9 @@
 | `forbidden_stacks` | 禁书库 | 中 | 迷宫 | 标 |
 | `star_platform_room` | 星台室 | 禁书库最深 | 守核 | 无 |
 | `blank_layer` | 空白层 | 南 | 莫伊拉 | 标 |
+| `book_ladder` | 最底层的书梯 | 开架层最底处 | 莫伊拉的版本（`cut_a4_versions`） | 无 |
+| `stair_spiral` | 螺旋楼梯 | 空白层与开架层之间 | 空白层的尾声（`cut_a4_isomorphism`） | 无 |
+| `rewrite_stacks` | 改写的书库 | 本图的变体外观（书架上是玩家走过的场景） | 改写终章（`cut_a6_final_battles`） | 无 |
 
 ### D3 `goldbay` 金湾（金秤广场与交易所）（Goldbay）
 
@@ -1672,6 +1907,7 @@
 | `east_docks` | 东码头 | 东 | 深潜船 | 无 |
 | `lighthouse` | 港口灯塔 | 东南 | 远望海湾与沉船湾 | 望 |
 | `failed_bank` | 倒闭的银号 | 城郊 | 巢主 | 秘 |
+| `tea_stall` | 金秤广场的茶摊 | 金秤广场西角 | 梅尔卡的版本（`cut_a4_versions`） | 无 |
 
 ### D3-1 `deep_ledger_vault` 深账库（The Deep Ledger Vault）
 
@@ -1817,6 +2053,8 @@
 | `seven_seats_ring` | 七席石座 | 中北 | 会盟 | 标 |
 | `vault_observatory` | 观穹台 | 西坡 | 隐修者 | 标 |
 | `summit_edge` | 峰顶边缘 | 北 | 远望云海与银巢 | 望 |
+| `summit_camp` | 云阶道营地 | 南缘，云阶道上来的山肩 | 会盟各国的营地（`cut_a4_conclave`） | 无 |
+| `silver_nest` | 银巢 | 峰顶以北的冰崖 | 原龙的巢（`cut_a5_eska`） | 无 |
 
 ### D7 `seran` 瑟兰（白冕大圣堂与碑庭）（Seran，可选）
 
@@ -1847,6 +2085,9 @@
 | `hero_academy` | 勇者院 | 东 | 召唤大阵 | 标 |
 | `inquisition_archive` | 审判庭禁书库 | 西 | 神谕档案 | 秘 |
 | `academy_garden_stone` | 勇者院后院的花坛边石 | 东 | 初阵残石 | 秘 |
+| `white_crown_balcony` | 白冕大圣堂阳台 | 大圣堂正面高处 | 光的诏书宣读（`cut_a4_edict`） | 无 |
+| `seran_outskirts` | 瑟兰城外 | 朝圣者城门外的大道 | 出狱一节（`cut_a4_edict`） | 无 |
+| `chapel_gate` | 礼拜堂门前 | 碑庭东侧的礼拜堂 | 战争诏书张贴（`cut_a5_confession`） | 无 |
 
 ### D7-1 `martyrlight_catacombs` 殉光地下墓（Martyrs' Catacomb，可选）
 
@@ -1907,6 +2148,7 @@
 | `moonwell` | 月井 | 宫城东 | 第五幕节点五 | 标 |
 | `night_market` | 夜境黑市 | 西地下 | 门钥线索 | 秘 |
 | `volcano_ledge` | 火山肩 | 东北 | 远望夜境冻原 | 望 |
+| `war_tents` | 夜境军帐 | 城外火山肩下 | 第五幕战前（`cut_a5_confession`） | 无 |
 
 ## 8. 第五幕：E 系列
 
@@ -1945,7 +2187,7 @@
 | 项 | 内容 |
 | --- | --- |
 | 层级与角色 | 场景，迷宫（`dg_main_gate_pit`，终战场；十人团队首领战） |
-| 幕与区域 | 第五幕；`ashen_waste`；`thousand_gates` |
+| 幕与区域 | 第四到第五幕（第四幕只开放坑沿的凿碑台与门框断面：`A4-S01`、`A4-S02`、`A4-M14` 与天启之后的天亮）；`ashen_waste`；`thousand_gates` |
 | 尺寸 | 96×96 |
 | 风格包 | `ash_waste`（显式；坑底以 `looks` 用古澱湖的黑水） |
 | 澱度 | 五，存储 5，渲染 6；古澱湖局部临界（存储 6，渲染 7） |
@@ -2021,6 +2263,7 @@
 | `world_tree_trunk` | 世界树 | 中央 | 节点二 | 标 |
 | `outer_roots` | 外根 | 树北 | 根渊入口 | 标 |
 | `canopy_gap` | 树冠空隙 | 树干东侧的高根 | 远望整片希尔瓦 | 望 |
+| `spring_meadow` | 灵泉下游的春草地 | 灵泉以南的下游 | 希尔薇的版本（`cut_a4_versions`；兽引路，不受"外族不得近前"的限制） | 无 |
 
 ### E5 `redanvil` 赤砧山（炉心）（Mount Redanvil）
 
@@ -2054,7 +2297,7 @@
 
 ## 9. 图集补登
 
-图集 60 个条目之外，下列地图在分幕、迷宫目录或本文的布局里必须有落图；按 [`world_map.md`](world_map.md) 第 1.2 节的编号规则补登（子条目继承父编号的字母）。
+图集 67 个条目之外，下列地图在分幕、迷宫目录或本文的布局里必须有落图；按 [`world_map.md`](world_map.md) 第 1.2 节的编号规则补登（子条目继承父编号的字母）。
 数据写入 `data/world/atlas_maps.json` 与 `atlas_routes.json` 属数据负责方，作为请求列在第 13.3 节。
 
 ### 9.1 补登总表
@@ -2082,9 +2325,9 @@
 | A10-1 | `valen_fields_battle` | 瓦伦平野（第二战线 `bat_a3_second_front`） | 场景 | 战场 | 三 | `valen_valley` | `valen_plain` | `lothar_plain` | 1 | 43 到 45 | 56×36 | 战役入口 `valen_fields_battle_call`（灰烬防线同时，自动结算为主） | 否 |
 | E4-2 | `rootcourt_battle` | 根下庭（根下庭之夜 `bat_a4_rootcourt_night`） | 场景 | 战场 | 四 | `silva` | `ringwood` | `silva_canopy` | 2 | 47 到 50 | 48×36 | E4 战役入口 `rootcourt_battle_call` | 否 |
 | A1-2 | `borderstone_rear_battle` | 边石后方（后方·边石 `bat_a5_front_rear`） | 场景 | 战场 | 五 | `edgestone_area` | `ash_border` | `lothar_plain` | 2 | 55 到 58 | 48×32 | `borderstone` 与 `seal_ruins` 的战场变体 | 否 |
-| P0-1 | `earth_last_train`、`earth_night_store`、`earth_hospital`、`earth_old_house` | 序章地球四景 | 场景 | 写定场景 | 序 | 无 | 无 | `earth_modern` | 0 | 无 | 32×24 | 序章 N1 的地球开场（四选一，[任务目录（前）](../content/catalog_quests_acts1_3.md) 第 4 节） | 否 |
 | A5-2 | `dg_old_mine` | 边石旧矿（锈岭矿口一侧的旧矿道） | 子场景 | 迷宫 | 一 | `edgestone_area` | `ash_border` | `forge_deep` | 2 | 6 到 12 | 48×48 | `rustridge_mine` 的子场景（矿工叫它边石旧矿） | 否 |
 
+- 地球四景是图集条目 P1 到 P4（第 3 节的过场布景），不补登。
 - `gate_station_ruins`（C9-2）是西南站，`gatepicker_camp`（C9-3）是西营；四座门站与两处营地共用 C9-2、C9-3 的简报。
 - `dg_moon_cellar`（醉月亭的地窖）按图集规则是边石镇的室内层，不补登；`dg_skriva_vault` 在 D2-1 里，不补登。
 - 补登的区域图路段（新增路线的时长按第 0.1 节换算：1 日 = 24 小时）：
@@ -2729,8 +2972,10 @@ WWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWW
 | 同上 | 4.3 距离与路线表 | 追加第 13.2 节第 3 条的距离（作为地理志的行程行） |
 | `docs/30_story/arcs/act5_war_of_races.md` | 第 2.5、6.3 节与第 10、12 节表中表示"残澱爆散"的"灰暴" | 写为"灰爆"；新增命名表"灰暴 Ashburst"一行写为"灰爆 Ashburst" |
 | `docs/30_story/arcs/act4_continental_board.md` | 4.2 建国事件链第 4 步之后 | 加一行"界石之战（`bat_a4_boundary_war`，地图 `boundary_cairn_battle`）：立国后 30 到 90 日的一个夜里，门徒会借封印受震叩封门，封印躁动的澱与门徒会精锐扑向界石垒，不认新国的邻居同夜从另一侧压来；守住则界石誓由众人复述" |
-| `data/world/atlas_maps.json` | 全表 | 补登第 9.1 节 18 个条目；已建十张扩建后写实际尺寸；`frostbone_catacombs` 的 `levels` 为 36 到 42；`martyrlight_catacombs` 为 45 到 50；`rustridge_mine` 为 6 到 12；`ash_waste` 迁移后为 5 到 30；D2-1 的 `note` 写明含 `dg_skriva_vault` |
-| `data/world/atlas_routes.json` | 全表 | 第 9.1 节的新路线；`borderstone_seal_ruins` 起点为 `borderstone_north`、公里 3；`valen_river` 只留船行；`orien_bridges` 拆为两条 |
+| `data/world/atlas_maps.json` | 全表 | 补登第 9.1 节 22 个条目；已建十张扩建后写实际尺寸；`frostbone_catacombs` 的 `levels` 为 36 到 42；`martyrlight_catacombs` 为 45 到 50；`rustridge_mine` 为 6 到 12；`ash_waste` 迁移后为 5 到 30；D2-1 的 `note` 写明含 `dg_skriva_vault` |
+| `data/world/atlas_regions.json` | 全表 | 新区域 `earth`（`tier: realm`，`acts` [0, 7]，`style` `earth_modern`，无澱度）；`court_gap` 的 `acts` 为 [0, 1, 2, 3, 4, 5, 6, 7] |
+| `data/world/atlas_maps.json` | 过场布景与主门坑 | 第 3 节 P1 到 P4、X2 到 X4 七个过场布景（`tier: scene`，`role: stage`，`status: planned`，不写 `hubOf`）；`main_gate_crater` 的 `acts` 为 [4, 5]，`note` 补"第四幕只开放坑沿的凿碑台与门框断面（`A4-S01`、`A4-S02`、`A4-M14` 与天启之后的天亮）" |
+| `data/world/atlas_routes.json` | 全表 | 第 9.1 节的新路线；第四幕世界图到 `main_gate_crater` 的接入（省份 `thousand_gates`）；`borderstone_seal_ruins` 起点为 `borderstone_north`、公里 3；`valen_river` 只留船行；`orien_bridges` 拆为两条 |
 | `docs/40_design/content/catalog_dungeons_bosses.md` 与 `content_bible.md` 4.4 | `dg_frostbone_crypt`、`dg_martyr_catacomb`、`dg_gate_stations` | 霜骨墓窟 36 到 42（首领 38、40、42，专属魔物同步加 10）；殉光地下墓 45 到 50（首领 46、48、50）；门站群的玻璃原段 30 到 35、灰海段 33 到 37（与第三幕 7.5 一致） |
 | `docs/40_design/content/catalog_gathering_crafting.md` | 6.3 | 加 `node_waste_first_gate`（封门遗迹外庭门槛，special，T3，`mat_gate_dust`，第二幕末到第三幕） |
 | `docs/40_design/content/catalog_bestiary.md` | 1.2 或 4 节前言 | 写明"野外刷新点可按所在图的等级带定级（`SpawnDef.level`），图鉴等级是地表种群的基准"；`black_ridge` 的地点写"铁杉林深处" |
@@ -2742,7 +2987,7 @@ WWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWWWWWWWWWWWW~~~~WWWWWWWWWWWWWWWW
 
 | 里程碑 | 地图（编号） | 张数 | 说明 |
 | --- | --- | --- | --- |
-| M1 垂直切片 | P0、X1、A1 到 A10（A9 全地形与第一幕刷新组） | 12 | 第一张扩建图是 A1，第一张新建图是 A2；区域图行进的第一条路段南大路在 M1 内可走（第一幕末） |
+| M1 垂直切片 | P0 到 P4、X1 到 X4、A1 到 A10（A9 全地形与第一幕刷新组；X3 第六幕的中段与尽头在 M3） | 19 | 第一张扩建图是 A1，第一张新建图是 A2；区域图行进的第一条路段南大路在 M1 内可走（第一幕末） |
 | M2 Alpha | B1、B3-1、B4、B5、B6、B6-1、B7；C1-1 到 C11（含 C3-1、C4-1、C9-3、C10-2 可选）；补登 A5-1、C9-4 到 C9-7；A9 的第二、三幕刷新组 | 33 | 五个战场在 M2 内进入 HD-2D（D-078）；荒原外缘替身内容在 C9、C10 上线时迁出 |
 | M3 Beta | D1 到 D8（含子条目）、E1 到 E5、F1；补登 A1-1、D1-2、D3-2、D3-3、D4-2、D5-1、D5-2、D6-1、D8-1 到 D8-3、E4-1、E5-1；P0 第六幕审庭外观组 | 37 | 先做 7 个国别风格包，再按剧情权重：D1 与 D1-1、D3 与 D3-1、D4、E4、D4-1、D5、D6、D2 与 D2-1、D8；第五幕 E1、E2 最后联调 |
 | M4 内容完成与打磨 | 全部 P2、P3 的回访变化与外观加料；度量复测 | 无新图 | 每张图跑第 15 节的验收 |
